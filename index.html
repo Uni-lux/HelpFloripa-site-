@@ -45,6 +45,22 @@
       width: 100%;
     }
 
+    aside.sidebar h1 {
+      font-size: 22px;
+      margin-bottom: 5px;
+    }
+
+    aside.sidebar h1 a {
+      color: white;
+      text-decoration: none;
+    }
+
+    aside.sidebar .slogan {
+      font-size: 0.85rem;
+      color: #cce5ff;
+      margin-bottom: 20px;
+    }
+
     aside.sidebar ul {
       list-style: none;
     }
@@ -90,12 +106,6 @@
     header h1 a {
       color: white;
       text-decoration: none;
-    }
-
-    .slogan {
-      font-size: 0.9rem;
-      color: #e0e0e0;
-      margin-top: 2px;
     }
 
     header nav.top-menu {
@@ -216,7 +226,6 @@
   <header>
     <button id="menuToggle" aria-label="Abrir menu">☰</button>
     <h1><a href="index.html">Help Floripa</a></h1>
-    <span class="slogan">Tudo que você precisa em um só lugar.</span>
     <nav class="top-menu">
       <a href="solicite.html">Do Cliente</a>
       <a href="cadastro.html">Do Profissional</a>
@@ -226,6 +235,8 @@
 
   <aside id="sidebar" class="sidebar closed" aria-label="Menu lateral">
     <button class="close-button" aria-label="Fechar menu">✖</button>
+    <h1><a href="index.html">Help Floripa</a></h1>
+    <p class="slogan">Tudo que você precisa em um só lugar.</p>
     <ul>
       <li><a href="solicite.html">Do Cliente</a></li>
       <li><a href="cadastro.html">Do Profissional</a></li>
