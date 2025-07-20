@@ -1,14 +1,14 @@
-// Script para alternar o menu lateral
-document.addEventListener("DOMContentLoaded", function () {
-  const toggleBtn = document.querySelector(".toggle-btn");
-  const sidebar = document.querySelector(".sidebar");
+// Seleciona o botão e a barra lateral
+const toggleBtn = document.querySelector('.toggle-btn');
+const sidebar = document.querySelector('.sidebar');
 
-  toggleBtn.addEventListener("click", function () {
-    sidebar.classList.toggle("active");
-  });
+toggleBtn?.addEventListener('click', () => {
+  sidebar.classList.toggle('active');
 });
+
 function calcularPreco() {
-  const profissional = document.getElementById("profissional").value;
+  const cidade = document.getElementById("cidade")?.value;
+  const profissional = document.getElementById("profissional")?.value;
   const precoFinal = document.getElementById("precoFinal");
 
   const tabelaPrecos = {
@@ -20,20 +20,34 @@ function calcularPreco() {
     diarista: 95
   };
 
-  const gasolina = 25; // valor fixo de ida e volta
+  let gasolina = 0;
+  if (cidade === "florianopolis") {
+    gasolina = 70;
+  } else if (cidade === "saojose") {
+    gasolina = 90;
+  }
 
   if (profissional && tabelaPrecos[profissional]) {
     const total = tabelaPrecos[profissional] + gasolina;
     precoFinal.textContent = `Valor Total: R$ ${total.toFixed(2)}`;
   } else {
-    precoFinal.textContent = `Valor Total: R$ 0,00`;
+    precoFinal.textContent = "Valor Total: R$ 0,00";
   }
 }
 
-// Enviar formulário (simulado)
-document.getElementById("solicitarForm").addEventListener("submit", function(e) {
-  e.preventDefault();
-  alert("Sua solicitação foi enviada com sucesso! Em breve entraremos em contato.");
-  this.reset();
-  document.getElementById("precoFinal").textContent = "Valor Total: R$ 0,00";
+// Atualiza o preço ao mudar cidade ou profissional
+document.addEventListener("DOMContentLoaded", () => {
+  const cidadeSelect = document.getElementById("cidade");
+  const profissionalSelect = document.getElementById("profissional");
+
+  cidadeSelect?.addEventListener("change", calcularPreco);
+  profissionalSelect?.addEventListener("change", calcularPreco);
+
+  const form = document.getElementById("solicitarForm");
+  form?.addEventListener("submit", function (e) {
+    e.preventDefault();
+    alert("Sua solicitação foi enviada com sucesso! Em breve entraremos em contato.");
+    this.reset();
+    document.getElementById("precoFinal").textContent = "Valor Total: R$ 0,00";
+  });
 });
