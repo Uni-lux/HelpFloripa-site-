@@ -1,13 +1,13 @@
-// Alternância da barra lateral
+// Seleciona o botão e a barra lateral
 const toggleBtn = document.querySelector('.toggle-btn');
 const sidebar = document.querySelector('.sidebar');
 
-toggleBtn?.addEventListener('click', () => {
+toggleBtn.addEventListener('click', () => {
   sidebar.classList.toggle('active');
 });
 
-// Cálculo de preço
 function calcularPreco() {
+  const cidade = document.getElementById("cidade").value;
   const profissional = document.getElementById("profissional").value;
   const precoFinal = document.getElementById("precoFinal");
 
@@ -20,57 +20,29 @@ function calcularPreco() {
     diarista: 95
   };
 
-  const gasolina = 25; // valor fixo
+  let gasolina = 0;
+  if (cidade === "florianopolis") {
+    gasolina = 70;
+  } else if (cidade === "saojose") {
+    gasolina = 90;
+  }
 
   if (profissional && tabelaPrecos[profissional]) {
     const total = tabelaPrecos[profissional] + gasolina;
     precoFinal.textContent = `Valor Total: R$ ${total.toFixed(2)}`;
-    precoFinal.style.color = '#003366'; // azul escuro
   } else {
-    precoFinal.textContent = `Valor Total: R$ 0,00`;
-    precoFinal.style.color = '#888'; // cinza
+    precoFinal.textContent = "Valor Total: R$ 0,00";
   }
 }
 
-// Atualização dinâmica dos bairros conforme cidade
-document.getElementById("cidade")?.addEventListener("change", function () {
-  const cidade = this.value;
-  const bairroSelect = document.getElementById("bairro");
+// Atualiza o preço sempre que a cidade ou profissional mudar
+document.getElementById("cidade").addEventListener("change", calcularPreco);
+document.getElementById("profissional").addEventListener("change", calcularPreco);
 
-  const bairros = {
-    florianopolis: ["Centro", "Ingleses", "Trindade", "Campeche", "Estreito"],
-    sao_jose: ["Kobrasol", "Barreiros", "Roçado", "Forquilhinhas", "Ipiranga"]
-  };
-
-  // Limpar opções anteriores
-  bairroSelect.innerHTML = '<option value="">Selecione o bairro</option>';
-
-  if (cidade && bairros[cidade]) {
-    bairros[cidade].forEach(bairro => {
-      const opt = document.createElement("option");
-      opt.value = bairro.toLowerCase().replace(/\s/g, "_");
-      opt.textContent = bairro;
-      bairroSelect.appendChild(opt);
-    });
-  }
-});
-
-// Envio do formulário com feedback visual
-document.getElementById("solicitarForm")?.addEventListener("submit", function (e) {
+// Enviar formulário (simulado)
+document.getElementById("solicitarForm").addEventListener("submit", function(e) {
   e.preventDefault();
-
-  const botao = this.querySelector("button[type='submit']");
-  const precoFinal = document.getElementById("precoFinal");
-
-  botao.disabled = true;
-  botao.textContent = "Enviando...";
-
-  setTimeout(() => {
-    alert("✅ Sua solicitação foi enviada com sucesso!\nEm breve entraremos em contato.");
-    this.reset();
-    precoFinal.textContent = "Valor Total: R$ 0,00";
-    precoFinal.style.color = "#888";
-    botao.disabled = false;
-    botao.textContent = "Solicitar Profissional";
-  }, 1200);
+  alert("Sua solicitação foi enviada com sucesso! Em breve entraremos em contato.");
+  this.reset();
+  document.getElementById("precoFinal").textContent = "Valor Total: R$ 0,00";
 });
