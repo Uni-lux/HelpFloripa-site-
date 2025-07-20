@@ -163,3 +163,59 @@ footer {
     max-width: 300px;
   }
 }
+.container-solicitar {
+  max-width: 600px;
+  margin: 40px auto;
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.15);
+  color: #001f3f;
+}
+
+.container-solicitar h1 {
+  text-align: center;
+  margin-bottom: 25px;
+  color: #004080;
+}
+
+.container-solicitar label {
+  display: block;
+  margin-top: 15px;
+  font-weight: bold;
+}
+
+.container-solicitar input,
+.container-solicitar textarea,
+.container-solicitar select {
+  width: 100%;
+  padding: 10px;
+  margin-top: 5px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+.btn.destaque {
+  margin-top: 25px;
+  width: 100%;
+  background-color: #004080;
+  color: white;
+  padding: 15px;
+  border: none;
+  border-radius: 8px;
+  font-size: 18px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.btn.destaque:hover {
+  background-color: #0066cc;
+}
+
+.preco-box {
+  margin-top: 20px;
+  font-size: 18px;
+  color: #004080;
+  font-weight: bold;
+}
