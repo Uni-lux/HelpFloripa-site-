@@ -1,10 +1,10 @@
-document.addEventListener('DOMContentLoaded', () => {
-  const forms = document.querySelectorAll('form');
+function mostrarSecao(secaoId) {
+  const secoes = document.querySelectorAll('.secao');
+  secoes.forEach(secao => secao.style.display = 'none');
 
-  forms.forEach(form => {
-    form.addEventListener('submit', e => {
-      e.preventDefault();
-      alert('Formulário enviado com sucesso! (simulação)');
-    });
-  });
-});
+  const secaoSelecionada = document.getElementById(secaoId);
+  if (secaoSelecionada) {
+    secaoSelecionada.style.display = 'block';
+    secaoSelecionada.scrollIntoView({ behavior: 'smooth' });
+  }
+}
