@@ -1,91 +1,122 @@
-body {
+/* Reset e base */
+* {
     margin: 0;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f0f4f8;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #f9f9f9;
     color: #333;
 }
 
+/* Topo fixo */
 header {
-    background-color: #0075b0;
+    background-color: #00adee;
     color: white;
+    padding: 20px;
     text-align: center;
-    padding: 20px 10px;
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 10;
 }
 
-.logo {
-    width: 100px;
+header img {
+    height: 60px;
     margin-bottom: 10px;
 }
 
-h1 {
-    margin: 10px 0 5px;
+header h1 {
+    font-size: 28px;
 }
 
-.slogan {
-    font-style: italic;
-    margin: 0;
+header p {
+    font-size: 14px;
 }
 
-.top-menu {
-    background-color: #005f8d;
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    padding: 10px;
-    flex-wrap: wrap;
+/* Menu lateral */
+.sidebar {
+    position: fixed;
+    left: 0;
+    top: 100px;
+    width: 220px;
+    background-color: #003f5e;
+    padding-top: 20px;
+    height: 100%;
+    z-index: 5;
 }
 
-.top-menu a {
+.sidebar a {
+    display: block;
     color: white;
+    padding: 15px 25px;
     text-decoration: none;
-    font-weight: bold;
-    padding: 10px 15px;
-    border-radius: 5px;
-    background-color: #0075b0;
     transition: background 0.3s;
 }
 
-.top-menu a:hover {
-    background-color: #005577;
+.sidebar a:hover {
+    background-color: #007bb5;
 }
 
+/* Conteúdo principal */
 main {
-    padding: 30px;
-    text-align: center;
+    margin-left: 240px;
+    margin-top: 140px;
+    padding: 20px;
 }
 
-.menu-principal h2 {
-    font-size: 2em;
-    color: #0075b0;
-}
-
-.botoes-principais {
-    margin-top: 20px;
-}
-
+/* Botões gerais */
 .btn {
     display: inline-block;
-    padding: 15px 25px;
-    margin: 10px;
-    font-size: 1rem;
-    text-decoration: none;
-    border-radius: 8px;
-    background-color: #0075b0;
+    background-color: #00adee;
     color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: bold;
     transition: background-color 0.3s;
+    margin: 10px 0;
 }
 
 .btn:hover {
-    background-color: #005f8d;
+    background-color: #007bb5;
 }
 
-.destaque {
+form {
+    max-width: 500px;
+    margin-top: 20px;
+    background-color: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+input, button {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 12px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+
+button {
     background-color: #00adee;
+    color: white;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #007bb5;
 }
 
 footer {
-    background-color: #005f8d;
-    color: white;
     text-align: center;
-    padding: 15px;
+    padding: 20px;
+    background-color: #003f5e;
+    color: white;
+    margin-top: 40px;
 }
