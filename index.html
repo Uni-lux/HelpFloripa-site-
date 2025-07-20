@@ -1,9 +1,7 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
+<!DOCTYPE html><html lang="pt-BR"><head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Help Floripa - Tudo que você precisa em um só lugar</title>
+  <title>HelpFloripa - Tudo que você precisa</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     * {
@@ -11,187 +9,221 @@
       padding: 0;
       box-sizing: border-box;
       font-family: 'Inter', sans-serif;
-    }
+    }body {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f4f6f8;
+  color: #333;
+}
 
-    body {
-      background: #f4f6f8;
-      color: #333;
-    }
+.sidebar {
+  width: 250px;
+  background-color: #007bff;
+  color: white;
+  padding: 20px;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+}
 
-    header {
-      background-color: #007bff;
-      color: white;
-      padding: 20px 40px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
+.sidebar h2 {
+  font-size: 1.5rem;
+  margin-bottom: 30px;
+}
 
-    header h1 {
-      font-size: 1.8rem;
-    }
+.sidebar nav a {
+  display: block;
+  color: white;
+  text-decoration: none;
+  margin-bottom: 15px;
+  font-weight: 500;
+  transition: 0.3s;
+}
 
-    nav a {
-      color: white;
-      margin-left: 20px;
-      text-decoration: none;
-      font-weight: 500;
-    }
+.sidebar nav a:hover {
+  text-decoration: underline;
+}
 
-    .hero {
-      text-align: center;
-      padding: 60px 20px;
-      background: #e9f4ff;
-    }
+.main {
+  margin-left: 250px;
+  flex: 1;
+}
 
-    .hero h2 {
-      font-size: 2.5rem;
-      color: #007bff;
-    }
+header {
+  background-color: #0056b3;
+  color: white;
+  padding: 20px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 
-    .hero p {
-      margin-top: 20px;
-      font-size: 1.2rem;
-    }
+header h1 {
+  font-size: 1.8rem;
+}
 
-    .container {
-      max-width: 1000px;
-      margin: 40px auto;
-      padding: 0 20px;
-    }
+.hero {
+  background: #e9f4ff;
+  padding: 50px 20px;
+  text-align: center;
+}
 
-    .section-title {
-      font-size: 2rem;
-      margin-bottom: 20px;
-      color: #007bff;
-    }
+.hero h2 {
+  color: #007bff;
+  font-size: 2.5rem;
+}
 
-    form {
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-      margin-bottom: 40px;
-    }
+.hero p {
+  margin-top: 15px;
+  font-size: 1.2rem;
+}
 
-    label {
-      font-weight: 600;
-    }
+.container {
+  max-width: 1000px;
+  margin: 30px auto;
+  padding: 0 20px;
+}
 
-    input,
-    select,
-    textarea {
-      padding: 10px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-    }
+.section-title {
+  font-size: 2rem;
+  margin-bottom: 20px;
+  color: #007bff;
+  border-bottom: 2px solid #007bff;
+  padding-bottom: 10px;
+}
 
-    button {
-      padding: 12px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      font-weight: bold;
-    }
+form {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
 
-    button:hover {
-      background-color: #0056b3;
-    }
+label {
+  font-weight: 600;
+}
 
-    footer {
-      text-align: center;
-      padding: 20px;
-      background-color: #007bff;
-      color: white;
-      margin-top: 40px;
-    }
+input,
+select,
+textarea {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+button {
+  padding: 12px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.3s;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+footer {
+  text-align: center;
+  padding: 20px;
+  background-color: #007bff;
+  color: white;
+  margin-top: 50px;
+}
+
   </style>
-</head>
-<body>
-  <header>
-    <h1>HelpFloripa</h1>
+</head><body>
+  <div class="sidebar">
+    <h2>HelpFloripa</h2>
     <nav>
-      <a href="#profissionais">Profissionais</a>
-      <a href="#clientes">Clientes</a>
-      <a href="#contato">Contato</a>
+      <a href="#home">Início</a>
+      <a href="#cadastro-profissional">Cadastrar Profissional</a>
+      <a href="#cadastro-cliente">Cadastrar Cliente</a>
+      <a href="#fale-conosco">Contato</a>
     </nav>
-  </header>
+  </div>  <div class="main">
+    <header>
+      <h1>Bem-vindo ao HelpFloripa</h1>
+    </header><section class="hero" id="home">
+  <h2>Conectamos você ao profissional ideal</h2>
+  <p>Tudo que você precisa em um só lugar.</p>
+</section>
 
-  <section class="hero">
-    <h2>Conectamos você ao profissional ideal</h2>
-    <p>Tudo que você precisa em um só lugar.</p>
+<div class="container">
+  <section id="cadastro-profissional">
+    <h3 class="section-title">Cadastro de Profissionais</h3>
+    <form>
+      <label for="nome-profissional">Nome completo</label>
+      <input type="text" id="nome-profissional" placeholder="Seu nome completo" required />
+
+      <label for="especialidade">Especialidade</label>
+      <select id="especialidade">
+        <option>Cuidador de Idosos</option>
+        <option>Pedreiro</option>
+        <option>Pintor</option>
+        <option>Jardineiro</option>
+        <option>Outros</option>
+      </select>
+
+      <label for="descricao">Descrição do serviço</label>
+      <textarea id="descricao" rows="4" placeholder="Experiência, horários disponíveis..."></textarea>
+
+      <label for="contato">Telefone/WhatsApp</label>
+      <input type="tel" id="contato" placeholder="(XX) XXXXX-XXXX" required />
+
+      <button type="submit">Cadastrar Profissional</button>
+    </form>
   </section>
 
-  <div class="container">
-    <section id="profissionais">
-      <h3 class="section-title">Cadastro de Profissionais</h3>
-      <form>
-        <label for="nome-profissional">Nome completo</label>
-        <input type="text" id="nome-profissional" placeholder="Seu nome completo" required />
+  <section id="cadastro-cliente" style="margin-top: 50px;">
+    <h3 class="section-title">Cadastro de Clientes</h3>
+    <form>
+      <label for="nome-cliente">Nome completo</label>
+      <input type="text" id="nome-cliente" placeholder="Seu nome completo" required />
 
-        <label for="especialidade">Especialidade</label>
-        <select id="especialidade">
-          <option>Cuidador de Idosos</option>
-          <option>Cuidador de Pessoas Especiais</option>
-          <option>Pedreiro</option>
-          <option>Pintor</option>
-          <option>Jardineiro</option>
-          <option>Outros</option>
-        </select>
+      <label for="servico">Serviço desejado</label>
+      <select id="servico">
+        <option>Cuidador de Idosos</option>
+        <option>Pedreiro</option>
+        <option>Pintor</option>
+        <option>Jardineiro</option>
+        <option>Outros</option>
+      </select>
 
-        <label for="descricao">Descrição do serviço</label>
-        <textarea id="descricao" rows="4" placeholder="Fale sobre sua experiência, horários disponíveis, etc."></textarea>
+      <label for="bairro">Bairro/Localização</label>
+      <input type="text" id="bairro" placeholder="Ex: Centro, Ingleses..." required />
 
-        <label for="contato">Telefone/WhatsApp</label>
-        <input type="tel" id="contato" placeholder="(XX) XXXXX-XXXX" required />
+      <label for="telefone">Telefone/WhatsApp</label>
+      <input type="tel" id="telefone" placeholder="(XX) XXXXX-XXXX" required />
 
-        <button type="submit">Cadastrar Profissional</button>
-      </form>
-    </section>
+      <button type="submit">Cadastrar Cliente</button>
+    </form>
+  </section>
 
-    <section id="clientes">
-      <h3 class="section-title">Cadastro de Clientes</h3>
-      <form>
-        <label for="nome-cliente">Nome completo</label>
-        <input type="text" id="nome-cliente" placeholder="Seu nome completo" required />
+  <section id="fale-conosco" style="margin-top: 50px;">
+    <h3 class="section-title">Fale Conosco</h3>
+    <form>
+      <label for="nome-contato">Nome</label>
+      <input type="text" id="nome-contato" placeholder="Seu nome" required />
 
-        <label for="servico-desejado">Serviço desejado</label>
-        <select id="servico-desejado">
-          <option>Cuidador de Idosos</option>
-          <option>Cuidador de Pessoas Especiais</option>
-          <option>Pedreiro</option>
-          <option>Pintor</option>
-          <option>Jardineiro</option>
-          <option>Outros</option>
-        </select>
+      <label for="mensagem">Mensagem</label>
+      <textarea id="mensagem" rows="4" placeholder="Escreva sua dúvida ou sugestão"></textarea>
 
-        <label for="localizacao">Bairro/Localização</label>
-        <input type="text" id="localizacao" placeholder="Ex: Centro, Ingleses, Estreito..." required />
+      <button type="submit">Enviar Mensagem</button>
+    </form>
+  </section>
+</div>
 
-        <label for="telefone-cliente">Telefone/WhatsApp</label>
-        <input type="tel" id="telefone-cliente" placeholder="(XX) XXXXX-XXXX" required />
+<footer>
+  &copy; 2025 HelpFloripa. Todos os direitos reservados.
+</footer>
 
-        <button type="submit">Cadastrar Pedido</button>
-      </form>
-    </section>
-
-    <section id="contato">
-      <h3 class="section-title">Fale Conosco</h3>
-      <form>
-        <label for="nome-contato">Nome</label>
-        <input type="text" id="nome-contato" placeholder="Seu nome" required />
-
-        <label for="mensagem">Mensagem</label>
-        <textarea id="mensagem" rows="4" placeholder="Sua dúvida ou sugestão"></textarea>
-
-        <button type="submit">Enviar</button>
-      </form>
-    </section>
   </div>
-
-  <footer>
-    &copy; 2025 HelpFloripa. Todos os direitos reservados.
-  </footer>
-</body>
-</html>
+</body></html>
