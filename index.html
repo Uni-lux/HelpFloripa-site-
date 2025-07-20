@@ -1,252 +1,296 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8" />
-    <title>Help Floripa</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <style>
-        /* Reset básico */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', sans-serif;
-        }
-        body, html {
-            height: 100%;
-            background: #fff;
-            color: #000;
-        }
-        body {
-            display: flex;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Help Floripa</title>
+  <style>
+    /* Reset */
+    * {
+      margin: 0; padding: 0; box-sizing: border-box;
+      font-family: 'Segoe UI', sans-serif;
+    }
 
-        /* Sidebar */
-        .sidebar {
-            width: 250px;
-            background-color: #002244; /* azul escuro */
-            color: white;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px 15px;
-            position: fixed;
-            top: 0; left: 0; bottom: 0;
-            z-index: 1100; /* maior que botão */
-            transition: transform 0.3s ease;
-        }
+    body {
+      display: flex;
+      min-height: 100vh;
+      background: #f0f6fc;
+      color: #002244;
+    }
 
-        .sidebar.closed {
-            transform: translateX(-260px);
-        }
+    /* Sidebar */
+    aside.sidebar {
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      width: 250px;
+      background-color: #002244;
+      color: white;
+      padding: 20px 10px;
+      transition: left 0.3s ease;
+      overflow-y: auto;
+      z-index: 1100;
+      left: -250px; /* escondido por padrão */
+    }
 
-        .sidebar .logo {
-            width: 120px;
-            margin-bottom: 20px;
-        }
+    aside.sidebar.open {
+      left: 0;
+    }
 
-        .sidebar .logo img {
-            width: 100%;
-            display: block;
-            margin-bottom: 10px;
-        }
+    aside.sidebar .close-button {
+      background: transparent;
+      border: none;
+      color: white;
+      font-size: 28px;
+      cursor: pointer;
+      margin-bottom: 20px;
+      display: block;
+      text-align: right;
+      width: 100%;
+    }
 
-        .sidebar .logo h1 {
-            font-size: 22px;
-            text-align: center;
-            margin-bottom: 5px;
-        }
+    aside.sidebar ul {
+      list-style: none;
+    }
 
-        .sidebar nav {
-            width: 100%;
-            margin-top: 30px;
-        }
+    aside.sidebar ul li {
+      margin-bottom: 15px;
+    }
 
-        .sidebar nav a {
-            display: block;
-            padding: 12px 15px;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            margin-bottom: 10px;
-            background-color: #0055aa;
-            text-align: center;
-            transition: background-color 0.3s ease;
-            font-weight: 600;
-        }
+    aside.sidebar ul li a {
+      color: white;
+      text-decoration: none;
+      font-weight: 600;
+      display: block;
+      padding: 10px 15px;
+      border-radius: 6px;
+      background-color: #0055aa;
+      transition: background-color 0.3s ease;
+    }
+    aside.sidebar ul li a:hover {
+      background-color: #0077dd;
+    }
 
-        .sidebar nav a:hover {
-            background-color: #0077dd;
-        }
+    /* Header - top menu */
+    header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 60px;
+      background-color: #0055aa;
+      color: white;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      z-index: 1200;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      gap: 20px;
+    }
 
-        /* Conteúdo principal */
-        .content {
-            margin-left: 250px;
-            padding: 40px 30px;
-            flex: 1;
-            overflow-y: auto;
-        }
+    header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
 
-        h2 {
-            margin-bottom: 20px;
-            color: #002244;
-        }
+    header nav.top-menu {
+      display: flex;
+      gap: 15px;
+      flex-grow: 1;
+    }
 
-        section p {
-            line-height: 1.6;
-            margin-bottom: 20px;
-        }
+    header nav.top-menu a {
+      color: white;
+      text-decoration: none;
+      font-weight: 600;
+      padding: 8px 12px;
+      border-radius: 5px;
+      transition: background-color 0.3s ease;
+    }
+    header nav.top-menu a:hover {
+      background-color: #003b70;
+    }
 
-        /* Painel de boas-vindas */
-        .welcome-panel {
-            margin-bottom: 40px;
-            padding: 20px;
-            background-color: #e6f0fa;
-            border-radius: 8px;
-            border: 1px solid #0055aa;
-            color: #002244;
-        }
+    /* Search box */
+    .search-box {
+      position: relative;
+      flex-shrink: 0;
+    }
+    .search-box input {
+      padding: 6px 10px;
+      border-radius: 5px;
+      border: none;
+      font-size: 14px;
+      width: 200px;
+    }
 
-        /* Botões principais */
-        .botoes-principais {
-            margin-top: 25px;
-            display: flex;
-            gap: 15px;
-        }
+    /* Botão abrir menu lateral */
+    #menuToggle {
+      font-size: 26px;
+      background: transparent;
+      border: none;
+      color: white;
+      cursor: pointer;
+      flex-shrink: 0;
+      margin-right: 10px;
+      display: block;
+    }
 
-        .btn {
-            padding: 12px 22px;
-            background-color: #002244;
-            color: white;
-            text-decoration: none;
-            border-radius: 6px;
-            font-weight: 600;
-            transition: background-color 0.3s ease;
-            display: inline-block;
-        }
+    /* Conteúdo principal */
+    main {
+      margin-top: 60px;
+      padding: 20px 30px;
+      flex: 1;
+      margin-left: 0;
+      transition: margin-left 0.3s ease;
+      width: 100%;
+    }
 
-        .btn:hover {
-            background-color: #0055aa;
-        }
+    main.shifted {
+      margin-left: 250px;
+      width: calc(100% - 250px);
+    }
 
-        .btn.secundario {
-            background-color: #0055aa;
-        }
+    /* Cards de filme exemplo */
+    .card {
+      background: white;
+      border-radius: 8px;
+      padding: 15px 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
+    }
 
-        .btn.secundario:hover {
-            background-color: #0077dd;
-        }
+    .card h2 {
+      margin-bottom: 10px;
+      color: #002244;
+    }
 
-        /* Footer */
-        footer {
-            text-align: center;
-            padding: 20px;
-            background-color: #002244;
-            color: white;
-            position: fixed;
-            bottom: 0;
-            left: 250px;
-            right: 0;
-        }
+    .card iframe {
+      width: 100%;
+      height: 315px;
+      border: none;
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
 
-        /* Botão para abrir/fechar menu no mobile */
-        .menu-toggle {
-            display: none;
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            background: #002244;
-            border: none;
-            color: white;
-            padding: 10px 15px;
-            font-size: 22px;
-            cursor: pointer;
-            border-radius: 5px;
-            z-index: 1200; /* maior que sidebar */
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-            transition: background-color 0.3s;
-        }
-        .menu-toggle:hover {
-            background-color: #0055aa;
-        }
+    .card p {
+      margin-bottom: 8px;
+      line-height: 1.5;
+      color: #333;
+    }
 
-        /* Responsividade */
-        @media (max-width: 768px) {
-            .sidebar {
-                position: fixed;
-                transform: translateX(-260px);
-                width: 250px;
-                z-index: 1100;
-            }
-            .sidebar.open {
-                transform: translateX(0);
-            }
-            .content {
-                margin-left: 0;
-                padding: 20px;
-            }
-            footer {
-                left: 0;
-            }
-            .menu-toggle {
-                display: block;
-            }
-        }
-    </style>
+    .botao-filme {
+      display: inline-block;
+      padding: 10px 18px;
+      background-color: #002244;
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 600;
+      transition: background-color 0.3s ease;
+    }
+    .botao-filme:hover {
+      background-color: #0055aa;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 20px;
+      background-color: #002244;
+      color: white;
+      margin-top: 30px;
+    }
+
+    /* Responsividade */
+    @media (min-width: 769px) {
+      #menuToggle {
+        display: none; /* esconde o botão em desktop */
+      }
+      aside.sidebar {
+        left: 0;
+      }
+      main {
+        margin-left: 250px;
+        width: calc(100% - 250px);
+      }
+    }
+
+    @media (max-width: 768px) {
+      header nav.top-menu {
+        display: none;
+      }
+      main {
+        margin-left: 0 !important;
+        width: 100% !important;
+      }
+      aside.sidebar {
+        width: 250px;
+      }
+    }
+  </style>
 </head>
 <body>
+  <aside id="sidebar" class="sidebar">
+    <button id="closeSidebar" class="close-button" aria-label="Fechar menu">✖</button>
+    <ul>
+      <li><a href="index.html">Início</a></li>
+      <li><a href="solicite.html">Do Cliente</a></li>
+      <li><a href="cadastro.html">Do Profissional</a></li>
+      <li><a href="https://wa.me/5587981352848" target="_blank" rel="noopener">Contato</a></li>
+      <li><a href="#sobre">Sobre</a></li>
+    </ul>
+  </aside>
 
-    <button class="menu-toggle" aria-label="Abrir menu">&#9776;</button>
+  <header>
+    <button id="menuToggle" aria-label="Abrir menu">☰</button>
+    <h1>Help Floripa</h1>
+    <nav class="top-menu">
+      <a href="index.html">Início</a>
+      <a href="solicite.html">Do Cliente</a>
+      <a href="cadastro.html">Do Profissional</a>
+      <a href="https://wa.me/5587981352848" target="_blank" rel="noopener">Contato</a>
+      <a href="#sobre">Sobre</a>
+    </nav>
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Pesquisar..." />
+    </div>
+  </header>
 
-    <aside class="sidebar" id="sidebar">
-        <div class="logo">
-            <img src="logo.png" alt="Help Floripa" />
-            <h1>Help Floripa</h1>
-            <p style="font-size: 14px; text-align: center; margin-top: 5px;">Tudo que você precisa em só lugar</p>
-        </div>
-        <nav>
-            <a href="solicite.html">Do Cliente</a>
-            <a href="cadastro.html">Do Profissional</a>
-            <a href="https://wa.me/5587981352848" target="_blank" rel="noopener">Contato</a>
-            <a href="#sobre">Sobre</a>
-        </nav>
-    </aside>
+  <main id="mainContent">
+    <section class="welcome-panel">
+      <h2>Bem-vindo à Help Floripa</h2>
+      <p>Estamos felizes em conectar você com os melhores profissionais de Florianópolis!</p>
+    </section>
+    <!-- Conteúdo real aqui -->
+  </main>
 
-    <main class="content">
-        <section class="welcome-panel">
-            <h2>Bem-vindo à Help Floripa</h2>
-            <p>Estamos felizes em conectar você com os melhores profissionais de Florianópolis!</p>
-        </section>
+  <footer>
+    <p>&copy; 2025 Help Floripa. Todos os direitos reservados.</p>
+  </footer>
 
-        <section class="hero">
-            <h2>Conectamos quem precisa com quem sabe fazer!</h2>
-            <p>Encontre profissionais de confiança ou ofereça seus serviços em minutos.</p>
-            <div class="botoes-principais">
-                <a href="solicite.html" class="btn">Solicite um Profissional</a>
-                <a href="cadastro.html" class="btn secundario">Cadastrar como Profissional</a>
-            </div>
-        </section>
+  <script>
+    const menuToggle = document.getElementById("menuToggle");
+    const sidebar = document.getElementById("sidebar");
+    const closeSidebar = document.getElementById("closeSidebar");
+    const mainContent = document.getElementById("mainContent");
 
-        <section id="sobre" class="sobre">
-            <h2>Sobre a Help Floripa</h2>
-            <p>A Help Floripa conecta clientes e profissionais em diversas áreas como reformas, manutenção, serviços domésticos e mais. Nosso objetivo é facilitar o contato rápido e confiável entre quem busca e quem oferece serviços em Florianópolis e região.</p>
-        </section>
-    </main>
-
-    <footer>
-        <p>&copy; 2025 Help Floripa. Todos os direitos reservados.</p>
-    </footer>
-
-<script>
-    const menuToggle = document.querySelector('.menu-toggle');
-    const sidebar = document.getElementById('sidebar');
-
-    menuToggle.addEventListener('click', () => {
-        sidebar.classList.toggle('open');
+    menuToggle.addEventListener("click", () => {
+      sidebar.classList.add("open");
     });
-</script>
 
+    closeSidebar.addEventListener("click", () => {
+      sidebar.classList.remove("open");
+    });
+
+    // Pesquisa simples que filtra conteúdo de cards (exemplo)
+    const searchInput = document.getElementById("searchInput");
+    searchInput.addEventListener("input", () => {
+      const termo = searchInput.value.toLowerCase();
+      const cards = document.querySelectorAll("main section.card");
+      cards.forEach(card => {
+        const titulo = card.querySelector("h2").textContent.toLowerCase();
+        card.style.display = titulo.includes(termo) ? "block" : "none";
+      });
+    });
+  </script>
 </body>
 </html>
