@@ -2,45 +2,230 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Help Floripa</title>
-    <link rel="stylesheet" href="style.css" />
-    <script defer src="script.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        /* Reset básico */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        body, html {
+            height: 100%;
+            background: #fff;
+            color: #000;
+        }
+        body {
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            background-color: #002244; /* azul escuro */
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 15px;
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar.closed {
+            transform: translateX(-260px);
+        }
+
+        .sidebar .logo {
+            width: 120px;
+            margin-bottom: 20px;
+        }
+
+        .sidebar .logo img {
+            width: 100%;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .sidebar .logo h1 {
+            font-size: 22px;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        .sidebar nav {
+            width: 100%;
+            margin-top: 30px;
+        }
+
+        .sidebar nav a {
+            display: block;
+            padding: 12px 15px;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            background-color: #0055aa;
+            text-align: center;
+            transition: background-color 0.3s ease;
+            font-weight: 600;
+        }
+
+        .sidebar nav a:hover {
+            background-color: #0077dd;
+        }
+
+        /* Conteúdo principal */
+        .content {
+            margin-left: 250px;
+            padding: 40px 30px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+            color: #002244;
+        }
+
+        section p {
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        /* Botões principais */
+        .botoes-principais {
+            margin-top: 25px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 12px 22px;
+            background-color: #002244;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+            display: inline-block;
+        }
+
+        .btn:hover {
+            background-color: #0055aa;
+        }
+
+        .btn.secundario {
+            background-color: #0055aa;
+        }
+
+        .btn.secundario:hover {
+            background-color: #0077dd;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 20px;
+            background-color: #002244;
+            color: white;
+            position: fixed;
+            bottom: 0;
+            left: 250px;
+            right: 0;
+        }
+
+        /* Botão para abrir/fechar menu no mobile */
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            background: #002244;
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            font-size: 18px;
+            cursor: pointer;
+            border-radius: 5px;
+            z-index: 1100;
+        }
+
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                transform: translateX(-260px);
+                width: 250px;
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .content {
+                margin-left: 0;
+                padding: 20px;
+            }
+            footer {
+                left: 0;
+            }
+            .menu-toggle {
+                display: block;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div class="sidebar">
+
+    <button class="menu-toggle" aria-label="Abrir menu">&#9776;</button>
+
+    <aside class="sidebar" id="sidebar">
         <div class="logo">
-            <img src="logo.png" alt="Logo Help Floripa" />
+            <img src="logo.png" alt="Help Floripa" />
             <h1>Help Floripa</h1>
+            <p style="font-size: 14px; text-align: center; margin-top: 5px;">Tudo que você precisa em só lugar</p>
         </div>
         <nav>
-            <a href="#cliente">Solicite um Profissional</a>
-            <a href="#profissional">Cadastro de Profissionais</a>
+            <a href="solicite.html">Do Cliente</a>
+            <a href="cadastro.html">Do Profissional</a>
+            <a href="https://wa.me/5587981352848" target="_blank" rel="noopener">Contato</a>
+            <a href="#sobre">Sobre</a>
         </nav>
-    </div>
+    </aside>
 
     <main class="content">
-        <section id="cliente">
-            <h2>Solicite um Profissional</h2>
-            <form>
-                <input type="text" placeholder="Seu nome" required>
-                <input type="text" placeholder="Serviço desejado" required>
-                <input type="text" placeholder="Bairro/Região" required>
-                <input type="tel" placeholder="WhatsApp ou telefone" required>
-                <button type="submit">Solicitar</button>
-            </form>
+        <section class="hero">
+            <h2>Conectamos quem precisa com quem sabe fazer!</h2>
+            <p>Encontre profissionais de confiança ou ofereça seus serviços em minutos.</p>
+            <div class="botoes-principais">
+                <a href="solicite.html" class="btn">Solicite um Profissional</a>
+                <a href="cadastro.html" class="btn secundario">Cadastrar como Profissional</a>
+            </div>
         </section>
 
-        <section id="profissional">
-            <h2>Cadastro de Profissionais</h2>
-            <form>
-                <input type="text" placeholder="Seu nome" required>
-                <input type="text" placeholder="Profissão" required>
-                <input type="text" placeholder="Bairro/Região" required>
-                <input type="tel" placeholder="WhatsApp ou telefone" required>
-                <button type="submit">Cadastrar</button>
-            </form>
+        <section id="sobre" class="sobre">
+            <h2>Sobre a Help Floripa</h2>
+            <p>A Help Floripa conecta clientes e profissionais em diversas áreas como reformas, manutenção, serviços domésticos e mais. Nosso objetivo é facilitar o contato rápido e confiável entre quem busca e quem oferece serviços em Florianópolis e região.</p>
         </section>
     </main>
+
+    <footer>
+        <p>&copy; 2025 Help Floripa. Todos os direitos reservados.</p>
+    </footer>
+
+<script>
+    const menuToggle = document.querySelector('.menu-toggle');
+    const sidebar = document.getElementById('sidebar');
+
+    menuToggle.addEventListener('click', () => {
+        sidebar.classList.toggle('open');
+    });
+</script>
+
 </body>
 </html>
