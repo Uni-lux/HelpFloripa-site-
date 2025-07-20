@@ -1,49 +1,46 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Help Floripa</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="script.js" defer></script>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css" />
+    <script defer src="script.js"></script>
 </head>
 <body>
-
-    <header>
-        <div class="logo-container">
-            <img src="logo.png" alt="Help Floripa" class="logo">
-            <div class="titulo">
-                <h1>Help Floripa</h1>
-                <p>Tudo que você precisa em só lugar</p>
-            </div>
+    <div class="sidebar">
+        <div class="logo">
+            <img src="logo.png" alt="Logo Help Floripa" />
+            <h1>Help Floripa</h1>
         </div>
-        <nav class="top-menu">
-            <a href="solicite.html">Do Cliente</a>
-            <a href="cadastro.html">Do Profissional</a>
-            <a href="https://wa.me/5587981352848" target="_blank">Contato</a>
-            <a href="#sobre">Sobre</a>
+        <nav>
+            <a href="#cliente">Solicite um Profissional</a>
+            <a href="#profissional">Cadastro de Profissionais</a>
         </nav>
-    </header>
+    </div>
 
-    <main>
-        <section class="hero">
-            <h2>Conectamos quem precisa com quem sabe fazer!</h2>
-            <p>Encontre profissionais de confiança ou ofereça seus serviços em minutos.</p>
-            <div class="botoes-principais">
-                <a href="solicite.html" class="btn">Solicite um Profissional</a>
-                <a href="cadastro.html" class="btn secundario">Cadastrar como Profissional</a>
-            </div>
+    <main class="content">
+        <section id="cliente">
+            <h2>Solicite um Profissional</h2>
+            <form>
+                <input type="text" placeholder="Seu nome" required>
+                <input type="text" placeholder="Serviço desejado" required>
+                <input type="text" placeholder="Bairro/Região" required>
+                <input type="tel" placeholder="WhatsApp ou telefone" required>
+                <button type="submit">Solicitar</button>
+            </form>
         </section>
 
-        <section id="sobre" class="sobre">
-            <h2>Sobre a Help Floripa</h2>
-            <p>A Help Floripa conecta clientes e profissionais em diversas áreas como reformas, manutenção, serviços domésticos e mais. Nosso objetivo é facilitar o contato rápido e confiável entre quem busca e quem oferece serviços em Florianópolis e região.</p>
+        <section id="profissional">
+            <h2>Cadastro de Profissionais</h2>
+            <form>
+                <input type="text" placeholder="Seu nome" required>
+                <input type="text" placeholder="Profissão" required>
+                <input type="text" placeholder="Bairro/Região" required>
+                <input type="tel" placeholder="WhatsApp ou telefone" required>
+                <button type="submit">Cadastrar</button>
+            </form>
         </section>
     </main>
-
-    <footer>
-        <p>&copy; 2025 Help Floripa. Todos os direitos reservados.</p>
-    </footer>
-
 </body>
 </html>
