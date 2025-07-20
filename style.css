@@ -1,136 +1,91 @@
-/* Reset básico */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-}
-
-/* Cores base da marca */
-:root {
-    --azul: #009fe3;
-    --preto: #0a0a0a;
-    --branco: #ffffff;
-    --cinza: #f2f2f2;
-}
-
-/* Corpo da página */
-body {
     font-family: 'Segoe UI', sans-serif;
-    background-color: var(--cinza);
-    color: var(--preto);
-    line-height: 1.6;
 }
 
-/* Cabeçalho */
-header {
-    background-color: var(--branco);
+body {
+    display: flex;
+    background-color: #ffffff;
+    color: #000;
+    height: 100vh;
+}
+
+.sidebar {
+    width: 250px;
+    background-color: #002244; /* azul escuro */
+    color: white;
     padding: 20px;
-    border-bottom: 2px solid var(--azul);
-}
-
-.logo-container {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 15px;
 }
 
-.logo {
-    width: 60px;
-    height: auto;
-}
-
-.titulo h1 {
-    color: var(--azul);
-    font-size: 1.8em;
-}
-
-.titulo p {
-    font-size: 0.9em;
-    color: #555;
-}
-
-/* Menu */
-.top-menu {
-    margin-top: 15px;
-    display: flex;
-    gap: 15px;
-    flex-wrap: wrap;
-}
-
-.top-menu a {
-    text-decoration: none;
-    background-color: var(--azul);
-    color: var(--branco);
-    padding: 10px 16px;
-    border-radius: 6px;
-    transition: background 0.3s;
-}
-
-.top-menu a:hover {
-    background-color: #007ab6;
-}
-
-/* Hero Section */
-.hero {
-    padding: 40px 20px;
-    text-align: center;
-    background-color: var(--branco);
-}
-
-.hero h2 {
-    font-size: 2em;
-    color: var(--azul);
+.logo img {
+    width: 100px;
     margin-bottom: 10px;
 }
 
-.hero p {
-    font-size: 1em;
-    margin-bottom: 25px;
-}
-
-/* Botões principais */
-.botoes-principais {
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    flex-wrap: wrap;
-}
-
-.btn {
-    background-color: var(--azul);
-    color: var(--branco);
-    padding: 12px 24px;
-    border: none;
-    border-radius: 8px;
-    text-decoration: none;
-    font-weight: bold;
-    transition: 0.3s;
-}
-
-.btn:hover {
-    background-color: #007ab6;
-}
-
-.btn.secundario {
-    background-color: var(--preto);
-}
-
-.btn.secundario:hover {
-    background-color: #333;
-}
-
-/* Sobre */
-.sobre {
-    padding: 30px 20px;
-    background-color: #ffffff;
-    border-top: 1px solid #ccc;
-}
-
-/* Rodapé */
-footer {
+.logo h1 {
+    font-size: 20px;
+    margin-bottom: 30px;
     text-align: center;
-    padding: 20px;
-    background-color: var(--azul);
-    color: var(--branco);
-    margin-top: 30px;
+}
+
+.sidebar nav {
+    width: 100%;
+}
+
+.sidebar nav a {
+    display: block;
+    padding: 15px 10px;
+    color: white;
+    text-decoration: none;
+    margin-bottom: 10px;
+    background-color: #0055aa;
+    border-radius: 5px;
+    text-align: center;
+    transition: background 0.3s;
+}
+
+.sidebar nav a:hover {
+    background-color: #0077dd;
+}
+
+.content {
+    flex: 1;
+    padding: 40px;
+    overflow-y: auto;
+}
+
+h2 {
+    margin-bottom: 20px;
+    color: #002244;
+}
+
+form {
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+input, button {
+    padding: 12px;
+    font-size: 16px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+
+button {
+    background-color: #002244;
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+button:hover {
+    background-color: #0055aa;
 }
