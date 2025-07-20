@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="pt-br">
+<!DOCTYPE html>
+<html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -14,68 +15,34 @@
       <a href="https://wa.me/5587981352848" target="_blank">Contato</a>
       <a href="#sobre">Sobre</a>
     </nav>
-  </div>  <header class="hero">
+  </div>
+
+  <header class="hero">
     <img src="logo.png" alt="Homem Help Floripa" class="logo"/>
     <h1>Help Floripa</h1>
     <p class="slogan">Tudo que você precisa em só lugar</p>
+  </header>
+
+  <main>
+    <section class="cards">
+      <div class="card">🛠️ Eletricista</div>
+      <div class="card">🚰 Encanador</div>
+      <div class="card">🧹 Faxineira</div>
+      <div class="card">🧰 Pedreiro</div>
+      <div class="card">🌿 Jardineiro</div>
+      <div class="card">🧼 Diarista</div>
+    </section>
+
     <section class="botoes-destaque">
       <a href="solicitar.html" class="btn destaque">Solicitar Profissional</a>
       <a href="cadastrar.html" class="btn destaque">Cadastrar como Profissional</a>
     </section>
-  </header>  <main>
-    <section class="cards">
-      <div class="card" onclick="toggleOptions(this)">🛠️ Eletricista
-        <div class="card-options">
-          <a href="solicitar.html">Solicitar Profissional</a>
-          <a href="cadastrar.html">Cadastrar como Profissional</a>
-        </div>
-      </div>
-      <div class="card" onclick="toggleOptions(this)">🚰 Encanador
-        <div class="card-options">
-          <a href="solicitar.html">Solicitar Profissional</a>
-          <a href="cadastrar.html">Cadastrar como Profissional</a>
-        </div>
-      </div>
-      <div class="card" onclick="toggleOptions(this)">🧹 Faxineira
-        <div class="card-options">
-          <a href="solicitar.html">Solicitar Profissional</a>
-          <a href="cadastrar.html">Cadastrar como Profissional</a>
-        </div>
-      </div>
-      <div class="card" onclick="toggleOptions(this)">🧰 Pedreiro
-        <div class="card-options">
-          <a href="solicitar.html">Solicitar Profissional</a>
-          <a href="cadastrar.html">Cadastrar como Profissional</a>
-        </div>
-      </div>
-      <div class="card" onclick="toggleOptions(this)">🌿 Jardineiro
-        <div class="card-options">
-          <a href="solicitar.html">Solicitar Profissional</a>
-          <a href="cadastrar.html">Cadastrar como Profissional</a>
-        </div>
-      </div>
-      <div class="card" onclick="toggleOptions(this)">🧼 Diarista
-        <div class="card-options">
-          <a href="solicitar.html">Solicitar Profissional</a>
-          <a href="cadastrar.html">Cadastrar como Profissional</a>
-        </div>
-      </div>
-    </section>
-  </main>  <footer>
+  </main>
+
+  <footer>
     <p>&copy; 2025 Help Floripa. Todos os direitos reservados.</p>
-  </footer>  <script src="script.js"></script>  <script>
-    function toggleSidebar() {
-      document.getElementById('sidebar').classList.toggle('active');
-    }
-    function toggleOptions(card) {
-      const allOptions = document.querySelectorAll('.card-options');
-      allOptions.forEach(opt => {
-        if (opt !== card.querySelector('.card-options')) {
-          opt.style.display = 'none';
-        }
-      });
-      const options = card.querySelector('.card-options');
-      options.style.display = options.style.display === 'block' ? 'none' : 'block';
-    }
-  </script></body>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
 </html>
