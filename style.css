@@ -27,7 +27,7 @@ body {
     padding: 20px 15px;
     position: fixed;
     top: 0; left: 0; bottom: 0;
-    z-index: 1000;
+    z-index: 1100; /* menor que menu-toggle */
     transition: transform 0.3s ease;
 }
 
@@ -92,6 +92,16 @@ section p {
     margin-bottom: 20px;
 }
 
+/* Painel de boas-vindas */
+.welcome-panel {
+    margin-bottom: 40px;
+    padding: 20px;
+    background-color: #e6f0fa;
+    border-radius: 8px;
+    border: 1px solid #0055aa;
+    color: #002244;
+}
+
 /* Botões principais */
 .botoes-principais {
     margin-top: 25px;
@@ -138,16 +148,22 @@ footer {
 .menu-toggle {
     display: none;
     position: fixed;
-    top: 15px;
-    left: 15px;
+    top: 20px;
+    left: 20px;
     background: #002244;
     border: none;
     color: white;
     padding: 10px 15px;
-    font-size: 18px;
+    font-size: 22px;
     cursor: pointer;
     border-radius: 5px;
-    z-index: 1100;
+    z-index: 1200; /* maior que sidebar */
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    transition: background-color 0.3s;
+}
+
+.menu-toggle:hover {
+    background-color: #0055aa;
 }
 
 /* Responsividade */
@@ -156,6 +172,7 @@ footer {
         position: fixed;
         transform: translateX(-260px);
         width: 250px;
+        z-index: 1100;
     }
     .sidebar.open {
         transform: translateX(0);
