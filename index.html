@@ -1,52 +1,56 @@
-<!DOCTYPE html><html lang="pt-BR">
+<!DOCTYPE html>
+<html lang="pt-br">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HelpFloripa - Tudo que você precisa em um só lugar</title>
+  <title>Help Floripa</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header>
-    <h1>HelpFloripa</h1>
-    <p class="slogan">Tudo que você precisa em um só lugar</p>
+    <img src="logo.png" alt="Help Floripa Logo" class="logo">
+    <h1>Help Floripa</h1>
+    <p class="slogan">Tudo que você precisa em só lugar</p>
     <nav>
-      <button onclick="mostrarSecao('cliente')">Solicite um Profissional</button>
-      <button onclick="mostrarSecao('profissional')">Cadastro de Profissional</button>
-      <button onclick="mostrarSecao('sobre')">Sobre</button>
+      <button onclick="mostrarFormulario('cliente')">Solicite um Profissional</button>
+      <button onclick="mostrarFormulario('profissional')">Cadastro de Profissionais</button>
+      <button onclick="mostrarFormulario('sobre')">Sobre</button>
     </nav>
-  </header>  <main>
-    <section id="cliente" class="secao" style="display:none">
+  </header>
+
+  <main>
+    <section id="form-cliente" class="formulario">
       <h2>Solicite um Profissional</h2>
       <form>
         <input type="text" placeholder="Seu nome" required>
-        <input type="email" placeholder="Seu email" required>
-        <input type="text" placeholder="Serviço que você precisa (ex: encanador)" required>
-        <input type="text" placeholder="Endereço">
-        <textarea placeholder="Informações adicionais"></textarea>
-        <button type="submit">Enviar Solicitação</button>
+        <input type="email" placeholder="Seu e-mail" required>
+        <input type="text" placeholder="Serviço desejado" required>
+        <textarea placeholder="Descreva sua necessidade" required></textarea>
+        <button type="submit">Enviar</button>
       </form>
-    </section><section id="profissional" class="secao" style="display:none">
-  <h2>Cadastro de Profissional</h2>
-  <form>
-    <input type="text" placeholder="Seu nome" required>
-    <input type="email" placeholder="Seu email" required>
-    <input type="text" placeholder="Profissão (ex: jardineiro, cuidador)">
-    <input type="text" placeholder="Cidade / Região">
-    <textarea placeholder="Experiência e outras informações"></textarea>
-    <button type="submit">Cadastrar</button>
-  </form>
-</section>
+    </section>
 
-<section id="sobre" class="secao" style="display:none">
-  <h2>Sobre a HelpFloripa</h2>
-  <p>
-    A HelpFloripa é uma plataforma que conecta clientes a profissionais de confiança em Florianópolis.
-    Cuidadores, pintores, pedreiros, jardineiros e muito mais. Criamos uma ponte segura entre quem precisa
-    de um serviço e quem está pronto para oferecer. Tudo isso em um só lugar.
-  </p>
-</section>
+    <section id="form-profissional" class="formulario">
+      <h2>Cadastro de Profissionais</h2>
+      <form>
+        <input type="text" placeholder="Nome completo" required>
+        <input type="email" placeholder="E-mail" required>
+        <input type="text" placeholder="Área de atuação" required>
+        <input type="tel" placeholder="Telefone" required>
+        <button type="submit">Cadastrar</button>
+      </form>
+    </section>
 
-  </main>  <footer>
-    <p>&copy; 2025 HelpFloripa - Todos os direitos reservados.</p>
-  </footer>  <script src="script.js"></script></body>
+    <section id="form-sobre" class="formulario">
+      <h2>Sobre a Help Floripa</h2>
+      <p>A Help Floripa conecta clientes a profissionais locais de forma rápida, prática e segura. Criada para facilitar a vida de quem mora em Florianópolis e região, nossa plataforma é um espaço onde você encontra tudo o que precisa em um só lugar!</p>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2025 Help Floripa</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
 </html>
