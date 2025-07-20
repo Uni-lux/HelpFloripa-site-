@@ -1,69 +1,47 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Help Floripa</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="sidebar" id="sidebar">
     <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
-    <nav class="sidebar-menu">
-      <a href="cliente.html">Cliente</a>
-      <a href="profissional.html">Profissional</a>
-      <a href="https://wa.me/5587981352848" target="_blank">Fale Conosco</a>
-      <a href="sobre.html">Sobre</a>
+    <nav>
+      <a href="#cliente">Cliente</a>
+      <a href="#profissional">Profissional</a>
+      <a href="https://wa.me/5587981352848" target="_blank">Contato</a>
+      <a href="#sobre">Sobre</a>
     </nav>
   </div>
 
-  <main class="main-content">
-    <div class="banner">
-      <img src="homem-helpfloripa.png" alt="Homem Help Floripa" />
-      <h1>Help Floripa</h1>
-      <p class="slogan">Tudo que você precisa em só lugar</p>
-      <div class="action-buttons">
-        <a href="solicitar.html" class="main-btn">Solicitar Profissional</a>
-        <a href="cadastrar.html" class="main-btn">Cadastrar como Profissional</a>
-      </div>
-    </div>
+  <header class="hero">
+    <img src="logo.png" alt="Homem Help Floripa" class="logo"/>
+    <h1>Help Floripa</h1>
+    <p class="slogan">Tudo que você precisa em só lugar</p>
+  </header>
 
-    <section class="cards-container">
-      <div class="card">
-        <h3>Eletricista</h3>
-        <div class="card-buttons">
-          <a href="solicitar.html?profissao=eletricista" class="mini-btn">Solicitar</a>
-          <a href="cadastrar.html?profissao=eletricista" class="mini-btn">Cadastrar</a>
-        </div>
-      </div>
+  <main>
+    <section class="cards">
+      <div class="card">🛠️ Eletricista</div>
+      <div class="card">🚰 Encanador</div>
+      <div class="card">🧹 Faxineira</div>
+      <div class="card">🧰 Pedreiro</div>
+      <div class="card">🌿 Jardineiro</div>
+      <div class="card">🧼 Diarista</div>
+    </section>
 
-      <div class="card">
-        <h3>Encanador</h3>
-        <div class="card-buttons">
-          <a href="solicitar.html?profissao=encanador" class="mini-btn">Solicitar</a>
-          <a href="cadastrar.html?profissao=encanador" class="mini-btn">Cadastrar</a>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>Pedreiro</h3>
-        <div class="card-buttons">
-          <a href="solicitar.html?profissao=pedreiro" class="mini-btn">Solicitar</a>
-          <a href="cadastrar.html?profissao=pedreiro" class="mini-btn">Cadastrar</a>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>Pintor</h3>
-        <div class="card-buttons">
-          <a href="solicitar.html?profissao=pintor" class="mini-btn">Solicitar</a>
-          <a href="cadastrar.html?profissao=pintor" class="mini-btn">Cadastrar</a>
-        </div>
-      </div>
-
-      <!-- Adicione mais cards conforme necessário -->
+    <section class="botoes-destaque">
+      <a href="solicitar.html" class="btn destaque">Solicitar Profissional</a>
+      <a href="cadastrar.html" class="btn destaque">Cadastrar como Profissional</a>
     </section>
   </main>
+
+  <footer>
+    <p>&copy; 2025 Help Floripa. Todos os direitos reservados.</p>
+  </footer>
 
   <script src="script.js"></script>
 </body>
