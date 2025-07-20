@@ -1,74 +1,52 @@
-<!DOCTYPE html><html lang="pt-br">
+<!DOCTYPE html><html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HelpFloripa - Tudo que você precisa em um só lugar</title>
-  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header>
-    <div class="container">
-      <h1>HelpFloripa</h1>
-      <p class="slogan">Tudo que você precisa em um só lugar</p>
-      <nav>
-        <ul>
-          <li><a href="#sobre">Sobre</a></li>
-          <li><a href="#profissionais">Profissionais</a></li>
-          <li><a href="#clientes">Clientes</a></li>
-          <li><a href="#contato">Contato</a></li>
-        </ul>
-      </nav>
-    </div>
+    <h1>HelpFloripa</h1>
+    <p class="slogan">Tudo que você precisa em um só lugar</p>
+    <nav>
+      <button onclick="mostrarSecao('cliente')">Solicite um Profissional</button>
+      <button onclick="mostrarSecao('profissional')">Cadastro de Profissional</button>
+      <button onclick="mostrarSecao('sobre')">Sobre</button>
+    </nav>
   </header>  <main>
-    <section id="sobre">
-      <div class="container">
-        <h2>Sobre a HelpFloripa</h2>
-        <p>Somos uma plataforma que conecta moradores de Florianópolis a profissionais confiáveis em diversas áreas: cuidadores, jardineiros, pedreiros, diaristas, entre outros.</p>
-      </div>
-    </section><section id="profissionais">
-  <div class="container">
-    <h2>Cadastro de Profissionais</h2>
-    <form>
-      <input type="text" placeholder="Nome completo" required />
-      <input type="text" placeholder="Profissão" required />
-      <input type="email" placeholder="Email" required />
-      <input type="tel" placeholder="Telefone" required />
-      <textarea placeholder="Experiência e habilidades"></textarea>
-      <button type="submit">Cadastrar</button>
-    </form>
-  </div>
+    <section id="cliente" class="secao" style="display:none">
+      <h2>Solicite um Profissional</h2>
+      <form>
+        <input type="text" placeholder="Seu nome" required>
+        <input type="email" placeholder="Seu email" required>
+        <input type="text" placeholder="Serviço que você precisa (ex: encanador)" required>
+        <input type="text" placeholder="Endereço">
+        <textarea placeholder="Informações adicionais"></textarea>
+        <button type="submit">Enviar Solicitação</button>
+      </form>
+    </section><section id="profissional" class="secao" style="display:none">
+  <h2>Cadastro de Profissional</h2>
+  <form>
+    <input type="text" placeholder="Seu nome" required>
+    <input type="email" placeholder="Seu email" required>
+    <input type="text" placeholder="Profissão (ex: jardineiro, cuidador)">
+    <input type="text" placeholder="Cidade / Região">
+    <textarea placeholder="Experiência e outras informações"></textarea>
+    <button type="submit">Cadastrar</button>
+  </form>
 </section>
 
-<section id="clientes">
-  <div class="container">
-    <h2>Solicite um Profissional</h2>
-    <form>
-      <input type="text" placeholder="Seu nome" required />
-      <input type="email" placeholder="Seu email" required />
-      <select required>
-        <option value="">Selecione um serviço</option>
-        <option value="cuidador">Cuidador</option>
-        <option value="jardineiro">Jardineiro</option>
-        <option value="pedreiro">Pedreiro</option>
-        <option value="diarista">Diarista</option>
-      </select>
-      <textarea placeholder="Descreva sua necessidade"></textarea>
-      <button type="submit">Solicitar</button>
-    </form>
-  </div>
-</section>
-
-<section id="contato">
-  <div class="container">
-    <h2>Contato</h2>
-    <p>Email: contato@helpfloripa.com.br</p>
-    <p>Telefone: (48) 99999-9999</p>
-  </div>
+<section id="sobre" class="secao" style="display:none">
+  <h2>Sobre a HelpFloripa</h2>
+  <p>
+    A HelpFloripa é uma plataforma que conecta clientes a profissionais de confiança em Florianópolis.
+    Cuidadores, pintores, pedreiros, jardineiros e muito mais. Criamos uma ponte segura entre quem precisa
+    de um serviço e quem está pronto para oferecer. Tudo isso em um só lugar.
+  </p>
 </section>
 
   </main>  <footer>
-    <div class="container">
-      <p>&copy; 2025 HelpFloripa. Todos os direitos reservados.</p>
-    </div>
-  </footer>  <script src="js/script.js"></script></body>
+    <p>&copy; 2025 HelpFloripa - Todos os direitos reservados.</p>
+  </footer>  <script src="script.js"></script></body>
 </html>
