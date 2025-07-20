@@ -1,36 +1,17 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Solicitar Profissional - HelpFloripa</title>
-  <link rel="stylesheet" href="estilo.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Solicitar Profissional</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Menu lateral -->
-  <div class="sidebar">
-    <div class="toggle-btn">&#9776;</div>
-    <h2>HelpFloripa</h2>
-    <ul>
-      <li><a href="index.html">Início</a></li>
-      <li><a href="cliente.html">Cliente</a></li>
-      <li><a href="profissional.html">Profissional</a></li>
-      <li><a href="sobre.html">Sobre</a></li>
-      <li><a href="contato.html">Contato</a></li>
-    </ul>
-  </div>
-
-  <!-- Conteúdo principal -->
-  <div class="main-content">
-    <h1>Solicitar Profissional</h1>
-    <p>Preencha o formulário abaixo para solicitar um profissional qualificado em Florianópolis.</p>
-
-    <form id="solicitarForm">
+  <div class="container">
+    <h1>Solicitar um Profissional</h1>
+    <form id="solicitarForm" onsubmit="return false;">
       <label for="nome">Seu Nome:</label>
       <input type="text" id="nome" name="nome" required>
-
-      <label for="telefone">Telefone para Contato:</label>
-      <input type="tel" id="telefone" name="telefone" required placeholder="(DDD) 90000-0000">
 
       <label for="profissional">Profissional Desejado:</label>
       <select id="profissional" name="profissional" onchange="calcularPreco()" required>
@@ -43,61 +24,32 @@
         <option value="diarista">Diarista</option>
       </select>
 
-      <label for="descricao">Descrição do Serviço / Experiência Desejada:</label>
-      <textarea id="descricao" name="descricao" rows="4" placeholder="Descreva o que precisa ou detalhes desejados..."></textarea>
+      <label for="cidade">Cidade:</label>
+      <select id="cidade" name="cidade" required>
+        <option value="">Selecione</option>
+        <option value="florianopolis">Florianópolis</option>
+        <option value="saojose">São José</option>
+      </select>
+
+      <label for="bairro">Bairro:</label>
+      <select id="bairro" name="bairro" required></select>
+
+      <label for="telefone">Telefone para Contato:</label>
+      <input type="tel" id="telefone" name="telefone" placeholder="(DDD) 90000-0000" required>
+
+      <label for="disponibilidade">Disponibilidade:</label>
+      <input type="text" id="disponibilidade" name="disponibilidade" placeholder="Dias e horários disponíveis" required>
+
+      <label for="descricao">Descrição do serviço:</label>
+      <textarea id="descricao" name="descricao" rows="4" required></textarea>
 
       <p id="precoFinal">Valor Total: R$ 0,00</p>
 
       <button type="submit">Solicitar</button>
+      <a href="https://wa.me/seunumero" class="whatsapp-button" target="_blank">Falar com Suporte via WhatsApp</a>
     </form>
-
-    <br>
-    <a href="https://wa.me/5548999999999" target="_blank">
-      <button style="background-color: #25D366; color: white; padding: 10px 15px; border-radius: 5px; border: none;">
-        Entrar em contato via WhatsApp
-      </button>
-    </a>
   </div>
 
-  <!-- Script JavaScript base -->
-  <script>
-    // Botão do menu lateral
-    const toggleBtn = document.querySelector('.toggle-btn');
-    const sidebar = document.querySelector('.sidebar');
-
-    toggleBtn.addEventListener('click', () => {
-      sidebar.classList.toggle('active');
-    });
-
-    function calcularPreco() {
-      const profissional = document.getElementById("profissional").value;
-      const precoFinal = document.getElementById("precoFinal");
-
-      const tabelaPrecos = {
-        eletricista: 120,
-        encanador: 110,
-        faxineira: 100,
-        pedreiro: 150,
-        jardineiro: 90,
-        diarista: 95
-      };
-
-      const gasolina = 25; // valor fixo ida e volta
-
-      if (profissional && tabelaPrecos[profissional]) {
-        const total = tabelaPrecos[profissional] + gasolina;
-        precoFinal.textContent = `Valor Total: R$ ${total.toFixed(2)}`;
-      } else {
-        precoFinal.textContent = "Valor Total: R$ 0,00";
-      }
-    }
-
-    document.getElementById("solicitarForm").addEventListener("submit", function(e) {
-      e.preventDefault();
-      alert("Sua solicitação foi enviada com sucesso! Em breve entraremos em contato.");
-      this.reset();
-      document.getElementById("precoFinal").textContent = "Valor Total: R$ 0,00";
-    });
-  </script>
+  <script src="script.js"></script>
 </body>
 </html>
