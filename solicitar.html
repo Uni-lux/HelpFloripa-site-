@@ -1,57 +1,103 @@
-<!DOCTYPE html><html lang="pt-br">
+<!DOCTYPE html>
+<html lang="pt-br">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Solicitar Profissional</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Solicitar Profissional - HelpFloripa</title>
+  <link rel="stylesheet" href="estilo.css">
 </head>
 <body>
+  <!-- Menu lateral -->
   <div class="sidebar">
-    <button class="toggle-btn">☰</button>
-    <nav>
-      <a href="index.html">Início</a>
-      <a href="solicitar.html">Solicitar</a>
-      <a href="cadastrar.html">Cadastrar</a>
-      <a href="cliente.html">Cliente</a>
-      <a href="profissional.html">Profissional</a>
-      <a href="sobre.html">Sobre</a>
-      <a href="https://wa.me/5548999999999" target="_blank">Contato</a>
-    </nav>
-  </div>  <main>
+    <div class="toggle-btn">&#9776;</div>
+    <h2>HelpFloripa</h2>
+    <ul>
+      <li><a href="index.html">Início</a></li>
+      <li><a href="cliente.html">Cliente</a></li>
+      <li><a href="profissional.html">Profissional</a></li>
+      <li><a href="sobre.html">Sobre</a></li>
+      <li><a href="contato.html">Contato</a></li>
+    </ul>
+  </div>
+
+  <!-- Conteúdo principal -->
+  <div class="main-content">
     <h1>Solicitar Profissional</h1>
+    <p>Preencha o formulário abaixo para solicitar um profissional qualificado em Florianópolis.</p>
+
     <form id="solicitarForm">
-      <label for="cidade">Cidade:</label>
-      <select id="cidade" required>
+      <label for="nome">Seu Nome:</label>
+      <input type="text" id="nome" name="nome" required>
+
+      <label for="telefone">Telefone para Contato:</label>
+      <input type="tel" id="telefone" name="telefone" required placeholder="(DDD) 90000-0000">
+
+      <label for="profissional">Profissional Desejado:</label>
+      <select id="profissional" name="profissional" onchange="calcularPreco()" required>
         <option value="">Selecione</option>
-        <option value="florianopolis">Florianópolis</option>
-        <option value="saojose">São José</option>
-      </select><label for="bairro">Bairro:</label>
-  <select id="bairro" required></select>
+        <option value="eletricista">Eletricista</option>
+        <option value="encanador">Encanador</option>
+        <option value="faxineira">Faxineira</option>
+        <option value="pedreiro">Pedreiro</option>
+        <option value="jardineiro">Jardineiro</option>
+        <option value="diarista">Diarista</option>
+      </select>
 
-  <label for="rua">Rua:</label>
-  <input type="text" id="rua" required>
+      <label for="descricao">Descrição do Serviço / Experiência Desejada:</label>
+      <textarea id="descricao" name="descricao" rows="4" placeholder="Descreva o que precisa ou detalhes desejados..."></textarea>
 
-  <label for="numero">Número:</label>
-  <input type="text" id="numero" required>
+      <p id="precoFinal">Valor Total: R$ 0,00</p>
 
-  <label for="referencia">Ponto de Referência:</label>
-  <input type="text" id="referencia">
+      <button type="submit">Solicitar</button>
+    </form>
 
-  <label for="profissional">Tipo de Profissional:</label>
-  <select id="profissional" required>
-    <option value="">Selecione</option>
-    <option value="eletricista">Eletricista</option>
-    <option value="encanador">Encanador</option>
-    <option value="faxineira">Faxineira</option>
-    <option value="pedreiro">Pedreiro</option>
-    <option value="jardineiro">Jardineiro</option>
-    <option value="diarista">Diarista</option>
-  </select>
+    <br>
+    <a href="https://wa.me/5548999999999" target="_blank">
+      <button style="background-color: #25D366; color: white; padding: 10px 15px; border-radius: 5px; border: none;">
+        Entrar em contato via WhatsApp
+      </button>
+    </a>
+  </div>
 
-  <p id="precoFinal">Valor Total: R$ 0,00</p>
+  <!-- Script JavaScript base -->
+  <script>
+    // Botão do menu lateral
+    const toggleBtn = document.querySelector('.toggle-btn');
+    const sidebar = document.querySelector('.sidebar');
 
-  <button type="submit">Enviar Solicitação</button>
-</form>
+    toggleBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('active');
+    });
 
-  </main>  <script src="script.js"></script></body>
-</html><!-- cadastrar.html (seguirá após este) -->
+    function calcularPreco() {
+      const profissional = document.getElementById("profissional").value;
+      const precoFinal = document.getElementById("precoFinal");
+
+      const tabelaPrecos = {
+        eletricista: 120,
+        encanador: 110,
+        faxineira: 100,
+        pedreiro: 150,
+        jardineiro: 90,
+        diarista: 95
+      };
+
+      const gasolina = 25; // valor fixo ida e volta
+
+      if (profissional && tabelaPrecos[profissional]) {
+        const total = tabelaPrecos[profissional] + gasolina;
+        precoFinal.textContent = `Valor Total: R$ ${total.toFixed(2)}`;
+      } else {
+        precoFinal.textContent = "Valor Total: R$ 0,00";
+      }
+    }
+
+    document.getElementById("solicitarForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      alert("Sua solicitação foi enviada com sucesso! Em breve entraremos em contato.");
+      this.reset();
+      document.getElementById("precoFinal").textContent = "Valor Total: R$ 0,00";
+    });
+  </script>
+</body>
+</html>
