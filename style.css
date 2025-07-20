@@ -1,122 +1,136 @@
-/* Reset e base */
+/* Reset básico */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
+/* Cores base da marca */
+:root {
+    --azul: #009fe3;
+    --preto: #0a0a0a;
+    --branco: #ffffff;
+    --cinza: #f2f2f2;
+}
+
+/* Corpo da página */
 body {
     font-family: 'Segoe UI', sans-serif;
-    background-color: #f9f9f9;
-    color: #333;
+    background-color: var(--cinza);
+    color: var(--preto);
+    line-height: 1.6;
 }
 
-/* Topo fixo */
+/* Cabeçalho */
 header {
-    background-color: #00adee;
-    color: white;
+    background-color: var(--branco);
     padding: 20px;
-    text-align: center;
-    position: fixed;
-    top: 0;
-    width: 100%;
-    z-index: 10;
+    border-bottom: 2px solid var(--azul);
 }
 
-header img {
-    height: 60px;
-    margin-bottom: 10px;
+.logo-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
 }
 
-header h1 {
-    font-size: 28px;
+.logo {
+    width: 60px;
+    height: auto;
 }
 
-header p {
-    font-size: 14px;
+.titulo h1 {
+    color: var(--azul);
+    font-size: 1.8em;
 }
 
-/* Menu lateral */
-.sidebar {
-    position: fixed;
-    left: 0;
-    top: 100px;
-    width: 220px;
-    background-color: #003f5e;
-    padding-top: 20px;
-    height: 100%;
-    z-index: 5;
+.titulo p {
+    font-size: 0.9em;
+    color: #555;
 }
 
-.sidebar a {
-    display: block;
-    color: white;
-    padding: 15px 25px;
+/* Menu */
+.top-menu {
+    margin-top: 15px;
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.top-menu a {
     text-decoration: none;
+    background-color: var(--azul);
+    color: var(--branco);
+    padding: 10px 16px;
+    border-radius: 6px;
     transition: background 0.3s;
 }
 
-.sidebar a:hover {
-    background-color: #007bb5;
+.top-menu a:hover {
+    background-color: #007ab6;
 }
 
-/* Conteúdo principal */
-main {
-    margin-left: 240px;
-    margin-top: 140px;
-    padding: 20px;
+/* Hero Section */
+.hero {
+    padding: 40px 20px;
+    text-align: center;
+    background-color: var(--branco);
 }
 
-/* Botões gerais */
+.hero h2 {
+    font-size: 2em;
+    color: var(--azul);
+    margin-bottom: 10px;
+}
+
+.hero p {
+    font-size: 1em;
+    margin-bottom: 25px;
+}
+
+/* Botões principais */
+.botoes-principais {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
 .btn {
-    display: inline-block;
-    background-color: #00adee;
-    color: white;
-    padding: 12px 20px;
+    background-color: var(--azul);
+    color: var(--branco);
+    padding: 12px 24px;
+    border: none;
     border-radius: 8px;
     text-decoration: none;
     font-weight: bold;
-    transition: background-color 0.3s;
-    margin: 10px 0;
+    transition: 0.3s;
 }
 
 .btn:hover {
-    background-color: #007bb5;
+    background-color: #007ab6;
 }
 
-form {
-    max-width: 500px;
-    margin-top: 20px;
-    background-color: white;
-    padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+.btn.secundario {
+    background-color: var(--preto);
 }
 
-input, button {
-    width: 100%;
-    padding: 12px;
-    margin-bottom: 12px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
+.btn.secundario:hover {
+    background-color: #333;
 }
 
-button {
-    background-color: #00adee;
-    color: white;
-    font-weight: bold;
-    border: none;
-    cursor: pointer;
+/* Sobre */
+.sobre {
+    padding: 30px 20px;
+    background-color: #ffffff;
+    border-top: 1px solid #ccc;
 }
 
-button:hover {
-    background-color: #007bb5;
-}
-
+/* Rodapé */
 footer {
     text-align: center;
     padding: 20px;
-    background-color: #003f5e;
-    color: white;
-    margin-top: 40px;
+    background-color: var(--azul);
+    color: var(--branco);
+    margin-top: 30px;
 }
