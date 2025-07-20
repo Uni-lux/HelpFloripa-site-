@@ -3,163 +3,177 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  font-family: 'Segoe UI', sans-serif;
 }
 
 body {
-  font-family: 'Segoe UI', sans-serif;
-  background-color: #f5faff;
-  color: #111;
+  background-color: #eaf4ff;
+  color: #001f3f;
+  display: flex;
+  min-height: 100vh;
 }
 
-/* Sidebar */
+/* Sidebar lateral */
 .sidebar {
-  position: fixed;
-  left: 0;
-  top: 0;
-  width: 220px;
-  height: 100vh;
-  background-color: #002b5b; /* azul escuro */
-  padding-top: 60px;
+  background-color: #001f3f;
+  color: white;
+  width: 250px;
   transition: transform 0.3s ease;
-  z-index: 1000;
+  transform: translateX(0);
+  position: fixed;
+  height: 100vh;
+  z-index: 999;
+  padding-top: 60px;
 }
 
-.sidebar nav a {
-  display: block;
+.sidebar-menu {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+}
+
+.sidebar-menu a {
   color: white;
   text-decoration: none;
-  padding: 15px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin: 10px 0;
+  font-size: 18px;
   transition: background 0.3s;
+  padding: 10px;
+  border-radius: 8px;
 }
 
-.sidebar nav a:hover {
-  background-color: #0053a4; /* azul médio */
+.sidebar-menu a:hover {
+  background-color: #0074d9;
 }
 
 .toggle-btn {
   position: absolute;
   top: 10px;
-  right: -45px;
-  width: 40px;
-  height: 40px;
-  background-color: #0053a4;
+  left: 10px;
+  background-color: #0074d9;
   color: white;
   border: none;
+  font-size: 24px;
+  padding: 5px 10px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 22px;
-  border-radius: 0 6px 6px 0;
+  z-index: 1000;
 }
 
-/* Hero */
-.hero {
-  margin-left: 220px;
+/* Conteúdo principal */
+.main-content {
+  margin-left: 250px;
+  padding: 20px;
+  flex: 1;
+}
+
+/* Banner com imagem, título e slogan */
+.banner {
   text-align: center;
-  padding: 40px 20px;
-  background: linear-gradient(to right, #003366, #0053a4);
-  color: white;
+  margin-top: 20px;
 }
 
-.hero .logo {
-  width: 100px;
+.banner img {
+  width: 120px;
   height: auto;
-  margin-bottom: 10px;
 }
 
-.hero h1 {
-  font-size: 2.5rem;
+.banner h1 {
+  font-size: 36px;
+  color: #001f3f;
+  margin: 10px 0;
 }
 
 .slogan {
-  font-size: 1.2rem;
-  margin-top: 8px;
+  font-size: 18px;
+  margin-bottom: 20px;
+  color: #0074d9;
 }
 
-/* Cards */
-.cards {
-  margin-left: 220px;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  padding: 30px 20px;
+/* Botões principais */
+.action-buttons {
+  margin-bottom: 30px;
+}
+
+.main-btn {
+  background-color: #0074d9;
+  color: white;
+  padding: 12px 24px;
+  margin: 10px;
+  font-size: 16px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  transition: background 0.3s ease;
+}
+
+.main-btn:hover {
+  background-color: #005fa3;
+}
+
+/* Cards dos profissionais */
+.cards-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 20px;
+  padding-bottom: 50px;
 }
 
 .card {
   background-color: #ffffff;
-  border: 2px solid #0053a4;
-  border-radius: 12px;
-  padding: 20px 30px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  font-size: 1.1rem;
-  font-weight: 600;
-  transition: transform 0.2s;
-  cursor: pointer;
+  padding: 20px;
+  border-radius: 14px;
+  box-shadow: 0 4px 10px rgba(0, 31, 63, 0.15);
+  text-align: center;
+  transition: transform 0.2s ease;
 }
 
 .card:hover {
-  transform: scale(1.05);
-  background-color: #eaf4ff;
+  transform: translateY(-5px);
 }
 
-/* Botões em destaque */
-.botoes-destaque {
-  margin-left: 220px;
-  text-align: center;
-  padding: 20px;
+.card h3 {
+  margin-bottom: 15px;
+  font-size: 20px;
+  color: #001f3f;
 }
 
-.btn.destaque {
-  display: inline-block;
-  background-color: #0053a4;
+/* Botões dos cards */
+.card-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.mini-btn {
+  background-color: #0074d9;
   color: white;
-  padding: 15px 25px;
-  margin: 10px;
-  font-size: 1.1rem;
-  font-weight: bold;
   border: none;
-  border-radius: 10px;
+  padding: 8px 14px;
+  border-radius: 8px;
   text-decoration: none;
-  transition: background 0.3s;
+  font-size: 14px;
+  transition: background 0.3s ease;
 }
 
-.btn.destaque:hover {
-  background-color: #003f7d;
+.mini-btn:hover {
+  background-color: #005fa3;
 }
 
-/* Footer */
-footer {
-  margin-left: 220px;
-  text-align: center;
-  padding: 15px;
-  background-color: #002b5b;
-  color: white;
-  font-size: 0.9rem;
-}
+/* Responsividade */
+@media screen and (max-width: 768px) {
+  .main-content {
+    margin-left: 0;
+    padding: 10px;
+  }
 
-/* Responsivo */
-@media (max-width: 768px) {
   .sidebar {
     transform: translateX(-100%);
   }
 
   .sidebar.active {
     transform: translateX(0);
-  }
-
-  .toggle-btn {
-    right: -10px;
-  }
-
-  .hero,
-  .cards,
-  .botoes-destaque,
-  footer {
-    margin-left: 0;
-  }
-
-  .card {
-    width: 100%;
-    max-width: 300px;
   }
 }
