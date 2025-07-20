@@ -1,0 +1,165 @@
+/* Reset básico */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #f5faff;
+  color: #111;
+}
+
+/* Sidebar */
+.sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 220px;
+  height: 100vh;
+  background-color: #002b5b; /* azul escuro */
+  padding-top: 60px;
+  transition: transform 0.3s ease;
+  z-index: 1000;
+}
+
+.sidebar nav a {
+  display: block;
+  color: white;
+  text-decoration: none;
+  padding: 15px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  transition: background 0.3s;
+}
+
+.sidebar nav a:hover {
+  background-color: #0053a4; /* azul médio */
+}
+
+.toggle-btn {
+  position: absolute;
+  top: 10px;
+  right: -45px;
+  width: 40px;
+  height: 40px;
+  background-color: #0053a4;
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-size: 22px;
+  border-radius: 0 6px 6px 0;
+}
+
+/* Hero */
+.hero {
+  margin-left: 220px;
+  text-align: center;
+  padding: 40px 20px;
+  background: linear-gradient(to right, #003366, #0053a4);
+  color: white;
+}
+
+.hero .logo {
+  width: 100px;
+  height: auto;
+  margin-bottom: 10px;
+}
+
+.hero h1 {
+  font-size: 2.5rem;
+}
+
+.slogan {
+  font-size: 1.2rem;
+  margin-top: 8px;
+}
+
+/* Cards */
+.cards {
+  margin-left: 220px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 30px 20px;
+  gap: 20px;
+}
+
+.card {
+  background-color: #ffffff;
+  border: 2px solid #0053a4;
+  border-radius: 12px;
+  padding: 20px 30px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  font-size: 1.1rem;
+  font-weight: 600;
+  transition: transform 0.2s;
+  cursor: pointer;
+}
+
+.card:hover {
+  transform: scale(1.05);
+  background-color: #eaf4ff;
+}
+
+/* Botões em destaque */
+.botoes-destaque {
+  margin-left: 220px;
+  text-align: center;
+  padding: 20px;
+}
+
+.btn.destaque {
+  display: inline-block;
+  background-color: #0053a4;
+  color: white;
+  padding: 15px 25px;
+  margin: 10px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: background 0.3s;
+}
+
+.btn.destaque:hover {
+  background-color: #003f7d;
+}
+
+/* Footer */
+footer {
+  margin-left: 220px;
+  text-align: center;
+  padding: 15px;
+  background-color: #002b5b;
+  color: white;
+  font-size: 0.9rem;
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+
+  .sidebar.active {
+    transform: translateX(0);
+  }
+
+  .toggle-btn {
+    right: -10px;
+  }
+
+  .hero,
+  .cards,
+  .botoes-destaque,
+  footer {
+    margin-left: 0;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 300px;
+  }
+}
