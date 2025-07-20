@@ -16,6 +16,8 @@
       min-height: 100vh;
       background: #f0f6fc;
       color: #002244;
+      flex-direction: column;
+      /* flex-direction column para footer no fim */
     }
 
     /* Sidebar fixa */
@@ -28,11 +30,10 @@
       padding: 20px 10px;
       overflow-y: auto;
       z-index: 1100;
-      left: 0; /* sidebar visível no desktop */
+      left: 0;
       transition: left 0.3s ease;
     }
 
-    /* Sidebar escondida no mobile */
     aside.sidebar.closed {
       left: -250px;
     }
@@ -132,11 +133,7 @@
       margin-left: 250px;
       width: calc(100% - 250px);
       transition: margin-left 0.3s ease;
-    }
-
-    main.shifted {
-      margin-left: 250px;
-      width: calc(100% - 250px);
+      margin-bottom: 40px; /* espaço para footer */
     }
 
     /* Cards de exemplo */
@@ -182,19 +179,19 @@
       background-color: #0055aa;
     }
 
-    /* Footer */
+    /* Footer no fluxo da página */
     footer {
-      text-align: center;
-      padding: 20px;
       background-color: #002244;
       color: white;
-      margin-top: 30px;
+      padding: 20px;
+      text-align: center;
+      margin-top: auto;
     }
 
     /* Responsividade */
     @media (min-width: 769px) {
       #menuToggle {
-        display: none; /* esconde o botão no desktop */
+        display: none; /* esconde botão desktop */
       }
       aside.sidebar {
         left: 0;
@@ -269,7 +266,6 @@
     const menuToggle = document.getElementById('menuToggle');
     const sidebar = document.getElementById('sidebar');
     const closeBtn = sidebar.querySelector('.close-button');
-    const main = document.querySelector('main');
 
     menuToggle.addEventListener('click', () => {
       sidebar.classList.toggle('closed');
