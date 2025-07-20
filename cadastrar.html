@@ -3,17 +3,57 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Cadastrar como Profissional</title>
+  <title>Solicitar Profissional</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      background-color: #f0f4f8; /* Substitua por uma cor igual à do solicitar.html */
+      margin: 0;
+      font-family: Arial, sans-serif;
+    }
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      background-color: #ffffff;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    input, select, textarea, button {
+      width: 100%;
+      margin-bottom: 15px;
+      padding: 10px;
+      font-size: 16px;
+    }
+    button {
+      background-color: #0077cc;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #005fa3;
+    }
+    .whatsapp-button {
+      display: inline-block;
+      text-align: center;
+      margin-top: 10px;
+      background-color: #25d366;
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+      text-decoration: none;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
-    <h1>Cadastre-se como Profissional</h1>
-    <form id="cadastrarForm">
+    <h1>Solicitar Profissional</h1>
+    <form id="solicitarForm">
       <label for="nome">Nome Completo:</label>
       <input type="text" id="nome" name="nome" required>
 
-      <label for="especialidade">Especialidade:</label>
+      <label for="especialidade">Serviço Necessário:</label>
       <select id="especialidade" name="especialidade" required>
         <option value="">Selecione</option>
         <option value="eletricista">Eletricista</option>
@@ -43,13 +83,8 @@
       <label for="bloco">Bloco (opcional):</label>
       <input type="text" id="bloco" name="bloco">
 
-      <label for="moradia">Você mora em:</label>
-      <select id="moradia" name="moradia" required>
-        <option value="">Selecione</option>
-        <option value="casa">Casa</option>
-        <option value="apartamento">Apartamento</option>
-        <option value="predio">Prédio</option>
-      </select>
+      <label for="complemento">Complemento (apto/nº do prédio/portaria):</label>
+      <input type="text" id="complemento" name="complemento">
 
       <label for="telefone">Telefone para Contato:</label>
       <input type="tel" id="telefone" name="telefone" placeholder="(DDD) 90000-0000" required>
@@ -57,10 +92,10 @@
       <label for="disponibilidade">Disponibilidade:</label>
       <input type="text" id="disponibilidade" name="disponibilidade" placeholder="Dias e horários disponíveis" required>
 
-      <label for="descricao">Breve descrição ou experiência:</label>
+      <label for="descricao">Descreva o que precisa:</label>
       <textarea id="descricao" name="descricao" rows="4" required></textarea>
 
-      <button type="submit">Cadastrar</button>
+      <button type="submit">Solicitar Profissional</button>
       <a href="https://wa.me/seunumero" class="whatsapp-button" target="_blank">Falar com Suporte via WhatsApp</a>
     </form>
   </div>
