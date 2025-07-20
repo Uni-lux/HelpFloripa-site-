@@ -3,27 +3,42 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: 'Segoe UI', sans-serif;
 }
 
+/* Cores e fontes */
 body {
-  background-color: #eaf4ff;
-  color: #001f3f;
-  display: flex;
-  min-height: 100vh;
+  font-family: Arial, sans-serif;
+  background-color: #ffffff;
+  color: #000;
 }
 
-/* Sidebar lateral */
 .sidebar {
-  background-color: #001f3f;
-  color: white;
-  width: 250px;
-  transition: transform 0.3s ease;
-  transform: translateX(0);
   position: fixed;
-  height: 100vh;
-  z-index: 999;
+  top: 0;
+  left: 0;
+  width: 250px;
+  height: 100%;
+  background-color: #001f3f; /* Azul escuro */
+  color: white;
   padding-top: 60px;
+  transition: transform 0.3s ease;
+  transform: translateX(-100%);
+  z-index: 999;
+}
+
+.sidebar.active {
+  transform: translateX(0);
+}
+
+.sidebar .toggle-btn {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  font-size: 26px;
+  background-color: transparent;
+  border: none;
+  color: white;
+  cursor: pointer;
 }
 
 .sidebar-menu {
@@ -35,201 +50,131 @@ body {
 .sidebar-menu a {
   color: white;
   text-decoration: none;
-  margin: 10px 0;
+  padding: 12px 0;
   font-size: 18px;
-  transition: background 0.3s;
-  padding: 10px;
-  border-radius: 8px;
+  transition: background 0.2s;
 }
 
 .sidebar-menu a:hover {
-  background-color: #0074d9;
+  background-color: #003366;
+  padding-left: 10px;
 }
 
-.toggle-btn {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  background-color: #0074d9;
-  color: white;
-  border: none;
-  font-size: 24px;
-  padding: 5px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  z-index: 1000;
-}
-
-/* Conteúdo principal */
 .main-content {
-  margin-left: 250px;
+  margin-left: 0;
   padding: 20px;
-  flex: 1;
+  transition: margin-left 0.3s ease;
 }
 
-/* Banner com imagem, título e slogan */
+.sidebar.active ~ .main-content {
+  margin-left: 250px;
+}
+
+/* Banner */
 .banner {
   text-align: center;
-  margin-top: 20px;
+  padding: 40px 20px;
+  background-color: #001f3f; /* Azul escuro */
+  color: white;
 }
 
 .banner img {
-  width: 120px;
-  height: auto;
+  max-width: 120px;
+  margin-bottom: 20px;
 }
 
 .banner h1 {
   font-size: 36px;
-  color: #001f3f;
-  margin: 10px 0;
+  margin-bottom: 10px;
 }
 
 .slogan {
   font-size: 18px;
   margin-bottom: 20px;
-  color: #0074d9;
 }
 
-/* Botões principais */
 .action-buttons {
-  margin-bottom: 30px;
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  flex-wrap: wrap;
 }
 
 .main-btn {
-  background-color: #0074d9;
+  background-color: #000; /* Preto */
   color: white;
-  padding: 12px 24px;
-  margin: 10px;
-  font-size: 16px;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
+  padding: 12px 20px;
   text-decoration: none;
-  display: inline-block;
-  transition: background 0.3s ease;
+  border-radius: 8px;
+  transition: background 0.3s;
 }
 
 .main-btn:hover {
-  background-color: #005fa3;
+  background-color: #333;
 }
 
-/* Cards dos profissionais */
+/* Cards */
 .cards-container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 20px;
-  padding-bottom: 50px;
+  margin-top: 40px;
 }
 
 .card {
-  background-color: #ffffff;
+  background-color: #f1f1f1;
+  border: 2px solid #001f3f;
+  border-radius: 10px;
   padding: 20px;
-  border-radius: 14px;
-  box-shadow: 0 4px 10px rgba(0, 31, 63, 0.15);
   text-align: center;
-  transition: transform 0.2s ease;
-}
-
-.card:hover {
-  transform: translateY(-5px);
 }
 
 .card h3 {
   margin-bottom: 15px;
-  font-size: 20px;
   color: #001f3f;
 }
 
-/* Botões dos cards */
 .card-buttons {
   display: flex;
   justify-content: center;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .mini-btn {
-  background-color: #0074d9;
+  background-color: #001f3f;
   color: white;
-  border: none;
   padding: 8px 14px;
-  border-radius: 8px;
+  border-radius: 5px;
   text-decoration: none;
   font-size: 14px;
-  transition: background 0.3s ease;
-}
-
-.mini-btn:hover {
-  background-color: #005fa3;
-}
-
-/* Responsividade */
-@media screen and (max-width: 768px) {
-  .main-content {
-    margin-left: 0;
-    padding: 10px;
-  }
-
-  .sidebar {
-    transform: translateX(-100%);
-  }
-
-  .sidebar.active {
-    transform: translateX(0);
-  }
-}
-.container-solicitar {
-  max-width: 600px;
-  margin: 40px auto;
-  padding: 20px;
-  background-color: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 0 20px rgba(0,0,0,0.15);
-  color: #001f3f;
-}
-
-.container-solicitar h1 {
-  text-align: center;
-  margin-bottom: 25px;
-  color: #004080;
-}
-
-.container-solicitar label {
-  display: block;
-  margin-top: 15px;
-  font-weight: bold;
-}
-
-.container-solicitar input,
-.container-solicitar textarea,
-.container-solicitar select {
-  width: 100%;
-  padding: 10px;
-  margin-top: 5px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  font-size: 16px;
-}
-
-.btn.destaque {
-  margin-top: 25px;
-  width: 100%;
-  background-color: #004080;
-  color: white;
-  padding: 15px;
-  border: none;
-  border-radius: 8px;
-  font-size: 18px;
-  cursor: pointer;
   transition: background 0.3s;
 }
 
-.btn.destaque:hover {
-  background-color: #0066cc;
+.mini-btn:hover {
+  background-color: #003366;
 }
 
-.preco-box {
-  margin-top: 20px;
-  font-size: 18px;
-  color: #004080;
-  font-weight: bold;
+/* Responsivo */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 220px;
+  }
+
+  .sidebar.active ~ .main-content {
+    margin-left: 0;
+  }
+
+  .banner h1 {
+    font-size: 28px;
+  }
+
+  .main-btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .card-buttons {
+    flex-direction: column;
+  }
 }
