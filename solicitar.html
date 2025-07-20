@@ -1,1 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Solicitar Profissional</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container-solicitar">
+    <h1>Solicitar Profissional</h1>
 
+    <form id="form-solicitacao">
+      <label for="nome">Nome completo:</label>
+      <input type="text" id="nome" name="nome" required>
+
+      <label for="telefone">Telefone (WhatsApp):</label>
+      <input type="tel" id="telefone" name="telefone" required>
+
+      <label for="endereco">Endereço:</label>
+      <input type="text" id="endereco" name="endereco" required>
+
+      <label for="profissional">Profissional desejado:</label>
+      <select id="profissional" name="profissional" onchange="atualizarPreco()" required>
+        <option value="">Selecione...</option>
+        <option value="Eletricista">Eletricista</option>
+        <option value="Encanador">Encanador</option>
+        <option value="Faxineira">Faxineira</option>
+        <option value="Pedreiro">Pedreiro</option>
+        <option value="Jardineiro">Jardineiro</option>
+        <option value="Diarista">Diarista</option>
+      </select>
+
+      <div id="precoTotal" class="preco"></div>
+
+      <button type="submit">Enviar Solicitação</button>
+    </form>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
