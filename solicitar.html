@@ -5,89 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Solicitar Profissional</title>
   <link rel="stylesheet" href="style.css">
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background-color: #0a2a47; /* azul escuro do painel */
-      color: #fff;
-    }
-
-    .container {
-      max-width: 600px;
-      margin: 40px auto;
-      background-color: #111;
-      padding: 30px;
-      border-radius: 15px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.5);
-    }
-
-    h1 {
-      text-align: center;
-      color: #00adee;
-    }
-
-    label {
-      display: block;
-      margin-top: 15px;
-      font-weight: bold;
-    }
-
-    input, select, textarea {
-      width: 100%;
-      padding: 10px;
-      margin-top: 5px;
-      border: none;
-      border-radius: 8px;
-      background-color: #222;
-      color: #fff;
-    }
-
-    textarea {
-      resize: vertical;
-    }
-
-    button {
-      background-color: #00adee;
-      color: white;
-      padding: 12px;
-      width: 100%;
-      border: none;
-      border-radius: 8px;
-      margin-top: 20px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-
-    .whatsapp-button {
-      display: block;
-      text-align: center;
-      margin-top: 15px;
-      background-color: #25D366;
-      color: white;
-      padding: 10px;
-      border-radius: 8px;
-      text-decoration: none;
-      font-weight: bold;
-    }
-
-    #precoFinal {
-      margin-top: 20px;
-      font-size: 18px;
-      color: #00ffcc;
-      text-align: center;
-    }
-  </style>
 </head>
 <body>
   <div class="container">
-    <h1>Solicitar um Profissional</h1>
+    <h1>Solicitar Profissional</h1>
     <form id="solicitarForm">
-      <label for="nome">Seu Nome:</label>
+      <label for="nome">Nome Completo:</label>
       <input type="text" id="nome" name="nome" required>
 
-      <label for="profissional">Profissional Desejado:</label>
-      <select id="profissional" name="profissional" required>
+      <label for="servico">Tipo de Serviço:</label>
+      <select id="servico" name="servico" required>
         <option value="">Selecione</option>
         <option value="eletricista">Eletricista</option>
         <option value="encanador">Encanador</option>
@@ -105,81 +32,46 @@
       </select>
 
       <label for="bairro">Bairro:</label>
-      <select id="bairro" name="bairro" required>
-        <option value="">Selecione a cidade primeiro</option>
+      <select id="bairro" name="bairro" required></select>
+
+      <label for="rua">Rua:</label>
+      <input type="text" id="rua" name="rua" required>
+
+      <label for="numero">Número:</label>
+      <input type="text" id="numero" name="numero" required>
+
+      <label for="bloco">Bloco (opcional):</label>
+      <input type="text" id="bloco" name="bloco">
+
+      <label for="tipoResidencia">Você mora em apartamento/prédio?</label>
+      <select id="tipoResidencia" name="tipoResidencia" required>
+        <option value="">Selecione</option>
+        <option value="nao">Não</option>
+        <option value="sim">Sim</option>
       </select>
+
+      <div id="infoApartamento" style="display: none;">
+        <label for="andar">Andar:</label>
+        <input type="text" id="andar" name="andar">
+
+        <label for="numeroApto">Número do Apartamento:</label>
+        <input type="text" id="numeroApto" name="numeroApto">
+      </div>
+
+      <label for="referencia">Ponto de Referência:</label>
+      <input type="text" id="referencia" name="referencia">
 
       <label for="telefone">Telefone para Contato:</label>
       <input type="tel" id="telefone" name="telefone" placeholder="(DDD) 90000-0000" required>
 
-      <label for="disponibilidade">Disponibilidade:</label>
-      <input type="text" id="disponibilidade" name="disponibilidade" placeholder="Dias e horários disponíveis" required>
-
-      <label for="descricao">Descrição do serviço:</label>
-      <textarea id="descricao" name="descricao" rows="4" required></textarea>
-
-      <p id="precoFinal">Valor Total: R$ 0,00</p>
+      <label for="horario">Horário Desejado:</label>
+      <input type="text" id="horario" name="horario" placeholder="Ex: Segunda às 14h" required>
 
       <button type="submit">Solicitar</button>
-      <a href="https://wa.me/SEUNUMERO" class="whatsapp-button" target="_blank">Falar com Suporte via WhatsApp</a>
+      <a href="https://wa.me/seunumero" class="whatsapp-button" target="_blank">Falar com Suporte via WhatsApp</a>
     </form>
   </div>
 
-  <script>
-    const bairrosPorCidade = {
-      florianopolis: ["Centro", "Ingleses", "Campeche", "Trindade"],
-      saojose: ["Kobrasol", "Barreiros", "Roçado", "Forquilhinhas"]
-    };
-
-    document.getElementById("cidade").addEventListener("change", function () {
-      const cidade = this.value;
-      const bairroSelect = document.getElementById("bairro");
-      bairroSelect.innerHTML = '<option value="">Selecione</option>';
-
-      if (bairrosPorCidade[cidade]) {
-        bairrosPorCidade[cidade].forEach(bairro => {
-          const option = document.createElement("option");
-          option.value = bairro.toLowerCase();
-          option.textContent = bairro;
-          bairroSelect.appendChild(option);
-        });
-      }
-
-      calcularPreco();
-    });
-
-    document.getElementById("profissional").addEventListener("change", calcularPreco);
-
-    function calcularPreco() {
-      const profissional = document.getElementById("profissional").value;
-      const cidade = document.getElementById("cidade").value;
-      const precoFinal = document.getElementById("precoFinal");
-
-      const tabelaPrecos = {
-        eletricista: 120,
-        encanador: 110,
-        faxineira: 100,
-        pedreiro: 150,
-        jardineiro: 90,
-        diarista: 95
-      };
-
-      const gasolina = cidade === "saojose" ? 70 : cidade === "florianopolis" ? 25 : 0;
-
-      if (profissional && tabelaPrecos[profissional] && gasolina > 0) {
-        const total = tabelaPrecos[profissional] + gasolina;
-        precoFinal.textContent = `Valor Total: R$ ${total.toFixed(2)}`;
-      } else {
-        precoFinal.textContent = "Valor Total: R$ 0,00";
-      }
-    }
-
-    document.getElementById("solicitarForm").addEventListener("submit", function(e) {
-      e.preventDefault();
-      alert("Sua solicitação foi enviada com sucesso! Em breve entraremos em contato.");
-      this.reset();
-      document.getElementById("precoFinal").textContent = "Valor Total: R$ 0,00";
-    });
-  </script>
+  <script src="script.js"></script>
 </body>
 </html>
