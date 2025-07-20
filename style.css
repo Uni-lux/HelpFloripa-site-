@@ -7,8 +7,8 @@
 
 body {
   font-family: 'Segoe UI', sans-serif;
-  background-color: #f5faff;
-  color: #111;
+  background-color: #0a0a0a;
+  color: #fff;
 }
 
 /* Sidebar */
@@ -18,7 +18,7 @@ body {
   top: 0;
   width: 220px;
   height: 100vh;
-  background-color: #002b5b; /* azul escuro */
+  background-color: #002b5b;
   padding-top: 60px;
   transition: transform 0.3s ease;
   z-index: 1000;
@@ -34,7 +34,7 @@ body {
 }
 
 .sidebar nav a:hover {
-  background-color: #0053a4; /* azul médio */
+  background-color: #0053a4;
 }
 
 .toggle-btn {
@@ -86,20 +86,21 @@ body {
 }
 
 .card {
-  background-color: #ffffff;
-  border: 2px solid #0053a4;
+  background-color: #1f2937;
+  border: 2px solid #00adee;
   border-radius: 12px;
   padding: 20px 30px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 10px rgba(0,173,238,0.1);
   font-size: 1.1rem;
   font-weight: 600;
   transition: transform 0.2s;
   cursor: pointer;
+  color: #fff;
 }
 
 .card:hover {
   transform: scale(1.05);
-  background-color: #eaf4ff;
+  background-color: #0f172a;
 }
 
 /* Botões em destaque */
@@ -111,7 +112,7 @@ body {
 
 .btn.destaque {
   display: inline-block;
-  background-color: #0053a4;
+  background-color: #00adee;
   color: white;
   padding: 15px 25px;
   margin: 10px;
@@ -120,11 +121,12 @@ body {
   border: none;
   border-radius: 10px;
   text-decoration: none;
-  transition: background 0.3s;
+  transition: background 0.3s, transform 0.3s;
 }
 
 .btn.destaque:hover {
-  background-color: #003f7d;
+  background-color: #008bbd;
+  transform: scale(1.03);
 }
 
 /* Footer */
@@ -163,59 +165,86 @@ footer {
     max-width: 300px;
   }
 }
+
+/* ========================= */
+/* ESTILO DO FORMULÁRIO SOLICITAR */
 .container-solicitar {
   max-width: 600px;
-  margin: 40px auto;
-  padding: 20px;
-  background-color: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 0 20px rgba(0,0,0,0.15);
-  color: #001f3f;
+  margin: 60px auto;
+  padding: 30px;
+  background-color: #111827;
+  border-radius: 16px;
+  box-shadow: 0 0 30px rgba(0,173,238,0.15);
+  color: #ffffff;
+  animation: fadeIn 0.5s ease-in-out;
 }
 
 .container-solicitar h1 {
   text-align: center;
   margin-bottom: 25px;
-  color: #004080;
+  color: #00adee;
+  font-size: 26px;
 }
 
+/* Labels e Inputs */
 .container-solicitar label {
   display: block;
-  margin-top: 15px;
-  font-weight: bold;
+  margin-top: 18px;
+  font-weight: 500;
+  font-size: 15px;
+  color: #ddd;
 }
 
 .container-solicitar input,
 .container-solicitar textarea,
 .container-solicitar select {
   width: 100%;
-  padding: 10px;
-  margin-top: 5px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  font-size: 16px;
+  padding: 12px;
+  margin-top: 6px;
+  border: 1px solid #2d3748;
+  border-radius: 10px;
+  background-color: #1f2937;
+  color: #fff;
+  font-size: 15px;
+  transition: border-color 0.2s;
 }
 
-.btn.destaque {
-  margin-top: 25px;
+.container-solicitar input:focus,
+.container-solicitar textarea:focus,
+.container-solicitar select:focus {
+  border-color: #00adee;
+  outline: none;
+}
+
+/* Botão do formulário */
+.container-solicitar .btn.destaque {
+  margin-top: 30px;
   width: 100%;
-  background-color: #004080;
-  color: white;
-  padding: 15px;
+  padding: 14px;
+  font-size: 17px;
+  border-radius: 10px;
+  background-color: #00adee;
   border: none;
-  border-radius: 8px;
-  font-size: 18px;
-  cursor: pointer;
-  transition: background 0.3s;
+  color: #fff;
+  transition: background 0.3s, transform 0.2s;
 }
 
-.btn.destaque:hover {
-  background-color: #0066cc;
+.container-solicitar .btn.destaque:hover {
+  background-color: #008bbd;
+  transform: scale(1.02);
 }
 
+/* Preço final */
 .preco-box {
-  margin-top: 20px;
+  margin-top: 25px;
   font-size: 18px;
-  color: #004080;
+  color: #00adee;
   font-weight: bold;
+  text-align: center;
+}
+
+/* Fade-in animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
