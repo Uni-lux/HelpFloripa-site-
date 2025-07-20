@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cadastrar como Profissional</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Cadastre-se como Profissional</h1>
+    <form id="cadastrarForm">
+      <label for="nome">Nome Completo:</label>
+      <input type="text" id="nome" name="nome" required>
+
+      <label for="especialidade">Especialidade:</label>
+      <select id="especialidade" name="especialidade" required>
+        <option value="">Selecione</option>
+        <option value="eletricista">Eletricista</option>
+        <option value="encanador">Encanador</option>
+        <option value="faxineira">Faxineira</option>
+        <option value="pedreiro">Pedreiro</option>
+        <option value="jardineiro">Jardineiro</option>
+        <option value="diarista">Diarista</option>
+      </select>
+
+      <label for="cidade">Cidade:</label>
+      <select id="cidade" name="cidade" required>
+        <option value="">Selecione</option>
+        <option value="florianopolis">Florianópolis</option>
+        <option value="saojose">São José</option>
+      </select>
+
+      <label for="bairro">Bairro:</label>
+      <select id="bairro" name="bairro" required></select>
+
+      <label for="telefone">Telefone para Contato:</label>
+      <input type="tel" id="telefone" name="telefone" placeholder="(DDD) 90000-0000" required>
+
+      <label for="disponibilidade">Disponibilidade:</label>
+      <input type="text" id="disponibilidade" name="disponibilidade" placeholder="Dias e horários disponíveis" required>
+
+      <label for="descricao">Breve descrição ou experiência:</label>
+      <textarea id="descricao" name="descricao" rows="4" required></textarea>
+
+      <button type="submit">Cadastrar</button>
+      <a href="https://wa.me/seunumero" class="whatsapp-button" target="_blank">Falar com Suporte via WhatsApp</a>
+    </form>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
