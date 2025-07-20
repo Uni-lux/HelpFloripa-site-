@@ -95,11 +95,36 @@ body {
   font-weight: 600;
   transition: transform 0.2s;
   cursor: pointer;
+  position: relative;
 }
 
 .card:hover {
   transform: scale(1.05);
   background-color: #eaf4ff;
+}
+
+/* Botões dentro dos cards */
+.card-buttons {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.btn-card {
+  display: inline-block;
+  background-color: #002b5b;
+  color: white;
+  padding: 10px 15px;
+  text-align: center;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: bold;
+  transition: background 0.3s;
+}
+
+.btn-card:hover {
+  background-color: #0053a4;
 }
 
 /* Botões em destaque */
@@ -162,55 +187,4 @@ footer {
     width: 100%;
     max-width: 300px;
   }
-}
-.botao-dropdown {
-  position: relative;
-  display: inline-block;
-  margin: 10px;
-}
-
-.submenu {
-  display: none;
-  position: absolute;
-  left: 0;
-  top: 100%;
-  background-color: #ffffff;
-  border: 1px solid #0053a4;
-  border-radius: 8px;
-  padding: 10px;
-  min-width: 220px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-  z-index: 999;
-}
-
-.submenu a {
-  display: block;
-  padding: 8px 12px;
-  text-decoration: none;
-  color: #0053a4;
-  font-weight: bold;
-  transition: background 0.2s;
-}
-
-.submenu a:hover {
-  background-color: #eaf4ff;
-}
-
-.botao-dropdown:hover .submenu {
-  display: block;
-}
-
-.sidebar nav .submenu {
-  position: relative;
-  top: 0;
-  left: 0;
-  padding: 0;
-  background: none;
-  box-shadow: none;
-  border: none;
-  display: none;
-}
-
-.sidebar nav .botao-toggle:hover + .submenu {
-  display: block;
 }
