@@ -18,7 +18,7 @@
       color: #002244;
     }
 
-    /* Sidebar */
+    /* Sidebar fixa */
     aside.sidebar {
       position: fixed;
       top: 0; left: 0; bottom: 0;
@@ -26,14 +26,15 @@
       background-color: #002244;
       color: white;
       padding: 20px 10px;
-      transition: left 0.3s ease;
       overflow-y: auto;
       z-index: 1100;
-      left: -250px; /* escondido por padrão */
+      left: 0; /* sidebar visível no desktop */
+      transition: left 0.3s ease;
     }
 
-    aside.sidebar.open {
-      left: 0;
+    /* Sidebar escondida no mobile */
+    aside.sidebar.closed {
+      left: -250px;
     }
 
     aside.sidebar .close-button {
@@ -66,6 +67,7 @@
       background-color: #0055aa;
       transition: background-color 0.3s ease;
     }
+
     aside.sidebar ul li a:hover {
       background-color: #0077dd;
     }
@@ -105,21 +107,9 @@
       border-radius: 5px;
       transition: background-color 0.3s ease;
     }
+
     header nav.top-menu a:hover {
       background-color: #003b70;
-    }
-
-    /* Search box */
-    .search-box {
-      position: relative;
-      flex-shrink: 0;
-    }
-    .search-box input {
-      padding: 6px 10px;
-      border-radius: 5px;
-      border: none;
-      font-size: 14px;
-      width: 200px;
     }
 
     /* Botão abrir menu lateral */
@@ -139,9 +129,9 @@
       margin-top: 60px;
       padding: 20px 30px;
       flex: 1;
-      margin-left: 0;
+      margin-left: 250px;
+      width: calc(100% - 250px);
       transition: margin-left 0.3s ease;
-      width: 100%;
     }
 
     main.shifted {
@@ -149,13 +139,13 @@
       width: calc(100% - 250px);
     }
 
-    /* Cards de filme exemplo */
+    /* Cards de exemplo */
     .card {
       background: white;
       border-radius: 8px;
       padding: 15px 20px;
       margin-bottom: 20px;
-      box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
 
     .card h2 {
@@ -187,6 +177,7 @@
       font-weight: 600;
       transition: background-color 0.3s ease;
     }
+
     .botao-filme:hover {
       background-color: #0055aa;
     }
@@ -203,7 +194,7 @@
     /* Responsividade */
     @media (min-width: 769px) {
       #menuToggle {
-        display: none; /* esconde o botão em desktop */
+        display: none; /* esconde o botão no desktop */
       }
       aside.sidebar {
         left: 0;
@@ -218,21 +209,35 @@
       header nav.top-menu {
         display: none;
       }
+      aside.sidebar {
+        width: 250px;
+      }
+      aside.sidebar.closed {
+        left: -250px;
+      }
       main {
         margin-left: 0 !important;
         width: 100% !important;
-      }
-      aside.sidebar {
-        width: 250px;
       }
     }
   </style>
 </head>
 <body>
-  <aside id="sidebar" class="sidebar">
-    <button id="closeSidebar" class="close-button" aria-label="Fechar menu">✖</button>
+
+  <header>
+    <button id="menuToggle" aria-label="Abrir menu">☰</button>
+    <h1>Help Floripa</h1>
+    <nav class="top-menu">
+      <a href="solicite.html">Do Cliente</a>
+      <a href="cadastro.html">Do Profissional</a>
+      <a href="https://wa.me/5587981352848" target="_blank" rel="noopener">Contato</a>
+      <a href="#sobre">Sobre</a>
+    </nav>
+  </header>
+
+  <aside id="sidebar" class="sidebar closed" aria-label="Menu lateral">
+    <button class="close-button" aria-label="Fechar menu">✖</button>
     <ul>
-      <li><a href="index.html">Início</a></li>
       <li><a href="solicite.html">Do Cliente</a></li>
       <li><a href="cadastro.html">Do Profissional</a></li>
       <li><a href="https://wa.me/5587981352848" target="_blank" rel="noopener">Contato</a></li>
@@ -240,27 +245,20 @@
     </ul>
   </aside>
 
-  <header>
-    <button id="menuToggle" aria-label="Abrir menu">☰</button>
-    <h1>Help Floripa</h1>
-    <nav class="top-menu">
-      <a href="index.html">Início</a>
-      <a href="solicite.html">Do Cliente</a>
-      <a href="cadastro.html">Do Profissional</a>
-      <a href="https://wa.me/5587981352848" target="_blank" rel="noopener">Contato</a>
-      <a href="#sobre">Sobre</a>
-    </nav>
-    <div class="search-box">
-      <input type="text" id="searchInput" placeholder="Pesquisar..." />
-    </div>
-  </header>
-
-  <main id="mainContent">
-    <section class="welcome-panel">
-      <h2>Bem-vindo à Help Floripa</h2>
-      <p>Estamos felizes em conectar você com os melhores profissionais de Florianópolis!</p>
+  <main>
+    <section class="hero">
+      <h2>Conectamos quem precisa com quem sabe fazer!</h2>
+      <p>Encontre profissionais de confiança ou ofereça seus serviços em minutos.</p>
+      <div class="botoes-principais">
+        <a href="solicite.html" class="botao-filme">Solicite um Profissional</a>
+        <a href="cadastro.html" class="botao-filme" style="background:#0055aa;">Cadastrar como Profissional</a>
+      </div>
     </section>
-    <!-- Conteúdo real aqui -->
+
+    <section id="sobre" class="sobre" style="margin-top: 40px;">
+      <h2>Sobre a Help Floripa</h2>
+      <p>A Help Floripa conecta clientes e profissionais em diversas áreas como reformas, manutenção, serviços domésticos e mais. Nosso objetivo é facilitar o contato rápido e confiável entre quem busca e quem oferece serviços em Florianópolis e região.</p>
+    </section>
   </main>
 
   <footer>
@@ -268,29 +266,19 @@
   </footer>
 
   <script>
-    const menuToggle = document.getElementById("menuToggle");
-    const sidebar = document.getElementById("sidebar");
-    const closeSidebar = document.getElementById("closeSidebar");
-    const mainContent = document.getElementById("mainContent");
+    const menuToggle = document.getElementById('menuToggle');
+    const sidebar = document.getElementById('sidebar');
+    const closeBtn = sidebar.querySelector('.close-button');
+    const main = document.querySelector('main');
 
-    menuToggle.addEventListener("click", () => {
-      sidebar.classList.add("open");
+    menuToggle.addEventListener('click', () => {
+      sidebar.classList.toggle('closed');
     });
 
-    closeSidebar.addEventListener("click", () => {
-      sidebar.classList.remove("open");
-    });
-
-    // Pesquisa simples que filtra conteúdo de cards (exemplo)
-    const searchInput = document.getElementById("searchInput");
-    searchInput.addEventListener("input", () => {
-      const termo = searchInput.value.toLowerCase();
-      const cards = document.querySelectorAll("main section.card");
-      cards.forEach(card => {
-        const titulo = card.querySelector("h2").textContent.toLowerCase();
-        card.style.display = titulo.includes(termo) ? "block" : "none";
-      });
+    closeBtn.addEventListener('click', () => {
+      sidebar.classList.add('closed');
     });
   </script>
+
 </body>
 </html>
