@@ -7,40 +7,46 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="sidebar" id="sidebar">
-    <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
+
+  <div class="sidebar">
+    <button class="toggle-btn">☰</button>
     <nav>
-      <a href="#cliente">Cliente</a>
-      <a href="#profissional">Profissional</a>
-      <a href="https://wa.me/5587981352848" target="_blank">Contato</a>
-      <a href="#sobre">Sobre</a>
+      <a href="index.html">Início</a>
+      <a href="#" class="botao-toggle">Solicite um Profissional</a>
+      <a href="#" class="botao-toggle">Cadastrar como Profissional</a>
+      <div class="submenu">
+        <a href="solicitar.html">Solicitar Profissional</a>
+        <a href="cadastrar.html">Cadastrar como Profissional</a>
+      </div>
     </nav>
   </div>
 
   <header class="hero">
-    <img src="logo.png" alt="Homem Help Floripa" class="logo"/>
-    <h1>Help Floripa</h1>
-    <p class="slogan">Tudo que você precisa em só lugar</p>
+    <a href="index.html"><h1>Help Floripa</h1></a>
+    <p class="slogan">Tudo que você precisa em um só lugar.</p>
   </header>
 
-  <main>
-    <section class="cards">
-      <div class="card">🛠️ Eletricista</div>
-      <div class="card">🚰 Encanador</div>
-      <div class="card">🧹 Faxineira</div>
-      <div class="card">🧰 Pedreiro</div>
-      <div class="card">🌿 Jardineiro</div>
-      <div class="card">🧼 Diarista</div>
-    </section>
+  <section class="botoes-destaque">
+    <div class="botao-dropdown">
+      <button class="btn destaque botao-toggle">Solicite um Profissional</button>
+      <div class="submenu">
+        <a href="solicitar.html">Solicitar Profissional</a>
+        <a href="cadastrar.html">Cadastrar como Profissional</a>
+      </div>
+    </div>
 
-    <section class="botoes-destaque">
-      <a href="solicitar.html" class="btn destaque">Solicitar Profissional</a>
-      <a href="cadastrar.html" class="btn destaque">Cadastrar como Profissional</a>
-    </section>
-  </main>
+    <div class="botao-dropdown">
+      <button class="btn destaque botao-toggle">Cadastrar como Profissional</button>
+      <div class="submenu">
+        <a href="solicitar.html">Solicitar Profissional</a>
+        <a href="cadastrar.html">Cadastrar como Profissional</a>
+      </div>
+    </div>
+  </section>
 
   <footer>
-    <p>&copy; 2025 Help Floripa. Todos os direitos reservados.</p>
+    <p>© 2025 Help Floripa. Todos os direitos reservados.</p>
+    <a href="#">Termos de Uso</a> | <a href="#">Política de Privacidade</a>
   </footer>
 
   <script src="script.js"></script>
