@@ -1,159 +1,198 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Cadastrar como Profissional</title>
-  <link rel="stylesheet" href="style.css">
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background-color: #0a2a47;
-      color: #fff;
+<html lang="pt-BR">  
+<head>  
+  <meta charset="UTF-8" />  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>  
+  <title>Solicitar Profissional</title>  
+  <link rel="stylesheet" href="style.css">  
+  <style>  
+    body {  
+      margin: 0;  
+      font-family: Arial, sans-serif;  
+      background-color: #0a2a47;  
+      color: #fff;  
+    }  
+    .container {  
+      max-width: 600px;  
+      margin: 40px auto;  
+      background-color: #111;  
+      padding: 30px;  
+      border-radius: 15px;  
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);  
+    }  
+    h1 {  
+      text-align: center;  
+      color: #00adee;  
+    }  
+    label {  
+      display: block;  
+      margin-top: 15px;  
+      font-weight: bold;  
+    }  
+    input, select, textarea {  
+      width: 100%;  
+      padding: 10px;  
+      margin-top: 5px;  
+      border: none;  
+      border-radius: 8px;  
+      background-color: #222;  
+      color: #fff;  
+    }  
+    textarea {  
+      resize: vertical;  
+    }  
+    button {  
+      background-color: #00adee;  
+      color: white;  
+      padding: 12px;  
+      width: 100%;  
+      border: none;  
+      border-radius: 8px;  
+      margin-top: 20px;  
+      cursor: pointer;  
+      font-weight: bold;  
+    }  
+    .whatsapp-button {  
+      display: block;  
+      text-align: center;  
+      margin-top: 15px;  
+      background-color: #25D366;  
+      color: white;  
+      padding: 10px;  
+      border-radius: 8px;  
+      text-decoration: none;  
+      font-weight: bold;  
+    }  
+    #precoFinal {  
+      margin-top: 20px;  
+      font-size: 18px;  
+      color: #00ffcc;  
+      text-align: center;  
     }
-
-    .container {
-      max-width: 600px;
-      margin: 40px auto;
-      background-color: #111;
-      padding: 30px;
-      border-radius: 15px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    #campoApartamento {
+      display: none;
     }
+  </style>  
+</head>  
+<body>  
+  <div class="container">  
+    <h1>Solicitar um Profissional</h1>  
+    <form id="solicitarForm">  
+      <label for="nome">Seu Nome:</label>  
+      <input type="text" id="nome" name="nome" required>  
 
-    h1 {
-      text-align: center;
-      color: #00adee;
-    }
+      <label for="profissional">Profissional Desejado:</label>  
+      <select id="profissional" name="profissional" required>  
+        <option value="">Selecione</option>  
+        <option value="eletricista">Eletricista</option>  
+        <option value="encanador">Encanador</option>  
+        <option value="faxineira">Faxineira</option>  
+        <option value="pedreiro">Pedreiro</option>  
+        <option value="jardineiro">Jardineiro</option>  
+        <option value="diarista">Diarista</option>  
+      </select>  
 
-    label {
-      display: block;
-      margin-top: 15px;
-      font-weight: bold;
-    }
+      <label for="cidade">Cidade:</label>  
+      <select id="cidade" name="cidade" required>  
+        <option value="">Selecione</option>  
+        <option value="florianopolis">Florianópolis</option>  
+        <option value="saojose">São José</option>  
+      </select>  
 
-    input, select, textarea {
-      width: 100%;
-      padding: 10px;
-      margin-top: 5px;
-      border: none;
-      border-radius: 8px;
-      background-color: #222;
-      color: #fff;
-    }
+      <label for="bairro">Bairro:</label>  
+      <select id="bairro" name="bairro" required>  
+        <option value="">Selecione a cidade primeiro</option>  
+      </select>  
 
-    textarea {
-      resize: vertical;
-    }
-
-    button {
-      background-color: #00adee;
-      color: white;
-      padding: 12px;
-      width: 100%;
-      border: none;
-      border-radius: 8px;
-      margin-top: 20px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-
-    .whatsapp-button {
-      display: block;
-      text-align: center;
-      margin-top: 15px;
-      background-color: #25D366;
-      color: white;
-      padding: 10px;
-      border-radius: 8px;
-      text-decoration: none;
-      font-weight: bold;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>Cadastrar como Profissional</h1>
-    <form id="cadastrarForm">
-      <label for="nome">Nome Completo:</label>
-      <input type="text" id="nome" name="nome" required>
-
-      <label for="especialidade">Especialidade:</label>
-      <select id="especialidade" name="especialidade" required>
+      <label for="tipo_residencia">Tipo de Residência:</label>
+      <select id="tipo_residencia" name="tipo_residencia" required>
         <option value="">Selecione</option>
-        <option value="eletricista">Eletricista</option>
-        <option value="encanador">Encanador</option>
-        <option value="faxineira">Faxineira</option>
-        <option value="pedreiro">Pedreiro</option>
-        <option value="jardineiro">Jardineiro</option>
-        <option value="diarista">Diarista</option>
+        <option value="casa">Casa</option>
+        <option value="apartamento">Apartamento</option>
       </select>
 
-      <label for="cidade">Cidade:</label>
-      <select id="cidade" name="cidade" required>
-        <option value="">Selecione</option>
-        <option value="florianopolis">Florianópolis</option>
-        <option value="saojose">São José</option>
-      </select>
+      <div id="campoApartamento">
+        <label for="numero_apto">Número do Apartamento:</label>
+        <input type="text" id="numero_apto" name="numero_apto" placeholder="Ex: Bloco B, Apto 203">
+      </div>
 
-      <label for="bairro">Bairro:</label>
-      <select id="bairro" name="bairro" required>
-        <option value="">Selecione a cidade primeiro</option>
-      </select>
+      <label for="telefone">Telefone para Contato:</label>  
+      <input type="tel" id="telefone" name="telefone" placeholder="(DDD) 90000-0000" required>  
 
-      <label for="rua">Rua:</label>
-      <input type="text" id="rua" name="rua" required>
+      <label for="disponibilidade">Disponibilidade:</label>  
+      <input type="text" id="disponibilidade" name="disponibilidade" placeholder="Dias e horários disponíveis" required>  
 
-      <label for="numero">Número:</label>
-      <input type="text" id="numero" name="numero" required>
+      <label for="descricao">Descrição do serviço:</label>  
+      <textarea id="descricao" name="descricao" rows="4" required></textarea>  
 
-      <label for="bloco">Bloco (opcional):</label>
-      <input type="text" id="bloco" name="bloco">
+      <p id="precoFinal">Valor Total: R$ 0,00</p>  
 
-      <label for="complemento">Complemento (apto, prédio, portaria):</label>
-      <input type="text" id="complemento" name="complemento">
+      <button type="submit">Solicitar</button>  
+      <a href="https://wa.me/SEUNUMERO" class="whatsapp-button" target="_blank">Falar com Suporte via WhatsApp</a>  
+    </form>  
+  </div>  
 
-      <label for="telefone">Telefone para Contato:</label>
-      <input type="tel" id="telefone" name="telefone" placeholder="(DDD) 90000-0000" required>
+  <script>  
+    const bairrosPorCidade = {  
+      florianopolis: ["Centro", "Ingleses", "Campeche", "Trindade"],  
+      saojose: ["Kobrasol", "Barreiros", "Roçado", "Forquilhinhas"]  
+    };  
 
-      <label for="disponibilidade">Disponibilidade:</label>
-      <input type="text" id="disponibilidade" name="disponibilidade" placeholder="Dias e horários disponíveis" required>
+    document.getElementById("cidade").addEventListener("change", function () {  
+      const cidade = this.value;  
+      const bairroSelect = document.getElementById("bairro");  
+      bairroSelect.innerHTML = '<option value="">Selecione</option>';  
 
-      <label for="descricao">Breve descrição ou experiência:</label>
-      <textarea id="descricao" name="descricao" rows="4" required></textarea>
+      if (bairrosPorCidade[cidade]) {  
+        bairrosPorCidade[cidade].forEach(bairro => {  
+          const option = document.createElement("option");  
+          option.value = bairro.toLowerCase();  
+          option.textContent = bairro;  
+          bairroSelect.appendChild(option);  
+        });  
+      }  
 
-      <button type="submit">Cadastrar</button>
-      <a href="https://wa.me/SEUNUMERO" class="whatsapp-button" target="_blank">Falar com Suporte via WhatsApp</a>
-    </form>
-  </div>
+      calcularPreco();  
+    });  
 
-  <script>
-    const bairrosPorCidade = {
-      florianopolis: ["Centro", "Ingleses", "Campeche", "Trindade"],
-      saojose: ["Kobrasol", "Barreiros", "Roçado", "Forquilhinhas"]
-    };
+    document.getElementById("profissional").addEventListener("change", calcularPreco);  
 
-    document.getElementById("cidade").addEventListener("change", function () {
-      const cidade = this.value;
-      const bairroSelect = document.getElementById("bairro");
-      bairroSelect.innerHTML = '<option value="">Selecione</option>';
+    function calcularPreco() {  
+      const profissional = document.getElementById("profissional").value;  
+      const cidade = document.getElementById("cidade").value;  
+      const precoFinal = document.getElementById("precoFinal");  
 
-      if (bairrosPorCidade[cidade]) {
-        bairrosPorCidade[cidade].forEach(bairro => {
-          const option = document.createElement("option");
-          option.value = bairro.toLowerCase();
-          option.textContent = bairro;
-          bairroSelect.appendChild(option);
-        });
-      }
+      const tabelaPrecos = {  
+        eletricista: 120,  
+        encanador: 110,  
+        faxineira: 100,  
+        pedreiro: 150,  
+        jardineiro: 90,  
+        diarista: 95  
+      };  
+
+      const gasolina = cidade === "saojose" ? 70 : cidade === "florianopolis" ? 25 : 0;  
+
+      if (profissional && tabelaPrecos[profissional] && gasolina > 0) {  
+        const total = tabelaPrecos[profissional] + gasolina;  
+        precoFinal.textContent = `Valor Total: R$ ${total.toFixed(2)}`;  
+      } else {  
+        precoFinal.textContent = "Valor Total: R$ 0,00";  
+      }  
+    }
+
+    document.getElementById("tipo_residencia").addEventListener("change", function () {
+      const campo = document.getElementById("campoApartamento");
+      campo.style.display = this.value === "apartamento" ? "block" : "none";
     });
 
-    document.getElementById("cadastrarForm").addEventListener("submit", function(e) {
-      e.preventDefault();
-      alert("Cadastro enviado com sucesso! Em breve entraremos em contato.");
-      this.reset();
-    });
-  </script>
-</body>
-</html>
+    document.getElementById("solicitarForm").addEventListener("submit", function(e) {  
+      e.preventDefault();  
+      alert("Sua solicitação foi enviada com sucesso! Em breve entraremos em contato.");  
+      this.reset();  
+      document.getElementById("precoFinal").textContent = "Valor Total: R$ 0,00";  
+      document.getElementById("campoApartamento").style.display = "none";
+    });  
+  </script>  
+</body>  
+</html>  
