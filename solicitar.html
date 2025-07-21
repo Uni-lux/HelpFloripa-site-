@@ -119,19 +119,23 @@
       precoTag.textContent = `Valor Total: R$ ${total.toFixed(2)}`;
       return total;
     }
-
     document.getElementById("solicitarForm").addEventListener("submit", function(e){
-      e.preventDefault();
-      const t = calcularPreco();
-      const data = new FormData(this);
-      let msg = `*Solicitação HelpFloripa*%0A`;
-      for(let [k,v] of data.entries()){
-        msg += `${k}: ${v}%0A`;
-      }
-      msg += `Valor Total: R$ ${t.toFixed(2)}`;
-      const tel = "5587981352848";
-      window.location.href = `https://wa.me/${tel}?text=${msg}`;
-    });
+  e.preventDefault();
+  const t = calcularPreco();
+  const data = new FormData(this);
+  let msg = `*Solicitação HelpFloripa*%0A`;
+  for(let [k,v] of data.entries()){
+    msg += `${k}: ${v}%0A`;
+  }
+  msg += `Valor Total: R$ ${t.toFixed(2)}`;
+  const tel = "5587981352848";
+  window.location.href = `https://wa.me/${tel}?text=${msg}`;
+
+  // Redireciona para a página principal após 3 segundos
+  setTimeout(() => {
+    window.location.href = "index.html";
+  }, 3000);
+});
   </script>
 </body>
 </html>
