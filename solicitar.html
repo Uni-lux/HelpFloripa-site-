@@ -111,7 +111,7 @@
     });
 
     function calcularPreco(){
-      const tp = prof.value;
+      const tp = prof.value.toLowerCase();
       const cid = selCidade.value;
       const tabela = { eletricista:120, encanador:110, faxineira:100, pedreiro:150, jardineiro:90, diarista:95 };
       const gas = cid==="saojose"?60:(cid==="florianopolis"?25:0);
