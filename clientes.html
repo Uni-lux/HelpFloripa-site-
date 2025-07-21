@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -6,55 +5,111 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Cliente - Help Floripa</title>
   <link rel="stylesheet" href="style.css" />
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #000;
+      color: #fff;
+    }
+
+    .sidebar {
+      width: 240px;
+      background-color: #111;
+      height: 100vh;
+      position: fixed;
+      top: 0;
+      left: 0;
+      padding-top: 60px;
+    }
+
+    .sidebar nav a {
+      display: block;
+      padding: 15px 20px;
+      color: #fff;
+      text-decoration: none;
+      transition: 0.3s;
+    }
+
+    .sidebar nav a:hover {
+      background-color: #00adee;
+    }
+
+    .main {
+      margin-left: 240px;
+      padding: 40px 20px;
+      background-color: #0c1a2b;
+      min-height: 100vh;
+    }
+
+    .main h1 {
+      font-size: 36px;
+      margin-bottom: 10px;
+      color: #00adee;
+    }
+
+    .main p {
+      font-size: 18px;
+      line-height: 1.6;
+      margin-bottom: 25px;
+    }
+
+    .btn-solicitar {
+      display: inline-block;
+      padding: 12px 24px;
+      background-color: #00adee;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      text-decoration: none;
+      transition: background 0.3s;
+    }
+
+    .btn-solicitar:hover {
+      background-color: #008fc4;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        display: none;
+      }
+
+      .main {
+        margin: 0;
+        padding: 20px;
+      }
+    }
+  </style>
 </head>
 <body>
-  <div class="sidebar" id="sidebar">
-    <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
+
+  <div class="sidebar">
     <nav>
+      <a href="index.html">Início</a>
       <a href="clientes.html">Cliente</a>
       <a href="profissional.html">Profissional</a>
-      <a href="https://wa.me/5587981352848" target="_blank">Contato</a>
       <a href="sobre.html">Sobre</a>
+      <a href="https://wa.me/5587981352848" target="_blank">Contato</a>
     </nav>
   </div>
 
-  <header class="hero">
-    <img src="logo.png" alt="Logo Help Floripa" class="logo" />
+  <div class="main">
     <h1>Área do Cliente</h1>
-    <p class="slogan">Facilitamos a sua vida conectando você ao profissional ideal</p>
-  </header>
+    <p>
+      Aqui você encontra a forma mais rápida e prática de solicitar serviços para sua casa ou empresa.
+      Basta preencher o formulário de solicitação informando o tipo de serviço desejado, endereço, horário
+      e qualquer outra informação importante.
+    </p>
+    <p>
+      Assim que recebermos seu pedido, nossa equipe irá conectar você com um profissional qualificado
+      e próximo da sua localização. É simples, rápido e seguro.
+    </p>
+    <p>
+      Seu pedido é enviado diretamente para nosso sistema via WhatsApp, e você pode acompanhar todo o processo.
+    </p>
+    <a href="solicitar.html" class="btn-solicitar">Solicitar Profissional</a>
+  </div>
 
-  <main class="container">
-    <section class="explicacao-cliente">
-      <h2>Como Funciona?</h2>
-      <p>
-        O <strong>cliente</strong> tem acesso rápido e prático para solicitar serviços
-        de diversos profissionais como eletricistas, encanadores, diaristas, jardineiros e muito mais.
-        Através do formulário de <a href="solicitar.html">solicitação</a>, você informa os dados essenciais
-        como endereço, tipo de residência, serviço desejado e disponibilidade.
-      </p>
-
-      <h3>O Pedido</h3>
-      <p>
-        Após o preenchimento do formulário, os dados são enviados diretamente para nossa equipe via WhatsApp.
-        Em seguida, um profissional será encaminhado conforme sua necessidade e localização.
-      </p>
-
-      <h3>Por que é importante?</h3>
-      <p>
-        Ao centralizar seu pedido pela plataforma Help Floripa, garantimos mais agilidade, segurança e
-        praticidade no contato com profissionais qualificados. O cliente pode focar no que realmente importa,
-        enquanto nós cuidamos da ponte com quem pode resolver o problema.
-      </p>
-
-      <a href="solicitar.html" class="btn destaque">Solicitar um Profissional Agora</a>
-    </section>
-  </main>
-
-  <footer>
-    <p>&copy; 2025 Help Floripa. Todos os direitos reservados.</p>
-  </footer>
-
-  <script src="script.js"></script>
 </body>
 </html>
