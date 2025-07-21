@@ -1,108 +1,52 @@
 <!DOCTYPE html>
-<html lang="pt-BR">  
-<head>  
-  <meta charset="UTF-8" />  
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>  
-  <title>Solicitar Profissional</title>  
-  <link rel="stylesheet" href="style.css">  
-  <style>  
-    body {  
-      margin: 0;  
-      font-family: Arial, sans-serif;  
-      background-color: #0a2a47;  
-      color: #fff;  
-    }  
-    .container {  
-      max-width: 600px;  
-      margin: 40px auto;  
-      background-color: #111;  
-      padding: 30px;  
-      border-radius: 15px;  
-      box-shadow: 0 0 10px rgba(0,0,0,0.5);  
-    }  
-    h1 {  
-      text-align: center;  
-      color: #00adee;  
-    }  
-    label {  
-      display: block;  
-      margin-top: 15px;  
-      font-weight: bold;  
-    }  
-    input, select, textarea {  
-      width: 100%;  
-      padding: 10px;  
-      margin-top: 5px;  
-      border: none;  
-      border-radius: 8px;  
-      background-color: #222;  
-      color: #fff;  
-    }  
-    textarea {  
-      resize: vertical;  
-    }  
-    button {  
-      background-color: #00adee;  
-      color: white;  
-      padding: 12px;  
-      width: 100%;  
-      border: none;  
-      border-radius: 8px;  
-      margin-top: 20px;  
-      cursor: pointer;  
-      font-weight: bold;  
-    }  
-    .whatsapp-button {  
-      display: block;  
-      text-align: center;  
-      margin-top: 15px;  
-      background-color: #25D366;  
-      color: white;  
-      padding: 10px;  
-      border-radius: 8px;  
-      text-decoration: none;  
-      font-weight: bold;  
-    }  
-    #precoFinal {  
-      margin-top: 20px;  
-      font-size: 18px;  
-      color: #00ffcc;  
-      text-align: center;  
-    }
-    #campoApartamento {
-      display: none;
-    }
-  </style>  
-</head>  
-<body>  
-  <div class="container">  
-    <h1>Solicitar um Profissional</h1>  
-    <form id="solicitarForm">  
-      <label for="nome">Seu Nome:</label>  
-      <input type="text" id="nome" name="nome" required>  
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Solicitar Profissional</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; background-color: #0a2a47; color: #fff; }
+    .container { max-width: 600px; margin: 40px auto; background-color: #111; padding: 30px; border-radius: 15px; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
+    h1 { text-align: center; color: #00adee; }
+    label { display: block; margin-top: 15px; font-weight: bold; }
+    input, select, textarea { width: 100%; padding: 10px; margin-top: 5px; border: none; border-radius: 8px; background-color: #222; color: #fff; }
+    textarea { resize: vertical; }
+    button { background-color: #00adee; color: white; padding: 12px; width: 100%; border: none; border-radius: 8px; margin-top: 20px; cursor: pointer; font-weight: bold; }
+    .whatsapp-button { display: block; text-align: center; margin-top: 15px; background-color: #25D366; color: white; padding: 10px; border-radius: 8px; text-decoration: none; font-weight: bold; }
+    #precoFinal { margin-top: 20px; font-size: 18px; color: #00ffcc; text-align: center; }
+    #campoApartamento { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Solicitar um Profissional</h1>
+    <form id="solicitarForm">
+      <label for="nome">Seu Nome:</label>
+      <input type="text" id="nome" name="nome" required>
 
-      <label for="profissional">Profissional Desejado:</label>  
-      <select id="profissional" name="profissional" required>  
-        <option value="">Selecione</option>  
-        <option value="eletricista">Eletricista</option>  
-        <option value="encanador">Encanador</option>  
-        <option value="faxineira">Faxineira</option>  
-        <option value="pedreiro">Pedreiro</option>  
-        <option value="jardineiro">Jardineiro</option>  
-        <option value="diarista">Diarista</option>  
-      </select>  
+      <label for="profissional">Profissional Desejado:</label>
+      <select id="profissional" name="profissional" required>
+        <option value="">Selecione</option>
+        <option value="Eletricista">Eletricista</option>
+        <option value="Encanador">Encanador</option>
+        <option value="Faxineira">Faxineira</option>
+        <option value="Pedreiro">Pedreiro</option>
+        <option value="Jardineiro">Jardineiro</option>
+        <option value="Diarista">Diarista</option>
+      </select>
 
-      <label for="cidade">Cidade:</label>  
-      <select id="cidade" name="cidade" required>  
-        <option value="">Selecione</option>  
-        <option value="florianopolis">Florianópolis</option>  
-        <option value="saojose">São José</option>  
-      </select>  
+      <label for="cidade">Cidade:</label>
+      <select id="cidade" name="cidade" required>
+        <option value="">Selecione</option>
+        <option value="florianopolis">Florianópolis</option>
+        <option value="saojose">São José</option>
+      </select>
 
-      <label for="bairro">Bairro:</label>  
-      <select id="bairro" name="bairro" required>  
-        <option value="">Selecione a cidade primeiro</option>  
-      </select>  
+      <label for="bairro">Bairro:</label>
+      <select id="bairro" name="bairro" required>
+        <option value="">Selecione a cidade primeiro</option>
+      </select>
 
       <label for="tipo_residencia">Tipo de Residência:</label>
       <select id="tipo_residencia" name="tipo_residencia" required>
@@ -116,96 +60,78 @@
         <input type="text" id="numero_apto" name="numero_apto" placeholder="Ex: Bloco B, Apto 203">
       </div>
 
-      <label for="rua">Rua:</label>  
-      <input type="text" id="rua" name="rua" required>  
+      <label for="rua">Rua:</label>
+      <input type="text" id="rua" name="rua" required>
 
-      <label for="numero">Número:</label>  
-      <input type="text" id="numero" name="numero" required>  
+      <label for="numero">Número:</label>
+      <input type="text" id="numero" name="numero" required>
 
-      <label for="telefone">Telefone para Contato:</label>  
-      <input type="tel" id="telefone" name="telefone" placeholder="(DDD) 90000-0000" required>  
+      <label for="telefone">Telefone para Contato:</label>
+      <input type="tel" id="telefone" name="telefone" placeholder="(DDD) 90000-0000" required>
 
-      <label for="disponibilidade">Disponibilidade:</label>  
-      <input type="text" id="disponibilidade" name="disponibilidade" placeholder="Dias e horários disponíveis" required>  
+      <label for="disponibilidade">Disponibilidade:</label>
+      <input type="text" id="disponibilidade" name="disponibilidade" placeholder="Dias e horários disponíveis" required>
 
-      <label for="descricao">Descrição do serviço:</label>  
-      <textarea id="descricao" name="descricao" rows="4" required></textarea>  
+      <label for="descricao">Descrição do serviço:</label>
+      <textarea id="descricao" name="descricao" rows="4" required></textarea>
 
-      <p id="precoFinal">Valor Total: R$ 0,00</p>  
+      <p id="precoFinal">Valor Total: R$ 0,00</p>
 
-      <button type="submit">Solicitar</button>  
-      <a href="https://wa.me/5587981352848" class="whatsapp-button" target="_blank">Falar com Suporte via WhatsApp</a>  
-    </form>  
-  </div>  
+      <button type="submit">Solicitar</button>
+    </form>
+  </div>
 
-  <script>  
-    const bairrosPorCidade = {  
-      florianopolis: ["Centro", "Ingleses", "Campeche", "Trindade"],  
-      saojose: ["Kobrasol", "Barreiros", "Roçado", "Forquilhinhas"]  
-    };  
+  <script>
+    const bairrosPorCidade = {
+      florianopolis: [ "Agronômica","Barreiros","Balneário","Bananal","Beira-Mar Norte","Bom Abrigo","Bom Jesus","Campeche","Capoeiras","Carvoeira","Córrego Grande","Costeira do Pirajubaé","Coqueiros","Cachoeira do Bom Jesus","Estreito","Centro","Ingleses","Itacorubi","Jurerê","João Paulo","Lagoa da Conceição","Montrinho","Pantanal","Pântano do Sul","Pântano","Trindade","Santa Mônica","Saco Grande","Ribeirão da Ilha","Rio Tavares","Saco dos Limões","Areias","Cacupe","Coloninha" ],
+      saojose: [ "Barreiros","Campinas","Capoeiras","Coloninha","Centro","Costa e Silva","Floresta","Forquilhas","Forquilhinhas","Itinga","Kobrasol","Roçado","Serraria","Areias","Morro da Cruz","Morro da Fumaça" ]
+    };
 
-    document.getElementById("cidade").addEventListener("change", function () {  
-      const cidade = this.value;  
-      const bairroSelect = document.getElementById("bairro");  
-      bairroSelect.innerHTML = '<option value="">Selecione</option>';  
+    const selCidade = document.getElementById("cidade");
+    const selBairro = document.getElementById("bairro");
+    const prof = document.getElementById("profissional");
+    const precoTag = document.getElementById("precoFinal");
+    const tipoRes = document.getElementById("tipo_residencia");
+    const campoApto = document.getElementById("campoApartamento");
 
-      if (bairrosPorCidade[cidade]) {  
-        bairrosPorCidade[cidade].forEach(bairro => {  
-          const option = document.createElement("option");  
-          option.value = bairro.toLowerCase();  
-          option.textContent = bairro;  
-          bairroSelect.appendChild(option);  
-        });  
-      }  
+    selCidade.addEventListener("change", () => {
+      selBairro.innerHTML = "<option value=''>Selecione</option>";
+      bairrosPorCidade[selCidade.value]?.forEach(b => {
+        const op = document.createElement("option");
+        op.value = b;
+        op.textContent = b;
+        selBairro.appendChild(op);
+      });
+      calcularPreco();
+    });
+    prof.addEventListener("change", calcularPreco);
 
-      calcularPreco();  
-    });  
-
-    document.getElementById("profissional").addEventListener("change", calcularPreco);  
-
-    function calcularPreco() {  
-      const profissional = document.getElementById("profissional").value;  
-      const cidade = document.getElementById("cidade").value;  
-      const precoFinal = document.getElementById("precoFinal");  
-
-      const tabelaPrecos = {  
-        eletricista: 120,  
-        encanador: 110,  
-        faxineira: 100,  
-        pedreiro: 150,  
-        jardineiro: 90,  
-        diarista: 95  
-      };  
-
-      const gasolina = cidade === "saojose" ? 60 : cidade === "florianopolis" ? 25 : 0;  
-
-      if (profissional && tabelaPrecos[profissional] && gasolina > 0) {  
-        const total = tabelaPrecos[profissional] + gasolina;  
-        precoFinal.textContent = `Valor Total: R$ ${total.toFixed(2)}`;  
-      } else {  
-        precoFinal.textContent = "Valor Total: R$ 0,00";  
-      }  
-    }
-
-    document.getElementById("tipo_residencia").addEventListener("change", function () {
-      const campo = document.getElementById("campoApartamento");
-      campo.style.display = this.value === "apartamento" ? "block" : "none";
+    tipoRes.addEventListener("change", () => {
+      campoApto.style.display = tipoRes.value === "apartamento" ? "block" : "none";
     });
 
-    document.getElementById("solicitarForm").addEventListener("submit", function(e) {  
-      e.preventDefault();  
+    function calcularPreco(){
+      const tp = prof.value;
+      const cid = selCidade.value;
+      const tabela = { eletricista:120, encanador:110, faxineira:100, pedreiro:150, jardineiro:90, diarista:95 };
+      const gas = cid==="saojose"?60:(cid==="florianopolis"?25:0);
+      const total = tabela[tp] && gas>0 ? tabela[tp]+gas : 0;
+      precoTag.textContent = `Valor Total: R$ ${total.toFixed(2)}`;
+      return total;
+    }
 
-      const form = e.target;
-      const data = new FormData(form);
-
-      let corpo = "";
-      for (const [key, value] of data.entries()) {
-        corpo += `${key}: ${value}\n`;
+    document.getElementById("solicitarForm").addEventListener("submit", function(e){
+      e.preventDefault();
+      const t = calcularPreco();
+      const data = new FormData(this);
+      let msg = `*Solicitação HelpFloripa*%0A`;
+      for(let [k,v] of data.entries()){
+        msg += `${k}: ${v}%0A`;
       }
-
-      const mailtoLink = `mailto:douglasjose807@gmail.com?subject=Solicitação de Profissional HelpFloripa&body=${encodeURIComponent(corpo)}`;
-      window.location.href = mailtoLink;
-    });  
-  </script>  
-</body>  
+      msg += `Valor Total: R$ ${t.toFixed(2)}`;
+      const tel = "5587981352848";
+      window.location.href = `https://wa.me/${tel}?text=${msg}`;
+    });
+  </script>
+</body>
 </html>
