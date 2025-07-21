@@ -58,18 +58,6 @@
       cursor: pointer;
       font-weight: bold;
     }
-
-    .whatsapp-button {
-      display: block;
-      text-align: center;
-      margin-top: 15px;
-      background-color: #25D366;
-      color: white;
-      padding: 10px;
-      border-radius: 8px;
-      text-decoration: none;
-      font-weight: bold;
-    }
   </style>
 </head>
 <body>
@@ -124,14 +112,21 @@
       <textarea id="descricao" name="descricao" rows="4" required></textarea>
 
       <button type="submit">Cadastrar</button>
-      <a href="https://wa.me/SEUNUMERO" class="whatsapp-button" target="_blank">Falar com Suporte via WhatsApp</a>
     </form>
   </div>
 
   <script>
     const bairrosPorCidade = {
-      florianopolis: ["Centro", "Ingleses", "Campeche", "Trindade"],
-      saojose: ["Kobrasol", "Barreiros", "Roçado", "Forquilhinhas"]
+      florianopolis: [
+        "Abraão","Agronômica","Armação","Barra da Lagoa","Barragem do Rio Antas","Campeche","Canasvieiras","Capoeiras","Carianos","Cachoeira do Bom Jesus",
+        "Centro","Coloninha","Coqueiros","Córrego Grande","Costeira do Pirajubaé","Estreito","Ingleses do Rio Vermelho","Itacorubi","João Paulo",
+        "Jurerê","Jurerê Internacional","Lagoa da Conceição","Monte Verde","Pantanal","Pântano do Sul","Ratones","Ribeirão da Ilha","Rio Tavares",
+        "Saco dos Limões","Santinho","Santo Antônio de Lisboa","Tapera","Trindade","Vargem Grande","Vargem Pequena"
+      ],
+      saojose: [
+        "Areias","Barreiros","Bela Vista","Campinas","Centro","Colônia Santana","Forquilhas","Forquilhinhas","Ipiranga","Kobrasol","Nossa Senhora do Rosário",
+        "Picadas do Sul","Praia Comprida","Real Parque","Roçado","Serraria","Sertão do Maruim","Zanelatto"
+      ]
     };
 
     document.getElementById("cidade").addEventListener("change", function () {
@@ -151,8 +146,41 @@
 
     document.getElementById("cadastrarForm").addEventListener("submit", function(e) {
       e.preventDefault();
-      alert("Cadastro enviado com sucesso! Em breve entraremos em contato.");
-      this.reset();
+
+      const form = e.target;
+      const data = {
+        nome: form.nome.value,
+        especialidade: form.especialidade.value,
+        cidade: form.cidade.value,
+        bairro: form.bairro.value,
+        rua: form.rua.value,
+        numero: form.numero.value,
+        bloco: form.bloco.value,
+        complemento: form.complemento.value,
+        telefone: form.telefone.value,
+        disponibilidade: form.disponibilidade.value,
+        descricao: form.descricao.value
+      };
+
+      const mensagem = `*Cadastro de Profissional:*\n` +
+        `Nome: ${data.nome}\n` +
+        `Especialidade: ${data.especialidade}\n` +
+        `Cidade: ${data.cidade}\n` +
+        `Bairro: ${data.bairro}\n` +
+        `Rua: ${data.rua}, Nº ${data.numero}, Bloco: ${data.bloco || "N/A"}, Complemento: ${data.complemento || "N/A"}\n` +
+        `Telefone: ${data.telefone}\n` +
+        `Disponibilidade: ${data.disponibilidade}\n` +
+        `Descrição: ${data.descricao}`;
+
+      const mensagemCodificada = encodeURIComponent(mensagem);
+      const numeroWhatsApp = "5587981352848";
+      const url = `https://wa.me/${numeroWhatsApp}?text=${mensagemCodificada}`;
+
+      window.location.href = url;
+
+      setTimeout(() => {
+        window.location.href = "index.html";
+      }, 2000);
     });
   </script>
 </body>
