@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -40,22 +41,31 @@
       padding: 40px 20px;
       background-color: #0c1a2b;
       min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
     }
 
-    .main h1 {
-      font-size: 36px;
-      margin-bottom: 10px;
+    .card {
+      background-color: #121212;
+      border-left: 5px solid #00adee;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+
+    .card h2 {
       color: #00adee;
+      margin-top: 0;
     }
 
-    .main p {
-      font-size: 18px;
+    .card p {
+      font-size: 16px;
       line-height: 1.6;
-      margin-bottom: 25px;
     }
 
     .btn-solicitar {
-      display: inline-block;
+      align-self: flex-start;
       padding: 12px 24px;
       background-color: #00adee;
       color: #fff;
@@ -64,6 +74,7 @@
       font-size: 16px;
       text-decoration: none;
       transition: background 0.3s;
+      margin-top: 20px;
     }
 
     .btn-solicitar:hover {
@@ -95,19 +106,38 @@
   </div>
 
   <div class="main">
-    <h1>Área do Cliente</h1>
-    <p>
-      Aqui você encontra a forma mais rápida e prática de solicitar serviços para sua casa ou empresa.
-      Basta preencher o formulário de solicitação informando o tipo de serviço desejado, endereço, horário
-      e qualquer outra informação importante.
-    </p>
-    <p>
-      Assim que recebermos seu pedido, nossa equipe irá conectar você com um profissional qualificado
-      e próximo da sua localização. É simples, rápido e seguro.
-    </p>
-    <p>
-      Seu pedido é enviado diretamente para nosso sistema via WhatsApp, e você pode acompanhar todo o processo.
-    </p>
+    <div class="card">
+      <h2>O que é a Área do Cliente?</h2>
+      <p>
+        Esta seção foi criada especialmente para você que precisa de um serviço rápido e eficiente.
+        Aqui você encontra uma forma prática de solicitar profissionais confiáveis em diversas áreas.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>Como funciona?</h2>
+      <p>
+        Basta acessar o botão abaixo, preencher as informações básicas sobre o serviço desejado,
+        como categoria, endereço e horário. Seu pedido será enviado direto para o nosso sistema.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>Por que usar o Help Floripa?</h2>
+      <p>
+        Conectamos você a profissionais verificados, com rapidez, qualidade e segurança.
+        Ajudamos você a economizar tempo e a encontrar o especialista certo para o seu problema.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>O que acontece após solicitar?</h2>
+      <p>
+        Após enviar sua solicitação, você será atendido pelo WhatsApp e receberá todas as instruções.
+        Um profissional será designado e você poderá acompanhar todo o processo pelo celular.
+      </p>
+    </div>
+
     <a href="solicitar.html" class="btn-solicitar">Solicitar Profissional</a>
   </div>
 
