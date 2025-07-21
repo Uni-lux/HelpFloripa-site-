@@ -1,145 +1,73 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Cliente - Help Floripa</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>Área do Cliente - Help Floripa</title>
+  <link rel="stylesheet" href="style.css">
   <style>
     body {
-      margin: 0;
-      font-family: 'Segoe UI', sans-serif;
       background-color: #000;
-      color: #fff;
+      color: white;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
     }
 
-    .sidebar {
-      width: 240px;
-      background-color: #111;
-      height: 100vh;
-      position: fixed;
-      top: 0;
-      left: 0;
-      padding-top: 60px;
+    .container {
+      max-width: 900px;
+      margin: 80px auto;
+      padding: 20px;
     }
 
-    .sidebar nav a {
-      display: block;
-      padding: 15px 20px;
-      color: #fff;
-      text-decoration: none;
-      transition: 0.3s;
-    }
-
-    .sidebar nav a:hover {
-      background-color: #00adee;
-    }
-
-    .main {
-      margin-left: 240px;
-      padding: 40px 20px;
-      background-color: #0c1a2b;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
+    h1 {
+      text-align: center;
+      color: #00adee;
+      margin-bottom: 30px;
     }
 
     .card {
-      background-color: #121212;
-      border-left: 5px solid #00adee;
-      padding: 20px;
+      background-color: #0a1a2a;
       border-radius: 12px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      box-shadow: 0 0 10px rgba(0, 173, 238, 0.2);
+      padding: 20px;
+      margin-bottom: 20px;
     }
 
     .card h2 {
       color: #00adee;
-      margin-top: 0;
+      margin-bottom: 10px;
     }
 
     .card p {
-      font-size: 16px;
+      color: #ddd;
       line-height: 1.6;
-    }
-
-    .btn-solicitar {
-      align-self: flex-start;
-      padding: 12px 24px;
-      background-color: #00adee;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      text-decoration: none;
-      transition: background 0.3s;
-      margin-top: 20px;
-    }
-
-    .btn-solicitar:hover {
-      background-color: #008fc4;
-    }
-
-    @media (max-width: 768px) {
-      .sidebar {
-        display: none;
-      }
-
-      .main {
-        margin: 0;
-        padding: 20px;
-      }
     }
   </style>
 </head>
 <body>
+  <div class="container">
+    <h1>Área do Cliente</h1>
 
-  <div class="sidebar">
-    <nav>
-      <a href="index.html">Início</a>
-      <a href="clientes.html">Cliente</a>
-      <a href="profissional.html">Profissional</a>
-      <a href="sobre.html">Sobre</a>
-      <a href="https://wa.me/5587981352848" target="_blank">Contato</a>
-    </nav>
+    <div class="card">
+      <h2>🔎 Qual é a função da Help Floripa?</h2>
+      <p>A Help Floripa é uma plataforma que conecta você, cliente, aos melhores profissionais da cidade. Nosso objetivo é facilitar o processo de encontrar serviços de confiança, com rapidez e segurança, sem complicação.</p>
+    </div>
+
+    <div class="card">
+      <h2>⚙️ Como funciona para solicitar um serviço?</h2>
+      <p>É simples! Você acessa o botão <strong>“Solicitar Profissional”</strong> no menu principal, escolhe o tipo de serviço desejado, preenche as informações do pedido e pronto! Seu pedido será enviado diretamente para nossa equipe que cuidará da conexão com o profissional ideal.</p>
+    </div>
+
+    <div class="card">
+      <h2>📦 Como o pedido é processado?</h2>
+      <p>Assim que você envia a solicitação, ela é analisada e repassada ao profissional mais adequado. Em poucos minutos, você será contatado para agendamento. Todo o processo é rápido, transparente e seguro.</p>
+    </div>
+
+    <div class="card">
+      <h2>💡 Por que usar a Help Floripa?</h2>
+      <p>Além da praticidade, você garante atendimento de qualidade, com profissionais verificados e um sistema que te mantém informado do início ao fim. A Help Floripa é ideal para quem busca segurança, agilidade e economia de tempo.</p>
+    </div>
   </div>
-
-  <div class="main">
-    <div class="card">
-      <h2>O que é a Área do Cliente?</h2>
-      <p>
-        Esta seção foi criada especialmente para você que precisa de um serviço rápido e eficiente.
-        Aqui você encontra uma forma prática de solicitar profissionais confiáveis em diversas áreas.
-      </p>
-    </div>
-
-    <div class="card">
-      <h2>Como funciona?</h2>
-      <p>
-        Basta acessar o botão abaixo, preencher as informações básicas sobre o serviço desejado,
-        como categoria, endereço e horário. Seu pedido será enviado direto para o nosso sistema.
-      </p>
-    </div>
-
-    <div class="card">
-      <h2>Por que usar o Help Floripa?</h2>
-      <p>
-        Conectamos você a profissionais verificados, com rapidez, qualidade e segurança.
-        Ajudamos você a economizar tempo e a encontrar o especialista certo para o seu problema.
-      </p>
-    </div>
-
-    <div class="card">
-      <h2>O que acontece após solicitar?</h2>
-      <p>
-        Após enviar sua solicitação, você será atendido pelo WhatsApp e receberá todas as instruções.
-        Um profissional será designado e você poderá acompanhar todo o processo pelo celular.
-      </p>
-    </div>
-
-    <a href="solicitar.html" class="btn-solicitar">Solicitar Profissional</a>
-  </div>
-
 </body>
 </html>
