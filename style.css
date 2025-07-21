@@ -6,167 +6,138 @@
 }
 
 body {
-  font-family: 'Segoe UI', sans-serif;
-  background-color: #f5faff;
-  color: #111;
+  font-family: Arial, sans-serif;
+  background-color: #000; /* Fundo preto */
+  color: #fff;
+  margin-left: 220px;
 }
 
-/* Sidebar */
 .sidebar {
   position: fixed;
   left: 0;
   top: 0;
   width: 220px;
   height: 100vh;
-  background-color: #002b5b; /* azul escuro */
+  background-color: #002b5b; /* Azul escuro */
   padding-top: 60px;
   transition: transform 0.3s ease;
   z-index: 1000;
 }
 
+.sidebar nav {
+  display: flex;
+  flex-direction: column;
+}
+
 .sidebar nav a {
-  display: block;
+  padding: 15px 20px;
   color: white;
   text-decoration: none;
-  padding: 15px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   transition: background 0.3s;
 }
 
 .sidebar nav a:hover {
-  background-color: #0053a4;
+  background-color: #005aab;
 }
 
 .toggle-btn {
-  position: absolute;
-  top: 10px;
-  right: -45px;
-  width: 40px;
-  height: 40px;
-  background-color: #0053a4;
+  display: none;
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  background-color: #005aab;
   color: white;
   border: none;
+  font-size: 24px;
+  padding: 10px 15px;
+  z-index: 1100;
   cursor: pointer;
-  font-size: 22px;
-  border-radius: 0 6px 6px 0;
 }
 
-/* Hero */
+/* Painel principal */
 .hero {
-  margin-left: 220px;
+  background-color: #002b5b; /* Azul escuro */
+  color: white;
   text-align: center;
   padding: 40px 20px;
-  background: linear-gradient(to right, #003366, #0053a4);
-  color: white;
 }
 
-.hero .logo {
-  width: 100px;
-  height: auto;
+.logo {
+  width: 80px;
   margin-bottom: 10px;
-}
-
-.hero h1 {
-  font-size: 2.5rem;
 }
 
 .slogan {
   font-size: 1.2rem;
-  margin-top: 8px;
+  color: #ccc;
 }
 
-/* Cards de categorias */
+/* Cards */
 .cards {
-  margin-left: 220px;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  padding: 30px 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 20px;
+  padding: 30px 20px;
 }
 
 .card {
-  background-color: #ffffff;
-  border: 2px solid #0053a4;
-  border-radius: 12px;
+  background-color: #003c74;
+  color: white;
   padding: 20px;
-  width: 260px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  font-size: 1.1rem;
-  font-weight: 600;
-  transition: transform 0.2s, background 0.3s;
+  border-radius: 12px;
   text-align: center;
-  cursor: pointer;
+  font-size: 1.1rem;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  transition: background-color 0.3s, transform 0.2s;
 }
 
-.card:hover {
+.card:hover,
+.card:active,
+.card:focus {
+  background-color: #005aab;
+  color: white; /* Mantém texto visível */
   transform: scale(1.05);
-  background-color: #eaf4ff;
 }
 
-.card h3 {
-  margin-bottom: 10px;
-  color: #002b5b;
-}
-
-.card .btn-opcoes {
+/* Botões de destaque */
+.botoes-destaque {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 15px;
-}
-
-.card .btn-opcoes a {
-  background-color: #00adee;
-  color: white;
-  padding: 10px;
-  border-radius: 8px;
-  text-decoration: none;
-  font-weight: bold;
-  transition: background-color 0.3s;
-}
-
-.card .btn-opcoes a:hover {
-  background-color: #008ebf;
-}
-
-/* Botões em destaque */
-.botoes-destaque {
-  margin-left: 220px;
-  text-align: center;
-  padding: 20px;
+  align-items: center;
+  gap: 15px;
+  padding: 30px 20px;
 }
 
 .btn.destaque {
-  display: inline-block;
-  background-color: #0053a4;
+  background-color: #00adee;
   color: white;
-  padding: 15px 25px;
-  margin: 10px;
-  font-size: 1.1rem;
-  font-weight: bold;
+  padding: 12px 25px;
+  font-size: 1rem;
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   text-decoration: none;
   transition: background 0.3s;
 }
 
 .btn.destaque:hover {
-  background-color: #003f7d;
+  background-color: #0088bb;
 }
 
-/* Footer */
+/* Rodapé */
 footer {
-  margin-left: 220px;
   text-align: center;
-  padding: 15px;
+  padding: 20px;
   background-color: #002b5b;
   color: white;
-  font-size: 0.9rem;
+  margin-top: 40px;
 }
 
-/* Responsivo */
+/* Responsividade */
 @media (max-width: 768px) {
+  body {
+    margin-left: 0;
+  }
+
   .sidebar {
     transform: translateX(-100%);
   }
@@ -176,99 +147,6 @@ footer {
   }
 
   .toggle-btn {
-    right: -10px;
-  }
-
-  .hero,
-  .cards,
-  .botoes-destaque,
-  footer {
-    margin-left: 0;
-  }
-
-  .card {
-    width: 100%;
-    max-width: 300px;
+    display: block;
   }
 }
-
-/* Estilo do formulário */
-.container {
-  max-width: 600px;
-  margin: 50px auto;
-  padding: 20px;
-  background-color: #000;
-  border-radius: 12px;
-  box-shadow: 0 0 12px rgba(0, 173, 238, 0.4);
-  color: white;
-  font-family: Arial, sans-serif;
-}
-
-.container h1 {
-  text-align: center;
-  margin-bottom: 25px;
-  color: #00adee;
-}
-
-form label {
-  display: block;
-  margin-top: 15px;
-  margin-bottom: 5px;
-  font-weight: bold;
-  color: #fff;
-}
-
-form input,
-form select,
-form textarea {
-  width: 100%;
-  padding: 10px;
-  border-radius: 8px;
-  border: none;
-  background-color: #1a1a1a;
-  color: #fff;
-  font-size: 16px;
-}
-
-form input:focus,
-form select:focus,
-form textarea:focus {
-  outline: none;
-  box-shadow: 0 0 4px #00adee;
-}
-
-form button {
-  margin-top: 20px;
-  width: 100%;
-  padding: 12px;
-  font-size: 16px;
-  font-weight: bold;
-  background-color: #00adee;
-  border: none;
-  border-radius: 10px;
-  color: black;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-form button:hover {
-  background-color: #008ebf;
-}
-
-/* Botão do WhatsApp */
-.whatsapp-button {
-  display: block;
-  text-align: center;
-  margin-top: 15px;
-  background-color: #25D366;
-  color: white;
-  padding: 12px;
-  border-radius: 10px;
-  text-decoration: none;
-  font-weight: bold;
-  transition: background-color 0.3s;
-}
-
-.whatsapp-button:hover {
-  background-color: #1da851;
-  }
