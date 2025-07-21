@@ -4,151 +4,146 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Solicitar Profissional</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
   <style>
     body {
-      background-color: #000; /* fundo preto */
-      color: #fff;
+      background-color: #000;
+      color: white;
       font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
+      padding: 20px;
     }
 
     .container {
-      max-width: 600px;
+      max-width: 500px;
       margin: 50px auto;
-      background-color: #0d1b2a; /* azul escuro */
+      background-color: #002b5b;
       padding: 30px;
       border-radius: 12px;
-      box-shadow: 0 0 12px rgba(0,0,0,0.6);
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
     }
 
     h1 {
       text-align: center;
-      color: #00adee;
       margin-bottom: 20px;
     }
 
     label {
       display: block;
-      margin: 10px 0 5px;
-      font-weight: bold;
-    }
-
-    input, select, textarea, button {
-      width: 100%;
-      padding: 12px;
-      margin-bottom: 15px;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
+      margin-top: 15px;
     }
 
     input, select, textarea {
-      background-color: #ffffff;
-      color: #000;
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border-radius: 6px;
+      border: none;
     }
 
     button {
+      margin-top: 20px;
+      padding: 12px;
       background-color: #00adee;
-      color: #fff;
-      font-weight: bold;
+      color: white;
+      border: none;
+      width: 100%;
+      font-size: 1rem;
+      border-radius: 6px;
       cursor: pointer;
-      transition: background 0.3s ease;
     }
 
     button:hover {
-      background-color: #008bbd;
+      background-color: #008bb5;
     }
 
-    #precoFinal {
+    .success {
       text-align: center;
-      font-size: 18px;
-      margin-top: 10px;
-      color: #fff;
+      color: #00ff99;
+      font-size: 1.2rem;
+      margin-top: 20px;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Solicitar Profissional</h1>
-    
-    <form action="https://formsubmit.co/seu_email_aqui@gmail.com" method="POST" onsubmit="mostrarMensagem(event)">
-      <label for="nome">Seu Nome:</label>
-      <input type="text" id="nome" name="Nome" required>
 
-      <label for="email">Seu E-mail:</label>
-      <input type="email" id="email" name="Email" required>
+    <form action="https://formsubmit.co/SEU_EMAIL_AQUI" method="POST" id="solicitar-form">
+      <!-- Substitua acima por seu email -->
 
-      <label for="telefone">WhatsApp:</label>
-      <input type="tel" id="telefone" name="Telefone" required>
+      <input type="hidden" name="_next" value="https://seudominio.com/index.html" />
+      <input type="hidden" name="_autoresponse" value="Recebemos sua solicitação. Em breve entraremos em contato." />
+      <input type="hidden" name="_captcha" value="false" />
 
-      <label for="profissional">Profissional:</label>
-      <select id="profissional" name="Profissional" onchange="calcularPreco()" required>
-        <option value="">-- Selecione --</option>
+      <!-- Campo oculto para valor -->
+      <input type="hidden" id="valor" name="Valor Total" />
+
+      <label for="nome">Nome completo:</label>
+      <input type="text" id="nome" name="Nome" required />
+
+      <label for="email">E-mail:</label>
+      <input type="email" id="email" name="Email" required />
+
+      <label for="telefone">Telefone/WhatsApp:</label>
+      <input type="tel" id="telefone" name="Telefone" required />
+
+      <label for="servico">Serviço desejado:</label>
+      <select id="servico" name="Serviço" required>
+        <option value="">Selecione...</option>
         <option value="Eletricista">Eletricista</option>
-        <option value="Encanador">Encanador</option>
-        <option value="Faxineira">Faxineira</option>
         <option value="Pedreiro">Pedreiro</option>
-        <option value="Jardineiro">Jardineiro</option>
-        <option value="Diarista">Diarista</option>
+        <option value="Encanador">Encanador</option>
+        <option value="Pintor">Pintor</option>
       </select>
 
-      <label for="cidade">Cidade:</label>
-      <select id="cidade" name="Cidade" onchange="calcularPreco()" required>
-        <option value="">-- Selecione --</option>
-        <option value="florianopolis">Florianópolis</option>
-        <option value="saojose">São José</option>
-      </select>
-
-      <label for="descricao">Descrição do Pedido:</label>
+      <label for="descricao">Descrição do pedido:</label>
       <textarea id="descricao" name="Descrição" rows="4" required></textarea>
-
-      <!-- Campo oculto com valor calculado -->
-      <input type="hidden" id="valorTotalInput" name="Valor Total" value="0.00">
-
-      <div id="precoFinal">Valor Total: R$ 0,00</div>
 
       <button type="submit">Enviar Pedido</button>
     </form>
+
+    <div id="mensagem" class="success" style="display: none;">
+      Pedido enviado com sucesso! Redirecionando...
+    </div>
   </div>
 
   <script>
-    function calcularPreco() {
-      const profissional = document.getElementById("profissional").value;
-      const cidade = document.getElementById("cidade").value;
-      const precoFinal = document.getElementById("precoFinal");
-      const valorTotalInput = document.getElementById("valorTotalInput");
+    const form = document.getElementById('solicitar-form');
+    const mensagem = document.getElementById('mensagem');
+    const servicoSelect = document.getElementById('servico');
+    const valorInput = document.getElementById('valor');
 
-      const tabelaPrecos = {
-        Eletricista: 120,
-        Encanador: 110,
-        Faxineira: 100,
-        Pedreiro: 150,
-        Jardineiro: 90,
-        Diarista: 95
-      };
+    const precos = {
+      'Eletricista': 'R$ 150,00',
+      'Pedreiro': 'R$ 180,00',
+      'Encanador': 'R$ 160,00',
+      'Pintor': 'R$ 140,00'
+    };
 
-      const gasolina = cidade === "saojose" ? 60 : cidade === "florianopolis" ? 25 : 0;
+    servicoSelect.addEventListener('change', function () {
+      const servicoSelecionado = servicoSelect.value;
+      valorInput.value = precos[servicoSelecionado] || '';
+    });
 
-      if (profissional && tabelaPrecos[profissional] && gasolina > 0) {
-        const total = tabelaPrecos[profissional] + gasolina;
-        precoFinal.textContent = `Valor Total: R$ ${total.toFixed(2)}`;
-        valorTotalInput.value = total.toFixed(2);
-      } else {
-        precoFinal.textContent = "Valor Total: R$ 0,00";
-        valorTotalInput.value = "0.00";
-      }
-    }
-
-    function mostrarMensagem(e) {
+    form.addEventListener('submit', function (e) {
       e.preventDefault();
-      alert("Pedido enviado com sucesso! Redirecionando...");
-      setTimeout(() => {
-        e.target.submit();
-        window.location.href = "index.html";
-      }, 2500);
-    }
+      const formData = new FormData(form);
+
+      fetch(form.action, {
+        method: "POST",
+        body: formData,
+        headers: { 'Accept': 'application/json' }
+      }).then(() => {
+        form.style.display = 'none';
+        mensagem.style.display = 'block';
+        setTimeout(() => {
+          window.location.href = "index.html";
+        }, 3000);
+      }).catch(error => {
+        alert("Ocorreu um erro. Tente novamente.");
+        console.error(error);
+      });
+    });
   </script>
 </body>
 </html>
