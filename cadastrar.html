@@ -1,151 +1,148 @@
-<!DOCTYPE html><html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Cadastrar como Profissional</title>
-    <link rel="stylesheet" href="style.css" />
-    <style>
-      body {
-        margin: 0;
-        font-family: Arial, sans-serif;
-        background-color: #0a2a47;
-        color: #fff;
-      }
-      .container {
-        max-width: 600px;
-        margin: 40px auto;
-        background-color: #111;
-        padding: 30px;
-        border-radius: 15px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-      }
-      h1 {
-        text-align: center;
-        color: #00adee;
-      }
-      label {
-        display: block;
-        margin-top: 15px;
-        font-weight: bold;
-      }
-      input,
-      select,
-      textarea {
-        width: 100%;
-        padding: 10px;
-        margin-top: 5px;
-        border: none;
-        border-radius: 8px;
-        background-color: #222;
-        color: #fff;
-      }
-      textarea {
-        resize: vertical;
-      }
-      button {
-        background-color: #00adee;
-        color: white;
-        padding: 12px;
-        width: 100%;
-        border: none;
-        border-radius: 8px;
-        margin-top: 20px;
-        cursor: pointer;
-        font-weight: bold;
-      }
-      #apartamentoInfo {
-        display: none;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <h1>Cadastrar como Profissional</h1>
-      <form id="cadastrarForm">
-        <label for="nome">Nome Completo:</label>
-        <input type="text" id="nome" name="nome" required /><label for="classe">Classe de Serviço:</label>
-    <select id="classe" name="classe" required>
-      <option value="">Selecione</option>
-      <option value="casa">Casa & Reparos</option>
-      <option value="limpeza">Limpeza & Cuidados</option>
-      <option value="assistencia">Assistência Pessoal</option>
-      <option value="transporte">Transporte & Logística</option>
-      <option value="pet">Pet & Animais</option>
-      <option value="digital">Digital / Outros</option>
-    </select>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Solicitar Profissional - Help Floripa</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      background-color: #000;
+      color: white;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
 
-    <label for="especialidade">Especialidade:</label>
-    <select id="especialidade" name="especialidade" required>
-      <option value="">Selecione a classe primeiro</option>
-    </select>
+    .container {
+      max-width: 900px;
+      margin: 80px auto;
+      padding: 20px;
+    }
 
-    <label for="cidade">Cidade:</label>
-    <select id="cidade" name="cidade" required>
-      <option value="">Selecione</option>
-      <option value="florianopolis">Florianópolis</option>
-      <option value="saojose">São José</option>
-    </select>
+    h1 {
+      text-align: center;
+      color: #00adee;
+      margin-bottom: 30px;
+    }
 
-    <label for="regiao">Região:</label>
-    <select id="regiao" name="regiao" required>
-      <option value="">Selecione a cidade primeiro</option>
-    </select>
+    form {
+      background-color: #0a1a2a;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0, 173, 238, 0.2);
+    }
 
-    <label for="bairro">Bairro:</label>
-    <select id="bairro" name="bairro" required>
-      <option value="">Selecione a região primeiro</option>
-    </select>
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #00adee;
+      font-weight: bold;
+    }
 
-    <label for="residencia">Tipo de Residência:</label>
-    <select id="residencia" name="residencia" required>
-      <option value="">Selecione</option>
-      <option value="casa">Casa</option>
-      <option value="apartamento">Apartamento</option>
-    </select>
+    select, input[type="text"], input[type="tel"], textarea {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      border: none;
+      font-size: 16px;
+    }
 
-    <div id="apartamentoInfo">
-      <label for="complemento">Número do Apartamento:</label>
-      <input
-        type="text"
-        id="complemento"
-        name="complemento"
-        placeholder="Ex: Bloco B, Apto 203"
-      />
-    </div>
+    textarea {
+      resize: vertical;
+    }
 
-    <label for="rua">Rua:</label>
-    <input type="text" id="rua" name="rua" required />
+    .botao-enviar {
+      background-color: #00adee;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(0, 173, 238, 0.5);
+      transition: background-color 0.3s ease;
+    }
 
-    <label for="numero">Número:</label>
-    <input type="text" id="numero" name="numero" required />
+    .botao-enviar:hover {
+      background-color: #008bbf;
+    }
 
-    <label for="telefone">Telefone para Contato:</label>
-    <input
-      type="tel"
-      id="telefone"
-      name="telefone"
-      placeholder="(DDD) 90000-0000"
-      required
-    />
+    optgroup {
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Solicitar Profissional</h1>
+    <form action="https://formsubmit.co/seuemail@exemplo.com" method="POST">
+      
+      <label for="nome">Seu Nome:</label>
+      <input type="text" id="nome" name="nome" required>
 
-    <label for="disponibilidade">Disponibilidade:</label>
-    <input
-      type="text"
-      id="disponibilidade"
-      name="disponibilidade"
-      placeholder="Dias e horários disponíveis"
-      required
-    />
+      <label for="telefone">Telefone/WhatsApp:</label>
+      <input type="tel" id="telefone" name="telefone" required>
 
-    <label for="descricao">Breve descrição ou experiência:</label>
-    <textarea id="descricao" name="descricao" rows="4" required></textarea>
+      <label for="regiao">Região:</label>
+      <select id="regiao" name="regiao" required>
+        <option value="">Selecione a região</option>
+        <option value="Florianópolis">Florianópolis</option>
+        <option value="São José">São José</option>
+        <option value="Palhoça">Palhoça</option>
+        <option value="Biguaçu">Biguaçu</option>
+      </select>
 
-    <button type="submit">Cadastrar</button>
-  </form>
-</div>
-<script>
-  // Scripts separados serão adicionados para as lógicas dinâmicas das classes, bairros e regiões.
-</script>
+      <label for="bairro">Bairro:</label>
+      <select id="bairro" name="bairro" required>
+        <option value="">Selecione o bairro</option>
+        <!-- Será preenchido por JS futuramente -->
+      </select>
 
-  </body>
+      <label for="profissao">Tipo de Profissional:</label>
+      <select id="profissao" name="profissao" required>
+        <option value="">Selecione o profissional</option>
+        <optgroup label="Cuidados e Bem-estar">
+          <option value="Babá/Cuidadora Infantil">Babá / Cuidadora Infantil</option>
+          <option value="Cuidadora de Idosos">Cuidadora de Idosos</option>
+          <option value="Cuidadora Pós-parto/Cirurgia">Cuidadora Pós-parto/Cirurgia</option>
+        </optgroup>
+        <optgroup label="Domésticos e Limpeza">
+          <option value="Servente Geral">Servente Geral</option>
+          <option value="Diarista">Diarista</option>
+          <option value="Passadeira">Passadeira</option>
+        </optgroup>
+        <optgroup label="Construção e Reparos">
+          <option value="Pedreiro">Pedreiro</option>
+          <option value="Pintor">Pintor</option>
+          <option value="Eletricista">Eletricista</option>
+          <option value="Encanador">Encanador</option>
+          <option value="Marceneiro">Marceneiro</option>
+          <option value="Montador de Móveis">Montador de Móveis</option>
+        </optgroup>
+        <optgroup label="Serviços Técnicos">
+          <option value="Técnico em Informática">Técnico em Informática</option>
+          <option value="Instalador de Ar-condicionado">Instalador de Ar-condicionado</option>
+          <option value="Instalador de Antena/TV">Instalador de Antena/TV</option>
+        </optgroup>
+        <optgroup label="Transporte e Logística">
+          <option value="Motorista Particular">Motorista Particular</option>
+          <option value="Motoboy/Entregador">Motoboy / Entregador</option>
+        </optgroup>
+        <optgroup label="Outros Serviços">
+          <option value="Jardineiro">Jardineiro</option>
+          <option value="Cozinheira">Cozinheira</option>
+          <option value="Porteiro/Segurança">Porteiro / Segurança</option>
+        </optgroup>
+      </select>
+
+      <label for="descricao">Descreva brevemente sua necessidade:</label>
+      <textarea id="descricao" name="descricao" rows="4" placeholder="Ex: Preciso de uma diarista para 2 vezes na semana, região do Campeche."></textarea>
+
+      <button type="submit" class="botao-enviar">Enviar Solicitação</button>
+    </form>
+  </div>
+</body>
 </html>
