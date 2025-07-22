@@ -10,56 +10,50 @@
       font-family: Arial, sans-serif;
       background-color: #0a2a47;
       color: #fff;
-    }.container {
-  max-width: 600px;
-  margin: 40px auto;
-  background-color: #111;
-  padding: 30px;
-  border-radius: 15px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.5);
-}
-
-h1 {
-  text-align: center;
-  color: #00adee;
-}
-
-label {
-  display: block;
-  margin-top: 15px;
-  font-weight: bold;
-}
-
-input, select, textarea {
-  width: 100%;
-  padding: 10px;
-  margin-top: 5px;
-  border: none;
-  border-radius: 8px;
-  background-color: #222;
-  color: #fff;
-}
-
-textarea {
-  resize: vertical;
-}
-
-button {
-  background-color: #00adee;
-  color: white;
-  padding: 12px;
-  width: 100%;
-  border: none;
-  border-radius: 8px;
-  margin-top: 20px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-#apartamentoInfo {
-  display: none;
-}
-
+    }
+    .container {
+      max-width: 700px;
+      margin: 40px auto;
+      background-color: #111;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
+    h1 {
+      text-align: center;
+      color: #00adee;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: none;
+      border-radius: 8px;
+      background-color: #222;
+      color: #fff;
+    }
+    textarea {
+      resize: vertical;
+    }
+    button {
+      background-color: #00adee;
+      color: white;
+      padding: 12px;
+      width: 100%;
+      border: none;
+      border-radius: 8px;
+      margin-top: 20px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    #apartamentoInfo {
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -67,15 +61,20 @@ button {
     <h1>Cadastrar como Profissional</h1>
     <form id="cadastrarForm">
       <label for="nome">Nome Completo:</label>
-      <input type="text" id="nome" name="nome" required><label for="especialidade">Especialidade:</label>
-  <select id="especialidade" name="especialidade" required>
+      <input type="text" id="nome" name="nome" required><label for="classe">Escolha sua Classe de Serviço:</label>
+  <select id="classe" name="classe" required>
     <option value="">Selecione</option>
-    <option value="eletricista">Eletricista</option>
-    <option value="encanador">Encanador</option>
-    <option value="faxineira">Faxineira</option>
-    <option value="pedreiro">Pedreiro</option>
-    <option value="jardineiro">Jardineiro</option>
-    <option value="diarista">Diarista</option>
+    <option value="casa">Casa e Reparos</option>
+    <option value="limpeza">Limpeza e Cuidados</option>
+    <option value="pessoal">Assistência Pessoal</option>
+    <option value="transporte">Transporte & Logística</option>
+    <option value="pet">Serviços para Pets</option>
+    <option value="digital">Serviços Digitais & Ensino</option>
+  </select>
+
+  <label for="especialidade">Especialidade:</label>
+  <select id="especialidade" name="especialidade" required>
+    <option value="">Selecione a classe primeiro</option>
   </select>
 
   <label for="cidade">Cidade:</label>
@@ -99,8 +98,8 @@ button {
 
   <div id="apartamentoInfo">
     <label for="complemento">Número do Apartamento:</label>
-    <input type="text" id="complemento" name="complemento" placeholder= "Ex: Bloco B, Apto 203">
-      </div>
+    <input type="text" id="complemento" name="complemento" placeholder="Ex: Bloco B, Apto 203">
+  </div>
 
   <label for="rua">Rua:</label>
   <input type="text" id="rua" name="rua" required>
@@ -120,72 +119,96 @@ button {
   <button type="submit">Cadastrar</button>
 </form>
 
-  </div>  <script>
-    const bairrosPorCidade = {
-      florianopolis: ["Abraão","Agronômica","Armação","Barra da Lagoa","Campeche","Canasvieiras","Capoeiras","Carianos","Centro","Coqueiros","Córrego Grande","Estreito","Ingleses","Itacorubi","Jurerê","Lagoa","Pantanal","Ponta das Canas","Ribeirão da Ilha","Rio Tavares","Saco dos Limões","Santo Antônio","Tapera","Trindade","Vargem Grande","Vargem Pequena"],
-      saojose: ["Areias","Barreiros","Bela Vista","Campinas","Centro","Forquilhas","Kobrasol","Picadas do Sul","Praia Comprida","Real Parque","Roçado","Serraria","Zanelatto"]
-    };
+  </div><script>
+const profissionaisPorClasse = {
+  casa: ["Eletricista", "Encanador", "Pedreiro", "Pintor", "Gesseiro", "Marceneiro", "Vidraceiro", "Serralheiro", "Técnico de ar-condicionado", "Montador de móveis"],
+  limpeza: ["Diarista", "Faxineira", "Limpeza pós-obra", "Jardineiro", "Piscineiro", "Limpeza de estofados"],
+  pessoal: ["Babá", "Cuidador de Idosos", "Acompanhante Hospitalar", "Massoterapeuta", "Cabeleireiro a domícilio", "Maquiador", "Esteticista"],
+  transporte: ["Motoboy", "Motorista particular", "Frete pequeno / Carreteiro", "Mudança e montagem"],
+  pet: ["Passeador de cães", "Banho e tosa", "Pet sitter (cuidador de pets)"],
+  digital: ["Técnico de Informática", "Instalador de câmeras", "Professor particular", "Tradutor", "Personal trainer"]
+};
 
-    document.getElementById("cidade").addEventListener("change", function () {
-      const cidade = this.value;
-      const bairroSelect = document.getElementById("bairro");
-      bairroSelect.innerHTML = '<option value="">Selecione</option>';
+const bairrosPorCidade = {
+  florianopolis: ["Abraão","Agronômica","Armação","Barra da Lagoa","Campeche","Canasvieiras","Capoeiras","Carianos","Centro","Coqueiros","Córrego Grande","Estreito","Ingleses","Itacorubi","Jurerê","Lagoa","Pantanal","Ponta das Canas","Ribeirão da Ilha","Rio Tavares","Saco dos Limões","Santo Antônio","Tapera","Trindade","Vargem Grande","Vargem Pequena"],
+  saojose: ["Areias","Barreiros","Bela Vista","Campinas","Centro","Forquilhas","Kobrasol","Picadas do Sul","Praia Comprida","Real Parque","Roçado","Serraria","Zanelatto"]
+};
 
-      if (bairrosPorCidade[cidade]) {
-        bairrosPorCidade[cidade].forEach(bairro => {
-          const option = document.createElement("option");
-          option.value = bairro;
-          option.textContent = bairro;
-          bairroSelect.appendChild(option);
-        });
-      }
+const classeSelect = document.getElementById("classe");
+const especialidadeSelect = document.getElementById("especialidade");
+
+classeSelect.addEventListener("change", function() {
+  const classe = this.value;
+  especialidadeSelect.innerHTML = '<option value="">Selecione</option>';
+  if (profissionaisPorClasse[classe]) {
+    profissionaisPorClasse[classe].forEach(p => {
+      const opt = document.createElement("option");
+      opt.value = p.toLowerCase();
+      opt.textContent = `${p} (R$ ${diarias[p]}/dia)`;
+      especialidadeSelect.appendChild(opt);
     });
+  }
+});
 
-    document.getElementById("residencia").addEventListener("change", function () {
-      const tipo = this.value;
-      const info = document.getElementById("apartamentoInfo");
-      info.style.display = tipo === "apartamento" ? "block" : "none";
+const diarias = {
+  "Eletricista": 180,
+  "Encanador": 180,
+  "Pedreiro": 200,
+  "Pintor": 170,
+  "Gesseiro": 180,
+  "Marceneiro": 200,
+  "Vidraceiro": 160,
+  "Serralheiro": 190,
+  "Técnico de ar-condicionado": 210,
+  "Montador de móveis": 160,
+  "Diarista": 150,
+  "Faxineira": 140,
+  "Limpeza pós-obra": 170,
+  "Jardineiro": 150,
+  "Piscineiro": 140,
+  "Limpeza de estofados": 160,
+  "Babá": 140,
+  "Cuidador de Idosos": 160,
+  "Acompanhante Hospitalar": 170,
+  "Massoterapeuta": 180,
+  "Cabeleireiro a domícilio": 150,
+  "Maquiador": 150,
+  "Esteticista": 160,
+  "Motoboy": 120,
+  "Motorista particular": 170,
+  "Frete pequeno / Carreteiro": 200,
+  "Mudança e montagem": 220,
+  "Passeador de cães": 80,
+  "Banho e tosa": 100,
+  "Pet sitter (cuidador de pets)": 90,
+  "Técnico de Informática": 160,
+  "Instalador de câmeras": 180,
+  "Professor particular": 140,
+  "Tradutor": 170,
+  "Personal trainer": 160
+};
+
+// bairros
+const cidadeSelect = document.getElementById("cidade");
+const bairroSelect = document.getElementById("bairro");
+cidadeSelect.addEventListener("change", function () {
+  const cidade = this.value;
+  bairroSelect.innerHTML = '<option value="">Selecione</option>';
+  if (bairrosPorCidade[cidade]) {
+    bairrosPorCidade[cidade].forEach(bairro => {
+      const option = document.createElement("option");
+      option.value = bairro;
+      option.textContent = bairro;
+      bairroSelect.appendChild(option);
     });
+  }
+});
 
-    document.getElementById("cadastrarForm").addEventListener("submit", function(e) {
-      e.preventDefault();
-
-      const form = e.target;
-      const data = {
-        nome: form.nome.value,
-        especialidade: form.especialidade.value,
-        cidade: form.cidade.value,
-        bairro: form.bairro.value,
-        residencia: form.residencia.value,
-        complemento: form.complemento.value,
-        rua: form.rua.value,
-        numero: form.numero.value,
-        telefone: form.telefone.value,
-        disponibilidade: form.disponibilidade.value,
-        descricao: form.descricao.value
-      };
-
-      const mensagem = `*Cadastro de Profissional:*
-Nome: ${data.nome}
-Especialidade: ${data.especialidade}
-Cidade: ${data.cidade}
-Bairro: ${data.bairro}
-Residência: ${data.residencia}` +
-        (data.residencia === 'apartamento' ? `\nApto/Bloco: ${data.complemento}` : '') +
-        `\nRua: ${data.rua}, Nº ${data.numero}
-Telefone: ${data.telefone}
-Disponibilidade: ${data.disponibilidade}
-Descrição: ${data.descricao}`;
-
-      const mensagemCodificada = encodeURIComponent(mensagem);
-      const numeroWhatsApp = "5587981352848";
-      const url = `https://wa.me/${numeroWhatsApp}?text=${mensagemCodificada}`;
-
-      window.location.href = url;
-
-      setTimeout(() => {
-        window.location.href = "index.html";
-      }, 3000);
-    });
-  </script></body>
+// apto
+const residenciaSelect = document.getElementById("residencia");
+const apartamentoDiv = document.getElementById("apartamentoInfo");
+residenciaSelect.addEventListener("change", function () {
+  apartamentoDiv.style.display = this.value === "apartamento" ? "block" : "none";
+});
+</script></body>
 </html>
