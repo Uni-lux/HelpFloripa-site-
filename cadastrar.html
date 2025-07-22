@@ -1,5 +1,4 @@
-<!DOCTYPE html><html lang="pt-BR">
-<head>
+<!DOCTYPE html><html lang="pt-BR"><head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Cadastrar como Profissional</title>
@@ -84,9 +83,19 @@
     <option value="saojose">São José</option>
   </select>
 
+  <label for="regiao">Região do Bairro:</label>
+  <select id="regiao" name="regiao" required>
+    <option value="">Selecione</option>
+    <option value="norte">Norte</option>
+    <option value="sul">Sul</option>
+    <option value="leste">Leste</option>
+    <option value="oeste">Oeste</option>
+    <option value="central">Central</option>
+  </select>
+
   <label for="bairro">Bairro:</label>
   <select id="bairro" name="bairro" required>
-    <option value="">Selecione a cidade primeiro</option>
+    <option value="">Selecione a região</option>
   </select>
 
   <label for="residencia">Tipo de Residência:</label>
@@ -119,58 +128,62 @@
   <button type="submit">Cadastrar</button>
 </form>
 
-  </div>  <script>
-    const especialidadesPorClasse = {
-      casareparos: ["Eletricista","Encanador","Pedreiro","Pintor","Gesseiro","Marceneiro","Vidraceiro","Serralheiro","Técnico de ar-condicionado","Montador de móveis"],
-      limpezacuidados: ["Diarista / Limpeza","Faxineira pós-obra","Jardineiro","Piscineiro","Servente de obra","Limpeza de estofados","Babá / Cuidadora infantil","Cuidadora de idosos","Cuidadora pós-parto / cirurgia"],
-      assistenciapessoal: ["Acompanhante hospitalar","Massoterapeuta","Cabeleireiro a domicílio","Maquiador(a)","Esteticista"],
-      transportelogistica: ["Motorista particular","Motoboy","Carreteiro/frete pequeno","Montador / Desmontador de mudança"],
-      petanimais: ["Dog walker (passeador de cães)","Pet sitter (cuidador de pets)","Banho e tosa em domicílio"],
-      outros: ["Técnico de informática","Instalador de câmeras ou alarme","Professor particular (reforço escolar)","Tradutor/intérprete","Personal trainer"]
-    };
+  </div><script>
+  const especialidadesPorClasse = {
+    casareparos: ["Eletricista","Encanador","Pedreiro","Pintor","Gesseiro","Marceneiro","Vidraceiro","Serralheiro","Técnico de ar-condicionado","Montador de móveis"],
+    limpezacuidados: ["Diarista / Limpeza","Faxineira pós-obra","Jardineiro","Piscineiro","Servente de obra","Limpeza de estofados","Babá / Cuidadora infantil","Cuidadora de idosos","Cuidadora pós-parto / cirurgia"],
+    assistenciapessoal: ["Acompanhante hospitalar","Massoterapeuta","Cabeleireiro a domicílio","Maquiador(a)","Esteticista"],
+    transportelogistica: ["Motorista particular","Motoboy","Carreteiro/frete pequeno","Montador / Desmontador de mudança"],
+    petanimais: ["Dog walker (passeador de cães)","Pet sitter (cuidador de pets)","Banho e tosa em domicílio"],
+    outros: ["Técnico de informática","Instalador de câmeras ou alarme","Professor particular (reforço escolar)","Tradutor/intérprete","Personal trainer"]
+  };
 
-    const bairrosPorCidade = {
-      florianopolis: ["Abraão","Agronômica","Armação","Barra da Lagoa","Campeche","Canasvieiras","Capoeiras","Carianos","Centro","Coqueiros","Córrego Grande","Estreito","Ingleses","Itacorubi","Jurerê","Lagoa","Pantanal","Ponta das Canas","Ribeirão da Ilha","Rio Tavares","Saco dos Limões","Santo Antônio","Tapera","Trindade","Vargem Grande","Vargem Pequena","Monte Verde","Ratones","Cachoeira do Bom Jesus","Costeira","Bom Abrigo","Balneário","João Paulo","José Mendes","Morro das Pedras","Santa Mônica","Sambaqui","Santinho","Lagoinha","Tican","Morro da Lagoa","Itaguaçu","Canto","Serrinha","Maciço","Coloninha"],
-      saojose: ["Areias","Barreiros","Bela Vista","Campinas","Centro","Forquilhas","Kobrasol","Picadas do Sul","Praia Comprida","Real Parque","Roçado","Serraria","Zanelatto","Ipiranga","Jardim Cidade de Florianópolis","Jardim Atlântico","Jardim Zanelatto","Lot. Lisboa","Lot. Dona Adélia","Lot. Recanto da Natureza","Nossa Sra. do Rosário","Pedra Branca","Potecas","Procasa","Santo Antônio","São Luiz","Sertão do Maruim","Vila Formosa","Vila Real"]
-    };
+  const bairrosPorRegiao = {
+    norte: ["Canasvieiras","Ingleses","Jurerê","Santo Antônio","Vargem Grande","Vargem Pequena","Ponta das Canas","Sambaqui","Ratones"],
+    sul: ["Campeche","Ribeirão da Ilha","Tapera","Carianos","Rio Tavares","Morro das Pedras"],
+    leste: ["Barra da Lagoa","Lagoa","Córrego Grande","Trindade","Pantanal","Morro da Lagoa","Santinho"],
+    oeste: ["Capoeiras","Coqueiros","Estreito","Bom Abrigo","Itaguaçu","Coloninha"],
+    central: ["Centro","Agronômica","Itacorubi","Abraão","Santa Mônica","José Mendes"]
+  };
 
-    document.getElementById("classe").addEventListener("change", function() {
-      const especialidade = document.getElementById("especialidade");
-      especialidade.innerHTML = '<option value="">Selecione</option>';
-      const opcoes = especialidadesPorClasse[this.value] || [];
-      opcoes.forEach(e => {
-        const opt = document.createElement("option");
-        opt.value = e;
-        opt.textContent = e;
-        especialidade.appendChild(opt);
-      });
+  document.getElementById("classe").addEventListener("change", function() {
+    const especialidade = document.getElementById("especialidade");
+    especialidade.innerHTML = '<option value="">Selecione</option>';
+    const opcoes = especialidadesPorClasse[this.value] || [];
+    opcoes.forEach(e => {
+      const opt = document.createElement("option");
+      opt.value = e;
+      opt.textContent = e;
+      especialidade.appendChild(opt);
     });
+  });
 
-    document.getElementById("cidade").addEventListener("change", function() {
-      const bairroSelect = document.getElementById("bairro");
-      bairroSelect.innerHTML = '<option value="">Selecione</option>';
-      (bairrosPorCidade[this.value] || []).forEach(bairro => {
-        const option = document.createElement("option");
-        option.value = bairro;
-        option.textContent = bairro;
-        bairroSelect.appendChild(option);
-      });
+  document.getElementById("regiao").addEventListener("change", function () {
+    const bairroSelect = document.getElementById("bairro");
+    bairroSelect.innerHTML = '<option value="">Selecione</option>';
+    const bairros = bairrosPorRegiao[this.value] || [];
+    bairros.forEach(bairro => {
+      const option = document.createElement("option");
+      option.value = bairro;
+      option.textContent = bairro;
+      bairroSelect.appendChild(option);
     });
+  });
 
-    document.getElementById("residencia").addEventListener("change", function () {
-      const info = document.getElementById("apartamentoInfo");
-      info.style.display = this.value === "apartamento" ? "block" : "none";
-    });
+  document.getElementById("residencia").addEventListener("change", function () {
+    const info = document.getElementById("apartamentoInfo");
+    info.style.display = this.value === "apartamento" ? "block" : "none";
+  });
 
-    document.getElementById("cadastrarForm").addEventListener("submit", function(e) {
-      e.preventDefault();
-      const form = e.target;
-      const data = new FormData(form);
-      const obj = Object.fromEntries(data);
-      const msg = `Cadastro de Profissional:\n\n${Object.entries(obj).map(([k,v])=> `${k}: ${v}`).join("\n")}`;
-      const numero = "5587981352848";
-      const url = `https://wa.me/${numero}?text=${encodeURIComponent(msg)}`;
-      window.location.href = url;
-    });
-  </script></body>
+  document.getElementById("cadastrarForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+    const form = e.target;
+    const data = new FormData(form);
+    const obj = Object.fromEntries(data);
+    const msg = `Cadastro de Profissional:\n\n${Object.entries(obj).map(([k,v])=> `${k}: ${v}`).join("\n")}`;
+    const numero = "5587981352848";
+    const url = `https://wa.me/${numero}?text=${encodeURIComponent(msg)}`;
+    window.location.href = url;
+  });
+</script></body>
 </html>
