@@ -1,148 +1,176 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
+<!DOCTYPE html><html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Solicitar Profissional - Help Floripa</title>
+  <title>Cadastrar como Profissional</title>
   <link rel="stylesheet" href="style.css">
   <style>
     body {
-      background-color: #000;
-      color: white;
-      font-family: Arial, sans-serif;
       margin: 0;
-      padding: 0;
+      font-family: Arial, sans-serif;
+      background-color: #0a2a47;
+      color: #fff;
     }
-
     .container {
-      max-width: 900px;
-      margin: 80px auto;
-      padding: 20px;
+      max-width: 600px;
+      margin: 40px auto;
+      background-color: #111;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
     }
-
     h1 {
       text-align: center;
       color: #00adee;
-      margin-bottom: 30px;
     }
-
-    form {
-      background-color: #0a1a2a;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0, 173, 238, 0.2);
-    }
-
     label {
       display: block;
-      margin-bottom: 8px;
-      color: #00adee;
+      margin-top: 15px;
       font-weight: bold;
     }
-
-    select, input[type="text"], input[type="tel"], textarea {
+    input, select, textarea {
       width: 100%;
       padding: 10px;
-      margin-bottom: 20px;
-      border-radius: 8px;
+      margin-top: 5px;
       border: none;
-      font-size: 16px;
+      border-radius: 8px;
+      background-color: #222;
+      color: #fff;
     }
-
     textarea {
       resize: vertical;
     }
-
-    .botao-enviar {
+    button {
       background-color: #00adee;
       color: white;
-      padding: 12px 24px;
+      padding: 12px;
+      width: 100%;
       border: none;
       border-radius: 8px;
-      font-size: 16px;
-      font-weight: bold;
+      margin-top: 20px;
       cursor: pointer;
-      box-shadow: 0 0 10px rgba(0, 173, 238, 0.5);
-      transition: background-color 0.3s ease;
+      font-weight: bold;
     }
-
-    .botao-enviar:hover {
-      background-color: #008bbf;
-    }
-
-    optgroup {
-      color: #333;
+    #apartamentoInfo {
+      display: none;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Solicitar Profissional</h1>
-    <form action="https://formsubmit.co/seuemail@exemplo.com" method="POST">
-      
-      <label for="nome">Seu Nome:</label>
-      <input type="text" id="nome" name="nome" required>
+    <h1>Cadastrar como Profissional</h1>
+    <form id="cadastrarForm">
+      <label for="nome">Nome Completo:</label>
+      <input type="text" id="nome" name="nome" required><label for="classe">Área de Atuação:</label>
+  <select id="classe" name="classe" required>
+    <option value="">Selecione</option>
+    <option value="casareparos">Casa & Reparos</option>
+    <option value="limpezacuidados">Limpeza & Cuidados</option>
+    <option value="assistenciapessoal">Assistência Pessoal</option>
+    <option value="transportelogistica">Transporte & Logística</option>
+    <option value="petanimais">Pet & Animais</option>
+    <option value="outros">Digital / Outros</option>
+  </select>
 
-      <label for="telefone">Telefone/WhatsApp:</label>
-      <input type="tel" id="telefone" name="telefone" required>
+  <label for="especialidade">Especialidade:</label>
+  <select id="especialidade" name="especialidade" required>
+    <option value="">Selecione uma classe primeiro</option>
+  </select>
 
-      <label for="regiao">Região:</label>
-      <select id="regiao" name="regiao" required>
-        <option value="">Selecione a região</option>
-        <option value="Florianópolis">Florianópolis</option>
-        <option value="São José">São José</option>
-        <option value="Palhoça">Palhoça</option>
-        <option value="Biguaçu">Biguaçu</option>
-      </select>
+  <label for="cidade">Cidade:</label>
+  <select id="cidade" name="cidade" required>
+    <option value="">Selecione</option>
+    <option value="florianopolis">Florianópolis</option>
+    <option value="saojose">São José</option>
+  </select>
 
-      <label for="bairro">Bairro:</label>
-      <select id="bairro" name="bairro" required>
-        <option value="">Selecione o bairro</option>
-        <!-- Será preenchido por JS futuramente -->
-      </select>
+  <label for="bairro">Bairro:</label>
+  <select id="bairro" name="bairro" required>
+    <option value="">Selecione a cidade primeiro</option>
+  </select>
 
-      <label for="profissao">Tipo de Profissional:</label>
-      <select id="profissao" name="profissao" required>
-        <option value="">Selecione o profissional</option>
-        <optgroup label="Cuidados e Bem-estar">
-          <option value="Babá/Cuidadora Infantil">Babá / Cuidadora Infantil</option>
-          <option value="Cuidadora de Idosos">Cuidadora de Idosos</option>
-          <option value="Cuidadora Pós-parto/Cirurgia">Cuidadora Pós-parto/Cirurgia</option>
-        </optgroup>
-        <optgroup label="Domésticos e Limpeza">
-          <option value="Servente Geral">Servente Geral</option>
-          <option value="Diarista">Diarista</option>
-          <option value="Passadeira">Passadeira</option>
-        </optgroup>
-        <optgroup label="Construção e Reparos">
-          <option value="Pedreiro">Pedreiro</option>
-          <option value="Pintor">Pintor</option>
-          <option value="Eletricista">Eletricista</option>
-          <option value="Encanador">Encanador</option>
-          <option value="Marceneiro">Marceneiro</option>
-          <option value="Montador de Móveis">Montador de Móveis</option>
-        </optgroup>
-        <optgroup label="Serviços Técnicos">
-          <option value="Técnico em Informática">Técnico em Informática</option>
-          <option value="Instalador de Ar-condicionado">Instalador de Ar-condicionado</option>
-          <option value="Instalador de Antena/TV">Instalador de Antena/TV</option>
-        </optgroup>
-        <optgroup label="Transporte e Logística">
-          <option value="Motorista Particular">Motorista Particular</option>
-          <option value="Motoboy/Entregador">Motoboy / Entregador</option>
-        </optgroup>
-        <optgroup label="Outros Serviços">
-          <option value="Jardineiro">Jardineiro</option>
-          <option value="Cozinheira">Cozinheira</option>
-          <option value="Porteiro/Segurança">Porteiro / Segurança</option>
-        </optgroup>
-      </select>
+  <label for="residencia">Tipo de Residência:</label>
+  <select id="residencia" name="residencia" required>
+    <option value="">Selecione</option>
+    <option value="casa">Casa</option>
+    <option value="apartamento">Apartamento</option>
+  </select>
 
-      <label for="descricao">Descreva brevemente sua necessidade:</label>
-      <textarea id="descricao" name="descricao" rows="4" placeholder="Ex: Preciso de uma diarista para 2 vezes na semana, região do Campeche."></textarea>
-
-      <button type="submit" class="botao-enviar">Enviar Solicitação</button>
-    </form>
+  <div id="apartamentoInfo">
+    <label for="complemento">Número do Apartamento:</label>
+    <input type="text" id="complemento" name="complemento" placeholder="Ex: Bloco B, Apto 203">
   </div>
-</body>
+
+  <label for="rua">Rua:</label>
+  <input type="text" id="rua" name="rua" required>
+
+  <label for="numero">Número:</label>
+  <input type="text" id="numero" name="numero" required>
+
+  <label for="telefone">Telefone para Contato:</label>
+  <input type="tel" id="telefone" name="telefone" placeholder="(DDD) 90000-0000" required>
+
+  <label for="disponibilidade">Disponibilidade:</label>
+  <input type="text" id="disponibilidade" name="disponibilidade" placeholder="Dias e horários disponíveis" required>
+
+  <label for="descricao">Breve descrição ou experiência:</label>
+  <textarea id="descricao" name="descricao" rows="4" required></textarea>
+
+  <button type="submit">Cadastrar</button>
+</form>
+
+  </div>  <script>
+    const especialidadesPorClasse = {
+      casareparos: ["Eletricista","Encanador","Pedreiro","Pintor","Gesseiro","Marceneiro","Vidraceiro","Serralheiro","Técnico de ar-condicionado","Montador de móveis"],
+      limpezacuidados: ["Diarista / Limpeza","Faxineira pós-obra","Jardineiro","Piscineiro","Servente de obra","Limpeza de estofados","Babá / Cuidadora infantil","Cuidadora de idosos","Cuidadora pós-parto / cirurgia"],
+      assistenciapessoal: ["Acompanhante hospitalar","Massoterapeuta","Cabeleireiro a domicílio","Maquiador(a)","Esteticista"],
+      transportelogistica: ["Motorista particular","Motoboy","Carreteiro/frete pequeno","Montador / Desmontador de mudança"],
+      petanimais: ["Dog walker (passeador de cães)","Pet sitter (cuidador de pets)","Banho e tosa em domicílio"],
+      outros: ["Técnico de informática","Instalador de câmeras ou alarme","Professor particular (reforço escolar)","Tradutor/intérprete","Personal trainer"]
+    };
+
+    const bairrosPorCidade = {
+      florianopolis: ["Abraão","Agronômica","Armação","Barra da Lagoa","Campeche","Canasvieiras","Capoeiras","Carianos","Centro","Coqueiros","Córrego Grande","Estreito","Ingleses","Itacorubi","Jurerê","Lagoa","Pantanal","Ponta das Canas","Ribeirão da Ilha","Rio Tavares","Saco dos Limões","Santo Antônio","Tapera","Trindade","Vargem Grande","Vargem Pequena","Monte Verde","Ratones","Cachoeira do Bom Jesus","Costeira","Bom Abrigo","Balneário","João Paulo","José Mendes","Morro das Pedras","Santa Mônica","Sambaqui","Santinho","Lagoinha","Tican","Morro da Lagoa","Itaguaçu","Canto","Serrinha","Maciço","Coloninha"],
+      saojose: ["Areias","Barreiros","Bela Vista","Campinas","Centro","Forquilhas","Kobrasol","Picadas do Sul","Praia Comprida","Real Parque","Roçado","Serraria","Zanelatto","Ipiranga","Jardim Cidade de Florianópolis","Jardim Atlântico","Jardim Zanelatto","Lot. Lisboa","Lot. Dona Adélia","Lot. Recanto da Natureza","Nossa Sra. do Rosário","Pedra Branca","Potecas","Procasa","Santo Antônio","São Luiz","Sertão do Maruim","Vila Formosa","Vila Real"]
+    };
+
+    document.getElementById("classe").addEventListener("change", function() {
+      const especialidade = document.getElementById("especialidade");
+      especialidade.innerHTML = '<option value="">Selecione</option>';
+      const opcoes = especialidadesPorClasse[this.value] || [];
+      opcoes.forEach(e => {
+        const opt = document.createElement("option");
+        opt.value = e;
+        opt.textContent = e;
+        especialidade.appendChild(opt);
+      });
+    });
+
+    document.getElementById("cidade").addEventListener("change", function() {
+      const bairroSelect = document.getElementById("bairro");
+      bairroSelect.innerHTML = '<option value="">Selecione</option>';
+      (bairrosPorCidade[this.value] || []).forEach(bairro => {
+        const option = document.createElement("option");
+        option.value = bairro;
+        option.textContent = bairro;
+        bairroSelect.appendChild(option);
+      });
+    });
+
+    document.getElementById("residencia").addEventListener("change", function () {
+      const info = document.getElementById("apartamentoInfo");
+      info.style.display = this.value === "apartamento" ? "block" : "none";
+    });
+
+    document.getElementById("cadastrarForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const form = e.target;
+      const data = new FormData(form);
+      const obj = Object.fromEntries(data);
+      const msg = `Cadastro de Profissional:\n\n${Object.entries(obj).map(([k,v])=> `${k}: ${v}`).join("\n")}`;
+      const numero = "5587981352848";
+      const url = `https://wa.me/${numero}?text=${encodeURIComponent(msg)}`;
+      window.location.href = url;
+    });
+  </script></body>
 </html>
