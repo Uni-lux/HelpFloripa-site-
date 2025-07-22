@@ -1,149 +1,258 @@
-<!DOCTYPE html>  
-<html lang="pt-BR">  
-<head>  
-  <meta charset="UTF-8" />  
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>  
-  <title>Solicitar Profissional</title>  
-  <link rel="stylesheet" href="style.css">  
-  <style>  
-    body { margin: 0; font-family: Arial, sans-serif; background-color: #0a2a47; color: #fff; }  
-    .container { max-width: 600px; margin: 40px auto; background-color: #111; padding: 30px; border-radius: 15px; box-shadow: 0 0 10px rgba(0,0,0,0.5); }  
-    h1 { text-align: center; color: #00adee; }  
-    label { display: block; margin-top: 15px; font-weight: bold; }  
-    input, select, textarea { width: 100%; padding: 10px; margin-top: 5px; border: none; border-radius: 8px; background-color: #222; color: #fff; }  
-    textarea { resize: vertical; }  
-    button { background-color: #00adee; color: white; padding: 12px; width: 100%; border: none; border-radius: 8px; margin-top: 20px; cursor: pointer; font-weight: bold; }  
-    .whatsapp-button { display: block; text-align: center; margin-top: 15px; background-color: #25D366; color: white; padding: 10px; border-radius: 8px; text-decoration: none; font-weight: bold; }  
-    #precoFinal { margin-top: 20px; font-size: 18px; color: #00ffcc; text-align: center; }  
-    #campoApartamento { display: none; }  
-  </style>  
-</head>  
-<body>  
-  <div class="container">  
-    <h1>Solicitar um Profissional</h1>  
-    <form id="solicitarForm">  
-      <label for="nome">Seu Nome:</label>  
-      <input type="text" id="nome" name="nome" required>  
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Solicitar Profissional</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #0a2a47;
+      color: #fff;
+    }
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      background-color: #111;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
+    h1 {
+      text-align: center;
+      color: #00adee;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: none;
+      border-radius: 8px;
+      background-color: #222;
+      color: #fff;
+    }
+    textarea {
+      resize: vertical;
+    }
+    button {
+      background-color: #00adee;
+      color: white;
+      padding: 12px;
+      width: 100%;
+      border: none;
+      border-radius: 8px;
+      margin-top: 20px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    #apartamentoInfo {
+      display: none;
+    }
+    #precoFinal {
+      margin-top: 20px;
+      font-size: 18px;
+      color: #00ffcc;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Solicitar um Profissional</h1>
+    <form id="solicitarForm">
+      <label for="nome">Seu Nome:</label>
+      <input type="text" id="nome" name="nome" required>
 
-      <label for="profissional">Profissional Desejado:</label>  
-      <select id="profissional" name="profissional" required>  
-        <option value="">Selecione</option>  
-        <option value="Eletricista">Eletricista</option>  
-        <option value="Encanador">Encanador</option>  
-        <option value="Faxineira">Faxineira</option>  
-        <option value="Pedreiro">Pedreiro</option>  
-        <option value="Jardineiro">Jardineiro</option>  
-        <option value="Diarista">Diarista</option>  
-      </select>  
+      <label for="classe">Área de Atuação:</label>
+      <select id="classe" name="classe" required>
+        <option value="">Selecione</option>
+        <option value="casareparos">Casa & Reparos</option>
+        <option value="limpezacuidados">Limpeza & Cuidados</option>
+        <option value="assistenciapessoal">Assistência Pessoal</option>
+        <option value="transportelogistica">Transporte & Logística</option>
+        <option value="petanimais">Pet & Animais</option>
+        <option value="outros">Digital / Outros</option>
+      </select>
 
-      <label for="cidade">Cidade:</label>  
-      <select id="cidade" name="cidade" required>  
-        <option value="">Selecione</option>  
-        <option value="florianopolis">Florianópolis</option>  
-        <option value="saojose">São José</option>  
-      </select>  
+      <label for="profissional">Profissional Desejado:</label>
+      <select id="profissional" name="profissional" required>
+        <option value="">Selecione uma classe primeiro</option>
+      </select>
 
-      <label for="bairro">Bairro:</label>  
-      <select id="bairro" name="bairro" required>  
-        <option value="">Selecione a cidade primeiro</option>  
-      </select>  
+      <label for="cidade">Cidade:</label>
+      <select id="cidade" name="cidade" required>
+        <option value="">Selecione</option>
+        <option value="florianopolis">Florianópolis</option>
+        <option value="saojose">São José</option>
+      </select>
 
-      <label for="tipo_residencia">Tipo de Residência:</label>  
-      <select id="tipo_residencia" name="tipo_residencia" required>  
-        <option value="">Selecione</option>  
-        <option value="casa">Casa</option>  
-        <option value="apartamento">Apartamento</option>  
-      </select>  
+      <div id="regiaoDiv">
+        <label for="regiao">Região do Bairro (Florianópolis):</label>
+        <select id="regiao" name="regiao">
+          <option value="">Selecione</option>
+          <option value="norte">Norte</option>
+          <option value="sul">Sul</option>
+          <option value="leste">Leste</option>
+          <option value="oeste">Oeste</option>
+          <option value="central">Central</option>
+        </select>
+      </div>
 
-      <div id="campoApartamento">  
-        <label for="numero_apto">Número do Apartamento:</label>  
-        <input type="text" id="numero_apto" name="numero_apto" placeholder="Ex: Bloco B, Apto 203">  
-      </div>  
+      <label for="bairro">Bairro:</label>
+      <select id="bairro" name="bairro" required>
+        <option value="">Selecione a cidade ou região</option>
+      </select>
 
-      <label for="rua">Rua:</label>  
-      <input type="text" id="rua" name="rua" required>  
+      <label for="tipo_residencia">Tipo de Residência:</label>
+      <select id="tipo_residencia" name="tipo_residencia" required>
+        <option value="">Selecione</option>
+        <option value="casa">Casa</option>
+        <option value="apartamento">Apartamento</option>
+      </select>
 
-      <label for="numero">Número:</label>  
-      <input type="text" id="numero" name="numero" required>  
+      <div id="apartamentoInfo">
+        <label for="numero_apto">Número do Apartamento:</label>
+        <input type="text" id="numero_apto" name="numero_apto" placeholder="Ex: Bloco B, Apto 203">
+      </div>
 
-      <label for="telefone">Telefone para Contato:</label>  
-      <input type="tel" id="telefone" name="telefone" placeholder="(DDD) 90000-0000" required>  
+      <label for="rua">Rua:</label>
+      <input type="text" id="rua" name="rua" required>
 
-      <label for="disponibilidade">Disponibilidade:</label>  
-      <input type="text" id="disponibilidade" name="disponibilidade" placeholder="Dias e horários disponíveis" required>  
+      <label for="numero">Número:</label>
+      <input type="text" id="numero" name="numero" required>
 
-      <label for="descricao">Descrição do serviço:</label>  
-      <textarea id="descricao" name="descricao" rows="4" required></textarea>  
+      <label for="telefone">Telefone para Contato:</label>
+      <input type="tel" id="telefone" name="telefone" placeholder="(DDD) 90000-0000" required>
 
-      <p id="precoFinal">Valor Total: R$ 0,00</p>  
+      <label for="disponibilidade">Disponibilidade:</label>
+      <input type="text" id="disponibilidade" name="disponibilidade" placeholder="Dias e horários disponíveis" required>
 
-      <button type="submit">Solicitar</button>  
-    </form>  
-  </div>  
+      <label for="descricao">Descrição do serviço:</label>
+      <textarea id="descricao" name="descricao" rows="4" required></textarea>
 
-  <script>  
-    const bairrosPorCidade = {  
-      florianopolis: [ "Agronômica","Barreiros","Balneário","Bananal","Beira-Mar Norte","Bom Abrigo","Bom Jesus","Campeche","Capoeiras","Carvoeira","Córrego Grande","Costeira do Pirajubaé","Coqueiros","Cachoeira do Bom Jesus","Estreito","Centro","Ingleses","Itacorubi","Jurerê","João Paulo","Lagoa da Conceição","Montrinho","Pantanal","Pântano do Sul","Pântano","Trindade","Santa Mônica","Saco Grande","Ribeirão da Ilha","Rio Tavares","Saco dos Limões","Areias","Cacupe","Coloninha" ],  
-      saojose: [ "Barreiros","Campinas","Capoeiras","Coloninha","Centro","Costa e Silva","Floresta","Forquilhas","Forquilhinhas","Itinga","Kobrasol","Roçado","Serraria","Areias","Morro da Cruz","Morro da Fumaça" ]  
-    };  
-  
-    const selCidade = document.getElementById("cidade");  
-    const selBairro = document.getElementById("bairro");  
-    const prof = document.getElementById("profissional");  
-    const precoTag = document.getElementById("precoFinal");  
-    const tipoRes = document.getElementById("tipo_residencia");  
-    const campoApto = document.getElementById("campoApartamento");  
-  
-    selCidade.addEventListener("change", () => {  
-      selBairro.innerHTML = "<option value=''>Selecione</option>";  
-      bairrosPorCidade[selCidade.value]?.forEach(b => {  
-        const op = document.createElement("option");  
-        op.value = b;  
-        op.textContent = b;  
-        selBairro.appendChild(op);  
-      });  
-      calcularPreco();  
-    });  
-  
-    prof.addEventListener("change", calcularPreco);  
-  
-    tipoRes.addEventListener("change", () => {  
-      campoApto.style.display = tipoRes.value === "apartamento" ? "block" : "none";  
-    });  
-  
-    function calcularPreco(){  
-      const tp = prof.value.toLowerCase();  
-      const cid = selCidade.value;  
-      const tabela = { eletricista:120, encanador:110, faxineira:100, pedreiro:150, jardineiro:90, diarista:95 };  
-      const gas = cid==="saojose"?60:(cid==="florianopolis"?25:0);  
-      const total = tabela[tp] && gas>0 ? tabela[tp]+gas : 0;  
-      precoTag.textContent = `Valor Total: R$ ${total.toFixed(2)}`;  
-      return total;  
-    }  
-  
-    document.getElementById("solicitarForm").addEventListener("submit", function(e){  
-      e.preventDefault();  
-      const t = calcularPreco();  
-      const data = new FormData(this);  
-      let msg = `*Solicitação HelpFloripa*%0A`;  
-      for(let [k,v] of data.entries()){  
-        msg += `${k}: ${v}%0A`;  
-      }  
-      msg += `Valor Total: R$ ${t.toFixed(2)}`;  
-  
-      const tel = "5587981352848";  
-      window.location.href = `https://wa.me/${tel}?text=${msg}`;  
-  
-      // Reset do formulário  
-      this.reset();  
-      precoTag.textContent = "Valor Total: R$ 0,00";  
-      campoApto.style.display = "none";  
-  
-      // Redireciona após 3 segundos  
-      setTimeout(() => {  
-        window.location.href = "index.html";  
-      }, 3000);  
-    });  
-  </script>  
-</body>  
+      <p id="precoFinal">Valor Total: R$ 0,00</p>
+
+      <button type="submit">Solicitar</button>
+    </form>
+  </div>
+
+  <script>
+    const especialidadesPorClasse = {
+      casareparos: ["Eletricista","Encanador","Pedreiro","Pintor","Gesseiro","Marceneiro","Vidraceiro","Serralheiro","Técnico de ar-condicionado","Montador de móveis"],
+      limpezacuidados: ["Diarista / Limpeza","Faxineira pós-obra","Jardineiro","Piscineiro","Servente de obra","Limpeza de estofados","Babá / Cuidadora infantil","Cuidadora de idosos","Cuidadora pós-parto / cirurgia"],
+      assistenciapessoal: ["Acompanhante hospitalar","Massoterapeuta","Cabeleireiro a domicílio","Maquiador(a)","Esteticista"],
+      transportelogistica: ["Motorista particular","Motoboy","Carreteiro/frete pequeno","Montador / Desmontador de mudança"],
+      petanimais: ["Dog walker (passeador de cães)","Pet sitter (cuidador de pets)","Banho e tosa em domicílio"],
+      outros: ["Técnico de informática","Instalador de câmeras ou alarme","Professor particular (reforço escolar)","Tradutor/intérprete","Personal trainer"]
+    };
+
+    const precoBase = {
+      "Eletricista": 120, "Encanador": 110, "Pedreiro": 150, "Pintor": 140, "Gesseiro": 130, "Marceneiro": 160,
+      "Vidraceiro": 110, "Serralheiro": 140, "Técnico de ar-condicionado": 120, "Montador de móveis": 100,
+      "Diarista / Limpeza": 100, "Faxineira pós-obra": 130, "Jardineiro": 90, "Piscineiro": 85, "Servente de obra": 95,
+      "Limpeza de estofados": 110, "Babá / Cuidadora infantil": 95, "Cuidadora de idosos": 100, "Cuidadora pós-parto / cirurgia": 110,
+      "Acompanhante hospitalar": 100, "Massoterapeuta": 120, "Cabeleireiro a domicílio": 80, "Maquiador(a)": 75, "Esteticista": 100,
+      "Motorista particular": 100, "Motoboy": 80, "Carreteiro/frete pequeno": 120, "Montador / Desmontador de mudança": 130,
+      "Dog walker (passeador de cães)": 60, "Pet sitter (cuidador de pets)": 70, "Banho e tosa em domicílio": 90,
+      "Técnico de informática": 100, "Instalador de câmeras ou alarme": 120, "Professor particular (reforço escolar)": 80,
+      "Tradutor/intérprete": 100, "Personal trainer": 120
+    };
+
+    const bairrosPorRegiao = {
+      norte: ["Canasvieiras","Ingleses","Jurerê","Santo Antônio","Vargem Grande","Vargem Pequena","Ponta das Canas","Sambaqui","Ratones"],
+      sul: ["Campeche","Ribeirão da Ilha","Tapera","Carianos","Rio Tavares","Morro das Pedras"],
+      leste: ["Barra da Lagoa","Lagoa","Córrego Grande","Trindade","Pantanal","Morro da Lagoa","Santinho"],
+      oeste: ["Capoeiras","Coqueiros","Estreito","Bom Abrigo","Itaguaçu","Coloninha"],
+      central: ["Centro","Agronômica","Itacorubi","Abraão","Santa Mônica","José Mendes"]
+    };
+
+    const bairrosSaoJose = [
+      "Barreiros","Campinas","Capoeiras","Coloninha","Centro","Costa e Silva","Floresta","Forquilhas",
+      "Forquilhinhas","Itinga","Kobrasol","Roçado","Serraria","Areias","Morro da Cruz","Morro da Fumaça"
+    ];
+
+    const cidade = document.getElementById("cidade");
+    const regiao = document.getElementById("regiao");
+    const bairro = document.getElementById("bairro");
+    const classe = document.getElementById("classe");
+    const profissional = document.getElementById("profissional");
+    const precoFinal = document.getElementById("precoFinal");
+    const tipoResidencia = document.getElementById("tipo_residencia");
+    const apartamentoInfo = document.getElementById("apartamentoInfo");
+
+    classe.addEventListener("change", () => {
+      profissional.innerHTML = '<option value="">Selecione</option>';
+      const lista = especialidadesPorClasse[classe.value] || [];
+      lista.forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = p;
+        opt.textContent = p;
+        profissional.appendChild(opt);
+      });
+    });
+
+    cidade.addEventListener("change", () => {
+      if (cidade.value === "florianopolis") {
+        document.getElementById("regiaoDiv").style.display = "block";
+        bairro.innerHTML = '<option value="">Selecione a região</option>';
+      } else {
+        document.getElementById("regiaoDiv").style.display = "none";
+        bairro.innerHTML = '<option value="">Selecione</option>';
+        bairrosSaoJose.forEach(b => {
+          const opt = document.createElement("option");
+          opt.value = b;
+          opt.textContent = b;
+          bairro.appendChild(opt);
+        });
+      }
+      atualizarPreco();
+    });
+
+    regiao.addEventListener("change", () => {
+      bairro.innerHTML = '<option value="">Selecione</option>';
+      const lista = bairrosPorRegiao[regiao.value] || [];
+      lista.forEach(b => {
+        const opt = document.createElement("option");
+        opt.value = b;
+        opt.textContent = b;
+        bairro.appendChild(opt);
+      });
+    });
+
+    tipoResidencia.addEventListener("change", () => {
+      apartamentoInfo.style.display = tipoResidencia.value === "apartamento" ? "block" : "none";
+    });
+
+    profissional.addEventListener("change", atualizarPreco);
+
+    function atualizarPreco() {
+      const prof = profissional.value;
+      const cid = cidade.value;
+      const valor = precoBase[prof] || 0;
+      const desloc = cid === "florianopolis" ? 25 : cid === "saojose" ? 60 : 0;
+      const total = valor + desloc;
+      precoFinal.textContent = `Valor Total: R$ ${total.toFixed(2)}`;
+      return total;
+    }
+
+    document.getElementById("solicitarForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const total = atualizarPreco();
+      const form = new FormData(this);
+      let mensagem = `*Solicitação HelpFloripa*%0A`;
+      for (let [k, v] of form.entries()) {
+        mensagem += `${k}: ${v}%0A`;
+      }
+      mensagem += `Valor Total: R$ ${total.toFixed(2)}`;
+      window.location.href = `https://wa.me/5587981352848?text=${mensagem}`;
+    });
+  </script>
+</body>
 </html>
