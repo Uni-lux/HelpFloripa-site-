@@ -1,181 +1,151 @@
-<!DOCTYPE html><html lang="pt-BR">  <head>    <meta charset="UTF-8" />  
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>  
-  <title>Cadastrar como Profissional</title>  
-  <link rel="stylesheet" href="style.css">  
-  <style>  
-    body {  
-      margin: 0;  
-      font-family: Arial, sans-serif;  
-      background-color: #0a2a47;  
-      color: #fff;  
-    }.container {  
-  max-width: 600px;  
-  margin: 40px auto;  
-  background-color: #111;  
-  padding: 30px;  
-  border-radius: 15px;  
-  box-shadow: 0 0 10px rgba(0,0,0,0.5);  
-}  h1 {
-text-align: center;
-color: #00adee;
-}label { display: block; margin-top: 15px; font-weight: bold; }
+<!DOCTYPE html><html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cadastrar como Profissional</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background-color: #0a2a47;
+        color: #fff;
+      }
+      .container {
+        max-width: 600px;
+        margin: 40px auto;
+        background-color: #111;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+      }
+      h1 {
+        text-align: center;
+        color: #00adee;
+      }
+      label {
+        display: block;
+        margin-top: 15px;
+        font-weight: bold;
+      }
+      input,
+      select,
+      textarea {
+        width: 100%;
+        padding: 10px;
+        margin-top: 5px;
+        border: none;
+        border-radius: 8px;
+        background-color: #222;
+        color: #fff;
+      }
+      textarea {
+        resize: vertical;
+      }
+      button {
+        background-color: #00adee;
+        color: white;
+        padding: 12px;
+        width: 100%;
+        border: none;
+        border-radius: 8px;
+        margin-top: 20px;
+        cursor: pointer;
+        font-weight: bold;
+      }
+      #apartamentoInfo {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Cadastrar como Profissional</h1>
+      <form id="cadastrarForm">
+        <label for="nome">Nome Completo:</label>
+        <input type="text" id="nome" name="nome" required /><label for="classe">Classe de Serviço:</label>
+    <select id="classe" name="classe" required>
+      <option value="">Selecione</option>
+      <option value="casa">Casa & Reparos</option>
+      <option value="limpeza">Limpeza & Cuidados</option>
+      <option value="assistencia">Assistência Pessoal</option>
+      <option value="transporte">Transporte & Logística</option>
+      <option value="pet">Pet & Animais</option>
+      <option value="digital">Digital / Outros</option>
+    </select>
 
-input, select, textarea { width: 100%; padding: 10px; margin-top: 5px; border: none; border-radius: 8px; background-color: #222; color: #fff; }
+    <label for="especialidade">Especialidade:</label>
+    <select id="especialidade" name="especialidade" required>
+      <option value="">Selecione a classe primeiro</option>
+    </select>
 
-textarea { resize: vertical; }
+    <label for="cidade">Cidade:</label>
+    <select id="cidade" name="cidade" required>
+      <option value="">Selecione</option>
+      <option value="florianopolis">Florianópolis</option>
+      <option value="saojose">São José</option>
+    </select>
 
-button { background-color: #00adee; color: white; padding: 12px; width: 100%; border: none; border-radius: 8px; margin-top: 20px; cursor: pointer; font-weight: bold; }
+    <label for="regiao">Região:</label>
+    <select id="regiao" name="regiao" required>
+      <option value="">Selecione a cidade primeiro</option>
+    </select>
 
-#apartamentoInfo { display: none; }
+    <label for="bairro">Bairro:</label>
+    <select id="bairro" name="bairro" required>
+      <option value="">Selecione a região primeiro</option>
+    </select>
 
-  </style>  
-</head>  
-<body>  
-  <div class="container">  
-    <h1>Cadastrar como Profissional</h1>  
-    <form id="cadastrarForm">  
-      <label for="nome">Nome Completo:</label>  
-      <input type="text" id="nome" name="nome" required><label for="classe">Escolha sua Classe de Serviço:</label>
-  <select id="classe" name="classe" required>
-    <option value="">Selecione</option>
-    <option value="casa">Casa e Reparos</option>
-    <option value="limpeza">Limpeza e Cuidados</option>
-    <option value="pessoal">Assistência Pessoal</option>
-    <option value="transporte">Transporte & Logística</option>
-    <option value="pet">Serviços para Pets</option>
-    <option value="digital">Serviços Digitais & Ensino</option>
-    <option value="beleza">Beleza & Estética</option>
-  </select>
+    <label for="residencia">Tipo de Residência:</label>
+    <select id="residencia" name="residencia" required>
+      <option value="">Selecione</option>
+      <option value="casa">Casa</option>
+      <option value="apartamento">Apartamento</option>
+    </select>
 
-  <label for="especialidade">Especialidade:</label>  
-  <select id="especialidade" name="especialidade" required>  
-    <option value="">Selecione a classe primeiro</option>  
-  </select>  
+    <div id="apartamentoInfo">
+      <label for="complemento">Número do Apartamento:</label>
+      <input
+        type="text"
+        id="complemento"
+        name="complemento"
+        placeholder="Ex: Bloco B, Apto 203"
+      />
+    </div>
 
-  <label for="cidade">Cidade:</label>
-  <select id="cidade" name="cidade" required>
-    <option value="">Selecione</option>
-    <option value="florianopolis">Florianópolis</option>
-    <option value="saojose">São José</option>
-  </select>
+    <label for="rua">Rua:</label>
+    <input type="text" id="rua" name="rua" required />
 
-  <label for="bairro">Bairro:</label>
-  <select id="bairro" name="bairro" required>
-    <option value="">Selecione a cidade primeiro</option>
-  </select>
+    <label for="numero">Número:</label>
+    <input type="text" id="numero" name="numero" required />
 
-  <label for="residencia">Tipo de Residência:</label>
-  <select id="residencia" name="residencia" required>
-    <option value="">Selecione</option>
-    <option value="casa">Casa</option>
-    <option value="apartamento">Apartamento</option>
-  </select>
+    <label for="telefone">Telefone para Contato:</label>
+    <input
+      type="tel"
+      id="telefone"
+      name="telefone"
+      placeholder="(DDD) 90000-0000"
+      required
+    />
 
-  <div id="apartamentoInfo">  
-    <label for="complemento">Número do Apartamento:</label>  
-    <input type="text" id="complemento" name="complemento" placeholder="Ex: Bloco B, Apto 203">  
-  </div>
+    <label for="disponibilidade">Disponibilidade:</label>
+    <input
+      type="text"
+      id="disponibilidade"
+      name="disponibilidade"
+      placeholder="Dias e horários disponíveis"
+      required
+    />
 
-  <label for="rua">Rua:</label>
-  <input type="text" id="rua" name="rua" required>
+    <label for="descricao">Breve descrição ou experiência:</label>
+    <textarea id="descricao" name="descricao" rows="4" required></textarea>
 
-  <label for="numero">Número:</label>
-  <input type="text" id="numero" name="numero" required>
+    <button type="submit">Cadastrar</button>
+  </form>
+</div>
+<script>
+  // Scripts separados serão adicionados para as lógicas dinâmicas das classes, bairros e regiões.
+</script>
 
-  <label for="telefone">Telefone para Contato:</label>
-  <input type="tel" id="telefone" name="telefone" placeholder="(DDD) 90000-0000" required>
-
-  <label for="disponibilidade">Disponibilidade:</label>
-  <input type="text" id="disponibilidade" name="disponibilidade" placeholder="Dias e horários disponíveis" required>
-
-  <label for="descricao">Breve descrição ou experiência:</label>
-  <textarea id="descricao" name="descricao" rows="4" required></textarea>
-
-  <button type="submit">Cadastrar</button>
-
-</form>
-
-  </div>
-  <script>
-    const profissionaisPorClasse = {
-      casa: ["Eletricista", "Encanador", "Pedreiro", "Pintor", "Gesseiro", "Marceneiro", "Vidraceiro", "Serralheiro", "Técnico de ar-condicionado", "Montador de móveis"],
-      limpeza: ["Diarista", "Faxineira", "Limpeza pós-obra", "Jardineiro", "Piscineiro", "Limpeza de estofados"],
-      pessoal: ["Babá", "Cuidador de Idosos", "Acompanhante Hospitalar", "Massoterapeuta"],
-      transporte: ["Motoboy", "Motorista particular", "Frete pequeno / Carreteiro", "Mudança e montagem"],
-      pet: ["Passeador de cães", "Banho e tosa", "Pet sitter"],
-      digital: ["Técnico de Informática", "Instalador de câmeras", "Professor particular", "Tradutor", "Personal trainer"],
-      beleza: ["Cabeleireiro a domicílio", "Maquiador", "Esteticista", "Manicure", "Depiladora"]
-    };const bairrosPorCidade = {
-  florianopolis: ["Abraão", "Agronômica", "Armação", "Balneário", "Barra da Lagoa", "Campeche", "Canasvieiras", "Capoeiras", "Carianos", "Centro", "Coloninha", "Coqueiros", "Córrego Grande", "Costeira", "Estreito", "Fazenda do Rio Tavares", "Ingleses", "Itacorubi", "João Paulo", "Jurerê", "Lagoa da Conceição", "Monte Verde", "Morro das Pedras", "Pantanal", "Ponta das Canas", "Ratones", "Ribeirão da Ilha", "Rio Tavares", "Saco dos Limões", "Saco Grande", "Santa Mônica", "Santo Antônio", "Tapera", "Trindade", "Vargem Grande", "Vargem Pequena", "Vila Aparecida", "Vila União", "Jardim Atlântico", "Bosque das Mansões", "Jardim Anchieta", "Cachoeira do Bom Jesus", "Serrinha", "Itaguaçu"],
-  saojose: ["Areias", "Barreiros", "Bela Vista", "Campinas", "Centro", "Colônia Santana", "Forquilhas", "Ipiranga", "Kobrasol", "Picadas do Sul", "Praia Comprida", "Real Parque", "Roçado", "Serraria", "Zanelatto", "Bairro São Luiz", "Jardim Cidade", "Jardim Zanelato", "Jardim Botânico", "Jardim das Palmeiras", "Lot. Lisboa", "Lot. Morar Bem", "Morro da Pedra", "Morro das Pedras", "Parque Residencial Lisboa", "Potecas", "Praia do Meio", "Santo Antônio", "Sertão do Maruim", "Vila Formosa"]
-};
-
-const classeSelect = document.getElementById("classe");
-const especialidadeSelect = document.getElementById("especialidade");
-classeSelect.addEventListener("change", function() {
-  const classe = this.value;
-  especialidadeSelect.innerHTML = '<option value="">Selecione</option>';
-  if (profissionaisPorClasse[classe]) {
-    profissionaisPorClasse[classe].forEach(p => {
-      const opt = document.createElement("option");
-      opt.value = p.toLowerCase();
-      opt.textContent = p;
-      especialidadeSelect.appendChild(opt);
-    });
-  }
-});
-
-document.getElementById("cidade").addEventListener("change", function () {
-  const cidade = this.value;
-  const bairroSelect = document.getElementById("bairro");
-  bairroSelect.innerHTML = '<option value="">Selecione</option>';
-  if (bairrosPorCidade[cidade]) {
-    bairrosPorCidade[cidade].forEach(bairro => {
-      const option = document.createElement("option");
-      option.value = bairro;
-      option.textContent = bairro;
-      bairroSelect.appendChild(option);
-    });
-  }
-});
-
-document.getElementById("residencia").addEventListener("change", function () {
-  const tipo = this.value;
-  const info = document.getElementById("apartamentoInfo");
-  info.style.display = tipo === "apartamento" ? "block" : "none";
-});
-
-document.getElementById("cadastrarForm").addEventListener("submit", function(e) {
-  e.preventDefault();
-  const form = e.target;
-  const data = {
-    nome: form.nome.value,
-    classe: form.classe.value,
-    especialidade: form.especialidade.value,
-    cidade: form.cidade.value,
-    bairro: form.bairro.value,
-    residencia: form.residencia.value,
-    complemento: form.complemento.value,
-    rua: form.rua.value,
-    numero: form.numero.value,
-    telefone: form.telefone.value,
-    disponibilidade: form.disponibilidade.value,
-    descricao: form.descricao.value
-  };
-
-  const mensagem = `*Cadastro de Profissional:*\n\nNome: ${data.nome}\nClasse: ${data.classe}\nEspecialidade: ${data.especialidade}\nCidade: ${data.cidade}\nBairro: ${data.bairro}\nResidência: ${data.residencia}${data.residencia === 'apartamento' ? `\nApto/Bloco: ${data.complemento}` : ''}\nRua: ${data.rua}, Nº ${data.numero}\nTelefone: ${data.telefone}\nDisponibilidade: ${data.disponibilidade}\nDescrição: ${data.descricao}`;
-
-  const mensagemCodificada = encodeURIComponent(mensagem);
-  const numeroWhatsApp = "5587981352848";
-  const url = `https://wa.me/${numeroWhatsApp}?text=${mensagemCodificada}`;
-
-  window.location.href = url;
-
-  setTimeout(() => {
-    window.location.href = "index.html";
-  }, 3000);
-});
-
-  </script>
-</body>
-</html>Breve descrição ou experiênci
+  </body>
+</html>
