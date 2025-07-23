@@ -44,10 +44,15 @@
       line-height: 1.6;
     }
 
-    .botao-solicitar {
-      display: block;
-      width: fit-content;
-      margin: 30px auto 0;
+    .botoes-finais {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 40px;
+    }
+
+    .botao-solicitar,
+    .botao-voltar {
       background-color: #00adee;
       color: white;
       padding: 12px 24px;
@@ -59,10 +64,21 @@
       text-decoration: none;
       box-shadow: 0 0 10px rgba(0, 173, 238, 0.5);
       transition: background-color 0.3s ease;
+      cursor: pointer;
     }
 
     .botao-solicitar:hover {
       background-color: #008bbf;
+    }
+
+    .botao-voltar {
+      background-color: transparent;
+      border: 2px solid #00adee;
+      color: #00adee;
+    }
+
+    .botao-voltar:hover {
+      background-color: #001e2c;
     }
   </style>
 </head>
@@ -90,10 +106,11 @@
       <p>Além da praticidade, você garante atendimento de qualidade, com profissionais verificados e um sistema que te mantém informado do início ao fim. A Help Floripa é ideal para quem busca segurança, agilidade e economia de tempo.</p>
     </div>
 
-    <!-- Botão final -->
-    <a href="solicitar.html" class="botao-solicitar">Solicitar Profissional</a>
-    <button onclick="history.back()" style="margin-bottom: 20px; background-color: transparent; border: 2px solid #00adee; color: #00adee; padding: 10px 20px; border-radius: 8px; cursor: pointer;">← Voltar</button>
- 
+    <!-- Botões finais centralizados -->
+    <div class="botoes-finais">
+      <a href="solicitar.html" class="botao-solicitar">Solicitar Profissional</a>
+      <button onclick="history.back()" class="botao-voltar">← Voltar</button>
+    </div>
 
   </div>
 </body>
