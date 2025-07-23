@@ -264,7 +264,7 @@ const bairrosSaoJose = [
       const prof = profissional.value;
       const cid = cidade.value;
       const valor = precoBase[prof] || 0;
-      const desloc = cid === "florianopolis" ? 25 : cid === "saojose" ? 60 : 0;
+      const desloc = cid === "florianopolis" ? 35 : cid === "saojose" ? 45 : 0;
       const total = valor + desloc;
       precoFinal.textContent = `Valor Total: R$ ${total.toFixed(2)}`;
       return total;
