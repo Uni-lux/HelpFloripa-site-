@@ -1,210 +1,180 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Help Floripa</title>
-  <link rel="stylesheet" href="style.css" />
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background-color: #000;
-      color: white;
-    }
+<!DOCTYPE html>  <html lang="pt-br">    <head>    
+  <meta charset="UTF-8" />    
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>    
+  <title>Help Floripa</title>    
+  <link rel="stylesheet" href="style.css" />    
+  <style>    
+    body {    
+      margin: 0;    
+      font-family: Arial, sans-serif;    
+      background-color: #000;    
+      color: white;    
+    }  .sidebar {    
+  width: 220px;    
+  height: 100vh;    
+  background-color: #001f3f;    
+  position: fixed;    
+  top: 0;    
+  left: 0;    
+  padding-top: 60px;    
+  transition: transform 0.3s ease;    
+  z-index: 1000;    
+}    .sidebar nav {
+display: flex;
+flex-direction: column;
+padding: 0 20px;
+}
 
-    .sidebar {
-      width: 220px;
-      height: 100vh;
-      background-color: #001f3f;
-      position: fixed;
-      top: 0;
-      left: 0;
-      padding-top: 60px;
-      transition: transform 0.3s ease;
-      z-index: 1000;
-    }
+.sidebar a {
+color: white;
+text-decoration: none;
+padding: 15px 0;
+border-bottom: 1px solid #004080;
+}
 
-    .sidebar nav {
-      display: flex;
-      flex-direction: column;
-      padding: 0 20px;
-    }
+.toggle-btn {
+position: fixed;
+top: 15px;
+left: 15px;
+font-size: 24px;
+background-color: transparent;
+border: none;
+color: white;
+cursor: pointer;
+z-index: 1100;
+}
 
-    .sidebar a {
-      color: white;
-      text-decoration: none;
-      padding: 15px 0;
-      border-bottom: 1px solid #004080;
-    }
+.hero {
+margin-left: 220px;
+text-align: center;
+padding: 50px 20px;
+background-color: #001f3f;
+}
 
-    .toggle-btn {
-      position: fixed;
-      top: 15px;
-      left: 15px;
-      font-size: 24px;
-      background-color: transparent;
-      border: none;
-      color: white;
-      cursor: pointer;
-      z-index: 1100;
-    }
+.logo {
+width: 100px;
+height: auto;
+}
 
-    .hero {
-      margin-left: 220px;
-      text-align: center;
-      padding: 50px 20px;
-      background-color: #001f3f;
-    }
+.slogan {
+font-size: 18px;
+color: #ccc;
+}
 
-    .logo {
-      width: 100px;
-      height: auto;
-    }
+main {
+margin-left: 220px;
+padding: 20px;
+}
 
-    .slogan {
-      font-size: 18px;
-      color: #ccc;
-    }
+.cards {
+display: grid;
+grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+gap: 20px;
+margin-bottom: 30px;
+}
 
-    main {
-      margin-left: 220px;
-      padding: 20px;
-    }
+.card {
+background-color: #003366;
+padding: 20px;
+border-radius: 10px;
+text-align: center;
+font-size: 16px;
+box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+}
 
-    .como-funciona {
-      background-color: #0a1a2a;
-      padding: 30px;
-      border-radius: 12px;
-      margin-bottom: 30px;
-      box-shadow: 0 0 10px rgba(0, 173, 238, 0.2);
-    }
+.botoes-destaque {
+display: flex;
+justify-content: center;
+gap: 20px;
+flex-wrap: wrap;
+}
 
-    .como-funciona h2 {
-      color: #00adee;
-      font-size: 24px;
-      margin-bottom: 20px;
-    }
+.btn.destaque {
+background-color: #00adee;
+color: white;
+padding: 12px 24px;
+border-radius: 8px;
+text-decoration: none;
+font-weight: bold;
+transition: background 0.3s;
+}
 
-    .passos {
-      list-style: none;
-      padding-left: 0;
-    }
+.btn.destaque:hover {
+background-color: #008cba;
+}
 
-    .passos li {
-      margin-bottom: 16px;
-      font-size: 18px;
-      line-height: 1.6;
-    }
+footer {
+margin-left: 220px;
+text-align: center;
+padding: 20px;
+background-color: #001f3f;
+color: #ccc;
+}
 
-    .botoes-destaque {
-      display: flex;
-      justify-content: center;
-      gap: 20px;
-      flex-wrap: wrap;
-    }
+footer .footer-links {
+margin-top: 10px;
+}
 
-    .btn.destaque {
-      background-color: #00adee;
-      color: white;
-      padding: 12px 24px;
-      border-radius: 8px;
-      text-decoration: none;
-      font-weight: bold;
-      transition: background 0.3s;
-    }
+footer .footer-links a {
+color: #ccc;
+text-decoration: underline;
+margin: 0 8px;
+font-size: 14px;
+}
 
-    .btn.destaque:hover {
-      background-color: #008cba;
-    }
+/* Responsivo */
+@media (max-width: 768px) {
+.sidebar {
+transform: translateX(-100%);
+position: fixed;
+}
 
-    footer {
-      margin-left: 220px;
-      text-align: center;
-      padding: 20px;
-      background-color: #001f3f;
-      color: #ccc;
-    }
+.sidebar.active {
+transform: translateX(0);
+}
 
-    footer .footer-links {
-      margin-top: 10px;
-    }
+.hero,
+main,
+footer {
+margin-left: 0;
+}
+}
 
-    footer .footer-links a {
-      color: #ccc;
-      text-decoration: underline;
-      margin: 0 8px;
-      font-size: 14px;
-    }
-
-    /* Responsivo */
-    @media (max-width: 768px) {
-      .sidebar {
-        transform: translateX(-100%);
-        position: fixed;
-      }
-
-      .sidebar.active {
-        transform: translateX(0);
-      }
-
-      .hero,
-      main,
-      footer {
-        margin-left: 0;
-      }
-    }
-  </style>
-</head>
-<body>
-  <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
-
-  <div class="sidebar" id="sidebar">
-    <nav>
-      <a href="clientes.html">Cliente</a>
-      <a href="profissionais.html">Profissional</a>
-      <a href="contato.html">Contato</a>
-      <a href="sobre.html">Sobre</a>
-    </nav>
-  </div>
-
-  <header class="hero">
-    <img src="logo.png" alt="Homem Help Floripa" class="logo"/>
-    <h1>Help Floripa</h1>
-    <p class="slogan">Tudo que você precisa em um só lugar</p>
-  </header>
-
-  <main>
-    <section class="como-funciona">
-      <h2>🔧 Como Funciona</h2>
-      <ol class="passos">
-        <li>🧐 <strong>Escolha a categoria</strong> do serviço que você precisa.</li>
-        <li>📞 <strong>Solicite o profissional</strong> diretamente pelo WhatsApp.</li>
-        <li>🛠️ <strong>O profissional realiza o serviço</strong> no local e horário combinado.</li>
-        <li>⭐ <strong>Você avalia o serviço</strong> e ajuda outros usuários com sua opinião.</li>
-        <li>🔁 <strong>Precisa de novo serviço?</strong> É só repetir o processo!</li>
-      </ol>
-    </section>
-
-    <section class="botoes-destaque">
-      <a href="solicitar.html" class="btn destaque">Solicitar Profissional</a>
-      <a href="cadastrar.html" class="btn destaque">Cadastrar como Profissional</a>
-    </section>
-  </main>
-
-  <footer>
-    <p>&copy; 2025 Help Floripa. Todos os direitos reservados.</p>
-    <div class="footer-links">
-      <a href="termos.html">Termos de Uso</a> |
-      <a href="privacidade.html">Política de Privacidade</a>
-    </div>
-  </footer>
-
-  <script>
-    function toggleSidebar() {
-      const sidebar = document.getElementById('sidebar');
-      sidebar.classList.toggle('active');
-    }
-  </script>
-</body>
+  </style>    
+</head>    
+<body>    
+  <button class="toggle-btn" onclick="toggleSidebar()">☰</button>    <div class="sidebar" id="sidebar">    
+    <nav>    
+      <a href="clientes.html">Cliente</a>    
+      <a href="profissionais.html">Profissional</a>    
+      <a href="contato.html">Contato</a>    
+      <a href="sobre.html">Sobre</a>    
+    </nav>    
+  </div>    <header class="hero">    
+    <img src="logo.png" alt="Homem Help Floripa" class="logo"/>    
+    <h1>Help Floripa</h1>    
+    <p class="slogan">Tudo que você precisa em um só lugar</p>    
+  </header>    <main>    
+    <section class="cards">    
+      <div class="card">🛠️ Eletricista</div>    
+      <div class="card">🚰 Encanador</div>    
+      <div class="card">🧹 Faxineira</div>    
+      <div class="card">🧰 Pedreiro</div>    
+      <div class="card">🌿 Jardineiro</div>    
+      <div class="card">🧼 Diarista</div>    
+    </section>  <section class="botoes-destaque">    
+  <a href="solicitar.html" class="btn destaque">Solicitar Profissional</a>    
+  <a href="cadastrar.html" class="btn destaque">Cadastrar como Profissional</a>    
+</section>    </main>    <footer>    
+    <p>&copy; 2025 Help Floripa. Todos os direitos reservados.</p>    
+    <div class="footer-links">    
+      <a href="termos.html">Termos de Uso</a> |    
+      <a href="privacidade.html">Política de Privacidade</a>    
+    </div>    
+  </footer>    <script>    
+    function toggleSidebar() {    
+      const sidebar = document.getElementById('sidebar');    
+      sidebar.classList.toggle('active');    
+    }    
+  </script>  </body>    
 </html>
