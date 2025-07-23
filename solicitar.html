@@ -169,18 +169,40 @@
     };
 
     const bairrosPorRegiao = {
-      norte: ["Canasvieiras", "Ingleses", "Jurerê", "Sambaqui", "Ratones", "Rio Vermelho", "Santo Antônio de Lisboa", "Praia Brava", "Ponta das Canas", "Vargem Grande", "Vargem Pequena"],
-      sul: ["Armação do Pântano do Sul", "Campeche", "Campeche Central", "Caieira da Barra do Sul", "Pântano do Sul", "Morro das Pedras", "Ribeirão da Ilha", "Tapera", "Novo Campeche", "Costeira do Pirajubaé"],
-      leste: ["Barra da Lagoa", "Lagoa da Conceição", "Rio Vermelho", "Córrego Grande", "Trindade", "Pantanal", "Santinho", "Morro do Horácio", "Jardim Anchieta", "João Paulo"],
-      oeste: ["Capoeiras", "Coqueiros", "Estreito", "Bom Abrigo", "Itaguaçu", "Coloninha", "Balneário", "Monte Verde", "Santa Mônica", "Abraão"],
-      central: ["Centro", "Agronômica", "Itacorubi", "José Mendes", "Saco dos Limões", "Saco Grande", "Cacupé", "Costa da Lagoa", "Jardim Atlântico", "Canto"]
-    };
+  norte: [
+    "Canasvieiras", "Ingleses", "Jurerê", "Jurerê Internacional", "Sambaqui", "Ratones",
+    "Santo Antônio de Lisboa", "Praia Brava", "Ponta das Canas", "Vargem Grande",
+    "Vargem Pequena", "Vargem do Bom Jesus", "Cachoeira do Bom Jesus", "Praia do Santinho"
+  ],
+  sul: [
+    "Armação do Pântano do Sul", "Campeche", "Campeche Central", "Caieira da Barra do Sul", 
+    "Pântano do Sul", "Morro das Pedras", "Ribeirão da Ilha", "Tapera", "Novo Campeche", 
+    "Costeira do Pirajubaé", "Alto Ribeirão", "Carianos", "Aeroporto", "Lagoa do Peri", "Praia dos Açores"
+  ],
+  leste: [
+    "Barra da Lagoa", "Lagoa da Conceição", "Rio Vermelho", "Córrego Grande", "Trindade", "Pantanal",
+    "Santinho", "Morro do Horácio", "Jardim Anchieta", "João Paulo", "Itacorubi", "Santa Mônica",
+    "Parque São Jorge", "Monte Verde", "Costa da Lagoa"
+  ],
+  oeste: [
+    "Capoeiras", "Coqueiros", "Estreito", "Bom Abrigo", "Itaguaçu", "Coloninha", "Balneário",
+    "Monte Cristo", "Abraão", "Jardim Atlântico", "Novo Estreito", "Rocha", "Vila Aparecida", "Chico Mendes", "Bom Jesus"
+  ],
+  central: [
+    "Centro", "Agronômica", "José Mendes", "Saco dos Limões", "Saco Grande", "Cacupé",
+    "Praia do Meio", "José Mendes", "Trindade", "Santa Clara", "Comunidade da Serrinha", "Comunidade do Horácio",
+    "Ladeira", "Costeira", "Morro da Cruz"
+  ]
+};
 
-    const bairrosSaoJose = [
-      "Areias", "Barreiros", "Campinas", "Centro", "Forquilhas", "Ipiranga", "Itinga", "Kobrasol", "Picadas do Sul",
-      "Roçado", "Serraria", "Barra do Aririú", "Potecas", "Praia Comprida", "Real Parque", "Pedra Branca", "Floresta",
-      "Jardim Cidade de Florianópolis", "Nossa Senhora do Rosário", "Sertão do Maruim", "Sertão do Imaruim"
-    ];
+const bairrosSaoJose = [
+  "Areias", "Barreiros", "Campinas", "Centro", "Forquilhas", "Ipiranga", "Itinga", "Kobrasol", "Picadas do Sul",
+  "Roçado", "Serraria", "Barra do Aririú", "Potecas", "Praia Comprida", "Real Parque", "Pedra Branca", "Floresta",
+  "Jardim Cidade de Florianópolis", "Nossa Senhora do Rosário", "Sertão do Maruim", "Sertão do Imaruim",
+  "Loteamento Lisboa", "Bosque das Mansões", "Jardim Aquarius", "São Luiz", "Zanelatto", "Colônia Santana",
+  "Jardim Zanelatto", "Morro da Caixa", "Alto Forquilhas", "Cruzeiro do Sul", "Morro das Pedras",
+  "Marcelino", "Jardim Santiago", "Residencial Nova São José"
+];
 
     const cidade = document.getElementById("cidade");
     const regiao = document.getElementById("regiao");
