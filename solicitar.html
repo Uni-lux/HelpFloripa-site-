@@ -55,6 +55,9 @@
     #apartamentoInfo {
       display: none;
     }
+    #regiaoDiv {
+      display: none;
+    }
     #precoFinal {
       margin-top: 20px;
       font-size: 18px;
@@ -166,23 +169,22 @@
     };
 
     const bairrosPorRegiao = {
-    norte: ["Canasvieiras", "Ingleses do Rio Vermelho", "Jurerê", "Sambaqui", "Ratones", "Santo Antônio de Lisboa", "Praia Brava", "Ponta das Canas", "Vargem Grande", "Vargem Pequena"],
-    sul: ["Armação do Pântano do Sul", "Campeche", "Campeche Central", "Caieira da Barra do Sul", "Pântano do Sul", "Morro das Pedras", "Ribeirão da Ilha", "Tapera", "Novo Campeche", "Costeira do Pirajubaé"],
-    leste: ["Barra da Lagoa", "Lagoa da Conceição", "Rio Vermelho", "Córrego Grande", "Trindade", "Pantanal", "Santinho", "Morro do Horácio", "Jardim Anchieta", "João Paulo"],
-    oeste: ["Capoeiras", "Coqueiros", "Estreito", "Bom Abrigo", "Itaguaçu", "Coloninha", "Balneário", "Monte Verde", "Santa Mônica", "Abraão"],
-    central: ["Centro", "Agronômica", "Itacorubi", "José Mendes", "Saco dos Limões", "Saco Grande", "Cacupé", "Costa da Lagoa", "Jardim Atlântico", "Canto"]
-  };
+      norte: ["Canasvieiras", "Ingleses", "Jurerê", "Sambaqui", "Ratones", "Rio Vermelho", "Santo Antônio de Lisboa", "Praia Brava", "Ponta das Canas", "Vargem Grande", "Vargem Pequena"],
+      sul: ["Armação do Pântano do Sul", "Campeche", "Campeche Central", "Caieira da Barra do Sul", "Pântano do Sul", "Morro das Pedras", "Ribeirão da Ilha", "Tapera", "Novo Campeche", "Costeira do Pirajubaé"],
+      leste: ["Barra da Lagoa", "Lagoa da Conceição", "Rio Vermelho", "Córrego Grande", "Trindade", "Pantanal", "Santinho", "Morro do Horácio", "Jardim Anchieta", "João Paulo"],
+      oeste: ["Capoeiras", "Coqueiros", "Estreito", "Bom Abrigo", "Itaguaçu", "Coloninha", "Balneário", "Monte Verde", "Santa Mônica", "Abraão"],
+      central: ["Centro", "Agronômica", "Itacorubi", "José Mendes", "Saco dos Limões", "Saco Grande", "Cacupé", "Costa da Lagoa", "Jardim Atlântico", "Canto"]
+    };
 
     const bairrosSaoJose = [
-    "Areias", "Bairro Fazenda Santo Antônio", "Barra do Aririú", "Barreiros", "Bela Vista", "Campinas", "Ceniro Martins", "Centro",
-    "Colônia Santana", "Flor de Nápolis", "Forquilhas", "Forquilhinhas", "Ipiranga", "Itinga", "Jardim Bela Vista",
-    "Jardim Cidade de Florianópolis", "Jardim Santiago", "Jardim Zanelato", "Loteamento Dona Adélia", "Loteamento Lisboa",
-    "Nossa Senhora do Rosário", "Pedra Branca", "Picadas do Sul", "Ponta de Baixo", "Potecas", "Praia Comprida", "Real Parque",
-    "Recanto da Natureza", "Residencial Lisboa", "Roçado", "Serraria", "Sertão do Imaruim", "Sertão do Maruim", "Siqueira Campos", "São Luiz"
-  ];
+      "Areias", "Barreiros", "Campinas", "Centro", "Forquilhas", "Ipiranga", "Itinga", "Kobrasol", "Picadas do Sul",
+      "Roçado", "Serraria", "Barra do Aririú", "Potecas", "Praia Comprida", "Real Parque", "Pedra Branca", "Floresta",
+      "Jardim Cidade de Florianópolis", "Nossa Senhora do Rosário", "Sertão do Maruim", "Sertão do Imaruim"
+    ];
 
     const cidade = document.getElementById("cidade");
     const regiao = document.getElementById("regiao");
+    const regiaoDiv = document.getElementById("regiaoDiv");
     const bairro = document.getElementById("bairro");
     const classe = document.getElementById("classe");
     const profissional = document.getElementById("profissional");
@@ -202,11 +204,12 @@
     });
 
     cidade.addEventListener("change", () => {
-      if (cidade.value === "florianopolis") {
-        document.getElementById("regiaoDiv").style.display = "block";
+      const cidadeSelecionada = cidade.value;
+      if (cidadeSelecionada === "florianopolis") {
+        regiaoDiv.style.display = "block";
         bairro.innerHTML = '<option value="">Selecione a região</option>';
       } else {
-        document.getElementById("regiaoDiv").style.display = "none";
+        regiaoDiv.style.display = "none";
         bairro.innerHTML = '<option value="">Selecione</option>';
         bairrosSaoJose.forEach(b => {
           const opt = document.createElement("option");
