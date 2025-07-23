@@ -72,20 +72,29 @@
       padding: 20px;
     }
 
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 20px;
+    .como-funciona {
+      background-color: #0a1a2a;
+      padding: 30px;
+      border-radius: 12px;
       margin-bottom: 30px;
+      box-shadow: 0 0 10px rgba(0, 173, 238, 0.2);
     }
 
-    .card {
-      background-color: #003366;
-      padding: 20px;
-      border-radius: 10px;
-      text-align: center;
-      font-size: 16px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+    .como-funciona h2 {
+      color: #00adee;
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+
+    .passos {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .passos li {
+      margin-bottom: 16px;
+      font-size: 18px;
+      line-height: 1.6;
     }
 
     .botoes-destaque {
@@ -166,13 +175,15 @@
   </header>
 
   <main>
-    <section class="cards">
-      <div class="card">🛠️ Eletricista</div>
-      <div class="card">🚰 Encanador</div>
-      <div class="card">🧹 Faxineira</div>
-      <div class="card">🧰 Pedreiro</div>
-      <div class="card">🌿 Jardineiro</div>
-      <div class="card">🧼 Diarista</div>
+    <section class="como-funciona">
+      <h2>🔧 Como Funciona</h2>
+      <ol class="passos">
+        <li>🧐 <strong>Escolha a categoria</strong> do serviço que você precisa.</li>
+        <li>📞 <strong>Solicite o profissional</strong> diretamente pelo WhatsApp.</li>
+        <li>🛠️ <strong>O profissional realiza o serviço</strong> no local e horário combinado.</li>
+        <li>⭐ <strong>Você avalia o serviço</strong> e ajuda outros usuários com sua opinião.</li>
+        <li>🔁 <strong>Precisa de novo serviço?</strong> É só repetir o processo!</li>
+      </ol>
     </section>
 
     <section class="botoes-destaque">
