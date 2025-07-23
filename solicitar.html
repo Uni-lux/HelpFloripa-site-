@@ -288,7 +288,14 @@ const bairrosSaoJose = [
         mensagem += `${k}: ${v}%0A`;
       }
       mensagem += `Valor Total: R$ ${total.toFixed(2)}`;
+
+      // Abrir WhatsApp
       window.location.href = `https://wa.me/5587981352848?text=${mensagem}`;
+
+      // Redirecionar após 2 segundos para index.html
+      setTimeout(() => {
+        window.location.href = "index.html";
+      }, 2000);
     });
   </script>
 </body>
