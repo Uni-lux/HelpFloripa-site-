@@ -1,193 +1,132 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-<head>    
-  <meta charset="UTF-8" />  
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>  
-  <title>Cadastrar como Profissional</title>  
-  <link rel="stylesheet" href="style.css">  
-  <style>  
-    body {  
-      margin: 0;  
-      font-family: Arial, sans-serif;  
-      background-color: #0a2a47;  
-      color: #fff;  
-    }  
-    .container {  
-      max-width: 600px;  
-      margin: 40px auto;  
-      background-color: #111;  
-      padding: 30px;  
-      border-radius: 15px;  
-      box-shadow: 0 0 10px rgba(0,0,0,0.5);  
-    }  
-    h1 {  
-      text-align: center;  
-      color: #00adee;  
-    }  
-    label {  
-      display: block;  
-      margin-top: 15px;  
-      font-weight: bold;  
-    }  
-    input, select, textarea {  
-      width: 100%;  
-      padding: 10px;  
-      margin-top: 5px;  
-      border: none;  
-      border-radius: 8px;  
-      background-color: #222;  
-      color: #fff;  
-    }  
-    textarea {  
-      resize: vertical;  
-    }  
-    button {  
-      background-color: #00adee;  
-      color: white;  
-      padding: 12px;  
-      width: 100%;  
-      border: none;  
-      border-radius: 8px;  
-      margin-top: 20px;  
-      cursor: pointer;  
-      font-weight: bold;  
-    }  
-    #apartamentoInfo, #regiaoContainer {
-      display: none;
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cadastro de Profissional</title>
+  <style>
+    body {
+      background-color: #000;
+      color: white;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
     }
-  </style>  
-</head>  
-<body>  
-  <div class="container">  
-    <h1>Cadastrar como Profissional</h1>  
-    <form id="cadastrarForm">  
-      <label for="nome">Nome Completo:</label>  
-      <input type="text" id="nome" name="nome" required>
 
-      <label for="classe">Área de Atuação:</label>  
-      <select id="classe" name="classe" required>  
-        <option value="">Selecione</option>  
-        <option value="casareparos">Casa & Reparos</option>  
-        <option value="limpezacuidados">Limpeza & Cuidados</option>  
-        <option value="assistenciapessoal">Assistência Pessoal</option>  
-        <option value="transportelogistica">Transporte & Logística</option>  
-        <option value="petanimais">Pet & Animais</option>  
-        <option value="outros">Digital / Outros</option>  
-      </select>  
+    h1 {
+      text-align: center;
+      color: #00adee;
+    }
 
-      <label for="especialidade">Especialidade:</label>
-      <select id="especialidade" name="especialidade" required>
-        <option value="">Selecione uma classe primeiro</option>
+    label {
+      display: block;
+      margin: 15px 0 5px;
+    }
+
+    select, input[type="text"], input[type="submit"] {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border-radius: 6px;
+      border: none;
+      font-size: 16px;
+    }
+
+    select {
+      background-color: #0a1a2a;
+      color: white;
+    }
+
+    input[type="submit"] {
+      background-color: #00adee;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    input[type="submit"]:hover {
+      background-color: #008bbf;
+    }
+  </style>
+</head>
+<body>
+  <h1>Cadastro de Profissional</h1>
+  
+  <form>
+    <label for="cidade">Cidade:</label>
+    <select id="cidade" name="cidade" onchange="atualizarCampos()">
+      <option value="">Selecione a cidade</option>
+      <option value="florianopolis">Florianópolis</option>
+      <option value="saojose">São José</option>
+    </select>
+
+    <div id="regiao-container" style="display:none;">
+      <label for="regiao">Região do Bairro:</label>
+      <select id="regiao" name="regiao" onchange="atualizarBairros()">
+        <option value="">Selecione a região</option>
+        <option value="norte">Norte</option>
+        <option value="sul">Sul</option>
+        <option value="leste">Leste</option>
+        <option value="oeste">Oeste</option>
+        <option value="centro">Centro</option>
       </select>
+    </div>
 
-      <label for="cidade">Cidade:</label>
-      <select id="cidade" name="cidade" required>
-        <option value="">Selecione</option>
-        <option value="florianopolis">Florianópolis</option>
-        <option value="saojose">São José</option>
-      </select>
+    <label for="bairro">Bairro:</label>
+    <select id="bairro" name="bairro">
+      <option value="">Selecione o bairro</option>
+    </select>
 
-      <div id="regiaoContainer">
-        <label for="regiao">Região do Bairro:</label>
-        <select id="regiao" name="regiao">
-          <option value="">Selecione</option>
-          <option value="norte">Norte</option>
-          <option value="sul">Sul</option>
-          <option value="leste">Leste</option>
-          <option value="oeste">Oeste</option>
-          <option value="central">Central</option>
-        </select>
-      </div>
-
-      <label for="bairro">Bairro:</label>
-      <select id="bairro" name="bairro" required>
-        <option value="">Selecione a cidade</option>
-      </select>
-
-      <label for="residencia">Tipo de Residência:</label>
-      <select id="residencia" name="residencia" required>
-        <option value="">Selecione</option>
-        <option value="casa">Casa</option>
-        <option value="apartamento">Apartamento</option>
-      </select>
-
-      <div id="apartamentoInfo">  
-        <label for="complemento">Número do Apartamento:</label>  
-        <input type="text" id="complemento" name="complemento" placeholder="Ex: Bloco B, Apto 203">  
-      </div>  
-
-      <label for="rua">Rua:</label>
-      <input type="text" id="rua" name="rua" required>
-
-      <label for="numero">Número:</label>
-      <input type="text" id="numero" name="numero" required>
-
-      <label for="telefone">Telefone para Contato:</label>
-      <input type="tel" id="telefone" name="telefone" placeholder="(DDD) 90000-0000" required>
-
-      <label for="disponibilidade">Disponibilidade:</label>
-      <input type="text" id="disponibilidade" name="disponibilidade" placeholder="Dias e horários disponíveis" required>
-
-      <label for="descricao">Breve descrição ou experiência:</label>
-      <textarea id="descricao" name="descricao" rows="4" required></textarea>  
-
-      <button type="submit">Cadastrar</button>
-    </form>    
-  </div>
+    <input type="submit" value="Cadastrar">
+  </form>
 
   <script>
-    const especialidadesPorClasse = {
-      casareparos: ["Eletricista","Encanador","Pedreiro","Pintor","Gesseiro","Marceneiro","Vidraceiro","Serralheiro","Técnico de ar-condicionado","Montador de móveis"],
-      limpezacuidados: ["Diarista / Limpeza","Faxineira pós-obra","Jardineiro","Piscineiro","Servente de obra","Limpeza de estofados","Babá / Cuidadora infantil","Cuidadora de idosos","Cuidadora pós-parto / cirurgia"],
-      assistenciapessoal: ["Acompanhante hospitalar","Massoterapeuta","Cabeleireiro a domicílio","Maquiador(a)","Esteticista"],
-      transportelogistica: ["Motorista particular","Motoboy","Carreteiro/frete pequeno","Montador / Desmontador de mudança"],
-      petanimais: ["Dog walker (passeador de cães)","Pet sitter (cuidador de pets)","Banho e tosa em domicílio"],
-      outros: ["Técnico de informática","Instalador de câmeras ou alarme","Professor particular (reforço escolar)","Tradutor/intérprete","Personal trainer"]
-    };
-
-    const bairrosFlorianopolisPorRegiao = = {
-    norte: ["Canasvieiras", "Ingleses", "Jurerê", "Sambaqui", "Ratones", "Rio Vermelho", "Santo Antônio de Lisboa", "Praia Brava", "Ponta das Canas", "Vargem Grande", "Vargem Pequena"],
-    sul: ["Armação do Pântano do Sul", "Campeche", "Campeche Central", "Caieira da Barra do Sul", "Pântano do Sul", "Morro das Pedras", "Ribeirão da Ilha", "Tapera", "Novo Campeche", "Costeira do Pirajubaé"],
-    leste: ["Barra da Lagoa", "Lagoa da Conceição", "Rio Vermelho", "Córrego Grande", "Trindade", "Pantanal", "Santinho", "Morro do Horácio", "Jardim Anchieta", "João Paulo"],
-    oeste: ["Capoeiras", "Coqueiros", "Estreito", "Bom Abrigo", "Itaguaçu", "Coloninha", "Balneário", "Monte Verde", "Santa Mônica", "Abraão"],
-    central: ["Centro", "Agronômica", "Itacorubi", "José Mendes", "Saco dos Limões", "Saco Grande", "Cacupé", "Costa da Lagoa", "Jardim Atlântico", "Canto"]
-  };
+    const bairrosFloripa = {
+      norte: [
+        "Canasvieiras", "Cachoeira do Bom Jesus", "Jurerê", "Jurerê Internacional",
+        "Ingleses", "Ponta das Canas", "Praia Brava", "Santinho", "Vargem Grande",
+        "Vargem Pequena", "Vargem do Bom Jesus"
+      ],
+      sul: [
+        "Campeche", "Armação", "Pântano do Sul", "Ribeirão da Ilha",
+        "Costa de Dentro", "Costa de Cima", "Tapera", "Carianos", "Morro das Pedras"
+      ],
+      leste: [
+        "Lagoa da Conceição", "Barra da Lagoa", "João Paulo", "Canto da Lagoa",
+        "Rio Tavares", "Gravatá"
+      ],
+      oeste: [
+        "Santo Antônio de Lisboa", "Sambaqui", "Cacupé", "Saco Grande",
+        "Monte Verde", "João Paulo"
+      ],
+      centro: [
+        "Centro", "Trindade", "Agronômica", "Itacorubi", "Santa Mônica",
+        "Pantanal", "Carvoeira", "Córrego Grande"
+      ]
     };
 
     const bairrosSaoJose = [
-    "Areias", "Bairro Fazenda Santo Antônio", "Barra do Aririú", "Barreiros", "Bela Vista", "Campinas", "Ceniro Martins", "Centro",
-    "Colônia Santana", "Flor de Nápolis", "Forquilhas", "Forquilhinhas", "Ipiranga", "Itinga", "Jardim Bela Vista",
-    "Jardim Cidade de Florianópolis", "Jardim Santiago", "Jardim Zanelato", "Loteamento Dona Adélia", "Loteamento Lisboa",
-    "Nossa Senhora do Rosário", "Pedra Branca", "Picadas do Sul", "Ponta de Baixo", "Potecas", "Praia Comprida", "Real Parque",
-    "Recanto da Natureza", "Residencial Lisboa", "Roçado", "Serraria", "Sertão do Imaruim", "Sertão do Maruim", "Siqueira Campos", "São Luiz"
-  ];
-    document.getElementById("classe").addEventListener("change", function() {
-      const especialidade = document.getElementById("especialidade");
-      especialidade.innerHTML = '<option value="">Selecione</option>';
-      const opcoes = especialidadesPorClasse[this.value] || [];
-      opcoes.forEach(e => {
-        const opt = document.createElement("option");
-        opt.value = e;
-        opt.textContent = e;
-        especialidade.appendChild(opt);
-      });
-    });
+      "Barreiros", "Kobrasol", "Campinas", "Forquilhinhas", "Forquilhinha", 
+      "Roçado", "Serraria", "Picadas do Sul", "Real Parque", "Areias", 
+      "Ipiranga", "Jardim Cidade de Florianópolis", "Jardim Zanelato",
+      "Sertão do Maruim", "Centro Histórico", "Potecas", "Praia Comprida",
+      "Distrito Industrial", "Bela Vista", "Nossa Senhora do Rosário", "Colônia Santana"
+    ];
 
-    document.getElementById("cidade").addEventListener("change", function () {
-      const cidade = this.value;
-      const regiaoContainer = document.getElementById("regiaoContainer");
-      const regiaoSelect = document.getElementById("regiao");
+    function atualizarCampos() {
+      const cidade = document.getElementById("cidade").value;
+      const regiaoContainer = document.getElementById("regiao-container");
       const bairroSelect = document.getElementById("bairro");
-      bairroSelect.innerHTML = '<option value="">Selecione</option>';
+      const regiaoSelect = document.getElementById("regiao");
+
+      bairroSelect.innerHTML = '<option value="">Selecione o bairro</option>';
+      regiaoSelect.value = "";
 
       if (cidade === "florianopolis") {
         regiaoContainer.style.display = "block";
-        regiaoSelect.required = true;
       } else {
         regiaoContainer.style.display = "none";
-        regiaoSelect.required = false;
-        regiaoSelect.value = "";
-
         bairrosSaoJose.forEach(bairro => {
           const option = document.createElement("option");
           option.value = bairro;
@@ -195,38 +134,23 @@
           bairroSelect.appendChild(option);
         });
       }
-    });
+    }
 
-    document.getElementById("regiao").addEventListener("change", function () {
-      const cidade = document.getElementById("cidade").value;
-      if (cidade !== "florianopolis") return;
-
+    function atualizarBairros() {
+      const regiao = document.getElementById("regiao").value;
       const bairroSelect = document.getElementById("bairro");
-      bairroSelect.innerHTML = '<option value="">Selecione</option>';
-      const bairros = bairrosFlorianopolisPorRegiao[this.value] || [];
-      bairros.forEach(bairro => {
-        const option = document.createElement("option");
-        option.value = bairro;
-        option.textContent = bairro;
-        bairroSelect.appendChild(option);
-      });
-    });
 
-    document.getElementById("residencia").addEventListener("change", function () {
-      const info = document.getElementById("apartamentoInfo");
-      info.style.display = this.value === "apartamento" ? "block" : "none";
-    });
+      bairroSelect.innerHTML = '<option value="">Selecione o bairro</option>';
 
-    document.getElementById("cadastrarForm").addEventListener("submit", function(e) {
-      e.preventDefault();
-      const form = e.target;
-      const data = new FormData(form);
-      const obj = Object.fromEntries(data);
-      const msg = `Cadastro de Profissional:\n\n${Object.entries(obj).map(([k,v])=> `${k}: ${v}`).join("\n")}`;
-      const numero = "5587981352848";
-      const url = `https://wa.me/${numero}?text=${encodeURIComponent(msg)}`;
-      window.location.href = url;
-    });
+      if (bairrosFloripa[regiao]) {
+        bairrosFloripa[regiao].forEach(bairro => {
+          const option = document.createElement("option");
+          option.value = bairro;
+          option.textContent = bairro;
+          bairroSelect.appendChild(option);
+        });
+      }
+    }
   </script>
 </body>
 </html>
