@@ -1,117 +1,95 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Área do Cliente - Help Floripa</title>
-  <link rel="stylesheet" href="style.css">
-  <style>
-    body {
-      background-color: #000;
-      color: white;
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-    }
+<!DOCTYPE html>  <html lang="pt-BR">  
+<head>  
+  <meta charset="UTF-8" />  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>  
+  <title>Área do Cliente - Help Floripa</title>  
+  <link rel="stylesheet" href="style.css">  
+  <style>  
+    body {  
+      background-color: #000;  
+      color: white;  
+      font-family: Arial, sans-serif;  
+      margin: 0;  
+      padding: 0;  
+    }  .container {  
+  max-width: 900px;  
+  margin: 80px auto;  
+  padding: 20px;  
+}  
 
-    .container {
-      max-width: 900px;
-      margin: 80px auto;
-      padding: 20px;
-    }
+h1 {  
+  text-align: center;  
+  color: #00adee;  
+  margin-bottom: 30px;  
+}  
 
-    h1 {
-      text-align: center;
-      color: #00adee;
-      margin-bottom: 30px;
-    }
+.card {  
+  background-color: #0a1a2a;  
+  border-radius: 12px;  
+  box-shadow: 0 0 10px rgba(0, 173, 238, 0.2);  
+  padding: 20px;  
+  margin-bottom: 20px;  
+}  
 
-    .card {
-      background-color: #0a1a2a;
-      border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0, 173, 238, 0.2);
-      padding: 20px;
-      margin-bottom: 20px;
-    }
+.card h2 {  
+  color: #00adee;  
+  margin-bottom: 10px;  
+}  
 
-    .card h2 {
-      color: #00adee;
-      margin-bottom: 10px;
-    }
+.card p {  
+  color: #ddd;  
+  line-height: 1.6;  
+}  
 
-    .card p {
-      color: #ddd;
-      line-height: 1.6;
-    }
+.botao-solicitar {  
+  display: block;  
+  width: fit-content;  
+  margin: 30px auto 0;  
+  background-color: #00adee;  
+  color: white;  
+  padding: 12px 24px;  
+  border: none;  
+  border-radius: 8px;  
+  text-align: center;  
+  font-weight: bold;  
+  font-size: 16px;  
+  text-decoration: none;  
+  box-shadow: 0 0 10px rgba(0, 173, 238, 0.5);  
+  transition: background-color 0.3s ease;  
+}  
 
-    .botoes-finais {
-      display: flex;
-      justify-content: center;
-      gap: 20px;
-      margin-top: 40px;
-    }
+.botao-solicitar:hover {  
+  background-color: #008bbf;  
+}
 
-    .botao-solicitar,
-    .botao-voltar {
-      background-color: #00adee;
-      color: white;
-      padding: 12px 24px;
-      border: none;
-      border-radius: 8px;
-      text-align: center;
-      font-weight: bold;
-      font-size: 16px;
-      text-decoration: none;
-      box-shadow: 0 0 10px rgba(0, 173, 238, 0.5);
-      transition: background-color 0.3s ease;
-      cursor: pointer;
-    }
+  </style>  
+</head>  
+<body>  
+  <div class="container">  
+    <h1>Área do Cliente</h1>  <div class="card">  
+  <h2>🔎 Qual é a função da Help Floripa?</h2>  
+  <p>A Help Floripa é uma plataforma que conecta você, cliente, aos melhores profissionais da cidade. Nosso objetivo é facilitar o processo de encontrar serviços de confiança, com rapidez e segurança, sem complicação.</p>  
+</div>  
 
-    .botao-solicitar:hover {
-      background-color: #008bbf;
-    }
+<div class="card">  
+  <h2>⚙️ Como funciona para solicitar um serviço?</h2>  
+  <p>É simples! Você acessa o botão <strong>“Solicitar Profissional”</strong> no menu principal, escolhe o tipo de serviço desejado, preenche as informações do pedido e pronto! Seu pedido será enviado diretamente para nossa equipe que cuidará da conexão com o profissional ideal.</p>  
+</div>  
 
-    .botao-voltar {
-      background-color: transparent;
-      border: 2px solid #00adee;
-      color: #00adee;
-    }
+<div class="card">  
+  <h2>📦 Como o pedido é processado?</h2>  
+  <p>Assim que você envia a solicitação, ela é analisada e repassada ao profissional mais adequado. Em poucos minutos, você será contatado para agendamento. Todo o processo é rápido, transparente e seguro.</p>  
+</div>  
 
-    .botao-voltar:hover {
-      background-color: #001e2c;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>Área do Cliente</h1>
+<div class="card">  
+  <h2>💡 Por que usar a Help Floripa?</h2>  
+  <p>Além da praticidade, você garante atendimento de qualidade, com profissionais verificados e um sistema que te mantém informado do início ao fim. A Help Floripa é ideal para quem busca segurança, agilidade e economia de tempo.</p>  
+</div>  
 
-    <div class="card">
-      <h2>🔎 Qual é a função da Help Floripa?</h2>
-      <p>A Help Floripa é uma plataforma que conecta você, cliente, aos melhores profissionais da cidade. Nosso objetivo é facilitar o processo de encontrar serviços de confiança, com rapidez e segurança, sem complicação.</p>
-    </div>
+<!-- Botão final -->  
+<a href="solicitar.html" class="botao-solicitar">Solicitar Profissional</a>  
+<button onclick="history.back()" style="margin-bottom: 20px; background-color: transparent; border: 2px solid #00adee; color: #00adee; padding: 10px 20px; border-radius: 8px; cursor: pointer;">← Voltar</button>
 
-    <div class="card">
-      <h2>⚙️ Como funciona para solicitar um serviço?</h2>
-      <p>É simples! Você acessa o botão <strong>“Solicitar Profissional”</strong> no menu principal, escolhe o tipo de serviço desejado, preenche as informações do pedido e pronto! Seu pedido será enviado diretamente para nossa equipe que cuidará da conexão com o profissional ideal.</p>
-    </div>
-
-    <div class="card">
-      <h2>📦 Como o pedido é processado?</h2>
-      <p>Assim que você envia a solicitação, ela é analisada e repassada ao profissional mais adequado. Em poucos minutos, você será contatado para agendamento. Todo o processo é rápido, transparente e seguro.</p>
-    </div>
-
-    <div class="card">
-      <h2>💡 Por que usar a Help Floripa?</h2>
-      <p>Além da praticidade, você garante atendimento de qualidade, com profissionais verificados e um sistema que te mantém informado do início ao fim. A Help Floripa é ideal para quem busca segurança, agilidade e economia de tempo.</p>
-    </div>
-
-    <!-- Botões finais centralizados -->
-    <div class="botoes-finais">
-      <a href="solicitar.html" class="botao-solicitar">Solicitar Profissional</a>
-      <button onclick="history.back()" class="botao-voltar">← Voltar</button>
-    </div>
-
-  </div>
-</body>
+  </div>  
+</body>  
 </html>
