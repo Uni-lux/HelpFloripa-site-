@@ -135,7 +135,6 @@
       <button onclick="history.back()" style="margin-bottom: 20px; background-color: transparent; border: 2px solid #00adee; color: #00adee; padding: 10px 20px; border-radius: 8px; cursor: pointer;">← Voltar</button>
     </form>
   </div>
-
   <script>
     const especialidadesPorClasse = {
       construcaoreforma: ["Eletricista","Encanador","Pedreiro","Pintor","Gesseiro","Marceneiro","Vidraceiro","Serralheiro","Servente de obra","Técnico de ar-condicionado","Montador de móveis"],
@@ -147,40 +146,41 @@
     };
 
     const bairrosPorRegiao = {
-  norte: [
-    "Canasvieiras", "Ingleses", "Jurerê", "Jurerê Internacional", "Sambaqui", "Ratones",
-    "Santo Antônio de Lisboa", "Praia Brava", "Ponta das Canas", "Vargem Grande",
-    "Vargem Pequena", "Vargem do Bom Jesus", "Cachoeira do Bom Jesus", "Praia do Santinho"
-  ],
-  sul: [
-    "Armação do Pântano do Sul", "Campeche", "Campeche Central", "Caieira da Barra do Sul", 
-    "Pântano do Sul", "Morro das Pedras", "Ribeirão da Ilha", "Tapera", "Novo Campeche", 
-    "Costeira do Pirajubaé", "Alto Ribeirão", "Carianos", "Aeroporto", "Lagoa do Peri", "Praia dos Açores"
-  ],
-  leste: [
-    "Barra da Lagoa", "Lagoa da Conceição", "Rio Vermelho", "Córrego Grande", "Trindade", "Pantanal",
-    "Santinho", "Morro do Horácio", "Jardim Anchieta", "João Paulo", "Itacorubi", "Santa Mônica",
-    "Parque São Jorge", "Monte Verde", "Costa da Lagoa"
-  ],
-  oeste: [
-    "Capoeiras", "Coqueiros", "Estreito", "Bom Abrigo", "Itaguaçu", "Coloninha", "Balneário",
-    "Monte Cristo", "Abraão", "Jardim Atlântico", "Novo Estreito", "Rocha", "Vila Aparecida", "Chico Mendes", "Bom Jesus"
-  ],
-  central: [
-    "Centro", "Agronômica", "José Mendes", "Saco dos Limões", "Saco Grande", "Cacupé",
-    "Praia do Meio", "José Mendes", "Trindade", "Santa Clara", "Comunidade da Serrinha", "Comunidade do Horácio",
-    "Ladeira", "Costeira", "Morro da Cruz"
-  ]
-};
+      norte: [
+        "Canasvieiras", "Ingleses", "Jurerê", "Jurerê Internacional", "Sambaqui", "Ratones",
+        "Santo Antônio de Lisboa", "Praia Brava", "Ponta das Canas", "Vargem Grande",
+        "Vargem Pequena", "Vargem do Bom Jesus", "Cachoeira do Bom Jesus", "Praia do Santinho"
+      ],
+      sul: [
+        "Armação do Pântano do Sul", "Campeche", "Campeche Central", "Caieira da Barra do Sul",
+        "Pântano do Sul", "Morro das Pedras", "Ribeirão da Ilha", "Tapera", "Novo Campeche",
+        "Costeira do Pirajubaé", "Alto Ribeirão", "Carianos", "Aeroporto", "Lagoa do Peri", "Praia dos Açores"
+      ],
+      leste: [
+        "Barra da Lagoa", "Lagoa da Conceição", "Rio Vermelho", "Córrego Grande", "Trindade", "Pantanal",
+        "Santinho", "Morro do Horácio", "Jardim Anchieta", "João Paulo", "Itacorubi", "Santa Mônica",
+        "Parque São Jorge", "Monte Verde", "Costa da Lagoa"
+      ],
+      oeste: [
+        "Capoeiras", "Coqueiros", "Estreito", "Bom Abrigo", "Itaguaçu", "Coloninha", "Balneário",
+        "Monte Cristo", "Abraão", "Jardim Atlântico", "Novo Estreito", "Rocha", "Vila Aparecida", "Chico Mendes", "Bom Jesus"
+      ],
+      central: [
+        "Centro", "Agronômica", "José Mendes", "Saco dos Limões", "Saco Grande", "Cacupé",
+        "Praia do Meio", "José Mendes", "Trindade", "Santa Clara", "Comunidade da Serrinha", "Comunidade do Horácio",
+        "Ladeira", "Costeira", "Morro da Cruz"
+      ]
+    };
 
-  const bairrosSaoJose = [
-    "Areias", "Barreiros", "Campinas", "Centro", "Forquilhas", "Ipiranga", "Itinga", "Kobrasol", "Picadas do Sul",
-    "Roçado", "Serraria", "Barra do Aririú", "Potecas", "Praia Comprida", "Real Parque", "Pedra Branca", "Floresta",
-    "Jardim Cidade de Florianópolis", "Nossa Senhora do Rosário", "Sertão do Maruim", "Sertão do Imaruim",
-    "Loteamento Lisboa", "Bosque das Mansões", "Jardim Aquarius", "São Luiz", "Zanelatto", "Colônia Santana",
-    "Jardim Zanelatto", "Morro da Caixa", "Alto Forquilhas", "Cruzeiro do Sul", "Morro das Pedras",
-    "Marcelino", "Jardim Santiago", "Residencial Nova São José"
-];
+    const bairrosSaoJose = [
+      "Areias", "Barreiros", "Campinas", "Centro", "Forquilhas", "Ipiranga", "Itinga", "Kobrasol", "Picadas do Sul",
+      "Roçado", "Serraria", "Barra do Aririú", "Potecas", "Praia Comprida", "Real Parque", "Pedra Branca", "Floresta",
+      "Jardim Cidade de Florianópolis", "Nossa Senhora do Rosário", "Sertão do Maruim", "Sertão do Imaruim",
+      "Loteamento Lisboa", "Bosque das Mansões", "Jardim Aquarius", "São Luiz", "Zanelatto", "Colônia Santana",
+      "Jardim Zanelatto", "Morro da Caixa", "Alto Forquilhas", "Cruzeiro do Sul", "Morro das Pedras",
+      "Marcelino", "Jardim Santiago", "Residencial Nova São José"
+    ];
+
     document.getElementById("classe").addEventListener("change", function() {
       const especialidade = document.getElementById("especialidade");
       especialidade.innerHTML = '<option value="">Selecione</option>';
@@ -198,7 +198,6 @@
       const bairroSelect = document.getElementById("bairro");
       const regiaoSelect = document.getElementById("regiao");
 
-      // Oculta ou mostra região
       if (cidade === "florianopolis") {
         regiaoContainer.style.display = "block";
         bairroSelect.innerHTML = '<option value="">Selecione a região do bairro</option>';
@@ -240,7 +239,12 @@
       const msg = `Cadastro de Profissional:\n\n${Object.entries(obj).map(([k,v])=> `${k}: ${v}`).join("\n")}`;
       const numero = "5587981352848";
       const url = `https://wa.me/${numero}?text=${encodeURIComponent(msg)}`;
+      // abre o WhatsApp
       window.location.href = url;
+      // redireciona para index.html após 2 segundos
+      setTimeout(() => {
+        window.location.href = "index.html";
+      }, 2000);
     });
   </script>
 </body>
