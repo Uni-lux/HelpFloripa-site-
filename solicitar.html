@@ -138,9 +138,17 @@
       <input type="text" id="disponibilidade" name="disponibilidade" placeholder="Dias e horários disponíveis" required>
 
       <label for="descricao">Descrição do serviço:</label>
-      <textarea id="descricao" name="descricao" rows="7" placeholder="O valor total (base) pode aumentar de acordo com a complexidade do serviço" required></textarea>
+<textarea id="descricao" name="descricao" rows="7" placeholder="Informe os detalhes do serviço para avaliação correta.
 
-      <p id="precoFinal">Valor Total (base): R$ 0,00</p>
+🔸 O valor base pode sofrer acréscimos dependendo da complexidade.
+
+Exemplo:
+[Faxineira]
+🏠 Casa pequena ou média = valor base
+🏢 Casa grande ou muito suja = valor base + valor extra
+
+Isso garante mais precisão no atendimento." required></textarea>
+      <p id="precoFinal">Valor base: R$ 0,00</p>
 
       <button type="submit">Solicitar</button>
     </form>
