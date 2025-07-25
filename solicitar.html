@@ -103,7 +103,7 @@
           <option value="norte">Norte</option>
           <option value="sul">Sul</option>
           <option value="leste">Leste</option>
-          <option value="oeste">Oeste</option>
+          <option value="continental">Continental</option>
           <option value="central">Central</option>
         </select>
       </div>
@@ -178,29 +178,24 @@ Isso garante mais precisão no atendimento." required></textarea>
     };
 
     const bairrosPorRegiao = {
-  norte: [
-    "Canasvieiras", "Ingleses", "Jurerê", "Jurerê Internacional", "Sambaqui", "Ratones",
-    "Santo Antônio de Lisboa", "Praia Brava", "Ponta das Canas", "Vargem Grande",
-    "Vargem Pequena", "Vargem do Bom Jesus", "Cachoeira do Bom Jesus", "Praia do Santinho"
+  central: [
+    "Agronômica", "Centro", "José Mendes", "Saco dos Limões", "Trindade", "Pantanal",
+    "Itacorubi", "Córrego Grande", "Santa Mônica", "Parque São Jorge", "Monte Verde", "João Paulo"
   ],
-  sul: [
-    "Armação do Pântano do Sul", "Campeche", "Campeche Central", "Caieira da Barra do Sul", 
-    "Pântano do Sul", "Morro das Pedras", "Ribeirão da Ilha", "Tapera", "Novo Campeche", 
-    "Costeira do Pirajubaé", "Alto Ribeirão", "Carianos", "Aeroporto", "Lagoa do Peri", "Praia dos Açores"
+  norte: [
+    "Canasvieiras", "Cachoeira do Bom Jesus", "Ingleses do Rio Vermelho", "Jurerê", "Jurerê Internacional",
+    "Praia Brava", "Ponta das Canas", "Sambaqui", "Santo Antônio de Lisboa", "Vargem Grande", "Vargem Pequena"
   ],
   leste: [
-    "Barra da Lagoa", "Lagoa da Conceição", "Rio Vermelho", "Córrego Grande", "Trindade", "Pantanal",
-    "Santinho", "Morro do Horácio", "Jardim Anchieta", "João Paulo", "Itacorubi", "Santa Mônica",
-    "Parque São Jorge", "Monte Verde", "Costa da Lagoa"
+    "Lagoa da Conceição", "Barra da Lagoa", "Rio Vermelho"
   ],
-  oeste: [
-    "Capoeiras", "Coqueiros", "Estreito", "Bom Abrigo", "Itaguaçu", "Coloninha", "Balneário",
-    "Monte Cristo", "Abraão", "Jardim Atlântico", "Novo Estreito", "Rocha", "Vila Aparecida", "Chico Mendes", "Bom Jesus"
+  sul: [
+    "Armação", "Campeche", "Carianos", "Caieira da Barra do Sul", "Costa de Dentro", 
+    "Costa de Cima", "Lagoa do Peri", "Pântano do Sul", "Ribeirão da Ilha"
   ],
-  central: [
-    "Centro", "Agronômica", "José Mendes", "Saco dos Limões", "Saco Grande", "Cacupé",
-    "Praia do Meio", "José Mendes", "Trindade", "Santa Clara", "Comunidade da Serrinha", "Comunidade do Horácio",
-    "Ladeira", "Costeira", "Morro da Cruz"
+  continental: [
+    "Abraão", "Balneário", "Capoeiras", "Coqueiros", "Estreito", "Itaguaçu", "Jardim Atlântico",
+    "Monte Cristo", "Santa Luzia", "Serrinha", "Vila Aparecida", "Bom Abrigo", "Coloninha"
   ]
 };
 
