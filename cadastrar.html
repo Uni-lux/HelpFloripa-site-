@@ -237,7 +237,7 @@
       const data = new FormData(form);
       const obj = Object.fromEntries(data);
       const msg = `Cadastro de Profissional:\n\n${Object.entries(obj).map(([k,v])=> `${k}: ${v}`).join("\n")}`;
-      const numero = "5587981352848";
+      const numero = "5548996849431";
       const url = `https://wa.me/${numero}?text=${encodeURIComponent(msg)}`;
       // abre o WhatsApp
       window.location.href = url;
