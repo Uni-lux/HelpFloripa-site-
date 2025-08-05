@@ -159,13 +159,9 @@ Isso garante mais precisão no atendimento." required></textarea>
 
   <script>
     const especialidadesPorClasse = {
-      profissionaisdisponiveis: ["Eletricista","Encanador","Pedreiro","Pintor","Gesseiro","Marceneiro","Vidraceiro","Serralheiro","Servente de obra","Técnico de ar-condicionado","Montador de móveis"],
-      profissionaisindisponiveis: ["Diarista / Limpeza","Faxineira pós-obra","Jardineiro","Piscineiro","Limpeza de estofados","Babá / Cuidadora infantil","Cuidadora de idosos","Cuidadora pós-parto / cirurgia","Passadeira"],
-      assistenciapessoal: ["Acompanhante hospitalar","Massoterapeuta","Cabeleireiro a domicílio","Maquiador(a)","Esteticista"],
-      transportelogistica: ["Motorista particular","Motoboy","Carreteiro/frete pequeno","Montador / Desmontador de mudança"],
-      petanimais: ["Dog walker (passeador de cães)","Pet sitter (cuidador de pets)","Banho e tosa em domicílio"],
-      outros: ["Técnico de informática","Instalador de câmeras ou alarme","Professor particular (reforço escolar)","Tradutor/intérprete","Personal trainer"]
-    };
+      profissionaisdisponiveis: ["Acompanhante hospitalar", "Assistência técnica", "Auxiliar de cozinha", "Babá / Cuidadora infantil", "Camareira", "Cuidadora de idosos e pessoas", "Diarista / Limpeza", "Eletricista", "Gesseiro", "Massoterapeuta", "Motorista particular", "Pintor", "Servente de obra", "Técnico(a) em Enfermagem", "Técnico(a) em Informática"],
+      profissionaisindisponiveis: ["Banho e tosa em domicílio", "Cabeleireiro a domicílio", "Carreteiro/frete pequeno", "Dog walker (passeador de cães)", "Encanador", "Esteticista", "Faxineira pós-obra", "Instalador de câmeras ou alarme", "Jardineiro", "Limpeza de estofados", "Maquiador(a)", "Marceneiro", "Montador / Desmontador de mudança", "Montador de móveis", "Motoboy", "Passadeira", "Pedreiro", "Personal trainer", "Pet sitter (cuidador de pets)", "Piscineiro", "Professor particular (reforço escolar)", "Serralheiro", "Técnico de ar-condicionado", "Tradutor/intérprete", "Vidraceiro"],
+      };
 
     const precoBase = {
       "Eletricista": 120, "Encanador": 115, "Pedreiro": 150, "Pintor": 140, "Gesseiro": 130, "Marceneiro": 160,
@@ -176,7 +172,7 @@ Isso garante mais precisão no atendimento." required></textarea>
       "Motorista particular": 120, "Motoboy": 80, "Carreteiro/frete pequeno": 120, "Montador / Desmontador de mudança": 135,
       "Dog walker (passeador de cães)": 60, "Pet sitter (cuidador de pets)": 70, "Banho e tosa em domicílio": 95,
       "Técnico de informática": 100, "Instalador de câmeras ou alarme": 120, "Professor particular (reforço escolar)": 85,
-      "Tradutor/intérprete": 100, "Personal trainer": 120, "Passadeira": 130
+      "Tradutor/intérprete": 100, "Personal trainer": 120, "Passadeira": 130, "Técnico(a) em Enfermagem": 200, "Camareira": 120, "Assistência técnica":"vai ser analisado",
     };
 
     const bairrosPorRegiao = {
