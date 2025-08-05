@@ -264,6 +264,13 @@ const bairrosSaoJose = [
     function atualizarPreco() {
       const prof = profissional.value;
       const cid = cidade.value;
+
+      // ✅ Alteração aplicada
+      if (prof === "Assistência técnica") {
+        precoFinal.textContent = "Valor será calculado ou analisado";
+        return 0;
+      }
+
       const valor = precoBase[prof] || 0;
       const desloc = cid === "florianopolis" ? 35 : cid === "saojose" ? 45 : 0;
       const total = valor + desloc;
@@ -279,7 +286,7 @@ const bairrosSaoJose = [
       for (let [k, v] of form.entries()) {
         mensagem += `${k}: ${v}%0A`;
       }
-      mensagem += `Valor Total: R$ ${total.toFixed(2)}`;
+      mensagem += prof === "Assistência técnica" ? "Valor a ser calculado ou analisado" : `Valor Total: R$ ${total.toFixed(2)}`;
 
       // Abrir WhatsApp
       window.location.href = `https://wa.me/5548996849431?text=${mensagem}`;
@@ -291,4 +298,4 @@ const bairrosSaoJose = [
     });
   </script>
 </body>
-</html>
+  </html>
