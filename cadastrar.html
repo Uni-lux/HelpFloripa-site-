@@ -156,11 +156,12 @@
 
       <!-- Checkbox para aceitar os termos de uso -->
       <label style="margin-top:20px;">
-        <input type="checkbox" id="aceiteTermos" required>
+        <input type="checkbox" id="aceiteTermos">
         Li e concordo com os <a href="termos.html" target="_blank" style="color:#00adee;">Termos de Uso</a>.
       </label>
 
-      <button type="submit">Cadastrar</button>
+      <button type="submit" id="botaoCadastrar" disabled>Cadastrar</button>
+
       <button onclick="history.back()" style="margin-bottom: 20px; background-color: transparent; border: 2px solid #00adee; color: #00adee; padding: 10px 20px; border-radius: 8px; cursor: pointer;">← Voltar</button>
     </form>
   </div>
@@ -235,30 +236,28 @@
       info.style.display = this.value === "apartamento" ? "block" : "none";
     });
 
+    // Controle do botão Cadastrar via checkbox
+    const checkboxTermos = document.getElementById("aceiteTermos");
+    const botaoCadastrar = document.getElementById("botaoCadastrar");
+    checkboxTermos.addEventListener("change", function() {
+      botaoCadastrar.disabled = !this.checked;
+    });
+
     document.getElementById("cadastrarForm").addEventListener("submit", function(e) {
       e.preventDefault();
-
-      // Verifica se aceitou os termos
-      if (!document.getElementById("aceiteTermos").checked) {
+      if (!checkboxTermos.checked) {
         alert("Você precisa ler e concordar com os Termos de Uso antes de continuar.");
         return;
       }
-
       const form = e.target;
       const data = new FormData(form);
       const obj = Object.fromEntries(data);
       const msg = `Cadastro de Profissional:\n\n${Object.entries(obj).map(([k,v])=> `${k}: ${v}`).join("\n")}`;
       const numero = "5548996849431";
       const url = `https://wa.me/${numero}?text=${encodeURIComponent(msg)}`;
-
-      // abre o WhatsApp
       window.location.href = url;
-
-      // redireciona para index.html após 2 segundos
-      setTimeout(() => {
-        window.location.href = "index.html";
-      }, 2000);
+      setTimeout(() => { window.location.href = "index.html"; }, 2000);
     });
   </script>
 </body>
-        </html>
+</html>
