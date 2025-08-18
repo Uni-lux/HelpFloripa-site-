@@ -4,29 +4,30 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Cadastre-se como Profissional | Help Floripa</title>
-<meta name="description" content="Cadastre-se como profissional na Help Floripa e ofereça seus serviços em Florianópolis e São José. Ganhe visibilidade, receba pedidos de clientes e aumente sua renda.">
-<meta name="keywords" content="cadastrar profissional, diarista, encanador, trabalhar Florianópolis, Help Floripa, serviços, autônomo, renda extra, prestador de serviços">
-<meta name="author" content="Help Floripa">
+  <meta name="description" content="Cadastre-se como profissional na Help Floripa e ofereça seus serviços em Florianópolis e São José. Ganhe visibilidade, receba pedidos de clientes e aumente sua renda.">
+  <meta name="keywords" content="cadastrar profissional, diarista, encanador, trabalhar Florianópolis, Help Floripa, serviços, autônomo, renda extra, prestador de serviços">
+  <meta name="author" content="Help Floripa">
   <link rel="stylesheet" href="style.css">
- <!-- Meta Pixel Code -->
-<script>
-!function(f,b,e,v,n,t,s)
-{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-n.queue=[];t=b.createElement(e);t.async=!0;
-t.src=v;s=b.getElementsByTagName(e)[0];
-s.parentNode.insertBefore(t,s)}(window, document,'script',
-'https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '1279593590387539');
-fbq('track', 'PageView');
-fbq('track', 'cadastrar');
-</script>
-<noscript><img height="1" width="1" style="display:none"
-src="https://www.facebook.com/tr?id=1279593590387539&ev=PageView&noscript=1"
-/></noscript>
-<!-- End Meta Pixel Code --> 
-  
+
+  <!-- Meta Pixel Code -->
+  <script>
+  !function(f,b,e,v,n,t,s)
+  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+  n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];
+  s.parentNode.insertBefore(t,s)}(window, document,'script',
+  'https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', '1279593590387539');
+  fbq('track', 'PageView');
+  fbq('track', 'cadastrar');
+  </script>
+  <noscript><img height="1" width="1" style="display:none"
+  src="https://www.facebook.com/tr?id=1279593590387539&ev=PageView&noscript=1"
+  /></noscript>
+  <!-- End Meta Pixel Code -->
+
   <style>
     body {
       margin: 0;
@@ -152,13 +153,18 @@ src="https://www.facebook.com/tr?id=1279593590387539&ev=PageView&noscript=1"
 
       <label for="descricao">Breve descrição ou experiência:</label>
       <textarea id="descricao" name="descricao" rows="4" required></textarea>
+
+      <!-- Checkbox para aceitar os termos de uso -->
+      <label style="margin-top:20px;">
+        <input type="checkbox" id="aceiteTermos" required>
+        Li e concordo com os <a href="termos.html" target="_blank" style="color:#00adee;">Termos de Uso</a>.
+      </label>
+
       <button type="submit">Cadastrar</button>
-   <p style="display: none;">
-  Trabalhe como diarista, eletricista, pintor, cuidadora de idosos, babá, motoboy e muito mais em Florianópolis e São José com a Help Floripa. Cadastre-se como profissional agora mesmo.
-   </p>
       <button onclick="history.back()" style="margin-bottom: 20px; background-color: transparent; border: 2px solid #00adee; color: #00adee; padding: 10px 20px; border-radius: 8px; cursor: pointer;">← Voltar</button>
     </form>
   </div>
+
   <script>
     const especialidadesPorClasse = {
       construcaoreforma: ["Eletricista","Encanador","Pedreiro","Pintor","Gesseiro","Marceneiro","Vidraceiro","Serralheiro","Servente de obra","Técnico de ar-condicionado","Montador de móveis"],
@@ -170,35 +176,14 @@ src="https://www.facebook.com/tr?id=1279593590387539&ev=PageView&noscript=1"
     };
 
     const bairrosPorRegiao = {
-  central: [
-    "Agronômica", "Centro", "José Mendes", "Saco dos Limões", "Trindade", "Pantanal",
-    "Itacorubi", "Córrego Grande", "Santa Mônica", "Parque São Jorge", "Monte Verde", "João Paulo"
-  ],
-  norte: [
-    "Canasvieiras", "Cachoeira do Bom Jesus", "Ingleses do Rio Vermelho", "Jurerê", "Jurerê Internacional",
-    "Praia Brava", "Ponta das Canas", "Sambaqui", "Santo Antônio de Lisboa", "Vargem Grande", "Vargem Pequena"
-  ],
-  leste: [
-    "Lagoa da Conceição", "Barra da Lagoa", "Rio Vermelho"
-  ],
-  sul: [
-    "Armação", "Campeche", "Carianos", "Caieira da Barra do Sul", "Costa de Dentro", 
-    "Costa de Cima", "Lagoa do Peri", "Pântano do Sul", "Ribeirão da Ilha", "Tapera"
-  ],
-  continental: [
-    "Abraão", "Balneário", "Capoeiras", "Coqueiros", "Estreito", "Itaguaçu", "Jardim Atlântico",
-    "Monte Cristo", "Santa Luzia", "Serrinha", "Vila Aparecida", "Bom Abrigo", "Coloninha"
-  ]
-};
+      central: ["Agronômica", "Centro", "José Mendes", "Saco dos Limões", "Trindade", "Pantanal","Itacorubi", "Córrego Grande", "Santa Mônica", "Parque São Jorge", "Monte Verde", "João Paulo"],
+      norte: ["Canasvieiras", "Cachoeira do Bom Jesus", "Ingleses do Rio Vermelho", "Jurerê", "Jurerê Internacional","Praia Brava", "Ponta das Canas", "Sambaqui", "Santo Antônio de Lisboa", "Vargem Grande", "Vargem Pequena"],
+      leste: ["Lagoa da Conceição", "Barra da Lagoa", "Rio Vermelho"],
+      sul: ["Armação", "Campeche", "Carianos", "Caieira da Barra do Sul", "Costa de Dentro", "Costa de Cima", "Lagoa do Peri", "Pântano do Sul", "Ribeirão da Ilha", "Tapera"],
+      continental: ["Abraão", "Balneário", "Capoeiras", "Coqueiros", "Estreito", "Itaguaçu", "Jardim Atlântico","Monte Cristo", "Santa Luzia", "Serrinha", "Vila Aparecida", "Bom Abrigo", "Coloninha"]
+    };
 
-    const bairrosSaoJose = [
-  "Areias", "Barreiros", "Campinas", "Centro", "Forquilhas", "Ipiranga", "Itinga", "Kobrasol",
-  "Picadas do Sul", "Roçado", "Serraria", "Potecas", "Praia Comprida", "Real Parque",
-  "Floresta", "Jardim Cidade de Florianópolis", "Nossa Senhora do Rosário", "Sertão do Maruim",
-  "Sertão do Imaruim", "Colônia Santana", "Jardim Zanelatto", "Jardim Aquarius", 
-  "Bosque das Mansões", "Cruzeiro do Sul", "Loteamento Lisboa", "Residencial Nova São José", 
-  "São Luiz", "Zanelatto", "Alto Forquilhas", "Morro da Caixa", "Jardim Santiago"
-];
+    const bairrosSaoJose = ["Areias", "Barreiros", "Campinas", "Centro", "Forquilhas", "Ipiranga", "Itinga", "Kobrasol","Picadas do Sul", "Roçado", "Serraria", "Potecas", "Praia Comprida", "Real Parque","Floresta", "Jardim Cidade de Florianópolis", "Nossa Senhora do Rosário", "Sertão do Maruim","Sertão do Imaruim", "Colônia Santana", "Jardim Zanelatto", "Jardim Aquarius", "Bosque das Mansões", "Cruzeiro do Sul", "Loteamento Lisboa", "Residencial Nova São José", "São Luiz", "Zanelatto", "Alto Forquilhas", "Morro da Caixa", "Jardim Santiago"];
 
     document.getElementById("classe").addEventListener("change", function() {
       const especialidade = document.getElementById("especialidade");
@@ -252,14 +237,23 @@ src="https://www.facebook.com/tr?id=1279593590387539&ev=PageView&noscript=1"
 
     document.getElementById("cadastrarForm").addEventListener("submit", function(e) {
       e.preventDefault();
+
+      // Verifica se aceitou os termos
+      if (!document.getElementById("aceiteTermos").checked) {
+        alert("Você precisa ler e concordar com os Termos de Uso antes de continuar.");
+        return;
+      }
+
       const form = e.target;
       const data = new FormData(form);
       const obj = Object.fromEntries(data);
       const msg = `Cadastro de Profissional:\n\n${Object.entries(obj).map(([k,v])=> `${k}: ${v}`).join("\n")}`;
       const numero = "5548996849431";
       const url = `https://wa.me/${numero}?text=${encodeURIComponent(msg)}`;
+
       // abre o WhatsApp
       window.location.href = url;
+
       // redireciona para index.html após 2 segundos
       setTimeout(() => {
         window.location.href = "index.html";
@@ -267,4 +261,4 @@ src="https://www.facebook.com/tr?id=1279593590387539&ev=PageView&noscript=1"
     });
   </script>
 </body>
-</html>
+        </html>
