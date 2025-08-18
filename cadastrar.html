@@ -9,6 +9,25 @@
   <meta name="author" content="Help Floripa">
   <link rel="stylesheet" href="style.css">
 
+  <!-- Meta Pixel Code -->
+  <script>
+  !function(f,b,e,v,n,t,s)
+  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+  n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];
+  s.parentNode.insertBefore(t,s)}(window, document,'script',
+  'https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', '1279593590387539');
+  fbq('track', 'PageView');
+  fbq('track', 'cadastrar');
+  </script>
+  <noscript><img height="1" width="1" style="display:none"
+  src="https://www.facebook.com/tr?id=1279593590387539&ev=PageView&noscript=1"
+  /></noscript>
+  <!-- End Meta Pixel Code -->
+
   <style>
     body {
       margin: 0;
@@ -59,20 +78,13 @@
     #apartamentoInfo, #regiaoContainer {
       display: none;
     }
-    /* Estilo para alinhar checkbox com texto */
-    .checkbox-container {
+    .termosContainer {
       display: flex;
       align-items: center;
       margin-top: 20px;
-      font-weight: normal;
     }
-    .checkbox-container input[type="checkbox"] {
+    .termosContainer input[type="checkbox"] {
       margin-right: 10px;
-      transform: scale(1.2);
-    }
-    .checkbox-container a {
-      color: #00adee;
-      text-decoration: none;
     }
   </style>
 </head>
@@ -150,15 +162,18 @@
       <label for="descricao">Breve descrição ou experiência:</label>
       <textarea id="descricao" name="descricao" rows="4" required></textarea>
 
-      <!-- Checkbox alinhado com texto -->
-      <div class="checkbox-container">
-        <input type="checkbox" id="aceiteTermos">
-        <span>Li e concordo com os <a href="termos.html" target="_blank">Termos de Uso</a>.</span>
+      <!-- Novo campo de diária mínima e máxima -->
+      <label for="diaria">Valor da Diária (mínimo e máximo):</label>
+      <input type="text" id="diaria" name="diaria" placeholder="Ex: R$ 80 - R$ 120" required>
+
+      <!-- Checkbox para aceitar os termos de uso -->
+      <div class="termosContainer">
+        <input type="checkbox" id="aceiteTermos" required>
+        <label for="aceiteTermos" style="margin:0;">Li e concordo com os <a href="termos.html" target="_blank" style="color:#00adee;">Termos de Uso</a></label>
       </div>
 
-      <button type="submit" id="botaoCadastrar" disabled>Cadastrar</button>
-
-      <button type="button" onclick="history.back()" style="margin-bottom: 20px; background-color: transparent; border: 2px solid #00adee; color: #00adee; padding: 10px 20px; border-radius: 8px; cursor: pointer;">← Voltar</button>
+      <button type="submit">Cadastrar</button>
+      <button onclick="history.back()" style="margin-bottom: 20px; background-color: transparent; border: 2px solid #00adee; color: #00adee; padding: 10px 20px; border-radius: 8px; cursor: pointer;">← Voltar</button>
     </form>
   </div>
 
@@ -232,27 +247,29 @@
       info.style.display = this.value === "apartamento" ? "block" : "none";
     });
 
-    // Habilitar botão cadastrar somente se checkbox estiver marcado
-    const checkboxTermos = document.getElementById("aceiteTermos");
-    const botaoCadastrar = document.getElementById("botaoCadastrar");
-    checkboxTermos.addEventListener("change", function() {
-      botaoCadastrar.disabled = !this.checked;
-    });
-
     document.getElementById("cadastrarForm").addEventListener("submit", function(e) {
       e.preventDefault();
-      if (!checkboxTermos.checked) {
+
+      const aceite = document.getElementById("aceiteTermos").checked ? "Sim" : "Não";
+      if (aceite === "Não") {
         alert("Você precisa ler e concordar com os Termos de Uso antes de continuar.");
         return;
       }
+
       const form = e.target;
       const data = new FormData(form);
       const obj = Object.fromEntries(data);
+      obj.aceiteTermos = aceite;
+
       const msg = `Cadastro de Profissional:\n\n${Object.entries(obj).map(([k,v])=> `${k}: ${v}`).join("\n")}`;
       const numero = "5548996849431";
       const url = `https://wa.me/${numero}?text=${encodeURIComponent(msg)}`;
+
       window.location.href = url;
-      setTimeout(() => { window.location.href = "index.html"; }, 2000);
+
+      setTimeout(() => {
+        window.location.href = "index.html";
+      }, 2000);
     });
   </script>
 </body>
