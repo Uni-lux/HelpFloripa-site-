@@ -8,24 +8,7 @@
   <meta name="keywords" content="contratar diarista Florianópolis, contratar profissional São José, eletricista, encanador, limpeza, serviços em domicílio, Help Floripa">
   <meta name="author" content="Help Floripa">
   <link rel="stylesheet" href="style.css">
-   <!-- Meta Pixel Code -->
-<script>
-!function(f,b,e,v,n,t,s)
-{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-n.queue=[];t=b.createElement(e);t.async=!0;
-t.src=v;s=b.getElementsByTagName(e)[0];
-s.parentNode.insertBefore(t,s)}(window, document,'script',
-'https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '1279593590387539');
-fbq('track', 'PageView');
-fbq('track', 'solicitar');
-</script>
-<noscript><img height="1" width="1" style="display:none"
-src="https://www.facebook.com/tr?id=1279593590387539&ev=PageView&noscript=1"
-/></noscript>
-<!-- End Meta Pixel Code -->
+
   <style>
     body {
       margin: 0;
@@ -59,9 +42,7 @@ src="https://www.facebook.com/tr?id=1279593590387539&ev=PageView&noscript=1"
       background-color: #222;
       color: #fff;
     }
-    textarea {
-      resize: vertical;
-    }
+    textarea { resize: vertical; }
     button {
       background-color: #00adee;
       color: white;
@@ -73,12 +54,8 @@ src="https://www.facebook.com/tr?id=1279593590387539&ev=PageView&noscript=1"
       cursor: pointer;
       font-weight: bold;
     }
-    #apartamentoInfo {
-      display: none;
-    }
-    #regiaoDiv {
-      display: none;
-    }
+    #apartamentoInfo { display: none; }
+    #regiaoDiv { display: none; }
     #precoFinal {
       margin-top: 20px;
       font-size: 18px;
@@ -90,20 +67,29 @@ src="https://www.facebook.com/tr?id=1279593590387539&ev=PageView&noscript=1"
 <body>
   <div class="container">
     <h1>Solicitar um Profissional</h1>
-      <form id="solicitarForm">
+    <form id="solicitarForm">
+
       <label for="nome">Seu Nome:</label>
       <input type="text" id="nome" name="nome" required>
 
-      <label for="classe">Profissionais:</label>
-      <select id="classe" name="classe" required>
-        <option value="">Selecione</option>
-        <option value="profissionaisdisponiveis">Profissionais disponíveis</option>
-        <option value="profissionaisindisponiveis">Profissionais indisponíveis</option>
-      </select>
-
-      <label for="profissional">Profissional Desejado:</label>
+      <label for="profissional">Profissional:</label>
       <select id="profissional" name="profissional" required>
-        <option value="">Selecione uma classe primeiro</option>
+        <option value="">Selecione</option>
+        <option value="Acompanhante hospitalar">Acompanhante hospitalar</option>
+        <option value="Assistência técnica">Assistência técnica</option>
+        <option value="Auxiliar de cozinha">Auxiliar de cozinha</option>
+        <option value="Babá / Cuidadora infantil">Babá / Cuidadora infantil</option>
+        <option value="Camareira">Camareira</option>
+        <option value="Cuidadora de idosos e pessoas">Cuidadora de idosos e pessoas</option>
+        <option value="Diarista / Limpeza">Diarista / Limpeza</option>
+        <option value="Eletricista">Eletricista</option>
+        <option value="Gesseiro">Gesseiro</option>
+        <option value="Massoterapeuta">Massoterapeuta</option>
+        <option value="Motorista particular">Motorista particular</option>
+        <option value="Pintor">Pintor</option>
+        <option value="Servente de obra">Servente de obra</option>
+        <option value="Técnico(a) em Enfermagem">Técnico(a) em Enfermagem</option>
+        <option value="Técnico(a) em Informática">Técnico(a) em Informática</option>
       </select>
 
       <label for="cidade">Cidade:</label>
@@ -154,95 +140,36 @@ src="https://www.facebook.com/tr?id=1279593590387539&ev=PageView&noscript=1"
       <label for="disponibilidade">Disponibilidade:</label>
       <input type="text" id="disponibilidade" name="disponibilidade" placeholder="Dias e horários disponíveis" required>
 
+      <label for="valorMaximo">Valor máximo que pretende pagar:</label>
+      <input type="text" id="valorMaximo" name="valorMaximo" placeholder="Ex: R$ 200,00" required>
+
       <label for="descricao">Descrição do serviço:</label>
-<textarea id="descricao" name="descricao" rows="7" placeholder="Informe os detalhes do serviço para avaliação correta.
+      <textarea id="descricao" name="descricao" rows="7" placeholder="Informe os detalhes do serviço para avaliação correta."></textarea>
 
-🔸 O valor base pode sofrer acréscimos dependendo da complexidade.
-
-Exemplo:
-[Faxineira]
-🏠 Casa pequena ou média = valor base
-🏢 Casa grande ou muito suja = valor base + valor extra
-
-Isso garante mais precisão no atendimento." required></textarea>
-      <p id="precoFinal">Valor base: R$ 0,00</p>
+      <p id="precoFinal">Valor será calculado ou analisado</p>
 
       <button type="submit">Solicitar</button>
-      <p style="display: none;">
-      Solicite serviços com profissionais de confiança em Florianópolis e São José. Contrate faxineira, diarista, eletricista, encanador, cuidadora de idosos, motorista particular e mais com a Help Floripa.
-      </p>
       <button onclick="history.back()" style="margin-bottom: 20px; background-color: transparent; border: 2px solid #00adee; color: #00adee; padding: 10px 20px; border-radius: 8px; cursor: pointer;">← Voltar</button>
-      </form>
+    </form>
   </div>
 
   <script>
-    const especialidadesPorClasse = {
-      profissionaisdisponiveis: ["Acompanhante hospitalar", "Assistência técnica", "Auxiliar de cozinha", "Babá / Cuidadora infantil", "Camareira", "Cuidadora de idosos e pessoas", "Diarista / Limpeza", "Eletricista", "Gesseiro", "Massoterapeuta", "Motorista particular", "Pintor", "Servente de obra", "Técnico(a) em Enfermagem", "Técnico(a) em Informática"],
-      profissionaisindisponiveis: ["Banho e tosa em domicílio", "Cabeleireiro a domicílio", "Carreteiro/frete pequeno", "Dog walker (passeador de cães)", "Encanador", "Esteticista", "Faxineira pós-obra", "Instalador de câmeras ou alarme", "Jardineiro", "Limpeza de estofados", "Maquiador(a)", "Marceneiro", "Montador / Desmontador de mudança", "Montador de móveis", "Motoboy", "Passadeira", "Pedreiro", "Personal trainer", "Pet sitter (cuidador de pets)", "Piscineiro", "Professor particular (reforço escolar)", "Serralheiro", "Técnico de ar-condicionado", "Tradutor/intérprete", "Vidraceiro"],
-      };
-
-    const precoBase = {
-      "Eletricista": 120, "Encanador": 115, "Pedreiro": 150, "Pintor": 140, "Gesseiro": 130, "Marceneiro": 160,
-      "Vidraceiro": 110, "Serralheiro": 140, "Técnico de ar-condicionado": 120, "Montador de móveis": 100,
-      "Diarista / Limpeza": 100, "Faxineira pós-obra": 130, "Jardineiro": 100, "Piscineiro": 90, "Servente de obra": 95,
-      "Limpeza de estofados": 110, "Babá / Cuidadora infantil": 100, "Cuidadora de idosos": 110, "Cuidadora pós-parto / cirurgia": 115,
-      "Acompanhante hospitalar": 100, "Massoterapeuta": 120, "Cabeleireiro a domicílio": 80, "Maquiador(a)": 75, "Esteticista": 105,
-      "Motorista particular": 120, "Motoboy": 80, "Carreteiro/frete pequeno": 120, "Montador / Desmontador de mudança": 135,
-      "Dog walker (passeador de cães)": 60, "Pet sitter (cuidador de pets)": 70, "Banho e tosa em domicílio": 95,
-      "Técnico de informática": 100, "Instalador de câmeras ou alarme": 120, "Professor particular (reforço escolar)": 85,
-      "Tradutor/intérprete": 100, "Personal trainer": 120, "Passadeira": 130, "Técnico(a) em Enfermagem": 200, "Camareira": 120, "Assistência técnica":0,
+    const bairrosPorRegiao = {
+      central: ["Agronômica", "Centro", "José Mendes", "Saco dos Limões", "Trindade", "Pantanal", "Itacorubi", "Córrego Grande", "Santa Mônica", "Parque São Jorge", "Monte Verde", "João Paulo"],
+      norte: ["Canasvieiras", "Cachoeira do Bom Jesus", "Ingleses do Rio Vermelho", "Jurerê", "Jurerê Internacional", "Praia Brava", "Ponta das Canas", "Sambaqui", "Santo Antônio de Lisboa", "Vargem Grande", "Vargem Pequena"],
+      leste: ["Lagoa da Conceição", "Barra da Lagoa", "Rio Vermelho"],
+      sul: ["Armação", "Campeche", "Carianos", "Caieira da Barra do Sul", "Costa de Dentro", "Costa de Cima", "Lagoa do Peri", "Pântano do Sul", "Ribeirão da Ilha", "Tapera"],
+      continental: ["Abraão", "Balneário", "Capoeiras", "Coqueiros", "Estreito", "Itaguaçu", "Jardim Atlântico", "Monte Cristo", "Santa Luzia", "Serrinha", "Vila Aparecida", "Bom Abrigo", "Coloninha"]
     };
 
-    const bairrosPorRegiao = {
-  central: [
-    "Agronômica", "Centro", "José Mendes", "Saco dos Limões", "Trindade", "Pantanal",
-    "Itacorubi", "Córrego Grande", "Santa Mônica", "Parque São Jorge", "Monte Verde", "João Paulo"
-  ],
-  norte: [
-    "Canasvieiras", "Cachoeira do Bom Jesus", "Ingleses do Rio Vermelho", "Jurerê", "Jurerê Internacional",
-    "Praia Brava", "Ponta das Canas", "Sambaqui", "Santo Antônio de Lisboa", "Vargem Grande", "Vargem Pequena"
-  ],
-  leste: [
-    "Lagoa da Conceição", "Barra da Lagoa", "Rio Vermelho"
-  ],
-  sul: [
-    "Armação", "Campeche", "Carianos", "Caieira da Barra do Sul", "Costa de Dentro", 
-    "Costa de Cima", "Lagoa do Peri", "Pântano do Sul", "Ribeirão da Ilha", "Tapera"
-  ],
-  continental: [
-    "Abraão", "Balneário", "Capoeiras", "Coqueiros", "Estreito", "Itaguaçu", "Jardim Atlântico",
-    "Monte Cristo", "Santa Luzia", "Serrinha", "Vila Aparecida", "Bom Abrigo", "Coloninha"
-  ]
-};
+    const bairrosSaoJose = ["Areias","Barreiros","Campinas","Centro","Forquilhas","Ipiranga","Itinga","Kobrasol","Picadas do Sul","Roçado","Serraria","Potecas","Praia Comprida","Real Parque","Floresta","Jardim Cidade de Florianópolis","Nossa Senhora do Rosário","Sertão do Maruim","Sertão do Imaruim","Colônia Santana","Jardim Zanelatto","Jardim Aquarius","Bosque das Mansões","Cruzeiro do Sul","Loteamento Lisboa","Residencial Nova São José","São Luiz","Zanelatto","Alto Forquilhas","Morro da Caixa","Jardim Santiago"];
 
-const bairrosSaoJose = [
-  "Areias", "Barreiros", "Campinas", "Centro", "Forquilhas", "Ipiranga", "Itinga", "Kobrasol",
-  "Picadas do Sul", "Roçado", "Serraria", "Potecas", "Praia Comprida", "Real Parque",
-  "Floresta", "Jardim Cidade de Florianópolis", "Nossa Senhora do Rosário", "Sertão do Maruim",
-  "Sertão do Imaruim", "Colônia Santana", "Jardim Zanelatto", "Jardim Aquarius", 
-  "Bosque das Mansões", "Cruzeiro do Sul", "Loteamento Lisboa", "Residencial Nova São José", 
-  "São Luiz", "Zanelatto", "Alto Forquilhas", "Morro da Caixa", "Jardim Santiago"
-];
     const cidade = document.getElementById("cidade");
     const regiao = document.getElementById("regiao");
     const regiaoDiv = document.getElementById("regiaoDiv");
     const bairro = document.getElementById("bairro");
-    const classe = document.getElementById("classe");
-    const profissional = document.getElementById("profissional");
-    const precoFinal = document.getElementById("precoFinal");
     const tipoResidencia = document.getElementById("tipo_residencia");
     const apartamentoInfo = document.getElementById("apartamentoInfo");
-
-    classe.addEventListener("change", () => {
-      profissional.innerHTML = '<option value="">Selecione</option>';
-      const lista = especialidadesPorClasse[classe.value] || [];
-      lista.forEach(p => {
-        const opt = document.createElement("option");
-        opt.value = p;
-        opt.textContent = p;
-        profissional.appendChild(opt);
-      });
-    });
 
     cidade.addEventListener("change", () => {
       const cidadeSelecionada = cidade.value;
@@ -259,7 +186,6 @@ const bairrosSaoJose = [
           bairro.appendChild(opt);
         });
       }
-      atualizarPreco();
     });
 
     regiao.addEventListener("change", () => {
@@ -277,40 +203,19 @@ const bairrosSaoJose = [
       apartamentoInfo.style.display = tipoResidencia.value === "apartamento" ? "block" : "none";
     });
 
-    profissional.addEventListener("change", atualizarPreco);
-
-    function atualizarPreco() {
-      const prof = profissional.value;
-      const cid = cidade.value;
-
-      // ✅ Alteração aplicada
-      if (prof === "Assistência técnica") {
-        precoFinal.textContent = "Valor será calculado ou analisado";
-        return 0;
-      }
-
-      const valor = precoBase[prof] || 0;
-      const desloc = cid === "florianopolis" ? 35 : cid === "saojose" ? 45 : 0;
-      const total = valor + desloc;
-      precoFinal.textContent = `Valor Total: R$ ${total.toFixed(2)}`;
-      return total;
-    }
-
     document.getElementById("solicitarForm").addEventListener("submit", function(e) {
       e.preventDefault();
-      const total = atualizarPreco();
       const form = new FormData(this);
-      const prof = form.get("profissional");
       let mensagem = `*Solicitação HelpFloripa*%0A`;
       for (let [k, v] of form.entries()) {
         mensagem += `${k}: ${v}%0A`;
       }
-      mensagem += prof === "Assistência técnica" ? "Valor a ser calculado ou analisado" : `Valor Total: R$ ${total.toFixed(2)}`;
+      mensagem += `Valor será calculado ou analisado`;
 
       // Abrir WhatsApp
       window.location.href = `https://wa.me/5548996849431?text=${mensagem}`;
 
-      // Redirecionar após 2 segundos para index.html
+      // Redirecionar após 2 segundos
       setTimeout(() => {
         window.location.href = "index.html";
       }, 2000);
