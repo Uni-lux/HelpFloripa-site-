@@ -17,12 +17,27 @@
       box-sizing: border-box;
     }
 
+    /* FRAGMENTO INCORPORADO */
     body {
       font-family: Arial, sans-serif;
-      background-color: #000;
+      /* background-color: #000; */ /* removido para não aparecer preto */
       color: white;
       margin-left: 220px; /* espaço pro menu lateral */
       transition: margin-left 0.3s ease;
+      background-color: #001f3f; /* cor consistente com o restante da página */
+    }
+
+    main {
+      padding: 20px;
+      background-color: #001f3f; /* garante que main siga a cor da página */
+    }
+
+    footer {
+      text-align: center;
+      padding: 20px;
+      background-color: #001f3f; /* mantém cor consistente */
+      color: #ccc;
+      margin-top: 40px;
     }
 
     .sidebar {
@@ -81,10 +96,6 @@
     .slogan {
       font-size: 18px;
       color: #ccc;
-    }
-
-    main {
-      padding: 20px;
     }
 
     /* CARDS - INCORPORADO */
@@ -147,25 +158,6 @@
 
     .btn.destaque:hover {
       background-color: #008cba;
-    }
-
-    footer {
-      text-align: center;
-      padding: 20px;
-      background-color: #001f3f;
-      color: #ccc;
-      margin-top: 40px;
-    }
-
-    footer .footer-links {
-      margin-top: 10px;
-    }
-
-    footer .footer-links a {
-      color: #ccc;
-      text-decoration: underline;
-      margin: 0 8px;
-      font-size: 14px;
     }
 
     /* RESPONSIVIDADE */
