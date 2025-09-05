@@ -26,12 +26,12 @@ header.hero { position:relative; text-align:center; padding:0; background:#0a0a0
 .hero h1 { font-size:36px; color:#00adee; margin-bottom:5px; }
 .hero p { font-size:18px; color:#ccc; margin-bottom:20px; }
 
-/* SLIDER */
-.slider { position:relative; width:100%; overflow:hidden; }
-.slides { display:flex; transition:0.5s; }
-.slide { min-width:100%; box-sizing:border-box; position:relative; }
-.slide img { width:100%; height:auto; max-height:500px; object-fit:cover; display:block; }
-.slide .caption {
+/* SLIDER MODERNO */
+.slider { position:relative; width:100%; overflow:hidden; margin-top:20px; }
+.slide { display:none; position:relative; }
+.slide img { width:100%; height:auto; max-height:500px; object-fit:cover; display:block; border-radius:10px; transition: transform 1s ease; }
+.slide:hover img { transform: scale(1.05); }
+.caption {
   position:absolute;
   bottom:10%;
   left:5%;
@@ -40,9 +40,12 @@ header.hero { position:relative; text-align:center; padding:0; background:#0a0a0
   padding:15px 20px;
   border-radius:5px;
   color:#fff;
-  font-size:2vw; /* texto escalável */
+  font-size:2vw;
   text-align:left;
+  transition: 0.5s;
 }
+.fade { animation:fadeEffect 1s; }
+@keyframes fadeEffect { from {opacity:0} to {opacity:1} }
 
 /* BOTÕES PRINCIPAIS - CATEGORIAS */
 .btns-principais { display:flex; justify-content:center; flex-wrap:wrap; gap:20px; margin:40px 0; }
@@ -67,7 +70,7 @@ footer p { margin-bottom:5px; }
   .btns-principais a{ width:80%; }
   .hero{ padding:20px 15px; }
   .slide img{ max-height:250px; }
-  .slide .caption{ font-size:4vw; bottom:5%; left:5%; right:5%; }
+  .caption { font-size:4vw; bottom:5%; left:5%; right:5%; }
   .toggle-btn{ display:block; }
   .sidebar{ transform:translateX(-100%); }
   .sidebar.active{ transform:translateX(0); }
@@ -95,19 +98,17 @@ footer p { margin-bottom:5px; }
 
   <!-- Slider -->
   <div class="slider" id="slider">
-    <div class="slides">
-      <div class="slide">
-        <img src="https://source.unsplash.com/1600x500/?services" alt="Serviços">
-        <div class="caption">Serviços Profissionais Rápidos</div>
-      </div>
-      <div class="slide">
-        <img src="https://source.unsplash.com/1600x500/?food" alt="Delivery">
-        <div class="caption">Delivery de Lanches e Bebidas</div>
-      </div>
-      <div class="slide">
-        <img src="https://source.unsplash.com/1600x500/?shopping" alt="Shopping">
-        <div class="caption">Shopping de Produtos Online</div>
-      </div>
+    <div class="slide fade">
+      <img src="https://source.unsplash.com/1600x500/?services" alt="Serviços">
+      <div class="caption">💼 Serviços Profissionais Rápidos</div>
+    </div>
+    <div class="slide fade">
+      <img src="https://source.unsplash.com/1600x500/?food" alt="Delivery">
+      <div class="caption">🍔 Delivery de Lanches e Bebidas</div>
+    </div>
+    <div class="slide fade">
+      <img src="https://source.unsplash.com/1600x500/?shopping" alt="Shopping">
+      <div class="caption">🛒 Shopping de Produtos Online</div>
     </div>
   </div>
 </header>
@@ -134,7 +135,7 @@ footer p { margin-bottom:5px; }
 // Toggle Sidebar
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
 
-// Slider Automático
+// Slider Automático com fade
 let slideIndex = 0;
 function showSlides() {
   const slides = document.querySelectorAll('.slide');
@@ -142,7 +143,7 @@ function showSlides() {
   slideIndex++;
   if(slideIndex>slides.length) slideIndex=1;
   slides[slideIndex-1].style.display='block';
-  setTimeout(showSlides,4000);
+  setTimeout(showSlides,4000); // troca a cada 4 segundos
 }
 showSlides();
 </script>
