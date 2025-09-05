@@ -1,248 +1,185 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Help Floripa | Serviços em Florianópolis</title>
-  <meta name="description" content="Contrate faxineira, diarista, cozinheira, eletricista, encanador, pedreiro, pintor e mais profissionais confiáveis em Florianópolis. Tudo que você precisa em um só lugar.">
-  <meta name="keywords" content="faxineira, diarista, cozinheira, eletricista, encanador, pedreiro, pintor, serviços em Florianópolis, Help Floripa, contratar profissional">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Help Floripa | Serviços, Delivery e Shopping</title>
+  <meta name="description" content="Help Floripa: Serviços, Delivery de lanches e Shopping de produtos em Florianópolis. Tudo em um só lugar.">
+  <meta name="keywords" content="serviços, delivery, shopping, Florianópolis, Help Floripa">
   <meta name="author" content="Help Floripa">
-  <link rel="canonical" href="https://uni-lux.github.io/HelpFloripa-site-/index.html" />
 
   <style>
-    /* Reset básico */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    /* Reset e base */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Arial', sans-serif; background-color: #001f3f; color: white; transition: margin-left 0.3s ease; margin-left: 220px; }
 
-    /* FRAGMENTO INCORPORADO */
-    body {
-      font-family: Arial, sans-serif;
-      /* background-color: #000; */ /* removido para não aparecer preto */
-      color: white;
-      margin-left: 220px; /* espaço pro menu lateral */
-      transition: margin-left 0.3s ease;
-      background-color: #001f3f; /* cor consistente com o restante da página */
-    }
-
-    main {
-      padding: 20px;
-      background-color: #001f3f; /* garante que main siga a cor da página */
-    }
-
-    footer {
-      text-align: center;
-      padding: 20px;
-      background-color: #001f3f; /* mantém cor consistente */
-      color: #ccc;
-      margin-top: 40px;
-    }
-
+    /* Sidebar */
     .sidebar {
-      width: 220px;
-      height: 100vh;
-      background-color: #001f3f;
-      position: fixed;
-      top: 0;
-      left: 0;
-      padding-top: 60px;
-      transition: transform 0.3s ease;
-      z-index: 1000;
+      width: 220px; height: 100vh; background-color: #001f3f; position: fixed; top: 0; left: 0;
+      padding-top: 60px; transition: transform 0.3s ease; z-index: 1000;
     }
-
-    .sidebar nav {
-      display: flex;
-      flex-direction: column;
-      padding: 0 20px;
-    }
-
-    .sidebar a {
-      color: white;
-      text-decoration: none;
-      padding: 15px 0;
-      border-bottom: 1px solid #004080;
-    }
-
-    .sidebar a:hover {
-      background-color: #004d99;
-    }
+    .sidebar nav { display: flex; flex-direction: column; padding: 0 20px; }
+    .sidebar a { color: white; text-decoration: none; padding: 15px 0; border-bottom: 1px solid #004080; font-weight: bold; }
+    .sidebar a:hover { background-color: #004d99; border-radius: 5px; }
 
     .toggle-btn {
-      display: none;
-      position: fixed;
-      top: 15px;
-      left: 15px;
-      font-size: 24px;
-      background-color: transparent;
-      border: none;
-      color: white;
-      cursor: pointer;
-      z-index: 1100;
+      display: none; position: fixed; top: 15px; left: 15px; font-size: 28px;
+      background-color: transparent; border: none; color: white; cursor: pointer; z-index: 1100;
     }
 
-    .hero {
-      text-align: center;
-      padding: 50px 20px;
-      background-color: #001f3f;
+    /* Header Hero */
+    header.hero {
+      text-align: center; padding: 50px 20px; background-color: #00264d;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
+    .hero .logo { width: 120px; height: auto; margin-bottom: 10px; }
+    .hero h1 { font-size: 36px; margin-bottom: 5px; color: #00adee; }
+    .hero p { font-size: 18px; color: #ccc; }
 
-    .logo {
-      width: 100px;
-      height: auto;
-    }
+    /* Seções */
+    main { padding: 20px; background-color: #001f3f; }
+    h2 { color: #00adee; margin-bottom: 20px; text-align: center; }
 
-    .slogan {
-      font-size: 18px;
-      color: #ccc;
-    }
-
-    /* CARDS - INCORPORADO */
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 15px;
-      margin: 20px auto;
-      max-width: 1000px;
-    }
-
+    /* Cards */
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto 40px auto; }
     .card {
-      background-color: #003366;
-      padding: 20px 10px; /* mais espaço interno para o texto */
-      border-radius: 10px;
-      text-align: center;
-      font-size: 14px; /* reduzido para mobile */
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
-      word-wrap: break-word; /* evita overflow */
-      line-height: 1.4;
-      transition: transform 0.3s, background 0.3s;
+      background-color: #003366; border-radius: 12px; padding: 25px 15px; text-align: center;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.5); transition: transform 0.3s, background 0.3s;
     }
-
-    .card:hover {
-      transform: scale(1.05);
-      background-color: #004d99;
-    }
-
+    .card:hover { transform: scale(1.05); background-color: #004d99; }
+    .card h3 { font-size: 20px; margin-bottom: 10px; color: #00adee; }
+    .card p { font-size: 16px; color: #ccc; line-height: 1.5; }
     .card button {
-      margin-top: 10px;
-      padding: 8px 12px;
-      border: none;
-      border-radius: 5px;
-      background-color: #00adee;
-      color: #fff;
-      cursor: pointer;
-      font-size: 14px;
-    }
-
-    .card button:hover {
-      background-color: #007bb5;
-    }
-
-    .botoes-destaque {
-      display: flex;
-      justify-content: center;
-      gap: 20px;
-      flex-wrap: wrap;
-    }
-
-    .btn.destaque {
-      background-color: #00adee;
-      color: white;
-      padding: 12px 24px;
-      border-radius: 8px;
-      text-decoration: none;
-      font-weight: bold;
+      margin-top: 15px; padding: 10px 18px; border: none; border-radius: 6px;
+      background-color: #00adee; color: white; cursor: pointer; font-weight: bold;
       transition: background 0.3s;
     }
+    .card button:hover { background-color: #008cba; }
 
-    .btn.destaque:hover {
-      background-color: #008cba;
+    /* Botões principais */
+    .btns-principais { display: flex; justify-content: center; flex-wrap: wrap; gap: 20px; margin-bottom: 50px; }
+    .btns-principais a {
+      padding: 14px 28px; border-radius: 10px; text-decoration: none; font-weight: bold;
+      background-color: #00adee; color: white; transition: background 0.3s;
     }
+    .btns-principais a:hover { background-color: #008cba; }
 
-    /* RESPONSIVIDADE */
-    @media (max-width: 1024px) {
-      .cards {
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      }
-    }
+    /* Footer */
+    footer { text-align: center; padding: 25px; background-color: #00264d; color: #ccc; }
+    footer .footer-links a { color: #ccc; text-decoration: underline; margin: 0 8px; font-size: 14px; }
+    footer p { margin-bottom: 5px; }
 
-    @media (max-width: 768px) {
-      body {
-        margin-left: 0;
-      }
-
-      .sidebar {
-        transform: translateX(-100%);
-      }
-
-      .sidebar.active {
-        transform: translateX(0);
-      }
-
-      .toggle-btn {
-        display: block;
-      }
-
-      .hero,
-      main,
-      footer {
-        margin-left: 0;
-      }
-
-      .cards {
-        grid-template-columns: 1fr; /* cards empilhados no mobile */
-        gap: 10px;
-        padding: 0 10px;
-      }
-
-      .card {
-        font-size: 16px;
-        padding: 15px;
-      }
-
-      .hero {
-        padding: 30px 15px;
-      }
+    /* Responsividade */
+    @media(max-width: 1024px){ .cards { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); } }
+    @media(max-width: 768px){
+      body{ margin-left:0; }
+      .sidebar{ transform: translateX(-100%); }
+      .sidebar.active{ transform: translateX(0); }
+      .toggle-btn{ display: block; }
+      main, header.hero, footer{ margin-left:0; }
+      .cards{ grid-template-columns:1fr; gap:15px; padding:0 10px; }
+      .card{ padding:20px; font-size:16px; }
+      .hero{ padding:30px 15px; }
     }
   </style>
 </head>
 <body>
+
   <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
   <div class="sidebar" id="sidebar">
     <nav>
-      <a href="clientes.html">Cliente</a>
-      <a href="profissionais.html">Profissional</a>
+      <a href="#servicos">Serviços</a>
+      <a href="#delivery">Delivery</a>
+      <a href="#shopping">Shopping</a>
       <a href="contato.html">Contato</a>
       <a href="sobre.html">Sobre</a>
     </nav>
   </div>
 
   <header class="hero">
-    <img src="logo.png" alt="Logo da Help Floripa - Serviços em Florianópolis" class="logo"/>
+    <img src="logo.png" alt="Logo Help Floripa" class="logo">
     <h1>Help Floripa</h1>
-    <p class="slogan">Tudo que você precisa em um só lugar</p>
+    <p>Tudo que você precisa em um só lugar</p>
   </header>
 
   <main>
-    <h2 style="text-align:center; color:#00adee;">🤔 Como Funciona: </h2>
-    <section class="cards">
-      <div class="card">🧐 1° Escolha a categoria</div>
-      <div class="card">📞 2° Solicite via WhatsApp</div>
-      <div class="card">🛠️ 3° O serviço é realizado</div>
-      <div class="card">⭐ 4° Avalie o profissional</div>
+    <!-- Botões principais -->
+    <div class="btns-principais">
+      <a href="#servicos">Solicitar Serviço</a>
+      <a href="#delivery">Pedidos Delivery</a>
+      <a href="#shopping">Comprar Produtos</a>
+    </div>
+
+    <!-- Serviços -->
+    <section id="servicos">
+      <h2>💼 Serviços Profissionais</h2>
+      <div class="cards">
+        <div class="card">
+          <h3>Eletricista</h3>
+          <p>Contrate profissionais qualificados para qualquer serviço elétrico em sua casa ou empresa.</p>
+          <button>Solicitar</button>
+        </div>
+        <div class="card">
+          <h3>Encanador</h3>
+          <p>Serviços de reparos hidráulicos com rapidez e qualidade garantida.</p>
+          <button>Solicitar</button>
+        </div>
+        <div class="card">
+          <h3>Faxineira</h3>
+          <p>Profissionais de limpeza confiáveis para sua residência ou escritório.</p>
+          <button>Solicitar</button>
+        </div>
+      </div>
     </section>
 
-    <section class="botoes-destaque">
-      <a href="solicitar.html" class="btn destaque">Solicitar Profissional</a>
-      <a href="https://wa.me/554896849431" target="_blank" class="btn destaque">Solicitar via WhatsApp</a>
-      <a href="cadastrar.html" class="btn destaque">Cadastrar como Profissional</a>
+    <!-- Delivery -->
+    <section id="delivery">
+      <h2>🍔 Lanchonetes & Delivery</h2>
+      <div class="cards">
+        <div class="card">
+          <h3>Hamburgueria</h3>
+          <p>Peça os melhores hambúrgueres artesanais da cidade diretamente para sua casa.</p>
+          <button>Pedir Agora</button>
+        </div>
+        <div class="card">
+          <h3>Pizzaria</h3>
+          <p>Sabores variados de pizzas com entrega rápida e segura.</p>
+          <button>Pedir Agora</button>
+        </div>
+        <div class="card">
+          <h3>Sushi</h3>
+          <p>Deliciosos pratos japoneses preparados com ingredientes frescos.</p>
+          <button>Pedir Agora</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Shopping -->
+    <section id="shopping">
+      <h2>🛒 Shopping de Produtos</h2>
+      <div class="cards">
+        <div class="card">
+          <h3>Eletrônicos</h3>
+          <p>Celulares, acessórios, computadores e muito mais com entrega rápida.</p>
+          <button>Comprar</button>
+        </div>
+        <div class="card">
+          <h3>Moda</h3>
+          <p>Roupas, calçados e acessórios para todos os estilos.</p>
+          <button>Comprar</button>
+        </div>
+        <div class="card">
+          <h3>Casa & Decoração</h3>
+          <p>Produtos para deixar seu lar mais bonito e funcional.</p>
+          <button>Comprar</button>
+        </div>
+      </div>
     </section>
   </main>
 
   <footer>
     <p>&copy; 2025 Help Floripa. Todos os direitos reservados.</p>
-    <p style="font-size: 14px; color: #ccc;">CNPJ: 61.935.934/0001-00</p>
+    <p>CNPJ: 61.935.934/0001-00</p>
     <div class="footer-links">
       <a href="termos.html">Termos de Uso</a> |
       <a href="privacidade.html">Política de Privacidade</a>
@@ -251,8 +188,7 @@
 
   <script>
     function toggleSidebar() {
-      const sidebar = document.getElementById('sidebar');
-      sidebar.classList.toggle('active');
+      document.getElementById('sidebar').classList.toggle('active');
     }
   </script>
 </body>
