@@ -27,11 +27,22 @@ header.hero { position:relative; text-align:center; padding:0; background:#0a0a0
 .hero p { font-size:18px; color:#ccc; margin-bottom:20px; }
 
 /* SLIDER */
-.slider { position:relative; width:100%; max-height:450px; overflow:hidden; }
+.slider { position:relative; width:100%; overflow:hidden; }
 .slides { display:flex; transition:0.5s; }
 .slide { min-width:100%; box-sizing:border-box; position:relative; }
-.slide img { width:100%; height:450px; object-fit:cover; display:block; }
-.slide .caption { position:absolute; bottom:20px; left:20px; background:rgba(0,0,0,0.6); padding:10px 15px; border-radius:5px; font-size:18px; color:#fff; }
+.slide img { width:100%; height:auto; max-height:500px; object-fit:cover; display:block; }
+.slide .caption {
+  position:absolute;
+  bottom:10%;
+  left:5%;
+  right:5%;
+  background:rgba(0,0,0,0.6);
+  padding:15px 20px;
+  border-radius:5px;
+  color:#fff;
+  font-size:2vw; /* texto escalável */
+  text-align:left;
+}
 
 /* BOTÕES PRINCIPAIS - CATEGORIAS */
 .btns-principais { display:flex; justify-content:center; flex-wrap:wrap; gap:20px; margin:40px 0; }
@@ -55,7 +66,8 @@ footer p { margin-bottom:5px; }
   .btns-principais{ flex-direction:column; align-items:center; }
   .btns-principais a{ width:80%; }
   .hero{ padding:20px 15px; }
-  .slide img{ height:250px; }
+  .slide img{ max-height:250px; }
+  .slide .caption{ font-size:4vw; bottom:5%; left:5%; right:5%; }
   .toggle-btn{ display:block; }
   .sidebar{ transform:translateX(-100%); }
   .sidebar.active{ transform:translateX(0); }
@@ -85,15 +97,15 @@ footer p { margin-bottom:5px; }
   <div class="slider" id="slider">
     <div class="slides">
       <div class="slide">
-        <img src="https://source.unsplash.com/1600x450/?services" alt="Serviços">
+        <img src="https://source.unsplash.com/1600x500/?services" alt="Serviços">
         <div class="caption">Serviços Profissionais Rápidos</div>
       </div>
       <div class="slide">
-        <img src="https://source.unsplash.com/1600x450/?food" alt="Delivery">
+        <img src="https://source.unsplash.com/1600x500/?food" alt="Delivery">
         <div class="caption">Delivery de Lanches e Bebidas</div>
       </div>
       <div class="slide">
-        <img src="https://source.unsplash.com/1600x450/?shopping" alt="Shopping">
+        <img src="https://source.unsplash.com/1600x500/?shopping" alt="Shopping">
         <div class="caption">Shopping de Produtos Online</div>
       </div>
     </div>
