@@ -75,19 +75,22 @@ body {
 /* Cards */
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); /* largura mínima maior */
   gap: 20px;
   padding: 30px 20px;
+  max-width: 1000px;  /* largura máxima para não ficar esticado demais */
+  margin: 0 auto;     /* centraliza os cards */
 }
 
 .card {
   background-color: #003c74;
   color: white;
-  padding: 20px;
+  padding: 25px 15px;
   border-radius: 12px;
   text-align: center;
-  font-size: 1.1rem;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  font-size: 1.2rem;
+  font-weight: bold;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
   transition: background-color 0.3s, transform 0.2s;
 }
 
@@ -95,7 +98,6 @@ body {
 .card:active,
 .card:focus {
   background-color: #005aab;
-  color: white; /* Mantém texto visível */
   transform: scale(1.05);
 }
 
@@ -148,5 +150,14 @@ footer {
 
   .toggle-btn {
     display: block;
+  }
+
+  .cards {
+    grid-template-columns: 1fr; /* um card por linha no celular */
+  }
+
+  .card {
+    font-size: 1rem;
+    padding: 20px;
   }
 }
