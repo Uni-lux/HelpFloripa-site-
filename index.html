@@ -11,41 +11,41 @@
 <style>
 /* RESET */
 * { margin:0; padding:0; box-sizing:border-box; font-family: Arial, sans-serif; }
-body { background-color:#000; color:white; margin-left: 0; transition: margin-left 0.3s ease; }
+body { background-color:#0a0a0a; color:white; margin-left:0; transition: margin-left 0.3s ease; }
 
 /* SIDEBAR */
-.sidebar { width:220px; height:100vh; background:#111; position:fixed; top:0; left:0; padding-top:60px; transition: transform 0.3s ease; z-index:1000; }
+.sidebar { width:220px; height:100vh; background:#0a0a0a; position:fixed; top:0; left:0; padding-top:60px; transition: transform 0.3s ease; z-index:1000; }
 .sidebar nav { display:flex; flex-direction:column; padding:0 20px; }
 .sidebar a { padding:15px 0; border-bottom:1px solid #222; font-weight:bold; color:#fff; }
-.sidebar a:hover { background:#333; border-radius:5px; }
+.sidebar a:hover { background:#111; border-radius:5px; }
 .toggle-btn { display:none; position:fixed; top:15px; left:15px; font-size:28px; background:transparent; border:none; color:white; cursor:pointer; z-index:1100; }
 
 /* HEADER HERO */
-header.hero { position:relative; text-align:center; padding:40px 20px; background:#111; overflow:hidden; }
-.hero .logo { width:120px; margin-bottom:10px; }
+header.hero { position:relative; text-align:center; padding:0; background:#0a0a0a; overflow:hidden; }
+.hero .logo { width:120px; margin:20px auto 10px; display:block; }
 .hero h1 { font-size:36px; color:#00adee; margin-bottom:5px; }
 .hero p { font-size:18px; color:#ccc; margin-bottom:20px; }
 
 /* SLIDER */
-.slider { position:relative; max-width:1200px; margin:20px auto; border-radius:15px; overflow:hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.7);}
+.slider { position:relative; width:100%; max-height:450px; overflow:hidden; }
 .slides { display:flex; transition:0.5s; }
 .slide { min-width:100%; box-sizing:border-box; position:relative; }
-.slide img { width:100%; display:block; height:350px; object-fit:cover; border-radius:15px; }
+.slide img { width:100%; height:450px; object-fit:cover; display:block; }
 .slide .caption { position:absolute; bottom:20px; left:20px; background:rgba(0,0,0,0.6); padding:10px 15px; border-radius:5px; font-size:18px; color:#fff; }
 
 /* BOTÕES PRINCIPAIS - CATEGORIAS */
 .btns-principais { display:flex; justify-content:center; flex-wrap:wrap; gap:20px; margin:40px 0; }
 .btns-principais a {
   padding:18px 35px; border-radius:10px; font-weight:bold; font-size:18px;
-  background:#00adee; color:white; text-align:center; transition:0.3s; display:inline-block;
+  background:#0a0a0a; color:white; text-align:center; border:2px solid #00adee; transition:0.3s; display:inline-block;
 }
-.btns-principais a:hover { background:#008cba; }
+.btns-principais a:hover { background:#111; }
 
 /* MAIN SECTIONS */
-main { padding:20px; background:#000; }
+main { padding:20px; background:#0a0a0a; }
 
 /* FOOTER */
-footer { text-align:center; padding:25px; background:#111; color:#ccc; }
+footer { text-align:center; padding:25px; background:#0a0a0a; color:#ccc; }
 footer .footer-links a { color:#ccc; margin:0 8px; font-size:14px; }
 footer p { margin-bottom:5px; }
 
@@ -54,8 +54,8 @@ footer p { margin-bottom:5px; }
 @media(max-width:768px){
   .btns-principais{ flex-direction:column; align-items:center; }
   .btns-principais a{ width:80%; }
-  .hero{ padding:30px 15px; }
-  .slide img{ height:200px; }
+  .hero{ padding:20px 15px; }
+  .slide img{ height:250px; }
   .toggle-btn{ display:block; }
   .sidebar{ transform:translateX(-100%); }
   .sidebar.active{ transform:translateX(0); }
@@ -84,9 +84,18 @@ footer p { margin-bottom:5px; }
   <!-- Slider -->
   <div class="slider" id="slider">
     <div class="slides">
-      <div class="slide"><img src="https://source.unsplash.com/1200x350/?services" alt=""><div class="caption">Serviços Profissionais Rápidos</div></div>
-      <div class="slide"><img src="https://source.unsplash.com/1200x350/?food" alt=""><div class="caption">Delivery de Lanches e Bebidas</div></div>
-      <div class="slide"><img src="https://source.unsplash.com/1200x350/?shopping" alt=""><div class="caption">Shopping de Produtos Online</div></div>
+      <div class="slide">
+        <img src="https://source.unsplash.com/1600x450/?services" alt="Serviços">
+        <div class="caption">Serviços Profissionais Rápidos</div>
+      </div>
+      <div class="slide">
+        <img src="https://source.unsplash.com/1600x450/?food" alt="Delivery">
+        <div class="caption">Delivery de Lanches e Bebidas</div>
+      </div>
+      <div class="slide">
+        <img src="https://source.unsplash.com/1600x450/?shopping" alt="Shopping">
+        <div class="caption">Shopping de Produtos Online</div>
+      </div>
     </div>
   </div>
 </header>
