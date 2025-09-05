@@ -8,7 +8,7 @@
   <meta name="keywords" content="faxineira, diarista, cozinheira, eletricista, encanador, pedreiro, pintor, serviços em Florianópolis, Help Floripa, contratar profissional">
   <meta name="author" content="Help Floripa">
   <link rel="canonical" href="https://uni-lux.github.io/HelpFloripa-site-/index.html" />
- 
+
   <style>
     /* Reset básico */
     * {
@@ -22,6 +22,7 @@
       background-color: #000;
       color: white;
       margin-left: 220px; /* espaço pro menu lateral */
+      transition: margin-left 0.3s ease;
     }
 
     .sidebar {
@@ -88,7 +89,7 @@
 
     .cards {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 20px;
       margin-bottom: 30px;
     }
@@ -148,7 +149,13 @@
       font-size: 14px;
     }
 
-    /* Responsividade */
+    /* RESPONSIVIDADE */
+    @media (max-width: 1024px) {
+      .cards {
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      }
+    }
+
     @media (max-width: 768px) {
       body {
         margin-left: 0;
@@ -170,6 +177,15 @@
       main,
       footer {
         margin-left: 0;
+      }
+
+      .cards {
+        grid-template-columns: 1fr; /* cards empilhados no mobile */
+        gap: 15px;
+      }
+
+      .hero {
+        padding: 30px 15px;
       }
     }
   </style>
