@@ -1,6 +1,5 @@
-<!DOCTYPE html>
+        <!DOCTYPE html>
 <html lang="pt-BR">
-<head>
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -10,18 +9,21 @@
   <meta name="author" content="Help Floripa">
   <link rel="canonical" href="https://uni-lux.github.io/HelpFloripa-site-/index.html" />
  
-  <!-- Meta Pixel Code -->
-<!-- End Meta Pixel Code -->
-
-  <link rel="stylesheet" href="style.css" />
   <style>
-    /* ...restante do seu CSS permanece igual... */
-    body {
+    /* Reset básico */
+    * {
       margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
       font-family: Arial, sans-serif;
       background-color: #000;
       color: white;
+      margin-left: 220px; /* espaço pro menu lateral */
     }
+
     .sidebar {
       width: 220px;
       height: 100vh;
@@ -33,18 +35,26 @@
       transition: transform 0.3s ease;
       z-index: 1000;
     }
+
     .sidebar nav {
       display: flex;
       flex-direction: column;
       padding: 0 20px;
     }
+
     .sidebar a {
       color: white;
       text-decoration: none;
       padding: 15px 0;
       border-bottom: 1px solid #004080;
     }
+
+    .sidebar a:hover {
+      background-color: #004d99;
+    }
+
     .toggle-btn {
+      display: none;
       position: fixed;
       top: 15px;
       left: 15px;
@@ -55,30 +65,34 @@
       cursor: pointer;
       z-index: 1100;
     }
+
     .hero {
-      margin-left: 220px;
       text-align: center;
       padding: 50px 20px;
       background-color: #001f3f;
     }
+
     .logo {
       width: 100px;
       height: auto;
     }
+
     .slogan {
       font-size: 18px;
       color: #ccc;
     }
+
     main {
-      margin-left: 220px;
       padding: 20px;
     }
+
     .cards {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       gap: 20px;
       margin-bottom: 30px;
     }
+
     .card {
       background-color: #003366;
       padding: 20px;
@@ -86,13 +100,21 @@
       text-align: center;
       font-size: 16px;
       box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+      transition: transform 0.2s, background 0.3s;
     }
+
+    .card:hover {
+      transform: scale(1.05);
+      background-color: #004d99;
+    }
+
     .botoes-destaque {
       display: flex;
       justify-content: center;
       gap: 20px;
       flex-wrap: wrap;
     }
+
     .btn.destaque {
       background-color: #00adee;
       color: white;
@@ -102,33 +124,48 @@
       font-weight: bold;
       transition: background 0.3s;
     }
+
     .btn.destaque:hover {
       background-color: #008cba;
     }
+
     footer {
-      margin-left: 220px;
       text-align: center;
       padding: 20px;
       background-color: #001f3f;
       color: #ccc;
+      margin-top: 40px;
     }
+
     footer .footer-links {
       margin-top: 10px;
     }
+
     footer .footer-links a {
       color: #ccc;
       text-decoration: underline;
       margin: 0 8px;
       font-size: 14px;
     }
+
+    /* Responsividade */
     @media (max-width: 768px) {
+      body {
+        margin-left: 0;
+      }
+
       .sidebar {
         transform: translateX(-100%);
-        position: fixed;
       }
+
       .sidebar.active {
         transform: translateX(0);
       }
+
+      .toggle-btn {
+        display: block;
+      }
+
       .hero,
       main,
       footer {
@@ -164,9 +201,9 @@
     </section>
 
     <section class="botoes-destaque">
-   <a href="solicitar.html" class="btn destaque">Solicitar Profissional</a>
-   <a href="https://wa.me/554896849431" target="_blank" class="btn destaque">Solicitar via WhatsApp</a>
-   <a href="cadastrar.html" class="btn destaque">Cadastrar como Profissional</a>
+      <a href="solicitar.html" class="btn destaque">Solicitar Profissional</a>
+      <a href="https://wa.me/554896849431" target="_blank" class="btn destaque">Solicitar via WhatsApp</a>
+      <a href="cadastrar.html" class="btn destaque">Cadastrar como Profissional</a>
     </section>
   </main>
 
