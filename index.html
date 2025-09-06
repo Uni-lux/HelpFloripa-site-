@@ -7,7 +7,6 @@
 <meta name="description" content="Help Floripa: Serviços, Delivery de lanches e Shopping de produtos em Florianópolis. Tudo em um só lugar.">
 <meta name="keywords" content="serviços, delivery, shopping, Florianópolis, Help Floripa">
 <meta name="author" content="Help Floripa">
-
 <style>
 /* RESET */
 * { margin:0; padding:0; box-sizing:border-box; font-family: Arial, sans-serif; }
@@ -29,7 +28,17 @@ header.hero { position:relative; text-align:center; padding:0; background:#0a0a0
 /* SLIDER */
 .slider { position:relative; width:100%; overflow:hidden; margin-top:20px; border-radius:10px; }
 .slide { display:none; position:relative; }
-.slide img { width:100%; height:auto; max-height:500px; object-fit:cover; display:block; border-radius:10px; transition: transform 1s ease; }
+.slide img {
+  width:100%;
+  max-width:1200px;   /* largura máxima no desktop */
+  height:auto;
+  max-height:350px;   /* altura máxima no desktop */
+  object-fit:cover;
+  display:block;
+  margin:0 auto;
+  border-radius:10px;
+  transition: transform 1s ease;
+}
 .slide:hover img { transform: scale(1.05); }
 .caption {
   position:absolute;
@@ -69,7 +78,7 @@ footer p { margin-bottom:5px; }
   .btns-principais{ flex-direction:column; align-items:center; }
   .btns-principais a{ width:80%; }
   .hero{ padding:20px 15px; }
-  .slide img{ max-height:250px; }
+  .slide img{ max-height:220px; } /* menor no mobile */
   .caption { font-size:4vw; bottom:5%; left:5%; right:5%; }
   .toggle-btn{ display:block; }
   .sidebar{ transform:translateX(-100%); }
@@ -78,7 +87,6 @@ footer p { margin-bottom:5px; }
 </style>
 </head>
 <body>
-
 <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
 
 <div class="sidebar" id="sidebar">
@@ -133,7 +141,9 @@ footer p { margin-bottom:5px; }
 
 <script>
 // Toggle Sidebar
-function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('active');
+}
 
 // Slider Automático com fade
 let slideIndex = 0;
@@ -147,6 +157,5 @@ function showSlides() {
 }
 showSlides();
 </script>
-
 </body>
 </html>
