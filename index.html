@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Help Floripa | Serviços, Delivery e Shopping</title>
-<meta name="description" content="Help Floripa: Serviços, Delivery de lanches e Shopping de produtos em Florianópolis. Tudo em um só lugar.">
+<title>Help Floripa | Tudo que você precisa em só lugar</title>
+<meta name="description" content="Help Floripa: Serviços, Delivery e Shopping em Florianópolis. Conectamos clientes aos melhores profissionais.">
 <meta name="keywords" content="serviços, delivery, shopping, Florianópolis, Help Floripa">
 <meta name="author" content="Help Floripa">
 
 <style>
 /* RESET */
 * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-body { background-color:#0a0a0a; color:white; }
+body { background:#0a0a0a; color:white; line-height:1.6; }
 
 /* SIDEBAR */
 .sidebar {
@@ -19,51 +19,63 @@ body { background-color:#0a0a0a; color:white; }
   transition: transform 0.3s ease; z-index:1000;
 }
 .sidebar nav { display:flex; flex-direction:column; padding:0 20px; }
-.sidebar a { padding:15px 0; border-bottom:1px solid #222; font-weight:bold; color:#fff; text-decoration:none; }
-.sidebar a:hover { background:#111; border-radius:5px; }
+.sidebar a {
+  padding:15px 20px; margin-bottom:5px; font-weight:bold; color:#fff; text-decoration:none; border-radius:6px;
+  transition:0.3s;
+}
+.sidebar a:hover { background:#00adee; color:#0a0a0a; }
 .toggle-btn { display:none; position:fixed; top:15px; left:15px; font-size:28px; background:transparent; border:none; color:white; cursor:pointer; z-index:1100; }
 
 /* HEADER HERO */
 header.hero {
-  position:relative; text-align:center; padding:50px 20px 100px 20px;
-  background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('banner.jpg') center/cover no-repeat;
+  position:relative; text-align:center; padding:60px 20px 120px 20px;
+  background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('banner.jpg') center/cover no-repeat;
   color:white;
 }
-.hero .logo { width:130px; margin-bottom:15px; }
-.hero h1 { font-size:48px; color:#00adee; margin-bottom:10px; }
-.hero p { font-size:20px; color:#ddd; }
+.hero .logo { width:150px; margin-bottom:15px; }
+.hero h1 { font-size:50px; color:#00adee; margin-bottom:15px; }
+.hero p { font-size:22px; color:#ddd; margin-bottom:25px; }
+.hero .cta-buttons a {
+  padding:15px 35px; margin:0 10px; border-radius:10px; font-weight:bold; font-size:18px;
+  background:#00adee; color:#0a0a0a; text-decoration:none; transition:0.3s;
+}
+.hero .cta-buttons a:hover { background:#0077aa; transform:scale(1.05); }
 
-/* SLIDER MODERNO */
+/* SLIDER */
 .slider { position:relative; max-width:1000px; margin:50px auto; border-radius:15px; overflow:hidden; box-shadow:0 8px 25px rgba(0,0,0,0.7);}
 .slide { display:none; position:relative; }
-.slide img {
-  width:100%; height:auto; max-height:450px; object-fit:cover; display:block; transition: transform 1s ease;
-}
+.slide img { width:100%; height:auto; max-height:450px; object-fit:cover; transition: transform 1s ease; }
 .slide:hover img { transform: scale(1.05); }
 .caption {
   position:absolute; bottom:15%; left:5%; right:5%; background:rgba(0,0,0,0.6);
-  padding:15px 25px; border-radius:8px; color:#fff; font-size:1.5rem; text-align:left;
-  animation:fadeEffect 1s;
+  padding:15px 25px; border-radius:10px; color:#fff; font-size:1.5rem; text-align:left;
 }
-@keyframes fadeEffect { from {opacity:0} to {opacity:1} }
 
-/* BOTÕES PRINCIPAIS - CATEGORIAS */
-.btns-principais {
-  display:flex; justify-content:center; flex-wrap:wrap; gap:25px; margin:50px 0;
+/* SERVIÇOS - CARDS */
+.services { max-width:1200px; margin:50px auto; display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:25px; padding:0 20px; }
+.service-card {
+  background:#111; padding:25px; border-radius:12px; text-align:center; transition:0.3s; box-shadow:0 6px 20px rgba(0,0,0,0.5);
 }
+.service-card:hover { transform:scale(1.05); box-shadow:0 8px 25px rgba(0,173,238,0.6); }
+.service-card h3 { margin-bottom:15px; color:#00adee; }
+.service-card p { color:#ccc; font-size:16px; }
+
+/* BOTÕES PRINCIPAIS */
+.btns-principais { display:flex; justify-content:center; flex-wrap:wrap; gap:20px; margin:50px 0; }
 .btns-principais a {
-  padding:20px 40px; border-radius:12px; font-weight:bold; font-size:20px;
+  padding:18px 40px; border-radius:12px; font-weight:bold; font-size:20px;
   background:#0a0a0a; color:white; text-align:center; border:2px solid #00adee;
-  transition:0.3s; display:inline-block; text-decoration:none;
+  transition:0.3s; text-decoration:none;
 }
 .btns-principais a:hover { background:#111; transform:scale(1.05); }
 
 /* FOOTER */
 footer {
-  text-align:center; padding:25px; background:#0a0a0a; color:#ccc; border-top:1px solid #222;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
+  padding:25px; background:#0a0a0a; color:#ccc; border-top:1px solid #222;
 }
 footer .footer-links a { color:#ccc; margin:0 8px; font-size:14px; text-decoration:none; }
-footer p { margin-bottom:5px; }
+footer .footer-links a:hover { color:#00adee; }
 
 /* RESPONSIVIDADE */
 @media(max-width:1024px){ .btns-principais a{ padding:15px 30px; font-size:18px; } }
@@ -82,8 +94,8 @@ footer p { margin-bottom:5px; }
 </head>
 <body>
 
+<!-- TOGGLE SIDEBAR -->
 <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
-
 <div class="sidebar" id="sidebar">
   <nav>
     <a href="#servicos">Serviços</a>
@@ -94,16 +106,22 @@ footer p { margin-bottom:5px; }
   </nav>
 </div>
 
+<!-- HEADER HERO -->
 <header class="hero">
   <img src="logo.png" alt="Logo Help Floripa" class="logo">
   <h1>Help Floripa</h1>
   <p>Tudo que você precisa em um só lugar</p>
+  <div class="cta-buttons">
+    <a href="#servicos">Solicitar Profissional</a>
+    <a href="#cadastrar">Cadastrar como Profissional</a>
+  </div>
 </header>
 
 <!-- SLIDER -->
+<div class="slider">
   <div class="slide fade">
-    <img src="img/bemvindo.png" alt="Serviços">
-    <div class="caption">✨ Bem-vindo ✨</div>
+    <img src="img/bemvindo.png" alt="Bem-vindo">
+    <div class="caption">✨ Bem-vindo à Help Floripa ✨</div>
   </div>
   <div class="slide fade">
     <img src="img/delivery.png" alt="Delivery">
@@ -115,14 +133,33 @@ footer p { margin-bottom:5px; }
   </div>
 </div>
 
-<main>
-  <div class="btns-principais">
-    <a href="#servicos">💼 Serviços</a>
-    <a href="#delivery">🍔 Delivery</a>
-    <a href="#shopping">🛒 Shopping</a>
+<!-- SERVIÇOS -->
+<section id="servicos" class="services">
+  <div class="service-card">
+    <h3>Eletricista</h3>
+    <p>Profissionais qualificados para reparos elétricos residenciais e comerciais.</p>
   </div>
-</main>
+  <div class="service-card">
+    <h3>Encanador</h3>
+    <p>Serviços de manutenção hidráulica, instalação e reparos rápidos e eficientes.</p>
+  </div>
+  <div class="service-card">
+    <h3>Delivery de Lanches</h3>
+    <p>Rápido, seguro e direto para sua casa. Peça seus lanches favoritos.</p>
+  </div>
+  <div class="service-card">
+    <h3>Shopping Online</h3>
+    <p>Encontre produtos variados com facilidade e receba no conforto do seu lar.</p>
+  </div>
+</section>
 
+<!-- BOTÕES PRINCIPAIS -->
+<div class="btns-principais">
+  <a href="#servicos">💼 Solicitar Profissional</a>
+  <a href="#cadastrar">📝 Cadastrar como Profissional</a>
+</div>
+
+<!-- FOOTER -->
 <footer>
   <p>&copy; 2025 Help Floripa. Todos os direitos reservados.</p>
   <p>CNPJ: 61.935.934/0001-00</p>
@@ -136,17 +173,18 @@ footer p { margin-bottom:5px; }
 // Toggle Sidebar
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
 
-// Slider Automático com fade
+// Slider Automático
 let slideIndex = 0;
 function showSlides() {
   const slides = document.querySelectorAll('.slide');
-  slides.forEach(slide=>slide.style.display='none');
+  slides.forEach(slide => slide.style.display = 'none');
   slideIndex++;
-  if(slideIndex>slides.length) slideIndex=1;
-  slides[slideIndex-1].style.display='block';
-  setTimeout(showSlides,5000);
+  if(slideIndex > slides.length) slideIndex = 1;
+  slides[slideIndex - 1].style.display = 'block';
+  setTimeout(showSlides, 5000);
 }
 showSlides();
 </script>
+
 </body>
 </html>
