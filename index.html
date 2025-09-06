@@ -108,12 +108,26 @@ body {background:#000; color:#fff; min-height:100vh;}
     .hero {height:300px; font-size:24px;}
     .hero span {font-size:16px;}
 }
+
 @media(max-width:768px){
     .hero {height:220px; font-size:20px;}
     .hero span {font-size:14px;}
     .cards {grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap:15px;}
     .card {height:auto;}
     .card img {height:120px;}
+
+    /* Botões do hero-menu menores no mobile */
+    .hero .hero-menu a {
+        padding:6px 10px;
+        font-size:12px;
+    }
+}
+
+@media(max-width:480px){
+    .hero .hero-menu a {
+        padding:5px 8px;
+        font-size:11px;
+    }
 }
 </style>
 </head>
