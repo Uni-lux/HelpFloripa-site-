@@ -7,7 +7,7 @@
 <style>
 /* Reset */
 * {margin:0; padding:0; box-sizing:border-box; font-family: Arial, sans-serif;}
-body {background:#000; color:#fff; min-height:100vh;}
+body {background:#000; color:#fff; min-height:100vh; display:flex; flex-direction:column;}
 
 /* Sidebar */
 .sidebar {
@@ -33,6 +33,7 @@ body {background:#000; color:#fff; min-height:100vh;}
     margin-left:240px;
     padding:25px;
     transition: margin-left 0.3s;
+    flex:1;
 }
 
 /* Hero section com menu principal */
@@ -87,6 +88,18 @@ body {background:#000; color:#fff; min-height:100vh;}
 .card-content a {text-align:center; background:#00adee; color:#000; padding:8px; border-radius:6px; text-decoration:none; font-weight:bold; font-size:14px; transition:0.3s;}
 .card-content a:hover {background:#0087c2;}
 
+/* Footer */
+footer {
+    background:#111;
+    color:#aaa;
+    text-align:center;
+    padding:15px;
+    font-size:13px;
+    border-top:1px solid #222;
+}
+footer a {color:#00adee; text-decoration:none; margin:0 8px;}
+footer a:hover {text-decoration:underline;}
+
 /* Menu toggle button para mobile */
 .menu-toggle {
     font-size:24px;
@@ -139,6 +152,10 @@ body {background:#000; color:#fff; min-height:100vh;}
     <a href="#servicos">Serviços</a>
     <a href="#lanches">Lanches e Delivery</a>
     <a href="#shopping">Shopping e Produtos</a>
+    <a href="#clientes">Clientes</a>
+    <a href="#profissionais">Profissionais</a>
+    <a href="#ajuda">Ajuda</a>
+    <a href="#socios">Seja Sócio / Parceria</a>
     <a href="#contato">Contato</a>
 </div>
 
@@ -184,6 +201,16 @@ body {background:#000; color:#fff; min-height:100vh;}
         </div>
     </div>
 </div>
+
+<!-- Rodapé -->
+<footer>
+    <p>CNPJ: 61.935.934/0001-00</p>
+    <p>
+        <a href="termos.html">Termos de Uso</a> | 
+        <a href="privacidade.html">Política de Privacidade</a>
+    </p>
+    <p>&copy; 2025 Help Floripa - Todos os direitos reservados.</p>
+</footer>
 
 <script>
 function toggleSidebar(){
