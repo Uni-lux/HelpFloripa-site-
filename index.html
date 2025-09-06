@@ -1,125 +1,218 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Marketplace</title>
-    <style>
-        /* Estilos globais */
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Help Floripa | Tudo que você precisa em só lugar</title>
+<meta name="description" content="Help Floripa: Marketplace com Serviços, Lanches e Delivery, Shopping e Produtos em Florianópolis. Tudo em um só lugar.">
+<style>
+    /* Reset e padrões */
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: 'Arial', sans-serif;
+    }
+
+    body {
+        background-color: #000;
+        color: #fff;
+        min-height: 100vh;
+        display: flex;
+    }
+
+    /* Menu lateral */
+    .sidebar {
+        width: 250px;
+        background-color: #111;
+        display: flex;
+        flex-direction: column;
+        padding: 20px;
+        position: fixed;
+        height: 100%;
+    }
+
+    .sidebar h2 {
+        color: #00adee;
+        text-align: center;
+        margin-bottom: 30px;
+        font-size: 24px;
+    }
+
+    .sidebar a {
+        color: #fff;
+        text-decoration: none;
+        padding: 15px 10px;
+        margin: 5px 0;
+        border-radius: 8px;
+        transition: 0.3s;
+        display: block;
+    }
+
+    .sidebar a:hover {
+        background-color: #00adee;
+        color: #000;
+    }
+
+    /* Conteúdo principal */
+    .main-content {
+        margin-left: 250px;
+        padding: 30px;
+        width: calc(100% - 250px);
+    }
+
+    .hero {
+        background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1581090469397-12a6c6e64f6d?auto=format&fit=crop&w=1470&q=80') center/cover no-repeat;
+        height: 400px;
+        border-radius: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        margin-bottom: 40px;
+        color: #00adee;
+        font-size: 32px;
+        font-weight: bold;
+    }
+
+    .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 25px;
+    }
+
+    .card {
+        background-color: #111;
+        border: 2px solid #00adee;
+        border-radius: 15px;
+        overflow: hidden;
+        transition: 0.3s;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .card img {
+        width: 100%;
+        height: 180px;
+        object-fit: cover;
+    }
+
+    .card-content {
+        padding: 20px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .card-content h3 {
+        color: #00adee;
+        margin-bottom: 15px;
+    }
+
+    .card-content p {
+        flex: 1;
+        margin-bottom: 20px;
+        font-size: 14px;
+        line-height: 1.4;
+    }
+
+    .card-content a {
+        text-align: center;
+        background-color: #00adee;
+        color: #000;
+        padding: 10px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: bold;
+        transition: 0.3s;
+    }
+
+    .card-content a:hover {
+        background-color: #0087c2;
+    }
+
+    /* Responsividade */
+    @media (max-width: 768px) {
+        .sidebar {
+            position: relative;
+            width: 100%;
+            height: auto;
+            flex-direction: row;
+            overflow-x: auto;
         }
 
-        /* Estilos do cabeçalho */
-        header {
-            background-color: #333;
-            color: #fff;
-            padding: 1em;
+        .sidebar a {
+            flex: 1;
             text-align: center;
+            margin: 5px;
         }
 
-        /* Estilos da navegação */
-        nav ul {
-            list-style: none;
-            margin: 0;
-            padding: 0;
+        .main-content {
+            margin-left: 0;
+            width: 100%;
+            padding: 20px;
         }
 
-        nav li {
-            display: inline-block;
-            margin-right: 20px;
+        .hero {
+            font-size: 24px;
+            height: 250px;
         }
-
-        nav a {
-            color: #fff;
-            text-decoration: none;
-        }
-
-        /* Estilos do conteúdo principal */
-        main {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 2em;
-        }
-
-        /* Estilos das seções */
-        section {
-            background-color: #f7f7f7;
-            padding: 1em;
-            margin-bottom: 20px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-
-        /* Estilos dos títulos */
-        h1, h2 {
-            color: #333;
-            margin-bottom: 10px;
-        }
-
-        /* Estilos dos botões */
-        button {
-            background-color: #333;
-            color: #fff;
-            border: none;
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background-color: #555;
-        }
-
-        /* Responsividade */
-        @media (max-width: 768px) {
-            main {
-                padding: 1em;
-            }
-        }
-    </style>
+    }
+</style>
 </head>
 <body>
-    <header>
-        <nav>
-            <ul>
-                <li><a href="                             
-                <li><a href="#lanches">Lanches</a></li>
-                <li><a href="                            
-                <li><a href="#shopping">Shopping</a></li>
-                <li><a href="                            
-            </ul>
-        </nav>
-    </header>
-    <main>
-        <section id="servicos">
-            <h1>Serviços</h1>
-            <p>Encontre os melhores profissionais para realizar seus serviços.</p>
-            <button>Ver Serviços</button>
-        </section>
-        <section id="lanches">
-            <h1>Lanches</h1>
-            <p>Desfrute de nossos deliciosos lanches.</p>
-            <button>Ver Lanches</button>
-        </section>
-        <section id="delivery">
-            <h1>Delivery</h1>
-            <p>Receba seus pedidos em casa.</p>
-            <button>Ver Delivery</button>
-        </section>
-        <section id="shopping">
-            <h1>Shopping</h1>
-            <p>Compre produtos de qualidade.</p>
-            <button>Ver Shopping</button>
-        </section>
-        <section id="produtos">
-            <h1>Produtos</h1>
-            <p>Encontre produtos para todas as necessidades.</p>
-            <button>Ver Produtos</button>
-        </section>
-    </main>
+
+<!-- Menu lateral -->
+<div class="sidebar">
+    <h2>Help Floripa</h2>
+    <a href="#servicos">Serviços</a>
+    <a href="#lanches">Lanches e Delivery</a>
+    <a href="#shopping">Shopping e Produtos</a>
+    <a href="#contato">Contato</a>
+</div>
+
+<!-- Conteúdo principal -->
+<div class="main-content">
+    <!-- Hero banner -->
+    <div class="hero">
+        Bem-vindo à Help Floripa<br>Tudo que você precisa em só lugar
+    </div>
+
+    <!-- Cards principais -->
+    <div class="cards">
+        <!-- Serviços -->
+        <div class="card" id="servicos">
+            <img src="https://images.unsplash.com/photo-1596323334943-bf4bfb4871b6?auto=format&fit=crop&w=800&q=80" alt="Serviços">
+            <div class="card-content">
+                <h3>Serviços</h3>
+                <p>Encontre profissionais de confiança para qualquer tipo de serviço em Florianópolis. Do conserto à manutenção, tudo em um só lugar.</p>
+                <a href="servicos.html">Ver Serviços</a>
+            </div>
+        </div>
+
+        <!-- Lanches e Delivery -->
+        <div class="card" id="lanches">
+            <img src="https://images.unsplash.com/photo-1600891964599-f61ba0e24092?auto=format&fit=crop&w=800&q=80" alt="Lanches e Delivery">
+            <div class="card-content">
+                <h3>Lanches e Delivery</h3>
+                <p>Peça comidas deliciosas e bebidas rápidas com delivery eficiente para toda Florianópolis.</p>
+                <a href="delivery.html">Ver Lanches</a>
+            </div>
+        </div>
+
+        <!-- Shopping e Produtos -->
+        <div class="card" id="shopping">
+            <img src="https://images.unsplash.com/photo-1606813902652-7a3213017e5c?auto=format&fit=crop&w=800&q=80" alt="Shopping e Produtos">
+            <div class="card-content">
+                <h3>Shopping e Produtos</h3>
+                <p>Explore produtos variados de diferentes lojas, direto do marketplace Help Floripa. Compre online com segurança e praticidade.</p>
+                <a href="shopping.html">Ver Produtos</a>
+            </div>
+        </div>
+    </div>
+</div>
+
 </body>
-                </html>
-                  
+</html>
