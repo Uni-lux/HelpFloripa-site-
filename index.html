@@ -43,7 +43,7 @@ body {background:#000; color:#fff; min-height:100vh;}
     justify-content:space-between;
     border-bottom:2px solid #00adee;
 }
-.top-menu h2 {font-size:20px;}
+.top-menu h2 {font-size:20px; margin:0;}
 .top-menu .menu-buttons a {
     background:#00adee; color:#000; text-decoration:none; padding:8px 12px; margin-left:10px; border-radius:6px; font-weight:bold;
 }
@@ -59,7 +59,14 @@ body {background:#000; color:#fff; min-height:100vh;}
 .hero {
     background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1581090469397-12a6c6e64f6d?auto=format&fit=crop&w=1470&q=80') center/cover no-repeat;
     height:320px; border-radius:15px; display:flex; align-items:center; justify-content:center; text-align:center; margin-bottom:35px;
-    color:#00adee; font-size:28px; font-weight:bold; padding:0 15px;
+    color:#00adee; font-size:28px; font-weight:bold; padding:0 20px;
+    box-shadow: 0 0 20px rgba(0, 173, 238, 0.5);
+}
+.hero span {
+    display:block;
+    font-size:22px;
+    margin-top:10px;
+    font-weight:normal;
 }
 
 /* Cards */
@@ -79,11 +86,13 @@ body {background:#000; color:#fff; min-height:100vh;}
 .card-content a:hover {background:#0087c2;}
 
 /* Responsividade */
-@media(max-width:768px){
+@media(max-width:1024px){
+    .main-content {margin-left:0; padding-top:60px;}
+    .top-menu {display:flex;}
     .sidebar {transform: translateX(-250px);}
     .sidebar.active {transform: translateX(0);}
-    .top-menu {display:flex;}
-    .main-content {margin-left:0; padding-top:60px;}
+}
+@media(max-width:768px){
     .cards {grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap:15px;}
     .card {height:auto;}
     .card img {height:120px;}
@@ -102,7 +111,7 @@ body {background:#000; color:#fff; min-height:100vh;}
 </div>
 
 <!-- Top menu -->
-<div class="top-menu">
+<div class="top-menu" id="topMenu">
     <span class="menu-toggle" onclick="toggleSidebar()">☰</span>
     <h2>Help Floripa</h2>
     <div class="menu-buttons">
@@ -114,7 +123,10 @@ body {background:#000; color:#fff; min-height:100vh;}
 
 <!-- Main content -->
 <div class="main-content">
-    <div class="hero">Bem-vindo à Help Floripa<br>Tudo que você precisa em só lugar</div>
+    <div class="hero">
+        Bem-vindo à Help Floripa
+        <span>Tudo que você precisa em só lugar</span>
+    </div>
     <div class="cards">
         <div class="card" id="servicos">
             <img src="https://images.unsplash.com/photo-1596323334943-bf4bfb4871b6?auto=format&fit=crop&w=800&q=80" alt="Serviços">
@@ -145,7 +157,15 @@ body {background:#000; color:#fff; min-height:100vh;}
 
 <script>
 function toggleSidebar(){
-    document.getElementById('sidebar').classList.toggle('active');
+    const sidebar = document.getElementById('sidebar');
+    const topMenu = document.getElementById('topMenu');
+    sidebar.classList.toggle('active');
+    // Oculta top menu se sidebar estiver aberto no mobile
+    if(sidebar.classList.contains('active')){
+        topMenu.style.display = 'none';
+    } else {
+        topMenu.style.display = 'flex';
+    }
 }
 </script>
 
