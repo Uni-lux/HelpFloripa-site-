@@ -1,134 +1,125 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Help Floripa | Marketplace de Serviços e Produtos</title>
-<meta name="description" content="Help Floripa: Marketplace de Serviços, Delivery e Shopping em Florianópolis. Tudo em um só lugar.">
-<style>
-/* RESET */
-* { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-body { background:#0a0a0a; color:white; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marketplace</title>
+    <style>
+        /* Estilos globais */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
 
-/* SIDEBAR */
-.sidebar {
-  width:220px; height:100vh; background:#0a0a0a; position:fixed; top:0; left:0; padding-top:70px;
-  transition: transform 0.3s ease; z-index:1000;
-}
-.sidebar nav { display:flex; flex-direction:column; padding:0 20px; }
-.sidebar a {
-  padding:15px 20px; margin-bottom:5px; font-weight:bold; color:#fff; text-decoration:none; border-radius:6px;
-  transition:0.3s;
-}
-.sidebar a:hover { background:#00adee; color:#0a0a0a; }
-.toggle-btn { display:none; position:fixed; top:15px; left:15px; font-size:28px; background:transparent; border:none; color:white; cursor:pointer; z-index:1100; }
+        /* Estilos do cabeçalho */
+        header {
+            background-color: #333;
+            color: #fff;
+            padding: 1em;
+            text-align: center;
+        }
 
-/* HEADER HERO */
-header.hero {
-  text-align:center; padding:80px 20px 60px 20px;
-  background: linear-gradient(135deg, rgba(0,0,0,0.8), rgba(0,0,0,0.5));
-}
-.hero h1 { font-size:48px; color:#00adee; margin-bottom:15px; }
-.hero p { font-size:20px; color:#ccc; }
+        /* Estilos da navegação */
+        nav ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
 
-/* SEÇÃO DE CARDS */
-.cards-container {
-  display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:30px;
-  max-width:1200px; margin:50px auto; padding:0 20px;
-}
-.card {
-  background:#111; border-radius:15px; padding:25px; text-align:center; box-shadow:0 6px 20px rgba(0,0,0,0.6);
-  transition:0.3s;
-}
-.card:hover { transform:scale(1.05); box-shadow:0 8px 25px rgba(0,173,238,0.6); }
-.card h3 { color:#00adee; margin-bottom:15px; font-size:24px; }
-.card p { color:#ccc; margin-bottom:20px; font-size:16px; }
-.card a {
-  padding:12px 25px; background:#00adee; color:#0a0a0a; text-decoration:none; border-radius:10px;
-  font-weight:bold; transition:0.3s;
-}
-.card a:hover { background:#0077aa; transform:scale(1.05); }
+        nav li {
+            display: inline-block;
+            margin-right: 20px;
+        }
 
-/* FOOTER */
-footer {
-  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
-  padding:25px; background:#0a0a0a; color:#ccc; border-top:1px solid #222;
-}
-footer .footer-links a { color:#ccc; margin:0 8px; font-size:14px; text-decoration:none; }
-footer .footer-links a:hover { color:#00adee; }
+        nav a {
+            color: #fff;
+            text-decoration: none;
+        }
 
-/* RESPONSIVIDADE */
-@media(max-width:768px){
-  .toggle-btn{ display:block; }
-  .sidebar{ transform:translateX(-100%); }
-  .sidebar.active{ transform:translateX(0); }
-  .hero h1{ font-size:36px; }
-  .hero p{ font-size:16px; }
-}
-</style>
+        /* Estilos do conteúdo principal */
+        main {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2em;
+        }
+
+        /* Estilos das seções */
+        section {
+            background-color: #f7f7f7;
+            padding: 1em;
+            margin-bottom: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Estilos dos títulos */
+        h1, h2 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        /* Estilos dos botões */
+        button {
+            background-color: #333;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #555;
+        }
+
+        /* Responsividade */
+        @media (max-width: 768px) {
+            main {
+                padding: 1em;
+            }
+        }
+    </style>
 </head>
 <body>
-
-<!-- BOTÃO TOGGLE -->
-<button class="toggle-btn" onclick="toggleSidebar()">☰</button>
-
-<!-- SIDEBAR -->
-<div class="sidebar" id="sidebar">
-  <nav>
-    <a href="#servicos">Serviços</a>
-    <a href="#delivery">Lanchonetes e Delivery</a>
-    <a href="#shopping">Shopping e Produtos</a>
-    <a href="contato.html">Contato</a>
-    <a href="sobre.html">Sobre</a>
-  </nav>
-</div>
-
-<!-- HEADER HERO -->
-<header class="hero">
-  <h1>Bem-vindo à Help Floripa</h1>
-  <p>Tudo que você precisa em um só lugar</p>
-</header>
-
-<!-- SEÇÃO DE CARDS -->
-<section class="cards-container">
-
-  <!-- Serviços -->
-  <div class="card">
-    <h3>Serviços</h3>
-    <p>Profissionais qualificados em diversas áreas para atender suas necessidades em casa ou empresa.</p>
-    <a href="servicos.html">Ver Serviços</a>
-  </div>
-
-  <!-- Lanchonetes e Delivery -->
-  <div class="card">
-    <h3>Lanchonetes & Delivery</h3>
-    <p>Peça lanches, comidas e bebidas com entrega rápida na sua casa ou trabalho.</p>
-    <a href="delivery.html">Ver Lanchonetes</a>
-  </div>
-
-  <!-- Shopping e Produtos -->
-  <div class="card">
-    <h3>Shopping & Produtos</h3>
-    <p>Compre produtos variados com facilidade e receba no conforto do seu lar.</p>
-    <a href="shopping.html">Ver Produtos</a>
-  </div>
-
-</section>
-
-<!-- FOOTER -->
-<footer>
-  <p>&copy; 2025 Help Floripa. Todos os direitos reservados.</p>
-  <p>CNPJ: 61.935.934/0001-00</p>
-  <div class="footer-links">
-    <a href="termos.html">Termos de Uso</a> |
-    <a href="privacidade.html">Política de Privacidade</a>
-  </div>
-</footer>
-
-<script>
-// Toggle Sidebar
-function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
-</script>
-
+    <header>
+        <nav>
+            <ul>
+                <li><a href="                             
+                <li><a href="#lanches">Lanches</a></li>
+                <li><a href="                            
+                <li><a href="#shopping">Shopping</a></li>
+                <li><a href="                            
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <section id="servicos">
+            <h1>Serviços</h1>
+            <p>Encontre os melhores profissionais para realizar seus serviços.</p>
+            <button>Ver Serviços</button>
+        </section>
+        <section id="lanches">
+            <h1>Lanches</h1>
+            <p>Desfrute de nossos deliciosos lanches.</p>
+            <button>Ver Lanches</button>
+        </section>
+        <section id="delivery">
+            <h1>Delivery</h1>
+            <p>Receba seus pedidos em casa.</p>
+            <button>Ver Delivery</button>
+        </section>
+        <section id="shopping">
+            <h1>Shopping</h1>
+            <p>Compre produtos de qualidade.</p>
+            <button>Ver Shopping</button>
+        </section>
+        <section id="produtos">
+            <h1>Produtos</h1>
+            <p>Encontre produtos para todas as necessidades.</p>
+            <button>Ver Produtos</button>
+        </section>
+    </main>
 </body>
-</html>
+                </html>
+                  
