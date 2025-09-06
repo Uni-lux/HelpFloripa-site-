@@ -4,241 +4,95 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Help Floripa | Tudo que você precisa em só lugar</title>
-<meta name="description" content="Help Floripa: Marketplace com Serviços, Lanches e Delivery, Shopping e Produtos em Florianópolis. Tudo em um só lugar.">
 <style>
-/* Reset e padrões */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Arial', sans-serif;
-}
+/* Reset */
+* {margin:0; padding:0; box-sizing:border-box; font-family: Arial, sans-serif;}
+body {background:#000; color:#fff; min-height:100vh;}
 
-body {
-    background-color: #000;
-    color: #fff;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-}
-
-/* Menu lateral */
+/* Sidebar */
 .sidebar {
     width: 220px;
-    background-color: #111;
-    flex-shrink: 0;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    position: fixed;
-    height: 100%;
-    overflow-y: auto;
-    transition: transform 0.3s ease-in-out;
+    background:#111;
+    position:fixed;
+    top:0;
+    left:0;
+    height:100%;
+    padding:20px;
+    display:flex;
+    flex-direction:column;
+    transition: transform 0.3s ease;
+    z-index:1000;
 }
+.sidebar h2 {color:#00adee; text-align:center; margin-bottom:25px; font-size:22px;}
+.sidebar a {color:#fff; text-decoration:none; padding:12px; margin:6px 0; border-radius:6px; transition:0.3s; display:block;}
+.sidebar a:hover {background:#00adee; color:#000;}
+.sidebar.hidden {transform: translateX(-250px);}
 
-.sidebar h2 {
-    color: #00adee;
-    text-align: center;
-    margin-bottom: 25px;
-    font-size: 22px;
-}
-
-.sidebar a {
-    color: #fff;
-    text-decoration: none;
-    padding: 12px 10px;
-    margin: 6px 0;
-    border-radius: 6px;
-    transition: 0.3s;
-    display: block;
-    font-size: 16px;
-}
-
-.sidebar a:hover {
-    background-color: #00adee;
-    color: #000;
-}
-
-/* Menu principal superior */
+/* Top menu */
 .top-menu {
-    display: none;
-    background-color: #111;
-    padding: 10px 15px;
-    align-items: center;
-    justify-content: space-between;
-    position: fixed;
-    width: 100%;
-    top: 0;
-    z-index: 1000;
-    border-bottom: 2px solid #00adee;
+    display:none;
+    background:#111;
+    color:#00adee;
+    padding:10px 15px;
+    position:fixed;
+    width:100%;
+    top:0;
+    z-index:1001;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    border-bottom:2px solid #00adee;
 }
-
-.top-menu h2 {
-    color: #00adee;
-    font-size: 20px;
-}
-
+.top-menu h2 {font-size:20px;}
 .top-menu .menu-buttons a {
-    background-color: #00adee;
-    color: #000;
-    text-decoration: none;
-    padding: 8px 12px;
-    margin-left: 10px;
-    border-radius: 6px;
-    font-weight: bold;
-    transition: 0.3s;
+    background:#00adee; color:#000; text-decoration:none; padding:8px 12px; margin-left:10px; border-radius:6px; font-weight:bold;
 }
+.top-menu .menu-buttons a:hover {background:#0087c2;}
+.menu-toggle {font-size:24px; cursor:pointer; color:#00adee;}
 
-.top-menu .menu-buttons a:hover {
-    background-color: #0087c2;
-}
-
-/* Conteúdo principal */
+/* Main content */
 .main-content {
-    margin-left: 240px;
-    padding: 25px;
-    width: calc(100% - 240px);
-    transition: margin-left 0.3s ease-in-out;
+    margin-left:240px;
+    padding:25px;
+    transition: margin-left 0.3s;
 }
-
 .hero {
     background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1581090469397-12a6c6e64f6d?auto=format&fit=crop&w=1470&q=80') center/cover no-repeat;
-    height: 320px;
-    border-radius: 15px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    margin-bottom: 35px;
-    color: #00adee;
-    font-size: 28px;
-    font-weight: bold;
-    padding: 0 15px;
+    height:320px; border-radius:15px; display:flex; align-items:center; justify-content:center; text-align:center; margin-bottom:35px;
+    color:#00adee; font-size:28px; font-weight:bold; padding:0 15px;
 }
 
 /* Cards */
 .cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 20px;
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px,1fr));
+    gap:20px;
 }
-
 .card {
-    background-color: #111;
-    border: 2px solid #00adee;
-    border-radius: 12px;
-    overflow: hidden;
-    transition: 0.3s;
-    display: flex;
-    flex-direction: column;
-    height: 320px;
+    background:#111; border:2px solid #00adee; border-radius:12px; overflow:hidden; display:flex; flex-direction:column; height:320px;
 }
-
-.card img {
-    width: 100%;
-    height: 140px;
-    object-fit: cover;
-}
-
-.card-content {
-    padding: 15px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    flex: 1;
-}
-
-.card-content h3 {
-    color: #00adee;
-    margin-bottom: 10px;
-    font-size: 18px;
-}
-
-.card-content p {
-    flex: 1;
-    margin-bottom: 12px;
-    font-size: 13px;
-    line-height: 1.4;
-}
-
-.card-content a {
-    text-align: center;
-    background-color: #00adee;
-    color: #000;
-    padding: 8px;
-    border-radius: 6px;
-    text-decoration: none;
-    font-weight: bold;
-    font-size: 14px;
-    transition: 0.3s;
-}
-
-.card-content a:hover {
-    background-color: #0087c2;
-}
-
-/* Botão abrir/fechar menu mobile */
-.menu-toggle {
-    display: none;
-    font-size: 24px;
-    cursor: pointer;
-    color: #00adee;
-}
+.card img {width:100%; height:140px; object-fit:cover;}
+.card-content {padding:15px; display:flex; flex-direction:column; justify-content:space-between; flex:1;}
+.card-content h3 {color:#00adee; margin-bottom:10px; font-size:18px;}
+.card-content p {flex:1; margin-bottom:12px; font-size:13px; line-height:1.4;}
+.card-content a {text-align:center; background:#00adee; color:#000; padding:8px; border-radius:6px; text-decoration:none; font-weight:bold; font-size:14px; transition:0.3s;}
+.card-content a:hover {background:#0087c2;}
 
 /* Responsividade */
-@media (max-width: 1024px) {
-    .main-content {
-        margin-left: 220px;
-        width: calc(100% - 220px);
-    }
-}
-
-@media (max-width: 768px) {
-    .sidebar {
-        position: fixed;
-        top: 0;
-        left: -250px;
-        height: 100%;
-        z-index: 1000;
-    }
-
-    .sidebar.active {
-        transform: translateX(250px);
-        left: 0;
-    }
-
-    .top-menu {
-        display: flex;
-    }
-
-    .main-content {
-        margin-left: 0;
-        padding-top: 60px;
-        width: 100%;
-    }
-
-    .cards {
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 15px;
-    }
-
-    .card {
-        height: auto;
-    }
-
-    .card img {
-        height: 120px;
-    }
-
-    .menu-toggle {
-        display: block;
-    }
+@media(max-width:768px){
+    .sidebar {transform: translateX(-250px);}
+    .sidebar.active {transform: translateX(0);}
+    .top-menu {display:flex;}
+    .main-content {margin-left:0; padding-top:60px;}
+    .cards {grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap:15px;}
+    .card {height:auto;}
+    .card img {height:120px;}
 }
 </style>
 </head>
 <body>
 
-<!-- Menu lateral -->
+<!-- Sidebar -->
 <div class="sidebar" id="sidebar">
     <h2>Help Floripa</h2>
     <a href="#servicos">Serviços</a>
@@ -247,7 +101,7 @@ body {
     <a href="#contato">Contato</a>
 </div>
 
-<!-- Menu principal superior -->
+<!-- Top menu -->
 <div class="top-menu">
     <span class="menu-toggle" onclick="toggleSidebar()">☰</span>
     <h2>Help Floripa</h2>
@@ -258,38 +112,28 @@ body {
     </div>
 </div>
 
-<!-- Conteúdo principal -->
+<!-- Main content -->
 <div class="main-content">
-    <!-- Hero banner -->
-    <div class="hero">
-        Bem-vindo à Help Floripa<br>Tudo que você precisa em só lugar
-    </div>
-
-    <!-- Cards principais -->
+    <div class="hero">Bem-vindo à Help Floripa<br>Tudo que você precisa em só lugar</div>
     <div class="cards">
-        <!-- Serviços -->
         <div class="card" id="servicos">
             <img src="https://images.unsplash.com/photo-1596323334943-bf4bfb4871b6?auto=format&fit=crop&w=800&q=80" alt="Serviços">
             <div class="card-content">
                 <h3>Serviços</h3>
-                <p>Encontre profissionais de confiança para qualquer tipo de serviço em Florianópolis. Do conserto à manutenção.</p>
+                <p>Encontre profissionais de confiança para qualquer tipo de serviço em Florianópolis.</p>
                 <a href="servicos.html">Ver Serviços</a>
             </div>
         </div>
-
-        <!-- Lanches e Delivery -->
         <div class="card" id="lanches">
-            <img src="https://images.unsplash.com/photo-1600891964599-f61ba0e24092?auto=format&fit=crop&w=800&q=80" alt="Lanches e Delivery">
+            <img src="https://images.unsplash.com/photo-1600891964599-f61ba0e24092?auto=format&fit=crop&w=800&q=80" alt="Lanches">
             <div class="card-content">
                 <h3>Lanches e Delivery</h3>
                 <p>Peça comidas deliciosas e bebidas rápidas com delivery eficiente para toda Florianópolis.</p>
                 <a href="delivery.html">Ver Lanches</a>
             </div>
         </div>
-
-        <!-- Shopping e Produtos -->
         <div class="card" id="shopping">
-            <img src="https://images.unsplash.com/photo-1606813902652-7a3213017e5c?auto=format&fit=crop&w=800&q=80" alt="Shopping e Produtos">
+            <img src="https://images.unsplash.com/photo-1606813902652-7a3213017e5c?auto=format&fit=crop&w=800&q=80" alt="Shopping">
             <div class="card-content">
                 <h3>Shopping e Produtos</h3>
                 <p>Explore produtos variados de diferentes lojas, direto do marketplace Help Floripa.</p>
@@ -300,11 +144,10 @@ body {
 </div>
 
 <script>
-function toggleSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    sidebar.classList.toggle('active');
+function toggleSidebar(){
+    document.getElementById('sidebar').classList.toggle('active');
 }
 </script>
 
 </body>
-    </html>
+</html>
