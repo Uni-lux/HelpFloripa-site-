@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Help Floripa | Cadastre-se</title>
+<style>
+/* Reset */
+* {margin:0; padding:0; box-sizing:border-box; font-family: Arial, sans-serif;}
+body {background:#000; color:#fff; min-height:100vh; display:flex; flex-direction:column;}
+
+/* Sidebar */
+.sidebar {
+    width: 220px;
+    background:#111;
+    position:fixed;
+    top:0;
+    left:0;
+    height:100%;
+    padding:20px;
+    display:flex;
+    flex-direction:column;
+    transition: transform 0.3s ease;
+    z-index:1000;
+}
+.sidebar h2 {color:#00adee; text-align:center; margin-bottom:25px; font-size:22px;}
+.sidebar a {color:#fff; text-decoration:none; padding:12px; margin:6px 0; border-radius:6px; transition:0.3s; display:block;}
+.sidebar a:hover {background:#00adee; color:#000;}
+.sidebar.hidden {transform: translateX(-250px);}
+
+/* Main content */
+.main-content {
+    margin-left:240px;
+    padding:25px;
+    transition: margin-left 0.3s;
+    flex:1;
+}
+
+/* Hero */
+.hero {
+    background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1581090469397-12a6c6e64f6d?auto=format&fit=crop&w=1470&q=80') center/cover no-repeat;
+    height:300px;
+    border-radius:15px; 
+    display:flex; 
+    flex-direction:column; 
+    align-items:center; 
+    justify-content:center; 
+    text-align:center; 
+    margin-bottom:35px;
+    color:#00adee; 
+    font-size:28px; 
+    font-weight:bold; 
+    padding:0 15px;
+    box-shadow: 0 0 20px rgba(0, 173, 238, 0.5);
+}
+.hero h1 {margin-bottom:10px;}
+.hero span {font-size:18px;}
+
+/* Cards */
+.cards {
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px,1fr));
+    gap:20px;
+}
+.card {
+    background:#111; border:2px solid #00adee; border-radius:12px; overflow:hidden; display:flex; flex-direction:column; height:320px;
+}
+.card img {width:100%; height:140px; object-fit:cover;}
+.card-content {padding:15px; display:flex; flex-direction:column; justify-content:space-between; flex:1;}
+.card-content h3 {color:#00adee; margin-bottom:10px; font-size:18px;}
+.card-content p {flex:1; margin-bottom:12px; font-size:13px; line-height:1.4;}
+.card-content a {text-align:center; background:#00adee; color:#000; padding:8px; border-radius:6px; text-decoration:none; font-weight:bold; font-size:14px; transition:0.3s;}
+.card-content a:hover {background:#0087c2;}
+
+/* Footer */
+footer {
+    background:#111;
+    color:#aaa;
+    text-align:center;
+    padding:15px;
+    font-size:13px;
+    border-top:1px solid #222;
+}
+footer a {color:#00adee; text-decoration:none; margin:0 8px;}
+footer a:hover {text-decoration:underline;}
+
+/* Menu toggle para mobile */
+.menu-toggle {
+    font-size:24px;
+    cursor:pointer;
+    color:#00adee;
+    position:fixed;
+    top:15px;
+    left:15px;
+    z-index:1100;
+    display:none;
+}
+
+/* Responsividade */
+@media(max-width:1024px){
+    .main-content {margin-left:0; padding-top:60px;}
+    .sidebar {transform: translateX(-250px);}
+    .sidebar.active {transform: translateX(0);}
+    .menu-toggle {display:block;}
+}
+@media(max-width:768px){
+    .cards {grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap:15px;}
+    .card {height:auto;}
+    .card img {height:120px;}
+}
+@media(max-width:480px){
+    .hero {height:220px; font-size:20px;}
+    .hero span {font-size:14px;}
+    .hero .hero-menu a {padding:5px 8px; font-size:11px;}
+}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+    <h2>Help Floripa</h2>
+    <a href="index.html">Início</a>
+    <a href="#profissional">Profissional</a>
+    <a href="#empresa">Empresa</a>
+    <a href="#socios">Sócio / Parceria</a>
+    <a href="#cliente">Cliente</a>
+    <a href="#contato">Contato</a>
+</div>
+
+<!-- Menu toggle -->
+<div class="menu-toggle" onclick="toggleSidebar()">☰</div>
+
+<!-- Main content -->
+<div class="main-content">
+    <div class="hero">
+        <h1>Cadastre-se na Help Floripa</h1>
+        <span>Escolha a opção que melhor se aplica a você</span>
+    </div>
+
+    <div class="cards">
+        <div class="card" id="profissional">
+            <img src="https://images.unsplash.com/photo-1601597113336-7f1e1e5e5e5e?auto=format&fit=crop&w=800&q=80" alt="Profissional">
+            <div class="card-content">
+                <h3>Cadastre-se como Profissional</h3>
+                <p>Inscreva-se e ofereça seus serviços na plataforma Help Floripa.</p>
+                <a href="cadastro-profissional.html">Cadastrar</a>
+            </div>
+        </div>
+
+        <div class="card" id="empresa">
+            <img src="https://images.unsplash.com/photo-1581092918360-9cde1e6e9e2f?auto=format&fit=crop&w=800&q=80" alt="Empresa">
+            <div class="card-content">
+                <h3>Cadastre sua Empresa</h3>
+                <p>Para lojas, lanchonetes e outros estabelecimentos venderem e se destacarem.</p>
+                <a href="cadastro-empresa.html">Cadastrar</a>
+            </div>
+        </div>
+
+        <div class="card" id="socios">
+            <img src="https://images.unsplash.com/photo-1600891964599-f61ba0e24092?auto=format&fit=crop&w=800&q=80" alt="Sócio">
+            <div class="card-content">
+                <h3>Seja Sócio / Faça Parceria</h3>
+                <p>Participe como parceiro ou sócio da Help Floripa e amplie seu negócio.</p>
+                <a href="cadastro-socios.html">Cadastrar</a>
+            </div>
+        </div>
+
+        <div class="card" id="cliente">
+            <img src="https://images.unsplash.com/photo-1612831455545-0a46c8f2b3b6?auto=format&fit=crop&w=800&q=80" alt="Cliente">
+            <div class="card-content">
+                <h3>Cliente</h3>
+                <p>Entre no nosso canal do WhatsApp para acompanhar todas as novidades.</p>
+                <a href="https://wa.me/5511999999999" target="_blank">Acessar WhatsApp</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Footer -->
+<footer>
+    <p>CNPJ: 61.935.934/0001-00</p>
+    <p>
+        <a href="termos.html">Termos de Uso</a> | 
+        <a href="privacidade.html">Política de Privacidade</a>
+    </p>
+    <p>&copy; 2025 Help Floripa - Todos os direitos reservados.</p>
+</footer>
+
+<script>
+function toggleSidebar(){
+    document.getElementById('sidebar').classList.toggle('active');
+}
+</script>
+
+</body>
+</html>
