@@ -1,102 +1,180 @@
-      <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Serviços | Help Floripa</title>
-  <style>
-    body {margin:0;font-family:Arial, sans-serif;background:#000;color:#fff;}
-    header {background:#111;padding:25px 30px;text-align:center;border-bottom:2px solid #00adee;}
-    header h1 {color:#00adee;font-size:32px;margin:0;}
-    header h2 {color:#fff;font-size:18px;margin:5px 0;}
-    nav {margin-top:10px;}
-    nav a {color:#fff;margin:0 12px;text-decoration:none;font-weight:bold;}
-    nav a:hover {color:#00adee;}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Serviços | Help Floripa</title>
+<style>
+* {margin:0; padding:0; box-sizing:border-box; font-family: Arial, sans-serif;}
+body {background:#000; color:#fff;}
 
-    /* Slide */
-    .slider {position:relative;max-width:100%;height:220px;overflow:hidden;}
-    .slides {display:flex;width:300%;animation:slide 12s infinite;}
-    .slides img {width:100%;height:220px;object-fit:cover;}
-    @keyframes slide {
-      0% {margin-left:0;}
-      33% {margin-left:0;}
-      36% {margin-left:-100%;}
-      66% {margin-left:-100%;}
-      69% {margin-left:-200%;}
-      100% {margin-left:-200%;}
-    }
+/* Hero */
+.hero {
+    background:#111;
+    padding:30px 15px;
+    text-align:center;
+    border-bottom:2px solid #00adee;
+}
+.hero h1 {color:#00adee; font-size:34px; margin-bottom:6px;}
+.hero h2 {font-size:20px; color:#fff; margin-bottom:10px;}
+.hero .hero-menu a {
+    text-decoration:none;
+    color:#000;
+    background:#00adee;
+    padding:8px 15px;
+    border-radius:6px;
+    font-weight:bold;
+    margin:0 6px;
+    transition:0.3s;
+    display:inline-block;
+}
+.hero .hero-menu a:hover {background:#0087c2;}
 
-    /* Cards */
-    .cards {display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;padding:30px;max-width:1100px;margin:auto;}
-    .card {background:#111;border:2px solid #00adee;border-radius:12px;overflow:hidden;text-align:center;transition:.3s;}
-    .card:hover {transform:scale(1.05);box-shadow:0 0 20px rgba(0,173,238,.6);}
-    .card img {width:100%;height:160px;object-fit:cover;}
-    .card h3 {color:#00adee;margin:10px 0;}
-    .card p {padding:0 10px 10px;font-size:14px;color:#ccc;}
-    .card a {display:inline-block;margin-bottom:15px;padding:8px 14px;background:#00adee;color:#000;font-weight:bold;text-decoration:none;border-radius:6px;}
+/* Slider */
+.slider {position:relative;max-width:100%;height:160px;overflow:hidden;margin:25px auto;border-radius:12px;}
+.slides {display:flex;width:300%;animation:slide 12s infinite;}
+.slides img {width:100%;height:160px;object-fit:cover;}
+@keyframes slide {
+  0% {margin-left:0;}
+  33% {margin-left:0;}
+  36% {margin-left:-100%;}
+  66% {margin-left:-100%;}
+  69% {margin-left:-200%;}
+  100% {margin-left:-200%;}
+}
 
-    /* Rodapé */
-    footer {background:#111;text-align:center;padding:20px;border-top:2px solid #00adee;margin-top:20px;}
-    footer a {color:#00adee;text-decoration:none;margin:0 10px;font-size:14px;}
-    footer p {margin-top:10px;font-size:13px;color:#aaa;}
-  </style>
+/* Cards */
+.cards {
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px,1fr));
+    gap:20px;
+    padding:30px;
+    max-width:1100px;
+    margin:auto;
+}
+.card {
+    background:#111;
+    border:2px solid #00adee;
+    border-radius:12px;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    transition:.3s;
+}
+.card:hover {transform:scale(1.05); box-shadow:0 0 15px rgba(0,173,238,.6);}
+.card img {width:100%; height:160px; object-fit:cover;}
+.card-content {padding:15px; text-align:center;}
+.card-content h3 {color:#00adee; margin-bottom:10px;}
+.card-content p {color:#ccc; font-size:14px; margin-bottom:12px;}
+.card-content a {
+    display:inline-block;
+    padding:8px 14px;
+    background:#00adee;
+    color:#000;
+    font-weight:bold;
+    text-decoration:none;
+    border-radius:6px;
+    transition:.3s;
+}
+.card-content a:hover {background:#0087c2;}
+
+/* Footer */
+footer {
+    background:#111;
+    text-align:center;
+    padding:15px;
+    border-top:2px solid #00adee;
+    margin-top:20px;
+    font-size:13px;
+    color:#aaa;
+}
+footer a {color:#00adee; text-decoration:none; margin:0 8px;}
+footer a:hover {text-decoration:underline;}
+
+/* Responsivo */
+@media(max-width:768px){
+  .hero h1 {font-size:26px;}
+  .hero h2 {font-size:16px;}
+  .slider {height:130px;}
+  .slides img {height:130px;}
+}
+@media(max-width:480px){
+  .hero {padding:15px;}
+  .hero h1 {font-size:22px;}
+  .hero h2 {font-size:14px;}
+  .hero .hero-menu a {padding:6px 10px; font-size:12px;}
+  .slider {height:110px;}
+  .slides img {height:110px;}
+}
+</style>
 </head>
 <body>
 
-  <!-- Painel topo -->
-  <header>
-    <h1>Help Floripa</h1>
-    <h2>Serviços</h2>
-    <nav>
-      <a href="index.html">Início</a>
-      <a href="contato.html">Contato</a>
-      <a href="ajuda.html">Ajuda</a>
-    </nav>
-  </header>
+<!-- Hero -->
+<div class="hero">
+  <h1>Help Floripa</h1>
+  <h2>Serviços</h2>
+  <div class="hero-menu">
+    <a href="index.html">Início</a>
+    <a href="contato.html">Contato</a>
+    <a href="ajuda.html">Ajuda</a>
+  </div>
+</div>
 
-  <!-- Slide -->
-  <div class="slider">
-    <div class="slides">
-      <img src="https://images.unsplash.com/photo-1606813902652-7a3213017e5c?auto=format&fit=crop&w=1200&q=80" alt="Serviços 1">
-      <img src="https://images.unsplash.com/photo-1600891964599-f61ba0e24092?auto=format&fit=crop&w=1200&q=80" alt="Serviços 2">
-      <img src="https://images.unsplash.com/photo-1596323334943-bf4bfb4871b6?auto=format&fit=crop&w=1200&q=80" alt="Serviços 3">
+<!-- Slide -->
+<div class="slider">
+  <div class="slides">
+    <img src="https://images.unsplash.com/photo-1581090700227-4c4e1a4e8e4e?auto=format&fit=crop&w=1200&q=80" alt="Profissionais de Limpeza">
+    <img src="https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1200&q=80" alt="Obras e Reformas">
+    <img src="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=1200&q=80" alt="Saúde e Beleza">
+  </div>
+</div>
+
+<!-- Cards -->
+<section class="cards">
+  <div class="card">
+    <img src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=800&q=80" alt="Limpeza e Cuidados">
+    <div class="card-content">
+      <h3>Limpeza e Cuidados</h3>
+      <p>Profissionais de faxina, diaristas e passadeiras para sua casa ou empresa.</p>
+      <a href="#">Ver Serviços</a>
     </div>
   </div>
+  <div class="card">
+    <img src="https://images.unsplash.com/photo-1606813902652-7a3213017e5c?auto=format&fit=crop&w=800&q=80" alt="Obras e Reformas">
+    <div class="card-content">
+      <h3>Obras e Reformas</h3>
+      <p>Pedreiros, pintores, eletricistas e serviços de manutenção especializados.</p>
+      <a href="#">Ver Serviços</a>
+    </div>
+  </div>
+  <div class="card">
+    <img src="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=800&q=80" alt="Saúde e Beleza">
+    <div class="card-content">
+      <h3>Saúde e Beleza</h3>
+      <p>Cabeleireiros, manicures, massagistas e profissionais da área da saúde.</p>
+      <a href="#">Ver Serviços</a>
+    </div>
+  </div>
+  <div class="card">
+    <img src="https://images.unsplash.com/photo-1529070538774-1843cb3265df?auto=format&fit=crop&w=800&q=80" alt="Transporte e Logística">
+    <div class="card-content">
+      <h3>Transporte e Logística</h3>
+      <p>Entregadores, motoristas particulares e soluções rápidas para transporte.</p>
+      <a href="#">Ver Serviços</a>
+    </div>
+  </div>
+</section>
 
-  <!-- Categorias -->
-  <section class="cards">
-    <div class="card">
-      <img src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=800&q=80" alt="Limpeza e Cuidados">
-      <h3>Limpeza e Cuidados</h3>
-      <p>Profissionais para faxina, diaristas, passadeiras e muito mais.</p>
-      <a href="#">Ver Serviços</a>
-    </div>
-    <div class="card">
-      <img src="https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=800&q=80" alt="Manutenção">
-      <h3>Manutenção</h3>
-      <p>Eletricistas, encanadores, pintores e serviços gerais.</p>
-      <a href="#">Ver Serviços</a>
-    </div>
-    <div class="card">
-      <img src="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=800&q=80" alt="Beleza e Saúde">
-      <h3>Beleza e Saúde</h3>
-      <p>Cabeleireiros, manicures, massagistas e personal trainers.</p>
-      <a href="#">Ver Serviços</a>
-    </div>
-    <div class="card">
-      <img src="https://images.unsplash.com/photo-1529070538774-1843cb3265df?auto=format&fit=crop&w=800&q=80" alt="Transporte">
-      <h3>Transporte</h3>
-      <p>Motoristas particulares, entregas rápidas e muito mais.</p>
-      <a href="#">Ver Serviços</a>
-    </div>
-  </section>
-
-  <!-- Rodapé -->
-  <footer>
+<!-- Rodapé -->
+<footer>
+  <p>
     <a href="termos.html">Termos de Uso</a> | 
     <a href="privacidade.html">Política de Privacidade</a>
-    <p>CNPJ: 61.935.934/0001-00</p>
-  </footer>
+  </p>
+  <p>CNPJ: 61.935.934/0001-00</p>
+  <p>&copy; 2025 Help Floripa - Todos os direitos reservados.</p>
+</footer>
 
 </body>
-</html>
+          </html>
