@@ -1,102 +1,99 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Serviços - Help Floripa</title>
-<style>
-/* Reset */
-body,html{margin:0;padding:0;font-family:Arial, sans-serif;background:#000;color:#fff}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Serviços | Help Floripa</title>
+  <style>
+    body {margin:0;font-family:Arial, sans-serif;background:#000;color:#fff;}
+    header {background:#111;padding:15px 30px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #00adee;}
+    header h1 {color:#00adee;font-size:22px;margin:0;}
+    nav a {color:#fff;margin-left:15px;text-decoration:none;font-weight:bold;}
+    nav a:hover {color:#00adee;}
 
-/* Top Menu */
-.top-menu{background:#111;padding:15px;display:flex;justify-content:center;gap:25px;border-bottom:2px solid #00adee}
-.top-menu a{text-decoration:none;color:#fff;font-weight:bold;transition:.3s}
-.top-menu a:hover{color:#00adee}
+    /* Slide */
+    .slider {position:relative;max-width:100%;height:300px;overflow:hidden;}
+    .slides {display:flex;width:300%;animation:slide 12s infinite;}
+    .slides img {width:100%;height:300px;object-fit:cover;}
+    @keyframes slide {
+      0% {margin-left:0;}
+      33% {margin-left:0;}
+      36% {margin-left:-100%;}
+      66% {margin-left:-100%;}
+      69% {margin-left:-200%;}
+      100% {margin-left:-200%;}
+    }
 
-/* Hero / Slide */
-.slider{position:relative;max-width:100%;overflow:hidden;height:300px}
-.slides{display:flex;width:300%;animation:slide 12s infinite}
-.slides img{width:100%;height:300px;object-fit:cover}
-@keyframes slide{
-  0%{margin-left:0}
-  30%{margin-left:0}
-  35%{margin-left:-100%}
-  65%{margin-left:-100%}
-  70%{margin-left:-200%}
-  100%{margin-left:-200%}
-}
+    /* Cards */
+    .cards {display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;padding:30px;max-width:1100px;margin:auto;}
+    .card {background:#111;border:2px solid #00adee;border-radius:12px;overflow:hidden;text-align:center;transition:.3s;}
+    .card:hover {transform:scale(1.05);box-shadow:0 0 20px rgba(0,173,238,.6);}
+    .card img {width:100%;height:160px;object-fit:cover;}
+    .card h3 {color:#00adee;margin:10px 0;}
+    .card p {padding:0 10px 10px;font-size:14px;color:#ccc;}
+    .card a {display:inline-block;margin-bottom:15px;padding:8px 14px;background:#00adee;color:#000;font-weight:bold;text-decoration:none;border-radius:6px;}
 
-/* Categorias */
-.section-title{text-align:center;margin:40px 0 20px;font-size:24px;color:#00adee;text-transform:uppercase}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;padding:20px;max-width:1200px;margin:auto}
-.card{background:#111;border:2px solid #00adee;border-radius:12px;overflow:hidden;text-align:center;transition:.3s}
-.card:hover{transform:scale(1.05);box-shadow:0 0 20px rgba(0,173,238,.6)}
-.card img{width:100%;height:160px;object-fit:cover}
-.card h3{margin:15px 0;color:#00adee}
-.card p{padding:0 10px 15px;font-size:14px;color:#ddd}
-.card a{display:inline-block;margin-bottom:15px;padding:8px 16px;background:#00adee;color:#000;font-weight:bold;text-decoration:none;border-radius:6px}
-.card a:hover{background:#0087c2}
-
-/* Footer */
-footer{background:#111;padding:20px;text-align:center;border-top:2px solid #00adee;margin-top:40px}
-footer a{color:#00adee;text-decoration:none;margin:0 10px;font-size:14px}
-footer a:hover{text-decoration:underline}
-footer p{margin-top:10px;font-size:12px;color:#777}
-</style>
+    /* Rodapé */
+    footer {background:#111;text-align:center;padding:20px;border-top:2px solid #00adee;margin-top:20px;}
+    footer a {color:#00adee;text-decoration:none;margin:0 10px;font-size:14px;}
+    footer p {margin-top:10px;font-size:13px;color:#aaa;}
+  </style>
 </head>
 <body>
 
-<!-- Top Menu -->
-<div class="top-menu">
-  <a href="index.html">Início</a>
-  <a href="contato.html">Contato</a>
-  <a href="ajuda.html">Ajuda</a>
-</div>
+  <!-- Painel topo -->
+  <header>
+    <h1>Help Floripa</h1>
+    <nav>
+      <a href="index.html">Início</a>
+      <a href="contato.html">Contato</a>
+      <a href="ajuda.html">Ajuda</a>
+    </nav>
+  </header>
 
-<!-- Slide -->
-<div class="slider">
-  <div class="slides">
-    <img src="https://images.unsplash.com/photo-1581579188871-45ea61f2a0c8?auto=format&fit=crop&w=1200&q=80" alt="Serviços">
-    <img src="https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1200&q=80" alt="Profissionais">
-    <img src="https://images.unsplash.com/photo-1524492449090-1a065f3a4e48?auto=format&fit=crop&w=1200&q=80" alt="Cuidados">
+  <!-- Slide -->
+  <div class="slider">
+    <div class="slides">
+      <img src="https://images.unsplash.com/photo-1606813902652-7a3213017e5c?auto=format&fit=crop&w=1200&q=80" alt="Serviços 1">
+      <img src="https://images.unsplash.com/photo-1600891964599-f61ba0e24092?auto=format&fit=crop&w=1200&q=80" alt="Serviços 2">
+      <img src="https://images.unsplash.com/photo-1596323334943-bf4bfb4871b6?auto=format&fit=crop&w=1200&q=80" alt="Serviços 3">
+    </div>
   </div>
-</div>
 
-<!-- Categorias -->
-<h2 class="section-title">Nossas Categorias</h2>
-<div class="cards">
-  <div class="card">
-    <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80" alt="Limpeza">
-    <h3>Limpeza e Cuidados</h3>
-    <p>Profissionais de confiança para limpeza residencial, comercial e cuidados gerais.</p>
-    <a href="#">Ver mais</a>
-  </div>
-  <div class="card">
-    <img src="https://images.unsplash.com/photo-1581091870622-2c22afc0d51f?auto=format&fit=crop&w=800&q=80" alt="Eletricista">
-    <h3>Elétrica</h3>
-    <p>Serviços elétricos rápidos e seguros realizados por profissionais qualificados.</p>
-    <a href="#">Ver mais</a>
-  </div>
-  <div class="card">
-    <img src="https://images.unsplash.com/photo-1597009519859-b453940f32f5?auto=format&fit=crop&w=800&q=80" alt="Encanador">
-    <h3>Hidráulica</h3>
-    <p>Encanadores especializados para reparos, manutenções e instalações.</p>
-    <a href="#">Ver mais</a>
-  </div>
-  <div class="card">
-    <img src="https://images.unsplash.com/photo-1556912998-6e5e76b38e23?auto=format&fit=crop&w=800&q=80" alt="Pintura">
-    <h3>Pintura</h3>
-    <p>Pintores profissionais para renovar e transformar o visual do seu espaço.</p>
-    <a href="#">Ver mais</a>
-  </div>
-</div>
+  <!-- Categorias -->
+  <section class="cards">
+    <div class="card">
+      <img src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=800&q=80" alt="Limpeza e Cuidados">
+      <h3>Limpeza e Cuidados</h3>
+      <p>Profissionais para faxina, diaristas, passadeiras e muito mais.</p>
+      <a href="#">Ver Serviços</a>
+    </div>
+    <div class="card">
+      <img src="https://images.unsplash.com/photo-1581092334406-6e8f6a92c42d?auto=format&fit=crop&w=800&q=80" alt="Manutenção">
+      <h3>Manutenção</h3>
+      <p>Eletricistas, encanadores, pintores e serviços gerais.</p>
+      <a href="#">Ver Serviços</a>
+    </div>
+    <div class="card">
+      <img src="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=800&q=80" alt="Beleza e Saúde">
+      <h3>Beleza e Saúde</h3>
+      <p>Cabeleireiros, manicures, massagistas e personal trainers.</p>
+      <a href="#">Ver Serviços</a>
+    </div>
+    <div class="card">
+      <img src="https://images.unsplash.com/photo-1597007190954-6c747b6fb3ab?auto=format&fit=crop&w=800&q=80" alt="Transporte">
+      <h3>Transporte</h3>
+      <p>Motoristas particulares, entregas rápidas e muito mais.</p>
+      <a href="#">Ver Serviços</a>
+    </div>
+  </section>
 
-<!-- Rodapé -->
-<footer>
-  <a href="termos.html">Termos de Uso</a> | 
-  <a href="politicas.html">Política de Privacidade</a>
-  <p>CNPJ: 00.000.000/0001-00</p>
-</footer>
+  <!-- Rodapé -->
+  <footer>
+    <a href="termos.html">Termos de Uso</a> | 
+    <a href="privacidade.html">Política de Privacidade</a>
+    <p>CNPJ: 00.000.000/0001-00</p>
+  </footer>
 
 </body>
 </html>
