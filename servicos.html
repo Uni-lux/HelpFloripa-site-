@@ -3,132 +3,55 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Help Floripa | Serviços</title>
+<title>Serviços - Help Floripa</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif}
-body{background:#000;color:#fff;min-height:100vh;display:flex;flex-direction:column}
-
-/* Header Futurista */
-header{padding:20px;text-align:center;background:#111;border-bottom:2px solid #00adee}
-header h1{color:#00adee;font-size:28px;text-shadow:0 0 10px #00adee}
+body{margin:0;font-family:Arial, sans-serif;background:#000;color:#fff}
+header{background:#111;padding:20px;text-align:center;border-bottom:2px solid #00adee}
+header h1{color:#00adee;text-shadow:0 0 10px #00adee;font-size:28px}
 
 /* Botão voltar */
-.back-btn{display:inline-block;margin:15px auto;background:#00adee;color:#000;
-padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:bold;
-transition:.3s}
+.back-btn{display:block;margin:15px auto;text-align:center;width:160px;background:#00adee;color:#000;padding:10px;border-radius:8px;text-decoration:none;font-weight:bold}
 .back-btn:hover{background:#0087c2}
 
-/* Carrossel */
-.carousel{position:relative;max-width:900px;margin:30px auto;overflow:hidden;border-radius:15px;box-shadow:0 0 20px rgba(0,173,238,.5)}
-.carousel-track{display:flex;transition:transform .5s ease-in-out}
-.slide{min-width:100%;background:#111;color:#fff;text-align:center;padding:30px}
-.slide img{width:120px;height:120px;object-fit:cover;border-radius:50%;margin-bottom:15px;border:3px solid #00adee}
-.slide h3{color:#00adee;margin-bottom:8px}
-.stars{color:gold;font-size:18px;margin:5px 0}
-.orders{font-size:14px;color:#aaa}
+/* Slide */
+.hero{display:flex;overflow-x:auto;scroll-behavior:smooth;gap:20px;padding:20px}
+.hero::-webkit-scrollbar{display:none}
+.slide{flex:0 0 80%;background:#111;border-radius:12px;padding:20px;text-align:center;box-shadow:0 0 20px rgba(0,173,238,.4)}
+.slide img{width:120px;height:120px;border-radius:50%;border:3px solid #00adee}
+.slide h3{color:#00adee;margin-top:10px}
+.stars{color:gold}
 
-/* Controles carrossel */
-.carousel-btn{position:absolute;top:50%;transform:translateY(-50%);
-background:rgba(0,173,238,.8);border:none;color:#000;padding:8px 12px;
-cursor:pointer;border-radius:50%;font-size:18px}
-.prev{left:15px} .next{right:15px}
-.carousel-btn:hover{background:#0087c2}
-
-/* Cards categorias */
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;max-width:1100px;margin:40px auto}
-.card{background:#111;border:2px solid #00adee;border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+/* Grid categorias */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;padding:20px;max-width:1100px;margin:auto}
+.card{background:#111;border:2px solid #00adee;border-radius:12px;overflow:hidden;text-align:center;transition:.3s}
+.card:hover{transform:scale(1.05);box-shadow:0 0 20px rgba(0,173,238,.6)}
 .card img{width:100%;height:150px;object-fit:cover}
-.card-content{padding:15px;text-align:center}
-.card-content h3{color:#00adee;margin-bottom:10px}
-.card-content a{display:inline-block;margin-top:10px;background:#00adee;color:#000;
-padding:8px 14px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px}
-.card-content a:hover{background:#0087c2}
-
-/* Responsividade */
-@media(max-width:768px){
- header h1{font-size:22px}
- .slide img{width:90px;height:90px}
- .cards{gap:15px}
-}
+.card h3{color:#00adee;margin:10px 0}
+.card a{display:inline-block;margin:10px auto;padding:8px 14px;background:#00adee;color:#000;font-weight:bold;text-decoration:none;border-radius:6px}
 </style>
 </head>
 <body>
 
 <header>
- <h1>Serviços - Help Floripa</h1>
+  <h1>Serviços - Help Floripa</h1>
 </header>
 
 <a href="index.html" class="back-btn">← Voltar</a>
 
-<!-- Carrossel Profissionais -->
-<div class="carousel">
- <div class="carousel-track" id="track">
-   <div class="slide">
-     <img src="https://images.unsplash.com/photo-1603415526960-f7e0328b8d1d?auto=format&fit=crop&w=400&q=80" alt="Profissional 1">
-     <h3>João Silva - Eletricista</h3>
-     <div class="stars">⭐⭐⭐⭐⭐</div>
-     <p class="orders">+120 pedidos realizados</p>
-   </div>
-   <div class="slide">
-     <img src="https://images.unsplash.com/photo-1600508775005-8b184f9a504f?auto=format&fit=crop&w=400&q=80" alt="Profissional 2">
-     <h3>Maria Souza - Encanadora</h3>
-     <div class="stars">⭐⭐⭐⭐⭐</div>
-     <p class="orders">+95 pedidos realizados</p>
-   </div>
-   <div class="slide">
-     <img src="https://images.unsplash.com/photo-1595152772835-219674b2a8a6?auto=format&fit=crop&w=400&q=80" alt="Profissional 3">
-     <h3>Carlos Lima - Pintor</h3>
-     <div class="stars">⭐⭐⭐⭐⭐</div>
-     <p class="orders">+80 pedidos realizados</p>
-   </div>
- </div>
- <button class="carousel-btn prev" onclick="moveSlide(-1)">❮</button>
- <button class="carousel-btn next" onclick="moveSlide(1)">❯</button>
+<!-- Slide -->
+<div class="hero">
+  <div class="slide"><img src="https://i.imgur.com/8Km9tLL.jpg"><h3>João - Eletricista</h3><div class="stars">⭐⭐⭐⭐⭐</div><p>+120 pedidos</p></div>
+  <div class="slide"><img src="https://i.imgur.com/jNNT4LE.jpg"><h3>Maria - Encanadora</h3><div class="stars">⭐⭐⭐⭐⭐</div><p>+95 pedidos</p></div>
+  <div class="slide"><img src="https://i.imgur.com/VQ0fLph.jpg"><h3>Carlos - Pintor</h3><div class="stars">⭐⭐⭐⭐⭐</div><p>+80 pedidos</p></div>
 </div>
 
 <!-- Categorias -->
 <div class="cards">
- <div class="card">
-   <img src="https://images.unsplash.com/photo-1581091012184-5c64a5e6c1f3?auto=format&fit=crop&w=800&q=80" alt="Eletricista">
-   <div class="card-content">
-     <h3>Eletricista</h3>
-     <a href="#">Ver Profissionais</a>
-   </div>
- </div>
- <div class="card">
-   <img src="https://images.unsplash.com/photo-1600508774555-8cfd1c4f1bd8?auto=format&fit=crop&w=800&q=80" alt="Encanador">
-   <div class="card-content">
-     <h3>Encanador</h3>
-     <a href="#">Ver Profissionais</a>
-   </div>
- </div>
- <div class="card">
-   <img src="https://images.unsplash.com/photo-1595152772835-219674b2a8a6?auto=format&fit=crop&w=800&q=80" alt="Pintor">
-   <div class="card-content">
-     <h3>Pintor</h3>
-     <a href="#">Ver Profissionais</a>
-   </div>
- </div>
- <div class="card">
-   <img src="https://images.unsplash.com/photo-1581579186989-b9e1fba07a53?auto=format&fit=crop&w=800&q=80" alt="Diarista">
-   <div class="card-content">
-     <h3>Diarista</h3>
-     <a href="#">Ver Profissionais</a>
-   </div>
- </div>
+  <div class="card"><img src="https://i.imgur.com/6tYQ9pN.jpg"><h3>Eletricista</h3><a href="#">Ver</a></div>
+  <div class="card"><img src="https://i.imgur.com/Tx5nU0B.jpg"><h3>Encanador</h3><a href="#">Ver</a></div>
+  <div class="card"><img src="https://i.imgur.com/1bX5QH6.jpg"><h3>Pintor</h3><a href="#">Ver</a></div>
+  <div class="card"><img src="https://i.imgur.com/HL4FslS.jpg"><h3>Diarista</h3><a href="#">Ver</a></div>
 </div>
 
-<script>
-let index=0;
-function moveSlide(step){
- const track=document.getElementById("track");
- const slides=document.querySelectorAll(".slide");
- index=(index+step+slides.length)%slides.length;
- track.style.transform=`translateX(${-index*100}%)`;
-}
-// Auto-play
-setInterval(()=>moveSlide(1),5000);
-</script>
-
 </body>
-   </html>
+</html>
