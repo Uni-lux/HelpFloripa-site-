@@ -1,287 +1,552 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Shopping e Produtos | Help Floripa</title>
-  <style>
-    * {margin:0; padding:0; box-sizing:border-box; font-family: Arial, sans-serif;}
-    body {background:#000; color:#fff;}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shopping e Produtos | Help Floripa</title>
+<style>
+* {margin:0; padding:0; box-sizing:border-box; font-family: Arial, sans-serif;}
+body {background:#000; color:#fff; position:relative;}
 
-    /* Hero */
-    .hero {
-      background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)),
-                  url('https://images.unsplash.com/photo-1588591797398-89c63d3d1e97?auto=format&fit=crop&w=1470&q=80') center/cover no-repeat;
-      height:260px; 
-      display:flex;
-      flex-direction:column;
-      justify-content:center;
-      align-items:center;
-      text-align:center;
-      color:#00adee;
-      padding:20px;
-    }
-    .hero h1 {font-size:32px; margin-bottom:8px;}
-    .hero h2 {font-size:18px; color:#fff;}
-    .hero .hero-menu {margin-top:12px;}
-    .hero .hero-menu a {
-      text-decoration:none;
-      color:#000;
-      background:#00adee;
-      padding:8px 15px;
-      border-radius:6px;
-      font-weight:bold;
-      margin:0 5px;
-      transition:0.3s;
-    }
-    .hero .hero-menu a:hover {background:#0087c2;}
+/* Hero */
+.hero {
+  background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)),
+              url('https://images.unsplash.com/photo-1588591797398-89c63d3d1e97?auto=format&fit=crop&w=1470&q=80') center/cover no-repeat;
+  height:260px; 
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  text-align:center;
+  color:#00adee;
+  padding:20px;
+}
+.hero h1 {font-size:32px; margin-bottom:8px;}
+.hero h2 {font-size:18px; color:#fff;}
+.hero .hero-menu {margin-top:12px;}
+.hero .hero-menu a {
+  text-decoration:none;
+  color:#000;
+  background:#00adee;
+  padding:8px 15px;
+  border-radius:6px;
+  font-weight:bold;
+  margin:0 5px;
+  transition:0.3s;
+}
+.hero .hero-menu a:hover {background:#0087c2;}
 
-    /* Slide */
-    .slideshow-container {position:relative;max-width:100%;margin:20px auto;overflow:hidden;border-radius:12px;}
-    .slide {display:none;}
-    .slide img {width:100%;height:260px;object-fit:cover;}
+/* Carrinho */
+#cartButton {
+  position:fixed;
+  top:20px;
+  right:20px;
+  background:#00adee;
+  color:#000;
+  padding:10px 15px;
+  border-radius:8px;
+  font-weight:bold;
+  cursor:pointer;
+  z-index:999;
+}
+#cartButton:hover {background:#0087c2;}
+#cartContainer {
+  position:fixed;
+  top:60px;
+  right:20px;
+  width:300px;
+  max-height:70vh;
+  overflow-y:auto;
+  background:#111;
+  border:2px solid #00adee;
+  border-radius:12px;
+  padding:10px;
+  display:none;
+  z-index:999;
+}
+#cartContainer h3 {color:#00adee; margin-bottom:10px; text-align:center;}
+.cart-item {background:#222; border:1px solid #00adee; border-radius:8px; margin-bottom:8px; padding:8px; display:flex; justify-content:space-between; align-items:center;}
+.cart-item div {flex:1;}
+.cart-item button {background:#00adee; border:none; border-radius:5px; padding:4px 8px; cursor:pointer; color:#000; font-weight:bold;}
+.cart-item button:hover {background:#0087c2;}
+#cartTotal {text-align:right; font-weight:bold; margin-top:10px; color:#fff;}
+#checkoutBtn {display:block; width:100%; padding:10px; margin-top:10px; text-align:center; background:#00adee; color:#000; font-weight:bold; border-radius:8px; text-decoration:none;}
+#checkoutBtn:hover {background:#0087c2;}
 
-    /* Pesquisa */
-    .search-bar {
-      background:#111;
-      padding:20px;
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-      justify-content:center;
-      border-top:2px solid #00adee;
-      border-bottom:2px solid #00adee;
-    }
-    .search-bar input, .search-bar select {
-      padding:10px;
-      border:1px solid #00adee;
-      border-radius:8px;
-      font-size:15px;
-      min-width:180px;
-    }
+/* Slide */
+.slideshow-container {position:relative;max-width:100%;margin:20px auto;overflow:hidden;border-radius:12px;}
+.slide {display:none;}
+.slide img {width:100%;height:260px;object-fit:cover;}
 
-    /* Cards */
-    .cards {
-      display:flex;
-      flex-wrap:wrap;
-      gap:20px;
-      padding:25px;
-      justify-content:center;
-      max-width:1200px;
-      margin:auto;
-    }
-    .card {
-      background:#111; 
-      border:2px solid #00adee; 
-      border-radius:12px;
-      overflow:hidden; 
-      transition:.3s;
-      width:250px;
-      display:flex;
-      flex-direction:column;
-    }
-    .card:hover {transform:scale(1.05); box-shadow:0 0 15px rgba(0,173,238,.6);}
-    .card img {width:100%; height:180px; object-fit:cover;}
-    .card-content {padding:15px; text-align:center; flex:1;}
-    .card-content h3 {margin:0 0 5px; color:#00adee;}
-    .card-content p {font-size:14px; margin:0 0 5px; color:#ccc;}
-    .card-content .store {font-size:13px; color:#aaa; margin-bottom:5px;}
-    .price {font-weight:bold; color:#fff; margin-bottom:10px;}
-    .card-content input[type="number"] {
-      width:60px;
-      padding:5px;
-      border:1px solid #00adee;
-      border-radius:5px;
-      margin-bottom:10px;
-      text-align:center;
-      background:#000;
-      color:#fff;
-    }
-    .card-content a {
-      display:inline-block;
-      background:#00adee;
-      color:#000;
-      text-decoration:none;
-      padding:8px 14px;
-      border-radius:8px;
-      transition:background 0.3s;
-      font-weight:bold;
-    }
-    .card-content a:hover {background:#0087c2;}
+/* Pesquisa */
+.search-bar {
+  background:#111;
+  padding:20px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  justify-content:center;
+  border-top:2px solid #00adee;
+  border-bottom:2px solid #00adee;
+}
+.search-bar input, .search-bar select {
+  padding:10px;
+  border:1px solid #00adee;
+  border-radius:8px;
+  font-size:15px;
+  min-width:180px;
+}
 
-    /* Rodapé */
-    footer {
-      background:#111;
-      color:#aaa;
-      text-align:center;
-      padding:20px;
-      margin-top:40px;
-      border-top:2px solid #00adee;
-      font-size:14px;
-    }
-    footer a {color:#00adee; text-decoration:none; margin:0 8px;}
-    footer a:hover {text-decoration:underline;}
+/* Cards */
+.cards {
+  display:flex;
+  flex-wrap:wrap;
+  gap:20px;
+  padding:25px;
+  justify-content:center;
+  max-width:1200px;
+  margin:auto;
+}
+.card {
+  background:#111; 
+  border:2px solid #00adee; 
+  border-radius:12px;
+  overflow:hidden; 
+  transition:.3s;
+  width:250px;
+  display:flex;
+  flex-direction:column;
+}
+.card:hover {transform:scale(1.05); box-shadow:0 0 15px rgba(0,173,238,.6);}
+.card img {width:100%; height:180px; object-fit:cover;}
+.card-content {padding:15px; text-align:center; flex:1;}
+.card-content h3 {margin:0 0 5px; color:#00adee;}
+.card-content p {font-size:14px; margin:0 0 5px; color:#ccc;}
+.card-content .store {font-size:13px; color:#aaa; margin-bottom:5px;}
+.price {font-weight:bold; color:#fff; margin-bottom:10px;}
+.card-content input[type="number"] {
+  width:60px;
+  padding:5px;
+  border:1px solid #00adee;
+  border-radius:5px;
+  margin-bottom:10px;
+  text-align:center;
+  background:#000;
+  color:#fff;
+}
+.card-content a {
+  display:inline-block;
+  background:#00adee;
+  color:#000;
+  text-decoration:none;
+  padding:6px 10px;
+  border-radius:8px;
+  transition:background 0.3s;
+  font-weight:bold;
+  margin:2px;
+}
+.card-content a:hover {background:#0087c2;}
 
-    /* Responsivo */
-    @media(max-width:768px){
-      .hero {height:200px;}
-      .hero h1 {font-size:24px;}
-      .slide img {height:200px;}
-      .cards {justify-content:center;}
-    }
-    @media(max-width:480px){
-      .hero {height:160px;}
-      .hero h1 {font-size:20px;}
-      .hero h2 {font-size:14px;}
-      .hero .hero-menu a {padding:6px 10px; font-size:12px;}
-      .slide img {height:160px;}
-      .cards {flex-direction:column; align-items:center;}
-    }
-  </style>
+/* Rodapé */
+footer {
+  background:#111;
+  color:#aaa;
+  text-align:center;
+  padding:20px;
+  margin-top:40px;
+  border-top:2px solid #00adee;
+  font-size:14px;
+}
+footer a {color:#00adee; text-decoration:none; margin:0 8px;}
+footer a:hover {text-decoration:underline;}
+
+/* Responsivo */
+@media(max-width:768px){
+  .hero {height:200px;}
+  .hero h1 {font-size:24px;}
+  .slide img {height:200px;}
+  .cards {justify-content:center;}
+}
+@media(max-width:480px){
+  .hero {height:160px;}
+  .hero h1 {font-size:20px;}
+  .hero h2 {font-size:14px;}
+  .hero .hero-menu a {padding:6px 10px; font-size:12px;}
+  .slide img {height:160px;}
+  .cards {flex-direction:column; align-items:center;}
+}
+</style>
 </head>
 <body>
-  <!-- Hero -->
-  <div class="hero">
-    <h1>Help Floripa</h1>
-    <h2>Shopping e Produtos</h2>
-    <div class="hero-menu">
-      <a href="index.html">Início</a>
-      <a href="contato.html">Contato</a>
-      <a href="ajuda.html">Ajuda</a>
+
+<!-- Hero -->
+<div class="hero">
+  <h1>Help Floripa</h1>
+  <h2>Shopping e Produtos</h2>
+  <div class="hero-menu">
+    <a href="index.html">Início</a>
+    <a href="contato.html">Contato</a>
+    <a href="ajuda.html">Ajuda</a>
+  </div>
+</div>
+
+<!-- Carrinho -->
+<div id="cartButton">🛒 Carrinho (<span id="cartCount">0</span>)</div>
+<div id="cartContainer">
+  <h3>Seu Carrinho</h3>
+  <div id="cartItems"></div>
+  <div id="cartTotal">Total: R$ 0,00</div>
+  <a href="#" id="checkoutBtn">Solicitar Pedido</a>
+</div>
+
+<!-- Slide -->
+<div class="slideshow-container">
+  <div class="slide fade">
+    <img src="https://images.unsplash.com/photo-1542831371-d531d36971e6?auto=format&fit=crop&w=1500&q=80" alt="Promoção 1">
+  </div>
+  <div class="slide fade">
+    <img src="https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?auto=format&fit=crop&w=1500&q=80" alt="Promoção 2">
+  </div>
+  <div class="slide fade">
+    <img src="https://images.unsplash.com/photo-1602524815036-7b82c1c89db4?auto=format&fit=crop&w=1500&q=80" alt="Promoção 3">
+  </div>
+</div>
+
+<!-- Barra de pesquisa -->
+<div class="search-bar">
+  <input type="text" id="searchName" placeholder="🔍 Pesquisar produto ou loja...">
+  <select id="searchCategory">
+    <option value="">Categoria</option>
+    <option value="eletronicos">Eletrônicos</option>
+    <option value="roupas">Roupas</option>
+    <option value="mercado">Mercado</option>
+    <option value="outros">Outros</option>
+  </select>
+  <select id="priceRange">
+    <option value="">Faixa de preço</option>
+    <option value="0-50">Até R$50</option>
+    <option value="51-100">R$51 - R$100</option>
+    <option value="101-200">R$101 - R$200</option>
+    <option value="201-9999">Acima de R$200</option>
+  </select>
+</div>
+
+<!-- Cards -->
+<div class="cards" id="cardsContainer">
+  <!-- Produto 1 -->
+  <div class="card" data-category="eletronicos" data-price="199.9">
+    <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=800&q=80" alt="Fone de ouvido">
+    <div class="card-content">
+      <h3>Fone Bluetooth</h3>
+      <p>Alta qualidade de som e bateria duradoura.</p>
+      <div class="store">Loja: TecnoCenter</div>
+      <div class="price">R$ 199,90 | Disponível: 5</div>
+      <input type="number" min="1" value="1">
+      <a href="#" class="addCart">Adicionar ao carrinho</a>
+      <a href="#" class="orderNow">Fazer Pedido</a>
     </div>
   </div>
 
-  <!-- Slide -->
-  <div class="slideshow-container">
-    <div class="slide fade">
-      <img src="https://images.unsplash.com/photo-1542831371-d531d36971e6?auto=format&fit=crop&w=1500&q=80" alt="Promoção 1">
-    </div>
-    <div class="slide fade">
-      <img src="https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?auto=format&fit=crop&w=1500&q=80" alt="Promoção 2">
-    </div>
-    <div class="slide fade">
-      <img src="https://images.unsplash.com/photo-1602524815036-7b82c1c89db4?auto=format&fit=crop&w=1500&q=80" alt="Promoção 3">
+  <!-- Produto 2 -->
+  <div class="card" data-category="roupas" data-price="79.9">
+    <img src="https://images.unsplash.com/photo-1521335629791-ce4aec67dd47?auto=format&fit=crop&w=800&q=80" alt="Camisa">
+    <div class="card-content">
+      <h3>Camisa Estilosa</h3>
+      <p>Conforto e estilo para o dia a dia.</p>
+      <div class="store">Loja: ModaFloripa</div>
+      <div class="price">R$ 79,90 | Disponível: 12</div>
+      <input type="number" min="1" value="1">
+      <a href="#" class="addCart">Adicionar ao carrinho</a>
+      <a href="#" class="orderNow">Fazer Pedido</a>
     </div>
   </div>
 
-  <!-- Barra de pesquisa -->
-  <div class="search-bar">
-    <input type="text" id="searchName" placeholder="🔍 Pesquisar produto ou loja...">
-    <select id="searchCategory">
-      <option value="">Categoria</option>
-      <option value="eletronicos">Eletrônicos</option>
-      <option value="roupas">Roupas</option>
-      <option value="mercado">Mercado</option>
-      <option value="outros">Outros</option>
-    </select>
-    <select id="priceRange">
-      <option value="">Faixa de preço</option>
-      <option value="0-50">Até R$50</option>
-      <option value="51-100">R$51 - R$100</option>
-      <option value="101-200">R$101 - R$200</option>
-      <option value="201-9999">Acima de R$200</option>
-    </select>
+  <!-- Produto 3 -->
+  <div class="card" data-category="mercado" data-price="49.9">
+    <img src="https://images.unsplash.com/photo-1576402187878-974f70c890a5?auto=format&fit=crop&w=800&q=80" alt="Cesta de frutas">
+    <div class="card-content">
+      <h3>Cesta de Frutas</h3>
+      <p>Frutas frescas direto do produtor.</p>
+      <div class="store">Loja: Frutas & Cia</div>
+      <div class="price">R$ 49,90 | Disponível: 8</div>
+      <input type="number" min="1" value="1">
+      <a href="#" class="addCart">Adicionar ao carrinho</a>
+      <a href="#" class="orderNow">Fazer Pedido</a>
+    </div>
   </div>
 
-  <!-- Cards -->
-  <div class="cards" id="cardsContainer">
-    <!-- Exemplo de card -->
-    <div class="card" data-category="eletronicos" data-price="199.9">
-      <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=800&q=80" alt="Fone de ouvido">
-      <div class="card-content">
-        <h3>Fone Bluetooth</h3>
-        <p>Alta qualidade de som e bateria duradoura.</p>
-        <div class="store">Loja: TecnoCenter</div>
-        <div class="price">R$ 199,90 | Disponível: 5</div>
-        <input type="number" min="1" value="1">
-        <a href="#">Adicionar ao carrinho</a>
-      </div>
+  <!-- Produtos fictícios adicionais -->
+  <div class="card" data-category="eletronicos" data-price="349.9">
+    <img src="https://images.unsplash.com/photo-1580910051070-0d6d75cd5393?auto=format&fit=crop&w=800&q=80" alt="Smartwatch">
+    <div class="card-content">
+      <h3>Smartwatch Moderno</h3>
+      <p>Monitoramento de saúde e notificações.</p>
+      <div class="store">Loja: TecnoCenter</div>
+      <div class="price">R$ 349,90 | Disponível: 7</div>
+      <input type="number" min="1" value="1">
+      <a href="#" class="addCart">Adicionar ao carrinho</a>
+      <a href="#" class="orderNow">Fazer Pedido</a>
     </div>
-
-    <div class="card" data-category="roupas" data-price="79.9">
-      <img src="https://images.unsplash.com/photo-1521335629791-ce4aec67dd47?auto=format&fit=crop&w=800&q=80" alt="Camisa">
-      <div class="card-content">
-        <h3>Camisa Estilosa</h3>
-        <p>Conforto e estilo para o dia a dia.</p>
-        <div class="store">Loja: ModaFloripa</div>
-        <div class="price">R$ 79,90 | Disponível: 12</div>
-        <input type="number" min="1" value="1">
-        <a href="#">Adicionar ao carrinho</a>
-      </div>
-    </div>
-
-    <div class="card" data-category="mercado" data-price="49.9">
-      <img src="https://images.unsplash.com/photo-1576402187878-974f70c890a5?auto=format&fit=crop&w=800&q=80" alt="Cesta de frutas">
-      <div class="card-content">
-        <h3>Cesta de Frutas</h3>
-        <p>Frutas frescas direto do produtor.</p>
-        <div class="store">Loja: Frutas & Cia</div>
-        <div class="price">R$ 49,90 | Disponível: 8</div>
-        <input type="number" min="1" value="1">
-        <a href="#">Adicionar ao carrinho</a>
-      </div>
-    </div>
-
-    <!-- Aqui você adicionaria os 10 produtos fictícios adicionais da mesma forma -->
   </div>
 
-  <!-- Rodapé -->
-  <footer>
-    <p>CNPJ: 61.935.934/0001-00</p>
-    <p>
-      <a href="termos.html">Termos de Uso</a> | 
-      <a href="privacidade.html">Política de Privacidade</a>
-    </p>
-    <p>&copy; 2025 Help Floripa - Todos os direitos reservados.</p>
-  </footer>
+  <div class="card" data-category="roupas" data-price="129.9">
+    <img src="https://images.unsplash.com/photo-1556905055-8f358a7a47b1?auto=format&fit=crop&w=800&q=80" alt="Jaqueta">
+    <div class="card-content">
+      <h3>Jaqueta Casual</h3>
+      <p>Estilo e conforto para qualquer estação.</p>
+      <div class="store">Loja: ModaFloripa</div>
+      <div class="price">R$ 129,90 | Disponível: 6</div>
+      <input type="number" min="1" value="1">
+      <a href="#" class="addCart">Adicionar ao carrinho</a>
+      <a href="#" class="orderNow">Fazer Pedido</a>
+    </div>
+  </div>
 
-  <script>
-    // Slide automático
-    let slideIndex = 0;
-    showSlides();
-    function showSlides() {
-      let slides = document.getElementsByClassName("slide");
-      for (let i = 0; i < slides.length; i++) { slides[i].style.display = "none"; }
-      slideIndex++;
-      if (slideIndex > slides.length) {slideIndex = 1;}
-      slides[slideIndex-1].style.display = "block";  
-      setTimeout(showSlides, 4000);
+  <div class="card" data-category="mercado" data-price="19.9">
+    <img src="https://images.unsplash.com/photo-1589878656949-8de6f1ad9f25?auto=format&fit=crop&w=800&q=80" alt="Pão de forma">
+    <div class="card-content">
+      <h3>Pão de Forma Integral</h3>
+      <p>Saudável e fresquinho.</p>
+      <div class="store">Loja: Mercado Central</div>
+      <div class="price">R$ 19,90 | Disponível: 20</div>
+      <input type="number" min="1" value="1">
+      <a href="#" class="addCart">Adicionar ao carrinho</a>
+      <a href="#" class="orderNow">Fazer Pedido</a>
+    </div>
+  </div>
+
+  <div class="card" data-category="outros" data-price="15.9">
+    <img src="https://images.unsplash.com/photo-1589909145786-31f71b92c873?auto=format&fit=crop&w=800&q=80" alt="Caneca personalizada">
+    <div class="card-content">
+      <h3>Caneca Personalizada</h3>
+      <p>Perfeita para presentes ou escritório.</p>
+      <div class="store">Loja: Presentes Floripa</div>
+      <div class="price">R$ 15,90 | Disponível: 10</div>
+      <input type="number" min="1" value="1">
+      <a href="#" class="addCart">Adicionar ao carrinho</a>
+      <a href="#" class="orderNow">Fazer Pedido</a>
+    </div>
+  </div>
+
+  <div class="card" data-category="eletronicos" data-price="899.9">
+    <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=800&q=80" alt="Notebook">
+    <div class="card-content">
+      <h3>Notebook Gamer</h3>
+      <p>Desempenho elevado para jogos e trabalho.</p>
+      <div class="store">Loja: TecnoCenter</div>
+      <div class="price">R$ 899,90 | Disponível: 3</div>
+      <input type="number" min="1" value="1">
+      <a href="#" class="addCart">Adicionar ao carrinho</a>
+      <a href="#" class="orderNow">Fazer Pedido</a>
+    </div>
+  </div>
+
+  <div class="card" data-category="roupas" data-price="59.9">
+    <img src="https://images.unsplash.com/photo-1584362917167-9b982bdcd6b2?auto=format&fit=crop&w=800&q=80" alt="Tênis">
+    <div class="card-content">
+      <h3>Tênis Esportivo</h3>
+      <p>Conforto e estilo para o dia a dia.</p>
+      <div class="store">Loja: ModaFloripa</div>
+      <div class="price">R$ 59,90 | Disponível: 15</div>
+      <input type="number" min="1" value="1">
+      <a href="#" class="addCart">Adicionar ao carrinho</a>
+      <a href="#" class="orderNow">Fazer Pedido</a>
+    </div>
+  </div>
+
+  <div class="card" data-category="mercado" data-price="39.9">
+    <img src="https://images.unsplash.com/photo-1585238342020-96629ff76f1c?auto=format&fit=crop&w=800&q=80" alt="Queijo">
+    <div class="card-content">
+      <h3>Queijo Artesanal</h3>
+      <p>Produzido localmente com cuidado.</p>
+      <div class="store">Loja: Queijos Floripa</div>
+      <div class="price">R$ 39,90 | Disponível: 12</div>
+      <input type="number" min="1" value="1">
+      <a href="#" class="addCart">Adicionar ao carrinho</a>
+      <a href="#" class="orderNow">Fazer Pedido</a>
+    </div>
+  </div>
+
+  <div class="card" data-category="outros" data-price="29.9">
+    <img src="https://images.unsplash.com/photo-1591035897811-8e6f4b1d7fc6?auto=format&fit=crop&w=800&q=80" alt="Livro">
+    <div class="card-content">
+      <h3>Livro de Receitas</h3>
+      <p>Dicas de culinária para todos os gostos.</p>
+      <div class="store">Loja: Livraria Floripa</div>
+      <div class="price">R$ 29,90 | Disponível: 7</div>
+      <input type="number" min="1" value="1">
+      <a href="#" class="addCart">Adicionar ao carrinho</a>
+      <a href="#" class="orderNow">Fazer Pedido</a>
+    </div>
+  </div>
+
+  <div class="card" data-category="eletronicos" data-price="499.9">
+    <img src="https://images.unsplash.com/photo-1580910051070-0d6d75cd5393?auto=format&fit=crop&w=800&q=80" alt="Tablet">
+    <div class="card-content">
+      <h3>Tablet Android</h3>
+      <p>Perfeito para estudo e entretenimento.</p>
+      <div class="store">Loja: TecnoCenter</div>
+      <div class="price">R$ 499,90 | Disponível: 4</div>
+      <input type="number" min="1" value="1">
+      <a href="#" class="addCart">Adicionar ao carrinho</a>
+      <a href="#" class="orderNow">Fazer Pedido</a>
+    </div>
+  </div>
+
+  <div class="card" data-category="roupas" data-price="39.9">
+    <img src="https://images.unsplash.com/photo-1562158070-07e11eb0f1a6?auto=format&fit=crop&w=800&q=80" alt="Boné">
+    <div class="card-content">
+      <h3>Boné Casual</h3>
+      <p>Proteção e estilo para o dia a dia.</p>
+      <div class="store">Loja: ModaFloripa</div>
+      <div class="price">R$ 39,90 | Disponível: 10</div>
+      <input type="number" min="1" value="1">
+      <a href="#" class="addCart">Adicionar ao carrinho</a>
+      <a href="#" class="orderNow">Fazer Pedido</a>
+    </div>
+  </div>
+
+  <div class="card" data-category="mercado" data-price="9.9">
+    <img src="https://images.unsplash.com/photo-1580910051070-0d6d75cd5393?auto=format&fit=crop&w=800&q=80" alt="Leite">
+    <div class="card-content">
+      <h3>Leite Integral</h3>
+      <p>Fresco e nutritivo.</p>
+      <div class="store">Loja: Mercado Central</div>
+      <div class="price">R$ 9,90 | Disponível: 30</div>
+      <input type="number" min="1" value="1">
+      <a href="#" class="addCart">Adicionar ao carrinho</a>
+      <a href="#" class="orderNow">Fazer Pedido</a>
+    </div>
+  </div>
+
+</div> <!-- Fim dos cards -->
+
+<!-- Rodapé -->
+<footer>
+  <p>CNPJ: 61.935.934/0001-00</p>
+  <p><a href="termos.html">Termos de Uso</a> | <a href="privacidade.html">Política de Privacidade</a></p>
+  <p>&copy; 2025 Help Floripa - Todos os direitos reservados.</p>
+</footer>
+
+<script>
+// Slide automático
+let slideIndex = 0;
+showSlides();
+function showSlides() {
+  let slides = document.getElementsByClassName("slide");
+  for (let i=0; i<slides.length; i++) { slides[i].style.display = "none"; }
+  slideIndex++;
+  if(slideIndex > slides.length) slideIndex=1;
+  slides[slideIndex-1].style.display = "block";
+  setTimeout(showSlides,4000);
+}
+  // Filtros
+function filterCards() {
+  const nameFilter = searchName.value.toLowerCase();
+  const categoryFilter = searchCategory.value;
+  const priceValue = priceRange.value;
+  cards.forEach(card => {
+    const title = card.querySelector('h3').textContent.toLowerCase();
+    const desc = card.querySelector('p').textContent.toLowerCase();
+    const store = card.querySelector('.store').textContent.toLowerCase();
+    const category = card.getAttribute('data-category');
+    const price = parseFloat(card.getAttribute('data-price'));
+    
+    const matchesName = title.includes(nameFilter) || desc.includes(nameFilter) || store.includes(nameFilter);
+    const matchesCategory = !categoryFilter || category === categoryFilter;
+    
+    let matchesPrice = true;
+    if(priceValue){
+      const [min, max] = priceValue.split('-').map(Number);
+      matchesPrice = price >= min && price <= max;
     }
 
-    // Filtros de pesquisa
-    const searchName = document.getElementById('searchName');
-    const searchCategory = document.getElementById('searchCategory');
-    const priceRange = document.getElementById('priceRange');
-    const cards = document.querySelectorAll('.card');
+    card.style.display = (matchesName && matchesCategory && matchesPrice) ? '' : 'none';
+  });
+}
 
-    function filterCards() {
-      const nameFilter = searchName.value.toLowerCase();
-      const categoryFilter = searchCategory.value;
-      const priceValue = priceRange.value;
+searchName.addEventListener('keyup', filterCards);
+searchCategory.addEventListener('change', filterCards);
+priceRange.addEventListener('change', filterCards);
 
-      cards.forEach(card => {
-        const title = card.querySelector('h3').textContent.toLowerCase();
-        const desc = card.querySelector('p').textContent.toLowerCase();
-        const store = card.querySelector('.store').textContent.toLowerCase();
-        const category = card.getAttribute('data-category');
-        const price = parseFloat(card.getAttribute('data-price'));
+// Carrinho
+const cartButton = document.getElementById('cartButton');
+const cartContainer = document.getElementById('cartContainer');
+const cartItemsDiv = document.getElementById('cartItems');
+const cartCount = document.getElementById('cartCount');
+const cartTotal = document.getElementById('cartTotal');
 
-        const matchesName = title.includes(nameFilter) || desc.includes(nameFilter) || store.includes(nameFilter);
-        const matchesCategory = !categoryFilter || category === categoryFilter;
+let cart = [];
 
-        let matchesPrice = true;
-        if(priceValue) {
-          const [min, max] = priceValue.split('-').map(Number);
-          matchesPrice = price >= min && price <= max;
-        }
+// Mostrar/ocultar carrinho
+cartButton.addEventListener('click', ()=>{
+  cartContainer.style.display = cartContainer.style.display === 'block' ? 'none' : 'block';
+});
 
-        card.style.display = (matchesName && matchesCategory && matchesPrice) ? '' : 'none';
-      });
+// Adicionar ao carrinho
+document.querySelectorAll('.addCart').forEach(btn=>{
+  btn.addEventListener('click', (e)=>{
+    e.preventDefault();
+    const card = btn.closest('.card');
+    const title = card.querySelector('h3').textContent;
+    const price = parseFloat(card.getAttribute('data-price'));
+    const qty = parseInt(card.querySelector('input[type="number"]').value);
+    const store = card.querySelector('.store').textContent;
+
+    const existing = cart.find(item => item.title === title);
+    if(existing){
+      existing.qty += qty;
+    } else {
+      cart.push({title, price, qty, store});
     }
+    updateCart();
+  });
+});
 
-    searchName.addEventListener('keyup', filterCards);
-    searchCategory.addEventListener('change', filterCards);
-    priceRange.addEventListener('change', filterCards);
-  </script>
+// Atualizar carrinho
+function updateCart(){
+  cartItemsDiv.innerHTML = '';
+  let total = 0;
+  cart.forEach((item, index)=>{
+    total += item.price * item.qty;
+    const div = document.createElement('div');
+    div.className = 'cart-item';
+    div.innerHTML = `
+      <div>
+        <strong>${item.title}</strong><br>
+        ${item.store}<br>
+        R$ ${item.price.toFixed(2)} x ${item.qty}
+      </div>
+      <button data-index="${index}">X</button>
+    `;
+    cartItemsDiv.appendChild(div);
+  });
+  cartTotal.textContent = `Total: R$ ${total.toFixed(2)}`;
+  cartCount.textContent = cart.reduce((acc,i)=>acc+i.qty,0);
+
+  // Remover item
+  document.querySelectorAll('.cart-item button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const idx = parseInt(btn.getAttribute('data-index'));
+      cart.splice(idx,1);
+      updateCart();
+    });
+  });
+}
+
+// Fazer pedido
+document.getElementById('checkoutBtn').addEventListener('click', ()=>{
+  if(cart.length === 0){
+    alert('Seu carrinho está vazio!');
+  } else {
+    let message = 'Pedido:\n';
+    cart.forEach(item=>{
+      message += `${item.title} - ${item.qty} x R$ ${item.price.toFixed(2)}\n`;
+    });
+    message += `Total: R$ ${cart.reduce((acc,i)=>acc+i.price*i.qty,0).toFixed(2)}`;
+    alert(message);
+  }
+});
+</script>
 </body>
-          </html>
+</html>
