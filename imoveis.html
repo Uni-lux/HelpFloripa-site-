@@ -3,14 +3,53 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Help Floripa | Imóveis</title>
+  <title>Help Floripa | Aluguéis & Imóveis</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       margin: 0;
       background: #000;
       color: #fff;
+      display: flex;
     }
+
+    /* ==== MENU LATERAL ==== */
+    .sidebar {
+      width: 220px;
+      background: #001f3f;
+      color: white;
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100%;
+      padding: 20px 0;
+      border-right: 3px solid #00adee;
+    }
+    .sidebar h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 20px;
+      color: #00adee;
+    }
+    .sidebar a {
+      display: block;
+      padding: 12px 20px;
+      color: white;
+      text-decoration: none;
+      font-size: 16px;
+      transition: 0.3s;
+    }
+    .sidebar a:hover {
+      background: #00adee;
+      color: #000;
+    }
+
+    /* ==== CONTEÚDO PRINCIPAL ==== */
+    .content {
+      margin-left: 220px;
+      width: calc(100% - 220px);
+    }
+
     /* Painel superior */
     header {
       background: linear-gradient(135deg, #001f3f, #000);
@@ -29,6 +68,7 @@
       font-size: 16px;
       color: #ddd;
     }
+
     /* Filtros */
     .filters {
       background: #111;
@@ -58,6 +98,7 @@
     .filters button:hover {
       background: #007ba7;
     }
+
     /* Catálogo */
     .catalog {
       display: grid;
@@ -127,6 +168,7 @@
       text-decoration: none;
       font-weight: bold;
     }
+
     /* Rodapé */
     footer {
       background: #001f3f;
@@ -140,25 +182,38 @@
   </style>
 </head>
 <body>
-<header>
-  <h1>Catálogo de Imóveis</h1>
-  <p>Encontre o imóvel ideal para você em Florianópolis</p>
-</header>
 
-<section class="filters">
-  <input type="text" id="search" placeholder="Pesquisar por bairro ou título...">
-  <select id="tipo">
-    <option value="">Tipo</option>
-    <option value="aluguel">Aluguel</option>
-    <option value="venda">Venda</option>
-  </select>
-  <input type="number" id="minPrice" placeholder="Preço mínimo (R$)">
-  <input type="number" id="maxPrice" placeholder="Preço máximo (R$)">
-  <button onclick="filterProperties()">Filtrar</button>
-</section>
+<!-- Menu lateral -->
+<div class="sidebar">
+  <h2>Help Floripa</h2>
+  <a href="index.html">Início</a>
+  <a href="imoveis.html">Imóveis</a>
+  <a href="contato.html">Contato</a>
+  <a href="ajuda.html">Ajuda</a>
+</div>
 
-<section class="catalog" id="catalog">
+<!-- Conteúdo principal -->
+<div class="content">
+  <header>
+    <h1>Help Floripa | Aluguéis & Imóveis</h1>
+    <p>Encontre o imóvel ideal para você em Florianópolis</p>
+  </header>
 
+  <section class="filters">
+    <input type="text" id="search" placeholder="Pesquisar por bairro ou título...">
+    <select id="tipo">
+      <option value="">Tipo</option>
+      <option value="aluguel">Aluguel</option>
+      <option value="venda">Venda</option>
+    </select>
+    <input type="number" id="minPrice" placeholder="Preço mínimo (R$)">
+    <input type="number" id="maxPrice" placeholder="Preço máximo (R$)">
+    <button onclick="filterProperties()">Filtrar</button>
+  </section>
+
+  <section class="catalog" id="catalog">
+    <!-- Seus cards de imóveis aqui -->
+  
   <!-- Imóvel 1 -->
   <div class="property-card" data-tipo="aluguel" data-price="2500">
     <img src="https://picsum.photos/500/300?random=1" alt="Apartamento no Centro">
@@ -240,9 +295,20 @@
 </section>
 
 <footer>
-  <p>Help Floripa © 2025 - Todos os direitos reservados</p>
-</footer>
+    <p>Help Floripa © <span id="ano"></span> - Todos os direitos reservados</p>
+    <p>CNPJ: 00.000.000/0001-00</p>
+    <p>
+      <a href="termos.html" style="color:#00adee; text-decoration:none;">Termos de Uso</a> | 
+      <a href="politica.html" style="color:#00adee; text-decoration:none;">Política de Privacidade</a>
+    </p>
+  </footer>
 
+  <script>
+    // Atualiza o ano automaticamente
+    document.getElementById("ano").textContent = new Date().getFullYear();
+  </script>
+</div>
+  
 <script>
 function filterProperties(){
   const search = document.getElementById("search").value.toLowerCase();
