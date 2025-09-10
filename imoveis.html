@@ -11,17 +11,25 @@
       background: #000;
       color: #fff;
     }
+    /* Painel superior */
     header {
-      background: #001f3f;
+      background: linear-gradient(135deg, #001f3f, #000);
       color: white;
-      padding: 15px;
+      padding: 40px 15px;
       text-align: center;
+      border-bottom: 4px solid #00adee;
     }
-    h1 {
+    header h1 {
       margin: 0;
-      font-size: 26px;
+      font-size: 32px;
       color: #00adee;
     }
+    header p {
+      margin-top: 8px;
+      font-size: 16px;
+      color: #ddd;
+    }
+    /* Filtros */
     .filters {
       background: #111;
       padding: 15px;
@@ -29,11 +37,12 @@
       flex-wrap: wrap;
       gap: 15px;
       justify-content: center;
+      border-bottom: 2px solid #00adee;
     }
     .filters input, .filters select, .filters button {
-      padding: 8px;
+      padding: 10px;
       border: none;
-      border-radius: 6px;
+      border-radius: 8px;
       font-size: 14px;
     }
     .filters input, .filters select {
@@ -49,34 +58,44 @@
     .filters button:hover {
       background: #007ba7;
     }
+    /* Catálogo */
     .catalog {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 20px;
-      padding: 20px;
+      padding: 30px;
+      max-width: 1200px;
+      margin: auto;
     }
     .property-card {
       background: #111;
       border-radius: 12px;
       overflow: hidden;
-      box-shadow: 0 0 10px rgba(0,0,0,0.6);
-      transition: transform 0.3s;
+      box-shadow: 0 0 12px rgba(0,0,0,0.7);
+      transition: transform 0.3s, box-shadow 0.3s;
+      display: flex;
+      flex-direction: column;
     }
     .property-card:hover {
       transform: translateY(-5px);
+      box-shadow: 0 0 18px rgba(0,173,238,0.8);
     }
     .property-card img {
       width: 100%;
-      height: 200px;
+      height: 180px;
       object-fit: cover;
     }
     .property-info {
       padding: 15px;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
     .property-info h2 {
       margin: 0 0 10px;
       color: #00adee;
-      font-size: 20px;
+      font-size: 18px;
     }
     .price {
       font-size: 18px;
@@ -87,11 +106,12 @@
     .location {
       font-size: 14px;
       margin-bottom: 10px;
+      color: #ccc;
     }
     .details {
-      font-size: 14px;
+      font-size: 13px;
       margin-bottom: 8px;
-      line-height: 1.5;
+      line-height: 1.4;
     }
     .incluso {
       margin: 8px 0;
@@ -107,12 +127,15 @@
       text-decoration: none;
       font-weight: bold;
     }
+    /* Rodapé */
     footer {
       background: #001f3f;
       text-align: center;
-      padding: 15px;
+      padding: 20px;
       font-size: 14px;
-      margin-top: 20px;
+      margin-top: 30px;
+      color: #ddd;
+      border-top: 3px solid #00adee;
     }
   </style>
 </head>
@@ -175,7 +198,46 @@
     </div>
   </div>
 
-  </section>
+  <!-- Imóvel 4 -->
+  <div class="property-card" data-tipo="venda" data-price="1200000">
+    <img src="https://picsum.photos/500/300?random=4" alt="Cobertura Beira-Mar Norte">
+    <div class="property-info">
+      <h2>Cobertura de Luxo - Beira-Mar Norte</h2>
+      <div class="price">R$ 1.200.000</div>
+      <div class="location">Beira-Mar Norte - Florianópolis, SC</div>
+      <div class="details">4 Quartos | 4 Banheiros | 3 Vagas | 280m²</div>
+      <div class="incluso">✔ Vista para o mar | ✔ Piscina privativa | ✔ Academia</div>
+      <div class="responsavel">Responsável: <a href="mailto:luxo@exemplo.com">Imobiliária Premium</a></div>
+    </div>
+  </div>
+
+  <!-- Imóvel 5 -->
+  <div class="property-card" data-tipo="aluguel" data-price="3200">
+    <img src="https://picsum.photos/500/300?random=5" alt="Casa no Ingleses">
+    <div class="property-info">
+      <h2>Casa 2 Andares - Ingleses</h2>
+      <div class="price">R$ 3.200 / mês</div>
+      <div class="location">Ingleses - Florianópolis, SC</div>
+      <div class="details">3 Quartos | 2 Banheiros | 2 Vagas | 140m²</div>
+      <div class="incluso">✔ Pátio amplo | ✘ Internet não incluso | ✔ Mobiliada</div>
+      <div class="responsavel">Responsável: <a href="https://wa.me/5548777777777" target="_blank">Carlos Lima</a></div>
+    </div>
+  </div>
+
+  <!-- Imóvel 6 -->
+  <div class="property-card" data-tipo="venda" data-price="450000">
+    <img src="https://picsum.photos/500/300?random=6" alt="Apartamento em Coqueiros">
+    <div class="property-info">
+      <h2>Apartamento 2 Quartos - Coqueiros</h2>
+      <div class="price">R$ 450.000</div>
+      <div class="location">Coqueiros - Florianópolis, SC</div>
+      <div class="details">2 Quartos | 1 Banheiro | 1 Vaga | 70m²</div>
+      <div class="incluso">✔ Condomínio incluso | ✔ Área de lazer | ✘ IPTU não incluso</div>
+      <div class="responsavel">Responsável: <a href="mailto:coqueiros@exemplo.com">Imobiliária Coqueiros</a></div>
+    </div>
+  </div>
+
+</section>
 
 <footer>
   <p>Help Floripa © 2025 - Todos os direitos reservados</p>
@@ -208,7 +270,7 @@ function filterProperties(){
       match = false;
     }
 
-    prop.style.display = match ? "block" : "none";
+    prop.style.display = match ? "flex" : "none";
   });
 }
 </script>
