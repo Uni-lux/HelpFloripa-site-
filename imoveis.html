@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Help Floripa | Imóveis</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #000;
+      color: #fff;
+    }
+    header {
+      background: #001f3f;
+      color: white;
+      padding: 15px;
+      text-align: center;
+    }
+    h1 {
+      margin: 0;
+      font-size: 26px;
+      color: #00adee;
+    }
+    .filters {
+      background: #111;
+      padding: 15px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      justify-content: center;
+    }
+    .filters input, .filters select, .filters button {
+      padding: 8px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    .filters input, .filters select {
+      flex: 1;
+      min-width: 180px;
+    }
+    .filters button {
+      background: #00adee;
+      color: white;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .filters button:hover {
+      background: #007ba7;
+    }
+    .catalog {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+      padding: 20px;
+    }
+    .property-card {
+      background: #111;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 0 10px rgba(0,0,0,0.6);
+      transition: transform 0.3s;
+    }
+    .property-card:hover {
+      transform: translateY(-5px);
+    }
+    .property-card img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+    }
+    .property-info {
+      padding: 15px;
+    }
+    .property-info h2 {
+      margin: 0 0 10px;
+      color: #00adee;
+      font-size: 20px;
+    }
+    .price {
+      font-size: 18px;
+      font-weight: bold;
+      color: #00ffcc;
+      margin-bottom: 8px;
+    }
+    .location {
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+    .details {
+      font-size: 14px;
+      margin-bottom: 8px;
+      line-height: 1.5;
+    }
+    .incluso {
+      margin: 8px 0;
+      font-size: 13px;
+      color: #bbb;
+    }
+    .responsavel {
+      margin-top: 10px;
+      font-size: 14px;
+    }
+    .responsavel a {
+      color: #00adee;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    footer {
+      background: #001f3f;
+      text-align: center;
+      padding: 15px;
+      font-size: 14px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Catálogo de Imóveis</h1>
+  <p>Encontre o imóvel ideal para você em Florianópolis</p>
+</header>
+
+<section class="filters">
+  <input type="text" id="search" placeholder="Pesquisar por bairro ou título...">
+  <select id="tipo">
+    <option value="">Tipo</option>
+    <option value="aluguel">Aluguel</option>
+    <option value="venda">Venda</option>
+  </select>
+  <input type="number" id="minPrice" placeholder="Preço mínimo (R$)">
+  <input type="number" id="maxPrice" placeholder="Preço máximo (R$)">
+  <button onclick="filterProperties()">Filtrar</button>
+</section>
+
+<section class="catalog" id="catalog">
+
+  <!-- Imóvel 1 -->
+  <div class="property-card" data-tipo="aluguel" data-price="2500">
+    <img src="https://picsum.photos/500/300?random=1" alt="Apartamento no Centro">
+    <div class="property-info">
+      <h2>Apartamento 2 Quartos - Centro</h2>
+      <div class="price">R$ 2.500 / mês</div>
+      <div class="location">Centro - Florianópolis, SC</div>
+      <div class="details">2 Quartos | 2 Banheiros | 1 Vaga | 80m²</div>
+      <div class="incluso">✔ Condomínio incluso | ✘ Luz não incluso | ✔ Internet</div>
+      <div class="responsavel">Responsável: <a href="https://wa.me/5548999999999" target="_blank">João Silva</a></div>
+    </div>
+  </div>
+
+  <!-- Imóvel 2 -->
+  <div class="property-card" data-tipo="venda" data-price="650000">
+    <img src="https://picsum.photos/500/300?random=2" alt="Casa no Campeche">
+    <div class="property-info">
+      <h2>Casa 3 Quartos - Campeche</h2>
+      <div class="price">R$ 650.000</div>
+      <div class="location">Campeche - Florianópolis, SC</div>
+      <div class="details">3 Quartos | 3 Banheiros | 2 Vagas | 150m²</div>
+      <div class="incluso">✔ Escritura regularizada | ✔ IPTU em dia | ✘ Móveis não inclusos</div>
+      <div class="responsavel">Responsável: <a href="mailto:imobiliaria@exemplo.com">Imobiliária Floripa</a></div>
+    </div>
+  </div>
+
+  <!-- Imóvel 3 -->
+  <div class="property-card" data-tipo="aluguel" data-price="1800">
+    <img src="https://picsum.photos/500/300?random=3" alt="Kitnet próximo à UFSC">
+    <div class="property-info">
+      <h2>Kitnet - Trindade</h2>
+      <div class="price">R$ 1.800 / mês</div>
+      <div class="location">Trindade - Florianópolis, SC</div>
+      <div class="details">1 Quarto | 1 Banheiro | Sem vaga | 40m²</div>
+      <div class="incluso">✔ Água incluso | ✘ Luz não incluso | ✔ Internet</div>
+      <div class="responsavel">Responsável: <a href="https://wa.me/5548888888888" target="_blank">Maria Souza</a></div>
+    </div>
+  </div>
+
+  </section>
+
+<footer>
+  <p>Help Floripa © 2025 - Todos os direitos reservados</p>
+</footer>
+
+<script>
+function filterProperties(){
+  const search = document.getElementById("search").value.toLowerCase();
+  const tipo = document.getElementById("tipo").value;
+  const minPrice = parseFloat(document.getElementById("minPrice").value) || 0;
+  const maxPrice = parseFloat(document.getElementById("maxPrice").value) || Infinity;
+
+  const properties = document.querySelectorAll(".property-card");
+
+  properties.forEach(prop => {
+    const title = prop.querySelector("h2").textContent.toLowerCase();
+    const location = prop.querySelector(".location").textContent.toLowerCase();
+    const price = parseFloat(prop.getAttribute("data-price"));
+    const tipoAttr = prop.getAttribute("data-tipo");
+
+    let match = true;
+
+    if(search && !(title.includes(search) || location.includes(search))){
+      match = false;
+    }
+    if(tipo && tipo !== tipoAttr){
+      match = false;
+    }
+    if(price < minPrice || price > maxPrice){
+      match = false;
+    }
+
+    prop.style.display = match ? "block" : "none";
+  });
+}
+</script>
+</body>
+</html>
