@@ -191,7 +191,7 @@ footer a:hover {text-decoration:underline;}
 </div>
 
 <!-- Carrinho -->
-<div id="cartButton">🛒 Carrinho (<span id="cartCount">0</span>)</div>
+<div id="cartButton">🛒(<span id="cartCount">0</span>)</div>
 <div id="cartContainer">
   <h3>Seu Carrinho</h3>
   <div id="cartItems"></div>
@@ -261,7 +261,8 @@ footer a:hover {text-decoration:underline;}
     </div>
   </div>
 
-  <!-- Produto 3 -->
+  
+  <!-- Produto 3 (parte 2)-->
   <div class="card" data-category="mercado" data-price="49.9">
     <img src="https://images.unsplash.com/photo-1576402187878-974f70c890a5?auto=format&fit=crop&w=800&q=80" alt="Cesta de frutas">
     <div class="card-content">
@@ -440,35 +441,46 @@ function showSlides() {
   slides[slideIndex-1].style.display = "block";
   setTimeout(showSlides,4000);
 }
-  // Filtros
+  // Filtros (parte 3)
+// Selecionando elementos da pesquisa
+const searchName = document.getElementById('searchName');
+const searchCategory = document.getElementById('searchCategory');
+const priceRange = document.getElementById('priceRange');
+const cardsContainer = document.getElementById('cardsContainer');
+
+// Função para filtrar cards
 function filterCards() {
   const nameFilter = searchName.value.toLowerCase();
   const categoryFilter = searchCategory.value;
   const priceValue = priceRange.value;
+
+  const cards = cardsContainer.querySelectorAll('.card');
+
   cards.forEach(card => {
     const title = card.querySelector('h3').textContent.toLowerCase();
     const desc = card.querySelector('p').textContent.toLowerCase();
     const store = card.querySelector('.store').textContent.toLowerCase();
     const category = card.getAttribute('data-category');
     const price = parseFloat(card.getAttribute('data-price'));
-    
+
+    // Verifica filtros
     const matchesName = title.includes(nameFilter) || desc.includes(nameFilter) || store.includes(nameFilter);
     const matchesCategory = !categoryFilter || category === categoryFilter;
-    
     let matchesPrice = true;
     if(priceValue){
       const [min, max] = priceValue.split('-').map(Number);
       matchesPrice = price >= min && price <= max;
     }
 
-    card.style.display = (matchesName && matchesCategory && matchesPrice) ? '' : 'none';
+    // Exibe ou oculta card
+    card.style.display = (matchesName && matchesCategory && matchesPrice) ? 'flex' : 'none';
   });
 }
 
-searchName.addEventListener('keyup', filterCards);
+// Eventos de pesquisa
+searchName.addEventListener('input', filterCards);
 searchCategory.addEventListener('change', filterCards);
 priceRange.addEventListener('change', filterCards);
-
 // Carrinho
 const cartButton = document.getElementById('cartButton');
 const cartContainer = document.getElementById('cartContainer');
