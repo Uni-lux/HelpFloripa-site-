@@ -5,156 +5,246 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lanchonetes e Delivery | Help Floripa</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      background: #f5f5f5;
-      color: #333;
+    * {margin:0; padding:0; box-sizing:border-box; font-family: Arial, sans-serif;}
+    body {background:#000; color:#fff;}
+
+    /* Painel (hero) */
+    .hero {
+      background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)),
+                  url('https://upload.wikimedia.org/wikipedia/commons/4/4e/Ponte_Herc%C3%ADlio_Luz_-_Noite.jpg') center/cover no-repeat;
+      height:280px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      color:#00adee;
+      padding:0 15px;
+    }
+    .hero h1 {font-size:32px; margin-bottom:10px;}
+    .hero span {font-size:16px; color:#fff;}
+    .hero .hero-menu {
+      margin-top:15px;
+      display:flex;
+      gap:12px;
+    }
+    .hero .hero-menu a {
+      text-decoration:none;
+      color:#000;
+      background:#00adee;
+      padding:8px 15px;
+      border-radius:6px;
+      font-weight:bold;
+      transition:0.3s;
+    }
+    .hero .hero-menu a:hover {background:#0087c2;}
+
+    /* Slider propagandas */
+    .slider {
+      position:relative;
+      max-width:100%;
+      height:200px;
+      overflow:hidden;
+      border-radius:12px;
+      margin:25px auto;
+    }
+    .slides {
+      display:flex;
+      width:300%;
+      animation:slide 12s infinite;
+    }
+    .slides img {
+      width:100%;
+      height:200px;
+      object-fit:cover;
+    }
+    @keyframes slide {
+      0% {margin-left:0;}
+      30% {margin-left:0;}
+      35% {margin-left:-100%;}
+      65% {margin-left:-100%;}
+      70% {margin-left:-200%;}
+      100% {margin-left:-200%;}
     }
 
-    header {
-      background: #00adee;
-      color: white;
-      padding: 15px;
-      text-align: center;
-    }
-
-    header h1 {
-      margin: 0;
-      font-size: 26px;
-    }
-
+    /* Barra de pesquisa com filtros */
     .search-bar {
-      margin: 20px auto;
-      text-align: center;
+      text-align:center;
+      margin:20px auto;
     }
-
-    .search-bar input {
-      width: 70%;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      font-size: 16px;
+    .search-bar input, .search-bar select {
+      padding:10px;
+      margin:5px;
+      border-radius:6px;
+      border:1px solid #00adee;
+      font-size:14px;
+      outline:none;
     }
+    .search-bar input {width:250px;}
 
+    /* Cards */
     .cards {
-      display: grid;
+      display:grid;
       grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 20px;
-      padding: 20px;
+      gap:20px;
+      padding:20px;
     }
-
     .card {
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-      overflow: hidden;
-      transition: transform 0.2s;
+      background:#111;
+      border:2px solid #00adee;
+      border-radius:12px;
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      transition:0.3s;
     }
-
-    .card:hover {
-      transform: scale(1.03);
-    }
-
+    .card:hover {transform: scale(1.03);}
     .card img {
-      width: 100%;
-      height: 180px;
-      object-fit: cover;
+      width:100%;
+      height:160px;
+      object-fit:cover;
     }
-
     .card-content {
-      padding: 15px;
+      padding:15px;
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
     }
-
-    .card-content h3 {
-      margin: 0 0 10px;
-      color: #00adee;
-    }
-
-    .card-content p {
-      font-size: 14px;
-      margin: 0 0 15px;
-      color: #666;
-    }
-
+    .card-content h3 {color:#00adee; margin-bottom:8px;}
+    .card-content p {font-size:13px; margin-bottom:12px; color:#ccc;}
     .card-content a {
-      display: inline-block;
-      background: #00adee;
-      color: white;
-      text-decoration: none;
-      padding: 8px 14px;
-      border-radius: 8px;
-      transition: background 0.3s;
+      background:#00adee;
+      color:#000;
+      padding:8px;
+      border-radius:6px;
+      text-align:center;
+      text-decoration:none;
+      font-weight:bold;
+      transition:0.3s;
     }
+    .card-content a:hover {background:#0087c2;}
 
-    .card-content a:hover {
-      background: #007ba7;
-    }
-
+    /* Footer */
     footer {
-      background: #111;
-      color: white;
-      text-align: center;
-      padding: 15px;
-      margin-top: 30px;
+      background:#111;
+      color:#aaa;
+      text-align:center;
+      padding:15px;
+      margin-top:30px;
+      border-top:1px solid #222;
     }
+    footer a {color:#00adee; text-decoration:none; margin:0 5px;}
+    footer a:hover {text-decoration:underline;}
   </style>
 </head>
 <body>
-  <header>
-    <h1>🍔 Lanchonetes e Delivery</h1>
-    <p>Peça comida rápida e deliciosa em Florianópolis</p>
-  </header>
 
-  <div class="search-bar">
-    <input type="text" id="searchInput" placeholder="🔍 Pesquise por nome ou tipo de comida...">
+  <!-- Hero -->
+  <div class="hero">
+    <h1>🍔 Lanchonetes e Delivery</h1>
+    <span>Peça comida rápida e deliciosa em Florianópolis</span>
+    <div class="hero-menu">
+      <a href="index.html">Início</a>
+      <a href="#contato">Contato</a>
+      <a href="#ajuda">Ajuda</a>
+    </div>
   </div>
 
+  <!-- Slider propagandas -->
+  <div class="slider">
+    <div class="slides">
+      <img src="https://images.unsplash.com/photo-1600891964599-f61ba0e24092?auto=format&fit=crop&w=1200&q=80" alt="Promoção 1">
+      <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=1200&q=80" alt="Promoção 2">
+      <img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=1200&q=80" alt="Promoção 3">
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="🔍 Pesquisar por nome...">
+    <select id="bairroFilter">
+      <option value="">Bairro</option>
+      <option value="centro">Centro</option>
+      <option value="trindade">Trindade</option>
+      <option value="ingleses">Ingleses</option>
+    </select>
+    <select id="tipoFilter">
+      <option value="">Tipo</option>
+      <option value="hamburgueria">Hamburgueria</option>
+      <option value="pizzaria">Pizzaria</option>
+      <option value="sushi">Sushi</option>
+    </select>
+  </div>
+
+  <!-- Cards -->
   <div class="cards" id="cardsContainer">
-    <div class="card">
-      <img src="https://images.unsplash.com/photo-1600891964599-f61ba0e24092?auto=format&fit=crop&w=800&q=80" alt="Lanchonete">
+    <div class="card" data-bairro="centro" data-tipo="hamburgueria">
+      <img src="https://images.unsplash.com/photo-1600891964599-f61ba0e24092?auto=format&fit=crop&w=800&q=80" alt="Burger House">
       <div class="card-content">
         <h3>Burger House</h3>
-        <p>Hambúrgueres artesanais e batata crocante.</p>
+        <p>Hambúrgueres artesanais e batata crocante. <br>📍 Centro</p>
         <a href="#">Fazer pedido</a>
       </div>
     </div>
 
-    <div class="card">
-      <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80" alt="Pizza">
+    <div class="card" data-bairro="trindade" data-tipo="pizzaria">
+      <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80" alt="Pizzaria da Ilha">
       <div class="card-content">
         <h3>Pizzaria da Ilha</h3>
-        <p>Pizzas especiais com entrega rápida.</p>
+        <p>Pizzas especiais com entrega rápida. <br>📍 Trindade</p>
         <a href="#">Fazer pedido</a>
       </div>
     </div>
 
-    <div class="card">
-      <img src="https://images.unsplash.com/photo-1606756790138-8b9d5d0b6f4b?auto=format&fit=crop&w=800&q=80" alt="Sushi">
+    <div class="card" data-bairro="ingleses" data-tipo="sushi">
+      <img src="https://images.unsplash.com/photo-1553621042-f6e147245754?auto=format&fit=crop&w=800&q=80" alt="Sushi Express">
       <div class="card-content">
         <h3>Sushi Express</h3>
-        <p>Comida japonesa fresquinha e saborosa.</p>
+        <p>Comida japonesa fresquinha e saborosa. <br>📍 Ingleses</p>
         <a href="#">Fazer pedido</a>
       </div>
     </div>
   </div>
 
+  <!-- Footer -->
   <footer>
-    <p>© 2025 Help Floripa - Todos os direitos reservados</p>
+    <p>CNPJ: 61.935.934/0001-00</p>
+    <p>
+      <a href="termos.html">Termos de Uso</a> | 
+      <a href="privacidade.html">Política de Privacidade</a>
+    </p>
+    <p>&copy; 2025 Help Floripa - Todos os direitos reservados.</p>
   </footer>
 
   <script>
     const searchInput = document.getElementById('searchInput');
+    const bairroFilter = document.getElementById('bairroFilter');
+    const tipoFilter = document.getElementById('tipoFilter');
     const cards = document.querySelectorAll('.card');
 
-    searchInput.addEventListener('keyup', function() {
-      const filter = searchInput.value.toLowerCase();
+    function filtrar() {
+      const texto = searchInput.value.toLowerCase();
+      const bairro = bairroFilter.value;
+      const tipo = tipoFilter.value;
+
       cards.forEach(card => {
-        const title = card.querySelector('h3').textContent.toLowerCase();
+        const nome = card.querySelector('h3').textContent.toLowerCase();
         const desc = card.querySelector('p').textContent.toLowerCase();
-        card.style.display = title.includes(filter) || desc.includes(filter) ? '' : 'none';
+        const cardBairro = card.getAttribute('data-bairro');
+        const cardTipo = card.getAttribute('data-tipo');
+
+        const matchTexto = nome.includes(texto) || desc.includes(texto);
+        const matchBairro = bairro === "" || bairro === cardBairro;
+        const matchTipo = tipo === "" || tipo === cardTipo;
+
+        card.style.display = matchTexto && matchBairro && matchTipo ? "" : "none";
       });
-    });
+    }
+
+    searchInput.addEventListener('keyup', filtrar);
+    bairroFilter.addEventListener('change', filtrar);
+    tipoFilter.addEventListener('change', filtrar);
   </script>
 </body>
 </html>
