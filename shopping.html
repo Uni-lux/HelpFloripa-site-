@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shopping e Produtos | Help Floripa</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #f5f5f5;
+      color: #333;
+    }
+
+    /* Cabeçalho */
+    header {
+      background: #00adee;
+      color: white;
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    nav a {
+      color: white;
+      margin-left: 20px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    nav a:hover {
+      text-decoration: underline;
+    }
+
+    /* Slide */
+    .slideshow-container {
+      position: relative;
+      max-width: 100%;
+      margin: auto;
+      overflow: hidden;
+    }
+
+    .slide {
+      display: none;
+    }
+
+    .slide img {
+      width: 100%;
+      height: 300px;
+      object-fit: cover;
+    }
+
+    /* Pesquisa */
+    .search-bar {
+      background: #fff;
+      padding: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    .search-bar input, .search-bar select {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 15px;
+      flex: 1;
+      min-width: 180px;
+    }
+
+    /* Cards */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      padding: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      overflow: hidden;
+      transition: transform 0.2s;
+    }
+
+    .card:hover {
+      transform: scale(1.03);
+    }
+
+    .card img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+    }
+
+    .card-content {
+      padding: 15px;
+    }
+
+    .card-content h3 {
+      margin: 0 0 8px;
+      color: #00adee;
+    }
+
+    .card-content p {
+      font-size: 14px;
+      margin: 0 0 8px;
+      color: #666;
+    }
+
+    .price {
+      font-weight: bold;
+      color: #111;
+      margin-bottom: 10px;
+    }
+
+    .card-content a {
+      display: inline-block;
+      background: #00adee;
+      color: white;
+      text-decoration: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      transition: background 0.3s;
+    }
+
+    .card-content a:hover {
+      background: #007ba7;
+    }
+
+    /* Rodapé */
+    footer {
+      background: #111;
+      color: white;
+      text-align: center;
+      padding: 20px;
+      margin-top: 40px;
+    }
+
+    footer a {
+      color: #00adee;
+      text-decoration: none;
+      margin: 0 10px;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <!-- Cabeçalho -->
+  <header>
+    <h1>🛒 Shopping e Produtos</h1>
+    <nav>
+      <a href="index.html">Início</a>
+      <a href="#contato">Contato</a>
+      <a href="#ajuda">Ajuda</a>
+    </nav>
+  </header>
+
+  <!-- Slide -->
+  <div class="slideshow-container">
+    <div class="slide fade">
+      <img src="https://images.unsplash.com/photo-1588591797398-89c63d3d1e97?auto=format&fit=crop&w=1500&q=80" alt="Promoção 1">
+    </div>
+    <div class="slide fade">
+      <img src="https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?auto=format&fit=crop&w=1500&q=80" alt="Promoção 2">
+    </div>
+    <div class="slide fade">
+      <img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=1500&q=80" alt="Promoção 3">
+    </div>
+  </div>
+
+  <!-- Barra de pesquisa -->
+  <div class="search-bar">
+    <input type="text" id="searchName" placeholder="🔍 Pesquisar produto...">
+    <select id="searchCategory">
+      <option value="">Categoria</option>
+      <option value="eletronicos">Eletrônicos</option>
+      <option value="roupas">Roupas</option>
+      <option value="mercado">Mercado</option>
+      <option value="outros">Outros</option>
+    </select>
+    <select id="searchLocation">
+      <option value="">Localização</option>
+      <option value="centro">Centro</option>
+      <option value="trindade">Trindade</option>
+      <option value="campeche">Campeche</option>
+      <option value="ingleses">Ingleses</option>
+    </select>
+  </div>
+
+  <!-- Cards -->
+  <div class="cards" id="cardsContainer">
+    <div class="card" data-category="eletronicos" data-location="centro">
+      <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=800&q=80" alt="Fone de ouvido">
+      <div class="card-content">
+        <h3>Fone Bluetooth</h3>
+        <p>Alta qualidade de som e bateria duradoura.</p>
+        <div class="price">R$ 199,90</div>
+        <a href="#">Comprar</a>
+      </div>
+    </div>
+
+    <div class="card" data-category="roupas" data-location="campeche">
+      <img src="https://images.unsplash.com/photo-1521335629791-ce4aec67dd47?auto=format&fit=crop&w=800&q=80" alt="Camisa">
+      <div class="card-content">
+        <h3>Camisa Estilosa</h3>
+        <p>Conforto e estilo para o dia a dia.</p>
+        <div class="price">R$ 79,90</div>
+        <a href="#">Comprar</a>
+      </div>
+    </div>
+
+    <div class="card" data-category="mercado" data-location="trindade">
+      <img src="https://images.unsplash.com/photo-1585238342020-96629ff76f1c?auto=format&fit=crop&w=800&q=80" alt="Cesta de frutas">
+      <div class="card-content">
+        <h3>Cesta de Frutas</h3>
+        <p>Frutas frescas direto do produtor.</p>
+        <div class="price">R$ 49,90</div>
+        <a href="#">Comprar</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rodapé -->
+  <footer>
+    <p>
+      <a href="#">Termos de Uso</a> | 
+      <a href="#">Política de Privacidade</a> | 
+      <a href="#">CNPJ: 00.000.000/0001-00</a>
+    </p>
+    <p>© 2025 Help Floripa - Todos os direitos reservados</p>
+  </footer>
+
+  <!-- Script Slide + Filtros -->
+  <script>
+    // Slide automático
+    let slideIndex = 0;
+    showSlides();
+    function showSlides() {
+      let slides = document.getElementsByClassName("slide");
+      for (let i = 0; i < slides.length; i++) {
+        slides[i].style.display = "none";  
+      }
+      slideIndex++;
+      if (slideIndex > slides.length) {slideIndex = 1}    
+      slides[slideIndex-1].style.display = "block";  
+      setTimeout(showSlides, 4000); // 4 segundos
+    }
+
+    // Filtros de pesquisa
+    const searchName = document.getElementById('searchName');
+    const searchCategory = document.getElementById('searchCategory');
+    const searchLocation = document.getElementById('searchLocation');
+    const cards = document.querySelectorAll('.card');
+
+    function filterCards() {
+      const nameFilter = searchName.value.toLowerCase();
+      const categoryFilter = searchCategory.value;
+      const locationFilter = searchLocation.value;
+
+      cards.forEach(card => {
+        const title = card.querySelector('h3').textContent.toLowerCase();
+        const desc = card.querySelector('p').textContent.toLowerCase();
+        const category = card.getAttribute('data-category');
+        const location = card.getAttribute('data-location');
+
+        const matchesName = title.includes(nameFilter) || desc.includes(nameFilter);
+        const matchesCategory = !categoryFilter || category === categoryFilter;
+        const matchesLocation = !locationFilter || location === locationFilter;
+
+        card.style.display = (matchesName && matchesCategory && matchesLocation) ? '' : 'none';
+      });
+    }
+
+    searchName.addEventListener('keyup', filterCards);
+    searchCategory.addEventListener('change', filterCards);
+    searchLocation.addEventListener('change', filterCards);
+  </script>
+</body>
+</html>
