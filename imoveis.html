@@ -1,316 +1,180 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Help Floripa | Imóveis</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      background: #000;
-      color: #fff;
-    }
-    /* Painel superior */
-    header {
-      background: linear-gradient(135deg, #001f3f, #000);
-      color: white;
-      padding: 20px 15px;
-      text-align: center;
-      border-bottom: 4px solid #00adee;
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-    }
-    header h1 {
-      margin: 0;
-      font-size: 28px;
-      color: #00adee;
-    }
-    header p {
-      margin-top: 5px;
-      font-size: 15px;
-      color: #ddd;
-    }
-    nav {
-      margin-top: 12px;
-    }
-    nav a {
-      color: #fff;
-      margin: 0 12px;
-      text-decoration: none;
-      font-weight: bold;
-      transition: color 0.3s;
-    }
-    nav a:hover {
-      color: #00adee;
-    }
-    /* Filtros */
-    .filters {
-      background: #111;
-      padding: 15px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 15px;
-      justify-content: center;
-      border-bottom: 2px solid #00adee;
-    }
-    .filters input, .filters select, .filters button {
-      padding: 10px;
-      border: none;
-      border-radius: 8px;
-      font-size: 14px;
-    }
-    .filters input, .filters select {
-      flex: 1;
-      min-width: 180px;
-    }
-    .filters button {
-      background: #00adee;
-      color: white;
-      cursor: pointer;
-      transition: 0.3s;
-    }
-    .filters button:hover {
-      background: #007ba7;
-    }
-    /* Catálogo */
-    .catalog {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 20px;
-      padding: 30px;
-      max-width: 1200px;
-      margin: auto;
-    }
-    .property-card {
-      background: #111;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 0 12px rgba(0,0,0,0.7);
-      transition: transform 0.3s, box-shadow 0.3s;
-      display: flex;
-      flex-direction: column;
-      min-height: 420px;
-    }
-    .property-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 0 18px rgba(0,173,238,0.8);
-    }
-    .property-card img {
-      width: 100%;
-      height: 180px;
-      object-fit: cover;
-    }
-    .property-info {
-      padding: 15px;
-      flex-grow: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-    .property-info h2 {
-      margin: 0 0 10px;
-      color: #00adee;
-      font-size: 18px;
-    }
-    .price {
-      font-size: 18px;
-      font-weight: bold;
-      color: #00ffcc;
-      margin-bottom: 8px;
-    }
-    .location {
-      font-size: 14px;
-      margin-bottom: 10px;
-      color: #ccc;
-    }
-    .details {
-      font-size: 13px;
-      margin-bottom: 8px;
-      line-height: 1.4;
-    }
-    .incluso {
-      margin: 8px 0;
-      font-size: 13px;
-      color: #bbb;
-    }
-    .responsavel {
-      margin-top: 10px;
-      font-size: 14px;
-    }
-    .responsavel a {
-      color: #00adee;
-      text-decoration: none;
-      font-weight: bold;
-    }
-    /* Rodapé */
-    footer {
-      background: #001f3f;
-      text-align: center;
-      padding: 20px;
-      font-size: 14px;
-      margin-top: 30px;
-      color: #ddd;
-      border-top: 3px solid #00adee;
-    }
-    footer p {
-      margin: 6px 0;
-    }
-    footer a {
-      color: #00adee;
-      text-decoration: none;
-      margin: 0 8px;
-    }
-    footer a:hover {
-      text-decoration: underline;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Imóveis | Help Floripa</title>
+<style>
+* {margin:0; padding:0; box-sizing:border-box; font-family: Arial, sans-serif;}
+body {background:#000; color:#fff;}
+
+/* Hero */
+.hero {
+    background:#111;
+    padding:30px 15px;
+    text-align:center;
+    border-bottom:2px solid #00adee;
+}
+.hero h1 {color:#00adee; font-size:34px; margin-bottom:6px;}
+.hero h2 {font-size:20px; color:#fff; margin-bottom:10px;}
+.hero .hero-menu a {
+    text-decoration:none;
+    color:#000;
+    background:#00adee;
+    padding:8px 15px;
+    border-radius:6px;
+    font-weight:bold;
+    margin:0 6px;
+    transition:0.3s;
+    display:inline-block;
+}
+.hero .hero-menu a:hover {background:#0087c2;}
+
+/* Slider */
+.slider {position:relative;max-width:100%;height:160px;overflow:hidden;margin:25px auto;border-radius:12px;}
+.slides {display:flex;width:300%;animation:slide 12s infinite;}
+.slides img {width:100%;height:160px;object-fit:cover;}
+@keyframes slide {
+  0% {margin-left:0;}
+  33% {margin-left:0;}
+  36% {margin-left:-100%;}
+  66% {margin-left:-100%;}
+  69% {margin-left:-200%;}
+  100% {margin-left:-200%;}
+}
+
+/* Cards */
+.cards {
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px,1fr));
+    gap:20px;
+    padding:30px;
+    max-width:1100px;
+    margin:auto;
+}
+.card {
+    background:#111;
+    border:2px solid #00adee;
+    border-radius:12px;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    transition:.3s;
+}
+.card:hover {transform:scale(1.05); box-shadow:0 0 15px rgba(0,173,238,.6);}
+.card img {width:100%; height:160px; object-fit:cover;}
+.card-content {padding:15px; text-align:center;}
+.card-content h3 {color:#00adee; margin-bottom:10px;}
+.card-content p {color:#ccc; font-size:14px; margin-bottom:12px;}
+.card-content a {
+    display:inline-block;
+    padding:8px 14px;
+    background:#00adee;
+    color:#000;
+    font-weight:bold;
+    text-decoration:none;
+    border-radius:6px;
+    transition:.3s;
+}
+.card-content a:hover {background:#0087c2;}
+
+/* Footer */
+footer {
+    background:#111;
+    text-align:center;
+    padding:15px;
+    border-top:2px solid #00adee;
+    margin-top:20px;
+    font-size:13px;
+    color:#aaa;
+}
+footer a {color:#00adee; text-decoration:none; margin:0 8px;}
+footer a:hover {text-decoration:underline;}
+
+/* Responsivo */
+@media(max-width:768px){
+  .hero h1 {font-size:26px;}
+  .hero h2 {font-size:16px;}
+  .slider {height:130px;}
+  .slides img {height:130px;}
+}
+@media(max-width:480px){
+  .hero {padding:15px;}
+  .hero h1 {font-size:22px;}
+  .hero h2 {font-size:14px;}
+  .hero .hero-menu a {padding:6px 10px; font-size:12px;}
+  .slider {height:110px;}
+  .slides img {height:110px;}
+}
+</style>
 </head>
 <body>
-<header>
-  <h1>Catálogo de Imóveis</h1>
-  <p>Encontre o imóvel ideal para você em Florianópolis</p>
-  <nav>
+
+<!-- Hero -->
+<div class="hero">
+  <h1>Help Floripa</h1>
+  <h2>Imóveis</h2>
+  <div class="hero-menu">
     <a href="index.html">Início</a>
-    <a href="#contato">Contato</a>
-    <a href="#ajuda">Ajuda</a>
-  </nav>
-</header>
+    <a href="contato.html">Contato</a>
+    <a href="ajuda.html">Ajuda</a>
+  </div>
+</div>
 
-<section class="filters">
-  <input type="text" id="search" placeholder="Pesquisar por bairro ou título...">
-  <select id="tipo">
-    <option value="">Tipo</option>
-    <option value="aluguel">Aluguel</option>
-    <option value="venda">Venda</option>
-  </select>
-  <input type="number" id="minPrice" placeholder="Preço mínimo (R$)">
-  <input type="number" id="maxPrice" placeholder="Preço máximo (R$)">
-  <button onclick="filterProperties()">Filtrar</button>
+<!-- Slide -->
+<div class="slider">
+  <div class="slides">
+    <img src="https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&w=1200&q=80" alt="Apartamento moderno">
+    <img src="https://images.unsplash.com/photo-1600607687380-6a58b2a62c3d?auto=format&fit=crop&w=1200&q=80" alt="Casa residencial">
+    <img src="https://images.unsplash.com/photo-1599423300746-b62533397364?auto=format&fit=crop&w=1200&q=80" alt="Imóvel comercial">
+  </div>
+</div>
+
+<!-- Cards -->
+<section class="cards">
+  <div class="card">
+    <img src="https://images.unsplash.com/photo-1560448075-bb4bfc0c5050?auto=format&fit=crop&w=800&q=80" alt="Apartamentos">
+    <div class="card-content">
+      <h3>Apartamentos</h3>
+      <p>Encontre apartamentos modernos e bem localizados para alugar ou comprar.</p>
+      <a href="#">Ver Imóveis</a>
+    </div>
+  </div>
+  <div class="card">
+    <img src="https://images.unsplash.com/photo-1572120360610-d971b9d7767c?auto=format&fit=crop&w=800&q=80" alt="Casas">
+    <div class="card-content">
+      <h3>Casas</h3>
+      <p>Casas espaçosas e confortáveis em diversos bairros da cidade.</p>
+      <a href="#">Ver Imóveis</a>
+    </div>
+  </div>
+  <div class="card">
+    <img src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80" alt="Comerciais">
+    <div class="card-content">
+      <h3>Comerciais</h3>
+      <p>Salas comerciais e pontos de venda ideais para o seu negócio.</p>
+      <a href="#">Ver Imóveis</a>
+    </div>
+  </div>
+  <div class="card">
+    <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80" alt="Terrenos">
+    <div class="card-content">
+      <h3>Terrenos</h3>
+      <p>Terrenos em áreas estratégicas para construção de casas e empresas.</p>
+      <a href="#">Ver Imóveis</a>
+    </div>
+  </div>
 </section>
 
-<section class="catalog" id="catalog">
-
-  <!-- Imóvel 1 -->
-  <div class="property-card" data-tipo="aluguel" data-price="2500">
-    <img src="https://picsum.photos/500/300?random=1" alt="Apartamento no Centro">
-    <div class="property-info">
-      <h2>Apartamento 2 Quartos - Centro</h2>
-      <div class="price">R$ 2.500 / mês</div>
-      <div class="location">Centro - Florianópolis, SC</div>
-      <div class="details">2 Quartos | 2 Banheiros | 1 Vaga | 80m²</div>
-      <div class="incluso">✔ Condomínio incluso | ✘ Luz não incluso | ✔ Internet</div>
-      <div class="responsavel">Responsável: <a href="https://wa.me/5548999999999" target="_blank">João Silva</a></div>
-    </div>
-  </div>
-
-  <!-- Imóvel 2 -->
-  <div class="property-card" data-tipo="venda" data-price="650000">
-    <img src="https://picsum.photos/500/300?random=2" alt="Casa no Campeche">
-    <div class="property-info">
-      <h2>Casa 3 Quartos - Campeche</h2>
-      <div class="price">R$ 650.000</div>
-      <div class="location">Campeche - Florianópolis, SC</div>
-      <div class="details">3 Quartos | 3 Banheiros | 2 Vagas | 150m²</div>
-      <div class="incluso">✔ Escritura regularizada | ✔ IPTU em dia | ✘ Móveis não inclusos</div>
-      <div class="responsavel">Responsável: <a href="mailto:imobiliaria@exemplo.com">Imobiliária Floripa</a></div>
-    </div>
-  </div>
-
-  <!-- Imóvel 3 -->
-  <div class="property-card" data-tipo="aluguel" data-price="1800">
-    <img src="https://picsum.photos/500/300?random=3" alt="Kitnet próximo à UFSC">
-    <div class="property-info">
-      <h2>Kitnet - Trindade</h2>
-      <div class="price">R$ 1.800 / mês</div>
-      <div class="location">Trindade - Florianópolis, SC</div>
-      <div class="details">1 Quarto | 1 Banheiro | Sem vaga | 40m²</div>
-      <div class="incluso">✔ Água incluso | ✘ Luz não incluso | ✔ Internet</div>
-      <div class="responsavel">Responsável: <a href="https://wa.me/5548888888888" target="_blank">Maria Souza</a></div>
-    </div>
-  </div>
-
-  <!-- Imóvel 4 -->
-  <div class="property-card" data-tipo="venda" data-price="1200000">
-    <img src="https://picsum.photos/500/300?random=4" alt="Cobertura Beira-Mar Norte">
-    <div class="property-info">
-      <h2>Cobertura de Luxo - Beira-Mar Norte</h2>
-      <div class="price">R$ 1.200.000</div>
-      <div class="location">Beira-Mar Norte - Florianópolis, SC</div>
-      <div class="details">4 Quartos | 4 Banheiros | 3 Vagas | 280m²</div>
-      <div class="incluso">✔ Vista para o mar | ✔ Piscina privativa | ✔ Academia</div>
-      <div class="responsavel">Responsável: <a href="mailto:luxo@exemplo.com">Imobiliária Premium</a></div>
-    </div>
-  </div>
-
-  <!-- Imóvel 5 -->
-  <div class="property-card" data-tipo="aluguel" data-price="3200">
-    <img src="https://picsum.photos/500/300?random=5" alt="Casa no Ingleses">
-    <div class="property-info">
-      <h2>Casa 2 Andares - Ingleses</h2>
-      <div class="price">R$ 3.200 / mês</div>
-      <div class="location">Ingleses - Florianópolis, SC</div>
-      <div class="details">3 Quartos | 2 Banheiros | 2 Vagas | 140m²</div>
-      <div class="incluso">✔ Pátio amplo | ✘ Internet não incluso | ✔ Mobiliada</div>
-      <div class="responsavel">Responsável: <a href="https://wa.me/5548777777777" target="_blank">Carlos Lima</a></div>
-    </div>
-  </div>
-
-  <!-- Imóvel 6 -->
-  <div class="property-card" data-tipo="venda" data-price="450000">
-    <img src="https://picsum.photos/500/300?random=6" alt="Apartamento em Coqueiros">
-    <div class="property-info">
-      <h2>Apartamento 2 Quartos - Coqueiros</h2>
-      <div class="price">R$ 450.000</div>
-      <div class="location">Coqueiros - Florianópolis, SC</div>
-      <div class="details">2 Quartos | 1 Banheiro | 1 Vaga | 70m²</div>
-      <div class="incluso">✔ Condomínio incluso | ✔ Área de lazer | ✘ IPTU não incluso</div>
-      <div class="responsavel">Responsável: <a href="mailto:coqueiros@exemplo.com">Imobiliária Coqueiros</a></div>
-    </div>
-  </div>
-
-</section>
-
+<!-- Rodapé -->
 <footer>
   <p>
-    <a href="#">Termos de Uso</a> | 
-    <a href="#">Política de Privacidade</a> | 
-    <a href="#">CNPJ: 00.000.000/0001-00</a>
+    <a href="termos.html">Termos de Uso</a> | 
+    <a href="privacidade.html">Política de Privacidade</a>
   </p>
-  <p>© 2025 Help Floripa - Todos os direitos reservados</p>
+  <p>CNPJ: 61.935.934/0001-00</p>
+  <p>&copy; 2025 Help Floripa - Todos os direitos reservados.</p>
 </footer>
 
-<script>
-function filterProperties(){
-  const search = document.getElementById("search").value.toLowerCase();
-  const tipo = document.getElementById("tipo").value;
-  const minPrice = parseFloat(document.getElementById("minPrice").value) || 0;
-  const maxPrice = parseFloat(document.getElementById("maxPrice").value) || Infinity;
-
-  const properties = document.querySelectorAll(".property-card");
-
-  properties.forEach(prop => {
-    const title = prop.querySelector("h2").textContent.toLowerCase();
-    const location = prop.querySelector(".location").textContent.toLowerCase();
-    const price = parseFloat(prop.getAttribute("data-price"));
-    const tipoAttr = prop.getAttribute("data-tipo");
-
-    let match = true;
-
-    if(search && !(title.includes(search) || location.includes(search))){
-      match = false;
-    }
-    if(tipo && tipo !== tipoAttr){
-      match = false;
-    }
-    if(price < minPrice || price > maxPrice){
-      match = false;
-    }
-
-    prop.style.display = match ? "flex" : "none";
-  });
-}
-</script>
 </body>
-    </html>
+</html>
