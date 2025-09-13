@@ -10,23 +10,27 @@
       color: #fff;    
     }    
     /* Painel superior */    
-    header {    
-      background: linear-gradient(135deg, #001f3f, #000);    
-      color: white;    
-      padding: 40px 15px;    
-      text-align: center;    
-      border-bottom: 4px solid #00adee;    
-    }    
-    header h1 {    
-      margin: 0;    
-      font-size: 32px;    
-      color: #00adee;    
-    }    
-    header p {    
-      margin-top: 8px;    
-      font-size: 16px;    
-      color: #ddd;    
-    }    
+    .hero {
+    background:#111;
+    padding:30px 15px;
+    text-align:center;
+    border-bottom:2px solid #00adee;
+}
+.hero h1 {color:#00adee; font-size:34px; margin-bottom:6px;}
+.hero h2 {font-size:20px; color:#fff; margin-bottom:10px;}
+.hero .hero-menu a {
+    text-decoration:none;
+    color:#000;
+    background:#00adee;
+    padding:8px 15px;
+    border-radius:6px;
+    font-weight:bold;
+    margin:0 6px;
+    transition:0.3s;
+    display:inline-block;
+}
+.hero .hero-menu a:hover {background:#0087c2;}
+    
     /* Filtros */    
     .filters {    
       background: #111;    
@@ -140,11 +144,18 @@ footer a {color:#00adee; text-decoration:none; margin:0 8px;}
 footer a:hover {text-decoration:underline;}
   </style>    
 </head>    
-<body>    
-<header>    
-  <h1>Catálogo de Imóveis</h1>    
-  <p>Encontre o imóvel ideal para você em Florianópolis</p>    
-</header>  <section class="filters">    
+<body>   
+  <!-- Hero -->
+<div class="hero">
+  <h1>Help Floripa</h1>
+  <h2>Serviços</h2>
+  <div class="hero-menu">
+    <a href="index.html">Início</a>
+    <a href="contato.html">Contato</a>
+    <a href="ajuda.html">Ajuda</a>
+  </div>
+</div>
+  <section class="filters">    
   <input type="text" id="search" placeholder="Pesquisar por bairro ou título...">    
   <select id="tipo">    
     <option value="">Tipo</option>    
