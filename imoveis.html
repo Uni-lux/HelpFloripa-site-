@@ -15,19 +15,35 @@
     header {
       background: linear-gradient(135deg, #001f3f, #000);
       color: white;
-      padding: 40px 15px;
+      padding: 20px 15px;
       text-align: center;
       border-bottom: 4px solid #00adee;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
     }
     header h1 {
       margin: 0;
-      font-size: 32px;
+      font-size: 28px;
       color: #00adee;
     }
     header p {
-      margin-top: 8px;
-      font-size: 16px;
+      margin-top: 5px;
+      font-size: 15px;
       color: #ddd;
+    }
+    nav {
+      margin-top: 12px;
+    }
+    nav a {
+      color: #fff;
+      margin: 0 12px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: color 0.3s;
+    }
+    nav a:hover {
+      color: #00adee;
     }
     /* Filtros */
     .filters {
@@ -75,6 +91,7 @@
       transition: transform 0.3s, box-shadow 0.3s;
       display: flex;
       flex-direction: column;
+      min-height: 420px;
     }
     .property-card:hover {
       transform: translateY(-5px);
@@ -137,12 +154,28 @@
       color: #ddd;
       border-top: 3px solid #00adee;
     }
+    footer p {
+      margin: 6px 0;
+    }
+    footer a {
+      color: #00adee;
+      text-decoration: none;
+      margin: 0 8px;
+    }
+    footer a:hover {
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
 <header>
   <h1>Catálogo de Imóveis</h1>
   <p>Encontre o imóvel ideal para você em Florianópolis</p>
+  <nav>
+    <a href="index.html">Início</a>
+    <a href="#contato">Contato</a>
+    <a href="#ajuda">Ajuda</a>
+  </nav>
 </header>
 
 <section class="filters">
@@ -240,7 +273,12 @@
 </section>
 
 <footer>
-  <p>Help Floripa © 2025 - Todos os direitos reservados</p>
+  <p>
+    <a href="#">Termos de Uso</a> | 
+    <a href="#">Política de Privacidade</a> | 
+    <a href="#">CNPJ: 00.000.000/0001-00</a>
+  </p>
+  <p>© 2025 Help Floripa - Todos os direitos reservados</p>
 </footer>
 
 <script>
@@ -275,4 +313,4 @@ function filterProperties(){
 }
 </script>
 </body>
-</html>
+    </html>
