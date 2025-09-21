@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Limpeza e Cuidados | Help Floripa</title>
+<style>
+* {margin:0; padding:0; box-sizing:border-box; font-family: Arial, sans-serif;}
+body {background:#000; color:#fff;}
+
+/* Hero */
+.hero {
+    background:#111;
+    padding:30px 15px;
+    text-align:center;
+    border-bottom:2px solid #00adee;
+}
+.hero h1 {color:#00adee; font-size:34px; margin-bottom:6px;}
+.hero h2 {font-size:20px; color:#fff; margin-bottom:10px;}
+.hero .hero-menu a {
+    text-decoration:none;
+    color:#000;
+    background:#00adee;
+    padding:8px 15px;
+    border-radius:6px;
+    font-weight:bold;
+    margin:0 6px;
+    transition:0.3s;
+    display:inline-block;
+}
+.hero .hero-menu a:hover {background:#0087c2;}
+
+/* Filtros de Pesquisa */
+.search-bar {
+    background:#111;
+    border:2px solid #00adee;
+    margin:20px auto;
+    padding:15px;
+    border-radius:10px;
+    max-width:900px;
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:10px;
+}
+.search-bar select, .search-bar input, .search-bar button {
+    padding:10px;
+    border:none;
+    border-radius:6px;
+    font-size:14px;
+}
+.search-bar select, .search-bar input {
+    flex:1;
+    min-width:160px;
+}
+.search-bar button {
+    background:#00adee;
+    color:#000;
+    font-weight:bold;
+    cursor:pointer;
+    transition:0.3s;
+}
+.search-bar button:hover {background:#0087c2;}
+
+/* Slider Profissionais */
+.prof-slider {
+    max-width:100%;
+    overflow:hidden;
+    margin:30px auto;
+    border-radius:12px;
+}
+.prof-slides {
+    display:flex;
+    gap:20px;
+    width:500%;
+    animation:slideProfs 20s infinite linear;
+}
+.prof-card {
+    background:#111;
+    border:2px solid #00adee;
+    border-radius:12px;
+    min-width:250px;
+    max-width:280px;
+    flex:1;
+    text-align:center;
+    padding:15px;
+}
+.prof-card img {
+    width:100%;
+    height:160px;
+    border-radius:8px;
+    object-fit:cover;
+}
+.prof-card h3 {color:#00adee; margin:10px 0;}
+.stars {color:gold; font-size:16px; margin-bottom:6px;}
+.prof-card p {font-size:14px; color:#ccc; margin-bottom:8px;}
+.prof-card a {
+    display:inline-block;
+    padding:8px 12px;
+    background:#00adee;
+    color:#000;
+    font-weight:bold;
+    border-radius:6px;
+    text-decoration:none;
+    transition:.3s;
+}
+.prof-card a:hover {background:#0087c2;}
+
+@keyframes slideProfs {
+  0% {transform:translateX(0);}
+  20% {transform:translateX(0);}
+  25% {transform:translateX(-20%);}
+  45% {transform:translateX(-20%);}
+  50% {transform:translateX(-40%);}
+  70% {transform:translateX(-40%);}
+  75% {transform:translateX(-60%);}
+  95% {transform:translateX(-60%);}
+  100% {transform:translateX(-80%);}
+}
+
+/* Rodapé */
+footer {
+    background:#111;
+    text-align:center;
+    padding:15px;
+    border-top:2px solid #00adee;
+    margin-top:20px;
+    font-size:13px;
+    color:#aaa;
+}
+footer a {color:#00adee; text-decoration:none; margin:0 8px;}
+footer a:hover {text-decoration:underline;}
+</style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+  <h1>Help Floripa</h1>
+  <h2>Limpeza e Cuidados</h2>
+  <div class="hero-menu">
+    <a href="index.html">Início</a>
+    <a href="contato.html">Contato</a>
+    <a href="ajuda.html">Ajuda</a>
+  </div>
+</div>
+
+<!-- Barra de Pesquisa -->
+<div class="search-bar">
+  <select>
+    <option value="">Selecione o tipo de profissional</option>
+    <option value="faxina">Faxineira</option>
+    <option value="diarista">Diarista</option>
+    <option value="passadeira">Passadeira</option>
+    <option value="zelador">Zelador</option>
+  </select>
+  <input type="text" placeholder="Digite o bairro">
+  <button>Pesquisar</button>
+</div>
+
+<!-- Slider Profissionais -->
+<div class="prof-slider">
+  <div class="prof-slides">
+    
+    <div class="prof-card">
+      <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Maria Souza">
+      <h3>Maria Souza</h3>
+      <div class="stars">★★★★★</div>
+      <p>Faxineira - 5 anos de experiência</p>
+      <a href="https://wa.me/554899999999">Solicitar no WhatsApp</a>
+    </div>
+
+    <div class="prof-card">
+      <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="João Silva">
+      <h3>João Silva</h3>
+      <div class="stars">★★★★★</div>
+      <p>Zelador - 10 anos de experiência</p>
+      <a href="https://wa.me/554899999998">Solicitar no WhatsApp</a>
+    </div>
+
+    <div class="prof-card">
+      <img src="https://randomuser.me/api/portraits/women/68.jpg" alt="Ana Pereira">
+      <h3>Ana Pereira</h3>
+      <div class="stars">★★★★★</div>
+      <p>Diarista - 7 anos de experiência</p>
+      <a href="https://wa.me/554899999997">Solicitar no WhatsApp</a>
+    </div>
+
+    <div class="prof-card">
+      <img src="https://randomuser.me/api/portraits/women/24.jpg" alt="Fernanda Lima">
+      <h3>Fernanda Lima</h3>
+      <div class="stars">★★★★★</div>
+      <p>Passadeira - 4 anos de experiência</p>
+      <a href="https://wa.me/554899999996">Solicitar no WhatsApp</a>
+    </div>
+
+    <div class="prof-card">
+      <img src="https://randomuser.me/api/portraits/men/14.jpg" alt="Carlos Mendes">
+      <h3>Carlos Mendes</h3>
+      <div class="stars">★★★★★</div>
+      <p>Cuidador - 6 anos de experiência</p>
+      <a href="https://wa.me/554899999995">Solicitar no WhatsApp</a>
+    </div>
+
+  </div>
+</div>
+
+<!-- Rodapé -->
+<footer>
+  <p>
+    <a href="termos.html">Termos de Uso</a> | 
+    <a href="privacidade.html">Política de Privacidade</a>
+  </p>
+  <p>CNPJ: 61.935.934/0001-00</p>
+  <p>&copy; 2025 Help Floripa - Todos os direitos reservados.</p>
+</footer>
+
+</body>
+</html>
