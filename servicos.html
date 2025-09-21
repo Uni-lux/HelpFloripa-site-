@@ -1,180 +1,519 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Serviços | Help Floripa</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Limpeza e Cuidados | Help Floripa</title>
 <style>
-* {margin:0; padding:0; box-sizing:border-box; font-family: Arial, sans-serif;}
-body {background:#000; color:#fff;}
+  /* Reset + base */
+  *{box-sizing:border-box;margin:0;padding:0;font-family:Arial, sans-serif}
+  html,body{height:100%}
+  body{background:#000;color:#fff;line-height:1.35;min-height:100vh;display:flex;flex-direction:column}
 
-/* Hero */
-.hero {
+  /* HERO / PAINEL (mesmo padrão do site) */
+  .hero{
     background:#111;
-    padding:30px 15px;
+    padding:28px 18px;
     text-align:center;
     border-bottom:2px solid #00adee;
-}
-.hero h1 {color:#00adee; font-size:34px; margin-bottom:6px;}
-.hero h2 {font-size:20px; color:#fff; margin-bottom:10px;}
-.hero .hero-menu a {
+  }
+  .hero h1{color:#00adee;font-size:32px;margin-bottom:6px}
+  .hero h2{color:#fff;font-size:18px;margin-bottom:12px}
+  .hero .hero-menu a{
     text-decoration:none;
     color:#000;
     background:#00adee;
-    padding:8px 15px;
+    padding:8px 14px;
     border-radius:6px;
-    font-weight:bold;
-    margin:0 6px;
-    transition:0.3s;
     display:inline-block;
-}
-.hero .hero-menu a:hover {background:#0087c2;}
+    margin:0 6px;
+    font-weight:700;
+  }
+  .hero .hero-menu a:hover{background:#0087c2}
 
-/* Slider */
-.slider {position:relative;max-width:100%;height:160px;overflow:hidden;margin:25px auto;border-radius:12px;}
-.slides {display:flex;width:300%;animation:slide 12s infinite;}
-.slides img {width:100%;height:160px;object-fit:cover;}
-@keyframes slide {
-  0% {margin-left:0;}
-  33% {margin-left:0;}
-  36% {margin-left:-100%;}
-  66% {margin-left:-100%;}
-  69% {margin-left:-200%;}
-  100% {margin-left:-200%;}
-}
-
-/* Cards */
-.cards {
-    display:grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px,1fr));
-    gap:20px;
-    padding:30px;
+  /* search area (filtro pesquisador dos profissionais da página) */
+  .search-bar{
     max-width:1100px;
-    margin:auto;
-}
-.card {
+    margin:18px auto;
     background:#111;
     border:2px solid #00adee;
-    border-radius:12px;
-    overflow:hidden;
+    padding:12px;
+    border-radius:10px;
     display:flex;
-    flex-direction:column;
-    transition:.3s;
-}
-.card:hover {transform:scale(1.05); box-shadow:0 0 15px rgba(0,173,238,.6);}
-.card img {width:100%; height:160px; object-fit:cover;}
-.card-content {padding:15px; text-align:center;}
-.card-content h3 {color:#00adee; margin-bottom:10px;}
-.card-content p {color:#ccc; font-size:14px; margin-bottom:12px;}
-.card-content a {
-    display:inline-block;
-    padding:8px 14px;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:center;
+  }
+  .search-bar .field{min-width:160px;flex:1}
+  .search-bar input[type="text"], .search-bar select{
+    width:100%;
+    padding:10px 12px;
+    border-radius:8px;
+    border:1px solid rgba(0,173,238,0.08);
+    background:#000;
+    color:#fff;
+  }
+  .search-bar button{
+    padding:10px 14px;
     background:#00adee;
     color:#000;
-    font-weight:bold;
-    text-decoration:none;
-    border-radius:6px;
-    transition:.3s;
-}
-.card-content a:hover {background:#0087c2;}
+    font-weight:700;
+    border-radius:8px;
+    border:none;
+    cursor:pointer;
+  }
+  .search-bar button:hover{background:#0087c2}
 
-/* Footer */
-footer {
+  /* Slider (melhores profissionais) */
+  .prof-slider-wrap{
+    max-width:1200px;margin:20px auto;padding:6px;
+    position:relative;
+  }
+  .prof-slider{
+    overflow:hidden;
+    border-radius:12px;
+    padding:12px;
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border:2px solid rgba(0,173,238,0.06);
+  }
+  .prof-track{
+    display:flex;
+    gap:18px;
+    transition:transform .45s ease;
+    will-change:transform;
+  }
+  .prof-item{
     background:#111;
+    border:2px solid #00adee;
+    border-radius:10px;
+    padding:12px;
+    width:260px; /* base width - will keep consistent */
+    flex:0 0 260px;
     text-align:center;
-    padding:15px;
-    border-top:2px solid #00adee;
-    margin-top:20px;
-    font-size:13px;
-    color:#aaa;
-}
-footer a {color:#00adee; text-decoration:none; margin:0 8px;}
-footer a:hover {text-decoration:underline;}
+  }
+  .prof-item img{width:100%;height:150px;object-fit:cover;border-radius:8px}
+  .prof-item h3{color:#00adee;font-size:18px;margin:8px 0}
+  .stars{color:#ffd54a;font-size:15px;margin-bottom:6px}
+  .prof-item p{color:#cfcfcf;font-size:14px;margin-bottom:10px}
+  .prof-item .wa-btn{
+    display:inline-block;
+    background:#00adee;color:#000;padding:8px 10px;border-radius:8px;font-weight:700;text-decoration:none
+  }
+  .prof-item .wa-btn:hover{background:#0087c2}
 
-/* Responsivo */
-@media(max-width:768px){
-  .hero h1 {font-size:26px;}
-  .hero h2 {font-size:16px;}
-  .slider {height:130px;}
-  .slides img {height:130px;}
-}
-@media(max-width:480px){
-  .hero {padding:15px;}
-  .hero h1 {font-size:22px;}
-  .hero h2 {font-size:14px;}
-  .hero .hero-menu a {padding:6px 10px; font-size:12px;}
-  .slider {height:110px;}
-  .slides img {height:110px;}
-}
+  /* slider controls */
+  .slider-controls{
+    position:absolute;top:50%;left:10px;transform:translateY(-50%);display:flex;gap:8px;z-index:3;
+  }
+  .slider-controls button{
+    background:rgba(0,0,0,0.6);border:1px solid #00adee;color:#00adee;padding:8px;border-radius:8px;cursor:pointer;
+  }
+  .slider-controls button:hover{background:#00adee;color:#000}
+
+  .slider-controls-right{
+    position:absolute;top:50%;right:10px;transform:translateY(-50%);display:flex;gap:8px;z-index:3;
+  }
+
+  /* GRID abaixo do slider (cards menores) */
+  .grid-wrap{max-width:1200px;margin:18px auto;padding:0 12px 40px}
+  .grid {
+    display:grid;
+    gap:18px;
+    /* padrão para computadores: 2 colunas (como você pediu antes) */
+    grid-template-columns:repeat(2, 1fr);
+  }
+  .card {
+    background:#111;border:2px solid #00adee;border-radius:10px;overflow:hidden;display:flex;gap:10px;padding:10px;align-items:flex-start;
+  }
+  .card img{width:120px;height:90px;object-fit:cover;border-radius:8px;flex-shrink:0}
+  .card-body{flex:1}
+  .card h4{color:#00adee;font-size:16px;margin-bottom:6px}
+  .muted{color:#ccc;font-size:13px;margin-bottom:6px}
+  .small-stars{color:#ffd54a;font-size:14px;margin-bottom:6px}
+  .exp{color:#bbb;font-size:13px;margin-bottom:8px}
+  .card .wa-small{
+    display:inline-block;background:#00adee;color:#000;padding:6px 8px;border-radius:8px;font-weight:700;text-decoration:none
+  }
+
+  /* footer */
+  footer{background:#111;border-top:2px solid #00adee;color:#aaa;padding:18px;text-align:center;margin-top:auto}
+  footer a{color:#00adee;text-decoration:none;margin:0 8px}
+
+  /* responsivo */
+  @media(max-width:1100px){
+    .prof-item{width:230px;flex:0 0 230px}
+    .card img{width:110px;height:80px}
+    .grid{grid-template-columns:repeat(2,1fr)}
+  }
+  @media(max-width:880px){
+    .search-bar{padding:10px}
+    .prof-item{width:220px;flex:0 0 220px}
+    .grid{grid-template-columns:repeat(2,1fr)}
+    .card img{width:95px;height:75px}
+  }
+  @media(max-width:620px){
+    .prof-item{width:190px;flex:0 0 190px}
+    .grid{grid-template-columns:repeat(1,1fr)}
+    .card{align-items:center}
+    .card img{width:100px;height:70px}
+  }
 </style>
 </head>
 <body>
 
-<!-- Hero -->
-<div class="hero">
+<!-- HERO / Painel -->
+<section class="hero" aria-label="Painel Help Floripa">
   <h1>Help Floripa</h1>
-  <h2>Serviços</h2>
+  <h2>Limpeza & Cuidados</h2>
   <div class="hero-menu">
     <a href="index.html">Início</a>
     <a href="contato.html">Contato</a>
     <a href="ajuda.html">Ajuda</a>
   </div>
-</div>
+</section>
 
-<!-- Slide -->
-<div class="slider">
-  <div class="slides">
-    <img src="https://images.unsplash.com/photo-1581090700227-4c4e1a4e8e4e?auto=format&fit=crop&w=1200&q=80" alt="Profissionais de Limpeza">
-    <img src="https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1200&q=80" alt="Obras e Reformas">
-    <img src="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=1200&q=80" alt="Saúde e Beleza">
+<!-- BARRA DE PESQUISA (filtra profissionais desta página) -->
+<section class="search-bar" aria-label="Pesquisar profissionais">
+  <div class="field">
+    <input id="searchName" type="text" placeholder="Pesquisar por nome ou profissão (ex: diarista, faxineira)"/>
   </div>
-</div>
 
-<!-- Cards -->
-<section class="cards">
-  <div class="card">
-    <img src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=800&q=80" alt="Limpeza e Cuidados">
-    <div class="card-content">
-      <h3>Limpeza e Cuidados</h3>
-      <p>Profissionais de faxina, diaristas e passadeiras para sua casa ou empresa.</p>
-      <a href="limpeza-cuidados.html">Ver Serviços</a>
-    </div>
+  <div class="field">
+    <select id="filterType">
+      <option value="">Tipo de profissional</option>
+      <option value="faxineira">Faxineira</option>
+      <option value="diarista">Diarista</option>
+      <option value="passadeira">Passadeira</option>
+      <option value="zelador">Zelador</option>
+      <option value="cuidador">Cuidador</option>
+    </select>
   </div>
-  <div class="card">
-    <img src="https://images.unsplash.com/photo-1606813902652-7a3213017e5c?auto=format&fit=crop&w=800&q=80" alt="Obras e Reformas">
-    <div class="card-content">
-      <h3>Obras e Reformas</h3>
-      <p>Pedreiros, pintores, eletricistas e serviços de manutenção especializados.</p>
-      <a href="#">Ver Serviços</a>
-    </div>
+
+  <div class="field">
+    <select id="filterCity">
+      <option value="">Cidade</option>
+      <option value="florianopolis">Florianópolis</option>
+      <option value="saojose">São José</option>
+    </select>
   </div>
-  <div class="card">
-    <img src="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=800&q=80" alt="Saúde e Beleza">
-    <div class="card-content">
-      <h3>Saúde e Beleza</h3>
-      <p>Cabeleireiros, manicures, massagistas e profissionais da área da saúde.</p>
-      <a href="#">Ver Serviços</a>
-    </div>
+
+  <div class="field">
+    <select id="filterBairro">
+      <option value="">Bairro (selecione a cidade primeiro)</option>
+    </select>
   </div>
-  <div class="card">
-    <img src="https://images.unsplash.com/photo-1529070538774-1843cb3265df?auto=format&fit=crop&w=800&q=80" alt="Transporte e Logística">
-    <div class="card-content">
-      <h3>Transporte e Logística</h3>
-      <p>Entregadores, motoristas particulares e soluções rápidas para transporte.</p>
-      <a href="#">Ver Serviços</a>
-    </div>
+
+  <div style="min-width:120px;">
+    <button id="btnSearch">Aplicar filtros</button>
   </div>
 </section>
 
-<!-- Rodapé -->
+<!-- SLIDER: Melhores profissionais (5 estrelas) -->
+<div class="prof-slider-wrap">
+  <div class="slider-controls" aria-hidden="false">
+    <button id="prevBtn" title="Anterior">◀</button>
+  </div>
+
+  <div class="prof-slider" aria-label="Melhores profissionais">
+    <div class="prof-track" id="profTrack">
+      <!-- Cada item tem data-attributes usados para filtragem -->
+      <div class="prof-item" data-name="maria souza" data-type="faxineira" data-city="florianopolis" data-bairro="centro" data-top="1">
+        <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Maria Souza">
+        <h3>Maria Souza</h3>
+        <div class="stars">★★★★★</div>
+        <p>Faxineira • 5 anos de experiência • Atende Florianópolis - Centro</p>
+        <a class="wa-btn" href="https://wa.me/554899900001?text=Olá%20Maria%2C%20gostaria%20de%20solicitar%20seus%20serviços." target="_blank" rel="noopener">WhatsApp</a>
+      </div>
+
+      <div class="prof-item" data-name="joão silva" data-type="zelador" data-city="saojose" data-bairro="barreiros" data-top="1">
+        <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="João Silva">
+        <h3>João Silva</h3>
+        <div class="stars">★★★★★</div>
+        <p>Zelador • 10 anos de experiência • Atende São José - Barreiros</p>
+        <a class="wa-btn" href="https://wa.me/554899900002?text=Olá%20João%2C%20gostaria%20de%20contratar%20seu%20serviço." target="_blank" rel="noopener">WhatsApp</a>
+      </div>
+
+      <div class="prof-item" data-name="ana pereira" data-type="diarista" data-city="florianopolis" data-bairro="trindade" data-top="1">
+        <img src="https://randomuser.me/api/portraits/women/68.jpg" alt="Ana Pereira">
+        <h3>Ana Pereira</h3>
+        <div class="stars">★★★★★</div>
+        <p>Diarista • 7 anos de experiência • Atende Florianópolis - Trindade</p>
+        <a class="wa-btn" href="https://wa.me/554899900003?text=Olá%20Ana%2C%20gostaria%20de%20agendar%20seu%20serviço." target="_blank" rel="noopener">WhatsApp</a>
+      </div>
+
+      <div class="prof-item" data-name="fernanda lima" data-type="passadeira" data-city="florianopolis" data-bairro="campeche" data-top="1">
+        <img src="https://randomuser.me/api/portraits/women/24.jpg" alt="Fernanda Lima">
+        <h3>Fernanda Lima</h3>
+        <div class="stars">★★★★★</div>
+        <p>Passadeira • 4 anos de experiência • Atende Florianópolis - Campeche</p>
+        <a class="wa-btn" href="https://wa.me/554899900004?text=Olá%20Fernanda%2C%20preciso%20dos%20seus%20serviços." target="_blank" rel="noopener">WhatsApp</a>
+      </div>
+
+      <div class="prof-item" data-name="carlos mendes" data-type="cuidador" data-city="saojose" data-bairro="kobrasol" data-top="1">
+        <img src="https://randomuser.me/api/portraits/men/14.jpg" alt="Carlos Mendes">
+        <h3>Carlos Mendes</h3>
+        <div class="stars">★★★★★</div>
+        <p>Cuidador • 6 anos de experiência • Atende São José - Kobrasol</p>
+        <a class="wa-btn" href="https://wa.me/554899900005?text=Olá%20Carlos%2C%20gostaria%20de%20contratar%20seus%20serviços." target="_blank" rel="noopener">WhatsApp</a>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="slider-controls-right" aria-hidden="false">
+    <button id="nextBtn" title="Próximo">▶</button>
+  </div>
+</div>
+
+<!-- GRID de profissionais (menores) abaixo do slider -->
+<div class="grid-wrap">
+  <h3 style="max-width:1200px;margin:8px auto 12px;color:#00adee;padding-left:12px">Profissionais disponíveis</h3>
+  <div class="grid" id="grid">
+    <!-- Os mesmos profissionais (exemplo) — serão filtráveis pela barra -->
+    <div class="card" data-name="maria souza" data-type="faxineira" data-city="florianopolis" data-bairro="centro">
+      <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Maria Souza">
+      <div class="card-body">
+        <h4>Maria Souza</h4>
+        <div class="muted">Faxineira • Atendimento: Centro</div>
+        <div class="small-stars">★★★★★</div>
+        <div class="exp">5 anos de experiência</div>
+        <a class="wa-small" href="https://wa.me/554899900001?text=Olá%20Maria%2C%20gostaria%20de%20seu%20serviço%20de%20faxina." target="_blank">Solicitar (WhatsApp)</a>
+      </div>
+    </div>
+
+    <div class="card" data-name="joão silva" data-type="zelador" data-city="saojose" data-bairro="barreiros">
+      <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="João Silva">
+      <div class="card-body">
+        <h4>João Silva</h4>
+        <div class="muted">Zelador • Atendimento: Barreiros</div>
+        <div class="small-stars">★★★★★</div>
+        <div class="exp">10 anos de experiência</div>
+        <a class="wa-small" href="https://wa.me/554899900002?text=Olá%20João%2C%20gostaria%20de%20contratar%20seu%20serviço." target="_blank">Solicitar (WhatsApp)</a>
+      </div>
+    </div>
+
+    <div class="card" data-name="ana pereira" data-type="diarista" data-city="florianopolis" data-bairro="trindade">
+      <img src="https://randomuser.me/api/portraits/women/68.jpg" alt="Ana Pereira">
+      <div class="card-body">
+        <h4>Ana Pereira</h4>
+        <div class="muted">Diarista • Atendimento: Trindade</div>
+        <div class="small-stars">★★★★★</div>
+        <div class="exp">7 anos de experiência</div>
+        <a class="wa-small" href="https://wa.me/554899900003?text=Olá%20Ana%2C%20gostaria%20de%20agendar%20seu%20serviço." target="_blank">Solicitar (WhatsApp)</a>
+      </div>
+    </div>
+
+    <div class="card" data-name="fernanda lima" data-type="passadeira" data-city="florianopolis" data-bairro="campeche">
+      <img src="https://randomuser.me/api/portraits/women/24.jpg" alt="Fernanda Lima">
+      <div class="card-body">
+        <h4>Fernanda Lima</h4>
+        <div class="muted">Passadeira • Atendimento: Campeche</div>
+        <div class="small-stars">★★★★★</div>
+        <div class="exp">4 anos de experiência</div>
+        <a class="wa-small" href="https://wa.me/554899900004?text=Olá%20Fernanda%2C%20preciso%20dos%20seus%20serviços." target="_blank">Solicitar (WhatsApp)</a>
+      </div>
+    </div>
+
+    <div class="card" data-name="carlos mendes" data-type="cuidador" data-city="saojose" data-bairro="kobrasol">
+      <img src="https://randomuser.me/api/portraits/men/14.jpg" alt="Carlos Mendes">
+      <div class="card-body">
+        <h4>Carlos Mendes</h4>
+        <div class="muted">Cuidador • Atendimento: Kobrasol</div>
+        <div class="small-stars">★★★★★</div>
+        <div class="exp">6 anos de experiência</div>
+        <a class="wa-small" href="https://wa.me/554899900005?text=Olá%20Carlos%2C%20gostaria%20de%20contratar%20seus%20serviços." target="_blank">Solicitar (WhatsApp)</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Footer -->
 <footer>
   <p>
-    <a href="termos.html">Termos de Uso</a> | 
+    <a href="termos.html">Termos de Uso</a> |
     <a href="privacidade.html">Política de Privacidade</a>
   </p>
   <p>CNPJ: 61.935.934/0001-00</p>
   <p>&copy; 2025 Help Floripa - Todos os direitos reservados.</p>
 </footer>
 
-</body>
-          </html>
+<script>
+/* ---------- Dados de bairros por cidade (dinâmico) ---------- */
+const bairrosPorCidade = {
+  florianopolis: ['Centro','Trindade','Campeche','Ingleses','Coqueiros','Beira-Mar Norte'],
+  saojose: ['Barreiros','Kobrasol','Forquilhas','Serraria','Campinas']
+}
+
+/* ---------- Elements ---------- */
+const filterCity = document.getElementById('filterCity');
+const filterBairro = document.getElementById('filterBairro');
+const btnSearch = document.getElementById('btnSearch');
+const searchName = document.getElementById('searchName');
+const filterType = document.getElementById('filterType');
+
+const grid = document.getElementById('grid');
+const gridCards = Array.from(grid.querySelectorAll('.card'));
+
+const profTrack = document.getElementById('profTrack');
+let profItems = Array.from(profTrack.querySelectorAll('.prof-item'));
+
+/* popula bairros conforme cidade selecionada */
+filterCity.addEventListener('change', () => {
+  const city = filterCity.value;
+  filterBairro.innerHTML = '<option value="">Bairro</option>';
+  if (!city) return;
+  const bairros = bairrosPorCidade[city] || [];
+  bairros.forEach(b => {
+    const opt = document.createElement('option');
+    opt.value = b.toLowerCase();
+    opt.textContent = b;
+    filterBairro.appendChild(opt);
+  });
+});
+
+/* função que aplica filtros na GRID e no SLIDER (procura entre os profissionais cadastrados nesta página) */
+function applyFilters() {
+  const q = (searchName.value||'').trim().toLowerCase();
+  const type = filterType.value;
+  const city = filterCity.value;
+  const bairro = filterBairro.value;
+
+  // Grid filtering
+  gridCards.forEach(card => {
+    const name = (card.getAttribute('data-name')||'').toLowerCase();
+    const ctype = (card.getAttribute('data-type')||'').toLowerCase();
+    const ccity = (card.getAttribute('data-city')||'').toLowerCase();
+    const cbairro = (card.getAttribute('data-bairro')||'').toLowerCase();
+
+    const matchesQ = !q || name.includes(q) || ctype.includes(q);
+    const matchesType = !type || ctype === type.toLowerCase();
+    const matchesCity = !city || ccity === city.toLowerCase();
+    const matchesBairro = !bairro || cbairro === bairro.toLowerCase();
+
+    card.style.display = (matchesQ && matchesType && matchesCity && matchesBairro) ? 'flex' : 'none';
+  });
+
+  // Slider filtering: show/hide profTrack children
+  profItems.forEach(item => {
+    const name = (item.getAttribute('data-name')||'').toLowerCase();
+    const ctype = (item.getAttribute('data-type')||'').toLowerCase();
+    const ccity = (item.getAttribute('data-city')||'').toLowerCase();
+    const cbairro = (item.getAttribute('data-bairro')||'').toLowerCase();
+
+    const matchesQ = !q || name.includes(q) || ctype.includes(q);
+    const matchesType = !type || ctype === type.toLowerCase();
+    const matchesCity = !city || ccity === city.toLowerCase();
+    const matchesBairro = !bairro || cbairro === bairro.toLowerCase();
+
+    item.style.display = (matchesQ && matchesType && matchesCity && matchesBairro) ? 'block' : 'none';
+  });
+
+  // reset slider position (when filtering)
+  currentIndex = 0;
+  updateTrack();
+}
+
+/* ligar o botão e enter na caixa de texto */
+btnSearch.addEventListener('click', applyFilters);
+searchName.addEventListener('keyup', (e) => { if(e.key === 'Enter') applyFilters(); });
+
+/* ---------- SLIDER LOGIC (auto-play + manual) ---------- */
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+let currentIndex = 0;
+let autoplayTimer = null;
+
+function visibleItemsCount(){
+  // compute how many items fit in the visible width
+  const container = profTrack.parentElement;
+  const containerWidth = container.clientWidth - 40; // padding/gap tolerance
+  const itemWidth = profItems[0] ? profItems[0].getBoundingClientRect().width + 18 : 260;
+  return Math.max(1, Math.floor(containerWidth / itemWidth));
+}
+
+function updateTrack(){
+  // build list of visible items
+  profItems = Array.from(profTrack.querySelectorAll('.prof-item')).filter(el => el.style.display !== 'none');
+  if(profItems.length === 0){
+    profTrack.style.transform = 'translateX(0)';
+    return;
+  }
+  // clamp currentIndex
+  const vis = visibleItemsCount();
+  const maxIndex = Math.max(0, profItems.length - vis);
+  if(currentIndex > maxIndex) currentIndex = maxIndex;
+  if(currentIndex < 0) currentIndex = 0;
+
+  // compute translateX: use first visible element offset relative to track
+  const firstVisible = profItems[0];
+  const baseWidth = firstVisible.getBoundingClientRect().width + 18; // item width + gap
+  const translateX = -(baseWidth * currentIndex);
+  profTrack.style.transform = `translateX(${translateX}px)`;
+}
+
+function nextSlide(){
+  profItems = Array.from(profTrack.querySelectorAll('.prof-item')).filter(el => el.style.display !== 'none');
+  if(profItems.length === 0) return;
+  const vis = visibleItemsCount();
+  const maxIndex = Math.max(0, profItems.length - vis);
+  currentIndex = (currentIndex >= maxIndex) ? 0 : currentIndex + 1;
+  updateTrack();
+}
+function prevSlide(){
+  profItems = Array.from(profTrack.querySelectorAll('.prof-item')).filter(el => el.style.display !== 'none');
+  if(profItems.length === 0) return;
+  const vis = visibleItemsCount();
+  const maxIndex = Math.max(0, profItems.length - vis);
+  currentIndex = (currentIndex <= 0) ? maxIndex : currentIndex - 1;
+  updateTrack();
+}
+
+nextBtn.addEventListener('click', ()=>{
+  stopAutoplay();
+  nextSlide();
+  startAutoplay();
+});
+prevBtn.addEventListener('click', ()=>{
+  stopAutoplay();
+  prevSlide();
+  startAutoplay();
+});
+
+/* autoplay */
+function startAutoplay(){
+  stopAutoplay();
+  autoplayTimer = setInterval(nextSlide, 4000);
+}
+function stopAutoplay(){ if(autoplayTimer) clearInterval(autoplayTimer); }
+
+/* initial setup */
+window.addEventListener('load', ()=>{
+  // normalize attribute values (lowercase) for consistency
+  [...profTrack.querySelectorAll('.prof-item')].forEach(el=>{
+    ['data-name','data-type','data-city','data-bairro'].forEach(attr=>{
+      const v = el.getAttribute(attr);
+      if(v) el.setAttribute(attr, v.toLowerCase());
+    });
+  });
+  [...grid.querySelectorAll('.card')].forEach(el=>{
+    ['data-name','data-type','data-city','data-bairro'].forEach(attr=>{
+      const v = el.getAttribute(attr);
+      if(v) el.setAttribute(attr, v.toLowerCase());
+    });
+  });
+
+  // set bairros if city already chosen (rare)
+  if(filterCity.value) filterCity.dispatchEvent(new Event('change'));
+
+  updateTrack();
+  startAutoplay();
+
+  // recalc on resize
+  window.addEventListener('resize', ()=> {
+    updateTrack();
+  });
+});
+
+/* stop autoplay when user
