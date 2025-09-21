@@ -5,8 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Shopping e Produtos | Help Floripa</title>
 <style>
-* {margin:0; padding:0; box-sizing:border-box; font-family: Arial, sans-serif;}
-body {background:#000; color:#fff; position:relative;}
+* {
+  margin:0; padding:0; box-sizing:border-box;
+  font-family: Arial, sans-serif;
+}
+body {
+  background:#000; color:#fff; position:relative;
+}
 
 /* Hero */
 .hero {
@@ -25,137 +30,115 @@ body {background:#000; color:#fff; position:relative;}
 .hero h2 {font-size:18px; color:#fff;}
 .hero .hero-menu {margin-top:12px;}
 .hero .hero-menu a {
-  text-decoration:none;
-  color:#000;
-  background:#00adee;
-  padding:8px 15px;
-  border-radius:6px;
-  font-weight:bold;
-  margin:0 5px;
-  transition:0.3s;
+  text-decoration:none; color:#000; background:#00adee;
+  padding:8px 15px; border-radius:6px; font-weight:bold;
+  margin:0 5px; transition:0.3s;
 }
 .hero .hero-menu a:hover {background:#0087c2;}
 
 /* Carrinho */
 #cartButton {
-  position:fixed;
-  top:20px;
-  right:20px;
-  background:#00adee;
-  color:#000;
-  padding:10px 15px;
-  border-radius:8px;
-  font-weight:bold;
-  cursor:pointer;
+  position:fixed; top:20px; right:20px;
+  background:#00adee; color:#000;
+  padding:10px 15px; border-radius:8px;
+  font-weight:bold; cursor:pointer;
   z-index:999;
 }
 #cartButton:hover {background:#0087c2;}
 #cartContainer {
-  position:fixed;
-  top:60px;
-  right:20px;
-  width:300px;
-  max-height:70vh;
-  overflow-y:auto;
-  background:#111;
-  border:2px solid #00adee;
-  border-radius:12px;
-  padding:10px;
-  display:none;
-  z-index:999;
+  position:fixed; top:60px; right:20px;
+  width:300px; max-height:70vh; overflow-y:auto;
+  background:#111; border:2px solid #00adee;
+  border-radius:12px; padding:10px;
+  display:none; z-index:999;
 }
 #cartContainer h3 {color:#00adee; margin-bottom:10px; text-align:center;}
-.cart-item {background:#222; border:1px solid #00adee; border-radius:8px; margin-bottom:8px; padding:8px; display:flex; justify-content:space-between; align-items:center;}
+.cart-item {
+  background:#222; border:1px solid #00adee;
+  border-radius:8px; margin-bottom:8px; padding:8px;
+  display:flex; justify-content:space-between; align-items:center;
+}
 .cart-item div {flex:1;}
-.cart-item button {background:#00adee; border:none; border-radius:5px; padding:4px 8px; cursor:pointer; color:#000; font-weight:bold;}
+.cart-item button {
+  background:#00adee; border:none; border-radius:5px;
+  padding:4px 8px; cursor:pointer;
+  color:#000; font-weight:bold;
+}
 .cart-item button:hover {background:#0087c2;}
 #cartTotal {text-align:right; font-weight:bold; margin-top:10px; color:#fff;}
-#checkoutBtn {display:block; width:100%; padding:10px; margin-top:10px; text-align:center; background:#00adee; color:#000; font-weight:bold; border-radius:8px; text-decoration:none;}
+#checkoutBtn {
+  display:block; width:100%; padding:10px; margin-top:10px;
+  text-align:center; background:#00adee; color:#000;
+  font-weight:bold; border-radius:8px; text-decoration:none;
+}
 #checkoutBtn:hover {background:#0087c2;}
 
 /* Slide */
-.slideshow-container {position:relative;max-width:100%;margin:20px auto;overflow:hidden;border-radius:12px;}
+.slideshow-container {
+  position:relative; max-width:100%;
+  margin:20px auto; overflow:hidden; border-radius:12px;
+}
 .slide {display:none;}
 .slide img {width:100%;height:260px;object-fit:cover;}
 
 /* Pesquisa */
 .search-bar {
-  background:#111;
-  padding:20px;
-  display:flex;
-  flex-wrap:wrap;
-  gap:10px;
+  background:#111; padding:20px;
+  display:flex; flex-wrap:wrap; gap:10px;
   justify-content:center;
   border-top:2px solid #00adee;
   border-bottom:2px solid #00adee;
 }
 .search-bar input, .search-bar select {
-  padding:10px;
-  border:1px solid #00adee;
-  border-radius:8px;
-  font-size:15px;
-  min-width:180px;
+  padding:10px; border:1px solid #00adee;
+  border-radius:8px; font-size:15px; min-width:180px;
 }
 
 /* Cards */
 .cards {
-  display:flex;
-  flex-wrap:wrap;
+  display:grid;
+  grid-template-columns: repeat(2, 1fr);
   gap:20px;
   padding:25px;
-  justify-content:center;
-  max-width:1200px;
+  max-width:900px;
   margin:auto;
 }
 .card {
-  background:#111; 
-  border:2px solid #00adee; 
+  background:#111;
+  border:2px solid #00adee;
   border-radius:12px;
-  overflow:hidden; 
+  overflow:hidden;
   transition:.3s;
-  width:250px;
+  width:100%;
   display:flex;
   flex-direction:column;
 }
 .card:hover {transform:scale(1.05); box-shadow:0 0 15px rgba(0,173,238,.6);}
-.card img {width:100%; height:180px; object-fit:cover;}
-.card-content {padding:15px; text-align:center; flex:1;}
+.card img {width:100%; height:150px; object-fit:cover;}
+.card-content {padding:12px; text-align:center; flex:1;}
 .card-content h3 {margin:0 0 5px; color:#00adee;}
-.card-content p {font-size:14px; margin:0 0 5px; color:#ccc;}
-.card-content .store {font-size:13px; color:#aaa; margin-bottom:5px;}
-.price {font-weight:bold; color:#fff; margin-bottom:10px;}
+.card-content p {font-size:13px; margin:0 0 5px; color:#ccc;}
+.card-content .store {font-size:12px; color:#aaa; margin-bottom:5px;}
+.price {font-weight:bold; color:#fff; margin-bottom:8px;}
 .card-content input[type="number"] {
-  width:60px;
-  padding:5px;
-  border:1px solid #00adee;
-  border-radius:5px;
-  margin-bottom:10px;
-  text-align:center;
-  background:#000;
-  color:#fff;
+  width:50px; padding:4px;
+  border:1px solid #00adee; border-radius:5px;
+  margin-bottom:8px; text-align:center;
+  background:#000; color:#fff;
 }
 .card-content a {
-  display:inline-block;
-  background:#00adee;
-  color:#000;
-  text-decoration:none;
-  padding:6px 10px;
-  border-radius:8px;
-  transition:background 0.3s;
-  font-weight:bold;
-  margin:2px;
+  display:inline-block; background:#00adee; color:#000;
+  text-decoration:none; padding:5px 9px;
+  border-radius:8px; transition:background 0.3s;
+  font-weight:bold; margin:2px; font-size:13px;
 }
 .card-content a:hover {background:#0087c2;}
 
 /* Rodapé */
 footer {
-  background:#111;
-  color:#aaa;
-  text-align:center;
-  padding:20px;
-  margin-top:40px;
-  border-top:2px solid #00adee;
-  font-size:14px;
+  background:#111; color:#aaa;
+  text-align:center; padding:20px; margin-top:40px;
+  border-top:2px solid #00adee; font-size:14px;
 }
 footer a {color:#00adee; text-decoration:none; margin:0 8px;}
 footer a:hover {text-decoration:underline;}
@@ -165,7 +148,7 @@ footer a:hover {text-decoration:underline;}
   .hero {height:200px;}
   .hero h1 {font-size:24px;}
   .slide img {height:200px;}
-  .cards {justify-content:center;}
+  .cards {grid-template-columns: 1fr;}
 }
 @media(max-width:480px){
   .hero {height:160px;}
@@ -173,7 +156,6 @@ footer a:hover {text-decoration:underline;}
   .hero h2 {font-size:14px;}
   .hero .hero-menu a {padding:6px 10px; font-size:12px;}
   .slide img {height:160px;}
-  .cards {flex-direction:column; align-items:center;}
 }
 </style>
 </head>
@@ -242,8 +224,8 @@ footer a:hover {text-decoration:underline;}
       <div class="store">Loja: TecnoCenter</div>
       <div class="price">R$ 199,90 | Disponível: 5</div>
       <input type="number" min="1" value="1">
-      <a href="#" class="addCart">Adicionar ao carrinho</a>
-      <a href="#" class="orderNow">Fazer Pedido</a>
+      <a href="#" class="addCart">Adicionar</a>
+      <a href="#" class="orderNow">Pedir</a>
     </div>
   </div>
 
@@ -256,13 +238,12 @@ footer a:hover {text-decoration:underline;}
       <div class="store">Loja: ModaFloripa</div>
       <div class="price">R$ 79,90 | Disponível: 12</div>
       <input type="number" min="1" value="1">
-      <a href="#" class="addCart">Adicionar ao carrinho</a>
-      <a href="#" class="orderNow">Fazer Pedido</a>
+      <a href="#" class="addCart">Adicionar</a>
+      <a href="#" class="orderNow">Pedir</a>
     </div>
   </div>
 
-  
-  <!-- Produto 3 (parte 2)-->
+  <!-- Produto 3 -->
   <div class="card" data-category="mercado" data-price="49.9">
     <img src="https://images.unsplash.com/photo-1576402187878-974f70c890a5?auto=format&fit=crop&w=800&q=80" alt="Cesta de frutas">
     <div class="card-content">
@@ -271,12 +252,11 @@ footer a:hover {text-decoration:underline;}
       <div class="store">Loja: Frutas & Cia</div>
       <div class="price">R$ 49,90 | Disponível: 8</div>
       <input type="number" min="1" value="1">
-      <a href="#" class="addCart">Adicionar ao carrinho</a>
-      <a href="#" class="orderNow">Fazer Pedido</a>
+      <a href="#" class="addCart">Adicionar</a>
+      <a href="#" class="orderNow">Pedir</a>
     </div>
   </div>
-
-</div> <!-- Fim dos cards -->
+</div>
 
 <!-- Rodapé -->
 <footer>
@@ -297,19 +277,17 @@ function showSlides() {
   slides[slideIndex-1].style.display = "block";
   setTimeout(showSlides,4000);
 }
-  // Filtros (parte 3)
-// Selecionando elementos da pesquisa
+
+// Pesquisa
 const searchName = document.getElementById('searchName');
 const searchCategory = document.getElementById('searchCategory');
 const priceRange = document.getElementById('priceRange');
 const cardsContainer = document.getElementById('cardsContainer');
 
-// Função para filtrar cards
 function filterCards() {
   const nameFilter = searchName.value.toLowerCase();
   const categoryFilter = searchCategory.value;
   const priceValue = priceRange.value;
-
   const cards = cardsContainer.querySelectorAll('.card');
 
   cards.forEach(card => {
@@ -319,7 +297,6 @@ function filterCards() {
     const category = card.getAttribute('data-category');
     const price = parseFloat(card.getAttribute('data-price'));
 
-    // Verifica filtros
     const matchesName = title.includes(nameFilter) || desc.includes(nameFilter) || store.includes(nameFilter);
     const matchesCategory = !categoryFilter || category === categoryFilter;
     let matchesPrice = true;
@@ -327,31 +304,25 @@ function filterCards() {
       const [min, max] = priceValue.split('-').map(Number);
       matchesPrice = price >= min && price <= max;
     }
-
-    // Exibe ou oculta card
     card.style.display = (matchesName && matchesCategory && matchesPrice) ? 'flex' : 'none';
   });
 }
-
-// Eventos de pesquisa
 searchName.addEventListener('input', filterCards);
 searchCategory.addEventListener('change', filterCards);
 priceRange.addEventListener('change', filterCards);
+
 // Carrinho
 const cartButton = document.getElementById('cartButton');
 const cartContainer = document.getElementById('cartContainer');
 const cartItemsDiv = document.getElementById('cartItems');
 const cartCount = document.getElementById('cartCount');
 const cartTotal = document.getElementById('cartTotal');
-
 let cart = [];
 
-// Mostrar/ocultar carrinho
 cartButton.addEventListener('click', ()=>{
   cartContainer.style.display = cartContainer.style.display === 'block' ? 'none' : 'block';
 });
 
-// Adicionar ao carrinho
 document.querySelectorAll('.addCart').forEach(btn=>{
   btn.addEventListener('click', (e)=>{
     e.preventDefault();
@@ -362,16 +333,12 @@ document.querySelectorAll('.addCart').forEach(btn=>{
     const store = card.querySelector('.store').textContent;
 
     const existing = cart.find(item => item.title === title);
-    if(existing){
-      existing.qty += qty;
-    } else {
-      cart.push({title, price, qty, store});
-    }
+    if(existing){ existing.qty += qty; }
+    else { cart.push({title, price, qty, store}); }
     updateCart();
   });
 });
 
-// Atualizar carrinho
 function updateCart(){
   cartItemsDiv.innerHTML = '';
   let total = 0;
@@ -392,7 +359,6 @@ function updateCart(){
   cartTotal.textContent = `Total: R$ ${total.toFixed(2)}`;
   cartCount.textContent = cart.reduce((acc,i)=>acc+i.qty,0);
 
-  // Remover item
   document.querySelectorAll('.cart-item button').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const idx = parseInt(btn.getAttribute('data-index'));
@@ -402,7 +368,6 @@ function updateCart(){
   });
 }
 
-// Fazer pedido
 document.getElementById('checkoutBtn').addEventListener('click', ()=>{
   if(cart.length === 0){
     alert('Seu carrinho está vazio!');
