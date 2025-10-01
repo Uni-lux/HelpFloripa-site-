@@ -5,10 +5,108 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sócios e Parcerias | Help Floripa</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    /* Ajustes específicos desta página */
+    .hero-page {
+      background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)),
+                  url('https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=1200&q=80') center/cover no-repeat;
+      color: #00adee;
+      padding: 60px 20px;
+      border-radius: 12px;
+      text-align: center;
+      margin-bottom: 30px;
+      box-shadow: 0 0 20px rgba(0, 173, 238, 0.4);
+    }
+    .hero-page h1 {
+      font-size: 34px;
+      margin-bottom: 15px;
+    }
+    .hero-page p {
+      color: #fff;
+      font-size: 18px;
+      max-width: 800px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    .page-info {
+      background: #111;
+      padding: 30px;
+      margin-bottom: 25px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 173, 238, 0.2);
+    }
+    .page-info h2 {
+      color: #00adee;
+      margin-bottom: 15px;
+    }
+    .page-info p, .page-info li {
+      color: #ddd;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .benefits {
+      margin-bottom: 30px;
+    }
+    .benefits h2 {
+      text-align: center;
+      color: #00adee;
+      margin-bottom: 20px;
+    }
+
+    .benefits .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+    }
+    .benefits .card {
+      border: 2px solid #00adee;
+      border-radius: 10px;
+      background: #111;
+      text-align: center;
+      padding: 20px;
+      transition: 0.3s;
+    }
+    .benefits .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 0 15px rgba(0, 173, 238, 0.3);
+    }
+    .benefits .card h3 {
+      color: #00adee;
+      margin-bottom: 10px;
+      font-size: 18px;
+    }
+    .benefits .card p {
+      color: #ccc;
+      font-size: 14px;
+    }
+
+    .cta {
+      text-align: center;
+      margin: 40px 0;
+    }
+    .cta h2 {
+      margin-bottom: 20px;
+      color: #00adee;
+    }
+    .btn {
+      background: #00adee;
+      color: #000;
+      padding: 12px 25px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: 0.3s;
+    }
+    .btn:hover {
+      background: #0087c2;
+    }
+  </style>
 </head>
 <body>
 
-<!-- Painel lateral -->
+<!-- Sidebar -->
 <aside class="sidebar">
   <h2>Help Floripa</h2>
   <nav>
@@ -22,54 +120,46 @@
 </aside>
 
 <!-- Conteúdo principal -->
-<main class="content">
-  
+<main class="main-content">
+
   <!-- Hero -->
   <section class="hero-page">
     <h1>Sócios e Parcerias</h1>
     <p>
-      A Help Floripa nasceu com o propósito de conectar clientes e profissionais de forma rápida, segura e eficiente.  
-      Agora, abrimos espaço para você investir, se tornar sócio ou parceiro estratégico do nosso projeto em expansão.
+      A Help Floripa nasceu para conectar clientes e profissionais de forma rápida, segura e eficiente.  
+      Agora você pode fazer parte desta jornada como sócio ou parceiro estratégico, ajudando a expandir e fortalecer o projeto.
     </p>
   </section>
 
-  <!-- Seção explicativa -->
+  <!-- Explicação -->
   <section class="page-info">
-    <h2>Por que ser um sócio/parceiro?</h2>
+    <h2>Por que se tornar sócio ou parceiro?</h2>
     <p>
-      A plataforma está em constante crescimento, atingindo centenas de clientes e profissionais em Florianópolis e São José.  
-      Como parceiro ou sócio-investidor, você terá acesso a benefícios exclusivos e participará do desenvolvimento de uma startup local
-      que busca transformar o mercado de serviços.
+      Ao se tornar um sócio ou parceiro da Help Floripa, você participa ativamente do crescimento de uma plataforma inovadora,  
+      que já conecta diversos serviços, profissionais e clientes na Grande Florianópolis.  
+      Além de retorno financeiro, você ganha visibilidade e participa do desenvolvimento de uma startup local com grande potencial.
     </p>
   </section>
 
-  <!-- Benefícios em cards -->
+  <!-- Benefícios -->
   <section class="benefits">
-    <h2>Vantagens de se tornar parceiro</h2>
+    <h2>Vantagens exclusivas</h2>
     <div class="cards">
       <div class="card">
-        <div class="card-content">
-          <h3>📈 Crescimento</h3>
-          <p>Participe de um projeto em expansão no setor de tecnologia e serviços.</p>
-        </div>
+        <h3>📈 Crescimento</h3>
+        <p>Faça parte de um projeto em plena expansão no setor de tecnologia e serviços.</p>
       </div>
       <div class="card">
-        <div class="card-content">
-          <h3>🤝 Networking</h3>
-          <p>Conexão direta com empresas e profissionais qualificados.</p>
-        </div>
+        <h3>🤝 Networking</h3>
+        <p>Conecte-se com profissionais, empresas e parceiros estratégicos.</p>
       </div>
       <div class="card">
-        <div class="card-content">
-          <h3>💰 Retorno</h3>
-          <p>Possibilidade de retorno financeiro com base nos resultados do negócio.</p>
-        </div>
+        <h3>💰 Retorno</h3>
+        <p>Receba participação proporcional aos resultados do negócio.</p>
       </div>
       <div class="card">
-        <div class="card-content">
-          <h3>🌐 Visibilidade</h3>
-          <p>Sua marca em destaque dentro da nossa plataforma e campanhas.</p>
-        </div>
+        <h3>🌐 Visibilidade</h3>
+        <p>Coloque sua marca em destaque dentro da plataforma e campanhas.</p>
       </div>
     </div>
   </section>
@@ -79,21 +169,27 @@
     <h2>Como funciona?</h2>
     <ol>
       <li>Entre em contato para receber nossa proposta de parceria.</li>
-      <li>Avalie as oportunidades de investimento e participação.</li>
+      <li>Avalie os planos de investimento e participação.</li>
       <li>Formalize sua adesão como sócio ou parceiro comercial.</li>
-      <li>Comece a colher os benefícios da expansão da Help Floripa.</li>
+      <li>Comece a colher os benefícios junto à Help Floripa.</li>
     </ol>
   </section>
 
   <!-- CTA -->
   <section class="cta">
-    <h2>Pronto para ser um parceiro da Help Floripa?</h2>
+    <h2>Pronto para se tornar parceiro da Help Floripa?</h2>
     <a href="cadastro-socios.html" class="btn">Cadastrar como Sócio/Parceiro</a>
   </section>
+
 </main>
 
 <!-- Rodapé -->
 <footer>
+  <p>CNPJ: 61.935.934/0001-00</p>
+  <p>
+    <a href="termos.html">Termos de Uso</a> | 
+    <a href="privacidade.html">Política de Privacidade</a>
+  </p>
   <p>&copy; 2025 Help Floripa - Todos os direitos reservados.</p>
 </footer>
 
