@@ -6,65 +6,28 @@
   <title>Sócios e Parcerias | Help Floripa</title>
   <link rel="stylesheet" href="style.css">
   <style>
+    /* Ajustes específicos desta página */
     body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #000; /* fundo preto igual ao index */
+      background: #0a0a0a; /* fundo mais escuro */
       color: #fff;
-      display: flex;
-    }
-
-    /* Sidebar */
-    .sidebar {
-      width: 220px;
-      background: #111;
-      color: #fff;
-      height: 100vh;
-      position: fixed;
-      top: 0;
-      left: 0;
-      padding: 20px;
-    }
-    .sidebar h2 {
-      color: #00adee;
-      margin-bottom: 20px;
-    }
-    .sidebar nav a {
-      display: block;
-      color: #ccc;
-      text-decoration: none;
-      padding: 10px 0;
-      transition: 0.3s;
-    }
-    .sidebar nav a:hover,
-    .sidebar nav a.active {
-      color: #00adee;
-      font-weight: bold;
-    }
-
-    /* Conteúdo principal */
-    .main-content {
-      margin-left: 240px; /* espaço da sidebar */
-      padding: 20px;
-      flex: 1;
     }
 
     .hero-page {
-      background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)),
+      background: linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.85)),
                   url('https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=1200&q=80') center/cover no-repeat;
       color: #00adee;
       padding: 60px 20px;
       border-radius: 12px;
       text-align: center;
       margin-bottom: 30px;
-      box-shadow: 0 0 20px rgba(0, 173, 238, 0.4);
+      box-shadow: 0 0 25px rgba(0, 173, 238, 0.5);
     }
     .hero-page h1 {
-      font-size: 34px;
+      font-size: 36px;
       margin-bottom: 15px;
     }
     .hero-page p {
-      color: #fff;
+      color: #ddd;
       font-size: 18px;
       max-width: 800px;
       margin: 0 auto;
@@ -76,23 +39,27 @@
       padding: 30px;
       margin-bottom: 25px;
       border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0, 173, 238, 0.2);
+      box-shadow: 0 0 15px rgba(0, 173, 238, 0.3);
     }
     .page-info h2 {
       color: #00adee;
       margin-bottom: 15px;
     }
     .page-info p, .page-info li {
-      color: #ddd;
+      color: #ccc;
       font-size: 15px;
       line-height: 1.6;
     }
 
+    .benefits {
+      margin-bottom: 30px;
+    }
     .benefits h2 {
       text-align: center;
       color: #00adee;
       margin-bottom: 20px;
     }
+
     .benefits .cards {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -101,14 +68,14 @@
     .benefits .card {
       border: 2px solid #00adee;
       border-radius: 10px;
-      background: #111;
+      background: #0d0d0d;
       text-align: center;
       padding: 20px;
       transition: 0.3s;
     }
     .benefits .card:hover {
       transform: translateY(-5px);
-      box-shadow: 0 0 15px rgba(0, 173, 238, 0.3);
+      box-shadow: 0 0 20px rgba(0, 173, 238, 0.5);
     }
     .benefits .card h3 {
       color: #00adee;
@@ -116,7 +83,7 @@
       font-size: 18px;
     }
     .benefits .card p {
-      color: #ccc;
+      color: #bbb;
       font-size: 14px;
     }
 
@@ -131,44 +98,18 @@
     .btn {
       background: #00adee;
       color: #000;
-      padding: 12px 25px;
-      border-radius: 6px;
+      padding: 14px 30px;
+      border-radius: 8px;
       text-decoration: none;
       font-weight: bold;
       transition: 0.3s;
+      font-size: 16px;
+      box-shadow: 0 0 15px rgba(0, 173, 238, 0.6);
     }
     .btn:hover {
       background: #0087c2;
-    }
-
-    /* Rodapé */
-    footer {
-      text-align: center;
-      background: #111;
-      color: #ccc;
-      padding: 15px;
-      margin-top: 40px;
-      border-top: 1px solid #222;
-    }
-    footer a {
-      color: #00adee;
-      text-decoration: none;
-      margin: 0 5px;
-    }
-    footer a:hover {
-      text-decoration: underline;
-    }
-
-    /* Responsividade */
-    @media (max-width: 768px) {
-      .sidebar {
-        position: relative;
-        width: 100%;
-        height: auto;
-      }
-      .main-content {
-        margin-left: 0;
-      }
+      box-shadow: 0 0 20px rgba(0, 173, 238, 0.9);
+      transform: scale(1.05);
     }
   </style>
 </head>
@@ -230,6 +171,17 @@
         <p>Coloque sua marca em destaque dentro da plataforma e campanhas.</p>
       </div>
     </div>
+  </section>
+
+  <!-- Como funciona -->
+  <section class="page-info">
+    <h2>Como funciona?</h2>
+    <ol>
+      <li>Entre em contato para receber nossa proposta de parceria.</li>
+      <li>Avalie os planos de investimento e participação.</li>
+      <li>Formalize sua adesão como sócio ou parceiro comercial.</li>
+      <li>Comece a colher os benefícios junto à Help Floripa.</li>
+    </ol>
   </section>
 
   <!-- CTA -->
