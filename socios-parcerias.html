@@ -6,51 +6,101 @@
   <title>Sócios e Parcerias | Help Floripa</title>
   <link rel="stylesheet" href="style.css">
   <style>
-    /* Ajustes específicos desta página */
     body {
-      background: #0a0a0a; /* fundo mais escuro */
+      background: #000; /* Fundo preto igual ao index */
       color: #fff;
+      margin: 0;
+      font-family: Arial, sans-serif;
     }
 
+    /* Sidebar */
+    .sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 220px;
+      background: #111;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 2px 0 10px rgba(0, 173, 238, 0.3);
+    }
+    .sidebar h2 {
+      color: #00adee;
+      margin-bottom: 25px;
+      text-align: center;
+    }
+    .sidebar nav {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+    }
+    .sidebar nav a {
+      text-decoration: none;
+      color: #fff;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      text-align: center;
+      transition: 0.3s;
+      font-weight: bold;
+      background: #222;
+    }
+    .sidebar nav a:hover, .sidebar nav a.active {
+      background: #00adee;
+      color: #000;
+    }
+
+    /* Conteúdo principal */
+    .main-content {
+      margin-left: 240px;
+      padding: 20px;
+    }
+
+    /* Hero */
     .hero-page {
-      background: linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.85)),
+      background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)),
                   url('https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=1200&q=80') center/cover no-repeat;
       color: #00adee;
       padding: 60px 20px;
       border-radius: 12px;
       text-align: center;
       margin-bottom: 30px;
-      box-shadow: 0 0 25px rgba(0, 173, 238, 0.5);
+      box-shadow: 0 0 20px rgba(0, 173, 238, 0.4);
     }
     .hero-page h1 {
-      font-size: 36px;
+      font-size: 34px;
       margin-bottom: 15px;
     }
     .hero-page p {
-      color: #ddd;
+      color: #fff;
       font-size: 18px;
       max-width: 800px;
       margin: 0 auto;
       line-height: 1.6;
     }
 
+    /* Blocos de texto */
     .page-info {
       background: #111;
       padding: 30px;
       margin-bottom: 25px;
       border-radius: 10px;
-      box-shadow: 0 0 15px rgba(0, 173, 238, 0.3);
+      box-shadow: 0 0 10px rgba(0, 173, 238, 0.2);
     }
     .page-info h2 {
       color: #00adee;
       margin-bottom: 15px;
     }
     .page-info p, .page-info li {
-      color: #ccc;
+      color: #ddd;
       font-size: 15px;
       line-height: 1.6;
     }
 
+    /* Benefícios */
     .benefits {
       margin-bottom: 30px;
     }
@@ -59,7 +109,6 @@
       color: #00adee;
       margin-bottom: 20px;
     }
-
     .benefits .cards {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -68,14 +117,14 @@
     .benefits .card {
       border: 2px solid #00adee;
       border-radius: 10px;
-      background: #0d0d0d;
+      background: #111;
       text-align: center;
       padding: 20px;
       transition: 0.3s;
     }
     .benefits .card:hover {
       transform: translateY(-5px);
-      box-shadow: 0 0 20px rgba(0, 173, 238, 0.5);
+      box-shadow: 0 0 15px rgba(0, 173, 238, 0.3);
     }
     .benefits .card h3 {
       color: #00adee;
@@ -83,10 +132,11 @@
       font-size: 18px;
     }
     .benefits .card p {
-      color: #bbb;
+      color: #ccc;
       font-size: 14px;
     }
 
+    /* Call to action */
     .cta {
       text-align: center;
       margin: 40px 0;
@@ -98,18 +148,57 @@
     .btn {
       background: #00adee;
       color: #000;
-      padding: 14px 30px;
-      border-radius: 8px;
+      padding: 12px 25px;
+      border-radius: 6px;
       text-decoration: none;
       font-weight: bold;
       transition: 0.3s;
-      font-size: 16px;
-      box-shadow: 0 0 15px rgba(0, 173, 238, 0.6);
+      display: inline-block;
     }
     .btn:hover {
       background: #0087c2;
-      box-shadow: 0 0 20px rgba(0, 173, 238, 0.9);
-      transform: scale(1.05);
+    }
+
+    /* Rodapé */
+    footer {
+      text-align: center;
+      padding: 20px;
+      margin-top: 40px;
+      background: #111;
+      color: #bbb;
+      font-size: 14px;
+      border-top: 2px solid #00adee;
+    }
+    footer a {
+      color: #00adee;
+      text-decoration: none;
+      margin: 0 5px;
+    }
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* Responsividade */
+    @media (max-width: 768px) {
+      .sidebar {
+        position: relative;
+        width: 100%;
+        flex-direction: row;
+        justify-content: center;
+        box-shadow: none;
+      }
+      .sidebar nav {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .sidebar nav a {
+        flex: 1 1 auto;
+        margin: 5px;
+      }
+      .main-content {
+        margin-left: 0;
+      }
     }
   </style>
 </head>
