@@ -13,6 +13,7 @@
       margin: 0;  
       padding: 0;  
     }  
+
     .container {  
       max-width: 900px;  
       margin: 80px auto;  
@@ -31,6 +32,12 @@
       box-shadow: 0 0 10px rgba(0, 173, 238, 0.2);  
       padding: 20px;  
       margin-bottom: 20px;  
+      transition: transform 0.2s ease, box-shadow 0.3s ease;  
+    }  
+
+    .card:hover {  
+      transform: translateY(-5px);  
+      box-shadow: 0 0 15px rgba(0, 173, 238, 0.4);  
     }  
 
     .card h2 {  
@@ -43,26 +50,26 @@
       line-height: 1.6;  
     }  
 
-    .botao-solicitar {  
-      display: block;  
-      width: fit-content;  
-      margin: 30px auto 0;  
-      background-color: #00adee;  
-      color: white;  
-      padding: 12px 24px;  
-      border: none;  
-      border-radius: 8px;  
+    .button-container {  
       text-align: center;  
+      margin-top: 40px;  
+    }  
+
+    .button-container a {  
+      background-color: #00adee;  
+      color: #fff;  
+      padding: 14px 28px;  
+      border-radius: 8px;  
+      text-decoration: none;  
       font-weight: bold;  
       font-size: 16px;  
-      text-decoration: none;  
       box-shadow: 0 0 10px rgba(0, 173, 238, 0.5);  
       transition: background-color 0.3s ease;  
     }  
 
-    .botao-solicitar:hover {  
+    .button-container a:hover {  
       background-color: #008bbf;  
-    }
+    }  
   </style>  
 </head>  
 <body>  
@@ -71,25 +78,27 @@
 
     <div class="card">  
       <h2>🔎 O que é a Help Floripa?</h2>  
-      <p>A Help Floripa é uma plataforma de anúncios e conexão entre clientes e profissionais locais. Facilitamos o contato, mas quem realiza e negocia o serviço é o próprio profissional com você.</p>  
+      <p>A Help Floripa é a ponte entre você e profissionais qualificados. Nossa missão é conectar clientes a especialistas de confiança, oferecendo praticidade e segurança no processo de contratação.</p>  
     </div>  
 
     <div class="card">  
       <h2>⚙️ Como solicitar um serviço?</h2>  
-      <p>Você clica no botão <strong>“Solicitar Profissional”</strong>, escolhe a categoria e preenche os detalhes do serviço. Enviaremos essas informações diretamente a um profissional disponível, que entrará em contato para combinar tudo com você.</p>  
+      <p>Para solicitar, basta clicar em <strong>“Solicitar Profissional”</strong>, escolher a categoria desejada e descrever sua necessidade. Um profissional disponível entrará em contato diretamente com você.</p>  
     </div>  
 
     <div class="card">  
       <h2>📦 Como é definido o valor?</h2>  
-      <p>A plataforma sugere um valor base de referência. O valor final pode variar conforme o nível de complexidade, dia, horário ou horas extras. Toda negociação é feita diretamente entre cliente e profissional.</p>  
+      <p>Sugerimos valores de referência, mas o preço final é negociado entre você e o profissional, variando de acordo com a complexidade do serviço, horário ou demanda extra.</p>  
     </div>  
 
     <div class="card">  
-      <h2>💡 Por que usar a Help Floripa?</h2>  
-      <p>Você encontra profissionais de forma rápida, com praticidade e segurança. Todos os profissionais são avaliados por clientes e se comprometem com um bom atendimento. Nossa missão é ajudar você a economizar tempo e evitar dores de cabeça.</p>  
+      <h2>💡 Por que escolher a Help Floripa?</h2>  
+      <p>Com a Help Floripa você economiza tempo e garante tranquilidade. Nossos profissionais são avaliados por clientes reais e prezam pelo bom atendimento. Mais praticidade, segurança e confiança para você.</p>  
     </div>  
 
-    <a href="solicitar.html" class="botao-solicitar">Solicitar Profissional</a>  
+    <div class="button-container">  
+      <a href="solicitar.html">Solicitar Profissional</a>  
+    </div>  
   </div>  
 </body>  
 </html>
