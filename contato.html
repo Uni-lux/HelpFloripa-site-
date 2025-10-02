@@ -32,6 +32,12 @@
       box-shadow: 0 0 10px rgba(0, 173, 238, 0.2);
       padding: 20px;
       margin-bottom: 20px;
+      transition: transform 0.2s ease, box-shadow 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 0 15px rgba(0, 173, 238, 0.4);
     }
 
     .card h2 {
@@ -44,16 +50,18 @@
       line-height: 1.6;
     }
 
-    .botao-solicitar {
-      display: block;
-      width: fit-content;
-      margin: 30px auto 0;
+    .button-container {
+      text-align: center;
+      margin-top: 30px;
+    }
+
+    .button-container a {
+      display: inline-block;
+      margin: 10px;
       background-color: #00adee;
       color: white;
       padding: 12px 24px;
-      border: none;
       border-radius: 8px;
-      text-align: center;
       font-weight: bold;
       font-size: 16px;
       text-decoration: none;
@@ -61,7 +69,7 @@
       transition: background-color 0.3s ease;
     }
 
-    .botao-solicitar:hover {
+    .button-container a:hover {
       background-color: #008bbf;
     }
   </style>
@@ -72,19 +80,23 @@
 
     <div class="card">
       <h2>📱 Fale conosco</h2>
-      <p>Tem alguma dúvida, sugestão ou precisa de ajuda? Nossa equipe está pronta para te atender. Envie uma mensagem pelo WhatsApp ou pelo nosso formulário de contato.</p>
+      <p>Precisa de ajuda, tem uma dúvida ou deseja enviar uma sugestão? Nossa equipe está à disposição para atender você de forma rápida e eficiente.</p>
     </div>
 
     <div class="card">
-      <h2>📞 Atendimento rápido via WhatsApp</h2>
-      <p>Clique no botão abaixo para abrir uma conversa com nossa equipe via WhatsApp. Estamos disponíveis todos os dias, das 8h às 20h.</p>
+      <h2>📞 Atendimento via WhatsApp</h2>
+      <p>Oferecemos atendimento direto pelo WhatsApp, todos os dias, das <strong>8h às 20h</strong>. Clique no botão abaixo para iniciar a conversa com nossa equipe.</p>
     </div>
 
-    <a href="https://wa.me/5548996849431" target="_blank" class="botao-solicitar">Falar no WhatsApp</a>
+    <div class="card">
+      <h2>💬 Outras formas de contato</h2>
+      <p>Se preferir, você também pode entrar em contato através do nosso formulário no site ou pelo e-mail oficial da Help Floripa. Estamos sempre prontos para ouvir você.</p>
+    </div>
 
-    <!-- Botão Voltar -->
-    <a href="index.html" class="botao-solicitar" style="margin-top: 20px;">Voltar para a Página Inicial</a>
-
+    <div class="button-container">
+      <a href="https://wa.me/5548996849431" target="_blank">Falar no WhatsApp</a>
+      <a href="index.html">Voltar para a Página Inicial</a>
+    </div>
   </div>
 </body>
 </html>
