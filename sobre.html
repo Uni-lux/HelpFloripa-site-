@@ -8,19 +8,49 @@
   <style>
     body {
       background-color: #000;
-      color: white;
+      color: #fff;
       font-family: Arial, sans-serif;
       margin: 0;
       padding: 0;
     }
 
-    .container {
-      max-width: 900px;
-      margin: 80px auto;
+    header {
+      background: #000;
       padding: 20px;
+      text-align: center;
+      border-bottom: 2px solid #00adee;
+    }
+    header h1 {
+      margin: 0;
+      color: #00adee;
+      font-size: 28px;
+    }
+    header .top-buttons {
+      margin-top: 12px;
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+    }
+    header .top-buttons a {
+      background: #00adee;
+      color: #000;
+      padding: 8px 16px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: background 0.3s;
+    }
+    header .top-buttons a:hover {
+      background: #0087c2;
     }
 
-    h1 {
+    .container {
+      max-width: 1000px;
+      margin: 40px auto;
+      padding: 0 20px 60px;
+    }
+
+    h2 {
       text-align: center;
       color: #00adee;
       margin-bottom: 30px;
@@ -29,20 +59,14 @@
     .card {
       background-color: #0a1a2a;
       border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0, 173, 238, 0.2);
+      box-shadow: 0 0 10px rgba(0, 173, 238, 0.3);
       padding: 20px;
       margin-bottom: 20px;
-      transition: transform 0.2s ease, box-shadow 0.3s ease;
     }
 
-    .card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 0 15px rgba(0, 173, 238, 0.4);
-    }
-
-    .card h2 {
+    .card h3 {
       color: #00adee;
-      margin-bottom: 10px;
+      margin-top: 0;
     }
 
     .card p {
@@ -50,54 +74,66 @@
       line-height: 1.6;
     }
 
-    /* Botão voltar */
-    .botao-voltar {
-      display: block;
-      width: fit-content;
-      margin: 40px auto 20px;
-      padding: 12px 28px;
-      font-size: 16px;
-      color: white;
-      background-color: #00adee;
-      border-radius: 8px;
-      text-decoration: none;
+    footer {
+      background: #000;
       text-align: center;
-      font-weight: bold;
-      box-shadow: 0 0 10px rgba(0, 173, 238, 0.5);
-      transition: background-color 0.3s ease;
+      padding: 20px;
+      border-top: 2px solid #00adee;
     }
-
-    .botao-voltar:hover {
-      background-color: #008bbf;
+    footer p, footer a {
+      color: #aaa;
+      font-size: 14px;
+      margin: 5px 0;
+      text-decoration: none;
+    }
+    footer a:hover {
+      color: #00adee;
     }
   </style>
 </head>
 <body>
+
+  <header>
+    <h1>Help Floripa</h1>
+    <div class="top-buttons">
+      <a href="index.html">Início</a>
+      <a href="contato.html">Contato</a>
+      <a href="ajuda.html">Ajuda</a>
+    </div>
+  </header>
+
   <div class="container">
-    <h1>Sobre a Help Floripa</h1>
+    <h2>Sobre a Help Floripa</h2>
 
     <div class="card">
-      <h2>🌟 Nossa Missão</h2>
-      <p>A Help Floripa tem como missão conectar clientes a profissionais qualificados de forma simples, rápida e segura, facilitando a contratação de serviços essenciais em Florianópolis e região.</p>
+      <h3>🌟 Nossa Missão</h3>
+      <p>Conectar clientes a profissionais qualificados em Florianópolis e região, de forma simples, rápida e segura. Queremos facilitar a vida de quem precisa de serviços e valorizar quem oferece.</p>
     </div>
 
     <div class="card">
-      <h2>🤝 Nosso Compromisso</h2>
-      <p>Priorizamos a confiança, transparência e qualidade em todas as etapas do serviço. Trabalhamos para garantir que clientes e profissionais tenham uma experiência satisfatória e sem complicações.</p>
+      <h3>🤝 Nosso Compromisso</h3>
+      <p>Prezamos pela confiança, transparência e qualidade. Trabalhamos para que tanto clientes quanto profissionais tenham a melhor experiência possível dentro da plataforma.</p>
     </div>
 
     <div class="card">
-      <h2>🔧 Como Funciona</h2>
-      <p>Os clientes solicitam serviços através da plataforma, que conecta automaticamente aos profissionais disponíveis e especializados. Isso facilita o contato, agiliza o atendimento e garante segurança para ambas as partes.</p>
+      <h3>🔧 Como Funciona</h3>
+      <p>Os clientes solicitam serviços através da plataforma e são conectados com profissionais especializados. Assim, o contato é direto, rápido e seguro.</p>
     </div>
 
     <div class="card">
-      <h2>📈 Nossa Visão</h2>
-      <p>Ser referência em soluções de serviços locais, promovendo a valorização dos profissionais e a satisfação dos clientes, sempre com inovação e responsabilidade social.</p>
+      <h3>📈 Nossa Visão</h3>
+      <p>Ser referência em soluções de serviços locais, gerando oportunidades para profissionais e garantindo praticidade e segurança para os clientes.</p>
     </div>
-
-    <!-- Botão Voltar -->
-    <a href="index.html" class="botao-voltar">← Voltar para a Página Inicial</a>
   </div>
+
+  <footer>
+    <p>CNPJ: 61.935.934/0001-00</p>
+    <p>
+      <a href="termos.html">Termos de Uso</a> |
+      <a href="privacidade.html">Política de Privacidade</a>
+    </p>
+    <p>&copy; 2025 Help Floripa - Todos os direitos reservados.</p>
+  </footer>
+
 </body>
 </html>
