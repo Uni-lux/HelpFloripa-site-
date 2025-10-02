@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+      <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
@@ -14,9 +14,39 @@
       padding: 0;
     }
 
+    header {
+      background: #000;
+      padding: 20px;
+      text-align: center;
+      border-bottom: 2px solid #00adee;
+    }
+    header h1 {
+      margin: 0;
+      color: #00adee;
+      font-size: 28px;
+    }
+    header .top-buttons {
+      margin-top: 12px;
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+    }
+    header .top-buttons a {
+      background: #00adee;
+      color: #000;
+      padding: 8px 16px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: background 0.3s;
+    }
+    header .top-buttons a:hover {
+      background: #0087c2;
+    }
+
     .container {
       max-width: 900px;
-      margin: 80px auto;
+      margin: 40px auto;
       padding: 20px;
     }
 
@@ -72,9 +102,35 @@
     .button-container a:hover {
       background-color: #008bbf;
     }
+
+    footer {
+      background: #000;
+      text-align: center;
+      padding: 20px;
+      border-top: 2px solid #00adee;
+    }
+    footer p, footer a {
+      color: #aaa;
+      font-size: 14px;
+      margin: 5px 0;
+      text-decoration: none;
+    }
+    footer a:hover {
+      color: #00adee;
+    }
   </style>
 </head>
 <body>
+
+  <header>
+    <h1>Help Floripa</h1>
+    <div class="top-buttons">
+      <a href="index.html">Início</a>
+      <a href="contato.html">Contato</a>
+      <a href="ajuda.html">Ajuda</a>
+    </div>
+  </header>
+
   <div class="container">
     <h1>Contato</h1>
 
@@ -98,5 +154,15 @@
       <a href="index.html">Voltar para a Página Inicial</a>
     </div>
   </div>
+
+  <footer>
+    <p>CNPJ: 61.935.934/0001-00</p>
+    <p>
+      <a href="termos.html">Termos de Uso</a> |
+      <a href="privacidade.html">Política de Privacidade</a>
+    </p>
+    <p>&copy; 2025 Help Floripa - Todos os direitos reservados.</p>
+  </footer>
+
 </body>
 </html>
