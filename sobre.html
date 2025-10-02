@@ -7,51 +7,17 @@
   <link rel="stylesheet" href="style.css">
   <style>
     body {
-      margin: 0;
-      font-family: Arial, sans-serif;
       background-color: #000;
-      color: #fff;
-      display: flex;
+      color: white;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
     }
 
-    /* Menu lateral */
-    .sidebar {
-      width: 250px;
-      background-color: #0a1a2a;
-      height: 100vh;
-      position: fixed;
-      top: 0;
-      left: 0;
+    .container {
+      max-width: 900px;
+      margin: 80px auto;
       padding: 20px;
-      box-shadow: 2px 0 8px rgba(0,0,0,0.5);
-    }
-
-    .sidebar h2 {
-      color: #00adee;
-      text-align: center;
-      margin-bottom: 30px;
-    }
-
-    .sidebar a {
-      display: block;
-      color: #fff;
-      text-decoration: none;
-      padding: 12px;
-      margin: 8px 0;
-      border-radius: 6px;
-      transition: 0.3s;
-    }
-
-    .sidebar a:hover {
-      background-color: #00adee;
-      color: #000;
-    }
-
-    /* Conteúdo principal */
-    .main-content {
-      margin-left: 270px;
-      padding: 40px;
-      flex: 1;
     }
 
     h1 {
@@ -89,36 +55,25 @@
       display: block;
       width: fit-content;
       margin: 40px auto 20px;
-      padding: 10px 24px;
+      padding: 12px 28px;
       font-size: 16px;
-      color: #00adee;
-      background-color: transparent;
-      border: 2px solid #00adee;
+      color: white;
+      background-color: #00adee;
       border-radius: 8px;
       text-decoration: none;
       text-align: center;
-      transition: 0.3s;
+      font-weight: bold;
+      box-shadow: 0 0 10px rgba(0, 173, 238, 0.5);
+      transition: background-color 0.3s ease;
     }
 
     .botao-voltar:hover {
-      background-color: #00adee;
-      color: #000;
+      background-color: #008bbf;
     }
   </style>
 </head>
 <body>
-  <!-- Menu lateral -->
-  <div class="sidebar">
-    <h2>Help Floripa</h2>
-    <a href="index.html">🏠 Início</a>
-    <a href="cliente.html">👤 Cliente</a>
-    <a href="profissional.html">🛠️ Profissional</a>
-    <a href="sobre.html">ℹ️ Sobre</a>
-    <a href="contato.html">📞 Contato</a>
-  </div>
-
-  <!-- Conteúdo principal -->
-  <div class="main-content">
+  <div class="container">
     <h1>Sobre a Help Floripa</h1>
 
     <div class="card">
@@ -141,7 +96,8 @@
       <p>Ser referência em soluções de serviços locais, promovendo a valorização dos profissionais e a satisfação dos clientes, sempre com inovação e responsabilidade social.</p>
     </div>
 
-    <a href="index.html" class="botao-voltar">← Voltar</a>
+    <!-- Botão Voltar -->
+    <a href="index.html" class="botao-voltar">← Voltar para a Página Inicial</a>
   </div>
 </body>
 </html>
