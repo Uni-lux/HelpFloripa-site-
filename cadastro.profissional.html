@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Help Floripa | Cadastro de Profissional</title>
+<style>
+/* Reset */
+* {margin:0; padding:0; box-sizing:border-box; font-family: Arial, sans-serif;}
+body {background:#000; color:#fff; min-height:100vh; display:flex; flex-direction:column;}
+
+/* Sidebar */
+.sidebar {
+    width: 220px;
+    background:#111;
+    position:fixed;
+    top:0;
+    left:0;
+    height:100%;
+    padding:20px;
+    display:flex;
+    flex-direction:column;
+    transition: transform 0.3s ease;
+    z-index:1000;
+}
+.sidebar h2 {color:#00adee; text-align:center; margin-bottom:25px; font-size:22px;}
+.sidebar a {color:#fff; text-decoration:none; padding:12px; margin:6px 0; border-radius:6px; transition:0.3s; display:block;}
+.sidebar a:hover {background:#00adee; color:#000;}
+.sidebar.hidden {transform: translateX(-250px);}
+
+/* Main content */
+.main-content {
+    margin-left:240px;
+    padding:25px;
+    transition: margin-left 0.3s;
+    flex:1;
+}
+
+/* Hero */
+.hero {
+    background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), 
+                url('https://images.unsplash.com/photo-1581090469397-12a6c6e64f6d?auto=format&fit=crop&w=1470&q=80') center/cover no-repeat;
+    height:280px;
+    border-radius:15px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    margin-bottom:35px;
+    color:#00adee;
+    font-size:26px;
+    font-weight:bold;
+    box-shadow: 0 0 20px rgba(0,173,238,0.5);
+}
+.hero h1 {margin-bottom:10px;}
+.hero span {font-size:17px; color:#fff;}
+
+/* Formulário */
+.form-container {
+    background:#111;
+    border:2px solid #00adee;
+    border-radius:15px;
+    padding:30px;
+    max-width:600px;
+    margin:auto;
+    box-shadow: 0 0 20px rgba(0,173,238,0.3);
+}
+.form-container h2 {
+    text-align:center;
+    color:#00adee;
+    margin-bottom:20px;
+}
+form {display:flex; flex-direction:column; gap:15px;}
+label {font-weight:bold; color:#00adee;}
+input, select, textarea {
+    padding:10px;
+    border:none;
+    border-radius:8px;
+    background:#222;
+    color:#fff;
+}
+input:focus, textarea:focus, select:focus {
+    outline:2px solid #00adee;
+}
+button {
+    background:#00adee;
+    color:#000;
+    border:none;
+    border-radius:8px;
+    padding:12px;
+    font-weight:bold;
+    cursor:pointer;
+    transition:0.3s;
+}
+button:hover {
+    background:#008cc7;
+}
+
+/* Info box */
+.info-box {
+    background:#0d0d0d;
+    border-left:4px solid #00adee;
+    padding:15px;
+    margin:25px auto;
+    max-width:600px;
+    border-radius:8px;
+    font-size:14px;
+    color:#ccc;
+    line-height:1.5;
+}
+.info-box strong {color:#00adee;}
+
+/* Footer */
+footer {
+    background:#111;
+    color:#aaa;
+    text-align:center;
+    padding:15px;
+    font-size:13px;
+    border-top:1px solid #222;
+}
+footer a {color:#00adee; text-decoration:none; margin:0 8px;}
+footer a:hover {text-decoration:underline;}
+
+/* Menu toggle para mobile */
+.menu-toggle {
+    font-size:24px;
+    cursor:pointer;
+    color:#00adee;
+    position:fixed;
+    top:15px;
+    left:15px;
+    z-index:1100;
+    display:none;
+}
+
+/* Responsividade */
+@media(max-width:1024px){
+    .main-content {margin-left:0; padding-top:60px;}
+    .sidebar {transform: translateX(-250px);}
+    .sidebar.active {transform: translateX(0);}
+    .menu-toggle {display:block;}
+}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+    <h2>Help Floripa</h2>
+    <a href="index.html">Início</a>
+    <a href="cliente.html">Cliente</a>
+    <a href="profissional.html">Profissional</a>
+    <a href="sobre.html">Sobre</a>
+    <a href="contato.html">Contato</a>
+</div>
+
+<!-- Menu toggle -->
+<div class="menu-toggle" onclick="toggleSidebar()">☰</div>
+
+<!-- Conteúdo principal -->
+<div class="main-content">
+    <div class="hero">
+        <h1>Cadastro de Profissional</h1>
+        <span>Ganhe visibilidade e novos clientes na Help Floripa!</span>
+    </div>
+
+    <div class="info-box">
+        <p><strong>Plano Profissional Premium:</strong> R$ 30,00 por mês.</p>
+        <p>💡 Seu perfil ficará visível em destaque na plataforma, aumentando suas chances de contratação.</p>
+        <p>🕒 O pagamento é mensal e pode ser cancelado a qualquer momento, sem multas ou fidelidade.</p>
+    </div>
+
+    <div class="form-container">
+        <h2>Preencha o formulário abaixo</h2>
+        <form action="https://formsubmit.co/helpfloripa@gmail.com" method="POST">
+            <label for="nome">Nome completo</label>
+            <input type="text" id="nome" name="Nome" required>
+
+            <label for="email">E-mail</label>
+            <input type="email" id="email" name="Email" required>
+
+            <label for="telefone">Telefone / WhatsApp</label>
+            <input type="tel" id="telefone" name="Telefone" placeholder="(DDD) 9xxxx-xxxx" required>
+
+            <label for="profissao">Profissão</label>
+            <input type="text" id="profissao" name="Profissão" placeholder="Ex: Eletricista, Encanador, Pintor..." required>
+
+            <label for="descricao">Descrição dos serviços</label>
+            <textarea id="descricao" name="Descrição" rows="4" placeholder="Conte um pouco sobre seus serviços..." required></textarea>
+
+            <label for="cidade">Cidade / Bairro</label>
+            <input type="text" id="cidade" name="Cidade" placeholder="Ex: Florianópolis / Tapera" required>
+
+            <input type="hidden" name="_subject" value="Novo cadastro de profissional - Help Floripa">
+            <input type="hidden" name="_next" value="https://helpfloripa.com.br/obrigado.html">
+            
+            <button type="submit">Enviar Cadastro</button>
+        </form>
+    </div>
+</div>
+
+<!-- Rodapé -->
+<footer>
+    <p>CNPJ: 61.935.934/0001-00</p>
+    <p>
+        <a href="termos.html">Termos de Uso</a> | 
+        <a href="privacidade.html">Política de Privacidade</a>
+    </p>
+    <p>&copy; 2025 Help Floripa - Todos os direitos reservados.</p>
+</footer>
+
+<script>
+function toggleSidebar(){
+    document.getElementById('sidebar').classList.toggle('active');
+}
+</script>
+
+</body>
+</html>
