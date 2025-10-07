@@ -80,13 +80,8 @@ input, select, textarea {
     background:#222;
     color:#fff;
 }
-input[type="file"] {
-    background:none;
-    color:#ccc;
-}
-input:focus, textarea:focus, select:focus {
-    outline:2px solid #00adee;
-}
+input[type="file"] {background:none; color:#ccc;}
+input:focus, textarea:focus, select:focus {outline:2px solid #00adee;}
 button {
     background:#00adee;
     color:#000;
@@ -97,8 +92,10 @@ button {
     cursor:pointer;
     transition:0.3s;
 }
-button:hover {
-    background:#008cc7;
+button:hover {background:#008cc7;}
+button:disabled {
+    background:#444;
+    cursor:not-allowed;
 }
 
 /* Info box */
@@ -114,6 +111,21 @@ button:hover {
     line-height:1.5;
 }
 .info-box strong {color:#00adee;}
+
+/* Checkbox de confirmação */
+.confirm-box {
+    background:#0d0d0d;
+    border:1px solid #00adee;
+    border-radius:10px;
+    padding:15px;
+    color:#ccc;
+    font-size:14px;
+}
+.confirm-box label {
+    color:#fff;
+    font-weight:normal;
+    cursor:pointer;
+}
 
 /* Footer */
 footer {
@@ -178,7 +190,7 @@ footer a:hover {text-decoration:underline;}
 
     <div class="form-container">
         <h2>Preencha o formulário abaixo</h2>
-        <form action="https://formsubmit.co/helpfloripa7@gmail.com" method="POST" enctype="multipart/form-data">
+        <form action="https://formsubmit.co/helpfloripa7@gmail.com" method="POST" enctype="multipart/form-data" id="cadastroForm">
             
             <label for="foto">Foto profissional</label>
             <input type="file" id="foto" name="Foto" accept="image/*" required>
@@ -231,10 +243,18 @@ footer a:hover {text-decoration:underline;}
                 <option value="E">E</option>
             </select>
 
+            <div class="confirm-box">
+                <input type="checkbox" id="concordo" required>
+                <label for="concordo">
+                    Li e concordo com os <a href="termos.html" target="_blank" style="color:#00adee;">Termos de Compromisso</a>.<br>
+                    ⚠️ Você receberá um link via WhatsApp para realizar o pagamento do plano. Caso o pagamento não seja efetuado, o cadastro será <strong>cancelado automaticamente</strong>.
+                </label>
+            </div>
+
             <input type="hidden" name="_subject" value="Novo cadastro de profissional - Help Floripa">
             <input type="hidden" name="_next" value="https://helpfloripa.com.br/obrigado.html">
             
-            <button type="submit">Enviar Cadastro</button>
+            <button type="submit" id="enviarBtn" disabled>Enviar Cadastro</button>
         </form>
     </div>
 </div>
@@ -253,6 +273,10 @@ footer a:hover {text-decoration:underline;}
 function toggleSidebar(){
     document.getElementById('sidebar').classList.toggle('active');
 }
+
+document.getElementById("concordo").addEventListener("change", function() {
+    document.getElementById("enviarBtn").disabled = !this.checked;
+});
 </script>
 
 </body>
