@@ -1,172 +1,175 @@
-<!DOCTYPE html>  <html lang="pt-BR">    <head>    
-<meta charset="UTF-8">    
-<meta name="viewport" content="width=device-width, initial-scale=1.0">    
-<title>Help Floripa | Tudo que você precisa em só lugar</title>  <style>    
-* {margin:0; padding:0; box-sizing:border-box; font-family: Arial, sans-serif;}    
-body {background:#000; color:#fff; min-height:100vh; display:flex; flex-direction:column;}    /* Sidebar */
-.sidebar {
-width: 220px;
-background:#111;
-position:fixed;
-top:0;
-left:0;
-height:100%;
-padding:20px;
-display:flex;
-flex-direction:column;
-transition: transform 0.3s ease;
-z-index:1000;
-}
-.sidebar h2 {color:#00adee; text-align:center; margin-bottom:25px; font-size:22px;}
-.sidebar a {color:#fff; text-decoration:none; padding:12px; margin:6px 0; border-radius:6px; transition:0.3s; display:block;}
-.sidebar a:hover {background:#00adee; color:#000;}
-.sidebar.hidden {transform: translateX(-250px);}
-
-/* Main content */
-.main-content {
-margin-left:240px;
-padding:25px;
-transition: margin-left 0.3s;
-flex:1;
-}
-
-/* HERO ATUALIZADO */
-.hero {
-position: relative;
-height:380px;
-border-radius:15px;
-display:flex;
-flex-direction:column;
-align-items:center;
-justify-content:center;
-text-align:center;
-margin-bottom:35px;
-color:#00adee;
-padding:0 15px;
-box-shadow: 0 0 25px rgba(0, 173, 238, 0.6);
-overflow:hidden;
-}
-
-.hero::before {
-content:"";
-position:absolute;
-width:100%;
-height:100%;
-background-size:cover;
-background-position:center;
-z-index:0;
-transition: opacity 1s ease-in-out;
-}
-
-.hero::after {
-content:"";
-position:absolute;
-width:100%;
-height:100%;
-background:rgba(0,0,0,0.65);
-z-index:1;
-}
-
-.hero h1, .hero span, .hero .hero-menu {
-position:relative;
-z-index:2;
-}
-
-.hero h1 {margin-bottom:10px;}
-.hero span {font-size:18px;}
-
-.hero .hero-menu {
-margin-top:15px;
-display:flex;
-gap:10px;
-flex-wrap: wrap;
-}
-.hero .hero-menu a {
-text-decoration:none;
-color:#000;
-background:#00adee;
-padding:8px 15px;
-border-radius:6px;
-font-weight:bold;
-transition:0.3s;
-}
-.hero .hero-menu a:hover {background:#0087c2;}
-
-/* Slider */
-.slider {position:relative; max-width:100%; height:200px; overflow:hidden; border-radius:12px; margin-bottom:30px;}
-.slides {display:flex; width:300%; animation:slide 12s infinite;}
-.slides img {width:100%; height:200px; object-fit:cover;}
-@keyframes slide {
-0% {margin-left:0;}
-30% {margin-left:0;}
-35% {margin-left:-100%;}
-65% {margin-left:-100%;}
-70% {margin-left:-200%;}
-100% {margin-left:-200%;}
-}
-
-/* Cards */
-.cards {display:grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap:20px;}
-.card {background:#111; border:2px solid #00adee; border-radius:12px; overflow:hidden; display:flex; flex-direction:column; height:320px;}
-.card img {width:100%; height:140px; object-fit:cover;}
-.card-content {padding:15px; display:flex; flex-direction:column; justify-content:space-between; flex:1;}
-.card-content h3 {color:#00adee; margin-bottom:10px; font-size:18px;}
-.card-content p {flex:1; margin-bottom:12px; font-size:13px; line-height:1.4;}
-.card-content a {text-align:center; background:#00adee; color:#000; padding:8px; border-radius:6px; text-decoration:none; font-weight:bold; font-size:14px; transition:0.3s;}
-.card-content a:hover {background:#0087c2;}
-
-/* Footer */
-footer {background:#111; color:#aaa; text-align:center; padding:15px; font-size:13px; border-top:1px solid #222;}
-footer a {color:#00adee; text-decoration:none; margin:0 8px;}
-footer a:hover {text-decoration:underline;}
-
-.menu-toggle {font-size:24px; cursor:pointer; color:#00adee; position:fixed; top:15px; left:15px; z-index:1100; display:none;}
-
-@media(max-width:1024px){
-.main-content {margin-left:0; padding-top:60px;}
-.sidebar {transform: translateX(-250px);}
-.sidebar.active {transform: translateX(0);}
-.menu-toggle {display:block;}
-}
-</style>  </head>  <body>  <div class="sidebar" id="sidebar">
-
-  <h2>Help Floripa</h2>    
-  <a href="cadastre-se.html">Cadastre-se</a>    
-  <a href="socios-parcerias.html">Seja Sócio / Parceria</a>    
-  <a href="profissionais.html">Profissionais</a>    
-  <a href="clientes.html">Clientes</a>    
-  <a href="contato.html">Contato</a>    
-  <a href="ajuda.html">Ajuda</a>    
-  <a href="sobre.html">Sobre</a>    
-</div>  <div class="menu-toggle" onclick="toggleSidebar()">☰</div>  <div class="main-content">    
-  <div class="hero">    
-    <h1>Bem-vindo à Help Floripa</h1>    
-    <span>Tudo que você precisa em só lugar</span>    
-    <div class="hero-menu">    
-      <a href="cadastre-se.html">Cadastre-se</a>    
-      <a href="contato.html">Contato</a>    
-      <a href="sobre.html">Sobre</a>    
-    </div>    
-  </div>    
-</div>  <footer>    
-  <p>&copy; 2025 Help Floripa</p>    
-</footer>  <script>    
-function toggleSidebar(){    
-  document.getElementById('sidebar').classList.toggle('active');    
-}    /* TROCA DE IMAGEM A CADA 6 HORAS */
-const hero = document.querySelector('.hero');
-const imagens = ["img/hero1.jpg","img/hero2.jpg"];
-const intervalo = 6 * 60 * 60 * 1000;
-
-function atualizarHero(){
-const agora = Date.now();
-const indice = Math.floor(agora / intervalo) % imagens.length;
-hero.style.setProperty('--bg', url('${imagens[indice]}'));
-hero.style.backgroundImage =
-linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('${imagens[indice]}');
-}
-
-atualizarHero();
-</script>  </body>
-
+<!DOCTYPE html>  <html lang="pt-BR">  
+<head>  
+<meta charset="UTF-8">  
+<meta name="viewport" content="width=device-width, initial-scale=1.0">  
+<title>Help Floripa | Tudo que você precisa em só lugar</title>  <style>  
+* {margin:0; padding:0; box-sizing:border-box; font-family: Arial, sans-serif;}  
+body {background:#000; color:#fff; min-height:100vh; display:flex; flex-direction:column;}  
+  
+/* Sidebar */  
+.sidebar {  
+  width: 220px;  
+  background:#111;  
+  position:fixed;  
+  top:0;  
+  left:0;  
+  height:100%;  
+  padding:20px;  
+  display:flex;  
+  flex-direction:column;  
+  transition: transform 0.3s ease;  
+  z-index:1000;  
+}  
+.sidebar h2 {color:#00adee; text-align:center; margin-bottom:25px; font-size:22px;}  
+.sidebar a {color:#fff; text-decoration:none; padding:12px; margin:6px 0; border-radius:6px; transition:0.3s; display:block;}  
+.sidebar a:hover {background:#00adee; color:#000;}  
+.sidebar.hidden {transform: translateX(-250px);}  
+  
+/* Main content */  
+.main-content {  
+  margin-left:240px;  
+  padding:25px;  
+  transition: margin-left 0.3s;  
+  flex:1;  
+}  
+  
+/* HERO ATUALIZADO */  
+.hero {  
+  position: relative;  
+  height:380px;  
+  border-radius:15px;  
+  display:flex;  
+  flex-direction:column;  
+  align-items:center;  
+  justify-content:center;  
+  text-align:center;  
+  margin-bottom:35px;  
+  color:#00adee;  
+  padding:0 15px;  
+  box-shadow: 0 0 25px rgba(0, 173, 238, 0.6);  
+  overflow:hidden;  
+}  
+  
+.hero::before {  
+  content:"";  
+  position:absolute;  
+  width:100%;  
+  height:100%;  
+  background-size:cover;  
+  background-position:center;  
+  z-index:0;  
+  transition: opacity 1s ease-in-out;  
+}  
+  
+.hero::after {  
+  content:"";  
+  position:absolute;  
+  width:100%;  
+  height:100%;  
+  background:rgba(0,0,0,0.65);  
+  z-index:1;  
+}  
+  
+.hero h1, .hero span, .hero .hero-menu {  
+  position:relative;  
+  z-index:2;  
+}  
+  
+.hero h1 {margin-bottom:10px;}  
+.hero span {font-size:18px;}  
+  
+.hero .hero-menu {  
+  margin-top:15px;  
+  display:flex;  
+  gap:10px;  
+  flex-wrap: wrap;  
+}  
+.hero .hero-menu a {  
+  text-decoration:none;  
+  color:#000;  
+  background:#00adee;  
+  padding:8px 15px;  
+  border-radius:6px;  
+  font-weight:bold;  
+  transition:0.3s;  
+}  
+.hero .hero-menu a:hover {background:#0087c2;}  
+  
+/* Slider */  
+.slider {position:relative; max-width:100%; height:200px; overflow:hidden; border-radius:12px; margin-bottom:30px;}  
+.slides {display:flex; width:300%; animation:slide 12s infinite;}  
+.slides img {width:100%; height:200px; object-fit:cover;}  
+@keyframes slide {  
+  0% {margin-left:0;}  
+  30% {margin-left:0;}  
+  35% {margin-left:-100%;}  
+  65% {margin-left:-100%;}  
+  70% {margin-left:-200%;}  
+  100% {margin-left:-200%;}  
+}  
+  
+/* Cards */  
+.cards {display:grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap:20px;}  
+.card {background:#111; border:2px solid #00adee; border-radius:12px; overflow:hidden; display:flex; flex-direction:column; height:320px;}  
+.card img {width:100%; height:140px; object-fit:cover;}  
+.card-content {padding:15px; display:flex; flex-direction:column; justify-content:space-between; flex:1;}  
+.card-content h3 {color:#00adee; margin-bottom:10px; font-size:18px;}  
+.card-content p {flex:1; margin-bottom:12px; font-size:13px; line-height:1.4;}  
+.card-content a {text-align:center; background:#00adee; color:#000; padding:8px; border-radius:6px; text-decoration:none; font-weight:bold; font-size:14px; transition:0.3s;}  
+.card-content a:hover {background:#0087c2;}  
+  
+/* Footer */  
+footer {background:#111; color:#aaa; text-align:center; padding:15px; font-size:13px; border-top:1px solid #222;}  
+footer a {color:#00adee; text-decoration:none; margin:0 8px;}  
+footer a:hover {text-decoration:underline;}  
+  
+.menu-toggle {font-size:24px; cursor:pointer; color:#00adee; position:fixed; top:15px; left:15px; z-index:1100; display:none;}  
+  
+@media(max-width:1024px){  
+  .main-content {margin-left:0; padding-top:60px;}  
+  .sidebar {transform: translateX(-250px);}  
+  .sidebar.active {transform: translateX(0);}  
+  .menu-toggle {display:block;}  
+}  
+</style>  </head>  <body>  <div class="sidebar" id="sidebar">  
+  <h2>Help Floripa</h2>  
+  <a href="cadastre-se.html">Cadastre-se</a>  
+  <a href="socios-parcerias.html">Seja Sócio / Parceria</a>  
+  <a href="profissionais.html">Profissionais</a>  
+  <a href="clientes.html">Clientes</a>  
+  <a href="contato.html">Contato</a>  
+  <a href="ajuda.html">Ajuda</a>  
+  <a href="sobre.html">Sobre</a>  
+</div>  <div class="menu-toggle" onclick="toggleSidebar()">☰</div>  <div class="main-content">  
+  <div class="hero">  
+    <h1>Bem-vindo à Help Floripa</h1>  
+    <span>Tudo que você precisa em só lugar</span>  
+    <div class="hero-menu">  
+      <a href="cadastre-se.html">Cadastre-se</a>  
+      <a href="contato.html">Contato</a>  
+      <a href="sobre.html">Sobre</a>  
+    </div>  
+  </div>  
+</div>  <footer>  
+  <p>&copy; 2025 Help Floripa</p>  
+</footer>  <script>  
+function toggleSidebar(){  
+  document.getElementById('sidebar').classList.toggle('active');  
+}  
+  
+/* TROCA DE IMAGEM A CADA 6 HORAS */  
+const hero = document.querySelector('.hero');  
+const imagens = ["img/hero1.jpg","img/hero2.jpg"];  
+const intervalo = 6 * 60 * 60 * 1000;  
+  
+function atualizarHero(){  
+  const agora = Date.now();  
+  const indice = Math.floor(agora / intervalo) % imagens.length;  
+  hero.style.setProperty('--bg', `url('${imagens[indice]}')`);  
+  hero.style.backgroundImage =  
+    `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('${imagens[indice]}')`;  
+}  
+  
+atualizarHero();  
+</script>  </body>  
 </html>
