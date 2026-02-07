@@ -4,16 +4,20 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Help Floripa | Tudo que você precisa em só lugar</title>
+
     <style>
-      /* Reset */
-      * {
-        margin: 0;
-        padding: 0;
+      /* =========================================================
+         HOME (index.html)
+         ========================================================= */
+      .page-home,
+      .page-home * {
         box-sizing: border-box;
         font-family: Arial, sans-serif;
       }
 
-      body {
+      .page-home {
+        margin: 0;
+        padding: 0;
         background: #000;
         color: #fff;
         min-height: 100vh;
@@ -21,8 +25,7 @@
         flex-direction: column;
       }
 
-      /* Sidebar */
-      .sidebar {
+      .page-home .sidebar {
         width: 220px;
         background: #111;
         position: fixed;
@@ -36,14 +39,14 @@
         z-index: 1000;
       }
 
-      .sidebar h2 {
+      .page-home .sidebar h2 {
         color: #00adee;
         text-align: center;
         margin-bottom: 25px;
         font-size: 22px;
       }
 
-      .sidebar a {
+      .page-home .sidebar a {
         color: #fff;
         text-decoration: none;
         padding: 12px;
@@ -53,25 +56,23 @@
         display: block;
       }
 
-      .sidebar a:hover {
+      .page-home .sidebar a:hover {
         background: #00adee;
         color: #000;
       }
 
-      .sidebar.hidden {
+      .page-home .sidebar.hidden {
         transform: translateX(-250px);
       }
 
-      /* Main content */
-      .main-content {
+      .page-home .main-content {
         margin-left: 240px;
         padding: 25px;
         transition: margin-left 0.3s;
         flex: 1;
       }
 
-      /* Hero */
-      .hero {
+      .page-home .hero {
         background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)),
           url("ponte-help.png") center/cover no-repeat;
         height: 380px;
@@ -89,22 +90,22 @@
         box-shadow: 0 0 20px rgba(0, 173, 238, 0.5);
       }
 
-      .hero h1 {
+      .page-home .hero h1 {
         margin-bottom: 10px;
       }
 
-      .hero span {
+      .page-home .hero span {
         font-size: 18px;
       }
 
-      .hero .hero-menu {
+      .page-home .hero .hero-menu {
         margin-top: 15px;
         display: flex;
         gap: 10px;
         flex-wrap: wrap;
       }
 
-      .hero .hero-menu a {
+      .page-home .hero .hero-menu a {
         text-decoration: none;
         color: #000;
         background: #00adee;
@@ -114,12 +115,11 @@
         transition: 0.3s;
       }
 
-      .hero .hero-menu a:hover {
+      .page-home .hero .hero-menu a:hover {
         background: #0087c2;
       }
 
-      /* Slider de propagandas */
-      .slider {
+      .page-home .slider {
         position: relative;
         max-width: 100%;
         height: 200px;
@@ -128,54 +128,53 @@
         margin-bottom: 30px;
       }
 
-      .slides {
+      .page-home .slides {
         display: flex;
-        width: 300%;
-        animation: slide 12s infinite;
+        width: 100%;
+        animation: home-slide 12s infinite;
       }
 
-      .slides a {
-        width: 100%;
-        flex-shrink: 0;
+      .page-home .slides a {
+        flex: 0 0 100%;
         display: block;
       }
 
-      .slides img {
+      .page-home .slides img {
         width: 100%;
         height: 200px;
-        object-fit: cover;
+        object-fit: contain;
         display: block;
+        background: #000;
       }
 
-      @keyframes slide {
+      @keyframes home-slide {
         0% {
-          margin-left: 0;
+          transform: translateX(0);
         }
         30% {
-          margin-left: 0;
+          transform: translateX(0);
         }
         35% {
-          margin-left: -100%;
+          transform: translateX(-100%);
         }
         65% {
-          margin-left: -100%;
+          transform: translateX(-100%);
         }
         70% {
-          margin-left: -200%;
+          transform: translateX(-200%);
         }
         100% {
-          margin-left: -200%;
+          transform: translateX(-200%);
         }
       }
 
-      /* Cards */
-      .cards {
+      .page-home .cards {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: 20px;
       }
 
-      .card {
+      .page-home .card {
         background: #111;
         border: 2px solid #00adee;
         border-radius: 12px;
@@ -185,13 +184,13 @@
         height: 320px;
       }
 
-      .card img {
+      .page-home .card img {
         width: 100%;
         height: 140px;
         object-fit: cover;
       }
 
-      .card-content {
+      .page-home .card-content {
         padding: 15px;
         display: flex;
         flex-direction: column;
@@ -199,20 +198,20 @@
         flex: 1;
       }
 
-      .card-content h3 {
+      .page-home .card-content h3 {
         color: #00adee;
         margin-bottom: 10px;
         font-size: 18px;
       }
 
-      .card-content p {
+      .page-home .card-content p {
         flex: 1;
         margin-bottom: 12px;
         font-size: 13px;
         line-height: 1.4;
       }
 
-      .card-content a {
+      .page-home .card-content a {
         text-align: center;
         background: #00adee;
         color: #000;
@@ -224,12 +223,11 @@
         transition: 0.3s;
       }
 
-      .card-content a:hover {
+      .page-home .card-content a:hover {
         background: #0087c2;
       }
 
-      /* Footer */
-      footer {
+      .page-home footer {
         background: #111;
         color: #aaa;
         text-align: center;
@@ -238,18 +236,17 @@
         border-top: 1px solid #222;
       }
 
-      footer a {
+      .page-home footer a {
         color: #00adee;
         text-decoration: none;
         margin: 0 8px;
       }
 
-      footer a:hover {
+      .page-home footer a:hover {
         text-decoration: underline;
       }
 
-      /* Menu toggle button para mobile */
-      .menu-toggle {
+      .page-home .menu-toggle {
         font-size: 24px;
         cursor: pointer;
         color: #00adee;
@@ -260,99 +257,99 @@
         display: none;
       }
 
-      /* Responsividade */
       @media (max-width: 1024px) {
-        .main-content {
+        .page-home .main-content {
           margin-left: 0;
           padding-top: 60px;
         }
 
-        .sidebar {
+        .page-home .sidebar {
           transform: translateX(-250px);
         }
 
-        .sidebar.active {
+        .page-home .sidebar.active {
           transform: translateX(0);
         }
 
-        .menu-toggle {
+        .page-home .menu-toggle {
           display: block;
         }
 
-        .hero {
+        .page-home .hero {
           height: 300px;
           font-size: 24px;
         }
 
-        .hero span {
+        .page-home .hero span {
           font-size: 16px;
         }
 
-        .slider {
+        .page-home .slider {
           height: 160px;
         }
 
-        .slides img {
+        .page-home .slides img {
           height: 160px;
         }
       }
 
       @media (max-width: 768px) {
-        .hero {
+        .page-home .hero {
           height: 220px;
           font-size: 20px;
         }
 
-        .hero span {
+        .page-home .hero span {
           font-size: 14px;
         }
 
-        .cards {
+        .page-home .cards {
           grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
           gap: 15px;
         }
 
-        .card {
+        .page-home .card {
           height: auto;
         }
 
-        .card img {
+        .page-home .card img {
           height: 120px;
         }
 
-        .hero .hero-menu a {
+        .page-home .hero .hero-menu a {
           padding: 6px 10px;
           font-size: 12px;
         }
 
-        .slider {
+        .page-home .slider {
           height: 140px;
         }
 
-        .slides img {
+        .page-home .slides img {
           height: 140px;
         }
       }
 
       @media (max-width: 480px) {
-        .hero .hero-menu a {
+        .page-home .hero .hero-menu a {
           padding: 5px 8px;
           font-size: 11px;
         }
 
-        .slider {
+        .page-home .slider {
           height: 120px;
         }
 
-        .slides img {
+        .page-home .slides img {
           height: 120px;
         }
       }
     </style>
+
+    <script type="module" src="firebase-config.js"></script>
   </head>
 
-  <body>
-    <!-- Sidebar -->
+  <body class="page-home">
     <div class="sidebar" id="sidebar">
       <h2>Help Floripa</h2>
       <a href="cadastre-se.html">Cadastre-se</a>
@@ -364,15 +361,12 @@
       <a href="sobre.html">Sobre</a>
     </div>
 
-    <!-- Menu toggle para mobile -->
     <div class="menu-toggle" onclick="toggleSidebar()">☰</div>
 
-    <!-- Main content -->
     <div class="main-content">
-      <!-- Hero -->
       <div class="hero">
         <h1>Bem-vindo à Help Floripa</h1>
-        <span>Tudo que voc precisa em só lugar</span>
+        <span>Tudo que você precisa em só lugar</span>
         <div class="hero-menu">
           <a href="cadastre-se.html">Cadastre-se</a>
           <a href="contato.html">Contato</a>
@@ -380,22 +374,20 @@
         </div>
       </div>
 
-      <!-- Slider propagandas -->
       <div class="slider">
         <div class="slides">
-          <a href="cadastre-se.html">
-            <img src="propaganda1.png" alt="Propaganda 1" />
-          </a>
-          <a href="cadastre-se.html">
-            <img src="propaganda2.png" alt="Propaganda 2" />
-          </a>
-          <a href="cadastre-se.html">
-            <img src="propaganda3.png" alt="Propaganda 3" />
-          </a>
+          <a href="cadastre-se.html"
+            ><img src="propaganda1.png" alt="Propaganda 1"
+          /></a>
+          <a href="cadastre-se.html"
+            ><img src="propaganda2.png" alt="Propaganda 2"
+          /></a>
+          <a href="cadastre-se.html"
+            ><img src="propaganda3.png" alt="Propaganda 3"
+          /></a>
         </div>
       </div>
 
-      <!-- Cards -->
       <div class="cards">
         <div class="card" id="servicos">
           <img
@@ -459,7 +451,6 @@
       </div>
     </div>
 
-    <!-- Rodapé -->
     <footer>
       <p>CNPJ: 61.935.934/0001-00</p>
       <p>
