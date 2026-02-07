@@ -118,13 +118,12 @@
         background: #0087c2;
       }
 
-      /* Slider de propagandas */
       /* ===== SLIDER ===== */
 .slider {
   position: relative;
   width: 100%;
   max-width: 1200px;
-  height: 280px;              /* ALTURA PADRÃO */
+  height: 280px;
   margin: 20px auto 30px;
   border-radius: 14px;
   overflow: hidden;
@@ -133,20 +132,28 @@
 
 .slides {
   display: flex;
-  width: 300%;                /* 3 imagens */
+  width: 300%; /* 3 imagens */
   height: 100%;
   animation: slide 15s infinite;
 }
 
-.slides img {
+/* Cada slide ocupa 100% da tela */
+.slide {
   width: 100%;
   height: 100%;
-  object-fit: contain;        /* MOSTRA A ARTE TODA */
   flex-shrink: 0;
+}
+
+/* Imagem da propaganda */
+.slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* Mostra a arte inteira */
+  display: block;
   background: #000;
 }
 
-/* Animação do carrossel */
+/* Animação */
 @keyframes slide {
   0%   { transform: translateX(0); }
   30%  { transform: translateX(0); }
@@ -159,12 +166,13 @@
 
   100% { transform: translateX(0); }
 }
-      
-      @media (max-width: 768px) {
+
+/* Responsivo celular */
+@media (max-width: 768px) {
   .slider {
     height: 180px;
   }
-      }
+}
       /* Cards */
       .cards {
         display: grid;
@@ -378,19 +386,30 @@
       </div>
 
       <!-- Slider propagandas -->
-      <div class="slider">
-        <div class="slides">
-          <a href="cadastre-se.html">
-            <img src="propaganda1.png" alt="Propaganda 1" />
-          </a>
-          <a href="cadastre-se.html">
-            <img src="propaganda2.png" alt="Propaganda 2" />
-          </a>
-          <a href="cadastre-se.html">
-            <img src="propaganda3.png" alt="Propaganda 3" />
-          </a>
-        </div>
-      </div>
+      
+<div class="slider">
+  <div class="slides">
+
+    <div class="slide">
+      <a href="cadastre-se.html">
+        <img src="propaganda1.png" alt="Propaganda 1">
+      </a>
+    </div>
+
+    <div class="slide">
+      <a href="cadastre-se.html">
+        <img src="propaganda2.png" alt="Propaganda 2">
+      </a>
+    </div>
+
+    <div class="slide">
+      <a href="cadastre-se.html">
+        <img src="propaganda3.png" alt="Propaganda 3">
+      </a>
+    </div>
+
+  </div>
+</div>
 
       <!-- Cards -->
       <div class="cards">
