@@ -159,7 +159,15 @@
         opacity: 0.55;
       }
 
-      .page-home .slides img {
+      .page-home .slides picture {
+        position: relative;
+        z-index: 1;
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      .page-home .slides picture img {
         position: relative;
         z-index: 1;
         width: 100%;
@@ -313,7 +321,7 @@
           display: none;
         }
 
-        .page-home .slides img {
+        .page-home .slides picture img {
           object-fit: cover;
           background: #000;
         }
@@ -394,15 +402,21 @@
 
       <div class="slider">
         <div class="slides">
-          <a href="cadastre-se.html" style="--slide-bg: url('propaganda1.png')"
-            ><img src="propaganda1.png" alt="Propaganda 1"
-          /></a>
-          <a href="cadastre-se.html" style="--slide-bg: url('propaganda2.png')"
-            ><img src="propaganda2.png" alt="Propaganda 2"
-          /></a>
-          <a href="cadastre-se.html" style="--slide-bg: url('propaganda3.png')"
-            ><img src="propaganda3.png" alt="Propaganda 3"
-          /></a>
+          <a href="cadastre-se.html" style="--slide-bg: url('propaganda1c.png')"
+            ><picture>
+              <source media="(max-width: 1024px)" srcset="propaganda1.png" />
+              <img src="propaganda1c.png" alt="Propaganda 1" />
+            </picture></a>
+          <a href="cadastre-se.html" style="--slide-bg: url('propaganda2c.png')"
+            ><picture>
+              <source media="(max-width: 1024px)" srcset="propaganda2.png" />
+              <img src="propaganda2c.png" alt="Propaganda 2" />
+            </picture></a>
+          <a href="cadastre-se.html" style="--slide-bg: url('propaganda3c.png')"
+            ><picture>
+              <source media="(max-width: 1024px)" srcset="propaganda3.png" />
+              <img src="propaganda3c.png" alt="Propaganda 3" />
+            </picture></a>
         </div>
       </div>
 
