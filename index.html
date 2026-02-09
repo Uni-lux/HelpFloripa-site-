@@ -148,15 +148,7 @@
       }
 
       .page-home .slides a::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background-image: var(--slide-bg);
-        background-size: cover;
-        background-position: center;
-        transform: scale(1.08);
-        filter: blur(10px);
-        opacity: 0.55;
+        display: none;
       }
 
       .page-home .slides picture {
@@ -172,9 +164,9 @@
         z-index: 1;
         width: 100%;
         height: 100%;
-        object-fit: contain;
+        object-fit: cover;
         display: block;
-        background: transparent;
+        background: #000;
       }
 
       @keyframes home-slide {
@@ -317,14 +309,7 @@
         .page-home .slider {
           height: 240px;
         }
-        .page-home .slides a::before {
-          display: none;
-        }
 
-        .page-home .slides picture img {
-          object-fit: cover;
-          background: #000;
-        }
       }
 
       @media (max-width: 768px) {
@@ -475,7 +460,7 @@
             <h3>Aluguéis e Imóveis</h3>
             <p>
               Casas, apartamentos e imóveis comerciais disponíveis para alugar
-              em Florianópolis.
+              em Florianpolis.
             </p>
             <a href="imoveis.html">Ver Imóveis</a>
           </div>
