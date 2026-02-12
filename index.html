@@ -1,504 +1,470 @@
-<!DOCTYPE html>  <html lang="pt-BR">  
-  <head>  
-    <meta charset="UTF-8" />  
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />  
-    <title>Help Floripa | Tudo que você precisa em só lugar</title>  <style>  
-  /* =========================================================  
-     HOME (index.html)  
-     ========================================================= */  
-  .page-home,  
-  .page-home * {  
-    box-sizing: border-box;  
-    font-family: Arial, sans-serif;  
-  }  
+<!DOCTYPE html>  <html lang="pt-BR">      <head>    
+    <meta charset="UTF-8" />    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />    
+    <title>Help Floripa | Tudo que você precisa em só lugar</title>  <style>    
+  /* =========================================================    
+     HOME (index.html)    
+     ========================================================= */    
+  .page-home,    
+  .page-home * {    
+    box-sizing: border-box;    
+    font-family: Arial, sans-serif;    
+  }    .page-home {
+margin: 0;
+padding: 0;
+background: #000;
+color: #fff;
+min-height: 100vh;
+display: flex;
+flex-direction: column;
+}
 
-  .page-home {  
-    margin: 0;  
-    padding: 0;  
-    background: #000;  
-    color: #fff;  
-    min-height: 100vh;  
-    display: flex;  
-    flex-direction: column;  
-  }  
+.page-home .sidebar {
+width: 220px;
+background: #111;
+position: fixed;
+top: 0;
+left: 0;
+height: 100%;
+padding: 20px;
+display: flex;
+flex-direction: column;
+transition: transform 0.3s ease;
+z-index: 1000;
+}
 
-  .page-home .sidebar {  
-    width: 220px;  
-    background: #111;  
-    position: fixed;  
-    top: 0;  
-    left: 0;  
-    height: 100%;  
-    padding: 20px;  
-    display: flex;  
-    flex-direction: column;  
-    transition: transform 0.3s ease;  
-    z-index: 1000;  
-  }  
+.page-home .sidebar h2 {
+color: #00adee;
+text-align: center;
+margin-bottom: 25px;
+font-size: 22px;
+}
 
-  .page-home .sidebar h2 {  
-    color: #00adee;  
-    text-align: center;  
-    margin-bottom: 25px;  
-    font-size: 22px;  
-  }  
+.page-home .sidebar a {
+color: #fff;
+text-decoration: none;
+padding: 12px;
+margin: 6px 0;
+border-radius: 6px;
+transition: 0.3s;
+display: block;
+}
 
-  .page-home .sidebar a {  
-    color: #fff;  
-    text-decoration: none;  
-    padding: 12px;  
-    margin: 6px 0;  
-    border-radius: 6px;  
-    transition: 0.3s;  
-    display: block;  
-  }  
+.page-home .sidebar a:hover {
+background: #00adee;
+color: #000;
+}
 
-  .page-home .sidebar a:hover {  
-    background: #00adee;  
-    color: #000;  
-  }  
+.page-home .sidebar.hidden {
+transform: translateX(-250px);
+}
 
-  .page-home .sidebar.hidden {  
-    transform: translateX(-250px);  
-  }  
+.page-home .main-content {
+margin-left: 240px;
+padding: 25px;
+transition: margin-left 0.3s;
+flex: 1;
+}
 
-  .page-home .main-content {  
-    margin-left: 240px;  
-    padding: 25px;  
-    transition: margin-left 0.3s;  
-    flex: 1;  
-  }  
+.page-home .hero {
+background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)),
+url("ponte-help.png");
+background-position: center, center 30%;
+background-repeat: no-repeat, no-repeat;
+background-size: cover, cover;
+height: 320px;
+border-radius: 15px;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+text-align: center;
+margin-bottom: 35px;
+color: #00adee;
+font-size: 28px;
+font-weight: bold;
+padding: 0 15px;
+box-shadow: 0 0 20px rgba(0, 173, 238, 0.5);
+}
 
-  .page-home .hero {  
-    background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)),
-      url("ponte-help.png");
-    background-position: center, center 30%;
-    background-repeat: no-repeat, no-repeat;
-    background-size: cover, cover;
-    height: 320px;  
-    border-radius: 15px;  
-    display: flex;  
-    flex-direction: column;  
-    align-items: center;  
-    justify-content: center;  
-    text-align: center;  
-    margin-bottom: 35px;  
-    color: #00adee;  
-    font-size: 28px;  
-    font-weight: bold;  
-    padding: 0 15px;  
-    box-shadow: 0 0 20px rgba(0, 173, 238, 0.5);  
-  }  
+.page-home .hero h1 {
+margin-bottom: 10px;
+}
 
-  .page-home .hero h1 {  
-    margin-bottom: 10px;  
-  }  
+.page-home .hero span {
+font-size: 18px;
+}
 
-  .page-home .hero span {  
-    font-size: 18px;  
-  }  
+.page-home .hero .hero-menu {
+margin-top: 15px;
+display: flex;
+gap: 10px;
+flex-wrap: wrap;
+}
 
-  .page-home .hero .hero-menu {  
-    margin-top: 15px;  
-    display: flex;  
-    gap: 10px;  
-    flex-wrap: wrap;  
-  }  
+.page-home .hero .hero-menu a {
+text-decoration: none;
+color: #000;
+background: #00adee;
+padding: 8px 15px;
+border-radius: 6px;
+font-weight: bold;
+transition: 0.3s;
+}
 
-  .page-home .hero .hero-menu a {  
-    text-decoration: none;  
-    color: #000;  
-    background: #00adee;  
-    padding: 8px 15px;  
-    border-radius: 6px;  
-    font-weight: bold;  
-    transition: 0.3s;  
-  }  
+.page-home .hero .hero-menu a:hover {
+background: #0087c2;
+}
 
-  .page-home .hero .hero-menu a:hover {  
-    background: #0087c2;  
-  }  
+.page-home .slider {
+position: relative;
+width: 100%;
+aspect-ratio: 16 / 9;
+overflow: hidden;
+border: 2px solid #00adee;
+border-radius: 15px;
+margin: 0 0 35px;
+background: #000;
+box-shadow: 0 0 20px rgba(0, 173, 238, 0.5);
+}
 
-  .page-home .slider {  
-    position: relative;  
-    width: 100%;  
-    aspect-ratio: 16 / 9;  
-    overflow: hidden;  
-    border: 2px solid #00adee;  
-    border-radius: 15px;  
-    margin: 0 0 35px;  
-    background: #000;  
-    box-shadow: 0 0 20px rgba(0, 173, 238, 0.5);  
-  }  
+.page-home .slides {
+display: flex;
+width: 100%;
+height: 100%;
+animation: home-slide 12s infinite;
+}
 
-  .page-home .slides {  
-    display: flex;  
-    width: 100%;  
-    height: 100%;  
-    animation: home-slide 12s infinite;  
-  }  
+.page-home .slides a {
+position: relative;
+flex: 0 0 100%;
+height: 100%;
+display: block;
+overflow: hidden;
+background: #000;
+}
 
-  .page-home .slides a {  
-    position: relative;  
-    flex: 0 0 100%;  
-    height: 100%;  
-    display: block;  
-    overflow: hidden;  
-    background: #000;  
-  }  
+.page-home .slides a::before {
+display: none;
+}
 
-  .page-home .slides a::before {  
-    display: none;  
-  }  
+.page-home .slides picture {
+position: relative;
+z-index: 1;
+display: block;
+width: 100%;
+height: 100%;
+}
 
-  .page-home .slides picture {  
-    position: relative;  
-    z-index: 1;  
-    display: block;  
-    width: 100%;  
-    height: 100%;  
-  }  
+.page-home .slides picture img {
+position: relative;
+z-index: 1;
+width: 100%;
+height: 100%;
+object-fit: cover;
+object-position: center;
+display: block;
+background: #000;
+}
 
-  .page-home .slides picture img {  
-    position: relative;  
-    z-index: 1;  
-    width: 100%;  
-    height: 100%;  
-    object-fit: cover;  
-    object-position: center;  
-    display: block;  
-    background: #000;  
-  }  
+@keyframes home-slide {
+0% {
+transform: translateX(0);
+}
+30% {
+transform: translateX(0);
+}
+35% {
+transform: translateX(-100%);
+}
+65% {
+transform: translateX(-100%);
+}
+70% {
+transform: translateX(-200%);
+}
+100% {
+transform: translateX(-200%);
+}
+}
 
-  @keyframes home-slide {  
-    0% {  
-      transform: translateX(0);  
-    }  
-    30% {  
-      transform: translateX(0);  
-    }  
-    35% {  
-      transform: translateX(-100%);  
-    }  
-    65% {  
-      transform: translateX(-100%);  
-    }  
-    70% {  
-      transform: translateX(-200%);  
-    }  
-    100% {  
-      transform: translateX(-200%);  
-    }  
-  }  
+.page-home .cards {
+display: grid;
+grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+gap: 20px;
+}
 
-  .page-home .cards {  
-    display: grid;  
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));  
-    gap: 20px;  
-  }  
+.page-home .card {
+background: #111;
+border: 2px solid #00adee;
+border-radius: 12px;
+overflow: hidden;
+display: flex;
+flex-direction: column;
+height: 320px;
+}
 
-  .page-home .card {  
-    background: #111;  
-    border: 2px solid #00adee;  
-    border-radius: 12px;  
-    overflow: hidden;  
-    display: flex;  
-    flex-direction: column;  
-    height: 320px;  
-  }  
+.page-home .card img {
+width: 100%;
+height: 140px;
+object-fit: cover;
+}
 
-  .page-home .card img {  
-    width: 100%;  
-    height: 140px;  
-    object-fit: cover;  
-  }  
+.page-home .card-content {
+padding: 15px;
+display: flex;
+flex-direction: column;
+justify-content: space-between;
+flex: 1;
+}
 
-  .page-home .card-content {  
-    padding: 15px;  
-    display: flex;  
-    flex-direction: column;  
-    justify-content: space-between;  
-    flex: 1;  
-  }  
+.page-home .card-content h3 {
+color: #00adee;
+margin-bottom: 10px;
+font-size: 18px;
+}
 
-  .page-home .card-content h3 {  
-    color: #00adee;  
-    margin-bottom: 10px;  
-    font-size: 18px;  
-    min-height: 44px;
-  }  
+.page-home .card-content p {
+flex: 1;
+margin-bottom: 12px;
+font-size: 13px;
+line-height: 1.4;
+}
 
-  .page-home .card-content p {  
-    flex: 1;  
-    margin-bottom: 12px;  
-    font-size: 13px;  
-    line-height: 1.4;  
-  }  
+.page-home .card-content a {
+text-align: center;
+background: #00adee;
+color: #000;
+padding: 8px;
+border-radius: 6px;
+text-decoration: none;
+font-weight: bold;
+font-size: 14px;
+transition: 0.3s;
+}
 
-  .page-home .card-content a {  
-    margin-top: auto;
-    text-align: center;  
-    background: #00adee;  
-    color: #000;  
-    padding: 8px;  
-    border-radius: 6px;  
-    text-decoration: none;  
-    font-weight: bold;  
-    font-size: 14px;  
-    transition: 0.3s;  
-  }  
+.page-home .card-content a:hover {
+background: #0087c2;
+}
 
-  .page-home .card-content a:hover {  
-    background: #0087c2;  
-  }  
+.page-home footer {
+background: #111;
+color: #aaa;
+text-align: center;
+padding: 15px;
+font-size: 13px;
+border-top: 1px solid #222;
+}
 
-  .page-home footer {  
-    background: #111;  
-    color: #aaa;  
-    text-align: center;  
-    padding: 15px;  
-    font-size: 13px;  
-    border-top: 1px solid #222;  
-  }  
+.page-home footer a {
+color: #00adee;
+text-decoration: none;
+margin: 0 8px;
+}
 
-  .page-home footer a {  
-    color: #00adee;  
-    text-decoration: none;  
-    margin: 0 8px;  
-  }  
+.page-home footer a:hover {
+text-decoration: underline;
+}
 
-  .page-home footer a:hover {  
-    text-decoration: underline;  
-  }  
+.page-home .menu-toggle {
+font-size: 24px;
+cursor: pointer;
+color: #00adee;
+position: fixed;
+top: 15px;
+left: 15px;
+z-index: 1100;
+display: none;
+}
 
-  .page-home .menu-toggle {  
-    font-size: 24px;  
-    cursor: pointer;  
-    color: #00adee;  
-    position: fixed;  
-    top: 15px;  
-    left: 15px;  
-    z-index: 1100;  
-    display: none;  
-  }  
+@media (max-width: 1024px) {
+.page-home .main-content {
+margin-left: 0;
+padding-top: 60px;
+}
 
-  @media (max-width: 1024px) {  
-    .page-home .main-content {  
-      margin-left: 0;  
-      padding-top: 60px;  
-    }  
+.page-home .sidebar {    
+  transform: translateX(-250px);    
+}    
 
-    .page-home .sidebar {  
-      transform: translateX(-250px);  
-    }  
+.page-home .sidebar.active {    
+  transform: translateX(0);    
+}    
 
-    .page-home .sidebar.active {  
-      transform: translateX(0);  
-    }  
+.page-home .menu-toggle {    
+  display: block;    
+}    
 
-    .page-home .menu-toggle {  
-      display: block;  
-    }  
+.page-home .hero {    
+  background-position: center, center;  
+  height: 300px;    
+  font-size: 24px;    
+}    
 
-    .page-home .hero {  
-      background-position: center, center;
-      height: 300px;  
-      font-size: 24px;  
-    }  
+.page-home .hero span {    
+  font-size: 16px;    
+}    
 
-    .page-home .hero span {  
-      font-size: 16px;  
-    }  
+.page-home .slider {    
+  height: 240px;    
+}
 
-    .page-home .slider {  
-      height: auto;
-      aspect-ratio: auto;
-    }  
+}
 
-    .page-home .slides,
-    .page-home .slides a,
-    .page-home .slides picture {
-      height: auto;
-    }
+@media (max-width: 768px) {
+.page-home .hero {
+height: 220px;
+font-size: 20px;
+}
 
-    .page-home .slides picture img {
-      width: 100%;
-      height: auto;
-      object-fit: fill;
-      object-position: center;
-    }
+.page-home .hero span {    
+  font-size: 14px;    
+}    
 
+.page-home .cards {    
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));    
+  gap: 15px;    
+}    
 
-  }  
+.page-home .card {    
+  height: auto;    
+}    
 
-  @media (max-width: 768px) {  
-    .page-home .hero {  
-      height: 220px;  
-      font-size: 20px;  
-    }  
+.page-home .card img {    
+  height: 120px;    
+}    
 
-    .page-home .hero span {  
-      font-size: 14px;  
-    }  
+.page-home .hero .hero-menu a {    
+  padding: 6px 10px;    
+  font-size: 12px;    
+}    
 
-    .page-home .cards {  
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));  
-      gap: 15px;  
-    }  
+.page-home .slider {    
+  height: 210px;    
+}
 
-    .page-home .card {  
-      height: auto;  
-    }  
+}
 
-    .page-home .card img {  
-      height: 120px;  
-    }  
+@media (max-width: 480px) {
+.page-home .hero .hero-menu a {
+padding: 5px 8px;
+font-size: 11px;
+}
 
-    .page-home .hero .hero-menu a {  
-      padding: 6px 10px;  
-      font-size: 12px;  
-    }  
+.page-home .slider {    
+  height: 180px;    
+}
 
-    .page-home .slider {  
-      height: auto;  
-    }  
-  }  
+}
+</style>
 
-  @media (max-width: 480px) {  
-    .page-home .hero .hero-menu a {  
-      padding: 5px 8px;  
-      font-size: 11px;  
-    }  
+<script type="module" src="firebase-config.js"></script>    </head>    <body class="page-home">    
+    <div class="sidebar" id="sidebar">    
+      <h2>Help Floripa</h2>    
+      <a href="cadastre-se.html">Cadastre-se</a>    
+      <a href="socios-parcerias.html">Seja Sócio / Parceria</a>    
+      <a href="profissionais.html">Profissionais</a>    
+      <a href="clientes.html">Clientes</a>    
+      <a href="contato.html">Contato</a>    
+      <a href="ajuda.html">Ajuda</a>    
+      <a href="sobre.html">Sobre</a>    
+    </div>  <div class="menu-toggle" onclick="toggleSidebar()">☰</div>    <div class="main-content">    
+  <div class="hero">    
+    <h1>Bem-vindo à Help Floripa</h1>    
+    <span>Tudo que você precisa em só lugar</span>    
+    <div class="hero-menu">    
+      <a href="cadastre-se.html">Cadastre-se</a>    
+      <a href="contato.html">Contato</a>    
+      <a href="sobre.html">Sobre</a>    
+    </div>    
+  </div>      <div class="slider">    
+    <div class="slides">    
+      <a href="cadastre-se.html" style="--slide-bg: url('propaganda1c.png')"    
+        ><picture>    
+          <source media="(max-width: 1024px)" srcset="propaganda1.png" />    
+          <img src="propaganda1c.png" alt="Propaganda 1" />    
+        </picture></a>    
+      <a href="cadastre-se.html" style="--slide-bg: url('propaganda2c.png')"    
+        ><picture>    
+          <source media="(max-width: 1024px)" srcset="propaganda2.png" />    
+          <img src="propaganda2c.png" alt="Propaganda 2" />    
+        </picture></a>    
+      <a href="cadastre-se.html" style="--slide-bg: url('propaganda3c.png')"    
+        ><picture>    
+          <source media="(max-width: 1024px)" srcset="propaganda3.png" />    
+          <img src="propaganda3c.png" alt="Propaganda 3" />    
+        </picture></a>    
+    </div>    
+  </div>      <div class="cards">    
+    <div class="card" id="servicos">    
+      <img    
+        src="https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=800&q=80"    
+        alt="Serviços"    
+      />    
+      <div class="card-content">    
+        <h3>Serviços</h3>    
+        <p>    
+          Encontre profissionais de confiança para qualquer tipo de serviço    
+          em Florianópolis.    
+        </p>    
+        <a href="servicos.html">Ver Serviços</a>    
+      </div>    
+    </div>    <div class="card" id="lanches">    
+  <img    
+    src="lanchonetes.png"    
+    alt="Lanches"    
+  />    
+  <div class="card-content">    
+    <h3>Lanches e Delivery</h3>    
+    <p>    
+      Peça comidas deliciosas e bebidas rápidas com delivery eficiente    
+      para toda Florianópolis.    
+    </p>    
+    <a href="delivery.html">Ver Lanches</a>    
+  </div>    
+</div>    
 
-    .page-home .slider {  
-      height: auto;  
-    }  
-  }  
-</style>  
+<div class="card" id="shopping">    
+  <img    
+    src="shopping.png"    
+    alt="Shopping"    
+  />    
+  <div class="card-content">    
+    <h3>Shopping e Produtos</h3>    
+    <p>    
+      Explore produtos variados de diferentes lojas, direto do    
+      marketplace Help Floripa.    
+    </p>    
+    <a href="shopping.html">Ver Produtos</a>    
+  </div>    
+</div>    
 
-<script type="module" src="firebase-config.js"></script>
+<div class="card" id="aluguéis">    
+  <img    
+    src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80"    
+    alt="Aluguéis e Imóveis"    
+  />    
+  <div class="card-content">    
+    <h3>Aluguéis e Imóveis</h3>    
+    <p>    
+      Casas, apartamentos e imóveis comerciais disponíveis para alugar    
+      em Florianópolis.    
+    </p>    
+    <a href="imoveis.html">Ver Imóveis</a>    
+  </div>    
+</div>
 
-  </head>    <body class="page-home">  
-    <div class="sidebar" id="sidebar">  
-      <h2>Help Floripa</h2>  
-      <a href="cadastre-se.html">Cadastre-se</a>  
-      <a href="socios-parcerias.html">Seja Sócio / Parceria</a>  
-      <a href="profissionais.html">Profissionais</a>  
-      <a href="clientes.html">Clientes</a>  
-      <a href="contato.html">Contato</a>  
-      <a href="ajuda.html">Ajuda</a>  
-      <a href="sobre.html">Sobre</a>  
-    </div>  <div class="menu-toggle" onclick="toggleSidebar()">☰</div>  
-
-<div class="main-content">  
-  <div class="hero">  
-    <h1>Bem-vindo à Help Floripa</h1>  
-    <span>Tudo que você precisa em só lugar</span>  
-    <div class="hero-menu">  
-      <a href="cadastre-se.html">Cadastre-se</a>  
-      <a href="contato.html">Contato</a>  
-      <a href="sobre.html">Sobre</a>  
-    </div>  
-  </div>  
-
-  <div class="slider">  
-    <div class="slides">  
-      <a href="cadastre-se.html" style="--slide-bg: url('propaganda1c.png')"  
-        ><picture>  
-          <source media="(max-width: 1024px)" srcset="propaganda1.png" />  
-          <img src="propaganda1c.png" alt="Propaganda 1" />  
-        </picture></a>  
-      <a href="cadastre-se.html" style="--slide-bg: url('propaganda2c.png')"  
-        ><picture>  
-          <source media="(max-width: 1024px)" srcset="propaganda2.png" />  
-          <img src="propaganda2c.png" alt="Propaganda 2" />  
-        </picture></a>  
-      <a href="cadastre-se.html" style="--slide-bg: url('propaganda3c.png')"  
-        ><picture>  
-          <source media="(max-width: 1024px)" srcset="propaganda3.png" />  
-          <img src="propaganda3c.png" alt="Propaganda 3" />  
-        </picture></a>  
-    </div>  
-  </div>  
-
-  <div class="cards">  
-    <div class="card" id="servicos">  
-      <img  
-        src="https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=800&q=80"  
-        alt="Serviços"  
-      />  
-      <div class="card-content">  
-        <h3>Serviços</h3>  
-        <p>  
-          Encontre profissionais de confiança para qualquer tipo de serviço  
-          em Florianópolis.  
-        </p>  
-        <a href="servicos.html">Ver Serviços</a>  
-      </div>  
-    </div>  
-
-    <div class="card" id="lanches">  
-      <img  
-        src="lanchonetes.png"  
-        alt="Lanches"  
-      />  
-      <div class="card-content">  
-        <h3>Lanches e Delivery</h3>  
-        <p>  
-          Peça comidas deliciosas e bebidas rápidas com delivery eficiente  
-          para toda Florianópolis.  
-        </p>  
-        <a href="delivery.html">Ver Lanches</a>  
-      </div>  
-    </div>  
-
-    <div class="card" id="shopping">  
-      <img  
-        src="shopping.png"  
-        alt="Shopping"  
-      />  
-      <div class="card-content">  
-        <h3>Shopping e Produtos</h3>  
-        <p>  
-          Explore produtos variados de diferentes lojas, direto do  
-          marketplace Help Floripa.  
-        </p>  
-        <a href="shopping.html">Ver Produtos</a>  
-      </div>  
-    </div>  
-
-    <div class="card" id="aluguéis">  
-      <img  
-        src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80"  
-        alt="Aluguéis e Imóveis"  
-      />  
-      <div class="card-content">  
-        <h3>Aluguéis e Imóveis</h3>  
-        <p>  
-          Casas, apartamentos e imóveis comerciais disponíveis para alugar  
-          em Florianópolis.  
-        </p>  
-        <a href="imoveis.html">Ver Imóveis</a>  
-      </div>  
-    </div>  
-  </div>  
-</div>  
-
-<footer>  
-  <p>CNPJ: 61.935.934/0001-00</p>  
-  <p>  
-    <a href="termos.html">Termos de Uso</a> |  
-    <a href="privacidade.html">Política de Privacidade</a>  
-  </p>  
-  <p>&copy; 2025 Help Floripa - Todos os direitos reservados.</p>  
-</footer>  
-
-<script>  
-  function toggleSidebar() {  
-    document.getElementById("sidebar").classList.toggle("active");  
-  }  
-</script>
-
-  </body>  
-  </html>
-                                                               
+  </div>    
+</div>    <footer>    
+  <p>CNPJ: 61.935.934/0001-00</p>    
+  <p>    
+    <a href="termos.html">Termos de Uso</a> |    
+    <a href="privacidade.html">Política de Privacidade</a>    
+  </p>    
+  <p>&copy; 2025 Help Floripa - Todos os direitos reservados.</p>    
+</footer>    <script>    
+  function toggleSidebar() {    
+    document.getElementById("sidebar").classList.toggle("active");    
+  }    
+</script>    </body>    
+</html>
