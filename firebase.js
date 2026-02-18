@@ -6,7 +6,7 @@ import { getStorage } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-
 
 // Configuração do seu projeto
 const firebaseConfig = {
-  apiKey: "AIzaSyAaOjZs_YhdSqTCLqy2h79FNMasoIzZHiY",
+  apiKey: "AIzaSyBbRxwW0RdSNxRtdC6vKt3Ql66Y1lyVvO8",
   authDomain: "helpfloripa-61e0d.firebaseapp.com",
   projectId: "helpfloripa-61e0d",
   storageBucket: "helpfloripa-61e0d.firebasestorage.app",
