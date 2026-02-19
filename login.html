@@ -63,10 +63,14 @@
     .links a {
       color: #0d6efd;
       text-decoration: none;
+      cursor: pointer;
     }
 
-    .links a:hover {
-      text-decoration: underline;
+    .error {
+      color: red;
+      text-align: center;
+      margin-bottom: 10px;
+      font-size: 14px;
     }
   </style>
 </head>
@@ -76,18 +80,70 @@
   <div class="login-box">
     <h2>Entrar</h2>
 
-    <form>
-      <input type="email" placeholder="Seu e-mail" required>
-      <input type="password" placeholder="Sua senha" required>
+    <div id="errorMsg" class="error"></div>
 
+    <form id="loginForm">
+      <input type="email" id="email" placeholder="Seu e-mail" required>
+      <input type="password" id="password" placeholder="Sua senha" required>
       <button type="submit">Entrar</button>
     </form>
 
     <div class="links">
-      <p><a href="#">Esqueci minha senha</a></p>
+      <p><a id="resetPassword">Esqueci minha senha</a></p>
       <p>Não tem conta? <a href="#">Cadastre-se agora</a></p>
     </div>
   </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail } 
+      from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "SUA_API_KEY",
+      authDomain: "helpfloripa-61e0d.firebaseapp.com",
+      projectId: "helpfloripa-61e0d",
+      storageBucket: "helpfloripa-61e0d.firebasestorage.app",
+      messagingSenderId: "1011152435942",
+      appId: "1:1011152435942:web:4746d789487866c9861927"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    const form = document.getElementById("loginForm");
+    const errorMsg = document.getElementById("errorMsg");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        window.location.href = "index.html";
+      } catch (error) {
+        errorMsg.textContent = "E-mail ou senha incorretos.";
+      }
+    });
+
+    document.getElementById("resetPassword").addEventListener("click", async () => {
+      const email = document.getElementById("email").value;
+
+      if (!email) {
+        errorMsg.textContent = "Digite seu e-mail para redefinir a senha.";
+        return;
+      }
+
+      try {
+        await sendPasswordResetEmail(auth, email);
+        alert("E-mail de redefinição enviado!");
+      } catch (error) {
+        errorMsg.textContent = "Erro ao enviar redefinição.";
+      }
+    });
+  </script>
 
 </body>
 </html>
