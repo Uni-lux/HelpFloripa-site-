@@ -206,7 +206,6 @@ function updateButtonForLoggedOut(fab) {
 
   const card = document.getElementById("perfilUsuarioCard");
   if (card) card.style.display = "none";
-}
   }
 
   async function loadProfileFromFirebase(user) {
