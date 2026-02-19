@@ -1,30 +1,8 @@
+import { auth, db } from "./firebase.js";
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
 (function () {
-  const STORAGE_KEY = "helpFloripaUser";
-
-  function getUser() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch (error) {
-      console.warn("[Auth] Falha ao ler usuário", error);
-      return null;
-    }
-  }
-
-  function saveUser(user) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-  }
-
-  function clearUser() {
-    localStorage.removeItem(STORAGE_KEY);
-  }
-
-  function requireCadastro(actionText) {
-    if (getUser()) return true;
-    alert(`Para ${actionText}, se cadastra primeiro.`);
-    window.location.href = "cadastre-se.html";
-    return false;
-  }
 
   function getInitials(name) {
     if (!name) return "HF";
@@ -56,17 +34,6 @@
         align-items: center;
         justify-content: center;
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-      }
-
-      .profile-fab img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
-
-      .profile-fab span {
-        font-size: 14px;
-        letter-spacing: 0.5px;
       }
 
       .profile-card {
@@ -122,12 +89,18 @@
     document.head.appendChild(style);
   }
 
-  function buildProfileButton() {
-    const user = getUser();
+  async function buildProfile(user) {
     if (!user) return;
     if (document.getElementById("perfilUsuarioBtn")) return;
 
     injectProfileStyles();
+
+    const docRef = doc(db, "usuarios", user.uid);
+    const docSnap = await getDoc(docRef);
+
+    if (!docSnap.exists()) return;
+
+    const dados = docSnap.data();
 
     const fab = document.createElement("button");
     fab.id = "perfilUsuarioBtn";
@@ -135,26 +108,18 @@
     fab.type = "button";
     fab.title = "Perfil";
 
-    if (user.fotoUrl) {
-      const img = document.createElement("img");
-      img.src = user.fotoUrl;
-      img.alt = `Foto de perfil de ${user.nome || "usuário"}`;
-      fab.appendChild(img);
-    } else {
-      const initials = document.createElement("span");
-      initials.textContent = getInitials(user.nome);
-      fab.appendChild(initials);
-    }
+    const initials = document.createElement("span");
+    initials.textContent = getInitials(dados.nome);
+    fab.appendChild(initials);
 
     const card = document.createElement("div");
     card.id = "perfilUsuarioCard";
     card.className = "profile-card";
     card.innerHTML = `
       <h4>Meu perfil</h4>
-      <p><strong>Nome:</strong> ${user.nome || "-"}</p>
-      <p><strong>Telefone:</strong> ${user.telefone || "-"}</p>
-      <p><strong>Cidade:</strong> ${user.cidade || "-"}</p>
-      <p><strong>Área:</strong> ${user.classe || "-"}</p>
+      <p><strong>Nome:</strong> ${dados.nome || "-"}</p>
+      <p><strong>Email:</strong> ${dados.email || "-"}</p>
+      <p><strong>Cidade:</strong> ${dados.cidade || "-"}</p>
       <div class="actions">
         <button type="button" class="edit" id="perfilEditarBtn">Editar</button>
         <button type="button" class="logout" id="perfilSairBtn">Sair</button>
@@ -174,50 +139,21 @@
     document.body.appendChild(fab);
     document.body.appendChild(card);
 
-    const editBtn = document.getElementById("perfilEditarBtn");
-    const sairBtn = document.getElementById("perfilSairBtn");
+    document.getElementById("perfilEditarBtn").addEventListener("click", function () {
+      window.location.href = "cadastrar.html";
+    });
 
-    if (editBtn) {
-      editBtn.addEventListener("click", function () {
-        window.location.href = "cadastrar.html";
-      });
-    }
-
-    if (sairBtn) {
-      sairBtn.addEventListener("click", function () {
-        const shouldLogout = confirm("Deseja remover este perfil deste aparelho?");
-        if (shouldLogout) {
-          clearUser();
-          window.location.reload();
-        }
-      });
-    }
-  }
-
-  function prefillFormById(formId) {
-    const user = getUser();
-    if (!user) return;
-    const form = document.getElementById(formId);
-    if (!form) return;
-
-    Object.keys(user).forEach((key) => {
-      const field = form.querySelector(`[name="${key}"], #${key}`);
-      if (field && !field.value) {
-        field.value = user[key];
-      }
+    document.getElementById("perfilSairBtn").addEventListener("click", async function () {
+      await signOut(auth);
+      window.location.reload();
     });
   }
 
-  window.HelpAuth = {
-    getUser,
-    saveUser,
-    clearUser,
-    requireCadastro,
-    buildProfileButton,
-    prefillFormById
-  };
-
-  document.addEventListener("DOMContentLoaded", function () {
-    buildProfileButton();
+  // 🔥 VERIFICA LOGIN REAL
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      buildProfile(user);
+    }
   });
+
 })();
