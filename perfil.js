@@ -44,11 +44,11 @@
     style.textContent = `
       .profile-fab {
         position: fixed;
-        top: 20px;
-        right: 20px;
+        top: 12px;
+        left: 196px;
         z-index: 9999;
-        width: 46px;
-        height: 46px;
+        width: 40px;
+        height: 40px;
         border-radius: 50%;
         border: 2px solid #00adee;
         overflow: hidden;
@@ -69,14 +69,14 @@
       }
 
       .profile-fab .profile-icon {
-        font-size: 22px;
+        font-size: 18px;
         line-height: 1;
       }
 
       .profile-card {
         position: fixed;
-        top: 76px;
-        right: 20px;
+        top: 54px;
+        left: 232px;
         z-index: 9999;
         width: min(320px, calc(100vw - 32px));
         background: #0f0f0f;
@@ -97,6 +97,20 @@
       }
       .profile-card .actions .edit { background: #00adee; color: #000; }
       .profile-card .actions .logout { background: #252525; color: #fff; }
+
+      @media (max-width: 1024px) {
+        .profile-fab {
+          left: auto;
+          right: 12px;
+          top: 12px;
+        }
+
+        .profile-card {
+          left: auto;
+          right: 12px;
+          top: 54px;
+        }
+      }
     `;
     document.head.appendChild(style);
   }
@@ -316,3 +330,4 @@
     setupAuthProfileButton();
   });
 })();
+      
