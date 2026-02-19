@@ -197,27 +197,16 @@
     bindCardActions(userData, card);
     return card;
   }
+function updateButtonForLoggedOut(fab) {
+  fab.innerHTML = '<span class="profile-icon" aria-hidden="true">👤</span>';
 
-  function updateButtonForLoggedOut(fab) {
-    fab.innerHTML = '<span class="profile-icon" aria-hidden="true">👤</span>';
-    fab.onclick = async function () {
-      if (!window.firebaseAuth) {
-        alert("Login ainda não disponível. Tente novamente em alguns segundos.");
-        return;
-      }
+  fab.onclick = function () {
+    window.location.href = "login.html";
+  };
 
-      try {
-        const { GoogleAuthProvider, signInWithPopup } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
-        const provider = new GoogleAuthProvider();
-        await signInWithPopup(window.firebaseAuth, provider);
-      } catch (error) {
-        console.error("[Perfil] Erro ao entrar:", error);
-        alert("Não foi possível entrar agora. Tente novamente.");
-      }
-    };
-
-    const card = document.getElementById("perfilUsuarioCard");
-    if (card) card.style.display = "none";
+  const card = document.getElementById("perfilUsuarioCard");
+  if (card) card.style.display = "none";
+}
   }
 
   async function loadProfileFromFirebase(user) {
