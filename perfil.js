@@ -1,12 +1,3 @@
-import { auth, db } from "./firebase.js";
-import {
-  GoogleAuthProvider,
-  onAuthStateChanged,
-  signInWithPopup,
-  signOut
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
 (function () {
   const STORAGE_KEY = "helpFloripaUser";
 
@@ -28,8 +19,12 @@ import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase
     localStorage.removeItem(STORAGE_KEY);
   }
 
+  function hasLoggedUser() {
+    return Boolean(window.firebaseAuth?.currentUser || getUser());
+  }
+
   function requireCadastro(actionText) {
-    if (auth.currentUser || getUser()) return true;
+    if (hasLoggedUser()) return true;
     alert(`Para ${actionText}, se cadastra primeiro.`);
     window.location.href = "cadastre-se.html";
     return false;
@@ -49,11 +44,11 @@ import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase
     style.textContent = `
       .profile-fab {
         position: fixed;
-        top: 16px;
-        right: 16px;
+        top: 20px;
+        right: 20px;
         z-index: 9999;
-        width: 52px;
-        height: 52px;
+        width: 46px;
+        height: 46px;
         border-radius: 50%;
         border: 2px solid #00adee;
         overflow: hidden;
@@ -73,15 +68,15 @@ import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase
         object-fit: cover;
       }
 
-      .profile-fab span {
-        font-size: 14px;
-        letter-spacing: 0.5px;
+      .profile-fab .profile-icon {
+        font-size: 22px;
+        line-height: 1;
       }
 
       .profile-card {
         position: fixed;
         top: 76px;
-        right: 16px;
+        right: 20px;
         z-index: 9999;
         width: min(320px, calc(100vw - 32px));
         background: #0f0f0f;
@@ -113,16 +108,17 @@ import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase
 
   function ensureFloatingButton() {
     if (!isHomePage()) return null;
-    if (document.getElementById("perfilUsuarioBtn")) return document.getElementById("perfilUsuarioBtn");
+    let fab = document.getElementById("perfilUsuarioBtn");
+    if (fab) return fab;
 
     injectProfileStyles();
 
-    const fab = document.createElement("button");
+    fab = document.createElement("button");
     fab.id = "perfilUsuarioBtn";
     fab.className = "profile-fab";
     fab.type = "button";
     fab.title = "Entrar / Perfil";
-    fab.innerHTML = "<span>ENT</span>";
+    fab.innerHTML = '<span class="profile-icon" aria-hidden="true">👤</span>';
 
     document.body.appendChild(fab);
     return fab;
@@ -140,7 +136,15 @@ import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase
 
     if (sairBtn) {
       sairBtn.addEventListener("click", async function () {
-        await signOut(auth);
+        try {
+          if (window.firebaseAuth) {
+            const { signOut } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+            await signOut(window.firebaseAuth);
+          }
+        } catch (error) {
+          console.warn("[Perfil] Não foi possível deslogar do Firebase.", error);
+        }
+
         clearUser();
         window.location.reload();
       });
@@ -180,34 +184,18 @@ import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase
     return card;
   }
 
-  async function loadProfileFromFirebase(user) {
-    const docRef = doc(db, "usuarios", user.uid);
-    const docSnap = await getDoc(docRef);
-
-    if (docSnap.exists()) {
-      const dados = docSnap.data();
-      return {
-        nome: dados.nome || user.displayName || "",
-        email: dados.email || user.email || "",
-        cidade: dados.cidade || "",
-        fotoUrl: dados.fotoUrl || user.photoURL || ""
-      };
-    }
-
-    return {
-      nome: user.displayName || "",
-      email: user.email || "",
-      cidade: "",
-      fotoUrl: user.photoURL || ""
-    };
-  }
-
   function updateButtonForLoggedOut(fab) {
-    fab.innerHTML = "<span>ENT</span>";
+    fab.innerHTML = '<span class="profile-icon" aria-hidden="true">👤</span>';
     fab.onclick = async function () {
+      if (!window.firebaseAuth) {
+        alert("Login ainda não disponível. Tente novamente em alguns segundos.");
+        return;
+      }
+
       try {
+        const { GoogleAuthProvider, signInWithPopup } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
         const provider = new GoogleAuthProvider();
-        await signInWithPopup(auth, provider);
+        await signInWithPopup(window.firebaseAuth, provider);
       } catch (error) {
         console.error("[Perfil] Erro ao entrar:", error);
         alert("Não foi possível entrar agora. Tente novamente.");
@@ -216,6 +204,42 @@ import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase
 
     const card = document.getElementById("perfilUsuarioCard");
     if (card) card.style.display = "none";
+  }
+
+  async function loadProfileFromFirebase(user) {
+    try {
+      if (!window.firebaseDb) {
+        return {
+          nome: user.displayName || "",
+          email: user.email || "",
+          cidade: "",
+          fotoUrl: user.photoURL || ""
+        };
+      }
+
+      const { doc, getDoc } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+      const docRef = doc(window.firebaseDb, "usuarios", user.uid);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const dados = docSnap.data();
+        return {
+          nome: dados.nome || user.displayName || "",
+          email: dados.email || user.email || "",
+          cidade: dados.cidade || "",
+          fotoUrl: dados.fotoUrl || user.photoURL || ""
+        };
+      }
+    } catch (error) {
+      console.warn("[Perfil] Não foi possível carregar perfil no Firestore.", error);
+    }
+
+    return {
+      nome: user.displayName || "",
+      email: user.email || "",
+      cidade: "",
+      fotoUrl: user.photoURL || ""
+    };
   }
 
   function updateButtonForLoggedIn(fab, profile) {
@@ -242,15 +266,27 @@ import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase
     const fab = ensureFloatingButton();
     if (!fab) return;
 
-    onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        updateButtonForLoggedOut(fab);
-        return;
-      }
+    updateButtonForLoggedOut(fab);
 
-      const profile = await loadProfileFromFirebase(user);
-      updateButtonForLoggedIn(fab, profile);
-    });
+    if (!window.firebaseAuth) {
+      return;
+    }
+
+    import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js")
+      .then(({ onAuthStateChanged }) => {
+        onAuthStateChanged(window.firebaseAuth, async (user) => {
+          if (!user) {
+            updateButtonForLoggedOut(fab);
+            return;
+          }
+
+          const profile = await loadProfileFromFirebase(user);
+          updateButtonForLoggedIn(fab, profile);
+        });
+      })
+      .catch((error) => {
+        console.warn("[Perfil] Listener de autenticação não inicializado.", error);
+      });
   }
 
   function prefillFormById(formId) {
@@ -267,7 +303,7 @@ import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase
     });
   }
 
-  const HelpPerfil = {
+  window.HelpPerfil = {
     getUser,
     saveUser,
     clearUser,
@@ -276,10 +312,7 @@ import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase
     setupAuthProfileButton
   };
 
-  window.HelpPerfil = HelpPerfil;
-
   document.addEventListener("DOMContentLoaded", function () {
     setupAuthProfileButton();
   });
 })();
-        
