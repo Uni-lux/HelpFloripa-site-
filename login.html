@@ -1,136 +1,203 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>Login - Help Floripa</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login | Help Floripa</title>
   <style>
-    body {
+    :root {
+      --hf-blue: #00adee;
+      --hf-blue-dark: #0087c2;
+      --hf-bg: #000;
+      --hf-surface: #111;
+      --hf-text: #f1f1f1;
+      --hf-muted: #b9c2c8;
+      --hf-border: #00adee66;
+    }
+
+    * {
+      box-sizing: border-box;
       font-family: Arial, sans-serif;
-      background: #f5f7fa;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
+    }
+
+    body {
       margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top, #0b1b24 0%, var(--hf-bg) 38%);
+      color: var(--hf-text);
+      display: grid;
+      place-items: center;
+      padding: 20px;
     }
 
-    .login-box {
-      background: white;
-      padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    .login-shell {
       width: 100%;
-      max-width: 380px;
+      max-width: 420px;
+      background: linear-gradient(180deg, #151515 0%, #0d0d0d 100%);
+      border: 1px solid var(--hf-border);
+      border-radius: 16px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
+      padding: 28px 22px;
     }
 
-    h2 {
+    .brand {
       text-align: center;
       margin-bottom: 20px;
     }
 
-    input {
-      width: 100%;
-      padding: 12px;
-      margin-bottom: 12px;
-      border-radius: 8px;
-      border: 1px solid #ddd;
+    .brand h1 {
+      margin: 0;
+      font-size: 24px;
+      color: var(--hf-blue);
+    }
+
+    .brand p {
+      margin: 8px 0 0;
       font-size: 14px;
+      color: var(--hf-muted);
+    }
+
+    .error {
+      min-height: 18px;
+      color: #ff6b6b;
+      text-align: center;
+      margin: 0 0 12px;
+      font-size: 14px;
+    }
+
+    .field {
+      margin-bottom: 12px;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      color: #d5dde2;
+    }
+
+    .field input {
+      width: 100%;
+      border: 1px solid #2f3b42;
+      border-radius: 10px;
+      background: #0a0a0a;
+      color: var(--hf-text);
+      padding: 12px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .field input:focus {
+      border-color: var(--hf-blue);
+      box-shadow: 0 0 0 3px rgba(0, 173, 238, 0.2);
     }
 
     button {
       width: 100%;
-      padding: 12px;
-      border-radius: 8px;
       border: none;
-      background: #0d6efd;
-      color: white;
-      font-size: 15px;
+      border-radius: 10px;
+      padding: 12px;
+      background: var(--hf-blue);
+      color: #000;
+      font-weight: 700;
       cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      margin-top: 4px;
     }
 
     button:hover {
-      background: #0b5ed7;
+      background: var(--hf-blue-dark);
+    }
+
+    button:active {
+      transform: translateY(1px);
     }
 
     .links {
       text-align: center;
-      margin-top: 12px;
+      margin-top: 14px;
       font-size: 14px;
+      color: var(--hf-muted);
     }
 
     .links a {
-      color: #0d6efd;
+      color: var(--hf-blue);
       text-decoration: none;
-      cursor: pointer;
+      font-weight: 700;
     }
 
-    .error {
-      color: red;
-      text-align: center;
-      margin-bottom: 10px;
-      font-size: 14px;
+    .links a:hover {
+      text-decoration: underline;
+    }
+
+    .back-home {
+      display: inline-block;
+      margin-top: 12px;
+      font-size: 13px;
     }
   </style>
 </head>
-
 <body>
+  <main class="login-shell">
+    <header class="brand">
+      <h1>Help Floripa</h1>
+      <p>Entre para acessar seu perfil e serviços</p>
+    </header>
 
-  <div class="login-box">
-    <h2>Entrar</h2>
-
-    <div id="errorMsg" class="error"></div>
+    <p id="errorMsg" class="error"></p>
 
     <form id="loginForm">
-      <input type="email" id="email" placeholder="Seu e-mail" required>
-      <input type="password" id="password" placeholder="Sua senha" required>
+      <div class="field">
+        <label for="email">E-mail</label>
+        <input type="email" id="email" placeholder="Seu e-mail" required />
+      </div>
+
+      <div class="field">
+        <label for="password">Senha</label>
+        <input type="password" id="password" placeholder="Sua senha" required />
+      </div>
+
       <button type="submit">Entrar</button>
     </form>
 
     <div class="links">
-      <p><a id="resetPassword">Esqueci minha senha</a></p>
-      <p>Não tem conta? <a href="#">Cadastre-se agora</a></p>
+      <p><a id="resetPassword" href="#">Esqueci minha senha</a></p>
+      <p>Não tem conta? <a href="cadastre-se.html">Cadastre-se agora</a></p>
+      <a class="back-home" href="index.html">← Voltar para Home</a>
     </div>
-  </div>
+  </main>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail } 
-      from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyBbRxwW0RdSNxRtdC6vKt3Ql66Y1lyVvO8",
-      authDomain: "helpfloripa-61e0d.firebaseapp.com",
-      projectId: "helpfloripa-61e0d",
-      storageBucket: "helpfloripa-61e0d.firebasestorage.app",
-      messagingSenderId: "1011152435942",
-      appId: "1:1011152435942:web:4746d789487866c9861927"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
+    import { auth } from "./firebase.js";
+    import {
+      signInWithEmailAndPassword,
+      sendPasswordResetEmail
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     const form = document.getElementById("loginForm");
     const errorMsg = document.getElementById("errorMsg");
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
+      errorMsg.textContent = "";
 
-      const email = document.getElementById("email").value;
+      const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
 
       try {
         await signInWithEmailAndPassword(auth, email, password);
         window.location.href = "index.html";
       } catch (error) {
+        console.error("[Login] Erro ao entrar:", error);
         errorMsg.textContent = "E-mail ou senha incorretos.";
       }
     });
 
-    document.getElementById("resetPassword").addEventListener("click", async () => {
-      const email = document.getElementById("email").value;
+    document.getElementById("resetPassword").addEventListener("click", async (e) => {
+      e.preventDefault();
+      errorMsg.textContent = "";
 
+      const email = document.getElementById("email").value.trim();
       if (!email) {
         errorMsg.textContent = "Digite seu e-mail para redefinir a senha.";
         return;
@@ -140,10 +207,10 @@
         await sendPasswordResetEmail(auth, email);
         alert("E-mail de redefinição enviado!");
       } catch (error) {
+        console.error("[Login] Erro ao redefinir senha:", error);
         errorMsg.textContent = "Erro ao enviar redefinição.";
       }
     });
   </script>
-
 </body>
 </html>
