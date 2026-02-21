@@ -92,6 +92,35 @@
       box-shadow: 0 0 0 3px rgba(0, 173, 238, 0.2);
     }
 
+    .password-wrap {
+      position: relative;
+    }
+
+    .password-wrap input {
+      padding-right: 72px;
+    }
+
+    .toggle-password {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      border: 1px solid #2f3b42;
+      border-radius: 8px;
+      background: #151515;
+      color: #d9e0e5;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 6px 8px;
+      width: auto;
+      margin: 0;
+    }
+
+    .toggle-password:hover {
+      background: #1f1f1f;
+    }
+
     button {
       width: 100%;
       border: none;
@@ -154,7 +183,10 @@
 
       <div class="field">
         <label for="password">Senha</label>
-        <input type="password" id="password" placeholder="Sua senha" required />
+        <div class="password-wrap">
+          <input type="password" id="password" placeholder="Sua senha" required />
+          <button type="button" id="togglePassword" class="toggle-password" aria-label="Mostrar senha">👁️</button>
+        </div>
       </div>
 
       <button type="submit">Entrar</button>
@@ -176,6 +208,34 @@
 
     const form = document.getElementById("loginForm");
     const errorMsg = document.getElementById("errorMsg");
+    const passwordInput = document.getElementById("password");
+    const togglePasswordBtn = document.getElementById("togglePassword");
+
+    function getFirebaseLoginErrorMessage(errorCode) {
+      switch (errorCode) {
+        case "auth/invalid-credential":
+        case "auth/wrong-password":
+        case "auth/user-not-found":
+          return "E-mail ou senha incorretos.";
+        case "auth/invalid-email":
+          return "Digite um e-mail válido.";
+        case "auth/too-many-requests":
+          return "Muitas tentativas. Tente novamente em alguns minutos.";
+        case "auth/network-request-failed":
+          return "Sem conexão com a internet. Verifique e tente novamente.";
+        case "auth/operation-not-allowed":
+          return "Login por e-mail/senha não está habilitado no Firebase Auth.";
+        default:
+          return "Não foi possível fazer login agora. Tente novamente.";
+      }
+    }
+
+    togglePasswordBtn.addEventListener("click", () => {
+      const isHidden = passwordInput.type === "password";
+      passwordInput.type = isHidden ? "text" : "password";
+      togglePasswordBtn.setAttribute("aria-label", isHidden ? "Ocultar senha" : "Mostrar senha");
+      togglePasswordBtn.textContent = isHidden ? "🙈" : "👁️";
+    });
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -189,7 +249,7 @@
         window.location.href = "index.html";
       } catch (error) {
         console.error("[Login] Erro ao entrar:", error);
-        errorMsg.textContent = "E-mail ou senha incorretos.";
+        errorMsg.textContent = getFirebaseLoginErrorMessage(error.code);
       }
     });
 
