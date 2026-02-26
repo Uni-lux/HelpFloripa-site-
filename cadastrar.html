@@ -191,9 +191,11 @@
       <label for="descricao">Breve descrição ou experiência:</label>
       <textarea id="descricao" name="descricao" rows="4" required></textarea>
 
+      <!-- Novo campo de diária mínima e máxima -->
       <label for="diaria">Valor da Diária (mínimo e máximo):</label>
       <input type="text" id="diaria" name="diaria" placeholder="Ex: R$ 120 - R$ 200 (Que você cobra)" required>
 
+      <!-- Checkbox para aceitar os termos de uso -->
       <div class="termosContainer">
         <input type="checkbox" id="aceiteTermos" required>
         <label for="aceiteTermos" style="margin:0;">Li e concordo com os <a href="termos.html" target="_blank" style="color:#00adee;">Termos de Uso</a></label>
@@ -320,7 +322,7 @@
         const cred = await createUserWithEmailAndPassword(auth, email, senha);
         const { uid } = cred.user;
 
-        await setDoc(doc(db, "profissionais", uid), {
+        await setDoc(doc(db, "usuarios", uid), {
           uid,
           nome: obj.nome,
           email,
@@ -339,10 +341,11 @@
           diaria: obj.diaria,
           aceiteTermos: true,
           origemCadastro: "cadastrar.html",
+          tipoUsuario: "cliente",
           criadoEm: serverTimestamp()
         });
 
-        atualizarStatus("Cadastro realizado com sucesso! Redirecionando para o login...", "success");
+        atualizarStatus("Cadastro realizado com sucesso! Seus dados foram salvos. Redirecionando para o login...", "success");
         form.reset();
         document.getElementById("especialidade").innerHTML = '<option value="">Selecione uma classe primeiro</option>';
         document.getElementById("bairro").innerHTML = '<option value="">Selecione a cidade primeiro</option>';
@@ -372,5 +375,4 @@
     });
   </script>
 </body>
-          </html>
-  
+</html>
