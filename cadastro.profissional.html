@@ -5,164 +5,57 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Help Floripa | Cadastro de Profissional</title>
 <style>
-/* Reset */
 * {margin:0; padding:0; box-sizing:border-box; font-family: Arial, sans-serif;}
 body {background:#000; color:#fff; min-height:100vh; display:flex; flex-direction:column;}
 
-/* Sidebar */
-.sidebar {
-    width: 220px;
-    background:#111;
-    position:fixed;
-    top:0;
-    left:0;
-    height:100%;
-    padding:20px;
-    display:flex;
-    flex-direction:column;
-    transition: transform 0.3s ease;
-    z-index:1000;
-}
+.sidebar {width: 220px; background:#111; position:fixed; top:0; left:0; height:100%; padding:20px; display:flex; flex-direction:column; transition: transform 0.3s ease; z-index:1000;}
 .sidebar h2 {color:#00adee; text-align:center; margin-bottom:25px; font-size:22px;}
 .sidebar a {color:#fff; text-decoration:none; padding:12px; margin:6px 0; border-radius:6px; transition:0.3s; display:block;}
 .sidebar a:hover {background:#00adee; color:#000;}
-.sidebar.hidden {transform: translateX(-250px);}
 
-/* Main content */
-.main-content {
-    margin-left:240px;
-    padding:25px;
-    transition: margin-left 0.3s;
-    flex:1;
-}
+.main-content {margin-left:240px; padding:25px; transition: margin-left 0.3s; flex:1;}
 
-/* Hero */
-.hero {
-    background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), 
-                url('https://images.unsplash.com/photo-1581090469397-12a6c6e64f6d?auto=format&fit=crop&w=1470&q=80') center/cover no-repeat;
-    height:280px;
-    border-radius:15px;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    text-align:center;
-    margin-bottom:35px;
-    color:#00adee;
-    font-size:26px;
-    font-weight:bold;
-    box-shadow: 0 0 20px rgba(0,173,238,0.5);
-}
-.hero h1 {margin-bottom:10px;}
-.hero span {font-size:17px; color:#fff;}
+.hero {background: linear-gradient(rgba(0,0,0,0.72), rgba(0,0,0,0.72)), url('assets/painel-cadastro.svg') center/cover no-repeat; height:280px; border-radius:15px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; margin-bottom:35px; color:#00adee; font-size:26px; font-weight:bold; box-shadow: 0 0 20px rgba(0,173,238,0.5);}
+.hero h1 {margin-bottom:10px; color:#fff;}
+.hero span {font-size:17px; color:#c9f1ff;}
 
-/* Formulário */
-.form-container {
-    background:#111;
-    border:2px solid #00adee;
-    border-radius:15px;
-    padding:30px;
-    max-width:650px;
-    margin:auto;
-    box-shadow: 0 0 20px rgba(0,173,238,0.3);
-}
-.form-container h2 {
-    text-align:center;
-    color:#00adee;
-    margin-bottom:20px;
-}
+.form-container {background:#111; border:2px solid #00adee; border-radius:15px; padding:30px; max-width:650px; margin:auto; box-shadow: 0 0 20px rgba(0,173,238,0.3);}
+.form-container h2 {text-align:center; color:#00adee; margin-bottom:20px;}
 form {display:flex; flex-direction:column; gap:15px;}
 label {font-weight:bold; color:#00adee;}
-input, select, textarea {
-    padding:10px;
-    border:none;
-    border-radius:8px;
-    background:#222;
-    color:#fff;
-}
-input[type="file"] {background:none; color:#ccc;}
+input, select, textarea {padding:10px; border:none; border-radius:8px; background:#222; color:#fff;}
 input:focus, textarea:focus, select:focus {outline:2px solid #00adee;}
-button {
-    background:#00adee;
-    color:#000;
-    border:none;
-    border-radius:8px;
-    padding:12px;
-    font-weight:bold;
-    cursor:pointer;
-    transition:0.3s;
-}
+button {background:#00adee; color:#000; border:none; border-radius:8px; padding:12px; font-weight:bold; cursor:pointer; transition:0.3s;}
 button:hover {background:#008cc7;}
-button:disabled {
-    background:#444;
-    cursor:not-allowed;
-}
+button:disabled {background:#444; cursor:not-allowed;}
 
-/* Info box */
-.info-box {
-    background:#0d0d0d;
-    border-left:4px solid #00adee;
-    padding:15px;
-    margin:25px auto;
-    max-width:650px;
-    border-radius:8px;
-    font-size:14px;
-    color:#ccc;
-    line-height:1.5;
-}
+.info-box {background:#0d0d0d; border-left:4px solid #00adee; padding:15px; margin:25px auto; max-width:650px; border-radius:8px; font-size:14px; color:#ccc; line-height:1.5;}
 .info-box strong {color:#00adee;}
 
-/* Checkbox de confirmação */
-.confirm-box {
-    background:#0d0d0d;
-    border:1px solid #00adee;
-    border-radius:10px;
-    padding:15px;
-    color:#ccc;
-    font-size:14px;
-}
-.confirm-box label {
-    color:#fff;
-    font-weight:normal;
-    cursor:pointer;
-}
+.confirm-box {background:#0d0d0d; border:1px solid #00adee; border-radius:10px; padding:15px; color:#ccc; font-size:14px;}
+.confirm-box label {color:#fff; font-weight:normal; cursor:pointer;}
 
-/* Footer */
-footer {
-    background:#111;
-    color:#aaa;
-    text-align:center;
-    padding:15px;
-    font-size:13px;
-    border-top:1px solid #222;
-}
+#statusCadastro {display:none; margin-top:8px; padding:10px 12px; border-radius:8px; border:1px solid #1d3b52; background:#0f2233; color:#d8eef8; font-size:14px; line-height:1.4;}
+#statusCadastro.show {display:block;}
+#statusCadastro.success {border-color:#1f7a47; background:#0f2f1d; color:#bdf5d2;}
+#statusCadastro.error {border-color:#8e2a2a; background:#351616; color:#ffd1d1;}
+
+footer {background:#111; color:#aaa; text-align:center; padding:15px; font-size:13px; border-top:1px solid #222;}
 footer a {color:#00adee; text-decoration:none; margin:0 8px;}
 footer a:hover {text-decoration:underline;}
 
-/* Menu toggle para mobile */
-.menu-toggle {
-    font-size:24px;
-    cursor:pointer;
-    color:#00adee;
-    position:fixed;
-    top:15px;
-    left:15px;
-    z-index:1100;
-    display:none;
-}
+.menu-toggle {font-size:24px; cursor:pointer; color:#00adee; position:fixed; top:15px; left:15px; z-index:1100; display:none;}
 
-/* Responsividade */
 @media(max-width:1024px){
     .main-content {margin-left:0; padding-top:60px;}
-    .sidebar {transform: translateX(-250px);}
-    .sidebar.active {transform: translateX(0);}
+    .sidebar {transform: translateX(-250px);} 
+    .sidebar.active {transform: translateX(0);} 
     .menu-toggle {display:block;}
 }
 </style>
 </head>
 <body>
 
-<!-- Sidebar -->
 <div class="sidebar" id="sidebar">
     <h2>Help Floripa</h2>
     <a href="index.html">Início</a>
@@ -172,10 +65,8 @@ footer a:hover {text-decoration:underline;}
     <a href="contato.html">Contato</a>
 </div>
 
-<!-- Menu toggle -->
 <div class="menu-toggle" onclick="toggleSidebar()">☰</div>
 
-<!-- Conteúdo principal -->
 <div class="main-content">
     <div class="hero">
         <h1>Cadastro de Profissional</h1>
@@ -190,50 +81,52 @@ footer a:hover {text-decoration:underline;}
 
     <div class="form-container">
         <h2>Preencha o formulário abaixo</h2>
-        <form action="https://formsubmit.co/helpfloripa7@gmail.com" method="POST" enctype="multipart/form-data" id="cadastroForm">
-            
-            <label for="foto">Foto profissional</label>
-            <input type="file" id="foto" name="Foto" accept="image/*" required>
-
+        <form id="cadastroForm">
             <label for="nome">Nome completo</label>
-            <input type="text" id="nome" name="Nome" required>
+            <input type="text" id="nome" name="nome" required>
+
+            <label for="email">E-mail</label>
+            <input type="email" id="email" name="email" placeholder="seunome@email.com" required>
+
+            <label for="senha">Senha</label>
+            <input type="password" id="senha" name="senha" minlength="6" placeholder="Mínimo 6 caracteres" required>
 
             <label for="telefone">Telefone / WhatsApp</label>
-            <input type="tel" id="telefone" name="Telefone" placeholder="(DDD) 9xxxx-xxxx" required>
+            <input type="tel" id="telefone" name="telefone" placeholder="(DDD) 9xxxx-xxxx" required>
 
             <label for="instagram">Instagram (opcional)</label>
-            <input type="text" id="instagram" name="Instagram" placeholder="@seuusuario">
+            <input type="text" id="instagram" name="instagram" placeholder="@seuusuario">
 
             <label for="cpf">CPF ou CNPJ</label>
-            <input type="text" id="cpf" name="CPF_CNPJ" placeholder="Somente números" required>
+            <input type="text" id="cpf" name="cpfCnpj" placeholder="Somente números" required>
 
             <label for="profissao">Profissão</label>
-            <input type="text" id="profissao" name="Profissão" placeholder="Ex: Eletricista, Encanador, Pintor..." required>
+            <input type="text" id="profissao" name="profissao" placeholder="Ex: Eletricista, Encanador, Pintor..." required>
 
             <label for="cidade">Cidade</label>
-            <input type="text" id="cidade" name="Cidade" placeholder="Ex: Florianópolis" required>
+            <input type="text" id="cidade" name="cidade" placeholder="Ex: Florianópolis" required>
 
             <label for="bairro">Bairro</label>
-            <input type="text" id="bairro" name="Bairro" placeholder="Ex: Tapera" required>
+            <input type="text" id="bairro" name="bairro" placeholder="Ex: Tapera" required>
 
             <label for="residencia">Tipo de residência</label>
-            <select id="residencia" name="Tipo de residência" required>
+            <select id="residencia" name="residencia" required>
                 <option value="">Selecione...</option>
                 <option value="Casa">Casa</option>
                 <option value="Apartamento">Apartamento</option>
             </select>
 
             <label for="bloco">Bloco e número (se for apartamento)</label>
-            <input type="text" id="bloco" name="Bloco" placeholder="Ex: Bloco B, Apto 202">
+            <input type="text" id="bloco" name="bloco" placeholder="Ex: Bloco B, Apto 202">
 
             <label for="endereco">Rua e número</label>
-            <input type="text" id="endereco" name="Endereço" placeholder="Ex: Rua das Palmeiras, 123" required>
+            <input type="text" id="endereco" name="endereco" placeholder="Ex: Rua das Palmeiras, 123" required>
 
             <label for="cnh">CNH (se for motorista)</label>
-            <input type="text" id="cnh" name="CNH" placeholder="Número da CNH">
+            <input type="text" id="cnh" name="cnh" placeholder="Número da CNH">
 
             <label for="categoria">Categoria da CNH</label>
-            <select id="categoria" name="Categoria_CNH">
+            <select id="categoria" name="categoriaCnh">
                 <option value="">Selecione...</option>
                 <option value="A">A</option>
                 <option value="B">B</option>
@@ -251,33 +144,124 @@ footer a:hover {text-decoration:underline;}
                 </label>
             </div>
 
-            <input type="hidden" name="_subject" value="Novo cadastro de profissional - Help Floripa">
-            <input type="hidden" name="_next" value="https://helpfloripa.com.br/obrigado.html">
-            
             <button type="submit" id="enviarBtn" disabled>Enviar Cadastro</button>
+            <div id="statusCadastro" role="status" aria-live="polite"></div>
         </form>
     </div>
 </div>
 
-<!-- Rodapé -->
 <footer>
     <p>CNPJ: 61.935.934/0001-00</p>
     <p>
-        <a href="termos.html">Termos de Uso</a> | 
+        <a href="termos.html">Termos de Uso</a> |
         <a href="privacidade.html">Política de Privacidade</a>
     </p>
     <p>&copy; 2025 Help Floripa - Todos os direitos reservados.</p>
 </footer>
 
-<script>
+<script type="module">
+import { auth, db } from "./firebase.js";
+import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { doc, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
 function toggleSidebar(){
     document.getElementById('sidebar').classList.toggle('active');
 }
+window.toggleSidebar = toggleSidebar;
 
-document.getElementById("concordo").addEventListener("change", function() {
-    document.getElementById("enviarBtn").disabled = !this.checked;
+const concordo = document.getElementById("concordo");
+const enviarBtn = document.getElementById("enviarBtn");
+const statusCadastro = document.getElementById("statusCadastro");
+
+function atualizarStatus(message, type = "") {
+    statusCadastro.textContent = message;
+    statusCadastro.className = "show";
+    if (type) {
+        statusCadastro.classList.add(type);
+    }
+}
+
+concordo.addEventListener("change", function() {
+    enviarBtn.disabled = !this.checked;
+});
+
+document.getElementById("cadastroForm").addEventListener("submit", async function(e) {
+    e.preventDefault();
+
+    if (!concordo.checked) {
+        atualizarStatus("Você precisa aceitar os termos para continuar.", "error");
+        return;
+    }
+
+    const data = new FormData(e.target);
+    const obj = Object.fromEntries(data);
+    const email = String(obj.email || "").trim().toLowerCase();
+    const senha = String(obj.senha || "");
+
+    if (senha.length < 6) {
+        atualizarStatus("A senha precisa ter no mínimo 6 caracteres.", "error");
+        return;
+    }
+
+    enviarBtn.disabled = true;
+    enviarBtn.textContent = "Cadastrando...";
+    atualizarStatus("Criando conta e salvando seus dados profissionais...");
+
+    try {
+        const cred = await createUserWithEmailAndPassword(auth, email, senha);
+        const { uid } = cred.user;
+
+        await setDoc(doc(db, "usuarios", uid), {
+            uid,
+            tipoUsuario: "profissional",
+            nome: obj.nome,
+            email,
+            telefone: obj.telefone,
+            instagram: obj.instagram || "",
+            cpfCnpj: obj.cpfCnpj,
+            profissao: obj.profissao,
+            cidade: obj.cidade,
+            bairro: obj.bairro,
+            residencia: obj.residencia,
+            bloco: obj.bloco || "",
+            endereco: obj.endereco,
+            cnh: obj.cnh || "",
+            categoriaCnh: obj.categoriaCnh || "",
+            aceiteTermos: true,
+            plano: "Profissional Premium",
+            valorPlanoMensal: 30,
+            origemCadastro: "cadastro.profissional.html",
+            criadoEm: serverTimestamp()
+        });
+
+        atualizarStatus("Cadastro profissional salvo com sucesso! Redirecionando para o login...", "success");
+        e.target.reset();
+        setTimeout(() => {
+            window.location.href = "login.html";
+        }, 1400);
+    } catch (error) {
+        let mensagemErro = "Não foi possível concluir o cadastro agora. Tente novamente.";
+
+        if (error?.code === "auth/email-already-in-use") {
+            mensagemErro = "Este e-mail já está em uso. Tente fazer login ou use outro e-mail.";
+        } else if (error?.code === "auth/invalid-email") {
+            mensagemErro = "Digite um e-mail válido para continuar.";
+        } else if (error?.code === "auth/weak-password") {
+            mensagemErro = "A senha informada é fraca. Use pelo menos 6 caracteres.";
+        }
+
+        atualizarStatus(mensagemErro, "error");
+        console.error("Erro ao cadastrar profissional:", error);
+        enviarBtn.disabled = false;
+    } finally {
+        if (enviarBtn.textContent === "Cadastrando...") {
+            enviarBtn.textContent = "Enviar Cadastro";
+            enviarBtn.disabled = !concordo.checked;
+        }
+    }
 });
 </script>
 
 </body>
-</html>
+    </html>
+    
