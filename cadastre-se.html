@@ -38,7 +38,9 @@ body {background:#000; color:#fff; min-height:100vh; display:flex; flex-directio
 
 /* Hero */
 .hero {
-    background: linear-gradient(rgba(0,0,0,0.42), rgba(0,0,0,0.56)), url('assets/painel-cadastro.svg') center/cover no-repeat;
+    position:relative;
+    overflow:hidden;
+    background: linear-gradient(rgba(0,0,0,0.42), rgba(0,0,0,0.56));
     height:300px;
     border-radius:15px; 
     display:flex; 
@@ -53,6 +55,9 @@ body {background:#000; color:#fff; min-height:100vh; display:flex; flex-directio
     padding:0 15px;
     box-shadow: 0 0 20px rgba(0, 173, 238, 0.5);
 }
+.hero-bg {position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0;}
+.hero::after {content:''; position:absolute; inset:0; background: linear-gradient(rgba(0,0,0,0.42), rgba(0,0,0,0.56)); z-index:1;}
+.hero h1, .hero span {position:relative; z-index:2;}
 .hero h1 {margin-bottom:10px;}
 .hero span {font-size:18px;}
 
@@ -133,6 +138,7 @@ footer a:hover {text-decoration:underline;}
 <!-- Main content -->
 <div class="main-content">
     <div class="hero">
+        <img class="hero-bg" src="assets/painel-cadastro.svg" alt="Painel visual da Help Floripa" loading="eager" decoding="async">
         <h1>Cadastre-se na Help Floripa</h1>
         <span>Escolha a opção que melhor se aplica a você</span>
     </div>
