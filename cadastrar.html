@@ -86,6 +86,29 @@
     .termosContainer input[type="checkbox"] {
       margin-right: 10px;
     }
+    #statusCadastro {
+      margin-top: 16px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #1d3b52;
+      background: #0f2233;
+      font-size: 14px;
+      line-height: 1.4;
+      display: none;
+    }
+    #statusCadastro.show {
+      display: block;
+    }
+    #statusCadastro.success {
+      border-color: #1f7a47;
+      background: #0f2f1d;
+      color: #bdf5d2;
+    }
+    #statusCadastro.error {
+      border-color: #8e2a2a;
+      background: #351616;
+      color: #ffd1d1;
+    }
   </style>
 </head>
 <body>
@@ -156,28 +179,37 @@
       <label for="telefone">Telefone para Contato:</label>
       <input type="tel" id="telefone" name="telefone" placeholder="(DDD) 90000-0000" required>
 
+      <label for="email">E-mail:</label>
+      <input type="email" id="email" name="email" placeholder="seunome@email.com" required>
+
+      <label for="senha">Senha:</label>
+      <input type="password" id="senha" name="senha" minlength="6" placeholder="Mínimo 6 caracteres" required>
+
       <label for="disponibilidade">Disponibilidade:</label>
       <input type="text" id="disponibilidade" name="disponibilidade" placeholder="Dias e horários disponíveis" required>
 
       <label for="descricao">Breve descrição ou experiência:</label>
       <textarea id="descricao" name="descricao" rows="4" required></textarea>
 
-      <!-- Novo campo de diária mínima e máxima -->
       <label for="diaria">Valor da Diária (mínimo e máximo):</label>
       <input type="text" id="diaria" name="diaria" placeholder="Ex: R$ 120 - R$ 200 (Que você cobra)" required>
 
-      <!-- Checkbox para aceitar os termos de uso -->
       <div class="termosContainer">
         <input type="checkbox" id="aceiteTermos" required>
         <label for="aceiteTermos" style="margin:0;">Li e concordo com os <a href="termos.html" target="_blank" style="color:#00adee;">Termos de Uso</a></label>
       </div>
 
       <button type="submit">Cadastrar</button>
-      <button onclick="history.back()" style="margin-bottom: 20px; background-color: transparent; border: 2px solid #00adee; color: #00adee; padding: 10px 20px; border-radius: 8px; cursor: pointer;">← Voltar</button>
+      <button type="button" onclick="history.back()" style="margin-bottom: 20px; background-color: transparent; border: 2px solid #00adee; color: #00adee; padding: 10px 20px; border-radius: 8px; cursor: pointer;">← Voltar</button>
+      <div id="statusCadastro" role="status" aria-live="polite"></div>
     </form>
   </div>
 
-  <script>
+  <script type="module">
+    import { auth, db } from "./firebase.js";
+    import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { doc, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
     const especialidadesPorClasse = {
       construcaoreforma: ["Eletricista","Encanador","Pedreiro","Pintor","Gesseiro","Marceneiro","Vidraceiro","Serralheiro","Servente de obra","Técnico de ar-condicionado","Montador de móveis"],
       limpezacuidados: ["Diarista / Limpeza","Faxineira pós-obra","Jardineiro","Piscineiro","Limpeza de estofados","Babá / Cuidadora infantil","Cuidadora de idosos","Cuidadora pós-parto / cirurgia", "Passadeira"],
@@ -247,7 +279,17 @@
       info.style.display = this.value === "apartamento" ? "block" : "none";
     });
 
-    document.getElementById("cadastrarForm").addEventListener("submit", function(e) {
+    const statusCadastro = document.getElementById("statusCadastro");
+
+    function atualizarStatus(message, type = "") {
+      statusCadastro.textContent = message;
+      statusCadastro.className = "show";
+      if (type) {
+        statusCadastro.classList.add(type);
+      }
+    }
+
+    document.getElementById("cadastrarForm").addEventListener("submit", async function(e) {
       e.preventDefault();
 
       const aceite = document.getElementById("aceiteTermos").checked ? "Sim" : "Não";
@@ -261,16 +303,74 @@
       const obj = Object.fromEntries(data);
       obj.aceiteTermos = aceite;
 
-      const msg = `Cadastro de Profissional:\n\n${Object.entries(obj).map(([k,v])=> `${k}: ${v}`).join("\n")}`;
-      const numero = "5548996849431";
-      const url = `https://wa.me/${numero}?text=${encodeURIComponent(msg)}`;
+      const email = String(obj.email || "").trim().toLowerCase();
+      const senha = String(obj.senha || "");
 
-      window.location.href = url;
+      if (senha.length < 6) {
+        atualizarStatus("A senha precisa ter no mínimo 6 caracteres.", "error");
+        return;
+      }
 
-      setTimeout(() => {
-        window.location.href = "index.html";
-      }, 2000);
+      const submitButton = form.querySelector('button[type="submit"]');
+      submitButton.disabled = true;
+      submitButton.textContent = "Cadastrando...";
+      atualizarStatus("Criando sua conta e salvando seus dados...");
+
+      try {
+        const cred = await createUserWithEmailAndPassword(auth, email, senha);
+        const { uid } = cred.user;
+
+        await setDoc(doc(db, "profissionais", uid), {
+          uid,
+          nome: obj.nome,
+          email,
+          telefone: obj.telefone,
+          classe: obj.classe,
+          especialidade: obj.especialidade,
+          cidade: obj.cidade,
+          regiao: obj.regiao || "",
+          bairro: obj.bairro,
+          residencia: obj.residencia,
+          complemento: obj.complemento || "",
+          rua: obj.rua,
+          numero: obj.numero,
+          disponibilidade: obj.disponibilidade,
+          descricao: obj.descricao,
+          diaria: obj.diaria,
+          aceiteTermos: true,
+          origemCadastro: "cadastrar.html",
+          criadoEm: serverTimestamp()
+        });
+
+        atualizarStatus("Cadastro realizado com sucesso! Redirecionando para o login...", "success");
+        form.reset();
+        document.getElementById("especialidade").innerHTML = '<option value="">Selecione uma classe primeiro</option>';
+        document.getElementById("bairro").innerHTML = '<option value="">Selecione a cidade primeiro</option>';
+        document.getElementById("regiaoContainer").style.display = "none";
+        document.getElementById("apartamentoInfo").style.display = "none";
+
+        setTimeout(() => {
+          window.location.href = "login.html";
+        }, 1400);
+      } catch (error) {
+        let mensagemErro = "Não foi possível concluir o cadastro agora. Tente novamente.";
+
+        if (error?.code === "auth/email-already-in-use") {
+          mensagemErro = "Este e-mail já está em uso. Tente fazer login ou use outro e-mail.";
+        } else if (error?.code === "auth/invalid-email") {
+          mensagemErro = "Digite um e-mail válido para continuar.";
+        } else if (error?.code === "auth/weak-password") {
+          mensagemErro = "A senha informada é fraca. Use pelo menos 6 caracteres.";
+        }
+
+        atualizarStatus(mensagemErro, "error");
+        console.error("Erro ao cadastrar profissional:", error);
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = "Cadastrar";
+      }
     });
   </script>
 </body>
-</html>
+          </html>
+  
