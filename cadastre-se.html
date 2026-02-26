@@ -38,7 +38,7 @@ body {background:#000; color:#fff; min-height:100vh; display:flex; flex-directio
 
 /* Hero */
 .hero {
-    background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1581090469397-12a6c6e64f6d?auto=format&fit=crop&w=1470&q=80') center/cover no-repeat;
+    background: linear-gradient(rgba(0,0,0,0.42), rgba(0,0,0,0.56)), url('assets/painel-cadastro.svg') center/cover no-repeat;
     height:300px;
     border-radius:15px; 
     display:flex; 
@@ -121,10 +121,9 @@ footer a:hover {text-decoration:underline;}
 <div class="sidebar" id="sidebar">
     <h2>Help Floripa</h2>
     <a href="index.html">Início</a>
-    <a href="#profissional">Profissional</a>
-    <a href="#empresa">Empresa</a>
-    <a href="#socios">Sócio / Parceria</a>
-    <a href="#cliente">Cliente</a>
+    <a href="#cliente">Quero ser Cliente</a>
+    <a href="#profissional">Cadastrar como Profissional</a>
+    <a href="#parceria">Parceria Conosco</a>
     <a href="#contato">Contato</a>
 </div>
 
@@ -139,8 +138,17 @@ footer a:hover {text-decoration:underline;}
     </div>
 
     <div class="cards">
+        <div class="card" id="cliente">
+            <img src="bemvindo.png" alt="Cliente usando celular para cadastro">
+            <div class="card-content">
+                <h3>Quero ser Cliente</h3>
+                <p>Faça seu cadastro para solicitar serviços e acompanhar novidades da Help Floripa.</p>
+                <a href="cadastrar.html">Cadastrar como Cliente</a>
+            </div>
+        </div>
+
         <div class="card" id="profissional">
-            <img src="https://images.unsplash.com/photo-1601597113336-7f1e1e5e5e5e?auto=format&fit=crop&w=800&q=80" alt="Profissional">
+            <img src="propaganda1c.png" alt="Profissional de serviços da Help Floripa">
             <div class="card-content">
                 <h3>Cadastre-se como Profissional</h3>
                 <p>Inscreva-se e ofereça seus serviços na plataforma Help Floripa.</p>
@@ -148,30 +156,12 @@ footer a:hover {text-decoration:underline;}
             </div>
         </div>
 
-        <div class="card" id="empresa">
-            <img src="https://images.unsplash.com/photo-1581092918360-9cde1e6e9e2f?auto=format&fit=crop&w=800&q=80" alt="Empresa">
+        <div class="card" id="parceria">
+            <img src="ponte-help.png" alt="Pessoas em reunião de parceria">
             <div class="card-content">
-                <h3>Cadastre sua Empresa</h3>
-                <p>Para lojas, lanchonetes e outros estabelecimentos venderem e se destacarem.</p>
-                <a href="cadastro-empresa.html">Cadastrar</a>
-            </div>
-        </div>
-
-        <div class="card" id="socios">
-            <img src="https://images.unsplash.com/photo-1600891964599-f61ba0e24092?auto=format&fit=crop&w=800&q=80" alt="Sócio">
-            <div class="card-content">
-                <h3>Seja Sócio / Faça Parceria</h3>
-                <p>Participe como parceiro ou sócio da Help Floripa e amplie seu negócio.</p>
-                <a href="cadastro-socios.html">Cadastrar</a>
-            </div>
-        </div>
-
-        <div class="card" id="cliente">
-            <img src="https://images.unsplash.com/photo-1612831455545-0a46c8f2b3b6?auto=format&fit=crop&w=800&q=80" alt="Cliente">
-            <div class="card-content">
-                <h3>Cliente</h3>
-                <p>Entre no nosso canal do WhatsApp para acompanhar todas as novidades.</p>
-                <a href="https://wa.me/5511999999999" target="_blank">Acessar WhatsApp</a>
+                <h3>Fazer Parceria Conosco</h3>
+                <p>Quer crescer junto com a Help Floripa? Conheça nossa página de sócios e parceiros.</p>
+                <a href="socios-parcerias.html">Quero Fazer Parceria</a>
             </div>
         </div>
     </div>
