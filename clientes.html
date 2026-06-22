@@ -1,104 +1,197 @@
-<!DOCTYPE html>
-<html lang="pt-BR">  
-<head>  
-  <meta charset="UTF-8" />  
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>  
-  <title>Área do Cliente - Help Floripa</title>  
-  <link rel="stylesheet" href="style.css">  
-  <style>  
-    body {  
-      background-color: #000;  
-      color: white;  
-      font-family: Arial, sans-serif;  
-      margin: 0;  
-      padding: 0;  
-    }  
+ <!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Área do Cliente - Help Floripa</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      background-color: #000;
+      color: white;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
 
-    .container {  
-      max-width: 900px;  
-      margin: 80px auto;  
-      padding: 20px;  
-    }  
+    header {
+      background: #000;
+      padding: 20px;
+      text-align: center;
+      border-bottom: 2px solid #00adee;
+    }
+    header h1 {
+      margin: 0;
+      color: #00adee;
+      font-size: 28px;
+    }
+    header .top-buttons {
+      margin-top: 12px;
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+    }
+    header .top-buttons a {
+      background: #00adee;
+      color: #000;
+      padding: 8px 16px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: background 0.3s;
+    }
+    header .top-buttons a:hover {
+      background: #0087c2;
+    }
 
-    h1 {  
-      text-align: center;  
-      color: #00adee;  
-      margin-bottom: 30px;  
-    }  
+    .container {
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 20px;
+    }
 
-    .card {  
-      background-color: #0a1a2a;  
-      border-radius: 12px;  
-      box-shadow: 0 0 10px rgba(0, 173, 238, 0.2);  
-      padding: 20px;  
-      margin-bottom: 20px;  
-      transition: transform 0.2s ease, box-shadow 0.3s ease;  
-    }  
+    h1 {
+      text-align: center;
+      color: #00adee;
+      margin-bottom: 30px;
+    }
 
-    .card:hover {  
-      transform: translateY(-5px);  
-      box-shadow: 0 0 15px rgba(0, 173, 238, 0.4);  
-    }  
+    .card {
+      background-color: #0a1a2a;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0, 173, 238, 0.2);
+      padding: 20px;
+      margin-bottom: 20px;
+      transition: transform 0.2s ease, box-shadow 0.3s ease;
+    }
 
-    .card h2 {  
-      color: #00adee;  
-      margin-bottom: 10px;  
-    }  
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 0 15px rgba(0, 173, 238, 0.4);
+    }
 
-    .card p {  
-      color: #ddd;  
-      line-height: 1.6;  
-    }  
+    .card h2 {
+      color: #00adee;
+      margin-bottom: 10px;
+    }
 
-    .button-container {  
-      text-align: center;  
-      margin-top: 40px;  
-    }  
+    .card p {
+      color: #ddd;
+      line-height: 1.6;
+    }
 
-    .button-container a {  
-      background-color: #00adee;  
-      color: #fff;  
-      padding: 14px 28px;  
-      border-radius: 8px;  
-      text-decoration: none;  
-      font-weight: bold;  
-      font-size: 16px;  
-      box-shadow: 0 0 10px rgba(0, 173, 238, 0.5);  
-      transition: background-color 0.3s ease;  
-    }  
+    .button-container {
+      text-align: center;
+      margin-top: 30px;
+    }
 
-    .button-container a:hover {  
-      background-color: #008bbf;  
-    }  
-  </style>  
-</head>  
-<body>  
-  <div class="container">  
-    <h1>Área do Cliente</h1>  
+    .button-container a {
+      display: inline-block;
+      margin: 10px;
+      background-color: #00adee;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 16px;
+      text-decoration: none;
+      box-shadow: 0 0 10px rgba(0, 173, 238, 0.5);
+      transition: background-color 0.3s ease;
+    }
 
-    <div class="card">  
-      <h2>🔎 O que é a Help Floripa?</h2>  
-      <p>A Help Floripa é a ponte entre você e profissionais qualificados. Nossa missão é conectar clientes a especialistas de confiança, oferecendo praticidade e segurança no processo de contratação.</p>  
-    </div>  
+    .button-container a:hover {
+      background-color: #008bbf;
+    }
 
-    <div class="card">  
-      <h2>⚙️ Como solicitar um serviço?</h2>  
-      <p>Para solicitar, basta clicar em <strong>“Solicitar Profissional”</strong>, escolher a categoria desejada e descrever sua necessidade. Um profissional disponível entrará em contato diretamente com você.</p>  
-    </div>  
+    footer {
+      background: #000;
+      text-align: center;
+      padding: 20px;
+      border-top: 2px solid #00adee;
+    }
+    footer p, footer a {
+      color: #aaa;
+      font-size: 14px;
+      margin: 5px 0;
+      text-decoration: none;
+    }
+    footer a:hover {
+      color: #00adee;
+    }
+  </style>
+</head>
+<body>
 
-    <div class="card">  
-      <h2>📦 Como é definido o valor?</h2>  
-      <p>Sugerimos valores de referência, mas o preço final é negociado entre você e o profissional, variando de acordo com a complexidade do serviço, horário ou demanda extra.</p>  
-    </div>  
+  <header>
+    <h1>Help Floripa</h1>
+    <div class="top-buttons">
+      <a href="index.html">Início</a>
+      <a href="contato.html">Contato</a>
+      <a href="ajuda.html">Ajuda</a>
+    </div>
+  </header>
 
-    <div class="card">  
-      <h2>💡 Por que escolher a Help Floripa?</h2>  
-      <p>Com a Help Floripa você economiza tempo e garante tranquilidade. Nossos profissionais são avaliados por clientes reais e prezam pelo bom atendimento. Mais praticidade, segurança e confiança para você.</p>  
-    </div>  
+  <div class="container">
+    <h1>Área do Cliente</h1>
 
-    <div class="button-container">  
-      <a href="solicitar.html">Solicitar Profissional</a>  
-    </div>  
-  </div>  
-</body>  
+    <div class="card">
+      <h2>🔎 O que é a Help Floripa?</h2>
+      <p>A Help Floripa é uma plataforma local criada para aproximar clientes de profissionais, empresas, MEIs e parceiros da Grande Florianópolis. A ideia é facilitar a busca por serviços do dia a dia, organizar solicitações e ajudar você a encontrar atendimento com mais praticidade.</p>
+      <p>A plataforma funciona como uma ponte de contato. Você informa sua necessidade, escolhe a área desejada e pode seguir para páginas específicas, como serviços, delivery, shopping e aluguéis.</p>
+    </div>
+
+    <div class="card">
+      <h2>⚙️ Como encontrar o que preciso?</h2>
+      <p>Escolha uma das opções abaixo conforme sua necessidade. Em <strong>Serviços</strong>, você encontra categorias de profissionais e atendimentos. Em <strong>Delivery</strong>, pode buscar opções de entrega. Em <strong>Shopping</strong>, encontra produtos e ofertas. Em <strong>Aluguéis</strong>, pode consultar oportunidades relacionadas a imóveis e locações.</p>
+      <p>Leia as informações da página escolhida, confira os detalhes disponíveis e entre em contato pelos canais indicados quando precisar confirmar disponibilidade, preço, prazo, local de atendimento ou qualquer condição importante.</p>
+    </div>
+
+    <div class="card">
+      <h2>📋 O que informar ao solicitar atendimento?</h2>
+      <p>Explique o que você precisa de forma objetiva. Sempre que possível, informe cidade, bairro, tipo de serviço, urgência, melhor horário, detalhes do problema ou produto desejado e qualquer informação que ajude no orçamento ou no encaminhamento correto.</p>
+      <p>Evite enviar dados desnecessários ou sensíveis. Compartilhe apenas o que for importante para contato, orçamento, entrega, atendimento ou confirmação da solicitação.</p>
+    </div>
+
+    <div class="card">
+      <h2>📦 Como valores, entregas e condições são definidos?</h2>
+      <p>A Help Floripa pode facilitar o contato e a divulgação, mas valores finais, entrega, deslocamento, prazos, materiais, taxas, disponibilidade e forma de pagamento devem ser combinados diretamente entre cliente e profissional, empresa, vendedor ou parceiro responsável.</p>
+      <p>Antes de confirmar qualquer contratação, compra, entrega ou aluguel, combine tudo com clareza e guarde as informações importantes da conversa.</p>
+    </div>
+
+    <div class="card">
+      <h2>✅ Cuidados antes de contratar, comprar ou alugar</h2>
+      <p>Confira quem fará o atendimento, confirme valores, endereço, horários, prazos e condições de pagamento. Desconfie de propostas confusas, cobranças antecipadas sem segurança, preços muito fora do normal ou contatos que tentem se passar pela Help Floripa fora dos canais oficiais.</p>
+      <p>Em caso de dúvida, procure a equipe da Help Floripa pelos canais oficiais antes de prosseguir. A segurança começa com informação clara e comunicação responsável.</p>
+    </div>
+
+    <div class="card">
+      <h2>🔐 Segurança e privacidade</h2>
+      <p>A Help Floripa leva segurança e privacidade a sério e busca orientar clientes, visitantes, profissionais e parceiros sobre boas práticas. Mesmo assim, nenhum ambiente digital é totalmente livre de riscos.</p>
+      <p>Não compartilhe senhas, códigos de acesso, dados bancários completos ou documentos desnecessários. Leia os Termos de Uso e a Política de Privacidade para entender seus direitos, deveres e responsabilidades.</p>
+    </div>
+
+    <div class="card">
+      <h2>💡 Por que usar a Área do Cliente?</h2>
+      <p>A Área do Cliente ajuda você a navegar pelas principais soluções da Help Floripa de forma mais rápida. Em vez de procurar tudo separadamente, você pode escolher a página mais adequada para serviços, delivery, shopping ou aluguéis.</p>
+      <p>Nosso objetivo é tornar o contato mais simples, organizado e confiável, valorizando a economia local e aproximando moradores, visitantes, profissionais e negócios da região.</p>
+    </div>
+
+    <div class="button-container">
+      <a href="servicos.html">Solicitar Serviço</a>
+      <a href="delivery.html">Delivery</a>
+      <a href="shopping.html">Shopping</a>
+      <a href="imoveis.html">Aluguéis</a>
+    </div>
+  </div>
+
+  <footer>
+    <p>CNPJ: 61.935.934/0001-00</p>
+    <p>
+      <a href="termos.html">Termos de Uso</a> |
+      <a href="privacidade.html">Política de Privacidade</a>
+    </p>
+    <p>&copy; 2025 Help Floripa - Todos os direitos reservados.</p>
+  </footer>
+
+</body>
 </html>
