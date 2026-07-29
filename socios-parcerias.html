@@ -1,258 +1,533 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sócios e Parcerias | Help Floripa</title>
-  <link rel="stylesheet" href="style.css">
-  <style>
-    /* Fundo geral */
-    body {
-      background: #000;
-      color: #fff;
-      margin: 0;
-      padding: 0;
-      font-family: Arial, sans-serif;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    /* Painel */
-    header {
-      background: #000;
-      padding: 15px;
-      text-align: center;
-      border-bottom: 2px solid #00adee;
-    }
-    header h1 {
-      color: #00adee;
-      margin: 0;
-      font-size: 26px;
-    }
-    header p {
-      color: #fff;
-      margin: 5px 0 15px;
-      font-size: 16px;
-    }
-    .top-buttons {
-      display: flex;
-      justify-content: center;
-      gap: 15px;
-    }
-    .top-buttons a {
-      background: #00adee;
-      color: #000;
-      padding: 10px 18px;
-      border-radius: 6px;
-      font-weight: bold;
-      text-decoration: none;
-      transition: 0.3s;
-    }
-    .top-buttons a:hover {
-      background: #0087c2;
-    }
+<title>Sócios e Parcerias | Help Floripa</title>
 
-    /* Hero */
-    .hero-page {
-      background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)),
-                  url('https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=1200&q=80') center/cover no-repeat;
-      color: #00adee;
-      padding: 60px 20px;
-      border-radius: 12px;
-      text-align: center;
-      margin: 20px;
-      box-shadow: 0 0 20px rgba(0, 173, 238, 0.4);
-    }
-    .hero-page h1 {
-      font-size: 34px;
-      margin-bottom: 15px;
-    }
-    .hero-page p {
-      color: #fff;
-      font-size: 18px;
-      max-width: 800px;
-      margin: 0 auto;
-      line-height: 1.6;
-    }
+<style>
 
-    /* Conteúdo */
-    .page-info {
-      background: #111;
-      padding: 30px;
-      margin: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0, 173, 238, 0.2);
-    }
-    .page-info h2 {
-      color: #00adee;
-      margin-bottom: 15px;
-    }
-    .page-info p, .page-info li {
-      color: #ddd;
-      font-size: 15px;
-      line-height: 1.6;
-    }
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+}
 
-    .benefits {
-      margin: 20px;
-    }
-    .benefits h2 {
-      text-align: center;
-      color: #00adee;
-      margin-bottom: 20px;
-    }
+body{
+background:#000;
+color:#fff;
+font-family:Arial,Helvetica,sans-serif;
+}
 
-    .benefits .cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 20px;
-    }
-    .benefits .card {
-      border: 2px solid #00adee;
-      border-radius: 10px;
-      background: #111;
-      text-align: center;
-      padding: 20px;
-      transition: 0.3s;
-    }
-    .benefits .card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 0 15px rgba(0, 173, 238, 0.3);
-    }
-    .benefits .card h3 {
-      color: #00adee;
-      margin-bottom: 10px;
-      font-size: 18px;
-    }
-    .benefits .card p {
-      color: #ccc;
-      font-size: 14px;
-    }
+a{
+text-decoration:none;
+}
 
-    .cta {
-      text-align: center;
-      margin: 40px 0;
-    }
-    .cta h2 {
-      margin-bottom: 20px;
-      color: #00adee;
-    }
-    .btn {
-      background: #00adee;
-      color: #000;
-      padding: 12px 25px;
-      border-radius: 6px;
-      text-decoration: none;
-      font-weight: bold;
-      transition: 0.3s;
-    }
-    .btn:hover {
-      background: #0087c2;
-    }
+header{
+background:#000;
+padding:18px;
+border-bottom:2px solid #00adee;
+position:sticky;
+top:0;
+z-index:999;
+}
 
-    /* Rodapé */
-    footer {
-      background: #000;
-      text-align: center;
-      padding: 20px;
-      border-top: 2px solid #00adee;
-      margin-top: 40px;
-    }
-    footer p, footer a {
-      color: #aaa;
-      font-size: 14px;
-      margin: 5px 0;
-      text-decoration: none;
-    }
-    footer a:hover {
-      color: #00adee;
-    }
-  </style>
+header h1{
+text-align:center;
+color:#00adee;
+font-size:30px;
+}
+
+header p{
+text-align:center;
+margin-top:5px;
+color:#fff;
+}
+
+.top-buttons{
+display:flex;
+justify-content:center;
+gap:15px;
+margin-top:18px;
+flex-wrap:wrap;
+}
+
+.top-buttons a{
+background:#00adee;
+color:#000;
+padding:12px 22px;
+border-radius:8px;
+font-weight:bold;
+transition:.3s;
+}
+
+.top-buttons a:hover{
+background:#0087c2;
+transform:translateY(-2px);
+}
+
+.hero{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:50px;
+padding:70px 8%;
+background:linear-gradient(rgba(0,0,0,.75),rgba(0,0,0,.85)),
+url("https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=1600&q=80");
+background-size:cover;
+background-position:center;
+}
+
+.hero-text{
+flex:1;
+}
+
+.hero-text h2{
+font-size:50px;
+line-height:1.2;
+margin-bottom:20px;
+}
+
+.hero-text span{
+color:#00adee;
+}
+
+.hero-text p{
+font-size:20px;
+color:#ddd;
+line-height:1.8;
+margin-bottom:30px;
+}
+
+.hero-btn{
+display:inline-block;
+padding:18px 35px;
+background:#00adee;
+color:#000;
+font-size:20px;
+font-weight:bold;
+border-radius:12px;
+transition:.3s;
+}
+
+.hero-btn:hover{
+background:#18bfff;
+transform:translateY(-4px);
+box-shadow:0 0 20px rgba(0,173,238,.4);
+}
+
+.hero-note{
+margin-top:20px;
+color:#bbb;
+font-size:15px;
+}
+
+.hero-image{
+flex:1;
+text-align:center;
+}
+
+.hero-image img{
+width:100%;
+max-width:520px;
+border-radius:20px;
+box-shadow:0 0 30px rgba(0,173,238,.35);
+}
+
+.section{
+padding:70px 8%;
+}
+
+.section h2{
+text-align:center;
+color:#00adee;
+font-size:40px;
+margin-bottom:25px;
+}
+
+.section p{
+max-width:900px;
+margin:auto;
+text-align:center;
+line-height:1.8;
+font-size:18px;
+color:#ddd;
+}
+
+.cards{
+margin-top:50px;
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+gap:25px;
+}
+
+.card{
+background:#111;
+border:2px solid #00adee;
+border-radius:18px;
+padding:35px 25px;
+text-align:center;
+transition:.35s;
+}
+
+.card:hover{
+transform:translateY(-8px);
+box-shadow:0 0 25px rgba(0,173,238,.35);
+}
+
+.icon{
+width:85px;
+height:85px;
+margin:auto;
+margin-bottom:20px;
+border-radius:50%;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:40px;
+border:2px solid #00adee;
+background:#05131c;
+}
+
+.card h3{
+font-size:28px;
+color:#00adee;
+margin-bottom:15px;
+}
+
+.card p{
+font-size:17px;
+color:#ccc;
+}
+
+.timeline{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+gap:25px;
+margin-top:50px;
+}
+
+.step{
+background:#111;
+border:2px solid #00adee;
+border-radius:20px;
+padding:30px;
+text-align:center;
+}
+
+.number{
+width:50px;
+height:50px;
+margin:auto;
+margin-bottom:20px;
+border-radius:50%;
+background:#00adee;
+display:flex;
+align-items:center;
+justify-content:center;
+color:#000;
+font-weight:bold;
+font-size:22px;
+}
+
+.step h3{
+color:#00adee;
+margin-bottom:15px;
+}
+
+.step p{
+font-size:16px;
+}
+
+.banner{
+margin:70px 8%;
+background:linear-gradient(90deg,#111,#051826);
+border:2px solid #00adee;
+border-radius:22px;
+padding:45px;
+text-align:center;
+box-shadow:0 0 25px rgba(0,173,238,.2);
+}
+
+.banner h2{
+font-size:42px;
+margin-bottom:20px;
+}
+
+.banner span{
+color:#00adee;
+}
+
+.banner p{
+font-size:19px;
+color:#ccc;
+margin-bottom:35px;
+}
+
+footer{
+border-top:2px solid #00adee;
+padding:30px;
+text-align:center;
+color:#aaa;
+}
+
+footer a{
+color:#aaa;
+}
+
+footer a:hover{
+color:#00adee;
+}
+
+@media(max-width:900px){
+
+.hero{
+flex-direction:column;
+text-align:center;
+}
+
+.hero-text h2{
+font-size:38px;
+}
+
+.hero-text p{
+font-size:18px;
+}
+
+.banner h2{
+font-size:32px;
+}
+
+}
+
+</style>
+
 </head>
+
 <body>
 
-<!-- Painel -->
 <header>
-  <h1>Help Floripa</h1>
-  <p>Sócios</p>
-  <div class="top-buttons">
-    <a href="index.html">Início</a>
-    <a href="contato.html">Contato</a>
-    <a href="ajuda.html">Ajuda</a>
-  </div>
+
+<h1>Help Floripa</h1>
+
+<p>Sócios e Parcerias</p>
+
+<div class="top-buttons">
+
+<a href="index.html">Início</a>
+
+<a href="contato.html">Contato</a>
+
+<a href="ajuda.html">Ajuda</a>
+
+</div>
+
 </header>
 
-<!-- Conteúdo principal -->
-<main>
+<section class="hero">
 
-  <!-- Hero -->
-  <section class="hero-page">
-    <h1>Sócios e Parcerias</h1>
-    <p>
-      A Help Floripa nasceu para conectar clientes e profissionais de forma rápida, segura e eficiente.  
-      Agora você pode fazer parte desta jornada como sócio ou parceiro estratégico, ajudando a expandir e fortalecer o projeto.
-    </p>
-  </section>
+<div class="hero-text">
 
-  <!-- Explicação -->
-  <section class="page-info">
-    <h2>Por que se tornar sócio ou parceiro?</h2>
-    <p>
-      Ao se tornar um sócio ou parceiro da Help Floripa, você participa ativamente do crescimento de uma plataforma inovadora,  
-      que já conecta diversos serviços, profissionais e clientes na Grande Florianópolis.  
-      Além de retorno financeiro, você ganha visibilidade e participa do desenvolvimento de uma startup local com grande potencial.
-    </p>
-  </section>
+<h2>Pronto para crescer junto com a <span>Help Floripa?</span></h2>
 
-  <!-- Benefícios -->
-  <section class="benefits">
-    <h2>Vantagens exclusivas</h2>
-    <div class="cards">
-      <div class="card">
-        <h3>📈 Crescimento</h3>
-        <p>Faça parte de um projeto em plena expansão no setor de tecnologia e serviços.</p>
-      </div>
-      <div class="card">
-        <h3>🤝 Networking</h3>
-        <p>Conecte-se com profissionais, empresas e parceiros estratégicos.</p>
-      </div>
-      <div class="card">
-        <h3>💰 Retorno</h3>
-        <p>Receba participação proporcional aos resultados do negócio.</p>
-      </div>
-      <div class="card">
-        <h3>🌐 Visibilidade</h3>
-        <p>Coloque sua marca em destaque dentro da plataforma e campanhas.</p>
-      </div>
-    </div>
-  </section>
+<p>
 
-  <!-- Como funciona -->
-  <section class="page-info">
-    <h2>Como funciona?</h2>
-    <ol>
-      <li>Entre em contato para receber nossa proposta de parceria.</li>
-      <li>Avalie os planos de investimento e participação.</li>
-      <li>Formalize sua adesão como sócio ou parceiro comercial.</li>
-      <li>Comece a colher os benefícios junto à Help Floripa.</li>
-    </ol>
-  </section>
+Seja um sócio ou parceiro estratégico e participe da construção de uma plataforma inovadora que conecta clientes, profissionais e empresas em toda a Grande Florianópolis.
 
-  <!-- CTA -->
-  <section class="cta">
-    <h2>Pronto para se tornar parceiro da Help Floripa?</h2>
-    <a href="https://wa.me/5548996849431?text=Ol%C3%A1%2C%20Help%20Floripa%21%20Quero%20ser%20s%C3%B3cio%2Fparceiro%20e%20tenho%20interesse%20em%20conhecer%20melhor%20as%20oportunidades%20de%20parceria." class="btn" target="_blank">Quero ser Sócio/Parceiro</a>
-  </section>
+</p>
 
-</main>
+<a class="hero-btn"
+href="https://wa.me/5548996849431?text=Olá,%20quero%20ser%20sócio/parceiro%20da%20Help%20Floripa."
+target="_blank">
 
-<!-- Rodapé -->
+🚀 Quero ser Sócio/Parceiro
+
+</a>
+
+<div class="hero-note">
+
+🛡️ Parceria transparente • Crescimento compartilhado • Inovação
+
+</div>
+
+</div>
+
+<div class="hero-image">
+
+<img src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=900&q=80">
+
+</div>
+
+</section>
+
+<section class="section">
+
+<h2>Por que ser parceiro da Help Floripa?</h2>
+
+<p>
+
+A Help Floripa nasceu para transformar a forma como pessoas encontram serviços na Grande Florianópolis.
+
+Ao investir ou participar como parceiro, você contribui diretamente para o crescimento da plataforma, fortalece um negócio inovador e participa de um projeto com alto potencial de expansão.
+
+</p>
+
+<div class="cards">
+  <div class="card">
+
+<div class="icon">📈</div>
+
+<h3>Crescimento</h3>
+
+<p>
+Faça parte de um projeto em constante expansão no setor de tecnologia e serviços.
+</p>
+
+</div>
+
+<div class="card">
+
+<div class="icon">🤝</div>
+
+<h3>Networking</h3>
+
+<p>
+Conecte-se com profissionais, empresas, investidores e parceiros estratégicos.
+</p>
+
+</div>
+
+<div class="card">
+
+<div class="icon">💰</div>
+
+<h3>Retorno</h3>
+
+<p>
+Participe dos resultados do negócio e acompanhe o crescimento da plataforma.
+</p>
+
+</div>
+
+<div class="card">
+
+<div class="icon">📢</div>
+
+<h3>Visibilidade</h3>
+
+<p>
+Fortaleça sua marca através da plataforma e das campanhas da Help Floripa.
+</p>
+
+</div>
+
+</div>
+
+</section>
+
+<section class="section">
+
+<h2>Como funciona?</h2>
+
+<div class="timeline">
+
+<div class="step">
+
+<div class="number">1</div>
+
+<h3>Entre em contato</h3>
+
+<p>
+Receba nossa apresentação e conheça a proposta de parceria.
+</p>
+
+</div>
+
+<div class="step">
+
+<div class="number">2</div>
+
+<h3>Avalie</h3>
+
+<p>
+Conheça os planos de participação, investimento e benefícios.
+</p>
+
+</div>
+
+<div class="step">
+
+<div class="number">3</div>
+
+<h3>Formalize</h3>
+
+<p>
+Assine o contrato e torne-se oficialmente um parceiro da Help Floripa.
+</p>
+
+</div>
+
+<div class="step">
+
+<div class="number">4</div>
+
+<h3>Cresça conosco</h3>
+
+<p>
+Acompanhe os resultados e faça parte da expansão da plataforma.
+</p>
+
+</div>
+
+</div>
+
+</section>
+
+<section class="banner">
+
+<h2>Juntos vamos <span>mais longe!</span></h2>
+
+<p>
+
+Grandes empresas são construídas por pessoas que acreditam na mesma visão.
+
+Venha fazer parte da Help Floripa e ajude a transformar o mercado de serviços da Grande Florianópolis.
+
+</p>
+
+<a class="hero-btn"
+href="https://wa.me/5548996849431?text=Olá,%20quero%20ser%20sócio/parceiro%20da%20Help%20Floripa."
+target="_blank">
+
+🚀 Quero ser Sócio/Parceiro
+
+</a>
+
+</section>
+
 <footer>
-  <p>CNPJ: 61.935.934/0001-00</p>
-  <p>
-    <a href="termos.html">Termos de Uso</a> | 
-    <a href="privacidade.html">Política de Privacidade</a>
-  </p>
-  <p>&copy; 2025 Help Floripa - Todos os direitos reservados.</p>
+
+<p>CNPJ: 61.935.934/0001-00</p>
+
+<p>
+
+<a href="termos.html">Termos de Uso</a>
+
+|
+
+<a href="privacidade.html">Política de Privacidade</a>
+
+</p>
+
+<p>
+
+&copy; 2025 Help Floripa - Todos os direitos reservados.
+
+</p>
+
 </footer>
 
 </body>
+
 </html>
