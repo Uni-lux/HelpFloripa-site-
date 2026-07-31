@@ -1,196 +1,447 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Contato - Help Floripa</title>
-  <link rel="stylesheet" href="style.css">
-  <style>
-    body {
-      background-color: #000;
-      color: white;
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    header {
-      background: #000;
-      padding: 20px;
-      text-align: center;
-      border-bottom: 2px solid #00adee;
-    }
-    header h1 {
-      margin: 0;
-      color: #00adee;
-      font-size: 28px;
-    }
-    header .top-buttons {
-      margin-top: 12px;
-      display: flex;
-      justify-content: center;
-      gap: 15px;
-    }
-    header .top-buttons a {
-      background: #00adee;
-      color: #000;
-      padding: 8px 16px;
-      border-radius: 6px;
-      text-decoration: none;
-      font-weight: bold;
-      transition: background 0.3s;
-    }
-    header .top-buttons a:hover {
-      background: #0087c2;
-    }
+<title>Contato | Help Floripa</title>
 
-    .container {
-      max-width: 900px;
-      margin: 40px auto;
-      padding: 20px;
-    }
+<link rel="stylesheet" href="style.css">
 
-    h1 {
-      text-align: center;
-      color: #00adee;
-      margin-bottom: 30px;
-    }
+<style>
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Arial,sans-serif;
+}
 
-    .card {
-      background-color: #0a1a2a;
-      border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0, 173, 238, 0.2);
-      padding: 20px;
-      margin-bottom: 20px;
-      transition: transform 0.2s ease, box-shadow 0.3s ease;
-    }
+body{
+background:#000;
+color:#fff;
+min-height:100vh;
+display:flex;
+flex-direction:column;
+}
 
-    .card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 0 15px rgba(0, 173, 238, 0.4);
-    }
+.sidebar{
+width:220px;
+background:#111;
+position:fixed;
+top:0;
+left:0;
+height:100%;
+padding:20px;
+display:flex;
+flex-direction:column;
+transition:transform .3s ease;
+z-index:1000;
+}
 
-    .card h2 {
-      color: #00adee;
-      margin-bottom: 10px;
-    }
+.sidebar h2{
+color:#00adee;
+text-align:center;
+margin-bottom:25px;
+font-size:22px;
+}
 
-    .card p {
-      color: #ddd;
-      line-height: 1.6;
-    }
+.sidebar a{
+color:#fff;
+text-decoration:none;
+padding:12px;
+margin:6px 0;
+border-radius:6px;
+transition:.3s;
+display:block;
+}
 
-    .button-container {
-      text-align: center;
-      margin-top: 30px;
-    }
+.sidebar a:hover,
+.sidebar a.active{
+background:#00adee;
+color:#000;
+}
 
-    .button-container a {
-      display: inline-block;
-      margin: 10px;
-      background-color: #00adee;
-      color: white;
-      padding: 12px 24px;
-      border-radius: 8px;
-      font-weight: bold;
-      font-size: 16px;
-      text-decoration: none;
-      box-shadow: 0 0 10px rgba(0, 173, 238, 0.5);
-      transition: background-color 0.3s ease;
-    }
+.menu-toggle{
+font-size:24px;
+cursor:pointer;
+color:#00adee;
+position:fixed;
+top:15px;
+left:15px;
+z-index:1100;
+display:none;
+}
 
-    .button-container a:hover {
-      background-color: #008bbf;
-    }
+.main-content{
+margin-left:240px;
+padding:25px;
+transition:margin-left .3s;
+flex:1;
+}
 
-    footer {
-      background: #000;
-      text-align: center;
-      padding: 20px;
-      border-top: 2px solid #00adee;
-    }
-    footer p, footer a {
-      color: #aaa;
-      font-size: 14px;
-      margin: 5px 0;
-      text-decoration: none;
-    }
-    footer a:hover {
-      color: #00adee;
-    }
-  </style>
+.hero-page{
+background:linear-gradient(rgba(0,0,0,.52),rgba(0,0,0,.78)),
+url('assets/painel-cadastro.svg') center/cover no-repeat;
+min-height:320px;
+border-radius:15px;
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+text-align:center;
+margin-bottom:35px;
+padding:40px 22px;
+box-shadow:0 0 22px rgba(0,173,238,.48);
+}
+
+.hero-page .eyebrow{
+color:#8adff8;
+text-transform:uppercase;
+letter-spacing:2px;
+font-size:13px;
+font-weight:700;
+margin-bottom:12px;
+}
+
+.hero-page h1{
+color:#fff;
+font-size:40px;
+margin-bottom:14px;
+text-shadow:0 2px 12px rgba(0,0,0,.55);
+}
+
+.hero-page p{
+color:#c9f1ff;
+font-size:18px;
+max-width:840px;
+line-height:1.6;
+}
+
+.contact-grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+gap:20px;
+margin-bottom:30px;
+}
+
+.contact-card{
+background:#111;
+border:2px solid #00adee;
+border-radius:12px;
+padding:24px;
+transition:.3s;
+box-shadow:0 0 12px rgba(0,173,238,.16);
+}
+
+.contact-card:hover{
+transform:translateY(-5px);
+box-shadow:0 0 18px rgba(0,173,238,.35);
+}
+
+.contact-card h2{
+color:#00adee;
+margin-bottom:12px;
+font-size:21px;
+}
+
+.contact-card p{
+color:#ccc;
+line-height:1.7;
+font-size:15px;
+margin-bottom:12px;
+}
+
+.button-container{
+text-align:center;
+margin:35px 0;
+}
+
+.button-container a{
+display:inline-block;
+background:#00adee;
+color:#000;
+padding:12px 24px;
+margin:10px;
+border-radius:6px;
+text-decoration:none;
+font-weight:bold;
+transition:.3s;
+}
+
+.button-container a:hover{
+background:#0087c2;
+}
+
+footer{
+background:#111;
+color:#aaa;
+text-align:center;
+padding:15px;
+font-size:13px;
+border-top:1px solid #222;
+}
+
+footer a{
+color:#00adee;
+text-decoration:none;
+margin:0 8px;
+}
+
+footer a:hover{
+text-decoration:underline;
+}
+
+@media(max-width:1024px){
+
+.main-content{
+margin-left:0;
+padding-top:60px;
+}
+
+.sidebar{
+transform:translateX(-250px);
+}
+
+.sidebar.active{
+transform:translateX(0);
+}
+
+.menu-toggle{
+display:block;
+}
+
+.hero-page{
+min-height:260px;
+}
+
+.hero-page h1{
+font-size:31px;
+}
+
+}
+
+@media(max-width:480px){
+
+.main-content{
+padding-left:15px;
+padding-right:15px;
+}
+
+.hero-page{
+min-height:230px;
+padding:30px 15px;
+}
+
+.hero-page h1{
+font-size:26px;
+}
+
+.hero-page p{
+font-size:15px;
+}
+
+.contact-card{
+padding:20px;
+}
+
+}
+</style>
 </head>
+
 <body>
 
-  <header>
-    <h1>Help Floripa</h1>
-    <div class="top-buttons">
-      <a href="index.html">Início</a>
-      <a href="mailto:helpfloripa7@gmail.com">Entrar em contato</a>
-      <a href="ajuda.html">Ajuda</a>
-    </div>
-  </header>
+<div class="sidebar" id="sidebar">
+<h2>Help Floripa</h2>
 
-  <div class="container">
-    <h1>Contato</h1>
+<a href="index.html">Início</a>
+<a href="profissionais.html">Profissionais</a>
+<a href="clientes.html">Clientes</a>
+<a href="contato.html" class="active">Contato</a>
+<a href="ajuda.html">Ajuda</a>
+<a href="sobre.html">Sobre</a>
 
-    <div class="card">
-      <h2> Fale conosco</h2>
-      <p>Precisa de ajuda, tem uma dúvida, deseja solicitar orientação ou quer enviar uma sugestão? A Help Floripa mantém canais de contato para atender clientes, profissionais, empresas, MEIs, parceiros e visitantes que desejam entender melhor a plataforma.</p>
-      <p>Antes de chamar, procure informar com clareza o motivo do contato, seu nome, cidade, bairro, tipo de serviço ou assunto e a melhor forma de retorno. Isso ajuda a equipe a compreender sua necessidade e encaminhar a resposta de maneira mais organizada.</p>
-    </div>
+</div>
 
-    <div class="card">
-      <h2>Atendimento via WhatsApp</h2>
-      <p>Oferecemos atendimento direto pelo WhatsApp, todos os dias, das <strong>8h às 20h</strong>. Esse canal pode ser usado para tirar dúvidas, pedir informações sobre serviços, solicitar suporte, relatar problemas ou receber orientação sobre cadastros e funcionamento do site.</p>
-      <p>Para agilizar o atendimento, envie uma mensagem objetiva explicando o que você precisa. Se o assunto for uma solicitação de serviço, informe também a categoria desejada, local aproximado, horário de preferência e detalhes importantes para análise.</p>
-    </div>
+<div class="menu-toggle" onclick="toggleSidebar()">☰</div>
 
-    <div class="card">
-      <h2>Instagram oficial</h2>
-      <p>Você também pode acompanhar e entrar em contato com a Help Floripa pelo Instagram oficial. Por lá, visitantes e curiosos podem conhecer melhor a proposta da plataforma, acompanhar novidades, enviar mensagens e verificar atualizações de divulgação.</p>
-      <p>Ao chamar pelo Instagram, confira se está acessando o perfil oficial da Help Floripa e evite compartilhar senhas, códigos de acesso ou documentos sensíveis por mensagem. Use os canais oficiais sempre que precisar confirmar informações.</p>
-    </div>
+<main class="main-content">
 
-    <div class="card">
-      <h2>Outras formas de contato</h2>
-      <p>Se preferir, você também pode entrar em contato através dos formulários disponíveis no site ou pelos canais oficiais informados pela Help Floripa. Estamos sempre prontos para ouvir dúvidas, sugestões, solicitações de parceria, informações sobre cadastro e relatos importantes.</p>
-      <p>Alguns contatos podem exigir confirmação de informações para proteger usuários, profissionais e parceiros. Por isso, mantenha seus dados atualizados e envie apenas informações verdadeiras e necessárias para o atendimento.</p>
-    </div>
+<section class="hero-page">
 
-    <div class="card">
-      <h2>O que posso resolver pelo contato?</h2>
-      <p>Você pode procurar a Help Floripa para tirar dúvidas sobre como solicitar serviços, como se cadastrar como profissional, como divulgar uma empresa ou MEI, como participar como parceiro, como acessar páginas do site e como entender os Termos de Uso e a Política de Privacidade.</p>
-      <p>Também é possível relatar comportamento suspeito, tentativa de golpe, informação falsa, dificuldade de comunicação, problema em cadastro, erro em alguma página ou qualquer situação que precise ser analisada pela equipe.</p>
-    </div>
+<div class="eyebrow">
+Atendimento Help Floripa
+</div>
 
-    <div class="card">
-      <h2>Segurança e privacidade no atendimento</h2>
-      <p>A Help Floripa leva segurança e privacidade a sério. Mesmo assim, nenhum atendimento digital deve ser usado para envio desnecessário de dados sensíveis. Não compartilhe senhas, códigos de verificação, dados bancários completos ou documentos que não sejam solicitados por um canal oficial e necessário ao atendimento.</p>
-      <p>Para entender como as informações podem ser coletadas, usadas e protegidas, consulte a <strong>Política de Privacidade</strong> e os <strong>Termos de Uso</strong> disponíveis no rodapé do site.</p>
-    </div>
+<h1>Contato</h1>
 
-    <div class="card">
-      <h2>Cuidados antes de contratar ou fechar parceria</h2>
-      <p>A Help Floripa facilita conexões e orientações, mas os detalhes finais de cada serviço, parceria ou contratação devem ser combinados com clareza entre as partes envolvidas. Antes de confirmar qualquer atendimento, alinhe valores, prazos, endereço, horário, materiais necessários e forma de pagamento.</p>
-      <p>Desconfie de propostas confusas, cobranças antecipadas sem segurança, perfis suspeitos ou contatos que tentem se passar pela Help Floripa fora dos canais oficiais. Em caso de dúvida, fale conosco antes de prosseguir.</p>
-    </div>
+<p>
+Estamos prontos para esclarecer dúvidas, receber sugestões, oferecer suporte e atender clientes, profissionais, empresas e parceiros.
+</p>
 
-    <div class="button-container">
-      <a href="https://wa.me/5548996849431" target="_blank">Falar no WhatsApp</a>
-      <a href="https://www.instagram.com/help_floripa?igsh=MWk2Z2E4ZzMzamN2cw==" target="_blank">Instagram Help Floripa</a>
-      <a href="index.html">Voltar para a Página Inicial</a>
-    </div>
-  </div>
+</section>
 
-  <footer>
-    <p>CNPJ: 61.935.934/0001-00</p>
-    <p>
-      <a href="termos.html">Termos de Uso</a> |
-      <a href="privacidade.html">Política de Privacidade</a>
-    </p>
-    <p>&copy; 2025 Help Floripa - Todos os direitos reservados.</p>
-  </footer>
+<div class="contact-grid">
+  <article class="contact-card">
+  <h2>Fale conosco</h2>
+
+  <p>
+    Precisa de ajuda, deseja tirar dúvidas, enviar sugestões, relatar um problema ou falar com nossa equipe? A Help Floripa disponibiliza canais oficiais de atendimento para clientes, profissionais, empresas, parceiros e visitantes.
+  </p>
+
+  <p>
+    Informe seu nome, cidade, bairro e descreva sua solicitação para que possamos oferecer um atendimento mais rápido e organizado.
+  </p>
+</article>
+
+<article class="contact-card">
+  <h2>Atendimento via WhatsApp</h2>
+
+  <p>
+    Nosso atendimento pelo WhatsApp funciona diariamente, das <strong>8h às 20h</strong>, oferecendo suporte para dúvidas, orientações, cadastros, solicitações e demais assuntos relacionados à plataforma.
+  </p>
+
+  <p>
+    Sempre explique sua necessidade com detalhes para facilitar o atendimento da nossa equipe.
+  </p>
+</article>
+
+<article class="contact-card">
+  <h2>Instagram Oficial</h2>
+
+  <p>
+    Acompanhe novidades, atualizações, comunicados e entre em contato também através do Instagram oficial da Help Floripa.
+  </p>
+
+  <p>
+    Utilize apenas o perfil oficial e nunca compartilhe senhas, códigos de verificação ou informações confidenciais pelas redes sociais.
+  </p>
+</article>
+
+<article class="contact-card">
+  <h2>Empresas, MEIs e Parceiros</h2>
+
+  <p>
+    Empresas, Microempreendedores Individuais (MEIs), restaurantes, lojas e parceiros podem utilizar nossos canais para solicitar informações sobre divulgação, anúncios, parcerias comerciais e utilização dos serviços da plataforma.
+  </p>
+
+  <p>
+    Nossa equipe está preparada para orientar a melhor forma de apresentar seu negócio dentro da Help Floripa.
+  </p>
+</article>
+
+<article class="contact-card">
+  <h2>Outros canais de atendimento</h2>
+
+  <p>
+    Além do WhatsApp e Instagram, você também poderá utilizar formulários disponíveis na plataforma para dúvidas, sugestões, solicitações, denúncias, suporte técnico e contato institucional.
+  </p>
+
+  <p>
+    Alguns atendimentos poderão exigir confirmação de informações para garantir maior segurança aos usuários.
+  </p>
+</article>
+
+<article class="contact-card">
+  <h2>Como podemos ajudar?</h2>
+
+  <p>
+    Nossa equipe pode orientar sobre contratação de profissionais, cadastro de empresas, criação de perfil profissional, Shopping, Delivery, anúncios de imóveis, funcionamento da plataforma, Termos de Uso e Política de Privacidade.
+  </p>
+
+  <p>
+    Também recebemos denúncias de perfis falsos, tentativas de golpe, problemas técnicos e sugestões para melhorias.
+  </p>
+</article>
+
+<article class="contact-card">
+  <h2>Segurança e Privacidade</h2>
+
+  <p>
+    A Help Floripa adota medidas para proteger as informações dos usuários. Nunca informe senhas, códigos de autenticação ou dados bancários por canais não oficiais.
+  </p>
+
+  <p>
+    Consulte sempre nossa Política de Privacidade e os Termos de Uso para conhecer como seus dados são tratados.
+  </p>
+</article>
+
+<article class="contact-card">
+  <h2>Antes de contratar</h2>
+
+  <p>
+    Antes de fechar qualquer serviço, compra, aluguel ou parceria, confirme valores, prazos, endereço, forma de pagamento e todas as condições diretamente com a outra parte.
+  </p>
+
+  <p>
+    Caso identifique qualquer comportamento suspeito, entre imediatamente em contato com a Help Floripa.
+  </p>
+</article>
+
+<article class="contact-card">
+  <h2>⏱ Tempo de resposta</h2>
+
+  <p>
+    Nosso objetivo é responder todas as solicitações o mais rápido possível. O prazo pode variar conforme o volume de atendimentos e o horário do contato.
+  </p>
+
+  <p>
+    Mensagens enviadas fora do horário comercial poderão ser respondidas no próximo período de atendimento.
+  </p>
+</article>
+
+<article class="contact-card">
+  <h2>Canais Oficiais</h2>
+
+  <p>
+    Utilize sempre os canais oficiais da Help Floripa para obter suporte, esclarecer dúvidas e acompanhar informações sobre a plataforma.
+  </p>
+
+  <p>
+    Desconfie de perfis falsos, cobranças indevidas e contatos que utilizem o nome da Help Floripa sem autorização.
+  </p>
+</article>
+
+</div>
+<div class="button-container">
+
+  <a href="https://wa.me/5548996849431" target="_blank">
+    Falar no WhatsApp
+  </a>
+
+  <a href="https://www.instagram.com/help_floripa?igsh=MWk2Z2E4ZzMzamN2cw==" target="_blank">
+    Instagram Oficial
+  </a>
+
+  <a href="mailto:helpfloripa7@gmail.com">
+    Enviar E-mail
+  </a>
+
+  <a href="index.html">
+    Página Inicial
+  </a>
+
+</div>
+
+</main>
+
+<footer>
+  <p>CNPJ: 61.935.934/0001-00</p>
+
+  <p>
+    <a href="termos.html">Termos de Uso</a> |
+    <a href="privacidade.html">Política de Privacidade</a>
+  </p>
+
+  <p>
+    © 2025 Help Floripa - Todos os direitos reservados.
+  </p>
+</footer>
+
+<script>
+function toggleSidebar(){
+    document.getElementById('sidebar').classList.toggle('active');
+}
+</script>
 
 </body>
 </html>
