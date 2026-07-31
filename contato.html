@@ -131,6 +131,12 @@
     }
     .cta h2 { margin-bottom: 12px; color: #00adee; }
     .cta p { color: #ccc; margin-bottom: 22px; }
+    .cta-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 14px;
+    }
     .btn {
       display: inline-block;
       background: #00adee;
@@ -140,7 +146,6 @@
       text-decoration: none;
       font-weight: bold;
       transition: 0.3s;
-      margin: 0 8px;
     }
     .btn:hover { background: #0087c2; }
 
@@ -170,6 +175,8 @@
       .hero-page h1 { font-size: 26px; }
       .hero-page p { font-size: 15px; }
       .intro-panel, .process-panel, .cta { padding: 22px 18px; }
+      .cta-buttons { flex-direction: column; align-items: stretch; }
+      .btn { text-align: center; }
     }
   </style>
 </head>
@@ -229,6 +236,18 @@
       <h3>Canais oficiais</h3>
       <p>Use apenas os canais oficiais da Help Floripa. Desconfie de perfis falsos e cobranças indevidas.</p>
     </article>
+
+    <article class="client-card">
+      <span>Formulários</span>
+      <h3>Outros canais de atendimento</h3>
+      <p>Além do WhatsApp e Instagram, você pode usar os formulários da plataforma para dúvidas, sugestões e denúncias.</p>
+    </article>
+
+    <article class="client-card">
+      <span>⏱ Prazo</span>
+      <h3>Tempo de resposta</h3>
+      <p>Respondemos o mais rápido possível. Mensagens fora do horário comercial são atendidas no próximo período.</p>
+    </article>
   </section>
 
   <section class="process-panel">
@@ -244,9 +263,11 @@
   <section class="cta">
     <h2>Fale agora com a Help Floripa</h2>
     <p>Escolha o canal mais rápido para você.</p>
-    <a href="https://wa.me/5548996849431" target="_blank" class="btn">WhatsApp</a>
-    <a href="https://www.instagram.com/help_floripa?igsh=MWk2Z2E4ZzMzamN2cw==" target="_blank" class="btn">Instagram</a>
-    <a href="mailto:helpfloripa7@gmail.com" class="btn">E-mail</a>
+    <div class="cta-buttons">
+      <a href="https://wa.me/5548996849431" target="_blank" class="btn">WhatsApp</a>
+      <a href="https://www.instagram.com/help_floripa?igsh=MWk2Z2E4ZzMzamN2cw==" target="_blank" class="btn">Instagram</a>
+      <a href="mailto:helpfloripa7@gmail.com" class="btn">E-mail</a>
+    </div>
   </section>
 
 </main>
