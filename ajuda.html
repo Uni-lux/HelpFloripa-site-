@@ -1,205 +1,307 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Ajuda - Help Floripa</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ajuda | Help Floripa</title>
   <link rel="stylesheet" href="style.css">
   <style>
-    body {
-      background-color: #000;
-      color: #fff;
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+    body { background: #000; color: #fff; min-height: 100vh; display: flex; flex-direction: column; }
+
+    .sidebar {
+      width: 220px;
+      background: #111;
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100%;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.3s ease;
+      z-index: 1000;
+    }
+    .sidebar h2 { color: #00adee; text-align: center; margin-bottom: 25px; font-size: 22px; }
+    .sidebar a { color: #fff; text-decoration: none; padding: 12px; margin: 6px 0; border-radius: 6px; transition: 0.3s; display: block; }
+    .sidebar a:hover, .sidebar a.active { background: #00adee; color: #000; }
+
+    .menu-toggle {
+      font-size: 24px;
+      cursor: pointer;
+      color: #00adee;
+      position: fixed;
+      top: 15px;
+      left: 15px;
+      z-index: 1100;
+      display: none;
     }
 
-    header {
-      background: #000;
-      padding: 20px;
-      text-align: center;
-      border-bottom: 2px solid #00adee;
+    .main-content {
+      margin-left: 240px;
+      padding: 25px;
+      transition: margin-left 0.3s;
+      flex: 1;
     }
-    header h1 {
-      margin: 0;
-      color: #00adee;
-      font-size: 28px;
-    }
-    header .top-buttons {
-      margin-top: 12px;
+
+    .hero-page {
+      background: linear-gradient(rgba(0,0,0,0.52), rgba(0,0,0,0.78)), url('assets/painel-cadastro.svg') center/cover no-repeat;
+      min-height: 320px;
+      border-radius: 15px;
       display: flex;
+      flex-direction: column;
+      align-items: center;
       justify-content: center;
-      gap: 15px;
+      text-align: center;
+      margin-bottom: 35px;
+      padding: 40px 22px;
+      box-shadow: 0 0 22px rgba(0, 173, 238, 0.48);
     }
-    header .top-buttons a {
+    .hero-page .eyebrow {
+      color: #8adff8;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .hero-page h1 { color: #fff; font-size: 40px; margin-bottom: 14px; text-shadow: 0 2px 12px rgba(0,0,0,0.55); }
+    .hero-page p { color: #c9f1ff; font-size: 18px; max-width: 840px; line-height: 1.6; }
+
+    .intro-panel {
+      background: linear-gradient(135deg, #111 0%, #071827 100%);
+      border: 1px solid rgba(0, 173, 238, 0.45);
+      border-radius: 15px;
+      padding: 30px;
+      margin-bottom: 25px;
+      box-shadow: 0 0 18px rgba(0, 173, 238, 0.18);
+    }
+    .intro-panel h2 { color: #00adee; margin-bottom: 15px; font-size: 25px; }
+    .intro-panel p { color: #ddd; line-height: 1.7; font-size: 15px; }
+
+    .client-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 20px;
+      margin-bottom: 25px;
+    }
+    .client-card {
+      background: #111;
+      border: 2px solid #00adee;
+      border-radius: 12px;
+      padding: 24px;
+      min-height: 190px;
+      transition: 0.3s;
+      box-shadow: 0 0 12px rgba(0, 173, 238, 0.16);
+    }
+    .client-card:hover { transform: translateY(-5px); box-shadow: 0 0 18px rgba(0, 173, 238, 0.35); }
+    .client-card span {
+      display: inline-block;
+      color: #000;
+      background: #00adee;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+    .client-card h3 { color: #00adee; margin-bottom: 10px; font-size: 19px; }
+    .client-card p { color: #ccc; font-size: 14px; line-height: 1.55; }
+
+    .process-panel {
+      background: #111;
+      border: 1px solid rgba(0, 173, 238, 0.45);
+      border-radius: 15px;
+      padding: 28px;
+      margin-bottom: 25px;
+      box-shadow: 0 0 18px rgba(0, 173, 238, 0.18);
+    }
+    .process-panel h2 { color: #00adee; margin-bottom: 15px; }
+    .process-panel ol { padding-left: 22px; color: #ddd; line-height: 1.7; }
+    .process-panel li { margin-bottom: 8px; }
+
+    .cta {
+      text-align: center;
+      background: #111;
+      border: 1px solid rgba(0, 173, 238, 0.45);
+      border-radius: 15px;
+      padding: 32px 20px;
+      margin-bottom: 35px;
+      box-shadow: 0 0 18px rgba(0, 173, 238, 0.18);
+    }
+    .cta h2 { margin-bottom: 12px; color: #00adee; }
+    .cta p { color: #ccc; margin-bottom: 22px; }
+    .cta-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 14px;
+    }
+    .btn {
+      display: inline-block;
       background: #00adee;
       color: #000;
-      padding: 8px 16px;
+      padding: 12px 25px;
       border-radius: 6px;
       text-decoration: none;
       font-weight: bold;
-      transition: background 0.3s;
+      transition: 0.3s;
     }
-    header .top-buttons a:hover {
-      background: #0087c2;
-    }
-
-    .container {
-      max-width: 1000px;
-      margin: 40px auto;
-      padding: 0 20px 60px;
-    }
-
-    h2 {
-      text-align: center;
-      color: #00adee;
-      margin-bottom: 30px;
-    }
-
-    .card {
-      background-color: #0a1a2a;
-      border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0, 173, 238, 0.3);
-      padding: 20px;
-      margin-bottom: 20px;
-    }
-
-    .card h3 {
-      color: #00adee;
-      margin-top: 0;
-    }
-
-    .card p {
-      color: #ddd;
-      line-height: 1.6;
-    }
-
-    .botao-solicitar {
-      display: inline-block;
-      margin-top: 20px;
-      background-color: #00adee;
-      color: #000;
-      padding: 12px 24px;
-      border-radius: 8px;
-      text-decoration: none;
-      font-weight: bold;
-      font-size: 16px;
-      transition: background-color 0.3s ease;
-    }
-    .botao-solicitar:hover {
-      background-color: #008bbf;
-    }
+    .btn:hover { background: #0087c2; }
 
     footer {
-      background: #000;
-      text-align: center;
-      padding: 20px;
-      border-top: 2px solid #00adee;
-    }
-    footer p, footer a {
+      background: #111;
       color: #aaa;
-      font-size: 14px;
-      margin: 5px 0;
-      text-decoration: none;
+      text-align: center;
+      padding: 15px;
+      font-size: 13px;
+      border-top: 1px solid #222;
     }
-    footer a:hover {
-      color: #00adee;
+    footer a { color: #00adee; text-decoration: none; margin: 0 8px; }
+    footer a:hover { text-decoration: underline; }
+
+    @media(max-width: 1024px) {
+      .main-content { margin-left: 0; padding-top: 60px; }
+      .sidebar { transform: translateX(-250px); }
+      .sidebar.active { transform: translateX(0); }
+      .menu-toggle { display: block; }
+      .hero-page { min-height: 260px; }
+      .hero-page h1 { font-size: 31px; }
+    }
+
+    @media(max-width: 480px) {
+      .main-content { padding-left: 15px; padding-right: 15px; }
+      .hero-page { min-height: 230px; padding: 30px 15px; }
+      .hero-page h1 { font-size: 26px; }
+      .hero-page p { font-size: 15px; }
+      .intro-panel, .process-panel, .cta { padding: 22px 18px; }
+      .cta-buttons { flex-direction: column; align-items: stretch; }
+      .btn { text-align: center; }
     }
   </style>
 </head>
 <body>
 
-  <header>
-    <h1>Help Floripa</h1>
-    <div class="top-buttons">
-      <a href="index.html">Início</a>
-      <a href="contato.html">Contato</a>
-      <a href="sobre.html">Sobre</a>
-    </div>
-  </header>
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+  <h2>Help Floripa</h2>
+  <a href="index.html">Início</a>
+  <a href="profissionais.html">Profissionais</a>
+  <a href="clientes.html">Clientes</a>
+  <a href="contato.html">Contato</a>
+  <a href="ajuda.html" class="active">Ajuda</a>
+  <a href="sobre.html">Sobre</a>
+</div>
 
-  <div class="container">
-    <h2>Central de Ajuda</h2>
+<!-- Menu toggle -->
+<div class="menu-toggle" onclick="toggleSidebar()">☰</div>
 
-    <div class="card">
-      <h3> O que é a Help Floripa?</h3>
-      <p>A Help Floripa é uma plataforma local criada para aproximar clientes, profissionais, empresas, MEIs, parceiros e visitantes da Grande Florianópolis. O objetivo é facilitar a busca por serviços, divulgar oportunidades e ajudar pessoas a encontrarem soluções de forma mais rápida e organizada.</p>
-      <p>A plataforma funciona como uma ponte de contato: o visitante informa sua necessidade, e o atendimento pode ser encaminhado para o profissional, empresa ou canal mais adequado, conforme disponibilidade e tipo de solicitação.</p>
-    </div>
+<!-- Conteúdo -->
+<main class="main-content">
 
-    <div class="card">
-      <h3>Como solicitar um serviço?</h3>
-      <p>Para solicitar um atendimento, acesse a opção disponível no site, escolha a categoria desejada e preencha as informações necessárias com atenção. Informe nome, contato, cidade, bairro, tipo de serviço e uma descrição clara do que precisa.</p>
-      <p>Depois do envio, as informações ajudam a entender a demanda e facilitar o contato. O profissional ou responsável pelo atendimento poderá chamar você para confirmar detalhes, disponibilidade, endereço, horário, materiais necessários e condições do serviço.</p>
-    </div>
+  <section class="hero-page">
+    <div class="eyebrow">Central de Ajuda</div>
+    <h1>Ajuda</h1>
+    <p>Tire suas dúvidas sobre como a Help Floripa funciona, quem pode usar e quais cuidados tomar.</p>
+  </section>
 
-    <div class="card">
-      <h3>Quem pode usar a plataforma?</h3>
-      <p>Clientes podem usar a Help Floripa para buscar profissionais e soluções locais. Profissionais podem se cadastrar para divulgar seus serviços. Empresas, MEIs, lojas, vendedores, deliverys e parceiros também podem buscar espaço para divulgação e novas oportunidades.</p>
-      <p>Visitantes curiosos podem navegar pelas páginas para entender como a plataforma funciona, quais serviços podem ser solicitados e quais cuidados devem ser tomados antes de contratar ou oferecer qualquer atendimento.</p>
-    </div>
-
-    <div class="card">
-      <h3>Onde a Help Floripa atende?</h3>
-      <p>O foco principal da Help Floripa é Florianópolis, São José e região da Grande Florianópolis. A disponibilidade pode variar conforme bairro, categoria do serviço, agenda do profissional e condições combinadas entre as partes.</p>
-      <p>Alguns atendimentos podem depender de deslocamento, horário, urgência, materiais ou disponibilidade de profissionais cadastrados. Por isso, sempre confirme se o serviço está disponível para sua localização antes de fechar qualquer acordo.</p>
-    </div>
-
-    <div class="card">
-      <h3>Quem define o valor do serviço?</h3>
-      <p>A Help Floripa pode apresentar informações de referência ou facilitar o contato, mas o preço final deve ser combinado diretamente entre cliente e profissional, empresa ou parceiro responsável pelo atendimento.</p>
-      <p>O valor pode variar conforme complexidade, distância, horário, urgência, tempo de execução, materiais necessários e tipo de serviço. Antes de autorizar o atendimento, combine tudo com clareza e evite dúvidas sobre pagamento, prazo e entrega.</p>
-    </div>
-
-    <div class="card">
-      <h3>Como profissionais podem participar?</h3>
-      <p>Profissionais interessados podem realizar o cadastro disponível no site e informar seus dados de contato, área de atuação, cidade, bairro e serviços oferecidos. As informações devem ser verdadeiras, atualizadas e compatíveis com o atendimento prestado.</p>
-      <p>A Help Floripa valoriza profissionais responsáveis, pontuais, respeitosos e comprometidos com a qualidade. Cadastros com informações falsas, condutas suspeitas, tentativas de golpe ou atendimento inadequado podem ser analisados e removidos.</p>
-    </div>
-
-    <div class="card">
-      <h3>Empresas, MEIs e parceiros podem participar?</h3>
-      <p>Sim. Empresas, MEIs, lojas, vendedores, lanchonetes, deliverys, prestadores de serviço e parceiros comerciais podem buscar divulgação e oportunidades dentro da plataforma, conforme as páginas e formulários disponíveis.</p>
-      <p>O objetivo é fortalecer a economia local, aproximar negócios de consumidores e criar uma rede mais acessível para quem procura produtos, serviços e parcerias na Grande Florianópolis.</p>
-    </div>
-
-    <div class="card">
-      <h3>Meus dados estão seguros?</h3>
-      <p>A Help Floripa leva segurança e privacidade a sério. O site utiliza recursos de autenticação, controle de acesso e boas práticas para proteger informações enviadas por usuários, profissionais e empresas.</p>
-      <p>Mesmo assim, nenhum ambiente digital é totalmente livre de riscos. Por isso, não compartilhe senhas, códigos de acesso, documentos desnecessários ou dados sensíveis fora dos canais oficiais. Leia também a Política de Privacidade e os Termos de Uso no rodapé do site.</p>
-    </div>
-
-    <div class="card">
-      <h3>Quais cuidados devo tomar?</h3>
-      <p>Antes de contratar qualquer serviço, confirme quem fará o atendimento, combine o valor, verifique prazos, alinhe a forma de pagamento e guarde informações importantes da conversa. Nunca pague valores antecipados sem segurança e desconfie de propostas confusas ou muito fora do normal.</p>
-      <p>Profissionais também devem se proteger: confirme os dados do cliente, esclareça o serviço antes de se deslocar, combine custos extras e mantenha uma comunicação respeitosa e transparente.</p>
-    </div>
-
-    <div class="card">
-      <h3>Como posso avaliar ou relatar uma situação?</h3>
-      <p>Quando houver avaliação disponível, o cliente poderá informar sua experiência sobre o atendimento recebido. Comentários honestos ajudam outros usuários e também ajudam a plataforma a identificar bons profissionais e possíveis problemas.</p>
-      <p>Se houver comportamento inadequado, informação falsa, tentativa de golpe, cobrança abusiva ou descumprimento grave do combinado, entre em contato com a Help Floripa pelos canais oficiais para que a situação possa ser analisada.</p>
-    </div>
-
-    <div class="card">
-      <h3>O que um visitante precisa saber?</h3>
-      <p>A Help Floripa está em evolução e pode receber novas páginas, categorias, funcionalidades, regras de cadastro e melhorias de segurança ao longo do tempo. Por isso, é importante acompanhar as informações atualizadas no próprio site.</p>
-      <p>Ao navegar, solicitar atendimento ou fazer cadastro, use informações verdadeiras, leia as orientações de cada página e consulte os Termos de Uso e a Política de Privacidade para entender seus direitos, deveres e responsabilidades.</p>
-    </div>
-
-    <div style="text-align:center; margin-top: 40px;">
-      <a href="contato.html" class="botao-solicitar">Preciso de mais ajuda</a>
-    </div>
-  </div>
-
-  <footer>
-    <p>CNPJ: 61.935.934/0001-00</p>
+  <section class="intro-panel">
+    <h2>O que é a Help Floripa?</h2>
     <p>
-      <a href="termos.html">Termos de Uso</a> |
-      <a href="privacidade.html">Política de Privacidade</a>
+      A Help Floripa é uma plataforma local que aproxima clientes, profissionais, empresas, MEIs e parceiros da Grande Florianópolis. Você informa sua necessidade e o atendimento é encaminhado ao profissional, empresa ou canal mais adequado.
     </p>
-    <p>&copy; 2025 Help Floripa - Todos os direitos reservados.</p>
-  </footer>
+  </section>
+
+  <section class="client-grid">
+    <article class="client-card">
+      <span>Como usar</span>
+      <h3>Como solicitar um serviço?</h3>
+      <p>Escolha a categoria desejada e informe nome, contato, cidade, bairro e o que você precisa. O profissional entra em contato para confirmar detalhes e condições.</p>
+    </article>
+
+    <article class="client-card">
+      <span>Público</span>
+      <h3>Quem pode usar a plataforma?</h3>
+      <p>Clientes buscam profissionais e soluções locais. Profissionais, empresas, MEIs e parceiros podem se cadastrar para divulgar seus serviços e produtos.</p>
+    </article>
+
+    <article class="client-card">
+      <span>Cobertura</span>
+      <h3>Onde a Help Floripa atende?</h3>
+      <p>O foco é Florianópolis, São José e a Grande Florianópolis. A disponibilidade pode variar conforme bairro, categoria e agenda do profissional.</p>
+    </article>
+
+    <article class="client-card">
+      <span>Valores</span>
+      <h3>Quem define o preço do serviço?</h3>
+      <p>O valor é combinado diretamente entre cliente e profissional, conforme complexidade, distância, urgência e materiais necessários.</p>
+    </article>
+
+    <article class="client-card">
+      <span>Cadastro</span>
+      <h3>Como profissionais participam?</h3>
+      <p>Basta se cadastrar informando dados de contato, área de atuação e serviços oferecidos. Cadastros falsos ou condutas suspeitas podem ser removidos.</p>
+    </article>
+
+    <article class="client-card">
+      <span>Negócios</span>
+      <h3>Empresas e parceiros podem participar?</h3>
+      <p>Sim. Empresas, MEIs, lojas e deliverys podem buscar divulgação e novas oportunidades dentro da plataforma.</p>
+    </article>
+
+    <article class="client-card">
+      <span>Privacidade</span>
+      <h3>Meus dados estão seguros?</h3>
+      <p>Usamos boas práticas de segurança e controle de acesso. Nunca compartilhe senhas ou dados sensíveis fora dos canais oficiais.</p>
+    </article>
+
+    <article class="client-card">
+      <span>Cuidados</span>
+      <h3>O que devo verificar antes de contratar?</h3>
+      <p>Confirme quem fará o atendimento, o valor, prazos e forma de pagamento. Desconfie de propostas confusas ou pagamentos antecipados.</p>
+    </article>
+
+    <article class="client-card">
+      <span>Denúncias</span>
+      <h3>Como relatar um problema?</h3>
+      <p>Em caso de golpe, cobrança abusiva ou informação falsa, entre em contato com a Help Floripa pelos canais oficiais para análise.</p>
+    </article>
+  </section>
+
+  <section class="process-panel">
+    <h2>Antes de contratar ou oferecer um serviço</h2>
+    <ol>
+      <li>Confirme os dados de quem vai atender ou contratar.</li>
+      <li>Combine valor, prazo e forma de pagamento com clareza.</li>
+      <li>Leia os Termos de Uso e a Política de Privacidade.</li>
+      <li>Use sempre os canais oficiais da Help Floripa para contato.</li>
+    </ol>
+  </section>
+
+  <section class="cta">
+    <h2>Ainda precisa de ajuda?</h2>
+    <p>Fale diretamente com a nossa equipe de atendimento.</p>
+    <div class="cta-buttons">
+      <a href="contato.html" class="btn">Preciso de mais ajuda</a>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <p>CNPJ: 61.935.934/0001-00</p>
+  <p>
+    <a href="termos.html">Termos de Uso</a> |
+    <a href="privacidade.html">Política de Privacidade</a>
+  </p>
+  <p>&copy; 2025 Help Floripa - Todos os direitos reservados.</p>
+</footer>
+
+<script>
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('active');
+}
+</script>
 
 </body>
 </html>
