@@ -10,7 +10,7 @@
     <link rel="icon" type="image/png" sizes="192x192" href="android-chrome-192x192.png" />
     <meta property="og:title" content="Help Floripa | Tudo que você precisa em só lugar" />
     <meta property="og:description" content="Encontre profissionais de confiança, delivery, produtos e imóveis em Florianópolis." />
-    <meta property="og:image" content="ponte-help.png" />
+    <meta property="og:image" content="ponte-help.webp" />
     <meta property="og:type" content="website" />
     <title>Help Floripa | Tudo que você precisa em só lugar</title>  <style>  
   .page-home,  
@@ -73,11 +73,12 @@
   }  
 
   .page-home .hero {  
+    background-color: #000626;
     background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)),
-      url("ponte-help.png");
-    background-position: center, center 30%;
+      url("ponte-help.webp");
+    background-position: center, center;
     background-repeat: no-repeat, no-repeat;
-    background-size: cover, cover;
+    background-size: cover, contain;
     height: 320px;  
     border-radius: 15px;  
     display: flex;  
@@ -232,7 +233,10 @@
   .page-home .card img {  
     width: 100%;  
     height: 140px;  
-    object-fit: cover;  
+    object-fit: contain;  
+    object-position: center;  
+    background: #0a0a0a;  
+    display: block;  
   }  
 
   .page-home .card-content {  
@@ -343,7 +347,6 @@
     }  
 
     .page-home .hero {  
-      background-position: center, center;
       height: 300px;  
       font-size: 24px;  
     }  
@@ -447,18 +450,18 @@
     <div class="slides" id="sliderTrack">  
       <a href="cadastre-se.html"
         ><picture>  
-          <source media="(max-width: 1024px)" srcset="propaganda1.png" />  
-          <img src="propaganda1c.png" alt="Anúncio: cadastre seu perfil profissional na Help Floripa" width="1600" height="900" fetchpriority="high" />  
+          <source media="(max-width: 1024px)" srcset="propaganda1.webp" />  
+          <img src="propaganda1c.webp" alt="Anúncio: os melhores profissionais e as melhores lanchonetes estão na Help Floripa" width="1536" height="1024" fetchpriority="high" />  
         </picture></a>  
       <a href="cadastre-se.html"
         ><picture>  
-          <source media="(max-width: 1024px)" srcset="propaganda2.png" />  
-          <img src="propaganda2c.png" alt="Anúncio: peça delivery e lanches pela Help Floripa" width="1600" height="900" loading="lazy" />  
+          <source media="(max-width: 1024px)" srcset="propaganda2.webp" />  
+          <img src="propaganda2c.webp" alt="Anúncio: produtos de qualidade e imóveis para vender ou alugar na Help Floripa" width="1536" height="1024" loading="lazy" />  
         </picture></a>  
       <a href="cadastre-se.html"
         ><picture>  
-          <source media="(max-width: 1024px)" srcset="propaganda3.png" />  
-          <img src="propaganda3c.png" alt="Anúncio: encontre imóveis e produtos na Help Floripa" width="1600" height="900" loading="lazy" />  
+          <source media="(max-width: 1024px)" srcset="propaganda3.webp" />  
+          <img src="propaganda3c.webp" alt="Anúncio: cadastre-se agora na Help Floripa" width="1536" height="1024" loading="lazy" />  
         </picture></a>  
     </div>  
     <div class="slider-controls" id="sliderDots" role="tablist" aria-label="Selecionar slide"></div>
@@ -470,8 +473,8 @@
       <img  
         src="servicos.webp"  
         alt="Profissional prestando serviço"  
-        width="900"
-        height="140"
+        width="800"
+        height="534"
         loading="lazy"
       />  
       <div class="card-content">  
@@ -489,7 +492,7 @@
         src="lanchonetes.webp"  
         alt="Lanches e delivery"  
         width="900"
-        height="140"
+        height="600"
         loading="lazy"
       />  
       <div class="card-content">  
@@ -507,7 +510,7 @@
         src="shopping.webp"  
         alt="Produtos do marketplace Help Floripa"  
         width="900"
-        height="140"
+        height="600"
         loading="lazy"
       />  
       <div class="card-content">  
@@ -525,7 +528,7 @@
         src="imoveis.webp"  
         alt="Imóvel disponível para aluguel"  
         width="800"
-        height="140"
+        height="533"
         loading="lazy"
       />  
       <div class="card-content">  
@@ -627,5 +630,4 @@
 </script>
 
   </body>  
-  </html>
-                                              
+</html>
