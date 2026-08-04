@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /cadastrar.html
+Disallow: /solicitar.html
+
+Sitemap: https://helpfloripa.com.br/sitemap.xml
