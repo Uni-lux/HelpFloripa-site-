@@ -55,10 +55,6 @@
     color: #000;  
   }  
 
-  .page-home .sidebar.hidden {  
-    transform: translateX(-250px);  
-  }  
-
   .page-home .main-content {  
     margin-left: 240px;  
     padding: 25px;  
@@ -142,10 +138,6 @@
     display: block;  
     overflow: hidden;  
     background: #000;  
-  }  
-
-  .page-home .slides a::before {  
-    display: none;  
   }  
 
   .page-home .slides picture {  
@@ -401,17 +393,17 @@
 
   <div class="slider">  
     <div class="slides">  
-      <a href="cadastre-se.html" style="--slide-bg: url('propaganda1c.png')"  
+      <a href="cadastre-se.html"
         ><picture>  
           <source media="(max-width: 1024px)" srcset="propaganda1.png" />  
           <img src="propaganda1c.png" alt="Propaganda 1" />  
         </picture></a>  
-      <a href="cadastre-se.html" style="--slide-bg: url('propaganda2c.png')"  
+      <a href="cadastre-se.html"
         ><picture>  
           <source media="(max-width: 1024px)" srcset="propaganda2.png" />  
           <img src="propaganda2c.png" alt="Propaganda 2" />  
         </picture></a>  
-      <a href="cadastre-se.html" style="--slide-bg: url('propaganda3c.png')"  
+      <a href="cadastre-se.html"
         ><picture>  
           <source media="(max-width: 1024px)" srcset="propaganda3.png" />  
           <img src="propaganda3c.png" alt="Propaganda 3" />  
@@ -424,6 +416,7 @@
       <img  
         src="https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=800&q=80"  
         alt="Serviços"  
+        loading="lazy"
       />  
       <div class="card-content">  
         <h3>Serviços</h3>  
@@ -439,6 +432,7 @@
       <img  
         src="lanchonetes.png"  
         alt="Lanches"  
+        loading="lazy"
       />  
       <div class="card-content">  
         <h3>Lanches e Delivery</h3>  
@@ -454,6 +448,7 @@
       <img  
         src="shopping.png"  
         alt="Shopping"  
+        loading="lazy"
       />  
       <div class="card-content">  
         <h3>Shopping e Produtos</h3>  
@@ -465,15 +460,16 @@
       </div>  
     </div>  
 
-    <div class="card" id="aluguéis">  
+    <div class="card" id="alugueis">  
       <img  
         src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80"  
         alt="Aluguéis e Imóveis"  
+        loading="lazy"
       />  
       <div class="card-content">  
         <h3>Aluguéis e Imóveis</h3>  
         <p>  
-          Casas, apartamentos e imveis comerciais disponíveis para alugar  
+          Casas, apartamentos e imóveis comerciais disponíveis para alugar  
           em Florianópolis.  
         </p>  
         <a href="imoveis.html">Ver Imóveis</a>  
