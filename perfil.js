@@ -4,6 +4,9 @@
   const EDIT_PROFILE_URL = "cadastrar.html";
   const SAFE_PHOTO_PROTOCOLS = ["https:", "http:"];
 
+  let statusListenersBound = false;
+  let activeStatusDot = null;
+
   function getUser() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -86,6 +89,28 @@
         overflow: hidden;
       }
 
+      .profile-avatar-wrap {
+        position: relative;
+        display: inline-flex;
+        flex: 0 0 auto;
+      }
+
+      .profile-status-dot {
+        position: absolute;
+        bottom: -1px;
+        right: -1px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        border: 2px solid #000;
+        background: #e74c3c;
+        transition: background 0.3s ease;
+      }
+
+      .profile-status-dot.online {
+        background: #2ecc71;
+      }
+
       .profile-card {
         position: fixed;
         top: 72px;
@@ -101,7 +126,37 @@
         display: none;
       }
 
-      .profile-card h4 { margin: 0 0 10px; color: #00adee; }
+      .profile-card h4 {
+        margin: 0 0 10px;
+        color: #00adee;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .profile-card h4 .status-label {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #aaa;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .profile-card h4 .status-label::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #e74c3c;
+      }
+
+      .profile-card h4 .status-label.online::before {
+        background: #2ecc71;
+      }
+
       .profile-card p { margin: 6px 0; font-size: 14px; }
       .profile-card .actions { display: flex; gap: 8px; margin-top: 12px; }
       .profile-card .actions button {
@@ -125,6 +180,20 @@
   function isHomePage() {
     const file = window.location.pathname.split("/").pop();
     return !file || file === "index.html";
+  }
+
+  function ensureHeroCadastroButton() {
+    if (!isHomePage()) return null;
+
+    const button = document.getElementById("heroCadastroBtn");
+    if (!button) return null;
+
+    if (button.dataset.defaultText === undefined) {
+      button.dataset.defaultText = button.textContent.trim();
+      button.dataset.defaultHref = button.getAttribute("href") || "cadastre-se.html";
+    }
+
+    return button;
   }
 
   function ensureMenuProfileButton() {
@@ -208,7 +277,16 @@
     card.textContent = "";
 
     const title = document.createElement("h4");
-    title.textContent = "Meu perfil";
+    const titleText = document.createElement("span");
+    titleText.textContent = "Meu perfil";
+
+    const statusLabel = document.createElement("span");
+    statusLabel.className = "status-label";
+    statusLabel.id = "perfilStatusLabel";
+    statusLabel.textContent = navigator.onLine ? "Online" : "Offline";
+    statusLabel.classList.toggle("online", navigator.onLine);
+
+    title.append(titleText, statusLabel);
     card.appendChild(title);
 
     addTextRow(card, "Nome", userData.nome);
@@ -241,6 +319,7 @@
     button.textContent = "";
     button.href = LOGIN_URL;
     button.removeAttribute("aria-expanded");
+    activeStatusDot = null;
 
     const icon = document.createElement("span");
     icon.className = "profile-avatar";
@@ -257,6 +336,7 @@
 
     const card = document.getElementById("perfilUsuarioCard");
     if (card) card.style.display = "none";
+
     clearUser();
   }
 
@@ -296,10 +376,45 @@
     };
   }
 
+  function updateStatusIndicators() {
+    const online = navigator.onLine;
+
+    if (activeStatusDot) {
+      activeStatusDot.classList.toggle("online", online);
+      activeStatusDot.title = online ? "Online" : "Offline";
+    }
+
+    const statusLabel = document.getElementById("perfilStatusLabel");
+    if (statusLabel) {
+      statusLabel.textContent = online ? "Online" : "Offline";
+      statusLabel.classList.toggle("online", online);
+    }
+  }
+
+  function bindStatusListenersOnce() {
+    if (statusListenersBound) return;
+    statusListenersBound = true;
+    window.addEventListener("online", updateStatusIndicators);
+    window.addEventListener("offline", updateStatusIndicators);
+  }
+
+  function setLoggedOutHeroButton(button) {
+    button.textContent = button.dataset.defaultText || "Cadastre-se";
+    button.href = button.dataset.defaultHref || "cadastre-se.html";
+  }
+
+  function setLoggedInHeroButton(button, profile) {
+    button.textContent = profile.nome || button.dataset.defaultText || "Cadastre-se";
+    button.href = EDIT_PROFILE_URL;
+  }
+
   function setLoggedInButton(button, profile) {
     button.textContent = "";
     button.href = "#perfil";
     button.setAttribute("aria-expanded", "false");
+
+    const avatarWrap = document.createElement("span");
+    avatarWrap.className = "profile-avatar-wrap";
 
     const photoUrl = getSafePhotoUrl(profile.fotoUrl);
     if (photoUrl) {
@@ -307,17 +422,27 @@
       img.src = photoUrl;
       img.alt = `Foto de perfil de ${profile.nome || "usuário"}`;
       img.referrerPolicy = "no-referrer";
-      button.appendChild(img);
+      avatarWrap.appendChild(img);
     } else {
       const initials = document.createElement("span");
       initials.className = "profile-avatar";
       initials.textContent = getInitials(profile.nome);
-      button.appendChild(initials);
+      avatarWrap.appendChild(initials);
     }
+
+    const statusDot = document.createElement("span");
+    statusDot.className = "profile-status-dot";
+    statusDot.setAttribute("aria-hidden", "true");
+    avatarWrap.appendChild(statusDot);
 
     const label = document.createElement("span");
     label.textContent = "Meu Perfil";
-    button.appendChild(label);
+
+    button.append(avatarWrap, label);
+
+    activeStatusDot = statusDot;
+    bindStatusListenersOnce();
+    updateStatusIndicators();
 
     const card = renderProfileCard(profile);
     button.onclick = function (event) {
@@ -325,29 +450,32 @@
       const shouldOpen = card.style.display !== "block";
       card.style.display = shouldOpen ? "block" : "none";
       button.setAttribute("aria-expanded", shouldOpen ? "true" : "false");
+      if (shouldOpen) updateStatusIndicators();
     };
   }
 
   function setupAuthProfileButton() {
     const button = ensureMenuProfileButton();
-    if (!button) return;
+    const heroButton = ensureHeroCadastroButton();
 
-    setLoggedOutButton(button);
+    if (button) setLoggedOutButton(button);
+    if (heroButton) setLoggedOutHeroButton(heroButton);
 
-    if (!window.firebaseAuth) {
-      return;
-    }
+    if (!button && !heroButton) return;
+    if (!window.firebaseAuth) return;
 
     import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js")
       .then(({ onAuthStateChanged }) => {
         onAuthStateChanged(window.firebaseAuth, async (user) => {
           if (!user) {
-            setLoggedOutButton(button);
+            if (button) setLoggedOutButton(button);
+            if (heroButton) setLoggedOutHeroButton(heroButton);
             return;
           }
 
           const profile = await loadProfileFromFirebase(user);
-          setLoggedInButton(button, profile);
+          if (button) setLoggedInButton(button, profile);
+          if (heroButton) setLoggedInHeroButton(heroButton, profile);
         });
       })
       .catch((error) => {
@@ -382,3 +510,4 @@
     setupAuthProfileButton();
   });
 })();
+    
