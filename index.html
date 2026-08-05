@@ -12,7 +12,11 @@
     <meta property="og:description" content="Encontre profissionais de confiança, delivery, produtos e imóveis em Florianópolis." />
     <meta property="og:image" content="ponte-help.webp" />
     <meta property="og:type" content="website" />
-    <title>Help Floripa | Tudo que você precisa em só lugar</title>  <style>  
+    <title>Help Floripa | Tudo que você precisa em só lugar</title>  
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet" />
+    <style>  
   .page-home,  
   .page-home * {  
     box-sizing: border-box;  
@@ -212,66 +216,186 @@
     line-height: 1;
   }
 
+  .page-home .section-heading {  
+    display: flex;  
+    flex-direction: column;  
+    align-items: center;  
+    text-align: center;  
+    margin: 4px 0 32px;  
+  }  
+
+  .page-home .section-heading .eyebrow {  
+    display: inline-flex;  
+    align-items: center;  
+    gap: 10px;  
+    color: #00adee;  
+    font-family: "Poppins", Arial, sans-serif;  
+    font-weight: 600;  
+    font-size: 12px;  
+    letter-spacing: 3px;  
+    text-transform: uppercase;  
+    margin-bottom: 10px;  
+  }  
+
+  .page-home .section-heading .eyebrow::before,  
+  .page-home .section-heading .eyebrow::after {  
+    content: "";  
+    width: 24px;  
+    height: 1px;  
+    background: rgba(0, 173, 238, 0.6);  
+  }  
+
+  .page-home .section-heading h2 {  
+    font-family: "Poppins", Arial, sans-serif;  
+    font-weight: 600;  
+    font-size: 28px;  
+    color: #fff;  
+    margin: 0 0 8px;  
+  }  
+
+  .page-home .section-heading p {  
+    color: #9aa7b1;  
+    font-size: 14px;  
+    max-width: 480px;  
+    margin: 0;  
+  }  
+
   .page-home .cards {  
     display: grid;  
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));  
-    gap: 20px;  
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));  
+    gap: 24px;  
   }  
 
   .page-home .card {  
-    background: #111;  
-    border: 2px solid #00adee;  
-    border-radius: 12px;  
+    position: relative;  
+    aspect-ratio: 3 / 4;  
+    border-radius: 18px;  
     overflow: hidden;  
-    display: flex;  
-    flex-direction: column;  
-    min-height: 320px;  
-    height: auto;  
+    isolation: isolate;  
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.5);  
+    transition: transform 0.4s ease, box-shadow 0.4s ease;  
+  }  
+
+  .page-home .card:hover {  
+    transform: translateY(-6px);  
+    box-shadow: 0 20px 44px rgba(0, 173, 238, 0.28), 0 8px 18px rgba(0, 0, 0, 0.5);  
   }  
 
   .page-home .card img {  
+    position: absolute;  
+    top: 0;  
+    left: 0;  
+    right: 0;  
+    bottom: 0;  
     width: 100%;  
-    height: 140px;  
+    height: 100%;  
     object-fit: cover;  
+    z-index: 0;  
+    transition: transform 0.6s ease;  
+  }  
+
+  .page-home .card:hover img {  
+    transform: scale(1.07);  
+  }  
+
+  .page-home .card::before {  
+    content: "";  
+    position: absolute;  
+    top: 0;  
+    left: 0;  
+    right: 0;  
+    bottom: 0;  
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0.25) 40%, rgba(4, 4, 4, 0.94) 100%);  
+    z-index: 1;  
+    transition: background 0.4s ease;  
+  }  
+
+  .page-home .card:hover::before {  
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.35) 40%, rgba(2, 2, 2, 0.97) 100%);  
   }  
 
   .page-home .card-content {  
-    padding: 15px;  
+    position: absolute;  
+    left: 0;  
+    right: 0;  
+    bottom: 0;  
+    z-index: 2;  
+    padding: 22px 20px 24px;  
     display: flex;  
     flex-direction: column;  
-    justify-content: space-between;  
-    flex: 1;  
+  }  
+
+  .page-home .card-title-row {  
+    display: flex;  
+    align-items: center;  
+    gap: 12px;  
+    margin-bottom: 10px;  
+  }  
+
+  .page-home .card-icon {  
+    flex-shrink: 0;  
+    width: 38px;  
+    height: 38px;  
+    border-radius: 50%;  
+    background: rgba(0, 173, 238, 0.15);  
+    border: 1px solid rgba(0, 173, 238, 0.6);  
+    backdrop-filter: blur(4px);  
+    display: flex;  
+    align-items: center;  
+    justify-content: center;  
+  }  
+
+  .page-home .card-icon svg {  
+    width: 18px;  
+    height: 18px;  
+    stroke: #00adee;  
   }  
 
   .page-home .card-content h3 {  
-    color: #00adee;  
-    margin-bottom: 10px;  
-    font-size: 18px;  
-    min-height: 44px;
+    font-family: "Poppins", Arial, sans-serif;  
+    color: #fff;  
+    font-weight: 600;  
+    margin: 0;  
+    font-size: 19px;  
   }  
 
   .page-home .card-content p {  
-    flex: 1;  
-    margin-bottom: 12px;  
-    font-size: 13px;  
-    line-height: 1.4;  
+    color: #cdd6db;  
+    margin-bottom: 18px;  
+    font-size: 13.5px;  
+    line-height: 1.55;  
   }  
 
   .page-home .card-content a {  
-    margin-top: auto;
-    text-align: center;  
+    align-self: flex-start;  
+    display: inline-flex;  
+    align-items: center;  
+    gap: 8px;  
     background: #00adee;  
-    color: #000;  
-    padding: 8px;  
-    border-radius: 6px;  
+    color: #061018;  
+    padding: 10px 18px;  
+    border-radius: 30px;  
     text-decoration: none;  
-    font-weight: bold;  
-    font-size: 14px;  
-    transition: 0.3s;  
+    font-family: "Poppins", Arial, sans-serif;  
+    font-weight: 700;  
+    font-size: 13.5px;  
+    transition: background 0.3s ease, gap 0.3s ease, box-shadow 0.3s ease;  
+  }  
+
+  .page-home .card-content a svg {  
+    width: 14px;  
+    height: 14px;  
+    transition: transform 0.3s ease;  
   }  
 
   .page-home .card-content a:hover {  
-    background: #0087c2;  
+    background: #4dc8ff;  
+    gap: 11px;  
+    box-shadow: 0 6px 16px rgba(0, 173, 238, 0.4);  
+  }  
+
+  .page-home .card-content a:hover svg {  
+    transform: translateX(3px);  
   }  
 
   .page-home footer {  
@@ -384,16 +508,16 @@
     }  
 
     .page-home .cards {  
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));  
-      gap: 15px;  
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));  
+      gap: 22px;  
     }  
 
     .page-home .card {  
-      height: auto;  
+      aspect-ratio: 4 / 5;  
     }  
 
-    .page-home .card img {  
-      height: 120px;  
+    .page-home .section-heading h2 {  
+      font-size: 22px;  
     }  
 
     .page-home .hero .hero-menu a {  
@@ -465,22 +589,38 @@
     <button type="button" class="slider-pause" id="sliderPause" aria-label="Pausar carrossel">⏸</button>
   </section>  
 
+  <div class="section-heading">  
+    <span class="eyebrow">Help Floripa</span>  
+    <h2>Encontre o que você precisa</h2>  
+    <p>Profissionais, comida, produtos e imóveis de Florianópolis, reunidos em um só lugar.</p>  
+  </div>  
+
   <section class="cards" aria-label="Categorias de serviços">  
     <div class="card" id="servicos">  
       <img  
         src="servicos.webp"  
         alt="Profissional prestando serviço"  
         width="900"
-        height="140"
+        height="1200"
         loading="lazy"
       />  
       <div class="card-content">  
-        <h3>Serviços</h3>  
+        <div class="card-title-row">  
+          <span class="card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.7 6.3a4 4 0 0 1-5.4 5.4l-6 6a1.5 1.5 0 0 0 2.1 2.1l6-6a4 4 0 0 1 5.4-5.4l-2.6 2.6-2-2Z" />
+            </svg>
+          </span>
+          <h3>Serviços</h3>  
+        </div>  
         <p>  
           Encontre profissionais de confiança para qualquer tipo de serviço  
           em Florianópolis.  
         </p>  
-        <a href="servicos.html">Ver Serviços</a>  
+        <a href="servicos.html">
+          Ver Serviços
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+        </a>  
       </div>  
     </div>  
 
@@ -489,16 +629,26 @@
         src="lanchonetes.webp"  
         alt="Lanches e delivery"  
         width="900"
-        height="140"
+        height="1200"
         loading="lazy"
       />  
       <div class="card-content">  
-        <h3>Lanches e Delivery</h3>  
+        <div class="card-title-row">  
+          <span class="card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 10h18M4 10a8 8 0 0 1 16 0M2 14h20M4 14l1 6h14l1-6" />
+            </svg>
+          </span>
+          <h3>Lanches e Delivery</h3>  
+        </div>  
         <p>  
           Peça comidas deliciosas e bebidas rápidas com delivery eficiente  
           para toda Florianópolis.  
         </p>  
-        <a href="delivery.html">Ver Lanches</a>  
+        <a href="delivery.html">
+          Ver Lanches
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+        </a>  
       </div>  
     </div>  
 
@@ -507,16 +657,26 @@
         src="shopping.webp"  
         alt="Produtos do marketplace Help Floripa"  
         width="900"
-        height="140"
+        height="1200"
         loading="lazy"
       />  
       <div class="card-content">  
-        <h3>Shopping e Produtos</h3>  
+        <div class="card-title-row">  
+          <span class="card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 8h12l-1 12H7L6 8ZM9 8V6a3 3 0 0 1 6 0v2" />
+            </svg>
+          </span>
+          <h3>Shopping e Produtos</h3>  
+        </div>  
         <p>  
           Explore produtos variados de diferentes lojas, direto do  
           marketplace Help Floripa.  
         </p>  
-        <a href="shopping.html">Ver Produtos</a>  
+        <a href="shopping.html">
+          Ver Produtos
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+        </a>  
       </div>  
     </div>  
 
@@ -525,16 +685,26 @@
         src="imoveis.webp"  
         alt="Imóvel disponível para aluguel"  
         width="800"
-        height="140"
+        height="1067"
         loading="lazy"
       />  
       <div class="card-content">  
-        <h3>Aluguéis e Imóveis</h3>  
+        <div class="card-title-row">  
+          <span class="card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 11.5 12 4l8 7.5M6 10v9h12v-9" />
+            </svg>
+          </span>
+          <h3>Aluguéis e Imóveis</h3>  
+        </div>  
         <p>  
           Casas, apartamentos e imóveis comerciais disponíveis para alugar  
           em Florianópolis.  
         </p>  
-        <a href="imoveis.html">Ver Imóveis</a>  
+        <a href="imoveis.html">
+          Ver Imóveis
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+        </a>  
       </div>  
     </div>  
   </section>  
@@ -563,69 +733,4 @@
     const pauseBtn = document.getElementById("sliderPause");  
     const slides = Array.from(track.children);  
     const total = slides.length;  
-    const intervalMs = 4000;  
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;  
-    let index = 0;  
-    let timer = null;  
-
-    slides.forEach((_, i) => {  
-      const dot = document.createElement("button");  
-      dot.type = "button";  
-      dot.className = "slider-dot";  
-      dot.setAttribute("role", "tab");  
-      dot.setAttribute("aria-label", "Ir para o slide " + (i + 1));  
-      dot.addEventListener("click", () => goTo(i));  
-      dotsContainer.appendChild(dot);  
-    });  
-    const dots = Array.from(dotsContainer.children);  
-
-    function update() {  
-      track.style.transform = "translateX(-" + index * 100 + "%)";  
-      dots.forEach((d, i) => d.classList.toggle("active", i === index));  
-    }  
-
-    function goTo(i) {  
-      index = (i + total) % total;  
-      update();  
-    }  
-
-    function next() {  
-      goTo(index + 1);  
-    }  
-
-    function play() {  
-      if (reduceMotion) return;  
-      stop();  
-      timer = setInterval(next, intervalMs);  
-    }  
-
-    function stop() {  
-      if (timer) clearInterval(timer);  
-      timer = null;  
-    }  
-
-    pauseBtn.addEventListener("click", () => {  
-      if (timer) {  
-        stop();  
-        pauseBtn.textContent = "▶";  
-        pauseBtn.setAttribute("aria-label", "Retomar carrossel");  
-      } else {  
-        play();  
-        pauseBtn.textContent = "⏸";  
-        pauseBtn.setAttribute("aria-label", "Pausar carrossel");  
-      }  
-    });  
-
-    update();  
-    if (reduceMotion) {  
-      pauseBtn.textContent = "▶";  
-      pauseBtn.setAttribute("aria-label", "Retomar carrossel");  
-    } else {  
-      play();  
-    }  
-  })();  
-</script>
-
-  </body>  
-  </html>
-  
+    const intervalMs = 
