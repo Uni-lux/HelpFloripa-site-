@@ -260,104 +260,110 @@
     margin: 0;  
   }  
 
-  /* ===== Novo modelo de card: imagem paisagem no topo + selo + conteudo abaixo ===== */  
-
   .page-home .cards {  
     display: grid;  
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));  
-    gap: 18px 16px;  
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));  
+    gap: 24px;  
   }  
 
   .page-home .card {  
-    background: #0d0f12;  
-    border: 2px solid #00adee;  
-    border-radius: 16px;  
+    position: relative;  
+    aspect-ratio: 3 / 4;  
+    border-radius: 18px;  
     overflow: hidden;  
-    display: flex;  
-    flex-direction: column;  
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);  
-    transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;  
+    isolation: isolate;  
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.5);  
+    transition: transform 0.4s ease, box-shadow 0.4s ease;  
   }  
 
   .page-home .card:hover {  
     transform: translateY(-6px);  
-    box-shadow: 0 18px 34px rgba(0, 173, 238, 0.22), 0 8px 18px rgba(0, 0, 0, 0.45);  
-    border-color: rgba(0, 173, 238, 0.7);  
+    box-shadow: 0 20px 44px rgba(0, 173, 238, 0.28), 0 8px 18px rgba(0, 0, 0, 0.5);  
   }  
 
-  .page-home .card-image {  
-    position: relative;  
-    width: 100%;  
-    aspect-ratio: 3 / 2;  
-    overflow: hidden;  
-  }  
-
-  .page-home .card-image img {  
+  .page-home .card img {  
+    position: absolute;  
+    top: 0;  
+    left: 0;  
+    right: 0;  
+    bottom: 0;  
     width: 100%;  
     height: 100%;  
     object-fit: cover;  
-    display: block;  
+    z-index: 0;  
     transition: transform 0.6s ease;  
   }  
 
-  .page-home .card:hover .card-image img {  
-    transform: scale(1.06);  
+  .page-home .card:hover img {  
+    transform: scale(1.07);  
   }  
 
-  .page-home .card-image::after {  
+  .page-home .card::before {  
     content: "";  
+    position: absolute;  
+    top: 0;  
+    left: 0;  
+    right: 0;  
+    bottom: 0;  
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0.25) 40%, rgba(4, 4, 4, 0.94) 100%);  
+    z-index: 1;  
+    transition: background 0.4s ease;  
+  }  
+
+  .page-home .card:hover::before {  
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.35) 40%, rgba(2, 2, 2, 0.97) 100%);  
+  }  
+
+  .page-home .card-content {  
     position: absolute;  
     left: 0;  
     right: 0;  
     bottom: 0;  
-    height: 55%;  
-    background: linear-gradient(180deg, rgba(13, 15, 18, 0) 0%, rgba(13, 15, 18, 0.85) 100%);  
-    pointer-events: none;  
+    z-index: 2;  
+    padding: 22px 20px 24px;  
+    display: flex;  
+    flex-direction: column;  
+  }  
+
+  .page-home .card-title-row {  
+    display: flex;  
+    align-items: center;  
+    gap: 12px;  
+    margin-bottom: 10px;  
   }  
 
   .page-home .card-icon {  
-    position: absolute;  
-    left: 20px;  
-    bottom: -22px;  
-    z-index: 2;  
-    width: 36px;  
-    height: 36px;  
+    flex-shrink: 0;  
+    width: 38px;  
+    height: 38px;  
     border-radius: 50%;  
-    background: #00adee;  
+    background: rgba(0, 173, 238, 0.15);  
+    border: 1px solid rgba(0, 173, 238, 0.6);  
+    backdrop-filter: blur(4px);  
     display: flex;  
     align-items: center;  
     justify-content: center;  
-    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.5);  
-    border: 3px solid #0d0f12;  
   }  
 
   .page-home .card-icon svg {  
-    width: 20px;  
-    height: 20px;  
-    stroke: #061018;  
-  }  
-
-  .page-home .card-content {  
-    padding: 28px 16px 16px;  
-    display: flex;  
-    flex-direction: column;  
-    flex: 1;  
+    width: 18px;  
+    height: 18px;  
+    stroke: #00adee;  
   }  
 
   .page-home .card-content h3 {  
     font-family: "Poppins", Arial, sans-serif;  
     color: #fff;  
     font-weight: 600;  
-    margin: 0 0 8px;  
-    font-size: 18px;  
+    margin: 0;  
+    font-size: 19px;  
   }  
 
   .page-home .card-content p {  
-    color: #9aa7b1;  
+    color: #cdd6db;  
     margin-bottom: 18px;  
     font-size: 13.5px;  
     line-height: 1.55;  
-    flex: 1;  
   }  
 
   .page-home .card-content a {  
@@ -391,8 +397,6 @@
   .page-home .card-content a:hover svg {  
     transform: translateX(3px);  
   }  
-
-  /* ===== fim do modelo de card ===== */  
 
   .page-home footer {  
     background: #111;  
@@ -504,8 +508,12 @@
     }  
 
     .page-home .cards {  
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));  
-      gap: 18px 14px;  
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));  
+      gap: 22px;  
+    }  
+
+    .page-home .card {  
+      aspect-ratio: 4 / 5;  
     }  
 
     .page-home .section-heading h2 {  
@@ -589,16 +597,22 @@
 
   <section class="cards" aria-label="Categorias de serviços">  
     <div class="card" id="servicos">  
-      <div class="card-image">  
-        <img src="servicos.webp" alt="Profissional prestando serviço" width="900" height="600" loading="lazy" />  
-        <span class="card-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14.7 6.3a4 4 0 0 1-5.4 5.4l-6 6a1.5 1.5 0 0 0 2.1 2.1l6-6a4 4 0 0 1 5.4-5.4l-2.6 2.6-2-2Z" />
-          </svg>
-        </span>  
-      </div>  
+      <img  
+        src="servicos.webp"  
+        alt="Profissional prestando serviço"  
+        width="900"
+        height="1200"
+        loading="lazy"
+      />  
       <div class="card-content">  
-        <h3>Serviços</h3>  
+        <div class="card-title-row">  
+          <span class="card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.7 6.3a4 4 0 0 1-5.4 5.4l-6 6a1.5 1.5 0 0 0 2.1 2.1l6-6a4 4 0 0 1 5.4-5.4l-2.6 2.6-2-2Z" />
+            </svg>
+          </span>
+          <h3>Serviços</h3>  
+        </div>  
         <p>  
           Encontre profissionais de confiança para qualquer tipo de serviço  
           em Florianópolis.  
@@ -611,16 +625,22 @@
     </div>  
 
     <div class="card" id="lanches">  
-      <div class="card-image">  
-        <img src="lanchonetes.webp" alt="Lanches e delivery" width="900" height="600" loading="lazy" />  
-        <span class="card-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 10h18M4 10a8 8 0 0 1 16 0M2 14h20M4 14l1 6h14l1-6" />
-          </svg>
-        </span>  
-      </div>  
+      <img  
+        src="lanchonetes.webp"  
+        alt="Lanches e delivery"  
+        width="900"
+        height="1200"
+        loading="lazy"
+      />  
       <div class="card-content">  
-        <h3>Lanches e Delivery</h3>  
+        <div class="card-title-row">  
+          <span class="card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 10h18M4 10a8 8 0 0 1 16 0M2 14h20M4 14l1 6h14l1-6" />
+            </svg>
+          </span>
+          <h3>Lanches e Delivery</h3>  
+        </div>  
         <p>  
           Peça comidas deliciosas e bebidas rápidas com delivery eficiente  
           para toda Florianópolis.  
@@ -633,16 +653,22 @@
     </div>  
 
     <div class="card" id="shopping">  
-      <div class="card-image">  
-        <img src="shopping.webp" alt="Produtos do marketplace Help Floripa" width="900" height="600" loading="lazy" />  
-        <span class="card-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M6 8h12l-1 12H7L6 8ZM9 8V6a3 3 0 0 1 6 0v2" />
-          </svg>
-        </span>  
-      </div>  
+      <img  
+        src="shopping.webp"  
+        alt="Produtos do marketplace Help Floripa"  
+        width="900"
+        height="1200"
+        loading="lazy"
+      />  
       <div class="card-content">  
-        <h3>Shopping e Produtos</h3>  
+        <div class="card-title-row">  
+          <span class="card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 8h12l-1 12H7L6 8ZM9 8V6a3 3 0 0 1 6 0v2" />
+            </svg>
+          </span>
+          <h3>Shopping e Produtos</h3>  
+        </div>  
         <p>  
           Explore produtos variados de diferentes lojas, direto do  
           marketplace Help Floripa.  
@@ -655,16 +681,22 @@
     </div>  
 
     <div class="card" id="alugueis">  
-      <div class="card-image">  
-        <img src="imoveis.webp" alt="Imóvel disponível para aluguel" width="900" height="600" loading="lazy" />  
-        <span class="card-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 11.5 12 4l8 7.5M6 10v9h12v-9" />
-          </svg>
-        </span>  
-      </div>  
+      <img  
+        src="imoveis.webp"  
+        alt="Imóvel disponível para aluguel"  
+        width="800"
+        height="1067"
+        loading="lazy"
+      />  
       <div class="card-content">  
-        <h3>Aluguéis e Imóveis</h3>  
+        <div class="card-title-row">  
+          <span class="card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 11.5 12 4l8 7.5M6 10v9h12v-9" />
+            </svg>
+          </span>
+          <h3>Aluguéis e Imóveis</h3>  
+        </div>  
         <p>  
           Casas, apartamentos e imóveis comerciais disponíveis para alugar  
           em Florianópolis.  
@@ -701,14 +733,4 @@
     const pauseBtn = document.getElementById("sliderPause");  
     const slides = Array.from(track.children);  
     const total = slides.length;  
-    const intervalMs = 4000;  
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;  
-    let index = 0;  
-    let timer = null;  
-
-    slides.forEach((_, i) => {  
-      const dot = document.createElement("button");  
-      dot.type = "button";  
-      dot.className = "slider-dot";  
-      dot.setAttribute("role", "tab");  
-      dot.setAttribute("ari
+    const intervalMs = 
