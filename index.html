@@ -73,21 +73,19 @@
   }  
 
   .page-home .hero {  
-    width: 100%;
-    max-width: 1100px;
-    margin: 0 auto 35px;
-    aspect-ratio: 3 / 2;
     background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)),
       url("ponte-help.webp");
-    background-position: center, center;
+    background-position: center, center 30%;
     background-repeat: no-repeat, no-repeat;
     background-size: cover, cover;
+    height: 320px;  
     border-radius: 15px;  
     display: flex;  
     flex-direction: column;  
     align-items: center;  
     justify-content: center;  
     text-align: center;  
+    margin-bottom: 35px;  
     color: #00adee;  
     font-size: 28px;  
     font-weight: bold;  
@@ -233,10 +231,8 @@
 
   .page-home .card img {  
     width: 100%;  
-    aspect-ratio: 4 / 3;  
+    height: 140px;  
     object-fit: cover;  
-    object-position: center;  
-    display: block;  
   }  
 
   .page-home .card-content {  
@@ -347,6 +343,7 @@
     }  
 
     .page-home .hero {  
+      background-position: center, center;
       height: 300px;  
       font-size: 24px;  
     }  
@@ -393,6 +390,10 @@
 
     .page-home .card {  
       height: auto;  
+    }  
+
+    .page-home .card img {  
+      height: 120px;  
     }  
 
     .page-home .hero .hero-menu a {  
@@ -469,8 +470,8 @@
       <img  
         src="servicos.webp"  
         alt="Profissional prestando serviço"  
-        width="800"
-        height="534"
+        width="900"
+        height="140"
         loading="lazy"
       />  
       <div class="card-content">  
@@ -488,7 +489,7 @@
         src="lanchonetes.webp"  
         alt="Lanches e delivery"  
         width="900"
-        height="600"
+        height="140"
         loading="lazy"
       />  
       <div class="card-content">  
@@ -506,7 +507,7 @@
         src="shopping.webp"  
         alt="Produtos do marketplace Help Floripa"  
         width="900"
-        height="600"
+        height="140"
         loading="lazy"
       />  
       <div class="card-content">  
@@ -524,7 +525,7 @@
         src="imoveis.webp"  
         alt="Imóvel disponível para aluguel"  
         width="800"
-        height="533"
+        height="140"
         loading="lazy"
       />  
       <div class="card-content">  
@@ -626,4 +627,5 @@
 </script>
 
   </body>  
-</html>
+  </html>
+  
