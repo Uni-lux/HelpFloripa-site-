@@ -6,8 +6,6 @@
   let statusListenersBound = false;
   let activeStatusDot = null;
 
-  // Estado de autenticação compartilhado, usado também pelo guardião de links
-  // protegidos (evita redirecionar por engano antes do Firebase confirmar a sessão).
   let authReady = false;
   let currentAuthUser = null;
   let resolveAuthReady;
@@ -15,9 +13,6 @@
     resolveAuthReady = resolve;
   });
 
-  // Compatibilidade: mantemos a API pública window.HelpPerfil.getUser/saveUser/clearUser
-  // para não quebrar outras páginas que ainda a chamem, mas nada é mais persistido
-  // no localStorage. Dados de sessão ficam só sob controle do Firebase Auth.
   function getUser() {
     return null;
   }
