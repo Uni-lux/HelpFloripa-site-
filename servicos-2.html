@@ -1,0 +1,911 @@
+<!DOCTYPE html>  <html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Encontre profissionais avaliados de limpeza, reforma, saúde e beleza e transporte em Florianópolis." />
+
+    <!-- Evita mostrar a página antes de confirmar que o usuário está logado -->
+    <style>html.hf-auth-checking { visibility: hidden; }</style>
+    <script>document.documentElement.classList.add('hf-auth-checking');</script>
+
+    <title>Serviços | Help Floripa</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet" />
+    <style>
+  .page-home,
+  .page-home * {
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+  }
+
+  .page-home {
+    margin: 0;
+    padding: 0;
+    background: #000;
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .page-home .sidebar {
+    width: 220px;
+    background: #000;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s ease;
+    z-index: 1000;
+  }
+
+  .page-home .sidebar h2 {
+    color: #00adee;
+    text-align: center;
+    margin-bottom: 25px;
+    font-size: 22px;
+  }
+
+  .page-home .sidebar a {
+    color: #fff;
+    text-decoration: none;
+    padding: 12px;
+    margin: 6px 0;
+    border-radius: 6px;
+    transition: 0.3s;
+    display: block;
+  }
+
+  .page-home .sidebar a:hover {
+    background: #00adee;
+    color: #000;
+  }
+
+  .page-home .main-content {
+    margin-left: 240px;
+    padding: 25px;
+    transition: margin-left 0.3s;
+    flex: 1;
+  }
+
+  /* Hero, no mesmo espírito do da home: cartão escuro com brilho azul */
+  .page-home .hero {
+    background:
+      radial-gradient(circle at 20% 15%, rgba(0, 173, 238, 0.22), transparent 55%),
+      linear-gradient(160deg, #0c1116 0%, #000 65%);
+    min-height: 300px;
+    border-radius: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    margin-bottom: 35px;
+    padding: 36px 20px;
+    box-shadow: 0 0 20px rgba(0, 173, 238, 0.5);
+  }
+
+  .page-home .hero .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: #00adee;
+    font-family: "Poppins", Arial, sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  .page-home .hero .eyebrow::before,
+  .page-home .hero .eyebrow::after {
+    content: "";
+    width: 24px;
+    height: 1px;
+    background: rgba(0, 173, 238, 0.6);
+  }
+
+  .page-home .hero h1 {
+    font-family: "Poppins", Arial, sans-serif;
+    font-weight: 700;
+    color: #fff;
+    font-size: 30px;
+    margin: 0 0 10px;
+    max-width: 640px;
+  }
+
+  .page-home .hero h1 span {
+    color: #00adee;
+  }
+
+  .page-home .hero span.lead {
+    font-size: 15px;
+    color: #9aa7b1;
+    max-width: 480px;
+    display: block;
+  }
+
+  .page-home .icon-navbar {
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+  }
+
+  .page-home .icon-nav-btn {
+    position: relative;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1.5px solid rgba(0, 173, 238, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #00adee;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
+  }
+
+  .page-home .icon-nav-btn svg {
+    width: 20px;
+    height: 20px;
+    stroke: #00adee;
+    fill: none;
+  }
+
+  .page-home .icon-nav-btn:hover {
+    background: rgba(0, 173, 238, 0.18);
+    transform: translateY(-2px);
+  }
+
+  .page-home .icon-nav-btn.active {
+    background: #00adee;
+    border-color: #00adee;
+  }
+
+  .page-home .icon-nav-btn.active svg {
+    stroke: #04121a;
+  }
+
+  .page-home .icon-nav-btn.is-disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+
+  .page-home .icon-nav-btn.is-disabled:hover {
+    background: rgba(0, 0, 0, 0.4);
+    transform: none;
+  }
+
+  .page-home .icon-nav-btn.profile-nav-btn {
+    overflow: hidden;
+    padding: 0;
+  }
+
+  .page-home .icon-nav-btn.profile-nav-btn img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+
+  .page-home .icon-nav-btn .nav-status-dot {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    border: 2px solid #000;
+    background: #e74c3c;
+  }
+
+  .page-home .icon-nav-btn .nav-status-dot.online {
+    background: #2ecc71;
+  }
+
+  /* Busca: usa a mesma paleta e tipografia da marca */
+  .page-home .search-panel {
+    margin-top: 26px;
+    width: 100%;
+    max-width: 640px;
+  }
+
+  .page-home .search-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #111;
+    border: 2px solid #00adee;
+    border-radius: 14px;
+    padding: 6px 8px 6px 16px;
+  }
+
+  .page-home .search-box svg {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    stroke: #9aa7b1;
+  }
+
+  .page-home .search-box input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #fff;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    padding: 11px 0;
+  }
+
+  .page-home .search-box input::placeholder {
+    color: #6b7680;
+  }
+
+  .page-home .search-box button {
+    flex-shrink: 0;
+    background: #00adee;
+    color: #000;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 18px;
+    font-family: "Poppins", Arial, sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+
+  .page-home .search-box button:hover {
+    background: #0087c2;
+  }
+
+  .page-home .filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .page-home .chip {
+    border: 1px solid rgba(0, 173, 238, 0.5);
+    background: transparent;
+    color: #9aa7b1;
+    border-radius: 30px;
+    padding: 6px 15px;
+    font-family: Arial, sans-serif;
+    font-size: 12.5px;
+    cursor: pointer;
+    transition: 0.25s ease;
+  }
+
+  .page-home .chip:hover {
+    color: #fff;
+    border-color: #00adee;
+  }
+
+  .page-home .chip.active {
+    background: #00adee;
+    border-color: #00adee;
+    color: #000;
+    font-weight: 700;
+  }
+
+  /* Seção de categorias: mesmo padrão "eyebrow + h2 + p" da home */
+  .page-home .section-heading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin: 4px 0 28px;
+  }
+
+  .page-home .section-heading .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: #00adee;
+    font-family: "Poppins", Arial, sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .page-home .section-heading .eyebrow::before,
+  .page-home .section-heading .eyebrow::after {
+    content: "";
+    width: 24px;
+    height: 1px;
+    background: rgba(0, 173, 238, 0.6);
+  }
+
+  .page-home .section-heading h2 {
+    font-family: "Poppins", Arial, sans-serif;
+    font-weight: 600;
+    font-size: 26px;
+    color: #fff;
+    margin: 0 0 8px;
+  }
+
+  .page-home .section-heading p {
+    color: #9aa7b1;
+    font-size: 14px;
+    max-width: 480px;
+    margin: 0;
+  }
+
+  .page-home .result-count {
+    text-align: center;
+    color: #6b7680;
+    font-size: 12.5px;
+    margin: -14px 0 22px;
+  }
+
+  /* Cards: banner com imagem, degradê e selo de ícone — igual à home */
+  .page-home .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px;
+  }
+
+  .page-home .card {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    border: 2px solid #00adee;
+    border-radius: 18px;
+    overflow: hidden;
+    isolation: isolate;
+    box-shadow: 0 0 20px rgba(0, 173, 238, 0.5);
+    transition: transform 0.4s ease, box-shadow 0.4s ease, opacity 0.25s ease;
+  }
+
+  .page-home .card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 0 28px rgba(0, 173, 238, 0.7);
+  }
+
+  .page-home .card.is-hidden {
+    display: none;
+  }
+
+  .page-home .card img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+    transition: transform 0.6s ease;
+  }
+
+  .page-home .card:hover img {
+    transform: scale(1.07);
+  }
+
+  .page-home .card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0.25) 40%, rgba(4, 4, 4, 0.94) 100%);
+    z-index: 1;
+    transition: background 0.4s ease;
+  }
+
+  .page-home .card:hover::before {
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.35) 40%, rgba(2, 2, 2, 0.97) 100%);
+  }
+
+  .page-home .card-content {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2;
+    padding: 16px 18px 18px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .page-home .card-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+
+  .page-home .card-icon {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(0, 173, 238, 0.15);
+    border: 1px solid rgba(0, 173, 238, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .page-home .card-icon svg {
+    width: 15px;
+    height: 15px;
+    stroke: #00adee;
+  }
+
+  .page-home .card-content h3 {
+    font-family: "Poppins", Arial, sans-serif;
+    color: #fff;
+    font-weight: 600;
+    margin: 0;
+    font-size: 17px;
+  }
+
+  .page-home .card-content p {
+    color: #cdd6db;
+    margin-bottom: 12px;
+    font-size: 12.5px;
+    line-height: 1.4;
+  }
+
+  .page-home .card-content a {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #00adee;
+    color: #061018;
+    padding: 8px 16px;
+    border-radius: 30px;
+    text-decoration: none;
+    font-family: "Poppins", Arial, sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    transition: background 0.3s ease, gap 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .page-home .card-content a svg {
+    width: 12px;
+    height: 12px;
+    transition: transform 0.3s ease;
+  }
+
+  .page-home .card-content a:hover {
+    background: #4dc8ff;
+    gap: 11px;
+    box-shadow: 0 6px 16px rgba(0, 173, 238, 0.4);
+  }
+
+  .page-home .card-content a:hover svg {
+    transform: translateX(3px);
+  }
+
+  .page-home .empty-state {
+    display: none;
+    text-align: center;
+    padding: 44px 20px;
+    color: #9aa7b1;
+    border: 1px dashed rgba(0, 173, 238, 0.4);
+    border-radius: 16px;
+  }
+
+  .page-home .empty-state.visible {
+    display: block;
+  }
+
+  .page-home .empty-state strong {
+    display: block;
+    color: #fff;
+    font-family: "Poppins", Arial, sans-serif;
+    font-size: 15px;
+    margin-bottom: 6px;
+  }
+
+  /* Faixa final, no mesmo tom da marca */
+  .page-home .cta-strip {
+    margin: 40px 0 10px;
+    padding: 26px 28px;
+    border-radius: 18px;
+    background: linear-gradient(120deg, rgba(0, 173, 238, 0.14), rgba(0, 173, 238, 0.02));
+    border: 1px solid rgba(0, 173, 238, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+
+  .page-home .cta-strip h3 {
+    font-family: "Poppins", Arial, sans-serif;
+    font-size: 17px;
+    margin: 0 0 6px;
+  }
+
+  .page-home .cta-strip p {
+    margin: 0;
+    color: #9aa7b1;
+    font-size: 13.5px;
+  }
+
+  .page-home .cta-strip a {
+    flex-shrink: 0;
+    background: #00adee;
+    color: #000;
+    text-decoration: none;
+    font-family: "Poppins", Arial, sans-serif;
+    font-weight: 700;
+    font-size: 13.5px;
+    padding: 11px 20px;
+    border-radius: 10px;
+    transition: 0.3s;
+  }
+
+  .page-home .cta-strip a:hover {
+    background: #0087c2;
+  }
+
+  .page-home footer {
+    background: #111;
+    color: #aaa;
+    text-align: center;
+    padding: 15px;
+    font-size: 13px;
+    border-top: 1px solid #222;
+  }
+
+  .page-home footer p {
+    margin: 4px 0;
+  }
+
+  .page-home footer nav {
+    display: inline-flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .page-home footer a {
+    color: #00adee;
+    text-decoration: none;
+    margin: 0 8px;
+  }
+
+  .page-home footer a:hover {
+    text-decoration: underline;
+  }
+
+  .page-home .menu-toggle {
+    font-size: 24px;
+    cursor: pointer;
+    color: #00adee;
+    background: transparent;
+    border: none;
+    padding: 0;
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    z-index: 1100;
+    display: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .page-home * {
+      transition: none !important;
+    }
+  }
+
+  @media (max-width: 1024px) {
+    .page-home .main-content {
+      margin-left: 0;
+      padding-top: 60px;
+    }
+
+    .page-home .sidebar {
+      transform: translateX(-250px);
+      padding-top: 55px;
+    }
+
+    .page-home .sidebar.active {
+      transform: translateX(0);
+    }
+
+    .page-home .menu-toggle {
+      display: block;
+    }
+
+    .page-home .hero {
+      min-height: 260px;
+      padding: 30px 18px;
+    }
+
+    .page-home .hero h1 {
+      font-size: 24px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .page-home .cards {
+      grid-template-columns: 1fr;
+    }
+
+    .page-home .card {
+      aspect-ratio: 16 / 10;
+    }
+
+    .page-home .section-heading h2 {
+      font-size: 22px;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .page-home .search-box {
+      flex-wrap: wrap;
+      padding: 12px;
+    }
+
+    .page-home .search-box input {
+      width: 100%;
+      order: 2;
+      padding: 6px 0 2px;
+    }
+
+    .page-home .search-box button {
+      order: 3;
+      width: 100%;
+    }
+
+    .page-home .cta-strip {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .page-home .cta-strip a {
+      width: 100%;
+      text-align: center;
+    }
+  }
+</style>
+
+    <script type="module" src="firebase.js"></script>
+    <script type="module" src="auth-guard.js"></script>
+    <script type="module" src="perfil.js"></script>
+  </head>
+  <body class="page-home">
+    <nav class="sidebar" id="sidebar" aria-label="Menu principal">
+      <h2>Help Floripa</h2>
+      <a href="login.html" id="perfilUsuarioBtn" class="profile-menu-link">Entrar / Login</a>
+      <a href="profissionais.html">Profissionais</a>
+      <a href="clientes.html">Clientes</a>
+      <a href="contato.html">Contato</a>
+      <a href="ajuda.html">Ajuda</a>
+      <a href="sobre.html">Sobre</a>
+    </nav>
+    <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Abrir menu" aria-expanded="false" aria-controls="sidebar">☰</button>
+
+    <main class="main-content">
+      <section class="hero">
+        <span class="eyebrow">Você está em Serviços</span>
+        <h1>Profissionais de confiança, <span>a um clique de distância</span></h1>
+        <span class="lead">Faxina, reforma, beleza ou transporte — busque o serviço que precisa e encontre quem resolve perto de você.</span>
+
+        <div class="icon-navbar" id="heroIconNavbar" aria-label="Atalhos rápidos">
+          <a href="index.html" class="icon-nav-btn" aria-label="Início">
+            <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"></path><path d="M5.5 10v9.5h13V10"></path></svg>
+          </a>
+
+          <a href="login.html" id="heroNavProfileBtn" class="icon-nav-btn profile-nav-btn" aria-label="Meu perfil">
+            <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"></circle><path d="M4.5 20a7.5 7.5 0 0 1 15 0"></path></svg>
+          </a>
+
+          <button type="button" class="icon-nav-btn is-disabled" aria-label="Mensagens (em breve)" title="Em breve">
+            <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H7l-3 3V5Z"></path></svg>
+          </button>
+
+          <button type="button" class="icon-nav-btn is-disabled" aria-label="Notificações (em breve)" title="Em breve">
+            <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 0 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 13 6 9Z"></path><path d="M10 19a2 2 0 0 0 4 0"></path></svg>
+          </button>
+        </div>
+
+        <div class="search-panel">
+          <form class="search-box" id="searchForm" role="search">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="7"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="searchInput" placeholder="Buscar por serviço (ex: pintor, diarista, manicure)" aria-label="Buscar serviço" />
+            <button type="submit">Buscar</button>
+          </form>
+
+          <div class="filter-chips" id="filterChips" role="group" aria-label="Filtrar por categoria">
+            <button type="button" class="chip active" data-filter="todos">Todos</button>
+            <button type="button" class="chip" data-filter="limpeza">Limpeza</button>
+            <button type="button" class="chip" data-filter="reformas">Reformas</button>
+            <button type="button" class="chip" data-filter="beleza">Saúde e Beleza</button>
+            <button type="button" class="chip" data-filter="transporte">Transporte</button>
+          </div>
+        </div>
+      </section>
+
+      <div class="section-heading">
+        <span class="eyebrow">Categorias</span>
+        <h2>Escolha o que você precisa</h2>
+        <p>Cada categoria reúne profissionais avaliados por outros moradores de Florianópolis.</p>
+      </div>
+
+      <p class="result-count" id="resultCount">4 categorias disponíveis</p>
+
+      <section class="cards" id="cardsGrid" aria-label="Categorias de serviços">
+        <div class="card" data-filter="limpeza" data-keywords="limpeza faxina diarista passadeira casa empresa">
+          <img src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=800&q=80" alt="Profissional de limpeza organizando um ambiente" loading="lazy" />
+          <div class="card-content">
+            <div class="card-title-row">
+              <span class="card-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 20l4-4"></path>
+                  <path d="M9.5 14.5L19 5a2.1 2.1 0 0 0-3-3L6.5 11.5"></path>
+                  <path d="M6.5 11.5 9.5 14.5"></path>
+                  <path d="M4 20l-1-3 3-1"></path>
+                </svg>
+              </span>
+              <h3>Limpeza e Cuidados</h3>
+            </div>
+            <p>Diaristas, faxineiras e passadeiras avaliadas para deixar sua casa ou empresa em ordem.</p>
+            <a href="profissionais.html?categoria=limpeza">
+              Ver profissionais
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+            </a>
+          </div>
+        </div>
+
+        <div class="card" data-filter="reformas" data-keywords="obras reformas pedreiro pintor eletricista manutencao">
+          <img src="https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=800&q=80" alt="Profissional de obras trabalhando em uma reforma" loading="lazy" />
+          <div class="card-content">
+            <div class="card-title-row">
+              <span class="card-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                </svg>
+              </span>
+              <h3>Obras e Reformas</h3>
+            </div>
+            <p>Pedreiros, pintores e eletricistas prontos para tocar sua reforma do início ao fim.</p>
+            <a href="profissionais.html?categoria=reformas">
+              Ver profissionais
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+            </a>
+          </div>
+        </div>
+
+        <div class="card" data-filter="beleza" data-keywords="saude beleza cabeleireiro manicure massagista estetica">
+          <img src="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=800&q=80" alt="Profissional de beleza atendendo uma cliente" loading="lazy" />
+          <div class="card-content">
+            <div class="card-title-row">
+              <span class="card-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 1 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"></path>
+                </svg>
+              </span>
+              <h3>Saúde e Beleza</h3>
+            </div>
+            <p>Cabeleireiros, manicures e massagistas para cuidar de você sem sair de casa.</p>
+            <a href="profissionais.html?categoria=beleza">
+              Ver profissionais
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+            </a>
+          </div>
+        </div>
+
+        <div class="card" data-filter="transporte" data-keywords="transporte logistica entregador motorista frete">
+          <img src="https://images.unsplash.com/photo-1529070538774-1843cb3265df?auto=format&fit=crop&w=800&q=80" alt="Motorista realizando uma entrega" loading="lazy" />
+          <div class="card-content">
+            <div class="card-title-row">
+              <span class="card-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="1" y="7" width="15" height="10" rx="1"></rect>
+                  <path d="M16 10h3.5a1 1 0 0 1 .9.55L22 14v3h-6"></path>
+                  <circle cx="6" cy="18.5" r="1.6"></circle>
+                  <circle cx="17.5" cy="18.5" r="1.6"></circle>
+                </svg>
+              </span>
+              <h3>Transporte e Logística</h3>
+            </div>
+            <p>Motoristas e entregadores para o que você precisa levar, buscar ou entregar hoje.</p>
+            <a href="profissionais.html?categoria=transporte">
+              Ver profissionais
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <div class="empty-state" id="emptyState">
+        <strong>Nenhum resultado para essa busca</strong>
+        Tente outro termo ou volte para "Todos" nos filtros acima.
+      </div>
+
+      <div class="cta-strip">
+        <div>
+          <h3>É um profissional autônomo?</h3>
+          <p>Cadastre seu perfil e comece a receber pedidos de clientes em Florianópolis.</p>
+        </div>
+        <a href="cadastre-se.html">Cadastre-se grátis</a>
+      </div>
+    </main>
+
+    <footer>
+      <p>CNPJ: 61.935.934/0001-00</p>
+      <nav aria-label="Links institucionais">
+        <a href="termos.html">Termos de Uso</a> |
+        <a href="privacidade.html">Política de Privacidade</a>
+      </nav>
+      <p>&copy; 2025 Help Floripa - Todos os direitos reservados.</p>
+    </footer>
+
+    <script>
+      function toggleSidebar() {
+        const sidebar = document.getElementById("sidebar");
+        const btn = document.querySelector(".menu-toggle");
+        const isActive = sidebar.classList.toggle("active");
+        btn.setAttribute("aria-expanded", isActive ? "true" : "false");
+      }
+
+      (function () {
+        const cards = Array.from(document.querySelectorAll("#cardsGrid .card"));
+        const chips = Array.from(document.querySelectorAll("#filterChips .chip"));
+        const searchForm = document.getElementById("searchForm");
+        const searchInput = document.getElementById("searchInput");
+        const resultCount = document.getElementById("resultCount");
+        const emptyState = document.getElementById("emptyState");
+
+        let activeFilter = "todos";
+
+        function applyFilters() {
+          const term = searchInput.value.trim().toLowerCase();
+          let visibleCount = 0;
+
+          cards.forEach((card) => {
+            const matchesFilter = activeFilter === "todos" || card.dataset.filter === activeFilter;
+            const keywords = card.dataset.keywords || "";
+            const matchesSearch = !term || keywords.includes(term) || card.querySelector("h3").textContent.toLowerCase().includes(term);
+            const visible = matchesFilter && matchesSearch;
+
+            card.classList.toggle("is-hidden", !visible);
+            if (visible) visibleCount += 1;
+          });
+
+          resultCount.textContent = visibleCount === cards.length
+            ? `${cards.length} categorias disponíveis`
+            : `${visibleCount} de ${cards.length} categorias`;
+
+          emptyState.classList.toggle("visible", visibleCount === 0);
+        }
+
+        chips.forEach((chip) => {
+          chip.addEventListener("click", () => {
+            chips.forEach((c) => c.classList.remove("active"));
+            chip.classList.add("active");
+            activeFilter = chip.dataset.filter;
+            applyFilters();
+          });
+        });
+
+        searchForm.addEventListener("submit", (event) => {
+          event.preventDefault();
+          applyFilters();
+        });
+
+        searchInput.addEventListener("input", applyFilters);
+      })();
+    </script>
+  </body>
+  </html>
