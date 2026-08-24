@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Help Floripa | Cadastre-se</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--blue:#00adee;--blue2:#4dc8ff;--bg:#000;--panel:#0b0d0f;--muted:#a8b2b8}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:var(--bg);color:#fff;min-height:100vh}
+.page{min-height:100vh;display:flex;flex-direction:column}
+.topbar{height:76px;display:flex;align-items:center;justify-content:center;position:relative;border-bottom:1px solid rgba(0,173,238,.14);background:#000}
+.brand{text-decoration:none;text-align:center;line-height:1;font-family:Poppins,Arial,sans-serif}
+.brand strong{font-size:23px;font-weight:800;color:#fff}.brand strong span{color:var(--blue)}
+.brand small{display:block;margin-top:5px;color:#cdd5d9;font-size:7px;letter-spacing:1.25px}
+.menu-toggle{position:absolute;left:17px;top:17px;width:42px;height:42px;border:0;background:transparent}
+.menu-toggle:before{content:"";position:absolute;left:5px;top:10px;width:31px;height:3px;border-radius:3px;background:var(--blue);box-shadow:0 9px 0 var(--blue),0 18px 0 var(--blue)}
+.actions{position:absolute;right:14px;top:14px;display:flex;gap:10px}.icon{width:42px;height:42px;border:0;background:transparent;color:#eaf2f5;display:grid;place-items:center}.icon svg{width:29px;height:29px}
+main{width:min(1120px,100%);margin:auto;padding:30px 24px 42px;flex:1}
+.hero{min-height:300px;border:2px solid var(--blue);border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px;box-shadow:0 0 22px rgba(0,173,238,.45);background:radial-gradient(circle at 20% 20%,rgba(0,173,238,.22),transparent 32%),radial-gradient(circle at 80% 80%,rgba(0,173,238,.13),transparent 30%),linear-gradient(135deg,#071018,#020405 60%,#07131b)}
+.hero h1{font-family:Poppins,Arial,sans-serif;font-size:clamp(28px,4vw,44px);line-height:1.15;margin-bottom:12px}.hero h1 span{color:var(--blue)}.hero p{color:#cbd5da;font-size:16px;max-width:600px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:28px}
+.card{min-height:330px;border:1px solid rgba(0,173,238,.65);border-radius:18px;background:linear-gradient(145deg,#101417,#050607);padding:28px 24px;display:flex;flex-direction:column;transition:.25s}.card:hover{transform:translateY(-5px);border-color:var(--blue);box-shadow:0 0 24px rgba(0,173,238,.22)}
+.card-icon{width:58px;height:58px;border-radius:16px;background:rgba(0,173,238,.12);border:1px solid rgba(0,173,238,.5);display:grid;place-items:center;margin-bottom:24px;color:var(--blue)}.card-icon svg{width:29px;height:29px}
+.card h2{font-family:Poppins,Arial,sans-serif;font-size:20px;margin-bottom:10px}.card p{color:var(--muted);font-size:14px;line-height:1.55;flex:1}.card a{margin-top:22px;text-align:center;text-decoration:none;font-family:Poppins,Arial,sans-serif;font-weight:700;font-size:13px;color:#031018;background:var(--blue);padding:12px 16px;border-radius:10px}.card a:hover{background:var(--blue2)}
+footer{background:#0b0b0b;border-top:1px solid #202427;text-align:center;color:#858f95;padding:18px;font-size:12px;line-height:1.8}footer a{color:var(--blue);text-decoration:none;margin:0 7px}
+@media(max-width:800px){.cards{grid-template-columns:1fr}.hero{min-height:260px}.actions{right:8px;gap:2px}.icon{width:38px;height:38px}.menu-toggle{left:12px}}
+@media(max-width:480px){main{padding:22px 12px 30px}.topbar{height:72px}.brand strong{font-size:20px}.hero{min-height:235px;padding:22px}.hero h1{font-size:27px}.hero p{font-size:14px}.card{min-height:285px;padding:23px}}
+</style>
+
+<style id="cadastro-cards-images">
+.hero{
+  position:relative;
+  overflow:hidden;
+  background:
+    linear-gradient(135deg,rgba(0,0,0,.90),rgba(0,0,0,.52)),
+    url("ponte-help.webp") center/cover no-repeat;
+  border:1px solid rgba(0,173,238,.55);
+  box-shadow:0 0 25px rgba(0,173,238,.22);
+}
+.cards{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:18px!important;
+}
+.card{
+  position:relative!important;
+  min-height:330px!important;
+  padding:0!important;
+  overflow:hidden!important;
+  border:1px solid rgba(0,173,238,.65)!important;
+  border-radius:18px!important;
+  background:#05090b!important;
+  box-shadow:0 0 18px rgba(0,173,238,.18)!important;
+  transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease!important;
+}
+.card:hover{
+  transform:translateY(-4px);
+  border-color:#00adee!important;
+  box-shadow:0 0 28px rgba(0,173,238,.38)!important;
+}
+.card-image{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center;
+}
+.card-overlay{
+  position:absolute;
+  inset:0;
+  background:linear-gradient(180deg,rgba(0,0,0,.12) 0%,rgba(0,0,0,.50) 43%,rgba(0,0,0,.94) 100%);
+}
+.card-content{
+  position:absolute!important;
+  left:20px!important;
+  right:20px!important;
+  bottom:20px!important;
+  z-index:2;
+}
+.card h2{
+  margin:0 0 8px!important;
+  color:#fff!important;
+  font-size:21px!important;
+  line-height:1.18!important;
+}
+.card p{
+  margin:0 0 15px!important;
+  color:#d7dfe3!important;
+  font-size:13px!important;
+  line-height:1.45!important;
+}
+.card a{
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:8px!important;
+  width:max-content!important;
+  padding:9px 14px!important;
+  border-radius:30px!important;
+  background:#00adee!important;
+  color:#061018!important;
+  font-weight:700!important;
+  text-decoration:none!important;
+}
+.card a span{
+  font-size:16px;
+  line-height:1;
+}
+@media(max-width:800px){
+  .cards{grid-template-columns:1fr!important}
+  .card{min-height:290px!important}
+}
+@media(max-width:480px){
+  .hero{min-height:235px!important}
+  .card{min-height:275px!important}
+  .card-content{left:17px!important;right:17px!important;bottom:17px!important}
+  .card h2{font-size:20px!important}
+  .card p{font-size:12px!important}
+}
+</style>
+
+</head>
+<body>
+<div class="page">
+<header class="topbar">
+<button class="menu-toggle" type="button" aria-label="Abrir menu"></button>
+<a class="brand" href="index.html"><strong>HELP <span>FLORIPA</span></strong><small>TUDO QUE VOCÊ PRECISA EM SÓ LUGAR</small></a>
+<div class="actions">
+<button class="icon" type="button" aria-label="Notificações"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg></button>
+<a class="icon" href="login.html" aria-label="Meu perfil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="9" r="3"/><path d="M6.5 19c1.4-3 3.3-4.5 5.5-4.5S16.1 16 17.5 19"/></svg></a>
+</div>
+</header>
+<main>
+<section class="hero"><h1>Cadastre-se na <span>Help Floripa</span></h1><p>Faça parte da nossa plataforma e escolha a opção que melhor combina com você.</p></section>
+<section class="cards" aria-label="Opções de cadastro">
+  <article class="card">
+    <img class="card-image" src="servicos.webp" alt="Cliente utilizando serviços da Help Floripa" loading="lazy">
+    <div class="card-overlay"></div>
+    <div class="card-content">
+      <h2>Quero ser Cliente</h2>
+      <p>Crie sua conta para encontrar serviços, produtos, delivery e outras opções disponíveis na Help Floripa.</p>
+      <a href="cadastrar.html">Cadastrar como Cliente <span>→</span></a>
+    </div>
+  </article>
+
+  <article class="card">
+    <img class="card-image" src="profissional.webp" alt="Profissional oferecendo serviços na Help Floripa" loading="lazy">
+    <div class="card-overlay"></div>
+    <div class="card-content">
+      <h2>Cadastre-se como Profissional</h2>
+      <p>Divulgue seu trabalho, apresente seus serviços e encontre novos clientes através da plataforma.</p>
+      <a href="cadastro.profissional.html">Cadastrar <span>→</span></a>
+    </div>
+  </article>
+
+  <article class="card">
+    <img class="card-image" src="parcerias.webp" alt="Parcerias comerciais com a Help Floripa" loading="lazy">
+    <div class="card-overlay"></div>
+    <div class="card-content">
+      <h2>Fazer Parceria Conosco</h2>
+      <p>Quer crescer junto com a Help Floripa? Conheça nossas oportunidades para sócios e parceiros.</p>
+      <a href="socios-parcerias.html">Quero Fazer Parceria <span>→</span></a>
+    </div>
+  </article>
+</section>
+</main>
+<footer><p>CNPJ: 61.935.934/0001-00</p><p><a href="termos.html">Termos de Uso</a> | <a href="privacidade.html">Política de Privacidade</a></p><p>&copy; 2025 Help Floripa - Todos os direitos reservados.</p></footer>
+</div>
+</body>
+</html>
