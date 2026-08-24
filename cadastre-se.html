@@ -249,21 +249,23 @@
 
   .page-home .card-icon {
     flex-shrink: 0;
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
-    background: rgba(0, 173, 238, 0.15);
-    border: 1px solid rgba(0, 173, 238, 0.6);
+    background: rgba(0, 173, 238, 0.12);
+    border: 1px solid rgba(0, 173, 238, 0.4);
     backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
   }
 
-  .page-home .card-icon svg {
-    width: 19px;
-    height: 19px;
-    stroke: #00adee;
+  .page-home .card-icon img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    display: block;
   }
 
   .page-home .card-content h3 {
@@ -370,7 +372,6 @@
     box-shadow: 0 9px 0 #00adee, 0 18px 0 #00adee;
   }
 
-  /* Cabeçalho fixo: logo central + notificações + perfil, em qualquer tamanho de tela */
   .mobile-topbar {
     display: flex;
     position: fixed;
@@ -576,10 +577,7 @@
         <div class="card-content">
           <div class="card-title-row">
             <span class="card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="8" r="3.2"></circle>
-                <path d="M5.5 20c.8-4 3-6 6.5-6s5.7 2 6.5 6"></path>
-              </svg>
+              <img src="painel.clientes.webp" alt="Ícone Cliente" width="28" height="28" loading="lazy" />
             </span>
             <h3>Quero ser Cliente</h3>
           </div>
@@ -599,9 +597,7 @@
         <div class="card-content">
           <div class="card-title-row">
             <span class="card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 20h16M7 20v-6l5-3 5 3v6M9 11V7l3-2 3 2v4"></path>
-              </svg>
+              <img src="painel.profissionais.webp" alt="Ícone Profissional" width="28" height="28" loading="lazy" />
             </span>
             <h3>Cadastre-se como Profissional</h3>
           </div>
@@ -621,11 +617,7 @@
         <div class="card-content">
           <div class="card-title-row">
             <span class="card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="8" cy="9" r="3"></circle>
-                <circle cx="16" cy="9" r="3"></circle>
-                <path d="M2.8 20c.7-3.2 2.4-5 5.2-5 1.8 0 3.2.7 4 2.1 1-1.4 2.4-2.1 4-2.1 2.8 0 4.5 1.8 5.2 5"></path>
-              </svg>
+              <img src="painel.parcerias.webp" alt="Ícone Parceria" width="28" height="28" loading="lazy" />
             </span>
             <h3>Fazer Parceria Conosco</h3>
           </div>
@@ -663,4 +655,4 @@
   </script>
 
 </body>
-</html>
+  </html>
