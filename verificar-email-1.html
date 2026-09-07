@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Verifique seu e-mail | Help Floripa</title>
+
+  <style>
+    :root {
+      --hf-blue: #00adee;
+      --hf-blue-dark: #0087c2;
+      --hf-bg: #000;
+      --hf-text: #f1f1f1;
+      --hf-muted: #b9c2c8;
+      --hf-border: #00adee66;
+    }
+
+    * { box-sizing: border-box; font-family: Arial, sans-serif; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top, #0b1b24 0%, var(--hf-bg) 38%);
+      color: var(--hf-text);
+      padding: 32px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .shell {
+      width: min(400px, 100%);
+      background: linear-gradient(180deg, #151515 0%, #0d0d0d 100%);
+      border: 1px solid var(--hf-border);
+      border-radius: 16px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
+      padding: 32px 24px;
+      text-align: center;
+    }
+
+    .icone {
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .icone svg {
+      width: 52px;
+      height: 52px;
+    }
+
+    h1 {
+      color: var(--hf-blue);
+      font-size: 22px;
+      margin: 0 0 12px;
+    }
+
+    p {
+      color: var(--hf-muted);
+      line-height: 1.5;
+      font-size: 15px;
+      margin: 0 0 6px;
+    }
+
+    #emailUsuario {
+      color: var(--hf-text);
+      font-weight: 700;
+    }
+
+    button {
+      width: 100%;
+      border: none;
+      border-radius: 10px;
+      padding: 13px;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      margin-top: 18px;
+      min-height: 48px;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    button:active { transform: translateY(1px); }
+
+    #btnReenviar {
+      background: transparent;
+      border: 1px solid #2f3b42;
+      color: var(--hf-muted);
+    }
+
+    #btnReenviar:hover { background: #1a1a1a; }
+    #btnReenviar:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    #btnJaVerifiquei {
+      background: var(--hf-blue);
+      color: #000;
+    }
+
+    #btnJaVerifiquei:hover { background: var(--hf-blue-dark); }
+
+    #statusVerificacao {
+      margin-top: 16px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      display: none;
+    }
+
+    #statusVerificacao.show { display: block; }
+    #statusVerificacao.success { background: #0d1f14; color: #7fe0a3; border: 1px solid #2f7a4a; }
+    #statusVerificacao.error { background: #210d0d; color: #ff6b6b; border: 1px solid #8a2f2f; }
+    #statusVerificacao.info { background: #0a0a0a; color: var(--hf-muted); border: 1px solid #2f3b42; }
+
+    a.sair {
+      display: block;
+      margin-top: 18px;
+      color: var(--hf-muted);
+      font-size: 13px;
+      text-decoration: none;
+    }
+
+    a.sair:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="icone">
+      <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="3" y="9" width="42" height="30" rx="6" stroke="#00adee" stroke-width="2.5"/>
+        <path d="M5 13L22.2 25.5C23.3 26.3 24.7 26.3 25.8 25.5L43 13" stroke="#00adee" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="37" cy="34" r="10" fill="#0d0d0d" stroke="#00adee" stroke-width="2.5"/>
+        <path d="M32.5 34L35.5 37L41.5 30.5" stroke="#00adee" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <h1 id="titulo">Confirme seu e-mail</h1>
+    <p id="descricaoPolling">Enviamos um link de confirmação para:</p>
+    <p id="emailUsuario">carregando...</p>
+    <p id="descricaoPolling2">Clique no link recebido e depois volte aqui.</p>
+    <p id="descricaoLink" style="display:none;">Clique no botão abaixo para confirmar seu e-mail.</p>
+
+    <button type="button" id="btnConfirmarLink" style="display:none; background: var(--hf-blue); color:#000;">Confirmar meu e-mail</button>
+    <button type="button" id="btnJaVerifiquei">Já confirmei, verificar novamente</button>
+    <button type="button" id="btnReenviar">Reenviar e-mail de verificação</button>
+
+    <div id="statusVerificacao" role="status" aria-live="polite"></div>
+
+    <a class="sair" id="linkSair" href="login.html">Sair e verificar mais tarde</a>
+  </main>
+
+  <script type="module">
+    import { auth } from "./firebase.js";
+    import {
+      onAuthStateChanged,
+      reload,
+      sendEmailVerification,
+      signOut,
+      applyActionCode,
+      checkActionCode
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    const titulo = document.getElementById("titulo");
+    const emailUsuario = document.getElementById("emailUsuario");
+    const descricaoPolling = document.getElementById("descricaoPolling");
+    const descricaoPolling2 = document.getElementById("descricaoPolling2");
+    const descricaoLink = document.getElementById("descricaoLink");
+    const btnConfirmarLink = document.getElementById("btnConfirmarLink");
+    const btnJaVerifiquei = document.getElementById("btnJaVerifiquei");
+    const btnReenviar = document.getElementById("btnReenviar");
+    const statusVerificacao = document.getElementById("statusVerificacao");
+    const linkSair = document.getElementById("linkSair");
+
+    function atualizarStatus(msg, tipo = "info") {
+      statusVerificacao.textContent = msg;
+      statusVerificacao.className = "show " + tipo;
+    }
+
+    // --- Detecta se a página foi aberta a partir do link do e-mail ---
+    const params = new URLSearchParams(window.location.search);
+    const modo = params.get("mode");
+    const oobCode = params.get("oobCode");
+    const vieioDoLinkDoEmail = modo === "verifyEmail" && !!oobCode;
+
+    if (vieioDoLinkDoEmail) {
+      // Modo "confirmar por clique": evita que scanners de e-mail
+      // (Gmail/Outlook) consumam o link sozinhos antes da pessoa clicar.
+      emailUsuario.style.display = "none";
+      descricaoPolling.style.display = "none";
+      descricaoPolling2.style.display = "none";
+      btnJaVerifiquei.style.display = "none";
+      btnReenviar.style.display = "none";
+      descricaoLink.style.display = "block";
+      btnConfirmarLink.style.display = "block";
+
+      checkActionCode(auth, oobCode)
+        .then((info) => {
+          const email = info?.data?.email;
+          if (email) {
+            descricaoLink.textContent = `Clique no botão abaixo para confirmar ${email}.`;
+          }
+        })
+        .catch(() => {
+          titulo.textContent = "Link expirado";
+          descricaoLink.textContent = "Este link de confirmação expirou ou já foi utilizado. Peça um novo e-mail de verificação fazendo login novamente.";
+          btnConfirmarLink.style.display = "none";
+        });
+
+      btnConfirmarLink.addEventListener("click", async () => {
+        btnConfirmarLink.disabled = true;
+        btnConfirmarLink.textContent = "Confirmando...";
+        atualizarStatus("Confirmando seu e-mail...", "info");
+
+        try {
+          await applyActionCode(auth, oobCode);
+          titulo.textContent = "E-mail confirmado!";
+          descricaoLink.textContent = "Sua conta foi verificada com sucesso.";
+          btnConfirmarLink.style.display = "none";
+          atualizarStatus("Tudo certo! Redirecionando...", "success");
+          setTimeout(() => { window.location.href = "index.html"; }, 1800);
+        } catch (error) {
+          console.error("Erro ao confirmar e-mail:", error);
+          let mensagem = "Não foi possível confirmar agora. Tente novamente.";
+          if (error?.code === "auth/invalid-action-code") {
+            mensagem = "Este link expirou ou já foi utilizado. Peça um novo e-mail de verificação fazendo login novamente.";
+          }
+          atualizarStatus(mensagem, "error");
+          btnConfirmarLink.disabled = false;
+          btnConfirmarLink.textContent = "Confirmar meu e-mail";
+        }
+      });
+
+    } else {
+      // Modo "checagem automática": página aberta direto após o cadastro,
+      // sem vir do link do e-mail.
+      let usuarioAtual = null;
+      let intervaloChecagem = null;
+
+      onAuthStateChanged(auth, (user) => {
+        if (!user) {
+          window.location.href = "login.html";
+          return;
+        }
+
+        usuarioAtual = user;
+        emailUsuario.textContent = user.email || "";
+
+        if (user.emailVerified) {
+          redirecionarAposVerificar();
+          return;
+        }
+
+        intervaloChecagem = setInterval(verificarStatus, 4000);
+      });
+
+      async function verificarStatus() {
+        if (!usuarioAtual) return;
+        try {
+          await reload(usuarioAtual);
+          if (usuarioAtual.emailVerified) {
+            clearInterval(intervaloChecagem);
+            redirecionarAposVerificar();
+          }
+        } catch (error) {
+          console.error("Erro ao checar verificação:", error);
+        }
+      }
+
+      function redirecionarAposVerificar() {
+        atualizarStatus("E-mail confirmado! Redirecionando...", "success");
+        setTimeout(() => {
+          window.location.href = "index.html";
+        }, 1500);
+      }
+
+      btnJaVerifiquei.addEventListener("click", async () => {
+        btnJaVerifiquei.disabled = true;
+        btnJaVerifiquei.textContent = "Verificando...";
+        atualizarStatus("Verificando confirmação...", "info");
+
+        await verificarStatus();
+
+        if (usuarioAtual && !usuarioAtual.emailVerified) {
+          atualizarStatus("Ainda não encontramos a confirmação. Clique no link do e-mail e tente de novo.", "error");
+        }
+
+        btnJaVerifiquei.disabled = false;
+        btnJaVerifiquei.textContent = "Já confirmei, verificar novamente";
+      });
+
+      let cooldownAtivo = false;
+
+      btnReenviar.addEventListener("click", async () => {
+        if (!usuarioAtual || cooldownAtivo) return;
+
+        try {
+          await sendEmailVerification(usuarioAtual, {
+            url: "https://helpfloripa.com.br/verificar-email.html"
+          });
+          atualizarStatus("E-mail reenviado! Verifique sua caixa de entrada (e spam).", "success");
+
+          cooldownAtivo = true;
+          let segundos = 30;
+          btnReenviar.disabled = true;
+          btnReenviar.textContent = `Aguarde ${segundos}s para reenviar`;
+
+          const cooldown = setInterval(() => {
+            segundos--;
+            btnReenviar.textContent = `Aguarde ${segundos}s para reenviar`;
+            if (segundos <= 0) {
+              clearInterval(cooldown);
+              cooldownAtivo = false;
+              btnReenviar.disabled = false;
+              btnReenviar.textContent = "Reenviar e-mail de verificação";
+            }
+          }, 1000);
+
+        } catch (error) {
+          console.error("Erro ao reenviar verificação:", error);
+          atualizarStatus("Não foi possível reenviar agora. Tente novamente em instantes.", "error");
+        }
+      });
+    }
+
+    linkSair.addEventListener("click", async (e) => {
+      e.preventDefault();
+      try {
+        await signOut(auth);
+      } catch (error) {
+        console.error("Erro ao sair:", error);
+      }
+      window.location.href = "login.html";
+    });
+  </script>
+</body>
+</html>
