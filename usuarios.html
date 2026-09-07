@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Seu perfil na Help Floripa." />
+  <link rel="icon" href="favicon.ico" />
+  <title>Meu Perfil | Help Floripa</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: #000;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar {
+      width: 220px;
+      background: #000;
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100%;
+      padding: 90px 20px 20px;
+      display: flex;
+      flex-direction: column;
+      transform: translateX(-260px);
+      transition: transform 0.3s ease;
+      z-index: 1300;
+    }
+
+    .sidebar.active {
+      transform: translateX(0);
+    }
+
+    .sidebar-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 1250;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .sidebar-backdrop.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .sidebar h2 {
+      color: #00adee;
+      text-align: center;
+      margin-bottom: 25px;
+      font-size: 22px;
+    }
+
+    .sidebar a {
+      color: #fff;
+      text-decoration: none;
+      padding: 12px;
+      margin: 6px 0;
+      border-radius: 6px;
+      transition: 0.3s;
+      display: block;
+    }
+
+    .sidebar a:hover {
+      background: #00adee;
+      color: #000;
+    }
+
+    .menu-toggle {
+      position: fixed;
+      top: 17px;
+      left: 18px;
+      z-index: 1400;
+      background: transparent;
+      border: 0;
+      color: #00adee;
+      cursor: pointer;
+      font-size: 0;
+      width: 42px;
+      height: 42px;
+      padding: 0;
+    }
+
+    .menu-toggle::before {
+      content: "";
+      position: absolute;
+      left: 5px;
+      top: 10.5px;
+      width: 31px;
+      height: 3px;
+      border-radius: 3px;
+      background: #00adee;
+      box-shadow: 0 9px 0 #00adee, 0 18px 0 #00adee;
+    }
+
+    .mobile-topbar {
+      display: flex;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 76px;
+      z-index: 1100;
+      align-items: center;
+      justify-content: center;
+      padding: 7px 16px 5px;
+      background: rgba(0, 0, 0, 0.96);
+      border-bottom: 1px solid rgba(0, 173, 238, 0.12);
+    }
+
+    .mobile-brand {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      line-height: 1;
+    }
+
+    .mobile-brand strong {
+      color: #fff;
+      font-size: 23px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+      white-space: nowrap;
+    }
+
+    .mobile-brand strong span {
+      color: #00adee;
+    }
+
+    .mobile-brand small {
+      margin-top: 4px;
+      color: #d8dde0;
+      font-size: 7px;
+      letter-spacing: 1.25px;
+      white-space: nowrap;
+    }
+
+    .mobile-header-actions {
+      position: absolute;
+      right: 14px;
+      top: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-icon-btn {
+      position: relative;
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      color: #eaf2f5;
+      background: transparent;
+      border: 0;
+      text-decoration: none;
+      padding: 0;
+    }
+
+    .header-icon-btn svg {
+      width: 31px;
+      height: 31px;
+    }
+
+    .notification-btn i {
+      position: absolute;
+      width: 9px;
+      height: 9px;
+      right: 4px;
+      top: 5px;
+      border-radius: 50%;
+      background: #00adee;
+      box-shadow: 0 0 7px rgba(0, 173, 238, 0.55);
+    }
+
+    .main-content {
+      margin-left: 0;
+      padding: 106px 24px 60px;
+      flex: 1;
+      display: flex;
+      justify-content: center;
+    }
+
+    .perfil-shell {
+      width: min(480px, 100%);
+    }
+
+    .perfil-card {
+      background: linear-gradient(180deg, #151515 0%, #0d0d0d 100%);
+      border: 1px solid #00adee66;
+      border-radius: 16px;
+      padding: 32px 24px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
+      text-align: center;
+    }
+
+    .perfil-avatar {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      border: 3px solid #00adee;
+      background: #111;
+      color: #fff;
+      margin: 0 auto 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: 700;
+      overflow: hidden;
+    }
+
+    .perfil-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .perfil-nome {
+      font-size: 20px;
+      font-weight: 700;
+      margin: 0 0 2px;
+    }
+
+    .perfil-nickname {
+      color: #00adee;
+      font-size: 14px;
+      margin: 0 0 20px;
+    }
+
+    .perfil-dados {
+      text-align: left;
+      border-top: 1px solid #2f3b42;
+      padding-top: 18px;
+    }
+
+    .perfil-linha {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 0;
+      font-size: 14px;
+      border-bottom: 1px solid #1c1c1c;
+    }
+
+    .perfil-linha span:first-child {
+      color: #9aa7b1;
+    }
+
+    .perfil-linha span:last-child {
+      color: #f1f1f1;
+      text-align: right;
+      word-break: break-word;
+    }
+
+    .perfil-acoes {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 24px;
+    }
+
+    .perfil-acoes a,
+    .perfil-acoes button {
+      display: block;
+      width: 100%;
+      border: none;
+      border-radius: 10px;
+      padding: 13px;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      text-decoration: none;
+      text-align: center;
+    }
+
+    .btnEditarPerfil {
+      background: #00adee;
+      color: #000;
+    }
+
+    .btnEditarPerfil:hover { background: #0087c2; }
+
+    .btnSairPerfil {
+      background: #1a1a1a;
+      color: #fff;
+      border: 1px solid #2f3b42;
+    }
+
+    .btnSairPerfil:hover { background: #232323; }
+
+    .btnExcluirPerfil {
+      background: transparent;
+      color: #ff6b6b;
+      border: 1px solid #8a2f2f;
+    }
+
+    .btnExcluirPerfil:hover { background: #210d0d; }
+
+    #perfilCarregando,
+    #perfilErro {
+      text-align: center;
+      color: #9aa7b1;
+      font-size: 14px;
+    }
+
+    #perfilErro { color: #ff6b6b; display: none; }
+
+    @media (min-width: 600px) {
+      .perfil-card { padding: 36px; }
+    }
+  </style>
+
+  <script type="module" src="firebase.js"></script>
+  <script type="module" src="perfil.js"></script>
+</head>
+
+<body>
+  <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
+  <nav class="sidebar" id="sidebar" aria-label="Menu principal">
+    <h2>Help Floripa</h2>
+    <a href="login.html" id="perfilUsuarioBtn" class="profile-menu-link">Entrar / Login</a>
+    <a href="profissionais.html">Profissionais</a>
+    <a href="clientes.html">Clientes</a>
+    <a href="contato.html">Contato</a>
+    <a href="ajuda.html">Ajuda</a>
+    <a href="sobre.html">Sobre</a>
+  </nav>
+  <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Abrir menu" aria-expanded="false" aria-controls="sidebar">☰</button>
+
+  <header class="mobile-topbar" aria-label="Cabeçalho do Help Floripa">
+    <a href="index.html" class="mobile-brand" aria-label="Help Floripa - Início">
+      <strong>HELP <span>FLORIPA</span></strong>
+      <small>TUDO QUE VOCÊ PRECISA EM UM SÓ LUGAR</small>
+    </a>
+    <div class="mobile-header-actions">
+      <button type="button" class="header-icon-btn notification-btn" aria-label="Notificações">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
+          <path d="M10 21h4"></path>
+        </svg>
+        <i aria-hidden="true"></i>
+      </button>
+      <a href="usuarios.html" id="mobilePerfilBtn" class="header-icon-btn" aria-label="Perfil">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"></circle>
+          <circle cx="12" cy="9" r="3"></circle>
+          <path d="M6.5 19c1.4-3 3.3-4.5 5.5-4.5S16.1 16 17.5 19"></path>
+        </svg>
+      </a>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <div class="perfil-shell">
+      <p id="perfilCarregando">Carregando seu perfil...</p>
+      <p id="perfilErro">Não foi possível carregar seu perfil agora.</p>
+
+      <div class="perfil-card" id="perfilCard" style="display:none;">
+        <div class="perfil-avatar" id="perfilAvatar"></div>
+        <p class="perfil-nome" id="perfilNome"></p>
+        <p class="perfil-nickname" id="perfilNickname"></p>
+
+        <div class="perfil-dados">
+          <div class="perfil-linha">
+            <span>E-mail</span>
+            <span id="perfilEmail"></span>
+          </div>
+          <div class="perfil-linha">
+            <span>Telefone</span>
+            <span id="perfilTelefone"></span>
+          </div>
+          <div class="perfil-linha">
+            <span>Data de nascimento</span>
+            <span id="perfilDataNascimento"></span>
+          </div>
+        </div>
+
+        <div class="perfil-acoes">
+          <a href="cadastrar.html" class="btnEditarPerfil">Editar perfil</a>
+          <button type="button" class="btnSairPerfil" id="btnSairPerfil">Sair</button>
+          <a href="excluir_conta.html" class="btnExcluirPerfil">Excluir minha conta</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    function toggleSidebar() {
+      const sidebar = document.getElementById("sidebar");
+      const backdrop = document.getElementById("sidebarBackdrop");
+      const btn = document.querySelector(".menu-toggle");
+      const isActive = sidebar.classList.toggle("active");
+      backdrop.classList.toggle("active", isActive);
+      btn.setAttribute("aria-expanded", isActive ? "true" : "false");
+    }
+  </script>
+
+  <script type="module">
+    function getInitials(name) {
+      if (!name) return "HF";
+      const parts = String(name).trim().split(/\s+/).slice(0, 2);
+      return parts.map((p) => p[0]?.toUpperCase() || "").join("") || "HF";
+    }
+
+    function formatarData(dataStr) {
+      if (!dataStr) return "-";
+      const partes = dataStr.split("-");
+      if (partes.length !== 3) return dataStr;
+      const [ano, mes, dia] = partes;
+      return `${dia}/${mes}/${ano}`;
+    }
+
+    function preencherPerfil(dados) {
+      const avatar = document.getElementById("perfilAvatar");
+      const fotoUrl = dados.fotoPerfil || "";
+
+      if (fotoUrl) {
+        const img = document.createElement("img");
+        img.src = fotoUrl;
+        img.alt = `Foto de perfil de ${dados.nome || "usuário"}`;
+        img.referrerPolicy = "no-referrer";
+        avatar.appendChild(img);
+      } else {
+        avatar.textContent = getInitials(dados.nome);
+      }
+
+      document.getElementById("perfilNome").textContent = dados.nome || "-";
+      document.getElementById("perfilNickname").textContent = dados.nickname ? `@${dados.nickname}` : "";
+      document.getElementById("perfilEmail").textContent = dados.email || "-";
+      document.getElementById("perfilTelefone").textContent = dados.telefone || "-";
+      document.getElementById("perfilDataNascimento").textContent = formatarData(dados.dataNascimento);
+
+      document.getElementById("perfilCarregando").style.display = "none";
+      document.getElementById("perfilCard").style.display = "block";
+    }
+
+    function mostrarErro() {
+      document.getElementById("perfilCarregando").style.display = "none";
+      document.getElementById("perfilErro").style.display = "block";
+    }
+
+    async function iniciar() {
+      if (!window.firebaseAuth) {
+        mostrarErro();
+        return;
+      }
+
+      const { onAuthStateChanged, signOut } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+      const { doc, getDoc } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+
+      onAuthStateChanged(window.firebaseAuth, async (user) => {
+        if (!user) {
+          window.location.href = "login.html";
+          return;
+        }
+
+        try {
+          const snap = await getDoc(doc(window.firebaseDb, "usuarios", user.uid));
+
+          if (!snap.exists()) {
+            mostrarErro();
+            return;
+          }
+
+          preencherPerfil(snap.data());
+        } catch (error) {
+          console.error("Erro ao carregar perfil:", error);
+          mostrarErro();
+        }
+      });
+
+      document.getElementById("btnSairPerfil").addEventListener("click", async () => {
+        try {
+          await signOut(window.firebaseAuth);
+          window.location.href = "index.html";
+        } catch (error) {
+          console.error("Erro ao sair:", error);
+        }
+      });
+    }
+
+    iniciar();
+  </script>
+</body>
+</html>
