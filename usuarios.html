@@ -1,0 +1,2044 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Seu perfil na Help Floripa." />
+  <link rel="icon" href="favicon.ico" />
+  <title>Meu Perfil | Help Floripa</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: #000;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ===== Sidebar / topbar (mesmo padrão do site) ===== */
+    .sidebar {
+      width: 220px;
+      background: #000;
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100%;
+      padding: 90px 20px 20px;
+      display: flex;
+      flex-direction: column;
+      transform: translateX(-260px);
+      transition: transform 0.3s ease;
+      z-index: 1300;
+    }
+
+    .sidebar.active { transform: translateX(0); }
+
+    .sidebar-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 1250;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .sidebar-backdrop.active { opacity: 1; pointer-events: auto; }
+
+    .sidebar h2 {
+      color: #00adee;
+      text-align: center;
+      margin-bottom: 25px;
+      font-size: 22px;
+    }
+
+    .sidebar a {
+      color: #fff;
+      text-decoration: none;
+      padding: 12px;
+      margin: 6px 0;
+      border-radius: 6px;
+      transition: 0.3s;
+      display: block;
+    }
+
+    .sidebar a:hover { background: #00adee; color: #000; }
+
+    .menu-toggle {
+      position: fixed;
+      top: 17px;
+      left: 18px;
+      z-index: 1400;
+      background: transparent;
+      border: 0;
+      color: #00adee;
+      cursor: pointer;
+      font-size: 0;
+      width: 42px;
+      height: 42px;
+      padding: 0;
+    }
+
+    .menu-toggle::before {
+      content: "";
+      position: absolute;
+      left: 5px;
+      top: 10.5px;
+      width: 31px;
+      height: 3px;
+      border-radius: 3px;
+      background: #00adee;
+      box-shadow: 0 9px 0 #00adee, 0 18px 0 #00adee;
+    }
+
+    .mobile-topbar {
+      display: flex;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 76px;
+      z-index: 1100;
+      align-items: center;
+      justify-content: center;
+      padding: 7px 16px 5px;
+      background: rgba(0, 0, 0, 0.96);
+      border-bottom: 1px solid rgba(0, 173, 238, 0.12);
+    }
+
+    .mobile-brand {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      line-height: 1;
+    }
+
+    .mobile-brand strong {
+      color: #fff;
+      font-size: 23px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+      white-space: nowrap;
+    }
+
+    .mobile-brand strong span { color: #00adee; }
+
+    .mobile-brand small {
+      margin-top: 4px;
+      color: #d8dde0;
+      font-size: 7px;
+      letter-spacing: 1.25px;
+      white-space: nowrap;
+    }
+
+    .mobile-header-actions {
+      position: absolute;
+      right: 14px;
+      top: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-icon-btn {
+      position: relative;
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      color: #eaf2f5;
+      background: transparent;
+      border: 0;
+      text-decoration: none;
+      padding: 0;
+    }
+
+    .header-icon-btn svg { width: 31px; height: 31px; }
+
+    .notification-btn i {
+      position: absolute;
+      width: 9px;
+      height: 9px;
+      right: 4px;
+      top: 5px;
+      border-radius: 50%;
+      background: #00adee;
+      box-shadow: 0 0 7px rgba(0, 173, 238, 0.55);
+    }
+
+    /* ===== Layout principal ===== */
+    .main-content {
+      margin-left: 0;
+      padding: 96px 16px 60px;
+      flex: 1;
+      display: flex;
+      justify-content: center;
+    }
+
+    .perfil-shell { width: min(560px, 100%); }
+
+    .voltar-home {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #9aa7b1;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 14px;
+      padding: 6px 4px;
+    }
+
+    .voltar-home:hover { color: #00adee; }
+
+    .voltar-home svg { width: 16px; height: 16px; stroke: currentColor; }
+
+    /* ===== Card de perfil ===== */
+    .perfil-card {
+      background: linear-gradient(180deg, #151515 0%, #0d0d0d 100%);
+      border: 1px solid #00adee66;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    /* ===== Capa ===== */
+    .perfil-capa {
+      position: relative;
+      width: 100%;
+      height: 130px;
+      background: linear-gradient(135deg, #062430 0%, #010b10 100%);
+    }
+
+    .perfil-capa img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    .btnEditarCapa {
+      position: absolute;
+      right: 12px;
+      top: 12px;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.55);
+      border: 1px solid rgba(0, 173, 238, 0.7);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      padding: 0;
+      backdrop-filter: blur(4px);
+    }
+
+    .btnEditarCapa svg { width: 16px; height: 16px; stroke: #00adee; }
+
+    .btnEditarCapa:hover { background: rgba(0, 173, 238, 0.25); }
+
+    #inputFotoCapa { display: none; }
+
+    .perfil-card-body { padding: 0 20px 28px; text-align: center; }
+
+    .perfil-avatar-wrap {
+      position: relative;
+      width: 92px;
+      height: 92px;
+      margin: -46px auto 14px;
+      z-index: 2;
+    }
+
+    .perfil-avatar {
+      width: 92px;
+      height: 92px;
+      border-radius: 50%;
+      border: 3px solid #00adee;
+      background: #111;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: 700;
+      overflow: hidden;
+      box-shadow: 0 0 0 4px #0d0d0d;
+    }
+
+    .perfil-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+    .btnEditarFoto {
+      position: absolute;
+      right: -2px;
+      bottom: -2px;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: #00adee;
+      border: 2px solid #0d0d0d;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .btnEditarFoto svg { width: 15px; height: 15px; stroke: #000; }
+
+    .btnEditarFoto:hover { background: #0087c2; }
+
+    #inputFotoPerfil { display: none; }
+
+    .perfil-nome { font-size: 20px; font-weight: 700; margin: 0 0 2px; }
+
+    .perfil-nickname { color: #00adee; font-size: 14px; margin: 0 0 10px; }
+
+    .perfil-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 30px;
+      margin-bottom: 18px;
+      background: rgba(0, 173, 238, 0.15);
+      border: 1px solid rgba(0, 173, 238, 0.6);
+      color: #00adee;
+    }
+
+    .perfil-badge.cliente {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.3);
+      color: #eaf2f5;
+    }
+
+    /* ===== Biografia ===== */
+    .perfil-bio {
+      text-align: left;
+      border-top: 1px solid #2f3b42;
+      padding-top: 16px;
+      margin-bottom: 6px;
+    }
+
+    .bio-cabecalho {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .bio-cabecalho h3 {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #9aa7b1;
+      margin: 0;
+    }
+
+    .btnEditarBio {
+      background: transparent;
+      border: 0;
+      color: #00adee;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 2px 4px;
+    }
+
+    .btnEditarBio:hover { text-decoration: underline; }
+
+    #perfilBioTexto {
+      font-size: 14px;
+      line-height: 1.5;
+      color: #dfe6e9;
+      margin: 0;
+      white-space: pre-wrap;
+    }
+
+    #perfilBioTexto.vazio { color: #6b7580; font-style: italic; }
+
+    #perfilBioEdit { display: none; }
+
+    #perfilBioEdit textarea {
+      width: 100%;
+      min-height: 90px;
+      resize: vertical;
+      background: #0d0d0d;
+      border: 1px solid #2f3b42;
+      border-radius: 8px;
+      color: #fff;
+      padding: 10px;
+      font-size: 14px;
+      font-family: Arial, sans-serif;
+    }
+
+    .bio-acoes {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+      justify-content: flex-end;
+    }
+
+    .bio-acoes button {
+      border: none;
+      border-radius: 8px;
+      padding: 7px 14px;
+      font-weight: 700;
+      font-size: 12.5px;
+      cursor: pointer;
+    }
+
+    .btnSalvarBio { background: #00adee; color: #000; }
+    .btnSalvarBio:hover { background: #0087c2; }
+    .btnCancelarBio { background: #1a1a1a; color: #fff; border: 1px solid #2f3b42 !important; }
+    .btnCancelarBio:hover { background: #232323; }
+
+    .perfil-acoes {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 22px;
+    }
+
+    .perfil-acoes a,
+    .perfil-acoes button {
+      display: block;
+      width: 100%;
+      border: none;
+      border-radius: 10px;
+      padding: 13px;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      text-decoration: none;
+      text-align: center;
+    }
+
+    .btnEditarPerfil { background: #00adee; color: #000; }
+    .btnEditarPerfil:hover { background: #0087c2; }
+
+    .btnSairPerfil { background: #1a1a1a; color: #fff; border: 1px solid #2f3b42; }
+    .btnSairPerfil:hover { background: #232323; }
+
+    .btnExcluirPerfil { background: transparent; color: #ff6b6b; border: 1px solid #8a2f2f; }
+    .btnExcluirPerfil:hover { background: #210d0d; }
+
+    #perfilCarregando,
+    #perfilErro {
+      text-align: center;
+      color: #9aa7b1;
+      font-size: 14px;
+    }
+
+    #perfilErro { color: #ff6b6b; display: none; }
+
+    /* ===== Selo de verificação ===== */
+    .perfil-nome-linha {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .selo-verificado {
+      display: inline-flex;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #00adee;
+      color: #000;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 900;
+      flex-shrink: 0;
+    }
+
+    .btn-verificar-perfil {
+      display: inline-block;
+      margin: 4px auto 0;
+      background: transparent;
+      border: 1px dashed rgba(0, 173, 238, 0.6);
+      color: #00adee;
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+    }
+
+    .btn-verificar-perfil:hover { background: rgba(0, 173, 238, 0.1); }
+
+    /* ===== Credibilidade: seguidores / seguindo / avaliação ===== */
+    .perfil-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin: 16px 0 4px;
+      padding: 14px 4px;
+      border-top: 1px solid #2f3b42;
+      border-bottom: 1px solid #2f3b42;
+    }
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .stat-numero {
+      font-size: 17px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .stat-label {
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #9aa7b1;
+    }
+
+    .stat-estrelas {
+      font-size: 15px;
+      letter-spacing: 1px;
+      color: #3a4650;
+      line-height: 1;
+    }
+
+    .stat-estrelas .cheia { color: #ffc94d; }
+
+    .stat-avaliacao-numero {
+      font-size: 10.5px;
+      color: #9aa7b1;
+      margin-top: 1px;
+    }
+
+    .stat-item-btn {
+      width: 100%;
+      min-width: 0;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+      padding: 6px 2px;
+      border-radius: 10px;
+    }
+
+    .stat-item-btn:hover,
+    .stat-item-btn:focus-visible {
+      background: rgba(0, 173, 238, 0.08);
+      outline: none;
+    }
+
+    .stat-item-btn .stat-label { display: block; margin-top: 2px; }
+
+    /* ===== Modal de seguidores / seguindo / avaliações ===== */
+    .perfil-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.72);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      z-index: 3000;
+    }
+    .perfil-modal-backdrop.active { display: flex; }
+    .perfil-modal {
+      width: min(480px, 100%);
+      max-height: min(72vh, 620px);
+      overflow: hidden;
+      background: linear-gradient(180deg, #171717 0%, #0d0d0d 100%);
+      border: 1px solid #2f3b42;
+      border-radius: 16px;
+      box-shadow: 0 22px 60px rgba(0,0,0,.6);
+    }
+    .perfil-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 18px;
+      border-bottom: 1px solid #2f3b42;
+    }
+    .perfil-modal-header h3 { margin: 0; font-size: 17px; }
+    .perfil-modal-close {
+      width: 34px; height: 34px; border-radius: 50%; border: 1px solid #2f3b42;
+      background: #111; color: #fff; font-size: 20px; cursor: pointer;
+    }
+    .perfil-modal-resumo {
+      padding: 16px 18px 10px;
+      color: #9aa7b1;
+      font-size: 13px;
+      border-bottom: 1px solid #222b31;
+    }
+    .perfil-modal-lista {
+      max-height: 48vh;
+      overflow-y: auto;
+      padding: 8px;
+    }
+    .perfil-modal-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px;
+      border-radius: 10px;
+      text-decoration: none;
+      color: #fff;
+    }
+    .perfil-modal-item:hover { background: rgba(0,173,238,.08); }
+    .perfil-modal-avatar {
+      width: 42px; height: 42px; border-radius: 50%; overflow: hidden;
+      border: 2px solid #00adee; background: #111; display: grid; place-items: center;
+      font-size: 12px; font-weight: 700; flex-shrink: 0;
+    }
+    .perfil-modal-avatar img { width:100%; height:100%; object-fit:cover; }
+    .perfil-modal-item-info { min-width:0; flex:1; }
+    .perfil-modal-item-nome { font-size:14px; font-weight:700; }
+    .perfil-modal-item-texto { margin-top:3px; color:#9aa7b1; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .perfil-modal-vazio { padding: 28px 14px; text-align:center; color:#9aa7b1; font-size:14px; }
+
+    /* ===== Criação de post: foto, vídeo ou texto ===== */
+    .criar-post {
+      background: linear-gradient(180deg, #151515 0%, #0d0d0d 100%);
+      border: 1px solid #2f3b42;
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 16px;
+    }
+
+    .criar-post-opcoes {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+
+    .opcao-post {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      background: #0d0d0d;
+      border: 1px solid #2f3b42;
+      border-radius: 12px;
+      padding: 12px 6px;
+      cursor: pointer;
+      transition: 0.2s;
+      color: #eaf2f5;
+    }
+
+    .opcao-post:hover { transform: translateY(-2px); }
+    .opcao-post.active { transform: translateY(-1px); }
+
+    .opcao-post .opcao-icone {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+    }
+
+    .opcao-post svg { width: 17px; height: 17px; }
+
+    .opcao-post span { font-size: 11.5px; font-weight: 700; }
+
+    .opcao-foto { border-color: rgba(0, 173, 238, 0.35); }
+    .opcao-foto .opcao-icone { background: rgba(0, 173, 238, 0.15); border: 1px solid rgba(0, 173, 238, 0.6); }
+    .opcao-foto svg { stroke: #00adee; }
+    .opcao-foto.active { border-color: #00adee; background: rgba(0, 173, 238, 0.1); }
+
+    .opcao-video { border-color: rgba(255, 92, 141, 0.35); }
+    .opcao-video .opcao-icone { background: rgba(255, 92, 141, 0.15); border: 1px solid rgba(255, 92, 141, 0.6); }
+    .opcao-video svg { stroke: #ff5c8d; }
+    .opcao-video.active { border-color: #ff5c8d; background: rgba(255, 92, 141, 0.1); }
+
+    .opcao-texto { border-color: rgba(255, 201, 77, 0.35); }
+    .opcao-texto .opcao-icone { background: rgba(255, 201, 77, 0.15); border: 1px solid rgba(255, 201, 77, 0.6); }
+    .opcao-texto svg { stroke: #ffc94d; }
+    .opcao-texto.active { border-color: #ffc94d; background: rgba(255, 201, 77, 0.1); }
+
+    .post-editor {
+      display: none;
+      margin-top: 12px;
+      border-top: 1px solid #2f3b42;
+      padding-top: 12px;
+    }
+
+    .post-editor.active { display: block; }
+
+    .post-editor textarea {
+      width: 100%;
+      min-height: 80px;
+      resize: vertical;
+      background: #0d0d0d;
+      border: 1px solid #2f3b42;
+      border-radius: 8px;
+      color: #fff;
+      padding: 10px;
+      font-size: 14px;
+      font-family: Arial, sans-serif;
+    }
+
+    .post-editor input[type="file"] { display: none; }
+
+    .post-midia-area {
+      border: 1.5px dashed #2f3b42;
+      border-radius: 10px;
+      padding: 18px 10px;
+      text-align: center;
+      cursor: pointer;
+      color: #9aa7b1;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .post-midia-area:hover { border-color: #00adee; color: #00adee; }
+
+    .post-midia-preview { margin-top: 10px; display: none; }
+    .post-midia-preview img,
+    .post-midia-preview video { width: 100%; max-height: 220px; object-fit: cover; border-radius: 10px; display: block; }
+
+    .post-editor-acoes {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .post-editor-acoes button {
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-weight: 700;
+      font-size: 12.5px;
+      cursor: pointer;
+    }
+
+    .btnCancelarPost { background: #1a1a1a; color: #fff; border: 1px solid #2f3b42 !important; }
+    .btnCancelarPost:hover { background: #232323; }
+    .btnPublicarPost { background: #00adee; color: #000; }
+    .btnPublicarPost:hover { background: #0087c2; }
+    .btnPublicarPost:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .feed-item-midia { margin-top: 10px; }
+    .feed-item-midia img,
+    .feed-item-midia video {
+      width: 100%;
+      max-height: 320px;
+      object-fit: cover;
+      border-radius: 10px;
+      display: block;
+    }
+
+    .feed-tipo-tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      margin-left: 6px;
+    }
+
+    .feed-tipo-tag.foto { background: rgba(0, 173, 238, 0.15); color: #00adee; }
+    .feed-tipo-tag.video { background: rgba(255, 92, 141, 0.15); color: #ff5c8d; }
+    .feed-tipo-tag.texto { background: rgba(255, 201, 77, 0.15); color: #ffc94d; }
+
+    /* ===== Abas do perfil ===== */
+    .perfil-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
+      width: 100%;
+      background: #0d0d0d;
+      border: 1px solid #2f3b42;
+      border-radius: 14px;
+      padding: 6px;
+      margin-bottom: 18px;
+      overflow: hidden;
+    }
+
+    .perfil-tab-btn {
+      min-width: 0;
+      border: 0;
+      background: transparent;
+      color: #9aa7b1;
+      font-weight: 700;
+      font-size: clamp(12px, 3.5vw, 14px);
+      padding: 12px 4px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: 0.25s;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .perfil-tab-btn.active { background: #00adee; color: #000; }
+
+    .perfil-tab-panel { display: none; }
+    .perfil-tab-panel.active { display: block; }
+
+    /* ===== Informações do perfil ===== */
+    .perfil-info-card {
+      margin-top: 16px;
+      background: linear-gradient(180deg, #151515 0%, #0d0d0d 100%);
+      border: 1px solid #2f3b42;
+      border-radius: 14px;
+      padding: 18px;
+    }
+    .perfil-info-card h3 {
+      margin: 0 0 14px;
+      font-size: 15px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #dfe6e9;
+    }
+    .perfil-info-linha {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 0;
+      border-top: 1px solid #222b31;
+      font-size: 14px;
+    }
+    .perfil-info-linha:first-of-type { border-top: 0; padding-top: 0; }
+    .perfil-info-linha span:first-child { color: #9aa7b1; }
+    .perfil-info-linha strong { color: #fff; text-align: right; font-weight: 600; }
+
+    /* Painel de serviços */
+    .servicos-vazio {
+      text-align: center;
+      padding: 32px 18px;
+      border: 1px dashed #2f3b42;
+      border-radius: 14px;
+      color: #9aa7b1;
+      font-size: 14px;
+    }
+
+    /* ===== Feed ===== */
+    .feed-lista {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .feed-item {
+      background: linear-gradient(180deg, #151515 0%, #0d0d0d 100%);
+      border: 1px solid #2f3b42;
+      border-radius: 14px;
+      padding: 16px;
+    }
+
+    .feed-item-cabecalho {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .feed-avatar-mini {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: #111;
+      border: 2px solid #00adee;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .feed-avatar-mini img { width: 100%; height: 100%; object-fit: cover; }
+
+    .feed-item-cabecalho .nome { font-weight: 700; font-size: 14px; }
+    .feed-item-cabecalho .data { font-size: 11.5px; color: #9aa7b1; }
+
+    .feed-item p {
+      font-size: 14px;
+      color: #dfe6e9;
+      line-height: 1.5;
+      margin: 0;
+      white-space: pre-wrap;
+    }
+
+    .estado-vazio {
+      text-align: center;
+      color: #9aa7b1;
+      font-size: 14px;
+      padding: 30px 10px;
+      border: 1px dashed #2f3b42;
+      border-radius: 14px;
+    }
+
+    /* ===== Mensagens ===== */
+    .mensagens-lista {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .conversa-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #0d0d0d;
+      border: 1px solid #2f3b42;
+      border-radius: 12px;
+      padding: 12px 14px;
+      text-decoration: none;
+      color: #fff;
+      transition: 0.25s;
+    }
+
+    .conversa-item:hover { border-color: #00adee; background: rgba(0, 173, 238, 0.08); }
+
+    .conversa-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #111;
+      border: 2px solid #00adee;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .conversa-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+    .conversa-info { flex: 1; min-width: 0; }
+    .conversa-info .nome { font-weight: 700; font-size: 14px; margin-bottom: 2px; }
+    .conversa-info .ultima {
+      font-size: 12.5px;
+      color: #9aa7b1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .conversa-hora { font-size: 11px; color: #6b7580; flex-shrink: 0; }
+
+
+    @media (max-width: 390px) {
+      .mobile-topbar { height: 72px; padding-left: 0; }
+      .mobile-brand strong { font-size: 20px; }
+      .mobile-brand small { font-size: 6px; letter-spacing: 1px; }
+      .mobile-header-actions { right: 8px; gap: 2px; }
+      .header-icon-btn { width: 38px; height: 38px; }
+      .header-icon-btn svg { width: 28px; height: 28px; }
+
+      .menu-toggle { left: 13px; top: 17px; }
+      .menu-toggle::before { width: 28px; box-shadow: 0 9px 0 #00adee, 0 18px 0 #00adee; }
+    }
+  </style>
+
+  <script type="module" src="firebase.js"></script>
+  <script type="module" src="perfil.js"></script>
+</head>
+
+<body>
+  <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
+  <nav class="sidebar" id="sidebar" aria-label="Menu principal">
+    <h2>Help Floripa</h2>
+    <a href="login.html" id="perfilUsuarioBtn" class="profile-menu-link">Entrar / Login</a>
+    <a href="profissionais.html">Profissionais</a>
+    <a href="clientes.html">Clientes</a>
+    <a href="contato.html">Contato</a>
+    <a href="ajuda.html">Ajuda</a>
+    <a href="sobre.html">Sobre</a>
+  </nav>
+  <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Abrir menu" aria-expanded="false" aria-controls="sidebar">☰</button>
+
+  <header class="mobile-topbar" aria-label="Cabeçalho do Help Floripa">
+    <a href="index.html" class="mobile-brand" aria-label="Help Floripa - Início">
+      <strong>HELP <span>FLORIPA</span></strong>
+      <small>TUDO QUE VOCÊ PRECISA EM UM SÓ LUGAR</small>
+    </a>
+    <div class="mobile-header-actions">
+      <button type="button" class="header-icon-btn notification-btn" aria-label="Notificações">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
+          <path d="M10 21h4"></path>
+        </svg>
+        <i aria-hidden="true"></i>
+      </button>
+      <a href="usuarios.html" id="mobilePerfilBtn" class="header-icon-btn" aria-label="Perfil">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"></circle>
+          <circle cx="12" cy="9" r="3"></circle>
+          <path d="M6.5 19c1.4-3 3.3-4.5 5.5-4.5S16.1 16 17.5 19"></path>
+        </svg>
+      </a>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <div class="perfil-shell">
+
+      <a href="index.html" class="voltar-home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6" /></svg>
+        Voltar para o início
+      </a>
+
+      <p id="perfilCarregando">Carregando seu perfil...</p>
+      <p id="perfilErro">Não foi possível carregar seu perfil agora.</p>
+
+      <div id="perfilConteudo" style="display:none;">
+
+        <!-- Abas -->
+        <div class="perfil-tabs" role="tablist" aria-label="Seções do perfil">
+          <button type="button" class="perfil-tab-btn active" data-tab="perfil" role="tab" aria-selected="true">Perfil</button>
+          <button type="button" class="perfil-tab-btn" data-tab="feed" role="tab" aria-selected="false">Publicações</button>
+          <button type="button" class="perfil-tab-btn" data-tab="mensagens" role="tab" aria-selected="false">Mensagens</button>
+        </div>
+
+        <!-- Painel: Perfil -->
+        <section class="perfil-tab-panel active" id="tab-perfil">
+          <div class="perfil-card">
+            <div class="perfil-capa" id="perfilCapa">
+              <button type="button" class="btnEditarCapa" id="btnEditarCapa" aria-label="Alterar foto de capa" title="Alterar foto de capa">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                </svg>
+              </button>
+              <input type="file" id="inputFotoCapa" accept="image/*" />
+            </div>
+
+            <div class="perfil-card-body">
+              <div class="perfil-avatar-wrap">
+                <div class="perfil-avatar" id="perfilAvatar"></div>
+                <button type="button" class="btnEditarFoto" id="btnEditarFoto" aria-label="Alterar foto de perfil" title="Alterar foto de perfil">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                  </svg>
+                </button>
+                <input type="file" id="inputFotoPerfil" accept="image/*" />
+              </div>
+
+              <div class="perfil-nome-linha">
+                <p class="perfil-nome" id="perfilNome"></p>
+                <span class="selo-verificado" id="seloVerificado" title="Perfil verificado" style="display:none;">✓</span>
+              </div>
+              <p class="perfil-nickname" id="perfilNickname"></p>
+              <span class="perfil-badge" id="perfilBadgeTipo"></span>
+              <div>
+                <button type="button" class="btn-verificar-perfil" id="btnVerificarPerfil" style="display:none;">Verificar meu perfil</button>
+              </div>
+
+              <div class="perfil-stats">
+                <div class="stat-item">
+                  <button type="button" class="stat-item-btn" id="btnSeguidores" aria-label="Ver seguidores">
+                    <span class="stat-numero" id="statSeguidores">0</span>
+                    <span class="stat-label">Seguidores</span>
+                  </button>
+                </div>
+                <div class="stat-item">
+                  <button type="button" class="stat-item-btn" id="btnSeguindo" aria-label="Ver quem o usuário segue">
+                    <span class="stat-numero" id="statSeguindo">0</span>
+                    <span class="stat-label">Seguindo</span>
+                  </button>
+                </div>
+                <div class="stat-item">
+                  <button type="button" class="stat-item-btn" id="btnAvaliacoes" aria-label="Ver avaliações">
+                    <span class="stat-estrelas" id="statEstrelas">★★★★★</span>
+                    <span class="stat-label">Avaliação</span>
+                    <span class="stat-avaliacao-numero" id="statAvaliacaoNumero">0.0 · 0 avaliações</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="perfil-bio">
+                <div class="bio-cabecalho">
+                  <h3 id="bioTitulo">Biografia</h3>
+                  <button type="button" class="btnEditarBio" id="btnEditarBio">Editar</button>
+                </div>
+                <p id="perfilBioTexto" class="vazio">Nenhuma biografia adicionada ainda.</p>
+                <div id="perfilBioEdit">
+                  <textarea id="perfilBioInput" maxlength="280" placeholder="Conte um pouco sobre você..."></textarea>
+                  <div class="bio-acoes">
+                    <button type="button" class="btnCancelarBio" id="btnCancelarBio">Cancelar</button>
+                    <button type="button" class="btnSalvarBio" id="btnSalvarBio">Salvar</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="perfil-info-card">
+                <h3>Informações</h3>
+                <div class="perfil-info-linha"><span>Tipo de perfil</span><strong id="infoTipoPerfil">Cliente</strong></div>
+                <div class="perfil-info-linha"><span>Cidade</span><strong id="infoCidade">Não informado</strong></div>
+                <div class="perfil-info-linha"><span>Verificação</span><strong id="infoVerificacao">Pendente</strong></div>
+                <div class="perfil-info-linha"><span>Avaliação</span><strong id="infoAvaliacao">0.0 / 5</strong></div>
+              </div>
+
+              <div class="perfil-acoes">
+                <a href="cadastrar.html" class="btnEditarPerfil">Editar perfil</a>
+                <button type="button" class="btnSairPerfil" id="btnSairPerfil">Sair</button>
+                <a href="excluir_conta.html" class="btnExcluirPerfil">Excluir minha conta</a>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Painel: Feed -->
+        <section class="perfil-tab-panel" id="tab-feed">
+
+          <!-- Criar publicação: foto, vídeo ou texto -->
+          <div class="criar-post">
+            <div class="criar-post-opcoes">
+              <button type="button" class="opcao-post opcao-foto" id="opcaoFoto" data-tipo="foto">
+                <span class="opcao-icone">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3.2"/><path d="M8 5l1.5-2h5L16 5"/></svg>
+                </span>
+                <span>Foto</span>
+              </button>
+              <button type="button" class="opcao-post opcao-video" id="opcaoVideo" data-tipo="video">
+                <span class="opcao-icone">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="13" height="12" rx="2"/><path d="M15.5 10.5 21 7v10l-5.5-3.5"/></svg>
+                </span>
+                <span>Vídeo</span>
+              </button>
+              <button type="button" class="opcao-post opcao-texto" id="opcaoTexto" data-tipo="texto">
+                <span class="opcao-icone">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+                </span>
+                <span>Texto</span>
+              </button>
+            </div>
+
+            <!-- Editor: Foto -->
+            <div class="post-editor" id="editorFoto">
+              <div class="post-midia-area" id="areaSelecionarFoto">Toque para escolher uma foto</div>
+              <input type="file" id="inputPostFoto" accept="image/*" />
+              <div class="post-midia-preview" id="previewFoto"><img id="previewFotoImg" alt="Prévia da foto" /></div>
+              <textarea id="legendaFoto" maxlength="280" placeholder="Escreva uma legenda (opcional)..."></textarea>
+              <div class="post-editor-acoes">
+                <button type="button" class="btnCancelarPost" data-cancelar="foto">Cancelar</button>
+                <button type="button" class="btnPublicarPost" id="btnPublicarFoto">Publicar foto</button>
+              </div>
+            </div>
+
+            <!-- Editor: Vídeo -->
+            <div class="post-editor" id="editorVideo">
+              <div class="post-midia-area" id="areaSelecionarVideo">Toque para escolher um vídeo</div>
+              <input type="file" id="inputPostVideo" accept="video/*" />
+              <div class="post-midia-preview" id="previewVideo"><video id="previewVideoTag" controls></video></div>
+              <textarea id="legendaVideo" maxlength="280" placeholder="Escreva uma legenda (opcional)..."></textarea>
+              <div class="post-editor-acoes">
+                <button type="button" class="btnCancelarPost" data-cancelar="video">Cancelar</button>
+                <button type="button" class="btnPublicarPost" id="btnPublicarVideo">Publicar vídeo</button>
+              </div>
+            </div>
+
+            <!-- Editor: Texto -->
+            <div class="post-editor" id="editorTexto">
+              <textarea id="conteudoTexto" maxlength="500" placeholder="No que você está pensando?"></textarea>
+              <div class="post-editor-acoes">
+                <button type="button" class="btnCancelarPost" data-cancelar="texto">Cancelar</button>
+                <button type="button" class="btnPublicarPost" id="btnPublicarTexto">Publicar texto</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="feed-lista" id="feedLista">
+            <div class="estado-vazio" id="feedVazio">Nenhuma publicação por aqui ainda.</div>
+          </div>
+        </section>
+
+        <!-- Painel: Mensagens -->
+        <section class="perfil-tab-panel" id="tab-mensagens">
+          <div class="mensagens-lista" id="mensagensLista">
+            <div class="estado-vazio" id="mensagensVazio">Você ainda não possui mensagens.</div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal para seguidores, seguindo e avaliações -->
+  <div class="perfil-modal-backdrop" id="perfilModalBackdrop" aria-hidden="true">
+    <div class="perfil-modal" role="dialog" aria-modal="true" aria-labelledby="perfilModalTitulo">
+      <div class="perfil-modal-header">
+        <h3 id="perfilModalTitulo">Detalhes</h3>
+        <button type="button" class="perfil-modal-close" id="perfilModalFechar" aria-label="Fechar">×</button>
+      </div>
+      <div class="perfil-modal-resumo" id="perfilModalResumo"></div>
+      <div class="perfil-modal-lista" id="perfilModalLista"></div>
+    </div>
+  </div>
+
+  <script>
+    function toggleSidebar() {
+      const sidebar = document.getElementById("sidebar");
+      const backdrop = document.getElementById("sidebarBackdrop");
+      const btn = document.querySelector(".menu-toggle");
+      const isActive = sidebar.classList.toggle("active");
+      backdrop.classList.toggle("active", isActive);
+      btn.setAttribute("aria-expanded", isActive ? "true" : "false");
+    }
+  </script>
+
+  <script type="module">
+    const TAMANHO_MAX_IMAGEM = 10 * 1024 * 1024; // 10 MB
+
+    // ===== Utilitários =====
+    function getInitials(name) {
+      if (!name) return "HF";
+      const parts = String(name).trim().split(/\s+/).slice(0, 2);
+      return parts.map((p) => p[0]?.toUpperCase() || "").join("") || "HF";
+    }
+
+    function formatarDataHora(timestamp) {
+      try {
+        const data = timestamp?.toDate ? timestamp.toDate() : new Date(timestamp);
+        if (isNaN(data.getTime())) return "";
+        return data.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+      } catch {
+        return "";
+      }
+    }
+
+    // Redimensiona/comprime uma imagem no navegador e devolve um data URL (base64).
+    // Isso garante que a foto seja salva mesmo sem um bucket de Storage configurado.
+    function comprimirImagem(arquivo, maxLargura, maxAltura, qualidade) {
+      return new Promise((resolve, reject) => {
+        const leitor = new FileReader();
+        leitor.onload = () => {
+          const img = new Image();
+          img.onload = () => {
+            const escala = Math.min(maxLargura / img.width, maxAltura / img.height, 1);
+            const largura = Math.max(1, Math.round(img.width * escala));
+            const altura = Math.max(1, Math.round(img.height * escala));
+            const canvas = document.createElement("canvas");
+            canvas.width = largura;
+            canvas.height = altura;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, largura, altura);
+            resolve(canvas.toDataURL("image/jpeg", qualidade));
+          };
+          img.onerror = () => reject(new Error("Não foi possível ler a imagem."));
+          img.src = leitor.result;
+        };
+        leitor.onerror = () => reject(new Error("Não foi possível ler o arquivo."));
+        leitor.readAsDataURL(arquivo);
+      });
+    }
+
+    // Gera uma string de estrelas cheias/vazias a partir de uma nota de 0 a 5
+    function renderizarEstrelas(nota) {
+      const notaValida = Math.max(0, Math.min(5, Number(nota) || 0));
+      const cheias = Math.round(notaValida);
+      let html = "";
+      for (let i = 1; i <= 5; i++) {
+        html += `<span class="${i <= cheias ? "cheia" : ""}">★</span>`;
+      }
+      return html;
+    }
+
+    function ehProfissional(dados) {
+      const tipo = String(dados?.tipo || dados?.tipoUsuario || dados?.perfilTipo || "").toLowerCase();
+      return tipo.includes("prof");
+    }
+
+    // ===== Abas =====
+    function iniciarTabs() {
+      const botoes = document.querySelectorAll(".perfil-tab-btn");
+      botoes.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          botoes.forEach((b) => {
+            b.classList.remove("active");
+            b.setAttribute("aria-selected", "false");
+          });
+          btn.classList.add("active");
+          btn.setAttribute("aria-selected", "true");
+
+          document.querySelectorAll(".perfil-tab-panel").forEach((p) => p.classList.remove("active"));
+          document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+        });
+      });
+    }
+
+    // ===== Preenchimento do perfil =====
+    function definirAvatar(container, fotoUrl, nome) {
+      container.innerHTML = "";
+      if (fotoUrl) {
+        const img = document.createElement("img");
+        img.src = fotoUrl;
+        img.alt = `Foto de perfil de ${nome || "usuário"}`;
+        img.referrerPolicy = "no-referrer";
+        container.appendChild(img);
+      } else {
+        container.textContent = getInitials(nome);
+      }
+    }
+
+    function definirCapa(container, capaUrl) {
+      const antiga = container.querySelector("img");
+      if (antiga) antiga.remove();
+      if (capaUrl) {
+        const img = document.createElement("img");
+        img.src = capaUrl;
+        img.alt = "Foto de capa";
+        img.referrerPolicy = "no-referrer";
+        container.appendChild(img);
+      }
+    }
+
+    function preencherPerfil(dados) {
+      const profissional = ehProfissional(dados);
+
+      definirAvatar(document.getElementById("perfilAvatar"), dados.fotoPerfil, dados.nome);
+      definirCapa(document.getElementById("perfilCapa"), dados.fotoCapa);
+
+      document.getElementById("perfilNome").textContent = dados.nome || "-";
+      document.getElementById("perfilNickname").textContent = dados.nickname ? `@${dados.nickname}` : "";
+
+      const badge = document.getElementById("perfilBadgeTipo");
+      badge.textContent = profissional ? "Profissional" : "Cliente";
+      badge.classList.toggle("cliente", !profissional);
+
+      document.getElementById("infoTipoPerfil").textContent = profissional ? "Profissional" : "Cliente";
+      const cidade = dados.cidadeNome || dados.cidade || "Não informado";
+      document.getElementById("infoCidade").textContent = cidade === "florianopolis" ? "Florianópolis" : cidade === "saojose" ? "São José" : cidade;
+      document.getElementById("infoVerificacao").textContent = dados.verificado ? "Verificado" : "Pendente";
+
+      document.getElementById("bioTitulo").textContent = profissional ? "Sobre o profissional" : "Sobre mim";
+
+      // ---- Credibilidade: seguidores, seguindo e avaliação ----
+      document.getElementById("statSeguidores").textContent = Number(dados.seguidores || 0).toLocaleString("pt-BR");
+      document.getElementById("statSeguindo").textContent = Number(dados.seguindo || 0).toLocaleString("pt-BR");
+      const nota = Number(dados.avaliacaoMedia || 0);
+      const totalAvaliacoes = Number(dados.totalAvaliacoes || 0);
+      document.getElementById("statEstrelas").innerHTML = renderizarEstrelas(nota);
+      document.getElementById("statAvaliacaoNumero").textContent = `${nota.toFixed(1)} · ${totalAvaliacoes} ${totalAvaliacoes === 1 ? "avaliação" : "avaliações"}`;
+      document.getElementById("infoAvaliacao").textContent = `${nota.toFixed(1)} / 5`;
+
+      // ---- Selo de verificação ----
+      const seloVerificado = document.getElementById("seloVerificado");
+      const btnVerificarPerfil = document.getElementById("btnVerificarPerfil");
+      if (dados.verificado) {
+        seloVerificado.style.display = "inline-flex";
+        btnVerificarPerfil.style.display = "none";
+      } else {
+        seloVerificado.style.display = "none";
+        btnVerificarPerfil.style.display = "inline-block";
+      }
+
+      const bioTexto = document.getElementById("perfilBioTexto");
+      const bioAtual = dados.bio || dados.descricao || "";
+      if (bioAtual) {
+        bioTexto.textContent = bioAtual;
+        bioTexto.classList.remove("vazio");
+      } else {
+        bioTexto.textContent = "Nenhuma biografia adicionada ainda.";
+        bioTexto.classList.add("vazio");
+      }
+      document.getElementById("perfilBioInput").value = bioAtual;
+
+      document.getElementById("perfilCarregando").style.display = "none";
+      document.getElementById("perfilConteudo").style.display = "block";
+    }
+
+    function mostrarErro() {
+      document.getElementById("perfilCarregando").style.display = "none";
+      document.getElementById("perfilErro").style.display = "block";
+    }
+
+    // ===== Feed =====
+    const ROTULO_TIPO_POST = { foto: "Foto", video: "Vídeo", texto: "Texto" };
+
+    function renderizarFeed(itens, nomeUsuario, fotoUrl, opcoes = {}) {
+      const lista = document.getElementById("feedLista");
+      const vazio = document.getElementById("feedVazio");
+
+      if (!itens || itens.length === 0) {
+        if (!opcoes.prepend) vazio.style.display = "block";
+        return;
+      }
+      vazio.style.display = "none";
+
+      itens.forEach((item) => {
+        const card = document.createElement("article");
+        card.className = "feed-item";
+
+        const avatarMini = document.createElement("div");
+        avatarMini.className = "feed-avatar-mini";
+        definirAvatar(avatarMini, fotoUrl, nomeUsuario);
+
+        const cabecalho = document.createElement("div");
+        cabecalho.className = "feed-item-cabecalho";
+        const infoWrap = document.createElement("div");
+        const nomeEl = document.createElement("div");
+        nomeEl.className = "nome";
+        nomeEl.textContent = nomeUsuario || "Você";
+        if (item.tipo && ROTULO_TIPO_POST[item.tipo]) {
+          const tag = document.createElement("span");
+          tag.className = `feed-tipo-tag ${item.tipo}`;
+          tag.textContent = ROTULO_TIPO_POST[item.tipo];
+          nomeEl.appendChild(tag);
+        }
+        const dataEl = document.createElement("div");
+        dataEl.className = "data";
+        dataEl.textContent = formatarDataHora(item.criadoEm) || "";
+        infoWrap.appendChild(nomeEl);
+        infoWrap.appendChild(dataEl);
+
+        cabecalho.appendChild(avatarMini);
+        cabecalho.appendChild(infoWrap);
+        card.appendChild(cabecalho);
+
+        if (item.texto) {
+          const texto = document.createElement("p");
+          texto.textContent = item.texto;
+          card.appendChild(texto);
+        }
+
+        if (item.midiaUrl && (item.tipo === "foto" || item.tipo === "video")) {
+          const midiaWrap = document.createElement("div");
+          midiaWrap.className = "feed-item-midia";
+          if (item.tipo === "foto") {
+            const img = document.createElement("img");
+            img.src = item.midiaUrl;
+            img.alt = "Foto publicada";
+            midiaWrap.appendChild(img);
+          } else {
+            const video = document.createElement("video");
+            video.src = item.midiaUrl;
+            video.controls = true;
+            midiaWrap.appendChild(video);
+          }
+          card.appendChild(midiaWrap);
+        }
+
+        if (opcoes.prepend) {
+          lista.prepend(card);
+        } else {
+          lista.appendChild(card);
+        }
+      });
+    }
+
+    // ===== Mensagens =====
+    function renderizarConversas(conversas) {
+      const lista = document.getElementById("mensagensLista");
+      const vazio = document.getElementById("mensagensVazio");
+
+      if (!conversas || conversas.length === 0) {
+        vazio.style.display = "block";
+        return;
+      }
+      vazio.style.display = "none";
+
+      conversas.forEach((conversa) => {
+        const link = document.createElement("a");
+        link.className = "conversa-item";
+        link.href = conversa.link || "mensagens.html";
+
+        const avatar = document.createElement("div");
+        avatar.className = "conversa-avatar";
+        definirAvatar(avatar, conversa.foto, conversa.nome);
+
+        const info = document.createElement("div");
+        info.className = "conversa-info";
+        const nome = document.createElement("div");
+        nome.className = "nome";
+        nome.textContent = conversa.nome || "Conversa";
+        const ultima = document.createElement("div");
+        ultima.className = "ultima";
+        ultima.textContent = conversa.ultimaMensagem || "";
+        info.appendChild(nome);
+        info.appendChild(ultima);
+
+        const hora = document.createElement("div");
+        hora.className = "conversa-hora";
+        hora.textContent = formatarDataHora(conversa.atualizadoEm) || "";
+
+        link.appendChild(avatar);
+        link.appendChild(info);
+        link.appendChild(hora);
+        lista.appendChild(link);
+      });
+    }
+
+    // ===== Seguidores, seguindo e avaliações =====
+    let perfilAtual = null;
+
+    function abrirModalPerfil(titulo, resumo, itens = []) {
+      const backdrop = document.getElementById("perfilModalBackdrop");
+      const tituloEl = document.getElementById("perfilModalTitulo");
+      const resumoEl = document.getElementById("perfilModalResumo");
+      const lista = document.getElementById("perfilModalLista");
+      tituloEl.textContent = titulo;
+      resumoEl.textContent = resumo || "";
+      lista.innerHTML = "";
+
+      if (!itens || itens.length === 0) {
+        const vazio = document.createElement("div");
+        vazio.className = "perfil-modal-vazio";
+        vazio.textContent = "Nenhum registro para mostrar no momento.";
+        lista.appendChild(vazio);
+      } else {
+        itens.forEach((item) => {
+          const linha = document.createElement(item.link ? "a" : "div");
+          linha.className = "perfil-modal-item";
+          if (item.link) linha.href = item.link;
+
+          const avatar = document.createElement("div");
+          avatar.className = "perfil-modal-avatar";
+          definirAvatar(avatar, item.foto || item.fotoPerfil || "", item.nome || "Usuário");
+
+          const info = document.createElement("div");
+          info.className = "perfil-modal-item-info";
+          const nome = document.createElement("div");
+          nome.className = "perfil-modal-item-nome";
+          nome.textContent = item.nome || item.nomeUsuario || "Usuário";
+          const texto = document.createElement("div");
+          texto.className = "perfil-modal-item-texto";
+          texto.textContent = item.texto || item.comentario || item.descricao || "";
+          info.appendChild(nome);
+          if (texto.textContent) info.appendChild(texto);
+
+          linha.appendChild(avatar);
+          linha.appendChild(info);
+          lista.appendChild(linha);
+        });
+      }
+
+      backdrop.classList.add("active");
+      backdrop.setAttribute("aria-hidden", "false");
+    }
+
+    function fecharModalPerfil() {
+      const backdrop = document.getElementById("perfilModalBackdrop");
+      backdrop.classList.remove("active");
+      backdrop.setAttribute("aria-hidden", "true");
+    }
+
+    function normalizarLista(valor) {
+      if (Array.isArray(valor)) return valor;
+      if (valor && typeof valor === "object") return Object.values(valor);
+      return [];
+    }
+
+    function iniciarDetalhesPerfil(dados) {
+      perfilAtual = dados || {};
+      document.getElementById("btnSeguidores").onclick = () => {
+        const lista = normalizarLista(perfilAtual.listaSeguidores || perfilAtual.seguidoresLista || perfilAtual.seguidoresUsuarios);
+        abrirModalPerfil(
+          "Seguidores",
+          `${Number(perfilAtual.seguidores || lista.length || 0).toLocaleString("pt-BR")} ${Number(perfilAtual.seguidores || lista.length || 0) === 1 ? "seguidor" : "seguidores"}`,
+          lista
+        );
+      };
+      document.getElementById("btnSeguindo").onclick = () => {
+        const lista = normalizarLista(perfilAtual.listaSeguindo || perfilAtual.seguindoLista || perfilAtual.seguindoUsuarios);
+        abrirModalPerfil(
+          "Seguindo",
+          `Este usuário segue ${Number(perfilAtual.seguindo || lista.length || 0).toLocaleString("pt-BR")} ${Number(perfilAtual.seguindo || lista.length || 0) === 1 ? "pessoa" : "pessoas"}`,
+          lista
+        );
+      };
+      document.getElementById("btnAvaliacoes").onclick = () => {
+        const lista = normalizarLista(perfilAtual.avaliacoesLista || perfilAtual.listaAvaliacoes || perfilAtual.avaliacoes);
+        const nota = Number(perfilAtual.avaliacaoMedia || 0).toFixed(1);
+        const total = Number(perfilAtual.totalAvaliacoes || lista.length || 0);
+        abrirModalPerfil(
+          "Avaliações",
+          `Nota média: ${nota} / 5 · ${total} ${total === 1 ? "pessoa avaliou" : "pessoas avaliaram"} este perfil`,
+          lista
+        );
+      };
+    }
+
+    document.getElementById("perfilModalFechar").addEventListener("click", fecharModalPerfil);
+    document.getElementById("perfilModalBackdrop").addEventListener("click", (e) => {
+      if (e.target.id === "perfilModalBackdrop") fecharModalPerfil();
+    });
+
+    // ===== Inicialização =====
+    async function iniciar() {
+      iniciarTabs();
+
+      if (!window.firebaseAuth) {
+        mostrarErro();
+        return;
+      }
+
+      const { onAuthStateChanged, signOut } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+      const {
+        doc,
+        getDoc,
+        setDoc,
+        addDoc,
+        serverTimestamp,
+        collection,
+        query,
+        where,
+        orderBy,
+        limit,
+        getDocs,
+      } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+
+      let storageModule = null;
+      try {
+        storageModule = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js");
+      } catch {
+        storageModule = null;
+      }
+
+      onAuthStateChanged(window.firebaseAuth, async (user) => {
+        if (!user) {
+          window.location.href = "login.html";
+          return;
+        }
+
+        const refUsuario = doc(window.firebaseDb, "usuarios", user.uid);
+        let dadosAtuais = null;
+
+        try {
+          const snap = await getDoc(refUsuario);
+          if (!snap.exists()) {
+            mostrarErro();
+            return;
+          }
+          dadosAtuais = snap.data();
+          preencherPerfil(dadosAtuais);
+          iniciarDetalhesPerfil(dadosAtuais);
+        } catch (error) {
+          console.error("Erro ao carregar perfil:", error);
+          mostrarErro();
+          return;
+        }
+
+        // ---- Feed (coleção opcional "posts", filtrada por autorId) ----
+        try {
+          const q = query(
+            collection(window.firebaseDb, "posts"),
+            where("autorId", "==", user.uid),
+            orderBy("criadoEm", "desc"),
+            limit(20)
+          );
+          const snapPosts = await getDocs(q);
+          const itens = snapPosts.docs.map((d) => d.data());
+          renderizarFeed(itens, dadosAtuais.nome, dadosAtuais.fotoPerfil);
+        } catch (error) {
+          console.warn("Feed indisponível no momento:", error);
+        }
+
+        // ---- Mensagens (coleção opcional "conversas", com participantes) ----
+        try {
+          const q = query(
+            collection(window.firebaseDb, "conversas"),
+            where("participantes", "array-contains", user.uid),
+            orderBy("atualizadoEm", "desc"),
+            limit(20)
+          );
+          const snapConversas = await getDocs(q);
+          const conversas = snapConversas.docs.map((d) => {
+            const c = d.data();
+            return {
+              nome: c.nomeExibicao || "Conversa",
+              foto: c.fotoExibicao || "",
+              ultimaMensagem: c.ultimaMensagem || "",
+              atualizadoEm: c.atualizadoEm,
+              link: `mensagens.html?conversa=${d.id}`,
+            };
+          });
+          renderizarConversas(conversas);
+        } catch (error) {
+          console.warn("Mensagens indisponíveis no momento:", error);
+        }
+
+        // ---- Editar biografia ----
+        const bioTexto = document.getElementById("perfilBioTexto");
+        const bioEdit = document.getElementById("perfilBioEdit");
+        const bioInput = document.getElementById("perfilBioInput");
+        const btnEditarBio = document.getElementById("btnEditarBio");
+        const btnCancelarBio = document.getElementById("btnCancelarBio");
+        const btnSalvarBio = document.getElementById("btnSalvarBio");
+
+        btnEditarBio.addEventListener("click", () => {
+          bioTexto.style.display = "none";
+          btnEditarBio.style.display = "none";
+          bioEdit.style.display = "block";
+          bioInput.focus();
+        });
+
+        btnCancelarBio.addEventListener("click", () => {
+          bioInput.value = dadosAtuais.bio || "";
+          bioEdit.style.display = "none";
+          bioTexto.style.display = "block";
+          btnEditarBio.style.display = "inline-block";
+        });
+
+        btnSalvarBio.addEventListener("click", async () => {
+          const novaBio = bioInput.value.trim();
+          btnSalvarBio.disabled = true;
+          btnSalvarBio.textContent = "Salvando...";
+          try {
+            await setDoc(refUsuario, { bio: novaBio }, { merge: true });
+            dadosAtuais.bio = novaBio;
+            if (novaBio) {
+              bioTexto.textContent = novaBio;
+              bioTexto.classList.remove("vazio");
+            } else {
+              bioTexto.textContent = "Nenhuma biografia adicionada ainda.";
+              bioTexto.classList.add("vazio");
+            }
+            bioEdit.style.display = "none";
+            bioTexto.style.display = "block";
+            btnEditarBio.style.display = "inline-block";
+          } catch (error) {
+            console.error("Erro ao salvar biografia:", error);
+            alert("Não foi possível salvar sua biografia agora. Verifique as regras do Firestore para o campo \"bio\" e tente novamente.");
+          } finally {
+            btnSalvarBio.disabled = false;
+            btnSalvarBio.textContent = "Salvar";
+          }
+        });
+
+        // ---- Upload genérico de imagem: tenta o Storage e, se não houver,
+        // salva a própria imagem (comprimida) direto no documento do Firestore.
+        // Isso garante que a foto realmente seja salva mesmo sem bucket configurado.
+        async function salvarImagem(arquivo, { pastaStorage, campoFirestore, maxLargura, maxAltura, qualidade }) {
+          if (storageModule && window.firebaseStorage) {
+            try {
+              const { ref, uploadBytes, getDownloadURL } = storageModule;
+              const storageRef = ref(window.firebaseStorage, `${pastaStorage}/${user.uid}.jpg`);
+              await uploadBytes(storageRef, arquivo);
+              const urlFinal = await getDownloadURL(storageRef);
+              await setDoc(refUsuario, { [campoFirestore]: urlFinal }, { merge: true });
+              return urlFinal;
+            } catch (error) {
+              console.warn("Falha ao enviar para o Storage, salvando como imagem embutida:", error);
+            }
+          }
+
+          const dataUrl = await comprimirImagem(arquivo, maxLargura, maxAltura, qualidade);
+          await setDoc(refUsuario, { [campoFirestore]: dataUrl }, { merge: true });
+          return dataUrl;
+        }
+
+        // ---- Solicitar verificação de perfil ----
+        const btnVerificarPerfil = document.getElementById("btnVerificarPerfil");
+        btnVerificarPerfil.addEventListener("click", async () => {
+          btnVerificarPerfil.disabled = true;
+          btnVerificarPerfil.textContent = "Enviando...";
+          try {
+            await setDoc(refUsuario, { solicitacaoVerificacao: true }, { merge: true });
+            btnVerificarPerfil.textContent = "Solicitação enviada";
+          } catch (error) {
+            console.error("Erro ao solicitar verificação:", error);
+            btnVerificarPerfil.disabled = false;
+            btnVerificarPerfil.textContent = "Verificar meu perfil";
+            alert("Não foi possível enviar sua solicitação agora. Tente novamente.");
+          }
+        });
+
+        // ---- Criação de post: foto, vídeo ou texto ----
+        const opcoesPost = {
+          foto: document.getElementById("opcaoFoto"),
+          video: document.getElementById("opcaoVideo"),
+          texto: document.getElementById("opcaoTexto"),
+        };
+        const editoresPost = {
+          foto: document.getElementById("editorFoto"),
+          video: document.getElementById("editorVideo"),
+          texto: document.getElementById("editorTexto"),
+        };
+
+        function fecharEditoresPost() {
+          Object.values(opcoesPost).forEach((btn) => btn.classList.remove("active"));
+          Object.values(editoresPost).forEach((el) => el.classList.remove("active"));
+        }
+
+        Object.entries(opcoesPost).forEach(([tipo, btn]) => {
+          btn.addEventListener("click", () => {
+            const jaAberto = editoresPost[tipo].classList.contains("active");
+            fecharEditoresPost();
+            if (!jaAberto) {
+              btn.classList.add("active");
+              editoresPost[tipo].classList.add("active");
+            }
+          });
+        });
+
+        document.querySelectorAll("[data-cancelar]").forEach((btn) => {
+          btn.addEventListener("click", () => fecharEditoresPost());
+        });
+
+        // Seleção e prévia de foto
+        let arquivoFotoPost = null;
+        const areaSelecionarFoto = document.getElementById("areaSelecionarFoto");
+        const inputPostFoto = document.getElementById("inputPostFoto");
+        areaSelecionarFoto.addEventListener("click", () => inputPostFoto.click());
+        inputPostFoto.addEventListener("change", () => {
+          const arquivo = inputPostFoto.files?.[0];
+          if (!arquivo) return;
+          arquivoFotoPost = arquivo;
+          const preview = document.getElementById("previewFoto");
+          const previewImg = document.getElementById("previewFotoImg");
+          previewImg.src = URL.createObjectURL(arquivo);
+          preview.style.display = "block";
+        });
+
+        // Seleção e prévia de vídeo
+        let arquivoVideoPost = null;
+        const areaSelecionarVideo = document.getElementById("areaSelecionarVideo");
+        const inputPostVideo = document.getElementById("inputPostVideo");
+        areaSelecionarVideo.addEventListener("click", () => inputPostVideo.click());
+        inputPostVideo.addEventListener("change", () => {
+          const arquivo = inputPostVideo.files?.[0];
+          if (!arquivo) return;
+          arquivoVideoPost = arquivo;
+          const preview = document.getElementById("previewVideo");
+          const previewTag = document.getElementById("previewVideoTag");
+          previewTag.src = URL.createObjectURL(arquivo);
+          preview.style.display = "block";
+        });
+
+        // Envia a mídia de um post (foto) para o Storage, ou usa uma versão
+        // comprimida embutida caso não haja bucket configurado — sem gravar
+        // nenhum campo temporário no documento do usuário.
+        async function prepararMidiaFotoPost(arquivo) {
+          if (storageModule && window.firebaseStorage) {
+            try {
+              const { ref, uploadBytes, getDownloadURL } = storageModule;
+              const storageRef = ref(window.firebaseStorage, `posts/${user.uid}/${Date.now()}.jpg`);
+              await uploadBytes(storageRef, arquivo);
+              return await getDownloadURL(storageRef);
+            } catch (error) {
+              console.warn("Falha ao enviar foto do post para o Storage, usando imagem embutida:", error);
+            }
+          }
+          return comprimirImagem(arquivo, 1080, 1080, 0.82);
+        }
+
+        // Publicar: adiciona um novo documento na coleção "posts"
+        async function publicarPost({ tipo, texto, midiaUrl }) {
+          const novoPost = {
+            autorId: user.uid,
+            tipo,
+            texto: texto || "",
+            midiaUrl: midiaUrl || "",
+            criadoEm: serverTimestamp(),
+          };
+          await addDoc(collection(window.firebaseDb, "posts"), novoPost);
+          novoPost.criadoEm = new Date();
+          return novoPost;
+        }
+
+        function adicionarPostNoTopoDoFeed(post) {
+          document.getElementById("feedVazio").style.display = "none";
+          renderizarFeed([post], dadosAtuais.nome, dadosAtuais.fotoPerfil, { prepend: true });
+        }
+
+        const btnPublicarFoto = document.getElementById("btnPublicarFoto");
+        btnPublicarFoto.addEventListener("click", async () => {
+          if (!arquivoFotoPost) {
+            alert("Escolha uma foto antes de publicar.");
+            return;
+          }
+          btnPublicarFoto.disabled = true;
+          btnPublicarFoto.textContent = "Publicando...";
+          try {
+            const midiaUrl = await prepararMidiaFotoPost(arquivoFotoPost);
+            const texto = document.getElementById("legendaFoto").value.trim();
+            const post = await publicarPost({ tipo: "foto", texto, midiaUrl });
+            adicionarPostNoTopoDoFeed(post);
+            document.getElementById("legendaFoto").value = "";
+            document.getElementById("previewFoto").style.display = "none";
+            inputPostFoto.value = "";
+            arquivoFotoPost = null;
+            fecharEditoresPost();
+          } catch (error) {
+            console.error("Erro ao publicar foto:", error);
+            alert("Não foi possível publicar sua foto agora. Tente novamente.");
+          } finally {
+            btnPublicarFoto.disabled = false;
+            btnPublicarFoto.textContent = "Publicar foto";
+          }
+        });
+
+        const btnPublicarVideo = document.getElementById("btnPublicarVideo");
+        btnPublicarVideo.addEventListener("click", async () => {
+          if (!arquivoVideoPost) {
+            alert("Escolha um vídeo antes de publicar.");
+            return;
+          }
+          if (!storageModule || !window.firebaseStorage) {
+            alert("O envio de vídeos requer o Firebase Storage configurado neste projeto.");
+            return;
+          }
+          btnPublicarVideo.disabled = true;
+          btnPublicarVideo.textContent = "Publicando...";
+          try {
+            const { ref, uploadBytes, getDownloadURL } = storageModule;
+            const storageRef = ref(window.firebaseStorage, `posts/${user.uid}/${Date.now()}.mp4`);
+            await uploadBytes(storageRef, arquivoVideoPost);
+            const midiaUrl = await getDownloadURL(storageRef);
+            const texto = document.getElementById("legendaVideo").value.trim();
+            const post = await publicarPost({ tipo: "video", texto, midiaUrl });
+            adicionarPostNoTopoDoFeed(post);
+            document.getElementById("legendaVideo").value = "";
+            document.getElementById("previewVideo").style.display = "none";
+            inputPostVideo.value = "";
+            arquivoVideoPost = null;
+            fecharEditoresPost();
+          } catch (error) {
+            console.error("Erro ao publicar vídeo:", error);
+            alert("Não foi possível publicar seu vídeo agora. Tente novamente.");
+          } finally {
+            btnPublicarVideo.disabled = false;
+            btnPublicarVideo.textContent = "Publicar vídeo";
+          }
+        });
+
+        const btnPublicarTexto = document.getElementById("btnPublicarTexto");
+        btnPublicarTexto.addEventListener("click", async () => {
+          const conteudoTexto = document.getElementById("conteudoTexto");
+          const texto = conteudoTexto.value.trim();
+          if (!texto) {
+            alert("Escreva algo antes de publicar.");
+            return;
+          }
+          btnPublicarTexto.disabled = true;
+          btnPublicarTexto.textContent = "Publicando...";
+          try {
+            const post = await publicarPost({ tipo: "texto", texto });
+            adicionarPostNoTopoDoFeed(post);
+            conteudoTexto.value = "";
+            fecharEditoresPost();
+          } catch (error) {
+            console.error("Erro ao publicar texto:", error);
+            alert("Não foi possível publicar agora. Tente novamente.");
+          } finally {
+            btnPublicarTexto.disabled = false;
+            btnPublicarTexto.textContent = "Publicar texto";
+          }
+        });
+
+        // ---- Editar foto de perfil ----
+        const btnEditarFoto = document.getElementById("btnEditarFoto");
+        const inputFoto = document.getElementById("inputFotoPerfil");
+        const avatarEl = document.getElementById("perfilAvatar");
+
+        btnEditarFoto.addEventListener("click", () => inputFoto.click());
+
+        inputFoto.addEventListener("change", async () => {
+          const arquivo = inputFoto.files?.[0];
+          if (!arquivo) return;
+
+          if (!arquivo.type.startsWith("image/")) {
+            alert("Selecione um arquivo de imagem.");
+            return;
+          }
+
+          if (arquivo.size > TAMANHO_MAX_IMAGEM) {
+            alert("Essa imagem é muito grande. Escolha um arquivo de até 10 MB.");
+            return;
+          }
+
+          const previaUrl = URL.createObjectURL(arquivo);
+          definirAvatar(avatarEl, previaUrl, dadosAtuais.nome);
+
+          try {
+            const urlFinal = await salvarImagem(arquivo, {
+              pastaStorage: "fotosPerfil",
+              campoFirestore: "fotoPerfil",
+              maxLargura: 320,
+              maxAltura: 320,
+              qualidade: 0.82,
+            });
+            dadosAtuais.fotoPerfil = urlFinal;
+            definirAvatar(avatarEl, urlFinal, dadosAtuais.nome);
+          } catch (error) {
+            console.error("Erro ao salvar foto de perfil:", error);
+            definirAvatar(avatarEl, dadosAtuais.fotoPerfil, dadosAtuais.nome);
+            alert("Não foi possível salvar sua nova foto agora. Verifique as regras do Firestore para o campo \"fotoPerfil\" e tente novamente.");
+          } finally {
+            inputFoto.value = "";
+          }
+        });
+
+        // ---- Editar foto de capa ----
+        const btnEditarCapa = document.getElementById("btnEditarCapa");
+        const inputCapa = document.getElementById("inputFotoCapa");
+        const capaEl = document.getElementById("perfilCapa");
+
+        btnEditarCapa.addEventListener("click", () => inputCapa.click());
+
+        inputCapa.addEventListener("change", async () => {
+          const arquivo = inputCapa.files?.[0];
+          if (!arquivo) return;
+
+          if (!arquivo.type.startsWith("image/")) {
+            alert("Selecione um arquivo de imagem.");
+            return;
+          }
+
+          if (arquivo.size > TAMANHO_MAX_IMAGEM) {
+            alert("Essa imagem é muito grande. Escolha um arquivo de até 10 MB.");
+            return;
+          }
+
+          const previaUrl = URL.createObjectURL(arquivo);
+          definirCapa(capaEl, previaUrl);
+
+          try {
+            const urlFinal = await salvarImagem(arquivo, {
+              pastaStorage: "fotosCapa",
+              campoFirestore: "fotoCapa",
+              maxLargura: 960,
+              maxAltura: 360,
+              qualidade: 0.78,
+            });
+            dadosAtuais.fotoCapa = urlFinal;
+            definirCapa(capaEl, urlFinal);
+          } catch (error) {
+            console.error("Erro ao salvar foto de capa:", error);
+            definirCapa(capaEl, dadosAtuais.fotoCapa);
+            alert("Não foi possível salvar sua nova capa agora. Verifique as regras do Firestore para o campo \"fotoCapa\" e tente novamente.");
+          } finally {
+            inputCapa.value = "";
+          }
+        });
+
+        // ---- Sair ----
+        document.getElementById("btnSairPerfil").addEventListener("click", async () => {
+          try {
+            await signOut(window.firebaseAuth);
+            window.location.href = "index.html";
+          } catch (error) {
+            console.error("Erro ao sair:", error);
+          }
+        });
+      });
+    }
+
+    iniciar();
+  </script>
+</body>
+</html>
