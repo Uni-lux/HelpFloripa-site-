@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Perfil do usuário na Help Floripa">
+  <title>Meu Perfil | Help Floripa</title>
+
+  <style>
+    :root{
+      --bg:#000;
+      --surface:#0d0d0d;
+      --surface-2:#151515;
+      --surface-3:#1b1b1b;
+      --blue:#00adee;
+      --blue-dark:#0087c2;
+      --text:#fff;
+      --muted:#9aa7b1;
+      --line:#27343b;
+      --gold:#ffc94d;
+      --green:#35d07f;
+      --danger:#ff6b6b;
+      --shadow:0 18px 55px rgba(0,0,0,.48);
+    }
+
+    *{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif}
+    html{scroll-behavior:smooth}
+    body{margin:0;background:radial-gradient(circle at top,#061820 0,#000 36%);color:var(--text);min-height:100vh}
+    button,input,textarea{font:inherit}
+    button{cursor:pointer}
+
+    /* HEADER */
+    .topbar{
+      height:76px;position:fixed;inset:0 0 auto 0;z-index:1000;
+      display:flex;align-items:center;justify-content:center;
+      background:rgba(0,0,0,.94);backdrop-filter:blur(18px);
+      border-bottom:1px solid rgba(0,173,238,.14)
+    }
+    .brand{text-decoration:none;text-align:center;line-height:1}
+    .brand strong{font-size:23px;letter-spacing:.4px;color:#fff}
+    .brand strong span{color:var(--blue)}
+    .brand small{display:block;margin-top:4px;color:#c9d1d5;font-size:7px;letter-spacing:1.2px}
+    .icon-btn{
+      width:42px;height:42px;border:0;background:transparent;color:#eaf2f5;
+      display:grid;place-items:center;border-radius:50%;position:absolute;top:17px
+    }
+    .icon-btn:hover{background:rgba(0,173,238,.1);color:var(--blue)}
+    .menu-btn{left:15px}
+    .actions{position:absolute;right:14px;top:17px;display:flex;gap:4px}
+    .actions .icon-btn{position:relative;top:auto}
+    svg{width:23px;height:23px}
+
+    /* SIDEBAR */
+    .backdrop{position:fixed;inset:0;background:rgba(0,0,0,.66);z-index:1200;opacity:0;pointer-events:none;transition:.25s}
+    .backdrop.active{opacity:1;pointer-events:auto}
+    .sidebar{
+      position:fixed;left:0;top:0;bottom:0;width:250px;z-index:1300;
+      background:#070707;border-right:1px solid rgba(0,173,238,.18);
+      transform:translateX(-102%);transition:.3s;padding:92px 18px 25px
+    }
+    .sidebar.active{transform:translateX(0)}
+    .sidebar h2{margin:0 0 24px;text-align:center;color:var(--blue);font-size:21px}
+    .sidebar a{display:block;padding:13px;color:#fff;text-decoration:none;border-radius:10px;margin:5px 0}
+    .sidebar a:hover{background:rgba(0,173,238,.12);color:var(--blue)}
+
+    /* PAGE */
+    main{padding:98px 14px 50px}
+    .shell{width:min(1080px,100%);margin:auto}
+    .back-link{display:inline-flex;align-items:center;gap:7px;color:var(--muted);text-decoration:none;font-size:13px;margin:0 0 14px 3px}
+    .back-link:hover{color:var(--blue)}
+
+    /* PROFILE HERO */
+    .profile-card{
+      background:linear-gradient(180deg,rgba(21,21,21,.98),rgba(8,8,8,.98));
+      border:1px solid rgba(0,173,238,.28);border-radius:22px;overflow:hidden;box-shadow:var(--shadow)
+    }
+    .cover{
+      height:220px;position:relative;overflow:hidden;
+      background:linear-gradient(135deg,#063041,#01080c 58%,#000)
+    }
+    .cover::after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.52),transparent 55%)}
+    .cover img{width:100%;height:100%;object-fit:cover}
+    .cover-edit{
+      position:absolute;z-index:2;right:15px;top:15px;width:42px;height:42px;border-radius:50%;
+      border:1px solid rgba(0,173,238,.65);background:rgba(0,0,0,.55);color:var(--blue)
+    }
+
+    .profile-body{padding:0 26px 26px}
+    .identity{display:grid;grid-template-columns:126px 1fr auto;gap:18px;align-items:end;margin-top:-62px;position:relative;z-index:3}
+    .avatar-wrap{width:126px;height:126px;position:relative}
+    .avatar{
+      width:126px;height:126px;border-radius:50%;overflow:hidden;background:#111;border:4px solid var(--blue);
+      box-shadow:0 0 0 5px #101010;display:grid;place-items:center;font-size:38px;font-weight:800
+    }
+    .avatar img{width:100%;height:100%;object-fit:cover}
+    .avatar-edit{
+      position:absolute;right:3px;bottom:2px;width:37px;height:37px;border-radius:50%;border:3px solid #101010;
+      background:var(--blue);color:#000;display:grid;place-items:center
+    }
+    .name-area{padding-bottom:7px;min-width:0}
+    .name-line{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+    .name-line h1{font-size:25px;margin:0;line-height:1.15}
+    .verified{
+      display:none;width:20px;height:20px;border-radius:50%;background:var(--blue);color:#000;
+      align-items:center;justify-content:center;font-weight:900;font-size:12px
+    }
+    .nickname{margin:5px 0 9px;color:var(--blue);font-size:14px}
+    .badges{display:flex;gap:7px;flex-wrap:wrap}
+    .badge{border:1px solid rgba(0,173,238,.5);background:rgba(0,173,238,.1);color:var(--blue);padding:5px 10px;border-radius:20px;font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase}
+    .badge.trust{color:var(--green);border-color:rgba(53,208,127,.42);background:rgba(53,208,127,.08)}
+    .profile-buttons{display:flex;gap:8px;padding-bottom:7px}
+    .btn{border-radius:10px;padding:11px 15px;border:1px solid transparent;font-weight:800;font-size:13px}
+    .btn-primary{background:var(--blue);color:#000}.btn-primary:hover{background:var(--blue-dark)}
+    .btn-secondary{background:#121212;color:#fff;border-color:var(--line)}.btn-secondary:hover{border-color:var(--blue);color:var(--blue)}
+    .more-btn{width:42px;padding:0;font-size:20px}
+
+    .meta{display:flex;gap:16px;flex-wrap:wrap;margin:19px 0 16px;color:var(--muted);font-size:13px}
+    .meta span{display:flex;align-items:center;gap:6px}
+    .meta svg{width:16px;height:16px;color:var(--blue)}
+
+    .stats{
+      display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+      padding:16px 0;margin:8px 0 18px
+    }
+    .stat{text-align:center;border-right:1px solid var(--line)}
+    .stat:last-child{border:0}
+    .stat strong{display:block;font-size:18px}.stat span{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-top:4px}
+    .stars{color:var(--gold);font-size:14px;letter-spacing:0}
+
+    /* TRUST */
+    .trust-card{
+      margin-top:16px;background:linear-gradient(135deg,rgba(0,173,238,.10),rgba(0,0,0,.15));
+      border:1px solid rgba(0,173,238,.25);border-radius:17px;padding:18px
+    }
+    .trust-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:13px}
+    .trust-title{margin:0;font-size:14px;letter-spacing:.7px;text-transform:uppercase}
+    .trust-title span{color:var(--blue)}
+    .trust-score{color:var(--green);font-size:12px;font-weight:800}
+    .trust-items{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+    .trust-item{background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.06);border-radius:11px;padding:11px;font-size:12px;color:#dbe4e7}
+    .trust-item b{display:block;color:var(--green);font-size:11px;margin-bottom:4px}
+
+    /* TABS */
+    .tabs{position:sticky;top:84px;z-index:50;margin:20px 0 16px;padding:6px;background:rgba(10,10,10,.94);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:14px;display:flex;gap:5px;overflow:auto}
+    .tab{flex:1;min-width:115px;background:transparent;border:0;color:var(--muted);font-weight:800;padding:11px 9px;border-radius:9px}
+    .tab.active{background:var(--blue);color:#000}
+
+    .panel{display:none}.panel.active{display:block}
+    .grid{display:grid;grid-template-columns:1.15fr .85fr;gap:16px}
+    .card{background:linear-gradient(180deg,#141414,#0d0d0d);border:1px solid var(--line);border-radius:18px;padding:19px}
+    .card h2{font-size:14px;text-transform:uppercase;letter-spacing:.8px;color:#eaf2f5;margin:0 0 14px}
+    .card h2 small{color:var(--blue);font-size:11px}
+    .about{color:#dbe2e5;font-size:14px;line-height:1.65;white-space:pre-wrap}
+    .info-list{display:grid;gap:11px}
+    .info-row{display:flex;justify-content:space-between;gap:15px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px}
+    .info-row span:first-child{color:var(--muted)}.info-row span:last-child{text-align:right}
+
+    /* HIGHLIGHTS */
+    .highlights{display:flex;gap:14px;overflow:auto;padding-bottom:4px}
+    .highlight{min-width:72px;text-align:center;font-size:10px;color:var(--muted)}
+    .highlight-circle{width:58px;height:58px;border-radius:50%;margin:0 auto 7px;display:grid;place-items:center;background:#111;border:2px solid rgba(0,173,238,.7);color:var(--blue);font-size:20px}
+
+    /* POSTS */
+    .composer{margin-bottom:16px}
+    .composer-main{display:flex;gap:10px;align-items:center}
+    .mini-avatar{width:40px;height:40px;border-radius:50%;border:2px solid var(--blue);display:grid;place-items:center;overflow:hidden;background:#111;font-weight:800;flex:none}
+    .mini-avatar img{width:100%;height:100%;object-fit:cover}
+    .composer-trigger{flex:1;background:#0b0b0b;border:1px solid var(--line);color:var(--muted);padding:12px 14px;border-radius:12px;text-align:left}
+    .post-options{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+    .post-option{background:#0b0b0b;border:1px solid var(--line);color:#dfe6e9;padding:11px;border-radius:11px;font-weight:700;font-size:12px}
+    .post-option:hover{border-color:var(--blue);color:var(--blue)}
+    .editor{display:none;margin-top:13px;border-top:1px solid var(--line);padding-top:13px}
+    .editor.active{display:block}
+    textarea{width:100%;min-height:110px;background:#090909;color:#fff;border:1px solid var(--line);border-radius:12px;padding:13px;resize:vertical}
+    .editor-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:9px}
+    .media-area{padding:25px 12px;border:1.5px dashed var(--line);border-radius:12px;text-align:center;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer}
+    .media-preview{display:none;margin-top:10px}.media-preview img,.media-preview video{width:100%;max-height:360px;object-fit:cover;border-radius:12px}
+    input[type=file]{display:none}
+
+    .post{margin-bottom:13px}
+    .post-head{display:flex;gap:10px;align-items:center}
+    .post-user{flex:1}.post-user b{font-size:14px}.post-user span{display:block;color:var(--muted);font-size:11px;margin-top:3px}
+    .post-text{font-size:14px;line-height:1.6;color:#dfe6e9;margin:14px 0 0;white-space:pre-wrap}
+    .post-media{margin-top:12px}.post-media img,.post-media video{width:100%;max-height:500px;object-fit:cover;border-radius:13px}
+    .post-actions{display:flex;gap:18px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06)}
+    .post-actions button{background:transparent;border:0;color:var(--muted);font-size:12px}.post-actions button:hover{color:var(--blue)}
+
+    /* SERVICES */
+    .services-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:13px}
+    .service-card{background:#0c0c0c;border:1px solid var(--line);border-radius:15px;padding:16px}
+    .service-icon{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:rgba(0,173,238,.1);color:var(--blue);font-size:20px;margin-bottom:11px}
+    .service-card h3{margin:0 0 7px;font-size:15px}.service-card p{margin:0;color:var(--muted);font-size:12px;line-height:1.5}.service-footer{display:flex;justify-content:space-between;align-items:center;margin-top:14px;color:var(--blue);font-size:12px;font-weight:800}
+
+    /* REVIEWS */
+    .rating-summary{display:grid;grid-template-columns:130px 1fr;gap:20px;align-items:center}
+    .rating-number{text-align:center}.rating-number strong{font-size:45px}.rating-number .stars{margin-top:3px}.rating-number span{display:block;color:var(--muted);font-size:11px;margin-top:6px}
+    .rating-bars{display:grid;gap:7px}.rating-bar{display:grid;grid-template-columns:30px 1fr 25px;gap:8px;align-items:center;color:var(--muted);font-size:11px}
+    .bar{height:7px;background:#202020;border-radius:20px;overflow:hidden}.bar i{display:block;height:100%;background:var(--gold);border-radius:20px}
+    .review{padding:15px 0;border-bottom:1px solid rgba(255,255,255,.07)}.review:last-child{border:0}.review-top{display:flex;justify-content:space-between;gap:10px}.review-name{font-size:13px;font-weight:800}.review-date{font-size:11px;color:var(--muted)}.review p{font-size:13px;color:#dbe2e5;line-height:1.55;margin:8px 0 0}
+
+    /* EMPTY / TOAST */
+    .empty{text-align:center;padding:35px 12px;color:var(--muted);border:1px dashed var(--line);border-radius:14px;font-size:13px}
+    .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(80px);background:#141414;border:1px solid rgba(0,173,238,.35);padding:12px 17px;border-radius:12px;z-index:2000;opacity:0;transition:.3s;color:#fff;font-size:13px}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+    @media(max-width:760px){
+      .cover{height:155px}.profile-body{padding:0 16px 20px}
+      .identity{grid-template-columns:86px 1fr;margin-top:-43px;gap:13px}.avatar-wrap,.avatar{width:86px;height:86px}.avatar{font-size:27px}
+      .avatar-edit{width:31px;height:31px}.profile-buttons{grid-column:1/-1;padding:0}.profile-buttons .btn{flex:1}
+      .name-area{padding-bottom:0}.name-line h1{font-size:20px}.stats{grid-template-columns:repeat(2,1fr);row-gap:15px}.stat:nth-child(2){border-right:0}.stat:nth-child(-n+2){border-bottom:1px solid var(--line);padding-bottom:13px}.stat:nth-child(n+3){padding-top:2px}
+      .trust-items{grid-template-columns:1fr}.grid{grid-template-columns:1fr}.services-grid{grid-template-columns:1fr}.rating-summary{grid-template-columns:1fr}.meta{gap:10px}.tabs{top:82px}
+    }
+  </style>
+
+  <script type="module" src="firebase.js"></script>
+  <script type="module" src="perfil.js"></script>
+</head>
+
+<body>
+  <div class="backdrop" id="backdrop"></div>
+  <aside class="sidebar" id="sidebar">
+    <h2>Help Floripa</h2>
+    <a href="usuarios.html">Meu Perfil</a>
+    <a href="profissionais.html">Profissionais</a>
+    <a href="clientes.html">Clientes</a>
+    <a href="mensagens.html">Mensagens</a>
+    <a href="contato.html">Contato</a>
+    <a href="ajuda.html">Ajuda</a>
+    <a href="sobre.html">Sobre</a>
+  </aside>
+
+  <header class="topbar">
+    <button class="icon-btn menu-btn" id="menuBtn" aria-label="Abrir menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <a class="brand" href="index.html">
+      <strong>HELP <span>FLORIPA</span></strong>
+      <small>TUDO QUE VOCÊ PRECISA EM UM SÓ LUGAR</small>
+    </a>
+    <div class="actions">
+      <button class="icon-btn" aria-label="Notificações">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
+      </button>
+      <a class="icon-btn" href="usuarios.html" aria-label="Perfil">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="9" r="3"/><path d="M6.5 19c1.4-3 3.3-4.5 5.5-4.5S16.1 16 17.5 19"/></svg>
+      </a>
+    </div>
+  </header>
+
+  <main>
+    <div class="shell">
+      <a href="index.html" class="back-link">← Voltar para o início</a>
+
+      <section class="profile-card">
+        <div class="cover" id="cover">
+          <button class="cover-edit" id="btnCover" title="Alterar foto de capa" aria-label="Alterar foto de capa">✎</button>
+          <input type="file" id="coverInput" accept="image/*">
+        </div>
+
+        <div class="profile-body">
+          <div class="identity">
+            <div class="avatar-wrap">
+              <div class="avatar" id="avatar">HF</div>
+              <button class="avatar-edit" id="btnAvatar" title="Alterar foto" aria-label="Alterar foto">✎</button>
+              <input type="file" id="avatarInput" accept="image/*">
+            </div>
+
+            <div class="name-area">
+              <div class="name-line">
+                <h1 id="name">Carregando...</h1>
+                <span class="verified" id="verified">✓</span>
+              </div>
+              <p class="nickname" id="nickname"></p>
+              <div class="badges">
+                <span class="badge" id="typeBadge">Usuário</span>
+                <span class="badge trust" id="trustBadge">Perfil ativo</span>
+              </div>
+            </div>
+
+            <div class="profile-buttons">
+              <a class="btn btn-primary" href="cadastrar.html">Editar perfil</a>
+              <button class="btn btn-secondary more-btn" id="shareBtn" title="Compartilhar">↗</button>
+            </div>
+          </div>
+
+          <div class="meta">
+            <span>⌖ <b id="location">Florianópolis - SC</b></span>
+            <span>◷ <b id="memberSince">Membro da Help Floripa</b></span>
+          </div>
+
+          <div class="stats">
+            <div class="stat"><strong id="followers">0</strong><span>Seguidores</span></div>
+            <div class="stat"><strong id="following">0</strong><span>Seguindo</span></div>
+            <div class="stat"><strong id="postsCount">0</strong><span>Publicações</span></div>
+            <div class="stat"><strong id="rating">0.0</strong><span class="stars" id="stars">☆☆☆☆☆</span></div>
+          </div>
+
+          <div class="trust-card">
+            <div class="trust-head">
+              <h2 class="trust-title">🛡 Perfil de <span>confiança</span></h2>
+              <span class="trust-score" id="trustScore">Em evolução</span>
+            </div>
+            <div class="trust-items">
+              <div class="trust-item"><b id="emailCheck">○</b>E-mail confirmado</div>
+              <div class="trust-item"><b id="phoneCheck">○</b>Telefone confirmado</div>
+              <div class="trust-item"><b id="profileCheck">○</b>Perfil completo</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <nav class="tabs">
+        <button class="tab active" data-tab="perfil">Perfil</button>
+        <button class="tab" data-tab="publicacoes">Publicações</button>
+        <button class="tab" data-tab="servicos">Serviços</button>
+        <button class="tab" data-tab="avaliacoes">Avaliações</button>
+      </nav>
+
+      <section class="panel active" id="perfil">
+        <div class="grid">
+          <div>
+            <article class="card">
+              <h2>Sobre <small id="aboutType">o usuário</small></h2>
+              <div class="about" id="bio">Nenhuma biografia adicionada ainda.</div>
+            </article>
+
+            <article class="card" style="margin-top:16px">
+              <h2>Destaques</h2>
+              <div class="highlights">
+                <div class="highlight"><div class="highlight-circle">💼</div>Serviços</div>
+                <div class="highlight"><div class="highlight-circle">📁</div>Portfólio</div>
+                <div class="highlight"><div class="highlight-circle">🏆</div>Conquistas</div>
+                <div class="highlight"><div class="highlight-circle">📸</div>Trabalhos</div>
+              </div>
+            </article>
+          </div>
+
+          <aside>
+            <article class="card">
+              <h2>Informações</h2>
+              <div class="info-list">
+                <div class="info-row"><span>Tipo de perfil</span><span id="infoType">Usuário</span></div>
+                <div class="info-row"><span>Cidade</span><span id="infoCity">Não informado</span></div>
+                <div class="info-row"><span>Verificação</span><span id="infoVerification">Pendente</span></div>
+                <div class="info-row"><span>Avaliação</span><span id="infoRating">0.0 / 5</span></div>
+              </div>
+            </article>
+
+            <article class="card" style="margin-top:16px">
+              <h2>Perfil completo</h2>
+              <div style="height:9px;background:#222;border-radius:20px;overflow:hidden"><i id="profileProgress" style="display:block;width:20%;height:100%;background:#00adee"></i></div>
+              <p style="color:#9aa7b1;font-size:12px;line-height:1.5;margin:11px 0 0" id="profileProgressText">Complete suas informações para aumentar a confiança no seu perfil.</p>
+            </article>
+          </aside>
+        </div>
+      </section>
+
+      <section class="panel" id="publicacoes">
+        <article class="card composer">
+          <div class="composer-main">
+            <div class="mini-avatar" id="composerAvatar">HF</div>
+            <button class="composer-trigger" id="composerTrigger">Compartilhe uma novidade na Help Floripa...</button>
+          </div>
+          <div class="post-options">
+            <button class="post-option" data-editor="textEditor">✍ Texto</button>
+            <button class="post-option" data-editor="photoEditor">📷 Foto</button>
+            <button class="post-option" data-editor="videoEditor">🎥 Vídeo</button>
+          </div>
+
+          <div class="editor" id="textEditor">
+            <textarea id="postText" maxlength="500" placeholder="No que você está pensando?"></textarea>
+            <div class="editor-actions"><button class="btn btn-primary" id="publishText">Publicar</button></div>
+          </div>
+
+          <div class="editor" id="photoEditor">
+            <div class="media-area" id="photoArea">Toque para escolher uma foto</div>
+            <input type="file" id="photoInput" accept="image/*">
+            <div class="media-preview" id="photoPreview"><img id="photoPreviewImg"></div>
+            <textarea id="photoCaption" maxlength="280" placeholder="Escreva uma legenda (opcional)"></textarea>
+            <div class="editor-actions"><button class="btn btn-primary" id="publishPhoto">Publicar foto</button></div>
+          </div>
+
+          <div class="editor" id="videoEditor">
+            <div class="media-area" id="videoArea">Toque para escolher um vídeo</div>
+            <input type="file" id="videoInput" accept="video/*">
+            <div class="media-preview" id="videoPreview"><video id="videoPreviewTag" controls></video></div>
+            <textarea id="videoCaption" maxlength="280" placeholder="Escreva uma legenda (opcional)"></textarea>
+            <div class="editor-actions"><button class="btn btn-primary" id="publishVideo">Publicar vídeo</button></div>
+          </div>
+        </article>
+
+        <div id="feed">
+          <div class="empty" id="feedEmpty">Nenhuma publicação por aqui ainda.<br>Compartilhe algo com a comunidade Help Floripa.</div>
+        </div>
+      </section>
+
+      <section class="panel" id="servicos">
+        <article class="card">
+          <h2>Serviços oferecidos</h2>
+          <div class="services-grid" id="servicesGrid">
+            <div class="empty" style="grid-column:1/-1">Nenhum serviço cadastrado ainda.</div>
+          </div>
+        </article>
+      </section>
+
+      <section class="panel" id="avaliacoes">
+        <article class="card">
+          <h2>Avaliação geral</h2>
+          <div class="rating-summary">
+            <div class="rating-number">
+              <strong id="ratingBig">0.0</strong>
+              <div class="stars" id="ratingBigStars">☆☆☆☆☆</div>
+              <span id="reviewTotal">0 avaliações</span>
+            </div>
+            <div class="rating-bars">
+              <div class="rating-bar"><span>5 ★</span><div class="bar"><i style="width:0%" id="bar5"></i></div><span id="count5">0</span></div>
+              <div class="rating-bar"><span>4 ★</span><div class="bar"><i style="width:0%" id="bar4"></i></div><span id="count4">0</span></div>
+              <div class="rating-bar"><span>3 ★</span><div class="bar"><i style="width:0%" id="bar3"></i></div><span id="count3">0</span></div>
+              <div class="rating-bar"><span>2 ★</span><div class="bar"><i style="width:0%" id="bar2"></i></div><span id="count2">0</span></div>
+              <div class="rating-bar"><span>1 ★</span><div class="bar"><i style="width:0%" id="bar1"></i></div><span id="count1">0</span></div>
+            </div>
+          </div>
+        </article>
+        <article class="card" style="margin-top:16px">
+          <h2>Comentários</h2>
+          <div id="reviews"><div class="empty">Ainda não há avaliações.</div></div>
+        </article>
+      </section>
+    </div>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script type="module">
+    const $ = (id) => document.getElementById(id);
+    const dbReady = () => window.firebaseDb && window.firebaseAuth;
+
+    let currentUser = null;
+    let currentData = {};
+    let selectedPhoto = null;
+    let selectedVideo = null;
+
+    function initials(name){
+      return String(name || "HF").trim().split(/\s+/).slice(0,2).map(x=>x[0]?.toUpperCase()).join("") || "HF";
+    }
+    function stars(n){
+      const full = Math.round(Math.max(0,Math.min(5,Number(n)||0)));
+      return "★".repeat(full) + "☆".repeat(5-full);
+    }
+    function showToast(text){
+      $("toast").textContent=text;$("toast").classList.add("show");
+      setTimeout(()=>$("toast").classList.remove("show"),2600);
+    }
+    function setAvatar(url,name){
+      const html=url?`<img src="${url}" alt="Foto de perfil">`:initials(name);
+      $("avatar").innerHTML=html;$("composerAvatar").innerHTML=html;
+    }
+    function setCover(url){
+      $("cover").querySelectorAll("img").forEach(x=>x.remove());
+      if(url){const img=document.createElement("img");img.src=url;img.alt="Foto de capa";$("cover").prepend(img);}
+    }
+    function showEditor(id){
+      document.querySelectorAll(".editor").forEach(e=>e.classList.remove("active"));
+      $(id).classList.add("active");
+    }
+    function formatDate(ts){
+      try{
+        const d=ts?.toDate?ts.toDate():new Date(ts);
+        return isNaN(d)?"":d.toLocaleDateString("pt-BR",{day:"2-digit",month:"short",year:"numeric"});
+      }catch{return ""}
+    }
+
+    // Menu
+    function toggleMenu(){
+      $("sidebar").classList.toggle("active");
+      $("backdrop").classList.toggle("active");
+    }
+    $("menuBtn").onclick=toggleMenu;$("backdrop").onclick=toggleMenu;
+
+    // Tabs
+    document.querySelectorAll(".tab").forEach(btn=>btn.addEventListener("click",()=>{
+      document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+      document.querySelectorAll(".panel").forEach(x=>x.classList.remove("active"));
+      btn.classList.add("active");$(btn.dataset.tab).classList.add("active");
+    }));
+
+    // Composer
+    $("composerTrigger").onclick=()=>showEditor("textEditor");
+    document.querySelectorAll(".post-option").forEach(b=>b.onclick=()=>showEditor(b.dataset.editor));
+
+    $("photoArea").onclick=()=>$("photoInput").click();
+    $("videoArea").onclick=()=>$("videoInput").click();
+    $("btnAvatar").onclick=()=>$("avatarInput").click();
+    $("btnCover").onclick=()=>$("coverInput").click();
+
+    $("photoInput").onchange=e=>{
+      selectedPhoto=e.target.files[0];if(!selectedPhoto)return;
+      $("photoPreviewImg").src=URL.createObjectURL(selectedPhoto);$("photoPreview").style.display="block";
+    };
+    $("videoInput").onchange=e=>{
+      selectedVideo=e.target.files[0];if(!selectedVideo)return;
+      $("videoPreviewTag").src=URL.createObjectURL(selectedVideo);$("videoPreview").style.display="block";
+    };
+
+    // Share
+    $("shareBtn").onclick=async()=>{
+      const data={title:document.title,text:`Confira o perfil de ${$("name").textContent} na Help Floripa`,url:location.href};
+      try{if(navigator.share)await navigator.share(data);else{await navigator.clipboard.writeText(location.href);showToast("Link copiado!");}}catch{}
+    };
+
+    // Firebase helpers
+    async function compressImage(file,maxW=1200,maxH=1200,q=.82){
+      return new Promise((resolve,reject)=>{
+        const reader=new FileReader();
+        reader.onload=()=>{
+          const img=new Image();
+          img.onload=()=>{
+            const scale=Math.min(maxW/img.width,maxH/img.height,1);
+            const c=document.createElement("canvas");c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);
+            c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+            resolve(c.toDataURL("image/jpeg",q));
+          };
+          img.onerror=()=>reject(new Error("Imagem inválida"));img.src=reader.result;
+        };
+        reader.onerror=reject;reader.readAsDataURL(file);
+      });
+    }
+
+    async function renderPosts(items){
+      const feed=$("feed");feed.innerHTML="";
+      $("postsCount").textContent=items.length;
+      if(!items.length){feed.innerHTML='<div class="empty">Nenhuma publicação por aqui ainda.<br>Compartilhe algo com a comunidade Help Floripa.</div>';return;}
+      items.forEach(item=>{
+        const card=document.createElement("article");card.className="card post";
+        const avatar=currentData.fotoPerfil?`<img src="${currentData.fotoPerfil}">`:initials(currentData.nome);
+        let media="";
+        if(item.tipo==="foto"&&item.midiaUrl)media=`<div class="post-media"><img src="${item.midiaUrl}" alt="Publicação"></div>`;
+        if(item.tipo==="video"&&item.midiaUrl)media=`<div class="post-media"><video src="${item.midiaUrl}" controls></video></div>`;
+        card.innerHTML=`<div class="post-head"><div class="mini-avatar">${avatar}</div><div class="post-user"><b>${currentData.nome||"Usuário"} ${currentData.verificado?"✓":""}</b><span>${formatDate(item.criadoEm)||"Agora"} · Help Floripa</span></div></div>${item.texto?`<p class="post-text"></p>`:""}${media}<div class="post-actions"><button>♡ Curtir</button><button>◌ Comentar</button><button>↗ Compartilhar</button></div>`;
+        if(item.texto)card.querySelector(".post-text").textContent=item.texto;
+        feed.appendChild(card);
+      });
+    }
+
+    async function init(){
+      if(!dbReady()){showToast("Firebase não foi carregado.");return;}
+      const {onAuthStateChanged}=await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+      const {doc,getDoc,setDoc,collection,query,where,orderBy,limit,getDocs,addDoc,serverTimestamp}=await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+
+      onAuthStateChanged(window.firebaseAuth,async user=>{
+        if(!user){location.href="login.html";return;}
+        currentUser=user;
+        const ref=doc(window.firebaseDb,"usuarios",user.uid);
+        const snap=await getDoc(ref);
+        currentData=snap.exists()?snap.data():{};
+
+        const type=String(currentData.tipo||currentData.tipoUsuario||"Usuário");
+        const isProf=type.toLowerCase().includes("prof");
+        const rating=Number(currentData.avaliacaoMedia||0);
+        const total=Number(currentData.totalAvaliacoes||0);
+
+        $("name").textContent=currentData.nome||user.displayName||"Usuário";
+        $("nickname").textContent=currentData.nickname?`@${currentData.nickname}`:"";
+        $("typeBadge").textContent=isProf?"Profissional":type||"Usuário";
+        $("aboutType").textContent=isProf?"o profissional":"o usuário";
+        $("infoType").textContent=isProf?"Profissional":type||"Usuário";
+        $("bio").textContent=currentData.bio||"Nenhuma biografia adicionada ainda.";
+        $("location").textContent=currentData.cidade?(currentData.bairro?`${currentData.cidade} · ${currentData.bairro}`:currentData.cidade):"Localização não informada";
+        $("infoCity").textContent=currentData.cidade||"Não informado";
+        $("followers").textContent=Number(currentData.seguidores||0).toLocaleString("pt-BR");
+        $("following").textContent=Number(currentData.seguindo||0).toLocaleString("pt-BR");
+        $("rating").textContent=rating.toFixed(1);$("stars").textContent=stars(rating);
+        $("ratingBig").textContent=rating.toFixed(1);$("ratingBigStars").textContent=stars(rating);
+        $("reviewTotal").textContent=`${total} ${total===1?"avaliação":"avaliações"}`;
+        $("infoRating").textContent=`${rating.toFixed(1)} / 5`;
+        $("verified").style.display=currentData.verificado?"inline-flex":"none";
+        $("infoVerification").textContent=currentData.verificado?"Verificado":"Pendente";
+        $("emailCheck").textContent=user.emailVerified?"✓":"○";
+        $("phoneCheck").textContent=currentData.telefoneVerificado?"✓":"○";
+        $("trustBadge").textContent=currentData.verificado?"Perfil verificado":"Perfil ativo";
+        $("trustScore").textContent=currentData.verificado?"Alta confiança":"Em evolução";
+
+        setAvatar(currentData.fotoPerfil,currentData.nome||user.displayName);
+        setCover(currentData.fotoCapa);
+
+        let complete=0;
+        ["nome","bio","cidade","fotoPerfil","telefone"].forEach(k=>{if(currentData[k])complete+=20});
+        if(user.emailVerified)complete=Math.min(100,complete+5);
+        $("profileProgress").style.width=Math.min(100,complete)+"%";
+        $("profileProgressText").textContent=`Seu perfil está ${Math.min(100,complete)}% completo. Quanto mais completo, maior a confiança.`;
+        $("profileCheck").textContent=complete>=80?"✓":"○";
+
+        try{
+          const q=query(collection(window.firebaseDb,"posts"),where("autorId","==",user.uid),orderBy("criadoEm","desc"),limit(30));
+          const posts=(await getDocs(q)).docs.map(d=>d.data());renderPosts(posts);
+        }catch(e){console.warn(e);renderPosts([]);}
+
+        // Publish text/photo/video (base64 for simplicity, same architecture as the existing page)
+        async function publish(tipo,texto="",midiaUrl=""){
+          if(tipo==="texto"&&!texto.trim()){showToast("Escreva algo antes de publicar.");return;}
+          if((tipo==="foto"||tipo==="video")&&!midiaUrl){showToast("Selecione uma mídia.");return;}
+          await addDoc(collection(window.firebaseDb,"posts"),{
+            autorId:user.uid,tipo,texto,midiaUrl,criadoEm:serverTimestamp()
+          });
+          showToast("Publicação criada com sucesso!");
+          location.reload();
+        }
+
+        $("publishText").onclick=()=>publish("texto",$("postText").value);
+        $("publishPhoto").onclick=async()=>{
+          if(!selectedPhoto){showToast("Selecione uma foto.");return;}
+          const data=await compressImage(selectedPhoto,1400,1400,.82);
+          publish("foto",$("photoCaption").value,data);
+        };
+        $("publishVideo").onclick=()=>{
+          showToast("Para vídeos grandes, configure o Firebase Storage.");
+        };
+
+        $("avatarInput").onchange=async e=>{
+          const file=e.target.files[0];if(!file)return;
+          const fotoPerfil=await compressImage(file,700,700,.86);
+          await setDoc(ref,{fotoPerfil},{merge:true});
+          setAvatar(fotoPerfil,currentData.nome);currentData.fotoPerfil=fotoPerfil;showToast("Foto de perfil atualizada!");
+        };
+        $("coverInput").onchange=async e=>{
+          const file=e.target.files[0];if(!file)return;
+          const fotoCapa=await compressImage(file,1600,700,.84);
+          await setDoc(ref,{fotoCapa},{merge:true});
+          setCover(fotoCapa);currentData.fotoCapa=fotoCapa;showToast("Foto de capa atualizada!");
+        };
+      });
+    }
+
+    init().catch(err=>{console.error(err);showToast("Não foi possível carregar o perfil.");});
+  </script>
+</body>
+</html>
