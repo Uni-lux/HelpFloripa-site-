@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Mensagens | Help Floripa</title>
+<style>
+*{box-sizing:border-box;font-family:Arial,sans-serif}body{margin:0;background:#000;color:#fff;min-height:100vh}.top{height:70px;background:#080808;border-bottom:1px solid #2f3b42;display:flex;align-items:center;justify-content:center;position:fixed;top:0;left:0;right:0;z-index:5}.top a{color:#fff;text-decoration:none;font-size:21px;font-weight:800}.top span{color:#00adee}.voltar{position:absolute;left:14px;color:#9aa7b1!important;font-size:13px!important}.app{max-width:650px;margin:0 auto;padding:88px 14px 20px}.conversa{height:calc(100vh - 108px);min-height:500px;border:1px solid #2f3b42;border-radius:16px;background:#0d0d0d;display:flex;flex-direction:column;overflow:hidden}.cab{padding:14px 16px;border-bottom:1px solid #2f3b42;font-weight:700}.cab small{display:block;color:#9aa7b1;font-weight:400;margin-top:3px}.lista{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:9px}.msg{max-width:78%;padding:10px 13px;border-radius:14px;background:#1b1b1b;border:1px solid #2f3b42;align-self:flex-start;white-space:pre-wrap;word-break:break-word}.msg.eu{align-self:flex-end;background:#00adee;color:#000;border-color:#00adee}.hora{display:block;font-size:10px;opacity:.65;margin-top:4px}.vazio{text-align:center;color:#9aa7b1;margin:auto}.envio{display:flex;gap:8px;padding:10px;border-top:1px solid #2f3b42;align-items:flex-end;flex-wrap:wrap}.envio textarea{flex:1;min-width:150px;resize:none;height:44px;background:#111;border:1px solid #2f3b42;border-radius:10px;color:#fff;padding:11px;font-size:14px}.envio button,.anexo-btn{min-height:42px;padding:0 13px;border:0;border-radius:10px;background:#00adee;color:#000;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}.envio button:disabled{opacity:.6}.anexo-btn{background:#202a30;color:#fff;border:1px solid #3b4a52;font-size:13px}.anexo-input{display:none}.anexo-nome{width:100%;font-size:12px;color:#9aa7b1}.msg img,.msg video{display:block;max-width:100%;max-height:320px;border-radius:9px;margin:3px 0}.msg audio{display:block;max-width:100%;width:250px;margin:4px 0}.msg a{color:inherit}.gravando{background:#ff5555!important;color:#fff!important}.erro{text-align:center;color:#ff7777;padding:20px}
+</style>
+<script type="module" src="firebase.js"></script>
+</head><body>
+<header class="top"><a href="usuarios.html" class="voltar">← Voltar</a><a href="index.html">HELP <span>FLORIPA</span></a></header>
+<main class="app"><section class="conversa"><div class="cab" id="cabecalho">Mensagens<small>Carregando...</small></div><div class="lista" id="lista"><div class="vazio">Carregando conversa...</div></div><div class="envio"><label class="anexo-btn" for="arquivo">📎 Foto/vídeo</label><input class="anexo-input" id="arquivo" type="file" accept="image/*,video/*"><button type="button" class="anexo-btn" id="gravar">🎤 Gravar áudio</button><textarea id="texto" maxlength="2000" placeholder="Digite uma mensagem..."></textarea><button id="enviar">Enviar</button><div class="anexo-nome" id="anexoNome"></div></div></section></main>
+<script type="module">
+async function iniciar(){
+ const params=new URLSearchParams(location.search), conversaId=params.get('conversa');
+ const lista=document.getElementById('lista'), cab=document.getElementById('cabecalho'), texto=document.getElementById('texto'), enviar=document.getElementById('enviar'), arquivo=document.getElementById('arquivo'), anexoNome=document.getElementById('anexoNome'), gravar=document.getElementById('gravar');
+ if(!window.firebaseAuth||!window.firebaseDb||!conversaId){lista.innerHTML='<div class="erro">Não foi possível abrir esta conversa.</div>';return;}
+ const {onAuthStateChanged}=await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
+ const {doc,getDoc,setDoc,addDoc,collection,query,orderBy,onSnapshot,serverTimestamp}=await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+ const storageModule=await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js');
+ const {ref:storageRef,uploadBytes,getDownloadURL}=storageModule;
+ onAuthStateChanged(window.firebaseAuth,async user=>{
+  if(!user){location.href='login.html';return;}
+  const ref=doc(window.firebaseDb,'conversas',conversaId);
+  const snap=await getDoc(ref);
+  if(!snap.exists()){lista.innerHTML='<div class="erro">Conversa não encontrada.</div>';return;}
+  const c=snap.data();
+  if(!Array.isArray(c.participantes)||!c.participantes.includes(user.uid)){lista.innerHTML='<div class="erro">Você não participa desta conversa.</div>';return;}
+  const outro=c.participantes.find(id=>id!==user.uid);
+  const nome=(c.nomesParticipantes&&c.nomesParticipantes[outro])||'Usuário';
+  cab.innerHTML=`Mensagens<small>${nome}</small>`;
+  const q=query(collection(window.firebaseDb,'conversas',conversaId,'mensagens'),orderBy('criadoEm','asc'));
+  onSnapshot(q,s=>{
+   lista.innerHTML='';
+   if(s.empty){lista.innerHTML='<div class="vazio">Envie a primeira mensagem.</div>';return;}
+   s.forEach(d=>{const m=d.data(),el=document.createElement('div');el.className='msg'+(m.remetenteId===user.uid?' eu':'');if(m.texto){const t=document.createElement('div');t.textContent=m.texto;el.appendChild(t)}if(m.arquivoUrl){let media;if(m.tipoArquivo==='imagem'){media=document.createElement('img');media.alt='Imagem enviada';media.src=m.arquivoUrl;media.loading='lazy'}else if(m.tipoArquivo==='video'){media=document.createElement('video');media.src=m.arquivoUrl;media.controls=true;media.playsInline=true}else if(m.tipoArquivo==='audio'){media=document.createElement('audio');media.src=m.arquivoUrl;media.controls=true}else{media=document.createElement('a');media.href=m.arquivoUrl;media.target='_blank';media.rel='noopener';media.textContent='Abrir arquivo'}el.appendChild(media)}const h=document.createElement('span');h.className='hora';const dt=m.criadoEm?.toDate?m.criadoEm.toDate():null;h.textContent=dt?dt.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';el.appendChild(h);lista.appendChild(el)});
+   lista.scrollTop=lista.scrollHeight;
+  });
+  let gravador=null, partesAudio=[], blobAudio=null;
+  arquivo.addEventListener('change',()=>{const f=arquivo.files?.[0];anexoNome.textContent=f?`Anexo: ${f.name} (${(f.size/1024/1024).toFixed(1)} MB)`:'';});
+  gravar.addEventListener('click',async()=>{if(gravador&&gravador.state==='recording'){gravador.stop();gravar.textContent='🎤 Gravar áudio';gravar.classList.remove('gravando');return;}try{const stream=await navigator.mediaDevices.getUserMedia({audio:true});partesAudio=[];gravador=new MediaRecorder(stream);gravador.ondataavailable=e=>{if(e.data.size)partesAudio.push(e.data)};gravador.onstop=()=>{blobAudio=new Blob(partesAudio,{type:gravador.mimeType||'audio/webm'});stream.getTracks().forEach(t=>t.stop());arquivo.value='';anexoNome.textContent=`Áudio gravado (${(blobAudio.size/1024).toFixed(0)} KB) — envie pela tecla Enviar.`};gravador.start();gravar.textContent='⏹ Parar gravação';gravar.classList.add('gravando');anexoNome.textContent='Gravando áudio…';}catch(e){console.error(e);alert('Não foi possível acessar o microfone. Verifique a permissão do navegador e use HTTPS.')}});
+  async function enviarMensagem(){const t=texto.value.trim(),f=arquivo.files?.[0];if(!t&&!f&&!blobAudio)return;enviar.disabled=true;try{let arquivoUrl='',tipoArquivo='',nomeArquivo='';let arquivoEnviar=f||blobAudio;if(arquivoEnviar){if(!window.firebaseStorage)throw new Error('Firebase Storage não está configurado.');const tipo=arquivoEnviar.type||'';if(f&&!(tipo.startsWith('image/')||tipo.startsWith('video/')))throw new Error('Escolha uma foto ou vídeo válido.');if(arquivoEnviar.size>50*1024*1024)throw new Error('O arquivo deve ter até 50 MB.');tipoArquivo=blobAudio?'audio':tipo.startsWith('image/')?'imagem':tipo.startsWith('video/')?'video':'arquivo';nomeArquivo=f?.name||(tipoArquivo==='audio'?'audio.webm':'arquivo');const ext=(nomeArquivo.split('.').pop()|| (tipoArquivo==='audio'?'webm':'bin')).replace(/[^a-zA-Z0-9]/g,'').slice(0,8)||'bin';const caminho=`mensagens/${conversaId}/${user.uid}/${Date.now()}.${ext}`;const destino=storageRef(window.firebaseStorage,caminho);await uploadBytes(destino,arquivoEnviar,{contentType:arquivoEnviar.type||'audio/webm'});arquivoUrl=await getDownloadURL(destino)}const resumo=t||(tipoArquivo==='imagem'?'📷 Foto':tipoArquivo==='video'?'🎥 Vídeo':tipoArquivo==='audio'?'🎤 Áudio':'📎 Arquivo');await addDoc(collection(window.firebaseDb,'conversas',conversaId,'mensagens'),{texto:t,remetenteId:user.uid,criadoEm:serverTimestamp(),...(arquivoUrl?{arquivoUrl,tipoArquivo,nomeArquivo}:{})});await setDoc(ref,{ultimaMensagem:resumo,ultimaMensagemRemetenteId:user.uid,atualizadoEm:serverTimestamp()},{merge:true});texto.value='';arquivo.value='';blobAudio=null;anexoNome.textContent='';texto.focus()}catch(e){console.error(e);alert(e.message||'Não foi possível enviar. Verifique as regras do Firestore e do Storage.')}finally{enviar.disabled=false}}
+  enviar.addEventListener('click',enviarMensagem);texto.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();enviarMensagem()}});
+ });
+}
+iniciar();
+</script></body></html>
