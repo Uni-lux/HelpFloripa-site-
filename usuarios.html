@@ -1860,6 +1860,7 @@
     }
 
     // Conversas ao vivo; não lida = última mensagem é do outro e chegou depois da minha última leitura.
+    const ultimaAtualizacaoConversa = new Map();
     function ouvirConversas() {
       let primeiraCarga = true;
       const q = query(collection(window.firebaseDb, "conversas"), where("participantes", "array-contains", user.uid), limit(50));
@@ -1874,13 +1875,14 @@
             && ms(c.atualizadoEm) > ms(c.lidoEm?.[user.uid]);
           return { id: c.id, nome: perfil.nome || "Usuário", foto: perfil.fotoPerfil || "", ultimaMensagem: c.ultimaMensagem || "", atualizadoEm: c.atualizadoEm, naoLida };
         }));
-        if (!primeiraCarga) {
-          snap.docChanges().forEach((ch) => {
-            if (ch.type === "removed" || ch.doc.metadata.hasPendingWrites) return;
-            const c = conversas.find((x) => x.id === ch.doc.id);
-            if (c?.naoLida) notificar(`Mensagem de ${c.nome}`, c.ultimaMensagem, () => abrirConversa(c.id));
-          });
-        }
+        conversas.forEach((c) => {
+          const agora = ms(c.atualizadoEm);
+          const antes = ultimaAtualizacaoConversa.get(c.id);
+          if (!primeiraCarga && c.naoLida && (antes === undefined || agora > antes)) {
+            notificar(`Mensagem de ${c.nome}`, c.ultimaMensagem, () => abrirConversa(c.id));
+          }
+          ultimaAtualizacaoConversa.set(c.id, agora);
+        });
         primeiraCarga = false;
         renderizarConversas(conversas);
         avisos.mensagens = conversas.filter((c) => c.naoLida);
@@ -2433,6 +2435,12 @@
         }
 
         iniciarNotificacoes();
+
+        const perfilSolicitado = new URLSearchParams(location.search).get("perfil");
+        if (perfilSolicitado) {
+          history.replaceState(null, "", "usuarios.html");
+          abrirPerfilPublico({ uid: perfilSolicitado });
+        }
 
         const bioTexto = document.getElementById("perfilBioTexto");
         const bioEdit = document.getElementById("perfilBioEdit");
