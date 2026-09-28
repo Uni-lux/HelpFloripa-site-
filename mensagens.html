@@ -17,8 +17,15 @@
       var escuro = tema === "escuro" || (tema === "sistema" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
       var r = document.documentElement;
       r.dataset.theme = escuro ? "dark" : "light";
-      r.dataset.fundo = c.fundo || "padrao";
+      r.dataset.fundo = c.fundo || "ponte";
       r.dataset.fonte = c.fonte || "media";
+      r.style.setProperty("--veu", String(c.veu != null ? c.veu : 0.55));
+      if (c.fundo === "foto") {
+        try {
+          var f = localStorage.getItem("hf-chat-fundo-foto");
+          if (f) r.style.setProperty("--papel", 'url("' + f + '")');
+        } catch (e) {}
+      }
     })();
   </script>
   <style>
@@ -43,6 +50,7 @@
       --muted: #8b9ba6;
       --chat-bg: #0b1216;
       --pattern: rgba(255, 255, 255, 0.035);
+      --veu-cor: #060b0f;
       --bubble-me: #00587a;
       --bubble-me-text: #eaf8ff;
       --bubble-other: #1a262e;
@@ -64,6 +72,7 @@
       --muted: #637684;
       --chat-bg: #e9eef1;
       --pattern: rgba(0, 60, 90, 0.05);
+      --veu-cor: #eef3f6;
       --bubble-me: #d3f0fd;
       --bubble-me-text: #0a2330;
       --bubble-other: #ffffff;
@@ -208,6 +217,17 @@
       background-size: 22px 22px;
     }
     :root[data-fundo="liso"] .chat::before { background-image: none; }
+    :root { --papel: url("ponte-help.webp"); }
+    :root[data-fundo="ponte"] .chat { background: url("ponte-help.webp") center / cover no-repeat, var(--chat-bg); }
+    :root[data-fundo="foto"] .chat { background: var(--papel) center / cover no-repeat, var(--chat-bg); }
+    :root[data-fundo="ponte"] .chat::before, :root[data-fundo="foto"] .chat::before { background: var(--veu-cor); opacity: var(--veu, .55); }
+    .fundo-op.foto { display: grid; place-items: center; color: #fff; background: #37464f center / cover no-repeat; }
+    .fundo-op.foto svg { margin-bottom: 12px; }
+    .cfg-veu { display: flex; align-items: center; gap: 12px; padding: 4px 0 10px; }
+    .cfg-veu[hidden] { display: none; }
+    .cfg-veu input { flex: 1; accent-color: var(--accent); }
+    .cfg-veu small { color: var(--muted); font-size: 12.5px; white-space: nowrap; }
+    .cfg-acoes-fundo { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
     :root[data-fundo="oceano"] .chat { background: linear-gradient(160deg, #04324a, #021a26); }
     :root[data-theme="light"][data-fundo="oceano"] .chat { background: linear-gradient(160deg, #cdeefc, #e8f6fd); }
     :root[data-fundo="grafite"] .chat { background: #16191c; }
@@ -318,7 +338,10 @@
     .gravacao { flex: 1; display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 8px 0 14px; border-radius: 23px; background: var(--input); border: 1px solid var(--line); }
     .gravacao[hidden] { display: none; }
     .gravacao .ponto { width: 10px; height: 10px; border-radius: 50%; background: var(--danger); animation: pulsar 1.2s infinite; }
-    .gravacao .tempo { flex: 1; font-variant-numeric: tabular-nums; font-weight: 600; }
+    .gravacao .tempo { font-variant-numeric: tabular-nums; font-weight: 600; }
+    .gravacao .grav-dica { flex: 1; color: var(--muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .btn-enviar svg { width: 22px; height: 22px; }
+    .btn-enviar.vazio { background: color-mix(in srgb, var(--accent) 55%, var(--panel-2)); }
     @keyframes pulsar { 50% { opacity: .25; } }
 
     /* ---------- menu de mensagem, visualizador, avisos ---------- */
@@ -362,7 +385,8 @@
     <symbol id="i-nova" viewBox="0 0 24 24"><path d="M12 20.5c4.7 0 8.5-3.6 8.5-8s-3.8-8-8.5-8-8.5 3.6-8.5 8c0 1.6.5 3.1 1.4 4.3L4 20l3.6-1c1.3.9 2.8 1.5 4.4 1.5z"/><path d="M12 9v7M8.5 12.5h7"/></symbol>
     <symbol id="i-config" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></symbol>
     <symbol id="i-clipe" viewBox="0 0 24 24"><path d="M21 11.5l-8.6 8.6a5.5 5.5 0 01-7.8-7.8l8.6-8.6a3.7 3.7 0 015.2 5.2l-8.6 8.6a1.8 1.8 0 01-2.6-2.6l7.9-7.9"/></symbol>
-    <symbol id="i-enviar" viewBox="0 0 24 24"><path d="M4.5 12L3 4.5 21 12 3 19.5 4.5 12zm0 0H12"/></symbol>
+    <symbol id="i-enviar" viewBox="0 0 24 24"><path d="M12 19.5V5M5.5 11.2L12 4.7l6.5 6.5" stroke-width="2.4"/></symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8.5A2.5 2.5 0 016.5 6h1.8l1.5-2h4.4l1.5 2h1.8A2.5 2.5 0 0120 8.5v9a2.5 2.5 0 01-2.5 2.5h-11A2.5 2.5 0 014 17.5z"/><circle cx="12" cy="13" r="3.6"/></symbol>
     <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0013 0M12 17.5V21"/></symbol>
     <symbol id="i-fechar" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
@@ -436,12 +460,23 @@
             </div>
             <div class="cfg-linha"><div class="txt">Papel de parede</div></div>
             <div class="fundos" data-cfg="fundo">
-              <button type="button" class="fundo-op" data-valor="padrao" style="background:radial-gradient(#8aa 1px,transparent 1.3px) 0 0/8px 8px,#9fb2bd"><span>Padrão</span></button>
+              <button type="button" class="fundo-op" data-valor="ponte" style="background:url(ponte-help.webp) center/cover"><span>Ponte</span></button>
+              <button type="button" class="fundo-op foto" data-valor="foto" id="opFundoFoto"><svg class="i s"><use href="#i-camera"/></svg><span>Sua foto</span></button>
+              <button type="button" class="fundo-op" data-valor="padrao" style="background:radial-gradient(#8aa 1px,transparent 1.3px) 0 0/8px 8px,#9fb2bd"><span>Pontilhado</span></button>
               <button type="button" class="fundo-op" data-valor="liso" style="background:#8fa1ab"><span>Liso</span></button>
               <button type="button" class="fundo-op" data-valor="oceano" style="background:linear-gradient(160deg,#04324a,#00adee)"><span>Oceano</span></button>
               <button type="button" class="fundo-op" data-valor="grafite" style="background:#2a2f33"><span>Grafite</span></button>
               <button type="button" class="fundo-op" data-valor="areia" style="background:#cdbb9c"><span>Areia</span></button>
             </div>
+            <div class="cfg-acoes-fundo" id="acoesFundoFoto" hidden>
+              <button type="button" class="btn-sec" id="btnTrocarFundoFoto">Trocar foto do fundo</button>
+              <button type="button" class="btn-sec" id="btnRemoverFundoFoto">Remover</button>
+            </div>
+            <input type="file" id="inputFundoFoto" accept="image/*" hidden />
+            <label class="cfg-veu" id="cfgVeu">
+              <small>Nitidez do fundo</small>
+              <input type="range" id="veuFundo" min="0.15" max="0.85" step="0.05" aria-label="Escurecer ou clarear o papel de parede" />
+            </label>
             <div class="cfg-linha"><div class="txt">Tamanho do texto</div></div>
             <div class="segmentado" data-cfg="fonte">
               <button type="button" data-valor="pequena">Pequeno</button>
@@ -534,9 +569,11 @@
               <button type="button" class="icon-btn" id="btnAnexar" aria-label="Anexar foto" title="Anexar"><svg class="i"><use href="#i-clipe"/></svg></button>
               <input type="file" id="inputArquivo" accept="image/*" hidden />
               <textarea id="texto" rows="1" maxlength="4000" placeholder="Mensagem" aria-label="Mensagem"></textarea>
+              <button type="button" class="icon-btn" id="btnAudio" aria-label="Gravar mensagem de voz" title="Gravar áudio"><svg class="i"><use href="#i-mic"/></svg></button>
             </div>
             <div class="gravacao" id="gravacao" hidden>
               <span class="ponto"></span><span class="tempo" id="gravacaoTempo">0:00</span>
+              <small class="grav-dica" id="gravacaoDica">Toque na seta para enviar</small>
               <button type="button" class="icon-btn" id="cancelarGravacao" aria-label="Descartar áudio"><svg class="i"><use href="#i-lixo"/></svg></button>
             </div>
             <button type="button" class="btn-enviar" id="btnEnviar" aria-label="Enviar"><svg class="i" id="iconeEnviar"><use href="#i-enviar"/></svg></button>
@@ -558,7 +595,8 @@
     // Configurações (salvas no aparelho)
     // ======================================================
     const CHAVE_CONFIG = "hf-chat-config";
-    const CONFIG_PADRAO = { tema: "sistema", fundo: "padrao", fonte: "media", enterEnvia: true, sons: true, mostrarOnline: true, mostrarDigitando: true };
+    const CONFIG_PADRAO = { tema: "sistema", fundo: "ponte", fonte: "media", veu: 0.55, enterEnvia: true, sons: true, mostrarOnline: true, mostrarDigitando: true };
+    const CHAVE_FUNDO_FOTO = "hf-chat-fundo-foto";
     let config = { ...CONFIG_PADRAO };
     try { config = { ...CONFIG_PADRAO, ...JSON.parse(localStorage.getItem(CHAVE_CONFIG) || "{}") }; } catch {}
 
@@ -569,6 +607,18 @@
       raiz.dataset.theme = escuro ? "dark" : "light";
       raiz.dataset.fundo = config.fundo;
       raiz.dataset.fonte = config.fonte;
+      raiz.style.setProperty("--veu", String(config.veu));
+      let fotoFundo = null;
+      try { fotoFundo = localStorage.getItem(CHAVE_FUNDO_FOTO); } catch {}
+      if (fotoFundo) raiz.style.setProperty("--papel", `url("${fotoFundo}")`);
+      const opFoto = document.getElementById("opFundoFoto");
+      if (opFoto) opFoto.style.backgroundImage = fotoFundo ? `url("${fotoFundo}")` : "";
+      const acoesFoto = document.getElementById("acoesFundoFoto");
+      if (acoesFoto) acoesFoto.hidden = !(config.fundo === "foto" && fotoFundo);
+      const veu = document.getElementById("cfgVeu");
+      if (veu) veu.hidden = !(config.fundo === "ponte" || config.fundo === "foto");
+      const faixa = document.getElementById("veuFundo");
+      if (faixa) faixa.value = String(config.veu);
       document.querySelector('meta[name="theme-color"]').content = escuro ? "#10181d" : "#ffffff";
       document.querySelectorAll("[data-cfg]").forEach((grupo) => {
         grupo.querySelectorAll("[data-valor]").forEach((b) => {
@@ -1532,7 +1582,9 @@
     // ======================================================
     // Caixa de texto, "digitando..." e botão enviar/gravar
     // ======================================================
-    const podeGravar = () => !!storageFns && !!navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== "undefined";
+    const podeGravar = () => !!navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== "undefined";
+    // Sem Storage o áudio vai dentro da mensagem, então limitamos a duração.
+    const LIMITE_AUDIO_SEG = () => (storageFns ? 300 : 120);
 
     function ajustarAltura() {
       const t = $("texto");
@@ -1543,10 +1595,9 @@
 
     function atualizarBotaoEnviar() {
       const temConteudo = !!$("texto").value.trim() || !!anexo;
-      const modoAudio = !temConteudo && !gravador && podeGravar();
-      const uso = $("iconeEnviar").querySelector("use");
-      uso.setAttribute("href", modoAudio ? "#i-mic" : "#i-enviar");
-      $("btnEnviar").setAttribute("aria-label", modoAudio ? "Gravar áudio" : "Enviar");
+      $("btnEnviar").setAttribute("aria-label", gravador ? "Enviar áudio" : "Enviar");
+      $("btnEnviar").classList.toggle("vazio", !temConteudo && !gravador);
+      $("btnAudio").hidden = !podeGravar();
     }
 
     let ultimoDigitando = 0;
@@ -1574,14 +1625,11 @@
       $("inputArquivo").files = dt.files;
       $("inputArquivo").dispatchEvent(new Event("change"));
     });
-    $("btnEnviar").addEventListener("click", () => {
-      const temConteudo = !!$("texto").value.trim() || !!anexo;
-      if (!temConteudo && !gravador && podeGravar()) iniciarGravacao();
-      else enviar();
-    });
+    $("btnEnviar").addEventListener("click", () => enviar());
+    $("btnAudio").addEventListener("click", () => { if (!gravador) iniciarGravacao(); });
 
     // ======================================================
-    // Áudio (somente com Storage ativo)
+    // Áudio: com Storage vai como arquivo; sem Storage vai dentro da mensagem
     // ======================================================
     let gravador = null, partes = [], inicioGravacao = 0, timerGravacao = null, descartar = false;
 
@@ -1590,7 +1638,11 @@
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         partes = [];
         descartar = false;
-        gravador = new MediaRecorder(stream);
+        try {
+          gravador = new MediaRecorder(stream, storageFns ? undefined : { audioBitsPerSecond: 24000 });
+        } catch {
+          gravador = new MediaRecorder(stream);
+        }
         gravador.ondataavailable = (e) => { if (e.data.size) partes.push(e.data); };
         gravador.onstop = async () => {
           stream.getTracks().forEach((t) => t.stop());
@@ -1604,23 +1656,35 @@
           const blob = new Blob(partes, { type: tipo });
           try {
             toast("Enviando áudio...");
-            const url = await enviarParaStorage(blob, tipo.includes("ogg") ? "ogg" : tipo.includes("mp4") ? "m4a" : "webm");
+            let url;
+            if (storageFns) {
+              url = await enviarParaStorage(blob, tipo.includes("ogg") ? "ogg" : tipo.includes("mp4") ? "m4a" : "webm");
+            } else {
+              url = await new Promise((ok, falha) => {
+                const leitor = new FileReader();
+                leitor.onload = () => ok(leitor.result);
+                leitor.onerror = () => falha(new Error("Não foi possível ler o áudio."));
+                leitor.readAsDataURL(blob);
+              });
+              if (url.length > 900000) throw new Error("Áudio longo demais. Grave até 2 minutos.");
+            }
             await publicarMensagem(ativa.id, { remetenteId: eu.uid, texto: "", criadoEm: fb.serverTimestamp(), arquivoUrl: url, tipoArquivo: "audio", nomeArquivo: "audio" });
             document.querySelectorAll(".toast").forEach((t) => t.remove());
           } catch (e) {
             console.error(e);
-            toast("Não foi possível enviar o áudio.");
+            toast(e.message && !e.code ? e.message : "Não foi possível enviar o áudio.");
           }
         };
         gravador.start();
         inicioGravacao = Date.now();
         $("caixaTexto").hidden = true;
         $("gravacao").hidden = false;
-        $("iconeEnviar").querySelector("use").setAttribute("href", "#i-enviar");
+        $("gravacaoTempo").textContent = "0:00";
+        atualizarBotaoEnviar();
         timerGravacao = setInterval(() => {
           const s = Math.floor((Date.now() - inicioGravacao) / 1000);
           $("gravacaoTempo").textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
-          if (s >= 300) pararGravacao(true);
+          if (s >= LIMITE_AUDIO_SEG()) pararGravacao(true);
         }, 250);
       } catch {
         toast("Permita o uso do microfone para gravar áudio.");
@@ -1796,9 +1860,55 @@
       grupo.addEventListener("click", (e) => {
         const b = e.target.closest("[data-valor]");
         if (!b) return;
+        if (grupo.dataset.cfg === "fundo" && b.dataset.valor === "foto") {
+          let temFoto = false;
+          try { temFoto = !!localStorage.getItem(CHAVE_FUNDO_FOTO); } catch {}
+          if (!temFoto) { $("inputFundoFoto").click(); return; }
+        }
         config[grupo.dataset.cfg] = b.dataset.valor;
         salvarConfig();
       });
+    });
+
+    $("btnTrocarFundoFoto").addEventListener("click", () => $("inputFundoFoto").click());
+    $("btnRemoverFundoFoto").addEventListener("click", () => {
+      try { localStorage.removeItem(CHAVE_FUNDO_FOTO); } catch {}
+      document.documentElement.style.removeProperty("--papel");
+      config.fundo = "ponte";
+      salvarConfig();
+    });
+    $("inputFundoFoto").addEventListener("change", async () => {
+      const arquivo = $("inputFundoFoto").files?.[0];
+      $("inputFundoFoto").value = "";
+      if (!arquivo) return;
+      try {
+        const { editarImagem } = await import("./editor-imagem.js");
+        // A moldura tem o formato da área da conversa nesta tela.
+        const area = document.querySelector(".chat");
+        const larg = area.offsetWidth || window.innerWidth;
+        const alt = area.offsetHeight || window.innerHeight;
+        const proporcao = Math.min(2, Math.max(0.45, (larg || 390) / (alt || 844)));
+        const dataUrl = await editarImagem(arquivo, {
+          titulo: "Papel de parede da conversa",
+          dica: "A moldura mostra a área da conversa nesta tela. Arraste e dê zoom; o que ficar fora da moldura não aparece.",
+          proporcao,
+          larguraSaida: proporcao < 1 ? 900 : 1600,
+          qualidade: 0.72,
+          limiteBytes: 1500000
+        });
+        if (!dataUrl) return;
+        localStorage.setItem(CHAVE_FUNDO_FOTO, dataUrl);
+        config.fundo = "foto";
+        salvarConfig();
+        toast("Papel de parede atualizado");
+      } catch (e) {
+        console.error(e);
+        toast(e.name === "QuotaExceededError" ? "A foto é grande demais para salvar neste aparelho." : (e.message || "Não foi possível usar essa foto."));
+      }
+    });
+    $("veuFundo").addEventListener("input", () => {
+      config.veu = Number($("veuFundo").value);
+      salvarConfig();
     });
     document.querySelectorAll("[data-cfg-bool]").forEach((inp) => {
       inp.addEventListener("change", () => {
