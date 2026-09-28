@@ -23,7 +23,6 @@
       flex-direction: column;
     }
 
-    /* ===== Sidebar / topbar (mesmo padrão do site) ===== */
     .sidebar {
       width: 220px;
       background: #000;
@@ -180,7 +179,6 @@
       box-shadow: 0 0 7px rgba(0, 173, 238, 0.55);
     }
 
-    /* ===== Layout principal ===== */
     .main-content {
       margin-left: 0;
       padding: 96px 16px 60px;
@@ -207,7 +205,6 @@
 
     .voltar-home svg { width: 16px; height: 16px; stroke: currentColor; }
 
-    /* ===== Card de perfil ===== */
     .perfil-card {
       background: linear-gradient(180deg, #151515 0%, #0d0d0d 100%);
       border: 1px solid #00adee66;
@@ -216,7 +213,6 @@
       box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
     }
 
-    /* ===== Capa ===== */
     .perfil-capa {
       position: relative;
       width: 100%;
@@ -315,7 +311,6 @@
       color: #00adee;
     }
 
-    /* ===== Biografia ===== */
     .perfil-bio {
       text-align: left;
       border-top: 1px solid #2f3b42;
@@ -434,7 +429,6 @@
 
     #perfilErro { color: #ff6b6b; display: none; }
 
-    /* ===== Selo de verificação ===== */
     .perfil-nome-linha {
       display: flex;
       align-items: center;
@@ -471,7 +465,6 @@
 
     .btn-verificar-perfil:hover { background: rgba(0, 173, 238, 0.1); }
 
-    /* ===== Credibilidade: seguidores / seguindo / avaliação ===== */
     .perfil-stats {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
@@ -537,7 +530,6 @@
 
     .stat-item-btn .stat-label { display: block; margin-top: 2px; }
 
-    /* ===== Modal de seguidores / seguindo / avaliações ===== */
     .perfil-modal-backdrop {
       position: fixed;
       inset: 0;
@@ -603,7 +595,6 @@
     .perfil-modal-item-texto { margin-top:3px; color:#9aa7b1; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .perfil-modal-vazio { padding: 28px 14px; text-align:center; color:#9aa7b1; font-size:14px; }
 
-    /* ===== Abas do perfil ===== */
     .perfil-tabs {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
@@ -638,7 +629,6 @@
     .perfil-tab-panel { display: none; }
     .perfil-tab-panel.active { display: block; }
 
-    /* ===== Informações do perfil ===== */
     .perfil-info-card {
       margin-top: 16px;
       background: linear-gradient(180deg, #151515 0%, #0d0d0d 100%);
@@ -665,7 +655,6 @@
     .perfil-info-linha span:first-child { color: #9aa7b1; }
     .perfil-info-linha strong { color: #fff; text-align: right; font-weight: 600; }
 
-    /* Painel de serviços */
     .servicos-vazio {
       text-align: center;
       padding: 32px 18px;
@@ -675,7 +664,6 @@
       font-size: 14px;
     }
 
-    /* ===== Diário / Feed ===== */
     .diario-composer {
       background: linear-gradient(180deg, #151515 0%, #0d0d0d 100%);
       border: 1px solid #2f3b42;
@@ -833,7 +821,6 @@
       font-size: 12px;
     }
 
-    /* ===== Feed no perfil (estilo rede social) ===== */
     .perfil-card .diario-composer {
       margin: 22px -20px 0;
       border-left: 0;
@@ -869,7 +856,6 @@
 
     .perfil-card .diario-preview { border-radius: 10px; }
 
-    /* ===== Busca ===== */
     .busca-caixa {
       display: flex;
       gap: 8px;
@@ -946,7 +932,6 @@
     #btnMensagemPublico { background:#1a1a1a; color:#fff; border:1px solid #2f3b42; }
     .perfil-publico-status { color:#9aa7b1; font-size:12px; min-height:18px; margin-top:10px; }
 
-
     .busca-avatar {
       width: 44px;
       height: 44px;
@@ -978,7 +963,6 @@
       flex-shrink: 0;
     }
 
-    /* ===== Painel profissional: atalhos rápidos ===== */
     .atalhos-pro {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -1038,7 +1022,6 @@
       border-radius: 14px;
     }
 
-    /* ===== Mensagens ===== */
     .mensagens-lista {
       display: flex;
       flex-direction: column;
@@ -1089,7 +1072,6 @@
 
     .conversa-hora { font-size: 11px; color: #6b7580; flex-shrink: 0; }
 
-
     @media (max-width: 390px) {
       .mobile-topbar { height: 72px; padding-left: 0; }
       .mobile-brand strong { font-size: 20px; }
@@ -1101,216 +1083,19 @@
       .menu-toggle { left: 13px; top: 17px; }
       .menu-toggle::before { width: 28px; box-shadow: 0 9px 0 #00adee, 0 18px 0 #00adee; }
     }
-
-    /* =========================================================
-       PERFIL — visual inspirado no modelo enviado
-       ========================================================= */
-    .perfil-shell { width: min(620px, 100%); }
-
-    .perfil-card {
-      position: relative;
-      background:
-        radial-gradient(circle at 15% 22%, rgba(0,173,238,.10), transparent 26%),
-        radial-gradient(circle at 90% 75%, rgba(0,173,238,.06), transparent 28%),
-        linear-gradient(145deg, #050a0d 0%, #090f13 42%, #020609 100%);
-      border: 1px solid rgba(0,173,238,.72);
-      border-radius: 22px;
-      overflow: hidden;
-      box-shadow: 0 0 0 1px rgba(0,173,238,.08), 0 22px 65px rgba(0,0,0,.72), 0 0 38px rgba(0,173,238,.08);
-    }
-
-    .perfil-capa {
-      height: 178px;
-      overflow: hidden;
-      background:
-        linear-gradient(135deg, rgba(0,173,238,.18), transparent 38%),
-        repeating-linear-gradient(135deg, rgba(255,255,255,.028) 0 1px, transparent 1px 9px),
-        linear-gradient(135deg, #06151c 0%, #02070a 52%, #06121a 100%);
-      border-bottom: 1px solid rgba(0,173,238,.18);
-    }
-
-    .perfil-capa::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      background:
-        linear-gradient(135deg, transparent 0 53%, rgba(0,173,238,.16) 53.2% 54%, transparent 54.2%),
-        linear-gradient(135deg, transparent 0 67%, rgba(0,173,238,.08) 67.2% 67.8%, transparent 68%);
-      mix-blend-mode: screen;
-    }
-
-    .perfil-capa-graficos { position:absolute; inset:0; overflow:hidden; pointer-events:none; }
-    .capa-risco { position:absolute; display:block; height:2px; background:#00adee; opacity:.35; transform:rotate(-38deg); box-shadow:0 0 14px rgba(0,173,238,.8); }
-    .risco-1 { width:210px; right:-35px; top:42px; }
-    .risco-2 { width:150px; right:25px; top:92px; opacity:.2; }
-    .risco-3 { width:280px; left:-70px; bottom:20px; opacity:.14; }
-
-    .perfil-marca-capa {
-      position:absolute;
-      left:24px;
-      top:24px;
-      z-index:2;
-      display:flex;
-      flex-direction:column;
-      align-items:flex-start;
-      gap:6px;
-      color:#00adee;
-      text-shadow:0 0 12px rgba(0,173,238,.35);
-    }
-    .perfil-marca-capa strong {
-      font-family:Arial,sans-serif;
-      font-size:40px;
-      line-height:.85;
-      font-style:italic;
-      transform:skew(-8deg);
-      letter-spacing:-4px;
-    }
-    .perfil-marca-capa span {
-      font-size:9px;
-      line-height:1.25;
-      font-weight:800;
-      letter-spacing:1px;
-    }
-    .perfil-capa-titulo {
-      position:absolute;
-      right:28px;
-      bottom:24px;
-      z-index:2;
-      color:rgba(255,255,255,.82);
-      font-size:10px;
-      font-weight:800;
-      letter-spacing:3px;
-      border-left:2px solid #00adee;
-      padding-left:9px;
-    }
-
-    .btnEditarCapa {
-      z-index:4;
-      width:38px;
-      height:38px;
-      right:14px;
-      top:14px;
-      background:rgba(2,8,11,.76);
-      border:1px solid rgba(0,173,238,.75);
-      box-shadow:0 0 18px rgba(0,173,238,.16);
-    }
-    .btnEditarCapa:hover { background:rgba(0,173,238,.22); }
-
-    .perfil-card-body { padding:0 28px 30px; text-align:center; position:relative; }
-
-    .perfil-avatar-wrap {
-      width:116px;
-      height:116px;
-      margin:-58px auto 16px;
-    }
-    .perfil-avatar {
-      width:116px;
-      height:116px;
-      border:4px solid #00adee;
-      box-shadow:0 0 0 6px #071016, 0 0 24px rgba(0,173,238,.48);
-      font-size:32px;
-    }
-    .perfil-avatar img { object-fit:cover; }
-
-    .btnEditarFoto {
-      width:34px;
-      height:34px;
-      right:-1px;
-      bottom:0;
-      box-shadow:0 0 0 3px #071016, 0 0 18px rgba(0,173,238,.42);
-    }
-
-    .perfil-nome-linha { gap:8px; }
-    .perfil-nome { font-size:28px; letter-spacing:-.5px; margin-bottom:2px; }
-    .perfil-nickname { font-size:15px; font-weight:600; margin-bottom:10px; }
-
-    .selo-verificado {
-      width:20px;
-      height:20px;
-      box-shadow:0 0 10px rgba(0,173,238,.5);
-    }
-
-    .perfil-badge {
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      padding:7px 16px;
-      margin-bottom:18px;
-      background:linear-gradient(180deg, rgba(0,173,238,.20), rgba(0,173,238,.08));
-      border:1px solid rgba(0,173,238,.75);
-      box-shadow:0 0 15px rgba(0,173,238,.08) inset;
-      letter-spacing:.8px;
-    }
-    .perfil-badge::before { content:""; width:8px; height:8px; border:1.5px solid currentColor; border-radius:50%; box-shadow:0 5px 0 -2px currentColor; }
-
-    .perfil-stats {
-      margin:8px 0 18px;
-      padding:14px 0;
-      border:1px solid rgba(0,173,238,.45);
-      border-radius:16px;
-      background:rgba(0,10,15,.58);
-      box-shadow:0 0 22px rgba(0,173,238,.06) inset;
-      gap:0;
-    }
-    .stat-item { min-width:0; }
-    .stat-item + .stat-item { border-left:1px solid rgba(0,173,238,.25); }
-    .stat-item-btn { padding:4px 8px; }
-    .stat-icone { width:22px; height:22px; color:#00adee; margin-bottom:4px; }
-    .stat-icone-dupla { width:24px; }
-    .stat-numero { font-size:20px; }
-    .stat-label { color:#c2cbd0; font-size:10px; letter-spacing:1px; }
-    .stat-estrelas { font-size:17px; color:#32414a; height:22px; display:flex; align-items:center; justify-content:center; }
-    .stat-estrelas .cheia { color:#00adee; text-shadow:0 0 8px rgba(0,173,238,.45); }
-    .stat-avaliacao-numero { font-size:10px; color:#9aa7b1; }
-
-    .perfil-bio {
-      border-top:0;
-      border-bottom:1px solid rgba(0,173,238,.18);
-      padding:0 0 20px;
-      margin-bottom:0;
-    }
-    .bio-cabecalho {
-      margin-bottom:10px;
-      padding-bottom:10px;
-      border-bottom:1px solid rgba(0,173,238,.14);
-    }
-    .bio-cabecalho h3 {
-      color:#00adee;
-      font-size:13px;
-      letter-spacing:1.4px;
-    }
-    .btnEditarBio { font-size:12px; }
-    #perfilBioTexto { color:#dfe6e9; font-size:14px; text-align:left; padding:0 2px; }
-    #perfilBioTexto.vazio { color:#65747e; }
-
-    .perfil-card .diario-composer {
-      margin:20px 0 0;
-      padding:18px;
-      border:1px solid rgba(0,173,238,.22);
-      border-radius:16px;
-      background:linear-gradient(180deg, rgba(10,19,24,.92), rgba(3,8,11,.94));
-    }
-    .diario-composer-titulo { color:#fff; font-size:14px; letter-spacing:.3px; }
-    #diarioTexto { border-color:#263942; background:#05090b; }
-    #diarioTexto:focus { border-color:#00adee; box-shadow:0 0 0 3px rgba(0,173,238,.08); }
-    .diario-arquivo { border-color:#245061; }
-    .btnPublicarDiario { box-shadow:0 0 15px rgba(0,173,238,.2); }
-
-    .perfil-acoes { margin-top:20px; }
-    .perfil-acoes a, .perfil-acoes button { border-radius:12px; }
-
-    @media (max-width: 600px) {
-      .perfil-card { border-radius:18px; }
-      .perfil-capa { height:160px; }
-      .perfil-card-body { padding:0 18px 24px; }
-      .perfil-avatar-wrap, .perfil-avatar { width:104px; height:104px; }
-      .perfil-avatar-wrap { margin-top:-52px; }
-      .perfil-nome { font-size:24px; }
-      .perfil-marca-capa { left:18px; top:18px; }
-      .perfil-capa-titulo { right:18px; bottom:18px; }
-    }
-
+    .conversa-item { cursor: pointer; }
+    #chatView { display: none; flex-direction: column; height: 65vh; min-height: 360px; background: #0d0d0d; border: 1px solid #00adee44; border-radius: 14px; overflow: hidden; }
+    .chat-topo { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid #1f2a30; }
+    .chat-topo button { background: transparent; border: 0; color: #00adee; font-size: 26px; cursor: pointer; line-height: 1; }
+    .chat-avatar { width: 34px; height: 34px; border-radius: 50%; background: #062430; display: grid; place-items: center; font-size: 12px; font-weight: 700; overflow: hidden; }
+    .chat-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .chat-msgs { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+    .chat-bolha { max-width: 78%; padding: 8px 11px; border-radius: 14px; font-size: 14px; line-height: 1.35; word-break: break-word; white-space: pre-wrap; }
+    .chat-bolha.minha { align-self: flex-end; background: #00adee; color: #000; }
+    .chat-bolha.outra { align-self: flex-start; background: #1b2429; }
+    .chat-form { display: flex; gap: 8px; padding: 10px; border-top: 1px solid #1f2a30; }
+    .chat-form input { flex: 1; background: #111; border: 1px solid #2f3b42; color: #fff; border-radius: 20px; padding: 10px 14px; font-size: 14px; }
+    .chat-form button { background: #00adee; color: #000; border: 0; border-radius: 20px; padding: 0 16px; font-weight: 700; cursor: pointer; }
   </style>
 
   <script type="module" src="firebase.js"></script>
@@ -1366,7 +1151,6 @@
 
       <div id="perfilConteudo" style="display:none;">
 
-        <!-- Abas -->
         <div class="perfil-tabs" role="tablist" aria-label="Seções do perfil">
           <button type="button" class="perfil-tab-btn active" data-tab="perfil" role="tab" aria-selected="true">Perfil</button>
           <button type="button" class="perfil-tab-btn" data-tab="mensagens" role="tab" aria-selected="false">Mensagens</button>
@@ -1374,20 +1158,9 @@
           <button type="button" class="perfil-tab-btn" data-tab="painel" role="tab" aria-selected="false" id="tabBtnPainel">Atalhos</button>
         </div>
 
-        <!-- Painel: Perfil -->
         <section class="perfil-tab-panel active" id="tab-perfil">
           <div class="perfil-card">
             <div class="perfil-capa" id="perfilCapa">
-              <div class="perfil-capa-graficos" aria-hidden="true">
-                <span class="capa-risco risco-1"></span>
-                <span class="capa-risco risco-2"></span>
-                <span class="capa-risco risco-3"></span>
-              </div>
-              <div class="perfil-marca-capa" aria-hidden="true">
-                <strong>M</strong>
-                <span>SONHE<br>PLANEJE<br>CONQUISTE</span>
-              </div>
-              <div class="perfil-capa-titulo" aria-hidden="true">PERFIL</div>
               <button type="button" class="btnEditarCapa" id="btnEditarCapa" aria-label="Alterar foto de capa" title="Alterar foto de capa">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M12 20h9" />
@@ -1422,14 +1195,12 @@
               <div class="perfil-stats">
                 <div class="stat-item">
                   <button type="button" class="stat-item-btn" id="btnSeguidores" aria-label="Ver seguidores">
-                    <svg class="stat-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.2"></circle><path d="M5.5 19c1.1-3.2 3.2-5 6.5-5s5.4 1.8 6.5 5"></path></svg>
                     <span class="stat-numero" id="statSeguidores">0</span>
                     <span class="stat-label">Seguidores</span>
                   </button>
                 </div>
                 <div class="stat-item">
                   <button type="button" class="stat-item-btn" id="btnSeguindo" aria-label="Ver quem o usuário segue">
-                    <svg class="stat-icone stat-icone-dupla" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"></circle><path d="M3.5 19c.9-3.1 2.7-4.8 5.5-4.8s4.6 1.7 5.5 4.8"></path><path d="M15 6.2a2.7 2.7 0 0 1 0 5.3M16.2 14.3c2.1.4 3.6 1.9 4.3 4.7"></path></svg>
                     <span class="stat-numero" id="statSeguindo">0</span>
                     <span class="stat-label">Seguindo</span>
                   </button>
@@ -1458,8 +1229,6 @@
                 </div>
               </div>
 
-              <!-- Feed / Diário: estilo rede social, logo abaixo da biografia -->
-              <!-- Feed do perfil -->
           <div class="diario-composer">
             <div class="diario-composer-titulo">Publicar no diário</div>
             <textarea id="diarioTexto" maxlength="1000" placeholder="O que você quer compartilhar?"></textarea>
@@ -1487,7 +1256,6 @@
           </div>
         </section>
 
-        <!-- Painel: Busca -->
         <section class="perfil-tab-panel" id="tab-busca">
           <div class="busca-caixa">
             <input type="text" id="buscaInput" placeholder="Buscar por nome ou cidade..." />
@@ -1498,14 +1266,24 @@
           </div>
         </section>
 
-        <!-- Painel: Mensagens -->
         <section class="perfil-tab-panel" id="tab-mensagens">
           <div class="mensagens-lista" id="mensagensLista">
             <div class="estado-vazio" id="mensagensVazio">Você ainda não possui mensagens.</div>
           </div>
+          <div id="chatView">
+            <div class="chat-topo">
+              <button type="button" id="chatVoltar" aria-label="Voltar">‹</button>
+              <div class="chat-avatar" id="chatAvatar"></div>
+              <strong id="chatNome"></strong>
+            </div>
+            <div class="chat-msgs" id="chatMsgs"></div>
+            <div class="chat-form">
+              <input type="text" id="chatInput" maxlength="1000" placeholder="Digite uma mensagem..." autocomplete="off" />
+              <button type="button" id="chatEnviar">Enviar</button>
+            </div>
+          </div>
         </section>
 
-        <!-- Painel: Atalhos profissionais -->
         <section class="perfil-tab-panel" id="tab-painel">
           <div class="atalhos-pro">
             <a href="servicos.html" class="atalho-pro atalho-servicos">
@@ -1539,7 +1317,6 @@
     </div>
   </main>
 
-  <!-- Modal de perfil público -->
   <div class="perfil-publico-backdrop" id="perfilPublicoBackdrop" aria-hidden="true">
     <div class="perfil-publico-modal" role="dialog" aria-modal="true" aria-labelledby="perfilPublicoNome">
       <div class="perfil-publico-cab" id="perfilPublicoCapa">
@@ -1564,7 +1341,6 @@
     </div>
   </div>
 
-  <!-- Modal para seguidores, seguindo e avaliações -->
   <div class="perfil-modal-backdrop" id="perfilModalBackdrop" aria-hidden="true">
     <div class="perfil-modal" role="dialog" aria-modal="true" aria-labelledby="perfilModalTitulo">
       <div class="perfil-modal-header">
@@ -1588,9 +1364,12 @@
   </script>
 
   <script type="module">
-    const TAMANHO_MAX_IMAGEM = 10 * 1024 * 1024; // 10 MB
+    const TAMANHO_MAX_IMAGEM = 10 * 1024 * 1024;
+    let user = null, dadosAtuais = null, refUsuario = null, storageModule = null;
+    let doc, getDoc, setDoc, deleteDoc, addDoc, updateDoc, collection, query, where, orderBy, limit, getDocs, serverTimestamp, onSnapshot, getCountFromServer, signOut, onAuthStateChanged;
+    let cancelarChat = null;
+    let conversaAberta = null;
 
-    // ===== Utilitários =====
     function getInitials(name) {
       if (!name) return "HF";
       const parts = String(name).trim().split(/\s+/).slice(0, 2);
@@ -1607,8 +1386,6 @@
       }
     }
 
-    // Redimensiona/comprime uma imagem no navegador e devolve um data URL (base64).
-    // Isso garante que a foto seja salva mesmo sem um bucket de Storage configurado.
     function comprimirImagem(arquivo, maxLargura, maxAltura, qualidade) {
       return new Promise((resolve, reject) => {
         const leitor = new FileReader();
@@ -1633,7 +1410,6 @@
       });
     }
 
-    // Gera uma string de estrelas cheias/vazias a partir de uma nota de 0 a 5
     function renderizarEstrelas(nota) {
       const notaValida = Math.max(0, Math.min(5, Number(nota) || 0));
       const cheias = Math.round(notaValida);
@@ -1644,7 +1420,6 @@
       return html;
     }
 
-    // ===== Abas =====
     function iniciarTabs() {
       const botoes = document.querySelectorAll(".perfil-tab-btn");
       botoes.forEach((btn) => {
@@ -1662,7 +1437,6 @@
       });
     }
 
-    // ===== Preenchimento do perfil =====
     function definirAvatar(container, fotoUrl, nome) {
       container.innerHTML = "";
       if (fotoUrl) {
@@ -1700,7 +1474,6 @@
       badge.classList.remove("cliente");
       document.getElementById("bioTitulo").textContent = "Sobre mim";
 
-      // ---- Credibilidade: seguidores, seguindo e avaliação ----
       document.getElementById("statSeguidores").textContent = Number(dados.seguidores || 0).toLocaleString("pt-BR");
       document.getElementById("statSeguindo").textContent = Number(dados.seguindo || 0).toLocaleString("pt-BR");
       const nota = Number(dados.avaliacaoMedia || 0);
@@ -1708,7 +1481,6 @@
       document.getElementById("statEstrelas").innerHTML = renderizarEstrelas(nota);
       document.getElementById("statAvaliacaoNumero").textContent = `${nota.toFixed(1)} · ${totalAvaliacoes} ${totalAvaliacoes === 1 ? "avaliação" : "avaliações"}`;
 
-      // ---- Selo de verificação ----
       const seloVerificado = document.getElementById("seloVerificado");
       const btnVerificarPerfil = document.getElementById("btnVerificarPerfil");
       if (dados.verificado) {
@@ -1744,7 +1516,6 @@
       }
     }
 
-    // ===== Busca =====
     function nomeCidade(valor) {
       return valor === "florianopolis" ? "Florianópolis" : valor === "saojose" ? "São José" : valor;
     }
@@ -1806,24 +1577,125 @@
       });
     }
 
+    async function contarRelacoes(campo, uid) {
+      const q = query(collection(window.firebaseDb, "relacoes"), where("tipo", "==", "seguir"), where(campo, "==", uid));
+      try {
+        return (await getCountFromServer(q)).data().count;
+      } catch {
+        return (await getDocs(q)).size;
+      }
+    }
+
+    async function atualizarContagensProprias() {
+      try {
+        const [seguidores, seguindo] = await Promise.all([contarRelacoes("alvoId", user.uid), contarRelacoes("seguidorId", user.uid)]);
+        dadosAtuais.seguidores = seguidores;
+        dadosAtuais.seguindo = seguindo;
+        document.getElementById("statSeguidores").textContent = seguidores.toLocaleString("pt-BR");
+        document.getElementById("statSeguindo").textContent = seguindo.toLocaleString("pt-BR");
+      } catch (error) {
+        console.warn("Contagens indisponíveis:", error);
+      }
+    }
+
+    async function listarRelacionados(campoFiltro, campoOutro) {
+      const snap = await getDocs(query(collection(window.firebaseDb, "relacoes"), where("tipo", "==", "seguir"), where(campoFiltro, "==", user.uid), limit(100)));
+      const uids = snap.docs.map((d) => d.data()[campoOutro]);
+      const perfis = await Promise.all(uids.map((id) => getDoc(doc(window.firebaseDb, "perfis_publicos", id)).catch(() => null)));
+      return perfis.map((p, i) => {
+        const dados = p && p.exists() ? p.data() : {};
+        return { nome: dados.nome || "Usuário", foto: dados.fotoPerfil || "", texto: dados.nickname ? `@${dados.nickname}` : "" };
+      });
+    }
+
     async function iniciarConversaComUsuario(destinatario) {
       if (!destinatario?.uid || destinatario.uid === user.uid) return;
-      const nomeDestinatario = destinatario.nome || "Usuário";
-      const nomeAtual = dadosAtuais.nome || "Usuário";
       const ids = [user.uid, destinatario.uid].sort();
       const conversaId = `${ids[0]}_${ids[1]}`;
       try {
-        await setDoc(doc(window.firebaseDb, "conversas", conversaId), {
-          participantes: [user.uid, destinatario.uid],
-          nomesParticipantes: { [user.uid]: nomeAtual, [destinatario.uid]: nomeDestinatario },
-          fotosParticipantes: { [user.uid]: dadosAtuais.fotoPerfil || "", [destinatario.uid]: destinatario.fotoPerfil || "" },
-          ultimaMensagem: "",
-          atualizadoEm: new Date()
-        }, { merge: true });
-        window.location.href = `mensagens.html?conversa=${encodeURIComponent(conversaId)}`;
+        const ref = doc(window.firebaseDb, "conversas", conversaId);
+        const snap = await getDoc(ref);
+        if (!snap.exists()) {
+          await setDoc(ref, { participantes: ids, ultimaMensagem: "", atualizadoEm: serverTimestamp() });
+        }
+        document.querySelector('.perfil-tab-btn[data-tab="mensagens"]').click();
+        abrirChat(conversaId, destinatario.nome || "Usuário", destinatario.fotoPerfil || "");
       } catch (error) {
         console.error("Erro ao iniciar conversa:", error);
         alert("Não foi possível iniciar a conversa agora.");
+      }
+    }
+
+    function fecharChat() {
+      if (cancelarChat) {
+        cancelarChat();
+        cancelarChat = null;
+      }
+      conversaAberta = null;
+      document.getElementById("chatView").style.display = "none";
+      document.getElementById("mensagensLista").style.display = "";
+      carregarConversas();
+    }
+
+    function abrirChat(conversaId, nome, foto) {
+      if (cancelarChat) cancelarChat();
+      conversaAberta = conversaId;
+      document.getElementById("mensagensLista").style.display = "none";
+      document.getElementById("chatView").style.display = "flex";
+      document.getElementById("chatNome").textContent = nome;
+      definirAvatar(document.getElementById("chatAvatar"), foto, nome);
+      const caixa = document.getElementById("chatMsgs");
+      caixa.innerHTML = "";
+      const q = query(collection(window.firebaseDb, "conversas", conversaId, "mensagens"), orderBy("criadoEm", "asc"), limit(300));
+      cancelarChat = onSnapshot(q, (snap) => {
+        caixa.innerHTML = "";
+        snap.docs.forEach((d) => {
+          const m = d.data();
+          const bolha = document.createElement("div");
+          bolha.className = "chat-bolha " + (m.remetenteId === user.uid ? "minha" : "outra");
+          bolha.textContent = m.texto;
+          caixa.appendChild(bolha);
+        });
+        caixa.scrollTop = caixa.scrollHeight;
+      }, (error) => {
+        console.error("Erro no chat:", error);
+        caixa.textContent = "Não foi possível carregar as mensagens.";
+      });
+    }
+
+    async function enviarMensagemChat() {
+      const input = document.getElementById("chatInput");
+      const texto = input.value.trim();
+      if (!texto || !conversaAberta) return;
+      input.value = "";
+      try {
+        const ref = doc(window.firebaseDb, "conversas", conversaAberta);
+        await addDoc(collection(ref, "mensagens"), { remetenteId: user.uid, texto, criadoEm: serverTimestamp() });
+        await updateDoc(ref, { ultimaMensagem: texto.slice(0, 120), atualizadoEm: serverTimestamp() });
+      } catch (error) {
+        console.error("Erro ao enviar mensagem:", error);
+        input.value = texto;
+        alert("Não foi possível enviar a mensagem.");
+      }
+    }
+
+    async function carregarConversas() {
+      try {
+        const snap = await getDocs(query(collection(window.firebaseDb, "conversas"), where("participantes", "array-contains", user.uid), limit(50)));
+        const brutas = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        brutas.sort((a, b) => (b.atualizadoEm?.toMillis?.() ?? 0) - (a.atualizadoEm?.toMillis?.() ?? 0));
+        const conversas = await Promise.all(brutas.map(async (c) => {
+          const outroId = (c.participantes || []).find((p) => p !== user.uid);
+          let perfil = {};
+          try {
+            const p = await getDoc(doc(window.firebaseDb, "perfis_publicos", outroId));
+            if (p.exists()) perfil = p.data();
+          } catch {}
+          return { id: c.id, nome: perfil.nome || "Usuário", foto: perfil.fotoPerfil || "", ultimaMensagem: c.ultimaMensagem || "", atualizadoEm: c.atualizadoEm };
+        }));
+        renderizarConversas(conversas);
+      } catch (error) {
+        console.warn("Mensagens indisponíveis no momento:", error);
       }
     }
 
@@ -1832,53 +1704,58 @@
       if (!uid) return;
       const backdrop = document.getElementById("perfilPublicoBackdrop");
       const status = document.getElementById("perfilPublicoStatus");
+      const btnSeguir = document.getElementById("btnSeguirPublico");
+      const btnMensagem = document.getElementById("btnMensagemPublico");
+      const contSeguidores = document.getElementById("perfilPublicoSeguidores");
+      const contSeguindo = document.getElementById("perfilPublicoSeguindo");
+      const proprio = uid === user.uid;
       status.textContent = "Carregando perfil...";
+      btnSeguir.style.display = proprio ? "none" : "";
+      btnMensagem.style.display = proprio ? "none" : "";
       backdrop.classList.add("active");
       backdrop.setAttribute("aria-hidden", "false");
       try {
         const snap = await getDoc(doc(window.firebaseDb, "perfis_publicos", uid));
         const perfil = snap.exists() ? snap.data() : usuario;
+        const cidade = perfil.cidade || perfil.cidadeNome;
         document.getElementById("perfilPublicoNome").textContent = perfil.nome || "Usuário";
         document.getElementById("perfilPublicoNick").textContent = perfil.nickname ? `@${perfil.nickname}` : "";
-        document.getElementById("perfilPublicoCidade").textContent = perfil.cidade ? nomeCidade(perfil.cidade) : "Cidade não informada";
+        document.getElementById("perfilPublicoCidade").textContent = cidade ? nomeCidade(cidade) : "Cidade não informada";
         document.getElementById("perfilPublicoBio").textContent = perfil.bio || "Nenhuma biografia adicionada ainda.";
         definirAvatar(document.getElementById("perfilPublicoAvatar"), perfil.fotoPerfil || "", perfil.nome);
         definirCapa(document.getElementById("perfilPublicoCapa"), perfil.fotoCapa || "");
 
-        const relId = `${user.uid}_${uid}`;
-        const relSnap = await getDoc(doc(window.firebaseDb, "relacoes", relId));
-        const seguindo = relSnap.exists() && relSnap.data().tipo === "seguir";
-        const btnSeguir = document.getElementById("btnSeguirPublico");
-        btnSeguir.textContent = seguindo ? "Seguindo" : "Seguir";
-        btnSeguir.dataset.uid = uid;
-        btnSeguir.dataset.seguindo = seguindo ? "true" : "false";
-
-        const [seguidoresSnap, seguindoSnap] = await Promise.all([
-          getDocs(query(collection(window.firebaseDb, "relacoes"), where("tipo", "==", "seguir"), where("alvoId", "==", uid), limit(500))),
-          getDocs(query(collection(window.firebaseDb, "relacoes"), where("tipo", "==", "seguir"), where("seguidorId", "==", uid), limit(500)))
+        const [seguidores, seguindo, relSnap] = await Promise.all([
+          contarRelacoes("alvoId", uid),
+          contarRelacoes("seguidorId", uid),
+          proprio ? Promise.resolve(null) : getDoc(doc(window.firebaseDb, "relacoes", `${user.uid}_${uid}`))
         ]);
-        document.getElementById("perfilPublicoSeguidores").textContent = seguidoresSnap.size;
-        document.getElementById("perfilPublicoSeguindo").textContent = seguindoSnap.size;
+        contSeguidores.textContent = seguidores;
+        contSeguindo.textContent = seguindo;
+        let seguindoAgora = !!relSnap && relSnap.exists() && relSnap.data().tipo === "seguir";
+        const pintar = () => { btnSeguir.textContent = seguindoAgora ? "Seguindo" : "Seguir"; };
+        pintar();
         status.textContent = "";
 
-        const btnMensagem = document.getElementById("btnMensagemPublico");
-        btnMensagem.onclick = () => iniciarConversaComUsuario({ uid, nome: perfil.nome || "Usuário", fotoPerfil: perfil.fotoPerfil || "" });
+        btnMensagem.onclick = () => {
+          fecharPerfilPublico();
+          iniciarConversaComUsuario({ uid, nome: perfil.nome || "Usuário", fotoPerfil: perfil.fotoPerfil || "" });
+        };
         btnSeguir.onclick = async () => {
-          const agoraSeguindo = btnSeguir.dataset.seguindo === "true";
           btnSeguir.disabled = true;
           try {
             const refRel = doc(window.firebaseDb, "relacoes", `${user.uid}_${uid}`);
-            if (agoraSeguindo) {
+            if (seguindoAgora) {
               await deleteDoc(refRel);
-              btnSeguir.textContent = "Seguir";
-              btnSeguir.dataset.seguindo = "false";
-              document.getElementById("perfilPublicoSeguidores").textContent = Math.max(0, Number(document.getElementById("perfilPublicoSeguidores").textContent) - 1);
+              seguindoAgora = false;
+              contSeguidores.textContent = Math.max(0, Number(contSeguidores.textContent) - 1);
             } else {
-              await setDoc(refRel, { tipo: "seguir", seguidorId: user.uid, alvoId: uid, criadoEm: new Date() });
-              btnSeguir.textContent = "Seguindo";
-              btnSeguir.dataset.seguindo = "true";
-              document.getElementById("perfilPublicoSeguidores").textContent = Number(document.getElementById("perfilPublicoSeguidores").textContent) + 1;
+              await setDoc(refRel, { tipo: "seguir", seguidorId: user.uid, alvoId: uid, criadoEm: serverTimestamp() });
+              seguindoAgora = true;
+              contSeguidores.textContent = Number(contSeguidores.textContent) + 1;
             }
+            pintar();
+            atualizarContagensProprias();
           } catch (error) {
             console.error("Erro ao seguir usuário:", error);
             alert("Não foi possível alterar o seguimento agora.");
@@ -1900,10 +1777,10 @@
     document.getElementById("perfilPublicoFechar").addEventListener("click", fecharPerfilPublico);
     document.getElementById("perfilPublicoBackdrop").addEventListener("click", (e) => { if (e.target.id === "perfilPublicoBackdrop") fecharPerfilPublico(); });
 
-    // ===== Mensagens =====
     function renderizarConversas(conversas) {
       const lista = document.getElementById("mensagensLista");
       const vazio = document.getElementById("mensagensVazio");
+      lista.querySelectorAll(".conversa-item").forEach((el) => el.remove());
 
       if (!conversas || conversas.length === 0) {
         vazio.style.display = "block";
@@ -1912,9 +1789,9 @@
       vazio.style.display = "none";
 
       conversas.forEach((conversa) => {
-        const link = document.createElement("a");
+        const link = document.createElement("div");
         link.className = "conversa-item";
-        link.href = conversa.link || "mensagens.html";
+        link.addEventListener("click", () => abrirChat(conversa.id, conversa.nome, conversa.foto));
 
         const avatar = document.createElement("div");
         avatar.className = "conversa-avatar";
@@ -1942,7 +1819,6 @@
       });
     }
 
-    // ===== Seguidores, seguindo e avaliações =====
     let perfilAtual = null;
 
     function abrirModalPerfil(titulo, resumo, itens = []) {
@@ -2004,22 +1880,18 @@
 
     function iniciarDetalhesPerfil(dados) {
       perfilAtual = dados || {};
-      document.getElementById("btnSeguidores").onclick = () => {
-        const lista = normalizarLista(perfilAtual.listaSeguidores || perfilAtual.seguidoresLista || perfilAtual.seguidoresUsuarios);
-        abrirModalPerfil(
-          "Seguidores",
-          `${Number(perfilAtual.seguidores || lista.length || 0).toLocaleString("pt-BR")} ${Number(perfilAtual.seguidores || lista.length || 0) === 1 ? "seguidor" : "seguidores"}`,
-          lista
-        );
+      const abrirLista = async (titulo, campoFiltro, campoOutro, singular, plural) => {
+        abrirModalPerfil(titulo, "Carregando...", []);
+        try {
+          const itens = await listarRelacionados(campoFiltro, campoOutro);
+          abrirModalPerfil(titulo, `${itens.length} ${itens.length === 1 ? singular : plural}`, itens);
+        } catch (error) {
+          console.error("Erro ao listar:", error);
+          abrirModalPerfil(titulo, "Não foi possível carregar a lista agora.", []);
+        }
       };
-      document.getElementById("btnSeguindo").onclick = () => {
-        const lista = normalizarLista(perfilAtual.listaSeguindo || perfilAtual.seguindoLista || perfilAtual.seguindoUsuarios);
-        abrirModalPerfil(
-          "Seguindo",
-          `Este usuário segue ${Number(perfilAtual.seguindo || lista.length || 0).toLocaleString("pt-BR")} ${Number(perfilAtual.seguindo || lista.length || 0) === 1 ? "pessoa" : "pessoas"}`,
-          lista
-        );
-      };
+      document.getElementById("btnSeguidores").onclick = () => abrirLista("Seguidores", "alvoId", "seguidorId", "seguidor", "seguidores");
+      document.getElementById("btnSeguindo").onclick = () => abrirLista("Seguindo", "seguidorId", "alvoId", "pessoa seguida", "pessoas seguidas");
       document.getElementById("btnAvaliacoes").onclick = () => {
         const lista = normalizarLista(perfilAtual.avaliacoesLista || perfilAtual.listaAvaliacoes || perfilAtual.avaliacoes);
         const nota = Number(perfilAtual.avaliacaoMedia || 0).toFixed(1);
@@ -2037,8 +1909,6 @@
       if (e.target.id === "perfilModalBackdrop") fecharModalPerfil();
     });
 
-
-    // ===== Diário / Feed =====
     function formatarDataPost(timestamp) {
       try {
         const data = timestamp?.toDate ? timestamp.toDate() : new Date(timestamp);
@@ -2128,13 +1998,9 @@
       });
     }
 
-    // ===== Inicialização =====
     async function iniciar() {
       iniciarTabs();
 
-      // Aguarda o firebase.js terminar de inicializar Auth e Firestore.
-      // Isso evita que a página seja encerrada antes de window.firebaseAuth
-      // e window.firebaseDb estarem disponíveis.
       let tentativasFirebase = 0;
       while ((!window.firebaseAuth || !window.firebaseDb) && tentativasFirebase < 100) {
         await new Promise((resolve) => setTimeout(resolve, 50));
@@ -2147,43 +2013,26 @@
         return;
       }
 
-      const { onAuthStateChanged, signOut } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
-      const {
-        doc,
-        getDoc,
-        setDoc,
-        deleteDoc,
-        addDoc,
-        collection,
-        query,
-        where,
-        orderBy,
-        limit,
-        getDocs,
-        serverTimestamp,
-      } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+      ({ onAuthStateChanged, signOut } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"));
+      ({ doc, getDoc, setDoc, deleteDoc, addDoc, updateDoc, collection, query, where, orderBy, limit, getDocs, serverTimestamp, onSnapshot, getCountFromServer } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"));
 
-      let storageModule = null;
       try {
         storageModule = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js");
       } catch {
         storageModule = null;
       }
 
-      onAuthStateChanged(window.firebaseAuth, async (user) => {
-        if (!user) {
+      onAuthStateChanged(window.firebaseAuth, async (usuarioAuth) => {
+        if (!usuarioAuth) {
           window.location.href = "login.html";
           return;
         }
 
-        const refUsuario = doc(window.firebaseDb, "usuarios", user.uid);
-        let dadosAtuais = null;
+        user = usuarioAuth;
+        refUsuario = doc(window.firebaseDb, "usuarios", user.uid);
+        dadosAtuais = null;
 
         try {
-          // O perfil privado é a fonte principal. Se ainda não existir,
-          // usamos os dados disponíveis na conta Firebase para não bloquear
-          // a entrada na página. Não criamos um documento privado aqui,
-          // porque isso deve continuar obedecendo às regras de cadastro.
           const snap = await getDoc(refUsuario);
           dadosAtuais = snap.exists() ? snap.data() : {};
 
@@ -2196,8 +2045,6 @@
           dadosAtuais.fotoCapa = dadosAtuais.fotoCapa || "";
           dadosAtuais.bio = dadosAtuais.bio || "";
 
-          // A publicação do perfil é auxiliar. Se as regras do Firestore
-          // recusarem essa gravação, o próprio perfil continua abrindo.
           try {
             await setDoc(doc(window.firebaseDb, "perfis_publicos", user.uid), {
               uid: user.uid,
@@ -2214,18 +2061,15 @@
 
           preencherPerfil(dadosAtuais);
           iniciarDetalhesPerfil(dadosAtuais);
+          atualizarContagensProprias();
 
-          // ---- Diário: carregar publicações do usuário ----
           async function carregarDiario() {
             try {
-              const qDiario = query(
-                collection(window.firebaseDb, "diario"),
-                where("autorId", "==", user.uid),
-                orderBy("criadoEm", "desc"),
-                limit(50)
-              );
+              const qDiario = query(collection(window.firebaseDb, "diario"), where("autorId", "==", user.uid), limit(100));
               const snapDiario = await getDocs(qDiario);
-              const posts = snapDiario.docs.map((d) => ({ id: d.id, ...d.data() }));
+              const posts = snapDiario.docs
+                .map((d) => ({ id: d.id, ...d.data() }))
+                .sort((a, b) => (b.criadoEm?.toMillis?.() ?? Date.now()) - (a.criadoEm?.toMillis?.() ?? Date.now()));
               renderizarDiario(posts);
             } catch (error) {
               console.warn("Diário indisponível no momento:", error);
@@ -2293,20 +2137,30 @@
               let mediaTipo = "";
 
               if (arquivo) {
-                if (!storageModule || !window.firebaseStorage) {
-                  throw new Error("O Firebase Storage não está disponível. Ele é necessário para publicar fotos e vídeos no diário.");
+                const ehVideo = arquivo.type.startsWith("video/");
+                mediaTipo = ehVideo ? "video" : "image";
+                let enviado = false;
+                if (storageModule && window.firebaseStorage) {
+                  try {
+                    const { ref, uploadBytesResumable, getDownloadURL } = storageModule;
+                    const extensao = (arquivo.name.split(".").pop() || "bin").toLowerCase().replace(/[^a-z0-9]/g, "");
+                    const storageRef = ref(window.firebaseStorage, `diario/${user.uid}/${Date.now()}.${extensao}`);
+                    const tarefa = uploadBytesResumable(storageRef, arquivo, { contentType: arquivo.type });
+                    await new Promise((resolve, reject) => {
+                      tarefa.on("state_changed", (p) => {
+                        btn.textContent = `Enviando ${Math.round((p.bytesTransferred / p.totalBytes) * 100)}%`;
+                      }, reject, resolve);
+                    });
+                    mediaUrl = await getDownloadURL(storageRef);
+                    enviado = true;
+                  } catch (erroStorage) {
+                    console.warn("Storage indisponível:", erroStorage);
+                  }
                 }
-
-                const { ref, uploadBytes, getDownloadURL } = storageModule;
-                const extensao = (arquivo.name.split(".").pop() || "bin").toLowerCase();
-                const caminho = `diario/${user.uid}/${Date.now()}.${extensao}`;
-                const storageRef = ref(window.firebaseStorage, caminho);
-
-                await uploadBytes(storageRef, arquivo, {
-                  contentType: arquivo.type
-                });
-                mediaUrl = await getDownloadURL(storageRef);
-                mediaTipo = arquivo.type.startsWith("video/") ? "video" : "image";
+                if (!enviado) {
+                  if (ehVideo) throw new Error("Vídeos exigem o Firebase Storage ativo e com regras liberadas.");
+                  mediaUrl = await comprimirImagem(arquivo, 1024, 1024, 0.7);
+                }
               }
 
               await addDoc(collection(window.firebaseDb, "diario"), {
@@ -2329,7 +2183,7 @@
               await carregarDiario();
             } catch (error) {
               console.error("Erro ao publicar no diário:", error);
-              alert("Não foi possível publicar agora. Verifique as regras do Firestore e do Storage.");
+              alert("Não foi possível publicar: " + (error.message || error.code || "erro desconhecido"));
             } finally {
               btn.disabled = false;
               btn.textContent = "Publicar";
@@ -2341,31 +2195,13 @@
           return;
         }
 
-        // ---- Mensagens (coleção opcional "conversas", com participantes) ----
-        try {
-          const q = query(
-            collection(window.firebaseDb, "conversas"),
-            where("participantes", "array-contains", user.uid),
-            orderBy("atualizadoEm", "desc"),
-            limit(20)
-          );
-          const snapConversas = await getDocs(q);
-          const conversas = snapConversas.docs.map((d) => {
-            const c = d.data();
-            return {
-              nome: c.nomeExibicao || "Conversa",
-              foto: c.fotoExibicao || "",
-              ultimaMensagem: c.ultimaMensagem || "",
-              atualizadoEm: c.atualizadoEm,
-              link: `mensagens.html?conversa=${d.id}`,
-            };
-          });
-          renderizarConversas(conversas);
-        } catch (error) {
-          console.warn("Mensagens indisponíveis no momento:", error);
-        }
+        document.getElementById("chatVoltar").addEventListener("click", fecharChat);
+        document.getElementById("chatEnviar").addEventListener("click", enviarMensagemChat);
+        document.getElementById("chatInput").addEventListener("keydown", (e) => {
+          if (e.key === "Enter") enviarMensagemChat();
+        });
+        await carregarConversas();
 
-        // ---- Editar biografia ----
         const bioTexto = document.getElementById("perfilBioTexto");
         const bioEdit = document.getElementById("perfilBioEdit");
         const bioInput = document.getElementById("perfilBioInput");
@@ -2414,9 +2250,6 @@
           }
         });
 
-        // ---- Upload genérico de imagem: tenta o Storage e, se não houver,
-        // salva a própria imagem (comprimida) direto no documento do Firestore.
-        // Isso garante que a foto realmente seja salva mesmo sem bucket configurado.
         async function salvarImagem(arquivo, { pastaStorage, campoFirestore, maxLargura, maxAltura, qualidade }) {
           if (storageModule && window.firebaseStorage) {
             try {
@@ -2436,7 +2269,6 @@
           return dataUrl;
         }
 
-        // ---- Solicitar verificação de perfil ----
         const btnVerificarPerfil = document.getElementById("btnVerificarPerfil");
         btnVerificarPerfil.addEventListener("click", async () => {
           btnVerificarPerfil.disabled = true;
@@ -2452,7 +2284,6 @@
           }
         });
 
-        // ---- Busca de usuários ----
         const buscaInput = document.getElementById("buscaInput");
         const btnBuscar = document.getElementById("btnBuscar");
 
@@ -2491,7 +2322,6 @@
           if (e.key === "Enter") executarBusca();
         });
 
-        // ---- Editar foto de perfil ----
         const btnEditarFoto = document.getElementById("btnEditarFoto");
         const inputFoto = document.getElementById("inputFotoPerfil");
         const avatarEl = document.getElementById("perfilAvatar");
@@ -2535,7 +2365,6 @@
           }
         });
 
-        // ---- Editar foto de capa ----
         const btnEditarCapa = document.getElementById("btnEditarCapa");
         const inputCapa = document.getElementById("inputFotoCapa");
         const capaEl = document.getElementById("perfilCapa");
@@ -2579,7 +2408,6 @@
           }
         });
 
-        // ---- Sair ----
         document.getElementById("btnSairPerfil").addEventListener("click", async () => {
           try {
             await signOut(window.firebaseAuth);
