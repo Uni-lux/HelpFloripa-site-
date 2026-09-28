@@ -1,0 +1,62 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function logado() {
+      return request.auth != null;
+    }
+
+    function tamanhoAte(mb) {
+      return request.resource.size < mb * 1024 * 1024;
+    }
+
+    function tipo(regex) {
+      return request.resource.contentType.matches(regex);
+    }
+
+    // Diário: fotos e vídeos das publicações (usuarios.html)
+    match /diario/{uid}/{arquivo} {
+      allow read: if logado();
+      allow write: if logado()
+                   && request.auth.uid == uid
+                   && tamanhoAte(50)
+                   && tipo('(image|video)/.*');
+    }
+
+    // Foto de perfil: fotosPerfil/{uid}.jpg
+    match /fotosPerfil/{arquivo} {
+      allow read: if logado();
+      allow write: if logado()
+                   && arquivo == request.auth.uid + '.jpg'
+                   && tamanhoAte(10)
+                   && tipo('image/.*');
+    }
+
+    // Foto de capa: fotosCapa/{uid}.jpg
+    match /fotosCapa/{arquivo} {
+      allow read: if logado();
+      allow write: if logado()
+                   && arquivo == request.auth.uid + '.jpg'
+                   && tamanhoAte(10)
+                   && tipo('image/.*');
+    }
+
+    // Anexos do chat (mensagens.html): mensagens/{conversaId}/{uid}/{arquivo}
+    // Usa firestore.get() para conferir se o usuário participa da conversa.
+    // Ao publicar, o console pede permissão para o Storage ler o Firestore: aceite.
+    match /mensagens/{conversaId}/{uid}/{arquivo} {
+      function participante() {
+        return request.auth.uid in
+               firestore.get(/databases/(default)/documents/conversas/$(conversaId)).data.participantes;
+      }
+
+      allow read: if logado() && participante();
+      allow write: if logado()
+                   && request.auth.uid == uid
+                   && participante()
+                   && tamanhoAte(50)
+                   && tipo('(image|video|audio)/.*');
+    }
+  }
+}
