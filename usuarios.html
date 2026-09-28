@@ -175,6 +175,34 @@
     .pf-stat .rot { display: block; font-size: 11.5px; color: var(--muted); font-weight: 600; letter-spacing: .2px; }
     .chip-verif { display: inline-flex; align-items: center; gap: 6px; margin-top: 14px; padding: 8px 12px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--accent); font-size: 13px; font-weight: 700; border: 0; cursor: pointer; }
 
+    /* ---------- duo na capa: fio vermelho ligando as fotos ---------- */
+    .pf { position: relative; }
+    .fio-capa { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; z-index: 4; overflow: visible; }
+    .fio-capa path { fill: none; stroke: #e0243b; stroke-width: 2.4; stroke-linecap: round; stroke-dasharray: 6 5; animation: fio 1.6s linear infinite; filter: drop-shadow(0 0 4px rgba(224, 36, 59, .85)); }
+    .duo-capa { position: absolute; z-index: 5; right: 9%; bottom: 16%; width: 60px; height: 60px; border: 0; padding: 0; background: none; cursor: pointer; }
+    .duo-capa[disabled] { cursor: default; }
+    .duo-capa .avatar { width: 100%; height: 100%; font-size: 18px; box-shadow: 0 0 0 3px rgba(255, 255, 255, .85), 0 0 0 5px #e0243b, 0 8px 20px rgba(0, 0, 0, .5); }
+    .rosa-selo { position: absolute; right: -5px; bottom: -5px; width: 26px; height: 26px; border-radius: 50%; background: #fff; color: #e0243b; display: grid; place-items: center; box-shadow: 0 2px 8px rgba(0, 0, 0, .4); }
+    .rosa-selo svg { width: 17px; height: 17px; }
+    @media (max-width: 640px) { .duo-capa { width: 50px; height: 50px; right: 7%; bottom: 14%; } .rosa-selo { width: 22px; height: 22px; } .rosa-selo svg { width: 14px; height: 14px; } }
+
+    /* ---------- perfis de negócio (bolinhas) ---------- */
+    .vinculo[data-cat="servicos"] { --cor: #00adee; }
+    .vinculo[data-cat="delivery"] { --cor: #ff7a1a; }
+    .vinculo[data-cat="lojinha"] { --cor: #b066ff; }
+    .vinculo[data-cat="imoveis"] { --cor: #2fbf71; }
+    .neg-capa { position: relative; aspect-ratio: 3 / 1; background: #06202c center / cover no-repeat; }
+    .neg-capa::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 30%, rgba(0, 0, 0, .55)); }
+    .neg-corpo { padding: 0 18px 18px; }
+    .neg-topo { display: flex; align-items: flex-end; gap: 12px; margin-top: -34px; position: relative; z-index: 2; }
+    .neg-topo .avatar { width: 76px; height: 76px; font-size: 24px; border: 4px solid var(--panel); }
+    .neg-tipo { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; color: var(--cor); background: color-mix(in srgb, var(--cor) 14%, transparent); }
+    .neg-corpo h3 { margin: 8px 0 2px; font-size: 20px; }
+    .neg-corpo .desc { margin: 10px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .neg-acoes { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+    .neg-foto-ed { display: flex; align-items: center; gap: 14px; }
+    .neg-foto-ed .avatar { width: 72px; height: 72px; font-size: 22px; }
+
     /* ---------- social: duo (fio vermelho) e vínculos ---------- */
     .social { margin-top: 16px; }
     .social-titulo { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
@@ -425,6 +453,10 @@
     <symbol id="i-pontos" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="18.5" cy="12" r="1.3" fill="currentColor"/></symbol>
     <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-rosa" viewBox="0 0 24 24"><path d="M12 13.2c-2.7 0-4.6-2-4.6-4.5 0-1.6.8-2.9 1.9-3.7.3 1.1 1.3 1.9 2.7 1.9s2.4-.8 2.7-1.9c1.1.8 1.9 2.1 1.9 3.7 0 2.5-1.9 4.5-4.6 4.5z" fill="currentColor" stroke="none"/><path d="M12 13.2V21M12 17.2c-1.4-1.9-3.4-2.2-5-1.6 1 1.9 3.1 2.5 5 1.6zM12 16.2c1.2-1.5 2.9-1.7 4.2-1.2-.8 1.5-2.5 2-4.2 1.2z"/></symbol>
+    <symbol id="i-teia" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.6"/><circle cx="5" cy="6" r="1.8"/><circle cx="19" cy="6" r="1.8"/><circle cx="5" cy="18" r="1.8"/><circle cx="19" cy="18" r="1.8"/><path d="M9.8 10.6L6.5 7.2M14.2 10.6l3.3-3.4M9.8 13.4l-3.3 3.4M14.2 13.4l3.3 3.4"/></symbol>
+    <symbol id="i-loja" viewBox="0 0 24 24"><path d="M4 9.5l1.5-5h13l1.5 5M4 9.5h16M4 9.5c0 1.5 1.2 2.5 2.7 2.5S9.3 11 9.3 9.5c0 1.5 1.2 2.5 2.7 2.5s2.7-1 2.7-2.5c0 1.5 1.2 2.5 2.6 2.5S20 11 20 9.5M5.5 12v7.5h13V12M10 19.5v-4h4v4"/></symbol>
+    <symbol id="i-whats" viewBox="0 0 24 24"><path d="M20.5 11.7a8.5 8.5 0 01-12.6 7.5L3.5 20.5l1.3-4.2A8.5 8.5 0 1120.5 11.7z"/><path d="M9 8.5c0 3.5 3 6.5 6.5 6.5l1-1.6-2-1-1 .8a4.5 4.5 0 01-2.4-2.4l.8-1-1-2z"/></symbol>
     <symbol id="i-lupa" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></symbol>
     <symbol id="i-chat" viewBox="0 0 24 24"><path d="M20.5 11.6c0 4.3-3.8 7.6-8.5 7.6-1.2 0-2.3-.2-3.3-.6L4 20l1.2-3.6c-1.1-1.3-1.7-3-1.7-4.8C3.5 7.4 7.3 4 12 4s8.5 3.4 8.5 7.6z"/></symbol>
     <symbol id="i-sino" viewBox="0 0 24 24"><path d="M18 9.5a6 6 0 00-12 0c0 6.5-2.5 8-2.5 8h17S18 16 18 9.5z"/><path d="M10.2 20.5a2 2 0 003.6 0"/></symbol>
@@ -491,8 +523,6 @@
           <a href="delivery.html" class="card-atalho" style="background-image:url(lanchonetes.webp)"><strong>Delivery</strong></a>
           <a href="shopping.html" class="card-atalho" style="background-image:url(shopping.webp)"><strong>Shopping</strong></a>
           <a href="imoveis.html" class="card-atalho" style="background-image:url(imoveis.webp)"><strong>Imóveis</strong></a>
-          <a href="profissionais.html" class="card-atalho" style="background-image:url(obras.webp)"><strong>Profissionais</strong></a>
-          <a href="clientes.html" class="card-atalho" style="background-image:url(Clientes.webp)"><strong>Clientes</strong></a>
         </div>
       </section>
     </div>
@@ -515,7 +545,7 @@
         </div>
         <div class="pf-handle" data-el="handle"></div>
         <p class="pf-bio" data-el="bio"></p>
-        <div class="social" data-el="social" hidden></div>
+        <div class="social" data-el="negocios" hidden></div>
         <div class="pf-stats">
           <button type="button" class="pf-stat" data-stat="posts"><span class="num">0</span><span class="rot">Publicações</span></button>
           <button type="button" class="pf-stat" data-stat="seguidores"><span class="num">0</span><span class="rot">Seguidores</span></button>
@@ -568,6 +598,13 @@
 
         <div class="cfg-bloco">
           <h3>Privacidade e notificações</h3>
+          <div class="cfg-item" style="cursor:default"><svg class="i"><use href="#i-teia"/></svg><span class="txt">Quem pode abrir os perfis do meu social<small>Quem não estiver liberado vê as fotos, mas não abre os perfis. "Só eu" esconde o social.</small></span></div>
+          <div class="segmentado" id="cfgSocialVis">
+            <button type="button" data-valor="todos">Todos</button>
+            <button type="button" data-valor="seguidores">Seguidores</button>
+            <button type="button" data-valor="amigos">Amigos</button>
+            <button type="button" data-valor="ocultar">Só eu</button>
+          </div>
           <label class="cfg-item"><svg class="i"><use href="#i-olho"/></svg><span class="txt">Mostrar quando estou online<small>Aparece como "online" nas conversas</small></span><span class="switch"><input type="checkbox" id="cfgOnline" /><span></span></span></label>
           <label class="cfg-item"><svg class="i"><use href="#i-check"/></svg><span class="txt">Confirmação de leitura<small>Se desligar, ninguém vê quando você leu e você também não vê a leitura dos outros</small></span><span class="switch"><input type="checkbox" id="cfgLeitura" /><span></span></span></label>
           <button type="button" class="cfg-item" id="cfgBloqueados"><svg class="i"><use href="#i-bloquear"/></svg><span class="txt">Contas bloqueadas<small id="cfgBloqueadosTxt">Ninguém bloqueado</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
@@ -679,6 +716,50 @@
           <p class="texto" id="postTexto"></p>
         </div>
       </div>
+    </div>
+  </div>
+
+  <div class="folha cheia" id="folhaNegocio" role="dialog" aria-modal="true" aria-labelledby="tNegocio">
+    <div class="folha-caixa">
+      <div class="folha-topo"><h2 id="tNegocio">Perfil de negócio</h2><button type="button" class="icone-btn" data-fechar aria-label="Fechar"><svg class="i"><use href="#i-fechar"/></svg></button></div>
+      <div class="folha-corpo pad">
+        <div class="campo" style="margin-top:0">
+          <label>Tipo de perfil</label>
+          <div class="segmentado" id="negTipo" style="margin:0">
+            <button type="button" data-valor="servicos">Serviços</button>
+            <button type="button" data-valor="delivery">Delivery</button>
+            <button type="button" data-valor="lojinha">Lojinha</button>
+            <button type="button" data-valor="imoveis">Imóveis</button>
+          </div>
+          <div class="ajuda"><span id="negTipoAjuda">Você pode ter um perfil de cada tipo.</span></div>
+        </div>
+        <div class="campo">
+          <label>Foto ou logo</label>
+          <div class="neg-foto-ed">
+            <div class="avatar" id="negAvatar"></div>
+            <button type="button" class="btn sec mini" id="negTrocarFoto"><svg class="i xs"><use href="#i-camera"/></svg>Escolher foto</button>
+            <button type="button" class="btn sec mini" id="negRemoverFoto">Remover</button>
+          </div>
+          <input type="file" id="negArquivo" accept="image/*" hidden />
+        </div>
+        <div class="campo"><label for="negNome">Nome</label><input id="negNome" maxlength="60" placeholder="Ex.: Marido de Aluguel do João" /></div>
+        <div class="campo"><label for="negDesc">Descrição</label><textarea id="negDesc" maxlength="500" placeholder="O que você oferece, horários, região de atendimento..."></textarea><div class="ajuda"><span></span><span id="negDescCont">0/500</span></div></div>
+        <div class="campo"><label for="negCidade">Cidade / região</label><input id="negCidade" list="cidadesSugeridas" maxlength="60" /></div>
+        <div class="campo"><label for="negWhats">WhatsApp para contato (opcional)</label><input id="negWhats" type="tel" maxlength="20" placeholder="(48) 90000-0000" /><div class="ajuda"><span>Aparece como botão no perfil do negócio</span></div></div>
+      </div>
+      <div class="folha-rodape">
+        <button type="button" class="btn perigo" id="negExcluir" hidden>Excluir</button>
+        <span style="flex:1"></span>
+        <button type="button" class="btn sec" data-fechar>Cancelar</button>
+        <button type="button" class="btn pri" id="negSalvar">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="folha" id="folhaVerNegocio" role="dialog" aria-modal="true" aria-labelledby="tVerNegocio">
+    <div class="folha-caixa">
+      <div class="folha-topo"><h2 id="tVerNegocio">Negócio</h2><button type="button" class="icone-btn" data-fechar aria-label="Fechar"><svg class="i"><use href="#i-fechar"/></svg></button></div>
+      <div class="folha-corpo" id="verNegocioCorpo"></div>
     </div>
   </div>
 
@@ -994,15 +1075,16 @@
         bEditar.type = "button"; bEditar.className = "btn sec";
         bEditar.append(icone("lapis", "i xs"), document.createTextNode("Editar perfil"));
         bEditar.addEventListener("click", abrirEditar);
+        const bSocial = botaoSocial(eu.uid);
         const bComp = document.createElement("button");
-        bComp.type = "button"; bComp.className = "btn sec";
-        bComp.append(icone("compartilhar", "i xs"), document.createTextNode("Compartilhar"));
+        bComp.type = "button"; bComp.className = "btn sec icone"; bComp.setAttribute("aria-label", "Compartilhar perfil");
+        bComp.appendChild(icone("compartilhar", "i s"));
         bComp.addEventListener("click", () => compartilharPerfil(eu.uid, dados.nome));
         const bCfg = document.createElement("button");
         bCfg.type = "button"; bCfg.className = "btn sec icone"; bCfg.setAttribute("aria-label", "Configurações");
         bCfg.appendChild(icone("config", "i s"));
         bCfg.addEventListener("click", abrirConfig);
-        acoes.append(bEditar, bComp, bCfg);
+        acoes.append(bEditar, bSocial, bComp, bCfg);
         // Estatísticas
         meuCab.stat("posts").addEventListener("click", () => { selecionarAba("posts"); $("painelPosts").scrollIntoView({ behavior: "smooth", block: "start" }); });
         meuCab.stat("seguidores").addEventListener("click", () => abrirListaRelacoes(eu.uid, "seguidores"));
@@ -1032,7 +1114,8 @@
         c.addEventListener("click", solicitarVerificacao);
         extra.appendChild(c);
       }
-      renderizarSocial(meuCab.el("social"), eu.uid, meusVinculos, { proprio: true, dono: dados });
+      desenharDuoCapa(meuCab, eu.uid, dados, meusVinculos, true);
+      renderizarNegocios(meuCab.el("negocios"), meusNegocios, { proprio: true, dono: dados });
       pintarAvatar($("comporAvatar"), dados.fotoPerfil, dados.nome);
       document.title = `${dados.nome || "Meu perfil"} | Help Floripa`;
     }
@@ -1646,7 +1729,12 @@
       bComp.appendChild(icone("compartilhar", "i s"));
       bComp.addEventListener("click", () => compartilharPerfil(uid, p.nome));
       acoes.append(bSeguir, bMsg, botaoOpcoesPerfil(uid, p));
-      renderizarSocial(ppCab.el("social"), uid, vins.status === "fulfilled" ? vins.value : [], { proprio: false, dono: p });
+      const podeAbrir = podeAbrirSocial(p, uid, meSegue);
+      if ((p.socialVisibilidade || "todos") !== "ocultar") {
+        acoes.insertBefore(botaoSocial(uid), acoes.lastChild);
+        desenharDuoCapa(ppCab, uid, p, vins.status === "fulfilled" ? vins.value : [], podeAbrir);
+      }
+      buscarNegocios(uid).then((lista) => renderizarNegocios(ppCab.el("negocios"), lista, { proprio: false, dono: { ...p, uid } })).catch(() => {});
       ppCab.stat("posts").addEventListener("click", () => $("ppGrade").scrollIntoView({ behavior: "smooth" }));
       ppCab.stat("seguidores").addEventListener("click", () => abrirListaRelacoes(uid, "seguidores"));
       ppCab.stat("seguindo").addEventListener("click", () => abrirListaRelacoes(uid, "seguindo"));
@@ -1813,102 +1901,126 @@
       return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     }
 
-    function desenharFio() {
-      const ns = "http://www.w3.org/2000/svg";
-      const svgEl = document.createElementNS(ns, "svg");
-      svgEl.setAttribute("class", "fio");
-      svgEl.setAttribute("viewBox", "0 0 200 60");
-      svgEl.setAttribute("preserveAspectRatio", "none");
-      svgEl.setAttribute("aria-hidden", "true");
-      const path = document.createElementNS(ns, "path");
-      path.setAttribute("d", "M0 30 C 40 -6, 70 66, 100 30 S 160 -6, 200 30");
-      const no = document.createElementNS(ns, "circle");
-      no.setAttribute("cx", "100"); no.setAttribute("cy", "30"); no.setAttribute("r", "4");
-      svgEl.append(path, no);
-      return svgEl;
+    // Quem pode abrir os perfis do social de alguém.
+    function podeAbrirSocial(p, uid, meSegue) {
+      if (uid === eu.uid) return true;
+      const vis = p.socialVisibilidade || "todos";
+      if (vis === "todos") return true;
+      if (vis === "seguidores") return meusSeguindo.has(uid);
+      if (vis === "amigos") return meusSeguindo.has(uid) && !!meSegue;
+      return false;
     }
 
-    async function renderizarSocial(box, uid, vinculos, { proprio, dono }) {
-      const lidos = vinculos.map((v) => lerVinculo(v, uid)).filter((v) => (proprio || !v.pendente) && !escondido(v.outro));
-      const visiveis = proprio ? lidos : lidos.filter((v) => !v.pendente);
-      if (!proprio && !visiveis.length) { box.hidden = true; return; }
+    function botaoSocial(uid) {
+      const b = document.createElement("a");
+      b.className = "btn sec";
+      b.href = uid === eu.uid ? "social.html" : `social.html?uid=${encodeURIComponent(uid)}`;
+      b.append(icone("teia", "i xs"), document.createTextNode("Social"));
+      return b;
+    }
+
+    // Foto do duo pequena na capa, ligada à foto do perfil por um fio vermelho.
+    function desenharDuoCapa(cab, uid, dono, vinculos, podeAbrir) {
+      const raiz = cab.raiz.querySelector(".pf");
+      raiz.querySelector(".duo-capa")?.remove();
+      raiz.querySelector(".fio-capa")?.remove();
+      cab.observador?.disconnect();
+      const duo = vinculos.map((v) => lerVinculo(v, uid)).find((v) => v.tipo === "duo" && !v.pendente && !escondido(v.outro));
+      if (!duo) return;
+      const capa = cab.el("capa");
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "duo-capa";
+      const av = document.createElement("div");
+      av.className = "avatar";
+      const selo = document.createElement("span");
+      selo.className = "rosa-selo";
+      selo.title = "Duo";
+      selo.appendChild(icone("rosa", "i"));
+      btn.append(av, selo);
+      capa.appendChild(btn);
+      obterPerfil(duo.outro).then((o) => {
+        pintarAvatar(av, o.fotoPerfil, o.nome);
+        btn.setAttribute("aria-label", `Duo: ${o.nome || "Usuário"}`);
+        btn.title = `Duo: ${o.nome || "Usuário"}`;
+      });
+      if (podeAbrir) btn.addEventListener("click", (e) => { e.stopPropagation(); abrirPerfilPublico(duo.outro); });
+      else btn.disabled = true;
+
+      const ns = "http://www.w3.org/2000/svg";
+      const svgEl = document.createElementNS(ns, "svg");
+      svgEl.setAttribute("class", "fio-capa");
+      svgEl.setAttribute("aria-hidden", "true");
+      const path = document.createElementNS(ns, "path");
+      svgEl.appendChild(path);
+      raiz.appendChild(svgEl);
+      const tracar = () => {
+        const base = raiz.getBoundingClientRect();
+        const a = cab.el("avatar").getBoundingClientRect();
+        const d = av.getBoundingClientRect();
+        if (!base.width || !a.width) return;
+        // Liga a borda de uma foto à borda da outra, com o fio caindo um pouco no meio.
+        const ax = a.left + a.width / 2 - base.left, ay = a.top + a.height / 2 - base.top, ar = a.width / 2 + 4;
+        const dx = d.left + d.width / 2 - base.left, dy = d.top + d.height / 2 - base.top, dr = d.width / 2 + 4;
+        const dist = Math.hypot(dx - ax, dy - ay) || 1, ux = (dx - ax) / dist, uy = (dy - ay) / dist;
+        const x1 = ax + ux * ar, y1 = ay + uy * ar, x2 = dx - ux * dr, y2 = dy - uy * dr;
+        const cx = (x1 + x2) / 2, cy = Math.max(y1, y2) + Math.min(70, dist * 0.22);
+        svgEl.setAttribute("viewBox", `0 0 ${base.width} ${base.height}`);
+        path.setAttribute("d", `M${x1} ${y1} Q${cx} ${cy} ${x2} ${y2}`);
+      };
+      requestAnimationFrame(tracar);
+      cab.observador = new ResizeObserver(tracar);
+      cab.observador.observe(raiz);
+    }
+
+    // ======================================================
+    // Perfis de negócio: serviços, delivery, lojinha, imóveis
+    // ======================================================
+    const NEGOCIOS = {
+      servicos: { rotulo: "Serviços", img: "servicos.webp", pagina: "servicos.html" },
+      delivery: { rotulo: "Delivery", img: "lanchonetes.webp", pagina: "delivery.html" },
+      lojinha: { rotulo: "Lojinha", img: "shopping.webp", pagina: "shopping.html" },
+      imoveis: { rotulo: "Imóveis", img: "imoveis.webp", pagina: "imoveis.html" }
+    };
+    let meusNegocios = [];
+
+    async function buscarNegocios(uid) {
+      const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "negocios"), fb.where("donoId", "==", uid), fb.limit(8)));
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => Object.keys(NEGOCIOS).indexOf(a.tipo) - Object.keys(NEGOCIOS).indexOf(b.tipo));
+    }
+    async function carregarMeusNegocios() {
+      try { meusNegocios = await buscarNegocios(eu.uid); } catch (e) { console.warn("Negócios indisponíveis:", e); meusNegocios = []; }
+      renderizarMeuPerfil();
+    }
+
+    function renderizarNegocios(box, lista, { proprio, dono }) {
+      if (!proprio && !lista.length) { box.hidden = true; return; }
       box.hidden = false;
       box.replaceChildren();
-      const token = Symbol();
-      box._token = token;
-      const perfisOutros = await Promise.all(visiveis.map((v) => obterPerfil(v.outro)));
-      if (box._token !== token) return;
-
-      const titulo = document.createElement("div");
-      titulo.className = "social-titulo";
-      const h = document.createElement("h3");
-      h.append(icone("fio", "i xs"), document.createTextNode("Social"));
-      titulo.appendChild(h);
-      if (proprio) {
-        const add = document.createElement("button");
-        add.type = "button"; add.textContent = "+ Adicionar";
-        add.addEventListener("click", () => abrirNovoVinculo(null));
-        titulo.appendChild(add);
-      }
-      box.appendChild(titulo);
-
-      // Duo com fio vermelho
-      const iDuo = visiveis.findIndex((v) => v.tipo === "duo" && !v.pendente);
-      if (iDuo >= 0) {
-        const v = visiveis[iDuo], o = perfisOutros[iDuo];
-        const duo = document.createElement("div");
-        duo.className = "duo";
-        const pessoa = (p, u) => {
-          const b = document.createElement("button");
-          b.type = "button"; b.className = "duo-pessoa";
-          const av = document.createElement("div");
-          av.className = "avatar";
-          pintarAvatar(av, p.fotoPerfil, p.nome);
-          const n = document.createElement("span");
-          n.textContent = (p.nome || "Usuário").split(" ")[0];
-          b.append(av, n);
-          b.addEventListener("click", () => abrirPerfilPublico(u));
-          return b;
-        };
-        const rot = document.createElement("div");
-        rot.className = "duo-rotulo";
-        const forte = document.createElement("strong");
-        forte.textContent = "Duo";
-        const desde = paraData(v.aceitoEm);
-        rot.append(forte, document.createTextNode(desde ? ` · ligados desde ${desde.toLocaleDateString("pt-BR", { month: "short", year: "numeric" })}` : ""));
-        duo.append(pessoa(dono, uid), desenharFio(), pessoa(o, v.outro), rot);
-        if (proprio) {
-          rot.style.cursor = "pointer";
-          rot.title = "Opções do duo";
-          rot.addEventListener("click", () => opcoesVinculo(v, o));
-          duo.addEventListener("contextmenu", (e) => { e.preventDefault(); opcoesVinculo(v, o); });
-        }
-        box.appendChild(duo);
-      }
-
       const linha = document.createElement("div");
       linha.className = "vinculos";
-      visiveis.forEach((v, i) => {
-        if (i === iDuo) return;
-        const o = perfisOutros[i];
+      lista.forEach((n) => {
+        const t = NEGOCIOS[n.tipo];
+        if (!t) return;
         const b = document.createElement("button");
         b.type = "button";
-        b.className = "vinculo" + (v.pendente ? " pendente" : "");
-        b.dataset.cat = TIPOS[v.tipo]?.cat || "amizade";
+        b.className = "vinculo";
+        b.dataset.cat = n.tipo;
         const av = document.createElement("div");
         av.className = "avatar";
-        pintarAvatar(av, o.fotoPerfil, o.nome);
-        const n = document.createElement("span");
-        n.className = "nome";
-        n.textContent = (o.nome || "Usuário").split(" ")[0];
+        pintarAvatar(av, n.foto, n.nome);
+        if (!urlSegura(n.foto)) { av.style.background = `#0a2a38 url(${t.img}) center / cover`; av.textContent = ""; }
+        const nome = document.createElement("span");
+        nome.className = "nome";
+        nome.textContent = n.nome || t.rotulo;
         const papel = document.createElement("span");
         papel.className = "papel";
-        papel.textContent = v.pendente ? (v.de === eu.uid ? "Aguardando" : "Pedido") : rotuloTipo(v.tipo);
-        b.append(av, n, papel);
-        b.addEventListener("click", () => (proprio ? opcoesVinculo(v, o) : abrirPerfilPublico(v.outro)));
+        papel.textContent = t.rotulo;
+        b.append(av, nome, papel);
+        b.addEventListener("click", () => (proprio ? abrirFormNegocio(n) : verNegocio(n, dono)));
         linha.appendChild(b);
       });
-      if (proprio) {
+      if (proprio && lista.length < Object.keys(NEGOCIOS).length) {
         const novo = document.createElement("button");
         novo.type = "button";
         novo.className = "vinculo novo";
@@ -1916,19 +2028,157 @@
         av.className = "avatar";
         av.appendChild(icone("mais", "i s"));
         const n = document.createElement("span");
-        n.className = "nome"; n.textContent = "Adicionar";
-        novo.append(av, n);
-        novo.addEventListener("click", () => abrirNovoVinculo(null));
+        n.className = "nome";
+        n.textContent = lista.length ? "Criar" : "Criar perfil";
+        const pp = document.createElement("span");
+        pp.className = "papel";
+        pp.textContent = "de negócio";
+        novo.append(av, n, pp);
+        novo.addEventListener("click", () => abrirFormNegocio(null));
         linha.appendChild(novo);
       }
-      if (linha.children.length) box.appendChild(linha);
-      if (proprio && !visiveis.length) {
-        const vazio = document.createElement("p");
-        vazio.className = "social-vazio";
-        vazio.textContent = "Mostre quem faz parte da sua vida: seu duo, família e amigos.";
-        box.insertBefore(vazio, linha);
+      box.appendChild(linha);
+      if (proprio && !lista.length) {
+        const dica = document.createElement("p");
+        dica.className = "social-vazio";
+        dica.style.margin = "4px 0 0";
+        dica.textContent = "Crie perfis de Serviços, Delivery, Lojinha ou Imóveis para aparecerem aqui.";
+        box.appendChild(dica);
       }
     }
+
+    function verNegocio(n, dono) {
+      const t = NEGOCIOS[n.tipo];
+      const corpo = $("verNegocioCorpo");
+      corpo.replaceChildren();
+      $("tVerNegocio").textContent = t.rotulo;
+      const capa = document.createElement("div");
+      capa.className = "neg-capa";
+      capa.style.backgroundImage = `url(${t.img})`;
+      const c = document.createElement("div");
+      c.className = "neg-corpo";
+      const topo = document.createElement("div");
+      topo.className = "neg-topo";
+      const av = document.createElement("div");
+      av.className = "avatar";
+      pintarAvatar(av, n.foto, n.nome);
+      topo.appendChild(av);
+      const tipo = document.createElement("span");
+      tipo.className = "neg-tipo";
+      tipo.style.setProperty("--cor", getComputedStyle(document.documentElement).getPropertyValue("--accent"));
+      tipo.textContent = t.rotulo;
+      const h = document.createElement("h3");
+      h.textContent = n.nome || t.rotulo;
+      const sub = document.createElement("div");
+      sub.className = "pf-handle";
+      const por = document.createElement("span");
+      por.textContent = `por ${dono?.nome || "Usuário"}`;
+      sub.appendChild(por);
+      if (n.cidade) { const ci = document.createElement("span"); ci.append(icone("pin", "i xs"), document.createTextNode(n.cidade)); sub.appendChild(ci); }
+      const desc = document.createElement("p");
+      desc.className = "desc";
+      desc.textContent = n.descricao || "";
+      const acoes = document.createElement("div");
+      acoes.className = "neg-acoes";
+      if (dono?.uid && dono.uid !== eu.uid) {
+        const m = document.createElement("button");
+        m.type = "button"; m.className = "btn pri";
+        m.append(icone("chat", "i xs"), document.createTextNode("Mensagem"));
+        m.addEventListener("click", () => iniciarConversa(dono.uid));
+        acoes.appendChild(m);
+      }
+      const numero = String(n.whatsapp || "").replace(/\D/g, "");
+      if (numero.length >= 10) {
+        const w = document.createElement("a");
+        w.className = "btn sec";
+        w.href = `https://wa.me/${numero.startsWith("55") ? numero : "55" + numero}`;
+        w.target = "_blank"; w.rel = "noopener noreferrer";
+        w.append(icone("whats", "i xs"), document.createTextNode("WhatsApp"));
+        acoes.appendChild(w);
+      }
+      const ver = document.createElement("a");
+      ver.className = "btn sec";
+      ver.href = t.pagina;
+      ver.textContent = `Ver ${t.rotulo}`;
+      acoes.appendChild(ver);
+      c.append(topo, tipo, h, sub, desc, acoes);
+      corpo.append(capa, c);
+      abrirFolha("folhaVerNegocio");
+    }
+
+    let negEditando = null, negTipo = "servicos", negFoto = "";
+    function abrirFormNegocio(n) {
+      negEditando = n;
+      const usados = new Set(meusNegocios.map((x) => x.tipo));
+      negTipo = n ? n.tipo : Object.keys(NEGOCIOS).find((k) => !usados.has(k)) || "servicos";
+      negFoto = n?.foto || "";
+      document.querySelectorAll("#negTipo [data-valor]").forEach((b) => {
+        b.classList.toggle("on", b.dataset.valor === negTipo);
+        b.disabled = n ? b.dataset.valor !== n.tipo : usados.has(b.dataset.valor);
+      });
+      $("negTipoAjuda").textContent = n ? "O tipo não pode ser trocado depois de criado." : "Você pode ter um perfil de cada tipo.";
+      $("tNegocio").textContent = n ? "Editar perfil de negócio" : "Novo perfil de negócio";
+      $("negNome").value = n?.nome || "";
+      $("negDesc").value = n?.descricao || "";
+      $("negDescCont").textContent = `${$("negDesc").value.length}/500`;
+      $("negCidade").value = n?.cidade || nomeCidade(dados.cidade);
+      $("negWhats").value = n?.whatsapp || "";
+      $("negExcluir").hidden = !n;
+      pintarFotoNegocio();
+      abrirFolha("folhaNegocio");
+    }
+    function pintarFotoNegocio() {
+      pintarAvatar($("negAvatar"), negFoto, $("negNome").value || NEGOCIOS[negTipo].rotulo);
+      $("negRemoverFoto").hidden = !negFoto;
+    }
+    $("negTipo").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-valor]");
+      if (!b || b.disabled) return;
+      negTipo = b.dataset.valor;
+      document.querySelectorAll("#negTipo [data-valor]").forEach((x) => x.classList.toggle("on", x === b));
+    });
+    $("negDesc").addEventListener("input", () => { $("negDescCont").textContent = `${$("negDesc").value.length}/500`; });
+    $("negTrocarFoto").addEventListener("click", () => $("negArquivo").click());
+    $("negRemoverFoto").addEventListener("click", () => { negFoto = ""; pintarFotoNegocio(); });
+    $("negArquivo").addEventListener("change", async () => {
+      const arquivo = $("negArquivo").files?.[0];
+      $("negArquivo").value = "";
+      if (!arquivo) return;
+      try {
+        const d = await editarImagem(arquivo, { titulo: "Foto do negócio", dica: "O círculo mostra como a foto ou logo aparece. Deixe o principal dentro da linha tracejada.", proporcao: 1, circulo: true, larguraSaida: 480, qualidade: 0.86, limiteBytes: 250000 });
+        if (d) { negFoto = d; pintarFotoNegocio(); }
+      } catch (e) { toast(erroAmigavel(e)); }
+    });
+    $("negSalvar").addEventListener("click", async () => {
+      const nome = $("negNome").value.trim();
+      if (nome.length < 2) { toast("Dê um nome ao seu negócio."); $("negNome").focus(); return; }
+      const btn = $("negSalvar");
+      btn.disabled = true; btn.textContent = "Salvando...";
+      try {
+        const id = `${eu.uid}_${negTipo}`;
+        let foto = negFoto;
+        if (foto.startsWith("data:")) foto = await salvarImagem(foto, `negocios/${id}.jpg`);
+        const dadosNeg = {
+          donoId: eu.uid, tipo: negTipo, nome, descricao: $("negDesc").value.trim(), cidade: $("negCidade").value.trim(),
+          whatsapp: $("negWhats").value.trim(), foto, atualizadoEm: fb.serverTimestamp()
+        };
+        if (!negEditando) dadosNeg.criadoEm = fb.serverTimestamp();
+        await fb.setDoc(fb.doc(fb.db, "negocios", id), dadosNeg, { merge: true });
+        fecharFolha("folhaNegocio");
+        toast(negEditando ? "Perfil de negócio atualizado" : "Perfil de negócio criado");
+        carregarMeusNegocios();
+      } catch (e) { toast("Não foi possível salvar: " + erroAmigavel(e)); }
+      finally { btn.disabled = false; btn.textContent = "Salvar"; }
+    });
+    $("negExcluir").addEventListener("click", async () => {
+      if (!negEditando || !confirm(`Excluir o perfil "${negEditando.nome}"?`)) return;
+      try {
+        await fb.deleteDoc(fb.doc(fb.db, "negocios", negEditando.id));
+        fecharFolha("folhaNegocio");
+        toast("Perfil de negócio excluído");
+        carregarMeusNegocios();
+      } catch (e) { toast("Não foi possível excluir: " + erroAmigavel(e)); }
+    });
 
     function opcoesVinculo(v, o) {
       const nome = o.nome || "Usuário";
@@ -1983,7 +2233,8 @@
         b.className = "tipo" + (k === vinTipo ? " on" : "");
         b.dataset.cat = t.cat;
         const bola = document.createElement("i");
-        b.append(bola, document.createTextNode(t.rotulo));
+        if (k === "duo") b.append(icone("rosa", "i s"), document.createTextNode("Duo (fio vermelho)"));
+        else b.append(bola, document.createTextNode(t.rotulo));
         b.addEventListener("click", () => {
           vinTipo = k;
           tipos.querySelectorAll(".tipo").forEach((x) => x.classList.toggle("on", x === b));
@@ -2287,6 +2538,7 @@
       else if (Notification.permission === "denied") nt.textContent = "Bloqueadas nas configurações do navegador";
       else nt.textContent = "Toque para ativar";
       $("cfgBloqueadosTxt").textContent = meusBloqueios.size ? `${meusBloqueios.size} ${meusBloqueios.size === 1 ? "conta" : "contas"}` : "Ninguém bloqueado";
+      document.querySelectorAll("#cfgSocialVis [data-valor]").forEach((b) => b.classList.toggle("on", b.dataset.valor === (dados.socialVisibilidade || "todos")));
       $("cfgRestritosTxt").textContent = restritos.size ? `${restritos.size} ${restritos.size === 1 ? "conta" : "contas"}` : "Ninguém restrito";
       aplicarTema();
     }
@@ -2303,6 +2555,18 @@
     $("cfgSons").addEventListener("change", () => { config.sons = $("cfgSons").checked; salvarConfig(); });
     $("cfgLeitura").addEventListener("change", () => { config.confirmacaoLeitura = $("cfgLeitura").checked; salvarConfig(); });
     $("cfgBloqueados").addEventListener("click", () => abrirContas("bloqueados"));
+    $("cfgSocialVis").addEventListener("click", async (e) => {
+      const b = e.target.closest("[data-valor]");
+      if (!b) return;
+      const antes = dados.socialVisibilidade;
+      dados.socialVisibilidade = b.dataset.valor;
+      pintarConfig();
+      try {
+        await fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), { uid: eu.uid, socialVisibilidade: b.dataset.valor }, { merge: true });
+        perfis.delete(eu.uid);
+        toast("Privacidade do social atualizada");
+      } catch (e) { dados.socialVisibilidade = antes; pintarConfig(); toast("Não foi possível salvar: " + erroAmigavel(e)); }
+    });
     $("cfgRestritos").addEventListener("click", () => abrirContas("restritos"));
     $("cfgNotifNavegador").addEventListener("click", async () => {
       if (!("Notification" in window)) return;
@@ -2341,7 +2605,9 @@
         toast("Excluindo sua conta...");
         const posts = await fb.getDocs(fb.query(fb.collection(fb.db, "diario"), fb.where("autorId", "==", eu.uid)));
         const sigo = await fb.getDocs(fb.query(fb.collection(fb.db, "relacoes"), fb.where("seguidorId", "==", eu.uid)));
-        await Promise.all([...posts.docs, ...sigo.docs].map((d) => fb.deleteDoc(d.ref).catch(() => {})));
+        const negs = await fb.getDocs(fb.query(fb.collection(fb.db, "negocios"), fb.where("donoId", "==", eu.uid))).catch(() => ({ docs: [] }));
+        const vins = await fb.getDocs(fb.query(fb.collection(fb.db, "vinculos"), fb.where("participantes", "array-contains", eu.uid))).catch(() => ({ docs: [] }));
+        await Promise.all([...posts.docs, ...sigo.docs, ...negs.docs, ...vins.docs].map((d) => fb.deleteDoc(d.ref).catch(() => {})));
         if (dados.nickname) {
           const n = await fb.getDoc(fb.doc(fb.db, "nicknames", dados.nickname)).catch(() => null);
           if (n?.exists() && n.data().uid === eu.uid) await fb.deleteDoc(n.ref).catch(() => {});
@@ -2418,6 +2684,7 @@
         }
 
         avisosVistosEm = ms(dados.notificacoesVistasEm);
+        obterPerfil(eu.uid).then((pp) => { if (pp.socialVisibilidade) dados.socialVisibilidade = pp.socialVisibilidade; });
         $("estadoCarregando").hidden = true;
         $("conteudo").hidden = false;
         renderizarMeuPerfil();
@@ -2425,6 +2692,7 @@
         meusSeguindoPronto = carregarMeusSeguindo().catch((e) => console.warn("Quem você segue:", e));
         await estadoPronto;
         ouvirVinculos();
+        carregarMeusNegocios();
         atualizarContagens();
         carregarMeusPosts();
         ouvirSeguidores();
@@ -2432,6 +2700,7 @@
         marcarPresenca();
 
         const params = new URLSearchParams(location.search);
+        if (params.get("acao") === "social") { history.replaceState(null, "", "usuarios.html"); abrirNovoVinculo(null); }
         const perfilPedido = params.get("perfil");
         if (perfilPedido) {
           history.replaceState(null, "", "usuarios.html");

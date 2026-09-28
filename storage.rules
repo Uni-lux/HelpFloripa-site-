@@ -42,6 +42,15 @@ service firebase.storage {
                    && tipo('image/.*');
     }
 
+    // Foto dos perfis de negócio: negocios/{uid}_{tipo}.jpg
+    match /negocios/{arquivo} {
+      allow read: if logado();
+      allow write: if logado()
+                   && arquivo.matches(request.auth.uid + '_(servicos|delivery|lojinha|imoveis)[.]jpg')
+                   && tamanhoAte(10)
+                   && tipo('image/.*');
+    }
+
     // Anexos do chat (mensagens.html): mensagens/{conversaId}/{uid}/{arquivo}
     // Usa firestore.get() para conferir se o usuário participa da conversa.
     // Ao publicar, o console pede permissão para o Storage ler o Firestore: aceite.
