@@ -16,6 +16,15 @@ service cloud.firestore {
       return !request.resource.data.keys().hasAny(camposProtegidos());
     }
 
+    // Bloqueio: bloqueios/{quemBloqueou}_{quemFoiBloqueado}
+    function bloqueou(a, b) {
+      return exists(/databases/$(database)/documents/bloqueios/$(a + '_' + b));
+    }
+
+    function bloqueioEntre(a, b) {
+      return bloqueou(a, b) || bloqueou(b, a);
+    }
+
     function naoTocaCamposProtegidosNoUpdate() {
       return !request.resource.data.diff(resource.data).affectedKeys()
                .hasAny(camposProtegidos());
@@ -104,12 +113,89 @@ service cloud.firestore {
                     && request.resource.data.seguidorId == request.auth.uid
                     && request.resource.data.alvoId is string
                     && request.resource.data.alvoId != request.auth.uid
-                    && id == request.auth.uid + '_' + request.resource.data.alvoId;
+                    && id == request.auth.uid + '_' + request.resource.data.alvoId
+                    && !bloqueioEntre(request.auth.uid, request.resource.data.alvoId);
+
+      allow update: if false;
+
+      // Quem segue pode deixar de seguir; quem é seguido pode remover o seguidor.
+      allow delete: if logado()
+                    && (resource.data.seguidorId == request.auth.uid
+                        || resource.data.alvoId == request.auth.uid);
+    }
+
+
+    // =====================================================
+    // BLOQUEIOS
+    // Documento: bloqueios/{bloqueadorId}_{bloqueadoId}
+    // Cada lado pode saber do bloqueio que o envolve.
+    // =====================================================
+    match /bloqueios/{id} {
+
+      allow get: if logado()
+                 && (id.split('_')[0] == request.auth.uid
+                     || id.split('_')[1] == request.auth.uid);
+
+      allow list: if logado()
+                  && (resource.data.bloqueadorId == request.auth.uid
+                      || resource.data.bloqueadoId == request.auth.uid);
+
+      allow create: if logado()
+                    && request.resource.data.bloqueadorId == request.auth.uid
+                    && request.resource.data.bloqueadoId is string
+                    && request.resource.data.bloqueadoId != request.auth.uid
+                    && id == request.auth.uid + '_' + request.resource.data.bloqueadoId;
 
       allow update: if false;
 
       allow delete: if logado()
-                    && resource.data.seguidorId == request.auth.uid;
+                    && resource.data.bloqueadorId == request.auth.uid;
+    }
+
+
+    // =====================================================
+    // VÍNCULOS SOCIAIS (duo, família, amigos)
+    // Documento: vinculos/{uidMenor}_{uidMaior}
+    // Um pede ("de"), o outro aceita ("para").
+    // =====================================================
+    match /vinculos/{id} {
+
+      function inversos() {
+        return {
+          'duo': 'duo', 'namoro': 'namoro', 'casamento': 'casamento',
+          'melhor_amigo': 'melhor_amigo', 'amigo': 'amigo', 'irmao': 'irmao',
+          'pai_mae': 'filho', 'filho': 'pai_mae', 'primo': 'primo',
+          'tio': 'sobrinho', 'sobrinho': 'tio', 'avo': 'neto', 'neto': 'avo',
+          'parceiro': 'parceiro'
+        };
+      }
+
+      allow read: if logado();
+
+      allow create: if logado()
+                    && request.resource.data.de == request.auth.uid
+                    && request.resource.data.para is string
+                    && request.resource.data.para != request.auth.uid
+                    && request.resource.data.participantes is list
+                    && request.resource.data.participantes.size() == 2
+                    && request.auth.uid in request.resource.data.participantes
+                    && request.resource.data.para in request.resource.data.participantes
+                    && id == request.resource.data.participantes[0] + '_' + request.resource.data.participantes[1]
+                    && request.resource.data.status == 'pendente'
+                    && request.resource.data.tipoDe in inversos()
+                    && request.resource.data.tipoPara == inversos()[request.resource.data.tipoDe]
+                    && !bloqueioEntre(request.auth.uid, request.resource.data.para);
+
+      // Só quem recebeu o pedido pode aceitar, e só muda o status.
+      allow update: if logado()
+                    && resource.data.status == 'pendente'
+                    && request.auth.uid == resource.data.para
+                    && request.resource.data.status == 'aceito'
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'aceitoEm']);
+
+      // Qualquer um dos dois pode cancelar, recusar ou desfazer.
+      allow delete: if logado()
+                    && request.auth.uid in resource.data.participantes;
     }
 
 
@@ -135,7 +221,9 @@ service cloud.firestore {
                     && request.resource.data.participantes.size() == 2
                     && request.auth.uid in request.resource.data.participantes
                     && conversaId == request.resource.data.participantes[0]
-                                     + '_' + request.resource.data.participantes[1];
+                                     + '_' + request.resource.data.participantes[1]
+                    && !bloqueioEntre(request.resource.data.participantes[0],
+                                      request.resource.data.participantes[1]);
 
       // Participantes não podem ser trocados depois de criada.
       allow update: if logado()
@@ -158,8 +246,14 @@ service cloud.firestore {
 
         allow read: if logado() && participante();
 
+        function semBloqueio() {
+          let p = get(/databases/$(database)/documents/conversas/$(conversaId)).data.participantes;
+          return !bloqueioEntre(p[0], p[1]);
+        }
+
         allow create: if logado()
                       && participante()
+                      && semBloqueio()
                       && request.resource.data.remetenteId == request.auth.uid;
 
         allow update: if false;

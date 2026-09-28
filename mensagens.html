@@ -180,6 +180,7 @@
       transform: translateX(-102%); transition: transform .25s cubic-bezier(.2, .8, .2, 1); visibility: hidden;
     }
     .painel.aberto { transform: none; visibility: visible; }
+    .painel-fixo { position: fixed; inset: 0 auto 0 0; width: min(420px, 100%); z-index: 55; border-right: 1px solid var(--line); box-shadow: 12px 0 40px rgba(0, 0, 0, .3); }
     .painel-top { display: flex; align-items: center; gap: 10px; padding: 12px 10px; padding-top: max(12px, env(safe-area-inset-top)); border-bottom: 1px solid var(--line); }
     .painel-top h2 { margin: 0; font-size: 18px; font-weight: 700; }
     .painel-corpo { flex: 1; overflow-y: auto; padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
@@ -315,6 +316,8 @@
     .ir-fim b:empty { display: none; }
 
     /* ---------- barra de envio ---------- */
+    .barra-bloqueio { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; padding: 14px 16px; padding-bottom: max(14px, env(safe-area-inset-bottom)); background: var(--panel); border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; text-align: center; z-index: 3; }
+    .menu button.perigo { color: var(--danger); }
     .rodape { background: var(--panel); border-top: 1px solid var(--line); padding: 8px 10px; padding-bottom: max(8px, env(safe-area-inset-bottom)); z-index: 3; }
     .extra { display: flex; align-items: center; gap: 10px; margin: 0 0 8px; padding: 8px 8px 8px 12px; border-radius: 10px; background: var(--panel-2); border-left: 3px solid var(--accent); }
     .extra[hidden] { display: none; }
@@ -401,6 +404,8 @@
     <symbol id="i-perfil" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="4"/><path d="M4.5 20.5c1.2-3.6 4.1-5.5 7.5-5.5s6.3 1.9 7.5 5.5"/></symbol>
     <symbol id="i-imagem" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 16l-5-5-8.5 8.5"/></symbol>
     <symbol id="i-cadeado" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8.5 10.5V7.5a3.5 3.5 0 017 0v3"/></symbol>
+    <symbol id="i-bloquear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/></symbol>
+    <symbol id="i-restringir" viewBox="0 0 24 24"><path d="M12 3.5l7 3v5.2c0 4.2-2.9 7.6-7 8.8-4.1-1.2-7-4.6-7-8.8V6.5z"/><path d="M9 12h6"/></symbol>
     <symbol id="i-baixar" viewBox="0 0 24 24"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></symbol>
   </svg>
 
@@ -422,6 +427,7 @@
       <div class="pills" role="tablist">
         <button type="button" class="pill on" data-filtro="todas" role="tab" aria-selected="true">Todas</button>
         <button type="button" class="pill" data-filtro="naoLidas" role="tab" aria-selected="false">Não lidas</button>
+        <button type="button" class="pill" data-filtro="restritas" role="tab" aria-selected="false" id="pillRestritas" hidden>Restritas</button>
       </div>
       <div class="conv-list" id="listaConversas"></div>
 
@@ -439,86 +445,6 @@
       </section>
 
       <!-- Configurações -->
-      <section class="painel" id="painelConfig" aria-label="Configurações">
-        <div class="painel-top">
-          <button type="button" class="icon-btn" data-fechar-painel aria-label="Voltar"><svg class="i"><use href="#i-voltar"/></svg></button>
-          <h2>Configurações</h2>
-        </div>
-        <div class="painel-corpo">
-          <div class="cfg-perfil">
-            <div class="avatar lg" id="cfgAvatar"></div>
-            <div><strong id="cfgNome">Você</strong><small id="cfgNick"></small></div>
-          </div>
-
-          <div class="cfg-secao">
-            <h3>Aparência</h3>
-            <div class="cfg-linha"><div class="txt">Tema</div></div>
-            <div class="segmentado" data-cfg="tema">
-              <button type="button" data-valor="sistema">Automático</button>
-              <button type="button" data-valor="claro">Claro</button>
-              <button type="button" data-valor="escuro">Escuro</button>
-            </div>
-            <div class="cfg-linha"><div class="txt">Papel de parede</div></div>
-            <div class="fundos" data-cfg="fundo">
-              <button type="button" class="fundo-op" data-valor="ponte" style="background:url(ponte-help.webp) center/cover"><span>Ponte</span></button>
-              <button type="button" class="fundo-op foto" data-valor="foto" id="opFundoFoto"><svg class="i s"><use href="#i-camera"/></svg><span>Sua foto</span></button>
-              <button type="button" class="fundo-op" data-valor="padrao" style="background:radial-gradient(#8aa 1px,transparent 1.3px) 0 0/8px 8px,#9fb2bd"><span>Pontilhado</span></button>
-              <button type="button" class="fundo-op" data-valor="liso" style="background:#8fa1ab"><span>Liso</span></button>
-              <button type="button" class="fundo-op" data-valor="oceano" style="background:linear-gradient(160deg,#04324a,#00adee)"><span>Oceano</span></button>
-              <button type="button" class="fundo-op" data-valor="grafite" style="background:#2a2f33"><span>Grafite</span></button>
-              <button type="button" class="fundo-op" data-valor="areia" style="background:#cdbb9c"><span>Areia</span></button>
-            </div>
-            <div class="cfg-acoes-fundo" id="acoesFundoFoto" hidden>
-              <button type="button" class="btn-sec" id="btnTrocarFundoFoto">Trocar foto do fundo</button>
-              <button type="button" class="btn-sec" id="btnRemoverFundoFoto">Remover</button>
-            </div>
-            <input type="file" id="inputFundoFoto" accept="image/*" hidden />
-            <label class="cfg-veu" id="cfgVeu">
-              <small>Nitidez do fundo</small>
-              <input type="range" id="veuFundo" min="0.15" max="0.85" step="0.05" aria-label="Escurecer ou clarear o papel de parede" />
-            </label>
-            <div class="cfg-linha"><div class="txt">Tamanho do texto</div></div>
-            <div class="segmentado" data-cfg="fonte">
-              <button type="button" data-valor="pequena">Pequeno</button>
-              <button type="button" data-valor="media">Médio</button>
-              <button type="button" data-valor="grande">Grande</button>
-            </div>
-          </div>
-
-          <div class="cfg-secao">
-            <h3>Conversas</h3>
-            <label class="cfg-linha">
-              <div class="txt">Enter envia a mensagem<small>Com isso desligado, Enter pula linha e você envia pelo botão.</small></div>
-              <span class="switch"><input type="checkbox" data-cfg-bool="enterEnvia" /><span></span></span>
-            </label>
-          </div>
-
-          <div class="cfg-secao">
-            <h3>Notificações</h3>
-            <label class="cfg-linha">
-              <div class="txt">Sons<small>Toque curto ao receber mensagens.</small></div>
-              <span class="switch"><input type="checkbox" data-cfg-bool="sons" /><span></span></span>
-            </label>
-            <div class="cfg-linha">
-              <div class="txt">Notificações do navegador<small id="notifStatus">Avisos quando a aba estiver em segundo plano.</small></div>
-              <button type="button" class="btn-sec" id="btnNotif">Ativar</button>
-            </div>
-          </div>
-
-          <div class="cfg-secao">
-            <h3>Privacidade</h3>
-            <label class="cfg-linha">
-              <div class="txt">Mostrar quando estou online<small>Se desligar, você também não verá o status dos outros.</small></div>
-              <span class="switch"><input type="checkbox" data-cfg-bool="mostrarOnline" /><span></span></span>
-            </label>
-            <label class="cfg-linha">
-              <div class="txt">Mostrar que estou digitando</div>
-              <span class="switch"><input type="checkbox" data-cfg-bool="mostrarDigitando" /><span></span></span>
-            </label>
-          </div>
-          <div class="cfg-rodape">As preferências de aparência ficam salvas neste aparelho.</div>
-        </div>
-      </section>
     </aside>
 
     <!-- ================= CONVERSA ================= -->
@@ -554,7 +480,11 @@
         <div class="msgs" id="msgs" aria-live="polite"></div>
         <button type="button" class="ir-fim" id="irFim" aria-label="Ir para a última mensagem" hidden><svg class="i"><use href="#i-seta-baixo"/></svg><b id="irFimQtd"></b></button>
 
-        <footer class="rodape">
+        <div class="barra-bloqueio" id="barraBloqueio" hidden>
+          <span id="barraBloqueioTxt"></span>
+          <button type="button" class="btn-sec" id="barraBloqueioBtn" hidden>Desbloquear</button>
+        </div>
+        <footer class="rodape" id="rodapeConversa">
           <div class="extra" id="barraResposta" hidden>
             <div class="txt"><strong id="respostaQuem"></strong><span id="respostaTexto"></span></div>
             <button type="button" class="icon-btn" id="cancelarResposta" aria-label="Cancelar resposta"><svg class="i"><use href="#i-fechar"/></svg></button>
@@ -583,6 +513,90 @@
     </main>
   </div>
 
+  <section class="painel painel-fixo" id="painelConfig" aria-label="Configurações">
+    <div class="painel-top">
+      <button type="button" class="icon-btn" data-fechar-painel aria-label="Voltar"><svg class="i"><use href="#i-voltar"/></svg></button>
+      <h2>Configurações</h2>
+    </div>
+    <div class="painel-corpo">
+      <div class="cfg-perfil">
+        <div class="avatar lg" id="cfgAvatar"></div>
+        <div><strong id="cfgNome">Você</strong><small id="cfgNick"></small></div>
+      </div>
+
+      <div class="cfg-secao">
+        <h3>Aparência</h3>
+        <div class="cfg-linha"><div class="txt">Tema</div></div>
+        <div class="segmentado" data-cfg="tema">
+          <button type="button" data-valor="sistema">Automático</button>
+          <button type="button" data-valor="claro">Claro</button>
+          <button type="button" data-valor="escuro">Escuro</button>
+        </div>
+        <div class="cfg-linha"><div class="txt">Papel de parede</div></div>
+        <div class="fundos" data-cfg="fundo">
+          <button type="button" class="fundo-op" data-valor="ponte" style="background:url(ponte-help.webp) center/cover"><span>Ponte</span></button>
+          <button type="button" class="fundo-op foto" data-valor="foto" id="opFundoFoto"><svg class="i s"><use href="#i-camera"/></svg><span>Sua foto</span></button>
+          <button type="button" class="fundo-op" data-valor="padrao" style="background:radial-gradient(#8aa 1px,transparent 1.3px) 0 0/8px 8px,#9fb2bd"><span>Pontilhado</span></button>
+          <button type="button" class="fundo-op" data-valor="liso" style="background:#8fa1ab"><span>Liso</span></button>
+          <button type="button" class="fundo-op" data-valor="oceano" style="background:linear-gradient(160deg,#04324a,#00adee)"><span>Oceano</span></button>
+          <button type="button" class="fundo-op" data-valor="grafite" style="background:#2a2f33"><span>Grafite</span></button>
+          <button type="button" class="fundo-op" data-valor="areia" style="background:#cdbb9c"><span>Areia</span></button>
+        </div>
+        <div class="cfg-acoes-fundo" id="acoesFundoFoto" hidden>
+          <button type="button" class="btn-sec" id="btnTrocarFundoFoto">Trocar foto do fundo</button>
+          <button type="button" class="btn-sec" id="btnRemoverFundoFoto">Remover</button>
+        </div>
+        <input type="file" id="inputFundoFoto" accept="image/*" hidden />
+        <label class="cfg-veu" id="cfgVeu">
+          <small>Nitidez do fundo</small>
+          <input type="range" id="veuFundo" min="0.15" max="0.85" step="0.05" aria-label="Escurecer ou clarear o papel de parede" />
+        </label>
+        <div class="cfg-linha"><div class="txt">Tamanho do texto</div></div>
+        <div class="segmentado" data-cfg="fonte">
+          <button type="button" data-valor="pequena">Pequeno</button>
+          <button type="button" data-valor="media">Médio</button>
+          <button type="button" data-valor="grande">Grande</button>
+        </div>
+      </div>
+
+      <div class="cfg-secao">
+        <h3>Conversas</h3>
+        <label class="cfg-linha">
+          <div class="txt">Enter envia a mensagem<small>Com isso desligado, Enter pula linha e você envia pelo botão.</small></div>
+          <span class="switch"><input type="checkbox" data-cfg-bool="enterEnvia" /><span></span></span>
+        </label>
+      </div>
+
+      <div class="cfg-secao">
+        <h3>Notificações</h3>
+        <label class="cfg-linha">
+          <div class="txt">Sons<small>Toque curto ao receber mensagens.</small></div>
+          <span class="switch"><input type="checkbox" data-cfg-bool="sons" /><span></span></span>
+        </label>
+        <div class="cfg-linha">
+          <div class="txt">Notificações do navegador<small id="notifStatus">Avisos quando a aba estiver em segundo plano.</small></div>
+          <button type="button" class="btn-sec" id="btnNotif">Ativar</button>
+        </div>
+      </div>
+
+      <div class="cfg-secao">
+        <h3>Privacidade</h3>
+        <label class="cfg-linha">
+          <div class="txt">Mostrar quando estou online<small>Se desligar, você também não verá o status dos outros.</small></div>
+          <span class="switch"><input type="checkbox" data-cfg-bool="mostrarOnline" /><span></span></span>
+        </label>
+        <label class="cfg-linha">
+          <div class="txt">Confirmação de leitura<small>Se desligar, ninguém vê quando você leu e você também não vê a leitura dos outros.</small></div>
+          <span class="switch"><input type="checkbox" data-cfg-bool="confirmacaoLeitura" /><span></span></span>
+        </label>
+        <label class="cfg-linha">
+          <div class="txt">Mostrar que estou digitando</div>
+          <span class="switch"><input type="checkbox" data-cfg-bool="mostrarDigitando" /><span></span></span>
+        </label>
+      </div>
+      <div class="cfg-rodape">As preferências de aparência ficam salvas neste aparelho.</div>
+    </div>
+  </section>
   <div class="menu" id="menuMsg" role="menu" hidden></div>
   <div class="visualizador" id="visualizador" hidden>
     <a class="icon-btn" id="visualizadorBaixar" aria-label="Baixar imagem" download="imagem.jpg"><svg class="i"><use href="#i-baixar"/></svg></a>
@@ -595,7 +609,7 @@
     // Configurações (salvas no aparelho)
     // ======================================================
     const CHAVE_CONFIG = "hf-chat-config";
-    const CONFIG_PADRAO = { tema: "sistema", fundo: "ponte", fonte: "media", veu: 0.55, enterEnvia: true, sons: true, mostrarOnline: true, mostrarDigitando: true };
+    const CONFIG_PADRAO = { tema: "sistema", fundo: "ponte", fonte: "media", veu: 0.55, enterEnvia: true, sons: true, mostrarOnline: true, mostrarDigitando: true, confirmacaoLeitura: true };
     const CHAVE_FUNDO_FOTO = "hf-chat-fundo-foto";
     let config = { ...CONFIG_PADRAO };
     try { config = { ...CONFIG_PADRAO, ...JSON.parse(localStorage.getItem(CHAVE_CONFIG) || "{}") }; } catch {}
@@ -828,6 +842,9 @@
     let primeiraRender = true;
     let novasAbaixo = 0;
     let timerDigitando = null;
+    let restritos = new Set();
+    const bloqueios = { meus: new Set(), deles: new Set() };
+    const bloqueado = (uid) => bloqueios.meus.has(uid) || bloqueios.deles.has(uid);
 
     function obterPerfil(uid) {
       if (!uid) return Promise.resolve({});
@@ -842,10 +859,15 @@
     const refConversa = (id) => fb.doc(fb.db, "conversas", id);
     const estaDigitando = (dados, uid) => Date.now() - ms(dados?.digitando?.[uid]) < 6000;
 
+    // "lidoEm" é visto pelo outro (confirmação de leitura); "vistoEm" é só para o contador.
+    const minhaLeitura = (dados) => Math.max(ms(dados?.lidoEm?.[eu.uid]), ms(dados?.vistoEm?.[eu.uid]));
+    const campoLeitura = (outroId) => (config.confirmacaoLeitura !== false && !restritos.has(outroId) ? "lidoEm" : "vistoEm");
+    const verLeituraDosOutros = () => config.confirmacaoLeitura !== false;
+
     function calcularNaoLida(dados) {
       return !!dados.ultimaMensagemRemetenteId
         && dados.ultimaMensagemRemetenteId !== eu.uid
-        && ms(dados.atualizadoEm) > ms(dados.lidoEm?.[eu.uid]);
+        && ms(dados.atualizadoEm) > minhaLeitura(dados);
     }
 
     // ======================================================
@@ -855,7 +877,9 @@
       const lista = $("listaConversas");
       const termo = $("buscaConversas").value.trim().toLowerCase();
       let itens = conversas.filter((c) => !termo || c.nome.toLowerCase().includes(termo) || (c.nick || "").toLowerCase().includes(termo));
+      itens = filtro === "restritas" ? itens.filter((c) => restritos.has(c.outroId)) : itens.filter((c) => !restritos.has(c.outroId));
       if (filtro === "naoLidas") itens = itens.filter((c) => c.naoLida);
+      $("pillRestritas").hidden = !conversas.some((c) => restritos.has(c.outroId)) && filtro !== "restritas";
       lista.replaceChildren();
 
       if (!itens.length) {
@@ -865,6 +889,9 @@
         if (termo) {
           titulo.textContent = "Nenhuma conversa encontrada";
           vazio.append(titulo, "Tente outro nome.");
+        } else if (filtro === "restritas") {
+          titulo.textContent = "Nenhuma conversa restrita";
+          vazio.append(titulo, "Conversas de contas que você restringiu aparecem aqui, sem notificações.");
         } else if (filtro === "naoLidas") {
           titulo.textContent = "Tudo em dia";
           vazio.append(titulo, "Você não tem mensagens não lidas.");
@@ -914,7 +941,7 @@
           previa.appendChild(d);
         } else {
           if (c.dados.ultimaMensagemRemetenteId === eu.uid && c.dados.ultimaMensagem) {
-            const lida = ms(c.dados.lidoEm?.[c.outroId]) >= ms(c.dados.atualizadoEm);
+            const lida = verLeituraDosOutros() && ms(c.dados.lidoEm?.[c.outroId]) >= ms(c.dados.atualizadoEm);
             const chk = document.createElement("span");
             chk.className = "check" + (lida ? " lida" : "");
             chk.appendChild(icone(lida ? "check2" : "check"));
@@ -942,7 +969,8 @@
 
     function atualizarTitulo() {
       const total = conversas.filter((c) => c.naoLida).length;
-      document.title = (total ? `(${total}) ` : "") + "Mensagens | Help Floripa";
+      const total2 = conversas.filter((c) => c.naoLida && !restritos.has(c.outroId)).length;
+      document.title = (total2 ? `(${total2}) ` : "") + "Mensagens | Help Floripa";
     }
 
     async function contarNaoLidas(c) {
@@ -951,7 +979,8 @@
       contagens.set(c.id, { chave, n: 0 });
       try {
         const col = fb.collection(fb.db, "conversas", c.id, "mensagens");
-        const lido = c.dados.lidoEm?.[eu.uid];
+        const a = c.dados.lidoEm?.[eu.uid], b = c.dados.vistoEm?.[eu.uid];
+        const lido = a && b ? (ms(a) >= ms(b) ? a : b) : (a || b);
         const q = lido ? fb.query(col, fb.where("criadoEm", ">", lido)) : fb.query(col, fb.where("remetenteId", "==", c.outroId));
         const n = (await fb.getCountFromServer(q)).data().count;
         contagens.set(c.id, { chave, n });
@@ -976,7 +1005,7 @@
           const agora = ms(c.dados.atualizadoEm);
           const antes = ultimaAtualizacaoVista.get(c.id);
           const nova = !primeiraCarga && (antes === undefined || agora > antes) && calcularNaoLida(c.dados);
-          if (nova && (ativa?.id !== c.id || document.hidden)) {
+          if (nova && !restritos.has(c.outroId) && !bloqueado(c.outroId) && (ativa?.id !== c.id || document.hidden)) {
             notificar(c.nome, c.dados.ultimaMensagem || "Nova mensagem", () => abrirConversa(c.id));
           }
           ultimaAtualizacaoVista.set(c.id, agora);
@@ -1058,6 +1087,7 @@
       if (historico) history.pushState({ conversa: id }, "", url);
       else history.replaceState({ conversa: id }, "", url);
 
+      aplicarBloqueio();
       ouvirConversaAtiva();
       ouvirPresenca();
       ouvirMensagens();
@@ -1080,9 +1110,80 @@
       else if (ativa) fecharConversa({ historico: false });
     });
 
+    // ======================================================
+    // Bloquear e restringir
+    // ======================================================
+    async function carregarPrivacidade() {
+      try {
+        const u = await fb.getDoc(fb.doc(fb.db, "usuarios", eu.uid));
+        restritos = new Set(Array.isArray(u.data()?.restritos) ? u.data().restritos : []);
+      } catch {}
+      const col = fb.collection(fb.db, "bloqueios");
+      const [meus, deles] = await Promise.all([
+        fb.getDocs(fb.query(col, fb.where("bloqueadorId", "==", eu.uid))).catch(() => null),
+        fb.getDocs(fb.query(col, fb.where("bloqueadoId", "==", eu.uid))).catch(() => null)
+      ]);
+      bloqueios.meus = new Set(meus ? meus.docs.map((d) => d.data().bloqueadoId) : []);
+      bloqueios.deles = new Set(deles ? deles.docs.map((d) => d.data().bloqueadorId) : []);
+    }
+
+    function aplicarBloqueio() {
+      if (!ativa) return;
+      const eu_bloqueei = bloqueios.meus.has(ativa.outroId);
+      const fui_bloqueado = bloqueios.deles.has(ativa.outroId);
+      const travado = eu_bloqueei || fui_bloqueado;
+      $("barraBloqueio").hidden = !travado;
+      $("rodapeConversa").hidden = travado;
+      $("barraBloqueioTxt").textContent = eu_bloqueei ? "Você bloqueou este contato." : "Não é possível enviar mensagens para este contato.";
+      $("barraBloqueioBtn").hidden = !eu_bloqueei;
+    }
+
+    async function alternarBloqueio() {
+      if (!ativa) return;
+      const uid = ativa.outroId, nome = ativa.nome || "este contato";
+      const ref = fb.doc(fb.db, "bloqueios", `${eu.uid}_${uid}`);
+      try {
+        if (bloqueios.meus.has(uid)) {
+          await fb.deleteDoc(ref);
+          bloqueios.meus.delete(uid);
+          toast(`${nome} desbloqueado`);
+        } else {
+          if (!confirm(`Bloquear ${nome}?\n\nVocês deixam de se seguir e ninguém consegue enviar mensagens nesta conversa. A pessoa não é avisada.`)) return;
+          await fb.setDoc(ref, { bloqueadorId: eu.uid, bloqueadoId: uid, criadoEm: fb.serverTimestamp() });
+          await Promise.all([
+            fb.deleteDoc(fb.doc(fb.db, "relacoes", `${eu.uid}_${uid}`)).catch(() => {}),
+            fb.deleteDoc(fb.doc(fb.db, "relacoes", `${uid}_${eu.uid}`)).catch(() => {})
+          ]);
+          bloqueios.meus.add(uid);
+          toast(`${nome} bloqueado`);
+        }
+        aplicarBloqueio();
+      } catch (e) {
+        console.error(e);
+        toast("Não foi possível alterar o bloqueio.");
+      }
+    }
+    $("barraBloqueioBtn").addEventListener("click", alternarBloqueio);
+
+    async function alternarRestricao() {
+      if (!ativa) return;
+      const uid = ativa.outroId, restringir = !restritos.has(uid);
+      if (restringir && !confirm(`Restringir ${ativa.nome || "este contato"}?\n\nA conversa vai para "Restritas", sem notificações, e a pessoa não vê quando você leu. Ela não é avisada.`)) return;
+      try {
+        await fb.setDoc(fb.doc(fb.db, "usuarios", eu.uid), { restritos: restringir ? fb.arrayUnion(uid) : fb.arrayRemove(uid) }, { merge: true });
+        if (restringir) restritos.add(uid); else restritos.delete(uid);
+        toast(restringir ? "Contato restrito" : "Restrição removida");
+        renderizarLista();
+        atualizarTitulo();
+      } catch (e) {
+        console.error(e);
+        toast("Não foi possível alterar a restrição.");
+      }
+    }
+
     function marcarComoLida() {
       if (!ativa || document.hidden || !calcularNaoLida(ativa.dados || {})) return;
-      fb.setDoc(refConversa(ativa.id), { lidoEm: { [eu.uid]: fb.serverTimestamp() } }, { merge: true })
+      fb.setDoc(refConversa(ativa.id), { [campoLeitura(ativa.outroId)]: { [eu.uid]: fb.serverTimestamp() } }, { merge: true })
         .catch((e) => console.warn("Não foi possível marcar como lida:", e));
     }
     document.addEventListener("visibilitychange", () => { if (!document.hidden) marcarComoLida(); });
@@ -1149,7 +1250,7 @@
         mensagens = snap.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }), pendente: d.metadata.hasPendingWrites }));
         const chegouDoOutro = !primeiraRender && mensagens.length > antes && mensagens[mensagens.length - 1]?.remetenteId !== eu.uid;
         renderizarMensagens(chegouDoOutro);
-        if (chegouDoOutro && !document.hidden) tocarSom();
+        if (chegouDoOutro && !document.hidden && !restritos.has(ativa.outroId)) tocarSom();
         marcarComoLida();
       }, (erro) => {
         console.error("Erro no chat:", erro);
@@ -1174,7 +1275,7 @@
 
     function statusCheck(m) {
       if (m.pendente) return { icone: "relogio", lida: false, rotulo: "Enviando" };
-      const lida = ms(ativa?.dados?.lidoEm?.[ativa.outroId]) >= ms(m.criadoEm);
+      const lida = verLeituraDosOutros() && ms(ativa?.dados?.lidoEm?.[ativa.outroId]) >= ms(m.criadoEm);
       return lida ? { icone: "check2", lida: true, rotulo: "Lida" } : { icone: "check", lida: false, rotulo: "Enviada" };
     }
 
@@ -1394,12 +1495,15 @@
       [
         { rotulo: "Ver perfil", icone: "perfil", acao: verPerfil },
         { rotulo: "Pesquisar na conversa", icone: "lupa", acao: abrirBuscaChat },
-        { rotulo: "Configurações", icone: "config", acao: () => { if (innerWidth <= 820) fecharConversa(); abrirPainel("painelConfig"); } },
+        { rotulo: restritos.has(ativa?.outroId) ? "Remover restrição" : "Restringir", icone: "restringir", acao: alternarRestricao },
+        { rotulo: bloqueios.meus.has(ativa?.outroId) ? "Desbloquear" : "Bloquear", icone: "bloquear", perigo: !bloqueios.meus.has(ativa?.outroId), acao: alternarBloqueio },
+        { rotulo: "Configurações do chat", icone: "config", acao: () => abrirPainel("painelConfig") },
         { rotulo: "Fechar conversa", icone: "fechar", acao: () => fecharConversa() },
       ].forEach((op) => {
         const b = document.createElement("button");
         b.type = "button";
         b.setAttribute("role", "menuitem");
+        if (op.perigo) b.className = "perigo";
         b.append(icone(op.icone, "i"), document.createTextNode(op.rotulo));
         b.addEventListener("click", () => { fecharMenu(); op.acao(); });
         menu.appendChild(b);
@@ -1572,7 +1676,7 @@
         ultimaMensagem: resumo,
         ultimaMensagemRemetenteId: eu.uid,
         atualizadoEm: fb.serverTimestamp(),
-        lidoEm: { [eu.uid]: fb.serverTimestamp() },
+        [campoLeitura(ativa?.outroId)]: { [eu.uid]: fb.serverTimestamp() },
         digitando: { [eu.uid]: null }
       }, { merge: true }).catch((e) => console.warn("Resumo da conversa não atualizado:", e));
       ultimoDigitando = 0;
@@ -1602,7 +1706,7 @@
 
     let ultimoDigitando = 0;
     function avisarDigitando() {
-      if (!ativa || !config.mostrarDigitando) return;
+      if (!ativa || !config.mostrarDigitando || restritos.has(ativa.outroId) || bloqueado(ativa.outroId)) return;
       const agora = Date.now();
       if (agora - ultimoDigitando < 3500) return;
       ultimoDigitando = agora;
@@ -1916,6 +2020,7 @@
         salvarConfig();
         if (inp.dataset.cfgBool === "mostrarOnline") { marcarPresenca(); atualizarStatusTopo(); }
         if (inp.dataset.cfgBool === "mostrarDigitando") { renderizarLista(); atualizarStatusTopo(); }
+        if (inp.dataset.cfgBool === "confirmacaoLeitura") { renderizarLista(); atualizarChecks(); }
       });
     });
 
@@ -2011,6 +2116,7 @@
         if (eu?.uid === usuario.uid) return;
         eu = usuario;
         meuPerfil = await obterPerfil(eu.uid);
+        await carregarPrivacidade();
         const meuNome = meuPerfil.nome || eu.displayName || "Você";
         pintarAvatar($("cfgAvatar"), meuPerfil.fotoPerfil || eu.photoURL, meuNome);
         $("cfgNome").textContent = meuNome;
