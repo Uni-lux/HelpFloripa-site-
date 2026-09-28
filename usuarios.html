@@ -931,6 +931,12 @@
     #btnSeguirPublico { background:#00adee; color:#000; }
     #btnMensagemPublico { background:#1a1a1a; color:#fff; border:1px solid #2f3b42; }
     .perfil-publico-status { color:#9aa7b1; font-size:12px; min-height:18px; margin-top:10px; }
+    .perfil-publico-diario { text-align:left; border-top:1px solid #2f3b42; margin-top:12px; padding-top:14px; }
+    .perfil-publico-diario h3 { font-size:15px; font-weight:800; margin:0 0 12px; }
+
+    .diario-post-apagar { margin-left:auto; border:1px solid #5a2a2a; background:transparent; color:#ff8a8a; border-radius:8px; padding:6px 10px; font-size:12px; font-weight:700; cursor:pointer; }
+    .diario-post-apagar:hover { background:#2a1111; }
+    .diario-post-apagar:disabled { opacity:.6; cursor:default; }
 
     .busca-avatar {
       width: 44px;
@@ -1337,6 +1343,12 @@
           <button type="button" id="btnMensagemPublico">Mensagem</button>
         </div>
         <div class="perfil-publico-status" id="perfilPublicoStatus"></div>
+        <div class="perfil-publico-diario">
+          <h3>Diário</h3>
+          <div id="perfilPublicoDiario" class="diario-feed">
+            <div class="estado-vazio" id="perfilPublicoDiarioVazio">Nenhuma publicação ainda.</div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1608,15 +1620,28 @@
       });
     }
 
+    async function buscarPostsDoUsuario(uid) {
+      const snap = await getDocs(query(collection(window.firebaseDb, "diario"), where("autorId", "==", uid), limit(100)));
+      return snap.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (b.criadoEm?.toMillis?.() ?? Date.now()) - (a.criadoEm?.toMillis?.() ?? Date.now()));
+    }
+
     async function iniciarConversaComUsuario(destinatario) {
       if (!destinatario?.uid || destinatario.uid === user.uid) return;
       const ids = [user.uid, destinatario.uid].sort();
       const conversaId = `${ids[0]}_${ids[1]}`;
       try {
         const ref = doc(window.firebaseDb, "conversas", conversaId);
-        const snap = await getDoc(ref);
-        if (!snap.exists()) {
-          await setDoc(ref, { participantes: ids, ultimaMensagem: "", atualizadoEm: serverTimestamp() });
+        let existe = false;
+        try {
+          existe = (await getDoc(ref)).exists();
+        } catch (erroLeitura) {
+          // Algumas regras recusam ler uma conversa que ainda não existe.
+          console.warn("Não foi possível verificar a conversa, tentando criar:", erroLeitura);
+        }
+        if (!existe) {
+          await setDoc(ref, { participantes: ids, ultimaMensagem: "", atualizadoEm: serverTimestamp() }, { merge: true });
         }
         document.querySelector('.perfil-tab-btn[data-tab="mensagens"]').click();
         abrirChat(conversaId, destinatario.nome || "Usuário", destinatario.fotoPerfil || "");
@@ -1712,61 +1737,91 @@
       status.textContent = "Carregando perfil...";
       btnSeguir.style.display = proprio ? "none" : "";
       btnMensagem.style.display = proprio ? "none" : "";
+      btnSeguir.textContent = "Seguir";
+      contSeguidores.textContent = "0";
+      contSeguindo.textContent = "0";
+      renderizarDiario([], "perfilPublicoDiario", "perfilPublicoDiarioVazio");
+      document.getElementById("perfilPublicoDiarioVazio").textContent = "Carregando publicações...";
       backdrop.classList.add("active");
       backdrop.setAttribute("aria-hidden", "false");
+
+      let perfil = usuario;
       try {
         const snap = await getDoc(doc(window.firebaseDb, "perfis_publicos", uid));
-        const perfil = snap.exists() ? snap.data() : usuario;
-        const cidade = perfil.cidade || perfil.cidadeNome;
-        document.getElementById("perfilPublicoNome").textContent = perfil.nome || "Usuário";
-        document.getElementById("perfilPublicoNick").textContent = perfil.nickname ? `@${perfil.nickname}` : "";
-        document.getElementById("perfilPublicoCidade").textContent = cidade ? nomeCidade(cidade) : "Cidade não informada";
-        document.getElementById("perfilPublicoBio").textContent = perfil.bio || "Nenhuma biografia adicionada ainda.";
-        definirAvatar(document.getElementById("perfilPublicoAvatar"), perfil.fotoPerfil || "", perfil.nome);
-        definirCapa(document.getElementById("perfilPublicoCapa"), perfil.fotoCapa || "");
-
-        const [seguidores, seguindo, relSnap] = await Promise.all([
-          contarRelacoes("alvoId", uid),
-          contarRelacoes("seguidorId", uid),
-          proprio ? Promise.resolve(null) : getDoc(doc(window.firebaseDb, "relacoes", `${user.uid}_${uid}`))
-        ]);
-        contSeguidores.textContent = seguidores;
-        contSeguindo.textContent = seguindo;
-        let seguindoAgora = !!relSnap && relSnap.exists() && relSnap.data().tipo === "seguir";
-        const pintar = () => { btnSeguir.textContent = seguindoAgora ? "Seguindo" : "Seguir"; };
-        pintar();
-        status.textContent = "";
-
-        btnMensagem.onclick = () => {
-          fecharPerfilPublico();
-          iniciarConversaComUsuario({ uid, nome: perfil.nome || "Usuário", fotoPerfil: perfil.fotoPerfil || "" });
-        };
-        btnSeguir.onclick = async () => {
-          btnSeguir.disabled = true;
-          try {
-            const refRel = doc(window.firebaseDb, "relacoes", `${user.uid}_${uid}`);
-            if (seguindoAgora) {
-              await deleteDoc(refRel);
-              seguindoAgora = false;
-              contSeguidores.textContent = Math.max(0, Number(contSeguidores.textContent) - 1);
-            } else {
-              await setDoc(refRel, { tipo: "seguir", seguidorId: user.uid, alvoId: uid, criadoEm: serverTimestamp() });
-              seguindoAgora = true;
-              contSeguidores.textContent = Number(contSeguidores.textContent) + 1;
-            }
-            pintar();
-            atualizarContagensProprias();
-          } catch (error) {
-            console.error("Erro ao seguir usuário:", error);
-            alert("Não foi possível alterar o seguimento agora.");
-          } finally {
-            btnSeguir.disabled = false;
-          }
-        };
+        if (snap.exists()) perfil = { uid, ...snap.data() };
       } catch (error) {
-        console.error("Erro ao abrir perfil público:", error);
-        status.textContent = "Não foi possível carregar este perfil agora.";
+        console.warn("Perfil público indisponível, usando dados da busca:", error);
       }
+
+      const cidade = perfil.cidade || perfil.cidadeNome;
+      document.getElementById("perfilPublicoNome").textContent = perfil.nome || "Usuário";
+      document.getElementById("perfilPublicoNick").textContent = perfil.nickname ? `@${perfil.nickname}` : "";
+      document.getElementById("perfilPublicoCidade").textContent = cidade ? nomeCidade(cidade) : "Cidade não informada";
+      document.getElementById("perfilPublicoBio").textContent = perfil.bio || "Nenhuma biografia adicionada ainda.";
+      definirAvatar(document.getElementById("perfilPublicoAvatar"), perfil.fotoPerfil || "", perfil.nome);
+      definirCapa(document.getElementById("perfilPublicoCapa"), perfil.fotoCapa || "");
+
+      // Os botões funcionam mesmo se contadores ou diário falharem.
+      let seguindoAgora = false;
+      const pintar = () => { btnSeguir.textContent = seguindoAgora ? "Seguindo" : "Seguir"; };
+
+      btnMensagem.onclick = () => {
+        fecharPerfilPublico();
+        iniciarConversaComUsuario({ uid, nome: perfil.nome || "Usuário", fotoPerfil: perfil.fotoPerfil || "" });
+      };
+      btnSeguir.onclick = async () => {
+        btnSeguir.disabled = true;
+        try {
+          const refRel = doc(window.firebaseDb, "relacoes", `${user.uid}_${uid}`);
+          if (seguindoAgora) {
+            await deleteDoc(refRel);
+            seguindoAgora = false;
+            contSeguidores.textContent = Math.max(0, Number(contSeguidores.textContent) - 1);
+          } else {
+            await setDoc(refRel, { tipo: "seguir", seguidorId: user.uid, alvoId: uid, criadoEm: serverTimestamp() });
+            seguindoAgora = true;
+            contSeguidores.textContent = Number(contSeguidores.textContent) + 1;
+          }
+          pintar();
+          atualizarContagensProprias();
+        } catch (error) {
+          console.error("Erro ao seguir usuário:", error);
+          alert("Não foi possível alterar o seguimento agora: " + (error.code || error.message || "erro desconhecido"));
+        } finally {
+          btnSeguir.disabled = false;
+        }
+      };
+
+      const [contagens, relacao, posts] = await Promise.allSettled([
+        Promise.all([contarRelacoes("alvoId", uid), contarRelacoes("seguidorId", uid)]),
+        proprio ? Promise.resolve(null) : getDoc(doc(window.firebaseDb, "relacoes", `${user.uid}_${uid}`)),
+        buscarPostsDoUsuario(uid)
+      ]);
+
+      if (contagens.status === "fulfilled") {
+        contSeguidores.textContent = contagens.value[0];
+        contSeguindo.textContent = contagens.value[1];
+      } else {
+        console.warn("Contagens do perfil indisponíveis:", contagens.reason);
+      }
+
+      if (relacao.status === "fulfilled") {
+        const relSnap = relacao.value;
+        seguindoAgora = !!relSnap && relSnap.exists() && relSnap.data().tipo === "seguir";
+      } else {
+        console.warn("Não foi possível verificar se você segue este perfil:", relacao.reason);
+      }
+      pintar();
+
+      document.getElementById("perfilPublicoDiarioVazio").textContent = "Nenhuma publicação ainda.";
+      if (posts.status === "fulfilled") {
+        renderizarDiario(posts.value, "perfilPublicoDiario", "perfilPublicoDiarioVazio");
+      } else {
+        console.warn("Diário do perfil indisponível:", posts.reason);
+        document.getElementById("perfilPublicoDiarioVazio").textContent = "Não foi possível carregar as publicações.";
+      }
+
+      status.textContent = "";
     }
 
     function fecharPerfilPublico() {
@@ -1922,9 +1977,25 @@
       }
     }
 
-    function renderizarDiario(posts) {
-      const feed = document.getElementById("diarioFeed");
-      const vazio = document.getElementById("diarioVazio");
+    async function apagarPost(post, article, feed, vazio, botao) {
+      if (!confirm("Apagar esta publicação? Essa ação não pode ser desfeita.")) return;
+      botao.disabled = true;
+      botao.textContent = "Apagando...";
+      try {
+        await deleteDoc(doc(window.firebaseDb, "diario", post.id));
+        article.remove();
+        if (!feed.querySelector(".diario-post")) vazio.style.display = "block";
+      } catch (error) {
+        console.error("Erro ao apagar publicação:", error);
+        alert("Não foi possível apagar a publicação: " + (error.code || error.message || "erro desconhecido"));
+        botao.disabled = false;
+        botao.textContent = "Apagar";
+      }
+    }
+
+    function renderizarDiario(posts, feedId = "diarioFeed", vazioId = "diarioVazio") {
+      const feed = document.getElementById(feedId);
+      const vazio = document.getElementById(vazioId);
       feed.querySelectorAll(".diario-post").forEach((el) => el.remove());
 
       if (!posts || posts.length === 0) {
@@ -1957,6 +2028,14 @@
 
         cabecalho.appendChild(avatar);
         cabecalho.appendChild(autorWrap);
+        if (post.id && user && post.autorId === user.uid) {
+          const btnApagar = document.createElement("button");
+          btnApagar.type = "button";
+          btnApagar.className = "diario-post-apagar";
+          btnApagar.textContent = "Apagar";
+          btnApagar.addEventListener("click", () => apagarPost(post, article, feed, vazio, btnApagar));
+          cabecalho.appendChild(btnApagar);
+        }
         article.appendChild(cabecalho);
 
         if (post.texto) {
@@ -2065,12 +2144,7 @@
 
           async function carregarDiario() {
             try {
-              const qDiario = query(collection(window.firebaseDb, "diario"), where("autorId", "==", user.uid), limit(100));
-              const snapDiario = await getDocs(qDiario);
-              const posts = snapDiario.docs
-                .map((d) => ({ id: d.id, ...d.data() }))
-                .sort((a, b) => (b.criadoEm?.toMillis?.() ?? Date.now()) - (a.criadoEm?.toMillis?.() ?? Date.now()));
-              renderizarDiario(posts);
+              renderizarDiario(await buscarPostsDoUsuario(user.uid));
             } catch (error) {
               console.warn("Diário indisponível no momento:", error);
               renderizarDiario([]);
@@ -2183,7 +2257,7 @@
               await carregarDiario();
             } catch (error) {
               console.error("Erro ao publicar no diário:", error);
-              alert("Não foi possível publicar: " + (error.message || error.code || "erro desconhecido"));
+              alert("Não foi possível publicar: " + (error.code ? error.code + " — " : "") + (error.message || "erro desconhecido"));
             } finally {
               btn.disabled = false;
               btn.textContent = "Publicar";
