@@ -110,19 +110,6 @@
     }
     .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-    /* ---------- menu lateral do site ---------- */
-    .sidebar {
-      position: fixed; inset: 0 auto 0 0; width: 270px; z-index: 1300; background: var(--panel); border-right: 1px solid var(--line);
-      padding: calc(var(--topo) + 16px) 16px 20px; display: flex; flex-direction: column; gap: 4px;
-      transform: translateX(-105%); transition: transform .28s cubic-bezier(.2, .8, .2, 1); overflow-y: auto;
-    }
-    .sidebar.ativo { transform: none; }
-    .sidebar h2 { margin: 0 0 12px 8px; font-size: 13px; letter-spacing: .8px; text-transform: uppercase; color: var(--accent); }
-    .sidebar a { display: block; padding: 11px 12px; border-radius: 10px; text-decoration: none; font-weight: 600; }
-    .sidebar a:hover { background: var(--hover); }
-    .sidebar-fundo { position: fixed; inset: 0; z-index: 1250; background: var(--overlay); opacity: 0; pointer-events: none; transition: opacity .25s; }
-    .sidebar-fundo.ativo { opacity: 1; pointer-events: auto; }
-
     /* ---------- barra superior ---------- */
     .topo {
       position: sticky; top: 0; z-index: 1200; height: calc(var(--topo) + env(safe-area-inset-top)); padding: env(safe-area-inset-top) 8px 0;
@@ -150,7 +137,7 @@
     .pf-capa.sem-foto::before { content: ""; position: absolute; inset: 0; background: rgba(4, 12, 18, .35); }
     .pf-capa img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .pf-editar-capa {
-      position: absolute; right: 12px; bottom: 12px; z-index: 2; display: inline-flex; align-items: center; gap: 6px; border: 0;
+      position: absolute; right: 12px; top: 12px; z-index: 3; display: inline-flex; align-items: center; gap: 6px; border: 0;
       background: rgba(0, 0, 0, .55); color: #fff; border-radius: 999px; padding: 8px 12px; font-size: 12.5px; font-weight: 700; cursor: pointer;
       -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
     }
@@ -187,6 +174,63 @@
     .pf-stat .num svg { color: var(--gold); }
     .pf-stat .rot { display: block; font-size: 11.5px; color: var(--muted); font-weight: 600; letter-spacing: .2px; }
     .chip-verif { display: inline-flex; align-items: center; gap: 6px; margin-top: 14px; padding: 8px 12px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--accent); font-size: 13px; font-weight: 700; border: 0; cursor: pointer; }
+
+    /* ---------- social: duo (fio vermelho) e vínculos ---------- */
+    .social { margin-top: 16px; }
+    .social-titulo { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .social-titulo h3 { margin: 0; font-size: 13px; letter-spacing: .7px; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+    .social-titulo button { border: 0; background: none; color: var(--accent); font-weight: 700; cursor: pointer; font-size: 13px; }
+    .duo {
+      position: relative; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 0; padding: 14px 16px 12px;
+      border-radius: 20px; margin-bottom: 12px; overflow: hidden;
+      background: radial-gradient(120% 140% at 50% 0%, rgba(224, 36, 59, .16), transparent 60%), var(--panel-2);
+      border: 1px solid rgba(224, 36, 59, .28);
+    }
+    .duo-pessoa { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 84px; text-align: center; cursor: pointer; border: 0; background: none; padding: 0; }
+    .duo-pessoa .avatar { width: 58px; height: 58px; font-size: 18px; box-shadow: 0 0 0 3px var(--panel-2), 0 0 0 5px #e0243b; }
+    .duo-pessoa span { font-size: 12.5px; font-weight: 700; max-width: 84px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .fio { width: 100%; height: 60px; overflow: visible; }
+    .fio path { fill: none; stroke: #e0243b; stroke-width: 2.4; stroke-linecap: round; filter: drop-shadow(0 0 4px rgba(224, 36, 59, .75)); stroke-dasharray: 6 5; animation: fio 1.6s linear infinite; }
+    .fio circle { fill: #e0243b; filter: drop-shadow(0 0 5px rgba(224, 36, 59, .9)); }
+    @keyframes fio { to { stroke-dashoffset: -22; } }
+    .duo-rotulo { grid-column: 1 / -1; text-align: center; margin-top: 6px; font-size: 12px; color: var(--muted); }
+    .duo-rotulo strong { color: #ff5a6e; letter-spacing: 1.4px; text-transform: uppercase; font-size: 11.5px; }
+    .vinculos { display: flex; gap: 14px; overflow-x: auto; padding: 2px 2px 6px; scrollbar-width: none; }
+    .vinculos::-webkit-scrollbar { display: none; }
+    .vinculo { flex: 0 0 auto; width: 72px; display: flex; flex-direction: column; align-items: center; gap: 5px; border: 0; background: none; padding: 0; cursor: pointer; text-align: center; }
+    .vinculo .avatar { width: 58px; height: 58px; font-size: 18px; box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--cor, var(--accent)); }
+    .vinculo .nome { font-size: 12px; font-weight: 700; max-width: 72px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .vinculo .papel { font-size: 11px; color: var(--cor, var(--muted)); font-weight: 700; margin-top: -4px; max-width: 72px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .vinculo.pendente { opacity: .6; }
+    .vinculo.novo .avatar { background: var(--panel-2); color: var(--accent); border: 2px dashed var(--accent); box-shadow: none; }
+    .vinculo[data-cat="familia"] { --cor: #f5b700; }
+    .vinculo[data-cat="amizade"] { --cor: #00adee; }
+    .vinculo[data-cat="amor"] { --cor: #ff4f8b; }
+    .vinculo[data-cat="duo"] { --cor: #e0243b; }
+    .vinculo[data-cat="trabalho"] { --cor: #2fbf71; }
+    .social-vazio { color: var(--muted); font-size: 13.5px; }
+    .tipos { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+    .tipo { display: flex; align-items: center; gap: 8px; padding: 11px 12px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel-2); cursor: pointer; font-weight: 700; font-size: 13.5px; text-align: left; }
+    .tipo.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--panel-2)); }
+    .tipo[data-cat="duo"].on { border-color: #e0243b; background: rgba(224, 36, 59, .12); }
+    .tipo i { width: 10px; height: 10px; border-radius: 50%; background: var(--cor, var(--accent)); flex-shrink: 0; }
+    .tipo[data-cat="familia"] { --cor: #f5b700; }
+    .tipo[data-cat="amor"] { --cor: #ff4f8b; }
+    .tipo[data-cat="duo"] { --cor: #e0243b; }
+    .tipo[data-cat="trabalho"] { --cor: #2fbf71; }
+    .passo { font-size: 13px; font-weight: 800; color: var(--muted); letter-spacing: .5px; text-transform: uppercase; margin: 18px 0 10px; }
+    .passo:first-child { margin-top: 0; }
+    .escolhido { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; background: var(--panel-2); }
+    .escolhido strong { flex: 1; }
+
+    /* ações da linha e folha de opções */
+    .linha .acoes-linha { display: flex; gap: 6px; flex-shrink: 0; }
+    .opcoes button { display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 18px; border: 0; background: transparent; text-align: left; cursor: pointer; font-size: 15px; font-weight: 600; }
+    .opcoes button:hover { background: var(--hover); }
+    .opcoes button.perigo { color: var(--danger); }
+    .opcoes small { display: block; color: var(--muted); font-weight: 500; font-size: 12.5px; }
+    .bloqueado-aviso { margin-top: 16px; padding: 16px; border-radius: 16px; background: var(--panel-2); color: var(--muted); text-align: center; }
+    .bloqueado-aviso strong { display: block; color: var(--text); margin-bottom: 4px; }
 
     /* ---------- abas de conteúdo ---------- */
     .abas {
@@ -293,7 +337,7 @@
     /* editar perfil */
     .ed-capa { position: relative; aspect-ratio: 3 / 1; border-radius: 18px; overflow: hidden; background: #06202c url("ponte-help.webp") center / cover; }
     .ed-capa img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .ed-capa .pf-editar-capa { bottom: 10px; right: 10px; }
+    .ed-capa .pf-editar-capa { top: auto; bottom: 10px; right: 10px; }
     .ed-foto { display: flex; align-items: center; gap: 14px; margin: -34px 0 0 14px; position: relative; z-index: 2; }
     .ed-foto .avatar { width: 88px; height: 88px; font-size: 28px; border: 4px solid var(--panel); }
     .ed-foto .acoes { display: flex; gap: 8px; margin-top: 34px; flex-wrap: wrap; }
@@ -369,11 +413,18 @@
   </style>
 
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="perfil.js"></script>
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></symbol>
+    <symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 01-1.5 1.5H15v-6h-6v6H5.5A1.5 1.5 0 014 19z"/></symbol>
+    <symbol id="i-fio" viewBox="0 0 24 24"><path d="M3 15c3-6 6 4 9-2s6 4 9-2"/><circle cx="12" cy="13" r="1.6" fill="currentColor"/></symbol>
+    <symbol id="i-coracao" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.4-7.5-10A4.3 4.3 0 0112 7.3 4.3 4.3 0 0119.5 10c0 5.6-7.5 10-7.5 10z"/></symbol>
+    <symbol id="i-bloquear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/></symbol>
+    <symbol id="i-restringir" viewBox="0 0 24 24"><path d="M12 3.5l7 3v5.2c0 4.2-2.9 7.6-7 8.8-4.1-1.2-7-4.6-7-8.8V6.5z"/><path d="M9 12h6"/></symbol>
+    <symbol id="i-pessoa-menos" viewBox="0 0 24 24"><circle cx="10" cy="8.5" r="3.8"/><path d="M3.5 20c1-3.4 3.6-5.3 6.5-5.3 1.4 0 2.7.4 3.8 1.2M15 16h6"/></symbol>
+    <symbol id="i-pontos" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="18.5" cy="12" r="1.3" fill="currentColor"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
     <symbol id="i-lupa" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></symbol>
     <symbol id="i-chat" viewBox="0 0 24 24"><path d="M20.5 11.6c0 4.3-3.8 7.6-8.5 7.6-1.2 0-2.3-.2-3.3-.6L4 20l1.2-3.6c-1.1-1.3-1.7-3-1.7-4.8C3.5 7.4 7.3 4 12 4s8.5 3.4 8.5 7.6z"/></symbol>
     <symbol id="i-sino" viewBox="0 0 24 24"><path d="M18 9.5a6 6 0 00-12 0c0 6.5-2.5 8-2.5 8h17S18 16 18 9.5z"/><path d="M10.2 20.5a2 2 0 003.6 0"/></symbol>
@@ -405,22 +456,8 @@
     <symbol id="i-servicos" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.8-3.8a6 6 0 01-7.9 7.9l-6.9 6.9a2.1 2.1 0 01-3-3l6.9-6.9a6 6 0 017.9-7.9z"/></symbol>
   </svg>
 
-  <!-- Menu do site -->
-  <div class="sidebar-fundo" id="sidebarFundo"></div>
-  <nav class="sidebar" id="sidebar" aria-label="Menu principal">
-    <h2>Help Floripa</h2>
-    <a href="index.html">Início</a>
-    <a href="login.html" id="perfilUsuarioBtn" class="profile-menu-link">Entrar / Login</a>
-    <a href="profissionais.html">Profissionais</a>
-    <a href="clientes.html">Clientes</a>
-    <a href="servicos.html">Serviços</a>
-    <a href="contato.html">Contato</a>
-    <a href="ajuda.html">Ajuda</a>
-    <a href="sobre.html">Sobre</a>
-  </nav>
-
   <header class="topo">
-    <button type="button" class="icone-btn" id="btnMenu" aria-label="Abrir menu" aria-expanded="false" aria-controls="sidebar"><svg class="i"><use href="#i-menu"/></svg></button>
+    <a href="index.html" class="icone-btn" id="btnInicio" aria-label="Página inicial" title="Início"><svg class="i"><use href="#i-casa"/></svg></a>
     <button type="button" class="icone-btn" id="btnBusca" aria-label="Buscar pessoas"><svg class="i"><use href="#i-lupa"/></svg></button>
     <a href="index.html" class="marca" aria-label="Help Floripa - Início"><strong>HELP <span>FLORIPA</span></strong><small>TUDO EM UM SÓ LUGAR</small></a>
     <a href="mensagens.html" class="icone-btn" id="btnMensagens" aria-label="Mensagens"><svg class="i"><use href="#i-chat"/></svg><b class="ponto-badge" id="badgeMensagens" hidden></b></a>
@@ -478,6 +515,7 @@
         </div>
         <div class="pf-handle" data-el="handle"></div>
         <p class="pf-bio" data-el="bio"></p>
+        <div class="social" data-el="social" hidden></div>
         <div class="pf-stats">
           <button type="button" class="pf-stat" data-stat="posts"><span class="num">0</span><span class="rot">Publicações</span></button>
           <button type="button" class="pf-stat" data-stat="seguidores"><span class="num">0</span><span class="rot">Seguidores</span></button>
@@ -531,6 +569,9 @@
         <div class="cfg-bloco">
           <h3>Privacidade e notificações</h3>
           <label class="cfg-item"><svg class="i"><use href="#i-olho"/></svg><span class="txt">Mostrar quando estou online<small>Aparece como "online" nas conversas</small></span><span class="switch"><input type="checkbox" id="cfgOnline" /><span></span></span></label>
+          <label class="cfg-item"><svg class="i"><use href="#i-check"/></svg><span class="txt">Confirmação de leitura<small>Se desligar, ninguém vê quando você leu e você também não vê a leitura dos outros</small></span><span class="switch"><input type="checkbox" id="cfgLeitura" /><span></span></span></label>
+          <button type="button" class="cfg-item" id="cfgBloqueados"><svg class="i"><use href="#i-bloquear"/></svg><span class="txt">Contas bloqueadas<small id="cfgBloqueadosTxt">Ninguém bloqueado</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
+          <button type="button" class="cfg-item" id="cfgRestritos"><svg class="i"><use href="#i-restringir"/></svg><span class="txt">Contas restritas<small id="cfgRestritosTxt">Ninguém restrito</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
           <label class="cfg-item"><svg class="i"><use href="#i-sino"/></svg><span class="txt">Sons de notificação</span><span class="switch"><input type="checkbox" id="cfgSons" /><span></span></span></label>
           <button type="button" class="cfg-item" id="cfgNotifNavegador"><svg class="i"><use href="#i-sino"/></svg><span class="txt">Notificações do navegador<small id="cfgNotifTxt"></small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
         </div>
@@ -641,6 +682,30 @@
     </div>
   </div>
 
+  <div class="folha" id="folhaVinculo" role="dialog" aria-modal="true" aria-labelledby="tVinculo">
+    <div class="folha-caixa">
+      <div class="folha-topo"><h2 id="tVinculo">Adicionar ao seu social</h2><button type="button" class="icone-btn" data-fechar aria-label="Fechar"><svg class="i"><use href="#i-fechar"/></svg></button></div>
+      <div class="folha-corpo pad">
+        <div class="passo">1. Essa pessoa é seu/sua</div>
+        <div class="tipos" id="vinTipos"></div>
+        <div class="passo">2. Quem é</div>
+        <div id="vinPessoa"></div>
+        <p class="social-vazio" style="margin-top:14px">A pessoa recebe um pedido e o vínculo só aparece no perfil depois que ela aceitar.</p>
+      </div>
+      <div class="folha-rodape">
+        <button type="button" class="btn sec" data-fechar>Cancelar</button>
+        <button type="button" class="btn pri" id="vinEnviar">Enviar pedido</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="folha" id="folhaOpcoes" role="dialog" aria-modal="true" aria-labelledby="tOpcoes">
+    <div class="folha-caixa">
+      <div class="folha-topo"><h2 id="tOpcoes">Opções</h2><button type="button" class="icone-btn" data-fechar aria-label="Fechar"><svg class="i"><use href="#i-fechar"/></svg></button></div>
+      <div class="folha-corpo opcoes" id="opcoesCorpo"></div>
+    </div>
+  </div>
+
   <div class="folha" id="folhaLista" role="dialog" aria-modal="true" aria-labelledby="tLista">
     <div class="folha-caixa">
       <div class="folha-topo"><h2 id="tLista">Lista</h2><button type="button" class="icone-btn" data-fechar aria-label="Fechar"><svg class="i"><use href="#i-fechar"/></svg></button></div>
@@ -665,7 +730,7 @@
     // Preferências compartilhadas com mensagens.html
     // ======================================================
     const CHAVE_CONFIG = "hf-chat-config";
-    let config = { tema: "sistema", sons: true, mostrarOnline: true };
+    let config = { tema: "sistema", sons: true, mostrarOnline: true, confirmacaoLeitura: true };
     try { config = { ...config, ...JSON.parse(localStorage.getItem(CHAVE_CONFIG) || "{}") }; } catch {}
     const temaSistema = window.matchMedia ? matchMedia("(prefers-color-scheme: dark)") : null;
     function aplicarTema() {
@@ -675,11 +740,12 @@
       document.querySelectorAll("#cfgTema [data-valor]").forEach((b) => b.classList.toggle("on", b.dataset.valor === config.tema));
       $("cfgOnline").checked = config.mostrarOnline !== false;
       $("cfgSons").checked = config.sons !== false;
+      $("cfgLeitura").checked = config.confirmacaoLeitura !== false;
     }
     function salvarConfig() {
       try {
         const atual = JSON.parse(localStorage.getItem(CHAVE_CONFIG) || "{}");
-        localStorage.setItem(CHAVE_CONFIG, JSON.stringify({ ...atual, tema: config.tema, sons: config.sons, mostrarOnline: config.mostrarOnline }));
+        localStorage.setItem(CHAVE_CONFIG, JSON.stringify({ ...atual, tema: config.tema, sons: config.sons, mostrarOnline: config.mostrarOnline, confirmacaoLeitura: config.confirmacaoLeitura }));
       } catch {}
       aplicarTema();
     }
@@ -825,16 +891,6 @@
       if (e.key === "Escape" && pilha.length && !document.querySelector(".hfe-fundo")) fecharFolha(pilha[pilha.length - 1]);
     });
 
-    // Menu lateral
-    function alternarMenu(abrir) {
-      const aberto = abrir ?? !$("sidebar").classList.contains("ativo");
-      $("sidebar").classList.toggle("ativo", aberto);
-      $("sidebarFundo").classList.toggle("ativo", aberto);
-      $("btnMenu").setAttribute("aria-expanded", aberto ? "true" : "false");
-    }
-    $("btnMenu").addEventListener("click", () => alternarMenu());
-    $("sidebarFundo").addEventListener("click", () => alternarMenu(false));
-
     // ======================================================
     // Estado
     // ======================================================
@@ -844,7 +900,12 @@
     let meusSeguindo = new Set();
     let meusSeguindoPronto = Promise.resolve();
     const perfis = new Map();
-    const avisos = { seguidores: [], mensagens: [] };
+    const avisos = { seguidores: [], mensagens: [], vinculos: [] };
+    let meusBloqueios = new Set();   // quem eu bloqueei
+    let bloqueadoPor = new Set();    // quem me bloqueou
+    let restritos = new Set();       // quem eu restringi (privado, no meu documento)
+    let meusVinculos = [];
+    const escondido = (uid) => meusBloqueios.has(uid) || bloqueadoPor.has(uid);
     let avisosVistosEm = 0;
 
     function obterPerfil(uid) {
@@ -971,6 +1032,7 @@
         c.addEventListener("click", solicitarVerificacao);
         extra.appendChild(c);
       }
+      renderizarSocial(meuCab.el("social"), eu.uid, meusVinculos, { proprio: true, dono: dados });
       pintarAvatar($("comporAvatar"), dados.fotoPerfil, dados.nome);
       document.title = `${dados.nome || "Meu perfil"} | Help Floripa`;
     }
@@ -1427,7 +1489,7 @@
       return b;
     }
 
-    function linhaPessoa({ uid, nome, foto, sub, quando, nova, meSegue, aoClicar, semSeguir }) {
+    function linhaPessoa({ uid, nome, foto, sub, quando, nova, meSegue, aoClicar, semSeguir, acoes }) {
       const l = document.createElement("div");
       l.className = "linha" + (nova ? " nova" : "");
       l.tabIndex = 0;
@@ -1443,7 +1505,20 @@
       if (sub) { const sm = document.createElement("small"); sm.textContent = sub; t.appendChild(sm); }
       l.append(av, t);
       if (quando) { const q = document.createElement("span"); q.className = "quando"; q.textContent = quando; l.appendChild(q); }
-      if (uid && uid !== eu.uid && !semSeguir) l.appendChild(botaoSeguir(uid, { meSegue }));
+      if ((uid && uid !== eu.uid && !semSeguir) || acoes?.length) {
+        const box = document.createElement("div");
+        box.className = "acoes-linha";
+        if (uid && uid !== eu.uid && !semSeguir) box.appendChild(botaoSeguir(uid, { meSegue }));
+        (acoes || []).forEach((a) => {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.className = `btn mini ${a.classe || "sec"}`;
+          b.textContent = a.rotulo;
+          b.addEventListener("click", async (e) => { e.stopPropagation(); b.disabled = true; try { await a.fn(b, l); } finally { b.disabled = false; } });
+          box.appendChild(b);
+        });
+        l.appendChild(box);
+      }
       const abrir = aoClicar || (() => abrirPerfilPublico(uid));
       l.addEventListener("click", abrir);
       l.addEventListener("keydown", (e) => { if (e.target === l && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); abrir(); } });
@@ -1461,7 +1536,7 @@
         const campoFiltro = seguidores ? "alvoId" : "seguidorId";
         const campoOutro = seguidores ? "seguidorId" : "alvoId";
         const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "relacoes"), fb.where("tipo", "==", "seguir"), fb.where(campoFiltro, "==", uid), fb.limit(200)));
-        const uids = snap.docs.map((d) => d.data()[campoOutro]).filter(Boolean);
+        const uids = snap.docs.map((d) => d.data()[campoOutro]).filter((u) => u && !escondido(u));
         const lista = await Promise.all(uids.map(obterPerfil));
         corpo.replaceChildren();
         if (!uids.length) {
@@ -1473,7 +1548,11 @@
         }
         uids.forEach((u, i) => {
           const p = lista[i];
-          corpo.appendChild(linhaPessoa({ uid: u, nome: p.nome, foto: p.fotoPerfil, sub: p.nickname ? "@" + p.nickname : nomeCidade(p.cidade), meSegue: seguidores && uid === eu.uid }));
+          const meus = seguidores && uid === eu.uid;
+          corpo.appendChild(linhaPessoa({
+            uid: u, nome: p.nome, foto: p.fotoPerfil, sub: p.nickname ? "@" + p.nickname : nomeCidade(p.cidade), meSegue: meus,
+            acoes: meus ? [{ rotulo: "Remover", fn: async (_b, linha) => { if (await removerSeguidor(u, p.nome)) linha.remove(); } }] : []
+          }));
         });
       } catch (e) {
         corpo.innerHTML = "";
@@ -1509,7 +1588,7 @@
     // ======================================================
     // Perfil de outra pessoa
     // ======================================================
-    let ppCab = null;
+    let ppCab = null, ppMeSegue = false;
     async function abrirPerfilPublico(uid) {
       if (!uid) return;
       if (uid === eu.uid) { pilha.slice().forEach(fecharFolha); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
@@ -1521,9 +1600,30 @@
       $("tPerfilPublico").textContent = p.nome || "Perfil";
       abrirFolha("folhaPerfil");
 
-      const [c1, c2, inv, posts] = await Promise.allSettled([
+      await estadoPronto;
+      const acoesTopo = ppCab.el("acoes");
+      acoesTopo.replaceChildren(botaoOpcoesPerfil(uid, p));
+      if (bloqueadoPor.has(uid) || meusBloqueios.has(uid)) {
+        const eu_bloqueei = meusBloqueios.has(uid);
+        ppCab.raiz.querySelector(".pf-stats").hidden = true;
+        const aviso = document.createElement("div");
+        aviso.className = "bloqueado-aviso";
+        const t = document.createElement("strong");
+        t.textContent = eu_bloqueei ? "Você bloqueou esta conta" : "Perfil indisponível";
+        aviso.append(t, eu_bloqueei ? "Desbloqueie para ver as publicações e trocar mensagens." : "Não é possível ver este perfil.");
+        if (eu_bloqueei) {
+          const b = document.createElement("button");
+          b.type = "button"; b.className = "btn sec"; b.style.marginTop = "12px"; b.textContent = "Desbloquear";
+          b.addEventListener("click", async () => { if (await desbloquear(uid)) abrirPerfilPublico(uid); });
+          aviso.append(document.createElement("br"), b);
+        }
+        ppCab.el("extra").replaceChildren(aviso);
+        return;
+      }
+
+      const [c1, c2, inv, posts, vins] = await Promise.allSettled([
         contarRelacoes("alvoId", uid), contarRelacoes("seguidorId", uid),
-        fb.getDoc(fb.doc(fb.db, "relacoes", `${uid}_${eu.uid}`)), buscarPosts(uid)
+        fb.getDoc(fb.doc(fb.db, "relacoes", `${uid}_${eu.uid}`)), buscarPosts(uid), buscarVinculos(uid)
       ]);
       await meusSeguindoPronto;
       const meSegue = inv.status === "fulfilled" && inv.value.exists();
@@ -1535,6 +1635,7 @@
       });
       const acoes = ppCab.el("acoes");
       acoes.replaceChildren();
+      ppMeSegue = meSegue;
       const bSeguir = botaoSeguir(uid, { meSegue, mini: false });
       const bMsg = document.createElement("button");
       bMsg.type = "button"; bMsg.className = "btn sec";
@@ -1544,12 +1645,443 @@
       bComp.type = "button"; bComp.className = "btn sec icone"; bComp.setAttribute("aria-label", "Compartilhar perfil");
       bComp.appendChild(icone("compartilhar", "i s"));
       bComp.addEventListener("click", () => compartilharPerfil(uid, p.nome));
-      acoes.append(bSeguir, bMsg, bComp);
+      acoes.append(bSeguir, bMsg, botaoOpcoesPerfil(uid, p));
+      renderizarSocial(ppCab.el("social"), uid, vins.status === "fulfilled" ? vins.value : [], { proprio: false, dono: p });
       ppCab.stat("posts").addEventListener("click", () => $("ppGrade").scrollIntoView({ behavior: "smooth" }));
       ppCab.stat("seguidores").addEventListener("click", () => abrirListaRelacoes(uid, "seguidores"));
       ppCab.stat("seguindo").addEventListener("click", () => abrirListaRelacoes(uid, "seguindo"));
       ppCab.stat("nota").addEventListener("click", () => abrirAvaliacoes(p));
       renderizarGrade($("ppGrade"), lista, { proprio: false, autor: p });
+    }
+
+    // ======================================================
+    // Bloquear, restringir, remover seguidor
+    // ======================================================
+    let estadoPronto = Promise.resolve();
+    async function carregarPrivacidade() {
+      const col = fb.collection(fb.db, "bloqueios");
+      const [meus, deles] = await Promise.all([
+        fb.getDocs(fb.query(col, fb.where("bloqueadorId", "==", eu.uid))).catch(() => null),
+        fb.getDocs(fb.query(col, fb.where("bloqueadoId", "==", eu.uid))).catch(() => null)
+      ]);
+      meusBloqueios = new Set(meus ? meus.docs.map((d) => d.data().bloqueadoId) : []);
+      bloqueadoPor = new Set(deles ? deles.docs.map((d) => d.data().bloqueadorId) : []);
+      restritos = new Set(Array.isArray(dados.restritos) ? dados.restritos : []);
+    }
+
+    async function removerSeguidor(uid, nome) {
+      if (!confirm(`Remover ${nome || "esta pessoa"} dos seus seguidores? Ela não será avisada.`)) return false;
+      try {
+        await fb.deleteDoc(fb.doc(fb.db, "relacoes", `${uid}_${eu.uid}`));
+        atualizarContagens();
+        toast("Seguidor removido");
+        return true;
+      } catch (e) { toast("Não foi possível remover: " + erroAmigavel(e)); return false; }
+    }
+
+    async function bloquear(uid, nome) {
+      if (!confirm(`Bloquear ${nome || "esta pessoa"}?\n\nVocês deixam de se seguir, ela não poderá ver seu perfil, seguir você nem enviar mensagens. Ela não será avisada.`)) return false;
+      try {
+        await fb.setDoc(fb.doc(fb.db, "bloqueios", `${eu.uid}_${uid}`), { bloqueadorId: eu.uid, bloqueadoId: uid, criadoEm: fb.serverTimestamp() });
+        const ids = [eu.uid, uid].sort();
+        await Promise.all([
+          fb.deleteDoc(fb.doc(fb.db, "relacoes", `${eu.uid}_${uid}`)).catch(() => {}),
+          fb.deleteDoc(fb.doc(fb.db, "relacoes", `${uid}_${eu.uid}`)).catch(() => {}),
+          fb.deleteDoc(fb.doc(fb.db, "vinculos", `${ids[0]}_${ids[1]}`)).catch(() => {})
+        ]);
+        meusBloqueios.add(uid);
+        meusSeguindo.delete(uid);
+        atualizarContagens();
+        toast(`${nome || "Conta"} bloqueada`);
+        return true;
+      } catch (e) { toast("Não foi possível bloquear: " + erroAmigavel(e)); return false; }
+    }
+
+    async function desbloquear(uid) {
+      try {
+        await fb.deleteDoc(fb.doc(fb.db, "bloqueios", `${eu.uid}_${uid}`));
+        meusBloqueios.delete(uid);
+        toast("Conta desbloqueada");
+        return true;
+      } catch (e) { toast("Não foi possível desbloquear: " + erroAmigavel(e)); return false; }
+    }
+
+    async function alternarRestricao(uid, nome) {
+      const restringir = !restritos.has(uid);
+      if (restringir && !confirm(`Restringir ${nome || "esta pessoa"}?\n\nAs mensagens dela vão para "Restritas", sem notificação, e ela não vê quando você leu. Ela não será avisada.`)) return false;
+      try {
+        await fb.setDoc(refUsuario, { restritos: restringir ? fb.arrayUnion(uid) : fb.arrayRemove(uid) }, { merge: true });
+        if (restringir) restritos.add(uid); else restritos.delete(uid);
+        dados.restritos = [...restritos];
+        toast(restringir ? "Conta restrita" : "Restrição removida");
+        return true;
+      } catch (e) { toast("Não foi possível alterar: " + erroAmigavel(e)); return false; }
+    }
+
+    function abrirOpcoes(titulo, opcoes) {
+      $("tOpcoes").textContent = titulo;
+      const corpo = $("opcoesCorpo");
+      corpo.replaceChildren();
+      opcoes.filter(Boolean).forEach((o) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        if (o.perigo) b.className = "perigo";
+        const t = document.createElement("span");
+        t.textContent = o.rotulo;
+        if (o.sub) { const sm = document.createElement("small"); sm.textContent = o.sub; t.appendChild(sm); }
+        b.append(icone(o.icone, "i"), t);
+        b.addEventListener("click", async () => { fecharFolha("folhaOpcoes"); await o.fn(); });
+        corpo.appendChild(b);
+      });
+      abrirFolha("folhaOpcoes");
+    }
+
+    function botaoOpcoesPerfil(uid, p) {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "btn sec icone"; b.setAttribute("aria-label", "Mais opções");
+      b.appendChild(icone("pontos", "i s"));
+      b.addEventListener("click", () => {
+        const bloq = meusBloqueios.has(uid);
+        abrirOpcoes(p.nome || "Opções", [
+          !bloq && !bloqueadoPor.has(uid) && { rotulo: "Adicionar ao meu social", sub: "Duo, família, amigos", icone: "fio", fn: () => abrirNovoVinculo({ uid, ...p }) },
+          { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(uid, p.nome) },
+          !bloq && ppMeSegue && { rotulo: "Remover seguidor", sub: "Deixa de seguir você, sem aviso", icone: "pessoa-menos", fn: async () => { if (await removerSeguidor(uid, p.nome)) { ppMeSegue = false; abrirPerfilPublico(uid); } } },
+          !bloq && { rotulo: restritos.has(uid) ? "Remover restrição" : "Restringir", sub: restritos.has(uid) ? "Volta a receber avisos dessa pessoa" : "Mensagens vão para Restritas, sem avisos", icone: "restringir", fn: () => alternarRestricao(uid, p.nome) },
+          { rotulo: bloq ? "Desbloquear" : "Bloquear", sub: bloq ? "" : "Ela não poderá ver seu perfil nem falar com você", icone: "bloquear", perigo: !bloq,
+            fn: async () => { const ok = bloq ? await desbloquear(uid) : await bloquear(uid, p.nome); if (ok) abrirPerfilPublico(uid); } }
+        ]);
+      });
+      return b;
+    }
+
+    async function abrirContas(tipo) {
+      const bloqueados = tipo === "bloqueados";
+      $("tLista").textContent = bloqueados ? "Contas bloqueadas" : "Contas restritas";
+      const corpo = $("listaCorpo");
+      corpo.replaceChildren();
+      const uids = [...(bloqueados ? meusBloqueios : restritos)];
+      if (!uids.length) {
+        const v = document.createElement("div");
+        v.className = "lista-vazia";
+        v.textContent = bloqueados ? "Você não bloqueou ninguém." : "Você não restringiu ninguém.";
+        corpo.appendChild(v);
+      }
+      const lista = await Promise.all(uids.map(obterPerfil));
+      uids.forEach((u, i) => corpo.appendChild(linhaPessoa({
+        uid: u, nome: lista[i].nome, foto: lista[i].fotoPerfil, sub: lista[i].nickname ? "@" + lista[i].nickname : "", semSeguir: true,
+        aoClicar: bloqueados ? () => {} : undefined,
+        acoes: [{ rotulo: bloqueados ? "Desbloquear" : "Remover", fn: async (_b, linha) => {
+          const ok = bloqueados ? await desbloquear(u) : await alternarRestricao(u, lista[i].nome);
+          if (ok) { linha.remove(); pintarConfig(); }
+        } }]
+      })));
+      abrirFolha("folhaLista");
+    }
+
+    // ======================================================
+    // Social: duo (fio vermelho), família, amigos
+    // ======================================================
+    const TIPOS = {
+      duo: { rotulo: "Duo", cat: "duo" },
+      namoro: { rotulo: "Namorado(a)", cat: "amor" },
+      casamento: { rotulo: "Cônjuge", cat: "amor" },
+      melhor_amigo: { rotulo: "Melhor amigo(a)", cat: "amizade" },
+      amigo: { rotulo: "Amigo(a)", cat: "amizade" },
+      irmao: { rotulo: "Irmão(ã)", cat: "familia" },
+      pai_mae: { rotulo: "Pai/Mãe", cat: "familia" },
+      filho: { rotulo: "Filho(a)", cat: "familia" },
+      primo: { rotulo: "Primo(a)", cat: "familia" },
+      tio: { rotulo: "Tio(a)", cat: "familia" },
+      sobrinho: { rotulo: "Sobrinho(a)", cat: "familia" },
+      avo: { rotulo: "Avô/Avó", cat: "familia" },
+      neto: { rotulo: "Neto(a)", cat: "familia" },
+      parceiro: { rotulo: "Parceiro(a) de trabalho", cat: "trabalho" }
+    };
+    const INVERSO = { duo: "duo", namoro: "namoro", casamento: "casamento", melhor_amigo: "melhor_amigo", amigo: "amigo", irmao: "irmao", pai_mae: "filho", filho: "pai_mae", primo: "primo", tio: "sobrinho", sobrinho: "tio", avo: "neto", neto: "avo", parceiro: "parceiro" };
+    const EXCLUSIVOS = { duo: ["duo"], namoro: ["namoro", "casamento"], casamento: ["namoro", "casamento"] };
+    const rotuloTipo = (t) => TIPOS[t]?.rotulo || "Vínculo";
+
+    // Do ponto de vista de "uid": quem é o outro e o que ele é para "uid".
+    function lerVinculo(v, uid) {
+      const outro = (v.participantes || []).find((x) => x !== uid);
+      const tipo = uid === v.de ? v.tipoDe : v.tipoPara;
+      return { ...v, outro, tipo, pendente: v.status !== "aceito" };
+    }
+
+    async function buscarVinculos(uid) {
+      const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "vinculos"), fb.where("participantes", "array-contains", uid), fb.limit(60)));
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    }
+
+    function desenharFio() {
+      const ns = "http://www.w3.org/2000/svg";
+      const svgEl = document.createElementNS(ns, "svg");
+      svgEl.setAttribute("class", "fio");
+      svgEl.setAttribute("viewBox", "0 0 200 60");
+      svgEl.setAttribute("preserveAspectRatio", "none");
+      svgEl.setAttribute("aria-hidden", "true");
+      const path = document.createElementNS(ns, "path");
+      path.setAttribute("d", "M0 30 C 40 -6, 70 66, 100 30 S 160 -6, 200 30");
+      const no = document.createElementNS(ns, "circle");
+      no.setAttribute("cx", "100"); no.setAttribute("cy", "30"); no.setAttribute("r", "4");
+      svgEl.append(path, no);
+      return svgEl;
+    }
+
+    async function renderizarSocial(box, uid, vinculos, { proprio, dono }) {
+      const lidos = vinculos.map((v) => lerVinculo(v, uid)).filter((v) => (proprio || !v.pendente) && !escondido(v.outro));
+      const visiveis = proprio ? lidos : lidos.filter((v) => !v.pendente);
+      if (!proprio && !visiveis.length) { box.hidden = true; return; }
+      box.hidden = false;
+      box.replaceChildren();
+      const token = Symbol();
+      box._token = token;
+      const perfisOutros = await Promise.all(visiveis.map((v) => obterPerfil(v.outro)));
+      if (box._token !== token) return;
+
+      const titulo = document.createElement("div");
+      titulo.className = "social-titulo";
+      const h = document.createElement("h3");
+      h.append(icone("fio", "i xs"), document.createTextNode("Social"));
+      titulo.appendChild(h);
+      if (proprio) {
+        const add = document.createElement("button");
+        add.type = "button"; add.textContent = "+ Adicionar";
+        add.addEventListener("click", () => abrirNovoVinculo(null));
+        titulo.appendChild(add);
+      }
+      box.appendChild(titulo);
+
+      // Duo com fio vermelho
+      const iDuo = visiveis.findIndex((v) => v.tipo === "duo" && !v.pendente);
+      if (iDuo >= 0) {
+        const v = visiveis[iDuo], o = perfisOutros[iDuo];
+        const duo = document.createElement("div");
+        duo.className = "duo";
+        const pessoa = (p, u) => {
+          const b = document.createElement("button");
+          b.type = "button"; b.className = "duo-pessoa";
+          const av = document.createElement("div");
+          av.className = "avatar";
+          pintarAvatar(av, p.fotoPerfil, p.nome);
+          const n = document.createElement("span");
+          n.textContent = (p.nome || "Usuário").split(" ")[0];
+          b.append(av, n);
+          b.addEventListener("click", () => abrirPerfilPublico(u));
+          return b;
+        };
+        const rot = document.createElement("div");
+        rot.className = "duo-rotulo";
+        const forte = document.createElement("strong");
+        forte.textContent = "Duo";
+        const desde = paraData(v.aceitoEm);
+        rot.append(forte, document.createTextNode(desde ? ` · ligados desde ${desde.toLocaleDateString("pt-BR", { month: "short", year: "numeric" })}` : ""));
+        duo.append(pessoa(dono, uid), desenharFio(), pessoa(o, v.outro), rot);
+        if (proprio) {
+          rot.style.cursor = "pointer";
+          rot.title = "Opções do duo";
+          rot.addEventListener("click", () => opcoesVinculo(v, o));
+          duo.addEventListener("contextmenu", (e) => { e.preventDefault(); opcoesVinculo(v, o); });
+        }
+        box.appendChild(duo);
+      }
+
+      const linha = document.createElement("div");
+      linha.className = "vinculos";
+      visiveis.forEach((v, i) => {
+        if (i === iDuo) return;
+        const o = perfisOutros[i];
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "vinculo" + (v.pendente ? " pendente" : "");
+        b.dataset.cat = TIPOS[v.tipo]?.cat || "amizade";
+        const av = document.createElement("div");
+        av.className = "avatar";
+        pintarAvatar(av, o.fotoPerfil, o.nome);
+        const n = document.createElement("span");
+        n.className = "nome";
+        n.textContent = (o.nome || "Usuário").split(" ")[0];
+        const papel = document.createElement("span");
+        papel.className = "papel";
+        papel.textContent = v.pendente ? (v.de === eu.uid ? "Aguardando" : "Pedido") : rotuloTipo(v.tipo);
+        b.append(av, n, papel);
+        b.addEventListener("click", () => (proprio ? opcoesVinculo(v, o) : abrirPerfilPublico(v.outro)));
+        linha.appendChild(b);
+      });
+      if (proprio) {
+        const novo = document.createElement("button");
+        novo.type = "button";
+        novo.className = "vinculo novo";
+        const av = document.createElement("div");
+        av.className = "avatar";
+        av.appendChild(icone("mais", "i s"));
+        const n = document.createElement("span");
+        n.className = "nome"; n.textContent = "Adicionar";
+        novo.append(av, n);
+        novo.addEventListener("click", () => abrirNovoVinculo(null));
+        linha.appendChild(novo);
+      }
+      if (linha.children.length) box.appendChild(linha);
+      if (proprio && !visiveis.length) {
+        const vazio = document.createElement("p");
+        vazio.className = "social-vazio";
+        vazio.textContent = "Mostre quem faz parte da sua vida: seu duo, família e amigos.";
+        box.insertBefore(vazio, linha);
+      }
+    }
+
+    function opcoesVinculo(v, o) {
+      const nome = o.nome || "Usuário";
+      if (v.pendente && v.para === eu.uid) {
+        abrirOpcoes(`${nome}: ${rotuloTipo(v.tipo)}`, [
+          { rotulo: "Aceitar", icone: "check", fn: () => responderVinculo(v.id, true) },
+          { rotulo: "Recusar", icone: "fechar", perigo: true, fn: () => responderVinculo(v.id, false) },
+          { rotulo: "Ver perfil", icone: "olho", fn: () => abrirPerfilPublico(v.outro) }
+        ]);
+        return;
+      }
+      abrirOpcoes(`${nome}: ${rotuloTipo(v.tipo)}`, [
+        { rotulo: "Ver perfil", icone: "olho", fn: () => abrirPerfilPublico(v.outro) },
+        { rotulo: v.pendente ? "Cancelar pedido" : "Desfazer vínculo", sub: v.pendente ? "" : "Some dos dois perfis", icone: "lixo", perigo: true,
+          fn: async () => {
+            if (!v.pendente && !confirm(`Desfazer o vínculo com ${nome}?`)) return;
+            try { await fb.deleteDoc(fb.doc(fb.db, "vinculos", v.id)); toast(v.pendente ? "Pedido cancelado" : "Vínculo desfeito"); }
+            catch (e) { toast("Não foi possível: " + erroAmigavel(e)); }
+          } }
+      ]);
+    }
+
+    function conflitoExclusivo(tipo, ignorarId) {
+      const grupo = EXCLUSIVOS[tipo];
+      if (!grupo) return null;
+      return meusVinculos.map((v) => lerVinculo(v, eu.uid)).find((v) => v.id !== ignorarId && !v.pendente && grupo.includes(v.tipo)) || null;
+    }
+
+    async function responderVinculo(id, aceitar) {
+      try {
+        const v = meusVinculos.find((x) => x.id === id);
+        if (aceitar && v) {
+          const conflito = conflitoExclusivo(lerVinculo(v, eu.uid).tipo, id);
+          if (conflito) { toast(`Você já tem ${rotuloTipo(conflito.tipo).toLowerCase()} no seu social. Desfaça antes de aceitar.`); return; }
+        }
+        if (aceitar) await fb.updateDoc(fb.doc(fb.db, "vinculos", id), { status: "aceito", aceitoEm: fb.serverTimestamp() });
+        else await fb.deleteDoc(fb.doc(fb.db, "vinculos", id));
+        toast(aceitar ? "Vínculo aceito" : "Pedido recusado");
+      } catch (e) { toast("Não foi possível responder: " + erroAmigavel(e)); }
+    }
+
+    // ---------- novo vínculo ----------
+    let vinTipo = "duo", vinAlvo = null;
+    function abrirNovoVinculo(alvo) {
+      vinAlvo = alvo && alvo.uid ? alvo : null;
+      vinTipo = "duo";
+      const tipos = $("vinTipos");
+      tipos.replaceChildren();
+      Object.entries(TIPOS).forEach(([k, t]) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "tipo" + (k === vinTipo ? " on" : "");
+        b.dataset.cat = t.cat;
+        const bola = document.createElement("i");
+        b.append(bola, document.createTextNode(t.rotulo));
+        b.addEventListener("click", () => {
+          vinTipo = k;
+          tipos.querySelectorAll(".tipo").forEach((x) => x.classList.toggle("on", x === b));
+        });
+        tipos.appendChild(b);
+      });
+      pintarAlvoVinculo();
+      abrirFolha("folhaVinculo");
+    }
+    function pintarAlvoVinculo() {
+      const box = $("vinPessoa");
+      box.replaceChildren();
+      if (vinAlvo) {
+        const e = document.createElement("div");
+        e.className = "escolhido";
+        const av = document.createElement("div");
+        av.className = "avatar";
+        pintarAvatar(av, vinAlvo.fotoPerfil, vinAlvo.nome);
+        const n = document.createElement("strong");
+        n.textContent = vinAlvo.nome || "Usuário";
+        const trocar = document.createElement("button");
+        trocar.type = "button"; trocar.className = "btn sec mini"; trocar.textContent = "Trocar";
+        trocar.addEventListener("click", () => { vinAlvo = null; pintarAlvoVinculo(); });
+        e.append(av, n, trocar);
+        box.appendChild(e);
+        return;
+      }
+      const busca = document.createElement("div");
+      busca.className = "busca";
+      busca.style.margin = "0 0 8px";
+      busca.appendChild(icone("lupa", "i s"));
+      const inp = document.createElement("input");
+      inp.type = "search"; inp.placeholder = "Buscar pelo nome ou @usuário"; inp.setAttribute("aria-label", "Buscar pessoa");
+      busca.appendChild(inp);
+      const res = document.createElement("div");
+      box.append(busca, res);
+      const desenhar = async () => {
+        if (!pessoas) {
+          try {
+            const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "perfis_publicos"), fb.orderBy("nome"), fb.limit(500)));
+            pessoas = snap.docs.map((d) => ({ uid: d.id, ...d.data() })).filter((p) => p.uid !== eu.uid);
+          } catch { pessoas = []; }
+        }
+        const termo = inp.value.trim().toLowerCase().replace(/^@/, "");
+        res.replaceChildren();
+        (pessoas || []).filter((p) => !escondido(p.uid)).filter((p) => !termo || String(p.nome || "").toLowerCase().includes(termo) || String(p.nickname || "").toLowerCase().includes(termo))
+          .sort((a, b) => Number(meusSeguindo.has(b.uid)) - Number(meusSeguindo.has(a.uid)))
+          .slice(0, 8)
+          .forEach((p) => res.appendChild(linhaPessoa({ uid: p.uid, nome: p.nome, foto: p.fotoPerfil, sub: p.nickname ? "@" + p.nickname : "", semSeguir: true, aoClicar: () => { vinAlvo = p; pintarAlvoVinculo(); } })));
+      };
+      inp.addEventListener("input", desenhar);
+      desenhar();
+    }
+    $("vinEnviar").addEventListener("click", async () => {
+      if (!vinAlvo) { toast("Escolha a pessoa."); return; }
+      const ids = [eu.uid, vinAlvo.uid].sort();
+      const id = `${ids[0]}_${ids[1]}`;
+      if (meusVinculos.some((v) => v.id === id)) { toast("Vocês já têm um vínculo ou pedido. Desfaça o atual para mudar."); return; }
+      const conflito = conflitoExclusivo(vinTipo);
+      if (conflito) { toast(`Você já tem ${rotuloTipo(conflito.tipo).toLowerCase()} no seu social.`); return; }
+      const btn = $("vinEnviar");
+      btn.disabled = true;
+      try {
+        await fb.setDoc(fb.doc(fb.db, "vinculos", id), {
+          participantes: ids, de: eu.uid, para: vinAlvo.uid, tipoDe: vinTipo, tipoPara: INVERSO[vinTipo],
+          status: "pendente", criadoEm: fb.serverTimestamp()
+        });
+        fecharFolha("folhaVinculo");
+        toast(`Pedido enviado para ${vinAlvo.nome || "a pessoa"}`);
+      } catch (e) { toast("Não foi possível enviar: " + erroAmigavel(e)); }
+      finally { btn.disabled = false; }
+    });
+
+    function ouvirVinculos() {
+      let primeira = true;
+      const q = fb.query(fb.collection(fb.db, "vinculos"), fb.where("participantes", "array-contains", eu.uid), fb.limit(60));
+      fb.onSnapshot(q, async (snap) => {
+        meusVinculos = snap.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) }));
+        const relevantes = meusVinculos.map((v) => lerVinculo(v, eu.uid)).filter((v) => !escondido(v.outro) && ((v.pendente && v.para === eu.uid) || (!v.pendente && v.de === eu.uid)));
+        const perfisV = await Promise.all(relevantes.map((v) => obterPerfil(v.outro)));
+        avisos.vinculos = relevantes.map((v, i) => ({
+          id: v.id, outro: v.outro, nome: perfisV[i].nome || "Usuário", foto: perfisV[i].fotoPerfil || "", pendente: v.pendente,
+          tipoParaMim: v.pendente ? v.tipoPara : v.tipoDe, quando: ms(v.pendente ? v.criadoEm : v.aceitoEm)
+        }));
+        if (!primeira) {
+          snap.docChanges().forEach((c) => {
+            const v = lerVinculo({ id: c.doc.id, ...c.doc.data() }, eu.uid);
+            const info = avisos.vinculos.find((x) => x.id === v.id);
+            if (!info || c.doc.metadata.hasPendingWrites) return;
+            if (c.type === "added" && v.pendente && v.para === eu.uid) notificar("Novo pedido no social", `${info.nome} quer adicionar você como ${rotuloTipo(v.tipoPara).toLowerCase()}`, () => $("btnSino").click());
+            if (c.type === "modified" && !v.pendente && v.de === eu.uid) notificar("Pedido aceito", `${info.nome} aceitou: ${rotuloTipo(v.tipoDe)}`, () => abrirPerfilPublico(v.outro));
+          });
+        }
+        primeira = false;
+        renderizarMeuPerfil();
+        atualizarBadges();
+        if ($("folhaNotificacoes").classList.contains("aberta")) renderizarNotificacoes();
+      }, (e) => console.warn("Social indisponível:", e));
     }
 
     async function iniciarConversa(uid) {
@@ -1592,7 +2124,7 @@
       const termo = $("buscaInput").value.trim().toLowerCase().replace(/^@/, "");
       const corpo = $("buscaResultados");
       corpo.replaceChildren();
-      const lista = (pessoas || []).filter((p) => !termo
+      const lista = (pessoas || []).filter((p) => !escondido(p.uid)).filter((p) => !termo
         || String(p.nome || "").toLowerCase().includes(termo)
         || String(p.nickname || "").toLowerCase().includes(termo)
         || nomeCidade(p.cidade || p.cidadeNome).toLowerCase().includes(termo)).slice(0, 60);
@@ -1622,7 +2154,8 @@
     function atualizarBadges() {
       const naoLidas = avisos.mensagens.length;
       const novosSeguidores = avisos.seguidores.filter((s) => ms(s.criadoEm) > avisosVistosEm).length;
-      const total = naoLidas + novosSeguidores;
+      const vinculosNovos = avisos.vinculos.filter((v) => v.pendente || v.quando > avisosVistosEm).length;
+      const total = naoLidas + novosSeguidores + vinculosNovos;
       const bs = $("badgeSino"), bm = $("badgeMensagens");
       bs.textContent = total > 99 ? "99+" : String(total); bs.hidden = !total;
       bm.textContent = naoLidas > 99 ? "99+" : String(naoLidas); bm.hidden = !naoLidas;
@@ -1644,6 +2177,14 @@
         corpo.appendChild(a);
       }
       const itens = [
+        ...avisos.vinculos.map((v) => ({
+          quando: v.quando, nova: v.pendente || v.quando > avisosVistosEm, uid: v.outro, nome: v.nome, foto: v.foto, semSeguir: true,
+          sub: v.pendente ? `Quer adicionar você como ${rotuloTipo(v.tipoParaMim).toLowerCase()}` : `Aceitou seu pedido: ${rotuloTipo(v.tipoParaMim)}`,
+          acoes: v.pendente ? [
+            { rotulo: "Aceitar", classe: "pri", fn: () => responderVinculo(v.id, true) },
+            { rotulo: "Recusar", fn: () => responderVinculo(v.id, false) }
+          ] : []
+        })),
         ...avisos.mensagens.map((c) => ({
           quando: ms(c.atualizadoEm), nova: true, nome: c.nome, foto: c.foto,
           sub: `Enviou uma mensagem: ${c.ultimaMensagem || ""}`,
@@ -1691,14 +2232,14 @@
         }));
         lista.sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
         if (!primeira) {
-          snap.docChanges().filter((c) => c.type === "added").forEach((c) => {
+          snap.docChanges().filter((c) => c.type === "added" && !restritos.has(c.doc.data().seguidorId) && !escondido(c.doc.data().seguidorId)).forEach((c) => {
             const s = lista.find((x) => x.uid === c.doc.data().seguidorId);
             notificar("Novo seguidor", `${s?.nome || "Alguém"} começou a seguir você`, () => abrirPerfilPublico(s?.uid));
           });
           atualizarContagens();
         }
         primeira = false;
-        avisos.seguidores = lista;
+        avisos.seguidores = lista.filter((x) => !restritos.has(x.uid) && !escondido(x.uid));
         atualizarBadges();
         if ($("folhaNotificacoes").classList.contains("aberta")) renderizarNotificacoes();
       }, (e) => console.warn("Notificações de seguidores indisponíveis:", e));
@@ -1713,7 +2254,9 @@
           const c = d.data({ serverTimestamps: "estimate" });
           const outro = (c.participantes || []).find((x) => x !== eu.uid);
           const p = await obterPerfil(outro);
-          const naoLida = !!c.ultimaMensagemRemetenteId && c.ultimaMensagemRemetenteId !== eu.uid && ms(c.atualizadoEm) > ms(c.lidoEm?.[eu.uid]);
+          const lido = Math.max(ms(c.lidoEm?.[eu.uid]), ms(c.vistoEm?.[eu.uid]));
+          const silenciada = restritos.has(outro) || escondido(outro);
+          const naoLida = !silenciada && !!c.ultimaMensagemRemetenteId && c.ultimaMensagemRemetenteId !== eu.uid && ms(c.atualizadoEm) > lido;
           return { id: d.id, nome: p.nome || "Usuário", foto: p.fotoPerfil || "", ultimaMensagem: c.ultimaMensagem || "", atualizadoEm: c.atualizadoEm, naoLida };
         }));
         lista.forEach((c) => {
@@ -1743,6 +2286,8 @@
       else if (Notification.permission === "granted") nt.textContent = "Ativadas";
       else if (Notification.permission === "denied") nt.textContent = "Bloqueadas nas configurações do navegador";
       else nt.textContent = "Toque para ativar";
+      $("cfgBloqueadosTxt").textContent = meusBloqueios.size ? `${meusBloqueios.size} ${meusBloqueios.size === 1 ? "conta" : "contas"}` : "Ninguém bloqueado";
+      $("cfgRestritosTxt").textContent = restritos.size ? `${restritos.size} ${restritos.size === 1 ? "conta" : "contas"}` : "Ninguém restrito";
       aplicarTema();
     }
     function abrirConfig() { pintarConfig(); abrirFolha("folhaConfig"); }
@@ -1756,6 +2301,9 @@
     });
     $("cfgOnline").addEventListener("change", () => { config.mostrarOnline = $("cfgOnline").checked; salvarConfig(); marcarPresenca(); });
     $("cfgSons").addEventListener("change", () => { config.sons = $("cfgSons").checked; salvarConfig(); });
+    $("cfgLeitura").addEventListener("change", () => { config.confirmacaoLeitura = $("cfgLeitura").checked; salvarConfig(); });
+    $("cfgBloqueados").addEventListener("click", () => abrirContas("bloqueados"));
+    $("cfgRestritos").addEventListener("click", () => abrirContas("restritos"));
     $("cfgNotifNavegador").addEventListener("click", async () => {
       if (!("Notification" in window)) return;
       if (Notification.permission === "default") { try { await Notification.requestPermission(); } catch {} }
@@ -1873,7 +2421,10 @@
         $("estadoCarregando").hidden = true;
         $("conteudo").hidden = false;
         renderizarMeuPerfil();
+        estadoPronto = carregarPrivacidade().catch((e) => console.warn("Bloqueios:", e));
         meusSeguindoPronto = carregarMeusSeguindo().catch((e) => console.warn("Quem você segue:", e));
+        await estadoPronto;
+        ouvirVinculos();
         atualizarContagens();
         carregarMeusPosts();
         ouvirSeguidores();
