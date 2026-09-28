@@ -32,6 +32,12 @@ async function iniciar(){
   const sub=document.createElement('small');sub.textContent=nome;cab.textContent='Mensagens';cab.appendChild(sub);document.title=`${nome} | Mensagens | Help Floripa`;
   // Anexos e áudio dependem do Firebase Storage; sem ele, só texto.
   if(!window.firebaseStorage){document.querySelector('label[for="arquivo"]')?.style.setProperty('display','none');gravar.style.display='none';}
+  // Marca como lida quando a última mensagem é do outro e chegou depois da minha leitura.
+  let dadosConversa=c;
+  const naoLida=d=>!!d&&!!d.ultimaMensagemRemetenteId&&d.ultimaMensagemRemetenteId!==user.uid&&(d.atualizadoEm?.toMillis?.()??0)>(d.lidoEm?.[user.uid]?.toMillis?.()??0);
+  const marcarLida=()=>{if(document.hidden||!naoLida(dadosConversa))return;setDoc(ref,{lidoEm:{[user.uid]:serverTimestamp()}},{merge:true}).catch(e=>console.warn('Não foi possível marcar como lida:',e));};
+  onSnapshot(ref,s=>{if(s.metadata.hasPendingWrites||!s.exists())return;dadosConversa=s.data();marcarLida();},e=>console.warn('Conversa indisponível:',e));
+  document.addEventListener('visibilitychange',marcarLida);
   const q=query(collection(window.firebaseDb,'conversas',conversaId,'mensagens'),orderBy('criadoEm','asc'));
   onSnapshot(q,s=>{
    lista.innerHTML='';

@@ -594,6 +594,20 @@
     .perfil-modal-item-nome { font-size:14px; font-weight:700; }
     .perfil-modal-item-texto { margin-top:3px; color:#9aa7b1; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .perfil-modal-vazio { padding: 28px 14px; text-align:center; color:#9aa7b1; font-size:14px; }
+    .perfil-modal-item.clicavel { cursor:pointer; }
+    .btn-seguir-mini { flex-shrink:0; border:1px solid #00adee; border-radius:8px; padding:8px 12px; font-size:12px; font-weight:800; cursor:pointer; background:#00adee; color:#000; }
+    .btn-seguir-mini.seguindo { background:#1a1a1a; color:#fff; border-color:#2f3b42; }
+    .btn-seguir-mini:disabled { opacity:.6; cursor:default; }
+
+    .tab-badge { display:inline-block; min-width:18px; margin-left:4px; padding:0 5px; border-radius:9px; background:#ff3b5c; color:#fff; font-size:11px; line-height:18px; text-align:center; vertical-align:middle; }
+    .tab-badge[hidden] { display:none; }
+    .avisos-topo { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+    .avisos-topo strong { font-size:16px; }
+    .btn-ativar-notif { border:1px solid #00adee; background:transparent; color:#00adee; border-radius:8px; padding:8px 12px; font-size:12px; font-weight:700; cursor:pointer; }
+    .avisos-lista { max-height:none; padding:0; display:flex; flex-direction:column; gap:6px; }
+    .avisos-lista .perfil-modal-item { border:1px solid #2f3b42; background:#0d0d0d; }
+    .avisos-lista .perfil-modal-item.novo { border-color:#00adee; background:rgba(0,173,238,.08); }
+    .toast-aviso { position:fixed; left:50%; bottom:18px; transform:translateX(-50%); z-index:5000; width:max-content; max-width:calc(100% - 32px); background:#0d0d0d; color:#fff; border:1px solid #00adee; border-radius:12px; padding:12px 16px; font-size:14px; box-shadow:0 12px 40px rgba(0,0,0,.6); cursor:pointer; }
 
     .perfil-tabs {
       display: grid;
@@ -1048,6 +1062,9 @@
     }
 
     .conversa-item:hover { border-color: #00adee; background: rgba(0, 173, 238, 0.08); }
+    .conversa-item.nao-lida { border-color: #00adee; }
+    .conversa-item.nao-lida .nome::after { content: "●"; color: #00adee; margin-left: 6px; font-size: 10px; }
+    .conversa-item.nao-lida .ultima { color: #fff; font-weight: 700; }
 
     .conversa-avatar {
       width: 40px;
@@ -1147,8 +1164,9 @@
 
         <div class="perfil-tabs" role="tablist" aria-label="Seções do perfil">
           <button type="button" class="perfil-tab-btn active" data-tab="perfil" role="tab" aria-selected="true">Perfil</button>
-          <button type="button" class="perfil-tab-btn" data-tab="mensagens" role="tab" aria-selected="false">Mensagens</button>
+          <button type="button" class="perfil-tab-btn" data-tab="mensagens" role="tab" aria-selected="false">Mensagens<span class="tab-badge" id="badgeMensagens" hidden></span></button>
           <button type="button" class="perfil-tab-btn" data-tab="busca" role="tab" aria-selected="false">Busca</button>
+          <button type="button" class="perfil-tab-btn" data-tab="avisos" role="tab" aria-selected="false">Avisos<span class="tab-badge" id="badgeAvisos" hidden></span></button>
           <button type="button" class="perfil-tab-btn" data-tab="painel" role="tab" aria-selected="false" id="tabBtnPainel">Atalhos</button>
         </div>
 
@@ -1263,6 +1281,16 @@
         <section class="perfil-tab-panel" id="tab-mensagens">
           <div class="mensagens-lista" id="mensagensLista">
             <div class="estado-vazio" id="mensagensVazio">Você ainda não possui mensagens.</div>
+          </div>
+        </section>
+
+        <section class="perfil-tab-panel" id="tab-avisos">
+          <div class="avisos-topo">
+            <strong>Notificações</strong>
+            <button type="button" class="btn-ativar-notif" id="btnAtivarNotificacoes" style="display:none;">Ativar notificações do navegador</button>
+          </div>
+          <div class="perfil-modal-lista avisos-lista" id="avisosLista">
+            <div class="estado-vazio" id="avisosVazio">Nenhuma notificação ainda.</div>
           </div>
         </section>
 
@@ -1584,14 +1612,118 @@
       }
     }
 
+    const cachePerfis = new Map();
+    function obterPerfil(uid) {
+      if (!uid) return Promise.resolve({});
+      if (!cachePerfis.has(uid)) {
+        cachePerfis.set(uid, getDoc(doc(window.firebaseDb, "perfis_publicos", uid))
+          .then((p) => (p.exists() ? p.data() : {}))
+          .catch(() => ({})));
+      }
+      return cachePerfis.get(uid);
+    }
+
     async function listarRelacionados(campoFiltro, campoOutro) {
       const snap = await getDocs(query(collection(window.firebaseDb, "relacoes"), where("tipo", "==", "seguir"), where(campoFiltro, "==", user.uid), limit(100)));
-      const uids = snap.docs.map((d) => d.data()[campoOutro]);
-      const perfis = await Promise.all(uids.map((id) => getDoc(doc(window.firebaseDb, "perfis_publicos", id)).catch(() => null)));
-      return perfis.map((p, i) => {
-        const dados = p && p.exists() ? p.data() : {};
-        return { nome: dados.nome || "Usuário", foto: dados.fotoPerfil || "", texto: dados.nickname ? `@${dados.nickname}` : "" };
+      const uids = snap.docs.map((d) => d.data()[campoOutro]).filter(Boolean);
+      const perfis = await Promise.all(uids.map(obterPerfil));
+      return perfis.map((dados, i) => ({
+        uid: uids[i],
+        nome: dados.nome || "Usuário",
+        foto: dados.fotoPerfil || "",
+        texto: dados.nickname ? `@${dados.nickname}` : ""
+      }));
+    }
+
+    // Quem eu sigo; mantido atualizado a cada seguir/deixar de seguir.
+    let meusSeguindo = new Set();
+    let meusSeguindoPronto = Promise.resolve();
+    async function carregarMeusSeguindo() {
+      const snap = await getDocs(query(collection(window.firebaseDb, "relacoes"), where("tipo", "==", "seguir"), where("seguidorId", "==", user.uid), limit(500)));
+      meusSeguindo = new Set(snap.docs.map((d) => d.data().alvoId));
+    }
+
+    async function alternarSeguir(uid) {
+      const refRel = doc(window.firebaseDb, "relacoes", `${user.uid}_${uid}`);
+      if (meusSeguindo.has(uid)) {
+        await deleteDoc(refRel);
+        meusSeguindo.delete(uid);
+      } else {
+        await setDoc(refRel, { tipo: "seguir", seguidorId: user.uid, alvoId: uid, criadoEm: serverTimestamp() });
+        meusSeguindo.add(uid);
+      }
+      atualizarContagensProprias();
+      return meusSeguindo.has(uid);
+    }
+
+    function repintarBotoesSeguir() {
+      document.querySelectorAll(".btn-seguir-mini").forEach((b) => b.pintar?.());
+    }
+
+    function criarBotaoSeguir(uid, textoSeguir = "Seguir") {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn-seguir-mini";
+      btn.pintar = () => {
+        const sigo = meusSeguindo.has(uid);
+        btn.textContent = sigo ? "Seguindo" : textoSeguir;
+        btn.classList.toggle("seguindo", sigo);
+      };
+      btn.pintar();
+      btn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        btn.disabled = true;
+        try {
+          await alternarSeguir(uid);
+        } catch (error) {
+          console.error("Erro ao seguir usuário:", error);
+          alert("Não foi possível alterar o seguimento agora: " + (error.code || error.message || "erro desconhecido"));
+        } finally {
+          btn.disabled = false;
+          repintarBotoesSeguir();
+        }
       });
+      return btn;
+    }
+
+    // Linha com avatar + nome; com uid, abre o perfil ao clicar e mostra o botão Seguir.
+    function criarLinhaUsuario(item) {
+      const clicavel = !!(item.abrir || item.uid);
+      const linha = document.createElement(item.link ? "a" : "div");
+      linha.className = "perfil-modal-item" + (clicavel ? " clicavel" : "");
+      if (item.link) linha.href = item.link;
+
+      const avatar = document.createElement("div");
+      avatar.className = "perfil-modal-avatar";
+      definirAvatar(avatar, item.foto || item.fotoPerfil || "", item.nome || "Usuário");
+
+      const info = document.createElement("div");
+      info.className = "perfil-modal-item-info";
+      const nome = document.createElement("div");
+      nome.className = "perfil-modal-item-nome";
+      nome.textContent = item.nome || item.nomeUsuario || "Usuário";
+      const texto = document.createElement("div");
+      texto.className = "perfil-modal-item-texto";
+      texto.textContent = item.texto || item.comentario || item.descricao || "";
+      info.appendChild(nome);
+      if (texto.textContent) info.appendChild(texto);
+
+      linha.appendChild(avatar);
+      linha.appendChild(info);
+
+      if (clicavel) {
+        const abrir = item.abrir || (() => abrirPerfilPublico({ uid: item.uid, nome: item.nome, fotoPerfil: item.foto || "" }));
+        linha.tabIndex = 0;
+        linha.setAttribute("role", "button");
+        linha.addEventListener("click", abrir);
+        linha.addEventListener("keydown", (e) => {
+          if (e.target === linha && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); abrir(); }
+        });
+      }
+      if (item.uid && item.uid !== user.uid) {
+        linha.appendChild(criarBotaoSeguir(item.uid, item.textoSeguir || "Seguir"));
+      }
+      return linha;
     }
 
     async function buscarPostsDoUsuario(uid) {
@@ -1628,24 +1760,151 @@
       window.location.href = "mensagens.html?conversa=" + encodeURIComponent(conversaId);
     }
 
-    async function carregarConversas() {
-      try {
-        const snap = await getDocs(query(collection(window.firebaseDb, "conversas"), where("participantes", "array-contains", user.uid), limit(50)));
-        const brutas = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        brutas.sort((a, b) => (b.atualizadoEm?.toMillis?.() ?? 0) - (a.atualizadoEm?.toMillis?.() ?? 0));
+    const ms = (ts) => ts?.toMillis?.() ?? 0;
+    const avisos = { seguidores: [], mensagens: [] };
+    let avisosVistosEm = 0;
+    const tituloOriginal = document.title;
+
+    function mostrarToast(texto, aoClicar) {
+      const toast = document.createElement("div");
+      toast.className = "toast-aviso";
+      toast.setAttribute("role", "status");
+      toast.textContent = texto;
+      toast.addEventListener("click", () => { toast.remove(); aoClicar?.(); });
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 6000);
+    }
+
+    // Com a aba em segundo plano usa a notificação do navegador; senão, um aviso na página.
+    function notificar(titulo, corpo, aoClicar) {
+      if (document.hidden && "Notification" in window && Notification.permission === "granted") {
+        try {
+          const n = new Notification(titulo, { body: corpo, icon: "android-chrome-192x192.png" });
+          n.onclick = () => { window.focus(); n.close(); aoClicar?.(); };
+          return;
+        } catch {}
+      }
+      mostrarToast(`${titulo}: ${corpo}`, aoClicar);
+    }
+
+    function definirBadge(id, total) {
+      const el = document.getElementById(id);
+      el.textContent = total > 99 ? "99+" : String(total);
+      el.hidden = total === 0;
+    }
+
+    function atualizarBadges() {
+      const naoLidas = avisos.mensagens.length;
+      const novosSeguidores = avisos.seguidores.filter((s) => ms(s.criadoEm) > avisosVistosEm).length;
+      definirBadge("badgeMensagens", naoLidas);
+      definirBadge("badgeAvisos", naoLidas + novosSeguidores);
+      const total = naoLidas + novosSeguidores;
+      document.title = (total ? `(${total}) ` : "") + tituloOriginal;
+    }
+
+    function renderizarAvisos() {
+      const lista = document.getElementById("avisosLista");
+      const vazio = document.getElementById("avisosVazio");
+      lista.querySelectorAll(".perfil-modal-item").forEach((el) => el.remove());
+      const itens = [
+        ...avisos.mensagens.map((c) => ({
+          quando: ms(c.atualizadoEm), novo: true,
+          nome: c.nome, foto: c.foto, texto: `Nova mensagem: ${c.ultimaMensagem || ""}`,
+          abrir: () => abrirConversa(c.id)
+        })),
+        ...avisos.seguidores.slice(0, 50).map((s) => ({
+          quando: ms(s.criadoEm), novo: ms(s.criadoEm) > avisosVistosEm,
+          uid: s.uid, nome: s.nome, foto: s.foto, texto: "começou a seguir você", textoSeguir: "Seguir de volta"
+        }))
+      ].sort((a, b) => b.quando - a.quando);
+      vazio.style.display = itens.length ? "none" : "block";
+      itens.forEach((item) => {
+        const linha = criarLinhaUsuario(item);
+        if (item.novo) linha.classList.add("novo");
+        lista.appendChild(linha);
+      });
+    }
+
+    function marcarAvisosVistos() {
+      renderizarAvisos();
+      avisosVistosEm = Date.now();
+      atualizarBadges();
+      setDoc(refUsuario, { notificacoesVistasEm: serverTimestamp() }, { merge: true })
+        .catch((error) => console.warn("Não foi possível salvar a leitura dos avisos:", error));
+    }
+
+    function ouvirSeguidores() {
+      let primeiraCarga = true;
+      const q = query(collection(window.firebaseDb, "relacoes"), where("tipo", "==", "seguir"), where("alvoId", "==", user.uid), limit(200));
+      onSnapshot(q, async (snap) => {
+        const lista = await Promise.all(snap.docs.map(async (d) => {
+          const r = d.data();
+          const perfil = await obterPerfil(r.seguidorId);
+          return { uid: r.seguidorId, nome: perfil.nome || "Usuário", foto: perfil.fotoPerfil || "", criadoEm: r.criadoEm };
+        }));
+        lista.sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
+        if (!primeiraCarga) {
+          snap.docChanges().filter((c) => c.type === "added").forEach((c) => {
+            const r = c.doc.data();
+            const seguidor = lista.find((x) => x.uid === r.seguidorId);
+            notificar("Novo seguidor", `${seguidor?.nome || "Alguém"} começou a seguir você`,
+              () => abrirPerfilPublico({ uid: r.seguidorId, nome: seguidor?.nome, fotoPerfil: seguidor?.foto }));
+          });
+          atualizarContagensProprias();
+        }
+        primeiraCarga = false;
+        avisos.seguidores = lista;
+        renderizarAvisos();
+        atualizarBadges();
+      }, (error) => console.warn("Avisos de seguidores indisponíveis:", error));
+    }
+
+    // Conversas ao vivo; não lida = última mensagem é do outro e chegou depois da minha última leitura.
+    function ouvirConversas() {
+      let primeiraCarga = true;
+      const q = query(collection(window.firebaseDb, "conversas"), where("participantes", "array-contains", user.uid), limit(50));
+      onSnapshot(q, async (snap) => {
+        const brutas = snap.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) }));
+        brutas.sort((a, b) => ms(b.atualizadoEm) - ms(a.atualizadoEm));
         const conversas = await Promise.all(brutas.map(async (c) => {
           const outroId = (c.participantes || []).find((p) => p !== user.uid);
-          let perfil = {};
-          try {
-            const p = await getDoc(doc(window.firebaseDb, "perfis_publicos", outroId));
-            if (p.exists()) perfil = p.data();
-          } catch {}
-          return { id: c.id, nome: perfil.nome || "Usuário", foto: perfil.fotoPerfil || "", ultimaMensagem: c.ultimaMensagem || "", atualizadoEm: c.atualizadoEm };
+          const perfil = await obterPerfil(outroId);
+          const naoLida = !!c.ultimaMensagemRemetenteId
+            && c.ultimaMensagemRemetenteId !== user.uid
+            && ms(c.atualizadoEm) > ms(c.lidoEm?.[user.uid]);
+          return { id: c.id, nome: perfil.nome || "Usuário", foto: perfil.fotoPerfil || "", ultimaMensagem: c.ultimaMensagem || "", atualizadoEm: c.atualizadoEm, naoLida };
         }));
+        if (!primeiraCarga) {
+          snap.docChanges().forEach((ch) => {
+            if (ch.type === "removed" || ch.doc.metadata.hasPendingWrites) return;
+            const c = conversas.find((x) => x.id === ch.doc.id);
+            if (c?.naoLida) notificar(`Mensagem de ${c.nome}`, c.ultimaMensagem, () => abrirConversa(c.id));
+          });
+        }
+        primeiraCarga = false;
         renderizarConversas(conversas);
-      } catch (error) {
-        console.warn("Mensagens indisponíveis no momento:", error);
-      }
+        avisos.mensagens = conversas.filter((c) => c.naoLida);
+        renderizarAvisos();
+        atualizarBadges();
+      }, (error) => console.warn("Mensagens indisponíveis no momento:", error));
+    }
+
+    function iniciarNotificacoes() {
+      avisosVistosEm = ms(dadosAtuais?.notificacoesVistasEm);
+      document.querySelector('.perfil-tab-btn[data-tab="avisos"]').addEventListener("click", marcarAvisosVistos);
+
+      const btnNotif = document.getElementById("btnAtivarNotificacoes");
+      const pintarBtnNotif = () => {
+        btnNotif.style.display = ("Notification" in window && Notification.permission === "default") ? "" : "none";
+      };
+      btnNotif.addEventListener("click", async () => {
+        try { await Notification.requestPermission(); } catch {}
+        pintarBtnNotif();
+      });
+      pintarBtnNotif();
+
+      ouvirConversas();
+      ouvirSeguidores();
     }
 
     async function abrirPerfilPublico(usuario) {
@@ -1686,8 +1945,8 @@
       definirCapa(document.getElementById("perfilPublicoCapa"), perfil.fotoCapa || "");
 
       // Os botões funcionam mesmo se contadores ou diário falharem.
-      let seguindoAgora = false;
-      const pintar = () => { btnSeguir.textContent = seguindoAgora ? "Seguindo" : "Seguir"; };
+      let meSegue = false;
+      const pintar = () => { btnSeguir.textContent = meusSeguindo.has(uid) ? "Seguindo" : (meSegue ? "Seguir de volta" : "Seguir"); };
 
       btnMensagem.onclick = () => {
         fecharPerfilPublico();
@@ -1696,18 +1955,9 @@
       btnSeguir.onclick = async () => {
         btnSeguir.disabled = true;
         try {
-          const refRel = doc(window.firebaseDb, "relacoes", `${user.uid}_${uid}`);
-          if (seguindoAgora) {
-            await deleteDoc(refRel);
-            seguindoAgora = false;
-            contSeguidores.textContent = Math.max(0, Number(contSeguidores.textContent) - 1);
-          } else {
-            await setDoc(refRel, { tipo: "seguir", seguidorId: user.uid, alvoId: uid, criadoEm: serverTimestamp() });
-            seguindoAgora = true;
-            contSeguidores.textContent = Number(contSeguidores.textContent) + 1;
-          }
+          const agora = await alternarSeguir(uid);
+          contSeguidores.textContent = Math.max(0, Number(contSeguidores.textContent) + (agora ? 1 : -1));
           pintar();
-          atualizarContagensProprias();
         } catch (error) {
           console.error("Erro ao seguir usuário:", error);
           alert("Não foi possível alterar o seguimento agora: " + (error.code || error.message || "erro desconhecido"));
@@ -1716,9 +1966,10 @@
         }
       };
 
-      const [contagens, relacao, posts] = await Promise.allSettled([
+      const [contagens, relacao, relacaoInversa, posts] = await Promise.allSettled([
         Promise.all([contarRelacoes("alvoId", uid), contarRelacoes("seguidorId", uid)]),
         proprio ? Promise.resolve(null) : getDoc(doc(window.firebaseDb, "relacoes", `${user.uid}_${uid}`)),
+        proprio ? Promise.resolve(null) : getDoc(doc(window.firebaseDb, "relacoes", `${uid}_${user.uid}`)),
         buscarPostsDoUsuario(uid)
       ]);
 
@@ -1731,9 +1982,14 @@
 
       if (relacao.status === "fulfilled") {
         const relSnap = relacao.value;
-        seguindoAgora = !!relSnap && relSnap.exists() && relSnap.data().tipo === "seguir";
+        if (relSnap && relSnap.exists() && relSnap.data().tipo === "seguir") meusSeguindo.add(uid);
+        else if (!proprio) meusSeguindo.delete(uid);
       } else {
         console.warn("Não foi possível verificar se você segue este perfil:", relacao.reason);
+      }
+      if (relacaoInversa.status === "fulfilled") {
+        const inv = relacaoInversa.value;
+        meSegue = !!inv && inv.exists() && inv.data().tipo === "seguir";
       }
       pintar();
 
@@ -1752,6 +2008,7 @@
       const backdrop = document.getElementById("perfilPublicoBackdrop");
       backdrop.classList.remove("active");
       backdrop.setAttribute("aria-hidden", "true");
+      repintarBotoesSeguir();
     }
     document.getElementById("perfilPublicoFechar").addEventListener("click", fecharPerfilPublico);
     document.getElementById("perfilPublicoBackdrop").addEventListener("click", (e) => { if (e.target.id === "perfilPublicoBackdrop") fecharPerfilPublico(); });
@@ -1770,6 +2027,7 @@
       conversas.forEach((conversa) => {
         const link = document.createElement("div");
         link.className = "conversa-item";
+        if (conversa.naoLida) link.classList.add("nao-lida");
         link.addEventListener("click", () => abrirConversa(conversa.id));
 
         const avatar = document.createElement("div");
@@ -1815,30 +2073,7 @@
         vazio.textContent = "Nenhum registro para mostrar no momento.";
         lista.appendChild(vazio);
       } else {
-        itens.forEach((item) => {
-          const linha = document.createElement(item.link ? "a" : "div");
-          linha.className = "perfil-modal-item";
-          if (item.link) linha.href = item.link;
-
-          const avatar = document.createElement("div");
-          avatar.className = "perfil-modal-avatar";
-          definirAvatar(avatar, item.foto || item.fotoPerfil || "", item.nome || "Usuário");
-
-          const info = document.createElement("div");
-          info.className = "perfil-modal-item-info";
-          const nome = document.createElement("div");
-          nome.className = "perfil-modal-item-nome";
-          nome.textContent = item.nome || item.nomeUsuario || "Usuário";
-          const texto = document.createElement("div");
-          texto.className = "perfil-modal-item-texto";
-          texto.textContent = item.texto || item.comentario || item.descricao || "";
-          info.appendChild(nome);
-          if (texto.textContent) info.appendChild(texto);
-
-          linha.appendChild(avatar);
-          linha.appendChild(info);
-          lista.appendChild(linha);
-        });
+        itens.forEach((item) => lista.appendChild(criarLinhaUsuario(item)));
       }
 
       backdrop.classList.add("active");
@@ -1862,7 +2097,10 @@
       const abrirLista = async (titulo, campoFiltro, campoOutro, singular, plural) => {
         abrirModalPerfil(titulo, "Carregando...", []);
         try {
+          await meusSeguindoPronto;
           const itens = await listarRelacionados(campoFiltro, campoOutro);
+          // Na lista de seguidores, quem eu ainda não sigo recebe "Seguir de volta".
+          if (campoFiltro === "alvoId") itens.forEach((item) => { item.textoSeguir = "Seguir de volta"; });
           abrirModalPerfil(titulo, `${itens.length} ${itens.length === 1 ? singular : plural}`, itens);
         } catch (error) {
           console.error("Erro ao listar:", error);
@@ -2063,6 +2301,7 @@
           }
 
           preencherPerfil(dadosAtuais);
+          meusSeguindoPronto = carregarMeusSeguindo().catch((error) => console.warn("Lista de quem você segue indisponível:", error));
           iniciarDetalhesPerfil(dadosAtuais);
           atualizarContagensProprias();
 
@@ -2193,7 +2432,7 @@
           return;
         }
 
-        await carregarConversas();
+        iniciarNotificacoes();
 
         const bioTexto = document.getElementById("perfilBioTexto");
         const bioEdit = document.getElementById("perfilBioEdit");
