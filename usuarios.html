@@ -1090,18 +1090,6 @@
       .menu-toggle::before { width: 28px; box-shadow: 0 9px 0 #00adee, 0 18px 0 #00adee; }
     }
     .conversa-item { cursor: pointer; }
-    #chatView { display: none; flex-direction: column; height: 65vh; min-height: 360px; background: #0d0d0d; border: 1px solid #00adee44; border-radius: 14px; overflow: hidden; }
-    .chat-topo { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid #1f2a30; }
-    .chat-topo button { background: transparent; border: 0; color: #00adee; font-size: 26px; cursor: pointer; line-height: 1; }
-    .chat-avatar { width: 34px; height: 34px; border-radius: 50%; background: #062430; display: grid; place-items: center; font-size: 12px; font-weight: 700; overflow: hidden; }
-    .chat-avatar img { width: 100%; height: 100%; object-fit: cover; }
-    .chat-msgs { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 6px; }
-    .chat-bolha { max-width: 78%; padding: 8px 11px; border-radius: 14px; font-size: 14px; line-height: 1.35; word-break: break-word; white-space: pre-wrap; }
-    .chat-bolha.minha { align-self: flex-end; background: #00adee; color: #000; }
-    .chat-bolha.outra { align-self: flex-start; background: #1b2429; }
-    .chat-form { display: flex; gap: 8px; padding: 10px; border-top: 1px solid #1f2a30; }
-    .chat-form input { flex: 1; background: #111; border: 1px solid #2f3b42; color: #fff; border-radius: 20px; padding: 10px 14px; font-size: 14px; }
-    .chat-form button { background: #00adee; color: #000; border: 0; border-radius: 20px; padding: 0 16px; font-weight: 700; cursor: pointer; }
   </style>
 
   <script type="module" src="firebase.js"></script>
@@ -1276,18 +1264,6 @@
           <div class="mensagens-lista" id="mensagensLista">
             <div class="estado-vazio" id="mensagensVazio">Você ainda não possui mensagens.</div>
           </div>
-          <div id="chatView">
-            <div class="chat-topo">
-              <button type="button" id="chatVoltar" aria-label="Voltar">‹</button>
-              <div class="chat-avatar" id="chatAvatar"></div>
-              <strong id="chatNome"></strong>
-            </div>
-            <div class="chat-msgs" id="chatMsgs"></div>
-            <div class="chat-form">
-              <input type="text" id="chatInput" maxlength="1000" placeholder="Digite uma mensagem..." autocomplete="off" />
-              <button type="button" id="chatEnviar">Enviar</button>
-            </div>
-          </div>
         </section>
 
         <section class="perfil-tab-panel" id="tab-painel">
@@ -1379,8 +1355,6 @@
     const TAMANHO_MAX_IMAGEM = 10 * 1024 * 1024;
     let user = null, dadosAtuais = null, refUsuario = null, storageModule = null;
     let doc, getDoc, setDoc, deleteDoc, addDoc, updateDoc, collection, query, where, orderBy, limit, getDocs, serverTimestamp, onSnapshot, getCountFromServer, signOut, onAuthStateChanged;
-    let cancelarChat = null;
-    let conversaAberta = null;
 
     function getInitials(name) {
       if (!name) return "HF";
@@ -1643,65 +1617,15 @@
         if (!existe) {
           await setDoc(ref, { participantes: ids, ultimaMensagem: "", atualizadoEm: serverTimestamp() }, { merge: true });
         }
-        document.querySelector('.perfil-tab-btn[data-tab="mensagens"]').click();
-        abrirChat(conversaId, destinatario.nome || "Usuário", destinatario.fotoPerfil || "");
+        abrirConversa(conversaId);
       } catch (error) {
         console.error("Erro ao iniciar conversa:", error);
         alert("Não foi possível iniciar a conversa agora.");
       }
     }
 
-    function fecharChat() {
-      if (cancelarChat) {
-        cancelarChat();
-        cancelarChat = null;
-      }
-      conversaAberta = null;
-      document.getElementById("chatView").style.display = "none";
-      document.getElementById("mensagensLista").style.display = "";
-      carregarConversas();
-    }
-
-    function abrirChat(conversaId, nome, foto) {
-      if (cancelarChat) cancelarChat();
-      conversaAberta = conversaId;
-      document.getElementById("mensagensLista").style.display = "none";
-      document.getElementById("chatView").style.display = "flex";
-      document.getElementById("chatNome").textContent = nome;
-      definirAvatar(document.getElementById("chatAvatar"), foto, nome);
-      const caixa = document.getElementById("chatMsgs");
-      caixa.innerHTML = "";
-      const q = query(collection(window.firebaseDb, "conversas", conversaId, "mensagens"), orderBy("criadoEm", "asc"), limit(300));
-      cancelarChat = onSnapshot(q, (snap) => {
-        caixa.innerHTML = "";
-        snap.docs.forEach((d) => {
-          const m = d.data();
-          const bolha = document.createElement("div");
-          bolha.className = "chat-bolha " + (m.remetenteId === user.uid ? "minha" : "outra");
-          bolha.textContent = m.texto;
-          caixa.appendChild(bolha);
-        });
-        caixa.scrollTop = caixa.scrollHeight;
-      }, (error) => {
-        console.error("Erro no chat:", error);
-        caixa.textContent = "Não foi possível carregar as mensagens.";
-      });
-    }
-
-    async function enviarMensagemChat() {
-      const input = document.getElementById("chatInput");
-      const texto = input.value.trim();
-      if (!texto || !conversaAberta) return;
-      input.value = "";
-      try {
-        const ref = doc(window.firebaseDb, "conversas", conversaAberta);
-        await addDoc(collection(ref, "mensagens"), { remetenteId: user.uid, texto, criadoEm: serverTimestamp() });
-        await updateDoc(ref, { ultimaMensagem: texto.slice(0, 120), atualizadoEm: serverTimestamp() });
-      } catch (error) {
-        console.error("Erro ao enviar mensagem:", error);
-        input.value = texto;
-        alert("Não foi possível enviar a mensagem.");
-      }
+    function abrirConversa(conversaId) {
+      window.location.href = "mensagens.html?conversa=" + encodeURIComponent(conversaId);
     }
 
     async function carregarConversas() {
@@ -1846,7 +1770,7 @@
       conversas.forEach((conversa) => {
         const link = document.createElement("div");
         link.className = "conversa-item";
-        link.addEventListener("click", () => abrirChat(conversa.id, conversa.nome, conversa.foto));
+        link.addEventListener("click", () => abrirConversa(conversa.id));
 
         const avatar = document.createElement("div");
         avatar.className = "conversa-avatar";
@@ -2269,11 +2193,6 @@
           return;
         }
 
-        document.getElementById("chatVoltar").addEventListener("click", fecharChat);
-        document.getElementById("chatEnviar").addEventListener("click", enviarMensagemChat);
-        document.getElementById("chatInput").addEventListener("keydown", (e) => {
-          if (e.key === "Enter") enviarMensagemChat();
-        });
         await carregarConversas();
 
         const bioTexto = document.getElementById("perfilBioTexto");

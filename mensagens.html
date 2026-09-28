@@ -27,8 +27,11 @@ async function iniciar(){
   const c=snap.data();
   if(!Array.isArray(c.participantes)||!c.participantes.includes(user.uid)){lista.innerHTML='<div class="erro">Você não participa desta conversa.</div>';return;}
   const outro=c.participantes.find(id=>id!==user.uid);
-  const nome=(c.nomesParticipantes&&c.nomesParticipantes[outro])||'Usuário';
-  cab.innerHTML=`Mensagens<small>${nome}</small>`;
+  let nome=(c.nomesParticipantes&&c.nomesParticipantes[outro])||'Usuário';
+  try{const perfil=await getDoc(doc(window.firebaseDb,'perfis_publicos',outro));if(perfil.exists()&&perfil.data().nome)nome=perfil.data().nome;}catch(e){console.warn('Perfil do contato indisponível:',e)}
+  const sub=document.createElement('small');sub.textContent=nome;cab.textContent='Mensagens';cab.appendChild(sub);document.title=`${nome} | Mensagens | Help Floripa`;
+  // Anexos e áudio dependem do Firebase Storage; sem ele, só texto.
+  if(!window.firebaseStorage){document.querySelector('label[for="arquivo"]')?.style.setProperty('display','none');gravar.style.display='none';}
   const q=query(collection(window.firebaseDb,'conversas',conversaId,'mensagens'),orderBy('criadoEm','asc'));
   onSnapshot(q,s=>{
    lista.innerHTML='';
