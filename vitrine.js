@@ -54,7 +54,10 @@ const ICONES = {
   lapis: '<path d="M4 20h4L19 9a2.8 2.8 0 00-4-4L4 16v4z"/>',
   cnh: '<rect x="3" y="5.5" width="18" height="13" rx="2"/><circle cx="8.5" cy="11" r="2"/><path d="M5.5 16c.6-1.4 1.7-2 3-2s2.4.6 3 2M14 10h4M14 13h3"/>',
   selo: '<path d="M12 3l2.4 1.8 3-.2.9 2.9 2.5 1.7-1 2.8 1 2.8-2.5 1.7-.9 2.9-3-.2L12 21l-2.4-1.8-3 .2-.9-2.9-2.5-1.7 1-2.8-1-2.8 2.5-1.7.9-2.9 3 .2z"/>',
-  avancar: '<path d="M9 5l7 7-7 7"/>'
+  avancar: '<path d="M9 5l7 7-7 7"/>',
+  menos: '<path d="M5 12h14"/>',
+  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  lixo: '<path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13"/>'
 };
 function icone(nome, cls = "vi s") {
   const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -136,6 +139,139 @@ export async function prepararConversa(fbx, euX, uid, cartao) {
     if (cartao) { try { sessionStorage.setItem("hf-cartao-pendente", JSON.stringify({ conversaId: id, cartao })); } catch {} }
     location.href = `mensagens.html?conversa=${encodeURIComponent(id)}`;
   } catch { toast("Não foi possível abrir a conversa."); }
+}
+
+// ---------- carrinho (delivery e lojinha) ----------
+// Fica no aparelho do cliente, um carrinho por negócio.
+const chaveCarrinho = (n) => `hf-carrinho-${n.id || n.donoId + "_" + n.tipo}`;
+const chaveItem = (i, idx) => `${idx}:${i.nome}`;
+function lerCarrinho(n) {
+  try { const c = JSON.parse(localStorage.getItem(chaveCarrinho(n)) || "{}"); return c && typeof c === "object" ? c : {}; } catch { return {}; }
+}
+function gravarCarrinho(n, c) {
+  try { if (Object.keys(c).length) localStorage.setItem(chaveCarrinho(n), JSON.stringify(c)); else localStorage.removeItem(chaveCarrinho(n)); } catch {}
+}
+const estoqueDe = (i) => (Number.isInteger(i.estoque) ? i.estoque : null);
+const limiteItem = (i) => (estoqueDe(i) ?? 99);
+function resumoPedido(n, lista, carrinho) {
+  const linhas = lista.map(({ i, idx }) => ({ i, idx, qtd: Math.min(carrinho[chaveItem(i, idx)] || 0, limiteItem(i)) }))
+    .filter((x) => x.qtd > 0)
+    .map(({ i, idx, qtd }) => ({ chave: chaveItem(i, idx), nome: String(i.nome).slice(0, 60), qtd, preco: Number(i.preco) > 0 ? Number(i.preco) : 0 }));
+  const subtotal = linhas.reduce((s, l) => s + l.qtd * l.preco, 0);
+  const taxa = n.tipo === "delivery" && Number(n.taxaEntrega) > 0 ? Number(n.taxaEntrega) : 0;
+  return { linhas, subtotal, taxa, total: subtotal + taxa, unidades: linhas.reduce((s, l) => s + l.qtd, 0), aCombinar: linhas.some((l) => !l.preco) };
+}
+const reais = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+function textoPedidoWhats(n, r, obs) {
+  const l = [`Olá! Quero fazer um pedido em "${n.nome}" (vi no Help Floripa):`, ""];
+  r.linhas.forEach((x) => l.push(`${x.qtd}x ${x.nome} — ${x.preco ? reais(x.qtd * x.preco) : "a combinar"}`));
+  l.push("");
+  if (r.taxa) l.push(`Entrega: ${reais(r.taxa)}`);
+  l.push(`Total: ${reais(r.total)}${r.aCombinar ? " + itens a combinar" : ""}`);
+  if (obs) l.push("", `Obs.: ${obs}`);
+  return l.join("\n");
+}
+function cartaoDePedido(n, r, obs) {
+  return {
+    ...cartaoDeNegocio(n),
+    titulo: `Pedido · ${n.nome || NOMES_TIPO[n.tipo]}`,
+    sub: `${r.unidades} ${r.unidades === 1 ? "item" : "itens"}`,
+    preco: reais(r.total) + (r.aCombinar ? " + a combinar" : ""),
+    pedido: {
+      itens: r.linhas.slice(0, 30).map(({ nome, qtd, preco }) => ({ nome, qtd, preco })),
+      subtotal: r.subtotal, taxa: r.taxa, total: r.total, obs: String(obs || "").slice(0, 300)
+    }
+  };
+}
+function controleQtd(qtd, max, aoMudar) {
+  const box = el("div", "vd-qtd" + (qtd ? " ativo" : ""));
+  if (!qtd) {
+    const add = el("button", "vd-add");
+    add.type = "button";
+    add.append(icone("mais"), document.createTextNode("Adicionar"));
+    add.addEventListener("click", (e) => { e.stopPropagation(); aoMudar(1); });
+    box.appendChild(add);
+    return box;
+  }
+  const menos = el("button"); menos.type = "button"; menos.setAttribute("aria-label", "Tirar um"); menos.appendChild(icone(qtd === 1 ? "lixo" : "menos"));
+  menos.addEventListener("click", (e) => { e.stopPropagation(); aoMudar(qtd - 1); });
+  const mais = el("button"); mais.type = "button"; mais.setAttribute("aria-label", "Mais um"); mais.appendChild(icone("mais"));
+  mais.disabled = qtd >= max;
+  mais.addEventListener("click", (e) => { e.stopPropagation(); if (qtd < max) aoMudar(qtd + 1); else toast("Não há mais unidades disponíveis."); });
+  box.append(menos, el("strong", null, String(qtd)), mais);
+  return box;
+}
+
+// Janela do pedido: lista com as unidades, soma, observação e envio.
+function abrirPedido(n, lista, opcoes, aoMudar) {
+  const { caixa, sair } = novaJanela(n.tipo, "Seu pedido");
+  caixa.classList.add("vd-pedido");
+  const ct = el("div", "conteudo");
+  caixa.appendChild(ct);
+  const obsCampo = document.createElement("textarea");
+  obsCampo.className = "vd-obs";
+  obsCampo.maxLength = 300;
+  obsCampo.placeholder = n.tipo === "delivery" ? "Observações: sem cebola, troco para R$ 50, ponto de referência..." : "Observações: tamanho, cor, retirada ou entrega...";
+  const pintar = () => {
+    const carrinho = lerCarrinho(n);
+    const r = resumoPedido(n, lista, carrinho);
+    ct.replaceChildren();
+    const cab = el("div", "vd-cab");
+    cab.append(el("h3", null, "Seu pedido"), el("div", "vt-sub", n.nome || NOMES_TIPO[n.tipo]));
+    ct.appendChild(cab);
+    if (!r.linhas.length) {
+      ct.appendChild(el("p", "vt-sub", "Seu carrinho está vazio."));
+      const v = el("button", "vt-btn sec"); v.type = "button"; v.textContent = "Voltar ao cardápio"; v.addEventListener("click", sair);
+      ct.appendChild(v);
+      return;
+    }
+    const ul = el("ul", "vd-pedido-lista");
+    r.linhas.forEach((x) => {
+      const item = lista.find(({ i, idx }) => chaveItem(i, idx) === x.chave);
+      const li = el("li");
+      const tx = el("div", "tx");
+      tx.append(el("strong", null, x.nome), el("small", null, x.preco ? `${reais(x.preco)} cada` : "preço a combinar"));
+      li.append(controleQtd(x.qtd, item ? limiteItem(item.i) : 99, (q) => {
+        const c = lerCarrinho(n);
+        if (q > 0) c[x.chave] = q; else delete c[x.chave];
+        gravarCarrinho(n, c); aoMudar(); pintar();
+      }), tx, el("span", "vl", x.preco ? reais(x.qtd * x.preco) : "—"));
+      ul.appendChild(li);
+    });
+    ct.appendChild(ul);
+    const tot = el("div", "vd-totais");
+    const linha = (a, b, cls) => { const d = el("div", cls || ""); d.append(el("span", null, a), el("span", null, b)); tot.appendChild(d); };
+    linha(`Subtotal (${r.unidades} ${r.unidades === 1 ? "item" : "itens"})`, reais(r.subtotal));
+    if (n.tipo === "delivery") linha("Entrega", r.taxa ? reais(r.taxa) : "Grátis");
+    linha("Total", reais(r.total) + (r.aCombinar ? " + a combinar" : ""), "total");
+    ct.appendChild(tot);
+    const minimo = Number(n.pedidoMinimo) > 0 ? Number(n.pedidoMinimo) : 0;
+    if (minimo && r.subtotal < minimo) ct.appendChild(el("p", "vd-aviso", `Pedido mínimo: ${reais(minimo)}. Faltam ${reais(minimo - r.subtotal)}.`));
+    ct.appendChild(obsCampo);
+    const barra = el("div", "vd-acoes");
+    const env = el("button", "vt-btn pri");
+    env.type = "button";
+    env.append(icone("chat"), document.createTextNode("Enviar pedido"));
+    env.addEventListener("click", () => {
+      if (minimo && r.subtotal < minimo) { toast(`O pedido mínimo é ${reais(minimo)}.`); return; }
+      const cartao = cartaoDePedido(n, r, obsCampo.value.trim());
+      gravarCarrinho(n, {});
+      document.querySelectorAll(".vt-modal").forEach((m) => m.remove());
+      (opcoes.aoMensagem || conversar)(n.donoId, cartao);
+    });
+    barra.appendChild(env);
+    const w = linkWhats(n.whatsapp, textoPedidoWhats(n, r, obsCampo.value.trim()));
+    if (w) {
+      w.addEventListener("click", () => { w.href = w.href.split("?")[0] + "?text=" + encodeURIComponent(textoPedidoWhats(n, resumoPedido(n, lista, lerCarrinho(n)), obsCampo.value.trim())); });
+      barra.appendChild(w);
+    }
+    ct.appendChild(barra);
+    const limpar = el("button", "vd-limpar", "Esvaziar carrinho");
+    limpar.type = "button";
+    limpar.addEventListener("click", () => { if (confirm("Tirar todos os itens do carrinho?")) { gravarCarrinho(n, {}); aoMudar(); pintar(); } });
+    ct.appendChild(limpar);
+  };
+  pintar();
 }
 
 // ---------- estado ----------
@@ -421,7 +557,7 @@ export function abrirDetalhe(n, opcoes = {}) {
 
   const fatos = {
     servicos: () => [["sacola", moeda(n.precoDesde) || "A combinar", "a partir de"], ["relogio", n.horario || "", "horário"],
-      ...(n.atendimento || []).filter((k) => MODOS[k]).map((k) => ["casa", MODOS[k], "atendimento"]),
+      ["casa", (n.atendimento || []).filter((k) => MODOS[k]).map((k) => MODOS[k]).join(" · "), "atendimento"],
       ["cnh", Array.isArray(n.cnh) && n.cnh.length ? n.cnh.join(" · ") : "", "CNH"], ["carro", n.veiculo || "", "veículo"]],
     delivery: () => [["relogio", n.horaAbre && n.horaFecha ? `${n.horaAbre}–${n.horaFecha}` : "", "funcionamento"],
       ["moto", n.tempoMin || n.tempoMax ? `${n.tempoMin || "?"}–${n.tempoMax || "?"} min` : "", "entrega"],
@@ -448,15 +584,81 @@ export function abrirDetalhe(n, opcoes = {}) {
     });
   } else if ((tipo === "delivery" || tipo === "lojinha") && itens.length) {
     ct.appendChild(titulo4(tipo === "delivery" ? "Cardápio" : "Produtos"));
+    if (!proprio) ct.appendChild(el("p", "vd-dica", "Toque em Adicionar para montar seu pedido. O valor vai somando lá embaixo."));
     const g = el("div", "vd-itens " + tipo);
-    itens.forEach((i) => {
-      const card = el("div", "vd-item");
-      const f = el("div", "ft");
-      if (urlSegura(i.foto)) f.style.backgroundImage = `url("${i.foto}")`; else f.appendChild(icone(tipo === "delivery" ? "sacola" : "foto", "vi"));
-      card.append(f, el("strong", null, i.nome), el("span", null, moeda(i.preco) || "Consultar"));
-      g.appendChild(card);
-    });
+    // índice original de cada item (para o carrinho e para o dono marcar vendido)
+    const lista = (n.itens || []).map((i, idx) => ({ i, idx })).filter(({ i }) => i?.nome);
+    const pintarItens = () => {
+      const carrinho = lerCarrinho(n);
+      g.replaceChildren();
+      lista.forEach(({ i, idx }) => {
+        const est = estoqueDe(i);
+        const card = el("div", "vd-item" + (est === 0 ? " esgotado" : ""));
+        const f = el("div", "ft");
+        if (urlSegura(i.foto)) f.style.backgroundImage = `url("${i.foto}")`; else f.appendChild(icone(tipo === "delivery" ? "sacola" : "foto", "vi"));
+        if (est === 0) f.appendChild(el("span", "vd-selo", "Esgotado"));
+        else if (tipo === "lojinha" && est !== null) f.appendChild(el("span", "vd-selo ok", est === 1 ? "Peça única" : `${est} disponíveis`));
+        card.append(f, el("strong", null, i.nome), el("span", null, moeda(i.preco) || "Consultar"));
+        if (proprio && tipo === "lojinha") {
+          const v = el("button", "vd-vendi");
+          v.type = "button";
+          v.append(icone(est === null || est <= 1 ? "lixo" : "check"), document.createTextNode(est === null ? "Tirar da loja" : est <= 1 ? "Vendido · remover" : "Vendi 1"));
+          v.addEventListener("click", () => marcarVendido(idx));
+          card.appendChild(v);
+        } else if (!proprio && est !== 0) {
+          const chave = chaveItem(i, idx);
+          card.appendChild(controleQtd(carrinho[chave] || 0, limiteItem(i), (q) => {
+            const c = lerCarrinho(n);
+            if (q > 0) c[chave] = q; else delete c[chave];
+            gravarCarrinho(n, c);
+            pintarItens();
+          }));
+        }
+        g.appendChild(card);
+      });
+      pintarBarraCarrinho();
+    };
+    const barraCarrinho = el("div", "vd-carrinho");
+    barraCarrinho.hidden = true;
+    const pintarBarraCarrinho = () => {
+      if (proprio) return;
+      const r = resumoPedido(n, lista, lerCarrinho(n));
+      barraCarrinho.hidden = !r.unidades;
+      caixa.classList.toggle("com-carrinho", !!r.unidades);
+      if (!r.unidades) return;
+      barraCarrinho.replaceChildren();
+      const info = el("div", "tx");
+      const qt = el("span", "n", String(r.unidades));
+      info.append(icone("sacola"), qt, el("div", null, ""));
+      info.lastChild.append(el("small", null, r.unidades === 1 ? "1 item no carrinho" : `${r.unidades} itens no carrinho`), el("strong", null, reais(r.total) + (r.aCombinar ? " +" : "")));
+      const ver = el("button", "vt-btn pri");
+      ver.type = "button";
+      ver.append(document.createTextNode("Ver pedido"), icone("avancar"));
+      ver.addEventListener("click", () => abrirPedido(n, lista, opcoes, pintarItens));
+      barraCarrinho.append(info, ver);
+    };
+    async function marcarVendido(idx) {
+      const item = (n.itens || [])[idx];
+      if (!item) return;
+      const est = estoqueDe(item);
+      const novos = [...n.itens];
+      if (est === null || est <= 1) {
+        const msg = est === 1 ? `"${item.nome}" foi vendido? Era a última unidade, então ele sai da loja.` : `Tirar "${item.nome}" da loja?`;
+        if (!confirm(msg)) return;
+        novos.splice(idx, 1);
+      } else novos[idx] = { ...item, estoque: est - 1 };
+      try {
+        await fbx.setDoc(fbx.doc(fbx.db, "negocios", n.id || `${n.donoId}_${n.tipo}`), { itens: novos, atualizadoEm: fbx.serverTimestamp() }, { merge: true });
+        n.itens = novos;
+        toast(est !== null && est > 1 ? `Venda registrada. Restam ${est - 1}.` : "Produto removido da loja.");
+        sair();
+        abrirDetalhe(n, opcoes);
+        if (TIPO_PAGINA) renderizar();
+      } catch { toast("Não foi possível atualizar o produto."); }
+    }
     ct.appendChild(g);
+    ct.appendChild(barraCarrinho);
+    pintarItens();
   }
 
   if (tipo === "imoveis") {
@@ -486,6 +688,9 @@ export function abrirDetalhe(n, opcoes = {}) {
     texto: tipo === "imoveis" ? "Falar com o anunciante" : TEXTO_CONTATO[tipo], whats: n.whatsapp,
     textoWhats: `Olá! Vi "${n.nome}" no Help Floripa.`, aoMensagem, donoId: n.donoId, cartao: cartaoDeNegocio(n)
   }));
+  // barra do carrinho fica colada no rodapé, no lugar dos botões de contato
+  const bc = ct.querySelector(".vd-carrinho");
+  if (bc) ct.insertBefore(bc, ct.lastChild);
   caixa.appendChild(ct);
 }
 
@@ -558,6 +763,25 @@ export function abrirAnuncio(a, opcoes = {}) {
     texto: "Tenho interesse", whats: a.whatsapp || anunciante.whatsapp, textoWhats: `Olá! Tenho interesse no imóvel "${tituloImovel(a)}" que vi no Help Floripa.`,
     aoMensagem, donoId: a.donoId, cartao: cartaoDeAnuncio(a)
   }));
+  if (proprio && a.id && !a.legado) {
+    // Fechou negócio? Um toque apaga o anúncio.
+    const rotulo = a.finalidade === "venda" ? "Vendido" : "Alugado";
+    const fim = el("button", "vt-btn sec");
+    fim.type = "button";
+    fim.append(icone("check"), document.createTextNode(`${rotulo} · apagar`));
+    fim.addEventListener("click", async () => {
+      if (!confirm(`Imóvel ${rotulo.toLowerCase()}? O anúncio será apagado e sai da vitrine.`)) return;
+      try {
+        await fbx.deleteDoc(fbx.doc(fbx.db, "anuncios", a.id));
+        toast(`Imóvel marcado como ${rotulo.toLowerCase()} e removido.`);
+        sair();
+        todos = todos.filter((x) => x.id !== a.id);
+        if (TIPO_PAGINA) renderizar();
+        opcoes.aoMudar?.();
+      } catch { toast("Não foi possível apagar o anúncio."); }
+    });
+    ct.lastChild.appendChild(fim);
+  }
   caixa.appendChild(ct);
 }
 

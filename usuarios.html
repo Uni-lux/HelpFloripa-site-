@@ -8,7 +8,7 @@
   <link rel="icon" href="favicon.ico" />
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
-  <link rel="stylesheet" href="vitrine.css?v=6" />
+  <link rel="stylesheet" href="vitrine.css?v=8" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
     // Tema compartilhado com a página de mensagens; aplicado antes de desenhar.
@@ -186,7 +186,8 @@
     @keyframes pulso-fio { 50% { stroke-width: 2.8; } }
     @keyframes bater { 0%, 60%, 100% { transform: scale(1); } 20% { transform: scale(1.22); } 40% { transform: scale(.95); } }
     .duo-capa { position: absolute; z-index: 5; left: 204px; bottom: 18%; width: 62px; height: 62px; border: 0; padding: 0; background: none; cursor: pointer; }
-    .duo-capa[disabled] { cursor: default; }
+    .duo-capa[disabled], .duo-capa.so-foto { cursor: default; }
+    .btn.restrito svg { opacity: .8; }
     .duo-capa .avatar { width: 100%; height: 100%; font-size: 18px; box-shadow: 0 0 0 3px rgba(255, 255, 255, .85), 0 0 0 5px #e0243b, 0 8px 20px rgba(0, 0, 0, .5); }
     .rosa-selo { position: absolute; right: -5px; bottom: -5px; width: 26px; height: 26px; border-radius: 50%; background: #fff; color: #e0243b; display: grid; place-items: center; box-shadow: 0 2px 8px rgba(0, 0, 0, .4); }
     .rosa-selo svg { width: 17px; height: 17px; }
@@ -240,6 +241,12 @@
     .neg-bloco > strong { font-size: 13px; color: #d9a200; }
     .neg-item.com-area { grid-template-columns: 1fr 110px auto; }
     .neg-item .area-item { grid-column: 1 / -1; border: 1px solid var(--line); background: var(--input); border-radius: 10px; padding: 7px 10px; font-size: 13px; color: var(--muted); }
+    .neg-item .estoque-item { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); }
+    .neg-item .estoque-item input { width: 96px; padding: 6px 9px; font-size: 13px; }
+    .neg-item .chip-um { margin-left: auto; border: 1px solid var(--line); background: transparent; color: var(--text); border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
+    .neg-anuncio-linha { display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: stretch; }
+    .neg-anuncio-linha .fechado { border: 1px solid color-mix(in srgb, #2fbf71 45%, var(--line)); background: color-mix(in srgb, #2fbf71 10%, transparent); color: #1f9d5a; border-radius: 14px; padding: 0 12px; font-size: 12.5px; font-weight: 800; cursor: pointer; display: grid; place-items: center; gap: 2px; min-width: 84px; }
+    .neg-anuncio-linha .fechado svg { width: 16px; height: 16px; }
     .neg-anuncios { display: grid; gap: 8px; margin-top: 8px; }
     .neg-anuncio { display: flex; align-items: center; gap: 12px; width: 100%; padding: 8px 12px 8px 8px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel-2); text-align: left; cursor: pointer; }
     .neg-anuncio:hover { border-color: #2fbf71; }
@@ -909,7 +916,7 @@
 
   <script type="module">
     import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=5";
-    import { abrirDetalhe as abrirPerfilNegocio, abrirAnuncio, buscarAnuncios, prepararConversa } from "./vitrine.js?v=6";
+    import { abrirDetalhe as abrirPerfilNegocio, abrirAnuncio, buscarAnuncios, prepararConversa } from "./vitrine.js?v=8";
 
     // ======================================================
     // Preferências compartilhadas com mensagens.html
@@ -1180,6 +1187,7 @@
         bEditar.append(icone("lapis", "i xs"), document.createTextNode("Editar perfil"));
         bEditar.addEventListener("click", abrirEditar);
         const bSocial = botaoSocial(eu.uid);
+        bSocial.id = "meuSocial";
         const bComp = document.createElement("button");
         bComp.type = "button"; bComp.className = "btn sec icone"; bComp.setAttribute("aria-label", "Compartilhar perfil");
         bComp.appendChild(icone("compartilhar", "i s"));
@@ -1196,6 +1204,7 @@
         meuCab.stat("seguindo").addEventListener("click", () => abrirListaRelacoes(eu.uid, "seguindo"));
         meuCab.stat("nota").addEventListener("click", () => abrirAvaliacoes(dados));
       }
+      pintarMeuSocial();
       preencherCabecalho(meuCab, dados, { posts: meusPosts.length, seguidores: contagem.seguidores, seguindo: contagem.seguindo });
       // Bio vazia vira convite
       const bio = meuCab.el("bio");
@@ -1219,7 +1228,7 @@
         c.addEventListener("click", solicitarVerificacao);
         extra.appendChild(c);
       }
-      desenharDuoCapa(meuCab, eu.uid, dados, meusVinculos, true);
+      desenharDuoCapa(meuCab, eu.uid, dados, meusVinculos, (dados.duoCapa || "clicavel") === "clicavel");
       renderizarNegocios(meuCab.el("negocios"), meusNegocios, { proprio: true, dono: dados });
       pintarAvatar($("comporAvatar"), dados.fotoPerfil, dados.nome);
       document.title = `${dados.nome || "Meu perfil"} | Help Floripa`;
@@ -2017,6 +2026,21 @@
       return false;
     }
 
+    // No seu próprio perfil, o botão Social mostra como está a privacidade das conexões.
+    function pintarMeuSocial() {
+      const b = $("meuSocial");
+      if (!b) return;
+      const vis = dados.socialVisibilidade || "todos";
+      b.replaceChildren(icone(vis === "todos" ? "teia" : "cadeado", "i xs"), document.createTextNode("Social"));
+      b.classList.toggle("restrito", vis !== "todos");
+      b.title = {
+        todos: "Todos podem abrir os perfis do seu social",
+        seguidores: "Só seus seguidores abrem os perfis do seu social",
+        amigos: "Só amigos (quem segue e é seguido) abrem os perfis do seu social",
+        ocultar: "O botão Social não aparece para os visitantes"
+      }[vis] || "";
+    }
+
     function botaoSocial(uid) {
       const b = document.createElement("a");
       b.className = "btn sec";
@@ -2053,7 +2077,11 @@
         btn.title = `${papel} · Akai Ito: ${o.nome || "Usuário"}`;
       });
       if (podeAbrir) btn.addEventListener("click", (e) => { e.stopPropagation(); abrirPerfilPublico(duo.outro); });
-      else btn.disabled = true;
+      else if (uid === eu.uid) {
+        // No próprio perfil: fica como os visitantes veem e explica o porquê.
+        btn.classList.add("so-foto");
+        btn.addEventListener("click", (e) => { e.stopPropagation(); toast("Duo em \"Só a foto\": visitantes não abrem o perfil por aqui. Mude em Configurações."); });
+      } else btn.disabled = true;
 
       const ns = "http://www.w3.org/2000/svg";
       const svgEl = document.createElementNS(ns, "svg");
@@ -2421,6 +2449,20 @@
             rm.appendChild(icone("lixo", "i s"));
             rm.addEventListener("click", () => { negExtra.itens.splice(i, 1); pintar(); });
             linha.append(nome, preco, rm);
+            // Lojinha: quantas unidades tem. Com 1 unidade, ao vender o produto sai da loja.
+            if (t === "lojinha") {
+              const est = document.createElement("label");
+              est.className = "estoque-item";
+              const inp = document.createElement("input");
+              inp.type = "number"; inp.min = "0"; inp.max = "9999"; inp.inputMode = "numeric"; inp.placeholder = "sem limite";
+              inp.value = Number.isInteger(it.estoque) ? String(it.estoque) : "";
+              inp.addEventListener("input", () => { const v = parseInt(inp.value, 10); it.estoque = Number.isInteger(v) && v >= 0 ? Math.min(v, 9999) : null; });
+              const um = document.createElement("button");
+              um.type = "button"; um.className = "chip-um"; um.textContent = "Peça única";
+              um.addEventListener("click", () => { it.estoque = 1; inp.value = "1"; });
+              est.append(document.createTextNode("Estoque"), inp, document.createTextNode("unid."), um);
+              linha.appendChild(est);
+            }
             lista.appendChild(linha);
           });
           addBtn.hidden = negExtra.itens.length >= c.max;
@@ -2461,8 +2503,27 @@
         tx.append(t1, t2);
         b.append(ft, tx, icone("lapis", "i s"));
         b.addEventListener("click", () => abrirFormAnuncio(a));
-        lista.appendChild(b);
+        // Um toque para tirar do ar quando fechar negócio.
+        const fim = document.createElement("button");
+        fim.type = "button"; fim.className = "fechado";
+        const rotuloFim = a.finalidade === "venda" ? "Vendido" : "Alugado";
+        fim.append(icone("check", "i s"), document.createTextNode(rotuloFim));
+        fim.title = `${rotuloFim}: apagar o anúncio`;
+        fim.addEventListener("click", () => concluirAnuncio(a, () => pintarMeusAnuncios(lista)));
+        const linha = document.createElement("div");
+        linha.className = "neg-anuncio-linha";
+        linha.append(b, fim);
+        lista.appendChild(linha);
       });
+    }
+    async function concluirAnuncio(a, depois) {
+      const rotulo = a.finalidade === "venda" ? "vendido" : "alugado";
+      if (!confirm(`Imóvel ${rotulo}? O anúncio "${a.titulo || "sem título"}" será apagado e sai da vitrine.`)) return;
+      try {
+        await fb.deleteDoc(fb.doc(fb.db, "anuncios", a.id));
+        toast(`Parabéns! Imóvel marcado como ${rotulo} e removido.`);
+        depois?.();
+      } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
     }
     const moedaBR = (v) => (Number(v) > 0 ? Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }) : "");
 
@@ -2639,6 +2700,7 @@
           if (!it.nome) continue;
           const fotoItem = it.foto && it.foto.startsWith("data:") ? await salvarImagem(it.foto, `negocios/${id}_i${i}.jpg`) : (it.foto || "");
           const item = { nome: it.nome, preco: it.preco ?? null, foto: fotoItem };
+          if (negTipo === "lojinha") item.estoque = Number.isInteger(it.estoque) && it.estoque >= 0 ? it.estoque : null;
           if (negTipo === "servicos") item.categoria = x.categorias.includes(it.categoria) ? it.categoria : x.categorias[0];
           extras.itens.push(item);
         }
@@ -3050,6 +3112,7 @@
       try {
         await fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), { uid: eu.uid, socialVisibilidade: b.dataset.valor }, { merge: true });
         perfis.delete(eu.uid);
+        pintarMeuSocial();
         toast("Privacidade do social atualizada");
       } catch (e) { dados.socialVisibilidade = antes; pintarConfig(); toast("Não foi possível salvar: " + erroAmigavel(e)); }
     });
@@ -3062,8 +3125,8 @@
       try {
         await fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), { uid: eu.uid, duoCapa: b.dataset.valor }, { merge: true });
         perfis.delete(eu.uid);
-        if (meuCab) desenharDuoCapa(meuCab, eu.uid, dados, meusVinculos, true);
-        toast("Duo na capa atualizado");
+        if (meuCab) desenharDuoCapa(meuCab, eu.uid, dados, meusVinculos, b.dataset.valor === "clicavel");
+        toast({ clicavel: "Duo clicável na capa", foto: "Duo aparece só como foto", ocultar: "Duo oculto da capa" }[b.dataset.valor]);
       } catch (e) { dados.duoCapa = antes; pintarConfig(); toast("Não foi possível salvar: " + erroAmigavel(e)); }
     });
 
@@ -3244,6 +3307,12 @@
           dados.nome = dados.nome || eu.displayName || "Usuário";
           dados.email = dados.email || eu.email || "";
           dados.cidade = dados.cidade || dados.cidadeNome || "";
+          // Privacidade do social e do duo ficam no perfil público: lê ANTES de sincronizar,
+          // senão a leitura pega só os campos da gravação pendente e volta tudo para o padrão.
+          const pubSnap = await fb.getDoc(fb.doc(fb.db, "perfis_publicos", eu.uid)).catch(() => null);
+          const pub = pubSnap?.exists() ? pubSnap.data() : {};
+          if (pub.socialVisibilidade) dados.socialVisibilidade = pub.socialVisibilidade;
+          if (pub.duoCapa) dados.duoCapa = pub.duoCapa;
           // Mantém o perfil público em dia (só dados que podem ser públicos).
           fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), {
             uid: eu.uid, nome: dados.nome, nickname: dados.nickname || "", cidade: dados.cidade,
@@ -3256,9 +3325,6 @@
         }
 
         avisosVistosEm = ms(dados.notificacoesVistasEm);
-        obterPerfil(eu.uid).then((pp) => { if (pp.socialVisibilidade) dados.socialVisibilidade = pp.socialVisibilidade;
-          if (pp.duoCapa && pp.duoCapa !== dados.duoCapa) { dados.duoCapa = pp.duoCapa; if (meuCab) desenharDuoCapa(meuCab, eu.uid, dados, meusVinculos, true); }
-        });
         $("estadoCarregando").hidden = true;
         $("conteudo").hidden = false;
         renderizarMeuPerfil();
