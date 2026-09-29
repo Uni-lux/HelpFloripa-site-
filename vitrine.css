@@ -227,3 +227,48 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
 .vd-fato strong { grid-row: 2; grid-column: 2; font-size: 14px; line-height: 1.25; overflow-wrap: anywhere; }
 .vd-fato:last-child:nth-child(odd) { grid-column: 1 / -1; }
 @media (max-width: 340px) { .vd-fatos { grid-template-columns: 1fr; } }
+
+/* ===== v8: carrinho (delivery e lojinha), estoque e fechar negócio ===== */
+.vd-dica { margin: -4px 0 10px; color: var(--vt-muted); font-size: 13px; }
+.vd-item { position: relative; align-content: start; }
+.vd-item .ft { position: relative; }
+.vd-item.esgotado { opacity: .55; }
+.vd-selo { position: absolute; left: 6px; top: 6px; padding: 3px 8px; border-radius: 999px; background: rgba(0, 0, 0, .7); color: #fff; font-size: 11px; font-weight: 800; }
+.vd-selo.ok { background: var(--vc); color: var(--vc-ink); }
+.vd-qtd { margin-top: 4px; display: grid; grid-template-columns: 34px 1fr 34px; align-items: center; height: 36px; border-radius: 12px; background: color-mix(in srgb, var(--vc) 14%, transparent); overflow: hidden; }
+.vd-qtd:not(.ativo) { display: block; background: none; }
+.vd-qtd button { height: 100%; border: 0; background: transparent; color: var(--vc); cursor: pointer; display: grid; place-items: center; padding: 0; font-family: inherit; }
+.vd-qtd button:disabled { opacity: .35; cursor: default; }
+.vd-qtd strong { text-align: center; font-size: 15px; color: var(--vt-text); }
+.vd-item .vd-qtd strong { font-size: 15px; }
+.vd-qtd .vd-add { width: 100%; height: 36px; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--vc) 55%, transparent); color: var(--vc); font-weight: 800; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+.vd-qtd .vd-add:hover { background: color-mix(in srgb, var(--vc) 14%, transparent); }
+.vd-vendi { margin-top: 4px; height: 34px; border-radius: 10px; border: 1px dashed var(--vt-line); background: transparent; color: var(--vt-muted); font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+.vd-vendi:hover { color: var(--vt-text); border-color: var(--vc); }
+.vd.com-carrinho > .conteudo > .vd-acoes { display: none; }
+.vd-carrinho { position: sticky; bottom: 0; z-index: 4; display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 10px 10px 10px 14px; border-radius: 16px; background: var(--vt-card-2); border: 1px solid color-mix(in srgb, var(--vc) 50%, var(--vt-line)); box-shadow: 0 -10px 30px rgba(0, 0, 0, .45); }
+.vd-carrinho[hidden] { display: none; }
+.vd-carrinho .tx { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; color: var(--vc); }
+.vd-carrinho .tx .n { min-width: 24px; height: 24px; margin-left: -18px; margin-top: -18px; padding: 0 6px; border-radius: 999px; background: var(--vc); color: var(--vc-ink); font-size: 12px; font-weight: 900; display: grid; place-items: center; }
+.vd-carrinho .tx div { display: grid; line-height: 1.2; }
+.vd-carrinho .tx small { color: var(--vt-muted); font-size: 12px; }
+.vd-carrinho .tx strong { color: var(--vt-text); font-size: 17px; }
+.vd-carrinho .vt-btn { flex: 0 0 auto; }
+.vd-pedido { max-width: 520px; }
+.vd-pedido .conteudo { padding-top: 22px; }
+.vd-pedido-lista { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 8px; }
+.vd-pedido-lista li { display: grid; grid-template-columns: 112px 1fr auto; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 14px; background: var(--vt-card-2); border: 1px solid var(--vt-line); }
+.vd-pedido-lista .vd-qtd { margin: 0; }
+.vd-pedido-lista .tx { display: grid; min-width: 0; }
+.vd-pedido-lista .tx strong { font-size: 14px; overflow-wrap: anywhere; }
+.vd-pedido-lista .tx small { color: var(--vt-muted); font-size: 12px; }
+.vd-pedido-lista .vl { font-weight: 900; color: var(--vt-text); white-space: nowrap; }
+.vd-totais { margin-top: 12px; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--vt-line); display: grid; gap: 6px; font-size: 14px; color: var(--vt-muted); }
+.vd-totais div { display: flex; justify-content: space-between; gap: 10px; }
+.vd-totais .total { padding-top: 8px; border-top: 1px solid var(--vt-line); color: var(--vt-text); font-size: 17px; font-weight: 900; }
+.vd-totais .total span:last-child { color: var(--vc); }
+.vd-aviso { margin: 10px 0 0; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, #f5b700 14%, transparent); color: #f5c542; font-size: 13px; font-weight: 700; }
+.vd-obs { width: 100%; box-sizing: border-box; margin-top: 12px; min-height: 70px; resize: vertical; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--vt-line); background: var(--vt-card-2); color: var(--vt-text); font: inherit; font-size: 14px; }
+.vd-obs:focus { outline: none; border-color: var(--vc); }
+.vd-limpar { display: block; margin: 10px auto 0; border: 0; background: none; color: var(--vt-muted); font: inherit; font-size: 13px; text-decoration: underline; cursor: pointer; }
+@media (max-width: 420px) { .vd-pedido-lista li { grid-template-columns: 100px 1fr; } .vd-pedido-lista .vl { grid-column: 2; justify-self: end; margin-top: -6px; } }

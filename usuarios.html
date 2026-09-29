@@ -8,7 +8,7 @@
   <link rel="icon" href="favicon.ico" />
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
-  <link rel="stylesheet" href="vitrine.css?v=7" />
+  <link rel="stylesheet" href="vitrine.css?v=8" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
     // Tema compartilhado com a página de mensagens; aplicado antes de desenhar.
@@ -241,6 +241,12 @@
     .neg-bloco > strong { font-size: 13px; color: #d9a200; }
     .neg-item.com-area { grid-template-columns: 1fr 110px auto; }
     .neg-item .area-item { grid-column: 1 / -1; border: 1px solid var(--line); background: var(--input); border-radius: 10px; padding: 7px 10px; font-size: 13px; color: var(--muted); }
+    .neg-item .estoque-item { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); }
+    .neg-item .estoque-item input { width: 96px; padding: 6px 9px; font-size: 13px; }
+    .neg-item .chip-um { margin-left: auto; border: 1px solid var(--line); background: transparent; color: var(--text); border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
+    .neg-anuncio-linha { display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: stretch; }
+    .neg-anuncio-linha .fechado { border: 1px solid color-mix(in srgb, #2fbf71 45%, var(--line)); background: color-mix(in srgb, #2fbf71 10%, transparent); color: #1f9d5a; border-radius: 14px; padding: 0 12px; font-size: 12.5px; font-weight: 800; cursor: pointer; display: grid; place-items: center; gap: 2px; min-width: 84px; }
+    .neg-anuncio-linha .fechado svg { width: 16px; height: 16px; }
     .neg-anuncios { display: grid; gap: 8px; margin-top: 8px; }
     .neg-anuncio { display: flex; align-items: center; gap: 12px; width: 100%; padding: 8px 12px 8px 8px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel-2); text-align: left; cursor: pointer; }
     .neg-anuncio:hover { border-color: #2fbf71; }
@@ -910,7 +916,7 @@
 
   <script type="module">
     import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=5";
-    import { abrirDetalhe as abrirPerfilNegocio, abrirAnuncio, buscarAnuncios, prepararConversa } from "./vitrine.js?v=7";
+    import { abrirDetalhe as abrirPerfilNegocio, abrirAnuncio, buscarAnuncios, prepararConversa } from "./vitrine.js?v=8";
 
     // ======================================================
     // Preferências compartilhadas com mensagens.html
@@ -2443,6 +2449,20 @@
             rm.appendChild(icone("lixo", "i s"));
             rm.addEventListener("click", () => { negExtra.itens.splice(i, 1); pintar(); });
             linha.append(nome, preco, rm);
+            // Lojinha: quantas unidades tem. Com 1 unidade, ao vender o produto sai da loja.
+            if (t === "lojinha") {
+              const est = document.createElement("label");
+              est.className = "estoque-item";
+              const inp = document.createElement("input");
+              inp.type = "number"; inp.min = "0"; inp.max = "9999"; inp.inputMode = "numeric"; inp.placeholder = "sem limite";
+              inp.value = Number.isInteger(it.estoque) ? String(it.estoque) : "";
+              inp.addEventListener("input", () => { const v = parseInt(inp.value, 10); it.estoque = Number.isInteger(v) && v >= 0 ? Math.min(v, 9999) : null; });
+              const um = document.createElement("button");
+              um.type = "button"; um.className = "chip-um"; um.textContent = "Peça única";
+              um.addEventListener("click", () => { it.estoque = 1; inp.value = "1"; });
+              est.append(document.createTextNode("Estoque"), inp, document.createTextNode("unid."), um);
+              linha.appendChild(est);
+            }
             lista.appendChild(linha);
           });
           addBtn.hidden = negExtra.itens.length >= c.max;
@@ -2483,8 +2503,27 @@
         tx.append(t1, t2);
         b.append(ft, tx, icone("lapis", "i s"));
         b.addEventListener("click", () => abrirFormAnuncio(a));
-        lista.appendChild(b);
+        // Um toque para tirar do ar quando fechar negócio.
+        const fim = document.createElement("button");
+        fim.type = "button"; fim.className = "fechado";
+        const rotuloFim = a.finalidade === "venda" ? "Vendido" : "Alugado";
+        fim.append(icone("check", "i s"), document.createTextNode(rotuloFim));
+        fim.title = `${rotuloFim}: apagar o anúncio`;
+        fim.addEventListener("click", () => concluirAnuncio(a, () => pintarMeusAnuncios(lista)));
+        const linha = document.createElement("div");
+        linha.className = "neg-anuncio-linha";
+        linha.append(b, fim);
+        lista.appendChild(linha);
       });
+    }
+    async function concluirAnuncio(a, depois) {
+      const rotulo = a.finalidade === "venda" ? "vendido" : "alugado";
+      if (!confirm(`Imóvel ${rotulo}? O anúncio "${a.titulo || "sem título"}" será apagado e sai da vitrine.`)) return;
+      try {
+        await fb.deleteDoc(fb.doc(fb.db, "anuncios", a.id));
+        toast(`Parabéns! Imóvel marcado como ${rotulo} e removido.`);
+        depois?.();
+      } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
     }
     const moedaBR = (v) => (Number(v) > 0 ? Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }) : "");
 
@@ -2661,6 +2700,7 @@
           if (!it.nome) continue;
           const fotoItem = it.foto && it.foto.startsWith("data:") ? await salvarImagem(it.foto, `negocios/${id}_i${i}.jpg`) : (it.foto || "");
           const item = { nome: it.nome, preco: it.preco ?? null, foto: fotoItem };
+          if (negTipo === "lojinha") item.estoque = Number.isInteger(it.estoque) && it.estoque >= 0 ? it.estoque : null;
           if (negTipo === "servicos") item.categoria = x.categorias.includes(it.categoria) ? it.categoria : x.categorias[0];
           extras.itens.push(item);
         }

@@ -166,6 +166,16 @@
     .cartao-msg .cm-preco { font-weight: 900; color: var(--assunto); font-size: 14px; }
     .cartao-msg .cm-ver { display: block; margin: 6px 11px 0; padding: 7px 0; text-align: center; border-top: 1px solid color-mix(in srgb, currentColor 15%, transparent); font-size: 13px; font-weight: 800; color: var(--assunto); }
     .cartao-msg .meta { margin: 4px 10px 6px 12px; }
+    .bolha.cartao-msg.pedido { min-width: 250px; max-width: min(320px, 88%); }
+    .cartao-msg.pedido .cm-ft { aspect-ratio: 3 / 1; }
+    .cm-pedido { margin-top: 6px; display: grid; gap: 4px; font-size: 13.5px; }
+    .cm-pedido div { display: flex; justify-content: space-between; gap: 10px; }
+    .cm-pedido div span:last-child { white-space: nowrap; font-weight: 700; }
+    .cm-pedido .it span:first-child { overflow-wrap: anywhere; }
+    .cm-pedido .sub { opacity: .75; font-size: 12.5px; }
+    .cm-pedido .tot { margin-top: 3px; padding-top: 6px; border-top: 1px solid color-mix(in srgb, currentColor 18%, transparent); font-weight: 900; font-size: 15px; }
+    .cm-pedido .tot span:last-child { color: var(--assunto); font-weight: 900; }
+    .cm-pedido .obs { margin: 4px 0 0; padding: 6px 8px; border-radius: 8px; background: color-mix(in srgb, currentColor 8%, transparent); font-size: 12.5px; white-space: pre-wrap; }
     .extra.cartao-pend { border-left-color: var(--assunto); }
     .extra.cartao-pend .txt strong { color: var(--assunto); }
 
@@ -762,6 +772,34 @@
       lojinha: { nome: "Lojinha", cor: "#b066ff" },
       imoveis: { nome: "Imóveis", cor: "#2fbf71" }
     };
+    const reais = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    // Lista do pedido (itens, unidades e total) dentro do cartão.
+    function blocoPedido(p) {
+      const box = document.createElement("div");
+      box.className = "cm-pedido";
+      const linha = (a, b, cls) => {
+        const d = document.createElement("div");
+        if (cls) d.className = cls;
+        const x = document.createElement("span"); x.textContent = a;
+        const y = document.createElement("span"); y.textContent = b;
+        d.append(x, y);
+        box.appendChild(d);
+      };
+      p.itens.slice(0, 30).forEach((i) => {
+        const qtd = Math.max(0, Math.min(999, parseInt(i?.qtd, 10) || 0));
+        const preco = Number(i?.preco) > 0 ? Number(i.preco) : 0;
+        linha(`${qtd}× ${String(i?.nome || "Item").slice(0, 60)}`, preco ? reais(qtd * preco) : "a combinar", "it");
+      });
+      if (Number(p.taxa) > 0) linha("Entrega", reais(p.taxa), "sub");
+      linha("Total", reais(p.total), "tot");
+      if (p.obs) {
+        const o = document.createElement("p");
+        o.className = "obs";
+        o.textContent = "Obs.: " + String(p.obs).slice(0, 300);
+        box.appendChild(o);
+      }
+      return box;
+    }
     const assuntoDe = (dados) => (dados?.contexto?.tipo && ASSUNTOS[dados.contexto.tipo] ? dados.contexto.tipo : "pessoal");
 
     // Texto com links clicáveis, sem usar innerHTML.
@@ -789,6 +827,10 @@
       if (m.tipoArquivo === "imagem") return "Foto";
       if (m.tipoArquivo === "video") return "Vídeo";
       if (m.tipoArquivo === "audio") return "Mensagem de voz";
+      if (m.tipoArquivo === "cartao" && Array.isArray(m.cartao?.pedido?.itens)) {
+        const n = m.cartao.pedido.itens.reduce((s, i) => s + (Number(i?.qtd) || 0), 0);
+        return `Pedido: ${n} ${n === 1 ? "item" : "itens"} · ${reais(m.cartao.pedido.total)}`;
+      }
       if (m.tipoArquivo === "cartao") return `Interesse: ${m.cartao?.titulo || "portfólio"}`;
       return m.arquivoUrl ? "Arquivo" : "";
     }
@@ -1460,8 +1502,10 @@
         const ti = document.createElement("strong"); ti.textContent = c.titulo || "";
         tx.append(tp, ti);
         if (c.sub) { const s = document.createElement("small"); s.textContent = c.sub; tx.appendChild(s); }
-        if (c.preco) { const p = document.createElement("span"); p.className = "cm-preco"; p.textContent = c.preco; tx.appendChild(p); }
-        const ver = document.createElement("span"); ver.className = "cm-ver"; ver.textContent = "Ver detalhes";
+        const ehPedido = Array.isArray(c.pedido?.itens) && c.pedido.itens.length;
+        if (c.preco && !ehPedido) { const p = document.createElement("span"); p.className = "cm-preco"; p.textContent = c.preco; tx.appendChild(p); }
+        if (ehPedido) { bolha.classList.add("pedido"); tp.textContent = `${ASSUNTOS[tipo].nome} · Pedido`; tx.appendChild(blocoPedido(c.pedido)); }
+        const ver = document.createElement("span"); ver.className = "cm-ver"; ver.textContent = ehPedido ? "Ver cardápio / loja" : "Ver detalhes";
         link.append(tx, ver);
         bolha.appendChild(link);
       }
@@ -1798,7 +1842,7 @@
       const th = $("cartaoThumb");
       th.replaceChildren();
       th.style.background = urlSegura(c.foto) ? `center / cover url("${urlSegura(c.foto)}")` : "";
-      $("cartaoTipo").textContent = `${(ASSUNTOS[c.tipo] || ASSUNTOS.servicos).nome} · vai junto na mensagem`;
+      $("cartaoTipo").textContent = `${(ASSUNTOS[c.tipo] || ASSUNTOS.servicos).nome} · ${c.pedido ? "pedido vai" : "vai"} junto na mensagem`;
       $("cartaoTitulo").textContent = [c.titulo, c.preco].filter(Boolean).join(" · ");
       atualizarBotaoEnviar();
     }
