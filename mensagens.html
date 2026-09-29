@@ -145,9 +145,29 @@
     .search input:focus { border-color: var(--accent); background: var(--input); }
     .search input::placeholder { color: var(--muted); }
 
-    .pills { display: flex; gap: 8px; padding: 0 12px 10px; }
-    .pill { border: 0; border-radius: 999px; padding: 6px 14px; background: var(--panel-2); color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; }
+    .pills { display: flex; gap: 8px; padding: 0 12px 10px; overflow-x: auto; scrollbar-width: none; }
+    .pills::-webkit-scrollbar { display: none; }
+    .pill { flex: 0 0 auto; border: 0; border-radius: 999px; padding: 6px 14px; background: var(--panel-2); color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; }
     .pill.on { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+    .pill.assunto { display: inline-flex; align-items: center; gap: 6px; }
+    .pill.assunto i { width: 8px; height: 8px; border-radius: 50%; background: var(--assunto); }
+    .pill.assunto.on { background: color-mix(in srgb, var(--assunto) 18%, transparent); color: var(--assunto); }
+    .conv-item.com-assunto::before { content: ""; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px; border-radius: 0 3px 3px 0; background: var(--assunto); }
+    .conv-item.com-assunto .avatar { box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--assunto); }
+    .conv-previa .conv-assunto { flex-shrink: 0; padding: 1px 7px; border-radius: 6px; font-size: 11px; font-weight: 800; color: var(--assunto); background: color-mix(in srgb, var(--assunto) 14%, transparent); }
+    .quem-txt .assunto-topo { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 6px; font-size: 10.5px; font-weight: 800; vertical-align: middle; color: var(--assunto); background: color-mix(in srgb, var(--assunto) 16%, transparent); }
+    .bolha.cartao-msg { padding: 0; overflow: hidden; min-width: 230px; max-width: min(300px, 84%); }
+    .cartao-msg .cm-link { display: block; text-decoration: none; color: inherit; border-top: 4px solid var(--assunto); }
+    .cartao-msg .cm-ft { aspect-ratio: 16 / 9; background: var(--panel-2) center / cover; }
+    .cartao-msg .cm-tx { padding: 9px 11px 4px; display: grid; gap: 2px; }
+    .cartao-msg .cm-tipo { font-size: 11px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: var(--assunto); }
+    .cartao-msg .cm-tx strong { font-size: 14.5px; line-height: 1.3; }
+    .cartao-msg .cm-tx small { opacity: .75; font-size: 12.5px; }
+    .cartao-msg .cm-preco { font-weight: 900; color: var(--assunto); font-size: 14px; }
+    .cartao-msg .cm-ver { display: block; margin: 6px 11px 0; padding: 7px 0; text-align: center; border-top: 1px solid color-mix(in srgb, currentColor 15%, transparent); font-size: 13px; font-weight: 800; color: var(--assunto); }
+    .cartao-msg .meta { margin: 4px 10px 6px 12px; }
+    .extra.cartao-pend { border-left-color: var(--assunto); }
+    .extra.cartao-pend .txt strong { color: var(--assunto); }
 
     .conv-list { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding-bottom: env(safe-area-inset-bottom); }
     .conv-item {
@@ -252,7 +272,7 @@
     .chat-top .quem:hover { background: var(--hover); }
     .quem-txt { min-width: 0; }
     .quem-txt strong { display: block; font-size: 16px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .quem-txt small { display: block; color: var(--muted); font-size: 12.5px; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 15px; }
+    .quem-txt small { display: block; color: var(--muted); font-size: 12px; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 15px; }
     .quem-txt small.online, .quem-txt small.digitando { color: var(--accent); }
     .btn-voltar { display: none; }
 
@@ -427,6 +447,7 @@
       <div class="pills" role="tablist">
         <button type="button" class="pill on" data-filtro="todas" role="tab" aria-selected="true">Todas</button>
         <button type="button" class="pill" data-filtro="naoLidas" role="tab" aria-selected="false">Não lidas</button>
+        <span id="pillsAssunto" style="display:contents"></span>
         <button type="button" class="pill" data-filtro="restritas" role="tab" aria-selected="false" id="pillRestritas" hidden>Restritas</button>
       </div>
       <div class="conv-list" id="listaConversas"></div>
@@ -488,6 +509,11 @@
           <div class="extra" id="barraResposta" hidden>
             <div class="txt"><strong id="respostaQuem"></strong><span id="respostaTexto"></span></div>
             <button type="button" class="icon-btn" id="cancelarResposta" aria-label="Cancelar resposta"><svg class="i"><use href="#i-fechar"/></svg></button>
+          </div>
+          <div class="extra cartao-pend" id="barraCartao" hidden>
+            <div class="thumb" id="cartaoThumb"></div>
+            <div class="txt"><strong id="cartaoTipo">Vai junto na mensagem</strong><span id="cartaoTitulo"></span></div>
+            <button type="button" class="icon-btn" id="cancelarCartao" aria-label="Não enviar o cartão"><svg class="i"><use href="#i-fechar"/></svg></button>
           </div>
           <div class="extra" id="barraAnexo" hidden>
             <div class="thumb" id="anexoThumb"></div>
@@ -722,10 +748,21 @@
       if (!d) return "";
       const hoje = new Date();
       const ontem = new Date(); ontem.setDate(hoje.getDate() - 1);
-      if (mesmoDia(d, hoje)) return `visto por último hoje às ${hora(d)}`;
-      if (mesmoDia(d, ontem)) return `visto por último ontem às ${hora(d)}`;
-      return `visto por último em ${d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}`;
+      // Curto para caber no topo do celular com o horário inteiro.
+      if (mesmoDia(d, hoje)) return `visto hoje às ${hora(d)}`;
+      if (mesmoDia(d, ontem)) return `visto ontem às ${hora(d)}`;
+      return `visto em ${d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })} às ${hora(d)}`;
     }
+
+    // Assunto da conversa: pessoal ou ligado a um perfil de negócio (mesmas cores dos perfis).
+    const ASSUNTOS = {
+      pessoal: { nome: "Pessoais", cor: "#8b9ba6" },
+      servicos: { nome: "Serviços", cor: "#00adee" },
+      delivery: { nome: "Delivery", cor: "#ff7a1a" },
+      lojinha: { nome: "Lojinha", cor: "#b066ff" },
+      imoveis: { nome: "Imóveis", cor: "#2fbf71" }
+    };
+    const assuntoDe = (dados) => (dados?.contexto?.tipo && ASSUNTOS[dados.contexto.tipo] ? dados.contexto.tipo : "pessoal");
 
     // Texto com links clicáveis, sem usar innerHTML.
     function textoComLinks(texto) {
@@ -752,6 +789,7 @@
       if (m.tipoArquivo === "imagem") return "Foto";
       if (m.tipoArquivo === "video") return "Vídeo";
       if (m.tipoArquivo === "audio") return "Mensagem de voz";
+      if (m.tipoArquivo === "cartao") return `Interesse: ${m.cartao?.titulo || "portfólio"}`;
       return m.arquivoUrl ? "Arquivo" : "";
     }
 
@@ -873,13 +911,43 @@
     // ======================================================
     // Lista de conversas
     // ======================================================
+    // Filtros por assunto (Pessoais, Serviços, Delivery...), só dos que existem nas suas conversas.
+    function pintarPillsAssunto() {
+      const box = $("pillsAssunto");
+      const presentes = Object.keys(ASSUNTOS).filter((k) => conversas.some((c) => assuntoDe(c.dados) === k && !restritos.has(c.outroId)));
+      const mostrar = presentes.length > 1 || presentes.some((k) => k !== "pessoal") ? presentes : [];
+      const chave = mostrar.join(",") + "|" + filtro;
+      if (box.dataset.chave === chave) return;
+      box.dataset.chave = chave;
+      box.replaceChildren();
+      mostrar.forEach((k) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        const on = filtro === "assunto:" + k;
+        b.className = "pill assunto" + (on ? " on" : "");
+        b.setAttribute("role", "tab");
+        b.setAttribute("aria-selected", on ? "true" : "false");
+        b.style.setProperty("--assunto", ASSUNTOS[k].cor);
+        const bola = document.createElement("i");
+        b.append(bola, document.createTextNode(ASSUNTOS[k].nome));
+        b.addEventListener("click", () => {
+          filtro = on ? "todas" : "assunto:" + k;
+          document.querySelectorAll(".pill").forEach((x) => { const sel = x.dataset.filtro === filtro; x.classList.toggle("on", sel); x.setAttribute("aria-selected", sel ? "true" : "false"); });
+          renderizarLista();
+        });
+        box.appendChild(b);
+      });
+    }
+
     function renderizarLista() {
       const lista = $("listaConversas");
       const termo = $("buscaConversas").value.trim().toLowerCase();
       let itens = conversas.filter((c) => !termo || c.nome.toLowerCase().includes(termo) || (c.nick || "").toLowerCase().includes(termo));
       itens = filtro === "restritas" ? itens.filter((c) => restritos.has(c.outroId)) : itens.filter((c) => !restritos.has(c.outroId));
       if (filtro === "naoLidas") itens = itens.filter((c) => c.naoLida);
+      if (filtro.startsWith("assunto:")) itens = itens.filter((c) => assuntoDe(c.dados) === filtro.slice(8));
       $("pillRestritas").hidden = !conversas.some((c) => restritos.has(c.outroId)) && filtro !== "restritas";
+      pintarPillsAssunto();
       lista.replaceChildren();
 
       if (!itens.length) {
@@ -912,6 +980,9 @@
         const item = document.createElement("button");
         item.type = "button";
         item.className = "conv-item" + (c.naoLida ? " nao-lida" : "") + (ativa?.id === c.id ? " ativa" : "");
+        const assunto = assuntoDe(c.dados);
+        item.style.setProperty("--assunto", ASSUNTOS[assunto].cor);
+        if (assunto !== "pessoal") item.classList.add("com-assunto");
         item.addEventListener("click", () => abrirConversa(c.id));
 
         const av = document.createElement("div");
@@ -934,6 +1005,13 @@
         l2.className = "conv-linha";
         const previa = document.createElement("div");
         previa.className = "conv-previa";
+        if (assunto !== "pessoal") {
+          const tag = document.createElement("span");
+          tag.className = "conv-assunto";
+          tag.textContent = ASSUNTOS[assunto].nome;
+          tag.title = c.dados.contexto?.titulo || ASSUNTOS[assunto].nome;
+          previa.appendChild(tag);
+        }
         if (config.mostrarDigitando && estaDigitando(c.dados, c.outroId)) {
           const d = document.createElement("span");
           d.className = "digitando";
@@ -1088,6 +1166,8 @@
       else history.replaceState({ conversa: id }, "", url);
 
       aplicarBloqueio();
+      pintarAssuntoTopo();
+      carregarCartaoPendente(id);
       ouvirConversaAtiva();
       ouvirPresenca();
       ouvirMensagens();
@@ -1193,6 +1273,7 @@
       pararConversa = fb.onSnapshot(refConversa(id), (s) => {
         if (!ativa || ativa.id !== id || !s.exists()) return;
         ativa.dados = s.data({ serverTimestamps: "estimate" });
+        pintarAssuntoTopo();
         if (!s.metadata.hasPendingWrites) marcarComoLida();
         atualizarStatusTopo();
         atualizarChecks();
@@ -1362,7 +1443,30 @@
         bolha.appendChild(cit);
       }
 
-      const url = urlSegura(m.arquivoUrl);
+      // Cartão do portfólio (serviço, delivery, loja ou imóvel) que o cliente enviou junto.
+      if (m.tipoArquivo === "cartao" && m.cartao) {
+        const c = m.cartao;
+        const tipo = ASSUNTOS[c.tipo] ? c.tipo : "servicos";
+        bolha.classList.add("cartao-msg");
+        bolha.style.setProperty("--assunto", ASSUNTOS[tipo].cor);
+        const link = document.createElement("a");
+        link.className = "cm-link";
+        link.href = /^(servicos|delivery|shopping|imoveis)\.html\?[\w=&%.-]+$/.test(String(c.link || "")) ? c.link : "#";
+        const foto = urlSegura(c.foto);
+        if (foto) { const ft = document.createElement("div"); ft.className = "cm-ft"; ft.style.backgroundImage = `url("${foto}")`; link.appendChild(ft); }
+        const tx = document.createElement("div");
+        tx.className = "cm-tx";
+        const tp = document.createElement("span"); tp.className = "cm-tipo"; tp.textContent = ASSUNTOS[tipo].nome;
+        const ti = document.createElement("strong"); ti.textContent = c.titulo || "";
+        tx.append(tp, ti);
+        if (c.sub) { const s = document.createElement("small"); s.textContent = c.sub; tx.appendChild(s); }
+        if (c.preco) { const p = document.createElement("span"); p.className = "cm-preco"; p.textContent = c.preco; tx.appendChild(p); }
+        const ver = document.createElement("span"); ver.className = "cm-ver"; ver.textContent = "Ver detalhes";
+        link.append(tx, ver);
+        bolha.appendChild(link);
+      }
+
+      const url = m.tipoArquivo === "cartao" ? "" : urlSegura(m.arquivoUrl);
       if (url) {
         bolha.classList.add("midia");
         if (!m.texto) bolha.classList.add("so-midia");
@@ -1489,12 +1593,62 @@
       menu.querySelector("button")?.focus();
     }
 
+    // Etiqueta colorida do assunto no topo do chat
+    function pintarAssuntoTopo() {
+      const nome = $("topNome");
+      nome.parentNode.querySelector(".assunto-topo")?.remove();
+      if (!ativa) return;
+      const k = assuntoDe(ativa.dados);
+      if (k === "pessoal") return;
+      const tag = document.createElement("span");
+      tag.className = "assunto-topo";
+      tag.style.setProperty("--assunto", ASSUNTOS[k].cor);
+      tag.textContent = ASSUNTOS[k].nome;
+      const titulo = ativa.dados?.contexto?.titulo;
+      if (titulo) tag.title = titulo;
+      nome.after(tag);
+    }
+
+    function abrirMenuAssunto() {
+      const menu = $("menuMsg");
+      menu.replaceChildren();
+      const atual = assuntoDe(ativa?.dados);
+      Object.entries(ASSUNTOS).forEach(([k, a]) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.setAttribute("role", "menuitemradio");
+        b.setAttribute("aria-checked", String(k === atual));
+        const bol = document.createElement("span");
+        bol.style.cssText = `display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:10px;background:${a.cor};flex:none`;
+        b.append(bol, document.createTextNode(a.nome + (k === atual ? "  ✓" : "")));
+        b.addEventListener("click", async () => {
+          fecharMenu();
+          if (!ativa) return;
+          const titulo = k === atual ? (ativa.dados?.contexto?.titulo || "") : "";
+          try {
+            await fb.setDoc(refConversa(ativa.id), { contexto: k === "pessoal" ? null : { tipo: k, titulo } }, { merge: true });
+            toast(`Conversa marcada como ${a.nome}`);
+          } catch (e) {
+            console.error(e);
+            toast("Não foi possível classificar a conversa.");
+          }
+        });
+        menu.appendChild(b);
+      });
+      menu.hidden = false;
+      const r = $("btnMenuConversa").getBoundingClientRect();
+      const mr = menu.getBoundingClientRect();
+      menu.style.left = Math.max(8, r.right - mr.width) + "px";
+      menu.style.top = (r.bottom + 4) + "px";
+    }
+
     function abrirMenuConversa() {
       const menu = $("menuMsg");
       menu.replaceChildren();
       [
         { rotulo: "Ver perfil", icone: "perfil", acao: verPerfil },
         { rotulo: "Pesquisar na conversa", icone: "lupa", acao: abrirBuscaChat },
+        { rotulo: "Classificar conversa", icone: "config", acao: () => setTimeout(abrirMenuAssunto, 0) },
         { rotulo: restritos.has(ativa?.outroId) ? "Remover restrição" : "Restringir", icone: "restringir", acao: alternarRestricao },
         { rotulo: bloqueios.meus.has(ativa?.outroId) ? "Desbloquear" : "Bloquear", icone: "bloquear", perigo: !bloqueios.meus.has(ativa?.outroId), acao: alternarBloqueio },
         { rotulo: "Configurações do chat", icone: "config", acao: () => abrirPainel("painelConfig") },
@@ -1624,13 +1778,56 @@
     // Enviar
     // ======================================================
     let enviando = false;
+    // ---------- cartão pendente (vem da vitrine ou do perfil de negócio) ----------
+    let cartaoPendente = null;
+    function carregarCartaoPendente(conversaId) {
+      cartaoPendente = null;
+      try {
+        const salvo = JSON.parse(sessionStorage.getItem("hf-cartao-pendente") || "null");
+        if (salvo && salvo.conversaId === conversaId && salvo.cartao) cartaoPendente = salvo.cartao;
+      } catch {}
+      pintarCartaoPendente();
+    }
+    function pintarCartaoPendente() {
+      const barra = $("barraCartao");
+      barra.hidden = !cartaoPendente;
+      if (!cartaoPendente) return;
+      const c = cartaoPendente;
+      const cor = (ASSUNTOS[c.tipo] || ASSUNTOS.servicos).cor;
+      barra.style.setProperty("--assunto", cor);
+      const th = $("cartaoThumb");
+      th.replaceChildren();
+      th.style.background = urlSegura(c.foto) ? `center / cover url("${urlSegura(c.foto)}")` : "";
+      $("cartaoTipo").textContent = `${(ASSUNTOS[c.tipo] || ASSUNTOS.servicos).nome} · vai junto na mensagem`;
+      $("cartaoTitulo").textContent = [c.titulo, c.preco].filter(Boolean).join(" · ");
+      atualizarBotaoEnviar();
+    }
+    function descartarCartao() {
+      cartaoPendente = null;
+      try { sessionStorage.removeItem("hf-cartao-pendente"); } catch {}
+      pintarCartaoPendente();
+    }
+    $("cancelarCartao").addEventListener("click", descartarCartao);
+
     async function enviar() {
       if (gravador) { pararGravacao(true); return; }
       const campo = $("texto");
       const texto = campo.value.trim();
-      if ((!texto && !anexo) || !ativa || enviando) return;
+      if ((!texto && !anexo && !cartaoPendente) || !ativa || enviando) return;
 
       const conversaId = ativa.id;
+      // Cartão do portfólio vai antes do texto, como assunto da conversa.
+      if (cartaoPendente) {
+        const cartao = cartaoPendente;
+        descartarCartao();
+        try {
+          await publicarMensagem(conversaId, { remetenteId: eu.uid, texto: "", criadoEm: fb.serverTimestamp(), tipoArquivo: "cartao", cartao });
+        } catch (erro) {
+          console.error(erro);
+          toast("Não foi possível enviar o cartão.");
+        }
+        if (!texto && !anexo) return;
+      }
       const anexoAtual = anexo;
       const resposta = respondendo;
       const dados = { remetenteId: eu.uid, texto, criadoEm: fb.serverTimestamp() };
@@ -1698,7 +1895,7 @@
     }
 
     function atualizarBotaoEnviar() {
-      const temConteudo = !!$("texto").value.trim() || !!anexo;
+      const temConteudo = !!$("texto").value.trim() || !!anexo || !!cartaoPendente;
       $("btnEnviar").setAttribute("aria-label", gravador ? "Enviar áudio" : "Enviar");
       $("btnEnviar").classList.toggle("vazio", !temConteudo && !gravador);
       $("btnAudio").hidden = !podeGravar();
