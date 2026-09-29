@@ -19,7 +19,7 @@
   <style>
     :root {
       --accent: #00adee; --accent-ink: #001a24; --danger: #e5484d;
-      --duo: #e0243b; --familia: #f0b429; --amizade: #00adee; --amor: #ff4f8b; --trabalho: #2fbf71;
+      --duo: #e0243b; --familia: #f0b429; --amizade: #00adee; --trabalho: #2fbf71;
       --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     }
     :root[data-theme="dark"] { --bg: #070b0e; --panel: #0f161b; --panel-2: #151f25; --hover: #19252c; --line: #213038; --text: #eaf0f3; --muted: #8c9ca7; --anel: rgba(255, 255, 255, .06); --overlay: rgba(2, 6, 9, .72); --sombra: 0 18px 50px rgba(0, 0, 0, .45); }
@@ -31,88 +31,102 @@
     a { color: inherit; }
     svg.i { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
     svg.i.s { width: 16px; height: 16px; }
+    [data-cat="duo"] { --cor: var(--duo); }
+    [data-cat="familia"] { --cor: var(--familia); }
+    [data-cat="amizade"] { --cor: var(--amizade); }
+    [data-cat="trabalho"] { --cor: var(--trabalho); }
 
     .topo { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 8px; height: calc(58px + env(safe-area-inset-top)); padding: env(safe-area-inset-top) 8px 0; background: color-mix(in srgb, var(--panel) 88%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border-bottom: 1px solid var(--line); }
     .topo h1 { flex: 1; margin: 0; font-size: 16px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .icone-btn { width: 42px; height: 42px; border-radius: 50%; border: 0; background: transparent; display: grid; place-items: center; cursor: pointer; color: var(--text); text-decoration: none; }
     .icone-btn:hover { background: var(--hover); }
-    .pagina { width: min(820px, 100%); margin: 0 auto; padding: 16px 16px calc(40px + env(safe-area-inset-bottom)); display: grid; gap: 16px; }
+    .pagina { width: min(860px, 100%); margin: 0 auto; padding: 16px 16px calc(40px + env(safe-area-inset-bottom)); }
+    #conteudo { display: grid; gap: 16px; }
     .estado { padding: 80px 20px; text-align: center; color: var(--muted); }
     .estado strong { display: block; color: var(--text); font-size: 18px; margin-bottom: 6px; }
     .cartao { background: var(--panel); border: 1px solid var(--line); border-radius: 26px; overflow: hidden; }
-    .rotulo { margin: 0 0 12px; font-size: 12px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+    .rotulo { margin: 0; font-size: 12px; font-weight: 800; letter-spacing: 1.1px; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 8px; }
     .avatar { width: 48px; height: 48px; border-radius: 50%; overflow: hidden; background: linear-gradient(135deg, #0a4a63, #00adee); color: #fff; display: grid; place-items: center; font-weight: 750; flex-shrink: 0; }
     .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
     /* ---------- cabeçalho ---------- */
-    .hero { position: relative; text-align: center; padding: 0 20px 22px; }
-    .hero-fundo { position: absolute; inset: 0 0 auto 0; height: 128px; background: #06202c url("ponte-help.webp") center / cover; }
-    .hero-fundo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 0, 0, .15), var(--panel)); }
-    .hero .avatar { position: relative; width: 104px; height: 104px; margin: 64px auto 12px; font-size: 32px; box-shadow: 0 0 0 5px var(--panel), 0 0 0 7px var(--accent), var(--sombra); }
-    .hero h2 { margin: 0; font-size: 24px; font-weight: 850; letter-spacing: -.4px; }
-    .hero .nick { color: var(--muted); font-size: 14px; margin-top: 2px; }
-    .resumo { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
-    .resumo span { display: inline-flex; align-items: center; gap: 7px; padding: 7px 12px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); font-size: 13px; font-weight: 700; }
-    .resumo i { width: 9px; height: 9px; border-radius: 50%; background: var(--cor); }
-    .resumo b { font-weight: 850; }
+    .hero { position: relative; }
+    .hero-fundo { height: 150px; background: #06202c url("ponte-help.webp") center / cover; position: relative; }
+    .hero-fundo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 0, 0, .1) 0%, rgba(0, 0, 0, .35) 60%, var(--panel) 100%); }
+    .hero-corpo { position: relative; display: flex; align-items: flex-end; gap: 16px; padding: 0 22px 20px; margin-top: -56px; }
+    .hero-corpo .avatar { width: 108px; height: 108px; font-size: 32px; box-shadow: 0 0 0 5px var(--panel), 0 0 0 7px var(--accent), var(--sombra); }
+    .hero-tx { flex: 1; min-width: 0; padding-bottom: 6px; }
+    .hero-tx h2 { margin: 0; font-size: 26px; font-weight: 850; letter-spacing: -.5px; }
+    .hero-tx .nick { color: var(--muted); font-size: 14px; margin-top: 2px; }
+    .numeros { display: grid; grid-template-columns: repeat(5, 1fr); border-top: 1px solid var(--line); }
+    .numero { border: 0; background: transparent; padding: 14px 6px; text-align: center; cursor: pointer; position: relative; }
+    .numero + .numero::before { content: ""; position: absolute; left: 0; top: 24%; bottom: 24%; width: 1px; background: var(--line); }
+    .numero:hover { background: var(--hover); }
+    .numero strong { display: block; font-size: 22px; font-weight: 850; }
+    .numero span { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); font-weight: 700; }
+    .numero span i { width: 8px; height: 8px; border-radius: 50%; background: var(--cor); }
+    .numero.on { background: color-mix(in srgb, var(--cor, var(--accent)) 12%, transparent); }
+    .numero.on strong { color: var(--cor, var(--text)); }
+    .numero.total span { text-decoration: underline; text-underline-offset: 3px; }
 
     /* ---------- duo ---------- */
-    .duo { position: relative; padding: 22px 20px 20px; text-align: center; background: radial-gradient(90% 120% at 50% 0%, rgba(224, 36, 59, .16), transparent 65%), var(--panel); border-color: rgba(224, 36, 59, .3); }
-    .duo-par { position: relative; display: flex; justify-content: center; align-items: center; gap: 56px; margin: 6px 0 12px; }
-    .duo-par svg.fio { position: absolute; left: 50%; top: 50%; width: 150px; height: 70px; transform: translate(-50%, -62%); overflow: visible; pointer-events: none; }
+    .duo { padding: 20px 20px 22px; text-align: center; background: radial-gradient(80% 120% at 50% 0%, rgba(224, 36, 59, .18), transparent 65%), var(--panel); border-color: rgba(224, 36, 59, .32); }
+    .duo .rotulo { justify-content: center; color: var(--duo); }
+    .duo-par { position: relative; display: flex; justify-content: center; align-items: center; gap: 80px; margin: 14px 0 12px; }
+    .duo-par svg.fio { position: absolute; left: 50%; top: 40px; width: 150px; height: 60px; transform: translate(-50%, -50%); overflow: visible; pointer-events: none; }
     .duo-par .fio path.linha { fill: none; stroke: var(--duo); stroke-width: 2.4; stroke-linecap: round; filter: drop-shadow(0 0 4px rgba(224, 36, 59, .7)); }
-    .duo-par .fio path.cor { fill: var(--duo); stroke: #fff; stroke-width: 1.2; transform-box: fill-box; transform-origin: center; animation: bater 1.6s ease-in-out infinite; }
-    @keyframes bater { 0%, 60%, 100% { transform: scale(1); } 20% { transform: scale(1.22); } 40% { transform: scale(.95); } }
+    .duo-par .fio path.cor { fill: var(--duo); stroke: #fff; stroke-width: 1.4; transform-box: fill-box; transform-origin: center; animation: bater 1.6s ease-in-out infinite; }
+    @keyframes bater { 0%, 60%, 100% { transform: scale(1); } 20% { transform: scale(1.2); } 40% { transform: scale(.95); } }
     .duo-pessoa { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 8px; border: 0; background: none; padding: 0; cursor: pointer; }
     .duo-pessoa[disabled] { cursor: default; }
-    .duo-pessoa .avatar { width: 78px; height: 78px; font-size: 24px; box-shadow: 0 0 0 4px var(--panel), 0 0 0 6px var(--duo), 0 10px 26px rgba(224, 36, 59, .25); }
+    .duo-pessoa .avatar { width: 80px; height: 80px; font-size: 24px; box-shadow: 0 0 0 4px var(--panel), 0 0 0 6px var(--duo), 0 10px 26px rgba(224, 36, 59, .25); }
     .duo-pessoa strong { font-size: 14px; max-width: 110px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .rosa { position: absolute; right: -4px; top: 52px; width: 28px; height: 28px; border-radius: 50%; background: #fff; color: var(--duo); display: grid; place-items: center; box-shadow: 0 3px 10px rgba(0, 0, 0, .35); }
+    .duo-pessoa em { font-style: normal; font-size: 12px; color: var(--duo); font-weight: 750; margin-top: -4px; }
+    .rosa { position: absolute; right: -4px; top: 56px; width: 28px; height: 28px; border-radius: 50%; background: #fff; color: var(--duo); display: grid; place-items: center; box-shadow: 0 3px 10px rgba(0, 0, 0, .35); }
     .rosa svg { width: 18px; height: 18px; }
     .duo small { color: var(--muted); font-size: 13px; }
 
-    /* ---------- constelação por setores ---------- */
-    .mapa-box { padding: 18px 16px 16px; }
-    .mapa { position: relative; width: 100%; max-width: 560px; aspect-ratio: 1; margin: 0 auto; }
+    /* ---------- mapa ---------- */
+    .mapa-box { padding: 18px 16px 18px; }
+    .mapa-topo { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+    .legenda { display: flex; gap: 6px; flex-wrap: wrap; }
+    .legenda button { display: inline-flex; align-items: center; gap: 6px; padding: 6px 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel-2); font-size: 12.5px; font-weight: 700; cursor: pointer; color: var(--muted); }
+    .legenda button i { width: 9px; height: 9px; border-radius: 50%; background: var(--cor, var(--muted)); }
+    .legenda button.on { color: var(--text); border-color: var(--cor, var(--text)); background: color-mix(in srgb, var(--cor, var(--text)) 14%, var(--panel)); }
+    .mapa { position: relative; width: 100%; max-width: 660px; aspect-ratio: 1; margin: 0 auto; }
     .mapa svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
     .mapa .anel { fill: none; stroke: var(--anel); stroke-width: 1; }
-    .mapa .setor { fill: none; stroke-width: 10; stroke-linecap: round; opacity: .22; transition: opacity .25s; }
-    .mapa .setor-rot { font-size: 11px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; fill: var(--muted); }
-    .mapa .liga { fill: none; stroke-width: 1.6; opacity: .7; transition: opacity .25s; }
-    .mapa .no { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 4px; width: 78px; border: 0; background: none; padding: 0; cursor: pointer; transition: opacity .25s, transform .2s; }
-    .mapa .no:hover { transform: translate(-50%, -50%) scale(1.06); }
+    .mapa .setor { fill: none; stroke-width: 8; stroke-linecap: round; opacity: .25; }
+    .mapa .setor-rot { font-size: 11px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; }
+    .mapa .liga { fill: none; stroke-width: 1.5; opacity: .75; }
+    .mapa .liga.duo { stroke-width: 2.4; opacity: 1; filter: drop-shadow(0 0 3px rgba(224, 36, 59, .7)); }
+    .mapa .no { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 3px; width: 64px; border: 0; background: none; padding: 0; cursor: pointer; transition: transform .2s; }
+    .mapa .no:hover { transform: translate(-50%, -50%) scale(1.08); z-index: 3; }
     .mapa .no[disabled] { cursor: default; }
-    .mapa .no .avatar { width: 46px; height: 46px; font-size: 15px; box-shadow: 0 0 0 3px var(--panel), 0 0 0 5px var(--cor); }
-    .mapa .no span { font-size: 11.5px; font-weight: 750; max-width: 78px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 1px 7px; border-radius: 8px; background: var(--panel); }
-    .mapa .no.centro .avatar { width: 70px; height: 70px; font-size: 22px; box-shadow: 0 0 0 4px var(--panel), 0 0 0 6px var(--accent), var(--sombra); }
-    .mapa.focado .no:not(.centro):not(.ativo), .mapa.focado .liga:not(.ativo) { opacity: .15; }
-    .mapa.focado .setor:not(.ativo) { opacity: .06; }
-    .mapa.focado .setor.ativo { opacity: .45; }
-    .mapa-vazio { text-align: center; color: var(--muted); padding: 34px 10px 10px; }
+    .mapa .no .avatar { width: 34px; height: 34px; font-size: 12px; box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--cor); }
+    .mapa .no span { font-size: 10.5px; font-weight: 750; max-width: 64px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 5px; border-radius: 6px; background: var(--panel); line-height: 1.5; }
+    .mapa .no.duo .avatar { width: 42px; height: 42px; box-shadow: 0 0 0 3px var(--panel), 0 0 0 5px var(--duo), 0 0 16px rgba(224, 36, 59, .5); }
+    .mapa .no.centro .avatar { width: 64px; height: 64px; font-size: 20px; box-shadow: 0 0 0 4px var(--panel), 0 0 0 6px var(--accent), var(--sombra); }
+    .mapa .no.centro span { font-size: 12px; }
+    .mapa [data-escondido="1"] { display: none; }
+    .mapa-vazio { position: absolute; left: 0; right: 0; bottom: 10%; margin: 0; text-align: center; color: var(--muted); font-size: 13.5px; }
 
-    /* ---------- filtros e diretório ---------- */
-    .filtros { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 4px; scrollbar-width: none; }
-    .filtros::-webkit-scrollbar { display: none; }
-    .filtro { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 7px; padding: 9px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); font-size: 13.5px; font-weight: 700; cursor: pointer; color: var(--muted); }
-    .filtro i { width: 9px; height: 9px; border-radius: 50%; background: var(--cor, var(--muted)); }
-    .filtro.on { background: var(--text); color: var(--panel); border-color: var(--text); }
-    .diretorio { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
-    .pessoa { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 18px; background: var(--panel); border: 1px solid var(--line); text-align: left; cursor: pointer; width: 100%; position: relative; overflow: hidden; }
-    .pessoa::before { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 3px; border-radius: 0 3px 3px 0; background: var(--cor); }
+    /* ---------- lista por grupos ---------- */
+    .grupos { display: grid; gap: 16px; }
+    .grupo h3 { margin: 0 0 10px; display: flex; align-items: center; gap: 8px; font-size: 14px; }
+    .grupo h3 i { width: 10px; height: 10px; border-radius: 50%; background: var(--cor); }
+    .grupo h3 small { color: var(--muted); font-weight: 600; }
+    .diretorio { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+    .pessoa { display: flex; align-items: center; gap: 12px; padding: 12px 12px 12px 16px; border-radius: 18px; background: var(--panel); border: 1px solid var(--line); text-align: left; cursor: pointer; width: 100%; position: relative; overflow: hidden; }
+    .pessoa::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--cor); }
     .pessoa:hover { background: var(--hover); }
     .pessoa[disabled] { cursor: default; }
-    .pessoa .avatar { box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--cor); }
+    .pessoa .avatar { width: 44px; height: 44px; font-size: 14px; }
     .pessoa .tx { flex: 1; min-width: 0; }
     .pessoa .tx strong { display: block; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .pessoa .tx small { color: var(--cor); font-weight: 750; font-size: 12.5px; }
     .pessoa .tx small.pend { color: var(--muted); }
     .pessoa > svg { color: var(--muted); }
-
-    [data-cat="duo"] { --cor: var(--duo); }
-    [data-cat="familia"] { --cor: var(--familia); }
-    [data-cat="amizade"] { --cor: var(--amizade); }
-    [data-cat="amor"] { --cor: var(--amor); }
-    [data-cat="trabalho"] { --cor: var(--trabalho); }
 
     /* ---------- dono ---------- */
     .dono-box { padding: 18px; display: grid; gap: 14px; }
@@ -122,20 +136,35 @@
     .segmentado button.on { background: var(--panel); color: var(--text); box-shadow: 0 1px 4px rgba(0, 0, 0, .15); }
     .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 14px; padding: 12px 18px; font-weight: 800; cursor: pointer; text-decoration: none; }
     .btn.pri { background: var(--accent); color: var(--accent-ink); }
-    .nota { text-align: center; color: var(--muted); font-size: 13px; margin: 0; }
+    .nota { text-align: center; color: var(--muted); font-size: 13px; margin: 8px 0 0; }
 
-    .menu-fundo { position: fixed; inset: 0; z-index: 50; background: var(--overlay); display: grid; place-items: end center; }
-    .menu { width: min(460px, 100%); background: var(--panel); border-radius: 22px 22px 0 0; padding: 8px 0 calc(12px + env(safe-area-inset-bottom)); }
-    .menu h3 { margin: 12px 18px 8px; font-size: 15px; }
-    .menu button { display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 18px; border: 0; background: transparent; text-align: left; cursor: pointer; font-size: 15px; font-weight: 600; }
-    .menu button:hover { background: var(--hover); }
-    .menu button.perigo { color: var(--danger); }
+    /* ---------- folhas ---------- */
+    .folha-fundo { position: fixed; inset: 0; z-index: 50; background: var(--overlay); display: grid; place-items: end center; }
+    .folha { width: min(480px, 100%); max-height: 86vh; display: flex; flex-direction: column; background: var(--panel); border-radius: 22px 22px 0 0; overflow: hidden; }
+    .folha-topo { display: flex; align-items: center; gap: 8px; padding: 12px 10px 12px 18px; border-bottom: 1px solid var(--line); }
+    .folha-topo h3 { flex: 1; margin: 0; font-size: 16px; }
+    .folha-corpo { overflow-y: auto; padding: 6px 0 calc(12px + env(safe-area-inset-bottom)); }
+    .folha-corpo .grupo-t { padding: 12px 18px 4px; font-size: 12px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; color: var(--cor, var(--muted)); }
+    .linha { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 18px; border: 0; background: transparent; text-align: left; cursor: pointer; }
+    .linha:hover { background: var(--hover); }
+    .linha[disabled] { cursor: default; }
+    .linha .avatar { width: 40px; height: 40px; font-size: 13px; box-shadow: 0 0 0 2px var(--panel), 0 0 0 3px var(--cor); }
+    .linha .tx { flex: 1; min-width: 0; }
+    .linha .tx strong { display: block; font-size: 14.5px; }
+    .linha .tx small { color: var(--muted); font-size: 12.5px; }
+    .linha.perigo { color: var(--danger); }
     .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 60; background: var(--text); color: var(--panel); padding: 12px 18px; border-radius: 12px; font-weight: 600; font-size: 14px; }
-    @media (min-width: 700px) { .menu-fundo { place-items: center; } .menu { border-radius: 22px; } }
-    @media (max-width: 480px) {
-      .mapa .no { width: 64px; } .mapa .no .avatar { width: 38px; height: 38px; font-size: 13px; } .mapa .no span { font-size: 10.5px; max-width: 64px; }
-      .mapa .no.centro .avatar { width: 58px; height: 58px; } .mapa .setor-rot { font-size: 9.5px; }
-      .duo-par { gap: 40px; } .duo-pessoa .avatar { width: 66px; height: 66px; } .rosa { top: 44px; }
+    @media (min-width: 700px) { .folha-fundo { place-items: center; } .folha { border-radius: 22px; } }
+    @media (max-width: 560px) {
+      .hero-corpo { flex-direction: column; align-items: center; text-align: center; margin-top: -60px; }
+      .hero-corpo .avatar { width: 96px; height: 96px; }
+      .numeros { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+      .numero strong { font-size: 18px; }
+      .numero span { font-size: 10.5px; }
+      .mapa .no { width: 54px; } .mapa .no .avatar { width: 28px; height: 28px; font-size: 10px; } .mapa .no span { font-size: 9.5px; max-width: 54px; }
+      .mapa .no.duo .avatar { width: 34px; height: 34px; } .mapa .no.centro .avatar { width: 52px; height: 52px; }
+      .mapa .setor-rot { font-size: 9px; letter-spacing: .8px; }
+      .duo-par { gap: 64px; } .duo-pessoa .avatar { width: 68px; height: 68px; } .rosa { top: 46px; }
       .diretorio { grid-template-columns: 1fr; }
     }
     @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
@@ -146,6 +175,7 @@
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
     <symbol id="i-voltar" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
     <symbol id="i-avancar" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+    <symbol id="i-fechar" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
     <symbol id="i-rosa" viewBox="0 0 24 24"><path d="M12 13.2c-2.7 0-4.6-2-4.6-4.5 0-1.6.8-2.9 1.9-3.7.3 1.1 1.3 1.9 2.7 1.9s2.4-.8 2.7-1.9c1.1.8 1.9 2.1 1.9 3.7 0 2.5-1.9 4.5-4.6 4.5z" fill="currentColor" stroke="none"/><path d="M12 13.2V21M12 17.2c-1.4-1.9-3.4-2.2-5-1.6 1 1.9 3.1 2.5 5 1.6zM12 16.2c1.2-1.5 2.9-1.7 4.2-1.2-.8 1.5-2.5 2-4.2 1.2z"/></symbol>
     <symbol id="i-perfil" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="4"/><path d="M4.5 20.5c1.2-3.6 4.1-5.5 7.5-5.5s6.3 1.9 7.5 5.5"/></symbol>
     <symbol id="i-lixo" viewBox="0 0 24 24"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5"/></symbol>
@@ -161,28 +191,31 @@
 
   <main class="pagina">
     <div class="estado" id="estado">Carregando...</div>
-    <div id="conteudo" hidden style="display:grid;gap:16px">
+    <div id="conteudo" hidden>
       <section class="cartao hero" aria-label="Pessoa">
         <div class="hero-fundo" id="heroFundo"></div>
-        <div class="avatar" id="heroAvatar"></div>
-        <h2 id="heroNome"></h2>
-        <div class="nick" id="heroNick"></div>
-        <div class="resumo" id="resumo"></div>
+        <div class="hero-corpo">
+          <div class="avatar" id="heroAvatar"></div>
+          <div class="hero-tx"><h2 id="heroNome"></h2><div class="nick" id="heroNick"></div></div>
+        </div>
+        <div class="numeros" id="numeros"></div>
       </section>
 
       <section class="cartao duo" id="duo" hidden aria-label="Duo"></section>
 
-      <section class="cartao mapa-box" aria-label="Mapa do social">
-        <p class="rotulo"><svg class="i s"><use href="#i-teia"/></svg>Mapa de conexões</p>
+      <section class="cartao mapa-box" aria-label="Mapa de conexões">
+        <div class="mapa-topo">
+          <p class="rotulo"><svg class="i s"><use href="#i-teia"/></svg>Mapa de conexões</p>
+          <div class="legenda" id="legenda" role="group" aria-label="Mostrar só um grupo"></div>
+        </div>
         <div class="mapa" id="mapa"><svg id="mapaSvg" aria-hidden="true"></svg></div>
         <p class="nota" id="nota" hidden></p>
       </section>
 
-      <div class="filtros" id="filtros" role="tablist" aria-label="Filtrar conexões"></div>
-      <section class="diretorio" id="diretorio" aria-label="Conexões"></section>
+      <section class="grupos" id="grupos" aria-label="Conexões por grupo"></section>
 
       <section class="cartao dono-box" id="donoBox" hidden>
-        <p class="rotulo" style="margin:0"><svg class="i s"><use href="#i-cadeado"/></svg>Quem pode abrir os perfis do seu social</p>
+        <p class="rotulo"><svg class="i s"><use href="#i-cadeado"/></svg>Quem pode abrir os perfis do seu social</p>
         <div class="segmentado" id="visibilidade">
           <button type="button" data-valor="todos">Todos</button>
           <button type="button" data-valor="seguidores">Seguidores</button>
@@ -197,21 +230,21 @@
 
   <script type="module">
     const $ = (id) => document.getElementById(id);
+    // Duo inclui namorado(a) e cônjuge: é a pessoa ligada pelo Akai Ito.
     const TIPOS = {
-      duo: ["Duo", "duo"], namoro: ["Namorado(a)", "amor"], casamento: ["Cônjuge", "amor"],
+      duo: ["Duo", "duo"], namoro: ["Namorado(a)", "duo"], casamento: ["Cônjuge", "duo"],
       melhor_amigo: ["Melhor amigo(a)", "amizade"], amigo: ["Amigo(a)", "amizade"],
       irmao: ["Irmão(ã)", "familia"], pai_mae: ["Pai/Mãe", "familia"], filho: ["Filho(a)", "familia"],
       primo: ["Primo(a)", "familia"], tio: ["Tio(a)", "familia"], sobrinho: ["Sobrinho(a)", "familia"],
       avo: ["Avô/Avó", "familia"], neto: ["Neto(a)", "familia"], parceiro: ["Trabalho", "trabalho"]
     };
-    // Setores fixos do mapa (ângulos em graus, 0 = direita, sentido horário).
-    const SETORES = [
-      { cat: "familia", nome: "Família", de: 200, ate: 290 },
-      { cat: "amizade", nome: "Amizade", de: 305, ate: 395 },
-      { cat: "amor", nome: "Amor", de: 50, ate: 110 },
-      { cat: "trabalho", nome: "Trabalho", de: 125, ate: 185 }
+    const GRUPOS = [
+      { cat: "duo", nome: "Duo", de: 240, ate: 300 },
+      { cat: "amizade", nome: "Amizade", de: 312, ate: 408 },
+      { cat: "trabalho", nome: "Trabalho", de: 60, ate: 120 },
+      { cat: "familia", nome: "Família", de: 132, ate: 228 }
     ];
-    const NOMES_CAT = { familia: "Família", amizade: "Amizade", amor: "Amor", trabalho: "Trabalho" };
+    const nomeGrupo = (cat) => GRUPOS.find((g) => g.cat === cat)?.nome || "";
 
     const urlSegura = (u) => (/^(https:\/\/|data:image\/)/i.test(String(u || "")) ? String(u) : "");
     const iniciais = (n) => { const p = String(n || "?").trim().split(/\s+/); return ((p[0]?.[0] || "?") + (p.length > 1 ? p[p.length - 1][0] : "")).toUpperCase(); };
@@ -230,12 +263,13 @@
       return s;
     }
     const svgEl = (tag, attrs) => { const e = document.createElementNS("http://www.w3.org/2000/svg", tag); Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v)); return e; };
-    function toast(t) { document.querySelectorAll(".toast").forEach((x) => x.remove()); const d = document.createElement("div"); d.className = "toast"; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 3500); }
-    function estado(titulo, texto) { $("conteudo").hidden = true; $("estado").hidden = false; $("estado").replaceChildren(); const s = document.createElement("strong"); s.textContent = titulo; $("estado").append(s, texto || ""); }
+    const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+    function toast(t) { document.querySelectorAll(".toast").forEach((x) => x.remove()); const d = el("div", "toast", t); document.body.appendChild(d); setTimeout(() => d.remove(), 3500); }
+    function estado(titulo, texto) { $("conteudo").hidden = true; $("estado").hidden = false; $("estado").replaceChildren(el("strong", null, titulo), texto || ""); }
     const irPerfil = (uid) => { location.href = `usuarios.html?perfil=${encodeURIComponent(uid)}`; };
 
     let fb, eu, dono, donoId, proprio = false, clicavel = false;
-    let conexoes = []; // { id, outro, tipo, cat, pendente, perfil, aceitoEm }
+    let conexoes = [];
     let filtro = "todos";
 
     async function podeAbrirPerfis() {
@@ -250,54 +284,97 @@
       return vis === "seguidores" ? euSigo : euSigo && meSegue;
     }
 
-    function menu(titulo, opcoes) {
-      const fundo = document.createElement("div"); fundo.className = "menu-fundo";
-      const m = document.createElement("div"); m.className = "menu"; m.setAttribute("role", "dialog");
-      const h = document.createElement("h3"); h.textContent = titulo; m.appendChild(h);
-      opcoes.forEach((o) => {
-        const b = document.createElement("button"); b.type = "button"; if (o.perigo) b.className = "perigo";
-        b.append(icone(o.icone, "i"), document.createTextNode(o.rotulo));
-        b.addEventListener("click", () => { fundo.remove(); o.fn(); });
-        m.appendChild(b);
-      });
-      fundo.appendChild(m);
-      fundo.addEventListener("click", (e) => { if (e.target === fundo) fundo.remove(); });
+    // ---------- folha (lista / opções) ----------
+    function abrirFolha(titulo, montar) {
+      const fundo = el("div", "folha-fundo");
+      const f = el("div", "folha");
+      f.setAttribute("role", "dialog");
+      f.setAttribute("aria-modal", "true");
+      const topo = el("div", "folha-topo");
+      const fechar = el("button", "icone-btn");
+      fechar.type = "button"; fechar.setAttribute("aria-label", "Fechar");
+      fechar.appendChild(icone("fechar", "i"));
+      topo.append(el("h3", null, titulo), fechar);
+      const corpo = el("div", "folha-corpo");
+      f.append(topo, corpo);
+      fundo.appendChild(f);
+      const sair = () => fundo.remove();
+      fechar.addEventListener("click", sair);
+      fundo.addEventListener("click", (e) => { if (e.target === fundo) sair(); });
+      montar(corpo, sair);
       document.body.appendChild(fundo);
+      fechar.focus();
     }
 
     function acaoPessoa(c) {
       if (proprio) {
-        return () => menu(c.perfil.nome || "Usuário", [
-          { rotulo: "Ver perfil", icone: "perfil", fn: () => irPerfil(c.outro) },
-          { rotulo: c.pendente ? "Cancelar pedido" : "Desfazer vínculo", icone: "lixo", perigo: true, fn: async () => {
+        return () => abrirFolha(c.perfil.nome || "Usuário", (corpo, sair) => {
+          const ver = el("button", "linha"); ver.type = "button";
+          ver.append(icone("perfil", "i"), el("span", "tx", "Ver perfil"));
+          ver.addEventListener("click", () => irPerfil(c.outro));
+          const rm = el("button", "linha perigo"); rm.type = "button";
+          rm.append(icone("lixo", "i"), el("span", "tx", c.pendente ? "Cancelar pedido" : "Desfazer vínculo"));
+          rm.addEventListener("click", async () => {
             if (!c.pendente && !confirm(`Desfazer o vínculo com ${c.perfil.nome || "esta pessoa"}?`)) return;
-            try { await fb.deleteDoc(fb.doc(fb.db, "vinculos", c.id)); conexoes = conexoes.filter((x) => x.id !== c.id); desenharTudo(); toast("Pronto"); }
+            try { await fb.deleteDoc(fb.doc(fb.db, "vinculos", c.id)); conexoes = conexoes.filter((x) => x.id !== c.id); sair(); desenharTudo(); toast("Pronto"); }
             catch { toast("Não foi possível desfazer."); }
-          } }
-        ]);
+          });
+          corpo.append(ver, rm);
+        });
       }
       return clicavel ? () => irPerfil(c.outro) : null;
     }
 
-    // ---------- cabeçalho ----------
+    function listaDeNomes() {
+      const aceitas = conexoes.filter((c) => !c.pendente);
+      abrirFolha(`${aceitas.length} ${aceitas.length === 1 ? "conexão" : "conexões"}`, (corpo) => {
+        if (!aceitas.length) { corpo.appendChild(el("p", "nota", "Nenhuma conexão ainda.")); return; }
+        GRUPOS.forEach((g) => {
+          const doGrupo = aceitas.filter((c) => c.cat === g.cat);
+          if (!doGrupo.length) return;
+          const t = el("div", "grupo-t", `${g.nome} · ${doGrupo.length}`);
+          t.dataset.cat = g.cat;
+          corpo.appendChild(t);
+          doGrupo.forEach((c) => {
+            const b = el("button", "linha"); b.type = "button"; b.dataset.cat = c.cat;
+            const tx = el("span", "tx");
+            tx.append(el("strong", null, c.perfil.nome || "Usuário"), el("small", null, TIPOS[c.tipo]?.[0] || ""));
+            b.append(novoAvatar(c.perfil.fotoPerfil, c.perfil.nome), tx);
+            if (clicavel) { b.addEventListener("click", () => irPerfil(c.outro)); b.appendChild(icone("avancar")); } else b.disabled = true;
+            corpo.appendChild(b);
+          });
+        });
+      });
+    }
+
+    function escolherFiltro(cat) {
+      filtro = filtro === cat ? "todos" : cat;
+      desenharNumeros(); desenharLegenda(); desenharMapa(); desenharGrupos();
+    }
+
+    // ---------- cabeçalho e números ----------
     function desenharCabecalho() {
       if (urlSegura(dono.fotoCapa)) $("heroFundo").style.backgroundImage = `url("${dono.fotoCapa}")`;
       pintarAvatar($("heroAvatar"), dono.fotoPerfil, dono.nome);
       $("heroNome").textContent = dono.nome || "Usuário";
       $("heroNick").textContent = dono.nickname ? "@" + dono.nickname : "";
-      const r = $("resumo");
-      r.replaceChildren();
+    }
+    function desenharNumeros() {
+      const box = $("numeros");
+      box.replaceChildren();
       const aceitas = conexoes.filter((c) => !c.pendente);
-      const total = document.createElement("span");
-      total.append(document.createElement("b"), document.createTextNode(aceitas.length === 1 ? " conexão" : " conexões"));
-      total.firstChild.textContent = String(aceitas.length);
-      r.appendChild(total);
-      Object.entries(NOMES_CAT).forEach(([cat, nome]) => {
-        const n = aceitas.filter((c) => c.cat === cat).length;
-        if (!n) return;
-        const s = document.createElement("span"); s.dataset.cat = cat;
-        s.append(document.createElement("i"), document.createTextNode(`${nome} ${n}`));
-        r.appendChild(s);
+      const total = el("button", "numero total"); total.type = "button";
+      total.append(el("strong", null, String(aceitas.length)), el("span", null, aceitas.length === 1 ? "Conexão" : "Conexões"));
+      total.title = "Ver a lista de nomes";
+      total.addEventListener("click", listaDeNomes);
+      box.appendChild(total);
+      GRUPOS.forEach((g) => {
+        const n = aceitas.filter((c) => c.cat === g.cat).length;
+        const b = el("button", "numero" + (filtro === g.cat ? " on" : "")); b.type = "button"; b.dataset.cat = g.cat;
+        const rot = el("span"); rot.append(el("i"), document.createTextNode(g.nome));
+        b.append(el("strong", null, String(n)), rot);
+        b.addEventListener("click", () => escolherFiltro(g.cat));
+        box.appendChild(b);
       });
     }
 
@@ -308,32 +385,45 @@
       box.hidden = !c;
       if (!c) return;
       box.replaceChildren();
-      const rot = document.createElement("p");
-      rot.className = "rotulo"; rot.style.justifyContent = "center"; rot.style.color = "var(--duo)";
-      rot.append(icone("rosa"), document.createTextNode("Duo"));
-      const par = document.createElement("div");
-      par.className = "duo-par";
-      const fio = svgEl("svg", { class: "fio", viewBox: "0 0 150 70" });
-      fio.append(svgEl("path", { class: "linha", d: "M8 52 Q75 -4 142 52" }), svgEl("path", { class: "cor", d: "M75 30.3 C69.4 26.6 71.8 21.4 75 24.4 C78.2 21.4 80.6 26.6 75 30.3Z" }));
-      const pessoa = (perfil, uid, rosa) => {
-        const b = document.createElement("button");
-        b.type = "button"; b.className = "duo-pessoa";
-        const av = novoAvatar(perfil.fotoPerfil, perfil.nome);
-        const nome = document.createElement("strong"); nome.textContent = primeiroNome(perfil.nome);
-        b.append(av, nome);
-        if (rosa) { const r = document.createElement("span"); r.className = "rosa"; r.appendChild(icone("rosa")); b.appendChild(r); }
+      const rot = el("p", "rotulo");
+      rot.append(icone("rosa"), document.createTextNode(c.tipo === "duo" ? "Duo · Akai Ito" : `${TIPOS[c.tipo][0]} · Akai Ito`));
+      const par = el("div", "duo-par");
+      // fio – coração – fio
+      const fio = svgEl("svg", { class: "fio", viewBox: "0 0 150 60" });
+      fio.append(
+        svgEl("path", { class: "linha", d: "M4 44 Q30 18 62 24" }),
+        svgEl("path", { class: "linha", d: "M88 24 Q120 18 146 44" }),
+        svgEl("path", { class: "cor", d: "M75 38 C63 30 64 17 75 23 C86 17 87 30 75 38Z" })
+      );
+      const pessoa = (perfil, uid, papel, rosa) => {
+        const b = el("button", "duo-pessoa"); b.type = "button";
+        b.append(novoAvatar(perfil.fotoPerfil, perfil.nome), el("strong", null, primeiroNome(perfil.nome)));
+        if (papel) b.appendChild(el("em", null, papel));
+        if (rosa) { const r = el("span", "rosa"); r.appendChild(icone("rosa")); b.appendChild(r); }
         if (uid === donoId) b.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
         else { const f = acaoPessoa(c); if (f) b.addEventListener("click", f); else b.disabled = true; }
         return b;
       };
-      par.append(fio, pessoa(dono, donoId, false), pessoa(c.perfil, c.outro, true));
+      par.append(fio, pessoa(dono, donoId, "", false), pessoa(c.perfil, c.outro, c.tipo === "duo" ? "" : TIPOS[c.tipo][0], true));
       const desde = c.aceitoEm?.toDate?.();
-      const legenda = document.createElement("small");
-      legenda.textContent = desde ? `Ligados pelo fio vermelho desde ${desde.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}` : "Ligados pelo fio vermelho";
-      box.append(rot, par, legenda);
+      box.append(rot, par, el("small", null, desde ? `Ligados pelo Akai Ito desde ${desde.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}` : "Ligados pelo Akai Ito"));
     }
 
-    // ---------- mapa em setores ----------
+    // ---------- legenda (tocar numa cor mostra só aquele grupo) ----------
+    function desenharLegenda() {
+      const box = $("legenda");
+      box.replaceChildren();
+      GRUPOS.forEach((g) => {
+        if (!conexoes.some((c) => c.cat === g.cat && (proprio || !c.pendente))) return;
+        const b = el("button", filtro === g.cat ? "on" : ""); b.type = "button"; b.dataset.cat = g.cat;
+        b.setAttribute("aria-pressed", filtro === g.cat ? "true" : "false");
+        b.append(el("i"), document.createTextNode(g.nome));
+        b.addEventListener("click", () => escolherFiltro(g.cat));
+        box.appendChild(b);
+      });
+    }
+
+    // ---------- mapa em setores, sem sobreposição ----------
     function desenharMapa() {
       const mapa = $("mapa");
       mapa.querySelectorAll(".no, .mapa-vazio").forEach((n) => n.remove());
@@ -341,134 +431,106 @@
       svg.replaceChildren();
       const W = mapa.clientWidth, H = mapa.clientHeight;
       if (!W) return;
-      const cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - 34;
+      const pequeno = W < 480;
+      const cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - (pequeno ? 30 : 36);
+      const largNo = pequeno ? 58 : 68; // espaço que cada bolinha + nome ocupa
       svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
       const rad = (g) => (g * Math.PI) / 180;
       const ponto = (g, r) => ({ x: cx + r * Math.cos(rad(g)), y: cy + r * Math.sin(rad(g)) });
 
-      [0.42, 0.72, 0.96].forEach((f) => svg.appendChild(svgEl("circle", { class: "anel", cx, cy, r: R * f })));
+      [0.36, 0.58, 0.8, 1].forEach((f) => svg.appendChild(svgEl("circle", { class: "anel", cx, cy, r: R * f })));
 
-      const lista = conexoes.filter((c) => c.cat !== "duo" && (proprio || !c.pendente));
-      // setores e rótulos
-      SETORES.forEach((s) => {
-        const temAlguem = lista.some((c) => c.cat === s.cat);
-        const a = ponto(s.de, R), b = ponto(s.ate, R);
-        const arco = svgEl("path", { class: "setor" + (filtro === s.cat ? " ativo" : ""), d: `M${a.x} ${a.y} A${R} ${R} 0 0 1 ${b.x} ${b.y}`, stroke: `var(--${s.cat})` });
-        arco.dataset.cat = s.cat;
+      const lista = conexoes.filter((c) => proprio || !c.pendente);
+      const posicoes = [];
+      GRUPOS.forEach((g) => {
+        const doGrupo = lista.filter((c) => c.cat === g.cat);
+        const escondido = filtro !== "todos" && filtro !== g.cat ? "1" : "0";
+        const a = ponto(g.de, R), b = ponto(g.ate, R);
+        const arco = svgEl("path", { class: "setor", d: `M${a.x} ${a.y} A${R} ${R} 0 0 1 ${b.x} ${b.y}`, stroke: `var(--${g.cat})` });
+        arco.dataset.escondido = escondido;
         svg.appendChild(arco);
-        if (temAlguem) {
-          const meio = (s.de + s.ate) / 2;
-          const p = ponto(meio, R + 18);
-          const t = svgEl("text", { class: "setor-rot", x: Math.min(W - 44, Math.max(44, p.x)), y: Math.min(H - 6, Math.max(8, p.y)), "text-anchor": "middle", "dominant-baseline": "middle" });
-          t.textContent = s.nome;
+        if (doGrupo.length) {
+          const p = ponto((g.de + g.ate) / 2, R + (pequeno ? 14 : 18));
+          const t = svgEl("text", { class: "setor-rot", x: Math.min(W - 40, Math.max(40, p.x)), y: Math.min(H - 6, Math.max(8, p.y)), "text-anchor": "middle", "dominant-baseline": "middle", fill: `var(--${g.cat})` });
+          t.textContent = `${g.nome} · ${doGrupo.length}`;
+          t.dataset.escondido = escondido;
           svg.appendChild(t);
         }
+        // Anéis de fora para dentro; cada anel recebe quantas bolinhas cabem no arco sem encostar.
+        const aneis = [0.84, 0.64, 0.46];
+        let resto = [...doGrupo];
+        for (const f of aneis) {
+          if (!resto.length) break;
+          const arcoPx = R * f * rad(g.ate - g.de);
+          const cabe = Math.max(1, Math.floor(arcoPx / largNo));
+          const aqui = resto.splice(0, cabe);
+          const passo = (g.ate - g.de) / aqui.length;
+          aqui.forEach((c, j) => posicoes.push({ c, escondido, ...ponto(g.de + passo * (j + 0.5), R * f) }));
+        }
+        if (resto.length) resto.forEach((c) => posicoes.push({ c, escondido, extra: true, x: cx, y: cy }));
       });
 
-      // posição das pessoas dentro do setor da categoria
-      const posicoes = [];
-      SETORES.forEach((s) => {
-        const doSetor = lista.filter((c) => c.cat === s.cat);
-        const aneis = doSetor.length > 4 ? [0.64, 0.86] : [0.8];
-        let k = 0;
-        aneis.forEach((f, ai) => {
-          const qtd = aneis.length === 1 ? doSetor.length : ai === 0 ? Math.ceil(doSetor.length / 2) : Math.floor(doSetor.length / 2);
-          for (let j = 0; j < qtd; j++, k++) {
-            const passo = (s.ate - s.de) / (qtd + 1);
-            const ang = s.de + passo * (j + 1);
-            posicoes.push({ c: doSetor[k], ...ponto(ang, R * f) });
-          }
-        });
-      });
-
-      posicoes.forEach(({ c, x, y }) => {
+      posicoes.filter((p) => !p.extra).forEach(({ c, x, y, escondido }) => {
         const mx = (cx + x) / 2, my = (cy + y) / 2;
         const nx = -(y - cy), ny = x - cx, len = Math.hypot(nx, ny) || 1;
-        const liga = svgEl("path", { class: "liga" + (filtro === c.cat ? " ativo" : ""), d: `M${cx} ${cy} Q${mx + (nx / len) * 14} ${my + (ny / len) * 14} ${x} ${y}`, stroke: `var(--${c.cat})` });
+        const liga = svgEl("path", { class: "liga" + (c.cat === "duo" ? " duo" : ""), d: `M${cx} ${cy} Q${mx + (nx / len) * 12} ${my + (ny / len) * 12} ${x} ${y}`, stroke: `var(--${c.cat})` });
         if (c.pendente) liga.setAttribute("stroke-dasharray", "3 5");
+        liga.dataset.escondido = escondido;
         svg.appendChild(liga);
       });
 
-      const centro = document.createElement("button");
-      centro.type = "button"; centro.className = "no centro";
+      const centro = el("button", "no centro"); centro.type = "button";
       centro.style.left = cx + "px"; centro.style.top = cy + "px";
-      const nc = document.createElement("span"); nc.textContent = primeiroNome(dono.nome);
-      centro.append(novoAvatar(dono.fotoPerfil, dono.nome), nc);
+      centro.append(novoAvatar(dono.fotoPerfil, dono.nome), el("span", null, primeiroNome(dono.nome)));
       centro.addEventListener("click", () => { location.href = proprio ? "usuarios.html" : `usuarios.html?perfil=${encodeURIComponent(donoId)}`; });
       mapa.appendChild(centro);
 
-      posicoes.forEach(({ c, x, y }) => {
-        const no = document.createElement("button");
-        no.type = "button";
-        no.className = "no" + (filtro === c.cat ? " ativo" : "");
-        no.dataset.cat = c.cat;
+      posicoes.filter((p) => !p.extra).forEach(({ c, x, y, escondido }) => {
+        const no = el("button", "no" + (c.cat === "duo" ? " duo" : "")); no.type = "button";
+        no.dataset.cat = c.cat; no.dataset.escondido = escondido;
         no.style.left = x + "px"; no.style.top = y + "px";
         if (c.pendente) no.style.opacity = ".5";
-        const n = document.createElement("span"); n.textContent = primeiroNome(c.perfil.nome);
-        no.append(novoAvatar(c.perfil.fotoPerfil, c.perfil.nome), n);
+        no.append(novoAvatar(c.perfil.fotoPerfil, c.perfil.nome), el("span", null, primeiroNome(c.perfil.nome)));
         no.title = `${c.perfil.nome || "Usuário"} · ${TIPOS[c.tipo]?.[0] || ""}`;
         const f = acaoPessoa(c);
         if (f) no.addEventListener("click", f); else no.disabled = true;
         mapa.appendChild(no);
       });
 
-      mapa.classList.toggle("focado", filtro !== "todos");
-      if (!posicoes.length) {
-        const v = document.createElement("p");
-        v.className = "mapa-vazio";
-        v.style.cssText = "position:absolute;left:0;right:0;bottom:8%;margin:0";
-        v.textContent = proprio ? "Adicione família, amigos e parceiros para montar seu mapa." : "Ainda sem conexões por aqui.";
-        mapa.appendChild(v);
-      }
+      const sobra = posicoes.filter((p) => p.extra && p.escondido === "0").length;
+      if (sobra) { const v = el("p", "mapa-vazio", `+${sobra} na lista abaixo`); mapa.appendChild(v); }
+      if (!posicoes.length) mapa.appendChild(el("p", "mapa-vazio", proprio ? "Adicione seu duo, família, amigos e parceiros para montar o mapa." : "Ainda sem conexões por aqui."));
     }
 
-    // ---------- filtros e diretório ----------
-    function desenharFiltros() {
-      const box = $("filtros");
+    // ---------- lista por grupos ----------
+    function desenharGrupos() {
+      const box = $("grupos");
       box.replaceChildren();
-      const lista = conexoes.filter((c) => c.cat !== "duo" && (proprio || !c.pendente));
-      const opcoes = [["todos", "Todos", lista.length], ...Object.entries(NOMES_CAT).map(([k, n]) => [k, n, lista.filter((c) => c.cat === k).length]).filter(([, , q]) => q)];
-      box.hidden = opcoes.length <= 2 && !lista.length;
-      opcoes.forEach(([k, nome, q]) => {
-        const b = document.createElement("button");
-        b.type = "button"; b.className = "filtro" + (filtro === k ? " on" : "");
-        b.setAttribute("role", "tab"); b.setAttribute("aria-selected", filtro === k ? "true" : "false");
-        if (k !== "todos") { b.dataset.cat = k; b.appendChild(document.createElement("i")); }
-        b.appendChild(document.createTextNode(`${nome} · ${q}`));
-        b.addEventListener("click", () => { filtro = k; desenharFiltros(); desenharMapa(); desenharDiretorio(); });
-        box.appendChild(b);
-      });
-    }
-
-    function desenharDiretorio() {
-      const box = $("diretorio");
-      box.replaceChildren();
-      const ordem = ["familia", "amor", "amizade", "trabalho"];
-      const lista = conexoes
-        .filter((c) => c.cat !== "duo" && (proprio || !c.pendente) && (filtro === "todos" || c.cat === filtro))
-        .sort((a, b) => ordem.indexOf(a.cat) - ordem.indexOf(b.cat) || String(a.perfil.nome).localeCompare(String(b.perfil.nome)));
-      lista.forEach((c) => {
-        const b = document.createElement("button");
-        b.type = "button"; b.className = "pessoa"; b.dataset.cat = c.cat;
-        const tx = document.createElement("div"); tx.className = "tx";
-        const n = document.createElement("strong"); n.textContent = c.perfil.nome || "Usuário";
-        const p = document.createElement("small");
-        p.textContent = c.pendente ? (c.de === eu.uid ? "Aguardando resposta" : "Pedido recebido") : (TIPOS[c.tipo]?.[0] || "");
-        if (c.pendente) p.className = "pend";
-        tx.append(n, p);
-        b.append(novoAvatar(c.perfil.fotoPerfil, c.perfil.nome), tx);
-        const f = acaoPessoa(c);
-        if (f) { b.addEventListener("click", f); b.appendChild(icone("avancar")); } else b.disabled = true;
-        box.appendChild(b);
+      GRUPOS.forEach((g) => {
+        if (filtro !== "todos" && filtro !== g.cat) return;
+        const lista = conexoes.filter((c) => c.cat === g.cat && (proprio || !c.pendente))
+          .sort((a, b) => Number(a.pendente) - Number(b.pendente) || String(a.perfil.nome).localeCompare(String(b.perfil.nome)));
+        if (!lista.length) return;
+        const sec = el("div", "grupo"); sec.dataset.cat = g.cat;
+        const h = el("h3"); h.append(el("i"), document.createTextNode(g.nome), el("small", null, `· ${lista.length}`));
+        const grade = el("div", "diretorio");
+        lista.forEach((c) => {
+          const b = el("button", "pessoa"); b.type = "button"; b.dataset.cat = c.cat;
+          const tx = el("div", "tx");
+          const papel = el("small", c.pendente ? "pend" : null, c.pendente ? (c.de === eu.uid ? "Aguardando resposta" : "Pedido recebido") : (TIPOS[c.tipo]?.[0] || ""));
+          tx.append(el("strong", null, c.perfil.nome || "Usuário"), papel);
+          b.append(novoAvatar(c.perfil.fotoPerfil, c.perfil.nome), tx);
+          const f = acaoPessoa(c);
+          if (f) { b.addEventListener("click", f); b.appendChild(icone("avancar")); } else b.disabled = true;
+          grade.appendChild(b);
+        });
+        sec.append(h, grade);
+        box.appendChild(sec);
       });
     }
 
     function desenharTudo() {
-      desenharCabecalho();
-      desenharDuo();
-      desenharFiltros();
-      desenharMapa();
-      desenharDiretorio();
+      desenharCabecalho(); desenharNumeros(); desenharDuo(); desenharLegenda(); desenharMapa(); desenharGrupos();
     }
 
     async function iniciar() {
@@ -500,7 +562,7 @@
           document.title = `${$("titulo").textContent} | Help Floripa`;
           if (!proprio && (dono.socialVisibilidade || "todos") === "ocultar") { estado("Social privado", "Esta pessoa preferiu não mostrar o social."); return; }
           clicavel = await podeAbrirPerfis();
-          const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "vinculos"), fb.where("participantes", "array-contains", donoId), fb.limit(40)));
+          const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "vinculos"), fb.where("participantes", "array-contains", donoId), fb.limit(60)));
           const brutos = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
           const perfis = await Promise.all(brutos.map((v) => {
             const outro = (v.participantes || []).find((x) => x !== donoId);
