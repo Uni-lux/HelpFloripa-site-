@@ -175,3 +175,7 @@
 .vitrine[data-tipo="imoveis"] .vd-galeria img:first-child { grid-column: 1 / -1; aspect-ratio: 16 / 9; }
 .vd-acoes { position: sticky; bottom: 0; display: flex; gap: 8px; padding: 12px 0 2px; background: linear-gradient(180deg, transparent, var(--vt-card) 30%); }
 @media (max-width: 640px) { .vd-itens.lojinha { grid-template-columns: repeat(2, 1fr); } }
+
+a.vt-dono { text-decoration: none; width: fit-content; border-radius: 999px; padding: 2px 8px 2px 2px; margin-left: -2px; }
+a.vt-dono:hover { background: var(--vt-card-2); color: var(--vt-text); }
+a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--vc) 60%, transparent); text-underline-offset: 3px; }

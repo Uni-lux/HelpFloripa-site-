@@ -8,7 +8,7 @@
   <link rel="icon" href="favicon.ico" />
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
-  <link rel="stylesheet" href="vitrine.css" />
+  <link rel="stylesheet" href="vitrine.css?v=5" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
     // Tema compartilhado com a página de mensagens; aplicado antes de desenhar.
@@ -185,12 +185,12 @@
     .fio-capa path.coracao { fill: #e0243b; stroke: #fff; stroke-width: 1.6; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, .45)); transform-box: fill-box; transform-origin: center; animation: bater 1.6s ease-in-out infinite; }
     @keyframes pulso-fio { 50% { stroke-width: 2.8; } }
     @keyframes bater { 0%, 60%, 100% { transform: scale(1); } 20% { transform: scale(1.22); } 40% { transform: scale(.95); } }
-    .duo-capa { position: absolute; z-index: 5; left: 172px; bottom: 12%; width: 62px; height: 62px; border: 0; padding: 0; background: none; cursor: pointer; }
+    .duo-capa { position: absolute; z-index: 5; left: 204px; bottom: 18%; width: 62px; height: 62px; border: 0; padding: 0; background: none; cursor: pointer; }
     .duo-capa[disabled] { cursor: default; }
     .duo-capa .avatar { width: 100%; height: 100%; font-size: 18px; box-shadow: 0 0 0 3px rgba(255, 255, 255, .85), 0 0 0 5px #e0243b, 0 8px 20px rgba(0, 0, 0, .5); }
     .rosa-selo { position: absolute; right: -5px; bottom: -5px; width: 26px; height: 26px; border-radius: 50%; background: #fff; color: #e0243b; display: grid; place-items: center; box-shadow: 0 2px 8px rgba(0, 0, 0, .4); }
     .rosa-selo svg { width: 17px; height: 17px; }
-    @media (max-width: 640px) { .duo-capa { width: 52px; height: 52px; left: 128px; bottom: 16%; } .rosa-selo { width: 22px; height: 22px; } .rosa-selo svg { width: 14px; height: 14px; } }
+    @media (max-width: 640px) { .duo-capa { width: 52px; height: 52px; left: 156px; bottom: 20%; } .rosa-selo { width: 22px; height: 22px; } .rosa-selo svg { width: 14px; height: 14px; } }
 
     /* ---------- perfis de negócio (bolinhas) ---------- */
     [data-el="negocios"] .vinculos { gap: 10px; padding: 8px 4px 6px; justify-content: flex-start; }
@@ -220,6 +220,8 @@
     .grade-campos.tres { grid-template-columns: repeat(3, 1fr); }
     .grade-campos.quatro { grid-template-columns: repeat(4, 1fr); }
     .marcas { display: flex; flex-wrap: wrap; gap: 8px; }
+    .hora-sel { display: flex; align-items: center; gap: 6px; font-weight: 800; }
+    .hora-sel select { flex: 1; min-width: 0; border: 1px solid var(--line); background: var(--input); border-radius: 12px; padding: 11px 10px; font-size: 15px; color: var(--text); }
     .marca-op { display: inline-flex; align-items: center; gap: 8px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel-2); cursor: pointer; font-size: 13.5px; font-weight: 600; }
     .marca-op input { accent-color: var(--accent); width: 16px; height: 16px; }
     .neg-fotos { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
@@ -839,8 +841,8 @@
   </div>
 
   <script type="module">
-    import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js";
-    import { abrirDetalhe as abrirPerfilNegocio } from "./vitrine.js";
+    import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=5";
+    import { abrirDetalhe as abrirPerfilNegocio } from "./vitrine.js?v=5";
 
     // ======================================================
     // Preferências compartilhadas com mensagens.html
@@ -2008,13 +2010,17 @@
         const dist = Math.hypot(dx - ax, dy - ay) || 1, ux = (dx - ax) / dist, uy = (dy - ay) / dist;
         const x1 = ax + ux * ar, y1 = ay + uy * ar, x2 = dx - ux * dr, y2 = dy - uy * dr;
         // Curva suave para cima, como um laço, com um coraçãozinho no meio.
-        const cx = (x1 + x2) / 2, cy = Math.min(y1, y2) - Math.min(34, dist * 0.35);
+        // Igual ao cartão do Social: fio em arco suave, coração no meio, fio em arco suave.
         svgEl.setAttribute("viewBox", `0 0 ${base.width} ${base.height}`);
-        // Fio – coração – fio: a curva é dividida no meio e cada metade termina na lateral do coração.
-        const mx = 0.25 * x1 + 0.5 * cx + 0.25 * x2, my = 0.25 * y1 + 0.5 * cy + 0.25 * y2, t = 10;
         const tl = Math.hypot(x2 - x1, y2 - y1) || 1, tx = (x2 - x1) / tl, ty = (y2 - y1) / tl;
-        const lx = mx - tx * t * 1.25, ly = my - ty * t * 1.25 - t * 0.25, rx = mx + tx * t * 1.25, ry = my + ty * t * 1.25 - t * 0.25;
-        path.setAttribute("d", `M${x1} ${y1} Q${(x1 + cx) / 2} ${(y1 + cy) / 2} ${lx} ${ly} M${rx} ${ry} Q${(cx + x2) / 2} ${(cy + y2) / 2} ${x2} ${y2}`);
+        let nx = -ty, ny = tx;
+        if (ny > 0) { nx = -nx; ny = -ny; } // normal para cima
+        const t = 9, meia = t * 1.25, curva = Math.min(10, tl * 0.08);
+        const mx = (x1 + x2) / 2 + nx * 4, my = (y1 + y2) / 2 + ny * 4;
+        const lx = mx - tx * meia, ly = my - ty * meia, rx = mx + tx * meia, ry = my + ty * meia;
+        const c1x = (x1 + lx) / 2 + nx * curva, c1y = (y1 + ly) / 2 + ny * curva;
+        const c2x = (rx + x2) / 2 + nx * curva, c2y = (ry + y2) / 2 + ny * curva;
+        path.setAttribute("d", `M${x1} ${y1} Q${c1x} ${c1y} ${lx} ${ly} M${rx} ${ry} Q${c2x} ${c2y} ${x2} ${y2}`);
         coracao.setAttribute("d", `M${mx} ${my + t * 0.9} C${mx - t * 1.6} ${my - t * 0.2} ${mx - t * 0.7} ${my - t * 1.3} ${mx} ${my - t * 0.45} C${mx + t * 0.7} ${my - t * 1.3} ${mx + t * 1.6} ${my - t * 0.2} ${mx} ${my + t * 0.9}Z`);
       };
       requestAnimationFrame(tracar);
@@ -2069,6 +2075,7 @@
         b.addEventListener("click", () => abrirPerfilNegocio(n, {
           dono, proprio,
           aoMensagem: (uid) => iniciarConversa(uid),
+          aoPerfil: (uid) => abrirPerfilPublico(uid),
           aoEditar: proprio ? (neg) => abrirFormNegocio(neg) : null
         }));
         linha.appendChild(b);
@@ -2170,6 +2177,24 @@
       s.addEventListener("change", () => { negExtra[chave] = s.value; });
       return s;
     }
+    // Hora com duas listas (hora e minuto): evita o relógio do celular, que corta o botão "Definir" em alguns aparelhos.
+    function seletorHora(chave) {
+      const box = document.createElement("div");
+      box.className = "hora-sel";
+      const [h0, m0] = String(negExtra[chave] || "").split(":");
+      const hs = document.createElement("select"), mss = document.createElement("select");
+      hs.setAttribute("aria-label", "Hora"); mss.setAttribute("aria-label", "Minutos");
+      const vazio = document.createElement("option"); vazio.value = ""; vazio.textContent = "--"; hs.appendChild(vazio);
+      for (let h = 0; h < 24; h++) { const o = document.createElement("option"); o.value = String(h).padStart(2, "0"); o.textContent = o.value; hs.appendChild(o); }
+      ["00", "15", "30", "45"].forEach((m) => { const o = document.createElement("option"); o.value = m; o.textContent = m; mss.appendChild(o); });
+      hs.value = h0 || "";
+      mss.value = ["00", "15", "30", "45"].includes(m0) ? m0 : "00";
+      const salvar = () => { negExtra[chave] = hs.value ? `${hs.value}:${mss.value}` : ""; };
+      hs.addEventListener("change", salvar); mss.addEventListener("change", salvar);
+      box.append(hs, document.createTextNode(":"), mss);
+      return box;
+    }
+
     function marcas(chave, opcoes) {
       const box = document.createElement("div");
       box.className = "marcas";
@@ -2218,7 +2243,7 @@
         info.appendChild(campo("Como você atende", marcas("atendimento", { domicilio: "Vou até o cliente", local: "No meu local", online: "Online" })));
       }
       if (t === "delivery") {
-        info.appendChild(grade("", campo("Abre às", entrada("horaAbre", { tipo: "time" })), campo("Fecha às", entrada("horaFecha", { tipo: "time" }))));
+        info.appendChild(grade("", campo("Abre às", seletorHora("horaAbre")), campo("Fecha às", seletorHora("horaFecha"))));
         info.appendChild(grade("quatro",
           campo("Entrega mín. (min)", entrada("tempoMin", { numero: true, placeholder: "30", max: 4 })),
           campo("Entrega máx. (min)", entrada("tempoMax", { numero: true, placeholder: "50", max: 4 })),
