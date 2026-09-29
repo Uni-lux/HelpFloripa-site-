@@ -403,6 +403,12 @@
     .cfg-perfil .avatar { width: 58px; height: 58px; font-size: 19px; }
     .cfg-perfil strong { display: block; font-size: 16px; }
     .cfg-perfil small { color: var(--muted); }
+    .end-aviso { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; background: var(--panel-2); font-size: 13px; line-height: 1.45; color: var(--muted); }
+    .end-aviso strong { color: var(--text); }
+    .end-aviso svg { flex: none; margin-top: 2px; color: var(--text); }
+    .end-duas { display: grid; grid-template-columns: 1fr 1.6fr; gap: 12px; }
+    .end-duas.uf { grid-template-columns: 1fr 80px; }
+    .end-duas .campo input { width: 100%; }
     .segmentado { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; margin: 4px 18px 12px; background: var(--panel-2); padding: 4px; border-radius: 12px; }
     .segmentado button { border: 0; background: transparent; border-radius: 9px; padding: 9px 6px; font-size: 13px; font-weight: 700; color: var(--muted); cursor: pointer; }
     .segmentado button.on { background: var(--panel); color: var(--text); box-shadow: 0 1px 4px rgba(0, 0, 0, .15); }
@@ -635,6 +641,7 @@
           <h3>Conta</h3>
           <button type="button" class="cfg-item" id="cfgEditar"><svg class="i"><use href="#i-lapis"/></svg><span class="txt">Editar perfil<small>Nome, @usuário, bio, cidade, fotos</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
           <button type="button" class="cfg-item" id="cfgVerificacao"><svg class="i"><use href="#i-selo"/></svg><span class="txt">Verificação do perfil<small id="cfgVerificacaoTxt">Solicite o selo de perfil verificado</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
+          <button type="button" class="cfg-item" id="cfgEndereco"><svg class="i"><use href="#i-pin"/></svg><span class="txt">Endereço<small id="cfgEnderecoTxt">Privado: só você vê</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
           <button type="button" class="cfg-item" id="cfgSenha"><svg class="i"><use href="#i-chave"/></svg><span class="txt">Alterar senha<small>Enviamos um link para o seu e-mail</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
         </div>
 
@@ -650,12 +657,18 @@
 
         <div class="cfg-bloco">
           <h3>Privacidade e notificações</h3>
-          <div class="cfg-item" style="cursor:default"><svg class="i"><use href="#i-teia"/></svg><span class="txt">Quem pode abrir os perfis do meu social<small>Quem não estiver liberado vê as fotos, mas não abre os perfis. "Só eu" esconde o social.</small></span></div>
+          <div class="cfg-item" style="cursor:default"><svg class="i"><use href="#i-teia"/></svg><span class="txt">Conexões (Social)<small>Quem pode abrir os perfis do seu social. Quem não estiver liberado vê as fotos, mas não abre os perfis. "Ocultar" esconde o botão Social do seu perfil.</small></span></div>
           <div class="segmentado" id="cfgSocialVis">
             <button type="button" data-valor="todos">Todos</button>
             <button type="button" data-valor="seguidores">Seguidores</button>
             <button type="button" data-valor="amigos">Amigos</button>
-            <button type="button" data-valor="ocultar">Só eu</button>
+            <button type="button" data-valor="ocultar">Ocultar</button>
+          </div>
+          <div class="cfg-item" style="cursor:default"><svg class="i"><use href="#i-rosa"/></svg><span class="txt">Duo na capa do perfil<small id="cfgDuoTxt"></small></span></div>
+          <div class="segmentado" id="cfgDuoCapa">
+            <button type="button" data-valor="clicavel">Clicável</button>
+            <button type="button" data-valor="foto">Só a foto</button>
+            <button type="button" data-valor="ocultar">Ocultar</button>
           </div>
           <label class="cfg-item"><svg class="i"><use href="#i-olho"/></svg><span class="txt">Mostrar quando estou online<small>Aparece como "online" nas conversas</small></span><span class="switch"><input type="checkbox" id="cfgOnline" /><span></span></span></label>
           <label class="cfg-item"><svg class="i"><use href="#i-check"/></svg><span class="txt">Confirmação de leitura<small>Se desligar, ninguém vê quando você leu e você também não vê a leitura dos outros</small></span><span class="switch"><input type="checkbox" id="cfgLeitura" /><span></span></span></label>
@@ -723,6 +736,36 @@
       <div class="folha-rodape">
         <button type="button" class="btn sec" data-fechar>Cancelar</button>
         <button type="button" class="btn pri" id="edSalvar">Salvar alterações</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="folha cheia" id="folhaEndereco" role="dialog" aria-modal="true" aria-labelledby="tEndereco">
+    <div class="folha-caixa">
+      <div class="folha-topo"><h2 id="tEndereco">Endereço</h2><button type="button" class="icone-btn" data-fechar aria-label="Fechar"><svg class="i"><use href="#i-fechar"/></svg></button></div>
+      <div class="folha-corpo pad">
+        <div class="end-aviso"><svg class="i"><use href="#i-cadeado"/></svg><span><strong>Seu endereço é privado.</strong> Ele fica guardado na parte protegida da sua conta, que só você consegue ler. Não aparece no perfil, na busca, no social nem nas conversas, a não ser que você mesmo envie.</span></div>
+        <div class="campo">
+          <label for="endCep">CEP</label>
+          <input id="endCep" inputmode="numeric" maxlength="9" autocomplete="postal-code" placeholder="00000-000" />
+          <div class="ajuda"><span id="endCepStatus">Digite o CEP para preencher rua, bairro e cidade</span></div>
+        </div>
+        <div class="campo"><label for="endRua">Rua</label><input id="endRua" maxlength="100" autocomplete="address-line1" /></div>
+        <div class="end-duas">
+          <div class="campo"><label for="endNumero">Número</label><input id="endNumero" maxlength="10" inputmode="numeric" /></div>
+          <div class="campo"><label for="endComplemento">Complemento</label><input id="endComplemento" maxlength="60" autocomplete="address-line2" placeholder="Apto, bloco" /></div>
+        </div>
+        <div class="campo"><label for="endBairro">Bairro</label><input id="endBairro" maxlength="60" /></div>
+        <div class="end-duas uf">
+          <div class="campo"><label for="endCidade">Cidade</label><input id="endCidade" maxlength="60" autocomplete="address-level2" list="cidadesSugeridas" /></div>
+          <div class="campo"><label for="endUf">UF</label><input id="endUf" maxlength="2" autocomplete="address-level1" placeholder="SC" /></div>
+        </div>
+        <div class="campo"><label for="endReferencia">Ponto de referência</label><input id="endReferencia" maxlength="100" placeholder="Opcional" /></div>
+      </div>
+      <div class="folha-rodape">
+        <button type="button" class="btn sec" id="endRemover" style="margin-right:auto">Remover</button>
+        <button type="button" class="btn sec" data-fechar>Cancelar</button>
+        <button type="button" class="btn pri" id="endSalvar">Salvar endereço</button>
       </div>
     </div>
   </div>
@@ -1792,11 +1835,9 @@
       bComp.appendChild(icone("compartilhar", "i s"));
       bComp.addEventListener("click", () => compartilharPerfil(uid, p.nome));
       acoes.append(bSeguir, bMsg, botaoOpcoesPerfil(uid, p));
-      const podeAbrir = podeAbrirSocial(p, uid, meSegue);
-      if ((p.socialVisibilidade || "todos") !== "ocultar") {
-        acoes.insertBefore(botaoSocial(uid), acoes.lastChild);
-        desenharDuoCapa(ppCab, uid, p, vins.status === "fulfilled" ? vins.value : [], podeAbrir);
-      }
+      if ((p.socialVisibilidade || "todos") !== "ocultar") acoes.insertBefore(botaoSocial(uid), acoes.lastChild);
+      // O duo na capa segue a escolha do dono: clicável, só a foto ou oculto.
+      desenharDuoCapa(ppCab, uid, p, vins.status === "fulfilled" ? vins.value : [], (p.duoCapa || "clicavel") === "clicavel");
       buscarNegocios(uid).then((lista) => renderizarNegocios(ppCab.el("negocios"), lista, { proprio: false, dono: { ...p, uid } })).catch(() => {});
       ppCab.stat("posts").addEventListener("click", () => $("ppGrade").scrollIntoView({ behavior: "smooth" }));
       ppCab.stat("seguidores").addEventListener("click", () => abrirListaRelacoes(uid, "seguidores"));
@@ -1990,6 +2031,7 @@
       raiz.querySelector(".duo-capa")?.remove();
       raiz.querySelector(".fio-capa")?.remove();
       cab.observador?.disconnect();
+      if ((dono.duoCapa || "clicavel") === "ocultar") return;
       const duo = vinculos.map((v) => lerVinculo(v, uid)).find((v) => TIPOS_DUO.includes(v.tipo) && !v.pendente && !escondido(v.outro));
       if (!duo) return;
       const capa = cab.el("capa");
@@ -2975,6 +3017,14 @@
       else nt.textContent = "Toque para ativar";
       $("cfgBloqueadosTxt").textContent = meusBloqueios.size ? `${meusBloqueios.size} ${meusBloqueios.size === 1 ? "conta" : "contas"}` : "Ninguém bloqueado";
       document.querySelectorAll("#cfgSocialVis [data-valor]").forEach((b) => b.classList.toggle("on", b.dataset.valor === (dados.socialVisibilidade || "todos")));
+      const modoDuo = dados.duoCapa || "clicavel";
+      document.querySelectorAll("#cfgDuoCapa [data-valor]").forEach((b) => b.classList.toggle("on", b.dataset.valor === modoDuo));
+      $("cfgDuoTxt").textContent = {
+        clicavel: "A foto do seu duo aparece na capa e abre o perfil dele.",
+        foto: "A foto aparece na capa, mas ninguém consegue abrir o perfil por ela.",
+        ocultar: "Ninguém vê seu duo na capa do seu perfil."
+      }[modoDuo];
+      $("cfgEnderecoTxt").textContent = resumoEndereco(dados.endereco) || "Privado: só você vê";
       $("cfgRestritosTxt").textContent = restritos.size ? `${restritos.size} ${restritos.size === 1 ? "conta" : "contas"}` : "Ninguém restrito";
       aplicarTema();
     }
@@ -3003,6 +3053,91 @@
         toast("Privacidade do social atualizada");
       } catch (e) { dados.socialVisibilidade = antes; pintarConfig(); toast("Não foi possível salvar: " + erroAmigavel(e)); }
     });
+    $("cfgDuoCapa").addEventListener("click", async (e) => {
+      const b = e.target.closest("[data-valor]");
+      if (!b || b.dataset.valor === (dados.duoCapa || "clicavel")) return;
+      const antes = dados.duoCapa;
+      dados.duoCapa = b.dataset.valor;
+      pintarConfig();
+      try {
+        await fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), { uid: eu.uid, duoCapa: b.dataset.valor }, { merge: true });
+        perfis.delete(eu.uid);
+        if (meuCab) desenharDuoCapa(meuCab, eu.uid, dados, meusVinculos, true);
+        toast("Duo na capa atualizado");
+      } catch (e) { dados.duoCapa = antes; pintarConfig(); toast("Não foi possível salvar: " + erroAmigavel(e)); }
+    });
+
+    // ---------- Endereço (fica só em usuarios/{uid}, que as regras deixam só o dono ler) ----------
+    const CAMPOS_END = { cep: "endCep", rua: "endRua", numero: "endNumero", complemento: "endComplemento", bairro: "endBairro", cidade: "endCidade", uf: "endUf", referencia: "endReferencia" };
+    function resumoEndereco(e) {
+      if (!e || !e.rua) return "";
+      const local = [e.bairro, [e.cidade, e.uf].filter(Boolean).join("/")].filter(Boolean).join(" · ");
+      return `Cadastrado${local ? ": " + local : ""}`;
+    }
+    const soDigitos = (v) => String(v || "").replace(/\D/g, "");
+    function formatarCep(v) { const d = soDigitos(v).slice(0, 8); return d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d; }
+    function abrirEndereco() {
+      const e = dados.endereco || {};
+      for (const [k, id] of Object.entries(CAMPOS_END)) $(id).value = e[k] || "";
+      $("endCep").value = formatarCep(e.cep);
+      $("endCepStatus").textContent = "Digite o CEP para preencher rua, bairro e cidade";
+      $("endRemover").hidden = !dados.endereco;
+      abrirFolha("folhaEndereco");
+    }
+    let ultimoCep = "";
+    $("endCep").addEventListener("input", async () => {
+      const campo = $("endCep");
+      campo.value = formatarCep(campo.value);
+      const cep = soDigitos(campo.value);
+      if (cep.length !== 8 || cep === ultimoCep) return;
+      ultimoCep = cep;
+      const st = $("endCepStatus");
+      st.textContent = "Buscando CEP...";
+      try {
+        // Só o CEP é enviado ao ViaCEP; nada da sua conta vai junto.
+        const r = await fetch(`https://viacep.com.br/ws/${cep}/json/`, { referrerPolicy: "no-referrer", credentials: "omit" });
+        const j = await r.json();
+        if (soDigitos($("endCep").value) !== cep) return;
+        if (j.erro) { st.textContent = "CEP não encontrado. Preencha à mão."; return; }
+        if (j.logradouro) $("endRua").value = j.logradouro;
+        if (j.bairro) $("endBairro").value = j.bairro;
+        if (j.localidade) $("endCidade").value = j.localidade;
+        if (j.uf) $("endUf").value = j.uf;
+        st.textContent = "Endereço encontrado. Confira e informe o número.";
+        $("endNumero").focus();
+      } catch { st.textContent = "Não foi possível buscar o CEP agora. Preencha à mão."; }
+    });
+    $("endUf").addEventListener("input", () => { $("endUf").value = $("endUf").value.replace(/[^a-z]/gi, "").toUpperCase(); });
+    $("endSalvar").addEventListener("click", async () => {
+      const e = {};
+      for (const [k, id] of Object.entries(CAMPOS_END)) e[k] = $(id).value.trim().slice(0, 100);
+      e.cep = soDigitos(e.cep);
+      if (e.cep && e.cep.length !== 8) { toast("CEP inválido."); $("endCep").focus(); return; }
+      if (!e.rua) { toast("Informe a rua."); $("endRua").focus(); return; }
+      if (!e.cidade) { toast("Informe a cidade."); $("endCidade").focus(); return; }
+      const btn = $("endSalvar");
+      btn.disabled = true;
+      try {
+        await fb.setDoc(refUsuario, { endereco: { ...e, atualizadoEm: fb.serverTimestamp() } }, { merge: true });
+        dados.endereco = e;
+        pintarConfig();
+        fecharFolha("folhaEndereco");
+        toast("Endereço salvo com segurança");
+      } catch (err) { toast("Não foi possível salvar: " + erroAmigavel(err)); }
+      finally { btn.disabled = false; }
+    });
+    $("endRemover").addEventListener("click", async () => {
+      if (!confirm("Remover seu endereço da conta?")) return;
+      try {
+        await fb.updateDoc(refUsuario, { endereco: fb.deleteField() });
+        delete dados.endereco;
+        pintarConfig();
+        fecharFolha("folhaEndereco");
+        toast("Endereço removido");
+      } catch (err) { toast("Não foi possível remover: " + erroAmigavel(err)); }
+    });
+    $("cfgEndereco").addEventListener("click", abrirEndereco);
+
     $("cfgRestritos").addEventListener("click", () => abrirContas("restritos"));
     $("cfgNotifNavegador").addEventListener("click", async () => {
       if (!("Notification" in window)) return;
@@ -3121,7 +3256,9 @@
         }
 
         avisosVistosEm = ms(dados.notificacoesVistasEm);
-        obterPerfil(eu.uid).then((pp) => { if (pp.socialVisibilidade) dados.socialVisibilidade = pp.socialVisibilidade; });
+        obterPerfil(eu.uid).then((pp) => { if (pp.socialVisibilidade) dados.socialVisibilidade = pp.socialVisibilidade;
+          if (pp.duoCapa && pp.duoCapa !== dados.duoCapa) { dados.duoCapa = pp.duoCapa; if (meuCab) desenharDuoCapa(meuCab, eu.uid, dados, meusVinculos, true); }
+        });
         $("estadoCarregando").hidden = true;
         $("conteudo").hidden = false;
         renderizarMeuPerfil();
