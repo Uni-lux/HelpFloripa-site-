@@ -5,7 +5,8 @@
 // Os negócios são criados no perfil (usuarios.html → bolinha "Criar perfil de negócio").
 // =====================================================
 
-const TIPO = new URL(import.meta.url).searchParams.get("tipo") || "servicos";
+const TIPO_PAGINA = new URL(import.meta.url).searchParams.get("tipo");
+const TIPO = TIPO_PAGINA || "servicos";
 
 export const CATEGORIAS = {
   servicos: { limpeza: "Limpeza", reformas: "Reformas", beleza: "Saúde e Beleza", transporte: "Transporte", pets: "Pets", outros: "Outros" },
@@ -266,61 +267,131 @@ function cartaoImovel(n) {
 const CARTAO = { servicos: cartaoServico, delivery: cartaoDelivery, lojinha: cartaoLoja, imoveis: cartaoImovel };
 
 // ---------- detalhe ----------
-function abrirDetalhe(n) {
+// ---------- perfil completo do negócio (detalhe) ----------
+// Usado na vitrine e no perfil (usuarios.html), onde o dono vê a pré-visualização.
+// opcoes: { dono, proprio, aoMensagem(uid), aoEditar(n) }
+export function abrirDetalhe(n, opcoes = {}) {
+  const tipo = n.tipo || TIPO;
+  const dono = opcoes.dono || donos.get(n.donoId) || {};
+  const proprio = opcoes.proprio ?? (!!eu && n.donoId === eu.uid);
+  const aoMensagem = opcoes.aoMensagem || iniciarConversa;
   const fundo = el("div", "vt-modal vitrine");
-  fundo.dataset.tipo = TIPO;
+  fundo.dataset.tipo = tipo;
   fundo.setAttribute("role", "dialog");
   fundo.setAttribute("aria-modal", "true");
-  const caixa = el("div", "caixa");
+  fundo.setAttribute("aria-label", n.nome || "Negócio");
+  const caixa = el("div", "caixa vd");
   const fechar = el("button", "fechar");
   fechar.type = "button";
   fechar.setAttribute("aria-label", "Fechar");
   fechar.appendChild(icone("fechar", "vi"));
   caixa.appendChild(fechar);
+
   const fotos = (n.fotos || []).filter(urlSegura);
-  if (fotos.length) {
-    const g = el("div", "fotos");
-    fotos.forEach((f) => { const i = document.createElement("img"); i.src = f; i.alt = "Foto"; g.appendChild(i); });
-    caixa.appendChild(g);
-  }
+  // capa
+  const capa = el("div", "vd-capa");
+  capa.style.backgroundImage = `url("${fotos[0] || TEXTOS[tipo].img}")`;
+  const logo = avatar(n.foto, n.nome, "vt-avatar vd-logo");
+  capa.appendChild(logo);
+  caixa.appendChild(capa);
+
   const ct = el("div", "conteudo");
-  const topo = el("div", "vt-servico topo");
-  topo.style.cssText = "display:flex;gap:14px;align-items:center;padding:0";
-  const t = el("div");
-  t.append(el("h3", null, n.nome || TEXTOS[TIPO].titulo.replace(/<[^>]+>/g, "")));
-  const sub = el("div", "vt-sub");
-  sub.appendChild(el("span", "vt-tag", CATEGORIAS[TIPO][n.categoria] || ""));
-  const local = [n.bairro, n.cidade].filter(Boolean).join(", ");
-  if (local) { const s = el("span"); s.append(icone("pin"), document.createTextNode(local)); sub.appendChild(s); }
-  t.appendChild(sub);
-  topo.append(avatar(n.foto, n.nome), t);
-  ct.appendChild(topo);
-  if (TIPO === "imoveis" && moeda(n.preco)) ct.appendChild(el("div", "vt-preco-desde")).append(el("strong", null, moeda(n.preco) + (n.finalidade === "aluguel" ? " /mês" : n.finalidade === "temporada" ? " /diária" : "")));
-  if (TIPO === "delivery") {
-    const infos = el("div", "vt-infos");
-    if (n.horaAbre && n.horaFecha) infos.appendChild(el("span", null, `Funciona das ${n.horaAbre} às ${n.horaFecha}`));
-    if (n.tempoMin || n.tempoMax) infos.appendChild(el("span", null, `Entrega em ${n.tempoMin || "?"}–${n.tempoMax || "?"} min`));
-    infos.appendChild(el("span", null, Number(n.taxaEntrega) > 0 ? `Taxa ${moeda(n.taxaEntrega)}` : "Entrega grátis"));
-    ct.appendChild(infos);
+  if (proprio) {
+    const aviso = el("div", "vd-previa");
+    aviso.append(el("span", null, "Pré-visualização: é assim que os outros veem seu perfil de negócio."));
+    if (opcoes.aoEditar) { const b = el("button", "vt-btn pri"); b.type = "button"; b.append(icone("lapis"), document.createTextNode("Editar")); b.addEventListener("click", () => { sair(); opcoes.aoEditar(n); }); aviso.appendChild(b); }
+    ct.appendChild(aviso);
   }
-  if (TIPO === "servicos" && n.horario) ct.appendChild(el("div", "vt-sub", `Horário: ${n.horario}`));
-  if (n.descricao) { ct.appendChild(el("h4", null, "Sobre")); ct.appendChild(el("p", "texto", n.descricao)); }
+  const cab = el("div", "vd-cab");
+  cab.appendChild(el("h3", null, n.nome || TEXTOS[tipo].criar));
+  const tags = el("div", "vt-sub");
+  tags.appendChild(el("span", "vt-tag", CATEGORIAS[tipo][n.categoria] || ({ servicos: "Serviços", delivery: "Delivery", lojinha: "Lojinha", imoveis: "Imóvel" })[tipo]));
+  if (tipo === "delivery") { const ab = abertoAgora(n); if (ab !== null) tags.appendChild(el("span", "vt-tag " + (ab ? "ok" : "off"), ab ? "Aberto agora" : "Fechado")); }
+  if (tipo === "imoveis" && n.finalidade) tags.appendChild(el("span", "vt-tag neutra", FINALIDADE[n.finalidade]));
+  const local = [n.bairro, n.cidade].filter(Boolean).join(", ");
+  if (local) { const s2 = el("span"); s2.append(icone("pin"), document.createTextNode(local)); tags.appendChild(s2); }
+  cab.appendChild(tags);
+  const d = el("div", "vt-dono");
+  d.append(avatar(dono.fotoPerfil, dono.nome), document.createTextNode(`por ${dono.nome || "Usuário"}`));
+  cab.appendChild(d);
+  ct.appendChild(cab);
+
+  // fatos principais de cada tipo
+  const fatos = el("div", "vd-fatos");
+  const fato = (ic, valor, rotulo) => { if (valor === "" || valor == null) return; const f = el("div", "vd-fato"); f.append(icone(ic, "vi"), el("strong", null, String(valor)), el("small", null, rotulo)); fatos.appendChild(f); };
+  if (tipo === "servicos") {
+    fato("sacola", moeda(n.precoDesde) || "A combinar", "a partir de");
+    fato("relogio", n.horario || "", "horário");
+    (n.atendimento || []).forEach((k) => MODOS[k] && fato("casa", MODOS[k], "atendimento"));
+  }
+  if (tipo === "delivery") {
+    fato("relogio", n.horaAbre && n.horaFecha ? `${n.horaAbre}–${n.horaFecha}` : "", "funcionamento");
+    fato("moto", n.tempoMin || n.tempoMax ? `${n.tempoMin || "?"}–${n.tempoMax || "?"} min` : "", "entrega");
+    fato("moto", Number(n.taxaEntrega) > 0 ? moeda(n.taxaEntrega) : "Grátis", "taxa");
+    fato("sacola", moeda(n.pedidoMinimo), "pedido mínimo");
+  }
+  if (tipo === "lojinha") {
+    (n.entrega || []).forEach((k) => fato(k === "entrega" ? "moto" : "sacola", k === "entrega" ? "Entrega" : "Retirada", "como receber"));
+    fato("sacola", (n.itens || []).filter((i) => i?.nome).length || "", "produtos");
+  }
+  if (tipo === "imoveis") {
+    fato("sacola", moeda(n.preco) ? moeda(n.preco) + (n.finalidade === "aluguel" ? "/mês" : n.finalidade === "temporada" ? "/dia" : "") : "", FINALIDADE[n.finalidade] || "preço");
+    fato("cama", n.quartos ?? "", "quartos");
+    fato("banho", n.banheiros ?? "", "banheiros");
+    fato("carro", n.vagas ?? "", "vagas");
+    fato("area", n.area ? `${n.area} m²` : "", "área");
+    fato("casa", moeda(n.condominio), "condomínio");
+    if (n.mobiliado) fato("casa", "Sim", "mobiliado");
+  }
+  if (fatos.children.length) ct.appendChild(fatos);
+
+  if (n.descricao) { ct.appendChild(el("h4", null, tipo === "imoveis" ? "Descrição do imóvel" : "Sobre")); ct.appendChild(el("p", "texto", n.descricao)); }
+
   const itens = (n.itens || []).filter((i) => i?.nome);
   if (itens.length) {
-    ct.appendChild(el("h4", null, TIPO === "delivery" ? "Cardápio" : TIPO === "lojinha" ? "Produtos" : "Serviços e preços"));
-    const lista = el("div", "vt-itens");
-    itens.forEach((i) => {
-      const it = el("div", "vt-item");
-      if (urlSegura(i.foto)) { const f = el("div", "ft"); f.style.backgroundImage = `url("${i.foto}")`; it.appendChild(f); }
-      const tx = el("div", "tx");
-      tx.append(el("strong", null, i.nome));
-      if (i.desc) tx.appendChild(el("small", null, i.desc));
-      it.append(tx, el("span", "pr", moeda(i.preco) || "a combinar"));
-      lista.appendChild(it);
-    });
-    ct.appendChild(lista);
+    ct.appendChild(el("h4", null, tipo === "delivery" ? "Cardápio" : tipo === "lojinha" ? "Produtos" : "Serviços e preços"));
+    if (tipo === "servicos") {
+      const ul = el("ul", "vt-lista-serv");
+      itens.forEach((i) => { const li = el("li"); li.append(el("span", null, i.nome), el("span", null, moeda(i.preco) || "a combinar")); ul.appendChild(li); });
+      ct.appendChild(ul);
+    } else {
+      const g = el("div", "vd-itens " + tipo);
+      itens.forEach((i) => {
+        const card = el("div", "vd-item");
+        const f = el("div", "ft");
+        if (urlSegura(i.foto)) f.style.backgroundImage = `url("${i.foto}")`; else f.appendChild(icone(tipo === "delivery" ? "sacola" : "foto", "vi"));
+        card.append(f, el("strong", null, i.nome), el("span", null, moeda(i.preco) || "Consultar"));
+        g.appendChild(card);
+      });
+      ct.appendChild(g);
+    }
   }
-  ct.append(linhaDono(n), botoesContato(n));
+
+  const galeria = tipo === "delivery" ? [] : fotos;
+  if (galeria.length) {
+    ct.appendChild(el("h4", null, tipo === "imoveis" ? "Fotos do imóvel" : "Fotos"));
+    const g = el("div", "vd-galeria");
+    galeria.forEach((f, i) => { const im = document.createElement("img"); im.src = f; im.alt = `Foto ${i + 1}`; im.loading = "lazy"; im.addEventListener("click", () => window.open(f, "_blank", "noopener")); g.appendChild(im); });
+    ct.appendChild(g);
+  }
+
+  // barra de contato
+  const barra = el("div", "vd-acoes");
+  if (proprio) {
+    if (opcoes.aoEditar) { const b = el("button", "vt-btn pri"); b.type = "button"; b.append(icone("lapis"), document.createTextNode("Editar perfil de negócio")); b.addEventListener("click", () => { sair(); opcoes.aoEditar(n); }); barra.appendChild(b); }
+    else { const a = el("a", "vt-btn pri"); a.href = `usuarios.html?acao=negocio&tipo=${tipo}`; a.append(icone("lapis"), document.createTextNode("Editar")); barra.appendChild(a); }
+  } else {
+    const textos = { servicos: "Pedir orçamento", delivery: "Fazer pedido", lojinha: "Falar com a loja", imoveis: "Tenho interesse" };
+    const w = linkWhats(n);
+    const m = el("button", "vt-btn " + (w ? "sec" : "pri"));
+    m.type = "button";
+    m.append(icone("chat"), document.createTextNode(textos[tipo]));
+    m.addEventListener("click", () => aoMensagem(n.donoId));
+    barra.appendChild(m);
+    if (w) barra.appendChild(w);
+  }
+  ct.appendChild(barra);
+
   caixa.appendChild(ct);
   fundo.appendChild(caixa);
   const sair = () => { fundo.remove(); document.removeEventListener("keydown", tecla); };
@@ -439,4 +510,5 @@ async function iniciar() {
   });
 }
 
-iniciar();
+// Só monta a vitrine nas páginas que informam o tipo (servicos, delivery, shopping, imoveis).
+if (TIPO_PAGINA) iniciar();

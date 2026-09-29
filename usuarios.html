@@ -8,6 +8,7 @@
   <link rel="icon" href="favicon.ico" />
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
+  <link rel="stylesheet" href="vitrine.css" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
     // Tema compartilhado com a página de mensagens; aplicado antes de desenhar.
@@ -177,11 +178,11 @@
     .pf-stat .rot { display: block; font-size: 11.5px; color: var(--muted); font-weight: 600; letter-spacing: .2px; }
     .chip-verif { display: inline-flex; align-items: center; gap: 6px; margin-top: 14px; padding: 8px 12px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--accent); font-size: 13px; font-weight: 700; border: 0; cursor: pointer; }
 
-    /* ---------- duo na capa: fio vermelho ligando as fotos ---------- */
+    /* ---------- duo na capa: Akai Ito ligando as fotos ---------- */
     .pf { position: relative; }
     .fio-capa { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; z-index: 4; overflow: visible; }
     .fio-capa path.fio { fill: none; stroke: #e0243b; stroke-width: 2.2; stroke-linecap: round; filter: drop-shadow(0 0 3px rgba(224, 36, 59, .9)) drop-shadow(0 0 8px rgba(224, 36, 59, .45)); animation: pulso-fio 2.8s ease-in-out infinite; }
-    .fio-capa path.coracao { fill: #e0243b; stroke: #fff; stroke-width: 1.2; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, .45)); transform-box: fill-box; transform-origin: center; animation: bater 1.6s ease-in-out infinite; }
+    .fio-capa path.coracao { fill: #e0243b; stroke: #fff; stroke-width: 1.6; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, .45)); transform-box: fill-box; transform-origin: center; animation: bater 1.6s ease-in-out infinite; }
     @keyframes pulso-fio { 50% { stroke-width: 2.8; } }
     @keyframes bater { 0%, 60%, 100% { transform: scale(1); } 20% { transform: scale(1.22); } 40% { transform: scale(.95); } }
     .duo-capa { position: absolute; z-index: 5; left: 172px; bottom: 12%; width: 62px; height: 62px; border: 0; padding: 0; background: none; cursor: pointer; }
@@ -192,6 +193,11 @@
     @media (max-width: 640px) { .duo-capa { width: 52px; height: 52px; left: 128px; bottom: 16%; } .rosa-selo { width: 22px; height: 22px; } .rosa-selo svg { width: 14px; height: 14px; } }
 
     /* ---------- perfis de negócio (bolinhas) ---------- */
+    [data-el="negocios"] .vinculos { gap: 10px; padding: 8px 4px 6px; justify-content: flex-start; }
+    [data-el="negocios"] .vinculo { width: 66px; }
+    [data-el="negocios"] .vinculo .avatar { width: 48px; height: 48px; font-size: 15px; }
+    [data-el="negocios"] .vinculo .nome { font-size: 11.5px; max-width: 66px; }
+    [data-el="negocios"] .vinculo .papel { font-size: 10.5px; max-width: 66px; }
     .vinculo[data-cat="servicos"] { --cor: #00adee; }
     .vinculo[data-cat="delivery"] { --cor: #ff7a1a; }
     .vinculo[data-cat="lojinha"] { --cor: #b066ff; }
@@ -236,7 +242,7 @@
       .neg-item.sem-foto .preco { grid-column: 1 / 2; }
     }
 
-    /* ---------- social: duo (fio vermelho) e vínculos ---------- */
+    /* ---------- social: duo (Akai Ito) e vínculos ---------- */
     .social { margin-top: 16px; }
     .social-titulo { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
     .social-titulo h3 { margin: 0; font-size: 13px; letter-spacing: .7px; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 6px; }
@@ -791,13 +797,6 @@
     </div>
   </div>
 
-  <div class="folha" id="folhaVerNegocio" role="dialog" aria-modal="true" aria-labelledby="tVerNegocio">
-    <div class="folha-caixa">
-      <div class="folha-topo"><h2 id="tVerNegocio">Negócio</h2><button type="button" class="icone-btn" data-fechar aria-label="Fechar"><svg class="i"><use href="#i-fechar"/></svg></button></div>
-      <div class="folha-corpo" id="verNegocioCorpo"></div>
-    </div>
-  </div>
-
   <div class="folha" id="folhaVinculo" role="dialog" aria-modal="true" aria-labelledby="tVinculo">
     <div class="folha-caixa">
       <div class="folha-topo"><h2 id="tVinculo">Adicionar ao seu social</h2><button type="button" class="icone-btn" data-fechar aria-label="Fechar"><svg class="i"><use href="#i-fechar"/></svg></button></div>
@@ -841,6 +840,7 @@
 
   <script type="module">
     import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js";
+    import { abrirDetalhe as abrirPerfilNegocio } from "./vitrine.js";
 
     // ======================================================
     // Preferências compartilhadas com mensagens.html
@@ -1338,8 +1338,9 @@
       try {
         const dataUrl = await editarImagem(arquivo, {
           titulo: "Enquadrar publicação",
-          dica: "Escolha o formato e ajuste. Na grade do perfil a foto aparece no formato retrato; a linha tracejada é a margem segura.",
+          dica: "Escolha o formato e arraste a foto. A borda branca é o que aparece na publicação; deixe o principal dentro da margem segura (tracejada). Nos formatos quadrado e paisagem, o pontilhado azul mostra o recorte da miniatura no seu perfil.",
           formatos: [{ rotulo: "Retrato 4:5", proporcao: 4 / 5 }, { rotulo: "Quadrado 1:1", proporcao: 1 }, { rotulo: "Paisagem 16:9", proporcao: 16 / 9 }],
+          miniatura: 4 / 5,
           larguraSaida: 1080, qualidade: 0.8, limiteBytes: LIMITE_DOC
         });
         if (!dataUrl) return;
@@ -1903,7 +1904,7 @@
     }
 
     // ======================================================
-    // Social: duo (fio vermelho), família, amigos
+    // Social: duo (Akai Ito), família, amigos
     // ======================================================
     const TIPOS = {
       duo: { rotulo: "Duo", cat: "duo" },
@@ -1922,7 +1923,9 @@
       parceiro: { rotulo: "Parceiro(a) de trabalho", cat: "trabalho" }
     };
     const INVERSO = { duo: "duo", namoro: "namoro", casamento: "casamento", melhor_amigo: "melhor_amigo", amigo: "amigo", irmao: "irmao", pai_mae: "filho", filho: "pai_mae", primo: "primo", tio: "sobrinho", sobrinho: "tio", avo: "neto", neto: "avo", parceiro: "parceiro" };
-    const EXCLUSIVOS = { duo: ["duo"], namoro: ["namoro", "casamento"], casamento: ["namoro", "casamento"] };
+    // Duo, namoro e casamento são o mesmo lugar: a pessoa ligada pelo Akai Ito. Só um por vez.
+    const TIPOS_DUO = ["duo", "namoro", "casamento"];
+    const EXCLUSIVOS = { duo: TIPOS_DUO, namoro: TIPOS_DUO, casamento: TIPOS_DUO };
     const rotuloTipo = (t) => TIPOS[t]?.rotulo || "Vínculo";
 
     // Do ponto de vista de "uid": quem é o outro e o que ele é para "uid".
@@ -1955,13 +1958,13 @@
       return b;
     }
 
-    // Foto do duo pequena na capa, ligada à foto do perfil por um fio vermelho.
+    // Foto do duo pequena na capa, ligada à foto do perfil pelo Akai Ito (fio, coração, fio).
     function desenharDuoCapa(cab, uid, dono, vinculos, podeAbrir) {
       const raiz = cab.raiz.querySelector(".pf");
       raiz.querySelector(".duo-capa")?.remove();
       raiz.querySelector(".fio-capa")?.remove();
       cab.observador?.disconnect();
-      const duo = vinculos.map((v) => lerVinculo(v, uid)).find((v) => v.tipo === "duo" && !v.pendente && !escondido(v.outro));
+      const duo = vinculos.map((v) => lerVinculo(v, uid)).find((v) => TIPOS_DUO.includes(v.tipo) && !v.pendente && !escondido(v.outro));
       if (!duo) return;
       const capa = cab.el("capa");
       const btn = document.createElement("button");
@@ -1977,8 +1980,9 @@
       capa.appendChild(btn);
       obterPerfil(duo.outro).then((o) => {
         pintarAvatar(av, o.fotoPerfil, o.nome);
-        btn.setAttribute("aria-label", `Duo: ${o.nome || "Usuário"}`);
-        btn.title = `Duo: ${o.nome || "Usuário"}`;
+        const papel = duo.tipo === "duo" ? "Duo" : rotuloTipo(duo.tipo);
+        btn.setAttribute("aria-label", `${papel}: ${o.nome || "Usuário"}`);
+        btn.title = `${papel} · Akai Ito: ${o.nome || "Usuário"}`;
       });
       if (podeAbrir) btn.addEventListener("click", (e) => { e.stopPropagation(); abrirPerfilPublico(duo.outro); });
       else btn.disabled = true;
@@ -2006,8 +2010,11 @@
         // Curva suave para cima, como um laço, com um coraçãozinho no meio.
         const cx = (x1 + x2) / 2, cy = Math.min(y1, y2) - Math.min(34, dist * 0.35);
         svgEl.setAttribute("viewBox", `0 0 ${base.width} ${base.height}`);
-        path.setAttribute("d", `M${x1} ${y1} Q${cx} ${cy} ${x2} ${y2}`);
-        const mx = 0.25 * x1 + 0.5 * cx + 0.25 * x2, my = 0.25 * y1 + 0.5 * cy + 0.25 * y2, t = 7;
+        // Fio – coração – fio: a curva é dividida no meio e cada metade termina na lateral do coração.
+        const mx = 0.25 * x1 + 0.5 * cx + 0.25 * x2, my = 0.25 * y1 + 0.5 * cy + 0.25 * y2, t = 10;
+        const tl = Math.hypot(x2 - x1, y2 - y1) || 1, tx = (x2 - x1) / tl, ty = (y2 - y1) / tl;
+        const lx = mx - tx * t * 1.25, ly = my - ty * t * 1.25 - t * 0.25, rx = mx + tx * t * 1.25, ry = my + ty * t * 1.25 - t * 0.25;
+        path.setAttribute("d", `M${x1} ${y1} Q${(x1 + cx) / 2} ${(y1 + cy) / 2} ${lx} ${ly} M${rx} ${ry} Q${(cx + x2) / 2} ${(cy + y2) / 2} ${x2} ${y2}`);
         coracao.setAttribute("d", `M${mx} ${my + t * 0.9} C${mx - t * 1.6} ${my - t * 0.2} ${mx - t * 0.7} ${my - t * 1.3} ${mx} ${my - t * 0.45} C${mx + t * 0.7} ${my - t * 1.3} ${mx + t * 1.6} ${my - t * 0.2} ${mx} ${my + t * 0.9}Z`);
       };
       requestAnimationFrame(tracar);
@@ -2059,7 +2066,11 @@
         papel.className = "papel";
         papel.textContent = t.rotulo;
         b.append(av, nome, papel);
-        b.addEventListener("click", () => (proprio ? abrirFormNegocio(n) : verNegocio(n, dono)));
+        b.addEventListener("click", () => abrirPerfilNegocio(n, {
+          dono, proprio,
+          aoMensagem: (uid) => iniciarConversa(uid),
+          aoEditar: proprio ? (neg) => abrirFormNegocio(neg) : null
+        }));
         linha.appendChild(b);
       });
       if (proprio && lista.length < Object.keys(NEGOCIOS).length) {
@@ -2087,65 +2098,6 @@
         dica.textContent = "Crie perfis de Serviços, Delivery, Lojinha ou Imóveis para aparecerem aqui.";
         box.appendChild(dica);
       }
-    }
-
-    function verNegocio(n, dono) {
-      const t = NEGOCIOS[n.tipo];
-      const corpo = $("verNegocioCorpo");
-      corpo.replaceChildren();
-      $("tVerNegocio").textContent = t.rotulo;
-      const capa = document.createElement("div");
-      capa.className = "neg-capa";
-      capa.style.backgroundImage = `url(${t.img})`;
-      const c = document.createElement("div");
-      c.className = "neg-corpo";
-      const topo = document.createElement("div");
-      topo.className = "neg-topo";
-      const av = document.createElement("div");
-      av.className = "avatar";
-      pintarAvatar(av, n.foto, n.nome);
-      topo.appendChild(av);
-      const tipo = document.createElement("span");
-      tipo.className = "neg-tipo";
-      tipo.style.setProperty("--cor", getComputedStyle(document.documentElement).getPropertyValue("--accent"));
-      tipo.textContent = t.rotulo;
-      const h = document.createElement("h3");
-      h.textContent = n.nome || t.rotulo;
-      const sub = document.createElement("div");
-      sub.className = "pf-handle";
-      const por = document.createElement("span");
-      por.textContent = `por ${dono?.nome || "Usuário"}`;
-      sub.appendChild(por);
-      if (n.cidade) { const ci = document.createElement("span"); ci.append(icone("pin", "i xs"), document.createTextNode(n.cidade)); sub.appendChild(ci); }
-      const desc = document.createElement("p");
-      desc.className = "desc";
-      desc.textContent = n.descricao || "";
-      const acoes = document.createElement("div");
-      acoes.className = "neg-acoes";
-      if (dono?.uid && dono.uid !== eu.uid) {
-        const m = document.createElement("button");
-        m.type = "button"; m.className = "btn pri";
-        m.append(icone("chat", "i xs"), document.createTextNode("Mensagem"));
-        m.addEventListener("click", () => iniciarConversa(dono.uid));
-        acoes.appendChild(m);
-      }
-      const numero = String(n.whatsapp || "").replace(/\D/g, "");
-      if (numero.length >= 10) {
-        const w = document.createElement("a");
-        w.className = "btn sec";
-        w.href = `https://wa.me/${numero.startsWith("55") ? numero : "55" + numero}`;
-        w.target = "_blank"; w.rel = "noopener noreferrer";
-        w.append(icone("whats", "i xs"), document.createTextNode("WhatsApp"));
-        acoes.appendChild(w);
-      }
-      const ver = document.createElement("a");
-      ver.className = "btn sec";
-      ver.href = t.pagina;
-      ver.textContent = `Ver ${t.rotulo}`;
-      acoes.appendChild(ver);
-      c.append(topo, tipo, h, sub, desc, acoes);
-      corpo.append(capa, c);
-      abrirFolha("folhaVerNegocio");
     }
 
     let negEditando = null, negTipo = "servicos", negFoto = "";
@@ -2483,7 +2435,7 @@
         b.className = "tipo" + (k === vinTipo ? " on" : "");
         b.dataset.cat = t.cat;
         const bola = document.createElement("i");
-        if (k === "duo") b.append(icone("rosa", "i s"), document.createTextNode("Duo (fio vermelho)"));
+        if (k === "duo" || k === "namoro" || k === "casamento") b.append(icone("rosa", "i s"), document.createTextNode(k === "duo" ? "Duo (Akai Ito)" : t.rotulo));
         else b.append(bola, document.createTextNode(t.rotulo));
         b.addEventListener("click", () => {
           vinTipo = k;
