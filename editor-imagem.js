@@ -15,11 +15,11 @@ function injetarEstilo() {
   if (document.getElementById(ESTILO_ID)) return;
   const css = `
   .hfe-fundo { position: fixed; inset: 0; z-index: 9000; background: rgba(4, 8, 11, .82); display: grid; place-items: center; padding: 16px; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
-  .hfe-caixa { width: min(620px, 100%); max-height: calc(100dvh - 32px); display: flex; flex-direction: column; background: var(--panel, #10181d); color: var(--text, #e9eef1); border: 1px solid var(--line, #22313a); border-radius: 20px; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,.5); font-family: var(--font, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif); }
+  .hfe-caixa { width: min(620px, 100%); max-height: calc(100dvh - 32px); display: flex; flex-direction: column; background: var(--panel, #10181d); color: var(--text, #e9eef1); border: 1px solid var(--line, #22313a); border-radius: 20px; overflow-x: hidden; overflow-y: auto; box-shadow: 0 24px 80px rgba(0,0,0,.5); font-family: var(--font, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif); }
   .hfe-topo { display: flex; align-items: center; gap: 8px; padding: 12px 12px 12px 18px; border-bottom: 1px solid var(--line, #22313a); }
   .hfe-topo h2 { flex: 1; margin: 0; font-size: 17px; font-weight: 700; }
   .hfe-dica { margin: 0; padding: 10px 18px 0; font-size: 12.5px; color: var(--muted, #8b9ba6); line-height: 1.45; }
-  .hfe-palco { position: relative; margin: 12px 18px 0; border-radius: 14px; overflow: hidden; background: repeating-conic-gradient(#1a2329 0 25%, #121a1f 0 50%) 0 0 / 22px 22px; touch-action: none; cursor: grab; user-select: none; }
+  .hfe-palco { position: relative; flex-shrink: 0; margin: 12px 18px 0; border-radius: 14px; overflow: hidden; background: repeating-conic-gradient(#1a2329 0 25%, #121a1f 0 50%) 0 0 / 22px 22px; touch-action: none; cursor: grab; user-select: none; }
   .hfe-palco:active { cursor: grabbing; }
   .hfe-palco canvas { display: block; width: 100%; height: 100%; }
   .hfe-moldura { position: absolute; pointer-events: none; box-shadow: 0 0 0 9999px rgba(4, 8, 11, .62); border: 2px solid rgba(255,255,255,.95); }
@@ -30,7 +30,21 @@ function injetarEstilo() {
       linear-gradient(to bottom, transparent calc(33.33% - .5px), rgba(255,255,255,.35) calc(33.33% - .5px), rgba(255,255,255,.35) calc(33.33% + .5px), transparent calc(33.33% + .5px), transparent calc(66.66% - .5px), rgba(255,255,255,.35) calc(66.66% - .5px), rgba(255,255,255,.35) calc(66.66% + .5px), transparent calc(66.66% + .5px));
     opacity: 0; transition: opacity .2s; }
   .hfe-palco.movendo .hfe-moldura::before { opacity: 1; }
-  .hfe-moldura::after { inset: 7%; border: 1.5px dashed rgba(255,255,255,.55); border-radius: inherit; }
+  .hfe-moldura::after { inset: 7%; border: 1.5px dashed rgba(255,255,255,.8); border-radius: inherit; box-shadow: 0 0 0 1px rgba(0,0,0,.35); }
+  .hfe-margem { position: absolute; left: 7%; top: 7%; transform: translate(6px, 6px); padding: 2px 7px; border-radius: 6px; background: rgba(0,0,0,.6); color: #fff; font-size: 10.5px; font-weight: 700; pointer-events: none; white-space: nowrap; }
+  .hfe-moldura.circulo .hfe-margem { left: 50%; top: 7%; transform: translate(-50%, 6px); }
+  .hfe-canto { position: absolute; width: 18px; height: 18px; border-color: #fff; border-style: solid; pointer-events: none; }
+  .hfe-canto.a { left: -2px; top: -2px; border-width: 4px 0 0 4px; }
+  .hfe-canto.b { right: -2px; top: -2px; border-width: 4px 4px 0 0; }
+  .hfe-canto.c { left: -2px; bottom: -2px; border-width: 0 0 4px 4px; }
+  .hfe-canto.d { right: -2px; bottom: -2px; border-width: 0 4px 4px 0; }
+  .hfe-moldura.circulo .hfe-canto { display: none; }
+  .hfe-mini { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); border: 2px dotted #7de3ff; pointer-events: none; }
+  .hfe-mini span { position: absolute; right: 4px; bottom: 4px; padding: 2px 6px; border-radius: 6px; background: rgba(0, 60, 80, .8); color: #fff; font-size: 10.5px; font-weight: 700; white-space: nowrap; }
+  .hfe-legenda { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 8px 18px 0; font-size: 11.5px; color: var(--muted, #8b9ba6); }
+  .hfe-legenda i { display: inline-block; width: 18px; height: 0; vertical-align: middle; margin-right: 6px; border-top: 2px solid #fff; }
+  .hfe-legenda i.tr { border-top-style: dashed; }
+  .hfe-legenda i.mi { border-top: 2px dotted #7de3ff; }
   .hfe-rotulo { position: absolute; left: 50%; transform: translateX(-50%); bottom: 8px; padding: 4px 10px; border-radius: 999px; background: rgba(0,0,0,.6); color: #fff; font-size: 11.5px; font-weight: 600; white-space: nowrap; pointer-events: none; }
   .hfe-extra { position: absolute; pointer-events: none; }
   .hfe-extra.avatar-capa { width: 22%; aspect-ratio: 1; left: 5%; bottom: -11%; border-radius: 50%; border: 2px dashed rgba(255,255,255,.7); background: rgba(0,0,0,.35); }
@@ -93,6 +107,7 @@ const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
  * @param {number} [op.larguraSaida=1080]
  * @param {number} [op.qualidade=0.82]
  * @param {number} [op.limiteBytes] tamanho máximo do data URL (reduz qualidade até caber)
+ * @param {number} [op.miniatura] proporção da miniatura (ex.: 4/5); mostra o recorte quando o formato é outro
  */
 export async function editarImagem(arquivo, op = {}) {
   injetarEstilo();
@@ -118,8 +133,9 @@ export async function editarImagem(arquivo, op = {}) {
       <div class="hfe-formatos" hidden></div>
       <div class="hfe-palco">
         <canvas></canvas>
-        <div class="hfe-moldura"><span class="hfe-rotulo"></span></div>
+        <div class="hfe-moldura"><span class="hfe-canto a"></span><span class="hfe-canto b"></span><span class="hfe-canto c"></span><span class="hfe-canto d"></span><span class="hfe-margem">Margem segura</span><div class="hfe-mini" hidden><span>Miniatura na grade</span></div><span class="hfe-rotulo"></span></div>
       </div>
+      <div class="hfe-legenda"><span><i></i>Borda: o que aparece</span><span><i class="tr"></i>Margem segura: deixe o importante aqui dentro</span><span class="lg-mini" hidden><i class="mi"></i>Recorte da miniatura no perfil</span></div>
       <div class="hfe-controles">
         <button type="button" class="hfe-icone" data-acao="menos" aria-label="Diminuir zoom">${svg('<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2M8 11h6"/>')}</button>
         <input type="range" min="1" max="4" step="0.01" value="1" aria-label="Zoom" />
@@ -188,9 +204,26 @@ export async function editarImagem(arquivo, op = {}) {
     ctx.drawImage(fonte, W / 2 + ox - w / 2, H / 2 + oy - h / 2, w, h);
   }
 
+  const mini = moldura.querySelector(".hfe-mini");
+  function pintarMiniatura() {
+    const m = op.miniatura;
+    const mostra = !!m && Math.abs(m - proporcao) > 0.01;
+    mini.hidden = !mostra;
+    fundo.querySelector(".lg-mini").hidden = !mostra;
+    if (!mostra) return;
+    // recorte central que a grade do perfil usa
+    let w = fw, h = fw / m;
+    if (h > fh) { h = fh; w = fh * m; }
+    mini.style.width = w + "px";
+    mini.style.height = h + "px";
+  }
+
   function medir() {
-    const larguraDisp = palco.parentElement.clientWidth - 36;
-    const alturaMax = Math.max(220, Math.min(window.innerHeight * 0.55, 520));
+    const caixa = palco.parentElement;
+    const larguraDisp = caixa.clientWidth - 36;
+    // espaço que sobra na tela depois dos outros elementos do editor
+    const outros = caixa.scrollHeight - palco.offsetHeight;
+    const alturaMax = Math.max(200, Math.min(window.innerHeight - 40 - outros, 540));
     W = larguraDisp;
     H = Math.min(alturaMax, Math.max(240, W / Math.max(proporcao, 0.6) + 40));
     fw = Math.min(W - 32, (H - 32) * proporcao);
@@ -208,6 +241,7 @@ export async function editarImagem(arquivo, op = {}) {
     zoom.value = String(escala / escalaMin);
     limitar();
     desenhar();
+    pintarMiniatura();
   }
 
   function aplicarZoom(novo, cx = W / 2, cy = H / 2) {
