@@ -179,3 +179,40 @@
 a.vt-dono { text-decoration: none; width: fit-content; border-radius: 999px; padding: 2px 8px 2px 2px; margin-left: -2px; }
 a.vt-dono:hover { background: var(--vt-card-2); color: var(--vt-text); }
 a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--vc) 60%, transparent); text-underline-offset: 3px; }
+
+/* ===== v6: cartões reorganizados, vários imóveis, anunciante ===== */
+.vt-card .vt-dono .vt-avatar, .vd .vt-dono .vt-avatar { width: 24px; height: 24px; font-size: 10px; box-shadow: none; border: 0; border-radius: 50%; }
+.vt-topo { display: flex; gap: 14px; align-items: center; }
+.vt-topo .vt-avatar { width: 58px; height: 58px; box-shadow: 0 0 0 3px var(--vt-card), 0 0 0 5px var(--vc); }
+.vt-topo-tx { min-width: 0; flex: 1; display: grid; gap: 4px; }
+.vt-topo-tx .vt-nome { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vt-local { display: inline-flex; align-items: center; gap: 4px; }
+.vt-areas { display: flex; flex-wrap: wrap; gap: 6px; }
+.vt-tag.cnh { background: rgba(245, 183, 0, .14); color: #f5c542; }
+.vt-tag svg { width: 14px; height: 14px; }
+.vt-linha-preco { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.vt-rodape { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--vt-line); display: grid; gap: 10px; }
+.vt-rodape .vt-botoes { padding-top: 0; margin-top: 0; }
+.vt-servico .vt-lista-serv li { padding: 7px 10px; }
+.vd-subtitulo { font-size: 12.5px; font-weight: 800; color: var(--vt-muted); margin: 2px 0 -6px; }
+.vd-imoveis { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.vd-imoveis.linha { display: flex; overflow-x: auto; scrollbar-width: none; }
+.vd-imoveis.linha::-webkit-scrollbar { display: none; }
+.vd-imoveis.linha .vd-mini-imovel { flex: 0 0 210px; }
+.vd-mini-imovel { display: grid; border: 1px solid var(--vt-line); background: var(--vt-card-2); border-radius: 16px; overflow: hidden; padding: 0; text-align: left; cursor: pointer; color: var(--vt-text); }
+.vd-mini-imovel:hover { border-color: var(--vc); }
+.vd-mini-imovel .ft { position: relative; aspect-ratio: 16 / 10; background: #07170f center / cover; }
+.vd-mini-imovel .ft .vt-tag { position: absolute; top: 8px; left: 8px; background: var(--vc); color: var(--vc-ink); }
+.vd-mini-imovel .tx { display: grid; gap: 2px; padding: 10px 12px 12px; }
+.vd-mini-imovel .tx strong { color: var(--vc); font-size: 16px; }
+.vd-mini-imovel .tx span { font-size: 13.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vd-mini-imovel .tx small { color: var(--vt-muted); font-size: 12px; }
+.vd-fotos { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; background: #000; scrollbar-width: none; }
+.vd-fotos::-webkit-scrollbar { display: none; }
+.vd-fotos img { flex: 0 0 100%; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; scroll-snap-align: start; }
+.vd-fotos-n { font-size: 12px; color: var(--vt-muted); text-align: center; padding: 8px 0 0; }
+.vt-modal .caixa.vd > .vd-fotos ~ .conteudo { padding-top: 16px; }
+.vd-preco { font-size: 28px; font-weight: 900; letter-spacing: -.5px; color: var(--vc); }
+.vd-anunciante { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px; background: var(--vt-card-2); border: 1px solid var(--vt-line); }
+.vd-anunciante .tx { display: grid; gap: 4px; }
+.vd-anunciante small { color: var(--vt-muted); font-size: 12.5px; }

@@ -1,32 +1,40 @@
 // =====================================================
 // Vitrine de negócios do Help Floripa
-// Carregue assim na página:  <script type="module" src="vitrine.js?tipo=servicos"></script>
+// Na página:  <script type="module" src="vitrine.js?tipo=servicos"></script>
 // Tipos: servicos | delivery | lojinha | imoveis
-// Os negócios são criados no perfil (usuarios.html → bolinha "Criar perfil de negócio").
+// Negócios: coleção "negocios" (um perfil de cada tipo por pessoa).
+// Imóveis:  coleção "anuncios" (vários imóveis por pessoa).
+// Links diretos: pagina.html?negocio=ID  ·  imoveis.html?anuncio=ID
 // =====================================================
 
-const TIPO_PAGINA = new URL(import.meta.url).searchParams.get("tipo");
+const PARAMS = new URL(import.meta.url).searchParams;
+const TIPO_PAGINA = PARAMS.get("tipo");
 const TIPO = TIPO_PAGINA || "servicos";
 
+export const CORES_TIPO = { servicos: "#00adee", delivery: "#ff7a1a", lojinha: "#b066ff", imoveis: "#2fbf71" };
+export const NOMES_TIPO = { servicos: "Serviços", delivery: "Delivery", lojinha: "Lojinha", imoveis: "Imóveis" };
+export const PAGINA_TIPO = { servicos: "servicos.html", delivery: "delivery.html", lojinha: "shopping.html", imoveis: "imoveis.html" };
 export const CATEGORIAS = {
-  servicos: { limpeza: "Limpeza", reformas: "Reformas", beleza: "Saúde e Beleza", transporte: "Transporte", pets: "Pets", outros: "Outros" },
+  servicos: { limpeza: "Limpeza", reformas: "Reformas", beleza: "Saúde e Beleza", transporte: "Transporte / Motorista", pets: "Pets", outros: "Outros" },
   delivery: { hamburguer: "Hambúrguer", pizza: "Pizza", sushi: "Sushi", doces: "Doces", bebidas: "Bebidas", outros: "Outros" },
   lojinha: { eletronicos: "Eletrônicos", roupas: "Roupas", mercado: "Mercado", casa: "Casa", outros: "Outros" },
   imoveis: { apartamento: "Apartamento", casa: "Casa", kitnet: "Kitnet", terreno: "Terreno", comercial: "Comercial", outros: "Outros" }
 };
+export const FINALIDADE = { aluguel: "Aluguel", venda: "Venda", temporada: "Temporada" };
+export const ANUNCIANTE = { proprietario: "Proprietário(a)", corretor: "Corretor(a)", imobiliaria: "Imobiliária" };
 const TEXTOS = {
   servicos: { titulo: "Profissionais da <span>comunidade</span>", sub: "Autônomos que atendem em Florianópolis e região.", criar: "Oferecer meus serviços", vazio: "Nenhum profissional por aqui ainda", img: "servicos.webp" },
   delivery: { titulo: "Cardápios da <span>vizinhança</span>", sub: "Peça direto com quem faz, sem intermediário.", criar: "Cadastrar meu delivery", vazio: "Nenhum delivery cadastrado ainda", img: "lanchonetes.webp" },
   lojinha: { titulo: "Lojinhas <span>locais</span>", sub: "Produtos de quem vende perto de você.", criar: "Abrir minha lojinha", vazio: "Nenhuma lojinha aberta ainda", img: "shopping.webp" },
-  imoveis: { titulo: "Imóveis <span>anunciados</span>", sub: "Aluguel, venda e temporada direto com o anunciante.", criar: "Anunciar meu imóvel", vazio: "Nenhum imóvel anunciado ainda", img: "imoveis.webp" }
+  imoveis: { titulo: "Imóveis <span>anunciados</span>", sub: "Aluguel, venda e temporada direto com o anunciante.", criar: "Anunciar imóvel", vazio: "Nenhum imóvel anunciado ainda", img: "imoveis.webp" }
 };
-const FINALIDADE = { aluguel: "Aluguel", venda: "Venda", temporada: "Temporada" };
 const MODOS = { domicilio: "Vai até você", local: "No local", online: "Online" };
+const TEXTO_CONTATO = { servicos: "Pedir orçamento", delivery: "Fazer pedido", lojinha: "Falar com a loja", imoveis: "Tenho interesse" };
 
 // ---------- utilitários ----------
 const urlSegura = (u) => (/^(https:\/\/|data:image\/)/i.test(String(u || "")) ? String(u) : "");
 const iniciais = (n) => { const p = String(n || "?").trim().split(/\s+/); return ((p[0]?.[0] || "?") + (p.length > 1 ? p[p.length - 1][0] : "")).toUpperCase(); };
-const moeda = (v) => (Number.isFinite(Number(v)) && Number(v) > 0 ? Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: Number(v) % 1 ? 2 : 0 }) : "");
+export const moeda = (v) => (Number.isFinite(Number(v)) && Number(v) > 0 ? Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: Number(v) % 1 ? 2 : 0 }) : "");
 const el = (tag, cls, texto) => { const e = document.createElement(tag); if (cls) e.className = cls; if (texto != null) e.textContent = texto; return e; };
 const ICONES = {
   chat: '<path d="M20.5 11.6c0 4.3-3.8 7.6-8.5 7.6-1.2 0-2.3-.2-3.3-.6L4 20l1.2-3.6c-1.1-1.3-1.7-3-1.7-4.8C3.5 7.4 7.3 4 12 4s8.5 3.4 8.5 7.6z"/>',
@@ -43,7 +51,10 @@ const ICONES = {
   foto: '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 16l-5-5-8.5 8.5"/>',
   fechar: '<path d="M6 6l12 12M18 6L6 18"/>',
   casa: '<path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 19z"/>',
-  lapis: '<path d="M4 20h4L19 9a2.8 2.8 0 00-4-4L4 16v4z"/>'
+  lapis: '<path d="M4 20h4L19 9a2.8 2.8 0 00-4-4L4 16v4z"/>',
+  cnh: '<rect x="3" y="5.5" width="18" height="13" rx="2"/><circle cx="8.5" cy="11" r="2"/><path d="M5.5 16c.6-1.4 1.7-2 3-2s2.4.6 3 2M14 10h4M14 13h3"/>',
+  selo: '<path d="M12 3l2.4 1.8 3-.2.9 2.9 2.5 1.7-1 2.8 1 2.8-2.5 1.7-.9 2.9-3-.2L12 21l-2.4-1.8-3 .2-.9-2.9-2.5-1.7 1-2.8-1-2.8 2.5-1.7.9-2.9 3 .2z"/>',
+  avancar: '<path d="M9 5l7 7-7 7"/>'
 };
 function icone(nome, cls = "vi s") {
   const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -66,11 +77,11 @@ function toast(t) {
   document.body.appendChild(d);
   setTimeout(() => d.remove(), 3500);
 }
-function linkWhats(n, texto) {
-  const numero = String(n.whatsapp || "").replace(/\D/g, "");
+function linkWhats(numeroBruto, texto) {
+  const numero = String(numeroBruto || "").replace(/\D/g, "");
   if (numero.length < 10) return null;
   const a = el("a", "vt-btn whats");
-  a.href = `https://wa.me/${numero.startsWith("55") ? numero : "55" + numero}?text=${encodeURIComponent(texto || `Olá! Vi "${n.nome}" no Help Floripa.`)}`;
+  a.href = `https://wa.me/${numero.startsWith("55") ? numero : "55" + numero}?text=${encodeURIComponent(texto)}`;
   a.target = "_blank";
   a.rel = "noopener noreferrer";
   a.append(icone("whats"), document.createTextNode("WhatsApp"));
@@ -84,44 +95,62 @@ function abertoAgora(n) {
   const agora = new Date(), m = agora.getHours() * 60 + agora.getMinutes(), a = ha * 60 + ma, f = hf * 60 + mf;
   return f > a ? m >= a && m < f : m >= a || m < f; // atravessa a meia-noite
 }
+// Áreas de atuação do profissional (aceita cadastro antigo com uma categoria só).
+export const categoriasDe = (n) => (Array.isArray(n.categorias) && n.categorias.length ? n.categorias : n.categoria ? [n.categoria] : []);
+const precoImovel = (a) => (moeda(a.preco) ? moeda(a.preco) + (a.finalidade === "aluguel" ? "/mês" : a.finalidade === "temporada" ? "/dia" : "") : "Consultar");
+const tituloImovel = (a) => a.titulo || `${CATEGORIAS.imoveis[a.categoria] || "Imóvel"} para ${(FINALIDADE[a.finalidade] || "negociar").toLowerCase()}`;
+const fotoPequena = (u) => { const s = urlSegura(u); return s && s.length < 220000 ? s : ""; };
 
-// ---------- estado ----------
-let fb = null, eu = null, todos = [];
-const donos = new Map();
-
-async function iniciarConversa(uid) {
-  if (!eu) { location.href = "login.html"; return; }
-  if (uid === eu.uid) { toast("Esse é o seu próprio negócio."); return; }
-  const ids = [eu.uid, uid].sort();
+// ---------- conversa com cartão do que o cliente quer ----------
+export function cartaoDeNegocio(n) {
+  const cats = categoriasDe(n).map((c) => CATEGORIAS[n.tipo]?.[c]).filter(Boolean);
+  return {
+    tipo: n.tipo, titulo: n.nome || NOMES_TIPO[n.tipo],
+    sub: [NOMES_TIPO[n.tipo], cats.slice(0, 2).join(", ")].filter(Boolean).join(" · "),
+    preco: n.tipo === "servicos" && moeda(n.precoDesde) ? `a partir de ${moeda(n.precoDesde)}` : "",
+    foto: fotoPequena(n.foto) || fotoPequena((n.fotos || [])[0]),
+    link: `${PAGINA_TIPO[n.tipo]}?negocio=${encodeURIComponent(n.id || "")}`
+  };
+}
+export function cartaoDeAnuncio(a) {
+  return {
+    tipo: "imoveis", titulo: tituloImovel(a),
+    sub: [FINALIDADE[a.finalidade], [a.bairro, a.cidade].filter(Boolean).join(", ")].filter(Boolean).join(" · "),
+    preco: precoImovel(a), foto: fotoPequena((a.fotos || [])[0]),
+    link: `imoveis.html?anuncio=${encodeURIComponent(a.id || "")}`
+  };
+}
+// Abre (ou cria) a conversa, marca o assunto e deixa o cartão pronto para ir junto na mensagem.
+export async function prepararConversa(fbx, euX, uid, cartao) {
+  if (!euX) { location.href = "login.html"; return; }
+  if (uid === euX.uid) { toast("Esse é o seu próprio perfil."); return; }
+  const ids = [euX.uid, uid].sort();
   const id = `${ids[0]}_${ids[1]}`;
-  const ref = fb.doc(fb.db, "conversas", id);
+  const ref = fbx.doc(fbx.db, "conversas", id);
   try {
     let existe = false;
-    try { existe = (await fb.getDoc(ref)).exists(); } catch {}
-    if (!existe) await fb.setDoc(ref, { participantes: ids, ultimaMensagem: "", atualizadoEm: fb.serverTimestamp() }, { merge: true });
+    try { existe = (await fbx.getDoc(ref)).exists(); } catch {}
+    const contexto = cartao ? { tipo: cartao.tipo, titulo: cartao.titulo } : null;
+    if (!existe) await fbx.setDoc(ref, { participantes: ids, ultimaMensagem: "", atualizadoEm: fbx.serverTimestamp(), ...(contexto ? { contexto } : {}) }, { merge: true });
+    else if (contexto) await fbx.setDoc(ref, { contexto }, { merge: true });
+    if (cartao) { try { sessionStorage.setItem("hf-cartao-pendente", JSON.stringify({ conversaId: id, cartao })); } catch {} }
     location.href = `mensagens.html?conversa=${encodeURIComponent(id)}`;
   } catch { toast("Não foi possível abrir a conversa."); }
 }
 
-function botoesContato(n, { textoPri = "Mensagem", textoWhats } = {}) {
-  const box = el("div", "vt-botoes");
-  if (eu && n.donoId === eu.uid) {
-    const ed = el("a", "vt-btn sec");
-    ed.href = `usuarios.html?acao=negocio&tipo=${n.tipo}`;
-    ed.append(icone("lapis"), document.createTextNode("Editar"));
-    ed.addEventListener("click", (e) => e.stopPropagation());
-    box.appendChild(ed);
-    return box;
-  }
-  const w = linkWhats(n, textoWhats);
-  const m = el("button", "vt-btn " + (w ? "sec" : "pri"));
-  m.type = "button";
-  m.append(icone("chat"), document.createTextNode(textoPri));
-  m.addEventListener("click", (e) => { e.stopPropagation(); iniciarConversa(n.donoId); });
-  box.appendChild(m);
-  if (w) box.appendChild(w);
-  return box;
+// ---------- estado ----------
+let fb = null, eu = null, todos = [];
+const donos = new Map();
+const negociosImoveis = new Map(); // donoId -> perfil de imóveis (anunciante)
+const conversar = (uid, cartao) => prepararConversa(fb, eu, uid, cartao);
+
+export async function buscarAnuncios(fbx, donoId) {
+  const snap = await fbx.getDocs(fbx.query(fbx.collection(fbx.db, "anuncios"), fbx.where("donoId", "==", donoId), fbx.limit(40)));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((a) => a.ativo !== false)
+    .sort((a, b) => (b.atualizadoEm?.toMillis?.() ?? 0) - (a.atualizadoEm?.toMillis?.() ?? 0));
 }
+// Cadastro antigo: o próprio perfil de imóveis tinha os dados de um imóvel.
+const negocioComoAnuncio = (n) => ({ ...n, id: "n_" + n.id, legado: true, titulo: n.titulo || "", categoria: n.categoria });
 
 // Nome do criador leva ao perfil dele.
 function linkCriador(uid, dono, aoPerfil) {
@@ -135,27 +164,59 @@ function linkCriador(uid, dono, aoPerfil) {
   });
   return a;
 }
-function linhaDono(n) {
-  return linkCriador(n.donoId, donos.get(n.donoId) || {});
+
+function botoes(donoId, { texto, whats, textoWhats, cartao, editarHref }) {
+  const box = el("div", "vt-botoes");
+  if (eu && donoId === eu.uid) {
+    const ed = el("a", "vt-btn sec");
+    ed.href = editarHref;
+    ed.append(icone("lapis"), document.createTextNode("Editar"));
+    ed.addEventListener("click", (e) => e.stopPropagation());
+    box.appendChild(ed);
+    return box;
+  }
+  const w = linkWhats(whats, textoWhats);
+  const m = el("button", "vt-btn " + (w ? "sec" : "pri"));
+  m.type = "button";
+  m.append(icone("chat"), document.createTextNode(texto));
+  m.addEventListener("click", (e) => { e.stopPropagation(); conversar(donoId, cartao); });
+  box.appendChild(m);
+  if (w) box.appendChild(w);
+  return box;
 }
+const botoesNegocio = (n) => botoes(n.donoId, {
+  texto: TEXTO_CONTATO[n.tipo], whats: n.whatsapp, cartao: cartaoDeNegocio(n),
+  textoWhats: `Olá! Vi "${n.nome}" no Help Floripa.`, editarHref: `usuarios.html?acao=negocio&tipo=${n.tipo}`
+});
 
 // ---------- cartões por tipo ----------
-function cartaoServico(n) {
-  const c = el("article", "vt-card vt-servico");
-  const topo = el("div", "topo");
-  const txt = el("div");
-  txt.append(el("h3", "vt-nome", n.nome || "Profissional"));
+function cabecalhoCartao(n, extras) {
+  const topo = el("div", "vt-topo");
+  const txt = el("div", "vt-topo-tx");
+  txt.appendChild(el("h3", "vt-nome", n.nome || NOMES_TIPO[n.tipo]));
   const sub = el("div", "vt-sub");
-  sub.append(el("span", "vt-tag", CATEGORIAS.servicos[n.categoria] || "Serviços"));
-  if (n.cidade) { const s = el("span"); s.append(icone("pin"), document.createTextNode(n.cidade)); sub.appendChild(s); }
+  extras.forEach((x) => x && sub.appendChild(x));
+  if (n.cidade) { const s = el("span", "vt-local"); s.append(icone("pin"), document.createTextNode(n.cidade)); sub.appendChild(s); }
   txt.appendChild(sub);
   topo.append(avatar(n.foto, n.nome), txt);
-  c.appendChild(topo);
-  if (moeda(n.precoDesde)) {
-    const p = el("div", "vt-preco-desde");
-    p.append(el("small", null, "a partir de"), el("strong", null, moeda(n.precoDesde)));
-    c.appendChild(p);
-  }
+  return topo;
+}
+
+function cartaoServico(n) {
+  const c = el("article", "vt-card vt-servico");
+  const cats = categoriasDe(n);
+  c.appendChild(cabecalhoCartao(n, []));
+  const areas = el("div", "vt-areas");
+  cats.slice(0, 3).forEach((k) => areas.appendChild(el("span", "vt-tag", CATEGORIAS.servicos[k] || k)));
+  if (cats.length > 3) areas.appendChild(el("span", "vt-tag neutra", `+${cats.length - 3}`));
+  if (Array.isArray(n.cnh) && n.cnh.length) { const t = el("span", "vt-tag cnh"); t.append(icone("cnh"), document.createTextNode(`CNH ${n.cnh.join(" · ")}`)); areas.appendChild(t); }
+  if (areas.children.length) c.appendChild(areas);
+  const linha = el("div", "vt-linha-preco");
+  if (moeda(n.precoDesde)) { const p = el("div", "vt-preco-desde"); p.append(el("small", null, "a partir de"), el("strong", null, moeda(n.precoDesde))); linha.appendChild(p); }
+  const modos = el("div", "vt-modos");
+  (n.atendimento || []).forEach((k) => MODOS[k] && modos.appendChild(el("span", "vt-tag neutra", MODOS[k])));
+  if (modos.children.length) linha.appendChild(modos);
+  if (linha.children.length) c.appendChild(linha);
   if (n.descricao) c.appendChild(el("p", "vt-desc", n.descricao));
   const itens = (n.itens || []).filter((i) => i?.nome).slice(0, 3);
   if (itens.length) {
@@ -163,20 +224,16 @@ function cartaoServico(n) {
     itens.forEach((i) => { const li = el("li"); li.append(el("span", null, i.nome), el("span", null, moeda(i.preco) || "a combinar")); ul.appendChild(li); });
     c.appendChild(ul);
   }
-  if (Array.isArray(n.atendimento) && n.atendimento.length) {
-    const m = el("div", "vt-modos");
-    n.atendimento.forEach((k) => MODOS[k] && m.appendChild(el("span", "vt-tag neutra", MODOS[k])));
-    c.appendChild(m);
-  }
-  c.append(linhaDono(n), botoesContato(n, { textoPri: "Pedir orçamento", textoWhats: `Olá! Vi seu perfil "${n.nome}" no Help Floripa e gostaria de um orçamento.` }));
+  const rodape = el("div", "vt-rodape");
+  rodape.append(linkCriador(n.donoId, donos.get(n.donoId) || {}), botoesNegocio(n));
+  c.appendChild(rodape);
   return c;
 }
 
 function cartaoDelivery(n) {
   const c = el("article", "vt-card vt-delivery");
   const capa = el("div", "capa");
-  const fotoCapa = urlSegura((n.fotos || [])[0]) || TEXTOS.delivery.img;
-  capa.style.backgroundImage = `url("${fotoCapa}")`;
+  capa.style.backgroundImage = `url("${urlSegura((n.fotos || [])[0]) || TEXTOS.delivery.img}")`;
   const aberto = abertoAgora(n);
   if (aberto !== null) capa.appendChild(el("span", "vt-tag " + (aberto ? "ok" : "off"), aberto ? "Aberto agora" : "Fechado"));
   capa.appendChild(avatar(n.foto, n.nome, "vt-avatar logo"));
@@ -185,7 +242,7 @@ function cartaoDelivery(n) {
   cab.append(el("h3", "vt-nome", n.nome || "Delivery"));
   const sub = el("div", "vt-sub");
   sub.append(el("span", "vt-tag", CATEGORIAS.delivery[n.categoria] || "Delivery"));
-  if (n.cidade) { const s = el("span"); s.append(icone("pin"), document.createTextNode(n.cidade)); sub.appendChild(s); }
+  if (n.cidade) { const s = el("span", "vt-local"); s.append(icone("pin"), document.createTextNode(n.cidade)); sub.appendChild(s); }
   cab.appendChild(sub);
   corpo.appendChild(cab);
   const infos = el("div", "vt-infos");
@@ -205,22 +262,18 @@ function cartaoDelivery(n) {
     });
     corpo.appendChild(cardapio);
   } else if (n.descricao) corpo.appendChild(el("p", "vt-desc", n.descricao));
-  corpo.appendChild(botoesContato(n, { textoPri: "Fazer pedido", textoWhats: `Olá! Vi o cardápio de "${n.nome}" no Help Floripa e quero fazer um pedido.` }));
+  const rodape = el("div", "vt-rodape");
+  rodape.append(linkCriador(n.donoId, donos.get(n.donoId) || {}), botoesNegocio(n));
+  corpo.appendChild(rodape);
   c.append(capa, corpo);
   return c;
 }
 
 function cartaoLoja(n) {
   const c = el("article", "vt-card vt-loja");
-  const topo = el("div", "topo");
-  const txt = el("div");
-  txt.append(el("h3", "vt-nome", n.nome || "Lojinha"));
-  const sub = el("div", "vt-sub");
-  sub.append(el("span", "vt-tag", CATEGORIAS.lojinha[n.categoria] || "Lojinha"));
-  (n.entrega || []).forEach((k) => sub.appendChild(el("span", "vt-tag neutra", k === "entrega" ? "Entrega" : "Retirada")));
-  txt.appendChild(sub);
-  topo.append(avatar(n.foto, n.nome), txt);
-  c.appendChild(topo);
+  const extras = [el("span", "vt-tag", CATEGORIAS.lojinha[n.categoria] || "Lojinha")];
+  (n.entrega || []).forEach((k) => extras.push(el("span", "vt-tag neutra", k === "entrega" ? "Entrega" : "Retirada")));
+  c.appendChild(cabecalhoCartao(n, extras));
   const grade = el("div", "vt-produtos");
   const itens = (n.itens || []).filter((i) => i?.nome).slice(0, 3);
   itens.forEach((i) => {
@@ -230,176 +283,72 @@ function cartaoLoja(n) {
     p.title = i.nome;
     grade.appendChild(p);
   });
-  if (!itens.length) grade.appendChild(Object.assign(el("div", "vt-produto vazio", "Produtos em breve"), { style: "grid-column: 1 / -1; aspect-ratio: auto; min-height: 90px" }));
+  if (!itens.length) { const v = el("div", "vt-produto vazio", "Produtos em breve"); v.style.cssText = "grid-column: 1 / -1; aspect-ratio: auto; min-height: 80px"; grade.appendChild(v); }
   c.appendChild(grade);
   if (n.descricao) c.appendChild(el("p", "vt-desc", n.descricao));
-  c.append(linhaDono(n), botoesContato(n, { textoPri: "Falar com a loja", textoWhats: `Olá! Vi a lojinha "${n.nome}" no Help Floripa.` }));
+  const rodape = el("div", "vt-rodape");
+  rodape.append(linkCriador(n.donoId, donos.get(n.donoId) || {}), botoesNegocio(n));
+  c.appendChild(rodape);
   return c;
 }
 
-function cartaoImovel(n) {
+function cartaoImovel(a) {
   const c = el("article", "vt-card vt-imovel");
   const g = el("div", "galeria");
-  g.style.backgroundImage = `url("${urlSegura((n.fotos || [])[0]) || TEXTOS.imoveis.img}")`;
-  g.appendChild(el("span", "vt-tag", FINALIDADE[n.finalidade] || "Imóvel"));
-  const nFotos = (n.fotos || []).filter(urlSegura).length;
+  g.style.backgroundImage = `url("${urlSegura((a.fotos || [])[0]) || TEXTOS.imoveis.img}")`;
+  g.appendChild(el("span", "vt-tag", FINALIDADE[a.finalidade] || "Imóvel"));
+  const nFotos = (a.fotos || []).filter(urlSegura).length;
   if (nFotos > 1) { const s = el("span", "fotos-n"); s.append(icone("foto"), document.createTextNode(String(nFotos))); g.appendChild(s); }
-  if (moeda(n.preco)) {
-    const p = el("div", "preco", moeda(n.preco));
-    if (n.finalidade === "aluguel") p.appendChild(el("small", null, " /mês"));
-    if (n.finalidade === "temporada") p.appendChild(el("small", null, " /diária"));
-    g.appendChild(p);
-  }
+  const p = el("div", "preco", moeda(a.preco) || "Consultar");
+  if (moeda(a.preco) && a.finalidade === "aluguel") p.appendChild(el("small", null, " /mês"));
+  if (moeda(a.preco) && a.finalidade === "temporada") p.appendChild(el("small", null, " /diária"));
+  g.appendChild(p);
   const corpo = el("div", "corpo");
-  corpo.append(el("h3", "vt-nome", n.nome || `${CATEGORIAS.imoveis[n.categoria] || "Imóvel"} para ${FINALIDADE[n.finalidade]?.toLowerCase() || "negociar"}`));
+  corpo.append(el("h3", "vt-nome", tituloImovel(a)));
   const sub = el("div", "vt-sub");
-  const local = [n.bairro, n.cidade].filter(Boolean).join(", ");
-  if (local) { const s = el("span"); s.append(icone("pin"), document.createTextNode(local)); sub.appendChild(s); }
-  sub.appendChild(el("span", "vt-tag neutra", CATEGORIAS.imoveis[n.categoria] || "Imóvel"));
-  if (n.mobiliado) sub.appendChild(el("span", "vt-tag neutra", "Mobiliado"));
+  const local = [a.bairro, a.cidade].filter(Boolean).join(", ");
+  if (local) { const s = el("span", "vt-local"); s.append(icone("pin"), document.createTextNode(local)); sub.appendChild(s); }
+  sub.appendChild(el("span", "vt-tag neutra", CATEGORIAS.imoveis[a.categoria] || "Imóvel"));
+  if (a.mobiliado) sub.appendChild(el("span", "vt-tag neutra", "Mobiliado"));
   corpo.appendChild(sub);
+  corpo.appendChild(specsImovel(a));
+  const rodape = el("div", "vt-rodape");
+  const anunciante = negociosImoveis.get(a.donoId);
+  rodape.append(linkCriador(a.donoId, donos.get(a.donoId) || {}), botoes(a.donoId, {
+    texto: "Tenho interesse", whats: a.whatsapp || anunciante?.whatsapp, cartao: cartaoDeAnuncio(a),
+    textoWhats: `Olá! Tenho interesse no imóvel "${tituloImovel(a)}" que vi no Help Floripa.`, editarHref: "usuarios.html?acao=negocio&tipo=imoveis"
+  }));
+  corpo.appendChild(rodape);
+  c.append(g, corpo);
+  return c;
+}
+function specsImovel(a) {
   const specs = el("div", "vt-specs");
-  [["cama", n.quartos, "quartos"], ["banho", n.banheiros, "banheiros"], ["carro", n.vagas, "vagas"], ["area", n.area ? `${n.area}` : "", "m²"]].forEach(([ic, v, rot]) => {
+  [["cama", a.quartos, "quartos"], ["banho", a.banheiros, "banheiros"], ["carro", a.vagas, "vagas"], ["area", a.area ? `${a.area}` : "", "m²"]].forEach(([ic, v, rot]) => {
     const d = el("div");
     const s = el("strong");
     s.append(icone(ic), document.createTextNode(v === 0 || v ? String(v) : "–"));
     d.append(s, document.createTextNode(rot));
     specs.appendChild(d);
   });
-  corpo.appendChild(specs);
-  if (moeda(n.condominio)) corpo.appendChild(el("div", "vt-sub", `Condomínio ${moeda(n.condominio)}`));
-  corpo.append(linhaDono(n), botoesContato(n, { textoPri: "Tenho interesse", textoWhats: `Olá! Tenho interesse no imóvel "${n.nome || "anunciado"}" que vi no Help Floripa.` }));
-  c.append(g, corpo);
-  return c;
+  return specs;
 }
 
-const CARTAO = { servicos: cartaoServico, delivery: cartaoDelivery, lojinha: cartaoLoja, imoveis: cartaoImovel };
+const CARTAO = { servicos: cartaoServico, delivery: cartaoDelivery, lojinha: cartaoLoja };
 
-// ---------- detalhe ----------
-// ---------- perfil completo do negócio (detalhe) ----------
-// Usado na vitrine e no perfil (usuarios.html), onde o dono vê a pré-visualização.
-// opcoes: { dono, proprio, aoMensagem(uid), aoEditar(n) }
-export function abrirDetalhe(n, opcoes = {}) {
-  const tipo = n.tipo || TIPO;
-  const dono = opcoes.dono || donos.get(n.donoId) || {};
-  const proprio = opcoes.proprio ?? (!!eu && n.donoId === eu.uid);
-  const aoMensagem = opcoes.aoMensagem || iniciarConversa;
+// ---------- janela de detalhe ----------
+function novaJanela(tipo, rotulo) {
   const fundo = el("div", "vt-modal vitrine");
   fundo.dataset.tipo = tipo;
   fundo.setAttribute("role", "dialog");
   fundo.setAttribute("aria-modal", "true");
-  fundo.setAttribute("aria-label", n.nome || "Negócio");
+  fundo.setAttribute("aria-label", rotulo);
   const caixa = el("div", "caixa vd");
   const fechar = el("button", "fechar");
   fechar.type = "button";
   fechar.setAttribute("aria-label", "Fechar");
   fechar.appendChild(icone("fechar", "vi"));
   caixa.appendChild(fechar);
-
-  const fotos = (n.fotos || []).filter(urlSegura);
-  // capa
-  const capa = el("div", "vd-capa");
-  capa.style.backgroundImage = `url("${fotos[0] || TEXTOS[tipo].img}")`;
-  const logo = avatar(n.foto, n.nome, "vt-avatar vd-logo");
-  capa.appendChild(logo);
-  caixa.appendChild(capa);
-
-  const ct = el("div", "conteudo");
-  if (proprio) {
-    const aviso = el("div", "vd-previa");
-    aviso.append(el("span", null, "Pré-visualização: é assim que os outros veem seu perfil de negócio."));
-    if (opcoes.aoEditar) { const b = el("button", "vt-btn pri"); b.type = "button"; b.append(icone("lapis"), document.createTextNode("Editar")); b.addEventListener("click", () => { sair(); opcoes.aoEditar(n); }); aviso.appendChild(b); }
-    ct.appendChild(aviso);
-  }
-  const cab = el("div", "vd-cab");
-  cab.appendChild(el("h3", null, n.nome || TEXTOS[tipo].criar));
-  const tags = el("div", "vt-sub");
-  tags.appendChild(el("span", "vt-tag", CATEGORIAS[tipo][n.categoria] || ({ servicos: "Serviços", delivery: "Delivery", lojinha: "Lojinha", imoveis: "Imóvel" })[tipo]));
-  if (tipo === "delivery") { const ab = abertoAgora(n); if (ab !== null) tags.appendChild(el("span", "vt-tag " + (ab ? "ok" : "off"), ab ? "Aberto agora" : "Fechado")); }
-  if (tipo === "imoveis" && n.finalidade) tags.appendChild(el("span", "vt-tag neutra", FINALIDADE[n.finalidade]));
-  const local = [n.bairro, n.cidade].filter(Boolean).join(", ");
-  if (local) { const s2 = el("span"); s2.append(icone("pin"), document.createTextNode(local)); tags.appendChild(s2); }
-  cab.appendChild(tags);
-  cab.appendChild(linkCriador(n.donoId, dono, opcoes.aoPerfil));
-  ct.appendChild(cab);
-
-  // fatos principais de cada tipo
-  const fatos = el("div", "vd-fatos");
-  const fato = (ic, valor, rotulo) => { if (valor === "" || valor == null) return; const f = el("div", "vd-fato"); f.append(icone(ic, "vi"), el("strong", null, String(valor)), el("small", null, rotulo)); fatos.appendChild(f); };
-  if (tipo === "servicos") {
-    fato("sacola", moeda(n.precoDesde) || "A combinar", "a partir de");
-    fato("relogio", n.horario || "", "horário");
-    (n.atendimento || []).forEach((k) => MODOS[k] && fato("casa", MODOS[k], "atendimento"));
-  }
-  if (tipo === "delivery") {
-    fato("relogio", n.horaAbre && n.horaFecha ? `${n.horaAbre}–${n.horaFecha}` : "", "funcionamento");
-    fato("moto", n.tempoMin || n.tempoMax ? `${n.tempoMin || "?"}–${n.tempoMax || "?"} min` : "", "entrega");
-    fato("moto", Number(n.taxaEntrega) > 0 ? moeda(n.taxaEntrega) : "Grátis", "taxa");
-    fato("sacola", moeda(n.pedidoMinimo), "pedido mínimo");
-  }
-  if (tipo === "lojinha") {
-    (n.entrega || []).forEach((k) => fato(k === "entrega" ? "moto" : "sacola", k === "entrega" ? "Entrega" : "Retirada", "como receber"));
-    fato("sacola", (n.itens || []).filter((i) => i?.nome).length || "", "produtos");
-  }
-  if (tipo === "imoveis") {
-    fato("sacola", moeda(n.preco) ? moeda(n.preco) + (n.finalidade === "aluguel" ? "/mês" : n.finalidade === "temporada" ? "/dia" : "") : "", FINALIDADE[n.finalidade] || "preço");
-    fato("cama", n.quartos ?? "", "quartos");
-    fato("banho", n.banheiros ?? "", "banheiros");
-    fato("carro", n.vagas ?? "", "vagas");
-    fato("area", n.area ? `${n.area} m²` : "", "área");
-    fato("casa", moeda(n.condominio), "condomínio");
-    if (n.mobiliado) fato("casa", "Sim", "mobiliado");
-  }
-  if (fatos.children.length) ct.appendChild(fatos);
-
-  if (n.descricao) { ct.appendChild(el("h4", null, tipo === "imoveis" ? "Descrição do imóvel" : "Sobre")); ct.appendChild(el("p", "texto", n.descricao)); }
-
-  const itens = (n.itens || []).filter((i) => i?.nome);
-  if (itens.length) {
-    ct.appendChild(el("h4", null, tipo === "delivery" ? "Cardápio" : tipo === "lojinha" ? "Produtos" : "Serviços e preços"));
-    if (tipo === "servicos") {
-      const ul = el("ul", "vt-lista-serv");
-      itens.forEach((i) => { const li = el("li"); li.append(el("span", null, i.nome), el("span", null, moeda(i.preco) || "a combinar")); ul.appendChild(li); });
-      ct.appendChild(ul);
-    } else {
-      const g = el("div", "vd-itens " + tipo);
-      itens.forEach((i) => {
-        const card = el("div", "vd-item");
-        const f = el("div", "ft");
-        if (urlSegura(i.foto)) f.style.backgroundImage = `url("${i.foto}")`; else f.appendChild(icone(tipo === "delivery" ? "sacola" : "foto", "vi"));
-        card.append(f, el("strong", null, i.nome), el("span", null, moeda(i.preco) || "Consultar"));
-        g.appendChild(card);
-      });
-      ct.appendChild(g);
-    }
-  }
-
-  const galeria = tipo === "delivery" ? [] : fotos;
-  if (galeria.length) {
-    ct.appendChild(el("h4", null, tipo === "imoveis" ? "Fotos do imóvel" : "Fotos"));
-    const g = el("div", "vd-galeria");
-    galeria.forEach((f, i) => { const im = document.createElement("img"); im.src = f; im.alt = `Foto ${i + 1}`; im.loading = "lazy"; im.addEventListener("click", () => window.open(f, "_blank", "noopener")); g.appendChild(im); });
-    ct.appendChild(g);
-  }
-
-  // barra de contato
-  const barra = el("div", "vd-acoes");
-  if (proprio) {
-    if (opcoes.aoEditar) { const b = el("button", "vt-btn pri"); b.type = "button"; b.append(icone("lapis"), document.createTextNode("Editar perfil de negócio")); b.addEventListener("click", () => { sair(); opcoes.aoEditar(n); }); barra.appendChild(b); }
-    else { const a = el("a", "vt-btn pri"); a.href = `usuarios.html?acao=negocio&tipo=${tipo}`; a.append(icone("lapis"), document.createTextNode("Editar")); barra.appendChild(a); }
-  } else {
-    const textos = { servicos: "Pedir orçamento", delivery: "Fazer pedido", lojinha: "Falar com a loja", imoveis: "Tenho interesse" };
-    const w = linkWhats(n);
-    const m = el("button", "vt-btn " + (w ? "sec" : "pri"));
-    m.type = "button";
-    m.append(icone("chat"), document.createTextNode(textos[tipo]));
-    m.addEventListener("click", () => aoMensagem(n.donoId));
-    barra.appendChild(m);
-    if (w) barra.appendChild(w);
-  }
-  ct.appendChild(barra);
-
-  caixa.appendChild(ct);
   fundo.appendChild(caixa);
   const sair = () => { fundo.remove(); document.removeEventListener("keydown", tecla); };
   const tecla = (e) => { if (e.key === "Escape") sair(); };
@@ -407,7 +356,209 @@ export function abrirDetalhe(n, opcoes = {}) {
   fechar.addEventListener("click", sair);
   document.addEventListener("keydown", tecla);
   document.body.appendChild(fundo);
-  fechar.focus();
+  requestAnimationFrame(() => fechar.focus());
+  return { fundo, caixa, sair };
+}
+const titulo4 = (t) => el("h4", null, t);
+function fatosBox(lista) {
+  const fatos = el("div", "vd-fatos");
+  lista.forEach(([ic, valor, rotulo]) => {
+    if (valor === "" || valor == null) return;
+    const f = el("div", "vd-fato");
+    f.append(icone(ic, "vi"), el("strong", null, String(valor)), el("small", null, rotulo));
+    fatos.appendChild(f);
+  });
+  return fatos.children.length ? fatos : null;
+}
+function barraContato({ proprio, aoEditar, editarHref, sair, texto, whats, textoWhats, aoMensagem, donoId, cartao }) {
+  const barra = el("div", "vd-acoes");
+  if (proprio) {
+    if (aoEditar) { const b = el("button", "vt-btn pri"); b.type = "button"; b.append(icone("lapis"), document.createTextNode("Editar")); b.addEventListener("click", () => { sair(); aoEditar(); }); barra.appendChild(b); }
+    else { const a = el("a", "vt-btn pri"); a.href = editarHref; a.append(icone("lapis"), document.createTextNode("Editar")); barra.appendChild(a); }
+    return barra;
+  }
+  const w = linkWhats(whats, textoWhats);
+  const m = el("button", "vt-btn " + (w ? "sec" : "pri"));
+  m.type = "button";
+  m.append(icone("chat"), document.createTextNode(texto));
+  m.addEventListener("click", () => aoMensagem(donoId, cartao));
+  barra.appendChild(m);
+  if (w) barra.appendChild(w);
+  return barra;
+}
+
+// ---------- perfil completo do negócio ----------
+// opcoes: { fb, eu, dono, proprio, aoMensagem(uid, cartao), aoEditar(n), aoPerfil(uid) }
+export function abrirDetalhe(n, opcoes = {}) {
+  const tipo = n.tipo || TIPO;
+  const fbx = opcoes.fb || fb, euX = opcoes.eu || eu;
+  const dono = opcoes.dono || donos.get(n.donoId) || {};
+  const proprio = opcoes.proprio ?? (!!euX && n.donoId === euX.uid);
+  const aoMensagem = opcoes.aoMensagem || ((uid, cartao) => prepararConversa(fbx, euX, uid, cartao));
+  const { caixa, sair } = novaJanela(tipo, n.nome || "Negócio");
+  const fotos = (n.fotos || []).filter(urlSegura);
+
+  const capa = el("div", "vd-capa");
+  capa.style.backgroundImage = `url("${fotos[0] || TEXTOS[tipo].img}")`;
+  capa.appendChild(avatar(n.foto, n.nome, "vt-avatar vd-logo"));
+  caixa.appendChild(capa);
+  const ct = el("div", "conteudo");
+  if (proprio) {
+    const aviso = el("div", "vd-previa");
+    aviso.append(el("span", null, "Pré-visualização: é assim que os outros veem seu perfil de negócio."));
+    ct.appendChild(aviso);
+  }
+  const cab = el("div", "vd-cab");
+  cab.appendChild(el("h3", null, n.nome || NOMES_TIPO[tipo]));
+  const tags = el("div", "vt-sub");
+  if (tipo === "servicos") categoriasDe(n).forEach((k) => tags.appendChild(el("span", "vt-tag", CATEGORIAS.servicos[k] || k)));
+  else if (tipo !== "imoveis") tags.appendChild(el("span", "vt-tag", CATEGORIAS[tipo][n.categoria] || NOMES_TIPO[tipo]));
+  else tags.appendChild(el("span", "vt-tag", ANUNCIANTE[n.tipoAnunciante] || "Anunciante"));
+  if (tipo === "delivery") { const ab = abertoAgora(n); if (ab !== null) tags.appendChild(el("span", "vt-tag " + (ab ? "ok" : "off"), ab ? "Aberto agora" : "Fechado")); }
+  if (n.cidade) { const s2 = el("span", "vt-local"); s2.append(icone("pin"), document.createTextNode(n.cidade)); tags.appendChild(s2); }
+  cab.append(tags, linkCriador(n.donoId, dono, opcoes.aoPerfil));
+  ct.appendChild(cab);
+
+  const fatos = {
+    servicos: () => [["sacola", moeda(n.precoDesde) || "A combinar", "a partir de"], ["relogio", n.horario || "", "horário"],
+      ...(n.atendimento || []).filter((k) => MODOS[k]).map((k) => ["casa", MODOS[k], "atendimento"]),
+      ["cnh", Array.isArray(n.cnh) && n.cnh.length ? n.cnh.join(" · ") : "", "CNH"], ["carro", n.veiculo || "", "veículo"]],
+    delivery: () => [["relogio", n.horaAbre && n.horaFecha ? `${n.horaAbre}–${n.horaFecha}` : "", "funcionamento"],
+      ["moto", n.tempoMin || n.tempoMax ? `${n.tempoMin || "?"}–${n.tempoMax || "?"} min` : "", "entrega"],
+      ["moto", Number(n.taxaEntrega) > 0 ? moeda(n.taxaEntrega) : "Grátis", "taxa"], ["sacola", moeda(n.pedidoMinimo), "pedido mínimo"]],
+    lojinha: () => [...(n.entrega || []).map((k) => [k === "entrega" ? "moto" : "sacola", k === "entrega" ? "Entrega" : "Retirada", "como receber"]),
+      ["sacola", (n.itens || []).filter((i) => i?.nome).length || "", "produtos"]],
+    imoveis: () => [["selo", n.creci || "", "CRECI"]]
+  }[tipo]();
+  const fb1 = fatosBox(fatos);
+  if (fb1) ct.appendChild(fb1);
+  if (n.descricao) { ct.appendChild(titulo4("Sobre")); ct.appendChild(el("p", "texto", n.descricao)); }
+
+  const itens = (n.itens || []).filter((i) => i?.nome);
+  if (tipo === "servicos" && itens.length) {
+    // serviços agrupados por área de atuação
+    const cats = categoriasDe(n);
+    const grupos = [...cats, ""].map((k) => [k, itens.filter((i) => (i.categoria || "") === k || (!k && !cats.includes(i.categoria || "")))]).filter(([, l]) => l.length);
+    ct.appendChild(titulo4("Serviços e preços"));
+    grupos.forEach(([k, lista]) => {
+      if (grupos.length > 1) ct.appendChild(el("div", "vd-subtitulo", k ? CATEGORIAS.servicos[k] || k : "Outros serviços"));
+      const ul = el("ul", "vt-lista-serv");
+      lista.forEach((i) => { const li = el("li"); li.append(el("span", null, i.nome), el("span", null, moeda(i.preco) || "a combinar")); ul.appendChild(li); });
+      ct.appendChild(ul);
+    });
+  } else if ((tipo === "delivery" || tipo === "lojinha") && itens.length) {
+    ct.appendChild(titulo4(tipo === "delivery" ? "Cardápio" : "Produtos"));
+    const g = el("div", "vd-itens " + tipo);
+    itens.forEach((i) => {
+      const card = el("div", "vd-item");
+      const f = el("div", "ft");
+      if (urlSegura(i.foto)) f.style.backgroundImage = `url("${i.foto}")`; else f.appendChild(icone(tipo === "delivery" ? "sacola" : "foto", "vi"));
+      card.append(f, el("strong", null, i.nome), el("span", null, moeda(i.preco) || "Consultar"));
+      g.appendChild(card);
+    });
+    ct.appendChild(g);
+  }
+
+  if (tipo === "imoveis") {
+    // perfil do anunciante: lista todos os imóveis dele
+    ct.appendChild(titulo4("Imóveis disponíveis"));
+    const grade = el("div", "vd-imoveis");
+    grade.appendChild(el("p", "vt-sub", "Carregando imóveis..."));
+    ct.appendChild(grade);
+    buscarAnuncios(fbx, n.donoId).then((lista) => {
+      if (n.preco || n.quartos) lista.push(negocioComoAnuncio(n));
+      grade.replaceChildren();
+      if (!lista.length) { grade.appendChild(el("p", "vt-sub", proprio ? "Você ainda não anunciou imóveis. Use Editar para anunciar." : "Nenhum imóvel disponível no momento.")); return; }
+      lista.forEach((a) => grade.appendChild(miniImovel(a, () => { sair(); abrirAnuncio({ ...a, donoId: n.donoId }, { ...opcoes, anunciante: n }); })));
+    }).catch(() => { grade.replaceChildren(el("p", "vt-sub", "Não foi possível carregar os imóveis.")); });
+  } else {
+    const galeria = tipo === "delivery" ? [] : fotos;
+    if (galeria.length) {
+      ct.appendChild(titulo4(tipo === "servicos" ? "Trabalhos realizados" : "Fotos"));
+      const g = el("div", "vd-galeria");
+      galeria.forEach((f, i) => { const im = document.createElement("img"); im.src = f; im.alt = `Foto ${i + 1}`; im.loading = "lazy"; g.appendChild(im); });
+      ct.appendChild(g);
+    }
+  }
+
+  ct.appendChild(barraContato({
+    proprio, sair, aoEditar: opcoes.aoEditar ? () => opcoes.aoEditar(n) : null, editarHref: `usuarios.html?acao=negocio&tipo=${tipo}`,
+    texto: tipo === "imoveis" ? "Falar com o anunciante" : TEXTO_CONTATO[tipo], whats: n.whatsapp,
+    textoWhats: `Olá! Vi "${n.nome}" no Help Floripa.`, aoMensagem, donoId: n.donoId, cartao: cartaoDeNegocio(n)
+  }));
+  caixa.appendChild(ct);
+}
+
+function miniImovel(a, aoClicar) {
+  const b = el("button", "vd-mini-imovel");
+  b.type = "button";
+  const f = el("div", "ft");
+  f.style.backgroundImage = `url("${urlSegura((a.fotos || [])[0]) || TEXTOS.imoveis.img}")`;
+  f.appendChild(el("span", "vt-tag", FINALIDADE[a.finalidade] || "Imóvel"));
+  const tx = el("div", "tx");
+  tx.append(el("strong", null, precoImovel(a)), el("span", null, tituloImovel(a)));
+  const det = [a.quartos ? `${a.quartos} qto` : "", a.area ? `${a.area} m²` : "", a.bairro || ""].filter(Boolean).join(" · ");
+  if (det) tx.appendChild(el("small", null, det));
+  b.append(f, tx);
+  b.addEventListener("click", aoClicar);
+  return b;
+}
+
+// ---------- detalhe de um imóvel ----------
+// opcoes: { fb, eu, dono, anunciante, aoMensagem, aoPerfil, aoEditar }
+export function abrirAnuncio(a, opcoes = {}) {
+  const fbx = opcoes.fb || fb, euX = opcoes.eu || eu;
+  const dono = opcoes.dono || donos.get(a.donoId) || {};
+  const anunciante = opcoes.anunciante || negociosImoveis.get(a.donoId) || {};
+  const proprio = !!euX && a.donoId === euX.uid;
+  const aoMensagem = opcoes.aoMensagem || ((uid, cartao) => prepararConversa(fbx, euX, uid, cartao));
+  const { caixa, sair } = novaJanela("imoveis", tituloImovel(a));
+  const fotos = (a.fotos || []).filter(urlSegura);
+  const g = el("div", "vd-fotos");
+  (fotos.length ? fotos : [TEXTOS.imoveis.img]).forEach((f, i) => { const im = document.createElement("img"); im.src = f; im.alt = `Foto ${i + 1}`; g.appendChild(im); });
+  caixa.appendChild(g);
+  if (fotos.length > 1) caixa.appendChild(el("div", "vd-fotos-n", `${fotos.length} fotos · deslize para ver`));
+  const ct = el("div", "conteudo");
+  const cab = el("div", "vd-cab");
+  const preco = el("div", "vd-preco", precoImovel(a));
+  const tags = el("div", "vt-sub");
+  tags.appendChild(el("span", "vt-tag", FINALIDADE[a.finalidade] || "Imóvel"));
+  tags.appendChild(el("span", "vt-tag neutra", CATEGORIAS.imoveis[a.categoria] || "Imóvel"));
+  if (a.mobiliado) tags.appendChild(el("span", "vt-tag neutra", "Mobiliado"));
+  const local = [a.bairro, a.cidade].filter(Boolean).join(", ");
+  if (local) { const s = el("span", "vt-local"); s.append(icone("pin"), document.createTextNode(local)); tags.appendChild(s); }
+  cab.append(preco, el("h3", null, tituloImovel(a)), tags);
+  ct.appendChild(cab);
+  ct.appendChild(specsImovel(a));
+  const fatos = fatosBox([["casa", moeda(a.condominio), "condomínio"], ["casa", moeda(a.iptu), "IPTU"]]);
+  if (fatos) ct.appendChild(fatos);
+  if (a.descricao) { ct.appendChild(titulo4("Descrição")); ct.appendChild(el("p", "texto", a.descricao)); }
+
+  // anunciante
+  ct.appendChild(titulo4("Anunciante"));
+  const box = el("div", "vd-anunciante");
+  const info = el("div", "tx");
+  info.append(linkCriador(a.donoId, dono, opcoes.aoPerfil));
+  const papel = [ANUNCIANTE[anunciante.tipoAnunciante], anunciante.creci ? `CRECI ${anunciante.creci}` : ""].filter(Boolean).join(" · ");
+  if (papel) info.appendChild(el("small", null, papel));
+  box.appendChild(info);
+  ct.appendChild(box);
+  // outros imóveis do mesmo anunciante
+  const outros = el("div", "vd-imoveis linha");
+  ct.appendChild(outros);
+  buscarAnuncios(fbx, a.donoId).then((lista) => {
+    const resto = lista.filter((x) => x.id !== a.id);
+    if (!resto.length) return;
+    outros.before(titulo4("Outros imóveis deste anunciante"));
+    resto.forEach((x) => outros.appendChild(miniImovel(x, () => { sair(); abrirAnuncio(x, opcoes); })));
+  }).catch(() => {});
+
+  ct.appendChild(barraContato({
+    proprio, sair, aoEditar: opcoes.aoEditar ? () => opcoes.aoEditar(anunciante) : null, editarHref: "usuarios.html?acao=negocio&tipo=imoveis",
+    texto: "Tenho interesse", whats: a.whatsapp || anunciante.whatsapp, textoWhats: `Olá! Tenho interesse no imóvel "${tituloImovel(a)}" que vi no Help Floripa.`,
+    aoMensagem, donoId: a.donoId, cartao: cartaoDeAnuncio(a)
+  }));
+  caixa.appendChild(ct);
 }
 
 // ---------- montagem na página ----------
@@ -448,9 +599,10 @@ function renderizar() {
   const grade = document.getElementById("vtGrade");
   const { cat, termo } = filtroAtual();
   const lista = todos.filter((n) => {
-    if (cat !== "todos" && n.categoria !== cat && n.finalidade !== cat) return false;
+    const cats = TIPO === "servicos" ? categoriasDe(n) : [n.categoria];
+    if (cat !== "todos" && !cats.includes(cat) && n.finalidade !== cat) return false;
     if (!termo) return true;
-    const alvo = [n.nome, n.descricao, n.cidade, n.bairro, CATEGORIAS[TIPO][n.categoria], ...(n.itens || []).map((i) => i?.nome), donos.get(n.donoId)?.nome].join(" ").toLowerCase();
+    const alvo = [n.nome, n.titulo, n.descricao, n.cidade, n.bairro, ...cats.map((c) => CATEGORIAS[TIPO][c]), ...(n.itens || []).map((i) => i?.nome), n.veiculo, donos.get(n.donoId)?.nome].join(" ").toLowerCase();
     return alvo.includes(termo);
   });
   grade.replaceChildren();
@@ -463,12 +615,13 @@ function renderizar() {
     return;
   }
   lista.forEach((n) => {
-    const c = CARTAO[TIPO](n);
+    const c = TIPO === "imoveis" ? cartaoImovel(n) : CARTAO[TIPO](n);
+    const abrir = () => (TIPO === "imoveis" ? abrirAnuncio(n) : abrirDetalhe(n));
     c.tabIndex = 0;
     c.setAttribute("role", "button");
-    c.setAttribute("aria-label", `Ver ${n.nome || "negócio"}`);
-    c.addEventListener("click", () => abrirDetalhe(n));
-    c.addEventListener("keydown", (e) => { if (e.target === c && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); abrirDetalhe(n); } });
+    c.setAttribute("aria-label", `Ver ${n.nome || n.titulo || "detalhes"}`);
+    c.addEventListener("click", abrir);
+    c.addEventListener("keydown", (e) => { if (e.target === c && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); abrir(); } });
     grade.appendChild(c);
   });
 }
@@ -476,16 +629,21 @@ function renderizar() {
 function ligarFiltros() {
   const chips = document.getElementById("filterChips");
   if (chips) {
-    // Garante um chip "Outros" e liga as categorias dos cadastros aos chips da página.
     if (!chips.querySelector('[data-filter="outros"]')) {
       const b = el("button", "chip", "Outros"); b.type = "button"; b.dataset.filter = "outros"; chips.appendChild(b);
       b.addEventListener("click", () => { chips.querySelectorAll(".chip").forEach((c) => c.classList.toggle("active", c === b)); });
     }
     chips.addEventListener("click", (e) => { if (e.target.closest(".chip")) setTimeout(renderizar, 0); });
   }
-  const busca = document.getElementById("searchInput");
-  busca?.addEventListener("input", renderizar);
+  document.getElementById("searchInput")?.addEventListener("input", renderizar);
   document.getElementById("searchForm")?.addEventListener("submit", () => setTimeout(() => { renderizar(); document.getElementById("vitrine")?.scrollIntoView({ behavior: "smooth", block: "start" }); }, 0));
+}
+
+async function carregarDonos(ids) {
+  await Promise.all([...new Set(ids)].map(async (id) => {
+    if (donos.has(id)) return;
+    try { const s = await fb.getDoc(fb.doc(fb.db, "perfis_publicos", id)); donos.set(id, s.exists() ? s.data() : {}); } catch { donos.set(id, {}); }
+  }));
 }
 
 async function iniciar() {
@@ -502,18 +660,26 @@ async function iniciar() {
     if (!u || eu) return;
     eu = u;
     try {
-      const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "negocios"), fb.where("tipo", "==", TIPO), fb.limit(80)));
-      todos = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => n.nome && n.oculto !== true);
+      const negSnap = await fb.getDocs(fb.query(fb.collection(fb.db, "negocios"), fb.where("tipo", "==", TIPO), fb.limit(80)));
+      const negocios = negSnap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => n.nome && n.oculto !== true);
+      if (TIPO === "imoveis") {
+        negocios.forEach((n) => negociosImoveis.set(n.donoId, n));
+        const anSnap = await fb.getDocs(fb.query(fb.collection(fb.db, "anuncios"), fb.where("tipo", "==", "imovel"), fb.limit(120)));
+        todos = anSnap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((a) => a.ativo !== false);
+        negocios.filter((n) => n.preco || n.quartos).forEach((n) => todos.push(negocioComoAnuncio(n)));
+      } else todos = negocios;
       todos.sort((a, b) => (b.atualizadoEm?.toMillis?.() ?? 0) - (a.atualizadoEm?.toMillis?.() ?? 0));
-      const ids = [...new Set(todos.map((n) => n.donoId))];
-      await Promise.all(ids.map(async (id) => {
-        try { const s = await fb.getDoc(fb.doc(fb.db, "perfis_publicos", id)); donos.set(id, s.exists() ? s.data() : {}); } catch { donos.set(id, {}); }
-      }));
+      await carregarDonos(todos.map((n) => n.donoId));
     } catch (e) {
       console.warn("Vitrine indisponível:", e);
       todos = [];
     }
     renderizar();
+    // link direto vindo de uma mensagem
+    const pg = new URLSearchParams(location.search);
+    const idNeg = pg.get("negocio"), idAn = pg.get("anuncio");
+    if (idAn) { const a = todos.find((x) => x.id === idAn); if (a) abrirAnuncio(a); else toast("Este imóvel não está mais disponível."); }
+    else if (idNeg) { const n = todos.find((x) => x.id === idNeg); if (n) abrirDetalhe(n); else toast("Este perfil não está mais disponível."); }
   });
 }
 
