@@ -583,7 +583,9 @@
           document.title = `${$("titulo").textContent} | Help Floripa`;
           if (!proprio && (dono.socialVisibilidade || "todos") === "ocultar") { estado("Social privado", "Esta pessoa preferiu não mostrar o social."); return; }
           clicavel = await podeAbrirPerfis();
-          const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "vinculos"), fb.where("participantes", "array-contains", donoId), fb.limit(60)));
+          const filtros = [fb.where("participantes", "array-contains", donoId)];
+          if (!proprio) filtros.push(fb.where("status", "==", "aceito"));
+          const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "vinculos"), ...filtros, fb.limit(60)));
           const brutos = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
           const perfis = await Promise.all(brutos.map((v) => {
             const outro = (v.participantes || []).find((x) => x !== donoId);

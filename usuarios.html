@@ -2012,7 +2012,9 @@
     }
 
     async function buscarVinculos(uid) {
-      const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "vinculos"), fb.where("participantes", "array-contains", uid), fb.limit(60)));
+      const filtros = [fb.where("participantes", "array-contains", uid)];
+      if (uid !== eu.uid) filtros.push(fb.where("status", "==", "aceito"));
+      const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "vinculos"), ...filtros, fb.limit(60)));
       return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     }
 

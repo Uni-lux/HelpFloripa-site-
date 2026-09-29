@@ -1,0 +1,369 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function logado() {
+      return request.auth != null;
+    }
+
+    // Campos que só podem ser alterados pelo painel/admin (Admin SDK ignora as regras).
+    function camposProtegidos() {
+      return ['verificado', 'avaliacaoMedia', 'totalAvaliacoes'];
+    }
+
+    function naoTocaCamposProtegidosNoCreate() {
+      return !request.resource.data.keys().hasAny(camposProtegidos());
+    }
+
+    function naoTocaCamposProtegidosNoUpdate() {
+      return !request.resource.data.diff(resource.data).affectedKeys()
+               .hasAny(camposProtegidos());
+    }
+
+    // Campo de texto opcional com tamanho máximo (evita documentos gigantes).
+    function textoAte(campo, max) {
+      return !(campo in request.resource.data)
+          || request.resource.data[campo] == null
+          || (request.resource.data[campo] is string
+              && request.resource.data[campo].size() <= max);
+    }
+
+    // Bloqueio: bloqueios/{quemBloqueou}_{quemFoiBloqueado}
+    function bloqueou(a, b) {
+      return exists(/databases/$(database)/documents/bloqueios/$(a + '_' + b));
+    }
+
+    function bloqueioEntre(a, b) {
+      return bloqueou(a, b) || bloqueou(b, a);
+    }
+
+
+    // =====================================================
+    // DADOS PRIVADOS DOS USUÁRIOS
+    // Cada usuário só pode acessar os próprios dados.
+    // =====================================================
+    match /usuarios/{userId} {
+
+      allow read: if logado()
+                  && request.auth.uid == userId;
+
+      allow create: if logado()
+                    && request.auth.uid == userId
+                    && request.resource.data.uid == userId
+                    && request.resource.data.aceiteTermos == true
+                    && naoTocaCamposProtegidosNoCreate();
+
+      allow update: if logado()
+                    && request.auth.uid == userId
+                    && request.resource.data.uid == resource.data.uid
+                    && naoTocaCamposProtegidosNoUpdate();
+
+      allow delete: if logado()
+                    && request.auth.uid == userId;
+    }
+
+
+    // =====================================================
+    // PERFIL PÚBLICO
+    // Usado somente para busca e exibição pública.
+    // NÃO deve conter e-mail, telefone ou data de nascimento.
+    // =====================================================
+    match /perfis_publicos/{userId} {
+
+      // O @ exibido no perfil precisa estar reservado em nicknames/ pelo
+      // próprio usuário. getAfter enxerga a reserva feita na mesma transação
+      // (cadastro) ou numa escrita anterior (edição do perfil).
+      function nickDoDono() {
+        let d = request.resource.data;
+        return !('nickname' in d)
+            || d.nickname == null
+            || d.nickname == ''
+            || getAfter(/databases/$(database)/documents/nicknames/$(d.nickname)).data.uid == request.auth.uid;
+      }
+
+      function tamanhosOk() {
+        return textoAte('nome', 80)
+            && textoAte('bio', 400)
+            && textoAte('cidade', 80);
+      }
+
+      allow read: if logado();
+
+      allow create: if logado()
+                    && request.auth.uid == userId
+                    && request.resource.data.uid == userId
+                    && naoTocaCamposProtegidosNoCreate()
+                    && nickDoDono()
+                    && tamanhosOk();
+
+      allow update: if logado()
+                    && request.auth.uid == userId
+                    && request.resource.data.uid == resource.data.uid
+                    && naoTocaCamposProtegidosNoUpdate()
+                    && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['nickname'])
+                        || nickDoDono())
+                    && tamanhosOk();
+
+      allow delete: if logado()
+                    && request.auth.uid == userId;
+    }
+
+
+    // =====================================================
+    // RESERVA DE NICKNAMES
+    // =====================================================
+    match /nicknames/{nickname} {
+
+      allow read: if true;
+
+      allow create: if logado()
+                    && request.auth.uid == request.resource.data.uid
+                    && nickname.matches('^[a-z0-9._]{3,20}$');
+
+      allow update: if false;
+
+      allow delete: if logado()
+                    && request.auth.uid == resource.data.uid;
+    }
+
+
+    // =====================================================
+    // SEGUIDORES
+    // Documento: relacoes/{seguidorId}_{alvoId}
+    // =====================================================
+    match /relacoes/{id} {
+
+      allow read: if logado();
+
+      allow create: if logado()
+                    && request.resource.data.tipo == 'seguir'
+                    && request.resource.data.seguidorId == request.auth.uid
+                    && request.resource.data.alvoId is string
+                    && request.resource.data.alvoId != request.auth.uid
+                    && id == request.auth.uid + '_' + request.resource.data.alvoId
+                    && !bloqueioEntre(request.auth.uid, request.resource.data.alvoId);
+
+      allow update: if false;
+
+      // Quem segue pode deixar de seguir; quem é seguido pode remover o seguidor.
+      allow delete: if logado()
+                    && (resource.data.seguidorId == request.auth.uid
+                        || resource.data.alvoId == request.auth.uid);
+    }
+
+
+    // =====================================================
+    // BLOQUEIOS
+    // Documento: bloqueios/{bloqueadorId}_{bloqueadoId}
+    // =====================================================
+    match /bloqueios/{id} {
+
+      allow get: if logado()
+                 && (id.split('_')[0] == request.auth.uid
+                     || id.split('_')[1] == request.auth.uid);
+
+      allow list: if logado()
+                  && (resource.data.bloqueadorId == request.auth.uid
+                      || resource.data.bloqueadoId == request.auth.uid);
+
+      allow create: if logado()
+                    && request.resource.data.bloqueadorId == request.auth.uid
+                    && request.resource.data.bloqueadoId is string
+                    && request.resource.data.bloqueadoId != request.auth.uid
+                    && id == request.auth.uid + '_' + request.resource.data.bloqueadoId;
+
+      allow update: if false;
+
+      allow delete: if logado()
+                    && resource.data.bloqueadorId == request.auth.uid;
+    }
+
+
+    // =====================================================
+    // VÍNCULOS SOCIAIS (duo, família, amigos)
+    // Documento: vinculos/{uidMenor}_{uidMaior}
+    // =====================================================
+    match /vinculos/{id} {
+
+      function inversos() {
+        return {
+          'duo': 'duo', 'namoro': 'namoro', 'casamento': 'casamento',
+          'melhor_amigo': 'melhor_amigo', 'amigo': 'amigo', 'irmao': 'irmao',
+          'pai_mae': 'filho', 'filho': 'pai_mae', 'primo': 'primo',
+          'tio': 'sobrinho', 'sobrinho': 'tio', 'avo': 'neto', 'neto': 'avo',
+          'parceiro': 'parceiro'
+        };
+      }
+
+      // Pedidos pendentes só são visíveis para os dois envolvidos.
+      allow read: if logado()
+                  && (resource.data.status == 'aceito'
+                      || request.auth.uid in resource.data.participantes);
+
+      allow create: if logado()
+                    && request.resource.data.de == request.auth.uid
+                    && request.resource.data.para is string
+                    && request.resource.data.para != request.auth.uid
+                    && request.resource.data.participantes is list
+                    && request.resource.data.participantes.size() == 2
+                    && request.auth.uid in request.resource.data.participantes
+                    && request.resource.data.para in request.resource.data.participantes
+                    && request.resource.data.participantes[0] < request.resource.data.participantes[1]
+                    && id == request.resource.data.participantes[0] + '_' + request.resource.data.participantes[1]
+                    && request.resource.data.status == 'pendente'
+                    && request.resource.data.tipoDe in inversos()
+                    && request.resource.data.tipoPara == inversos()[request.resource.data.tipoDe]
+                    && !bloqueioEntre(request.auth.uid, request.resource.data.para);
+
+      // Só quem recebeu o pedido pode aceitar, e só muda o status.
+      allow update: if logado()
+                    && resource.data.status == 'pendente'
+                    && request.auth.uid == resource.data.para
+                    && request.resource.data.status == 'aceito'
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'aceitoEm']);
+
+      // Qualquer um dos dois pode cancelar, recusar ou desfazer.
+      allow delete: if logado()
+                    && request.auth.uid in resource.data.participantes;
+    }
+
+
+    // =====================================================
+    // PERFIS DE NEGÓCIO (serviços, delivery, lojinha, imóveis)
+    // Documento: negocios/{donoId}_{tipo}
+    // =====================================================
+    match /negocios/{id} {
+
+      allow read: if logado();
+
+      allow create: if logado()
+                    && request.resource.data.donoId == request.auth.uid
+                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis']
+                    && id == request.auth.uid + '_' + request.resource.data.tipo
+                    && naoTocaCamposProtegidosNoCreate();
+
+      allow update: if logado()
+                    && resource.data.donoId == request.auth.uid
+                    && request.resource.data.donoId == resource.data.donoId
+                    && request.resource.data.tipo == resource.data.tipo
+                    && naoTocaCamposProtegidosNoUpdate();
+
+      allow delete: if logado()
+                    && resource.data.donoId == request.auth.uid;
+    }
+
+
+    // =====================================================
+    // ANÚNCIOS (vários imóveis por pessoa)
+    // Documento: anuncios/{id}
+    // =====================================================
+    match /anuncios/{id} {
+
+      allow read: if logado();
+
+      allow create: if logado()
+                    && request.resource.data.donoId == request.auth.uid
+                    && request.resource.data.tipo in ['imovel']
+                    && naoTocaCamposProtegidosNoCreate();
+
+      allow update: if logado()
+                    && resource.data.donoId == request.auth.uid
+                    && request.resource.data.donoId == resource.data.donoId
+                    && request.resource.data.tipo == resource.data.tipo
+                    && naoTocaCamposProtegidosNoUpdate();
+
+      allow delete: if logado()
+                    && resource.data.donoId == request.auth.uid;
+    }
+
+
+    // =====================================================
+    // CONVERSAS
+    // Documento: conversas/{uidMenor}_{uidMaior}
+    // =====================================================
+    match /conversas/{conversaId} {
+
+      allow get: if logado()
+                 && (resource == null
+                     || request.auth.uid in resource.data.participantes);
+
+      allow list: if logado()
+                  && request.auth.uid in resource.data.participantes;
+
+      allow create: if logado()
+                    && request.resource.data.participantes is list
+                    && request.resource.data.participantes.size() == 2
+                    && request.auth.uid in request.resource.data.participantes
+                    && request.resource.data.participantes[0] < request.resource.data.participantes[1]
+                    && conversaId == request.resource.data.participantes[0]
+                                     + '_' + request.resource.data.participantes[1]
+                    && !bloqueioEntre(request.resource.data.participantes[0],
+                                      request.resource.data.participantes[1])
+                    && textoAte('ultimaMensagem', 200);
+
+      // Com bloqueio entre os dois, ninguém mexe na conversa (evita "recado"
+      // pelo resumo da última mensagem).
+      allow update: if logado()
+                    && request.auth.uid in resource.data.participantes
+                    && request.resource.data.participantes == resource.data.participantes
+                    && !bloqueioEntre(resource.data.participantes[0], resource.data.participantes[1])
+                    && textoAte('ultimaMensagem', 200);
+
+      allow delete: if logado()
+                    && request.auth.uid in resource.data.participantes;
+
+
+      // ===================================================
+      // MENSAGENS DA CONVERSA
+      // ===================================================
+      match /mensagens/{mensagemId} {
+
+        function participante() {
+          return request.auth.uid in
+                 get(/databases/$(database)/documents/conversas/$(conversaId)).data.participantes;
+        }
+
+        function semBloqueio() {
+          let p = get(/databases/$(database)/documents/conversas/$(conversaId)).data.participantes;
+          return !bloqueioEntre(p[0], p[1]);
+        }
+
+        allow read: if logado() && participante();
+
+        allow create: if logado()
+                      && participante()
+                      && semBloqueio()
+                      && request.resource.data.remetenteId == request.auth.uid
+                      && request.resource.data.criadoEm == request.time
+                      && textoAte('texto', 4000);
+
+        allow update: if false;
+
+        allow delete: if logado()
+                      && request.auth.uid == resource.data.remetenteId;
+      }
+    }
+
+
+    // =====================================================
+    // DIÁRIO / PUBLICAÇÕES
+    // =====================================================
+    match /diario/{postId} {
+
+      allow read: if logado();
+
+      allow create: if logado()
+                    && request.resource.data.autorId == request.auth.uid
+                    && textoAte('texto', 1000);
+
+      allow update: if logado()
+                    && resource.data.autorId == request.auth.uid
+                    && request.resource.data.autorId == resource.data.autorId
+                    && textoAte('texto', 1000);
+
+      allow delete: if logado()
+                    && resource.data.autorId == request.auth.uid;
+    }
+  }
+}

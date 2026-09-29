@@ -176,7 +176,7 @@
         <p class="etapa-subtitulo">Leva menos de um minuto</p>
 
         <label for="nome">Nome completo</label>
-        <input type="text" id="nome" name="nome" required autocomplete="name">
+        <input type="text" id="nome" name="nome" required autocomplete="name" maxlength="60">
 
         <label for="email">E-mail</label>
         <input type="email" id="email" name="email" placeholder="seunome@email.com" required autocomplete="email">
@@ -372,8 +372,14 @@ function montarResumo(){
     const profissao = document.getElementById('profissao').value;
     const cidade = document.getElementById('cidade').value;
     const bairro = document.getElementById('bairro').value;
-    document.getElementById('resumo').innerHTML =
-        `<strong>${nome}</strong><br>${profissao}<br>${bairro}, ${cidade}`;
+    const resumo = document.getElementById('resumo');
+    const titulo = document.createElement('strong');
+    titulo.textContent = nome;
+    resumo.replaceChildren(
+        titulo, document.createElement('br'),
+        profissao, document.createElement('br'),
+        `${bairro}, ${cidade}`
+    );
 }
 
 /* ---------- envio ---------- */
