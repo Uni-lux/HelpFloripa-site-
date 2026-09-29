@@ -42,11 +42,11 @@ service firebase.storage {
                    && tipo('image/.*');
     }
 
-    // Foto dos perfis de negócio: negocios/{uid}_{tipo}.jpg
+    // Fotos dos perfis de negócio: negocios/{uid}_{tipo}.jpg, _f0.jpg (galeria), _i0.jpg (itens)
     match /negocios/{arquivo} {
       allow read: if logado();
       allow write: if logado()
-                   && arquivo.matches(request.auth.uid + '_(servicos|delivery|lojinha|imoveis)[.]jpg')
+                   && arquivo.matches(request.auth.uid + '_(servicos|delivery|lojinha|imoveis)(_[fi][0-9]+)?[.]jpg')
                    && tamanhoAte(10)
                    && tipo('image/.*');
     }

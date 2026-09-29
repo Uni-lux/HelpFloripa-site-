@@ -17,83 +17,141 @@
     })();
   </script>
   <style>
-    :root { --accent: #00adee; --accent-ink: #001a24; --danger: #e5484d; --duo: #e0243b; --familia: #f5b700; --amizade: #00adee; --amor: #ff4f8b; --trabalho: #2fbf71; --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
-    :root[data-theme="dark"] { --bg: #070b0e; --panel: #0f161b; --panel-2: #151f25; --hover: #19252c; --line: #213038; --text: #eaf0f3; --muted: #8c9ca7; --teia: rgba(255, 255, 255, .07); --overlay: rgba(2, 6, 9, .72); }
-    :root[data-theme="light"] { --bg: #f1f4f6; --panel: #ffffff; --panel-2: #f5f7f9; --hover: #eef2f5; --line: #e1e7eb; --text: #0e1a21; --muted: #607380; --teia: rgba(0, 40, 60, .09); --overlay: rgba(10, 20, 26, .5); }
+    :root {
+      --accent: #00adee; --accent-ink: #001a24; --danger: #e5484d;
+      --duo: #e0243b; --familia: #f0b429; --amizade: #00adee; --amor: #ff4f8b; --trabalho: #2fbf71;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    :root[data-theme="dark"] { --bg: #070b0e; --panel: #0f161b; --panel-2: #151f25; --hover: #19252c; --line: #213038; --text: #eaf0f3; --muted: #8c9ca7; --anel: rgba(255, 255, 255, .06); --overlay: rgba(2, 6, 9, .72); --sombra: 0 18px 50px rgba(0, 0, 0, .45); }
+    :root[data-theme="light"] { --bg: #f1f4f6; --panel: #ffffff; --panel-2: #f5f7f9; --hover: #eef2f5; --line: #e1e7eb; --text: #0e1a21; --muted: #607380; --anel: rgba(0, 40, 60, .08); --overlay: rgba(10, 20, 26, .5); --sombra: 0 18px 50px rgba(15, 30, 40, .12); }
     * { box-sizing: border-box; }
     [hidden] { display: none !important; }
     body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--text); font-family: var(--font); -webkit-font-smoothing: antialiased; }
     button { font: inherit; color: inherit; }
+    a { color: inherit; }
     svg.i { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
     svg.i.s { width: 16px; height: 16px; }
-    .topo { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 8px; height: calc(60px + env(safe-area-inset-top)); padding: env(safe-area-inset-top) 8px 0; background: color-mix(in srgb, var(--panel) 90%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border-bottom: 1px solid var(--line); }
-    .topo h1 { flex: 1; margin: 0; font-size: 17px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .topo { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 8px; height: calc(58px + env(safe-area-inset-top)); padding: env(safe-area-inset-top) 8px 0; background: color-mix(in srgb, var(--panel) 88%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border-bottom: 1px solid var(--line); }
+    .topo h1 { flex: 1; margin: 0; font-size: 16px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .icone-btn { width: 42px; height: 42px; border-radius: 50%; border: 0; background: transparent; display: grid; place-items: center; cursor: pointer; color: var(--text); text-decoration: none; }
     .icone-btn:hover { background: var(--hover); }
-    .pagina { width: min(760px, 100%); margin: 0 auto; padding: 16px 16px 40px; }
-    .estado { padding: 70px 20px; text-align: center; color: var(--muted); }
-    .estado strong { display: block; color: var(--text); font-size: 17px; margin-bottom: 6px; }
+    .pagina { width: min(820px, 100%); margin: 0 auto; padding: 16px 16px calc(40px + env(safe-area-inset-bottom)); display: grid; gap: 16px; }
+    .estado { padding: 80px 20px; text-align: center; color: var(--muted); }
+    .estado strong { display: block; color: var(--text); font-size: 18px; margin-bottom: 6px; }
+    .cartao { background: var(--panel); border: 1px solid var(--line); border-radius: 26px; overflow: hidden; }
+    .rotulo { margin: 0 0 12px; font-size: 12px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+    .avatar { width: 48px; height: 48px; border-radius: 50%; overflow: hidden; background: linear-gradient(135deg, #0a4a63, #00adee); color: #fff; display: grid; place-items: center; font-weight: 750; flex-shrink: 0; }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-    .palco { position: relative; width: 100%; aspect-ratio: 1; max-width: 640px; margin: 0 auto; border-radius: 28px; overflow: hidden;
-      background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 65%), var(--panel); border: 1px solid var(--line); }
-    .palco svg.linhas { position: absolute; inset: 0; width: 100%; height: 100%; }
-    .teia { stroke: var(--teia); stroke-width: 1; fill: none; }
-    .liga { fill: none; stroke-width: 2.2; stroke-linecap: round; opacity: .9; }
-    .liga.duo { stroke: var(--duo); stroke-width: 2.6; stroke-dasharray: 6 5; animation: fio 1.6s linear infinite; filter: drop-shadow(0 0 4px rgba(224, 36, 59, .8)); }
-    @keyframes fio { to { stroke-dashoffset: -22; } }
-    .no { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 4px; width: 86px; border: 0; background: none; padding: 0; text-align: center; cursor: pointer; }
-    .no[disabled] { cursor: default; }
-    .no .foto { position: relative; width: 58px; height: 58px; border-radius: 50%; overflow: visible; }
-    .no .avatar { width: 100%; height: 100%; border-radius: 50%; overflow: hidden; background: linear-gradient(135deg, #0a4a63, #00adee); color: #fff; display: grid; place-items: center; font-weight: 750; box-shadow: 0 0 0 3px var(--panel), 0 0 0 5px var(--cor, var(--accent)), 0 8px 20px rgba(0, 0, 0, .25); }
-    .no .avatar img { width: 100%; height: 100%; object-fit: cover; }
-    .no .nome { font-size: 12px; font-weight: 750; max-width: 86px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: var(--panel); padding: 1px 6px; border-radius: 8px; }
-    .no .papel { font-size: 10.5px; font-weight: 800; color: var(--cor); margin-top: -3px; background: var(--panel); padding: 0 6px; border-radius: 6px; }
-    .no.centro .foto { width: 96px; height: 96px; }
-    .no.centro .avatar { font-size: 28px; box-shadow: 0 0 0 4px var(--panel), 0 0 0 7px var(--accent), 0 10px 30px rgba(0, 0, 0, .3); }
-    .no.centro .nome { font-size: 14px; }
-    .no.pendente { opacity: .55; }
-    .rosa { position: absolute; right: -4px; bottom: -4px; width: 26px; height: 26px; border-radius: 50%; background: #fff; display: grid; place-items: center; box-shadow: 0 2px 8px rgba(0, 0, 0, .35); color: var(--duo); }
-    .rosa svg { width: 17px; height: 17px; }
-    .no[data-cat="duo"] { --cor: var(--duo); }
-    .no[data-cat="familia"] { --cor: var(--familia); }
-    .no[data-cat="amizade"] { --cor: var(--amizade); }
-    .no[data-cat="amor"] { --cor: var(--amor); }
-    .no[data-cat="trabalho"] { --cor: var(--trabalho); }
+    /* ---------- cabeçalho ---------- */
+    .hero { position: relative; text-align: center; padding: 0 20px 22px; }
+    .hero-fundo { position: absolute; inset: 0 0 auto 0; height: 128px; background: #06202c url("ponte-help.webp") center / cover; }
+    .hero-fundo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 0, 0, .15), var(--panel)); }
+    .hero .avatar { position: relative; width: 104px; height: 104px; margin: 64px auto 12px; font-size: 32px; box-shadow: 0 0 0 5px var(--panel), 0 0 0 7px var(--accent), var(--sombra); }
+    .hero h2 { margin: 0; font-size: 24px; font-weight: 850; letter-spacing: -.4px; }
+    .hero .nick { color: var(--muted); font-size: 14px; margin-top: 2px; }
+    .resumo { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+    .resumo span { display: inline-flex; align-items: center; gap: 7px; padding: 7px 12px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); font-size: 13px; font-weight: 700; }
+    .resumo i { width: 9px; height: 9px; border-radius: 50%; background: var(--cor); }
+    .resumo b { font-weight: 850; }
 
-    .legenda { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 16px 0 6px; }
-    .legenda span { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); font-size: 12.5px; font-weight: 700; }
-    .legenda i { width: 10px; height: 10px; border-radius: 50%; background: var(--cor); }
-    .legenda svg { color: var(--duo); width: 15px; height: 15px; }
-    .nota { text-align: center; color: var(--muted); font-size: 13px; margin: 10px 0 0; }
-    .painel { margin-top: 16px; padding: 16px; border-radius: 20px; background: var(--panel); border: 1px solid var(--line); }
-    .painel h2 { margin: 0 0 4px; font-size: 15px; }
-    .painel p { margin: 0 0 12px; color: var(--muted); font-size: 13px; }
+    /* ---------- duo ---------- */
+    .duo { position: relative; padding: 22px 20px 20px; text-align: center; background: radial-gradient(90% 120% at 50% 0%, rgba(224, 36, 59, .16), transparent 65%), var(--panel); border-color: rgba(224, 36, 59, .3); }
+    .duo-par { position: relative; display: flex; justify-content: center; align-items: center; gap: 56px; margin: 6px 0 12px; }
+    .duo-par svg.fio { position: absolute; left: 50%; top: 50%; width: 150px; height: 70px; transform: translate(-50%, -62%); overflow: visible; pointer-events: none; }
+    .duo-par .fio path.linha { fill: none; stroke: var(--duo); stroke-width: 2.4; stroke-linecap: round; filter: drop-shadow(0 0 4px rgba(224, 36, 59, .7)); }
+    .duo-par .fio path.cor { fill: var(--duo); stroke: #fff; stroke-width: 1.2; transform-box: fill-box; transform-origin: center; animation: bater 1.6s ease-in-out infinite; }
+    @keyframes bater { 0%, 60%, 100% { transform: scale(1); } 20% { transform: scale(1.22); } 40% { transform: scale(.95); } }
+    .duo-pessoa { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 8px; border: 0; background: none; padding: 0; cursor: pointer; }
+    .duo-pessoa[disabled] { cursor: default; }
+    .duo-pessoa .avatar { width: 78px; height: 78px; font-size: 24px; box-shadow: 0 0 0 4px var(--panel), 0 0 0 6px var(--duo), 0 10px 26px rgba(224, 36, 59, .25); }
+    .duo-pessoa strong { font-size: 14px; max-width: 110px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rosa { position: absolute; right: -4px; top: 52px; width: 28px; height: 28px; border-radius: 50%; background: #fff; color: var(--duo); display: grid; place-items: center; box-shadow: 0 3px 10px rgba(0, 0, 0, .35); }
+    .rosa svg { width: 18px; height: 18px; }
+    .duo small { color: var(--muted); font-size: 13px; }
+
+    /* ---------- constelação por setores ---------- */
+    .mapa-box { padding: 18px 16px 16px; }
+    .mapa { position: relative; width: 100%; max-width: 560px; aspect-ratio: 1; margin: 0 auto; }
+    .mapa svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+    .mapa .anel { fill: none; stroke: var(--anel); stroke-width: 1; }
+    .mapa .setor { fill: none; stroke-width: 10; stroke-linecap: round; opacity: .22; transition: opacity .25s; }
+    .mapa .setor-rot { font-size: 11px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; fill: var(--muted); }
+    .mapa .liga { fill: none; stroke-width: 1.6; opacity: .7; transition: opacity .25s; }
+    .mapa .no { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 4px; width: 78px; border: 0; background: none; padding: 0; cursor: pointer; transition: opacity .25s, transform .2s; }
+    .mapa .no:hover { transform: translate(-50%, -50%) scale(1.06); }
+    .mapa .no[disabled] { cursor: default; }
+    .mapa .no .avatar { width: 46px; height: 46px; font-size: 15px; box-shadow: 0 0 0 3px var(--panel), 0 0 0 5px var(--cor); }
+    .mapa .no span { font-size: 11.5px; font-weight: 750; max-width: 78px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 1px 7px; border-radius: 8px; background: var(--panel); }
+    .mapa .no.centro .avatar { width: 70px; height: 70px; font-size: 22px; box-shadow: 0 0 0 4px var(--panel), 0 0 0 6px var(--accent), var(--sombra); }
+    .mapa.focado .no:not(.centro):not(.ativo), .mapa.focado .liga:not(.ativo) { opacity: .15; }
+    .mapa.focado .setor:not(.ativo) { opacity: .06; }
+    .mapa.focado .setor.ativo { opacity: .45; }
+    .mapa-vazio { text-align: center; color: var(--muted); padding: 34px 10px 10px; }
+
+    /* ---------- filtros e diretório ---------- */
+    .filtros { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 4px; scrollbar-width: none; }
+    .filtros::-webkit-scrollbar { display: none; }
+    .filtro { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 7px; padding: 9px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); font-size: 13.5px; font-weight: 700; cursor: pointer; color: var(--muted); }
+    .filtro i { width: 9px; height: 9px; border-radius: 50%; background: var(--cor, var(--muted)); }
+    .filtro.on { background: var(--text); color: var(--panel); border-color: var(--text); }
+    .diretorio { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+    .pessoa { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 18px; background: var(--panel); border: 1px solid var(--line); text-align: left; cursor: pointer; width: 100%; position: relative; overflow: hidden; }
+    .pessoa::before { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 3px; border-radius: 0 3px 3px 0; background: var(--cor); }
+    .pessoa:hover { background: var(--hover); }
+    .pessoa[disabled] { cursor: default; }
+    .pessoa .avatar { box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--cor); }
+    .pessoa .tx { flex: 1; min-width: 0; }
+    .pessoa .tx strong { display: block; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pessoa .tx small { color: var(--cor); font-weight: 750; font-size: 12.5px; }
+    .pessoa .tx small.pend { color: var(--muted); }
+    .pessoa > svg { color: var(--muted); }
+
+    [data-cat="duo"] { --cor: var(--duo); }
+    [data-cat="familia"] { --cor: var(--familia); }
+    [data-cat="amizade"] { --cor: var(--amizade); }
+    [data-cat="amor"] { --cor: var(--amor); }
+    [data-cat="trabalho"] { --cor: var(--trabalho); }
+
+    /* ---------- dono ---------- */
+    .dono-box { padding: 18px; display: grid; gap: 14px; }
+    .dono-box p { margin: 0; color: var(--muted); font-size: 13px; }
     .segmentado { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; background: var(--panel-2); padding: 4px; border-radius: 12px; }
     .segmentado button { border: 0; background: transparent; border-radius: 9px; padding: 9px 4px; font-size: 13px; font-weight: 700; color: var(--muted); cursor: pointer; }
     .segmentado button.on { background: var(--panel); color: var(--text); box-shadow: 0 1px 4px rgba(0, 0, 0, .15); }
-    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 12px; padding: 11px 16px; font-weight: 700; cursor: pointer; text-decoration: none; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 14px; padding: 12px 18px; font-weight: 800; cursor: pointer; text-decoration: none; }
     .btn.pri { background: var(--accent); color: var(--accent-ink); }
-    .acoes { display: flex; justify-content: center; margin-top: 14px; }
+    .nota { text-align: center; color: var(--muted); font-size: 13px; margin: 0; }
 
-    .menu-fundo { position: fixed; inset: 0; z-index: 50; background: var(--overlay); display: grid; place-items: end center; padding: 0; }
+    .menu-fundo { position: fixed; inset: 0; z-index: 50; background: var(--overlay); display: grid; place-items: end center; }
     .menu { width: min(460px, 100%); background: var(--panel); border-radius: 22px 22px 0 0; padding: 8px 0 calc(12px + env(safe-area-inset-bottom)); }
-    .menu h3 { margin: 10px 18px 8px; font-size: 15px; }
+    .menu h3 { margin: 12px 18px 8px; font-size: 15px; }
     .menu button { display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 18px; border: 0; background: transparent; text-align: left; cursor: pointer; font-size: 15px; font-weight: 600; }
     .menu button:hover { background: var(--hover); }
     .menu button.perigo { color: var(--danger); }
     .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 60; background: var(--text); color: var(--panel); padding: 12px 18px; border-radius: 12px; font-weight: 600; font-size: 14px; }
     @media (min-width: 700px) { .menu-fundo { place-items: center; } .menu { border-radius: 22px; } }
-    @media (max-width: 480px) { .no { width: 72px; } .no .foto { width: 48px; height: 48px; } .no .nome { font-size: 11px; max-width: 72px; } .no.centro .foto { width: 80px; height: 80px; } }
+    @media (max-width: 480px) {
+      .mapa .no { width: 64px; } .mapa .no .avatar { width: 38px; height: 38px; font-size: 13px; } .mapa .no span { font-size: 10.5px; max-width: 64px; }
+      .mapa .no.centro .avatar { width: 58px; height: 58px; } .mapa .setor-rot { font-size: 9.5px; }
+      .duo-par { gap: 40px; } .duo-pessoa .avatar { width: 66px; height: 66px; } .rosa { top: 44px; }
+      .diretorio { grid-template-columns: 1fr; }
+    }
+    @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
   </style>
   <script type="module" src="firebase.js"></script>
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
     <symbol id="i-voltar" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+    <symbol id="i-avancar" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
     <symbol id="i-rosa" viewBox="0 0 24 24"><path d="M12 13.2c-2.7 0-4.6-2-4.6-4.5 0-1.6.8-2.9 1.9-3.7.3 1.1 1.3 1.9 2.7 1.9s2.4-.8 2.7-1.9c1.1.8 1.9 2.1 1.9 3.7 0 2.5-1.9 4.5-4.6 4.5z" fill="currentColor" stroke="none"/><path d="M12 13.2V21M12 17.2c-1.4-1.9-3.4-2.2-5-1.6 1 1.9 3.1 2.5 5 1.6zM12 16.2c1.2-1.5 2.9-1.7 4.2-1.2-.8 1.5-2.5 2-4.2 1.2z"/></symbol>
     <symbol id="i-perfil" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="4"/><path d="M4.5 20.5c1.2-3.6 4.1-5.5 7.5-5.5s6.3 1.9 7.5 5.5"/></symbol>
     <symbol id="i-lixo" viewBox="0 0 24 24"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5"/></symbol>
     <symbol id="i-mais" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-teia" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.6"/><circle cx="5" cy="6" r="1.8"/><circle cx="19" cy="6" r="1.8"/><circle cx="5" cy="18" r="1.8"/><circle cx="19" cy="18" r="1.8"/><path d="M9.8 10.6L6.5 7.2M14.2 10.6l3.3-3.4M9.8 13.4l-3.3 3.4M14.2 13.4l3.3 3.4"/></symbol>
+    <symbol id="i-cadeado" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8.5 10.5V7.5a3.5 3.5 0 017 0v3"/></symbol>
   </svg>
 
   <header class="topo">
@@ -103,66 +161,82 @@
 
   <main class="pagina">
     <div class="estado" id="estado">Carregando...</div>
-    <div id="conteudo" hidden>
-      <div class="palco" id="palco"><svg class="linhas" id="linhas" aria-hidden="true"></svg></div>
-      <div class="legenda" id="legenda"></div>
-      <p class="nota" id="nota" hidden></p>
-      <div class="acoes" id="acoesDono" hidden><a class="btn pri" href="usuarios.html?acao=social"><svg class="i s"><use href="#i-mais"/></svg>Adicionar ao meu social</a></div>
-      <div class="painel" id="painelPrivacidade" hidden>
-        <h2>Quem pode abrir os perfis do seu social</h2>
-        <p>Quem não estiver liberado vê as fotos, mas não consegue abrir os perfis. "Só eu" esconde o social de todo mundo.</p>
+    <div id="conteudo" hidden style="display:grid;gap:16px">
+      <section class="cartao hero" aria-label="Pessoa">
+        <div class="hero-fundo" id="heroFundo"></div>
+        <div class="avatar" id="heroAvatar"></div>
+        <h2 id="heroNome"></h2>
+        <div class="nick" id="heroNick"></div>
+        <div class="resumo" id="resumo"></div>
+      </section>
+
+      <section class="cartao duo" id="duo" hidden aria-label="Duo"></section>
+
+      <section class="cartao mapa-box" aria-label="Mapa do social">
+        <p class="rotulo"><svg class="i s"><use href="#i-teia"/></svg>Mapa de conexões</p>
+        <div class="mapa" id="mapa"><svg id="mapaSvg" aria-hidden="true"></svg></div>
+        <p class="nota" id="nota" hidden></p>
+      </section>
+
+      <div class="filtros" id="filtros" role="tablist" aria-label="Filtrar conexões"></div>
+      <section class="diretorio" id="diretorio" aria-label="Conexões"></section>
+
+      <section class="cartao dono-box" id="donoBox" hidden>
+        <p class="rotulo" style="margin:0"><svg class="i s"><use href="#i-cadeado"/></svg>Quem pode abrir os perfis do seu social</p>
         <div class="segmentado" id="visibilidade">
           <button type="button" data-valor="todos">Todos</button>
           <button type="button" data-valor="seguidores">Seguidores</button>
           <button type="button" data-valor="amigos">Amigos</button>
           <button type="button" data-valor="ocultar">Só eu</button>
         </div>
-        <p style="margin:10px 0 0">Amigos = pessoas que você segue e que seguem você.</p>
-      </div>
+        <p>Quem não estiver liberado vê as fotos, mas não abre os perfis. Amigos = quem você segue e segue você. "Só eu" esconde o social de todo mundo.</p>
+        <a class="btn pri" href="usuarios.html?acao=social"><svg class="i s"><use href="#i-mais"/></svg>Adicionar pessoa ao meu social</a>
+      </section>
     </div>
   </main>
 
   <script type="module">
     const $ = (id) => document.getElementById(id);
-    const ms = (ts) => ts?.toMillis?.() ?? 0;
     const TIPOS = {
-      duo: { rotulo: "Duo", cat: "duo" }, namoro: { rotulo: "Namorado(a)", cat: "amor" }, casamento: { rotulo: "Cônjuge", cat: "amor" },
-      melhor_amigo: { rotulo: "Melhor amigo(a)", cat: "amizade" }, amigo: { rotulo: "Amigo(a)", cat: "amizade" },
-      irmao: { rotulo: "Irmão(ã)", cat: "familia" }, pai_mae: { rotulo: "Pai/Mãe", cat: "familia" }, filho: { rotulo: "Filho(a)", cat: "familia" },
-      primo: { rotulo: "Primo(a)", cat: "familia" }, tio: { rotulo: "Tio(a)", cat: "familia" }, sobrinho: { rotulo: "Sobrinho(a)", cat: "familia" },
-      avo: { rotulo: "Avô/Avó", cat: "familia" }, neto: { rotulo: "Neto(a)", cat: "familia" }, parceiro: { rotulo: "Trabalho", cat: "trabalho" }
+      duo: ["Duo", "duo"], namoro: ["Namorado(a)", "amor"], casamento: ["Cônjuge", "amor"],
+      melhor_amigo: ["Melhor amigo(a)", "amizade"], amigo: ["Amigo(a)", "amizade"],
+      irmao: ["Irmão(ã)", "familia"], pai_mae: ["Pai/Mãe", "familia"], filho: ["Filho(a)", "familia"],
+      primo: ["Primo(a)", "familia"], tio: ["Tio(a)", "familia"], sobrinho: ["Sobrinho(a)", "familia"],
+      avo: ["Avô/Avó", "familia"], neto: ["Neto(a)", "familia"], parceiro: ["Trabalho", "trabalho"]
     };
-    const CATEGORIAS = [["familia", "Família"], ["amizade", "Amizade"], ["amor", "Amor"], ["trabalho", "Trabalho"]];
+    // Setores fixos do mapa (ângulos em graus, 0 = direita, sentido horário).
+    const SETORES = [
+      { cat: "familia", nome: "Família", de: 200, ate: 290 },
+      { cat: "amizade", nome: "Amizade", de: 305, ate: 395 },
+      { cat: "amor", nome: "Amor", de: 50, ate: 110 },
+      { cat: "trabalho", nome: "Trabalho", de: 125, ate: 185 }
+    ];
+    const NOMES_CAT = { familia: "Família", amizade: "Amizade", amor: "Amor", trabalho: "Trabalho" };
+
     const urlSegura = (u) => (/^(https:\/\/|data:image\/)/i.test(String(u || "")) ? String(u) : "");
     const iniciais = (n) => { const p = String(n || "?").trim().split(/\s+/); return ((p[0]?.[0] || "?") + (p.length > 1 ? p[p.length - 1][0] : "")).toUpperCase(); };
-    function avatar(foto, nome) {
-      const d = document.createElement("div");
-      d.className = "avatar";
+    const primeiroNome = (n) => String(n || "Usuário").split(" ")[0];
+    function pintarAvatar(el, foto, nome) {
+      el.replaceChildren();
       const u = urlSegura(foto);
-      if (u) { const i = document.createElement("img"); i.src = u; i.alt = ""; i.onerror = () => { d.textContent = iniciais(nome); }; d.appendChild(i); }
-      else d.textContent = iniciais(nome);
-      return d;
+      if (u) { const i = document.createElement("img"); i.src = u; i.alt = ""; i.onerror = () => { el.textContent = iniciais(nome); }; el.appendChild(i); }
+      else el.textContent = iniciais(nome);
     }
+    function novoAvatar(foto, nome) { const d = document.createElement("div"); d.className = "avatar"; pintarAvatar(d, foto, nome); return d; }
     function icone(nome, classe = "i s") {
       const ns = "http://www.w3.org/2000/svg";
       const s = document.createElementNS(ns, "svg"); s.setAttribute("class", classe);
       const u = document.createElementNS(ns, "use"); u.setAttribute("href", "#i-" + nome); s.appendChild(u);
       return s;
     }
-    function toast(t) {
-      document.querySelectorAll(".toast").forEach((x) => x.remove());
-      const d = document.createElement("div"); d.className = "toast"; d.textContent = t; document.body.appendChild(d);
-      setTimeout(() => d.remove(), 3500);
-    }
-    function estado(titulo, texto) {
-      $("conteudo").hidden = true;
-      $("estado").hidden = false;
-      $("estado").replaceChildren();
-      const s = document.createElement("strong"); s.textContent = titulo;
-      $("estado").append(s, texto || "");
-    }
+    const svgEl = (tag, attrs) => { const e = document.createElementNS("http://www.w3.org/2000/svg", tag); Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v)); return e; };
+    function toast(t) { document.querySelectorAll(".toast").forEach((x) => x.remove()); const d = document.createElement("div"); d.className = "toast"; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 3500); }
+    function estado(titulo, texto) { $("conteudo").hidden = true; $("estado").hidden = false; $("estado").replaceChildren(); const s = document.createElement("strong"); s.textContent = titulo; $("estado").append(s, texto || ""); }
+    const irPerfil = (uid) => { location.href = `usuarios.html?perfil=${encodeURIComponent(uid)}`; };
 
-    let fb, eu, dono, donoId, vinculos = [], clicavel = false, proprio = false;
+    let fb, eu, dono, donoId, proprio = false, clicavel = false;
+    let conexoes = []; // { id, outro, tipo, cat, pendente, perfil, aceitoEm }
+    let filtro = "todos";
 
     async function podeAbrirPerfis() {
       if (proprio) return true;
@@ -177,15 +251,11 @@
     }
 
     function menu(titulo, opcoes) {
-      const fundo = document.createElement("div");
-      fundo.className = "menu-fundo";
-      const m = document.createElement("div");
-      m.className = "menu";
-      m.setAttribute("role", "dialog");
+      const fundo = document.createElement("div"); fundo.className = "menu-fundo";
+      const m = document.createElement("div"); m.className = "menu"; m.setAttribute("role", "dialog");
       const h = document.createElement("h3"); h.textContent = titulo; m.appendChild(h);
       opcoes.forEach((o) => {
-        const b = document.createElement("button"); b.type = "button";
-        if (o.perigo) b.className = "perigo";
+        const b = document.createElement("button"); b.type = "button"; if (o.perigo) b.className = "perigo";
         b.append(icone(o.icone, "i"), document.createTextNode(o.rotulo));
         b.addEventListener("click", () => { fundo.remove(); o.fn(); });
         m.appendChild(b);
@@ -195,131 +265,210 @@
       document.body.appendChild(fundo);
     }
 
-    // Desenha a teia: centro = dono; duo no topo; os demais em anéis.
-    async function desenhar() {
-      const palco = $("palco");
-      palco.querySelectorAll(".no").forEach((n) => n.remove());
-      const svg = $("linhas");
+    function acaoPessoa(c) {
+      if (proprio) {
+        return () => menu(c.perfil.nome || "Usuário", [
+          { rotulo: "Ver perfil", icone: "perfil", fn: () => irPerfil(c.outro) },
+          { rotulo: c.pendente ? "Cancelar pedido" : "Desfazer vínculo", icone: "lixo", perigo: true, fn: async () => {
+            if (!c.pendente && !confirm(`Desfazer o vínculo com ${c.perfil.nome || "esta pessoa"}?`)) return;
+            try { await fb.deleteDoc(fb.doc(fb.db, "vinculos", c.id)); conexoes = conexoes.filter((x) => x.id !== c.id); desenharTudo(); toast("Pronto"); }
+            catch { toast("Não foi possível desfazer."); }
+          } }
+        ]);
+      }
+      return clicavel ? () => irPerfil(c.outro) : null;
+    }
+
+    // ---------- cabeçalho ----------
+    function desenharCabecalho() {
+      if (urlSegura(dono.fotoCapa)) $("heroFundo").style.backgroundImage = `url("${dono.fotoCapa}")`;
+      pintarAvatar($("heroAvatar"), dono.fotoPerfil, dono.nome);
+      $("heroNome").textContent = dono.nome || "Usuário";
+      $("heroNick").textContent = dono.nickname ? "@" + dono.nickname : "";
+      const r = $("resumo");
+      r.replaceChildren();
+      const aceitas = conexoes.filter((c) => !c.pendente);
+      const total = document.createElement("span");
+      total.append(document.createElement("b"), document.createTextNode(aceitas.length === 1 ? " conexão" : " conexões"));
+      total.firstChild.textContent = String(aceitas.length);
+      r.appendChild(total);
+      Object.entries(NOMES_CAT).forEach(([cat, nome]) => {
+        const n = aceitas.filter((c) => c.cat === cat).length;
+        if (!n) return;
+        const s = document.createElement("span"); s.dataset.cat = cat;
+        s.append(document.createElement("i"), document.createTextNode(`${nome} ${n}`));
+        r.appendChild(s);
+      });
+    }
+
+    // ---------- duo ----------
+    function desenharDuo() {
+      const box = $("duo");
+      const c = conexoes.find((x) => x.cat === "duo" && !x.pendente);
+      box.hidden = !c;
+      if (!c) return;
+      box.replaceChildren();
+      const rot = document.createElement("p");
+      rot.className = "rotulo"; rot.style.justifyContent = "center"; rot.style.color = "var(--duo)";
+      rot.append(icone("rosa"), document.createTextNode("Duo"));
+      const par = document.createElement("div");
+      par.className = "duo-par";
+      const fio = svgEl("svg", { class: "fio", viewBox: "0 0 150 70" });
+      fio.append(svgEl("path", { class: "linha", d: "M8 52 Q75 -4 142 52" }), svgEl("path", { class: "cor", d: "M75 30.3 C69.4 26.6 71.8 21.4 75 24.4 C78.2 21.4 80.6 26.6 75 30.3Z" }));
+      const pessoa = (perfil, uid, rosa) => {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "duo-pessoa";
+        const av = novoAvatar(perfil.fotoPerfil, perfil.nome);
+        const nome = document.createElement("strong"); nome.textContent = primeiroNome(perfil.nome);
+        b.append(av, nome);
+        if (rosa) { const r = document.createElement("span"); r.className = "rosa"; r.appendChild(icone("rosa")); b.appendChild(r); }
+        if (uid === donoId) b.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+        else { const f = acaoPessoa(c); if (f) b.addEventListener("click", f); else b.disabled = true; }
+        return b;
+      };
+      par.append(fio, pessoa(dono, donoId, false), pessoa(c.perfil, c.outro, true));
+      const desde = c.aceitoEm?.toDate?.();
+      const legenda = document.createElement("small");
+      legenda.textContent = desde ? `Ligados pelo fio vermelho desde ${desde.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}` : "Ligados pelo fio vermelho";
+      box.append(rot, par, legenda);
+    }
+
+    // ---------- mapa em setores ----------
+    function desenharMapa() {
+      const mapa = $("mapa");
+      mapa.querySelectorAll(".no, .mapa-vazio").forEach((n) => n.remove());
+      const svg = $("mapaSvg");
       svg.replaceChildren();
-      const W = palco.clientWidth, H = palco.clientHeight, cx = W / 2, cy = H / 2;
+      const W = mapa.clientWidth, H = mapa.clientHeight;
+      if (!W) return;
+      const cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - 34;
       svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-      const ns = "http://www.w3.org/2000/svg";
+      const rad = (g) => (g * Math.PI) / 180;
+      const ponto = (g, r) => ({ x: cx + r * Math.cos(rad(g)), y: cy + r * Math.sin(rad(g)) });
 
-      const lidos = vinculos.map((v) => {
-        const outro = (v.participantes || []).find((x) => x !== donoId);
-        const tipo = donoId === v.de ? v.tipoDe : v.tipoPara;
-        return { ...v, outro, tipo, cat: TIPOS[tipo]?.cat || "amizade", pendente: v.status !== "aceito" };
-      }).filter((v) => proprio || !v.pendente);
-      const perfis = await Promise.all(lidos.map((v) => fb.getDoc(fb.doc(fb.db, "perfis_publicos", v.outro)).then((s) => (s.exists() ? s.data() : {})).catch(() => ({}))));
+      [0.42, 0.72, 0.96].forEach((f) => svg.appendChild(svgEl("circle", { class: "anel", cx, cy, r: R * f })));
 
-      const duoI = lidos.findIndex((v) => v.tipo === "duo" && !v.pendente);
-      const outros = lidos.map((v, i) => i).filter((i) => i !== duoI);
-      const raioMax = Math.min(W, H) / 2 - 56;
-      const aneis = outros.length > 9 ? [raioMax * 0.62, raioMax] : [raioMax * 0.86];
-      const porAnel = aneis.length === 2 ? [Math.min(6, Math.ceil(outros.length / 2.4)), 0] : [outros.length];
-      if (aneis.length === 2) porAnel[1] = outros.length - porAnel[0];
-
-      const posicoes = new Map();
-      if (duoI >= 0) posicoes.set(duoI, { x: cx, y: cy - raioMax * 0.55, a: -Math.PI / 2 });
-      let k = 0;
-      aneis.forEach((r, anel) => {
-        const n = porAnel[anel];
-        const inicio = -Math.PI / 2 + (duoI >= 0 && anel === 0 ? Math.PI / Math.max(n, 1) : 0) + anel * (Math.PI / Math.max(n, 1));
-        for (let j = 0; j < n; j++, k++) {
-          const a = inicio + (j * 2 * Math.PI) / n;
-          posicoes.set(outros[k], { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a), a });
+      const lista = conexoes.filter((c) => c.cat !== "duo" && (proprio || !c.pendente));
+      // setores e rótulos
+      SETORES.forEach((s) => {
+        const temAlguem = lista.some((c) => c.cat === s.cat);
+        const a = ponto(s.de, R), b = ponto(s.ate, R);
+        const arco = svgEl("path", { class: "setor" + (filtro === s.cat ? " ativo" : ""), d: `M${a.x} ${a.y} A${R} ${R} 0 0 1 ${b.x} ${b.y}`, stroke: `var(--${s.cat})` });
+        arco.dataset.cat = s.cat;
+        svg.appendChild(arco);
+        if (temAlguem) {
+          const meio = (s.de + s.ate) / 2;
+          const p = ponto(meio, R + 18);
+          const t = svgEl("text", { class: "setor-rot", x: Math.min(W - 44, Math.max(44, p.x)), y: Math.min(H - 6, Math.max(8, p.y)), "text-anchor": "middle", "dominant-baseline": "middle" });
+          t.textContent = s.nome;
+          svg.appendChild(t);
         }
       });
 
-      // teia de fundo: anéis e raios
-      [0.33, 0.62, 0.86, 1].forEach((f) => {
-        const c = document.createElementNS(ns, "circle");
-        c.setAttribute("cx", cx); c.setAttribute("cy", cy); c.setAttribute("r", raioMax * f);
-        c.setAttribute("class", "teia");
-        svg.appendChild(c);
-      });
-      const nRaios = Math.max(8, posicoes.size);
-      for (let i = 0; i < nRaios; i++) {
-        const a = -Math.PI / 2 + (i * 2 * Math.PI) / nRaios;
-        const l = document.createElementNS(ns, "line");
-        l.setAttribute("x1", cx); l.setAttribute("y1", cy);
-        l.setAttribute("x2", cx + (raioMax + 30) * Math.cos(a)); l.setAttribute("y2", cy + (raioMax + 30) * Math.sin(a));
-        l.setAttribute("class", "teia");
-        svg.appendChild(l);
-      }
-
-      // ligações
-      posicoes.forEach((p, i) => {
-        const v = lidos[i];
-        const path = document.createElementNS(ns, "path");
-        const mx = (cx + p.x) / 2, my = (cy + p.y) / 2;
-        const curva = v.cat === "duo" ? 26 : 12;
-        const nx = -(p.y - cy), ny = p.x - cx, len = Math.hypot(nx, ny) || 1;
-        path.setAttribute("d", `M${cx} ${cy} Q${mx + (nx / len) * curva} ${my + (ny / len) * curva} ${p.x} ${p.y}`);
-        path.setAttribute("class", "liga" + (v.cat === "duo" ? " duo" : ""));
-        if (v.cat !== "duo") path.setAttribute("stroke", getComputedStyle(document.documentElement).getPropertyValue(`--${v.cat}`).trim() || "#00adee");
-        if (v.pendente) path.setAttribute("stroke-dasharray", "3 6");
-        svg.appendChild(path);
+      // posição das pessoas dentro do setor da categoria
+      const posicoes = [];
+      SETORES.forEach((s) => {
+        const doSetor = lista.filter((c) => c.cat === s.cat);
+        const aneis = doSetor.length > 4 ? [0.64, 0.86] : [0.8];
+        let k = 0;
+        aneis.forEach((f, ai) => {
+          const qtd = aneis.length === 1 ? doSetor.length : ai === 0 ? Math.ceil(doSetor.length / 2) : Math.floor(doSetor.length / 2);
+          for (let j = 0; j < qtd; j++, k++) {
+            const passo = (s.ate - s.de) / (qtd + 1);
+            const ang = s.de + passo * (j + 1);
+            posicoes.push({ c: doSetor[k], ...ponto(ang, R * f) });
+          }
+        });
       });
 
-      // nós
-      const noCentro = document.createElement("button");
-      noCentro.type = "button";
-      noCentro.className = "no centro";
-      noCentro.style.left = cx + "px"; noCentro.style.top = cy + "px";
-      const fc = document.createElement("div"); fc.className = "foto"; fc.appendChild(avatar(dono.fotoPerfil, dono.nome));
-      const nc = document.createElement("span"); nc.className = "nome"; nc.textContent = (dono.nome || "Usuário").split(" ")[0];
-      noCentro.append(fc, nc);
-      noCentro.addEventListener("click", () => { location.href = proprio ? "usuarios.html" : `usuarios.html?perfil=${encodeURIComponent(donoId)}`; });
-      palco.appendChild(noCentro);
+      posicoes.forEach(({ c, x, y }) => {
+        const mx = (cx + x) / 2, my = (cy + y) / 2;
+        const nx = -(y - cy), ny = x - cx, len = Math.hypot(nx, ny) || 1;
+        const liga = svgEl("path", { class: "liga" + (filtro === c.cat ? " ativo" : ""), d: `M${cx} ${cy} Q${mx + (nx / len) * 14} ${my + (ny / len) * 14} ${x} ${y}`, stroke: `var(--${c.cat})` });
+        if (c.pendente) liga.setAttribute("stroke-dasharray", "3 5");
+        svg.appendChild(liga);
+      });
 
-      posicoes.forEach((p, i) => {
-        const v = lidos[i], o = perfis[i];
+      const centro = document.createElement("button");
+      centro.type = "button"; centro.className = "no centro";
+      centro.style.left = cx + "px"; centro.style.top = cy + "px";
+      const nc = document.createElement("span"); nc.textContent = primeiroNome(dono.nome);
+      centro.append(novoAvatar(dono.fotoPerfil, dono.nome), nc);
+      centro.addEventListener("click", () => { location.href = proprio ? "usuarios.html" : `usuarios.html?perfil=${encodeURIComponent(donoId)}`; });
+      mapa.appendChild(centro);
+
+      posicoes.forEach(({ c, x, y }) => {
         const no = document.createElement("button");
         no.type = "button";
-        no.className = "no" + (v.pendente ? " pendente" : "");
-        no.dataset.cat = v.cat;
-        no.style.left = p.x + "px"; no.style.top = p.y + "px";
-        const f = document.createElement("div"); f.className = "foto"; f.appendChild(avatar(o.fotoPerfil, o.nome));
-        if (v.cat === "duo") { const r = document.createElement("span"); r.className = "rosa"; r.appendChild(icone("rosa")); r.title = "Duo"; f.appendChild(r); }
-        const n = document.createElement("span"); n.className = "nome"; n.textContent = (o.nome || "Usuário").split(" ")[0];
-        no.append(f, n);
-        if (v.cat !== "duo") { const pp = document.createElement("span"); pp.className = "papel"; pp.textContent = v.pendente ? "Aguardando" : (TIPOS[v.tipo]?.rotulo || ""); no.appendChild(pp); }
-        no.setAttribute("aria-label", `${o.nome || "Usuário"}${v.cat === "duo" ? ", duo" : ", " + (TIPOS[v.tipo]?.rotulo || "")}`);
-        if (proprio) {
-          no.addEventListener("click", () => menu(o.nome || "Usuário", [
-            { rotulo: "Ver perfil", icone: "perfil", fn: () => { location.href = `usuarios.html?perfil=${encodeURIComponent(v.outro)}`; } },
-            { rotulo: v.pendente ? "Cancelar pedido" : "Desfazer vínculo", icone: "lixo", perigo: true, fn: async () => {
-              if (!v.pendente && !confirm(`Desfazer o vínculo com ${o.nome || "esta pessoa"}?`)) return;
-              try { await fb.deleteDoc(fb.doc(fb.db, "vinculos", v.id)); vinculos = vinculos.filter((x) => x.id !== v.id); desenhar(); toast("Pronto"); }
-              catch { toast("Não foi possível desfazer."); }
-            } }
-          ]));
-        } else if (clicavel) {
-          no.addEventListener("click", () => { location.href = `usuarios.html?perfil=${encodeURIComponent(v.outro)}`; });
-        } else {
-          no.disabled = true;
-        }
-        palco.appendChild(no);
+        no.className = "no" + (filtro === c.cat ? " ativo" : "");
+        no.dataset.cat = c.cat;
+        no.style.left = x + "px"; no.style.top = y + "px";
+        if (c.pendente) no.style.opacity = ".5";
+        const n = document.createElement("span"); n.textContent = primeiroNome(c.perfil.nome);
+        no.append(novoAvatar(c.perfil.fotoPerfil, c.perfil.nome), n);
+        no.title = `${c.perfil.nome || "Usuário"} · ${TIPOS[c.tipo]?.[0] || ""}`;
+        const f = acaoPessoa(c);
+        if (f) no.addEventListener("click", f); else no.disabled = true;
+        mapa.appendChild(no);
       });
 
-      // legenda
-      const leg = $("legenda");
-      leg.replaceChildren();
-      if (duoI >= 0) { const s = document.createElement("span"); s.append(icone("rosa"), document.createTextNode("Duo")); leg.appendChild(s); }
-      CATEGORIAS.forEach(([cat, nome]) => {
-        const n = lidos.filter((v) => v.cat === cat && !v.pendente).length;
-        if (!n) return;
-        const s = document.createElement("span");
-        const i = document.createElement("i"); i.style.setProperty("--cor", `var(--${cat})`);
-        s.append(i, document.createTextNode(`${nome} · ${n}`));
-        leg.appendChild(s);
-      });
-      if (!lidos.length) {
-        const s = document.createElement("span");
-        s.textContent = proprio ? "Seu social ainda está vazio" : "Ainda sem conexões";
-        leg.appendChild(s);
+      mapa.classList.toggle("focado", filtro !== "todos");
+      if (!posicoes.length) {
+        const v = document.createElement("p");
+        v.className = "mapa-vazio";
+        v.style.cssText = "position:absolute;left:0;right:0;bottom:8%;margin:0";
+        v.textContent = proprio ? "Adicione família, amigos e parceiros para montar seu mapa." : "Ainda sem conexões por aqui.";
+        mapa.appendChild(v);
       }
+    }
+
+    // ---------- filtros e diretório ----------
+    function desenharFiltros() {
+      const box = $("filtros");
+      box.replaceChildren();
+      const lista = conexoes.filter((c) => c.cat !== "duo" && (proprio || !c.pendente));
+      const opcoes = [["todos", "Todos", lista.length], ...Object.entries(NOMES_CAT).map(([k, n]) => [k, n, lista.filter((c) => c.cat === k).length]).filter(([, , q]) => q)];
+      box.hidden = opcoes.length <= 2 && !lista.length;
+      opcoes.forEach(([k, nome, q]) => {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "filtro" + (filtro === k ? " on" : "");
+        b.setAttribute("role", "tab"); b.setAttribute("aria-selected", filtro === k ? "true" : "false");
+        if (k !== "todos") { b.dataset.cat = k; b.appendChild(document.createElement("i")); }
+        b.appendChild(document.createTextNode(`${nome} · ${q}`));
+        b.addEventListener("click", () => { filtro = k; desenharFiltros(); desenharMapa(); desenharDiretorio(); });
+        box.appendChild(b);
+      });
+    }
+
+    function desenharDiretorio() {
+      const box = $("diretorio");
+      box.replaceChildren();
+      const ordem = ["familia", "amor", "amizade", "trabalho"];
+      const lista = conexoes
+        .filter((c) => c.cat !== "duo" && (proprio || !c.pendente) && (filtro === "todos" || c.cat === filtro))
+        .sort((a, b) => ordem.indexOf(a.cat) - ordem.indexOf(b.cat) || String(a.perfil.nome).localeCompare(String(b.perfil.nome)));
+      lista.forEach((c) => {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "pessoa"; b.dataset.cat = c.cat;
+        const tx = document.createElement("div"); tx.className = "tx";
+        const n = document.createElement("strong"); n.textContent = c.perfil.nome || "Usuário";
+        const p = document.createElement("small");
+        p.textContent = c.pendente ? (c.de === eu.uid ? "Aguardando resposta" : "Pedido recebido") : (TIPOS[c.tipo]?.[0] || "");
+        if (c.pendente) p.className = "pend";
+        tx.append(n, p);
+        b.append(novoAvatar(c.perfil.fotoPerfil, c.perfil.nome), tx);
+        const f = acaoPessoa(c);
+        if (f) { b.addEventListener("click", f); b.appendChild(icone("avancar")); } else b.disabled = true;
+        box.appendChild(b);
+      });
+    }
+
+    function desenharTudo() {
+      desenharCabecalho();
+      desenharDuo();
+      desenharFiltros();
+      desenharMapa();
+      desenharDiretorio();
     }
 
     async function iniciar() {
@@ -347,12 +496,22 @@
           }
           const s = await fb.getDoc(fb.doc(fb.db, "perfis_publicos", donoId));
           dono = s.exists() ? s.data() : {};
-          $("titulo").textContent = proprio ? "Meu social" : `Social de ${(dono.nome || "Usuário").split(" ")[0]}`;
+          $("titulo").textContent = proprio ? "Meu social" : `Social de ${primeiroNome(dono.nome)}`;
           document.title = `${$("titulo").textContent} | Help Floripa`;
           if (!proprio && (dono.socialVisibilidade || "todos") === "ocultar") { estado("Social privado", "Esta pessoa preferiu não mostrar o social."); return; }
           clicavel = await podeAbrirPerfis();
           const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "vinculos"), fb.where("participantes", "array-contains", donoId), fb.limit(40)));
-          vinculos = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          const brutos = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          const perfis = await Promise.all(brutos.map((v) => {
+            const outro = (v.participantes || []).find((x) => x !== donoId);
+            return fb.getDoc(fb.doc(fb.db, "perfis_publicos", outro)).then((p) => (p.exists() ? p.data() : {})).catch(() => ({}));
+          }));
+          conexoes = brutos.map((v, i) => {
+            const outro = (v.participantes || []).find((x) => x !== donoId);
+            const tipo = donoId === v.de ? v.tipoDe : v.tipoPara;
+            return { id: v.id, de: v.de, outro, tipo, cat: TIPOS[tipo]?.[1] || "amizade", pendente: v.status !== "aceito", perfil: perfis[i], aceitoEm: v.aceitoEm };
+          }).filter((c) => proprio || !c.pendente);
+
           $("estado").hidden = true;
           $("conteudo").hidden = false;
           if (!proprio && !clicavel) {
@@ -360,8 +519,7 @@
             $("nota").textContent = dono.socialVisibilidade === "amigos" ? "Os perfis abrem só para amigos (quem segue e é seguido)." : "Os perfis abrem só para seguidores.";
           }
           if (proprio) {
-            $("acoesDono").hidden = false;
-            $("painelPrivacidade").hidden = false;
+            $("donoBox").hidden = false;
             const pintar = () => document.querySelectorAll("#visibilidade [data-valor]").forEach((b) => b.classList.toggle("on", b.dataset.valor === (dono.socialVisibilidade || "todos")));
             pintar();
             $("visibilidade").addEventListener("click", async (e) => {
@@ -370,15 +528,13 @@
               const antes = dono.socialVisibilidade;
               dono.socialVisibilidade = b.dataset.valor;
               pintar();
-              try {
-                await fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), { uid: eu.uid, socialVisibilidade: b.dataset.valor }, { merge: true });
-                toast("Privacidade do social atualizada");
-              } catch { dono.socialVisibilidade = antes; pintar(); toast("Não foi possível salvar."); }
+              try { await fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), { uid: eu.uid, socialVisibilidade: b.dataset.valor }, { merge: true }); toast("Privacidade atualizada"); }
+              catch { dono.socialVisibilidade = antes; pintar(); toast("Não foi possível salvar."); }
             });
           }
-          await desenhar();
+          desenharTudo();
           let t = null;
-          new ResizeObserver(() => { clearTimeout(t); t = setTimeout(desenhar, 120); }).observe($("palco"));
+          new ResizeObserver(() => { clearTimeout(t); t = setTimeout(desenharMapa, 100); }).observe($("mapa"));
         } catch (e) {
           console.error(e);
           estado("Não foi possível carregar", "Tente novamente em instantes.");

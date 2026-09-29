@@ -142,6 +142,8 @@
       -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
     }
     .pf-editar-capa:hover { background: rgba(0, 0, 0, .7); }
+    .pf-cfg { position: absolute; left: 12px; top: 12px; z-index: 3; width: 38px; height: 38px; border-radius: 50%; border: 0; display: grid; place-items: center; cursor: pointer; background: rgba(0, 0, 0, .55); color: #fff; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+    .pf-cfg:hover { background: rgba(0, 0, 0, .75); transform: rotate(30deg); transition: transform .3s; }
     .pf-corpo { padding: 0 20px 20px; }
     .pf-linha-avatar { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-top: -54px; position: relative; z-index: 2; }
     .pf-avatar-wrap { position: relative; }
@@ -178,13 +180,16 @@
     /* ---------- duo na capa: fio vermelho ligando as fotos ---------- */
     .pf { position: relative; }
     .fio-capa { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; z-index: 4; overflow: visible; }
-    .fio-capa path { fill: none; stroke: #e0243b; stroke-width: 2.4; stroke-linecap: round; stroke-dasharray: 6 5; animation: fio 1.6s linear infinite; filter: drop-shadow(0 0 4px rgba(224, 36, 59, .85)); }
-    .duo-capa { position: absolute; z-index: 5; right: 9%; bottom: 16%; width: 60px; height: 60px; border: 0; padding: 0; background: none; cursor: pointer; }
+    .fio-capa path.fio { fill: none; stroke: #e0243b; stroke-width: 2.2; stroke-linecap: round; filter: drop-shadow(0 0 3px rgba(224, 36, 59, .9)) drop-shadow(0 0 8px rgba(224, 36, 59, .45)); animation: pulso-fio 2.8s ease-in-out infinite; }
+    .fio-capa path.coracao { fill: #e0243b; stroke: #fff; stroke-width: 1.2; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, .45)); transform-box: fill-box; transform-origin: center; animation: bater 1.6s ease-in-out infinite; }
+    @keyframes pulso-fio { 50% { stroke-width: 2.8; } }
+    @keyframes bater { 0%, 60%, 100% { transform: scale(1); } 20% { transform: scale(1.22); } 40% { transform: scale(.95); } }
+    .duo-capa { position: absolute; z-index: 5; left: 172px; bottom: 12%; width: 62px; height: 62px; border: 0; padding: 0; background: none; cursor: pointer; }
     .duo-capa[disabled] { cursor: default; }
     .duo-capa .avatar { width: 100%; height: 100%; font-size: 18px; box-shadow: 0 0 0 3px rgba(255, 255, 255, .85), 0 0 0 5px #e0243b, 0 8px 20px rgba(0, 0, 0, .5); }
     .rosa-selo { position: absolute; right: -5px; bottom: -5px; width: 26px; height: 26px; border-radius: 50%; background: #fff; color: #e0243b; display: grid; place-items: center; box-shadow: 0 2px 8px rgba(0, 0, 0, .4); }
     .rosa-selo svg { width: 17px; height: 17px; }
-    @media (max-width: 640px) { .duo-capa { width: 50px; height: 50px; right: 7%; bottom: 14%; } .rosa-selo { width: 22px; height: 22px; } .rosa-selo svg { width: 14px; height: 14px; } }
+    @media (max-width: 640px) { .duo-capa { width: 52px; height: 52px; left: 128px; bottom: 16%; } .rosa-selo { width: 22px; height: 22px; } .rosa-selo svg { width: 14px; height: 14px; } }
 
     /* ---------- perfis de negócio (bolinhas) ---------- */
     .vinculo[data-cat="servicos"] { --cor: #00adee; }
@@ -202,6 +207,34 @@
     .neg-acoes { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
     .neg-foto-ed { display: flex; align-items: center; gap: 14px; }
     .neg-foto-ed .avatar { width: 72px; height: 72px; font-size: 22px; }
+    .neg-secao { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--line); }
+    .neg-secao > h3 { margin: 0 0 2px; font-size: 15px; }
+    .neg-secao > p { margin: 0 0 6px; color: var(--muted); font-size: 12.5px; }
+    .grade-campos { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 12px; }
+    .grade-campos.tres { grid-template-columns: repeat(3, 1fr); }
+    .grade-campos.quatro { grid-template-columns: repeat(4, 1fr); }
+    .marcas { display: flex; flex-wrap: wrap; gap: 8px; }
+    .marca-op { display: inline-flex; align-items: center; gap: 8px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel-2); cursor: pointer; font-size: 13.5px; font-weight: 600; }
+    .marca-op input { accent-color: var(--accent); width: 16px; height: 16px; }
+    .neg-fotos { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+    .neg-foto { position: relative; width: 96px; aspect-ratio: 4 / 3; border-radius: 12px; overflow: hidden; background: var(--tile) center / cover; border: 0; padding: 0; }
+    .neg-foto.add { display: grid; place-items: center; color: var(--accent); border: 2px dashed var(--line); background: transparent; cursor: pointer; }
+    .neg-foto .x { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; border-radius: 50%; border: 0; background: rgba(0, 0, 0, .65); color: #fff; display: grid; place-items: center; cursor: pointer; }
+    .neg-itens { display: grid; gap: 8px; margin-top: 8px; }
+    .neg-item { display: grid; grid-template-columns: auto 1fr 110px auto; gap: 8px; align-items: center; padding: 8px; border-radius: 14px; background: var(--panel-2); }
+    .neg-item.sem-foto { grid-template-columns: 1fr 110px auto; }
+    .neg-item input { width: 100%; border: 1px solid var(--line); background: var(--input); border-radius: 10px; padding: 9px 10px; outline: none; font-size: 14px; min-width: 0; }
+    .neg-item input:focus { border-color: var(--accent); }
+    .neg-item .ft { width: 52px; height: 52px; border-radius: 10px; border: 1px dashed var(--line); background: var(--tile) center / cover; display: grid; place-items: center; color: var(--muted); cursor: pointer; padding: 0; }
+    .neg-item .rm { width: 34px; height: 34px; border-radius: 50%; border: 0; background: transparent; color: var(--danger); cursor: pointer; display: grid; place-items: center; }
+    .neg-add { margin-top: 8px; }
+    @media (max-width: 640px) {
+      .grade-campos.tres, .grade-campos.quatro { grid-template-columns: repeat(2, 1fr); }
+      .neg-item { grid-template-columns: auto 1fr auto; }
+      .neg-item .preco { grid-column: 2 / 3; }
+      .neg-item.sem-foto { grid-template-columns: 1fr auto; }
+      .neg-item.sem-foto .preco { grid-column: 1 / 2; }
+    }
 
     /* ---------- social: duo (fio vermelho) e vínculos ---------- */
     .social { margin-top: 16px; }
@@ -745,7 +778,9 @@
         <div class="campo"><label for="negNome">Nome</label><input id="negNome" maxlength="60" placeholder="Ex.: Marido de Aluguel do João" /></div>
         <div class="campo"><label for="negDesc">Descrição</label><textarea id="negDesc" maxlength="500" placeholder="O que você oferece, horários, região de atendimento..."></textarea><div class="ajuda"><span></span><span id="negDescCont">0/500</span></div></div>
         <div class="campo"><label for="negCidade">Cidade / região</label><input id="negCidade" list="cidadesSugeridas" maxlength="60" /></div>
-        <div class="campo"><label for="negWhats">WhatsApp para contato (opcional)</label><input id="negWhats" type="tel" maxlength="20" placeholder="(48) 90000-0000" /><div class="ajuda"><span>Aparece como botão no perfil do negócio</span></div></div>
+        <div class="campo"><label for="negWhats">WhatsApp para contato (opcional)</label><input id="negWhats" type="tel" maxlength="20" placeholder="(48) 90000-0000" /><div class="ajuda"><span>Aparece como botão no perfil do negócio e na vitrine</span></div></div>
+        <div id="negExtras"></div>
+        <input type="file" id="negArquivoExtra" accept="image/*" hidden />
       </div>
       <div class="folha-rodape">
         <button type="button" class="btn perigo" id="negExcluir" hidden>Excluir</button>
@@ -1080,11 +1115,12 @@
         bComp.type = "button"; bComp.className = "btn sec icone"; bComp.setAttribute("aria-label", "Compartilhar perfil");
         bComp.appendChild(icone("compartilhar", "i s"));
         bComp.addEventListener("click", () => compartilharPerfil(eu.uid, dados.nome));
+        acoes.append(bEditar, bSocial, bComp);
         const bCfg = document.createElement("button");
-        bCfg.type = "button"; bCfg.className = "btn sec icone"; bCfg.setAttribute("aria-label", "Configurações");
+        bCfg.type = "button"; bCfg.className = "pf-cfg"; bCfg.setAttribute("aria-label", "Configurações"); bCfg.title = "Configurações";
         bCfg.appendChild(icone("config", "i s"));
         bCfg.addEventListener("click", abrirConfig);
-        acoes.append(bEditar, bSocial, bComp, bCfg);
+        meuCab.el("capa").appendChild(bCfg);
         // Estatísticas
         meuCab.stat("posts").addEventListener("click", () => { selecionarAba("posts"); $("painelPosts").scrollIntoView({ behavior: "smooth", block: "start" }); });
         meuCab.stat("seguidores").addEventListener("click", () => abrirListaRelacoes(eu.uid, "seguidores"));
@@ -1952,7 +1988,10 @@
       svgEl.setAttribute("class", "fio-capa");
       svgEl.setAttribute("aria-hidden", "true");
       const path = document.createElementNS(ns, "path");
-      svgEl.appendChild(path);
+      path.setAttribute("class", "fio");
+      const coracao = document.createElementNS(ns, "path");
+      coracao.setAttribute("class", "coracao");
+      svgEl.append(path, coracao);
       raiz.appendChild(svgEl);
       const tracar = () => {
         const base = raiz.getBoundingClientRect();
@@ -1964,9 +2003,12 @@
         const dx = d.left + d.width / 2 - base.left, dy = d.top + d.height / 2 - base.top, dr = d.width / 2 + 4;
         const dist = Math.hypot(dx - ax, dy - ay) || 1, ux = (dx - ax) / dist, uy = (dy - ay) / dist;
         const x1 = ax + ux * ar, y1 = ay + uy * ar, x2 = dx - ux * dr, y2 = dy - uy * dr;
-        const cx = (x1 + x2) / 2, cy = Math.max(y1, y2) + Math.min(70, dist * 0.22);
+        // Curva suave para cima, como um laço, com um coraçãozinho no meio.
+        const cx = (x1 + x2) / 2, cy = Math.min(y1, y2) - Math.min(34, dist * 0.35);
         svgEl.setAttribute("viewBox", `0 0 ${base.width} ${base.height}`);
         path.setAttribute("d", `M${x1} ${y1} Q${cx} ${cy} ${x2} ${y2}`);
+        const mx = 0.25 * x1 + 0.5 * cx + 0.25 * x2, my = 0.25 * y1 + 0.5 * cy + 0.25 * y2, t = 7;
+        coracao.setAttribute("d", `M${mx} ${my + t * 0.9} C${mx - t * 1.6} ${my - t * 0.2} ${mx - t * 0.7} ${my - t * 1.3} ${mx} ${my - t * 0.45} C${mx + t * 0.7} ${my - t * 1.3} ${mx + t * 1.6} ${my - t * 0.2} ${mx} ${my + t * 0.9}Z`);
       };
       requestAnimationFrame(tracar);
       cab.observador = new ResizeObserver(tracar);
@@ -2124,8 +2166,197 @@
       $("negCidade").value = n?.cidade || nomeCidade(dados.cidade);
       $("negWhats").value = n?.whatsapp || "";
       $("negExcluir").hidden = !n;
+      negExtra = JSON.parse(JSON.stringify({ ...(n || {}), criadoEm: null, atualizadoEm: null }));
+      negExtra.fotos = Array.isArray(negExtra.fotos) ? negExtra.fotos : [];
+      negExtra.itens = Array.isArray(negExtra.itens) ? negExtra.itens : [];
       pintarFotoNegocio();
+      montarExtras();
       abrirFolha("folhaNegocio");
+    }
+
+    // ---------- campos próprios de cada tipo ----------
+    const CATS_NEGOCIO = {
+      servicos: { limpeza: "Limpeza", reformas: "Reformas", beleza: "Saúde e Beleza", transporte: "Transporte", pets: "Pets", outros: "Outros" },
+      delivery: { hamburguer: "Hambúrguer", pizza: "Pizza", sushi: "Sushi", doces: "Doces", bebidas: "Bebidas", outros: "Outros" },
+      lojinha: { eletronicos: "Eletrônicos", roupas: "Roupas", mercado: "Mercado", casa: "Casa", outros: "Outros" },
+      imoveis: { apartamento: "Apartamento", casa: "Casa", kitnet: "Kitnet", terreno: "Terreno", comercial: "Comercial", outros: "Outros" }
+    };
+    const CONFIG_EXTRAS = {
+      servicos: { itens: { titulo: "Serviços e preços", dica: "Ex.: Faxina completa — R$ 180. Aparecem no seu cartão.", max: 8, foto: false, rotulo: "Nome do serviço" }, fotos: { titulo: "Fotos de trabalhos", max: 3, proporcao: 4 / 3 } },
+      delivery: { itens: { titulo: "Cardápio", dica: "Pratos em destaque com foto e preço.", max: 10, foto: true, proporcao: 1, rotulo: "Nome do prato" }, fotos: { titulo: "Foto de capa", max: 1, proporcao: 2 } },
+      lojinha: { itens: { titulo: "Produtos", dica: "Os três primeiros aparecem na vitrine.", max: 9, foto: true, proporcao: 3 / 4, rotulo: "Nome do produto" }, fotos: null },
+      imoveis: { itens: null, fotos: { titulo: "Fotos do imóvel", max: 5, proporcao: 4 / 3 } }
+    };
+    let negExtra = {};
+    const numeroBR = (v) => { const t = String(v ?? "").replace(/[^\d,.-]/g, ""); if (!t) return null; const milhar = !t.includes(",") && /^-?\d{1,3}(\.\d{3})+$/.test(t); const n = Number(t.includes(",") || milhar ? t.replace(/\./g, "").replace(",", ".") : t); return Number.isFinite(n) ? n : null; };
+    const mostrarNumero = (v) => (v === null || v === undefined || v === "" ? "" : String(v).replace(".", ","));
+
+    function campo(rotulo, input, ajuda) {
+      const c = document.createElement("div");
+      c.className = "campo";
+      const l = document.createElement("label");
+      l.textContent = rotulo;
+      if (input.id) l.htmlFor = input.id;
+      c.append(l, input);
+      if (ajuda) { const a = document.createElement("div"); a.className = "ajuda"; a.appendChild(document.createElement("span")).textContent = ajuda; c.appendChild(a); }
+      return c;
+    }
+    function entrada(chave, { tipo = "text", placeholder = "", numero = false, max = 60 } = {}) {
+      const i = document.createElement("input");
+      i.type = tipo; i.id = "negX_" + chave; i.placeholder = placeholder; i.maxLength = max;
+      if (numero) i.inputMode = "decimal";
+      i.value = numero ? mostrarNumero(negExtra[chave]) : (negExtra[chave] ?? "");
+      i.addEventListener("input", () => { negExtra[chave] = numero ? numeroBR(i.value) : i.value.trim(); });
+      return i;
+    }
+    function seletor(chave, opcoes) {
+      const s = document.createElement("select");
+      s.id = "negX_" + chave;
+      Object.entries(opcoes).forEach(([v, t]) => { const o = document.createElement("option"); o.value = v; o.textContent = t; s.appendChild(o); });
+      if (!negExtra[chave] || !opcoes[negExtra[chave]]) negExtra[chave] = Object.keys(opcoes)[0];
+      s.value = negExtra[chave];
+      s.addEventListener("change", () => { negExtra[chave] = s.value; });
+      return s;
+    }
+    function marcas(chave, opcoes) {
+      const box = document.createElement("div");
+      box.className = "marcas";
+      const atual = new Set(Array.isArray(negExtra[chave]) ? negExtra[chave] : []);
+      Object.entries(opcoes).forEach(([v, t]) => {
+        const l = document.createElement("label");
+        l.className = "marca-op";
+        const c = document.createElement("input");
+        c.type = "checkbox"; c.checked = atual.has(v);
+        c.addEventListener("change", () => { c.checked ? atual.add(v) : atual.delete(v); negExtra[chave] = [...atual]; });
+        l.append(c, document.createTextNode(t));
+        box.appendChild(l);
+      });
+      return box;
+    }
+    function secao(titulo, dica) {
+      const s = document.createElement("div");
+      s.className = "neg-secao";
+      const h = document.createElement("h3"); h.textContent = titulo; s.appendChild(h);
+      if (dica) { const p = document.createElement("p"); p.textContent = dica; s.appendChild(p); }
+      return s;
+    }
+    function grade(classe, ...filhos) { const g = document.createElement("div"); g.className = "grade-campos " + (classe || ""); g.append(...filhos); return g; }
+
+    let escolhaFoto = null; // callback do seletor de arquivo compartilhado
+    function pedirFoto(opcoes, aoEscolher) { escolhaFoto = { opcoes, aoEscolher }; $("negArquivoExtra").click(); }
+    $("negArquivoExtra").addEventListener("change", async () => {
+      const arquivo = $("negArquivoExtra").files?.[0];
+      $("negArquivoExtra").value = "";
+      if (!arquivo || !escolhaFoto) return;
+      try {
+        const d = await editarImagem(arquivo, escolhaFoto.opcoes);
+        if (d) escolhaFoto.aoEscolher(d);
+      } catch (e) { toast(erroAmigavel(e)); }
+    });
+
+    function montarExtras() {
+      const box = $("negExtras");
+      box.replaceChildren();
+      const t = negTipo;
+      const cfg = CONFIG_EXTRAS[t];
+      const info = secao(t === "imoveis" ? "Sobre o imóvel" : "Detalhes");
+      info.appendChild(campo(t === "imoveis" ? "Tipo de imóvel" : "Categoria", seletor("categoria", CATS_NEGOCIO[t]), "Define em qual filtro da página você aparece"));
+      if (t === "servicos") {
+        info.appendChild(grade("", campo("A partir de (R$)", entrada("precoDesde", { numero: true, placeholder: "80" })), campo("Horário de atendimento", entrada("horario", { placeholder: "Seg a sáb, 8h às 18h" }))));
+        info.appendChild(campo("Como você atende", marcas("atendimento", { domicilio: "Vou até o cliente", local: "No meu local", online: "Online" })));
+      }
+      if (t === "delivery") {
+        info.appendChild(grade("", campo("Abre às", entrada("horaAbre", { tipo: "time" })), campo("Fecha às", entrada("horaFecha", { tipo: "time" }))));
+        info.appendChild(grade("quatro",
+          campo("Entrega mín. (min)", entrada("tempoMin", { numero: true, placeholder: "30", max: 4 })),
+          campo("Entrega máx. (min)", entrada("tempoMax", { numero: true, placeholder: "50", max: 4 })),
+          campo("Taxa (R$)", entrada("taxaEntrega", { numero: true, placeholder: "0 = grátis" })),
+          campo("Pedido mín. (R$)", entrada("pedidoMinimo", { numero: true, placeholder: "20" }))));
+      }
+      if (t === "lojinha") info.appendChild(campo("Formas de receber", marcas("entrega", { entrega: "Entrega", retirada: "Retirada" })));
+      if (t === "imoveis") {
+        info.appendChild(grade("", campo("Finalidade", seletor("finalidade", { aluguel: "Aluguel", venda: "Venda", temporada: "Temporada" })), campo("Preço (R$)", entrada("preco", { numero: true, placeholder: "2500" }), "Aluguel: por mês · Temporada: por diária")));
+        info.appendChild(grade("quatro",
+          campo("Quartos", entrada("quartos", { numero: true, max: 3 })),
+          campo("Banheiros", entrada("banheiros", { numero: true, max: 3 })),
+          campo("Vagas", entrada("vagas", { numero: true, max: 3 })),
+          campo("Área (m²)", entrada("area", { numero: true, max: 7 }))));
+        info.appendChild(grade("", campo("Bairro", entrada("bairro", { placeholder: "Ex.: Trindade" })), campo("Condomínio (R$)", entrada("condominio", { numero: true }))));
+        if (!Array.isArray(negExtra.mobiliadoLista)) negExtra.mobiliadoLista = negExtra.mobiliado ? ["sim"] : [];
+        info.appendChild(campo("", marcas("mobiliadoLista", { sim: "Mobiliado" })));
+      }
+      box.appendChild(info);
+
+      if (cfg.fotos) {
+        const sec = secao(cfg.fotos.titulo, `Até ${cfg.fotos.max} ${cfg.fotos.max === 1 ? "foto" : "fotos"}. A primeira é a principal na vitrine.`);
+        const fotos = document.createElement("div");
+        fotos.className = "neg-fotos";
+        const pintar = () => {
+          fotos.replaceChildren();
+          negExtra.fotos.forEach((f, i) => {
+            const d = document.createElement("div");
+            d.className = "neg-foto";
+            d.style.backgroundImage = `url("${urlSegura(f)}")`;
+            const x = document.createElement("button");
+            x.type = "button"; x.className = "x"; x.setAttribute("aria-label", "Remover foto");
+            x.appendChild(icone("fechar", "i xs"));
+            x.addEventListener("click", () => { negExtra.fotos.splice(i, 1); pintar(); });
+            d.appendChild(x);
+            fotos.appendChild(d);
+          });
+          if (negExtra.fotos.length < cfg.fotos.max) {
+            const add = document.createElement("button");
+            add.type = "button"; add.className = "neg-foto add"; add.setAttribute("aria-label", "Adicionar foto");
+            add.appendChild(icone("mais", "i"));
+            add.addEventListener("click", () => pedirFoto({ titulo: cfg.fotos.titulo, proporcao: cfg.fotos.proporcao, larguraSaida: 1080, qualidade: 0.72, limiteBytes: 170000 }, (d) => { negExtra.fotos.push(d); pintar(); }));
+            fotos.appendChild(add);
+          }
+        };
+        pintar();
+        sec.appendChild(fotos);
+        box.appendChild(sec);
+      }
+
+      if (cfg.itens) {
+        const c = cfg.itens;
+        const sec = secao(c.titulo, c.dica);
+        const lista = document.createElement("div");
+        lista.className = "neg-itens";
+        const addBtn = document.createElement("button");
+        addBtn.type = "button"; addBtn.className = "btn sec mini neg-add";
+        addBtn.append(icone("mais", "i xs"), document.createTextNode("Adicionar"));
+        const pintar = () => {
+          lista.replaceChildren();
+          negExtra.itens.forEach((it, i) => {
+            const linha = document.createElement("div");
+            linha.className = "neg-item" + (c.foto ? "" : " sem-foto");
+            if (c.foto) {
+              const ft = document.createElement("button");
+              ft.type = "button"; ft.className = "ft"; ft.setAttribute("aria-label", "Foto do item");
+              if (urlSegura(it.foto)) ft.style.backgroundImage = `url("${it.foto}")`; else ft.appendChild(icone("camera", "i s"));
+              ft.addEventListener("click", () => pedirFoto({ titulo: c.titulo, proporcao: c.proporcao, larguraSaida: 480, qualidade: 0.72, limiteBytes: 60000 }, (d) => { it.foto = d; pintar(); }));
+              linha.appendChild(ft);
+            }
+            const nome = document.createElement("input");
+            nome.placeholder = c.rotulo; nome.maxLength = 60; nome.value = it.nome || "";
+            nome.addEventListener("input", () => { it.nome = nome.value.trim(); });
+            const preco = document.createElement("input");
+            preco.className = "preco"; preco.placeholder = "R$"; preco.inputMode = "decimal"; preco.maxLength = 12; preco.value = mostrarNumero(it.preco);
+            preco.addEventListener("input", () => { it.preco = numeroBR(preco.value); });
+            const rm = document.createElement("button");
+            rm.type = "button"; rm.className = "rm"; rm.setAttribute("aria-label", "Remover");
+            rm.appendChild(icone("lixo", "i s"));
+            rm.addEventListener("click", () => { negExtra.itens.splice(i, 1); pintar(); });
+            linha.append(nome, preco, rm);
+            lista.appendChild(linha);
+          });
+          addBtn.hidden = negExtra.itens.length >= c.max;
+        };
+        addBtn.addEventListener("click", () => { negExtra.itens.push({ nome: "", preco: null, foto: "" }); pintar(); lista.lastChild?.querySelector("input")?.focus(); });
+        pintar();
+        sec.append(lista, addBtn);
+        box.appendChild(sec);
+      }
     }
     function pintarFotoNegocio() {
       pintarAvatar($("negAvatar"), negFoto, $("negNome").value || NEGOCIOS[negTipo].rotulo);
@@ -2136,6 +2367,8 @@
       if (!b || b.disabled) return;
       negTipo = b.dataset.valor;
       document.querySelectorAll("#negTipo [data-valor]").forEach((x) => x.classList.toggle("on", x === b));
+      negExtra = { fotos: [], itens: [] };
+      montarExtras();
     });
     $("negDesc").addEventListener("input", () => { $("negDescCont").textContent = `${$("negDesc").value.length}/500`; });
     $("negTrocarFoto").addEventListener("click", () => $("negArquivo").click());
@@ -2158,12 +2391,29 @@
         const id = `${eu.uid}_${negTipo}`;
         let foto = negFoto;
         if (foto.startsWith("data:")) foto = await salvarImagem(foto, `negocios/${id}.jpg`);
+        const x = negExtra;
+        const extras = { categoria: x.categoria || Object.keys(CATS_NEGOCIO[negTipo])[0], fotos: [], itens: [] };
+        const campos = {
+          servicos: ["precoDesde", "horario", "atendimento"],
+          delivery: ["horaAbre", "horaFecha", "tempoMin", "tempoMax", "taxaEntrega", "pedidoMinimo"],
+          lojinha: ["entrega"],
+          imoveis: ["finalidade", "preco", "quartos", "banheiros", "vagas", "area", "bairro", "condominio"]
+        }[negTipo];
+        campos.forEach((k) => { extras[k] = x[k] ?? null; });
+        if (negTipo === "imoveis") extras.mobiliado = (x.mobiliadoLista || []).includes("sim");
+        for (const [i, f] of (x.fotos || []).entries()) extras.fotos.push(f.startsWith("data:") ? await salvarImagem(f, `negocios/${id}_f${i}.jpg`) : f);
+        for (const [i, it] of (x.itens || []).entries()) {
+          if (!it.nome) continue;
+          const fotoItem = it.foto && it.foto.startsWith("data:") ? await salvarImagem(it.foto, `negocios/${id}_i${i}.jpg`) : (it.foto || "");
+          extras.itens.push({ nome: it.nome, preco: it.preco ?? null, foto: fotoItem });
+        }
         const dadosNeg = {
           donoId: eu.uid, tipo: negTipo, nome, descricao: $("negDesc").value.trim(), cidade: $("negCidade").value.trim(),
-          whatsapp: $("negWhats").value.trim(), foto, atualizadoEm: fb.serverTimestamp()
+          whatsapp: $("negWhats").value.trim(), foto, ...extras, atualizadoEm: fb.serverTimestamp()
         };
-        if (!negEditando) dadosNeg.criadoEm = fb.serverTimestamp();
-        await fb.setDoc(fb.doc(fb.db, "negocios", id), dadosNeg, { merge: true });
+        if (JSON.stringify(dadosNeg).length > 950000) throw new Error("Fotos demais para um perfil. Remova algumas fotos e tente de novo.");
+        dadosNeg.criadoEm = negEditando?.criadoEm || fb.serverTimestamp();
+        await fb.setDoc(fb.doc(fb.db, "negocios", id), dadosNeg);
         fecharFolha("folhaNegocio");
         toast(negEditando ? "Perfil de negócio atualizado" : "Perfil de negócio criado");
         carregarMeusNegocios();
@@ -2701,6 +2951,14 @@
 
         const params = new URLSearchParams(location.search);
         if (params.get("acao") === "social") { history.replaceState(null, "", "usuarios.html"); abrirNovoVinculo(null); }
+        if (params.get("acao") === "negocio") {
+          history.replaceState(null, "", "usuarios.html");
+          const tipoPedido = params.get("tipo");
+          await carregarMeusNegocios();
+          const existente = meusNegocios.find((n) => n.tipo === tipoPedido);
+          abrirFormNegocio(existente || null);
+          if (!existente && NEGOCIOS[tipoPedido]) document.querySelector(`#negTipo [data-valor="${tipoPedido}"]`)?.click();
+        }
         const perfilPedido = params.get("perfil");
         if (perfilPedido) {
           history.replaceState(null, "", "usuarios.html");

@@ -1,0 +1,148 @@
+/* =====================================================
+   Vitrine de negócios (serviços, delivery, lojinha, imóveis)
+   Usada por servicos.html, delivery.html, shopping.html e imoveis.html
+   ===================================================== */
+.vitrine {
+  --vc: #00adee;
+  --vc-ink: #001a24;
+  --vt-bg: #0b1115;
+  --vt-card: #10181d;
+  --vt-card-2: #162128;
+  --vt-line: #22313a;
+  --vt-text: #eef3f5;
+  --vt-muted: #8fa0ab;
+  width: min(1180px, 100%);
+  margin: 26px auto 10px;
+  padding: 0 16px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: var(--vt-text);
+  text-align: left;
+}
+.vitrine[data-tipo="delivery"] { --vc: #ff7a1a; --vc-ink: #2a1100; }
+.vitrine[data-tipo="lojinha"] { --vc: #b066ff; --vc-ink: #1d0033; }
+.vitrine[data-tipo="imoveis"] { --vc: #2fbf71; --vc-ink: #002612; }
+.vitrine * { box-sizing: border-box; }
+.vitrine [hidden] { display: none !important; }
+.vitrine button { font: inherit; color: inherit; }
+.vitrine svg.vi { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.vitrine svg.vi.s { width: 15px; height: 15px; }
+
+.vt-cabeca { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.vt-cabeca h2 { margin: 0; font-size: clamp(20px, 3vw, 26px); font-weight: 800; letter-spacing: -.3px; }
+.vt-cabeca h2 span { color: var(--vc); }
+.vt-cabeca p { margin: 4px 0 0; color: var(--vt-muted); font-size: 14px; }
+.vt-criar { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 12px; background: var(--vc); color: var(--vc-ink); font-weight: 800; font-size: 14px; text-decoration: none; white-space: nowrap; }
+.vt-criar:hover { filter: brightness(1.08); }
+.vt-contagem { color: var(--vt-muted); font-size: 13px; margin: -6px 0 14px; }
+
+.vt-grade { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); }
+.vitrine[data-tipo="imoveis"] .vt-grade { grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); }
+
+.vt-card {
+  position: relative; display: flex; flex-direction: column; background: var(--vt-card); border: 1px solid var(--vt-line);
+  border-radius: 22px; overflow: hidden; cursor: pointer; transition: transform .2s, border-color .2s, box-shadow .2s;
+}
+.vt-card:hover { transform: translateY(-3px); border-color: color-mix(in srgb, var(--vc) 55%, var(--vt-line)); box-shadow: 0 18px 40px rgba(0, 0, 0, .45); }
+.vt-card:focus-visible { outline: 2px solid var(--vc); outline-offset: 3px; }
+.vt-avatar { width: 56px; height: 56px; border-radius: 50%; overflow: hidden; flex-shrink: 0; display: grid; place-items: center; font-weight: 800; color: #fff; background: linear-gradient(135deg, #0a3140, var(--vc)); }
+.vt-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.vt-nome { margin: 0; font-size: 17px; font-weight: 800; line-height: 1.25; }
+.vt-sub { color: var(--vt-muted); font-size: 13px; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.vt-tag { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 750; background: color-mix(in srgb, var(--vc) 15%, transparent); color: var(--vc); }
+.vt-tag.neutra { background: var(--vt-card-2); color: var(--vt-muted); }
+.vt-tag.ok { background: rgba(47, 191, 113, .16); color: #4fd88f; }
+.vt-tag.off { background: rgba(229, 72, 77, .14); color: #ff8a8e; }
+.vt-desc { margin: 0; color: #c9d4da; font-size: 14px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.vt-botoes { display: flex; gap: 8px; margin-top: auto; padding-top: 12px; }
+.vt-btn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 0; border-radius: 12px; padding: 10px 12px; font-weight: 800; font-size: 13.5px; cursor: pointer; text-decoration: none; }
+.vt-btn.pri { background: var(--vc); color: var(--vc-ink); }
+.vt-btn.sec { background: var(--vt-card-2); color: var(--vt-text); border: 1px solid var(--vt-line); }
+.vt-btn.whats { background: #1fa855; color: #fff; }
+.vt-btn:hover { filter: brightness(1.08); }
+.vt-dono { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--vt-muted); }
+.vt-dono .vt-avatar { width: 24px; height: 24px; font-size: 10px; }
+
+/* ---------- Serviços: cartão de profissional ---------- */
+.vt-servico { padding: 18px; gap: 12px; }
+.vt-servico::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 4px; background: linear-gradient(90deg, var(--vc), #7de3ff); }
+.vt-servico .topo { display: flex; gap: 14px; align-items: center; }
+.vt-servico .vt-avatar { width: 64px; height: 64px; box-shadow: 0 0 0 3px var(--vt-card), 0 0 0 5px var(--vc); }
+.vt-preco-desde { display: flex; align-items: baseline; gap: 6px; }
+.vt-preco-desde small { color: var(--vt-muted); font-size: 12px; }
+.vt-preco-desde strong { font-size: 20px; color: var(--vc); }
+.vt-lista-serv { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.vt-lista-serv li { display: flex; justify-content: space-between; gap: 10px; font-size: 13.5px; padding: 8px 10px; border-radius: 10px; background: var(--vt-card-2); }
+.vt-lista-serv li span:last-child { color: var(--vc); font-weight: 800; white-space: nowrap; }
+.vt-modos { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* ---------- Delivery: cartão de restaurante ---------- */
+.vt-delivery .capa { position: relative; aspect-ratio: 16 / 8; background: #1a0f06 center / cover no-repeat; }
+.vt-delivery .capa::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 0, 0, .05), rgba(0, 0, 0, .65)); }
+.vt-delivery .capa .vt-tag { position: absolute; top: 12px; left: 12px; z-index: 2; backdrop-filter: blur(6px); }
+.vt-delivery .logo { position: absolute; left: 16px; bottom: -26px; z-index: 3; width: 60px; height: 60px; border: 3px solid var(--vt-card); box-shadow: 0 6px 18px rgba(0, 0, 0, .45); }
+.vt-delivery .corpo { padding: 32px 16px 16px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+.vt-infos { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--vt-muted); }
+.vt-infos span { display: inline-flex; align-items: center; gap: 5px; }
+.vt-infos strong { color: var(--vt-text); }
+.vt-cardapio { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.vt-cardapio::-webkit-scrollbar { display: none; }
+.vt-prato { flex: 0 0 104px; }
+.vt-prato .ft { aspect-ratio: 1; border-radius: 12px; background: var(--vt-card-2) center / cover; }
+.vt-prato small { display: block; margin-top: 5px; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vt-prato strong { font-size: 12.5px; color: var(--vc); }
+
+/* ---------- Lojinha: vitrine de loja ---------- */
+.vt-loja { padding: 16px; gap: 12px; }
+.vt-loja .topo { display: flex; gap: 12px; align-items: center; }
+.vt-loja .vt-avatar { border-radius: 16px; }
+.vt-produtos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.vt-produto { position: relative; aspect-ratio: 3 / 4; border-radius: 14px; overflow: hidden; background: var(--vt-card-2) center / cover; }
+.vt-produto span { position: absolute; left: 6px; bottom: 6px; padding: 3px 8px; border-radius: 8px; background: rgba(0, 0, 0, .7); font-size: 12px; font-weight: 800; }
+.vt-produto.vazio { display: grid; place-items: center; color: var(--vt-muted); font-size: 12px; text-align: center; padding: 8px; }
+
+/* ---------- Imóveis: anúncio ---------- */
+.vt-imovel .galeria { position: relative; aspect-ratio: 4 / 3; background: #07170f center / cover no-repeat; }
+.vt-imovel .galeria::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 55%, rgba(0, 0, 0, .7)); }
+.vt-imovel .galeria .vt-tag { position: absolute; top: 12px; left: 12px; z-index: 2; background: var(--vc); color: var(--vc-ink); }
+.vt-imovel .galeria .fotos-n { position: absolute; top: 12px; right: 12px; z-index: 2; padding: 4px 9px; border-radius: 999px; background: rgba(0, 0, 0, .6); font-size: 12px; font-weight: 700; display: inline-flex; gap: 5px; align-items: center; }
+.vt-imovel .galeria .preco { position: absolute; left: 14px; bottom: 12px; z-index: 2; font-size: 24px; font-weight: 900; letter-spacing: -.4px; text-shadow: 0 2px 10px rgba(0, 0, 0, .6); }
+.vt-imovel .galeria .preco small { font-size: 13px; font-weight: 700; opacity: .85; }
+.vt-imovel .corpo { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+.vt-specs { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--vt-line); border-radius: 14px; overflow: hidden; }
+.vt-specs div { padding: 9px 4px; text-align: center; font-size: 11.5px; color: var(--vt-muted); }
+.vt-specs div + div { border-left: 1px solid var(--vt-line); }
+.vt-specs strong { display: flex; justify-content: center; align-items: center; gap: 4px; font-size: 15px; color: var(--vt-text); }
+
+/* ---------- estados ---------- */
+.vt-vazio { grid-column: 1 / -1; padding: 46px 20px; text-align: center; border: 1px dashed var(--vt-line); border-radius: 22px; color: var(--vt-muted); }
+.vt-vazio strong { display: block; color: var(--vt-text); font-size: 17px; margin-bottom: 6px; }
+.vt-vazio .vt-criar { margin-top: 14px; }
+.vt-esqueleto { height: 300px; border-radius: 22px; background: linear-gradient(90deg, var(--vt-card) 25%, var(--vt-card-2) 50%, var(--vt-card) 75%); background-size: 200% 100%; animation: vt-brilho 1.2s infinite; }
+@keyframes vt-brilho { to { background-position: -200% 0; } }
+
+/* ---------- detalhe ---------- */
+.vt-modal { position: fixed; inset: 0; z-index: 3000; display: grid; place-items: center; padding: 20px; background: rgba(2, 6, 9, .78); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.vt-modal .caixa { width: min(720px, 100%); max-height: 90vh; overflow-y: auto; background: var(--vt-card); border: 1px solid var(--vt-line); border-radius: 26px; color: var(--vt-text); box-shadow: 0 30px 80px rgba(0, 0, 0, .6); }
+.vt-modal .fechar { position: sticky; top: 10px; float: right; margin: 10px 10px -52px 0; z-index: 5; width: 40px; height: 40px; border-radius: 50%; border: 0; background: rgba(0, 0, 0, .6); color: #fff; cursor: pointer; display: grid; place-items: center; }
+.vt-modal .fotos { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; background: #000; }
+.vt-modal .fotos img { flex: 0 0 100%; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; scroll-snap-align: start; }
+.vt-modal .conteudo { padding: 18px 20px 22px; display: grid; gap: 14px; }
+.vt-modal h3 { margin: 0; font-size: 22px; }
+.vt-modal h4 { margin: 4px 0 0; font-size: 13px; letter-spacing: .6px; text-transform: uppercase; color: var(--vc); }
+.vt-modal .texto { margin: 0; white-space: pre-wrap; color: #cfd9de; line-height: 1.55; }
+.vt-itens { display: grid; gap: 8px; }
+.vt-item { display: flex; gap: 12px; align-items: center; padding: 10px; border-radius: 14px; background: var(--vt-card-2); }
+.vt-item .ft { width: 58px; height: 58px; border-radius: 12px; background: #0b1115 center / cover; flex-shrink: 0; }
+.vt-item .tx { flex: 1; min-width: 0; }
+.vt-item .tx strong { display: block; }
+.vt-item .tx small { color: var(--vt-muted); }
+.vt-item .pr { font-weight: 900; color: var(--vc); white-space: nowrap; }
+.vt-toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 3100; padding: 12px 18px; border-radius: 12px; background: #eef3f5; color: #0b1115; font-weight: 700; font-family: inherit; }
+
+@media (max-width: 640px) {
+  .vt-grade { grid-template-columns: 1fr; }
+  .vt-modal { padding: 0; align-items: end; }
+  .vt-modal .caixa { border-radius: 24px 24px 0 0; max-height: 92vh; }
+}
+.vt-modal.vitrine { width: auto; margin: 0; padding: 20px; }
+@media (max-width: 640px) { .vt-modal.vitrine { padding: 0; } }
