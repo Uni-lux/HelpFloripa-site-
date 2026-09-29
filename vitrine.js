@@ -421,7 +421,7 @@ export function abrirDetalhe(n, opcoes = {}) {
 
   const fatos = {
     servicos: () => [["sacola", moeda(n.precoDesde) || "A combinar", "a partir de"], ["relogio", n.horario || "", "horário"],
-      ...(n.atendimento || []).filter((k) => MODOS[k]).map((k) => ["casa", MODOS[k], "atendimento"]),
+      ["casa", (n.atendimento || []).filter((k) => MODOS[k]).map((k) => MODOS[k]).join(" · "), "atendimento"],
       ["cnh", Array.isArray(n.cnh) && n.cnh.length ? n.cnh.join(" · ") : "", "CNH"], ["carro", n.veiculo || "", "veículo"]],
     delivery: () => [["relogio", n.horaAbre && n.horaFecha ? `${n.horaAbre}–${n.horaFecha}` : "", "funcionamento"],
       ["moto", n.tempoMin || n.tempoMax ? `${n.tempoMin || "?"}–${n.tempoMax || "?"} min` : "", "entrega"],
