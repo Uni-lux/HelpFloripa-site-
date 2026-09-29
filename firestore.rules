@@ -16,6 +16,19 @@ service cloud.firestore {
       return !request.resource.data.keys().hasAny(camposProtegidos());
     }
 
+    function naoTocaCamposProtegidosNoUpdate() {
+      return !request.resource.data.diff(resource.data).affectedKeys()
+               .hasAny(camposProtegidos());
+    }
+
+    // Campo de texto opcional com tamanho máximo (evita documentos gigantes).
+    function textoAte(campo, max) {
+      return !(campo in request.resource.data)
+          || request.resource.data[campo] == null
+          || (request.resource.data[campo] is string
+              && request.resource.data[campo].size() <= max);
+    }
+
     // Bloqueio: bloqueios/{quemBloqueou}_{quemFoiBloqueado}
     function bloqueou(a, b) {
       return exists(/databases/$(database)/documents/bloqueios/$(a + '_' + b));
@@ -23,11 +36,6 @@ service cloud.firestore {
 
     function bloqueioEntre(a, b) {
       return bloqueou(a, b) || bloqueou(b, a);
-    }
-
-    function naoTocaCamposProtegidosNoUpdate() {
-      return !request.resource.data.diff(resource.data).affectedKeys()
-               .hasAny(camposProtegidos());
     }
 
 
@@ -63,17 +71,39 @@ service cloud.firestore {
     // =====================================================
     match /perfis_publicos/{userId} {
 
+      // O @ exibido no perfil precisa estar reservado em nicknames/ pelo
+      // próprio usuário. getAfter enxerga a reserva feita na mesma transação
+      // (cadastro) ou numa escrita anterior (edição do perfil).
+      function nickDoDono() {
+        let d = request.resource.data;
+        return !('nickname' in d)
+            || d.nickname == null
+            || d.nickname == ''
+            || getAfter(/databases/$(database)/documents/nicknames/$(d.nickname)).data.uid == request.auth.uid;
+      }
+
+      function tamanhosOk() {
+        return textoAte('nome', 80)
+            && textoAte('bio', 400)
+            && textoAte('cidade', 80);
+      }
+
       allow read: if logado();
 
       allow create: if logado()
                     && request.auth.uid == userId
                     && request.resource.data.uid == userId
-                    && naoTocaCamposProtegidosNoCreate();
+                    && naoTocaCamposProtegidosNoCreate()
+                    && nickDoDono()
+                    && tamanhosOk();
 
       allow update: if logado()
                     && request.auth.uid == userId
                     && request.resource.data.uid == resource.data.uid
-                    && naoTocaCamposProtegidosNoUpdate();
+                    && naoTocaCamposProtegidosNoUpdate()
+                    && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['nickname'])
+                        || nickDoDono())
+                    && tamanhosOk();
 
       allow delete: if logado()
                     && request.auth.uid == userId;
@@ -82,8 +112,6 @@ service cloud.firestore {
 
     // =====================================================
     // RESERVA DE NICKNAMES
-    // Necessário para impedir dois usuários de usarem
-    // o mesmo nome de usuário.
     // =====================================================
     match /nicknames/{nickname} {
 
@@ -128,7 +156,6 @@ service cloud.firestore {
     // =====================================================
     // BLOQUEIOS
     // Documento: bloqueios/{bloqueadorId}_{bloqueadoId}
-    // Cada lado pode saber do bloqueio que o envolve.
     // =====================================================
     match /bloqueios/{id} {
 
@@ -156,7 +183,6 @@ service cloud.firestore {
     // =====================================================
     // VÍNCULOS SOCIAIS (duo, família, amigos)
     // Documento: vinculos/{uidMenor}_{uidMaior}
-    // Um pede ("de"), o outro aceita ("para").
     // =====================================================
     match /vinculos/{id} {
 
@@ -170,7 +196,10 @@ service cloud.firestore {
         };
       }
 
-      allow read: if logado();
+      // Pedidos pendentes só são visíveis para os dois envolvidos.
+      allow read: if logado()
+                  && (resource.data.status == 'aceito'
+                      || request.auth.uid in resource.data.participantes);
 
       allow create: if logado()
                     && request.resource.data.de == request.auth.uid
@@ -180,6 +209,7 @@ service cloud.firestore {
                     && request.resource.data.participantes.size() == 2
                     && request.auth.uid in request.resource.data.participantes
                     && request.resource.data.para in request.resource.data.participantes
+                    && request.resource.data.participantes[0] < request.resource.data.participantes[1]
                     && id == request.resource.data.participantes[0] + '_' + request.resource.data.participantes[1]
                     && request.resource.data.status == 'pendente'
                     && request.resource.data.tipoDe in inversos()
@@ -201,7 +231,7 @@ service cloud.firestore {
 
     // =====================================================
     // PERFIS DE NEGÓCIO (serviços, delivery, lojinha, imóveis)
-    // Documento: negocios/{donoId}_{tipo}  (um de cada tipo por pessoa)
+    // Documento: negocios/{donoId}_{tipo}
     // =====================================================
     match /negocios/{id} {
 
@@ -250,18 +280,14 @@ service cloud.firestore {
 
     // =====================================================
     // CONVERSAS
-    // Somente participantes podem acessar a conversa.
     // Documento: conversas/{uidMenor}_{uidMaior}
     // =====================================================
     match /conversas/{conversaId} {
 
-      // resource == null permite o getDoc() de uma conversa que ainda
-      // não existe (usado antes de criá-la), sem vazar conversas alheias.
       allow get: if logado()
                  && (resource == null
                      || request.auth.uid in resource.data.participantes);
 
-      // Consulta "where participantes array-contains meuUid".
       allow list: if logado()
                   && request.auth.uid in resource.data.participantes;
 
@@ -269,15 +295,20 @@ service cloud.firestore {
                     && request.resource.data.participantes is list
                     && request.resource.data.participantes.size() == 2
                     && request.auth.uid in request.resource.data.participantes
+                    && request.resource.data.participantes[0] < request.resource.data.participantes[1]
                     && conversaId == request.resource.data.participantes[0]
                                      + '_' + request.resource.data.participantes[1]
                     && !bloqueioEntre(request.resource.data.participantes[0],
-                                      request.resource.data.participantes[1]);
+                                      request.resource.data.participantes[1])
+                    && textoAte('ultimaMensagem', 200);
 
-      // Participantes não podem ser trocados depois de criada.
+      // Com bloqueio entre os dois, ninguém mexe na conversa (evita "recado"
+      // pelo resumo da última mensagem).
       allow update: if logado()
                     && request.auth.uid in resource.data.participantes
-                    && request.resource.data.participantes == resource.data.participantes;
+                    && request.resource.data.participantes == resource.data.participantes
+                    && !bloqueioEntre(resource.data.participantes[0], resource.data.participantes[1])
+                    && textoAte('ultimaMensagem', 200);
 
       allow delete: if logado()
                     && request.auth.uid in resource.data.participantes;
@@ -293,17 +324,19 @@ service cloud.firestore {
                  get(/databases/$(database)/documents/conversas/$(conversaId)).data.participantes;
         }
 
-        allow read: if logado() && participante();
-
         function semBloqueio() {
           let p = get(/databases/$(database)/documents/conversas/$(conversaId)).data.participantes;
           return !bloqueioEntre(p[0], p[1]);
         }
 
+        allow read: if logado() && participante();
+
         allow create: if logado()
                       && participante()
                       && semBloqueio()
-                      && request.resource.data.remetenteId == request.auth.uid;
+                      && request.resource.data.remetenteId == request.auth.uid
+                      && request.resource.data.criadoEm == request.time
+                      && textoAte('texto', 4000);
 
         allow update: if false;
 
@@ -321,11 +354,13 @@ service cloud.firestore {
       allow read: if logado();
 
       allow create: if logado()
-                    && request.resource.data.autorId == request.auth.uid;
+                    && request.resource.data.autorId == request.auth.uid
+                    && textoAte('texto', 1000);
 
       allow update: if logado()
                     && resource.data.autorId == request.auth.uid
-                    && request.resource.data.autorId == resource.data.autorId;
+                    && request.resource.data.autorId == resource.data.autorId
+                    && textoAte('texto', 1000);
 
       allow delete: if logado()
                     && resource.data.autorId == request.auth.uid;
