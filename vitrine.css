@@ -272,3 +272,149 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
 .vd-obs:focus { outline: none; border-color: var(--vc); }
 .vd-limpar { display: block; margin: 10px auto 0; border: 0; background: none; color: var(--vt-muted); font: inherit; font-size: 13px; text-decoration: underline; cursor: pointer; }
 @media (max-width: 420px) { .vd-pedido-lista li { grid-template-columns: 100px 1fr; } .vd-pedido-lista .vl { grid-column: 2; justify-self: end; margin-top: -6px; } }
+
+/* ===== v9: layouts por página (lista, carrossel, marketplace) ===== */
+.vt-destaques:empty { display: none; }
+.vt-carrossel { margin: 0 0 22px; }
+.vt-car-topo { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.vt-car-topo h3, .vt-titulo-lista { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.2px; }
+.vt-titulo-lista { grid-column: 1 / -1; margin: 2px 0 -4px; }
+.vt-setas { display: flex; gap: 6px; }
+.vt-setas button { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--vt-line); background: var(--vt-card); color: var(--vt-text); cursor: pointer; display: grid; place-items: center; }
+.vt-setas button.esq svg { transform: rotate(180deg); }
+.vt-trilho { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 2px 2px 8px; scrollbar-width: none; }
+.vt-trilho::-webkit-scrollbar { display: none; }
+.vt-trilho > * { scroll-snap-align: start; flex: 0 0 auto; }
+@media (max-width: 640px) { .vt-setas { display: none; } .vt-trilho { margin: 0 -16px; padding: 2px 16px 8px; scroll-padding: 16px; } }
+.vt-carrossel.abertos .vt-card { width: 280px; }
+.vt-carrossel .vt-rodape, .vt-carrossel .vt-cardapio, .vt-carrossel .vt-desc { display: none; }
+.vt-carrossel.abertos .vt-delivery .corpo { padding-bottom: 14px; }
+
+/* Serviços: destaque com foto e lista de profissionais */
+.vt-destaque { width: 220px; border-radius: 18px; overflow: hidden; background: var(--vt-card); border: 1px solid var(--vt-line); cursor: pointer; }
+.vt-destaque .capa { position: relative; aspect-ratio: 4 / 3; background: #06202c center / cover; }
+.vt-destaque .capa .vt-avatar { position: absolute; left: 10px; bottom: -20px; width: 44px; height: 44px; font-size: 14px; border: 3px solid var(--vt-card); }
+.vt-destaque .tx { padding: 26px 12px 12px; display: grid; gap: 2px; }
+.vt-destaque .tx strong { font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vt-destaque .tx small { color: var(--vt-muted); font-size: 12px; }
+.vt-destaque .pr { color: var(--vc); font-weight: 800; font-size: 13px; }
+.vt-grade.lista { grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); }
+.vt-tag.urgente { background: rgba(255, 90, 90, .16); color: #ff8a8a; }
+
+/* Delivery: lista de restaurantes (estilo app de comida) */
+.vt-grade.lista-lojas { grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); gap: 10px 16px; }
+.vt-linha-loja { display: flex; align-items: center; gap: 14px; padding: 12px; border-radius: 18px; background: var(--vt-card); border: 1px solid var(--vt-line); cursor: pointer; transition: border-color .15s, transform .15s; }
+.vt-linha-loja:hover { border-color: color-mix(in srgb, var(--vc) 55%, var(--vt-line)); transform: translateY(-1px); }
+.vt-linha-loja.fechado { opacity: .62; }
+.vt-linha-loja .logo { width: 64px; height: 64px; border-radius: 16px; font-size: 18px; }
+.vt-linha-loja .tx { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.vt-linha-loja .tx strong { font-size: 15.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vt-linha-loja .tx small { color: var(--vt-muted); font-size: 12.5px; }
+.vt-linha-loja .vt-infos { gap: 10px; font-size: 12.5px; }
+.vt-linha-loja .gratis { color: #4fd88f; font-weight: 700; }
+.vt-linha-loja .aberto { color: #4fd88f; font-weight: 700; }
+.vt-linha-loja .fechado-tx { color: #ff8a8e; font-weight: 700; }
+.vt-linha-loja .mini { display: flex; flex-shrink: 0; }
+.vt-linha-loja .mini span { width: 40px; height: 40px; border-radius: 10px; background: #1a0f06 center / cover; border: 2px solid var(--vt-card); margin-left: -12px; }
+@media (max-width: 420px) { .vt-linha-loja .mini { display: none; } }
+
+/* Shopping: lojas em bolinhas e grade de produtos (estilo marketplace) */
+.vt-bolha-loja { width: 76px; display: grid; justify-items: center; gap: 6px; border: 0; background: none; cursor: pointer; padding: 0; }
+.vt-bolha-loja .vt-avatar { width: 64px; height: 64px; box-shadow: 0 0 0 2px var(--vt-bg), 0 0 0 4px var(--vc); }
+.vt-bolha-loja span { font-size: 12px; max-width: 76px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--vt-text); }
+.vt-grade.produtos { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+@media (min-width: 640px) { .vt-grade.produtos { grid-template-columns: repeat(3, 1fr); gap: 14px; } }
+@media (min-width: 900px) { .vt-grade.produtos { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 1120px) { .vt-grade.produtos { grid-template-columns: repeat(5, 1fr); } }
+.vt-prod { position: relative; display: flex; flex-direction: column; border-radius: 16px; overflow: hidden; background: var(--vt-card); border: 1px solid var(--vt-line); cursor: pointer; transition: transform .15s, border-color .15s; }
+.vt-prod:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--vc) 55%, var(--vt-line)); }
+.vt-prod.esgotado { opacity: .55; }
+.vt-prod .ft { position: relative; aspect-ratio: 1; background: var(--vt-card-2) center / cover; display: grid; place-items: center; color: var(--vt-muted); }
+.vt-prod .selo { position: absolute; left: 8px; top: 8px; padding: 3px 8px; border-radius: 8px; background: rgba(0, 0, 0, .72); color: #fff; font-size: 11px; font-weight: 800; }
+.vt-prod .selo.desc { background: #16a34a; }
+.vt-prod .selo.cond { top: auto; bottom: 8px; background: rgba(0, 0, 0, .6); }
+.vt-prod .tx { padding: 9px 10px 11px; display: grid; gap: 3px; }
+.vt-prod .nome { font-size: 13.5px; font-weight: 600; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.6em; }
+.vt-prod small { color: var(--vt-muted); font-size: 11.5px; }
+.vt-prod .loja { display: flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--vt-muted); white-space: nowrap; overflow: hidden; }
+.vt-prod .loja em { font-style: normal; margin-left: auto; color: #4fd88f; font-weight: 700; }
+.vd-preco-prod { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.vd-preco-prod s { color: var(--vt-muted); font-size: 12px; }
+.vd-preco-prod strong { font-size: 17px; font-weight: 900; color: var(--vt-text); }
+.vd-preco-prod .desc { color: #4fd88f; font-size: 12px; font-weight: 800; }
+.vd-itens.lojinha { gap: 10px; }
+.vd-itens.lojinha .vt-prod .vd-vendi { margin: 0 10px 10px; }
+.vt-modal .vd-produto .vd-preco-prod strong { font-size: 26px; }
+
+/* Janela de produto */
+.vd-produto .vd-prod-foto { position: relative; aspect-ratio: 1; max-height: 58vh; width: 100%; background: #0b1115 center / contain no-repeat; display: grid; place-items: center; color: var(--vt-muted); }
+.vd-produto .vd-prod-foto .vd-selo { left: 14px; top: 14px; }
+.vd-condicao { color: var(--vt-muted); font-size: 12.5px; }
+.vd-ficha { display: grid; grid-template-columns: minmax(90px, 35%) 1fr; margin: 0; border: 1px solid var(--vt-line); border-radius: 14px; overflow: hidden; font-size: 13.5px; }
+.vd-ficha dt, .vd-ficha dd { margin: 0; padding: 9px 12px; border-bottom: 1px solid var(--vt-line); }
+.vd-ficha dt { color: var(--vt-muted); background: var(--vt-card-2); }
+.vd-ficha dt:nth-last-child(2), .vd-ficha dd:last-child { border-bottom: 0; }
+.vd-loja-mini { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px; border-radius: 14px; border: 1px solid var(--vt-line); background: var(--vt-card-2); cursor: pointer; text-align: left; }
+.vd-loja-mini > div { flex: 1; display: grid; }
+.vd-loja-mini small { color: var(--vt-muted); font-size: 12px; }
+.vd-loja-mini .vt-avatar { width: 44px; height: 44px; border-radius: 12px; font-size: 14px; }
+
+/* Formulários dentro das janelas (pedido, orçamento, produto) */
+.vd-campo { display: grid; gap: 8px; }
+.vd-campo > label { font-size: 13.5px; font-weight: 800; color: var(--vt-text); }
+.vd-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.vd-chip { padding: 8px 14px; border-radius: 999px; border: 1px solid var(--vt-line); background: var(--vt-card-2); color: var(--vt-text); font-size: 13.5px; font-weight: 700; cursor: pointer; }
+.vd-chip.on { border-color: var(--vc); background: color-mix(in srgb, var(--vc) 18%, transparent); color: var(--vc); }
+.vd-input { width: 100%; padding: 11px 12px; border-radius: 12px; border: 1px solid var(--vt-line); background: var(--vt-card-2); color: var(--vt-text); font: inherit; font-size: 14px; color-scheme: dark; }
+.vd-input:focus { outline: none; border-color: var(--vc); }
+.vd-obs.curto { min-height: 56px; margin-top: 0; }
+.vd-campo .vd-obs { margin-top: 0; }
+.vd-link { justify-self: start; display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; color: var(--vc); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; padding: 2px 0; }
+.vd-nota { color: var(--vt-muted); font-size: 12px; margin: 0; }
+.vd-duas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+@media (max-width: 460px) { .vd-duas { grid-template-columns: 1fr; } }
+.vd-neg-mini { display: flex; align-items: center; gap: 8px; color: var(--vt-muted); font-size: 13.5px; }
+.vd-neg-mini .vt-avatar { width: 26px; height: 26px; font-size: 10px; }
+
+/* Serviços no perfil: cada serviço com preço, como cobra e botão Pedir */
+.vd-diferenciais { display: flex; flex-wrap: wrap; gap: 6px; }
+.vd-servicos { display: grid; gap: 8px; }
+.vd-serv { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; padding: 12px 14px; border-radius: 14px; background: var(--vt-card-2); border: 1px solid var(--vt-line); }
+.vd-serv .tx { display: grid; gap: 3px; min-width: 0; }
+.vd-serv .tx strong { font-size: 14.5px; }
+.vd-serv .tx small { color: var(--vt-muted); font-size: 12px; }
+.vd-serv .tx p { margin: 2px 0 0; color: #c3ced4; font-size: 13px; line-height: 1.45; }
+.vd-serv .pr { display: grid; justify-items: end; gap: 2px; text-align: right; flex-shrink: 0; }
+.vd-serv .pr strong { color: var(--vc); font-size: 15px; white-space: nowrap; }
+.vd-serv .pr small { color: var(--vt-muted); font-size: 11.5px; }
+.vd-pedir { margin-top: 6px; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--vc); background: transparent; color: var(--vc); font: inherit; font-size: 12.5px; font-weight: 800; cursor: pointer; }
+.vd-pedir:hover { background: color-mix(in srgb, var(--vc) 16%, transparent); }
+
+/* Cardápio do delivery em linhas, por seção */
+.vd-cardapio-area { display: grid; gap: 10px; }
+.vd-secoes { position: sticky; top: 0; z-index: 3; display: flex; gap: 8px; overflow-x: auto; padding: 8px 0; background: var(--vt-card); scrollbar-width: none; }
+.vd-secoes::-webkit-scrollbar { display: none; }
+.vd-secoes .vd-chip { flex: 0 0 auto; }
+.vd-secao-tit { font-size: 16px; font-weight: 800; margin-top: 6px; scroll-margin-top: 60px; }
+.vd-pratos { display: grid; gap: 0; border-top: 1px solid var(--vt-line); }
+.vd-prato { display: flex; gap: 14px; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--vt-line); }
+.vd-prato.esgotado { opacity: .5; }
+.vd-prato .tx { display: grid; gap: 4px; align-content: start; min-width: 0; }
+.vd-prato .tx strong { font-size: 15px; }
+.vd-prato .tx p { margin: 0; color: var(--vt-muted); font-size: 13px; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.vd-prato .vd-preco-prod strong { font-size: 15px; }
+.vd-prato .lado { display: grid; gap: 6px; width: 112px; flex-shrink: 0; }
+.vd-prato .ft { aspect-ratio: 1; border-radius: 12px; background: var(--vt-card-2) center / cover; display: grid; place-items: center; color: var(--vt-muted); }
+.vd-prato .vd-qtd { margin: 0; height: 34px; }
+.vd-prato .vd-qtd .vd-add { height: 34px; font-size: 12.5px; }
+.vd-selo-inline { text-align: center; font-size: 12px; font-weight: 800; color: #ff8a8e; }
+
+/* Imóvel: características e condições */
+.vd-caract { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px 14px; }
+.vd-caract span { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #d3dde2; }
+.vd-caract svg { color: var(--vc); }
+.vt-prod .loja .ln { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.vt-prod .loja em { flex-shrink: 0; }
+.vd-secoes { margin-right: 46px; }
+.vd-prato .lado.sem-foto { align-self: end; }
+.vd-produto .vd-prod-foto.vazia { aspect-ratio: auto; height: 150px; }

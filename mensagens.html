@@ -175,6 +175,13 @@
     .cm-pedido .sub { opacity: .75; font-size: 12.5px; }
     .cm-pedido .tot { margin-top: 3px; padding-top: 6px; border-top: 1px solid color-mix(in srgb, currentColor 18%, transparent); font-weight: 900; font-size: 15px; }
     .cm-pedido .tot span:last-child { color: var(--assunto); font-weight: 900; }
+    .cm-pedido .info { font-size: 12.5px; }
+    .cm-pedido .info span:first-child { opacity: .7; flex-shrink: 0; }
+    .cm-pedido .info span:last-child { text-align: right; font-weight: 700; white-space: normal !important; overflow-wrap: anywhere; }
+    .cm-pedido .tot + .info { margin-top: 4px; }
+    .cm-pedido .urgente span:last-child { color: #ff6b6b; }
+    .cm-orc .info { padding: 4px 0; border-bottom: 1px solid color-mix(in srgb, currentColor 10%, transparent); }
+    a.cm-ver { text-decoration: none; }
     .cm-pedido .obs { margin: 4px 0 0; padding: 6px 8px; border-radius: 8px; background: color-mix(in srgb, currentColor 8%, transparent); font-size: 12.5px; white-space: pre-wrap; }
     .extra.cartao-pend { border-left-color: var(--assunto); }
     .extra.cartao-pend .txt strong { color: var(--assunto); }
@@ -792,10 +799,46 @@
       });
       if (Number(p.taxa) > 0) linha("Entrega", reais(p.taxa), "sub");
       linha("Total", reais(p.total), "tot");
+      const PAG = { pix: "Pix", credito: "Cartão de crédito", debito: "Cartão de débito", dinheiro: "Dinheiro", vale: "Vale-refeição" };
+      if (p.modo) linha(p.modo === "retirada" ? "Recebimento" : "Entrega em", p.modo === "retirada" ? "Retirada no local" : String(p.endereco || "a combinar").slice(0, 200), "info");
+      if (p.pagamento) linha("Pagamento", (PAG[p.pagamento] || String(p.pagamento).slice(0, 20)) + (Number(p.troco) > 0 ? ` · troco p/ ${reais(p.troco)}` : ""), "info");
       if (p.obs) {
         const o = document.createElement("p");
         o.className = "obs";
         o.textContent = "Obs.: " + String(p.obs).slice(0, 300);
+        box.appendChild(o);
+      }
+      return box;
+    }
+    // Pedido de orçamento de serviço: tudo o que o cliente escolheu.
+    const PERIODOS_MSG = { manha: "Manhã", tarde: "Tarde", noite: "Noite" };
+    function textoQuandoMsg(q) {
+      if (!q?.tipo) return "";
+      if (q.tipo === "urgente") return "Urgente (hoje)";
+      if (q.tipo === "flexivel") return "Flexível";
+      let dia = "";
+      if (/^\d{4}-\d{2}-\d{2}$/.test(q.data || "")) { const [a, mm, d] = q.data.split("-").map(Number); dia = new Date(a, mm - 1, d).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" }); }
+      return ["Agendado", dia, PERIODOS_MSG[q.periodo] || ""].filter(Boolean).join(" · ");
+    }
+    function blocoSolicitacao(so) {
+      const box = document.createElement("div");
+      box.className = "cm-pedido cm-orc";
+      const linha = (a, b, cls) => {
+        if (!b) return;
+        const d = document.createElement("div");
+        d.className = "info" + (cls ? " " + cls : "");
+        const x = document.createElement("span"); x.textContent = a;
+        const y = document.createElement("span"); y.textContent = b;
+        d.append(x, y);
+        box.appendChild(d);
+      };
+      linha("Serviço", (Array.isArray(so.servicos) ? so.servicos : []).slice(0, 12).map((x) => String(x).slice(0, 60)).join(", "));
+      linha("Quando", textoQuandoMsg(so.quando), so.quando?.tipo === "urgente" ? "urgente" : "");
+      linha("Local", String(so.local || "").slice(0, 80) || (so.modo === "online" ? "Online" : so.modo === "local" ? "No local do profissional" : ""));
+      if (so.descricao) {
+        const o = document.createElement("p");
+        o.className = "obs";
+        o.textContent = String(so.descricao).slice(0, 600);
         box.appendChild(o);
       }
       return box;
@@ -830,6 +873,10 @@
       if (m.tipoArquivo === "cartao" && Array.isArray(m.cartao?.pedido?.itens)) {
         const n = m.cartao.pedido.itens.reduce((s, i) => s + (Number(i?.qtd) || 0), 0);
         return `Pedido: ${n} ${n === 1 ? "item" : "itens"} · ${reais(m.cartao.pedido.total)}`;
+      }
+      if (m.tipoArquivo === "cartao" && m.cartao?.solicitacao) {
+        const so = m.cartao.solicitacao;
+        return `Orçamento: ${(Array.isArray(so.servicos) && so.servicos.length ? so.servicos.join(", ") : "serviço")}${so.quando?.tipo === "urgente" ? " · Urgente" : ""}`;
       }
       if (m.tipoArquivo === "cartao") return `Interesse: ${m.cartao?.titulo || "portfólio"}`;
       return m.arquivoUrl ? "Arquivo" : "";
@@ -1491,9 +1538,13 @@
         const tipo = ASSUNTOS[c.tipo] ? c.tipo : "servicos";
         bolha.classList.add("cartao-msg");
         bolha.style.setProperty("--assunto", ASSUNTOS[tipo].cor);
-        const link = document.createElement("a");
+        const ehPedido = Array.isArray(c.pedido?.itens) && c.pedido.itens.length;
+        const ehOrc = !!(c.solicitacao && typeof c.solicitacao === "object");
+        const href = /^(servicos|delivery|shopping|imoveis)\.html\?[\w=&%.-]+$/.test(String(c.link || "")) ? c.link : "#";
+        // Pedido e orçamento mostram tudo na própria mensagem; só o rodapé leva ao perfil.
+        const link = document.createElement(ehPedido || ehOrc ? "div" : "a");
         link.className = "cm-link";
-        link.href = /^(servicos|delivery|shopping|imoveis)\.html\?[\w=&%.-]+$/.test(String(c.link || "")) ? c.link : "#";
+        if (!(ehPedido || ehOrc)) link.href = href;
         const foto = urlSegura(c.foto);
         if (foto) { const ft = document.createElement("div"); ft.className = "cm-ft"; ft.style.backgroundImage = `url("${foto}")`; link.appendChild(ft); }
         const tx = document.createElement("div");
@@ -1502,10 +1553,13 @@
         const ti = document.createElement("strong"); ti.textContent = c.titulo || "";
         tx.append(tp, ti);
         if (c.sub) { const s = document.createElement("small"); s.textContent = c.sub; tx.appendChild(s); }
-        const ehPedido = Array.isArray(c.pedido?.itens) && c.pedido.itens.length;
-        if (c.preco && !ehPedido) { const p = document.createElement("span"); p.className = "cm-preco"; p.textContent = c.preco; tx.appendChild(p); }
+        if (c.preco && !ehPedido && !ehOrc) { const p = document.createElement("span"); p.className = "cm-preco"; p.textContent = c.preco; tx.appendChild(p); }
         if (ehPedido) { bolha.classList.add("pedido"); tp.textContent = `${ASSUNTOS[tipo].nome} · Pedido`; tx.appendChild(blocoPedido(c.pedido)); }
-        const ver = document.createElement("span"); ver.className = "cm-ver"; ver.textContent = ehPedido ? "Ver cardápio / loja" : "Ver detalhes";
+        if (ehOrc) { bolha.classList.add("pedido"); tp.textContent = "Pedido de orçamento"; tx.appendChild(blocoSolicitacao(c.solicitacao)); }
+        const ver = document.createElement(ehPedido || ehOrc ? "a" : "span");
+        ver.className = "cm-ver";
+        if (ehPedido || ehOrc) ver.href = href;
+        ver.textContent = ehPedido ? (tipo === "delivery" ? "Ver cardápio" : "Ver loja") : ehOrc ? "Ver perfil de serviços" : "Ver detalhes";
         link.append(tx, ver);
         bolha.appendChild(link);
       }
@@ -1842,7 +1896,7 @@
       const th = $("cartaoThumb");
       th.replaceChildren();
       th.style.background = urlSegura(c.foto) ? `center / cover url("${urlSegura(c.foto)}")` : "";
-      $("cartaoTipo").textContent = `${(ASSUNTOS[c.tipo] || ASSUNTOS.servicos).nome} · ${c.pedido ? "pedido vai" : "vai"} junto na mensagem`;
+      $("cartaoTipo").textContent = `${(ASSUNTOS[c.tipo] || ASSUNTOS.servicos).nome} · ${c.pedido ? "pedido vai" : c.solicitacao ? "orçamento vai" : "vai"} junto na mensagem`;
       $("cartaoTitulo").textContent = [c.titulo, c.preco].filter(Boolean).join(" · ");
       atualizarBotaoEnviar();
     }

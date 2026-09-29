@@ -8,7 +8,7 @@
   <link rel="icon" href="favicon.ico" />
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
-  <link rel="stylesheet" href="vitrine.css?v=8" />
+  <link rel="stylesheet" href="vitrine.css?v=9" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
     // Tema compartilhado com a página de mensagens; aplicado antes de desenhar.
@@ -223,8 +223,25 @@
     .marcas { display: flex; flex-wrap: wrap; gap: 8px; }
     .hora-sel { display: flex; align-items: center; gap: 6px; font-weight: 800; }
     .hora-sel select { flex: 1; min-width: 0; border: 1px solid var(--line); background: var(--input); border-radius: 12px; padding: 11px 10px; font-size: 15px; color: var(--text); }
-    .marca-op { display: inline-flex; align-items: center; gap: 8px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel-2); cursor: pointer; font-size: 13.5px; font-weight: 600; }
-    .marca-op input { accent-color: var(--accent); width: 16px; height: 16px; }
+    .marca-op { position: relative; display: inline-flex !important; flex-direction: row !important; align-items: center; gap: 7px; width: auto !important; margin: 0 !important; padding: 8px 13px 8px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel-2); cursor: pointer; font-size: 13.5px; font-weight: 650; line-height: 1.2; user-select: none; -webkit-tap-highlight-color: transparent; transition: background .15s, border-color .15s; }
+    .marca-op input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; pointer-events: none; }
+    .marca-op::before { content: ""; flex: none; width: 17px; height: 17px; box-sizing: border-box; border-radius: 50%; border: 1.6px solid var(--muted); }
+    .marca-op.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 15%, var(--panel-2)); }
+    .marca-op.on::before { border-color: var(--accent); background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 12px no-repeat; }
+    .marca-op:focus-within { outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent); outline-offset: 2px; }
+    .item-det { grid-column: 1 / -1; border-top: 1px dashed var(--line); padding-top: 6px; }
+    .item-det summary { cursor: pointer; font-size: 12.5px; font-weight: 700; color: var(--accent); list-style: none; padding: 4px 0; }
+    .item-det summary::-webkit-details-marker { display: none; }
+    .item-det summary::before { content: "+ "; }
+    .item-det[open] summary::before { content: "− "; }
+    .item-det-corpo { display: grid; gap: 8px; padding: 6px 0 4px; }
+    .item-det-corpo.dois { grid-template-columns: 1fr 1fr; }
+    .item-det-corpo .mini-campo { display: grid; gap: 4px; font-size: 12px; font-weight: 600; color: var(--muted); min-width: 0; }
+    .item-det-corpo .mini-campo:has(textarea) { grid-column: 1 / -1; }
+    .item-det-corpo input, .item-det-corpo select, .item-det-corpo textarea { width: 100%; box-sizing: border-box; border: 1px solid var(--line); background: var(--input); color: var(--text); border-radius: 10px; padding: 8px 10px; font: inherit; font-size: 13.5px; }
+    .item-det-corpo textarea { min-height: 60px; resize: vertical; }
+    .item-det-corpo input, .item-det-corpo select, .item-det-corpo textarea { font-weight: 400; }
+    @media (max-width: 420px) { .item-det-corpo.dois { grid-template-columns: 1fr; } }
     .neg-fotos { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
     .neg-foto { position: relative; width: 96px; aspect-ratio: 4 / 3; border-radius: 12px; overflow: hidden; background: var(--tile) center / cover; border: 0; padding: 0; }
     .neg-foto.add { display: grid; place-items: center; color: var(--accent); border: 2px dashed var(--line); background: transparent; cursor: pointer; }
@@ -916,7 +933,7 @@
 
   <script type="module">
     import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=5";
-    import { abrirDetalhe as abrirPerfilNegocio, abrirAnuncio, buscarAnuncios, prepararConversa } from "./vitrine.js?v=8";
+    import { abrirDetalhe as abrirPerfilNegocio, abrirAnuncio, buscarAnuncios, prepararConversa, DIAS, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL } from "./vitrine.js?v=9";
 
     // ======================================================
     // Preferências compartilhadas com mensagens.html
@@ -2231,13 +2248,13 @@
     const CATS_NEGOCIO = {
       servicos: { limpeza: "Limpeza", reformas: "Reformas", beleza: "Saúde e Beleza", transporte: "Transporte", pets: "Pets", outros: "Outros" },
       delivery: { hamburguer: "Hambúrguer", pizza: "Pizza", sushi: "Sushi", doces: "Doces", bebidas: "Bebidas", outros: "Outros" },
-      lojinha: { eletronicos: "Eletrônicos", roupas: "Roupas", mercado: "Mercado", casa: "Casa", outros: "Outros" },
+      lojinha: { roupas: "Moda e roupas", calcados: "Calçados", acessorios: "Acessórios", beleza: "Beleza", eletronicos: "Eletrônicos", casa: "Casa e decoração", mercado: "Mercado", artesanato: "Artesanato", infantil: "Infantil", esportes: "Esportes", outros: "Outra (escrever)" },
       imoveis: { apartamento: "Apartamento", casa: "Casa", kitnet: "Kitnet", terreno: "Terreno", comercial: "Comercial", outros: "Outros" }
     };
     const CONFIG_EXTRAS = {
-      servicos: { itens: { titulo: "Serviços e preços", dica: "Ex.: Faxina completa — R$ 180. Aparecem no seu cartão.", max: 8, foto: false, rotulo: "Nome do serviço" }, fotos: { titulo: "Fotos de trabalhos", max: 3, proporcao: 4 / 3 } },
-      delivery: { itens: { titulo: "Cardápio", dica: "Pratos em destaque com foto e preço.", max: 10, foto: true, proporcao: 1, rotulo: "Nome do prato" }, fotos: { titulo: "Foto de capa", max: 1, proporcao: 2 } },
-      lojinha: { itens: { titulo: "Produtos", dica: "Os três primeiros aparecem na vitrine.", max: 9, foto: true, proporcao: 3 / 4, rotulo: "Nome do produto" }, fotos: null },
+      servicos: { itens: { titulo: "Serviços e preços", dica: "Cada serviço que você faz, com preço e como cobra. O cliente escolhe na hora de pedir orçamento.", max: 12, foto: false, rotulo: "Nome do serviço" }, fotos: { titulo: "Portfólio: fotos de trabalhos", max: 3, proporcao: 4 / 3 } },
+      delivery: { itens: { titulo: "Cardápio", dica: "Cada prato com foto, preço, seção (Lanches, Bebidas...) e descrição.", max: 12, foto: true, proporcao: 1, rotulo: "Nome do prato" }, fotos: { titulo: "Foto de capa", max: 1, proporcao: 2 } },
+      lojinha: { itens: { titulo: "Produtos", dica: "Toque em \"Detalhes do produto\" para tamanho, cor, marca, estado e ficha técnica.", max: 12, foto: true, proporcao: 3 / 4, rotulo: "Nome do produto" }, fotos: null },
       imoveis: { itens: null, fotos: null }
     };
     let negExtra = {};
@@ -2262,13 +2279,13 @@
       i.addEventListener("input", () => { negExtra[chave] = numero ? numeroBR(i.value) : i.value.trim(); });
       return i;
     }
-    function seletor(chave, opcoes) {
+    function seletor(chave, opcoes, aoMudar) {
       const s = document.createElement("select");
       s.id = "negX_" + chave;
       Object.entries(opcoes).forEach(([v, t]) => { const o = document.createElement("option"); o.value = v; o.textContent = t; s.appendChild(o); });
       if (!negExtra[chave] || !opcoes[negExtra[chave]]) negExtra[chave] = Object.keys(opcoes)[0];
       s.value = negExtra[chave];
-      s.addEventListener("change", () => { negExtra[chave] = s.value; });
+      s.addEventListener("change", () => { negExtra[chave] = s.value; aoMudar?.(); });
       return s;
     }
     // Hora com duas listas (hora e minuto): evita o relógio do celular, que corta o botão "Definir" em alguns aparelhos.
@@ -2298,7 +2315,8 @@
         l.className = "marca-op";
         const c = document.createElement("input");
         c.type = "checkbox"; c.checked = atual.has(v);
-        c.addEventListener("change", () => { c.checked ? atual.add(v) : atual.delete(v); alvo[chave] = Object.keys(opcoes).filter((k) => atual.has(k)); aoMudar?.(); });
+        l.classList.toggle("on", c.checked);
+        c.addEventListener("change", () => { c.checked ? atual.add(v) : atual.delete(v); l.classList.toggle("on", c.checked); alvo[chave] = Object.keys(opcoes).filter((k) => atual.has(k)); aoMudar?.(); });
         l.append(c, document.createTextNode(t));
         box.appendChild(l);
       });
@@ -2344,12 +2362,17 @@
             campo("Veículo (opcional)", entrada("veiculo", { placeholder: "Ex.: Fiorino, van 15 lugares, moto", max: 60 })));
           info.appendChild(mot);
         }
-        info.appendChild(grade("", campo("A partir de (R$)", entrada("precoDesde", { numero: true, placeholder: "80" })), campo("Horário de atendimento", entrada("horario", { placeholder: "Seg a sáb, 8h às 18h" }))));
+        info.appendChild(grade("", campo("A partir de (R$)", entrada("precoDesde", { numero: true, placeholder: "80" })), campo("Horário de atendimento", entrada("horario", { placeholder: "8h às 18h" }))));
+        info.appendChild(campo("Dias de atendimento", marcas("dias", DIAS)));
         info.appendChild(campo("Como você atende", marcas("atendimento", { domicilio: "Vou até o cliente", local: "No meu local", online: "Online" })));
+        info.appendChild(grade("", campo("Região que atende", entrada("regiao", { placeholder: "Ex.: Ilha toda, Continente", max: 80 })), campo("Anos de experiência", entrada("experiencia", { numero: true, placeholder: "5", max: 3 }))));
+        info.appendChild(campo("Diferenciais", marcas("diferenciais", DIFERENCIAIS_SERV), "Aparecem em destaque no seu perfil."));
+        info.appendChild(campo("Formas de pagamento", marcas("pagamentos", { pix: "Pix", credito: "Crédito", debito: "Débito", dinheiro: "Dinheiro" })));
       } else if (t === "imoveis") {
         info.appendChild(grade("", campo("Você é", seletor("tipoAnunciante", { proprietario: "Proprietário(a)", corretor: "Corretor(a)", imobiliaria: "Imobiliária" })), campo("CRECI (se tiver)", entrada("creci", { placeholder: "Ex.: 12345-J", max: 20 }))));
       } else {
-        info.appendChild(campo("Categoria", seletor("categoria", CATS_NEGOCIO[t]), "Define em qual filtro da página você aparece"));
+        info.appendChild(campo("Categoria", seletor("categoria", CATS_NEGOCIO[t], () => { if (t === "lojinha") montarExtras(); }), "Define em qual filtro da página você aparece"));
+        if (t === "lojinha" && negExtra.categoria === "outros") info.appendChild(campo("Sua categoria", entrada("categoriaPersonalizada", { placeholder: "Ex.: Papelaria, Plantas, Suplementos", max: 30 }), "Vira um filtro próprio na página do Shopping."));
       }
       if (t === "delivery") {
         info.appendChild(grade("", campo("Abre às", seletorHora("horaAbre")), campo("Fecha às", seletorHora("horaFecha"))));
@@ -2358,8 +2381,15 @@
           campo("Entrega máx. (min)", entrada("tempoMax", { numero: true, placeholder: "50", max: 4 })),
           campo("Taxa (R$)", entrada("taxaEntrega", { numero: true, placeholder: "0 = grátis" })),
           campo("Pedido mín. (R$)", entrada("pedidoMinimo", { numero: true, placeholder: "20" }))));
+        if (!Array.isArray(negExtra.opcoesEntrega)) negExtra.opcoesEntrega = ["entrega"];
+        info.appendChild(campo("Dias de funcionamento", marcas("dias", DIAS)));
+        info.appendChild(campo("Como o cliente recebe", marcas("opcoesEntrega", { entrega: "Entrega", retirada: "Retirada no local" })));
+        info.appendChild(campo("Formas de pagamento", marcas("pagamentos", PAGAMENTOS)));
       }
-      if (t === "lojinha") info.appendChild(campo("Formas de receber", marcas("entrega", { entrega: "Entrega", retirada: "Retirada" })));
+      if (t === "lojinha") {
+        info.appendChild(campo("Formas de receber", marcas("entrega", { entrega: "Entrega", retirada: "Retirada" })));
+        info.appendChild(campo("Formas de pagamento", marcas("pagamentos", { pix: "Pix", credito: "Crédito", debito: "Débito", dinheiro: "Dinheiro" })));
+      }
       box.appendChild(info);
 
       if (t === "imoveis") {
@@ -2449,6 +2479,7 @@
             rm.appendChild(icone("lixo", "i s"));
             rm.addEventListener("click", () => { negExtra.itens.splice(i, 1); pintar(); });
             linha.append(nome, preco, rm);
+            linha.appendChild(detalhesItem(t, it));
             // Lojinha: quantas unidades tem. Com 1 unidade, ao vender o produto sai da loja.
             if (t === "lojinha") {
               const est = document.createElement("label");
@@ -2473,6 +2504,77 @@
         box.appendChild(sec);
       }
     }
+    // Detalhes de cada item (abre e fecha): muda conforme o tipo do negócio.
+    function detalhesItem(t, it) {
+      const det = document.createElement("details");
+      det.className = "item-det";
+      const sum = document.createElement("summary");
+      sum.textContent = { servicos: "Detalhes do serviço", delivery: "Seção e descrição", lojinha: "Detalhes do produto" }[t] || "Detalhes";
+      det.appendChild(sum);
+      const corpo = document.createElement("div");
+      corpo.className = "item-det-corpo";
+      const txt = (chave, rotulo, { placeholder = "", max = 60, area = false, lista = null } = {}) => {
+        const i = document.createElement(area ? "textarea" : "input");
+        i.maxLength = max; i.placeholder = placeholder;
+        const v = it[chave];
+        i.value = Array.isArray(v) ? v.join(", ") : (v ?? "");
+        if (lista) { i.setAttribute("list", lista); }
+        i.addEventListener("input", () => { it[chave] = i.value; });
+        const c = document.createElement("label"); c.className = "mini-campo";
+        c.append(document.createTextNode(rotulo), i);
+        return c;
+      };
+      const sel = (chave, rotulo, opcoes) => {
+        const s = document.createElement("select");
+        Object.entries(opcoes).forEach(([v, tx]) => { const o = document.createElement("option"); o.value = v; o.textContent = tx; s.appendChild(o); });
+        if (!(it[chave] in opcoes)) it[chave] = Object.keys(opcoes)[0];
+        s.value = it[chave];
+        s.addEventListener("change", () => { it[chave] = s.value; });
+        const c = document.createElement("label"); c.className = "mini-campo";
+        c.append(document.createTextNode(rotulo), s);
+        return c;
+      };
+      const num = (chave, rotulo, placeholder) => {
+        const i = document.createElement("input");
+        i.inputMode = "decimal"; i.placeholder = placeholder; i.maxLength = 12; i.value = mostrarNumero(it[chave]);
+        i.addEventListener("input", () => { it[chave] = numeroBR(i.value); });
+        const c = document.createElement("label"); c.className = "mini-campo";
+        c.append(document.createTextNode(rotulo), i);
+        return c;
+      };
+      if (t === "servicos") {
+        corpo.append(
+          sel("unidade", "Como cobra", UNIDADES_SERV),
+          txt("duracao", "Duração média", { placeholder: "Ex.: 2 horas", max: 30 }),
+          txt("descricao", "O que está incluso", { placeholder: "Ex.: até 3 cômodos, material incluso", max: 160, area: true }));
+        corpo.classList.add("dois");
+      } else if (t === "delivery") {
+        if (!document.getElementById("secoesCardapio")) {
+          const dl = document.createElement("datalist"); dl.id = "secoesCardapio";
+          SECOES_CARDAPIO.forEach((x) => { const o = document.createElement("option"); o.value = x; dl.appendChild(o); });
+          document.body.appendChild(dl);
+        }
+        corpo.append(
+          txt("secao", "Seção do cardápio", { placeholder: "Ex.: Lanches", max: 24, lista: "secoesCardapio" }),
+          num("precoAntigo", "Preço antes (promoção)", "R$"),
+          txt("descricao", "Descrição / ingredientes", { placeholder: "Ex.: pão brioche, 180 g de carne, cheddar, bacon", max: 160, area: true }));
+        corpo.classList.add("dois");
+      } else if (t === "lojinha") {
+        corpo.append(
+          sel("condicao", "Estado", CONDICAO),
+          txt("marca", "Marca", { placeholder: "Ex.: Nike", max: 30 }),
+          num("precoAntigo", "Preço antes (promoção)", "R$"),
+          txt("tamanhos", "Tamanhos (separe por vírgula)", { placeholder: "P, M, G  ou  37, 38, 39", max: 80 }),
+          txt("cores", "Cores (separe por vírgula)", { placeholder: "Preto, Branco", max: 80 }),
+          txt("descricao", "Descrição", { placeholder: "Conte como é o produto", max: 300, area: true }),
+          txt("ficha", "Ficha técnica (uma por linha)", { placeholder: "Material: Algodão\nMedidas: 70 x 50 cm\nPeso: 200 g", max: 500, area: true }));
+        corpo.classList.add("dois");
+      }
+      det.appendChild(corpo);
+      return det;
+    }
+    const listaTexto = (v, max = 12) => (Array.isArray(v) ? v : String(v || "").split(",")).map((x) => String(x).trim().slice(0, 20)).filter(Boolean).slice(0, max);
+
     // ---------- anúncios de imóveis (vários por pessoa) ----------
     let meusAnuncios = [], anEdit = null, anEditandoId = null;
     const FINALIDADES = { aluguel: "Aluguel", venda: "Venda", temporada: "Temporada" };
@@ -2531,6 +2633,8 @@
       anEditandoId = a?.id || null;
       anEdit = JSON.parse(JSON.stringify({ finalidade: "aluguel", categoria: "apartamento", cidade: nomeCidade(dados.cidade), fotos: [], ...(a || {}), criadoEm: null, atualizadoEm: null }));
       anEdit.mobiliadoLista = anEdit.mobiliado ? ["sim"] : [];
+      anEdit.caracteristicas = Array.isArray(anEdit.caracteristicas) ? anEdit.caracteristicas : [];
+      anEdit.condicoes = Array.isArray(anEdit.condicoes) ? anEdit.condicoes : [];
       $("tAnuncio").textContent = a ? "Editar imóvel" : "Anunciar imóvel";
       $("anExcluir").hidden = !a;
       const corpo = $("anCorpo");
@@ -2592,8 +2696,15 @@
           campo("Banheiros", ent("banheiros", { numero: true, max: 3 })),
           campo("Vagas", ent("vagas", { numero: true, max: 3 })),
           campo("Área (m²)", ent("area", { numero: true, max: 7 }))),
+        grade("tres",
+          campo("Suítes", ent("suites", { numero: true, max: 3 })),
+          campo("Andar", ent("andar", { placeholder: "Térreo, 5º", max: 12 })),
+          campo("IPTU (R$/mês)", ent("iptu", { numero: true }))),
         grade("", campo("Bairro", ent("bairro", { placeholder: "Ex.: Trindade" })), campo("Cidade", ent("cidade", { placeholder: "Florianópolis" }))),
+        grade("", campo("Disponível a partir de", ent("disponivel", { placeholder: "Imediato ou 10/12", max: 20 })), campo("Hóspedes (temporada)", ent("hospedes", { numero: true, max: 3 }))),
         campo("", marcas("mobiliadoLista", { sim: "Mobiliado" }, null, anEdit)),
+        campo("Características", marcas("caracteristicas", CARACT_IMOVEL, null, anEdit)),
+        campo("Condições", marcas("condicoes", CONDICOES_IMOVEL, null, anEdit), "Garantias do aluguel, financiamento, pets..."),
         campo("Descrição", desc)
       );
       abrirFolha("folhaAnuncio");
@@ -2613,6 +2724,8 @@
           preco: a.preco ?? null, condominio: a.condominio ?? null, quartos: a.quartos ?? null, banheiros: a.banheiros ?? null,
           vagas: a.vagas ?? null, area: a.area ?? null, bairro: a.bairro || "", cidade: a.cidade || "",
           mobiliado: (a.mobiliadoLista || []).includes("sim"), descricao: a.descricao || "", fotos,
+          suites: a.suites ?? null, andar: String(a.andar || "").slice(0, 12), iptu: a.iptu ?? null, disponivel: String(a.disponivel || "").slice(0, 20),
+          hospedes: a.hospedes ?? null, caracteristicas: (a.caracteristicas || []).filter((k) => CARACT_IMOVEL[k]), condicoes: (a.condicoes || []).filter((k) => CONDICOES_IMOVEL[k]),
           criadoEm: a.criadoEm || fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp()
         };
         if (!anEditandoId) dadosAn.criadoEm = fb.serverTimestamp();
@@ -2674,12 +2787,13 @@
         if (negTipo === "servicos" && !(x.categorias || []).length) { throw new Error("Marque pelo menos uma área de atuação."); }
         const extras = { categoria: negTipo === "servicos" ? x.categorias[0] : (x.categoria || Object.keys(CATS_NEGOCIO[negTipo])[0]), fotos: [], itens: [] };
         const campos = {
-          servicos: ["categorias", "precoDesde", "horario", "atendimento"],
-          delivery: ["horaAbre", "horaFecha", "tempoMin", "tempoMax", "taxaEntrega", "pedidoMinimo"],
-          lojinha: ["entrega"],
+          servicos: ["categorias", "precoDesde", "horario", "atendimento", "dias", "regiao", "experiencia", "diferenciais", "pagamentos"],
+          delivery: ["horaAbre", "horaFecha", "tempoMin", "tempoMax", "taxaEntrega", "pedidoMinimo", "dias", "opcoesEntrega", "pagamentos"],
+          lojinha: ["entrega", "pagamentos", "categoriaPersonalizada"],
           imoveis: ["tipoAnunciante", "creci"]
         }[negTipo];
         campos.forEach((k) => { extras[k] = x[k] ?? null; });
+        if (negTipo === "lojinha") extras.categoriaPersonalizada = extras.categoria === "outros" ? String(x.categoriaPersonalizada || "").trim().slice(0, 30) : "";
         if (negTipo === "servicos") {
           const motorista = x.categorias.includes("transporte");
           extras.cnh = motorista ? (x.cnh || []) : [];
@@ -2700,7 +2814,16 @@
           if (!it.nome) continue;
           const fotoItem = it.foto && it.foto.startsWith("data:") ? await salvarImagem(it.foto, `negocios/${id}_i${i}.jpg`) : (it.foto || "");
           const item = { nome: it.nome, preco: it.preco ?? null, foto: fotoItem };
-          if (negTipo === "lojinha") item.estoque = Number.isInteger(it.estoque) && it.estoque >= 0 ? it.estoque : null;
+          const curto = (v, m) => String(v || "").trim().slice(0, m);
+          if (negTipo === "lojinha") {
+            item.estoque = Number.isInteger(it.estoque) && it.estoque >= 0 ? it.estoque : null;
+            Object.assign(item, {
+              condicao: CONDICAO[it.condicao] ? it.condicao : "novo", marca: curto(it.marca, 30), precoAntigo: Number(it.precoAntigo) > 0 ? Number(it.precoAntigo) : null,
+              tamanhos: listaTexto(it.tamanhos), cores: listaTexto(it.cores), descricao: curto(it.descricao, 300), ficha: curto(it.ficha, 500)
+            });
+          }
+          if (negTipo === "delivery") Object.assign(item, { secao: curto(it.secao, 24), descricao: curto(it.descricao, 160), precoAntigo: Number(it.precoAntigo) > 0 ? Number(it.precoAntigo) : null });
+          if (negTipo === "servicos") Object.assign(item, { unidade: UNIDADES_SERV[it.unidade] ? it.unidade : "fixo", duracao: curto(it.duracao, 30), descricao: curto(it.descricao, 160) });
           if (negTipo === "servicos") item.categoria = x.categorias.includes(it.categoria) ? it.categoria : x.categorias[0];
           extras.itens.push(item);
         }
