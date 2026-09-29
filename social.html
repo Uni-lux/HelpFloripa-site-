@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1014" />
+  <link rel="icon" href="favicon.ico" />
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
+  <title>Social | Help Floripa</title>
+  <script>
+    (function () {
+      var c = {};
+      try { c = JSON.parse(localStorage.getItem("hf-chat-config") || "{}"); } catch (e) {}
+      var t = c.tema || "sistema";
+      var escuro = t === "escuro" || (t === "sistema" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
+      document.documentElement.dataset.theme = escuro ? "dark" : "light";
+    })();
+  </script>
+  <style>
+    :root { --accent: #00adee; --accent-ink: #001a24; --danger: #e5484d; --duo: #e0243b; --familia: #f5b700; --amizade: #00adee; --amor: #ff4f8b; --trabalho: #2fbf71; --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    :root[data-theme="dark"] { --bg: #070b0e; --panel: #0f161b; --panel-2: #151f25; --hover: #19252c; --line: #213038; --text: #eaf0f3; --muted: #8c9ca7; --teia: rgba(255, 255, 255, .07); --overlay: rgba(2, 6, 9, .72); }
+    :root[data-theme="light"] { --bg: #f1f4f6; --panel: #ffffff; --panel-2: #f5f7f9; --hover: #eef2f5; --line: #e1e7eb; --text: #0e1a21; --muted: #607380; --teia: rgba(0, 40, 60, .09); --overlay: rgba(10, 20, 26, .5); }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--text); font-family: var(--font); -webkit-font-smoothing: antialiased; }
+    button { font: inherit; color: inherit; }
+    svg.i { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+    svg.i.s { width: 16px; height: 16px; }
+    .topo { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 8px; height: calc(60px + env(safe-area-inset-top)); padding: env(safe-area-inset-top) 8px 0; background: color-mix(in srgb, var(--panel) 90%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border-bottom: 1px solid var(--line); }
+    .topo h1 { flex: 1; margin: 0; font-size: 17px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .icone-btn { width: 42px; height: 42px; border-radius: 50%; border: 0; background: transparent; display: grid; place-items: center; cursor: pointer; color: var(--text); text-decoration: none; }
+    .icone-btn:hover { background: var(--hover); }
+    .pagina { width: min(760px, 100%); margin: 0 auto; padding: 16px 16px 40px; }
+    .estado { padding: 70px 20px; text-align: center; color: var(--muted); }
+    .estado strong { display: block; color: var(--text); font-size: 17px; margin-bottom: 6px; }
+
+    .palco { position: relative; width: 100%; aspect-ratio: 1; max-width: 640px; margin: 0 auto; border-radius: 28px; overflow: hidden;
+      background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 65%), var(--panel); border: 1px solid var(--line); }
+    .palco svg.linhas { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .teia { stroke: var(--teia); stroke-width: 1; fill: none; }
+    .liga { fill: none; stroke-width: 2.2; stroke-linecap: round; opacity: .9; }
+    .liga.duo { stroke: var(--duo); stroke-width: 2.6; stroke-dasharray: 6 5; animation: fio 1.6s linear infinite; filter: drop-shadow(0 0 4px rgba(224, 36, 59, .8)); }
+    @keyframes fio { to { stroke-dashoffset: -22; } }
+    .no { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 4px; width: 86px; border: 0; background: none; padding: 0; text-align: center; cursor: pointer; }
+    .no[disabled] { cursor: default; }
+    .no .foto { position: relative; width: 58px; height: 58px; border-radius: 50%; overflow: visible; }
+    .no .avatar { width: 100%; height: 100%; border-radius: 50%; overflow: hidden; background: linear-gradient(135deg, #0a4a63, #00adee); color: #fff; display: grid; place-items: center; font-weight: 750; box-shadow: 0 0 0 3px var(--panel), 0 0 0 5px var(--cor, var(--accent)), 0 8px 20px rgba(0, 0, 0, .25); }
+    .no .avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .no .nome { font-size: 12px; font-weight: 750; max-width: 86px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: var(--panel); padding: 1px 6px; border-radius: 8px; }
+    .no .papel { font-size: 10.5px; font-weight: 800; color: var(--cor); margin-top: -3px; background: var(--panel); padding: 0 6px; border-radius: 6px; }
+    .no.centro .foto { width: 96px; height: 96px; }
+    .no.centro .avatar { font-size: 28px; box-shadow: 0 0 0 4px var(--panel), 0 0 0 7px var(--accent), 0 10px 30px rgba(0, 0, 0, .3); }
+    .no.centro .nome { font-size: 14px; }
+    .no.pendente { opacity: .55; }
+    .rosa { position: absolute; right: -4px; bottom: -4px; width: 26px; height: 26px; border-radius: 50%; background: #fff; display: grid; place-items: center; box-shadow: 0 2px 8px rgba(0, 0, 0, .35); color: var(--duo); }
+    .rosa svg { width: 17px; height: 17px; }
+    .no[data-cat="duo"] { --cor: var(--duo); }
+    .no[data-cat="familia"] { --cor: var(--familia); }
+    .no[data-cat="amizade"] { --cor: var(--amizade); }
+    .no[data-cat="amor"] { --cor: var(--amor); }
+    .no[data-cat="trabalho"] { --cor: var(--trabalho); }
+
+    .legenda { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 16px 0 6px; }
+    .legenda span { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); font-size: 12.5px; font-weight: 700; }
+    .legenda i { width: 10px; height: 10px; border-radius: 50%; background: var(--cor); }
+    .legenda svg { color: var(--duo); width: 15px; height: 15px; }
+    .nota { text-align: center; color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+    .painel { margin-top: 16px; padding: 16px; border-radius: 20px; background: var(--panel); border: 1px solid var(--line); }
+    .painel h2 { margin: 0 0 4px; font-size: 15px; }
+    .painel p { margin: 0 0 12px; color: var(--muted); font-size: 13px; }
+    .segmentado { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; background: var(--panel-2); padding: 4px; border-radius: 12px; }
+    .segmentado button { border: 0; background: transparent; border-radius: 9px; padding: 9px 4px; font-size: 13px; font-weight: 700; color: var(--muted); cursor: pointer; }
+    .segmentado button.on { background: var(--panel); color: var(--text); box-shadow: 0 1px 4px rgba(0, 0, 0, .15); }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 12px; padding: 11px 16px; font-weight: 700; cursor: pointer; text-decoration: none; }
+    .btn.pri { background: var(--accent); color: var(--accent-ink); }
+    .acoes { display: flex; justify-content: center; margin-top: 14px; }
+
+    .menu-fundo { position: fixed; inset: 0; z-index: 50; background: var(--overlay); display: grid; place-items: end center; padding: 0; }
+    .menu { width: min(460px, 100%); background: var(--panel); border-radius: 22px 22px 0 0; padding: 8px 0 calc(12px + env(safe-area-inset-bottom)); }
+    .menu h3 { margin: 10px 18px 8px; font-size: 15px; }
+    .menu button { display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 18px; border: 0; background: transparent; text-align: left; cursor: pointer; font-size: 15px; font-weight: 600; }
+    .menu button:hover { background: var(--hover); }
+    .menu button.perigo { color: var(--danger); }
+    .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 60; background: var(--text); color: var(--panel); padding: 12px 18px; border-radius: 12px; font-weight: 600; font-size: 14px; }
+    @media (min-width: 700px) { .menu-fundo { place-items: center; } .menu { border-radius: 22px; } }
+    @media (max-width: 480px) { .no { width: 72px; } .no .foto { width: 48px; height: 48px; } .no .nome { font-size: 11px; max-width: 72px; } .no.centro .foto { width: 80px; height: 80px; } }
+  </style>
+  <script type="module" src="firebase.js"></script>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-voltar" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+    <symbol id="i-rosa" viewBox="0 0 24 24"><path d="M12 13.2c-2.7 0-4.6-2-4.6-4.5 0-1.6.8-2.9 1.9-3.7.3 1.1 1.3 1.9 2.7 1.9s2.4-.8 2.7-1.9c1.1.8 1.9 2.1 1.9 3.7 0 2.5-1.9 4.5-4.6 4.5z" fill="currentColor" stroke="none"/><path d="M12 13.2V21M12 17.2c-1.4-1.9-3.4-2.2-5-1.6 1 1.9 3.1 2.5 5 1.6zM12 16.2c1.2-1.5 2.9-1.7 4.2-1.2-.8 1.5-2.5 2-4.2 1.2z"/></symbol>
+    <symbol id="i-perfil" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="4"/><path d="M4.5 20.5c1.2-3.6 4.1-5.5 7.5-5.5s6.3 1.9 7.5 5.5"/></symbol>
+    <symbol id="i-lixo" viewBox="0 0 24 24"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5"/></symbol>
+    <symbol id="i-mais" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  </svg>
+
+  <header class="topo">
+    <a class="icone-btn" href="usuarios.html" id="btnVoltar" aria-label="Voltar"><svg class="i"><use href="#i-voltar"/></svg></a>
+    <h1 id="titulo">Social</h1>
+  </header>
+
+  <main class="pagina">
+    <div class="estado" id="estado">Carregando...</div>
+    <div id="conteudo" hidden>
+      <div class="palco" id="palco"><svg class="linhas" id="linhas" aria-hidden="true"></svg></div>
+      <div class="legenda" id="legenda"></div>
+      <p class="nota" id="nota" hidden></p>
+      <div class="acoes" id="acoesDono" hidden><a class="btn pri" href="usuarios.html?acao=social"><svg class="i s"><use href="#i-mais"/></svg>Adicionar ao meu social</a></div>
+      <div class="painel" id="painelPrivacidade" hidden>
+        <h2>Quem pode abrir os perfis do seu social</h2>
+        <p>Quem não estiver liberado vê as fotos, mas não consegue abrir os perfis. "Só eu" esconde o social de todo mundo.</p>
+        <div class="segmentado" id="visibilidade">
+          <button type="button" data-valor="todos">Todos</button>
+          <button type="button" data-valor="seguidores">Seguidores</button>
+          <button type="button" data-valor="amigos">Amigos</button>
+          <button type="button" data-valor="ocultar">Só eu</button>
+        </div>
+        <p style="margin:10px 0 0">Amigos = pessoas que você segue e que seguem você.</p>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    const $ = (id) => document.getElementById(id);
+    const ms = (ts) => ts?.toMillis?.() ?? 0;
+    const TIPOS = {
+      duo: { rotulo: "Duo", cat: "duo" }, namoro: { rotulo: "Namorado(a)", cat: "amor" }, casamento: { rotulo: "Cônjuge", cat: "amor" },
+      melhor_amigo: { rotulo: "Melhor amigo(a)", cat: "amizade" }, amigo: { rotulo: "Amigo(a)", cat: "amizade" },
+      irmao: { rotulo: "Irmão(ã)", cat: "familia" }, pai_mae: { rotulo: "Pai/Mãe", cat: "familia" }, filho: { rotulo: "Filho(a)", cat: "familia" },
+      primo: { rotulo: "Primo(a)", cat: "familia" }, tio: { rotulo: "Tio(a)", cat: "familia" }, sobrinho: { rotulo: "Sobrinho(a)", cat: "familia" },
+      avo: { rotulo: "Avô/Avó", cat: "familia" }, neto: { rotulo: "Neto(a)", cat: "familia" }, parceiro: { rotulo: "Trabalho", cat: "trabalho" }
+    };
+    const CATEGORIAS = [["familia", "Família"], ["amizade", "Amizade"], ["amor", "Amor"], ["trabalho", "Trabalho"]];
+    const urlSegura = (u) => (/^(https:\/\/|data:image\/)/i.test(String(u || "")) ? String(u) : "");
+    const iniciais = (n) => { const p = String(n || "?").trim().split(/\s+/); return ((p[0]?.[0] || "?") + (p.length > 1 ? p[p.length - 1][0] : "")).toUpperCase(); };
+    function avatar(foto, nome) {
+      const d = document.createElement("div");
+      d.className = "avatar";
+      const u = urlSegura(foto);
+      if (u) { const i = document.createElement("img"); i.src = u; i.alt = ""; i.onerror = () => { d.textContent = iniciais(nome); }; d.appendChild(i); }
+      else d.textContent = iniciais(nome);
+      return d;
+    }
+    function icone(nome, classe = "i s") {
+      const ns = "http://www.w3.org/2000/svg";
+      const s = document.createElementNS(ns, "svg"); s.setAttribute("class", classe);
+      const u = document.createElementNS(ns, "use"); u.setAttribute("href", "#i-" + nome); s.appendChild(u);
+      return s;
+    }
+    function toast(t) {
+      document.querySelectorAll(".toast").forEach((x) => x.remove());
+      const d = document.createElement("div"); d.className = "toast"; d.textContent = t; document.body.appendChild(d);
+      setTimeout(() => d.remove(), 3500);
+    }
+    function estado(titulo, texto) {
+      $("conteudo").hidden = true;
+      $("estado").hidden = false;
+      $("estado").replaceChildren();
+      const s = document.createElement("strong"); s.textContent = titulo;
+      $("estado").append(s, texto || "");
+    }
+
+    let fb, eu, dono, donoId, vinculos = [], clicavel = false, proprio = false;
+
+    async function podeAbrirPerfis() {
+      if (proprio) return true;
+      const vis = dono.socialVisibilidade || "todos";
+      if (vis === "todos") return true;
+      if (vis === "ocultar") return false;
+      const [euSigo, meSegue] = await Promise.all([
+        fb.getDoc(fb.doc(fb.db, "relacoes", `${eu.uid}_${donoId}`)).then((s) => s.exists()).catch(() => false),
+        fb.getDoc(fb.doc(fb.db, "relacoes", `${donoId}_${eu.uid}`)).then((s) => s.exists()).catch(() => false)
+      ]);
+      return vis === "seguidores" ? euSigo : euSigo && meSegue;
+    }
+
+    function menu(titulo, opcoes) {
+      const fundo = document.createElement("div");
+      fundo.className = "menu-fundo";
+      const m = document.createElement("div");
+      m.className = "menu";
+      m.setAttribute("role", "dialog");
+      const h = document.createElement("h3"); h.textContent = titulo; m.appendChild(h);
+      opcoes.forEach((o) => {
+        const b = document.createElement("button"); b.type = "button";
+        if (o.perigo) b.className = "perigo";
+        b.append(icone(o.icone, "i"), document.createTextNode(o.rotulo));
+        b.addEventListener("click", () => { fundo.remove(); o.fn(); });
+        m.appendChild(b);
+      });
+      fundo.appendChild(m);
+      fundo.addEventListener("click", (e) => { if (e.target === fundo) fundo.remove(); });
+      document.body.appendChild(fundo);
+    }
+
+    // Desenha a teia: centro = dono; duo no topo; os demais em anéis.
+    async function desenhar() {
+      const palco = $("palco");
+      palco.querySelectorAll(".no").forEach((n) => n.remove());
+      const svg = $("linhas");
+      svg.replaceChildren();
+      const W = palco.clientWidth, H = palco.clientHeight, cx = W / 2, cy = H / 2;
+      svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+      const ns = "http://www.w3.org/2000/svg";
+
+      const lidos = vinculos.map((v) => {
+        const outro = (v.participantes || []).find((x) => x !== donoId);
+        const tipo = donoId === v.de ? v.tipoDe : v.tipoPara;
+        return { ...v, outro, tipo, cat: TIPOS[tipo]?.cat || "amizade", pendente: v.status !== "aceito" };
+      }).filter((v) => proprio || !v.pendente);
+      const perfis = await Promise.all(lidos.map((v) => fb.getDoc(fb.doc(fb.db, "perfis_publicos", v.outro)).then((s) => (s.exists() ? s.data() : {})).catch(() => ({}))));
+
+      const duoI = lidos.findIndex((v) => v.tipo === "duo" && !v.pendente);
+      const outros = lidos.map((v, i) => i).filter((i) => i !== duoI);
+      const raioMax = Math.min(W, H) / 2 - 56;
+      const aneis = outros.length > 9 ? [raioMax * 0.62, raioMax] : [raioMax * 0.86];
+      const porAnel = aneis.length === 2 ? [Math.min(6, Math.ceil(outros.length / 2.4)), 0] : [outros.length];
+      if (aneis.length === 2) porAnel[1] = outros.length - porAnel[0];
+
+      const posicoes = new Map();
+      if (duoI >= 0) posicoes.set(duoI, { x: cx, y: cy - raioMax * 0.55, a: -Math.PI / 2 });
+      let k = 0;
+      aneis.forEach((r, anel) => {
+        const n = porAnel[anel];
+        const inicio = -Math.PI / 2 + (duoI >= 0 && anel === 0 ? Math.PI / Math.max(n, 1) : 0) + anel * (Math.PI / Math.max(n, 1));
+        for (let j = 0; j < n; j++, k++) {
+          const a = inicio + (j * 2 * Math.PI) / n;
+          posicoes.set(outros[k], { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a), a });
+        }
+      });
+
+      // teia de fundo: anéis e raios
+      [0.33, 0.62, 0.86, 1].forEach((f) => {
+        const c = document.createElementNS(ns, "circle");
+        c.setAttribute("cx", cx); c.setAttribute("cy", cy); c.setAttribute("r", raioMax * f);
+        c.setAttribute("class", "teia");
+        svg.appendChild(c);
+      });
+      const nRaios = Math.max(8, posicoes.size);
+      for (let i = 0; i < nRaios; i++) {
+        const a = -Math.PI / 2 + (i * 2 * Math.PI) / nRaios;
+        const l = document.createElementNS(ns, "line");
+        l.setAttribute("x1", cx); l.setAttribute("y1", cy);
+        l.setAttribute("x2", cx + (raioMax + 30) * Math.cos(a)); l.setAttribute("y2", cy + (raioMax + 30) * Math.sin(a));
+        l.setAttribute("class", "teia");
+        svg.appendChild(l);
+      }
+
+      // ligações
+      posicoes.forEach((p, i) => {
+        const v = lidos[i];
+        const path = document.createElementNS(ns, "path");
+        const mx = (cx + p.x) / 2, my = (cy + p.y) / 2;
+        const curva = v.cat === "duo" ? 26 : 12;
+        const nx = -(p.y - cy), ny = p.x - cx, len = Math.hypot(nx, ny) || 1;
+        path.setAttribute("d", `M${cx} ${cy} Q${mx + (nx / len) * curva} ${my + (ny / len) * curva} ${p.x} ${p.y}`);
+        path.setAttribute("class", "liga" + (v.cat === "duo" ? " duo" : ""));
+        if (v.cat !== "duo") path.setAttribute("stroke", getComputedStyle(document.documentElement).getPropertyValue(`--${v.cat}`).trim() || "#00adee");
+        if (v.pendente) path.setAttribute("stroke-dasharray", "3 6");
+        svg.appendChild(path);
+      });
+
+      // nós
+      const noCentro = document.createElement("button");
+      noCentro.type = "button";
+      noCentro.className = "no centro";
+      noCentro.style.left = cx + "px"; noCentro.style.top = cy + "px";
+      const fc = document.createElement("div"); fc.className = "foto"; fc.appendChild(avatar(dono.fotoPerfil, dono.nome));
+      const nc = document.createElement("span"); nc.className = "nome"; nc.textContent = (dono.nome || "Usuário").split(" ")[0];
+      noCentro.append(fc, nc);
+      noCentro.addEventListener("click", () => { location.href = proprio ? "usuarios.html" : `usuarios.html?perfil=${encodeURIComponent(donoId)}`; });
+      palco.appendChild(noCentro);
+
+      posicoes.forEach((p, i) => {
+        const v = lidos[i], o = perfis[i];
+        const no = document.createElement("button");
+        no.type = "button";
+        no.className = "no" + (v.pendente ? " pendente" : "");
+        no.dataset.cat = v.cat;
+        no.style.left = p.x + "px"; no.style.top = p.y + "px";
+        const f = document.createElement("div"); f.className = "foto"; f.appendChild(avatar(o.fotoPerfil, o.nome));
+        if (v.cat === "duo") { const r = document.createElement("span"); r.className = "rosa"; r.appendChild(icone("rosa")); r.title = "Duo"; f.appendChild(r); }
+        const n = document.createElement("span"); n.className = "nome"; n.textContent = (o.nome || "Usuário").split(" ")[0];
+        no.append(f, n);
+        if (v.cat !== "duo") { const pp = document.createElement("span"); pp.className = "papel"; pp.textContent = v.pendente ? "Aguardando" : (TIPOS[v.tipo]?.rotulo || ""); no.appendChild(pp); }
+        no.setAttribute("aria-label", `${o.nome || "Usuário"}${v.cat === "duo" ? ", duo" : ", " + (TIPOS[v.tipo]?.rotulo || "")}`);
+        if (proprio) {
+          no.addEventListener("click", () => menu(o.nome || "Usuário", [
+            { rotulo: "Ver perfil", icone: "perfil", fn: () => { location.href = `usuarios.html?perfil=${encodeURIComponent(v.outro)}`; } },
+            { rotulo: v.pendente ? "Cancelar pedido" : "Desfazer vínculo", icone: "lixo", perigo: true, fn: async () => {
+              if (!v.pendente && !confirm(`Desfazer o vínculo com ${o.nome || "esta pessoa"}?`)) return;
+              try { await fb.deleteDoc(fb.doc(fb.db, "vinculos", v.id)); vinculos = vinculos.filter((x) => x.id !== v.id); desenhar(); toast("Pronto"); }
+              catch { toast("Não foi possível desfazer."); }
+            } }
+          ]));
+        } else if (clicavel) {
+          no.addEventListener("click", () => { location.href = `usuarios.html?perfil=${encodeURIComponent(v.outro)}`; });
+        } else {
+          no.disabled = true;
+        }
+        palco.appendChild(no);
+      });
+
+      // legenda
+      const leg = $("legenda");
+      leg.replaceChildren();
+      if (duoI >= 0) { const s = document.createElement("span"); s.append(icone("rosa"), document.createTextNode("Duo")); leg.appendChild(s); }
+      CATEGORIAS.forEach(([cat, nome]) => {
+        const n = lidos.filter((v) => v.cat === cat && !v.pendente).length;
+        if (!n) return;
+        const s = document.createElement("span");
+        const i = document.createElement("i"); i.style.setProperty("--cor", `var(--${cat})`);
+        s.append(i, document.createTextNode(`${nome} · ${n}`));
+        leg.appendChild(s);
+      });
+      if (!lidos.length) {
+        const s = document.createElement("span");
+        s.textContent = proprio ? "Seu social ainda está vazio" : "Ainda sem conexões";
+        leg.appendChild(s);
+      }
+    }
+
+    async function iniciar() {
+      for (let i = 0; i < 100 && (!window.firebaseAuth || !window.firebaseDb); i++) await new Promise((r) => setTimeout(r, 50));
+      if (!window.firebaseAuth) { estado("Não foi possível conectar", "Abra esta página pelo site."); return; }
+      const [auth, firestore] = await Promise.all([
+        import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"),
+        import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js")
+      ]);
+      fb = { ...firestore, db: window.firebaseDb };
+      auth.onAuthStateChanged(window.firebaseAuth, async (u) => {
+        if (!u) { location.href = "login.html"; return; }
+        if (eu) return;
+        eu = u;
+        donoId = new URLSearchParams(location.search).get("uid") || eu.uid;
+        proprio = donoId === eu.uid;
+        if (!proprio) $("btnVoltar").href = `usuarios.html?perfil=${encodeURIComponent(donoId)}`;
+        try {
+          if (!proprio) {
+            const [b1, b2] = await Promise.all([
+              fb.getDoc(fb.doc(fb.db, "bloqueios", `${donoId}_${eu.uid}`)).then((s) => s.exists()).catch(() => false),
+              fb.getDoc(fb.doc(fb.db, "bloqueios", `${eu.uid}_${donoId}`)).then((s) => s.exists()).catch(() => false)
+            ]);
+            if (b1 || b2) { estado("Social indisponível", "Não é possível ver este social."); return; }
+          }
+          const s = await fb.getDoc(fb.doc(fb.db, "perfis_publicos", donoId));
+          dono = s.exists() ? s.data() : {};
+          $("titulo").textContent = proprio ? "Meu social" : `Social de ${(dono.nome || "Usuário").split(" ")[0]}`;
+          document.title = `${$("titulo").textContent} | Help Floripa`;
+          if (!proprio && (dono.socialVisibilidade || "todos") === "ocultar") { estado("Social privado", "Esta pessoa preferiu não mostrar o social."); return; }
+          clicavel = await podeAbrirPerfis();
+          const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "vinculos"), fb.where("participantes", "array-contains", donoId), fb.limit(40)));
+          vinculos = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          $("estado").hidden = true;
+          $("conteudo").hidden = false;
+          if (!proprio && !clicavel) {
+            $("nota").hidden = false;
+            $("nota").textContent = dono.socialVisibilidade === "amigos" ? "Os perfis abrem só para amigos (quem segue e é seguido)." : "Os perfis abrem só para seguidores.";
+          }
+          if (proprio) {
+            $("acoesDono").hidden = false;
+            $("painelPrivacidade").hidden = false;
+            const pintar = () => document.querySelectorAll("#visibilidade [data-valor]").forEach((b) => b.classList.toggle("on", b.dataset.valor === (dono.socialVisibilidade || "todos")));
+            pintar();
+            $("visibilidade").addEventListener("click", async (e) => {
+              const b = e.target.closest("[data-valor]");
+              if (!b) return;
+              const antes = dono.socialVisibilidade;
+              dono.socialVisibilidade = b.dataset.valor;
+              pintar();
+              try {
+                await fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), { uid: eu.uid, socialVisibilidade: b.dataset.valor }, { merge: true });
+                toast("Privacidade do social atualizada");
+              } catch { dono.socialVisibilidade = antes; pintar(); toast("Não foi possível salvar."); }
+            });
+          }
+          await desenhar();
+          let t = null;
+          new ResizeObserver(() => { clearTimeout(t); t = setTimeout(desenhar, 120); }).observe($("palco"));
+        } catch (e) {
+          console.error(e);
+          estado("Não foi possível carregar", "Tente novamente em instantes.");
+        }
+      });
+    }
+    iniciar();
+  </script>
+</body>
+</html>
