@@ -1986,7 +1986,7 @@
       $("inputFundoFoto").value = "";
       if (!arquivo) return;
       try {
-        const { editarImagem } = await import("./editor-imagem.js");
+        const { editarImagem } = await import("./editor-imagem.js?v=5");
         // A moldura tem o formato da área da conversa nesta tela.
         const area = document.querySelector(".chat");
         const larg = area.offsetWidth || window.innerWidth;

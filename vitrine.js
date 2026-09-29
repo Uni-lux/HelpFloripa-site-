@@ -123,11 +123,20 @@ function botoesContato(n, { textoPri = "Mensagem", textoWhats } = {}) {
   return box;
 }
 
+// Nome do criador leva ao perfil dele.
+function linkCriador(uid, dono, aoPerfil) {
+  const a = el("a", "vt-dono");
+  a.href = `usuarios.html?perfil=${encodeURIComponent(uid)}`;
+  a.append(avatar(dono.fotoPerfil, dono.nome), document.createTextNode("por "), el("strong", null, dono.nome || "Usuário"));
+  a.title = "Ver perfil de quem criou";
+  a.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (aoPerfil) { e.preventDefault(); document.querySelectorAll(".vt-modal").forEach((m) => m.remove()); aoPerfil(uid); }
+  });
+  return a;
+}
 function linhaDono(n) {
-  const d = donos.get(n.donoId) || {};
-  const box = el("div", "vt-dono");
-  box.append(avatar(d.fotoPerfil, d.nome), document.createTextNode(`por ${d.nome || "Usuário"}`));
-  return box;
+  return linkCriador(n.donoId, donos.get(n.donoId) || {});
 }
 
 // ---------- cartões por tipo ----------
@@ -311,9 +320,7 @@ export function abrirDetalhe(n, opcoes = {}) {
   const local = [n.bairro, n.cidade].filter(Boolean).join(", ");
   if (local) { const s2 = el("span"); s2.append(icone("pin"), document.createTextNode(local)); tags.appendChild(s2); }
   cab.appendChild(tags);
-  const d = el("div", "vt-dono");
-  d.append(avatar(dono.fotoPerfil, dono.nome), document.createTextNode(`por ${dono.nome || "Usuário"}`));
-  cab.appendChild(d);
+  cab.appendChild(linkCriador(n.donoId, dono, opcoes.aoPerfil));
   ct.appendChild(cab);
 
   // fatos principais de cada tipo

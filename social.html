@@ -94,7 +94,7 @@
     .legenda button i { width: 9px; height: 9px; border-radius: 50%; background: var(--cor, var(--muted)); }
     .legenda button.on { color: var(--text); border-color: var(--cor, var(--text)); background: color-mix(in srgb, var(--cor, var(--text)) 14%, var(--panel)); }
     .mapa { position: relative; width: 100%; max-width: 660px; aspect-ratio: 1; margin: 0 auto; }
-    .mapa svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+    .mapa > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
     .mapa .anel { fill: none; stroke: var(--anel); stroke-width: 1; }
     .mapa .setor { fill: none; stroke-width: 8; stroke-linecap: round; opacity: .25; }
     .mapa .setor-rot { font-size: 11px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; }
@@ -107,7 +107,11 @@
     .mapa .no span { font-size: 10.5px; font-weight: 750; max-width: 64px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 5px; border-radius: 6px; background: var(--panel); line-height: 1.5; }
     .mapa .no.duo .avatar { width: 42px; height: 42px; box-shadow: 0 0 0 3px var(--panel), 0 0 0 5px var(--duo), 0 0 16px rgba(224, 36, 59, .5); }
     .mapa .no.centro .avatar { width: 64px; height: 64px; font-size: 20px; box-shadow: 0 0 0 4px var(--panel), 0 0 0 6px var(--accent), var(--sombra); }
-    .mapa .no.centro span { font-size: 12px; }
+    .mapa .no.centro { width: 96px; }
+    .mapa .no.centro span { font-size: 12px; max-width: 96px; }
+    .mapa .no.vaga .avatar { background: transparent; color: var(--cor); border: 1.5px dashed color-mix(in srgb, var(--cor) 70%, transparent); box-shadow: none; }
+    .mapa .no.vaga span { color: var(--muted); font-weight: 600; background: transparent; }
+    .mapa .no.vaga[disabled] { opacity: .55; }
     .mapa [data-escondido="1"] { display: none; }
     .mapa-vazio { position: absolute; left: 0; right: 0; bottom: 10%; margin: 0; text-align: center; color: var(--muted); font-size: 13.5px; }
 
@@ -236,14 +240,18 @@
       melhor_amigo: ["Melhor amigo(a)", "amizade"], amigo: ["Amigo(a)", "amizade"],
       irmao: ["Irmão(ã)", "familia"], pai_mae: ["Pai/Mãe", "familia"], filho: ["Filho(a)", "familia"],
       primo: ["Primo(a)", "familia"], tio: ["Tio(a)", "familia"], sobrinho: ["Sobrinho(a)", "familia"],
-      avo: ["Avô/Avó", "familia"], neto: ["Neto(a)", "familia"], parceiro: ["Trabalho", "trabalho"]
+      avo: ["Avô/Avó", "familia"], neto: ["Neto(a)", "familia"], parceiro: ["Colega de trabalho", "trabalho"]
     };
+    // Vagas fixas no mapa: 1 para o amor (duo), 4 para amizades, 4 para colegas e 4 para família.
+    // centro = ângulo do setor (270 = topo, 0 = direita, 90 = baixo, 180 = esquerda).
     const GRUPOS = [
-      { cat: "duo", nome: "Duo", de: 240, ate: 300 },
-      { cat: "amizade", nome: "Amizade", de: 312, ate: 408 },
-      { cat: "trabalho", nome: "Trabalho", de: 60, ate: 120 },
-      { cat: "familia", nome: "Família", de: 132, ate: 228 }
+      { cat: "duo", nome: "Amor", centro: 270, vagas: 1 },
+      { cat: "amizade", nome: "Amizades", centro: 0, vagas: 4 },
+      { cat: "trabalho", nome: "Colegas", centro: 90, vagas: 4 },
+      { cat: "familia", nome: "Família", centro: 180, vagas: 4 }
     ];
+    // posição de cada vaga: deslocamento em graus e distância do centro (fração do raio), em zigue-zague
+    const VAGAS = { 1: [[0, 0.74]], 4: [[-34, 0.9], [-12, 0.6], [12, 0.9], [34, 0.6]] };
     const nomeGrupo = (cat) => GRUPOS.find((g) => g.cat === cat)?.nome || "";
 
     const urlSegura = (u) => (/^(https:\/\/|data:image\/)/i.test(String(u || "")) ? String(u) : "");
@@ -413,6 +421,11 @@
     function desenharLegenda() {
       const box = $("legenda");
       box.replaceChildren();
+      const todos = el("button", filtro === "todos" ? "on" : ""); todos.type = "button";
+      todos.setAttribute("aria-pressed", filtro === "todos" ? "true" : "false");
+      todos.textContent = "Todos";
+      todos.addEventListener("click", () => { filtro = "todos"; desenharNumeros(); desenharLegenda(); desenharMapa(); desenharGrupos(); });
+      box.appendChild(todos);
       GRUPOS.forEach((g) => {
         if (!conexoes.some((c) => c.cat === g.cat && (proprio || !c.pendente))) return;
         const b = el("button", filtro === g.cat ? "on" : ""); b.type = "button"; b.dataset.cat = g.cat;
@@ -423,7 +436,7 @@
       });
     }
 
-    // ---------- mapa em setores, sem sobreposição ----------
+    // ---------- mapa com vagas fixas ----------
     function desenharMapa() {
       const mapa = $("mapa");
       mapa.querySelectorAll(".no, .mapa-vazio").forEach((n) => n.remove());
@@ -432,51 +445,54 @@
       const W = mapa.clientWidth, H = mapa.clientHeight;
       if (!W) return;
       const pequeno = W < 480;
-      const cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - (pequeno ? 30 : 36);
-      const largNo = pequeno ? 58 : 68; // espaço que cada bolinha + nome ocupa
+      const cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - (pequeno ? 34 : 42);
       svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
       const rad = (g) => (g * Math.PI) / 180;
       const ponto = (g, r) => ({ x: cx + r * Math.cos(rad(g)), y: cy + r * Math.sin(rad(g)) });
+      const defs = svgEl("defs", {});
+      svg.appendChild(defs);
 
-      [0.36, 0.58, 0.8, 1].forEach((f) => svg.appendChild(svgEl("circle", { class: "anel", cx, cy, r: R * f })));
+      [0.6, 0.9].forEach((f) => svg.appendChild(svgEl("circle", { class: "anel", cx, cy, r: R * f })));
+      svg.appendChild(svgEl("circle", { class: "anel", cx, cy, r: R }));
 
       const lista = conexoes.filter((c) => proprio || !c.pendente);
-      const posicoes = [];
+      const nos = [];
       GRUPOS.forEach((g) => {
+        const esc = filtro !== "todos" && filtro !== g.cat ? "1" : "0";
         const doGrupo = lista.filter((c) => c.cat === g.cat);
-        const escondido = filtro !== "todos" && filtro !== g.cat ? "1" : "0";
-        const a = ponto(g.de, R), b = ponto(g.ate, R);
+        // arco colorido do setor
+        const meia = g.vagas === 1 ? 26 : 42;
+        const a = ponto(g.centro - meia, R), b = ponto(g.centro + meia, R);
         const arco = svgEl("path", { class: "setor", d: `M${a.x} ${a.y} A${R} ${R} 0 0 1 ${b.x} ${b.y}`, stroke: `var(--${g.cat})` });
-        arco.dataset.escondido = escondido;
+        arco.dataset.escondido = esc;
         svg.appendChild(arco);
-        if (doGrupo.length) {
-          const p = ponto((g.de + g.ate) / 2, R + (pequeno ? 14 : 18));
-          const t = svgEl("text", { class: "setor-rot", x: Math.min(W - 40, Math.max(40, p.x)), y: Math.min(H - 6, Math.max(8, p.y)), "text-anchor": "middle", "dominant-baseline": "middle", fill: `var(--${g.cat})` });
-          t.textContent = `${g.nome} · ${doGrupo.length}`;
-          t.dataset.escondido = escondido;
-          svg.appendChild(t);
-        }
-        // Anéis de fora para dentro; cada anel recebe quantas bolinhas cabem no arco sem encostar.
-        const aneis = [0.84, 0.64, 0.46];
-        let resto = [...doGrupo];
-        for (const f of aneis) {
-          if (!resto.length) break;
-          const arcoPx = R * f * rad(g.ate - g.de);
-          const cabe = Math.max(1, Math.floor(arcoPx / largNo));
-          const aqui = resto.splice(0, cabe);
-          const passo = (g.ate - g.de) / aqui.length;
-          aqui.forEach((c, j) => posicoes.push({ c, escondido, ...ponto(g.de + passo * (j + 0.5), R * f) }));
-        }
-        if (resto.length) resto.forEach((c) => posicoes.push({ c, escondido, extra: true, x: cx, y: cy }));
+        // nome do grupo seguindo o arco, por fora do círculo (de baixo fica de pé)
+        const rt = R + (pequeno ? 13 : 16);
+        const embaixo = g.centro > 30 && g.centro < 150;
+        const ini = ponto(embaixo ? g.centro + meia + 20 : g.centro - meia - 20, rt);
+        const fim = ponto(embaixo ? g.centro - meia - 20 : g.centro + meia + 20, rt);
+        const idArco = `rot-${g.cat}`;
+        defs.appendChild(svgEl("path", { id: idArco, d: `M${ini.x} ${ini.y} A${rt} ${rt} 0 0 ${embaixo ? 0 : 1} ${fim.x} ${fim.y}` }));
+        const texto = svgEl("text", { class: "setor-rot", fill: `var(--${g.cat})`, "dominant-baseline": embaixo ? "hanging" : "auto" });
+        const tp = svgEl("textPath", { href: `#${idArco}`, startOffset: "50%", "text-anchor": "middle" });
+        const extra = doGrupo.length > g.vagas ? ` +${doGrupo.length - g.vagas}` : "";
+        tp.textContent = `${g.nome} · ${Math.min(doGrupo.length, g.vagas)}/${g.vagas}${extra}`;
+        texto.appendChild(tp);
+        texto.dataset.escondido = esc;
+        svg.appendChild(texto);
+        // vagas fixas: ocupadas pelas pessoas; o resto fica tracejado
+        VAGAS[g.vagas].forEach(([desloc, f], k) => {
+          const p = ponto(g.centro + desloc, R * f);
+          nos.push({ g, c: doGrupo[k] || null, esc, ...p });
+        });
       });
 
-      posicoes.filter((p) => !p.extra).forEach(({ c, x, y, escondido }) => {
-        const mx = (cx + x) / 2, my = (cy + y) / 2;
-        const nx = -(y - cy), ny = x - cx, len = Math.hypot(nx, ny) || 1;
-        const liga = svgEl("path", { class: "liga" + (c.cat === "duo" ? " duo" : ""), d: `M${cx} ${cy} Q${mx + (nx / len) * 12} ${my + (ny / len) * 12} ${x} ${y}`, stroke: `var(--${c.cat})` });
-        if (c.pendente) liga.setAttribute("stroke-dasharray", "3 5");
-        liga.dataset.escondido = escondido;
-        svg.appendChild(liga);
+      // fios retos do centro até cada pessoa
+      nos.filter((n) => n.c).forEach(({ c, x, y, esc }) => {
+        const l = svgEl("line", { class: "liga" + (c.cat === "duo" ? " duo" : ""), x1: cx, y1: cy, x2: x, y2: y, stroke: `var(--${c.cat})` });
+        if (c.pendente) l.setAttribute("stroke-dasharray", "3 5");
+        l.dataset.escondido = esc;
+        svg.appendChild(l);
       });
 
       const centro = el("button", "no centro"); centro.type = "button";
@@ -485,21 +501,26 @@
       centro.addEventListener("click", () => { location.href = proprio ? "usuarios.html" : `usuarios.html?perfil=${encodeURIComponent(donoId)}`; });
       mapa.appendChild(centro);
 
-      posicoes.filter((p) => !p.extra).forEach(({ c, x, y, escondido }) => {
-        const no = el("button", "no" + (c.cat === "duo" ? " duo" : "")); no.type = "button";
-        no.dataset.cat = c.cat; no.dataset.escondido = escondido;
+      nos.forEach(({ g, c, x, y, esc }) => {
+        const no = el("button", "no" + (g.cat === "duo" ? " duo" : "") + (c ? "" : " vaga")); no.type = "button";
+        no.dataset.cat = g.cat; no.dataset.escondido = esc;
         no.style.left = x + "px"; no.style.top = y + "px";
-        if (c.pendente) no.style.opacity = ".5";
-        no.append(novoAvatar(c.perfil.fotoPerfil, c.perfil.nome), el("span", null, primeiroNome(c.perfil.nome)));
-        no.title = `${c.perfil.nome || "Usuário"} · ${TIPOS[c.tipo]?.[0] || ""}`;
-        const f = acaoPessoa(c);
-        if (f) no.addEventListener("click", f); else no.disabled = true;
+        if (c) {
+          if (c.pendente) no.style.opacity = ".5";
+          no.append(novoAvatar(c.perfil.fotoPerfil, c.perfil.nome), el("span", null, primeiroNome(c.perfil.nome)));
+          no.title = `${c.perfil.nome || "Usuário"} · ${TIPOS[c.tipo]?.[0] || ""}`;
+          const f = acaoPessoa(c);
+          if (f) no.addEventListener("click", f); else no.disabled = true;
+        } else {
+          const vazio = el("div", "avatar");
+          if (proprio) vazio.appendChild(icone("mais"));
+          no.append(vazio, el("span", null, proprio ? "Adicionar" : "Vaga"));
+          no.setAttribute("aria-label", `Vaga livre em ${g.nome}`);
+          if (proprio) no.addEventListener("click", () => { location.href = "usuarios.html?acao=social"; });
+          else no.disabled = true;
+        }
         mapa.appendChild(no);
       });
-
-      const sobra = posicoes.filter((p) => p.extra && p.escondido === "0").length;
-      if (sobra) { const v = el("p", "mapa-vazio", `+${sobra} na lista abaixo`); mapa.appendChild(v); }
-      if (!posicoes.length) mapa.appendChild(el("p", "mapa-vazio", proprio ? "Adicione seu duo, família, amigos e parceiros para montar o mapa." : "Ainda sem conexões por aqui."));
     }
 
     // ---------- lista por grupos ----------

@@ -41,6 +41,14 @@ function injetarEstilo() {
   .hfe-moldura.circulo .hfe-canto { display: none; }
   .hfe-mini { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); border: 2px dotted #7de3ff; pointer-events: none; }
   .hfe-mini span { position: absolute; right: 4px; bottom: 4px; padding: 2px 6px; border-radius: 6px; background: rgba(0, 60, 80, .8); color: #fff; font-size: 10.5px; font-weight: 700; white-space: nowrap; }
+  @media (max-width: 640px) {
+    .hfe-fundo { padding: 0; }
+    .hfe-caixa { width: 100%; max-height: 100dvh; height: 100dvh; border-radius: 0; border: 0; }
+    .hfe-palco { margin: 10px 10px 0; }
+    .hfe-dica { font-size: 12px; padding: 8px 14px 0; }
+    .hfe-formatos, .hfe-legenda, .hfe-controles { padding-left: 14px; padding-right: 14px; }
+    .hfe-rodape { padding: 12px 14px calc(14px + env(safe-area-inset-bottom)); }
+  }
   .hfe-legenda { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 8px 18px 0; font-size: 11.5px; color: var(--muted, #8b9ba6); }
   .hfe-legenda i { display: inline-block; width: 18px; height: 0; vertical-align: middle; margin-right: 6px; border-top: 2px solid #fff; }
   .hfe-legenda i.tr { border-top-style: dashed; }
@@ -220,13 +228,12 @@ export async function editarImagem(arquivo, op = {}) {
 
   function medir() {
     const caixa = palco.parentElement;
-    const larguraDisp = caixa.clientWidth - 36;
-    // espaço que sobra na tela depois dos outros elementos do editor
-    const outros = caixa.scrollHeight - palco.offsetHeight;
-    const alturaMax = Math.max(200, Math.min(window.innerHeight - 40 - outros, 540));
+    const larguraDisp = palco.clientWidth || caixa.clientWidth - 20;
+    // Área grande para enxergar a margem; se não couber tudo, o editor rola.
+    const alturaMax = Math.max(300, Math.min(window.innerHeight * 0.64, 640));
     W = larguraDisp;
-    H = Math.min(alturaMax, Math.max(240, W / Math.max(proporcao, 0.6) + 40));
-    fw = Math.min(W - 32, (H - 32) * proporcao);
+    H = Math.min(alturaMax, Math.max(260, W / Math.max(proporcao, 0.6) + 24));
+    fw = Math.min(W - 16, (H - 16) * proporcao);
     fh = fw / proporcao;
     palco.style.height = H + "px";
     canvas.width = Math.round(W * dpr);
