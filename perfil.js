@@ -2,7 +2,8 @@
   const LOGIN_URL = "login.html";
   const EDIT_PROFILE_URL = "cadastrar.html";
   const PROFILE_PAGE_URL = "usuarios.html";
-  const SAFE_PHOTO_PROTOCOLS = ["https:", "http:"];
+  // Fotos só do próprio site: imagem salva no perfil, Firebase Storage ou conta Google.
+  const SAFE_PHOTO = /^(data:image\/(jpeg|png|webp);base64,|https:\/\/firebasestorage\.googleapis\.com\/|https:\/\/lh3\.googleusercontent\.com\/)/i;
 
   let statusListenersBound = false;
   let activeStatusDots = [];
@@ -57,13 +58,8 @@
   function getSafePhotoUrl(url) {
     if (!url) return "";
 
-    try {
-      const parsed = new URL(String(url), window.location.origin);
-      return SAFE_PHOTO_PROTOCOLS.includes(parsed.protocol) ? parsed.href : "";
-    } catch (error) {
-      console.warn("[Perfil] URL de foto inválida ignorada.", error);
-      return "";
-    }
+    const texto = String(url);
+    return SAFE_PHOTO.test(texto) ? texto : "";
   }
 
   function injectProfileStyles() {
