@@ -6,8 +6,8 @@
 //   cliente que reclamou marca como resolvida.
 // =====================================================
 import { fotoSegura, conferirEmail, emailPendente, MSG_EMAIL } from "./seguranca.js?v=1";
-import { estrelas } from "./avaliacoes.js?v=2";
-import { NOMES_TIPO, PAGINA_TIPO } from "./vitrine.js?v=15";
+import { estrelas } from "./avaliacoes.js?v=3";
+import { NOMES_TIPO, PAGINA_TIPO } from "./vitrine.js?v=16";
 
 const $ = (id) => document.getElementById(id);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
