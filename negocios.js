@@ -99,7 +99,18 @@ function pintarPainel() {
   $("resumoNegocios").textContent = total ? `${total} de 4 perfis criados` : "Você ainda não tem perfis de negócio";
   $("btnNovoNegocio").hidden = total >= 4;
 }
+// Anunciar é permitido a partir de 18 anos (a data vem do cadastro).
+function maiorDeIdade() {
+  const d = dados.dataNascimento;
+  if (!d) return true;
+  const n = new Date(d + "T00:00:00"), h = new Date();
+  if (isNaN(n.getTime())) return true;
+  let i = h.getFullYear() - n.getFullYear();
+  if (h.getMonth() < n.getMonth() || (h.getMonth() === n.getMonth() && h.getDate() < n.getDate())) i--;
+  return i >= 18;
+}
 function novoNegocio(tipo) {
+  if (!maiorDeIdade()) { toast("Para criar um perfil de negócio é preciso ter 18 anos ou mais."); return; }
   abrirFormNegocio(null);
   if (tipo && NEGOCIOS[tipo]) document.querySelector(`#negTipo [data-valor="${tipo}"]`)?.click();
 }

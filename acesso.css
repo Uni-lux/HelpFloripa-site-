@@ -1,0 +1,137 @@
+/* =====================================================
+   Entrar e cadastros (login, cadastre-se, verificar e-mail,
+   cadastro de empresa). Mesmas cores e tema do site.
+   ===================================================== */
+:root {
+  --accent: #00adee; --accent-strong: #0093cc; --accent-ink: #001a24;
+  --danger: #e5484d; --ok: #2fbf71; --gold: #f5b700;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+:root[data-theme="dark"] { --bg: #070b0e; --panel: #0f161b; --panel-2: #151f25; --hover: #19252c; --line: #213038; --text: #eaf0f3; --muted: #8c9ca7; --input: #121b21; --shadow: 0 20px 60px rgba(0, 0, 0, .5); }
+:root[data-theme="light"] { --bg: #f1f4f6; --panel: #ffffff; --panel-2: #f5f7f9; --hover: #eef2f5; --line: #e1e7eb; --text: #0e1a21; --muted: #607380; --input: #ffffff; --shadow: 0 20px 60px rgba(15, 30, 40, .12); }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 15px; line-height: 1.45; -webkit-font-smoothing: antialiased; }
+a { color: var(--accent); font-weight: 700; text-decoration: none; }
+a:hover { text-decoration: underline; }
+button, input, select, textarea { font: inherit; color: inherit; }
+svg.i { width: 20px; height: 20px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+svg.i.s { width: 16px; height: 16px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---------- estrutura: marca à esquerda, formulário à direita ---------- */
+.acesso { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); }
+.acesso-marca {
+  position: relative; isolation: isolate; overflow: hidden; color: #fff; padding: 40px clamp(28px, 4vw, 56px);
+  display: flex; flex-direction: column; justify-content: space-between; gap: 30px;
+  background: #06121a url("ponte-help.webp") center / cover no-repeat;
+}
+.acesso-marca::before { content: ""; position: absolute; inset: 0; z-index: -1; background: radial-gradient(120% 80% at 0% 100%, rgba(0, 173, 238, .55), transparent 60%), linear-gradient(180deg, rgba(3, 8, 12, .45), rgba(3, 8, 12, .88)); }
+.acesso-marca .logo { color: #fff; text-decoration: none; line-height: 1; }
+.acesso-marca .logo strong { font-size: 24px; font-weight: 850; letter-spacing: .2px; }
+.acesso-marca .logo strong span { color: #7de3ff; }
+.acesso-marca .logo small { display: block; margin-top: 4px; font-size: 9.5px; letter-spacing: 1.5px; color: rgba(255, 255, 255, .7); font-weight: 700; }
+.acesso-marca h2 { margin: 0 0 12px; font-size: clamp(28px, 3.4vw, 42px); line-height: 1.08; font-weight: 850; letter-spacing: -.8px; }
+.acesso-marca h2 span { color: #7de3ff; }
+.acesso-marca p { margin: 0; color: rgba(255, 255, 255, .85); font-size: 16px; max-width: 460px; }
+.acesso-marca ul { list-style: none; margin: 22px 0 0; padding: 0; display: grid; gap: 12px; }
+.acesso-marca li { display: flex; gap: 12px; align-items: center; font-weight: 650; }
+.acesso-marca li .ic { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; background: rgba(255, 255, 255, .14); border: 1px solid rgba(255, 255, 255, .2); flex-shrink: 0; }
+.acesso-marca .rodape { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: rgba(255, 255, 255, .7); }
+.acesso-marca .rodape a { color: rgba(255, 255, 255, .85); font-weight: 600; }
+
+.acesso-lado { display: flex; flex-direction: column; min-width: 0; }
+.acesso-topo { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 16px 20px; }
+.acesso-topo .logo-mini { color: var(--text); text-decoration: none; line-height: 1; display: none; }
+.acesso-topo .logo-mini strong { font-size: 18px; font-weight: 850; }
+.acesso-topo .logo-mini strong span { color: var(--accent); }
+.acesso-topo .voltar { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-weight: 700; font-size: 14px; }
+.acesso-topo .voltar:hover { color: var(--text); text-decoration: none; }
+.acesso-conteudo { flex: 1; display: grid; place-items: center; padding: 10px 20px 40px; }
+.cartao-acesso { width: min(460px, 100%); }
+.cartao-acesso.largo { width: min(620px, 100%); }
+.cartao-acesso h1 { margin: 0 0 6px; font-size: 28px; font-weight: 850; letter-spacing: -.5px; }
+.cartao-acesso .sub { margin: 0 0 22px; color: var(--muted); }
+
+/* ---------- formulário ---------- */
+.form { display: grid; gap: 14px; }
+.campo { display: grid; gap: 6px; }
+.campo label { font-size: 13.5px; font-weight: 700; }
+.campo input, .campo select, .campo textarea {
+  width: 100%; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--input); color: var(--text); font-size: 15.5px; transition: border-color .15s, box-shadow .15s;
+}
+.campo textarea { min-height: 110px; resize: vertical; }
+.campo input:focus, .campo select:focus, .campo textarea:focus { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+.campo input[aria-invalid="true"] { border-color: var(--danger); }
+.campo .ajuda { font-size: 12.5px; color: var(--muted); }
+.campo .ajuda.erro { color: var(--danger); }
+.campo .ajuda.ok { color: var(--ok); }
+.duas { display: grid; gap: 14px; grid-template-columns: 1fr 1fr; }
+.senha { position: relative; }
+.senha input { padding-right: 48px; }
+.senha .olho { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 38px; height: 38px; border: 0; border-radius: 10px; background: transparent; color: var(--muted); display: grid; place-items: center; cursor: pointer; }
+.senha .olho:hover { background: var(--hover); color: var(--text); }
+.forca { height: 6px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.forca b { display: block; height: 100%; width: 0; border-radius: inherit; transition: width .2s, background .2s; }
+.forca b.fraca { width: 33%; background: var(--danger); }
+.forca b.media { width: 66%; background: #e69500; }
+.forca b.forte { width: 100%; background: var(--ok); }
+.linha-flex { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 14px; }
+.aceite { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; color: var(--muted); }
+.aceite input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--accent); flex-shrink: 0; }
+.botao { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 14px 18px; border-radius: 14px; border: 0; background: var(--accent); color: var(--accent-ink); font-weight: 800; font-size: 15.5px; cursor: pointer; text-decoration: none; transition: background .15s, transform .1s; }
+.botao:hover { background: var(--accent-strong); text-decoration: none; }
+.botao:active { transform: scale(.99); }
+.botao:disabled { opacity: .6; cursor: default; }
+.botao.sec { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); }
+.botao.sec:hover { background: var(--hover); }
+.botao.link { background: none; color: var(--muted); width: auto; padding: 8px; }
+.divisor { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 13px; margin: 6px 0; }
+.divisor::before, .divisor::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.rodape-form { margin-top: 18px; text-align: center; color: var(--muted); font-size: 14.5px; }
+.aviso { padding: 12px 14px; border-radius: 14px; font-size: 14px; line-height: 1.45; }
+.aviso.erro { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent); }
+.aviso.ok { background: color-mix(in srgb, var(--ok) 12%, transparent); color: var(--ok); border: 1px solid color-mix(in srgb, var(--ok) 35%, transparent); }
+.aviso.info { background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--text); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); }
+:root[data-theme="dark"] .aviso.erro { color: #ff8a8e; }
+:root[data-theme="dark"] .aviso.ok { color: #5be39a; }
+
+/* ---------- escolha do tipo de conta ---------- */
+.escolha { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.escolha label { position: relative; display: grid; gap: 4px; padding: 14px; border-radius: 16px; border: 1px solid var(--line); background: var(--panel); cursor: pointer; transition: border-color .15s, background .15s; }
+.escolha label:hover { background: var(--hover); }
+.escolha input { position: absolute; opacity: 0; pointer-events: none; }
+.escolha label:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--panel)); box-shadow: 0 0 0 1px var(--accent); }
+.escolha .ic { width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); margin-bottom: 4px; }
+.escolha strong { font-size: 14.5px; }
+.escolha small { color: var(--muted); font-size: 12.5px; line-height: 1.35; }
+
+/* ---------- etapas ---------- */
+.etapas { display: flex; gap: 6px; margin-bottom: 18px; }
+.etapas span { flex: 1; height: 5px; border-radius: 99px; background: var(--line); }
+.etapas span.on { background: var(--accent); }
+.etapa-rotulo { font-size: 12px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; color: var(--accent); margin: 0 0 4px; }
+.botoes { display: flex; gap: 10px; }
+.botoes .botao { flex: 1; }
+
+/* ---------- janela de confirmação (sair do cadastro) ---------- */
+.modal { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 20px; background: rgba(2, 6, 9, .6); }
+.modal .caixa { width: min(420px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 22px; padding: 22px; box-shadow: var(--shadow); display: grid; gap: 12px; }
+.modal h2 { margin: 0; font-size: 19px; }
+.modal p { margin: 0; color: var(--muted); }
+
+/* ---------- ícone grande (verificar e-mail) ---------- */
+.icone-grande { width: 76px; height: 76px; border-radius: 24px; display: grid; place-items: center; background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); margin-bottom: 16px; }
+.icone-grande svg { width: 38px; height: 38px; }
+.email-destaque { display: inline-block; padding: 6px 12px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); font-weight: 800; word-break: break-all; margin: 4px 0 14px; }
+
+@media (max-width: 900px) {
+  .acesso { grid-template-columns: 1fr; }
+  .acesso-marca { display: none; }
+  .acesso-topo .logo-mini { display: block; }
+}
+@media (max-width: 480px) {
+  .duas, .escolha { grid-template-columns: 1fr; }
+  .cartao-acesso h1 { font-size: 24px; }
+}
