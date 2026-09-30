@@ -5,8 +5,8 @@
 // - Banner de anúncios.
 // =====================================================
 import { fotoSegura } from "./seguranca.js?v=1";
-import { estrelas, lerResumos, media } from "./avaliacoes.js?v=2";
-import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria } from "./vitrine.js?v=15";
+import { estrelas, lerResumos, media } from "./avaliacoes.js?v=3";
+import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria } from "./vitrine.js?v=16";
 
 const $ = (id) => document.getElementById(id);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };

@@ -733,52 +733,114 @@ service cloud.firestore {
 
 
     // =====================================================
-    // CURTIDAS: curtidas/{postId}_{uid}
-    // Uma por pessoa em cada publicação; só quem curtiu desfaz.
+    // ESTRELAS NAS PUBLICAÇÕES: curtidas/{postId}_{uid}
+    // Nota de 1 a 5, uma por pessoa em cada publicação. A pessoa pode
+    // trocar a nota ou tirar. Ninguém dá estrelas na própria publicação.
     // =====================================================
     match /curtidas/{id} {
 
       allow read: if logado();
 
+      function notaOk(d) {
+        return d.nota is int && d.nota >= 1 && d.nota <= 5;
+      }
+
       allow create: if logado()
                     && emailOk()
-                    && request.resource.data.keys().hasOnly(['postId', 'uid', 'postAutorId', 'criadoEm'])
+                    && request.resource.data.keys().hasOnly(['postId', 'uid', 'postAutorId', 'nota', 'criadoEm'])
                     && request.resource.data.uid == request.auth.uid
                     && id == request.resource.data.postId + '_' + request.auth.uid
                     && exists(/databases/$(database)/documents/diario/$(request.resource.data.postId))
                     && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
+                    && request.resource.data.postAutorId != request.auth.uid
+                    && notaOk(request.resource.data)
                     && !bloqueioEntre(request.auth.uid, request.resource.data.postAutorId)
                     && request.resource.data.criadoEm == request.time;
 
-      allow update: if false;
+      allow update: if logado()
+                    && emailOk()
+                    && resource.data.uid == request.auth.uid
+                    && mudou().hasOnly(['nota', 'atualizadoEm'])
+                    && notaOk(request.resource.data)
+                    && request.resource.data.atualizadoEm == request.time;
+
       allow delete: if logado() && resource.data.uid == request.auth.uid;
     }
 
     // =====================================================
     // COMENTÁRIOS: comentarios/{id}
-    // Quem comentou ou o dono da publicação pode apagar. Não há edição.
+    // - Resposta: respostaA = id do comentário respondido (mesma publicação)
+    //   e respostaAutorId = autor dele (para o aviso).
+    // - Quem comentou edita o texto. O dono da publicação oculta um comentário.
+    // - Quem comentou ou o dono da publicação apaga.
+    // - Publicação com comentários ocultos não recebe comentários novos.
     // =====================================================
     match /comentarios/{id} {
 
       allow read: if logado();
 
+      function textoComentarioOk(d) {
+        return d.texto is string && d.texto.size() >= 1 && d.texto.size() <= 500;
+      }
+
+      function respostaOk(d) {
+        return (!('respostaA' in d) && !('respostaAutorId' in d))
+            || (d.respostaA is string
+                && exists(/databases/$(database)/documents/comentarios/$(d.respostaA))
+                && get(/databases/$(database)/documents/comentarios/$(d.respostaA)).data.postId == d.postId
+                && d.respostaAutorId == get(/databases/$(database)/documents/comentarios/$(d.respostaA)).data.autorId);
+      }
+
       allow create: if logado()
                     && emailOk()
-                    && request.resource.data.keys().hasOnly(['postId', 'postAutorId', 'autorId', 'nome', 'foto', 'texto', 'criadoEm'])
+                    && request.resource.data.keys().hasOnly(['postId', 'postAutorId', 'autorId', 'nome', 'foto', 'texto', 'respostaA', 'respostaAutorId', 'criadoEm'])
                     && request.resource.data.autorId == request.auth.uid
-                    && request.resource.data.texto is string
-                    && request.resource.data.texto.size() >= 1
-                    && request.resource.data.texto.size() <= 500
+                    && textoComentarioOk(request.resource.data)
                     && valorTextoAte(request.resource.data.get('nome', ''), 80)
                     && fotoOk(request.resource.data.get('foto', ''))
                     && exists(/databases/$(database)/documents/diario/$(request.resource.data.postId))
                     && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
+                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.get('comentariosOcultos', false) != true
+                    && respostaOk(request.resource.data)
                     && !bloqueioEntre(request.auth.uid, request.resource.data.postAutorId)
                     && request.resource.data.criadoEm == request.time;
 
-      allow update: if false;
+      allow update: if logado()
+                    && emailOk()
+                    && (
+                      // quem comentou corrige o texto
+                      (resource.data.autorId == request.auth.uid
+                        && mudou().hasOnly(['texto', 'editadoEm'])
+                        && textoComentarioOk(request.resource.data)
+                        && request.resource.data.editadoEm == request.time)
+                      ||
+                      // o dono da publicação oculta ou mostra o comentário
+                      (resource.data.postAutorId == request.auth.uid
+                        && mudou().hasOnly(['oculto'])
+                        && request.resource.data.oculto is bool)
+                    );
+
       allow delete: if logado()
                     && (resource.data.autorId == request.auth.uid || resource.data.postAutorId == request.auth.uid);
+    }
+
+    // =====================================================
+    // CURTIDAS EM COMENTÁRIOS: curtidas_comentarios/{comentarioId}_{uid}
+    // =====================================================
+    match /curtidas_comentarios/{id} {
+
+      allow read: if logado();
+
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['comentarioId', 'uid', 'criadoEm'])
+                    && request.resource.data.uid == request.auth.uid
+                    && id == request.resource.data.comentarioId + '_' + request.auth.uid
+                    && exists(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId))
+                    && request.resource.data.criadoEm == request.time;
+
+      allow update: if false;
+      allow delete: if logado() && resource.data.uid == request.auth.uid;
     }
 
 
@@ -810,7 +872,8 @@ service cloud.firestore {
                     && emailOk()
                     && resource.data.autorId == request.auth.uid
                     && request.resource.data.autorId == resource.data.autorId
-                    && gravou().hasOnly(['texto', 'nome', 'fotoPerfil'])
+                    && gravou().hasOnly(['texto', 'nome', 'fotoPerfil', 'comentariosOcultos'])
+                    && (!('comentariosOcultos' in request.resource.data) || request.resource.data.comentariosOcultos is bool)
                     && publicacaoOk();
 
       allow delete: if logado()

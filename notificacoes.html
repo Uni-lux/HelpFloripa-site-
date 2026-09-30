@@ -23,30 +23,29 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="rede.css?v=1" />
+  <link rel="stylesheet" href="rede.css?v=2" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="menu.js?v=1"></script>
-  <script type="module" src="notificacoes.js?v=1"></script>
+  <script type="module" src="notificacoes.js?v=2"></script>
 </head>
 <body>
   <header class="topo">
-    <button type="button" class="icone-btn" id="btnMenu" aria-label="Abrir menu" aria-controls="gaveta" aria-expanded="false"><svg class="i"><use href="#i-menu"/></svg></button>
-    <a href="feed.html?aba=pessoas" class="icone-btn" aria-label="Buscar pessoas"><svg class="i"><use href="#i-lupa"/></svg></a>
+    <a href="index.html" class="icone-btn" aria-label="Início do Help Floripa" title="Início"><svg class="i"><use href="#i-casa"/></svg></a>
+    <span class="topo-espaco" aria-hidden="true"></span>
     <a href="index.html" class="marca" aria-label="Help Floripa - Início"><strong>HELP <span>FLORIPA</span></strong><small>TUDO EM UM SÓ LUGAR</small></a>
-    <a href="mensagens.html" class="icone-btn" aria-label="Mensagens"><svg class="i"><use href="#i-chat"/></svg><b class="ponto-badge" id="badgeMensagens" hidden></b></a>
-    <a href="configuracoes.html" class="icone-btn" aria-label="Configurações"><svg class="i"><use href="#i-config"/></svg></a>
+    <a href="notificacoes.html" class="icone-btn" aria-label="Notificações" title="Notificações"><svg class="i"><use href="#i-sino"/></svg><b class="ponto-badge" id="badgeAvisos" hidden></b></a>
+    <a href="configuracoes.html" class="icone-btn" aria-label="Configurações" title="Configurações"><svg class="i"><use href="#i-config"/></svg></a>
   </header>
 
   <main class="pagina">
-    <div class="cab-pagina"><div><h1>Notificações</h1><p>Seguidores, curtidas, comentários, pedidos do social e mensagens.</p></div></div>
+    <div class="cab-pagina"><div><h1>Notificações</h1><p>Seguidores, estrelas, comentários, respostas e pedidos do social.</p></div></div>
     <div class="aviso-notif" id="avisoNavegador" hidden>
-      <span>Receba avisos de mensagens, seguidores e curtidas mesmo com a aba em segundo plano.</span>
+      <span>Receba avisos de mensagens, seguidores, estrelas e comentários mesmo com a aba em segundo plano.</span>
       <button type="button" class="btn pri mini" id="ativarNotif">Ativar</button>
     </div>
     <div class="abas-rede" id="abasAvisos" role="tablist" aria-label="Filtrar notificações">
       <button type="button" role="tab" data-filtro="tudo" aria-selected="true">Tudo <em></em></button>
       <button type="button" role="tab" data-filtro="seguidor" aria-selected="false">Seguidores <em></em></button>
-      <button type="button" role="tab" data-filtro="curtida" aria-selected="false">Curtidas <em></em></button>
+      <button type="button" role="tab" data-filtro="curtida" aria-selected="false">Estrelas <em></em></button>
       <button type="button" role="tab" data-filtro="comentario" aria-selected="false">Comentários <em></em></button>
       <button type="button" role="tab" data-filtro="social" aria-selected="false">Social <em></em></button>
       <button type="button" role="tab" data-filtro="mensagem" aria-selected="false">Mensagens <em></em></button>
