@@ -7,7 +7,7 @@
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <script>if (window.top !== window.self) { document.documentElement.style.display = "none"; try { window.top.location.replace(window.self.location.href); } catch (e) {} }</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="description" content="Reclamações de clientes sobre perfis de negócio do Help Floripa, com resposta pública dos negócios." />
+  <meta name="description" content="Reclamações de clientes no Help Floripa, com resposta pública de quem foi avaliado." />
   <meta name="theme-color" content="#0b1014" />
   <title>Reclamações | Help Floripa</title>
   <link rel="icon" href="favicon.ico" />
@@ -27,11 +27,11 @@
     })();
   </script>
   <link rel="stylesheet" href="categoria.css?v=4" />
-  <link rel="stylesheet" href="info.css?v=1" />
+  <link rel="stylesheet" href="info.css?v=2" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
   <script type="module" src="categoria.js?v=4"></script>
-  <script type="module" src="reclamacoes.js?v=2"></script>
+  <script type="module" src="reclamacoes.js?v=3"></script>
 </head>
 <body data-classe="alerta">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -42,13 +42,17 @@
     <symbol id="i-delivery" viewBox="0 0 24 24"><path d="M3 10h18M4 10a8 8 0 0116 0M2 14h20M4 14l1 6h14l1-6"/></symbol>
     <symbol id="i-doc" viewBox="0 0 24 24"><path d="M7 3.5h7l4 4V20.5H7z"/><path d="M14 3.5v4h4M10 12h5M10 15.5h5"/></symbol>
     <symbol id="i-estrela" viewBox="0 0 24 24"><path d="M12 3.8l2.5 5.2 5.7.8-4.1 4 1 5.6L12 16.7l-5.1 2.7 1-5.6-4.1-4 5.7-.8z"/></symbol>
+    <symbol id="i-fechar" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
     <symbol id="i-imoveis" viewBox="0 0 24 24"><path d="M4 11.5L12 4l8 7.5M6 10v9.5h12V10M10 19.5v-5h4v5"/></symbol>
     <symbol id="i-lojinha" viewBox="0 0 24 24"><path d="M6 8h12l-1 12H7L6 8zM9 8V6a3 3 0 016 0v2"/></symbol>
     <symbol id="i-lupa" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></symbol>
     <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></symbol>
     <symbol id="i-perfil" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.3-3.6 4.2-5.3 7.5-5.3s6.2 1.7 7.5 5.3"/></symbol>
+    <symbol id="i-relogio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4.5l3 1.8"/></symbol>
     <symbol id="i-servicos" viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 01-5.4 5.4l-6 6a1.5 1.5 0 002.1 2.1l6-6a4 4 0 015.4-5.4l-2.6 2.6-2-2z"/></symbol>
+    <symbol id="i-seta" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
     <symbol id="i-todos" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></symbol>
+    <symbol id="i-voltar" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
   </svg>
 
   <header class="topo">
@@ -64,30 +68,60 @@
       <div class="hero-corpo">
         <span class="selo-classe"><b><svg class="i xs" aria-hidden="true"><use href="#i-alerta"/></svg></b>Reclamações</span>
         <h1 id="tituloPagina">Transparência que <span>gera confiança</span></h1>
-        <p class="lead">Avaliações de 1 e 2 estrelas feitas por clientes em perfis de negócio aparecem aqui. O negócio responde publicamente e o cliente marca quando foi resolvido. Avaliações de publicações não entram.</p>
+        <p class="lead">Notas de 1 e 2 estrelas dadas a quem oferece serviços, delivery, produtos ou imóveis aparecem aqui. Quem recebeu responde publicamente e quem reclamou marca quando foi resolvido.</p>
 
       </div>
     </section>
-    <div class="resumo" id="filtroNegocio" hidden style="margin-top:14px">Mostrando só as reclamações de <strong></strong>. <a href="reclamacoes.html" style="color:var(--classe);font-weight:800">Ver todas</a></div>
-    <div class="numeros" aria-live="polite">
-      <div class="numero"><b id="nTotal">–</b><span>reclamações</span></div>
-      <div class="numero res"><b id="nResp">–</b><span>respondidas pelo negócio</span></div>
+    <section class="meu-painel" id="meuPainel" aria-label="Seu painel de reclamações" hidden>
+      <div class="mp-cab">
+        <span class="av" id="mpAv"></span>
+        <div class="mp-quem"><small>Seu painel</small><strong id="mpNome">Você</strong></div>
+        <button type="button" class="botao sec mini" id="mpAbrir">Abrir painel<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></button>
+      </div>
+      <div class="mp-tiles">
+        <button type="button" class="mp-tile" data-lado="recebidas"><b id="mpRec">0</b><span>Recebidas por você</span><small id="mpRecInfo">&nbsp;</small></button>
+        <button type="button" class="mp-tile" data-lado="enviadas"><b id="mpEnv">0</b><span>Enviadas por você</span><small id="mpEnvInfo">&nbsp;</small></button>
+        <div class="mp-tile ok"><b id="mpResolv">0</b><span>Resolvidas</span><small>recebidas e enviadas</small></div>
+      </div>
+    </section>
+
+    <section class="painel-pessoa" id="painelPessoa" aria-labelledby="ppNome" hidden>
+      <button type="button" class="pp-voltar" id="ppVoltar"><svg class="i xs" aria-hidden="true"><use href="#i-voltar"/></svg>Todas as reclamações</button>
+      <div class="pp-cab">
+        <span class="av grande" id="ppAv"></span>
+        <div class="pp-nome"><small id="ppSelo">Painel de reclamações</small><h2 id="ppNome">Pessoa</h2><span id="ppSub"></span></div>
+        <a class="botao sec" id="ppPerfil" href="usuarios.html"><svg class="i xs" aria-hidden="true"><use href="#i-perfil"/></svg>Ver perfil</a>
+      </div>
+      <div class="pp-nums">
+        <div><b id="ppRec">0</b><span>recebidas</span></div>
+        <div class="res"><b id="ppResp">–</b><span>respondidas</span></div>
+        <div class="ok"><b id="ppResolv">0</b><span>resolvidas</span></div>
+        <div><b id="ppEnv">0</b><span>enviadas</span></div>
+      </div>
+      <div class="pp-abas" id="ppAbas" role="tablist" aria-label="Lado da reclamação">
+        <button type="button" role="tab" data-lado="recebidas" aria-selected="true"><span>Recebidas</span> <em>0</em></button>
+        <button type="button" role="tab" data-lado="enviadas" aria-selected="false"><span>Enviadas</span> <em>0</em></button>
+      </div>
+    </section>
+
+    <div class="numeros" id="visaoGeral" aria-live="polite">
+      <div class="numero"><b id="nTotal">–</b><span>reclamações no site</span></div>
+      <div class="numero res"><b id="nResp">–</b><span>foram respondidas</span></div>
       <div class="numero pend"><b id="nPend">–</b><span>aguardando resposta</span></div>
       <div class="numero ok"><b id="nResolv">–</b><span>resolvidas</span></div>
     </div>
-    <div class="abas-rec" id="abasRec" role="tablist" aria-label="Filtrar reclamações">
+
+    <div class="abas-rec" id="abasRec" role="tablist" aria-label="Filtrar por situação">
       <button type="button" role="tab" data-aba="todas" aria-selected="true">Todas <em>0</em></button>
-      <button type="button" role="tab" data-aba="pendente" aria-selected="false">Aguardando <em>0</em></button>
-      <button type="button" role="tab" data-aba="respondida" aria-selected="false">Respondidas <em>0</em></button>
-      <button type="button" role="tab" data-aba="resolvida" aria-selected="false">Resolvidas <em>0</em></button>
-      <button type="button" role="tab" data-aba="recebidas" aria-selected="false" hidden>Recebidas por mim <em>0</em></button>
-      <button type="button" role="tab" data-aba="minhas" aria-selected="false" hidden>Feitas por mim <em>0</em></button>
+      <button type="button" role="tab" data-aba="pendente" aria-selected="false"><svg class="i xs" aria-hidden="true"><use href="#i-relogio"/></svg>Aguardando <em>0</em></button>
+      <button type="button" role="tab" data-aba="respondida" aria-selected="false"><svg class="i xs" aria-hidden="true"><use href="#i-chat"/></svg>Respondidas <em>0</em></button>
+      <button type="button" role="tab" data-aba="resolvida" aria-selected="false"><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Resolvidas <em>0</em></button>
     </div>
     <div class="filtros-rec">
       <form class="busca" role="search" onsubmit="return false">
         <svg class="i" aria-hidden="true"><use href="#i-lupa"/></svg>
         <label class="sr" for="searchInput">Buscar reclamações</label>
-        <input type="search" id="searchInput" placeholder="Buscar por negócio ou palavra" autocomplete="off" />
+        <input type="search" id="searchInput" placeholder="Buscar por nome ou palavra" autocomplete="off" />
       </form>
     </div>
     <div class="filtros" style="position:static;margin:8px 0 0;padding:0;background:none">
@@ -102,13 +136,20 @@
     <div class="lista-rec" id="listaRec" aria-live="polite"><div class="lista-vazia">Carregando reclamações...</div></div>
     <div style="text-align:center;margin-top:14px"><button type="button" class="botao sec" id="maisRec" hidden>Carregar mais</button></div>
 
+    <div class="rec-modal" id="recModal" role="dialog" aria-modal="true" aria-labelledby="recModalTitulo" hidden>
+      <div class="rec-caixa">
+        <div class="rec-modal-topo"><h3 id="recModalTitulo">Reclamação</h3><button type="button" class="icone-btn" id="recFechar" aria-label="Fechar"><svg class="i" aria-hidden="true"><use href="#i-fechar"/></svg></button></div>
+        <div class="rec-modal-corpo" id="recModalCorpo"></div>
+      </div>
+    </div>
+
     <section class="secao" aria-labelledby="scomofunciona">
       <h2 class="secao-titulo" id="scomofunciona">Como funcionam as reclamações</h2>
       
       <ol class="passos">
         <li class="passo"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-estrela"/></svg></span><strong>Cliente avalia</strong><p>Depois do atendimento, o cliente dá a nota. Notas 1 e 2 viram reclamação.</p></li>
-        <li class="passo"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-alerta"/></svg></span><strong>Fica público</strong><p>A reclamação aparece aqui, com o nome do negócio e o comentário do cliente.</p></li>
-        <li class="passo"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-chat"/></svg></span><strong>Negócio responde</strong><p>O negócio explica o que houve e como vai resolver, em uma resposta pública.</p></li>
+        <li class="passo"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-alerta"/></svg></span><strong>Fica público</strong><p>A reclamação aparece aqui, com o nome de quem foi avaliado e o comentário do cliente.</p></li>
+        <li class="passo"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-chat"/></svg></span><strong>Resposta pública</strong><p>Quem recebeu a reclamação explica o que houve e como vai resolver.</p></li>
         <li class="passo"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg></span><strong>Cliente conclui</strong><p>Quando o problema é resolvido, o cliente marca a reclamação como resolvida.</p></li>
       </ol>
     </section>
