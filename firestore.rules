@@ -733,6 +733,56 @@ service cloud.firestore {
 
 
     // =====================================================
+    // CURTIDAS: curtidas/{postId}_{uid}
+    // Uma por pessoa em cada publicação; só quem curtiu desfaz.
+    // =====================================================
+    match /curtidas/{id} {
+
+      allow read: if logado();
+
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['postId', 'uid', 'postAutorId', 'criadoEm'])
+                    && request.resource.data.uid == request.auth.uid
+                    && id == request.resource.data.postId + '_' + request.auth.uid
+                    && exists(/databases/$(database)/documents/diario/$(request.resource.data.postId))
+                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
+                    && !bloqueioEntre(request.auth.uid, request.resource.data.postAutorId)
+                    && request.resource.data.criadoEm == request.time;
+
+      allow update: if false;
+      allow delete: if logado() && resource.data.uid == request.auth.uid;
+    }
+
+    // =====================================================
+    // COMENTÁRIOS: comentarios/{id}
+    // Quem comentou ou o dono da publicação pode apagar. Não há edição.
+    // =====================================================
+    match /comentarios/{id} {
+
+      allow read: if logado();
+
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['postId', 'postAutorId', 'autorId', 'nome', 'foto', 'texto', 'criadoEm'])
+                    && request.resource.data.autorId == request.auth.uid
+                    && request.resource.data.texto is string
+                    && request.resource.data.texto.size() >= 1
+                    && request.resource.data.texto.size() <= 500
+                    && valorTextoAte(request.resource.data.get('nome', ''), 80)
+                    && fotoOk(request.resource.data.get('foto', ''))
+                    && exists(/databases/$(database)/documents/diario/$(request.resource.data.postId))
+                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
+                    && !bloqueioEntre(request.auth.uid, request.resource.data.postAutorId)
+                    && request.resource.data.criadoEm == request.time;
+
+      allow update: if false;
+      allow delete: if logado()
+                    && (resource.data.autorId == request.auth.uid || resource.data.postAutorId == request.auth.uid);
+    }
+
+
+    // =====================================================
     // DIÁRIO / PUBLICAÇÕES
     // =====================================================
     match /diario/{postId} {

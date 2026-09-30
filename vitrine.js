@@ -671,7 +671,7 @@ function botoes(donoId, { texto, whats, textoWhats, cartao, editarHref, acao }) 
 const botoesNegocio = (n) => botoes(n.donoId, {
   texto: n.tipo === "delivery" ? "Ver cardápio" : TEXTO_CONTATO[n.tipo], whats: n.whatsapp, cartao: cartaoDeNegocio(n),
   acao: n.tipo === "servicos" ? () => abrirOrcamento(n) : n.tipo === "delivery" ? () => abrirDetalhe(n) : null,
-  textoWhats: `Olá! Vi "${n.nome}" no Help Floripa.`, editarHref: `usuarios.html?acao=negocio&tipo=${n.tipo}`
+  textoWhats: `Olá! Vi "${n.nome}" no Help Floripa.`, editarHref: `negocios.html?tipo=${n.tipo}`
 });
 
 // ---------- cartões por tipo ----------
@@ -809,7 +809,7 @@ function cartaoImovel(a) {
   const anunciante = negociosImoveis.get(a.donoId);
   rodape.append(linkCriador(a.donoId, donos.get(a.donoId) || {}), botoes(a.donoId, {
     texto: "Tenho interesse", whats: a.whatsapp || anunciante?.whatsapp, cartao: cartaoDeAnuncio(a),
-    textoWhats: `Olá! Tenho interesse no imóvel "${tituloImovel(a)}" que vi no Help Floripa.`, editarHref: "usuarios.html?acao=negocio&tipo=imoveis"
+    textoWhats: `Olá! Tenho interesse no imóvel "${tituloImovel(a)}" que vi no Help Floripa.`, editarHref: "negocios.html?tipo=imoveis"
   }));
   corpo.appendChild(rodape);
   c.append(g, corpo);
@@ -1098,7 +1098,7 @@ export function abrirDetalhe(n, opcoes = {}) {
   }
 
   ct.appendChild(barraContato({
-    proprio, sair, aoEditar: opcoes.aoEditar ? () => opcoes.aoEditar(n) : null, editarHref: `usuarios.html?acao=negocio&tipo=${tipo}`,
+    proprio, sair, aoEditar: opcoes.aoEditar ? () => opcoes.aoEditar(n) : null, editarHref: `negocios.html?tipo=${tipo}`,
     texto: tipo === "imoveis" ? "Falar com o anunciante" : TEXTO_CONTATO[tipo], whats: n.whatsapp,
     textoWhats: `Olá! Vi "${n.nome}" no Help Floripa.`, aoMensagem: tipo === "servicos" ? () => orcar() : aoMensagem, donoId: n.donoId, cartao: cartaoDeNegocio(n)
   }));
@@ -1192,7 +1192,7 @@ export function abrirAnuncio(a, opcoes = {}) {
   }).catch(() => {});
 
   ct.appendChild(barraContato({
-    proprio, sair, aoEditar: opcoes.aoEditar ? () => opcoes.aoEditar(anunciante) : null, editarHref: "usuarios.html?acao=negocio&tipo=imoveis",
+    proprio, sair, aoEditar: opcoes.aoEditar ? () => opcoes.aoEditar(anunciante) : null, editarHref: "negocios.html?tipo=imoveis",
     texto: "Tenho interesse", whats: a.whatsapp || anunciante.whatsapp, textoWhats: `Olá! Tenho interesse no imóvel "${tituloImovel(a)}" que vi no Help Floripa.`,
     aoMensagem, donoId: a.donoId, cartao: cartaoDeAnuncio(a)
   }));
@@ -1230,7 +1230,7 @@ function montarSecao() {
   h.innerHTML = TEXTOS[TIPO].titulo;
   t.append(h, el("p", null, TEXTOS[TIPO].sub));
   const criar = el("a", "vt-criar");
-  criar.href = `usuarios.html?acao=negocio&tipo=${TIPO}`;
+  criar.href = `negocios.html?tipo=${TIPO}`;
   criar.append(icone("mais"), document.createTextNode(TEXTOS[TIPO].criar));
   cab.append(t, criar);
   const cont = el("div", "vt-contagem");
@@ -1247,7 +1247,7 @@ function montarSecao() {
   if (cta) {
     if (!lugar) main.insertBefore(sec, cta);
     const link = cta.querySelector("a");
-    if (link) link.href = `usuarios.html?acao=negocio&tipo=${TIPO}`;
+    if (link) link.href = `negocios.html?tipo=${TIPO}`;
     if (link && !lugar) link.textContent = TEXTOS[TIPO].criar;
   } else if (!lugar) main.appendChild(sec);
 }
@@ -1386,7 +1386,7 @@ function renderizar() {
   const vazio = () => {
     const v = el("div", "vt-vazio");
     v.append(el("strong", null, todos.length ? "Nada encontrado com esse filtro" : TEXTOS[TIPO].vazio), todos.length ? "Tente outra categoria ou palavra." : "Seja o primeiro: crie seu perfil de negócio pelo seu perfil.");
-    if (!todos.length) { const a = el("a", "vt-criar"); a.href = `usuarios.html?acao=negocio&tipo=${TIPO}`; a.append(icone("mais"), document.createTextNode(TEXTOS[TIPO].criar)); v.append(document.createElement("br"), a); }
+    if (!todos.length) { const a = el("a", "vt-criar"); a.href = `negocios.html?tipo=${TIPO}`; a.append(icone("mais"), document.createTextNode(TEXTOS[TIPO].criar)); v.append(document.createElement("br"), a); }
     grade.appendChild(v);
   };
 

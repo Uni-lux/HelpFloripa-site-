@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Segurança: só carrega recursos de origens conhecidas e não deixa outro site embutir esta página -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://www.google.com https://www.recaptcha.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://firebasestorage.googleapis.com https://lh3.googleusercontent.com https://images.unsplash.com https://upload.wikimedia.org https://randomuser.me https://www.gstatic.com https://www.google.com; media-src 'self' data: blob: https://firebasestorage.googleapis.com; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com https://viacep.com.br https://www.google.com https://www.gstatic.com; frame-src 'self' https://helpfloripa-61e0d.firebaseapp.com https://accounts.google.com https://www.google.com https://www.recaptcha.net; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self' https://formsubmit.co; upgrade-insecure-requests" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <script>if (window.top !== window.self) { document.documentElement.style.display = "none"; try { window.top.location.replace(window.self.location.href); } catch (e) {} }</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="description" content="Publicações de quem você segue no Help Floripa: trabalhos, novidades e dicas de Florianópolis." />
+  <meta name="theme-color" content="#0b1014" />
+  <title>Feed | Help Floripa</title>
+  <link rel="icon" href="favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
+  <script>
+    // Tema claro/escuro: o mesmo do perfil, das mensagens e do menu.
+    (function () {
+      var c = {};
+      try { c = JSON.parse(localStorage.getItem("hf-chat-config") || "{}"); } catch (e) {}
+      var tema = c.tema || "sistema";
+      var escuro = tema === "escuro" || (tema === "sistema" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
+      document.documentElement.dataset.theme = escuro ? "dark" : "light";
+    })();
+  </script>
+  <link rel="stylesheet" href="rede.css?v=1" />
+  <script type="module" src="firebase.js"></script>
+  <script type="module" src="menu.js?v=1"></script>
+  <script type="module" src="feed.js?v=1"></script>
+</head>
+<body>
+  <header class="topo">
+    <button type="button" class="icone-btn" id="btnMenu" aria-label="Abrir menu" aria-controls="gaveta" aria-expanded="false"><svg class="i"><use href="#i-menu"/></svg></button>
+    <a href="feed.html?aba=pessoas" class="icone-btn" aria-label="Buscar pessoas"><svg class="i"><use href="#i-lupa"/></svg></a>
+    <a href="index.html" class="marca" aria-label="Help Floripa - Início"><strong>HELP <span>FLORIPA</span></strong><small>TUDO EM UM SÓ LUGAR</small></a>
+    <a href="mensagens.html" class="icone-btn" aria-label="Mensagens"><svg class="i"><use href="#i-chat"/></svg><b class="ponto-badge" id="badgeMensagens" hidden></b></a>
+    <a href="configuracoes.html" class="icone-btn" aria-label="Configurações"><svg class="i"><use href="#i-config"/></svg></a>
+  </header>
+
+  <main class="pagina larga">
+    <div class="duas-col">
+      <div>
+        <div class="abas-rede" id="abasFeed" role="tablist" aria-label="Feed">
+          <button type="button" role="tab" data-aba="seguindo" aria-selected="true"><svg class="i s"><use href="#i-feed"/></svg>Seguindo</button>
+          <button type="button" role="tab" data-aba="explorar" aria-selected="false"><svg class="i s"><use href="#i-bussola"/></svg>Explorar</button>
+          <button type="button" role="tab" data-aba="pessoas" aria-selected="false"><svg class="i s"><use href="#i-pessoa-mais"/></svg>Pessoas</button>
+        </div>
+        <section id="painelFeed" aria-label="Publicações">
+          <div class="pessoas-trilho" id="trilhoSeguindo" aria-label="Quem você segue"></div>
+          <button type="button" class="compor-card" id="btnComporFeed">
+            <div class="avatar" id="comporAvatar"></div>
+            <span class="txt">Compartilhe um trabalho, uma novidade ou uma dica...</span>
+            <span class="acs"><svg class="i s"><use href="#i-imagem"/></svg></span>
+          </button>
+          <div id="listaFeed"></div>
+          <div style="text-align:center"><button type="button" class="btn sec" id="maisFeed" hidden>Ver mais publicações</button></div>
+        </section>
+        <section id="painelPessoas" aria-label="Pessoas" hidden>
+          <label class="campo-busca"><svg class="i s"><use href="#i-lupa"/></svg><span class="sr">Buscar pessoas</span><input type="search" id="buscaPessoas" placeholder="Buscar por nome, @usuário ou cidade" autocomplete="off" /></label>
+          <div class="cartao" style="padding:6px" id="listaPessoas"></div>
+        </section>
+      </div>
+      <aside class="lateral some-mobile" aria-label="Seu resumo">
+        <a class="cartao eu-card" href="usuarios.html">
+          <div class="avatar" id="euAvatar"></div>
+          <div class="tx"><strong id="euNome"></strong><small id="euNick"></small></div>
+          <svg class="i s"><use href="#i-avancar"/></svg>
+        </a>
+        <div class="cartao">
+          <h2>Sugestões para seguir</h2>
+          <div id="sugestoes"><div class="lista-vazia">Carregando...</div></div>
+        </div>
+        <div class="cartao">
+          <h2>Atalhos</h2>
+          <div class="atalhos">
+            <a class="btn sec" href="negocios.html"><svg class="i s"><use href="#i-maleta"/></svg>Meus negócios</a>
+            <a class="btn sec" href="social.html"><svg class="i s"><use href="#i-teia"/></svg>Social e conexões</a>
+            <a class="btn sec" href="reclamacoes.html"><svg class="i s"><use href="#i-alerta"/></svg>Reclamações</a>
+            <a class="btn sec" href="index.html"><svg class="i s"><use href="#i-casa"/></svg>Marketplace</a>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+</body>
+</html>
