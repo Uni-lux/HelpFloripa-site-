@@ -133,6 +133,19 @@ service cloud.firestore {
             && textoAte('cidade', 80);
       }
 
+      // Campos que o site grava no perfil público. Qualquer outro é recusado.
+      function camposPerfil() {
+        return ['uid', 'nome', 'nickname', 'cidade', 'bio', 'fotoPerfil', 'fotoCapa',
+                'socialVisibilidade', 'duoCapa', 'ultimoAcesso', 'criadoEm', 'atualizadoEm'];
+      }
+
+      function opcoesOk() {
+        let d = request.resource.data;
+        return (!('socialVisibilidade' in d) || d.socialVisibilidade in ['todos', 'seguidores', 'amigos', 'ocultar'])
+            && (!('duoCapa' in d) || d.duoCapa in ['clicavel', 'foto', 'ocultar'])
+            && (!('nickname' in d) || valorTextoAte(d.nickname, 20));
+      }
+
       // Foto nova precisa vir do próprio site (fotos antigas não travam a edição).
       function fotosOk() {
         return ((resource != null && !mudou().hasAny(['fotoPerfil'])) || campoFotoOk('fotoPerfil'))
@@ -145,8 +158,10 @@ service cloud.firestore {
                     && request.auth.uid == userId
                     && request.resource.data.uid == userId
                     && naoTocaCamposProtegidosNoCreate()
+                    && request.resource.data.keys().hasOnly(camposPerfil())
                     && nickDoDono()
                     && tamanhosOk()
+                    && opcoesOk()
                     && fotosOk();
 
       allow update: if logado()
@@ -155,7 +170,9 @@ service cloud.firestore {
                     && naoTocaCamposProtegidosNoUpdate()
                     && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['nickname'])
                         || nickDoDono())
+                    && gravou().hasOnly(camposPerfil())
                     && tamanhosOk()
+                    && opcoesOk()
                     && fotosOk();
 
       allow delete: if logado()
@@ -191,6 +208,7 @@ service cloud.firestore {
 
       allow create: if logado()
                     && emailOk()
+                    && request.resource.data.keys().hasOnly(['tipo', 'seguidorId', 'alvoId', 'criadoEm'])
                     && request.resource.data.tipo == 'seguir'
                     && request.resource.data.seguidorId == request.auth.uid
                     && request.resource.data.alvoId is string
@@ -222,6 +240,7 @@ service cloud.firestore {
                       || resource.data.bloqueadoId == request.auth.uid);
 
       allow create: if logado()
+                    && request.resource.data.keys().hasOnly(['bloqueadorId', 'bloqueadoId', 'criadoEm'])
                     && request.resource.data.bloqueadorId == request.auth.uid
                     && request.resource.data.bloqueadoId is string
                     && request.resource.data.bloqueadoId != request.auth.uid
@@ -257,6 +276,7 @@ service cloud.firestore {
 
       allow create: if logado()
                     && emailOk()
+                    && request.resource.data.keys().hasOnly(['participantes', 'de', 'para', 'tipoDe', 'tipoPara', 'status', 'criadoEm'])
                     && request.resource.data.de == request.auth.uid
                     && request.resource.data.para is string
                     && request.resource.data.para != request.auth.uid

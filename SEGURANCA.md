@@ -5,6 +5,20 @@ O código do site já está pronto. Faça na ordem abaixo.
 
 ---
 
+## Situação atual
+
+**Feito (plano Spark, grátis):**
+- Regras do Firestore publicadas (e-mail confirmado, campos e limites, chat protegido).
+- Confirmação de e-mail funcionando.
+- Chave de API restrita a `helpfloripa.com.br`, `www.helpfloripa.com.br` e `helpfloripa-61e0d.firebaseapp.com`.
+- Chave extra que não era usada apagada.
+- Modelos de e-mail em português (a edição do texto é bloqueada pelo Firebase neste projeto).
+
+**Para fazer depois, sem custo:**
+- Trocar o Gmail do formulário de empresas pelo endereço secreto do formsubmit (seção 8).
+- Personalizar o domínio do e-mail (sair como `@helpfloripa.com.br`), para não cair no spam, se o Firebase liberar.
+- Ativar a proteção contra enumeração de e-mail no Authentication, se a opção aparecer.
+
 ## 1. Suba os arquivos do site (GitHub Pages)
 
 Envie todos os arquivos alterados para o repositório **antes** de publicar as regras novas.
@@ -34,24 +48,11 @@ Menu **Authentication** → aba **Configurações** (Settings):
    Apague o que não for seu.
 4. Aba **Modelos** (Templates) → **Verificação de endereço de e-mail**: coloque o idioma em **Português**.
 
-## 4. App Check (protege contra robôs) — grátis, plano Spark
+## 4. App Check (protege contra robôs) — precisa do plano Blaze
 
-1. Abra https://www.google.com/recaptcha/admin/create
-2. Rótulo: `Help Floripa`. Tipo: **reCAPTCHA v3** (baseado em pontuação).
-   Domínios: `helpfloripa.com.br` e `www.helpfloripa.com.br`. Clique em **Enviar**.
-3. A página mostra duas chaves: **Chave do site** e **Chave secreta**. Deixe aberta.
-4. No Firebase: menu **App Check** → aba **Apps** → seu app da Web → **reCAPTCHA** (não o Enterprise)
-   → cole a **Chave secreta** → **Salvar**.
-5. No arquivo `firebase.js`, cole a **Chave do site** entre as aspas:
-   ```js
-   const RECAPTCHA_V3_SITE_KEY = "COLE_A_CHAVE_DO_SITE_AQUI";
-   ```
-   Suba o `firebase.js` para o GitHub.
-6. Espere **2 ou 3 dias** e olhe em **App Check → APIs → Cloud Firestore**.
-   Quando quase tudo aparecer como "verificado", clique em **Aplicar** (Enforce).
-   Faça o mesmo para **Authentication**.
-
-> Não aplique no mesmo dia: quem estiver com o site antigo aberto seria bloqueado.
+O reCAPTCHA clássico (grátis) foi descontinuado no App Check. Agora ele usa o
+**Fraud Defense** (antigo reCAPTCHA Enterprise), que exige faturamento ativo.
+Veja o passo a passo na seção "Quando assinar o plano Blaze" no fim deste guia.
 
 ## 5. Restrinja a chave de API (Google Cloud)
 
@@ -101,3 +102,20 @@ O `cadastro-empresa.html` envia os dados para o serviço **formsubmit.co**, e o 
 | HTML montado com o que o usuário digita | Resumo do cadastro profissional montado com texto puro |
 | SVG no Storage | Só JPG, PNG e WEBP (e vídeo/áudio onde faz sentido) |
 | Aviso do chat enganoso | Texto diz claramente que não há criptografia de ponta a ponta |
+
+
+---
+
+## Quando assinar o plano Blaze
+
+Faça nesta ordem (e peça ajuda ao Claude mencionando este guia):
+
+1. **Alerta de gastos** (Google Cloud → Faturamento → Orçamentos e alertas): ex.: R$ 50/mês, alertas em 50%, 90% e 100%.
+2. **App Check com Fraud Defense**:
+   - Google Cloud → Segurança → Fraud Defense (reCAPTCHA) → criar chave do tipo **Site** para `helpfloripa.com.br` e `www.helpfloripa.com.br`.
+   - Firebase → App Check → Apps → **Fraud Defense** → colar a chave → Salvar.
+   - No `firebase.js`: trocar para `ReCaptchaEnterpriseProvider` e colar a chave (o Claude faz essa troca).
+   - Esperar 2–3 dias e **Aplicar** no Firestore e no Authentication.
+3. **Storage**: ativar, publicar `storage.rules` e ligar no `firebase.js` (o Claude faz). Assim as fotos saem de dentro do Firestore, dá para ter vídeo no diário e mais fotos por perfil.
+4. **Limite de velocidade** (anti-spam de mensagens) com Cloud Functions.
+5. **Controle de reserva de @** (um por pessoa) com Cloud Functions.
