@@ -199,7 +199,7 @@
   <script type="module" src="firebase.js"></script>
   <script type="module">
     // Barra inferior, menu lateral e contadores (os mesmos das outras páginas da rede).
-    import { iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos } from "./rede.js?v=1";
+    import { iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos } from "./rede.js?v=2";
     iniciarRede().then(() => { montarBarraRede(""); pintarBarraRede(); ouvirAvisos({ notificarNovos: false }); }).catch(() => {});
   </script>
 </head>
@@ -217,11 +217,11 @@
   </svg>
 
   <header class="topo">
-    <button type="button" class="icone-btn" id="btnMenu" aria-label="Abrir menu" aria-controls="gaveta" aria-expanded="false"><svg class="i"><use href="#i-menu"/></svg></button>
-    <a href="feed.html?aba=pessoas" class="icone-btn" aria-label="Buscar pessoas"><svg class="i"><use href="#i-lupa"/></svg></a>
+    <a href="index.html" class="icone-btn" aria-label="Início do Help Floripa" title="Início"><svg class="i"><use href="#i-casa"/></svg></a>
+    <span class="topo-espaco" aria-hidden="true"></span>
     <a href="index.html" class="marca" aria-label="Help Floripa - Início"><strong>HELP <span>FLORIPA</span></strong><small>TUDO EM UM SÓ LUGAR</small></a>
-    <a href="mensagens.html" class="icone-btn" aria-label="Mensagens"><svg class="i"><use href="#i-chat"/></svg><b class="ponto-badge" id="badgeMensagens" hidden></b></a>
-    <a href="configuracoes.html" class="icone-btn" aria-label="Configurações"><svg class="i"><use href="#i-config"/></svg></a>
+    <a href="notificacoes.html" class="icone-btn" aria-label="Notificações" title="Notificações"><svg class="i"><use href="#i-sino"/></svg><b class="ponto-badge" id="badgeAvisos" hidden></b></a>
+    <a href="configuracoes.html" class="icone-btn" aria-label="Configurações" title="Configurações"><svg class="i"><use href="#i-config"/></svg></a>
   </header>
 
   <main class="pagina">

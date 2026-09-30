@@ -4,13 +4,12 @@
 // configuracoes.html e negocios.html.
 // - Ícones, tema, utilitários, painéis (folhas), estado da conta.
 // - Seguir, bloquear, restringir, lista de pessoas.
-// - Curtidas e comentários das publicações.
+// - Estrelas (1 a 5) e comentários das publicações.
 // - Nova publicação (foto ou texto).
 // - Barra inferior, avisos (notificações) e presença online.
 // =====================================================
 import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=5";
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
-import { definirPerfilMenu } from "./menu.js?v=1";
 
 // ---------- ícones ----------
 const SIMBOLOS = `<symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 01-1.5 1.5H15v-6h-6v6H5.5A1.5 1.5 0 014 19z"/></symbol>
@@ -354,7 +353,6 @@ export async function iniciarRede({ sincronizar = false } = {}) {
       fotoPerfil: dados.fotoPerfil || "", fotoCapa: dados.fotoCapa || "", bio: dados.bio || ""
     }, { merge: true }).catch((e) => console.warn("Perfil público não sincronizado:", e));
   }
-  definirPerfilMenu({ logado: true, nome: dados.nome, nick: dados.nickname || "", foto: dados.fotoPerfil || "" });
   conferirEmail(eu);
   await carregarPrivacidade().catch((e) => console.warn("Bloqueios:", e));
   marcarPresenca();
@@ -499,22 +497,46 @@ export async function compartilharPerfil(uid, nome) {
 }
 
 // =====================================================
-// Curtidas e comentários
-// curtidas/{postId}_{uid}   { postId, uid, postAutorId, criadoEm }
-// comentarios/{auto}        { postId, postAutorId, autorId, nome, foto, texto, criadoEm }
+// Estrelas e comentários das publicações
+// curtidas/{postId}_{uid}        { postId, uid, postAutorId, nota (1 a 5), criadoEm, atualizadoEm? }
+// comentarios/{auto}             { postId, postAutorId, autorId, nome, foto, texto, respostaA?, respostaAutorId?, criadoEm, editadoEm?, oculto? }
+// curtidas_comentarios/{cId}_{uid} { comentarioId, uid, criadoEm }
 // =====================================================
-const cacheCurtidas = new Map();   // postId -> { n, eu }
+const cacheEstrelas = new Map();   // postId -> { media, n, minha }
 const cacheNComent = new Map();    // postId -> n
-export async function infoCurtidas(postId, { recarregar = false } = {}) {
-  if (!recarregar && cacheCurtidas.has(postId)) return cacheCurtidas.get(postId);
+async function precisaEmail() {
+  if (!emailPendente(eu)) return false;
+  if (await conferirEmail(eu)) return false;
+  toast(MSG_EMAIL);
+  return true;
+}
+export async function infoEstrelas(postId, { recarregar = false } = {}) {
+  if (!recarregar && cacheEstrelas.has(postId)) return cacheEstrelas.get(postId);
   const q = fb.query(fb.collection(fb.db, "curtidas"), fb.where("postId", "==", postId));
-  const [n, meu] = await Promise.all([
-    fb.getCountFromServer(q).then((s) => s.data().count).catch(() => 0),
-    fb.getDoc(fb.doc(fb.db, "curtidas", `${postId}_${eu.uid}`)).then((s) => s.exists()).catch(() => false)
+  const [ag, minha] = await Promise.all([
+    fb.getAggregateFromServer(q, { soma: fb.sum("nota"), media: fb.average("nota") }).then((s) => s.data()).catch(() => ({ soma: 0, media: null })),
+    fb.getDoc(fb.doc(fb.db, "curtidas", `${postId}_${eu.uid}`)).then((s) => (s.exists() ? Number(s.data().nota) || 0 : 0)).catch(() => 0)
   ]);
-  const r = { n, eu: meu };
-  cacheCurtidas.set(postId, r);
+  const media = Number(ag.media) || 0;
+  const r = { media, n: media ? Math.round((Number(ag.soma) || 0) / media) : 0, minha };
+  cacheEstrelas.set(postId, r);
   return r;
+}
+// Dá, troca ou tira (nota 0) as estrelas de uma publicação.
+export async function darEstrelas(post, nota) {
+  const ref = fb.doc(fb.db, "curtidas", `${post.id}_${eu.uid}`);
+  const atual = (await infoEstrelas(post.id)).minha;
+  if (!nota) await fb.deleteDoc(ref);
+  else {
+    if (await precisaEmail()) return infoEstrelas(post.id);
+    if (atual) await fb.updateDoc(ref, { nota, atualizadoEm: fb.serverTimestamp() });
+    else {
+      const velha = await fb.getDoc(ref).catch(() => null);
+      if (velha?.exists()) await fb.updateDoc(ref, { nota, atualizadoEm: fb.serverTimestamp() });
+      else await fb.setDoc(ref, { postId: post.id, uid: eu.uid, postAutorId: post.autorId, nota, criadoEm: fb.serverTimestamp() });
+    }
+  }
+  return infoEstrelas(post.id, { recarregar: true });
 }
 export async function contarComentarios(postId, { recarregar = false } = {}) {
   if (!recarregar && cacheNComent.has(postId)) return cacheNComent.get(postId);
@@ -522,95 +544,234 @@ export async function contarComentarios(postId, { recarregar = false } = {}) {
   cacheNComent.set(postId, n);
   return n;
 }
-async function precisaEmail() {
-  if (!emailPendente(eu)) return false;
-  if (await conferirEmail(eu)) return false;
-  toast(MSG_EMAIL);
-  return true;
-}
-export async function alternarCurtida(post) {
-  const info = await infoCurtidas(post.id);
-  const ref = fb.doc(fb.db, "curtidas", `${post.id}_${eu.uid}`);
-  if (info.eu) { await fb.deleteDoc(ref); info.eu = false; info.n = Math.max(0, info.n - 1); }
-  else {
-    if (await precisaEmail()) return info;
-    await fb.setDoc(ref, { postId: post.id, uid: eu.uid, postAutorId: post.autorId, criadoEm: fb.serverTimestamp() });
-    info.eu = true; info.n += 1;
+
+// Cinco estrelas clicáveis: toque na 3ª = 3 estrelas; toque de novo na mesma = tira.
+export function seletorEstrelas(post, { aoMudar } = {}) {
+  const box = el("div", "estrelas-post");
+  const proprio = post.autorId === eu.uid;
+  const linha = el("div", "estrelas-linha"); linha.setAttribute("role", proprio ? "img" : "group");
+  linha.setAttribute("aria-label", proprio ? "Estrelas da sua publicação" : "Dar estrelas");
+  const bots = [1, 2, 3, 4, 5].map((n) => {
+    const b = el("button", "estrela", "★"); b.type = "button";
+    b.setAttribute("aria-label", `${n} ${n === 1 ? "estrela" : "estrelas"}`);
+    if (proprio) { b.disabled = true; b.tabIndex = -1; }
+    linha.appendChild(b);
+    return b;
+  });
+  const txt = el("span", "estrelas-txt", "");
+  box.append(linha, txt);
+  let info = { media: 0, n: 0, minha: 0 };
+  const pintar = (i, previa = 0) => {
+    info = i;
+    const alvo = previa || (proprio ? Math.round(i.media) : i.minha);
+    bots.forEach((b, k) => {
+      b.classList.toggle("on", k < alvo);
+      b.classList.toggle("minha", !proprio && !previa && k < i.minha);
+      b.setAttribute("aria-pressed", !proprio && i.minha === k + 1 ? "true" : "false");
+    });
+    const media = i.n ? `${i.media.toFixed(1).replace(".", ",")} · ${i.n} ${i.n === 1 ? "nota" : "notas"}` : "Sem notas";
+    txt.textContent = !proprio && i.minha ? `Sua nota: ${i.minha} · ${media}` : media;
+  };
+  infoEstrelas(post.id).then((i) => pintar(i));
+  if (!proprio) {
+    bots.forEach((b, k) => {
+      // Prévia só com mouse: no toque o "hover" fica preso e confundiria a nota.
+      b.addEventListener("pointerenter", (e) => { if (e.pointerType === "mouse") pintar(info, k + 1); });
+      b.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") pintar(info); });
+      b.addEventListener("click", async () => {
+        const nova = info.minha === k + 1 ? 0 : k + 1;
+        linha.classList.add("salvando");
+        try {
+          pintar(await darEstrelas(post, nova));
+          toast(nova ? `Você deu ${nova} ${nova === 1 ? "estrela" : "estrelas"}` : "Nota removida");
+          aoMudar?.(info);
+        } catch (e) { toast("Não foi possível salvar: " + erroAmigavel(e)); pintar(info); }
+        finally { linha.classList.remove("salvando"); }
+      });
+    });
   }
-  return info;
+  box.recarregar = () => infoEstrelas(post.id, { recarregar: true }).then((i) => pintar(i));
+  return box;
 }
-// Barra com curtir, comentar e compartilhar (usada no feed e no perfil).
-export function barraInteracao(post, { aoComentar, extra } = {}) {
+
+// Barra da publicação: estrelas, comentar e compartilhar.
+export function barraInteracao(post, { aoComentar } = {}) {
   const barra = el("div", "interacoes");
-  const bC = el("button", "acao"); bC.type = "button"; bC.setAttribute("aria-label", "Curtir");
-  const nC = el("span", "n", "");
-  bC.append(icone("coracao", "i s"), nC);
-  const bM = el("button", "acao"); bM.type = "button"; bM.setAttribute("aria-label", "Comentar");
+  const est = seletorEstrelas(post);
+  const bM = el("button", "acao"); bM.type = "button"; bM.setAttribute("aria-label", "Comentários");
   const nM = el("span", "n", "");
   bM.append(icone("chat", "i s"), nM);
   const bS = el("button", "acao"); bS.type = "button"; bS.setAttribute("aria-label", "Compartilhar");
   bS.append(icone("compartilhar", "i s"));
-  barra.append(bC, bM, bS, el("span", "esp"));
-  if (extra) barra.appendChild(extra);
-  const pintar = (i) => { bC.classList.toggle("curtido", !!i.eu); bC.setAttribute("aria-pressed", i.eu ? "true" : "false"); nC.textContent = i.n ? numero(i.n) : ""; };
-  infoCurtidas(post.id).then(pintar);
-  contarComentarios(post.id).then((n) => { nM.textContent = n ? numero(n) : ""; });
-  bC.addEventListener("click", async () => {
-    bC.disabled = true;
-    try { pintar(await alternarCurtida(post)); } catch (e) { toast("Não foi possível curtir: " + erroAmigavel(e)); }
-    finally { bC.disabled = false; }
-  });
-  bM.addEventListener("click", () => (aoComentar ? aoComentar() : abrirComentarios(post, { aoMudar: (n) => { nM.textContent = n ? numero(n) : ""; } })));
+  const acoes = el("div", "acoes-post"); acoes.append(bM, bS);
+  barra.append(est, acoes);
+  const pintarN = (n) => { nM.textContent = n ? numero(n) : ""; };
+  contarComentarios(post.id).then(pintarN);
+  bM.addEventListener("click", () => (aoComentar ? aoComentar() : abrirComentarios(post, { aoMudar: pintarN })));
   bS.addEventListener("click", () => compartilharPerfil(post.autorId, post.nome));
-  barra.atualizarComentarios = (n) => { nM.textContent = n ? numero(n) : ""; };
+  barra.atualizarComentarios = pintarN;
   return barra;
 }
+
 export async function listarComentarios(postId) {
-  const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "comentarios"), fb.where("postId", "==", postId), fb.limit(200)));
+  const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "comentarios"), fb.where("postId", "==", postId), fb.limit(300)));
   return snap.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter((c) => !escondido(c.autorId)).sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm));
 }
-// Monta a lista de comentários com o campo de escrever dentro de "alvo".
+async function curtidasDosComentarios(ids) {
+  const r = new Map(ids.map((id) => [id, { n: 0, eu: false }]));
+  for (let i = 0; i < ids.length; i += 30) {
+    const lote = ids.slice(i, i + 30);
+    try {
+      const s = await fb.getDocs(fb.query(fb.collection(fb.db, "curtidas_comentarios"), fb.where("comentarioId", "in", lote)));
+      s.docs.forEach((d) => { const x = r.get(d.data().comentarioId); if (x) { x.n++; if (d.data().uid === eu.uid) x.eu = true; } });
+    } catch {}
+  }
+  return r;
+}
+
+// Lista de comentários com respostas, edição, curtidas e moderação, dentro de "alvo".
 export function montarComentarios(alvo, post, { aoMudar } = {}) {
   alvo.replaceChildren();
+  const dono = post.autorId === eu.uid;
+  const moder = el("div", "coment-moderacao");
+  const aviso = el("div", "coment-aviso");
   const lista = el("div", "comentarios");
   lista.appendChild(el("div", "lista-vazia", "Carregando comentários..."));
   const form = el("form", "novo-comentario");
+  const resp = el("div", "respondendo"); resp.hidden = true;
+  const respTx = el("span");
+  const respX = el("button", null, "Cancelar"); respX.type = "button";
+  resp.append(respTx, respX);
+  const linhaForm = el("div", "linha-form");
   const tx = el("textarea"); tx.maxLength = 500; tx.rows = 1; tx.placeholder = "Escreva um comentário...";
   tx.setAttribute("aria-label", "Seu comentário");
   const env = el("button", "btn pri"); env.type = "submit"; env.textContent = "Enviar";
-  form.append(tx, env);
-  alvo.append(lista, form);
+  linhaForm.append(tx, env);
+  form.append(resp, linhaForm);
+  alvo.append(moder, aviso, lista, form);
+  let respondendo = null;   // comentário que está sendo respondido
   tx.addEventListener("input", () => { tx.style.height = "auto"; tx.style.height = Math.min(140, tx.scrollHeight) + "px"; });
+  respX.addEventListener("click", () => { respondendo = null; resp.hidden = true; tx.placeholder = "Escreva um comentário..."; });
+
+  const pintarModeracao = () => {
+    moder.replaceChildren();
+    aviso.replaceChildren();
+    const ocultos = post.comentariosOcultos === true;
+    if (dono) {
+      const b = el("button", "btn sec mini"); b.type = "button";
+      b.append(icone(ocultos ? "olho" : "restringir", "i xs"), document.createTextNode(ocultos ? "Mostrar os comentários" : "Ocultar os comentários"));
+      b.addEventListener("click", async () => {
+        const novo = !ocultos;
+        if (novo && !confirm("Ocultar os comentários desta publicação?\n\nNinguém mais vê nem comenta até você mostrar de novo.")) return;
+        b.disabled = true;
+        try {
+          await fb.updateDoc(fb.doc(fb.db, "diario", post.id), { comentariosOcultos: novo });
+          post.comentariosOcultos = novo;
+          toast(novo ? "Comentários ocultos" : "Comentários visíveis de novo");
+          pintarModeracao(); pintar();
+        } catch (e) { toast("Não foi possível alterar: " + erroAmigavel(e)); b.disabled = false; }
+      });
+      moder.appendChild(b);
+      if (ocultos) moder.appendChild(el("span", "coment-nota", "Só você vê os comentários desta publicação."));
+    } else if (ocultos) {
+      aviso.textContent = "O autor ocultou os comentários desta publicação.";
+    }
+    form.hidden = ocultos;
+  };
+
   const pintar = async () => {
     let itens = [];
     try { itens = await listarComentarios(post.id); } catch { lista.replaceChildren(el("div", "lista-vazia", "Não foi possível carregar os comentários.")); return; }
     cacheNComent.set(post.id, itens.length);
-    aoMudar?.(itens.length);
+    const ocultosTodos = post.comentariosOcultos === true && !dono;
+    const visiveis = itens.filter((c) => dono || c.autorId === eu.uid || !c.oculto);
+    aoMudar?.(ocultosTodos ? 0 : visiveis.filter((c) => !c.oculto).length);
     lista.replaceChildren();
-    if (!itens.length) { lista.appendChild(el("div", "lista-vazia", "Seja o primeiro a comentar.")); return; }
-    itens.forEach((c) => {
-      const linha = el("div", "comentario");
-      const av = el("div", "avatar"); pintarAvatar(av, c.foto, c.nome);
-      av.addEventListener("click", () => ganchos.abrirPerfil(c.autorId));
-      const col = el("div"); col.style.flex = "1"; col.style.minWidth = "0";
-      const bolha = el("div", "bolha");
-      const nm = el("strong", null, c.nome || "Usuário"); nm.addEventListener("click", () => ganchos.abrirPerfil(c.autorId));
-      bolha.append(nm, el("p", null, c.texto));
-      const meta = el("div", "meta");
-      meta.appendChild(el("span", null, tempoRelativo(paraData(c.criadoEm))));
-      if (c.autorId === eu.uid || post.autorId === eu.uid) {
-        const ap = el("button", null, "Apagar"); ap.type = "button";
-        ap.addEventListener("click", async () => {
-          if (!confirm("Apagar este comentário?")) return;
-          try { await fb.deleteDoc(fb.doc(fb.db, "comentarios", c.id)); pintar(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
-        });
-        meta.appendChild(ap);
+    if (ocultosTodos) return;
+    if (!visiveis.length) { lista.appendChild(el("div", "lista-vazia", "Seja o primeiro a comentar.")); return; }
+    const porId = new Map(itens.map((c) => [c.id, c]));
+    const raiz = (c) => { let x = c, k = 0; while (x.respostaA && porId.has(x.respostaA) && k++ < 20) x = porId.get(x.respostaA); return x; };
+    const curt = await curtidasDosComentarios(visiveis.map((c) => c.id));
+    const raizes = visiveis.filter((c) => raiz(c) === c);
+    raizes.forEach((r) => {
+      const bloco = el("div", "fio-coment");
+      bloco.appendChild(linhaComentario(r, curt.get(r.id), null));
+      const respostas = visiveis.filter((c) => c !== r && raiz(c) === r);
+      if (respostas.length) {
+        const sub = el("div", "respostas");
+        respostas.forEach((c) => sub.appendChild(linhaComentario(c, curt.get(c.id), c.respostaA !== r.id ? porId.get(c.respostaA) : null)));
+        bloco.appendChild(sub);
       }
-      col.append(bolha, meta);
-      linha.append(av, col);
-      lista.appendChild(linha);
+      lista.appendChild(bloco);
     });
   };
+
+  function linhaComentario(c, cur = { n: 0, eu: false }, paraQuem) {
+    const meu = c.autorId === eu.uid;
+    const linha = el("div", "comentario" + (c.oculto ? " oculto" : ""));
+    const av = el("div", "avatar"); pintarAvatar(av, c.foto, c.nome);
+    av.addEventListener("click", () => ganchos.abrirPerfil(c.autorId));
+    const col = el("div", "col");
+    const bolha = el("div", "bolha");
+    const topo = el("div", "bolha-topo");
+    const nm = el("strong", null, c.nome || "Usuário"); nm.addEventListener("click", () => ganchos.abrirPerfil(c.autorId));
+    topo.appendChild(nm);
+    if (paraQuem) topo.appendChild(el("span", "para", `para ${paraQuem.nome || "usuário"}`));
+    if (c.oculto) topo.appendChild(el("span", "etiqueta", meu && !dono ? "Oculto pelo autor da publicação" : "Oculto"));
+    const texto = el("p", null, c.texto);
+    bolha.append(topo, texto);
+    const meta = el("div", "meta");
+    meta.appendChild(el("span", null, tempoRelativo(paraData(c.criadoEm)) + (c.editadoEm ? " · editado" : "")));
+    const bt = (rot, fn, cls = "") => { const b = el("button", cls, rot); b.type = "button"; b.addEventListener("click", fn); meta.appendChild(b); return b; };
+    // curtir o comentário
+    const bCurtir = bt(`${cur.eu ? "Curtido" : "Curtir"}${cur.n ? ` (${cur.n})` : ""}`, async () => {
+      bCurtir.disabled = true;
+      const ref = fb.doc(fb.db, "curtidas_comentarios", `${c.id}_${eu.uid}`);
+      try {
+        if (cur.eu) { await fb.deleteDoc(ref); cur.eu = false; cur.n = Math.max(0, cur.n - 1); }
+        else { if (await precisaEmail()) return; await fb.setDoc(ref, { comentarioId: c.id, uid: eu.uid, criadoEm: fb.serverTimestamp() }); cur.eu = true; cur.n++; }
+        bCurtir.textContent = `${cur.eu ? "Curtido" : "Curtir"}${cur.n ? ` (${cur.n})` : ""}`;
+        bCurtir.classList.toggle("ativo", cur.eu);
+      } catch (e) { toast("Não foi possível curtir: " + erroAmigavel(e)); }
+      finally { bCurtir.disabled = false; }
+    }, cur.eu ? "ativo" : "");
+    if (!post.comentariosOcultos) bt("Responder", () => {
+      respondendo = c;
+      respTx.textContent = `Respondendo a ${c.nome || "usuário"}`;
+      resp.hidden = false;
+      tx.placeholder = `Responder a ${c.nome || "usuário"}...`;
+      tx.focus();
+    });
+    if (meu) bt("Editar", () => editar());
+    if (dono && !meu) bt(c.oculto ? "Mostrar" : "Ocultar", async () => {
+      try { await fb.updateDoc(fb.doc(fb.db, "comentarios", c.id), { oculto: !c.oculto }); toast(c.oculto ? "Comentário visível" : "Comentário oculto"); pintar(); }
+      catch (e) { toast("Não foi possível alterar: " + erroAmigavel(e)); }
+    });
+    if (meu || dono) bt("Apagar", async () => {
+      if (!confirm("Apagar este comentário?")) return;
+      try { await fb.deleteDoc(fb.doc(fb.db, "comentarios", c.id)); pintar(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
+    }, "perigo");
+    function editar() {
+      const ed = el("textarea", "editar"); ed.maxLength = 500; ed.value = c.texto;
+      const ok = el("button", "btn pri mini", "Salvar"); ok.type = "button";
+      const no = el("button", "btn sec mini", "Cancelar"); no.type = "button";
+      const acoes = el("div", "acoes-editar"); acoes.append(ok, no);
+      texto.replaceWith(ed); meta.hidden = true; bolha.appendChild(acoes);
+      ed.focus();
+      no.addEventListener("click", () => { ed.replaceWith(texto); acoes.remove(); meta.hidden = false; });
+      ok.addEventListener("click", async () => {
+        const novo = ed.value.trim();
+        if (!novo) { ed.focus(); return; }
+        ok.disabled = true;
+        try { await fb.updateDoc(fb.doc(fb.db, "comentarios", c.id), { texto: novo, editadoEm: fb.serverTimestamp() }); toast("Comentário editado"); pintar(); }
+        catch (e) { toast("Não foi possível salvar: " + erroAmigavel(e)); ok.disabled = false; }
+      });
+    }
+    col.append(bolha, meta);
+    linha.append(av, col);
+    return linha;
+  }
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const texto = tx.value.trim();
@@ -619,14 +780,16 @@ export function montarComentarios(alvo, post, { aoMudar } = {}) {
     env.disabled = true;
     try {
       const foto = urlSegura(dados.fotoPerfil) && dados.fotoPerfil.length < 200000 ? dados.fotoPerfil : "";
-      await fb.addDoc(fb.collection(fb.db, "comentarios"), {
-        postId: post.id, postAutorId: post.autorId, autorId: eu.uid, nome: String(dados.nome || "Usuário").slice(0, 80), foto, texto: texto.slice(0, 500), criadoEm: fb.serverTimestamp()
-      });
+      const doc = { postId: post.id, postAutorId: post.autorId, autorId: eu.uid, nome: String(dados.nome || "Usuário").slice(0, 80), foto, texto: texto.slice(0, 500), criadoEm: fb.serverTimestamp() };
+      if (respondendo) { doc.respostaA = respondendo.id; doc.respostaAutorId = respondendo.autorId; }
+      await fb.addDoc(fb.collection(fb.db, "comentarios"), doc);
       tx.value = ""; tx.style.height = "auto";
+      respondendo = null; resp.hidden = true; tx.placeholder = "Escreva um comentário...";
       await pintar();
     } catch (err) { toast("Não foi possível comentar: " + erroAmigavel(err)); }
     finally { env.disabled = false; }
   });
+  pintarModeracao();
   pintar();
   return { recarregar: pintar, focar: () => tx.focus() };
 }
@@ -634,7 +797,7 @@ export function abrirComentarios(post, { aoMudar } = {}) {
   const f = criarFolha("folhaComentarios", { titulo: "Comentários", corpoClasse: "folha-corpo pad" });
   const c = montarComentarios($("c_folhaComentarios"), post, { aoMudar });
   abrirFolha("folhaComentarios");
-  setTimeout(() => c.focar(), 120);
+  if (!post.comentariosOcultos) setTimeout(() => c.focar(), 120);
   return f;
 }
 
@@ -757,30 +920,12 @@ function ligarCompositor() {
 export function montarBarraRede(ativo) {
   if ($("barraRede")) return;
   const nav = el("nav", "barra-rede"); nav.id = "barraRede"; nav.setAttribute("aria-label", "Rede social");
-  const itens = [
-    ["feed", "feed.html", "feed", "Feed"],
-    ["descobrir", "feed.html?aba=pessoas", "lupa", "Descobrir"],
-    ["publicar", null, "mais", "Publicar"],
-    ["avisos", "notificacoes.html", "sino", "Avisos"],
-    ["perfil", "usuarios.html", null, "Perfil"]
-  ];
-  itens.forEach(([k, href, ic, rot]) => {
-    const a = href ? el("a") : el("button");
-    if (href) a.href = href; else a.type = "button";
+  [["diario", "feed.html", "feed", "Diário"], ["mensagens", "mensagens.html", "chat", "Mensagens"], ["perfil", "usuarios.html", null, "Perfil"]].forEach(([k, href, ic, rot]) => {
+    const a = el("a"); a.href = href;
     if (k === ativo) a.setAttribute("aria-current", "page");
-    if (k === "publicar") {
-      a.className = "publicar";
-      const b = el("span", "bola"); b.appendChild(icone("mais", "i"));
-      a.append(b);
-      a.setAttribute("aria-label", "Nova publicação");
-      a.addEventListener("click", () => (eu ? abrirCompositor({ aoPublicar: ganchos.aoPublicar }) : null));
-    } else if (k === "perfil") {
-      const av = el("span", "mini-av"); av.id = "barraAvatar";
-      a.append(av, el("span", null, rot));
-    } else {
-      a.append(icone(ic, "i"), el("span", null, rot));
-    }
-    if (k === "avisos") { const bd = el("b", "ponto-badge"); bd.id = "badgeAvisos"; bd.hidden = true; a.appendChild(bd); }
+    if (k === "perfil") { const av = el("span", "mini-av"); av.id = "barraAvatar"; a.append(av, el("span", null, rot)); }
+    else a.append(icone(ic, "i"), el("span", null, rot));
+    if (k === "mensagens") { const bd = el("b", "ponto-badge"); bd.id = "badgeMensagens"; bd.hidden = true; a.appendChild(bd); }
     nav.appendChild(a);
   });
   document.body.appendChild(nav);
@@ -795,7 +940,7 @@ export function pintarBarraRede() {
 // Avisos (notificações): seguidores, pedidos do social, curtidas,
 // comentários e mensagens. Alimenta o contador e a página de avisos.
 // =====================================================
-export const avisos = { seguidores: [], vinculos: [], curtidas: [], comentarios: [], mensagens: [] };
+export const avisos = { seguidores: [], vinculos: [], curtidas: [], comentarios: [], respostas: [], mensagens: [] };
 export let avisosVistosEm = 0;
 const ouvintesAvisos = new Set();
 export function aoMudarAvisos(fn) { ouvintesAvisos.add(fn); fn(avisos); }
@@ -810,7 +955,7 @@ function avisar() {
 }
 export function contarNovos() {
   const t = (x) => x.quando > avisosVistosEm;
-  return avisos.seguidores.filter(t).length + avisos.vinculos.filter((v) => v.pendente || t(v)).length + avisos.curtidas.filter(t).length + avisos.comentarios.filter(t).length;
+  return avisos.seguidores.filter(t).length + avisos.vinculos.filter((v) => v.pendente || t(v)).length + avisos.curtidas.filter(t).length + avisos.comentarios.filter(t).length + avisos.respostas.filter(t).length;
 }
 export function marcarAvisosVistos() {
   avisosVistosEm = Date.now();
@@ -844,14 +989,19 @@ export function ouvirAvisos({ notificarNovos = true } = {}) {
   });
   // Curtidas nas minhas publicações
   ouvir(fb.query(fb.collection(fb.db, "curtidas"), fb.where("postAutorId", "==", eu.uid), fb.limit(200)), async (snap, novos) => {
-    const l = await Promise.all(snap.docs.map(async (d) => ({ id: d.id, uid: d.data().uid, postId: d.data().postId, quando: ms(d.data().criadoEm), ...(await perfilDe(d.data().uid)) })));
+    const l = await Promise.all(snap.docs.filter((d) => Number(d.data().nota) > 0).map(async (d) => ({ id: d.id, uid: d.data().uid, postId: d.data().postId, nota: Number(d.data().nota), quando: Math.max(ms(d.data().criadoEm), ms(d.data().atualizadoEm)), ...(await perfilDe(d.data().uid)) })));
     avisos.curtidas = l.filter((x) => ok(x.uid));
-    if (novos && notificarNovos) avisos.curtidas.filter((x) => novos.has(x.id)).forEach((x) => notificar("Nova curtida", `${x.nome} curtiu sua publicação`, () => { location.href = "notificacoes.html"; }));
+    if (novos && notificarNovos) avisos.curtidas.filter((x) => novos.has(x.id)).forEach((x) => notificar("Novas estrelas", `${x.nome} deu ${x.nota} ${x.nota === 1 ? "estrela" : "estrelas"} na sua publicação`, () => { location.href = "notificacoes.html"; }));
   });
   // Comentários nas minhas publicações
   ouvir(fb.query(fb.collection(fb.db, "comentarios"), fb.where("postAutorId", "==", eu.uid), fb.limit(200)), async (snap, novos) => {
     avisos.comentarios = snap.docs.map((d) => { const c = d.data({ serverTimestamps: "estimate" }); return { id: d.id, uid: c.autorId, postId: c.postId, texto: c.texto, nome: c.nome || "Usuário", foto: c.foto || "", quando: ms(c.criadoEm) }; }).filter((x) => ok(x.uid));
     if (novos && notificarNovos) avisos.comentarios.filter((x) => novos.has(x.id)).forEach((x) => notificar("Novo comentário", `${x.nome}: ${x.texto}`, () => { location.href = "notificacoes.html"; }));
+  });
+  // Respostas aos meus comentários (em qualquer publicação)
+  ouvir(fb.query(fb.collection(fb.db, "comentarios"), fb.where("respostaAutorId", "==", eu.uid), fb.limit(200)), async (snap, novos) => {
+    avisos.respostas = snap.docs.map((d) => { const c = d.data({ serverTimestamps: "estimate" }); return { id: d.id, uid: c.autorId, postId: c.postId, texto: c.texto, nome: c.nome || "Usuário", foto: c.foto || "", quando: ms(c.criadoEm) }; }).filter((x) => ok(x.uid));
+    if (novos && notificarNovos) avisos.respostas.filter((x) => novos.has(x.id)).forEach((x) => notificar("Nova resposta", `${x.nome}: ${x.texto}`, () => { location.href = "notificacoes.html"; }));
   });
   // Pedidos do social (recebidos) e pedidos aceitos (enviados por mim)
   ouvir(fb.query(fb.collection(fb.db, "vinculos"), fb.where("participantes", "array-contains", eu.uid), fb.limit(60)), async (snap, novos) => {

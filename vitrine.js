@@ -8,7 +8,7 @@
 // =====================================================
 
 import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL } from "./seguranca.js?v=1";
-import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento } from "./avaliacoes.js?v=2";
+import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento } from "./avaliacoes.js?v=3";
 
 const PARAMS = new URL(import.meta.url).searchParams;
 const TIPO_PAGINA = PARAMS.get("tipo");

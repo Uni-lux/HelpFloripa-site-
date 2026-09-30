@@ -12,8 +12,8 @@
   <link rel="icon" href="favicon.ico" />
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
-  <link rel="stylesheet" href="vitrine.css?v=15" />
-  <link rel="stylesheet" href="rede.css?v=1" />
+  <link rel="stylesheet" href="vitrine.css?v=16" />
+  <link rel="stylesheet" href="rede.css?v=2" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
     // Tema compartilhado com a página de mensagens; aplicado antes de desenhar.
@@ -27,15 +27,14 @@
   </script>
 
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="menu.js?v=1"></script>
 </head>
 <body>
   <header class="topo">
-    <button type="button" class="icone-btn" id="btnMenu" aria-label="Abrir menu" aria-controls="gaveta" aria-expanded="false"><svg class="i"><use href="#i-menu"/></svg></button>
-    <a href="feed.html?aba=pessoas" class="icone-btn" id="btnBusca" aria-label="Buscar pessoas"><svg class="i"><use href="#i-lupa"/></svg></a>
+    <a href="index.html" class="icone-btn" aria-label="Início do Help Floripa" title="Início"><svg class="i"><use href="#i-casa"/></svg></a>
+    <span class="topo-espaco" aria-hidden="true"></span>
     <a href="index.html" class="marca" aria-label="Help Floripa - Início"><strong>HELP <span>FLORIPA</span></strong><small>TUDO EM UM SÓ LUGAR</small></a>
-    <a href="mensagens.html" class="icone-btn" id="btnMensagens" aria-label="Mensagens"><svg class="i"><use href="#i-chat"/></svg><b class="ponto-badge" id="badgeMensagens" hidden></b></a>
-    <a href="configuracoes.html" class="icone-btn" aria-label="Configurações"><svg class="i"><use href="#i-config"/></svg></a>
+    <a href="notificacoes.html" class="icone-btn" aria-label="Notificações" title="Notificações"><svg class="i"><use href="#i-sino"/></svg><b class="ponto-badge" id="badgeAvisos" hidden></b></a>
+    <a href="configuracoes.html" class="icone-btn" aria-label="Configurações" title="Configurações"><svg class="i"><use href="#i-config"/></svg></a>
   </header>
 
   <main class="pagina">
@@ -46,7 +45,7 @@
       <section id="meuPerfil" aria-label="Seu perfil"></section>
 
       <section id="painelPosts" aria-labelledby="tPosts">
-        <div class="secao-perfil"><h2 id="tPosts">Publicações</h2><a class="btn sec mini" href="feed.html"><svg class="i xs"><use href="#i-feed"/></svg>Ver o feed</a></div>
+        <div class="secao-perfil"><h2 id="tPosts">Publicações</h2><a class="btn sec mini" href="feed.html"><svg class="i xs"><use href="#i-feed"/></svg>Ver o diário</a></div>
         <button type="button" class="compor" id="btnCompor">
           <div class="avatar" id="comporAvatar"></div>
           <span class="txt">Compartilhe um trabalho, uma novidade ou uma foto...</span>
@@ -156,7 +155,6 @@
             <button type="button" class="btn perigo mini" id="postApagar"><svg class="i xs"><use href="#i-lixo"/></svg>Apagar</button>
           </div>
           <p class="texto" id="postTexto"></p>
-          <div class="post-nota" id="postNota"><span id="postNotaEstrelas"></span><button type="button" class="btn sec mini" id="postAvaliar" hidden><svg class="i xs"><use href="#i-estrela"/></svg>Avaliar publicação</button></div>
         </div>
         <div class="post-social" id="postSocial">
         </div>
@@ -215,9 +213,9 @@
       obterPerfil, salvarImagem, iniciarRede, meusSeguindoPronto, carregarMeusSeguindo, alternarSeguir, botaoSeguir, linhaPessoa,
       removerSeguidor, bloquear, desbloquear, alternarRestricao, compartilharPerfil,
       barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail
-    } from "./rede.js?v=1";
-    import { notaDoPerfil, abrirDetalhamento, abrirAvaliar, avaliar, jaAvaliou, lerResumo, estrelas, pintarEstrelas, media, notaTexto, TIPOS_NEGOCIO } from "./avaliacoes.js?v=2";
-    import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=15";
+    } from "./rede.js?v=2";
+    import { notaDoPerfil, abrirDetalhamento, abrirAvaliar, avaliar, jaAvaliou, lerResumo, estrelas, pintarEstrelas, media, notaTexto, TIPOS_NEGOCIO } from "./avaliacoes.js?v=3";
+    import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=16";
 
     // ======================================================
     // Estado desta página (o resto vem de rede.js)
@@ -317,10 +315,6 @@
         bComp.appendChild(icone("compartilhar", "i s"));
         bComp.addEventListener("click", () => compartilharPerfil(eu.uid, dados.nome));
         acoes.append(bEditar, bSocial, bComp);
-        const bCfg = document.createElement("a");
-        bCfg.href = "configuracoes.html"; bCfg.className = "pf-cfg"; bCfg.setAttribute("aria-label", "Configurações"); bCfg.title = "Configurações";
-        bCfg.appendChild(icone("config", "i s"));
-        meuCab.el("capa").appendChild(bCfg);
         // Estatísticas
         meuCab.stat("posts").addEventListener("click", () => $("painelPosts").scrollIntoView({ behavior: "smooth", block: "start" }));
         meuCab.stat("seguidores").addEventListener("click", () => abrirListaRelacoes(eu.uid, "seguidores"));
@@ -466,7 +460,6 @@
       $("postApagar").hidden = !proprio;
       $("postAnterior").disabled = indice <= 0;
       $("postProximo").disabled = indice >= lista.length - 1;
-      pintarNotaPost(post, autor);
       pintarSocialPost({ ...post, autorId: post.autorId || autor?.uid });
     }
     function pintarSocialPost(post) {
@@ -476,28 +469,6 @@
       const barra = barraInteracao(post, { aoComentar: () => lista.querySelector("textarea")?.focus() });
       box.append(barra, lista);
       montarComentarios(lista, post, { aoMudar: (n) => barra.atualizarComentarios(n) });
-    }
-    // Nota da publicação: cada pessoa avalia uma vez; o autor não avalia a própria.
-    async function pintarNotaPost(post, autor) {
-      const alvo = $("postNotaEstrelas"), btn = $("postAvaliar");
-      alvo.replaceChildren(); btn.hidden = true;
-      const autorId = post.autorId || autor?.uid;
-      const idAval = `d_${post.id}_${eu.uid}`;
-      const [resumo, ja] = await Promise.all([lerResumo(fb, `post_${post.id}`), autorId && autorId !== eu.uid ? jaAvaliou(fb, idAval) : true]);
-      if (postCtx?.lista[postCtx.indice]?.id !== post.id) return;
-      alvo.appendChild(estrelas(resumo));
-      btn.hidden = !!ja;
-      btn.onclick = () => abrirAvaliar({
-        titulo: "Avaliar publicação", sub: `De ${autor?.nome || post.nome || "usuário"}. Você só pode avaliar uma vez.`,
-        placeholder: "Comentário (opcional)",
-        aoEnviar: async ({ nota, comentario }) => {
-          await avaliar(fb, eu, idAval, { tipo: "publicacao", alvoId: autorId, postId: post.id, nota, comentario }, [`post_${post.id}`, `pub_${autorId}`], { nome: dados?.nome, foto: dados?.fotoPerfil });
-          toast("Obrigado pela avaliação!");
-          notasPerfil.delete(autorId);
-          if (ppCab && autorId !== eu.uid) pintarNotaPerfil(ppCab, autorId);
-          pintarNotaPost(post, autor);
-        }
-      });
     }
     $("postAnterior").addEventListener("click", () => { if (postCtx.indice > 0) { postCtx.indice--; mostrarPost(); } });
     $("postProximo").addEventListener("click", () => { if (postCtx.indice < postCtx.lista.length - 1) { postCtx.indice++; mostrarPost(); } });

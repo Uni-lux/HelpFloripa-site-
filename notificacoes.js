@@ -1,19 +1,19 @@
 // =====================================================
 // Avisos da rede social (notificacoes.html)
-// Seguidores, curtidas, comentários, pedidos do social e mensagens.
+// Seguidores, estrelas, comentários, respostas, pedidos do social e mensagens.
 // Os dados chegam em tempo real por rede.js (ouvirAvisos).
 // =====================================================
 import {
   $, el, icone, pintarAvatar, urlSegura, tempoRelativo, toast, erroAmigavel,
   fb, eu, ganchos, iniciarRede, carregarMeusSeguindo, botaoSeguir, montarBarraRede, pintarBarraRede,
   ouvirAvisos, aoMudarAvisos, avisosVistosEm, marcarAvisosVistos, rotuloVinculo, abrirComentarios
-} from "./rede.js?v=1";
+} from "./rede.js?v=2";
 
 let filtro = "tudo";
 let vistoAntes = 0;
 const postsCache = new Map();
-const CORES = { seguidor: "#00adee", curtida: "#ff3b5c", comentario: "#7c5cff", social: "#e0457b", mensagem: "#1fa855" };
-const ICONES = { seguidor: "pessoa-mais", curtida: "coracao", comentario: "chat", social: "fio", mensagem: "envelope" };
+const CORES = { seguidor: "#00adee", curtida: "#f5b700", comentario: "#7c5cff", resposta: "#7c5cff", social: "#e0457b", mensagem: "#1fa855" };
+const ICONES = { seguidor: "pessoa-mais", curtida: "estrela", comentario: "chat", resposta: "chat", social: "fio", mensagem: "envelope" };
 
 function obterPost(id) {
   if (!postsCache.has(id)) postsCache.set(id, fb.getDoc(fb.doc(fb.db, "diario", id)).then((s) => (s.exists() ? { id, ...s.data() } : null)).catch(() => null));
@@ -38,8 +38,9 @@ async function responderVinculo(v, aceitar) {
 function itens(a) {
   return [
     ...a.seguidores.map((x) => ({ tipo: "seguidor", ...x, texto: "começou a seguir você" })),
-    ...a.curtidas.map((x) => ({ tipo: "curtida", ...x, texto: "curtiu sua publicação" })),
+    ...a.curtidas.map((x) => ({ tipo: "curtida", ...x, texto: `deu ${"★".repeat(x.nota)}${"☆".repeat(5 - x.nota)} na sua publicação` })),
     ...a.comentarios.map((x) => ({ tipo: "comentario", ...x, texto: "comentou na sua publicação", detalhe: x.texto })),
+    ...a.respostas.filter((x) => !a.comentarios.some((c) => c.id === x.id)).map((x) => ({ tipo: "resposta", ...x, texto: "respondeu seu comentário", detalhe: x.texto })),
     ...a.vinculos.map((x) => ({ tipo: "social", ...x, texto: x.pendente ? `quer adicionar você como ${rotuloVinculo(x.tipoParaMim).toLowerCase()}` : `aceitou seu pedido: ${rotuloVinculo(x.tipoParaMim)}` })),
     ...a.mensagens.map((x) => ({ tipo: "mensagem", ...x, texto: "enviou uma mensagem", detalhe: x.ultimaMensagem }))
   ].sort((x, y) => y.quando - x.quando);
@@ -74,7 +75,7 @@ function linha(i) {
   }
   const abrir = async () => {
     if (i.tipo === "mensagem") { location.href = `mensagens.html?conversa=${encodeURIComponent(i.id)}`; return; }
-    if (i.tipo === "comentario" || i.tipo === "curtida") {
+    if (i.tipo === "comentario" || i.tipo === "curtida" || i.tipo === "resposta") {
       const p = await obterPost(i.postId);
       if (!p) { toast("Essa publicação foi apagada."); return; }
       abrirComentarios(p);
@@ -91,13 +92,13 @@ function pintar(a) {
   const corpo = $("listaAvisos");
   const todos = itens(a);
   const cont = { tudo: todos.length };
-  todos.forEach((i) => { cont[i.tipo] = (cont[i.tipo] || 0) + 1; });
+  todos.forEach((i) => { const t = i.tipo === "resposta" ? "comentario" : i.tipo; cont[t] = (cont[t] || 0) + 1; });
   document.querySelectorAll("#abasAvisos [data-filtro]").forEach((b) => { const n = cont[b.dataset.filtro] || 0; b.querySelector("em").textContent = n ? String(n) : ""; });
-  const lista = filtro === "tudo" ? todos : todos.filter((i) => i.tipo === filtro);
+  const lista = filtro === "tudo" ? todos : todos.filter((i) => (i.tipo === "resposta" ? "comentario" : i.tipo) === filtro);
   corpo.replaceChildren();
   if (!lista.length) {
     const v = el("div", "feed-vazio");
-    v.append(el("strong", null, "Nada por aqui ainda"), el("span", null, "Quando alguém seguir você, curtir ou comentar suas publicações, aparece aqui."));
+    v.append(el("strong", null, "Nada por aqui ainda"), el("span", null, "Quando alguém seguir você, der estrelas ou comentar suas publicações, aparece aqui."));
     corpo.appendChild(v);
     return;
   }

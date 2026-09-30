@@ -42,11 +42,30 @@ export const esquecerResumo = (chave) => cache.delete(chave);
 
 // Nota geral do perfil: média de todas as avaliações dos perfis de negócio.
 // Sem nenhuma avaliação de negócio, vale a média das publicações.
+// Estrelas que as publicações de alguém receberam (curtidas/{post}_{uid}, nota 1 a 5).
+// A nota pode mudar, então a conta é feita na hora: quantas de cada estrela.
+const cacheEstrelas = new Map();
+export function estrelasDoAutor(fbx, uid, { recarregar = false } = {}) {
+  if (!fbx?.db || !uid) return Promise.resolve(null);
+  if (recarregar || !cacheEstrelas.has(uid)) {
+    const col = fbx.collection(fbx.db, "curtidas");
+    cacheEstrelas.set(uid, Promise.all([1, 2, 3, 4, 5].map((n) =>
+      fbx.getCountFromServer(fbx.query(col, fbx.where("postAutorId", "==", uid), fbx.where("nota", "==", n))).then((x) => x.data().count).catch(() => 0)
+    )).then((c) => {
+      const r = { total: 0, soma: 0, n1: c[0], n2: c[1], n3: c[2], n4: c[3], n5: c[4] };
+      c.forEach((q, i) => { r.total += q; r.soma += q * (i + 1); });
+      return r;
+    }));
+  }
+  return cacheEstrelas.get(uid);
+}
+export const esquecerEstrelasDoAutor = (uid) => cacheEstrelas.delete(uid);
+
 export async function notaDoPerfil(fbx, uid) {
   const chaves = [...CHAVES_NEGOCIO(uid), `pub_${uid}`, `cli_${uid}`];
-  const r = await lerResumos(fbx, chaves);
+  const [r, est] = await Promise.all([lerResumos(fbx, chaves), estrelasDoAutor(fbx, uid)]);
   const negocios = somar(CHAVES_NEGOCIO(uid).map((c) => r[c]));
-  const pub = somar([r[`pub_${uid}`]]);
+  const pub = somar([r[`pub_${uid}`], est]);
   const geral = negocios.total ? negocios : pub;
   return { geral, origem: negocios.total ? "negocios" : pub.total ? "publicacoes" : "", resumos: r, negocios, pub, cliente: somar([r[`cli_${uid}`]]) };
 }

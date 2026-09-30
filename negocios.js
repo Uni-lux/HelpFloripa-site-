@@ -9,9 +9,9 @@
 import {
   $, el, icone, pintarAvatar, urlSegura, nomeCidade, toast, erroAmigavel, abrirFolha, fecharFolha,
   fb, eu, dados, salvarImagem, editarImagem, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos
-} from "./rede.js?v=1";
-import { lerResumos, estrelas, media, notaTexto } from "./avaliacoes.js?v=2";
-import { buscarAnuncios, DIAS, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO } from "./vitrine.js?v=15";
+} from "./rede.js?v=2";
+import { lerResumos, estrelas, media, notaTexto } from "./avaliacoes.js?v=3";
+import { buscarAnuncios, DIAS, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO } from "./vitrine.js?v=16";
 
 const NEGOCIOS = {
   servicos: { rotulo: "Serviços", img: "servicos.webp", pagina: "servicos.html", desc: "Portfólio, preços, horários e pedidos de orçamento." },

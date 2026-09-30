@@ -430,12 +430,12 @@
     @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
   </style>
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="menu.js?v=1"></script>
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
     <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></symbol>
     <symbol id="i-voltar" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+    <symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 01-1.5 1.5H15v-6h-6v6H5.5A1.5 1.5 0 014 19z"/></symbol>
     <symbol id="i-lupa" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></symbol>
     <symbol id="i-nova" viewBox="0 0 24 24"><path d="M12 20.5c4.7 0 8.5-3.6 8.5-8s-3.8-8-8.5-8-8.5 3.6-8.5 8c0 1.6.5 3.1 1.4 4.3L4 20l3.6-1c1.3.9 2.8 1.5 4.4 1.5z"/><path d="M12 9v7M8.5 12.5h7"/></symbol>
     <symbol id="i-config" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></symbol>
@@ -469,7 +469,7 @@
     <!-- ================= LISTA DE CONVERSAS ================= -->
     <aside class="sidebar" aria-label="Conversas">
       <div class="side-top">
-        <button type="button" class="icon-btn" id="btnMenu" aria-label="Abrir menu" aria-controls="gaveta" aria-expanded="false" title="Menu"><svg class="i"><use href="#i-menu"/></svg></button>
+        <a href="index.html" class="icon-btn" aria-label="Início do Help Floripa" title="Início"><svg class="i"><use href="#i-casa"/></svg></a>
         <h1><span>Help Floripa</span>Mensagens</h1>
         <button type="button" class="icon-btn" id="btnNovaConversa" aria-label="Nova conversa" title="Nova conversa"><svg class="i"><use href="#i-nova"/></svg></button>
         <button type="button" class="icon-btn" id="btnConfig" aria-label="Configurações" title="Configurações"><svg class="i"><use href="#i-config"/></svg></button>
@@ -667,7 +667,7 @@
 
   <script type="module">
     import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura, mostrarAvisoEmail } from "./seguranca.js?v=1";
-    import { abrirAvaliar, avaliar, estrelas, whatsAvaliacao, TIPOS_NEGOCIO } from "./avaliacoes.js?v=2";
+    import { abrirAvaliar, avaliar, estrelas, whatsAvaliacao, TIPOS_NEGOCIO } from "./avaliacoes.js?v=3";
     // ======================================================
     // Configurações (salvas no aparelho)
     // ======================================================

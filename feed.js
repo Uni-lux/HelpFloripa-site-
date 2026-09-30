@@ -1,18 +1,19 @@
 // =====================================================
-// Feed da rede social (feed.html)
-// - Seguindo: publicações suas e de quem você segue.
-// - Explorar: as publicações mais recentes de todo o Help Floripa.
-// - Pessoas: busca e sugestões de quem seguir.
-// Links: feed.html?aba=explorar · ?aba=pessoas · ?publicar=1
+// Diário (feed.html)
+// - Aba Diário: publicações de quem você segue (ou de todos), com
+//   estrelas, comentários e compartilhar.
+// - Aba Explorar: atalhos para Serviços, Delivery, Shopping e Imóveis
+//   e a busca de pessoas.
+// Links: feed.html?aba=explorar · ?publicar=1
 // =====================================================
 import {
-  $, el, icone, ms, paraData, pintarAvatar, urlSegura, nomeCidade, numero, tempoRelativo, toast, erroAmigavel,
-  fb, eu, dados, meusSeguindo, escondido, ganchos, obterPerfil, iniciarRede, carregarMeusSeguindo, botaoSeguir, linhaPessoa,
-  barraInteracao, abrirComentarios, abrirCompositor, abrirOpcoes, compartilharPerfil, montarBarraRede, pintarBarraRede, ouvirAvisos
-} from "./rede.js?v=1";
+  $, el, icone, ms, paraData, pintarAvatar, urlSegura, nomeCidade, tempoRelativo, toast, erroAmigavel,
+  fb, eu, dados, meusSeguindo, escondido, ganchos, obterPerfil, iniciarRede, carregarMeusSeguindo, linhaPessoa,
+  barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, montarBarraRede, pintarBarraRede, ouvirAvisos
+} from "./rede.js?v=2";
 
-const POR_VEZ = 12;
-let aba = "seguindo";
+const POR_VEZ = 10;
+let aba = "diario", filtro = "seguindo";
 let posts = [], mostrados = 0;
 let pessoas = null;
 
@@ -20,15 +21,18 @@ let pessoas = null;
 function trocarAba(nova) {
   aba = nova;
   document.querySelectorAll("#abasFeed [data-aba]").forEach((b) => b.setAttribute("aria-selected", b.dataset.aba === aba ? "true" : "false"));
-  $("painelFeed").hidden = aba === "pessoas";
-  $("painelPessoas").hidden = aba !== "pessoas";
-  const u = new URL(location.href);
-  if (aba === "seguindo") u.searchParams.delete("aba"); else u.searchParams.set("aba", aba);
-  history.replaceState(null, "", u.pathname.split("/").pop() + u.search);
-  if (aba === "pessoas") carregarPessoas();
+  $("painelFeed").hidden = aba !== "diario";
+  $("painelExplorar").hidden = aba !== "explorar";
+  history.replaceState(null, "", aba === "explorar" ? "feed.html?aba=explorar" : "feed.html");
+  if (aba === "explorar") carregarPessoas();
   else carregarFeed();
 }
 document.querySelectorAll("#abasFeed [data-aba]").forEach((b) => b.addEventListener("click", () => trocarAba(b.dataset.aba)));
+document.querySelectorAll("#filtroFeed [data-filtro]").forEach((b) => b.addEventListener("click", () => {
+  filtro = b.dataset.filtro;
+  document.querySelectorAll("#filtroFeed [data-filtro]").forEach((x) => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
+  carregarFeed();
+}));
 
 // ---------- publicações ----------
 async function buscarSeguindo() {
@@ -38,7 +42,7 @@ async function buscarSeguindo() {
   const res = await Promise.all(lotes.map((l) => fb.getDocs(fb.query(fb.collection(fb.db, "diario"), fb.where("autorId", "in", l), fb.limit(60))).catch(() => ({ docs: [] }))));
   return res.flatMap((s) => s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })));
 }
-async function buscarExplorar() {
+async function buscarTodos() {
   const s = await fb.getDocs(fb.query(fb.collection(fb.db, "diario"), fb.orderBy("criadoEm", "desc"), fb.limit(80)));
   return s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) }));
 }
@@ -47,19 +51,19 @@ async function carregarFeed() {
   lista.replaceChildren(el("div", "esqueleto-post"), el("div", "esqueleto-post"));
   $("maisFeed").hidden = true;
   try {
-    const bruto = aba === "explorar" ? await buscarExplorar() : await buscarSeguindo();
+    const bruto = filtro === "todos" ? await buscarTodos() : await buscarSeguindo();
     posts = bruto.filter((p) => !escondido(p.autorId)).sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
   } catch (e) {
     console.warn(e);
-    lista.replaceChildren(vazio("Não foi possível carregar o feed", erroAmigavel(e)));
+    lista.replaceChildren(vazio("Não foi possível carregar o diário", erroAmigavel(e)));
     return;
   }
   mostrados = 0;
   lista.replaceChildren();
   if (!posts.length) {
-    lista.appendChild(aba === "explorar"
-      ? vazio("Nada publicado ainda", "Seja o primeiro a compartilhar um trabalho ou novidade.", "Publicar agora", () => abrirCompositor({ aoPublicar: ganchos.aoPublicar }))
-      : vazio("Seu feed está vazio", "Siga pessoas e negócios para ver as publicações deles aqui.", "Descobrir pessoas", () => trocarAba("pessoas")));
+    lista.appendChild(filtro === "todos"
+      ? vazio("Nada publicado ainda", "Seja o primeiro a compartilhar um trabalho ou uma novidade.", "Publicar agora", () => abrirCompositor({ aoPublicar: ganchos.aoPublicar }))
+      : vazio("Seu diário está vazio", "Siga pessoas e negócios para ver as publicações deles aqui, ou veja as de todo o Help Floripa.", "Ver publicações de todos", () => document.querySelector('#filtroFeed [data-filtro="todos"]').click()));
     return;
   }
   mostrarMais();
@@ -105,33 +109,49 @@ function cartaoPost(post) {
   obterPerfil(post.autorId).then((p) => {
     if (p.nome) nome.textContent = p.nome;
     if (p.fotoPerfil) pintarAvatar(av, p.fotoPerfil, p.nome);
-    const extra = [p.nickname ? "@" + p.nickname : "", tempoRelativo(paraData(post.criadoEm))].filter(Boolean).join(" · ");
-    sub.textContent = extra;
+    sub.textContent = [p.nickname ? "@" + p.nickname : "", tempoRelativo(paraData(post.criadoEm))].filter(Boolean).join(" · ");
   });
   const url = urlSegura(post.mediaUrl);
-  if (post.texto) c.appendChild(el("p", "post-texto" + (url ? "" : " so-texto"), post.texto));
+  if (post.texto) {
+    const t = el("p", "post-texto" + (url ? "" : " so-texto"), post.texto);
+    c.appendChild(t);
+    // Texto longo: mostra o começo e "ver mais".
+    if (post.texto.length > 220) {
+      t.classList.add("curto");
+      const vm = el("button", "ver-mais", "ver mais"); vm.type = "button";
+      vm.addEventListener("click", () => { t.classList.remove("curto"); vm.remove(); });
+      c.appendChild(vm);
+    }
+  }
   if (url) {
     const m = el("div", "post-midia-f");
     if (post.mediaTipo === "video") { const v = document.createElement("video"); v.src = url; v.controls = true; v.playsInline = true; v.preload = "metadata"; m.appendChild(v); }
-    else { const img = document.createElement("img"); img.src = url; img.alt = post.texto ? post.texto.slice(0, 80) : "Publicação"; img.loading = "lazy"; m.appendChild(img); }
+    else {
+      const img = document.createElement("img"); img.src = url; img.alt = post.texto ? post.texto.slice(0, 80) : "Publicação"; img.loading = "lazy";
+      m.appendChild(img);
+      m.title = "Toque para ver inteira";
+      m.addEventListener("click", () => m.classList.toggle("inteira"));
+    }
     c.appendChild(m);
   }
   c.appendChild(barraInteracao(post));
   return c;
 }
 
-// ---------- pessoas ----------
+// ---------- explorar: pessoas ----------
+async function lerPessoas() {
+  if (pessoas) return pessoas;
+  const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "perfis_publicos"), fb.orderBy("nome"), fb.limit(500)));
+  pessoas = snap.docs.map((d) => ({ uid: d.id, ...d.data() })).filter((p) => p.uid !== eu.uid);
+  return pessoas;
+}
 async function carregarPessoas() {
   const corpo = $("listaPessoas");
   if (!pessoas) {
     corpo.replaceChildren(el("div", "lista-vazia", "Carregando pessoas..."));
-    try {
-      const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "perfis_publicos"), fb.orderBy("nome"), fb.limit(500)));
-      pessoas = snap.docs.map((d) => ({ uid: d.id, ...d.data() })).filter((p) => p.uid !== eu.uid);
-    } catch (e) { corpo.replaceChildren(el("div", "lista-vazia", "Não foi possível buscar: " + erroAmigavel(e))); return; }
+    try { await lerPessoas(); } catch (e) { corpo.replaceChildren(el("div", "lista-vazia", "Não foi possível buscar: " + erroAmigavel(e))); return; }
   }
   pintarPessoas();
-  setTimeout(() => $("buscaPessoas").focus({ preventScroll: true }), 50);
 }
 function pintarPessoas() {
   const termo = $("buscaPessoas").value.trim().toLowerCase().replace(/^@/, "");
@@ -142,46 +162,22 @@ function pintarPessoas() {
   else lista = [...lista.filter((p) => !meusSeguindo.has(p.uid)), ...lista.filter((p) => meusSeguindo.has(p.uid))];
   corpo.appendChild(el("div", "grupo-titulo", termo ? `${lista.length} ${lista.length === 1 ? "pessoa encontrada" : "pessoas encontradas"}` : "Sugestões para você"));
   if (!lista.length) { corpo.appendChild(el("div", "lista-vazia", "Ninguém encontrado.")); return; }
-  lista.slice(0, 80).forEach((p) => corpo.appendChild(linhaPessoa({
+  lista.slice(0, termo ? 80 : 20).forEach((p) => corpo.appendChild(linhaPessoa({
     uid: p.uid, nome: p.nome, foto: p.fotoPerfil,
     sub: [p.nickname ? "@" + p.nickname : "", nomeCidade(p.cidade || p.cidadeNome)].filter(Boolean).join(" · ")
   })));
 }
 $("buscaPessoas").addEventListener("input", pintarPessoas);
 
-// ---------- lateral e histórias ----------
+// ---------- lateral (computador) ----------
 async function pintarLateral() {
   pintarAvatar($("euAvatar"), dados.fotoPerfil, dados.nome);
   $("euNome").textContent = dados.nome || "Você";
   $("euNick").textContent = dados.nickname ? "@" + dados.nickname : "Ver meu perfil";
   pintarAvatar($("comporAvatar"), dados.fotoPerfil, dados.nome);
-  // Quem eu sigo, em bolinhas
-  const trilho = $("trilhoSeguindo");
-  const ids = [...meusSeguindo].filter((u) => !escondido(u)).slice(0, 20);
-  trilho.replaceChildren();
-  const eu0 = el("a", "pessoa-bola"); eu0.href = "usuarios.html";
-  const a0 = el("span", "anel"); const av0 = el("div", "avatar"); pintarAvatar(av0, dados.fotoPerfil, dados.nome); a0.appendChild(av0);
-  eu0.append(a0, el("span", null, "Você"));
-  trilho.appendChild(eu0);
-  const perfisS = await Promise.all(ids.map(obterPerfil));
-  ids.forEach((u, i) => {
-    const b = el("a", "pessoa-bola"); b.href = `usuarios.html?perfil=${encodeURIComponent(u)}`;
-    const anel = el("span", "anel"); const av = el("div", "avatar"); pintarAvatar(av, perfisS[i].fotoPerfil, perfisS[i].nome); anel.appendChild(av);
-    b.append(anel, el("span", null, (perfisS[i].nome || "Usuário").split(" ")[0]));
-    trilho.appendChild(b);
-  });
-  const conv = el("button", "pessoa-bola"); conv.type = "button";
-  const an = el("span", "anel"); an.style.background = "var(--line)"; const avc = el("div", "avatar"); avc.appendChild(icone("pessoa-mais", "i")); an.appendChild(avc);
-  conv.append(an, el("span", null, "Descobrir"));
-  conv.addEventListener("click", () => trocarAba("pessoas"));
-  trilho.appendChild(conv);
-  // Sugestões
   try {
-    if (!pessoas) {
-      const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "perfis_publicos"), fb.orderBy("nome"), fb.limit(500)));
-      pessoas = snap.docs.map((d) => ({ uid: d.id, ...d.data() })).filter((p) => p.uid !== eu.uid);
-    }
-    const sug = pessoas.filter((p) => !meusSeguindo.has(p.uid) && !escondido(p.uid)).sort(() => Math.random() - 0.5).slice(0, 5);
+    await lerPessoas();
+    const sug = pessoas.filter((p) => !meusSeguindo.has(p.uid) && !escondido(p.uid)).sort(() => Math.random() - 0.5).slice(0, 4);
     const box = $("sugestoes");
     box.replaceChildren();
     if (!sug.length) box.appendChild(el("div", "lista-vazia", "Você já segue todo mundo por aqui."));
@@ -193,15 +189,17 @@ async function pintarLateral() {
 (async function iniciar() {
   try { await iniciarRede(); }
   catch (e) { $("listaFeed").replaceChildren(vazio("Não foi possível carregar", e.message || "")); return; }
-  ganchos.aoPublicar = () => { if (aba === "pessoas") trocarAba("seguindo"); else carregarFeed(); };
-  ganchos.aposSeguir = () => { if (aba === "seguindo") carregarFeed(); };
-  montarBarraRede(new URLSearchParams(location.search).get("aba") === "pessoas" ? "descobrir" : "feed");
+  ganchos.aoPublicar = () => { if (aba !== "diario") trocarAba("diario"); else carregarFeed(); };
+  ganchos.aposSeguir = () => { if (aba === "diario" && filtro === "seguindo") carregarFeed(); };
+  montarBarraRede("diario");
   pintarBarraRede();
   ouvirAvisos();
   $("btnComporFeed").addEventListener("click", () => abrirCompositor({ aoPublicar: ganchos.aoPublicar }));
   await carregarMeusSeguindo();
+  // Sem ninguém para seguir ainda: começa mostrando as publicações de todos.
+  if (!meusSeguindo.size) document.querySelectorAll("#filtroFeed [data-filtro]").forEach((x) => { const t = x.dataset.filtro === "todos"; x.setAttribute("aria-pressed", t ? "true" : "false"); if (t) filtro = "todos"; });
   pintarLateral();
   const p = new URLSearchParams(location.search);
-  trocarAba(["explorar", "pessoas"].includes(p.get("aba")) ? p.get("aba") : "seguindo");
+  trocarAba(p.get("aba") === "explorar" || p.get("aba") === "pessoas" ? "explorar" : "diario");
   if (p.get("publicar")) abrirCompositor({ aoPublicar: ganchos.aoPublicar });
 })();
