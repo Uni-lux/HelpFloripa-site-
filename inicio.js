@@ -32,18 +32,16 @@ const DICAS = {
 };
 function escolherClasse(tipo) {
   classeBusca = tipo;
-  document.querySelectorAll("#classesBusca [data-classe]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.classe === tipo ? "true" : "false"));
+  $("classeBusca").value = tipo;
   $("buscaGeral").dataset.classe = tipo;
   $("campoBusca").placeholder = DICAS[tipo];
 }
-document.querySelectorAll("#classesBusca [data-classe]").forEach((b) => b.addEventListener("click", () => { escolherClasse(b.dataset.classe); $("campoBusca").focus(); }));
+$("classeBusca").addEventListener("change", () => { escolherClasse($("classeBusca").value); $("campoBusca").focus(); });
 function buscar(tipo, termo) {
   const t = String(termo || "").trim().slice(0, 80);
   location.href = PAGINA_TIPO[tipo] + (t ? `?q=${encodeURIComponent(t)}` : "");
 }
 $("buscaGeral").addEventListener("submit", (e) => { e.preventDefault(); buscar(classeBusca, $("campoBusca").value); });
-document.querySelectorAll("#populares [data-q]").forEach((b) => b.addEventListener("click", () => buscar(b.dataset.classe, b.dataset.q)));
-$("btnBusca")?.addEventListener("click", () => { $("campoBusca").scrollIntoView({ behavior: "smooth", block: "center" }); setTimeout(() => $("campoBusca").focus({ preventScroll: true }), 250); });
 escolherClasse("servicos");
 
 // ---------- banner ----------

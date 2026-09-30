@@ -30,11 +30,11 @@
     })();
   </script>
   <link rel="stylesheet" href="categoria.css?v=4" />
-  <link rel="stylesheet" href="inicio.css?v=4" />
+  <link rel="stylesheet" href="inicio.css?v=5" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
   <script type="module" src="categoria.js?v=4"></script>
-  <script type="module" src="inicio.js?v=4"></script>
+  <script type="module" src="inicio.js?v=5"></script>
 </head>
 <body data-classe="inicio">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -57,41 +57,36 @@
 
   <header class="topo">
     <button type="button" class="icone-btn" id="btnMenu" aria-label="Abrir menu" aria-controls="gaveta" aria-expanded="false"><svg class="i" aria-hidden="true"><use href="#i-menu"/></svg></button>
-    <button type="button" class="icone-btn" id="btnBusca" aria-label="Buscar"><svg class="i" aria-hidden="true"><use href="#i-lupa"/></svg></button>
+    <span class="topo-espaco" aria-hidden="true"></span>
     <a href="index.html" class="marca" aria-label="Help Floripa - Início" aria-current="page"><strong>HELP <span>FLORIPA</span></strong><small>TUDO EM UM SÓ LUGAR</small></a>
     <a href="mensagens.html" class="icone-btn" aria-label="Mensagens"><svg class="i" aria-hidden="true"><use href="#i-chat"/></svg><b class="ponto-badge" id="badgeMensagens" hidden></b></a>
     <a href="usuarios.html" class="icone-btn" aria-label="Meu perfil"><span class="topo-avatar" id="topoAvatar"><svg class="i xs" aria-hidden="true"><use href="#i-perfil"/></svg></span></a>
   </header>
 
   <main class="pagina">
-    <section class="hero hero-inicio" style="--capa: url('ponte-help.webp')" aria-labelledby="tituloPagina">
-      <div class="hero-corpo">
+    <section class="painel-ponte" aria-labelledby="tituloPagina">
+      <figure class="pp-foto">
+        <img src="ponte-help.webp" alt="Ponte Hercílio Luz iluminada à noite, em Florianópolis" width="1536" height="1024" fetchpriority="high" />
+        <figcaption>Ponte Hercílio Luz · Florianópolis</figcaption>
+      </figure>
+      <div class="pp-texto">
         <p class="ola" id="saudacao">Olá</p>
         <h1 id="tituloPagina">Tudo o que você precisa em Floripa, <span>num só lugar</span></h1>
-        <p class="lead">Profissionais, delivery, lojas e imóveis da sua cidade, com notas de clientes reais e conversa direta, sem intermediário.</p>
+        <p class="lead">Profissionais, delivery, lojas e imóveis da cidade, com notas de clientes reais.</p>
         <form class="busca-geral" id="buscaGeral" role="search" data-classe="servicos">
-          <div class="classes-busca" id="classesBusca" role="group" aria-label="Buscar em">
-            <button type="button" data-classe="servicos" aria-pressed="false"><svg class="i xs" aria-hidden="true"><use href="#i-servicos"/></svg>Serviços</button>
-            <button type="button" data-classe="delivery" aria-pressed="false"><svg class="i xs" aria-hidden="true"><use href="#i-delivery"/></svg>Delivery</button>
-            <button type="button" data-classe="lojinha" aria-pressed="false"><svg class="i xs" aria-hidden="true"><use href="#i-lojinha"/></svg>Shopping</button>
-            <button type="button" data-classe="imoveis" aria-pressed="false"><svg class="i xs" aria-hidden="true"><use href="#i-imoveis"/></svg>Imóveis</button>
-          </div>
           <div class="busca">
-            <svg class="i" aria-hidden="true"><use href="#i-lupa"/></svg>
+            <label class="sr" for="classeBusca">Buscar em</label>
+            <select id="classeBusca">
+              <option value="servicos">Serviços</option>
+              <option value="delivery">Delivery</option>
+              <option value="lojinha">Shopping</option>
+              <option value="imoveis">Imóveis</option>
+            </select>
             <label class="sr" for="campoBusca">O que você procura?</label>
             <input type="search" id="campoBusca" placeholder="O que você procura?" autocomplete="off" enterkeyhint="search" />
-            <button type="submit" aria-label="Buscar"><svg class="i s" aria-hidden="true"><use href="#i-lupa"/></svg><span>Buscar</span></button>
+            <button type="submit" aria-label="Buscar"><svg class="i s" aria-hidden="true"><use href="#i-lupa"/></svg></button>
           </div>
         </form>
-        <div class="populares" id="populares">
-          <span>Mais buscados:</span>
-          <button type="button" data-classe="servicos" data-q="Diarista">Diarista</button>
-          <button type="button" data-classe="servicos" data-q="Eletricista">Eletricista</button>
-          <button type="button" data-classe="delivery" data-q="Pizza">Pizza</button>
-          <button type="button" data-classe="delivery" data-q="Hambúrguer">Hambúrguer</button>
-          <button type="button" data-classe="lojinha" data-q="Tênis">Tênis</button>
-          <button type="button" data-classe="imoveis" data-q="Apartamento">Apartamento</button>
-        </div>
       </div>
     </section>
 
@@ -124,9 +119,17 @@
 
     <section class="banner" aria-label="Anúncios do Help Floripa" aria-roledescription="carrossel">
       <div class="banner-trilho" id="bannerTrilho">
-        <a href="servicos.html"><picture><source media="(max-width: 1024px)" srcset="propaganda1.webp" /><img src="propaganda1c.webp" alt="Os melhores profissionais e as melhores lanchonetes estão no Help Floripa" width="1536" height="1024" fetchpriority="high" /></picture></a>
-        <a href="shopping.html"><picture><source media="(max-width: 1024px)" srcset="propaganda2.webp" /><img src="propaganda2c.webp" alt="Produtos de qualidade e imóveis para vender ou alugar no Help Floripa" width="1536" height="1024" loading="lazy" /></picture></a>
-        <a href="negocios.html"><picture><source media="(max-width: 1024px)" srcset="propaganda3.webp" /><img src="propaganda3c.webp" alt="Anuncie grátis no Help Floripa" width="1536" height="1024" loading="lazy" /></picture></a>
+        <a href="negocios.html" class="slide s1" aria-label="Crie seu perfil de serviços ou delivery grátis">
+          <img src="propaganda1.webp" alt="" width="1537" height="1023" loading="lazy" />
+          <span class="slide-txt"><strong>Os melhores <em>profissionais</em> e <em>lanchonetes</em> de Floripa</strong><small>Mostre seu trabalho ou seu cardápio para a cidade inteira.</small><b class="slide-cta">Criar meu perfil grátis<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></b></span>
+        </a>
+        <a href="negocios.html" class="slide s2" aria-label="Abra sua lojinha ou anuncie seu imóvel grátis">
+          <img src="propaganda2.webp" alt="" width="1537" height="1023" loading="lazy" />
+          <span class="slide-txt"><strong>Produtos de qualidade e imóveis para <em>vender</em> ou <em>alugar</em></strong><small>Abra sua lojinha ou anuncie seu imóvel sem pagar nada.</small><b class="slide-cta">Anunciar grátis<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></b></span>
+        </a>
+        <a href="negocios.html" class="slide s3" aria-label="Cadastre-se agora e crie seu perfil de negócio">
+          <img src="propaganda3.webp" alt="Cadastre-se agora! Lanchonetes, produtos, profissionais e imóveis da sua região." width="1536" height="1024" loading="lazy" />
+        </a>
       </div>
       <button type="button" class="seta ant" id="bannerAnt" aria-label="Anúncio anterior"><svg class="i s" aria-hidden="true"><use href="#i-seta"/></svg></button>
       <button type="button" class="seta prox" id="bannerProx" aria-label="Próximo anúncio"><svg class="i s" aria-hidden="true"><use href="#i-seta"/></svg></button>
