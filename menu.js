@@ -25,6 +25,8 @@ body.gaveta-aberta { overflow: hidden; }
 body.gaveta-aberta .gaveta-fundo { opacity: 1; pointer-events: auto; }
 body.gaveta-aberta .gaveta { transform: none; visibility: visible; }
 .gaveta-topo { display: flex; align-items: center; gap: 6px; }
+.gaveta a { color: inherit; }
+.gaveta .gaveta-item[aria-current="page"] { color: var(--accent); }
 .gaveta .gaveta-x { width: 42px; height: 42px; border-radius: 50%; border: 0; background: transparent; display: grid; place-items: center; cursor: pointer; color: var(--text); flex-shrink: 0; }
 .gaveta .gaveta-x:hover { background: var(--hover); }
 .gaveta svg.i { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
