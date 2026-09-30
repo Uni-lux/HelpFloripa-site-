@@ -119,7 +119,6 @@ const SECOES_MENU = [
     ["profissionais.html", "servicos", "Para profissionais"],
     ["clientes.html", "perfil", "Para clientes"],
     ["socios-parcerias.html", "parceria", "Sócios e parcerias"],
-    ["cadastro-empresa.html", "empresa", "Cadastrar empresa / MEI"],
     ["reclamacoes.html", "alerta", "Reclamações"],
     ["ajuda.html", "ajuda", "Ajuda"],
     ["contato.html", "contato", "Contato"],
