@@ -25,6 +25,11 @@ body.gaveta-aberta { overflow: hidden; }
 body.gaveta-aberta .gaveta-fundo { opacity: 1; pointer-events: auto; }
 body.gaveta-aberta .gaveta { transform: none; visibility: visible; }
 .gaveta-topo { display: flex; align-items: center; gap: 6px; }
+.gaveta .gaveta-x { width: 42px; height: 42px; border-radius: 50%; border: 0; background: transparent; display: grid; place-items: center; cursor: pointer; color: var(--text); flex-shrink: 0; }
+.gaveta .gaveta-x:hover { background: var(--hover); }
+.gaveta svg.i { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.gaveta svg.i.s { width: 17px; height: 17px; }
+.gaveta svg.i.xs { width: 14px; height: 14px; }
 .gaveta-perfil { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 16px; text-decoration: none; background: var(--panel-2); border: 1px solid var(--line); }
 .gaveta-perfil:hover { background: var(--hover); }
 .gaveta-perfil .tx { flex: 1; min-width: 0; display: grid; }
@@ -194,8 +199,21 @@ function montarGaveta() {
   aplicarTema(temaAtual());
   atualizarBadgeMenu();
 }
+// Páginas que não informam o perfil (ex.: mensagens): o menu busca sozinho.
+async function carregarPerfilSozinho() {
+  if (perfilMenu.logado !== null || !window.firebaseAuth) return;
+  const u = window.firebaseAuth.currentUser;
+  if (!u) { definirPerfilMenu({ logado: false }); return; }
+  try {
+    const fs = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+    const s = await fs.getDoc(fs.doc(window.firebaseDb, "perfis_publicos", u.uid));
+    const p = s.exists() ? s.data() : {};
+    definirPerfilMenu({ logado: true, nome: p.nome || u.displayName || "", nick: p.nickname || "", foto: p.fotoPerfil || u.photoURL || "" });
+  } catch { definirPerfilMenu({ logado: true, nome: u.displayName || "" }); }
+}
 function abrirGaveta() {
   if (!gaveta) montarGaveta();
+  carregarPerfilSozinho();
   document.body.classList.add("gaveta-aberta");
   $("btnMenu")?.setAttribute("aria-expanded", "true");
   setTimeout(() => gaveta.querySelector(".gaveta-x")?.focus(), 50);
