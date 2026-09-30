@@ -28,12 +28,12 @@
       document.querySelector('meta[name="theme-color"]').content = escuro ? "#0f161b" : "#ffffff";
     })();
   </script>
-  <link rel="stylesheet" href="categoria.css?v=1" />
-  <link rel="stylesheet" href="vitrine.css?v=12" />
+  <link rel="stylesheet" href="categoria.css?v=2" />
+  <link rel="stylesheet" href="vitrine.css?v=13" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
-  <script type="module" src="categoria.js?v=1"></script>
-  <script type="module" src="vitrine.js?tipo=lojinha&v=12"></script>
+  <script type="module" src="categoria.js?v=2"></script>
+  <script type="module" src="vitrine.js?tipo=lojinha&v=13"></script>
 </head>
 <body data-classe="lojinha">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -52,6 +52,7 @@
     <symbol id="i-lojinha" viewBox="0 0 24 24"><path d="M6 8h12l-1 12H7L6 8zM9 8V6a3 3 0 016 0v2"/></symbol>
     <symbol id="i-lupa" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></symbol>
     <symbol id="i-mais" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></symbol>
     <symbol id="i-mercado" viewBox="0 0 24 24"><path d="M3 4h2.2l2.2 11h10.4l2-8H6.3"/><circle cx="9" cy="19.5" r="1.4"/><circle cx="17" cy="19.5" r="1.4"/></symbol>
     <symbol id="i-outros" viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/></symbol>
     <symbol id="i-perfil" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.3-3.6 4.2-5.3 7.5-5.3s6.2 1.7 7.5 5.3"/></symbol>
@@ -61,7 +62,7 @@
   </svg>
 
   <header class="topo">
-    <a href="index.html" class="icone-btn" aria-label="Página inicial" title="Início"><svg class="i" aria-hidden="true"><use href="#i-casa"/></svg></a>
+    <button type="button" class="icone-btn" id="btnMenu" aria-label="Abrir menu" aria-controls="gaveta" aria-expanded="false"><svg class="i" aria-hidden="true"><use href="#i-menu"/></svg></button>
     <button type="button" class="icone-btn" id="btnBusca" aria-label="Buscar"><svg class="i" aria-hidden="true"><use href="#i-lupa"/></svg></button>
     <a href="index.html" class="marca" aria-label="Help Floripa - Início"><strong>HELP <span>FLORIPA</span></strong><small>TUDO EM UM SÓ LUGAR</small></a>
     <a href="mensagens.html" class="icone-btn" aria-label="Mensagens"><svg class="i" aria-hidden="true"><use href="#i-chat"/></svg><b class="ponto-badge" id="badgeMensagens" hidden></b></a>
