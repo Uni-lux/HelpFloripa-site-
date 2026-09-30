@@ -15,13 +15,19 @@ service firebase.storage {
       return request.resource.contentType.matches(regex);
     }
 
+    // Só formatos comuns. SVG fica de fora (pode conter código).
+    function imagem() {
+      return tipo('image/(jpeg|png|webp)');
+    }
+
     // Diário: fotos e vídeos das publicações (usuarios.html)
     match /diario/{uid}/{arquivo} {
       allow read: if logado();
       allow write: if logado()
+                   && request.auth.token.email_verified == true
                    && request.auth.uid == uid
                    && tamanhoAte(50)
-                   && tipo('(image|video)/.*');
+                   && (imagem() || tipo('video/(mp4|webm|quicktime)'));
     }
 
     // Foto de perfil: fotosPerfil/{uid}.jpg
@@ -30,7 +36,7 @@ service firebase.storage {
       allow write: if logado()
                    && arquivo == request.auth.uid + '.jpg'
                    && tamanhoAte(10)
-                   && tipo('image/.*');
+                   && imagem();
     }
 
     // Foto de capa: fotosCapa/{uid}.jpg
@@ -39,7 +45,7 @@ service firebase.storage {
       allow write: if logado()
                    && arquivo == request.auth.uid + '.jpg'
                    && tamanhoAte(10)
-                   && tipo('image/.*');
+                   && imagem();
     }
 
     // Fotos dos perfis de negócio: negocios/{uid}_{tipo}.jpg, _f0.jpg (galeria), _i0.jpg (itens)
@@ -48,7 +54,7 @@ service firebase.storage {
       allow write: if logado()
                    && arquivo.matches(request.auth.uid + '_(servicos|delivery|lojinha|imoveis)(_[fi][0-9]+)?[.]jpg')
                    && tamanhoAte(10)
-                   && tipo('image/.*');
+                   && imagem();
     }
 
     // Fotos dos imóveis anunciados: anuncios/{uid}_{idDoAnuncio}_f0.jpg
@@ -57,7 +63,7 @@ service firebase.storage {
       allow write: if logado()
                    && arquivo.matches(request.auth.uid + '_[A-Za-z0-9]+_f[0-9]+[.]jpg')
                    && tamanhoAte(10)
-                   && tipo('image/.*');
+                   && imagem();
     }
 
     // Anexos do chat (mensagens.html): mensagens/{conversaId}/{uid}/{arquivo}
@@ -74,7 +80,7 @@ service firebase.storage {
                    && request.auth.uid == uid
                    && participante()
                    && tamanhoAte(50)
-                   && tipo('(image|video|audio)/.*');
+                   && (imagem() || tipo('video/(mp4|webm|quicktime)') || tipo('audio/(webm|ogg|mp4|mpeg|aac|wav).*'));
     }
   }
 }

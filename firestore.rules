@@ -7,6 +7,13 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // E-mail confirmado (login com Google já vem confirmado).
+    // Exigido para ações que chegam em outras pessoas: mensagens, seguir,
+    // vínculos, negócios, anúncios e publicações. Freia contas falsas e robôs.
+    function emailOk() {
+      return request.auth.token.email_verified == true;
+    }
+
     // Campos que só podem ser alterados pelo painel/admin (Admin SDK ignora as regras).
     function camposProtegidos() {
       return ['verificado', 'avaliacaoMedia', 'totalAvaliacoes'];
@@ -16,9 +23,11 @@ service cloud.firestore {
       return !request.resource.data.keys().hasAny(camposProtegidos());
     }
 
+    // No update também ficam travados plano/valorPlanoMensal/tipoUsuario:
+    // são definidos no cadastro e nunca mudam pelo site.
     function naoTocaCamposProtegidosNoUpdate() {
       return !request.resource.data.diff(resource.data).affectedKeys()
-               .hasAny(camposProtegidos());
+               .hasAny(camposProtegidos().concat(['plano', 'valorPlanoMensal', 'tipoUsuario']));
     }
 
     // Campo de texto opcional com tamanho máximo (evita documentos gigantes).
@@ -27,6 +36,42 @@ service cloud.firestore {
           || request.resource.data[campo] == null
           || (request.resource.data[campo] is string
               && request.resource.data[campo].size() <= max);
+    }
+
+    // Mesmo limite, para um valor qualquer (ex.: campo dentro de um mapa).
+    function valorTextoAte(v, max) {
+      return v == null || (v is string && v.size() <= max);
+    }
+
+    // Lista opcional com no máximo N itens.
+    function listaAte(campo, max) {
+      return !(campo in request.resource.data)
+          || request.resource.data[campo] == null
+          || (request.resource.data[campo] is list
+              && request.resource.data[campo].size() <= max);
+    }
+
+    // Foto só pode vir do próprio site: imagem dentro do documento (sem Storage),
+    // Firebase Storage do projeto ou foto da conta Google. Bloqueia imagens de
+    // sites de terceiros (rastreamento por IP, conteúdo impróprio).
+    function fotoOk(v) {
+      return v == null || v == ''
+          || (v is string && v.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/|https://lh3[.]googleusercontent[.]com/).*'));
+    }
+
+    function campoFotoOk(campo) {
+      return !(campo in request.resource.data) || fotoOk(request.resource.data[campo]);
+    }
+
+    // Só os campos que mudaram (para não travar documentos antigos com campos a mais).
+    function mudou() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    // Campos novos ou alterados (campos antigos removidos não contam).
+    function gravou() {
+      let d = request.resource.data.diff(resource.data);
+      return d.addedKeys().union(d.changedKeys());
     }
 
     // Bloqueio: bloqueios/{quemBloqueou}_{quemFoiBloqueado}
@@ -88,6 +133,12 @@ service cloud.firestore {
             && textoAte('cidade', 80);
       }
 
+      // Foto nova precisa vir do próprio site (fotos antigas não travam a edição).
+      function fotosOk() {
+        return ((resource != null && !mudou().hasAny(['fotoPerfil'])) || campoFotoOk('fotoPerfil'))
+            && ((resource != null && !mudou().hasAny(['fotoCapa'])) || campoFotoOk('fotoCapa'));
+      }
+
       allow read: if logado();
 
       allow create: if logado()
@@ -95,7 +146,8 @@ service cloud.firestore {
                     && request.resource.data.uid == userId
                     && naoTocaCamposProtegidosNoCreate()
                     && nickDoDono()
-                    && tamanhosOk();
+                    && tamanhosOk()
+                    && fotosOk();
 
       allow update: if logado()
                     && request.auth.uid == userId
@@ -103,7 +155,8 @@ service cloud.firestore {
                     && naoTocaCamposProtegidosNoUpdate()
                     && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['nickname'])
                         || nickDoDono())
-                    && tamanhosOk();
+                    && tamanhosOk()
+                    && fotosOk();
 
       allow delete: if logado()
                     && request.auth.uid == userId;
@@ -137,6 +190,7 @@ service cloud.firestore {
       allow read: if logado();
 
       allow create: if logado()
+                    && emailOk()
                     && request.resource.data.tipo == 'seguir'
                     && request.resource.data.seguidorId == request.auth.uid
                     && request.resource.data.alvoId is string
@@ -202,6 +256,7 @@ service cloud.firestore {
                       || request.auth.uid in resource.data.participantes);
 
       allow create: if logado()
+                    && emailOk()
                     && request.resource.data.de == request.auth.uid
                     && request.resource.data.para is string
                     && request.resource.data.para != request.auth.uid
@@ -235,19 +290,47 @@ service cloud.firestore {
     // =====================================================
     match /negocios/{id} {
 
+      // Campos que o site grava. Qualquer outro campo é recusado.
+      function camposNegocio() {
+        return ['donoId', 'tipo', 'nome', 'descricao', 'cidade', 'whatsapp', 'foto', 'fotos', 'itens',
+                'categoria', 'categorias', 'categoriaPersonalizada', 'criadoEm', 'atualizadoEm',
+                'precoDesde', 'horario', 'atendimento', 'dias', 'regiao', 'experiencia', 'diferenciais', 'pagamentos', 'cnh', 'veiculo',
+                'horaAbre', 'horaFecha', 'tempoMin', 'tempoMax', 'taxaEntrega', 'pedidoMinimo', 'opcoesEntrega',
+                'entrega', 'tipoAnunciante', 'creci'];
+      }
+
+      function negocioOk() {
+        return textoAte('nome', 80)
+            && textoAte('descricao', 600)
+            && textoAte('cidade', 60)
+            && textoAte('whatsapp', 20)
+            && textoAte('regiao', 100)
+            && textoAte('horario', 60)
+            && textoAte('categoriaPersonalizada', 30)
+            && listaAte('itens', 12)
+            && listaAte('fotos', 5)
+            && ((resource != null && !mudou().hasAny(['foto'])) || campoFotoOk('foto'));
+      }
+
       allow read: if logado();
 
       allow create: if logado()
+                    && emailOk()
                     && request.resource.data.donoId == request.auth.uid
                     && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis']
                     && id == request.auth.uid + '_' + request.resource.data.tipo
-                    && naoTocaCamposProtegidosNoCreate();
+                    && request.resource.data.keys().hasOnly(camposNegocio())
+                    && naoTocaCamposProtegidosNoCreate()
+                    && negocioOk();
 
       allow update: if logado()
+                    && emailOk()
                     && resource.data.donoId == request.auth.uid
                     && request.resource.data.donoId == resource.data.donoId
                     && request.resource.data.tipo == resource.data.tipo
-                    && naoTocaCamposProtegidosNoUpdate();
+                    && gravou().hasOnly(camposNegocio())
+                    && naoTocaCamposProtegidosNoUpdate()
+                    && negocioOk();
 
       allow delete: if logado()
                     && resource.data.donoId == request.auth.uid;
@@ -260,18 +343,42 @@ service cloud.firestore {
     // =====================================================
     match /anuncios/{id} {
 
+      function camposAnuncio() {
+        return ['donoId', 'tipo', 'ativo', 'titulo', 'finalidade', 'categoria', 'preco', 'condominio', 'iptu',
+                'quartos', 'suites', 'banheiros', 'vagas', 'area', 'andar', 'bairro', 'cidade', 'mobiliado',
+                'disponivel', 'hospedes', 'caracteristicas', 'condicoes', 'descricao', 'fotos', 'criadoEm', 'atualizadoEm'];
+      }
+
+      function anuncioOk() {
+        return textoAte('titulo', 100)
+            && textoAte('descricao', 1000)
+            && textoAte('bairro', 60)
+            && textoAte('cidade', 60)
+            && textoAte('andar', 12)
+            && textoAte('disponivel', 20)
+            && listaAte('fotos', 5)
+            && listaAte('caracteristicas', 20)
+            && listaAte('condicoes', 12);
+      }
+
       allow read: if logado();
 
       allow create: if logado()
+                    && emailOk()
                     && request.resource.data.donoId == request.auth.uid
                     && request.resource.data.tipo in ['imovel']
-                    && naoTocaCamposProtegidosNoCreate();
+                    && request.resource.data.keys().hasOnly(camposAnuncio())
+                    && naoTocaCamposProtegidosNoCreate()
+                    && anuncioOk();
 
       allow update: if logado()
+                    && emailOk()
                     && resource.data.donoId == request.auth.uid
                     && request.resource.data.donoId == resource.data.donoId
                     && request.resource.data.tipo == resource.data.tipo
-                    && naoTocaCamposProtegidosNoUpdate();
+                    && gravou().hasOnly(camposAnuncio())
+                    && naoTocaCamposProtegidosNoUpdate()
+                    && anuncioOk();
 
       allow delete: if logado()
                     && resource.data.donoId == request.auth.uid;
@@ -283,6 +390,21 @@ service cloud.firestore {
     // Documento: conversas/{uidMenor}_{uidMaior}
     // =====================================================
     match /conversas/{conversaId} {
+
+      // Cada pessoa só mexe na própria marca de leitura / "digitando".
+      function soMinhaChave(campo) {
+        return !mudou().hasAny([campo])
+            || (request.resource.data[campo] is map
+                && request.resource.data[campo].diff(resource.data.get(campo, {})).affectedKeys().hasOnly([request.auth.uid]));
+      }
+
+      function contextoOk() {
+        let c = request.resource.data.get('contexto', null);
+        return c == null
+            || (c is map && c.keys().hasOnly(['tipo', 'titulo'])
+                && c.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis']
+                && valorTextoAte(c.get('titulo', ''), 120));
+      }
 
       allow get: if logado()
                  && (resource == null
@@ -300,6 +422,9 @@ service cloud.firestore {
                                      + '_' + request.resource.data.participantes[1]
                     && !bloqueioEntre(request.resource.data.participantes[0],
                                       request.resource.data.participantes[1])
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['participantes', 'ultimaMensagem', 'atualizadoEm', 'contexto', 'criadoEm'])
+                    && contextoOk()
                     && textoAte('ultimaMensagem', 200);
 
       // Com bloqueio entre os dois, ninguém mexe na conversa (evita "recado"
@@ -308,6 +433,14 @@ service cloud.firestore {
                     && request.auth.uid in resource.data.participantes
                     && request.resource.data.participantes == resource.data.participantes
                     && !bloqueioEntre(resource.data.participantes[0], resource.data.participantes[1])
+                    && mudou().hasOnly(['ultimaMensagem', 'ultimaMensagemRemetenteId', 'atualizadoEm', 'lidoEm', 'vistoEm', 'digitando', 'contexto'])
+                    // o resumo da última mensagem só pode ser escrito por quem mandou
+                    && (!mudou().hasAny(['ultimaMensagem', 'ultimaMensagemRemetenteId'])
+                        || request.resource.data.get('ultimaMensagemRemetenteId', '') == request.auth.uid)
+                    && soMinhaChave('lidoEm')
+                    && soMinhaChave('vistoEm')
+                    && soMinhaChave('digitando')
+                    && (!mudou().hasAny(['contexto']) || contextoOk())
                     && textoAte('ultimaMensagem', 200);
 
       allow delete: if logado()
@@ -329,14 +462,41 @@ service cloud.firestore {
           return !bloqueioEntre(p[0], p[1]);
         }
 
+        // Resposta (citação): precisa apontar para uma mensagem real desta conversa,
+        // com o autor verdadeiro. Impede citar algo que a outra pessoa nunca disse.
+        function respostaOk(r) {
+          let caminho = /databases/$(database)/documents/conversas/$(conversaId)/mensagens/$(r.id);
+          return r is map
+              && r.keys().hasOnly(['id', 'texto', 'remetenteId'])
+              && r.id is string
+              && valorTextoAte(r.get('texto', ''), 200)
+              && exists(caminho)
+              && get(caminho).data.remetenteId == r.remetenteId;
+        }
+
+        function mensagemOk() {
+          let d = request.resource.data;
+          return d.keys().hasOnly(['remetenteId', 'texto', 'criadoEm', 'resposta', 'tipoArquivo', 'arquivoUrl', 'nomeArquivo', 'cartao'])
+              && (!('tipoArquivo' in d) || d.tipoArquivo in ['imagem', 'video', 'audio', 'cartao'])
+              // anexo: só do próprio site (dentro da mensagem ou Firebase Storage)
+              && (!('arquivoUrl' in d)
+                  || (d.arquivoUrl is string
+                      && d.arquivoUrl.matches('^(data:(image|video|audio)/[^,]{1,80},|https://firebasestorage[.]googleapis[.]com/).*')))
+              && (!('nomeArquivo' in d) || valorTextoAte(d.nomeArquivo, 120))
+              && (!('cartao' in d) || (d.cartao is map && d.get('tipoArquivo', '') == 'cartao'))
+              && (!('resposta' in d) || respostaOk(d.resposta));
+        }
+
         allow read: if logado() && participante();
 
         allow create: if logado()
+                      && emailOk()
                       && participante()
                       && semBloqueio()
                       && request.resource.data.remetenteId == request.auth.uid
                       && request.resource.data.criadoEm == request.time
-                      && textoAte('texto', 4000);
+                      && textoAte('texto', 4000)
+                      && mensagemOk();
 
         allow update: if false;
 
@@ -353,14 +513,29 @@ service cloud.firestore {
 
       allow read: if logado();
 
+      function publicacaoOk() {
+        let d = request.resource.data;
+        return textoAte('texto', 1000)
+            && textoAte('nome', 80)
+            && campoFotoOk('fotoPerfil')
+            && (!('mediaTipo' in d) || d.mediaTipo in ['', 'image', 'video'])
+            && (!('mediaUrl' in d) || d.mediaUrl == ''
+                || (d.mediaUrl is string
+                    && d.mediaUrl.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*')));
+      }
+
       allow create: if logado()
+                    && emailOk()
                     && request.resource.data.autorId == request.auth.uid
-                    && textoAte('texto', 1000);
+                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'fotoPerfil', 'texto', 'mediaUrl', 'mediaTipo', 'criadoEm'])
+                    && publicacaoOk();
 
       allow update: if logado()
+                    && emailOk()
                     && resource.data.autorId == request.auth.uid
                     && request.resource.data.autorId == resource.data.autorId
-                    && textoAte('texto', 1000);
+                    && gravou().hasOnly(['texto', 'nome', 'fotoPerfil'])
+                    && publicacaoOk();
 
       allow delete: if logado()
                     && resource.data.autorId == request.auth.uid;

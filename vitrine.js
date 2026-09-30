@@ -7,6 +7,8 @@
 // Links diretos: pagina.html?negocio=ID  ·  imoveis.html?anuncio=ID
 // =====================================================
 
+import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL } from "./seguranca.js?v=1";
+
 const PARAMS = new URL(import.meta.url).searchParams;
 const TIPO_PAGINA = PARAMS.get("tipo");
 const TIPO = TIPO_PAGINA || "servicos";
@@ -41,7 +43,8 @@ const MODOS = { domicilio: "Vai até você", local: "No local", online: "Online"
 const TEXTO_CONTATO = { servicos: "Pedir orçamento", delivery: "Fazer pedido", lojinha: "Falar com a loja", imoveis: "Tenho interesse" };
 
 // ---------- utilitários ----------
-const urlSegura = (u) => (/^(https:\/\/|data:image\/)/i.test(String(u || "")) ? String(u) : "");
+// Fotos só do próprio site (seguranca.js): evita imagens de terceiros que rastreiam visitantes.
+const urlSegura = (u) => fotoSegura(u);
 const iniciais = (n) => { const p = String(n || "?").trim().split(/\s+/); return ((p[0]?.[0] || "?") + (p.length > 1 ? p[p.length - 1][0] : "")).toUpperCase(); };
 export const moeda = (v) => (Number.isFinite(Number(v)) && Number(v) > 0 ? Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: Number(v) % 1 ? 2 : 0 }) : "");
 const el = (tag, cls, texto) => { const e = document.createElement(tag); if (cls) e.className = cls; if (texto != null) e.textContent = texto; return e; };
@@ -140,6 +143,7 @@ export function cartaoDeAnuncio(a) {
 export async function prepararConversa(fbx, euX, uid, cartao) {
   if (!euX) { location.href = "login.html"; return; }
   if (uid === euX.uid) { toast("Esse é o seu próprio perfil."); return; }
+  if (emailPendente(euX)) { mostrarAvisoEmail(euX); toast(MSG_EMAIL); return; }
   const ids = [euX.uid, uid].sort();
   const id = `${ids[0]}_${ids[1]}`;
   const ref = fbx.doc(fbx.db, "conversas", id);
@@ -1449,6 +1453,7 @@ async function iniciar() {
   auth.onAuthStateChanged(window.firebaseAuth, async (u) => {
     if (!u || eu) return;
     eu = u;
+    conferirEmail(u);
     try {
       const negSnap = await fb.getDocs(fb.query(fb.collection(fb.db, "negocios"), fb.where("tipo", "==", TIPO), fb.limit(80)));
       const negocios = negSnap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => n.nome && n.oculto !== true);
