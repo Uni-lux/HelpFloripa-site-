@@ -110,6 +110,10 @@ function css() {
   .hf-aval .grande button { border: 0; background: none; font-size: 42px; line-height: 1; cursor: pointer; color: rgba(140,160,171,.4); padding: 2px; transition: transform .1s; }
   .hf-aval .grande button.on { color: #f5b700; }
   .hf-aval .grande button:active { transform: scale(.9); }
+  .hf-aval .aviso { padding: 10px 12px; border-radius: 12px; font-size: 13px; line-height: 1.4; background: rgba(245,165,36,.14); color: inherit; border: 1px solid rgba(245,165,36,.4); }
+  .hf-aval .aviso[hidden] { display: none; }
+  .hf-aval .link-rec { justify-self: start; font-size: 13.5px; font-weight: 800; color: #f5a524; text-decoration: none; }
+  .hf-aval .link-rec:hover { text-decoration: underline; }
   .hf-aval .legenda { text-align: center; font-weight: 800; min-height: 20px; color: #f5b700; }
   .hf-aval textarea { width: 100%; box-sizing: border-box; min-height: 80px; resize: vertical; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line, #22313a); background: var(--panel-2, #162128); color: inherit; font: inherit; font-size: 14px; }
   .hf-aval .acoes { display: flex; gap: 8px; }
@@ -208,7 +212,8 @@ function topo(caixa, titulo, sub, fechar) {
 
 const LEGENDAS = ["", "Muito ruim", "Ruim", "Regular", "Bom", "Excelente"];
 // Janela para dar a nota. aoEnviar({nota, comentario}) grava; se der erro, a janela continua aberta.
-export function abrirAvaliar({ titulo, sub, placeholder = "Conte como foi (opcional)", aoEnviar }) {
+// reclamacao: true nas avaliações de negócio (notas 1 e 2 vão para a página de Reclamações).
+export function abrirAvaliar({ titulo, sub, placeholder = "Conte como foi (opcional)", aoEnviar, reclamacao = false }) {
   const { caixa, fechar } = janela();
   topo(caixa, titulo, sub, fechar);
   let nota = 0;
@@ -219,12 +224,19 @@ export function abrirAvaliar({ titulo, sub, placeholder = "Conte como foi (opcio
   const bots = [1, 2, 3, 4, 5].map((n) => {
     const b = document.createElement("button");
     b.type = "button"; b.textContent = "★"; b.setAttribute("aria-label", `${n} ${n === 1 ? "estrela" : "estrelas"}`);
-    b.addEventListener("click", () => { nota = n; bots.forEach((x, i) => x.classList.toggle("on", i < n)); legenda.textContent = LEGENDAS[n]; enviar.disabled = false; });
+    b.addEventListener("click", () => {
+      nota = n; bots.forEach((x, i) => x.classList.toggle("on", i < n)); legenda.textContent = LEGENDAS[n]; enviar.disabled = false;
+      aviso.hidden = !(reclamacao && n <= 2);
+      if (reclamacao && n <= 2) txt.placeholder = "Conte o que aconteceu. Sua avaliação aparece em Reclamações e o negócio pode responder.";
+    });
     return b;
   });
   grande.append(...bots);
   const txt = document.createElement("textarea");
   txt.maxLength = 500; txt.placeholder = placeholder;
+  const aviso = document.createElement("div");
+  aviso.className = "aviso"; aviso.hidden = true;
+  aviso.textContent = "Notas de 1 e 2 estrelas viram uma reclamação pública na página Reclamações. O negócio pode responder e você marca quando for resolvido.";
   const acoes = document.createElement("div");
   acoes.className = "acoes";
   const cancelar = document.createElement("button"); cancelar.type = "button"; cancelar.className = "sec"; cancelar.textContent = "Agora não";
@@ -237,7 +249,7 @@ export function abrirAvaliar({ titulo, sub, placeholder = "Conte como foi (opcio
     catch (e) { enviar.disabled = false; enviar.textContent = "Enviar avaliação"; alert(e?.code === "ja-avaliado" ? "Você já avaliou." : e?.code === "permission-denied" ? "Não foi possível avaliar. Confirme seu e-mail e tente de novo." : "Não foi possível enviar agora. Tente de novo."); }
   });
   acoes.append(cancelar, enviar);
-  caixa.append(grande, legenda, txt, acoes);
+  caixa.append(grande, legenda, aviso, txt, acoes);
 }
 
 // Detalhamento: nota geral, quantas de cada estrela, de onde vêm as notas e comentários recentes.
@@ -281,6 +293,12 @@ export async function abrirDetalhamento({ fbx, titulo = "Avaliações", sub, ger
       lista.appendChild(d);
     });
     caixa.append(h, lista);
+  }
+  if (negocioId) {
+    const a = document.createElement("a");
+    a.className = "link-rec"; a.href = `reclamacoes.html?negocio=${encodeURIComponent(negocioId)}`;
+    a.textContent = "Ver reclamações e respostas deste negócio";
+    caixa.appendChild(a);
   }
   if (fbx && alvoId) {
     const h = document.createElement("h4"); h.textContent = "Comentários recentes";

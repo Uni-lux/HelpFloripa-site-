@@ -665,7 +665,7 @@
 
   <script type="module">
     import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura, mostrarAvisoEmail } from "./seguranca.js?v=1";
-    import { abrirAvaliar, avaliar, estrelas, whatsAvaliacao, TIPOS_NEGOCIO } from "./avaliacoes.js?v=1";
+    import { abrirAvaliar, avaliar, estrelas, whatsAvaliacao, TIPOS_NEGOCIO } from "./avaliacoes.js?v=2";
     // ======================================================
     // Configurações (salvas no aparelho)
     // ======================================================
@@ -907,6 +907,7 @@
             status.textContent = "Leva 10 segundos e ajuda outros clientes.";
             acoes.appendChild(botao("★ Avaliar agora", "pri", () => abrirAvaliar({
               titulo: `Avalie ${a.negocioNome || "o atendimento"}`, sub: a.titulo || "",
+              reclamacao: true,
               aoEnviar: async ({ nota, comentario }) => {
                 await avaliar(fb, eu, `p_${pid}_c`, { tipo: "negocio", alvoId: m.remetenteId, negocioId, pedidoId: pid, nota, comentario }, [`neg_${negocioId}`], autor());
                 toast("Obrigado pela avaliação!");

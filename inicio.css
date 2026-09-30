@@ -103,20 +103,8 @@ body[data-classe="inicio"] { --classe: #00adee; --classe-2: #7de3ff; --classe-in
 .selos strong { display: block; font-size: 14px; }
 .selos small { color: var(--muted); font-size: 12.5px; }
 
-/* ---------- rodapé completo ---------- */
-.rodape-home { width: min(1180px, 100%); margin: 34px auto 0; padding: 28px 16px calc(24px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); display: grid; gap: 22px; grid-template-columns: 1.4fr repeat(3, 1fr); color: var(--muted); font-size: 13.5px; }
-.rodape-home h4 { margin: 0 0 10px; color: var(--text); font-size: 13px; letter-spacing: .5px; text-transform: uppercase; }
-.rodape-home nav { display: grid; gap: 8px; }
-.rodape-home a { text-decoration: none; }
-.rodape-home a:hover { color: var(--text); }
-.rodape-home .marca-rodape { font-size: 18px; font-weight: 850; color: var(--text); }
-.rodape-home .marca-rodape span { color: var(--accent); }
-.rodape-home .fim { grid-column: 1 / -1; padding-top: 16px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 12.5px; }
-
 @media (max-width: 900px) {
   .classes-grade, .anuncie, .selos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .rodape-home { grid-template-columns: 1fr 1fr; }
-  .rodape-home > div:first-child { grid-column: 1 / -1; }
 }
 @media (max-width: 520px) {
   .classe-card { min-height: 170px; padding: 12px; border-radius: 18px; }

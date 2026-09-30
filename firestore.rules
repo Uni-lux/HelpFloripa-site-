@@ -683,6 +683,56 @@ service cloud.firestore {
 
 
     // =====================================================
+    // RECLAMAÇÕES: resposta pública do negócio
+    // Reclamação = avaliação de negócio com nota 1 ou 2 (avaliacoes/{id}).
+    // reclamacoes/{id da avaliação}: o negócio avaliado responde uma vez
+    // (pode editar o texto) e o cliente que reclamou marca como resolvida.
+    // =====================================================
+    match /reclamacoes/{avalId} {
+
+      allow read: if logado();
+
+      function aval() {
+        return get(/databases/$(database)/documents/avaliacoes/$(avalId)).data;
+      }
+
+      function respostaOk(d) {
+        return d.texto is string && d.texto.size() >= 2 && d.texto.size() <= 1000;
+      }
+
+      allow create: if logado()
+                    && emailOk()
+                    && exists(/databases/$(database)/documents/avaliacoes/$(avalId))
+                    && aval().tipo == 'negocio'
+                    && aval().nota <= 2
+                    && aval().alvoId == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['texto', 'autorId', 'criadoEm'])
+                    && request.resource.data.autorId == request.auth.uid
+                    && respostaOk(request.resource.data)
+                    && request.resource.data.criadoEm == request.time;
+
+      allow update: if logado()
+                    && emailOk()
+                    && request.resource.data.autorId == resource.data.autorId
+                    && (
+                      // o negócio corrige a resposta
+                      (resource.data.autorId == request.auth.uid
+                        && mudou().hasOnly(['texto', 'editadoEm'])
+                        && respostaOk(request.resource.data)
+                        && request.resource.data.editadoEm == request.time)
+                      ||
+                      // o cliente que reclamou marca como resolvida (ou não)
+                      (aval().autorId == request.auth.uid
+                        && mudou().hasOnly(['resolvido', 'resolvidoEm'])
+                        && request.resource.data.resolvido is bool
+                        && request.resource.data.resolvidoEm == request.time)
+                    );
+
+      allow delete: if false;
+    }
+
+
+    // =====================================================
     // DIÁRIO / PUBLICAÇÕES
     // =====================================================
     match /diario/{postId} {
