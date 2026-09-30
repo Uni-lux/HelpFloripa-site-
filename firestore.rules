@@ -453,13 +453,16 @@ service cloud.firestore {
                     && request.auth.uid in resource.data.participantes
                     && request.resource.data.participantes == resource.data.participantes
                     && !bloqueioEntre(resource.data.participantes[0], resource.data.participantes[1])
-                    && mudou().hasOnly(['ultimaMensagem', 'ultimaMensagemRemetenteId', 'atualizadoEm', 'lidoEm', 'vistoEm', 'digitando', 'contexto'])
+                    && mudou().hasOnly(['ultimaMensagem', 'ultimaMensagemRemetenteId', 'atualizadoEm', 'lidoEm', 'vistoEm', 'digitando', 'contexto', 'arquivadaPara', 'ocultaPara'])
                     // o resumo da última mensagem só pode ser escrito por quem mandou
                     && (!mudou().hasAny(['ultimaMensagem', 'ultimaMensagemRemetenteId'])
                         || request.resource.data.get('ultimaMensagemRemetenteId', '') == request.auth.uid)
                     && soMinhaChave('lidoEm')
                     && soMinhaChave('vistoEm')
                     && soMinhaChave('digitando')
+                    // arquivar / apagar "só para mim": cada um mexe só na própria marca
+                    && soMinhaChave('arquivadaPara')
+                    && soMinhaChave('ocultaPara')
                     && (!mudou().hasAny(['contexto']) || contextoOk())
                     && textoAte('ultimaMensagem', 200);
 
@@ -496,8 +499,15 @@ service cloud.firestore {
 
         function mensagemOk() {
           let d = request.resource.data;
-          return d.keys().hasOnly(['remetenteId', 'texto', 'criadoEm', 'resposta', 'tipoArquivo', 'arquivoUrl', 'nomeArquivo', 'cartao'])
-              && (!('tipoArquivo' in d) || d.tipoArquivo in ['imagem', 'video', 'audio', 'cartao'])
+          return d.keys().hasOnly(['remetenteId', 'texto', 'criadoEm', 'resposta', 'tipoArquivo', 'arquivoUrl', 'nomeArquivo', 'cartao', 'avaliacao'])
+              && (!('tipoArquivo' in d) || d.tipoArquivo in ['imagem', 'video', 'audio', 'cartao', 'avaliacao'])
+              // pedido de avaliação: aponta para um atendimento criado por quem envia
+              && (!('avaliacao' in d)
+                  || (d.avaliacao is map && d.get('tipoArquivo', '') == 'avaliacao'
+                      && d.avaliacao.keys().hasOnly(['pedidoId', 'titulo', 'tipo', 'negocioNome'])
+                      && get(/databases/$(database)/documents/pedidos/$(d.avaliacao.pedidoId)).data.vendedorId == request.auth.uid
+                      && valorTextoAte(d.avaliacao.get('titulo', ''), 120)
+                      && valorTextoAte(d.avaliacao.get('negocioNome', ''), 80)))
               // anexo: só do próprio site (dentro da mensagem ou Firebase Storage)
               && (!('arquivoUrl' in d)
                   || (d.arquivoUrl is string
@@ -523,6 +533,152 @@ service cloud.firestore {
         allow delete: if logado()
                       && request.auth.uid == resource.data.remetenteId;
       }
+    }
+
+
+    // =====================================================
+    // PEDIDOS / ATENDIMENTOS
+    // O negócio registra o atendimento para pedir avaliação ao cliente.
+    // Só vale entre pessoas que já conversam no chat.
+    // =====================================================
+    match /pedidos/{id} {
+
+      allow read: if logado()
+                  && (resource.data.vendedorId == request.auth.uid
+                      || resource.data.clienteId == request.auth.uid);
+
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['vendedorId', 'clienteId', 'negocioId', 'tipo', 'titulo', 'conversaId', 'criadoEm'])
+                    && request.resource.data.vendedorId == request.auth.uid
+                    && request.resource.data.clienteId is string
+                    && request.resource.data.clienteId != request.auth.uid
+                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis']
+                    && request.resource.data.negocioId == request.auth.uid + '_' + request.resource.data.tipo
+                    && exists(/databases/$(database)/documents/negocios/$(request.resource.data.negocioId))
+                    && request.auth.uid in get(/databases/$(database)/documents/conversas/$(request.resource.data.conversaId)).data.participantes
+                    && request.resource.data.clienteId in get(/databases/$(database)/documents/conversas/$(request.resource.data.conversaId)).data.participantes
+                    && valorTextoAte(request.resource.data.get('titulo', ''), 120)
+                    && request.resource.data.criadoEm == request.time
+                    && !bloqueioEntre(request.auth.uid, request.resource.data.clienteId);
+
+      allow update, delete: if false;
+    }
+
+
+    // =====================================================
+    // AVALIAÇÕES
+    //   p_{pedido}_c : cliente avalia o negócio (1 vez por pedido)
+    //   p_{pedido}_v : negócio avalia o cliente (1 vez por pedido)
+    //   d_{post}_{uid}: alguém avalia uma publicação (1 vez por publicação)
+    // Cada avaliação precisa atualizar, na mesma gravação, o resumo em notas/.
+    // Avaliações não podem ser editadas nem apagadas pelo site.
+    // =====================================================
+    match /avaliacoes/{id} {
+
+      function base() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['tipo', 'autorId', 'autorNome', 'autorFoto', 'alvoId', 'negocioId', 'pedidoId', 'postId', 'nota', 'comentario', 'chaves', 'criadoEm'])
+            && d.autorId == request.auth.uid
+            && d.nota is int && d.nota >= 1 && d.nota <= 5
+            && valorTextoAte(d.get('comentario', ''), 500)
+            && valorTextoAte(d.get('autorNome', ''), 80)
+            && fotoOk(d.get('autorFoto', ''))
+            && d.criadoEm == request.time;
+      }
+
+      function resumoAtualizado(chave) {
+        return getAfter(/databases/$(database)/documents/notas/$(chave)).data.ultima == id;
+      }
+
+      function doCliente() {
+        let d = request.resource.data;
+        let p = get(/databases/$(database)/documents/pedidos/$(d.pedidoId)).data;
+        return id == 'p_' + d.pedidoId + '_c'
+            && p.clienteId == request.auth.uid
+            && d.alvoId == p.vendedorId
+            && d.negocioId == p.negocioId
+            && d.chaves == ['neg_' + p.negocioId]
+            && resumoAtualizado('neg_' + p.negocioId);
+      }
+
+      function doVendedor() {
+        let d = request.resource.data;
+        let p = get(/databases/$(database)/documents/pedidos/$(d.pedidoId)).data;
+        return id == 'p_' + d.pedidoId + '_v'
+            && p.vendedorId == request.auth.uid
+            && d.alvoId == p.clienteId
+            && d.chaves == ['cli_' + p.clienteId]
+            && resumoAtualizado('cli_' + p.clienteId);
+      }
+
+      function daPublicacao() {
+        let d = request.resource.data;
+        let post = get(/databases/$(database)/documents/diario/$(d.postId)).data;
+        return id == 'd_' + d.postId + '_' + request.auth.uid
+            && post.autorId != request.auth.uid
+            && d.alvoId == post.autorId
+            && d.chaves == ['post_' + d.postId, 'pub_' + post.autorId]
+            && resumoAtualizado('post_' + d.postId)
+            && resumoAtualizado('pub_' + post.autorId);
+      }
+
+      allow read: if logado();
+
+      allow create: if logado()
+                    && emailOk()
+                    && base()
+                    && ((request.resource.data.tipo == 'negocio' && doCliente())
+                        || (request.resource.data.tipo == 'cliente' && doVendedor())
+                        || (request.resource.data.tipo == 'publicacao' && daPublicacao()));
+
+      allow update, delete: if false;
+    }
+
+
+    // =====================================================
+    // RESUMO DAS NOTAS (média e quantas de cada estrela)
+    //   neg_{negocioId} · cli_{uid} · pub_{uid} · post_{postId}
+    // Só aceita somar exatamente a avaliação nova gravada junto.
+    // =====================================================
+    match /notas/{chave} {
+
+      function caminhoNova() {
+        return /databases/$(database)/documents/avaliacoes/$(request.resource.data.ultima);
+      }
+
+      function avaliacaoNova() {
+        return request.resource.data.ultima is string
+            && !exists(caminhoNova())
+            && existsAfter(caminhoNova())
+            && getAfter(caminhoNova()).data.autorId == request.auth.uid
+            && chave in getAfter(caminhoNova()).data.chaves;
+      }
+
+      function estrela() {
+        return 'n' + string(getAfter(caminhoNova()).data.nota);
+      }
+
+      allow read: if logado();
+
+      allow create: if logado()
+                    && avaliacaoNova()
+                    && request.resource.data.keys().hasOnly(['total', 'soma', 'n1', 'n2', 'n3', 'n4', 'n5', 'ultima', 'atualizadoEm'])
+                    && request.resource.data.keys().hasAll(['total', 'soma', 'n1', 'n2', 'n3', 'n4', 'n5', 'ultima'])
+                    && request.resource.data.total == 1
+                    && request.resource.data.soma == getAfter(caminhoNova()).data.nota
+                    && request.resource.data[estrela()] == 1
+                    && request.resource.data.n1 + request.resource.data.n2 + request.resource.data.n3
+                       + request.resource.data.n4 + request.resource.data.n5 == 1;
+
+      allow update: if logado()
+                    && avaliacaoNova()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['total', 'soma', 'ultima', 'atualizadoEm', estrela()])
+                    && request.resource.data.total == resource.data.total + 1
+                    && request.resource.data.soma == resource.data.soma + getAfter(caminhoNova()).data.nota
+                    && request.resource.data[estrela()] == resource.data.get(estrela(), 0) + 1;
+
+      allow delete: if false;
     }
 
 
