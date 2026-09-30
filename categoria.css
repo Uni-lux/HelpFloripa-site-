@@ -222,3 +222,42 @@ svg.i.xs { width: 14px; height: 14px; }
   .cta-strip .cta, .cta-strip a { width: 100%; justify-content: center; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+
+/* ---------- menu lateral ---------- */
+.gaveta-fundo { position: fixed; inset: 0; z-index: 1400; background: rgba(2, 6, 9, .55); opacity: 0; pointer-events: none; transition: opacity .25s; -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
+.gaveta {
+  position: fixed; top: 0; bottom: 0; left: 0; z-index: 1401; width: min(330px, 88vw); display: flex; flex-direction: column; gap: 6px;
+  padding: calc(12px + env(safe-area-inset-top)) 12px calc(16px + env(safe-area-inset-bottom)); overflow-y: auto; overscroll-behavior: contain;
+  background: var(--panel); border-right: 1px solid var(--line); box-shadow: var(--shadow); transform: translateX(-104%); transition: transform .28s cubic-bezier(.2, .8, .2, 1); visibility: hidden;
+}
+body.gaveta-aberta { overflow: hidden; }
+body.gaveta-aberta .gaveta-fundo { opacity: 1; pointer-events: auto; }
+body.gaveta-aberta .gaveta { transform: none; visibility: visible; }
+.gaveta-topo { display: flex; align-items: center; gap: 6px; }
+.gaveta-perfil { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 16px; text-decoration: none; background: var(--panel-2); border: 1px solid var(--line); }
+.gaveta-perfil:hover { background: var(--hover); }
+.gaveta-perfil .tx { flex: 1; min-width: 0; display: grid; }
+.gaveta-perfil strong { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gaveta-perfil small { color: var(--muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gaveta-perfil > svg { color: var(--muted); }
+.gaveta-avatar { width: 46px; height: 46px; border-radius: 50%; overflow: hidden; flex-shrink: 0; display: grid; place-items: center; font-weight: 800; color: #fff; background: linear-gradient(135deg, #0a4a63, #00adee); box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--accent); }
+.gaveta-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.gaveta-anunciar { margin: 6px 0 2px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; border-radius: 14px; background: var(--accent); color: var(--accent-ink); font-weight: 800; text-decoration: none; }
+.gaveta-anunciar:hover { background: var(--accent-strong); }
+.gaveta-secao { display: grid; gap: 2px; padding-top: 8px; }
+.gaveta-secao h3 { margin: 6px 10px 4px; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+.gaveta-item { display: flex; align-items: center; gap: 12px; padding: 9px 10px; border-radius: 12px; text-decoration: none; font-weight: 650; font-size: 14.5px; }
+.gaveta-item:hover { background: var(--hover); }
+.gaveta-item[aria-current="page"] { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); }
+.gaveta-item .ic { --c: var(--text); width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: color-mix(in srgb, var(--c) 12%, transparent); color: var(--c); flex-shrink: 0; }
+.gaveta-item .rot { flex: 1; }
+.gaveta-badge { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: #ff3b5c; color: #fff; font-size: 11px; font-weight: 800; display: grid; place-items: center; }
+.gaveta-tema { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; margin: 0 4px; border-radius: 14px; background: var(--panel-2); border: 1px solid var(--line); }
+.gaveta-tema button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; border: 0; border-radius: 10px; padding: 8px 4px; background: transparent; cursor: pointer; font-size: 12.5px; font-weight: 700; color: var(--muted); }
+.gaveta-tema button[aria-pressed="true"] { background: var(--panel); color: var(--text); box-shadow: 0 1px 4px rgba(0, 0, 0, .15); }
+.gaveta-rodape { margin-top: auto; padding: 14px 10px 0; display: grid; gap: 10px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+.gaveta-rodape .links { display: flex; gap: 14px; }
+.gaveta-rodape a { text-decoration: none; }
+.gaveta-rodape a:hover { color: var(--text); }
+.gaveta-sair { justify-self: start; display: inline-flex; align-items: center; gap: 8px; border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent); background: transparent; color: var(--danger); border-radius: 12px; padding: 9px 14px; font-weight: 700; cursor: pointer; }
+.gaveta-sair:hover { background: color-mix(in srgb, var(--danger) 10%, transparent); }

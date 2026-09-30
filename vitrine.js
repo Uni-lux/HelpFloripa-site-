@@ -1469,6 +1469,10 @@ async function carregarDonos(ids) {
 async function iniciar() {
   montarSecao();
   ligarFiltros();
+  // Busca vinda da página inicial: pagina.html?q=termo
+  const termoInicial = new URLSearchParams(location.search).get("q");
+  const campo = document.getElementById("searchInput");
+  if (termoInicial && campo) campo.value = termoInicial.slice(0, 80);
   for (let i = 0; i < 100 && (!window.firebaseAuth || !window.firebaseDb); i++) await new Promise((r) => setTimeout(r, 50));
   if (!window.firebaseDb) { todos = []; renderizar(); return; }
   const [auth, firestore] = await Promise.all([
