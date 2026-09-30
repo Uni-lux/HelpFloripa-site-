@@ -1242,11 +1242,14 @@ function montarSecao() {
   dest.id = "vtDestaques";
   sec.append(cab, dest, cont, grade);
   const cta = main.querySelector(".cta-strip");
+  const lugar = document.getElementById("vitrineAqui");
+  if (lugar) lugar.replaceWith(sec);
   if (cta) {
-    main.insertBefore(sec, cta);
+    if (!lugar) main.insertBefore(sec, cta);
     const link = cta.querySelector("a");
-    if (link) { link.href = `usuarios.html?acao=negocio&tipo=${TIPO}`; link.textContent = TEXTOS[TIPO].criar; }
-  } else main.appendChild(sec);
+    if (link) link.href = `usuarios.html?acao=negocio&tipo=${TIPO}`;
+    if (link && !lugar) link.textContent = TEXTOS[TIPO].criar;
+  } else if (!lugar) main.appendChild(sec);
 }
 
 function filtroAtual() {
