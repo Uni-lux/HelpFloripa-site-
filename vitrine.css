@@ -418,3 +418,9 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
 .vd-secoes { margin-right: 46px; }
 .vd-prato .lado.sem-foto { align-self: end; }
 .vd-produto .vd-prod-foto.vazia { aspect-ratio: auto; height: 150px; }
+
+/* ---------- Avaliações (estrelas) nos cartões ---------- */
+.vd-nota-cab { margin-top: 6px; display: flex; align-items: center; gap: 8px; min-height: 18px; }
+.vt-bolha-loja .hf-estrelas { font-size: 11px; justify-content: center; }
+.vt-prod .hf-estrelas { font-size: 12px; }
+.vt-linha-loja .hf-estrelas, .vt-destaque .hf-estrelas { font-size: 12.5px; }

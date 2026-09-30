@@ -12,7 +12,7 @@
   <link rel="icon" href="favicon.ico" />
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
-  <link rel="stylesheet" href="vitrine.css?v=10" />
+  <link rel="stylesheet" href="vitrine.css?v=11" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
     // Tema compartilhado com a página de mensagens; aplicado antes de desenhar.
@@ -496,6 +496,8 @@
     .post-info { padding: 14px 18px 18px; }
     .post-info .autor { display: flex; align-items: center; gap: 10px; }
     .post-info .autor .avatar { width: 38px; height: 38px; font-size: 13px; }
+    .post-nota { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+    .post-nota:empty { display: none; }
     .post-info .autor strong { display: block; font-size: 14.5px; }
     .post-info .autor small { color: var(--muted); font-size: 12.5px; }
     .post-info .texto { margin: 12px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -644,7 +646,7 @@
           <button type="button" class="pf-stat" data-stat="posts"><span class="num">0</span><span class="rot">Publicações</span></button>
           <button type="button" class="pf-stat" data-stat="seguidores"><span class="num">0</span><span class="rot">Seguidores</span></button>
           <button type="button" class="pf-stat" data-stat="seguindo"><span class="num">0</span><span class="rot">Seguindo</span></button>
-          <button type="button" class="pf-stat" data-stat="nota"><span class="num"><svg class="i xs"><use href="#i-estrela"/></svg><em style="font-style:normal">0,0</em></span><span class="rot">Avaliação</span></button>
+          <button type="button" class="pf-stat" data-stat="nota"><span class="num"><svg class="i xs"><use href="#i-estrela"/></svg><em style="font-style:normal">–</em></span><span class="rot">Avaliação</span></button>
         </div>
         <div data-el="extra"></div>
       </div>
@@ -845,6 +847,7 @@
             <button type="button" class="btn perigo mini" id="postApagar"><svg class="i xs"><use href="#i-lixo"/></svg>Apagar</button>
           </div>
           <p class="texto" id="postTexto"></p>
+          <div class="post-nota" id="postNota"><span id="postNotaEstrelas"></span><button type="button" class="btn sec mini" id="postAvaliar" hidden><svg class="i xs"><use href="#i-estrela"/></svg>Avaliar publicação</button></div>
         </div>
       </div>
     </div>
@@ -946,7 +949,8 @@
   <script type="module">
     import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=5";
     import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
-    import { abrirDetalhe as abrirPerfilNegocio, abrirAnuncio, buscarAnuncios, prepararConversa, DIAS, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL } from "./vitrine.js?v=10";
+    import { notaDoPerfil, abrirDetalhamento, abrirAvaliar, avaliar, jaAvaliou, lerResumo, estrelas, pintarEstrelas, media, notaTexto, TIPOS_NEGOCIO } from "./avaliacoes.js?v=1";
+    import { abrirDetalhe as abrirPerfilNegocio, abrirAnuncio, buscarAnuncios, prepararConversa, DIAS, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL } from "./vitrine.js?v=11";
 
     // ======================================================
     // Preferências compartilhadas com mensagens.html
@@ -1189,7 +1193,29 @@
       h.stat("posts").querySelector(".num").textContent = numero(posts);
       h.stat("seguidores").querySelector(".num").textContent = numero(seguidores);
       h.stat("seguindo").querySelector(".num").textContent = numero(seguindo);
-      h.stat("nota").querySelector("em").textContent = Number(p.avaliacaoMedia || 0).toFixed(1).replace(".", ",");
+    }
+    // Nota do perfil: média das avaliações dos perfis de negócio; sem nenhuma, a das publicações.
+    const notasPerfil = new Map();
+    async function pintarNotaPerfil(h, uid, { recarregar = false } = {}) {
+      if (!uid) return null;
+      if (recarregar || !notasPerfil.has(uid)) notasPerfil.set(uid, notaDoPerfil(fb, uid).catch(() => null));
+      const r = await notasPerfil.get(uid);
+      if (h?.stat("nota")) h.stat("nota").querySelector("em").textContent = r?.geral?.total ? notaTexto(media(r.geral)) : "–";
+      return r;
+    }
+    async function abrirAvaliacoes(p, uid) {
+      const r = await pintarNotaPerfil(null, uid);
+      if (!r) { toast("Não foi possível carregar as avaliações."); return; }
+      const fontes = Object.entries(TIPOS_NEGOCIO)
+        .map(([t, rot]) => ({ rotulo: rot, resumo: r.resumos[`neg_${uid}_${t}`], principal: r.origem === "negocios" }))
+        .filter((f) => f.resumo?.total);
+      fontes.push({ rotulo: "Publicações", resumo: r.pub, principal: r.origem === "publicacoes" });
+      if (r.cliente.total) fontes.push({ rotulo: "Como cliente", resumo: r.cliente, principal: false });
+      abrirDetalhamento({
+        fbx: fb, titulo: `Avaliações de ${p?.nome || "usuário"}`,
+        sub: r.origem === "negocios" ? "Média das avaliações dos perfis de negócio." : r.origem === "publicacoes" ? "Sem avaliações de negócio: vale a média das publicações." : "",
+        geral: r.geral, fontes, alvoId: uid
+      });
     }
 
     // ---------- meu perfil ----------
@@ -1233,10 +1259,11 @@
         meuCab.stat("posts").addEventListener("click", () => { selecionarAba("posts"); $("painelPosts").scrollIntoView({ behavior: "smooth", block: "start" }); });
         meuCab.stat("seguidores").addEventListener("click", () => abrirListaRelacoes(eu.uid, "seguidores"));
         meuCab.stat("seguindo").addEventListener("click", () => abrirListaRelacoes(eu.uid, "seguindo"));
-        meuCab.stat("nota").addEventListener("click", () => abrirAvaliacoes(dados));
+        meuCab.stat("nota").addEventListener("click", () => abrirAvaliacoes(dados, eu.uid));
       }
       pintarMeuSocial();
       preencherCabecalho(meuCab, dados, { posts: meusPosts.length, seguidores: contagem.seguidores, seguindo: contagem.seguindo });
+      pintarNotaPerfil(meuCab, eu.uid);
       // Bio vazia vira convite
       const bio = meuCab.el("bio");
       if (!dados.bio) {
@@ -1387,6 +1414,29 @@
       $("postApagar").hidden = !proprio;
       $("postAnterior").disabled = indice <= 0;
       $("postProximo").disabled = indice >= lista.length - 1;
+      pintarNotaPost(post, autor);
+    }
+    // Nota da publicação: cada pessoa avalia uma vez; o autor não avalia a própria.
+    async function pintarNotaPost(post, autor) {
+      const alvo = $("postNotaEstrelas"), btn = $("postAvaliar");
+      alvo.replaceChildren(); btn.hidden = true;
+      const autorId = post.autorId || autor?.uid;
+      const idAval = `d_${post.id}_${eu.uid}`;
+      const [resumo, ja] = await Promise.all([lerResumo(fb, `post_${post.id}`), autorId && autorId !== eu.uid ? jaAvaliou(fb, idAval) : true]);
+      if (postCtx?.lista[postCtx.indice]?.id !== post.id) return;
+      alvo.appendChild(estrelas(resumo));
+      btn.hidden = !!ja;
+      btn.onclick = () => abrirAvaliar({
+        titulo: "Avaliar publicação", sub: `De ${autor?.nome || post.nome || "usuário"}. Você só pode avaliar uma vez.`,
+        placeholder: "Comentário (opcional)",
+        aoEnviar: async ({ nota, comentario }) => {
+          await avaliar(fb, eu, idAval, { tipo: "publicacao", alvoId: autorId, postId: post.id, nota, comentario }, [`post_${post.id}`, `pub_${autorId}`], { nome: dados?.nome, foto: dados?.fotoPerfil });
+          toast("Obrigado pela avaliação!");
+          notasPerfil.delete(autorId);
+          if (ppCab && autorId !== eu.uid) pintarNotaPerfil(ppCab, autorId);
+          pintarNotaPost(post, autor);
+        }
+      });
     }
     $("postAnterior").addEventListener("click", () => { if (postCtx.indice > 0) { postCtx.indice--; mostrarPost(); } });
     $("postProximo").addEventListener("click", () => { if (postCtx.indice < postCtx.lista.length - 1) { postCtx.indice++; mostrarPost(); } });
@@ -1792,26 +1842,29 @@
       }
     }
 
-    function abrirAvaliacoes(p) {
-      $("tLista").textContent = "Avaliações";
-      const corpo = $("listaCorpo");
-      corpo.replaceChildren();
-      const bruto = p.avaliacoesLista || p.listaAvaliacoes || p.avaliacoes;
-      const lista = Array.isArray(bruto) ? bruto : (bruto && typeof bruto === "object" ? Object.values(bruto) : []);
-      const nota = Number(p.avaliacaoMedia || 0).toFixed(1).replace(".", ",");
-      const total = Number(p.totalAvaliacoes || lista.length || 0);
-      const resumo = document.createElement("div");
-      resumo.className = "grupo-titulo";
-      resumo.textContent = `Nota ${nota} de 5 · ${total} ${total === 1 ? "avaliação" : "avaliações"}`;
-      corpo.appendChild(resumo);
-      if (!lista.length) {
-        const v = document.createElement("div");
-        v.className = "lista-vazia";
-        v.textContent = "Nenhuma avaliação ainda.";
-        corpo.appendChild(v);
-      }
-      lista.forEach((a) => corpo.appendChild(linhaPessoa({ nome: a.nome || a.nomeUsuario || "Cliente", foto: a.foto || a.fotoPerfil, sub: a.comentario || a.texto || a.descricao || "", semSeguir: true, aoClicar: () => {} })));
-      abrirFolha("folhaLista");
+
+    // Link de avaliação (usuarios.html?avaliar=ID do pedido), enviado pelo chat ou WhatsApp.
+    async function avaliarPorLink(pid) {
+      try {
+        const snap = await fb.getDoc(fb.doc(fb.db, "pedidos", pid));
+        if (!snap.exists()) { toast("Pedido de avaliação não encontrado."); return; }
+        const pe = snap.data();
+        const souCliente = pe.clienteId === eu.uid;
+        if (!souCliente && pe.vendedorId !== eu.uid) { toast("Este pedido de avaliação é de outra pessoa."); return; }
+        const id = `p_${pid}_${souCliente ? "c" : "v"}`;
+        if (await jaAvaliou(fb, id)) { toast("Você já avaliou este pedido."); return; }
+        const outro = await obterPerfil(souCliente ? pe.vendedorId : pe.clienteId).catch(() => ({}));
+        abrirAvaliar({
+          titulo: souCliente ? `Avalie ${outro?.nome || "o atendimento"}` : `Avaliar ${outro?.nome || "cliente"}`,
+          sub: pe.titulo || (souCliente ? `${TIPOS_NEGOCIO[pe.tipo] || "Atendimento"}` : "Como foi atender este cliente?"),
+          aoEnviar: async ({ nota, comentario }) => {
+            const autor = { nome: dados?.nome, foto: dados?.fotoPerfil };
+            if (souCliente) await avaliar(fb, eu, id, { tipo: "negocio", alvoId: pe.vendedorId, negocioId: pe.negocioId, pedidoId: pid, nota, comentario }, [`neg_${pe.negocioId}`], autor);
+            else await avaliar(fb, eu, id, { tipo: "cliente", alvoId: pe.clienteId, pedidoId: pid, nota, comentario }, [`cli_${pe.clienteId}`], autor);
+            toast("Obrigado pela avaliação!");
+          }
+        });
+      } catch (e) { console.error(e); toast("Não foi possível abrir a avaliação: " + erroAmigavel(e)); }
     }
 
     // ======================================================
@@ -1826,6 +1879,7 @@
       perfis.delete(uid);
       const p = await obterPerfil(uid);
       preencherCabecalho(ppCab, p);
+      pintarNotaPerfil(ppCab, uid);
       $("tPerfilPublico").textContent = p.nome || "Perfil";
       abrirFolha("folhaPerfil");
 
@@ -1882,7 +1936,7 @@
       ppCab.stat("posts").addEventListener("click", () => $("ppGrade").scrollIntoView({ behavior: "smooth" }));
       ppCab.stat("seguidores").addEventListener("click", () => abrirListaRelacoes(uid, "seguidores"));
       ppCab.stat("seguindo").addEventListener("click", () => abrirListaRelacoes(uid, "seguindo"));
-      ppCab.stat("nota").addEventListener("click", () => abrirAvaliacoes(p));
+      ppCab.stat("nota").addEventListener("click", () => abrirAvaliacoes(p, uid));
       renderizarGrade($("ppGrade"), lista, { proprio: false, autor: p });
     }
 
@@ -3500,6 +3554,8 @@
           abrirFormNegocio(existente || null);
           if (!existente && NEGOCIOS[tipoPedido]) document.querySelector(`#negTipo [data-valor="${tipoPedido}"]`)?.click();
         }
+        const avaliarPedido = params.get("avaliar");
+        if (avaliarPedido) { history.replaceState(null, "", "usuarios.html"); avaliarPorLink(avaliarPedido); }
         const perfilPedido = params.get("perfil");
         if (perfilPedido) {
           history.replaceState(null, "", "usuarios.html");

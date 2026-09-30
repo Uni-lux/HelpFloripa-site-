@@ -8,6 +8,7 @@
 // =====================================================
 
 import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL } from "./seguranca.js?v=1";
+import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento } from "./avaliacoes.js?v=1";
 
 const PARAMS = new URL(import.meta.url).searchParams;
 const TIPO_PAGINA = PARAMS.get("tipo");
@@ -453,7 +454,7 @@ export function abrirProduto(n, idx, opcoes = {}) {
   const loja = el("button", "vd-loja-mini");
   loja.type = "button";
   loja.append(avatar(n.foto, n.nome), el("div", null, ""), icone("avancar"));
-  loja.children[1].append(el("small", null, "Vendido por"), el("strong", null, n.nome || "Loja"));
+  loja.children[1].append(el("small", null, "Vendido por"), el("strong", null, n.nome || "Loja"), estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId, fbx: opcoes.fb || fb }));
   loja.addEventListener("click", () => { sair(); abrirDetalhe(n, opcoes); });
   ct.appendChild(loja);
 
@@ -606,6 +607,21 @@ function linhaNegocioMini(n) {
   return d;
 }
 
+// ---------- estrelas dos negócios ----------
+// Resumo das notas de cada perfil de negócio (notas/neg_{id}); imóveis usam o perfil de imóveis do anunciante.
+const notasNeg = new Map();
+const idNegocio = (n) => n.id || `${n.donoId}_${n.tipo}`;
+function estrelasNeg(negId, { compacto = false, nome = "", donoId = "", fbx = null } = {}) {
+  const f = fbx || fb;
+  const abrir = () => lerResumo(f, "neg_" + negId).then((r) => abrirDetalhamento({
+    fbx: f, titulo: nome || "Avaliações", sub: "Notas dadas pelos clientes depois do atendimento", geral: r,
+    alvoId: donoId || negId.split("_")[0], filtroTipos: ["negocio"], negocioId: negId
+  }));
+  const el = estrelas(notasNeg.get(negId) || null, { compacto, aoClicar: abrir });
+  if (!notasNeg.has(negId) && f) lerResumo(f, "neg_" + negId).then((r) => { notasNeg.set(negId, r); pintarEstrelas(el, r, { compacto }); });
+  return el;
+}
+
 // ---------- estado ----------
 let fb = null, eu = null, todos = [];
 const donos = new Map();
@@ -674,7 +690,7 @@ function cabecalhoCartao(n, extras) {
 function cartaoServico(n) {
   const c = el("article", "vt-card vt-servico");
   const cats = categoriasDe(n);
-  c.appendChild(cabecalhoCartao(n, []));
+  c.appendChild(cabecalhoCartao(n, [estrelasNeg(idNegocio(n), { nome: n.nome, donoId: n.donoId })]));
   const areas = el("div", "vt-areas");
   cats.slice(0, 3).forEach((k) => areas.appendChild(el("span", "vt-tag", CATEGORIAS.servicos[k] || k)));
   if (cats.length > 3) areas.appendChild(el("span", "vt-tag neutra", `+${cats.length - 3}`));
@@ -716,7 +732,7 @@ function cartaoDelivery(n) {
   const cab = el("div");
   cab.append(el("h3", "vt-nome", n.nome || "Delivery"));
   const sub = el("div", "vt-sub");
-  sub.append(el("span", "vt-tag", nomeCategoria(n)));
+  sub.append(estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }), el("span", "vt-tag", nomeCategoria(n)));
   if (n.cidade) { const s = el("span", "vt-local"); s.append(icone("pin"), document.createTextNode(n.cidade)); sub.appendChild(s); }
   cab.appendChild(sub);
   corpo.appendChild(cab);
@@ -784,6 +800,7 @@ function cartaoImovel(a) {
   const local = [a.bairro, a.cidade].filter(Boolean).join(", ");
   if (local) { const s = el("span", "vt-local"); s.append(icone("pin"), document.createTextNode(local)); sub.appendChild(s); }
   sub.appendChild(el("span", "vt-tag neutra", CATEGORIAS.imoveis[a.categoria] || "Imóvel"));
+  sub.appendChild(estrelasNeg(`${a.donoId}_imoveis`, { compacto: true, nome: (negociosImoveis.get(a.donoId) || {}).nome || "Anunciante", donoId: a.donoId }));
   if (a.mobiliado) sub.appendChild(el("span", "vt-tag neutra", "Mobiliado"));
   (a.condicoes || []).filter((k) => k === "pets" || k === "semFiador" || k === "financiamento").slice(0, 2).forEach((k) => sub.appendChild(el("span", "vt-tag", CONDICOES_IMOVEL[k])));
   corpo.appendChild(sub);
@@ -892,7 +909,9 @@ export function abrirDetalhe(n, opcoes = {}) {
   else tags.appendChild(el("span", "vt-tag", ANUNCIANTE[n.tipoAnunciante] || "Anunciante"));
   if (tipo === "delivery") { const ab = abertoAgora(n); if (ab !== null) tags.appendChild(el("span", "vt-tag " + (ab ? "ok" : "off"), ab ? "Aberto agora" : "Fechado")); }
   if (n.cidade) { const s2 = el("span", "vt-local"); s2.append(icone("pin"), document.createTextNode(n.cidade)); tags.appendChild(s2); }
-  cab.append(tags, linkCriador(n.donoId, dono, opcoes.aoPerfil));
+  const notaCab = el("div", "vd-nota-cab");
+  notaCab.appendChild(estrelasNeg(idNegocio({ ...n, tipo }), { nome: n.nome, donoId: n.donoId, fbx }));
+  cab.append(tags, notaCab, linkCriador(n.donoId, dono, opcoes.aoPerfil));
   ct.appendChild(cab);
 
   const listaDias = (d) => (Array.isArray(d) && d.length ? (d.length === 7 ? "Todos os dias" : Object.keys(DIAS).filter((k) => d.includes(k)).map((k) => DIAS[k]).join(", ")) : "");
@@ -1159,6 +1178,7 @@ export function abrirAnuncio(a, opcoes = {}) {
   info.append(linkCriador(a.donoId, dono, opcoes.aoPerfil));
   const papel = [ANUNCIANTE[anunciante.tipoAnunciante], anunciante.creci ? `CRECI ${anunciante.creci}` : ""].filter(Boolean).join(" · ");
   if (papel) info.appendChild(el("small", null, papel));
+  info.appendChild(estrelasNeg(`${a.donoId}_imoveis`, { nome: anunciante.nome || "Anunciante", donoId: a.donoId, fbx }));
   box.appendChild(info);
   ct.appendChild(box);
   // outros imóveis do mesmo anunciante
@@ -1282,7 +1302,7 @@ function cartaoDestaqueServico(n) {
   capa.style.backgroundImage = `url("${urlSegura((n.fotos || [])[0]) || TEXTOS.servicos.img}")`;
   capa.appendChild(avatar(n.foto, n.nome));
   const tx = el("div", "tx");
-  tx.append(el("strong", null, n.nome), el("small", null, categoriasDe(n).map((k) => CATEGORIAS.servicos[k]).filter(Boolean).slice(0, 2).join(" · ")));
+  tx.append(el("strong", null, n.nome), estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }), el("small", null, categoriasDe(n).map((k) => CATEGORIAS.servicos[k]).filter(Boolean).slice(0, 2).join(" · ")));
   if (moeda(n.precoDesde)) tx.appendChild(el("span", "pr", `a partir de ${moeda(n.precoDesde)}`));
   c.append(capa, tx);
   return c;
@@ -1295,7 +1315,9 @@ function linhaDelivery(n) {
   c.appendChild(avatar(n.foto, n.nome, "vt-avatar logo"));
   const tx = el("div", "tx");
   tx.appendChild(el("strong", null, n.nome || "Delivery"));
-  tx.appendChild(el("small", null, [nomeCategoria(n), n.cidade].filter(Boolean).join(" · ")));
+  const linhaSub = el("div", "vt-sub");
+  linhaSub.append(estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }), el("small", null, [nomeCategoria(n), n.cidade].filter(Boolean).join(" · ")));
+  tx.appendChild(linhaSub);
   const info = el("div", "vt-infos");
   if (n.tempoMin || n.tempoMax) { const s = el("span"); s.append(icone("relogio", "vi s"), document.createTextNode(`${n.tempoMin || "?"}–${n.tempoMax || "?"} min`)); info.appendChild(s); }
   const taxa = Number(n.taxaEntrega) > 0 ? moeda(n.taxaEntrega) : "Grátis";
@@ -1315,7 +1337,7 @@ function linhaDelivery(n) {
 function bolhaLoja(n) {
   const c = el("button", "vt-bolha-loja");
   c.type = "button";
-  c.append(avatar(n.foto, n.nome), el("span", null, n.nome || "Loja"));
+  c.append(avatar(n.foto, n.nome), el("span", null, n.nome || "Loja"), estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }));
   c.addEventListener("click", () => abrirDetalhe(n));
   return c;
 }
@@ -1334,6 +1356,7 @@ function cartaoProduto(n, i, idx, { mostrarLoja = true } = {}) {
   const tx = el("div", "tx");
   tx.appendChild(el("strong", "nome", i.nome));
   tx.appendChild(precoComDesconto(i));
+  tx.appendChild(estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }));
   const nt = Array.isArray(i.tamanhos) ? i.tamanhos.length : 0, nc = Array.isArray(i.cores) ? i.cores.length : 0;
   const extras = [nt ? (nt === 1 ? `Tam. ${i.tamanhos[0]}` : `${nt} tamanhos`) : "", nc ? (nc === 1 ? i.cores[0] : `${nc} cores`) : ""].filter(Boolean).join(" · ");
   if (extras) tx.appendChild(el("small", null, extras));
@@ -1464,7 +1487,9 @@ async function iniciar() {
         negocios.filter((n) => n.preco || n.quartos).forEach((n) => todos.push(negocioComoAnuncio(n)));
       } else todos = negocios;
       todos.sort((a, b) => (b.atualizadoEm?.toMillis?.() ?? 0) - (a.atualizadoEm?.toMillis?.() ?? 0));
-      await carregarDonos(todos.map((n) => n.donoId));
+      const idsNotas = [...new Set(todos.map((n) => (TIPO === "imoveis" ? `${n.donoId}_imoveis` : idNegocio(n))))];
+      const [r] = await Promise.all([lerResumos(fb, idsNotas.map((i) => "neg_" + i)), carregarDonos(todos.map((n) => n.donoId))]);
+      idsNotas.forEach((i) => notasNeg.set(i, r["neg_" + i]));
     } catch (e) {
       console.warn("Vitrine indisponível:", e);
       todos = [];
