@@ -7,12 +7,14 @@
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <script>if (window.top !== window.self) { document.documentElement.style.display = "none"; try { window.top.location.replace(window.self.location.href); } catch (e) {} }</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="description" content="Contrate profissionais, peça delivery, compre em lojas locais e encontre imóveis em Florianópolis com avaliações reais." />
+  <meta name="description" content="Reclamações de clientes sobre perfis de negócio do Help Floripa, com resposta pública dos negócios." />
   <meta name="theme-color" content="#0b1014" />
-  <title>Para clientes | Help Floripa</title>
+  <title>Reclamações | Help Floripa</title>
   <link rel="icon" href="favicon.ico" />
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
+  <style>html.hf-auth-checking { visibility: hidden; }</style>
+  <script>document.documentElement.classList.add("hf-auth-checking");</script>
   <script>
     // Tema claro/escuro: o mesmo escolhido no perfil, nas mensagens e no menu.
     (function () {
@@ -27,26 +29,26 @@
   <link rel="stylesheet" href="categoria.css?v=3" />
   <link rel="stylesheet" href="info.css?v=1" />
   <script type="module" src="firebase.js"></script>
+  <script type="module" src="auth-guard.js"></script>
   <script type="module" src="categoria.js?v=3"></script>
+  <script type="module" src="reclamacoes.js?v=1"></script>
 </head>
-<body data-classe="info">
+<body data-classe="alerta">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-    <symbol id="i-ajuda" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.5a2.5 2.5 0 014.8.9c0 1.7-2.4 2-2.4 3.6M12 17h.01"/></symbol>
     <symbol id="i-alerta" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4.5M12 17.5h.01"/></symbol>
     <symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 01-1.5 1.5H15v-6h-6v6H5.5A1.5 1.5 0 014 19z"/></symbol>
     <symbol id="i-chat" viewBox="0 0 24 24"><path d="M20.5 11.6c0 4.3-3.8 7.6-8.5 7.6-1.2 0-2.3-.2-3.3-.6L4 20l1.2-3.6c-1.1-1.3-1.7-3-1.7-4.8C3.5 7.4 7.3 4 12 4s8.5 3.4 8.5 7.6z"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
     <symbol id="i-delivery" viewBox="0 0 24 24"><path d="M3 10h18M4 10a8 8 0 0116 0M2 14h20M4 14l1 6h14l1-6"/></symbol>
-    <symbol id="i-escudo" viewBox="0 0 24 24"><path d="M12 3l7.5 3v5.5c0 4.5-3.2 8-7.5 9.5-4.3-1.5-7.5-5-7.5-9.5V6z"/><path d="M8.8 12l2.2 2.2 4.2-4.4"/></symbol>
+    <symbol id="i-doc" viewBox="0 0 24 24"><path d="M7 3.5h7l4 4V20.5H7z"/><path d="M14 3.5v4h4M10 12h5M10 15.5h5"/></symbol>
     <symbol id="i-estrela" viewBox="0 0 24 24"><path d="M12 3.8l2.5 5.2 5.7.8-4.1 4 1 5.6L12 16.7l-5.1 2.7 1-5.6-4.1-4 5.7-.8z"/></symbol>
     <symbol id="i-imoveis" viewBox="0 0 24 24"><path d="M4 11.5L12 4l8 7.5M6 10v9.5h12V10M10 19.5v-5h4v5"/></symbol>
     <symbol id="i-lojinha" viewBox="0 0 24 24"><path d="M6 8h12l-1 12H7L6 8zM9 8V6a3 3 0 016 0v2"/></symbol>
     <symbol id="i-lupa" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></symbol>
-    <symbol id="i-maleta" viewBox="0 0 24 24"><rect x="3.5" y="7" width="17" height="12.5" rx="2"/><path d="M9 7V5.5A1.5 1.5 0 0110.5 4h3A1.5 1.5 0 0115 5.5V7M3.5 12.5h17"/></symbol>
     <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></symbol>
     <symbol id="i-perfil" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.3-3.6 4.2-5.3 7.5-5.3s6.2 1.7 7.5 5.3"/></symbol>
     <symbol id="i-servicos" viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 01-5.4 5.4l-6 6a1.5 1.5 0 002.1 2.1l6-6a4 4 0 015.4-5.4l-2.6 2.6-2-2z"/></symbol>
-    <symbol id="i-seta" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+    <symbol id="i-todos" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></symbol>
   </svg>
 
   <header class="topo">
@@ -58,53 +60,66 @@
   </header>
 
   <main class="pagina">
-    <section class="hero hero-info" style="--capa: url('Clientes.webp')" aria-labelledby="tituloPagina">
+    <section class="hero hero-info sem-foto" aria-labelledby="tituloPagina">
       <div class="hero-corpo">
-        <span class="selo-classe"><b><svg class="i xs" aria-hidden="true"><use href="#i-perfil"/></svg></b>Para clientes</span>
-        <h1 id="tituloPagina">Contrate, peça e compre <span>com confiança</span></h1>
-        <p class="lead">Profissionais, delivery, lojas e imóveis de Florianópolis, com avaliações de quem já foi atendido e conversa direta com quem oferece.</p>
-        <div class="hero-acoes"><a class="btn-hero pri" href="index.html"><svg class="i s" aria-hidden="true"><use href="#i-lupa"/></svg>Começar a explorar</a><a class="btn-hero sec" href="cadastre-se.html">Criar conta grátis</a></div>
+        <span class="selo-classe"><b><svg class="i xs" aria-hidden="true"><use href="#i-alerta"/></svg></b>Reclamações</span>
+        <h1 id="tituloPagina">Transparência que <span>gera confiança</span></h1>
+        <p class="lead">Avaliações de 1 e 2 estrelas feitas por clientes em perfis de negócio aparecem aqui. O negócio responde publicamente e o cliente marca quando foi resolvido. Avaliações de publicações não entram.</p>
+
       </div>
     </section>
-    <section class="secao" aria-labelledby="soquevocêenco">
-      <h2 class="secao-titulo" id="soquevocêenco">O que você encontra</h2>
-      
-      <div class="cards-info ">
-        <div class="card-info servicos"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-servicos"/></svg></span><strong>Profissionais</strong><p>Faxina, reforma, beleza, transporte, pets e muito mais. Peça orçamento com fotos e data.</p><a class="link" href="servicos.html">Ver serviços<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></a></div>
-        <div class="card-info delivery"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-delivery"/></svg></span><strong>Delivery</strong><p>Veja quem está aberto, monte o carrinho e envie o pedido pronto.</p><a class="link" href="delivery.html">Pedir comida<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></a></div>
-        <div class="card-info lojinha"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-lojinha"/></svg></span><strong>Shopping</strong><p>Produtos de lojas locais com fotos, tamanhos, cores e estoque.</p><a class="link" href="shopping.html">Ver produtos<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></a></div>
-        <div class="card-info imoveis"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-imoveis"/></svg></span><strong>Imóveis</strong><p>Alugue, compre ou passe a temporada, direto com quem anuncia.</p><a class="link" href="imoveis.html">Ver imóveis<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></a></div>
+    <div class="resumo" id="filtroNegocio" hidden style="margin-top:14px">Mostrando só as reclamações de <strong></strong>. <a href="reclamacoes.html" style="color:var(--classe);font-weight:800">Ver todas</a></div>
+    <div class="numeros" aria-live="polite">
+      <div class="numero"><b id="nTotal">–</b><span>reclamações</span></div>
+      <div class="numero res"><b id="nResp">–</b><span>respondidas pelo negócio</span></div>
+      <div class="numero pend"><b id="nPend">–</b><span>aguardando resposta</span></div>
+      <div class="numero ok"><b id="nResolv">–</b><span>resolvidas</span></div>
+    </div>
+    <div class="abas-rec" id="abasRec" role="tablist" aria-label="Filtrar reclamações">
+      <button type="button" role="tab" data-aba="todas" aria-selected="true">Todas <em>0</em></button>
+      <button type="button" role="tab" data-aba="pendente" aria-selected="false">Aguardando <em>0</em></button>
+      <button type="button" role="tab" data-aba="respondida" aria-selected="false">Respondidas <em>0</em></button>
+      <button type="button" role="tab" data-aba="resolvida" aria-selected="false">Resolvidas <em>0</em></button>
+      <button type="button" role="tab" data-aba="recebidas" aria-selected="false" hidden>Recebidas por mim <em>0</em></button>
+      <button type="button" role="tab" data-aba="minhas" aria-selected="false" hidden>Feitas por mim <em>0</em></button>
+    </div>
+    <div class="filtros-rec">
+      <form class="busca" role="search" onsubmit="return false">
+        <svg class="i" aria-hidden="true"><use href="#i-lupa"/></svg>
+        <label class="sr" for="searchInput">Buscar reclamações</label>
+        <input type="search" id="searchInput" placeholder="Buscar por negócio ou palavra" autocomplete="off" />
+      </form>
+    </div>
+    <div class="filtros" style="position:static;margin:8px 0 0;padding:0;background:none">
+      <div class="filter-chips" id="filterChips" role="group" aria-label="Filtrar por classe">
+        <button type="button" class="chip active" data-filter="todas" aria-pressed="true"><svg class="i s" aria-hidden="true"><use href="#i-todos"/></svg>Todas</button>
+        <button type="button" class="chip" data-filter="servicos" aria-pressed="false"><svg class="i s" aria-hidden="true"><use href="#i-servicos"/></svg>Serviços</button>
+        <button type="button" class="chip" data-filter="delivery" aria-pressed="false"><svg class="i s" aria-hidden="true"><use href="#i-delivery"/></svg>Delivery</button>
+        <button type="button" class="chip" data-filter="lojinha" aria-pressed="false"><svg class="i s" aria-hidden="true"><use href="#i-lojinha"/></svg>Shopping</button>
+        <button type="button" class="chip" data-filter="imoveis" aria-pressed="false"><svg class="i s" aria-hidden="true"><use href="#i-imoveis"/></svg>Imóveis</button>
       </div>
-    </section>
-    <section class="secao" aria-labelledby="sporqueusaroh">
-      <h2 class="secao-titulo" id="sporqueusaroh">Por que usar o Help Floripa</h2>
+    </div>
+    <div class="lista-rec" id="listaRec" aria-live="polite"><div class="lista-vazia">Carregando reclamações...</div></div>
+    <div style="text-align:center;margin-top:14px"><button type="button" class="botao sec" id="maisRec" hidden>Carregar mais</button></div>
+
+    <section class="secao" aria-labelledby="scomofunciona">
+      <h2 class="secao-titulo" id="scomofunciona">Como funcionam as reclamações</h2>
       
-      <div class="cards-info ">
-        <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-estrela"/></svg></span><strong>Notas confiáveis</strong><p>Só avalia quem foi atendido. Toque na nota e veja quantas são de cada estrela.</p></div>
-        <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-alerta"/></svg></span><strong>Reclamações públicas</strong><p>Notas 1 e 2 viram reclamações com resposta do negócio. Você sabe como cada um trata o cliente.</p></div>
-        <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-chat"/></svg></span><strong>Tudo no chat</strong><p>Orçamento, carrinho e interesse chegam organizados para quem atende.</p></div>
-        <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-escudo"/></svg></span><strong>Mais segurança</strong><p>Contas com e-mail confirmado, bloqueio e restrição de contatos e canais oficiais de denúncia.</p></div>
-      </div>
-    </section>
-    <section class="secao" aria-labelledby="sdicasparacon">
-      <h2 class="secao-titulo" id="sdicasparacon">Dicas para contratar bem</h2>
-      
-      <div class="bloco"><ul class="lista-check">
-          <li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Compare notas, fotos e a resposta às reclamações.</li>
-          <li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Combine valor total, prazo e forma de pagamento antes de fechar.</li>
-          <li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Prefira conversar pelo chat do site, fica tudo registrado.</li>
-          <li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Nunca envie senhas, códigos ou dados de cartão pelo chat.</li>
-          <li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Depois do atendimento, avalie. Sua nota ajuda a comunidade.</li>
-        </ul></div>
+      <ol class="passos">
+        <li class="passo"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-estrela"/></svg></span><strong>Cliente avalia</strong><p>Depois do atendimento, o cliente dá a nota. Notas 1 e 2 viram reclamação.</p></li>
+        <li class="passo"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-alerta"/></svg></span><strong>Fica público</strong><p>A reclamação aparece aqui, com o nome do negócio e o comentário do cliente.</p></li>
+        <li class="passo"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-chat"/></svg></span><strong>Negócio responde</strong><p>O negócio explica o que houve e como vai resolver, em uma resposta pública.</p></li>
+        <li class="passo"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg></span><strong>Cliente conclui</strong><p>Quando o problema é resolvido, o cliente marca a reclamação como resolvida.</p></li>
+      </ol>
     </section>
     <div class="cta-strip">
       <div>
-        <h3>Também trabalha por conta própria?</h3>
-        <p>Com a mesma conta você pode criar perfis de serviços, delivery, lojinha ou imóveis.</p>
+        <h3>Reclamação sem resposta ou caso grave?</h3>
+        <p>Golpes, cobranças indevidas ou perfis falsos: fale direto com a nossa equipe.</p>
       </div>
       <div class="cta">
-        <a href="profissionais.html"><svg class="i s" aria-hidden="true"><use href="#i-maleta"/></svg>Quero anunciar</a>
-        <a class="sec" href="ajuda.html"><svg class="i s" aria-hidden="true"><use href="#i-ajuda"/></svg>Central de Ajuda</a>
+        <a href="contato.html"><svg class="i s" aria-hidden="true"><use href="#i-chat"/></svg>Falar com o Help Floripa</a>
+        <a class="sec" href="termos.html"><svg class="i s" aria-hidden="true"><use href="#i-doc"/></svg>Regras de avaliação</a>
       </div>
     </div>
   </main>

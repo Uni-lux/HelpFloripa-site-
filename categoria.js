@@ -43,12 +43,19 @@ async function iniciarTopo() {
   let parar = null;
   auth.onAuthStateChanged(window.firebaseAuth, async (u) => {
     parar?.(); parar = null;
-    if (!u) return;
+    if (!u) {
+      // Visitante (páginas públicas): o topo e o menu levam para o login.
+      definirPerfilMenu({ logado: false });
+      const link = $("topoAvatar")?.closest("a");
+      if (link) { link.href = "login.html"; link.setAttribute("aria-label", "Entrar"); }
+      $("badgeMensagens")?.closest("a")?.setAttribute("href", "login.html");
+      return;
+    }
     // Foto do perfil
     try {
       const s = await fs.getDoc(fs.doc(db, "perfis_publicos", u.uid));
       const p = s.exists() ? s.data() : {};
-      definirPerfilMenu({ nome: p.nome || u.displayName || "", nick: p.nickname || p.nick || "", foto: p.fotoPerfil || u.photoURL || "" });
+      definirPerfilMenu({ logado: true, nome: p.nome || u.displayName || "", nick: p.nickname || p.nick || "", foto: p.fotoPerfil || u.photoURL || "" });
       const av = $("topoAvatar");
       if (av) {
         const url = fotoSegura(p.fotoPerfil || u.photoURL);
@@ -98,7 +105,8 @@ const ICONES_MENU = {
   auto: '<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17a8.5 8.5 0 000-17z" fill="currentColor"/>',
   sair: '<path d="M14 4.5h4.5a1.5 1.5 0 011.5 1.5v12a1.5 1.5 0 01-1.5 1.5H14M10 16l-4-4 4-4M6 12h9.5"/>',
   fechar: '<path d="M6 6l12 12M18 6L6 18"/>',
-  seta: '<path d="M9 5l7 7-7 7"/>'
+  seta: '<path d="M9 5l7 7-7 7"/>',
+  alerta: '<path d="M12 4l9 16H3z"/><path d="M12 10v4.5M12 17.5h.01"/>'
 };
 function iconeMenu(n, cls = "i s") {
   const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -124,12 +132,13 @@ const SECOES_MENU = [
     ["clientes.html", "perfil", "Para clientes"],
     ["socios-parcerias.html", "parceria", "Sócios e parcerias"],
     ["cadastro-empresa.html", "empresa", "Cadastrar empresa / MEI"],
+    ["reclamacoes.html", "alerta", "Reclamações"],
     ["ajuda.html", "ajuda", "Ajuda"],
     ["contato.html", "contato", "Contato"],
     ["sobre.html", "sobre", "Sobre"]
   ]]
 ];
-const perfilMenu = { nome: "", nick: "", foto: "" };
+const perfilMenu = { nome: "", nick: "", foto: "", logado: null };
 let gaveta = null;
 function temaAtual() { try { return JSON.parse(localStorage.getItem("hf-chat-config") || "{}").tema || "sistema"; } catch { return "sistema"; } }
 function aplicarTema(tema) {
@@ -145,7 +154,7 @@ function montarGaveta() {
   const g = el("aside", "gaveta");
   g.id = "gaveta"; g.setAttribute("aria-label", "Menu"); g.setAttribute("role", "dialog"); g.setAttribute("aria-modal", "true");
   // Cabeçalho com o perfil
-  const cab = el("a", "gaveta-perfil"); cab.href = "usuarios.html";
+  const cab = el("a", "gaveta-perfil"); cab.href = "usuarios.html"; cab.id = "gavetaPerfil";
   const av = el("span", "gaveta-avatar"); av.id = "gavetaAvatar";
   const tx = el("span", "tx");
   const nome = el("strong", null, perfilMenu.nome || "Meu perfil"); nome.id = "gavetaNome";
@@ -187,7 +196,7 @@ function montarGaveta() {
   const rod = el("div", "gaveta-rodape");
   const links = el("div", "links");
   [["termos.html", "Termos de Uso"], ["privacidade.html", "Privacidade"]].forEach(([h, r]) => { const a = el("a", null, r); a.href = h; links.appendChild(a); });
-  const sair = el("button", "gaveta-sair"); sair.type = "button"; sair.append(iconeMenu("sair"), document.createTextNode("Sair da conta"));
+  const sair = el("button", "gaveta-sair"); sair.type = "button"; sair.id = "gavetaSair"; sair.append(iconeMenu("sair"), document.createTextNode("Sair da conta"));
   sair.addEventListener("click", async () => {
     if (!confirm("Sair da sua conta?")) return;
     try { const { signOut } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"); await signOut(window.firebaseAuth); } catch {}
@@ -222,8 +231,11 @@ function pintarPerfilMenu() {
   const url = fotoSegura(perfilMenu.foto);
   if (url) { const img = document.createElement("img"); img.src = url; img.alt = ""; av.appendChild(img); }
   else av.textContent = iniciais(perfilMenu.nome);
-  $("gavetaNome").textContent = perfilMenu.nome || "Meu perfil";
-  $("gavetaNick").textContent = perfilMenu.nick ? "@" + perfilMenu.nick : "Ver e editar meu perfil";
+  const visitante = perfilMenu.logado === false;
+  $("gavetaPerfil").href = visitante ? "login.html" : "usuarios.html";
+  $("gavetaNome").textContent = visitante ? "Entrar ou criar conta" : perfilMenu.nome || "Meu perfil";
+  $("gavetaNick").textContent = visitante ? "Para anunciar, conversar e avaliar" : perfilMenu.nick ? "@" + perfilMenu.nick : "Ver e editar meu perfil";
+  $("gavetaSair").hidden = visitante;
 }
 function atualizarBadgeMenu() {
   const b = $("menuBadge"), t = $("badgeMensagens");

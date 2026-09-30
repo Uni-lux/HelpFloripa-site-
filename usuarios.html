@@ -12,7 +12,7 @@
   <link rel="icon" href="favicon.ico" />
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
-  <link rel="stylesheet" href="vitrine.css?v=13" />
+  <link rel="stylesheet" href="vitrine.css?v=14" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
     // Tema compartilhado com a página de mensagens; aplicado antes de desenhar.
@@ -949,8 +949,8 @@
   <script type="module">
     import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=5";
     import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
-    import { notaDoPerfil, abrirDetalhamento, abrirAvaliar, avaliar, jaAvaliou, lerResumo, estrelas, pintarEstrelas, media, notaTexto, TIPOS_NEGOCIO } from "./avaliacoes.js?v=1";
-    import { abrirDetalhe as abrirPerfilNegocio, abrirAnuncio, buscarAnuncios, prepararConversa, DIAS, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL } from "./vitrine.js?v=13";
+    import { notaDoPerfil, abrirDetalhamento, abrirAvaliar, avaliar, jaAvaliou, lerResumo, estrelas, pintarEstrelas, media, notaTexto, TIPOS_NEGOCIO } from "./avaliacoes.js?v=2";
+    import { abrirDetalhe as abrirPerfilNegocio, abrirAnuncio, buscarAnuncios, prepararConversa, DIAS, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL } from "./vitrine.js?v=14";
 
     // ======================================================
     // Preferências compartilhadas com mensagens.html
@@ -1857,6 +1857,7 @@
         abrirAvaliar({
           titulo: souCliente ? `Avalie ${outro?.nome || "o atendimento"}` : `Avaliar ${outro?.nome || "cliente"}`,
           sub: pe.titulo || (souCliente ? `${TIPOS_NEGOCIO[pe.tipo] || "Atendimento"}` : "Como foi atender este cliente?"),
+          reclamacao: souCliente,
           aoEnviar: async ({ nota, comentario }) => {
             const autor = { nome: dados?.nome, foto: dados?.fotoPerfil };
             if (souCliente) await avaliar(fb, eu, id, { tipo: "negocio", alvoId: pe.vendedorId, negocioId: pe.negocioId, pedidoId: pid, nota, comentario }, [`neg_${pe.negocioId}`], autor);
