@@ -34,20 +34,22 @@ Menu **Authentication** → aba **Configurações** (Settings):
    Apague o que não for seu.
 4. Aba **Modelos** (Templates) → **Verificação de endereço de e-mail**: coloque o idioma em **Português**.
 
-## 4. App Check (protege contra robôs)
+## 4. App Check (protege contra robôs) — grátis, plano Spark
 
-1. Ative a API: https://console.cloud.google.com/security/recaptcha (projeto helpfloripa-61e0d) → **Ativar**.
-2. Crie uma chave: **Criar chave** → tipo **Site** (Web) → domínios `helpfloripa.com.br` e `www.helpfloripa.com.br`.
-   Copie a **chave do site** (Site key).
-3. No Firebase: menu **App Check** → aba **Apps** → seu app da Web → **reCAPTCHA Enterprise** → cole a mesma chave → **Salvar**.
-4. No arquivo `firebase.js`, cole a chave entre as aspas:
+1. Abra https://www.google.com/recaptcha/admin/create
+2. Rótulo: `Help Floripa`. Tipo: **reCAPTCHA v3** (baseado em pontuação).
+   Domínios: `helpfloripa.com.br` e `www.helpfloripa.com.br`. Clique em **Enviar**.
+3. A página mostra duas chaves: **Chave do site** e **Chave secreta**. Deixe aberta.
+4. No Firebase: menu **App Check** → aba **Apps** → seu app da Web → **reCAPTCHA** (não o Enterprise)
+   → cole a **Chave secreta** → **Salvar**.
+5. No arquivo `firebase.js`, cole a **Chave do site** entre as aspas:
    ```js
-   const RECAPTCHA_ENTERPRISE_SITE_KEY = "COLE_A_CHAVE_AQUI";
+   const RECAPTCHA_V3_SITE_KEY = "COLE_A_CHAVE_DO_SITE_AQUI";
    ```
    Suba o `firebase.js` para o GitHub.
-5. Espere **2 ou 3 dias** e olhe o gráfico em **App Check → APIs → Cloud Firestore**.
-   Quando quase todas as requisições estiverem como "verificadas", clique em **Aplicar** (Enforce).
-   Faça o mesmo para **Authentication** e, quando usar, **Storage**.
+6. Espere **2 ou 3 dias** e olhe em **App Check → APIs → Cloud Firestore**.
+   Quando quase tudo aparecer como "verificado", clique em **Aplicar** (Enforce).
+   Faça o mesmo para **Authentication**.
 
 > Não aplique no mesmo dia: quem estiver com o site antigo aberto seria bloqueado.
 
@@ -67,8 +69,9 @@ Menu **Authentication** → aba **Configurações** (Settings):
 2. Valor: o que você aceita gastar por mês (ex.: R$ 50). Alertas em 50%, 90% e 100%.
    Você recebe um e-mail se alguém abusar do site.
 
-## 7. Storage (quando ativar)
+## 7. Storage (quando ativar) — precisa do plano Blaze
 
+Sem Storage o site funciona: as fotos ficam dentro do Firestore (por isso o limite de fotos).
 1. Menu **Storage** → **Começar**.
 2. Aba **Regras**: cole o conteúdo de `storage.rules` → **Publicar**.
    Aceite quando o console pedir permissão para o Storage ler o Firestore.
@@ -87,7 +90,7 @@ O `cadastro-empresa.html` envia os dados para o serviço **formsubmit.co**, e o 
 
 | Problema | Correção |
 |---|---|
-| Contas falsas e robôs | E-mail confirmado exigido nas regras, aviso com reenvio do link, e-mail de confirmação enviado no cadastro, espaço pronto para o App Check |
+| Contas falsas e robôs | E-mail confirmado exigido nas regras (grátis, sem configurar nada), aviso com reenvio do link, e-mail de confirmação enviado no cadastro, App Check com reCAPTCHA v3 pronto (grátis) |
 | Documentos gigantes e campos estranhos | Regras com lista de campos permitidos e limites de tamanho (negócios, anúncios, publicações, mensagens, conversas) |
 | Falsificar "lido", "digitando" e o resumo da conversa | Cada pessoa só altera os próprios campos; o resumo só pode ser escrito por quem enviou a mensagem |
 | Citação falsa no chat | A regra confere se a mensagem citada existe e quem a escreveu; o chat mostra o texto original |
