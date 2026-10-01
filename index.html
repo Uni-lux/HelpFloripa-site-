@@ -30,15 +30,22 @@
     })();
   </script>
   <link rel="stylesheet" href="categoria.css?v=4" />
-  <link rel="stylesheet" href="inicio.css?v=5" />
+  <link rel="stylesheet" href="inicio.css?v=7" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
-  <script type="module" src="categoria.js?v=4"></script>
-  <script type="module" src="inicio.js?v=5"></script>
+  <script type="module" src="categoria.js?v=6"></script>
+  <script type="module" src="inicio.js?v=7"></script>
 </head>
 <body data-classe="inicio">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-sino" viewBox="0 0 24 24"><path d="M18 9.5a6 6 0 00-12 0c0 6.5-2.5 8-2.5 8h17S18 16 18 9.5z"/><path d="M10.2 20.5a2 2 0 003.6 0"/></symbol>
     <symbol id="i-chat" viewBox="0 0 24 24"><path d="M20.5 11.6c0 4.3-3.8 7.6-8.5 7.6-1.2 0-2.3-.2-3.3-.6L4 20l1.2-3.6c-1.1-1.3-1.7-3-1.7-4.8C3.5 7.4 7.3 4 12 4s8.5 3.4 8.5 7.6z"/></symbol>
+    <symbol id="i-sol" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6L6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4"/></symbol>
+    <symbol id="i-lua" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0113 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></symbol>
+    <symbol id="i-maleta" viewBox="0 0 24 24"><rect x="3.5" y="7" width="17" height="12.5" rx="2"/><path d="M9 7V5.5A1.5 1.5 0 0110.5 4h3A1.5 1.5 0 0115 5.5V7M3.5 12.5h17"/></symbol>
+    <symbol id="i-feed" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="7" rx="2"/><rect x="4" y="13" width="16" height="7" rx="2"/></symbol>
+    <symbol id="i-alerta" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4.5M12 17.5h.01"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
     <symbol id="i-delivery" viewBox="0 0 24 24"><path d="M3 10h18M4 10a8 8 0 0116 0M2 14h20M4 14l1 6h14l1-6"/></symbol>
     <symbol id="i-escudo" viewBox="0 0 24 24"><path d="M12 3l7.5 3v5.5c0 4.5-3.2 8-7.5 9.5-4.3-1.5-7.5-5-7.5-9.5V6z"/><path d="M8.8 12l2.2 2.2 4.2-4.4"/></symbol>
@@ -59,20 +66,25 @@
     <button type="button" class="icone-btn" id="btnMenu" aria-label="Abrir menu" aria-controls="gaveta" aria-expanded="false"><svg class="i" aria-hidden="true"><use href="#i-menu"/></svg></button>
     <span class="topo-espaco" aria-hidden="true"></span>
     <a href="index.html" class="marca" aria-label="Help Floripa - Início" aria-current="page"><strong>HELP <span>FLORIPA</span></strong><small>TUDO EM UM SÓ LUGAR</small></a>
-    <a href="mensagens.html" class="icone-btn" aria-label="Mensagens"><svg class="i" aria-hidden="true"><use href="#i-chat"/></svg><b class="ponto-badge" id="badgeMensagens" hidden></b></a>
+    <a href="notificacoes.html" class="icone-btn" aria-label="Notificações" title="Notificações"><svg class="i" aria-hidden="true"><use href="#i-sino"/></svg><b class="ponto-badge" id="badgeAvisos" hidden></b></a>
     <a href="usuarios.html" class="icone-btn" aria-label="Meu perfil"><span class="topo-avatar" id="topoAvatar"><svg class="i xs" aria-hidden="true"><use href="#i-perfil"/></svg></span></a>
   </header>
 
   <main class="pagina">
-    <section class="painel-ponte" aria-labelledby="tituloPagina">
-      <figure class="pp-foto">
+    <section class="hero-home" aria-labelledby="tituloPagina">
+      <figure class="hh-foto">
         <img src="ponte-help.webp" alt="Ponte Hercílio Luz iluminada à noite, em Florianópolis" width="1536" height="1024" fetchpriority="high" />
-        <figcaption>Ponte Hercílio Luz · Florianópolis</figcaption>
+        <figcaption><svg class="i xs" aria-hidden="true"><use href="#i-pin"/></svg>Ponte Hercílio Luz · Florianópolis</figcaption>
       </figure>
-      <div class="pp-texto">
-        <p class="ola" id="saudacao">Olá</p>
-        <h1 id="tituloPagina">Tudo o que você precisa em Floripa, <span>num só lugar</span></h1>
-        <p class="lead">Profissionais, delivery, lojas e imóveis da cidade, com notas de clientes reais.</p>
+      <div class="hh-texto">
+        <p class="ola"><svg class="i s" id="iconeHora" aria-hidden="true"><use href="#i-sol"/></svg><span id="saudacao">Olá</span></p>
+        <h1 id="tituloPagina">Tudo o que você precisa em Florianópolis, <span>num só lugar.</span></h1>
+        <nav class="atalhos" aria-label="Atalhos">
+          <a href="negocios.html" class="anunciar"><svg class="i s" aria-hidden="true"><use href="#i-mais"/></svg>Anunciar</a>
+          <a href="mensagens.html" class="mensagens"><svg class="i s" aria-hidden="true"><use href="#i-chat"/></svg>Mensagens<b class="ponto-badge" id="atalhoBadgeMensagens" hidden></b></a>
+          <a href="feed.html" class="diario"><svg class="i s" aria-hidden="true"><use href="#i-feed"/></svg>Diário</a>
+          <a href="reclamacoes.html" class="reclamacoes"><svg class="i s" aria-hidden="true"><use href="#i-alerta"/></svg>Reclamações</a>
+        </nav>
         <form class="busca-geral" id="buscaGeral" role="search" data-classe="servicos">
           <div class="busca">
             <label class="sr" for="classeBusca">Buscar em</label>
@@ -92,28 +104,28 @@
 
     <nav class="classes-grade" aria-label="Classes do Help Floripa">
       <a class="classe-card servicos" href="servicos.html" style="--img: url('servicos.webp')">
-        <span class="ic"><svg class="i" aria-hidden="true"><use href="#i-servicos"/></svg></span>
         <span class="conta" id="conta-servicos">&nbsp;</span>
-        <strong>Serviços<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></strong>
-        <p>Profissionais avaliados para casa, beleza, transporte e pets.</p>
+        <span class="ic"><svg class="i" aria-hidden="true"><use href="#i-maleta"/></svg></span>
+        <span class="cc-tx"><strong>Freelances</strong><small>Profissionais avaliados.</small></span>
+        <span class="cc-seta" aria-hidden="true"><svg class="i xs"><use href="#i-seta"/></svg></span>
       </a>
       <a class="classe-card delivery" href="delivery.html" style="--img: url('lanchonetes.webp')">
-        <span class="ic"><svg class="i" aria-hidden="true"><use href="#i-delivery"/></svg></span>
         <span class="conta" id="conta-delivery">&nbsp;</span>
-        <strong>Delivery<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></strong>
-        <p>Cardápios da vizinhança, com carrinho e pedido direto.</p>
+        <span class="ic"><svg class="i" aria-hidden="true"><use href="#i-delivery"/></svg></span>
+        <span class="cc-tx"><strong>Delivery</strong><small>Comida boa, perto de você.</small></span>
+        <span class="cc-seta" aria-hidden="true"><svg class="i xs"><use href="#i-seta"/></svg></span>
       </a>
       <a class="classe-card lojinha" href="shopping.html" style="--img: url('shopping.webp')">
-        <span class="ic"><svg class="i" aria-hidden="true"><use href="#i-lojinha"/></svg></span>
         <span class="conta" id="conta-lojinha">&nbsp;</span>
-        <strong>Shopping<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></strong>
-        <p>Produtos de lojas de Florianópolis, com estoque e detalhes.</p>
+        <span class="ic"><svg class="i" aria-hidden="true"><use href="#i-lojinha"/></svg></span>
+        <span class="cc-tx"><strong>Shopping</strong><small>Lojas sem sair de casa.</small></span>
+        <span class="cc-seta" aria-hidden="true"><svg class="i xs"><use href="#i-seta"/></svg></span>
       </a>
       <a class="classe-card imoveis" href="imoveis.html" style="--img: url('imoveis.webp')">
-        <span class="ic"><svg class="i" aria-hidden="true"><use href="#i-imoveis"/></svg></span>
         <span class="conta" id="conta-imoveis">&nbsp;</span>
-        <strong>Imóveis<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></strong>
-        <p>Aluguel, venda e temporada direto com quem anuncia.</p>
+        <span class="ic"><svg class="i" aria-hidden="true"><use href="#i-imoveis"/></svg></span>
+        <span class="cc-tx"><strong>Imóveis</strong><small>Seu próximo lar em Floripa.</small></span>
+        <span class="cc-seta" aria-hidden="true"><svg class="i xs"><use href="#i-seta"/></svg></span>
       </a>
     </nav>
 

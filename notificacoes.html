@@ -25,7 +25,7 @@
   </script>
   <link rel="stylesheet" href="rede.css?v=2" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="notificacoes.js?v=2"></script>
+  <script type="module" src="notificacoes.js?v=3"></script>
 </head>
 <body>
   <header class="topo">
@@ -37,9 +37,9 @@
   </header>
 
   <main class="pagina">
-    <div class="cab-pagina"><div><h1>Notificações</h1><p>Seguidores, estrelas, comentários, respostas e pedidos do social.</p></div></div>
+    <div class="cab-pagina"><div><h1>Notificações</h1><p>Seguidores, estrelas, comentários, pedidos do social, mensagens e reclamações.</p></div></div>
     <div class="aviso-notif" id="avisoNavegador" hidden>
-      <span>Receba avisos de mensagens, seguidores, estrelas e comentários mesmo com a aba em segundo plano.</span>
+      <span>Receba avisos de mensagens, seguidores, estrelas, comentários e reclamações mesmo com a aba em segundo plano.</span>
       <button type="button" class="btn pri mini" id="ativarNotif">Ativar</button>
     </div>
     <div class="abas-rede" id="abasAvisos" role="tablist" aria-label="Filtrar notificações">
@@ -49,6 +49,7 @@
       <button type="button" role="tab" data-filtro="comentario" aria-selected="false">Comentários <em></em></button>
       <button type="button" role="tab" data-filtro="social" aria-selected="false">Social <em></em></button>
       <button type="button" role="tab" data-filtro="mensagem" aria-selected="false">Mensagens <em></em></button>
+      <button type="button" role="tab" data-filtro="reclamacao" aria-selected="false">Reclamações <em></em></button>
     </div>
     <div class="cartao" style="padding:6px" id="listaAvisos" aria-live="polite"><div class="lista-vazia">Carregando...</div></div>
   </main>

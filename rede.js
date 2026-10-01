@@ -10,6 +10,7 @@
 // =====================================================
 import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=5";
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
+import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=1";
 
 // ---------- ícones ----------
 const SIMBOLOS = `<symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 01-1.5 1.5H15v-6h-6v6H5.5A1.5 1.5 0 014 19z"/></symbol>
@@ -940,7 +941,7 @@ export function pintarBarraRede() {
 // Avisos (notificações): seguidores, pedidos do social, curtidas,
 // comentários e mensagens. Alimenta o contador e a página de avisos.
 // =====================================================
-export const avisos = { seguidores: [], vinculos: [], curtidas: [], comentarios: [], respostas: [], mensagens: [] };
+export const avisos = { seguidores: [], vinculos: [], curtidas: [], comentarios: [], respostas: [], mensagens: [], reclamacoes: [] };
 export let avisosVistosEm = 0;
 const ouvintesAvisos = new Set();
 export function aoMudarAvisos(fn) { ouvintesAvisos.add(fn); fn(avisos); }
@@ -955,10 +956,11 @@ function avisar() {
 }
 export function contarNovos() {
   const t = (x) => x.quando > avisosVistosEm;
-  return avisos.seguidores.filter(t).length + avisos.vinculos.filter((v) => v.pendente || t(v)).length + avisos.curtidas.filter(t).length + avisos.comentarios.filter(t).length + avisos.respostas.filter(t).length;
+  return avisos.seguidores.filter(t).length + avisos.vinculos.filter((v) => v.pendente || t(v)).length + avisos.curtidas.filter(t).length + avisos.comentarios.filter(t).length + avisos.respostas.filter(t).length + avisos.reclamacoes.filter(t).length;
 }
 export function marcarAvisosVistos() {
   avisosVistosEm = Date.now();
+  try { sessionStorage.removeItem("hf-avisos-" + eu.uid); } catch {} // o sino do topo recalcula
   fb.setDoc(refUsuario, { notificacoesVistasEm: fb.serverTimestamp() }, { merge: true }).catch(() => {});
   avisar();
 }
@@ -1014,6 +1016,19 @@ export function ouvirAvisos({ notificarNovos = true } = {}) {
       quando: ms(v.pendente ? v.criadoEm : v.aceitoEm), ...(await perfilDe(v.outro))
     })));
     if (novos && notificarNovos) avisos.vinculos.filter((x) => novos.has(x.id) && x.pendente).forEach((x) => notificar("Novo pedido no social", `${x.nome} quer adicionar você como ${rotuloVinculo(x.tipoParaMim).toLowerCase()}`, () => { location.href = "notificacoes.html"; }));
+  });
+  // Reclamações: recebidas, respondidas e resolvidas
+  let primeiraRec = true;
+  const recVistas = new Set();
+  ouvirReclamacoes(fb, fb.db, eu.uid, (itens) => {
+    avisos.reclamacoes = itens.filter((x) => !x.uid || !escondido(x.uid));
+    if (!primeiraRec && notificarNovos) avisos.reclamacoes.filter((x) => !recVistas.has(x.id + ":" + x.quando)).forEach((x) => {
+      notificar(x.tipo === "reclamacao" ? "Nova reclamação" : x.tipo === "reclamacao-resp" ? "Reclamação respondida" : "Reclamação resolvida",
+        `${x.nome} ${TEXTO_RECLAMACAO[x.tipo](x)}`, () => { location.href = linkReclamacao(x, eu.uid); });
+    });
+    avisos.reclamacoes.forEach((x) => recVistas.add(x.id + ":" + x.quando));
+    primeiraRec = false;
+    avisar();
   });
   // Mensagens não lidas
   const vistas = new Map();
