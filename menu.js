@@ -240,10 +240,12 @@ function pintarPerfilMenu() {
 // Contador de mensagens não lidas no item "Mensagens" do menu.
 let naoLidas = 0;
 function atualizarBadgeMenu() {
-  const b = $("menuBadge");
-  if (!b) return;
-  b.hidden = !naoLidas;
-  b.textContent = naoLidas > 9 ? "9+" : String(naoLidas);
+  // Item "Mensagens" do menu e atalho "Mensagens" da página inicial
+  [$("menuBadge"), $("atalhoBadgeMensagens")].forEach((b) => {
+    if (!b) return;
+    b.hidden = !naoLidas;
+    b.textContent = naoLidas > 9 ? "9+" : String(naoLidas);
+  });
 }
 export function definirBadgeMensagens(n) { naoLidas = n; atualizarBadgeMenu(); }
 $("btnMenu")?.addEventListener("click", abrirGaveta);

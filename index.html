@@ -30,11 +30,11 @@
     })();
   </script>
   <link rel="stylesheet" href="categoria.css?v=4" />
-  <link rel="stylesheet" href="inicio.css?v=6" />
+  <link rel="stylesheet" href="inicio.css?v=7" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
-  <script type="module" src="categoria.js?v=5"></script>
-  <script type="module" src="inicio.js?v=6"></script>
+  <script type="module" src="categoria.js?v=6"></script>
+  <script type="module" src="inicio.js?v=7"></script>
 </head>
 <body data-classe="inicio">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -43,6 +43,9 @@
     <symbol id="i-sol" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6L6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4"/></symbol>
     <symbol id="i-lua" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></symbol>
     <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0113 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></symbol>
+    <symbol id="i-maleta" viewBox="0 0 24 24"><rect x="3.5" y="7" width="17" height="12.5" rx="2"/><path d="M9 7V5.5A1.5 1.5 0 0110.5 4h3A1.5 1.5 0 0115 5.5V7M3.5 12.5h17"/></symbol>
+    <symbol id="i-feed" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="7" rx="2"/><rect x="4" y="13" width="16" height="7" rx="2"/></symbol>
+    <symbol id="i-alerta" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4.5M12 17.5h.01"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
     <symbol id="i-delivery" viewBox="0 0 24 24"><path d="M3 10h18M4 10a8 8 0 0116 0M2 14h20M4 14l1 6h14l1-6"/></symbol>
     <symbol id="i-escudo" viewBox="0 0 24 24"><path d="M12 3l7.5 3v5.5c0 4.5-3.2 8-7.5 9.5-4.3-1.5-7.5-5-7.5-9.5V6z"/><path d="M8.8 12l2.2 2.2 4.2-4.4"/></symbol>
@@ -76,12 +79,12 @@
       <div class="hh-texto">
         <p class="ola"><svg class="i s" id="iconeHora" aria-hidden="true"><use href="#i-sol"/></svg><span id="saudacao">Olá</span></p>
         <h1 id="tituloPagina">Tudo o que você precisa em Florianópolis, <span>num só lugar.</span></h1>
-        <div class="atalhos" id="atalhosBusca" role="group" aria-label="Onde buscar">
-          <button type="button" data-classe="servicos" aria-pressed="true"><svg class="i s" aria-hidden="true"><use href="#i-servicos"/></svg>Serviços</button>
-          <button type="button" data-classe="delivery" aria-pressed="false"><svg class="i s" aria-hidden="true"><use href="#i-delivery"/></svg>Delivery</button>
-          <button type="button" data-classe="lojinha" aria-pressed="false"><svg class="i s" aria-hidden="true"><use href="#i-lojinha"/></svg>Shopping</button>
-          <button type="button" data-classe="imoveis" aria-pressed="false"><svg class="i s" aria-hidden="true"><use href="#i-imoveis"/></svg>Imóveis</button>
-        </div>
+        <nav class="atalhos" aria-label="Atalhos">
+          <a href="negocios.html" class="anunciar"><svg class="i s" aria-hidden="true"><use href="#i-mais"/></svg>Anunciar</a>
+          <a href="mensagens.html" class="mensagens"><svg class="i s" aria-hidden="true"><use href="#i-chat"/></svg>Mensagens<b class="ponto-badge" id="atalhoBadgeMensagens" hidden></b></a>
+          <a href="feed.html" class="diario"><svg class="i s" aria-hidden="true"><use href="#i-feed"/></svg>Diário</a>
+          <a href="reclamacoes.html" class="reclamacoes"><svg class="i s" aria-hidden="true"><use href="#i-alerta"/></svg>Reclamações</a>
+        </nav>
         <form class="busca-geral" id="buscaGeral" role="search" data-classe="servicos">
           <div class="busca">
             <label class="sr" for="classeBusca">Buscar em</label>
@@ -102,8 +105,8 @@
     <nav class="classes-grade" aria-label="Classes do Help Floripa">
       <a class="classe-card servicos" href="servicos.html" style="--img: url('servicos.webp')">
         <span class="conta" id="conta-servicos">&nbsp;</span>
-        <span class="ic"><svg class="i" aria-hidden="true"><use href="#i-servicos"/></svg></span>
-        <span class="cc-tx"><strong>Serviços</strong><small>Profissionais avaliados.</small></span>
+        <span class="ic"><svg class="i" aria-hidden="true"><use href="#i-maleta"/></svg></span>
+        <span class="cc-tx"><strong>Freelances</strong><small>Profissionais avaliados.</small></span>
         <span class="cc-seta" aria-hidden="true"><svg class="i xs"><use href="#i-seta"/></svg></span>
       </a>
       <a class="classe-card delivery" href="delivery.html" style="--img: url('lanchonetes.webp')">

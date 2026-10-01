@@ -39,14 +39,7 @@ function escolherClasse(tipo) {
   $("classeBusca").value = tipo;
   $("buscaGeral").dataset.classe = tipo;
   $("campoBusca").placeholder = DICAS[tipo];
-  document.querySelectorAll("#atalhosBusca [data-classe]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.classe === tipo ? "true" : "false"));
 }
-$("atalhosBusca")?.addEventListener("click", (e) => {
-  const b = e.target.closest("[data-classe]");
-  if (!b) return;
-  escolherClasse(b.dataset.classe);
-  $("campoBusca").focus({ preventScroll: true });
-});
 $("classeBusca").addEventListener("change", () => { escolherClasse($("classeBusca").value); $("campoBusca").focus(); });
 function buscar(tipo, termo) {
   const t = String(termo || "").trim().slice(0, 80);
