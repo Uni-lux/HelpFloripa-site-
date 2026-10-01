@@ -8,7 +8,7 @@
 // =====================================================
 
 import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL } from "./seguranca.js?v=1";
-import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento } from "./avaliacoes.js?v=4";
+import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento, media } from "./avaliacoes.js?v=4";
 
 const PARAMS = new URL(import.meta.url).searchParams;
 const TIPO_PAGINA = PARAMS.get("tipo");
@@ -1298,18 +1298,109 @@ function tornarClicavel(c, abrir, rotulo) {
   return c;
 }
 
-// Serviços: destaque com foto do trabalho
-function cartaoDestaqueServico(n) {
-  const c = el("article", "vt-destaque");
+// ---------- Freelances: destaques de cada categoria + grade compacta ----------
+const notaDe = (n) => notasNeg.get(idNegocio(n));
+const tsMs = (t) => t?.toMillis?.() ?? 0;
+// Média ajustada: com poucas notas, puxa para 3,5 (um 5,0 com 1 nota não passa quem tem 4,8 com 30).
+function pontuacao(n) { const r = notaDe(n); if (!r?.total) return 0; return (media(r) * r.total + 3.5 * 2) / (r.total + 2); }
+// Peso no revezamento: nota alta aparece mais; sem nota ainda entra, com peso pequeno.
+function pesoServ(n) { const r = notaDe(n); if (!r?.total) return 1; const m = media(r); return 1 + (m * m * (1 + Math.log1p(r.total))) / 5; }
+const ORDENS_SERV = {
+  melhores: ["Melhores", (a, b) => pontuacao(b) - pontuacao(a) || (notaDe(b)?.total || 0) - (notaDe(a)?.total || 0)],
+  novos: ["Novos", (a, b) => tsMs(b.criadoEm || b.atualizadoEm) - tsMs(a.criadoEm || a.atualizadoEm)],
+  preco: ["Menor preço", (a, b) => (Number(a.precoDesde) || Infinity) - (Number(b.precoDesde) || Infinity)]
+};
+let ordemServ = "melhores";
+let pararGiro = null;
+const SEM_MOVIMENTO = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// Cartão de destaque: foto do trabalho, faixa "Destaque em <categoria>", avatar, nota e preço.
+function cartaoTop(n, cat) {
+  const c = el("article", "vt-top");
   const capa = el("div", "capa");
-  capa.style.backgroundImage = `url("${urlSegura((n.fotos || [])[0]) || TEXTOS.servicos.img}")`;
-  capa.appendChild(avatar(n.foto, n.nome));
+  capa.style.backgroundImage = `url("${urlSegura((n.fotos || []).find(urlSegura)) || TEXTOS.servicos.img}")`;
+  const fita = el("span", "fita");
+  fita.append(icone("selo", "vi s"), document.createTextNode(`Destaque em ${CATEGORIAS.servicos[cat] || "Freelances"}`));
+  capa.append(fita, avatar(n.foto, n.nome));
   const tx = el("div", "tx");
-  tx.append(el("strong", null, n.nome), estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }), el("small", null, categoriasDe(n).map((k) => CATEGORIAS.servicos[k]).filter(Boolean).slice(0, 2).join(" · ")));
-  if (moeda(n.precoDesde)) tx.appendChild(el("span", "pr", `a partir de ${moeda(n.precoDesde)}`));
+  tx.append(el("strong", null, n.nome), estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }));
+  const pe = el("div", "pe");
+  if (n.cidade) { const s = el("span", "loc"); s.append(icone("pin", "vi s"), document.createTextNode(n.cidade)); pe.appendChild(s); }
+  pe.appendChild(el("span", "pr", moeda(n.precoDesde) ? `a partir de ${moeda(n.precoDesde)}` : "Orçamento grátis"));
+  tx.appendChild(pe);
   c.append(capa, tx);
-  return c;
+  return tornarClicavel(c, () => abrirDetalhe(n), `Ver ${n.nome}`);
 }
+
+// Cartão compacto da grade (3 por linha no celular, 5 no computador).
+function cartaoPro(n) {
+  const c = el("article", "vt-pro");
+  const cats = categoriasDe(n);
+  if ((n.diferenciais || []).includes("urgencia")) {
+    const u = el("span", "urg"); u.title = "Atende urgências"; u.setAttribute("aria-label", "Atende urgências"); u.appendChild(icone("relogio", "vi s")); c.appendChild(u);
+  }
+  c.appendChild(avatar(n.foto, n.nome));
+  c.appendChild(el("strong", "nm", n.nome || "Freelancer"));
+  c.appendChild(estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }));
+  const cat = CATEGORIAS.servicos[cats[0]] || nomeCategoria(n);
+  if (cat) c.appendChild(el("span", "cat", cats.length > 1 ? `${cat} +${cats.length - 1}` : cat));
+  c.appendChild(el("span", "pr", moeda(n.precoDesde) ? `desde ${moeda(n.precoDesde)}` : "a combinar"));
+  return tornarClicavel(c, () => abrirDetalhe(n), `Ver ${n.nome}`);
+}
+
+// Destaques: um lugar por categoria. Começa pelo melhor de cada uma e, de tempos em tempos,
+// revezam os mais bem avaliados daquela categoria (peso pela nota; quem ainda não apareceu
+// ganha prioridade). Pausa quando a pessoa mexe no trilho ou ele sai da tela.
+function secaoDestaquesServ(lista) {
+  const porCat = Object.keys(CATEGORIAS.servicos).map((cat) => ({
+    cat, cands: lista.filter((n) => categoriasDe(n).includes(cat)).sort(ORDENS_SERV.melhores[1]).slice(0, 6)
+  })).filter((x) => x.cands.length);
+  if (!porCat.length) return null;
+  porCat.sort((a, b) => pontuacao(b.cands[0]) - pontuacao(a.cands[0]));
+  const slots = porCat.map(({ cat, cands }) => {
+    const s = el("div", "vt-slot");
+    s.appendChild(cartaoTop(cands[0], cat));
+    return { el: s, cat, cands, item: cands[0], desde: Date.now(), vezes: new Map([[cands[0].id, 1]]) };
+  });
+  const sec = carrossel("Destaques de cada categoria", slots.map((s) => s.el), "top-cat");
+  sec.querySelector(".vt-car-topo").insertAdjacentElement("afterend", el("p", "vt-car-sub", "Os mais bem avaliados de cada área, revezando o tempo todo."));
+  girar(sec.querySelector(".vt-trilho"), slots);
+  return sec;
+}
+function girar(trilho, slots) {
+  pararGiro?.();
+  if (SEM_MOVIMENTO || !slots.some((s) => s.cands.length > 1)) return;
+  let pausaAte = 0, naTela = false;
+  const pausar = () => { pausaAte = Date.now() + 6000; };
+  ["pointerdown", "touchstart", "wheel", "focusin", "scroll"].forEach((ev) => trilho.addEventListener(ev, pausar, { passive: true }));
+  const io = new IntersectionObserver(([e]) => { naTela = e.isIntersecting; }, { threshold: 0.3 });
+  // Só observa depois que o trilho entrou na página (observar antes deixa "fora da tela" para sempre).
+  requestAnimationFrame(() => io.observe(trilho));
+  const tempo = (n) => 5000 + 900 * (notaDe(n)?.total ? media(notaDe(n)) : 0); // 5 s a ~9,5 s na tela
+  const relogio = setInterval(() => {
+    if (!naTela || document.hidden || Date.now() < pausaAte) return;
+    const r = trilho.getBoundingClientRect();
+    const visiveis = slots.filter((s) => { const b = s.el.getBoundingClientRect(); return b.right > r.left + 24 && b.left < r.right - 24; });
+    const s = visiveis.filter((x) => x.cands.length > 1 && Date.now() - x.desde >= tempo(x.item)).sort((a, b) => a.desde - b.desde)[0];
+    if (!s) return;
+    const naTelaIds = new Set(visiveis.map((x) => x.item.id));
+    const opcoes = s.cands.filter((n) => n !== s.item && !naTelaIds.has(n.id));
+    if (!opcoes.length) { s.desde = Date.now(); return; }
+    const p = opcoes.map((n) => pesoServ(n) / (1 + (s.vezes.get(n.id) || 0)));
+    let sorteio = Math.random() * p.reduce((a, b) => a + b, 0), novo = opcoes[opcoes.length - 1];
+    for (let k = 0; k < opcoes.length; k++) { sorteio -= p[k]; if (sorteio <= 0) { novo = opcoes[k]; break; } }
+    s.el.classList.add("sai");
+    setTimeout(() => {
+      s.item = novo; s.desde = Date.now();
+      s.vezes.set(novo.id, (s.vezes.get(novo.id) || 0) + 1);
+      s.el.replaceChildren(cartaoTop(novo, s.cat));
+      s.el.classList.remove("sai"); s.el.classList.add("entra");
+      setTimeout(() => s.el.classList.remove("entra"), 650);
+    }, 420);
+  }, 1600);
+  pararGiro = () => { clearInterval(relogio); io.disconnect(); pararGiro = null; };
+}
+
 // Delivery: linha estilo app de comida (logo, nome, categoria, tempo e taxa)
 function linhaDelivery(n) {
   const c = el("article", "vt-linha-loja");
@@ -1379,9 +1470,10 @@ function renderizar() {
   const cont = document.getElementById("vtContagem");
   const { cat, termo } = filtroAtual();
   const filtrando = cat !== "todos" || !!termo;
+  pararGiro?.();
   grade.replaceChildren();
   dest.replaceChildren();
-  grade.className = "vt-grade " + ({ servicos: "lista", delivery: "lista-lojas", lojinha: "produtos", imoveis: "imoveis" }[TIPO] || "");
+  grade.className = "vt-grade " + ({ servicos: "pros", delivery: "lista-lojas", lojinha: "produtos", imoveis: "imoveis" }[TIPO] || "");
   const lista = todos.filter((n) => passaCategoria(n, cat) && (!termo || textoBusca(n).includes(termo)));
   const vazio = () => {
     const v = el("div", "vt-vazio");
@@ -1408,13 +1500,30 @@ function renderizar() {
     return;
   }
 
-  cont.textContent = todos.length ? `${lista.length} ${lista.length === 1 ? "resultado" : "resultados"}` : "";
+  const rotulos = TIPO === "servicos" ? ["profissional", "profissionais"] : ["resultado", "resultados"];
+  cont.textContent = todos.length ? `${lista.length} ${rotulos[lista.length === 1 ? 0 : 1]}` : "";
   if (!lista.length) return vazio();
 
   if (TIPO === "servicos") {
-    const comFoto = lista.filter((n) => (n.fotos || []).some(urlSegura));
-    if (!filtrando && comFoto.length >= 2) dest.appendChild(carrossel("Trabalhos em destaque", comFoto.slice(0, 10).map((n) => tornarClicavel(cartaoDestaqueServico(n), () => abrirDetalhe(n), `Ver ${n.nome}`)), "destaques"));
-    lista.forEach((n) => grade.appendChild(tornarClicavel(cartaoServico(n), () => abrirDetalhe(n), `Ver ${n.nome}`)));
+    // 1) Destaques de cada categoria (revezando)  2) Grade compacta com todos, com ordenação
+    const top = !filtrando && secaoDestaquesServ(lista);
+    if (top) dest.appendChild(top);
+    const cab = el("div", "vt-lista-topo");
+    cont.textContent = ""; // a contagem vai junto do título da lista
+    const tit = el("h3", "vt-titulo-lista", filtrando ? "Resultados" : "Todos os profissionais");
+    tit.appendChild(el("span", "vt-conta", String(lista.length)));
+    cab.appendChild(tit);
+    const ord = el("div", "vt-ordem");
+    ord.setAttribute("role", "group"); ord.setAttribute("aria-label", "Ordenar");
+    Object.entries(ORDENS_SERV).forEach(([k, [rot]]) => {
+      const b = el("button", null, rot); b.type = "button";
+      b.setAttribute("aria-pressed", k === ordemServ ? "true" : "false");
+      b.addEventListener("click", () => { ordemServ = k; renderizar(); });
+      ord.appendChild(b);
+    });
+    cab.appendChild(ord);
+    grade.appendChild(cab);
+    [...lista].sort(ORDENS_SERV[ordemServ][1]).forEach((n) => grade.appendChild(cartaoPro(n)));
   } else if (TIPO === "delivery") {
     const ordem = [...lista].sort((a, b) => (abertoAgora(b) === true) - (abertoAgora(a) === true));
     const abertos = ordem.filter((n) => abertoAgora(n) === true);

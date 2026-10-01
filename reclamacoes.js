@@ -9,7 +9,7 @@
 // =====================================================
 import { fotoSegura, conferirEmail, emailPendente, MSG_EMAIL } from "./seguranca.js?v=1";
 import { estrelas } from "./avaliacoes.js?v=4";
-import { NOMES_TIPO, PAGINA_TIPO } from "./vitrine.js?v=17";
+import { NOMES_TIPO, PAGINA_TIPO } from "./vitrine.js?v=18";
 
 const $ = (id) => document.getElementById(id);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
