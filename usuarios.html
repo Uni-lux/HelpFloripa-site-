@@ -213,9 +213,9 @@
       obterPerfil, salvarImagem, iniciarRede, meusSeguindoPronto, carregarMeusSeguindo, alternarSeguir, botaoSeguir, linhaPessoa,
       removerSeguidor, bloquear, desbloquear, alternarRestricao, compartilharPerfil,
       barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail
-    } from "./rede.js?v=3";
-    import { notaDoPerfil, abrirDetalhamento, abrirAvaliar, avaliar, jaAvaliou, lerResumo, estrelas, pintarEstrelas, media, notaTexto, TIPOS_NEGOCIO } from "./avaliacoes.js?v=3";
-    import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=16";
+    } from "./rede.js?v=4";
+    import { notaDoPerfil, abrirDetalhamento, abrirAvaliar, avaliar, jaAvaliou, lerResumo, estrelas, pintarEstrelas, media, notaTexto, TIPOS_NEGOCIO } from "./avaliacoes.js?v=4";
+    import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=17";
 
     // ======================================================
     // Estado desta página (o resto vem de rede.js)
@@ -969,7 +969,7 @@
     // Perfis de negócio: serviços, delivery, lojinha, imóveis
     // ======================================================
     const NEGOCIOS = {
-      servicos: { rotulo: "Serviços", img: "servicos.webp", pagina: "servicos.html" },
+      servicos: { rotulo: "Freelances", img: "servicos.webp", pagina: "servicos.html" },
       delivery: { rotulo: "Delivery", img: "lanchonetes.webp", pagina: "delivery.html" },
       lojinha: { rotulo: "Lojinha", img: "shopping.webp", pagina: "shopping.html" },
       imoveis: { rotulo: "Imóveis", img: "imoveis.webp", pagina: "imoveis.html" }
@@ -1039,7 +1039,7 @@
         const dica = document.createElement("p");
         dica.className = "social-vazio";
         dica.style.margin = "4px 0 0";
-        dica.textContent = "Crie perfis de Serviços, Delivery, Lojinha ou Imóveis para aparecerem aqui.";
+        dica.textContent = "Crie perfis de Freelances, Delivery, Lojinha ou Imóveis para aparecerem aqui.";
         box.appendChild(dica);
       }
     }

@@ -8,14 +8,14 @@
 // =====================================================
 
 import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL } from "./seguranca.js?v=1";
-import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento } from "./avaliacoes.js?v=3";
+import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento } from "./avaliacoes.js?v=4";
 
 const PARAMS = new URL(import.meta.url).searchParams;
 const TIPO_PAGINA = PARAMS.get("tipo");
 const TIPO = TIPO_PAGINA || "servicos";
 
 export const CORES_TIPO = { servicos: "#00adee", delivery: "#ff7a1a", lojinha: "#b066ff", imoveis: "#2fbf71" };
-export const NOMES_TIPO = { servicos: "Serviços", delivery: "Delivery", lojinha: "Lojinha", imoveis: "Imóveis" };
+export const NOMES_TIPO = { servicos: "Freelances", delivery: "Delivery", lojinha: "Lojinha", imoveis: "Imóveis" };
 export const PAGINA_TIPO = { servicos: "servicos.html", delivery: "delivery.html", lojinha: "shopping.html", imoveis: "imoveis.html" };
 export const CATEGORIAS = {
   servicos: { limpeza: "Limpeza", reformas: "Reformas", beleza: "Saúde e Beleza", transporte: "Transporte / Motorista", pets: "Pets", outros: "Outros" },
@@ -35,7 +35,7 @@ export const CARACT_IMOVEL = { piscina: "Piscina", churrasqueira: "Churrasqueira
 export const CONDICOES_IMOVEL = { caucao: "Caução", fiador: "Fiador", seguro: "Seguro-fiança", semFiador: "Sem fiador", financiamento: "Aceita financiamento", fgts: "Aceita FGTS", permuta: "Aceita permuta", pets: "Aceita pets" };
 export const ANUNCIANTE = { proprietario: "Proprietário(a)", corretor: "Corretor(a)", imobiliaria: "Imobiliária" };
 const TEXTOS = {
-  servicos: { titulo: "Profissionais da <span>comunidade</span>", sub: "Autônomos que atendem em Florianópolis e região.", criar: "Oferecer meus serviços", vazio: "Nenhum profissional por aqui ainda", img: "servicos.webp" },
+  servicos: { titulo: "Profissionais da <span>comunidade</span>", sub: "Autônomos que atendem em Florianópolis e região.", criar: "Criar meu perfil de freelancer", vazio: "Nenhum profissional por aqui ainda", img: "servicos.webp" },
   delivery: { titulo: "Cardápios da <span>vizinhança</span>", sub: "Peça direto com quem faz, sem intermediário.", criar: "Cadastrar meu delivery", vazio: "Nenhum delivery cadastrado ainda", img: "lanchonetes.webp" },
   lojinha: { titulo: "Lojinhas <span>locais</span>", sub: "Produtos de quem vende perto de você.", criar: "Abrir minha lojinha", vazio: "Nenhuma lojinha aberta ainda", img: "shopping.webp" },
   imoveis: { titulo: "Imóveis <span>anunciados</span>", sub: "Aluguel, venda e temporada direto com o anunciante.", criar: "Anunciar imóvel", vazio: "Nenhum imóvel anunciado ainda", img: "imoveis.webp" }
@@ -574,7 +574,7 @@ export function abrirOrcamento(n, opcoes = {}, preIdx = null) {
   env.addEventListener("click", () => {
     if (!validar()) return;
     const s = montar();
-    const cartao = { ...cartaoDeNegocio(n), titulo: `Orçamento · ${n.nome || "Serviços"}`, sub: s.servicos.join(", "), preco: QUANDO[s.quando.tipo] || "", solicitacao: s };
+    const cartao = { ...cartaoDeNegocio(n), titulo: `Orçamento · ${n.nome || "Freelances"}`, sub: s.servicos.join(", "), preco: QUANDO[s.quando.tipo] || "", solicitacao: s };
     document.querySelectorAll(".vt-modal").forEach((m) => m.remove());
     (opcoes.aoMensagem || conversar)(n.donoId, cartao);
   });
