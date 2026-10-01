@@ -1281,45 +1281,36 @@ function pesoServ(n) { const r = notaDe(n); if (!r?.total) return 1; const m = m
 const ORDENS_SERV = {
   melhores: ["Melhores", (a, b) => pontuacao(b) - pontuacao(a) || (notaDe(b)?.total || 0) - (notaDe(a)?.total || 0)],
   novos: ["Novos", (a, b) => tsMs(b.criadoEm || b.atualizadoEm) - tsMs(a.criadoEm || a.atualizadoEm)],
-  preco: ["Menor preço", (a, b) => (Number(a.precoDesde) || Infinity) - (Number(b.precoDesde) || Infinity)]
+  preco: ["Menor preço", (a, b) => (Number(a.precoDesde) || Infinity) - (Number(b.precoDesde) || Infinity)],
+  maior: ["Maior preço", (a, b) => (Number(b.precoDesde) || 0) - (Number(a.precoDesde) || 0)]
 };
 let ordemServ = "melhores";
 let pararGiro = null;
 const SEM_MOVIMENTO = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-// Cartão de destaque: foto do trabalho, faixa "Destaque em <categoria>", avatar, nota e preço.
-function cartaoTop(n, cat) {
-  const c = el("article", "vt-top");
-  const capa = el("div", "capa");
-  capa.style.backgroundImage = `url("${urlSegura((n.fotos || []).find(urlSegura)) || TEXTOS.servicos.img}")`;
-  const fita = el("span", "fita");
-  fita.append(icone("selo", "vi s"), document.createTextNode(`Destaque em ${CATEGORIAS.servicos[cat] || "Freelances"}`));
-  capa.append(fita, avatar(n.foto, n.nome));
-  const tx = el("div", "tx");
-  tx.append(el("strong", null, n.nome), estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }));
-  const pe = el("div", "pe");
-  if (n.cidade) { const s = el("span", "loc"); s.append(icone("pin", "vi s"), document.createTextNode(n.cidade)); pe.appendChild(s); }
-  pe.appendChild(el("span", "pr", moeda(n.precoDesde) ? `a partir de ${moeda(n.precoDesde)}` : "Orçamento grátis"));
-  tx.appendChild(pe);
-  c.append(capa, tx);
-  return tornarClicavel(c, () => abrirDetalhe(n), `Ver ${n.nome}`);
-}
-
-// Cartão compacto da grade (3 por linha no celular, 5 no computador).
-function cartaoPro(n) {
-  const c = el("article", "vt-pro");
-  const cats = categoriasDe(n);
-  if ((n.diferenciais || []).includes("urgencia")) {
-    const u = el("span", "urg"); u.title = "Atende urgências"; u.setAttribute("aria-label", "Atende urgências"); u.appendChild(icone("relogio", "vi s")); c.appendChild(u);
+// Cartão dos Freelances: o mesmo modelo das páginas irmãs (foto do trabalho em cima, avatar,
+// nome, nota, categoria e preço). Nos destaques leva a etiqueta "Destaque em <categoria>".
+function cartaoPro(n, destaqueEm = "") {
+  const c = el("article", "vt-del vt-free");
+  const f = el("div", "ft");
+  f.style.backgroundImage = `url("${urlSegura((n.fotos || []).find(urlSegura)) || TEXTOS.servicos.img}")`;
+  if (destaqueEm) {
+    const t = el("span", "tag-dest");
+    t.append(icone("selo", "vi s"), document.createTextNode(`Destaque em ${CATEGORIAS.servicos[destaqueEm] || "Freelances"}`));
+    f.appendChild(t);
   }
-  c.appendChild(avatar(n.foto, n.nome));
-  c.appendChild(el("strong", "nm", n.nome || "Freelancer"));
-  c.appendChild(estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }));
-  const cat = CATEGORIAS.servicos[cats[0]] || nomeCategoria(n);
-  if (cat) c.appendChild(el("span", "cat", cats.length > 1 ? `${cat} +${cats.length - 1}` : cat));
-  c.appendChild(el("span", "pr", moeda(n.precoDesde) ? `desde ${moeda(n.precoDesde)}` : "a combinar"));
+  if ((n.diferenciais || []).includes("urgencia")) f.appendChild(el("span", "st urg", "Urgência"));
+  f.appendChild(avatar(n.foto, n.nome, "vt-avatar logo"));
+  const tx = el("div", "tx");
+  tx.append(el("strong", "nm", n.nome || "Freelancer"), estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }));
+  const cats = categoriasDe(n).map((k) => CATEGORIAS.servicos[k]).filter(Boolean);
+  const info = [cats[0] ? (cats.length > 1 ? `${cats[0]} +${cats.length - 1}` : cats[0]) : nomeCategoria(n), n.cidade].filter(Boolean).join(" · ");
+  if (info) tx.appendChild(el("small", null, info));
+  tx.appendChild(el("span", "tx-taxa", moeda(n.precoDesde) ? `desde ${moeda(n.precoDesde)}` : "Orçamento grátis"));
+  c.append(f, tx);
   return tornarClicavel(c, () => abrirDetalhe(n), `Ver ${n.nome}`);
 }
+const cartaoTop = (n, cat) => cartaoPro(n, cat);
 
 // Destaques: um lugar por categoria. Começa pelo melhor de cada uma e, de tempos em tempos,
 // revezam os mais bem avaliados daquela categoria (peso pela nota; quem ainda não apareceu
@@ -1679,7 +1670,7 @@ function renderizar() {
     if (top) dest.appendChild(top);
     grade.appendChild(barraLista(titulo("Todos os profissionais"), lista.length, ORDENS_SERV, ordemServ, (k) => { ordemServ = k; renderizar(); }));
     mostrarItens(grade, [...lista].sort(ORDENS_SERV[ordemServ][1]), {
-      filtrando, tile: cartaoPro, linha: linhaPro, grupos: (n) => categoriasDe(n), nomeGrupo: (g) => CATEGORIAS.servicos[g] || "Outros"
+      filtrando, tile: (n) => cartaoPro(n), linha: linhaPro, grupos: (n) => categoriasDe(n), nomeGrupo: (g) => CATEGORIAS.servicos[g] || "Outros"
     });
   } else if (TIPO === "delivery") {
     const abertos = lista.filter((n) => abertoAgora(n) === true);
