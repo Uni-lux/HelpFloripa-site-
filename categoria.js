@@ -7,7 +7,7 @@
 // =====================================================
 import { fotoSegura } from "./seguranca.js?v=1";
 import { definirPerfilMenu, definirBadgeMensagens } from "./menu.js?v=4";
-import { buscarReclamacoes } from "./avisos-reclamacoes.js?v=6";
+import { buscarReclamacoes } from "./avisos-reclamacoes.js?v=7";
 
 const $ = (id) => document.getElementById(id);
 

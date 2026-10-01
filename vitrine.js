@@ -72,7 +72,12 @@ const ICONES = {
   estrela: '<path d="M12 3.8l2.5 5.2 5.7.8-4.1 4 1 5.6L12 16.7l-5.1 2.7 1-5.6-4.1-4 5.7-.8z"/>',
   menos: '<path d="M5 12h14"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
-  lixo: '<path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13"/>'
+  lixo: '<path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13"/>',
+  // modos de exibição da lista
+  "m-linhas": '<rect x="3" y="4.5" width="7.5" height="6" rx="1.5"/><rect x="12.5" y="4.5" width="7.5" height="6" rx="1.5"/><rect x="3" y="13.5" width="7.5" height="6" rx="1.5"/><rect x="12.5" y="13.5" width="7.5" height="6" rx="1.5"/><path d="M22 6.5v2M22 15.5v2"/>',
+  "m-1": '<rect x="3.5" y="4" width="17" height="6.5" rx="1.5"/><rect x="3.5" y="13.5" width="17" height="6.5" rx="1.5"/>',
+  "m-2": '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
+  "m-3": '<rect x="3.5" y="3.5" width="4.5" height="4.5" rx="1"/><rect x="9.75" y="3.5" width="4.5" height="4.5" rx="1"/><rect x="16" y="3.5" width="4.5" height="4.5" rx="1"/><rect x="3.5" y="9.75" width="4.5" height="4.5" rx="1"/><rect x="9.75" y="9.75" width="4.5" height="4.5" rx="1"/><rect x="16" y="9.75" width="4.5" height="4.5" rx="1"/><rect x="3.5" y="16" width="4.5" height="4.5" rx="1"/><rect x="9.75" y="16" width="4.5" height="4.5" rx="1"/><rect x="16" y="16" width="4.5" height="4.5" rx="1"/>'
 };
 function icone(nome, cls = "vi s") {
   const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -1267,7 +1272,7 @@ function tornarClicavel(c, abrir, rotulo) {
 }
 
 // ---------- Freelances: destaques de cada categoria + grade compacta ----------
-const notaDe = (n) => notasNeg.get(idNegocio(n));
+const notaDe = (n) => notasNeg.get(TIPO === "imoveis" ? `${n.donoId}_imoveis` : idNegocio(n));
 const tsMs = (t) => t?.toMillis?.() ?? 0;
 // Média ajustada: com poucas notas, puxa para 3,5 (um 5,0 com 1 nota não passa quem tem 4,8 com 30).
 function pontuacao(n) { const r = notaDe(n); if (!r?.total) return 0; return (media(r) * r.total + 3.5 * 2) / (r.total + 2); }
@@ -1328,14 +1333,14 @@ function secaoDestaquesServ(lista) {
   const slots = porCat.map(({ cat, cands }) => {
     const s = el("div", "vt-slot");
     s.appendChild(cartaoTop(cands[0], cat));
-    return { el: s, cat, cands, item: cands[0], desde: Date.now(), vezes: new Map([[cands[0].id, 1]]) };
+    return { el: s, cands, item: cands[0], criar: (n) => cartaoTop(n, cat), desde: Date.now(), vezes: new Map([[cands[0].id, 1]]) };
   });
   const sec = carrossel("Destaques de cada categoria", slots.map((s) => s.el), "top-cat");
   sec.querySelector(".vt-car-topo").insertAdjacentElement("afterend", el("p", "vt-car-sub", "Os mais bem avaliados de cada área, revezando o tempo todo."));
   girar(sec.querySelector(".vt-trilho"), slots);
   return sec;
 }
-function girar(trilho, slots) {
+function girar(trilho, slots, peso = pesoServ) {
   pararGiro?.();
   if (SEM_MOVIMENTO || !slots.some((s) => s.cands.length > 1)) return;
   let pausaAte = 0, naTela = false;
@@ -1354,14 +1359,14 @@ function girar(trilho, slots) {
     const naTelaIds = new Set(visiveis.map((x) => x.item.id));
     const opcoes = s.cands.filter((n) => n !== s.item && !naTelaIds.has(n.id));
     if (!opcoes.length) { s.desde = Date.now(); return; }
-    const p = opcoes.map((n) => pesoServ(n) / (1 + (s.vezes.get(n.id) || 0)));
+    const p = opcoes.map((n) => peso(n) / (1 + (s.vezes.get(n.id) || 0)));
     let sorteio = Math.random() * p.reduce((a, b) => a + b, 0), novo = opcoes[opcoes.length - 1];
     for (let k = 0; k < opcoes.length; k++) { sorteio -= p[k]; if (sorteio <= 0) { novo = opcoes[k]; break; } }
     s.el.classList.add("sai");
     setTimeout(() => {
       s.item = novo; s.desde = Date.now();
       s.vezes.set(novo.id, (s.vezes.get(novo.id) || 0) + 1);
-      s.el.replaceChildren(cartaoTop(novo, s.cat));
+      s.el.replaceChildren(s.criar(novo));
       s.el.classList.remove("sai"); s.el.classList.add("entra");
       setTimeout(() => s.el.classList.remove("entra"), 650);
     }, 420);
@@ -1372,6 +1377,7 @@ function girar(trilho, slots) {
 // ---------- Imóveis: grade compacta (3 por fileira no celular) ----------
 const ORDENS_IMOVEL = {
   recentes: ["Recentes", (a, b) => tsMs(b.atualizadoEm || b.criadoEm) - tsMs(a.atualizadoEm || a.criadoEm)],
+  melhores: ["Melhores", (a, b) => pontuacao(b) - pontuacao(a)],
   menor: ["Menor preço", (a, b) => (Number(a.preco) || Infinity) - (Number(b.preco) || Infinity)],
   maior: ["Maior preço", (a, b) => (Number(b.preco) || 0) - (Number(a.preco) || 0)]
 };
@@ -1415,6 +1421,149 @@ function topoLista(titulo, total, ordens, atual, aoMudar) {
   });
   cab.append(tit, ord);
   return cab;
+}
+
+// ---------- modos de exibição (a pessoa escolhe; fica salvo neste aparelho, por página) ----------
+const MODOS_VER = [["linhas", "Por categoria"], ["1", "1 por linha"], ["2", "2 por linha"], ["3", "3 por linha"]];
+const chaveModo = "hf-vt-modo-" + TIPO;
+let modoVer = (() => { try { const m = localStorage.getItem(chaveModo); return MODOS_VER.some(([k]) => k === m) ? m : "linhas"; } catch { return "linhas"; } })();
+function botoesModo() {
+  const g = el("div", "vt-modos-ver");
+  g.setAttribute("role", "group"); g.setAttribute("aria-label", "Como mostrar");
+  MODOS_VER.forEach(([k, rot]) => {
+    const b = el("button"); b.type = "button";
+    b.title = rot; b.setAttribute("aria-label", rot);
+    b.setAttribute("aria-pressed", k === modoVer ? "true" : "false");
+    b.appendChild(icone("m-" + k, "vi"));
+    b.addEventListener("click", () => {
+      modoVer = k;
+      try { localStorage.setItem(chaveModo, k); } catch {}
+      renderizar();
+    });
+    g.appendChild(b);
+  });
+  return g;
+}
+// Monta os itens no modo escolhido. "Por categoria": uma fileira por categoria, rolando para o lado.
+// Filtrando por uma categoria ou buscando, "por categoria" vira grade de 3.
+function mostrarItens(grade, itens, { tile, linha, grupos, nomeGrupo, filtrando }) {
+  const modo = modoVer === "linhas" && filtrando ? "3" : modoVer;
+  if (modo === "linhas") {
+    grade.classList.add("vt-linhas");
+    const mapa = new Map();
+    itens.forEach((x) => [].concat(grupos(x)).filter(Boolean).forEach((g) => { if (!mapa.has(g)) mapa.set(g, []); mapa.get(g).push(x); }));
+    [...mapa].sort((a, b) => b[1].length - a[1].length).forEach(([g, lista]) => {
+      const fila = carrossel(nomeGrupo(g), lista.slice(0, 30).map(tile), "linha-cat");
+      const topo = fila.querySelector(".vt-car-topo h3");
+      topo.appendChild(el("span", "vt-conta", String(lista.length)));
+      const chip = document.querySelector(`#filterChips [data-filter="${CSS.escape(g)}"]`);
+      if (chip && lista.length > 2) {
+        const ver = el("button", "vt-ver-todos", "Ver todos"); ver.type = "button";
+        ver.addEventListener("click", () => { chip.click(); document.getElementById("vitrine")?.scrollIntoView({ behavior: "smooth", block: "start" }); });
+        fila.querySelector(".vt-car-topo").insertBefore(ver, fila.querySelector(".vt-setas"));
+      }
+      grade.appendChild(fila);
+    });
+    return;
+  }
+  grade.classList.add("vt-cols", "c" + modo);
+  itens.forEach((x) => grade.appendChild(modo === "1" ? linha(x) : tile(x)));
+}
+// Título com contagem + ordenação + modos de exibição.
+function barraLista(titulo, total, ordens, atual, aoMudar) {
+  const cab = topoLista(titulo, total, ordens, atual, aoMudar);
+  const linhaBotoes = el("div", "vt-ferramentas");
+  linhaBotoes.append(cab.querySelector(".vt-ordem"), botoesModo());
+  cab.appendChild(linhaBotoes);
+  return cab;
+}
+
+// ---------- cartões que faltavam: versões em linha e delivery compacto ----------
+const precoMin = (n) => { const v = (n.itens || []).map((i) => Number(i?.preco)).filter((x) => x > 0); return v.length ? Math.min(...v) : NaN; };
+function linhaCompacta({ classe = "", midia, titulo, sub = [], direita, abrir, rotulo }) {
+  const c = el("article", "vt-row " + classe);
+  c.appendChild(midia);
+  const tx = el("div", "tx");
+  tx.appendChild(el("strong", "nm", titulo));
+  sub.filter(Boolean).forEach((x) => tx.appendChild(typeof x === "string" ? el("small", null, x) : x));
+  c.appendChild(tx);
+  if (direita) c.appendChild(direita);
+  return tornarClicavel(c, abrir, rotulo);
+}
+function linhaPro(n) {
+  const cats = categoriasDe(n).map((k) => CATEGORIAS.servicos[k]).filter(Boolean);
+  return linhaCompacta({
+    classe: "pro", midia: avatar(n.foto, n.nome), titulo: n.nome || "Freelancer",
+    sub: [estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }), [cats.slice(0, 2).join(" · "), n.cidade].filter(Boolean).join(" · ")],
+    direita: el("span", "pr", moeda(n.precoDesde) ? `desde ${moeda(n.precoDesde)}` : "a combinar"),
+    abrir: () => abrirDetalhe(n), rotulo: `Ver ${n.nome}`
+  });
+}
+function linhaImovel(a) {
+  const f = el("div", "th");
+  f.style.backgroundImage = `url("${urlSegura((a.fotos || []).find(urlSegura)) || TEXTOS.imoveis.img}")`;
+  f.appendChild(el("span", "tag", FINALIDADE[a.finalidade] || "Imóvel"));
+  const specs = [a.quartos ? `${a.quartos} ${Number(a.quartos) === 1 ? "quarto" : "quartos"}` : "", a.vagas ? `${a.vagas} ${Number(a.vagas) === 1 ? "vaga" : "vagas"}` : "", a.area ? `${a.area} m²` : ""].filter(Boolean).join(" · ");
+  const pr = el("span", "pr", moeda(a.preco) || "Consultar");
+  if (moeda(a.preco) && a.finalidade === "aluguel") pr.appendChild(el("small", null, "/mês"));
+  return linhaCompacta({
+    classe: "imo", midia: f, titulo: tituloImovel(a), sub: [[a.bairro, a.cidade].filter(Boolean).join(", "), specs], direita: pr,
+    abrir: () => abrirAnuncio(a), rotulo: `Ver ${tituloImovel(a)}`
+  });
+}
+function linhaProduto({ n, i, idx }) {
+  const f = el("div", "th");
+  if (urlSegura(i.foto)) f.style.backgroundImage = `url("${i.foto}")`; else f.appendChild(icone("foto", "vi"));
+  return linhaCompacta({
+    classe: "prod" + (estoqueDe(i) === 0 ? " esgotado" : ""), midia: f, titulo: i.nome,
+    sub: [estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }), n.nome || "Loja"],
+    direita: precoComDesconto(i), abrir: () => abrirProduto(n, idx), rotulo: `Ver ${i.nome}`
+  });
+}
+function tileDelivery(n) {
+  const c = el("article", "vt-del");
+  const ab = abertoAgora(n);
+  if (ab === false) c.classList.add("fechado");
+  const f = el("div", "ft");
+  const prato = (n.itens || []).find((i) => urlSegura(i?.foto));
+  f.style.backgroundImage = `url("${urlSegura(prato?.foto) || TEXTOS.delivery.img}")`;
+  if (ab !== null) f.appendChild(el("span", "st " + (ab ? "on" : "off"), ab ? "Aberto" : "Fechado"));
+  f.appendChild(avatar(n.foto, n.nome, "vt-avatar logo"));
+  const tx = el("div", "tx");
+  tx.append(el("strong", "nm", n.nome || "Delivery"), estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }));
+  const info = [nomeCategoria(n), n.tempoMin || n.tempoMax ? `${n.tempoMin || "?"}–${n.tempoMax || "?"} min` : ""].filter(Boolean).join(" · ");
+  if (info) tx.appendChild(el("small", null, info));
+  tx.appendChild(el("span", "tx-taxa" + (Number(n.taxaEntrega) > 0 ? "" : " gratis"), Number(n.taxaEntrega) > 0 ? `Entrega ${moeda(n.taxaEntrega)}` : "Entrega grátis"));
+  c.append(f, tx);
+  return tornarClicavel(c, () => abrirDetalhe(n), `Ver ${n.nome}`);
+}
+const ORDENS_PRECO = (preco, nota) => ({
+  melhores: ["Melhores", (a, b) => nota(b) - nota(a)],
+  menor: ["Menor preço", (a, b) => (preco(a) || Infinity) - (preco(b) || Infinity)],
+  maior: ["Maior preço", (a, b) => (preco(b) || 0) - (preco(a) || 0)]
+});
+const ORDENS_DELIVERY = ORDENS_PRECO(precoMin, (n) => pontuacao(n));
+const ORDENS_PRODUTO = ORDENS_PRECO((x) => Number(x.i.preco) || NaN, (x) => pontuacao(x.n));
+let ordemDelivery = "melhores", ordemProduto = "melhores";
+
+// Imóveis em destaque: imóveis de quem tem as melhores notas como anunciante (e os mais novos),
+// revezando nos lugares do trilho, como os destaques dos Freelances.
+function secaoDestaquesImoveis(lista) {
+  if (lista.length < 2) return null;
+  const agora = Date.now();
+  const peso = (a) => pesoServ(a) * ((agora - tsMs(a.atualizadoEm || a.criadoEm)) / 864e5 < 7 ? 1.5 : 1) * ((a.fotos || []).some(urlSegura) ? 1.3 : 1);
+  const pool = [...lista].sort((a, b) => peso(b) - peso(a)).slice(0, 24);
+  const vezes = new Map();
+  const slots = pool.slice(0, Math.min(6, pool.length)).map((a) => {
+    const s = el("div", "vt-slot");
+    s.appendChild(cartaoImovelMini(a));
+    vezes.set(a.id, 1);
+    return { el: s, cands: pool, item: a, criar: cartaoImovelMini, desde: Date.now(), vezes };
+  });
+  const sec = carrossel("Imóveis em destaque", slots.map((s) => s.el), "top-imo");
+  sec.querySelector(".vt-car-topo").insertAdjacentElement("afterend", el("p", "vt-car-sub", "Anunciantes mais bem avaliados e imóveis novos, revezando o tempo todo."));
+  girar(sec.querySelector(".vt-trilho"), slots, peso);
+  return sec;
 }
 
 // Delivery: linha estilo app de comida (logo, nome, categoria, tempo e taxa)
@@ -1489,7 +1638,8 @@ function renderizar() {
   pararGiro?.();
   grade.replaceChildren();
   dest.replaceChildren();
-  grade.className = "vt-grade " + ({ servicos: "pros", delivery: "lista-lojas", lojinha: "produtos", imoveis: "imos" }[TIPO] || "");
+  grade.className = "vt-grade tipo-" + TIPO;
+  cont.textContent = ""; // a contagem vai junto do título da lista
   const lista = todos.filter((n) => passaCategoria(n, cat) && (!termo || textoBusca(n).includes(termo)));
   const vazio = () => {
     const v = el("div", "vt-vazio");
@@ -1497,46 +1647,56 @@ function renderizar() {
     if (!todos.length) { const a = el("a", "vt-criar"); a.href = `negocios.html?tipo=${TIPO}`; a.append(icone("mais"), document.createTextNode(TEXTOS[TIPO].criar)); v.append(document.createElement("br"), a); }
     grade.appendChild(v);
   };
+  const titulo = (t) => (filtrando ? "Resultados" : t);
 
   if (TIPO === "lojinha") {
-    // Lojas no topo (bolinhas) e todos os produtos numa grade, como nos marketplaces.
+    // Lojas no topo (bolinhas) e os produtos de todas as lojas.
     if (lista.length) dest.appendChild(carrossel("Lojas", lista.map(bolhaLoja), "lojas"));
     const produtos = [];
     lista.forEach((n) => (n.itens || []).forEach((i, idx) => {
       if (!i?.nome) return;
-      if (termo && !textoBusca(n).includes(termo)) return;
       const alvo = [i.nome, i.descricao, i.marca, n.nome, ...(i.cores || []), ...(i.tamanhos || [])].join(" ").toLowerCase();
       if (termo && !alvo.includes(termo) && !String(n.nome || "").toLowerCase().includes(termo)) return;
       produtos.push({ n, i, idx });
     }));
-    produtos.sort((a, b) => (estoqueDe(a.i) === 0) - (estoqueDe(b.i) === 0));
-    cont.textContent = todos.length ? `${produtos.length} ${produtos.length === 1 ? "produto" : "produtos"} · ${lista.length} ${lista.length === 1 ? "loja" : "lojas"}` : "";
     if (!produtos.length) return vazio();
-    produtos.forEach(({ n, i, idx }) => grade.appendChild(tornarClicavel(cartaoProduto(n, i, idx), () => abrirProduto(n, idx), `Ver ${i.nome}`)));
+    produtos.sort((a, b) => ORDENS_PRODUTO[ordemProduto][1](a, b) || (estoqueDe(a.i) === 0) - (estoqueDe(b.i) === 0));
+    grade.appendChild(barraLista(titulo("Todos os produtos"), produtos.length, ORDENS_PRODUTO, ordemProduto, (k) => { ordemProduto = k; renderizar(); }));
+    mostrarItens(grade, produtos, {
+      filtrando, linha: linhaProduto,
+      tile: ({ n, i, idx }) => tornarClicavel(cartaoProduto(n, i, idx), () => abrirProduto(n, idx), `Ver ${i.nome}`),
+      grupos: ({ n }) => (n.categoria === "outros" && n.categoriaPersonalizada ? "c:" + n.categoriaPersonalizada : n.categoria || "outros"),
+      nomeGrupo: (g) => (g.startsWith("c:") ? g.slice(2) : CATEGORIAS.lojinha[g] || "Outros")
+    });
     return;
   }
 
-  const rotulos = TIPO === "servicos" ? ["profissional", "profissionais"] : ["resultado", "resultados"];
-  cont.textContent = todos.length ? `${lista.length} ${rotulos[lista.length === 1 ? 0 : 1]}` : "";
   if (!lista.length) return vazio();
 
   if (TIPO === "servicos") {
-    // 1) Destaques de cada categoria (revezando)  2) Grade compacta com todos, com ordenação
+    // 1) Destaques de cada categoria (revezando)  2) Todos, no modo escolhido
     const top = !filtrando && secaoDestaquesServ(lista);
     if (top) dest.appendChild(top);
-    cont.textContent = ""; // a contagem vai junto do título da lista
-    grade.appendChild(topoLista(filtrando ? "Resultados" : "Todos os profissionais", lista.length, ORDENS_SERV, ordemServ, (k) => { ordemServ = k; renderizar(); }));
-    [...lista].sort(ORDENS_SERV[ordemServ][1]).forEach((n) => grade.appendChild(cartaoPro(n)));
+    grade.appendChild(barraLista(titulo("Todos os profissionais"), lista.length, ORDENS_SERV, ordemServ, (k) => { ordemServ = k; renderizar(); }));
+    mostrarItens(grade, [...lista].sort(ORDENS_SERV[ordemServ][1]), {
+      filtrando, tile: cartaoPro, linha: linhaPro, grupos: (n) => categoriasDe(n), nomeGrupo: (g) => CATEGORIAS.servicos[g] || "Outros"
+    });
   } else if (TIPO === "delivery") {
-    const ordem = [...lista].sort((a, b) => (abertoAgora(b) === true) - (abertoAgora(a) === true));
-    const abertos = ordem.filter((n) => abertoAgora(n) === true);
+    const abertos = lista.filter((n) => abertoAgora(n) === true);
     if (!filtrando && abertos.length) dest.appendChild(carrossel("Abertos agora", abertos.slice(0, 10).map((n) => tornarClicavel(cartaoDelivery(n), () => abrirDetalhe(n), `Ver ${n.nome}`)), "abertos"));
-    grade.appendChild(el("h3", "vt-titulo-lista", filtrando ? "Resultados" : "Todos os restaurantes"));
-    ordem.forEach((n) => grade.appendChild(tornarClicavel(linhaDelivery(n), () => abrirDetalhe(n), `Ver ${n.nome}`)));
+    const ordem = [...lista].sort((a, b) => ORDENS_DELIVERY[ordemDelivery][1](a, b) || (abertoAgora(b) === true) - (abertoAgora(a) === true));
+    grade.appendChild(barraLista(titulo("Todos os restaurantes"), lista.length, ORDENS_DELIVERY, ordemDelivery, (k) => { ordemDelivery = k; renderizar(); }));
+    mostrarItens(grade, ordem, {
+      filtrando, tile: tileDelivery, linha: (n) => tornarClicavel(linhaDelivery(n), () => abrirDetalhe(n), `Ver ${n.nome}`),
+      grupos: (n) => n.categoria || "outros", nomeGrupo: (g) => CATEGORIAS.delivery[g] || "Outros"
+    });
   } else {
-    cont.textContent = "";
-    grade.appendChild(topoLista(filtrando ? "Resultados" : "Todos os imóveis", lista.length, ORDENS_IMOVEL, ordemImovel, (k) => { ordemImovel = k; renderizar(); }));
-    [...lista].sort(ORDENS_IMOVEL[ordemImovel][1]).forEach((a) => grade.appendChild(cartaoImovelMini(a)));
+    const top = !filtrando && secaoDestaquesImoveis(lista);
+    if (top) dest.appendChild(top);
+    grade.appendChild(barraLista(titulo("Todos os imóveis"), lista.length, ORDENS_IMOVEL, ordemImovel, (k) => { ordemImovel = k; renderizar(); }));
+    mostrarItens(grade, [...lista].sort(ORDENS_IMOVEL[ordemImovel][1]), {
+      filtrando, tile: cartaoImovelMini, linha: linhaImovel, grupos: (a) => a.categoria || "outros", nomeGrupo: (g) => CATEGORIAS.imoveis[g] || "Outros"
+    });
   }
 }
 
