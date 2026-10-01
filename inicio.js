@@ -8,6 +8,7 @@
 // - Banner de anúncios: passa sozinho e aceita arrastar com o dedo.
 // =====================================================
 import { fotoSegura } from "./seguranca.js?v=1";
+import { enfeitarSelect } from "./escolha.js?v=3";
 import { estrelas, lerResumos, media } from "./avaliacoes.js?v=4";
 import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria } from "./vitrine.js?v=17";
 
@@ -28,6 +29,7 @@ saudacao("");
 
 // ---------- busca geral ----------
 let classeBusca = "servicos";
+let seletor = null; // seletor bonito no lugar do <select> nativo
 const DICAS = {
   servicos: "Ex.: diarista, eletricista, manicure",
   delivery: "Ex.: pizza, hambúrguer, açaí",
@@ -39,6 +41,7 @@ function escolherClasse(tipo) {
   $("classeBusca").value = tipo;
   $("buscaGeral").dataset.classe = tipo;
   $("campoBusca").placeholder = DICAS[tipo];
+  seletor?.atualizar();
 }
 $("classeBusca").addEventListener("change", () => { escolherClasse($("classeBusca").value); $("campoBusca").focus(); });
 function buscar(tipo, termo) {
@@ -47,6 +50,7 @@ function buscar(tipo, termo) {
 }
 $("buscaGeral").addEventListener("submit", (e) => { e.preventDefault(); buscar(classeBusca, $("campoBusca").value); });
 escolherClasse("servicos");
+seletor = enfeitarSelect($("classeBusca"), { titulo: "Onde você quer buscar?" });
 
 // ---------- banner ----------
 // Passa sozinho a cada 5 s. Arrastar com o dedo (ou usar as setas e os pontos)

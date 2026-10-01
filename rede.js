@@ -1017,17 +1017,21 @@ export function ouvirAvisos({ notificarNovos = true } = {}) {
     })));
     if (novos && notificarNovos) avisos.vinculos.filter((x) => novos.has(x.id) && x.pendente).forEach((x) => notificar("Novo pedido no social", `${x.nome} quer adicionar você como ${rotuloVinculo(x.tipoParaMim).toLowerCase()}`, () => { location.href = "notificacoes.html"; }));
   });
-  // Reclamações: recebidas, respondidas e resolvidas
-  let primeiraRec = true;
-  const recVistas = new Set();
+  // Reclamações: recebidas, respondidas e resolvidas.
+  // Só avisa o que acontecer DEPOIS que a página abriu e ainda não foi visto, uma vez cada.
+  // (As respostas chegam um pouco depois da primeira leitura; sem essa regra, as antigas
+  // pareciam novas e o aviso voltava a cada página aberta.)
+  const abertaEm = Date.now();
+  const recAvisadas = new Set();
   ouvirReclamacoes(fb, fb.db, eu.uid, (itens) => {
     avisos.reclamacoes = itens.filter((x) => !x.uid || !escondido(x.uid));
-    if (!primeiraRec && notificarNovos) avisos.reclamacoes.filter((x) => !recVistas.has(x.id + ":" + x.quando)).forEach((x) => {
-      notificar(x.tipo === "reclamacao" ? "Nova reclamação" : x.tipo === "reclamacao-resp" ? "Reclamação respondida" : "Reclamação resolvida",
-        `${x.nome} ${TEXTO_RECLAMACAO[x.tipo](x)}`, () => { location.href = linkReclamacao(x, eu.uid); });
-    });
-    avisos.reclamacoes.forEach((x) => recVistas.add(x.id + ":" + x.quando));
-    primeiraRec = false;
+    if (notificarNovos) avisos.reclamacoes
+      .filter((x) => x.quando > abertaEm && x.quando > avisosVistosEm && !recAvisadas.has(x.id + ":" + x.quando))
+      .forEach((x) => {
+        recAvisadas.add(x.id + ":" + x.quando);
+        notificar(x.tipo === "reclamacao" ? "Nova reclamação" : x.tipo === "reclamacao-resp" ? "Reclamação respondida" : "Reclamação resolvida",
+          `${x.nome} ${TEXTO_RECLAMACAO[x.tipo](x)}`, () => { location.href = linkReclamacao(x, eu.uid); });
+      });
     avisar();
   });
   // Mensagens não lidas

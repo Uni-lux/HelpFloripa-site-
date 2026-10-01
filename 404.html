@@ -318,5 +318,10 @@
       });
     })();
   </script>
+  <script type="module">
+    // Seletor bonito no lugar da lista nativa do celular
+    import { enfeitarSelect } from "./escolha.js?v=3";
+    enfeitarSelect(document.getElementById("classe"), { titulo: "Onde você quer buscar?" });
+  </script>
 </body>
 </html>
