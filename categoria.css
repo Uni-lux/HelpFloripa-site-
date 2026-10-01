@@ -131,6 +131,8 @@ svg.i.xs { width: 14px; height: 14px; }
   display: flex; align-items: center; gap: 8px; margin-top: 6px; padding: 6px 6px 6px 16px; border-radius: 16px;
   background: var(--panel); color: var(--text); box-shadow: 0 16px 40px rgba(0, 0, 0, .35); max-width: 640px;
 }
+/* espaço do lado esquerdo do topo (equilibra o sino e o perfil, como na página inicial) */
+.topo-espaco { width: 42px; flex-shrink: 0; }
 .busca svg { color: var(--muted); }
 /* a lupa do botão fica branca e mais grossa, para aparecer bem sobre a cor */
 .busca button svg { color: #fff; stroke-width: 2.5; }
