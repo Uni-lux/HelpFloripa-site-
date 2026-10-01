@@ -28,11 +28,11 @@
       document.querySelector('meta[name="theme-color"]').content = escuro ? "#0f161b" : "#ffffff";
     })();
   </script>
-  <link rel="stylesheet" href="categoria.css?v=6" />
-  <link rel="stylesheet" href="vitrine.css?v=18" />
+  <link rel="stylesheet" href="categoria.css?v=7" />
+  <link rel="stylesheet" href="vitrine.css?v=19" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
-  <script type="module" src="categoria.js?v=9"></script>
+  <script type="module" src="categoria.js?v=10"></script>
   <script type="module" src="vitrine.js?tipo=imoveis&v=16"></script>
 </head>
 <body data-classe="imoveis">
@@ -72,12 +72,6 @@
     <a href="usuarios.html" class="icone-btn" aria-label="Meu perfil"><span class="topo-avatar" id="topoAvatar"><svg class="i xs" aria-hidden="true"><use href="#i-perfil"/></svg></span></a>
   </header>
 
-  <nav class="classes" aria-label="Classes do Help Floripa">
-    <a class="classe-link servicos" href="servicos.html"><svg class="i s" aria-hidden="true"><use href="#i-servicos"/></svg>Freelances</a>
-    <a class="classe-link delivery" href="delivery.html"><svg class="i s" aria-hidden="true"><use href="#i-delivery"/></svg>Delivery</a>
-    <a class="classe-link lojinha" href="shopping.html"><svg class="i s" aria-hidden="true"><use href="#i-lojinha"/></svg>Shopping</a>
-    <a class="classe-link imoveis" href="imoveis.html" aria-current="page"><svg class="i s" aria-hidden="true"><use href="#i-imoveis"/></svg>Imóveis</a>
-  </nav>
 
   <main class="pagina">
     <section class="hero" style="--capa: url('imoveis.webp')" aria-labelledby="tituloPagina">
@@ -91,11 +85,12 @@
           <input type="search" id="searchInput" placeholder="Buscar por bairro, cidade ou tipo (ex.: Trindade)" autocomplete="off" enterkeyhint="search" />
           <button type="submit" aria-label="Buscar"><svg class="i s" aria-hidden="true"><use href="#i-lupa"/></svg><span>Buscar</span></button>
         </form>
-        <ul class="garantias">
-          <li><svg class="i xs" aria-hidden="true"><use href="#i-chave"/></svg>Direto com o anunciante</li>
-          <li><svg class="i xs" aria-hidden="true"><use href="#i-foto"/></svg>Fotos e detalhes completos</li>
-          <li><svg class="i xs" aria-hidden="true"><use href="#i-estrela"/></svg>Anunciantes avaliados</li>
-        </ul>
+        <nav class="classes classes-painel" aria-label="Classes do Help Floripa">
+          <a class="classe-link servicos" href="servicos.html"><svg class="i s" aria-hidden="true"><use href="#i-servicos"/></svg>Freelances</a>
+          <a class="classe-link delivery" href="delivery.html"><svg class="i s" aria-hidden="true"><use href="#i-delivery"/></svg>Delivery</a>
+          <a class="classe-link lojinha" href="shopping.html"><svg class="i s" aria-hidden="true"><use href="#i-lojinha"/></svg>Shopping</a>
+          <a class="classe-link imoveis" href="imoveis.html" aria-current="page"><svg class="i s" aria-hidden="true"><use href="#i-imoveis"/></svg>Imóveis</a>
+        </nav>
       </div>
     </section>
 

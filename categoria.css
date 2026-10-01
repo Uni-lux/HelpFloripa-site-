@@ -241,3 +241,13 @@ svg.i.xs { width: 14px; height: 14px; }
   .rodape-home { grid-template-columns: 1fr 1fr; }
   .rodape-home > div:first-child { grid-column: 1 / -1; }
 }
+
+/* ---------- botões das 4 classes dentro do painel, logo abaixo da busca ---------- */
+.classes.classes-painel { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; width: 100%; margin: 4px 0 0; padding: 0; overflow: visible; }
+.classes-painel .classe-link {
+  flex-direction: column; gap: 4px; padding: 9px 4px; min-width: 0; font-size: 12.5px; border-radius: 14px;
+  color: #fff; background: rgba(4, 12, 20, .5); border-color: rgba(255, 255, 255, .14); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+}
+.classes-painel .classe-link:hover { background: rgba(4, 12, 20, .65); border-color: var(--c); }
+.classes-painel .classe-link[aria-current="page"] { background: var(--c); border-color: var(--c); box-shadow: 0 8px 22px color-mix(in srgb, var(--c) 45%, transparent); }
+@media (min-width: 700px) { .classes-painel .classe-link { flex-direction: row; gap: 7px; padding: 10px 12px; font-size: 13.5px; } }

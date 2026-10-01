@@ -10,7 +10,7 @@ import {
   $, el, icone, ms, paraData, pintarAvatar, urlSegura, nomeCidade, tempoRelativo, toast, erroAmigavel,
   fb, eu, dados, meusSeguindo, escondido, ganchos, obterPerfil, iniciarRede, carregarMeusSeguindo, linhaPessoa,
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, montarBarraRede, pintarBarraRede, ouvirAvisos
-} from "./rede.js?v=6";
+} from "./rede.js?v=7";
 
 const POR_VEZ = 10;
 let aba = "diario", filtro = "seguindo";

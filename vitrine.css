@@ -474,7 +474,6 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
 .vt-top .pr { flex-shrink: 0; padding: 4px 9px; border-radius: 999px; font-weight: 800; color: var(--vc); background: color-mix(in srgb, var(--vc) 13%, transparent); }
 
 /* lista de todos */
-.vt-grade.pros { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .vt-lista-topo { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin: 4px 0 4px; }
 .vt-titulo-lista .vt-conta { margin-left: 8px; padding: 2px 9px; border-radius: 999px; font-size: 12.5px; font-weight: 800; vertical-align: 2px; color: var(--vc); background: color-mix(in srgb, var(--vc) 14%, transparent); }
 .vt-ordem { display: inline-flex; padding: 3px; border-radius: 999px; background: var(--vt-card-2); border: 1px solid var(--vt-line); }
@@ -496,10 +495,7 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
 .vt-pro .pr { font-size: 12px; font-weight: 800; color: var(--vt-text); }
 .vt-pro .urg { position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; color: #fff; background: #ef4444; box-shadow: 0 4px 10px rgba(239, 68, 68, .4); }
 .vt-pro .urg svg { width: 13px; height: 13px; }
-@media (min-width: 700px) { .vt-grade.pros { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; } }
-@media (min-width: 1000px) { .vt-grade.pros { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
 @media (max-width: 420px) {
-  .vt-grade.pros { gap: 8px; }
   .vt-pro { padding: 14px 6px 10px; border-radius: 16px; }
   .vt-pro .vt-avatar { width: 52px; height: 52px; font-size: 16px; }
   .vt-pro .nm { font-size: 12.5px; }
@@ -517,7 +513,6 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
 /* =====================================================
    Imóveis: grade compacta (3 por fileira no celular, 5 no computador)
    ===================================================== */
-.vitrine[data-tipo="imoveis"] .vt-grade.imos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .vt-imo {
   min-width: 0; display: flex; flex-direction: column; overflow: hidden; border-radius: 16px; cursor: pointer; background: var(--vt-card);
   border: 1px solid var(--vt-line); transition: transform .2s, border-color .2s, box-shadow .2s; animation: vt-pro-entra .45s ease both;
@@ -538,11 +533,106 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
 .vt-imo .sp { display: flex; flex-wrap: wrap; gap: 4px 8px; font-size: 11px; font-weight: 700; color: var(--vt-text-2); }
 .vt-imo .sp span { display: inline-flex; align-items: center; gap: 3px; }
 @media (min-width: 700px) {
-  .vitrine[data-tipo="imoveis"] .vt-grade.imos { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
   .vt-imo .ft { aspect-ratio: 4 / 3; }
   .vt-imo .pr { font-size: 17px; }
   .vt-imo .nm { font-size: 14px; }
   .vt-imo .tx { padding: 10px 12px 12px; }
 }
-@media (min-width: 1000px) { .vitrine[data-tipo="imoveis"] .vt-grade.imos { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
 @media (prefers-reduced-motion: reduce) { .vt-imo { animation: none !important; } }
+
+/* =====================================================
+   Modos de exibição (Por categoria, 1, 2 ou 3 por linha) — as 4 páginas
+   ===================================================== */
+.vt-ferramentas { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; }
+.vt-lista-topo { row-gap: 10px; }
+.vt-modos-ver { display: inline-flex; flex-shrink: 0; padding: 3px; border-radius: 12px; background: var(--vt-card-2); border: 1px solid var(--vt-line); }
+.vt-modos-ver button { width: 34px; height: 30px; display: grid; place-items: center; border: 0; border-radius: 9px; background: transparent; color: var(--vt-muted); cursor: pointer; transition: background .2s, color .2s; }
+.vt-modos-ver button svg { width: 18px; height: 18px; }
+.vt-modos-ver button[aria-pressed="true"] { background: var(--vc); color: #fff; }
+.vt-modos-ver button:focus-visible, .vt-ordem button:focus-visible { outline: 2px solid var(--vc); outline-offset: 1px; }
+
+/* grade: o número de colunas escolhido vale no celular; em telas maiores cabe mais */
+.vitrine .vt-grade.vt-cols { display: grid; gap: 10px; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); }
+.vitrine .vt-grade.vt-cols.c1 { --cols: 1; gap: 8px; }
+.vitrine .vt-grade.vt-cols.c2 { --cols: 2; }
+.vitrine .vt-grade.vt-cols.c3 { --cols: 3; }
+@media (min-width: 700px) {
+  .vitrine .vt-grade.vt-cols { gap: 12px; }
+  .vitrine .vt-grade.vt-cols.c1 { --cols: 2; }
+  .vitrine .vt-grade.vt-cols.c2 { --cols: 3; }
+  .vitrine .vt-grade.vt-cols.c3 { --cols: 4; }
+}
+@media (min-width: 1000px) {
+  .vitrine .vt-grade.vt-cols.c2 { --cols: 4; }
+  .vitrine .vt-grade.vt-cols.c3 { --cols: 5; }
+}
+/* 2 por linha: cartões um pouco maiores */
+.vt-cols.c2 .vt-pro .vt-avatar { width: 72px; height: 72px; font-size: 21px; }
+.vt-cols.c2 .vt-pro .nm { font-size: 14.5px; }
+.vt-cols.c2 .vt-imo .ft { aspect-ratio: 4 / 3; }
+.vt-cols.c2 .vt-imo .pr { font-size: 16px; }
+.vt-cols.c2 .vt-imo .nm { font-size: 13.5px; }
+
+/* por categoria: uma fileira por categoria, rolando para o lado */
+.vitrine .vt-grade.vt-linhas { display: block; }
+.vt-linhas .vt-carrossel.linha-cat { margin: 14px 0 6px; }
+.vt-linhas .vt-car-topo { gap: 10px; }
+.vt-linhas .vt-car-topo h3 { flex: 1; min-width: 0; font-size: 16px; }
+.vt-linhas .vt-trilho { gap: 10px; }
+.vt-linhas .vt-trilho > * { flex: 0 0 var(--w, 140px); scroll-snap-align: start; }
+.vitrine[data-tipo="servicos"] .vt-linhas .vt-trilho > * { --w: 132px; }
+.vitrine[data-tipo="imoveis"] .vt-linhas .vt-trilho > * { --w: 150px; }
+.vitrine[data-tipo="delivery"] .vt-linhas .vt-trilho > * { --w: 158px; }
+.vitrine[data-tipo="lojinha"] .vt-linhas .vt-trilho > * { --w: 150px; }
+@media (min-width: 700px) { .vt-linhas .vt-trilho > * { --w: 180px !important; } }
+.vt-ver-todos { flex-shrink: 0; border: 0; background: none; color: var(--vc); font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; padding: 4px 2px; }
+.vt-car-topo .vt-conta { margin-left: 8px; padding: 1px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 800; vertical-align: 2px; color: var(--vc); background: color-mix(in srgb, var(--vc) 14%, transparent); }
+
+/* destaques de imóveis: cartão um pouco maior */
+.vt-carrossel.top-imo .vt-slot { width: 46vw; max-width: 220px; }
+.vt-carrossel.top-imo .vt-imo { height: 100%; }
+.vt-carrossel.top-imo .vt-imo .ft { aspect-ratio: 4 / 3; }
+
+/* 1 por linha: linha compacta (foto à esquerda, dados no meio, preço à direita) */
+.vt-row {
+  display: flex; align-items: center; gap: 12px; min-width: 0; padding: 10px 12px; border-radius: 16px; cursor: pointer;
+  background: var(--vt-card); border: 1px solid var(--vt-line); transition: border-color .2s, transform .2s; animation: vt-pro-entra .45s ease both;
+}
+.vt-row:hover { border-color: color-mix(in srgb, var(--vc) 55%, var(--vt-line)); transform: translateY(-1px); }
+.vt-row:focus-visible { outline: 3px solid var(--vc); outline-offset: 2px; }
+.vt-row .vt-avatar { width: 52px; height: 52px; font-size: 16px; box-shadow: 0 0 0 2px var(--vt-card), 0 0 0 4px var(--vc); }
+.vt-row .th { position: relative; flex-shrink: 0; width: 76px; height: 76px; border-radius: 12px; background: var(--vt-card-2) center / cover no-repeat; display: grid; place-items: center; color: var(--vt-muted); overflow: hidden; }
+.vt-row .th .tag { position: absolute; left: 4px; bottom: 4px; padding: 2px 6px; border-radius: 999px; font-size: 10px; font-weight: 800; color: var(--vc-ink); background: var(--vc); }
+.vt-row .tx { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.vt-row .nm { font-size: 14.5px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vt-row small { color: var(--vt-muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vt-row .hf-estrelas { font-size: 12px; }
+.vt-row .pr, .vt-row .vt-preco { flex-shrink: 0; text-align: right; font-size: 13.5px; font-weight: 900; color: var(--vc); }
+.vt-row .pr small { display: block; color: var(--vt-muted); font-size: 10.5px; }
+.vt-row.esgotado { opacity: .55; }
+.vt-cols.c1 .vt-linha-loja { margin: 0; }
+
+/* delivery compacto (2 ou 3 por linha e por categoria) */
+.vt-del { min-width: 0; display: flex; flex-direction: column; overflow: hidden; border-radius: 16px; cursor: pointer; background: var(--vt-card); border: 1px solid var(--vt-line); transition: transform .2s, border-color .2s; animation: vt-pro-entra .45s ease both; }
+.vt-del:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--vc) 60%, var(--vt-line)); }
+.vt-del:focus-visible { outline: 3px solid var(--vc); outline-offset: 2px; }
+.vt-del.fechado { opacity: .7; }
+.vt-del .ft { position: relative; aspect-ratio: 4 / 3; background: #1a0f06 center / cover no-repeat; }
+.vt-del .ft::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 45%, rgba(0, 0, 0, .55)); }
+.vt-del .st { position: absolute; top: 6px; right: 6px; z-index: 1; padding: 2px 7px; border-radius: 999px; font-size: 10px; font-weight: 800; color: #fff; background: rgba(0, 0, 0, .6); }
+.vt-del .st.on { background: #16a34a; }
+.vt-del .ft .vt-avatar.logo { position: absolute; left: 8px; bottom: -16px; z-index: 2; width: 38px; height: 38px; font-size: 12px; border-radius: 12px; border: 2px solid var(--vt-card); }
+.vt-del .tx { padding: 20px 8px 10px; display: grid; gap: 2px; }
+.vt-del .nm { font-size: 13px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vt-del small { font-size: 11px; color: var(--vt-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vt-del .hf-estrelas { font-size: 11.5px; }
+.vt-del .tx-taxa { font-size: 11px; font-weight: 700; color: var(--vt-text-2); }
+.vt-del .tx-taxa.gratis { color: var(--vt-ok); }
+@media (prefers-reduced-motion: reduce) { .vt-row, .vt-del { animation: none !important; } }
+/* barra da lista: no celular a ordenação pode rolar para o lado e os modos descem se não couber */
+.vt-ferramentas { flex-wrap: wrap; }
+.vt-ferramentas .vt-ordem { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.vt-ferramentas .vt-ordem::-webkit-scrollbar { display: none; }
+.vt-ordem button { white-space: nowrap; flex-shrink: 0; }
+.vt-ferramentas .vt-modos-ver { margin-left: auto; }
+.vt-car-topo .vt-ver-todos { color: var(--vc); }
