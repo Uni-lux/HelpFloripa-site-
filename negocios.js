@@ -9,12 +9,12 @@
 import {
   $, el, icone, pintarAvatar, urlSegura, nomeCidade, toast, erroAmigavel, abrirFolha, fecharFolha,
   fb, eu, dados, salvarImagem, editarImagem, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos
-} from "./rede.js?v=3";
-import { lerResumos, estrelas, media, notaTexto } from "./avaliacoes.js?v=3";
-import { buscarAnuncios, DIAS, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO } from "./vitrine.js?v=16";
+} from "./rede.js?v=4";
+import { lerResumos, estrelas, media, notaTexto } from "./avaliacoes.js?v=4";
+import { buscarAnuncios, DIAS, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO } from "./vitrine.js?v=17";
 
 const NEGOCIOS = {
-  servicos: { rotulo: "Serviços", img: "servicos.webp", pagina: "servicos.html", desc: "Portfólio, preços, horários e pedidos de orçamento." },
+  servicos: { rotulo: "Freelances", img: "servicos.webp", pagina: "servicos.html", desc: "Portfólio, preços, horários e pedidos de orçamento." },
   delivery: { rotulo: "Delivery", img: "lanchonetes.webp", pagina: "delivery.html", desc: "Cardápio com fotos, taxa, horário e pedidos prontos." },
   lojinha: { rotulo: "Lojinha", img: "shopping.webp", pagina: "shopping.html", desc: "Produtos com fotos, tamanhos, cores e estoque." },
   imoveis: { rotulo: "Imóveis", img: "imoveis.webp", pagina: "imoveis.html", desc: "Anúncios de aluguel, venda e temporada." }

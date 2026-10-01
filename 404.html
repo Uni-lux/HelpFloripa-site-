@@ -164,7 +164,7 @@
     <symbol id="i-voltar" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
     <symbol id="i-seta" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
     <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1"/></symbol>
-    <symbol id="i-servicos" viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 005.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></symbol>
+    <symbol id="i-servicos" viewBox="0 0 24 24"><rect x="3.5" y="7" width="17" height="12.5" rx="2"/><path d="M9 7V5.5A1.5 1.5 0 0110.5 4h3A1.5 1.5 0 0115 5.5V7M3.5 12.5h17"/></symbol>
     <symbol id="i-delivery" viewBox="0 0 24 24"><path d="M4 11h16M5 11a7 7 0 0114 0M4 15h16l-1.5 4h-13z"/></symbol>
     <symbol id="i-lojinha" viewBox="0 0 24 24"><path d="M6 8h12l-1 12H7zM9 8V6.5a3 3 0 016 0V8"/></symbol>
     <symbol id="i-imoveis" viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V20H4z"/><path d="M10 20v-5h4v5"/></symbol>
@@ -203,7 +203,7 @@
         <form class="busca" id="busca" role="search">
           <label class="sr" for="classe">Buscar em</label>
           <select id="classe">
-            <option value="servicos">Serviços</option>
+            <option value="servicos">Freelances</option>
             <option value="delivery">Delivery</option>
             <option value="lojinha">Shopping</option>
             <option value="imoveis">Imóveis</option>
@@ -221,7 +221,7 @@
 
     <div class="secao"><div><h2>Explore o Help Floripa</h2><p>Tudo gratuito, direto com quem oferece.</p></div></div>
     <nav class="classes" aria-label="Classes do Help Floripa">
-      <a class="classe servicos" href="/servicos.html" style="--img: url('/servicos.webp')"><span class="ic"><svg class="i s"><use href="#i-servicos"/></svg></span><strong>Serviços</strong><small>Profissionais avaliados</small></a>
+      <a class="classe servicos" href="/servicos.html" style="--img: url('/servicos.webp')"><span class="ic"><svg class="i s"><use href="#i-servicos"/></svg></span><strong>Freelances</strong><small>Profissionais avaliados</small></a>
       <a class="classe delivery" href="/delivery.html" style="--img: url('/lanchonetes.webp')"><span class="ic"><svg class="i s"><use href="#i-delivery"/></svg></span><strong>Delivery</strong><small>Cardápios da vizinhança</small></a>
       <a class="classe lojinha" href="/shopping.html" style="--img: url('/shopping.webp')"><span class="ic"><svg class="i s"><use href="#i-lojinha"/></svg></span><strong>Shopping</strong><small>Lojas de Florianópolis</small></a>
       <a class="classe imoveis" href="/imoveis.html" style="--img: url('/imoveis.webp')"><span class="ic"><svg class="i s"><use href="#i-imoveis"/></svg></span><strong>Imóveis</strong><small>Aluguel, venda e temporada</small></a>
@@ -255,7 +255,7 @@
 
       // "Você quis dizer?": nomes antigos, apelidos e erros de digitação.
       var PAGINAS = {
-        "index": "Início", "servicos": "Serviços", "delivery": "Delivery", "shopping": "Shopping", "imoveis": "Imóveis",
+        "index": "Início", "servicos": "Freelances", "delivery": "Delivery", "shopping": "Shopping", "imoveis": "Imóveis",
         "feed": "Diário", "mensagens": "Mensagens", "usuarios": "Meu perfil", "negocios": "Meus negócios", "notificacoes": "Notificações",
         "configuracoes": "Configurações", "social": "Social", "login": "Entrar", "cadastre-se": "Criar conta", "reclamacoes": "Reclamações",
         "ajuda": "Central de ajuda", "contato": "Contato", "sobre": "Sobre", "termos": "Termos de uso", "privacidade": "Privacidade"

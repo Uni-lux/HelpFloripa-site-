@@ -65,7 +65,7 @@ body.gaveta-aberta .gaveta { transform: none; visibility: visible; }
 
 const ICONES_MENU = {
   casa: '<path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 01-1.5 1.5H15v-6h-6v6H5.5A1.5 1.5 0 014 19z"/>',
-  servicos: '<path d="M14.7 6.3a4 4 0 01-5.4 5.4l-6 6a1.5 1.5 0 002.1 2.1l6-6a4 4 0 015.4-5.4l-2.6 2.6-2-2z"/>',
+  servicos: '<rect x="3.5" y="7" width="17" height="12.5" rx="2"/><path d="M9 7V5.5A1.5 1.5 0 0110.5 4h3A1.5 1.5 0 0115 5.5V7M3.5 12.5h17"/>',
   delivery: '<path d="M3 10h18M4 10a8 8 0 0116 0M2 14h20M4 14l1 6h14l1-6"/>',
   lojinha: '<path d="M6 8h12l-1 12H7L6 8zM9 8V6a3 3 0 016 0v2"/>',
   imoveis: '<path d="M4 11.5L12 4l8 7.5M6 10v9.5h12V10M10 19.5v-5h4v5"/>',
@@ -101,7 +101,7 @@ function iconeMenu(n, cls = "i s") {
 const SECOES_MENU = [
   ["Explorar", [
     ["index.html", "casa", "Início"],
-    ["servicos.html", "servicos", "Serviços", "#00adee"],
+    ["servicos.html", "servicos", "Freelances", "#00adee"],
     ["delivery.html", "delivery", "Delivery", "#ff7a1a"],
     ["shopping.html", "lojinha", "Shopping", "#b066ff"],
     ["imoveis.html", "imoveis", "Imóveis", "#2fbf71"]

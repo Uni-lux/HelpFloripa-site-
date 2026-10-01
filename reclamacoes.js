@@ -8,8 +8,8 @@
 // - Sempre com o nome da pessoa, nunca "o negócio".
 // =====================================================
 import { fotoSegura, conferirEmail, emailPendente, MSG_EMAIL } from "./seguranca.js?v=1";
-import { estrelas } from "./avaliacoes.js?v=3";
-import { NOMES_TIPO, PAGINA_TIPO } from "./vitrine.js?v=16";
+import { estrelas } from "./avaliacoes.js?v=4";
+import { NOMES_TIPO, PAGINA_TIPO } from "./vitrine.js?v=17";
 
 const $ = (id) => document.getElementById(id);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };

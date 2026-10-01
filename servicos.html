@@ -9,7 +9,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="description" content="Encontre profissionais avaliados de limpeza, reforma, beleza, transporte e pets em Florianópolis. Peça orçamento pelo chat." />
   <meta name="theme-color" content="#0b1014" />
-  <title>Serviços | Help Floripa</title>
+  <title>Freelances | Help Floripa</title>
   <link rel="icon" href="favicon.ico" />
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
@@ -32,7 +32,7 @@
   <link rel="stylesheet" href="vitrine.css?v=16" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
-  <script type="module" src="categoria.js?v=6"></script>
+  <script type="module" src="categoria.js?v=7"></script>
   <script type="module" src="vitrine.js?tipo=servicos&v=16"></script>
 </head>
 <body data-classe="servicos">
@@ -57,7 +57,7 @@
     <symbol id="i-pets" viewBox="0 0 24 24"><circle cx="7" cy="10" r="1.8"/><circle cx="11" cy="6.5" r="1.8"/><circle cx="15.5" cy="7" r="1.8"/><circle cx="18" cy="11" r="1.8"/><path d="M8.5 17.5c0-2.5 2-5 4-5s4 2.5 4 5c0 2-2 2.5-4 1.5-2 1-4 .5-4-1.5z"/></symbol>
     <symbol id="i-reformas" viewBox="0 0 24 24"><path d="M4 20l8.5-8.5M13 4.5l6.5 6.5-3 3L10 7.5z"/></symbol>
     <symbol id="i-relogio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4.5l3 1.8"/></symbol>
-    <symbol id="i-servicos" viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 01-5.4 5.4l-6 6a1.5 1.5 0 002.1 2.1l6-6a4 4 0 015.4-5.4l-2.6 2.6-2-2z"/></symbol>
+    <symbol id="i-servicos" viewBox="0 0 24 24"><rect x="3.5" y="7" width="17" height="12.5" rx="2"/><path d="M9 7V5.5A1.5 1.5 0 0110.5 4h3A1.5 1.5 0 0115 5.5V7M3.5 12.5h17"/></symbol>
     <symbol id="i-todos" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></symbol>
     <symbol id="i-transporte" viewBox="0 0 24 24"><path d="M5 16l1.5-5h11l1.5 5M4 16h16v3H4zM7 19v1M17 19v1"/></symbol>
   </svg>
@@ -71,7 +71,7 @@
   </header>
 
   <nav class="classes" aria-label="Classes do Help Floripa">
-    <a class="classe-link servicos" href="servicos.html" aria-current="page"><svg class="i s" aria-hidden="true"><use href="#i-servicos"/></svg>Serviços</a>
+    <a class="classe-link servicos" href="servicos.html" aria-current="page"><svg class="i s" aria-hidden="true"><use href="#i-servicos"/></svg>Freelances</a>
     <a class="classe-link delivery" href="delivery.html"><svg class="i s" aria-hidden="true"><use href="#i-delivery"/></svg>Delivery</a>
     <a class="classe-link lojinha" href="shopping.html"><svg class="i s" aria-hidden="true"><use href="#i-lojinha"/></svg>Shopping</a>
     <a class="classe-link imoveis" href="imoveis.html"><svg class="i s" aria-hidden="true"><use href="#i-imoveis"/></svg>Imóveis</a>
@@ -80,7 +80,7 @@
   <main class="pagina">
     <section class="hero" style="--capa: url('obras.webp')" aria-labelledby="tituloPagina">
       <div class="hero-corpo">
-        <span class="selo-classe"><b><svg class="i xs" aria-hidden="true"><use href="#i-servicos"/></svg></b>Serviços</span>
+        <span class="selo-classe"><b><svg class="i xs" aria-hidden="true"><use href="#i-servicos"/></svg></b>Freelances</span>
         <h1 id="tituloPagina">Profissionais de confiança, <span>perto de você</span></h1>
         <p class="lead">Faxina, reforma, beleza, transporte ou pets. Compare notas de clientes reais, peça orçamento pelo chat e combine direto com quem faz.</p>
         <form class="busca" id="searchForm" role="search">

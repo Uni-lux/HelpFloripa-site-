@@ -9,7 +9,7 @@
 // As regras do Firestore conferem que o resumo soma exatamente a avaliação nova.
 // =====================================================
 
-const TIPOS_NEGOCIO = { servicos: "Serviços", delivery: "Delivery", lojinha: "Loja", imoveis: "Imóveis" };
+const TIPOS_NEGOCIO = { servicos: "Freelances", delivery: "Delivery", lojinha: "Loja", imoveis: "Imóveis" };
 export const CHAVES_NEGOCIO = (uid) => Object.keys(TIPOS_NEGOCIO).map((t) => `neg_${uid}_${t}`);
 
 // ---------- números ----------
