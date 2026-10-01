@@ -783,38 +783,6 @@ function cartaoLoja(n) {
   return c;
 }
 
-function cartaoImovel(a) {
-  const c = el("article", "vt-card vt-imovel");
-  const g = el("div", "galeria");
-  g.style.backgroundImage = `url("${urlSegura((a.fotos || [])[0]) || TEXTOS.imoveis.img}")`;
-  g.appendChild(el("span", "vt-tag", FINALIDADE[a.finalidade] || "Imóvel"));
-  const nFotos = (a.fotos || []).filter(urlSegura).length;
-  if (nFotos > 1) { const s = el("span", "fotos-n"); s.append(icone("foto"), document.createTextNode(String(nFotos))); g.appendChild(s); }
-  const p = el("div", "preco", moeda(a.preco) || "Consultar");
-  if (moeda(a.preco) && a.finalidade === "aluguel") p.appendChild(el("small", null, " /mês"));
-  if (moeda(a.preco) && a.finalidade === "temporada") p.appendChild(el("small", null, " /diária"));
-  g.appendChild(p);
-  const corpo = el("div", "corpo");
-  corpo.append(el("h3", "vt-nome", tituloImovel(a)));
-  const sub = el("div", "vt-sub");
-  const local = [a.bairro, a.cidade].filter(Boolean).join(", ");
-  if (local) { const s = el("span", "vt-local"); s.append(icone("pin"), document.createTextNode(local)); sub.appendChild(s); }
-  sub.appendChild(el("span", "vt-tag neutra", CATEGORIAS.imoveis[a.categoria] || "Imóvel"));
-  sub.appendChild(estrelasNeg(`${a.donoId}_imoveis`, { compacto: true, nome: (negociosImoveis.get(a.donoId) || {}).nome || "Anunciante", donoId: a.donoId }));
-  if (a.mobiliado) sub.appendChild(el("span", "vt-tag neutra", "Mobiliado"));
-  (a.condicoes || []).filter((k) => k === "pets" || k === "semFiador" || k === "financiamento").slice(0, 2).forEach((k) => sub.appendChild(el("span", "vt-tag", CONDICOES_IMOVEL[k])));
-  corpo.appendChild(sub);
-  corpo.appendChild(specsImovel(a));
-  const rodape = el("div", "vt-rodape");
-  const anunciante = negociosImoveis.get(a.donoId);
-  rodape.append(linkCriador(a.donoId, donos.get(a.donoId) || {}), botoes(a.donoId, {
-    texto: "Tenho interesse", whats: a.whatsapp || anunciante?.whatsapp, cartao: cartaoDeAnuncio(a),
-    textoWhats: `Olá! Tenho interesse no imóvel "${tituloImovel(a)}" que vi no Help Floripa.`, editarHref: "negocios.html?tipo=imoveis"
-  }));
-  corpo.appendChild(rodape);
-  c.append(g, corpo);
-  return c;
-}
 function specsImovel(a) {
   const specs = el("div", "vt-specs");
   [["cama", a.quartos, "quartos"], ["banho", a.banheiros, "banheiros"], ["carro", a.vagas, "vagas"], ["area", a.area ? `${a.area}` : "", "m²"]].forEach(([ic, v, rot]) => {
@@ -1401,6 +1369,54 @@ function girar(trilho, slots) {
   pararGiro = () => { clearInterval(relogio); io.disconnect(); pararGiro = null; };
 }
 
+// ---------- Imóveis: grade compacta (3 por fileira no celular) ----------
+const ORDENS_IMOVEL = {
+  recentes: ["Recentes", (a, b) => tsMs(b.atualizadoEm || b.criadoEm) - tsMs(a.atualizadoEm || a.criadoEm)],
+  menor: ["Menor preço", (a, b) => (Number(a.preco) || Infinity) - (Number(b.preco) || Infinity)],
+  maior: ["Maior preço", (a, b) => (Number(b.preco) || 0) - (Number(a.preco) || 0)]
+};
+let ordemImovel = "recentes";
+function cartaoImovelMini(a) {
+  const c = el("article", "vt-imo");
+  const f = el("div", "ft");
+  f.style.backgroundImage = `url("${urlSegura((a.fotos || []).find(urlSegura)) || TEXTOS.imoveis.img}")`;
+  f.appendChild(el("span", "tag", FINALIDADE[a.finalidade] || "Imóvel"));
+  const nFotos = (a.fotos || []).filter(urlSegura).length;
+  if (nFotos > 1) { const s = el("span", "nf"); s.append(icone("foto", "vi s"), document.createTextNode(String(nFotos))); f.appendChild(s); }
+  const p = el("span", "pr", moeda(a.preco) || "Consultar");
+  if (moeda(a.preco) && a.finalidade === "aluguel") p.appendChild(el("small", null, "/mês"));
+  if (moeda(a.preco) && a.finalidade === "temporada") p.appendChild(el("small", null, "/dia"));
+  f.appendChild(p);
+  const tx = el("div", "tx");
+  tx.appendChild(el("strong", "nm", tituloImovel(a)));
+  const local = a.bairro || a.cidade;
+  if (local) { const s = el("span", "loc"); s.append(icone("pin", "vi s"), document.createTextNode(local)); tx.appendChild(s); }
+  const sp = el("div", "sp");
+  [["cama", a.quartos], ["carro", a.vagas], ["area", a.area ? `${a.area}m²` : ""]].forEach(([ic, v]) => {
+    if (!v) return;
+    const s = el("span"); s.append(icone(ic, "vi s"), document.createTextNode(String(v))); sp.appendChild(s);
+  });
+  if (sp.children.length) tx.appendChild(sp);
+  c.append(f, tx);
+  return tornarClicavel(c, () => abrirAnuncio(a), `Ver ${tituloImovel(a)}`);
+}
+// Título e ordenação da lista (Freelances e Imóveis usam o mesmo modelo).
+function topoLista(titulo, total, ordens, atual, aoMudar) {
+  const cab = el("div", "vt-lista-topo");
+  const tit = el("h3", "vt-titulo-lista", titulo);
+  tit.appendChild(el("span", "vt-conta", String(total)));
+  const ord = el("div", "vt-ordem");
+  ord.setAttribute("role", "group"); ord.setAttribute("aria-label", "Ordenar");
+  Object.entries(ordens).forEach(([k, [rot]]) => {
+    const b = el("button", null, rot); b.type = "button";
+    b.setAttribute("aria-pressed", k === atual ? "true" : "false");
+    b.addEventListener("click", () => aoMudar(k));
+    ord.appendChild(b);
+  });
+  cab.append(tit, ord);
+  return cab;
+}
+
 // Delivery: linha estilo app de comida (logo, nome, categoria, tempo e taxa)
 function linhaDelivery(n) {
   const c = el("article", "vt-linha-loja");
@@ -1473,7 +1489,7 @@ function renderizar() {
   pararGiro?.();
   grade.replaceChildren();
   dest.replaceChildren();
-  grade.className = "vt-grade " + ({ servicos: "pros", delivery: "lista-lojas", lojinha: "produtos", imoveis: "imoveis" }[TIPO] || "");
+  grade.className = "vt-grade " + ({ servicos: "pros", delivery: "lista-lojas", lojinha: "produtos", imoveis: "imos" }[TIPO] || "");
   const lista = todos.filter((n) => passaCategoria(n, cat) && (!termo || textoBusca(n).includes(termo)));
   const vazio = () => {
     const v = el("div", "vt-vazio");
@@ -1508,21 +1524,8 @@ function renderizar() {
     // 1) Destaques de cada categoria (revezando)  2) Grade compacta com todos, com ordenação
     const top = !filtrando && secaoDestaquesServ(lista);
     if (top) dest.appendChild(top);
-    const cab = el("div", "vt-lista-topo");
     cont.textContent = ""; // a contagem vai junto do título da lista
-    const tit = el("h3", "vt-titulo-lista", filtrando ? "Resultados" : "Todos os profissionais");
-    tit.appendChild(el("span", "vt-conta", String(lista.length)));
-    cab.appendChild(tit);
-    const ord = el("div", "vt-ordem");
-    ord.setAttribute("role", "group"); ord.setAttribute("aria-label", "Ordenar");
-    Object.entries(ORDENS_SERV).forEach(([k, [rot]]) => {
-      const b = el("button", null, rot); b.type = "button";
-      b.setAttribute("aria-pressed", k === ordemServ ? "true" : "false");
-      b.addEventListener("click", () => { ordemServ = k; renderizar(); });
-      ord.appendChild(b);
-    });
-    cab.appendChild(ord);
-    grade.appendChild(cab);
+    grade.appendChild(topoLista(filtrando ? "Resultados" : "Todos os profissionais", lista.length, ORDENS_SERV, ordemServ, (k) => { ordemServ = k; renderizar(); }));
     [...lista].sort(ORDENS_SERV[ordemServ][1]).forEach((n) => grade.appendChild(cartaoPro(n)));
   } else if (TIPO === "delivery") {
     const ordem = [...lista].sort((a, b) => (abertoAgora(b) === true) - (abertoAgora(a) === true));
@@ -1531,7 +1534,9 @@ function renderizar() {
     grade.appendChild(el("h3", "vt-titulo-lista", filtrando ? "Resultados" : "Todos os restaurantes"));
     ordem.forEach((n) => grade.appendChild(tornarClicavel(linhaDelivery(n), () => abrirDetalhe(n), `Ver ${n.nome}`)));
   } else {
-    lista.forEach((n) => grade.appendChild(tornarClicavel(cartaoImovel(n), () => abrirAnuncio(n), `Ver ${n.titulo || "imóvel"}`)));
+    cont.textContent = "";
+    grade.appendChild(topoLista(filtrando ? "Resultados" : "Todos os imóveis", lista.length, ORDENS_IMOVEL, ordemImovel, (k) => { ordemImovel = k; renderizar(); }));
+    [...lista].sort(ORDENS_IMOVEL[ordemImovel][1]).forEach((a) => grade.appendChild(cartaoImovelMini(a)));
   }
 }
 

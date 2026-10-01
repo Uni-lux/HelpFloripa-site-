@@ -7,7 +7,7 @@
 // =====================================================
 import { fotoSegura } from "./seguranca.js?v=1";
 import { definirPerfilMenu, definirBadgeMensagens } from "./menu.js?v=4";
-import { buscarReclamacoes } from "./avisos-reclamacoes.js?v=5";
+import { buscarReclamacoes } from "./avisos-reclamacoes.js?v=6";
 
 const $ = (id) => document.getElementById(id);
 
@@ -25,11 +25,6 @@ chips?.addEventListener("click", (e) => {
 
 // ---------- busca ----------
 $("searchForm")?.addEventListener("submit", (e) => e.preventDefault());
-$("btnBusca")?.addEventListener("click", () => {
-  const i = $("searchInput");
-  i?.scrollIntoView({ behavior: "smooth", block: "center" });
-  setTimeout(() => i?.focus({ preventScroll: true }), 250);
-});
 
 // ---------- topo: perfil e mensagens ----------
 const iniciais = (n) => { const p = String(n || "?").trim().split(/\s+/); return ((p[0]?.[0] || "?") + (p.length > 1 ? p[p.length - 1][0] : "")).toUpperCase(); };

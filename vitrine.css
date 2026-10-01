@@ -513,3 +513,36 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
   .vt-top .pe { font-size: 11.5px; }
 }
 @media (prefers-reduced-motion: reduce) { .vt-slot > *, .vt-pro { animation: none !important; } }
+
+/* =====================================================
+   Imóveis: grade compacta (3 por fileira no celular, 5 no computador)
+   ===================================================== */
+.vitrine[data-tipo="imoveis"] .vt-grade.imos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.vt-imo {
+  min-width: 0; display: flex; flex-direction: column; overflow: hidden; border-radius: 16px; cursor: pointer; background: var(--vt-card);
+  border: 1px solid var(--vt-line); transition: transform .2s, border-color .2s, box-shadow .2s; animation: vt-pro-entra .45s ease both;
+}
+.vt-imo:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--vc) 60%, var(--vt-line)); box-shadow: 0 12px 28px color-mix(in srgb, var(--vc) 18%, transparent); }
+.vt-imo:focus-visible { outline: 3px solid var(--vc); outline-offset: 2px; }
+.vt-imo .ft { position: relative; aspect-ratio: 1 / 1; background: #07170f center / cover no-repeat; }
+.vt-imo .ft::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 0, 0, .25) 0%, transparent 30%, transparent 50%, rgba(0, 0, 0, .78) 100%); }
+.vt-imo .tag { position: absolute; top: 6px; left: 6px; z-index: 1; padding: 3px 7px; border-radius: 999px; font-size: 10.5px; font-weight: 800; color: var(--vc-ink); background: var(--vc); }
+.vt-imo .nf { position: absolute; top: 6px; right: 6px; z-index: 1; display: inline-flex; align-items: center; gap: 3px; padding: 3px 6px; border-radius: 999px; font-size: 10.5px; font-weight: 700; color: #fff; background: rgba(0, 0, 0, .55); }
+.vt-imo .nf svg { width: 11px; height: 11px; }
+.vt-imo .pr { position: absolute; left: 8px; right: 6px; bottom: 6px; z-index: 1; color: #fff; font-size: 14px; font-weight: 900; letter-spacing: -.2px; text-shadow: 0 2px 8px rgba(0, 0, 0, .6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vt-imo .pr small { font-size: 10.5px; font-weight: 700; opacity: .9; }
+.vt-imo .tx { padding: 8px 8px 10px; display: grid; gap: 3px; }
+.vt-imo .nm { font-size: 12.5px; font-weight: 800; line-height: 1.25; min-height: 2.5em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.vt-imo .loc { display: flex; align-items: center; gap: 3px; min-width: 0; font-size: 11px; color: var(--vt-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vt-imo .loc svg, .vt-imo .sp svg { width: 12px; height: 12px; flex-shrink: 0; }
+.vt-imo .sp { display: flex; flex-wrap: wrap; gap: 4px 8px; font-size: 11px; font-weight: 700; color: var(--vt-text-2); }
+.vt-imo .sp span { display: inline-flex; align-items: center; gap: 3px; }
+@media (min-width: 700px) {
+  .vitrine[data-tipo="imoveis"] .vt-grade.imos { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  .vt-imo .ft { aspect-ratio: 4 / 3; }
+  .vt-imo .pr { font-size: 17px; }
+  .vt-imo .nm { font-size: 14px; }
+  .vt-imo .tx { padding: 10px 12px 12px; }
+}
+@media (min-width: 1000px) { .vitrine[data-tipo="imoveis"] .vt-grade.imos { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+@media (prefers-reduced-motion: reduce) { .vt-imo { animation: none !important; } }
