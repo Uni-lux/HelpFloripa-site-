@@ -1,6 +1,13 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js";
+
+// App Check: prova para o Firebase que o acesso vem do seu site (e não de um robô).
+// Usa o reCAPTCHA v3, que é grátis e funciona no plano Spark.
+// Cole aqui a CHAVE DO SITE do reCAPTCHA v3 (passo a passo no guia de segurança).
+// Enquanto estiver vazia, o site funciona normalmente, só que sem App Check.
+const RECAPTCHA_V3_SITE_KEY = "";
 
 const statusElement = document.getElementById("firebase-status");
 
@@ -20,6 +27,11 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+if (RECAPTCHA_V3_SITE_KEY) {
+  try {
+    initializeAppCheck(app, { provider: new ReCaptchaV3Provider(RECAPTCHA_V3_SITE_KEY), isTokenAutoRefreshEnabled: true });
+  } catch (e) { console.warn("[Firebase] App Check não iniciou:", e); }
+}
 const auth = getAuth(app);
 const db = getFirestore(app);
 
