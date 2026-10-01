@@ -237,15 +237,15 @@ function pintarPerfilMenu() {
   $("gavetaNick").textContent = visitante ? "Para anunciar, conversar e avaliar" : perfilMenu.nick ? "@" + perfilMenu.nick : "Ver e editar meu perfil";
   $("gavetaSair").hidden = visitante;
 }
+// Contador de mensagens não lidas no item "Mensagens" do menu.
+let naoLidas = 0;
 function atualizarBadgeMenu() {
-  const b = $("menuBadge"), t = $("badgeMensagens");
-  if (!b || !t) return;
-  if (b.hidden !== t.hidden) b.hidden = t.hidden;
-  if (b.textContent !== t.textContent) b.textContent = t.textContent;
+  const b = $("menuBadge");
+  if (!b) return;
+  b.hidden = !naoLidas;
+  b.textContent = naoLidas > 9 ? "9+" : String(naoLidas);
 }
+export function definirBadgeMensagens(n) { naoLidas = n; atualizarBadgeMenu(); }
 $("btnMenu")?.addEventListener("click", abrirGaveta);
-// O menu copia o contador de mensagens do topo.
-const badgeTopo = $("badgeMensagens");
-if (badgeTopo) new MutationObserver(atualizarBadgeMenu).observe(badgeTopo, { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ["hidden"] });
 // Chamado pelo topo quando o perfil carrega.
 export function definirPerfilMenu(p) { Object.assign(perfilMenu, p); pintarPerfilMenu(); }

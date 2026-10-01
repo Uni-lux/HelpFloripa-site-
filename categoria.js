@@ -1,11 +1,13 @@
 // =====================================================
 // Páginas de classe (serviços, delivery, shopping, imóveis)
-// - Topo: foto do perfil e contador de mensagens não lidas.
+// - Topo: foto do perfil e sino com o total de notificações novas
+//   (seguidores, estrelas, comentários, social, reclamações e mensagens).
 // - Categorias: marca a escolhida (a vitrine.js filtra a lista).
 // - Busca: o botão da lupa leva até o campo.
 // =====================================================
 import { fotoSegura } from "./seguranca.js?v=1";
-import { definirPerfilMenu } from "./menu.js?v=1";
+import { definirPerfilMenu, definirBadgeMensagens } from "./menu.js?v=2";
+import { buscarReclamacoes } from "./avisos-reclamacoes.js?v=1";
 
 const $ = (id) => document.getElementById(id);
 
@@ -33,6 +35,35 @@ $("btnBusca")?.addEventListener("click", () => {
 const iniciais = (n) => { const p = String(n || "?").trim().split(/\s+/); return ((p[0]?.[0] || "?") + (p.length > 1 ? p[p.length - 1][0] : "")).toUpperCase(); };
 const ms = (ts) => ts?.toMillis?.() ?? 0;
 
+// Avisos novos desde a última visita à página de notificações.
+// Mesmas fontes da página notificacoes.html (rede.js), sem ficar ouvindo em tempo real.
+async function contarAvisos(fs, db, uid) {
+  const chave = "hf-avisos-" + uid;
+  try { const c = JSON.parse(sessionStorage.getItem(chave) || "null"); if (c && Date.now() - c.em < 120000) return c.n; } catch {}
+  try {
+    const usuario = await fs.getDoc(fs.doc(db, "usuarios", uid));
+    const visto = ms(usuario.exists() ? usuario.data().notificacoesVistasEm : null);
+    const ler = (q) => fs.getDocs(fs.query(...q, fs.limit(60))).then((s) => s.docs.map((d) => d.data())).catch(() => []);
+    const col = (n) => fs.collection(db, n);
+    const [seg, curt, com, resp, vin, recl] = await Promise.all([
+      ler([col("relacoes"), fs.where("tipo", "==", "seguir"), fs.where("alvoId", "==", uid)]),
+      ler([col("curtidas"), fs.where("postAutorId", "==", uid)]),
+      ler([col("comentarios"), fs.where("postAutorId", "==", uid)]),
+      ler([col("comentarios"), fs.where("respostaAutorId", "==", uid)]),
+      ler([col("vinculos"), fs.where("participantes", "array-contains", uid)]),
+      buscarReclamacoes(fs, db, uid).catch(() => [])
+    ]);
+    const novo = (t) => t > visto;
+    let n = seg.filter((x) => novo(ms(x.criadoEm))).length;
+    n += curt.filter((x) => x.uid !== uid && Number(x.nota) > 0 && novo(Math.max(ms(x.criadoEm), ms(x.atualizadoEm)))).length;
+    n += [...com, ...resp.filter((r) => r.postAutorId !== uid)].filter((x) => x.autorId !== uid && novo(ms(x.criadoEm))).length;
+    n += vin.filter((v) => (v.status !== "aceito" && v.para === uid) || (v.status === "aceito" && v.de === uid && novo(ms(v.aceitoEm)))).length;
+    n += recl.filter((x) => novo(x.quando)).length;
+    try { sessionStorage.setItem(chave, JSON.stringify({ n, em: Date.now() })); } catch {}
+    return n;
+  } catch { return 0; }
+}
+
 async function iniciarTopo() {
   for (let i = 0; i < 100 && (!window.firebaseAuth || !window.firebaseDb); i++) await new Promise((r) => setTimeout(r, 50));
   if (!window.firebaseAuth) return;
@@ -49,7 +80,7 @@ async function iniciarTopo() {
       definirPerfilMenu({ logado: false });
       const link = $("topoAvatar")?.closest("a");
       if (link) { link.href = "login.html"; link.setAttribute("aria-label", "Entrar"); }
-      $("badgeMensagens")?.closest("a")?.setAttribute("href", "login.html");
+      $("badgeAvisos")?.closest("a")?.setAttribute("href", "login.html");
       return;
     }
     // Foto do perfil
@@ -65,16 +96,22 @@ async function iniciarTopo() {
         else av.textContent = iniciais(p.nome || u.displayName || u.email);
       }
     } catch {}
-    // Mensagens não lidas (mesma conta da página de mensagens)
+    // Sino: avisos novos (leitura única, guardada por 2 min) + mensagens não lidas (tempo real)
+    let avisosNovos = 0, mensagensNovas = 0;
+    const pintarSino = () => {
+      const n = avisosNovos + mensagensNovas, b = $("badgeAvisos");
+      if (b) { b.hidden = !n; b.textContent = n > 9 ? "9+" : String(n); }
+      definirBadgeMensagens(mensagensNovas);
+    };
+    contarAvisos(fs, db, u.uid).then((n) => { avisosNovos = n; pintarSino(); });
     const q = fs.query(fs.collection(db, "conversas"), fs.where("participantes", "array-contains", u.uid), fs.limit(60));
     parar = fs.onSnapshot(q, (snap) => {
-      const n = snap.docs.filter((d) => {
+      mensagensNovas = snap.docs.filter((d) => {
         const c = d.data({ serverTimestamps: "estimate" });
         const lido = Math.max(ms(c.lidoEm?.[u.uid]), ms(c.vistoEm?.[u.uid]), ms(c.ocultaPara?.[u.uid]));
         return !!c.ultimaMensagemRemetenteId && c.ultimaMensagemRemetenteId !== u.uid && ms(c.atualizadoEm) > lido;
       }).length;
-      const b = $("badgeMensagens");
-      if (b) { b.hidden = !n; b.textContent = n > 9 ? "9+" : String(n); }
+      pintarSino();
     }, () => {});
   });
 }
