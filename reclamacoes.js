@@ -11,9 +11,9 @@
 // - Sempre com o nome da pessoa, nunca "o negócio".
 // =====================================================
 import { fotoSegura, conferirEmail, emailPendente, MSG_EMAIL } from "./seguranca.js?v=1";
-import { estrelas } from "./avaliacoes.js?v=9";
-import { abrirQueixa, responderQueixa, resolverQueixa, semResposta, MOTIVOS, PRAZO_DIAS } from "./queixas.js?v=5";
-import { NOMES_TIPO, PAGINA_TIPO } from "./vitrine.js?v=24";
+import { estrelas } from "./avaliacoes.js?v=10";
+import { abrirQueixa, responderQueixa, resolverQueixa, semResposta, MOTIVOS, PRAZO_DIAS } from "./queixas.js?v=6";
+import { NOMES_TIPO, PAGINA_TIPO } from "./vitrine.js?v=25";
 
 const $ = (id) => document.getElementById(id);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
@@ -410,13 +410,18 @@ async function escolherNegocio() {
   fundo.addEventListener("click", (e) => { if (e.target === fundo) fechar(); });
   cab.appendChild(x);
   const lista = el("div", "rec-escolher-lista", "Carregando...");
-  caixa.append(cab, el("p", "ajuda", "Aparecem os negócios com quem você já conversou pelo chat do Help Floripa."), lista);
+  caixa.append(cab, el("p", "ajuda", "Aparecem os negócios com quem você já conversou pelo chat do Help Floripa ou que te mandaram o link de avaliação."), lista);
   fundo.appendChild(caixa);
   document.body.appendChild(fundo);
   document.body.style.overflow = "hidden";
   try {
     const conv = await fb.getDocs(fb.query(fb.collection(fb.db, "conversas"), fb.where("participantes", "array-contains", eu.uid), fb.limit(60)));
-    const outros = [...new Set(conv.docs.filter((d) => d.data().falaram?.[eu.uid]).map((d) => (d.data().participantes || []).find((x) => x !== eu.uid)).filter(Boolean))];
+    // Negócios com quem conversei pelo chat + os que me mandaram link de avaliação (WhatsApp).
+    const usados = await fb.getDocs(fb.query(fb.collection(fb.db, "convites"), fb.where("usadoPor", "==", eu.uid), fb.limit(30))).catch(() => ({ docs: [] }));
+    const outros = [...new Set([
+      ...conv.docs.filter((d) => d.data().falaram?.[eu.uid]).map((d) => (d.data().participantes || []).find((x) => x !== eu.uid)),
+      ...usados.docs.map((d) => d.data().donoId)
+    ].filter(Boolean))];
     const negs = [];
     for (let k = 0; k < outros.length; k += 30) {
       const s = await fb.getDocs(fb.query(fb.collection(fb.db, "negocios"), fb.where("donoId", "in", outros.slice(k, k + 30)))).catch(() => ({ docs: [] }));

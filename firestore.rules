@@ -113,6 +113,16 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/negocios/$(negocioId)).data.donoId;
     }
 
+    // Link de avaliação (convites/{codigo}) que o negócio mandou pelo WhatsApp e o cliente
+    // abriu: prova que o negócio atendeu essa pessoa (substitui a conversa no chat).
+    function conviteDe(codigo, cliente, negocioId) {
+      let c = /databases/$(database)/documents/convites/$(codigo);
+      return codigo is string
+          && existsAfter(c)
+          && getAfter(c).data.usadoPor == cliente
+          && getAfter(c).data.negocioId == negocioId;
+    }
+
 
     // =====================================================
     // DADOS PRIVADOS DOS USUÁRIOS
@@ -614,14 +624,14 @@ service cloud.firestore {
     //                          podem mais ser criados: pedir avaliação várias vezes para a
     //                          mesma pessoa não gera notas extras.
     // Para avaliar um negócio: e-mail confirmado, conta com 3 dias, os dois já escreveram
-    // na conversa, não é o dono, sem vínculo aceito no Social e sem bloqueio.
+    // na conversa (ou o cliente abriu o link de avaliação do negócio), não é o dono, sem vínculo aceito no Social e sem bloqueio.
     // n_ e c_ podem ser EDITADAS pelo autor (troca a nota no resumo, sem contar de novo).
     // =====================================================
     match /avaliacoes/{id} {
 
       function base() {
         let d = request.resource.data;
-        return d.keys().hasOnly(['tipo', 'autorId', 'autorNome', 'autorFoto', 'alvoId', 'negocioId', 'pedidoId', 'postId', 'nota', 'comentario', 'chaves', 'criadoEm'])
+        return d.keys().hasOnly(['tipo', 'autorId', 'autorNome', 'autorFoto', 'alvoId', 'negocioId', 'pedidoId', 'convite', 'postId', 'nota', 'comentario', 'chaves', 'criadoEm'])
             && d.autorId == request.auth.uid
             && d.nota is int && d.nota >= 1 && d.nota <= 5
             && valorTextoAte(d.get('comentario', ''), 500)
@@ -650,8 +660,8 @@ service cloud.firestore {
             && dono != eu
             && d.chaves == ['neg_' + d.negocioId]
             && contaAntiga(eu)
-            && falou(eu, dono, eu)
-            && falou(eu, dono, dono)
+            && ((falou(eu, dono, eu) && falou(eu, dono, dono))
+                || conviteDe(d.get('convite', null), eu, d.negocioId))
             && !vinculados(eu, dono)
             && !bloqueioEntre(eu, dono)
             && pedidoOk(d, eu, d.negocioId)
@@ -665,8 +675,8 @@ service cloud.firestore {
             && donoDoNegocio(d.negocioId) == eu
             && d.alvoId != eu
             && d.chaves == ['cli_' + d.alvoId]
-            && falou(eu, d.alvoId, eu)
-            && falou(eu, d.alvoId, d.alvoId)
+            && ((falou(eu, d.alvoId, eu) && falou(eu, d.alvoId, d.alvoId))
+                || conviteDe(d.get('convite', null), d.alvoId, d.negocioId))
             && !bloqueioEntre(eu, d.alvoId)
             && pedidoOk(d, d.alvoId, d.negocioId)
             && resumoAtualizado('cli_' + d.alvoId);
@@ -697,13 +707,16 @@ service cloud.firestore {
                     && emailOk()
                     && resource.data.autorId == request.auth.uid
                     && (id.matches('^n_.*') || id.matches('^c_.*'))
-                    && mudou().hasOnly(['nota', 'comentario', 'atualizadoEm', 'pedidoId'])
+                    && mudou().hasOnly(['nota', 'comentario', 'atualizadoEm', 'pedidoId', 'convite'])
                     && request.resource.data.nota is int && request.resource.data.nota >= 1 && request.resource.data.nota <= 5
                     && valorTextoAte(request.resource.data.get('comentario', ''), 500)
                     && request.resource.data.atualizadoEm == request.time
                     && (!mudou().hasAny(['pedidoId'])
                         || (!('pedidoId' in resource.data)
                             && pedidoOk(request.resource.data, id.matches('^n_.*') ? request.auth.uid : resource.data.alvoId, resource.data.negocioId)))
+                    && (!mudou().hasAny(['convite'])
+                        || (!('convite' in resource.data)
+                            && conviteDe(request.resource.data.convite, id.matches('^n_.*') ? request.auth.uid : resource.data.alvoId, resource.data.negocioId)))
                     && !bloqueioEntre(request.auth.uid, resource.data.alvoId)
                     // nota mudou: o resumo precisa trocar a nota antiga pela nova NESTA mesma gravação
                     && (request.resource.data.nota == resource.data.nota
@@ -832,6 +845,54 @@ service cloud.firestore {
 
 
     // =====================================================
+    // LINKS DE AVALIAÇÃO (atendimento pelo WhatsApp)
+    // convites/{codigo}: o negócio gera um link de uso único e manda ao cliente.
+    // O cliente que abre o link "pega" o convite (usadoPor = ele) e pode avaliar
+    // e reclamar daquele negócio, como se tivessem conversado no chat.
+    //   - o código é longo e aleatório (só quem recebeu o link conhece);
+    //   - vale 30 dias para ser usado; depois de usado, ninguém mais pega;
+    //   - continua valendo: uma avaliação por cliente em cada negócio.
+    // =====================================================
+    match /convites/{codigo} {
+
+      allow get: if logado();
+
+      allow list: if logado()
+                  && (resource.data.donoId == request.auth.uid
+                      || resource.data.usadoPor == request.auth.uid);
+
+      allow create: if logado()
+                    && emailOk()
+                    && codigo.matches('^[A-Za-z0-9]{20,40}$')
+                    && request.resource.data.keys().hasOnly(['negocioId', 'donoId', 'tipo', 'negocioNome', 'criadoEm', 'usadoPor', 'usadoEm'])
+                    && request.resource.data.donoId == request.auth.uid
+                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis']
+                    && request.resource.data.negocioId == request.auth.uid + '_' + request.resource.data.tipo
+                    && exists(/databases/$(database)/documents/negocios/$(request.resource.data.negocioId))
+                    && valorTextoAte(request.resource.data.get('negocioNome', ''), 80)
+                    && request.resource.data.criadoEm == request.time
+                    && request.resource.data.get('usadoPor', null) == null
+                    && request.resource.data.get('usadoEm', null) == null;
+
+      // O cliente pega o convite (uma vez só, em até 30 dias).
+      allow update: if logado()
+                    && emailOk()
+                    && resource.data.get('usadoPor', null) == null
+                    && resource.data.criadoEm > request.time - duration.value(30, 'd')
+                    && request.auth.uid != resource.data.donoId
+                    && mudou().hasOnly(['usadoPor', 'usadoEm'])
+                    && request.resource.data.usadoPor == request.auth.uid
+                    && request.resource.data.usadoEm == request.time
+                    && !bloqueioEntre(request.auth.uid, resource.data.donoId);
+
+      // O negócio cancela um link que ainda não foi usado.
+      allow delete: if logado()
+                    && resource.data.donoId == request.auth.uid
+                    && resource.data.get('usadoPor', null) == null;
+    }
+
+
+    // =====================================================
     // RECLAMAÇÕES ABERTAS PELO CLIENTE (separadas da nota)
     // queixas/{negocioId}_{cliente}: uma por cliente em cada negócio.
     //   - abrir: e-mail confirmado, conta com 3 dias, já mandou mensagem ao negócio
@@ -863,7 +924,7 @@ service cloud.firestore {
       allow create: if logado()
                     && emailOk()
                     && request.resource.data.keys().hasOnly(['negocioId', 'alvoId', 'autorId', 'autorNome', 'negocioNome', 'tipo', 'motivo', 'texto', 'foto',
-                                                              'status', 'abertaEm', 'criadoEm', 'aberturas', 'resposta', 'respondidaEm', 'resolvidaEm'])
+                                                              'status', 'abertaEm', 'criadoEm', 'aberturas', 'resposta', 'respondidaEm', 'resolvidaEm', 'convite'])
                     && request.resource.data.autorId == request.auth.uid
                     && id == request.resource.data.negocioId + '_' + request.auth.uid
                     && request.resource.data.alvoId == donoDoNegocio(request.resource.data.negocioId)
@@ -878,7 +939,8 @@ service cloud.firestore {
                     && request.resource.data.criadoEm == request.time
                     && request.resource.data.abertaEm == request.time
                     && contaAntiga(request.auth.uid)
-                    && falou(request.auth.uid, request.resource.data.alvoId, request.auth.uid)
+                    && (falou(request.auth.uid, request.resource.data.alvoId, request.auth.uid)
+                        || conviteDe(request.resource.data.get('convite', null), request.auth.uid, request.resource.data.negocioId))
                     && contou();
 
       allow update: if logado()

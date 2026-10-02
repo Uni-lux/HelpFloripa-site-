@@ -213,9 +213,9 @@
       obterPerfil, salvarImagem, iniciarRede, meusSeguindoPronto, carregarMeusSeguindo, alternarSeguir, botaoSeguir, linhaPessoa,
       removerSeguidor, bloquear, desbloquear, alternarRestricao, compartilharPerfil,
       barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail
-    } from "./rede.js?v=12";
-    import { notaDoPerfil, abrirDetalhamento, avaliarNegocio, avaliarCliente, lerResumo, estrelas, pintarEstrelas, media, notaTexto, TIPOS_NEGOCIO } from "./avaliacoes.js?v=9";
-    import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=24";
+    } from "./rede.js?v=13";
+    import { notaDoPerfil, abrirDetalhamento, avaliarNegocio, avaliarCliente, lerResumo, estrelas, pintarEstrelas, media, notaTexto, TIPOS_NEGOCIO } from "./avaliacoes.js?v=10";
+    import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=25";
 
     // ======================================================
     // Estado desta página (o resto vem de rede.js)
@@ -721,6 +721,34 @@
       } catch (e) { console.error(e); toast("Não foi possível abrir a avaliação: " + erroAmigavel(e)); }
     }
 
+    // Link de avaliação do negócio (usuarios.html?convite=CÓDIGO), mandado pelo WhatsApp.
+    // O primeiro cliente que abre pega o link; o dono, abrindo o próprio link já usado, avalia o cliente.
+    async function avaliarPorConvite(cod) {
+      try {
+        if (!/^[A-Za-z0-9]{20,40}$/.test(cod)) { toast("Link de avaliação inválido."); return; }
+        const ref = fb.doc(fb.db, "convites", cod);
+        const snap = await fb.getDoc(ref);
+        if (!snap.exists()) { toast("Link de avaliação não encontrado ou cancelado."); return; }
+        const cv = snap.data();
+        const autor = { nome: dados?.nome, foto: dados?.fotoPerfil };
+        if (cv.donoId === eu.uid) {
+          if (!cv.usadoPor) { toast("Este é o seu link de avaliação. Mande para o cliente pelo WhatsApp."); return; }
+          const outro = await obterPerfil(cv.usadoPor).catch(() => ({}));
+          await avaliarCliente(fb, eu, cv.negocioId, cv.usadoPor, { nomeCliente: outro?.nome || "cliente", convite: cod, autor, aoAvaliar: () => toast("Avaliação do cliente salva") });
+          return;
+        }
+        if (cv.usadoPor && cv.usadoPor !== eu.uid) { toast("Este link de avaliação já foi usado por outra pessoa. Peça um link novo ao negócio."); return; }
+        if (!cv.usadoPor) {
+          const criado = cv.criadoEm?.toMillis?.() || 0;
+          if (criado && Date.now() - criado > 30 * 864e5) { toast("Este link de avaliação expirou. Peça um link novo ao negócio."); return; }
+          if (!eu.emailVerified) { toast("Confirme seu e-mail para usar o link de avaliação."); return; }
+          await fb.updateDoc(ref, { usadoPor: eu.uid, usadoEm: fb.serverTimestamp() });
+        }
+        const neg = await fb.getDoc(fb.doc(fb.db, "negocios", cv.negocioId)).then((s) => (s.exists() ? { id: s.id, ...s.data() } : null)).catch(() => null);
+        await avaliarNegocio(fb, eu, neg || { id: cv.negocioId, donoId: cv.donoId, tipo: cv.tipo, nome: cv.negocioNome }, { autor, aoAvaliar: (n, editou) => toast(editou ? "Avaliação atualizada" : "Obrigado pela avaliação!") });
+      } catch (e) { console.error(e); toast("Não foi possível abrir a avaliação: " + erroAmigavel(e)); }
+    }
+
     // ======================================================
     // Perfil de outra pessoa
     // ======================================================
@@ -1215,6 +1243,8 @@
       if (params.get("acao") === "editar") { history.replaceState(null, "", "usuarios.html"); abrirEditar(); }
       const avaliarPedido = params.get("avaliar");
       if (avaliarPedido) { history.replaceState(null, "", "usuarios.html"); avaliarPorLink(avaliarPedido); }
+      const convite = params.get("convite");
+      if (convite) { history.replaceState(null, "", "usuarios.html"); avaliarPorConvite(convite); }
       const perfilPedido = params.get("perfil");
       if (perfilPedido) { history.replaceState(null, "", "usuarios.html"); abrirPerfilPublico(perfilPedido); }
     }

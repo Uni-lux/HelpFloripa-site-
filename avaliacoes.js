@@ -6,7 +6,8 @@
 //     d_{post}_{uid}         alguém avalia uma publicação (1 vez por publicação)
 //     p_{pedido}_c / p_{pedido}_v: modelo antigo (1 por pedido), só leitura — continuam contando.
 // Quem pode avaliar um negócio (conferido aqui e nas regras do Firestore):
-//   - conversou com o dono pelo chat e o dono respondeu (conversas.falaram);
+//   - conversou com o dono pelo chat e o dono respondeu (conversas.falaram),
+//     OU abriu o link de avaliação que o negócio mandou pelo WhatsApp (convites/);
 //   - e-mail confirmado e conta com pelo menos 3 dias;
 //   - não é o dono, não tem vínculo aceito no Social com ele e não há bloqueio.
 // Pedido de avaliação enviado pelo negócio só marca "Atendimento confirmado": não libera notas extras.
@@ -95,6 +96,7 @@ export async function avaliar(fbx, euX, id, dados, chaves, autor = {}) {
     if (antes) {
       const mud = { nota, comentario, atualizadoEm: fbx.serverTimestamp() };
       if (dados.pedidoId && !antes.pedidoId) mud.pedidoId = dados.pedidoId;
+      if (dados.convite && !antes.convite) mud.convite = dados.convite;
       tx.update(refAval, mud);
       if (antes.nota !== nota) refs.forEach((r, i) => {
         const a = atuais[i].exists() ? atuais[i].data() : null;
@@ -129,15 +131,18 @@ export async function podeAvaliarNegocio(fbx, euX, n, { exigirResposta = true } 
   if (donoId === euX.uid) return { ok: false, motivo: "Você não pode avaliar o seu próprio negócio." };
   if (!euX.emailVerified) return { ok: false, motivo: "Confirme seu e-mail para avaliar ou reclamar." };
   const nome = n.nome || "este negócio";
-  const [usuario, conversa, vinculo, bloq1, bloq2, existente, legado] = await Promise.all([
+  const [usuario, conversa, vinculo, bloq1, bloq2, existente, legado, convites] = await Promise.all([
     fbx.getDoc(fbx.doc(fbx.db, "usuarios", euX.uid)).catch(() => null),
     fbx.getDoc(fbx.doc(fbx.db, "conversas", idConversa(euX.uid, donoId))).catch(() => null),
     fbx.getDoc(fbx.doc(fbx.db, "vinculos", idConversa(euX.uid, donoId))).catch(() => null),
     fbx.getDoc(fbx.doc(fbx.db, "bloqueios", `${euX.uid}_${donoId}`)).catch(() => null),
     fbx.getDoc(fbx.doc(fbx.db, "bloqueios", `${donoId}_${euX.uid}`)).catch(() => null),
     fbx.getDoc(fbx.doc(fbx.db, "avaliacoes", `n_${negocioId}_${euX.uid}`)).catch(() => null),
-    fbx.getDocs(fbx.query(fbx.collection(fbx.db, "avaliacoes"), fbx.where("autorId", "==", euX.uid), fbx.where("negocioId", "==", negocioId), fbx.limit(5))).catch(() => ({ docs: [] }))
+    fbx.getDocs(fbx.query(fbx.collection(fbx.db, "avaliacoes"), fbx.where("autorId", "==", euX.uid), fbx.where("negocioId", "==", negocioId), fbx.limit(5))).catch(() => ({ docs: [] })),
+    fbx.getDocs(fbx.query(fbx.collection(fbx.db, "convites"), fbx.where("usadoPor", "==", euX.uid), fbx.where("negocioId", "==", negocioId), fbx.limit(1))).catch(() => ({ docs: [] }))
   ]);
+  // Link de avaliação do negócio (atendimento pelo WhatsApp) vale como a conversa no chat.
+  const convite = convites.docs[0]?.id || "";
   const criado = usuario?.exists() ? usuario.data().criadoEm?.toMillis?.() : 0;
   if (usuario?.exists() && !criado) {
     // Cadastro antigo sem a data: começa a contar agora (as regras só aceitam a data de agora).
@@ -151,14 +156,14 @@ export async function podeAvaliarNegocio(fbx, euX, n, { exigirResposta = true } 
   if (bloq1?.exists() || bloq2?.exists()) return { ok: false, motivo: "Não é possível avaliar: há um bloqueio entre vocês." };
   if (vinculo?.exists() && vinculo.data().status === "aceito") return { ok: false, motivo: "Vocês estão ligados no Social. Para ser justo, avaliações entre conhecidos não contam." };
   const falaram = conversa?.exists() ? conversa.data().falaram || {} : {};
-  if (!falaram[euX.uid] || (exigirResposta && !falaram[donoId])) {
+  if (!convite && (!falaram[euX.uid] || (exigirResposta && !falaram[donoId]))) {
     return { ok: false, motivo: exigirResposta
-      ? `Para avaliar, converse com ${nome} pelo chat do Help Floripa e espere a resposta. Assim só avalia quem foi atendido de verdade.`
+      ? `Para avaliar, converse com ${nome} pelo chat do Help Floripa e espere a resposta, ou peça ao negócio o link de avaliação (ele pode mandar pelo WhatsApp). Assim só avalia quem foi atendido de verdade.`
       : `Para reclamar, mande antes uma mensagem para ${nome} pelo chat do Help Floripa.` };
   }
   if (legado.docs.some((d) => d.id.startsWith("p_") && d.data().tipo === "negocio")) return { ok: false, motivo: "Você já avaliou este negócio." };
   const ex = existente?.exists() ? existente.data() : null;
-  return { ok: true, existente: ex, negocioId, donoId };
+  return { ok: true, existente: ex, negocioId, donoId, convite };
 }
 
 // Fluxo completo de "Avaliar" um negócio (perfil, chat ou link). pedidoId marca "Atendimento confirmado".
@@ -174,6 +179,7 @@ export async function avaliarNegocio(fbx, euX, n, { pedidoId = "", autor = {}, a
     aoEnviar: async ({ nota, comentario }) => {
       const dados = { tipo: "negocio", alvoId: r.donoId, negocioId: r.negocioId, nota, comentario };
       if (pedidoId) dados.pedidoId = pedidoId;
+      if (r.convite) dados.convite = r.convite;
       await avaliar(fbx, euX, `n_${r.negocioId}_${euX.uid}`, dados, [`neg_${r.negocioId}`], autor);
       aoAvaliar?.(nota, !!ex);
     }
@@ -181,7 +187,7 @@ export async function avaliarNegocio(fbx, euX, n, { pedidoId = "", autor = {}, a
   return true;
 }
 // Negócio avalia o cliente: também uma por cliente em cada negócio (pode editar).
-export async function avaliarCliente(fbx, euX, negocioId, clienteId, { nomeCliente = "cliente", pedidoId = "", autor = {}, aoAvaliar } = {}) {
+export async function avaliarCliente(fbx, euX, negocioId, clienteId, { nomeCliente = "cliente", pedidoId = "", convite = "", autor = {}, aoAvaliar } = {}) {
   let ex = null;
   try { const s = await fbx.getDoc(fbx.doc(fbx.db, "avaliacoes", `c_${negocioId}_${clienteId}`)); ex = s.exists() ? s.data() : null; } catch {}
   abrirAvaliar({
@@ -191,6 +197,7 @@ export async function avaliarCliente(fbx, euX, negocioId, clienteId, { nomeClien
     aoEnviar: async ({ nota, comentario }) => {
       const dados = { tipo: "cliente", alvoId: clienteId, negocioId, nota, comentario };
       if (pedidoId) dados.pedidoId = pedidoId;
+      if (convite) dados.convite = convite;
       await avaliar(fbx, euX, `c_${negocioId}_${clienteId}`, dados, [`cli_${clienteId}`], autor);
       aoAvaliar?.(nota, !!ex);
     }
@@ -198,6 +205,46 @@ export async function avaliarCliente(fbx, euX, negocioId, clienteId, { nomeClien
 }
 export async function jaAvaliou(fbx, id) {
   try { return (await fbx.getDoc(fbx.doc(fbx.db, "avaliacoes", id))).exists(); } catch { return false; }
+}
+// ---------- link de avaliação para quem atende pelo WhatsApp ----------
+// O negócio gera um link de uso único (convites/{codigo}) e manda ao cliente. Quem abrir
+// primeiro "pega" o link e pode avaliar (e reclamar) como se tivessem conversado no chat.
+export const linkConvite = (codigo) => `${location.origin}/usuarios.html?convite=${codigo}`;
+function codigoNovo() {
+  const abc = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const v = crypto.getRandomValues(new Uint8Array(24));
+  return Array.from(v, (x) => abc[x % abc.length]).join("");
+}
+// n: o negócio (id, tipo, nome). Cria o link e mostra a janela com WhatsApp e Copiar.
+export async function pedirAvaliacaoWhats(fbx, euX, n) {
+  const codigo = codigoNovo();
+  const tipo = n.tipo || String(n.id || "").split("_").pop();
+  await fbx.setDoc(fbx.doc(fbx.db, "convites", codigo), {
+    negocioId: n.id || `${euX.uid}_${tipo}`, donoId: euX.uid, tipo, negocioNome: String(n.nome || "").slice(0, 80),
+    criadoEm: fbx.serverTimestamp(), usadoPor: null, usadoEm: null
+  });
+  const link = linkConvite(codigo);
+  const texto = `Olá! Obrigado por escolher ${n.nome || "a gente"}. Pode avaliar o atendimento no Help Floripa? Leva 10 segundos: ${link}`;
+  const { caixa, fechar } = janela();
+  topo(caixa, "Link de avaliação", "Para clientes que você atendeu pelo WhatsApp ou pessoalmente.", fechar);
+  const info = document.createElement("p");
+  info.style.color = "inherit"; info.style.lineHeight = "1.5";
+  info.textContent = "O link é de uso único: vale para o primeiro cliente que abrir, por 30 dias. Cada cliente avalia seu negócio uma vez só (pode atualizar a nota depois). Gere um link novo para cada cliente.";
+  const caixaLink = document.createElement("input");
+  caixaLink.readOnly = true; caixaLink.value = link; caixaLink.setAttribute("aria-label", "Link de avaliação");
+  Object.assign(caixaLink.style, { width: "100%", boxSizing: "border-box", padding: "10px 12px", borderRadius: "12px", border: "1px solid var(--line, #22313a)", background: "var(--panel-2, #162128)", color: "inherit", font: "inherit", fontSize: "13px" });
+  caixaLink.addEventListener("focus", () => caixaLink.select());
+  const acoes = document.createElement("div"); acoes.className = "acoes";
+  const copiar = document.createElement("button"); copiar.type = "button"; copiar.className = "sec"; copiar.textContent = "Copiar link";
+  copiar.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(link); } catch { caixaLink.select(); document.execCommand?.("copy"); }
+    copiar.textContent = "Copiado ✓";
+  });
+  const zap = document.createElement("a"); zap.className = "pri"; zap.textContent = "Enviar pelo WhatsApp";
+  zap.href = `https://wa.me/?text=${encodeURIComponent(texto)}`; zap.target = "_blank"; zap.rel = "noopener";
+  acoes.append(copiar, zap);
+  caixa.append(info, caixaLink, acoes);
+  return codigo;
 }
 export const linkAvaliacao = (pedidoId) => `${location.origin}/usuarios.html?avaliar=${encodeURIComponent(pedidoId)}`;
 export function whatsAvaliacao(pedidoId, nomeNegocio) {
@@ -458,7 +505,7 @@ export async function abrirDetalhamento({ fbx, titulo = "Avaliações", sub, ger
         if (a.autorId) fbx.getDoc(fbx.doc(fbx.db, "perfis_publicos", a.autorId)).then((s) => { const n = s.exists() && s.data().nome; if (n) nome.textContent = n; }).catch(() => {});
         const info = document.createElement("span");
         const data = a.criadoEm?.toDate?.();
-        info.textContent = [a.pedidoId ? "✓ Atendimento confirmado" : rot[a.tipo], data ? data.toLocaleDateString("pt-BR") : "", a.atualizadoEm ? "editada" : ""].filter(Boolean).join(" · ");
+        info.textContent = [a.pedidoId || a.convite ? "✓ Atendimento confirmado" : rot[a.tipo], data ? data.toLocaleDateString("pt-BR") : "", a.atualizadoEm ? "editada" : ""].filter(Boolean).join(" · ");
         quem.append(nome, info);
         c.appendChild(quem);
         c.appendChild(estrelas({ total: 1, soma: a.nota }, { soEstrelas: true }));

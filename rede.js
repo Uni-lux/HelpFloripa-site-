@@ -10,8 +10,8 @@
 // =====================================================
 import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=5";
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
-import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=12";
-import "./painel-avisos.js?v=5"; // o sino abre o painel de notificações na própria página
+import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=13";
+import "./painel-avisos.js?v=6"; // o sino abre o painel de notificações na própria página
 
 // ---------- ícones ----------
 const SIMBOLOS = `<symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 01-1.5 1.5H15v-6h-6v6H5.5A1.5 1.5 0 014 19z"/></symbol>

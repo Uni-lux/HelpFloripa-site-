@@ -9,7 +9,7 @@
 // negócio pelo chat (o negócio não precisa ter respondido — quem some também pode
 // receber reclamação). As regras do Firestore conferem tudo isso.
 // =====================================================
-import { podeAvaliarNegocio, avisar, DIAS_CONTA } from "./avaliacoes.js?v=9";
+import { podeAvaliarNegocio, avisar, DIAS_CONTA } from "./avaliacoes.js?v=10";
 
 export const MOTIVOS = {
   atraso: "Atraso ou prazo não cumprido",
@@ -40,7 +40,7 @@ async function reduzirFoto(arquivo) {
 }
 
 // Grava (ou reabre) a reclamação e a cota na mesma transação.
-async function gravar(fbx, euX, n, { motivo, texto, foto }, autor) {
+async function gravar(fbx, euX, n, { motivo, texto, foto }, autor, convite = "") {
   const negocioId = n.id || `${n.donoId}_${n.tipo}`;
   const ref = fbx.doc(fbx.db, "queixas", `${negocioId}_${euX.uid}`);
   const refCota = fbx.doc(fbx.db, "cotas", euX.uid);
@@ -57,7 +57,8 @@ async function gravar(fbx, euX, n, { motivo, texto, foto }, autor) {
     else tx.set(ref, {
       ...base, negocioId, alvoId: n.donoId, autorId: euX.uid,
       autorNome: String(autor.nome || "").slice(0, 80), negocioNome: String(n.nome || "").slice(0, 80),
-      tipo: n.tipo, aberturas: 1, criadoEm: fbx.serverTimestamp()
+      tipo: n.tipo, aberturas: 1, criadoEm: fbx.serverTimestamp(),
+      ...(convite ? { convite } : {})
     });
   });
   return negocioId;
@@ -133,7 +134,7 @@ export async function abrirQueixa(fbx, euX, n, { autor = {}, aoAbrir } = {}) {
   env.addEventListener("click", async () => {
     env.disabled = true; env.textContent = "Enviando...";
     try {
-      const id = await gravar(fbx, euX, n, { motivo, texto: txt.value.trim().slice(0, 1000), foto }, autor);
+      const id = await gravar(fbx, euX, n, { motivo, texto: txt.value.trim().slice(0, 1000), foto }, autor, pode.convite);
       fechar(); aoAbrir?.(id);
     } catch (e) {
       env.disabled = false; env.textContent = atual ? "Reabrir reclamação" : "Enviar reclamação";

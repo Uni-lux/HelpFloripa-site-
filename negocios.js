@@ -9,9 +9,9 @@
 import {
   $, el, icone, pintarAvatar, urlSegura, nomeCidade, toast, erroAmigavel, abrirFolha, fecharFolha,
   fb, eu, dados, salvarImagem, editarImagem, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos
-} from "./rede.js?v=12";
-import { lerResumos, estrelas, media, notaTexto } from "./avaliacoes.js?v=9";
-import { buscarAnuncios, DIAS, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO } from "./vitrine.js?v=24";
+} from "./rede.js?v=13";
+import { lerResumos, estrelas, media, notaTexto, pedirAvaliacaoWhats } from "./avaliacoes.js?v=10";
+import { buscarAnuncios, DIAS, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO } from "./vitrine.js?v=25";
 
 const NEGOCIOS = {
   servicos: { rotulo: "Freelances", img: "servicos.webp", pagina: "servicos.html", desc: "Portfólio, preços, horários e pedidos de orçamento." },
@@ -84,6 +84,16 @@ function pintarPainel() {
     const bV = el("a", "btn sec mini"); bV.append(icone("olho", "i xs"), document.createTextNode("Ver na vitrine"));
     bV.href = tipo === "imoveis" ? "imoveis.html" : `${PAGINA_TIPO[tipo]}?negocio=${encodeURIComponent(n.id)}`;
     acoes.append(bE, bV);
+    // Link de avaliação para quem foi atendido pelo WhatsApp ou pessoalmente.
+    const bA = el("button", "btn sec mini"); bA.type = "button"; bA.append(icone("estrela", "i xs"), document.createTextNode("Pedir avaliação"));
+    bA.title = "Gera um link para o cliente avaliar (mande pelo WhatsApp)";
+    bA.addEventListener("click", async () => {
+      bA.disabled = true;
+      try { await pedirAvaliacaoWhats(fb, eu, n); }
+      catch (e) { console.error(e); toast("Não foi possível gerar o link: " + erroAmigavel(e)); }
+      finally { bA.disabled = false; }
+    });
+    acoes.appendChild(bA);
     if (rec.total) {
       const bR = el("a", "btn sec mini"); bR.append(icone("alerta", "i xs"), document.createTextNode(rec.pendentes ? `Responder (${rec.pendentes})` : "Reclamações"));
       bR.href = `reclamacoes.html?negocio=${encodeURIComponent(n.id)}`;
