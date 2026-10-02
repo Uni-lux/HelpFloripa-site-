@@ -56,9 +56,8 @@ body[data-classe="inicio"] { --classe: #00adee; --classe-2: #7de3ff; --classe-in
 }
 .busca-geral select option { color: var(--text); background: var(--panel); }
 .busca-geral input { min-width: 0; flex: 1 1 auto; text-overflow: ellipsis; }
-.busca-geral .busca button { width: 46px; height: 46px; padding: 0; display: grid; place-items: center; border-radius: 50%; background: var(--b); box-shadow: 0 8px 22px color-mix(in srgb, var(--b) 45%, transparent); }
+.busca-geral .busca button { background: var(--b); }
 .busca-geral .busca button span { display: none; }
-.busca-geral .busca button svg { width: 22px; height: 22px; }
 
 @media (min-width: 900px) {
   .hero-home { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); }

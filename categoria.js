@@ -8,6 +8,7 @@
 import { fotoSegura } from "./seguranca.js?v=1";
 import { definirPerfilMenu, definirBadgeMensagens } from "./menu.js?v=4";
 import { buscarReclamacoes } from "./avisos-reclamacoes.js?v=9";
+import "./painel-avisos.js?v=3"; // o sino abre o painel de notificações na própria página
 
 const $ = (id) => document.getElementById(id);
 
@@ -99,6 +100,7 @@ async function iniciarTopo() {
       definirBadgeMensagens(mensagensNovas);
     };
     contarAvisos(fs, db, u.uid).then((n) => { avisosNovos = n; pintarSino(); });
+    addEventListener("hf:avisos-vistos", () => { avisosNovos = 0; pintarSino(); });
     const q = fs.query(fs.collection(db, "conversas"), fs.where("participantes", "array-contains", u.uid), fs.limit(60));
     parar = fs.onSnapshot(q, (snap) => {
       mensagensNovas = snap.docs.filter((d) => {
