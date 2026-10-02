@@ -10,8 +10,8 @@
 // =====================================================
 import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=5";
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
-import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=11";
-import "./painel-avisos.js?v=4"; // o sino abre o painel de notificações na própria página
+import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=12";
+import "./painel-avisos.js?v=5"; // o sino abre o painel de notificações na própria página
 
 // ---------- ícones ----------
 const SIMBOLOS = `<symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 01-1.5 1.5H15v-6h-6v6H5.5A1.5 1.5 0 014 19z"/></symbol>
@@ -718,6 +718,8 @@ export function montarComentarios(alvo, post, { aoMudar } = {}) {
     const topo = el("div", "bolha-topo");
     const nm = el("strong", null, c.nome || "Usuário"); nm.addEventListener("click", () => ganchos.abrirPerfil(c.autorId));
     topo.appendChild(nm);
+    // Nome e foto gravados no comentário são escritos por quem comentou: mostra os do perfil.
+    obterPerfil(c.autorId).then((p) => { if (p.nome) nm.textContent = p.nome; if (p.nome || p.fotoPerfil) pintarAvatar(av, p.fotoPerfil || c.foto, p.nome || c.nome); });
     if (paraQuem) topo.appendChild(el("span", "para", `para ${paraQuem.nome || "usuário"}`));
     if (c.oculto) topo.appendChild(el("span", "etiqueta", meu && !dono ? "Oculto pelo autor da publicação" : "Oculto"));
     const texto = el("p", null, c.texto);

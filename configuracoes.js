@@ -7,7 +7,7 @@ import {
   $, pintarAvatar, toast, erroAmigavel, abrirFolha, fecharFolha, abrirLista, config, salvarConfig, aplicarTema,
   fb, authFns, eu, refUsuario, dados, perfis, meusBloqueios, restritos, obterPerfil, linhaPessoa,
   desbloquear, alternarRestricao, marcarPresenca, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos
-} from "./rede.js?v=11";
+} from "./rede.js?v=12";
 
 function pintarConfig() {
   pintarAvatar($("cfgAvatar"), dados.fotoPerfil, dados.nome);

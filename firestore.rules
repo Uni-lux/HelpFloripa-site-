@@ -461,9 +461,10 @@ service cloud.firestore {
                 && valorTextoAte(c.get('titulo', ''), 120));
       }
 
+      // Conversa ainda não criada: só quem faz parte dela (o id tem os dois uids) pode consultar.
       allow get: if logado()
-                 && (resource == null
-                     || request.auth.uid in resource.data.participantes);
+                 && ((resource == null && request.auth.uid in conversaId.split('_'))
+                     || (resource != null && request.auth.uid in resource.data.participantes));
 
       allow list: if logado()
                   && request.auth.uid in resource.data.participantes;
@@ -704,8 +705,12 @@ service cloud.firestore {
                         || (!('pedidoId' in resource.data)
                             && pedidoOk(request.resource.data, id.matches('^n_.*') ? request.auth.uid : resource.data.alvoId, resource.data.negocioId)))
                     && !bloqueioEntre(request.auth.uid, resource.data.alvoId)
+                    // nota mudou: o resumo precisa trocar a nota antiga pela nova NESTA mesma gravação
                     && (request.resource.data.nota == resource.data.nota
-                        || getAfter(/databases/$(database)/documents/notas/$(resource.data.chaves[0])).data.ultima == id);
+                        || (getAfter(/databases/$(database)/documents/notas/$(resource.data.chaves[0])).data.ultima == id
+                            && getAfter(/databases/$(database)/documents/notas/$(resource.data.chaves[0])).data.soma
+                               == get(/databases/$(database)/documents/notas/$(resource.data.chaves[0])).data.soma
+                                  - resource.data.nota + request.resource.data.nota));
 
       allow delete: if false;
     }
@@ -765,6 +770,7 @@ service cloud.firestore {
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['soma', 'ultima', 'atualizadoEm', 'n' + string(antes.nota), 'n' + string(depois.nota)])
             && request.resource.data.total == resource.data.total
             && request.resource.data.soma == resource.data.soma - antes.nota + depois.nota
+            && resource.data.get('n' + string(antes.nota), 0) >= 1
             && request.resource.data['n' + string(antes.nota)] == resource.data.get('n' + string(antes.nota), 0) - 1
             && request.resource.data['n' + string(depois.nota)] == resource.data.get('n' + string(depois.nota), 0) + 1;
       }
