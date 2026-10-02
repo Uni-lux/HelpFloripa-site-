@@ -1,15 +1,19 @@
 // =====================================================
 // Reclamações do Help Floripa
-// - Reclamação = avaliação com 1 ou 2 estrelas dada a um perfil que oferece
-//   serviços, delivery, loja ou imóveis. Avaliações de publicações não entram.
+// - Dois tipos de reclamação aparecem aqui:
+//   1) aberta pelo cliente (queixas/{negocio}_{cliente}): motivo, relato e foto;
+//      o negócio tem 7 dias para responder ("Sem resposta" depois disso);
+//   2) avaliação com 1 ou 2 estrelas dada a um perfil de negócio (modelo antigo, continua valendo).
+// - Botão "Abrir reclamação": escolhe um negócio com quem a pessoa conversou no chat.
 // - Quem recebeu responde publicamente (reclamacoes/{id da avaliação}) e o
 //   cliente que reclamou marca como resolvida.
 // - Painel de cada pessoa (?pessoa=uid): reclamações recebidas e enviadas.
 // - Sempre com o nome da pessoa, nunca "o negócio".
 // =====================================================
 import { fotoSegura, conferirEmail, emailPendente, MSG_EMAIL } from "./seguranca.js?v=1";
-import { estrelas } from "./avaliacoes.js?v=4";
-import { NOMES_TIPO, PAGINA_TIPO } from "./vitrine.js?v=22";
+import { estrelas } from "./avaliacoes.js?v=8";
+import { abrirQueixa, responderQueixa, resolverQueixa, semResposta, MOTIVOS, PRAZO_DIAS } from "./queixas.js?v=4";
+import { NOMES_TIPO, PAGINA_TIPO } from "./vitrine.js?v=23";
 
 const $ = (id) => document.getElementById(id);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
@@ -40,7 +44,9 @@ function toast(t) {
   setTimeout(() => d.remove(), 3200);
 }
 const tipoDe = (r) => negocios.get(r.negocioId)?.tipo || String(r.negocioId || "").split("_").pop();
-const estado = (r) => { const s = respostas.get(r.id); return s?.resolvido ? "resolvida" : s ? "respondida" : "pendente"; };
+const estado = (r) => { const s = respostas.get(r.id); return s?.resolvido ? "resolvida" : s?.texto ? "respondida" : "pendente"; };
+const ehQueixa = (r) => r.origem === "queixa";
+const atrasada = (r) => ehQueixa(r) && semResposta(r.dados);
 
 // ---------- quem é quem ----------
 function alvo(r) {
@@ -79,13 +85,20 @@ function linkVitrine(r) {
 // ---------- carregar ----------
 async function carregar() {
   const col = fb.collection(fb.db, "avaliacoes");
-  const [n1, n2, resp] = await Promise.all([
+  const [n1, n2, resp, qx] = await Promise.all([
     fb.getDocs(fb.query(col, fb.where("tipo", "==", "negocio"), fb.where("nota", "==", 1), fb.limit(300))),
     fb.getDocs(fb.query(col, fb.where("tipo", "==", "negocio"), fb.where("nota", "==", 2), fb.limit(300))),
-    fb.getDocs(fb.query(fb.collection(fb.db, "reclamacoes"), fb.limit(600))).catch(() => ({ docs: [] }))
+    fb.getDocs(fb.query(fb.collection(fb.db, "reclamacoes"), fb.limit(600))).catch(() => ({ docs: [] })),
+    fb.getDocs(fb.query(fb.collection(fb.db, "queixas"), fb.limit(400))).catch(() => ({ docs: [] }))
   ]);
-  todas = [...n1.docs, ...n2.docs].map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
   resp.docs.forEach((d) => respostas.set(d.id, d.data()));
+  // Reclamações abertas pelo cliente: mesmo formato das outras para a lista e os painéis.
+  const queixas = qx.docs.map((d) => {
+    const q = d.data(), id = "q_" + d.id;
+    if (q.resposta || q.status === "resolvida") respostas.set(id, { texto: q.resposta || "", criadoEm: q.respondidaEm, resolvido: q.status === "resolvida", resolvidoEm: q.resolvidaEm, autorId: q.alvoId });
+    return { id, qid: d.id, origem: "queixa", dados: q, negocioId: q.negocioId, alvoId: q.alvoId, autorId: q.autorId, autorNome: q.autorNome, nota: 0, comentario: q.texto, motivo: q.motivo, foto: q.foto, criadoEm: q.abertaEm || q.criadoEm };
+  });
+  todas = [...n1.docs.map((d) => ({ id: d.id, ...d.data() })), ...n2.docs.map((d) => ({ id: d.id, ...d.data() })), ...queixas].sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
   const ids = [...new Set(todas.map((r) => r.negocioId).filter(Boolean))];
   const uids = [...new Set([...todas.flatMap((r) => [r.alvoId, r.autorId]), pessoa, eu.uid].filter(Boolean))];
   await Promise.all([
@@ -121,7 +134,7 @@ function filtradas() {
 
 // ---------- painéis ----------
 function numeros(lista) {
-  const resp = lista.filter((r) => respostas.has(r.id)).length;
+  const resp = lista.filter((r) => respostas.get(r.id)?.texto).length;
   const resolv = lista.filter((r) => respostas.get(r.id)?.resolvido).length;
   return { total: lista.length, resp, resolv, pend: lista.length - resp, pct: lista.length ? `${Math.round((resp / lista.length) * 100)}%` : "–" };
 }
@@ -182,24 +195,25 @@ function cartao(r) {
   const c = el("article", "rec-card");
   c.tabIndex = 0;
   c.setAttribute("role", "button");
-  c.setAttribute("aria-label", `Reclamação de ${chamar(b)} para ${chamar(a)}, ${r.nota} ${r.nota === 1 ? "estrela" : "estrelas"}, ${ROTULO[st]}`);
+  c.setAttribute("aria-label", `Reclamação de ${chamar(b)} para ${chamar(a)}, ${ehQueixa(r) ? MOTIVOS[r.motivo] || "reclamação" : `${r.nota} ${r.nota === 1 ? "estrela" : "estrelas"}`}, ${atrasada(r) ? "sem resposta" : ROTULO[st]}`);
   c.style.setProperty("--c", COR[t] || "var(--accent)");
 
   const topo = el("div", "rc-topo");
-  topo.append(el("span", "tag-classe", nomeClasse(t)), el("span", "status mini " + CLASSE_ST[st], ROTULO[st]));
+  topo.append(el("span", "tag-classe", nomeClasse(t)), atrasada(r) ? el("span", "status mini atras", "Sem resposta") : el("span", "status mini " + CLASSE_ST[st], ROTULO[st]));
   const quem = el("div", "rc-pessoa");
   const tx = el("div", "rc-nome");
   tx.append(el("strong", null, chamar(a)), el("small", null, a.perfil || nomeClasse(t)));
   quem.append(avatar(a), tx);
   const nota = el("div", "rc-nota");
-  nota.append(estrelas({ total: 1, soma: r.nota }, { soEstrelas: true }), el("small", null, dataCurta(r.criadoEm)));
+  if (ehQueixa(r)) nota.append(el("span", "rc-motivo", MOTIVOS[r.motivo] || "Reclamação"), el("small", null, dataCurta(r.criadoEm)));
+  else nota.append(estrelas({ total: 1, soma: r.nota }, { soEstrelas: true }), el("small", null, dataCurta(r.criadoEm)));
   const texto = el("p", "rc-texto" + (r.comentario ? "" : " vazio"), r.comentario || "Nota sem comentário.");
   const rod = el("div", "rc-rodape");
   const de = el("span", "rc-de");
   de.append(avatar(b, "av mini"), el("span", null, `de ${eh(b.uid) ? "você" : primeiro(b.nome)}`));
   rod.appendChild(de);
-  if (s) rod.appendChild(el("span", "rc-resp", `${eh(a.uid) ? "Você" : primeiro(a.nome)} respondeu`));
-  if (eh(a.uid) && !s) rod.appendChild(el("span", "rc-acao", "Responder"));
+  if (s?.texto) rod.appendChild(el("span", "rc-resp", `${eh(a.uid) ? "Você" : primeiro(a.nome)} respondeu`));
+  if (eh(a.uid) && !s?.texto && st !== "resolvida") rod.appendChild(el("span", "rc-acao", "Responder"));
   c.append(topo, quem, nota, texto, rod);
   c.addEventListener("click", () => abrirDetalhe(r));
   c.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrirDetalhe(r); } });
@@ -250,15 +264,22 @@ function pintarDetalhe(r) {
   const info = el("div", "rd-info");
   info.append(el("span", "tag-classe", nomeClasse(t)));
   if (a.perfil) info.appendChild(el("span", "rd-perfil", a.perfil));
-  info.append(el("span", "status " + CLASSE_ST[st], ROTULO[st]));
+  info.append(atrasada(r) ? el("span", "status atras", "Sem resposta") : el("span", "status " + CLASSE_ST[st], ROTULO[st]));
   corpo.appendChild(info);
 
   const nota = el("div", "rd-nota");
-  nota.append(estrelas({ total: 1, soma: r.nota }, { soEstrelas: true }), el("span", null, `${r.nota} de 5 · ${data(r.criadoEm)}`));
+  if (ehQueixa(r)) {
+    nota.append(el("span", "rc-motivo", MOTIVOS[r.motivo] || "Reclamação"), el("span", null, `Aberta em ${data(r.criadoEm)}${(r.dados.aberturas || 1) > 1 ? " · reaberta" : ""}`));
+  } else nota.append(estrelas({ total: 1, soma: r.nota }, { soEstrelas: true }), el("span", null, `${r.nota} de 5 · ${data(r.criadoEm)}`));
   corpo.appendChild(nota);
   corpo.appendChild(el("blockquote", "rd-texto" + (r.comentario ? "" : " vazio"), r.comentario || `${chamar(b)} deu a nota sem escrever comentário.`));
+  if (ehQueixa(r) && r.foto) { const im = document.createElement("img"); im.className = "rd-foto"; im.src = fotoSegura(r.foto); im.alt = "Foto anexada pelo cliente"; im.loading = "lazy"; if (im.src) corpo.appendChild(im); }
+  if (ehQueixa(r) && st === "pendente") {
+    const dias = Math.max(0, PRAZO_DIAS - Math.floor((Date.now() - ms(r.criadoEm)) / 864e5));
+    corpo.appendChild(el("p", "rd-prazo" + (atrasada(r) ? " atras" : ""), atrasada(r) ? `Prazo de ${PRAZO_DIAS} dias para responder terminou sem resposta.` : `${dias} ${dias === 1 ? "dia" : "dias"} para ${eh(a.uid) ? "você responder" : "o negócio responder"}.`));
+  }
 
-  if (s) {
+  if (s?.texto) {
     const bx = el("div", "resposta");
     const cab = el("div", "resposta-cab");
     cab.append(avatar(a, "av mini"), el("strong", null, eh(a.uid) ? "Sua resposta" : `Resposta de ${a.nome}`));
@@ -270,13 +291,19 @@ function pintarDetalhe(r) {
   }
 
   const acoes = el("div", "rec-acoes");
-  if (eh(a.uid)) {
-    const bt = el("button", "botao" + (s ? " sec" : ""), s ? "Editar resposta" : "Responder publicamente");
+  if (eh(a.uid) && !(ehQueixa(r) && st === "resolvida")) {
+    const bt = el("button", "botao" + (s?.texto ? " sec" : ""), s?.texto ? "Editar resposta" : "Responder publicamente");
     bt.type = "button";
     bt.addEventListener("click", () => abrirResposta(corpo, r, s, acoes));
     acoes.appendChild(bt);
   }
-  if (eh(b.uid) && s) {
+  if (eh(b.uid) && ehQueixa(r)) {
+    // Reclamação aberta pelo cliente: ele marca resolvida a qualquer momento; resolvida, pode reabrir com relato novo.
+    const bt = el("button", "botao" + (st === "resolvida" ? " sec" : ""), st === "resolvida" ? "Reabrir com relato novo" : "Marcar como resolvida");
+    bt.type = "button";
+    bt.addEventListener("click", () => (st === "resolvida" ? reabrir(r) : marcarResolvida(r, true, bt)));
+    acoes.appendChild(bt);
+  } else if (eh(b.uid) && s) {
     const bt = el("button", "botao" + (s.resolvido ? " sec" : ""), s.resolvido ? "Reabrir reclamação" : "Marcar como resolvida");
     bt.type = "button";
     bt.addEventListener("click", () => marcarResolvida(r, !s.resolvido, bt));
@@ -312,6 +339,13 @@ function abrirResposta(corpo, r, s, acoes) {
     if (await precisaEmail()) return;
     env.disabled = true;
     try {
+      if (ehQueixa(r)) {
+        await responderQueixa(fb, r.qid, texto);
+        respostas.set(r.id, { texto, criadoEm: { toMillis: () => Date.now(), toDate: () => new Date() }, autorId: eu.uid });
+        toast(s?.texto ? "Resposta atualizada" : "Resposta publicada");
+        pintar(); pintarDetalhe(r);
+        return;
+      }
       const ref = fb.doc(fb.db, "reclamacoes", r.id);
       if (s) await fb.updateDoc(ref, { texto, editadoEm: fb.serverTimestamp() });
       else await fb.setDoc(ref, { texto, autorId: eu.uid, criadoEm: fb.serverTimestamp() });
@@ -331,6 +365,14 @@ async function marcarResolvida(r, sim, bt) {
   if (await precisaEmail()) return;
   bt.disabled = true;
   try {
+    if (ehQueixa(r)) {
+      await resolverQueixa(fb, r.qid);
+      r.dados.status = "resolvida";
+      respostas.set(r.id, { ...(respostas.get(r.id) || { texto: "" }), resolvido: true, resolvidoEm: { toMillis: () => Date.now(), toDate: () => new Date() } });
+      toast("Obrigado! Reclamação marcada como resolvida.");
+      pintar(); pintarDetalhe(r);
+      return;
+    }
     const ref = fb.doc(fb.db, "reclamacoes", r.id);
     await fb.updateDoc(ref, { resolvido: sim, resolvidoEm: fb.serverTimestamp() });
     respostas.set(r.id, (await fb.getDoc(ref)).data());
@@ -338,6 +380,60 @@ async function marcarResolvida(r, sim, bt) {
     pintar();
     pintarDetalhe(r);
   } catch (e) { console.error(e); bt.disabled = false; toast("Não foi possível atualizar agora."); }
+}
+
+// ---------- abrir reclamação ----------
+async function negocioPorId(id) {
+  if (negocios.has(id) && negocios.get(id).donoId) return negocios.get(id);
+  const s = await fb.getDoc(fb.doc(fb.db, "negocios", id)).catch(() => null);
+  const n = s?.exists() ? { id, ...s.data() } : null;
+  if (n) negocios.set(id, n);
+  return n;
+}
+async function iniciarQueixa(n) {
+  if (!n) { toast("Negócio não encontrado."); return; }
+  abrirQueixa(fb, eu, n, { autor: { nome: dadosPessoa(eu.uid).nome }, aoAbrir: async () => {
+    toast("Reclamação enviada. O negócio tem 7 dias para responder.");
+    respostas.clear(); await carregar(); abrirPessoa(eu.uid, "enviadas");
+  } });
+}
+function reabrir(r) { fecharDetalhe(); negocioPorId(r.negocioId).then(iniciarQueixa); }
+// Lista os negócios de quem a pessoa já conversou no chat (só eles podem receber reclamação dela).
+async function escolherNegocio() {
+  const fundo = el("div", "rec-modal escolher aberto"); fundo.setAttribute("role", "dialog"); fundo.setAttribute("aria-modal", "true");
+  const caixa = el("div", "rec-caixa");
+  const cab = el("div", "rec-escolher-cab");
+  cab.append(el("strong", null, "De qual negócio você quer reclamar?"));
+  const x = el("button", "botao sec mini", "Fechar"); x.type = "button";
+  const fechar = () => { fundo.remove(); document.body.style.overflow = ""; };
+  x.addEventListener("click", fechar);
+  fundo.addEventListener("click", (e) => { if (e.target === fundo) fechar(); });
+  cab.appendChild(x);
+  const lista = el("div", "rec-escolher-lista", "Carregando...");
+  caixa.append(cab, el("p", "ajuda", "Aparecem os negócios com quem você já conversou pelo chat do Help Floripa."), lista);
+  fundo.appendChild(caixa);
+  document.body.appendChild(fundo);
+  document.body.style.overflow = "hidden";
+  try {
+    const conv = await fb.getDocs(fb.query(fb.collection(fb.db, "conversas"), fb.where("participantes", "array-contains", eu.uid), fb.limit(60)));
+    const outros = [...new Set(conv.docs.filter((d) => d.data().falaram?.[eu.uid]).map((d) => (d.data().participantes || []).find((x) => x !== eu.uid)).filter(Boolean))];
+    const negs = [];
+    for (let k = 0; k < outros.length; k += 30) {
+      const s = await fb.getDocs(fb.query(fb.collection(fb.db, "negocios"), fb.where("donoId", "in", outros.slice(k, k + 30)))).catch(() => ({ docs: [] }));
+      s.docs.forEach((d) => { const n = { id: d.id, ...d.data() }; negocios.set(d.id, n); if (n.nome && n.oculto !== true) negs.push(n); });
+    }
+    lista.replaceChildren();
+    if (!negs.length) { lista.append(el("p", "lista-vazia", "Você ainda não conversou com nenhum negócio pelo chat. Abra o perfil do negócio e mande uma mensagem primeiro.")); return; }
+    negs.forEach((n) => {
+      const b = el("button", "rec-escolher-item"); b.type = "button";
+      b.style.setProperty("--c", COR[n.tipo] || "var(--accent)");
+      const p = { nome: n.nome, foto: fotoSegura(n.foto) };
+      const tx = el("span", "tx"); tx.append(el("strong", null, n.nome), el("small", null, [nomeClasse(n.tipo), n.cidade].filter(Boolean).join(" · ")));
+      b.append(avatar(p), tx);
+      b.addEventListener("click", () => { fechar(); iniciarQueixa(n); });
+      lista.appendChild(b);
+    });
+  } catch (e) { console.error(e); lista.replaceChildren(el("p", "lista-vazia", "Não foi possível carregar seus negócios agora.")); }
 }
 
 // ---------- lista ----------
@@ -353,9 +449,9 @@ function pintar() {
     let t = "Nada encontrado", d = "Tente outra situação, classe ou palavra.";
     if (!base().length) {
       const nm = eh(pessoa) ? "você" : primeiro(dadosPessoa(pessoa).nome);
-      if (!pessoa) { t = "Nenhuma reclamação por aqui"; d = "Ótimo sinal: ninguém recebeu nota 1 ou 2 até agora."; }
-      else if (lado === "recebidas") { t = eh(pessoa) ? "Você não tem reclamações" : `${nm} não tem reclamações`; d = "Nenhum cliente deu nota 1 ou 2."; }
-      else { t = eh(pessoa) ? "Você não enviou reclamações" : `${nm} não enviou reclamações`; d = "Nenhuma nota 1 ou 2 dada."; }
+      if (!pessoa) { t = "Nenhuma reclamação por aqui"; d = "Ótimo sinal: ninguém reclamou nem deu nota 1 ou 2 até agora."; }
+      else if (lado === "recebidas") { t = eh(pessoa) ? "Você não tem reclamações" : `${nm} não tem reclamações`; d = "Nenhuma reclamação aberta e nenhuma nota 1 ou 2."; }
+      else { t = eh(pessoa) ? "Você não enviou reclamações" : `${nm} não enviou reclamações`; d = "Nenhuma reclamação aberta e nenhuma nota 1 ou 2 dada."; }
     }
     v.append(el("strong", null, t), d);
     lista.appendChild(v);
@@ -395,6 +491,7 @@ $("maisRec").addEventListener("click", () => { limite += POR_PAGINA; pintar(); }
 $("ppAbas").querySelectorAll("[data-lado]").forEach((b) => b.addEventListener("click", () => abrirPessoa(pessoa, b.dataset.lado)));
 $("ppVoltar").addEventListener("click", () => abrirPessoa("", "recebidas"));
 $("mpAbrir").addEventListener("click", () => abrirPessoa(eu.uid, "recebidas"));
+$("btnAbrirReclamacao")?.addEventListener("click", () => { if (eu) escolherNegocio(); });
 document.querySelectorAll("#meuPainel [data-lado]").forEach((b) => b.addEventListener("click", () => abrirPessoa(eu.uid, b.dataset.lado)));
 $("recFechar").addEventListener("click", fecharDetalhe);
 $("recModal").addEventListener("click", (e) => { if (e.target === $("recModal")) fecharDetalhe(); });
@@ -424,6 +521,8 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape") fecharDeta
     try {
       await carregar();
       pintar();
+      // reclamacoes.html?abrir=negocioId (vindo do perfil do negócio): abre o formulário direto
+      if (url.get("abrir")) negocioPorId(url.get("abrir")).then(iniciarQueixa);
     } catch (e) {
       console.error(e);
       $("listaRec").replaceChildren(Object.assign(el("div", "lista-vazia"), { textContent: "Não foi possível carregar as reclamações agora." }));

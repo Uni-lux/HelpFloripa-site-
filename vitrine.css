@@ -592,3 +592,9 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
 .vt-carrossel.top-cat .vt-del { height: 100%; }
 /* com a etiqueta de destaque no alto, "Urgência" desce para o canto de baixo da foto */
 .vt-del .tag-dest ~ .st.urg { top: auto; bottom: 6px; }
+
+/* Avaliar e Reclamar no perfil do negócio */
+.vd-confianca { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.vd-confianca .vt-btn { justify-content: center; }
+.vd-confianca .vt-btn.reclamar { color: #ff8a8e; border-color: rgba(239, 68, 68, .45); }
+.vd-confianca small { grid-column: 1 / -1; text-align: center; color: var(--vt-muted); font-size: 12px; }

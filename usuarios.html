@@ -12,7 +12,7 @@
   <link rel="icon" href="favicon.ico" />
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
-  <link rel="stylesheet" href="vitrine.css?v=21" />
+  <link rel="stylesheet" href="vitrine.css?v=22" />
   <link rel="stylesheet" href="rede.css?v=2" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
@@ -213,9 +213,9 @@
       obterPerfil, salvarImagem, iniciarRede, meusSeguindoPronto, carregarMeusSeguindo, alternarSeguir, botaoSeguir, linhaPessoa,
       removerSeguidor, bloquear, desbloquear, alternarRestricao, compartilharPerfil,
       barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail
-    } from "./rede.js?v=10";
-    import { notaDoPerfil, abrirDetalhamento, abrirAvaliar, avaliar, jaAvaliou, lerResumo, estrelas, pintarEstrelas, media, notaTexto, TIPOS_NEGOCIO } from "./avaliacoes.js?v=4";
-    import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=22";
+    } from "./rede.js?v=11";
+    import { notaDoPerfil, abrirDetalhamento, avaliarNegocio, avaliarCliente, lerResumo, estrelas, pintarEstrelas, media, notaTexto, TIPOS_NEGOCIO } from "./avaliacoes.js?v=8";
+    import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=23";
 
     // ======================================================
     // Estado desta página (o resto vem de rede.js)
@@ -702,6 +702,7 @@
 
 
     // Link de avaliação (usuarios.html?avaliar=ID do pedido), enviado pelo chat ou WhatsApp.
+    // Uma nota por cliente em cada negócio: o pedido só marca "Atendimento confirmado".
     async function avaliarPorLink(pid) {
       try {
         const snap = await fb.getDoc(fb.doc(fb.db, "pedidos", pid));
@@ -709,20 +710,14 @@
         const pe = snap.data();
         const souCliente = pe.clienteId === eu.uid;
         if (!souCliente && pe.vendedorId !== eu.uid) { toast("Este pedido de avaliação é de outra pessoa."); return; }
-        const id = `p_${pid}_${souCliente ? "c" : "v"}`;
-        if (await jaAvaliou(fb, id)) { toast("Você já avaliou este pedido."); return; }
-        const outro = await obterPerfil(souCliente ? pe.vendedorId : pe.clienteId).catch(() => ({}));
-        abrirAvaliar({
-          titulo: souCliente ? `Avalie ${outro?.nome || "o atendimento"}` : `Avaliar ${outro?.nome || "cliente"}`,
-          sub: pe.titulo || (souCliente ? `${TIPOS_NEGOCIO[pe.tipo] || "Atendimento"}` : "Como foi atender este cliente?"),
-          reclamacao: souCliente,
-          aoEnviar: async ({ nota, comentario }) => {
-            const autor = { nome: dados?.nome, foto: dados?.fotoPerfil };
-            if (souCliente) await avaliar(fb, eu, id, { tipo: "negocio", alvoId: pe.vendedorId, negocioId: pe.negocioId, pedidoId: pid, nota, comentario }, [`neg_${pe.negocioId}`], autor);
-            else await avaliar(fb, eu, id, { tipo: "cliente", alvoId: pe.clienteId, pedidoId: pid, nota, comentario }, [`cli_${pe.clienteId}`], autor);
-            toast("Obrigado pela avaliação!");
-          }
-        });
+        const autor = { nome: dados?.nome, foto: dados?.fotoPerfil };
+        if (souCliente) {
+          const neg = await fb.getDoc(fb.doc(fb.db, "negocios", pe.negocioId)).then((s) => (s.exists() ? { id: s.id, ...s.data() } : null)).catch(() => null);
+          await avaliarNegocio(fb, eu, neg || { id: pe.negocioId, donoId: pe.vendedorId, tipo: pe.tipo }, { pedidoId: pid, autor, aoAvaliar: (n, editou) => toast(editou ? "Avaliação atualizada" : "Obrigado pela avaliação!") });
+        } else {
+          const outro = await obterPerfil(pe.clienteId).catch(() => ({}));
+          await avaliarCliente(fb, eu, pe.negocioId, pe.clienteId, { nomeCliente: outro?.nome || "cliente", pedidoId: pid, autor, aoAvaliar: () => toast("Avaliação do cliente salva") });
+        }
       } catch (e) { console.error(e); toast("Não foi possível abrir a avaliação: " + erroAmigavel(e)); }
     }
 

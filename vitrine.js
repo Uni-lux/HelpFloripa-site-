@@ -8,7 +8,8 @@
 // =====================================================
 
 import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL } from "./seguranca.js?v=1";
-import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento, media } from "./avaliacoes.js?v=4";
+import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento, media, avaliarNegocio } from "./avaliacoes.js?v=8";
+import { abrirQueixa } from "./queixas.js?v=4";
 
 const PARAMS = new URL(import.meta.url).searchParams;
 const TIPO_PAGINA = PARAMS.get("tipo");
@@ -73,6 +74,7 @@ const ICONES = {
   menos: '<path d="M5 12h14"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
   lixo: '<path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13"/>',
+  alerta: '<path d="M12 4l9 16H3z"/><path d="M12 10v4.5M12 17.5h.01"/>',
   // modos de exibição da lista
   "m-linhas": '<rect x="3" y="4.5" width="7.5" height="6" rx="1.5"/><rect x="12.5" y="4.5" width="7.5" height="6" rx="1.5"/><rect x="3" y="13.5" width="7.5" height="6" rx="1.5"/><rect x="12.5" y="13.5" width="7.5" height="6" rx="1.5"/><path d="M22 6.5v2M22 15.5v2"/>',
   "m-1": '<rect x="3.5" y="4" width="17" height="6.5" rx="1.5"/><rect x="3.5" y="13.5" width="17" height="6.5" rx="1.5"/>',
@@ -1075,6 +1077,22 @@ export function abrirDetalhe(n, opcoes = {}) {
     texto: tipo === "imoveis" ? "Falar com o anunciante" : TEXTO_CONTATO[tipo], whats: n.whatsapp,
     textoWhats: `Olá! Vi "${n.nome}" no Help Floripa.`, aoMensagem: tipo === "servicos" ? () => orcar() : aoMensagem, donoId: n.donoId, cartao: cartaoDeNegocio(n)
   }));
+  // Avaliar e reclamar: abertos pelo cliente (uma nota por cliente; reclamação com limite justo).
+  if (!proprio && euX && fbx) {
+    const conf = el("div", "vd-confianca");
+    const autor = { nome: euX.displayName || "", foto: euX.photoURL || "" };
+    const bA = el("button", "vt-btn sec"); bA.type = "button";
+    bA.append(icone("estrela"), document.createTextNode("Avaliar"));
+    bA.addEventListener("click", () => avaliarNegocio(fbx, euX, n, { autor, aoAvaliar: (nota, editou) => {
+      toast(editou ? "Avaliação atualizada" : "Obrigado pela avaliação!");
+      lerResumo(fbx, "neg_" + idNegocio(n), { recarregar: true }).then((r) => { notasNeg.set(idNegocio(n), r); const e = notaCab.querySelector(".hf-estrelas"); if (e) pintarEstrelas(e, r); });
+    } }));
+    const bR = el("button", "vt-btn sec reclamar"); bR.type = "button";
+    bR.append(icone("alerta"), document.createTextNode("Reclamar"));
+    bR.addEventListener("click", () => abrirQueixa(fbx, euX, n, { autor, aoAbrir: (id) => { toast("Reclamação enviada. O negócio tem 7 dias para responder."); setTimeout(() => { location.href = `reclamacoes.html?negocio=${encodeURIComponent(id)}`; }, 1200); } }));
+    conf.append(bA, bR, el("small", null, "Só avalia ou reclama quem conversou com o negócio pelo chat."));
+    ct.appendChild(conf);
+  }
   // barra do carrinho fica colada no rodapé, no lugar dos botões de contato
   const bc = ct.querySelector(".vd-carrinho");
   if (bc) ct.insertBefore(bc, ct.lastChild);
