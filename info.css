@@ -284,3 +284,25 @@ button.mp-tile:hover { border-color: var(--classe); }
   .rd-seta { justify-self: center; transform: rotate(90deg); }
 }
 .meu-painel, .painel-pessoa { scroll-margin-top: 76px; }
+
+/* ---------- reclamações abertas pelo cliente ---------- */
+.mp-nova { display: grid; gap: 6px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.mp-nova .botao { justify-self: start; display: inline-flex; align-items: center; gap: 6px; background: #ef4444; border-color: #ef4444; color: #fff; }
+.mp-nova small { color: var(--muted); font-size: 12.5px; line-height: 1.4; }
+.status.atras { background: color-mix(in srgb, #ef4444 18%, transparent); color: #d93636; }
+:root[data-theme="dark"] .status.atras { color: #ff8a8e; }
+.rc-motivo { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 800; color: #d93636; background: color-mix(in srgb, #ef4444 12%, transparent); }
+:root[data-theme="dark"] .rc-motivo { color: #ff9b9b; }
+.rd-foto { width: 100%; max-height: 320px; object-fit: contain; border-radius: 14px; background: var(--panel-2); }
+.rd-prazo { margin: 0; padding: 9px 12px; border-radius: 12px; font-size: 13px; font-weight: 700; background: color-mix(in srgb, #e69500 14%, transparent); color: #c27c00; }
+.rd-prazo.atras { background: color-mix(in srgb, #ef4444 14%, transparent); color: #d93636; }
+:root[data-theme="dark"] .rd-prazo { color: #ffc25c; }
+:root[data-theme="dark"] .rd-prazo.atras { color: #ff8a8e; }
+.rec-modal.escolher .rec-caixa { padding: 16px; gap: 10px; }
+.rec-escolher-cab { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.rec-escolher-cab strong { font-size: 16px; }
+.rec-escolher-lista { display: grid; gap: 6px; overflow-y: auto; }
+.rec-escolher-item { --c: var(--accent); display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.rec-escolher-item:hover { border-color: var(--c); }
+.rec-escolher-item .tx { display: grid; gap: 2px; min-width: 0; }
+.rec-escolher-item small { color: var(--muted); font-size: 12px; }

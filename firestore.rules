@@ -1,0 +1,1092 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function logado() {
+      return request.auth != null;
+    }
+
+    // E-mail confirmado (login com Google já vem confirmado).
+    // Exigido para ações que chegam em outras pessoas: mensagens, seguir,
+    // vínculos, negócios, anúncios e publicações. Freia contas falsas e robôs.
+    function emailOk() {
+      return request.auth.token.email_verified == true;
+    }
+
+    // Campos que só podem ser alterados pelo painel/admin (Admin SDK ignora as regras).
+    function camposProtegidos() {
+      return ['verificado', 'avaliacaoMedia', 'totalAvaliacoes'];
+    }
+
+    function naoTocaCamposProtegidosNoCreate() {
+      return !request.resource.data.keys().hasAny(camposProtegidos());
+    }
+
+    // No update também ficam travados plano/valorPlanoMensal/tipoUsuario:
+    // são definidos no cadastro e nunca mudam pelo site.
+    function naoTocaCamposProtegidosNoUpdate() {
+      return !request.resource.data.diff(resource.data).affectedKeys()
+               .hasAny(camposProtegidos().concat(['plano', 'valorPlanoMensal', 'tipoUsuario']));
+    }
+
+    // Campo de texto opcional com tamanho máximo (evita documentos gigantes).
+    function textoAte(campo, max) {
+      return !(campo in request.resource.data)
+          || request.resource.data[campo] == null
+          || (request.resource.data[campo] is string
+              && request.resource.data[campo].size() <= max);
+    }
+
+    // Mesmo limite, para um valor qualquer (ex.: campo dentro de um mapa).
+    function valorTextoAte(v, max) {
+      return v == null || (v is string && v.size() <= max);
+    }
+
+    // Lista opcional com no máximo N itens.
+    function listaAte(campo, max) {
+      return !(campo in request.resource.data)
+          || request.resource.data[campo] == null
+          || (request.resource.data[campo] is list
+              && request.resource.data[campo].size() <= max);
+    }
+
+    // Foto só pode vir do próprio site: imagem dentro do documento (sem Storage),
+    // Firebase Storage do projeto ou foto da conta Google. Bloqueia imagens de
+    // sites de terceiros (rastreamento por IP, conteúdo impróprio).
+    function fotoOk(v) {
+      return v == null || v == ''
+          || (v is string && v.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/|https://lh3[.]googleusercontent[.]com/).*'));
+    }
+
+    function campoFotoOk(campo) {
+      return !(campo in request.resource.data) || fotoOk(request.resource.data[campo]);
+    }
+
+    // Só os campos que mudaram (para não travar documentos antigos com campos a mais).
+    function mudou() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    // Campos novos ou alterados (campos antigos removidos não contam).
+    function gravou() {
+      let d = request.resource.data.diff(resource.data);
+      return d.addedKeys().union(d.changedKeys());
+    }
+
+    // Bloqueio: bloqueios/{quemBloqueou}_{quemFoiBloqueado}
+    function bloqueou(a, b) {
+      return exists(/databases/$(database)/documents/bloqueios/$(a + '_' + b));
+    }
+
+    function bloqueioEntre(a, b) {
+      return bloqueou(a, b) || bloqueou(b, a);
+    }
+
+    // ---------- avaliações e reclamações justas ----------
+    // Id da conversa / do vínculo entre duas pessoas (ids em ordem).
+    function par(a, b) {
+      return a < b ? a + '_' + b : b + '_' + a;
+    }
+
+    // Conta com pelo menos 3 dias (usuarios.criadoEm é gravado no cadastro e não muda).
+    function contaAntiga(uid) {
+      let u = /databases/$(database)/documents/usuarios/$(uid);
+      return exists(u)
+          && get(u).data.get('criadoEm', null) is timestamp
+          && get(u).data.criadoEm < request.time - duration.value(3, 'd');
+    }
+
+    // Quem já escreveu na conversa entre a e b (conversas.falaram, cada um marca só o seu).
+    function falou(a, b, quem) {
+      let c = /databases/$(database)/documents/conversas/$(par(a, b));
+      return exists(c) && get(c).data.get('falaram', {}).get(quem, false) == true;
+    }
+
+    // Vínculo aceito no Social (duo, família, amigos...): conhecidos não avaliam.
+    function vinculados(a, b) {
+      let v = /databases/$(database)/documents/vinculos/$(par(a, b));
+      return exists(v) && get(v).data.get('status', '') == 'aceito';
+    }
+
+    function donoDoNegocio(negocioId) {
+      return get(/databases/$(database)/documents/negocios/$(negocioId)).data.donoId;
+    }
+
+
+    // =====================================================
+    // DADOS PRIVADOS DOS USUÁRIOS
+    // Cada usuário só pode acessar os próprios dados.
+    // =====================================================
+    match /usuarios/{userId} {
+
+      allow read: if logado()
+                  && request.auth.uid == userId;
+
+      // criadoEm é a data real do cadastro (conta antiga = pode avaliar/reclamar).
+      allow create: if logado()
+                    && request.auth.uid == userId
+                    && request.resource.data.uid == userId
+                    && request.resource.data.aceiteTermos == true
+                    && (!('criadoEm' in request.resource.data) || request.resource.data.criadoEm == request.time)
+                    && naoTocaCamposProtegidosNoCreate();
+
+      // criadoEm não muda depois de gravado (cadastro antigo sem a data só pode gravar a data de agora).
+      allow update: if logado()
+                    && request.auth.uid == userId
+                    && request.resource.data.uid == resource.data.uid
+                    && (!mudou().hasAny(['criadoEm'])
+                        || (!('criadoEm' in resource.data) && request.resource.data.criadoEm == request.time))
+                    && naoTocaCamposProtegidosNoUpdate();
+
+      allow delete: if logado()
+                    && request.auth.uid == userId;
+    }
+
+
+    // =====================================================
+    // PERFIL PÚBLICO
+    // Usado somente para busca e exibição pública.
+    // NÃO deve conter e-mail, telefone ou data de nascimento.
+    // =====================================================
+    match /perfis_publicos/{userId} {
+
+      // O @ exibido no perfil precisa estar reservado em nicknames/ pelo
+      // próprio usuário. getAfter enxerga a reserva feita na mesma transação
+      // (cadastro) ou numa escrita anterior (edição do perfil).
+      function nickDoDono() {
+        let d = request.resource.data;
+        return !('nickname' in d)
+            || d.nickname == null
+            || d.nickname == ''
+            || getAfter(/databases/$(database)/documents/nicknames/$(d.nickname)).data.uid == request.auth.uid;
+      }
+
+      function tamanhosOk() {
+        return textoAte('nome', 80)
+            && textoAte('bio', 400)
+            && textoAte('cidade', 80);
+      }
+
+      // Campos que o site grava no perfil público. Qualquer outro é recusado.
+      function camposPerfil() {
+        return ['uid', 'nome', 'nickname', 'cidade', 'bio', 'fotoPerfil', 'fotoCapa',
+                'socialVisibilidade', 'duoCapa', 'ultimoAcesso', 'criadoEm', 'atualizadoEm'];
+      }
+
+      function opcoesOk() {
+        let d = request.resource.data;
+        return (!('socialVisibilidade' in d) || d.socialVisibilidade in ['todos', 'seguidores', 'amigos', 'ocultar'])
+            && (!('duoCapa' in d) || d.duoCapa in ['clicavel', 'foto', 'ocultar'])
+            && (!('nickname' in d) || valorTextoAte(d.nickname, 20));
+      }
+
+      // Foto nova precisa vir do próprio site (fotos antigas não travam a edição).
+      function fotosOk() {
+        return ((resource != null && !mudou().hasAny(['fotoPerfil'])) || campoFotoOk('fotoPerfil'))
+            && ((resource != null && !mudou().hasAny(['fotoCapa'])) || campoFotoOk('fotoCapa'));
+      }
+
+      allow read: if logado();
+
+      allow create: if logado()
+                    && request.auth.uid == userId
+                    && request.resource.data.uid == userId
+                    && naoTocaCamposProtegidosNoCreate()
+                    && request.resource.data.keys().hasOnly(camposPerfil())
+                    && nickDoDono()
+                    && tamanhosOk()
+                    && opcoesOk()
+                    && fotosOk();
+
+      allow update: if logado()
+                    && request.auth.uid == userId
+                    && request.resource.data.uid == resource.data.uid
+                    && naoTocaCamposProtegidosNoUpdate()
+                    && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['nickname'])
+                        || nickDoDono())
+                    && gravou().hasOnly(camposPerfil())
+                    && tamanhosOk()
+                    && opcoesOk()
+                    && fotosOk();
+
+      allow delete: if logado()
+                    && request.auth.uid == userId;
+    }
+
+
+    // =====================================================
+    // RESERVA DE NICKNAMES
+    // =====================================================
+    match /nicknames/{nickname} {
+
+      allow read: if true;
+
+      allow create: if logado()
+                    && request.auth.uid == request.resource.data.uid
+                    && nickname.matches('^[a-z0-9._]{3,20}$');
+
+      allow update: if false;
+
+      allow delete: if logado()
+                    && request.auth.uid == resource.data.uid;
+    }
+
+
+    // =====================================================
+    // SEGUIDORES
+    // Documento: relacoes/{seguidorId}_{alvoId}
+    // =====================================================
+    match /relacoes/{id} {
+
+      allow read: if logado();
+
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['tipo', 'seguidorId', 'alvoId', 'criadoEm'])
+                    && request.resource.data.tipo == 'seguir'
+                    && request.resource.data.seguidorId == request.auth.uid
+                    && request.resource.data.alvoId is string
+                    && request.resource.data.alvoId != request.auth.uid
+                    && id == request.auth.uid + '_' + request.resource.data.alvoId
+                    && !bloqueioEntre(request.auth.uid, request.resource.data.alvoId);
+
+      allow update: if false;
+
+      // Quem segue pode deixar de seguir; quem é seguido pode remover o seguidor.
+      allow delete: if logado()
+                    && (resource.data.seguidorId == request.auth.uid
+                        || resource.data.alvoId == request.auth.uid);
+    }
+
+
+    // =====================================================
+    // BLOQUEIOS
+    // Documento: bloqueios/{bloqueadorId}_{bloqueadoId}
+    // =====================================================
+    match /bloqueios/{id} {
+
+      allow get: if logado()
+                 && (id.split('_')[0] == request.auth.uid
+                     || id.split('_')[1] == request.auth.uid);
+
+      allow list: if logado()
+                  && (resource.data.bloqueadorId == request.auth.uid
+                      || resource.data.bloqueadoId == request.auth.uid);
+
+      allow create: if logado()
+                    && request.resource.data.keys().hasOnly(['bloqueadorId', 'bloqueadoId', 'criadoEm'])
+                    && request.resource.data.bloqueadorId == request.auth.uid
+                    && request.resource.data.bloqueadoId is string
+                    && request.resource.data.bloqueadoId != request.auth.uid
+                    && id == request.auth.uid + '_' + request.resource.data.bloqueadoId;
+
+      allow update: if false;
+
+      allow delete: if logado()
+                    && resource.data.bloqueadorId == request.auth.uid;
+    }
+
+
+    // =====================================================
+    // VÍNCULOS SOCIAIS (duo, família, amigos)
+    // Documento: vinculos/{uidMenor}_{uidMaior}
+    // =====================================================
+    match /vinculos/{id} {
+
+      function inversos() {
+        return {
+          'duo': 'duo', 'namoro': 'namoro', 'casamento': 'casamento',
+          'melhor_amigo': 'melhor_amigo', 'amigo': 'amigo', 'irmao': 'irmao',
+          'pai_mae': 'filho', 'filho': 'pai_mae', 'primo': 'primo',
+          'tio': 'sobrinho', 'sobrinho': 'tio', 'avo': 'neto', 'neto': 'avo',
+          'parceiro': 'parceiro'
+        };
+      }
+
+      // Pedidos pendentes só são visíveis para os dois envolvidos.
+      allow read: if logado()
+                  && (resource.data.status == 'aceito'
+                      || request.auth.uid in resource.data.participantes);
+
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['participantes', 'de', 'para', 'tipoDe', 'tipoPara', 'status', 'criadoEm'])
+                    && request.resource.data.de == request.auth.uid
+                    && request.resource.data.para is string
+                    && request.resource.data.para != request.auth.uid
+                    && request.resource.data.participantes is list
+                    && request.resource.data.participantes.size() == 2
+                    && request.auth.uid in request.resource.data.participantes
+                    && request.resource.data.para in request.resource.data.participantes
+                    && request.resource.data.participantes[0] < request.resource.data.participantes[1]
+                    && id == request.resource.data.participantes[0] + '_' + request.resource.data.participantes[1]
+                    && request.resource.data.status == 'pendente'
+                    && request.resource.data.tipoDe in inversos()
+                    && request.resource.data.tipoPara == inversos()[request.resource.data.tipoDe]
+                    && !bloqueioEntre(request.auth.uid, request.resource.data.para);
+
+      // Só quem recebeu o pedido pode aceitar, e só muda o status.
+      allow update: if logado()
+                    && resource.data.status == 'pendente'
+                    && request.auth.uid == resource.data.para
+                    && request.resource.data.status == 'aceito'
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'aceitoEm']);
+
+      // Qualquer um dos dois pode cancelar, recusar ou desfazer.
+      allow delete: if logado()
+                    && request.auth.uid in resource.data.participantes;
+    }
+
+
+    // =====================================================
+    // PERFIS DE NEGÓCIO (serviços, delivery, lojinha, imóveis)
+    // Documento: negocios/{donoId}_{tipo}
+    // =====================================================
+    match /negocios/{id} {
+
+      // Campos que o site grava. Qualquer outro campo é recusado.
+      function camposNegocio() {
+        return ['donoId', 'tipo', 'nome', 'descricao', 'cidade', 'whatsapp', 'foto', 'fotos', 'itens',
+                'categoria', 'categorias', 'categoriaPersonalizada', 'criadoEm', 'atualizadoEm',
+                'precoDesde', 'horario', 'atendimento', 'dias', 'regiao', 'experiencia', 'diferenciais', 'pagamentos', 'cnh', 'veiculo',
+                'horaAbre', 'horaFecha', 'tempoMin', 'tempoMax', 'taxaEntrega', 'pedidoMinimo', 'opcoesEntrega',
+                'entrega', 'tipoAnunciante', 'creci'];
+      }
+
+      function negocioOk() {
+        return textoAte('nome', 80)
+            && textoAte('descricao', 600)
+            && textoAte('cidade', 60)
+            && textoAte('whatsapp', 20)
+            && textoAte('regiao', 100)
+            && textoAte('horario', 60)
+            && textoAte('categoriaPersonalizada', 30)
+            && listaAte('itens', 12)
+            && listaAte('fotos', 5)
+            && ((resource != null && !mudou().hasAny(['foto'])) || campoFotoOk('foto'));
+      }
+
+      allow read: if logado();
+
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.donoId == request.auth.uid
+                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis']
+                    && id == request.auth.uid + '_' + request.resource.data.tipo
+                    && request.resource.data.keys().hasOnly(camposNegocio())
+                    && naoTocaCamposProtegidosNoCreate()
+                    && negocioOk();
+
+      allow update: if logado()
+                    && emailOk()
+                    && resource.data.donoId == request.auth.uid
+                    && request.resource.data.donoId == resource.data.donoId
+                    && request.resource.data.tipo == resource.data.tipo
+                    && gravou().hasOnly(camposNegocio())
+                    && naoTocaCamposProtegidosNoUpdate()
+                    && negocioOk();
+
+      allow delete: if logado()
+                    && resource.data.donoId == request.auth.uid;
+    }
+
+
+    // =====================================================
+    // ANÚNCIOS (vários imóveis por pessoa)
+    // Documento: anuncios/{id}
+    // =====================================================
+    match /anuncios/{id} {
+
+      function camposAnuncio() {
+        return ['donoId', 'tipo', 'ativo', 'titulo', 'finalidade', 'categoria', 'preco', 'condominio', 'iptu',
+                'quartos', 'suites', 'banheiros', 'vagas', 'area', 'andar', 'bairro', 'cidade', 'mobiliado',
+                'disponivel', 'hospedes', 'caracteristicas', 'condicoes', 'descricao', 'fotos', 'criadoEm', 'atualizadoEm'];
+      }
+
+      function anuncioOk() {
+        return textoAte('titulo', 100)
+            && textoAte('descricao', 1000)
+            && textoAte('bairro', 60)
+            && textoAte('cidade', 60)
+            && textoAte('andar', 12)
+            && textoAte('disponivel', 20)
+            && listaAte('fotos', 5)
+            && listaAte('caracteristicas', 20)
+            && listaAte('condicoes', 12);
+      }
+
+      allow read: if logado();
+
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.donoId == request.auth.uid
+                    && request.resource.data.tipo in ['imovel']
+                    && request.resource.data.keys().hasOnly(camposAnuncio())
+                    && naoTocaCamposProtegidosNoCreate()
+                    && anuncioOk();
+
+      allow update: if logado()
+                    && emailOk()
+                    && resource.data.donoId == request.auth.uid
+                    && request.resource.data.donoId == resource.data.donoId
+                    && request.resource.data.tipo == resource.data.tipo
+                    && gravou().hasOnly(camposAnuncio())
+                    && naoTocaCamposProtegidosNoUpdate()
+                    && anuncioOk();
+
+      allow delete: if logado()
+                    && resource.data.donoId == request.auth.uid;
+    }
+
+
+    // =====================================================
+    // CONVERSAS
+    // Documento: conversas/{uidMenor}_{uidMaior}
+    // =====================================================
+    match /conversas/{conversaId} {
+
+      // Cada pessoa só mexe na própria marca de leitura / "digitando".
+      function soMinhaChave(campo) {
+        return !mudou().hasAny([campo])
+            || (request.resource.data[campo] is map
+                && request.resource.data[campo].diff(resource.data.get(campo, {})).affectedKeys().hasOnly([request.auth.uid]));
+      }
+
+      function contextoOk() {
+        let c = request.resource.data.get('contexto', null);
+        return c == null
+            || (c is map && c.keys().hasOnly(['tipo', 'titulo'])
+                && c.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis']
+                && valorTextoAte(c.get('titulo', ''), 120));
+      }
+
+      allow get: if logado()
+                 && (resource == null
+                     || request.auth.uid in resource.data.participantes);
+
+      allow list: if logado()
+                  && request.auth.uid in resource.data.participantes;
+
+      allow create: if logado()
+                    && request.resource.data.participantes is list
+                    && request.resource.data.participantes.size() == 2
+                    && request.auth.uid in request.resource.data.participantes
+                    && request.resource.data.participantes[0] < request.resource.data.participantes[1]
+                    && conversaId == request.resource.data.participantes[0]
+                                     + '_' + request.resource.data.participantes[1]
+                    && !bloqueioEntre(request.resource.data.participantes[0],
+                                      request.resource.data.participantes[1])
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['participantes', 'ultimaMensagem', 'atualizadoEm', 'contexto', 'criadoEm'])
+                    && contextoOk()
+                    && textoAte('ultimaMensagem', 200);
+
+      // Com bloqueio entre os dois, ninguém mexe na conversa (evita "recado"
+      // pelo resumo da última mensagem).
+      allow update: if logado()
+                    && request.auth.uid in resource.data.participantes
+                    && request.resource.data.participantes == resource.data.participantes
+                    && !bloqueioEntre(resource.data.participantes[0], resource.data.participantes[1])
+                    && mudou().hasOnly(['ultimaMensagem', 'ultimaMensagemRemetenteId', 'atualizadoEm', 'lidoEm', 'vistoEm', 'digitando', 'contexto', 'arquivadaPara', 'ocultaPara', 'falaram'])
+                    // o resumo da última mensagem só pode ser escrito por quem mandou
+                    && (!mudou().hasAny(['ultimaMensagem', 'ultimaMensagemRemetenteId'])
+                        || request.resource.data.get('ultimaMensagemRemetenteId', '') == request.auth.uid)
+                    && soMinhaChave('lidoEm')
+                    && soMinhaChave('vistoEm')
+                    && soMinhaChave('digitando')
+                    // arquivar / apagar "só para mim": cada um mexe só na própria marca
+                    && soMinhaChave('arquivadaPara')
+                    && soMinhaChave('ocultaPara')
+                    // falaram: cada um marca só que ELE escreveu (usado para liberar avaliação e reclamação)
+                    && soMinhaChave('falaram')
+                    && (!mudou().hasAny(['falaram']) || request.resource.data.falaram[request.auth.uid] == true)
+                    && (!mudou().hasAny(['contexto']) || contextoOk())
+                    && textoAte('ultimaMensagem', 200);
+
+      allow delete: if logado()
+                    && request.auth.uid in resource.data.participantes;
+
+
+      // ===================================================
+      // MENSAGENS DA CONVERSA
+      // ===================================================
+      match /mensagens/{mensagemId} {
+
+        function participante() {
+          return request.auth.uid in
+                 get(/databases/$(database)/documents/conversas/$(conversaId)).data.participantes;
+        }
+
+        function semBloqueio() {
+          let p = get(/databases/$(database)/documents/conversas/$(conversaId)).data.participantes;
+          return !bloqueioEntre(p[0], p[1]);
+        }
+
+        // Resposta (citação): precisa apontar para uma mensagem real desta conversa,
+        // com o autor verdadeiro. Impede citar algo que a outra pessoa nunca disse.
+        function respostaOk(r) {
+          let caminho = /databases/$(database)/documents/conversas/$(conversaId)/mensagens/$(r.id);
+          return r is map
+              && r.keys().hasOnly(['id', 'texto', 'remetenteId'])
+              && r.id is string
+              && valorTextoAte(r.get('texto', ''), 200)
+              && exists(caminho)
+              && get(caminho).data.remetenteId == r.remetenteId;
+        }
+
+        function mensagemOk() {
+          let d = request.resource.data;
+          return d.keys().hasOnly(['remetenteId', 'texto', 'criadoEm', 'resposta', 'tipoArquivo', 'arquivoUrl', 'nomeArquivo', 'cartao', 'avaliacao'])
+              && (!('tipoArquivo' in d) || d.tipoArquivo in ['imagem', 'video', 'audio', 'cartao', 'avaliacao'])
+              // pedido de avaliação: aponta para um atendimento criado por quem envia
+              && (!('avaliacao' in d)
+                  || (d.avaliacao is map && d.get('tipoArquivo', '') == 'avaliacao'
+                      && d.avaliacao.keys().hasOnly(['pedidoId', 'titulo', 'tipo', 'negocioNome'])
+                      && get(/databases/$(database)/documents/pedidos/$(d.avaliacao.pedidoId)).data.vendedorId == request.auth.uid
+                      && valorTextoAte(d.avaliacao.get('titulo', ''), 120)
+                      && valorTextoAte(d.avaliacao.get('negocioNome', ''), 80)))
+              // anexo: só do próprio site (dentro da mensagem ou Firebase Storage)
+              && (!('arquivoUrl' in d)
+                  || (d.arquivoUrl is string
+                      && d.arquivoUrl.matches('^(data:(image|video|audio)/[^,]{1,80},|https://firebasestorage[.]googleapis[.]com/).*')))
+              && (!('nomeArquivo' in d) || valorTextoAte(d.nomeArquivo, 120))
+              && (!('cartao' in d) || (d.cartao is map && d.get('tipoArquivo', '') == 'cartao'))
+              && (!('resposta' in d) || respostaOk(d.resposta));
+        }
+
+        allow read: if logado() && participante();
+
+        allow create: if logado()
+                      && emailOk()
+                      && participante()
+                      && semBloqueio()
+                      && request.resource.data.remetenteId == request.auth.uid
+                      && request.resource.data.criadoEm == request.time
+                      && textoAte('texto', 4000)
+                      && mensagemOk();
+
+        allow update: if false;
+
+        allow delete: if logado()
+                      && request.auth.uid == resource.data.remetenteId;
+      }
+    }
+
+
+    // =====================================================
+    // PEDIDOS / ATENDIMENTOS
+    // O negócio registra o atendimento para pedir avaliação ao cliente.
+    // Só vale entre pessoas que já conversam no chat.
+    // =====================================================
+    match /pedidos/{id} {
+
+      allow read: if logado()
+                  && (resource.data.vendedorId == request.auth.uid
+                      || resource.data.clienteId == request.auth.uid);
+
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['vendedorId', 'clienteId', 'negocioId', 'tipo', 'titulo', 'conversaId', 'criadoEm'])
+                    && request.resource.data.vendedorId == request.auth.uid
+                    && request.resource.data.clienteId is string
+                    && request.resource.data.clienteId != request.auth.uid
+                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis']
+                    && request.resource.data.negocioId == request.auth.uid + '_' + request.resource.data.tipo
+                    && exists(/databases/$(database)/documents/negocios/$(request.resource.data.negocioId))
+                    && request.auth.uid in get(/databases/$(database)/documents/conversas/$(request.resource.data.conversaId)).data.participantes
+                    && request.resource.data.clienteId in get(/databases/$(database)/documents/conversas/$(request.resource.data.conversaId)).data.participantes
+                    && valorTextoAte(request.resource.data.get('titulo', ''), 120)
+                    && request.resource.data.criadoEm == request.time
+                    && !bloqueioEntre(request.auth.uid, request.resource.data.clienteId);
+
+      allow update, delete: if false;
+    }
+
+
+    // =====================================================
+    // AVALIAÇÕES
+    //   n_{negocio}_{cliente}: cliente avalia o negócio — UMA por cliente em cada negócio
+    //   c_{negocio}_{cliente}: negócio avalia o cliente — UMA por cliente em cada negócio
+    //   d_{post}_{uid}       : alguém avalia uma publicação (1 vez por publicação)
+    //   p_{pedido}_c / _v    : modelo antigo (1 por pedido). Continuam valendo, mas não
+    //                          podem mais ser criados: pedir avaliação várias vezes para a
+    //                          mesma pessoa não gera notas extras.
+    // Para avaliar um negócio: e-mail confirmado, conta com 3 dias, os dois já escreveram
+    // na conversa, não é o dono, sem vínculo aceito no Social e sem bloqueio.
+    // n_ e c_ podem ser EDITADAS pelo autor (troca a nota no resumo, sem contar de novo).
+    // =====================================================
+    match /avaliacoes/{id} {
+
+      function base() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['tipo', 'autorId', 'autorNome', 'autorFoto', 'alvoId', 'negocioId', 'pedidoId', 'postId', 'nota', 'comentario', 'chaves', 'criadoEm'])
+            && d.autorId == request.auth.uid
+            && d.nota is int && d.nota >= 1 && d.nota <= 5
+            && valorTextoAte(d.get('comentario', ''), 500)
+            && valorTextoAte(d.get('autorNome', ''), 80)
+            && fotoOk(d.get('autorFoto', ''))
+            && d.criadoEm == request.time;
+      }
+
+      function resumoAtualizado(chave) {
+        return getAfter(/databases/$(database)/documents/notas/$(chave)).data.ultima == id;
+      }
+
+      // "Atendimento confirmado": pedido real entre os dois, do mesmo negócio.
+      function pedidoOk(d, cliente, negocioId) {
+        return !('pedidoId' in d)
+            || (get(/databases/$(database)/documents/pedidos/$(d.pedidoId)).data.clienteId == cliente
+                && get(/databases/$(database)/documents/pedidos/$(d.pedidoId)).data.negocioId == negocioId);
+      }
+
+      function doCliente() {
+        let d = request.resource.data;
+        let dono = donoDoNegocio(d.negocioId);
+        let eu = request.auth.uid;
+        return id == 'n_' + d.negocioId + '_' + eu
+            && d.alvoId == dono
+            && dono != eu
+            && d.chaves == ['neg_' + d.negocioId]
+            && contaAntiga(eu)
+            && falou(eu, dono, eu)
+            && falou(eu, dono, dono)
+            && !vinculados(eu, dono)
+            && !bloqueioEntre(eu, dono)
+            && pedidoOk(d, eu, d.negocioId)
+            && resumoAtualizado('neg_' + d.negocioId);
+      }
+
+      function doVendedor() {
+        let d = request.resource.data;
+        let eu = request.auth.uid;
+        return id == 'c_' + d.negocioId + '_' + d.alvoId
+            && donoDoNegocio(d.negocioId) == eu
+            && d.alvoId != eu
+            && d.chaves == ['cli_' + d.alvoId]
+            && falou(eu, d.alvoId, eu)
+            && falou(eu, d.alvoId, d.alvoId)
+            && !bloqueioEntre(eu, d.alvoId)
+            && pedidoOk(d, d.alvoId, d.negocioId)
+            && resumoAtualizado('cli_' + d.alvoId);
+      }
+
+      function daPublicacao() {
+        let d = request.resource.data;
+        let post = get(/databases/$(database)/documents/diario/$(d.postId)).data;
+        return id == 'd_' + d.postId + '_' + request.auth.uid
+            && post.autorId != request.auth.uid
+            && d.alvoId == post.autorId
+            && d.chaves == ['post_' + d.postId, 'pub_' + post.autorId]
+            && resumoAtualizado('post_' + d.postId)
+            && resumoAtualizado('pub_' + post.autorId);
+      }
+
+      allow read: if logado();
+
+      allow create: if logado()
+                    && emailOk()
+                    && base()
+                    && ((request.resource.data.tipo == 'negocio' && doCliente())
+                        || (request.resource.data.tipo == 'cliente' && doVendedor())
+                        || (request.resource.data.tipo == 'publicacao' && daPublicacao()));
+
+      // Edição de n_ / c_ pelo próprio autor: só nota, comentário e (uma vez) o pedido confirmado.
+      allow update: if logado()
+                    && emailOk()
+                    && resource.data.autorId == request.auth.uid
+                    && (id.matches('^n_.*') || id.matches('^c_.*'))
+                    && mudou().hasOnly(['nota', 'comentario', 'atualizadoEm', 'pedidoId'])
+                    && request.resource.data.nota is int && request.resource.data.nota >= 1 && request.resource.data.nota <= 5
+                    && valorTextoAte(request.resource.data.get('comentario', ''), 500)
+                    && request.resource.data.atualizadoEm == request.time
+                    && (!mudou().hasAny(['pedidoId'])
+                        || (!('pedidoId' in resource.data)
+                            && pedidoOk(request.resource.data, id.matches('^n_.*') ? request.auth.uid : resource.data.alvoId, resource.data.negocioId)))
+                    && !bloqueioEntre(request.auth.uid, resource.data.alvoId)
+                    && (request.resource.data.nota == resource.data.nota
+                        || getAfter(/databases/$(database)/documents/notas/$(resource.data.chaves[0])).data.ultima == id);
+
+      allow delete: if false;
+    }
+
+
+    // =====================================================
+    // RESUMO DAS NOTAS (média e quantas de cada estrela)
+    //   neg_{negocioId} · cli_{uid} · pub_{uid} · post_{postId}
+    // Só aceita somar exatamente a avaliação nova gravada junto.
+    // =====================================================
+    match /notas/{chave} {
+
+      function caminhoNova() {
+        return /databases/$(database)/documents/avaliacoes/$(request.resource.data.ultima);
+      }
+
+      function avaliacaoNova() {
+        return request.resource.data.ultima is string
+            && !exists(caminhoNova())
+            && existsAfter(caminhoNova())
+            && getAfter(caminhoNova()).data.autorId == request.auth.uid
+            && chave in getAfter(caminhoNova()).data.chaves;
+      }
+
+      function estrela() {
+        return 'n' + string(getAfter(caminhoNova()).data.nota);
+      }
+
+      allow read: if logado();
+
+      allow create: if logado()
+                    && avaliacaoNova()
+                    && request.resource.data.keys().hasOnly(['total', 'soma', 'n1', 'n2', 'n3', 'n4', 'n5', 'ultima', 'atualizadoEm'])
+                    && request.resource.data.keys().hasAll(['total', 'soma', 'n1', 'n2', 'n3', 'n4', 'n5', 'ultima'])
+                    && request.resource.data.total == 1
+                    && request.resource.data.soma == getAfter(caminhoNova()).data.nota
+                    && request.resource.data[estrela()] == 1
+                    && request.resource.data.n1 + request.resource.data.n2 + request.resource.data.n3
+                       + request.resource.data.n4 + request.resource.data.n5 == 1;
+
+      allow update: if logado()
+                    && avaliacaoNova()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['total', 'soma', 'ultima', 'atualizadoEm', estrela()])
+                    && request.resource.data.total == resource.data.total + 1
+                    && request.resource.data.soma == resource.data.soma + getAfter(caminhoNova()).data.nota
+                    && request.resource.data[estrela()] == resource.data.get(estrela(), 0) + 1;
+
+      // Edição de uma avaliação n_/c_: troca a nota antiga pela nova (o total não muda).
+      function edicao() {
+        let antes = get(caminhoNova()).data;
+        let depois = getAfter(caminhoNova()).data;
+        return request.resource.data.ultima is string
+            && exists(caminhoNova())
+            && depois.autorId == request.auth.uid
+            && chave in depois.chaves
+            && antes.nota != depois.nota
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['soma', 'ultima', 'atualizadoEm', 'n' + string(antes.nota), 'n' + string(depois.nota)])
+            && request.resource.data.total == resource.data.total
+            && request.resource.data.soma == resource.data.soma - antes.nota + depois.nota
+            && request.resource.data['n' + string(antes.nota)] == resource.data.get('n' + string(antes.nota), 0) - 1
+            && request.resource.data['n' + string(depois.nota)] == resource.data.get('n' + string(depois.nota), 0) + 1;
+      }
+
+      allow update: if logado() && edicao();
+
+      allow delete: if false;
+    }
+
+
+    // =====================================================
+    // RECLAMAÇÕES: resposta pública do negócio
+    // Reclamação = avaliação de negócio com nota 1 ou 2 (avaliacoes/{id}).
+    // reclamacoes/{id da avaliação}: o negócio avaliado responde uma vez
+    // (pode editar o texto) e o cliente que reclamou marca como resolvida.
+    // =====================================================
+    match /reclamacoes/{avalId} {
+
+      allow read: if logado();
+
+      function aval() {
+        return get(/databases/$(database)/documents/avaliacoes/$(avalId)).data;
+      }
+
+      function respostaOk(d) {
+        return d.texto is string && d.texto.size() >= 2 && d.texto.size() <= 1000;
+      }
+
+      allow create: if logado()
+                    && emailOk()
+                    && exists(/databases/$(database)/documents/avaliacoes/$(avalId))
+                    && aval().tipo == 'negocio'
+                    && aval().nota <= 2
+                    && aval().alvoId == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['texto', 'autorId', 'criadoEm'])
+                    && request.resource.data.autorId == request.auth.uid
+                    && respostaOk(request.resource.data)
+                    && request.resource.data.criadoEm == request.time;
+
+      allow update: if logado()
+                    && emailOk()
+                    && request.resource.data.autorId == resource.data.autorId
+                    && (
+                      // o negócio corrige a resposta
+                      (resource.data.autorId == request.auth.uid
+                        && mudou().hasOnly(['texto', 'editadoEm'])
+                        && respostaOk(request.resource.data)
+                        && request.resource.data.editadoEm == request.time)
+                      ||
+                      // o cliente que reclamou marca como resolvida (ou não)
+                      (aval().autorId == request.auth.uid
+                        && mudou().hasOnly(['resolvido', 'resolvidoEm'])
+                        && request.resource.data.resolvido is bool
+                        && request.resource.data.resolvidoEm == request.time)
+                    );
+
+      allow delete: if false;
+    }
+
+
+    // =====================================================
+    // RECLAMAÇÕES ABERTAS PELO CLIENTE (separadas da nota)
+    // queixas/{negocioId}_{cliente}: uma por cliente em cada negócio.
+    //   - abrir: e-mail confirmado, conta com 3 dias, já mandou mensagem ao negócio
+    //     (o negócio não precisa ter respondido) e dentro da cota (cotas/{uid}).
+    //   - o dono do negócio responde (pode corrigir a resposta);
+    //   - só o cliente marca como resolvida; resolvida, pode reabrir (conta na cota).
+    //   - ninguém apaga.
+    // cotas/{uid}: no máximo 3 reclamações a cada 30 dias (janela que começa na primeira).
+    // =====================================================
+    match /queixas/{id} {
+
+      function motivoOk(m) {
+        return m in ['atraso', 'qualidade', 'cobranca', 'ausencia', 'atendimento', 'golpe', 'outro'];
+      }
+
+      function relatoOk(d) {
+        return motivoOk(d.motivo)
+            && d.texto is string && d.texto.size() >= 20 && d.texto.size() <= 1000
+            && fotoOk(d.get('foto', ''));
+      }
+
+      // A cota foi atualizada nesta mesma gravação.
+      function contou() {
+        return getAfter(/databases/$(database)/documents/cotas/$(request.auth.uid)).data.ultimaEm == request.time;
+      }
+
+      allow read: if logado();
+
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['negocioId', 'alvoId', 'autorId', 'autorNome', 'negocioNome', 'tipo', 'motivo', 'texto', 'foto',
+                                                              'status', 'abertaEm', 'criadoEm', 'aberturas', 'resposta', 'respondidaEm', 'resolvidaEm'])
+                    && request.resource.data.autorId == request.auth.uid
+                    && id == request.resource.data.negocioId + '_' + request.auth.uid
+                    && request.resource.data.alvoId == donoDoNegocio(request.resource.data.negocioId)
+                    && request.resource.data.alvoId != request.auth.uid
+                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis']
+                    && relatoOk(request.resource.data)
+                    && valorTextoAte(request.resource.data.get('autorNome', ''), 80)
+                    && valorTextoAte(request.resource.data.get('negocioNome', ''), 80)
+                    && request.resource.data.status == 'aberta'
+                    && request.resource.data.aberturas == 1
+                    && request.resource.data.get('resposta', null) == null
+                    && request.resource.data.criadoEm == request.time
+                    && request.resource.data.abertaEm == request.time
+                    && contaAntiga(request.auth.uid)
+                    && falou(request.auth.uid, request.resource.data.alvoId, request.auth.uid)
+                    && contou();
+
+      allow update: if logado()
+                    && emailOk()
+                    && request.resource.data.autorId == resource.data.autorId
+                    && request.resource.data.alvoId == resource.data.alvoId
+                    && request.resource.data.negocioId == resource.data.negocioId
+                    && (
+                      // o negócio responde ou corrige a resposta (enquanto está aberta)
+                      (resource.data.alvoId == request.auth.uid
+                        && resource.data.status == 'aberta'
+                        && mudou().hasOnly(['resposta', 'respondidaEm'])
+                        && request.resource.data.resposta is string
+                        && request.resource.data.resposta.size() >= 2 && request.resource.data.resposta.size() <= 1000
+                        && request.resource.data.respondidaEm == request.time)
+                      ||
+                      // o cliente marca como resolvida
+                      (resource.data.autorId == request.auth.uid
+                        && resource.data.status == 'aberta'
+                        && mudou().hasOnly(['status', 'resolvidaEm'])
+                        && request.resource.data.status == 'resolvida'
+                        && request.resource.data.resolvidaEm == request.time)
+                      ||
+                      // o cliente reabre (com relato novo), contando na cota
+                      (resource.data.autorId == request.auth.uid
+                        && resource.data.status == 'resolvida'
+                        && mudou().hasOnly(['motivo', 'texto', 'foto', 'status', 'abertaEm', 'aberturas', 'resposta', 'respondidaEm', 'resolvidaEm'])
+                        && relatoOk(request.resource.data)
+                        && request.resource.data.status == 'aberta'
+                        && request.resource.data.abertaEm == request.time
+                        && request.resource.data.aberturas == resource.data.get('aberturas', 1) + 1
+                        && request.resource.data.get('resposta', null) == null
+                        && contou())
+                    );
+
+      allow delete: if false;
+    }
+
+    match /cotas/{uid} {
+
+      allow read: if logado() && request.auth.uid == uid;
+
+      // Janela nova (primeira vez ou a anterior já passou de 30 dias): começa agora com 1.
+      // Dentro da janela: soma 1, até 3.
+      allow create: if logado()
+                    && request.auth.uid == uid
+                    && request.resource.data.keys().hasOnly(['inicio', 'n', 'ultimaEm'])
+                    && request.resource.data.inicio == request.time
+                    && request.resource.data.n == 1
+                    && request.resource.data.ultimaEm == request.time;
+
+      allow update: if logado()
+                    && request.auth.uid == uid
+                    && request.resource.data.keys().hasOnly(['inicio', 'n', 'ultimaEm'])
+                    && request.resource.data.ultimaEm == request.time
+                    && ((resource.data.inicio < request.time - duration.value(30, 'd')
+                         && request.resource.data.inicio == request.time
+                         && request.resource.data.n == 1)
+                        ||
+                        (resource.data.inicio >= request.time - duration.value(30, 'd')
+                         && request.resource.data.inicio == resource.data.inicio
+                         && request.resource.data.n == resource.data.n + 1
+                         && request.resource.data.n <= 3));
+
+      allow delete: if false;
+    }
+
+
+    // =====================================================
+    // ESTRELAS NAS PUBLICAÇÕES: curtidas/{postId}_{uid}
+    // Nota de 1 a 5, uma por pessoa em cada publicação. A pessoa pode
+    // trocar a nota ou tirar. Ninguém dá estrelas na própria publicação.
+    // =====================================================
+    match /curtidas/{id} {
+
+      allow read: if logado();
+
+      function notaOk(d) {
+        return d.nota is int && d.nota >= 1 && d.nota <= 5;
+      }
+
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['postId', 'uid', 'postAutorId', 'nota', 'criadoEm'])
+                    && request.resource.data.uid == request.auth.uid
+                    && id == request.resource.data.postId + '_' + request.auth.uid
+                    && exists(/databases/$(database)/documents/diario/$(request.resource.data.postId))
+                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
+                    && request.resource.data.postAutorId != request.auth.uid
+                    && notaOk(request.resource.data)
+                    && !bloqueioEntre(request.auth.uid, request.resource.data.postAutorId)
+                    && request.resource.data.criadoEm == request.time;
+
+      allow update: if logado()
+                    && emailOk()
+                    && resource.data.uid == request.auth.uid
+                    && mudou().hasOnly(['nota', 'atualizadoEm'])
+                    && notaOk(request.resource.data)
+                    && request.resource.data.atualizadoEm == request.time;
+
+      allow delete: if logado() && resource.data.uid == request.auth.uid;
+    }
+
+    // =====================================================
+    // COMENTÁRIOS: comentarios/{id}
+    // - Resposta: respostaA = id do comentário respondido (mesma publicação)
+    //   e respostaAutorId = autor dele (para o aviso).
+    // - Quem comentou edita o texto. O dono da publicação oculta um comentário.
+    // - Quem comentou ou o dono da publicação apaga.
+    // - Publicação com comentários ocultos não recebe comentários novos.
+    // =====================================================
+    match /comentarios/{id} {
+
+      allow read: if logado();
+
+      function textoComentarioOk(d) {
+        return d.texto is string && d.texto.size() >= 1 && d.texto.size() <= 500;
+      }
+
+      function respostaOk(d) {
+        return (!('respostaA' in d) && !('respostaAutorId' in d))
+            || (d.respostaA is string
+                && exists(/databases/$(database)/documents/comentarios/$(d.respostaA))
+                && get(/databases/$(database)/documents/comentarios/$(d.respostaA)).data.postId == d.postId
+                && d.respostaAutorId == get(/databases/$(database)/documents/comentarios/$(d.respostaA)).data.autorId);
+      }
+
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['postId', 'postAutorId', 'autorId', 'nome', 'foto', 'texto', 'respostaA', 'respostaAutorId', 'criadoEm'])
+                    && request.resource.data.autorId == request.auth.uid
+                    && textoComentarioOk(request.resource.data)
+                    && valorTextoAte(request.resource.data.get('nome', ''), 80)
+                    && fotoOk(request.resource.data.get('foto', ''))
+                    && exists(/databases/$(database)/documents/diario/$(request.resource.data.postId))
+                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
+                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.get('comentariosOcultos', false) != true
+                    && respostaOk(request.resource.data)
+                    && !bloqueioEntre(request.auth.uid, request.resource.data.postAutorId)
+                    && request.resource.data.criadoEm == request.time;
+
+      allow update: if logado()
+                    && emailOk()
+                    && (
+                      // quem comentou corrige o texto
+                      (resource.data.autorId == request.auth.uid
+                        && mudou().hasOnly(['texto', 'editadoEm'])
+                        && textoComentarioOk(request.resource.data)
+                        && request.resource.data.editadoEm == request.time)
+                      ||
+                      // o dono da publicação oculta ou mostra o comentário
+                      (resource.data.postAutorId == request.auth.uid
+                        && mudou().hasOnly(['oculto'])
+                        && request.resource.data.oculto is bool)
+                    );
+
+      allow delete: if logado()
+                    && (resource.data.autorId == request.auth.uid || resource.data.postAutorId == request.auth.uid);
+    }
+
+    // =====================================================
+    // CURTIDAS EM COMENTÁRIOS: curtidas_comentarios/{comentarioId}_{uid}
+    // =====================================================
+    match /curtidas_comentarios/{id} {
+
+      allow read: if logado();
+
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['comentarioId', 'uid', 'criadoEm'])
+                    && request.resource.data.uid == request.auth.uid
+                    && id == request.resource.data.comentarioId + '_' + request.auth.uid
+                    && exists(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId))
+                    && request.resource.data.criadoEm == request.time;
+
+      allow update: if false;
+      allow delete: if logado() && resource.data.uid == request.auth.uid;
+    }
+
+
+    // =====================================================
+    // DIÁRIO / PUBLICAÇÕES
+    // =====================================================
+    match /diario/{postId} {
+
+      allow read: if logado();
+
+      function publicacaoOk() {
+        let d = request.resource.data;
+        return textoAte('texto', 1000)
+            && textoAte('nome', 80)
+            && campoFotoOk('fotoPerfil')
+            && (!('mediaTipo' in d) || d.mediaTipo in ['', 'image', 'video'])
+            && (!('mediaUrl' in d) || d.mediaUrl == ''
+                || (d.mediaUrl is string
+                    && d.mediaUrl.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*')));
+      }
+
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.autorId == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'fotoPerfil', 'texto', 'mediaUrl', 'mediaTipo', 'criadoEm'])
+                    && publicacaoOk();
+
+      allow update: if logado()
+                    && emailOk()
+                    && resource.data.autorId == request.auth.uid
+                    && request.resource.data.autorId == resource.data.autorId
+                    && gravou().hasOnly(['texto', 'nome', 'fotoPerfil', 'comentariosOcultos'])
+                    && (!('comentariosOcultos' in request.resource.data) || request.resource.data.comentariosOcultos is bool)
+                    && publicacaoOk();
+
+      allow delete: if logado()
+                    && resource.data.autorId == request.auth.uid;
+    }
+  }
+}

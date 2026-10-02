@@ -1,9 +1,15 @@
 // =====================================================
 // Avaliações do Help Floripa
 // - avaliacoes/{id}: uma avaliação (1 a 5 estrelas + comentário)
-//     p_{pedido}_c  cliente avalia o negócio      (1 vez por pedido)
-//     p_{pedido}_v  negócio avalia o cliente      (1 vez por pedido)
-//     d_{post}_{uid} alguém avalia uma publicação  (1 vez por publicação)
+//     n_{negocio}_{cliente}  cliente avalia o negócio  (UMA por cliente em cada negócio; pode editar)
+//     c_{negocio}_{cliente}  negócio avalia o cliente  (UMA por cliente em cada negócio; pode editar)
+//     d_{post}_{uid}         alguém avalia uma publicação (1 vez por publicação)
+//     p_{pedido}_c / p_{pedido}_v: modelo antigo (1 por pedido), só leitura — continuam contando.
+// Quem pode avaliar um negócio (conferido aqui e nas regras do Firestore):
+//   - conversou com o dono pelo chat e o dono respondeu (conversas.falaram);
+//   - e-mail confirmado e conta com pelo menos 3 dias;
+//   - não é o dono, não tem vínculo aceito no Social com ele e não há bloqueio.
+// Pedido de avaliação enviado pelo negócio só marca "Atendimento confirmado": não libera notas extras.
 // - notas/{chave}: resumo (total, soma, n1..n5) de cada negócio (neg_),
 //   de cada cliente (cli_), das publicações de alguém (pub_) e de cada publicação (post_).
 // As regras do Firestore conferem que o resumo soma exatamente a avaliação nova.
@@ -71,18 +77,34 @@ export async function notaDoPerfil(fbx, uid) {
 }
 
 // ---------- gravação (transação: avaliação + resumos) ----------
+// Avaliação nova: soma no resumo. Avaliação "n_"/"c_" que já existe (do mesmo autor):
+// é uma EDIÇÃO — troca a nota antiga pela nova no resumo, sem contar de novo.
 export async function avaliar(fbx, euX, id, dados, chaves, autor = {}) {
   const nota = Math.max(1, Math.min(5, Math.round(Number(dados.nota) || 0)));
   const foto = String(autor.foto || "");
   const fotoOk = /^(data:image\/(jpeg|png|webp);base64,|https:\/\/firebasestorage\.googleapis\.com\/|https:\/\/lh3\.googleusercontent\.com\/)/i.test(foto) && foto.length < 200000;
+  const editavel = /^[nc]_/.test(id);
   await fbx.runTransaction(fbx.db, async (tx) => {
     const refAval = fbx.doc(fbx.db, "avaliacoes", id);
     const ja = await tx.get(refAval);
-    if (ja.exists()) throw Object.assign(new Error("Você já avaliou."), { code: "ja-avaliado" });
+    const antes = ja.exists() ? ja.data() : null;
+    if (antes && (!editavel || antes.autorId !== euX.uid)) throw Object.assign(new Error("Você já avaliou."), { code: "ja-avaliado" });
     const refs = chaves.map((k) => fbx.doc(fbx.db, "notas", k));
     const atuais = await Promise.all(refs.map((r) => tx.get(r)));
+    const comentario = String(dados.comentario || "").trim().slice(0, 500);
+    if (antes) {
+      const mud = { nota, comentario, atualizadoEm: fbx.serverTimestamp() };
+      if (dados.pedidoId && !antes.pedidoId) mud.pedidoId = dados.pedidoId;
+      tx.update(refAval, mud);
+      if (antes.nota !== nota) refs.forEach((r, i) => {
+        const a = atuais[i].exists() ? atuais[i].data() : null;
+        if (!a) return;
+        tx.set(r, { soma: (a.soma || 0) - antes.nota + nota, [`n${antes.nota}`]: Math.max(0, (a[`n${antes.nota}`] || 0) - 1), [`n${nota}`]: (a[`n${nota}`] || 0) + 1, ultima: id, atualizadoEm: fbx.serverTimestamp() }, { merge: true });
+      });
+      return;
+    }
     tx.set(refAval, {
-      ...dados, nota, comentario: String(dados.comentario || "").trim().slice(0, 500),
+      ...dados, nota, comentario,
       autorId: euX.uid, autorNome: String(autor.nome || "").slice(0, 80), autorFoto: fotoOk ? foto : "",
       chaves, criadoEm: fbx.serverTimestamp()
     });
@@ -94,6 +116,85 @@ export async function avaliar(fbx, euX, id, dados, chaves, autor = {}) {
   });
   chaves.forEach(esquecerResumo);
   return nota;
+}
+
+// ---------- quem pode avaliar / reclamar ----------
+export const DIAS_CONTA = 3;
+export const idConversa = (a, b) => (a < b ? `${a}_${b}` : `${b}_${a}`);
+// Confere, antes de abrir a janela, o mesmo que as regras do Firestore conferem.
+// Devolve { ok, motivo, existente (avaliação n_ do cliente), confirmado }.
+export async function podeAvaliarNegocio(fbx, euX, n, { exigirResposta = true } = {}) {
+  const donoId = n.donoId || String(n.id || "").split("_")[0];
+  const negocioId = n.id || `${donoId}_${n.tipo}`;
+  if (donoId === euX.uid) return { ok: false, motivo: "Você não pode avaliar o seu próprio negócio." };
+  if (!euX.emailVerified) return { ok: false, motivo: "Confirme seu e-mail para avaliar ou reclamar." };
+  const nome = n.nome || "este negócio";
+  const [usuario, conversa, vinculo, bloq1, bloq2, existente, legado] = await Promise.all([
+    fbx.getDoc(fbx.doc(fbx.db, "usuarios", euX.uid)).catch(() => null),
+    fbx.getDoc(fbx.doc(fbx.db, "conversas", idConversa(euX.uid, donoId))).catch(() => null),
+    fbx.getDoc(fbx.doc(fbx.db, "vinculos", idConversa(euX.uid, donoId))).catch(() => null),
+    fbx.getDoc(fbx.doc(fbx.db, "bloqueios", `${euX.uid}_${donoId}`)).catch(() => null),
+    fbx.getDoc(fbx.doc(fbx.db, "bloqueios", `${donoId}_${euX.uid}`)).catch(() => null),
+    fbx.getDoc(fbx.doc(fbx.db, "avaliacoes", `n_${negocioId}_${euX.uid}`)).catch(() => null),
+    fbx.getDocs(fbx.query(fbx.collection(fbx.db, "avaliacoes"), fbx.where("autorId", "==", euX.uid), fbx.where("negocioId", "==", negocioId), fbx.limit(5))).catch(() => ({ docs: [] }))
+  ]);
+  const criado = usuario?.exists() ? usuario.data().criadoEm?.toMillis?.() : 0;
+  if (usuario?.exists() && !criado) {
+    // Cadastro antigo sem a data: começa a contar agora (as regras só aceitam a data de agora).
+    fbx.setDoc(fbx.doc(fbx.db, "usuarios", euX.uid), { criadoEm: fbx.serverTimestamp() }, { merge: true }).catch(() => {});
+    return { ok: false, motivo: `Para evitar contas falsas, avaliar e reclamar fica liberado ${DIAS_CONTA} dias depois do cadastro. Sua conta começou a contar agora.` };
+  }
+  if (!criado || Date.now() - criado < DIAS_CONTA * 864e5) {
+    const falta = Math.max(1, Math.ceil((DIAS_CONTA * 864e5 - (Date.now() - criado)) / 864e5));
+    return { ok: false, motivo: `Para evitar contas falsas, contas novas podem avaliar e reclamar depois de ${DIAS_CONTA} dias. Falta${falta > 1 ? "m" : ""} ${falta} ${falta === 1 ? "dia" : "dias"}.` };
+  }
+  if (bloq1?.exists() || bloq2?.exists()) return { ok: false, motivo: "Não é possível avaliar: há um bloqueio entre vocês." };
+  if (vinculo?.exists() && vinculo.data().status === "aceito") return { ok: false, motivo: "Vocês estão ligados no Social. Para ser justo, avaliações entre conhecidos não contam." };
+  const falaram = conversa?.exists() ? conversa.data().falaram || {} : {};
+  if (!falaram[euX.uid] || (exigirResposta && !falaram[donoId])) {
+    return { ok: false, motivo: exigirResposta
+      ? `Para avaliar, converse com ${nome} pelo chat do Help Floripa e espere a resposta. Assim só avalia quem foi atendido de verdade.`
+      : `Para reclamar, mande antes uma mensagem para ${nome} pelo chat do Help Floripa.` };
+  }
+  if (legado.docs.some((d) => d.id.startsWith("p_") && d.data().tipo === "negocio")) return { ok: false, motivo: "Você já avaliou este negócio." };
+  const ex = existente?.exists() ? existente.data() : null;
+  return { ok: true, existente: ex, negocioId, donoId };
+}
+
+// Fluxo completo de "Avaliar" um negócio (perfil, chat ou link). pedidoId marca "Atendimento confirmado".
+export async function avaliarNegocio(fbx, euX, n, { pedidoId = "", autor = {}, aoAvaliar } = {}) {
+  const r = await podeAvaliarNegocio(fbx, euX, n);
+  if (!r.ok) { avisar(r.motivo); return false; }
+  const ex = r.existente;
+  abrirAvaliar({
+    titulo: ex ? `Editar sua avaliação de ${n.nome || "o negócio"}` : `Avalie ${n.nome || "o atendimento"}`,
+    sub: ex ? "Você já avaliou. A nota nova substitui a anterior (cada cliente conta uma vez)." : "Cada cliente avalia uma vez cada negócio. Se voltar a comprar, você pode atualizar a nota.",
+    reclamacao: true, notaInicial: ex?.nota || 0, comentarioInicial: ex?.comentario || "",
+    textoBotao: ex ? "Salvar nova nota" : "Enviar avaliação",
+    aoEnviar: async ({ nota, comentario }) => {
+      const dados = { tipo: "negocio", alvoId: r.donoId, negocioId: r.negocioId, nota, comentario };
+      if (pedidoId) dados.pedidoId = pedidoId;
+      await avaliar(fbx, euX, `n_${r.negocioId}_${euX.uid}`, dados, [`neg_${r.negocioId}`], autor);
+      aoAvaliar?.(nota, !!ex);
+    }
+  });
+  return true;
+}
+// Negócio avalia o cliente: também uma por cliente em cada negócio (pode editar).
+export async function avaliarCliente(fbx, euX, negocioId, clienteId, { nomeCliente = "cliente", pedidoId = "", autor = {}, aoAvaliar } = {}) {
+  let ex = null;
+  try { const s = await fbx.getDoc(fbx.doc(fbx.db, "avaliacoes", `c_${negocioId}_${clienteId}`)); ex = s.exists() ? s.data() : null; } catch {}
+  abrirAvaliar({
+    titulo: ex ? `Editar avaliação de ${nomeCliente}` : `Avaliar ${nomeCliente}`,
+    sub: "Como foi atender este cliente? Cada negócio avalia cada cliente uma vez (dá para atualizar).",
+    notaInicial: ex?.nota || 0, comentarioInicial: ex?.comentario || "", textoBotao: ex ? "Salvar nova nota" : "Enviar avaliação",
+    aoEnviar: async ({ nota, comentario }) => {
+      const dados = { tipo: "cliente", alvoId: clienteId, negocioId, nota, comentario };
+      if (pedidoId) dados.pedidoId = pedidoId;
+      await avaliar(fbx, euX, `c_${negocioId}_${clienteId}`, dados, [`cli_${clienteId}`], autor);
+      aoAvaliar?.(nota, !!ex);
+    }
+  });
 }
 export async function jaAvaliou(fbx, id) {
   try { return (await fbx.getDoc(fbx.doc(fbx.db, "avaliacoes", id))).exists(); } catch { return false; }
@@ -123,7 +224,7 @@ function css() {
   .hf-aval { width: min(480px, 100%); max-height: 90vh; overflow-y: auto; background: var(--panel, #10181d); color: var(--text, #eef3f5); border: 1px solid var(--line, #22313a); border-radius: 24px; padding: 20px; display: grid; gap: 14px; box-shadow: 0 30px 80px rgba(0,0,0,.6); }
   .hf-aval h3 { margin: 0; font-size: 20px; }
   .hf-aval p { margin: 0; color: var(--muted, #8fa0ab); font-size: 14px; }
-  .hf-aval .topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .hf-aval .hf-aval-topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
   .hf-aval .x { border: 0; background: rgba(140,160,171,.15); color: inherit; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 18px; flex-shrink: 0; }
   .hf-aval .grande { display: flex; justify-content: center; gap: 6px; }
   .hf-aval .grande button { border: 0; background: none; font-size: 42px; line-height: 1; cursor: pointer; color: rgba(140,160,171,.4); padding: 2px; transition: transform .1s; }
@@ -209,16 +310,17 @@ function janela() {
   const caixa = document.createElement("div");
   caixa.className = "hf-aval";
   fundo.appendChild(caixa);
-  const fechar = () => { fundo.remove(); document.removeEventListener("keydown", tecla); };
-  const tecla = (e) => { if (e.key === "Escape") fechar(); };
+  // Esc fecha só esta janela (e não o perfil/painel que está por baixo).
+  const fechar = () => { fundo.remove(); document.removeEventListener("keydown", tecla, true); };
+  const tecla = (e) => { if (e.key === "Escape") { e.stopPropagation(); fechar(); } };
   fundo.addEventListener("click", (e) => { if (e.target === fundo) fechar(); });
-  document.addEventListener("keydown", tecla);
+  document.addEventListener("keydown", tecla, true);
   document.body.appendChild(fundo);
   return { caixa, fechar };
 }
 function topo(caixa, titulo, sub, fechar) {
   const t = document.createElement("div");
-  t.className = "topo";
+  t.className = "hf-aval-topo";
   const tx = document.createElement("div");
   const h = document.createElement("h3"); h.textContent = titulo;
   tx.appendChild(h);
@@ -232,7 +334,7 @@ function topo(caixa, titulo, sub, fechar) {
 const LEGENDAS = ["", "Muito ruim", "Ruim", "Regular", "Bom", "Excelente"];
 // Janela para dar a nota. aoEnviar({nota, comentario}) grava; se der erro, a janela continua aberta.
 // reclamacao: true nas avaliações de negócio (notas 1 e 2 vão para a página de Reclamações).
-export function abrirAvaliar({ titulo, sub, placeholder = "Conte como foi (opcional)", aoEnviar, reclamacao = false }) {
+export function abrirAvaliar({ titulo, sub, placeholder = "Conte como foi (opcional)", aoEnviar, reclamacao = false, notaInicial = 0, comentarioInicial = "", textoBotao = "Enviar avaliação" }) {
   const { caixa, fechar } = janela();
   topo(caixa, titulo, sub, fechar);
   let nota = 0;
@@ -260,15 +362,29 @@ export function abrirAvaliar({ titulo, sub, placeholder = "Conte como foi (opcio
   acoes.className = "acoes";
   const cancelar = document.createElement("button"); cancelar.type = "button"; cancelar.className = "sec"; cancelar.textContent = "Agora não";
   cancelar.addEventListener("click", fechar);
-  const enviar = document.createElement("button"); enviar.type = "button"; enviar.className = "pri"; enviar.textContent = "Enviar avaliação"; enviar.disabled = true;
+  const enviar = document.createElement("button"); enviar.type = "button"; enviar.className = "pri"; enviar.textContent = textoBotao; enviar.disabled = true;
   enviar.addEventListener("click", async () => {
     if (!nota) return;
     enviar.disabled = true; enviar.textContent = "Enviando...";
     try { await aoEnviar({ nota, comentario: txt.value.trim() }); fechar(); }
-    catch (e) { enviar.disabled = false; enviar.textContent = "Enviar avaliação"; alert(e?.code === "ja-avaliado" ? "Você já avaliou." : e?.code === "permission-denied" ? "Não foi possível avaliar. Confirme seu e-mail e tente de novo." : "Não foi possível enviar agora. Tente de novo."); }
+    catch (e) { enviar.disabled = false; enviar.textContent = textoBotao; alert(e?.code === "ja-avaliado" ? "Você já avaliou." : e?.code === "permission-denied" ? "Não foi possível avaliar. Confirme seu e-mail e tente de novo." : "Não foi possível enviar agora. Tente de novo."); }
   });
   acoes.append(cancelar, enviar);
   caixa.append(grande, legenda, aviso, txt, acoes);
+  if (comentarioInicial) txt.value = comentarioInicial;
+  if (notaInicial >= 1 && notaInicial <= 5) bots[notaInicial - 1].click();
+}
+// Aviso simples (quando não pode avaliar ou reclamar), no mesmo visual da janela.
+export function avisar(texto, titulo = "Ainda não dá") {
+  const { caixa, fechar } = janela();
+  topo(caixa, titulo, "", fechar);
+  const p = document.createElement("p"); p.textContent = texto; p.style.color = "inherit"; p.style.lineHeight = "1.5";
+  const acoes = document.createElement("div"); acoes.className = "acoes";
+  const ok = document.createElement("button"); ok.type = "button"; ok.className = "pri"; ok.textContent = "Entendi";
+  ok.addEventListener("click", fechar);
+  acoes.appendChild(ok);
+  caixa.append(p, acoes);
+  ok.focus();
 }
 
 // Detalhamento: nota geral, quantas de cada estrela, de onde vêm as notas e comentários recentes.
@@ -340,7 +456,7 @@ export async function abrirDetalhamento({ fbx, titulo = "Avaliações", sub, ger
         const nome = document.createElement("strong"); nome.textContent = a.autorNome || "Usuário";
         const info = document.createElement("span");
         const data = a.criadoEm?.toDate?.();
-        info.textContent = [rot[a.tipo], data ? data.toLocaleDateString("pt-BR") : ""].filter(Boolean).join(" · ");
+        info.textContent = [a.pedidoId ? "✓ Atendimento confirmado" : rot[a.tipo], data ? data.toLocaleDateString("pt-BR") : "", a.atualizadoEm ? "editada" : ""].filter(Boolean).join(" · ");
         quem.append(nome, info);
         c.appendChild(quem);
         c.appendChild(estrelas({ total: 1, soma: a.nota }, { soEstrelas: true }));

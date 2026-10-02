@@ -667,7 +667,7 @@
 
   <script type="module">
     import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura, mostrarAvisoEmail } from "./seguranca.js?v=1";
-    import { abrirAvaliar, avaliar, estrelas, whatsAvaliacao, TIPOS_NEGOCIO } from "./avaliacoes.js?v=4";
+    import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO } from "./avaliacoes.js?v=8";
     // ======================================================
     // Configurações (salvas no aparelho)
     // ======================================================
@@ -880,43 +880,44 @@
       box.append(tp, ti, sub, status, acoes);
       const botao = (texto, cls, fn) => { const b = document.createElement("button"); b.type = "button"; b.className = cls; b.textContent = texto; b.addEventListener("click", (e) => { e.stopPropagation(); fn(); }); return b; };
       const autor = () => ({ nome: meuPerfil.nome || eu.displayName || "", foto: meuPerfil.fotoPerfil || "" });
+      // Uma nota por cliente em cada negócio (n_ / c_). O pedido só marca "Atendimento confirmado".
+      const clienteId = souVendedor ? ativa?.outroId : eu.uid;
+      const ler = (id) => fb.getDoc(fb.doc(fb.db, "avaliacoes", id)).then((s) => (s.exists() ? s.data() : null)).catch(() => null);
       const pintar = async () => {
         acoes.replaceChildren();
-        const [doCliente, doVendedor] = await Promise.all([
-          fb.getDoc(fb.doc(fb.db, "avaliacoes", `p_${pid}_c`)).then((s) => (s.exists() ? s.data() : null)).catch(() => null),
-          fb.getDoc(fb.doc(fb.db, "avaliacoes", `p_${pid}_v`)).then((s) => (s.exists() ? s.data() : null)).catch(() => null)
-        ]);
+        const [nC, nV, pC, pV] = await Promise.all([ler(`n_${negocioId}_${clienteId}`), ler(`c_${negocioId}_${clienteId}`), ler(`p_${pid}_c`), ler(`p_${pid}_v`)]);
+        const doCliente = nC || pC, doVendedor = nV || pV;
         status.replaceChildren();
         if (souVendedor) {
           if (doCliente) status.append("Cliente avaliou: ", estrelas({ total: 1, soma: doCliente.nota }, { soEstrelas: true }));
           else status.textContent = "Aguardando a avaliação do cliente";
-          if (!doVendedor) acoes.appendChild(botao("Avaliar cliente", "sec", () => abrirAvaliar({
-            titulo: `Avaliar ${ativa?.nome || "cliente"}`, sub: "Como foi atender este cliente? Só aparece para quem abrir o perfil dele.",
-            aoEnviar: async ({ nota, comentario }) => {
-              await avaliar(fb, eu, `p_${pid}_v`, { tipo: "cliente", alvoId: ativa.outroId, pedidoId: pid, nota, comentario }, [`cli_${ativa.outroId}`], autor());
-              toast("Cliente avaliado"); pintar();
-            }
-          })));
-          else { const d = document.createElement("span"); d.className = "aval-feito"; d.append("Você avaliou o cliente ", estrelas({ total: 1, soma: doVendedor.nota }, { soEstrelas: true })); acoes.appendChild(d); }
+          const avaliarCli = () => avaliarCliente(fb, eu, negocioId, clienteId, { nomeCliente: ativa?.nome || "cliente", pedidoId: pid, autor: autor(), aoAvaliar: () => { toast("Avaliação do cliente salva"); pintar(); } });
+          if (!doVendedor) acoes.appendChild(botao("Avaliar cliente", "sec", avaliarCli));
+          else {
+            const d = document.createElement("span"); d.className = "aval-feito"; d.append("Você avaliou o cliente ", estrelas({ total: 1, soma: doVendedor.nota }, { soEstrelas: true }));
+            acoes.appendChild(d);
+            if (nV || !pV) acoes.appendChild(botao("Editar", "sec", avaliarCli));
+          }
           const w = document.createElement("a");
           w.className = "sec"; w.textContent = "Enviar pelo WhatsApp"; w.target = "_blank"; w.rel = "noopener noreferrer";
           w.href = whatsAvaliacao(pid, a.negocioNome);
           w.addEventListener("click", (e) => e.stopPropagation());
           if (!doCliente) acoes.appendChild(w);
         } else {
-          if (doCliente) { status.append("Você avaliou: ", estrelas({ total: 1, soma: doCliente.nota }, { soEstrelas: true })); }
-          else {
-            status.textContent = "Leva 10 segundos e ajuda outros clientes.";
-            acoes.appendChild(botao("★ Avaliar agora", "pri", () => abrirAvaliar({
-              titulo: `Avalie ${a.negocioNome || "o atendimento"}`, sub: a.titulo || "",
-              reclamacao: true,
-              aoEnviar: async ({ nota, comentario }) => {
-                await avaliar(fb, eu, `p_${pid}_c`, { tipo: "negocio", alvoId: m.remetenteId, negocioId, pedidoId: pid, nota, comentario }, [`neg_${negocioId}`], autor());
-                toast("Obrigado pela avaliação!");
-                pintar();
-                publicarMensagem(ativa.id, { remetenteId: eu.uid, texto: `Avaliei o atendimento: ${"★".repeat(nota)}${"☆".repeat(5 - nota)}`, criadoEm: fb.serverTimestamp() }).catch(() => {});
-              }
-            })));
+          const abrir = () => avaliarNegocio(fb, eu, { id: negocioId, donoId: m.remetenteId, tipo, nome: a.negocioNome }, {
+            pedidoId: pid, autor: autor(),
+            aoAvaliar: (nota, editou) => {
+              toast(editou ? "Avaliação atualizada" : "Obrigado pela avaliação!");
+              pintar();
+              if (!editou) publicarMensagem(ativa.id, { remetenteId: eu.uid, texto: `Avaliei o atendimento: ${"★".repeat(nota)}${"☆".repeat(5 - nota)}`, criadoEm: fb.serverTimestamp() }).catch(() => {});
+            }
+          });
+          if (doCliente) {
+            status.append("Você avaliou: ", estrelas({ total: 1, soma: doCliente.nota }, { soEstrelas: true }));
+            if (nC) acoes.appendChild(botao("Editar minha nota", "sec", abrir));
+          } else {
+            status.textContent = "Leva 10 segundos e ajuda outros clientes. Cada cliente avalia uma vez cada negócio.";
+            acoes.appendChild(botao("★ Avaliar agora", "pri", abrir));
           }
         }
       };
@@ -2179,7 +2180,8 @@
         ultimaMensagemRemetenteId: eu.uid,
         atualizadoEm: fb.serverTimestamp(),
         [campoLeitura(ativa?.outroId)]: { [eu.uid]: fb.serverTimestamp() },
-        digitando: { [eu.uid]: null }
+        digitando: { [eu.uid]: null },
+        falaram: { [eu.uid]: true } // "já escreveu nesta conversa": libera avaliação e reclamação
       }, { merge: true }).catch((e) => console.warn("Resumo da conversa não atualizado:", e));
       ultimoDigitando = 0;
       await envio;
