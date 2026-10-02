@@ -11,6 +11,7 @@
 import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=5";
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
 import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=9";
+import "./painel-avisos.js?v=3"; // o sino abre o painel de notificações na própria página
 
 // ---------- ícones ----------
 const SIMBOLOS = `<symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 01-1.5 1.5H15v-6h-6v6H5.5A1.5 1.5 0 014 19z"/></symbol>
@@ -958,6 +959,8 @@ export function contarNovos() {
   const t = (x) => x.quando > avisosVistosEm;
   return avisos.seguidores.filter(t).length + avisos.vinculos.filter((v) => v.pendente || t(v)).length + avisos.curtidas.filter(t).length + avisos.comentarios.filter(t).length + avisos.respostas.filter(t).length + avisos.reclamacoes.filter(t).length;
 }
+// O painel de notificações (painel-avisos.js) marcou tudo como visto: zera o contador desta página.
+addEventListener("hf:avisos-vistos", () => { avisosVistosEm = Date.now(); if (eu) avisar(); });
 export function marcarAvisosVistos() {
   avisosVistosEm = Date.now();
   try { sessionStorage.removeItem("hf-avisos-" + eu.uid); } catch {} // o sino do topo recalcula
