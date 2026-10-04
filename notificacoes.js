@@ -7,8 +7,8 @@ import {
   $, el, icone, pintarAvatar, urlSegura, tempoRelativo, toast, erroAmigavel,
   fb, eu, ganchos, iniciarRede, carregarMeusSeguindo, botaoSeguir, montarBarraRede, pintarBarraRede,
   ouvirAvisos, aoMudarAvisos, avisosVistosEm, marcarAvisosVistos, rotuloVinculo, abrirComentarios
-} from "./rede.js?v=14";
-import { TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=14";
+} from "./rede.js?v=16";
+import { TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=15";
 
 let filtro = "tudo";
 let vistoAntes = 0;

@@ -1092,7 +1092,13 @@ export function abrirDetalhe(n, opcoes = {}) {
     const bR = el("button", "vt-btn sec reclamar"); bR.type = "button";
     bR.append(icone("alerta"), document.createTextNode("Reclamar"));
     bR.addEventListener("click", () => abrirQueixa(fbx, euX, n, { autor, aoAbrir: (id) => { toast("Reclamação enviada. O negócio tem 7 dias para responder."); setTimeout(() => { location.href = `reclamacoes.html?negocio=${encodeURIComponent(id)}`; }, 1200); } }));
-    conf.append(bA, bR, el("small", null, "Só avalia ou reclama quem conversou com o negócio pelo chat."));
+    // Golpe ou perfil falso não precisa de conversa: vai para a equipe analisar.
+    const bD = el("button", "vd-denunciar", "Denunciar golpe ou perfil falso"); bD.type = "button";
+    bD.addEventListener("click", async () => {
+      const { abrirDenuncia } = await import("./denuncias.js?v=1");
+      abrirDenuncia({ fb: fbx, eu: euX, tipo: "negocio", alvoId: n.donoId, itemId: idNegocio(n), trecho: [n.nome, n.descricao].filter(Boolean).join(" · "), nomeAlvo: n.nome || "", podeBloquear: false });
+    });
+    conf.append(bA, bR, el("small", null, "Só avalia ou reclama quem conversou com o negócio pelo chat."), bD);
     ct.appendChild(conf);
   }
   // barra do carrinho fica colada no rodapé, no lugar dos botões de contato

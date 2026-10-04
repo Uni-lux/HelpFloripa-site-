@@ -7,7 +7,7 @@ import {
   $, pintarAvatar, toast, erroAmigavel, abrirFolha, fecharFolha, abrirLista, config, salvarConfig, aplicarTema,
   fb, authFns, eu, refUsuario, dados, perfis, meusBloqueios, restritos, obterPerfil, linhaPessoa,
   desbloquear, alternarRestricao, marcarPresenca, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos, salvarPrivacidadeConta
-} from "./rede.js?v=14";
+} from "./rede.js?v=16";
 import { MOTIVOS_DESATIVAR, desativarConta, pedirExclusao, reautenticar, provedor } from "./conta.js?v=1";
 
 function pintarConfig() {
@@ -30,7 +30,7 @@ function pintarConfig() {
     foto: "A foto aparece na capa, mas ninguém consegue abrir o perfil por ela.",
     ocultar: "Ninguém vê seu duo na capa do seu perfil."
   }[modoDuo];
-  $("cfgEnderecoTxt").textContent = resumoEndereco(dados.endereco) || "Privado: só você vê";
+  $("cfgEnderecoTxt").textContent = resumoEndereco(dados.endereco) || "Privado: não aparece para outros usuários";
   document.querySelectorAll("#cfgTema [data-valor]").forEach((b) => b.classList.toggle("on", b.dataset.valor === config.tema));
   $("cfgOnline").checked = config.mostrarOnline !== false;
   $("cfgSons").checked = config.sons !== false;
@@ -254,6 +254,35 @@ $("emailSalvar").addEventListener("click", async () => {
 $("cfgSair").addEventListener("click", async () => {
   try { await authFns.signOut(window.firebaseAuth); } catch {}
   location.href = "index.html";
+});
+
+// ---------- baixar meus dados (LGPD) ----------
+$("cfgBaixarDados").addEventListener("click", async () => {
+  const b = $("cfgBaixarDados"); b.disabled = true;
+  toast("Juntando seus dados... pode levar alguns segundos.");
+  try {
+    const uid = eu.uid;
+    const lista = (col, campo, op = "==") => fb.getDocs(fb.query(fb.collection(fb.db, col), fb.where(campo, op, uid))).then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() }))).catch(() => []);
+    const um = (col, id) => fb.getDoc(fb.doc(fb.db, col, id)).then((s) => (s.exists() ? s.data() : null)).catch(() => null);
+    const [conta, perfil, negocios, anuncios, publicacoes, comentarios, estrelasDadas, seguindo, seguidores, conexoes, bloqueios, avaliacoesFeitas, avaliacoesRecebidas, reclamacoesFeitas, reclamacoesRecebidas, chamados, avisos, conversas] = await Promise.all([
+      um("usuarios", uid), um("perfis_publicos", uid), lista("negocios", "donoId"), lista("anuncios", "donoId"), lista("diario", "autorId"), lista("comentarios", "autorId"),
+      lista("curtidas", "uid"), lista("relacoes", "seguidorId"), lista("relacoes", "alvoId"), lista("vinculos", "participantes", "array-contains"), lista("bloqueios", "bloqueadorId"),
+      lista("avaliacoes", "autorId"), lista("avaliacoes", "alvoId"), lista("queixas", "autorId"), lista("queixas", "alvoId"), lista("suporte", "uid"), lista("avisos", "uid"),
+      lista("conversas", "participantes", "array-contains")
+    ]);
+    // Mensagens das suas conversas (até 1.000 por conversa).
+    for (const c of conversas) {
+      c.mensagens = await fb.getDocs(fb.query(fb.collection(fb.db, "conversas", c.id, "mensagens"), fb.orderBy("criadoEm", "asc"), fb.limit(1000))).then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() }))).catch(() => []);
+    }
+    const limpar = (v) => JSON.parse(JSON.stringify(v, (k, x) => (x && typeof x === "object" && typeof x.toDate === "function" ? x.toDate().toISOString() : x)));
+    const pacote = limpar({ geradoEm: new Date().toISOString(), aviso: "Cópia dos seus dados no Help Floripa (LGPD, art. 18). Senha e dados de segurança do login ficam no Google Firebase e não são incluídos.", conta, perfil, negocios, anuncios, publicacoes, comentarios, estrelasDadas, seguindo, seguidores, conexoes, bloqueios, avaliacoesFeitas, avaliacoesRecebidas, reclamacoesFeitas, reclamacoesRecebidas, chamados, avisos, conversas });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(pacote, null, 2)], { type: "application/json" }));
+    a.download = `meus-dados-help-floripa-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    toast("Pronto! O arquivo foi baixado.");
+  } catch (e) { console.error(e); toast("Não foi possível juntar os dados: " + erroAmigavel(e)); }
+  finally { b.disabled = false; }
 });
 
 // ---------- desativar ----------

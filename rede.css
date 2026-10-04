@@ -781,3 +781,6 @@ html, body { overflow-x: clip; }
 .btn.pri.perigo { background: var(--danger); color: #fff; border: 0; }
 .btn.pri.perigo:disabled { opacity: .5; }
 .campo label.conta-op, label.conta-op { display: flex; margin-bottom: 0; font-weight: 600; font-size: 14px; }
+
+.mencao { color: var(--accent); font-weight: 700; text-decoration: none; }
+.mencao:hover { text-decoration: underline; }

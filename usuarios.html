@@ -12,8 +12,8 @@
   <link rel="icon" href="favicon.ico" />
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
-  <link rel="stylesheet" href="vitrine.css?v=22" />
-  <link rel="stylesheet" href="rede.css?v=4" />
+  <link rel="stylesheet" href="vitrine.css?v=23" />
+  <link rel="stylesheet" href="rede.css?v=5" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
     // Tema compartilhado com a página de mensagens; aplicado antes de desenhar.
@@ -152,7 +152,9 @@
         <div class="post-midia" id="postMidia"></div>
         <div class="post-info">
           <div class="autor"><div class="avatar" id="postAvatar"></div><div style="flex:1;min-width:0"><strong id="postNome"></strong><small id="postData"></small></div>
+            <button type="button" class="btn sec mini" id="postEditar"><svg class="i xs"><use href="#i-lapis"/></svg>Editar</button>
             <button type="button" class="btn perigo mini" id="postApagar"><svg class="i xs"><use href="#i-lixo"/></svg>Apagar</button>
+            <button type="button" class="btn sec mini" id="postDenunciar"><svg class="i xs"><use href="#i-alerta"/></svg>Denunciar</button>
           </div>
           <p class="texto" id="postTexto"></p>
         </div>
@@ -210,13 +212,14 @@
       $, ms, paraData, LIMITE_DOC, el, icone, iniciais, urlSegura, pintarAvatar, pintarCapa, nomeCidade, numero, tempoRelativo, dataCompleta,
       toast, erroAmigavel, notificar, abrirFolha, fecharFolha, pilha, abrirOpcoes, abrirLista,
       fb, authFns, storageFns, eu, refUsuario, dados, perfis, meusSeguindo, meusBloqueios, bloqueadoPor, restritos, escondido, ganchos,
-      obterPerfil, lerOrdenado, salvarImagem, iniciarRede, meusSeguindoPronto, carregarMeusSeguindo, alternarSeguir, botaoSeguir, linhaPessoa,
+      obterPerfil, lerOrdenado, editarPublicacao, comMencoes, salvarImagem, iniciarRede, meusSeguindoPronto, carregarMeusSeguindo, alternarSeguir, botaoSeguir, linhaPessoa,
       removerSeguidor, bloquear, desbloquear, alternarRestricao, compartilharPerfil,
       barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail
-    } from "./rede.js?v=14";
+    } from "./rede.js?v=16";
     import { buscarPessoas, palavrasBusca } from "./pessoas.js?v=2";
+    import { abrirDenuncia } from "./denuncias.js?v=1";
     import { notaDoPerfil, abrirDetalhamento, avaliarNegocio, avaliarCliente, lerResumo, estrelas, pintarEstrelas, media, notaTexto, TIPOS_NEGOCIO } from "./avaliacoes.js?v=10";
-    import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=26";
+    import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=27";
 
     // ======================================================
     // Estado desta página (o resto vem de rede.js)
@@ -459,9 +462,12 @@
       pintarAvatar($("postAvatar"), autor?.fotoPerfil || post.fotoPerfil, autor?.nome || post.nome);
       $("postNome").textContent = autor?.nome || post.nome || "Usuário";
       $("postData").textContent = dataCompleta(paraData(post.criadoEm));
-      $("postTexto").textContent = post.texto || "";
+      comMencoes($("postTexto"), post.texto || "");
       $("postTexto").hidden = !post.texto;
       $("postApagar").hidden = !proprio;
+      $("postEditar").hidden = !proprio;
+      $("postDenunciar").hidden = proprio;
+      $("postData").textContent = dataCompleta(paraData(post.criadoEm)) + (post.editadoEm ? " · editada" : "");
       $("postAnterior").disabled = indice <= 0;
       $("postProximo").disabled = indice >= lista.length - 1;
       pintarSocialPost({ ...post, autorId: post.autorId || autor?.uid });
@@ -491,6 +497,18 @@
         console.error(e);
         toast("Não foi possível apagar: " + erroAmigavel(e));
       }
+    });
+
+    $("postEditar").addEventListener("click", () => {
+      const post = postCtx.lista[postCtx.indice];
+      editarPublicacao(post, () => { mostrarPost(); if (postCtx.proprio) renderizarGrade($("gradePosts"), meusPosts, { proprio: true, autor: dados }); });
+    });
+    $("postDenunciar").addEventListener("click", () => {
+      const post = postCtx.lista[postCtx.indice];
+      const autorId = post.autorId || postCtx.autor?.uid;
+      const nomeA = postCtx.autor?.nome || post.nome || "";
+      abrirDenuncia({ fb, eu, tipo: "publicacao", alvoId: autorId, itemId: post.id, trecho: post.texto || "", nomeAlvo: nomeA,
+        aoBloquear: async () => { if (await bloquear(autorId, nomeA)) { fecharFolha("folhaPost"); abrirPerfilPublico(autorId); } } });
     });
 
     // ---------- nova publicação (rede.js) ----------
@@ -824,7 +842,10 @@
           { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(uid, p.nome) },
           !bloq && ppMeSegue && { rotulo: "Remover seguidor", sub: "Deixa de seguir você, sem aviso", icone: "pessoa-menos", fn: async () => { if (await removerSeguidor(uid, p.nome)) { ppMeSegue = false; abrirPerfilPublico(uid); } } },
           !bloq && { rotulo: restritos.has(uid) ? "Remover restrição" : "Restringir", sub: restritos.has(uid) ? "Volta a receber avisos dessa pessoa" : "Mensagens vão para Restritas, sem avisos", icone: "restringir", fn: () => alternarRestricao(uid, p.nome) },
-          { rotulo: bloq ? "Desbloquear" : "Bloquear", sub: bloq ? "" : "Ela não poderá ver seu perfil nem falar com você", icone: "bloquear", perigo: !bloq,
+          { rotulo: "Denunciar perfil", sub: "Golpe, perfil falso, assédio...", icone: "alerta", perigo: true,
+            fn: () => abrirDenuncia({ fb, eu, tipo: "perfil", alvoId: uid, itemId: uid, trecho: [p.nome, p.nickname ? "@" + p.nickname : "", p.bio].filter(Boolean).join(" · "), nomeAlvo: p.nome || "",
+              podeBloquear: !bloq, aoBloquear: async () => { if (await bloquear(uid, p.nome)) abrirPerfilPublico(uid); } }) },
+          { rotulo: bloq ? "Desbloquear" : "Bloquear", sub: bloq ? "" : "Ela não poderá abrir seu perfil nem falar com você", icone: "bloquear", perigo: !bloq,
             fn: async () => { const ok = bloq ? await desbloquear(uid) : await bloquear(uid, p.nome); if (ok) abrirPerfilPublico(uid); } }
         ]);
       });

@@ -27,7 +27,7 @@
   <link rel="stylesheet" href="categoria.css?v=7" />
   <link rel="stylesheet" href="info.css?v=4" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="categoria.js?v=17"></script>
+  <script type="module" src="categoria.js?v=18"></script>
 </head>
 <body data-classe="info">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -81,7 +81,7 @@
             <li>Não vendemos seus dados e não usamos cookies de publicidade.</li>
             <li>Mensagens só são vistas por quem está na conversa. Seu endereço só por você.</li>
             <li>Os dados ficam no Google Firebase, com regras de acesso por usuário.</li>
-            <li>Você corrige seus dados em <strong>Editar perfil</strong> e em <strong>Configurações</strong>, onde também pode desativar ou excluir a conta. Para outros pedidos, escreva para helpfloripa7@gmail.com.</li>
+            <li>Você corrige seus dados em <strong>Editar perfil</strong> e em <strong>Configurações</strong>, onde também pode <strong>baixar uma cópia dos seus dados</strong>, desativar ou excluir a conta. Para outros pedidos, escreva para helpfloripa7@gmail.com.</li>
           </ul>
         </div>
         <section class="clausula" id="c1" aria-labelledby="h1">
@@ -96,6 +96,7 @@
             <li><strong>Uso social:</strong> publicações, quem você segue, conexões, bloqueios e restrições.</li>
             <li><strong>Mensagens:</strong> textos, fotos, áudios, orçamentos e pedidos enviados no chat.</li>
             <li><strong>Avaliações e reclamações:</strong> nota, comentário, motivo e relato da reclamação, foto anexada (se houver), respostas e datas. Para aplicar os limites contra abusos, guardamos também a data de criação da conta e quantas reclamações você abriu nos últimos 30 dias.</li>
+            <li><strong>Denúncias:</strong> quando você denuncia algo, guardamos o motivo, o que você escreveu, um trecho do conteúdo denunciado e a data. Só a equipe do Help Floripa vê; a pessoa denunciada não é avisada nem sabe quem denunciou.</li>
             <li><strong>Endereço</strong>, se você decidir salvar nas configurações.</li>
             <li><strong>Dados técnicos:</strong> informações de login e de segurança geradas pelo Firebase, como data de acesso e identificadores da sessão.</li>
           </ul>
@@ -105,12 +106,14 @@
               <tr><td>Nome, @, foto, bio e cidade do perfil</td><td>Usuários logados</td></tr>
               <tr><td>"Online" e "visto por último" (só se "Mostrar quando estou online" estiver ligado)</td><td>Usuários logados</td></tr>
               <tr><td>Perfis de negócio, anúncios, publicações e avaliações (com nome e foto de quem avaliou)</td><td>Usuários logados</td></tr>
-              <tr><td>E-mail e senha</td><td>Só você (a senha fica protegida pelo Firebase)</td></tr>
+              <tr><td>E-mail, telefone e data de nascimento</td><td>Você e a equipe do Help Floripa, só para atendimento, segurança e moderação. A senha ninguém vê (fica protegida pelo Firebase)</td></tr>
               <tr><td>Reclamações (motivo, relato, foto e resposta do negócio)</td><td>Usuários logados</td></tr>
-              <tr><td>Quantas reclamações você abriu no mês e a data de criação da conta</td><td>Só você</td></tr>
-              <tr><td>Endereço salvo nas configurações</td><td>Só você</td></tr>
-              <tr><td>Preferências "Mostrar quando estou online" e "Confirmação de leitura"</td><td>Só você (ficam na sua conta e valem em todos os aparelhos)</td></tr>
-              <tr><td>Mensagens do chat</td><td>Só as duas pessoas da conversa</td></tr>
+              <tr><td>Quantas reclamações você abriu no mês e a data de criação da conta</td><td>Você e a equipe</td></tr>
+              <tr><td>Endereço salvo nas configurações</td><td>Você e a equipe (só para atendimento e segurança). Não aparece para outros usuários</td></tr>
+              <tr><td>Preferências "Mostrar quando estou online" e "Confirmação de leitura"</td><td>Você e a equipe (ficam na sua conta e valem em todos os aparelhos)</td></tr>
+              <tr><td>Mensagens do chat</td><td>Só as duas pessoas da conversa. A equipe abre apenas uma mensagem que tenha sido <strong>denunciada</strong>, para analisar a denúncia; não lê as conversas</td></tr>
+              <tr><td>Chamados de suporte, avisos da equipe e suspensões</td><td>Você e a equipe do Help Floripa</td></tr>
+              <tr><td>Proposta de parceria (formulário Sócios e parcerias)</td><td>Só a equipe</td></tr>
               <tr><td>Tema, carrinho e preferências</td><td>Só no seu aparelho (armazenamento do navegador)</td></tr>
             </tbody>
           </table>
@@ -176,7 +179,7 @@
             <li>confirmação e acesso aos seus dados;</li>
             <li>correção de dados incompletos ou desatualizados (a maioria você mesmo edita no seu perfil);</li>
             <li>anonimização, bloqueio ou eliminação de dados desnecessários;</li>
-            <li>portabilidade;</li>
+            <li>portabilidade (em Configurações › <strong>Baixar meus dados</strong> você recebe uma cópia em arquivo);</li>
             <li>exclusão da conta e dos dados tratados com consentimento;</li>
             <li>informação sobre com quem compartilhamos;</li>
             <li>revogação do consentimento.</li>

@@ -9,8 +9,10 @@
 import {
   $, el, icone, ms, paraData, pintarAvatar, urlSegura, nomeCidade, tempoRelativo, toast, erroAmigavel,
   fb, eu, dados, meusSeguindo, escondido, ganchos, obterPerfil, iniciarRede, carregarMeusSeguindo, linhaPessoa,
-  barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, montarBarraRede, pintarBarraRede, ouvirAvisos, lerOrdenado
-} from "./rede.js?v=14";
+  barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, montarBarraRede, pintarBarraRede, ouvirAvisos, lerOrdenado,
+  editarPublicacao, bloquear, comMencoes
+} from "./rede.js?v=16";
+import { abrirDenuncia } from "./denuncias.js?v=1";
 import { buscarPessoas, pessoasRecentes } from "./pessoas.js?v=2";
 
 const POR_VEZ = 10;
@@ -104,6 +106,10 @@ function cartaoPost(post) {
   mais.addEventListener("click", () => abrirOpcoes("Publicação", [
     { rotulo: "Ver perfil", icone: "olho", fn: () => ganchos.abrirPerfil(post.autorId) },
     { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(post.autorId, post.nome) },
+    post.autorId === eu.uid && { rotulo: "Editar publicação", icone: "lapis", fn: () => editarPublicacao(post, () => c.replaceWith(cartaoPost(post))) },
+    post.autorId !== eu.uid && { rotulo: "Denunciar publicação", sub: "Golpe, ofensa, conteúdo impróprio...", icone: "alerta", perigo: true,
+      fn: () => abrirDenuncia({ fb, eu, tipo: "publicacao", alvoId: post.autorId, itemId: post.id, trecho: post.texto || "", nomeAlvo: nome.textContent,
+        aoBloquear: async () => { if (await bloquear(post.autorId, nome.textContent)) { posts = posts.filter((x) => x.autorId !== post.autorId); carregarFeed(); } } }) },
     post.autorId === eu.uid && { rotulo: "Apagar publicação", icone: "lixo", perigo: true, fn: async () => {
       if (!confirm("Apagar esta publicação? Essa ação não pode ser desfeita.")) return;
       try { await fb.deleteDoc(fb.doc(fb.db, "diario", post.id)); c.remove(); posts = posts.filter((x) => x.id !== post.id); toast("Publicação apagada"); }
@@ -116,11 +122,11 @@ function cartaoPost(post) {
   obterPerfil(post.autorId).then((p) => {
     if (p.nome) nome.textContent = p.nome;
     if (p.fotoPerfil) pintarAvatar(av, p.fotoPerfil, p.nome);
-    sub.textContent = [p.nickname ? "@" + p.nickname : "", tempoRelativo(paraData(post.criadoEm))].filter(Boolean).join(" · ");
+    sub.textContent = [p.nickname ? "@" + p.nickname : "", tempoRelativo(paraData(post.criadoEm)), post.editadoEm ? "editada" : ""].filter(Boolean).join(" · ");
   });
   const url = urlSegura(post.mediaUrl);
   if (post.texto) {
-    const t = el("p", "post-texto" + (url ? "" : " so-texto"), post.texto);
+    const t = comMencoes(el("p", "post-texto" + (url ? "" : " so-texto")), post.texto);
     c.appendChild(t);
     // Texto longo: mostra o começo e "ver mais".
     if (post.texto.length > 220) {

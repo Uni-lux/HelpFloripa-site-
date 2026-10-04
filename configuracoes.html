@@ -23,9 +23,9 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="rede.css?v=4" />
+  <link rel="stylesheet" href="rede.css?v=5" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="configuracoes.js?v=15"></script>
+  <script type="module" src="configuracoes.js?v=17"></script>
 </head>
 <body>
   <header class="topo">
@@ -46,8 +46,9 @@
           <h3>Conta</h3>
           <button type="button" class="cfg-item" id="cfgEditar"><svg class="i"><use href="#i-lapis"/></svg><span class="txt">Editar perfil<small>Nome, @usuário, bio, cidade, fotos</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
           <button type="button" class="cfg-item" id="cfgVerificacao"><svg class="i"><use href="#i-selo"/></svg><span class="txt">Verificação do perfil<small id="cfgVerificacaoTxt">Solicite o selo de perfil verificado</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
-          <button type="button" class="cfg-item" id="cfgEndereco"><svg class="i"><use href="#i-pin"/></svg><span class="txt">Endereço<small id="cfgEnderecoTxt">Privado: só você vê</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
+          <button type="button" class="cfg-item" id="cfgEndereco"><svg class="i"><use href="#i-pin"/></svg><span class="txt">Endereço<small id="cfgEnderecoTxt">Privado: não aparece para outros usuários</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
           <button type="button" class="cfg-item" id="cfgSenha"><svg class="i"><use href="#i-chave"/></svg><span class="txt">Alterar senha<small id="cfgSenhaTxt">Troque a senha da sua conta</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
+          <button type="button" class="cfg-item" id="cfgBaixarDados"><svg class="i"><use href="#i-doc"/></svg><span class="txt">Baixar meus dados<small>Uma cópia de tudo o que está na sua conta (LGPD)</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
           <button type="button" class="cfg-item" id="cfgEmailTrocar"><svg class="i"><use href="#i-envelope"/></svg><span class="txt">Alterar e-mail<small id="cfgEmailTxt">Confirmação pelo novo e-mail</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
         </div>
 
@@ -94,6 +95,7 @@
 
         <div class="cfg-bloco">
           <h3>Suporte</h3>
+          <a class="cfg-item" href="suporte.html"><svg class="i"><use href="#i-envelope"/></svg><span class="txt">Falar com o suporte<small>Abra um chamado e acompanhe a resposta</small></span><svg class="i s"><use href="#i-avancar"/></svg></a>
           <a class="cfg-item" href="ajuda.html"><svg class="i"><use href="#i-ajuda"/></svg><span class="txt">Central de ajuda</span><svg class="i s"><use href="#i-avancar"/></svg></a>
           <a class="cfg-item" href="termos.html"><svg class="i"><use href="#i-doc"/></svg><span class="txt">Termos de uso</span><svg class="i s"><use href="#i-avancar"/></svg></a>
           <a class="cfg-item" href="privacidade.html"><svg class="i"><use href="#i-cadeado"/></svg><span class="txt">Política de privacidade</span><svg class="i s"><use href="#i-avancar"/></svg></a>
@@ -111,7 +113,7 @@
     <div class="folha-caixa">
       <div class="folha-topo"><h2 id="tEndereco">Endereço</h2><button type="button" class="icone-btn" data-fechar aria-label="Fechar"><svg class="i"><use href="#i-fechar"/></svg></button></div>
       <div class="folha-corpo pad">
-        <div class="end-aviso"><svg class="i"><use href="#i-cadeado"/></svg><span><strong>Seu endereço é privado.</strong> Ele fica guardado na parte protegida da sua conta, que só você consegue ler. Não aparece no perfil, na busca, no social nem nas conversas, a não ser que você mesmo envie.</span></div>
+        <div class="end-aviso"><svg class="i"><use href="#i-cadeado"/></svg><span><strong>Seu endereço é privado.</strong> Ele fica guardado na parte protegida da sua conta, que só você e a equipe do Help Floripa (para atendimento e segurança) conseguem ler. Não aparece no perfil, na busca, no social nem nas conversas, a não ser que você mesmo envie.</span></div>
         <div class="campo">
           <label for="endCep">CEP</label>
           <input id="endCep" inputmode="numeric" maxlength="9" autocomplete="postal-code" placeholder="00000-000" />

@@ -27,9 +27,24 @@ const destino = destinoSeguro("index.html");
   $("sair").hidden = false;
   $("sair").addEventListener("click", async () => { await A.signOut(auth).catch(() => {}); location.href = "index.html"; });
 
-  let d = {};
-  try { const s = await F.getDoc(F.doc(db, "usuarios", usuario.uid)); d = s.exists() ? s.data() : {}; }
-  catch { aviso("Não foi possível carregar sua conta. Verifique a internet e tente de novo.", "erro"); return; }
+  let d = {}, sancao = null;
+  try {
+    const [s, sc] = await Promise.all([F.getDoc(F.doc(db, "usuarios", usuario.uid)), F.getDoc(F.doc(db, "sancoes", usuario.uid)).catch(() => null)]);
+    d = s.exists() ? s.data() : {};
+    sancao = sc?.exists() ? sc.data() : null;
+  } catch { aviso("Não foi possível carregar sua conta. Verifique a internet e tente de novo.", "erro"); return; }
+  // Suspensão ou banimento aplicado pela equipe: vem antes de tudo.
+  const fimSancao = sancao?.ate?.toMillis?.() ?? 0;
+  if (sancao && (sancao.tipo === "banimento" || fimSancao > Date.now())) {
+    const banida = sancao.tipo === "banimento";
+    $("titulo").textContent = banida ? "Sua conta foi banida" : "Sua conta está suspensa";
+    $("sub").textContent = banida ? "Você não pode mais publicar, conversar, avaliar nem anunciar no Help Floripa." : `Até ${data(fimSancao)}, você não consegue publicar, conversar, avaliar nem anunciar. Seu perfil fica escondido.`;
+    $("detalhe").hidden = false;
+    $("detalhe").textContent = `Motivo: ${sancao.motivo || "descumprimento dos Termos de Uso"}. Se achar que foi um engano, conte o que aconteceu para a equipe.`;
+    const b = $("principal"); b.hidden = false; b.textContent = "Contestar no suporte";
+    b.addEventListener("click", () => { location.href = "suporte.html?categoria=contestacao"; });
+    return;
+  }
   const est = estadoConta(d);
   const marcarOk = () => { try { sessionStorage.setItem("hf-conta-ok-" + usuario.uid, "1"); } catch {} };
   const b = $("principal");

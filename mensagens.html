@@ -461,6 +461,7 @@
     <symbol id="i-imagem" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 16l-5-5-8.5 8.5"/></symbol>
     <symbol id="i-cadeado" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8.5 10.5V7.5a3.5 3.5 0 017 0v3"/></symbol>
     <symbol id="i-bloquear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/></symbol>
+      <symbol id="i-alerta" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4.5M12 17.5h.01"/></symbol>
     <symbol id="i-restringir" viewBox="0 0 24 24"><path d="M12 3.5l7 3v5.2c0 4.2-2.9 7.6-7 8.8-4.1-1.2-7-4.6-7-8.8V6.5z"/><path d="M9 12h6"/></symbol>
     <symbol id="i-baixar" viewBox="0 0 24 24"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></symbol>
   </svg>
@@ -1182,6 +1183,8 @@
       menu.replaceChildren();
       const arquivada = conversaArquivada(c);
       [
+        { rotulo: fixada(c) ? "Desafixar" : "Fixar no topo", icone: "seta-cima", acao: () => marcarConversa(c, "fixadaPara", !fixada(c)) },
+        { rotulo: silenciada(c) ? "Reativar avisos" : "Silenciar avisos", icone: "relogio", acao: () => marcarConversa(c, "silenciadaPara", !silenciada(c)) },
         { rotulo: arquivada ? "Desarquivar" : "Arquivar", icone: "arquivo", acao: () => arquivarConversa(c, !arquivada) },
         { rotulo: "Apagar conversa", icone: "lixo", perigo: true, acao: () => apagarConversaParaMim(c) }
       ].forEach((op) => {
@@ -1198,6 +1201,15 @@
       menu.style.left = Math.max(8, Math.min(x, innerWidth - r.width - 8)) + "px";
       menu.style.top = Math.max(8, Math.min(y, innerHeight - r.height - 8)) + "px";
       setTimeout(() => menu.querySelector("button")?.focus(), 0);
+    }
+    // Fixar no topo / silenciar: cada pessoa marca só para si (regras: soMinhaChave).
+    const fixada = (c) => !!c.dados?.fixadaPara?.[eu.uid];
+    const silenciada = (c) => !!c.dados?.silenciadaPara?.[eu.uid];
+    async function marcarConversa(c, campo, ligar) {
+      try {
+        await fb.setDoc(refConversa(c.id), { [campo]: { [eu.uid]: ligar ? true : null } }, { merge: true });
+        toast(campo === "fixadaPara" ? (ligar ? "Conversa fixada no topo" : "Conversa desafixada") : (ligar ? "Avisos silenciados para esta conversa" : "Avisos reativados"));
+      } catch (e) { console.error(e); toast("Não foi possível alterar agora."); }
     }
     async function arquivarConversa(c, arquivar) {
       try {
@@ -1282,6 +1294,8 @@
         const nome = document.createElement("div");
         nome.className = "conv-nome";
         nome.textContent = c.nome;
+        if (fixada(c)) { const f = icone("seta-cima", "i xs"); f.setAttribute("aria-label", "Fixada"); f.style.cssText = "margin-left:4px;opacity:.7;vertical-align:-2px"; nome.appendChild(f); }
+        if (silenciada(c)) { const m = icone("relogio", "i xs"); m.setAttribute("aria-label", "Silenciada"); m.style.cssText = "margin-left:4px;opacity:.6;vertical-align:-2px"; nome.appendChild(m); }
         const quando = document.createElement("div");
         quando.className = "conv-hora";
         quando.textContent = dataLista(paraData(c.dados.atualizadoEm));
@@ -1363,13 +1377,14 @@
           const naoLida = calcularNaoLida(dados) && !(ativa?.id === d.id && !document.hidden);
           return { id: d.id, dados, outroId, nome: perfil.nome || "Usuário", nick: perfil.nickname || "", foto: perfil.fotoPerfil || "", naoLida };
         }));
-        lista.sort((a, b) => ms(b.dados.atualizadoEm) - ms(a.dados.atualizadoEm));
+        // Fixadas primeiro; depois a mais recente.
+        lista.sort((a, b) => (Number(!!b.dados.fixadaPara?.[eu.uid]) - Number(!!a.dados.fixadaPara?.[eu.uid])) || (ms(b.dados.atualizadoEm) - ms(a.dados.atualizadoEm)));
 
         lista.forEach((c) => {
           const agora = ms(c.dados.atualizadoEm);
           const antes = ultimaAtualizacaoVista.get(c.id);
           const nova = !primeiraCarga && (antes === undefined || agora > antes) && calcularNaoLida(c.dados);
-          if (nova && !restritos.has(c.outroId) && !bloqueado(c.outroId) && (ativa?.id !== c.id || document.hidden)) {
+          if (nova && !restritos.has(c.outroId) && !bloqueado(c.outroId) && !c.dados.silenciadaPara?.[eu.uid] && (ativa?.id !== c.id || document.hidden)) {
             notificar(c.nome, c.dados.ultimaMensagem || "Nova mensagem", () => abrirConversa(c.id));
           }
           ultimaAtualizacaoVista.set(c.id, agora);
@@ -1639,7 +1654,7 @@
           .filter((m) => !apagadaEm || ms(m.criadoEm) > apagadaEm || m.pendente);
         const chegouDoOutro = !primeiraRender && mensagens.length > antes && mensagens[mensagens.length - 1]?.remetenteId !== eu.uid;
         renderizarMensagens(chegouDoOutro);
-        if (chegouDoOutro && !document.hidden && !restritos.has(ativa.outroId)) tocarSom();
+        if (chegouDoOutro && !document.hidden && !restritos.has(ativa.outroId) && !ativa.dados?.silenciadaPara?.[eu.uid]) tocarSom();
         marcarComoLida();
       }, (erro) => {
         console.error("Erro no chat:", erro);
@@ -1912,6 +1927,7 @@
       if (m.texto) opcoes.push({ rotulo: "Copiar texto", icone: "copiar", acao: () => copiar(m.texto) });
       if (m.tipoArquivo === "imagem" && urlSegura(m.arquivoUrl)) opcoes.push({ rotulo: "Ver foto", icone: "imagem", acao: () => abrirVisualizador(m.arquivoUrl) });
       if (m.remetenteId === eu.uid && !m.pendente) opcoes.push({ rotulo: "Apagar para todos", icone: "lixo", perigo: true, acao: () => apagarMensagem(m) });
+      if (m.remetenteId !== eu.uid) opcoes.push({ rotulo: "Denunciar", icone: "alerta", perigo: true, acao: () => denunciarMensagem(m) });
       opcoes.forEach((op) => {
         const b = document.createElement("button");
         b.type = "button";
@@ -1926,6 +1942,15 @@
       menu.style.left = Math.max(8, Math.min(x, innerWidth - r.width - 8)) + "px";
       menu.style.top = Math.max(8, Math.min(y, innerHeight - r.height - 8)) + "px";
       menu.querySelector("button")?.focus();
+    }
+
+    // Denunciar uma mensagem recebida (a pessoa não é avisada).
+    async function denunciarMensagem(m) {
+      if (!ativa) return;
+      const { abrirDenuncia } = await import("./denuncias.js?v=1");
+      const outro = ativa.outroId;
+      abrirDenuncia({ fb, eu, tipo: "mensagem", alvoId: m.remetenteId, itemId: m.id, conversaId: ativa.id, trecho: resumoMensagem(m), nomeAlvo: ativa.nome || "",
+        podeBloquear: !bloqueios.meus.has(outro), aoBloquear: () => { if (!bloqueios.meus.has(outro)) return alternarBloqueio(); } });
     }
 
     // Etiqueta colorida do assunto no topo do chat

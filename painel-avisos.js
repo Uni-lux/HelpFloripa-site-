@@ -8,7 +8,7 @@
 // Funciona em qualquer página com o sino no topo (a[href="notificacoes.html"]
 // dentro de .topo), menos na própria página de notificações.
 // =====================================================
-import { buscarReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=14";
+import { buscarReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=15";
 import { fotoSegura } from "./seguranca.js?v=1";
 
 const ms = (ts) => ts?.toMillis?.() ?? (typeof ts === "number" ? ts : 0);

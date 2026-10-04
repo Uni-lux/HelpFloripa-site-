@@ -1,6 +1,6 @@
-# Conclui as exclusões de conta pedidas há mais de 30 dias (scripts/limpeza).
+# Tarefas diárias: relatório do dia (estatisticas/) e exclusões de conta vencidas (scripts/limpeza).
 # Precisa do segredo FIREBASE_SERVICE_ACCOUNT (Settings > Secrets and variables > Actions).
-name: Limpeza de contas excluídas
+name: Tarefas diárias (relatório e limpeza de contas)
 on:
   schedule:
     - cron: "17 6 * * *" # todo dia, 03:17 em Brasília
@@ -29,6 +29,9 @@ jobs:
       - name: Instalar
         if: ${{ env.FIREBASE_SERVICE_ACCOUNT != '' }}
         run: npm install --no-audit --no-fund
+      - name: Relatório do dia
+        if: ${{ env.FIREBASE_SERVICE_ACCOUNT != '' }}
+        run: node relatorio-diario.mjs
       - name: Limpar contas
         if: ${{ env.FIREBASE_SERVICE_ACCOUNT != '' }}
         run: node limpar-contas.mjs

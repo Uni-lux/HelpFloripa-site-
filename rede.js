@@ -10,8 +10,8 @@
 // =====================================================
 import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=5";
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
-import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=14";
-import "./painel-avisos.js?v=7";
+import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=15";
+import "./painel-avisos.js?v=8";
 import { palavrasBusca } from "./pessoas.js?v=2"; // o sino abre o painel de notificações na própria página
 
 // ---------- ícones ----------
@@ -749,7 +749,7 @@ export function montarComentarios(alvo, post, { aoMudar } = {}) {
     obterPerfil(c.autorId).then((p) => { if ((p.desativadaAte?.toMillis?.() ?? 0) > Date.now()) { linha.remove(); return; } if (p.nome) nm.textContent = p.nome; if (p.nome || p.fotoPerfil) pintarAvatar(av, p.fotoPerfil || c.foto, p.nome || c.nome); });
     if (paraQuem) topo.appendChild(el("span", "para", `para ${paraQuem.nome || "usuário"}`));
     if (c.oculto) topo.appendChild(el("span", "etiqueta", meu && !dono ? "Oculto pelo autor da publicação" : "Oculto"));
-    const texto = el("p", null, c.texto);
+    const texto = comMencoes(el("p"), c.texto);
     bolha.append(topo, texto);
     const meta = el("div", "meta");
     meta.appendChild(el("span", null, tempoRelativo(paraData(c.criadoEm)) + (c.editadoEm ? " · editado" : "")));
@@ -778,6 +778,7 @@ export function montarComentarios(alvo, post, { aoMudar } = {}) {
       try { await fb.updateDoc(fb.doc(fb.db, "comentarios", c.id), { oculto: !c.oculto }); toast(c.oculto ? "Comentário visível" : "Comentário oculto"); pintar(); }
       catch (e) { toast("Não foi possível alterar: " + erroAmigavel(e)); }
     });
+    if (!meu) bt("Denunciar", () => abrirDenunciaComentario(c));
     if (meu || dono) bt("Apagar", async () => {
       if (!confirm("Apagar este comentário?")) return;
       try { await fb.deleteDoc(fb.doc(fb.db, "comentarios", c.id)); pintar(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
@@ -862,6 +863,68 @@ export function abrirCompositor({ aoPublicar } = {}) {
   $("folhaPublicar").aoPublicar = aoPublicar;
   abrirFolha("folhaPublicar");
 }
+// @usuário vira link para o perfil (o @ é procurado em nicknames/ ao clicar).
+export function comMencoes(alvo, texto) {
+  alvo.replaceChildren();
+  const re = /(^|[^\w@])@([a-z0-9._]{3,20})/gi;
+  let ultimo = 0, m;
+  const t = String(texto || "");
+  while ((m = re.exec(t))) {
+    const ini = m.index + m[1].length;
+    if (ini > ultimo) alvo.appendChild(document.createTextNode(t.slice(ultimo, ini)));
+    const nick = m[2].toLowerCase().replace(/\.+$/, "");
+    const a = document.createElement("a");
+    a.href = "#"; a.className = "mencao"; a.textContent = "@" + nick;
+    a.addEventListener("click", async (e) => {
+      e.preventDefault(); e.stopPropagation();
+      try { const s = await fb.getDoc(fb.doc(fb.db, "nicknames", nick)); if (s.exists()) ganchos.abrirPerfil(s.data().uid); else toast(`@${nick} não existe.`); }
+      catch { toast("Não foi possível abrir o perfil."); }
+    });
+    alvo.appendChild(a);
+    ultimo = ini + 1 + nick.length;
+  }
+  if (ultimo < t.length) alvo.appendChild(document.createTextNode(t.slice(ultimo)));
+  return alvo;
+}
+
+// Denunciar um comentário (denuncias.js, carregado só quando precisa).
+async function abrirDenunciaComentario(c) {
+  const { abrirDenuncia } = await import("./denuncias.js?v=1");
+  const p = await obterPerfil(c.autorId);
+  abrirDenuncia({ fb, eu, tipo: "comentario", alvoId: c.autorId, itemId: c.id, trecho: c.texto || "", nomeAlvo: p.nome || c.nome || "",
+    aoBloquear: () => bloquear(c.autorId, p.nome || c.nome) });
+}
+
+// Editar o texto de uma publicação própria (as regras marcam editadoEm).
+export function editarPublicacao(post, aoSalvar) {
+  const f = criarFolha("folhaEditarPost", { titulo: "Editar publicação", corpoClasse: "folha-corpo pad", rodape: true });
+  if (!$("edPostTexto")) {
+    $("c_folhaEditarPost").innerHTML = `<textarea class="pub-texto" id="edPostTexto" maxlength="1000" aria-label="Texto da publicação"></textarea><div class="pub-ferramentas"><span class="cont" id="edPostCont">0/1000</span></div>`;
+    $("r_folhaEditarPost").innerHTML = `<button type="button" class="btn sec" data-fechar>Cancelar</button><button type="button" class="btn pri" id="edPostSalvar">Salvar</button>`;
+    $("edPostTexto").addEventListener("input", () => { $("edPostCont").textContent = `${$("edPostTexto").value.length}/1000`; });
+  }
+  $("edPostTexto").value = post.texto || "";
+  $("edPostCont").textContent = `${(post.texto || "").length}/1000`;
+  const salvar = $("edPostSalvar").cloneNode(true);
+  $("edPostSalvar").replaceWith(salvar);
+  salvar.addEventListener("click", async () => {
+    const texto = $("edPostTexto").value.trim();
+    if (texto === (post.texto || "")) { fecharFolha("folhaEditarPost"); return; }
+    if (!texto && !post.mediaUrl) { toast("A publicação não pode ficar vazia."); return; }
+    salvar.disabled = true;
+    try {
+      await fb.updateDoc(fb.doc(fb.db, "diario", post.id), { texto, editadoEm: fb.serverTimestamp() });
+      post.texto = texto; post.editadoEm = { toMillis: () => Date.now(), toDate: () => new Date() };
+      fecharFolha("folhaEditarPost");
+      toast("Publicação editada");
+      aoSalvar?.(post);
+    } catch (e) { toast("Não foi possível salvar: " + erroAmigavel(e)); }
+    finally { salvar.disabled = false; }
+  });
+  abrirFolha("folhaEditarPost");
+  setTimeout(() => $("edPostTexto").focus(), 150);
+}
+
 function limparPublicacao() {
   $("pubTexto").value = "";
   $("pubCont").textContent = "0/1000";
@@ -1075,11 +1138,11 @@ export function ouvirAvisos({ notificarNovos = true } = {}) {
       const outro = (c.participantes || []).find((x) => x !== eu.uid);
       const lido = Math.max(ms(c.lidoEm?.[eu.uid]), ms(c.vistoEm?.[eu.uid]), ms(c.ocultaPara?.[eu.uid]));
       const naoLida = ok(outro) && !!c.ultimaMensagemRemetenteId && c.ultimaMensagemRemetenteId !== eu.uid && ms(c.atualizadoEm) > lido;
-      return { id: d.id, uid: outro, ultimaMensagem: c.ultimaMensagem || "", quando: ms(c.atualizadoEm), naoLida, ...(naoLida ? await perfilDe(outro) : {}) };
+      return { id: d.id, uid: outro, ultimaMensagem: c.ultimaMensagem || "", quando: ms(c.atualizadoEm), naoLida, silenciada: !!c.silenciadaPara?.[eu.uid], ...(naoLida ? await perfilDe(outro) : {}) };
     }));
     lista.forEach((c) => {
       const antes = vistas.get(c.id);
-      if (!primeiraConv && notificarNovos && c.naoLida && (antes === undefined || c.quando > antes)) notificar(`Mensagem de ${c.nome}`, c.ultimaMensagem, () => { location.href = `mensagens.html?conversa=${encodeURIComponent(c.id)}`; });
+      if (!primeiraConv && notificarNovos && c.naoLida && !c.silenciada && (antes === undefined || c.quando > antes)) notificar(`Mensagem de ${c.nome}`, c.ultimaMensagem, () => { location.href = `mensagens.html?conversa=${encodeURIComponent(c.id)}`; });
       vistas.set(c.id, c.quando);
     });
     primeiraConv = false;
