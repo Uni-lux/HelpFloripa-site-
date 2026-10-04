@@ -9,9 +9,9 @@
 import {
   $, el, icone, pintarAvatar, urlSegura, nomeCidade, toast, erroAmigavel, abrirFolha, fecharFolha,
   fb, eu, dados, salvarImagem, editarImagem, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos
-} from "./rede.js?v=12";
+} from "./rede.js?v=13";
 import { lerResumos, estrelas, media, notaTexto } from "./avaliacoes.js?v=9";
-import { buscarAnuncios, DIAS, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO } from "./vitrine.js?v=24";
+import { buscarAnuncios, DIAS, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO } from "./vitrine.js?v=25";
 
 const NEGOCIOS = {
   servicos: { rotulo: "Freelances", img: "servicos.webp", pagina: "servicos.html", desc: "Portfólio, preços, horários e pedidos de orçamento." },
@@ -752,8 +752,14 @@ $("negSalvar").addEventListener("click", async () => {
   finally { btn.disabled = false; btn.textContent = "Salvar"; }
 });
 $("negExcluir").addEventListener("click", async () => {
-  if (!negEditando || !confirm(`Excluir o perfil "${negEditando.nome}"?`)) return;
+  const imoveis = negEditando?.tipo === "imoveis";
+  if (!negEditando || !confirm(`Excluir o perfil "${negEditando.nome}"?${imoveis ? "\n\nTodos os seus anúncios de imóveis também serão excluídos." : ""}`)) return;
   try {
+    // Imóveis: os anúncios saem junto (senão ficavam no ar sem anunciante).
+    if (imoveis) {
+      const an = await fb.getDocs(fb.query(fb.collection(fb.db, "anuncios"), fb.where("donoId", "==", eu.uid)));
+      await Promise.all(an.docs.map((d) => fb.deleteDoc(d.ref)));
+    }
     await fb.deleteDoc(fb.doc(fb.db, "negocios", negEditando.id));
     fecharFolha("folhaNegocio");
     toast("Perfil de negócio excluído");

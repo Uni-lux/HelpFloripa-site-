@@ -315,6 +315,8 @@
     .msgs { position: relative; flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 14px 6% 10px; display: flex; flex-direction: column; }
     .msgs-status { margin: auto; color: var(--muted); text-align: center; padding: 20px; }
     .msgs-status.erro { color: var(--danger); }
+    .msgs-anteriores { align-self: center; margin: 6px auto 10px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .msgs-anteriores:disabled { opacity: .6; cursor: default; }
     .dia { align-self: center; margin: 12px 0 8px; padding: 5px 12px; border-radius: 8px; background: var(--panel); color: var(--muted); font-size: 12px; font-weight: 600; box-shadow: var(--shadow); position: sticky; top: 6px; z-index: 2; }
     .aviso-cripto { align-self: center; max-width: 440px; margin: 4px 0 10px; padding: 8px 12px; border-radius: 8px; background: color-mix(in srgb, #f5c542 16%, var(--panel)); color: var(--text); font-size: 12.5px; text-align: center; line-height: 1.45; box-shadow: var(--shadow); }
 
@@ -668,6 +670,7 @@
   <script type="module">
     import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura, mostrarAvisoEmail } from "./seguranca.js?v=1";
     import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO } from "./avaliacoes.js?v=9";
+    import { buscarPessoas } from "./pessoas.js?v=1";
     // ======================================================
     // Configurações (salvas no aparelho)
     // ======================================================
@@ -1351,7 +1354,7 @@
 
     function ouvirConversas() {
       let primeiraCarga = true;
-      const q = fb.query(fb.collection(fb.db, "conversas"), fb.where("participantes", "array-contains", eu.uid), fb.limit(100));
+      const q = fb.query(fb.collection(fb.db, "conversas"), fb.where("participantes", "array-contains", eu.uid), fb.limit(300));
       fb.onSnapshot(q, async (snap) => {
         const lista = await Promise.all(snap.docs.map(async (d) => {
           const dados = d.data({ serverTimestamps: "estimate" });
@@ -1429,6 +1432,7 @@
 
       ativa = { id, outroId: c.outroId, nome: c.nome, foto: c.foto, dados: c.dados };
       mensagens = [];
+      limiteMsgs = MSGS_INICIAIS; temMaisMsgs = false; voltarAoPonto = null;
       primeiraRender = true;
       novasAbaixo = 0;
       $("topNome").textContent = c.nome;
@@ -1480,6 +1484,9 @@
       try {
         const u = await fb.getDoc(fb.doc(fb.db, "usuarios", eu.uid));
         restritos = new Set(Array.isArray(u.data()?.restritos) ? u.data().restritos : []);
+        // Online e confirmação de leitura são da conta (valem em todos os aparelhos).
+        const pv = u.data()?.privacidade;
+        if (pv) { config.mostrarOnline = pv.mostrarOnline !== false; config.confirmacaoLeitura = pv.confirmacaoLeitura !== false; salvarConfig(); }
       } catch {}
       const col = fb.collection(fb.db, "bloqueios");
       const [meus, deles] = await Promise.all([
@@ -1593,7 +1600,7 @@
         return;
       }
       const ultimo = paraData(perfilOutroAtual.ultimoAcesso);
-      if (ultimo && Date.now() - ultimo.getTime() < 2.5 * MINUTO) {
+      if (ultimo && Date.now() - ultimo.getTime() < 5 * MINUTO) {
         el.textContent = "online";
         el.className = "online";
         timerDigitando = setTimeout(atualizarStatusTopo, 30000);
@@ -1605,12 +1612,23 @@
     // ======================================================
     // Mensagens
     // ======================================================
+    // Carrega as últimas mensagens; "Carregar mensagens anteriores" busca mais 200 de cada vez.
+    const MSGS_INICIAIS = 150;
+    let limiteMsgs = MSGS_INICIAIS, temMaisMsgs = false, voltarAoPonto = null;
+    function carregarAnteriores() {
+      const caixa = $("msgs");
+      voltarAoPonto = caixa.scrollHeight - caixa.scrollTop; // mantém a mesma mensagem na tela
+      limiteMsgs += 200;
+      pararMensagens?.();
+      ouvirMensagens();
+    }
     function ouvirMensagens() {
       const id = ativa.id;
-      const q = fb.query(fb.collection(fb.db, "conversas", id, "mensagens"), fb.orderBy("criadoEm", "asc"), fb.limitToLast(300));
+      const q = fb.query(fb.collection(fb.db, "conversas", id, "mensagens"), fb.orderBy("criadoEm", "asc"), fb.limitToLast(limiteMsgs));
       pararMensagens = fb.onSnapshot(q, { includeMetadataChanges: true }, (snap) => {
         if (!ativa || ativa.id !== id) return;
-        const antes = mensagens.length;
+        temMaisMsgs = snap.size >= limiteMsgs;
+        const antes = voltarAoPonto != null ? Infinity : mensagens.length;
         const apagadaEm = ms(ativa.dados?.ocultaPara?.[eu.uid]);
         mensagens = snap.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }), pendente: d.metadata.hasPendingWrites }))
           .filter((m) => !apagadaEm || ms(m.criadoEm) > apagadaEm || m.pendente);
@@ -1668,6 +1686,13 @@
       aviso.textContent = "Só você e a outra pessoa conseguem abrir esta conversa no site. As mensagens não têm criptografia de ponta a ponta: não compartilhe senhas, códigos ou dados de cartão.";
       caixa.appendChild(aviso);
 
+      if (temMaisMsgs) {
+        const mais = document.createElement("button");
+        mais.type = "button"; mais.className = "msgs-anteriores"; mais.textContent = "Carregar mensagens anteriores";
+        mais.addEventListener("click", () => { mais.disabled = true; mais.textContent = "Carregando..."; carregarAnteriores(); });
+        caixa.appendChild(mais);
+      }
+
       if (!mensagens.length) {
         const s = document.createElement("div");
         s.className = "msgs-status";
@@ -1691,7 +1716,10 @@
         caixa.appendChild(criarLinhaMensagem(m, data, !agrupada));
       });
 
-      if (primeiraRender || estavaPerto || mensagens[mensagens.length - 1]?.remetenteId === eu.uid && mensagens[mensagens.length - 1]?.pendente) {
+      if (voltarAoPonto != null) {
+        caixa.scrollTop = caixa.scrollHeight - voltarAoPonto;
+        voltarAoPonto = null;
+      } else if (primeiraRender || estavaPerto || mensagens[mensagens.length - 1]?.remetenteId === eu.uid && mensagens[mensagens.length - 1]?.pendente) {
         irParaFim(false);
       } else {
         caixa.scrollTop = topoAntes;
@@ -2392,31 +2420,26 @@
     $("btnNovaConversa").addEventListener("click", () => abrirPainel("painelNova"));
     $("btnConfig").addEventListener("click", () => abrirPainel("painelConfig"));
 
-    let pessoasCache = null;
+    // Busca no Firebase só quem combina com o que foi digitado (pessoas.js).
+    let pessoasCache = [];
     async function carregarPessoas() {
       const lista = $("listaPessoas");
-      if (!pessoasCache) {
+      const termo = $("buscaPessoas").value.trim();
+      if (!lista.children.length) {
         const s = document.createElement("div");
         s.className = "lista-vazia";
         s.textContent = "Carregando pessoas...";
         lista.replaceChildren(s);
-        try {
-          const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "perfis_publicos"), fb.orderBy("nome"), fb.limit(500)));
-          pessoasCache = snap.docs.map((d) => ({ uid: d.id, ...d.data() })).filter((p) => p.uid !== eu.uid);
-        } catch (e) {
-          console.error(e);
-          s.textContent = "Não foi possível carregar a lista de pessoas.";
-          return;
-        }
       }
+      const achados = await buscarPessoas(fb, termo, { limite: 30 });
+      if ($("buscaPessoas").value.trim() !== termo) return;
+      pessoasCache = achados.filter((p) => p.uid !== eu.uid);
       renderizarPessoas();
     }
     function renderizarPessoas() {
       const lista = $("listaPessoas");
-      const termo = $("buscaPessoas").value.trim().toLowerCase().replace(/^@/, "");
-      const itens = (pessoasCache || []).filter((p) => !termo
-        || String(p.nome || "").toLowerCase().includes(termo)
-        || String(p.nickname || "").toLowerCase().includes(termo)).slice(0, 80);
+      const termo = $("buscaPessoas").value.trim();
+      const itens = pessoasCache.slice(0, 60);
       lista.replaceChildren();
       if (!itens.length) {
         const v = document.createElement("div");
@@ -2446,7 +2469,8 @@
         lista.appendChild(item);
       });
     }
-    $("buscaPessoas").addEventListener("input", renderizarPessoas);
+    let tempoBuscaPessoas = null;
+    $("buscaPessoas").addEventListener("input", () => { clearTimeout(tempoBuscaPessoas); tempoBuscaPessoas = setTimeout(carregarPessoas, 300); });
 
     async function iniciarConversaCom(uid) {
       const ids = [eu.uid, uid].sort();
@@ -2522,6 +2546,10 @@
       inp.addEventListener("change", () => {
         config[inp.dataset.cfgBool] = inp.checked;
         salvarConfig();
+        if (inp.dataset.cfgBool === "mostrarOnline" || inp.dataset.cfgBool === "confirmacaoLeitura") {
+          fb.setDoc(fb.doc(fb.db, "usuarios", eu.uid), { privacidade: { mostrarOnline: config.mostrarOnline !== false, confirmacaoLeitura: config.confirmacaoLeitura !== false } }, { merge: true })
+            .then(() => toast("Salvo em todos os seus aparelhos")).catch(() => toast("Não foi possível salvar na sua conta."));
+        }
         if (inp.dataset.cfgBool === "mostrarOnline") { marcarPresenca(); atualizarStatusTopo(); }
         if (inp.dataset.cfgBool === "mostrarDigitando") { renderizarLista(); atualizarStatusTopo(); }
         if (inp.dataset.cfgBool === "confirmacaoLeitura") { renderizarLista(); atualizarChecks(); }
@@ -2550,7 +2578,8 @@
       const valor = config.mostrarOnline ? fb.serverTimestamp() : null;
       fb.setDoc(ref, { uid: eu.uid, ultimoAcesso: valor }, { merge: true }).catch(() => {});
     }
-    setInterval(marcarPresenca, 60000);
+    // A cada 4 minutos (gravar todo minuto gastava a cota grátis do Firebase).
+    setInterval(marcarPresenca, 4 * 60000);
     document.addEventListener("visibilitychange", marcarPresenca);
 
     // ======================================================

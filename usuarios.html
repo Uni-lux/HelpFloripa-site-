@@ -210,12 +210,13 @@
       $, ms, paraData, LIMITE_DOC, el, icone, iniciais, urlSegura, pintarAvatar, pintarCapa, nomeCidade, numero, tempoRelativo, dataCompleta,
       toast, erroAmigavel, notificar, abrirFolha, fecharFolha, pilha, abrirOpcoes, abrirLista,
       fb, authFns, storageFns, eu, refUsuario, dados, perfis, meusSeguindo, meusBloqueios, bloqueadoPor, restritos, escondido, ganchos,
-      obterPerfil, salvarImagem, iniciarRede, meusSeguindoPronto, carregarMeusSeguindo, alternarSeguir, botaoSeguir, linhaPessoa,
+      obterPerfil, lerOrdenado, salvarImagem, iniciarRede, meusSeguindoPronto, carregarMeusSeguindo, alternarSeguir, botaoSeguir, linhaPessoa,
       removerSeguidor, bloquear, desbloquear, alternarRestricao, compartilharPerfil,
       barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail
-    } from "./rede.js?v=12";
+    } from "./rede.js?v=13";
+    import { buscarPessoas, palavrasBusca } from "./pessoas.js?v=1";
     import { notaDoPerfil, abrirDetalhamento, avaliarNegocio, avaliarCliente, lerResumo, estrelas, pintarEstrelas, media, notaTexto, TIPOS_NEGOCIO } from "./avaliacoes.js?v=9";
-    import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=24";
+    import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=25";
 
     // ======================================================
     // Estado desta página (o resto vem de rede.js)
@@ -370,7 +371,10 @@
     // Publicações
     // ======================================================
     async function buscarPosts(uid) {
-      const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "diario"), fb.where("autorId", "==", uid), fb.limit(120)));
+      const col = fb.collection(fb.db, "diario");
+      const snap = await lerOrdenado(
+        fb.query(col, fb.where("autorId", "==", uid), fb.orderBy("criadoEm", "desc"), fb.limit(120)),
+        fb.query(col, fb.where("autorId", "==", uid), fb.limit(120)));
       return snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (ms(b.criadoEm) || Date.now()) - (ms(a.criadoEm) || Date.now()));
     }
 
@@ -630,6 +634,7 @@
         }
         await fb.setDoc(refUsuario, privado, { merge: true });
         await fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), publico, { merge: true });
+        fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), { uid: eu.uid, busca: palavrasBusca(publico.nome || dados.nome, publico.nickname || dados.nickname) }, { merge: true }).catch(() => {});
         try { if (authFns.updateProfile && nome !== eu.displayName) await authFns.updateProfile(eu, { displayName: nome }); } catch {}
         Object.assign(dados, privado);
         perfis.delete(eu.uid);
@@ -1131,21 +1136,18 @@
       busca.appendChild(inp);
       const res = document.createElement("div");
       box.append(busca, res);
+      let tempoBusca = null;
       const desenhar = async () => {
-        if (!pessoas) {
-          try {
-            const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "perfis_publicos"), fb.orderBy("nome"), fb.limit(500)));
-            pessoas = snap.docs.map((d) => ({ uid: d.id, ...d.data() })).filter((p) => p.uid !== eu.uid);
-          } catch { pessoas = []; }
-        }
-        const termo = inp.value.trim().toLowerCase().replace(/^@/, "");
+        const termo = inp.value.trim();
+        const achados = await buscarPessoas(fb, termo, { limite: 15 });
+        if (inp.value.trim() !== termo) return;
         res.replaceChildren();
-        (pessoas || []).filter((p) => !escondido(p.uid)).filter((p) => !termo || String(p.nome || "").toLowerCase().includes(termo) || String(p.nickname || "").toLowerCase().includes(termo))
+        achados.filter((p) => p.uid !== eu.uid && !escondido(p.uid))
           .sort((a, b) => Number(meusSeguindo.has(b.uid)) - Number(meusSeguindo.has(a.uid)))
           .slice(0, 8)
           .forEach((p) => res.appendChild(linhaPessoa({ uid: p.uid, nome: p.nome, foto: p.fotoPerfil, sub: p.nickname ? "@" + p.nickname : "", semSeguir: true, aoClicar: () => { vinAlvo = p; pintarAlvoVinculo(); } })));
       };
-      inp.addEventListener("input", desenhar);
+      inp.addEventListener("input", () => { clearTimeout(tempoBusca); tempoBusca = setTimeout(desenhar, 300); });
       desenhar();
     }
     $("vinEnviar").addEventListener("click", async () => {

@@ -13,7 +13,7 @@
 import { fotoSegura, conferirEmail, emailPendente, MSG_EMAIL } from "./seguranca.js?v=1";
 import { estrelas } from "./avaliacoes.js?v=9";
 import { abrirQueixa, responderQueixa, resolverQueixa, semResposta, MOTIVOS, PRAZO_DIAS } from "./queixas.js?v=5";
-import { NOMES_TIPO, PAGINA_TIPO } from "./vitrine.js?v=24";
+import { NOMES_TIPO, PAGINA_TIPO } from "./vitrine.js?v=25";
 
 const $ = (id) => document.getElementById(id);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
@@ -85,13 +85,18 @@ function linkVitrine(r) {
 // ---------- carregar ----------
 async function carregar() {
   const col = fb.collection(fb.db, "avaliacoes");
-  const [n1, n2, resp, qx] = await Promise.all([
+  const qcol = fb.collection(fb.db, "queixas");
+  const [n1, n2, qx] = await Promise.all([
     fb.getDocs(fb.query(col, fb.where("tipo", "==", "negocio"), fb.where("nota", "==", 1), fb.limit(300))),
     fb.getDocs(fb.query(col, fb.where("tipo", "==", "negocio"), fb.where("nota", "==", 2), fb.limit(300))),
-    fb.getDocs(fb.query(fb.collection(fb.db, "reclamacoes"), fb.limit(600))).catch(() => ({ docs: [] })),
-    fb.getDocs(fb.query(fb.collection(fb.db, "queixas"), fb.limit(400))).catch(() => ({ docs: [] }))
+    fb.getDocs(fb.query(qcol, fb.orderBy("abertaEm", "desc"), fb.limit(300))).catch(() => fb.getDocs(fb.query(qcol, fb.limit(300)))).catch(() => ({ docs: [] }))
   ]);
-  resp.docs.forEach((d) => respostas.set(d.id, d.data()));
+  // Respostas só das avaliações carregadas (antes lia até 600 documentos a cada visita).
+  const idsAval = [...n1.docs, ...n2.docs].map((d) => d.id);
+  const lotes = [];
+  for (let i = 0; i < idsAval.length; i += 30) lotes.push(idsAval.slice(i, i + 30));
+  const resp = await Promise.all(lotes.map((l) => fb.getDocs(fb.query(fb.collection(fb.db, "reclamacoes"), fb.where(fb.documentId(), "in", l))).catch(() => ({ docs: [] }))));
+  resp.forEach((r) => r.docs.forEach((d) => respostas.set(d.id, d.data())));
   // Reclamações abertas pelo cliente: mesmo formato das outras para a lista e os painéis.
   const queixas = qx.docs.map((d) => {
     const q = d.data(), id = "q_" + d.id;
