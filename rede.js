@@ -10,8 +10,8 @@
 // =====================================================
 import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=5";
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
-import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=14";
-import "./painel-avisos.js?v=7";
+import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=15";
+import "./painel-avisos.js?v=8";
 import { palavrasBusca } from "./pessoas.js?v=2"; // o sino abre o painel de notificações na própria página
 
 // ---------- ícones ----------
@@ -778,6 +778,7 @@ export function montarComentarios(alvo, post, { aoMudar } = {}) {
       try { await fb.updateDoc(fb.doc(fb.db, "comentarios", c.id), { oculto: !c.oculto }); toast(c.oculto ? "Comentário visível" : "Comentário oculto"); pintar(); }
       catch (e) { toast("Não foi possível alterar: " + erroAmigavel(e)); }
     });
+    if (!meu) bt("Denunciar", () => abrirDenunciaComentario(c));
     if (meu || dono) bt("Apagar", async () => {
       if (!confirm("Apagar este comentário?")) return;
       try { await fb.deleteDoc(fb.doc(fb.db, "comentarios", c.id)); pintar(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
@@ -862,6 +863,44 @@ export function abrirCompositor({ aoPublicar } = {}) {
   $("folhaPublicar").aoPublicar = aoPublicar;
   abrirFolha("folhaPublicar");
 }
+// Denunciar um comentário (denuncias.js, carregado só quando precisa).
+async function abrirDenunciaComentario(c) {
+  const { abrirDenuncia } = await import("./denuncias.js?v=1");
+  const p = await obterPerfil(c.autorId);
+  abrirDenuncia({ fb, eu, tipo: "comentario", alvoId: c.autorId, itemId: c.id, trecho: c.texto || "", nomeAlvo: p.nome || c.nome || "",
+    aoBloquear: () => bloquear(c.autorId, p.nome || c.nome) });
+}
+
+// Editar o texto de uma publicação própria (as regras marcam editadoEm).
+export function editarPublicacao(post, aoSalvar) {
+  const f = criarFolha("folhaEditarPost", { titulo: "Editar publicação", corpoClasse: "folha-corpo pad", rodape: true });
+  if (!$("edPostTexto")) {
+    $("c_folhaEditarPost").innerHTML = `<textarea class="pub-texto" id="edPostTexto" maxlength="1000" aria-label="Texto da publicação"></textarea><div class="pub-ferramentas"><span class="cont" id="edPostCont">0/1000</span></div>`;
+    $("r_folhaEditarPost").innerHTML = `<button type="button" class="btn sec" data-fechar>Cancelar</button><button type="button" class="btn pri" id="edPostSalvar">Salvar</button>`;
+    $("edPostTexto").addEventListener("input", () => { $("edPostCont").textContent = `${$("edPostTexto").value.length}/1000`; });
+  }
+  $("edPostTexto").value = post.texto || "";
+  $("edPostCont").textContent = `${(post.texto || "").length}/1000`;
+  const salvar = $("edPostSalvar").cloneNode(true);
+  $("edPostSalvar").replaceWith(salvar);
+  salvar.addEventListener("click", async () => {
+    const texto = $("edPostTexto").value.trim();
+    if (texto === (post.texto || "")) { fecharFolha("folhaEditarPost"); return; }
+    if (!texto && !post.mediaUrl) { toast("A publicação não pode ficar vazia."); return; }
+    salvar.disabled = true;
+    try {
+      await fb.updateDoc(fb.doc(fb.db, "diario", post.id), { texto, editadoEm: fb.serverTimestamp() });
+      post.texto = texto; post.editadoEm = { toMillis: () => Date.now(), toDate: () => new Date() };
+      fecharFolha("folhaEditarPost");
+      toast("Publicação editada");
+      aoSalvar?.(post);
+    } catch (e) { toast("Não foi possível salvar: " + erroAmigavel(e)); }
+    finally { salvar.disabled = false; }
+  });
+  abrirFolha("folhaEditarPost");
+  setTimeout(() => $("edPostTexto").focus(), 150);
+}
+
 function limparPublicacao() {
   $("pubTexto").value = "";
   $("pubCont").textContent = "0/1000";

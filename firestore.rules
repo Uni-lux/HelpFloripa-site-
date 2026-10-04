@@ -982,6 +982,48 @@ service cloud.firestore {
 
 
     // =====================================================
+    // DENÚNCIAS: denuncias/{tipo}_{item}_{quemDenunciou}
+    // Uma por pessoa em cada item. Só quem denunciou consegue ler a própria
+    // denúncia (para saber que já enviou). A equipe analisa pelo console.
+    // O item precisa ser mesmo de quem foi denunciado.
+    // =====================================================
+    match /denuncias/{id} {
+
+      function itemDoAlvo(d) {
+        return (d.tipo == 'perfil' && d.itemId == d.alvoId)
+            || (d.tipo == 'publicacao' && get(/databases/$(database)/documents/diario/$(d.itemId)).data.autorId == d.alvoId)
+            || (d.tipo == 'comentario' && get(/databases/$(database)/documents/comentarios/$(d.itemId)).data.autorId == d.alvoId)
+            || (d.tipo == 'negocio' && get(/databases/$(database)/documents/negocios/$(d.itemId)).data.donoId == d.alvoId)
+            || (d.tipo == 'mensagem'
+                && d.conversaId is string
+                && request.auth.uid in get(/databases/$(database)/documents/conversas/$(d.conversaId)).data.participantes
+                && get(/databases/$(database)/documents/conversas/$(d.conversaId)/mensagens/$(d.itemId)).data.remetenteId == d.alvoId);
+      }
+
+      allow get: if logado() && resource.data.autorId == request.auth.uid;
+      allow list: if false;
+
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['tipo', 'alvoId', 'itemId', 'conversaId', 'autorId', 'motivo', 'detalhe', 'trecho', 'status', 'criadoEm'])
+                    && request.resource.data.autorId == request.auth.uid
+                    && request.resource.data.alvoId is string
+                    && request.resource.data.alvoId != request.auth.uid
+                    && request.resource.data.itemId is string
+                    && request.resource.data.tipo in ['perfil', 'publicacao', 'comentario', 'mensagem', 'negocio']
+                    && id == request.resource.data.tipo + '_' + request.resource.data.itemId + '_' + request.auth.uid
+                    && request.resource.data.motivo in ['golpe', 'falso', 'assedio', 'odio', 'improprio', 'spam', 'menor', 'outro']
+                    && valorTextoAte(request.resource.data.get('detalhe', ''), 500)
+                    && valorTextoAte(request.resource.data.get('trecho', ''), 300)
+                    && request.resource.data.status == 'nova'
+                    && request.resource.data.criadoEm == request.time
+                    && itemDoAlvo(request.resource.data);
+
+      allow update, delete: if false;
+    }
+
+
+    // =====================================================
     // PEDIDOS DE EXCLUSÃO DE CONTA: exclusoes/{uid}
     // A pessoa pede a exclusão; durante 30 dias pode recuperar a conta (apaga este
     // documento). Depois disso a limpeza automática (Admin SDK, fora das regras)
@@ -1139,8 +1181,11 @@ service cloud.firestore {
                     && emailOk()
                     && resource.data.autorId == request.auth.uid
                     && request.resource.data.autorId == resource.data.autorId
-                    && gravou().hasOnly(['texto', 'nome', 'fotoPerfil', 'comentariosOcultos', 'ocultoAte'])
+                    && gravou().hasOnly(['texto', 'nome', 'fotoPerfil', 'comentariosOcultos', 'ocultoAte', 'editadoEm'])
                     && dataOuNulo('ocultoAte')
+                    // texto editado: marca a data da edição
+                    && (!mudou().hasAny(['texto']) || request.resource.data.get('editadoEm', null) == request.time)
+                    && (!mudou().hasAny(['editadoEm']) || request.resource.data.editadoEm == request.time)
                     && (!('comentariosOcultos' in request.resource.data) || request.resource.data.comentariosOcultos is bool)
                     && publicacaoOk();
 

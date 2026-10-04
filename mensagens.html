@@ -461,6 +461,7 @@
     <symbol id="i-imagem" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 16l-5-5-8.5 8.5"/></symbol>
     <symbol id="i-cadeado" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8.5 10.5V7.5a3.5 3.5 0 017 0v3"/></symbol>
     <symbol id="i-bloquear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/></symbol>
+      <symbol id="i-alerta" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4.5M12 17.5h.01"/></symbol>
     <symbol id="i-restringir" viewBox="0 0 24 24"><path d="M12 3.5l7 3v5.2c0 4.2-2.9 7.6-7 8.8-4.1-1.2-7-4.6-7-8.8V6.5z"/><path d="M9 12h6"/></symbol>
     <symbol id="i-baixar" viewBox="0 0 24 24"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></symbol>
   </svg>
@@ -1912,6 +1913,7 @@
       if (m.texto) opcoes.push({ rotulo: "Copiar texto", icone: "copiar", acao: () => copiar(m.texto) });
       if (m.tipoArquivo === "imagem" && urlSegura(m.arquivoUrl)) opcoes.push({ rotulo: "Ver foto", icone: "imagem", acao: () => abrirVisualizador(m.arquivoUrl) });
       if (m.remetenteId === eu.uid && !m.pendente) opcoes.push({ rotulo: "Apagar para todos", icone: "lixo", perigo: true, acao: () => apagarMensagem(m) });
+      if (m.remetenteId !== eu.uid) opcoes.push({ rotulo: "Denunciar", icone: "alerta", perigo: true, acao: () => denunciarMensagem(m) });
       opcoes.forEach((op) => {
         const b = document.createElement("button");
         b.type = "button";
@@ -1926,6 +1928,15 @@
       menu.style.left = Math.max(8, Math.min(x, innerWidth - r.width - 8)) + "px";
       menu.style.top = Math.max(8, Math.min(y, innerHeight - r.height - 8)) + "px";
       menu.querySelector("button")?.focus();
+    }
+
+    // Denunciar uma mensagem recebida (a pessoa não é avisada).
+    async function denunciarMensagem(m) {
+      if (!ativa) return;
+      const { abrirDenuncia } = await import("./denuncias.js?v=1");
+      const outro = ativa.outroId;
+      abrirDenuncia({ fb, eu, tipo: "mensagem", alvoId: m.remetenteId, itemId: m.id, conversaId: ativa.id, trecho: resumoMensagem(m), nomeAlvo: ativa.nome || "",
+        podeBloquear: !bloqueios.meus.has(outro), aoBloquear: () => { if (!bloqueios.meus.has(outro)) return alternarBloqueio(); } });
     }
 
     // Etiqueta colorida do assunto no topo do chat
