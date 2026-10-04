@@ -13,7 +13,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="stylesheet" href="vitrine.css?v=23" />
-  <link rel="stylesheet" href="rede.css?v=4" />
+  <link rel="stylesheet" href="rede.css?v=5" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
     // Tema compartilhado com a página de mensagens; aplicado antes de desenhar.
@@ -212,10 +212,10 @@
       $, ms, paraData, LIMITE_DOC, el, icone, iniciais, urlSegura, pintarAvatar, pintarCapa, nomeCidade, numero, tempoRelativo, dataCompleta,
       toast, erroAmigavel, notificar, abrirFolha, fecharFolha, pilha, abrirOpcoes, abrirLista,
       fb, authFns, storageFns, eu, refUsuario, dados, perfis, meusSeguindo, meusBloqueios, bloqueadoPor, restritos, escondido, ganchos,
-      obterPerfil, lerOrdenado, editarPublicacao, salvarImagem, iniciarRede, meusSeguindoPronto, carregarMeusSeguindo, alternarSeguir, botaoSeguir, linhaPessoa,
+      obterPerfil, lerOrdenado, editarPublicacao, comMencoes, salvarImagem, iniciarRede, meusSeguindoPronto, carregarMeusSeguindo, alternarSeguir, botaoSeguir, linhaPessoa,
       removerSeguidor, bloquear, desbloquear, alternarRestricao, compartilharPerfil,
       barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail
-    } from "./rede.js?v=15";
+    } from "./rede.js?v=16";
     import { buscarPessoas, palavrasBusca } from "./pessoas.js?v=2";
     import { abrirDenuncia } from "./denuncias.js?v=1";
     import { notaDoPerfil, abrirDetalhamento, avaliarNegocio, avaliarCliente, lerResumo, estrelas, pintarEstrelas, media, notaTexto, TIPOS_NEGOCIO } from "./avaliacoes.js?v=10";
@@ -462,7 +462,7 @@
       pintarAvatar($("postAvatar"), autor?.fotoPerfil || post.fotoPerfil, autor?.nome || post.nome);
       $("postNome").textContent = autor?.nome || post.nome || "Usuário";
       $("postData").textContent = dataCompleta(paraData(post.criadoEm));
-      $("postTexto").textContent = post.texto || "";
+      comMencoes($("postTexto"), post.texto || "");
       $("postTexto").hidden = !post.texto;
       $("postApagar").hidden = !proprio;
       $("postEditar").hidden = !proprio;

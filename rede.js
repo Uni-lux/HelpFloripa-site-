@@ -749,7 +749,7 @@ export function montarComentarios(alvo, post, { aoMudar } = {}) {
     obterPerfil(c.autorId).then((p) => { if ((p.desativadaAte?.toMillis?.() ?? 0) > Date.now()) { linha.remove(); return; } if (p.nome) nm.textContent = p.nome; if (p.nome || p.fotoPerfil) pintarAvatar(av, p.fotoPerfil || c.foto, p.nome || c.nome); });
     if (paraQuem) topo.appendChild(el("span", "para", `para ${paraQuem.nome || "usuário"}`));
     if (c.oculto) topo.appendChild(el("span", "etiqueta", meu && !dono ? "Oculto pelo autor da publicação" : "Oculto"));
-    const texto = el("p", null, c.texto);
+    const texto = comMencoes(el("p"), c.texto);
     bolha.append(topo, texto);
     const meta = el("div", "meta");
     meta.appendChild(el("span", null, tempoRelativo(paraData(c.criadoEm)) + (c.editadoEm ? " · editado" : "")));
@@ -863,6 +863,30 @@ export function abrirCompositor({ aoPublicar } = {}) {
   $("folhaPublicar").aoPublicar = aoPublicar;
   abrirFolha("folhaPublicar");
 }
+// @usuário vira link para o perfil (o @ é procurado em nicknames/ ao clicar).
+export function comMencoes(alvo, texto) {
+  alvo.replaceChildren();
+  const re = /(^|[^\w@])@([a-z0-9._]{3,20})/gi;
+  let ultimo = 0, m;
+  const t = String(texto || "");
+  while ((m = re.exec(t))) {
+    const ini = m.index + m[1].length;
+    if (ini > ultimo) alvo.appendChild(document.createTextNode(t.slice(ultimo, ini)));
+    const nick = m[2].toLowerCase().replace(/\.+$/, "");
+    const a = document.createElement("a");
+    a.href = "#"; a.className = "mencao"; a.textContent = "@" + nick;
+    a.addEventListener("click", async (e) => {
+      e.preventDefault(); e.stopPropagation();
+      try { const s = await fb.getDoc(fb.doc(fb.db, "nicknames", nick)); if (s.exists()) ganchos.abrirPerfil(s.data().uid); else toast(`@${nick} não existe.`); }
+      catch { toast("Não foi possível abrir o perfil."); }
+    });
+    alvo.appendChild(a);
+    ultimo = ini + 1 + nick.length;
+  }
+  if (ultimo < t.length) alvo.appendChild(document.createTextNode(t.slice(ultimo)));
+  return alvo;
+}
+
 // Denunciar um comentário (denuncias.js, carregado só quando precisa).
 async function abrirDenunciaComentario(c) {
   const { abrirDenuncia } = await import("./denuncias.js?v=1");
@@ -1114,11 +1138,11 @@ export function ouvirAvisos({ notificarNovos = true } = {}) {
       const outro = (c.participantes || []).find((x) => x !== eu.uid);
       const lido = Math.max(ms(c.lidoEm?.[eu.uid]), ms(c.vistoEm?.[eu.uid]), ms(c.ocultaPara?.[eu.uid]));
       const naoLida = ok(outro) && !!c.ultimaMensagemRemetenteId && c.ultimaMensagemRemetenteId !== eu.uid && ms(c.atualizadoEm) > lido;
-      return { id: d.id, uid: outro, ultimaMensagem: c.ultimaMensagem || "", quando: ms(c.atualizadoEm), naoLida, ...(naoLida ? await perfilDe(outro) : {}) };
+      return { id: d.id, uid: outro, ultimaMensagem: c.ultimaMensagem || "", quando: ms(c.atualizadoEm), naoLida, silenciada: !!c.silenciadaPara?.[eu.uid], ...(naoLida ? await perfilDe(outro) : {}) };
     }));
     lista.forEach((c) => {
       const antes = vistas.get(c.id);
-      if (!primeiraConv && notificarNovos && c.naoLida && (antes === undefined || c.quando > antes)) notificar(`Mensagem de ${c.nome}`, c.ultimaMensagem, () => { location.href = `mensagens.html?conversa=${encodeURIComponent(c.id)}`; });
+      if (!primeiraConv && notificarNovos && c.naoLida && !c.silenciada && (antes === undefined || c.quando > antes)) notificar(`Mensagem de ${c.nome}`, c.ultimaMensagem, () => { location.href = `mensagens.html?conversa=${encodeURIComponent(c.id)}`; });
       vistas.set(c.id, c.quando);
     });
     primeiraConv = false;

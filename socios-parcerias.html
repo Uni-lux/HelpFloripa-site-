@@ -90,12 +90,61 @@
       <h2 class="secao-titulo" id="scomofunciona">Como funciona</h2>
       
       <ol class="passos">
-        <li class="passo"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-chat"/></svg></span><strong>Entre em contato</strong><p>Converse com a gente pelo WhatsApp e conheça o projeto.</p></li>
+        <li class="passo"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-chat"/></svg></span><strong>Entre em contato</strong><p>Envie sua proposta pelo formulário abaixo ou converse pelo WhatsApp.</p></li>
         <li class="passo"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-doc"/></svg></span><strong>Conheça a proposta</strong><p>Receba as informações sobre a parceria e as oportunidades.</p></li>
         <li class="passo"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg></span><strong>Formalize</strong><p>Assine o contrato e torne-se parceiro oficial.</p></li>
         <li class="passo"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-grafico"/></svg></span><strong>Cresça junto</strong><p>Acompanhe a evolução e participe da expansão.</p></li>
       </ol>
     </section>
+    <section class="secao" aria-labelledby="sproposta">
+      <h2 class="secao-titulo" id="sproposta">Envie sua proposta</h2>
+      <p class="secao-sub">Conte quem você é e o que tem em mente. A equipe responde por e-mail ou WhatsApp.</p>
+      <form class="form-info" id="formParceria" novalidate>
+        <div class="duas-colunas">
+          <div class="campo"><label for="pcNome">Seu nome</label><input id="pcNome" maxlength="80" autocomplete="name" required /></div>
+          <div class="campo"><label for="pcEmpresa">Empresa (opcional)</label><input id="pcEmpresa" maxlength="100" autocomplete="organization" /></div>
+        </div>
+        <div class="duas-colunas">
+          <div class="campo"><label for="pcEmail">E-mail</label><input id="pcEmail" type="email" maxlength="120" autocomplete="email" required /></div>
+          <div class="campo"><label for="pcTelefone">WhatsApp (opcional)</label><input id="pcTelefone" maxlength="30" inputmode="tel" autocomplete="tel" placeholder="(48) 99999-9999" /></div>
+        </div>
+        <div class="duas-colunas">
+          <div class="campo"><label for="pcTipo">Interesse</label>
+            <select id="pcTipo"><option value="parceiro">Parceria comercial</option><option value="anunciante">Anunciar / patrocinar</option><option value="socio">Ser sócio</option><option value="investidor">Investir</option><option value="imprensa">Imprensa</option><option value="outro">Outro</option></select>
+          </div>
+          <div class="campo"><label for="pcCidade">Cidade (opcional)</label><input id="pcCidade" maxlength="80" /></div>
+        </div>
+        <div class="campo"><label for="pcSite">Site ou Instagram (opcional)</label><input id="pcSite" maxlength="200" /></div>
+        <div class="campo"><label for="pcMsg">Sua proposta</label><textarea id="pcMsg" maxlength="2000" required placeholder="O que você propõe, para quem, e como imagina a parceria."></textarea></div>
+        <p id="pcAviso" role="status" aria-live="polite"></p>
+        <button type="submit" class="botao" id="pcEnviar">Enviar proposta</button>
+        <p style="font-size:12.5px">Usamos esses dados só para responder à sua proposta. Veja a <a href="privacidade.html">Política de Privacidade</a>.</p>
+      </form>
+    </section>
+    <script type="module">
+      // Propostas vão para parcerias/ e aparecem no painel da equipe.
+      const $ = (id) => document.getElementById(id);
+      $("formParceria").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const aviso = (t, cor) => { $("pcAviso").textContent = t; $("pcAviso").style.color = cor || ""; };
+        const nome = $("pcNome").value.trim(), email = $("pcEmail").value.trim().toLowerCase(), msg = $("pcMsg").value.trim();
+        if (nome.length < 2) { aviso("Informe seu nome.", "#e5484d"); $("pcNome").focus(); return; }
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { aviso("Informe um e-mail válido.", "#e5484d"); $("pcEmail").focus(); return; }
+        if (msg.length < 10) { aviso("Conte um pouco mais sobre a proposta.", "#e5484d"); $("pcMsg").focus(); return; }
+        const b = $("pcEnviar"); b.disabled = true; aviso("Enviando...");
+        try {
+          for (let i = 0; i < 100 && !window.firebaseDb; i++) await new Promise((r) => setTimeout(r, 50));
+          const F = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+          const dados = { nome, email, tipo: $("pcTipo").value, mensagem: msg, status: "novo", criadoEm: F.serverTimestamp() };
+          for (const [k, id] of [["empresa", "pcEmpresa"], ["telefone", "pcTelefone"], ["cidade", "pcCidade"], ["site", "pcSite"]]) { const v = $(id).value.trim(); if (v) dados[k] = v; }
+          const u = window.firebaseAuth?.currentUser; if (u) dados.uid = u.uid;
+          await F.addDoc(F.collection(window.firebaseDb, "parcerias"), dados);
+          $("formParceria").reset();
+          aviso("Proposta enviada! A equipe vai entrar em contato em breve.", "#2fbf71");
+        } catch (err) { console.error(err); aviso("Não foi possível enviar agora. Tente de novo ou fale pelo WhatsApp.", "#e5484d"); }
+        finally { b.disabled = false; }
+      });
+    </script>
     <div class="cta-strip">
       <div>
         <h3>Juntos vamos mais longe</h3>

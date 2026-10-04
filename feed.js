@@ -10,8 +10,8 @@ import {
   $, el, icone, ms, paraData, pintarAvatar, urlSegura, nomeCidade, tempoRelativo, toast, erroAmigavel,
   fb, eu, dados, meusSeguindo, escondido, ganchos, obterPerfil, iniciarRede, carregarMeusSeguindo, linhaPessoa,
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, montarBarraRede, pintarBarraRede, ouvirAvisos, lerOrdenado,
-  editarPublicacao, bloquear
-} from "./rede.js?v=15";
+  editarPublicacao, bloquear, comMencoes
+} from "./rede.js?v=16";
 import { abrirDenuncia } from "./denuncias.js?v=1";
 import { buscarPessoas, pessoasRecentes } from "./pessoas.js?v=2";
 
@@ -126,7 +126,7 @@ function cartaoPost(post) {
   });
   const url = urlSegura(post.mediaUrl);
   if (post.texto) {
-    const t = el("p", "post-texto" + (url ? "" : " so-texto"), post.texto);
+    const t = comMencoes(el("p", "post-texto" + (url ? "" : " so-texto")), post.texto);
     c.appendChild(t);
     // Texto longo: mostra o começo e "ver mais".
     if (post.texto.length > 220) {

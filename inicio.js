@@ -287,5 +287,36 @@ async function carregar(fs, db, u) {
     feito = true;
     try { const s = await fs.getDoc(fs.doc(db, "perfis_publicos", u.uid)); saudacao((s.exists() && s.data().nome) || u.displayName || ""); } catch { saudacao(u.displayName || ""); }
     carregar(fs, db, u);
+    comunicados(fs, db);
   });
 })();
+
+// ---------- comunicados da equipe (painel do administrador) ----------
+// Faixa no topo da página inicial. Quem fecha não vê de novo aquele comunicado.
+async function comunicados(fs, db) {
+  let fechados = [];
+  try { fechados = JSON.parse(localStorage.getItem("hf-comunicados-fechados") || "[]"); } catch {}
+  try {
+    const s = await fs.getDocs(fs.query(fs.collection(db, "comunicados"), fs.where("ativo", "==", true), fs.limit(5)));
+    const lista = s.docs.map((d) => ({ id: d.id, ...d.data() }))
+      .filter((c) => !fechados.includes(c.id) && (!c.ate || (c.ate.toMillis?.() ?? 0) > Date.now()))
+      .sort((a, b) => (b.em?.toMillis?.() ?? 0) - (a.em?.toMillis?.() ?? 0));
+    const main = document.querySelector("main.pagina");
+    lista.slice(0, 2).reverse().forEach((c) => {
+      const cor = c.tipo === "alerta" ? "#ec835a" : c.tipo === "novidade" ? "#2fbf71" : "#00adee";
+      const f = document.createElement("div");
+      f.className = "faixa-comunicado"; f.setAttribute("role", "status");
+      f.style.cssText = `display:flex;gap:12px;align-items:flex-start;margin:0 0 14px;padding:12px 14px;border-radius:14px;border:1px solid color-mix(in srgb, ${cor} 45%, transparent);background:color-mix(in srgb, ${cor} 10%, var(--panel, #0f161b))`;
+      const tx = document.createElement("div"); tx.style.flex = "1";
+      const t = document.createElement("strong"); t.textContent = c.titulo; t.style.display = "block";
+      tx.appendChild(t);
+      if (c.texto) { const p = document.createElement("span"); p.textContent = c.texto; p.style.cssText = "font-size:14px;opacity:.85"; tx.appendChild(p); }
+      if (c.link && /^[\w./?=&#-]+$/.test(c.link) && !c.link.startsWith("//")) { const a = document.createElement("a"); a.href = c.link; a.textContent = " Saiba mais"; a.style.fontWeight = "700"; tx.appendChild(a); }
+      const x = document.createElement("button"); x.type = "button"; x.setAttribute("aria-label", "Fechar comunicado"); x.textContent = "✕";
+      x.style.cssText = "border:0;background:none;color:inherit;font-size:16px;cursor:pointer;opacity:.7;padding:2px 4px";
+      x.addEventListener("click", () => { f.remove(); fechados.push(c.id); try { localStorage.setItem("hf-comunicados-fechados", JSON.stringify(fechados.slice(-50))); } catch {} });
+      f.append(tx, x);
+      main?.prepend(f);
+    });
+  } catch (e) { console.warn("Comunicados:", e); }
+}

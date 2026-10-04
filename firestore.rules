@@ -10,8 +10,23 @@ service cloud.firestore {
     // E-mail confirmado (login com Google já vem confirmado).
     // Exigido para ações que chegam em outras pessoas: mensagens, seguir,
     // vínculos, negócios, anúncios e publicações. Freia contas falsas e robôs.
+    // Conta suspensa ou banida pela equipe (sancoes/{uid}) também não age.
     function emailOk() {
-      return request.auth.token.email_verified == true;
+      return request.auth.token.email_verified == true && !sancionado(request.auth.uid);
+    }
+
+    // Administrador: documento admins/{uid} criado à mão no console do Firebase.
+    function admin() {
+      return request.auth != null
+          && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // Suspensão (até uma data) ou banimento (sem data).
+    function sancionado(uid) {
+      let s = /databases/$(database)/documents/sancoes/$(uid);
+      return exists(s)
+          && (get(s).data.tipo == 'banimento'
+              || (get(s).data.get('ate', null) is timestamp && get(s).data.ate > request.time));
     }
 
     // Campos que só podem ser alterados pelo painel/admin (Admin SDK ignora as regras).
@@ -137,6 +152,10 @@ service cloud.firestore {
 
       allow read: if logado()
                   && request.auth.uid == userId;
+      allow read: if admin();
+      // A equipe aprova ou recusa o selo de verificado.
+      allow update: if admin()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verificado', 'solicitacaoVerificacao', 'verificacaoRespondidaEm']);
 
       // criadoEm é a data real do cadastro (conta antiga = pode avaliar/reclamar).
       allow create: if logado()
@@ -209,8 +228,12 @@ service cloud.firestore {
       // Quem foi bloqueado não abre o perfil de quem bloqueou (a busca em lista continua
       // aberta a quem está logado, mas o perfil em si não carrega).
       allow get: if logado()
-                 && (request.auth.uid == userId || !bloqueou(userId, request.auth.uid));
+                 && (request.auth.uid == userId || !bloqueou(userId, request.auth.uid) || admin());
       allow list: if logado();
+      // A equipe marca o selo e esconde contas suspensas/banidas.
+      allow update: if admin()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verificado', 'desativadaAte'])
+                    && dataOuNulo('desativadaAte');
 
       allow create: if logado()
                     && request.auth.uid == userId
@@ -229,6 +252,7 @@ service cloud.firestore {
                     && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['nickname'])
                         || nickDoDono())
                     && gravou().hasOnly(camposPerfil())
+                    && (!mudou().hasAny(['desativadaAte']) || !sancionado(request.auth.uid))
                     && tamanhosOk()
                     && opcoesOk()
                     && fotosOk();
@@ -292,6 +316,7 @@ service cloud.firestore {
       allow get: if logado()
                  && (id.split('_')[0] == request.auth.uid
                      || id.split('_')[1] == request.auth.uid);
+      allow read: if admin();
 
       allow list: if logado()
                   && (resource.data.bloqueadorId == request.auth.uid
@@ -331,6 +356,7 @@ service cloud.firestore {
       allow read: if logado()
                   && (resource.data.status == 'aceito'
                       || request.auth.uid in resource.data.participantes);
+      allow read: if admin();
 
       allow create: if logado()
                     && emailOk()
@@ -414,6 +440,11 @@ service cloud.firestore {
 
       allow delete: if logado()
                     && resource.data.donoId == request.auth.uid;
+
+      // A equipe esconde (ocultoAte) o conteúdo de contas suspensas/banidas.
+      allow update: if admin()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ocultoAte'])
+                    && dataOuNulo('ocultoAte');
     }
 
 
@@ -464,6 +495,11 @@ service cloud.firestore {
 
       allow delete: if logado()
                     && resource.data.donoId == request.auth.uid;
+
+      // A equipe esconde (ocultoAte) o conteúdo de contas suspensas/banidas.
+      allow update: if admin()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ocultoAte'])
+                    && dataOuNulo('ocultoAte');
     }
 
 
@@ -495,6 +531,8 @@ service cloud.firestore {
 
       allow list: if logado()
                   && request.auth.uid in resource.data.participantes;
+      // A equipe vê quem conversa com quem (para a ficha e denúncias), mas não lista mensagens.
+      allow read: if admin();
 
       allow create: if logado()
                     && request.resource.data.participantes is list
@@ -516,7 +554,7 @@ service cloud.firestore {
                     && request.auth.uid in resource.data.participantes
                     && request.resource.data.participantes == resource.data.participantes
                     && !bloqueioEntre(resource.data.participantes[0], resource.data.participantes[1])
-                    && mudou().hasOnly(['ultimaMensagem', 'ultimaMensagemRemetenteId', 'atualizadoEm', 'lidoEm', 'vistoEm', 'digitando', 'contexto', 'arquivadaPara', 'ocultaPara', 'falaram'])
+                    && mudou().hasOnly(['ultimaMensagem', 'ultimaMensagemRemetenteId', 'atualizadoEm', 'lidoEm', 'vistoEm', 'digitando', 'contexto', 'arquivadaPara', 'ocultaPara', 'falaram', 'fixadaPara', 'silenciadaPara'])
                     // o resumo da última mensagem só pode ser escrito por quem mandou
                     && (!mudou().hasAny(['ultimaMensagem', 'ultimaMensagemRemetenteId'])
                         || request.resource.data.get('ultimaMensagemRemetenteId', '') == request.auth.uid)
@@ -526,6 +564,9 @@ service cloud.firestore {
                     // arquivar / apagar "só para mim": cada um mexe só na própria marca
                     && soMinhaChave('arquivadaPara')
                     && soMinhaChave('ocultaPara')
+                    // fixar no topo / silenciar avisos: cada um só a própria marca
+                    && soMinhaChave('fixadaPara')
+                    && soMinhaChave('silenciadaPara')
                     // falaram: cada um marca só que ELE escreveu (usado para liberar avaliação e reclamação)
                     && soMinhaChave('falaram')
                     && (!mudou().hasAny(['falaram']) || request.resource.data.falaram[request.auth.uid] == true)
@@ -590,6 +631,8 @@ service cloud.firestore {
         }
 
         allow read: if logado() && participante();
+        // A equipe abre só a mensagem denunciada (uma por vez, sem listar a conversa).
+        allow get: if admin();
 
         allow create: if logado()
                       && emailOk()
@@ -619,6 +662,7 @@ service cloud.firestore {
       allow read: if logado()
                   && (resource.data.vendedorId == request.auth.uid
                       || resource.data.clienteId == request.auth.uid);
+      allow read: if admin();
 
       allow create: if logado()
                     && emailOk()
@@ -954,6 +998,7 @@ service cloud.firestore {
     match /cotas/{uid} {
 
       allow read: if logado() && request.auth.uid == uid;
+      allow read: if admin();
 
       // Janela nova (primeira vez ou a anterior já passou de 30 dias): começa agora com 1.
       // Dentro da janela: soma 1, até 3.
@@ -1001,7 +1046,13 @@ service cloud.firestore {
       }
 
       allow get: if logado() && resource.data.autorId == request.auth.uid;
-      allow list: if false;
+      allow read: if admin();
+      // A equipe registra a análise.
+      allow update: if admin()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'acao', 'nota', 'analisadaEm', 'analisadaPor'])
+                    && request.resource.data.status in ['nova', 'em_analise', 'resolvida', 'descartada']
+                    && request.resource.data.analisadaPor == request.auth.uid
+                    && valorTextoAte(request.resource.data.get('nota', ''), 1000);
 
       allow create: if logado()
                     && emailOk()
@@ -1019,7 +1070,156 @@ service cloud.firestore {
                     && request.resource.data.criadoEm == request.time
                     && itemDoAlvo(request.resource.data);
 
+      allow delete: if false;
+    }
+
+
+    // =====================================================
+    // ADMINISTRAÇÃO
+    // admins/{uid}      : quem é da equipe (criado à mão no console do Firebase)
+    // sancoes/{uid}     : suspensão (até uma data) ou banimento
+    // avisos/{id}       : aviso da equipe para uma pessoa
+    // comunicados/{id}  : faixa para todos (ex.: manutenção, novidade)
+    // suporte/{id}      : chamados de suporte (+ mensagens)
+    // parcerias/{id}    : interessados em ser sócio, investidor ou parceiro
+    // admin_log/{id}    : registro de tudo o que a equipe faz
+    // estatisticas/{dia}, relatorios/{id}: gravados pelo relatório automático (Admin SDK)
+    // =====================================================
+    match /admins/{uid} {
+      allow get: if logado() && (request.auth.uid == uid || admin());
+      allow list: if admin();
+      allow write: if false;
+    }
+
+    match /sancoes/{uid} {
+      allow get: if logado() && request.auth.uid == uid;
+      allow read: if admin();
+      allow create, update: if admin()
+                    && request.resource.data.keys().hasOnly(['tipo', 'motivo', 'ate', 'por', 'em', 'historico'])
+                    && request.resource.data.tipo in ['suspensao', 'banimento']
+                    && valorTextoAte(request.resource.data.get('motivo', ''), 500)
+                    && (request.resource.data.tipo == 'banimento' || request.resource.data.ate is timestamp)
+                    && request.resource.data.por == request.auth.uid
+                    && request.resource.data.em == request.time
+                    && listaAte('historico', 50);
+      allow delete: if admin();
+    }
+
+    match /avisos/{id} {
+      allow read: if logado() && resource.data.uid == request.auth.uid;
+      allow read: if admin();
+      allow create: if admin()
+                    && request.resource.data.keys().hasOnly(['uid', 'titulo', 'texto', 'tipo', 'por', 'em', 'lidoEm'])
+                    && request.resource.data.uid is string
+                    && valorTextoAte(request.resource.data.get('titulo', ''), 120)
+                    && request.resource.data.texto is string && request.resource.data.texto.size() <= 2000
+                    && request.resource.data.tipo in ['info', 'alerta', 'grave']
+                    && request.resource.data.por == request.auth.uid
+                    && request.resource.data.em == request.time
+                    && request.resource.data.lidoEm == null;
+      // quem recebeu marca como lido
+      allow update: if logado()
+                    && resource.data.uid == request.auth.uid
+                    && mudou().hasOnly(['lidoEm'])
+                    && request.resource.data.lidoEm == request.time;
+      allow delete: if false;
+    }
+
+    match /comunicados/{id} {
+      allow read: if logado();
+      allow create, update: if admin()
+                    && request.resource.data.keys().hasOnly(['titulo', 'texto', 'tipo', 'ativo', 'link', 'por', 'em', 'ate'])
+                    && valorTextoAte(request.resource.data.get('titulo', ''), 120)
+                    && valorTextoAte(request.resource.data.get('texto', ''), 600)
+                    && request.resource.data.tipo in ['info', 'novidade', 'alerta']
+                    && request.resource.data.ativo is bool
+                    && request.resource.data.por == request.auth.uid;
+      allow delete: if admin();
+    }
+
+    match /suporte/{id} {
+      function camposChamado() {
+        return ['uid', 'nome', 'email', 'assunto', 'categoria', 'status', 'criadoEm', 'atualizadoEm', 'ultimaDe', 'atendidoPor'];
+      }
+      allow read: if logado() && resource.data.uid == request.auth.uid;
+      allow read: if admin();
+      // Abrir chamado: não exige e-mail confirmado nem conta livre (quem foi suspenso pode contestar).
+      allow create: if logado()
+                    && request.resource.data.keys().hasOnly(camposChamado())
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.assunto is string && request.resource.data.assunto.size() >= 3 && request.resource.data.assunto.size() <= 120
+                    && request.resource.data.categoria in ['conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro']
+                    && valorTextoAte(request.resource.data.get('nome', ''), 80)
+                    && valorTextoAte(request.resource.data.get('email', ''), 120)
+                    && request.resource.data.status == 'aberto'
+                    && request.resource.data.criadoEm == request.time
+                    && request.resource.data.atualizadoEm == request.time
+                    && request.resource.data.ultimaDe == 'usuario';
+      allow update: if logado()
+                    && ((resource.data.uid == request.auth.uid
+                         && mudou().hasOnly(['status', 'atualizadoEm', 'ultimaDe'])
+                         && request.resource.data.status in ['aberto', 'fechado']
+                         && request.resource.data.ultimaDe == 'usuario')
+                        || (admin()
+                         && mudou().hasOnly(['status', 'atualizadoEm', 'ultimaDe', 'atendidoPor'])
+                         && request.resource.data.status in ['aberto', 'respondido', 'fechado']))
+                    && request.resource.data.atualizadoEm == request.time;
+      allow delete: if false;
+
+      match /mensagens/{msgId} {
+        function chamado() { return get(/databases/$(database)/documents/suporte/$(id)).data; }
+        allow read: if logado() && (chamado().uid == request.auth.uid || admin());
+        allow create: if logado()
+                      && (chamado().uid == request.auth.uid || admin())
+                      && request.resource.data.keys().hasOnly(['autorId', 'equipe', 'texto', 'em'])
+                      && request.resource.data.autorId == request.auth.uid
+                      && request.resource.data.equipe == admin()
+                      && request.resource.data.texto is string && request.resource.data.texto.size() >= 1 && request.resource.data.texto.size() <= 2000
+                      && request.resource.data.em == request.time;
+        allow update, delete: if false;
+      }
+    }
+
+    match /parcerias/{id} {
+      // Formulário público (Sócios e parcerias): qualquer pessoa envia, só a equipe lê.
+      allow create: if request.resource.data.keys().hasOnly(['nome', 'empresa', 'email', 'telefone', 'tipo', 'mensagem', 'site', 'cidade', 'uid', 'status', 'criadoEm'])
+                    && request.resource.data.nome is string && request.resource.data.nome.size() >= 2 && request.resource.data.nome.size() <= 80
+                    && request.resource.data.email is string && request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+[.][^@\\s]+$') && request.resource.data.email.size() <= 120
+                    && valorTextoAte(request.resource.data.get('empresa', ''), 100)
+                    && valorTextoAte(request.resource.data.get('telefone', ''), 30)
+                    && valorTextoAte(request.resource.data.get('site', ''), 200)
+                    && valorTextoAte(request.resource.data.get('cidade', ''), 80)
+                    && request.resource.data.tipo in ['socio', 'investidor', 'parceiro', 'anunciante', 'imprensa', 'outro']
+                    && request.resource.data.mensagem is string && request.resource.data.mensagem.size() >= 10 && request.resource.data.mensagem.size() <= 2000
+                    && (!('uid' in request.resource.data) || (request.auth != null && request.resource.data.uid == request.auth.uid))
+                    && request.resource.data.status == 'novo'
+                    && request.resource.data.criadoEm == request.time;
+      allow read: if admin();
+      allow update: if admin()
+                    && mudou().hasOnly(['status', 'notas', 'atualizadoEm', 'responsavel'])
+                    && request.resource.data.status in ['novo', 'em_conversa', 'proposta', 'fechado', 'recusado']
+                    && valorTextoAte(request.resource.data.get('notas', ''), 3000);
+      allow delete: if admin();
+    }
+
+    match /admin_log/{id} {
+      allow read: if admin();
+      allow create: if admin()
+                    && request.resource.data.por == request.auth.uid
+                    && request.resource.data.em == request.time
+                    && request.resource.data.acao is string && request.resource.data.acao.size() <= 60
+                    && valorTextoAte(request.resource.data.get('detalhe', ''), 1000);
       allow update, delete: if false;
+    }
+
+    match /estatisticas/{id} {
+      allow read: if admin();
+      allow write: if false;
+    }
+
+    match /relatorios/{id} {
+      allow read: if admin();
+      allow write: if false;
     }
 
 
@@ -1031,6 +1231,7 @@ service cloud.firestore {
     // =====================================================
     match /exclusoes/{uid} {
       allow get: if logado() && request.auth.uid == uid;
+      allow read: if admin();
       allow create: if logado()
                     && request.auth.uid == uid
                     && request.resource.data.keys().hasOnly(['pedidaEm', 'motivo'])
@@ -1131,6 +1332,7 @@ service cloud.firestore {
 
       allow delete: if logado()
                     && (resource.data.autorId == request.auth.uid || resource.data.postAutorId == request.auth.uid);
+      allow delete: if admin();
     }
 
     // =====================================================
@@ -1191,6 +1393,12 @@ service cloud.firestore {
 
       allow delete: if logado()
                     && resource.data.autorId == request.auth.uid;
+
+      // A equipe esconde ou remove publicações que violam os Termos.
+      allow update: if admin()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ocultoAte'])
+                    && dataOuNulo('ocultoAte');
+      allow delete: if admin();
     }
   }
 }
