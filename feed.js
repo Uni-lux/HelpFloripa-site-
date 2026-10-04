@@ -9,13 +9,13 @@
 import {
   $, el, icone, ms, paraData, pintarAvatar, urlSegura, nomeCidade, tempoRelativo, toast, erroAmigavel,
   fb, eu, dados, meusSeguindo, escondido, ganchos, obterPerfil, iniciarRede, carregarMeusSeguindo, linhaPessoa,
-  barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, montarBarraRede, pintarBarraRede, ouvirAvisos
-} from "./rede.js?v=12";
+  barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, montarBarraRede, pintarBarraRede, ouvirAvisos, lerOrdenado
+} from "./rede.js?v=13";
+import { buscarPessoas, pessoasRecentes } from "./pessoas.js?v=1";
 
 const POR_VEZ = 10;
 let aba = "diario", filtro = "seguindo";
 let posts = [], mostrados = 0;
-let pessoas = null;
 
 // ---------- abas ----------
 function trocarAba(nova) {
@@ -39,7 +39,12 @@ async function buscarSeguindo() {
   const autores = [eu.uid, ...meusSeguindo].filter((u) => !escondido(u));
   const lotes = [];
   for (let i = 0; i < autores.length; i += 30) lotes.push(autores.slice(i, i + 30));
-  const res = await Promise.all(lotes.map((l) => fb.getDocs(fb.query(fb.collection(fb.db, "diario"), fb.where("autorId", "in", l), fb.limit(60))).catch(() => ({ docs: [] }))));
+  // As mais recentes de cada lote de autores (índice diario: autorId + criadoEm).
+  const col = fb.collection(fb.db, "diario");
+  const res = await Promise.all(lotes.map((l) => lerOrdenado(
+    fb.query(col, fb.where("autorId", "in", l), fb.orderBy("criadoEm", "desc"), fb.limit(60)),
+    fb.query(col, fb.where("autorId", "in", l), fb.limit(60))
+  ).catch(() => ({ docs: [] }))));
   return res.flatMap((s) => s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })));
 }
 async function buscarTodos() {
@@ -139,35 +144,24 @@ function cartaoPost(post) {
 }
 
 // ---------- explorar: pessoas ----------
-async function lerPessoas() {
-  if (pessoas) return pessoas;
-  const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "perfis_publicos"), fb.orderBy("nome"), fb.limit(500)));
-  pessoas = snap.docs.map((d) => ({ uid: d.id, ...d.data() })).filter((p) => p.uid !== eu.uid);
-  return pessoas;
-}
+// Busca no Firebase só quem combina com o que foi digitado (pessoas.js); sem busca, quem esteve ativo por último.
+let tempoBusca = null;
 async function carregarPessoas() {
   const corpo = $("listaPessoas");
-  if (!pessoas) {
-    corpo.replaceChildren(el("div", "lista-vazia", "Carregando pessoas..."));
-    try { await lerPessoas(); } catch (e) { corpo.replaceChildren(el("div", "lista-vazia", "Não foi possível buscar: " + erroAmigavel(e))); return; }
-  }
-  pintarPessoas();
-}
-function pintarPessoas() {
-  const termo = $("buscaPessoas").value.trim().toLowerCase().replace(/^@/, "");
-  const corpo = $("listaPessoas");
-  corpo.replaceChildren();
-  let lista = (pessoas || []).filter((p) => !escondido(p.uid));
-  if (termo) lista = lista.filter((p) => String(p.nome || "").toLowerCase().includes(termo) || String(p.nickname || "").toLowerCase().includes(termo) || nomeCidade(p.cidade || p.cidadeNome).toLowerCase().includes(termo));
-  else lista = [...lista.filter((p) => !meusSeguindo.has(p.uid)), ...lista.filter((p) => meusSeguindo.has(p.uid))];
-  corpo.appendChild(el("div", "grupo-titulo", termo ? `${lista.length} ${lista.length === 1 ? "pessoa encontrada" : "pessoas encontradas"}` : "Sugestões para você"));
-  if (!lista.length) { corpo.appendChild(el("div", "lista-vazia", "Ninguém encontrado.")); return; }
-  lista.slice(0, termo ? 80 : 20).forEach((p) => corpo.appendChild(linhaPessoa({
+  const termo = $("buscaPessoas").value.trim();
+  if (!corpo.children.length) corpo.replaceChildren(el("div", "lista-vazia", "Carregando pessoas..."));
+  const achados = await buscarPessoas(fb, termo, { limite: termo ? 30 : 40 });
+  if ($("buscaPessoas").value.trim() !== termo) return;
+  let lista = achados.filter((p) => p.uid !== eu.uid && !escondido(p.uid));
+  if (!termo) lista = [...lista.filter((p) => !meusSeguindo.has(p.uid)), ...lista.filter((p) => meusSeguindo.has(p.uid))];
+  corpo.replaceChildren(el("div", "grupo-titulo", termo ? `${lista.length} ${lista.length === 1 ? "pessoa encontrada" : "pessoas encontradas"}` : "Ativos recentemente"));
+  if (!lista.length) { corpo.appendChild(el("div", "lista-vazia", "Ninguém encontrado. Tente o @usuário ou outra parte do nome.")); return; }
+  lista.slice(0, termo ? 60 : 20).forEach((p) => corpo.appendChild(linhaPessoa({
     uid: p.uid, nome: p.nome, foto: p.fotoPerfil,
     sub: [p.nickname ? "@" + p.nickname : "", nomeCidade(p.cidade || p.cidadeNome)].filter(Boolean).join(" · ")
   })));
 }
-$("buscaPessoas").addEventListener("input", pintarPessoas);
+$("buscaPessoas").addEventListener("input", () => { clearTimeout(tempoBusca); tempoBusca = setTimeout(carregarPessoas, 300); });
 
 // ---------- lateral (computador) ----------
 async function pintarLateral() {
@@ -176,8 +170,8 @@ async function pintarLateral() {
   $("euNick").textContent = dados.nickname ? "@" + dados.nickname : "Ver meu perfil";
   pintarAvatar($("comporAvatar"), dados.fotoPerfil, dados.nome);
   try {
-    await lerPessoas();
-    const sug = pessoas.filter((p) => !meusSeguindo.has(p.uid) && !escondido(p.uid)).sort(() => Math.random() - 0.5).slice(0, 4);
+    const recentes = await pessoasRecentes(fb, { limite: 30 });
+    const sug = recentes.filter((p) => p.uid !== eu.uid && !meusSeguindo.has(p.uid) && !escondido(p.uid)).sort(() => Math.random() - 0.5).slice(0, 4);
     const box = $("sugestoes");
     box.replaceChildren();
     if (!sug.length) box.appendChild(el("div", "lista-vazia", "Você já segue todo mundo por aqui."));

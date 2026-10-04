@@ -165,13 +165,15 @@ service cloud.firestore {
       function tamanhosOk() {
         return textoAte('nome', 80)
             && textoAte('bio', 400)
-            && textoAte('cidade', 80);
+            && textoAte('cidade', 80)
+            && listaAte('busca', 12);
       }
 
       // Campos que o site grava no perfil público. Qualquer outro é recusado.
       function camposPerfil() {
         return ['uid', 'nome', 'nickname', 'cidade', 'bio', 'fotoPerfil', 'fotoCapa',
-                'socialVisibilidade', 'duoCapa', 'ultimoAcesso', 'criadoEm', 'atualizadoEm'];
+                'socialVisibilidade', 'duoCapa', 'ultimoAcesso', 'criadoEm', 'atualizadoEm',
+                'busca'];  // palavras do nome e do @ (minúsculas, sem acento) para a busca de pessoas
       }
 
       function opcoesOk() {

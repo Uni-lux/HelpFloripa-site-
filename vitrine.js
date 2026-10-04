@@ -1768,11 +1768,18 @@ async function iniciar() {
     eu = u;
     conferirEmail(u);
     try {
-      const negSnap = await fb.getDocs(fb.query(fb.collection(fb.db, "negocios"), fb.where("tipo", "==", TIPO), fb.limit(80)));
+      // Os atualizados mais recentemente primeiro (índice negocios: tipo + atualizadoEm).
+      // Sem o índice criado ainda, usa a busca simples para a página não ficar vazia.
+      const ordenado = async (col, tipo, lim) => {
+        const c = fb.collection(fb.db, col);
+        try { return await fb.getDocs(fb.query(c, fb.where("tipo", "==", tipo), fb.orderBy("atualizadoEm", "desc"), fb.limit(lim))); }
+        catch (e) { if (e?.code !== "failed-precondition") throw e; console.warn("Índice do Firebase ainda não criado:", e.message); return fb.getDocs(fb.query(c, fb.where("tipo", "==", tipo), fb.limit(lim))); }
+      };
+      const negSnap = await ordenado("negocios", TIPO, 300);
       const negocios = negSnap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => n.nome && n.oculto !== true);
       if (TIPO === "imoveis") {
         negocios.forEach((n) => negociosImoveis.set(n.donoId, n));
-        const anSnap = await fb.getDocs(fb.query(fb.collection(fb.db, "anuncios"), fb.where("tipo", "==", "imovel"), fb.limit(120)));
+        const anSnap = await ordenado("anuncios", "imovel", 300);
         todos = anSnap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((a) => a.ativo !== false);
         negocios.filter((n) => n.preco || n.quartos).forEach((n) => todos.push(negocioComoAnuncio(n)));
       } else todos = negocios;
@@ -1789,8 +1796,23 @@ async function iniciar() {
     // link direto vindo de uma mensagem
     const pg = new URLSearchParams(location.search);
     const idNeg = pg.get("negocio"), idAn = pg.get("anuncio");
-    if (idAn) { const a = todos.find((x) => x.id === idAn); if (a) abrirAnuncio(a); else toast("Este imóvel não está mais disponível."); }
-    else if (idNeg) { const n = todos.find((x) => x.id === idNeg); if (n) abrirDetalhe(n); else toast("Este perfil não está mais disponível."); }
+    // Fora da lista carregada? Busca direto pelo id antes de dizer que não existe.
+    const buscarDireto = async (col, id) => {
+      try { const d = await fb.getDoc(fb.doc(fb.db, col, id)); return d.exists() ? { id: d.id, ...d.data() } : null; } catch { return null; }
+    };
+    if (idAn) {
+      let a = todos.find((x) => x.id === idAn);
+      if (!a) { a = await buscarDireto("anuncios", idAn); if (a && a.ativo === false) a = null; if (a) await carregarDonos([a.donoId]).catch(() => {}); }
+      if (a) abrirAnuncio(a); else toast("Este imóvel não está mais disponível.");
+    } else if (idNeg) {
+      let n = todos.find((x) => x.id === idNeg);
+      if (!n) {
+        n = await buscarDireto("negocios", idNeg);
+        if (n && (n.tipo !== TIPO || !n.nome || n.oculto === true)) n = null;
+        if (n) { await carregarDonos([n.donoId]).catch(() => {}); const r = await lerResumos(fb, ["neg_" + idNegocio(n)]).catch(() => ({})); notasNeg.set(idNegocio(n), r["neg_" + idNegocio(n)]); }
+      }
+      if (n) abrirDetalhe(n); else toast("Este perfil não está mais disponível.");
+    }
   });
 }
 

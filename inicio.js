@@ -10,7 +10,7 @@
 import { fotoSegura } from "./seguranca.js?v=1";
 import { enfeitarSelect } from "./escolha.js?v=3";
 import { estrelas, lerResumos, media } from "./avaliacoes.js?v=9";
-import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria } from "./vitrine.js?v=24";
+import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria } from "./vitrine.js?v=25";
 
 const $ = (id) => document.getElementById(id);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
@@ -237,7 +237,8 @@ async function carregar(fs, db, u) {
   }));
 
   try {
-    const snap = await fs.getDocs(fs.query(neg, fs.limit(100)));
+    // Os 150 atualizados mais recentemente (antes eram 100 quaisquer, sempre os mesmos).
+    const snap = await fs.getDocs(fs.query(neg, fs.orderBy("atualizadoEm", "desc"), fs.limit(150))).catch(() => fs.getDocs(fs.query(neg, fs.limit(150))));
     const lista = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => n.nome && n.oculto !== true && NOMES_TIPO[n.tipo]);
     const resumos = await lerResumos({ ...fs, db }, lista.map((n) => "neg_" + n.id));
     const nota = (n) => resumos["neg_" + n.id];
@@ -256,7 +257,9 @@ async function carregar(fs, db, u) {
   } catch (e) { console.warn("Vitrine da página inicial indisponível:", e); preencher("trilhoTop", []); preencher("trilhoNovos", []); }
 
   try {
-    const snap = await fs.getDocs(fs.query(fs.collection(db, "anuncios"), fs.where("tipo", "==", "imovel"), fs.limit(40)));
+    const an = fs.collection(db, "anuncios");
+    const snap = await fs.getDocs(fs.query(an, fs.where("tipo", "==", "imovel"), fs.orderBy("atualizadoEm", "desc"), fs.limit(40)))
+      .catch(() => fs.getDocs(fs.query(an, fs.where("tipo", "==", "imovel"), fs.limit(40))));
     const ims = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((a) => a.ativo !== false).sort((a, b) => ms(b.atualizadoEm || b.criadoEm) - ms(a.atualizadoEm || a.criadoEm)).slice(0, 30);
     const agora = Date.now();
     revezar("trilhoImoveis", ims, {

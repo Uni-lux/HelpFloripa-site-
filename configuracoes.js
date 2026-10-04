@@ -6,8 +6,8 @@
 import {
   $, pintarAvatar, toast, erroAmigavel, abrirFolha, fecharFolha, abrirLista, config, salvarConfig, aplicarTema,
   fb, authFns, eu, refUsuario, dados, perfis, meusBloqueios, restritos, obterPerfil, linhaPessoa,
-  desbloquear, alternarRestricao, marcarPresenca, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos
-} from "./rede.js?v=12";
+  desbloquear, alternarRestricao, marcarPresenca, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos, salvarPrivacidadeConta
+} from "./rede.js?v=13";
 
 function pintarConfig() {
   pintarAvatar($("cfgAvatar"), dados.fotoPerfil, dados.nome);
@@ -78,9 +78,14 @@ $("cfgTema").addEventListener("click", (e) => {
   salvarConfig();
   pintarConfig();
 });
-$("cfgOnline").addEventListener("change", () => { config.mostrarOnline = $("cfgOnline").checked; salvarConfig(); marcarPresenca(); });
+// Online e leitura valem para a conta inteira (todos os aparelhos).
+async function salvarPrivacidade() {
+  try { await salvarPrivacidadeConta(); toast("Salvo em todos os seus aparelhos"); }
+  catch (e) { toast("Não foi possível salvar: " + erroAmigavel(e)); }
+}
+$("cfgOnline").addEventListener("change", () => { config.mostrarOnline = $("cfgOnline").checked; marcarPresenca(); salvarPrivacidade(); });
 $("cfgSons").addEventListener("change", () => { config.sons = $("cfgSons").checked; salvarConfig(); });
-$("cfgLeitura").addEventListener("change", () => { config.confirmacaoLeitura = $("cfgLeitura").checked; salvarConfig(); });
+$("cfgLeitura").addEventListener("change", () => { config.confirmacaoLeitura = $("cfgLeitura").checked; salvarPrivacidade(); });
 $("cfgBloqueados").addEventListener("click", () => abrirContas("bloqueados"));
 $("cfgRestritos").addEventListener("click", () => abrirContas("restritos"));
 $("cfgSocialVis").addEventListener("click", async (e) => {

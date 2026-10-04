@@ -10,8 +10,9 @@
 // =====================================================
 import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=5";
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
-import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=12";
-import "./painel-avisos.js?v=5"; // o sino abre o painel de notificações na própria página
+import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=13";
+import "./painel-avisos.js?v=6";
+import { palavrasBusca } from "./pessoas.js?v=1"; // o sino abre o painel de notificações na própria página
 
 // ---------- ícones ----------
 const SIMBOLOS = `<symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 01-1.5 1.5H15v-6h-6v6H5.5A1.5 1.5 0 014 19z"/></symbol>
@@ -86,6 +87,13 @@ export function salvarConfig() {
     localStorage.setItem(CHAVE_CONFIG, JSON.stringify({ ...atual, tema: config.tema, sons: config.sons, mostrarOnline: config.mostrarOnline, confirmacaoLeitura: config.confirmacaoLeitura }));
   } catch {}
   aplicarTema();
+}
+// "Mostrar online" e "Confirmação de leitura" valem para a conta inteira (todos os aparelhos):
+// ficam em usuarios/{uid}.privacidade, que só a própria pessoa lê.
+export async function salvarPrivacidadeConta() {
+  salvarConfig();
+  if (!refUsuario) return;
+  await fb.setDoc(refUsuario, { privacidade: { mostrarOnline: config.mostrarOnline !== false, confirmacaoLeitura: config.confirmacaoLeitura !== false } }, { merge: true });
 }
 temaSistema?.addEventListener?.("change", aplicarTema);
 // O menu lateral também troca o tema: acompanha a mudança.
@@ -301,6 +309,13 @@ export const ganchos = {
   aposBloqueio: () => {}
 };
 
+// Consulta com ordem por data. Precisa de um índice no Firebase; enquanto ele não existir,
+// usa a consulta simples (sem ordem) para a página não ficar vazia.
+export async function lerOrdenado(ordenada, simples) {
+  try { return await fb.getDocs(ordenada); }
+  catch (e) { if (e?.code !== "failed-precondition") throw e; console.warn("Índice do Firebase ainda não criado:", e.message); return fb.getDocs(simples); }
+}
+
 export function obterPerfil(uid) {
   if (!uid) return Promise.resolve({});
   if (!perfis.has(uid)) perfis.set(uid, fb.getDoc(fb.doc(fb.db, "perfis_publicos", uid)).then((s) => (s.exists() ? s.data() : {})).catch(() => ({})));
@@ -343,6 +358,11 @@ export async function iniciarRede({ sincronizar = false } = {}) {
   dados.nome = dados.nome || eu.displayName || "Usuário";
   dados.email = dados.email || eu.email || "";
   dados.cidade = dados.cidade || dados.cidadeNome || "";
+  if (dados.privacidade) {
+    config.mostrarOnline = dados.privacidade.mostrarOnline !== false;
+    config.confirmacaoLeitura = dados.privacidade.confirmacaoLeitura !== false;
+    salvarConfig();
+  }
   // Privacidade do social e do duo ficam no perfil público: lê ANTES de sincronizar,
   // senão a leitura pega só os campos da gravação pendente e volta tudo para o padrão.
   const pubSnap = await fb.getDoc(fb.doc(fb.db, "perfis_publicos", eu.uid)).catch(() => null);
@@ -354,6 +374,11 @@ export async function iniciarRede({ sincronizar = false } = {}) {
       uid: eu.uid, nome: dados.nome, nickname: dados.nickname || "", cidade: dados.cidade,
       fotoPerfil: dados.fotoPerfil || "", fotoCapa: dados.fotoCapa || "", bio: dados.bio || ""
     }, { merge: true }).catch((e) => console.warn("Perfil público não sincronizado:", e));
+  }
+  // Palavras do nome e do @ para a busca de pessoas (gravação separada: se falhar, nada mais quebra).
+  const busca = palavrasBusca(pub.nome || dados.nome, pub.nickname || dados.nickname);
+  if (pubSnap?.exists() && JSON.stringify(pub.busca || []) !== JSON.stringify(busca)) {
+    fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), { uid: eu.uid, busca }, { merge: true }).catch(() => {});
   }
   conferirEmail(eu);
   await carregarPrivacidade().catch((e) => console.warn("Bloqueios:", e));
@@ -1068,7 +1093,8 @@ export function marcarPresenca() {
   if (!eu || document.hidden) return;
   fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), { uid: eu.uid, ultimoAcesso: config.mostrarOnline === false ? null : fb.serverTimestamp() }, { merge: true }).catch(() => {});
 }
-setInterval(marcarPresenca, 60000);
+// A cada 4 minutos (gravar todo minuto gastava a cota grátis do Firebase); "online" = até 5 minutos.
+setInterval(marcarPresenca, 4 * 60000);
 document.addEventListener("visibilitychange", marcarPresenca);
 
 export { editarImagem, conferirEmail, emailPendente, MSG_EMAIL };
