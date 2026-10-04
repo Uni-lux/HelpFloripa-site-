@@ -8,7 +8,7 @@ export const $ = (id) => document.getElementById(id);
 
 // Só páginas locais conhecidas (evita "open redirect" para sites externos).
 const PAGINAS = ["index.html", "servicos.html", "delivery.html", "shopping.html", "imoveis.html", "usuarios.html", "feed.html",
-  "notificacoes.html", "configuracoes.html", "negocios.html", "mensagens.html", "social.html", "reclamacoes.html"];
+  "notificacoes.html", "configuracoes.html", "negocios.html", "mensagens.html", "social.html", "reclamacoes.html", "conta.html"];
 export function destinoSeguro(padrao = "index.html") {
   const pedido = new URLSearchParams(location.search).get("redirect") || new URLSearchParams(location.search).get("continuar");
   if (!pedido) return padrao;

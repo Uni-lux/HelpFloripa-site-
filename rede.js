@@ -10,9 +10,9 @@
 // =====================================================
 import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=5";
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
-import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=13";
-import "./painel-avisos.js?v=6";
-import { palavrasBusca } from "./pessoas.js?v=1"; // o sino abre o painel de notificações na própria página
+import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=14";
+import "./painel-avisos.js?v=7";
+import { palavrasBusca } from "./pessoas.js?v=2"; // o sino abre o painel de notificações na própria página
 
 // ---------- ícones ----------
 const SIMBOLOS = `<symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 01-1.5 1.5H15v-6h-6v6H5.5A1.5 1.5 0 014 19z"/></symbol>
@@ -356,7 +356,9 @@ export async function iniciarRede({ sincronizar = false } = {}) {
   const snap = await fb.getDoc(refUsuario);
   dados = snap.exists() ? snap.data() : {};
   dados.nome = dados.nome || eu.displayName || "Usuário";
-  dados.email = dados.email || eu.email || "";
+  // E-mail trocado pelo link de confirmação: atualiza a cópia guardada na conta.
+  if (eu.email && snap.exists() && dados.email && dados.email !== eu.email) fb.setDoc(refUsuario, { email: eu.email }, { merge: true }).catch(() => {});
+  dados.email = eu.email || dados.email || "";
   dados.cidade = dados.cidade || dados.cidadeNome || "";
   if (dados.privacidade) {
     config.mostrarOnline = dados.privacidade.mostrarOnline !== false;
@@ -407,7 +409,7 @@ export async function removerSeguidor(uid, nome) {
   } catch (e) { toast("Não foi possível remover: " + erroAmigavel(e)); return false; }
 }
 export async function bloquear(uid, nome) {
-  if (!confirm(`Bloquear ${nome || "esta pessoa"}?\n\nVocês deixam de se seguir, ela não poderá ver seu perfil, seguir você nem enviar mensagens. Ela não será avisada.`)) return false;
+  if (!confirm(`Bloquear ${nome || "esta pessoa"}?\n\nVocês deixam de se seguir. Ela não consegue abrir seu perfil, seguir você nem enviar mensagens, e suas publicações deixam de aparecer para ela. Ela não será avisada.`)) return false;
   try {
     await fb.setDoc(fb.doc(fb.db, "bloqueios", `${eu.uid}_${uid}`), { bloqueadorId: eu.uid, bloqueadoId: uid, criadoEm: fb.serverTimestamp() });
     const ids = [eu.uid, uid].sort();
@@ -744,7 +746,7 @@ export function montarComentarios(alvo, post, { aoMudar } = {}) {
     const nm = el("strong", null, c.nome || "Usuário"); nm.addEventListener("click", () => ganchos.abrirPerfil(c.autorId));
     topo.appendChild(nm);
     // Nome e foto gravados no comentário são escritos por quem comentou: mostra os do perfil.
-    obterPerfil(c.autorId).then((p) => { if (p.nome) nm.textContent = p.nome; if (p.nome || p.fotoPerfil) pintarAvatar(av, p.fotoPerfil || c.foto, p.nome || c.nome); });
+    obterPerfil(c.autorId).then((p) => { if ((p.desativadaAte?.toMillis?.() ?? 0) > Date.now()) { linha.remove(); return; } if (p.nome) nm.textContent = p.nome; if (p.nome || p.fotoPerfil) pintarAvatar(av, p.fotoPerfil || c.foto, p.nome || c.nome); });
     if (paraQuem) topo.appendChild(el("span", "para", `para ${paraQuem.nome || "usuário"}`));
     if (c.oculto) topo.appendChild(el("span", "etiqueta", meu && !dono ? "Oculto pelo autor da publicação" : "Oculto"));
     const texto = el("p", null, c.texto);

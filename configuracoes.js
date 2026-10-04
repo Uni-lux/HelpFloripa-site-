@@ -7,7 +7,8 @@ import {
   $, pintarAvatar, toast, erroAmigavel, abrirFolha, fecharFolha, abrirLista, config, salvarConfig, aplicarTema,
   fb, authFns, eu, refUsuario, dados, perfis, meusBloqueios, restritos, obterPerfil, linhaPessoa,
   desbloquear, alternarRestricao, marcarPresenca, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos, salvarPrivacidadeConta
-} from "./rede.js?v=13";
+} from "./rede.js?v=14";
+import { MOTIVOS_DESATIVAR, desativarConta, pedirExclusao, reautenticar, provedor } from "./conta.js?v=1";
 
 function pintarConfig() {
   pintarAvatar($("cfgAvatar"), dados.fotoPerfil, dados.nome);
@@ -190,57 +191,122 @@ $("cfgNotifNavegador").addEventListener("click", async () => {
   else if (Notification.permission === "denied") toast("Libere as notificações nas configurações do navegador.");
   pintarConfig();
 });
-$("cfgSenha").addEventListener("click", async () => {
-  const email = eu.email || dados.email;
-  if (!email) { toast("Sua conta não tem e-mail cadastrado."); return; }
-  try {
-    await authFns.sendPasswordResetEmail(window.firebaseAuth, email);
-    toast(`Enviamos um link para ${email}`);
-  } catch (e) { toast("Não foi possível enviar o e-mail: " + erroAmigavel(e)); }
+// ---------- senha e e-mail ----------
+const erroSenha = (e) => (e?.code === "auth/wrong-password" || e?.code === "auth/invalid-credential" ? "Senha atual incorreta."
+  : e?.code === "auth/weak-password" ? "A nova senha é fraca. Use pelo menos 6 caracteres."
+  : e?.code === "auth/too-many-requests" ? "Muitas tentativas. Espere alguns minutos e tente de novo."
+  : e?.code === "auth/email-already-in-use" ? "Esse e-mail já é usado por outra conta."
+  : e?.code === "auth/invalid-email" ? "Digite um e-mail válido."
+  : e?.code === "auth/requires-recent-login" ? "Por segurança, saia e entre de novo antes de trocar."
+  : "Não foi possível concluir: " + erroAmigavel(e));
+const usuarioAtual = () => window.firebaseAuth.currentUser;
+const credencial = (senha) => authFns.EmailAuthProvider.credential(usuarioAtual().email, senha);
+
+$("cfgSenha").addEventListener("click", () => {
+  const google = provedor(usuarioAtual()) === "google.com";
+  $("senhaGoogle").hidden = !google; $("formSenha").hidden = google; $("senhaSalvar").hidden = google;
+  ["senhaAtual", "senhaNova", "senhaConfirma"].forEach((id) => { $(id).value = ""; });
+  abrirFolha("folhaSenha");
 });
+$("senhaSalvar").addEventListener("click", async () => {
+  const atual = $("senhaAtual").value, nova = $("senhaNova").value;
+  if (!atual) { toast("Digite sua senha atual."); $("senhaAtual").focus(); return; }
+  if (nova.length < 6) { toast("A nova senha precisa ter pelo menos 6 caracteres."); $("senhaNova").focus(); return; }
+  if (nova !== $("senhaConfirma").value) { toast("As senhas novas não são iguais."); $("senhaConfirma").focus(); return; }
+  if (nova === atual) { toast("A nova senha precisa ser diferente da atual."); return; }
+  const b = $("senhaSalvar"); b.disabled = true;
+  try {
+    await authFns.reauthenticateWithCredential(usuarioAtual(), credencial(atual));
+    await authFns.updatePassword(usuarioAtual(), nova);
+    fecharFolha("folhaSenha");
+    toast("Senha alterada. Use a nova senha da próxima vez que entrar.");
+  } catch (e) { toast(erroSenha(e)); }
+  finally { b.disabled = false; }
+});
+$("senhaEsqueci").addEventListener("click", async () => {
+  const email = usuarioAtual()?.email;
+  if (!email) { toast("Sua conta não tem e-mail cadastrado."); return; }
+  try { await authFns.sendPasswordResetEmail(window.firebaseAuth, email); toast(`Enviamos um link para ${email} criar uma nova senha.`); }
+  catch (e) { toast(erroSenha(e)); }
+});
+
+$("cfgEmailTrocar").addEventListener("click", () => {
+  const google = provedor(usuarioAtual()) === "google.com";
+  $("emailGoogle").hidden = !google; $("formEmail").hidden = google; $("emailSalvar").hidden = google;
+  $("emailAtual").value = usuarioAtual()?.email || ""; $("emailNovo").value = ""; $("emailSenha").value = "";
+  abrirFolha("folhaEmail");
+});
+$("emailSalvar").addEventListener("click", async () => {
+  const novo = $("emailNovo").value.trim().toLowerCase(), senha = $("emailSenha").value;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(novo)) { toast("Digite um e-mail válido."); $("emailNovo").focus(); return; }
+  if (novo === (usuarioAtual()?.email || "").toLowerCase()) { toast("Esse já é o seu e-mail."); return; }
+  if (!senha) { toast("Digite sua senha atual."); $("emailSenha").focus(); return; }
+  const b = $("emailSalvar"); b.disabled = true;
+  try {
+    await authFns.reauthenticateWithCredential(usuarioAtual(), credencial(senha));
+    await authFns.verifyBeforeUpdateEmail(usuarioAtual(), novo);
+    fecharFolha("folhaEmail");
+    toast(`Enviamos um link para ${novo}. A troca acontece quando você abrir o link (veja também o spam).`);
+  } catch (e) { toast(erroSenha(e)); }
+  finally { b.disabled = false; }
+});
+
 $("cfgSair").addEventListener("click", async () => {
   try { await authFns.signOut(window.firebaseAuth); } catch {}
   location.href = "index.html";
 });
-$("cfgExcluir").addEventListener("click", excluirConta);
 
-async function excluirConta() {
-  const confirmacao = prompt('Isso apaga seu perfil, suas publicações, curtidas, comentários e quem você segue, e não pode ser desfeito.\n\nPara confirmar, digite EXCLUIR:');
-  if (confirmacao?.trim().toUpperCase() !== "EXCLUIR") return;
-  const usuario = window.firebaseAuth.currentUser;
-  try {
-    // Confirma a identidade antes de apagar qualquer coisa (o Firebase exige login recente).
-    const provedor = usuario.providerData[0]?.providerId;
-    if (provedor === "password") {
-      const senha = prompt("Por segurança, digite sua senha:");
-      if (!senha) return;
-      await authFns.reauthenticateWithCredential(usuario, authFns.EmailAuthProvider.credential(usuario.email, senha));
-    } else if (provedor === "google.com") {
-      await authFns.reauthenticateWithPopup(usuario, new authFns.GoogleAuthProvider());
-    }
-    toast("Excluindo sua conta...");
-    const pegar = (col, campo, op = "==") => fb.getDocs(fb.query(fb.collection(fb.db, col), fb.where(campo, op, eu.uid))).catch(() => ({ docs: [] }));
-    const lotes = await Promise.all([
-      pegar("diario", "autorId"), pegar("relacoes", "seguidorId"), pegar("negocios", "donoId"), pegar("anuncios", "donoId"),
-      pegar("vinculos", "participantes", "array-contains"), pegar("curtidas", "uid"), pegar("comentarios", "autorId")
-    ]);
-    await Promise.all(lotes.flatMap((l) => l.docs).map((d) => fb.deleteDoc(d.ref).catch(() => {})));
-    if (dados.nickname) {
-      const n = await fb.getDoc(fb.doc(fb.db, "nicknames", dados.nickname)).catch(() => null);
-      if (n?.exists() && n.data().uid === eu.uid) await fb.deleteDoc(n.ref).catch(() => {});
-    }
-    await fb.deleteDoc(fb.doc(fb.db, "perfis_publicos", eu.uid)).catch(() => {});
-    await fb.deleteDoc(refUsuario).catch(() => {});
-    await authFns.deleteUser(usuario);
-    alert("Sua conta foi excluída.");
-    location.href = "index.html";
-  } catch (e) {
-    console.error(e);
-    if (e.code === "auth/wrong-password" || e.code === "auth/invalid-credential") toast("Senha incorreta.");
-    else if (e.code === "auth/requires-recent-login") toast("Entre novamente e repita a exclusão.");
-    else if (e.code !== "auth/popup-closed-by-user") toast("Não foi possível excluir: " + erroAmigavel(e));
-  }
+// ---------- desativar ----------
+let desDias = 7;
+$("desMotivos").replaceChildren(...MOTIVOS_DESATIVAR.map(([v, rotulo], i) => {
+  const l = document.createElement("label"); l.className = "conta-op";
+  const r = document.createElement("input"); r.type = "radio"; r.name = "desMotivo"; r.value = v; if (i === 0) r.checked = true;
+  const t = document.createElement("span"); t.textContent = rotulo;
+  l.append(r, t); return l;
+}));
+const dataLonga = (d) => d.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
+function pintarPrazo() {
+  const auto = document.querySelector('input[name="desModo"]:checked').value === "automatica";
+  $("desPrazo").hidden = !auto; $("desPrazoTxt").hidden = !auto;
+  document.querySelectorAll("#desPrazo [data-dias]").forEach((b) => b.classList.toggle("on", Number(b.dataset.dias) === desDias));
+  $("desPrazoTxt").textContent = `Sua conta volta a aparecer em ${dataLonga(new Date(Date.now() + desDias * 864e5))}.`;
 }
+document.querySelectorAll('input[name="desModo"]').forEach((r) => r.addEventListener("change", pintarPrazo));
+$("desPrazo").addEventListener("click", (e) => { const b = e.target.closest("[data-dias]"); if (b) { desDias = Number(b.dataset.dias); pintarPrazo(); } });
+$("cfgDesativar").addEventListener("click", () => { pintarPrazo(); abrirFolha("folhaDesativar"); });
+$("desConfirmar").addEventListener("click", async () => {
+  const motivo = document.querySelector('input[name="desMotivo"]:checked')?.value || "outro";
+  const auto = document.querySelector('input[name="desModo"]:checked').value === "automatica";
+  const reativarEm = auto ? new Date(Date.now() + desDias * 864e5) : null;
+  const b = $("desConfirmar"); b.disabled = true;
+  try {
+    if (!(await reautenticar(authFns, usuarioAtual(), { titulo: "Desativar conta", texto: "Digite sua senha para confirmar a desativação." }))) return;
+    toast("Desativando sua conta...");
+    await desativarConta(fb, eu.uid, { motivo, detalhe: $("desDetalhe").value.trim(), reativarEm });
+    await authFns.signOut(window.firebaseAuth).catch(() => {});
+    alert(auto ? `Sua conta foi desativada e volta sozinha em ${dataLonga(reativarEm)}. Se quiser voltar antes, é só entrar.` : "Sua conta foi desativada. Para reativar, é só entrar de novo.");
+    location.href = "login.html";
+  } catch (e) { console.error(e); toast(erroSenha(e)); }
+  finally { b.disabled = false; }
+});
+
+// ---------- excluir (30 dias para recuperar) ----------
+$("cfgExcluir").addEventListener("click", () => { $("excEntendi").checked = false; $("excConfirmar").disabled = true; abrirFolha("folhaExcluir"); });
+$("excEntendi").addEventListener("change", () => { $("excConfirmar").disabled = !$("excEntendi").checked; });
+$("excluirParaDesativar").addEventListener("click", () => { fecharFolha("folhaExcluir"); pintarPrazo(); abrirFolha("folhaDesativar"); });
+$("excConfirmar").addEventListener("click", async () => {
+  const b = $("excConfirmar"); b.disabled = true;
+  try {
+    if (!(await reautenticar(authFns, usuarioAtual(), { titulo: "Excluir conta", texto: "Digite sua senha para pedir a exclusão da conta." }))) return;
+    toast("Agendando a exclusão...");
+    await pedirExclusao(fb, eu.uid, { motivo: $("excMotivo").value.trim() });
+    const quando = new Date(Date.now() + 30 * 864e5).toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" });
+    await authFns.signOut(window.firebaseAuth).catch(() => {});
+    alert(`Exclusão agendada para ${quando}. Até lá, sua conta fica desativada e você pode recuperá-la entrando de novo.`);
+    location.href = "index.html";
+  } catch (e) { console.error(e); toast(erroSenha(e)); }
+  finally { b.disabled = !$("excEntendi").checked; }
+});
 
 (async function iniciar() {
   try { await iniciarRede(); }

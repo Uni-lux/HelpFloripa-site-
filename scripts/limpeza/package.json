@@ -1,0 +1,9 @@
+{
+  "name": "helpfloripa-limpeza",
+  "private": true,
+  "type": "module",
+  "description": "Conclui as exclusões de conta depois dos 30 dias (roda no GitHub Actions).",
+  "dependencies": {
+    "firebase-admin": "^12.7.0"
+  }
+}

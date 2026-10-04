@@ -10,10 +10,12 @@ import {
   $, el, icone, ms, paraData, pintarAvatar, urlSegura, nomeCidade, tempoRelativo, toast, erroAmigavel,
   fb, eu, dados, meusSeguindo, escondido, ganchos, obterPerfil, iniciarRede, carregarMeusSeguindo, linhaPessoa,
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, montarBarraRede, pintarBarraRede, ouvirAvisos, lerOrdenado
-} from "./rede.js?v=13";
-import { buscarPessoas, pessoasRecentes } from "./pessoas.js?v=1";
+} from "./rede.js?v=14";
+import { buscarPessoas, pessoasRecentes } from "./pessoas.js?v=2";
 
 const POR_VEZ = 10;
+// Publicação de conta desativada (conta.js): escondida até ocultoAte.
+const postOculto = (p) => (p?.ocultoAte?.toMillis?.() ?? 0) > Date.now();
 let aba = "diario", filtro = "seguindo";
 let posts = [], mostrados = 0;
 
@@ -57,7 +59,7 @@ async function carregarFeed() {
   $("maisFeed").hidden = true;
   try {
     const bruto = filtro === "todos" ? await buscarTodos() : await buscarSeguindo();
-    posts = bruto.filter((p) => !escondido(p.autorId)).sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
+    posts = bruto.filter((p) => !escondido(p.autorId) && !postOculto(p)).sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
   } catch (e) {
     console.warn(e);
     lista.replaceChildren(vazio("Não foi possível carregar o diário", erroAmigavel(e)));

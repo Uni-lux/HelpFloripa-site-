@@ -11,9 +11,9 @@
 // - Sempre com o nome da pessoa, nunca "o negócio".
 // =====================================================
 import { fotoSegura, conferirEmail, emailPendente, MSG_EMAIL } from "./seguranca.js?v=1";
-import { estrelas } from "./avaliacoes.js?v=9";
-import { abrirQueixa, responderQueixa, resolverQueixa, semResposta, MOTIVOS, PRAZO_DIAS } from "./queixas.js?v=5";
-import { NOMES_TIPO, PAGINA_TIPO } from "./vitrine.js?v=25";
+import { estrelas } from "./avaliacoes.js?v=10";
+import { abrirQueixa, responderQueixa, resolverQueixa, semResposta, MOTIVOS, PRAZO_DIAS } from "./queixas.js?v=6";
+import { NOMES_TIPO, PAGINA_TIPO } from "./vitrine.js?v=26";
 
 const $ = (id) => document.getElementById(id);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
@@ -57,7 +57,7 @@ function alvo(r) {
 }
 function autor(r) {
   const p = pessoas.get(r.autorId) || {};
-  return { uid: r.autorId, nome: p.nome || r.autorNome || "Cliente", foto: fotoSegura(p.fotoPerfil) || fotoSegura(r.autorFoto), nick: p.nickname || "", cidade: p.cidade || "" };
+  return { uid: r.autorId, nome: p.excluido ? "Ex-usuário" : (p.nome || r.autorNome || "Cliente"), foto: fotoSegura(p.fotoPerfil) || fotoSegura(r.autorFoto), nick: p.nickname || "", cidade: p.cidade || "" };
 }
 function dadosPessoa(uid) {
   const p = pessoas.get(uid);
@@ -115,6 +115,7 @@ async function carregar() {
       try {
         const s = await fb.getDocs(fb.query(fb.collection(fb.db, "perfis_publicos"), fb.where(fb.documentId(), "in", lote)));
         s.docs.forEach((d) => pessoas.set(d.id, d.data()));
+        lote.forEach((u) => { if (!pessoas.has(u)) pessoas.set(u, { excluido: true }); }); // conta excluída
       } catch (e) { console.warn("[Reclamações] perfis:", e); }
     })
   ]);

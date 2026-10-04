@@ -5,7 +5,7 @@
 //    "Confirmar meu e-mail" (evita que leitores de e-mail usem o link sozinhos).
 // 2) Depois do cadastro: a página confere sozinha a cada 4 segundos.
 // =====================================================
-import { $, destinoSeguro, aviso, firebasePronto } from "./acesso.js?v=1";
+import { $, destinoSeguro, aviso, firebasePronto } from "./acesso.js?v=2";
 
 const destino = destinoSeguro("index.html");
 const p = new URLSearchParams(location.search);
