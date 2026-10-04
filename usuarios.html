@@ -13,7 +13,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="stylesheet" href="vitrine.css?v=22" />
-  <link rel="stylesheet" href="rede.css?v=2" />
+  <link rel="stylesheet" href="rede.css?v=4" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
     // Tema compartilhado com a página de mensagens; aplicado antes de desenhar.
@@ -213,10 +213,10 @@
       obterPerfil, lerOrdenado, salvarImagem, iniciarRede, meusSeguindoPronto, carregarMeusSeguindo, alternarSeguir, botaoSeguir, linhaPessoa,
       removerSeguidor, bloquear, desbloquear, alternarRestricao, compartilharPerfil,
       barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail
-    } from "./rede.js?v=13";
-    import { buscarPessoas, palavrasBusca } from "./pessoas.js?v=1";
-    import { notaDoPerfil, abrirDetalhamento, avaliarNegocio, avaliarCliente, lerResumo, estrelas, pintarEstrelas, media, notaTexto, TIPOS_NEGOCIO } from "./avaliacoes.js?v=9";
-    import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=25";
+    } from "./rede.js?v=14";
+    import { buscarPessoas, palavrasBusca } from "./pessoas.js?v=2";
+    import { notaDoPerfil, abrirDetalhamento, avaliarNegocio, avaliarCliente, lerResumo, estrelas, pintarEstrelas, media, notaTexto, TIPOS_NEGOCIO } from "./avaliacoes.js?v=10";
+    import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=26";
 
     // ======================================================
     // Estado desta página (o resto vem de rede.js)
@@ -375,7 +375,7 @@
       const snap = await lerOrdenado(
         fb.query(col, fb.where("autorId", "==", uid), fb.orderBy("criadoEm", "desc"), fb.limit(120)),
         fb.query(col, fb.where("autorId", "==", uid), fb.limit(120)));
-      return snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (ms(b.criadoEm) || Date.now()) - (ms(a.criadoEm) || Date.now()));
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((x) => uid === eu.uid || (x.ocultoAte?.toMillis?.() ?? 0) <= Date.now()).sort((a, b) => (ms(b.criadoEm) || Date.now()) - (ms(a.criadoEm) || Date.now()));
     }
 
     function renderizarGrade(container, posts, { proprio, autor }) {
@@ -758,6 +758,18 @@
           b.addEventListener("click", async () => { if (await desbloquear(uid)) abrirPerfilPublico(uid); });
           aviso.append(document.createElement("br"), b);
         }
+        ppCab.el("extra").replaceChildren(aviso);
+        return;
+      }
+      // Conta desativada (ou com exclusão pedida): nada do perfil aparece.
+      if ((p.desativadaAte?.toMillis?.() ?? 0) > Date.now()) {
+        ppCab.raiz.querySelector(".pf-stats").hidden = true;
+        acoesTopo.replaceChildren();
+        const aviso = document.createElement("div");
+        aviso.className = "bloqueado-aviso";
+        const t = document.createElement("strong");
+        t.textContent = "Conta desativada";
+        aviso.append(t, "Esta pessoa desativou a conta por um tempo. O perfil volta a aparecer quando ela reativar.");
         ppCab.el("extra").replaceChildren(aviso);
         return;
       }

@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, getDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js";
 
 // App Check: prova para o Firebase que o acesso vem do seu site (e não de um robô).
@@ -40,5 +40,27 @@ window.firebaseAuth = auth;
 window.firebaseDb = db;
 console.info("[Firebase] Inicializado com sucesso:", app.name, firebaseConfig.projectId);
 setStatus(`Firebase conectado (${firebaseConfig.projectId})`, "ok");
+
+// Portão da conta: quem entra com a conta desativada ou com a exclusão pedida vai para
+// conta.html (reativar / recuperar). Confere uma vez por sessão do navegador.
+const PAGINAS_LIVRES = ["conta.html", "login.html", "cadastre-se.html", "verificar-email.html", "termos.html", "privacidade.html", "ajuda.html", "contato.html"];
+onAuthStateChanged(auth, async (u) => {
+  if (!u) return;
+  const pagina = location.pathname.split("/").pop() || "index.html";
+  if (PAGINAS_LIVRES.includes(pagina)) return;
+  const chave = "hf-conta-ok-" + u.uid;
+  try { if (sessionStorage.getItem(chave) === "1") return; } catch {}
+  try {
+    const s = await getDoc(doc(db, "usuarios", u.uid));
+    const d = s.exists() ? s.data() : {};
+    const ate = d.desativacao?.ate?.toMillis?.();
+    const pendente = !!d.exclusao?.pedidaEm || (!!d.desativacao && (!d.desativacao.ate || ate > Date.now()));
+    if (pendente || d.desativacao) {
+      location.replace("conta.html?continuar=" + encodeURIComponent(pagina + location.search));
+      return;
+    }
+    try { sessionStorage.setItem(chave, "1"); } catch {}
+  } catch (e) { console.warn("[Conta] Não foi possível conferir o estado da conta:", e); }
+});
 
 export { app, auth, db };

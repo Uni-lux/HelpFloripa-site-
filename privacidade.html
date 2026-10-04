@@ -25,9 +25,9 @@
     })();
   </script>
   <link rel="stylesheet" href="categoria.css?v=7" />
-  <link rel="stylesheet" href="info.css?v=3" />
+  <link rel="stylesheet" href="info.css?v=4" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="categoria.js?v=16"></script>
+  <script type="module" src="categoria.js?v=17"></script>
 </head>
 <body data-classe="info">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -54,7 +54,7 @@
         <span class="selo-classe"><b><svg class="i xs" aria-hidden="true"><use href="#i-cadeado"/></svg></b>Privacidade e LGPD</span>
         <h1 id="tituloPagina">Política de <span>Privacidade</span></h1>
         <p class="lead">Quais dados o Help Floripa usa, para quê, quem pode ver e como você controla tudo isso.</p>
-        <span class="atualizado">Última atualização: 30 de setembro de 2026</span>
+        <span class="atualizado">Última atualização: 4 de outubro de 2026</span>
       </div>
     </section>
     <div class="doc">
@@ -81,7 +81,7 @@
             <li>Não vendemos seus dados e não usamos cookies de publicidade.</li>
             <li>Mensagens só são vistas por quem está na conversa. Seu endereço só por você.</li>
             <li>Os dados ficam no Google Firebase, com regras de acesso por usuário.</li>
-            <li>Para acessar, corrigir ou excluir seus dados, escreva para helpfloripa7@gmail.com.</li>
+            <li>Você corrige seus dados em <strong>Editar perfil</strong> e em <strong>Configurações</strong>, onde também pode desativar ou excluir a conta. Para outros pedidos, escreva para helpfloripa7@gmail.com.</li>
           </ul>
         </div>
         <section class="clausula" id="c1" aria-labelledby="h1">
@@ -95,7 +95,7 @@
             <li><strong>Perfis de negócio e anúncios:</strong> nome do negócio, categoria, descrição, fotos, preços, horários, cardápio, produtos, estoque, WhatsApp e dados dos imóveis.</li>
             <li><strong>Uso social:</strong> publicações, quem você segue, conexões, bloqueios e restrições.</li>
             <li><strong>Mensagens:</strong> textos, fotos, áudios, orçamentos e pedidos enviados no chat.</li>
-            <li><strong>Avaliações e reclamações:</strong> nota, comentário, respostas e a data.</li>
+            <li><strong>Avaliações e reclamações:</strong> nota, comentário, motivo e relato da reclamação, foto anexada (se houver), respostas e datas. Para aplicar os limites contra abusos, guardamos também a data de criação da conta e quantas reclamações você abriu nos últimos 30 dias.</li>
             <li><strong>Endereço</strong>, se você decidir salvar nas configurações.</li>
             <li><strong>Dados técnicos:</strong> informações de login e de segurança geradas pelo Firebase, como data de acesso e identificadores da sessão.</li>
           </ul>
@@ -103,9 +103,13 @@
             <thead><tr><th>Dado</th><th>Quem vê</th></tr></thead>
             <tbody>
               <tr><td>Nome, @, foto, bio e cidade do perfil</td><td>Usuários logados</td></tr>
+              <tr><td>"Online" e "visto por último" (só se "Mostrar quando estou online" estiver ligado)</td><td>Usuários logados</td></tr>
               <tr><td>Perfis de negócio, anúncios, publicações e avaliações (com nome e foto de quem avaliou)</td><td>Usuários logados</td></tr>
               <tr><td>E-mail e senha</td><td>Só você (a senha fica protegida pelo Firebase)</td></tr>
+              <tr><td>Reclamações (motivo, relato, foto e resposta do negócio)</td><td>Usuários logados</td></tr>
+              <tr><td>Quantas reclamações você abriu no mês e a data de criação da conta</td><td>Só você</td></tr>
               <tr><td>Endereço salvo nas configurações</td><td>Só você</td></tr>
+              <tr><td>Preferências "Mostrar quando estou online" e "Confirmação de leitura"</td><td>Só você (ficam na sua conta e valem em todos os aparelhos)</td></tr>
               <tr><td>Mensagens do chat</td><td>Só as duas pessoas da conversa</td></tr>
               <tr><td>Tema, carrinho e preferências</td><td>Só no seu aparelho (armazenamento do navegador)</td></tr>
             </tbody>
@@ -149,7 +153,12 @@
         </section>
         <section class="clausula" id="c7" aria-labelledby="h7">
           <h2 id="h7"><span class="n">7.</span>Por quanto tempo guardamos</h2>
-          <p>Guardamos os dados enquanto sua conta estiver ativa. Quando a conta é excluída, apagamos ou anonimizamos os dados, exceto o que a lei nos obriga a guardar por mais tempo. Avaliações e reclamações feitas a outros perfis podem ser mantidas de forma anônima, para preservar a confiança das notas.</p>
+          <p>Guardamos os dados enquanto sua conta existir.</p>
+          <ul>
+            <li><strong>Conta desativada:</strong> nada é apagado. Perfil, publicações, negócios e anúncios ficam escondidos até você reativar (manualmente ou na data escolhida). Guardamos o motivo que você informar.</li>
+            <li><strong>Exclusão pedida:</strong> a conta fica desativada por <strong>30 dias</strong>, e você pode recuperá-la nesse período. Depois disso, uma rotina automática apaga perfil, @, publicações, comentários, estrelas, seguidores, conexões, bloqueios, perfis de negócio, anúncios, as mensagens que você enviou e sua conta de login, em até 1 dia após o prazo.</li>
+            <li>Avaliações e reclamações que você fez são mantidas <strong>sem nome e foto</strong> ("Ex-usuário"), para preservar a confiança das notas. Também mantemos o que a lei nos obriga a guardar por mais tempo.</li>
+          </ul>
         </section>
         <section class="clausula" id="c8" aria-labelledby="h8">
           <h2 id="h8"><span class="n">8.</span>Segurança</h2>
@@ -200,9 +209,9 @@
   <footer class="rodape-home">
     <div>
       <div class="marca-rodape">HELP <span>FLORIPA</span></div>
-      <p>Tudo o que você precisa em Florianópolis, em um só lugar: serviços, delivery, compras e imóveis.</p>
+      <p>Tudo o que você precisa em Florianópolis, em um só lugar: freelances, delivery, compras e imóveis.</p>
     </div>
-    <div><h4>Explorar</h4><nav aria-label="Explorar"><a href="servicos.html">Serviços</a><a href="delivery.html">Delivery</a><a href="shopping.html">Shopping</a><a href="imoveis.html">Imóveis</a></nav></div>
+    <div><h4>Explorar</h4><nav aria-label="Explorar"><a href="servicos.html">Freelances</a><a href="delivery.html">Delivery</a><a href="shopping.html">Shopping</a><a href="imoveis.html">Imóveis</a></nav></div>
     <div><h4>Para você</h4><nav aria-label="Para você"><a href="usuarios.html">Meu perfil</a><a href="mensagens.html">Mensagens</a><a href="negocios.html">Anunciar</a><a href="profissionais.html">Para profissionais</a><a href="clientes.html">Para clientes</a><a href="reclamacoes.html">Reclamações</a></nav></div>
     <div><h4>Help Floripa</h4><nav aria-label="Institucional"><a href="sobre.html">Sobre</a><a href="ajuda.html">Ajuda</a><a href="contato.html">Contato</a><a href="socios-parcerias.html">Sócios e parcerias</a><a href="termos.html">Termos de Uso</a><a href="privacidade.html">Privacidade</a></nav></div>
     <div class="fim"><span>&copy; 2025 Help Floripa · Todos os direitos reservados</span><span>CNPJ 61.935.934/0001-00</span></div>

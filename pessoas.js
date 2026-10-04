@@ -24,7 +24,9 @@ const lembrar = (chave, promessa) => {
   cache.set(chave, { em: Date.now(), p: promessa });
   return promessa;
 };
-const lista = (snap) => snap.docs.map((d) => ({ uid: d.id, ...d.data() }));
+// Contas desativadas (conta.js) não aparecem na busca.
+const ativa = (p) => (p?.desativadaAte?.toMillis?.() ?? 0) <= Date.now();
+const lista = (snap) => snap.docs.map((d) => ({ uid: d.id, ...d.data() })).filter(ativa);
 
 // Quem esteve no site por último (sugestões quando a busca está vazia).
 export function pessoasRecentes(fb, { limite = 30 } = {}) {

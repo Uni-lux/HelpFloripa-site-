@@ -109,6 +109,21 @@ service cloud.firestore {
       return exists(v) && get(v).data.get('status', '') == 'aceito';
     }
 
+    // Conta desativada (ou com exclusão pedida): perfis_publicos.desativadaAte no futuro.
+    function desativada(uid) {
+      let p = /databases/$(database)/documents/perfis_publicos/$(uid);
+      return exists(p)
+          && get(p).data.get('desativadaAte', null) is timestamp
+          && get(p).data.desativadaAte > request.time;
+    }
+
+    // Campo opcional de data (ex.: ocultoAte): ausente, nulo ou uma data.
+    function dataOuNulo(campo) {
+      return !(campo in request.resource.data)
+          || request.resource.data[campo] == null
+          || request.resource.data[campo] is timestamp;
+    }
+
     function donoDoNegocio(negocioId) {
       return get(/databases/$(database)/documents/negocios/$(negocioId)).data.donoId;
     }
@@ -166,14 +181,16 @@ service cloud.firestore {
         return textoAte('nome', 80)
             && textoAte('bio', 400)
             && textoAte('cidade', 80)
-            && listaAte('busca', 12);
+            && listaAte('busca', 12)
+            && dataOuNulo('desativadaAte');
       }
 
       // Campos que o site grava no perfil público. Qualquer outro é recusado.
       function camposPerfil() {
         return ['uid', 'nome', 'nickname', 'cidade', 'bio', 'fotoPerfil', 'fotoCapa',
                 'socialVisibilidade', 'duoCapa', 'ultimoAcesso', 'criadoEm', 'atualizadoEm',
-                'busca'];  // palavras do nome e do @ (minúsculas, sem acento) para a busca de pessoas
+                'busca',   // palavras do nome e do @ (minúsculas, sem acento) para a busca de pessoas
+                'desativadaAte'];  // conta desativada até esta data (ou exclusão pedida)
       }
 
       function opcoesOk() {
@@ -189,7 +206,11 @@ service cloud.firestore {
             && ((resource != null && !mudou().hasAny(['fotoCapa'])) || campoFotoOk('fotoCapa'));
       }
 
-      allow read: if logado();
+      // Quem foi bloqueado não abre o perfil de quem bloqueou (a busca em lista continua
+      // aberta a quem está logado, mas o perfil em si não carrega).
+      allow get: if logado()
+                 && (request.auth.uid == userId || !bloqueou(userId, request.auth.uid));
+      allow list: if logado();
 
       allow create: if logado()
                     && request.auth.uid == userId
@@ -353,7 +374,8 @@ service cloud.firestore {
                 'categoria', 'categorias', 'categoriaPersonalizada', 'criadoEm', 'atualizadoEm',
                 'precoDesde', 'horario', 'atendimento', 'dias', 'regiao', 'experiencia', 'diferenciais', 'pagamentos', 'cnh', 'veiculo',
                 'horaAbre', 'horaFecha', 'tempoMin', 'tempoMax', 'taxaEntrega', 'pedidoMinimo', 'opcoesEntrega',
-                'entrega', 'tipoAnunciante', 'creci'];
+                'entrega', 'tipoAnunciante', 'creci',
+                'ocultoAte'];  // escondido enquanto a conta do dono estiver desativada
       }
 
       function negocioOk() {
@@ -366,6 +388,7 @@ service cloud.firestore {
             && textoAte('categoriaPersonalizada', 30)
             && listaAte('itens', 12)
             && listaAte('fotos', 5)
+            && dataOuNulo('ocultoAte')
             && ((resource != null && !mudou().hasAny(['foto'])) || campoFotoOk('foto'));
       }
 
@@ -403,7 +426,8 @@ service cloud.firestore {
       function camposAnuncio() {
         return ['donoId', 'tipo', 'ativo', 'titulo', 'finalidade', 'categoria', 'preco', 'condominio', 'iptu',
                 'quartos', 'suites', 'banheiros', 'vagas', 'area', 'andar', 'bairro', 'cidade', 'mobiliado',
-                'disponivel', 'hospedes', 'caracteristicas', 'condicoes', 'descricao', 'fotos', 'criadoEm', 'atualizadoEm'];
+                'disponivel', 'hospedes', 'caracteristicas', 'condicoes', 'descricao', 'fotos', 'criadoEm', 'atualizadoEm',
+                'ocultoAte'];
       }
 
       function anuncioOk() {
@@ -415,7 +439,8 @@ service cloud.firestore {
             && textoAte('disponivel', 20)
             && listaAte('fotos', 5)
             && listaAte('caracteristicas', 20)
-            && listaAte('condicoes', 12);
+            && listaAte('condicoes', 12)
+            && dataOuNulo('ocultoAte');
       }
 
       allow read: if logado();
@@ -526,6 +551,12 @@ service cloud.firestore {
           return !bloqueioEntre(p[0], p[1]);
         }
 
+        // A outra pessoa da conversa não pode estar com a conta desativada.
+        function outroAtivo() {
+          let p = get(/databases/$(database)/documents/conversas/$(conversaId)).data.participantes;
+          return !desativada(p[0] == request.auth.uid ? p[1] : p[0]);
+        }
+
         // Resposta (citação): precisa apontar para uma mensagem real desta conversa,
         // com o autor verdadeiro. Impede citar algo que a outra pessoa nunca disse.
         function respostaOk(r) {
@@ -564,6 +595,7 @@ service cloud.firestore {
                       && emailOk()
                       && participante()
                       && semBloqueio()
+                      && outroAtivo()
                       && request.resource.data.remetenteId == request.auth.uid
                       && request.resource.data.criadoEm == request.time
                       && textoAte('texto', 4000)
@@ -950,6 +982,24 @@ service cloud.firestore {
 
 
     // =====================================================
+    // PEDIDOS DE EXCLUSÃO DE CONTA: exclusoes/{uid}
+    // A pessoa pede a exclusão; durante 30 dias pode recuperar a conta (apaga este
+    // documento). Depois disso a limpeza automática (Admin SDK, fora das regras)
+    // apaga a conta e os dados e anonimiza avaliações e reclamações.
+    // =====================================================
+    match /exclusoes/{uid} {
+      allow get: if logado() && request.auth.uid == uid;
+      allow create: if logado()
+                    && request.auth.uid == uid
+                    && request.resource.data.keys().hasOnly(['pedidaEm', 'motivo'])
+                    && request.resource.data.pedidaEm == request.time
+                    && valorTextoAte(request.resource.data.get('motivo', ''), 300);
+      allow update: if false;
+      allow delete: if logado() && request.auth.uid == uid;
+    }
+
+
+    // =====================================================
     // ESTRELAS NAS PUBLICAÇÕES: curtidas/{postId}_{uid}
     // Nota de 1 a 5, uma por pessoa em cada publicação. A pessoa pode
     // trocar a nota ou tirar. Ninguém dá estrelas na própria publicação.
@@ -1089,7 +1139,8 @@ service cloud.firestore {
                     && emailOk()
                     && resource.data.autorId == request.auth.uid
                     && request.resource.data.autorId == resource.data.autorId
-                    && gravou().hasOnly(['texto', 'nome', 'fotoPerfil', 'comentariosOcultos'])
+                    && gravou().hasOnly(['texto', 'nome', 'fotoPerfil', 'comentariosOcultos', 'ocultoAte'])
+                    && dataOuNulo('ocultoAte')
                     && (!('comentariosOcultos' in request.resource.data) || request.resource.data.comentariosOcultos is bool)
                     && publicacaoOk();
 

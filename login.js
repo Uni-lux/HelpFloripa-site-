@@ -1,7 +1,7 @@
 // =====================================================
 // Entrar (login.html)
 // =====================================================
-import { $, destinoSeguro, mensagemErro, aviso, firebasePronto } from "./acesso.js?v=1";
+import { $, destinoSeguro, mensagemErro, aviso, firebasePronto } from "./acesso.js?v=2";
 
 const destino = destinoSeguro("index.html");
 if (new URLSearchParams(location.search).get("redirect")) aviso("avisoLogin", "Entre na sua conta para continuar.", "info");
@@ -37,7 +37,9 @@ if (destino !== "index.html") $("linkCadastro").href = `cadastre-se.html?continu
     b.disabled = true; b.textContent = "Entrando...";
     aviso("avisoLogin", "");
     try {
-      await A.signInWithEmailAndPassword(auth, email, senha);
+      const cred = await A.signInWithEmailAndPassword(auth, email, senha);
+      // Confere de novo se a conta está desativada ou com exclusão pedida (portão em firebase.js).
+      try { sessionStorage.removeItem("hf-conta-ok-" + cred.user.uid); } catch {}
       location.href = destino;
     } catch (err) {
       console.error("[Login]", err);

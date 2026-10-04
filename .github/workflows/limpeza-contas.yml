@@ -1,0 +1,34 @@
+# Conclui as exclusões de conta pedidas há mais de 30 dias (scripts/limpeza).
+# Precisa do segredo FIREBASE_SERVICE_ACCOUNT (Settings > Secrets and variables > Actions).
+name: Limpeza de contas excluídas
+on:
+  schedule:
+    - cron: "17 6 * * *" # todo dia, 03:17 em Brasília
+  workflow_dispatch: {}
+permissions:
+  contents: read
+jobs:
+  limpar:
+    runs-on: ubuntu-latest
+    env:
+      FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+    defaults:
+      run:
+        working-directory: scripts/limpeza
+    steps:
+      - name: Sem segredo configurado
+        if: ${{ env.FIREBASE_SERVICE_ACCOUNT == '' }}
+        working-directory: .
+        run: echo "::warning::Configure o segredo FIREBASE_SERVICE_ACCOUNT para a limpeza de contas rodar."
+      - uses: actions/checkout@v4
+        if: ${{ env.FIREBASE_SERVICE_ACCOUNT != '' }}
+      - uses: actions/setup-node@v4
+        if: ${{ env.FIREBASE_SERVICE_ACCOUNT != '' }}
+        with:
+          node-version: 20
+      - name: Instalar
+        if: ${{ env.FIREBASE_SERVICE_ACCOUNT != '' }}
+        run: npm install --no-audit --no-fund
+      - name: Limpar contas
+        if: ${{ env.FIREBASE_SERVICE_ACCOUNT != '' }}
+        run: node limpar-contas.mjs

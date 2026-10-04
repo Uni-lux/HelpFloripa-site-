@@ -7,8 +7,8 @@
 // =====================================================
 import { fotoSegura } from "./seguranca.js?v=1";
 import { definirPerfilMenu, definirBadgeMensagens } from "./menu.js?v=4";
-import { buscarReclamacoes } from "./avisos-reclamacoes.js?v=13";
-import "./painel-avisos.js?v=6"; // o sino abre o painel de notificações na própria página
+import { buscarReclamacoes } from "./avisos-reclamacoes.js?v=14";
+import "./painel-avisos.js?v=7"; // o sino abre o painel de notificações na própria página
 
 const $ = (id) => document.getElementById(id);
 

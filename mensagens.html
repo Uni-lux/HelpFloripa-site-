@@ -669,8 +669,8 @@
 
   <script type="module">
     import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura, mostrarAvisoEmail } from "./seguranca.js?v=1";
-    import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO } from "./avaliacoes.js?v=9";
-    import { buscarPessoas } from "./pessoas.js?v=1";
+    import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO } from "./avaliacoes.js?v=10";
+    import { buscarPessoas } from "./pessoas.js?v=2";
     // ======================================================
     // Configurações (salvas no aparelho)
     // ======================================================
@@ -1433,6 +1433,7 @@
       ativa = { id, outroId: c.outroId, nome: c.nome, foto: c.foto, dados: c.dados };
       mensagens = [];
       limiteMsgs = MSGS_INICIAIS; temMaisMsgs = false; voltarAoPonto = null;
+      perfilOutroAtual = {}; // não herda o status da conversa anterior
       primeiraRender = true;
       novasAbaixo = 0;
       $("topNome").textContent = c.nome;
@@ -1501,10 +1502,13 @@
       if (!ativa) return;
       const eu_bloqueei = bloqueios.meus.has(ativa.outroId);
       const fui_bloqueado = bloqueios.deles.has(ativa.outroId);
-      const travado = eu_bloqueei || fui_bloqueado;
+      // Conta desativada (conta.js): as regras também recusam a mensagem.
+      const desativado = (perfilOutroAtual?.desativadaAte?.toMillis?.() ?? 0) > Date.now();
+      const travado = eu_bloqueei || fui_bloqueado || desativado;
       $("barraBloqueio").hidden = !travado;
       $("rodapeConversa").hidden = travado;
-      $("barraBloqueioTxt").textContent = eu_bloqueei ? "Você bloqueou este contato." : "Não é possível enviar mensagens para este contato.";
+      $("barraBloqueioTxt").textContent = eu_bloqueei ? "Você bloqueou este contato."
+        : desativado ? "Esta pessoa desativou a conta. Você poderá escrever quando ela reativar." : "Não é possível enviar mensagens para este contato.";
       $("barraBloqueioBtn").hidden = !eu_bloqueei;
     }
 
@@ -1580,6 +1584,7 @@
           $("topNome").textContent = perfilOutroAtual.nome;
           pintarAvatar($("topAvatar"), perfilOutroAtual.fotoPerfil, perfilOutroAtual.nome);
         }
+        aplicarBloqueio();
         atualizarStatusTopo();
       }, () => {});
     }

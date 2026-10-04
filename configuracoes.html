@@ -23,9 +23,9 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="rede.css?v=2" />
+  <link rel="stylesheet" href="rede.css?v=4" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="configuracoes.js?v=13"></script>
+  <script type="module" src="configuracoes.js?v=15"></script>
 </head>
 <body>
   <header class="topo">
@@ -47,7 +47,8 @@
           <button type="button" class="cfg-item" id="cfgEditar"><svg class="i"><use href="#i-lapis"/></svg><span class="txt">Editar perfil<small>Nome, @usuário, bio, cidade, fotos</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
           <button type="button" class="cfg-item" id="cfgVerificacao"><svg class="i"><use href="#i-selo"/></svg><span class="txt">Verificação do perfil<small id="cfgVerificacaoTxt">Solicite o selo de perfil verificado</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
           <button type="button" class="cfg-item" id="cfgEndereco"><svg class="i"><use href="#i-pin"/></svg><span class="txt">Endereço<small id="cfgEnderecoTxt">Privado: só você vê</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
-          <button type="button" class="cfg-item" id="cfgSenha"><svg class="i"><use href="#i-chave"/></svg><span class="txt">Alterar senha<small>Enviamos um link para o seu e-mail</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
+          <button type="button" class="cfg-item" id="cfgSenha"><svg class="i"><use href="#i-chave"/></svg><span class="txt">Alterar senha<small id="cfgSenhaTxt">Troque a senha da sua conta</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
+          <button type="button" class="cfg-item" id="cfgEmailTrocar"><svg class="i"><use href="#i-envelope"/></svg><span class="txt">Alterar e-mail<small id="cfgEmailTxt">Confirmação pelo novo e-mail</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
         </div>
 
         <div class="cfg-bloco">
@@ -100,7 +101,8 @@
 
         <div class="cfg-bloco">
           <button type="button" class="cfg-item" id="cfgSair"><svg class="i"><use href="#i-sair"/></svg><span class="txt">Sair da conta</span></button>
-          <button type="button" class="cfg-item perigo" id="cfgExcluir"><svg class="i"><use href="#i-lixo"/></svg><span class="txt">Excluir minha conta<small>Apaga seu perfil, publicações e quem você segue</small></span></button>
+          <button type="button" class="cfg-item" id="cfgDesativar"><svg class="i"><use href="#i-olho"/></svg><span class="txt">Desativar conta<small>Uma pausa: tudo fica guardado e você volta quando quiser</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
+          <button type="button" class="cfg-item perigo" id="cfgExcluir"><svg class="i"><use href="#i-lixo"/></svg><span class="txt">Excluir minha conta<small>Você tem 30 dias para mudar de ideia</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
         </div>
     </div>
   </main>
@@ -135,5 +137,102 @@
     </div>
   </div>
 
+
+  <!-- Alterar senha -->
+  <div class="folha cheia" id="folhaSenha" role="dialog" aria-modal="true" aria-labelledby="tSenha">
+    <div class="folha-caixa">
+      <div class="folha-topo"><h2 id="tSenha">Alterar senha</h2><button type="button" class="icone-btn" data-fechar aria-label="Fechar"><svg class="i"><use href="#i-fechar"/></svg></button></div>
+      <div class="folha-corpo pad">
+        <div class="end-aviso" id="senhaGoogle" hidden><svg class="i"><use href="#i-cadeado"/></svg><span><strong>Sua conta entra com o Google.</strong> A senha é a da sua conta Google e é trocada lá, nas configurações do Google.</span></div>
+        <form id="formSenha" novalidate>
+          <div class="campo"><label for="senhaAtual">Senha atual</label><input id="senhaAtual" type="password" autocomplete="current-password" /></div>
+          <div class="campo"><label for="senhaNova">Nova senha</label><input id="senhaNova" type="password" autocomplete="new-password" minlength="6" /><div class="ajuda"><span>Mínimo de 6 caracteres. Misture letras, números e símbolos.</span></div></div>
+          <div class="campo"><label for="senhaConfirma">Repita a nova senha</label><input id="senhaConfirma" type="password" autocomplete="new-password" /></div>
+          <button type="button" class="btn sec" id="senhaEsqueci" style="margin-top:14px">Esqueci minha senha atual</button>
+        </form>
+      </div>
+      <div class="folha-rodape"><button type="button" class="btn sec" data-fechar>Cancelar</button><button type="button" class="btn pri" id="senhaSalvar">Salvar nova senha</button></div>
+    </div>
+  </div>
+
+  <!-- Alterar e-mail -->
+  <div class="folha cheia" id="folhaEmail" role="dialog" aria-modal="true" aria-labelledby="tEmail">
+    <div class="folha-caixa">
+      <div class="folha-topo"><h2 id="tEmail">Alterar e-mail</h2><button type="button" class="icone-btn" data-fechar aria-label="Fechar"><svg class="i"><use href="#i-fechar"/></svg></button></div>
+      <div class="folha-corpo pad">
+        <div class="end-aviso"><svg class="i"><use href="#i-envelope"/></svg><span><strong>Como funciona:</strong> enviamos um link de confirmação para o <strong>novo e-mail</strong>. A troca só acontece quando você abrir esse link. Até lá, continue entrando com o e-mail atual. Depois da troca, entre de novo usando o e-mail novo.</span></div>
+        <div class="end-aviso" id="emailGoogle" hidden style="margin-top:10px"><svg class="i"><use href="#i-cadeado"/></svg><span><strong>Sua conta entra com o Google.</strong> O e-mail é o da sua conta Google e não pode ser trocado aqui.</span></div>
+        <form id="formEmail" novalidate>
+          <div class="campo"><label>E-mail atual</label><input id="emailAtual" type="email" disabled /></div>
+          <div class="campo"><label for="emailNovo">Novo e-mail</label><input id="emailNovo" type="email" autocomplete="email" placeholder="seunome@email.com" /></div>
+          <div class="campo"><label for="emailSenha">Senha atual</label><input id="emailSenha" type="password" autocomplete="current-password" /></div>
+        </form>
+      </div>
+      <div class="folha-rodape"><button type="button" class="btn sec" data-fechar>Cancelar</button><button type="button" class="btn pri" id="emailSalvar">Enviar link de confirmação</button></div>
+    </div>
+  </div>
+
+  <!-- Desativar conta -->
+  <div class="folha cheia" id="folhaDesativar" role="dialog" aria-modal="true" aria-labelledby="tDesativar">
+    <div class="folha-caixa">
+      <div class="folha-topo"><h2 id="tDesativar">Desativar conta</h2><button type="button" class="icone-btn" data-fechar aria-label="Fechar"><svg class="i"><use href="#i-fechar"/></svg></button></div>
+      <div class="folha-corpo pad">
+        <div class="conta-explica">
+          <strong>O que acontece</strong>
+          <ul>
+            <li>Seu perfil, publicações, negócios e anúncios <strong>deixam de aparecer</strong> para todo mundo.</li>
+            <li>Ninguém consegue te mandar mensagem nem ver você online.</li>
+            <li><strong>Nada é apagado:</strong> seguidores, conversas, avaliações, reclamações e configurações ficam guardados.</li>
+            <li>Você sai da conta neste aparelho. Ao entrar de novo, em qualquer aparelho, aparece a opção de reativar.</li>
+          </ul>
+        </div>
+        <div class="campo"><label>Por que você quer desativar?</label><div class="conta-opcoes" id="desMotivos"></div></div>
+        <div class="campo"><label for="desDetalhe">Quer contar mais? (opcional)</label><textarea id="desDetalhe" maxlength="300" placeholder="Sua resposta ajuda a melhorar o Help Floripa"></textarea></div>
+        <div class="campo"><label>Como reativar?</label>
+          <div class="conta-opcoes" id="desModo">
+            <label class="conta-op"><input type="radio" name="desModo" value="manual" checked /><span><strong>Quando eu entrar de novo</strong><small>A conta fica desativada até você entrar e tocar em "Reativar".</small></span></label>
+            <label class="conta-op"><input type="radio" name="desModo" value="automatica" /><span><strong>Automaticamente numa data</strong><small>Tudo volta a aparecer sozinho na data escolhida. Se entrar antes, pode reativar na hora.</small></span></label>
+          </div>
+          <div class="segmentado" id="desPrazo" hidden style="margin:10px 0 0">
+            <button type="button" data-dias="7" class="on">7 dias</button><button type="button" data-dias="15">15 dias</button><button type="button" data-dias="30">30 dias</button><button type="button" data-dias="90">3 meses</button>
+          </div>
+          <div class="ajuda" id="desPrazoTxt" hidden style="margin-top:6px;font-size:12.5px;color:var(--muted)"></div>
+        </div>
+      </div>
+      <div class="folha-rodape"><button type="button" class="btn sec" data-fechar>Cancelar</button><button type="button" class="btn pri" id="desConfirmar">Desativar conta</button></div>
+    </div>
+  </div>
+
+  <!-- Excluir conta -->
+  <div class="folha cheia" id="folhaExcluir" role="dialog" aria-modal="true" aria-labelledby="tExcluir">
+    <div class="folha-caixa">
+      <div class="folha-topo"><h2 id="tExcluir">Excluir minha conta</h2><button type="button" class="icone-btn" data-fechar aria-label="Fechar"><svg class="i"><use href="#i-fechar"/></svg></button></div>
+      <div class="folha-corpo pad">
+        <div class="conta-explica">
+          <strong>Como funciona</strong>
+          <ol>
+            <li><strong>Hoje:</strong> sua conta é desativada na hora. Nada mais aparece para os outros e você sai da conta.</li>
+            <li><strong>Por 30 dias:</strong> se mudar de ideia, é só entrar de novo e tocar em <strong>Recuperar minha conta</strong>. Tudo volta como estava.</li>
+            <li><strong>Depois de 30 dias:</strong> a exclusão é concluída e não pode ser desfeita.</li>
+          </ol>
+        </div>
+        <div class="conta-explica">
+          <strong>O que é apagado</strong>
+          <ul>
+            <li>Perfil, @usuário, fotos, publicações, comentários e estrelas;</li>
+            <li>quem você segue e seus seguidores, conexões do Social e bloqueios;</li>
+            <li>perfis de negócio e anúncios;</li>
+            <li>as mensagens que você enviou e sua conta de login (o e-mail fica livre para uma conta nova).</li>
+          </ul>
+          <strong style="margin-top:10px">O que continua, sem seu nome</strong>
+          <ul><li>Avaliações e reclamações que você fez ou recebeu, para manter as notas justas para todos. Elas aparecem como "Ex-usuário".</li></ul>
+        </div>
+        <div class="end-aviso" style="margin-top:10px"><svg class="i"><use href="#i-ajuda"/></svg><span>Só quer uma pausa? <button type="button" class="link-btn" id="excluirParaDesativar">Desative a conta</button>. Nada é apagado.</span></div>
+        <div class="campo"><label for="excMotivo">Por que você está saindo? (opcional)</label><textarea id="excMotivo" maxlength="300"></textarea></div>
+        <label class="conta-op" style="margin-top:14px"><input type="checkbox" id="excEntendi" /><span><strong>Entendi</strong><small>Depois de 30 dias, a exclusão não pode ser desfeita.</small></span></label>
+      </div>
+      <div class="folha-rodape"><button type="button" class="btn sec" data-fechar>Cancelar</button><button type="button" class="btn pri perigo" id="excConfirmar" disabled>Pedir exclusão</button></div>
+    </div>
+  </div>
 </body>
 </html>

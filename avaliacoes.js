@@ -455,7 +455,7 @@ export async function abrirDetalhamento({ fbx, titulo = "Avaliações", sub, ger
         const quem = document.createElement("div"); quem.className = "quem";
         const nome = document.createElement("strong"); nome.textContent = a.autorNome || "Usuário";
         // O nome gravado na avaliação é escrito por quem avaliou: mostra o nome real do perfil.
-        if (a.autorId) fbx.getDoc(fbx.doc(fbx.db, "perfis_publicos", a.autorId)).then((s) => { const n = s.exists() && s.data().nome; if (n) nome.textContent = n; }).catch(() => {});
+        if (a.autorId) fbx.getDoc(fbx.doc(fbx.db, "perfis_publicos", a.autorId)).then((s) => { if (!s.exists()) { nome.textContent = "Ex-usuário"; return; } const n = s.data().nome; if (n) nome.textContent = n; }).catch(() => {});
         const info = document.createElement("span");
         const data = a.criadoEm?.toDate?.();
         info.textContent = [a.pedidoId ? "✓ Atendimento confirmado" : rot[a.tipo], data ? data.toLocaleDateString("pt-BR") : "", a.atualizadoEm ? "editada" : ""].filter(Boolean).join(" · ");

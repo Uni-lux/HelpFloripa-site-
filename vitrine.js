@@ -8,8 +8,8 @@
 // =====================================================
 
 import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL } from "./seguranca.js?v=1";
-import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento, media, avaliarNegocio } from "./avaliacoes.js?v=9";
-import { abrirQueixa } from "./queixas.js?v=5";
+import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento, media, avaliarNegocio } from "./avaliacoes.js?v=10";
+import { abrirQueixa } from "./queixas.js?v=6";
 
 const PARAMS = new URL(import.meta.url).searchParams;
 const TIPO_PAGINA = PARAMS.get("tipo");
@@ -617,6 +617,8 @@ function linhaNegocioMini(n) {
 // ---------- estrelas dos negócios ----------
 // Resumo das notas de cada perfil de negócio (notas/neg_{id}); imóveis usam o perfil de imóveis do anunciante.
 const notasNeg = new Map();
+// Conta do dono desativada: o conteúdo fica escondido até ocultoAte (conta.js).
+const oculto = (x) => (x?.ocultoAte?.toMillis?.() ?? 0) > Date.now();
 const idNegocio = (n) => n.id || `${n.donoId}_${n.tipo}`;
 function estrelasNeg(negId, { compacto = false, nome = "", donoId = "", fbx = null } = {}) {
   const f = fbx || fb;
@@ -637,7 +639,7 @@ const conversar = (uid, cartao) => prepararConversa(fb, eu, uid, cartao);
 
 export async function buscarAnuncios(fbx, donoId) {
   const snap = await fbx.getDocs(fbx.query(fbx.collection(fbx.db, "anuncios"), fbx.where("donoId", "==", donoId), fbx.limit(40)));
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((a) => a.ativo !== false)
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((a) => a.ativo !== false && !oculto(a))
     .sort((a, b) => (b.atualizadoEm?.toMillis?.() ?? 0) - (a.atualizadoEm?.toMillis?.() ?? 0));
 }
 // Cadastro antigo: o próprio perfil de imóveis tinha os dados de um imóvel.
@@ -1776,11 +1778,11 @@ async function iniciar() {
         catch (e) { if (e?.code !== "failed-precondition") throw e; console.warn("Índice do Firebase ainda não criado:", e.message); return fb.getDocs(fb.query(c, fb.where("tipo", "==", tipo), fb.limit(lim))); }
       };
       const negSnap = await ordenado("negocios", TIPO, 300);
-      const negocios = negSnap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => n.nome && n.oculto !== true);
+      const negocios = negSnap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => n.nome && n.oculto !== true && !oculto(n));
       if (TIPO === "imoveis") {
         negocios.forEach((n) => negociosImoveis.set(n.donoId, n));
         const anSnap = await ordenado("anuncios", "imovel", 300);
-        todos = anSnap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((a) => a.ativo !== false);
+        todos = anSnap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((a) => a.ativo !== false && !oculto(a));
         negocios.filter((n) => n.preco || n.quartos).forEach((n) => todos.push(negocioComoAnuncio(n)));
       } else todos = negocios;
       todos.sort((a, b) => (b.atualizadoEm?.toMillis?.() ?? 0) - (a.atualizadoEm?.toMillis?.() ?? 0));
@@ -1802,13 +1804,13 @@ async function iniciar() {
     };
     if (idAn) {
       let a = todos.find((x) => x.id === idAn);
-      if (!a) { a = await buscarDireto("anuncios", idAn); if (a && a.ativo === false) a = null; if (a) await carregarDonos([a.donoId]).catch(() => {}); }
+      if (!a) { a = await buscarDireto("anuncios", idAn); if (a && (a.ativo === false || oculto(a))) a = null; if (a) await carregarDonos([a.donoId]).catch(() => {}); }
       if (a) abrirAnuncio(a); else toast("Este imóvel não está mais disponível.");
     } else if (idNeg) {
       let n = todos.find((x) => x.id === idNeg);
       if (!n) {
         n = await buscarDireto("negocios", idNeg);
-        if (n && (n.tipo !== TIPO || !n.nome || n.oculto === true)) n = null;
+        if (n && (n.tipo !== TIPO || !n.nome || n.oculto === true || oculto(n))) n = null;
         if (n) { await carregarDonos([n.donoId]).catch(() => {}); const r = await lerResumos(fb, ["neg_" + idNegocio(n)]).catch(() => ({})); notasNeg.set(idNegocio(n), r["neg_" + idNegocio(n)]); }
       }
       if (n) abrirDetalhe(n); else toast("Este perfil não está mais disponível.");
