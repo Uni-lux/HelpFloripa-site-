@@ -1,11 +1,13 @@
 // =====================================================
 // Painel do administrador — seções
 // =====================================================
-import { linha, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=1";
+import { linha, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=2";
 import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
-  TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha
-} from "./admin-base.js?v=1";
+  TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha,
+  PAPEIS, DESC_PAPEIS, pode, semPermissao, nomeEquipe, vendoAgora, marcarItem, seloResp, confirmarItem, controlesResp, espera,
+  PRIORIDADES, editarTarefa, moverTarefa
+} from "./admin-base.js?v=5";
 
 const cab = (titulo, sub, extra) => { const c = h("div", "ad-cab"); const t = h("div"); t.append(h("h1", null, titulo)); if (sub) t.append(h("p", null, sub)); c.appendChild(t); if (extra) c.appendChild(extra); return c; };
 const bloco = (titulo, sub) => { const b = h("section", "ad-bloco"); const t = h("div", "ad-bloco-topo"); const tt = h("div"); tt.append(h("h3", null, titulo)); if (sub) tt.append(h("p", null, sub)); t.appendChild(tt); b.appendChild(t); b.topo = t; return b; };
@@ -50,7 +52,8 @@ export function visao(el) {
     destaque({ rotulo: "Negócios", valor: D.negocios.length, dica: `${D.anuncios.length} anúncios de imóvel` }),
     destaque({ rotulo: "Publicações", valor: D.contagens.diario ?? D.posts.length, dica: `${D.posts.filter((p) => noPeriodo(p.criadoEm, 7)).length} nos últimos 7 dias` })
   );
-  el.append(cab("Visão geral", `Bom dia, ${C.nome.split(" ")[0] || "equipe"}. Este é o retrato do Help Floripa agora.`), kp);
+  const hora = new Date().getHours(); const saud = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
+  el.append(cab("Visão geral", `${saud}, ${C.nome.split(" ")[0] || "equipe"}. Este é o retrato do Help Floripa agora.`), minhaFila(), kp);
 
   const g = h("div", "ad-grade");
   // precisa de atenção
@@ -85,12 +88,41 @@ export function visao(el) {
   el.appendChild(g);
 }
 
+// Minha fila: o que está com você (tarefas, denúncias, chamados, propostas) e o que ninguém pegou.
+function minhaFila() {
+  const b = bloco("Minha fila", `Seu papel: ${PAPEIS[C.papel]} · ${DESC_PAPEIS[C.papel]}`);
+  b.classList.add("ad-fila");
+  const lista = h("div", "ad-fila-lista");
+  const pintar = () => {
+    if (!b.isConnected && lista.childElementCount) { C.aoMudarTarefas = null; return; }
+    const eu = C.eu.uid;
+    const itens = [];
+    C.tarefas.filter((t) => t.status !== "feito" && t.responsavel === eu).sort((a, b2) => (ms(a.prazo) || 9e15) - (ms(b2.prazo) || 9e15)).forEach((t) => itens.push({ tipo: "Tarefa", t: t.titulo, sub: `${PRIORIDADES[t.prioridade] || ""}${ms(t.prazo) ? " · prazo " + data(t.prazo) : ""}`, alerta: ms(t.prazo) && ms(t.prazo) < agora(), ir: "tarefas" }));
+    if (pode("moderar")) D.denuncias.filter((d) => d.responsavel === eu && ["nova", "em_analise"].includes(d.status)).forEach((d) => itens.push({ tipo: "Denúncia", t: `${MOTIVOS_DEN[d.motivo] || d.motivo} · ${pessoa(d.alvoId).nome || ""}`, sub: relativo(d.criadoEm), ir: "denuncias:minhas" }));
+    D.suporte.filter((x) => x.responsavel === eu && x.status === "aberto").forEach((x) => itens.push({ tipo: "Chamado", t: x.assunto, sub: relativo(x.atualizadoEm), alerta: ms(x.atualizadoEm) < agora() - DIA, ir: "suporte:minhas" }));
+    if (pode("comercial")) D.parcerias.filter((x) => x.responsavel === eu && !["fechado", "recusado"].includes(x.status || "novo")).forEach((x) => itens.push({ tipo: "Proposta", t: x.empresa || x.nome, sub: x.status || "novo", ir: "parcerias" }));
+    const livres = [pode("moderar") && [D.denuncias.filter((d) => d.status === "nova" && !d.responsavel).length, "denúncias sem responsável", "denuncias:livres"],
+      [D.suporte.filter((x) => x.status === "aberto" && !x.responsavel).length, "chamados sem responsável", "suporte:livres"],
+      [C.tarefas.filter((t) => t.status !== "feito" && !t.responsavel).length, "tarefas sem responsável", "tarefas"]].filter((x) => x && x[0]);
+    lista.replaceChildren();
+    if (!itens.length) lista.appendChild(h("div", "ad-vazio mini", "Nada com você agora."));
+    itens.slice(0, 8).forEach((x) => { const bt = h("button", "ad-fila-item" + (x.alerta ? " atrasado" : "")); bt.type = "button"; bt.append(h("span", "tipo", x.tipo), h("strong", null, x.t), h("small", null, x.sub)); bt.addEventListener("click", () => C.irPara(x.ir)); lista.appendChild(bt); });
+    if (itens.length > 8) lista.appendChild(h("div", "meta", `+ ${itens.length - 8} itens`));
+    if (livres.length) { const l = h("div", "ad-fila-livres"); livres.forEach(([n, t, ir]) => { const a = h("button", "ad-chip", `${n} ${t}`); a.type = "button"; a.addEventListener("click", () => C.irPara(ir)); l.appendChild(a); }); lista.appendChild(l); }
+  };
+  const nova = btn("Nova tarefa", "", async () => { await editarTarefa(); });
+  b.topo.appendChild(nova);
+  b.appendChild(lista); C.aoMudarTarefas = pintar; pintar();
+  return b;
+}
+
 // ======================================================= USUÁRIOS
 let filtroUsuarios = "todos", ordemUsuarios = "recentes";
 export function usuarios(el, termo = "") {
+  if (termo) filtroUsuarios = "todos";
   const busca = h("input"); busca.type = "search"; busca.placeholder = "Filtrar por nome, @, e-mail, telefone, cidade ou ID"; busca.value = termo;
   Object.assign(busca.style, { width: "min(420px,100%)", height: "40px", borderRadius: "12px", border: "1px solid var(--line)", background: "var(--input)", padding: "0 12px" });
-  const exportar = btn("Exportar CSV", "", () => { const l = filtrar(); baixarCSV("usuarios", ["ID", "Nome", "@", "E-mail", "Telefone", "Cidade", "Idade", "Cadastro", "Último acesso", "Situação", "Verificado", "Negócios"], l.map((p) => [p.uid, p.nome || "", p.nickname || "", p.email || "", p.telefone || "", nomeCidade(p.cidade), idade(p.dataNascimento) ?? "", data(p.criadoEm), data(p.ultimoAcesso), estado(p).t, p.verificado ? "sim" : "não", D.negocios.filter((n) => n.donoId === p.uid).length])); registrar("exportar", "usuarios", `${l.length} linhas`); });
+  const exportar = btn("Baixar Excel", "", () => { const l = filtrar(); baixarCSV("usuarios", ["ID", "Nome", "@", "E-mail", "Telefone", "Cidade", "Idade", "Cadastro", "Último acesso", "Situação", "Verificado", "Negócios"], l.map((p) => [p.uid, p.nome || "", p.nickname || "", p.email || "", p.telefone || "", nomeCidade(p.cidade), idade(p.dataNascimento) ?? "", data(p.criadoEm), data(p.ultimoAcesso), estado(p).t, p.verificado ? "sim" : "não", D.negocios.filter((n) => n.donoId === p.uid).length])); registrar("exportar", "usuarios", `${l.length} linhas`); });
   const topoAcoes = h("div", "ad-acoes"); topoAcoes.append(busca, exportar);
   el.append(cab("Usuários", `${num(D.pessoas.size)} contas. Toque numa pessoa para ver a ficha completa e agir.`, topoAcoes));
   const filtros = chips([["todos", "Todos"], ["novos", "Novos (7 dias)"], ["ativos", "Ativos (7 dias)"], ["inativos", "Sumidos (+30 dias)"], ["negocio", "Com negócio"], ["verificados", "Verificados"], ["desativado", "Desativados"], ["exclusao", "Exclusão agendada"], ["sancao", "Suspensos/banidos"]], filtroUsuarios, (v) => { filtroUsuarios = v; pintar(); });
@@ -151,19 +183,22 @@ export function denuncias(el) {
   const mot = contarPor(D.denuncias, (d) => MOTIVOS_DEN[d.motivo] || d.motivo).map(([rotulo, valor]) => ({ rotulo, valor }));
   g.appendChild(cartao({ titulo: "Denúncias por motivo", cabecalho: ["Motivo", "Denúncias"], linhas: mot.map((x) => [x.rotulo, x.valor]), desenhar: (a) => barras(a, { itens: mot, horizontal: true }), nomeArquivo: "denuncias-por-motivo" }));
   el.appendChild(g);
-  const fil = chips([["nova", `Novas (${D.denuncias.filter((d) => d.status === "nova").length})`], ["em_analise", "Em análise"], ["resolvida", "Resolvidas"], ["descartada", "Descartadas"], ["todas", "Todas"]], filtroDen, (v) => { filtroDen = v; pintar(); });
+  const fil = chips([["nova", `Novas (${D.denuncias.filter((d) => d.status === "nova").length})`], ["em_analise", "Em análise"], ["minhas", "Comigo"], ["livres", "Sem responsável"], ["resolvida", "Resolvidas"], ["descartada", "Descartadas"], ["todas", "Todas"]], filtroDen, (v) => { filtroDen = v; pintar(); });
+  if (!pode("moderar")) el.appendChild(h("div", "ad-aviso-papel", `Seu papel (${PAPEIS[C.papel]}) pode ver as denúncias, mas quem age é a moderação.`));
   fil.style.marginBottom = "12px";
   const lista = h("div", "ad-lista"); el.append(fil, lista);
   const contAlvo = new Map(porAlvo);
   function pintar() {
-    const l = D.denuncias.filter((d) => filtroDen === "todas" || d.status === filtroDen).sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
+    const aberta = (d) => d.status === "nova" || d.status === "em_analise";
+    const l = D.denuncias.filter((d) => filtroDen === "todas" || (filtroDen === "minhas" ? d.responsavel === C.eu.uid && aberta(d) : filtroDen === "livres" ? !d.responsavel && aberta(d) : d.status === filtroDen)).sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
     lista.replaceChildren(...(l.length ? l.slice(0, 200).map(item) : [h("div", "ad-vazio", "Nenhuma denúncia aqui.")]));
   }
   function item(d) {
-    const c = h("article", "ad-item");
+    const c = h("article", "ad-item"); c.dataset.item = `denuncia:${d.id}`;
     const top = h("div", "cab");
     top.append(selo(MOTIVOS_DEN[d.motivo] || d.motivo, d.motivo === "golpe" || d.motivo === "menor" ? "critico" : "serio"), selo({ perfil: "Perfil", publicacao: "Publicação", comentario: "Comentário", mensagem: "Mensagem", negocio: "Negócio" }[d.tipo] || d.tipo, "neutro"));
     if ((contAlvo.get(d.alvoId) || 0) >= 3) top.append(selo(`${contAlvo.get(d.alvoId)} denúncias contra`, "critico"));
+    if (d.status === "nova" || d.status === "em_analise") top.append(seloResp(d), espera(d.criadoEm, 24));
     top.append(h("span", "quando", dataHora(d.criadoEm)));
     const alvo = pessoa(d.alvoId), autor = pessoa(d.autorId);
     const quem = h("div", "meta");
@@ -175,20 +210,26 @@ export function denuncias(el) {
     if (d.detalhe) c.appendChild(h("div", "meta", `Relato: ${d.detalhe}`));
     if (d.status !== "nova") c.appendChild(h("div", "meta", `${d.status === "resolvida" ? "Resolvida" : d.status === "descartada" ? "Descartada" : "Em análise"}${d.acao ? " · ação: " + d.acao : ""}${d.nota ? " · " + d.nota : ""} · ${dataHora(d.analisadaEm)}`));
     const ac = h("div", "ad-acoes");
-    ac.append(btn("Ver conteúdo atual", "", () => verConteudo(d)));
-    if (d.status === "nova") ac.append(btn("Em análise", "", async () => { await atualizar(d, { status: "em_analise" }); }));
-    if (d.status !== "resolvida" && d.status !== "descartada") {
-      ac.append(btn("Descartar", "", async () => { const v = await modal({ titulo: "Descartar denúncia", campos: [{ nome: "nota", rotulo: "Por quê? (só a equipe vê)", tipo: "textarea" }], botao: "Descartar" }); if (v) await atualizar(d, { status: "descartada", acao: "nenhuma", nota: v.nota }); }));
-      ac.append(btn("Resolver com ação", "pri", () => resolver(d)));
+    const item = `denuncia:${d.id}`;
+    const nomeItem = `Denúncia: ${MOTIVOS_DEN[d.motivo] || d.motivo} · ${alvo.nome || ""}`;
+    ac.append(btn("Ver conteúdo atual", "", () => { marcarItem(item, nomeItem); return verConteudo(d); }));
+    const mod = pode("moderar");
+    if (mod && d.status === "nova") ac.append(btn("Em análise", "", async () => { if (!confirmarItem(d, item)) return; marcarItem(item, nomeItem); await atualizar(d, { status: "em_analise", ...(d.responsavel ? {} : { responsavel: C.eu.uid }) }); }));
+    if (mod && d.status !== "resolvida" && d.status !== "descartada") {
+      ac.append(btn("Descartar", "", async () => { if (!confirmarItem(d, item)) return; marcarItem(item, nomeItem); const v = await modal({ titulo: "Descartar denúncia", campos: [{ nome: "nota", rotulo: "Por quê? (só a equipe vê)", tipo: "textarea" }], botao: "Descartar" }); if (v) await atualizar(d, { status: "descartada", acao: "nenhuma", nota: v.nota }); }));
+      ac.append(btn("Resolver com ação", "pri", () => { if (!confirmarItem(d, item)) return; marcarItem(item, nomeItem); return resolver(d); }));
     }
     c.appendChild(ac);
+    if (d.status === "nova" || d.status === "em_analise") c.appendChild(controlesResp("denuncias", d, { permitido: mod, aoMudar: pintar }));
     return c;
   }
   async function atualizar(d, campos) {
     const { fb } = C;
     const dados = { ...campos, analisadaEm: fb.serverTimestamp(), analisadaPor: C.eu.uid };
+    if (campos.responsavel) Object.assign(dados, { responsavelNome: nomeEquipe(campos.responsavel), assumidoEm: fb.serverTimestamp() });
     await fb.updateDoc(fb.doc(fb.db, "denuncias", d.id), dados);
-    Object.assign(d, campos, { analisadaEm: { toMillis: () => agora() } });
+    Object.assign(d, campos, campos.responsavel ? { responsavelNome: nomeEquipe(campos.responsavel) } : {}, { analisadaEm: { toMillis: () => agora() } });
+    marcarItem(null);
     await registrar("denuncia_" + campos.status, d.alvoId, `${d.id}${campos.acao ? " · " + campos.acao : ""}`);
     toast("Denúncia atualizada"); pintar();
   }
@@ -202,9 +243,9 @@ export function denuncias(el) {
     if (v.acao === "aviso" && !(await fluxoAviso(d.alvoId))) return;
     if ((v.acao === "suspensao" || v.acao === "banimento") && !(await fluxoSancao(d.alvoId, v.acao))) return;
     if (v.acao === "remover") {
-      if (d.tipo === "publicacao") await fb.deleteDoc(fb.doc(fb.db, "diario", d.itemId));
+      if (d.tipo === "publicacao") { await fb.deleteDoc(fb.doc(fb.db, "diario", d.itemId)); D.posts = D.posts.filter((x) => x.id !== d.itemId); }
       else if (d.tipo === "comentario") await fb.deleteDoc(fb.doc(fb.db, "comentarios", d.itemId));
-      else if (d.tipo === "negocio") await fb.updateDoc(fb.doc(fb.db, "negocios", d.itemId), { ocultoAte: fb.Timestamp.fromDate(new Date("2999-12-31")) });
+      else if (d.tipo === "negocio") { await fb.updateDoc(fb.doc(fb.db, "negocios", d.itemId), { ocultoAte: fb.Timestamp.fromDate(new Date("2999-12-31")) }); const n = D.negocios.find((x) => x.id === d.itemId); if (n) n.ocultoAte = { toMillis: () => new Date("2999-12-31").getTime() }; }
       else { toast("Perfis e mensagens não são removidos: use aviso, suspensão ou banimento."); return; }
       await registrar("remover_conteudo", d.alvoId, `${d.tipo} ${d.itemId}`);
     }
@@ -245,14 +286,20 @@ export function reclamacoes(el) {
   g.appendChild(cartao({ titulo: "Reclamações por motivo", cabecalho: ["Motivo", "Reclamações"], linhas: mot.map((x) => [x.rotulo, x.valor]), desenhar: (a) => barras(a, { itens: mot, horizontal: true }), nomeArquivo: "reclamacoes-por-motivo" }));
   el.appendChild(g);
   const tab = h("div", "ad-tabela"); const t = document.createElement("table");
-  const th = h("tr"); ["Aberta em", "Cliente", "Negócio", "Motivo", "Situação", "Relato"].forEach((x) => th.appendChild(h("th", null, x)));
+  const th = h("tr"); ["Aberta em", "Cliente", "Negócio", "Motivo", "Situação", "Relato", ""].forEach((x) => th.appendChild(h("th", null, x)));
   const thead = h("thead"); thead.appendChild(th); const tb = h("tbody");
   [...q].sort((a, b) => ms(b.abertaEm) - ms(a.abertaEm)).slice(0, 300).forEach((x) => {
     const tr = h("tr", "clicavel");
     const atras = x.status === "aberta" && !x.resposta && ms(x.abertaEm) < agora() - 7 * DIA;
     const st = h("td"); st.appendChild(selo(x.status === "resolvida" ? "Resolvida" : atras ? "Sem resposta" : x.resposta ? "Respondida" : "Aguardando", x.status === "resolvida" ? "bom" : atras ? "critico" : x.resposta ? "info" : "atencao"));
-    tr.append(h("td", null, data(x.abertaEm)), h("td", null, pessoa(x.autorId).nome || x.autorNome || "—"), h("td", null, x.negocioNome || x.negocioId), h("td", null, MOTIVOS_QX[x.motivo] || x.motivo), st, h("td", null, String(x.texto || "").slice(0, 80)));
-    tr.addEventListener("click", () => abrirFicha(x.alvoId));
+    const acao = h("td");
+    if (x.status === "aberta" && !x.resposta) acao.appendChild(btn(x.cobradaEm ? "Cobrado" : "Cobrar resposta", "mini", async (b) => {
+      if (x.cobradaEm && !confirm("Já foi cobrado nesta sessão. Cobrar de novo?")) return;
+      await enviarAviso(x.alvoId, { titulo: "Você tem uma reclamação sem resposta", texto: `Um cliente abriu uma reclamação sobre "${x.negocioNome || "seu negócio"}" em ${data(x.abertaEm)} e ainda não teve resposta.\n\nResponda pela página Reclamações. Reclamações sem resposta pesam na confiança do seu perfil.`, tipo: "alerta" });
+      x.cobradaEm = agora(); b.textContent = "Cobrado"; toast("Negócio avisado");
+    }));
+    tr.append(h("td", null, data(x.abertaEm)), h("td", null, pessoa(x.autorId).nome || x.autorNome || "—"), h("td", null, x.negocioNome || x.negocioId), h("td", null, MOTIVOS_QX[x.motivo] || x.motivo), st, h("td", null, String(x.texto || "").slice(0, 80)), acao);
+    tr.addEventListener("click", (e) => { if (!e.target.closest("button")) abrirFicha(x.alvoId); });
     tb.appendChild(tr);
   });
   t.append(thead, tb); tab.appendChild(q.length ? t : h("div", "ad-vazio", "Nenhuma reclamação ainda."));
@@ -268,7 +315,7 @@ export function sancoes(el) {
   ativos.forEach(([uid, s]) => {
     const c = h("article", "ad-item"); const top = h("div", "cab"); top.append(pessoaCel(pessoa(uid)), selo(s.tipo === "banimento" ? "Banida" : `Suspensa até ${data(s.ate)}`, s.tipo === "banimento" ? "critico" : "serio"));
     c.append(top, h("div", "meta", `Motivo: ${s.motivo || "—"} · desde ${dataHora(s.em)}`));
-    const ac = h("div", "ad-acoes"); ac.append(btn("Ver ficha", "", () => abrirFicha(uid)), btn("Remover sanção", "pri", async () => { if (!confirm("Remover a restrição desta conta?")) return; await tirarSancao(uid); toast("Sanção removida"); await C.recarregar(false); C.irPara("sancoes"); }));
+    const ac = h("div", "ad-acoes"); ac.append(btn("Ver ficha", "", () => abrirFicha(uid))); if (pode("moderar")) ac.append(btn("Remover sanção", "pri", async () => { if (!confirm("Remover a restrição desta conta?")) return; await tirarSancao(uid); toast("Sanção removida"); await C.recarregar(false); C.irPara("sancoes"); }));
     c.appendChild(ac); lista.appendChild(c);
   });
   el.appendChild(lista);
@@ -305,7 +352,7 @@ export function negocios(el) {
       const dono = h("td"); const a = h("a", null, pessoa(n.donoId).nome || n.donoId); a.href = "#"; a.addEventListener("click", (e) => { e.preventDefault(); abrirFicha(n.donoId); }); dono.appendChild(a);
       const ac = h("td"); const w = h("div", "ad-acoes"); w.style.flexWrap = "nowrap";
       const link = h("a", "ad-bt", "Ver"); link.href = `${n.tipo === "imoveis" ? "imoveis.html" : ({ servicos: "servicos.html", delivery: "delivery.html", lojinha: "shopping.html" }[n.tipo])}?negocio=${encodeURIComponent(n.id)}`; link.target = "_blank";
-      w.append(link, btn(esc ? "Mostrar" : "Esconder", esc ? "" : "perigo", async () => {
+      w.append(link); if (pode("moderar")) w.append(btn(esc ? "Mostrar" : "Esconder", esc ? "" : "perigo", async () => {
         const { fb } = C;
         if (!esc && !confirm(`Esconder "${n.nome}" da vitrine?`)) return;
         await fb.updateDoc(fb.doc(fb.db, "negocios", n.id), { ocultoAte: esc ? null : fb.Timestamp.fromDate(new Date("2999-12-31")) });
@@ -325,28 +372,51 @@ export function negocios(el) {
 let filtroSup = "aberto";
 export function suporte(el) {
   el.appendChild(cab("Suporte", "Chamados abertos pelos usuários (inclui contestações de suspensão)."));
-  const fil = chips([["aberto", `Esperando (${D.suporte.filter((s) => s.status === "aberto").length})`], ["respondido", "Respondidos"], ["fechado", "Fechados"], ["todos", "Todos"]], filtroSup, (v) => { filtroSup = v; pintar(); });
+  const fil = chips([["aberto", `Esperando (${D.suporte.filter((s) => s.status === "aberto").length})`], ["minhas", "Comigo"], ["livres", "Sem responsável"], ["respondido", "Respondidos"], ["fechado", "Fechados"], ["todos", "Todos"]], filtroSup, (v) => { filtroSup = v; pintar(); });
   fil.style.marginBottom = "12px";
   const lista = h("div", "ad-lista"); el.append(fil, lista);
   const CAT = { conta: "Conta", pagamento: "Pagamento", golpe: "Golpe", denuncia: "Denúncia", contestacao: "Contestação", negocio: "Negócio", sugestao: "Sugestão", outro: "Outro" };
   function pintar() {
-    const l = D.suporte.filter((s) => filtroSup === "todos" || s.status === filtroSup).sort((a, b) => ms(b.atualizadoEm) - ms(a.atualizadoEm));
+    const abertoOu = (s) => s.status !== "fechado";
+    const l = D.suporte.filter((s) => filtroSup === "todos" || (filtroSup === "minhas" ? s.responsavel === C.eu.uid && abertoOu(s) : filtroSup === "livres" ? !s.responsavel && abertoOu(s) : s.status === filtroSup)).sort((a, b) => (filtroSup === "aberto" ? ms(a.atualizadoEm) - ms(b.atualizadoEm) : ms(b.atualizadoEm) - ms(a.atualizadoEm)));
     lista.replaceChildren(...(l.length ? l.map((s) => {
-      const c = h("article", "ad-item"); c.style.cursor = "pointer";
-      const top = h("div", "cab"); top.append(selo(CAT[s.categoria] || s.categoria, s.categoria === "contestacao" || s.categoria === "golpe" ? "serio" : "neutro"), selo(s.status === "aberto" ? "Esperando a equipe" : s.status === "respondido" ? "Respondido" : "Fechado", s.status === "aberto" ? "atencao" : s.status === "respondido" ? "info" : "bom"), h("span", "quando", relativo(s.atualizadoEm)));
+      const c = h("article", "ad-item clicavel"); c.dataset.item = `suporte:${s.id}`; c.tabIndex = 0;
+      const top = h("div", "cab"); top.append(selo(CAT[s.categoria] || s.categoria, s.categoria === "contestacao" || s.categoria === "golpe" ? "serio" : "neutro"), selo(s.status === "aberto" ? "Esperando a equipe" : s.status === "respondido" ? "Respondido" : "Fechado", s.status === "aberto" ? "atencao" : s.status === "respondido" ? "info" : "bom"));
+      if (s.status !== "fechado") top.append(seloResp(s));
+      if (s.status === "aberto") top.append(espera(s.atualizadoEm, 24));
+      top.append(h("span", "quando", relativo(s.atualizadoEm)));
       c.append(top, h("strong", null, s.assunto), h("div", "meta", `${pessoa(s.uid).nome || s.nome || s.uid} · aberto em ${dataHora(s.criadoEm)}`));
-      c.addEventListener("click", () => abrirChamado(s));
+      if (s.status !== "fechado") c.appendChild(controlesResp("suporte", s, { aoMudar: pintar }));
+      c.addEventListener("click", (e) => { if (!e.target.closest("button,select,a")) abrirChamado(s); });
+      c.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target === c) abrirChamado(s); });
       return c;
     }) : [h("div", "ad-vazio", "Nenhum chamado aqui.")]));
   }
+  const PRONTAS = [
+    ["", "Respostas prontas…"],
+    ["Olá! Recebemos seu chamado e já estamos verificando. Respondemos por aqui assim que tivermos novidades.", "Recebido, estamos verificando"],
+    ["Olá! Já resolvemos. Pode tentar de novo? Se ainda der problema, responda aqui que continuamos.", "Resolvido, pode testar"],
+    ["Olá! Para ajudar, preciso de mais detalhes: o que você estava fazendo, em qual página e, se possível, um print da tela.", "Pedir mais detalhes"],
+    ["Olá! Analisamos sua contestação. A decisão foi mantida porque a conta descumpriu os Termos de Uso. Obrigado pela compreensão.", "Contestação negada"],
+    ["Olá! Analisamos sua contestação e removemos a restrição da sua conta. Obrigado pela paciência.", "Contestação aceita"],
+    ["Olá! Para a sua segurança, combine pagamentos e entregas sempre pelo chat do Help Floripa e desconfie de pedidos de pagamento adiantado.", "Dica de segurança"],
+    ["Olá! Vamos encerrar este chamado. Se precisar de algo mais, é só abrir um novo. Obrigado!", "Encerrar"]
+  ];
   async function abrirChamado(s) {
     const { fb } = C;
+    const item = `suporte:${s.id}`;
+    if (!confirmarItem(s, item)) return;
+    marcarItem(item, `Chamado: ${s.assunto}`);
     const fundo = h("div", "ad-modal-fundo"), cx = h("div", "ad-modal"); cx.style.width = "min(620px,100%)";
-    cx.append(h("h3", null, s.assunto), h("p", null, `${pessoa(s.uid).nome || s.uid} · ${CAT[s.categoria] || s.categoria} · ${dataHora(s.criadoEm)}`));
+    const topoCh = h("div", "cab"); topoCh.append(seloResp(s)); const vendo = vendoAgora(item); if (vendo.length) topoCh.append(selo(`${vendo.join(", ")} também está aqui`, "atencao"));
+    cx.append(topoCh, h("h3", null, s.assunto), h("p", null, `${pessoa(s.uid).nome || s.uid} · ${CAT[s.categoria] || s.categoria} · ${dataHora(s.criadoEm)}`));
     const chat = h("div", "ad-chat"); chat.appendChild(h("div", "ad-vazio", "Carregando..."));
     const txt = document.createElement("textarea"); txt.maxLength = 2000; txt.placeholder = "Escreva a resposta da equipe..."; Object.assign(txt.style, { width: "100%", minHeight: "90px", padding: "10px 12px", borderRadius: "10px", border: "1px solid var(--line)", background: "var(--input)" });
+    const pr = document.createElement("select"); pr.className = "ad-sel-mini"; pr.setAttribute("aria-label", "Inserir resposta pronta");
+    PRONTAS.forEach(([v, t]) => pr.appendChild(new Option(t, v)));
+    pr.addEventListener("change", () => { if (pr.value) { const nome = (pessoa(s.uid).nome || s.nome || "").split(" ")[0]; txt.value = (txt.value ? txt.value + "\n\n" : "") + (nome ? pr.value.replace(/^Olá!/, `Olá, ${nome}!`) : pr.value); pr.value = ""; txt.focus(); } });
     const ac = h("div", "ad-acoes");
-    const fechar = () => fundo.remove();
+    const fechar = () => { fundo.remove(); marcarItem(null); };
     ac.append(btn("Ver ficha", "", () => { fechar(); abrirFicha(s.uid); }), btn(s.status === "fechado" ? "Reabrir" : "Fechar chamado", "", async () => {
       const novo = s.status === "fechado" ? "aberto" : "fechado";
       await fb.updateDoc(fb.doc(fb.db, "suporte", s.id), { status: novo, atualizadoEm: fb.serverTimestamp(), ultimaDe: "equipe", atendidoPor: C.eu.uid });
@@ -354,11 +424,13 @@ export function suporte(el) {
     }), btn("Sair", "", fechar), btn("Responder", "pri", async () => {
       const t = txt.value.trim(); if (!t) { toast("Escreva a resposta."); return; }
       await fb.addDoc(fb.collection(fb.db, "suporte", s.id, "mensagens"), { autorId: C.eu.uid, equipe: true, texto: t, em: fb.serverTimestamp() });
-      await fb.updateDoc(fb.doc(fb.db, "suporte", s.id), { status: "respondido", atualizadoEm: fb.serverTimestamp(), ultimaDe: "equipe", atendidoPor: C.eu.uid });
-      await enviarAviso(s.uid, { titulo: "O suporte respondeu", texto: `Respondemos seu chamado "${s.assunto}". Abra Ajuda › Meus chamados para ver.`, tipo: "info" }).catch(() => {});
+      const assumir = !s.responsavel ? { responsavel: C.eu.uid, responsavelNome: nomeEquipe(C.eu.uid), assumidoEm: fb.serverTimestamp() } : {};
+      await fb.updateDoc(fb.doc(fb.db, "suporte", s.id), { status: "respondido", atualizadoEm: fb.serverTimestamp(), ultimaDe: "equipe", atendidoPor: C.eu.uid, ...assumir });
+      if (assumir.responsavel) Object.assign(s, { responsavel: C.eu.uid, responsavelNome: assumir.responsavelNome });
+      await enviarAviso(s.uid, { titulo: "O suporte respondeu", texto: `Respondemos seu chamado "${s.assunto}". Toque em "Falar com o suporte" aqui embaixo para ver a resposta.`, tipo: "info" }).catch(() => {});
       s.status = "respondido"; await registrar("suporte_resposta", s.uid, s.assunto); toast("Resposta enviada"); fechar(); pintar();
     }));
-    cx.append(chat, txt, ac); fundo.appendChild(cx); document.body.appendChild(fundo);
+    cx.append(chat, pr, txt, ac); fundo.appendChild(cx); document.body.appendChild(fundo);
     fundo.addEventListener("click", (e) => { if (e.target === fundo) fechar(); });
     const msgs = await fb.getDocs(fb.query(fb.collection(fb.db, "suporte", s.id, "mensagens"), fb.orderBy("em", "asc"))).catch(() => ({ docs: [] }));
     chat.replaceChildren(...msgs.docs.map((d) => { const m = d.data(); const b = h("div", "ad-msg" + (m.equipe ? " equipe" : ""), m.texto); b.appendChild(h("small", null, `${m.equipe ? "Equipe" : "Usuário"} · ${dataHora(m.em)}`)); return b; }));
@@ -378,26 +450,73 @@ export function parcerias(el) {
     const itens = D.parcerias.filter((p) => (p.status || "novo") === st).sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
     const col = h("div", "ad-coluna"); const t = h("h4"); t.append(h("span", null, rot), h("span", null, String(itens.length))); col.appendChild(t);
     itens.forEach((p) => {
-      const c = h("article", "ad-item");
-      c.append(h("div", "cab"), h("strong", null, p.empresa ? `${p.empresa} · ${p.nome}` : p.nome), h("div", "meta", `${TIPO[p.tipo] || p.tipo} · ${data(p.criadoEm)}${p.cidade ? " · " + p.cidade : ""}`), h("div", "trecho", p.mensagem));
+      const c = h("article", "ad-item"); c.dataset.item = `parceria:${p.id}`;
+      c.append(h("div", "cab"), h("strong", null, p.empresa ? `${p.empresa} · ${p.nome}` : p.nome), h("div", "meta", `${TIPO[p.tipo] || p.tipo} · ${data(p.criadoEm)}${p.cidade ? " · " + p.cidade : ""}`), h("div", "trecho", String(p.mensagem || "").length > 160 ? String(p.mensagem).slice(0, 160) + "…" : p.mensagem), h("div", "meta", "Toque para ver tudo"));
       c.querySelector(".cab").append(selo(TIPO[p.tipo] || p.tipo, "info"));
+      if (!["fechado", "recusado"].includes(p.status || "novo")) c.querySelector(".cab").append(seloResp(p));
       if (p.notas) c.appendChild(h("div", "meta", `Notas: ${p.notas}`));
       const ac = h("div", "ad-acoes");
       if (p.email) { const a = h("a", "ad-bt", "E-mail"); a.href = `mailto:${p.email}?subject=Help Floripa — ${encodeURIComponent(TIPO[p.tipo] || "Parceria")}`; ac.appendChild(a); }
       const tel = String(p.telefone || "").replace(/\D/g, ""); if (tel.length >= 10) { const w = h("a", "ad-bt", "WhatsApp"); w.href = `https://wa.me/${tel.length <= 11 ? "55" + tel : tel}`; w.target = "_blank"; ac.appendChild(w); }
-      ac.appendChild(btn("Atualizar", "pri", async () => {
-        const v = await modal({ titulo: "Atualizar proposta", campos: [{ nome: "status", rotulo: "Etapa", tipo: "select", opcoes: COLS, valor: p.status || "novo" }, { nome: "notas", rotulo: "Notas internas", tipo: "textarea", valor: p.notas || "", max: 3000 }], botao: "Salvar" });
-        if (!v) return;
-        const { fb } = C;
-        await fb.updateDoc(fb.doc(fb.db, "parcerias", p.id), { status: v.status, notas: v.notas, atualizadoEm: fb.serverTimestamp(), responsavel: C.eu.uid });
-        Object.assign(p, v); await registrar("parceria", p.email || p.nome, `${v.status}`); toast("Proposta atualizada"); C.irPara("parcerias");
-      }));
-      c.appendChild(ac); col.appendChild(c);
+      if (pode("comercial")) ac.appendChild(btn("Atualizar", "pri", () => atualizarProposta(p)));
+      c.appendChild(ac);
+      if (!["fechado", "recusado"].includes(p.status || "novo")) c.appendChild(controlesResp("parcerias", p, { permitido: pode("comercial"), aoMudar: () => C.irPara("parcerias") }));
+      col.appendChild(c);
+      c.classList.add("clicavel"); c.tabIndex = 0; c.setAttribute("role", "button"); c.setAttribute("aria-label", `Abrir proposta de ${p.nome}`);
+      c.addEventListener("click", (e) => { if (!e.target.closest("a,button")) abrirProposta(p); });
+      c.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target === c) abrirProposta(p); });
     });
     if (!itens.length) col.appendChild(h("div", "meta", "—"));
     k.appendChild(col);
   });
   el.appendChild(k);
+
+  async function atualizarProposta(p) {
+    if (!pode("comercial")) { semPermissao(); return; }
+    if (!confirmarItem(p, `parceria:${p.id}`)) return;
+    const v = await modal({ titulo: "Atualizar proposta", campos: [{ nome: "status", rotulo: "Etapa", tipo: "select", opcoes: COLS, valor: p.status || "novo" }, { nome: "notas", rotulo: "Notas internas", tipo: "textarea", valor: p.notas || "", max: 3000 }], botao: "Salvar" });
+    if (!v) return;
+    const { fb } = C;
+    const dono = p.responsavel ? {} : { responsavel: C.eu.uid, responsavelNome: nomeEquipe(C.eu.uid), assumidoEm: fb.serverTimestamp() };
+    await fb.updateDoc(fb.doc(fb.db, "parcerias", p.id), { status: v.status, notas: v.notas, atualizadoEm: fb.serverTimestamp(), ...dono });
+    Object.assign(p, v, dono.responsavel ? { responsavel: C.eu.uid, responsavelNome: dono.responsavelNome } : {}, { atualizadoEm: { toMillis: () => agora() } }); await registrar("parceria", p.email || p.nome, `${v.status}`); toast("Proposta atualizada"); C.irPara("parcerias");
+  }
+
+  function abrirProposta(p) {
+    marcarItem(`parceria:${p.id}`, `Proposta: ${p.empresa || p.nome}`);
+    const fundo = h("div", "ad-modal-fundo"), cx = h("div", "ad-modal ad-proposta"); cx.setAttribute("role", "dialog"); cx.setAttribute("aria-modal", "true");
+    const fechar = () => { fundo.remove(); document.removeEventListener("keydown", tecla); marcarItem(null); };
+    const tecla = (e) => { if (e.key === "Escape") fechar(); };
+    document.addEventListener("keydown", tecla);
+    fundo.addEventListener("click", (e) => { if (e.target === fundo) fechar(); });
+    const etapa = Object.fromEntries(COLS)[p.status || "novo"];
+    const topo = h("div", "cab"); topo.append(selo(TIPO[p.tipo] || p.tipo, "info"), selo(etapa, p.status === "fechado" ? "bom" : p.status === "recusado" ? "neutro" : "atencao"), seloResp(p));
+    const vendoP = vendoAgora(`parceria:${p.id}`); if (vendoP.length) topo.append(selo(`${vendoP.join(", ")} também está aqui`, "atencao"));
+    cx.append(topo, h("h3", null, p.empresa ? `${p.empresa}` : p.nome), h("p", null, `${p.empresa ? p.nome + " · " : ""}enviada em ${dataHora(p.criadoEm)}`));
+    const dl = h("dl", "ad-dados");
+    const par = (k, v, link) => { if (!v) return; const d = h("div"); d.append(h("dt", null, k)); const dd = h("dd"); if (link) { const a = h("a", null, v); a.href = link; if (/^https?:/.test(link)) { a.target = "_blank"; a.rel = "noopener noreferrer"; } dd.appendChild(a); } else dd.textContent = v; d.appendChild(dd); dl.appendChild(d); };
+    const tel = String(p.telefone || "").replace(/\D/g, "");
+    const site = String(p.site || "").trim();
+    const linkSite = /^https?:\/\//i.test(site) ? site : /^@[\w.]+$/.test(site) ? `https://instagram.com/${site.slice(1)}` : /^[\w-]+(\.[\w-]+)+(\/\S*)?$/.test(site) ? `https://${site}` : "";
+    par("Nome", p.nome); par("Empresa", p.empresa); par("E-mail", p.email, p.email ? `mailto:${p.email}` : "");
+    par("WhatsApp / telefone", p.telefone, tel.length >= 10 ? `https://wa.me/${tel.length <= 11 ? "55" + tel : tel}` : "");
+    par("Cidade", p.cidade); par("Site ou Instagram", site, linkSite); par("Tipo", TIPO[p.tipo] || p.tipo);
+    if (p.uid) par("Conta no site", pessoa(p.uid).nome || p.uid);
+    par("Responsável", p.responsavel ? (p.responsavelNome || nomeEquipe(p.responsavel)) : "");
+    par("Atualizada", p.atualizadoEm ? dataHora(p.atualizadoEm) : "");
+    const msg = h("div", "ad-proposta-msg", p.mensagem || "");
+    cx.append(h("h4", null, "Proposta"), msg, dl);
+    if (p.notas) cx.append(h("h4", null, "Notas internas"), h("div", "ad-proposta-msg", p.notas));
+    const ac = h("div", "ad-acoes");
+    if (p.uid) ac.append(btn("Ver ficha", "", () => { fechar(); abrirFicha(p.uid); }));
+    if (p.email) { const a = h("a", "ad-bt", "E-mail"); a.href = `mailto:${p.email}?subject=Help Floripa — ${encodeURIComponent(TIPO[p.tipo] || "Parceria")}`; ac.appendChild(a); }
+    if (tel.length >= 10) { const w = h("a", "ad-bt", "WhatsApp"); w.href = `https://wa.me/${tel.length <= 11 ? "55" + tel : tel}`; w.target = "_blank"; w.rel = "noopener"; ac.appendChild(w); }
+    if (pode("comercial")) ac.append(btn("Apagar", "perigo", async () => { if (!confirm("Apagar esta proposta? Não dá para desfazer.")) return; const { fb } = C; await fb.deleteDoc(fb.doc(fb.db, "parcerias", p.id)); D.parcerias = D.parcerias.filter((x) => x !== p); await registrar("parceria_apagar", p.email || p.nome, p.empresa || ""); toast("Proposta apagada"); fechar(); C.irPara("parcerias"); }));
+    ac.append(btn("Fechar", "", fechar));
+    if (pode("comercial")) ac.append(btn("Mudar etapa / notas", "pri", async () => { fechar(); await atualizarProposta(p); }));
+    cx.appendChild(ac); fundo.appendChild(cx); document.body.appendChild(fundo);
+    cx.querySelector(".ad-acoes .ad-bt.pri")?.focus();
+  }
 }
 
 // ======================================================= VERIFICAÇÕES
@@ -412,8 +531,8 @@ export function verificacoes(el) {
     const c = h("article", "ad-item"); const top = h("div", "cab"); top.append(pessoaCel(p), h("span", "quando", `pediu ${relativo(p.solicitacaoVerificacaoEm)}`));
     c.append(top, h("div", "meta", `Conta desde ${data(p.criadoEm)} · ${negs.length} negócio(s) · ${den} denúncia(s) · último acesso ${relativo(p.ultimoAcesso)}`));
     const ac = h("div", "ad-acoes");
-    ac.append(btn("Ver ficha", "", () => abrirFicha(p.uid)),
-      btn("Recusar", "perigo", async () => { const v = await modal({ titulo: "Recusar verificação", campos: [{ nome: "motivo", rotulo: "Motivo (a pessoa vai ver)", tipo: "textarea", obrigatorio: true }], botao: "Recusar" }); if (!v) return; await definirSelo(p.uid, false); await enviarAviso(p.uid, { titulo: "Pedido de verificação recusado", texto: v.motivo, tipo: "info" }); toast("Pedido recusado"); C.irPara("verificacoes"); }),
+    ac.append(btn("Ver ficha", "", () => abrirFicha(p.uid)));
+    if (pode("moderar")) ac.append(btn("Recusar", "perigo", async () => { const v = await modal({ titulo: "Recusar verificação", campos: [{ nome: "motivo", rotulo: "Motivo (a pessoa vai ver)", tipo: "textarea", obrigatorio: true }], botao: "Recusar" }); if (!v) return; await definirSelo(p.uid, false); await enviarAviso(p.uid, { titulo: "Pedido de verificação recusado", texto: v.motivo, tipo: "info" }); toast("Pedido recusado"); C.irPara("verificacoes"); }),
       btn("Aprovar", "pri", async () => { await definirSelo(p.uid, true); await enviarAviso(p.uid, { titulo: "Seu perfil foi verificado", texto: "Parabéns! Seu perfil agora tem o selo de verificado.", tipo: "info" }); toast("Perfil verificado"); C.irPara("verificacoes"); }));
     c.appendChild(ac); lista.appendChild(c);
   });
@@ -477,7 +596,7 @@ export function estatisticas(el) {
 
 // ======================================================= COMUNICADOS
 export function comunicados(el) {
-  const novo = btn("Novo comunicado", "pri", () => editar(null));
+  const novo = pode("moderar") ? btn("Novo comunicado", "pri", () => editar(null)) : null;
   el.appendChild(cab("Comunicados", "Faixa que aparece no início do site para todos (manutenção, novidades, avisos).", novo));
   const lista = h("div", "ad-lista");
   if (!D.comunicados.length) lista.appendChild(h("div", "ad-vazio", "Nenhum comunicado criado."));
@@ -487,7 +606,7 @@ export function comunicados(el) {
     top.append(selo(vivo ? "No ar" : "Fora do ar", vivo ? "bom" : "neutro"), selo({ info: "Informativo", novidade: "Novidade", alerta: "Alerta" }[c.tipo] || c.tipo, "info"), h("span", "quando", dataHora(c.em)));
     it.append(top, h("strong", null, c.titulo), h("div", "meta", c.texto || ""));
     if (c.ate) it.appendChild(h("div", "meta", `Sai do ar em ${dataHora(c.ate)}`));
-    const ac = h("div", "ad-acoes"); ac.append(btn("Editar", "", () => editar(c)), btn(c.ativo ? "Tirar do ar" : "Colocar no ar", "", async () => { const { fb } = C; await fb.updateDoc(fb.doc(fb.db, "comunicados", c.id), { ...limpo(c), ativo: !c.ativo, por: C.eu.uid }); c.ativo = !c.ativo; await registrar("comunicado_" + (c.ativo ? "on" : "off"), "", c.titulo); C.irPara("comunicados"); }), btn("Apagar", "perigo", async () => { if (!confirm("Apagar este comunicado?")) return; const { fb } = C; await fb.deleteDoc(fb.doc(fb.db, "comunicados", c.id)); D.comunicados = D.comunicados.filter((x) => x !== c); await registrar("comunicado_apagar", "", c.titulo); C.irPara("comunicados"); }));
+    const ac = h("div", "ad-acoes"); if (pode("moderar")) ac.append(btn("Editar", "", () => editar(c)), btn(c.ativo ? "Tirar do ar" : "Colocar no ar", "", async () => { const { fb } = C; await fb.updateDoc(fb.doc(fb.db, "comunicados", c.id), { ...limpo(c), ativo: !c.ativo, por: C.eu.uid }); c.ativo = !c.ativo; await registrar("comunicado_" + (c.ativo ? "on" : "off"), "", c.titulo); C.irPara("comunicados"); }), btn("Apagar", "perigo", async () => { if (!confirm("Apagar este comunicado?")) return; const { fb } = C; await fb.deleteDoc(fb.doc(fb.db, "comunicados", c.id)); D.comunicados = D.comunicados.filter((x) => x !== c); await registrar("comunicado_apagar", "", c.titulo); C.irPara("comunicados"); }));
     it.appendChild(ac); lista.appendChild(it);
   });
   el.appendChild(lista);
@@ -497,13 +616,14 @@ export function comunicados(el) {
       { nome: "titulo", rotulo: "Título", max: 120, obrigatorio: true, valor: c?.titulo }, { nome: "texto", rotulo: "Texto", tipo: "textarea", max: 600, valor: c?.texto },
       { nome: "tipo", rotulo: "Tipo", tipo: "select", opcoes: [["novidade", "Novidade"], ["info", "Informativo"], ["alerta", "Alerta (manutenção, golpe circulando...)"]], valor: c?.tipo || "novidade" },
       { nome: "link", rotulo: "Link (opcional)", valor: c?.link || "", dica: "ex.: ajuda.html" },
-      { nome: "dias", rotulo: "Ficar no ar por", tipo: "select", opcoes: [["0", "Até eu tirar"], ["1", "1 dia"], ["3", "3 dias"], ["7", "7 dias"], ["30", "30 dias"]], valor: "0" }
+      { nome: "dias", rotulo: "Ficar no ar por", tipo: "select", opcoes: [...(c?.ate && ms(c.ate) > agora() ? [["manter", `Manter o prazo atual (até ${dataHora(c.ate)})`]] : []), ["0", "Até eu tirar"], ["1", "1 dia"], ["3", "3 dias"], ["7", "7 dias"], ["30", "30 dias"]], valor: c?.ate && ms(c.ate) > agora() ? "manter" : "0" }
     ], botao: "Salvar e colocar no ar" });
     if (!v) return;
     const { fb } = C;
     const dados = { titulo: v.titulo, texto: v.texto, tipo: v.tipo, ativo: true, por: C.eu.uid, em: fb.serverTimestamp() };
     if (v.link && /^[\w./?=&#-]+$/.test(v.link) && !/^\/\//.test(v.link)) dados.link = v.link;
-    if (Number(v.dias)) dados.ate = fb.Timestamp.fromDate(new Date(agora() + Number(v.dias) * DIA));
+    if (v.dias === "manter") dados.ate = c.ate;
+    else if (Number(v.dias)) dados.ate = fb.Timestamp.fromDate(new Date(agora() + Number(v.dias) * DIA));
     if (c) await fb.setDoc(fb.doc(fb.db, "comunicados", c.id), dados); else await fb.addDoc(fb.collection(fb.db, "comunicados"), dados);
     await registrar(c ? "comunicado_editar" : "comunicado_novo", "", v.titulo); toast("Comunicado no ar"); await C.recarregar(false); C.irPara("comunicados");
   }
@@ -512,7 +632,7 @@ export function comunicados(el) {
 // ======================================================= RELATÓRIOS
 let periodoRel = 30;
 export function relatorios(el) {
-  el.appendChild(cab("Relatórios", "Resumo do período para imprimir ou salvar em PDF, e planilhas para baixar.", chips([[7, "7 dias"], [30, "30 dias"], [90, "90 dias"], [365, "12 meses"]], periodoRel, (v) => { periodoRel = v; el.replaceChildren(); relatorios(el); })));
+  el.appendChild(cab("Relatórios", "Resumo do período para imprimir ou salvar em PDF, e planilhas do Excel para baixar.", chips([[7, "7 dias"], [30, "30 dias"], [90, "90 dias"], [365, "12 meses"]], periodoRel, (v) => { periodoRel = v; el.replaceChildren(); relatorios(el); })));
   const ps = pessoas(), d = periodoRel;
   const linhas = [
     ["Usuários no fim do período", ps.length, ""],
@@ -538,7 +658,7 @@ export function relatorios(el) {
   if (topCid.length) rel.appendChild(h("p", null, `Cidades dos novos usuários: ${topCid.map(([c, n]) => `${c} (${n})`).join(", ")}.`));
   const ac = h("div", "ad-acoes"); ac.style.margin = "14px 0";
   ac.append(btn("Imprimir / salvar PDF", "pri", () => { registrar("relatorio_pdf", "", `${d} dias`); window.print(); }),
-    btn("Baixar resumo (CSV)", "", () => baixarCSV(`relatorio-${d}d`, ["Indicador", "Período", "Período anterior"], linhas)),
+    btn("Baixar resumo (Excel)", "", () => baixarCSV(`relatorio-${d}d`, ["Indicador", "Período", "Período anterior"], linhas)),
     btn("Planilha de negócios", "", () => { baixarCSV("negocios", ["ID", "Nome", "Tipo", "Dono", "Cidade", "Nota", "Avaliações", "Criado", "Atualizado"], D.negocios.map((n) => { const r = D.notas.get("neg_" + n.id); return [n.id, n.nome || "", TIPOS_NEG[n.tipo] || n.tipo, pessoa(n.donoId).nome || n.donoId, nomeCidade(n.cidade), r?.total ? (r.soma / r.total).toFixed(2) : "", r?.total || 0, data(n.criadoEm), data(n.atualizadoEm)]; })); registrar("exportar", "negocios"); }),
     btn("Planilha de denúncias", "", () => { baixarCSV("denuncias", ["Data", "Tipo", "Motivo", "Denunciado", "Por", "Situação", "Ação", "Trecho"], D.denuncias.map((x) => [dataHora(x.criadoEm), x.tipo, MOTIVOS_DEN[x.motivo] || x.motivo, pessoa(x.alvoId).nome || x.alvoId, pessoa(x.autorId).nome || x.autorId, x.status, x.acao || "", x.trecho || ""])); registrar("exportar", "denuncias"); }),
     btn("Planilha de reclamações", "", () => { baixarCSV("reclamacoes", ["Aberta", "Cliente", "Negócio", "Motivo", "Situação", "Respondida", "Relato"], D.queixas.map((q) => [data(q.abertaEm), pessoa(q.autorId).nome || "", q.negocioNome || q.negocioId, MOTIVOS_QX[q.motivo] || q.motivo, q.status, q.resposta ? "sim" : "não", q.texto || ""])); registrar("exportar", "reclamacoes"); }));
@@ -549,29 +669,197 @@ export function relatorios(el) {
     const tt = h("div", "ad-tabela"); const tb = document.createElement("table"); const hr = h("tr"); ["Dia", "Usuários", "Novos", "Ativos 24 h", "Ativos 7 d", "Negócios", "Publicações", "Denúncias novas", "Reclamações abertas"].forEach((x) => hr.appendChild(h("th", null, x))); tb.appendChild(hr);
     [...D.estatisticas].sort((a, b) => b.id.localeCompare(a.id)).slice(0, 60).forEach((x) => { const tr = h("tr"); [x.id.split("-").reverse().join("/"), x.usuarios, x.novos, x.ativos1, x.ativos7, x.negocios, x.publicacoes, x.denunciasNovas, x.reclamacoesAbertas].forEach((v) => tr.appendChild(h("td", null, v == null ? "—" : num(v)))); tb.appendChild(tr); });
     tt.appendChild(tb); auto.appendChild(tt);
-    const csv = btn("Baixar histórico (CSV)", "", () => baixarCSV("historico-diario", ["Dia", "Usuários", "Novos", "Ativos 24h", "Ativos 7d", "Negócios", "Publicações", "Denúncias novas", "Reclamações abertas"], D.estatisticas.map((x) => [x.id, x.usuarios, x.novos, x.ativos1, x.ativos7, x.negocios, x.publicacoes, x.denunciasNovas, x.reclamacoesAbertas])));
+    const csv = btn("Baixar histórico (Excel)", "", () => baixarCSV("historico-diario", ["Dia", "Usuários", "Novos", "Ativos 24h", "Ativos 7d", "Negócios", "Publicações", "Denúncias novas", "Reclamações abertas"], D.estatisticas.map((x) => [x.id, x.usuarios, x.novos, x.ativos1, x.ativos7, x.negocios, x.publicacoes, x.denunciasNovas, x.reclamacoesAbertas])));
     csv.style.marginTop = "10px"; auto.appendChild(csv);
   }
   el.appendChild(auto);
 }
 
 // ======================================================= REGISTRO E EQUIPE
+const NOMES_ACAO = { aviso: "Enviou aviso", suspender: "Suspendeu", banir: "Baniu", remover_sancao: "Removeu sanção", verificar: "Deu selo", tirar_selo: "Tirou/recusou selo", remover_conteudo: "Removeu conteúdo", esconder_negocio: "Escondeu negócio", mostrar_negocio: "Mostrou negócio", esconder_publicacao: "Escondeu publicação", mostrar_publicacao: "Mostrou publicação", exportar: "Exportou dados", relatorio_pdf: "Gerou relatório", parceria: "Atualizou parceria", parceria_apagar: "Apagou parceria", suporte_resposta: "Respondeu chamado", suporte_fechado: "Fechou chamado", suporte_aberto: "Reabriu chamado", comunicado_novo: "Criou comunicado", comunicado_editar: "Editou comunicado", comunicado_on: "Pôs comunicado no ar", comunicado_off: "Tirou comunicado do ar", comunicado_apagar: "Apagou comunicado", denuncia_resolvida: "Resolveu denúncia", denuncia_descartada: "Descartou denúncia", denuncia_em_analise: "Pôs denúncia em análise", assumiu: "Assumiu", passou: "Passou para outra pessoa", liberou: "Liberou", tarefa_nova: "Criou tarefa", tarefa_editar: "Editou tarefa", tarefa_a_fazer: "Voltou tarefa", tarefa_fazendo: "Começou tarefa", tarefa_feito: "Concluiu tarefa", tarefa_apagar: "Apagou tarefa", nota_interna: "Escreveu nota interna", entrou: "Entrou no painel" };
 export function registro(el) {
-  el.appendChild(cab("Registro de ações", "Tudo o que a equipe faz no painel fica aqui. Não pode ser apagado."));
-  const NOMES = { aviso: "Enviou aviso", suspender: "Suspendeu", banir: "Baniu", remover_sancao: "Removeu sanção", verificar: "Deu selo", tirar_selo: "Tirou/recusou selo", remover_conteudo: "Removeu conteúdo", esconder_negocio: "Escondeu negócio", mostrar_negocio: "Mostrou negócio", exportar: "Exportou dados", relatorio_pdf: "Gerou relatório", parceria: "Atualizou parceria", suporte_resposta: "Respondeu chamado", suporte_fechado: "Fechou chamado", suporte_aberto: "Reabriu chamado", comunicado_novo: "Criou comunicado", comunicado_editar: "Editou comunicado", comunicado_on: "Pôs comunicado no ar", comunicado_off: "Tirou comunicado do ar", comunicado_apagar: "Apagou comunicado", denuncia_resolvida: "Resolveu denúncia", denuncia_descartada: "Descartou denúncia", denuncia_em_analise: "Pôs denúncia em análise", entrou: "Entrou no painel" };
-  const tab = h("div", "ad-tabela"); const t = document.createElement("table"); const th = h("tr"); ["Quando", "Quem", "Ação", "Alvo", "Detalhe"].forEach((x) => th.appendChild(h("th", null, x))); t.appendChild(th);
-  D.log.forEach((x) => { const tr = h("tr"); const alvo = h("td"); if (x.alvo && D.pessoas.has(x.alvo)) { const a = h("a", null, pessoa(x.alvo).nome); a.href = "#"; a.addEventListener("click", (e) => { e.preventDefault(); abrirFicha(x.alvo); }); alvo.appendChild(a); } else alvo.textContent = x.alvo || "—"; tr.append(h("td", null, dataHora(x.em)), h("td", null, x.porNome || pessoa(x.por).nome || x.por), h("td", null, NOMES[x.acao] || x.acao), alvo, h("td", null, x.detalhe || "")); t.appendChild(tr); });
-  tab.appendChild(D.log.length ? t : h("div", "ad-vazio", "Nenhuma ação registrada ainda."));
-  el.appendChild(tab);
+  const excel = btn("Baixar Excel", "", () => { const l = filtrar(); baixarCSV("registro-equipe", ["Quando", "Quem", "Ação", "Alvo", "Detalhe"], l.map((x) => [dataHora(x.em), x.porNome || nomeEquipe(x.por), NOMES_ACAO[x.acao] || x.acao, D.pessoas.get(x.alvo)?.nome || x.alvo || "", x.detalhe || ""])); });
+  el.appendChild(cab("Registro de ações", "Tudo o que a equipe faz no painel fica aqui. Não pode ser apagado.", excel));
+  const linhaF = h("div", "ad-acoes"); linhaF.style.marginBottom = "12px";
+  const selQuem = document.createElement("select"); selQuem.className = "ad-sel"; selQuem.setAttribute("aria-label", "Filtrar por pessoa da equipe");
+  selQuem.append(new Option("Toda a equipe", ""), ...[...new Set(D.log.map((x) => x.por))].map((uid) => new Option(nomeEquipe(uid), uid)));
+  const selAcao = document.createElement("select"); selAcao.className = "ad-sel"; selAcao.setAttribute("aria-label", "Filtrar por ação");
+  selAcao.append(new Option("Todas as ações", ""), ...[...new Set(D.log.map((x) => x.acao))].sort().map((a) => new Option(NOMES_ACAO[a] || a, a)));
+  const busca = document.createElement("input"); busca.type = "search"; busca.className = "ad-sel"; busca.placeholder = "Buscar no detalhe ou alvo"; busca.setAttribute("aria-label", "Buscar no registro");
+  linhaF.append(selQuem, selAcao, busca); el.appendChild(linhaF);
+  const info = h("p"); info.style.color = "var(--muted)"; const tab = h("div", "ad-tabela"); el.append(info, tab);
+  function filtrar() {
+    const t = busca.value.trim().toLowerCase();
+    return D.log.filter((x) => (!selQuem.value || x.por === selQuem.value) && (!selAcao.value || x.acao === selAcao.value) && (!t || [x.detalhe, x.alvo, D.pessoas.get(x.alvo)?.nome].some((v) => String(v || "").toLowerCase().includes(t))));
+  }
+  function pintar() {
+    const l = filtrar(); info.textContent = `${num(l.length)} ${l.length === 1 ? "ação" : "ações"} (últimas 300 carregadas)`;
+    const t = document.createElement("table"); const th = h("tr"); ["Quando", "Quem", "Ação", "Alvo", "Detalhe"].forEach((x) => th.appendChild(h("th", null, x))); t.appendChild(th);
+    l.forEach((x) => { const tr = h("tr"); const alvo = h("td"); if (x.alvo && D.pessoas.has(x.alvo)) { const a = h("a", null, pessoa(x.alvo).nome); a.href = "#"; a.addEventListener("click", (e) => { e.preventDefault(); abrirFicha(x.alvo); }); alvo.appendChild(a); } else alvo.textContent = x.alvo || "—"; tr.append(h("td", null, dataHora(x.em)), h("td", null, x.porNome || nomeEquipe(x.por)), h("td", null, NOMES_ACAO[x.acao] || x.acao), alvo, h("td", null, x.detalhe || "")); t.appendChild(tr); });
+    tab.replaceChildren(l.length ? t : h("div", "ad-vazio", "Nenhuma ação com esses filtros."));
+  }
+  [selQuem, selAcao].forEach((e) => e.addEventListener("change", pintar)); let tempo; busca.addEventListener("input", () => { clearTimeout(tempo); tempo = setTimeout(pintar, 200); });
+  pintar();
 }
 export function equipe(el) {
-  el.appendChild(cab("Equipe", "Quem tem acesso a este painel."));
+  el.appendChild(cab("Equipe", "Quem está no painel agora e o chat interno da equipe."));
+  const g = h("div", "ad-equipe");
+  // quem está online
+  const bOn = bloco("Equipe", "Online = com o painel aberto agora.");
   const lista = h("div", "ad-lista");
-  D.admins.forEach((a) => { const p = pessoa(a.id); const c = h("article", "ad-item"); const top = h("div", "cab"); top.append(pessoaCel({ ...p, nome: a.nome || p.nome }, p.email || a.id), selo(a.id === C.eu.uid ? "Você" : "Equipe", "info")); c.appendChild(top); lista.appendChild(c); });
-  el.appendChild(lista);
+  bOn.appendChild(lista);
+  // chat
+  const bChat = bloco("Chat da equipe", "Só quem é da equipe vê. As mensagens ficam guardadas.");
+  bChat.classList.add("ad-chat-equipe");
+  const chat = h("div", "ad-chat"); chat.setAttribute("aria-live", "polite");
+  const form = h("form", "ad-chat-form");
+  const txt = document.createElement("textarea"); txt.maxLength = 2000; txt.rows = 2; txt.placeholder = "Escreva para a equipe... (Enter envia, Shift+Enter quebra a linha)"; txt.setAttribute("aria-label", "Mensagem para a equipe");
+  const env = h("button", "ad-bt pri", "Enviar"); env.type = "submit";
+  form.append(txt, env); bChat.append(chat, form);
+  g.append(bChat, bOn); el.appendChild(g);
   const b = bloco("Adicionar alguém à equipe", "Por segurança, só pelo console do Firebase (ninguém consegue se dar acesso pelo site).");
   b.style.marginTop = "14px";
   const ol = h("ol"); ol.style.color = "var(--muted)"; ol.style.margin = "0"; ol.style.paddingLeft = "20px";
-  ["Abra a ficha da pessoa aqui no painel e copie o ID da conta.", "No Firebase → Firestore Database → coleção admins → Adicionar documento.", "Use o ID copiado como ID do documento e crie o campo nome (texto).", "Para tirar o acesso, apague o documento."].forEach((x) => ol.appendChild(h("li", null, x)));
-  b.appendChild(ol); el.appendChild(b);
+  ["Abra a ficha da pessoa aqui no painel e copie o ID da conta.", "No Firebase → Firestore Database → coleção admins → Adicionar documento.", "Use o ID copiado como ID do documento e crie o campo nome (texto).", "Opcional: crie o campo papel (texto) com moderacao, suporte ou comercial. Sem esse campo a pessoa tem acesso total (dono).", "Para tirar o acesso, apague o documento."].forEach((x) => ol.appendChild(h("li", null, x)));
+  b.appendChild(ol);
+  const tp = h("div", "ad-papeis"); Object.entries(PAPEIS).forEach(([k, v]) => { const d = h("div"); d.append(h("b", null, `${v}${k === "dono" ? "" : ` (papel: ${k})`}`), h("span", null, DESC_PAPEIS[k])); tp.appendChild(d); });
+  b.appendChild(tp); el.appendChild(b);
+
+  const NOME_SEC = { visao: "Visão geral", estatisticas: "Estatísticas", relatorios: "Relatórios", usuarios: "Usuários", verificacoes: "Verificações", suporte: "Suporte", denuncias: "Denúncias", reclamacoes: "Reclamações", sancoes: "Sanções", negocios: "Negócios", parcerias: "Parcerias", comunicados: "Comunicados", registro: "Registro", equipe: "Equipe", tarefas: "Tarefas", publicacoes: "Publicações" };
+  function pintarOnline() {
+    const itens = D.admins.map((a) => ({ a, pr: C.presenca.get(a.id) })).sort((x, y) => (C.online(y.a.id) - C.online(x.a.id)) || ms(y.pr?.em) - ms(x.pr?.em));
+    lista.replaceChildren(...itens.map(({ a, pr }) => {
+      const p = pessoa(a.id); const on = C.online(a.id);
+      const c = h("article", "ad-item"); const top = h("div", "cab");
+      const ondeEsta = on ? `Online${pr?.itemNome ? " · vendo " + pr.itemNome : pr?.secao ? " · em " + (NOME_SEC[pr.secao] || pr.secao) : ""}` : pr?.em ? `Visto ${relativo(pr.em)}` : "Ainda não abriu o painel";
+      const pc = pessoaCel({ ...p, nome: a.nome || p.nome }, ondeEsta);
+      const av = pc.querySelector(".ad-av"); av.classList.add("com-ponto"); const pt = h("i", "ad-ponto" + (on ? " on" : "")); pt.setAttribute("aria-hidden", "true"); av.appendChild(pt);
+      top.append(pc, selo(PAPEIS[a.papel] || PAPEIS.dono, "neutro")); if (a.id === C.eu.uid) top.append(selo("Você", "info")); else if (on) top.append(selo("Online", "bom"));
+      c.appendChild(top);
+      const comEle = [D.denuncias.filter((d) => d.responsavel === a.id && ["nova", "em_analise"].includes(d.status)).length, D.suporte.filter((x) => x.responsavel === a.id && x.status !== "fechado").length, C.tarefas.filter((t) => t.responsavel === a.id && t.status !== "feito").length];
+      c.appendChild(h("div", "meta", `${a.id === C.eu.uid ? "Com você" : "Com " + (a.nome || nomeEquipe(a.id))}: ${comEle[0]} denúncia(s) · ${comEle[1]} chamado(s) · ${comEle[2]} tarefa(s)`));
+      return c;
+    }));
+  }
+  function pintarChat() {
+    const perto = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 80;
+    if (!C.chat.length) { chat.replaceChildren(h("div", "ad-vazio", "Nenhuma mensagem ainda. Diga oi para a equipe.")); return; }
+    let diaAnt = "";
+    const nos = [];
+    C.chat.forEach((m) => {
+      const dia = ms(m.em) ? new Date(ms(m.em)).toLocaleDateString("pt-BR") : "agora";
+      if (dia !== diaAnt) { nos.push(h("div", "ad-chat-dia", dia)); diaAnt = dia; }
+      const meu = m.autorId === C.eu.uid;
+      const bm = h("div", "ad-msg" + (meu ? " equipe" : ""));
+      if (!meu) bm.appendChild(h("b", "ad-msg-autor", m.nome || pessoa(m.autorId).nome || "Equipe"));
+      bm.appendChild(document.createTextNode(m.texto));
+      bm.appendChild(h("small", null, ms(m.em) ? new Date(ms(m.em)).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "enviando..."));
+      nos.push(bm);
+    });
+    chat.replaceChildren(...nos);
+    if (perto || !pintarChat.feito) chat.scrollTop = chat.scrollHeight;
+    pintarChat.feito = true;
+  }
+  async function enviar() {
+    const t = txt.value.trim(); if (!t) return;
+    env.disabled = true;
+    try { const { fb } = C; await fb.addDoc(fb.collection(fb.db, "equipe_chat"), { autorId: C.eu.uid, nome: C.nome, texto: t.slice(0, 2000), em: fb.serverTimestamp() }); txt.value = ""; chat.scrollTop = chat.scrollHeight; }
+    catch (e) { console.error(e); toast("Não foi possível enviar: " + (e.code || e.message)); }
+    finally { env.disabled = false; txt.focus(); }
+  }
+  form.addEventListener("submit", (e) => { e.preventDefault(); enviar(); });
+  txt.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); enviar(); } });
+  C.aoMudarEquipe = () => { if (!el.isConnected) { C.aoMudarEquipe = null; return; } pintarOnline(); pintarChat(); C.marcarChatVisto(); };
+  pintarOnline(); pintarChat(); C.marcarChatVisto();
+}
+
+// ======================================================= TAREFAS DA EQUIPE
+let filtroTar = "todas";
+export function tarefas(el) {
+  el.appendChild(cab("Tarefas da equipe", "Quem faz o quê. Cada tarefa anda pelas colunas: A fazer → Fazendo → Feito.", btn("Nova tarefa", "pri", async () => { await editarTarefa(); })));
+  const fil = chips([["todas", "Todas"], ["minhas", "Minhas"], ["livres", "Sem responsável"], ["atrasadas", "Atrasadas"]], filtroTar, (v) => { filtroTar = v; pintar(); });
+  fil.style.marginBottom = "12px";
+  const k = h("div", "ad-kanban tres"); el.append(fil, k);
+  const COLS = [["a_fazer", "A fazer"], ["fazendo", "Fazendo"], ["feito", "Feito"]];
+  const ORD = { urgente: 0, alta: 1, normal: 2, baixa: 3 };
+  const atrasada = (t) => t.status !== "feito" && ms(t.prazo) && ms(t.prazo) < agora();
+  function pintar() {
+    if (!el.isConnected) { C.aoMudarTarefas = null; return; }
+    const l = C.tarefas.filter((t) => filtroTar === "todas" || (filtroTar === "minhas" ? t.responsavel === C.eu.uid : filtroTar === "livres" ? !t.responsavel : atrasada(t)));
+    k.replaceChildren(...COLS.map(([st, rot], i) => {
+      const itens = l.filter((t) => t.status === st).sort((a, b) => st === "feito" ? ms(b.concluidaEm || b.atualizadoEm) - ms(a.concluidaEm || a.atualizadoEm) : (ORD[a.prioridade] - ORD[b.prioridade]) || ((ms(a.prazo) || 9e15) - (ms(b.prazo) || 9e15)));
+      const col = h("div", "ad-coluna"); const t4 = h("h4"); t4.append(h("span", null, rot), h("span", null, String(itens.length))); col.appendChild(t4);
+      (st === "feito" ? itens.slice(0, 30) : itens).forEach((t) => {
+        const c = h("article", "ad-item ad-tarefa pr-" + t.prioridade + (atrasada(t) ? " atrasada" : ""));
+        const top = h("div", "cab"); top.append(selo(PRIORIDADES[t.prioridade] || t.prioridade, t.prioridade === "urgente" ? "critico" : t.prioridade === "alta" ? "serio" : "neutro"), seloResp(t));
+        if (ms(t.prazo)) top.append(selo(`${atrasada(t) ? "Atrasada · " : ""}até ${data(t.prazo)}`, atrasada(t) ? "critico" : "neutro"));
+        c.append(top, h("strong", null, t.titulo));
+        if (t.descricao) c.appendChild(h("div", "meta", t.descricao.length > 180 ? t.descricao.slice(0, 180) + "…" : t.descricao));
+        if (t.ligacao) { const a = h("a", "ad-link", `Sobre: ${t.ligacaoNome || t.ligacao}`); a.href = "#"; a.addEventListener("click", (e) => { e.preventDefault(); const [tipo, id] = t.ligacao.split(":"); if (tipo === "usuario") abrirFicha(id); }); c.appendChild(a); }
+        c.appendChild(h("div", "meta", `Criada por ${t.criadoPorNome || nomeEquipe(t.criadoPor)} · ${relativo(t.criadoEm)}${t.status === "feito" && t.concluidaEm ? " · concluída " + relativo(t.concluidaEm) : ""}`));
+        const ac = h("div", "ad-acoes");
+        if (i > 0) ac.append(btn("← " + COLS[i - 1][1], "mini", () => moverTarefa(t, COLS[i - 1][0])));
+        if (i < 2) ac.append(btn(i === 0 ? "Começar →" : "Concluir ✓", "mini pri", () => moverTarefa(t, COLS[i + 1][0])));
+        ac.append(btn("Editar", "mini", () => editarTarefa({}, t)));
+        if (t.criadoPor === C.eu.uid || C.papel === "dono") ac.append(btn("Apagar", "mini perigo", async () => { if (!confirm("Apagar esta tarefa?")) return; const { fb } = C; await fb.deleteDoc(fb.doc(fb.db, "equipe_tarefas", t.id)); await registrar("tarefa_apagar", "", t.titulo); }));
+        c.appendChild(ac); col.appendChild(c);
+      });
+      if (!itens.length) col.appendChild(h("div", "meta", "—"));
+      return col;
+    }));
+  }
+  C.aoMudarTarefas = pintar; pintar();
+}
+
+// ======================================================= PUBLICAÇÕES (moderação do Diário)
+let filtroPub = "recentes";
+export function publicacoes(el) {
+  const denPorPost = new Map(contarPor(D.denuncias.filter((d) => d.tipo === "publicacao"), (d) => d.itemId));
+  el.appendChild(cab("Publicações", `Moderação do Diário: ${num(D.contagens.diario ?? D.posts.length)} publicações. Esconda ou remova o que viola os Termos.`));
+  if (!pode("moderar")) el.appendChild(h("div", "ad-aviso-papel", `Seu papel (${PAPEIS[C.papel]}) pode ver, mas quem esconde ou remove é a moderação.`));
+  const busca = document.createElement("input"); busca.type = "search"; busca.className = "ad-sel"; busca.placeholder = "Buscar no texto ou no nome do autor"; busca.setAttribute("aria-label", "Buscar publicações");
+  const fil = chips([["recentes", "Recentes"], ["denunciadas", `Denunciadas (${denPorPost.size})`], ["escondidas", "Escondidas"]], filtroPub, (v) => { filtroPub = v; pintar(); });
+  const linhaF = h("div", "ad-acoes"); linhaF.style.marginBottom = "12px"; linhaF.append(fil, busca); el.appendChild(linhaF);
+  const lista = h("div", "ad-lista"); el.appendChild(lista);
+  const escondida = (p) => ms(p.ocultoAte) > agora();
+  function pintar() {
+    const t = busca.value.trim().toLowerCase();
+    const l = D.posts.filter((p) => (filtroPub === "denunciadas" ? denPorPost.has(p.id) : filtroPub === "escondidas" ? escondida(p) : true) && (!t || [p.texto, p.nome, pessoa(p.autorId).nome].some((v) => String(v || "").toLowerCase().includes(t))))
+      .sort((a, b) => filtroPub === "denunciadas" ? (denPorPost.get(b.id) - denPorPost.get(a.id)) || ms(b.criadoEm) - ms(a.criadoEm) : ms(b.criadoEm) - ms(a.criadoEm));
+    lista.replaceChildren(...(l.length ? l.slice(0, 150).map((p) => {
+      const c = h("article", "ad-item"); const top = h("div", "cab");
+      const a = h("a", null, pessoa(p.autorId).nome || p.nome || p.autorId); a.href = "#"; a.addEventListener("click", (e) => { e.preventDefault(); abrirFicha(p.autorId); });
+      top.append(a); if (denPorPost.get(p.id)) top.append(selo(`${denPorPost.get(p.id)} denúncia(s)`, "critico")); if (escondida(p)) top.append(selo("Escondida", "neutro")); if (p.editadoEm) top.append(selo("Editada", "neutro"));
+      top.append(h("span", "quando", dataHora(p.criadoEm)));
+      c.append(top);
+      if (p.texto) c.appendChild(h("div", "trecho", p.texto.length > 400 ? p.texto.slice(0, 400) + "…" : p.texto));
+      if (p.mediaUrl && /^(data:image|https:\/\/firebasestorage)/.test(p.mediaUrl) && p.mediaTipo !== "video") { const im = document.createElement("img"); im.src = p.mediaUrl; im.alt = "Imagem da publicação"; im.className = "ad-pub-img"; im.loading = "lazy"; c.appendChild(im); }
+      else if (p.mediaUrl) c.appendChild(h("div", "meta", p.mediaTipo === "video" ? "(vídeo)" : "(mídia)"));
+      const ac = h("div", "ad-acoes");
+      const ver = h("a", "ad-bt mini", "Abrir no site"); ver.href = `usuarios.html?perfil=${encodeURIComponent(p.autorId)}`; ver.target = "_blank"; ver.textContent = "Ver perfil do autor"; ac.appendChild(ver);
+      if (pode("moderar")) {
+        ac.append(btn(escondida(p) ? "Mostrar" : "Esconder", "mini", async () => {
+          const { fb } = C; const vai = !escondida(p);
+          await fb.updateDoc(fb.doc(fb.db, "diario", p.id), { ocultoAte: vai ? fb.Timestamp.fromDate(new Date("2999-12-31")) : null });
+          p.ocultoAte = vai ? { toMillis: () => new Date("2999-12-31").getTime() } : null;
+          await registrar(vai ? "esconder_publicacao" : "mostrar_publicacao", p.autorId, String(p.texto || "").slice(0, 120)); toast(vai ? "Publicação escondida" : "Publicação visível de novo"); pintar();
+        }), btn("Remover", "mini perigo", async () => {
+          if (!confirm("Remover esta publicação de vez? Não dá para desfazer.")) return;
+          const { fb } = C; await fb.deleteDoc(fb.doc(fb.db, "diario", p.id));
+          D.posts = D.posts.filter((x) => x !== p); await registrar("remover_conteudo", p.autorId, `publicacao ${p.id}: ${String(p.texto || "").slice(0, 100)}`); toast("Publicação removida"); pintar();
+        }), btn("Avisar autor", "mini", () => fluxoAviso(p.autorId)));
+      }
+      c.appendChild(ac); return c;
+    }) : [h("div", "ad-vazio", "Nenhuma publicação aqui.")]));
+  }
+  let tempo; busca.addEventListener("input", () => { clearTimeout(tempo); tempo = setTimeout(pintar, 200); });
+  pintar();
+}
+
+// Atalhos com filtro (ex.: irPara("denuncias:minhas")).
+export function definirFiltro(sec, f) {
+  if (sec === "denuncias") filtroDen = f;
+  else if (sec === "suporte") filtroSup = f;
+  else if (sec === "tarefas") filtroTar = f;
+  else if (sec === "publicacoes") filtroPub = f;
 }

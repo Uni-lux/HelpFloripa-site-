@@ -3,15 +3,16 @@
 // Só entra quem tem o documento admins/{uid} (criado à mão no console do
 // Firebase). As regras do Firestore conferem isso em cada leitura e ação.
 // =====================================================
-import { C, D, $, h, ms, toast } from "./admin-base.js?v=1";
-import * as S from "./admin-secoes.js?v=1";
+import { C, D, $, h, ms, toast, PAPEIS, vendoAgora } from "./admin-base.js?v=5";
+import * as S from "./admin-secoes.js?v=5";
 
 const SECOES = {
   visao: S.visao, estatisticas: S.estatisticas, relatorios: S.relatorios, usuarios: S.usuarios, verificacoes: S.verificacoes,
   suporte: S.suporte, denuncias: S.denuncias, reclamacoes: S.reclamacoes, sancoes: S.sancoes, negocios: S.negocios,
-  parcerias: S.parcerias, comunicados: S.comunicados, registro: S.registro, equipe: S.equipe
+  parcerias: S.parcerias, comunicados: S.comunicados, registro: S.registro, equipe: S.equipe,
+  tarefas: S.tarefas, publicacoes: S.publicacoes
 };
-let atual = "visao";
+let atual = "visao", ultimaPresenca = "";
 
 function irPara(sec, termo = "") {
   let filtro = "";
@@ -21,10 +22,14 @@ function irPara(sec, termo = "") {
   document.querySelectorAll(".ad-nav").forEach((b) => { if (b.dataset.secao === sec) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
   const el = $("principal"); el.replaceChildren();
   try {
-    if (sec === "usuarios" && filtro) { const chip = filtro; SECOES.usuarios(el, termo); el.querySelector(`.ad-chip:nth-child(${["todos", "novos", "ativos", "inativos", "negocio", "verificados", "desativado", "exclusao", "sancao"].indexOf(chip) + 1})`)?.click(); }
+    if (filtro && sec !== "usuarios") { S.definirFiltro(sec, filtro); SECOES[sec](el, termo); }
+    else if (sec === "usuarios" && filtro) { const chip = filtro; SECOES.usuarios(el, termo); el.querySelector(`.ad-chip:nth-child(${["todos", "novos", "ativos", "inativos", "negocio", "verificados", "desativado", "exclusao", "sancao"].indexOf(chip) + 1})`)?.click(); }
     else SECOES[sec](el, termo);
   } catch (e) { console.error(e); el.appendChild(h("div", "ad-vazio", "Não foi possível montar esta seção: " + e.message)); }
   history.replaceState(null, "", `admin.html#${sec}`);
+  C.marcarItem?.(null);
+  requestAnimationFrame(() => C.pintarVendo?.());
+  if (C.marcarPresenca && sec !== ultimaPresenca) { ultimaPresenca = sec; C.marcarPresenca(true); }
   $("lateral").classList.remove("aberta");
   el.focus({ preventScroll: true }); window.scrollTo({ top: 0 });
 }
@@ -39,6 +44,57 @@ function contadores() {
   set("reclamacoes", pend(D.queixas.filter((q) => q.status === "aberta" && !q.resposta && ms(q.abertaEm) < Date.now() - 7 * 864e5).length));
   set("sancoes", pend([...D.sancoes.values()].filter((s) => s.tipo === "banimento" || ms(s.ate) > Date.now()).length));
   set("parcerias", pend(D.parcerias.filter((p) => (p.status || "novo") === "novo").length));
+  set("equipe", pend(C.chatNaoLidas || 0));
+  set("tarefas", pend(C.tarefas.filter((t) => t.status !== "feito" && t.responsavel === C.eu?.uid).length));
+  const on = D.admins.filter((a) => a.id !== C.eu?.uid && C.online(a.id)).length;
+  const e = $("equipeOnline"); if (e) { e.hidden = !on; e.textContent = `${on} da equipe online`; }
+}
+
+// Presença no painel (a cada minuto) + chat da equipe, ao vivo.
+function equipeAoVivo() {
+  const { fb } = C;
+  C.presenca = new Map(); C.chat = []; C.chatNaoLidas = 0;
+  C.online = (uid) => uid === C.eu.uid || ms(C.presenca.get(uid)?.em) > Date.now() - 150000;
+  const chaveVisto = "hf-equipe-chat-visto-" + C.eu.uid;
+  let visto = 0; try { visto = Number(localStorage.getItem(chaveVisto) || 0); } catch {}
+  C.marcarChatVisto = () => { visto = Date.now(); try { localStorage.setItem(chaveVisto, String(visto)); } catch {} C.chatNaoLidas = 0; contadores(); };
+  const avisar = () => { contadores(); C.pintarVendo?.(); if (atual === "equipe") C.aoMudarEquipe?.(); };
+  let itemAtual = null, itemNome = null;
+  C.marcarPresenca = (forcar) => {
+    if (document.hidden && !forcar) return;
+    fb.setDoc(fb.doc(fb.db, "equipe_presenca", C.eu.uid), { nome: C.nome.slice(0, 80), secao: atual, item: itemAtual, itemNome, em: fb.serverTimestamp() }).catch((e) => console.warn("Presença:", e.code || e.message));
+  };
+  // Item aberto agora (ficha, denúncia, chamado, proposta): a equipe vê "fulano está vendo".
+  C.marcarItem = (item, nome) => { if (item === itemAtual) return; itemAtual = item || null; itemNome = item ? String(nome || "").slice(0, 120) || null : null; C.marcarPresenca(true); };
+  // Marca nos cartões da tela quem da equipe está com aquele item aberto.
+  C.pintarVendo = () => {
+    document.querySelectorAll("[data-item]").forEach((el) => {
+      const nomes = vendoAgora(el.dataset.item);
+      let tag = el.querySelector(":scope .ad-vendo");
+      if (!nomes.length) { tag?.remove(); return; }
+      if (!tag) { tag = h("span", "ad-vendo"); (el.querySelector(".cab") || el).appendChild(tag); }
+      tag.textContent = `${nomes.join(", ")} ${nomes.length > 1 ? "estão" : "está"} vendo agora`;
+    });
+  };
+  C.marcarPresenca(true);
+  setInterval(() => C.marcarPresenca(), 60000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) C.marcarPresenca(true); });
+  setInterval(avisar, 30000); // quem parou de mandar sinal sai do "online"
+  fb.onSnapshot(fb.collection(fb.db, "equipe_presenca"), (s) => { C.presenca = new Map(s.docs.map((d) => [d.id, d.data()])); avisar(); }, (e) => console.warn("Presença:", e.code || e.message));
+  let primeiraT = true;
+  fb.onSnapshot(fb.query(fb.collection(fb.db, "equipe_tarefas"), fb.limit(500)), (s) => {
+    C.tarefas = s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) }));
+    if (!primeiraT) s.docChanges().filter((c) => c.type !== "removed" && c.doc.data().responsavel === C.eu.uid && c.doc.data().status === "a_fazer" && c.doc.data().criadoPor !== C.eu.uid && !c.doc.metadata.hasPendingWrites).slice(-1).forEach((c) => toast(`Nova tarefa para você: ${c.doc.data().titulo}`));
+    primeiraT = false; contadores(); if (atual === "tarefas" || atual === "visao") C.aoMudarTarefas?.();
+  }, (e) => console.warn("Tarefas:", e.code || e.message));
+  let primeira = true;
+  fb.onSnapshot(fb.query(fb.collection(fb.db, "equipe_chat"), fb.orderBy("em", "desc"), fb.limit(150)), (s) => {
+    C.chat = s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).reverse();
+    const novas = C.chat.filter((m) => m.autorId !== C.eu.uid && ms(m.em) > visto);
+    C.chatNaoLidas = atual === "equipe" ? 0 : novas.length;
+    if (!primeira && atual !== "equipe") s.docChanges().filter((c) => c.type === "added" && c.doc.data().autorId !== C.eu.uid).slice(-1).forEach((c) => toast(`Equipe · ${c.doc.data().nome || "mensagem"}: ${String(c.doc.data().texto).slice(0, 60)}`));
+    primeira = false; avisar();
+  }, (e) => console.warn("Chat da equipe:", e.code || e.message));
 }
 
 // Carrega tudo o que o painel usa. Em sites maiores, o relatório diário (estatisticas/) evita recalcular.
@@ -91,13 +147,20 @@ async function carregar(mostrar = true) {
     return;
   }
   C.nome = ficha?.nome || usuario.displayName || usuario.email || "Equipe";
+  C.papel = PAPEIS[ficha?.papel] ? ficha.papel : "dono";
+  C.tarefas = [];
+  document.body.dataset.papel = C.papel;
+  const mp = $("meuPapel"); if (mp) { mp.textContent = PAPEIS[C.papel]; mp.hidden = false; }
   C.irPara = irPara;
+  C.contadores = contadores;
   C.recarregar = (mostrar) => carregar(mostrar);
   $("app").hidden = false;
   document.querySelectorAll(".ad-nav").forEach((b) => b.addEventListener("click", () => irPara(b.dataset.secao)));
+  $("equipeOnline").addEventListener("click", () => irPara("equipe"));
   $("btMenu").addEventListener("click", () => $("lateral").classList.toggle("aberta"));
   $("btAtualizar").addEventListener("click", async () => { await carregar(true); toast("Dados atualizados"); });
   let tempo; $("buscaGlobal").addEventListener("input", (e) => { clearTimeout(tempo); const t = e.target.value; tempo = setTimeout(() => { if (t.trim()) irPara("usuarios", t.trim()); }, 300); });
   atual = (location.hash.slice(1) || "visao");
   await carregar(true);
+  equipeAoVivo();
 })();

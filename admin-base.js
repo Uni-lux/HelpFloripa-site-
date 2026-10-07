@@ -3,7 +3,7 @@
 // Estado (D), utilitários, janelas, ações de moderação (todas registradas
 // em admin_log) e a ficha completa do usuário.
 // =====================================================
-export const C = { fb: null, A: null, eu: null, nome: "", irPara: () => {}, recarregar: async () => {} };
+export const C = { fb: null, A: null, eu: null, nome: "", irPara: () => {}, recarregar: async () => {}, contadores: () => {}, presenca: new Map(), chat: [], online: () => false, marcarChatVisto: () => {}, aoMudarEquipe: null, papel: "dono", tarefas: [], marcarItem: null, pintarVendo: null, aoMudarTarefas: null };
 export const D = {
   pessoas: new Map(), negocios: [], anuncios: [], posts: [], denuncias: [], queixas: [], suporte: [], parcerias: [],
   sancoes: new Map(), exclusoes: new Map(), notas: new Map(), comunicados: [], log: [], admins: [], estatisticas: [],
@@ -32,7 +32,7 @@ export function idade(nasc) {
   return i >= 0 && i < 120 ? i : null;
 }
 export const nomeCidade = (v) => (v === "florianopolis" ? "Florianópolis" : v === "saojose" ? "São José" : String(v || "").trim());
-export const iniciais = (n) => { const p = String(n || "?").trim().split(/\s+/); return ((p[0]?.[0] || "?") + (p.length > 1 ? p[p.length - 1][0] : "")).toUpperCase(); };
+export const iniciais = (n) => { const p = String(n || "").replace(/[^\p{L}\p{N}\s]/gu, " ").trim().split(/\s+/).filter(Boolean); return ((p[0]?.[0] || "?") + (p.length > 1 ? p[p.length - 1][0] : "")).toUpperCase(); };
 export const fotoOk = (u) => /^(data:image\/|https:\/\/firebasestorage\.googleapis\.com\/|https:\/\/lh3\.googleusercontent\.com\/)/.test(String(u || ""));
 export function avatar(p, grande = false) {
   const a = h("div", "ad-av" + (grande ? " g" : ""));
@@ -108,6 +108,7 @@ export async function registrar(acao, alvo = "", detalhe = "") {
   const { fb } = C;
   try { await fb.addDoc(fb.collection(fb.db, "admin_log"), { acao, alvo, detalhe: String(detalhe).slice(0, 1000), por: C.eu.uid, porNome: C.nome, em: fb.serverTimestamp() }); }
   catch (e) { console.warn("Registro de ação falhou:", e); }
+  try { C.contadores(); } catch {}
 }
 export async function enviarAviso(uid, { titulo, texto, tipo = "info" }) {
   const { fb } = C;
@@ -123,6 +124,10 @@ async function marcarConteudo(uid, ate) {
   const refs = [...neg.docs, ...an.docs, ...posts.docs].map((d) => d.ref);
   for (let i = 0; i < refs.length; i += 400) { const b = fb.writeBatch(fb.db); refs.slice(i, i + 400).forEach((r) => b.update(r, { ocultoAte: valor })); await b.commit(); }
   await fb.updateDoc(fb.doc(fb.db, "perfis_publicos", uid), { desativadaAte: valor }).catch(() => {});
+  const marca = ate ? { toMillis: () => ate.getTime() } : null;
+  [...D.negocios, ...D.anuncios].filter((x) => x.donoId === uid).forEach((x) => { x.ocultoAte = marca; });
+  D.posts.filter((x) => x.autorId === uid).forEach((x) => { x.ocultoAte = marca; });
+  const p = D.pessoas.get(uid); if (p) p.desativadaAte = marca;
 }
 const SEM_DATA = new Date("2999-12-31T00:00:00Z");
 export async function sancionar(uid, { tipo, dias = 0, motivo }) {
@@ -193,7 +198,8 @@ export async function abrirFicha(uid) {
   topo.append(tt, x);
   const corpo = h("div", "ad-gaveta-corpo"); corpo.appendChild(h("div", "ad-vazio", "Carregando ficha..."));
   g.append(topo, corpo); document.body.append(fundo, g);
-  const fechar = () => { fundo.remove(); g.remove(); document.removeEventListener("keydown", tecla); };
+  const fechar = () => { fundo.remove(); g.remove(); document.removeEventListener("keydown", tecla); marcarItem(null); };
+  marcarItem(`usuario:${uid}`, D.pessoas.get(uid)?.nome || "");
   const tecla = (e) => { if (e.key === "Escape" && !document.querySelector(".ad-modal-fundo")) fechar(); };
   x.addEventListener("click", fechar); fundo.addEventListener("click", fechar); document.addEventListener("keydown", tecla);
 
@@ -227,6 +233,7 @@ export async function abrirFicha(uid) {
   if (p.solicitacaoVerificacao) selos.append(selo("Pediu verificação", "atencao"));
   if (D.admins.some((a) => a.id === uid)) selos.append(selo("Equipe", "info"));
   if (denContra.length >= 3) selos.append(selo(`${denContra.length} denúncias`, "critico"));
+  const vendo = vendoAgora(`usuario:${uid}`); if (vendo.length) selos.append(selo(`${vendo.join(", ")} também ${vendo.length > 1 ? "estão" : "está"} vendo`, "atencao"));
   tx.appendChild(selos); cab.append(avatar(p, true), tx); corpo.appendChild(cab);
 
   // ações
@@ -234,9 +241,11 @@ export async function abrirFicha(uid) {
   const bt = (t, cls, fn) => { const b = h("button", "ad-bt " + cls, t); b.type = "button"; b.addEventListener("click", async () => { b.disabled = true; try { if (await fn()) { await C.recarregar(false); abrirFicha(uid); } } catch (e) { console.error(e); toast("Não foi possível: " + (e.code || e.message)); } finally { b.disabled = false; } }); ac.appendChild(b); };
   bt("Enviar aviso", "", () => fluxoAviso(uid));
   const sancionado = st.k === "suspenso" || st.k === "banido";
-  if (sancionado) bt("Remover sanção", "pri", async () => { if (!confirm("Remover a suspensão/banimento desta conta?")) return false; await tirarSancao(uid); toast("Sanção removida"); return true; });
-  else { bt("Suspender", "perigo", () => fluxoSancao(uid, "suspensao")); bt("Banir", "perigo", () => fluxoSancao(uid, "banimento")); }
-  bt(p.verificado ? "Tirar selo" : "Dar selo verificado", "", async () => { await definirSelo(uid, !p.verificado); if (!p.verificado) await enviarAviso(uid, { titulo: "Seu perfil foi verificado", texto: "Parabéns! Seu perfil agora tem o selo de verificado.", tipo: "info" }); toast("Selo atualizado"); return true; });
+  const mod = pode("moderar");
+  if (mod && sancionado) bt("Remover sanção", "pri", async () => { if (!confirm("Remover a suspensão/banimento desta conta?")) return false; await tirarSancao(uid); toast("Sanção removida"); return true; });
+  else if (mod) { bt("Suspender", "perigo", () => { if (!confirmarItem(null, `usuario:${uid}`)) return false; return fluxoSancao(uid, "suspensao"); }); bt("Banir", "perigo", () => { if (!confirmarItem(null, `usuario:${uid}`)) return false; return fluxoSancao(uid, "banimento"); }); }
+  bt("Criar tarefa", "", () => editarTarefa({ ligacao: `usuario:${uid}`, ligacaoNome: p.nome || uid }).then(() => false));
+  if (mod) bt(p.verificado ? "Tirar selo" : "Dar selo verificado", "", async () => { const dar = !p.verificado; await definirSelo(uid, dar); if (dar) await enviarAviso(uid, { titulo: "Seu perfil foi verificado", texto: "Parabéns! Seu perfil agora tem o selo de verificado.", tipo: "info" }); toast("Selo atualizado"); return true; });
   const ver = h("a", "ad-bt", "Ver perfil no site"); ver.href = `usuarios.html?perfil=${encodeURIComponent(uid)}`; ver.target = "_blank"; ac.appendChild(ver);
   if (p.email) { const em = h("a", "ad-bt", "E-mail"); em.href = `mailto:${p.email}`; ac.appendChild(em); }
   const tel = String(p.telefone || "").replace(/\D/g, ""); if (tel.length >= 10) { const w = h("a", "ad-bt", "WhatsApp"); w.href = `https://wa.me/55${tel}`; w.target = "_blank"; w.rel = "noopener"; ac.appendChild(w); }
@@ -284,6 +293,19 @@ export async function abrirFicha(uid) {
     queixasContra.slice(0, 10).forEach((q) => l.appendChild(h("div", null, `${data(q.abertaEm)} · ${MOTIVOS_QX[q.motivo] || q.motivo} · ${q.status}${q.resposta ? " · respondida" : ""}`)));
     b.appendChild(l); corpo.appendChild(b);
   }
+  // notas internas da equipe
+  const bN = h("div", "ad-bloco"); bN.append(h("h3", null, "Notas internas da equipe"), h("p", null, "Só a equipe vê. Use para registrar contatos, combinados e suspeitas."));
+  const lN = h("div", "ad-hist"); lN.style.marginTop = "10px";
+  const fN = h("form", "ad-nota-form"); const tN = document.createElement("textarea"); tN.maxLength = 2000; tN.rows = 2; tN.placeholder = "Ex.: Liguei em 07/10, disse que vai responder o cliente até amanhã."; tN.setAttribute("aria-label", "Nova nota interna");
+  const bS = h("button", "ad-bt pri", "Salvar nota"); bS.type = "submit"; fN.append(tN, bS);
+  const pintarNotas = async () => {
+    const lista = await fb.getDocs(fb.query(fb.collection(fb.db, "notas_internas"), fb.where("alvo", "==", uid), fb.limit(100))).then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() }))).catch(() => []);
+    lista.sort((a, b2) => ms(b2.em) - ms(a.em));
+    lN.replaceChildren(...(lista.length ? lista.map((n) => { const d = h("div", "ad-nota"); d.append(h("b", null, `${n.autorNome || nomeEquipe(n.autorId)} · ${dataHora(n.em)}`), h("span", null, n.texto)); if (n.autorId === C.eu.uid || C.papel === "dono") { const x = h("button", "ad-link-perigo", "apagar"); x.type = "button"; x.addEventListener("click", async () => { if (!confirm("Apagar esta nota?")) return; await fb.deleteDoc(fb.doc(fb.db, "notas_internas", n.id)); pintarNotas(); }); d.appendChild(x); } return d; }) : [h("div", null, "Nenhuma nota ainda.")]));
+  };
+  fN.addEventListener("submit", async (e) => { e.preventDefault(); const t = tN.value.trim(); if (!t) return; bS.disabled = true; try { await fb.addDoc(fb.collection(fb.db, "notas_internas"), { alvo: uid, texto: t, autorId: C.eu.uid, autorNome: C.nome.slice(0, 80), em: fb.serverTimestamp() }); tN.value = ""; await registrar("nota_interna", uid, t.slice(0, 120)); toast("Nota salva"); pintarNotas(); } catch (err) { toast("Não foi possível: " + (err.code || err.message)); } finally { bS.disabled = false; } });
+  bN.append(fN, lN); corpo.appendChild(bN); pintarNotas();
+
   // sanções e avisos
   const hist = [...(sancao?.historico || []).map((x) => ({ quando: Date.parse(x.em), t: `${x.tipo === "removida" ? "Sanção removida" : x.tipo === "banimento" ? "Banida" : "Suspensa"}${x.ate ? " até " + new Date(x.ate).toLocaleDateString("pt-BR") : ""} · ${x.motivo || ""} · por ${x.por || "equipe"}` })),
     ...avisos.map((a) => ({ quando: ms(a.em), t: `Aviso (${a.tipo}): ${a.titulo}${a.lidoEm ? " · lido" : " · não lido"}` })),
@@ -293,4 +315,102 @@ export async function abrirFicha(uid) {
   if (!hist.length) lH.appendChild(h("div", null, "Nenhum aviso, sanção ou chamado."));
   hist.forEach((x) => lH.appendChild(h("div", null, `${x.quando ? new Date(x.quando).toLocaleDateString("pt-BR") : ""} · ${x.t}`)));
   bH.appendChild(lH); corpo.appendChild(bH);
+}
+
+// ---------- equipe: papéis, quem assumiu cada item, quem está vendo ----------
+// Papel vem do documento admins/{uid} (campo "papel"); sem campo = dono (acesso total).
+// As regras do Firestore garantem as permissões; aqui o painel só esconde o que não vale.
+export const PAPEIS = { dono: "Dono", moderacao: "Moderação", suporte: "Suporte", comercial: "Comercial" };
+export const DESC_PAPEIS = { dono: "Acesso total", moderacao: "Denúncias, publicações, selos, suspensões e comunicados", suporte: "Chamados de suporte e avisos", comercial: "Sócios e parcerias" };
+export function pode(acao) {
+  const p = C.papel || "dono";
+  if (acao === "moderar") return p === "dono" || p === "moderacao";
+  if (acao === "comercial") return p === "dono" || p === "comercial";
+  return true;
+}
+export const semPermissao = () => toast(`Seu papel (${PAPEIS[C.papel] || C.papel}) não permite esta ação.`);
+export const nomeEquipe = (uid) => D.admins.find((a) => a.id === uid)?.nome || D.pessoas.get(uid)?.nome || "Equipe";
+export const vendoAgora = (item) => [...C.presenca.entries()].filter(([uid, p]) => uid !== C.eu.uid && item && p.item === item && C.online(uid)).map(([uid, p]) => p.nome || nomeEquipe(uid));
+export const marcarItem = (item, nome) => C.marcarItem?.(item, nome);
+
+// Selo "Com fulano" / "Com você" / "Sem responsável".
+export function seloResp(o) {
+  if (!o?.responsavel) return selo("Sem responsável", "neutro");
+  const meu = o.responsavel === C.eu.uid;
+  return selo(meu ? "Com você" : `Com ${o.responsavelNome || nomeEquipe(o.responsavel)}`, meu ? "info" : "atencao");
+}
+// Antes de agir: avisa se outra pessoa assumiu o item ou está com ele aberto agora.
+export function confirmarItem(o, item) {
+  const outros = vendoAgora(item);
+  const dono = o?.responsavel && o.responsavel !== C.eu.uid ? (o.responsavelNome || nomeEquipe(o.responsavel)) : "";
+  if (!dono && !outros.length) return true;
+  const msg = [dono && `${dono} assumiu este item.`, outros.length && `${outros.join(", ")} ${outros.length > 1 ? "estão" : "está"} com ele aberto agora.`].filter(Boolean).join(" ");
+  return confirm(`${msg}\n\nPara não fazerem o mesmo trabalho, combine no chat da equipe.\nContinuar mesmo assim?`);
+}
+// Botões Assumir / Liberar / Passar para...
+export function controlesResp(colecao, o, { permitido = true, aoMudar } = {}) {
+  const w = h("div", "ad-resp");
+  if (!permitido) return w; // quem não pode agir vê só o selo "Com fulano"
+  const salvar = async (uid) => {
+    if (!permitido) { semPermissao(); return; }
+    const { fb } = C; const nome = uid ? nomeEquipe(uid) : null;
+    await fb.updateDoc(fb.doc(fb.db, colecao, o.id), { responsavel: uid || null, responsavelNome: nome, assumidoEm: fb.serverTimestamp() });
+    Object.assign(o, { responsavel: uid || null, responsavelNome: nome, assumidoEm: { toMillis: () => agora() } });
+    await registrar(uid ? (uid === C.eu.uid ? "assumiu" : "passou") : "liberou", `${colecao}:${o.id}`, nome || "");
+    toast(uid ? (uid === C.eu.uid ? "Agora está com você" : `Passado para ${nome}`) : "Liberado para a equipe");
+    aoMudar?.();
+  };
+  const bt = (t, cls, fn) => { const b = h("button", "ad-bt mini " + cls, t); b.type = "button"; b.addEventListener("click", async (e) => { e.stopPropagation(); b.disabled = true; try { await fn(); } catch (err) { console.error(err); toast("Não foi possível: " + (err.code || err.message)); } finally { b.disabled = false; } }); return b; };
+  if (!o.responsavel) w.appendChild(bt("Assumir", "pri", () => salvar(C.eu.uid)));
+  else if (o.responsavel === C.eu.uid) w.appendChild(bt("Liberar", "", () => salvar(null)));
+  else w.appendChild(bt("Assumir no lugar", "", async () => { if (confirm(`${o.responsavelNome || nomeEquipe(o.responsavel)} está com este item. Assumir mesmo assim?`)) await salvar(C.eu.uid); }));
+  const outros = D.admins.filter((a) => a.id !== o.responsavel);
+  if (outros.length) {
+    const sel = document.createElement("select"); sel.className = "ad-sel-mini"; sel.setAttribute("aria-label", "Passar para alguém da equipe");
+    sel.append(new Option("Passar para…", ""), ...outros.map((a) => new Option(a.id === C.eu.uid ? "Mim" : (a.nome || nomeEquipe(a.id)), a.id)));
+    sel.addEventListener("click", (e) => e.stopPropagation());
+    sel.addEventListener("change", async () => { const v = sel.value; sel.value = ""; if (v) { try { await salvar(v); } catch (err) { toast("Não foi possível: " + (err.code || err.message)); } } });
+    w.appendChild(sel);
+  }
+  return w;
+}
+// Tempo de espera ("há 5 h"), com cor quando passa do prazo.
+export function espera(t, horasAlerta = 24) {
+  const v = ms(t); if (!v) return h("span");
+  const hrs = (agora() - v) / 36e5;
+  return h("span", "ad-espera" + (hrs >= horasAlerta ? " atrasado" : hrs >= horasAlerta / 2 ? " atencao" : ""), `esperando ${relativo(v).replace(/^há /, "há ")}`);
+}
+
+// ---------- tarefas da equipe ----------
+export const PRIORIDADES = { urgente: "Urgente", alta: "Alta", normal: "Normal", baixa: "Baixa" };
+export async function editarTarefa(pre = {}, existente = null) {
+  const hoje = new Date(); const iso = (d) => d ? new Date(ms(d)).toISOString().slice(0, 10) : "";
+  const v = await modal({ titulo: existente ? "Editar tarefa" : "Nova tarefa", texto: pre.ligacaoNome ? `Sobre: ${pre.ligacaoNome}` : "", campos: [
+    { nome: "titulo", rotulo: "O que precisa ser feito", max: 140, obrigatorio: true, valor: existente?.titulo || pre.titulo || "" },
+    { nome: "descricao", rotulo: "Detalhes (opcional)", tipo: "textarea", max: 2000, valor: existente?.descricao || pre.descricao || "" },
+    { nome: "responsavel", rotulo: "Quem vai fazer", tipo: "select", opcoes: [["", "Ninguém ainda"], ...D.admins.map((a) => [a.id, a.id === C.eu.uid ? `Eu (${a.nome || "você"})` : (a.nome || nomeEquipe(a.id))])], valor: existente ? (existente.responsavel || "") : (pre.responsavel ?? C.eu.uid) },
+    { nome: "prioridade", rotulo: "Prioridade", tipo: "select", opcoes: Object.entries(PRIORIDADES), valor: existente?.prioridade || pre.prioridade || "normal" },
+    { nome: "prazo", rotulo: "Prazo (opcional)", tipo: "date", valor: existente ? iso(existente.prazo) : "" }
+  ], botao: existente ? "Salvar" : "Criar tarefa" });
+  if (!v) return false;
+  const { fb } = C;
+  const prazo = v.prazo ? fb.Timestamp.fromDate(new Date(v.prazo + "T23:59:00")) : null;
+  const dados = { titulo: v.titulo, descricao: v.descricao || null, prioridade: v.prioridade, responsavel: v.responsavel || null, responsavelNome: v.responsavel ? nomeEquipe(v.responsavel) : null, prazo, atualizadoEm: fb.serverTimestamp() };
+  if (existente) {
+    await fb.updateDoc(fb.doc(fb.db, "equipe_tarefas", existente.id), dados);
+    await registrar("tarefa_editar", "", v.titulo);
+  } else {
+    await fb.addDoc(fb.collection(fb.db, "equipe_tarefas"), { ...dados, status: "a_fazer", ligacao: pre.ligacao || null, ligacaoNome: pre.ligacaoNome || null, criadoPor: C.eu.uid, criadoPorNome: C.nome.slice(0, 80), criadoEm: fb.serverTimestamp() });
+    await registrar("tarefa_nova", "", `${v.titulo}${v.responsavel ? " → " + nomeEquipe(v.responsavel) : ""}`);
+  }
+  toast(existente ? "Tarefa atualizada" : "Tarefa criada"); void hoje;
+  return true;
+}
+export async function moverTarefa(t, status) {
+  const { fb } = C;
+  const extra = status === "feito" ? { concluidaEm: fb.serverTimestamp() } : { concluidaEm: null };
+  const dados = { status, atualizadoEm: fb.serverTimestamp(), ...extra };
+  if (status === "fazendo" && !t.responsavel) Object.assign(dados, { responsavel: C.eu.uid, responsavelNome: nomeEquipe(C.eu.uid) });
+  await fb.updateDoc(fb.doc(fb.db, "equipe_tarefas", t.id), dados);
+  await registrar("tarefa_" + status, "", t.titulo);
 }

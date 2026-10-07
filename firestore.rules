@@ -21,6 +21,20 @@ service cloud.firestore {
           && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
+    // Papel na equipe (campo "papel" no documento admins/{uid}, definido no console).
+    // Sem o campo = "dono" (acesso total). Outros: moderacao, suporte, comercial.
+    function papel() {
+      return get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.get('papel', 'dono');
+    }
+    // Moderação: selo, esconder/remover conteúdo, suspender/banir, denúncias, comunicados.
+    function podeModerar() {
+      return admin() && papel() in ['dono', 'moderacao'];
+    }
+    // Comercial: propostas de sócios e parcerias.
+    function podeComercial() {
+      return admin() && papel() in ['dono', 'comercial'];
+    }
+
     // Suspensão (até uma data) ou banimento (sem data).
     function sancionado(uid) {
       let s = /databases/$(database)/documents/sancoes/$(uid);
@@ -139,6 +153,14 @@ service cloud.firestore {
           || request.resource.data[campo] is timestamp;
     }
 
+    // Quem da equipe assumiu um item: alguém da equipe (ou ninguém), com nome curto.
+    function responsavelOk() {
+      let r = request.resource.data.get('responsavel', null);
+      return (r == null || (r is string && exists(/databases/$(database)/documents/admins/$(r))))
+          && valorTextoAte(request.resource.data.get('responsavelNome', null), 80)
+          && (!mudou().hasAny(['responsavel']) || request.resource.data.get('assumidoEm', null) == request.time);
+    }
+
     function donoDoNegocio(negocioId) {
       return get(/databases/$(database)/documents/negocios/$(negocioId)).data.donoId;
     }
@@ -154,7 +176,7 @@ service cloud.firestore {
                   && request.auth.uid == userId;
       allow read: if admin();
       // A equipe aprova ou recusa o selo de verificado.
-      allow update: if admin()
+      allow update: if podeModerar()
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verificado', 'solicitacaoVerificacao', 'verificacaoRespondidaEm']);
 
       // criadoEm é a data real do cadastro (conta antiga = pode avaliar/reclamar).
@@ -231,7 +253,7 @@ service cloud.firestore {
                  && (request.auth.uid == userId || !bloqueou(userId, request.auth.uid) || admin());
       allow list: if logado();
       // A equipe marca o selo e esconde contas suspensas/banidas.
-      allow update: if admin()
+      allow update: if podeModerar()
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verificado', 'desativadaAte'])
                     && dataOuNulo('desativadaAte');
 
@@ -442,7 +464,7 @@ service cloud.firestore {
                     && resource.data.donoId == request.auth.uid;
 
       // A equipe esconde (ocultoAte) o conteúdo de contas suspensas/banidas.
-      allow update: if admin()
+      allow update: if podeModerar()
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ocultoAte'])
                     && dataOuNulo('ocultoAte');
     }
@@ -497,7 +519,7 @@ service cloud.firestore {
                     && resource.data.donoId == request.auth.uid;
 
       // A equipe esconde (ocultoAte) o conteúdo de contas suspensas/banidas.
-      allow update: if admin()
+      allow update: if podeModerar()
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ocultoAte'])
                     && dataOuNulo('ocultoAte');
     }
@@ -1029,7 +1051,7 @@ service cloud.firestore {
     // =====================================================
     // DENÚNCIAS: denuncias/{tipo}_{item}_{quemDenunciou}
     // Uma por pessoa em cada item. Só quem denunciou consegue ler a própria
-    // denúncia (para saber que já enviou). A equipe analisa pelo console.
+    // denúncia (para saber que já enviou). A equipe analisa pelo painel.
     // O item precisa ser mesmo de quem foi denunciado.
     // =====================================================
     match /denuncias/{id} {
@@ -1047,11 +1069,12 @@ service cloud.firestore {
 
       allow get: if logado() && resource.data.autorId == request.auth.uid;
       allow read: if admin();
-      // A equipe registra a análise.
-      allow update: if admin()
-                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'acao', 'nota', 'analisadaEm', 'analisadaPor'])
+      // A equipe registra a análise e quem assumiu o caso (para ninguém fazer o mesmo trabalho).
+      allow update: if podeModerar()
+                    && mudou().hasOnly(['status', 'acao', 'nota', 'analisadaEm', 'analisadaPor', 'responsavel', 'responsavelNome', 'assumidoEm'])
                     && request.resource.data.status in ['nova', 'em_analise', 'resolvida', 'descartada']
-                    && request.resource.data.analisadaPor == request.auth.uid
+                    && (!mudou().hasAny(['status', 'acao', 'nota', 'analisadaEm', 'analisadaPor']) || request.resource.data.analisadaPor == request.auth.uid)
+                    && responsavelOk()
                     && valorTextoAte(request.resource.data.get('nota', ''), 1000);
 
       allow create: if logado()
@@ -1094,7 +1117,7 @@ service cloud.firestore {
     match /sancoes/{uid} {
       allow get: if logado() && request.auth.uid == uid;
       allow read: if admin();
-      allow create, update: if admin()
+      allow create, update: if podeModerar()
                     && request.resource.data.keys().hasOnly(['tipo', 'motivo', 'ate', 'por', 'em', 'historico'])
                     && request.resource.data.tipo in ['suspensao', 'banimento']
                     && valorTextoAte(request.resource.data.get('motivo', ''), 500)
@@ -1102,7 +1125,7 @@ service cloud.firestore {
                     && request.resource.data.por == request.auth.uid
                     && request.resource.data.em == request.time
                     && listaAte('historico', 50);
-      allow delete: if admin();
+      allow delete: if podeModerar();
     }
 
     match /avisos/{id} {
@@ -1127,19 +1150,19 @@ service cloud.firestore {
 
     match /comunicados/{id} {
       allow read: if logado();
-      allow create, update: if admin()
+      allow create, update: if podeModerar()
                     && request.resource.data.keys().hasOnly(['titulo', 'texto', 'tipo', 'ativo', 'link', 'por', 'em', 'ate'])
                     && valorTextoAte(request.resource.data.get('titulo', ''), 120)
                     && valorTextoAte(request.resource.data.get('texto', ''), 600)
                     && request.resource.data.tipo in ['info', 'novidade', 'alerta']
                     && request.resource.data.ativo is bool
                     && request.resource.data.por == request.auth.uid;
-      allow delete: if admin();
+      allow delete: if podeModerar();
     }
 
     match /suporte/{id} {
       function camposChamado() {
-        return ['uid', 'nome', 'email', 'assunto', 'categoria', 'status', 'criadoEm', 'atualizadoEm', 'ultimaDe', 'atendidoPor'];
+        return ['uid', 'nome', 'email', 'assunto', 'categoria', 'status', 'criadoEm', 'atualizadoEm', 'ultimaDe', 'atendidoPor', 'responsavel', 'responsavelNome', 'assumidoEm'];
       }
       allow read: if logado() && resource.data.uid == request.auth.uid;
       allow read: if admin();
@@ -1154,26 +1177,35 @@ service cloud.firestore {
                     && request.resource.data.status == 'aberto'
                     && request.resource.data.criadoEm == request.time
                     && request.resource.data.atualizadoEm == request.time
-                    && request.resource.data.ultimaDe == 'usuario';
+                    && request.resource.data.ultimaDe == 'usuario'
+                    && !request.resource.data.keys().hasAny(['atendidoPor', 'responsavel', 'responsavelNome', 'assumidoEm']);
       allow update: if logado()
                     && ((resource.data.uid == request.auth.uid
                          && mudou().hasOnly(['status', 'atualizadoEm', 'ultimaDe'])
                          && request.resource.data.status in ['aberto', 'fechado']
                          && request.resource.data.ultimaDe == 'usuario')
                         || (admin()
-                         && mudou().hasOnly(['status', 'atualizadoEm', 'ultimaDe', 'atendidoPor'])
-                         && request.resource.data.status in ['aberto', 'respondido', 'fechado']))
+                         && mudou().hasOnly(['status', 'atualizadoEm', 'ultimaDe', 'atendidoPor', 'responsavel', 'responsavelNome', 'assumidoEm'])
+                         && request.resource.data.status in ['aberto', 'respondido', 'fechado']
+                         && responsavelOk()))
                     && request.resource.data.atualizadoEm == request.time;
+      // A equipe só assume ou passa o chamado (sem mexer na data da conversa).
+      allow update: if admin()
+                    && mudou().hasOnly(['responsavel', 'responsavelNome', 'assumidoEm'])
+                    && responsavelOk();
       allow delete: if false;
 
       match /mensagens/{msgId} {
         function chamado() { return get(/databases/$(database)/documents/suporte/$(id)).data; }
+        // getAfter: o chamado e a primeira mensagem são gravados juntos (tudo ou nada).
+        function chamadoDepois() { return getAfter(/databases/$(database)/documents/suporte/$(id)).data; }
         allow read: if logado() && (chamado().uid == request.auth.uid || admin());
         allow create: if logado()
-                      && (chamado().uid == request.auth.uid || admin())
+                      && (chamadoDepois().uid == request.auth.uid || admin())
                       && request.resource.data.keys().hasOnly(['autorId', 'equipe', 'texto', 'em'])
                       && request.resource.data.autorId == request.auth.uid
-                      && request.resource.data.equipe == admin()
+                      // "equipe" (resposta oficial) só quem é da equipe; no próprio chamado, todos escrevem como usuário
+                      && (request.resource.data.equipe == false || (request.resource.data.equipe == true && admin()))
                       && request.resource.data.texto is string && request.resource.data.texto.size() >= 1 && request.resource.data.texto.size() <= 2000
                       && request.resource.data.em == request.time;
         allow update, delete: if false;
@@ -1195,11 +1227,78 @@ service cloud.firestore {
                     && request.resource.data.status == 'novo'
                     && request.resource.data.criadoEm == request.time;
       allow read: if admin();
-      allow update: if admin()
-                    && mudou().hasOnly(['status', 'notas', 'atualizadoEm', 'responsavel'])
+      allow update: if podeComercial()
+                    && mudou().hasOnly(['status', 'notas', 'atualizadoEm', 'responsavel', 'responsavelNome', 'assumidoEm'])
                     && request.resource.data.status in ['novo', 'em_conversa', 'proposta', 'fechado', 'recusado']
+                    && (!mudou().hasAny(['responsavelNome', 'assumidoEm']) || responsavelOk())
                     && valorTextoAte(request.resource.data.get('notas', ''), 3000);
-      allow delete: if admin();
+      allow delete: if podeComercial();
+    }
+
+    // Presença da equipe no painel (quem está online) e chat interno da equipe.
+    match /equipe_presenca/{uid} {
+      allow read: if admin();
+      allow create, update: if admin()
+                    && request.auth.uid == uid
+                    && request.resource.data.keys().hasOnly(['nome', 'em', 'secao', 'item', 'itemNome'])
+                    && valorTextoAte(request.resource.data.get('nome', ''), 80)
+                    && valorTextoAte(request.resource.data.get('secao', ''), 40)
+                    && valorTextoAte(request.resource.data.get('item', null), 160)
+                    && valorTextoAte(request.resource.data.get('itemNome', null), 120)
+                    && request.resource.data.em == request.time;
+      allow delete: if admin() && request.auth.uid == uid;
+    }
+
+    match /equipe_chat/{id} {
+      allow read: if admin();
+      allow create: if admin()
+                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'texto', 'em'])
+                    && request.resource.data.autorId == request.auth.uid
+                    && valorTextoAte(request.resource.data.get('nome', ''), 80)
+                    && request.resource.data.texto is string && request.resource.data.texto.size() >= 1 && request.resource.data.texto.size() <= 2000
+                    && request.resource.data.em == request.time;
+      allow update, delete: if false;
+    }
+
+    // Quadro de tarefas da equipe: quem faz o quê.
+    match /equipe_tarefas/{id} {
+      function tarefaOk() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['titulo', 'descricao', 'status', 'prioridade', 'responsavel', 'responsavelNome', 'prazo', 'ligacao', 'ligacaoNome', 'criadoPor', 'criadoPorNome', 'criadoEm', 'atualizadoEm', 'concluidaEm'])
+            && d.titulo is string && d.titulo.size() >= 2 && d.titulo.size() <= 140
+            && valorTextoAte(d.get('descricao', null), 2000)
+            && d.status in ['a_fazer', 'fazendo', 'feito']
+            && d.prioridade in ['baixa', 'normal', 'alta', 'urgente']
+            && (d.get('responsavel', null) == null || (d.responsavel is string && exists(/databases/$(database)/documents/admins/$(d.responsavel))))
+            && valorTextoAte(d.get('responsavelNome', null), 80)
+            && (d.get('prazo', null) == null || d.prazo is timestamp)
+            && valorTextoAte(d.get('ligacao', null), 160)
+            && valorTextoAte(d.get('ligacaoNome', null), 120)
+            && valorTextoAte(d.get('criadoPorNome', null), 80)
+            && d.atualizadoEm == request.time;
+      }
+      allow read: if admin();
+      allow create: if admin() && tarefaOk()
+                    && request.resource.data.criadoPor == request.auth.uid
+                    && request.resource.data.criadoEm == request.time;
+      allow update: if admin() && tarefaOk()
+                    && request.resource.data.criadoPor == resource.data.criadoPor
+                    && request.resource.data.criadoEm == resource.data.criadoEm;
+      allow delete: if admin() && (resource.data.criadoPor == request.auth.uid || papel() == 'dono');
+    }
+
+    // Notas internas da equipe sobre um usuário (só a equipe vê; ninguém edita).
+    match /notas_internas/{id} {
+      allow read: if admin();
+      allow create: if admin()
+                    && request.resource.data.keys().hasOnly(['alvo', 'texto', 'autorId', 'autorNome', 'em'])
+                    && request.resource.data.alvo is string && request.resource.data.alvo.size() <= 128
+                    && request.resource.data.autorId == request.auth.uid
+                    && valorTextoAte(request.resource.data.get('autorNome', null), 80)
+                    && request.resource.data.texto is string && request.resource.data.texto.size() >= 1 && request.resource.data.texto.size() <= 2000
+                    && request.resource.data.em == request.time;
+      allow update: if false;
+      allow delete: if admin() && (resource.data.autorId == request.auth.uid || papel() == 'dono');
     }
 
     match /admin_log/{id} {
@@ -1332,7 +1431,7 @@ service cloud.firestore {
 
       allow delete: if logado()
                     && (resource.data.autorId == request.auth.uid || resource.data.postAutorId == request.auth.uid);
-      allow delete: if admin();
+      allow delete: if podeModerar();
     }
 
     // =====================================================
@@ -1395,10 +1494,10 @@ service cloud.firestore {
                     && resource.data.autorId == request.auth.uid;
 
       // A equipe esconde ou remove publicações que violam os Termos.
-      allow update: if admin()
+      allow update: if podeModerar()
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ocultoAte'])
                     && dataOuNulo('ocultoAte');
-      allow delete: if admin();
+      allow delete: if podeModerar();
     }
   }
 }
