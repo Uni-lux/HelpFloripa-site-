@@ -3,8 +3,8 @@
 // Só entra quem tem o documento admins/{uid} (criado à mão no console do
 // Firebase). As regras do Firestore conferem isso em cada leitura e ação.
 // =====================================================
-import { C, D, $, h, ms, toast } from "./admin-base.js?v=1";
-import * as S from "./admin-secoes.js?v=1";
+import { C, D, $, h, ms, toast } from "./admin-base.js?v=2";
+import * as S from "./admin-secoes.js?v=2";
 
 const SECOES = {
   visao: S.visao, estatisticas: S.estatisticas, relatorios: S.relatorios, usuarios: S.usuarios, verificacoes: S.verificacoes,
@@ -92,6 +92,7 @@ async function carregar(mostrar = true) {
   }
   C.nome = ficha?.nome || usuario.displayName || usuario.email || "Equipe";
   C.irPara = irPara;
+  C.contadores = contadores;
   C.recarregar = (mostrar) => carregar(mostrar);
   $("app").hidden = false;
   document.querySelectorAll(".ad-nav").forEach((b) => b.addEventListener("click", () => irPara(b.dataset.secao)));

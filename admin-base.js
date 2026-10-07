@@ -3,7 +3,7 @@
 // Estado (D), utilitários, janelas, ações de moderação (todas registradas
 // em admin_log) e a ficha completa do usuário.
 // =====================================================
-export const C = { fb: null, A: null, eu: null, nome: "", irPara: () => {}, recarregar: async () => {} };
+export const C = { fb: null, A: null, eu: null, nome: "", irPara: () => {}, recarregar: async () => {}, contadores: () => {} };
 export const D = {
   pessoas: new Map(), negocios: [], anuncios: [], posts: [], denuncias: [], queixas: [], suporte: [], parcerias: [],
   sancoes: new Map(), exclusoes: new Map(), notas: new Map(), comunicados: [], log: [], admins: [], estatisticas: [],
@@ -108,6 +108,7 @@ export async function registrar(acao, alvo = "", detalhe = "") {
   const { fb } = C;
   try { await fb.addDoc(fb.collection(fb.db, "admin_log"), { acao, alvo, detalhe: String(detalhe).slice(0, 1000), por: C.eu.uid, porNome: C.nome, em: fb.serverTimestamp() }); }
   catch (e) { console.warn("Registro de ação falhou:", e); }
+  try { C.contadores(); } catch {}
 }
 export async function enviarAviso(uid, { titulo, texto, tipo = "info" }) {
   const { fb } = C;
@@ -123,6 +124,10 @@ async function marcarConteudo(uid, ate) {
   const refs = [...neg.docs, ...an.docs, ...posts.docs].map((d) => d.ref);
   for (let i = 0; i < refs.length; i += 400) { const b = fb.writeBatch(fb.db); refs.slice(i, i + 400).forEach((r) => b.update(r, { ocultoAte: valor })); await b.commit(); }
   await fb.updateDoc(fb.doc(fb.db, "perfis_publicos", uid), { desativadaAte: valor }).catch(() => {});
+  const marca = ate ? { toMillis: () => ate.getTime() } : null;
+  [...D.negocios, ...D.anuncios].filter((x) => x.donoId === uid).forEach((x) => { x.ocultoAte = marca; });
+  D.posts.filter((x) => x.autorId === uid).forEach((x) => { x.ocultoAte = marca; });
+  const p = D.pessoas.get(uid); if (p) p.desativadaAte = marca;
 }
 const SEM_DATA = new Date("2999-12-31T00:00:00Z");
 export async function sancionar(uid, { tipo, dias = 0, motivo }) {
@@ -236,7 +241,7 @@ export async function abrirFicha(uid) {
   const sancionado = st.k === "suspenso" || st.k === "banido";
   if (sancionado) bt("Remover sanção", "pri", async () => { if (!confirm("Remover a suspensão/banimento desta conta?")) return false; await tirarSancao(uid); toast("Sanção removida"); return true; });
   else { bt("Suspender", "perigo", () => fluxoSancao(uid, "suspensao")); bt("Banir", "perigo", () => fluxoSancao(uid, "banimento")); }
-  bt(p.verificado ? "Tirar selo" : "Dar selo verificado", "", async () => { await definirSelo(uid, !p.verificado); if (!p.verificado) await enviarAviso(uid, { titulo: "Seu perfil foi verificado", texto: "Parabéns! Seu perfil agora tem o selo de verificado.", tipo: "info" }); toast("Selo atualizado"); return true; });
+  bt(p.verificado ? "Tirar selo" : "Dar selo verificado", "", async () => { const dar = !p.verificado; await definirSelo(uid, dar); if (dar) await enviarAviso(uid, { titulo: "Seu perfil foi verificado", texto: "Parabéns! Seu perfil agora tem o selo de verificado.", tipo: "info" }); toast("Selo atualizado"); return true; });
   const ver = h("a", "ad-bt", "Ver perfil no site"); ver.href = `usuarios.html?perfil=${encodeURIComponent(uid)}`; ver.target = "_blank"; ac.appendChild(ver);
   if (p.email) { const em = h("a", "ad-bt", "E-mail"); em.href = `mailto:${p.email}`; ac.appendChild(em); }
   const tel = String(p.telefone || "").replace(/\D/g, ""); if (tel.length >= 10) { const w = h("a", "ad-bt", "WhatsApp"); w.href = `https://wa.me/55${tel}`; w.target = "_blank"; w.rel = "noopener"; ac.appendChild(w); }

@@ -5,7 +5,7 @@ import { linha, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v
 import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha
-} from "./admin-base.js?v=1";
+} from "./admin-base.js?v=2";
 
 const cab = (titulo, sub, extra) => { const c = h("div", "ad-cab"); const t = h("div"); t.append(h("h1", null, titulo)); if (sub) t.append(h("p", null, sub)); c.appendChild(t); if (extra) c.appendChild(extra); return c; };
 const bloco = (titulo, sub) => { const b = h("section", "ad-bloco"); const t = h("div", "ad-bloco-topo"); const tt = h("div"); tt.append(h("h3", null, titulo)); if (sub) tt.append(h("p", null, sub)); t.appendChild(tt); b.appendChild(t); b.topo = t; return b; };
@@ -88,6 +88,7 @@ export function visao(el) {
 // ======================================================= USUÁRIOS
 let filtroUsuarios = "todos", ordemUsuarios = "recentes";
 export function usuarios(el, termo = "") {
+  if (termo) filtroUsuarios = "todos";
   const busca = h("input"); busca.type = "search"; busca.placeholder = "Filtrar por nome, @, e-mail, telefone, cidade ou ID"; busca.value = termo;
   Object.assign(busca.style, { width: "min(420px,100%)", height: "40px", borderRadius: "12px", border: "1px solid var(--line)", background: "var(--input)", padding: "0 12px" });
   const exportar = btn("Exportar CSV", "", () => { const l = filtrar(); baixarCSV("usuarios", ["ID", "Nome", "@", "E-mail", "Telefone", "Cidade", "Idade", "Cadastro", "Último acesso", "Situação", "Verificado", "Negócios"], l.map((p) => [p.uid, p.nome || "", p.nickname || "", p.email || "", p.telefone || "", nomeCidade(p.cidade), idade(p.dataNascimento) ?? "", data(p.criadoEm), data(p.ultimoAcesso), estado(p).t, p.verificado ? "sim" : "não", D.negocios.filter((n) => n.donoId === p.uid).length])); registrar("exportar", "usuarios", `${l.length} linhas`); });
@@ -202,9 +203,9 @@ export function denuncias(el) {
     if (v.acao === "aviso" && !(await fluxoAviso(d.alvoId))) return;
     if ((v.acao === "suspensao" || v.acao === "banimento") && !(await fluxoSancao(d.alvoId, v.acao))) return;
     if (v.acao === "remover") {
-      if (d.tipo === "publicacao") await fb.deleteDoc(fb.doc(fb.db, "diario", d.itemId));
+      if (d.tipo === "publicacao") { await fb.deleteDoc(fb.doc(fb.db, "diario", d.itemId)); D.posts = D.posts.filter((x) => x.id !== d.itemId); }
       else if (d.tipo === "comentario") await fb.deleteDoc(fb.doc(fb.db, "comentarios", d.itemId));
-      else if (d.tipo === "negocio") await fb.updateDoc(fb.doc(fb.db, "negocios", d.itemId), { ocultoAte: fb.Timestamp.fromDate(new Date("2999-12-31")) });
+      else if (d.tipo === "negocio") { await fb.updateDoc(fb.doc(fb.db, "negocios", d.itemId), { ocultoAte: fb.Timestamp.fromDate(new Date("2999-12-31")) }); const n = D.negocios.find((x) => x.id === d.itemId); if (n) n.ocultoAte = { toMillis: () => new Date("2999-12-31").getTime() }; }
       else { toast("Perfis e mensagens não são removidos: use aviso, suspensão ou banimento."); return; }
       await registrar("remover_conteudo", d.alvoId, `${d.tipo} ${d.itemId}`);
     }
@@ -355,7 +356,7 @@ export function suporte(el) {
       const t = txt.value.trim(); if (!t) { toast("Escreva a resposta."); return; }
       await fb.addDoc(fb.collection(fb.db, "suporte", s.id, "mensagens"), { autorId: C.eu.uid, equipe: true, texto: t, em: fb.serverTimestamp() });
       await fb.updateDoc(fb.doc(fb.db, "suporte", s.id), { status: "respondido", atualizadoEm: fb.serverTimestamp(), ultimaDe: "equipe", atendidoPor: C.eu.uid });
-      await enviarAviso(s.uid, { titulo: "O suporte respondeu", texto: `Respondemos seu chamado "${s.assunto}". Abra Ajuda › Meus chamados para ver.`, tipo: "info" }).catch(() => {});
+      await enviarAviso(s.uid, { titulo: "O suporte respondeu", texto: `Respondemos seu chamado "${s.assunto}". Toque em "Falar com o suporte" aqui embaixo para ver a resposta.`, tipo: "info" }).catch(() => {});
       s.status = "respondido"; await registrar("suporte_resposta", s.uid, s.assunto); toast("Resposta enviada"); fechar(); pintar();
     }));
     cx.append(chat, txt, ac); fundo.appendChild(cx); document.body.appendChild(fundo);
@@ -497,13 +498,14 @@ export function comunicados(el) {
       { nome: "titulo", rotulo: "Título", max: 120, obrigatorio: true, valor: c?.titulo }, { nome: "texto", rotulo: "Texto", tipo: "textarea", max: 600, valor: c?.texto },
       { nome: "tipo", rotulo: "Tipo", tipo: "select", opcoes: [["novidade", "Novidade"], ["info", "Informativo"], ["alerta", "Alerta (manutenção, golpe circulando...)"]], valor: c?.tipo || "novidade" },
       { nome: "link", rotulo: "Link (opcional)", valor: c?.link || "", dica: "ex.: ajuda.html" },
-      { nome: "dias", rotulo: "Ficar no ar por", tipo: "select", opcoes: [["0", "Até eu tirar"], ["1", "1 dia"], ["3", "3 dias"], ["7", "7 dias"], ["30", "30 dias"]], valor: "0" }
+      { nome: "dias", rotulo: "Ficar no ar por", tipo: "select", opcoes: [...(c?.ate && ms(c.ate) > agora() ? [["manter", `Manter o prazo atual (até ${dataHora(c.ate)})`]] : []), ["0", "Até eu tirar"], ["1", "1 dia"], ["3", "3 dias"], ["7", "7 dias"], ["30", "30 dias"]], valor: c?.ate && ms(c.ate) > agora() ? "manter" : "0" }
     ], botao: "Salvar e colocar no ar" });
     if (!v) return;
     const { fb } = C;
     const dados = { titulo: v.titulo, texto: v.texto, tipo: v.tipo, ativo: true, por: C.eu.uid, em: fb.serverTimestamp() };
     if (v.link && /^[\w./?=&#-]+$/.test(v.link) && !/^\/\//.test(v.link)) dados.link = v.link;
-    if (Number(v.dias)) dados.ate = fb.Timestamp.fromDate(new Date(agora() + Number(v.dias) * DIA));
+    if (v.dias === "manter") dados.ate = c.ate;
+    else if (Number(v.dias)) dados.ate = fb.Timestamp.fromDate(new Date(agora() + Number(v.dias) * DIA));
     if (c) await fb.setDoc(fb.doc(fb.db, "comunicados", c.id), dados); else await fb.addDoc(fb.collection(fb.db, "comunicados"), dados);
     await registrar(c ? "comunicado_editar" : "comunicado_novo", "", v.titulo); toast("Comunicado no ar"); await C.recarregar(false); C.irPara("comunicados");
   }
