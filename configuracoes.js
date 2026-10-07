@@ -347,4 +347,6 @@ $("excConfirmar").addEventListener("click", async () => {
   $("cfgConteudo").hidden = false;
   $("cfgCarregando").hidden = true;
   aplicarTema();
+  // Atalho do painel: só aparece para quem está na equipe (as regras do Firestore protegem o painel de qualquer forma).
+  fb.getDoc(fb.doc(fb.db, "admins", eu.uid)).then((s) => { if (s.exists()) $("cfgEquipe").hidden = false; }).catch(() => {});
 })();

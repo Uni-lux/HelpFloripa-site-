@@ -19,9 +19,9 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="admin.css?v=1" />
+  <link rel="stylesheet" href="admin.css?v=3" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="admin.js?v=2"></script>
+  <script type="module" src="admin.js?v=3"></script>
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -69,6 +69,7 @@
       <button type="button" class="ad-icone ad-menu-bt" id="btMenu" aria-label="Menu"><svg class="i"><use href="#i-menu"/></svg></button>
       <a class="ad-marca" href="admin.html"><strong>HELP <span>FLORIPA</span></strong><small>Painel</small></a>
       <label class="ad-busca"><svg class="i s"><use href="#i-lupa"/></svg><input id="buscaGlobal" type="search" placeholder="Buscar usuário: nome, @, e-mail, telefone ou ID" autocomplete="off" /></label>
+      <button type="button" class="ad-online" id="equipeOnline" hidden title="Abrir equipe e chat"></button>
       <span class="ad-atualizado" id="atualizado"></span>
       <button type="button" class="ad-icone" id="btAtualizar" aria-label="Atualizar dados" title="Atualizar dados"><svg class="i s"><use href="#i-atualizar"/></svg></button>
       <a class="ad-icone" href="index.html" aria-label="Voltar ao site" title="Voltar ao site"><svg class="i s"><use href="#i-casa"/></svg></a>
@@ -94,7 +95,7 @@
         <button type="button" class="ad-nav" data-secao="comunicados"><svg class="i s"><use href="#i-megafone"/></svg>Comunicados</button>
         <h4>Equipe</h4>
         <button type="button" class="ad-nav" data-secao="registro"><svg class="i s"><use href="#i-lista"/></svg>Registro de ações</button>
-        <button type="button" class="ad-nav" data-secao="equipe"><svg class="i s"><use href="#i-escudo"/></svg>Equipe</button>
+        <button type="button" class="ad-nav" data-secao="equipe"><svg class="i s"><use href="#i-chat"/></svg>Equipe e chat<span class="cont" data-cont="equipe"></span></button>
       </nav>
       <main class="ad-principal" id="principal" tabindex="-1">
         <div class="ad-vazio">Carregando dados do Help Floripa...</div>

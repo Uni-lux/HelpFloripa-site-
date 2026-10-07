@@ -3,10 +3,11 @@
 // - linha/área: crescimento ao longo do tempo (cruz + dica ao passar)
 // - barras: comparar quantidades (horizontal para nomes longos), com o
 //   valor escrito na barra e dica ao passar
-// - cada cartão tem "Tabela" (os números por trás) e "CSV" (baixar)
+// - cada cartão tem "Tabela" (os números por trás) e "Excel" (baixar)
 // Cores: variáveis --viz-* do admin.css (paleta validada para daltonismo,
 // claro e escuro). Uma escala só por gráfico; nada de dois eixos.
 // =====================================================
+import { baixarPlanilha } from "./planilha.js?v=1";
 const NS = "http://www.w3.org/2000/svg";
 const s = (tag, attrs = {}) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); return e; };
 const h = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
@@ -122,7 +123,7 @@ export function barras(el, { itens, formato = num, horizontal = false, cor = "va
   el.appendChild(svg);
 }
 
-// Cartão com título, gráfico, "Tabela" e "CSV".
+// Cartão com título, gráfico, "Tabela" e "Excel".
 // desenhar(el) desenha o gráfico · linhas: [[col1, col2...], ...] com cabecalho
 export function cartao({ titulo, sub = "", cabecalho = [], linhas = [], desenhar, largo = false, nomeArquivo = "dados" }) {
   const c = h("section", "viz-cartao" + (largo ? " largo" : ""));
@@ -130,7 +131,7 @@ export function cartao({ titulo, sub = "", cabecalho = [], linhas = [], desenhar
   const tt = h("div"); tt.append(h("h3", null, titulo)); if (sub) tt.append(h("p", null, sub));
   const bts = h("div", "viz-bts");
   const bT = h("button", "viz-bt", "Tabela"); bT.type = "button"; bT.setAttribute("aria-pressed", "false");
-  const bC = h("button", "viz-bt", "CSV"); bC.type = "button";
+  const bC = h("button", "viz-bt", "Excel"); bC.type = "button";
   bts.append(bT, bC);
   topo.append(tt, bts);
   const area = h("div", "viz-area");
@@ -162,12 +163,5 @@ export function destaque({ rotulo, valor, formato = num, antes = null, dica: tex
   return c;
 }
 
-export function baixarCSV(nome, cabecalho, linhas) {
-  const esc = (v) => { const t = String(v ?? ""); return /[";\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
-  const txt = "﻿" + [cabecalho, ...linhas].map((l) => l.map(esc).join(";")).join("\n");
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([txt], { type: "text/csv;charset=utf-8" }));
-  a.download = `${nome}-${new Date().toISOString().slice(0, 10)}.csv`;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-}
+// Planilhas saem em Excel (.xlsx): abrem como tabela no celular e no computador.
+export function baixarCSV(nome, cabecalho, linhas) { baixarPlanilha(nome, cabecalho, linhas); }

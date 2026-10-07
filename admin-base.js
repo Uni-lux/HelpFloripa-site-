@@ -3,7 +3,7 @@
 // Estado (D), utilitários, janelas, ações de moderação (todas registradas
 // em admin_log) e a ficha completa do usuário.
 // =====================================================
-export const C = { fb: null, A: null, eu: null, nome: "", irPara: () => {}, recarregar: async () => {}, contadores: () => {} };
+export const C = { fb: null, A: null, eu: null, nome: "", irPara: () => {}, recarregar: async () => {}, contadores: () => {}, presenca: new Map(), chat: [], online: () => false, marcarChatVisto: () => {}, aoMudarEquipe: null };
 export const D = {
   pessoas: new Map(), negocios: [], anuncios: [], posts: [], denuncias: [], queixas: [], suporte: [], parcerias: [],
   sancoes: new Map(), exclusoes: new Map(), notas: new Map(), comunicados: [], log: [], admins: [], estatisticas: [],
@@ -32,7 +32,7 @@ export function idade(nasc) {
   return i >= 0 && i < 120 ? i : null;
 }
 export const nomeCidade = (v) => (v === "florianopolis" ? "Florianópolis" : v === "saojose" ? "São José" : String(v || "").trim());
-export const iniciais = (n) => { const p = String(n || "?").trim().split(/\s+/); return ((p[0]?.[0] || "?") + (p.length > 1 ? p[p.length - 1][0] : "")).toUpperCase(); };
+export const iniciais = (n) => { const p = String(n || "").replace(/[^\p{L}\p{N}\s]/gu, " ").trim().split(/\s+/).filter(Boolean); return ((p[0]?.[0] || "?") + (p.length > 1 ? p[p.length - 1][0] : "")).toUpperCase(); };
 export const fotoOk = (u) => /^(data:image\/|https:\/\/firebasestorage\.googleapis\.com\/|https:\/\/lh3\.googleusercontent\.com\/)/.test(String(u || ""));
 export function avatar(p, grande = false) {
   const a = h("div", "ad-av" + (grande ? " g" : ""));

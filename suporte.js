@@ -51,8 +51,12 @@ $("supEnviar").addEventListener("click", async () => {
   if (texto.length < 10) { toast("Conte um pouco mais (mínimo de 10 caracteres)."); $("supTexto").focus(); return; }
   const b = $("supEnviar"); b.disabled = true;
   try {
-    const ref = await fb.addDoc(fb.collection(fb.db, "suporte"), { uid: eu.uid, nome: String(dados.nome || "").slice(0, 80), email: String(eu.email || "").slice(0, 120), assunto, categoria, status: "aberto", criadoEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp(), ultimaDe: "usuario" });
-    await fb.setDoc(fb.doc(fb.db, "suporte", ref.id, "mensagens", "inicio"), { autorId: eu.uid, equipe: false, texto, em: fb.serverTimestamp() });
+    // Chamado e primeira mensagem vão juntos: se algo falhar, nada fica pela metade.
+    const ref = fb.doc(fb.collection(fb.db, "suporte"));
+    const lote = fb.writeBatch(fb.db);
+    lote.set(ref, { uid: eu.uid, nome: String(dados.nome || "").slice(0, 80), email: String(eu.email || "").slice(0, 120), assunto, categoria, status: "aberto", criadoEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp(), ultimaDe: "usuario" });
+    lote.set(fb.doc(fb.db, "suporte", ref.id, "mensagens", "inicio"), { autorId: eu.uid, equipe: false, texto, em: fb.serverTimestamp() });
+    await lote.commit();
     fecharFolha("folhaNovo");
     $("supAssunto").value = ""; $("supTexto").value = "";
     toast("Chamado enviado. A equipe responde por aqui e você recebe um aviso.");

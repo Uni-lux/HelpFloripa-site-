@@ -1,11 +1,11 @@
 // =====================================================
 // Painel do administrador — seções
 // =====================================================
-import { linha, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=1";
+import { linha, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=2";
 import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha
-} from "./admin-base.js?v=2";
+} from "./admin-base.js?v=3";
 
 const cab = (titulo, sub, extra) => { const c = h("div", "ad-cab"); const t = h("div"); t.append(h("h1", null, titulo)); if (sub) t.append(h("p", null, sub)); c.appendChild(t); if (extra) c.appendChild(extra); return c; };
 const bloco = (titulo, sub) => { const b = h("section", "ad-bloco"); const t = h("div", "ad-bloco-topo"); const tt = h("div"); tt.append(h("h3", null, titulo)); if (sub) tt.append(h("p", null, sub)); t.appendChild(tt); b.appendChild(t); b.topo = t; return b; };
@@ -91,7 +91,7 @@ export function usuarios(el, termo = "") {
   if (termo) filtroUsuarios = "todos";
   const busca = h("input"); busca.type = "search"; busca.placeholder = "Filtrar por nome, @, e-mail, telefone, cidade ou ID"; busca.value = termo;
   Object.assign(busca.style, { width: "min(420px,100%)", height: "40px", borderRadius: "12px", border: "1px solid var(--line)", background: "var(--input)", padding: "0 12px" });
-  const exportar = btn("Exportar CSV", "", () => { const l = filtrar(); baixarCSV("usuarios", ["ID", "Nome", "@", "E-mail", "Telefone", "Cidade", "Idade", "Cadastro", "Último acesso", "Situação", "Verificado", "Negócios"], l.map((p) => [p.uid, p.nome || "", p.nickname || "", p.email || "", p.telefone || "", nomeCidade(p.cidade), idade(p.dataNascimento) ?? "", data(p.criadoEm), data(p.ultimoAcesso), estado(p).t, p.verificado ? "sim" : "não", D.negocios.filter((n) => n.donoId === p.uid).length])); registrar("exportar", "usuarios", `${l.length} linhas`); });
+  const exportar = btn("Baixar Excel", "", () => { const l = filtrar(); baixarCSV("usuarios", ["ID", "Nome", "@", "E-mail", "Telefone", "Cidade", "Idade", "Cadastro", "Último acesso", "Situação", "Verificado", "Negócios"], l.map((p) => [p.uid, p.nome || "", p.nickname || "", p.email || "", p.telefone || "", nomeCidade(p.cidade), idade(p.dataNascimento) ?? "", data(p.criadoEm), data(p.ultimoAcesso), estado(p).t, p.verificado ? "sim" : "não", D.negocios.filter((n) => n.donoId === p.uid).length])); registrar("exportar", "usuarios", `${l.length} linhas`); });
   const topoAcoes = h("div", "ad-acoes"); topoAcoes.append(busca, exportar);
   el.append(cab("Usuários", `${num(D.pessoas.size)} contas. Toque numa pessoa para ver a ficha completa e agir.`, topoAcoes));
   const filtros = chips([["todos", "Todos"], ["novos", "Novos (7 dias)"], ["ativos", "Ativos (7 dias)"], ["inativos", "Sumidos (+30 dias)"], ["negocio", "Com negócio"], ["verificados", "Verificados"], ["desativado", "Desativados"], ["exclusao", "Exclusão agendada"], ["sancao", "Suspensos/banidos"]], filtroUsuarios, (v) => { filtroUsuarios = v; pintar(); });
@@ -380,25 +380,64 @@ export function parcerias(el) {
     const col = h("div", "ad-coluna"); const t = h("h4"); t.append(h("span", null, rot), h("span", null, String(itens.length))); col.appendChild(t);
     itens.forEach((p) => {
       const c = h("article", "ad-item");
-      c.append(h("div", "cab"), h("strong", null, p.empresa ? `${p.empresa} · ${p.nome}` : p.nome), h("div", "meta", `${TIPO[p.tipo] || p.tipo} · ${data(p.criadoEm)}${p.cidade ? " · " + p.cidade : ""}`), h("div", "trecho", p.mensagem));
+      c.append(h("div", "cab"), h("strong", null, p.empresa ? `${p.empresa} · ${p.nome}` : p.nome), h("div", "meta", `${TIPO[p.tipo] || p.tipo} · ${data(p.criadoEm)}${p.cidade ? " · " + p.cidade : ""}`), h("div", "trecho", String(p.mensagem || "").length > 160 ? String(p.mensagem).slice(0, 160) + "…" : p.mensagem), h("div", "meta", "Toque para ver tudo"));
       c.querySelector(".cab").append(selo(TIPO[p.tipo] || p.tipo, "info"));
       if (p.notas) c.appendChild(h("div", "meta", `Notas: ${p.notas}`));
       const ac = h("div", "ad-acoes");
       if (p.email) { const a = h("a", "ad-bt", "E-mail"); a.href = `mailto:${p.email}?subject=Help Floripa — ${encodeURIComponent(TIPO[p.tipo] || "Parceria")}`; ac.appendChild(a); }
       const tel = String(p.telefone || "").replace(/\D/g, ""); if (tel.length >= 10) { const w = h("a", "ad-bt", "WhatsApp"); w.href = `https://wa.me/${tel.length <= 11 ? "55" + tel : tel}`; w.target = "_blank"; ac.appendChild(w); }
-      ac.appendChild(btn("Atualizar", "pri", async () => {
-        const v = await modal({ titulo: "Atualizar proposta", campos: [{ nome: "status", rotulo: "Etapa", tipo: "select", opcoes: COLS, valor: p.status || "novo" }, { nome: "notas", rotulo: "Notas internas", tipo: "textarea", valor: p.notas || "", max: 3000 }], botao: "Salvar" });
-        if (!v) return;
-        const { fb } = C;
-        await fb.updateDoc(fb.doc(fb.db, "parcerias", p.id), { status: v.status, notas: v.notas, atualizadoEm: fb.serverTimestamp(), responsavel: C.eu.uid });
-        Object.assign(p, v); await registrar("parceria", p.email || p.nome, `${v.status}`); toast("Proposta atualizada"); C.irPara("parcerias");
-      }));
+      ac.appendChild(btn("Atualizar", "pri", () => atualizarProposta(p)));
       c.appendChild(ac); col.appendChild(c);
+      c.classList.add("clicavel"); c.tabIndex = 0; c.setAttribute("role", "button"); c.setAttribute("aria-label", `Abrir proposta de ${p.nome}`);
+      c.addEventListener("click", (e) => { if (!e.target.closest("a,button")) abrirProposta(p); });
+      c.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target === c) abrirProposta(p); });
     });
     if (!itens.length) col.appendChild(h("div", "meta", "—"));
     k.appendChild(col);
   });
   el.appendChild(k);
+
+  async function atualizarProposta(p) {
+    const v = await modal({ titulo: "Atualizar proposta", campos: [{ nome: "status", rotulo: "Etapa", tipo: "select", opcoes: COLS, valor: p.status || "novo" }, { nome: "notas", rotulo: "Notas internas", tipo: "textarea", valor: p.notas || "", max: 3000 }], botao: "Salvar" });
+    if (!v) return;
+    const { fb } = C;
+    await fb.updateDoc(fb.doc(fb.db, "parcerias", p.id), { status: v.status, notas: v.notas, atualizadoEm: fb.serverTimestamp(), responsavel: C.eu.uid });
+    Object.assign(p, v, { responsavel: C.eu.uid, atualizadoEm: { toMillis: () => agora() } }); await registrar("parceria", p.email || p.nome, `${v.status}`); toast("Proposta atualizada"); C.irPara("parcerias");
+  }
+
+  function abrirProposta(p) {
+    const fundo = h("div", "ad-modal-fundo"), cx = h("div", "ad-modal ad-proposta"); cx.setAttribute("role", "dialog"); cx.setAttribute("aria-modal", "true");
+    const fechar = () => { fundo.remove(); document.removeEventListener("keydown", tecla); };
+    const tecla = (e) => { if (e.key === "Escape") fechar(); };
+    document.addEventListener("keydown", tecla);
+    fundo.addEventListener("click", (e) => { if (e.target === fundo) fechar(); });
+    const etapa = Object.fromEntries(COLS)[p.status || "novo"];
+    const topo = h("div", "cab"); topo.append(selo(TIPO[p.tipo] || p.tipo, "info"), selo(etapa, p.status === "fechado" ? "bom" : p.status === "recusado" ? "neutro" : "atencao"));
+    cx.append(topo, h("h3", null, p.empresa ? `${p.empresa}` : p.nome), h("p", null, `${p.empresa ? p.nome + " · " : ""}enviada em ${dataHora(p.criadoEm)}`));
+    const dl = h("dl", "ad-dados");
+    const par = (k, v, link) => { if (!v) return; const d = h("div"); d.append(h("dt", null, k)); const dd = h("dd"); if (link) { const a = h("a", null, v); a.href = link; if (/^https?:/.test(link)) { a.target = "_blank"; a.rel = "noopener noreferrer"; } dd.appendChild(a); } else dd.textContent = v; d.appendChild(dd); dl.appendChild(d); };
+    const tel = String(p.telefone || "").replace(/\D/g, "");
+    const site = String(p.site || "").trim();
+    const linkSite = /^https?:\/\//i.test(site) ? site : /^@[\w.]+$/.test(site) ? `https://instagram.com/${site.slice(1)}` : /^[\w-]+(\.[\w-]+)+(\/\S*)?$/.test(site) ? `https://${site}` : "";
+    par("Nome", p.nome); par("Empresa", p.empresa); par("E-mail", p.email, p.email ? `mailto:${p.email}` : "");
+    par("WhatsApp / telefone", p.telefone, tel.length >= 10 ? `https://wa.me/${tel.length <= 11 ? "55" + tel : tel}` : "");
+    par("Cidade", p.cidade); par("Site ou Instagram", site, linkSite); par("Tipo", TIPO[p.tipo] || p.tipo);
+    if (p.uid) par("Conta no site", pessoa(p.uid).nome || p.uid);
+    par("Responsável", p.responsavel ? (pessoa(p.responsavel).nome || D.admins.find((a) => a.id === p.responsavel)?.nome || p.responsavel) : "");
+    par("Atualizada", p.atualizadoEm ? dataHora(p.atualizadoEm) : "");
+    const msg = h("div", "ad-proposta-msg", p.mensagem || "");
+    cx.append(h("h4", null, "Proposta"), msg, dl);
+    if (p.notas) cx.append(h("h4", null, "Notas internas"), h("div", "ad-proposta-msg", p.notas));
+    const ac = h("div", "ad-acoes");
+    if (p.uid) ac.append(btn("Ver ficha", "", () => { fechar(); abrirFicha(p.uid); }));
+    if (p.email) { const a = h("a", "ad-bt", "E-mail"); a.href = `mailto:${p.email}?subject=Help Floripa — ${encodeURIComponent(TIPO[p.tipo] || "Parceria")}`; ac.appendChild(a); }
+    if (tel.length >= 10) { const w = h("a", "ad-bt", "WhatsApp"); w.href = `https://wa.me/${tel.length <= 11 ? "55" + tel : tel}`; w.target = "_blank"; w.rel = "noopener"; ac.appendChild(w); }
+    ac.append(btn("Apagar", "perigo", async () => { if (!confirm("Apagar esta proposta? Não dá para desfazer.")) return; const { fb } = C; await fb.deleteDoc(fb.doc(fb.db, "parcerias", p.id)); D.parcerias = D.parcerias.filter((x) => x !== p); await registrar("parceria_apagar", p.email || p.nome, p.empresa || ""); toast("Proposta apagada"); fechar(); C.irPara("parcerias"); }),
+      btn("Fechar", "", fechar),
+      btn("Mudar etapa / notas", "pri", async () => { fechar(); await atualizarProposta(p); }));
+    cx.appendChild(ac); fundo.appendChild(cx); document.body.appendChild(fundo);
+    cx.querySelector(".ad-acoes .ad-bt.pri")?.focus();
+  }
 }
 
 // ======================================================= VERIFICAÇÕES
@@ -514,7 +553,7 @@ export function comunicados(el) {
 // ======================================================= RELATÓRIOS
 let periodoRel = 30;
 export function relatorios(el) {
-  el.appendChild(cab("Relatórios", "Resumo do período para imprimir ou salvar em PDF, e planilhas para baixar.", chips([[7, "7 dias"], [30, "30 dias"], [90, "90 dias"], [365, "12 meses"]], periodoRel, (v) => { periodoRel = v; el.replaceChildren(); relatorios(el); })));
+  el.appendChild(cab("Relatórios", "Resumo do período para imprimir ou salvar em PDF, e planilhas do Excel para baixar.", chips([[7, "7 dias"], [30, "30 dias"], [90, "90 dias"], [365, "12 meses"]], periodoRel, (v) => { periodoRel = v; el.replaceChildren(); relatorios(el); })));
   const ps = pessoas(), d = periodoRel;
   const linhas = [
     ["Usuários no fim do período", ps.length, ""],
@@ -540,7 +579,7 @@ export function relatorios(el) {
   if (topCid.length) rel.appendChild(h("p", null, `Cidades dos novos usuários: ${topCid.map(([c, n]) => `${c} (${n})`).join(", ")}.`));
   const ac = h("div", "ad-acoes"); ac.style.margin = "14px 0";
   ac.append(btn("Imprimir / salvar PDF", "pri", () => { registrar("relatorio_pdf", "", `${d} dias`); window.print(); }),
-    btn("Baixar resumo (CSV)", "", () => baixarCSV(`relatorio-${d}d`, ["Indicador", "Período", "Período anterior"], linhas)),
+    btn("Baixar resumo (Excel)", "", () => baixarCSV(`relatorio-${d}d`, ["Indicador", "Período", "Período anterior"], linhas)),
     btn("Planilha de negócios", "", () => { baixarCSV("negocios", ["ID", "Nome", "Tipo", "Dono", "Cidade", "Nota", "Avaliações", "Criado", "Atualizado"], D.negocios.map((n) => { const r = D.notas.get("neg_" + n.id); return [n.id, n.nome || "", TIPOS_NEG[n.tipo] || n.tipo, pessoa(n.donoId).nome || n.donoId, nomeCidade(n.cidade), r?.total ? (r.soma / r.total).toFixed(2) : "", r?.total || 0, data(n.criadoEm), data(n.atualizadoEm)]; })); registrar("exportar", "negocios"); }),
     btn("Planilha de denúncias", "", () => { baixarCSV("denuncias", ["Data", "Tipo", "Motivo", "Denunciado", "Por", "Situação", "Ação", "Trecho"], D.denuncias.map((x) => [dataHora(x.criadoEm), x.tipo, MOTIVOS_DEN[x.motivo] || x.motivo, pessoa(x.alvoId).nome || x.alvoId, pessoa(x.autorId).nome || x.autorId, x.status, x.acao || "", x.trecho || ""])); registrar("exportar", "denuncias"); }),
     btn("Planilha de reclamações", "", () => { baixarCSV("reclamacoes", ["Aberta", "Cliente", "Negócio", "Motivo", "Situação", "Respondida", "Relato"], D.queixas.map((q) => [data(q.abertaEm), pessoa(q.autorId).nome || "", q.negocioNome || q.negocioId, MOTIVOS_QX[q.motivo] || q.motivo, q.status, q.resposta ? "sim" : "não", q.texto || ""])); registrar("exportar", "reclamacoes"); }));
@@ -551,7 +590,7 @@ export function relatorios(el) {
     const tt = h("div", "ad-tabela"); const tb = document.createElement("table"); const hr = h("tr"); ["Dia", "Usuários", "Novos", "Ativos 24 h", "Ativos 7 d", "Negócios", "Publicações", "Denúncias novas", "Reclamações abertas"].forEach((x) => hr.appendChild(h("th", null, x))); tb.appendChild(hr);
     [...D.estatisticas].sort((a, b) => b.id.localeCompare(a.id)).slice(0, 60).forEach((x) => { const tr = h("tr"); [x.id.split("-").reverse().join("/"), x.usuarios, x.novos, x.ativos1, x.ativos7, x.negocios, x.publicacoes, x.denunciasNovas, x.reclamacoesAbertas].forEach((v) => tr.appendChild(h("td", null, v == null ? "—" : num(v)))); tb.appendChild(tr); });
     tt.appendChild(tb); auto.appendChild(tt);
-    const csv = btn("Baixar histórico (CSV)", "", () => baixarCSV("historico-diario", ["Dia", "Usuários", "Novos", "Ativos 24h", "Ativos 7d", "Negócios", "Publicações", "Denúncias novas", "Reclamações abertas"], D.estatisticas.map((x) => [x.id, x.usuarios, x.novos, x.ativos1, x.ativos7, x.negocios, x.publicacoes, x.denunciasNovas, x.reclamacoesAbertas])));
+    const csv = btn("Baixar histórico (Excel)", "", () => baixarCSV("historico-diario", ["Dia", "Usuários", "Novos", "Ativos 24h", "Ativos 7d", "Negócios", "Publicações", "Denúncias novas", "Reclamações abertas"], D.estatisticas.map((x) => [x.id, x.usuarios, x.novos, x.ativos1, x.ativos7, x.negocios, x.publicacoes, x.denunciasNovas, x.reclamacoesAbertas])));
     csv.style.marginTop = "10px"; auto.appendChild(csv);
   }
   el.appendChild(auto);
@@ -560,20 +599,74 @@ export function relatorios(el) {
 // ======================================================= REGISTRO E EQUIPE
 export function registro(el) {
   el.appendChild(cab("Registro de ações", "Tudo o que a equipe faz no painel fica aqui. Não pode ser apagado."));
-  const NOMES = { aviso: "Enviou aviso", suspender: "Suspendeu", banir: "Baniu", remover_sancao: "Removeu sanção", verificar: "Deu selo", tirar_selo: "Tirou/recusou selo", remover_conteudo: "Removeu conteúdo", esconder_negocio: "Escondeu negócio", mostrar_negocio: "Mostrou negócio", exportar: "Exportou dados", relatorio_pdf: "Gerou relatório", parceria: "Atualizou parceria", suporte_resposta: "Respondeu chamado", suporte_fechado: "Fechou chamado", suporte_aberto: "Reabriu chamado", comunicado_novo: "Criou comunicado", comunicado_editar: "Editou comunicado", comunicado_on: "Pôs comunicado no ar", comunicado_off: "Tirou comunicado do ar", comunicado_apagar: "Apagou comunicado", denuncia_resolvida: "Resolveu denúncia", denuncia_descartada: "Descartou denúncia", denuncia_em_analise: "Pôs denúncia em análise", entrou: "Entrou no painel" };
+  const NOMES = { aviso: "Enviou aviso", suspender: "Suspendeu", banir: "Baniu", remover_sancao: "Removeu sanção", verificar: "Deu selo", tirar_selo: "Tirou/recusou selo", remover_conteudo: "Removeu conteúdo", esconder_negocio: "Escondeu negócio", mostrar_negocio: "Mostrou negócio", exportar: "Exportou dados", relatorio_pdf: "Gerou relatório", parceria: "Atualizou parceria", parceria_apagar: "Apagou parceria", suporte_resposta: "Respondeu chamado", suporte_fechado: "Fechou chamado", suporte_aberto: "Reabriu chamado", comunicado_novo: "Criou comunicado", comunicado_editar: "Editou comunicado", comunicado_on: "Pôs comunicado no ar", comunicado_off: "Tirou comunicado do ar", comunicado_apagar: "Apagou comunicado", denuncia_resolvida: "Resolveu denúncia", denuncia_descartada: "Descartou denúncia", denuncia_em_analise: "Pôs denúncia em análise", entrou: "Entrou no painel" };
   const tab = h("div", "ad-tabela"); const t = document.createElement("table"); const th = h("tr"); ["Quando", "Quem", "Ação", "Alvo", "Detalhe"].forEach((x) => th.appendChild(h("th", null, x))); t.appendChild(th);
   D.log.forEach((x) => { const tr = h("tr"); const alvo = h("td"); if (x.alvo && D.pessoas.has(x.alvo)) { const a = h("a", null, pessoa(x.alvo).nome); a.href = "#"; a.addEventListener("click", (e) => { e.preventDefault(); abrirFicha(x.alvo); }); alvo.appendChild(a); } else alvo.textContent = x.alvo || "—"; tr.append(h("td", null, dataHora(x.em)), h("td", null, x.porNome || pessoa(x.por).nome || x.por), h("td", null, NOMES[x.acao] || x.acao), alvo, h("td", null, x.detalhe || "")); t.appendChild(tr); });
   tab.appendChild(D.log.length ? t : h("div", "ad-vazio", "Nenhuma ação registrada ainda."));
   el.appendChild(tab);
 }
 export function equipe(el) {
-  el.appendChild(cab("Equipe", "Quem tem acesso a este painel."));
+  el.appendChild(cab("Equipe", "Quem está no painel agora e o chat interno da equipe."));
+  const g = h("div", "ad-equipe");
+  // quem está online
+  const bOn = bloco("Equipe", "Online = com o painel aberto agora.");
   const lista = h("div", "ad-lista");
-  D.admins.forEach((a) => { const p = pessoa(a.id); const c = h("article", "ad-item"); const top = h("div", "cab"); top.append(pessoaCel({ ...p, nome: a.nome || p.nome }, p.email || a.id), selo(a.id === C.eu.uid ? "Você" : "Equipe", "info")); c.appendChild(top); lista.appendChild(c); });
-  el.appendChild(lista);
+  bOn.appendChild(lista);
+  // chat
+  const bChat = bloco("Chat da equipe", "Só quem é da equipe vê. As mensagens ficam guardadas.");
+  bChat.classList.add("ad-chat-equipe");
+  const chat = h("div", "ad-chat"); chat.setAttribute("aria-live", "polite");
+  const form = h("form", "ad-chat-form");
+  const txt = document.createElement("textarea"); txt.maxLength = 2000; txt.rows = 2; txt.placeholder = "Escreva para a equipe... (Enter envia, Shift+Enter quebra a linha)"; txt.setAttribute("aria-label", "Mensagem para a equipe");
+  const env = h("button", "ad-bt pri", "Enviar"); env.type = "submit";
+  form.append(txt, env); bChat.append(chat, form);
+  g.append(bChat, bOn); el.appendChild(g);
   const b = bloco("Adicionar alguém à equipe", "Por segurança, só pelo console do Firebase (ninguém consegue se dar acesso pelo site).");
   b.style.marginTop = "14px";
   const ol = h("ol"); ol.style.color = "var(--muted)"; ol.style.margin = "0"; ol.style.paddingLeft = "20px";
   ["Abra a ficha da pessoa aqui no painel e copie o ID da conta.", "No Firebase → Firestore Database → coleção admins → Adicionar documento.", "Use o ID copiado como ID do documento e crie o campo nome (texto).", "Para tirar o acesso, apague o documento."].forEach((x) => ol.appendChild(h("li", null, x)));
   b.appendChild(ol); el.appendChild(b);
+
+  const NOME_SEC = { visao: "Visão geral", estatisticas: "Estatísticas", relatorios: "Relatórios", usuarios: "Usuários", verificacoes: "Verificações", suporte: "Suporte", denuncias: "Denúncias", reclamacoes: "Reclamações", sancoes: "Sanções", negocios: "Negócios", parcerias: "Parcerias", comunicados: "Comunicados", registro: "Registro", equipe: "Equipe" };
+  function pintarOnline() {
+    const itens = D.admins.map((a) => ({ a, pr: C.presenca.get(a.id) })).sort((x, y) => (C.online(y.a.id) - C.online(x.a.id)) || ms(y.pr?.em) - ms(x.pr?.em));
+    lista.replaceChildren(...itens.map(({ a, pr }) => {
+      const p = pessoa(a.id); const on = C.online(a.id);
+      const c = h("article", "ad-item"); const top = h("div", "cab");
+      const pc = pessoaCel({ ...p, nome: a.nome || p.nome }, on ? `Online${pr?.secao ? " · em " + (NOME_SEC[pr.secao] || pr.secao) : ""}` : pr?.em ? `Visto ${relativo(pr.em)}` : "Ainda não abriu o painel");
+      const av = pc.querySelector(".ad-av"); av.classList.add("com-ponto"); const pt = h("i", "ad-ponto" + (on ? " on" : "")); pt.setAttribute("aria-hidden", "true"); av.appendChild(pt);
+      top.append(pc); if (a.id === C.eu.uid) top.append(selo("Você", "info")); else if (on) top.append(selo("Online", "bom"));
+      c.appendChild(top); return c;
+    }));
+  }
+  function pintarChat() {
+    const perto = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 80;
+    if (!C.chat.length) { chat.replaceChildren(h("div", "ad-vazio", "Nenhuma mensagem ainda. Diga oi para a equipe.")); return; }
+    let diaAnt = "";
+    const nos = [];
+    C.chat.forEach((m) => {
+      const dia = ms(m.em) ? new Date(ms(m.em)).toLocaleDateString("pt-BR") : "agora";
+      if (dia !== diaAnt) { nos.push(h("div", "ad-chat-dia", dia)); diaAnt = dia; }
+      const meu = m.autorId === C.eu.uid;
+      const bm = h("div", "ad-msg" + (meu ? " equipe" : ""));
+      if (!meu) bm.appendChild(h("b", "ad-msg-autor", m.nome || pessoa(m.autorId).nome || "Equipe"));
+      bm.appendChild(document.createTextNode(m.texto));
+      bm.appendChild(h("small", null, ms(m.em) ? new Date(ms(m.em)).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "enviando..."));
+      nos.push(bm);
+    });
+    chat.replaceChildren(...nos);
+    if (perto || !pintarChat.feito) chat.scrollTop = chat.scrollHeight;
+    pintarChat.feito = true;
+  }
+  async function enviar() {
+    const t = txt.value.trim(); if (!t) return;
+    env.disabled = true;
+    try { const { fb } = C; await fb.addDoc(fb.collection(fb.db, "equipe_chat"), { autorId: C.eu.uid, nome: C.nome, texto: t.slice(0, 2000), em: fb.serverTimestamp() }); txt.value = ""; chat.scrollTop = chat.scrollHeight; }
+    catch (e) { console.error(e); toast("Não foi possível enviar: " + (e.code || e.message)); }
+    finally { env.disabled = false; txt.focus(); }
+  }
+  form.addEventListener("submit", (e) => { e.preventDefault(); enviar(); });
+  txt.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); enviar(); } });
+  C.aoMudarEquipe = () => { if (!el.isConnected) { C.aoMudarEquipe = null; return; } pintarOnline(); pintarChat(); C.marcarChatVisto(); };
+  pintarOnline(); pintarChat(); C.marcarChatVisto();
 }

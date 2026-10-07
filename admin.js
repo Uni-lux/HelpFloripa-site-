@@ -3,15 +3,15 @@
 // Só entra quem tem o documento admins/{uid} (criado à mão no console do
 // Firebase). As regras do Firestore conferem isso em cada leitura e ação.
 // =====================================================
-import { C, D, $, h, ms, toast } from "./admin-base.js?v=2";
-import * as S from "./admin-secoes.js?v=2";
+import { C, D, $, h, ms, toast } from "./admin-base.js?v=3";
+import * as S from "./admin-secoes.js?v=3";
 
 const SECOES = {
   visao: S.visao, estatisticas: S.estatisticas, relatorios: S.relatorios, usuarios: S.usuarios, verificacoes: S.verificacoes,
   suporte: S.suporte, denuncias: S.denuncias, reclamacoes: S.reclamacoes, sancoes: S.sancoes, negocios: S.negocios,
   parcerias: S.parcerias, comunicados: S.comunicados, registro: S.registro, equipe: S.equipe
 };
-let atual = "visao";
+let atual = "visao", ultimaPresenca = "";
 
 function irPara(sec, termo = "") {
   let filtro = "";
@@ -25,6 +25,7 @@ function irPara(sec, termo = "") {
     else SECOES[sec](el, termo);
   } catch (e) { console.error(e); el.appendChild(h("div", "ad-vazio", "Não foi possível montar esta seção: " + e.message)); }
   history.replaceState(null, "", `admin.html#${sec}`);
+  if (C.marcarPresenca && sec !== ultimaPresenca) { ultimaPresenca = sec; C.marcarPresenca(true); }
   $("lateral").classList.remove("aberta");
   el.focus({ preventScroll: true }); window.scrollTo({ top: 0 });
 }
@@ -39,6 +40,39 @@ function contadores() {
   set("reclamacoes", pend(D.queixas.filter((q) => q.status === "aberta" && !q.resposta && ms(q.abertaEm) < Date.now() - 7 * 864e5).length));
   set("sancoes", pend([...D.sancoes.values()].filter((s) => s.tipo === "banimento" || ms(s.ate) > Date.now()).length));
   set("parcerias", pend(D.parcerias.filter((p) => (p.status || "novo") === "novo").length));
+  set("equipe", pend(C.chatNaoLidas || 0));
+  const on = D.admins.filter((a) => a.id !== C.eu?.uid && C.online(a.id)).length;
+  const e = $("equipeOnline"); if (e) { e.hidden = !on; e.textContent = `${on} da equipe online`; }
+}
+
+// Presença no painel (a cada minuto) + chat da equipe, ao vivo.
+function equipeAoVivo() {
+  const { fb } = C;
+  C.presenca = new Map(); C.chat = []; C.chatNaoLidas = 0;
+  C.online = (uid) => uid === C.eu.uid || ms(C.presenca.get(uid)?.em) > Date.now() - 150000;
+  const chaveVisto = "hf-equipe-chat-visto-" + C.eu.uid;
+  let visto = 0; try { visto = Number(localStorage.getItem(chaveVisto) || 0); } catch {}
+  C.marcarChatVisto = () => { visto = Date.now(); try { localStorage.setItem(chaveVisto, String(visto)); } catch {} C.chatNaoLidas = 0; contadores(); };
+  const avisar = () => { contadores(); if (atual === "equipe") C.aoMudarEquipe?.(); };
+  let ultimaSecao = "";
+  C.marcarPresenca = (forcar) => {
+    if (document.hidden && !forcar) return;
+    ultimaSecao = atual;
+    fb.setDoc(fb.doc(fb.db, "equipe_presenca", C.eu.uid), { nome: C.nome.slice(0, 80), secao: atual, em: fb.serverTimestamp() }).catch((e) => console.warn("Presença:", e.code || e.message));
+  };
+  C.marcarPresenca(true);
+  setInterval(() => C.marcarPresenca(), 60000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) C.marcarPresenca(true); });
+  setInterval(avisar, 30000); // quem parou de mandar sinal sai do "online"
+  fb.onSnapshot(fb.collection(fb.db, "equipe_presenca"), (s) => { C.presenca = new Map(s.docs.map((d) => [d.id, d.data()])); avisar(); }, (e) => console.warn("Presença:", e.code || e.message));
+  let primeira = true;
+  fb.onSnapshot(fb.query(fb.collection(fb.db, "equipe_chat"), fb.orderBy("em", "desc"), fb.limit(150)), (s) => {
+    C.chat = s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).reverse();
+    const novas = C.chat.filter((m) => m.autorId !== C.eu.uid && ms(m.em) > visto);
+    C.chatNaoLidas = atual === "equipe" ? 0 : novas.length;
+    if (!primeira && atual !== "equipe") s.docChanges().filter((c) => c.type === "added" && c.doc.data().autorId !== C.eu.uid).slice(-1).forEach((c) => toast(`Equipe · ${c.doc.data().nome || "mensagem"}: ${String(c.doc.data().texto).slice(0, 60)}`));
+    primeira = false; avisar();
+  }, (e) => console.warn("Chat da equipe:", e.code || e.message));
 }
 
 // Carrega tudo o que o painel usa. Em sites maiores, o relatório diário (estatisticas/) evita recalcular.
@@ -96,9 +130,11 @@ async function carregar(mostrar = true) {
   C.recarregar = (mostrar) => carregar(mostrar);
   $("app").hidden = false;
   document.querySelectorAll(".ad-nav").forEach((b) => b.addEventListener("click", () => irPara(b.dataset.secao)));
+  $("equipeOnline").addEventListener("click", () => irPara("equipe"));
   $("btMenu").addEventListener("click", () => $("lateral").classList.toggle("aberta"));
   $("btAtualizar").addEventListener("click", async () => { await carregar(true); toast("Dados atualizados"); });
   let tempo; $("buscaGlobal").addEventListener("input", (e) => { clearTimeout(tempo); const t = e.target.value; tempo = setTimeout(() => { if (t.trim()) irPara("usuarios", t.trim()); }, 300); });
   atual = (location.hash.slice(1) || "visao");
   await carregar(true);
+  equipeAoVivo();
 })();

@@ -1029,7 +1029,7 @@ service cloud.firestore {
     // =====================================================
     // DENÚNCIAS: denuncias/{tipo}_{item}_{quemDenunciou}
     // Uma por pessoa em cada item. Só quem denunciou consegue ler a própria
-    // denúncia (para saber que já enviou). A equipe analisa pelo console.
+    // denúncia (para saber que já enviou). A equipe analisa pelo painel.
     // O item precisa ser mesmo de quem foi denunciado.
     // =====================================================
     match /denuncias/{id} {
@@ -1168,12 +1168,15 @@ service cloud.firestore {
 
       match /mensagens/{msgId} {
         function chamado() { return get(/databases/$(database)/documents/suporte/$(id)).data; }
+        // getAfter: o chamado e a primeira mensagem são gravados juntos (tudo ou nada).
+        function chamadoDepois() { return getAfter(/databases/$(database)/documents/suporte/$(id)).data; }
         allow read: if logado() && (chamado().uid == request.auth.uid || admin());
         allow create: if logado()
-                      && (chamado().uid == request.auth.uid || admin())
+                      && (chamadoDepois().uid == request.auth.uid || admin())
                       && request.resource.data.keys().hasOnly(['autorId', 'equipe', 'texto', 'em'])
                       && request.resource.data.autorId == request.auth.uid
-                      && request.resource.data.equipe == admin()
+                      // "equipe" (resposta oficial) só quem é da equipe; no próprio chamado, todos escrevem como usuário
+                      && (request.resource.data.equipe == false || (request.resource.data.equipe == true && admin()))
                       && request.resource.data.texto is string && request.resource.data.texto.size() >= 1 && request.resource.data.texto.size() <= 2000
                       && request.resource.data.em == request.time;
         allow update, delete: if false;
@@ -1200,6 +1203,29 @@ service cloud.firestore {
                     && request.resource.data.status in ['novo', 'em_conversa', 'proposta', 'fechado', 'recusado']
                     && valorTextoAte(request.resource.data.get('notas', ''), 3000);
       allow delete: if admin();
+    }
+
+    // Presença da equipe no painel (quem está online) e chat interno da equipe.
+    match /equipe_presenca/{uid} {
+      allow read: if admin();
+      allow create, update: if admin()
+                    && request.auth.uid == uid
+                    && request.resource.data.keys().hasOnly(['nome', 'em', 'secao'])
+                    && valorTextoAte(request.resource.data.get('nome', ''), 80)
+                    && valorTextoAte(request.resource.data.get('secao', ''), 40)
+                    && request.resource.data.em == request.time;
+      allow delete: if admin() && request.auth.uid == uid;
+    }
+
+    match /equipe_chat/{id} {
+      allow read: if admin();
+      allow create: if admin()
+                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'texto', 'em'])
+                    && request.resource.data.autorId == request.auth.uid
+                    && valorTextoAte(request.resource.data.get('nome', ''), 80)
+                    && request.resource.data.texto is string && request.resource.data.texto.size() >= 1 && request.resource.data.texto.size() <= 2000
+                    && request.resource.data.em == request.time;
+      allow update, delete: if false;
     }
 
     match /admin_log/{id} {
