@@ -1658,6 +1658,7 @@ function renderizar() {
   grade.className = "vt-grade tipo-" + TIPO;
   cont.textContent = ""; // a contagem vai junto do título da lista
   const lista = todos.filter((n) => passaCategoria(n, cat) && (!termo || textoBusca(n).includes(termo)));
+  pintarVerMais(filtrando);
   const vazio = () => {
     const v = el("div", "vt-vazio");
     v.append(el("strong", null, todos.length ? "Nada encontrado com esse filtro" : TEXTOS[TIPO].vazio), todos.length ? "Tente outra categoria ou palavra." : "Seja o primeiro: crie seu perfil de negócio pelo seu perfil.");
@@ -1750,6 +1751,72 @@ function chipsDinamicos() {
   });
 }
 
+// Vitrine em lotes: carrega 48 por vez (os atualizados mais recentemente primeiro) e busca
+// mais quando a pessoa pede. Antes eram 300 perfis inteiros, com fotos, a cada visita.
+const LOTE = 48;
+let cursorNeg = null, cursorAn = null, maisNeg = false, maisAn = false, carregandoMais = false;
+async function lote(col, tipo, cursor) {
+  const c = fb.collection(fb.db, col);
+  try {
+    const q = fb.query(c, fb.where("tipo", "==", tipo), fb.orderBy("atualizadoEm", "desc"), ...(cursor ? [fb.startAfter(cursor)] : []), fb.limit(LOTE));
+    const snap = await fb.getDocs(q);
+    return { docs: snap.docs, mais: snap.size === LOTE, cursor: snap.docs.at(-1) || cursor };
+  } catch (e) {
+    // Sem o índice (tipo + atualizadoEm) ainda criado: busca simples, sem lotes.
+    if (e?.code !== "failed-precondition") throw e;
+    console.warn("Índice do Firebase ainda não criado:", e.message);
+    const snap = await fb.getDocs(fb.query(c, fb.where("tipo", "==", tipo), fb.limit(300)));
+    return { docs: snap.docs, mais: false, cursor: null };
+  }
+}
+async function carregarLote(primeira = false) {
+  const novos = [];
+  if (primeira || maisNeg) {
+    const r = await lote("negocios", TIPO, cursorNeg);
+    cursorNeg = r.cursor; maisNeg = r.mais;
+    const negocios = r.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => n.nome && n.oculto !== true && !oculto(n));
+    if (TIPO === "imoveis") {
+      negocios.forEach((n) => negociosImoveis.set(n.donoId, n));
+      negocios.filter((n) => n.preco || n.quartos).forEach((n) => novos.push(negocioComoAnuncio(n)));
+    } else novos.push(...negocios);
+  }
+  if (TIPO === "imoveis" && (primeira || maisAn)) {
+    const r = await lote("anuncios", "imovel", cursorAn);
+    cursorAn = r.cursor; maisAn = r.mais;
+    novos.push(...r.docs.map((d) => ({ id: d.id, ...d.data() })).filter((a) => a.ativo !== false && !oculto(a)));
+  }
+  const ja = new Set(todos.map((x) => x.id));
+  const add = novos.filter((x) => !ja.has(x.id));
+  todos.push(...add);
+  todos.sort((a, b) => (b.atualizadoEm?.toMillis?.() ?? 0) - (a.atualizadoEm?.toMillis?.() ?? 0));
+  const idsNotas = [...new Set(add.map((n) => (TIPO === "imoveis" ? `${n.donoId}_imoveis` : idNegocio(n))))].filter((i) => !notasNeg.has(i));
+  const [r] = await Promise.all([lerResumos(fb, idsNotas.map((i) => "neg_" + i)), carregarDonos(add.map((n) => n.donoId))]);
+  idsNotas.forEach((i) => notasNeg.set(i, r["neg_" + i]));
+  return add.length;
+}
+const temMais = () => maisNeg || (TIPO === "imoveis" && maisAn);
+// Botão no fim da lista: "Ver mais" (sem filtro) ou "Procurar em mais perfis" (com filtro/busca).
+function pintarVerMais(filtrando) {
+  const grade = document.getElementById("vtGrade");
+  if (!grade) return;
+  let w = document.getElementById("vtMais");
+  if (!w) {
+    w = el("div", "vt-mais"); w.id = "vtMais";
+    const b = el("button", "vt-mais-bt"); b.type = "button"; b.id = "vtMaisBt";
+    b.addEventListener("click", async () => {
+      if (carregandoMais) return;
+      carregandoMais = true; b.disabled = true; b.textContent = "Carregando...";
+      try { await carregarLote(false); chipsDinamicos(); renderizar(); }
+      catch (e) { console.warn(e); toast("Não foi possível carregar mais. Tente de novo."); }
+      finally { carregandoMais = false; b.disabled = false; pintarVerMais(!!filtroAtual().termo || filtroAtual().cat !== "todos"); }
+    });
+    w.appendChild(b); grade.after(w);
+  }
+  w.hidden = !temMais();
+  const b = document.getElementById("vtMaisBt");
+  if (b && !carregandoMais) b.textContent = filtrando ? "Procurar em mais perfis" : "Ver mais";
+}
+
 async function carregarDonos(ids) {
   await Promise.all([...new Set(ids)].map(async (id) => {
     if (donos.has(id)) return;
@@ -1776,25 +1843,7 @@ async function iniciar() {
     eu = u;
     conferirEmail(u);
     try {
-      // Os atualizados mais recentemente primeiro (índice negocios: tipo + atualizadoEm).
-      // Sem o índice criado ainda, usa a busca simples para a página não ficar vazia.
-      const ordenado = async (col, tipo, lim) => {
-        const c = fb.collection(fb.db, col);
-        try { return await fb.getDocs(fb.query(c, fb.where("tipo", "==", tipo), fb.orderBy("atualizadoEm", "desc"), fb.limit(lim))); }
-        catch (e) { if (e?.code !== "failed-precondition") throw e; console.warn("Índice do Firebase ainda não criado:", e.message); return fb.getDocs(fb.query(c, fb.where("tipo", "==", tipo), fb.limit(lim))); }
-      };
-      const negSnap = await ordenado("negocios", TIPO, 300);
-      const negocios = negSnap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => n.nome && n.oculto !== true && !oculto(n));
-      if (TIPO === "imoveis") {
-        negocios.forEach((n) => negociosImoveis.set(n.donoId, n));
-        const anSnap = await ordenado("anuncios", "imovel", 300);
-        todos = anSnap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((a) => a.ativo !== false && !oculto(a));
-        negocios.filter((n) => n.preco || n.quartos).forEach((n) => todos.push(negocioComoAnuncio(n)));
-      } else todos = negocios;
-      todos.sort((a, b) => (b.atualizadoEm?.toMillis?.() ?? 0) - (a.atualizadoEm?.toMillis?.() ?? 0));
-      const idsNotas = [...new Set(todos.map((n) => (TIPO === "imoveis" ? `${n.donoId}_imoveis` : idNegocio(n))))];
-      const [r] = await Promise.all([lerResumos(fb, idsNotas.map((i) => "neg_" + i)), carregarDonos(todos.map((n) => n.donoId))]);
-      idsNotas.forEach((i) => notasNeg.set(i, r["neg_" + i]));
+      await carregarLote(true);
     } catch (e) {
       console.warn("Vitrine indisponível:", e);
       todos = [];

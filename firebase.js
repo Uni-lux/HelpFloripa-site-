@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, getDoc, doc, getDocs, collection, query, where, limit, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, getDoc, doc, getDocs, collection, query, where, limit, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js";
 
 // App Check: prova para o Firebase que o acesso vem do seu site (e não de um robô).
@@ -33,7 +33,11 @@ if (RECAPTCHA_V3_SITE_KEY) {
   } catch (e) { console.warn("[Firebase] App Check não iniciou:", e); }
 }
 const auth = getAuth(app);
-const db = getFirestore(app);
+// Cache no aparelho (IndexedDB): ao trocar de página, o Firebase retoma as consultas e cobra só o
+// que mudou (até 30 min), em vez de ler tudo de novo. Vale para várias abas abertas ao mesmo tempo.
+let db;
+try { db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) }); }
+catch (e) { console.warn("[Firebase] Cache local indisponível, seguindo sem ele:", e?.message); db = getFirestore(app); }
 
 window.firebaseApp = app;
 window.firebaseAuth = auth;

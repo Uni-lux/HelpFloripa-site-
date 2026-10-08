@@ -8,6 +8,7 @@
 // - Nova publicação (foto ou texto).
 // - Barra inferior, avisos (notificações) e presença online.
 // =====================================================
+import { comRitmo } from "./ritmo.js?v=1";
 import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=5";
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
 import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=15";
@@ -174,6 +175,7 @@ export function toast(texto, aoClicar) {
   setTimeout(() => t.remove(), 4500);
 }
 export function erroAmigavel(e) {
+  if (e?.code === "limite-diario") return e.message;
   if (e?.code === "permission-denied") return emailPendente(eu) ? MSG_EMAIL : "Sem permissão para fazer isso.";
   if (e?.code === "unavailable") return "Sem conexão com o servidor. Verifique sua internet.";
   return e?.message && !e.code ? e.message : "Algo deu errado. Tente novamente.";
@@ -811,10 +813,11 @@ export function montarComentarios(alvo, post, { aoMudar } = {}) {
     if (await precisaEmail()) return;
     env.disabled = true;
     try {
-      const foto = urlSegura(dados.fotoPerfil) && dados.fotoPerfil.length < 200000 ? dados.fotoPerfil : "";
+      // A foto mostrada vem do perfil; aqui só um link curto (nunca a imagem inteira, que pesava até 200 KB por comentário).
+      const foto = urlSegura(dados.fotoPerfil).startsWith("https://") ? dados.fotoPerfil : "";
       const doc = { postId: post.id, postAutorId: post.autorId, autorId: eu.uid, nome: String(dados.nome || "Usuário").slice(0, 80), foto, texto: texto.slice(0, 500), criadoEm: fb.serverTimestamp() };
       if (respondendo) { doc.respostaA = respondendo.id; doc.respostaAutorId = respondendo.autorId; }
-      await fb.addDoc(fb.collection(fb.db, "comentarios"), doc);
+      await comRitmo(fb, eu.uid, "com", (lote) => lote.set(fb.doc(fb.collection(fb.db, "comentarios")), doc));
       tx.value = ""; tx.style.height = "auto";
       respondendo = null; resp.hidden = true; tx.placeholder = "Escreva um comentário...";
       await pintar();
@@ -993,8 +996,10 @@ function ligarCompositor() {
         mediaTipo = "video";
       }
       const foto = urlSegura(dados.fotoPerfil).startsWith("https://") ? dados.fotoPerfil : "";
-      const ref = await fb.addDoc(fb.collection(fb.db, "diario"), {
-        autorId: eu.uid, nome: dados.nome || "Usuário", fotoPerfil: foto, texto, mediaUrl, mediaTipo, criadoEm: fb.serverTimestamp()
+      const ref = await comRitmo(fb, eu.uid, "pub", (lote) => {
+        const r = fb.doc(fb.collection(fb.db, "diario"));
+        lote.set(r, { autorId: eu.uid, nome: dados.nome || "Usuário", fotoPerfil: foto, texto, mediaUrl, mediaTipo, criadoEm: fb.serverTimestamp() });
+        return r;
       });
       btn.disabled = false;
       limparPublicacao();
@@ -1002,7 +1007,7 @@ function ligarCompositor() {
       toast("Publicado!");
       $("folhaPublicar").aoPublicar?.({ id: ref.id, autorId: eu.uid, nome: dados.nome, fotoPerfil: foto, texto, mediaUrl, mediaTipo, criadoEm: null });
     } catch (e) {
-      console.error(e);
+      if (e?.code !== "limite-diario") console.error(e);
       toast("Não foi possível publicar: " + erroAmigavel(e));
     } finally { btn.disabled = false; btn.textContent = "Publicar"; }
   });
@@ -1079,24 +1084,24 @@ export function ouvirAvisos({ notificarNovos = true } = {}) {
     }, (e) => console.warn("Avisos indisponíveis:", e));
   };
   // Seguidores
-  ouvir(fb.query(fb.collection(fb.db, "relacoes"), fb.where("tipo", "==", "seguir"), fb.where("alvoId", "==", eu.uid), fb.limit(200)), async (snap, novos) => {
+  ouvir(fb.query(fb.collection(fb.db, "relacoes"), fb.where("tipo", "==", "seguir"), fb.where("alvoId", "==", eu.uid), fb.limit(100)), async (snap, novos) => {
     const l = await Promise.all(snap.docs.map(async (d) => ({ id: d.id, uid: d.data().seguidorId, quando: ms(d.data().criadoEm), ...(await perfilDe(d.data().seguidorId)) })));
     avisos.seguidores = l.filter((x) => ok(x.uid));
     if (novos && notificarNovos) avisos.seguidores.filter((x) => novos.has(x.id)).forEach((x) => notificar("Novo seguidor", `${x.nome} começou a seguir você`, () => ganchos.abrirPerfil(x.uid)));
   });
   // Curtidas nas minhas publicações
-  ouvir(fb.query(fb.collection(fb.db, "curtidas"), fb.where("postAutorId", "==", eu.uid), fb.limit(200)), async (snap, novos) => {
+  ouvir(fb.query(fb.collection(fb.db, "curtidas"), fb.where("postAutorId", "==", eu.uid), fb.limit(100)), async (snap, novos) => {
     const l = await Promise.all(snap.docs.filter((d) => Number(d.data().nota) > 0).map(async (d) => ({ id: d.id, uid: d.data().uid, postId: d.data().postId, nota: Number(d.data().nota), quando: Math.max(ms(d.data().criadoEm), ms(d.data().atualizadoEm)), ...(await perfilDe(d.data().uid)) })));
     avisos.curtidas = l.filter((x) => ok(x.uid));
     if (novos && notificarNovos) avisos.curtidas.filter((x) => novos.has(x.id)).forEach((x) => notificar("Novas estrelas", `${x.nome} deu ${x.nota} ${x.nota === 1 ? "estrela" : "estrelas"} na sua publicação`, () => { location.href = "notificacoes.html"; }));
   });
   // Comentários nas minhas publicações
-  ouvir(fb.query(fb.collection(fb.db, "comentarios"), fb.where("postAutorId", "==", eu.uid), fb.limit(200)), async (snap, novos) => {
+  ouvir(fb.query(fb.collection(fb.db, "comentarios"), fb.where("postAutorId", "==", eu.uid), fb.limit(100)), async (snap, novos) => {
     avisos.comentarios = snap.docs.map((d) => { const c = d.data({ serverTimestamps: "estimate" }); return { id: d.id, uid: c.autorId, postId: c.postId, texto: c.texto, nome: c.nome || "Usuário", foto: c.foto || "", quando: ms(c.criadoEm) }; }).filter((x) => ok(x.uid));
     if (novos && notificarNovos) avisos.comentarios.filter((x) => novos.has(x.id)).forEach((x) => notificar("Novo comentário", `${x.nome}: ${x.texto}`, () => { location.href = "notificacoes.html"; }));
   });
   // Respostas aos meus comentários (em qualquer publicação)
-  ouvir(fb.query(fb.collection(fb.db, "comentarios"), fb.where("respostaAutorId", "==", eu.uid), fb.limit(200)), async (snap, novos) => {
+  ouvir(fb.query(fb.collection(fb.db, "comentarios"), fb.where("respostaAutorId", "==", eu.uid), fb.limit(100)), async (snap, novos) => {
     avisos.respostas = snap.docs.map((d) => { const c = d.data({ serverTimestamps: "estimate" }); return { id: d.id, uid: c.autorId, postId: c.postId, texto: c.texto, nome: c.nome || "Usuário", foto: c.foto || "", quando: ms(c.criadoEm) }; }).filter((x) => ok(x.uid));
     if (novos && notificarNovos) avisos.respostas.filter((x) => novos.has(x.id)).forEach((x) => notificar("Nova resposta", `${x.nome}: ${x.texto}`, () => { location.href = "notificacoes.html"; }));
   });
@@ -1158,8 +1163,9 @@ export function marcarPresenca() {
   if (!eu || document.hidden) return;
   fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), { uid: eu.uid, ultimoAcesso: config.mostrarOnline === false ? null : fb.serverTimestamp() }, { merge: true }).catch(() => {});
 }
-// A cada 4 minutos (gravar todo minuto gastava a cota grátis do Firebase); "online" = até 5 minutos.
-setInterval(marcarPresenca, 4 * 60000);
+// Fora das mensagens, a cada 8 minutos (só com a aba visível); nas mensagens, a cada 4.
+// "Online" nas mensagens = sinal nos últimos 9 minutos.
+setInterval(marcarPresenca, 8 * 60000);
 document.addEventListener("visibilitychange", marcarPresenca);
 
 export { editarImagem, conferirEmail, emailPendente, MSG_EMAIL };

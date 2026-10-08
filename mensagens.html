@@ -672,6 +672,7 @@
     import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura, mostrarAvisoEmail } from "./seguranca.js?v=1";
     import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO } from "./avaliacoes.js?v=10";
     import { buscarPessoas } from "./pessoas.js?v=2";
+    import { comRitmo } from "./ritmo.js?v=1";
     // ======================================================
     // Configurações (salvas no aparelho)
     // ======================================================
@@ -1620,7 +1621,7 @@
         return;
       }
       const ultimo = paraData(perfilOutroAtual.ultimoAcesso);
-      if (ultimo && Date.now() - ultimo.getTime() < 5 * MINUTO) {
+      if (ultimo && Date.now() - ultimo.getTime() < 9 * MINUTO) {
         el.textContent = "online";
         el.className = "online";
         timerDigitando = setTimeout(atualizarStatusTopo, 30000);
@@ -2221,7 +2222,7 @@
         console.error("Erro ao enviar:", erro);
         if (!campo.value) campo.value = texto;
         ajustarAltura();
-        toast(erro.message && !erro.code ? erro.message : "Não foi possível enviar a mensagem. Tente novamente.");
+        toast(erro.message && (!erro.code || erro.code === "limite-diario") ? erro.message : "Não foi possível enviar a mensagem. Tente novamente.");
       } finally {
         enviando = false;
         $("btnEnviar").disabled = false;
@@ -2231,7 +2232,7 @@
 
     async function publicarMensagem(conversaId, dados) {
       const ref = refConversa(conversaId);
-      const envio = fb.addDoc(fb.collection(ref, "mensagens"), dados);
+      const envio = comRitmo(fb, eu.uid, "msg", (lote) => lote.set(fb.doc(fb.collection(ref, "mensagens")), dados));
       const resumo = resumoMensagem(dados).slice(0, 120);
       fb.setDoc(ref, {
         ultimaMensagem: resumo,

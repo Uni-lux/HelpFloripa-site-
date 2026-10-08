@@ -10,7 +10,7 @@
 import { fotoSegura } from "./seguranca.js?v=1";
 import { enfeitarSelect } from "./escolha.js?v=3";
 import { estrelas, lerResumos, media } from "./avaliacoes.js?v=10";
-import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria } from "./vitrine.js?v=27";
+import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria } from "./vitrine.js?v=28";
 
 const $ = (id) => document.getElementById(id);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
@@ -240,8 +240,9 @@ async function carregar(fs, db, u) {
   }));
 
   try {
-    // Os 150 atualizados mais recentemente (antes eram 100 quaisquer, sempre os mesmos).
-    const snap = await fs.getDocs(fs.query(neg, fs.orderBy("atualizadoEm", "desc"), fs.limit(150))).catch(() => fs.getDocs(fs.query(neg, fs.limit(150))));
+    // Os 60 atualizados mais recentemente: o bastante para os dois carrosséis (40 + 30).
+    // Antes eram 150 perfis inteiros, com fotos, a cada visita; o resto está nas vitrines.
+    const snap = await fs.getDocs(fs.query(neg, fs.orderBy("atualizadoEm", "desc"), fs.limit(60))).catch(() => fs.getDocs(fs.query(neg, fs.limit(60))));
     const lista = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => n.nome && n.oculto !== true && !oculto(n) && NOMES_TIPO[n.tipo]);
     const resumos = await lerResumos({ ...fs, db }, lista.map((n) => "neg_" + n.id));
     const nota = (n) => resumos["neg_" + n.id];
@@ -261,8 +262,8 @@ async function carregar(fs, db, u) {
 
   try {
     const an = fs.collection(db, "anuncios");
-    const snap = await fs.getDocs(fs.query(an, fs.where("tipo", "==", "imovel"), fs.orderBy("atualizadoEm", "desc"), fs.limit(40)))
-      .catch(() => fs.getDocs(fs.query(an, fs.where("tipo", "==", "imovel"), fs.limit(40))));
+    const snap = await fs.getDocs(fs.query(an, fs.where("tipo", "==", "imovel"), fs.orderBy("atualizadoEm", "desc"), fs.limit(24)))
+      .catch(() => fs.getDocs(fs.query(an, fs.where("tipo", "==", "imovel"), fs.limit(24))));
     const ims = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((a) => a.ativo !== false && !oculto(a)).sort((a, b) => ms(b.atualizadoEm || b.criadoEm) - ms(a.atualizadoEm || a.criadoEm)).slice(0, 30);
     const agora = Date.now();
     revezar("trilhoImoveis", ims, {

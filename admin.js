@@ -3,8 +3,8 @@
 // Só entra quem tem o documento admins/{uid} (criado à mão no console do
 // Firebase). As regras do Firestore conferem isso em cada leitura e ação.
 // =====================================================
-import { C, D, $, h, ms, toast, PAPEIS, vendoAgora } from "./admin-base.js?v=5";
-import * as S from "./admin-secoes.js?v=5";
+import { C, D, $, h, ms, toast, PAPEIS, vendoAgora, pode } from "./admin-base.js?v=6";
+import * as S from "./admin-secoes.js?v=6";
 
 const SECOES = {
   visao: S.visao, estatisticas: S.estatisticas, relatorios: S.relatorios, usuarios: S.usuarios, verificacoes: S.verificacoes,
@@ -106,13 +106,14 @@ async function carregar(mostrar = true) {
   const contar = (n) => fb.getCountFromServer(col(n)).then((s) => s.data().count).catch(() => null);
   if (mostrar) $("atualizado").textContent = "Atualizando...";
   const [usuarios, perfis, negocios, anuncios, posts, denuncias, queixas, suporte, parcerias, sancoes, exclusoes, notas, comunicados, log, admins, estatisticas, nPosts, nConversas, nComentarios, nAvaliacoes] = await Promise.all([
-    todos(fb.query(col("usuarios"), fb.limit(5000))), todos(fb.query(col("perfis_publicos"), fb.limit(5000))),
+    // Dados pessoais (usuarios) só para dono e moderação; os outros papéis veem o perfil público.
+    pode("moderar") ? todos(fb.query(col("usuarios"), fb.limit(5000))) : Promise.resolve([]), todos(fb.query(col("perfis_publicos"), fb.limit(5000))),
     todos(fb.query(col("negocios"), fb.limit(3000))), todos(fb.query(col("anuncios"), fb.limit(3000))),
     ordenado("diario", "criadoEm", 3000), todos(fb.query(col("denuncias"), fb.limit(1500))), todos(fb.query(col("queixas"), fb.limit(1500))),
     ordenado("suporte", "atualizadoEm", 500), todos(fb.query(col("parcerias"), fb.limit(500))), todos(fb.query(col("sancoes"), fb.limit(1000))),
     todos(fb.query(col("exclusoes"), fb.limit(1000))), todos(fb.query(col("notas"), fb.limit(5000))), todos(fb.query(col("comunicados"), fb.limit(100))),
     ordenado("admin_log", "em", 300), todos(fb.query(col("admins"), fb.limit(50))), ordenado("estatisticas", "dia", 400),
-    contar("diario"), contar("conversas"), contar("comentarios"), contar("avaliacoes")
+    contar("diario"), pode("moderar") ? contar("conversas") : Promise.resolve(null), contar("comentarios"), contar("avaliacoes")
   ]);
   D.pessoas = new Map();
   perfis.forEach((p) => D.pessoas.set(p.id, { uid: p.id, ...p }));

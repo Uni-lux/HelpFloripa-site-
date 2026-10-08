@@ -3,7 +3,7 @@
 // suporte/{id} + suporte/{id}/mensagens. Quem está suspenso também consegue
 // abrir chamado (para contestar). A equipe responde pelo painel.
 // =====================================================
-import { $, el, toast, erroAmigavel, abrirFolha, fecharFolha, fb, eu, dados, iniciarRede, montarBarraRede, pintarBarraRede } from "./rede.js?v=16";
+import { $, el, toast, erroAmigavel, abrirFolha, fecharFolha, fb, eu, dados, iniciarRede, montarBarraRede, pintarBarraRede } from "./rede.js?v=18";
 
 const CAT = { conta: "Conta", negocio: "Negócio", golpe: "Golpe", denuncia: "Denúncia", contestacao: "Contestação", pagamento: "Pagamento", sugestao: "Sugestão", outro: "Outro" };
 const ST = { aberto: "Esperando a equipe", respondido: "A equipe respondeu", fechado: "Encerrado" };
