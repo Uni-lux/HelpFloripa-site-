@@ -11,7 +11,7 @@ import {
   fb, eu, dados, meusSeguindo, escondido, ganchos, obterPerfil, iniciarRede, carregarMeusSeguindo, linhaPessoa,
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, montarBarraRede, pintarBarraRede, ouvirAvisos, lerOrdenado,
   editarPublicacao, bloquear, comMencoes
-} from "./rede.js?v=16";
+} from "./rede.js?v=18";
 import { abrirDenuncia } from "./denuncias.js?v=1";
 import { buscarPessoas, pessoasRecentes } from "./pessoas.js?v=2";
 
@@ -46,13 +46,18 @@ async function buscarSeguindo() {
   // As mais recentes de cada lote de autores (índice diario: autorId + criadoEm).
   const col = fb.collection(fb.db, "diario");
   const res = await Promise.all(lotes.map((l) => lerOrdenado(
-    fb.query(col, fb.where("autorId", "in", l), fb.orderBy("criadoEm", "desc"), fb.limit(60)),
-    fb.query(col, fb.where("autorId", "in", l), fb.limit(60))
+    fb.query(col, fb.where("autorId", "in", l), fb.orderBy("criadoEm", "desc"), fb.limit(30)),
+    fb.query(col, fb.where("autorId", "in", l), fb.limit(30))
   ).catch(() => ({ docs: [] }))));
   return res.flatMap((s) => s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })));
 }
-async function buscarTodos() {
-  const s = await fb.getDocs(fb.query(fb.collection(fb.db, "diario"), fb.orderBy("criadoEm", "desc"), fb.limit(80)));
+// "Todos": 20 por vez; "Ver mais" busca as 20 seguintes só quando a pessoa chega ao fim.
+const LOTE_TODOS = 20;
+let cursorTodos = null, maisTodos = false;
+async function buscarTodos(continuar = false) {
+  if (!continuar) cursorTodos = null;
+  const s = await fb.getDocs(fb.query(fb.collection(fb.db, "diario"), fb.orderBy("criadoEm", "desc"), ...(cursorTodos ? [fb.startAfter(cursorTodos)] : []), fb.limit(LOTE_TODOS)));
+  cursorTodos = s.docs.at(-1) || cursorTodos; maisTodos = s.size === LOTE_TODOS;
   return s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) }));
 }
 async function carregarFeed() {
@@ -60,6 +65,7 @@ async function carregarFeed() {
   lista.replaceChildren(el("div", "esqueleto-post"), el("div", "esqueleto-post"));
   $("maisFeed").hidden = true;
   try {
+    maisTodos = false;
     const bruto = filtro === "todos" ? await buscarTodos() : await buscarSeguindo();
     posts = bruto.filter((p) => !escondido(p.autorId) && !postOculto(p)).sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
   } catch (e) {
@@ -81,9 +87,21 @@ function mostrarMais() {
   const lista = $("listaFeed");
   posts.slice(mostrados, mostrados + POR_VEZ).forEach((p) => lista.appendChild(cartaoPost(p)));
   mostrados = Math.min(posts.length, mostrados + POR_VEZ);
-  $("maisFeed").hidden = mostrados >= posts.length;
+  $("maisFeed").hidden = mostrados >= posts.length && !(filtro === "todos" && maisTodos);
 }
-$("maisFeed").addEventListener("click", mostrarMais);
+let buscandoMais = false;
+$("maisFeed").addEventListener("click", async () => {
+  if (mostrados < posts.length || filtro !== "todos" || !maisTodos) { mostrarMais(); return; }
+  if (buscandoMais) return;
+  buscandoMais = true; $("maisFeed").disabled = true;
+  try {
+    const ja = new Set(posts.map((p) => p.id));
+    const novos = (await buscarTodos(true)).filter((p) => !ja.has(p.id) && !escondido(p.autorId) && !postOculto(p));
+    posts.push(...novos.sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm)));
+    mostrarMais();
+  } catch (e) { console.warn(e); toast("Não foi possível carregar mais."); }
+  finally { buscandoMais = false; $("maisFeed").disabled = false; }
+});
 function vazio(titulo, texto, botao, acao) {
   const v = el("div", "feed-vazio");
   v.append(el("strong", null, titulo), el("span", null, texto));

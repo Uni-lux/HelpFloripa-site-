@@ -205,14 +205,14 @@ export async function abrirFicha(uid) {
 
   let p = D.pessoas.get(uid);
   if (!p) {
-    const [u, pp] = await Promise.all([fb.getDoc(fb.doc(fb.db, "usuarios", uid)).catch(() => null), fb.getDoc(fb.doc(fb.db, "perfis_publicos", uid)).catch(() => null)]);
+    const [u, pp] = await Promise.all([pode("moderar") ? fb.getDoc(fb.doc(fb.db, "usuarios", uid)).catch(() => null) : null, fb.getDoc(fb.doc(fb.db, "perfis_publicos", uid)).catch(() => null)]);
     p = { uid, ...(pp?.exists() ? pp.data() : {}), ...(u?.exists() ? u.data() : {}) };
   }
   const contar = (col, ...f) => fb.getCountFromServer(fb.query(fb.collection(fb.db, col), ...f)).then((s) => s.data().count).catch(() => "—");
   const lista = (col, ...f) => fb.getDocs(fb.query(fb.collection(fb.db, col), ...f, fb.limit(50))).then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() }))).catch(() => []);
   const [seguidores, seguindo, posts, conversas, comentarios, avFeitas, avRecebidas, queixasContra, queixasFeitas, denContra, denFeitas, avisos, chamados] = await Promise.all([
     contar("relacoes", fb.where("alvoId", "==", uid)), contar("relacoes", fb.where("seguidorId", "==", uid)), contar("diario", fb.where("autorId", "==", uid)),
-    contar("conversas", fb.where("participantes", "array-contains", uid)), contar("comentarios", fb.where("autorId", "==", uid)),
+    pode("moderar") ? contar("conversas", fb.where("participantes", "array-contains", uid)) : "—", contar("comentarios", fb.where("autorId", "==", uid)),
     lista("avaliacoes", fb.where("autorId", "==", uid)), lista("avaliacoes", fb.where("alvoId", "==", uid)),
     lista("queixas", fb.where("alvoId", "==", uid)), lista("queixas", fb.where("autorId", "==", uid)),
     lista("denuncias", fb.where("alvoId", "==", uid)), contar("denuncias", fb.where("autorId", "==", uid)),

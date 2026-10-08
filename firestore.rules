@@ -161,6 +161,13 @@ service cloud.firestore {
           && (!mudou().hasAny(['responsavel']) || request.resource.data.get('assumidoEm', null) == request.time);
     }
 
+    // Anti-spam: cada mensagem, publicação ou comentário conta no limite diário da pessoa
+    // (ritmo/{uid}, gravado junto na mesma operação).
+    function ritmoOk(tipo) {
+      let r = getAfter(/databases/$(database)/documents/ritmo/$(request.auth.uid)).data;
+      return r.ultimaEm == request.time && r.ultimoTipo == tipo;
+    }
+
     function donoDoNegocio(negocioId) {
       return get(/databases/$(database)/documents/negocios/$(negocioId)).data.donoId;
     }
@@ -174,7 +181,8 @@ service cloud.firestore {
 
       allow read: if logado()
                   && request.auth.uid == userId;
-      allow read: if admin();
+      // Dados pessoais (e-mail, telefone, nascimento): na equipe, só dono e moderação (LGPD: o mínimo necessário).
+      allow read: if podeModerar();
       // A equipe aprova ou recusa o selo de verificado.
       allow update: if podeModerar()
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verificado', 'solicitacaoVerificacao', 'verificacaoRespondidaEm']);
@@ -553,8 +561,8 @@ service cloud.firestore {
 
       allow list: if logado()
                   && request.auth.uid in resource.data.participantes;
-      // A equipe vê quem conversa com quem (para a ficha e denúncias), mas não lista mensagens.
-      allow read: if admin();
+      // A moderação vê quem conversa com quem (para a ficha e denúncias), mas não lista mensagens.
+      allow read: if podeModerar();
 
       allow create: if logado()
                     && request.resource.data.participantes is list
@@ -653,14 +661,15 @@ service cloud.firestore {
         }
 
         allow read: if logado() && participante();
-        // A equipe abre só a mensagem denunciada (uma por vez, sem listar a conversa).
-        allow get: if admin();
+        // A moderação abre só a mensagem denunciada (uma por vez, sem listar a conversa).
+        allow get: if podeModerar();
 
         allow create: if logado()
                       && emailOk()
                       && participante()
                       && semBloqueio()
                       && outroAtivo()
+                      && ritmoOk('msg')
                       && request.resource.data.remetenteId == request.auth.uid
                       && request.resource.data.criadoEm == request.time
                       && textoAte('texto', 4000)
@@ -1323,6 +1332,40 @@ service cloud.firestore {
 
 
     // =====================================================
+    // LIMITE DIÁRIO (anti-spam): ritmo/{uid}
+    // Janela de 24 h a partir da primeira ação. Por janela: até 500 mensagens,
+    // 20 publicações e 200 comentários. Cada ação soma exatamente 1 no seu tipo.
+    // =====================================================
+    match /ritmo/{uid} {
+      function limite(t) {
+        return t == 'msg' ? 500 : (t == 'pub' ? 20 : 200);
+      }
+      function janelaNova() {
+        return resource == null || resource.data.inicio < request.time - duration.value(1, 'd');
+      }
+      function contaOk(k, t) {
+        let v = request.resource.data.get(k, 0);
+        return v is int
+            && v == (k == t ? (janelaNova() ? 1 : resource.data.get(k, 0) + 1)
+                            : (janelaNova() ? 0 : resource.data.get(k, 0)));
+      }
+      allow get: if logado() && request.auth.uid == uid;
+      allow read: if admin();
+      allow create, update: if logado()
+                    && request.auth.uid == uid
+                    && request.resource.data.keys().hasOnly(['inicio', 'msg', 'pub', 'com', 'ultimaEm', 'ultimoTipo'])
+                    && request.resource.data.ultimoTipo in ['msg', 'pub', 'com']
+                    && request.resource.data.ultimaEm == request.time
+                    && request.resource.data.inicio == (janelaNova() ? request.time : resource.data.inicio)
+                    && contaOk('msg', request.resource.data.ultimoTipo)
+                    && contaOk('pub', request.resource.data.ultimoTipo)
+                    && contaOk('com', request.resource.data.ultimoTipo)
+                    && request.resource.data.get(request.resource.data.ultimoTipo, 0) <= limite(request.resource.data.ultimoTipo);
+      allow delete: if false;
+    }
+
+
+    // =====================================================
     // PEDIDOS DE EXCLUSÃO DE CONTA: exclusoes/{uid}
     // A pessoa pede a exclusão; durante 30 dias pode recuperar a conta (apaga este
     // documento). Depois disso a limpeza automática (Admin SDK, fora das regras)
@@ -1412,6 +1455,7 @@ service cloud.firestore {
                     && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.get('comentariosOcultos', false) != true
                     && respostaOk(request.resource.data)
                     && !bloqueioEntre(request.auth.uid, request.resource.data.postAutorId)
+                    && ritmoOk('com')
                     && request.resource.data.criadoEm == request.time;
 
       allow update: if logado()
@@ -1476,6 +1520,7 @@ service cloud.firestore {
                     && emailOk()
                     && request.resource.data.autorId == request.auth.uid
                     && request.resource.data.keys().hasOnly(['autorId', 'nome', 'fotoPerfil', 'texto', 'mediaUrl', 'mediaTipo', 'criadoEm'])
+                    && ritmoOk('pub')
                     && publicacaoOk();
 
       allow update: if logado()

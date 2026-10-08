@@ -125,6 +125,11 @@
 .vt-specs strong { display: flex; justify-content: center; align-items: center; gap: 4px; font-size: 15px; color: var(--vt-text); }
 
 /* ---------- estados ---------- */
+.vt-mais { display: flex; justify-content: center; margin: 18px 0 6px; }
+.vt-mais[hidden] { display: none; }
+.vt-mais-bt { min-height: 44px; padding: 0 22px; border-radius: 999px; border: 1px solid var(--vt-line); background: transparent; color: inherit; font: inherit; font-weight: 700; cursor: pointer; }
+.vt-mais-bt:hover { border-color: currentColor; }
+.vt-mais-bt:disabled { opacity: .6; cursor: wait; }
 .vt-vazio { grid-column: 1 / -1; padding: 46px 20px; text-align: center; border: 1px dashed var(--vt-line); border-radius: 22px; color: var(--vt-muted); }
 .vt-vazio strong { display: block; color: var(--vt-text); font-size: 17px; margin-bottom: 6px; }
 .vt-vazio .vt-criar { margin-top: 14px; }
