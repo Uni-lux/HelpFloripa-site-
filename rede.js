@@ -12,8 +12,10 @@ import { comRitmo } from "./ritmo.js?v=1";
 import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=5";
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
 import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=15";
-import "./painel-avisos.js?v=8";
+import "./painel-avisos.js?v=9";
 import { palavrasBusca } from "./pessoas.js?v=2"; // o sino abre o painel de notificações na própria página
+import { montarNav, pintarAvatarNav, linkPerfil, linkPublicoPerfil } from "./nav-rede.js?v=1";
+export { linkPerfil, linkPublicoPerfil, marcarNav, abasPerfil } from "./nav-rede.js?v=1";
 
 // ---------- ícones ----------
 const SIMBOLOS = `<symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 01-1.5 1.5H15v-6h-6v6H5.5A1.5 1.5 0 014 19z"/></symbol>
@@ -306,7 +308,8 @@ export let restritos = new Set();       // quem eu restringi
 export const escondido = (uid) => meusBloqueios.has(uid) || bloqueadoPor.has(uid);
 // Ganchos que cada página pode trocar.
 export const ganchos = {
-  abrirPerfil: (uid) => { if (uid) location.href = uid === eu?.uid ? "usuarios.html" : `usuarios.html?perfil=${encodeURIComponent(uid)}`; },
+  abrirPerfil: (uid) => { if (uid) location.href = uid === eu?.uid ? "usuarios.html" : linkPerfil(uid, nickDe.get(uid)); },
+  aoPublicar: () => {},
   aposSeguir: () => {},
   aposBloqueio: () => {}
 };
@@ -318,9 +321,12 @@ export async function lerOrdenado(ordenada, simples) {
   catch (e) { if (e?.code !== "failed-precondition") throw e; console.warn("Índice do Firebase ainda não criado:", e.message); return fb.getDocs(simples); }
 }
 
+// @ de quem já foi carregado: os links de perfil usam o @ (helpfloripa.com.br/@nome).
+export const nickDe = new Map();
 export function obterPerfil(uid) {
   if (!uid) return Promise.resolve({});
-  if (!perfis.has(uid)) perfis.set(uid, fb.getDoc(fb.doc(fb.db, "perfis_publicos", uid)).then((s) => (s.exists() ? s.data() : {})).catch(() => ({})));
+  if (!perfis.has(uid)) perfis.set(uid, fb.getDoc(fb.doc(fb.db, "perfis_publicos", uid)).then((s) => (s.exists() ? s.data() : {})).catch(() => ({}))
+    .then((p) => { if (p.nickname) nickDe.set(uid, p.nickname); return p; }));
   return perfis.get(uid);
 }
 
@@ -373,6 +379,7 @@ export async function iniciarRede({ sincronizar = false } = {}) {
   const pub = pubSnap?.exists() ? pubSnap.data() : {};
   if (pub.socialVisibilidade) dados.socialVisibilidade = pub.socialVisibilidade;
   if (pub.duoCapa) dados.duoCapa = pub.duoCapa;
+  if (!dados.nickname && pub.nickname) dados.nickname = pub.nickname;
   if (sincronizar) {
     fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), {
       uid: eu.uid, nome: dados.nome, nickname: dados.nickname || "", cidade: dados.cidade,
@@ -518,8 +525,8 @@ export function linhaPessoa({ uid, nome, foto, sub, quando, nova, meSegue, aoCli
   l.addEventListener("keydown", (e) => { if (e.target === l && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); abrir(); } });
   return l;
 }
-export async function compartilharPerfil(uid, nome) {
-  const url = `${location.origin}${location.pathname.replace(/[^/]*$/, "")}usuarios.html?perfil=${encodeURIComponent(uid)}`;
+export async function compartilharPerfil(uid, nome, nick) {
+  const url = linkPublicoPerfil(uid, nick || nickDe.get(uid) || (uid === eu?.uid ? dados.nickname : ""));
   try {
     if (navigator.share) { await navigator.share({ title: `${nome || "Perfil"} no Help Floripa`, url }); return; }
     await navigator.clipboard.writeText(url);
@@ -1014,25 +1021,13 @@ function ligarCompositor() {
 }
 
 // =====================================================
-// Barra inferior da rede
+// Barra inferior da rede (nav-rede.js): Diário, Explorar, Publicar, Mensagens, Perfil
 // =====================================================
 export function montarBarraRede(ativo) {
-  if ($("barraRede")) return;
-  const nav = el("nav", "barra-rede"); nav.id = "barraRede"; nav.setAttribute("aria-label", "Rede social");
-  [["diario", "feed.html", "feed", "Diário"], ["mensagens", "mensagens.html", "chat", "Mensagens"], ["perfil", "usuarios.html", null, "Perfil"]].forEach(([k, href, ic, rot]) => {
-    const a = el("a"); a.href = href;
-    if (k === ativo) a.setAttribute("aria-current", "page");
-    if (k === "perfil") { const av = el("span", "mini-av"); av.id = "barraAvatar"; a.append(av, el("span", null, rot)); }
-    else a.append(icone(ic, "i"), el("span", null, rot));
-    if (k === "mensagens") { const bd = el("b", "ponto-badge"); bd.id = "badgeMensagens"; bd.hidden = true; a.appendChild(bd); }
-    nav.appendChild(a);
-  });
-  document.body.appendChild(nav);
-  document.body.classList.add("com-barra");
+  montarNav({ ativo, aoPublicar: () => abrirCompositor({ aoPublicar: () => ganchos.aoPublicar() }) });
 }
 export function pintarBarraRede() {
-  const av = $("barraAvatar");
-  if (av) pintarAvatar(av, dados.fotoPerfil, dados.nome);
+  pintarAvatarNav(dados.fotoPerfil, dados.nome);
 }
 
 // =====================================================
