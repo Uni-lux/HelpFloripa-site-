@@ -10,8 +10,8 @@ import {
   $, el, icone, ms, paraData, pintarAvatar, urlSegura, nomeCidade, tempoRelativo, toast, erroAmigavel,
   fb, eu, dados, meusSeguindo, escondido, ganchos, obterPerfil, iniciarRede, carregarMeusSeguindo, linhaPessoa,
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, montarBarraRede, pintarBarraRede, ouvirAvisos, lerOrdenado,
-  editarPublicacao, bloquear, comMencoes
-} from "./rede.js?v=18";
+  editarPublicacao, bloquear, comMencoes, marcarNav
+} from "./rede.js?v=20";
 import { abrirDenuncia } from "./denuncias.js?v=1";
 import { buscarPessoas, pessoasRecentes } from "./pessoas.js?v=2";
 
@@ -24,14 +24,13 @@ let posts = [], mostrados = 0;
 // ---------- abas ----------
 function trocarAba(nova) {
   aba = nova;
-  document.querySelectorAll("#abasFeed [data-aba]").forEach((b) => b.setAttribute("aria-selected", b.dataset.aba === aba ? "true" : "false"));
+  marcarNav(aba); // Diário e Explorar ficam na barra inferior
   $("painelFeed").hidden = aba !== "diario";
   $("painelExplorar").hidden = aba !== "explorar";
   history.replaceState(null, "", aba === "explorar" ? "feed.html?aba=explorar" : "feed.html");
   if (aba === "explorar") carregarPessoas();
   else carregarFeed();
 }
-document.querySelectorAll("#abasFeed [data-aba]").forEach((b) => b.addEventListener("click", () => trocarAba(b.dataset.aba)));
 document.querySelectorAll("#filtroFeed [data-filtro]").forEach((b) => b.addEventListener("click", () => {
   filtro = b.dataset.filtro;
   document.querySelectorAll("#filtroFeed [data-filtro]").forEach((x) => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
@@ -212,6 +211,12 @@ async function pintarLateral() {
   ganchos.aoPublicar = () => { if (aba !== "diario") trocarAba("diario"); else carregarFeed(); };
   ganchos.aposSeguir = () => { if (aba === "diario" && filtro === "seguindo") carregarFeed(); };
   montarBarraRede("diario");
+  // Já no diário: Diário e Explorar da barra trocam a aba sem recarregar a página.
+  document.querySelectorAll('#barraRede [data-nav="diario"], #barraRede [data-nav="explorar"]').forEach((a) => a.addEventListener("click", (e) => {
+    if (e.ctrlKey || e.metaKey || e.shiftKey) return;
+    e.preventDefault();
+    if (aba === a.dataset.nav) window.scrollTo({ top: 0, behavior: "smooth" }); else { trocarAba(a.dataset.nav); window.scrollTo({ top: 0 }); }
+  }));
   pintarBarraRede();
   ouvirAvisos();
   $("btnComporFeed").addEventListener("click", () => abrirCompositor({ aoPublicar: ganchos.aoPublicar }));

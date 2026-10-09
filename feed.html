@@ -23,9 +23,9 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="rede.css?v=5" />
+  <link rel="stylesheet" href="rede.css?v=6" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="feed.js?v=18"></script>
+  <script type="module" src="feed.js?v=20"></script>
 </head>
 <body>
   <header class="topo">
@@ -39,10 +39,6 @@
   <main class="pagina larga">
     <div class="duas-col">
       <div>
-        <div class="abas-rede" id="abasFeed" role="tablist" aria-label="Diário">
-          <button type="button" role="tab" data-aba="diario" aria-selected="true"><svg class="i s"><use href="#i-feed"/></svg>Diário</button>
-          <button type="button" role="tab" data-aba="explorar" aria-selected="false"><svg class="i s"><use href="#i-bussola"/></svg>Explorar</button>
-        </div>
         <section id="painelFeed" aria-label="Publicações">
           <button type="button" class="compor-card" id="btnComporFeed">
             <div class="avatar" id="comporAvatar"></div>
@@ -57,7 +53,7 @@
           <div style="text-align:center"><button type="button" class="btn sec" id="maisFeed" hidden>Ver mais publicações</button></div>
         </section>
         <section id="painelExplorar" aria-label="Explorar" hidden>
-          <h2 class="titulo-sec">Explore o Help Floripa</h2>
+          <h1 class="titulo-sec">Explore o Help Floripa</h1>
           <div class="atalhos-classes">
           <a href="servicos.html" class="atalho-classe servicos" style="background-image:url('servicos.webp')"><span class="ic"><svg class="i s"><use href="#i-servicos"/></svg></span><strong>Freelances</strong><small>Profissionais avaliados</small></a>
           <a href="delivery.html" class="atalho-classe delivery" style="background-image:url('lanchonetes.webp')"><span class="ic"><svg class="i s"><use href="#i-delivery"/></svg></span><strong>Delivery</strong><small>Cardápios da vizinhança</small></a>

@@ -7,6 +7,13 @@
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <script>if (window.top !== window.self) { document.documentElement.style.display = "none"; try { window.top.location.replace(window.self.location.href); } catch (e) {} }</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <script>
+    // Link curto de perfil: helpfloripa.com.br/@usuario abre o perfil da pessoa.
+    (function () {
+      var m = location.pathname.match(/^(.*\/)@([A-Za-z0-9._]{3,20})\/?$/);
+      if (m) location.replace(m[1] + "usuarios.html?u=" + m[2].toLowerCase() + location.hash);
+    })();
+  </script>
   <meta name="robots" content="noindex" />
   <meta name="description" content="A página que você procurou não existe no Help Floripa. Encontre serviços, delivery, lojas e imóveis de Florianópolis." />
   <meta name="theme-color" content="#0b1014" />
