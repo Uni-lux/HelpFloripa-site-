@@ -13,7 +13,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="stylesheet" href="vitrine.css?v=24" />
-  <link rel="stylesheet" href="rede.css?v=6" />
+  <link rel="stylesheet" href="rede.css?v=5" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
     // Tema compartilhado com a página de mensagens; aplicado antes de desenhar.
@@ -41,34 +41,17 @@
     <div class="estado" id="estadoCarregando"><div class="spinner"></div>Carregando o perfil...</div>
     <div class="estado erro" id="estadoErro" hidden></div>
 
-    <!-- Seu perfil -->
     <div id="conteudo" hidden>
       <section id="meuPerfil" aria-label="Seu perfil"></section>
-      <div id="abasMeu"></div>
 
       <section id="painelPosts" aria-labelledby="tPosts">
-        <h2 id="tPosts" class="so-leitor">Suas publicações</h2>
+        <div class="secao-perfil"><h2 id="tPosts">Publicações</h2><a class="btn sec mini" href="feed.html"><svg class="i xs"><use href="#i-feed"/></svg>Ver o diário</a></div>
         <button type="button" class="compor" id="btnCompor">
           <div class="avatar" id="comporAvatar"></div>
           <span class="txt">Compartilhe um trabalho, uma novidade ou uma foto...</span>
           <span class="mais"><svg class="i s"><use href="#i-mais"/></svg></span>
         </button>
         <div class="grade" id="gradePosts"></div>
-      </section>
-    </div>
-
-    <!-- Perfil de outra pessoa: usuarios.html?u=@usuario ou ?perfil=código (o link fica na barra de endereço) -->
-    <div id="conteudoOutro" hidden>
-      <div class="pf-contexto">
-        <button type="button" class="icone-btn" id="ctxVoltar" aria-label="Voltar" title="Voltar"><svg class="i"><use href="#i-voltar"/></svg></button>
-        <div class="tx"><strong id="ctxNome"></strong><small id="ctxSub"></small></div>
-        <button type="button" class="icone-btn" id="ctxCompartilhar" aria-label="Compartilhar perfil" title="Compartilhar perfil"><svg class="i"><use href="#i-compartilhar"/></svg></button>
-      </div>
-      <section id="ppCabecalho" aria-label="Perfil"></section>
-      <div id="abasOutro"></div>
-      <section aria-labelledby="tPostsOutro">
-        <h2 id="tPostsOutro" class="so-leitor">Publicações</h2>
-        <div class="grade" id="ppGrade"></div>
       </section>
     </div>
   </main>
@@ -214,6 +197,16 @@
     </div>
   </div>
 
+  <div class="folha larga folha-perfil cheia" id="folhaPerfil" role="dialog" aria-modal="true" aria-labelledby="tPerfilPublico">
+    <div class="folha-caixa">
+      <div class="folha-topo"><h2 id="tPerfilPublico">Perfil</h2><button type="button" class="icone-btn" data-fechar aria-label="Fechar"><svg class="i"><use href="#i-fechar"/></svg></button></div>
+      <div class="folha-corpo">
+        <div id="ppCabecalho"></div>
+        <div class="pp-conteudo"><h3>Publicações</h3><div class="grade" id="ppGrade"></div></div>
+      </div>
+    </div>
+  </div>
+
   <script type="module">
     import {
       $, ms, paraData, LIMITE_DOC, el, icone, iniciais, urlSegura, pintarAvatar, pintarCapa, nomeCidade, numero, tempoRelativo, dataCompleta,
@@ -221,9 +214,8 @@
       fb, authFns, storageFns, eu, refUsuario, dados, perfis, meusSeguindo, meusBloqueios, bloqueadoPor, restritos, escondido, ganchos,
       obterPerfil, lerOrdenado, editarPublicacao, comMencoes, salvarImagem, iniciarRede, meusSeguindoPronto, carregarMeusSeguindo, alternarSeguir, botaoSeguir, linhaPessoa,
       removerSeguidor, bloquear, desbloquear, alternarRestricao, compartilharPerfil,
-      barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail,
-      nickDe, linkPerfil, abasPerfil
-    } from "./rede.js?v=20";
+      barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail
+    } from "./rede.js?v=18";
     import { buscarPessoas, palavrasBusca } from "./pessoas.js?v=2";
     import { abrirDenuncia } from "./denuncias.js?v=1";
     import { notaDoPerfil, abrirDetalhamento, avaliarNegocio, avaliarCliente, lerResumo, estrelas, pintarEstrelas, media, notaTexto, TIPOS_NEGOCIO } from "./avaliacoes.js?v=10";
@@ -234,8 +226,6 @@
     // ======================================================
     let meusPosts = [];
     let meusVinculos = [];
-    // Perfil de outra pessoa aberto nesta página (null = o seu).
-    let modoOutro = false, alvoOutro = null;
 
     // ======================================================
     // Cabeçalho de perfil (seu e dos outros)
@@ -300,7 +290,6 @@
     // ---------- meu perfil ----------
     let meuCab = null;
     function renderizarMeuPerfil() {
-      if (modoOutro) return;
       if (!meuCab) {
         meuCab = montarCabecalho($("meuPerfil"));
         // Botões de foto e capa
@@ -323,18 +312,20 @@
         bEditar.type = "button"; bEditar.className = "btn sec";
         bEditar.append(icone("lapis", "i xs"), document.createTextNode("Editar perfil"));
         bEditar.addEventListener("click", abrirEditar);
+        const bSocial = botaoSocial(eu.uid);
+        bSocial.id = "meuSocial";
         const bComp = document.createElement("button");
         bComp.type = "button"; bComp.className = "btn sec icone"; bComp.setAttribute("aria-label", "Compartilhar perfil");
         bComp.appendChild(icone("compartilhar", "i s"));
-        bComp.addEventListener("click", () => compartilharPerfil(eu.uid, dados.nome, dados.nickname));
-        acoes.append(bEditar, bComp);
+        bComp.addEventListener("click", () => compartilharPerfil(eu.uid, dados.nome));
+        acoes.append(bEditar, bSocial, bComp);
         // Estatísticas
-        meuCab.stat("posts").addEventListener("click", () => $("abasMeu").scrollIntoView({ behavior: "smooth", block: "start" }));
+        meuCab.stat("posts").addEventListener("click", () => $("painelPosts").scrollIntoView({ behavior: "smooth", block: "start" }));
         meuCab.stat("seguidores").addEventListener("click", () => abrirListaRelacoes(eu.uid, "seguidores"));
         meuCab.stat("seguindo").addEventListener("click", () => abrirListaRelacoes(eu.uid, "seguindo"));
         meuCab.stat("nota").addEventListener("click", () => abrirAvaliacoes(dados, eu.uid));
       }
-      pintarAbasMeu();
+      pintarMeuSocial();
       preencherCabecalho(meuCab, dados, { posts: meusPosts.length, seguidores: contagem.seguidores, seguindo: contagem.seguindo });
       pintarNotaPerfil(meuCab, eu.uid);
       // Bio vazia vira convite
@@ -757,45 +748,17 @@
     // Perfil de outra pessoa
     // ======================================================
     let ppCab = null, ppMeSegue = false;
-    // Abrir o perfil de alguém = ir para a página dele (o link fica no endereço: dá para
-    // atualizar, voltar e compartilhar). O perfil que já está aberto só é redesenhado.
-    function navegarPerfil(uid) {
+    async function abrirPerfilPublico(uid) {
       if (!uid) return;
-      if (uid === (modoOutro ? alvoOutro : eu.uid)) { pilha.slice().forEach(fecharFolha); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
-      location.href = uid === eu.uid ? "usuarios.html" : linkPerfil(uid, nickDe.get(uid));
-    }
-    function abrirPerfilPublico(uid) {
-      if (modoOutro && uid === alvoOutro) return renderizarPerfilOutro(uid);
-      navegarPerfil(uid);
-    }
-    function perfilNaoEncontrado() {
-      $("estadoCarregando").hidden = true;
-      $("conteudoOutro").hidden = true;
-      const e = $("estadoErro");
-      e.hidden = false; e.className = "estado vazio-perfil";
-      const t = el("strong", null, "Perfil não encontrado");
-      const a = el("a", "btn pri", "Procurar pessoas"); a.href = "feed.html?aba=explorar";
-      e.replaceChildren(t, el("span", null, "O link pode estar errado ou a pessoa mudou o @usuário."), a);
-      document.title = "Perfil não encontrado | Help Floripa";
-    }
-    async function renderizarPerfilOutro(uid) {
+      if (uid === eu.uid) { pilha.slice().forEach(fecharFolha); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
       ppCab = montarCabecalho($("ppCabecalho"));
       $("ppGrade").replaceChildren();
-      $("abasOutro").replaceChildren();
       perfis.delete(uid);
       const p = await obterPerfil(uid);
-      if (!p.uid && !p.nome) { perfilNaoEncontrado(); return; }
       preencherCabecalho(ppCab, p);
       pintarNotaPerfil(ppCab, uid);
-      // Barra de contexto e endereço com o @ (o link da barra de endereço é o mesmo do compartilhar).
-      $("ctxNome").textContent = p.nome || "Perfil";
-      $("ctxSub").textContent = p.nickname ? "@" + p.nickname : nomeCidade(p.cidade || p.cidadeNome);
-      $("ctxCompartilhar").onclick = () => compartilharPerfil(uid, p.nome, p.nickname);
-      document.title = `${p.nome || "Perfil"}${p.nickname ? ` (@${p.nickname})` : ""} | Help Floripa`;
-      const limpo = linkPerfil(uid, p.nickname);
-      if (!location.href.endsWith(limpo)) history.replaceState(null, "", limpo);
-      $("estadoCarregando").hidden = true;
-      $("conteudoOutro").hidden = false;
+      $("tPerfilPublico").textContent = p.nome || "Perfil";
+      abrirFolha("folhaPerfil");
 
       const acoesTopo = ppCab.el("acoes");
       acoesTopo.replaceChildren(botaoOpcoesPerfil(uid, p));
@@ -849,13 +812,16 @@
       bMsg.type = "button"; bMsg.className = "btn sec";
       bMsg.append(icone("chat", "i xs"), document.createTextNode("Mensagem"));
       bMsg.addEventListener("click", () => iniciarConversa(uid));
+      const bComp = document.createElement("button");
+      bComp.type = "button"; bComp.className = "btn sec icone"; bComp.setAttribute("aria-label", "Compartilhar perfil");
+      bComp.appendChild(icone("compartilhar", "i s"));
+      bComp.addEventListener("click", () => compartilharPerfil(uid, p.nome));
       acoes.append(bSeguir, bMsg, botaoOpcoesPerfil(uid, p));
-      const vis = p.socialVisibilidade || "todos";
-      $("abasOutro").replaceChildren(abasPerfil({ uid, nick: p.nickname, proprio: false, ativa: "publicacoes", social: vis !== "ocultar", restrito: vis !== "todos", aoAvaliacoes: () => abrirAvaliacoes(p, uid) }));
+      if ((p.socialVisibilidade || "todos") !== "ocultar") acoes.insertBefore(botaoSocial(uid), acoes.lastChild);
       // O duo na capa segue a escolha do dono: clicável, só a foto ou oculto.
       desenharDuoCapa(ppCab, uid, p, vins.status === "fulfilled" ? vins.value : [], (p.duoCapa || "clicavel") === "clicavel");
       buscarNegocios(uid).then((lista) => renderizarNegocios(ppCab.el("negocios"), lista, { proprio: false, dono: { ...p, uid } })).catch(() => {});
-      ppCab.stat("posts").addEventListener("click", () => $("abasOutro").scrollIntoView({ behavior: "smooth", block: "start" }));
+      ppCab.stat("posts").addEventListener("click", () => $("ppGrade").scrollIntoView({ behavior: "smooth" }));
       ppCab.stat("seguidores").addEventListener("click", () => abrirListaRelacoes(uid, "seguidores"));
       ppCab.stat("seguindo").addEventListener("click", () => abrirListaRelacoes(uid, "seguindo"));
       ppCab.stat("nota").addEventListener("click", () => abrirAvaliacoes(p, uid));
@@ -873,7 +839,7 @@
         const bloq = meusBloqueios.has(uid);
         abrirOpcoes(p.nome || "Opções", [
           !bloq && !bloqueadoPor.has(uid) && { rotulo: "Adicionar ao meu social", sub: "Duo, família, amigos", icone: "fio", fn: () => abrirNovoVinculo({ uid, ...p }) },
-          { rotulo: "Compartilhar perfil", sub: p.nickname ? `helpfloripa.com.br/@${p.nickname}` : "", icone: "compartilhar", fn: () => compartilharPerfil(uid, p.nome, p.nickname) },
+          { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(uid, p.nome) },
           !bloq && ppMeSegue && { rotulo: "Remover seguidor", sub: "Deixa de seguir você, sem aviso", icone: "pessoa-menos", fn: async () => { if (await removerSeguidor(uid, p.nome)) { ppMeSegue = false; abrirPerfilPublico(uid); } } },
           !bloq && { rotulo: restritos.has(uid) ? "Remover restrição" : "Restringir", sub: restritos.has(uid) ? "Volta a receber avisos dessa pessoa" : "Mensagens vão para Restritas, sem avisos", icone: "restringir", fn: () => alternarRestricao(uid, p.nome) },
           { rotulo: "Denunciar perfil", sub: "Golpe, perfil falso, assédio...", icone: "alerta", perigo: true,
@@ -936,18 +902,27 @@
       return false;
     }
 
-    // Abas do seu perfil: Publicações · Social (com cadeado quando tem privacidade) · Avaliações.
-    function pintarAbasMeu() {
+    // No seu próprio perfil, o botão Social mostra como está a privacidade das conexões.
+    function pintarMeuSocial() {
+      const b = $("meuSocial");
+      if (!b) return;
       const vis = dados.socialVisibilidade || "todos";
-      const abas = abasPerfil({ uid: eu.uid, nick: dados.nickname, proprio: true, ativa: "publicacoes", restrito: vis !== "todos", aoAvaliacoes: () => abrirAvaliacoes(dados, eu.uid) });
-      const social = abas.querySelector('[data-aba="social"]');
-      if (social) social.title = {
+      b.replaceChildren(icone(vis === "todos" ? "teia" : "cadeado", "i xs"), document.createTextNode("Social"));
+      b.classList.toggle("restrito", vis !== "todos");
+      b.title = {
         todos: "Todos podem abrir os perfis do seu social",
         seguidores: "Só seus seguidores abrem os perfis do seu social",
         amigos: "Só amigos (quem segue e é seguido) abrem os perfis do seu social",
-        ocultar: "Seu social não aparece para os visitantes"
+        ocultar: "O botão Social não aparece para os visitantes"
       }[vis] || "";
-      $("abasMeu").replaceChildren(abas);
+    }
+
+    function botaoSocial(uid) {
+      const b = document.createElement("a");
+      b.className = "btn sec";
+      b.href = uid === eu.uid ? "social.html" : `social.html?uid=${encodeURIComponent(uid)}`;
+      b.append(icone("teia", "i xs"), document.createTextNode("Social"));
+      return b;
     }
 
     // Foto do duo pequena na capa, ligada à foto do perfil pelo Akai Ito (fio, coração, fio).
@@ -1250,51 +1225,10 @@
       $("estadoErro").textContent = texto;
     }
 
-    // Qual perfil abrir: ?u=@usuario (link bonito) ou ?perfil=código. Sem nada (ou o seu): o seu perfil.
-    async function perfilPedido(params) {
-      const nick = (params.get("u") || "").replace(/^@/, "").toLowerCase();
-      if (nick) {
-        if (nick === (dados.nickname || "")) return eu.uid;
-        const s = await fb.getDoc(fb.doc(fb.db, "nicknames", nick)).catch(() => null);
-        if (s?.exists()) nickDe.set(s.data().uid, nick);
-        return s?.exists() ? s.data().uid : "";
-      }
-      return params.get("perfil") || eu.uid;
-    }
-
     async function iniciar() {
       try { await iniciarRede({ sincronizar: true }); }
       catch (e) { mostrarErro(e.message || "Não foi possível carregar seu perfil agora."); return; }
-      const params = new URLSearchParams(location.search);
-      // Links antigos de negócio agora vão para a página Meus negócios.
-      if (params.get("acao") === "negocio") { location.replace("negocios.html" + (params.get("tipo") ? `?tipo=${encodeURIComponent(params.get("tipo"))}` : "")); return; }
       ganchos.abrirPerfil = (uid) => abrirPerfilPublico(uid);
-      $("ctxVoltar").addEventListener("click", () => {
-        if (history.length > 1 && document.referrer.startsWith(location.origin)) history.back();
-        else location.href = "feed.html";
-      });
-
-      const alvo = await perfilPedido(params);
-      if (alvo !== eu.uid) {
-        // ===== perfil de outra pessoa =====
-        modoOutro = true; alvoOutro = alvo;
-        montarBarraRede("");
-        pintarBarraRede();
-        ouvirAvisos();
-        carregarMeusSeguindo();
-        ouvirVinculos(); // para "Adicionar ao meu social" saber o que você já tem
-        ganchos.aposSeguir = async () => {
-          const n = await contarRelacoes("alvoId", alvo).catch(() => null);
-          if (n != null && ppCab) ppCab.stat("seguidores").querySelector(".num").textContent = numero(n);
-        };
-        if (!alvo) { perfilNaoEncontrado(); return; }
-        await renderizarPerfilOutro(alvo);
-        if (params.get("ver") === "avaliacoes") obterPerfil(alvo).then((p) => abrirAvaliacoes(p, alvo));
-        return;
-      }
-
-      // ===== seu perfil =====
-      if (params.has("u") || params.has("perfil")) history.replaceState(null, "", "usuarios.html");
       ganchos.aposSeguir = () => atualizarContagens();
       ganchos.aoPublicar = () => carregarMeusPosts();
       montarBarraRede("perfil");
@@ -1309,11 +1243,15 @@
       atualizarContagens();
       carregarMeusPosts();
 
+      const params = new URLSearchParams(location.search);
+      // Links antigos de negócio agora vão para a página Meus negócios.
+      if (params.get("acao") === "negocio") { location.replace("negocios.html" + (params.get("tipo") ? `?tipo=${encodeURIComponent(params.get("tipo"))}` : "")); return; }
       if (params.get("acao") === "social") { history.replaceState(null, "", "usuarios.html"); abrirNovoVinculo(null); }
       if (params.get("acao") === "editar") { history.replaceState(null, "", "usuarios.html"); abrirEditar(); }
-      if (params.get("ver") === "avaliacoes") { history.replaceState(null, "", "usuarios.html"); abrirAvaliacoes(dados, eu.uid); }
       const avaliarPedido = params.get("avaliar");
       if (avaliarPedido) { history.replaceState(null, "", "usuarios.html"); avaliarPorLink(avaliarPedido); }
+      const perfilPedido = params.get("perfil");
+      if (perfilPedido) { history.replaceState(null, "", "usuarios.html"); abrirPerfilPublico(perfilPedido); }
     }
 
     iniciar().catch((e) => { console.error(e); mostrarErro("Não foi possível carregar a página. Tente novamente."); });

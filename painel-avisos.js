@@ -135,8 +135,7 @@ async function carregar() {
 // ---------- visual ----------
 const CSS = `
 .pa-fundo { position: fixed; inset: 0; z-index: 9500; background: rgba(2, 8, 14, .5); opacity: 0; transition: opacity .25s; -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
-.pa-fundo.on { opacity: 1; pointer-events: auto; }
-.pa-fundo:not(.on) { pointer-events: none; } /* fechado: não pode cobrir a página */
+.pa-fundo.on { opacity: 1; }
 .pa { position: fixed; top: 0; right: 0; bottom: 0; z-index: 9501; width: min(420px, 100vw); display: flex; flex-direction: column;
   background: var(--panel, #0f161b); color: var(--text, #eaf0f3); border-left: 1px solid var(--line, #213038); box-shadow: -24px 0 60px rgba(0, 0, 0, .4);
   transform: translateX(100%); transition: transform .3s cubic-bezier(.2, .8, .2, 1); outline: none; font-family: inherit; }

@@ -136,8 +136,9 @@
     .sidebar { position: relative; display: flex; flex-direction: column; min-width: 0; border-right: 1px solid var(--line); background: var(--panel); overflow: hidden; }
     .chat { position: relative; display: flex; flex-direction: column; min-width: 0; background: var(--chat-bg); overflow: hidden; }
 
-    .side-top { display: flex; align-items: center; gap: 6px; padding: 14px 10px 6px 16px; }
-    .side-top h1 { flex: 1; margin: 0; font-size: 24px; font-weight: 850; letter-spacing: -.4px; }
+    .side-top { display: flex; align-items: center; gap: 6px; padding: 12px 10px 8px 12px; padding-top: max(12px, env(safe-area-inset-top)); }
+    .side-top h1 { flex: 1; margin: 0 0 0 4px; font-size: 21px; font-weight: 750; letter-spacing: -.2px; }
+    .side-top h1 span { color: var(--accent); font-weight: 600; font-size: 12px; display: block; letter-spacing: .6px; text-transform: uppercase; }
 
     .search { margin: 4px 12px 8px; position: relative; }
     .search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
@@ -416,24 +417,9 @@
     .spinner { width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--accent); animation: girar .8s linear infinite; margin: 0 auto 12px; }
     @keyframes girar { to { transform: rotate(360deg); } }
 
-    /* ---------- topo da rede (o mesmo do Diário e do Perfil) ---------- */
-    :root { --topo-h: calc(60px + env(safe-area-inset-top)); }
-    .topo { position: relative; z-index: 60; height: var(--topo-h); padding: env(safe-area-inset-top) 8px 0; display: flex; align-items: center; gap: 2px;
-      background: var(--panel); border-bottom: 1px solid var(--line); }
-    .topo .icon-btn { width: 42px; height: 42px; color: var(--text); text-decoration: none; position: relative; }
-    .topo-espaco { width: 42px; flex-shrink: 0; }
-    .marca { flex: 1; text-align: center; text-decoration: none; line-height: 1; color: var(--text); }
-    .marca strong { font-size: 19px; font-weight: 850; letter-spacing: .2px; }
-    .marca strong span { color: var(--accent); }
-    .marca small { display: block; margin-top: 3px; font-size: 8.5px; letter-spacing: 1.3px; color: var(--muted); font-weight: 700; }
-    .app { height: calc(100vh - var(--topo-h)); height: calc(100dvh - var(--topo-h)); }
-
     /* ---------- celular ---------- */
     @media (max-width: 820px) {
       .app { grid-template-columns: 1fr; box-shadow: none; }
-      /* Conversa aberta: tela cheia, como nos apps de mensagem */
-      body.chat-aberto .topo { display: none; }
-      body.chat-aberto .app { height: 100vh; height: 100dvh; }
       .chat { display: none; }
       body.chat-aberto .sidebar { display: none; }
       body.chat-aberto .chat { display: flex; }
@@ -452,8 +438,6 @@
     <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></symbol>
     <symbol id="i-voltar" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
     <symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 01-1.5 1.5H15v-6h-6v6H5.5A1.5 1.5 0 014 19z"/></symbol>
-    <symbol id="i-sino" viewBox="0 0 24 24"><path d="M18 9.5a6 6 0 00-12 0c0 6.5-2.5 8-2.5 8h17S18 16 18 9.5z"/><path d="M10.2 20.5a2 2 0 003.6 0"/></symbol>
-    <symbol id="i-ajustes" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/></symbol>
     <symbol id="i-lupa" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></symbol>
     <symbol id="i-nova" viewBox="0 0 24 24"><path d="M12 20.5c4.7 0 8.5-3.6 8.5-8s-3.8-8-8.5-8-8.5 3.6-8.5 8c0 1.6.5 3.1 1.4 4.3L4 20l3.6-1c1.3.9 2.8 1.5 4.4 1.5z"/><path d="M12 9v7M8.5 12.5h7"/></symbol>
     <symbol id="i-config" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></symbol>
@@ -484,21 +468,14 @@
 
   <div class="carregando-app" id="carregandoApp"><div><div class="spinner"></div>Carregando mensagens...</div></div>
 
-  <header class="topo">
-    <a href="index.html" class="icon-btn" aria-label="Início do Help Floripa" title="Início"><svg class="i"><use href="#i-casa"/></svg></a>
-    <span class="topo-espaco" aria-hidden="true"></span>
-    <a href="index.html" class="marca" aria-label="Help Floripa - Início"><strong>HELP <span>FLORIPA</span></strong><small>TUDO EM UM SÓ LUGAR</small></a>
-    <a href="notificacoes.html" class="icon-btn" aria-label="Notificações" title="Notificações"><svg class="i"><use href="#i-sino"/></svg></a>
-    <a href="configuracoes.html" class="icon-btn" aria-label="Configurações" title="Configurações"><svg class="i"><use href="#i-config"/></svg></a>
-  </header>
-
   <div class="app">
     <!-- ================= LISTA DE CONVERSAS ================= -->
     <aside class="sidebar" aria-label="Conversas">
       <div class="side-top">
-        <h1>Mensagens</h1>
+        <a href="index.html" class="icon-btn" aria-label="Início do Help Floripa" title="Início"><svg class="i"><use href="#i-casa"/></svg></a>
+        <h1><span>Help Floripa</span>Mensagens</h1>
         <button type="button" class="icon-btn" id="btnNovaConversa" aria-label="Nova conversa" title="Nova conversa"><svg class="i"><use href="#i-nova"/></svg></button>
-        <button type="button" class="icon-btn" id="btnConfig" aria-label="Ajustes do chat" title="Ajustes do chat"><svg class="i"><use href="#i-ajustes"/></svg></button>
+        <button type="button" class="icon-btn" id="btnConfig" aria-label="Configurações" title="Configurações"><svg class="i"><use href="#i-config"/></svg></button>
       </div>
       <div class="search">
         <svg class="i s"><use href="#i-lupa"/></svg>
@@ -696,8 +673,6 @@
     import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO } from "./avaliacoes.js?v=10";
     import { buscarPessoas } from "./pessoas.js?v=2";
     import { comRitmo } from "./ritmo.js?v=1";
-    import { montarNav, pintarAvatarNav, badgeNav, linkPerfil } from "./nav-rede.js?v=1";
-    import "./painel-avisos.js?v=9"; // o sino do topo abre as notificações aqui mesmo
     // ======================================================
     // Configurações (salvas no aparelho)
     // ======================================================
@@ -1375,7 +1350,6 @@
       const total = conversas.filter((c) => c.naoLida).length;
       const total2 = conversas.filter((c) => c.naoLida && !restritos.has(c.outroId)).length;
       document.title = (total2 ? `(${total2}) ` : "") + "Mensagens | Help Floripa";
-      badgeNav(total2);
     }
 
     async function contarNaoLidas(c) {
@@ -2067,10 +2041,8 @@
       catch { toast("Não foi possível copiar."); }
     }
 
-    async function verPerfil() {
-      if (!ativa) return;
-      const p = await obterPerfil(ativa.outroId).catch(() => ({}));
-      location.href = linkPerfil(ativa.outroId, p?.nickname);
+    function verPerfil() {
+      if (ativa) location.href = `usuarios.html?perfil=${encodeURIComponent(ativa.outroId)}`;
     }
 
     async function apagarMensagem(m) {
@@ -2714,9 +2686,6 @@
         pintarAvatar($("cfgAvatar"), meuPerfil.fotoPerfil || eu.photoURL, meuNome);
         $("cfgNome").textContent = meuNome;
         $("cfgNick").textContent = meuPerfil.nickname ? `@${meuPerfil.nickname}` : (eu.email || "");
-        // Barra da rede no pé da lista (Diário, Explorar, Publicar, Mensagens, Perfil).
-        montarNav({ ativo: "mensagens", dentro: document.querySelector(".sidebar") });
-        pintarAvatarNav(meuPerfil.fotoPerfil || eu.photoURL, meuNome);
 
         atualizarBotaoEnviar();
         marcarPresenca();

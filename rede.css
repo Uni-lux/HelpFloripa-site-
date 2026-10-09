@@ -481,6 +481,13 @@ svg.i.xs { width: 14px; height: 14px; }
 .post-nav { display: flex; gap: 6px; margin-left: auto; }
 
 /* perfil público dentro da folha */
+.folha-perfil .pf { border: 0; border-radius: 0; }
+.folha-perfil .folha-topo { position: absolute; z-index: 5; top: 0; left: 0; right: 0; border: 0; background: transparent; pointer-events: none; }
+.folha-perfil .folha-topo .icone-btn { pointer-events: auto; background: rgba(0, 0, 0, .5); color: #fff; }
+.folha-perfil .folha-topo h2 { visibility: hidden; }
+.folha-perfil .folha-caixa { position: relative; }
+.pp-conteudo { padding: 0 16px 20px; }
+.pp-conteudo h3 { margin: 18px 4px 10px; font-size: 15px; }
 
 .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 9500; max-width: calc(100% - 32px); width: max-content; background: var(--text); color: var(--panel); padding: 12px 18px; border-radius: 12px; font-size: 14px; font-weight: 600; box-shadow: var(--shadow); cursor: pointer; }
 
@@ -505,7 +512,28 @@ svg.i.xs { width: 14px; height: 14px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 
-/* Barra inferior da rede e abas do perfil: estilos em nav-rede.js (as mensagens também usam). */
+/* =====================================================
+   Barra inferior da rede (Diário, Mensagens, Perfil)
+   ===================================================== */
+body.com-barra { padding-bottom: calc(74px + env(safe-area-inset-bottom)); }
+.barra-rede {
+  position: fixed; left: 50%; bottom: calc(10px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 1100;
+  width: min(380px, calc(100% - 20px)); display: grid; grid-template-columns: repeat(3, 1fr); align-items: center; padding: 6px;
+  border-radius: 22px; background: color-mix(in srgb, var(--panel) 90%, transparent); border: 1px solid var(--line); box-shadow: var(--shadow);
+  -webkit-backdrop-filter: saturate(1.4) blur(16px); backdrop-filter: saturate(1.4) blur(16px);
+}
+.barra-rede a, .barra-rede button {
+  position: relative; display: grid; justify-items: center; gap: 2px; padding: 6px 2px; border: 0; background: none; border-radius: 16px;
+  color: var(--muted); text-decoration: none; font-size: 10.5px; font-weight: 700; cursor: pointer;
+}
+.barra-rede a:hover, .barra-rede button:hover { color: var(--text); background: var(--hover); }
+.barra-rede [aria-current="page"] { color: var(--accent); }
+.barra-rede .publicar span.bola { width: 44px; height: 44px; border-radius: 15px; display: grid; place-items: center; background: linear-gradient(135deg, #00adee, #0077a8); color: #fff; box-shadow: 0 8px 20px rgba(0, 173, 238, .35); }
+.barra-rede .publicar { padding-top: 0; }
+.barra-rede .ponto-badge { top: 0; right: calc(50% - 22px); }
+.barra-rede .mini-av { width: 24px; height: 24px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; font-size: 9px; font-weight: 800; color: #fff; background: linear-gradient(135deg, #0a4a63, #00adee); }
+.barra-rede .mini-av img { width: 100%; height: 100%; object-fit: cover; }
+.barra-rede [aria-current="page"] .mini-av { box-shadow: 0 0 0 2px var(--accent); }
 
 /* =====================================================
    Páginas da rede
@@ -629,7 +657,7 @@ svg.i.xs { width: 14px; height: 14px; }
 }
 
 /* ---------- detalhes ---------- */
-body.com-barra .toast { bottom: calc(100px + env(safe-area-inset-bottom)); }
+body.com-barra .toast { bottom: calc(92px + env(safe-area-inset-bottom)); }
 .secao-perfil { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 20px 2px 10px; }
 .secao-perfil h2 { margin: 0; font-size: 18px; font-weight: 800; }
 .dicas { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; font-size: 14px; }
@@ -756,18 +784,3 @@ html, body { overflow-x: clip; }
 
 .mencao { color: var(--accent); font-weight: 700; text-decoration: none; }
 .mencao:hover { text-decoration: underline; }
-
-/* ---------- perfil de outra pessoa (página própria, com link pelo @) ---------- */
-.so-leitor { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.pf-contexto {
-  position: sticky; top: calc(var(--topo) + env(safe-area-inset-top)); z-index: 30; display: flex; align-items: center; gap: 6px;
-  margin: -6px -4px 10px; padding: 6px 4px; border-radius: 0 0 16px 16px;
-  background: color-mix(in srgb, var(--bg) 86%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
-}
-.pf-contexto .tx { flex: 1; min-width: 0; line-height: 1.2; }
-.pf-contexto .tx strong { display: block; font-size: 16px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pf-contexto .tx small { display: block; color: var(--muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pf-contexto .icone-btn:hover { background: var(--hover); }
-.estado.vazio-perfil { display: grid; justify-items: center; gap: 10px; color: var(--muted); }
-.estado.vazio-perfil strong { color: var(--text); font-size: 19px; }
-.estado.vazio-perfil .btn { margin-top: 6px; }

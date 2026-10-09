@@ -50,6 +50,17 @@
     .ponto-badge { position: absolute; top: 4px; right: 3px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #ff3b5c; color: #fff; font-size: 10.5px; font-weight: 800; display: grid; place-items: center; box-shadow: 0 0 0 2px var(--panel); }
     .cab-social { display: flex; align-items: center; gap: 6px; margin: 0 0 12px -8px; }
     .cab-social h1 { margin: 0; font-size: 22px; font-weight: 850; letter-spacing: -.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    /* Barra inferior da rede (mesma do perfil e do feed) */
+    body.com-barra { padding-bottom: calc(74px + env(safe-area-inset-bottom)); }
+    .barra-rede { position: fixed; left: 50%; bottom: calc(10px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 1100; width: min(520px, calc(100% - 20px)); display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; padding: 6px; border-radius: 22px; background: color-mix(in srgb, var(--panel) 90%, transparent); border: 1px solid var(--line); box-shadow: var(--sombra); -webkit-backdrop-filter: saturate(1.4) blur(16px); backdrop-filter: saturate(1.4) blur(16px); }
+    .barra-rede a, .barra-rede button { position: relative; display: grid; justify-items: center; gap: 2px; padding: 6px 2px; border: 0; background: none; border-radius: 16px; color: var(--muted); text-decoration: none; font-size: 10.5px; font-weight: 700; cursor: pointer; }
+    .barra-rede a:hover, .barra-rede button:hover { color: var(--text); background: var(--hover); }
+    .barra-rede .publicar span.bola { width: 44px; height: 44px; border-radius: 15px; display: grid; place-items: center; background: linear-gradient(135deg, #00adee, #0077a8); color: #fff; box-shadow: 0 8px 20px rgba(0, 173, 238, .35); }
+    .barra-rede .publicar { padding-top: 0; }
+    .barra-rede .ponto-badge { top: 0; right: calc(50% - 22px); }
+    .barra-rede .mini-av { width: 24px; height: 24px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; font-size: 9px; font-weight: 800; color: #fff; background: linear-gradient(135deg, #0a4a63, #00adee); }
+    .barra-rede .mini-av img { width: 100%; height: 100%; object-fit: cover; }
+    body.com-barra .toast { bottom: calc(92px + env(safe-area-inset-bottom)); }
     .icone-btn { width: 42px; height: 42px; border-radius: 50%; border: 0; background: transparent; display: grid; place-items: center; cursor: pointer; color: var(--text); text-decoration: none; }
     .icone-btn:hover { background: var(--hover); }
     .pagina { width: min(860px, 100%); margin: 0 auto; padding: 16px 16px calc(40px + env(safe-area-inset-bottom)); }
@@ -170,7 +181,6 @@
     .linha .tx small { color: var(--muted); font-size: 12.5px; }
     .linha.perigo { color: var(--danger); }
     .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 60; background: var(--text); color: var(--panel); padding: 12px 18px; border-radius: 12px; font-weight: 600; font-size: 14px; }
-    body.com-barra .toast { bottom: calc(100px + env(safe-area-inset-bottom)); z-index: 1300; }
     @media (min-width: 700px) { .folha-fundo { place-items: center; } .folha { border-radius: 22px; } }
     @media (max-width: 560px) {
       .hero-corpo { flex-direction: column; align-items: center; text-align: center; margin-top: -60px; }
@@ -189,12 +199,8 @@
   <script type="module" src="firebase.js"></script>
   <script type="module">
     // Barra inferior, menu lateral e contadores (os mesmos das outras páginas da rede).
-    import { iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos } from "./rede.js?v=20";
-    iniciarRede().then(({ eu }) => {
-      const uid = new URLSearchParams(location.search).get("uid");
-      montarBarraRede(!uid || uid === eu.uid ? "perfil" : ""); // o seu social faz parte do seu perfil
-      pintarBarraRede(); ouvirAvisos({ notificarNovos: false });
-    }).catch(() => {});
+    import { iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos } from "./rede.js?v=18";
+    iniciarRede().then(() => { montarBarraRede(""); pintarBarraRede(); ouvirAvisos({ notificarNovos: false }); }).catch(() => {});
   </script>
 </head>
 <body>
@@ -230,7 +236,6 @@
         </div>
         <div class="numeros" id="numeros"></div>
       </section>
-      <div id="abasSocial"></div>
 
       <section class="cartao duo" id="duo" hidden aria-label="Duo"></section>
 
@@ -261,7 +266,6 @@
 
   <script type="module">
     import { fotoSegura } from "./seguranca.js?v=1";
-    import { abasPerfil, linkPerfil } from "./nav-rede.js?v=1";
     const $ = (id) => document.getElementById(id);
     // Duo inclui namorado(a) e cônjuge: é a pessoa ligada pelo Akai Ito.
     const TIPOS = {
@@ -303,7 +307,7 @@
     const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
     function toast(t) { document.querySelectorAll(".toast").forEach((x) => x.remove()); const d = el("div", "toast", t); document.body.appendChild(d); setTimeout(() => d.remove(), 3500); }
     function estado(titulo, texto) { $("conteudo").hidden = true; $("estado").hidden = false; $("estado").replaceChildren(el("strong", null, titulo), texto || ""); }
-    const irPerfil = (uid, nick) => { location.href = uid === eu?.uid ? "usuarios.html" : linkPerfil(uid, nick); };
+    const irPerfil = (uid) => { location.href = `usuarios.html?perfil=${encodeURIComponent(uid)}`; };
 
     let fb, eu, dono, donoId, proprio = false, clicavel = false;
     let conexoes = [];
@@ -348,7 +352,7 @@
         return () => abrirFolha(c.perfil.nome || "Usuário", (corpo, sair) => {
           const ver = el("button", "linha"); ver.type = "button";
           ver.append(icone("perfil", "i"), el("span", "tx", "Ver perfil"));
-          ver.addEventListener("click", () => irPerfil(c.outro, c.perfil?.nickname));
+          ver.addEventListener("click", () => irPerfil(c.outro));
           const rm = el("button", "linha perigo"); rm.type = "button";
           rm.append(icone("lixo", "i"), el("span", "tx", c.pendente ? "Cancelar pedido" : "Desfazer vínculo"));
           rm.addEventListener("click", async () => {
@@ -359,7 +363,7 @@
           corpo.append(ver, rm);
         });
       }
-      return clicavel ? () => irPerfil(c.outro, c.perfil?.nickname) : null;
+      return clicavel ? () => irPerfil(c.outro) : null;
     }
 
     function listaDeNomes() {
@@ -377,7 +381,7 @@
             const tx = el("span", "tx");
             tx.append(el("strong", null, c.perfil.nome || "Usuário"), el("small", null, TIPOS[c.tipo]?.[0] || ""));
             b.append(novoAvatar(c.perfil.fotoPerfil, c.perfil.nome), tx);
-            if (clicavel) { b.addEventListener("click", () => irPerfil(c.outro, c.perfil?.nickname)); b.appendChild(icone("avancar")); } else b.disabled = true;
+            if (clicavel) { b.addEventListener("click", () => irPerfil(c.outro)); b.appendChild(icone("avancar")); } else b.disabled = true;
             corpo.appendChild(b);
           });
         });
@@ -527,7 +531,7 @@
       const centro = el("button", "no centro"); centro.type = "button";
       centro.style.left = cx + "px"; centro.style.top = cy + "px";
       centro.append(novoAvatar(dono.fotoPerfil, dono.nome), el("span", null, primeiroNome(dono.nome)));
-      centro.addEventListener("click", () => { location.href = proprio ? "usuarios.html" : linkPerfil(donoId, dono.nickname); });
+      centro.addEventListener("click", () => { location.href = proprio ? "usuarios.html" : `usuarios.html?perfil=${encodeURIComponent(donoId)}`; });
       mapa.appendChild(centro);
 
       nos.forEach(({ g, c, x, y, esc }) => {
@@ -597,7 +601,7 @@
         eu = u;
         donoId = new URLSearchParams(location.search).get("uid") || eu.uid;
         proprio = donoId === eu.uid;
-        if (!proprio) $("btnVoltar").href = linkPerfil(donoId);
+        if (!proprio) $("btnVoltar").href = `usuarios.html?perfil=${encodeURIComponent(donoId)}`;
         try {
           if (!proprio) {
             const [b1, b2] = await Promise.all([
@@ -608,10 +612,6 @@
           }
           const s = await fb.getDoc(fb.doc(fb.db, "perfis_publicos", donoId));
           dono = s.exists() ? s.data() : {};
-          if (!proprio) $("btnVoltar").href = linkPerfil(donoId, dono.nickname);
-          // Mesmas abas do perfil: Publicações · Social · Avaliações.
-          const vis = dono.socialVisibilidade || "todos";
-          $("abasSocial").replaceChildren(abasPerfil({ uid: donoId, nick: dono.nickname, proprio, ativa: "social", restrito: vis !== "todos" }));
           $("titulo").textContent = proprio ? "Meu social" : `Social de ${primeiroNome(dono.nome)}`;
           document.title = `${$("titulo").textContent} | Help Floripa`;
           if (!proprio && (dono.socialVisibilidade || "todos") === "ocultar") { estado("Social privado", "Esta pessoa preferiu não mostrar o social."); return; }
