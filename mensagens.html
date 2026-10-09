@@ -259,7 +259,22 @@
     .switch input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
     .btn-sec { border: 1px solid var(--line); background: transparent; border-radius: 9px; padding: 8px 12px; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text); }
     .btn-sec:hover { background: var(--hover); }
-    .cfg-rodape { padding: 22px 16px; color: var(--muted); font-size: 12px; text-align: center; }
+    .cfg-rodape { padding: 22px 16px; color: var(--muted); font-size: 12px; text-align: center; display: grid; justify-items: center; gap: 12px; line-height: 1.45; }
+    .cfg-link { width: 100%; border: 0; background: none; color: var(--text); text-align: left; text-decoration: none; cursor: pointer; font: inherit; font-size: 14px; border-radius: 10px; }
+    .cfg-link:hover .txt { color: var(--accent); }
+    .cfg-link svg.seta { transform: rotate(180deg); color: var(--muted); }
+    .cfg-link[aria-expanded="true"] svg { transform: rotate(180deg); }
+    .cfg-sub { margin: 0 0 8px; padding: 6px 10px; border-radius: 12px; background: var(--panel-2); }
+    .cfg-sub[hidden] { display: none; }
+    .cfg-sub .item { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
+    .cfg-sub .item + .item { border-top: 1px solid var(--line); }
+    .cfg-sub .item .tx { flex: 1; min-width: 0; font-size: 13.5px; overflow-wrap: anywhere; }
+    .cfg-sub .vazio { padding: 10px 0; color: var(--muted); font-size: 13px; }
+    .rr-novo { display: flex; gap: 8px; padding: 8px 0 4px; }
+    .rr-novo input { flex: 1; min-width: 0; border: 1px solid var(--line); background: var(--input); color: var(--text); border-radius: 9px; padding: 8px 10px; font: inherit; font-size: 13.5px; }
+    .cfg-dicas { margin: 6px 0 10px; padding: 10px 12px; border-radius: 12px; background: var(--panel-2); font-size: 13.5px; }
+    .cfg-dicas summary { cursor: pointer; font-weight: 600; }
+    .cfg-dicas ul { margin: 10px 0 2px; padding-left: 18px; color: var(--muted); display: grid; gap: 6px; }
 
     /* ---------- conversa ---------- */
     .chat::before {
@@ -405,6 +420,7 @@
     .menu button { width: 100%; display: flex; align-items: center; gap: 12px; border: 0; background: transparent; padding: 10px 12px; border-radius: 8px; cursor: pointer; font-size: 14px; text-align: left; }
     .menu button:hover { background: var(--hover); }
     .menu button.perigo { color: var(--danger); }
+    .menu hr { border: 0; height: 1px; margin: 5px 8px; background: var(--line); }
     .visualizador { position: fixed; inset: 0; z-index: 70; background: rgba(0, 0, 0, .92); display: grid; place-items: center; padding: 50px 16px 16px; }
     .visualizador[hidden] { display: none; }
     .visualizador img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; }
@@ -629,6 +645,17 @@
           <div class="txt">Enter envia a mensagem<small>Com isso desligado, Enter pula linha e você envia pelo botão.</small></div>
           <span class="switch"><input type="checkbox" data-cfg-bool="enterEnvia" /><span></span></span>
         </label>
+        <div class="cfg-linha">
+          <div class="txt">Respostas rápidas<small id="rrResumo">Textos prontos para responder com um toque (no menu ⋮ da conversa).</small></div>
+          <button type="button" class="btn-sec" id="btnRespostas" aria-expanded="false" aria-controls="rrBox">Gerenciar</button>
+        </div>
+        <div class="cfg-sub" id="rrBox" hidden>
+          <div id="rrLista"></div>
+          <div class="rr-novo">
+            <input type="text" id="rrTexto" maxlength="300" placeholder="Ex.: Olá! Obrigado pelo contato, já te respondo." aria-label="Nova resposta rápida" />
+            <button type="button" class="btn-sec" id="rrAdd">Adicionar</button>
+          </div>
+        </div>
       </div>
 
       <div class="cfg-secao">
@@ -636,6 +663,14 @@
         <label class="cfg-linha">
           <div class="txt">Sons<small>Toque curto ao receber mensagens.</small></div>
           <span class="switch"><input type="checkbox" data-cfg-bool="sons" /><span></span></span>
+        </label>
+        <label class="cfg-linha" id="linhaVibrar">
+          <div class="txt">Vibrar<small>O celular vibra quando chega mensagem.</small></div>
+          <span class="switch"><input type="checkbox" data-cfg-bool="vibrar" /><span></span></span>
+        </label>
+        <label class="cfg-linha">
+          <div class="txt">Mostrar o texto na notificação<small>Desligado, o aviso diz só "Nova mensagem" (bom para quem divide o celular).</small></div>
+          <span class="switch"><input type="checkbox" data-cfg-bool="previaNotificacao" /><span></span></span>
         </label>
         <div class="cfg-linha">
           <div class="txt">Notificações do navegador<small id="notifStatus">Avisos quando a aba estiver em segundo plano.</small></div>
@@ -657,8 +692,49 @@
           <div class="txt">Mostrar que estou digitando</div>
           <span class="switch"><input type="checkbox" data-cfg-bool="mostrarDigitando" /><span></span></span>
         </label>
+        <button type="button" class="cfg-linha cfg-link" id="btnBloqueados" aria-expanded="false" aria-controls="blqBox">
+          <div class="txt">Contas bloqueadas<small id="blqResumo">Ninguém bloqueado.</small></div>
+          <svg class="i s"><use href="#i-seta-baixo"/></svg>
+        </button>
+        <div class="cfg-sub" id="blqBox" hidden></div>
+        <button type="button" class="cfg-linha cfg-link" data-ir-filtro="restritas">
+          <div class="txt">Conversas restritas<small>Mensagens de quem você restringiu, sem avisos.</small></div>
+          <svg class="i s seta"><use href="#i-voltar"/></svg>
+        </button>
+        <button type="button" class="cfg-linha cfg-link" data-ir-filtro="arquivadas">
+          <div class="txt">Conversas arquivadas<small>Voltam para a lista quando chega mensagem nova.</small></div>
+          <svg class="i s seta"><use href="#i-voltar"/></svg>
+        </button>
       </div>
-      <div class="cfg-rodape">As preferências de aparência ficam salvas neste aparelho.</div>
+
+      <div class="cfg-secao">
+        <h3>Conta e ajuda</h3>
+        <a class="cfg-linha cfg-link" href="usuarios.html?acao=editar">
+          <div class="txt">Editar meu perfil<small>Foto, nome, @usuário e bio que aparecem nas conversas.</small></div>
+          <svg class="i s seta"><use href="#i-voltar"/></svg>
+        </a>
+        <a class="cfg-linha cfg-link" href="configuracoes.html">
+          <div class="txt">Configurações da conta<small>Senha, e-mail, bloqueios e privacidade do site.</small></div>
+          <svg class="i s seta"><use href="#i-voltar"/></svg>
+        </a>
+        <a class="cfg-linha cfg-link" href="suporte.html">
+          <div class="txt">Ajuda e suporte<small>Fale com a equipe do Help Floripa.</small></div>
+          <svg class="i s seta"><use href="#i-voltar"/></svg>
+        </a>
+        <details class="cfg-dicas">
+          <summary>Dicas de segurança nas conversas</summary>
+          <ul>
+            <li>Nunca envie senhas, códigos de confirmação ou dados de cartão.</li>
+            <li>Desconfie de quem pede Pix adiantado com pressa ou desconto grande.</li>
+            <li>Combine pagamento e entrega com clareza e guarde a conversa.</li>
+            <li>Algo estranho? Toque e segure a mensagem para Denunciar, ou use Bloquear no menu ⋮ da conversa.</li>
+          </ul>
+        </details>
+      </div>
+      <div class="cfg-rodape">
+        As preferências de aparência, sons e respostas rápidas ficam salvas neste aparelho. Online e confirmação de leitura valem para a sua conta.
+        <button type="button" class="btn-sec" id="btnRestaurar">Restaurar padrões deste aparelho</button>
+      </div>
     </div>
   </section>
   <div class="menu" id="menuMsg" role="menu" hidden></div>
@@ -677,7 +753,7 @@
     // Configurações (salvas no aparelho)
     // ======================================================
     const CHAVE_CONFIG = "hf-chat-config";
-    const CONFIG_PADRAO = { tema: "sistema", fundo: "ponte", fonte: "media", veu: 0.55, enterEnvia: true, sons: true, mostrarOnline: true, mostrarDigitando: true, confirmacaoLeitura: true };
+    const CONFIG_PADRAO = { tema: "sistema", fundo: "ponte", fonte: "media", veu: 0.55, enterEnvia: true, sons: true, vibrar: true, previaNotificacao: true, mostrarOnline: true, mostrarDigitando: true, confirmacaoLeitura: true };
     const CHAVE_FUNDO_FOTO = "hf-chat-fundo-foto";
     let config = { ...CONFIG_PADRAO };
     try { config = { ...CONFIG_PADRAO, ...JSON.parse(localStorage.getItem(CHAVE_CONFIG) || "{}") }; } catch {}
@@ -1048,6 +1124,8 @@
 
     function notificar(titulo, corpo, aoClicar) {
       tocarSom();
+      if (config.vibrar !== false) { try { navigator.vibrate?.([60, 40, 60]); } catch {} }
+      if (config.previaNotificacao === false) corpo = "Nova mensagem";
       if (document.hidden && "Notification" in window && Notification.permission === "granted") {
         try {
           const n = new Notification(titulo, { body: corpo, icon: "android-chrome-192x192.png", tag: titulo });
@@ -1466,7 +1544,8 @@
       renderizarLista();
 
       const url = `mensagens.html?conversa=${encodeURIComponent(id)}`;
-      if (historico) history.pushState({ conversa: id }, "", url);
+      // Vindo de um painel (ex.: Nova conversa), a conversa toma o lugar dele no histórico.
+      if (historico && !history.state?.painel) history.pushState({ conversa: id }, "", url);
       else history.replaceState({ conversa: id }, "", url);
 
       aplicarBloqueio();
@@ -1488,9 +1567,12 @@
       if (historico) history.pushState({}, "", "mensagens.html");
     }
 
-    window.addEventListener("popstate", () => {
+    // Botão "voltar" do celular: fecha primeiro o painel aberto (configurações, nova conversa),
+    // depois a conversa, e só então sai das mensagens.
+    window.addEventListener("popstate", (e) => {
+      if (!e.state?.painel && document.querySelector(".painel.aberto")) fecharPaineis();
       const id = new URLSearchParams(location.search).get("conversa");
-      if (id) abrirConversa(id, { historico: false });
+      if (id) { if (ativa?.id !== id) abrirConversa(id, { historico: false }); }
       else if (ativa) fecharConversa({ historico: false });
     });
 
@@ -2006,25 +2088,40 @@
     function abrirMenuConversa() {
       const menu = $("menuMsg");
       menu.replaceChildren();
-      [
-        { rotulo: "Ver perfil", icone: "perfil", acao: verPerfil },
-        { rotulo: "Pesquisar na conversa", icone: "lupa", acao: abrirBuscaChat },
-        { rotulo: "Pedir avaliação", icone: "estrela", acao: () => setTimeout(escolherNegocioParaAvaliacao, 0) },
-        { rotulo: ativa && conversaArquivada({ dados: ativa.dados }) ? "Desarquivar" : "Arquivar conversa", icone: "arquivo", acao: () => { const c = conversas.find((x) => x.id === ativa?.id); if (c) arquivarConversa(c, !conversaArquivada(c)); } },
-        { rotulo: "Apagar conversa", icone: "lixo", perigo: true, acao: () => { const c = conversas.find((x) => x.id === ativa?.id); if (c) apagarConversaParaMim(c); } },
-        { rotulo: "Classificar conversa", icone: "config", acao: () => setTimeout(abrirMenuAssunto, 0) },
-        { rotulo: restritos.has(ativa?.outroId) ? "Remover restrição" : "Restringir", icone: "restringir", acao: alternarRestricao },
-        { rotulo: bloqueios.meus.has(ativa?.outroId) ? "Desbloquear" : "Bloquear", icone: "bloquear", perigo: !bloqueios.meus.has(ativa?.outroId), acao: alternarBloqueio },
-        { rotulo: "Configurações do chat", icone: "config", acao: () => abrirPainel("painelConfig") },
-        { rotulo: "Fechar conversa", icone: "fechar", acao: () => fecharConversa() },
-      ].forEach((op) => {
-        const b = document.createElement("button");
-        b.type = "button";
-        b.setAttribute("role", "menuitem");
-        if (op.perigo) b.className = "perigo";
-        b.append(icone(op.icone, "i"), document.createTextNode(op.rotulo));
-        b.addEventListener("click", () => { fecharMenu(); op.acao(); });
-        menu.appendChild(b);
+      // Agrupado: conversa · responder e organizar · ajustes · segurança (ações perigosas por último).
+      const c = () => conversas.find((x) => x.id === ativa?.id);
+      const grupos = [
+        [
+          { rotulo: "Ver perfil", icone: "perfil", acao: verPerfil },
+          { rotulo: "Pesquisar na conversa", icone: "lupa", acao: abrirBuscaChat }
+        ],
+        [
+          { rotulo: "Respostas rápidas", icone: "responder", acao: () => setTimeout(abrirRespostasRapidas, 0) },
+          { rotulo: "Pedir avaliação", icone: "estrela", acao: () => setTimeout(escolherNegocioParaAvaliacao, 0) },
+          { rotulo: "Classificar conversa", icone: "config", acao: () => setTimeout(abrirMenuAssunto, 0) },
+          { rotulo: ativa && conversaArquivada({ dados: ativa.dados }) ? "Desarquivar" : "Arquivar conversa", icone: "arquivo", acao: () => { const x = c(); if (x) arquivarConversa(x, !conversaArquivada(x)); } }
+        ],
+        [
+          { rotulo: "Configurações do chat", icone: "config", acao: () => abrirPainel("painelConfig") },
+          window.innerWidth > 820 && { rotulo: "Fechar conversa", icone: "fechar", acao: () => fecharConversa() }
+        ],
+        [
+          { rotulo: restritos.has(ativa?.outroId) ? "Remover restrição" : "Restringir", icone: "restringir", acao: alternarRestricao },
+          { rotulo: bloqueios.meus.has(ativa?.outroId) ? "Desbloquear" : "Bloquear", icone: "bloquear", perigo: !bloqueios.meus.has(ativa?.outroId), acao: alternarBloqueio },
+          { rotulo: "Apagar conversa", icone: "lixo", perigo: true, acao: () => { const x = c(); if (x) apagarConversaParaMim(x); } }
+        ]
+      ];
+      grupos.forEach((grupo, gi) => {
+        if (gi) { const hr = document.createElement("hr"); hr.setAttribute("role", "separator"); menu.appendChild(hr); }
+        grupo.filter(Boolean).forEach((op) => {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.setAttribute("role", "menuitem");
+          if (op.perigo) b.className = "perigo";
+          b.append(icone(op.icone, "i"), document.createTextNode(op.rotulo));
+          b.addEventListener("click", () => { fecharMenu(); op.acao(); });
+          menu.appendChild(b);
+        });
       });
       menu.hidden = false;
       const r = $("btnMenuConversa").getBoundingClientRect();
@@ -2443,11 +2540,20 @@
     function abrirPainel(id) {
       fecharPaineis();
       $(id).classList.add("aberto");
+      // Uma entrada no histórico: o "voltar" do celular fecha o painel em vez de sair da página.
+      const estado = { ...(history.state || {}), painel: id };
+      if (history.state?.painel) history.replaceState(estado, "", location.href);
+      else history.pushState(estado, "", location.href);
       if (id === "painelNova") { carregarPessoas(); setTimeout(() => $("buscaPessoas").focus(), 200); }
-      if (id === "painelConfig") pintarStatusNotificacao();
+      if (id === "painelConfig") { pintarStatusNotificacao(); pintarRespostas(); pintarBloqueados(); }
     }
     function fecharPaineis() { document.querySelectorAll(".painel.aberto").forEach((p) => p.classList.remove("aberto")); }
-    document.querySelectorAll("[data-fechar-painel]").forEach((b) => b.addEventListener("click", fecharPaineis));
+    // Fechar pelo botão da tela desfaz a entrada do histórico criada ao abrir.
+    function voltarDoPainel() {
+      if (history.state?.painel) history.back();
+      else fecharPaineis();
+    }
+    document.querySelectorAll("[data-fechar-painel]").forEach((b) => b.addEventListener("click", voltarDoPainel));
     $("btnNovaConversa").addEventListener("click", () => abrirPainel("painelNova"));
     $("btnConfig").addEventListener("click", () => abrirPainel("painelConfig"));
 
@@ -2614,6 +2720,129 @@
     document.addEventListener("visibilitychange", marcarPresenca);
 
     // ======================================================
+    // Configurações: respostas rápidas, contas bloqueadas, atalhos e restaurar
+    // ======================================================
+    const CHAVE_RESPOSTAS = "hf-chat-respostas";
+    function lerRespostas() {
+      try { const r = JSON.parse(localStorage.getItem(CHAVE_RESPOSTAS) || "[]"); return Array.isArray(r) ? r.filter((x) => typeof x === "string") : []; } catch { return []; }
+    }
+    function gravarRespostas(lista) { try { localStorage.setItem(CHAVE_RESPOSTAS, JSON.stringify(lista.slice(0, 20))); } catch {} }
+    function pintarRespostas() {
+      const lista = lerRespostas();
+      $("rrResumo").textContent = lista.length ? `${lista.length} ${lista.length === 1 ? "resposta salva" : "respostas salvas"} · use no menu ⋮ da conversa.` : "Textos prontos para responder com um toque (no menu ⋮ da conversa).";
+      const box = $("rrLista");
+      box.replaceChildren();
+      if (!lista.length) { const v = document.createElement("div"); v.className = "vazio"; v.textContent = "Nenhuma resposta ainda. Escreva abaixo e toque em Adicionar."; box.appendChild(v); return; }
+      lista.forEach((t, i) => {
+        const l = document.createElement("div"); l.className = "item";
+        const tx = document.createElement("span"); tx.className = "tx"; tx.textContent = t;
+        const rm = document.createElement("button"); rm.type = "button"; rm.className = "btn-sec"; rm.textContent = "Remover";
+        rm.addEventListener("click", () => { const nova = lerRespostas(); nova.splice(i, 1); gravarRespostas(nova); pintarRespostas(); });
+        l.append(tx, rm);
+        box.appendChild(l);
+      });
+    }
+    $("btnRespostas").addEventListener("click", () => {
+      const abrir = $("rrBox").hidden;
+      $("rrBox").hidden = !abrir;
+      $("btnRespostas").setAttribute("aria-expanded", String(abrir));
+      $("btnRespostas").textContent = abrir ? "Fechar" : "Gerenciar";
+      if (abrir) { pintarRespostas(); $("rrTexto").focus(); }
+    });
+    function adicionarResposta() {
+      const t = $("rrTexto").value.trim();
+      if (!t) { $("rrTexto").focus(); return; }
+      const lista = lerRespostas();
+      if (lista.length >= 20) { toast("Máximo de 20 respostas rápidas."); return; }
+      if (!lista.includes(t)) { lista.push(t); gravarRespostas(lista); }
+      $("rrTexto").value = "";
+      pintarRespostas();
+      toast("Resposta rápida salva");
+    }
+    $("rrAdd").addEventListener("click", adicionarResposta);
+    $("rrTexto").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); adicionarResposta(); } });
+    // Na conversa: escolhe uma resposta e ela vai para o campo de texto (a pessoa ainda pode editar).
+    function abrirRespostasRapidas() {
+      const lista = lerRespostas();
+      const menu = $("menuMsg");
+      menu.replaceChildren();
+      const item = (rotulo, ic, acao) => {
+        const b = document.createElement("button"); b.type = "button"; b.setAttribute("role", "menuitem");
+        b.append(icone(ic, "i"), document.createTextNode(rotulo));
+        b.addEventListener("click", () => { fecharMenu(); acao(); });
+        menu.appendChild(b);
+      };
+      lista.forEach((t) => item(t.length > 60 ? t.slice(0, 58) + "…" : t, "responder", () => {
+        const campo = $("texto");
+        campo.value = campo.value ? campo.value.trimEnd() + " " + t : t;
+        campo.dispatchEvent(new Event("input", { bubbles: true }));
+        campo.focus();
+      }));
+      if (lista.length) menu.appendChild(document.createElement("hr"));
+      item(lista.length ? "Gerenciar respostas" : "Criar respostas rápidas", "config", () => { abrirPainel("painelConfig"); if ($("rrBox").hidden) $("btnRespostas").click(); setTimeout(() => $("rrBox").scrollIntoView({ block: "center" }), 250); });
+      menu.hidden = false;
+      const r = $("btnMenuConversa").getBoundingClientRect();
+      const mr = menu.getBoundingClientRect();
+      menu.style.left = Math.max(8, r.right - mr.width) + "px";
+      menu.style.top = (r.bottom + 4) + "px";
+    }
+
+    // Contas bloqueadas: lista com desbloquear.
+    async function pintarBloqueados() {
+      const uids = [...bloqueios.meus];
+      $("blqResumo").textContent = uids.length ? `${uids.length} ${uids.length === 1 ? "conta bloqueada" : "contas bloqueadas"}` : "Ninguém bloqueado.";
+      const box = $("blqBox");
+      if (box.hidden) return;
+      box.replaceChildren();
+      if (!uids.length) { const v = document.createElement("div"); v.className = "vazio"; v.textContent = "Você não bloqueou ninguém."; box.appendChild(v); return; }
+      const perfisB = await Promise.all(uids.map((u) => obterPerfil(u).catch(() => ({}))));
+      uids.forEach((u, i) => {
+        const p = perfisB[i] || {};
+        const l = document.createElement("div"); l.className = "item";
+        const av = document.createElement("div"); av.className = "avatar sm"; pintarAvatar(av, p.fotoPerfil, p.nome);
+        const tx = document.createElement("span"); tx.className = "tx"; tx.textContent = p.nome || "Usuário";
+        const b = document.createElement("button"); b.type = "button"; b.className = "btn-sec"; b.textContent = "Desbloquear";
+        b.addEventListener("click", async () => {
+          b.disabled = true;
+          try {
+            await fb.deleteDoc(fb.doc(fb.db, "bloqueios", `${eu.uid}_${u}`));
+            bloqueios.meus.delete(u);
+            if (ativa?.outroId === u) aplicarBloqueio();
+            renderizarLista();
+            toast(`${p.nome || "Contato"} desbloqueado`);
+            pintarBloqueados();
+          } catch { b.disabled = false; toast("Não foi possível desbloquear."); }
+        });
+        l.append(av, tx, b);
+        box.appendChild(l);
+      });
+    }
+    $("btnBloqueados").addEventListener("click", () => {
+      const abrir = $("blqBox").hidden;
+      $("blqBox").hidden = !abrir;
+      $("btnBloqueados").setAttribute("aria-expanded", String(abrir));
+      pintarBloqueados();
+    });
+
+    // Atalhos para as conversas restritas e arquivadas.
+    document.querySelectorAll("[data-ir-filtro]").forEach((b) => b.addEventListener("click", () => {
+      const f = b.dataset.irFiltro;
+      const pill = document.querySelector(`.pill[data-filtro="${f}"]`);
+      if (pill) pill.hidden = false;
+      voltarDoPainel();
+      setTimeout(() => { if (ativa) fecharConversa(); pill?.click(); }, 60);
+    }));
+
+    // Restaurar padrões deste aparelho (online e confirmação de leitura são da conta: ficam como estão).
+    $("btnRestaurar").addEventListener("click", () => {
+      if (!confirm("Voltar tema, papel de parede, tamanho do texto, sons e atalhos para o padrão? Suas respostas rápidas continuam salvas.")) return;
+      config = { ...CONFIG_PADRAO, mostrarOnline: config.mostrarOnline, confirmacaoLeitura: config.confirmacaoLeitura };
+      salvarConfig();
+      toast("Padrões restaurados");
+    });
+    if (!("vibrate" in navigator)) $("linhaVibrar").hidden = true;
+
+    // ======================================================
     // Atalhos e botões gerais
     // ======================================================
     $("btnFecharConversa").addEventListener("click", () => {
@@ -2635,7 +2864,7 @@
       if (e.key !== "Escape") return;
       if (!$("visualizador").hidden) return fecharVisualizador();
       if (!$("menuMsg").hidden) return fecharMenu();
-      if (document.querySelector(".painel.aberto")) return fecharPaineis();
+      if (document.querySelector(".painel.aberto")) return voltarDoPainel();
       if (!$("buscaChat").hidden) return fecharBuscaChat();
       if (respondendo) return cancelarResposta();
     });
