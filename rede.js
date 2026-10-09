@@ -12,7 +12,7 @@ import { comRitmo } from "./ritmo.js?v=1";
 import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=5";
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
 import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=15";
-import "./painel-avisos.js?v=8";
+import "./painel-avisos.js?v=12";
 import { palavrasBusca } from "./pessoas.js?v=2"; // o sino abre o painel de notificações na própria página
 
 // ---------- ícones ----------
@@ -373,6 +373,7 @@ export async function iniciarRede({ sincronizar = false } = {}) {
   const pub = pubSnap?.exists() ? pubSnap.data() : {};
   if (pub.socialVisibilidade) dados.socialVisibilidade = pub.socialVisibilidade;
   if (pub.duoCapa) dados.duoCapa = pub.duoCapa;
+  if (!dados.nickname && pub.nickname) dados.nickname = pub.nickname;
   if (sincronizar) {
     fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), {
       uid: eu.uid, nome: dados.nome, nickname: dados.nickname || "", cidade: dados.cidade,
