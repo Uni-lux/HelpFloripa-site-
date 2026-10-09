@@ -112,7 +112,7 @@ const SECOES_MENU = [
     ["notificacoes.html", "sino", "Notificações"],
     ["mensagens.html", "chat", "Mensagens", null, "menuBadge"],
     ["negocios.html", "maleta", "Meus negócios"],
-    ["usuarios.html?aba=social", "social", "Social e conexões"],
+    ["social.html", "social", "Social e conexões"],
     ["configuracoes.html", "config", "Configurações"]
   ]],
   ["Help Floripa", [
