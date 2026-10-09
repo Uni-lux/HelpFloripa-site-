@@ -404,6 +404,7 @@
     .menu button { width: 100%; display: flex; align-items: center; gap: 12px; border: 0; background: transparent; padding: 10px 12px; border-radius: 8px; cursor: pointer; font-size: 14px; text-align: left; }
     .menu button:hover { background: var(--hover); }
     .menu button.perigo { color: var(--danger); }
+    .menu hr { border: 0; height: 1px; margin: 5px 8px; background: var(--line); }
     .visualizador { position: fixed; inset: 0; z-index: 70; background: rgba(0, 0, 0, .92); display: grid; place-items: center; padding: 50px 16px 16px; }
     .visualizador[hidden] { display: none; }
     .visualizador img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; }
@@ -453,6 +454,7 @@
     <symbol id="i-voltar" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
     <symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 01-1.5 1.5H15v-6h-6v6H5.5A1.5 1.5 0 014 19z"/></symbol>
     <symbol id="i-sino" viewBox="0 0 24 24"><path d="M18 9.5a6 6 0 00-12 0c0 6.5-2.5 8-2.5 8h17S18 16 18 9.5z"/><path d="M10.2 20.5a2 2 0 003.6 0"/></symbol>
+    <symbol id="i-etiqueta" viewBox="0 0 24 24"><path d="M3.5 12.3V5a1.5 1.5 0 011.5-1.5h7.3l8.2 8.2a1.5 1.5 0 010 2.1l-7 7a1.5 1.5 0 01-2.1 0z"/><circle cx="8" cy="8" r="1.6"/></symbol>
     <symbol id="i-ajustes" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/></symbol>
     <symbol id="i-lupa" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></symbol>
     <symbol id="i-nova" viewBox="0 0 24 24"><path d="M12 20.5c4.7 0 8.5-3.6 8.5-8s-3.8-8-8.5-8-8.5 3.6-8.5 8c0 1.6.5 3.1 1.4 4.3L4 20l3.6-1c1.3.9 2.8 1.5 4.4 1.5z"/><path d="M12 9v7M8.5 12.5h7"/></symbol>
@@ -696,7 +698,7 @@
     import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO } from "./avaliacoes.js?v=10";
     import { buscarPessoas } from "./pessoas.js?v=2";
     import { comRitmo } from "./ritmo.js?v=1";
-    import { montarNav, pintarAvatarNav, badgeNav, linkPerfil } from "./nav-rede.js?v=1";
+    import { montarNav, pintarAvatarNav, badgeNav, linkPerfil } from "./nav-rede.js?v=2";
     import "./painel-avisos.js?v=9"; // o sino do topo abre as notificações aqui mesmo
     // ======================================================
     // Configurações (salvas no aparelho)
@@ -2032,25 +2034,39 @@
     function abrirMenuConversa() {
       const menu = $("menuMsg");
       menu.replaceChildren();
-      [
-        { rotulo: "Ver perfil", icone: "perfil", acao: verPerfil },
-        { rotulo: "Pesquisar na conversa", icone: "lupa", acao: abrirBuscaChat },
-        { rotulo: "Pedir avaliação", icone: "estrela", acao: () => setTimeout(escolherNegocioParaAvaliacao, 0) },
-        { rotulo: ativa && conversaArquivada({ dados: ativa.dados }) ? "Desarquivar" : "Arquivar conversa", icone: "arquivo", acao: () => { const c = conversas.find((x) => x.id === ativa?.id); if (c) arquivarConversa(c, !conversaArquivada(c)); } },
-        { rotulo: "Apagar conversa", icone: "lixo", perigo: true, acao: () => { const c = conversas.find((x) => x.id === ativa?.id); if (c) apagarConversaParaMim(c); } },
-        { rotulo: "Classificar conversa", icone: "config", acao: () => setTimeout(abrirMenuAssunto, 0) },
-        { rotulo: restritos.has(ativa?.outroId) ? "Remover restrição" : "Restringir", icone: "restringir", acao: alternarRestricao },
-        { rotulo: bloqueios.meus.has(ativa?.outroId) ? "Desbloquear" : "Bloquear", icone: "bloquear", perigo: !bloqueios.meus.has(ativa?.outroId), acao: alternarBloqueio },
-        { rotulo: "Configurações do chat", icone: "config", acao: () => abrirPainel("painelConfig") },
-        { rotulo: "Fechar conversa", icone: "fechar", acao: () => fecharConversa() },
-      ].forEach((op) => {
-        const b = document.createElement("button");
-        b.type = "button";
-        b.setAttribute("role", "menuitem");
-        if (op.perigo) b.className = "perigo";
-        b.append(icone(op.icone, "i"), document.createTextNode(op.rotulo));
-        b.addEventListener("click", () => { fecharMenu(); op.acao(); });
-        menu.appendChild(b);
+      // Agrupado: conversa · organizar · ajustes · segurança (as ações perigosas ficam por último).
+      const c = () => conversas.find((x) => x.id === ativa?.id);
+      const grupos = [
+        [
+          { rotulo: "Ver perfil", icone: "perfil", acao: verPerfil },
+          { rotulo: "Pesquisar na conversa", icone: "lupa", acao: abrirBuscaChat }
+        ],
+        [
+          { rotulo: "Pedir avaliação", icone: "estrela", acao: () => setTimeout(escolherNegocioParaAvaliacao, 0) },
+          { rotulo: "Classificar conversa", icone: "etiqueta", acao: () => setTimeout(abrirMenuAssunto, 0) },
+          { rotulo: ativa && conversaArquivada({ dados: ativa.dados }) ? "Desarquivar" : "Arquivar conversa", icone: "arquivo", acao: () => { const x = c(); if (x) arquivarConversa(x, !conversaArquivada(x)); } }
+        ],
+        [
+          { rotulo: "Ajustes do chat", icone: "ajustes", acao: () => abrirPainel("painelConfig") },
+          window.innerWidth > 820 && { rotulo: "Fechar conversa", icone: "fechar", acao: () => fecharConversa() }
+        ],
+        [
+          { rotulo: restritos.has(ativa?.outroId) ? "Remover restrição" : "Restringir", icone: "restringir", acao: alternarRestricao },
+          { rotulo: bloqueios.meus.has(ativa?.outroId) ? "Desbloquear" : "Bloquear", icone: "bloquear", perigo: !bloqueios.meus.has(ativa?.outroId), acao: alternarBloqueio },
+          { rotulo: "Apagar conversa", icone: "lixo", perigo: true, acao: () => { const x = c(); if (x) apagarConversaParaMim(x); } }
+        ]
+      ];
+      grupos.forEach((grupo, gi) => {
+        if (gi) { const hr = document.createElement("hr"); hr.setAttribute("role", "separator"); menu.appendChild(hr); }
+        grupo.filter(Boolean).forEach((op) => {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.setAttribute("role", "menuitem");
+          if (op.perigo) b.className = "perigo";
+          b.append(icone(op.icone, "i"), document.createTextNode(op.rotulo));
+          b.addEventListener("click", () => { fecharMenu(); op.acao(); });
+          menu.appendChild(b);
+        });
       });
       menu.hidden = false;
       const r = $("btnMenuConversa").getBoundingClientRect();
