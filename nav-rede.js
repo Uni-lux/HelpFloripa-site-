@@ -1,7 +1,6 @@
 // =====================================================
 // Navegação da rede, igual em todas as páginas (Diário, Explorar, Mensagens, Perfil, Social...).
 // - Barra inferior: Diário · Explorar · Publicar · Mensagens · Perfil.
-// - Abas do perfil: Publicações · Social · Avaliações (perfil e Social parecem uma página só).
 // - Links de perfil pelo @usuário (helpfloripa.com.br/@nome).
 // Não depende do Firebase nem do rede.js: a página de mensagens também usa.
 // =====================================================
@@ -11,11 +10,7 @@ const ICONES = {
   diario: '<rect x="4" y="4" width="16" height="7" rx="2"/><rect x="4" y="13" width="16" height="7" rx="2"/>',
   explorar: '<circle cx="12" cy="12" r="8.5"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>',
   mais: '<path d="M12 5.5v13M5.5 12h13"/>',
-  mensagens: '<path d="M20.5 11.6c0 4.3-3.8 7.6-8.5 7.6-1.2 0-2.3-.2-3.3-.6L4 20l1.2-3.6c-1.1-1.3-1.7-3-1.7-4.8C3.5 7.4 7.3 4 12 4s8.5 3.4 8.5 7.6z"/>',
-  grade: '<rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/>',
-  teia: '<circle cx="12" cy="12" r="2.6"/><circle cx="5" cy="6" r="1.8"/><circle cx="19" cy="6" r="1.8"/><circle cx="5" cy="18" r="1.8"/><circle cx="19" cy="18" r="1.8"/><path d="M9.8 10.6L6.5 7.2M14.2 10.6l3.3-3.4M9.8 13.4l-3.3 3.4M14.2 13.4l3.3 3.4"/>',
-  estrela: '<path d="M12 3.8l2.5 5.2 5.7.8-4.1 4 1 5.6L12 16.7l-5.1 2.7 1-5.6-4.1-4 5.7-.8z"/>',
-  cadeado: '<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8.5 10.5V7.5a3.5 3.5 0 017 0v3"/>'
+  mensagens: '<path d="M20.5 11.6c0 4.3-3.8 7.6-8.5 7.6-1.2 0-2.3-.2-3.3-.6L4 20l1.2-3.6c-1.1-1.3-1.7-3-1.7-4.8C3.5 7.4 7.3 4 12 4s8.5 3.4 8.5 7.6z"/>'
 };
 function svg(nome) {
   const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -56,16 +51,6 @@ body.com-barra { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
 .barra-rede .mini-av img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .barra-rede [aria-current="page"] .mini-av { box-shadow: 0 0 0 2px var(--accent, #00adee); }
 
-.abas-perfil { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; margin: 14px 0 12px; padding: 4px; gap: 4px; border-radius: 16px;
-  background: var(--panel, #0f161b); border: 1px solid var(--line, #213038); }
-.abas-perfil a, .abas-perfil button { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 42px; padding: 0 8px; border: 0; border-radius: 12px;
-  background: none; color: var(--muted, #8c9ca7); font: inherit; font-size: 14px; font-weight: 750; text-decoration: none; cursor: pointer; white-space: nowrap;
-  -webkit-tap-highlight-color: transparent; transition: color .15s, background .15s; }
-.abas-perfil svg { width: 18px; height: 18px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
-.abas-perfil svg.cad { width: 13px; height: 13px; opacity: .8; }
-@media (hover: hover) { .abas-perfil a:hover, .abas-perfil button:hover { color: var(--text, #eaf0f3); background: var(--hover, rgba(127, 127, 127, .12)); } }
-.abas-perfil [aria-current="page"] { color: var(--accent-ink, #001a24); background: var(--accent, #00adee); box-shadow: 0 6px 16px rgba(0, 173, 238, .28); }
-@media (max-width: 380px) { .abas-perfil a, .abas-perfil button { font-size: 13px; gap: 5px; } .abas-perfil svg:not(.cad) { display: none; } }
 `;
 function estilo() {
   if (document.getElementById("hfNavCss")) return;
@@ -89,8 +74,8 @@ export function linkPublicoPerfil(uid, nick) {
   if (nick && NICK_RE.test(nick)) return `${base()}@${nick}`;
   return `${base()}usuarios.html?perfil=${encodeURIComponent(uid)}`;
 }
-export function linkSocial(uid, proprio) {
-  return proprio ? "social.html" : `social.html?uid=${encodeURIComponent(uid)}`;
+export function linkSocial(uid, proprio, nick) {
+  return proprio ? "usuarios.html?aba=social" : `${linkPerfil(uid, nick)}&aba=social`;
 }
 
 // ---------- barra inferior ----------
@@ -141,36 +126,4 @@ export function badgeNav(n) {
   if (!b) return;
   b.hidden = !n;
   b.textContent = n > 99 ? "99+" : String(n || "");
-}
-
-// ---------- abas do perfil ----------
-// ativa: publicacoes | social
-// social: false quando o dono escondeu o social dos visitantes; restrito: mostra o cadeado.
-// aoAvaliacoes: abre as avaliações na própria página; sem ele, o link leva ao perfil e abre lá.
-export function abasPerfil({ uid, nick, proprio, ativa, social = true, restrito = false, aoAvaliacoes = null }) {
-  estilo();
-  const nav = el("nav", "abas-perfil");
-  nav.setAttribute("aria-label", "Seções do perfil");
-  const perfil = proprio ? "usuarios.html" : linkPerfil(uid, nick);
-  const aba = (k, href, ic, rot) => {
-    const a = el("a"); a.href = href; a.dataset.aba = k;
-    a.append(svg(ic), el("span", null, rot));
-    if (k === ativa) a.setAttribute("aria-current", "page");
-    return a;
-  };
-  nav.appendChild(aba("publicacoes", perfil, "grade", "Publicações"));
-  if (social) {
-    const s = aba("social", linkSocial(uid, proprio), "teia", "Social");
-    if (restrito) { const c = svg("cadeado"); c.setAttribute("class", "cad"); s.appendChild(c); s.title = "Social com privacidade"; }
-    nav.appendChild(s);
-  }
-  if (aoAvaliacoes) {
-    const b = el("button"); b.type = "button"; b.dataset.aba = "avaliacoes";
-    b.append(svg("estrela"), el("span", null, "Avaliações"));
-    b.addEventListener("click", aoAvaliacoes);
-    nav.appendChild(b);
-  } else {
-    nav.appendChild(aba("avaliacoes", perfil + (perfil.includes("?") ? "&" : "?") + "ver=avaliacoes", "estrela", "Avaliações"));
-  }
-  return nav;
 }

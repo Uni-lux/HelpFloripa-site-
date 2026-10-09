@@ -10,8 +10,8 @@ import {
   $, el, icone, ms, paraData, pintarAvatar, urlSegura, nomeCidade, tempoRelativo, toast, erroAmigavel,
   fb, eu, dados, meusSeguindo, escondido, ganchos, obterPerfil, iniciarRede, carregarMeusSeguindo, linhaPessoa,
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, montarBarraRede, pintarBarraRede, ouvirAvisos, lerOrdenado,
-  editarPublicacao, bloquear, comMencoes, marcarNav
-} from "./rede.js?v=20";
+  editarPublicacao, bloquear, comMencoes, marcarNav, abrirMidia, compartilharPublicacao
+} from "./rede.js?v=21";
 import { abrirDenuncia } from "./denuncias.js?v=1";
 import { buscarPessoas, pessoasRecentes } from "./pessoas.js?v=2";
 
@@ -122,7 +122,8 @@ function cartaoPost(post) {
   mais.appendChild(icone("pontos", "i s"));
   mais.addEventListener("click", () => abrirOpcoes("Publicação", [
     { rotulo: "Ver perfil", icone: "olho", fn: () => ganchos.abrirPerfil(post.autorId) },
-    { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(post.autorId, post.nome) },
+    { rotulo: "Compartilhar publicação", icone: "compartilhar", fn: () => compartilharPublicacao(post) },
+    { rotulo: "Compartilhar perfil", icone: "link", fn: () => compartilharPerfil(post.autorId, post.nome) },
     post.autorId === eu.uid && { rotulo: "Editar publicação", icone: "lapis", fn: () => editarPublicacao(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId !== eu.uid && { rotulo: "Denunciar publicação", sub: "Golpe, ofensa, conteúdo impróprio...", icone: "alerta", perigo: true,
       fn: () => abrirDenuncia({ fb, eu, tipo: "publicacao", alvoId: post.autorId, itemId: post.id, trecho: post.texto || "", nomeAlvo: nome.textContent,
@@ -138,6 +139,7 @@ function cartaoPost(post) {
   // Nome e foto atualizados do perfil (a publicação guarda os de quando foi feita).
   obterPerfil(post.autorId).then((p) => {
     if (p.nome) nome.textContent = p.nome;
+    if (p.verificado) { const s = el("span", "selo"); s.title = "Perfil verificado"; s.appendChild(icone("selo", "i")); nome.appendChild(s); }
     if (p.fotoPerfil) pintarAvatar(av, p.fotoPerfil, p.nome);
     sub.textContent = [p.nickname ? "@" + p.nickname : "", tempoRelativo(paraData(post.criadoEm)), post.editadoEm ? "editada" : ""].filter(Boolean).join(" · ");
   });
@@ -159,8 +161,8 @@ function cartaoPost(post) {
     else {
       const img = document.createElement("img"); img.src = url; img.alt = post.texto ? post.texto.slice(0, 80) : "Publicação"; img.loading = "lazy";
       m.appendChild(img);
-      m.title = "Toque para ver inteira";
-      m.addEventListener("click", () => m.classList.toggle("inteira"));
+      m.title = "Ver em tela cheia";
+      m.addEventListener("click", () => abrirMidia(url));
     }
     c.appendChild(m);
   }

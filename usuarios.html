@@ -13,7 +13,8 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="stylesheet" href="vitrine.css?v=24" />
-  <link rel="stylesheet" href="rede.css?v=6" />
+  <link rel="stylesheet" href="rede.css?v=7" />
+  <link rel="stylesheet" href="perfil.css?v=1" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
     // Tema compartilhado com a página de mensagens; aplicado antes de desenhar.
@@ -41,70 +42,44 @@
     <div class="estado" id="estadoCarregando"><div class="spinner"></div>Carregando o perfil...</div>
     <div class="estado erro" id="estadoErro" hidden></div>
 
-    <!-- Seu perfil -->
     <div id="conteudo" hidden>
-      <section id="meuPerfil" aria-label="Seu perfil"></section>
-      <div id="abasMeu"></div>
-
-      <section id="painelPosts" aria-labelledby="tPosts">
-        <h2 id="tPosts" class="so-leitor">Suas publicações</h2>
-        <button type="button" class="compor" id="btnCompor">
-          <div class="avatar" id="comporAvatar"></div>
-          <span class="txt">Compartilhe um trabalho, uma novidade ou uma foto...</span>
-          <span class="mais"><svg class="i s"><use href="#i-mais"/></svg></span>
-        </button>
-        <div class="grade" id="gradePosts"></div>
-      </section>
-    </div>
-
-    <!-- Perfil de outra pessoa: usuarios.html?u=@usuario ou ?perfil=código (o link fica na barra de endereço) -->
-    <div id="conteudoOutro" hidden>
-      <div class="pf-contexto">
+      <!-- Perfil de outra pessoa: voltar, nome e compartilhar (o link fica na barra de endereço) -->
+      <div class="pf-contexto" id="contexto" hidden>
         <button type="button" class="icone-btn" id="ctxVoltar" aria-label="Voltar" title="Voltar"><svg class="i"><use href="#i-voltar"/></svg></button>
         <div class="tx"><strong id="ctxNome"></strong><small id="ctxSub"></small></div>
         <button type="button" class="icone-btn" id="ctxCompartilhar" aria-label="Compartilhar perfil" title="Compartilhar perfil"><svg class="i"><use href="#i-compartilhar"/></svg></button>
       </div>
-      <section id="ppCabecalho" aria-label="Perfil"></section>
-      <div id="abasOutro"></div>
-      <section aria-labelledby="tPostsOutro">
-        <h2 id="tPostsOutro" class="so-leitor">Publicações</h2>
-        <div class="grade" id="ppGrade"></div>
-      </section>
+
+      <section class="pv" id="perfil" aria-label="Perfil"></section>
+
+      <nav class="pv-abas" id="abas" role="tablist" aria-label="Seções do perfil"></nav>
+      <section class="pv-painel" id="painel-publicacoes" role="tabpanel" aria-labelledby="aba-publicacoes"></section>
+      <section class="pv-painel" id="painel-social" role="tabpanel" aria-labelledby="aba-social" hidden></section>
+      <section class="pv-painel" id="painel-avaliacoes" role="tabpanel" aria-labelledby="aba-avaliacoes" hidden></section>
     </div>
   </main>
 
-  <!-- Modelo do cabeçalho de perfil (usado no seu perfil e no perfil de outras pessoas) -->
-  <template id="tplPerfil">
-    <div class="pf">
-      <div class="pf-capa sem-foto" data-el="capa"></div>
-      <div class="pf-corpo">
-        <div class="pf-linha-avatar">
-          <div class="pf-avatar-wrap">
-            <div class="pf-anel"><div class="avatar" data-el="avatar"></div></div>
-          </div>
-          <div class="pf-acoes" data-el="acoes"></div>
-        </div>
-        <div class="pf-nome-linha">
-          <h1 class="pf-nome" data-el="nome"></h1>
-          <span class="selo" data-el="selo" title="Perfil verificado" hidden><svg class="i"><use href="#i-selo"/></svg></span>
-        </div>
-        <div class="pf-handle" data-el="handle"></div>
-        <p class="pf-bio" data-el="bio"></p>
-        <div class="social" data-el="negocios" hidden></div>
-        <div class="pf-stats">
-          <button type="button" class="pf-stat" data-stat="posts"><span class="num">0</span><span class="rot">Publicações</span></button>
-          <button type="button" class="pf-stat" data-stat="seguidores"><span class="num">0</span><span class="rot">Seguidores</span></button>
-          <button type="button" class="pf-stat" data-stat="seguindo"><span class="num">0</span><span class="rot">Seguindo</span></button>
-          <button type="button" class="pf-stat" data-stat="nota"><span class="num"><svg class="i xs"><use href="#i-estrela"/></svg><em style="font-style:normal">–</em></span><span class="rot">Avaliação</span></button>
-        </div>
-        <div data-el="extra"></div>
+  <!-- Publicação aberta -->
+  <div class="folha larga" id="folhaPost" role="dialog" aria-modal="true" aria-labelledby="postNome">
+    <div class="folha-caixa pvp">
+      <div class="pvp-topo">
+        <button type="button" class="pvp-autor" id="postAutor">
+          <div class="avatar" id="postAvatar"></div>
+          <span class="tx"><strong id="postNome"></strong><small id="postData"></small></span>
+        </button>
+        <span class="pvp-cont" id="postContador"></span>
+        <button type="button" class="icone-btn" id="postAnterior" aria-label="Publicação anterior"><svg class="i"><use href="#i-voltar"/></svg></button>
+        <button type="button" class="icone-btn" id="postProximo" aria-label="Próxima publicação"><svg class="i"><use href="#i-avancar"/></svg></button>
+        <button type="button" class="icone-btn" id="postMenu" aria-label="Opções da publicação"><svg class="i"><use href="#i-pontos"/></svg></button>
+        <button type="button" class="icone-btn" data-fechar aria-label="Fechar"><svg class="i"><use href="#i-fechar"/></svg></button>
+      </div>
+      <div class="folha-corpo">
+        <div class="post-midia" id="postMidia"></div>
+        <p class="pvp-texto" id="postTexto"></p>
+        <div class="pvp-social" id="postSocial"></div>
       </div>
     </div>
-  </template>
-
-  <!-- ================= FOLHAS ================= -->
-
-
+  </div>
 
   <div class="folha cheia" id="folhaEditar" role="dialog" aria-modal="true" aria-labelledby="tEditar">
     <div class="folha-caixa">
@@ -155,34 +130,6 @@
 
 
 
-  <div class="folha larga" id="folhaPost" role="dialog" aria-modal="true" aria-labelledby="tPost">
-    <div class="folha-caixa">
-      <div class="folha-topo">
-        <h2 id="tPost">Publicação</h2>
-        <div class="post-nav">
-          <button type="button" class="icone-btn" id="postAnterior" aria-label="Publicação anterior"><svg class="i"><use href="#i-voltar"/></svg></button>
-          <button type="button" class="icone-btn" id="postProximo" aria-label="Próxima publicação"><svg class="i"><use href="#i-avancar"/></svg></button>
-        </div>
-        <button type="button" class="icone-btn" data-fechar aria-label="Fechar"><svg class="i"><use href="#i-fechar"/></svg></button>
-      </div>
-      <div class="folha-corpo">
-        <div class="post-midia" id="postMidia"></div>
-        <div class="post-info">
-          <div class="autor"><div class="avatar" id="postAvatar"></div><div style="flex:1;min-width:0"><strong id="postNome"></strong><small id="postData"></small></div>
-            <button type="button" class="btn sec mini" id="postEditar"><svg class="i xs"><use href="#i-lapis"/></svg>Editar</button>
-            <button type="button" class="btn perigo mini" id="postApagar"><svg class="i xs"><use href="#i-lixo"/></svg>Apagar</button>
-            <button type="button" class="btn sec mini" id="postDenunciar"><svg class="i xs"><use href="#i-alerta"/></svg>Denunciar</button>
-          </div>
-          <p class="texto" id="postTexto"></p>
-        </div>
-        <div class="post-social" id="postSocial">
-        </div>
-      </div>
-    </div>
-  </div>
-
-
-
   <div class="folha" id="folhaVinculo" role="dialog" aria-modal="true" aria-labelledby="tVinculo">
     <div class="folha-caixa">
       <div class="folha-topo"><h2 id="tVinculo">Adicionar ao seu social</h2><button type="button" class="icone-btn" data-fechar aria-label="Fechar"><svg class="i"><use href="#i-fechar"/></svg></button></div>
@@ -220,168 +167,59 @@
       toast, erroAmigavel, notificar, abrirFolha, fecharFolha, pilha, abrirOpcoes, abrirLista,
       fb, authFns, storageFns, eu, refUsuario, dados, perfis, meusSeguindo, meusBloqueios, bloqueadoPor, restritos, escondido, ganchos,
       obterPerfil, lerOrdenado, editarPublicacao, comMencoes, salvarImagem, iniciarRede, meusSeguindoPronto, carregarMeusSeguindo, alternarSeguir, botaoSeguir, linhaPessoa,
-      removerSeguidor, bloquear, desbloquear, alternarRestricao, compartilharPerfil,
+      removerSeguidor, bloquear, desbloquear, alternarRestricao, compartilharPerfil, compartilharPublicacao, abrirMidia,
       barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail,
-      nickDe, linkPerfil, abasPerfil
-    } from "./rede.js?v=20";
+      nickDe, linkPerfil
+    } from "./rede.js?v=21";
     import { buscarPessoas, palavrasBusca } from "./pessoas.js?v=2";
     import { abrirDenuncia } from "./denuncias.js?v=1";
     import { notaDoPerfil, abrirDetalhamento, avaliarNegocio, avaliarCliente, lerResumo, estrelas, pintarEstrelas, media, notaTexto, TIPOS_NEGOCIO } from "./avaliacoes.js?v=10";
     import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=28";
 
     // ======================================================
-    // Estado desta página (o resto vem de rede.js)
+    // Estado da página: um perfil por vez (o seu ou o de outra pessoa)
     // ======================================================
-    let meusPosts = [];
+    // perfil = { uid, p (dados públicos), proprio, posts, seguidores, seguindo, meSegue, vinculos, negocios, bloqueado, desativado }
+    let perfil = null;
     let meusVinculos = [];
-    // Perfil de outra pessoa aberto nesta página (null = o seu).
+    let aba = "publicacoes";
     let modoOutro = false, alvoOutro = null;
+    const proprio = () => !!perfil?.proprio;
 
     // ======================================================
-    // Cabeçalho de perfil (seu e dos outros)
-    // ======================================================
-    function montarCabecalho(raiz) {
-      raiz.replaceChildren($("tplPerfil").content.cloneNode(true));
-      const el = (n) => raiz.querySelector(`[data-el="${n}"]`);
-      const stat = (n) => raiz.querySelector(`[data-stat="${n}"]`);
-      return { raiz, el, stat };
-    }
-
-    function preencherCabecalho(h, p, { posts = 0, seguidores = 0, seguindo = 0 } = {}) {
-      pintarCapa(h.el("capa"), p.fotoCapa);
-      pintarAvatar(h.el("avatar"), p.fotoPerfil, p.nome);
-      h.el("nome").textContent = p.nome || "Usuário";
-      h.el("selo").hidden = !p.verificado;
-      const handle = h.el("handle");
-      handle.replaceChildren();
-      if (p.nickname) {
-        const s = document.createElement("span");
-        s.textContent = "@" + p.nickname;
-        handle.appendChild(s);
-      }
-      const cidade = nomeCidade(p.cidade || p.cidadeNome);
-      if (cidade) {
-        const s = document.createElement("span");
-        s.append(icone("pin", "i xs"), document.createTextNode(cidade));
-        handle.appendChild(s);
-      }
-      const bio = h.el("bio");
-      bio.textContent = p.bio || "";
-      bio.classList.remove("vazia");
-      bio.hidden = !p.bio;
-      h.stat("posts").querySelector(".num").textContent = numero(posts);
-      h.stat("seguidores").querySelector(".num").textContent = numero(seguidores);
-      h.stat("seguindo").querySelector(".num").textContent = numero(seguindo);
-    }
     // Nota do perfil: média das avaliações dos perfis de negócio; sem nenhuma, a das publicações.
+    // ======================================================
     const notasPerfil = new Map();
-    async function pintarNotaPerfil(h, uid, { recarregar = false } = {}) {
-      if (!uid) return null;
+    function notaPerfil(uid, { recarregar = false } = {}) {
       if (recarregar || !notasPerfil.has(uid)) notasPerfil.set(uid, notaDoPerfil(fb, uid).catch(() => null));
-      const r = await notasPerfil.get(uid);
-      if (h?.stat("nota")) h.stat("nota").querySelector("em").textContent = r?.geral?.total ? notaTexto(media(r.geral)) : "–";
-      return r;
+      return notasPerfil.get(uid);
     }
     async function abrirAvaliacoes(p, uid) {
-      const r = await pintarNotaPerfil(null, uid);
+      const r = await notaPerfil(uid);
       if (!r) { toast("Não foi possível carregar as avaliações."); return; }
-      const fontes = Object.entries(TIPOS_NEGOCIO)
-        .map(([t, rot]) => ({ rotulo: rot, resumo: r.resumos[`neg_${uid}_${t}`], principal: r.origem === "negocios" }))
-        .filter((f) => f.resumo?.total);
-      fontes.push({ rotulo: "Publicações", resumo: r.pub, principal: r.origem === "publicacoes" });
-      if (r.cliente.total) fontes.push({ rotulo: "Como cliente", resumo: r.cliente, principal: false });
       abrirDetalhamento({
         fbx: fb, titulo: `Avaliações de ${p?.nome || "usuário"}`,
         sub: r.origem === "negocios" ? "Média das avaliações dos perfis de negócio." : r.origem === "publicacoes" ? "Sem avaliações de negócio: vale a média das publicações." : "",
-        geral: r.geral, fontes, alvoId: uid
+        geral: r.geral, fontes: fontesDaNota(r, uid), alvoId: uid
       });
     }
-
-    // ---------- meu perfil ----------
-    let meuCab = null;
-    function renderizarMeuPerfil() {
-      if (modoOutro) return;
-      if (!meuCab) {
-        meuCab = montarCabecalho($("meuPerfil"));
-        // Botões de foto e capa
-        const btnCapa = document.createElement("button");
-        btnCapa.type = "button";
-        btnCapa.className = "pf-editar-capa";
-        btnCapa.append(icone("camera", "i xs"), document.createTextNode("Editar capa"));
-        btnCapa.addEventListener("click", () => escolherImagem("capa", true));
-        meuCab.el("capa").appendChild(btnCapa);
-        const btnFoto = document.createElement("button");
-        btnFoto.type = "button";
-        btnFoto.className = "pf-editar-foto";
-        btnFoto.setAttribute("aria-label", "Alterar foto de perfil");
-        btnFoto.appendChild(icone("camera", "i xs"));
-        btnFoto.addEventListener("click", () => escolherImagem("foto", true));
-        meuCab.raiz.querySelector(".pf-avatar-wrap").appendChild(btnFoto);
-        // Ações
-        const acoes = meuCab.el("acoes");
-        const bEditar = document.createElement("button");
-        bEditar.type = "button"; bEditar.className = "btn sec";
-        bEditar.append(icone("lapis", "i xs"), document.createTextNode("Editar perfil"));
-        bEditar.addEventListener("click", abrirEditar);
-        const bComp = document.createElement("button");
-        bComp.type = "button"; bComp.className = "btn sec icone"; bComp.setAttribute("aria-label", "Compartilhar perfil");
-        bComp.appendChild(icone("compartilhar", "i s"));
-        bComp.addEventListener("click", () => compartilharPerfil(eu.uid, dados.nome, dados.nickname));
-        acoes.append(bEditar, bComp);
-        // Estatísticas
-        meuCab.stat("posts").addEventListener("click", () => $("abasMeu").scrollIntoView({ behavior: "smooth", block: "start" }));
-        meuCab.stat("seguidores").addEventListener("click", () => abrirListaRelacoes(eu.uid, "seguidores"));
-        meuCab.stat("seguindo").addEventListener("click", () => abrirListaRelacoes(eu.uid, "seguindo"));
-        meuCab.stat("nota").addEventListener("click", () => abrirAvaliacoes(dados, eu.uid));
-      }
-      pintarAbasMeu();
-      preencherCabecalho(meuCab, dados, { posts: meusPosts.length, seguidores: contagem.seguidores, seguindo: contagem.seguindo });
-      pintarNotaPerfil(meuCab, eu.uid);
-      // Bio vazia vira convite
-      const bio = meuCab.el("bio");
-      if (!dados.bio) {
-        bio.hidden = false;
-        bio.classList.add("vazia");
-        bio.replaceChildren();
-        const b = document.createElement("button");
-        b.type = "button"; b.className = "pf-bio-add"; b.textContent = "+ Adicionar uma bio";
-        b.addEventListener("click", () => { abrirEditar(); setTimeout(() => $("edBio").focus(), 120); });
-        bio.appendChild(b);
-      }
-      // Verificação
-      const extra = meuCab.el("extra");
-      extra.replaceChildren();
-      if (!dados.verificado) {
-        const c = document.createElement("button");
-        c.type = "button"; c.className = "chip-verif";
-        c.append(icone("selo", "i xs"), document.createTextNode(dados.solicitacaoVerificacao ? "Verificação em análise" : "Solicitar selo de verificado"));
-        c.disabled = !!dados.solicitacaoVerificacao;
-        c.addEventListener("click", solicitarVerificacao);
-        extra.appendChild(c);
-      }
-      desenharDuoCapa(meuCab, eu.uid, dados, meusVinculos, (dados.duoCapa || "clicavel") === "clicavel");
-      renderizarNegocios(meuCab.el("negocios"), meusNegocios, { proprio: true, dono: dados });
-      pintarAvatar($("comporAvatar"), dados.fotoPerfil, dados.nome);
-      document.title = `${dados.nome || "Meu perfil"} | Help Floripa`;
+    function fontesDaNota(r, uid) {
+      const fontes = Object.entries(TIPOS_NEGOCIO)
+        .map(([t, rot]) => ({ tipo: t, rotulo: rot, resumo: r.resumos[`neg_${uid}_${t}`], principal: r.origem === "negocios" }))
+        .filter((f) => f.resumo?.total);
+      fontes.push({ tipo: "publicacoes", rotulo: "Publicações", resumo: r.pub, principal: r.origem === "publicacoes" });
+      if (r.cliente.total) fontes.push({ tipo: "cliente", rotulo: "Como cliente", resumo: r.cliente, principal: false });
+      return fontes;
     }
 
-    const contagem = { seguidores: 0, seguindo: 0 };
+    // ======================================================
+    // Carregar um perfil
+    // ======================================================
     async function contarRelacoes(campo, uid) {
       const q = fb.query(fb.collection(fb.db, "relacoes"), fb.where("tipo", "==", "seguir"), fb.where(campo, "==", uid));
       try { return (await fb.getCountFromServer(q)).data().count; }
       catch { return (await fb.getDocs(q)).size; }
     }
-    async function atualizarContagens() {
-      try {
-        const [a, b] = await Promise.all([contarRelacoes("alvoId", eu.uid), contarRelacoes("seguidorId", eu.uid)]);
-        contagem.seguidores = a; contagem.seguindo = b;
-        renderizarMeuPerfil();
-      } catch (e) { console.warn("Contagens indisponíveis:", e); }
-    }
-
-    // ======================================================
-    // Publicações
-    // ======================================================
     async function buscarPosts(uid) {
       const col = fb.collection(fb.db, "diario");
       const snap = await lerOrdenado(
@@ -389,102 +227,538 @@
         fb.query(col, fb.where("autorId", "==", uid), fb.limit(120)));
       return snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((x) => uid === eu.uid || (x.ocultoAte?.toMillis?.() ?? 0) <= Date.now()).sort((a, b) => (ms(b.criadoEm) || Date.now()) - (ms(a.criadoEm) || Date.now()));
     }
+    const NEGOCIOS = {
+      servicos: { rotulo: "Freelances", img: "servicos.webp" },
+      delivery: { rotulo: "Delivery", img: "lanchonetes.webp" },
+      lojinha: { rotulo: "Lojinha", img: "shopping.webp" },
+      imoveis: { rotulo: "Imóveis", img: "imoveis.webp" }
+    };
+    async function buscarNegocios(uid) {
+      const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "negocios"), fb.where("donoId", "==", uid), fb.limit(8)));
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => Object.keys(NEGOCIOS).indexOf(a.tipo) - Object.keys(NEGOCIOS).indexOf(b.tipo));
+    }
 
-    function renderizarGrade(container, posts, { proprio, autor }) {
-      container.replaceChildren();
+    async function carregarPerfil(uid) {
+      const souEu = uid === eu.uid;
+      perfis.delete(uid);
+      const pub = await obterPerfil(uid);
+      if (!souEu && !pub.uid && !pub.nome) return null;
+      const p = souEu ? { ...pub, ...dados } : pub;
+      const novo = { uid, p, proprio: souEu, posts: [], seguidores: 0, seguindo: 0, meSegue: false, vinculos: [], negocios: [],
+        bloqueado: !souEu && (bloqueadoPor.has(uid) || meusBloqueios.has(uid)),
+        desativado: !souEu && (p.desativadaAte?.toMillis?.() ?? 0) > Date.now() };
+      if (novo.bloqueado || novo.desativado) return novo;
+      const [c1, c2, inv, posts, vins, negs] = await Promise.allSettled([
+        contarRelacoes("alvoId", uid), contarRelacoes("seguidorId", uid),
+        souEu ? Promise.resolve(null) : fb.getDoc(fb.doc(fb.db, "relacoes", `${uid}_${eu.uid}`)),
+        buscarPosts(uid), souEu ? Promise.resolve(meusVinculos) : buscarVinculos(uid), buscarNegocios(uid)
+      ]);
+      const ok = (r, padrao) => (r.status === "fulfilled" ? r.value : padrao);
+      Object.assign(novo, {
+        seguidores: ok(c1, 0), seguindo: ok(c2, 0), meSegue: !!ok(inv, null)?.exists?.(),
+        posts: ok(posts, []), vinculos: ok(vins, []), negocios: ok(negs, [])
+      });
+      await meusSeguindoPronto;
+      return novo;
+    }
+
+    // ======================================================
+    // Cabeçalho: capa, foto, nome, bio, números, Akai Ito, selos, ações e vitrine
+    // ======================================================
+    function botao(classe, texto, ic, fn, rotulo) {
+      const b = el("button", classe); b.type = "button";
+      if (ic) b.appendChild(icone(ic, "i s"));
+      if (texto) b.appendChild(document.createTextNode(texto));
+      if (rotulo) { b.setAttribute("aria-label", rotulo); b.title = rotulo; }
+      if (fn) b.addEventListener("click", fn);
+      return b;
+    }
+
+    function desenharCabecalho() {
+      const { uid, p } = perfil;
+      const raiz = $("perfil");
+      raiz.replaceChildren();
+
+      // capa
+      const capa = el("div", "pv-capa");
+      const uCapa = urlSegura(p.fotoCapa);
+      if (uCapa) { const i = document.createElement("img"); i.src = uCapa; i.alt = ""; capa.appendChild(i); }
+      if (proprio()) capa.appendChild(botao("pv-capa-bt", "Editar capa", "camera", () => escolherImagem("capa", true)));
+
+      // identidade
+      const id = el("div", "pv-id");
+      const foto = el("div", "pv-foto");
+      const av = el("div", "avatar"); pintarAvatar(av, p.fotoPerfil, p.nome);
+      foto.appendChild(av);
+      if (proprio()) foto.appendChild(botao("pv-foto-bt", null, "camera", () => escolherImagem("foto", true), "Alterar foto de perfil"));
+      const nomes = el("div", "pv-nomes");
+      const h1 = el("h1", "pv-nome"); h1.appendChild(el("span", null, p.nome || "Usuário"));
+      if (p.verificado) { const s = el("span", "selo"); s.title = "Perfil verificado"; s.appendChild(icone("selo", "i")); h1.appendChild(s); }
+      const sub = el("div", "pv-sub");
+      if (p.nickname) sub.appendChild(el("span", null, "@" + p.nickname));
+      const cidade = nomeCidade(p.cidade || p.cidadeNome);
+      if (cidade) { const s = el("span"); s.append(icone("pin", "i xs"), document.createTextNode(cidade)); sub.appendChild(s); }
+      nomes.append(h1, sub);
+      id.append(foto, nomes);
+      raiz.append(capa, id);
+
+      const corpo = el("div", "pv-corpo");
+      raiz.appendChild(corpo);
+
+      // bio
+      if (p.bio) corpo.appendChild(comMencoes(el("p", "pv-bio"), p.bio));
+      else if (proprio()) corpo.appendChild(botao("pv-bio-add", "+ Conte quem você é e o que faz", null, () => { abrirEditar(); setTimeout(() => $("edBio").focus(), 120); }));
+
+      // bloqueio / conta desativada: nada mais aparece
+      if (perfil.bloqueado || perfil.desativado) {
+        const a = el("div", "pv-aviso");
+        if (perfil.desativado) a.append(el("strong", null, "Conta desativada"), "Esta pessoa desativou a conta por um tempo. O perfil volta a aparecer quando ela reativar.");
+        else {
+          const euBloqueei = meusBloqueios.has(uid);
+          a.append(el("strong", null, euBloqueei ? "Você bloqueou esta conta" : "Perfil indisponível"),
+            euBloqueei ? "Desbloqueie para ver as publicações e trocar mensagens." : "Não é possível ver este perfil.");
+          if (euBloqueei) { a.appendChild(el("br")); const b = botao("btn sec", "Desbloquear", null, async () => { if (await desbloquear(uid)) recarregarPerfil(); }); b.style.marginTop = "12px"; a.appendChild(b); }
+        }
+        corpo.appendChild(a);
+        if (!perfil.desativado) { const ac = el("div", "pv-acoes"); ac.appendChild(botaoOpcoesPerfil()); corpo.appendChild(ac); }
+        return;
+      }
+
+      // números
+      const nums = el("div", "pv-numeros");
+      const num = (n, rot, fn) => { const b = el("button"); b.type = "button"; b.append(el("b", null, numero(n)), document.createTextNode(rot)); b.addEventListener("click", fn); return b; };
+      nums.append(
+        num(perfil.posts.length, perfil.posts.length === 1 ? "publicação" : "publicações", () => { trocarAba("publicacoes"); $("abas").scrollIntoView({ behavior: "smooth", block: "start" }); }),
+        num(perfil.seguidores, perfil.seguidores === 1 ? "seguidor" : "seguidores", () => abrirListaRelacoes(uid, "seguidores")),
+        num(perfil.seguindo, "seguindo", () => abrirListaRelacoes(uid, "seguindo")));
+      corpo.appendChild(nums);
+
+      // Akai Ito (duo) logo abaixo do nome
+      const duo = duoDe(perfil);
+      if (duo && (p.duoCapa || "clicavel") !== "ocultar") corpo.appendChild(chipDuo(duo));
+
+      // selos de confiança
+      const selos = el("div", "pv-selos");
+      if (p.verificado) { const s = el("span", "pv-selo verif"); s.append(icone("selo", "i"), document.createTextNode("Verificado")); selos.appendChild(s); }
+      else if (proprio()) {
+        const b = botao("pv-selo pedir", dados.solicitacaoVerificacao ? "Verificação em análise" : "Pedir selo de verificado", "selo", solicitarVerificacao);
+        b.disabled = !!dados.solicitacaoVerificacao; selos.appendChild(b);
+      }
+      const seloNota = botao("pv-selo nota", "Sem avaliações", "estrela", () => trocarAba("avaliacoes", true));
+      selos.appendChild(seloNota);
+      notaPerfil(uid).then((r) => {
+        if (!r?.geral?.total) return;
+        seloNota.lastChild.textContent = `${notaTexto(media(r.geral))} · ${r.geral.total} ${r.geral.total === 1 ? "avaliação" : "avaliações"}`;
+      });
+      const desde = paraData(p.criadoEm);
+      if (desde) { const s = el("span", "pv-selo"); s.append(icone("calendario", "i"), document.createTextNode("Desde " + desde.toLocaleDateString("pt-BR", { month: "short", year: "numeric" }).replace(".", ""))); selos.appendChild(s); }
+      if (perfil.negocios.length) { const s = el("span", "pv-selo"); s.append(icone("maleta", "i"), document.createTextNode(`${perfil.negocios.length} ${perfil.negocios.length === 1 ? "negócio" : "negócios"}`)); selos.appendChild(s); }
+      corpo.appendChild(selos);
+
+      // ações
+      const ac = el("div", "pv-acoes");
+      if (proprio()) {
+        ac.append(botao("btn sec", "Editar perfil", "lapis", abrirEditar),
+          botao("btn sec icone", null, "compartilhar", () => compartilharPerfil(uid, p.nome, p.nickname), "Compartilhar perfil"),
+          botao("btn sec icone", null, "config", () => { location.href = "configuracoes.html"; }, "Configurações"));
+      } else {
+        const seguir = botaoSeguir(uid, { meSegue: perfil.meSegue, mini: false });
+        ac.append(seguir, botao("btn sec", "Mensagem", "chat", () => iniciarConversa(uid)), botaoOpcoesPerfil());
+      }
+      corpo.appendChild(ac);
+
+      // vitrine de negócios
+      if (perfil.negocios.length || proprio()) corpo.appendChild(vitrineNegocios());
+    }
+
+    // Akai Ito: a pessoa ligada como duo (duo, namoro ou casamento).
+    function duoDe(pf) {
+      return pf.vinculos.map((v) => lerVinculo(v, pf.uid)).find((v) => TIPOS_DUO.includes(v.tipo) && !v.pendente && !escondido(v.outro)) || null;
+    }
+    function svgFio(classe) {
+      const ns = "http://www.w3.org/2000/svg";
+      const s = document.createElementNS(ns, "svg"); s.setAttribute("class", classe); s.setAttribute("aria-hidden", "true");
+      return s;
+    }
+    function chipDuo(duo) {
+      const p = perfil.p;
+      const clicavel = proprio() || (p.duoCapa || "clicavel") === "clicavel";
+      const b = el("button", "pv-duo"); b.type = "button";
+      const par = el("div", "par");
+      const a1 = el("div", "avatar"); pintarAvatar(a1, p.fotoPerfil, p.nome);
+      const a2 = el("div", "avatar"); a2.textContent = "…";
+      const liga = el("span", "liga");
+      const fio = svgFio("fio"); fio.setAttribute("viewBox", "0 0 34 24");
+      fio.innerHTML = '<path d="M0 12 Q8 5 17 12 T34 12"/>';
+      liga.append(fio, icone("coracao-cheio", "cor"));
+      par.append(a1, liga, a2);
+      const tx = el("div", "tx");
+      const papel = duo.tipo === "duo" ? "Akai Ito · Duo" : `Akai Ito · ${rotuloTipo(duo.tipo)}`;
+      const nm = el("strong", null, "");
+      tx.append(el("small", null, papel), nm);
+      b.append(par, tx, icone("avancar", "i s"));
+      obterPerfil(duo.outro).then((o) => { pintarAvatar(a2, o.fotoPerfil, o.nome); nm.textContent = o.nome || "Usuário"; b.setAttribute("aria-label", `${papel}: ${o.nome || "Usuário"}`); });
+      if (clicavel) b.addEventListener("click", () => abrirPerfilPublico(duo.outro));
+      else { b.disabled = true; b.lastChild.remove(); }
+      return b;
+    }
+
+    function vitrineNegocios() {
+      const box = el("section", "pv-vitrine");
+      const t = el("div", "pv-tit"); t.appendChild(el("h2", null, "Negócios"));
+      if (proprio() && perfil.negocios.length) { const a = el("a", null, "Gerenciar"); a.href = "negocios.html"; t.appendChild(a); }
+      const trilho = el("div", "pv-negs");
+      perfil.negocios.forEach((n) => {
+        const tipo = NEGOCIOS[n.tipo]; if (!tipo) return;
+        const c = el("button", "pv-neg"); c.type = "button"; c.dataset.cat = n.tipo;
+        const img = el("div", "img");
+        const u = urlSegura(n.capa) || urlSegura(n.foto);
+        img.style.backgroundImage = `url("${u || tipo.img}")`;
+        img.appendChild(el("span", "tipo", tipo.rotulo));
+        c.append(img, el("span", "nm", n.nome || tipo.rotulo));
+        c.addEventListener("click", () => abrirPerfilNegocio(n, {
+          fb, eu, dono: { ...perfil.p, uid: perfil.uid }, proprio: proprio(),
+          aoMensagem: (uid, cartao) => iniciarConversa(uid, cartao),
+          aoPerfil: (uid) => abrirPerfilPublico(uid),
+          aoEditar: proprio() ? (neg) => { location.href = `negocios.html?tipo=${encodeURIComponent(neg.tipo)}`; } : null
+        }));
+        trilho.appendChild(c);
+      });
+      if (proprio() && perfil.negocios.length < Object.keys(NEGOCIOS).length) {
+        const novo = el("button", "pv-neg novo"); novo.type = "button";
+        const m = el("span", "mais"); m.appendChild(icone("mais", "i s"));
+        novo.append(m, document.createTextNode(perfil.negocios.length ? "Novo negócio" : "Criar perfil de negócio"));
+        novo.addEventListener("click", () => { location.href = "negocios.html?novo=1"; });
+        trilho.appendChild(novo);
+      }
+      box.append(t, trilho);
+      return box;
+    }
+
+    function botaoOpcoesPerfil() {
+      const { uid, p } = perfil;
+      return botao("btn sec icone", null, "pontos", () => {
+        const bloq = meusBloqueios.has(uid);
+        abrirOpcoes(p.nome || "Opções", [
+          !bloq && !bloqueadoPor.has(uid) && { rotulo: "Adicionar ao meu social", sub: "Duo, família, amigos, colegas", icone: "fio", fn: () => abrirNovoVinculo({ uid, ...p }) },
+          { rotulo: "Compartilhar perfil", sub: p.nickname ? `helpfloripa.com.br/@${p.nickname}` : "", icone: "compartilhar", fn: () => compartilharPerfil(uid, p.nome, p.nickname) },
+          !bloq && perfil.meSegue && { rotulo: "Remover seguidor", sub: "Deixa de seguir você, sem aviso", icone: "pessoa-menos", fn: async () => { if (await removerSeguidor(uid, p.nome)) recarregarPerfil(); } },
+          !bloq && { rotulo: restritos.has(uid) ? "Remover restrição" : "Restringir", sub: restritos.has(uid) ? "Volta a receber avisos dessa pessoa" : "Mensagens vão para Restritas, sem avisos", icone: "restringir", fn: () => alternarRestricao(uid, p.nome) },
+          { rotulo: "Denunciar perfil", sub: "Golpe, perfil falso, assédio...", icone: "alerta", perigo: true,
+            fn: () => abrirDenuncia({ fb, eu, tipo: "perfil", alvoId: uid, itemId: uid, trecho: [p.nome, p.nickname ? "@" + p.nickname : "", p.bio].filter(Boolean).join(" · "), nomeAlvo: p.nome || "",
+              podeBloquear: !bloq, aoBloquear: async () => { if (await bloquear(uid, p.nome)) recarregarPerfil(); } }) },
+          { rotulo: bloq ? "Desbloquear" : "Bloquear", sub: bloq ? "" : "Ela não poderá abrir seu perfil nem falar com você", icone: "bloquear", perigo: !bloq,
+            fn: async () => { const ok = bloq ? await desbloquear(uid) : await bloquear(uid, p.nome); if (ok) recarregarPerfil(); } }
+        ]);
+      }, "Mais opções");
+    }
+
+    // ======================================================
+    // Seções: Publicações · Social · Avaliações (na própria página)
+    // ======================================================
+    function socialVisivel() {
+      return proprio() || (perfil.p.socialVisibilidade || "todos") !== "ocultar";
+    }
+    function desenharAbas() {
+      const nav = $("abas");
+      nav.replaceChildren();
+      nav.hidden = perfil.bloqueado || perfil.desativado;
+      const item = (k, ic, rot) => {
+        const b = el("button"); b.type = "button"; b.setAttribute("role", "tab"); b.dataset.aba = k; b.id = "aba-" + k;
+        b.setAttribute("aria-controls", "painel-" + k);
+        b.append(icone(ic, "i"), el("span", null, rot));
+        b.addEventListener("click", () => trocarAba(k, true));
+        nav.appendChild(b);
+        return b;
+      };
+      item("publicacoes", "grade", "Publicações");
+      if (socialVisivel()) {
+        const s = item("social", "teia", "Social");
+        if ((perfil.p.socialVisibilidade || "todos") !== "todos") s.appendChild(icone("cadeado", "i cad"));
+      }
+      item("avaliacoes", "estrela", "Avaliações");
+      if (aba === "social" && !socialVisivel()) aba = "publicacoes";
+      marcarAba();
+    }
+    function marcarAba() {
+      document.querySelectorAll("#abas [data-aba]").forEach((b) => b.setAttribute("aria-selected", b.dataset.aba === aba ? "true" : "false"));
+      ["publicacoes", "social", "avaliacoes"].forEach((k) => { $("painel-" + k).hidden = k !== aba; });
+    }
+    function trocarAba(nova, rolar = false) {
+      aba = nova;
+      marcarAba();
+      if (aba === "publicacoes") pintarPublicacoes();
+      if (aba === "social") desenharSocial();
+      if (aba === "avaliacoes") desenharAvaliacoes();
+      // A seção fica no endereço: atualizar ou compartilhar abre no mesmo lugar.
+      const base = proprio() ? "usuarios.html" : linkPerfil(perfil.uid, perfil.p.nickname);
+      const url = aba === "publicacoes" ? base : base + (base.includes("?") ? "&" : "?") + "aba=" + aba;
+      history.replaceState(null, "", url);
+      if (rolar) { const t = $("abas"); if (t.getBoundingClientRect().top < 0 || window.scrollY > t.offsetTop) t.scrollIntoView({ block: "start" }); }
+    }
+
+    // ---------- Publicações ----------
+    function pintarPublicacoes() {
+      const box = $("painel-publicacoes");
+      box.replaceChildren();
+      if (proprio()) {
+        const c = el("button", "pv-compor"); c.type = "button";
+        const av = el("div", "avatar"); pintarAvatar(av, dados.fotoPerfil, dados.nome);
+        const m = el("span", "mais"); m.appendChild(icone("mais", "i s"));
+        c.append(av, el("span", "txt", "Compartilhe um trabalho, uma novidade ou uma foto..."), m);
+        c.addEventListener("click", () => abrirCompositor({ aoPublicar: () => recarregarPosts() }));
+        box.appendChild(c);
+      }
+      const g = el("div", "pv-galeria");
+      box.appendChild(g);
+      const posts = perfil.posts;
       if (!posts.length) {
-        const v = document.createElement("div");
-        v.className = "vazio-grade";
-        const t = document.createElement("strong");
-        t.textContent = proprio ? "Sua vitrine começa aqui" : "Nenhuma publicação ainda";
-        v.append(t, proprio ? "Publique fotos dos seus trabalhos, novidades e avisos para seus seguidores." : "Quando essa pessoa publicar, aparece aqui.");
-        container.appendChild(v);
+        const v = el("div", "vazio-grade");
+        v.append(el("strong", null, proprio() ? "Sua vitrine começa aqui" : "Nenhuma publicação ainda"),
+          proprio() ? "Publique fotos dos seus trabalhos, novidades e avisos para seus seguidores." : "Quando essa pessoa publicar, aparece aqui.");
+        g.appendChild(v);
         return;
       }
       posts.forEach((post, i) => {
-        const tile = document.createElement("button");
-        tile.type = "button";
-        tile.className = "tile";
+        const tile = el("button", "tile"); tile.type = "button";
         const url = urlSegura(post.mediaUrl);
         if (url && post.mediaTipo === "video") {
-          const v = document.createElement("video");
-          v.src = url; v.muted = true; v.playsInline = true; v.preload = "metadata";
-          tile.appendChild(v);
-          const m = icone("play", "i s marca-video");
-          tile.appendChild(m);
+          const v = document.createElement("video"); v.src = url; v.muted = true; v.playsInline = true; v.preload = "metadata";
+          tile.append(v, icone("play", "i s marca-video"));
         } else if (url) {
-          const img = document.createElement("img");
-          img.src = url; img.alt = post.texto ? post.texto.slice(0, 80) : "Publicação"; img.loading = "lazy";
+          const img = document.createElement("img"); img.src = url; img.alt = post.texto ? post.texto.slice(0, 80) : "Publicação"; img.loading = "lazy";
           tile.appendChild(img);
         } else {
           tile.classList.add("texto");
-          const p = document.createElement("p");
-          p.textContent = post.texto || "Publicação";
-          tile.appendChild(p);
-        }
-        if (url && post.texto) {
-          const l = document.createElement("span");
-          l.className = "legenda";
-          l.textContent = post.texto;
-          tile.appendChild(l);
+          tile.appendChild(el("p", null, post.texto || "Publicação"));
         }
         tile.setAttribute("aria-label", "Abrir publicação");
-        tile.addEventListener("click", () => abrirPost(posts, i, { proprio, autor }));
-        container.appendChild(tile);
+        tile.addEventListener("click", () => abrirPost(posts, i));
+        g.appendChild(tile);
       });
     }
-
-    async function carregarMeusPosts() {
-      try {
-        meusPosts = await buscarPosts(eu.uid);
-      } catch (e) {
-        console.warn("Publicações indisponíveis:", e);
-        meusPosts = [];
-      }
-      renderizarGrade($("gradePosts"), meusPosts, { proprio: true, autor: dados });
-      renderizarMeuPerfil();
+    async function recarregarPosts() {
+      try { perfil.posts = await buscarPosts(perfil.uid); } catch (e) { console.warn("Publicações indisponíveis:", e); }
+      desenharCabecalho();
+      if (aba === "publicacoes") pintarPublicacoes();
     }
 
-    // ---------- ver publicação ----------
+    // ---------- Social: Akai Ito, círculos, pedidos e privacidade ----------
+    const CIRCULOS = [
+      { cat: "familia", nome: "Família" },
+      { cat: "amizade", nome: "Amizades" },
+      { cat: "trabalho", nome: "Colegas" }
+    ];
+    function desenharSocial() {
+      const box = $("painel-social");
+      box.replaceChildren();
+      const { uid, p } = perfil;
+      const todos = perfil.vinculos.map((v) => lerVinculo(v, uid)).filter((v) => v.outro && !escondido(v.outro));
+      const aceitos = todos.filter((v) => !v.pendente);
+      const clicavel = podeAbrirSocial(p, uid, perfil.meSegue);
+      const abrir = (v) => (proprio() ? () => opcoesVinculo(v, v.perfilOutro || {}) : clicavel ? () => abrirPerfilPublico(v.outro) : null);
+
+      // Akai Ito
+      const duo = aceitos.find((v) => TIPOS_DUO.includes(v.tipo));
+      if (duo) {
+        const c = el("div", "sc-cartao sc-akai");
+        const par = el("div", "par");
+        const a1 = el("div", "avatar"); pintarAvatar(a1, p.fotoPerfil, p.nome);
+        const a2 = el("div", "avatar");
+        const fio = svgFio("fio"); fio.setAttribute("viewBox", "0 0 92 40");
+        fio.innerHTML = '<path class="l" d="M0 20 Q20 8 36 20"/><path class="l" d="M56 20 Q72 32 92 20"/><path class="c" d="M46 29 C35 21 38 11 46 17 C54 11 57 21 46 29Z"/>';
+        par.append(a1, fio, a2);
+        const nm = el("strong", null, "");
+        const desde = paraData(duo.aceitoEm);
+        c.append(el("span", "rot", duo.tipo === "duo" ? "Akai Ito · Duo" : `Akai Ito · ${rotuloTipo(duo.tipo)}`), par, nm,
+          el("small", null, desde ? "Ligados desde " + desde.toLocaleDateString("pt-BR", { month: "long", year: "numeric" }) : "O fio vermelho do destino"));
+        obterPerfil(duo.outro).then((o) => { pintarAvatar(a2, o.fotoPerfil, o.nome); nm.textContent = `${(p.nome || "").split(" ")[0]} & ${(o.nome || "Usuário").split(" ")[0]}`; });
+        const fn = abrir(duo);
+        if (fn) a2.addEventListener("click", fn);
+        box.appendChild(c);
+      }
+
+      // resumo dos círculos
+      const resumo = el("div", "sc-resumo");
+      [{ cat: "duo", nome: "Amor", n: duo ? 1 : 0 }, ...CIRCULOS.map((g) => ({ ...g, n: aceitos.filter((v) => TIPOS[v.tipo]?.cat === g.cat).length }))]
+        .forEach((g) => { const d = el("div"); d.dataset.cat = g.cat; d.append(el("b", null, String(g.n)), el("span", null, g.nome)); resumo.appendChild(d); });
+      box.appendChild(resumo);
+
+      // pedidos (só no seu perfil)
+      if (proprio()) {
+        const recebidos = todos.filter((v) => v.pendente && v.para === eu.uid);
+        const enviados = todos.filter((v) => v.pendente && v.de === eu.uid);
+        if (recebidos.length || enviados.length) {
+          const c = el("div", "sc-cartao");
+          const t = el("div", "pv-tit"); t.appendChild(el("h2", null, `Pedidos · ${recebidos.length + enviados.length}`));
+          c.appendChild(t);
+          [...recebidos, ...enviados].forEach((v) => {
+            const l = el("div", "sc-pedido");
+            const av = el("div", "avatar"); av.textContent = "…";
+            const tx = el("div", "tx"); const nm = el("strong", null, "");
+            tx.append(nm, el("small", null, v.para === eu.uid ? `Quer você como ${rotuloTipo(v.tipo).toLowerCase()}` : `Aguardando · ${rotuloTipo(v.tipo)}`));
+            l.append(av, tx);
+            if (v.para === eu.uid) l.append(botao("btn pri mini", "Aceitar", null, () => responderVinculo(v.id, true)), botao("btn sec mini", "Recusar", null, () => responderVinculo(v.id, false)));
+            else l.appendChild(botao("btn sec mini", "Cancelar", null, async () => { try { await fb.deleteDoc(fb.doc(fb.db, "vinculos", v.id)); toast("Pedido cancelado"); } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); } }));
+            obterPerfil(v.outro).then((o) => { pintarAvatar(av, o.fotoPerfil, o.nome); nm.textContent = o.nome || "Usuário"; });
+            av.style.cursor = "pointer"; av.addEventListener("click", () => abrirPerfilPublico(v.outro));
+            c.appendChild(l);
+          });
+          box.appendChild(c);
+        }
+      }
+
+      // círculos
+      const temAlguem = aceitos.some((v) => !TIPOS_DUO.includes(v.tipo));
+      if (!temAlguem && !duo && !proprio()) {
+        const v = el("div", "sc-cartao sc-vazio");
+        v.append(el("strong", null, "Nenhuma conexão ainda"), `${(p.nome || "Esta pessoa").split(" ")[0]} ainda não adicionou família, amigos ou colegas.`);
+        box.appendChild(v);
+      }
+      CIRCULOS.forEach((g) => {
+        const doGrupo = aceitos.filter((v) => TIPOS[v.tipo]?.cat === g.cat);
+        if (!doGrupo.length && !proprio()) return;
+        const sec = el("section", "sc-grupo"); sec.dataset.cat = g.cat;
+        const t = el("div", "sc-grupo-t"); t.append(el("i"), document.createTextNode(g.nome), el("small", null, String(doGrupo.length)));
+        const linha = el("div", "sc-pessoas");
+        doGrupo.forEach((v) => {
+          const b = el("button", "sc-pessoa"); b.type = "button"; b.dataset.cat = g.cat;
+          const av = el("div", "avatar"); av.textContent = "…";
+          const nm = el("strong", null, "");
+          b.append(av, nm, el("small", null, rotuloTipo(v.tipo)));
+          obterPerfil(v.outro).then((o) => { v.perfilOutro = o; pintarAvatar(av, o.fotoPerfil, o.nome); nm.textContent = (o.nome || "Usuário").split(" ")[0]; b.title = o.nome || ""; });
+          const fn = abrir(v);
+          if (fn) b.addEventListener("click", fn); else b.disabled = true;
+          linha.appendChild(b);
+        });
+        if (proprio()) {
+          const novo = el("button", "sc-pessoa novo"); novo.type = "button"; novo.dataset.cat = g.cat;
+          const av = el("div", "avatar"); av.appendChild(icone("mais", "i s"));
+          novo.append(av, el("strong", null, "Adicionar"), el("small", null, g.nome));
+          novo.addEventListener("click", () => abrirNovoVinculo(null, g.cat));
+          linha.appendChild(novo);
+        }
+        sec.append(t, linha);
+        box.appendChild(sec);
+      });
+      if (proprio() && !duo) {
+        const c = el("div", "sc-cartao sc-vazio");
+        c.append(el("strong", null, "Akai Ito"), "Ligue seu perfil ao da pessoa que você ama pelo fio vermelho: ela aparece no seu perfil, com o coração.");
+        c.appendChild(el("br"));
+        c.appendChild(botao("btn sec", "Adicionar meu duo", "rosa", () => abrirNovoVinculo(null, "duo")));
+        box.appendChild(c);
+      }
+      if (!proprio() && !clicavel && aceitos.length) {
+        box.appendChild(el("p", "sc-nota", (p.socialVisibilidade === "amigos") ? "Os perfis do social abrem só para amigos (quem segue e é seguido)." : "Os perfis do social abrem só para seguidores."));
+      }
+
+      // privacidade (só no seu perfil)
+      if (proprio()) {
+        const c = el("div", "sc-cartao");
+        const t = el("div", "pv-tit"); t.appendChild(el("h2", null, "Quem pode abrir seu social"));
+        const seg = el("div", "sc-seg");
+        const vis = dados.socialVisibilidade || "todos";
+        [["todos", "Todos"], ["seguidores", "Seguidores"], ["amigos", "Amigos"], ["ocultar", "Ninguém"]].forEach(([k, rot]) => {
+          const b = botao(k === vis ? "on" : "", rot, null, async () => {
+            if (k === (dados.socialVisibilidade || "todos")) return;
+            const antes = dados.socialVisibilidade;
+            dados.socialVisibilidade = k; perfil.p.socialVisibilidade = k;
+            desenharSocial(); desenharAbas();
+            try { await fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), { uid: eu.uid, socialVisibilidade: k }, { merge: true }); toast("Privacidade atualizada"); }
+            catch { dados.socialVisibilidade = antes; perfil.p.socialVisibilidade = antes; desenharSocial(); desenharAbas(); toast("Não foi possível salvar."); }
+          });
+          seg.appendChild(b);
+        });
+        c.append(t, seg, el("p", "sc-nota", "Quem não estiver liberado vê as fotos, mas não abre os perfis. Amigos = quem você segue e segue você. \"Ninguém\" esconde a seção Social dos visitantes. O Akai Ito no topo do perfil tem opção própria em Configurações."));
+        box.appendChild(c);
+      }
+    }
+
+    // ---------- Avaliações ----------
+    async function desenharAvaliacoes() {
+      const box = $("painel-avaliacoes");
+      const { uid, p } = perfil;
+      box.replaceChildren(el("div", "estado", "Carregando avaliações..."));
+      const r = await notaPerfil(uid);
+      if (aba !== "avaliacoes" || perfil.uid !== uid) return;
+      box.replaceChildren();
+      if (!r) { box.appendChild(el("div", "estado", "Não foi possível carregar as avaliações.")); return; }
+      const g = r.geral;
+      const topo = el("div", "sc-cartao av-topo");
+      const m = el("div", "av-media");
+      const val = media(g);
+      const cheias = Math.round(val);
+      const est = el("div", "est"); est.append(document.createTextNode("★".repeat(cheias)), el("span", null, "★".repeat(5 - cheias)));
+      m.append(el("b", null, g.total ? notaTexto(val) : "–"), est, el("small", null, g.total ? `${g.total} ${g.total === 1 ? "avaliação" : "avaliações"}` : "Sem avaliações"));
+      const barras = el("div", "av-barras");
+      for (let n = 5; n >= 1; n--) {
+        const q = g["n" + n] || 0;
+        const linha = el("div", "av-barra");
+        const tr = el("div", "trilho"); const i = el("i"); i.style.width = g.total ? `${Math.round((q / g.total) * 100)}%` : "0"; tr.appendChild(i);
+        linha.append(el("span", null, String(n)), tr, el("span", null, String(q)));
+        barras.appendChild(linha);
+      }
+      topo.append(m, barras);
+      box.appendChild(topo);
+      const t = el("div", "pv-tit"); t.appendChild(el("h2", null, "De onde vêm as notas"));
+      box.appendChild(t);
+      const lista = el("div", "av-fontes");
+      const CORES = { servicos: "#00adee", delivery: "#ff7a1a", lojinha: "#b066ff", imoveis: "#2fbf71", publicacoes: "#f5b700", cliente: "#7c5cff" };
+      const ICS = { servicos: "servicos", delivery: "delivery", lojinha: "lojinha", imoveis: "imoveis", publicacoes: "feed", cliente: "perfil" };
+      fontesDaNota(r, uid).forEach((f) => {
+        const c = el("div", "av-fonte" + (f.principal ? " principal" : ""));
+        c.style.setProperty("--cor", CORES[f.tipo] || "var(--accent)");
+        const ic = el("span", "ic"); ic.appendChild(icone(ICS[f.tipo] || "estrela", "i s"));
+        const tx = el("div", "tx");
+        tx.append(el("strong", null, f.rotulo), el("small", null, f.resumo?.total ? `${f.resumo.total} ${f.resumo.total === 1 ? "nota" : "notas"}` : "Sem notas"));
+        const n = el("span", "n"); n.append(icone("estrela", "i"), document.createTextNode(f.resumo?.total ? notaTexto(media(f.resumo)) : "–"));
+        c.append(ic, tx, n);
+        lista.appendChild(c);
+      });
+      box.appendChild(lista);
+      box.appendChild(botao("btn sec av-detalhes", "Ver comentários e detalhes", "chat", () => abrirAvaliacoes(p, uid)));
+    }
+
+    // ======================================================
+    // Ver publicação
+    // ======================================================
     let postCtx = null;
-    function abrirPost(lista, indice, opcoes) {
-      postCtx = { lista, indice, ...opcoes };
+    function abrirPost(lista, indice) {
+      postCtx = { lista, indice };
       mostrarPost();
       abrirFolha("folhaPost");
     }
     function mostrarPost() {
-      const { lista, indice, proprio, autor } = postCtx;
+      const { lista, indice } = postCtx;
       const post = lista[indice];
+      const autor = perfil?.uid === post.autorId ? perfil.p : null;
       const midia = $("postMidia");
       midia.replaceChildren();
       const url = urlSegura(post.mediaUrl);
       midia.hidden = !url;
       if (url && post.mediaTipo === "video") {
-        const v = document.createElement("video");
-        v.src = url; v.controls = true; v.playsInline = true;
+        const v = document.createElement("video"); v.src = url; v.controls = true; v.playsInline = true;
         midia.appendChild(v);
       } else if (url) {
-        const img = document.createElement("img");
-        img.src = url; img.alt = "Imagem da publicação";
+        const img = document.createElement("img"); img.src = url; img.alt = "Imagem da publicação";
+        img.addEventListener("click", () => abrirMidia(url));
         midia.appendChild(img);
       }
       pintarAvatar($("postAvatar"), autor?.fotoPerfil || post.fotoPerfil, autor?.nome || post.nome);
       $("postNome").textContent = autor?.nome || post.nome || "Usuário";
-      $("postData").textContent = dataCompleta(paraData(post.criadoEm));
+      $("postData").textContent = tempoRelativo(paraData(post.criadoEm)) + (post.editadoEm ? " · editada" : "");
+      $("postData").title = dataCompleta(paraData(post.criadoEm));
       comMencoes($("postTexto"), post.texto || "");
       $("postTexto").hidden = !post.texto;
-      $("postApagar").hidden = !proprio;
-      $("postEditar").hidden = !proprio;
-      $("postDenunciar").hidden = proprio;
-      $("postData").textContent = dataCompleta(paraData(post.criadoEm)) + (post.editadoEm ? " · editada" : "");
       $("postAnterior").disabled = indice <= 0;
       $("postProximo").disabled = indice >= lista.length - 1;
-      pintarSocialPost({ ...post, autorId: post.autorId || autor?.uid });
+      $("postContador").textContent = lista.length > 1 ? `${indice + 1} de ${lista.length}` : "";
+      pintarSocialPost(post);
     }
     function pintarSocialPost(post) {
       const box = $("postSocial");
       box.replaceChildren();
-      const lista = el("div");
+      const lista = el("div", "pvp-comentarios");
       const barra = barraInteracao(post, { aoComentar: () => lista.querySelector("textarea")?.focus() });
       box.append(barra, lista);
       montarComentarios(lista, post, { aoMudar: (n) => barra.atualizarComentarios(n) });
@@ -492,39 +766,42 @@
     $("postAnterior").addEventListener("click", () => { if (postCtx.indice > 0) { postCtx.indice--; mostrarPost(); } });
     $("postProximo").addEventListener("click", () => { if (postCtx.indice < postCtx.lista.length - 1) { postCtx.indice++; mostrarPost(); } });
     $("folhaPost").addEventListener("fechada", () => $("postMidia").querySelector("video")?.pause());
-    $("postApagar").addEventListener("click", async () => {
+    $("postAutor").addEventListener("click", () => { const post = postCtx.lista[postCtx.indice]; if (post.autorId !== perfil?.uid) { fecharFolha("folhaPost"); abrirPerfilPublico(post.autorId); } else fecharFolha("folhaPost"); });
+    $("postMenu").addEventListener("click", () => {
       const post = postCtx.lista[postCtx.indice];
-      if (!confirm("Apagar esta publicação? Essa ação não pode ser desfeita.")) return;
+      const meu = post.autorId === eu.uid;
+      const nomeA = perfil?.p?.nome || post.nome || "";
+      abrirOpcoes("Publicação", [
+        { rotulo: "Compartilhar publicação", icone: "compartilhar", fn: () => compartilharPublicacao(post, perfil?.p?.nickname) },
+        meu && { rotulo: "Editar publicação", icone: "lapis", fn: () => editarPublicacao(post, () => { mostrarPost(); if (aba === "publicacoes") pintarPublicacoes(); }) },
+        !meu && { rotulo: "Denunciar publicação", sub: "Golpe, ofensa, conteúdo impróprio...", icone: "alerta", perigo: true,
+          fn: () => abrirDenuncia({ fb, eu, tipo: "publicacao", alvoId: post.autorId, itemId: post.id, trecho: post.texto || "", nomeAlvo: nomeA,
+            aoBloquear: async () => { if (await bloquear(post.autorId, nomeA)) { fecharFolha("folhaPost"); recarregarPerfil(); } } }) },
+        meu && { rotulo: "Apagar publicação", icone: "lixo", perigo: true, fn: async () => {
+          if (!confirm("Apagar esta publicação? Essa ação não pode ser desfeita.")) return;
+          try {
+            await fb.deleteDoc(fb.doc(fb.db, "diario", post.id));
+            fecharFolha("folhaPost");
+            perfil.posts = perfil.posts.filter((p) => p.id !== post.id);
+            desenharCabecalho(); pintarPublicacoes();
+            toast("Publicação apagada");
+          } catch (e) { console.error(e); toast("Não foi possível apagar: " + erroAmigavel(e)); }
+        } }
+      ]);
+    });
+    // Link de uma publicação (usuarios.html?u=@...&post=ID): abre direto nela.
+    async function abrirPostDoLink(id) {
+      let i = perfil.posts.findIndex((p) => p.id === id);
+      if (i >= 0) { abrirPost(perfil.posts, i); return; }
       try {
-        await fb.deleteDoc(fb.doc(fb.db, "diario", post.id));
-        fecharFolha("folhaPost");
-        meusPosts = meusPosts.filter((p) => p.id !== post.id);
-        renderizarGrade($("gradePosts"), meusPosts, { proprio: true, autor: dados });
-        renderizarMeuPerfil();
-        toast("Publicação apagada");
-      } catch (e) {
-        console.error(e);
-        toast("Não foi possível apagar: " + erroAmigavel(e));
-      }
-    });
-
-    $("postEditar").addEventListener("click", () => {
-      const post = postCtx.lista[postCtx.indice];
-      editarPublicacao(post, () => { mostrarPost(); if (postCtx.proprio) renderizarGrade($("gradePosts"), meusPosts, { proprio: true, autor: dados }); });
-    });
-    $("postDenunciar").addEventListener("click", () => {
-      const post = postCtx.lista[postCtx.indice];
-      const autorId = post.autorId || postCtx.autor?.uid;
-      const nomeA = postCtx.autor?.nome || post.nome || "";
-      abrirDenuncia({ fb, eu, tipo: "publicacao", alvoId: autorId, itemId: post.id, trecho: post.texto || "", nomeAlvo: nomeA,
-        aoBloquear: async () => { if (await bloquear(autorId, nomeA)) { fecharFolha("folhaPost"); abrirPerfilPublico(autorId); } } });
-    });
-
-    // ---------- nova publicação (rede.js) ----------
-    $("btnCompor").addEventListener("click", () => abrirCompositor({ aoPublicar: () => carregarMeusPosts() }));
+        const s = await fb.getDoc(fb.doc(fb.db, "diario", id));
+        if (s.exists() && s.data().autorId === perfil.uid) abrirPost([{ id: s.id, ...s.data() }], 0);
+        else toast("Publicação não encontrada.");
+      } catch { toast("Publicação não encontrada."); }
+    }
 
     // ======================================================
-    // Foto de perfil e capa (com editor de moldura)
+    // Foto de perfil e capa (com editor de moldura) · Editar perfil
     // ======================================================
     const OPCOES_IMAGEM = {
       foto: { titulo: "Foto de perfil", dica: "O círculo mostra exatamente como sua foto aparece. Deixe o rosto dentro da linha tracejada.", proporcao: 1, circulo: true, larguraSaida: 480, qualidade: 0.86, limiteBytes: 250000 },
@@ -554,7 +831,7 @@
           ]);
           dados[campo] = url;
           perfis.delete(eu.uid);
-          renderizarMeuPerfil();
+          atualizarMeuPerfil();
           toast(tipo === "foto" ? "Foto de perfil atualizada" : "Capa atualizada");
         } else {
           edRascunho[tipo === "foto" ? "fotoPerfil" : "fotoCapa"] = dataUrl;
@@ -586,7 +863,6 @@
       nickDisponivel = true;
       mostrarStatusNick("3 a 20 caracteres: letras minúsculas, números, ponto e _");
       pintarEditor();
-      fecharFolha("folhaConfig");
       abrirFolha("folhaEditar");
     }
     function pintarEditor() {
@@ -665,8 +941,7 @@
         try { if (authFns.updateProfile && nome !== eu.displayName) await authFns.updateProfile(eu, { displayName: nome }); } catch {}
         Object.assign(dados, privado);
         perfis.delete(eu.uid);
-        renderizarMeuPerfil();
-        renderizarGrade($("gradePosts"), meusPosts, { proprio: true, autor: dados });
+        atualizarMeuPerfil();
         fecharFolha("folhaEditar");
         toast("Perfil atualizado");
       } catch (e) {
@@ -678,7 +953,7 @@
     });
 
     // ======================================================
-    // Verificação, compartilhar
+    // Verificação
     // ======================================================
     async function solicitarVerificacao() {
       if (dados.verificado) { toast("Seu perfil já é verificado."); return; }
@@ -687,12 +962,12 @@
       try {
         await fb.setDoc(refUsuario, { solicitacaoVerificacao: true, solicitacaoVerificacaoEm: fb.serverTimestamp() }, { merge: true });
         dados.solicitacaoVerificacao = true;
-        renderizarMeuPerfil();
+        atualizarMeuPerfil();
         toast("Solicitação enviada");
       } catch (e) { toast("Não foi possível enviar: " + erroAmigavel(e)); }
     }
     // ======================================================
-    // Seguir
+    // Seguidores / seguindo · link de avaliação
     // ======================================================
     async function abrirListaRelacoes(uid, tipo) {
       const seguidores = tipo === "seguidores";
@@ -754,140 +1029,7 @@
     }
 
     // ======================================================
-    // Perfil de outra pessoa
-    // ======================================================
-    let ppCab = null, ppMeSegue = false;
-    // Abrir o perfil de alguém = ir para a página dele (o link fica no endereço: dá para
-    // atualizar, voltar e compartilhar). O perfil que já está aberto só é redesenhado.
-    function navegarPerfil(uid) {
-      if (!uid) return;
-      if (uid === (modoOutro ? alvoOutro : eu.uid)) { pilha.slice().forEach(fecharFolha); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
-      location.href = uid === eu.uid ? "usuarios.html" : linkPerfil(uid, nickDe.get(uid));
-    }
-    function abrirPerfilPublico(uid) {
-      if (modoOutro && uid === alvoOutro) return renderizarPerfilOutro(uid);
-      navegarPerfil(uid);
-    }
-    function perfilNaoEncontrado() {
-      $("estadoCarregando").hidden = true;
-      $("conteudoOutro").hidden = true;
-      const e = $("estadoErro");
-      e.hidden = false; e.className = "estado vazio-perfil";
-      const t = el("strong", null, "Perfil não encontrado");
-      const a = el("a", "btn pri", "Procurar pessoas"); a.href = "feed.html?aba=explorar";
-      e.replaceChildren(t, el("span", null, "O link pode estar errado ou a pessoa mudou o @usuário."), a);
-      document.title = "Perfil não encontrado | Help Floripa";
-    }
-    async function renderizarPerfilOutro(uid) {
-      ppCab = montarCabecalho($("ppCabecalho"));
-      $("ppGrade").replaceChildren();
-      $("abasOutro").replaceChildren();
-      perfis.delete(uid);
-      const p = await obterPerfil(uid);
-      if (!p.uid && !p.nome) { perfilNaoEncontrado(); return; }
-      preencherCabecalho(ppCab, p);
-      pintarNotaPerfil(ppCab, uid);
-      // Barra de contexto e endereço com o @ (o link da barra de endereço é o mesmo do compartilhar).
-      $("ctxNome").textContent = p.nome || "Perfil";
-      $("ctxSub").textContent = p.nickname ? "@" + p.nickname : nomeCidade(p.cidade || p.cidadeNome);
-      $("ctxCompartilhar").onclick = () => compartilharPerfil(uid, p.nome, p.nickname);
-      document.title = `${p.nome || "Perfil"}${p.nickname ? ` (@${p.nickname})` : ""} | Help Floripa`;
-      const limpo = linkPerfil(uid, p.nickname);
-      if (!location.href.endsWith(limpo)) history.replaceState(null, "", limpo);
-      $("estadoCarregando").hidden = true;
-      $("conteudoOutro").hidden = false;
-
-      const acoesTopo = ppCab.el("acoes");
-      acoesTopo.replaceChildren(botaoOpcoesPerfil(uid, p));
-      if (bloqueadoPor.has(uid) || meusBloqueios.has(uid)) {
-        const eu_bloqueei = meusBloqueios.has(uid);
-        ppCab.raiz.querySelector(".pf-stats").hidden = true;
-        const aviso = document.createElement("div");
-        aviso.className = "bloqueado-aviso";
-        const t = document.createElement("strong");
-        t.textContent = eu_bloqueei ? "Você bloqueou esta conta" : "Perfil indisponível";
-        aviso.append(t, eu_bloqueei ? "Desbloqueie para ver as publicações e trocar mensagens." : "Não é possível ver este perfil.");
-        if (eu_bloqueei) {
-          const b = document.createElement("button");
-          b.type = "button"; b.className = "btn sec"; b.style.marginTop = "12px"; b.textContent = "Desbloquear";
-          b.addEventListener("click", async () => { if (await desbloquear(uid)) abrirPerfilPublico(uid); });
-          aviso.append(document.createElement("br"), b);
-        }
-        ppCab.el("extra").replaceChildren(aviso);
-        return;
-      }
-      // Conta desativada (ou com exclusão pedida): nada do perfil aparece.
-      if ((p.desativadaAte?.toMillis?.() ?? 0) > Date.now()) {
-        ppCab.raiz.querySelector(".pf-stats").hidden = true;
-        acoesTopo.replaceChildren();
-        const aviso = document.createElement("div");
-        aviso.className = "bloqueado-aviso";
-        const t = document.createElement("strong");
-        t.textContent = "Conta desativada";
-        aviso.append(t, "Esta pessoa desativou a conta por um tempo. O perfil volta a aparecer quando ela reativar.");
-        ppCab.el("extra").replaceChildren(aviso);
-        return;
-      }
-
-      const [c1, c2, inv, posts, vins] = await Promise.allSettled([
-        contarRelacoes("alvoId", uid), contarRelacoes("seguidorId", uid),
-        fb.getDoc(fb.doc(fb.db, "relacoes", `${uid}_${eu.uid}`)), buscarPosts(uid), buscarVinculos(uid)
-      ]);
-      await meusSeguindoPronto;
-      const meSegue = inv.status === "fulfilled" && inv.value.exists();
-      const lista = posts.status === "fulfilled" ? posts.value : [];
-      preencherCabecalho(ppCab, p, {
-        posts: lista.length,
-        seguidores: c1.status === "fulfilled" ? c1.value : 0,
-        seguindo: c2.status === "fulfilled" ? c2.value : 0
-      });
-      const acoes = ppCab.el("acoes");
-      acoes.replaceChildren();
-      ppMeSegue = meSegue;
-      const bSeguir = botaoSeguir(uid, { meSegue, mini: false });
-      const bMsg = document.createElement("button");
-      bMsg.type = "button"; bMsg.className = "btn sec";
-      bMsg.append(icone("chat", "i xs"), document.createTextNode("Mensagem"));
-      bMsg.addEventListener("click", () => iniciarConversa(uid));
-      acoes.append(bSeguir, bMsg, botaoOpcoesPerfil(uid, p));
-      const vis = p.socialVisibilidade || "todos";
-      $("abasOutro").replaceChildren(abasPerfil({ uid, nick: p.nickname, proprio: false, ativa: "publicacoes", social: vis !== "ocultar", restrito: vis !== "todos", aoAvaliacoes: () => abrirAvaliacoes(p, uid) }));
-      // O duo na capa segue a escolha do dono: clicável, só a foto ou oculto.
-      desenharDuoCapa(ppCab, uid, p, vins.status === "fulfilled" ? vins.value : [], (p.duoCapa || "clicavel") === "clicavel");
-      buscarNegocios(uid).then((lista) => renderizarNegocios(ppCab.el("negocios"), lista, { proprio: false, dono: { ...p, uid } })).catch(() => {});
-      ppCab.stat("posts").addEventListener("click", () => $("abasOutro").scrollIntoView({ behavior: "smooth", block: "start" }));
-      ppCab.stat("seguidores").addEventListener("click", () => abrirListaRelacoes(uid, "seguidores"));
-      ppCab.stat("seguindo").addEventListener("click", () => abrirListaRelacoes(uid, "seguindo"));
-      ppCab.stat("nota").addEventListener("click", () => abrirAvaliacoes(p, uid));
-      renderizarGrade($("ppGrade"), lista, { proprio: false, autor: p });
-    }
-
-    // ======================================================
-    // Bloquear, restringir, remover seguidor
-    // ======================================================
-    function botaoOpcoesPerfil(uid, p) {
-      const b = document.createElement("button");
-      b.type = "button"; b.className = "btn sec icone"; b.setAttribute("aria-label", "Mais opções");
-      b.appendChild(icone("pontos", "i s"));
-      b.addEventListener("click", () => {
-        const bloq = meusBloqueios.has(uid);
-        abrirOpcoes(p.nome || "Opções", [
-          !bloq && !bloqueadoPor.has(uid) && { rotulo: "Adicionar ao meu social", sub: "Duo, família, amigos", icone: "fio", fn: () => abrirNovoVinculo({ uid, ...p }) },
-          { rotulo: "Compartilhar perfil", sub: p.nickname ? `helpfloripa.com.br/@${p.nickname}` : "", icone: "compartilhar", fn: () => compartilharPerfil(uid, p.nome, p.nickname) },
-          !bloq && ppMeSegue && { rotulo: "Remover seguidor", sub: "Deixa de seguir você, sem aviso", icone: "pessoa-menos", fn: async () => { if (await removerSeguidor(uid, p.nome)) { ppMeSegue = false; abrirPerfilPublico(uid); } } },
-          !bloq && { rotulo: restritos.has(uid) ? "Remover restrição" : "Restringir", sub: restritos.has(uid) ? "Volta a receber avisos dessa pessoa" : "Mensagens vão para Restritas, sem avisos", icone: "restringir", fn: () => alternarRestricao(uid, p.nome) },
-          { rotulo: "Denunciar perfil", sub: "Golpe, perfil falso, assédio...", icone: "alerta", perigo: true,
-            fn: () => abrirDenuncia({ fb, eu, tipo: "perfil", alvoId: uid, itemId: uid, trecho: [p.nome, p.nickname ? "@" + p.nickname : "", p.bio].filter(Boolean).join(" · "), nomeAlvo: p.nome || "",
-              podeBloquear: !bloq, aoBloquear: async () => { if (await bloquear(uid, p.nome)) abrirPerfilPublico(uid); } }) },
-          { rotulo: bloq ? "Desbloquear" : "Bloquear", sub: bloq ? "" : "Ela não poderá abrir seu perfil nem falar com você", icone: "bloquear", perigo: !bloq,
-            fn: async () => { const ok = bloq ? await desbloquear(uid) : await bloquear(uid, p.nome); if (ok) abrirPerfilPublico(uid); } }
-        ]);
-      });
-      return b;
-    }
-
-    // ======================================================
-    // Social: duo (Akai Ito), família, amigos
+    // Social: duo (Akai Ito), família, amigos, colegas
     // ======================================================
     const TIPOS = {
       duo: { rotulo: "Duo", cat: "duo" },
@@ -936,173 +1078,6 @@
       return false;
     }
 
-    // Abas do seu perfil: Publicações · Social (com cadeado quando tem privacidade) · Avaliações.
-    function pintarAbasMeu() {
-      const vis = dados.socialVisibilidade || "todos";
-      const abas = abasPerfil({ uid: eu.uid, nick: dados.nickname, proprio: true, ativa: "publicacoes", restrito: vis !== "todos", aoAvaliacoes: () => abrirAvaliacoes(dados, eu.uid) });
-      const social = abas.querySelector('[data-aba="social"]');
-      if (social) social.title = {
-        todos: "Todos podem abrir os perfis do seu social",
-        seguidores: "Só seus seguidores abrem os perfis do seu social",
-        amigos: "Só amigos (quem segue e é seguido) abrem os perfis do seu social",
-        ocultar: "Seu social não aparece para os visitantes"
-      }[vis] || "";
-      $("abasMeu").replaceChildren(abas);
-    }
-
-    // Foto do duo pequena na capa, ligada à foto do perfil pelo Akai Ito (fio, coração, fio).
-    function desenharDuoCapa(cab, uid, dono, vinculos, podeAbrir) {
-      const raiz = cab.raiz.querySelector(".pf");
-      raiz.querySelector(".duo-capa")?.remove();
-      raiz.querySelector(".fio-capa")?.remove();
-      cab.observador?.disconnect();
-      if ((dono.duoCapa || "clicavel") === "ocultar") return;
-      const duo = vinculos.map((v) => lerVinculo(v, uid)).find((v) => TIPOS_DUO.includes(v.tipo) && !v.pendente && !escondido(v.outro));
-      if (!duo) return;
-      const capa = cab.el("capa");
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "duo-capa";
-      const av = document.createElement("div");
-      av.className = "avatar";
-      const selo = document.createElement("span");
-      selo.className = "rosa-selo";
-      selo.title = "Duo";
-      selo.appendChild(icone("rosa", "i"));
-      btn.append(av, selo);
-      capa.appendChild(btn);
-      obterPerfil(duo.outro).then((o) => {
-        pintarAvatar(av, o.fotoPerfil, o.nome);
-        const papel = duo.tipo === "duo" ? "Duo" : rotuloTipo(duo.tipo);
-        btn.setAttribute("aria-label", `${papel}: ${o.nome || "Usuário"}`);
-        btn.title = `${papel} · Akai Ito: ${o.nome || "Usuário"}`;
-      });
-      if (podeAbrir) btn.addEventListener("click", (e) => { e.stopPropagation(); abrirPerfilPublico(duo.outro); });
-      else if (uid === eu.uid) {
-        // No próprio perfil: fica como os visitantes veem e explica o porquê.
-        btn.classList.add("so-foto");
-        btn.addEventListener("click", (e) => { e.stopPropagation(); toast("Duo em \"Só a foto\": visitantes não abrem o perfil por aqui. Mude em Configurações."); });
-      } else btn.disabled = true;
-
-      const ns = "http://www.w3.org/2000/svg";
-      const svgEl = document.createElementNS(ns, "svg");
-      svgEl.setAttribute("class", "fio-capa");
-      svgEl.setAttribute("aria-hidden", "true");
-      const path = document.createElementNS(ns, "path");
-      path.setAttribute("class", "fio");
-      const coracao = document.createElementNS(ns, "path");
-      coracao.setAttribute("class", "coracao");
-      svgEl.append(path, coracao);
-      raiz.appendChild(svgEl);
-      const tracar = () => {
-        const base = raiz.getBoundingClientRect();
-        const a = cab.el("avatar").getBoundingClientRect();
-        const d = av.getBoundingClientRect();
-        if (!base.width || !a.width) return;
-        // Liga a borda de uma foto à borda da outra, com o fio caindo um pouco no meio.
-        const ax = a.left + a.width / 2 - base.left, ay = a.top + a.height / 2 - base.top, ar = a.width / 2 + 4;
-        const dx = d.left + d.width / 2 - base.left, dy = d.top + d.height / 2 - base.top, dr = d.width / 2 + 4;
-        const dist = Math.hypot(dx - ax, dy - ay) || 1, ux = (dx - ax) / dist, uy = (dy - ay) / dist;
-        const x1 = ax + ux * ar, y1 = ay + uy * ar, x2 = dx - ux * dr, y2 = dy - uy * dr;
-        // Curva suave para cima, como um laço, com um coraçãozinho no meio.
-        // Igual ao cartão do Social: fio em arco suave, coração no meio, fio em arco suave.
-        svgEl.setAttribute("viewBox", `0 0 ${base.width} ${base.height}`);
-        const tl = Math.hypot(x2 - x1, y2 - y1) || 1, tx = (x2 - x1) / tl, ty = (y2 - y1) / tl;
-        let nx = -ty, ny = tx;
-        if (ny > 0) { nx = -nx; ny = -ny; } // normal para cima
-        const t = 9, meia = t * 1.25, curva = Math.min(10, tl * 0.08);
-        const mx = (x1 + x2) / 2 + nx * 4, my = (y1 + y2) / 2 + ny * 4;
-        const lx = mx - tx * meia, ly = my - ty * meia, rx = mx + tx * meia, ry = my + ty * meia;
-        const c1x = (x1 + lx) / 2 + nx * curva, c1y = (y1 + ly) / 2 + ny * curva;
-        const c2x = (rx + x2) / 2 + nx * curva, c2y = (ry + y2) / 2 + ny * curva;
-        path.setAttribute("d", `M${x1} ${y1} Q${c1x} ${c1y} ${lx} ${ly} M${rx} ${ry} Q${c2x} ${c2y} ${x2} ${y2}`);
-        coracao.setAttribute("d", `M${mx} ${my + t * 0.9} C${mx - t * 1.6} ${my - t * 0.2} ${mx - t * 0.7} ${my - t * 1.3} ${mx} ${my - t * 0.45} C${mx + t * 0.7} ${my - t * 1.3} ${mx + t * 1.6} ${my - t * 0.2} ${mx} ${my + t * 0.9}Z`);
-      };
-      requestAnimationFrame(tracar);
-      cab.observador = new ResizeObserver(tracar);
-      cab.observador.observe(raiz);
-    }
-
-    // ======================================================
-    // Perfis de negócio: serviços, delivery, lojinha, imóveis
-    // ======================================================
-    const NEGOCIOS = {
-      servicos: { rotulo: "Freelances", img: "servicos.webp", pagina: "servicos.html" },
-      delivery: { rotulo: "Delivery", img: "lanchonetes.webp", pagina: "delivery.html" },
-      lojinha: { rotulo: "Lojinha", img: "shopping.webp", pagina: "shopping.html" },
-      imoveis: { rotulo: "Imóveis", img: "imoveis.webp", pagina: "imoveis.html" }
-    };
-    let meusNegocios = [];
-
-    async function buscarNegocios(uid) {
-      const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "negocios"), fb.where("donoId", "==", uid), fb.limit(8)));
-      return snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => Object.keys(NEGOCIOS).indexOf(a.tipo) - Object.keys(NEGOCIOS).indexOf(b.tipo));
-    }
-    async function carregarMeusNegocios() {
-      try { meusNegocios = await buscarNegocios(eu.uid); } catch (e) { console.warn("Negócios indisponíveis:", e); meusNegocios = []; }
-      renderizarMeuPerfil();
-    }
-
-    function renderizarNegocios(box, lista, { proprio, dono }) {
-      if (!proprio && !lista.length) { box.hidden = true; return; }
-      box.hidden = false;
-      box.replaceChildren();
-      const linha = document.createElement("div");
-      linha.className = "vinculos";
-      lista.forEach((n) => {
-        const t = NEGOCIOS[n.tipo];
-        if (!t) return;
-        const b = document.createElement("button");
-        b.type = "button";
-        b.className = "vinculo";
-        b.dataset.cat = n.tipo;
-        const av = document.createElement("div");
-        av.className = "avatar";
-        pintarAvatar(av, n.foto, n.nome);
-        if (!urlSegura(n.foto)) { av.style.background = `#0a2a38 url(${t.img}) center / cover`; av.textContent = ""; }
-        const nome = document.createElement("span");
-        nome.className = "nome";
-        nome.textContent = n.nome || t.rotulo;
-        const papel = document.createElement("span");
-        papel.className = "papel";
-        papel.textContent = t.rotulo;
-        b.append(av, nome, papel);
-        b.addEventListener("click", () => abrirPerfilNegocio(n, {
-          fb, eu, dono, proprio,
-          aoMensagem: (uid, cartao) => iniciarConversa(uid, cartao),
-          aoPerfil: (uid) => abrirPerfilPublico(uid),
-          aoEditar: proprio ? (neg) => { location.href = `negocios.html?tipo=${encodeURIComponent(neg.tipo)}`; } : null
-        }));
-        linha.appendChild(b);
-      });
-      if (proprio && lista.length < Object.keys(NEGOCIOS).length) {
-        const novo = document.createElement("button");
-        novo.type = "button";
-        novo.className = "vinculo novo";
-        const av = document.createElement("div");
-        av.className = "avatar";
-        av.appendChild(icone("mais", "i s"));
-        const n = document.createElement("span");
-        n.className = "nome";
-        n.textContent = lista.length ? "Criar" : "Criar perfil";
-        const pp = document.createElement("span");
-        pp.className = "papel";
-        pp.textContent = "de negócio";
-        novo.append(av, n, pp);
-        novo.addEventListener("click", () => { location.href = "negocios.html?novo=1"; });
-        linha.appendChild(novo);
-      }
-      box.appendChild(linha);
-      if (proprio && !lista.length) {
-        const dica = document.createElement("p");
-        dica.className = "social-vazio";
-        dica.style.margin = "4px 0 0";
-        dica.textContent = "Crie perfis de Freelances, Delivery, Lojinha ou Imóveis para aparecerem aqui.";
-        box.appendChild(dica);
-      }
-    }
-
-
     function opcoesVinculo(v, o) {
       const nome = o.nome || "Usuário";
       if (v.pendente && v.para === eu.uid) {
@@ -1145,9 +1120,11 @@
 
     // ---------- novo vínculo ----------
     let vinTipo = "duo", vinAlvo = null;
-    function abrirNovoVinculo(alvo) {
+    // cat: já abre no tipo do círculo escolhido (duo, família, amizade, colegas).
+    const TIPO_DO_CIRCULO = { duo: "duo", familia: "irmao", amizade: "amigo", trabalho: "parceiro" };
+    function abrirNovoVinculo(alvo, cat) {
       vinAlvo = alvo && alvo.uid ? alvo : null;
-      vinTipo = "duo";
+      vinTipo = TIPO_DO_CIRCULO[cat] || "duo";
       const tipos = $("vinTipos");
       tipos.replaceChildren();
       Object.entries(TIPOS).forEach(([k, t]) => {
@@ -1228,12 +1205,16 @@
       finally { btn.disabled = false; }
     });
 
+    // Seu social ao vivo (pedidos inclusive). Resolve na primeira leitura.
     function ouvirVinculos() {
-      const q = fb.query(fb.collection(fb.db, "vinculos"), fb.where("participantes", "array-contains", eu.uid), fb.limit(60));
-      fb.onSnapshot(q, (snap) => {
-        meusVinculos = snap.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) }));
-        renderizarMeuPerfil();
-      }, (e) => console.warn("Social indisponível:", e));
+      return new Promise((pronto) => {
+        const q = fb.query(fb.collection(fb.db, "vinculos"), fb.where("participantes", "array-contains", eu.uid), fb.limit(60));
+        fb.onSnapshot(q, (snap) => {
+          meusVinculos = snap.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) }));
+          aoMudarVinculos();
+          pronto();
+        }, (e) => { console.warn("Social indisponível:", e); pronto(); });
+      });
     }
 
     // Com cartão: a conversa fica marcada com o assunto (serviços, delivery...) e o cartão vai junto na mensagem.
@@ -1242,14 +1223,73 @@
     }
 
     // ======================================================
-    // Inicialização
+    // Navegação entre perfis
     // ======================================================
+    // Abrir o perfil de alguém = ir para a página dele (o link fica no endereço: dá para
+    // atualizar, voltar e compartilhar). O perfil que já está aberto só é redesenhado.
+    function navegarPerfil(uid) {
+      if (!uid) return;
+      if (uid === perfil?.uid) { pilha.slice().forEach(fecharFolha); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
+      location.href = uid === eu.uid ? "usuarios.html" : linkPerfil(uid, nickDe.get(uid));
+    }
+    function abrirPerfilPublico(uid) { navegarPerfil(uid); }
+    async function recarregarPerfil() {
+      const novo = await carregarPerfil(perfil.uid);
+      if (!novo) { perfilNaoEncontrado(); return; }
+      perfil = novo;
+      desenharTudo();
+    }
+    // Depois de editar o perfil, a foto ou a capa.
+    function atualizarMeuPerfil() {
+      if (!proprio()) return;
+      Object.assign(perfil.p, dados);
+      desenharCabecalho();
+      if (aba === "publicacoes") pintarPublicacoes();
+      pintarBarraRede();
+      document.title = `${dados.nome || "Meu perfil"} | Help Floripa`;
+    }
+    // Pedidos e vínculos do seu social mudam ao vivo.
+    function aoMudarVinculos() {
+      if (!proprio()) return;
+      perfil.vinculos = meusVinculos;
+      desenharCabecalho();
+      if (aba === "social") desenharSocial();
+    }
+    function desenharTudo() {
+      const { p } = perfil;
+      $("estadoCarregando").hidden = true;
+      $("conteudo").hidden = false;
+      // barra de contexto (perfil de outra pessoa)
+      $("contexto").hidden = proprio();
+      if (!proprio()) {
+        $("ctxNome").textContent = p.nome || "Perfil";
+        $("ctxSub").textContent = p.nickname ? "@" + p.nickname : nomeCidade(p.cidade || p.cidadeNome);
+        $("ctxCompartilhar").onclick = () => compartilharPerfil(perfil.uid, p.nome, p.nickname);
+      }
+      document.title = proprio() ? `${p.nome || "Meu perfil"} | Help Floripa` : `${p.nome || "Perfil"}${p.nickname ? ` (@${p.nickname})` : ""} | Help Floripa`;
+      desenharCabecalho();
+      desenharAbas();
+      if (!perfil.bloqueado && !perfil.desativado) trocarAba(aba);
+      else ["publicacoes", "social", "avaliacoes"].forEach((k) => { $("painel-" + k).hidden = true; });
+    }
+    function perfilNaoEncontrado() {
+      $("estadoCarregando").hidden = true;
+      $("conteudo").hidden = true;
+      const e = $("estadoErro");
+      e.hidden = false; e.className = "estado vazio-perfil";
+      const a = el("a", "btn pri", "Procurar pessoas"); a.href = "feed.html?aba=explorar";
+      e.replaceChildren(el("strong", null, "Perfil não encontrado"), el("span", null, "O link pode estar errado ou a pessoa mudou o @usuário."), a);
+      document.title = "Perfil não encontrado | Help Floripa";
+    }
     function mostrarErro(texto) {
       $("estadoCarregando").hidden = true;
       $("estadoErro").hidden = false;
       $("estadoErro").textContent = texto;
     }
 
+    // ======================================================
+    // Inicialização
+    // ======================================================
     // Qual perfil abrir: ?u=@usuario (link bonito) ou ?perfil=código. Sem nada (ou o seu): o seu perfil.
     async function perfilPedido(params) {
       const nick = (params.get("u") || "").replace(/^@/, "").toLowerCase();
@@ -1264,7 +1304,7 @@
 
     async function iniciar() {
       try { await iniciarRede({ sincronizar: true }); }
-      catch (e) { mostrarErro(e.message || "Não foi possível carregar seu perfil agora."); return; }
+      catch (e) { mostrarErro(e.message || "Não foi possível carregar o perfil agora."); return; }
       const params = new URLSearchParams(location.search);
       // Links antigos de negócio agora vão para a página Meus negócios.
       if (params.get("acao") === "negocio") { location.replace("negocios.html" + (params.get("tipo") ? `?tipo=${encodeURIComponent(params.get("tipo"))}` : "")); return; }
@@ -1273,51 +1313,38 @@
         if (history.length > 1 && document.referrer.startsWith(location.origin)) history.back();
         else location.href = "feed.html";
       });
+      const pedida = params.get("aba") || (params.get("ver") === "avaliacoes" ? "avaliacoes" : "");
+      if (["social", "avaliacoes"].includes(pedida)) aba = pedida;
 
       const alvo = await perfilPedido(params);
-      if (alvo !== eu.uid) {
-        // ===== perfil de outra pessoa =====
-        modoOutro = true; alvoOutro = alvo;
-        montarBarraRede("");
-        pintarBarraRede();
-        ouvirAvisos();
-        carregarMeusSeguindo();
-        ouvirVinculos(); // para "Adicionar ao meu social" saber o que você já tem
-        ganchos.aposSeguir = async () => {
-          const n = await contarRelacoes("alvoId", alvo).catch(() => null);
-          if (n != null && ppCab) ppCab.stat("seguidores").querySelector(".num").textContent = numero(n);
-        };
-        if (!alvo) { perfilNaoEncontrado(); return; }
-        await renderizarPerfilOutro(alvo);
-        if (params.get("ver") === "avaliacoes") obterPerfil(alvo).then((p) => abrirAvaliacoes(p, alvo));
-        return;
-      }
-
-      // ===== seu perfil =====
-      if (params.has("u") || params.has("perfil")) history.replaceState(null, "", "usuarios.html");
-      ganchos.aposSeguir = () => atualizarContagens();
-      ganchos.aoPublicar = () => carregarMeusPosts();
-      montarBarraRede("perfil");
+      modoOutro = alvo !== eu.uid; alvoOutro = modoOutro ? alvo : null;
+      montarBarraRede(modoOutro ? "" : "perfil");
       pintarBarraRede();
-      $("estadoCarregando").hidden = true;
-      $("conteudo").hidden = false;
-      renderizarMeuPerfil();
-      carregarMeusSeguindo();
-      ouvirVinculos();
       ouvirAvisos();
-      carregarMeusNegocios();
-      atualizarContagens();
-      carregarMeusPosts();
+      carregarMeusSeguindo();
+      if (!alvo) { perfilNaoEncontrado(); return; }
+      const vinculosProntos = ouvirVinculos(); // o seu social (pedidos inclusive), ao vivo
+      if (!modoOutro) await vinculosProntos;
+      perfil = await carregarPerfil(alvo);
+      if (!perfil) { perfilNaoEncontrado(); return; }
+      ganchos.aposSeguir = async () => {
+        perfil.seguidores = await contarRelacoes("alvoId", perfil.uid).catch(() => perfil.seguidores);
+        if (proprio()) perfil.seguindo = await contarRelacoes("seguidorId", perfil.uid).catch(() => perfil.seguindo);
+        desenharCabecalho();
+      };
+      ganchos.aoPublicar = () => { if (proprio()) recarregarPosts(); };
+      desenharTudo();
 
-      if (params.get("acao") === "social") { history.replaceState(null, "", "usuarios.html"); abrirNovoVinculo(null); }
-      if (params.get("acao") === "editar") { history.replaceState(null, "", "usuarios.html"); abrirEditar(); }
-      if (params.get("ver") === "avaliacoes") { history.replaceState(null, "", "usuarios.html"); abrirAvaliacoes(dados, eu.uid); }
-      const avaliarPedido = params.get("avaliar");
-      if (avaliarPedido) { history.replaceState(null, "", "usuarios.html"); avaliarPorLink(avaliarPedido); }
+      if (!modoOutro) {
+        if (params.get("acao") === "social") abrirNovoVinculo(null);
+        if (params.get("acao") === "editar") abrirEditar();
+        const avaliarPedido = params.get("avaliar");
+        if (avaliarPedido) avaliarPorLink(avaliarPedido);
+      }
+      if (params.get("post")) abrirPostDoLink(params.get("post"));
     }
 
     iniciar().catch((e) => { console.error(e); mostrarErro("Não foi possível carregar a página. Tente novamente."); });
-
   </script>
 </body>
 </html>

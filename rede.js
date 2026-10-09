@@ -14,8 +14,8 @@ import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranc
 import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=15";
 import "./painel-avisos.js?v=9";
 import { palavrasBusca } from "./pessoas.js?v=2"; // o sino abre o painel de notificações na própria página
-import { montarNav, pintarAvatarNav, linkPerfil, linkPublicoPerfil } from "./nav-rede.js?v=1";
-export { linkPerfil, linkPublicoPerfil, marcarNav, abasPerfil } from "./nav-rede.js?v=1";
+import { montarNav, pintarAvatarNav, linkPerfil, linkPublicoPerfil } from "./nav-rede.js?v=2";
+export { linkPerfil, linkPublicoPerfil, marcarNav } from "./nav-rede.js?v=2";
 
 // ---------- ícones ----------
 const SIMBOLOS = `<symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 01-1.5 1.5H15v-6h-6v6H5.5A1.5 1.5 0 014 19z"/></symbol>
@@ -67,6 +67,9 @@ const SIMBOLOS = `<symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l
 <symbol id="i-delivery" viewBox="0 0 24 24"><path d="M3 10h18M4 10a8 8 0 0116 0M2 14h20M4 14l1 6h14l1-6"/></symbol>
 <symbol id="i-lojinha" viewBox="0 0 24 24"><path d="M6 8h12l-1 12H7L6 8zM9 8V6a3 3 0 016 0v2"/></symbol>
 <symbol id="i-imoveis" viewBox="0 0 24 24"><path d="M4 11.5L12 4l8 7.5M6 10v9.5h12V10M10 19.5v-5h4v5"/></symbol>
+<symbol id="i-calendario" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></symbol>
+<symbol id="i-coracao-cheio" viewBox="0 0 24 24"><path d="M12 20.5s-8-4.7-8-10.6A4.6 4.6 0 0112 7.2a4.6 4.6 0 018 2.7c0 5.9-8 10.6-8 10.6z" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-perfil" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="4"/><path d="M4.5 20.5c1.2-3.6 4.1-5.5 7.5-5.5s6.3 1.9 7.5 5.5"/></symbol>
 <symbol id="i-envelope" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="M4 7l8 6 8-6"/></symbol>`;
 if (!document.getElementById("hfSprite")) {
   const d = document.createElement("div");
@@ -534,6 +537,37 @@ export async function compartilharPerfil(uid, nome, nick) {
   } catch (e) { if (e?.name !== "AbortError") toast("Não foi possível compartilhar."); }
 }
 
+// Link de uma publicação: abre o perfil do autor já com ela aberta.
+export async function compartilharPublicacao(post, nick) {
+  const n = nick || nickDe.get(post.autorId) || (await obterPerfil(post.autorId).catch(() => ({}))).nickname;
+  const base = location.origin + location.pathname.replace(/[^/]*$/, "");
+  const url = `${base}${linkPerfil(post.autorId, n)}&post=${encodeURIComponent(post.id)}`.replace("usuarios.html&", "usuarios.html?");
+  try {
+    if (navigator.share) { await navigator.share({ title: `Publicação de ${post.nome || "alguém"} no Help Floripa`, url }); return; }
+    await navigator.clipboard.writeText(url);
+    toast("Link da publicação copiado");
+  } catch (e) { if (e?.name !== "AbortError") toast("Não foi possível compartilhar."); }
+}
+
+// Foto ou vídeo em tela cheia (toque para fechar).
+export function abrirMidia(url, tipo = "image") {
+  const u = urlSegura(url);
+  if (!u) return;
+  const f = el("div", "midia-cheia"); f.setAttribute("role", "dialog"); f.setAttribute("aria-label", "Mídia em tela cheia");
+  const x = el("button", "icone-btn"); x.type = "button"; x.setAttribute("aria-label", "Fechar"); x.appendChild(icone("fechar", "i"));
+  let m;
+  if (tipo === "video") { m = document.createElement("video"); m.controls = true; m.autoplay = true; m.playsInline = true; }
+  else { m = document.createElement("img"); m.alt = ""; }
+  m.src = u;
+  f.append(m, x);
+  const fechar = () => { f.remove(); document.removeEventListener("keydown", tecla, true); };
+  const tecla = (e) => { if (e.key === "Escape") { e.stopPropagation(); fechar(); } };
+  f.addEventListener("click", (e) => { if (e.target !== m || tipo !== "video") fechar(); });
+  document.addEventListener("keydown", tecla, true);
+  document.body.appendChild(f);
+  x.focus();
+}
+
 // =====================================================
 // Estrelas e comentários das publicações
 // curtidas/{postId}_{uid}        { postId, uid, postAutorId, nota (1 a 5), criadoEm, atualizadoEm? }
@@ -583,50 +617,71 @@ export async function contarComentarios(postId, { recarregar = false } = {}) {
   return n;
 }
 
-// Cinco estrelas clicáveis: toque na 3ª = 3 estrelas; toque de novo na mesma = tira.
+// Estrelas da publicação numa pílula: mostra a média; um toque abre as 5 estrelas para dar a sua nota.
+// Na própria publicação só mostra a média.
 export function seletorEstrelas(post, { aoMudar } = {}) {
   const box = el("div", "estrelas-post");
   const proprio = post.autorId === eu.uid;
-  const linha = el("div", "estrelas-linha"); linha.setAttribute("role", proprio ? "img" : "group");
-  linha.setAttribute("aria-label", proprio ? "Estrelas da sua publicação" : "Dar estrelas");
+  const pilula = el("button", "est-pilula"); pilula.type = "button";
+  const ic = el("span", "est-ic", "★");
+  const txt = el("span", "est-tx", "");
+  pilula.append(ic, txt);
+  const pop = el("div", "est-pop"); pop.hidden = true;
+  pop.setAttribute("role", "group"); pop.setAttribute("aria-label", "Sua nota para esta publicação");
   const bots = [1, 2, 3, 4, 5].map((n) => {
     const b = el("button", "estrela", "★"); b.type = "button";
     b.setAttribute("aria-label", `${n} ${n === 1 ? "estrela" : "estrelas"}`);
-    if (proprio) { b.disabled = true; b.tabIndex = -1; }
-    linha.appendChild(b);
+    pop.appendChild(b);
     return b;
   });
-  const txt = el("span", "estrelas-txt", "");
-  box.append(linha, txt);
+  const tirar = el("button", "est-tirar", "Tirar"); tirar.type = "button";
+  pop.appendChild(tirar);
+  box.append(pilula, pop);
   let info = { media: 0, n: 0, minha: 0 };
+  const virgula = (v) => v.toFixed(1).replace(".", ",");
   const pintar = (i, previa = 0) => {
     info = i;
-    const alvo = previa || (proprio ? Math.round(i.media) : i.minha);
-    bots.forEach((b, k) => {
-      b.classList.toggle("on", k < alvo);
-      b.classList.toggle("minha", !proprio && !previa && k < i.minha);
-      b.setAttribute("aria-pressed", !proprio && i.minha === k + 1 ? "true" : "false");
-    });
-    const media = i.n ? `${i.media.toFixed(1).replace(".", ",")} · ${i.n} ${i.n === 1 ? "nota" : "notas"}` : "Sem notas";
-    txt.textContent = !proprio && i.minha ? `Sua nota: ${i.minha} · ${media}` : media;
+    const alvo = previa || i.minha;
+    bots.forEach((b, k) => { b.classList.toggle("on", k < alvo); b.setAttribute("aria-pressed", i.minha === k + 1 ? "true" : "false"); });
+    tirar.hidden = !i.minha;
+    pilula.classList.toggle("tem", !!i.n);
+    pilula.classList.toggle("minha", !!i.minha);
+    const media = i.n ? `${virgula(i.media)} · ${i.n}` : "";
+    if (proprio) txt.textContent = i.n ? `${virgula(i.media)} · ${i.n} ${i.n === 1 ? "nota" : "notas"}` : "Sem notas";
+    else if (i.minha) txt.textContent = `Você deu ${i.minha}` + (i.n > 1 ? ` · ${virgula(i.media)}` : "");
+    else txt.textContent = media ? `${media} · Avaliar` : "Avaliar";
+    pilula.setAttribute("aria-label", proprio ? `Estrelas da sua publicação: ${txt.textContent}` : `Dar estrelas: ${txt.textContent}`);
   };
   infoEstrelas(post.id).then((i) => pintar(i));
-  if (!proprio) {
+  const fecharPop = () => { pop.hidden = true; pilula.setAttribute("aria-expanded", "false"); document.removeEventListener("pointerdown", fora, true); };
+  const fora = (e) => { if (!box.contains(e.target)) fecharPop(); };
+  if (proprio) { pilula.disabled = true; pilula.classList.add("propria"); }
+  else {
+    pilula.setAttribute("aria-expanded", "false");
+    pilula.addEventListener("click", () => {
+      if (!pop.hidden) { fecharPop(); return; }
+      pop.hidden = false; pilula.setAttribute("aria-expanded", "true");
+      document.addEventListener("pointerdown", fora, true);
+      bots[Math.max(0, info.minha - 1)].focus({ preventScroll: true });
+    });
+    pop.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.stopPropagation(); fecharPop(); pilula.focus(); } });
+    const salvar = async (nova) => {
+      pop.classList.add("salvando");
+      try {
+        pintar(await darEstrelas(post, nova));
+        toast(nova ? `Você deu ${nova} ${nova === 1 ? "estrela" : "estrelas"}` : "Nota removida");
+        aoMudar?.(info);
+        fecharPop();
+      } catch (e) { toast("Não foi possível salvar: " + erroAmigavel(e)); pintar(info); }
+      finally { pop.classList.remove("salvando"); }
+    };
     bots.forEach((b, k) => {
       // Prévia só com mouse: no toque o "hover" fica preso e confundiria a nota.
       b.addEventListener("pointerenter", (e) => { if (e.pointerType === "mouse") pintar(info, k + 1); });
       b.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") pintar(info); });
-      b.addEventListener("click", async () => {
-        const nova = info.minha === k + 1 ? 0 : k + 1;
-        linha.classList.add("salvando");
-        try {
-          pintar(await darEstrelas(post, nova));
-          toast(nova ? `Você deu ${nova} ${nova === 1 ? "estrela" : "estrelas"}` : "Nota removida");
-          aoMudar?.(info);
-        } catch (e) { toast("Não foi possível salvar: " + erroAmigavel(e)); pintar(info); }
-        finally { linha.classList.remove("salvando"); }
-      });
+      b.addEventListener("click", () => salvar(info.minha === k + 1 ? 0 : k + 1));
     });
+    tirar.addEventListener("click", () => salvar(0));
   }
   box.recarregar = () => infoEstrelas(post.id, { recarregar: true }).then((i) => pintar(i));
   return box;
@@ -646,7 +701,7 @@ export function barraInteracao(post, { aoComentar } = {}) {
   const pintarN = (n) => { nM.textContent = n ? numero(n) : ""; };
   contarComentarios(post.id).then(pintarN);
   bM.addEventListener("click", () => (aoComentar ? aoComentar() : abrirComentarios(post, { aoMudar: pintarN })));
-  bS.addEventListener("click", () => compartilharPerfil(post.autorId, post.nome));
+  bS.addEventListener("click", () => compartilharPublicacao(post));
   barra.atualizarComentarios = pintarN;
   return barra;
 }
