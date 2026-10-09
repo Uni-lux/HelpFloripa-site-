@@ -149,6 +149,14 @@
     .search input:focus { border-color: var(--accent); background: var(--input); }
     .search input::placeholder { color: var(--muted); }
 
+    /* Pessoal | Negócios */
+    .modos { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin: 2px 12px 10px; padding: 4px; border-radius: 14px; background: var(--panel-2); }
+    .modos button { position: relative; display: flex; align-items: center; justify-content: center; gap: 7px; height: 38px; border: 0; border-radius: 10px; background: none; color: var(--muted); font-size: 14px; font-weight: 700; cursor: pointer; }
+    .modos button svg { width: 17px; height: 17px; }
+    .modos button[aria-selected="true"] { background: var(--panel); color: var(--text); box-shadow: 0 1px 6px rgba(0, 0, 0, .18); }
+    .modos button[data-modo="negocios"][aria-selected="true"] { color: var(--accent); }
+    .modos .modo-n { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #ff3b5c; color: #fff; font-size: 10.5px; font-weight: 800; display: grid; place-items: center; line-height: 1; }
+    .modos .modo-n[hidden] { display: none; }
     .pills { display: flex; gap: 8px; padding: 0 12px 10px; overflow-x: auto; scrollbar-width: none; }
     .pills::-webkit-scrollbar { display: none; }
     .pill { flex: 0 0 auto; border: 0; border-radius: 999px; padding: 6px 14px; background: var(--panel-2); color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; }
@@ -454,6 +462,7 @@
     <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></symbol>
     <symbol id="i-voltar" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
     <symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 01-1.5 1.5H15v-6h-6v6H5.5A1.5 1.5 0 014 19z"/></symbol>
+    <symbol id="i-maleta" viewBox="0 0 24 24"><rect x="3.5" y="7" width="17" height="12.5" rx="2"/><path d="M9 7V5.5A1.5 1.5 0 0110.5 4h3A1.5 1.5 0 0115 5.5V7M3.5 12.5h17"/></symbol>
     <symbol id="i-lupa" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></symbol>
     <symbol id="i-nova" viewBox="0 0 24 24"><path d="M12 20.5c4.7 0 8.5-3.6 8.5-8s-3.8-8-8.5-8-8.5 3.6-8.5 8c0 1.6.5 3.1 1.4 4.3L4 20l3.6-1c1.3.9 2.8 1.5 4.4 1.5z"/><path d="M12 9v7M8.5 12.5h7"/></symbol>
     <symbol id="i-config" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></symbol>
@@ -492,6 +501,10 @@
         <h1><span>Help Floripa</span>Mensagens</h1>
         <button type="button" class="icon-btn" id="btnNovaConversa" aria-label="Nova conversa" title="Nova conversa"><svg class="i"><use href="#i-nova"/></svg></button>
         <button type="button" class="icon-btn" id="btnConfig" aria-label="Configurações" title="Configurações"><svg class="i"><use href="#i-config"/></svg></button>
+      </div>
+      <div class="modos" role="tablist" aria-label="Tipo de conversa">
+        <button type="button" role="tab" data-modo="pessoal" aria-selected="true"><svg class="i"><use href="#i-perfil"/></svg>Pessoal<b class="modo-n" hidden></b></button>
+        <button type="button" role="tab" data-modo="negocios" aria-selected="false"><svg class="i"><use href="#i-maleta"/></svg>Negócios<b class="modo-n" hidden></b></button>
       </div>
       <div class="search">
         <svg class="i s"><use href="#i-lupa"/></svg>
@@ -1167,6 +1180,18 @@
     const perfis = new Map();
     let conversas = [];
     let filtro = "todas";
+    // Pessoal ou Negócios (conversas ligadas a um perfil de negócio). Lembra a última escolha.
+    let modo = "pessoal";
+    try { if (localStorage.getItem("hf-chat-modo") === "negocios") modo = "negocios"; } catch {}
+    const modoDe = (c) => (assuntoDe(c.dados) === "pessoal" ? "pessoal" : "negocios");
+    function trocarModo(novo) {
+      if (novo === modo) return;
+      modo = novo;
+      try { localStorage.setItem("hf-chat-modo", modo); } catch {}
+      if (filtro.startsWith("assunto:")) filtro = "todas";
+      document.querySelectorAll(".pill[data-filtro]").forEach((x) => { const sel = x.dataset.filtro === filtro; x.classList.toggle("on", sel); x.setAttribute("aria-selected", sel ? "true" : "false"); });
+      renderizarLista();
+    }
     const ultimaAtualizacaoVista = new Map();
     const contagens = new Map();
 
@@ -1213,8 +1238,9 @@
     // Filtros por assunto (Pessoais, Serviços, Delivery...), só dos que existem nas suas conversas.
     function pintarPillsAssunto() {
       const box = $("pillsAssunto");
-      const presentes = Object.keys(ASSUNTOS).filter((k) => conversas.some((c) => assuntoDe(c.dados) === k && !restritos.has(c.outroId)));
-      const mostrar = presentes.length > 1 || presentes.some((k) => k !== "pessoal") ? presentes : [];
+      // Só na aba Negócios: as categorias que existem nas suas conversas de negócio.
+      const presentes = Object.keys(ASSUNTOS).filter((k) => k !== "pessoal" && conversas.some((c) => assuntoDe(c.dados) === k && !restritos.has(c.outroId)));
+      const mostrar = modo === "negocios" && filtro !== "restritas" && filtro !== "arquivadas" ? presentes : [];
       const chave = mostrar.join(",") + "|" + filtro;
       if (box.dataset.chave === chave) return;
       box.dataset.chave = chave;
@@ -1305,6 +1331,18 @@
       } catch (e) { console.error(e); toast("Não foi possível apagar agora."); }
     }
 
+    function pintarModos() {
+      const visiveis = conversas.filter((c) => !conversaOculta(c) && !conversaArquivada(c) && !restritos.has(c.outroId));
+      document.querySelectorAll(".modos [data-modo]").forEach((b) => {
+        b.setAttribute("aria-selected", b.dataset.modo === modo ? "true" : "false");
+        const n = visiveis.filter((c) => c.naoLida && modoDe(c) === b.dataset.modo).length;
+        const bd = b.querySelector(".modo-n");
+        bd.hidden = !n || b.dataset.modo === modo;
+        bd.textContent = n > 99 ? "99+" : String(n);
+      });
+    }
+    document.querySelectorAll(".modos [data-modo]").forEach((b) => b.addEventListener("click", () => trocarModo(b.dataset.modo)));
+
     function renderizarLista() {
       const lista = $("listaConversas");
       const termo = $("buscaConversas").value.trim().toLowerCase();
@@ -1315,6 +1353,9 @@
       itens = filtro === "restritas" ? itens.filter((c) => restritos.has(c.outroId)) : itens.filter((c) => !restritos.has(c.outroId));
       if (filtro === "naoLidas") itens = itens.filter((c) => c.naoLida);
       if (filtro.startsWith("assunto:")) itens = itens.filter((c) => assuntoDe(c.dados) === filtro.slice(8));
+      // Restritas e arquivadas mostram tudo; o resto fica na aba escolhida.
+      if (filtro !== "restritas" && filtro !== "arquivadas") itens = itens.filter((c) => modoDe(c) === modo);
+      pintarModos();
       $("pillRestritas").hidden = !conversas.some((c) => restritos.has(c.outroId)) && filtro !== "restritas";
       $("pillArquivadas").hidden = !conversas.some((c) => conversaArquivada(c) && !conversaOculta(c)) && filtro !== "arquivadas";
       pintarPillsAssunto();
@@ -1335,7 +1376,10 @@
           vazio.append(titulo, "Segure uma conversa na lista e toque em Arquivar.");
         } else if (filtro === "naoLidas") {
           titulo.textContent = "Tudo em dia";
-          vazio.append(titulo, "Você não tem mensagens não lidas.");
+          vazio.append(titulo, modo === "negocios" ? "Nenhuma mensagem de negócio sem ler." : "Nenhuma mensagem pessoal sem ler.");
+        } else if (modo === "negocios") {
+          titulo.textContent = "Nenhuma conversa de negócio";
+          vazio.append(titulo, "Quando alguém falar com você por um perfil de negócio (Freelances, Delivery, Lojinha ou Imóveis), ou você falar com um, a conversa aparece aqui com a categoria.");
         } else {
           titulo.textContent = "Nenhuma conversa ainda";
           const btn = document.createElement("button");
@@ -1525,6 +1569,8 @@
       }
 
       ativa = { id, outroId: c.outroId, nome: c.nome, foto: c.foto, dados: c.dados };
+      // A lista acompanha a conversa aberta (ex.: link de uma conversa de negócio).
+      if (!restritos.has(c.outroId) && !conversaArquivada(c)) trocarModo(modoDe(c));
       mensagens = [];
       limiteMsgs = MSGS_INICIAIS; temMaisMsgs = false; voltarAoPonto = null;
       perfilOutroAtual = {}; // não herda o status da conversa anterior
