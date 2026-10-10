@@ -1234,7 +1234,20 @@
       const status = document.createElement("div"); status.className = "aval-status"; status.textContent = "Carregando...";
       const acoes = document.createElement("div"); acoes.className = "aval-acoes";
       box.append(tp, ti, sub, status, acoes);
-      const botao = (texto, cls, fn) => { const b = document.createElement("button"); b.type = "button"; b.className = cls; b.textContent = texto; b.addEventListener("click", (e) => { e.stopPropagation(); fn(); }); return b; };
+      // Botão com retorno: mostra "Abrindo..." enquanto confere se pode avaliar e avisa se algo falhar.
+      const botao = (texto, cls, fn) => {
+        const b = document.createElement("button"); b.type = "button"; b.className = cls; b.textContent = texto;
+        b.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          if (b.disabled) return;
+          b.disabled = true; b.textContent = "Abrindo...";
+          const demora = setTimeout(() => toast("Está demorando... confira sua internet e tente de novo."), 10000);
+          try { await fn(); }
+          catch (erro) { console.error(erro); toast("Não foi possível abrir agora. Tente de novo."); }
+          finally { clearTimeout(demora); b.disabled = false; b.textContent = texto; }
+        });
+        return b;
+      };
       const autor = () => ({ nome: meuPerfil.nome || eu.displayName || "", foto: meuPerfil.fotoPerfil || "" });
       // Uma nota por cliente em cada negócio (n_ / c_). O pedido só marca "Atendimento confirmado".
       const clienteId = souVendedor ? ativa?.outroId : eu.uid;
