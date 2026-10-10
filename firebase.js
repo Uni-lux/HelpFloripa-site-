@@ -36,7 +36,11 @@ const auth = getAuth(app);
 // Cache no aparelho (IndexedDB): ao trocar de página, o Firebase retoma as consultas e cobra só o
 // que mudou (até 30 min), em vez de ler tudo de novo. Vale para várias abas abertas ao mesmo tempo.
 let db;
-try { db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) }); }
+// Dentro da gaveta de mensagens (a página de mensagens aberta por cima de outra página do site),
+// o cache fica só na memória: a página de fora já usa o cache do aparelho, e dois "donos" do mesmo
+// cache na mesma aba podiam deixar consultas presas (ex.: o "Avaliar agora" não abria).
+const embutidaNoSite = window.top !== window.self;
+try { db = embutidaNoSite ? getFirestore(app) : initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) }); }
 catch (e) { console.warn("[Firebase] Cache local indisponível, seguindo sem ele:", e?.message); db = getFirestore(app); }
 
 window.firebaseApp = app;
