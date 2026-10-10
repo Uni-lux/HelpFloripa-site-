@@ -239,14 +239,35 @@ service cloud.firestore {
         return ['uid', 'nome', 'nickname', 'cidade', 'bio', 'fotoPerfil', 'fotoCapa',
                 'socialVisibilidade', 'duoCapa', 'ultimoAcesso', 'criadoEm', 'atualizadoEm',
                 'busca',   // palavras do nome e do @ (minúsculas, sem acento) para a busca de pessoas
-                'desativadaAte'];  // conta desativada até esta data (ou exclusão pedida)
+                'desativadaAte',   // conta desativada até esta data (ou exclusão pedida)
+                'atendimento'];    // negócios: horário, modo ausente e tempo médio de resposta
       }
 
       function opcoesOk() {
         let d = request.resource.data;
         return (!('socialVisibilidade' in d) || d.socialVisibilidade in ['todos', 'seguidores', 'amigos', 'ocultar'])
             && (!('duoCapa' in d) || d.duoCapa in ['clicavel', 'foto', 'ocultar'])
-            && (!('nickname' in d) || valorTextoAte(d.nickname, 20));
+            && (!('nickname' in d) || valorTextoAte(d.nickname, 20))
+            && atendimentoOk();
+      }
+
+      // Atendimento (negócios): horário, aviso de ausência e tempo médio de resposta.
+      function atendimentoOk() {
+        let a = request.resource.data.get('atendimento', null);
+        return a == null
+            || (a is map
+                && a.keys().hasOnly(['horario', 'ausente', 'mensagem', 'resposta'])
+                && (!('ausente' in a) || a.ausente is bool)
+                && (!('mensagem' in a) || (a.mensagem is string && a.mensagem.size() <= 200))
+                && (!('horario' in a) || a.horario == null
+                    || (a.horario is map && a.horario.keys().hasOnly(['dias', 'inicio', 'fim'])
+                        && a.horario.dias is list && a.horario.dias.size() <= 7
+                        && a.horario.inicio is string && a.horario.inicio.size() == 5
+                        && a.horario.fim is string && a.horario.fim.size() == 5))
+                && (!('resposta' in a)
+                    || (a.resposta is map && a.resposta.keys().hasOnly(['media', 'n'])
+                        && a.resposta.media is number && a.resposta.media >= 0 && a.resposta.media <= 1440
+                        && a.resposta.n is int && a.resposta.n >= 0 && a.resposta.n <= 1000)));
       }
 
       // Foto nova precisa vir do próprio site (fotos antigas não travam a edição).
@@ -537,6 +558,24 @@ service cloud.firestore {
     // CONVERSAS
     // Documento: conversas/{uidMenor}_{uidMaior}
     // =====================================================
+    // =====================================================
+    // NOTAS DO NEGÓCIO SOBRE O CLIENTE: notas_clientes/{donoId}_{clienteId}
+    // Etiquetas e anotação particular. Só quem escreveu lê; o cliente não vê.
+    // =====================================================
+    match /notas_clientes/{id} {
+      allow get: if logado() && id.split('_')[0] == request.auth.uid;
+      allow list: if logado() && resource.data.donoId == request.auth.uid;
+      allow create, update: if logado()
+                    && request.resource.data.keys().hasOnly(['donoId', 'clienteId', 'etiquetas', 'nota', 'atualizadoEm'])
+                    && request.resource.data.donoId == request.auth.uid
+                    && request.resource.data.clienteId is string
+                    && id == request.auth.uid + '_' + request.resource.data.clienteId
+                    && request.resource.data.etiquetas is list && request.resource.data.etiquetas.size() <= 8
+                    && valorTextoAte(request.resource.data.get('nota', ''), 1000)
+                    && request.resource.data.atualizadoEm == request.time;
+      allow delete: if logado() && resource.data.donoId == request.auth.uid;
+    }
+
     match /conversas/{conversaId} {
 
       // Cada pessoa só mexe na própria marca de leitura / "digitando".
@@ -584,7 +623,7 @@ service cloud.firestore {
                     && request.auth.uid in resource.data.participantes
                     && request.resource.data.participantes == resource.data.participantes
                     && !bloqueioEntre(resource.data.participantes[0], resource.data.participantes[1])
-                    && mudou().hasOnly(['ultimaMensagem', 'ultimaMensagemRemetenteId', 'atualizadoEm', 'lidoEm', 'vistoEm', 'digitando', 'contexto', 'arquivadaPara', 'ocultaPara', 'falaram', 'fixadaPara', 'silenciadaPara'])
+                    && mudou().hasOnly(['ultimaMensagem', 'ultimaMensagemRemetenteId', 'atualizadoEm', 'lidoEm', 'vistoEm', 'digitando', 'contexto', 'arquivadaPara', 'ocultaPara', 'falaram', 'fixadaPara', 'silenciadaPara', 'mensagemFixada'])
                     // o resumo da última mensagem só pode ser escrito por quem mandou
                     && (!mudou().hasAny(['ultimaMensagem', 'ultimaMensagemRemetenteId'])
                         || request.resource.data.get('ultimaMensagemRemetenteId', '') == request.auth.uid)
@@ -601,6 +640,14 @@ service cloud.firestore {
                     && soMinhaChave('falaram')
                     && (!mudou().hasAny(['falaram']) || request.resource.data.falaram[request.auth.uid] == true)
                     && (!mudou().hasAny(['contexto']) || contextoOk())
+                    // mensagem fixada no topo da conversa (qualquer um dos dois fixa ou tira)
+                    && (!mudou().hasAny(['mensagemFixada'])
+                        || request.resource.data.mensagemFixada == null
+                        || (request.resource.data.mensagemFixada is map
+                            && request.resource.data.mensagemFixada.keys().hasOnly(['id', 'texto', 'por', 'em'])
+                            && request.resource.data.mensagemFixada.id is string
+                            && request.resource.data.mensagemFixada.por == request.auth.uid
+                            && valorTextoAte(request.resource.data.mensagemFixada.get('texto', ''), 200)))
                     && textoAte('ultimaMensagem', 200);
 
       allow delete: if logado()

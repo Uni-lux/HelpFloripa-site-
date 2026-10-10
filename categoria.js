@@ -9,6 +9,7 @@ import { fotoSegura } from "./seguranca.js?v=1";
 import { definirPerfilMenu, definirBadgeMensagens } from "./menu.js?v=4";
 import { buscarReclamacoes } from "./avisos-reclamacoes.js?v=15";
 import "./painel-avisos.js?v=12"; // o sino abre o painel de notificações na própria página
+import "./chat-gaveta.js?v=1"; // "Mensagens" abre as conversas por cima da página, sem sair dela
 
 const $ = (id) => document.getElementById(id);
 

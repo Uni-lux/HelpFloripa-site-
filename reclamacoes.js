@@ -13,7 +13,7 @@
 import { fotoSegura, conferirEmail, emailPendente, MSG_EMAIL } from "./seguranca.js?v=1";
 import { estrelas } from "./avaliacoes.js?v=10";
 import { abrirQueixa, responderQueixa, resolverQueixa, semResposta, MOTIVOS, PRAZO_DIAS } from "./queixas.js?v=6";
-import { NOMES_TIPO, PAGINA_TIPO } from "./vitrine.js?v=28";
+import { NOMES_TIPO, PAGINA_TIPO } from "./vitrine.js?v=29";
 
 const $ = (id) => document.getElementById(id);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
