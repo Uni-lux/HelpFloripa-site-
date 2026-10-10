@@ -162,7 +162,9 @@ export async function prepararConversa(fbx, euX, uid, cartao) {
     if (!existe) await fbx.setDoc(ref, { participantes: ids, ultimaMensagem: "", atualizadoEm: fbx.serverTimestamp(), ...(contexto ? { contexto } : {}) }, { merge: true });
     else if (contexto) await fbx.setDoc(ref, { contexto }, { merge: true });
     if (cartao) { try { sessionStorage.setItem("hf-cartao-pendente", JSON.stringify({ conversaId: id, cartao })); } catch {} }
-    location.href = `mensagens.html?conversa=${encodeURIComponent(id)}`;
+    const url = `mensagens.html?conversa=${encodeURIComponent(id)}`;
+    // Nas páginas do site a conversa abre na gaveta de mensagens (sem sair da página).
+    if (window.hfAbrirChat) window.hfAbrirChat(url); else location.href = url;
   } catch { toast("Não foi possível abrir a conversa."); }
 }
 
