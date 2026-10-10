@@ -149,6 +149,36 @@
     .search input:focus { border-color: var(--accent); background: var(--input); }
     .search input::placeholder { color: var(--muted); }
 
+    /* seleção de várias conversas */
+    .barra-selecao { display: flex; align-items: center; gap: 4px; margin: 0 8px 8px; padding: 4px 6px; border-radius: 14px; background: color-mix(in srgb, var(--accent) 14%, var(--panel)); }
+    .barra-selecao[hidden] { display: none; }
+    .barra-selecao strong { flex: 1; font-size: 15px; }
+    .barra-selecao .icon-btn { color: var(--text); }
+    .barra-selecao .icon-btn.perigo { color: var(--danger); }
+    .barra-selecao .icon-btn:disabled { opacity: .35; cursor: default; }
+    .sel-todas { border: 0; background: none; color: var(--accent); font-weight: 700; font-size: 13.5px; cursor: pointer; padding: 8px; }
+    body.selecionando .side-top, body.selecionando .modos { display: none; }
+    .conv-item .sel-marca { display: none; flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--muted); place-items: center; color: #fff; }
+    body.selecionando .conv-item .sel-marca { display: grid; }
+    .conv-item.marcada { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+    .conv-item.marcada .sel-marca { background: var(--accent); border-color: var(--accent); }
+    .conv-item .sel-marca svg { width: 14px; height: 14px; stroke-width: 3; opacity: 0; }
+    .conv-item.marcada .sel-marca svg { opacity: 1; }
+    /* barra da rede no pé da lista */
+    .barra-rede { flex-shrink: 0; display: grid; grid-template-columns: repeat(3, 1fr); margin: 6px 10px calc(10px + env(safe-area-inset-bottom)); padding: 6px; border-radius: 22px;
+      background: var(--panel-2); border: 1px solid var(--line); }
+    .barra-rede a { position: relative; display: grid; justify-items: center; gap: 2px; padding: 6px 2px; border-radius: 16px; color: var(--muted); text-decoration: none; font-size: 10.5px; font-weight: 700; }
+    .barra-rede a:hover { color: var(--text); background: var(--hover); }
+    .barra-rede [aria-current="page"] { color: var(--accent); }
+    .barra-rede .mini-av { width: 24px; height: 24px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; font-size: 9px; font-weight: 800; color: #fff; background: linear-gradient(135deg, #0a4a63, #00adee); }
+    .barra-rede .mini-av img { width: 100%; height: 100%; object-fit: cover; }
+    body.selecionando .barra-rede { display: none; }
+    /* foto nas configurações */
+    .cfg-foto { position: relative; border: 0; background: none; padding: 0; cursor: pointer; border-radius: 50%; flex-shrink: 0; }
+    .cfg-foto .cam { position: absolute; right: -2px; bottom: -2px; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: #001a24; border: 3px solid var(--panel); }
+    .cfg-perfil .tx { min-width: 0; }
+    .cfg-perfil-acoes { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .cfg-perfil-acoes .btn-sec { text-decoration: none; padding: 6px 10px; font-size: 12.5px; }
     /* Pessoal | Negócios */
     .modos { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin: 2px 12px 10px; padding: 4px; border-radius: 14px; background: var(--panel-2); }
     .modos button { position: relative; display: flex; align-items: center; justify-content: center; gap: 7px; height: 38px; border: 0; border-radius: 10px; background: none; color: var(--muted); font-size: 14px; font-weight: 700; cursor: pointer; }
@@ -462,6 +492,11 @@
     <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></symbol>
     <symbol id="i-voltar" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
     <symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 01-1.5 1.5H15v-6h-6v6H5.5A1.5 1.5 0 014 19z"/></symbol>
+    <symbol id="i-etiqueta" viewBox="0 0 24 24"><path d="M3.5 12.3V5a1.5 1.5 0 011.5-1.5h7.3l8.2 8.2a1.5 1.5 0 010 2.1l-7 7a1.5 1.5 0 01-2.1 0z"/><circle cx="8" cy="8" r="1.6"/></symbol>
+    <symbol id="i-suporte" viewBox="0 0 24 24"><path d="M4.5 13v-1.5a7.5 7.5 0 0115 0V13"/><rect x="3.5" y="13" width="4" height="6" rx="1.5"/><rect x="16.5" y="13" width="4" height="6" rx="1.5"/><path d="M18.5 19c0 1.4-1.6 2-4 2h-1.5"/></symbol>
+    <symbol id="i-selecionar" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><path d="M5.3 7l1.3 1.3L9 5.8"/><path d="M14 6h6.5M14 17h6.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/></symbol>
+    <symbol id="i-feed" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="7" rx="2"/><rect x="4" y="13" width="16" height="7" rx="2"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M20.5 11.6c0 4.3-3.8 7.6-8.5 7.6-1.2 0-2.3-.2-3.3-.6L4 20l1.2-3.6c-1.1-1.3-1.7-3-1.7-4.8C3.5 7.4 7.3 4 12 4s8.5 3.4 8.5 7.6z"/></symbol>
     <symbol id="i-maleta" viewBox="0 0 24 24"><rect x="3.5" y="7" width="17" height="12.5" rx="2"/><path d="M9 7V5.5A1.5 1.5 0 0110.5 4h3A1.5 1.5 0 0115 5.5V7M3.5 12.5h17"/></symbol>
     <symbol id="i-lupa" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></symbol>
     <symbol id="i-nova" viewBox="0 0 24 24"><path d="M12 20.5c4.7 0 8.5-3.6 8.5-8s-3.8-8-8.5-8-8.5 3.6-8.5 8c0 1.6.5 3.1 1.4 4.3L4 20l3.6-1c1.3.9 2.8 1.5 4.4 1.5z"/><path d="M12 9v7M8.5 12.5h7"/></symbol>
@@ -499,8 +534,18 @@
       <div class="side-top">
         <a href="index.html" class="icon-btn" aria-label="Início do Help Floripa" title="Início"><svg class="i"><use href="#i-casa"/></svg></a>
         <h1><span>Help Floripa</span>Mensagens</h1>
+        <button type="button" class="icon-btn" id="btnSelecionar" aria-label="Selecionar conversas" title="Selecionar conversas"><svg class="i"><use href="#i-selecionar"/></svg></button>
+        <a href="suporte.html" class="icon-btn" aria-label="Ajuda e suporte" title="Ajuda e suporte"><svg class="i"><use href="#i-suporte"/></svg></a>
         <button type="button" class="icon-btn" id="btnNovaConversa" aria-label="Nova conversa" title="Nova conversa"><svg class="i"><use href="#i-nova"/></svg></button>
         <button type="button" class="icon-btn" id="btnConfig" aria-label="Configurações" title="Configurações"><svg class="i"><use href="#i-config"/></svg></button>
+      </div>
+      <!-- Seleção de várias conversas (arquivar ou apagar de uma vez) -->
+      <div class="barra-selecao" id="barraSelecao" hidden>
+        <button type="button" class="icon-btn" id="selSair" aria-label="Cancelar seleção" title="Cancelar"><svg class="i"><use href="#i-fechar"/></svg></button>
+        <strong id="selConta">0 selecionadas</strong>
+        <button type="button" class="sel-todas" id="selTodas">Todas</button>
+        <button type="button" class="icon-btn" id="selArquivar" aria-label="Arquivar selecionadas" title="Arquivar"><svg class="i"><use href="#i-arquivo"/></svg></button>
+        <button type="button" class="icon-btn perigo" id="selApagar" aria-label="Apagar selecionadas" title="Apagar"><svg class="i"><use href="#i-lixo"/></svg></button>
       </div>
       <div class="modos" role="tablist" aria-label="Tipo de conversa">
         <button type="button" role="tab" data-modo="pessoal" aria-selected="true"><svg class="i"><use href="#i-perfil"/></svg>Pessoal<b class="modo-n" hidden></b></button>
@@ -518,6 +563,12 @@
         <button type="button" class="pill" data-filtro="arquivadas" role="tab" aria-selected="false" id="pillArquivadas" hidden>Arquivadas</button>
       </div>
       <div class="conv-list" id="listaConversas"></div>
+      <!-- Barra da rede (a mesma do Diário e do Perfil) -->
+      <nav class="barra-rede" id="barraRede" aria-label="Rede social">
+        <a href="feed.html"><svg class="i"><use href="#i-feed"/></svg><span>Diário</span></a>
+        <a href="mensagens.html" aria-current="page"><svg class="i"><use href="#i-chat"/></svg><span>Mensagens</span></a>
+        <a href="usuarios.html"><span class="mini-av" id="barraAvatar"></span><span>Perfil</span></a>
+      </nav>
 
       <!-- Nova conversa -->
       <section class="painel" id="painelNova" aria-label="Nova conversa">
@@ -613,8 +664,14 @@
     </div>
     <div class="painel-corpo">
       <div class="cfg-perfil">
-        <div class="avatar lg" id="cfgAvatar"></div>
-        <div><strong id="cfgNome">Você</strong><small id="cfgNick"></small></div>
+        <button type="button" class="cfg-foto" id="cfgTrocarFoto" aria-label="Trocar foto de perfil" title="Trocar foto de perfil">
+          <div class="avatar lg" id="cfgAvatar"></div>
+          <span class="cam"><svg class="i s"><use href="#i-camera"/></svg></span>
+        </button>
+        <div class="tx"><strong id="cfgNome">Você</strong><small id="cfgNick"></small>
+          <span class="cfg-perfil-acoes"><button type="button" class="btn-sec" id="cfgFotoBt">Trocar foto</button><a class="btn-sec" href="usuarios.html?acao=editar">Editar perfil</a></span>
+        </div>
+        <input type="file" id="cfgArquivoFoto" accept="image/*" hidden />
       </div>
 
       <div class="cfg-secao">
@@ -762,6 +819,7 @@
     import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO } from "./avaliacoes.js?v=10";
     import { buscarPessoas } from "./pessoas.js?v=2";
     import { comRitmo } from "./ritmo.js?v=1";
+    import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=5";
     // ======================================================
     // Configurações (salvas no aparelho)
     // ======================================================
@@ -1288,6 +1346,7 @@
       menu.replaceChildren();
       const arquivada = conversaArquivada(c);
       [
+        { rotulo: "Selecionar", icone: "selecionar", acao: () => entrarSelecao(c.id) },
         { rotulo: fixada(c) ? "Desafixar" : "Fixar no topo", icone: "seta-cima", acao: () => marcarConversa(c, "fixadaPara", !fixada(c)) },
         { rotulo: silenciada(c) ? "Reativar avisos" : "Silenciar avisos", icone: "relogio", acao: () => marcarConversa(c, "silenciadaPara", !silenciada(c)) },
         { rotulo: arquivada ? "Desarquivar" : "Arquivar", icone: "arquivo", acao: () => arquivarConversa(c, !arquivada) },
@@ -1331,6 +1390,73 @@
       } catch (e) { console.error(e); toast("Não foi possível apagar agora."); }
     }
 
+    // ---------- seleção de várias conversas ----------
+    let selecionando = false;
+    const selecionadas = new Set();
+    let visiveisNaLista = [];
+    function entrarSelecao(id) {
+      selecionando = true;
+      selecionadas.clear();
+      if (id) selecionadas.add(id);
+      document.body.classList.add("selecionando");
+      $("barraSelecao").hidden = false;
+      renderizarLista();
+    }
+    function sairSelecao() {
+      selecionando = false;
+      selecionadas.clear();
+      document.body.classList.remove("selecionando");
+      $("barraSelecao").hidden = true;
+      renderizarLista();
+    }
+    function alternarSelecao(id) {
+      if (selecionadas.has(id)) selecionadas.delete(id); else selecionadas.add(id);
+      renderizarLista();
+    }
+    function pintarSelecao() {
+      const n = selecionadas.size;
+      $("selConta").textContent = n ? `${n} ${n === 1 ? "selecionada" : "selecionadas"}` : "Toque nas conversas";
+      $("selArquivar").disabled = $("selApagar").disabled = !n;
+      const arq = filtro === "arquivadas";
+      $("selArquivar").setAttribute("aria-label", arq ? "Desarquivar selecionadas" : "Arquivar selecionadas");
+      $("selArquivar").title = arq ? "Desarquivar" : "Arquivar";
+      const todas = visiveisNaLista.length && visiveisNaLista.every((c) => selecionadas.has(c.id));
+      $("selTodas").textContent = todas ? "Nenhuma" : "Todas";
+    }
+    // Uma conversa com bloqueio não pode ser alterada (regras): faz as outras e avisa.
+    function avisarLote(resultados, acao) {
+      const ok = resultados.filter((x) => x.status === "fulfilled").length;
+      const falhou = resultados.length - ok;
+      resultados.filter((x) => x.status === "rejected").forEach((x) => console.warn("Conversa não alterada:", x.reason?.code || x.reason));
+      const plural = (n) => `${n} ${n === 1 ? "conversa" : "conversas"} ${acao}${n === 1 ? "" : "s"}`;
+      if (!falhou) toast(plural(ok));
+      else if (ok) toast(`${plural(ok)}. ${falhou} não ${falhou === 1 ? "pôde" : "puderam"} ser alterada${falhou === 1 ? "" : "s"} (conta bloqueada).`);
+      else toast("Não foi possível alterar: conversas com contas bloqueadas não podem ser mexidas.");
+      sairSelecao();
+    }
+    $("btnSelecionar").addEventListener("click", () => entrarSelecao());
+    $("selSair").addEventListener("click", sairSelecao);
+    $("selTodas").addEventListener("click", () => {
+      const todas = visiveisNaLista.every((c) => selecionadas.has(c.id));
+      visiveisNaLista.forEach((c) => (todas ? selecionadas.delete(c.id) : selecionadas.add(c.id)));
+      renderizarLista();
+    });
+    $("selArquivar").addEventListener("click", async () => {
+      const lista = conversas.filter((c) => selecionadas.has(c.id));
+      if (!lista.length) return;
+      const arquivar = filtro !== "arquivadas";
+      const r = await Promise.allSettled(lista.map((c) => fb.setDoc(refConversa(c.id), { arquivadaPara: { [eu.uid]: arquivar ? fb.serverTimestamp() : null } }, { merge: true })));
+      avisarLote(r, arquivar ? "arquivada" : "desarquivada");
+    });
+    $("selApagar").addEventListener("click", async () => {
+      const lista = conversas.filter((c) => selecionadas.has(c.id));
+      if (!lista.length) return;
+      if (!confirm(`Apagar ${lista.length} ${lista.length === 1 ? "conversa" : "conversas"}?\n\nElas somem da sua lista e as mensagens antigas ficam ocultas só para você. A outra pessoa continua vendo.`)) return;
+      const r = await Promise.allSettled(lista.map((c) => fb.setDoc(refConversa(c.id), { ocultaPara: { [eu.uid]: fb.serverTimestamp() }, arquivadaPara: { [eu.uid]: null } }, { merge: true })));
+      if (ativa && r.some((x, i) => x.status === "fulfilled" && lista[i].id === ativa.id)) fecharConversa();
+      avisarLote(r, "apagada");
+    });
+
     function pintarModos() {
       const visiveis = conversas.filter((c) => !conversaOculta(c) && !conversaArquivada(c) && !restritos.has(c.outroId));
       document.querySelectorAll(".modos [data-modo]").forEach((b) => {
@@ -1356,6 +1482,8 @@
       // Restritas e arquivadas mostram tudo; o resto fica na aba escolhida.
       if (filtro !== "restritas" && filtro !== "arquivadas") itens = itens.filter((c) => modoDe(c) === modo);
       pintarModos();
+      visiveisNaLista = itens;
+      if (selecionando) { [...selecionadas].forEach((id) => { if (!itens.some((c) => c.id === id)) selecionadas.delete(id); }); pintarSelecao(); }
       $("pillRestritas").hidden = !conversas.some((c) => restritos.has(c.outroId)) && filtro !== "restritas";
       $("pillArquivadas").hidden = !conversas.some((c) => conversaArquivada(c) && !conversaOculta(c)) && filtro !== "arquivadas";
       pintarPillsAssunto();
@@ -1400,11 +1528,13 @@
         const assunto = assuntoDe(c.dados);
         item.style.setProperty("--assunto", ASSUNTOS[assunto].cor);
         if (assunto !== "pessoal") item.classList.add("com-assunto");
+        if (selecionadas.has(c.id)) item.classList.add("marcada");
         item.addEventListener("click", (e) => {
           if (item.dataset.segurou) { delete item.dataset.segurou; e.preventDefault(); return; }
+          if (selecionando) { alternarSelecao(c.id); return; }
           abrirConversa(c.id);
         });
-        ligarToqueLongo(item, (x, y) => abrirMenuItemConversa(c, x, y));
+        ligarToqueLongo(item, (x, y) => { if (selecionando) alternarSelecao(c.id); else abrirMenuItemConversa(c, x, y); });
 
         const av = document.createElement("div");
         av.className = "avatar";
@@ -1463,7 +1593,10 @@
           l2.appendChild(b);
         }
         main.append(l1, l2);
-        item.append(av, main);
+        const marca = document.createElement("span");
+        marca.className = "sel-marca";
+        marca.appendChild(icone("check", "i"));
+        item.append(marca, av, main);
         lista.appendChild(item);
       });
     }
@@ -2144,7 +2277,7 @@
         [
           { rotulo: "Respostas rápidas", icone: "responder", acao: () => setTimeout(abrirRespostasRapidas, 0) },
           { rotulo: "Pedir avaliação", icone: "estrela", acao: () => setTimeout(escolherNegocioParaAvaliacao, 0) },
-          { rotulo: "Classificar conversa", icone: "config", acao: () => setTimeout(abrirMenuAssunto, 0) },
+          { rotulo: "Classificar conversa", icone: "etiqueta", acao: () => setTimeout(abrirMenuAssunto, 0) },
           { rotulo: ativa && conversaArquivada({ dados: ativa.dados }) ? "Desarquivar" : "Arquivar conversa", icone: "arquivo", acao: () => { const x = c(); if (x) arquivarConversa(x, !conversaArquivada(x)); } }
         ],
         [
@@ -2586,6 +2719,7 @@
     function abrirPainel(id) {
       fecharPaineis();
       $(id).classList.add("aberto");
+      const corpo = $(id).querySelector(".painel-corpo"); if (corpo) corpo.scrollTop = 0; // abre sempre do começo
       // Uma entrada no histórico: o "voltar" do celular fecha o painel em vez de sair da página.
       const estado = { ...(history.state || {}), painel: id };
       if (history.state?.painel) history.replaceState(estado, "", location.href);
@@ -2766,6 +2900,42 @@
     document.addEventListener("visibilitychange", marcarPresenca);
 
     // ======================================================
+    // Foto de perfil (pelas configurações): mesma moldura do perfil
+    // ======================================================
+    const OPCOES_FOTO = { titulo: "Foto de perfil", dica: "O círculo mostra exatamente como sua foto aparece. Deixe o rosto dentro da linha tracejada.", proporcao: 1, circulo: true, larguraSaida: 480, qualidade: 0.86, limiteBytes: 250000 };
+    async function trocarFotoPerfil(arquivo) {
+      try {
+        const dataUrl = await editarImagem(arquivo, OPCOES_FOTO);
+        if (!dataUrl) return;
+        toast("Salvando foto...");
+        let url = dataUrl;
+        if (storageFns && window.firebaseStorage) {
+          try {
+            const r = storageFns.ref(window.firebaseStorage, `fotosPerfil/${eu.uid}.jpg`);
+            await storageFns.uploadBytes(r, dataUrlParaBlob(dataUrl), { contentType: "image/jpeg" });
+            url = await storageFns.getDownloadURL(r);
+          } catch (e) { console.warn("Storage indisponível, salvando no documento:", e); }
+        }
+        await Promise.all([
+          fb.setDoc(fb.doc(fb.db, "usuarios", eu.uid), { fotoPerfil: url }, { merge: true }),
+          fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), { uid: eu.uid, fotoPerfil: url }, { merge: true })
+        ]);
+        meuPerfil.fotoPerfil = url;
+        perfis.delete(eu.uid);
+        const nome = meuPerfil.nome || eu.displayName || "Você";
+        pintarAvatar($("cfgAvatar"), url, nome);
+        pintarAvatar($("barraAvatar"), url, nome);
+        toast("Foto de perfil atualizada");
+      } catch (e) { console.error(e); toast("Não foi possível salvar a foto."); }
+    }
+    ["cfgTrocarFoto", "cfgFotoBt"].forEach((id) => $(id).addEventListener("click", () => $("cfgArquivoFoto").click()));
+    $("cfgArquivoFoto").addEventListener("change", () => {
+      const f = $("cfgArquivoFoto").files?.[0];
+      $("cfgArquivoFoto").value = "";
+      if (f) trocarFotoPerfil(f);
+    });
+
+    // ======================================================
     // Configurações: respostas rápidas, contas bloqueadas, atalhos e restaurar
     // ======================================================
     const CHAVE_RESPOSTAS = "hf-chat-respostas";
@@ -2911,6 +3081,7 @@
       if (!$("visualizador").hidden) return fecharVisualizador();
       if (!$("menuMsg").hidden) return fecharMenu();
       if (document.querySelector(".painel.aberto")) return voltarDoPainel();
+      if (selecionando) return sairSelecao();
       if (!$("buscaChat").hidden) return fecharBuscaChat();
       if (respondendo) return cancelarResposta();
     });
@@ -2961,6 +3132,7 @@
         pintarAvatar($("cfgAvatar"), meuPerfil.fotoPerfil || eu.photoURL, meuNome);
         $("cfgNome").textContent = meuNome;
         $("cfgNick").textContent = meuPerfil.nickname ? `@${meuPerfil.nickname}` : (eu.email || "");
+        pintarAvatar($("barraAvatar"), meuPerfil.fotoPerfil || eu.photoURL, meuNome);
 
         atualizarBotaoEnviar();
         marcarPresenca();
