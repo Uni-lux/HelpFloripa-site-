@@ -11,9 +11,10 @@ import {
   fb, eu, dados, meusSeguindo, escondido, ganchos, obterPerfil, iniciarRede, carregarMeusSeguindo, linhaPessoa,
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, montarBarraRede, pintarBarraRede, ouvirAvisos, lerOrdenado,
   editarPublicacao, bloquear, comMencoes
-} from "./rede.js?v=23";
+} from "./rede.js?v=25";
 import { abrirDenuncia } from "./denuncias.js?v=1";
-import { buscarPessoas, pessoasRecentes } from "./pessoas.js?v=2";
+import { buscarPessoas, pessoasRecentes } from "./pessoas.js?v=3";
+import { docsComValidade } from "./leituras.js?v=1";
 
 const POR_VEZ = 10;
 // Publicação de conta desativada (conta.js): escondida até ocultoAte.
@@ -45,18 +46,22 @@ async function buscarSeguindo() {
   for (let i = 0; i < autores.length; i += 30) lotes.push(autores.slice(i, i + 30));
   // As mais recentes de cada lote de autores (índice diario: autorId + criadoEm).
   const col = fb.collection(fb.db, "diario");
-  const res = await Promise.all(lotes.map((l) => lerOrdenado(
+  const res = await Promise.all(lotes.map((l, k) => docsComValidade(fb, `diario-seguindo-${eu.uid}-${k}`,
+    fb.query(col, fb.where("autorId", "in", l), fb.orderBy("criadoEm", "desc"), fb.limit(30)), DIARIO_VALIDADE).catch(() => lerOrdenado(
     fb.query(col, fb.where("autorId", "in", l), fb.orderBy("criadoEm", "desc"), fb.limit(30)),
     fb.query(col, fb.where("autorId", "in", l), fb.limit(30))
-  ).catch(() => ({ docs: [] }))));
+  )).catch(() => ({ docs: [] }))));
   return res.flatMap((s) => s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })));
 }
+// O começo do diário vale por 3 min no aparelho (o que você publica aparece na hora).
+const DIARIO_VALIDADE = 3 * 60000;
 // "Todos": 20 por vez; "Ver mais" busca as 20 seguintes só quando a pessoa chega ao fim.
 const LOTE_TODOS = 20;
 let cursorTodos = null, maisTodos = false;
 async function buscarTodos(continuar = false) {
   if (!continuar) cursorTodos = null;
-  const s = await fb.getDocs(fb.query(fb.collection(fb.db, "diario"), fb.orderBy("criadoEm", "desc"), ...(cursorTodos ? [fb.startAfter(cursorTodos)] : []), fb.limit(LOTE_TODOS)));
+  const q = fb.query(fb.collection(fb.db, "diario"), fb.orderBy("criadoEm", "desc"), ...(cursorTodos ? [fb.startAfter(cursorTodos)] : []), fb.limit(LOTE_TODOS));
+  const s = cursorTodos ? await fb.getDocs(q) : await docsComValidade(fb, "diario-todos", q, DIARIO_VALIDADE);
   cursorTodos = s.docs.at(-1) || cursorTodos; maisTodos = s.size === LOTE_TODOS;
   return s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) }));
 }
@@ -195,6 +200,8 @@ async function pintarLateral() {
   $("euNome").textContent = dados.nome || "Você";
   $("euNick").textContent = dados.nickname ? "@" + dados.nickname : "Ver meu perfil";
   pintarAvatar($("comporAvatar"), dados.fotoPerfil, dados.nome);
+  // Sugestões só aparecem na lateral do computador: no celular nem busca.
+  if (!$("sugestoes")?.offsetParent) return;
   try {
     const recentes = await pessoasRecentes(fb, { limite: 30 });
     const sug = recentes.filter((p) => p.uid !== eu.uid && !meusSeguindo.has(p.uid) && !escondido(p.uid)).sort(() => Math.random() - 0.5).slice(0, 4);

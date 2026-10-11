@@ -10,7 +10,7 @@ export const D = {
   contagens: {}, carregadoEm: 0,
   contNeg: {}, negociosProntos: false // negócios: só os totais ao abrir; a lista inteira só quando uma seção precisa
 };
-// A lista inteira de negócios e anúncios (para estatísticas, relatórios e filtros por dono).
+// A lista inteira de negócios, anúncios e publicações (para estatísticas, relatórios, moderação do Diário e filtros por dono).
 // Lida uma vez, quando alguém abre uma seção que precisa dela.
 let carregandoNeg = null;
 export function garantirNegocios() {
@@ -18,7 +18,9 @@ export function garantirNegocios() {
   if (!carregandoNeg) {
     const { fb } = C;
     const todos = (n) => fb.getDocs(fb.query(fb.collection(fb.db, n), fb.limit(3000))).then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() })));
-    carregandoNeg = Promise.all([todos("negocios"), todos("anuncios")]).then(([n, a]) => { D.negocios = n; D.anuncios = a; D.negociosProntos = true; })
+    const posts = fb.getDocs(fb.query(fb.collection(fb.db, "diario"), fb.orderBy("criadoEm", "desc"), fb.limit(3000))).catch(() => fb.getDocs(fb.query(fb.collection(fb.db, "diario"), fb.limit(3000))))
+      .then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() })));
+    carregandoNeg = Promise.all([todos("negocios"), todos("anuncios"), posts]).then(([n, a, p]) => { D.negocios = n; D.anuncios = a; D.posts = p; D.negociosProntos = true; })
       .finally(() => { carregandoNeg = null; });
   }
   return carregandoNeg;
@@ -143,7 +145,8 @@ async function marcarConteudo(uid, ate) {
   const valor = ate ? fb.Timestamp.fromDate(ate) : null;
   const buscar = (col, campo) => fb.getDocs(fb.query(fb.collection(fb.db, col), fb.where(campo, "==", uid))).catch(() => ({ docs: [] }));
   const [neg, an, posts] = await Promise.all([buscar("negocios", "donoId"), buscar("anuncios", "donoId"), buscar("diario", "autorId")]);
-  const refs = [...neg.docs, ...an.docs, ...posts.docs].map((d) => d.ref);
+  // O que a equipe escondeu por moderação continua escondido (o dono nem pode mexer).
+  const refs = [...neg.docs, ...an.docs, ...posts.docs].filter((d) => d.data().ocultoPelaEquipe !== true).map((d) => d.ref);
   for (let i = 0; i < refs.length; i += 400) { const b = fb.writeBatch(fb.db); refs.slice(i, i + 400).forEach((r) => b.update(r, { ocultoAte: valor })); await b.commit(); }
   await fb.updateDoc(fb.doc(fb.db, "perfis_publicos", uid), { desativadaAte: valor }).catch(() => {});
   const marca = ate ? { toMillis: () => ate.getTime() } : null;

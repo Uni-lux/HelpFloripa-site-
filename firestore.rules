@@ -97,6 +97,19 @@ service cloud.firestore {
       return request.resource.data.diff(resource.data).affectedKeys();
     }
 
+    // Escondido pela equipe (moderação): o dono não pode mostrar de novo nem tirar a marca.
+    function travaModeracao() {
+      return !mudou().hasAny(['ocultoPelaEquipe'])
+          && !(resource.data.get('ocultoPelaEquipe', false) == true && mudou().hasAny(['ocultoAte']));
+    }
+
+    // A equipe esconde/mostra: só ocultoAte e a marca ocultoPelaEquipe.
+    function moderacaoOk() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ocultoAte', 'ocultoPelaEquipe'])
+          && dataOuNulo('ocultoAte')
+          && request.resource.data.get('ocultoPelaEquipe', false) is bool;
+    }
+
     // Campos novos ou alterados (campos antigos removidos não contam).
     function gravou() {
       let d = request.resource.data.diff(resource.data);
@@ -487,6 +500,7 @@ service cloud.firestore {
                     && request.resource.data.tipo == resource.data.tipo
                     && gravou().hasOnly(camposNegocio())
                     && naoTocaCamposProtegidosNoUpdate()
+                    && travaModeracao()
                     && negocioOk();
 
       allow delete: if logado()
@@ -494,8 +508,7 @@ service cloud.firestore {
 
       // A equipe esconde (ocultoAte) o conteúdo de contas suspensas/banidas.
       allow update: if podeModerar()
-                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ocultoAte'])
-                    && dataOuNulo('ocultoAte');
+                    && moderacaoOk();
     }
 
 
@@ -542,6 +555,7 @@ service cloud.firestore {
                     && request.resource.data.tipo == resource.data.tipo
                     && gravou().hasOnly(camposAnuncio())
                     && naoTocaCamposProtegidosNoUpdate()
+                    && travaModeracao()
                     && anuncioOk();
 
       allow delete: if logado()
@@ -549,8 +563,7 @@ service cloud.firestore {
 
       // A equipe esconde (ocultoAte) o conteúdo de contas suspensas/banidas.
       allow update: if podeModerar()
-                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ocultoAte'])
-                    && dataOuNulo('ocultoAte');
+                    && moderacaoOk();
     }
 
 
@@ -1576,6 +1589,7 @@ service cloud.firestore {
                     && request.resource.data.autorId == resource.data.autorId
                     && gravou().hasOnly(['texto', 'nome', 'fotoPerfil', 'comentariosOcultos', 'ocultoAte', 'editadoEm'])
                     && dataOuNulo('ocultoAte')
+                    && travaModeracao()
                     // texto editado: marca a data da edição
                     && (!mudou().hasAny(['texto']) || request.resource.data.get('editadoEm', null) == request.time)
                     && (!mudou().hasAny(['editadoEm']) || request.resource.data.editadoEm == request.time)
@@ -1587,8 +1601,7 @@ service cloud.firestore {
 
       // A equipe esconde ou remove publicações que violam os Termos.
       allow update: if podeModerar()
-                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ocultoAte'])
-                    && dataOuNulo('ocultoAte');
+                    && moderacaoOk();
       allow delete: if podeModerar();
     }
   }

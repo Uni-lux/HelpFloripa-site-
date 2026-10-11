@@ -14,6 +14,7 @@ import { fotoSegura, conferirEmail, emailPendente, MSG_EMAIL } from "./seguranca
 import { estrelas } from "./avaliacoes.js?v=11";
 import { abrirQueixa, responderQueixa, resolverQueixa, semResposta, MOTIVOS, PRAZO_DIAS } from "./queixas.js?v=7";
 import { NOMES_TIPO, PAGINA_TIPO } from "./vitrine.js?v=30";
+import { docComValidade, docsComValidade } from "./leituras.js?v=1";
 
 const $ = (id) => document.getElementById(id);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
@@ -86,10 +87,13 @@ function linkVitrine(r) {
 async function carregar() {
   const col = fb.collection(fb.db, "avaliacoes");
   const qcol = fb.collection(fb.db, "queixas");
+  // As 150 mais recentes de cada tipo; a lista vale por 5 min no aparelho (o que você mesmo
+  // responde ou abre aparece na hora). Antes eram até 900 documentos a cada visita.
+  const V = 5 * 60000, LIM = 150;
   const [n1, n2, qx] = await Promise.all([
-    fb.getDocs(fb.query(col, fb.where("tipo", "==", "negocio"), fb.where("nota", "==", 1), fb.limit(300))),
-    fb.getDocs(fb.query(col, fb.where("tipo", "==", "negocio"), fb.where("nota", "==", 2), fb.limit(300))),
-    fb.getDocs(fb.query(qcol, fb.orderBy("abertaEm", "desc"), fb.limit(300))).catch(() => fb.getDocs(fb.query(qcol, fb.limit(300)))).catch(() => ({ docs: [] }))
+    docsComValidade(fb, "recl-n1", fb.query(col, fb.where("tipo", "==", "negocio"), fb.where("nota", "==", 1), fb.limit(LIM)), V),
+    docsComValidade(fb, "recl-n2", fb.query(col, fb.where("tipo", "==", "negocio"), fb.where("nota", "==", 2), fb.limit(LIM)), V),
+    docsComValidade(fb, "recl-qx", fb.query(qcol, fb.orderBy("abertaEm", "desc"), fb.limit(LIM)), V).catch(() => fb.getDocs(fb.query(qcol, fb.limit(LIM)))).catch(() => ({ docs: [] }))
   ]);
   // Respostas só das avaliações carregadas (antes lia até 600 documentos a cada visita).
   const idsAval = [...n1.docs, ...n2.docs].map((d) => d.id);
@@ -108,7 +112,7 @@ async function carregar() {
   const uids = [...new Set([...todas.flatMap((r) => [r.alvoId, r.autorId]), pessoa, eu.uid].filter(Boolean))];
   await Promise.all([
     ...ids.map(async (id) => {
-      try { const s = await fb.getDoc(fb.doc(fb.db, "negocios", id)); negocios.set(id, s.exists() ? { id, ...s.data() } : { id, tipo: id.split("_").pop() }); }
+      try { const s = await docComValidade(fb, ["negocios", id], 30 * 60000); negocios.set(id, s.exists() ? { id, ...s.data() } : { id, tipo: id.split("_").pop() }); }
       catch { negocios.set(id, { id, tipo: id.split("_").pop() }); }
     }),
     ...Array.from({ length: Math.ceil(uids.length / 30) }, (_, k) => uids.slice(k * 30, k * 30 + 30)).map(async (lote) => {

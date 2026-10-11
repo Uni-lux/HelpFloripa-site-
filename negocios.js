@@ -9,7 +9,7 @@
 import {
   $, el, icone, pintarAvatar, urlSegura, nomeCidade, toast, erroAmigavel, abrirFolha, fecharFolha,
   fb, eu, dados, salvarImagem, editarImagem, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos
-} from "./rede.js?v=23";
+} from "./rede.js?v=25";
 import { lerResumos, estrelas, media, notaTexto } from "./avaliacoes.js?v=11";
 import { buscarAnuncios, DIAS, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO } from "./vitrine.js?v=30";
 
@@ -91,6 +91,14 @@ function pintarPainel() {
     }
     corpo.append(av, el("h3", null, n.nome || t.rotulo), el("div", "meta", [n.cidade, (n.itens || []).length ? `${n.itens.length} ${tipo === "servicos" ? "serviços" : tipo === "delivery" ? "itens no cardápio" : "produtos"}` : ""].filter(Boolean).join(" · ") || t.desc));
     if (resumo?.total) corpo.appendChild(estrelas(resumo));
+    // Escondido da vitrine: pela equipe (moderação) ou porque a conta está desativada.
+    if ((n.ocultoAte?.toMillis?.() ?? 0) > Date.now()) {
+      const av2 = el("div", "neg-aviso");
+      const ln = el("a", null, "Falar com o suporte"); ln.href = "suporte.html";
+      av2.append(el("strong", null, n.ocultoPelaEquipe ? "Escondido pela equipe" : "Escondido da vitrine"),
+        el("span", null, n.ocultoPelaEquipe ? "Este perfil não aparece para os clientes por violar os Termos de Uso. " : "Este perfil não aparece para os clientes enquanto a conta estiver desativada. "), ln);
+      corpo.appendChild(av2);
+    }
     corpo.append(nums, acoes);
     c.append(capa, corpo);
     grade.appendChild(c);

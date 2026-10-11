@@ -13,7 +13,8 @@ import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=5";
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
 import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=15";
 import "./painel-avisos.js?v=13";
-import { palavrasBusca } from "./pessoas.js?v=2"; // o sino abre o painel de notificações na própria página
+import { docComValidade, docsComValidade } from "./leituras.js?v=1";
+import { palavrasBusca } from "./pessoas.js?v=3"; // o sino abre o painel de notificações na própria página
 
 // ---------- ícones ----------
 const SIMBOLOS = `<symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 01-1.5 1.5H15v-6h-6v6H5.5A1.5 1.5 0 014 19z"/></symbol>
@@ -183,6 +184,7 @@ export function erroAmigavel(e) {
 let audioCtx = null;
 export function tocarSom() {
   if (config.sons === false) return;
+  if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return; // o navegador só deixa tocar depois de um toque na página
   try {
     audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
     const t = audioCtx.currentTime;
@@ -320,8 +322,20 @@ export async function lerOrdenado(ordenada, simples) {
 
 export function obterPerfil(uid) {
   if (!uid) return Promise.resolve({});
-  if (!perfis.has(uid)) perfis.set(uid, fb.getDoc(fb.doc(fb.db, "perfis_publicos", uid)).then((s) => (s.exists() ? s.data() : {})).catch(() => ({})));
+  // Nome e foto de outras pessoas: a cópia do aparelho vale por 30 min (o próprio perfil sempre do servidor).
+  if (!perfis.has(uid)) perfis.set(uid, (uid === eu?.uid ? fb.getDoc(fb.doc(fb.db, "perfis_publicos", uid)) : docComValidade(fb, ["perfis_publicos", uid], 30 * 60000)).then((s) => (s.exists() ? s.data() : {})).catch(() => ({})));
   return perfis.get(uid);
+}
+// Roda fn uma vez, quando o elemento chega perto da tela (contadores de cada publicação
+// só são lidos para o que a pessoa realmente vê).
+const vigiaTela = "IntersectionObserver" in window ? new IntersectionObserver((itens) => itens.forEach((i) => {
+  if (!i.isIntersecting) return;
+  vigiaTela.unobserve(i.target); const fn = i.target.__aoAparecer; delete i.target.__aoAparecer; fn?.();
+}), { rootMargin: "400px 0px" }) : null;
+export function quandoVisivel(elemento, fn) {
+  if (!vigiaTela) { fn(); return; }
+  elemento.__aoAparecer = fn;
+  vigiaTela.observe(elemento);
 }
 
 // Salva uma imagem: no Storage se estiver ativo, senão dentro do documento.
@@ -395,8 +409,9 @@ export async function iniciarRede({ sincronizar = false } = {}) {
 export async function carregarPrivacidade() {
   const col = fb.collection(fb.db, "bloqueios");
   const [meus, deles] = await Promise.all([
-    fb.getDocs(fb.query(col, fb.where("bloqueadorId", "==", eu.uid))).catch(() => null),
-    fb.getDocs(fb.query(col, fb.where("bloqueadoId", "==", eu.uid))).catch(() => null)
+    // Válidos por 10 min no aparelho (quem você bloqueia muda na hora; as regras do Firestore valem sempre).
+    docsComValidade(fb, "bloq-meus-" + eu.uid, fb.query(col, fb.where("bloqueadorId", "==", eu.uid)), 10 * 60000).catch(() => null),
+    docsComValidade(fb, "bloq-deles-" + eu.uid, fb.query(col, fb.where("bloqueadoId", "==", eu.uid)), 10 * 60000).catch(() => null)
   ]);
   meusBloqueios = new Set(meus ? meus.docs.map((d) => d.data().bloqueadoId) : []);
   bloqueadoPor = new Set(deles ? deles.docs.map((d) => d.data().bloqueadorId) : []);
@@ -453,7 +468,8 @@ export async function alternarRestricao(uid, nome) {
 // ---------- seguir ----------
 export let meusSeguindoPronto = Promise.resolve();
 export function carregarMeusSeguindo() {
-  meusSeguindoPronto = fb.getDocs(fb.query(fb.collection(fb.db, "relacoes"), fb.where("tipo", "==", "seguir"), fb.where("seguidorId", "==", eu.uid), fb.limit(500)))
+  // Quem você segue: cópia do aparelho por 15 min (seguir/deixar de seguir atualiza a cópia na hora).
+  meusSeguindoPronto = docsComValidade(fb, "seguindo-" + eu.uid, fb.query(fb.collection(fb.db, "relacoes"), fb.where("tipo", "==", "seguir"), fb.where("seguidorId", "==", eu.uid), fb.limit(500)), 15 * 60000)
     .then((snap) => { meusSeguindo = new Set(snap.docs.map((d) => d.data().alvoId)); })
     .catch((e) => console.warn("Quem você segue:", e));
   return meusSeguindoPronto;
@@ -536,6 +552,25 @@ export async function compartilharPerfil(uid, nome) {
 // =====================================================
 const cacheEstrelas = new Map();   // postId -> { media, n, minha }
 const cacheNComent = new Map();    // postId -> n
+// Estrelas e nº de comentários de cada publicação: guardados no aparelho por 5 min
+// (voltar ao diário não lê tudo de novo). O que a própria pessoa faz atualiza na hora.
+const CONTADORES = "hf-contadores", CONT_VALIDADE = 5 * 60000;
+let contadores = null;
+function contador(k) {
+  if (!contadores) { try { contadores = JSON.parse(localStorage.getItem(CONTADORES) || "{}") || {}; } catch { contadores = {}; } }
+  const c = contadores[k];
+  return c && Date.now() - c.em < CONT_VALIDADE ? c.v : undefined;
+}
+let gravandoCont = 0;
+function guardarContador(k, v) {
+  contador(k); contadores[k] = { v, em: Date.now() };
+  clearTimeout(gravandoCont);
+  gravandoCont = setTimeout(() => {
+    const agora = Date.now();
+    contadores = Object.fromEntries(Object.entries(contadores).filter(([, c]) => agora - c.em < CONT_VALIDADE).slice(-400));
+    try { localStorage.setItem(CONTADORES, JSON.stringify(contadores)); } catch {}
+  }, 300);
+}
 async function precisaEmail() {
   if (!emailPendente(eu)) return false;
   if (await conferirEmail(eu)) return false;
@@ -545,9 +580,12 @@ async function precisaEmail() {
 export async function infoEstrelas(postId, { recarregar = false } = {}) {
   if (!recarregar && cacheEstrelas.has(postId)) return cacheEstrelas.get(postId);
   const q = fb.query(fb.collection(fb.db, "curtidas"), fb.where("postId", "==", postId));
+  const guardado = recarregar ? undefined : contador("e:" + postId);
+  const ref = fb.doc(fb.db, "curtidas", `${postId}_${eu.uid}`);
   const [ag, minha] = await Promise.all([
-    fb.getAggregateFromServer(q, { soma: fb.sum("nota"), media: fb.average("nota") }).then((s) => s.data()).catch(() => ({ soma: 0, media: null })),
-    fb.getDoc(fb.doc(fb.db, "curtidas", `${postId}_${eu.uid}`)).then((s) => (s.exists() ? Number(s.data().nota) || 0 : 0)).catch(() => 0)
+    guardado ? guardado : fb.getAggregateFromServer(q, { soma: fb.sum("nota"), media: fb.average("nota") }).then((s) => { const d = s.data(); guardarContador("e:" + postId, { soma: d.soma, media: d.media }); return d; }).catch(() => ({ soma: 0, media: null })),
+    // A sua nota: muda só quando você mesmo dá estrelas (a cópia do aparelho se atualiza na hora).
+    (recarregar ? fb.getDoc(ref) : docComValidade(fb, ["curtidas", ref.id], 30 * 60000)).then((s) => (s.exists() ? Number(s.data().nota) || 0 : 0)).catch(() => 0)
   ]);
   const media = Number(ag.media) || 0;
   const r = { media, n: media ? Math.round((Number(ag.soma) || 0) / media) : 0, minha };
@@ -572,8 +610,10 @@ export async function darEstrelas(post, nota) {
 }
 export async function contarComentarios(postId, { recarregar = false } = {}) {
   if (!recarregar && cacheNComent.has(postId)) return cacheNComent.get(postId);
+  const guardado = recarregar ? undefined : contador("c:" + postId);
+  if (guardado !== undefined) { cacheNComent.set(postId, guardado); return guardado; }
   const n = await fb.getCountFromServer(fb.query(fb.collection(fb.db, "comentarios"), fb.where("postId", "==", postId))).then((s) => s.data().count).catch(() => 0);
-  cacheNComent.set(postId, n);
+  cacheNComent.set(postId, n); guardarContador("c:" + postId, n);
   return n;
 }
 
@@ -604,7 +644,7 @@ export function seletorEstrelas(post, { aoMudar } = {}) {
     const media = i.n ? `${i.media.toFixed(1).replace(".", ",")} · ${i.n} ${i.n === 1 ? "nota" : "notas"}` : "Sem notas";
     txt.textContent = !proprio && i.minha ? `Sua nota: ${i.minha} · ${media}` : media;
   };
-  infoEstrelas(post.id).then((i) => pintar(i));
+  quandoVisivel(box, () => infoEstrelas(post.id).then((i) => pintar(i)));
   if (!proprio) {
     bots.forEach((b, k) => {
       // Prévia só com mouse: no toque o "hover" fica preso e confundiria a nota.
@@ -638,7 +678,7 @@ export function barraInteracao(post, { aoComentar } = {}) {
   const acoes = el("div", "acoes-post"); acoes.append(bM, bS);
   barra.append(est, acoes);
   const pintarN = (n) => { nM.textContent = n ? numero(n) : ""; };
-  contarComentarios(post.id).then(pintarN);
+  quandoVisivel(barra, () => contarComentarios(post.id).then(pintarN));
   bM.addEventListener("click", () => (aoComentar ? aoComentar() : abrirComentarios(post, { aoMudar: pintarN })));
   bS.addEventListener("click", () => compartilharPerfil(post.autorId, post.nome));
   barra.atualizarComentarios = pintarN;
@@ -714,7 +754,7 @@ export function montarComentarios(alvo, post, { aoMudar } = {}) {
   const pintar = async () => {
     let itens = [];
     try { itens = await listarComentarios(post.id); } catch { lista.replaceChildren(el("div", "lista-vazia", "Não foi possível carregar os comentários.")); return; }
-    cacheNComent.set(post.id, itens.length);
+    cacheNComent.set(post.id, itens.length); guardarContador("c:" + post.id, itens.length);
     const ocultosTodos = post.comentariosOcultos === true && !dono;
     const visiveis = itens.filter((c) => dono || c.autorId === eu.uid || !c.oculto);
     aoMudar?.(ocultosTodos ? 0 : visiveis.filter((c) => !c.oculto).length);

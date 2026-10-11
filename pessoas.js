@@ -8,6 +8,7 @@
 //   - qualquer palavra     ("silva" acha "Ana Silva") — perfis_publicos.busca
 // Sem nada digitado: pessoas ativas recentemente.
 // =====================================================
+import { docsComValidade } from "./leituras.js?v=1";
 
 // Palavras do nome e do @, minúsculas e sem acento (gravadas em perfis_publicos.busca).
 export const semAcento = (v) => String(v || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -30,7 +31,8 @@ const lista = (snap) => snap.docs.map((d) => ({ uid: d.id, ...d.data() })).filte
 
 // Quem esteve no site por último (sugestões quando a busca está vazia).
 export function pessoasRecentes(fb, { limite = 30 } = {}) {
-  return lembrar("recentes" + limite, fb.getDocs(fb.query(fb.collection(fb.db, "perfis_publicos"), fb.orderBy("ultimoAcesso", "desc"), fb.limit(limite)))
+  // "Ativos recentemente" vale por 10 min no aparelho.
+  return lembrar("recentes" + limite, docsComValidade(fb, "recentes-" + limite, fb.query(fb.collection(fb.db, "perfis_publicos"), fb.orderBy("ultimoAcesso", "desc"), fb.limit(limite)), 10 * 60000)
     .then(lista).catch(() => []));
 }
 

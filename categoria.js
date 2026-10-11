@@ -9,7 +9,8 @@ import { fotoSegura } from "./seguranca.js?v=1";
 import { definirPerfilMenu, definirBadgeMensagens } from "./menu.js?v=4";
 import { buscarReclamacoes } from "./avisos-reclamacoes.js?v=15";
 import "./painel-avisos.js?v=13"; // o sino abre o painel de notificações na própria página
-import "./chat-gaveta.js?v=1"; // "Mensagens" abre as conversas por cima da página, sem sair dela
+import "./chat-gaveta.js?v=1";
+import { docComValidade } from "./leituras.js?v=1"; // "Mensagens" abre as conversas por cima da página, sem sair dela
 
 const $ = (id) => document.getElementById(id);
 
@@ -91,7 +92,8 @@ async function iniciarTopo() {
     }
     // Foto do perfil
     try {
-      const s = await fs.getDoc(fs.doc(db, "perfis_publicos", u.uid));
+      // Foto e nome do topo: cópia do aparelho por 10 min (mudar a foto atualiza a cópia na hora).
+      const s = await docComValidade({ ...fs, db }, ["perfis_publicos", u.uid], 10 * 60000);
       const p = s.exists() ? s.data() : {};
       definirPerfilMenu({ logado: true, nome: p.nome || u.displayName || "", nick: p.nickname || p.nick || "", foto: p.fotoPerfil || u.photoURL || "" });
       const av = $("topoAvatar");
