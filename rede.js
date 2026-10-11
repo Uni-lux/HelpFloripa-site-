@@ -12,7 +12,7 @@ import { comRitmo } from "./ritmo.js?v=1";
 import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=5";
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
 import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=15";
-import "./painel-avisos.js?v=12";
+import "./painel-avisos.js?v=13";
 import { palavrasBusca } from "./pessoas.js?v=2"; // o sino abre o painel de notificações na própria página
 
 // ---------- ícones ----------
@@ -1061,7 +1061,7 @@ export function contarNovos() {
 addEventListener("hf:avisos-vistos", () => { avisosVistosEm = Date.now(); if (eu) avisar(); });
 export function marcarAvisosVistos() {
   avisosVistosEm = Date.now();
-  try { sessionStorage.removeItem("hf-avisos-" + eu.uid); } catch {} // o sino do topo recalcula
+  try { localStorage.setItem("hf-sino-" + eu.uid, JSON.stringify({ n: 0, visto: Date.now(), em: Date.now() })); } catch {} // o sino do topo fica zerado
   fb.setDoc(refUsuario, { notificacoesVistasEm: fb.serverTimestamp() }, { merge: true }).catch(() => {});
   avisar();
 }

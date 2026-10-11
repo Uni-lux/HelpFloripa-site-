@@ -8,8 +8,9 @@
 // =====================================================
 
 import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL } from "./seguranca.js?v=1";
-import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento, media, avaliarNegocio } from "./avaliacoes.js?v=10";
-import { abrirQueixa } from "./queixas.js?v=6";
+import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento, media, avaliarNegocio } from "./avaliacoes.js?v=11";
+import { abrirQueixa } from "./queixas.js?v=7";
+import { docComValidade, docsComValidade } from "./leituras.js?v=1";
 
 const PARAMS = new URL(import.meta.url).searchParams;
 const TIPO_PAGINA = PARAMS.get("tipo");
@@ -1761,7 +1762,8 @@ async function lote(col, tipo, cursor) {
   const c = fb.collection(fb.db, col);
   try {
     const q = fb.query(c, fb.where("tipo", "==", tipo), fb.orderBy("atualizadoEm", "desc"), ...(cursor ? [fb.startAfter(cursor)] : []), fb.limit(LOTE));
-    const snap = await fb.getDocs(q);
+    // A primeira página vale por 10 min no aparelho; as seguintes ("Ver mais") vêm do servidor.
+    const snap = cursor ? await fb.getDocs(q) : await docsComValidade(fb, `vitrine-${col}-${tipo}`, q, 10 * 60000);
     return { docs: snap.docs, mais: snap.size === LOTE, cursor: snap.docs.at(-1) || cursor };
   } catch (e) {
     // Sem o índice (tipo + atualizadoEm) ainda criado: busca simples, sem lotes.
@@ -1819,10 +1821,11 @@ function pintarVerMais(filtrando) {
   if (b && !carregandoMais) b.textContent = filtrando ? "Procurar em mais perfis" : "Ver mais";
 }
 
+const DONOS_VALIDADE = 30 * 60000; // nome e foto de quem anuncia: cópia do aparelho por 30 min
 async function carregarDonos(ids) {
   await Promise.all([...new Set(ids)].map(async (id) => {
     if (donos.has(id)) return;
-    try { const s = await fb.getDoc(fb.doc(fb.db, "perfis_publicos", id)); donos.set(id, s.exists() ? s.data() : {}); } catch { donos.set(id, {}); }
+    try { const s = await docComValidade(fb, ["perfis_publicos", id], DONOS_VALIDADE); donos.set(id, s.exists() ? s.data() : {}); } catch { donos.set(id, {}); }
   }));
 }
 

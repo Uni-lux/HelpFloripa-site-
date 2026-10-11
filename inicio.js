@@ -9,8 +9,9 @@
 // =====================================================
 import { fotoSegura } from "./seguranca.js?v=1";
 import { enfeitarSelect } from "./escolha.js?v=3";
-import { estrelas, lerResumos, media } from "./avaliacoes.js?v=10";
-import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria } from "./vitrine.js?v=29";
+import { estrelas, lerResumos, media } from "./avaliacoes.js?v=11";
+import { docsComValidade } from "./leituras.js?v=1";
+import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria } from "./vitrine.js?v=30";
 
 const $ = (id) => document.getElementById(id);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
@@ -226,14 +227,20 @@ setInterval(() => revezamentos.forEach((fn) => fn()), 1600);
 
 // ---------- dados ----------
 async function carregar(fs, db, u) {
-  const contar = async (q) => { try { return (await fs.getCountFromServer(q)).data().count; } catch { return null; } };
+  // Os totais por categoria ficam guardados por 30 min.
+  let totais = {};
+  try { const t = JSON.parse(localStorage.getItem("hf-totais-inicio") || "null"); if (t && Date.now() - t.em < 1800000) totais = t; } catch {}
+  const contar = async (q, nome) => {
+    if (typeof totais[nome] === "number") return totais[nome];
+    try { const n = (await fs.getCountFromServer(q)).data().count; totais[nome] = n; totais.em = totais.em || Date.now(); try { localStorage.setItem("hf-totais-inicio", JSON.stringify(totais)); } catch {} return n; } catch { return null; }
+  };
   const neg = fs.collection(db, "negocios");
   const rotulos = { servicos: ["profissional", "profissionais"], delivery: ["cardápio", "cardápios"], lojinha: ["loja", "lojas"], imoveis: ["imóvel", "imóveis"] };
   Promise.all([
-    contar(fs.query(neg, fs.where("tipo", "==", "servicos"))),
-    contar(fs.query(neg, fs.where("tipo", "==", "delivery"))),
-    contar(fs.query(neg, fs.where("tipo", "==", "lojinha"))),
-    contar(fs.query(fs.collection(db, "anuncios"), fs.where("tipo", "==", "imovel")))
+    contar(fs.query(neg, fs.where("tipo", "==", "servicos")), "servicos"),
+    contar(fs.query(neg, fs.where("tipo", "==", "delivery")), "delivery"),
+    contar(fs.query(neg, fs.where("tipo", "==", "lojinha")), "lojinha"),
+    contar(fs.query(fs.collection(db, "anuncios"), fs.where("tipo", "==", "imovel")), "imoveis")
   ]).then((ns) => ["servicos", "delivery", "lojinha", "imoveis"].forEach((t, k) => {
     const alvo = $("conta-" + t);
     if (alvo && ns[k] != null) alvo.textContent = ns[k] ? `${ns[k]} ${rotulos[t][ns[k] === 1 ? 0 : 1]}` : "Seja o primeiro";
@@ -242,7 +249,8 @@ async function carregar(fs, db, u) {
   try {
     // Os 60 atualizados mais recentemente: o bastante para os dois carrosséis (40 + 30).
     // Antes eram 150 perfis inteiros, com fotos, a cada visita; o resto está nas vitrines.
-    const snap = await fs.getDocs(fs.query(neg, fs.orderBy("atualizadoEm", "desc"), fs.limit(60))).catch(() => fs.getDocs(fs.query(neg, fs.limit(60))));
+    // Vale por 10 min no aparelho: voltar à página inicial não lê tudo de novo.
+    const snap = await docsComValidade({ ...fs, db }, "inicio-negocios", fs.query(neg, fs.orderBy("atualizadoEm", "desc"), fs.limit(60)), 10 * 60000).catch(() => fs.getDocs(fs.query(neg, fs.limit(60))));
     const lista = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => n.nome && n.oculto !== true && !oculto(n) && NOMES_TIPO[n.tipo]);
     const resumos = await lerResumos({ ...fs, db }, lista.map((n) => "neg_" + n.id));
     const nota = (n) => resumos["neg_" + n.id];
@@ -262,7 +270,7 @@ async function carregar(fs, db, u) {
 
   try {
     const an = fs.collection(db, "anuncios");
-    const snap = await fs.getDocs(fs.query(an, fs.where("tipo", "==", "imovel"), fs.orderBy("atualizadoEm", "desc"), fs.limit(24)))
+    const snap = await docsComValidade({ ...fs, db }, "inicio-imoveis", fs.query(an, fs.where("tipo", "==", "imovel"), fs.orderBy("atualizadoEm", "desc"), fs.limit(24)), 10 * 60000)
       .catch(() => fs.getDocs(fs.query(an, fs.where("tipo", "==", "imovel"), fs.limit(24))));
     const ims = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((a) => a.ativo !== false && !oculto(a)).sort((a, b) => ms(b.atualizadoEm || b.criadoEm) - ms(a.atualizadoEm || a.criadoEm)).slice(0, 30);
     const agora = Date.now();

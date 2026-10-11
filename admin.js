@@ -3,8 +3,8 @@
 // Só entra quem tem o documento admins/{uid} (criado à mão no console do
 // Firebase). As regras do Firestore conferem isso em cada leitura e ação.
 // =====================================================
-import { C, D, $, h, ms, toast, PAPEIS, vendoAgora, pode } from "./admin-base.js?v=6";
-import * as S from "./admin-secoes.js?v=6";
+import { C, D, $, h, ms, toast, PAPEIS, vendoAgora, pode, garantirNegocios } from "./admin-base.js?v=7";
+import * as S from "./admin-secoes.js?v=7";
 
 const SECOES = {
   visao: S.visao, estatisticas: S.estatisticas, relatorios: S.relatorios, usuarios: S.usuarios, verificacoes: S.verificacoes,
@@ -13,6 +13,8 @@ const SECOES = {
   tarefas: S.tarefas, publicacoes: S.publicacoes
 };
 let atual = "visao", ultimaPresenca = "";
+// Seções que usam a lista inteira de negócios (as outras só precisam dos totais).
+const PRECISAM_NEGOCIOS = new Set(["estatisticas", "relatorios", "verificacoes"]);
 
 function irPara(sec, termo = "") {
   let filtro = "";
@@ -21,6 +23,13 @@ function irPara(sec, termo = "") {
   atual = sec;
   document.querySelectorAll(".ad-nav").forEach((b) => { if (b.dataset.secao === sec) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
   const el = $("principal"); el.replaceChildren();
+  if (PRECISAM_NEGOCIOS.has(sec) && !D.negociosProntos) {
+    el.appendChild(h("div", "ad-vazio", "Carregando negócios e anúncios..."));
+    garantirNegocios().then(() => { if (atual === sec) irPara(sec + (filtro ? ":" + filtro : ""), termo); })
+      .catch((e) => { el.replaceChildren(h("div", "ad-vazio", "Não foi possível carregar os negócios: " + (e.code || e.message))); });
+    history.replaceState(null, "", `admin.html#${sec}`);
+    return;
+  }
   try {
     if (filtro && sec !== "usuarios") { S.definirFiltro(sec, filtro); SECOES[sec](el, termo); }
     else if (sec === "usuarios" && filtro) { const chip = filtro; SECOES.usuarios(el, termo); el.querySelector(`.ad-chip:nth-child(${["todos", "novos", "ativos", "inativos", "negocio", "verificados", "desativado", "exclusao", "sancao"].indexOf(chip) + 1})`)?.click(); }
@@ -104,11 +113,18 @@ async function carregar(mostrar = true) {
   const todos = (q) => fb.getDocs(q).then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() }))).catch((e) => { console.warn("Painel:", e.code || e.message); return []; });
   const ordenado = (n, campo, lim) => todos(fb.query(col(n), fb.orderBy(campo, "desc"), fb.limit(lim))).then((l) => (l.length ? l : todos(fb.query(col(n), fb.limit(lim)))));
   const contar = (n) => fb.getCountFromServer(col(n)).then((s) => s.data().count).catch(() => null);
+  const contarQ = (q) => fb.getCountFromServer(q).then((s) => s.data().count).catch(() => null);
+  const contarNeg = async () => {
+    const tipos = ["servicos", "delivery", "lojinha", "imoveis"];
+    const [total, anuncios, ...porTipo] = await Promise.all([contar("negocios"), contar("anuncios"), ...tipos.map((t) => contarQ(fb.query(col("negocios"), fb.where("tipo", "==", t))))]);
+    return { total, anuncios, ...Object.fromEntries(tipos.map((t, i) => [t, porTipo[i]])) };
+  };
   if (mostrar) $("atualizado").textContent = "Atualizando...";
   const [usuarios, perfis, negocios, anuncios, posts, denuncias, queixas, suporte, parcerias, sancoes, exclusoes, notas, comunicados, log, admins, estatisticas, nPosts, nConversas, nComentarios, nAvaliacoes] = await Promise.all([
     // Dados pessoais (usuarios) só para dono e moderação; os outros papéis veem o perfil público.
     pode("moderar") ? todos(fb.query(col("usuarios"), fb.limit(5000))) : Promise.resolve([]), todos(fb.query(col("perfis_publicos"), fb.limit(5000))),
-    todos(fb.query(col("negocios"), fb.limit(3000))), todos(fb.query(col("anuncios"), fb.limit(3000))),
+    // Negócios: só os totais (a lista é paginada na seção Negócios e lida inteira só quando uma seção precisa)
+    contarNeg(), Promise.resolve(null),
     ordenado("diario", "criadoEm", 3000), todos(fb.query(col("denuncias"), fb.limit(1500))), todos(fb.query(col("queixas"), fb.limit(1500))),
     ordenado("suporte", "atualizadoEm", 500), todos(fb.query(col("parcerias"), fb.limit(500))), todos(fb.query(col("sancoes"), fb.limit(1000))),
     todos(fb.query(col("exclusoes"), fb.limit(1000))), todos(fb.query(col("notas"), fb.limit(5000))), todos(fb.query(col("comunicados"), fb.limit(100))),
@@ -118,7 +134,9 @@ async function carregar(mostrar = true) {
   D.pessoas = new Map();
   perfis.forEach((p) => D.pessoas.set(p.id, { uid: p.id, ...p }));
   usuarios.forEach((u) => D.pessoas.set(u.id, { ...(D.pessoas.get(u.id) || {}), ...u, uid: u.id, ultimoAcesso: D.pessoas.get(u.id)?.ultimoAcesso, desativadaAte: D.pessoas.get(u.id)?.desativadaAte, fotoPerfil: u.fotoPerfil || D.pessoas.get(u.id)?.fotoPerfil }));
-  Object.assign(D, { negocios, anuncios, posts, denuncias, queixas, suporte, parcerias, comunicados, log, admins, estatisticas });
+  D.contNeg = negocios;
+  D.negociosProntos = false; D.negocios = []; D.anuncios = [];
+  Object.assign(D, { posts, denuncias, queixas, suporte, parcerias, comunicados, log, admins, estatisticas });
   D.sancoes = new Map(sancoes.map((s) => [s.id, s]));
   D.exclusoes = new Map(exclusoes.map((s) => [s.id, s]));
   D.notas = new Map(notas.map((n) => [n.id, n]));
