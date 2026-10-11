@@ -2,12 +2,13 @@
 // Painel do administrador — seções
 // =====================================================
 import { linha, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=2";
+import { buscarPessoas } from "./pessoas.js?v=3";
 import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha,
   PAPEIS, DESC_PAPEIS, pode, semPermissao, nomeEquipe, vendoAgora, marcarItem, seloResp, confirmarItem, controlesResp, espera,
-  PRIORIDADES, editarTarefa, moverTarefa, garantirNegocios
-} from "./admin-base.js?v=8";
+  PRIORIDADES, editarTarefa, moverTarefa, garantirNegocios, garantirTodasPessoas, carregarPessoas, guardarPessoas
+} from "./admin-base.js?v=9";
 
 const cab = (titulo, sub, extra) => { const c = h("div", "ad-cab"); const t = h("div"); t.append(h("h1", null, titulo)); if (sub) t.append(h("p", null, sub)); c.appendChild(t); if (extra) c.appendChild(extra); return c; };
 const bloco = (titulo, sub) => { const b = h("section", "ad-bloco"); const t = h("div", "ad-bloco-topo"); const tt = h("div"); tt.append(h("h3", null, titulo)); if (sub) tt.append(h("p", null, sub)); t.appendChild(tt); b.appendChild(t); b.topo = t; return b; };
@@ -17,7 +18,7 @@ function chips(opcoes, atual, aoMudar) {
   return w;
 }
 const btn = (t, cls, fn) => { const b = h("button", "ad-bt " + (cls || ""), t); b.type = "button"; b.addEventListener("click", async (e) => { e.stopPropagation(); b.disabled = true; try { await fn(b); } catch (err) { console.error(err); toast("Não foi possível: " + (err.code || err.message)); } finally { b.disabled = false; } }); return b; };
-const pessoa = (uid) => D.pessoas.get(uid) || { uid, nome: "Usuário removido" };
+const pessoa = (uid) => D.pessoas.get(uid) || { uid, nome: "" }; // ainda não lida: quem chama usa o nome guardado no item ou o ID
 const pessoas = () => [...D.pessoas.values()];
 const contarPor = (lista, chave) => { const m = new Map(); lista.forEach((x) => { const k = chave(x); if (k == null || k === "") return; m.set(k, (m.get(k) || 0) + 1); }); return [...m.entries()].sort((a, b) => b[1] - a[1]); };
 function serieDiaria(datas, dias) {
@@ -38,17 +39,17 @@ const noPeriodo = (t, dias, desloc = 0) => { const v = ms(t); return v > agora()
 
 // ======================================================= VISÃO GERAL
 export function visao(el) {
-  const ps = pessoas();
-  const novos7 = ps.filter((p) => noPeriodo(p.criadoEm, 7)).length, novos7a = ps.filter((p) => noPeriodo(p.criadoEm, 7, 7)).length;
-  const novos30 = ps.filter((p) => noPeriodo(p.criadoEm, 30)).length, novos30a = ps.filter((p) => noPeriodo(p.criadoEm, 30, 30)).length;
+  // Totais contados no servidor (o painel não lê todas as contas ao abrir).
+  const cp = D.contPessoas, n = (v) => v ?? 0;
+  const novos7 = n(cp.novos7), novos7a = n(cp.novos7a), novos30 = n(cp.novos30), novos30a = n(cp.novos30a);
   const kp = h("div", "ad-kpis");
   kp.append(
-    destaque({ rotulo: "Usuários", valor: ps.length, dica: `${ps.filter((p) => p.verificado).length} verificados` }),
+    destaque({ rotulo: "Usuários", valor: n(cp.total), dica: `${num(n(cp.verificados))} verificados` }),
     destaque({ rotulo: "Novos (7 dias)", valor: novos7, antes: novos7a }),
     destaque({ rotulo: "Novos (30 dias)", valor: novos30, antes: novos30a }),
-    destaque({ rotulo: "Ativos hoje", valor: ps.filter((p) => ativoHa(p, 1)).length, dica: "abriram o site nas últimas 24 h" }),
-    destaque({ rotulo: "Ativos (7 dias)", valor: ps.filter((p) => ativoHa(p, 7)).length, dica: `${ps.length ? Math.round((ps.filter((p) => ativoHa(p, 7)).length / ps.length) * 100) : 0}% da base` }),
-    destaque({ rotulo: "Ativos (30 dias)", valor: ps.filter((p) => ativoHa(p, 30)).length }),
+    destaque({ rotulo: "Ativos hoje", valor: n(cp.ativos1), dica: "abriram o site nas últimas 24 h" }),
+    destaque({ rotulo: "Ativos (7 dias)", valor: n(cp.ativos7), dica: `${cp.total ? Math.round((n(cp.ativos7) / cp.total) * 100) : 0}% da base` }),
+    destaque({ rotulo: "Ativos (30 dias)", valor: n(cp.ativos30) }),
     destaque({ rotulo: "Negócios", valor: D.contNeg.total ?? 0, dica: `${D.contNeg.anuncios ?? 0} anúncios de imóvel` }),
     destaque({ rotulo: "Publicações", valor: D.contagens.diario ?? D.posts.length, dica: `${D.contagens.diario7 ?? D.posts.filter((p) => noPeriodo(p.criadoEm, 7)).length} nos últimos 7 dias` })
   );
@@ -62,14 +63,14 @@ export function visao(el) {
   const semResp = D.queixas.filter((q) => q.status === "aberta" && !q.resposta && ms(q.abertaEm) < agora() - 7 * DIA).length;
   [[D.denuncias.filter((d) => d.status === "nova").length, "Denúncias novas", "Golpes, perfis falsos e ofensas para analisar", "denuncias"],
    [D.suporte.filter((s) => s.status === "aberto").length, "Chamados de suporte esperando", "Pessoas aguardando resposta", "suporte"],
-   [ps.filter((p) => p.solicitacaoVerificacao && !p.verificado).length, "Pedidos de verificação", "Selo de perfil verificado", "verificacoes"],
+   [D.pendVerif.length, "Pedidos de verificação", "Selo de perfil verificado", "verificacoes"],
    [semResp, "Reclamações sem resposta há +7 dias", "O negócio não respondeu no prazo", "reclamacoes"],
    [D.parcerias.filter((p) => p.status === "novo").length, "Propostas de parceria novas", "Sócios, investidores e parceiros", "parcerias"],
    [D.exclusoes.size, "Exclusões de conta agendadas", "Dentro dos 30 dias para recuperar", "usuarios:exclusao"]
   ].forEach(([n, t, sub, sec]) => { const b = h("button"); b.type = "button"; const v = h("b", null, num(n)); if (n) v.style.color = "var(--st-critico)"; const s = h("span"); s.append(document.createTextNode(t), h("small", null, sub)); b.append(v, s); b.addEventListener("click", () => C.irPara(sec)); lista.appendChild(b); });
   at.appendChild(lista); g.appendChild(at);
   // crescimento
-  const s30 = serieDiaria(ps.map((p) => p.criadoEm), 30);
+  const s30 = serieDiaria(D.novos30, 30);
   g.appendChild(cartao({ titulo: "Novos usuários por dia", sub: "Últimos 30 dias", cabecalho: ["Dia", "Novos usuários"], linhas: s30.map((p) => [p.rotulo, p.valor]), desenhar: (a) => linha(a, { pontos: s30 }), nomeArquivo: "novos-usuarios-30d" }));
   // negócios por tipo
   const porTipo = Object.entries(TIPOS_NEG).map(([k, rot], i) => ({ rotulo: rot, valor: D.contNeg[k] ?? 0, cor: `var(--viz-${i + 1})` }));
@@ -82,7 +83,7 @@ export function visao(el) {
   mk.append(
     destaque({ rotulo: "Nota média dos negócios", valor: tot ? soma / tot : 0, formato: (v) => (v ? v.toFixed(2).replace(".", ",") + "★" : "—"), dica: `${num(tot)} avaliações` }),
     destaque({ rotulo: "Reclamações abertas", valor: D.queixas.filter((q) => q.status === "aberta").length, alerta: semResp > 0, dica: `${semResp} sem resposta no prazo` }),
-    destaque({ rotulo: "Contas suspensas/banidas", valor: ps.filter((p) => ["suspenso", "banido"].includes(estado(p).k)).length })
+    destaque({ rotulo: "Contas suspensas/banidas", valor: [...D.sancoes.values()].filter((s) => s.tipo === "banimento" || ms(s.ate) > agora()).length })
   );
   conf.appendChild(mk); g.appendChild(conf);
   el.appendChild(g);
@@ -117,46 +118,116 @@ function minhaFila() {
 }
 
 // ======================================================= USUÁRIOS
+// Paginado: 50 por vez, filtros e busca feitos no servidor (o painel não lê todas as contas).
 let filtroUsuarios = "todos", ordemUsuarios = "recentes";
+const POR_PAG_USU = 50;
 export function usuarios(el, termo = "") {
   if (termo) filtroUsuarios = "todos";
-  const busca = h("input"); busca.type = "search"; busca.placeholder = "Filtrar por nome, @, e-mail, telefone, cidade ou ID"; busca.value = termo;
+  const { fb } = C;
+  const cp = D.contPessoas;
+  const busca = h("input"); busca.type = "search"; busca.placeholder = "Buscar por nome, @, e-mail, telefone ou ID"; busca.value = termo;
   Object.assign(busca.style, { width: "min(420px,100%)", height: "40px", borderRadius: "12px", border: "1px solid var(--line)", background: "var(--input)", padding: "0 12px" });
-  const exportar = btn("Baixar Excel", "", async () => { await garantirNegocios(); const l = filtrar(); baixarCSV("usuarios", ["ID", "Nome", "@", "E-mail", "Telefone", "Cidade", "Idade", "Cadastro", "Último acesso", "Situação", "Verificado", "Negócios"], l.map((p) => [p.uid, p.nome || "", p.nickname || "", p.email || "", p.telefone || "", nomeCidade(p.cidade), idade(p.dataNascimento) ?? "", data(p.criadoEm), data(p.ultimoAcesso), estado(p).t, p.verificado ? "sim" : "não", D.negocios.filter((n) => n.donoId === p.uid).length])); registrar("exportar", "usuarios", `${l.length} linhas`); });
+  // A planilha usa todas as contas (lidas só ao baixar).
+  const exportar = btn("Baixar Excel", "", async (b) => {
+    b.textContent = "Preparando...";
+    try { await Promise.all([garantirTodasPessoas(), garantirNegocios()]); } finally { b.textContent = "Baixar Excel"; }
+    const l = filtrarTodas();
+    baixarCSV("usuarios", ["ID", "Nome", "@", "E-mail", "Telefone", "Cidade", "Idade", "Cadastro", "Último acesso", "Situação", "Verificado", "Negócios"], l.map((p) => [p.uid, p.nome || "", p.nickname || "", p.email || "", p.telefone || "", nomeCidade(p.cidade), idade(p.dataNascimento) ?? "", data(p.criadoEm), data(p.ultimoAcesso), estado(p).t, p.verificado ? "sim" : "não", D.negocios.filter((n) => n.donoId === p.uid).length]));
+    registrar("exportar", "usuarios", `${l.length} linhas`);
+  });
   const topoAcoes = h("div", "ad-acoes"); topoAcoes.append(busca, exportar);
-  el.append(cab("Usuários", `${num(D.pessoas.size)} contas. Toque numa pessoa para ver a ficha completa e agir.`, topoAcoes));
-  const filtros = chips([["todos", "Todos"], ["novos", "Novos (7 dias)"], ["ativos", "Ativos (7 dias)"], ["inativos", "Sumidos (+30 dias)"], ["negocio", "Com negócio"], ["verificados", "Verificados"], ["desativado", "Desativados"], ["exclusao", "Exclusão agendada"], ["sancao", "Suspensos/banidos"]], filtroUsuarios, async (v) => { filtroUsuarios = v; if (v === "negocio" && !D.negociosProntos) { info.textContent = "Carregando negócios..."; await garantirNegocios().catch(() => {}); } pintar(); });
-  const ordem = chips([["recentes", "Mais recentes"], ["acesso", "Último acesso"], ["nome", "Nome A–Z"]], ordemUsuarios, (v) => { ordemUsuarios = v; pintar(); });
+  el.append(cab("Usuários", `${num(cp.total ?? 0)} contas. Toque numa pessoa para ver a ficha completa e agir.`, topoAcoes));
+  const qtd = (v) => (v != null ? ` (${num(v)})` : "");
+  const sancoesAtivas = [...D.sancoes.values()].filter((x) => x.tipo === "banimento" || ms(x.ate) > agora());
+  const filtros = chips([["todos", "Todos" + qtd(cp.total)], ["novos", "Novos (7 dias)" + qtd(cp.novos7)], ["ativos", "Ativos (7 dias)" + qtd(cp.ativos7)], ["inativos", "Sumidos (+30 dias)"], ["negocio", "Com negócio"], ["verificados", "Verificados" + qtd(cp.verificados)], ["desativado", "Desativados"], ["exclusao", "Exclusão agendada" + qtd(D.exclusoes.size)], ["sancao", "Suspensos/banidos" + qtd(sancoesAtivas.length)]], filtroUsuarios, (v) => { filtroUsuarios = v; busca.value = ""; recomecar(); });
+  const ordem = chips([["recentes", "Mais recentes"], ["acesso", "Último acesso"], ["nome", "Nome A–Z"]], ordemUsuarios, (v) => { ordemUsuarios = v; if (filtroUsuarios === "todos" && !busca.value.trim()) recomecar(); else pintar(); });
   const linhaF = h("div", "ad-acoes"); linhaF.style.justifyContent = "space-between"; linhaF.style.marginBottom = "12px"; linhaF.append(filtros, ordem);
   const tab = h("div", "ad-tabela"); const info = h("p"); info.style.color = "var(--muted)";
-  el.append(linhaF, info, tab);
-  function filtrar() {
-    const comNegocio = new Set(D.negocios.map((n) => n.donoId));
-    const t = busca.value.trim().toLowerCase().replace(/^@/, "");
-    const tel = t.replace(/\D/g, "");
-    let l = pessoas().filter((p) => {
-      const st = estado(p).k;
-      if (filtroUsuarios === "novos" && !noPeriodo(p.criadoEm, 7)) return false;
-      if (filtroUsuarios === "ativos" && !ativoHa(p, 7)) return false;
-      if (filtroUsuarios === "inativos" && (ativoHa(p, 30) || !p.ultimoAcesso)) return false;
-      if (filtroUsuarios === "negocio" && !comNegocio.has(p.uid)) return false;
-      if (filtroUsuarios === "verificados" && !p.verificado) return false;
-      if (filtroUsuarios === "desativado" && st !== "desativado") return false;
-      if (filtroUsuarios === "exclusao" && st !== "exclusao") return false;
-      if (filtroUsuarios === "sancao" && !["suspenso", "banido"].includes(st)) return false;
-      if (!t) return true;
-      return [p.nome, p.nickname, p.email, nomeCidade(p.cidade), p.uid].some((x) => String(x || "").toLowerCase().includes(t)) || (tel.length >= 4 && String(p.telefone || "").replace(/\D/g, "").includes(tel));
-    });
-    l.sort(ordemUsuarios === "nome" ? (a, b) => String(a.nome || "").localeCompare(String(b.nome || "")) : ordemUsuarios === "acesso" ? (a, b) => ms(b.ultimoAcesso) - ms(a.ultimoAcesso) : (a, b) => ms(b.criadoEm) - ms(a.criadoEm));
-    return l;
+  const mais = h("div", "ad-acoes"); mais.style.justifyContent = "center"; mais.style.marginTop = "12px";
+  el.append(linhaF, info, tab, mais);
+  const pub = fb.collection(fb.db, "perfis_publicos");
+  const dias = (n) => fb.Timestamp.fromMillis(Date.now() - n * DIA);
+  let lista = [], cursor = null, acabou = false, pedido = 0;
+  // Filtro que vira consulta no servidor (ou null quando a lista vem de outro lugar).
+  function consulta() {
+    const depois = cursor ? [fb.startAfter(cursor)] : [], lim = fb.limit(POR_PAG_USU);
+    switch (filtroUsuarios) {
+      case "todos": return fb.query(pub, ordemUsuarios === "nome" ? fb.orderBy("nome") : fb.orderBy(ordemUsuarios === "acesso" ? "ultimoAcesso" : "criadoEm", "desc"), ...depois, lim);
+      case "novos": return fb.query(pub, fb.where("criadoEm", ">=", dias(7)), fb.orderBy("criadoEm", "desc"), ...depois, lim);
+      case "ativos": return fb.query(pub, fb.where("ultimoAcesso", ">=", dias(7)), fb.orderBy("ultimoAcesso", "desc"), ...depois, lim);
+      case "inativos": return fb.query(pub, fb.where("ultimoAcesso", "<", dias(30)), fb.orderBy("ultimoAcesso", "desc"), ...depois, lim);
+      case "verificados": return fb.query(pub, fb.where("verificado", "==", true), ...depois, lim);
+      case "desativado": return fb.query(pub, fb.where("desativadaAte", ">", fb.Timestamp.now()), fb.orderBy("desativadaAte", "desc"), ...depois, lim);
+      default: return null;
+    }
+  }
+  async function idsFixos() {
+    if (filtroUsuarios === "negocio") { await garantirNegocios(); return [...new Set(D.negocios.map((n) => n.donoId))]; }
+    if (filtroUsuarios === "exclusao") return [...D.exclusoes.keys()];
+    if (filtroUsuarios === "sancao") return sancoesAtivas.map((x) => x.id);
+    return [];
+  }
+  async function pagina() {
+    const q = consulta();
+    if (!q) {
+      const ids = await idsFixos();
+      const fatia = ids.slice(lista.length, lista.length + POR_PAG_USU);
+      await carregarPessoas(fatia);
+      return { itens: fatia.map(pessoa), fim: lista.length + fatia.length >= ids.length };
+    }
+    const snap = await fb.getDocs(q);
+    cursor = snap.docs.at(-1) || cursor;
+    return { itens: await guardarPessoas(snap.docs), fim: snap.size < POR_PAG_USU };
+  }
+  async function carregarMais() {
+    const meu = ++pedido;
+    mais.replaceChildren(h("span", null, "Carregando..."));
+    try { const r = await pagina(); if (meu !== pedido) return; lista.push(...r.itens); acabou = r.fim; }
+    catch (e) { if (meu !== pedido) return; console.warn("Usuários:", e); acabou = true; toast("Não foi possível carregar: " + (e.code || e.message)); }
+    pintar();
+  }
+  function recomecar() { lista = []; cursor = null; acabou = false; tab.replaceChildren(); carregarMais(); }
+  // Busca no servidor: começo do @ e do nome, qualquer palavra do nome, e-mail, telefone e ID exatos.
+  async function buscar(t) {
+    const meu = ++pedido;
+    mais.replaceChildren(h("span", null, "Buscando..."));
+    const minus = t.toLowerCase().replace(/^@/, "");
+    const titulo = minus.replace(/(^|\s)\S/g, (x) => x.toUpperCase());
+    const ler = (q) => fb.getDocs(q).then((sn) => sn.docs).catch(() => []);
+    const prefixo = (campo, v) => ler(fb.query(pub, fb.orderBy(campo), fb.startAt(v), fb.endAt(v + ""), fb.limit(25)));
+    const palavra = minus.normalize("NFD").replace(/[̀-ͯ]/g, "").split(/[^a-z0-9]+/).filter((x) => x.length >= 2)[0];
+    const digitos = t.replace(/\D/g, "");
+    const usu = fb.collection(fb.db, "usuarios");
+    const [porPub, porConta, porId] = await Promise.all([
+      Promise.all([prefixo("nickname", minus.replace(/\s+/g, "")), ...[...new Set([t, minus, titulo])].map((v) => prefixo("nome", v)),
+        palavra ? ler(fb.query(pub, fb.where("busca", "array-contains", palavra), fb.limit(25))) : []]).then((g) => g.flat()),
+      pode("moderar") ? Promise.all([
+        t.includes("@") ? ler(fb.query(usu, fb.where("email", "in", [...new Set([t, minus])]), fb.limit(10))) : [],
+        digitos.length >= 8 ? ler(fb.query(usu, fb.where("telefone", "in", [...new Set([t, digitos])]), fb.limit(10))) : []
+      ]).then((g) => g.flat().map((d) => d.id)) : [],
+      /^[A-Za-z0-9]{6,}$/.test(t) ? fb.getDoc(fb.doc(pub, t)).then((d) => (d.exists() ? [d] : [])).catch(() => []) : []
+    ]);
+    const unicos = new Map(); [...porPub, ...porId].forEach((d) => unicos.set(d.id, d));
+    await guardarPessoas([...unicos.values()]);
+    await carregarPessoas(porConta);
+    if (meu !== pedido) return;
+    lista = [...new Set([...unicos.keys(), ...porConta])].map(pessoa);
+    acabou = true;
+    pintar();
+    info.textContent = `${num(lista.length)} resultado(s) para "${t}".`;
+  }
+  function ordenar(l) {
+    return [...l].sort(ordemUsuarios === "nome" ? (a, b) => String(a.nome || "").localeCompare(String(b.nome || "")) : ordemUsuarios === "acesso" ? (a, b) => ms(b.ultimoAcesso) - ms(a.ultimoAcesso) : (a, b) => ms(b.criadoEm) - ms(a.criadoEm));
   }
   function pintar() {
-    const l = filtrar();
-    info.textContent = `${num(l.length)} ${l.length === 1 ? "pessoa" : "pessoas"}${l.length > 300 ? " (mostrando 300; refine a busca)" : ""}`;
+    // "Todos" já vem na ordem escolhida do servidor; os outros filtros são ordenados aqui.
+    const l = filtroUsuarios === "todos" && !busca.value.trim() ? lista : ordenar(lista);
+    const total = { todos: cp.total, novos: cp.novos7, ativos: cp.ativos7, verificados: cp.verificados }[filtroUsuarios];
+    info.textContent = l.length ? `Mostrando ${num(l.length)}${total != null && !busca.value.trim() ? ` de ${num(total)}` : ""} ${l.length === 1 ? "pessoa" : "pessoas"}.` : "";
     const t = document.createElement("table");
     const th = h("tr"); ["Pessoa", "E-mail", "Cidade", "Idade", "Cadastro", "Último acesso", "Situação"].forEach((x) => th.appendChild(h("th", null, x)));
     const thead = h("thead"); thead.appendChild(th); const tb = h("tbody");
-    l.slice(0, 300).forEach((p) => {
+    l.forEach((p) => {
       const tr = h("tr", "clicavel"); tr.tabIndex = 0;
       const c1 = h("td"); c1.appendChild(pessoaCel(p));
       const st = estado(p); const c7 = h("td"); c7.appendChild(selo(st.t, st.c)); if (p.verificado) c7.append(" ", selo("Verificado", "info"));
@@ -166,10 +237,30 @@ export function usuarios(el, termo = "") {
       tb.appendChild(tr);
     });
     t.append(thead, tb); tab.replaceChildren(l.length ? t : h("div", "ad-vazio", "Ninguém encontrado com esses filtros."));
+    mais.replaceChildren();
+    if (!acabou) mais.appendChild(btn("Carregar mais", "", carregarMais));
   }
-  let tempo; busca.addEventListener("input", () => { clearTimeout(tempo); tempo = setTimeout(pintar, 200); });
-  pintar();
-  if (filtroUsuarios === "negocio" && !D.negociosProntos) garantirNegocios().then(pintar).catch(() => {});
+  // Planilha: mesmos filtros, sobre todas as contas.
+  function filtrarTodas() {
+    const comNegocio = new Set(D.negocios.map((n) => n.donoId));
+    return ordenar(pessoas().filter((p) => {
+      const st = estado(p).k;
+      if (filtroUsuarios === "novos") return noPeriodo(p.criadoEm, 7);
+      if (filtroUsuarios === "ativos") return ativoHa(p, 7);
+      if (filtroUsuarios === "inativos") return !ativoHa(p, 30) && !!p.ultimoAcesso;
+      if (filtroUsuarios === "negocio") return comNegocio.has(p.uid);
+      if (filtroUsuarios === "verificados") return !!p.verificado;
+      if (filtroUsuarios === "desativado") return st === "desativado";
+      if (filtroUsuarios === "exclusao") return st === "exclusao";
+      if (filtroUsuarios === "sancao") return ["suspenso", "banido"].includes(st);
+      return true;
+    }));
+  }
+  let tempo; busca.addEventListener("input", () => {
+    clearTimeout(tempo);
+    tempo = setTimeout(() => { const t = busca.value.trim(); if (t.length >= 2) buscar(t); else if (!t) recomecar(); }, 400);
+  });
+  if (termo.trim().length >= 2) buscar(termo.trim()); else recomecar();
   if (termo) busca.focus();
 }
 
@@ -378,6 +469,8 @@ export function negocios(el) {
     try {
       const r = await pagina();
       if (meu !== pedido) return;
+      await carregarPessoas(r.itens.map((n) => n.donoId)); // nomes dos donos desta página
+      if (meu !== pedido) return;
       lista.push(...r.itens); acabou = r.fim;
     } catch (e) {
       if (meu !== pedido) return;
@@ -394,7 +487,7 @@ export function negocios(el) {
     const titulo = t.toLowerCase().replace(/(^|\s)\S/g, (x) => x.toUpperCase());
     const variantes = [...new Set([t, titulo, t[0].toUpperCase() + t.slice(1)])];
     const tl = t.toLowerCase().replace(/^@/, "");
-    const donos = pessoas().filter((x) => (x.nome || "").toLowerCase().includes(tl) || (x.nickname || "").toLowerCase().startsWith(tl)).slice(0, 30).map((x) => x.uid);
+    const donos = (await buscarPessoas(fb, t, { limite: 30 }).catch(() => [])).map((x) => x.uid).slice(0, 30);
     const ler = (q) => fb.getDocs(q).then((sn) => sn.docs).catch(() => []);
     const grupos = await Promise.all([
       ...variantes.map((v) => ler(fb.query(neg, fb.where("nome", ">=", v), fb.where("nome", "<=", v + "\uf8ff"), fb.limit(25)))),
@@ -404,6 +497,8 @@ export function negocios(el) {
     if (meu !== pedido) return;
     const vistos = new Set();
     lista = grupos.flat().filter((d) => !vistos.has(d.id) && vistos.add(d.id)).map(doc).sort((a, b) => ms(b.atualizadoEm) - ms(a.atualizadoEm));
+    await carregarPessoas(lista.map((n) => n.donoId));
+    if (meu !== pedido) return;
     acabou = true;
     pintar();
     info.textContent = `${num(lista.length)} resultado(s) para "${t}".`;
@@ -602,7 +697,7 @@ export function parcerias(el) {
 // ======================================================= VERIFICAÇÕES
 export function verificacoes(el) {
   el.appendChild(cab("Verificações", "Pedidos de selo de perfil verificado. Confira se é quem diz ser antes de aprovar."));
-  const pend = pessoas().filter((p) => p.solicitacaoVerificacao && !p.verificado).sort((a, b) => ms(a.solicitacaoVerificacaoEm) - ms(b.solicitacaoVerificacaoEm));
+  const pend = D.pendVerif.map(pessoa).filter((p) => !p.verificado).sort((a, b) => ms(a.solicitacaoVerificacaoEm) - ms(b.solicitacaoVerificacaoEm));
   const lista = h("div", "ad-lista");
   if (!pend.length) lista.appendChild(h("div", "ad-vazio", "Nenhum pedido de verificação esperando."));
   pend.forEach((p) => {

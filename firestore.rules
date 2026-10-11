@@ -239,6 +239,13 @@ service cloud.firestore {
             || getAfter(/databases/$(database)/documents/nicknames/$(d.nickname)).data.uid == request.auth.uid;
       }
 
+      // Trocou de @: o antigo tem que ser liberado na mesma gravação (ninguém guarda vários @).
+      function liberouNickAntigo() {
+        let antigo = resource.data.get('nickname', '');
+        return antigo == null || antigo == '' || antigo == request.resource.data.get('nickname', '')
+            || !existsAfter(/databases/$(database)/documents/nicknames/$(antigo));
+      }
+
       function tamanhosOk() {
         return textoAte('nome', 80)
             && textoAte('bio', 400)
@@ -314,7 +321,7 @@ service cloud.firestore {
                     && request.resource.data.uid == resource.data.uid
                     && naoTocaCamposProtegidosNoUpdate()
                     && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['nickname'])
-                        || nickDoDono())
+                        || (nickDoDono() && liberouNickAntigo()))
                     && gravou().hasOnly(camposPerfil())
                     && (!mudou().hasAny(['desativadaAte']) || !sancionado(request.auth.uid))
                     && tamanhosOk()
@@ -333,9 +340,11 @@ service cloud.firestore {
 
       allow read: if true;
 
+      // Só reserva o @ que o próprio perfil passa a usar na mesma gravação (sem guardar @ sobrando).
       allow create: if logado()
                     && request.auth.uid == request.resource.data.uid
-                    && nickname.matches('^[a-z0-9._]{3,20}$');
+                    && nickname.matches('^[a-z0-9._]{3,20}$')
+                    && getAfter(/databases/$(database)/documents/perfis_publicos/$(request.auth.uid)).data.get('nickname', '') == nickname;
 
       allow update: if false;
 
@@ -1282,8 +1291,12 @@ service cloud.firestore {
     }
 
     match /parcerias/{id} {
-      // Formulário público (Sócios e parcerias): qualquer pessoa envia, só a equipe lê.
-      allow create: if request.resource.data.keys().hasOnly(['nome', 'empresa', 'email', 'telefone', 'tipo', 'mensagem', 'site', 'cidade', 'uid', 'status', 'criadoEm'])
+      // Formulário de Sócios e parcerias: só quem tem conta (e-mail confirmado), até 3 por dia; só a equipe lê.
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.uid == request.auth.uid
+                    && ritmoOk('parc')
+                    && request.resource.data.keys().hasOnly(['nome', 'empresa', 'email', 'telefone', 'tipo', 'mensagem', 'site', 'cidade', 'uid', 'status', 'criadoEm'])
                     && request.resource.data.nome is string && request.resource.data.nome.size() >= 2 && request.resource.data.nome.size() <= 80
                     && request.resource.data.email is string && request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+[.][^@\\s]+$') && request.resource.data.email.size() <= 120
                     && valorTextoAte(request.resource.data.get('empresa', ''), 100)
@@ -1292,7 +1305,6 @@ service cloud.firestore {
                     && valorTextoAte(request.resource.data.get('cidade', ''), 80)
                     && request.resource.data.tipo in ['socio', 'investidor', 'parceiro', 'anunciante', 'imprensa', 'outro']
                     && request.resource.data.mensagem is string && request.resource.data.mensagem.size() >= 10 && request.resource.data.mensagem.size() <= 2000
-                    && (!('uid' in request.resource.data) || (request.auth != null && request.resource.data.uid == request.auth.uid))
                     && request.resource.data.status == 'novo'
                     && request.resource.data.criadoEm == request.time;
       allow read: if admin();
@@ -1398,7 +1410,7 @@ service cloud.firestore {
     // =====================================================
     match /ritmo/{uid} {
       function limite(t) {
-        return t == 'msg' ? 500 : (t == 'pub' ? 20 : 200);
+        return t == 'msg' ? 500 : (t == 'pub' ? 20 : (t == 'parc' ? 3 : 200));
       }
       function janelaNova() {
         return resource == null || resource.data.inicio < request.time - duration.value(1, 'd');
@@ -1413,13 +1425,14 @@ service cloud.firestore {
       allow read: if admin();
       allow create, update: if logado()
                     && request.auth.uid == uid
-                    && request.resource.data.keys().hasOnly(['inicio', 'msg', 'pub', 'com', 'ultimaEm', 'ultimoTipo'])
-                    && request.resource.data.ultimoTipo in ['msg', 'pub', 'com']
+                    && request.resource.data.keys().hasOnly(['inicio', 'msg', 'pub', 'com', 'parc', 'ultimaEm', 'ultimoTipo'])
+                    && request.resource.data.ultimoTipo in ['msg', 'pub', 'com', 'parc']
                     && request.resource.data.ultimaEm == request.time
                     && request.resource.data.inicio == (janelaNova() ? request.time : resource.data.inicio)
                     && contaOk('msg', request.resource.data.ultimoTipo)
                     && contaOk('pub', request.resource.data.ultimoTipo)
                     && contaOk('com', request.resource.data.ultimoTipo)
+                    && contaOk('parc', request.resource.data.ultimoTipo)
                     && request.resource.data.get(request.resource.data.ultimoTipo, 0) <= limite(request.resource.data.ultimoTipo);
       allow delete: if false;
     }
