@@ -7,8 +7,8 @@ import {
   $, pintarAvatar, toast, erroAmigavel, abrirFolha, fecharFolha, abrirLista, config, salvarConfig, aplicarTema,
   fb, authFns, eu, refUsuario, dados, perfis, meusBloqueios, restritos, obterPerfil, linhaPessoa,
   desbloquear, alternarRestricao, marcarPresenca, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos, salvarPrivacidadeConta
-} from "./rede.js?v=23";
-import { MOTIVOS_DESATIVAR, desativarConta, pedirExclusao, reautenticar, provedor } from "./conta.js?v=1";
+} from "./rede.js?v=25";
+import { MOTIVOS_DESATIVAR, desativarConta, pedirExclusao, reautenticar, provedor } from "./conta.js?v=2";
 
 function pintarConfig() {
   pintarAvatar($("cfgAvatar"), dados.fotoPerfil, dados.nome);

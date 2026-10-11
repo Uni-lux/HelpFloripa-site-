@@ -10,7 +10,7 @@
 import { fotoSegura } from "./seguranca.js?v=1";
 import { enfeitarSelect } from "./escolha.js?v=3";
 import { estrelas, lerResumos, media } from "./avaliacoes.js?v=11";
-import { docsComValidade } from "./leituras.js?v=1";
+import { docComValidade, docsComValidade } from "./leituras.js?v=1";
 import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria } from "./vitrine.js?v=30";
 
 const $ = (id) => document.getElementById(id);
@@ -294,7 +294,7 @@ async function carregar(fs, db, u) {
   auth.onAuthStateChanged(window.firebaseAuth, async (u) => {
     if (!u || feito) return;
     feito = true;
-    try { const s = await fs.getDoc(fs.doc(db, "perfis_publicos", u.uid)); saudacao((s.exists() && s.data().nome) || u.displayName || ""); } catch { saudacao(u.displayName || ""); }
+    try { const s = await docComValidade({ ...fs, db }, ["perfis_publicos", u.uid], 10 * 60000); saudacao((s.exists() && s.data().nome) || u.displayName || ""); } catch { saudacao(u.displayName || ""); }
     carregar(fs, db, u);
     comunicados(fs, db);
   });
