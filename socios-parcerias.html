@@ -98,7 +98,8 @@
     </section>
     <section class="secao" aria-labelledby="sproposta">
       <h2 class="secao-titulo" id="sproposta">Envie sua proposta</h2>
-      <p class="secao-sub">Conte quem você é e o que tem em mente. A equipe responde por e-mail ou WhatsApp.</p>
+      <p class="secao-sub">Conte quem você é e o que tem em mente. A equipe responde por e-mail ou WhatsApp. Para enviar, entre na sua conta (evita spam).</p>
+      <div class="form-info" id="pcEntrar" hidden><p>Para enviar uma proposta pelo site, entre na sua conta ou crie uma. Se preferir, fale com a gente pelo WhatsApp.</p><a class="botao" id="pcEntrarLink" href="login.html?redirect=socios-parcerias.html%23sproposta">Entrar para enviar</a></div>
       <form class="form-info" id="formParceria" novalidate>
         <div class="duas-colunas">
           <div class="campo"><label for="pcNome">Seu nome</label><input id="pcNome" maxlength="80" autocomplete="name" required /></div>
@@ -123,7 +124,19 @@
     </section>
     <script type="module">
       // Propostas vão para parcerias/ e aparecem no painel da equipe.
+      import { comRitmo } from "./ritmo.js?v=2";
       const $ = (id) => document.getElementById(id);
+      // Só quem tem conta envia: visitante vê o convite para entrar no lugar do formulário.
+      (async () => {
+        for (let i = 0; i < 100 && !window.firebaseAuth; i++) await new Promise((r) => setTimeout(r, 50));
+        if (!window.firebaseAuth) return;
+        const A = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+        A.onAuthStateChanged(window.firebaseAuth, (u) => {
+          $("formParceria").hidden = !u; $("pcEntrar").hidden = !!u;
+          if (u && !$("pcEmail").value && u.email) $("pcEmail").value = u.email;
+          if (u && !$("pcNome").value && u.displayName) $("pcNome").value = u.displayName;
+        });
+      })();
       $("formParceria").addEventListener("submit", async (e) => {
         e.preventDefault();
         const aviso = (t, cor) => { $("pcAviso").textContent = t; $("pcAviso").style.color = cor || ""; };
@@ -137,11 +150,16 @@
           const F = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
           const dados = { nome, email, tipo: $("pcTipo").value, mensagem: msg, status: "novo", criadoEm: F.serverTimestamp() };
           for (const [k, id] of [["empresa", "pcEmpresa"], ["telefone", "pcTelefone"], ["cidade", "pcCidade"], ["site", "pcSite"]]) { const v = $(id).value.trim(); if (v) dados[k] = v; }
-          const u = window.firebaseAuth?.currentUser; if (u) dados.uid = u.uid;
-          await F.addDoc(F.collection(window.firebaseDb, "parcerias"), dados);
+          const u = window.firebaseAuth?.currentUser;
+          if (!u) { aviso("Entre na sua conta para enviar.", "#e5484d"); return; }
+          if (!u.emailVerified) { aviso("Confirme seu e-mail antes de enviar (veja o link que mandamos na sua caixa de entrada).", "#e5484d"); return; }
+          dados.uid = u.uid;
+          const fb = { ...F, db: window.firebaseDb };
+          // Junto com o limite diário (até 3 propostas por dia).
+          await comRitmo(fb, u.uid, "parc", (lote) => lote.set(F.doc(F.collection(window.firebaseDb, "parcerias")), dados));
           $("formParceria").reset();
           aviso("Proposta enviada! A equipe vai entrar em contato em breve.", "#2fbf71");
-        } catch (err) { console.error(err); aviso("Não foi possível enviar agora. Tente de novo ou fale pelo WhatsApp.", "#e5484d"); }
+        } catch (err) { if (err?.code !== "limite-diario") console.error(err); aviso(err?.code === "limite-diario" ? err.message : "Não foi possível enviar agora. Tente de novo ou fale pelo WhatsApp.", "#e5484d"); }
         finally { b.disabled = false; }
       });
     </script>

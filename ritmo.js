@@ -1,20 +1,20 @@
 // =====================================================
-// Limite diário (anti-spam): mensagens, publicações e comentários.
+// Limite diário (anti-spam): mensagens, publicações, comentários e propostas de parceria.
 // ritmo/{uid} = janela de 24 h a partir da primeira ação, com um contador por tipo.
 // Cada envio grava o item e soma 1 no contador NA MESMA operação; as regras do
 // Firestore recusam o item sem essa soma ou acima do limite.
 // =====================================================
-export const LIMITES = { msg: 500, pub: 20, com: 200 };
-const NOMES = { msg: "mensagens", pub: "publicações", com: "comentários" };
+export const LIMITES = { msg: 500, pub: 20, com: 200, parc: 3 };
+const NOMES = { msg: "mensagens", pub: "publicações", com: "comentários", parc: "propostas de parceria" };
 const DIA = 86400000;
-let estado = null; // { uid, inicio (ms), msg, pub, com }
+let estado = null; // { uid, inicio (ms), msg, pub, com, parc }
 
 async function ler(fb, uid) {
   try {
     const s = await fb.getDoc(fb.doc(fb.db, "ritmo", uid));
     const d = s.exists() ? s.data() : {};
-    estado = { uid, inicio: d.inicio?.toMillis?.() ?? 0, msg: d.msg || 0, pub: d.pub || 0, com: d.com || 0 };
-  } catch { estado = { uid, inicio: 0, msg: 0, pub: 0, com: 0 }; }
+    estado = { uid, inicio: d.inicio?.toMillis?.() ?? 0, msg: d.msg || 0, pub: d.pub || 0, com: d.com || 0, parc: d.parc || 0 };
+  } catch { estado = { uid, inicio: 0, msg: 0, pub: 0, com: 0, parc: 0 }; }
 }
 
 export class LimiteDiario extends Error {
@@ -30,11 +30,11 @@ export async function comRitmo(fb, uid, tipo, escrever) {
     if (!nova && estado[tipo] >= LIMITES[tipo]) throw new LimiteDiario(tipo);
     const lote = fb.writeBatch(fb.db);
     const resultado = escrever(lote);
-    if (nova) lote.set(ref, { inicio: fb.serverTimestamp(), msg: tipo === "msg" ? 1 : 0, pub: tipo === "pub" ? 1 : 0, com: tipo === "com" ? 1 : 0, ultimaEm: fb.serverTimestamp(), ultimoTipo: tipo });
+    if (nova) lote.set(ref, { inicio: fb.serverTimestamp(), msg: tipo === "msg" ? 1 : 0, pub: tipo === "pub" ? 1 : 0, com: tipo === "com" ? 1 : 0, parc: tipo === "parc" ? 1 : 0, ultimaEm: fb.serverTimestamp(), ultimoTipo: tipo });
     else lote.set(ref, { [tipo]: fb.increment(1), ultimaEm: fb.serverTimestamp(), ultimoTipo: tipo }, { merge: true });
     try {
       await lote.commit();
-      if (nova) estado = { uid, inicio: Date.now(), msg: 0, pub: 0, com: 0 };
+      if (nova) estado = { uid, inicio: Date.now(), msg: 0, pub: 0, com: 0, parc: 0 };
       estado[tipo]++;
       return resultado;
     } catch (e) {

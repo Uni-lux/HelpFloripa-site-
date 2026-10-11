@@ -8,7 +8,7 @@
 // - Nova publicação (foto ou texto).
 // - Barra inferior, avisos (notificações) e presença online.
 // =====================================================
-import { comRitmo } from "./ritmo.js?v=1";
+import { comRitmo } from "./ritmo.js?v=2";
 import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=5";
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
 import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=15";
@@ -390,7 +390,7 @@ export async function iniciarRede({ sincronizar = false } = {}) {
   if (!dados.nickname && pub.nickname) dados.nickname = pub.nickname;
   if (sincronizar) {
     fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), {
-      uid: eu.uid, nome: dados.nome, nickname: dados.nickname || "", cidade: dados.cidade,
+      uid: eu.uid, nome: dados.nome, nickname: pub.nickname || dados.nickname || "", cidade: dados.cidade,
       fotoPerfil: dados.fotoPerfil || "", fotoCapa: dados.fotoCapa || "", bio: dados.bio || ""
     }, { merge: true }).catch((e) => console.warn("Perfil público não sincronizado:", e));
   }

@@ -8,8 +8,59 @@ export const D = {
   pessoas: new Map(), negocios: [], anuncios: [], posts: [], denuncias: [], queixas: [], suporte: [], parcerias: [],
   sancoes: new Map(), exclusoes: new Map(), notas: new Map(), comunicados: [], log: [], admins: [], estatisticas: [],
   contagens: {}, carregadoEm: 0,
-  contNeg: {}, negociosProntos: false // negócios: só os totais ao abrir; a lista inteira só quando uma seção precisa
+  contNeg: {}, negociosProntos: false, // negócios: só os totais ao abrir; a lista inteira só quando uma seção precisa
+  contPessoas: {}, novos30: [], pendVerif: [], pessoasCompletas: false // pessoas: totais + só quem aparece na tela
 };
+// ---------- pessoas ----------
+// O painel não lê todas as contas ao abrir: lê os totais e só as pessoas que aparecem
+// (denúncias, chamados, listas paginadas, buscas). A lista inteira só nas Estatísticas e Relatórios.
+// Perfil público + dados da conta (e-mail, telefone...) quando o papel pode ver.
+export function juntarPessoa(uid, pub = {}, priv = null) {
+  const p = { uid, ...pub };
+  if (priv) Object.assign(p, priv, { uid, ultimoAcesso: pub.ultimoAcesso, desativadaAte: pub.desativadaAte, fotoPerfil: priv.fotoPerfil || pub.fotoPerfil, verificado: priv.verificado ?? pub.verificado });
+  return p;
+}
+export async function carregarPessoas(uids) {
+  const { fb } = C;
+  const faltam = [...new Set(uids)].filter((u) => typeof u === "string" && u && !u.includes("/") && !D.pessoas.has(u));
+  const lotes = [];
+  for (let i = 0; i < faltam.length; i += 30) lotes.push(faltam.slice(i, i + 30));
+  const ler = (col, l) => fb.getDocs(fb.query(fb.collection(fb.db, col), fb.where(fb.documentId(), "in", l))).then((s) => new Map(s.docs.map((d) => [d.id, d.data()]))).catch(() => new Map());
+  await Promise.all(lotes.map(async (l) => {
+    const [pub, priv] = await Promise.all([ler("perfis_publicos", l), pode("moderar") ? ler("usuarios", l) : Promise.resolve(new Map())]);
+    l.forEach((u) => {
+      if (!pub.has(u) && !priv.has(u)) D.pessoas.set(u, { uid: u, nome: "Usuário removido", removido: true });
+      else D.pessoas.set(u, juntarPessoa(u, pub.get(u) || {}, priv.get(u) || null));
+    });
+  }));
+}
+// Perfis públicos que já vieram de uma consulta: completa com os dados da conta (se o papel pode ver).
+export async function guardarPessoas(docsPub) {
+  const { fb } = C;
+  const novos = docsPub.filter((d) => !D.pessoas.has(d.id));
+  const priv = new Map();
+  if (pode("moderar") && novos.length) {
+    const ids = novos.map((d) => d.id);
+    const lotes = []; for (let i = 0; i < ids.length; i += 30) lotes.push(ids.slice(i, i + 30));
+    await Promise.all(lotes.map((l) => fb.getDocs(fb.query(fb.collection(fb.db, "usuarios"), fb.where(fb.documentId(), "in", l))).then((s) => s.docs.forEach((d) => priv.set(d.id, d.data()))).catch(() => {})));
+  }
+  novos.forEach((d) => D.pessoas.set(d.id, juntarPessoa(d.id, d.data(), priv.get(d.id) || null)));
+  return docsPub.map((d) => D.pessoas.get(d.id));
+}
+// Todas as contas (Estatísticas, Relatórios e planilha de usuários). Lido uma vez, quando precisa.
+let carregandoTodas = null;
+export function garantirTodasPessoas() {
+  if (D.pessoasCompletas) return Promise.resolve();
+  if (!carregandoTodas) {
+    const { fb } = C;
+    const todos = (n) => fb.getDocs(fb.query(fb.collection(fb.db, n), fb.limit(5000))).then((s) => new Map(s.docs.map((d) => [d.id, d.data()])));
+    carregandoTodas = Promise.all([todos("perfis_publicos"), pode("moderar") ? todos("usuarios") : Promise.resolve(new Map())]).then(([pub, priv]) => {
+      new Set([...pub.keys(), ...priv.keys()]).forEach((u) => D.pessoas.set(u, juntarPessoa(u, pub.get(u) || {}, priv.get(u) || null)));
+      D.pessoasCompletas = true;
+    }).finally(() => { carregandoTodas = null; });
+  }
+  return carregandoTodas;
+}
 // A lista inteira de negócios, anúncios e publicações (para estatísticas, relatórios, moderação do Diário e filtros por dono).
 // Lida uma vez, quando alguém abre uma seção que precisa dela.
 let carregandoNeg = null;
@@ -187,6 +238,7 @@ export async function definirSelo(uid, sim) {
   await fb.updateDoc(fb.doc(fb.db, "usuarios", uid), { verificado: sim, solicitacaoVerificacao: false, verificacaoRespondidaEm: fb.serverTimestamp() });
   await fb.updateDoc(fb.doc(fb.db, "perfis_publicos", uid), { verificado: sim }).catch(() => {});
   const p = D.pessoas.get(uid); if (p) { p.verificado = sim; p.solicitacaoVerificacao = false; }
+  D.pendVerif = D.pendVerif.filter((x) => x !== uid);
   await registrar(sim ? "verificar" : "tirar_selo", uid);
 }
 
