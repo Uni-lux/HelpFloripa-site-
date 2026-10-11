@@ -6,8 +6,8 @@ import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha,
   PAPEIS, DESC_PAPEIS, pode, semPermissao, nomeEquipe, vendoAgora, marcarItem, seloResp, confirmarItem, controlesResp, espera,
-  PRIORIDADES, editarTarefa, moverTarefa
-} from "./admin-base.js?v=6";
+  PRIORIDADES, editarTarefa, moverTarefa, garantirNegocios
+} from "./admin-base.js?v=7";
 
 const cab = (titulo, sub, extra) => { const c = h("div", "ad-cab"); const t = h("div"); t.append(h("h1", null, titulo)); if (sub) t.append(h("p", null, sub)); c.appendChild(t); if (extra) c.appendChild(extra); return c; };
 const bloco = (titulo, sub) => { const b = h("section", "ad-bloco"); const t = h("div", "ad-bloco-topo"); const tt = h("div"); tt.append(h("h3", null, titulo)); if (sub) tt.append(h("p", null, sub)); t.appendChild(tt); b.appendChild(t); b.topo = t; return b; };
@@ -49,7 +49,7 @@ export function visao(el) {
     destaque({ rotulo: "Ativos hoje", valor: ps.filter((p) => ativoHa(p, 1)).length, dica: "abriram o site nas últimas 24 h" }),
     destaque({ rotulo: "Ativos (7 dias)", valor: ps.filter((p) => ativoHa(p, 7)).length, dica: `${ps.length ? Math.round((ps.filter((p) => ativoHa(p, 7)).length / ps.length) * 100) : 0}% da base` }),
     destaque({ rotulo: "Ativos (30 dias)", valor: ps.filter((p) => ativoHa(p, 30)).length }),
-    destaque({ rotulo: "Negócios", valor: D.negocios.length, dica: `${D.anuncios.length} anúncios de imóvel` }),
+    destaque({ rotulo: "Negócios", valor: D.contNeg.total ?? 0, dica: `${D.contNeg.anuncios ?? 0} anúncios de imóvel` }),
     destaque({ rotulo: "Publicações", valor: D.contagens.diario ?? D.posts.length, dica: `${D.posts.filter((p) => noPeriodo(p.criadoEm, 7)).length} nos últimos 7 dias` })
   );
   const hora = new Date().getHours(); const saud = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
@@ -72,8 +72,8 @@ export function visao(el) {
   const s30 = serieDiaria(ps.map((p) => p.criadoEm), 30);
   g.appendChild(cartao({ titulo: "Novos usuários por dia", sub: "Últimos 30 dias", cabecalho: ["Dia", "Novos usuários"], linhas: s30.map((p) => [p.rotulo, p.valor]), desenhar: (a) => linha(a, { pontos: s30 }), nomeArquivo: "novos-usuarios-30d" }));
   // negócios por tipo
-  const porTipo = Object.entries(TIPOS_NEG).map(([k, rot], i) => ({ rotulo: rot, valor: D.negocios.filter((n) => n.tipo === k).length, cor: `var(--viz-${i + 1})` }));
-  g.appendChild(cartao({ titulo: "Perfis de negócio por tipo", sub: `${D.negocios.length} no total`, cabecalho: ["Tipo", "Perfis"], linhas: porTipo.map((x) => [x.rotulo, x.valor]), desenhar: (a) => barras(a, { itens: porTipo }), nomeArquivo: "negocios-por-tipo" }));
+  const porTipo = Object.entries(TIPOS_NEG).map(([k, rot], i) => ({ rotulo: rot, valor: D.contNeg[k] ?? 0, cor: `var(--viz-${i + 1})` }));
+  g.appendChild(cartao({ titulo: "Perfis de negócio por tipo", sub: `${D.contNeg.total ?? 0} no total`, cabecalho: ["Tipo", "Perfis"], linhas: porTipo.map((x) => [x.rotulo, x.valor]), desenhar: (a) => barras(a, { itens: porTipo }), nomeArquivo: "negocios-por-tipo" }));
   // confiança
   const conf = bloco("Confiança da plataforma", "Moderação e qualidade do atendimento.");
   const mk = h("div", "ad-kpis"); mk.style.marginBottom = "0";
@@ -122,16 +122,16 @@ export function usuarios(el, termo = "") {
   if (termo) filtroUsuarios = "todos";
   const busca = h("input"); busca.type = "search"; busca.placeholder = "Filtrar por nome, @, e-mail, telefone, cidade ou ID"; busca.value = termo;
   Object.assign(busca.style, { width: "min(420px,100%)", height: "40px", borderRadius: "12px", border: "1px solid var(--line)", background: "var(--input)", padding: "0 12px" });
-  const exportar = btn("Baixar Excel", "", () => { const l = filtrar(); baixarCSV("usuarios", ["ID", "Nome", "@", "E-mail", "Telefone", "Cidade", "Idade", "Cadastro", "Último acesso", "Situação", "Verificado", "Negócios"], l.map((p) => [p.uid, p.nome || "", p.nickname || "", p.email || "", p.telefone || "", nomeCidade(p.cidade), idade(p.dataNascimento) ?? "", data(p.criadoEm), data(p.ultimoAcesso), estado(p).t, p.verificado ? "sim" : "não", D.negocios.filter((n) => n.donoId === p.uid).length])); registrar("exportar", "usuarios", `${l.length} linhas`); });
+  const exportar = btn("Baixar Excel", "", async () => { await garantirNegocios(); const l = filtrar(); baixarCSV("usuarios", ["ID", "Nome", "@", "E-mail", "Telefone", "Cidade", "Idade", "Cadastro", "Último acesso", "Situação", "Verificado", "Negócios"], l.map((p) => [p.uid, p.nome || "", p.nickname || "", p.email || "", p.telefone || "", nomeCidade(p.cidade), idade(p.dataNascimento) ?? "", data(p.criadoEm), data(p.ultimoAcesso), estado(p).t, p.verificado ? "sim" : "não", D.negocios.filter((n) => n.donoId === p.uid).length])); registrar("exportar", "usuarios", `${l.length} linhas`); });
   const topoAcoes = h("div", "ad-acoes"); topoAcoes.append(busca, exportar);
   el.append(cab("Usuários", `${num(D.pessoas.size)} contas. Toque numa pessoa para ver a ficha completa e agir.`, topoAcoes));
-  const filtros = chips([["todos", "Todos"], ["novos", "Novos (7 dias)"], ["ativos", "Ativos (7 dias)"], ["inativos", "Sumidos (+30 dias)"], ["negocio", "Com negócio"], ["verificados", "Verificados"], ["desativado", "Desativados"], ["exclusao", "Exclusão agendada"], ["sancao", "Suspensos/banidos"]], filtroUsuarios, (v) => { filtroUsuarios = v; pintar(); });
+  const filtros = chips([["todos", "Todos"], ["novos", "Novos (7 dias)"], ["ativos", "Ativos (7 dias)"], ["inativos", "Sumidos (+30 dias)"], ["negocio", "Com negócio"], ["verificados", "Verificados"], ["desativado", "Desativados"], ["exclusao", "Exclusão agendada"], ["sancao", "Suspensos/banidos"]], filtroUsuarios, async (v) => { filtroUsuarios = v; if (v === "negocio" && !D.negociosProntos) { info.textContent = "Carregando negócios..."; await garantirNegocios().catch(() => {}); } pintar(); });
   const ordem = chips([["recentes", "Mais recentes"], ["acesso", "Último acesso"], ["nome", "Nome A–Z"]], ordemUsuarios, (v) => { ordemUsuarios = v; pintar(); });
   const linhaF = h("div", "ad-acoes"); linhaF.style.justifyContent = "space-between"; linhaF.style.marginBottom = "12px"; linhaF.append(filtros, ordem);
   const tab = h("div", "ad-tabela"); const info = h("p"); info.style.color = "var(--muted)";
   el.append(linhaF, info, tab);
-  const comNegocio = new Set(D.negocios.map((n) => n.donoId));
   function filtrar() {
+    const comNegocio = new Set(D.negocios.map((n) => n.donoId));
     const t = busca.value.trim().toLowerCase().replace(/^@/, "");
     const tel = t.replace(/\D/g, "");
     let l = pessoas().filter((p) => {
@@ -169,6 +169,7 @@ export function usuarios(el, termo = "") {
   }
   let tempo; busca.addEventListener("input", () => { clearTimeout(tempo); tempo = setTimeout(pintar, 200); });
   pintar();
+  if (filtroUsuarios === "negocio" && !D.negociosProntos) garantirNegocios().then(pintar).catch(() => {});
   if (termo) busca.focus();
 }
 
@@ -258,7 +259,7 @@ export function denuncias(el) {
       if (d.tipo === "publicacao") { const s = await fb.getDoc(fb.doc(fb.db, "diario", d.itemId)); txt = s.exists() ? `Publicação: ${s.data().texto || "(só mídia)"}` : "A publicação já foi apagada."; }
       else if (d.tipo === "comentario") { const s = await fb.getDoc(fb.doc(fb.db, "comentarios", d.itemId)); txt = s.exists() ? `Comentário: ${s.data().texto}` : "O comentário já foi apagado."; }
       else if (d.tipo === "mensagem") { const s = await fb.getDoc(fb.doc(fb.db, "conversas", d.conversaId, "mensagens", d.itemId)); txt = s.exists() ? `Mensagem (${dataHora(s.data().criadoEm)}): ${s.data().texto || "(" + (s.data().tipoArquivo || "anexo") + ")"}` : "A mensagem já foi apagada por quem enviou. Use o trecho guardado na denúncia."; }
-      else if (d.tipo === "negocio") { const n = D.negocios.find((x) => x.id === d.itemId); txt = n ? `Negócio: ${n.nome} — ${n.descricao || ""}` : "O negócio não existe mais."; window.open(`${n?.tipo === "imoveis" ? "imoveis.html" : ({ servicos: "servicos.html", delivery: "delivery.html", lojinha: "shopping.html" }[n?.tipo] || "servicos.html")}?negocio=${encodeURIComponent(d.itemId)}`, "_blank"); }
+      else if (d.tipo === "negocio") { const s = await fb.getDoc(fb.doc(fb.db, "negocios", d.itemId)); const n = s.exists() ? s.data() : null; txt = n ? `Negócio: ${n.nome} — ${n.descricao || ""}` : "O negócio não existe mais."; window.open(`${n?.tipo === "imoveis" ? "imoveis.html" : ({ servicos: "servicos.html", delivery: "delivery.html", lojinha: "shopping.html" }[n?.tipo] || "servicos.html")}?negocio=${encodeURIComponent(d.itemId)}`, "_blank"); }
       else { abrirFicha(d.alvoId); return; }
     } catch (e) { txt = "Não foi possível abrir: " + (e.code || e.message); }
     await modal({ titulo: "Conteúdo denunciado", texto: txt, botao: "Fechar" });
@@ -328,24 +329,101 @@ export function sancoes(el) {
 }
 
 // ======================================================= NEGÓCIOS
+// Paginado: lê 50 por vez do servidor (não carrega todos os negócios ao abrir o painel).
 let filtroNeg = "todos";
+const POR_PAGINA = 50;
 export function negocios(el) {
-  el.appendChild(cab("Negócios e anúncios", `${D.negocios.length} perfis de negócio e ${D.anuncios.length} anúncios de imóvel.`));
-  const fil = chips([["todos", "Todos"], ...Object.entries(TIPOS_NEG), ["escondidos", "Escondidos"], ["mal", "Nota abaixo de 3"]], filtroNeg, (v) => { filtroNeg = v; pintar(); });
+  const cn = D.contNeg;
+  const busca = h("input"); busca.type = "search"; busca.placeholder = "Buscar por nome do negócio, dono, @ ou ID";
+  Object.assign(busca.style, { width: "min(420px,100%)", height: "40px", borderRadius: "12px", border: "1px solid var(--line)", background: "var(--input)", padding: "0 12px" });
+  el.appendChild(cab("Negócios e anúncios", `${num(cn.total ?? 0)} perfis de negócio e ${num(cn.anuncios ?? 0)} anúncios de imóvel.`, busca));
+  const rot = (k, t) => (cn[k] != null ? `${t} (${num(cn[k])})` : t);
+  const fil = chips([["todos", rot("total", "Todos")], ...Object.entries(TIPOS_NEG).map(([k, t]) => [k, rot(k, t)]), ["escondidos", "Escondidos"], ["mal", "Nota abaixo de 3"]], filtroNeg, (v) => { filtroNeg = v; recomecar(); });
   fil.style.marginBottom = "12px";
-  const tab = h("div", "ad-tabela"); el.append(fil, tab);
+  const tab = h("div", "ad-tabela");
+  const info = h("p"); info.style.color = "var(--muted)";
+  const mais = h("div", "ad-acoes"); mais.style.justifyContent = "center"; mais.style.marginTop = "12px";
+  el.append(fil, info, tab, mais);
   const queixasPor = new Map(contarPor(D.queixas, (x) => x.negocioId));
+  let lista = [], cursor = null, acabou = false, pedido = 0;
+  const { fb } = C;
+  const neg = fb.collection(fb.db, "negocios");
+  const doc = (d) => ({ id: d.id, ...d.data() });
+  // Uma página do filtro atual. Sem o índice (tipo + atualizadoEm) criado ainda, busca sem ordenar.
+  async function pagina() {
+    if (filtroNeg === "mal") {
+      // As notas já estão no painel: pega só os negócios com média abaixo de 3.
+      const ids = [...D.notas.entries()].filter(([k, r]) => k.startsWith("neg_") && r?.total && r.soma / r.total < 3).map(([k]) => k.slice(4));
+      const fatia = ids.slice(lista.length, lista.length + POR_PAGINA);
+      const docs = (await Promise.all(fatia.map((id) => fb.getDoc(fb.doc(fb.db, "negocios", id)).catch(() => null)))).filter((s) => s?.exists());
+      return { itens: docs.map(doc), fim: lista.length + fatia.length >= ids.length };
+    }
+    const depois = cursor ? [fb.startAfter(cursor)] : [];
+    let q;
+    if (filtroNeg === "escondidos") q = fb.query(neg, fb.where("ocultoAte", ">", fb.Timestamp.now()), fb.orderBy("ocultoAte", "desc"), ...depois, fb.limit(POR_PAGINA));
+    else if (filtroNeg === "todos") q = fb.query(neg, fb.orderBy("atualizadoEm", "desc"), ...depois, fb.limit(POR_PAGINA));
+    else q = fb.query(neg, fb.where("tipo", "==", filtroNeg), fb.orderBy("atualizadoEm", "desc"), ...depois, fb.limit(POR_PAGINA));
+    let snap;
+    try { snap = await fb.getDocs(q); }
+    catch (e) {
+      if (e?.code !== "failed-precondition" || filtroNeg === "escondidos") throw e;
+      snap = await fb.getDocs(fb.query(neg, fb.where("tipo", "==", filtroNeg), ...depois, fb.limit(POR_PAGINA)));
+    }
+    cursor = snap.docs.at(-1) || cursor;
+    return { itens: snap.docs.map(doc), fim: snap.size < POR_PAGINA };
+  }
+  async function carregarMais() {
+    const meu = ++pedido;
+    mais.replaceChildren(h("span", null, "Carregando..."));
+    try {
+      const r = await pagina();
+      if (meu !== pedido) return;
+      lista.push(...r.itens); acabou = r.fim;
+    } catch (e) {
+      if (meu !== pedido) return;
+      console.warn("Negócios:", e); acabou = true;
+      toast("Não foi possível carregar os negócios: " + (e.code || e.message));
+    }
+    pintar();
+  }
+  function recomecar() { busca.value = ""; lista = []; cursor = null; acabou = false; tab.replaceChildren(); carregarMais(); }
+  // Busca no servidor: começo do nome (como digitado e com iniciais maiúsculas), donos com esse nome/@ e o ID exato.
+  async function buscar(t) {
+    const meu = ++pedido;
+    mais.replaceChildren(h("span", null, "Buscando..."));
+    const titulo = t.toLowerCase().replace(/(^|\s)\S/g, (x) => x.toUpperCase());
+    const variantes = [...new Set([t, titulo, t[0].toUpperCase() + t.slice(1)])];
+    const tl = t.toLowerCase().replace(/^@/, "");
+    const donos = pessoas().filter((x) => (x.nome || "").toLowerCase().includes(tl) || (x.nickname || "").toLowerCase().startsWith(tl)).slice(0, 30).map((x) => x.uid);
+    const ler = (q) => fb.getDocs(q).then((sn) => sn.docs).catch(() => []);
+    const grupos = await Promise.all([
+      ...variantes.map((v) => ler(fb.query(neg, fb.where("nome", ">=", v), fb.where("nome", "<=", v + "\uf8ff"), fb.limit(25)))),
+      donos.length ? ler(fb.query(neg, fb.where("donoId", "in", donos), fb.limit(60))) : [],
+      /^[\w-]{6,}$/.test(t) ? fb.getDoc(fb.doc(fb.db, "negocios", t)).then((d) => (d.exists() ? [d] : [])).catch(() => []) : []
+    ]);
+    if (meu !== pedido) return;
+    const vistos = new Set();
+    lista = grupos.flat().filter((d) => !vistos.has(d.id) && vistos.add(d.id)).map(doc).sort((a, b) => ms(b.atualizadoEm) - ms(a.atualizadoEm));
+    acabou = true;
+    pintar();
+    info.textContent = `${num(lista.length)} resultado(s) para "${t}".`;
+  }
+  let tempoBusca;
+  busca.addEventListener("input", () => {
+    clearTimeout(tempoBusca);
+    tempoBusca = setTimeout(() => {
+      const t = busca.value.trim();
+      if (t.length >= 2) buscar(t);
+      else if (!t) { lista = []; cursor = null; acabou = false; carregarMais(); }
+    }, 400);
+  });
   function pintar() {
-    const l = D.negocios.filter((n) => {
-      const r = D.notas.get("neg_" + n.id);
-      if (filtroNeg === "escondidos") return ms(n.ocultoAte) > agora();
-      if (filtroNeg === "mal") return r?.total && r.soma / r.total < 3;
-      return filtroNeg === "todos" || n.tipo === filtroNeg;
-    }).sort((a, b) => ms(b.atualizadoEm) - ms(a.atualizadoEm));
+    const total = filtroNeg === "todos" ? cn.total : TIPOS_NEG[filtroNeg] ? cn[filtroNeg] : null;
+    info.textContent = lista.length ? `Mostrando ${num(lista.length)}${total != null ? ` de ${num(total)}` : ""}, dos atualizados mais recentemente.` : "";
     const t = document.createElement("table");
     const th = h("tr"); ["Negócio", "Tipo", "Dono", "Cidade", "Nota", "Reclamações", "Atualizado", ""].forEach((x) => th.appendChild(h("th", null, x)));
     const thead = h("thead"); thead.appendChild(th); const tb = h("tbody");
-    l.slice(0, 400).forEach((n) => {
+    lista.forEach((n) => {
       const r = D.notas.get("neg_" + n.id); const esc = ms(n.ocultoAte) > agora();
       const tr = h("tr");
       const c0 = h("td"); c0.appendChild(pessoaCel({ nome: n.nome, fotoPerfil: n.foto }, n.categoria || "")); if (esc) c0.appendChild(selo("Escondido", "neutro"));
@@ -353,19 +431,21 @@ export function negocios(el) {
       const ac = h("td"); const w = h("div", "ad-acoes"); w.style.flexWrap = "nowrap";
       const link = h("a", "ad-bt", "Ver"); link.href = `${n.tipo === "imoveis" ? "imoveis.html" : ({ servicos: "servicos.html", delivery: "delivery.html", lojinha: "shopping.html" }[n.tipo])}?negocio=${encodeURIComponent(n.id)}`; link.target = "_blank";
       w.append(link); if (pode("moderar")) w.append(btn(esc ? "Mostrar" : "Esconder", esc ? "" : "perigo", async () => {
-        const { fb } = C;
         if (!esc && !confirm(`Esconder "${n.nome}" da vitrine?`)) return;
         await fb.updateDoc(fb.doc(fb.db, "negocios", n.id), { ocultoAte: esc ? null : fb.Timestamp.fromDate(new Date("2999-12-31")) });
         n.ocultoAte = esc ? null : { toMillis: () => new Date("2999-12-31").getTime() };
+        const m = D.negocios.find((x) => x.id === n.id); if (m) m.ocultoAte = n.ocultoAte;
         await registrar(esc ? "mostrar_negocio" : "esconder_negocio", n.donoId, n.id); toast(esc ? "Negócio visível de novo" : "Negócio escondido"); pintar();
       }));
       ac.appendChild(w);
       tr.append(c0, h("td", null, TIPOS_NEG[n.tipo] || n.tipo), dono, h("td", null, nomeCidade(n.cidade) || "—"), h("td", null, r?.total ? `${(r.soma / r.total).toFixed(1).replace(".", ",")}★ (${r.total})` : "—"), h("td", null, String(queixasPor.get(n.id) || 0)), h("td", null, data(n.atualizadoEm)), ac);
       tb.appendChild(tr);
     });
-    t.append(thead, tb); tab.replaceChildren(l.length ? t : h("div", "ad-vazio", "Nenhum negócio com esse filtro."));
+    t.append(thead, tb); tab.replaceChildren(lista.length ? t : h("div", "ad-vazio", "Nenhum negócio com esse filtro."));
+    mais.replaceChildren();
+    if (!acabou) mais.appendChild(btn("Carregar mais", "", carregarMais));
   }
-  pintar();
+  recomecar();
 }
 
 // ======================================================= SUPORTE
@@ -652,7 +732,7 @@ export function relatorios(el) {
   const rel = h("div", "ad-relatorio");
   rel.append(h("h2", null, "Relatório Help Floripa"), h("p", null, `Período: últimos ${d} dias (${new Date(agora() - d * DIA).toLocaleDateString("pt-BR")} a ${new Date().toLocaleDateString("pt-BR")}) · gerado em ${new Date().toLocaleString("pt-BR")} por ${C.nome}`));
   const t = document.createElement("table"); const th = h("tr"); ["Indicador", "Período", "Período anterior"].forEach((x) => th.appendChild(h("th", null, x)));
-  t.appendChild(th); linhas.forEach((l) => { const tr = h("tr"); l.forEach((x) => tr.appendChild(h("td", null, x === "" ? "—" : num(x)))); t.appendChild(tr); });
+  t.appendChild(th); linhas.forEach((l) => { const tr = h("tr"); l.forEach((x) => tr.appendChild(h("td", null, x === "" ? "—" : typeof x === "number" ? num(x) : x))); t.appendChild(tr); });
   rel.appendChild(t);
   const topCid = contarPor(ps.filter((p) => noPeriodo(p.criadoEm, d)), (p) => nomeCidade(p.cidade) || null).slice(0, 5);
   if (topCid.length) rel.appendChild(h("p", null, `Cidades dos novos usuários: ${topCid.map(([c, n]) => `${c} (${n})`).join(", ")}.`));

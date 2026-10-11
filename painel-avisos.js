@@ -174,6 +174,8 @@ const CSS = `
 .pa-av .t svg { width: 12px; height: 12px; }
 .pa-tx { flex: 1; min-width: 0; font-size: 14px; line-height: 1.4; padding-right: 14px; }
 .pa-tx b { font-weight: 800; }
+.pa-nl { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 800; color: #1fa855; background: color-mix(in srgb, #1fa855 14%, transparent); vertical-align: 1px; }
+.pa-btn:disabled { opacity: .45; cursor: default; }
 .pa-tx .q { margin-left: 4px; font-size: 12px; color: var(--muted, #8c9ca7); white-space: nowrap; }
 .pa-tx small { display: block; margin-top: 3px; font-size: 12.5px; color: var(--muted, #8c9ca7); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pa-acoes { display: flex; gap: 8px; margin-top: 8px; }
@@ -203,7 +205,11 @@ let cssPronto = false;
 function css() { if (cssPronto) return; cssPronto = true; const s = document.createElement("style"); s.textContent = CSS; document.head.appendChild(s); }
 function toast(t) { const d = el("div", "pa-toast", t); document.body.appendChild(d); setTimeout(() => d.remove(), 3000); }
 
-let painel = null, fundo = null, aba = "tudo", estado = null, vistoAntes = 0, quemAbriu = null;
+let painel = null, fundo = null, aba = "tudo", estado = null, vistoAntes = 0, quemAbriu = null, carregadoEm = 0;
+// Nova = chegou depois da última vez que a pessoa viu as notificações (ou é um pedido esperando resposta).
+// Mensagem não lida continua com a etiqueta "não lida", mas não volta a contar como nova:
+// ela some quando a conversa é aberta, na página de mensagens.
+const ehNova = (i) => i.quando > vistoAntes || !!i.pendente;
 
 function avatar(i) {
   const w = el("div", "pa-av");
@@ -238,11 +244,12 @@ async function responderVinculo(i, aceitar, botoes) {
   } catch { toast("Não foi possível responder agora."); botoes.forEach((b) => { b.disabled = false; }); }
 }
 function linha(i) {
-  const nova = i.quando > vistoAntes || i.pendente || i.naoLida;
+  const nova = ehNova(i);
   const d = el("div", "pa-item" + (nova ? " nova" : ""));
   d.tabIndex = 0; d.setAttribute("role", "link");
   const tx = el("div", "pa-tx");
   tx.append(el("b", null, i.nome), document.createTextNode(" " + texto(i)), el("span", "q", tempo(i.quando)));
+  if (i.naoLida) tx.appendChild(el("span", "pa-nl", "não lida"));
   if (i.detalhe) tx.appendChild(el("small", null, i.tipo === "mensagem" ? i.detalhe : `"${i.detalhe}"`));
   if (i.tipo === "social" && i.pendente) {
     const box = el("div", "pa-acoes");
@@ -263,8 +270,10 @@ function linha(i) {
 function pintar() {
   const corpo = painel.querySelector(".pa-corpo");
   const todos = estado.itens;
-  const novos = todos.filter((i) => i.quando > vistoAntes || i.pendente || i.naoLida).length;
-  painel.querySelector(".pa-cab p").textContent = novos ? `${novos} ${novos === 1 ? "nova" : "novas"}` : "Tudo em dia";
+  const novos = todos.filter(ehNova).length;
+  const naoLidas = todos.filter((i) => i.naoLida).length;
+  painel.querySelector(".pa-cab p").textContent = (novos ? `${novos} ${novos === 1 ? "nova" : "novas"}` : "Tudo em dia") + (naoLidas ? ` · ${naoLidas} ${naoLidas === 1 ? "mensagem não lida" : "mensagens não lidas"}` : "");
+  painel.querySelector(".pa-vistas").disabled = !novos;
   painel.querySelectorAll(".pa-aba").forEach((b) => {
     const n = b.dataset.aba === "tudo" ? todos.length : todos.filter((i) => TIPOS[i.tipo]?.aba === b.dataset.aba).length;
     b.querySelector("em").textContent = n ? String(n > 99 ? "99+" : n) : "";
@@ -279,7 +288,6 @@ function pintar() {
     corpo.appendChild(v);
     return;
   }
-  const ehNova = (i) => i.quando > vistoAntes || i.pendente || i.naoLida;
   [["Novas", lista.filter(ehNova)], ["Anteriores", lista.filter((i) => !ehNova(i))]].forEach(([t, l]) => {
     if (!l.length) return;
     corpo.appendChild(el("div", "pa-grupo", t));
@@ -298,7 +306,7 @@ function esqueleto() {
 function marcarVistos() {
   if (!eu) return;
   fs.setDoc(fs.doc(db, "usuarios", eu.uid), { notificacoesVistasEm: fs.serverTimestamp() }, { merge: true }).catch(() => {});
-  try { sessionStorage.removeItem("hf-avisos-" + eu.uid); } catch {}
+  try { localStorage.setItem("hf-sino-" + eu.uid, JSON.stringify({ n: 0, visto: Date.now(), em: Date.now() })); } catch {}
   // O sino do topo e as páginas da rede social atualizam o contador
   window.dispatchEvent(new CustomEvent("hf:avisos-vistos"));
 }
@@ -312,8 +320,8 @@ function montar() {
   const cab = el("div", "pa-cab");
   const ic = el("div", "pa-ic"); ic.appendChild(svg("sino"));
   const tit = el("div", "pa-tit"); const h = el("h2", null, "Notificações"); h.id = "paTitulo"; tit.append(h, el("p", null, "Carregando..."));
-  const vistos = el("button", "pa-btn"); vistos.type = "button"; vistos.title = "Marcar todas como vistas"; vistos.setAttribute("aria-label", "Marcar todas como vistas"); vistos.appendChild(svg("checks"));
-  vistos.addEventListener("click", () => { vistoAntes = Date.now(); estado?.itens.forEach((i) => { i.naoLida = false; }); marcarVistos(); if (estado) pintar(); toast("Notificações marcadas como vistas"); });
+  const vistos = el("button", "pa-btn pa-vistas"); vistos.type = "button"; vistos.title = "Marcar todas como vistas"; vistos.setAttribute("aria-label", "Marcar todas como vistas"); vistos.appendChild(svg("checks"));
+  vistos.addEventListener("click", () => { vistoAntes = Date.now(); if (estado) estado.visto = vistoAntes; marcarVistos(); if (estado) pintar(); toast("Notificações marcadas como vistas"); });
   const x = el("button", "pa-btn"); x.type = "button"; x.setAttribute("aria-label", "Fechar notificações"); x.appendChild(svg("fechar"));
   x.addEventListener("click", fechar);
   cab.append(ic, tit, vistos, x);
@@ -356,13 +364,16 @@ async function abrir(origem) {
   document.documentElement.classList.add("pa-aberto");
   requestAnimationFrame(() => { fundo.classList.add("on"); painel.classList.add("on"); painel.focus({ preventScroll: true }); });
   origem?.setAttribute("aria-expanded", "true");
-  esqueleto();
   if (!(await prontoFirebase())) { location.href = "login.html"; return; }
+  // Reabriu logo depois: mostra o que já foi carregado, sem ler tudo de novo.
+  if (estado && Date.now() - carregadoEm < 60000) { vistoAntes = estado.visto; pintar(); return; }
+  esqueleto();
   try {
     estado = await carregar();
+    carregadoEm = Date.now();
     vistoAntes = estado.visto;
     pintar();
-    setTimeout(() => { if (painel?.classList.contains("on")) marcarVistos(); }, 1200);
+    setTimeout(() => { if (painel?.classList.contains("on")) { estado.visto = Date.now(); marcarVistos(); } }, 1200);
   } catch (e) {
     console.warn("[Avisos]", e);
     painel.querySelector(".pa-corpo").replaceChildren(el("div", "pa-vazio", "Não foi possível carregar as notificações agora."));

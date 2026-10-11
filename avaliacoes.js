@@ -14,6 +14,7 @@
 //   de cada cliente (cli_), das publicações de alguém (pub_) e de cada publicação (post_).
 // As regras do Firestore conferem que o resumo soma exatamente a avaliação nova.
 // =====================================================
+import { docComValidade, esquecer } from "./leituras.js?v=1";
 
 const TIPOS_NEGOCIO = { servicos: "Freelances", delivery: "Delivery", lojinha: "Loja", imoveis: "Imóveis" };
 export const CHAVES_NEGOCIO = (uid) => Object.keys(TIPOS_NEGOCIO).map((t) => `neg_${uid}_${t}`);
@@ -32,11 +33,14 @@ export function somar(lista) {
 }
 
 // ---------- leitura dos resumos (com cache) ----------
+// As notas mudam pouco: a cópia do aparelho vale por 20 min (sem custo de leitura).
 const cache = new Map();
+const NOTAS_VALIDADE = 20 * 60000;
 export function lerResumo(fbx, chave, { recarregar = false } = {}) {
   if (!fbx?.db || !chave) return Promise.resolve(null);
   if (recarregar || !cache.has(chave)) {
-    cache.set(chave, fbx.getDoc(fbx.doc(fbx.db, "notas", chave)).then((s) => (s.exists() ? s.data() : null)).catch(() => null));
+    if (recarregar) esquecer("d:notas/" + chave);
+    cache.set(chave, docComValidade(fbx, ["notas", chave], NOTAS_VALIDADE).then((s) => (s.exists() ? s.data() : null)).catch(() => null));
   }
   return cache.get(chave);
 }
@@ -44,7 +48,7 @@ export async function lerResumos(fbx, chaves, opcoes) {
   const valores = await Promise.all(chaves.map((c) => lerResumo(fbx, c, opcoes)));
   return Object.fromEntries(chaves.map((c, i) => [c, valores[i]]));
 }
-export const esquecerResumo = (chave) => cache.delete(chave);
+export const esquecerResumo = (chave) => { cache.delete(chave); esquecer("d:notas/" + chave); };
 
 // Nota geral do perfil: média de todas as avaliações dos perfis de negócio.
 // Sem nenhuma avaliação de negócio, vale a média das publicações.

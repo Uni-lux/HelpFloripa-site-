@@ -7,8 +7,30 @@ export const C = { fb: null, A: null, eu: null, nome: "", irPara: () => {}, reca
 export const D = {
   pessoas: new Map(), negocios: [], anuncios: [], posts: [], denuncias: [], queixas: [], suporte: [], parcerias: [],
   sancoes: new Map(), exclusoes: new Map(), notas: new Map(), comunicados: [], log: [], admins: [], estatisticas: [],
-  contagens: {}, carregadoEm: 0
+  contagens: {}, carregadoEm: 0,
+  contNeg: {}, negociosProntos: false // negócios: só os totais ao abrir; a lista inteira só quando uma seção precisa
 };
+// A lista inteira de negócios e anúncios (para estatísticas, relatórios e filtros por dono).
+// Lida uma vez, quando alguém abre uma seção que precisa dela.
+let carregandoNeg = null;
+export function garantirNegocios() {
+  if (D.negociosProntos) return Promise.resolve();
+  if (!carregandoNeg) {
+    const { fb } = C;
+    const todos = (n) => fb.getDocs(fb.query(fb.collection(fb.db, n), fb.limit(3000))).then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() })));
+    carregandoNeg = Promise.all([todos("negocios"), todos("anuncios")]).then(([n, a]) => { D.negocios = n; D.anuncios = a; D.negociosProntos = true; })
+      .finally(() => { carregandoNeg = null; });
+  }
+  return carregandoNeg;
+}
+// Negócios e anúncios de uma pessoa (ficha), sem precisar da lista inteira.
+export async function negociosDe(uid) {
+  if (D.negociosProntos) return { negocios: D.negocios.filter((n) => n.donoId === uid), anuncios: D.anuncios.filter((a) => a.donoId === uid) };
+  const { fb } = C;
+  const ler = (n) => fb.getDocs(fb.query(fb.collection(fb.db, n), fb.where("donoId", "==", uid), fb.limit(50))).then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() }))).catch(() => []);
+  const [negocios, anuncios] = await Promise.all([ler("negocios"), ler("anuncios")]);
+  return { negocios, anuncios };
+}
 
 // ---------- utilitários ----------
 export const $ = (id) => document.getElementById(id);
@@ -218,8 +240,7 @@ export async function abrirFicha(uid) {
     lista("denuncias", fb.where("alvoId", "==", uid)), contar("denuncias", fb.where("autorId", "==", uid)),
     lista("avisos", fb.where("uid", "==", uid)), lista("suporte", fb.where("uid", "==", uid))
   ]);
-  const negocios = D.negocios.filter((n) => n.donoId === uid);
-  const anuncios = D.anuncios.filter((a) => a.donoId === uid);
+  const { negocios, anuncios } = await negociosDe(uid);
   const sancao = D.sancoes.get(uid);
   const st = estado(p);
   const mediaRec = avRecebidas.length ? avRecebidas.reduce((a, b) => a + (Number(b.nota) || 0), 0) / avRecebidas.length : 0;

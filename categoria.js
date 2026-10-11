@@ -8,7 +8,7 @@
 import { fotoSegura } from "./seguranca.js?v=1";
 import { definirPerfilMenu, definirBadgeMensagens } from "./menu.js?v=4";
 import { buscarReclamacoes } from "./avisos-reclamacoes.js?v=15";
-import "./painel-avisos.js?v=12"; // o sino abre o painel de notificações na própria página
+import "./painel-avisos.js?v=13"; // o sino abre o painel de notificações na própria página
 import "./chat-gaveta.js?v=1"; // "Mensagens" abre as conversas por cima da página, sem sair dela
 
 const $ = (id) => document.getElementById(id);
@@ -32,11 +32,19 @@ $("searchForm")?.addEventListener("submit", (e) => e.preventDefault());
 const iniciais = (n) => { const p = String(n || "?").trim().split(/\s+/); return ((p[0]?.[0] || "?") + (p.length > 1 ? p[p.length - 1][0] : "")).toUpperCase(); };
 const ms = (ts) => ts?.toMillis?.() ?? 0;
 
-// Avisos novos desde a última visita à página de notificações.
+// Avisos novos desde a última vez que a pessoa viu as notificações.
 // Mesmas fontes da página notificacoes.html (rede.js), sem ficar ouvindo em tempo real.
+// O número fica guardado no aparelho por 15 min (vale para todas as abas); ver as
+// notificações zera o número guardado sem precisar ler tudo de novo.
+const SINO_VALIDADE = 15 * 60000;
+const chaveSino = (uid) => "hf-sino-" + uid;
+function sinoGuardado(uid) {
+  try { const c = JSON.parse(localStorage.getItem(chaveSino(uid)) || "null"); if (c && typeof c.n === "number" && Date.now() - c.em < SINO_VALIDADE) return c; } catch {}
+  return null;
+}
 async function contarAvisos(fs, db, uid) {
-  const chave = "hf-avisos-" + uid;
-  try { const c = JSON.parse(sessionStorage.getItem(chave) || "null"); if (c && Date.now() - c.em < 120000) return c.n; } catch {}
+  const guardado = sinoGuardado(uid);
+  if (guardado) return guardado;
   try {
     const usuario = await fs.getDoc(fs.doc(db, "usuarios", uid));
     const visto = ms(usuario.exists() ? usuario.data().notificacoesVistasEm : null);
@@ -56,9 +64,10 @@ async function contarAvisos(fs, db, uid) {
     n += [...com, ...resp.filter((r) => r.postAutorId !== uid)].filter((x) => x.autorId !== uid && novo(ms(x.criadoEm))).length;
     n += vin.filter((v) => (v.status !== "aceito" && v.para === uid) || (v.status === "aceito" && v.de === uid && novo(ms(v.aceitoEm)))).length;
     n += recl.filter((x) => novo(x.quando)).length;
-    try { sessionStorage.setItem(chave, JSON.stringify({ n, em: Date.now() })); } catch {}
-    return n;
-  } catch { return 0; }
+    const r = { n, visto, em: Date.now() };
+    try { localStorage.setItem(chaveSino(uid), JSON.stringify(r)); } catch {}
+    return r;
+  } catch { return { n: 0, visto: Date.now() }; }
 }
 
 async function iniciarTopo() {
@@ -93,22 +102,26 @@ async function iniciarTopo() {
         else av.textContent = iniciais(p.nome || u.displayName || u.email);
       }
     } catch {}
-    // Sino: avisos novos (leitura única, guardada por 2 min) + mensagens não lidas (tempo real)
-    let avisosNovos = 0, mensagensNovas = 0;
+    // Sino: avisos novos (leitura única, guardada por 15 min) + mensagens que chegaram
+    // depois da última vez que as notificações foram vistas (tempo real).
+    // O menu "Mensagens" continua mostrando todas as conversas não lidas.
+    let avisosNovos = 0, visto = Infinity, naoLidas = [];
     const pintarSino = () => {
-      const n = avisosNovos + mensagensNovas, b = $("badgeAvisos");
+      const n = avisosNovos + naoLidas.filter((t) => t > visto).length, b = $("badgeAvisos");
       if (b) { b.hidden = !n; b.textContent = n > 9 ? "9+" : String(n); }
-      definirBadgeMensagens(mensagensNovas);
+      definirBadgeMensagens(naoLidas.length);
     };
-    contarAvisos(fs, db, u.uid).then((n) => { avisosNovos = n; pintarSino(); });
-    addEventListener("hf:avisos-vistos", () => { avisosNovos = 0; pintarSino(); });
+    contarAvisos(fs, db, u.uid).then((r) => { avisosNovos = r.n; visto = r.visto || 0; pintarSino(); });
+    addEventListener("hf:avisos-vistos", () => { avisosNovos = 0; visto = Date.now(); pintarSino(); });
+    // Outra aba viu as notificações: zera aqui também.
+    addEventListener("storage", (e) => { if (e.key === chaveSino(u.uid)) { const r = sinoGuardado(u.uid); if (r) { avisosNovos = r.n; visto = r.visto || 0; pintarSino(); } } });
     const q = fs.query(fs.collection(db, "conversas"), fs.where("participantes", "array-contains", u.uid), fs.limit(60));
     parar = fs.onSnapshot(q, (snap) => {
-      mensagensNovas = snap.docs.filter((d) => {
+      naoLidas = snap.docs.map((d) => {
         const c = d.data({ serverTimestamps: "estimate" });
         const lido = Math.max(ms(c.lidoEm?.[u.uid]), ms(c.vistoEm?.[u.uid]), ms(c.ocultaPara?.[u.uid]));
-        return !!c.ultimaMensagemRemetenteId && c.ultimaMensagemRemetenteId !== u.uid && ms(c.atualizadoEm) > lido;
-      }).length;
+        return c.ultimaMensagemRemetenteId && c.ultimaMensagemRemetenteId !== u.uid && ms(c.atualizadoEm) > lido ? ms(c.atualizadoEm) : 0;
+      }).filter(Boolean);
       pintarSino();
     }, () => {});
   });
