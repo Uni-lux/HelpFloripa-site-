@@ -935,7 +935,8 @@
   <script type="module">
     import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura, mostrarAvisoEmail } from "./seguranca.js?v=1";
     import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO } from "./avaliacoes.js?v=11";
-    import { buscarPessoas } from "./pessoas.js?v=2";
+    import { buscarPessoas } from "./pessoas.js?v=3";
+    import { docComValidade } from "./leituras.js?v=1";
     import { comRitmo } from "./ritmo.js?v=1";
     import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=5";
     import { abrirQueixa } from "./queixas.js?v=7";
@@ -1402,6 +1403,7 @@
     let audioCtx = null;
     function tocarSom() {
       if (!config.sons) return;
+      if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return; // o navegador só deixa tocar depois de um toque na página
       try {
         audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
         const t = audioCtx.currentTime;
@@ -1496,7 +1498,8 @@
     function obterPerfil(uid) {
       if (!uid) return Promise.resolve({});
       if (!perfis.has(uid)) {
-        perfis.set(uid, fb.getDoc(fb.doc(fb.db, "perfis_publicos", uid))
+        // Nome e foto de quem está na lista: cópia do aparelho por 10 min (a conversa aberta acompanha ao vivo).
+        perfis.set(uid, (uid === eu?.uid ? fb.getDoc(fb.doc(fb.db, "perfis_publicos", uid)) : docComValidade(fb, ["perfis_publicos", uid], 10 * 60000))
           .then((s) => (s.exists() ? s.data() : {}))
           .catch(() => ({})));
       }

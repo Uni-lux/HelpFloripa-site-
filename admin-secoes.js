@@ -7,7 +7,7 @@ import {
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha,
   PAPEIS, DESC_PAPEIS, pode, semPermissao, nomeEquipe, vendoAgora, marcarItem, seloResp, confirmarItem, controlesResp, espera,
   PRIORIDADES, editarTarefa, moverTarefa, garantirNegocios
-} from "./admin-base.js?v=7";
+} from "./admin-base.js?v=8";
 
 const cab = (titulo, sub, extra) => { const c = h("div", "ad-cab"); const t = h("div"); t.append(h("h1", null, titulo)); if (sub) t.append(h("p", null, sub)); c.appendChild(t); if (extra) c.appendChild(extra); return c; };
 const bloco = (titulo, sub) => { const b = h("section", "ad-bloco"); const t = h("div", "ad-bloco-topo"); const tt = h("div"); tt.append(h("h3", null, titulo)); if (sub) tt.append(h("p", null, sub)); t.appendChild(tt); b.appendChild(t); b.topo = t; return b; };
@@ -50,7 +50,7 @@ export function visao(el) {
     destaque({ rotulo: "Ativos (7 dias)", valor: ps.filter((p) => ativoHa(p, 7)).length, dica: `${ps.length ? Math.round((ps.filter((p) => ativoHa(p, 7)).length / ps.length) * 100) : 0}% da base` }),
     destaque({ rotulo: "Ativos (30 dias)", valor: ps.filter((p) => ativoHa(p, 30)).length }),
     destaque({ rotulo: "Negócios", valor: D.contNeg.total ?? 0, dica: `${D.contNeg.anuncios ?? 0} anúncios de imóvel` }),
-    destaque({ rotulo: "Publicações", valor: D.contagens.diario ?? D.posts.length, dica: `${D.posts.filter((p) => noPeriodo(p.criadoEm, 7)).length} nos últimos 7 dias` })
+    destaque({ rotulo: "Publicações", valor: D.contagens.diario ?? D.posts.length, dica: `${D.contagens.diario7 ?? D.posts.filter((p) => noPeriodo(p.criadoEm, 7)).length} nos últimos 7 dias` })
   );
   const hora = new Date().getHours(); const saud = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
   el.append(cab("Visão geral", `${saud}, ${C.nome.split(" ")[0] || "equipe"}. Este é o retrato do Help Floripa agora.`), minhaFila(), kp);
@@ -246,7 +246,7 @@ export function denuncias(el) {
     if (v.acao === "remover") {
       if (d.tipo === "publicacao") { await fb.deleteDoc(fb.doc(fb.db, "diario", d.itemId)); D.posts = D.posts.filter((x) => x.id !== d.itemId); }
       else if (d.tipo === "comentario") await fb.deleteDoc(fb.doc(fb.db, "comentarios", d.itemId));
-      else if (d.tipo === "negocio") { await fb.updateDoc(fb.doc(fb.db, "negocios", d.itemId), { ocultoAte: fb.Timestamp.fromDate(new Date("2999-12-31")) }); const n = D.negocios.find((x) => x.id === d.itemId); if (n) n.ocultoAte = { toMillis: () => new Date("2999-12-31").getTime() }; }
+      else if (d.tipo === "negocio") { await fb.updateDoc(fb.doc(fb.db, "negocios", d.itemId), { ocultoAte: fb.Timestamp.fromDate(new Date("2999-12-31")), ocultoPelaEquipe: true }); const n = D.negocios.find((x) => x.id === d.itemId); if (n) n.ocultoAte = { toMillis: () => new Date("2999-12-31").getTime() }; }
       else { toast("Perfis e mensagens não são removidos: use aviso, suspensão ou banimento."); return; }
       await registrar("remover_conteudo", d.alvoId, `${d.tipo} ${d.itemId}`);
     }
@@ -432,7 +432,7 @@ export function negocios(el) {
       const link = h("a", "ad-bt", "Ver"); link.href = `${n.tipo === "imoveis" ? "imoveis.html" : ({ servicos: "servicos.html", delivery: "delivery.html", lojinha: "shopping.html" }[n.tipo])}?negocio=${encodeURIComponent(n.id)}`; link.target = "_blank";
       w.append(link); if (pode("moderar")) w.append(btn(esc ? "Mostrar" : "Esconder", esc ? "" : "perigo", async () => {
         if (!esc && !confirm(`Esconder "${n.nome}" da vitrine?`)) return;
-        await fb.updateDoc(fb.doc(fb.db, "negocios", n.id), { ocultoAte: esc ? null : fb.Timestamp.fromDate(new Date("2999-12-31")) });
+        await fb.updateDoc(fb.doc(fb.db, "negocios", n.id), { ocultoAte: esc ? null : fb.Timestamp.fromDate(new Date("2999-12-31")), ocultoPelaEquipe: !esc });
         n.ocultoAte = esc ? null : { toMillis: () => new Date("2999-12-31").getTime() };
         const m = D.negocios.find((x) => x.id === n.id); if (m) m.ocultoAte = n.ocultoAte;
         await registrar(esc ? "mostrar_negocio" : "esconder_negocio", n.donoId, n.id); toast(esc ? "Negócio visível de novo" : "Negócio escondido"); pintar();
@@ -920,7 +920,7 @@ export function publicacoes(el) {
       if (pode("moderar")) {
         ac.append(btn(escondida(p) ? "Mostrar" : "Esconder", "mini", async () => {
           const { fb } = C; const vai = !escondida(p);
-          await fb.updateDoc(fb.doc(fb.db, "diario", p.id), { ocultoAte: vai ? fb.Timestamp.fromDate(new Date("2999-12-31")) : null });
+          await fb.updateDoc(fb.doc(fb.db, "diario", p.id), { ocultoAte: vai ? fb.Timestamp.fromDate(new Date("2999-12-31")) : null, ocultoPelaEquipe: vai });
           p.ocultoAte = vai ? { toMillis: () => new Date("2999-12-31").getTime() } : null;
           await registrar(vai ? "esconder_publicacao" : "mostrar_publicacao", p.autorId, String(p.texto || "").slice(0, 120)); toast(vai ? "Publicação escondida" : "Publicação visível de novo"); pintar();
         }), btn("Remover", "mini perigo", async () => {

@@ -49,7 +49,8 @@ async function marcarConteudo(fb, uid, ate) {
   const valor = ate ? fb.Timestamp.fromDate(ate) : null;
   const buscar = (col, campo) => fb.getDocs(fb.query(fb.collection(fb.db, col), fb.where(campo, "==", uid))).catch(() => ({ docs: [] }));
   const [neg, an, posts] = await Promise.all([buscar("negocios", "donoId"), buscar("anuncios", "donoId"), buscar("diario", "autorId")]);
-  const refs = [...neg.docs, ...an.docs, ...posts.docs].map((d) => d.ref);
+  // O que a equipe escondeu por moderação continua escondido (o dono nem pode mexer).
+  const refs = [...neg.docs, ...an.docs, ...posts.docs].filter((d) => d.data().ocultoPelaEquipe !== true).map((d) => d.ref);
   for (let i = 0; i < refs.length; i += 400) {
     const lote = fb.writeBatch(fb.db);
     refs.slice(i, i + 400).forEach((r) => lote.update(r, { ocultoAte: valor }));
