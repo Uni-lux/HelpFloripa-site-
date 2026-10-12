@@ -305,3 +305,82 @@ input.ad-sel { flex: 1 1 220px; padding: 0 12px; }
 @media (max-width: 400px) {
   .ad-marca strong { font-size: 0; } .ad-marca strong::before { content: "HF"; font-size: 16px; color: var(--accent); }
 }
+
+/* ---------- chat da equipe (todos + individual, anexos e audio) ---------- */
+.ad-chat2 { display: grid; grid-template-columns: 290px minmax(0, 1fr); height: min(76vh, 720px); background: var(--panel); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
+.ad-conversas { border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; background: var(--panel); }
+.ad-conversas-topo { padding: 14px 16px 10px; border-bottom: 1px solid var(--line); }
+.ad-conversas-topo h3 { margin: 0; font-size: 15px; }
+.ad-conversas-lista { overflow-y: auto; padding: 6px; display: grid; gap: 2px; align-content: start; }
+.ad-conv { display: flex; gap: 10px; align-items: center; width: 100%; text-align: left; padding: 9px 10px; border: 0; border-radius: 12px; background: transparent; color: var(--text); font: inherit; cursor: pointer; }
+.ad-conv:hover { background: var(--panel-2); }
+.ad-conv.ativa { background: color-mix(in srgb, var(--accent) 14%, var(--panel)); }
+.ad-conv .tx { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.ad-conv .l1, .ad-conv .l2 { display: flex; gap: 6px; align-items: center; justify-content: space-between; min-width: 0; }
+.ad-conv .l1 strong { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ad-conv .l1 small { color: var(--muted); font-size: 11px; flex: none; }
+.ad-conv .l2 span { color: var(--muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ad-conv.nao-lida .l2 span { color: var(--text); font-weight: 700; }
+.ad-conv-nao { flex: none; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 11px; display: grid; place-items: center; }
+.ad-av-grupo { display: grid; place-items: center; font-size: 17px; background: color-mix(in srgb, var(--accent) 18%, var(--panel-2)); }
+.ad-conversa { display: flex; flex-direction: column; min-width: 0; min-height: 0; position: relative; }
+.ad-conversa.arrastando::after { content: "Solte para enviar"; position: absolute; inset: 8px; border: 2px dashed var(--accent); border-radius: 14px; display: grid; place-items: center; font-weight: 800; color: var(--accent); background: color-mix(in srgb, var(--panel) 85%, transparent); z-index: 3; }
+.ad-conversa-topo { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.ad-conversa-quem { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+.ad-conversa-quem .tx { display: grid; min-width: 0; }
+.ad-conversa-quem strong { font-size: 15px; }
+.ad-conversa-quem small { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ad-conversa-acoes { display: flex; gap: 4px; }
+.ad-conversa-voltar { display: none; font-size: 22px; }
+.ad-icone { width: 38px; height: 38px; border-radius: 10px; border: 1px solid transparent; background: transparent; color: var(--text); cursor: pointer; font-size: 16px; display: grid; place-items: center; flex: none; }
+.ad-icone:hover { background: var(--panel-2); border-color: var(--line); }
+.ad-icone:disabled { opacity: .4; cursor: default; }
+.ad-chat-busca { display: flex; gap: 8px; align-items: center; padding: 8px 14px; border-bottom: 1px solid var(--line); background: var(--panel-2); }
+.ad-chat-busca input { flex: 1; height: 36px; border-radius: 10px; border: 1px solid var(--line); background: var(--input); color: var(--text); padding: 0 10px; font: inherit; }
+.ad-chat-busca-res { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.ad-chat2 .ad-chat { flex: 1; max-height: none; height: auto; min-height: 0; overflow-y: auto; background: var(--panel-2); padding: 14px; display: flex; flex-direction: column; gap: 6px; border: 0; border-radius: 0; margin: 0; }
+.ad-chat2 .ad-chat-dia { align-self: center; position: sticky; top: 0; z-index: 1; }
+.ad-chat2 .ad-msg { background: var(--panel); border: 1px solid var(--line); position: relative; max-width: min(78%, 560px); }
+.ad-chat2 .ad-msg.equipe { border-color: transparent; background: color-mix(in srgb, var(--accent) 18%, var(--panel)); }
+.ad-msg.mencao-eu { box-shadow: inset 3px 0 0 var(--st-atencao, #e6b800); }
+.ad-msg-texto { white-space: pre-wrap; word-break: break-word; line-height: 1.45; }
+.ad-mencao { color: var(--accent); font-weight: 700; }
+.ad-mencao.eu { background: color-mix(in srgb, var(--accent) 18%, transparent); border-radius: 4px; padding: 0 2px; }
+.ad-msg mark { background: color-mix(in srgb, #e6b800 45%, transparent); color: inherit; border-radius: 3px; }
+.ad-msg-foto { display: block; padding: 0; border: 0; background: none; cursor: zoom-in; border-radius: 10px; overflow: hidden; margin: 2px 0 4px; color: var(--accent); font: inherit; }
+.ad-msg-foto img { display: block; max-width: min(280px, 100%); max-height: 260px; object-fit: cover; border-radius: 10px; }
+.ad-msg-audio { display: inline-flex; align-items: center; gap: 10px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); border-radius: 999px; padding: 6px 14px 6px 6px; cursor: pointer; font: inherit; font-size: 13px; margin: 2px 0 4px; }
+.ad-msg-audio .play { width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; font-size: 12px; }
+.ad-msg-player { display: block; width: min(280px, 100%); height: 38px; margin: 2px 0 4px; }
+.ad-msg-arquivo { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); border-radius: 12px; padding: 8px 12px; cursor: pointer; font: inherit; text-align: left; margin: 2px 0 4px; max-width: 320px; }
+.ad-msg-arquivo .ic { font-size: 22px; }
+.ad-msg-arquivo .tx { display: grid; min-width: 0; }
+.ad-msg-arquivo strong { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ad-msg-arquivo small { color: var(--accent); font-size: 11.5px; font-weight: 700; margin: 0; }
+.ad-msg-acoes { position: absolute; top: -12px; right: 8px; display: none; gap: 4px; }
+.ad-msg:hover .ad-msg-acoes, .ad-msg:focus-within .ad-msg-acoes { display: flex; }
+.ad-msg-acao { border: 1px solid var(--line); background: var(--panel); color: var(--text); border-radius: 8px; padding: 3px 8px; font: inherit; font-size: 11.5px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,.25); }
+.ad-chat2 .ad-chat-form { border-top: 1px solid var(--line); padding: 10px 12px; margin: 0; position: relative; background: var(--panel); }
+.ad-chat2 .ad-chat-barra { gap: 6px; align-items: flex-end; }
+.ad-chat-ferr { height: 44px; width: 40px; font-size: 18px; font-weight: 800; color: var(--muted); }
+.ad-chat-gravando { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 6px; }
+.ad-chat-gravando[hidden] { display: none; }
+.ad-gravando-ponto { width: 10px; height: 10px; border-radius: 50%; background: var(--st-critico); animation: ad-pisca 1s infinite; }
+.ad-gravando-tempo { font-variant-numeric: tabular-nums; font-weight: 800; margin-right: auto; }
+@keyframes ad-pisca { 50% { opacity: .25; } }
+.ad-mencao-lista { position: absolute; left: 60px; bottom: calc(100% - 4px); width: min(280px, 80%); background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 30px rgba(0,0,0,.35); padding: 4px; display: grid; gap: 2px; z-index: 5; }
+.ad-mencao-op { display: flex; align-items: center; gap: 8px; border: 0; background: none; color: var(--text); font: inherit; padding: 6px 8px; border-radius: 8px; cursor: pointer; text-align: left; }
+.ad-mencao-op.sel, .ad-mencao-op:hover { background: var(--panel-2); }
+.ad-foto-fundo { display: grid; place-items: center; gap: 12px; align-content: center; background: rgba(0,0,0,.85); }
+.ad-foto-grande { max-width: 92vw; max-height: 80vh; border-radius: 12px; object-fit: contain; background: #111; }
+.ad-foto-barra { display: flex; gap: 8px; justify-content: center; }
+@media (prefers-reduced-motion: reduce) { .ad-gravando-ponto { animation: none; } }
+@media (max-width: 760px) {
+  .ad-chat2 { grid-template-columns: 1fr; height: min(82vh, 760px); }
+  .ad-chat2 .ad-conversa { display: none; }
+  .ad-chat2.aberta .ad-conversas { display: none; }
+  .ad-chat2.aberta .ad-conversa { display: flex; }
+  .ad-conversa-voltar { display: grid; }
+  .ad-conversas { border-right: 0; }
+  .ad-mencao-lista { left: 12px; }
+}

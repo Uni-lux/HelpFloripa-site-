@@ -3,6 +3,7 @@
 // =====================================================
 import { linha, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=3";
 import { buscarPessoas } from "./pessoas.js?v=3";
+import { montarChat } from "./admin-chat.js?v=2";
 import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha,
@@ -937,30 +938,8 @@ export function registro(el) {
   pintar();
 }
 export function equipe(el) {
-  el.appendChild(cab("Equipe", "Quem está no painel agora e o chat interno da equipe."));
-  const g = h("div", "ad-equipe");
-  // quem está online
-  const bOn = bloco("Equipe", "Quem está com o painel aberto agora.");
-  const selOn = selo("", "bom"); selOn.hidden = true; bOn.topo.querySelector("div").appendChild(selOn);
-  const lista = h("div", "ad-lista");
-  bOn.appendChild(lista);
-  // chat
-  const bChat = bloco("Chat da equipe", "Conversa interna. Só a equipe vê e as mensagens ficam guardadas.");
-  bChat.classList.add("ad-chat-equipe");
-  const chat = h("div", "ad-chat"); chat.setAttribute("aria-live", "polite");
-  const form = h("form", "ad-chat-form");
-  const campo = h("div", "ad-chat-campo");
-  const txt = document.createElement("textarea"); txt.maxLength = 2000; txt.rows = 1; txt.placeholder = "Escreva para a equipe…"; txt.setAttribute("aria-label", "Mensagem para a equipe");
-  const conta = h("span", "ad-chat-conta"); conta.setAttribute("aria-hidden", "true");
-  campo.append(txt, conta);
-  const env = h("button", "ad-bt pri", "Enviar"); env.type = "submit"; env.disabled = true;
-  const dica = h("p", "ad-chat-dica", "Enter envia · Shift+Enter quebra a linha");
-  const barra = h("div", "ad-chat-barra"); barra.append(campo, env);
-  form.append(barra, dica); bChat.append(chat, form);
-  g.append(bChat, bOn); el.appendChild(g);
-  const ajustarAltura = () => { txt.style.height = "auto"; txt.style.height = Math.min(140, txt.scrollHeight) + "px"; };
-  const atualizarCampo = () => { const n = txt.value.trim().length; env.disabled = !n; conta.textContent = n > 1600 ? `${2000 - txt.value.length}` : ""; ajustarAltura(); };
-  txt.addEventListener("input", atualizarCampo);
+  el.appendChild(cab("Equipe e chat", "Converse com todos ou com cada pessoa da equipe. Dá para mandar foto, arquivo e áudio."));
+  montarChat(el);
   const b = bloco("Adicionar alguém à equipe", "Por segurança, só pelo console do Firebase (ninguém consegue se dar acesso pelo site).");
   b.style.marginTop = "14px";
   const ol = h("ol"); ol.style.color = "var(--muted)"; ol.style.margin = "0"; ol.style.paddingLeft = "20px";
@@ -968,66 +947,6 @@ export function equipe(el) {
   b.appendChild(ol);
   const tp = h("div", "ad-papeis"); Object.entries(PAPEIS).forEach(([k, v]) => { const d = h("div"); d.append(h("b", null, `${v}${k === "dono" ? "" : ` (papel: ${k})`}`), h("span", null, DESC_PAPEIS[k])); tp.appendChild(d); });
   b.appendChild(tp); el.appendChild(b);
-
-  const NOME_SEC = { visao: "Visão geral", estatisticas: "Estatísticas", relatorios: "Relatórios", usuarios: "Usuários", verificacoes: "Verificações", suporte: "Suporte", denuncias: "Denúncias", reclamacoes: "Reclamações", sancoes: "Sanções", negocios: "Negócios", parcerias: "Parcerias", comunicados: "Comunicados", registro: "Registro", equipe: "Equipe", tarefas: "Tarefas", publicacoes: "Publicações" };
-  function pintarOnline() {
-    const nOn = D.admins.filter((a) => C.online(a.id)).length;
-    selOn.hidden = !nOn; selOn.textContent = nOn ? `${nOn} online` : "";
-    const itens = D.admins.map((a) => ({ a, pr: C.presenca.get(a.id) })).sort((x, y) => (C.online(y.a.id) - C.online(x.a.id)) || ms(y.pr?.em) - ms(x.pr?.em));
-    lista.replaceChildren(...itens.map(({ a, pr }) => {
-      const p = pessoa(a.id); const on = C.online(a.id);
-      const c = h("article", "ad-item"); const top = h("div", "cab");
-      const ondeEsta = on ? `Online${pr?.itemNome ? " · vendo " + pr.itemNome : pr?.secao ? " · em " + (NOME_SEC[pr.secao] || pr.secao) : ""}` : pr?.em ? `Visto ${relativo(pr.em)}` : "Ainda não abriu o painel";
-      const pc = pessoaCel({ ...p, nome: a.nome || p.nome }, ondeEsta);
-      const av = pc.querySelector(".ad-av"); av.classList.add("com-ponto"); const pt = h("i", "ad-ponto" + (on ? " on" : "")); pt.setAttribute("aria-hidden", "true"); av.appendChild(pt);
-      top.append(pc, selo(PAPEIS[a.papel] || PAPEIS.dono, "neutro")); if (a.id === C.eu.uid) top.append(selo("Você", "info")); else if (on) top.append(selo("Online", "bom"));
-      c.appendChild(top);
-      const comEle = [D.denuncias.filter((d) => d.responsavel === a.id && ["nova", "em_analise"].includes(d.status)).length, D.suporte.filter((x) => x.responsavel === a.id && x.status !== "fechado").length, C.tarefas.filter((t) => t.responsavel === a.id && t.status !== "feito").length];
-      c.appendChild(h("div", "meta", `${a.id === C.eu.uid ? "Com você" : "Com " + (a.nome || nomeEquipe(a.id))}: ${comEle[0]} denúncia(s) · ${comEle[1]} chamado(s) · ${comEle[2]} tarefa(s)`));
-      return c;
-    }));
-  }
-  const hoje = new Date().toLocaleDateString("pt-BR");
-  function pintarChat() {
-    const perto = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 80;
-    if (!C.chat.length) {
-      const v = h("div", "ad-vazio ad-chat-vazio"); v.append(h("strong", null, "Comece a conversa"), h("span", null, "As mensagens aqui ficam só entre a equipe."));
-      chat.replaceChildren(v); return;
-    }
-    let diaAnt = "", autorAnt = "", msAnt = 0;
-    const nos = [];
-    C.chat.forEach((m) => {
-      const dia = ms(m.em) ? new Date(ms(m.em)).toLocaleDateString("pt-BR") : hoje;
-      if (dia !== diaAnt) { nos.push(h("div", "ad-chat-dia", dia === hoje ? "Hoje" : dia)); diaAnt = dia; autorAnt = ""; }
-      const meu = m.autorId === C.eu.uid;
-      // Agrupa mensagens seguidas da mesma pessoa em até 5 min.
-      const junto = m.autorId === autorAnt && ms(m.em) - msAnt < 5 * 60000;
-      const p = pessoa(m.autorId);
-      const linha = h("div", "ad-chat-linha" + (meu ? " meu" : "") + (junto ? " junto" : ""));
-      if (!meu) { const av = avatar({ ...p, nome: m.nome || p.nome }); av.classList.add("ad-chat-av"); if (junto) av.style.visibility = "hidden"; linha.appendChild(av); }
-      const bm = h("div", "ad-msg" + (meu ? " equipe" : ""));
-      if (!meu && !junto) bm.appendChild(h("b", "ad-msg-autor", m.nome || p.nome || "Equipe"));
-      bm.appendChild(document.createTextNode(m.texto));
-      bm.appendChild(h("small", null, ms(m.em) ? new Date(ms(m.em)).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "enviando…"));
-      linha.appendChild(bm);
-      nos.push(linha);
-      autorAnt = m.autorId; msAnt = ms(m.em);
-    });
-    chat.replaceChildren(...nos);
-    if (perto || !pintarChat.feito) chat.scrollTop = chat.scrollHeight;
-    pintarChat.feito = true;
-  }
-  async function enviar() {
-    const t = txt.value.trim(); if (!t) return;
-    env.disabled = true;
-    try { const { fb } = C; await fb.addDoc(fb.collection(fb.db, "equipe_chat"), { autorId: C.eu.uid, nome: C.nome, texto: t.slice(0, 2000), em: fb.serverTimestamp() }); txt.value = ""; atualizarCampo(); chat.scrollTop = chat.scrollHeight; }
-    catch (e) { console.error(e); toast("Não foi possível enviar: " + (e.code || e.message)); }
-    finally { atualizarCampo(); txt.focus(); }
-  }
-  form.addEventListener("submit", (e) => { e.preventDefault(); enviar(); });
-  txt.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); enviar(); } });
-  C.aoMudarEquipe = () => { if (!el.isConnected) { C.aoMudarEquipe = null; return; } pintarOnline(); pintarChat(); C.marcarChatVisto(); };
-  pintarOnline(); pintarChat(); C.marcarChatVisto();
 }
 
 // ======================================================= TAREFAS DA EQUIPE
