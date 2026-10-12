@@ -7,7 +7,7 @@
 // Cores: variáveis --viz-* do admin.css (paleta validada para daltonismo,
 // claro e escuro). Uma escala só por gráfico; nada de dois eixos.
 // =====================================================
-import { baixarPlanilha } from "./planilha.js?v=1";
+import { baixarPlanilha } from "./planilha.js?v=2";
 const NS = "http://www.w3.org/2000/svg";
 const s = (tag, attrs = {}) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); return e; };
 const h = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
@@ -125,7 +125,8 @@ export function barras(el, { itens, formato = num, horizontal = false, cor = "va
 
 // Cartão com título, gráfico, "Tabela" e "Excel".
 // desenhar(el) desenha o gráfico · linhas: [[col1, col2...], ...] com cabecalho
-export function cartao({ titulo, sub = "", cabecalho = [], linhas = [], desenhar, largo = false, nomeArquivo = "dados" }) {
+export function cartao({ titulo, sub = "", cabecalho = [], linhas = [], desenhar, largo = false, nomeArquivo = "dados", grafico = "coluna" }) {
+  const linhasOriginais = linhas;
   const c = h("section", "viz-cartao" + (largo ? " largo" : ""));
   const topo = h("div", "viz-topo");
   const tt = h("div"); tt.append(h("h3", null, titulo)); if (sub) tt.append(h("p", null, sub));
@@ -141,7 +142,7 @@ export function cartao({ titulo, sub = "", cabecalho = [], linhas = [], desenhar
   linhas.forEach((ln) => { const tr = h("tr"); ln.forEach((x) => tr.appendChild(h("td", null, String(x)))); tb.appendChild(tr); });
   table.append(thead, tb); tab.appendChild(table);
   bT.addEventListener("click", () => { const on = tab.hidden; tab.hidden = !on; area.hidden = on; bT.setAttribute("aria-pressed", String(on)); });
-  bC.addEventListener("click", () => baixarCSV(nomeArquivo, cabecalho, linhas));
+  bC.addEventListener("click", () => baixarCSV(nomeArquivo, cabecalho, linhasOriginais, { tipo: grafico, titulo }));
   c.append(topo, area, tab);
   // Tudo zerado: mostra o aviso em vez de barras vazias.
   if (linhas.length && linhas.every((l) => l.slice(1).every((v) => !Number(v)))) linhas = [];
@@ -164,4 +165,4 @@ export function destaque({ rotulo, valor, formato = num, antes = null, dica: tex
 }
 
 // Planilhas saem em Excel (.xlsx): abrem como tabela no celular e no computador.
-export function baixarCSV(nome, cabecalho, linhas) { baixarPlanilha(nome, cabecalho, linhas); }
+export function baixarCSV(nome, cabecalho, linhas, grafico) { baixarPlanilha(nome, cabecalho, linhas, nome, grafico); }

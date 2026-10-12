@@ -1,7 +1,7 @@
 // =====================================================
 // Painel do administrador — seções
 // =====================================================
-import { linha, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=2";
+import { linha, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=3";
 import { buscarPessoas } from "./pessoas.js?v=3";
 import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
@@ -36,6 +36,48 @@ function serieMensal(datas, meses) {
 }
 const acumulada = (serie, base) => { let t = base; return serie.map((p) => ({ rotulo: p.rotulo, valor: (t += p.valor) })); };
 const noPeriodo = (t, dias, desloc = 0) => { const v = ms(t); return v > agora() - (dias + desloc) * DIA && v <= agora() - desloc * DIA; };
+
+// ---------- período (7 / 30 / 90 / 365 / personalizado) ----------
+// Um período é um número de dias OU { de, ate } em ms. janela() normaliza os dois.
+function janela(p) {
+  if (p && typeof p === "object") { const ini = p.de, fim = p.ate, dias = Math.max(1, Math.round((fim - ini) / DIA)); return { ini, fim, dias, mensal: dias > 92, rotulo: `${new Date(ini).toLocaleDateString("pt-BR")} a ${new Date(fim).toLocaleDateString("pt-BR")}` }; }
+  const fim = agora(), ini = fim - p * DIA; return { ini, fim, dias: p, mensal: p > 92, rotulo: p >= 365 ? "últimos 12 meses" : `últimos ${p} dias` };
+}
+const dentro = (t, ini, fim) => { const v = ms(t); return v > ini && v <= fim; };
+// No período escolhido (anterior = o período de mesmo tamanho logo antes, para comparar).
+function noPeriodoP(t, p, anterior = false) { const { ini, fim } = janela(p); const dur = fim - ini; return anterior ? dentro(t, ini - dur, ini) : dentro(t, ini, fim); }
+// Série por dia (até ~3 meses) ou por mês (períodos longos), entre ini e fim.
+function serieEntre(datas, ini, fim, mensal) {
+  if (mensal) {
+    const pts = []; let d = new Date(ini); d = new Date(d.getFullYear(), d.getMonth(), 1);
+    while (d.getTime() <= fim) { const prox = new Date(d.getFullYear(), d.getMonth() + 1, 1); pts.push({ ini: d.getTime(), fim: prox.getTime(), rotulo: d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" }).replace(". de ", "/").replace(".", ""), valor: 0 }); d = prox; }
+    datas.forEach((t) => { const v = ms(t); const p = pts.find((x) => v >= x.ini && v < x.fim); if (p) p.valor++; });
+    return pts.map(({ rotulo, valor }) => ({ rotulo, valor }));
+  }
+  const base = new Date(ini); base.setHours(0, 0, 0, 0);
+  const dias = Math.max(1, Math.round((fim - base.getTime()) / DIA)), cont = new Array(dias).fill(0);
+  datas.forEach((t) => { const v = ms(t); const i = Math.floor((v - base.getTime()) / DIA); if (i >= 0 && i < dias) cont[i]++; });
+  return cont.map((valor, i) => ({ rotulo: new Date(base.getTime() + i * DIA).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }), valor }));
+}
+// Linha de botões: 7 / 30 / 90 / 12 meses / Personalizado (abre duas datas).
+function seletorPeriodo(atual, aoMudar) {
+  const w = h("div", "ad-periodo");
+  const opcoes = [[7, "7 dias"], [30, "30 dias"], [90, "90 dias"], [365, "12 meses"], ["custom", "Personalizado"]];
+  const ehCustom = atual && typeof atual === "object";
+  const chip = (v, t) => { const b = h("button", "ad-chip", t); b.type = "button"; const sel = v === "custom" ? ehCustom : !ehCustom && atual === v; b.setAttribute("aria-pressed", String(sel)); return b; };
+  const linhaChips = h("div", "ad-filtros");
+  const caixa = h("div", "ad-periodo-datas"); caixa.hidden = !ehCustom;
+  const hoje = new Date().toISOString().slice(0, 10);
+  const di = h("input"); di.type = "date"; di.max = hoje; di.value = ehCustom ? new Date(atual.de).toISOString().slice(0, 10) : new Date(agora() - 30 * DIA).toISOString().slice(0, 10);
+  const df = h("input"); df.type = "date"; df.max = hoje; df.value = ehCustom ? new Date(atual.ate).toISOString().slice(0, 10) : hoje;
+  const ap = h("button", "ad-bt pri", "Aplicar"); ap.type = "button";
+  caixa.append(rotuloData("De", di), rotuloData("até", df), ap);
+  ap.addEventListener("click", () => { if (!di.value || !df.value) return toast("Escolha as duas datas."); const de = new Date(di.value + "T00:00:00").getTime(), ate = new Date(df.value + "T23:59:59").getTime(); if (ate < de) return toast("A data final é antes da inicial."); aoMudar({ de, ate }); });
+  opcoes.forEach(([v, t]) => { const b = chip(v, t); b.addEventListener("click", () => { if (v === "custom") { caixa.hidden = !caixa.hidden; linhaChips.querySelectorAll(".ad-chip").forEach((x) => x.setAttribute("aria-pressed", String(x === b && caixa.hidden === false))); } else aoMudar(v); }); linhaChips.appendChild(b); });
+  w.append(linhaChips, caixa);
+  return w;
+}
+function rotuloData(txt, input) { const l = h("label", "ad-data"); l.append(h("span", null, txt), input); return l; }
 
 // ======================================================= VISÃO GERAL
 export function visao(el) {
@@ -718,15 +760,15 @@ export function verificacoes(el) {
 let periodoEst = 30;
 export function estatisticas(el) {
   const ps = pessoas();
-  el.appendChild(cab("Estatísticas", "Quem usa o Help Floripa, de onde, e como a plataforma cresce.", chips([[30, "30 dias"], [90, "90 dias"], [365, "12 meses"]], periodoEst, (v) => { periodoEst = v; el.replaceChildren(); estatisticas(el); })));
+  const { ini, fim, mensal, rotulo } = janela(periodoEst);
+  el.appendChild(cab("Estatísticas", `Quem usa o Help Floripa, de onde, e como a plataforma cresce · ${rotulo}.`, seletorPeriodo(periodoEst, (v) => { periodoEst = v; el.replaceChildren(); estatisticas(el); })));
   const g = h("div", "ad-grade");
-  const mensal = periodoEst > 90;
   const datasU = ps.map((p) => p.criadoEm);
-  const serieU = mensal ? serieMensal(datasU, 12) : serieDiaria(datasU, periodoEst);
-  const antes = ps.filter((p) => ms(p.criadoEm) && ms(p.criadoEm) < agora() - (mensal ? 365 : periodoEst) * DIA).length;
+  const serieU = serieEntre(datasU, ini, fim, mensal);
+  const antes = ps.filter((p) => ms(p.criadoEm) && ms(p.criadoEm) < ini).length;
   const acum = acumulada(serieU, antes);
-  g.appendChild(cartao({ titulo: `Novos usuários por ${mensal ? "mês" : "dia"}`, cabecalho: [mensal ? "Mês" : "Dia", "Novos"], linhas: serieU.map((p) => [p.rotulo, p.valor]), desenhar: (a) => linha(a, { pontos: serieU }), nomeArquivo: "novos-usuarios" }));
-  g.appendChild(cartao({ titulo: "Total de usuários", sub: "Crescimento acumulado", cabecalho: [mensal ? "Mês" : "Dia", "Total"], linhas: acum.map((p) => [p.rotulo, p.valor]), desenhar: (a) => linha(a, { pontos: acum, cor: "var(--viz-3)" }), nomeArquivo: "total-usuarios" }));
+  g.appendChild(cartao({ titulo: `Novos usuários por ${mensal ? "mês" : "dia"}`, cabecalho: [mensal ? "Mês" : "Dia", "Novos"], linhas: serieU.map((p) => [p.rotulo, p.valor]), desenhar: (a) => linha(a, { pontos: serieU }), nomeArquivo: "novos-usuarios", grafico: "linha" }));
+  g.appendChild(cartao({ titulo: "Total de usuários", sub: "Crescimento acumulado", cabecalho: [mensal ? "Mês" : "Dia", "Total"], linhas: acum.map((p) => [p.rotulo, p.valor]), desenhar: (a) => linha(a, { pontos: acum, cor: "var(--viz-3)" }), nomeArquivo: "total-usuarios", grafico: "linha" }));
   // atividade
   const faixasAc = [["Hoje", 1], ["2 a 7 dias", 7], ["8 a 30 dias", 30], ["31 a 90 dias", 90], ["Mais de 90 dias", Infinity]];
   let ant = 0; const ac = faixasAc.map(([rot, d]) => { const v = ps.filter((p) => { const x = ms(p.ultimoAcesso); if (!x) return false; const dias = (agora() - x) / DIA; return dias <= d && dias > ant; }).length; ant = d; return { rotulo: rot, valor: v }; });
@@ -741,19 +783,19 @@ export function estatisticas(el) {
   // regiões
   const cid = contarPor(ps, (p) => nomeCidade(p.cidade) || null);
   const topC = cid.slice(0, 9).map(([rotulo, valor]) => ({ rotulo, valor })); const outrasC = cid.slice(9).reduce((a, [, v]) => a + v, 0); if (outrasC) topC.push({ rotulo: "Outras", valor: outrasC });
-  g.appendChild(cartao({ titulo: "Cidades", sub: `${ps.filter((p) => !p.cidade).length} sem cidade informada`, cabecalho: ["Cidade", "Pessoas"], linhas: cid.map(([a, b]) => [a, b]), desenhar: (a) => barras(a, { itens: topC, horizontal: true }), nomeArquivo: "cidades" }));
+  g.appendChild(cartao({ titulo: "Cidades", sub: `${ps.filter((p) => !p.cidade).length} sem cidade informada`, cabecalho: ["Cidade", "Pessoas"], linhas: cid.map(([a, b]) => [a, b]), desenhar: (a) => barras(a, { itens: topC, horizontal: true }), nomeArquivo: "cidades", grafico: "barra" }));
   const bai = contarPor(ps, (p) => p.endereco?.bairro || null);
   const topB = bai.slice(0, 10).map(([rotulo, valor]) => ({ rotulo, valor }));
-  g.appendChild(cartao({ titulo: "Bairros", sub: "Só de quem salvou endereço nas configurações", cabecalho: ["Bairro", "Pessoas"], linhas: bai.map(([a, b]) => [a, b]), desenhar: (a) => barras(a, { itens: topB, horizontal: true, cor: "var(--viz-3)" }), nomeArquivo: "bairros" }));
+  g.appendChild(cartao({ titulo: "Bairros", sub: "Só de quem salvou endereço nas configurações", cabecalho: ["Bairro", "Pessoas"], linhas: bai.map(([a, b]) => [a, b]), desenhar: (a) => barras(a, { itens: topB, horizontal: true, cor: "var(--viz-3)" }), nomeArquivo: "bairros", grafico: "barra" }));
   // público
   const donos = new Set(D.negocios.map((n) => n.donoId));
   const pub = [{ rotulo: "Só clientes", valor: ps.filter((p) => !donos.has(p.uid)).length }, { rotulo: "Têm negócio", valor: ps.filter((p) => donos.has(p.uid)).length, cor: "var(--viz-2)" }];
   g.appendChild(cartao({ titulo: "Público", sub: "Clientes x quem anuncia", cabecalho: ["Grupo", "Pessoas"], linhas: pub.map((x) => [x.rotulo, x.valor]), desenhar: (a) => barras(a, { itens: pub }), nomeArquivo: "publico" }));
-  const neg = Object.entries(TIPOS_NEG).map(([k2, rot], i) => ({ rotulo: rot, valor: D.negocios.filter((n) => n.tipo === k2 && noPeriodo(n.criadoEm || n.atualizadoEm, periodoEst)).length, cor: `var(--viz-${i + 1})` }));
+  const neg = Object.entries(TIPOS_NEG).map(([k2, rot], i) => ({ rotulo: rot, valor: D.negocios.filter((n) => noPeriodoP(n.criadoEm || n.atualizadoEm, periodoEst)).filter((n) => n.tipo === k2).length, cor: `var(--viz-${i + 1})` }));
   g.appendChild(cartao({ titulo: "Novos negócios no período", cabecalho: ["Tipo", "Novos"], linhas: neg.map((x) => [x.rotulo, x.valor]), desenhar: (a) => barras(a, { itens: neg }), nomeArquivo: "novos-negocios" }));
   // conteúdo
-  const serieP = mensal ? serieMensal(D.posts.map((p) => p.criadoEm), 12) : serieDiaria(D.posts.map((p) => p.criadoEm), periodoEst);
-  g.appendChild(cartao({ titulo: `Publicações no Diário por ${mensal ? "mês" : "dia"}`, cabecalho: [mensal ? "Mês" : "Dia", "Publicações"], linhas: serieP.map((p) => [p.rotulo, p.valor]), desenhar: (a) => linha(a, { pontos: serieP, cor: "var(--viz-2)" }), nomeArquivo: "publicacoes" }));
+  const serieP = serieEntre(D.posts.map((p) => p.criadoEm), ini, fim, mensal);
+  g.appendChild(cartao({ titulo: `Publicações no Diário por ${mensal ? "mês" : "dia"}`, cabecalho: [mensal ? "Mês" : "Dia", "Publicações"], linhas: serieP.map((p) => [p.rotulo, p.valor]), desenhar: (a) => linha(a, { pontos: serieP, cor: "var(--viz-2)" }), nomeArquivo: "publicacoes", grafico: "linha" }));
   // notas
   const negNotas = [...D.notas.entries()].filter(([k2]) => k2.startsWith("neg_")).map(([, v]) => v);
   const est = [5, 4, 3, 2, 1].map((n) => ({ rotulo: `${n}★`, valor: negNotas.reduce((a, b) => a + (b["n" + n] || 0), 0), cor: n >= 4 ? "var(--viz-3)" : n === 3 ? "var(--viz-4)" : "var(--viz-2)" }));
@@ -807,33 +849,51 @@ export function comunicados(el) {
 // ======================================================= RELATÓRIOS
 let periodoRel = 30;
 export function relatorios(el) {
-  el.appendChild(cab("Relatórios", "Resumo do período para imprimir ou salvar em PDF, e planilhas do Excel para baixar.", chips([[7, "7 dias"], [30, "30 dias"], [90, "90 dias"], [365, "12 meses"]], periodoRel, (v) => { periodoRel = v; el.replaceChildren(); relatorios(el); })));
-  const ps = pessoas(), d = periodoRel;
+  const { ini, fim, dias, mensal, rotulo } = janela(periodoRel);
+  el.appendChild(cab("Relatórios", `Resumo do período para imprimir, salvar em PDF ou baixar em Excel (com gráfico) · ${rotulo}.`, seletorPeriodo(periodoRel, (v) => { periodoRel = v; el.replaceChildren(); relatorios(el); })));
+  const ps = pessoas();
+  const noP = (t, ant) => noPeriodoP(t, periodoRel, ant);
+  // Indicadores do período x o período anterior de mesmo tamanho.
   const linhas = [
     ["Usuários no fim do período", ps.length, ""],
-    ["Novos usuários", ps.filter((p) => noPeriodo(p.criadoEm, d)).length, ps.filter((p) => noPeriodo(p.criadoEm, d, d)).length],
-    ["Ativos no período (último acesso)", ps.filter((p) => ativoHa(p, d)).length, ""],
-    ["Novos perfis de negócio", D.negocios.filter((n) => noPeriodo(n.criadoEm, d)).length, D.negocios.filter((n) => noPeriodo(n.criadoEm, d, d)).length],
-    ["Novos anúncios de imóvel", D.anuncios.filter((a) => noPeriodo(a.criadoEm, d)).length, D.anuncios.filter((a) => noPeriodo(a.criadoEm, d, d)).length],
-    ["Publicações no Diário", D.posts.filter((p) => noPeriodo(p.criadoEm, d)).length, D.posts.filter((p) => noPeriodo(p.criadoEm, d, d)).length],
-    ["Reclamações abertas", D.queixas.filter((q) => noPeriodo(q.abertaEm, d)).length, D.queixas.filter((q) => noPeriodo(q.abertaEm, d, d)).length],
-    ["Reclamações resolvidas", D.queixas.filter((q) => noPeriodo(q.resolvidaEm, d)).length, ""],
-    ["Denúncias recebidas", D.denuncias.filter((x) => noPeriodo(x.criadoEm, d)).length, D.denuncias.filter((x) => noPeriodo(x.criadoEm, d, d)).length],
-    ["Denúncias resolvidas", D.denuncias.filter((x) => x.status === "resolvida" && noPeriodo(x.analisadaEm, d)).length, ""],
-    ["Chamados de suporte", D.suporte.filter((s) => noPeriodo(s.criadoEm, d)).length, D.suporte.filter((s) => noPeriodo(s.criadoEm, d, d)).length],
-    ["Propostas de parceria", D.parcerias.filter((p) => noPeriodo(p.criadoEm, d)).length, D.parcerias.filter((p) => noPeriodo(p.criadoEm, d, d)).length],
-    ["Sanções aplicadas", [...D.sancoes.values()].flatMap((s) => s.historico || []).filter((x) => x.tipo !== "removida" && Date.parse(x.em) > agora() - d * DIA).length, ""]
+    ["Novos usuários", ps.filter((p) => noP(p.criadoEm)).length, ps.filter((p) => noP(p.criadoEm, true)).length],
+    ["Ativos no período (último acesso)", ps.filter((p) => dentro(p.ultimoAcesso, ini, fim)).length, ps.filter((p) => dentro(p.ultimoAcesso, ini - (fim - ini), ini)).length],
+    ["Novos perfis de negócio", D.negocios.filter((n) => noP(n.criadoEm)).length, D.negocios.filter((n) => noP(n.criadoEm, true)).length],
+    ["Novos anúncios de imóvel", D.anuncios.filter((a) => noP(a.criadoEm)).length, D.anuncios.filter((a) => noP(a.criadoEm, true)).length],
+    ["Publicações no Diário", D.posts.filter((p) => noP(p.criadoEm)).length, D.posts.filter((p) => noP(p.criadoEm, true)).length],
+    ["Reclamações abertas", D.queixas.filter((q) => noP(q.abertaEm)).length, D.queixas.filter((q) => noP(q.abertaEm, true)).length],
+    ["Reclamações resolvidas", D.queixas.filter((q) => noP(q.resolvidaEm)).length, D.queixas.filter((q) => noP(q.resolvidaEm, true)).length],
+    ["Denúncias recebidas", D.denuncias.filter((x) => noP(x.criadoEm)).length, D.denuncias.filter((x) => noP(x.criadoEm, true)).length],
+    ["Denúncias resolvidas", D.denuncias.filter((x) => x.status === "resolvida" && noP(x.analisadaEm)).length, D.denuncias.filter((x) => x.status === "resolvida" && noP(x.analisadaEm, true)).length],
+    ["Chamados de suporte", D.suporte.filter((s) => noP(s.criadoEm)).length, D.suporte.filter((s) => noP(s.criadoEm, true)).length],
+    ["Propostas de parceria", D.parcerias.filter((p) => noP(p.criadoEm)).length, D.parcerias.filter((p) => noP(p.criadoEm, true)).length],
+    ["Sanções aplicadas", [...D.sancoes.values()].flatMap((s) => s.historico || []).filter((x) => x.tipo !== "removida" && dentro(Date.parse(x.em), ini, fim)).length, [...D.sancoes.values()].flatMap((s) => s.historico || []).filter((x) => x.tipo !== "removida" && dentro(Date.parse(x.em), ini - (fim - ini), ini)).length]
   ];
+  // Destaques do período (com a seta de comparação).
+  const kp = h("div", "ad-kpis");
+  const kpi = (rot, i) => { const [, atual, antes] = linhas[i]; kp.appendChild(destaque({ rotulo: rot, valor: atual, antes: typeof antes === "number" ? antes : null })); };
+  kpi("Novos usuários", 1); kpi("Novos negócios", 3); kpi("Publicações", 5); kpi("Reclamações abertas", 6); kpi("Chamados", 10); kpi("Propostas", 11);
+  el.appendChild(kp);
+  // Gráficos do período.
+  const g = h("div", "ad-grade");
+  const serieU = serieEntre(ps.map((p) => p.criadoEm), ini, fim, mensal);
+  g.appendChild(cartao({ titulo: `Novos usuários por ${mensal ? "mês" : "dia"}`, cabecalho: [mensal ? "Mês" : "Dia", "Novos"], linhas: serieU.map((p) => [p.rotulo, p.valor]), desenhar: (a) => linha(a, { pontos: serieU }), nomeArquivo: "novos-usuarios", grafico: "linha" }));
+  const negTipo = Object.entries(TIPOS_NEG).map(([k, rot], i) => ({ rotulo: rot, valor: D.negocios.filter((n) => noP(n.criadoEm)).filter((n) => n.tipo === k).length, cor: `var(--viz-${i + 1})` }));
+  g.appendChild(cartao({ titulo: "Novos negócios por tipo", sub: "No período", cabecalho: ["Tipo", "Novos"], linhas: negTipo.map((x) => [x.rotulo, x.valor]), desenhar: (a) => barras(a, { itens: negTipo }), nomeArquivo: "novos-negocios-periodo" }));
+  const mov = [["Reclamações", 6, "var(--viz-2)"], ["Denúncias", 8, "var(--viz-4)"], ["Chamados", 10, "var(--viz-1)"], ["Parcerias", 11, "var(--viz-3)"]].map(([rot, i, cor]) => ({ rotulo: rot, valor: linhas[i][1], cor }));
+  g.appendChild(cartao({ titulo: "Moderação e contato no período", cabecalho: ["Área", "No período"], linhas: mov.map((x) => [x.rotulo, x.valor]), desenhar: (a) => barras(a, { itens: mov }), nomeArquivo: "moderacao-periodo" }));
+  el.appendChild(g);
   const rel = h("div", "ad-relatorio");
-  rel.append(h("h2", null, "Relatório Help Floripa"), h("p", null, `Período: últimos ${d} dias (${new Date(agora() - d * DIA).toLocaleDateString("pt-BR")} a ${new Date().toLocaleDateString("pt-BR")}) · gerado em ${new Date().toLocaleString("pt-BR")} por ${C.nome}`));
+  rel.append(h("h2", null, "Relatório Help Floripa"), h("p", null, `Período: ${rotulo} (${new Date(ini).toLocaleDateString("pt-BR")} a ${new Date(fim).toLocaleDateString("pt-BR")}) · gerado em ${new Date().toLocaleString("pt-BR")} por ${C.nome}`));
   const t = document.createElement("table"); const th = h("tr"); ["Indicador", "Período", "Período anterior"].forEach((x) => th.appendChild(h("th", null, x)));
   t.appendChild(th); linhas.forEach((l) => { const tr = h("tr"); l.forEach((x) => tr.appendChild(h("td", null, x === "" ? "—" : typeof x === "number" ? num(x) : x))); t.appendChild(tr); });
   rel.appendChild(t);
-  const topCid = contarPor(ps.filter((p) => noPeriodo(p.criadoEm, d)), (p) => nomeCidade(p.cidade) || null).slice(0, 5);
+  const topCid = contarPor(ps.filter((p) => noP(p.criadoEm)), (p) => nomeCidade(p.cidade) || null).slice(0, 5);
   if (topCid.length) rel.appendChild(h("p", null, `Cidades dos novos usuários: ${topCid.map(([c, n]) => `${c} (${n})`).join(", ")}.`));
   const ac = h("div", "ad-acoes"); ac.style.margin = "14px 0";
-  ac.append(btn("Imprimir / salvar PDF", "pri", () => { registrar("relatorio_pdf", "", `${d} dias`); window.print(); }),
-    btn("Baixar resumo (Excel)", "", () => baixarCSV(`relatorio-${d}d`, ["Indicador", "Período", "Período anterior"], linhas)),
+  const nomeP = typeof periodoRel === "object" ? "personalizado" : periodoRel + "d";
+  ac.append(btn("Imprimir / salvar PDF", "pri", () => { registrar("relatorio_pdf", "", rotulo); window.print(); }),
+    btn("Baixar resumo (Excel)", "", () => baixarCSV(`relatorio-${nomeP}`, ["Indicador", "Período", "Período anterior"], linhas, { tipo: "coluna", titulo: `Relatório Help Floripa — ${rotulo}` })),
     btn("Planilha de negócios", "", () => { baixarCSV("negocios", ["ID", "Nome", "Tipo", "Dono", "Cidade", "Nota", "Avaliações", "Criado", "Atualizado"], D.negocios.map((n) => { const r = D.notas.get("neg_" + n.id); return [n.id, n.nome || "", TIPOS_NEG[n.tipo] || n.tipo, pessoa(n.donoId).nome || n.donoId, nomeCidade(n.cidade), r?.total ? (r.soma / r.total).toFixed(2) : "", r?.total || 0, data(n.criadoEm), data(n.atualizadoEm)]; })); registrar("exportar", "negocios"); }),
     btn("Planilha de denúncias", "", () => { baixarCSV("denuncias", ["Data", "Tipo", "Motivo", "Denunciado", "Por", "Situação", "Ação", "Trecho"], D.denuncias.map((x) => [dataHora(x.criadoEm), x.tipo, MOTIVOS_DEN[x.motivo] || x.motivo, pessoa(x.alvoId).nome || x.alvoId, pessoa(x.autorId).nome || x.autorId, x.status, x.acao || "", x.trecho || ""])); registrar("exportar", "denuncias"); }),
     btn("Planilha de reclamações", "", () => { baixarCSV("reclamacoes", ["Aberta", "Cliente", "Negócio", "Motivo", "Situação", "Respondida", "Relato"], D.queixas.map((q) => [data(q.abertaEm), pessoa(q.autorId).nome || "", q.negocioNome || q.negocioId, MOTIVOS_QX[q.motivo] || q.motivo, q.status, q.resposta ? "sim" : "não", q.texto || ""])); registrar("exportar", "reclamacoes"); }));
@@ -844,7 +904,7 @@ export function relatorios(el) {
     const tt = h("div", "ad-tabela"); const tb = document.createElement("table"); const hr = h("tr"); ["Dia", "Usuários", "Novos", "Ativos 24 h", "Ativos 7 d", "Negócios", "Publicações", "Denúncias novas", "Reclamações abertas"].forEach((x) => hr.appendChild(h("th", null, x))); tb.appendChild(hr);
     [...D.estatisticas].sort((a, b) => b.id.localeCompare(a.id)).slice(0, 60).forEach((x) => { const tr = h("tr"); [x.id.split("-").reverse().join("/"), x.usuarios, x.novos, x.ativos1, x.ativos7, x.negocios, x.publicacoes, x.denunciasNovas, x.reclamacoesAbertas].forEach((v) => tr.appendChild(h("td", null, v == null ? "—" : num(v)))); tb.appendChild(tr); });
     tt.appendChild(tb); auto.appendChild(tt);
-    const csv = btn("Baixar histórico (Excel)", "", () => baixarCSV("historico-diario", ["Dia", "Usuários", "Novos", "Ativos 24h", "Ativos 7d", "Negócios", "Publicações", "Denúncias novas", "Reclamações abertas"], D.estatisticas.map((x) => [x.id, x.usuarios, x.novos, x.ativos1, x.ativos7, x.negocios, x.publicacoes, x.denunciasNovas, x.reclamacoesAbertas])));
+    const csv = btn("Baixar histórico (Excel)", "", () => baixarCSV("historico-diario", ["Dia", "Usuários", "Novos", "Ativos 24h", "Ativos 7d", "Negócios", "Publicações", "Denúncias novas", "Reclamações abertas"], [...D.estatisticas].sort((a, b) => a.id.localeCompare(b.id)).map((x) => [x.id, x.usuarios, x.novos, x.ativos1, x.ativos7, x.negocios, x.publicacoes, x.denunciasNovas, x.reclamacoesAbertas]), { tipo: "linha", titulo: "Crescimento diário do Help Floripa" }));
     csv.style.marginTop = "10px"; auto.appendChild(csv);
   }
   el.appendChild(auto);
@@ -880,18 +940,27 @@ export function equipe(el) {
   el.appendChild(cab("Equipe", "Quem está no painel agora e o chat interno da equipe."));
   const g = h("div", "ad-equipe");
   // quem está online
-  const bOn = bloco("Equipe", "Online = com o painel aberto agora.");
+  const bOn = bloco("Equipe", "Quem está com o painel aberto agora.");
+  const selOn = selo("", "bom"); selOn.hidden = true; bOn.topo.querySelector("div").appendChild(selOn);
   const lista = h("div", "ad-lista");
   bOn.appendChild(lista);
   // chat
-  const bChat = bloco("Chat da equipe", "Só quem é da equipe vê. As mensagens ficam guardadas.");
+  const bChat = bloco("Chat da equipe", "Conversa interna. Só a equipe vê e as mensagens ficam guardadas.");
   bChat.classList.add("ad-chat-equipe");
   const chat = h("div", "ad-chat"); chat.setAttribute("aria-live", "polite");
   const form = h("form", "ad-chat-form");
-  const txt = document.createElement("textarea"); txt.maxLength = 2000; txt.rows = 2; txt.placeholder = "Escreva para a equipe... (Enter envia, Shift+Enter quebra a linha)"; txt.setAttribute("aria-label", "Mensagem para a equipe");
-  const env = h("button", "ad-bt pri", "Enviar"); env.type = "submit";
-  form.append(txt, env); bChat.append(chat, form);
+  const campo = h("div", "ad-chat-campo");
+  const txt = document.createElement("textarea"); txt.maxLength = 2000; txt.rows = 1; txt.placeholder = "Escreva para a equipe…"; txt.setAttribute("aria-label", "Mensagem para a equipe");
+  const conta = h("span", "ad-chat-conta"); conta.setAttribute("aria-hidden", "true");
+  campo.append(txt, conta);
+  const env = h("button", "ad-bt pri", "Enviar"); env.type = "submit"; env.disabled = true;
+  const dica = h("p", "ad-chat-dica", "Enter envia · Shift+Enter quebra a linha");
+  const barra = h("div", "ad-chat-barra"); barra.append(campo, env);
+  form.append(barra, dica); bChat.append(chat, form);
   g.append(bChat, bOn); el.appendChild(g);
+  const ajustarAltura = () => { txt.style.height = "auto"; txt.style.height = Math.min(140, txt.scrollHeight) + "px"; };
+  const atualizarCampo = () => { const n = txt.value.trim().length; env.disabled = !n; conta.textContent = n > 1600 ? `${2000 - txt.value.length}` : ""; ajustarAltura(); };
+  txt.addEventListener("input", atualizarCampo);
   const b = bloco("Adicionar alguém à equipe", "Por segurança, só pelo console do Firebase (ninguém consegue se dar acesso pelo site).");
   b.style.marginTop = "14px";
   const ol = h("ol"); ol.style.color = "var(--muted)"; ol.style.margin = "0"; ol.style.paddingLeft = "20px";
@@ -902,6 +971,8 @@ export function equipe(el) {
 
   const NOME_SEC = { visao: "Visão geral", estatisticas: "Estatísticas", relatorios: "Relatórios", usuarios: "Usuários", verificacoes: "Verificações", suporte: "Suporte", denuncias: "Denúncias", reclamacoes: "Reclamações", sancoes: "Sanções", negocios: "Negócios", parcerias: "Parcerias", comunicados: "Comunicados", registro: "Registro", equipe: "Equipe", tarefas: "Tarefas", publicacoes: "Publicações" };
   function pintarOnline() {
+    const nOn = D.admins.filter((a) => C.online(a.id)).length;
+    selOn.hidden = !nOn; selOn.textContent = nOn ? `${nOn} online` : "";
     const itens = D.admins.map((a) => ({ a, pr: C.presenca.get(a.id) })).sort((x, y) => (C.online(y.a.id) - C.online(x.a.id)) || ms(y.pr?.em) - ms(x.pr?.em));
     lista.replaceChildren(...itens.map(({ a, pr }) => {
       const p = pessoa(a.id); const on = C.online(a.id);
@@ -916,20 +987,31 @@ export function equipe(el) {
       return c;
     }));
   }
+  const hoje = new Date().toLocaleDateString("pt-BR");
   function pintarChat() {
     const perto = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 80;
-    if (!C.chat.length) { chat.replaceChildren(h("div", "ad-vazio", "Nenhuma mensagem ainda. Diga oi para a equipe.")); return; }
-    let diaAnt = "";
+    if (!C.chat.length) {
+      const v = h("div", "ad-vazio ad-chat-vazio"); v.append(h("strong", null, "Comece a conversa"), h("span", null, "As mensagens aqui ficam só entre a equipe."));
+      chat.replaceChildren(v); return;
+    }
+    let diaAnt = "", autorAnt = "", msAnt = 0;
     const nos = [];
     C.chat.forEach((m) => {
-      const dia = ms(m.em) ? new Date(ms(m.em)).toLocaleDateString("pt-BR") : "agora";
-      if (dia !== diaAnt) { nos.push(h("div", "ad-chat-dia", dia)); diaAnt = dia; }
+      const dia = ms(m.em) ? new Date(ms(m.em)).toLocaleDateString("pt-BR") : hoje;
+      if (dia !== diaAnt) { nos.push(h("div", "ad-chat-dia", dia === hoje ? "Hoje" : dia)); diaAnt = dia; autorAnt = ""; }
       const meu = m.autorId === C.eu.uid;
+      // Agrupa mensagens seguidas da mesma pessoa em até 5 min.
+      const junto = m.autorId === autorAnt && ms(m.em) - msAnt < 5 * 60000;
+      const p = pessoa(m.autorId);
+      const linha = h("div", "ad-chat-linha" + (meu ? " meu" : "") + (junto ? " junto" : ""));
+      if (!meu) { const av = avatar({ ...p, nome: m.nome || p.nome }); av.classList.add("ad-chat-av"); if (junto) av.style.visibility = "hidden"; linha.appendChild(av); }
       const bm = h("div", "ad-msg" + (meu ? " equipe" : ""));
-      if (!meu) bm.appendChild(h("b", "ad-msg-autor", m.nome || pessoa(m.autorId).nome || "Equipe"));
+      if (!meu && !junto) bm.appendChild(h("b", "ad-msg-autor", m.nome || p.nome || "Equipe"));
       bm.appendChild(document.createTextNode(m.texto));
-      bm.appendChild(h("small", null, ms(m.em) ? new Date(ms(m.em)).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "enviando..."));
-      nos.push(bm);
+      bm.appendChild(h("small", null, ms(m.em) ? new Date(ms(m.em)).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "enviando…"));
+      linha.appendChild(bm);
+      nos.push(linha);
+      autorAnt = m.autorId; msAnt = ms(m.em);
     });
     chat.replaceChildren(...nos);
     if (perto || !pintarChat.feito) chat.scrollTop = chat.scrollHeight;
@@ -938,9 +1020,9 @@ export function equipe(el) {
   async function enviar() {
     const t = txt.value.trim(); if (!t) return;
     env.disabled = true;
-    try { const { fb } = C; await fb.addDoc(fb.collection(fb.db, "equipe_chat"), { autorId: C.eu.uid, nome: C.nome, texto: t.slice(0, 2000), em: fb.serverTimestamp() }); txt.value = ""; chat.scrollTop = chat.scrollHeight; }
+    try { const { fb } = C; await fb.addDoc(fb.collection(fb.db, "equipe_chat"), { autorId: C.eu.uid, nome: C.nome, texto: t.slice(0, 2000), em: fb.serverTimestamp() }); txt.value = ""; atualizarCampo(); chat.scrollTop = chat.scrollHeight; }
     catch (e) { console.error(e); toast("Não foi possível enviar: " + (e.code || e.message)); }
-    finally { env.disabled = false; txt.focus(); }
+    finally { atualizarCampo(); txt.focus(); }
   }
   form.addEventListener("submit", (e) => { e.preventDefault(); enviar(); });
   txt.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); enviar(); } });
