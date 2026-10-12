@@ -182,8 +182,10 @@
     .pedido-trilha i.on { background: var(--cor-st, #2fbf71); }
     .bolha.status-msg { padding: 8px 12px; }
     .status-linha { display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
-    .status-linha .ic { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--cor-st, #00adee) 20%, transparent); color: var(--cor-st, #00adee); font-size: 15px; flex-shrink: 0; }
+    .status-linha .ic { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--cor-st, #00adee) 20%, transparent); color: var(--cor-st, #00adee); flex-shrink: 0; }
+    .status-linha .ic svg.i { width: 18px; height: 18px; }
     .status-linha small { display: block; color: var(--muted); font-size: 11.5px; }
+    .pedido-status .pill svg.i { width: 15px; height: 15px; }
     .aval-dica { margin-top: 6px; font-size: 12.5px; color: #f5a524; line-height: 1.4; }
     /* notas e etiquetas do cliente */
     .notas-quem { display: flex; align-items: center; gap: 12px; padding: 16px; border-bottom: 1px solid var(--line); }
@@ -451,7 +453,17 @@
     .bolha.midia .meta { margin-right: 6px; }
     .bolha img.foto { display: block; max-width: 100%; width: 320px; max-height: 360px; object-fit: cover; border-radius: 7px; cursor: zoom-in; background: var(--panel-2); }
     .bolha video { display: block; max-width: 100%; width: 320px; max-height: 360px; border-radius: 7px; background: #000; }
-    .bolha audio { display: block; width: 260px; max-width: 100%; height: 40px; }
+    /* player de áudio próprio (mesmo visual da bolha, em vez do player branco do navegador) */
+    .audio-msg { display: flex; align-items: center; gap: 10px; width: min(258px, 72vw); padding: 2px 2px 2px 0; }
+    .audio-msg .ap-play { width: 38px; height: 38px; flex: none; border-radius: 50%; border: 0; cursor: pointer; display: grid; place-items: center; background: color-mix(in srgb, currentColor 16%, transparent); color: inherit; }
+    .audio-msg.tocando .ap-play { background: color-mix(in srgb, currentColor 26%, transparent); }
+    .audio-msg .ap-play svg.i { width: 18px; height: 18px; }
+    .audio-msg .ap-corpo { flex: 1; min-width: 0; display: grid; gap: 5px; }
+    .audio-msg .ap-barra { height: 4px; border-radius: 999px; background: color-mix(in srgb, currentColor 22%, transparent); cursor: pointer; position: relative; }
+    .audio-msg .ap-prog { position: absolute; inset: 0 auto 0 0; width: 0; border-radius: 999px; background: currentColor; }
+    .audio-msg .ap-prog::after { content: ""; position: absolute; right: -5px; top: 50%; transform: translateY(-50%); width: 10px; height: 10px; border-radius: 50%; background: currentColor; }
+    .audio-msg .ap-tempo { font-size: 11.5px; font-variant-numeric: tabular-nums; opacity: .8; }
+    .menu button svg.i { width: 20px; height: 20px; }
     .bolha.midia.so-midia .meta { position: absolute; right: 10px; bottom: 9px; margin: 0; background: rgba(0, 0, 0, .45); color: #fff; padding: 2px 6px; border-radius: 8px; opacity: 1; }
     .citacao { display: block; border: 0; width: 100%; text-align: left; cursor: pointer; margin: 0 0 5px; padding: 6px 9px; border-radius: 7px; background: var(--quote-bg); border-left: 3px solid var(--accent); font-size: calc(var(--msg-size) - 1.5px); color: inherit; }
     .citacao strong { display: block; color: var(--accent); font-size: 12.5px; margin-bottom: 1px; }
@@ -587,6 +599,16 @@
       <symbol id="i-alerta" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4.5M12 17.5h.01"/></symbol>
     <symbol id="i-restringir" viewBox="0 0 24 24"><path d="M12 3.5l7 3v5.2c0 4.2-2.9 7.6-7 8.8-4.1-1.2-7-4.6-7-8.8V6.5z"/><path d="M9 12h6"/></symbol>
     <symbol id="i-baixar" viewBox="0 0 24 24"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></symbol>
+    <!-- status do pedido (mesmo traço dos outros ícones, para não depender de emoji) -->
+    <symbol id="i-st-recebido" viewBox="0 0 24 24"><path d="M3.5 13l2.2-7A2 2 0 017.6 4.5h8.8a2 2 0 011.9 1.4l2.2 7M3.5 13v5A1.5 1.5 0 005 19.5h14a1.5 1.5 0 001.5-1.5v-5M3.5 13h4.3l1.2 2.2h6l1.2-2.2h4.3"/></symbol>
+    <symbol id="i-st-preparando" viewBox="0 0 24 24"><path d="M5 20.5h14M6 17.5h12a0 0 0 010 0 6 6 0 00-12 0M12 11.5V9a2 2 0 10-4 0"/><circle cx="12" cy="6.2" r="1.3"/></symbol>
+    <symbol id="i-st-separando" viewBox="0 0 24 24"><path d="M4 8.5l8-4 8 4v7l-8 4-8-4z"/><path d="M4 8.5l8 4 8-4M12 12.5v7M8 6.3l8 4"/></symbol>
+    <symbol id="i-st-saiu" viewBox="0 0 24 24"><circle cx="6.5" cy="17.5" r="2.4"/><circle cx="17.5" cy="17.5" r="2.4"/><path d="M8.9 17.5h6.2M4 8.5h4l2.5 6M13 7h3.2l2.3 5.3.8 5.2"/></symbol>
+    <symbol id="i-st-enviado" viewBox="0 0 24 24"><path d="M3.5 7.5h9v9h-9zM12.5 10.5h4l3 3v3h-7z"/><circle cx="6.5" cy="16.5" r="1.8"/><circle cx="16.5" cy="16.5" r="1.8"/></symbol>
+    <symbol id="i-st-entregue" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8 12.5l2.6 2.6L16 9.5"/></symbol>
+    <symbol id="i-st-cancelado" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9 9l6 6M15 9l-6 6"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 5.5l12 6.5-12 6.5z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-pausa" viewBox="0 0 24 24"><rect x="6.5" y="5" width="4" height="14" rx="1.2" fill="currentColor" stroke="none"/><rect x="13.5" y="5" width="4" height="14" rx="1.2" fill="currentColor" stroke="none"/></symbol>
   </svg>
 
   <div class="carregando-app" id="carregandoApp"><div><div class="spinner"></div>Carregando mensagens...</div></div>
@@ -1140,12 +1162,54 @@
       }
       return box;
     }
+    // Player de áudio próprio: play/pausa, barra de progresso e tempo (sem o player branco do navegador).
+    // Só um áudio toca por vez. O arquivo só é carregado quando a pessoa aperta play.
+    let audioTocando = null;
+    function criarAudioMsg(url) {
+      const box = document.createElement("div"); box.className = "audio-msg";
+      const bPlay = document.createElement("button"); bPlay.type = "button"; bPlay.className = "ap-play"; bPlay.setAttribute("aria-label", "Tocar áudio");
+      bPlay.appendChild(iconeSvg("play"));
+      const corpo = document.createElement("div"); corpo.className = "ap-corpo";
+      const barra = document.createElement("div"); barra.className = "ap-barra"; barra.setAttribute("role", "slider"); barra.setAttribute("aria-label", "Posição do áudio");
+      const prog = document.createElement("div"); prog.className = "ap-prog"; barra.appendChild(prog);
+      const tempo = document.createElement("span"); tempo.className = "ap-tempo"; tempo.textContent = "0:00";
+      corpo.append(barra, tempo);
+      box.append(bPlay, corpo);
+      const mmss = (s) => (Number.isFinite(s) ? `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}` : "0:00");
+      let audio = null;
+      const icone = (nome) => { bPlay.replaceChildren(iconeSvg(nome)); };
+      const criar = () => {
+        audio = new Audio(url); audio.preload = "metadata";
+        audio.addEventListener("loadedmetadata", () => { if (!box.classList.contains("tocando")) tempo.textContent = mmss(audio.duration); });
+        audio.addEventListener("timeupdate", () => { if (audio.duration) { prog.style.width = `${(audio.currentTime / audio.duration) * 100}%`; tempo.textContent = mmss(audio.duration - audio.currentTime); } });
+        audio.addEventListener("ended", () => { box.classList.remove("tocando"); icone("play"); prog.style.width = "0"; tempo.textContent = mmss(audio.duration); audioTocando = null; });
+        audio.addEventListener("error", () => toast("Não foi possível tocar o áudio."));
+      };
+      bPlay.addEventListener("click", () => {
+        if (!audio) criar();
+        if (audio.paused) {
+          if (audioTocando && audioTocando !== audio) { audioTocando.pause(); }
+          audioTocando = audio; audio.play().then(() => { box.classList.add("tocando"); icone("pausa"); bPlay.setAttribute("aria-label", "Pausar"); }).catch(() => {});
+        } else { audio.pause(); box.classList.remove("tocando"); icone("play"); bPlay.setAttribute("aria-label", "Tocar áudio"); }
+      });
+      barra.addEventListener("click", (e) => { if (!audio || !audio.duration) return; const r = barra.getBoundingClientRect(); audio.currentTime = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * audio.duration; });
+      return box;
+    }
+
     // ---------- status do pedido (delivery e lojinha) ----------
+    // Ícone SVG (mesmo traço do resto da página) em vez de emoji, para ficar igual em todo aparelho.
+    function iconeSvg(id, cls = "i") {
+      const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      s.setAttribute("class", cls); s.setAttribute("aria-hidden", "true");
+      const u = document.createElementNS("http://www.w3.org/2000/svg", "use");
+      u.setAttribute("href", "#i-" + id); s.appendChild(u);
+      return s;
+    }
     const ETAPAS = {
-      delivery: [["recebido", "Pedido recebido", "📥"], ["preparando", "Preparando", "👩‍🍳"], ["saiu", "Saiu para entrega", "🛵"], ["entregue", "Entregue", "✅"]],
-      lojinha: [["recebido", "Pedido recebido", "📥"], ["separando", "Separando os produtos", "📦"], ["enviado", "Enviado ou pronto para retirar", "🚚"], ["entregue", "Entregue", "✅"]]
+      delivery: [["recebido", "Pedido recebido", "st-recebido"], ["preparando", "Preparando", "st-preparando"], ["saiu", "Saiu para entrega", "st-saiu"], ["entregue", "Entregue", "st-entregue"]],
+      lojinha: [["recebido", "Pedido recebido", "st-recebido"], ["separando", "Separando os produtos", "st-separando"], ["enviado", "Enviado ou pronto para retirar", "st-enviado"], ["entregue", "Entregue", "st-entregue"]]
     };
-    const CANCELADO = ["cancelado", "Cancelado", "✖️"];
+    const CANCELADO = ["cancelado", "Cancelado", "st-cancelado"];
     const etapasDe = (tipo) => ETAPAS[tipo] || ETAPAS.delivery;
     function infoStatus(tipo, k) { return k === "cancelado" ? CANCELADO : etapasDe(tipo).find((e) => e[0] === k) || null; }
     const corStatus = (k) => (k === "cancelado" ? "#e5484d" : k === "entregue" ? "#2fbf71" : "#00adee");
@@ -1175,7 +1239,8 @@
       }
       const linha = document.createElement("div"); linha.className = "pedido-status";
       const st = infoStatus(tipo, k);
-      const pill = document.createElement("span"); pill.className = "pill"; pill.textContent = st ? `${st[2]} ${st[1]}` : "⏳ Aguardando o negócio confirmar";
+      const pill = document.createElement("span"); pill.className = "pill";
+      pill.append(iconeSvg(st ? st[2] : "relogio"), document.createTextNode(st ? st[1] : "Aguardando o negócio confirmar"));
       linha.appendChild(pill);
       // Quem recebeu o pedido (o negócio) atualiza o andamento.
       if (m.remetenteId !== eu.uid && k !== "entregue" && k !== "cancelado") {
@@ -1201,7 +1266,7 @@
         if (k === atual) return;
         const b = document.createElement("button"); b.type = "button"; b.setAttribute("role", "menuitem");
         if (k === "cancelado") b.className = "perigo";
-        b.textContent = `${ic}  ${rot}`;
+        b.append(iconeSvg(ic), document.createTextNode(rot));
         b.addEventListener("click", async (e) => {
           e.stopPropagation(); fecharMenu();
           if (k === "cancelado" && !confirm("Marcar este pedido como cancelado? O cliente vê na conversa.")) return;
@@ -2288,11 +2353,11 @@
       if (m.tipoArquivo === "cartao" && m.cartao?.status) {
         // Atualização de status de um pedido (enviada pelo negócio).
         const c = m.cartao;
-        const st = infoStatus(c.tipo, c.status) || ["", "Status atualizado", "•"];
+        const st = infoStatus(c.tipo, c.status) || ["", "Status atualizado", "relogio"];
         bolha.classList.add("status-msg");
         const l = document.createElement("div"); l.className = "status-linha";
         l.style.setProperty("--cor-st", corStatus(c.status));
-        const ic = document.createElement("span"); ic.className = "ic"; ic.textContent = st[2];
+        const ic = document.createElement("span"); ic.className = "ic"; ic.appendChild(iconeSvg(st[2]));
         const tx = document.createElement("div");
         const forte = document.createElement("strong"); forte.textContent = `Pedido: ${st[1]}`;
         const sub = document.createElement("small"); sub.textContent = c.titulo || "";
@@ -2340,9 +2405,7 @@
           v.src = url; v.controls = true; v.playsInline = true; v.preload = "metadata";
           bolha.appendChild(v);
         } else if (m.tipoArquivo === "audio") {
-          const a = document.createElement("audio");
-          a.src = url; a.controls = true; a.preload = "metadata";
-          bolha.appendChild(a);
+          bolha.appendChild(criarAudioMsg(url));
           bolha.classList.remove("so-midia");
         } else {
           const img = document.createElement("img");

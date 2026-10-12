@@ -7,7 +7,7 @@
 // Cores: variáveis --viz-* do admin.css (paleta validada para daltonismo,
 // claro e escuro). Uma escala só por gráfico; nada de dois eixos.
 // =====================================================
-import { baixarPlanilha } from "./planilha.js?v=1";
+import { baixarPlanilha } from "./planilha.js?v=3";
 const NS = "http://www.w3.org/2000/svg";
 const s = (tag, attrs = {}) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); return e; };
 const h = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
@@ -81,6 +81,47 @@ export function linha(el, { pontos, formato = num, cor = "var(--viz-1)", altura 
   el.appendChild(svg);
 }
 
+// Duas (ou mais) linhas no mesmo gráfico, para comparar períodos.
+// rotulos: eixo X · series: [{ nome, cor, valores: [n, n, ...] }] (mesmo tamanho de rotulos)
+export function linhaComparada(el, { rotulos, series, formato = num, altura = 230 }) {
+  el.replaceChildren();
+  const W = Math.max(300, el.clientWidth || 600), H = altura, m = { t: 30, r: 12, b: 26, l: 44 };
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const n = rotulos.length;
+  const max = Math.max(0, ...series.flatMap((s2) => s2.valores));
+  const { teto, passo } = escala(max);
+  const X = (i) => m.l + (n <= 1 ? iw / 2 : (i / (n - 1)) * iw);
+  const Y = (v) => m.t + ih - (v / teto) * ih;
+  const svg = s("svg", { viewBox: `0 0 ${W} ${H}`, width: "100%", height: H, role: "img" });
+  for (let v = 0; v <= teto + 1e-9; v += passo) {
+    svg.appendChild(s("line", { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), class: v === 0 ? "viz-base" : "viz-grade" }));
+    const t = s("text", { x: m.l - 6, y: Y(v) + 4, class: "viz-eixo", "text-anchor": "end" }); t.textContent = formato(v); svg.appendChild(t);
+  }
+  const maxRot = Math.max(2, Math.floor(iw / 70)), passoX = Math.max(1, Math.ceil(n / maxRot)), u = n - 1;
+  rotulos.forEach((r, i) => { if (i % passoX && i !== u) return; const t = s("text", { x: X(i), y: H - 8, class: "viz-eixo", "text-anchor": i === 0 ? "start" : i === u ? "end" : "middle" }); t.textContent = r; svg.appendChild(t); });
+  // legenda no topo
+  const leg = s("g"); let lx = m.l;
+  series.forEach((sr) => { leg.appendChild(s("line", { x1: lx, x2: lx + 18, y1: 14, y2: 14, stroke: sr.cor, "stroke-width": 3, "stroke-linecap": "round" })); const t = s("text", { x: lx + 23, y: 18, class: "viz-eixo" }); t.textContent = sr.nome; leg.appendChild(t); lx += 30 + sr.nome.length * 7.2; });
+  svg.appendChild(leg);
+  series.forEach((sr) => {
+    if (!sr.valores.length) return;
+    const d = sr.valores.map((v, i) => `${i ? "L" : "M"}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join("");
+    svg.appendChild(s("path", { d, fill: "none", stroke: sr.cor, "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round", opacity: sr.tracejada ? ".75" : "1", ...(sr.tracejada ? { "stroke-dasharray": "5 4" } : {}) }));
+  });
+  const cruz = s("line", { y1: m.t, y2: m.t + ih, class: "viz-cruz", visibility: "hidden" });
+  svg.appendChild(cruz);
+  const alvo = s("rect", { x: m.l, y: m.t, width: iw, height: ih, fill: "transparent" });
+  alvo.addEventListener("pointermove", (e) => {
+    const r = svg.getBoundingClientRect(), x = ((e.clientX - r.left) / r.width) * W;
+    const i = Math.max(0, Math.min(n - 1, Math.round(((x - m.l) / iw) * (n - 1))));
+    cruz.setAttribute("x1", X(i)); cruz.setAttribute("x2", X(i)); cruz.setAttribute("visibility", "visible");
+    mostrarDica([h("strong", null, rotulos[i]), ...series.map((sr) => linhaDica(sr.nome, formato(sr.valores[i] ?? 0), sr.cor))], e.clientX, e.clientY);
+  });
+  alvo.addEventListener("pointerleave", () => { cruz.setAttribute("visibility", "hidden"); esconderDica(); });
+  svg.appendChild(alvo);
+  el.appendChild(svg);
+}
+
 // itens: [{ rotulo, valor, cor? }] · horizontal para nomes (cidades); vertical para faixas (idades)
 export function barras(el, { itens, formato = num, horizontal = false, cor = "var(--viz-1)", total = null }) {
   el.replaceChildren();
@@ -125,7 +166,8 @@ export function barras(el, { itens, formato = num, horizontal = false, cor = "va
 
 // Cartão com título, gráfico, "Tabela" e "Excel".
 // desenhar(el) desenha o gráfico · linhas: [[col1, col2...], ...] com cabecalho
-export function cartao({ titulo, sub = "", cabecalho = [], linhas = [], desenhar, largo = false, nomeArquivo = "dados" }) {
+export function cartao({ titulo, sub = "", cabecalho = [], linhas = [], desenhar, largo = false, nomeArquivo = "dados", grafico = "coluna" }) {
+  const linhasOriginais = linhas;
   const c = h("section", "viz-cartao" + (largo ? " largo" : ""));
   const topo = h("div", "viz-topo");
   const tt = h("div"); tt.append(h("h3", null, titulo)); if (sub) tt.append(h("p", null, sub));
@@ -141,7 +183,7 @@ export function cartao({ titulo, sub = "", cabecalho = [], linhas = [], desenhar
   linhas.forEach((ln) => { const tr = h("tr"); ln.forEach((x) => tr.appendChild(h("td", null, String(x)))); tb.appendChild(tr); });
   table.append(thead, tb); tab.appendChild(table);
   bT.addEventListener("click", () => { const on = tab.hidden; tab.hidden = !on; area.hidden = on; bT.setAttribute("aria-pressed", String(on)); });
-  bC.addEventListener("click", () => baixarCSV(nomeArquivo, cabecalho, linhas));
+  bC.addEventListener("click", () => baixarCSV(nomeArquivo, cabecalho, linhasOriginais, { tipo: grafico, titulo }));
   c.append(topo, area, tab);
   // Tudo zerado: mostra o aviso em vez de barras vazias.
   if (linhas.length && linhas.every((l) => l.slice(1).every((v) => !Number(v)))) linhas = [];
@@ -164,4 +206,4 @@ export function destaque({ rotulo, valor, formato = num, antes = null, dica: tex
 }
 
 // Planilhas saem em Excel (.xlsx): abrem como tabela no celular e no computador.
-export function baixarCSV(nome, cabecalho, linhas) { baixarPlanilha(nome, cabecalho, linhas); }
+export function baixarCSV(nome, cabecalho, linhas, grafico) { baixarPlanilha(nome, cabecalho, linhas, nome, grafico); }

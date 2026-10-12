@@ -4,7 +4,8 @@
 // Firebase). As regras do Firestore conferem isso em cada leitura e ação.
 // =====================================================
 import { C, D, $, h, ms, toast, PAPEIS, vendoAgora, pode, garantirNegocios, garantirTodasPessoas, carregarPessoas } from "./admin-base.js?v=9";
-import * as S from "./admin-secoes.js?v=9";
+import * as S from "./admin-secoes.js?v=12";
+import { previa, tocarSom } from "./admin-chat.js?v=3";
 
 const SECOES = {
   visao: S.visao, estatisticas: S.estatisticas, relatorios: S.relatorios, usuarios: S.usuarios, verificacoes: S.verificacoes,
@@ -56,7 +57,7 @@ function contadores() {
   set("reclamacoes", pend(D.queixas.filter((q) => q.status === "aberta" && !q.resposta && ms(q.abertaEm) < Date.now() - 7 * 864e5).length));
   set("sancoes", pend([...D.sancoes.values()].filter((s) => s.tipo === "banimento" || ms(s.ate) > Date.now()).length));
   set("parcerias", pend(D.parcerias.filter((p) => (p.status || "novo") === "novo").length));
-  set("equipe", pend(C.chatNaoLidas || 0));
+  set("equipe", pend((C.chatNaoLidas || 0) + (C.dmNaoLidas || 0)));
   set("tarefas", pend(C.tarefas.filter((t) => t.status !== "feito" && t.responsavel === C.eu?.uid).length));
   const on = D.admins.filter((a) => a.id !== C.eu?.uid && C.online(a.id)).length;
   const e = $("equipeOnline"); if (e) { e.hidden = !on; e.textContent = `${on} da equipe online`; }
@@ -99,14 +100,36 @@ function equipeAoVivo() {
     if (!primeiraT) s.docChanges().filter((c) => c.type !== "removed" && c.doc.data().responsavel === C.eu.uid && c.doc.data().status === "a_fazer" && c.doc.data().criadoPor !== C.eu.uid && !c.doc.metadata.hasPendingWrites).slice(-1).forEach((c) => toast(`Nova tarefa para você: ${c.doc.data().titulo}`));
     primeiraT = false; contadores(); if (atual === "tarefas" || atual === "visao") C.aoMudarTarefas?.();
   }, (e) => console.warn("Tarefas:", e.code || e.message));
+  // Chat de todos: quem está com ele aberto não acumula "não lidas".
+  const vendoConversa = (id) => atual === "equipe" && C.conversaAberta === id && !document.hidden;
   let primeira = true;
   fb.onSnapshot(fb.query(fb.collection(fb.db, "equipe_chat"), fb.orderBy("em", "desc"), fb.limit(150)), (s) => {
     C.chat = s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).reverse();
     const novas = C.chat.filter((m) => m.autorId !== C.eu.uid && ms(m.em) > visto);
-    C.chatNaoLidas = atual === "equipe" ? 0 : novas.length;
-    if (!primeira && atual !== "equipe") s.docChanges().filter((c) => c.type === "added" && c.doc.data().autorId !== C.eu.uid).slice(-1).forEach((c) => toast(`Equipe · ${c.doc.data().nome || "mensagem"}: ${String(c.doc.data().texto).slice(0, 60)}`));
+    C.chatNaoLidas = vendoConversa("equipe") ? 0 : novas.length;
+    if (!primeira) s.docChanges().filter((c) => c.type === "added" && c.doc.data().autorId !== C.eu.uid && !c.doc.metadata.hasPendingWrites).slice(-1).forEach((c) => {
+      const m = c.doc.data(), mencao = (m.mencoes || []).includes(C.eu.uid);
+      if (vendoConversa("equipe") && !mencao) return;
+      toast(mencao ? `${m.nome || "Alguém"} mencionou você no chat da equipe: ${previa(m).slice(0, 60)}` : `Equipe · ${m.nome || "mensagem"}: ${previa(m).slice(0, 60)}`);
+      tocarSom();
+    });
     primeira = false; avisar();
   }, (e) => console.warn("Chat da equipe:", e.code || e.message));
+  // Conversas individuais: só o resumo de cada uma (quem falou por último, quando, e quando eu li).
+  C.dms = new Map(); C.dmNaoLidas = 0;
+  let primeiraDm = true;
+  fb.onSnapshot(fb.query(fb.collection(fb.db, "equipe_dm"), fb.where("participantes", "array-contains", C.eu.uid), fb.limit(100)), (s) => {
+    C.dms = new Map(s.docs.map((d) => [d.id, d.data({ serverTimestamps: "estimate" })]));
+    const naoLida = (id, d) => d.ultimoAutor !== C.eu.uid && ms(d.ultimaEm) > ms(d.lidoEm?.[C.eu.uid]) && !vendoConversa(id);
+    C.dmNaoLidas = [...C.dms.entries()].filter(([id, d]) => naoLida(id, d)).length;
+    if (!primeiraDm) s.docChanges().filter((c) => c.type !== "removed" && !c.doc.metadata.hasPendingWrites).forEach((c) => {
+      const d = c.doc.data({ serverTimestamps: "estimate" });
+      if (d.ultimoAutor === C.eu.uid || !naoLida(c.doc.id, d)) return;
+      const de = D.admins.find((a) => a.id === d.ultimoAutor)?.nome || "Alguém da equipe";
+      toast(`${de} (mensagem privada): ${String(d.ultimaTexto || "").slice(0, 60)}`); tocarSom();
+    });
+    primeiraDm = false; avisar();
+  }, (e) => console.warn("Conversas individuais:", e.code || e.message));
 }
 
 // Carrega tudo o que o painel usa. Em sites maiores, o relatório diário (estatisticas/) evita recalcular.
