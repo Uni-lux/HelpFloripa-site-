@@ -92,11 +92,12 @@ function verFoto(m) {
 }
 
 // ---------- envio ----------
-async function enviarMensagem(conv, { texto = "", anexo = null, mencoes = [] }) {
+async function enviarMensagem(conv, { texto = "", anexo = null, mencoes = [], resposta = null }) {
   const { fb } = C;
   const lote = fb.writeBatch(fb.db);
   const dados = { autorId: C.eu.uid, nome: String(C.nome || "").slice(0, 80), texto: String(texto).slice(0, 2000), em: fb.serverTimestamp() };
   if (mencoes.length) dados.mencoes = [...new Set(mencoes)].slice(0, 10);
+  if (resposta && resposta.id) dados.resposta = { id: String(resposta.id), autorId: String(resposta.autorId || ""), nome: String(resposta.nome || "").slice(0, 80), texto: String(resposta.texto || "").slice(0, 200) };
   if (anexo) {
     const ref = fb.doc(fb.collection(fb.db, "equipe_anexos"));
     lote.set(ref, { autorId: C.eu.uid, conversa: conv, dados: anexo.dados, em: fb.serverTimestamp() });
@@ -114,6 +115,15 @@ async function enviarMensagem(conv, { texto = "", anexo = null, mencoes = [] }) 
 function marcarLidaDm(par) {
   const { fb } = C;
   fb.setDoc(fb.doc(fb.db, "equipe_dm", par), { participantes: par.split("_"), lidoEm: { [C.eu.uid]: fb.serverTimestamp() } }, { merge: true }).catch(() => {});
+}
+export const EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
+// Alterna a reação de quem está logado numa mensagem (uma reação por pessoa).
+async function alternarReacao(conv, m, emoji) {
+  const { fb } = C;
+  const ref = conv === "equipe" ? fb.doc(fb.db, "equipe_chat", m.id) : fb.doc(fb.db, "equipe_dm", conv, "mensagens", m.id);
+  const atual = (m.reacoes || {})[C.eu.uid];
+  const valor = atual === emoji ? fb.deleteField() : emoji;
+  await fb.updateDoc(ref, { ["reacoes." + C.eu.uid]: valor });
 }
 
 // ---------- som de aviso ----------
@@ -152,7 +162,7 @@ function textoComMencoes(texto, mencoes = []) {
 export function montarChat(el) {
   const { fb } = C;
   let conv = C.conversaAberta && (C.conversaAberta === "equipe" || C.conversaAberta.includes(C.eu.uid)) ? C.conversaAberta : "equipe";
-  let msgsDm = [], pararDm = null, termo = "";
+  let msgsDm = [], pararDm = null, termo = "", respondendo = null;
   const raiz = h("div", "ad-chat2");
   // ---------- lista de conversas ----------
   const lado = h("aside", "ad-conversas"); lado.setAttribute("aria-label", "Conversas da equipe");
@@ -180,6 +190,10 @@ export function montarChat(el) {
   // ---------- campo de envio ----------
   const form = h("form", "ad-chat-form");
   const sugest = h("div", "ad-mencao-lista"); sugest.hidden = true; sugest.setAttribute("role", "listbox");
+  const respBarra = h("div", "ad-chat-resp"); respBarra.hidden = true;
+  const respTx = h("div", "tx");
+  const respX = h("button", "ad-icone", "✕"); respX.type = "button"; respX.setAttribute("aria-label", "Cancelar resposta");
+  respBarra.append(h("span", "ad-chat-resp-bar"), respTx, respX);
   const barra = h("div", "ad-chat-barra");
   const inArq = h("input"); inArq.type = "file"; inArq.hidden = true;
   inArq.accept = "image/*,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.ppt,.pptx,.zip";
@@ -198,7 +212,7 @@ export function montarChat(el) {
   const gEnviar = h("button", "ad-bt pri", "Enviar áudio"); gEnviar.type = "button";
   gravando.append(h("span", "ad-gravando-ponto"), h("span", null, "Gravando"), gTempo, gCancelar, gEnviar);
   const dica = h("p", "ad-chat-dica", "Enter envia · Shift+Enter quebra a linha · @ para mencionar · 📎 foto ou arquivo (até 680 KB) · 🎤 áudio (até 2 min)");
-  form.append(sugest, barra, gravando, dica);
+  form.append(sugest, respBarra, barra, gravando, dica);
   painel.append(topo, barraBusca, chat, form);
   raiz.append(lado, painel);
   el.appendChild(raiz);
@@ -275,11 +289,17 @@ export function montarChat(el) {
       const meu = m.autorId === C.eu.uid;
       const junto = !t && m.autorId === autorAnt && ms(m.em) - msAnt < 5 * 60000;
       const p = pessoa(m.autorId);
-      const linha = h("div", "ad-chat-linha" + (meu ? " meu" : "") + (junto ? " junto" : ""));
+      const linha = h("div", "ad-chat-linha" + (meu ? " meu" : "") + (junto ? " junto" : "")); if (m.id) linha.dataset.id = m.id;
       if (!meu) { const av = avatar({ ...p, nome: m.nome || p.nome }); av.classList.add("ad-chat-av"); if (junto) av.style.visibility = "hidden"; linha.appendChild(av); }
       const mencionaMe = (m.mencoes || []).includes(C.eu.uid) && !meu;
       const bm = h("div", "ad-msg" + (meu ? " equipe" : "") + (mencionaMe ? " mencao-eu" : ""));
       if (!meu && !junto && conv === "equipe") bm.appendChild(h("b", "ad-msg-autor", m.nome || p.nome || "Equipe"));
+      if (m.resposta && m.resposta.id) {
+        const cit = h("button", "ad-msg-cit"); cit.type = "button";
+        cit.append(h("b", null, m.resposta.autorId === C.eu.uid ? "Você" : (m.resposta.nome || nomeDe(m.resposta.autorId) || "Equipe")), h("span", null, m.resposta.texto || "Anexo"));
+        cit.addEventListener("click", () => irParaMensagem(m.resposta.id));
+        bm.appendChild(cit);
+      }
       if (m.tipoArquivo === "imagem") {
         const f = h("button", "ad-msg-foto"); f.type = "button"; f.setAttribute("aria-label", "Abrir foto");
         if (m.miniatura) { const im = document.createElement("img"); im.src = m.miniatura; im.alt = m.nomeArquivo || "Foto"; im.loading = "lazy"; f.appendChild(im); } else f.textContent = "📷 Abrir foto";
@@ -300,13 +320,36 @@ export function montarChat(el) {
       if (m.texto) { const p2 = h("div", "ad-msg-texto"); p2.appendChild(textoComMencoes(m.texto, m.mencoes)); if (t) marcar(p2, t); bm.appendChild(p2); }
       const rod = h("small", null, hora(m.em));
       bm.appendChild(rod);
-      // ações: virar tarefa / copiar
+      // reações já dadas (agrupadas por emoji, com contagem)
+      const reacoes = m.reacoes || {};
+      const chavesReacao = Object.keys(reacoes);
+      if (chavesReacao.length) {
+        const cont = new Map();
+        chavesReacao.forEach((uid) => { const e = reacoes[uid]; cont.set(e, (cont.get(e) || 0) + 1); });
+        const linhaReac = h("div", "ad-msg-reacoes");
+        [...cont.entries()].forEach(([e, n]) => {
+          const meuReac = reacoes[C.eu.uid] === e;
+          const ch = h("button", "ad-reac-chip" + (meuReac ? " eu" : "")); ch.type = "button";
+          ch.append(h("span", "em", e), h("span", "n", String(n)));
+          ch.title = chavesReacao.filter((u) => reacoes[u] === e).map((u) => (u === C.eu.uid ? "Você" : nomeDe(u))).join(", ");
+          ch.addEventListener("click", () => alternarReacao(conv, m, e).catch((err) => toast("Não foi possível reagir: " + (err.code || err.message))));
+          linhaReac.appendChild(ch);
+        });
+        bm.appendChild(linhaReac);
+      }
+      // ações: reagir / responder / virar tarefa / copiar
       const mais = h("div", "ad-msg-acoes");
+      const bReagir = h("button", "ad-msg-acao ad-msg-reagir", "😊 Reagir"); bReagir.type = "button";
+      const picker = h("div", "ad-reac-picker"); picker.hidden = true;
+      EMOJIS.forEach((e) => { const be = h("button", "ad-reac-op" + (reacoes[C.eu.uid] === e ? " eu" : "")); be.type = "button"; be.textContent = e; be.setAttribute("aria-label", "Reagir com " + e); be.addEventListener("click", () => { picker.hidden = true; alternarReacao(conv, m, e).catch((err) => toast("Não foi possível reagir: " + (err.code || err.message))); }); picker.appendChild(be); });
+      bReagir.addEventListener("click", (ev) => { ev.stopPropagation(); const abrirP = picker.hidden; document.querySelectorAll(".ad-reac-picker").forEach((x) => { x.hidden = true; }); picker.hidden = !abrirP; });
+      const bResp = h("button", "ad-msg-acao", "Responder"); bResp.type = "button";
+      bResp.addEventListener("click", () => definirResposta(m));
       const bt = h("button", "ad-msg-acao", "Criar tarefa"); bt.type = "button";
       bt.addEventListener("click", () => editarTarefa({ titulo: (m.texto || m.nomeArquivo || "Mensagem do chat").slice(0, 140), descricao: `Do chat ${conv === "equipe" ? "da equipe" : "com " + nomeDe(outroDoPar(conv))} — ${m.nome || nomeDe(m.autorId)} (${hora(m.em)}): ${m.texto || previa(m)}`.slice(0, 2000) }));
-      mais.appendChild(bt);
+      mais.append(bReagir, bResp, bt);
       if (m.texto && navigator.clipboard) { const bc = h("button", "ad-msg-acao", "Copiar"); bc.type = "button"; bc.addEventListener("click", () => navigator.clipboard.writeText(m.texto).then(() => toast("Mensagem copiada"))); mais.appendChild(bc); }
-      bm.appendChild(mais);
+      bm.append(mais, picker);
       linha.appendChild(bm);
       nos.push(linha);
       autorAnt = m.autorId; msAnt = ms(m.em);
@@ -319,10 +362,28 @@ export function montarChat(el) {
     const txt0 = no.textContent; const i = txt0.toLowerCase().indexOf(t); if (i < 0) return;
     no.replaceChildren(document.createTextNode(txt0.slice(0, i)), h("mark", null, txt0.slice(i, i + t.length)), document.createTextNode(txt0.slice(i + t.length)));
   }
+  // ---------- responder / citar ----------
+  function pintarResposta() {
+    if (!respondendo) { respBarra.hidden = true; respTx.replaceChildren(); return; }
+    respBarra.hidden = false;
+    respTx.replaceChildren(h("b", null, "Respondendo a " + (respondendo.autorId === C.eu.uid ? "você" : (respondendo.nome || nomeDe(respondendo.autorId)))), h("span", null, respondendo.texto || "Anexo"));
+  }
+  function definirResposta(m) {
+    respondendo = { id: m.id, autorId: m.autorId, nome: m.nome || nomeDe(m.autorId), texto: (m.texto || previa(m) || "").slice(0, 200) };
+    pintarResposta(); txt.focus();
+  }
+  respX.addEventListener("click", () => { respondendo = null; pintarResposta(); txt.focus(); });
+  function irParaMensagem(id) {
+    const alvo = chat.querySelector(`.ad-chat-linha[data-id="${id}"]`);
+    if (!alvo) { toast("Mensagem fora da conversa carregada"); return; }
+    alvo.scrollIntoView({ behavior: "smooth", block: "center" });
+    alvo.classList.add("destacada"); setTimeout(() => alvo.classList.remove("destacada"), 1600);
+  }
+  document.addEventListener("click", () => { chat.querySelectorAll(".ad-reac-picker").forEach((x) => { x.hidden = true; }); });
 
   // ---------- abrir conversa ----------
   function abrir(id) {
-    conv = id; C.conversaAberta = id; termo = ""; inBusca.value = ""; barraBusca.hidden = true;
+    conv = id; C.conversaAberta = id; termo = ""; inBusca.value = ""; barraBusca.hidden = true; respondendo = null; pintarResposta();
     pararDm?.(); pararDm = null; msgsDm = []; pintarChat.feito = false;
     raiz.classList.add("aberta");
     if (id === "equipe") { C.marcarChatVisto?.(); }
@@ -378,7 +439,7 @@ export function montarChat(el) {
   async function enviar() {
     const t = txt.value.trim(); if (!t) return;
     env.disabled = true;
-    try { await enviarMensagem(conv, { texto: t, mencoes: mencoesDoTexto(t) }); txt.value = ""; mencoes.clear(); }
+    try { await enviarMensagem(conv, { texto: t, mencoes: mencoesDoTexto(t), resposta: respondendo }); txt.value = ""; mencoes.clear(); respondendo = null; pintarResposta(); }
     catch (e) { console.error(e); toast("Não foi possível enviar: " + (e.code || e.message)); }
     finally { atualizarCampo(); txt.focus(); chat.scrollTop = chat.scrollHeight; }
   }
@@ -401,7 +462,8 @@ export function montarChat(el) {
     try {
       const anexo = await prepararArquivo(arquivo);
       const legenda = txt.value.trim();
-      await enviarMensagem(conv, { texto: legenda, anexo, mencoes: mencoesDoTexto(legenda) });
+      await enviarMensagem(conv, { texto: legenda, anexo, mencoes: mencoesDoTexto(legenda), resposta: respondendo });
+      respondendo = null; pintarResposta();
       if (legenda) { txt.value = ""; mencoes.clear(); atualizarCampo(); }
       chat.scrollTop = chat.scrollHeight;
     } catch (e) { console.error(e); toast(e.message && !e.code ? e.message : "Não foi possível enviar: " + (e.code || e.message)); }

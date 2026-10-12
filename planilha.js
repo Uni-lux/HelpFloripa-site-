@@ -123,11 +123,68 @@ export function gerarXlsx(cabecalho, linhas, aba = "Dados", grafico = null) {
   return zip(arquivos);
 }
 
+const numerizar = (linhas) => linhas.map((l) => l.map((v) => (typeof v === "string" && /^-?\d{1,9}([.,]\d+)?$/.test(v.trim()) && !/^0\d/.test(v.trim()) ? Number(v.replace(",", ".")) : v)));
+
+const CONTENT_FIXO = `<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>`;
+const RELS_RAIZ = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
+const STYLES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF0B7FAE"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+const relsSimples = (corpo) => `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${corpo}</Relationships>`;
+
+function folhaXml(cabecalho, linhas, temChart) {
+  const todas = [cabecalho, ...linhas];
+  const larg = cabecalho.map((_, c) => Math.min(60, Math.max(8, ...todas.map((l) => String(l[c] ?? "").length + 2))));
+  const celula = (v, r, c, cab) => { const ref = coluna(c) + (r + 1); if (!cab && typeof v === "number" && isFinite(v)) return `<c r="${ref}"><v>${v}</v></c>`; const t = String(v ?? ""); if (!t) return ""; return `<c r="${ref}" t="inlineStr"${cab ? ' s="1"' : ""}><is><t xml:space="preserve">${xml(t)}</t></is></c>`; };
+  const linhasXml = todas.map((l, r) => `<row r="${r + 1}">${l.map((v, c) => celula(v, r, c, r === 0)).join("")}</row>`).join("");
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols>${larg.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join("")}</cols><sheetData>${linhasXml}</sheetData>${cabecalho.length ? `<autoFilter ref="A1:${coluna(cabecalho.length - 1)}${todas.length}"/>` : ""}${temChart ? '<drawing r:id="rId1"/>' : ""}</worksheet>`;
+}
+
+// Várias abas num .xlsx só, cada uma com sua tabela e (opcional) seu gráfico.
+// abas: [{ nome, cabecalho, linhas, grafico }]
+export function gerarXlsxMulti(abas) {
+  abas = (abas && abas.length ? abas : [{ nome: "Dados", cabecalho: [], linhas: [] }]).map((a) => ({ ...a, linhas: numerizar(a.linhas || []) }));
+  const usados = new Set();
+  const nomeAba = (s, i) => { let n = xml(String(s || `Aba ${i + 1}`).replace(/[\\/?*[\]:]/g, " ").slice(0, 31).trim() || `Aba ${i + 1}`); let base = n, k = 2; while (usados.has(n.toLowerCase())) { n = `${base.slice(0, 27)} ${k++}`; } usados.add(n.toLowerCase()); return n; };
+  const nomes = abas.map((a, i) => nomeAba(a.nome, i));
+  const sheetParts = [], extraParts = [], wbRels = [], ct = [];
+  abas.forEach((a, i) => {
+    const idx = i + 1;
+    const chart = a.grafico ? chartXml(a.grafico, a.cabecalho, a.linhas) : null;
+    sheetParts.push([`xl/worksheets/sheet${idx}.xml`, folhaXml(a.cabecalho, a.linhas, !!chart)]);
+    wbRels.push(`<Relationship Id="rId${idx}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${idx}.xml"/>`);
+    ct.push(`<Override PartName="/xl/worksheets/sheet${idx}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`);
+    if (chart) {
+      extraParts.push(
+        [`xl/worksheets/_rels/sheet${idx}.xml.rels`, relsSimples(`<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing${idx}.xml"/>`)],
+        [`xl/drawings/drawing${idx}.xml`, drawingXml(a.linhas.length + 2)],
+        [`xl/drawings/_rels/drawing${idx}.xml.rels`, relsSimples(`<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="../charts/chart${idx}.xml"/>`)],
+        [`xl/charts/chart${idx}.xml`, chart]
+      );
+      ct.push(`<Override PartName="/xl/drawings/drawing${idx}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>`, `<Override PartName="/xl/charts/chart${idx}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>`);
+    }
+  });
+  const stylesRid = `rId${abas.length + 1}`;
+  const arquivos = [
+    ["[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">${CONTENT_FIXO}${ct.join("")}</Types>`],
+    ["_rels/.rels", RELS_RAIZ],
+    ["xl/workbook.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${nomes.map((n, i) => `<sheet name="${n}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join("")}</sheets></workbook>`],
+    ["xl/_rels/workbook.xml.rels", relsSimples(`${wbRels.join("")}<Relationship Id="${stylesRid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>`)],
+    ["xl/styles.xml", STYLES],
+    ...sheetParts, ...extraParts
+  ];
+  return zip(arquivos);
+}
+
 // Baixa a planilha: nome-AAAA-MM-DD.xlsx (grafico opcional: { tipo, titulo })
 export function baixarPlanilha(nome, cabecalho, linhas, aba, grafico) {
-  const nums = linhas.map((l) => l.map((v) => (typeof v === "string" && /^-?\d{1,9}([.,]\d+)?$/.test(v.trim()) && !/^0\d/.test(v.trim()) ? Number(v.replace(",", ".")) : v)));
+  baixar(nome, gerarXlsx(cabecalho, numerizar(linhas), aba || nome, grafico));
+}
+// Baixa um .xlsx com várias abas (cada uma com seu gráfico).
+export function baixarPlanilhaMulti(nome, abas) {
+  baixar(nome, gerarXlsxMulti(abas));
+}
+function baixar(nome, blob) {
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(gerarXlsx(cabecalho, nums, aba || nome, grafico));
+  a.href = URL.createObjectURL(blob);
   a.download = `${nome}-${new Date().toISOString().slice(0, 10)}.xlsx`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);

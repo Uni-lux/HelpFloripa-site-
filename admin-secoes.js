@@ -1,9 +1,10 @@
 // =====================================================
 // Painel do administrador — seções
 // =====================================================
-import { linha, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=3";
+import { linha, linhaComparada, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=4";
+import { baixarPlanilhaMulti } from "./planilha.js?v=3";
 import { buscarPessoas } from "./pessoas.js?v=3";
-import { montarChat } from "./admin-chat.js?v=2";
+import { montarChat } from "./admin-chat.js?v=3";
 import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha,
@@ -758,56 +759,85 @@ export function verificacoes(el) {
 }
 
 // ======================================================= ESTATÍSTICAS
-let periodoEst = 30;
+let periodoEst = 30, compararEst = false, cidadeEst = "", bairroEst = "";
 export function estatisticas(el) {
   const ps = pessoas();
   const { ini, fim, mensal, rotulo } = janela(periodoEst);
-  el.appendChild(cab("Estatísticas", `Quem usa o Help Floripa, de onde, e como a plataforma cresce · ${rotulo}.`, seletorPeriodo(periodoEst, (v) => { periodoEst = v; el.replaceChildren(); estatisticas(el); })));
+  const topo = h("div", "ad-cab-acoes");
+  const cmp = h("button", "ad-chip", "Comparar com período anterior"); cmp.type = "button"; cmp.setAttribute("aria-pressed", String(compararEst));
+  cmp.addEventListener("click", () => { compararEst = !compararEst; el.replaceChildren(); estatisticas(el); });
+  topo.append(seletorPeriodo(periodoEst, (v) => { periodoEst = v; el.replaceChildren(); estatisticas(el); }), cmp, btn("Baixar tudo (Excel)", "", () => baixarPlanilhaMulti(`estatisticas-${typeof periodoEst === "object" ? "personalizado" : periodoEst + "d"}`, abas)));
+  el.appendChild(cab("Estatísticas", `Quem usa o Help Floripa, de onde, e como a plataforma cresce · ${rotulo}${compararEst ? " (comparando com o período anterior)" : ""}.`, topo));
   const g = h("div", "ad-grade");
-  const datasU = ps.map((p) => p.criadoEm);
+  // Filtro por cidade e bairro (opções vêm de todas as contas).
+  const psF = ps.filter((p) => (!cidadeEst || nomeCidade(p.cidade) === cidadeEst) && (!bairroEst || (p.endereco?.bairro || "") === bairroEst));
+  const selCidade = h("select", "ad-sel"); selCidade.setAttribute("aria-label", "Filtrar por cidade");
+  const opt = (sel, v, t) => { const o = h("option", null, t); o.value = v; if (v === sel) o.selected = true; return o; };
+  selCidade.append(opt(cidadeEst, "", "Todas as cidades"), ...contarPor(ps, (p) => nomeCidade(p.cidade) || null).map(([c, n]) => opt(cidadeEst, c, `${c} (${n})`)));
+  selCidade.addEventListener("change", () => { cidadeEst = selCidade.value; bairroEst = ""; el.replaceChildren(); estatisticas(el); });
+  topo.insertBefore(selCidade, topo.firstChild);
+  if (cidadeEst) {
+    const selBairro = h("select", "ad-sel"); selBairro.setAttribute("aria-label", "Filtrar por bairro");
+    selBairro.append(opt(bairroEst, "", "Todos os bairros"), ...contarPor(ps.filter((p) => nomeCidade(p.cidade) === cidadeEst), (p) => p.endereco?.bairro || null).map(([b, n]) => opt(bairroEst, b, `${b} (${n})`)));
+    selBairro.addEventListener("change", () => { bairroEst = selBairro.value; el.replaceChildren(); estatisticas(el); });
+    topo.insertBefore(selBairro, selCidade.nextSibling);
+  }
+  // Cada cartão também vira uma aba do "Baixar tudo (Excel)".
+  const abas = [];
+  const addCartao = (o) => { abas.push({ nome: o.titulo, cabecalho: o.cabecalho, linhas: o.linhas, grafico: { tipo: o.grafico || "coluna", titulo: o.titulo } }); return cartao(o); };
+  // Série do período e a mesma do período anterior (para comparar dia a dia / mês a mês).
+  const dur = fim - ini;
+  const serieComp = (datas, titulo, cor) => {
+    const atual = serieEntre(datas, ini, fim, mensal);
+    if (!compararEst) return addCartao({ titulo, cabecalho: [mensal ? "Mês" : "Dia", "Novos"], linhas: atual.map((p) => [p.rotulo, p.valor]), desenhar: (a) => linha(a, { pontos: atual, cor }), grafico: "linha" });
+    const ant = serieEntre(datas, ini - dur, ini, mensal);
+    const series = [{ nome: "Período atual", cor, valores: atual.map((p) => p.valor) }, { nome: "Período anterior", cor: "var(--viz-4)", valores: ant.map((p) => p.valor), tracejada: true }];
+    const linhas = atual.map((p, i) => [p.rotulo, p.valor, ant[i]?.valor ?? 0]);
+    return addCartao({ titulo, cabecalho: [mensal ? "Mês" : "Dia", "Atual", "Anterior"], linhas, desenhar: (a) => linhaComparada(a, { rotulos: atual.map((p) => p.rotulo), series }), grafico: "linha" });
+  };
+  const datasU = psF.map((p) => p.criadoEm);
   const serieU = serieEntre(datasU, ini, fim, mensal);
-  const antes = ps.filter((p) => ms(p.criadoEm) && ms(p.criadoEm) < ini).length;
+  const antes = psF.filter((p) => ms(p.criadoEm) && ms(p.criadoEm) < ini).length;
   const acum = acumulada(serieU, antes);
-  g.appendChild(cartao({ titulo: `Novos usuários por ${mensal ? "mês" : "dia"}`, cabecalho: [mensal ? "Mês" : "Dia", "Novos"], linhas: serieU.map((p) => [p.rotulo, p.valor]), desenhar: (a) => linha(a, { pontos: serieU }), nomeArquivo: "novos-usuarios", grafico: "linha" }));
-  g.appendChild(cartao({ titulo: "Total de usuários", sub: "Crescimento acumulado", cabecalho: [mensal ? "Mês" : "Dia", "Total"], linhas: acum.map((p) => [p.rotulo, p.valor]), desenhar: (a) => linha(a, { pontos: acum, cor: "var(--viz-3)" }), nomeArquivo: "total-usuarios", grafico: "linha" }));
+  g.appendChild(serieComp(datasU, `Novos usuários por ${mensal ? "mês" : "dia"}`, "var(--viz-1)"));
+  g.appendChild(addCartao({ titulo: "Total de usuários", sub: "Crescimento acumulado", cabecalho: [mensal ? "Mês" : "Dia", "Total"], linhas: acum.map((p) => [p.rotulo, p.valor]), desenhar: (a) => linha(a, { pontos: acum, cor: "var(--viz-3)" }), nomeArquivo: "total-usuarios", grafico: "linha" }));
   // atividade
   const faixasAc = [["Hoje", 1], ["2 a 7 dias", 7], ["8 a 30 dias", 30], ["31 a 90 dias", 90], ["Mais de 90 dias", Infinity]];
-  let ant = 0; const ac = faixasAc.map(([rot, d]) => { const v = ps.filter((p) => { const x = ms(p.ultimoAcesso); if (!x) return false; const dias = (agora() - x) / DIA; return dias <= d && dias > ant; }).length; ant = d; return { rotulo: rot, valor: v }; });
-  ac.push({ rotulo: "Sem registro", valor: ps.filter((p) => !ms(p.ultimoAcesso)).length });
-  g.appendChild(cartao({ titulo: "Último acesso", sub: "Quem voltou ao site e quando (\"sem registro\" inclui quem esconde o online)", cabecalho: ["Último acesso", "Pessoas"], linhas: ac.map((x) => [x.rotulo, x.valor]), desenhar: (a) => barras(a, { itens: ac }), nomeArquivo: "ultimo-acesso" }));
+  let ant = 0; const ac = faixasAc.map(([rot, d]) => { const v = psF.filter((p) => { const x = ms(p.ultimoAcesso); if (!x) return false; const dias = (agora() - x) / DIA; return dias <= d && dias > ant; }).length; ant = d; return { rotulo: rot, valor: v }; });
+  ac.push({ rotulo: "Sem registro", valor: psF.filter((p) => !ms(p.ultimoAcesso)).length });
+  g.appendChild(addCartao({ titulo: "Último acesso", sub: "Quem voltou ao site e quando (\"sem registro\" inclui quem esconde o online)", cabecalho: ["Último acesso", "Pessoas"], linhas: ac.map((x) => [x.rotulo, x.valor]), desenhar: (a) => barras(a, { itens: ac }), nomeArquivo: "ultimo-acesso" }));
   // idades
-  const ids = ps.map((p) => idade(p.dataNascimento));
+  const ids = psF.map((p) => idade(p.dataNascimento));
   const fx = [["16–17", 16, 17], ["18–24", 18, 24], ["25–34", 25, 34], ["35–44", 35, 44], ["45–54", 45, 54], ["55–64", 55, 64], ["65+", 65, 200]].map(([rotulo, a, b]) => ({ rotulo, valor: ids.filter((i) => i != null && i >= a && i <= b).length }));
   const comIdade = ids.filter((i) => i != null).sort((a, b) => a - b);
   const mediana = comIdade.length ? comIdade[Math.floor(comIdade.length / 2)] : 0;
-  g.appendChild(cartao({ titulo: "Faixa etária", sub: comIdade.length ? `Idade média ${(comIdade.reduce((a, b) => a + b, 0) / comIdade.length).toFixed(0)} · mediana ${mediana} · ${ps.length - comIdade.length} sem data` : "Sem datas de nascimento", cabecalho: ["Faixa", "Pessoas"], linhas: fx.map((x) => [x.rotulo, x.valor]), desenhar: (a) => barras(a, { itens: fx }), nomeArquivo: "faixa-etaria" }));
+  g.appendChild(addCartao({ titulo: "Faixa etária", sub: comIdade.length ? `Idade média ${(comIdade.reduce((a, b) => a + b, 0) / comIdade.length).toFixed(0)} · mediana ${mediana} · ${psF.length - comIdade.length} sem data` : "Sem datas de nascimento", cabecalho: ["Faixa", "Pessoas"], linhas: fx.map((x) => [x.rotulo, x.valor]), desenhar: (a) => barras(a, { itens: fx }), nomeArquivo: "faixa-etaria" }));
   // regiões
-  const cid = contarPor(ps, (p) => nomeCidade(p.cidade) || null);
+  const cid = contarPor(psF, (p) => nomeCidade(p.cidade) || null);
   const topC = cid.slice(0, 9).map(([rotulo, valor]) => ({ rotulo, valor })); const outrasC = cid.slice(9).reduce((a, [, v]) => a + v, 0); if (outrasC) topC.push({ rotulo: "Outras", valor: outrasC });
-  g.appendChild(cartao({ titulo: "Cidades", sub: `${ps.filter((p) => !p.cidade).length} sem cidade informada`, cabecalho: ["Cidade", "Pessoas"], linhas: cid.map(([a, b]) => [a, b]), desenhar: (a) => barras(a, { itens: topC, horizontal: true }), nomeArquivo: "cidades", grafico: "barra" }));
-  const bai = contarPor(ps, (p) => p.endereco?.bairro || null);
+  g.appendChild(addCartao({ titulo: "Cidades", sub: `${psF.filter((p) => !p.cidade).length} sem cidade informada`, cabecalho: ["Cidade", "Pessoas"], linhas: cid.map(([a, b]) => [a, b]), desenhar: (a) => barras(a, { itens: topC, horizontal: true }), nomeArquivo: "cidades", grafico: "barra" }));
+  const bai = contarPor(psF, (p) => p.endereco?.bairro || null);
   const topB = bai.slice(0, 10).map(([rotulo, valor]) => ({ rotulo, valor }));
-  g.appendChild(cartao({ titulo: "Bairros", sub: "Só de quem salvou endereço nas configurações", cabecalho: ["Bairro", "Pessoas"], linhas: bai.map(([a, b]) => [a, b]), desenhar: (a) => barras(a, { itens: topB, horizontal: true, cor: "var(--viz-3)" }), nomeArquivo: "bairros", grafico: "barra" }));
+  g.appendChild(addCartao({ titulo: "Bairros", sub: "Só de quem salvou endereço nas configurações", cabecalho: ["Bairro", "Pessoas"], linhas: bai.map(([a, b]) => [a, b]), desenhar: (a) => barras(a, { itens: topB, horizontal: true, cor: "var(--viz-3)" }), nomeArquivo: "bairros", grafico: "barra" }));
   // público
   const donos = new Set(D.negocios.map((n) => n.donoId));
-  const pub = [{ rotulo: "Só clientes", valor: ps.filter((p) => !donos.has(p.uid)).length }, { rotulo: "Têm negócio", valor: ps.filter((p) => donos.has(p.uid)).length, cor: "var(--viz-2)" }];
-  g.appendChild(cartao({ titulo: "Público", sub: "Clientes x quem anuncia", cabecalho: ["Grupo", "Pessoas"], linhas: pub.map((x) => [x.rotulo, x.valor]), desenhar: (a) => barras(a, { itens: pub }), nomeArquivo: "publico" }));
+  const pub = [{ rotulo: "Só clientes", valor: psF.filter((p) => !donos.has(p.uid)).length }, { rotulo: "Têm negócio", valor: psF.filter((p) => donos.has(p.uid)).length, cor: "var(--viz-2)" }];
+  g.appendChild(addCartao({ titulo: "Público", sub: "Clientes x quem anuncia", cabecalho: ["Grupo", "Pessoas"], linhas: pub.map((x) => [x.rotulo, x.valor]), desenhar: (a) => barras(a, { itens: pub }), nomeArquivo: "publico" }));
   const neg = Object.entries(TIPOS_NEG).map(([k2, rot], i) => ({ rotulo: rot, valor: D.negocios.filter((n) => noPeriodoP(n.criadoEm || n.atualizadoEm, periodoEst)).filter((n) => n.tipo === k2).length, cor: `var(--viz-${i + 1})` }));
-  g.appendChild(cartao({ titulo: "Novos negócios no período", cabecalho: ["Tipo", "Novos"], linhas: neg.map((x) => [x.rotulo, x.valor]), desenhar: (a) => barras(a, { itens: neg }), nomeArquivo: "novos-negocios" }));
+  g.appendChild(addCartao({ titulo: "Novos negócios no período", cabecalho: ["Tipo", "Novos"], linhas: neg.map((x) => [x.rotulo, x.valor]), desenhar: (a) => barras(a, { itens: neg }), nomeArquivo: "novos-negocios" }));
   // conteúdo
-  const serieP = serieEntre(D.posts.map((p) => p.criadoEm), ini, fim, mensal);
-  g.appendChild(cartao({ titulo: `Publicações no Diário por ${mensal ? "mês" : "dia"}`, cabecalho: [mensal ? "Mês" : "Dia", "Publicações"], linhas: serieP.map((p) => [p.rotulo, p.valor]), desenhar: (a) => linha(a, { pontos: serieP, cor: "var(--viz-2)" }), nomeArquivo: "publicacoes", grafico: "linha" }));
+  g.appendChild(serieComp(D.posts.map((pp) => pp.criadoEm), `Publicações no Diário por ${mensal ? "mês" : "dia"}`, "var(--viz-2)"));
   // notas
   const negNotas = [...D.notas.entries()].filter(([k2]) => k2.startsWith("neg_")).map(([, v]) => v);
   const est = [5, 4, 3, 2, 1].map((n) => ({ rotulo: `${n}★`, valor: negNotas.reduce((a, b) => a + (b["n" + n] || 0), 0), cor: n >= 4 ? "var(--viz-3)" : n === 3 ? "var(--viz-4)" : "var(--viz-2)" }));
-  g.appendChild(cartao({ titulo: "Distribuição das notas", sub: "Avaliações de negócios", cabecalho: ["Nota", "Avaliações"], linhas: est.map((x) => [x.rotulo, x.valor]), desenhar: (a) => barras(a, { itens: est }), nomeArquivo: "notas" }));
+  g.appendChild(addCartao({ titulo: "Distribuição das notas", sub: "Avaliações de negócios", cabecalho: ["Nota", "Avaliações"], linhas: est.map((x) => [x.rotulo, x.valor]), desenhar: (a) => barras(a, { itens: est }), nomeArquivo: "notas" }));
   // privacidade
-  const priv = [{ rotulo: "Online visível", valor: ps.filter((p) => p.privacidade?.mostrarOnline !== false).length }, { rotulo: "Online oculto", valor: ps.filter((p) => p.privacidade?.mostrarOnline === false).length, cor: "var(--viz-4)" }];
-  g.appendChild(cartao({ titulo: "Preferência de privacidade", sub: "Quem mostra quando está online", cabecalho: ["Preferência", "Pessoas"], linhas: priv.map((x) => [x.rotulo, x.valor]), desenhar: (a) => barras(a, { itens: priv }), nomeArquivo: "privacidade" }));
+  const priv = [{ rotulo: "Online visível", valor: psF.filter((p) => p.privacidade?.mostrarOnline !== false).length }, { rotulo: "Online oculto", valor: psF.filter((p) => p.privacidade?.mostrarOnline === false).length, cor: "var(--viz-4)" }];
+  g.appendChild(addCartao({ titulo: "Preferência de privacidade", sub: "Quem mostra quando está online", cabecalho: ["Preferência", "Pessoas"], linhas: priv.map((x) => [x.rotulo, x.valor]), desenhar: (a) => barras(a, { itens: priv }), nomeArquivo: "privacidade" }));
   // histórico automático
   if (D.estatisticas.length) {
     const s = [...D.estatisticas].sort((a, b) => a.id.localeCompare(b.id)).map((x) => ({ rotulo: x.id.slice(5).split("-").reverse().join("/"), valor: x.ativos1 || 0 }));
-    g.appendChild(cartao({ titulo: "Ativos por dia (histórico)", sub: "Do relatório automático diário", cabecalho: ["Dia", "Ativos (24 h)"], linhas: s.map((p) => [p.rotulo, p.valor]), desenhar: (a) => linha(a, { pontos: s, cor: "var(--viz-3)" }), largo: true, nomeArquivo: "ativos-historico" }));
+    g.appendChild(addCartao({ titulo: "Ativos por dia (histórico)", sub: "Do relatório automático diário", cabecalho: ["Dia", "Ativos (24 h)"], linhas: s.map((p) => [p.rotulo, p.valor]), desenhar: (a) => linha(a, { pontos: s, cor: "var(--viz-3)" }), largo: true, nomeArquivo: "ativos-historico" }));
   }
   el.appendChild(g);
 }
@@ -877,12 +907,14 @@ export function relatorios(el) {
   el.appendChild(kp);
   // Gráficos do período.
   const g = h("div", "ad-grade");
+  const abas = [["Resumo", ["Indicador", "Período", "Período anterior"], linhas, "coluna"]].map(([nome, cabecalho, l, t]) => ({ nome, cabecalho, linhas: l, grafico: { tipo: t, titulo: `Relatório — ${rotulo}` } }));
+  const addCartao = (o) => { abas.push({ nome: o.titulo, cabecalho: o.cabecalho, linhas: o.linhas, grafico: { tipo: o.grafico || "coluna", titulo: o.titulo } }); return cartao(o); };
   const serieU = serieEntre(ps.map((p) => p.criadoEm), ini, fim, mensal);
-  g.appendChild(cartao({ titulo: `Novos usuários por ${mensal ? "mês" : "dia"}`, cabecalho: [mensal ? "Mês" : "Dia", "Novos"], linhas: serieU.map((p) => [p.rotulo, p.valor]), desenhar: (a) => linha(a, { pontos: serieU }), nomeArquivo: "novos-usuarios", grafico: "linha" }));
+  g.appendChild(addCartao({ titulo: `Novos usuários por ${mensal ? "mês" : "dia"}`, cabecalho: [mensal ? "Mês" : "Dia", "Novos"], linhas: serieU.map((p) => [p.rotulo, p.valor]), desenhar: (a) => linha(a, { pontos: serieU }), nomeArquivo: "novos-usuarios", grafico: "linha" }));
   const negTipo = Object.entries(TIPOS_NEG).map(([k, rot], i) => ({ rotulo: rot, valor: D.negocios.filter((n) => noP(n.criadoEm)).filter((n) => n.tipo === k).length, cor: `var(--viz-${i + 1})` }));
-  g.appendChild(cartao({ titulo: "Novos negócios por tipo", sub: "No período", cabecalho: ["Tipo", "Novos"], linhas: negTipo.map((x) => [x.rotulo, x.valor]), desenhar: (a) => barras(a, { itens: negTipo }), nomeArquivo: "novos-negocios-periodo" }));
+  g.appendChild(addCartao({ titulo: "Novos negócios por tipo", sub: "No período", cabecalho: ["Tipo", "Novos"], linhas: negTipo.map((x) => [x.rotulo, x.valor]), desenhar: (a) => barras(a, { itens: negTipo }), nomeArquivo: "novos-negocios-periodo" }));
   const mov = [["Reclamações", 6, "var(--viz-2)"], ["Denúncias", 8, "var(--viz-4)"], ["Chamados", 10, "var(--viz-1)"], ["Parcerias", 11, "var(--viz-3)"]].map(([rot, i, cor]) => ({ rotulo: rot, valor: linhas[i][1], cor }));
-  g.appendChild(cartao({ titulo: "Moderação e contato no período", cabecalho: ["Área", "No período"], linhas: mov.map((x) => [x.rotulo, x.valor]), desenhar: (a) => barras(a, { itens: mov }), nomeArquivo: "moderacao-periodo" }));
+  g.appendChild(addCartao({ titulo: "Moderação e contato no período", cabecalho: ["Área", "No período"], linhas: mov.map((x) => [x.rotulo, x.valor]), desenhar: (a) => barras(a, { itens: mov }), nomeArquivo: "moderacao-periodo" }));
   el.appendChild(g);
   const rel = h("div", "ad-relatorio");
   rel.append(h("h2", null, "Relatório Help Floripa"), h("p", null, `Período: ${rotulo} (${new Date(ini).toLocaleDateString("pt-BR")} a ${new Date(fim).toLocaleDateString("pt-BR")}) · gerado em ${new Date().toLocaleString("pt-BR")} por ${C.nome}`));
@@ -894,6 +926,7 @@ export function relatorios(el) {
   const ac = h("div", "ad-acoes"); ac.style.margin = "14px 0";
   const nomeP = typeof periodoRel === "object" ? "personalizado" : periodoRel + "d";
   ac.append(btn("Imprimir / salvar PDF", "pri", () => { registrar("relatorio_pdf", "", rotulo); window.print(); }),
+    btn("Baixar tudo (Excel)", "pri", () => baixarPlanilhaMulti(`relatorio-${nomeP}`, abas)),
     btn("Baixar resumo (Excel)", "", () => baixarCSV(`relatorio-${nomeP}`, ["Indicador", "Período", "Período anterior"], linhas, { tipo: "coluna", titulo: `Relatório Help Floripa — ${rotulo}` })),
     btn("Planilha de negócios", "", () => { baixarCSV("negocios", ["ID", "Nome", "Tipo", "Dono", "Cidade", "Nota", "Avaliações", "Criado", "Atualizado"], D.negocios.map((n) => { const r = D.notas.get("neg_" + n.id); return [n.id, n.nome || "", TIPOS_NEG[n.tipo] || n.tipo, pessoa(n.donoId).nome || n.donoId, nomeCidade(n.cidade), r?.total ? (r.soma / r.total).toFixed(2) : "", r?.total || 0, data(n.criadoEm), data(n.atualizadoEm)]; })); registrar("exportar", "negocios"); }),
     btn("Planilha de denúncias", "", () => { baixarCSV("denuncias", ["Data", "Tipo", "Motivo", "Denunciado", "Por", "Situação", "Ação", "Trecho"], D.denuncias.map((x) => [dataHora(x.criadoEm), x.tipo, MOTIVOS_DEN[x.motivo] || x.motivo, pessoa(x.alvoId).nome || x.alvoId, pessoa(x.autorId).nome || x.autorId, x.status, x.acao || "", x.trecho || ""])); registrar("exportar", "denuncias"); }),

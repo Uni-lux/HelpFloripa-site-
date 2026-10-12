@@ -1335,13 +1335,21 @@ service cloud.firestore {
     // gravado junto, da mesma pessoa e da mesma conversa.
     function msgEquipeOk(conversa) {
       let d = request.resource.data;
-      return d.keys().hasOnly(['autorId', 'nome', 'texto', 'em', 'mencoes', 'tipoArquivo', 'anexo', 'nomeArquivo', 'tamanho', 'miniatura', 'duracao'])
+      return d.keys().hasOnly(['autorId', 'nome', 'texto', 'em', 'mencoes', 'tipoArquivo', 'anexo', 'nomeArquivo', 'tamanho', 'miniatura', 'duracao', 'resposta', 'reacoes'])
           && d.autorId == request.auth.uid
           && valorTextoAte(d.get('nome', ''), 80)
           && d.texto is string && d.texto.size() <= 2000
           && (d.texto.size() >= 1 || 'anexo' in d)
           && d.em == request.time
           && (!('mencoes' in d) || (d.mencoes is list && d.mencoes.size() <= 10))
+          && (!('resposta' in d)
+              || (d.resposta is map
+                  && d.resposta.keys().hasOnly(['id', 'autorId', 'nome', 'texto'])
+                  && d.resposta.get('id', '') is string
+                  && d.resposta.get('autorId', '') is string
+                  && valorTextoAte(d.resposta.get('nome', ''), 80)
+                  && d.resposta.get('texto', '') is string && d.resposta.get('texto', '').size() <= 200))
+          && (!('reacoes' in d) || (d.reacoes is map && d.reacoes.size() == 0))
           && (!('anexo' in d)
               || (d.anexo is string
                   && d.tipoArquivo in ['imagem', 'audio', 'arquivo']
@@ -1353,10 +1361,22 @@ service cloud.firestore {
           && (!('duracao' in d) || (d.duracao is int && d.duracao >= 0 && d.duracao <= 600))
           && (!('miniatura' in d) || (d.miniatura is string && d.miniatura.size() <= 30000 && d.miniatura.matches('^data:image/jpeg;base64,.*')));
     }
+    // Reação a uma mensagem: cada pessoa guarda só a sua (reacoes[uid] = emoji).
+    // A edição só pode mexer no campo reacoes, e só na própria chave de quem edita.
+    function reacaoValida() {
+      let d = request.resource.data;
+      let a = resource.data;
+      let eu = request.auth.uid;
+      return d.diff(a).affectedKeys().hasOnly(['reacoes'])
+          && d.get('reacoes', {}) is map
+          && d.get('reacoes', {}).diff(a.get('reacoes', {})).affectedKeys().hasOnly([eu])
+          && (!(eu in d.get('reacoes', {})) || d.reacoes[eu] in ['👍', '❤️', '😂', '😮', '😢', '🙏']);
+    }
     match /equipe_chat/{id} {
       allow read: if admin();
       allow create: if admin() && msgEquipeOk('equipe');
-      allow update, delete: if false;
+      allow update: if admin() && reacaoValida();
+      allow delete: if false;
     }
     // Conversa individual entre duas pessoas da equipe: equipe_dm/{uidA_uidB} (ids em ordem).
     // O documento guarda só o resumo (última mensagem e quando cada um leu).
@@ -1377,7 +1397,8 @@ service cloud.firestore {
       match /mensagens/{id} {
         allow read: if admin() && request.auth.uid in par.split('_');
         allow create: if admin() && par.split('_').size() == 2 && request.auth.uid in par.split('_') && msgEquipeOk(par);
-        allow update, delete: if false;
+        allow update: if admin() && request.auth.uid in par.split('_') && reacaoValida();
+        allow delete: if false;
       }
     }
     // Conteúdo dos anexos do chat da equipe (data: URL de até ~900 mil caracteres).
