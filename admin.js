@@ -43,7 +43,7 @@ function irPara(sec, termo = "") {
   C.marcarItem?.(null);
   requestAnimationFrame(() => C.pintarVendo?.());
   if (C.marcarPresenca && sec !== ultimaPresenca) { ultimaPresenca = sec; C.marcarPresenca(true); }
-  $("lateral").classList.remove("aberta");
+  menuLateral(false);
   el.focus({ preventScroll: true }); window.scrollTo({ top: 0 });
 }
 
@@ -228,10 +228,21 @@ async function carregar(mostrar = true) {
   $("app").hidden = false;
   document.querySelectorAll(".ad-nav").forEach((b) => b.addEventListener("click", () => irPara(b.dataset.secao)));
   $("equipeOnline").addEventListener("click", () => irPara("equipe"));
-  $("btMenu").addEventListener("click", () => $("lateral").classList.toggle("aberta"));
+  // Menu lateral (celular): abre com fundo escuro, trava a página de trás (a rolagem fica no menu) e
+  // fecha ao tocar fora.
+  $("btMenu").addEventListener("click", () => menuLateral(!$("lateral").classList.contains("aberta")));
   $("btAtualizar").addEventListener("click", async () => { await carregar(true); toast("Dados atualizados"); });
   let tempo; $("buscaGlobal").addEventListener("input", (e) => { clearTimeout(tempo); const t = e.target.value; tempo = setTimeout(() => { if (t.trim()) irPara("usuarios", t.trim()); }, 300); });
   atual = (location.hash.slice(1) || "visao");
   await carregar(true);
   equipeAoVivo();
 })();
+
+function menuLateral(abrir) {
+  const lat = $("lateral");
+  lat.classList.toggle("aberta", abrir);
+  document.documentElement.classList.toggle("ad-menu-aberto", abrir);
+  let fundo = document.querySelector(".ad-menu-fundo");
+  if (abrir && !fundo && matchMedia("(max-width: 900px)").matches) { fundo = document.createElement("div"); fundo.className = "ad-menu-fundo"; fundo.addEventListener("click", () => menuLateral(false)); document.body.appendChild(fundo); }
+  if (!abrir) fundo?.remove();
+}
