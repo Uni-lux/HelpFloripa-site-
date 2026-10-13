@@ -29,7 +29,7 @@ function trocarAba(nova) {
   document.querySelectorAll("#abasFeed [data-aba]").forEach((b) => b.setAttribute("aria-selected", b.dataset.aba === aba ? "true" : "false"));
   $("painelFeed").hidden = aba !== "diario";
   $("painelExplorar").hidden = aba !== "explorar";
-  history.replaceState(null, "", aba === "explorar" ? "feed.html?aba=explorar" : "feed.html");
+  history.replaceState(history.state, "", aba === "explorar" ? "feed.html?aba=explorar" : "feed.html");
   if (aba === "explorar") carregarPessoas();
   else carregarFeed();
 }

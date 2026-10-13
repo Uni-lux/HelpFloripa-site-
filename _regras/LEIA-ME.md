@@ -1,14 +1,17 @@
-# Regras do Firestore — publicação da Etapa 5
+# Regras do Firestore — publicação
+
+> **Versão de 13/10/2026 (2ª):** igual à publicada, mais a regra da **foto da equipe** (`equipe_info/grupo`).
+> Para publicar, o processo é o mesmo: apagar tudo no console e colar as 8 partes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
 `firestore.rules` divididas em **8 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
-- Arquivo de origem: `firestore.rules` (93.481 bytes, 1.766 linhas, sha256 começa com `38de881a918d31c8`).
+- Arquivo de origem: `firestore.rules` (94.183 bytes, 1.779 linhas, sha256 começa com `b43ebd3605905091`).
 - Cada parte termina com a linha `// ===== FIM DA PARTE X DE 8 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
 - Conferido: as 8 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **91 passaram, 0 falharam**, sem o aviso de limite de 1.000 expressões.
+- Testes de regras no arquivo remontado: **97 passaram, 0 falharam**, sem o aviso de limite de 1.000 expressões.
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.

@@ -43,4 +43,17 @@ await p.locator(".eq-voltar").click(); await p.waitForTimeout(500);
 console.log("voltar mostra a lista:", await p.locator(".eq-lista").isVisible());
 const ordem = await p.locator(".ad-nav").evaluateAll((l) => l.slice(0, 3).map((b) => b.dataset.secao));
 console.log("menu (3 primeiros):", ordem);
+// Menu lateral numa tela baixa: uma rolagem chega ao fim e "Registro de ações" aparece inteiro;
+// a página de trás não rola; tocar fora fecha.
+await p.locator(".eq-voltar").click().catch(() => {});
+await p.setViewportSize({ width: 390, height: 600 });
+await ir("visao", ".ad-cab h1:text-is('Visão geral')");
+await p.tap("#btMenu"); await p.waitForTimeout(400);
+const antesPag = await p.evaluate(() => scrollY);
+await p.mouse.move(120, 400); await p.mouse.wheel(0, 3000); await p.waitForTimeout(600);
+const m = await p.evaluate(() => { const lat = document.getElementById("lateral").getBoundingClientRect(); const reg = document.querySelector('.ad-nav[data-secao="registro"]').getBoundingClientRect(); return { menuFim: Math.round(lat.bottom), tela: innerHeight, registroFim: Math.round(reg.bottom), registroVisivel: reg.top >= lat.top && reg.bottom <= Math.min(lat.bottom, innerHeight) }; });
+console.log("menu lateral:", JSON.stringify(m), "| página de trás rolou:", (await p.evaluate(() => scrollY)) !== antesPag, m.registroVisivel && m.menuFim <= m.tela ? "OK" : "PROBLEMA");
+await p.screenshot({ path: "saida/p2-menu.png" });
+await p.mouse.click(370, 300); await p.waitForTimeout(400);
+console.log("tocar fora fecha:", !(await p.evaluate(() => document.getElementById("lateral").classList.contains("aberta"))));
 await browser.close();

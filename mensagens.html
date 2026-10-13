@@ -412,19 +412,6 @@
     .btn-sair { width: 100%; min-height: 48px; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent); background: color-mix(in srgb, var(--danger) 9%, transparent); color: var(--danger); font: inherit; font-size: 15px; font-weight: 750; cursor: pointer; transition: background .15s; }
     .btn-sair:hover { background: color-mix(in srgb, var(--danger) 16%, transparent); }
     .btn-sair:focus-visible { outline: 2px solid var(--danger); outline-offset: 2px; }
-    .confirma-fundo { position: fixed; inset: 0; z-index: 85; display: grid; place-items: center; padding: 18px; background: rgba(2, 6, 9, .62); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); animation: confirmaFundo .18s ease-out; }
-    .confirma-fundo[hidden] { display: none; }
-    .confirma-caixa { width: min(380px, 100%); background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 20px; padding: 24px 20px 18px; text-align: center; box-shadow: 0 24px 70px rgba(0, 0, 0, .45); animation: confirmaCaixa .2s cubic-bezier(.2, .8, .2, 1); }
-    .confirma-ic { width: 54px; height: 54px; margin: 0 auto 12px; border-radius: 50%; display: grid; place-items: center; color: var(--danger); background: color-mix(in srgb, var(--danger) 14%, transparent); }
-    .confirma-caixa h3 { margin: 0 0 6px; font-size: 18px; }
-    .confirma-caixa p { margin: 0 0 18px; color: var(--muted); font-size: 14px; line-height: 1.5; }
-    .confirma-acoes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .confirma-acoes button { min-height: 46px; border-radius: 12px; font: inherit; font-size: 15px; font-weight: 750; cursor: pointer; }
-    .confirma-acoes .nao { border: 1px solid var(--line); background: transparent; color: var(--text); }
-    .confirma-acoes .sim { border: 0; background: var(--danger); color: #fff; }
-    .confirma-acoes .sim:disabled { opacity: .7; cursor: default; }
-    @keyframes confirmaFundo { from { opacity: 0; } }
-    @keyframes confirmaCaixa { from { opacity: 0; transform: translateY(12px) scale(.98); } }
     .cfg-rodape { padding: 22px 16px; color: var(--muted); font-size: 12px; text-align: center; display: grid; justify-items: center; gap: 12px; line-height: 1.45; }
     .cfg-link { width: 100%; border: 0; background: none; color: var(--text); text-align: left; text-decoration: none; cursor: pointer; font: inherit; font-size: 14px; border-radius: 10px; }
     .cfg-link:hover .txt { color: var(--accent); }
@@ -1010,17 +997,6 @@
     </div>
   </section>
 
-  <div class="confirma-fundo" id="confirmaSair" role="alertdialog" aria-modal="true" aria-labelledby="confirmaSairTitulo" aria-describedby="confirmaSairTexto" hidden>
-    <div class="confirma-caixa">
-      <div class="confirma-ic"><svg class="i"><use href="#i-sair"/></svg></div>
-      <h3 id="confirmaSairTitulo">Sair da conta?</h3>
-      <p id="confirmaSairTexto">Você vai precisar entrar de novo com seu e-mail e senha. Suas conversas continuam salvas.</p>
-      <div class="confirma-acoes">
-        <button type="button" class="nao" id="confirmaSairNao">Cancelar</button>
-        <button type="button" class="sim" id="confirmaSairSim">Sair</button>
-      </div>
-    </div>
-  </div>
   <!-- Ajuda e suporte aqui mesmo (a página de suporte, sem sair das mensagens) -->
   <section class="painel painel-fixo painel-suporte" id="painelSuporte" aria-label="Ajuda e suporte">
     <div class="painel-top">
@@ -3574,33 +3550,8 @@
     // ======================================================
     // Sair da conta (fim das configurações), com confirmação
     // ======================================================
-    function abrirConfirmaSair() {
-      $("confirmaSair").hidden = false;
-      setTimeout(() => $("confirmaSairNao").focus(), 30);
-    }
-    function fecharConfirmaSair() {
-      $("confirmaSair").hidden = true;
-      $("btnSairConta").focus();
-    }
-    $("btnSairConta").addEventListener("click", abrirConfirmaSair);
-    $("confirmaSairNao").addEventListener("click", fecharConfirmaSair);
-    $("confirmaSair").addEventListener("click", (e) => { if (e.target === $("confirmaSair")) fecharConfirmaSair(); });
-    $("confirmaSair").addEventListener("keydown", (e) => {
-      if (e.key === "Escape") { e.stopPropagation(); fecharConfirmaSair(); }
-      if (e.key === "Tab") { // foco preso dentro da janela
-        const [a, b] = [$("confirmaSairNao"), $("confirmaSairSim")];
-        if (e.shiftKey && document.activeElement === a) { e.preventDefault(); b.focus(); }
-        else if (!e.shiftKey && document.activeElement === b) { e.preventDefault(); a.focus(); }
-      }
-    });
-    $("confirmaSairSim").addEventListener("click", async () => {
-      const b = $("confirmaSairSim");
-      b.disabled = true; b.textContent = "Saindo...";
-      try { sessionStorage.removeItem(CHAVE_AVAL); } catch {}
-      try { await authMod?.signOut(window.firebaseAuth); }
-      catch (e) { console.error(e); b.disabled = false; b.textContent = "Sair"; toast("Não foi possível sair agora. Tente de novo."); return; }
-      irPara("login.html");
-    });
+    // A mesma janela "Sair da conta?" do menu e das configurações do perfil (confirmar.js).
+    $("btnSairConta").addEventListener("click", () => import("./confirmar.js?v=1").then((m) => m.sairDaConta({ antes: () => { try { sessionStorage.removeItem(CHAVE_AVAL); } catch {} } })));
 
     // ======================================================
     // Atendimento do negócio (configurações)

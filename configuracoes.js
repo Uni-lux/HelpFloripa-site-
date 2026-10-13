@@ -238,10 +238,8 @@ $("emailSalvar").addEventListener("click", async () => {
   finally { b.disabled = false; }
 });
 
-$("cfgSair").addEventListener("click", async () => {
-  try { await authFns.signOut(window.firebaseAuth); } catch {}
-  location.href = "index.html";
-});
+// A mesma janela "Sair da conta?" do menu e das mensagens.
+$("cfgSair").addEventListener("click", () => import("./confirmar.js?v=1").then((m) => m.sairDaConta()));
 
 // ---------- baixar meus dados (LGPD) ----------
 $("cfgBaixarDados").addEventListener("click", async () => {

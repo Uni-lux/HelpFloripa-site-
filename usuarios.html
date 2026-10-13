@@ -1250,12 +1250,12 @@
       const params = new URLSearchParams(location.search);
       // Links antigos de negócio agora vão para a página Meus negócios.
       if (params.get("acao") === "negocio") { location.replace("negocios.html" + (params.get("tipo") ? `?tipo=${encodeURIComponent(params.get("tipo"))}` : "")); return; }
-      if (params.get("acao") === "social") { history.replaceState(null, "", "usuarios.html"); abrirNovoVinculo(null); }
-      if (params.get("acao") === "editar") { history.replaceState(null, "", "usuarios.html"); abrirEditar(); }
+      if (params.get("acao") === "social") { history.replaceState(history.state, "", "usuarios.html"); abrirNovoVinculo(null); }
+      if (params.get("acao") === "editar") { history.replaceState(history.state, "", "usuarios.html"); abrirEditar(); }
       const avaliarPedido = params.get("avaliar");
-      if (avaliarPedido) { history.replaceState(null, "", "usuarios.html"); avaliarPorLink(avaliarPedido); }
+      if (avaliarPedido) { history.replaceState(history.state, "", "usuarios.html"); avaliarPorLink(avaliarPedido); }
       const perfilPedido = params.get("perfil");
-      if (perfilPedido) { history.replaceState(null, "", "usuarios.html"); abrirPerfilPublico(perfilPedido); }
+      if (perfilPedido) { history.replaceState(history.state, "", "usuarios.html"); abrirPerfilPublico(perfilPedido); }
     }
 
     iniciar().catch((e) => { console.error(e); mostrarErro("Não foi possível carregar a página. Tente novamente."); });

@@ -183,6 +183,8 @@ const ICONES = {
   fechar: '<path d="M6 6l12 12M18 6L6 18"/>',
   seta: '<path d="M6.5 9.5L12 15l5.5-5.5"/>',
   info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.8h.01"/>',
+  lapis: '<path d="M4 20h4L19 9a2.8 2.8 0 00-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
+  camera: '<path d="M4 8.5A2.5 2.5 0 016.5 6h1.8l1.5-2h4.4l1.5 2h1.8A2.5 2.5 0 0120 8.5v9a2.5 2.5 0 01-2.5 2.5h-11A2.5 2.5 0 014 17.5z"/><circle cx="12" cy="13" r="3.6"/>',
   foto: '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 16l-5-5-8.5 8.5"/>'
 };
 function ic(nome, tam = 22) {
@@ -194,6 +196,49 @@ function ic(nome, tam = 22) {
 function botaoIcone(nome, rotulo, cls = "eq-icone") {
   const b = h("button", cls); b.type = "button"; b.setAttribute("aria-label", rotulo); b.title = rotulo; b.appendChild(ic(nome));
   return b;
+}
+
+// ---------- fotos: a minha (perfil) e a do grupo "Equipe" ----------
+const OPCOES_FOTO = { proporcao: 1, circulo: true, larguraSaida: 480, qualidade: 0.86, limiteBytes: 240000 };
+function escolherImagem() {
+  return new Promise((ok) => {
+    const i = document.createElement("input"); i.type = "file"; i.accept = "image/*";
+    i.addEventListener("change", () => ok(i.files?.[0] || null), { once: true });
+    i.click();
+  });
+}
+async function editarFoto(titulo, dica) {
+  const arquivo = await escolherImagem(); if (!arquivo) return null;
+  const { editarImagem } = await import("./editor-imagem.js?v=5");
+  return editarImagem(arquivo, { ...OPCOES_FOTO, titulo, dica });
+}
+// Minha foto de perfil (a mesma do site: aparece no perfil, nas mensagens e aqui).
+async function trocarMinhaFoto(aoMudar) {
+  const { fb } = C;
+  try {
+    const url = await editarFoto("Sua foto de perfil", "É a mesma foto do seu perfil no site. Deixe o rosto dentro do círculo.");
+    if (!url) return;
+    toast("Salvando foto...");
+    await Promise.all([
+      fb.setDoc(fb.doc(fb.db, "usuarios", C.eu.uid), { fotoPerfil: url }, { merge: true }),
+      fb.setDoc(fb.doc(fb.db, "perfis_publicos", C.eu.uid), { uid: C.eu.uid, fotoPerfil: url }, { merge: true })
+    ]);
+    const p = D.pessoas.get(C.eu.uid); if (p) p.fotoPerfil = url; else D.pessoas.set(C.eu.uid, { uid: C.eu.uid, nome: C.nome, fotoPerfil: url });
+    toast("Foto de perfil atualizada"); aoMudar?.();
+  } catch (e) { console.error(e); toast("Não foi possível salvar a foto: " + (e.code || e.message)); }
+}
+// Foto do grupo "Equipe" (equipe_info/grupo): qualquer pessoa da equipe troca.
+async function trocarFotoGrupo(tirar = false) {
+  const { fb } = C;
+  try {
+    const url = tirar ? null : await editarFoto("Foto da equipe", "Aparece no grupo \"Equipe\" do chat, para todos da equipe.");
+    if (!tirar && !url) return;
+    await fb.setDoc(fb.doc(fb.db, "equipe_info", "grupo"), { foto: url, por: C.eu.uid, em: fb.serverTimestamp() });
+    toast(tirar ? "Foto da equipe removida" : "Foto da equipe atualizada");
+  } catch (e) {
+    console.error(e);
+    toast(e?.code === "permission-denied" ? "Para trocar a foto da equipe, falta publicar a atualização das regras do Firestore." : "Não foi possível salvar a foto: " + (e.code || e.message));
+  }
 }
 
 // =====================================================
@@ -212,7 +257,12 @@ export function montarChat(el) {
   const tit = h("h3"); tit.append(h("span", null, "Equipe Help Floripa"), document.createTextNode("Conversas"));
   const bInfo = botaoIcone("info", "Como adicionar alguém à equipe");
   bInfo.addEventListener("click", () => C.infoEquipe?.());
-  ladoTopo.append(tit, bInfo);
+  // Minha foto (com lápis para trocar): a mesma do perfil no site.
+  const bEu = h("button", "eq-eu"); bEu.type = "button"; bEu.title = "Trocar minha foto de perfil"; bEu.setAttribute("aria-label", "Trocar minha foto de perfil");
+  const pintarEu = () => { const av = avatar({ ...pessoa(C.eu.uid), nome: C.nome || pessoa(C.eu.uid).nome }); const lp = h("span", "eq-eu-lapis"); lp.appendChild(ic("lapis", 13)); bEu.replaceChildren(av, lp); };
+  pintarEu();
+  bEu.addEventListener("click", () => trocarMinhaFoto(() => { pintarEu(); pintarLista(); pintarTopo(); nos.clear(); pintarChat(); }));
+  ladoTopo.append(bEu, tit, bInfo);
   let modoLista = C.modoChatEquipe || (conv === "equipe" ? "equipe" : "individual");
   const modos = h("div", "eq-modos"); modos.setAttribute("role", "tablist"); modos.setAttribute("aria-label", "Tipo de conversa");
   const botaoModo = (k, icone, rotulo) => { const b = h("button"); b.type = "button"; b.setAttribute("role", "tab"); b.dataset.modo = k; b.append(ic(icone, 17), document.createTextNode(rotulo), h("b", "eq-modo-n")); b.addEventListener("click", () => { modoLista = C.modoChatEquipe = k; pintarLista(); }); return b; };
@@ -271,7 +321,17 @@ export function montarChat(el) {
   // ---------- lista de conversas ----------
   const dmDe = (par) => C.dms?.get(par);
   const naoLidaDm = (par) => { const d = dmDe(par); return !!d && d.ultimoAutor !== C.eu.uid && ms(d.ultimaEm) > ms(d.lidoEm?.[C.eu.uid]); };
-  const avGrupo = () => { const a = h("div", "ad-av eq-av-grupo"); a.appendChild(ic("grupo", 24)); return a; };
+  const avGrupo = () => {
+    const a = h("div", "ad-av eq-av-grupo");
+    if (C.fotoGrupo) { const im = document.createElement("img"); im.src = C.fotoGrupo; im.alt = ""; a.appendChild(im); } else a.appendChild(ic("grupo", 24));
+    return a;
+  };
+  // Foto do grupo ao vivo (com as regras antigas no servidor a leitura é recusada: fica o ícone).
+  const pararFotoGrupo = fb.onSnapshot(fb.doc(fb.db, "equipe_info", "grupo"), (sn) => {
+    const f = sn.exists() ? sn.data().foto : null;
+    C.fotoGrupo = typeof f === "string" && /^data:image\/(jpeg|png|webp);base64,/.test(f) ? f : null;
+    if (el.isConnected) { pintarLista(); pintarTopo(); } else pararFotoGrupo();
+  }, () => {});
   function pintarLista() {
     const itens = [];
     const ultG = C.chat.at(-1);
@@ -320,7 +380,9 @@ export function montarChat(el) {
     if (conv === "equipe") {
       const nOn = D.admins.filter((a) => C.online(a.id)).length;
       const tx = h("div", "tx"); tx.append(h("strong", null, "Equipe"), h("small", null, `${D.admins.length} pessoas · ${nOn} online`));
-      quem.append(avGrupo(), tx);
+      const bFoto = h("button", "eq-foto-grupo"); bFoto.type = "button"; bFoto.title = "Trocar foto da equipe"; bFoto.setAttribute("aria-label", "Trocar foto da equipe");
+      bFoto.appendChild(avGrupo()); bFoto.addEventListener("click", () => trocarFotoGrupo());
+      quem.append(bFoto, tx);
     } else {
       const uid = outroDoPar(conv), a = D.admins.find((x) => x.id === uid) || {};
       const on = C.online(uid), pr = C.presenca.get(uid);
@@ -454,6 +516,10 @@ export function montarChat(el) {
     menu.replaceChildren();
     const item = (icone, rotulo, fn) => { const b = h("button", "eq-menu-item"); b.type = "button"; b.setAttribute("role", "menuitem"); b.append(ic(icone, 19), h("span", null, rotulo)); b.addEventListener("click", () => { fecharMenu(); fn(); }); menu.appendChild(b); };
     item("lupa", "Buscar na conversa", () => { barraBusca.hidden = false; inBusca.focus(); });
+    if (conv === "equipe") {
+      item("camera", C.fotoGrupo ? "Trocar foto da equipe" : "Pôr foto na equipe", () => trocarFotoGrupo());
+      if (C.fotoGrupo) item("lixo", "Tirar foto da equipe", () => trocarFotoGrupo(true));
+    }
     const on = somAtivo();
     item(on ? "semSom" : "sino", on ? "Desligar som de aviso" : "Ligar som de aviso", () => { try { localStorage.setItem("hf-equipe-som", on ? "0" : "1"); } catch {} toast(on ? "Som de aviso desligado" : "Som de aviso ligado"); });
     menu.hidden = false;
