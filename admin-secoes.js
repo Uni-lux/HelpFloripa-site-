@@ -1,18 +1,18 @@
 // =====================================================
 // Painel do administrador — seções
 // =====================================================
-import { linha, linhaComparada, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=6";
+import { linha, linhaComparada, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=7";
 import { baixarPlanilhaMulti } from "./planilha.js?v=5";
 import { buscarPessoas } from "./pessoas.js?v=3";
-import { montarChat } from "./admin-chat.js?v=5";
-import { verConteudoDenuncia } from "./admin-denuncia.js?v=1";
+import { montarChat } from "./admin-chat.js?v=6";
+import { verConteudoDenuncia } from "./admin-denuncia.js?v=2";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
 import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha,
   PAPEIS, DESC_PAPEIS, pode, semPermissao, nomeEquipe, vendoAgora, marcarItem, seloResp, confirmarItem, controlesResp, espera,
   PRIORIDADES, editarTarefa, moverTarefa, garantirNegocios, garantirTodasPessoas, carregarPessoas, guardarPessoas
-} from "./admin-base.js?v=10";
+} from "./admin-base.js?v=11";
 
 const cab = (titulo, sub, extra) => { const c = h("div", "ad-cab"); const t = h("div"); t.append(h("h1", null, titulo)); if (sub) t.append(h("p", null, sub)); c.appendChild(t); if (extra) c.appendChild(extra); return c; };
 const bloco = (titulo, sub) => { const b = h("section", "ad-bloco"); const t = h("div", "ad-bloco-topo"); const tt = h("div"); tt.append(h("h3", null, titulo)); if (sub) tt.append(h("p", null, sub)); t.appendChild(tt); b.appendChild(t); b.topo = t; return b; };
@@ -23,7 +23,8 @@ function chips(opcoes, atual, aoMudar) {
 }
 const btn = (t, cls, fn) => { const b = h("button", "ad-bt " + (cls || ""), t); b.type = "button"; b.addEventListener("click", async (e) => { e.stopPropagation(); b.disabled = true; try { await fn(b); } catch (err) { console.error(err); toast("Não foi possível: " + (err.code || err.message)); } finally { b.disabled = false; } }); return b; };
 const pessoa = (uid) => D.pessoas.get(uid) || { uid, nome: "" }; // ainda não lida: quem chama usa o nome guardado no item ou o ID
-const pessoas = () => [...D.pessoas.values()];
+// Contas que existem (as já apagadas só aparecem pelo nome em denúncias e chamados antigos).
+const pessoas = () => [...D.pessoas.values()].filter((p) => !p.removido);
 
 // Local de cada conta no padrão novo (estado + cidade do IBGE). Contas antigas com a cidade em
 // texto ("Florianópolis", "Florianópolis/SC") são reconhecidas pela mesma conversão do site,

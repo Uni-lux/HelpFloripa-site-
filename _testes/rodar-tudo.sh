@@ -9,7 +9,7 @@ F="Metadata\|trace-warn\|PERMISSION_DENIED\|evaluation error\|GrpcConnection\|fa
 echo "== testes de regras (firestore.rules do repositório, projeto demo-regras)"; node testes-regras.mjs 2>&1 | grep "✘\|passaram"
 echo "== regras do emulador: $R"; node trocar-regras.mjs $R
 node seed.mjs > /dev/null 2>&1
-for t in "t-chat.mjs bruno" "t-chat.mjs ana" "t-audio.mjs" "t-atend.mjs" "t-aval.mjs" "t-etapa4.mjs" "t-chat2.mjs" "t-menu-sair.mjs" "t-busca.mjs pc" "t-local.mjs"; do
+for t in "t-chat.mjs bruno" "t-chat.mjs ana" "t-audio.mjs" "t-atend.mjs" "t-aval.mjs" "t-etapa4.mjs" "t-painel2.mjs" "t-chat2.mjs" "t-menu-sair.mjs" "t-busca.mjs pc" "t-local.mjs"; do
   echo "== $t"; node seed.mjs > /dev/null 2>&1; timeout 300 node $t 2>&1 | grep -v "$F"
 done
 echo "== t-forms.mjs"; node seed.mjs > /dev/null 2>&1; timeout 300 node t-forms.mjs pc $RANDOM 2>&1 | grep -v "$F"

@@ -9,7 +9,7 @@
 //   com reações e ações (toque longo no celular), áudio com ondas de voz
 // Grupo: equipe_chat/{id} · individual: equipe_dm/{uidA_uidB}/mensagens/{id}
 // =====================================================
-import { C, D, h, ms, toast, avatar, relativo, editarTarefa, nomeEquipe, PAPEIS } from "./admin-base.js?v=10";
+import { C, D, h, ms, toast, avatar, relativo, editarTarefa, nomeEquipe, PAPEIS } from "./admin-base.js?v=11";
 import { criarPlayerAudio } from "./audio-ondas.js?v=1";
 
 const pessoa = (uid) => D.pessoas.get(uid) || { uid, nome: "" };
@@ -373,6 +373,11 @@ export function montarChat(el) {
     linha.appendChild(bm);
     return linha;
   }
+  // "Grudado no fim": quem está lendo as últimas mensagens continua no fim mesmo quando uma foto
+  // termina de carregar depois (antes o chat parava no meio da conversa).
+  let grudado = true;
+  chat.addEventListener("scroll", () => { grudado = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 80; }, { passive: true });
+  chat.addEventListener("load", (e) => { if (e.target.tagName === "IMG" && grudado && !termo.trim()) chat.scrollTop = chat.scrollHeight; }, true);
   function pintarChat() {
     const perto = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 80;
     let lista = mensagensAtuais();
@@ -408,7 +413,7 @@ export function montarChat(el) {
     for (const no of desejados) { if (no === atual) { atual = atual.nextSibling; continue; } chat.insertBefore(no, atual); }
     while (atual) { const prox = atual.nextSibling; atual.remove(); atual = prox; }
     for (const k of [...nos.keys()]) if (!usados.has(k)) nos.delete(k);
-    if (t) chat.scrollTop = 0; else if (perto || !pintarChat.feito) chat.scrollTop = chat.scrollHeight;
+    if (t) chat.scrollTop = 0; else if (perto || !pintarChat.feito) { chat.scrollTop = chat.scrollHeight; grudado = true; }
     pintarChat.feito = true;
   }
   function marcar(no, t) {

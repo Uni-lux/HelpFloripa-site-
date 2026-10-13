@@ -6,7 +6,7 @@
 //   abrir uma mensagem por vez, sem listar a conversa): a equipe vê o que foi dito de verdade.
 // - publicação, comentário, perfil e negócio: o conteúdo completo, com foto.
 // =====================================================
-import { C, D, h, toast, dataHora, abrirFicha, TIPOS_NEG } from "./admin-base.js?v=10";
+import { C, D, h, toast, dataHora, abrirFicha, TIPOS_NEG } from "./admin-base.js?v=11";
 import { criarPlayerAudio } from "./audio-ondas.js?v=1";
 
 const TITULOS = { perfil: "Perfil denunciado", publicacao: "Publicação denunciada", comentario: "Comentário denunciado", mensagem: "Mensagem denunciada", negocio: "Negócio denunciado" };
