@@ -5,6 +5,7 @@ import { linha, linhaComparada, barras, cartao, destaque, num, baixarCSV } from 
 import { baixarPlanilhaMulti } from "./planilha.js?v=5";
 import { buscarPessoas } from "./pessoas.js?v=3";
 import { montarChat } from "./admin-chat.js?v=4";
+import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
 import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha,
@@ -22,6 +23,24 @@ function chips(opcoes, atual, aoMudar) {
 const btn = (t, cls, fn) => { const b = h("button", "ad-bt " + (cls || ""), t); b.type = "button"; b.addEventListener("click", async (e) => { e.stopPropagation(); b.disabled = true; try { await fn(b); } catch (err) { console.error(err); toast("Não foi possível: " + (err.code || err.message)); } finally { b.disabled = false; } }); return b; };
 const pessoa = (uid) => D.pessoas.get(uid) || { uid, nome: "" }; // ainda não lida: quem chama usa o nome guardado no item ou o ID
 const pessoas = () => [...D.pessoas.values()];
+
+// Local de cada conta no padrão novo (estado + cidade do IBGE). Contas antigas com a cidade em
+// texto ("Florianópolis", "Florianópolis/SC") são reconhecidas pela mesma conversão do site,
+// então aparecem juntas. Calculado uma vez por texto diferente.
+const locaisTexto = new Map();
+function localDe(p) {
+  if (p.uf && p.cidadeIbge) return { uf: p.uf, cidade: p.cidade, cidadeIbge: Number(p.cidadeIbge) };
+  const t = String(p.cidade || p.cidadeNome || "").trim();
+  if (!t) return null;
+  const r = locaisTexto.get(t);
+  return r === undefined ? null : r || { uf: "", cidade: nomeCidade(t), cidadeIbge: null };
+}
+async function prepararLocais(ps) {
+  const faltam = [...new Set(ps.filter((p) => !(p.uf && p.cidadeIbge)).map((p) => String(p.cidade || p.cidadeNome || "").trim()).filter((t) => t && !locaisTexto.has(t)))];
+  await Promise.all(faltam.map(async (t) => locaisTexto.set(t, await resolverCidade(t).catch(() => null) || false)));
+}
+const locaisProntos = (ps) => ps.every((p) => (p.uf && p.cidadeIbge) || !String(p.cidade || p.cidadeNome || "").trim() || locaisTexto.has(String(p.cidade || p.cidadeNome).trim()));
+const rotuloLocal = (l) => (l ? (l.uf ? textoCidade(l) : `${l.cidade} (sem estado)`) : null);
 const contarPor = (lista, chave) => { const m = new Map(); lista.forEach((x) => { const k = chave(x); if (k == null || k === "") return; m.set(k, (m.get(k) || 0) + 1); }); return [...m.entries()].sort((a, b) => b[1] - a[1]); };
 function serieDiaria(datas, dias) {
   const fim = new Date(); fim.setHours(0, 0, 0, 0);
@@ -759,9 +778,14 @@ export function verificacoes(el) {
 }
 
 // ======================================================= ESTATÍSTICAS
-let periodoEst = 30, compararEst = false, cidadeEst = "", bairroEst = "";
+let periodoEst = 30, compararEst = false, ufEst = "", cidadeEst = "", bairroEst = "";
 export function estatisticas(el) {
   const ps = pessoas();
+  if (!locaisProntos(ps)) {
+    el.appendChild(h("div", "ad-vazio", "Organizando as cidades das contas…"));
+    prepararLocais(ps).then(() => { if (el.isConnected) { el.replaceChildren(); estatisticas(el); } });
+    return;
+  }
   const { ini, fim, mensal, rotulo } = janela(periodoEst);
   const topo = h("div", "ad-cab-acoes");
   const cmp = h("button", "ad-chip", "Comparar com período anterior"); cmp.type = "button"; cmp.setAttribute("aria-pressed", String(compararEst));
@@ -769,19 +793,32 @@ export function estatisticas(el) {
   topo.append(seletorPeriodo(periodoEst, (v) => { periodoEst = v; el.replaceChildren(); estatisticas(el); }), cmp, btn("Baixar tudo (Excel)", "", () => baixarPlanilhaMulti(`estatisticas-${typeof periodoEst === "object" ? "personalizado" : periodoEst + "d"}`, abas, capa)));
   el.appendChild(cab("Estatísticas", `Quem usa o Help Floripa, de onde, e como a plataforma cresce · ${rotulo}${compararEst ? " (comparando com o período anterior)" : ""}.`, topo));
   const g = h("div", "ad-grade");
-  // Filtro por cidade e bairro (opções vêm de todas as contas).
-  const psF = ps.filter((p) => (!cidadeEst || nomeCidade(p.cidade) === cidadeEst) && (!bairroEst || (p.endereco?.bairro || "") === bairroEst));
-  const selCidade = h("select", "ad-sel"); selCidade.setAttribute("aria-label", "Filtrar por cidade");
+  // Filtro em cascata Estado → Cidade → Bairro (opções e números vêm de todas as contas).
+  const ufDe = (p) => localDe(p)?.uf || "";
+  const cidDe = (p) => rotuloLocal(localDe(p));
+  const baiDe = (p) => String(p.endereco?.bairro || "").trim() || null;
+  const psUf = ps.filter((p) => !ufEst || ufDe(p) === ufEst);
+  const psCid = psUf.filter((p) => !cidadeEst || cidDe(p) === cidadeEst);
+  const psF = psCid.filter((p) => !bairroEst || baiDe(p) === bairroEst);
   const opt = (sel, v, t) => { const o = h("option", null, t); o.value = v; if (v === sel) o.selected = true; return o; };
-  selCidade.append(opt(cidadeEst, "", "Todas as cidades"), ...contarPor(ps, (p) => nomeCidade(p.cidade) || null).map(([c, n]) => opt(cidadeEst, c, `${c} (${n})`)));
-  selCidade.addEventListener("change", () => { cidadeEst = selCidade.value; bairroEst = ""; el.replaceChildren(); estatisticas(el); });
-  topo.insertBefore(selCidade, topo.firstChild);
+  const refazer = () => { el.replaceChildren(); estatisticas(el); };
+  const selUf = h("select", "ad-sel"); selUf.setAttribute("aria-label", "Filtrar por estado");
+  selUf.append(opt(ufEst, "", "Todos os estados"), ...contarPor(ps, (p) => ufDe(p) || null).map(([u, n]) => opt(ufEst, u, `${NOME_UF[u] || u} (${n})`)));
+  selUf.addEventListener("change", () => { ufEst = selUf.value; cidadeEst = ""; bairroEst = ""; refazer(); });
+  const filtros = [selUf];
+  if (ufEst) {
+    const selCidade = h("select", "ad-sel"); selCidade.setAttribute("aria-label", "Filtrar por cidade");
+    selCidade.append(opt(cidadeEst, "", "Todas as cidades"), ...contarPor(psUf, cidDe).map(([c, n]) => opt(cidadeEst, c, `${c} (${n})`)));
+    selCidade.addEventListener("change", () => { cidadeEst = selCidade.value; bairroEst = ""; refazer(); });
+    filtros.push(selCidade);
+  }
   if (cidadeEst) {
     const selBairro = h("select", "ad-sel"); selBairro.setAttribute("aria-label", "Filtrar por bairro");
-    selBairro.append(opt(bairroEst, "", "Todos os bairros"), ...contarPor(ps.filter((p) => nomeCidade(p.cidade) === cidadeEst), (p) => p.endereco?.bairro || null).map(([b, n]) => opt(bairroEst, b, `${b} (${n})`)));
-    selBairro.addEventListener("change", () => { bairroEst = selBairro.value; el.replaceChildren(); estatisticas(el); });
-    topo.insertBefore(selBairro, selCidade.nextSibling);
+    selBairro.append(opt(bairroEst, "", "Todos os bairros"), ...contarPor(psCid, baiDe).map(([b, n]) => opt(bairroEst, b, `${b} (${n})`)));
+    selBairro.addEventListener("change", () => { bairroEst = selBairro.value; refazer(); });
+    filtros.push(selBairro);
   }
+  filtros.reverse().forEach((f) => topo.insertBefore(f, topo.firstChild));
   // Cada cartão também vira uma aba do "Baixar tudo (Excel)"; a capa "Resumo" traz período, filtro e números principais.
   const abas = [];
   const addCartao = (o) => { abas.push({ nome: o.titulo, titulo: o.titulo, sub: o.sub, cabecalho: o.cabecalho, linhas: o.linhas, grafico: { tipo: o.grafico || "coluna", titulo: o.titulo }, total: o.total }); return cartao(o); };
@@ -792,7 +829,7 @@ export function estatisticas(el) {
     titulo: "Estatísticas do Help Floripa",
     descricao: "Quem usa o Help Floripa, de onde, e como a plataforma cresce",
     periodo: `${rotulo} (${new Date(ini).toLocaleDateString("pt-BR")} a ${new Date(fim).toLocaleDateString("pt-BR")})`,
-    filtro: cidadeEst ? `Cidade: ${cidadeEst}${bairroEst ? " · Bairro: " + bairroEst : ""}` : "Nenhum (todas as cidades)",
+    filtro: ufEst ? [`Estado: ${NOME_UF[ufEst] || ufEst}`, cidadeEst ? `Cidade: ${cidadeEst}` : "", bairroEst ? `Bairro: ${bairroEst}` : ""].filter(Boolean).join(" · ") : "Nenhum (Brasil todo)",
     autor: C.nome || "",
     indicadores: [
       ["Usuários (total)", psF.length, ""],
@@ -828,10 +865,14 @@ export function estatisticas(el) {
   const mediana = comIdade.length ? comIdade[Math.floor(comIdade.length / 2)] : 0;
   g.appendChild(addCartao({ titulo: "Faixa etária", sub: comIdade.length ? `Idade média ${(comIdade.reduce((a, b) => a + b, 0) / comIdade.length).toFixed(0)} · mediana ${mediana} · ${psF.length - comIdade.length} sem data` : "Sem datas de nascimento", cabecalho: ["Faixa", "Pessoas"], linhas: fx.map((x) => [x.rotulo, x.valor]), desenhar: (a) => barras(a, { itens: fx }), nomeArquivo: "faixa-etaria" }));
   // regiões
-  const cid = contarPor(psF, (p) => nomeCidade(p.cidade) || null);
+  const estados = contarPor(psF, (p) => ufDe(p) || null).map(([u, n]) => [`${NOME_UF[u] || u} (${u})`, n]);
+  const semUf = psF.filter((p) => !ufDe(p)).length;
+  const topE = estados.slice(0, 9).map(([rotulo, valor]) => ({ rotulo, valor })); const outrosE = estados.slice(9).reduce((a, [, v]) => a + v, 0); if (outrosE) topE.push({ rotulo: "Outros", valor: outrosE });
+  g.appendChild(addCartao({ titulo: "Estados", sub: semUf ? `${semUf} sem estado informado` : "Todas as contas com estado", cabecalho: ["Estado", "Pessoas"], linhas: estados, desenhar: (a) => barras(a, { itens: topE, horizontal: true, cor: "var(--viz-2)" }), nomeArquivo: "estados", grafico: "barra" }));
+  const cid = contarPor(psF, cidDe);
   const topC = cid.slice(0, 9).map(([rotulo, valor]) => ({ rotulo, valor })); const outrasC = cid.slice(9).reduce((a, [, v]) => a + v, 0); if (outrasC) topC.push({ rotulo: "Outras", valor: outrasC });
-  g.appendChild(addCartao({ titulo: "Cidades", sub: `${psF.filter((p) => !p.cidade).length} sem cidade informada`, cabecalho: ["Cidade", "Pessoas"], linhas: cid.map(([a, b]) => [a, b]), desenhar: (a) => barras(a, { itens: topC, horizontal: true }), nomeArquivo: "cidades", grafico: "barra" }));
-  const bai = contarPor(psF, (p) => p.endereco?.bairro || null);
+  g.appendChild(addCartao({ titulo: "Cidades", sub: `${psF.filter((p) => !cidDe(p)).length} sem cidade informada`, cabecalho: ["Cidade", "Pessoas"], linhas: cid.map(([a, b]) => [a, b]), desenhar: (a) => barras(a, { itens: topC, horizontal: true }), nomeArquivo: "cidades", grafico: "barra" }));
+  const bai = contarPor(psF, baiDe);
   const topB = bai.slice(0, 10).map(([rotulo, valor]) => ({ rotulo, valor }));
   g.appendChild(addCartao({ titulo: "Bairros", sub: "Só de quem salvou endereço nas configurações", cabecalho: ["Bairro", "Pessoas"], linhas: bai.map(([a, b]) => [a, b]), desenhar: (a) => barras(a, { itens: topB, horizontal: true, cor: "var(--viz-3)" }), nomeArquivo: "bairros", grafico: "barra" }));
   // público

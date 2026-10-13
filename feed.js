@@ -6,12 +6,13 @@
 //   e a busca de pessoas.
 // Links: feed.html?aba=explorar · ?publicar=1
 // =====================================================
+import { textoCidade } from "./endereco.js?v=1";
 import {
   $, el, icone, ms, paraData, pintarAvatar, urlSegura, nomeCidade, tempoRelativo, toast, erroAmigavel,
   fb, eu, dados, meusSeguindo, escondido, ganchos, obterPerfil, iniciarRede, carregarMeusSeguindo, linhaPessoa,
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, montarBarraRede, pintarBarraRede, ouvirAvisos, lerOrdenado,
   editarPublicacao, bloquear, comMencoes
-} from "./rede.js?v=26";
+} from "./rede.js?v=27";
 import { abrirDenuncia } from "./denuncias.js?v=1";
 import { buscarPessoas, pessoasRecentes } from "./pessoas.js?v=3";
 import { docsComValidade } from "./leituras.js?v=1";
@@ -208,7 +209,7 @@ async function pintarLateral() {
     const box = $("sugestoes");
     box.replaceChildren();
     if (!sug.length) box.appendChild(el("div", "lista-vazia", "Você já segue todo mundo por aqui."));
-    sug.forEach((p) => box.appendChild(linhaPessoa({ uid: p.uid, nome: p.nome, foto: p.fotoPerfil, sub: p.nickname ? "@" + p.nickname : nomeCidade(p.cidade) })));
+    sug.forEach((p) => box.appendChild(linhaPessoa({ uid: p.uid, nome: p.nome, foto: p.fotoPerfil, sub: p.nickname ? "@" + p.nickname : textoCidade({ cidade: nomeCidade(p.cidade), uf: p.uf }) })));
   } catch {}
 }
 

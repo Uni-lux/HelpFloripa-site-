@@ -25,7 +25,7 @@
   </script>
   <link rel="stylesheet" href="acesso.css?v=1" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="cadastro.js?v=2"></script>
+  <script type="module" src="cadastro.js?v=3"></script>
 </head>
 <body>
   <div class="acesso">
@@ -64,6 +64,8 @@
               <div class="campo"><label for="telefone">Telefone / WhatsApp</label><input type="tel" id="telefone" maxlength="15" autocomplete="tel" placeholder="(48) 90000-0000" required /></div>
             </div>
             <div class="campo"><label for="nascimento">Data de nascimento</label><input type="date" id="nascimento" required /><span class="ajuda">É preciso ter 16 anos ou mais.</span></div>
+            <div id="cadLocal"></div>
+            <span class="ajuda" style="margin-top:-8px">Sua cidade aparece no perfil e ajuda a achar quem atende perto de você. O endereço completo é opcional e fica privado, nas Configurações.</span>
             <div class="duas">
               <div class="campo"><label for="senha">Senha</label><div class="senha"><input type="password" id="senha" minlength="6" autocomplete="new-password" required /></div></div>
               <div class="campo"><label for="confirmar">Confirmar senha</label><div class="senha"><input type="password" id="confirmar" minlength="6" autocomplete="new-password" required /></div></div>

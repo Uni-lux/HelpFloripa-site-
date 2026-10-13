@@ -23,10 +23,10 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="vitrine.css?v=24" />
-  <link rel="stylesheet" href="rede.css?v=6" />
+  <link rel="stylesheet" href="vitrine.css?v=25" />
+  <link rel="stylesheet" href="rede.css?v=7" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="negocios.js?v=30"></script>
+  <script type="module" src="negocios.js?v=31"></script>
 </head>
 <body>
   <header class="topo">
@@ -91,7 +91,10 @@
         </div>
         <div class="campo"><label for="negNome">Nome</label><input id="negNome" maxlength="60" placeholder="Ex.: Marido de Aluguel do João" /></div>
         <div class="campo"><label for="negDesc">Descrição</label><textarea id="negDesc" maxlength="500" placeholder="O que você oferece, horários, região de atendimento..."></textarea><div class="ajuda"><span></span><span id="negDescCont">0/500</span></div></div>
-        <div class="campo"><label for="negCidade">Cidade / região</label><input id="negCidade" list="cidadesSugeridas" maxlength="60" /></div>
+        <div class="neg-local">
+          <div class="neg-local-tit"><strong>Onde fica</strong><small>Estado e cidade aparecem no perfil e na busca. Rua e número só se você atende num endereço (loja, consultório, ponto de retirada).</small></div>
+          <div id="negLocal"></div>
+        </div>
         <div class="campo"><label for="negWhats">WhatsApp para contato (opcional)</label><input id="negWhats" type="tel" maxlength="20" placeholder="(48) 90000-0000" /><div class="ajuda"><span>Aparece como botão no perfil do negócio e na vitrine</span></div></div>
         <div id="negExtras"></div>
         <input type="file" id="negArquivoExtra" accept="image/*" hidden />

@@ -72,6 +72,30 @@ service cloud.firestore {
       return v == null || (v is string && v.size() <= max);
     }
 
+    // Local para o Brasil todo: estado (UF) e código IBGE da cidade (7 dígitos; os dois
+    // primeiros são o código do estado, então cidade e estado precisam combinar).
+    // Feito com expressões regulares (uma tabela de 27 estados estourava o limite de
+    // 1.000 expressões por gravação do Firestore).
+    function localOk() {
+      let d = request.resource.data;
+      let uf = d.get('uf', null);
+      let ibge = d.get('cidadeIbge', null);
+      return (uf == null || uf == ''
+              || (uf is string && uf.matches('^(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)$')))
+          && (ibge == null
+              || (ibge is int && uf is string
+                  && (uf + string(ibge)).matches('^(RO11|AC12|AM13|RR14|PA15|AP16|TO17|MA21|PI22|CE23|RN24|PB25|PE26|AL27|SE28|BA29|MG31|ES32|RJ33|SP35|PR41|SC42|RS43|MS50|MT51|GO52|DF53)[0-9]{5}$')));
+    }
+    // Endereço detalhado opcional (negócios e anúncios): CEP com 8 números e textos curtos.
+    function enderecoOk() {
+      let cep = request.resource.data.get('cep', null);
+      return (cep == null || cep == '' || (cep is string && cep.matches('^[0-9]{8}$')))
+          && textoAte('bairro', 60)
+          && textoAte('rua', 100)
+          && textoAte('numero', 10)
+          && textoAte('complemento', 60);
+    }
+
     // Lista opcional com no máximo N itens.
     function listaAte(campo, max) {
       return !(campo in request.resource.data)
@@ -250,13 +274,14 @@ service cloud.firestore {
         return textoAte('nome', 80)
             && textoAte('bio', 400)
             && textoAte('cidade', 80)
+            && localOk()
             && listaAte('busca', 12)
             && dataOuNulo('desativadaAte');
       }
 
       // Campos que o site grava no perfil público. Qualquer outro é recusado.
       function camposPerfil() {
-        return ['uid', 'nome', 'nickname', 'cidade', 'bio', 'fotoPerfil', 'fotoCapa',
+        return ['uid', 'nome', 'nickname', 'cidade', 'uf', 'cidadeIbge', 'bio', 'fotoPerfil', 'fotoCapa',
                 'socialVisibilidade', 'duoCapa', 'ultimoAcesso', 'criadoEm', 'atualizadoEm',
                 'busca',   // palavras do nome e do @ (minúsculas, sem acento) para a busca de pessoas
                 'desativadaAte',   // conta desativada até esta data (ou exclusão pedida)
@@ -469,7 +494,8 @@ service cloud.firestore {
 
       // Campos que o site grava. Qualquer outro campo é recusado.
       function camposNegocio() {
-        return ['donoId', 'tipo', 'nome', 'descricao', 'cidade', 'whatsapp', 'foto', 'fotos', 'itens',
+        return ['donoId', 'tipo', 'nome', 'descricao', 'cidade', 'uf', 'cidadeIbge', 'bairro', 'rua', 'numero', 'complemento', 'cep',
+                'whatsapp', 'foto', 'fotos', 'itens',
                 'categoria', 'categorias', 'categoriaPersonalizada', 'criadoEm', 'atualizadoEm',
                 'precoDesde', 'horario', 'atendimento', 'dias', 'regiao', 'experiencia', 'diferenciais', 'pagamentos', 'cnh', 'veiculo',
                 'horaAbre', 'horaFecha', 'tempoMin', 'tempoMax', 'taxaEntrega', 'pedidoMinimo', 'opcoesEntrega',
@@ -481,6 +507,8 @@ service cloud.firestore {
         return textoAte('nome', 80)
             && textoAte('descricao', 600)
             && textoAte('cidade', 60)
+            && localOk()
+            && enderecoOk()
             && textoAte('whatsapp', 20)
             && textoAte('regiao', 100)
             && textoAte('horario', 60)
@@ -530,6 +558,7 @@ service cloud.firestore {
       function camposAnuncio() {
         return ['donoId', 'tipo', 'ativo', 'titulo', 'finalidade', 'categoria', 'preco', 'condominio', 'iptu',
                 'quartos', 'suites', 'banheiros', 'vagas', 'area', 'andar', 'bairro', 'cidade', 'mobiliado',
+                'uf', 'cidadeIbge', 'rua', 'numero', 'complemento', 'cep',
                 'disponivel', 'hospedes', 'caracteristicas', 'condicoes', 'descricao', 'fotos', 'criadoEm', 'atualizadoEm',
                 'ocultoAte'];
       }
@@ -537,8 +566,9 @@ service cloud.firestore {
       function anuncioOk() {
         return textoAte('titulo', 100)
             && textoAte('descricao', 1000)
-            && textoAte('bairro', 60)
             && textoAte('cidade', 60)
+            && localOk()
+            && enderecoOk()
             && textoAte('andar', 12)
             && textoAte('disponivel', 20)
             && listaAte('fotos', 5)

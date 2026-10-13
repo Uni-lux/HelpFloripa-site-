@@ -8,6 +8,7 @@
 // - Nova publicação (foto ou texto).
 // - Barra inferior, avisos (notificações) e presença online.
 // =====================================================
+import { gravarComLocal, NOVOS } from "./endereco.js?v=1";
 import { comRitmo } from "./ritmo.js?v=2";
 import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=5";
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
@@ -389,10 +390,14 @@ export async function iniciarRede({ sincronizar = false } = {}) {
   if (pub.duoCapa) dados.duoCapa = pub.duoCapa;
   if (!dados.nickname && pub.nickname) dados.nickname = pub.nickname;
   if (sincronizar) {
-    fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), {
+    const publico = {
       uid: eu.uid, nome: dados.nome, nickname: pub.nickname || dados.nickname || "", cidade: dados.cidade,
       fotoPerfil: dados.fotoPerfil || "", fotoCapa: dados.fotoCapa || "", bio: dados.bio || ""
-    }, { merge: true }).catch((e) => console.warn("Perfil público não sincronizado:", e));
+    };
+    // Estado e cidade do IBGE (padrão novo do endereço) vão junto quando a conta já tem.
+    if (dados.uf && dados.cidadeIbge) Object.assign(publico, { uf: dados.uf, cidadeIbge: dados.cidadeIbge });
+    gravarComLocal((d) => fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), d, { merge: true }), publico, NOVOS.perfil)
+      .catch((e) => console.warn("Perfil público não sincronizado:", e));
   }
   // Palavras do nome e do @ para a busca de pessoas (gravação separada: se falhar, nada mais quebra).
   const busca = palavrasBusca(pub.nome || dados.nome, pub.nickname || dados.nickname);

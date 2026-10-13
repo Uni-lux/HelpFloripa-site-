@@ -464,7 +464,7 @@ input.ad-sel { flex: 1 1 220px; padding: 0 12px; }
   .ad-cab-acoes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: 100%; }
   .ad-cab-acoes > * { min-width: 0; }
   .ad-cab-acoes .ad-sel { width: 100%; }
-  .ad-cab-acoes .ad-sel:only-of-type { grid-column: 1 / -1; }
+  .ad-cab-acoes .ad-sel:nth-of-type(odd):last-of-type { grid-column: 1 / -1; }
   .ad-cab-acoes .ad-periodo { grid-column: 1 / -1; display: grid; gap: 8px; }
   /* Chips do período em grade de 3 colunas: todos inteiros na tela, sem rolar de lado. */
   .ad-cab-acoes .ad-periodo .ad-filtros { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }

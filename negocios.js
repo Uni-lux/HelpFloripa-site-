@@ -9,9 +9,10 @@
 import {
   $, el, icone, pintarAvatar, urlSegura, nomeCidade, toast, erroAmigavel, abrirFolha, fecharFolha,
   fb, eu, dados, salvarImagem, editarImagem, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos
-} from "./rede.js?v=26";
+} from "./rede.js?v=27";
 import { lerResumos, estrelas, media, notaTexto } from "./avaliacoes.js?v=11";
-import { buscarAnuncios, DIAS, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO } from "./vitrine.js?v=30";
+import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
+import { buscarAnuncios, DIAS, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO } from "./vitrine.js?v=31";
 
 const NEGOCIOS = {
   servicos: { rotulo: "Freelances", img: "servicos.webp", pagina: "servicos.html", desc: "Portfólio, preços, horários e pedidos de orçamento." },
@@ -142,7 +143,13 @@ function abrirFormNegocio(n) {
   $("negNome").value = n?.nome || "";
   $("negDesc").value = n?.descricao || "";
   $("negDescCont").textContent = `${$("negDesc").value.length}/500`;
-  $("negCidade").value = n?.cidade || nomeCidade(dados.cidade);
+  // Local do negócio: começa pelo do próprio negócio ou, num perfil novo, pela cidade da conta.
+  $("negLocal").replaceChildren();
+  negLocal = camposEndereco($("negLocal"), {
+    campos: ["cep", "uf", "cidade", "bairro", "rua", "numero", "complemento"],
+    valor: n ? { cep: n.cep, uf: n.uf, cidade: n.cidade, cidadeIbge: n.cidadeIbge, bairro: n.bairro, rua: n.rua, numero: n.numero, complemento: n.complemento } : { uf: dados.uf, cidade: nomeCidade(dados.cidade), cidadeIbge: dados.cidadeIbge },
+    dicaCep: "Opcional: o CEP preenche estado, cidade, bairro e rua"
+  });
   $("negWhats").value = n?.whatsapp || "";
   $("negExcluir").hidden = !n;
   negExtra = JSON.parse(JSON.stringify({ ...(n || {}), criadoEm: null, atualizadoEm: null }));
@@ -551,6 +558,19 @@ const moedaBR = (v) => (Number(v) > 0 ? Number(v).toLocaleString("pt-BR", { styl
 function abrirFormAnuncio(a) {
   anEditandoId = a?.id || null;
   anEdit = JSON.parse(JSON.stringify({ finalidade: "aluguel", categoria: "apartamento", cidade: nomeCidade(dados.cidade), fotos: [], ...(a || {}), criadoEm: null, atualizadoEm: null }));
+  // Endereço do imóvel: estado, cidade (IBGE) e bairro obrigatórios; rua, número e CEP opcionais.
+  const anLocalBox = document.createElement("div");
+  anLocalBox.className = "neg-local";
+  const anLocalTit = document.createElement("div"); anLocalTit.className = "neg-local-tit";
+  anLocalTit.append(Object.assign(document.createElement("strong"), { textContent: "Endereço do imóvel" }), Object.assign(document.createElement("small"), { textContent: "Estado, cidade e bairro aparecem no anúncio e na busca. Rua e número são opcionais: só aparecem se você preencher." }));
+  const anLocalCampos = document.createElement("div");
+  anLocalBox.append(anLocalTit, anLocalCampos);
+  anLocal = camposEndereco(anLocalCampos, {
+    campos: ["cep", "uf", "cidade", "bairro", "rua", "numero", "complemento"],
+    obrigatorios: ["uf", "cidade", "bairro"],
+    valor: a ? { cep: a.cep, uf: a.uf, cidade: a.cidade, cidadeIbge: a.cidadeIbge, bairro: a.bairro, rua: a.rua, numero: a.numero, complemento: a.complemento } : { uf: dados.uf, cidade: nomeCidade(dados.cidade), cidadeIbge: dados.cidadeIbge },
+    dicaCep: "Opcional: o CEP preenche estado, cidade, bairro e rua"
+  });
   anEdit.mobiliadoLista = anEdit.mobiliado ? ["sim"] : [];
   anEdit.caracteristicas = Array.isArray(anEdit.caracteristicas) ? anEdit.caracteristicas : [];
   anEdit.condicoes = Array.isArray(anEdit.condicoes) ? anEdit.condicoes : [];
@@ -619,7 +639,7 @@ function abrirFormAnuncio(a) {
       campo("Suítes", ent("suites", { numero: true, max: 3 })),
       campo("Andar", ent("andar", { placeholder: "Térreo, 5º", max: 12 })),
       campo("IPTU (R$/mês)", ent("iptu", { numero: true }))),
-    grade("", campo("Bairro", ent("bairro", { placeholder: "Ex.: Trindade" })), campo("Cidade", ent("cidade", { placeholder: "Florianópolis" }))),
+    anLocalBox,
     grade("", campo("Disponível a partir de", ent("disponivel", { placeholder: "Imediato ou 10/12", max: 20 })), campo("Hóspedes (temporada)", ent("hospedes", { numero: true, max: 3 }))),
     campo("", marcas("mobiliadoLista", { sim: "Mobiliado" }, null, anEdit)),
     campo("Características", marcas("caracteristicas", CARACT_IMOVEL, null, anEdit)),
@@ -631,6 +651,10 @@ function abrirFormAnuncio(a) {
 
 $("anSalvar").addEventListener("click", async () => {
   const a = anEdit;
+  const erroLocal = anLocal?.validar();
+  if (erroLocal) { toast(erroLocal); return; }
+  const l = anLocal.ler();
+  const localAn = { cidade: l.cidade, uf: l.uf, cidadeIbge: l.cidadeIbge, bairro: l.bairro, rua: l.rua, numero: l.numero, complemento: l.complemento, cep: l.cep };
   if (!Number(a.preco) && !confirm("Publicar sem preço? O anúncio vai mostrar \"Consultar\".")) return;
   const btn = $("anSalvar");
   btn.disabled = true; btn.textContent = "Publicando...";
@@ -641,7 +665,7 @@ $("anSalvar").addEventListener("click", async () => {
     const dadosAn = {
       donoId: eu.uid, tipo: "imovel", ativo: true, titulo: a.titulo || "", finalidade: a.finalidade, categoria: a.categoria,
       preco: a.preco ?? null, condominio: a.condominio ?? null, quartos: a.quartos ?? null, banheiros: a.banheiros ?? null,
-      vagas: a.vagas ?? null, area: a.area ?? null, bairro: a.bairro || "", cidade: a.cidade || "",
+      vagas: a.vagas ?? null, area: a.area ?? null, ...localAn,
       mobiliado: (a.mobiliadoLista || []).includes("sim"), descricao: a.descricao || "", fotos,
       suites: a.suites ?? null, andar: String(a.andar || "").slice(0, 12), iptu: a.iptu ?? null, disponivel: String(a.disponivel || "").slice(0, 20),
       hospedes: a.hospedes ?? null, caracteristicas: (a.caracteristicas || []).filter((k) => CARACT_IMOVEL[k]), condicoes: (a.condicoes || []).filter((k) => CONDICOES_IMOVEL[k]),
@@ -650,7 +674,7 @@ $("anSalvar").addEventListener("click", async () => {
     if (!anEditandoId) dadosAn.criadoEm = fb.serverTimestamp();
     else delete dadosAn.criadoEm;
     if (JSON.stringify(dadosAn).length > 950000) throw new Error("Fotos pesadas demais. Remova uma foto e tente de novo.");
-    await fb.setDoc(ref, dadosAn, { merge: true });
+    await gravarComLocal((d) => fb.setDoc(ref, d, { merge: true }), dadosAn, NOVOS.anuncio);
     fecharFolha("folhaAnuncio");
     toast(anEditandoId ? "Imóvel atualizado" : "Imóvel anunciado");
     const lista = document.querySelector("#negExtras .neg-anuncios");
@@ -693,9 +717,12 @@ $("negArquivo").addEventListener("change", async () => {
     if (d) { negFoto = d; pintarFotoNegocio(); }
   } catch (e) { toast(erroAmigavel(e)); }
 });
+let negLocal = null, anLocal = null;
 $("negSalvar").addEventListener("click", async () => {
   const nome = $("negNome").value.trim();
   if (nome.length < 2) { toast("Dê um nome ao seu negócio."); $("negNome").focus(); return; }
+  const erroLocal = negLocal?.validar();
+  if (erroLocal) { toast(erroLocal); return; }
   const btn = $("negSalvar");
   btn.disabled = true; btn.textContent = "Salvando...";
   try {
@@ -746,13 +773,15 @@ $("negSalvar").addEventListener("click", async () => {
       if (negTipo === "servicos") item.categoria = x.categorias.includes(it.categoria) ? it.categoria : x.categorias[0];
       extras.itens.push(item);
     }
+    const loc = negLocal.ler();
     const dadosNeg = {
-      donoId: eu.uid, tipo: negTipo, nome, descricao: $("negDesc").value.trim(), cidade: $("negCidade").value.trim(),
+      donoId: eu.uid, tipo: negTipo, nome, descricao: $("negDesc").value.trim(),
+      cidade: loc.cidade, uf: loc.uf, cidadeIbge: loc.cidadeIbge, bairro: loc.bairro, rua: loc.rua, numero: loc.numero, complemento: loc.complemento, cep: loc.cep,
       whatsapp: $("negWhats").value.trim(), foto, ...extras, atualizadoEm: fb.serverTimestamp()
     };
     if (JSON.stringify(dadosNeg).length > 950000) throw new Error("Fotos demais para um perfil. Remova algumas fotos e tente de novo.");
     dadosNeg.criadoEm = negEditando?.criadoEm || fb.serverTimestamp();
-    await fb.setDoc(fb.doc(fb.db, "negocios", id), dadosNeg);
+    await gravarComLocal((d) => fb.setDoc(fb.doc(fb.db, "negocios", id), d), dadosNeg, NOVOS.negocio);
     fecharFolha("folhaNegocio");
     toast(negEditando ? "Perfil de negócio atualizado" : "Perfil de negócio criado");
     carregarMeusNegocios().then(carregarNumeros);
