@@ -64,3 +64,21 @@ chat da equipe).
 - `admin-secoes.js`: Estatísticas (filtro Estado→Cidade→Bairro via `localDe`), Relatórios, Excel com capa.
 - CSP: cada página tem a sua em `<meta>`; `fetch` de `data:` é bloqueado (connect-src).
 - `scripts/limpeza/converter-cidades.mjs` + workflow manual "Converter cidades" (simula por padrão).
+
+## Pendências do dono e o que ficou para depois (vindas de sessões anteriores)
+Coisas que só ELE pode fazer (lembrar no momento certo, sem fazer por ele):
+- **Etapa 5:** publicar o `firestore.rules` no console do Firebase (Firestore → Regras: apagar tudo, colar as
+  partes em ordem, Publicar). Até lá, conversa individual da equipe, anexos, citar e reações não funcionam no ar.
+- **Segredo `FIREBASE_SERVICE_ACCOUNT` no GitHub** (Settings → Secrets → Actions). Sem ele não rodam a limpeza
+  automática de contas (`limpeza-contas.yml`), a conversão de cidades (`converter-cidades.yml`) nem relatório
+  automático. **Configurar a limpeza automática ANTES de liberar o site ao público** (exclusões pedidas há 30 dias).
+- Rodar o workflow manual "Converter cidades" (primeiro simulando, depois de verdade) depois da Etapa 5.
+- Testar o Excel no Microsoft Excel do celular dele depois de cada mudança em `planilha.js` (já falhou uma vez).
+- **Liberar o site** (tirar o bloqueio de login): só quando ele disser que está pronto.
+
+Ficou para depois da Etapa 5 (combinado com ele, ainda não feito):
+- Plano Blaze + Firebase Storage para fotos/áudios/arquivos (hoje vão em `data:` dentro do Firestore, com limite
+  de tamanho), App Check (reCAPTCHA) contra robôs, e os índices compostos que o console pedir.
+- Planos pagos para negócios e revisar os textos que dizem "grátis" no site.
+- Relatório da equipe enviado por e-mail automaticamente (depende do segredo acima).
+- Existe um orçamento de custos/preços feito numa sessão anterior (doc no Claude); custos sobem com Blaze/Storage.
