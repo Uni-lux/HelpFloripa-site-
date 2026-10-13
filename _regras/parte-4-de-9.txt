@@ -88,7 +88,13 @@
                       && request.auth.uid != resource.data.remetenteId
                       && mudou().hasOnly(['denunciada'])
                       && request.resource.data.denunciada == true;
-        allow delete: if logado() && daConversa() && !noPrazo() && resource.data.get('denunciada', false) != true;
+        // Denunciada (pela marca ou porque existe a denúncia, mesmo feita antes de apagar): fica para a moderação.
+        function temDenuncia() {
+          let p = get(/databases/$(database)/documents/conversas/$(conversaId)).data.participantes;
+          let quemRecebeu = p[0] == resource.data.remetenteId ? p[1] : p[0];
+          return exists(/databases/$(database)/documents/denuncias/$('mensagem_' + mensagemId + '_' + quemRecebeu));
+        }
+        allow delete: if logado() && daConversa() && !noPrazo() && resource.data.get('denunciada', false) != true && !temDenuncia();
         allow delete: if podeModerar();
       }
     }
@@ -204,12 +210,5 @@
       }
 
       allow read: if logado();
-
-      allow create: if logado()
-                    && emailOk()
-                    && base()
-                    && ((request.resource.data.tipo == 'negocio' && doCliente())
-                        || (request.resource.data.tipo == 'cliente' && doVendedor())
-                        || (request.resource.data.tipo == 'publicacao' && daPublicacao()));
 
 // ===== FIM DA PARTE 4 DE 9 =====

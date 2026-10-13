@@ -219,6 +219,12 @@ await semRegras((db) => setDoc(doc(db, "conversas", convAB, "apagadas", "velha")
 await semRegras((db) => setDoc(doc(db, "conversas", convAB, "apagadas", "velhaDen"), { remetenteId: "ana", conteudo: { texto: "x" }, apagadaEm: Timestamp.fromMillis(Date.now() - 25 * 36e5), denunciada: true }));
 await t("apagar p/ todos: depois de 24 h ninguém da conversa lê", async () => { await assertFails(getDoc(doc(ctx("ana"), "conversas", convAB, "apagadas", "velha"))); await assertFails(getDoc(doc(ctx("bia"), "conversas", convAB, "apagadas", "velha"))); });
 await t("apagar p/ todos: depois de 24 h qualquer um dos dois apaga de vez", () => assertSucceeds(deleteDoc(doc(ctx("bia"), "conversas", convAB, "apagadas", "velha"))));
+await semRegras(async (db) => {
+  await setDoc(doc(db, "conversas", convAB, "apagadas", "velhaDenAntes"), { remetenteId: "ana", conteudo: { texto: "x" }, apagadaEm: Timestamp.fromMillis(Date.now() - 25 * 36e5) });
+  await setDoc(doc(db, "denuncias", "mensagem_velhaDenAntes_bia"), { tipo: "mensagem", alvoId: "ana", itemId: "velhaDenAntes", conversaId: convAB, autorId: "bia", motivo: "outro", status: "nova", criadoEm: antigo });
+});
+await t("apagar p/ todos: denunciada antes de apagar também fica (existe a denúncia)", () => assertFails(deleteDoc(doc(ctx("ana"), "conversas", convAB, "apagadas", "velhaDenAntes"))));
+await t("apagar p/ todos: a moderação apaga a denunciada quando quiser", () => assertSucceeds(deleteDoc(doc(ctx("mod"), "conversas", convAB, "apagadas", "velhaDenAntes"))));
 await t("apagar p/ todos: denunciada fica para a moderação", async () => { await assertFails(deleteDoc(doc(ctx("ana"), "conversas", convAB, "apagadas", "velhaDen"))); await assertSucceeds(getDoc(doc(ctx("mod"), "conversas", convAB, "apagadas", "velhaDen"))); });
 await t("apagar para mim: fica só na própria conta", () => assertSucceeds(setDoc(doc(ctx("bia"), "usuarios", "bia"), { ocultasMsg: { [convAB]: ["e1"] } }, { merge: true })));
 
