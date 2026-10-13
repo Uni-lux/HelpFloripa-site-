@@ -53,6 +53,8 @@ function bolha(m, { denunciada = false, ladoDe = "" } = {}) {
   const linha = h("div", "ad-den-linha" + (m.remetenteId === ladoDe ? " dir" : "") + (denunciada ? " denunciada" : ""));
   const b = h("div", "ad-den-bolha");
   if (denunciada) b.appendChild(h("span", "ad-den-marca", "Mensagem denunciada"));
+  if (m.apagadaInfo) b.appendChild(h("div", "ad-den-vazio", `Apagada para todos por quem enviou (${dataHora(m.apagadaInfo.em)}).${m.apagadaInfo.guardada ? " Abaixo, o conteúdo como era:" : " O conteúdo já foi apagado de vez (24 horas)."}`));
+  if (m.editadaEm && Array.isArray(m.edicoes) && m.edicoes.length) b.appendChild(h("div", "ad-den-vazio", `Editada ${dataHora(m.editadaEm)}. Texto original: “${String(m.edicoes[0]?.texto || "").slice(0, 400)}”`));
   const quem = h("div", "ad-den-quem"); quem.append(h("b", null, nomeDe(m.remetenteId) || "Usuário"), h("span", null, dataHora(m.criadoEm)));
   b.appendChild(quem);
   if (m.resposta?.texto) { const q = h("div", "ad-den-cita"); q.append(h("small", null, `Respondendo a ${nomeDe(m.resposta.remetenteId) || "mensagem"}`), h("span", null, m.resposta.texto)); b.appendChild(q); }
@@ -68,7 +70,14 @@ function bolha(m, { denunciada = false, ladoDe = "" } = {}) {
 
 async function conteudoMensagem(d, corpo) {
   const { fb } = C;
-  const ler = (id) => fb.getDoc(fb.doc(fb.db, "conversas", d.conversaId, "mensagens", id)).then((s) => (s.exists() ? { id, ...s.data() } : null)).catch(() => null);
+  // Apagada para todos: o conteúdo fica em conversas/{c}/apagadas/{id} (a moderação abre enquanto existir).
+  const ler = (id) => fb.getDoc(fb.doc(fb.db, "conversas", d.conversaId, "mensagens", id)).then(async (s) => {
+    if (!s.exists()) return null;
+    const m = { id, ...s.data() };
+    if (!m.apagada) return m;
+    const g = await fb.getDoc(fb.doc(fb.db, "conversas", d.conversaId, "apagadas", id)).catch(() => null);
+    return { ...m, ...(g?.exists() ? g.data().conteudo || {} : {}), apagadaInfo: { ...m.apagada, guardada: !!g?.exists() } };
+  }).catch(() => null);
   const ids = [...new Set([...(Array.isArray(d.contexto) ? d.contexto : []), d.itemId])];
   const lidas = (await Promise.all(ids.map(ler))).filter(Boolean).sort((a, b) => (a.criadoEm?.toMillis?.() ?? 0) - (b.criadoEm?.toMillis?.() ?? 0));
   const alvo = lidas.find((m) => m.id === d.itemId);

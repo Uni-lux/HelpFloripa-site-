@@ -255,4 +255,4 @@
             && ((resource != null && !mudou().hasAny(['foto'])) || campoFotoOk('foto'));
       }
 
-// ===== FIM DA PARTE 2 DE 8 =====
+// ===== FIM DA PARTE 2 DE 9 =====

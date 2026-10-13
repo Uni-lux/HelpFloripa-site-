@@ -11,6 +11,7 @@
 // =====================================================
 import { C, D, h, ms, toast, avatar, relativo, editarTarefa, nomeEquipe, PAPEIS } from "./admin-base.js?v=11";
 import { criarPlayerAudio } from "./audio-ondas.js?v=1";
+import { escolherApagar, editarTextoHF, verEdicoesHF, janelaHF, horaCurta, noPrazo, tempoRestante } from "./msg-acoes.js?v=1";
 
 const pessoa = (uid) => D.pessoas.get(uid) || { uid, nome: "" };
 export const idPar = (a, b) => [a, b].sort().join("_");
@@ -25,6 +26,7 @@ const seg = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(
 
 // Prévia curta (lista de conversas, avisos).
 export function previa(m) {
+  if (m.apagada) return "Mensagem apagada";
   if (m.texto) return String(m.texto).slice(0, 120);
   return m.tipoArquivo === "imagem" ? "Foto" : m.tipoArquivo === "audio" ? `Áudio${m.duracao ? " (" + seg(m.duracao) + ")" : ""}` : m.tipoArquivo === "arquivo" ? `Arquivo: ${m.nomeArquivo || "sem nome"}` : "";
 }
@@ -129,6 +131,83 @@ async function alternarReacao(conv, m, emoji) {
   await fb.updateDoc(ref, { ["reacoes." + C.eu.uid]: valor });
 }
 
+// ---------- editar e apagar ----------
+// Editar: texto novo + o de antes em "edicoes". Apagar para todos: fica "apagou esta mensagem" e o
+// conteúdo vai para equipe_apagadas/{id} (abre por 24 horas). Apagar para mim: usuarios/{uid}.ocultasMsg.
+const refMsgEq = (conv, id) => (conv === "equipe" ? C.fb.doc(C.fb.db, "equipe_chat", id) : C.fb.doc(C.fb.db, "equipe_dm", conv, "mensagens", id));
+let ocultasEq = null; // { "eq_<conversa>": [ids] }
+async function carregarOcultasEq() {
+  if (ocultasEq) return ocultasEq;
+  try { const s = await C.fb.getDoc(C.fb.doc(C.fb.db, "usuarios", C.eu.uid)); const o = s.data()?.ocultasMsg; ocultasEq = o && typeof o === "object" ? o : {}; }
+  catch { ocultasEq = {}; }
+  return ocultasEq;
+}
+const ocultaEq = (conv, id) => Array.isArray(ocultasEq?.["eq_" + conv]) && ocultasEq["eq_" + conv].includes(id);
+async function apagarEqParaMim(conv, m) {
+  const k = "eq_" + conv;
+  ocultasEq = { ...(ocultasEq || {}), [k]: [...new Set([...(ocultasEq?.[k] || []), m.id])].slice(-500) };
+  toast("Mensagem apagada para você");
+  try { await C.fb.setDoc(C.fb.doc(C.fb.db, "usuarios", C.eu.uid), { ocultasMsg: { [k]: C.fb.arrayUnion(m.id) } }, { merge: true }); }
+  catch (e) { console.error(e); toast("Não foi possível guardar. A mensagem pode voltar ao recarregar."); }
+}
+async function apagarEqParaTodos(conv, m, ultima) {
+  const { fb } = C;
+  const conteudo = {};
+  for (const k of ["texto", "tipoArquivo", "anexo", "nomeArquivo", "tamanho", "miniatura", "duracao", "resposta", "mencoes", "edicoes"]) if (m[k] !== undefined && m[k] !== null) conteudo[k] = m[k];
+  try {
+    const lote = fb.writeBatch(fb.db);
+    lote.set(refMsgEq(conv, m.id), { autorId: m.autorId, nome: m.nome || "", em: m.em, apagada: { por: C.eu.uid, em: fb.serverTimestamp() } });
+    lote.set(fb.doc(fb.db, "equipe_apagadas", m.id), { autorId: C.eu.uid, conversa: conv, conteudo, apagadaEm: fb.serverTimestamp() });
+    await lote.commit();
+    toast("Mensagem apagada para todos");
+    if (ultima && conv !== "equipe") fb.setDoc(fb.doc(fb.db, "equipe_dm", conv), { participantes: conv.split("_"), ultimaTexto: "Mensagem apagada" }, { merge: true }).catch(() => {});
+  } catch (e) {
+    console.error(e);
+    toast(e?.code === "permission-denied" ? "Apagar para todos começa a funcionar quando as regras novas forem publicadas." : "Não foi possível apagar: " + (e.code || e.message));
+  }
+}
+async function editarEq(conv, m, ultima) {
+  const novo = await editarTextoHF({ titulo: m.tipoArquivo ? "Editar legenda" : "Editar mensagem", texto: m.texto || "", max: 2000, permiteVazio: !!m.anexo, dica: "Quem está na conversa vê “editada” e pode abrir o texto original." });
+  if (novo == null || novo === (m.texto || "")) return;
+  if ((m.edicoes || []).length >= 19) { toast("Esta mensagem já foi editada muitas vezes."); return; }
+  const { fb } = C;
+  try {
+    await fb.updateDoc(refMsgEq(conv, m.id), { texto: novo, editadaEm: fb.serverTimestamp(), edicoes: [...(m.edicoes || []), { texto: m.texto || "", em: m.editadaEm || m.em }] });
+    toast("Mensagem editada");
+    if (ultima && conv !== "equipe") fb.setDoc(fb.doc(fb.db, "equipe_dm", conv), { participantes: conv.split("_"), ultimaTexto: previa({ ...m, texto: novo }).slice(0, 140) }, { merge: true }).catch(() => {});
+  } catch (e) {
+    console.error(e);
+    toast(e?.code === "permission-denied" ? "Editar mensagens começa a funcionar quando as regras novas forem publicadas." : "Não foi possível editar: " + (e.code || e.message));
+  }
+}
+async function verApagadaEq(m) {
+  const { fb } = C;
+  let d = null;
+  try { const s = await fb.getDoc(fb.doc(fb.db, "equipe_apagadas", m.id)); d = s.exists() ? s.data() : null; } catch (e) { console.warn(e); }
+  if (!d) { toast(noPrazo(m.apagada?.em) ? "Não foi possível abrir a mensagem apagada." : "Já passaram 24 horas: esta mensagem foi apagada de vez."); return; }
+  const c = { id: m.id, ...(d.conteudo || {}) };
+  const caixa = document.createElement("div");
+  if (c.tipoArquivo === "imagem" && c.anexo) { const im = document.createElement("img"); im.className = "hf-ma-midia"; im.alt = c.nomeArquivo || "Foto"; if (c.miniatura) im.src = c.miniatura; obterAnexo(c.anexo).then((u) => { im.src = u; }).catch(() => {}); caixa.appendChild(im); }
+  else if (c.tipoArquivo === "audio" && c.anexo) caixa.appendChild(criarPlayerAudio({ chave: "eqap:" + c.anexo, fonte: () => obterAnexo(c.anexo), duracao: c.duracao || 0, aoErro: () => toast("Não foi possível tocar o áudio.") }));
+  else if (c.tipoArquivo === "arquivo" && c.anexo) { const b = h("button", "ad-bt", `Baixar ${c.nomeArquivo || "arquivo"}${c.tamanho ? " (" + kb(c.tamanho) + ")" : ""}`); b.type = "button"; b.addEventListener("click", () => baixarAnexo(c)); caixa.appendChild(b); }
+  if (c.texto) {
+    const v = h("div", "hf-ma-versao"); const t = h("b"); t.append(h("span", null, m.autorId === C.eu.uid ? "Você" : (m.nome || nomeDe(m.autorId))), h("span", null, `enviada ${hora(m.em)}`));
+    v.append(t, h("div", null, c.texto)); caixa.appendChild(v);
+  }
+  if (Array.isArray(c.edicoes) && c.edicoes.length) caixa.appendChild(h("p", "hf-ma-aviso", `Antes de apagar, ela tinha sido editada. Original: “${String(c.edicoes[0]?.texto || "").slice(0, 300)}”`));
+  caixa.appendChild(h("p", "hf-ma-aviso", `Só quem está nesta conversa vê. Some de vez em ${tempoRestante(d.apagadaEm) || "instantes"}.`));
+  janelaHF({ titulo: "Mensagem apagada", sub: `${m.apagada.por === C.eu.uid ? "Você apagou" : primeiro(m.nome || nomeDe(m.autorId)) + " apagou"} ${horaCurta(m.apagada.em)}.`, conteudo: caixa });
+}
+// Passadas 24 horas, o conteúdo guardado é apagado de vez por quem abrir a conversa.
+const eqLimpas = new Set();
+function limparApagadasEq(lista) {
+  for (const m of lista) {
+    if (!m.apagada || noPrazo(m.apagada.em) || eqLimpas.has(m.id)) continue;
+    eqLimpas.add(m.id);
+    C.fb.deleteDoc(C.fb.doc(C.fb.db, "equipe_apagadas", m.id)).catch(() => {});
+  }
+}
+
 // ---------- som de aviso ----------
 let audioCtx = null;
 export function somAtivo() { try { return localStorage.getItem("hf-equipe-som") !== "0"; } catch { return true; } }
@@ -182,6 +261,8 @@ const ICONES = {
   baixar: '<path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/>',
   fechar: '<path d="M6 6l12 12M18 6L6 18"/>',
   seta: '<path d="M6.5 9.5L12 15l5.5-5.5"/>',
+  olho: '<path d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7z"/><circle cx="12" cy="12" r="2.8"/>',
+  relogio: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
   info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.8h.01"/>',
   lapis: '<path d="M4 20h4L19 9a2.8 2.8 0 00-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
   camera: '<path d="M4 8.5A2.5 2.5 0 016.5 6h1.8l1.5-2h4.4l1.5 2h1.8A2.5 2.5 0 0120 8.5v9a2.5 2.5 0 01-2.5 2.5h-11A2.5 2.5 0 014 17.5z"/><circle cx="12" cy="13" r="3.6"/>',
@@ -360,7 +441,14 @@ export function montarChat(el) {
       const b = h("button", "eq-item" + (it.id === conv ? " ativa" : "") + (it.nao ? " nao-lida" : "")); b.type = "button";
       b.setAttribute("aria-current", it.id === conv ? "true" : "false");
       let av;
-      if (it.grupo) av = avGrupo();
+      if (it.grupo) {
+        // Lápis na foto da equipe (como na minha foto): troca a foto sem abrir a conversa.
+        av = h("span", "eq-av-com-lapis"); av.appendChild(avGrupo());
+        const lp = h("span", "eq-eu-lapis eq-lapis-p"); lp.setAttribute("role", "button"); lp.tabIndex = 0; lp.title = "Trocar foto da equipe"; lp.setAttribute("aria-label", "Trocar foto da equipe"); lp.appendChild(ic("lapis", 11));
+        const trocar = (e) => { e.stopPropagation(); e.preventDefault(); trocarFotoGrupo(); };
+        lp.addEventListener("click", trocar); lp.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") trocar(e); });
+        av.appendChild(lp);
+      }
       else { av = avatar({ ...pessoa(it.uid), nome: it.nome }); av.classList.add("com-ponto"); const pt = h("i", "ad-ponto" + (it.on ? " on" : "")); pt.setAttribute("aria-hidden", "true"); av.appendChild(pt); }
       const tx = h("div", "tx");
       const l1 = h("div", "l1"); l1.append(h("strong", null, it.nome), h("small", null, it.quando ? relativoCurto(it.quando) : ""));
@@ -381,7 +469,8 @@ export function montarChat(el) {
       const nOn = D.admins.filter((a) => C.online(a.id)).length;
       const tx = h("div", "tx"); tx.append(h("strong", null, "Equipe"), h("small", null, `${D.admins.length} pessoas · ${nOn} online`));
       const bFoto = h("button", "eq-foto-grupo"); bFoto.type = "button"; bFoto.title = "Trocar foto da equipe"; bFoto.setAttribute("aria-label", "Trocar foto da equipe");
-      bFoto.appendChild(avGrupo()); bFoto.addEventListener("click", () => trocarFotoGrupo());
+      const lpG = h("span", "eq-eu-lapis eq-lapis-p"); lpG.appendChild(ic("lapis", 11));
+      bFoto.append(avGrupo(), lpG); bFoto.addEventListener("click", () => trocarFotoGrupo());
       quem.append(bFoto, tx);
     } else {
       const uid = outroDoPar(conv), a = D.admins.find((x) => x.id === uid) || {};
@@ -398,7 +487,12 @@ export function montarChat(el) {
   // ---------- mensagens (cada uma guarda o seu elemento: um áudio tocando não para quando chega outra) ----------
   const hoje = () => new Date().toLocaleDateString("pt-BR");
   const ontem = () => new Date(Date.now() - 864e5).toLocaleDateString("pt-BR");
-  function mensagensAtuais() { return conv === "equipe" ? C.chat : msgsDm; }
+  function mensagensAtuais() {
+    const l = conv === "equipe" ? C.chat : msgsDm;
+    limparApagadasEq(l);
+    return ocultasEq ? l.filter((m) => !ocultaEq(conv, m.id)) : l;
+  }
+  carregarOcultasEq().then(() => { if (el.isConnected) { nos.clear(); pintarChat(); } });
   const nos = new Map(); // chave -> { ass, el }
   function criarBalao(m, junto, t) {
     const meu = m.autorId === C.eu.uid;
@@ -409,6 +503,20 @@ export function montarChat(el) {
     const bm = h("div", "eq-balao" + (meu ? " meu" : "") + (mencionaMe ? " mencao-eu" : "") + (m.tipoArquivo ? " tem-" + m.tipoArquivo : "") + (!m.texto && m.tipoArquivo ? " so-anexo" : ""));
     bm.tabIndex = 0;
     if (!meu && !junto && conv === "equipe") bm.appendChild(h("b", "eq-autor", m.nome || p.nome || "Equipe"));
+    if (m.apagada) {
+      // "Fulano apagou esta mensagem · 14:32" (+ "Ver mensagem apagada" por 24 horas).
+      bm.classList.add("apagada");
+      const quemApagou = m.apagada.por === C.eu.uid ? "Você" : primeiro(m.nome || nomeDe(m.autorId)) || "Alguém";
+      const tx = h("div", "eq-texto eq-apagada-tx"); tx.append(ic("lixo", 16), h("span", null, `${quemApagou} apagou esta mensagem · ${horaCurta(m.apagada.em)}`));
+      bm.appendChild(tx);
+      if (noPrazo(m.apagada.em)) {
+        const ver = h("button", "eq-ver-apagada"); ver.type = "button"; ver.append(ic("olho", 15), h("span", null, "Ver mensagem apagada"));
+        ver.title = `Dá para abrir por mais ${tempoRestante(m.apagada.em)}`;
+        ver.addEventListener("click", (e) => { e.stopPropagation(); verApagadaEq(m); });
+        bm.appendChild(ver);
+      }
+      bm.appendChild(h("span", "eq-hora", `enviada ${hora(m.em)}`));
+    } else {
     if (m.resposta && m.resposta.id) {
       const cit = h("button", "eq-cit"); cit.type = "button";
       cit.append(h("b", null, m.resposta.autorId === C.eu.uid ? "Você" : (m.resposta.nome || nomeDe(m.resposta.autorId) || "Equipe")), h("span", null, m.resposta.texto || "Anexo"));
@@ -431,7 +539,13 @@ export function montarChat(el) {
       a.append(icA, d, bx);
       a.addEventListener("click", (e) => { e.stopPropagation(); baixarAnexo(m); }); bm.appendChild(a);
     }
-    const hr = h("span", "eq-hora", hora(m.em));
+    const hr = h("span", "eq-hora");
+    if (m.editadaEm) {
+      const ed = h("button", "eq-editada", "editada"); ed.type = "button"; ed.title = "Ver o que foi editado"; ed.setAttribute("aria-label", "Mensagem editada: ver a original");
+      ed.addEventListener("click", (e) => { e.stopPropagation(); verEdicoesHF({ atual: m.texto || "", editadaEm: m.editadaEm, edicoes: m.edicoes }); });
+      hr.appendChild(ed);
+    }
+    hr.appendChild(document.createTextNode(hora(m.em)));
     if (m.texto) { const p2 = h("div", "eq-texto"); p2.appendChild(textoComMencoes(m.texto, m.mencoes)); if (t) marcar(p2, t); p2.appendChild(hr); bm.appendChild(p2); }
     else bm.appendChild(hr);
     // reações já dadas (agrupadas por emoji, com contagem)
@@ -449,6 +563,7 @@ export function montarChat(el) {
         linhaReac.appendChild(ch);
       });
       bm.appendChild(linhaReac);
+    }
     }
     // Botão do menu (aparece ao passar o mouse; no celular: toque longo na mensagem).
     const bMenu = h("button", "eq-balao-menu"); bMenu.type = "button"; bMenu.setAttribute("aria-label", "Opções da mensagem"); bMenu.appendChild(ic("seta", 18));
@@ -492,7 +607,8 @@ export function montarChat(el) {
       }
       const junto = !t && m.autorId === autorAnt && ms(m.em) - msAnt < 5 * 60000;
       const k = "m:" + (m.id || ms(m.em) + m.autorId); usados.add(k);
-      const ass = JSON.stringify([junto, t, hora(m.em), m.texto || "", m.reacoes || null, m.resposta || null, m.tipoArquivo || "", m.anexo || "", m.miniatura ? 1 : 0, m.nome || ""]);
+      const ass = JSON.stringify([junto, t, hora(m.em), m.texto || "", m.reacoes || null, m.resposta || null, m.tipoArquivo || "", m.anexo || "", m.miniatura ? 1 : 0, m.nome || "",
+        ms(m.apagada?.em) || (m.apagada ? 1 : 0), m.apagada ? noPrazo(m.apagada.em) : 0, ms(m.editadaEm)]);
       let n = nos.get(k);
       if (!n || n.ass !== ass) { n = { ass, el: criarBalao(m, junto, t) }; nos.set(k, n); }
       desejados.push(n.el);
@@ -531,7 +647,21 @@ export function montarChat(el) {
   // ---------- menu da mensagem: reações + responder, criar tarefa, copiar, baixar ----------
   function fecharMenu() { menu.hidden = true; }
   function abrirMenu(m, x, y, meu) {
+    // O balão é reaproveitado: usa a versão atual da mensagem (a hora do servidor já chegou, edições...).
+    m = (conv === "equipe" ? C.chat : msgsDm).find((x) => x.id === m.id) || m;
     menu.replaceChildren();
+    const item = (icone, rotulo, fn, perigo) => { const b = h("button", "eq-menu-item" + (perigo ? " perigo" : "")); b.type = "button"; b.setAttribute("role", "menuitem"); b.append(ic(icone, 19), h("span", null, rotulo)); b.addEventListener("click", () => { fecharMenu(); fn(); }); menu.appendChild(b); };
+    const lista = mensagensAtuais(), ultima = lista.at(-1)?.id === m.id;
+    const apagar = async () => {
+      const modo = await escolherApagar({ podeTodos: meu && !m.apagada && !!ms(m.em), jaApagada: !!m.apagada });
+      if (modo === "todos") apagarEqParaTodos(conv, m, ultima);
+      else if (modo === "mim") { await apagarEqParaMim(conv, m); nos.clear(); pintarChat(); }
+    };
+    if (m.apagada) {
+      if (noPrazo(m.apagada.em)) item("olho", "Ver mensagem apagada", () => verApagadaEq(m));
+      item("lixo", "Apagar para mim", apagar, true);
+      return posicionarMenu(x, y, meu);
+    }
     const reacoes = m.reacoes || {};
     const linhaE = h("div", "eq-menu-emojis");
     EMOJIS.forEach((e) => {
@@ -540,11 +670,16 @@ export function montarChat(el) {
       linhaE.appendChild(be);
     });
     menu.appendChild(linhaE);
-    const item = (icone, rotulo, fn) => { const b = h("button", "eq-menu-item"); b.type = "button"; b.setAttribute("role", "menuitem"); b.append(ic(icone, 19), h("span", null, rotulo)); b.addEventListener("click", () => { fecharMenu(); fn(); }); menu.appendChild(b); };
     item("responder", "Responder", () => definirResposta(m));
     item("tarefa", "Criar tarefa", () => editarTarefa({ titulo: (m.texto || m.nomeArquivo || "Mensagem do chat").slice(0, 140), descricao: `Do chat ${conv === "equipe" ? "da equipe" : "com " + nomeDe(outroDoPar(conv))} — ${m.nome || nomeDe(m.autorId)} (${hora(m.em)}): ${m.texto || previa(m)}`.slice(0, 2000) }));
     if (m.texto && navigator.clipboard) item("copiar", "Copiar texto", () => navigator.clipboard.writeText(m.texto).then(() => toast("Mensagem copiada")));
     if (m.anexo && m.tipoArquivo !== "audio") item("baixar", m.tipoArquivo === "imagem" ? "Baixar foto" : "Baixar arquivo", () => baixarAnexo(m));
+    if (meu && ms(m.em)) item("lapis", "Editar", () => editarEq(conv, m, ultima));
+    if (m.editadaEm && Array.isArray(m.edicoes) && m.edicoes.length) item("relogio", "Ver original", () => verEdicoesHF({ atual: m.texto || "", editadaEm: m.editadaEm, edicoes: m.edicoes }));
+    if (m.id) item("lixo", "Apagar", apagar, true);
+    posicionarMenu(x, y, meu);
+  }
+  function posicionarMenu(x, y, meu) {
     menu.hidden = false;
     const r = menu.getBoundingClientRect();
     menu.style.left = Math.max(8, Math.min(meu ? x - r.width + 30 : x, innerWidth - r.width - 8)) + "px";

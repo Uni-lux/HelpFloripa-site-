@@ -12,9 +12,12 @@ node seed.mjs > /dev/null 2>&1
 for t in "t-chat.mjs bruno" "t-chat.mjs ana" "t-audio.mjs" "t-atend.mjs" "t-aval.mjs" "t-etapa4.mjs" "t-painel2.mjs" "t-saida.mjs" "t-chat2.mjs" "t-menu-sair.mjs" "t-busca.mjs pc" "t-local.mjs"; do
   echo "== $t"; node seed.mjs > /dev/null 2>&1; timeout 300 node $t 2>&1 | grep -v "$F"
 done
+A=ar; [ "$R" = "main" ] && A=novas
+echo "== t-apagar.mjs $A"; node seed.mjs > /dev/null 2>&1; timeout 300 node t-apagar.mjs $A 2>&1 | grep -v "$F"
 echo "== t-forms.mjs"; node seed.mjs > /dev/null 2>&1; timeout 300 node t-forms.mjs pc $RANDOM 2>&1 | grep -v "$F"
 if [ "$R" = "main" ]; then
   echo "== t-equipe.mjs (precisa das regras novas)"; for m in cel pc; do node seed.mjs > /dev/null 2>&1; timeout 200 node t-equipe.mjs $m 2>&1 | grep -v "$F"; done
+  echo "== t-eq-apagar.mjs"; node seed.mjs > /dev/null 2>&1; timeout 300 node t-eq-apagar.mjs 2>&1 | grep -v "$F"
   echo "== t-virada.mjs"; node seed.mjs > /dev/null 2>&1; timeout 200 node t-virada.mjs 2>&1 | grep -v "$F"
 fi
 echo "== Excel pelo painel"; rm -rf saida/excel; node seed.mjs > /dev/null 2>&1; timeout 300 node t-excel.mjs | grep -c baixado; python3 checar-todos.py saida/excel

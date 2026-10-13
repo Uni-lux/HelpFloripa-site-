@@ -510,6 +510,14 @@
     .bolha.so-audio .meta { position: absolute; right: 10px; bottom: 7px; margin: 0; top: auto; float: none; }
     .bolha.so-audio .hf-audio-rodape { justify-content: flex-start; gap: 8px; padding-right: 64px; }
     .bolha .texto a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+    /* Mensagem editada ("editada" abre o histórico) e apagada para todos (aviso no lugar). */
+    .bolha .meta .editada { border: 0; background: none; padding: 0 3px 0 0; margin: 0; font: inherit; color: inherit; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 2px; }
+    .bolha.apagada { background: color-mix(in srgb, var(--panel) 88%, transparent) !important; border: 1px dashed color-mix(in srgb, var(--muted) 55%, transparent); color: var(--muted); box-shadow: none; padding: 8px 12px 7px; }
+    .bolha.apagada .texto { display: flex; align-items: center; gap: 6px; font-style: italic; font-size: 14px; }
+    .bolha.apagada .texto .i { flex: none; opacity: .8; }
+    .bolha.apagada .ver-apagada { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+    .bolha.apagada .ver-apagada:hover { border-color: var(--accent); }
+    .bolha.apagada .meta { float: none; display: flex; justify-content: flex-end; margin: 4px 0 0; top: 0; }
     .bolha .meta { float: right; display: inline-flex; align-items: center; gap: 3px; margin: 6px 0 -3px 12px; font-size: 11px; opacity: .72; white-space: nowrap; position: relative; top: 2px; }
     .bolha .meta .check { color: inherit; }
     .bolha .meta .check.lida { color: var(--read); opacity: 1; }
@@ -646,6 +654,8 @@
     <symbol id="i-seta-cima" viewBox="0 0 24 24"><path d="M6 14.5l6-6 6 6"/></symbol>
     <symbol id="i-responder" viewBox="0 0 24 24"><path d="M10 8V4.5L3 11l7 6.5V14c5 0 8.5 1.5 11 5.5-1-5-4-10.5-11-11.5z"/></symbol>
     <symbol id="i-copiar" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 012-2h9"/></symbol>
+    <symbol id="i-lapis" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></symbol>
+    <symbol id="i-olho" viewBox="0 0 24 24"><path d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7z"/><circle cx="12" cy="12" r="2.8"/></symbol>
     <symbol id="i-lixo" viewBox="0 0 24 24"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5"/></symbol>
     <symbol id="i-arquivo" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="4.5" rx="1.2"/><path d="M5 9v9.5A1.5 1.5 0 006.5 20h11a1.5 1.5 0 001.5-1.5V9M10 13h4"/></symbol>
     <symbol id="i-estrela" viewBox="0 0 24 24"><path d="M12 3.8l2.5 5.2 5.7.8-4.1 4 1 5.6L12 16.7l-5.1 2.7 1-5.6-4.1-4 5.7-.8z"/></symbol>
@@ -1043,6 +1053,7 @@
     import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=5";
     import { abrirQueixa } from "./queixas.js?v=8";
     import { ouvirItensEquipe, linkEquipe, seloOficial, TEXTO_EQUIPE } from "./avisos-equipe.js?v=1";
+    import { escolherApagar, editarTextoHF, verEdicoesHF, janelaHF, horaCurta, noPrazo, tempoRestante } from "./msg-acoes.js?v=1";
     // ======================================================
     // Configurações (salvas no aparelho)
     // ======================================================
@@ -1531,6 +1542,7 @@
 
     function resumoMensagem(m) {
       if (!m) return "";
+      if (m.apagada) return "Mensagem apagada";
       if (m.texto) return m.texto;
       if (m.tipoArquivo === "imagem") return "Foto";
       if (m.tipoArquivo === "video") return "Vídeo";
@@ -1653,6 +1665,7 @@
     let novasAbaixo = 0;
     let timerDigitando = null;
     let restritos = new Set();
+    let ocultasMsg = {};         // "apagar para mim": { idDaConversa: [ids] } (usuarios/{uid}.ocultasMsg)
     const bloqueios = { meus: new Set(), deles: new Set() };
     const bloqueado = (uid) => bloqueios.meus.has(uid) || bloqueios.deles.has(uid);
 
@@ -2162,6 +2175,7 @@
       try {
         const u = await fb.getDoc(fb.doc(fb.db, "usuarios", eu.uid));
         restritos = new Set(Array.isArray(u.data()?.restritos) ? u.data().restritos : []);
+        ocultasMsg = u.data()?.ocultasMsg && typeof u.data().ocultasMsg === "object" ? u.data().ocultasMsg : {};
         atendimentoPrivado = u.data()?.atendimento || null;
         // Online e confirmação de leitura são da conta (valem em todos os aparelhos).
         const pv = u.data()?.privacidade;
@@ -2315,7 +2329,8 @@
         const antes = voltarAoPonto != null ? Infinity : mensagens.length;
         const apagadaEm = ms(ativa.dados?.ocultaPara?.[eu.uid]);
         mensagens = snap.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }), pendente: d.metadata.hasPendingWrites }))
-          .filter((m) => !apagadaEm || ms(m.criadoEm) > apagadaEm || m.pendente);
+          .filter((m) => (!apagadaEm || ms(m.criadoEm) > apagadaEm || m.pendente) && !ocultaParaMim(id, m.id));
+        limparApagadasVencidas(id);
         const chegouDoOutro = !primeiraRender && mensagens.length > antes && mensagens[mensagens.length - 1]?.remetenteId !== eu.uid;
         renderizarMensagens(chegouDoOutro);
         if (chegouDoOutro && !document.hidden && !restritos.has(ativa.outroId) && !ativa.dados?.silenciadaPara?.[eu.uid]) tocarSom();
@@ -2373,7 +2388,8 @@
     function assinaturaMsg(m, data, primeira) {
       const original = m.resposta?.id ? mensagens.find((x) => x.id === m.resposta.id) : null;
       return JSON.stringify([primeira, hora(data), m.texto || "", m.arquivoUrl || "", m.tipoArquivo || "", m.cartao || null, m.avaliacao || null,
-        m.resposta || null, original ? resumoMensagem(original) : "", ativa?.nome || ""]);
+        m.resposta || null, original ? resumoMensagem(original) : "", ativa?.nome || "", ms(m.apagada?.em) || (m.apagada ? 1 : 0), ms(m.editadaEm),
+        m.apagada ? noPrazo(m.apagada.em) : 0]);
     }
 
     function renderizarMensagens(chegouDoOutro) {
@@ -2473,6 +2489,13 @@
       const bolha = document.createElement("div");
       bolha.className = "bolha";
       bolha.tabIndex = 0;
+
+      if (m.apagada) {
+        montarApagada(bolha, m, data);
+        ligarMenuBolha(bolha, m);
+        linha.appendChild(bolha);
+        return linha;
+      }
 
       if (m.resposta && (m.resposta.texto || m.resposta.id)) {
         const cit = document.createElement("button");
@@ -2575,6 +2598,13 @@
 
       const meta = document.createElement("span");
       meta.className = "meta";
+      if (m.editadaEm) {
+        const ed = document.createElement("button");
+        ed.type = "button"; ed.className = "editada"; ed.textContent = "editada";
+        ed.title = "Ver o que foi editado"; ed.setAttribute("aria-label", "Mensagem editada: ver a original");
+        ed.addEventListener("click", (e) => { e.stopPropagation(); const a = mensagens.find((x) => x.id === m.id) || m; verEdicoesHF({ atual: a.texto || "", editadaEm: a.editadaEm, edicoes: a.edicoes }); });
+        meta.appendChild(ed);
+      }
       meta.appendChild(document.createTextNode(hora(data)));
       if (minha) {
         const st = statusCheck(m);
@@ -2587,8 +2617,38 @@
       if (m.texto) bolha.querySelector(".texto").appendChild(meta);
       else bolha.appendChild(meta);
 
+      ligarMenuBolha(bolha, m);
+      linha.appendChild(bolha);
+      return linha;
+    }
+
+    // "Fulano apagou esta mensagem · 14:32" no lugar da mensagem (+ "Ver mensagem apagada" por 24 h).
+    function montarApagada(bolha, m, data) {
+      bolha.classList.add("apagada");
+      const quem = m.apagada.por === eu.uid ? "Você" : (String(ativa?.nome || "Contato").trim().split(/\s+/)[0]);
+      const t = document.createElement("div");
+      t.className = "texto";
+      const tx = document.createElement("span");
+      tx.textContent = `${quem} apagou esta mensagem · ${horaCurta(m.apagada.em)}`;
+      t.append(icone("lixo"), tx);
+      bolha.appendChild(t);
+      if (noPrazo(m.apagada.em)) {
+        const ver = document.createElement("button");
+        ver.type = "button"; ver.className = "ver-apagada";
+        ver.append(icone("olho"), document.createTextNode("Ver mensagem apagada"));
+        ver.title = `Dá para abrir por mais ${tempoRestante(m.apagada.em)}`;
+        ver.addEventListener("click", (e) => { e.stopPropagation(); verApagada(m); });
+        bolha.appendChild(ver);
+      }
+      const meta = document.createElement("span");
+      meta.className = "meta";
+      meta.textContent = `enviada ${hora(data)}`;
+      bolha.appendChild(meta);
+    }
+
+    function ligarMenuBolha(bolha, m) {
       // O elemento é reaproveitado entre atualizações: o menu usa sempre a versão atual da mensagem
-      // (ex.: depois de "Enviando", já aparece "Apagar para todos").
+      // (ex.: depois de "Enviando", já aparece "Apagar").
       const msgAtual = () => mensagens.find((x) => x.id === m.id) || m;
       const btnOp = document.createElement("button");
       btnOp.type = "button";
@@ -2620,9 +2680,6 @@
         }, 480);
       }, { passive: true });
       ["touchend", "touchmove", "touchcancel"].forEach((ev) => bolha.addEventListener(ev, () => clearTimeout(timerToque), { passive: true }));
-
-      linha.appendChild(bolha);
-      return linha;
     }
 
     function irParaMensagem(id) {
@@ -2668,14 +2725,27 @@
       const menu = $("menuMsg");
       menu.replaceChildren();
       const fixadaAqui = ativa?.dados?.mensagemFixada?.id === m.id;
+      const minha = m.remetenteId === eu.uid;
+      if (m.apagada) {
+        // Apagada para todos: abrir o conteúdo (24 h) e tirar o aviso só da minha tela.
+        const ops = [];
+        if (noPrazo(m.apagada.em)) ops.push({ rotulo: "Ver mensagem apagada", icone: "olho", acao: () => verApagada(m) });
+        ops.push({ rotulo: "Apagar para mim", icone: "lixo", perigo: true, acao: () => perguntarApagar(m) });
+        return montarMenu(menu, ops, x, y);
+      }
       const opcoes = [
         { rotulo: "Responder", icone: "responder", acao: () => responder(m) },
         !m.pendente && { rotulo: fixadaAqui ? "Desafixar" : "Fixar no topo", icone: "pin", acao: () => fixarMensagem(fixadaAqui ? null : m) },
       ].filter(Boolean);
       if (m.texto) opcoes.push({ rotulo: "Copiar texto", icone: "copiar", acao: () => copiar(m.texto) });
       if (m.tipoArquivo === "imagem" && urlSegura(m.arquivoUrl)) opcoes.push({ rotulo: "Ver foto", icone: "imagem", acao: () => abrirVisualizador(m.arquivoUrl) });
-      if (m.remetenteId === eu.uid && !m.pendente) opcoes.push({ rotulo: "Apagar para todos", icone: "lixo", perigo: true, acao: () => apagarMensagem(m) });
-      if (m.remetenteId !== eu.uid) opcoes.push({ rotulo: "Denunciar", icone: "alerta", perigo: true, acao: () => denunciarMensagem(m) });
+      if (minha && !m.pendente && podeEditar(m)) opcoes.push({ rotulo: "Editar", icone: "lapis", acao: () => editarMensagem(m) });
+      if (m.editadaEm && Array.isArray(m.edicoes) && m.edicoes.length) opcoes.push({ rotulo: "Ver original", icone: "relogio", acao: () => verEdicoesHF({ atual: m.texto || "", editadaEm: m.editadaEm, edicoes: m.edicoes }) });
+      if (!m.pendente) opcoes.push({ rotulo: "Apagar", icone: "lixo", perigo: true, acao: () => perguntarApagar(m) });
+      if (!minha) opcoes.push({ rotulo: "Denunciar", icone: "alerta", perigo: true, acao: () => denunciarMensagem(m) });
+      montarMenu(menu, opcoes, x, y);
+    }
+    function montarMenu(menu, opcoes, x, y) {
       opcoes.forEach((op) => {
         const b = document.createElement("button");
         b.type = "button";
@@ -2945,15 +3015,121 @@
       if (ativa) irPara(`usuarios.html?perfil=${encodeURIComponent(ativa.outroId)}`);
     }
 
-    async function apagarMensagem(m) {
-      if (!confirm("Apagar esta mensagem para todos?")) return;
+    // ======================================================
+    // Editar e apagar (para todos / para mim)
+    // ======================================================
+    // Texto e legenda de foto, vídeo e áudio se editam; cartões de pedido e de avaliação, não.
+    const podeEditar = (m) => !m.apagada && ["", "imagem", "video", "audio"].includes(m.tipoArquivo || "");
+    const ocultaParaMim = (conv, id) => Array.isArray(ocultasMsg[conv]) && ocultasMsg[conv].includes(id);
+    const refMsg = (id) => fb.doc(fb.db, "conversas", ativa.id, "mensagens", id);
+    const ultimaDaConversa = (m) => mensagens.filter((x) => !x.pendente).at(-1)?.id === m.id;
+
+    async function perguntarApagar(m) {
+      const modo = await escolherApagar({ podeTodos: m.remetenteId === eu.uid && !m.apagada && !m.pendente, jaApagada: !!m.apagada });
+      if (modo === "todos") apagarParaTodos(m);
+      else if (modo === "mim") apagarParaMim(m);
+    }
+
+    // Some só da minha tela (fica guardado na minha conta, vale em todos os aparelhos).
+    async function apagarParaMim(m) {
+      if (!ativa) return;
+      const conv = ativa.id;
+      ocultasMsg = { ...ocultasMsg, [conv]: [...new Set([...(ocultasMsg[conv] || []), m.id])].slice(-500) };
+      mensagens = mensagens.filter((x) => x.id !== m.id);
+      renderizarMensagens(false);
+      toast("Mensagem apagada para você");
+      try { await fb.setDoc(fb.doc(fb.db, "usuarios", eu.uid), { ocultasMsg: { [conv]: fb.arrayUnion(m.id) } }, { merge: true }); }
+      catch (e) { console.error(e); toast("Não foi possível guardar. A mensagem pode voltar ao recarregar."); }
+    }
+
+    // Para todos: a mensagem vira o aviso "apagou esta mensagem" e o conteúdo vai, na mesma gravação,
+    // para apagadas/{id} (os dois abrem por 24 horas). Com as regras antigas no servidor, apaga de vez.
+    async function apagarParaTodos(m) {
+      if (!ativa) return;
+      const conv = ativa.id, ultima = ultimaDaConversa(m), fixada = ativa.dados?.mensagemFixada?.id === m.id;
+      const conteudo = {};
+      for (const k of ["texto", "tipoArquivo", "arquivoUrl", "nomeArquivo", "cartao", "avaliacao", "resposta", "edicoes"]) if (m[k] !== undefined && m[k] !== null) conteudo[k] = m[k];
       try {
-        const ultima = mensagens[mensagens.length - 1]?.id === m.id;
-        await fb.deleteDoc(fb.doc(fb.db, "conversas", ativa.id, "mensagens", m.id));
-        if (ultima) await fb.setDoc(refConversa(ativa.id), { ultimaMensagem: "Mensagem apagada" }, { merge: true });
+        const lote = fb.writeBatch(fb.db);
+        lote.set(fb.doc(fb.db, "conversas", conv, "mensagens", m.id), { remetenteId: m.remetenteId, criadoEm: m.criadoEm, apagada: { por: eu.uid, em: fb.serverTimestamp() } });
+        lote.set(fb.doc(fb.db, "conversas", conv, "apagadas", m.id), { remetenteId: eu.uid, conteudo, apagadaEm: fb.serverTimestamp() });
+        await lote.commit();
+        toast("Mensagem apagada para todos");
+      } catch (e) {
+        if (e?.code !== "permission-denied") { console.error(e); toast("Não foi possível apagar a mensagem."); return; }
+        // Regras novas ainda não publicadas: o jeito antigo (some de vez, sem o aviso).
+        try { await fb.deleteDoc(fb.doc(fb.db, "conversas", conv, "mensagens", m.id)); toast("Mensagem apagada"); }
+        catch (e2) { console.error(e2); toast("Não foi possível apagar a mensagem."); return; }
+      }
+      const extra = {};
+      if (ultima) extra.ultimaMensagem = "Mensagem apagada";
+      if (fixada) extra.mensagemFixada = null;
+      if (Object.keys(extra).length) fb.setDoc(refConversa(conv), extra, { merge: true }).catch(() => {});
+    }
+
+    // Editar: o texto novo e, em "edicoes", o de antes com a hora dele (quem conversa vê "editada").
+    async function editarMensagem(m) {
+      const novo = await editarTextoHF({ titulo: m.tipoArquivo ? "Editar legenda" : "Editar mensagem", texto: m.texto || "", max: 4000, permiteVazio: !!m.arquivoUrl });
+      if (novo == null || !ativa) return;
+      const atual = mensagens.find((x) => x.id === m.id) || m;
+      if (atual.apagada || novo === (atual.texto || "")) return;
+      const edicoes = [...(Array.isArray(atual.edicoes) ? atual.edicoes : []), { texto: atual.texto || "", em: atual.editadaEm || atual.criadoEm }].slice(-20);
+      if (edicoes.length >= 20 && (atual.edicoes || []).length >= 19) { toast("Esta mensagem já foi editada muitas vezes."); return; }
+      try {
+        await fb.updateDoc(refMsg(m.id), { texto: novo, editadaEm: fb.serverTimestamp(), edicoes });
+        toast("Mensagem editada");
+        if (ultimaDaConversa(m)) fb.setDoc(refConversa(ativa.id), { ultimaMensagem: resumoMensagem({ ...atual, texto: novo }).slice(0, 200) }, { merge: true }).catch(() => {});
+        if (ativa.dados?.mensagemFixada?.id === m.id) fb.setDoc(refConversa(ativa.id), { mensagemFixada: { id: m.id, texto: resumoMensagem({ ...atual, texto: novo }).slice(0, 200), por: eu.uid, em: fb.serverTimestamp() } }, { merge: true }).catch(() => {});
       } catch (e) {
         console.error(e);
-        toast("Não foi possível apagar a mensagem.");
+        toast(e?.code === "permission-denied" ? "Editar mensagens começa a funcionar quando as regras novas forem publicadas." : "Não foi possível editar a mensagem.");
+      }
+    }
+
+    // "Ver mensagem apagada": o conteúdo guardado (24 h). Quem recebeu pode denunciar.
+    async function verApagada(m) {
+      if (!ativa) return;
+      const conv = ativa.id;
+      let d = null;
+      try { const s = await fb.getDoc(fb.doc(fb.db, "conversas", conv, "apagadas", m.id)); d = s.exists() ? s.data() : null; } catch (e) { console.warn(e); }
+      if (!d) { toast(noPrazo(m.apagada?.em) ? "Não foi possível abrir a mensagem apagada." : "Já passaram 24 horas: esta mensagem foi apagada de vez."); return; }
+      const c = d.conteudo || {};
+      const caixa = document.createElement("div");
+      const url = c.tipoArquivo === "cartao" ? "" : urlSegura(c.arquivoUrl);
+      if (url && c.tipoArquivo === "imagem") { const im = document.createElement("img"); im.className = "hf-ma-midia"; im.src = url; im.alt = "Foto apagada"; caixa.appendChild(im); }
+      else if (url && c.tipoArquivo === "video") { const v = document.createElement("video"); v.className = "hf-ma-midia"; v.src = url; v.controls = true; v.playsInline = true; caixa.appendChild(v); }
+      else if (url && c.tipoArquivo === "audio") caixa.appendChild(criarAudioMsg({ id: "apagada-" + m.id, ...c }, url));
+      const tx = resumoMensagem({ ...c, apagada: null });
+      if (tx && !(url && !c.texto)) {
+        const v = document.createElement("div"); v.className = "hf-ma-versao";
+        const b = document.createElement("b"); b.append(Object.assign(document.createElement("span"), { textContent: m.remetenteId === eu.uid ? "Você" : (ativa.nome || "Contato") }), Object.assign(document.createElement("span"), { textContent: `enviada ${hora(paraData(m.criadoEm) || new Date())}` }));
+        const t = document.createElement("div"); t.textContent = tx;
+        v.append(b, t); caixa.appendChild(v);
+      }
+      if (Array.isArray(c.edicoes) && c.edicoes.length) {
+        const ed = document.createElement("p"); ed.className = "hf-ma-aviso"; ed.textContent = `Antes de apagar, ela tinha sido editada. Original: “${String(c.edicoes[0]?.texto || "").slice(0, 300)}”`;
+        caixa.appendChild(ed);
+      }
+      const prazo = document.createElement("p"); prazo.className = "hf-ma-aviso";
+      prazo.textContent = `Só vocês dois veem. Some de vez em ${tempoRestante(d.apagadaEm) || "instantes"}.`;
+      caixa.appendChild(prazo);
+      const acoes = [];
+      if (m.remetenteId !== eu.uid) acoes.push({ rotulo: "Denunciar", classe: "perigo", acao: async () => {
+        // Guarda o conteúdo para a equipe (só a moderação apaga depois) e abre a denúncia.
+        fb.updateDoc(fb.doc(fb.db, "conversas", conv, "apagadas", m.id), { denunciada: true }).catch(() => {});
+        denunciarMensagem({ ...m, ...c, apagada: null });
+      } });
+      acoes.push({ rotulo: "Fechar", classe: "pri" });
+      janelaHF({ titulo: "Mensagem apagada", sub: `${m.apagada.por === eu.uid ? "Você apagou" : (ativa.nome || "Contato") + " apagou"} ${horaCurta(m.apagada.em)}.`, conteudo: caixa, acoes });
+    }
+
+    // Passadas 24 horas, o conteúdo guardado é apagado de vez por quem abrir a conversa primeiro.
+    const apagadasLimpas = new Set();
+    function limparApagadasVencidas(conv) {
+      for (const m of mensagens) {
+        if (!m.apagada || noPrazo(m.apagada.em) || apagadasLimpas.has(conv + "/" + m.id)) continue;
+        apagadasLimpas.add(conv + "/" + m.id);
+        fb.deleteDoc(fb.doc(fb.db, "conversas", conv, "apagadas", m.id)).catch(() => {});
       }
     }
 
