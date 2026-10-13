@@ -16,9 +16,9 @@ await p.locator('.dia-linha[data-dia="1"] .dia-tog').tap(); // tira segunda
 await p.locator('.dia-linha[data-dia="6"] .dia-tog').tap(); // põe sábado
 await p.locator('.dia-linha[data-dia="0"] .dia-tog').tap(); // põe domingo
 console.log("escolhidos:", await dias());
-await p.tap("#atendSalvar");
-await p.waitForTimeout(1500);
-console.log("toast:", await p.locator(".toast").allTextContents());
+// Salva sozinho (sem botão): espera o "✓ Salvo".
+await p.waitForFunction(() => document.getElementById("atendStatus").textContent.includes("Salvo"), null, { timeout: 15000 }).catch(() => {});
+console.log("status:", await p.textContent("#atendStatus"));
 console.log("firestore:", JSON.stringify((await db.doc(`perfis_publicos/${USUARIOS.bruno}`).get()).data().atendimento));
 // fecha e abre de novo na mesma página
 await p.locator("#painelConfig [data-fechar-painel]").first().tap(); await p.waitForTimeout(400);
@@ -35,4 +35,14 @@ await p.locator("#painelConfig [data-fechar-painel]").first().tap(); await p.wai
 await db.doc(`perfis_publicos/${USUARIOS.bruno}`).set({ atendimento: { horario: { dias: [1, 3], inicio: "10:00", fim: "16:00" } } }, { merge: true });
 await p.tap("#btnConfig"); await p.waitForTimeout(1500);
 console.log("mudou em outro aparelho:", await dias(), await p.inputValue('.dia-linha[data-dia="1"] .ini'));
+// O caso relatado: liga o horário e sai da página logo em seguida, sem tocar em nada mais.
+await p.locator("#painelConfig [data-fechar-painel]").first().tap(); await p.waitForTimeout(300);
+await db.doc(`perfis_publicos/${USUARIOS.bruno}`).set({ atendimento: { horario: null, semana: null } }, { merge: true });
+await p.reload(); await abrir();
+console.log("horário desligado:", !(await p.isChecked("#atendHorarioLig")));
+await p.locator("#atendHorarioLig + span").tap();
+await p.waitForTimeout(1200);
+await p.goto(BASE + "index.html"); await p.waitForTimeout(1500);
+await p.goto(BASE + "mensagens.html"); await abrir();
+console.log("ligou e saiu -> continua ligado:", await p.isChecked("#atendHorarioLig"), await dias());
 await browser.close();

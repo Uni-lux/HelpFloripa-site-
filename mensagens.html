@@ -252,6 +252,11 @@
     .atend-previa { margin: 6px 0 10px; padding: 9px 12px; border-radius: 12px; border: 1px dashed var(--line); font-size: 12.5px; color: var(--muted); line-height: 1.45; }
     .atend-previa:empty { display: none; }
     .atend-previa b { color: var(--text); }
+    .atend-status { display: flex; align-items: center; gap: 6px; margin: 0 0 6px; min-height: 20px; font-size: 13px; font-weight: 600; color: var(--muted); }
+    .atend-status.ok { color: #2fbf71; }
+    .atend-status.erro { color: var(--danger); }
+    .atend-status.salvando::before { content: ""; width: 12px; height: 12px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: girarAtend .8s linear infinite; }
+    @keyframes girarAtend { to { transform: rotate(360deg); } }
     .atend-info { color: var(--muted); font-size: 12.5px; margin: 0 0 8px; }
     #secaoAtend.carregando > :not(h3):not(.atend-info) { opacity: .45; pointer-events: none; }
     /* seleção de várias conversas */
@@ -919,7 +924,7 @@
           <textarea id="atendMensagem" maxlength="200" placeholder="Ex.: Estou de folga. Respondo assim que voltar!" aria-label="Aviso de ausência"></textarea>
         </div>
         <div class="atend-previa" id="atendPrevia" aria-live="polite"></div>
-        <button type="button" class="btn-sec" id="atendSalvar">Salvar atendimento</button>
+        <p class="atend-status" id="atendStatus" role="status" aria-live="polite">As mudanças são salvas sozinhas.</p>
       </div>
 
       <div class="cfg-secao">
@@ -2823,6 +2828,8 @@
       else if (sem) { const st = situacaoHorario(sem, a.almoco); add(st.cls, resumoSemana(sem, a.almoco), st.txt + " ·"); }
       if (deNegocio && a.resposta?.n >= 3) add("", `Costuma responder em ${tempoTxt(a.resposta.media)}`);
       if (ausente && a.mensagem) add("aus", a.mensagem);
+      // Ausente com horário: o horário continua aparecendo (quem escreve sabe quando você atende).
+      if (ausente && sem) add("", resumoSemana(sem, a.almoco), "Horário:");
       box.hidden = !box.children.length;
       // Texto maior que a linha: vira um botão que abre o aviso inteiro.
       requestAnimationFrame(() => {
@@ -3634,13 +3641,13 @@
       if (!tem) return;
       const sec = $("secaoAtend");
       sec.classList.add("carregando");
-      $("atendSalvar").disabled = true;
+      definirStatusAtend("", "Carregando...");
       $("atendTempo").textContent = "Carregando o atendimento salvo...";
       let semServidor = false;
       try { await lerAtendimentoDoServidor(); }
       catch (e) { semServidor = true; console.warn("Atendimento lido do aparelho:", e?.code || e?.message); }
       sec.classList.remove("carregando");
-      $("atendSalvar").disabled = false;
+      definirStatusAtend("", "As mudanças são salvas sozinhas.");
       const a = atendimentoParaEditar();
       const sem = semanaDe(a);
       $("atendHorarioLig").checked = !!sem;
@@ -3673,14 +3680,14 @@
         tog.addEventListener("click", () => {
           const modelo = semanaEdit.find(Boolean) || { ini: "09:00", fim: "18:00" };
           semanaEdit[d] = semanaEdit[d] ? null : { ...modelo };
-          pintarDiasAtend();
+          pintarDiasAtend(); agendarSalvarAtend();
         });
         const horas = document.createElement("div"); horas.className = "dia-horas";
         if (f) {
           const ini = document.createElement("input"); ini.type = "time"; ini.value = f.ini; ini.className = "ini"; ini.setAttribute("aria-label", `${DIAS_LONGOS[d]}: abre`);
           const fim = document.createElement("input"); fim.type = "time"; fim.value = f.fim; fim.className = "fim"; fim.setAttribute("aria-label", `${DIAS_LONGOS[d]}: fecha`);
-          ini.addEventListener("change", () => { semanaEdit[d].ini = ini.value || "09:00"; pintarPreviaAtend(); });
-          fim.addEventListener("change", () => { semanaEdit[d].fim = fim.value || "18:00"; pintarPreviaAtend(); });
+          ini.addEventListener("change", () => { semanaEdit[d].ini = ini.value || "09:00"; pintarPreviaAtend(); agendarSalvarAtend(); });
+          fim.addEventListener("change", () => { semanaEdit[d].fim = fim.value || "18:00"; pintarPreviaAtend(); agendarSalvarAtend(); });
           horas.append(ini, "às", fim);
         } else horas.appendChild(Object.assign(document.createElement("span"), { className: "fechado", textContent: "Fechado" }));
         linha.append(tog, horas);
@@ -3706,19 +3713,22 @@
       box.replaceChildren();
       const sem = semanaDe(a);
       let txt = "";
-      if (ausenteAgora(a)) txt = `Ausente${ms(a.volta) ? ` · volta ${dataVoltaTxt(a.volta)}` : " no momento"}${a.mensagem ? ` · ${a.mensagem}` : ""}`;
+      if (ausenteAgora(a)) txt = `Ausente${ms(a.volta) ? ` · volta ${dataVoltaTxt(a.volta)}` : " no momento"}${a.mensagem ? ` · ${a.mensagem}` : ""}${sem ? ` · Horário: ${resumoSemana(sem, a.almoco)}` : ""}`;
       else if (sem) { const st = situacaoHorario(sem, a.almoco); txt = `${st.txt} · ${resumoSemana(sem, a.almoco)}`; }
       if (!txt) return;
       box.append(Object.assign(document.createElement("b"), { textContent: "Como aparece agora: " }), txt);
     }
-    ["atendHorarioLig", "atendAusente", "atendAlmocoLig"].forEach((id) => $(id).addEventListener("change", pintarDiasAtend));
-    ["atendAlmocoIni", "atendAlmocoFim", "atendVolta", "atendMensagem"].forEach((id) => $(id).addEventListener("input", pintarPreviaAtend));
-    $("atendVoltaLimpar").addEventListener("click", () => { $("atendVolta").value = ""; pintarPreviaAtend(); });
+    // Tudo no atendimento salva sozinho (como o resto das configurações): antes era preciso tocar em
+    // "Salvar atendimento" lá embaixo, e quem saía sem tocar perdia o que tinha mudado.
+    ["atendHorarioLig", "atendAusente", "atendAlmocoLig"].forEach((id) => $(id).addEventListener("change", () => { pintarDiasAtend(); agendarSalvarAtend(); }));
+    ["atendAlmocoIni", "atendAlmocoFim", "atendVolta"].forEach((id) => $(id).addEventListener("input", () => { pintarPreviaAtend(); agendarSalvarAtend(); }));
+    $("atendMensagem").addEventListener("input", () => { pintarPreviaAtend(); agendarSalvarAtend(1500); });
+    $("atendVoltaLimpar").addEventListener("click", () => { $("atendVolta").value = ""; pintarPreviaAtend(); agendarSalvarAtend(); });
     $("atendCopiar").addEventListener("click", () => {
       const modelo = semanaEdit[[1, 2, 3, 4, 5, 6, 0].find((d) => semanaEdit[d])];
       if (!modelo) { toast("Abra pelo menos um dia primeiro."); return; }
       semanaEdit = semanaEdit.map((f) => (f ? { ...modelo } : null));
-      pintarDiasAtend();
+      pintarDiasAtend(); agendarSalvarAtend();
       toast(`Horário ${horaTxt(modelo.ini)}–${horaTxt(modelo.fim)} em todos os dias abertos`);
     });
     // Versão que as regras antigas aceitam: sem os campos novos; a data de volta vai no aviso.
@@ -3741,16 +3751,29 @@
         return false;
       }
     }
-    $("atendSalvar").addEventListener("click", async () => {
+    function definirStatusAtend(cls, texto) { const st = $("atendStatus"); st.className = "atend-status" + (cls ? " " + cls : ""); st.textContent = texto; }
+    // Salva logo depois da última mudança (um salvamento por vez; o que mudar durante entra no próximo).
+    let tempoAtend = null, salvandoAtend = false, deNovoAtend = false;
+    function agendarSalvarAtend(espera = 700) {
+      clearTimeout(tempoAtend);
+      definirStatusAtend("", "Alterações ainda não salvas...");
+      tempoAtend = setTimeout(salvarAtendimento, espera);
+    }
+    // Saiu da página (ou trocou de app) logo depois de mudar: salva na hora.
+    addEventListener("visibilitychange", () => { if (document.hidden && tempoAtend) { clearTimeout(tempoAtend); tempoAtend = null; salvarAtendimento(); } });
+    async function salvarAtendimento() {
+      tempoAtend = null;
+      if (salvandoAtend) { deNovoAtend = true; return; }
       const atendimento = atendimentoDaTela();
-      if ($("atendHorarioLig").checked && !atendimento.semana) { toast("Abra pelo menos um dia ou desligue o horário."); return; }
       const errado = semanaEdit.findIndex((f) => f && hm(f.fim) <= hm(f.ini));
-      if (atendimento.semana && errado >= 0) { toast(`${DIAS_LONGOS[errado]}: o horário de fechar precisa ser depois do de abrir.`); return; }
       const al = faixa(atendimento.almoco);
-      if (al && hm(al.fim) <= hm(al.ini)) { toast("O fim do almoço precisa ser depois do início."); return; }
-      if (atendimento.volta && ms(atendimento.volta) <= Date.now()) { toast("A data de volta precisa ser depois de hoje."); return; }
-      const btn = $("atendSalvar");
-      btn.disabled = true; btn.textContent = "Salvando...";
+      const problema = $("atendHorarioLig").checked && !atendimento.semana ? "Abra pelo menos um dia ou desligue o horário."
+        : atendimento.semana && errado >= 0 ? `${DIAS_LONGOS[errado]}: o horário de fechar precisa ser depois do de abrir.`
+        : al && hm(al.fim) <= hm(al.ini) ? "O fim do almoço precisa ser depois do início."
+        : atendimento.volta && ms(atendimento.volta) <= Date.now() ? "A data de volta precisa ser depois de hoje." : "";
+      if (problema) { definirStatusAtend("erro", problema + " (não salvo)"); return; }
+      salvandoAtend = true;
+      definirStatusAtend("salvando", "Salvando...");
       try {
         // Cópia completa na parte privada da conta (sempre aceita) e depois o perfil público.
         await comPrazo(fb.setDoc(fb.doc(fb.db, "usuarios", eu.uid), { atendimento }, { merge: true }), 15000).catch((e) => console.warn("Cópia do atendimento não salva:", e?.code || e));
@@ -3761,14 +3784,17 @@
         const esperado = completo ? atendimento : atendimentoCompativel(atendimento);
         const igual = gravado && mesmoResumo(gravado.horario, esperado.horario) && !!gravado.ausente === esperado.ausente
           && (!completo || (JSON.stringify(gravado.semana || null) === JSON.stringify(atendimento.semana) && (gravado.almoco || null) === atendimento.almoco));
-        toast(!gravado ? "Atendimento enviado. Ele aparece para os clientes quando a conexão voltar."
-          : !igual ? "O atendimento não ficou salvo como você escolheu. Tente de novo."
-          : completo ? "Atendimento salvo" : "Atendimento salvo. Por enquanto os clientes veem o horário resumido; o horário de cada dia e o almoço aparecem depois da próxima atualização do Help Floripa.");
+        if (!gravado) definirStatusAtend("ok", "✓ Salvo neste aparelho. Aparece para os clientes quando a conexão voltar.");
+        else if (!igual && !deNovoAtend) definirStatusAtend("erro", "Não ficou salvo como você escolheu. Mude de novo para tentar outra vez.");
+        else definirStatusAtend("ok", completo ? "✓ Salvo" : "✓ Salvo (por enquanto os clientes veem o horário resumido)");
       } catch (e) {
         console.error(e);
-        toast(e?.code === "permission-denied" ? "O servidor recusou o atendimento. Fale com o suporte." : "Não foi possível salvar o atendimento. Confira sua internet e tente de novo.");
-      } finally { btn.disabled = false; btn.textContent = "Salvar atendimento"; }
-    });
+        definirStatusAtend("erro", e?.code === "permission-denied" ? "O servidor recusou o atendimento. Fale com o suporte." : "Não foi possível salvar. Confira sua internet; vamos tentar de novo na próxima mudança.");
+      } finally {
+        salvandoAtend = false;
+        if (deNovoAtend) { deNovoAtend = false; salvarAtendimento(); }
+      }
+    }
     // Atendimento salvo com as regras antigas no servidor: assim que as regras novas estiverem
     // publicadas, grava o completo no perfil público (tenta no máximo uma vez por dia).
     async function completarAtendimento() {
