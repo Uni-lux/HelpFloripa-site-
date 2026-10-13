@@ -1,10 +1,10 @@
 // =====================================================
 // Painel do administrador — seções
 // =====================================================
-import { linha, linhaComparada, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=5";
-import { baixarPlanilhaMulti } from "./planilha.js?v=4";
+import { linha, linhaComparada, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=6";
+import { baixarPlanilhaMulti } from "./planilha.js?v=5";
 import { buscarPessoas } from "./pessoas.js?v=3";
-import { montarChat } from "./admin-chat.js?v=3";
+import { montarChat } from "./admin-chat.js?v=4";
 import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha,
@@ -766,7 +766,7 @@ export function estatisticas(el) {
   const topo = h("div", "ad-cab-acoes");
   const cmp = h("button", "ad-chip", "Comparar com período anterior"); cmp.type = "button"; cmp.setAttribute("aria-pressed", String(compararEst));
   cmp.addEventListener("click", () => { compararEst = !compararEst; el.replaceChildren(); estatisticas(el); });
-  topo.append(seletorPeriodo(periodoEst, (v) => { periodoEst = v; el.replaceChildren(); estatisticas(el); }), cmp, btn("Baixar tudo (Excel)", "", () => baixarPlanilhaMulti(`estatisticas-${typeof periodoEst === "object" ? "personalizado" : periodoEst + "d"}`, abas)));
+  topo.append(seletorPeriodo(periodoEst, (v) => { periodoEst = v; el.replaceChildren(); estatisticas(el); }), cmp, btn("Baixar tudo (Excel)", "", () => baixarPlanilhaMulti(`estatisticas-${typeof periodoEst === "object" ? "personalizado" : periodoEst + "d"}`, abas, capa)));
   el.appendChild(cab("Estatísticas", `Quem usa o Help Floripa, de onde, e como a plataforma cresce · ${rotulo}${compararEst ? " (comparando com o período anterior)" : ""}.`, topo));
   const g = h("div", "ad-grade");
   // Filtro por cidade e bairro (opções vêm de todas as contas).
@@ -782,11 +782,26 @@ export function estatisticas(el) {
     selBairro.addEventListener("change", () => { bairroEst = selBairro.value; el.replaceChildren(); estatisticas(el); });
     topo.insertBefore(selBairro, selCidade.nextSibling);
   }
-  // Cada cartão também vira uma aba do "Baixar tudo (Excel)".
+  // Cada cartão também vira uma aba do "Baixar tudo (Excel)"; a capa "Resumo" traz período, filtro e números principais.
   const abas = [];
-  const addCartao = (o) => { abas.push({ nome: o.titulo, cabecalho: o.cabecalho, linhas: o.linhas, grafico: { tipo: o.grafico || "coluna", titulo: o.titulo } }); return cartao(o); };
+  const addCartao = (o) => { abas.push({ nome: o.titulo, titulo: o.titulo, sub: o.sub, cabecalho: o.cabecalho, linhas: o.linhas, grafico: { tipo: o.grafico || "coluna", titulo: o.titulo }, total: o.total }); return cartao(o); };
   // Série do período e a mesma do período anterior (para comparar dia a dia / mês a mês).
   const dur = fim - ini;
+  const entre = (lista, campo, a, b) => lista.filter((x) => dentro(x[campo], a, b)).length;
+  const capa = {
+    titulo: "Estatísticas do Help Floripa",
+    descricao: "Quem usa o Help Floripa, de onde, e como a plataforma cresce",
+    periodo: `${rotulo} (${new Date(ini).toLocaleDateString("pt-BR")} a ${new Date(fim).toLocaleDateString("pt-BR")})`,
+    filtro: cidadeEst ? `Cidade: ${cidadeEst}${bairroEst ? " · Bairro: " + bairroEst : ""}` : "Nenhum (todas as cidades)",
+    autor: C.nome || "",
+    indicadores: [
+      ["Usuários (total)", psF.length, ""],
+      ["Novos usuários", entre(psF, "criadoEm", ini, fim), entre(psF, "criadoEm", ini - dur, ini)],
+      ["Ativos no período (último acesso)", entre(psF, "ultimoAcesso", ini, fim), entre(psF, "ultimoAcesso", ini - dur, ini)],
+      ["Novos perfis de negócio", entre(D.negocios, "criadoEm", ini, fim), entre(D.negocios, "criadoEm", ini - dur, ini)],
+      ["Publicações no Diário", entre(D.posts, "criadoEm", ini, fim), entre(D.posts, "criadoEm", ini - dur, ini)]
+    ]
+  };
   const serieComp = (datas, titulo, cor) => {
     const atual = serieEntre(datas, ini, fim, mensal);
     if (!compararEst) return addCartao({ titulo, cabecalho: [mensal ? "Mês" : "Dia", "Novos"], linhas: atual.map((p) => [p.rotulo, p.valor]), desenhar: (a) => linha(a, { pontos: atual, cor }), grafico: "linha" });
@@ -800,7 +815,7 @@ export function estatisticas(el) {
   const antes = psF.filter((p) => ms(p.criadoEm) && ms(p.criadoEm) < ini).length;
   const acum = acumulada(serieU, antes);
   g.appendChild(serieComp(datasU, `Novos usuários por ${mensal ? "mês" : "dia"}`, "var(--viz-1)"));
-  g.appendChild(addCartao({ titulo: "Total de usuários", sub: "Crescimento acumulado", cabecalho: [mensal ? "Mês" : "Dia", "Total"], linhas: acum.map((p) => [p.rotulo, p.valor]), desenhar: (a) => linha(a, { pontos: acum, cor: "var(--viz-3)" }), nomeArquivo: "total-usuarios", grafico: "linha" }));
+  g.appendChild(addCartao({ titulo: "Total de usuários", sub: "Crescimento acumulado", cabecalho: [mensal ? "Mês" : "Dia", "Total"], linhas: acum.map((p) => [p.rotulo, p.valor]), desenhar: (a) => linha(a, { pontos: acum, cor: "var(--viz-3)" }), nomeArquivo: "total-usuarios", grafico: "linha", total: false }));
   // atividade
   const faixasAc = [["Hoje", 1], ["2 a 7 dias", 7], ["8 a 30 dias", 30], ["31 a 90 dias", 90], ["Mais de 90 dias", Infinity]];
   let ant = 0; const ac = faixasAc.map(([rot, d]) => { const v = psF.filter((p) => { const x = ms(p.ultimoAcesso); if (!x) return false; const dias = (agora() - x) / DIA; return dias <= d && dias > ant; }).length; ant = d; return { rotulo: rot, valor: v }; });
@@ -837,7 +852,7 @@ export function estatisticas(el) {
   // histórico automático
   if (D.estatisticas.length) {
     const s = [...D.estatisticas].sort((a, b) => a.id.localeCompare(b.id)).map((x) => ({ rotulo: x.id.slice(5).split("-").reverse().join("/"), valor: x.ativos1 || 0 }));
-    g.appendChild(addCartao({ titulo: "Ativos por dia (histórico)", sub: "Do relatório automático diário", cabecalho: ["Dia", "Ativos (24 h)"], linhas: s.map((p) => [p.rotulo, p.valor]), desenhar: (a) => linha(a, { pontos: s, cor: "var(--viz-3)" }), largo: true, nomeArquivo: "ativos-historico" }));
+    g.appendChild(addCartao({ titulo: "Ativos por dia (histórico)", sub: "Do relatório automático diário", cabecalho: ["Dia", "Ativos (24 h)"], linhas: s.map((p) => [p.rotulo, p.valor]), desenhar: (a) => linha(a, { pontos: s, cor: "var(--viz-3)" }), largo: true, nomeArquivo: "ativos-historico", grafico: "linha", total: false }));
   }
   el.appendChild(g);
 }
@@ -907,8 +922,17 @@ export function relatorios(el) {
   el.appendChild(kp);
   // Gráficos do período.
   const g = h("div", "ad-grade");
-  const abas = [["Resumo", ["Indicador", "Período", "Período anterior"], linhas, "coluna"]].map(([nome, cabecalho, l, t]) => ({ nome, cabecalho, linhas: l, grafico: { tipo: t, titulo: `Relatório — ${rotulo}` } }));
-  const addCartao = (o) => { abas.push({ nome: o.titulo, cabecalho: o.cabecalho, linhas: o.linhas, grafico: { tipo: o.grafico || "coluna", titulo: o.titulo } }); return cartao(o); };
+  // "Baixar tudo": capa "Resumo" com todos os indicadores (e a variação) + uma aba por gráfico.
+  const abas = [];
+  const capa = {
+    titulo: "Relatório Help Floripa",
+    descricao: "Resumo do período: crescimento, negócios, moderação e contato",
+    periodo: `${rotulo} (${new Date(ini).toLocaleDateString("pt-BR")} a ${new Date(fim).toLocaleDateString("pt-BR")})`,
+    filtro: "Nenhum (plataforma inteira)",
+    autor: C.nome || "",
+    indicadores: linhas
+  };
+  const addCartao = (o) => { abas.push({ nome: o.titulo, titulo: o.titulo, sub: o.sub, cabecalho: o.cabecalho, linhas: o.linhas, grafico: { tipo: o.grafico || "coluna", titulo: o.titulo }, total: o.total }); return cartao(o); };
   const serieU = serieEntre(ps.map((p) => p.criadoEm), ini, fim, mensal);
   g.appendChild(addCartao({ titulo: `Novos usuários por ${mensal ? "mês" : "dia"}`, cabecalho: [mensal ? "Mês" : "Dia", "Novos"], linhas: serieU.map((p) => [p.rotulo, p.valor]), desenhar: (a) => linha(a, { pontos: serieU }), nomeArquivo: "novos-usuarios", grafico: "linha" }));
   const negTipo = Object.entries(TIPOS_NEG).map(([k, rot], i) => ({ rotulo: rot, valor: D.negocios.filter((n) => noP(n.criadoEm)).filter((n) => n.tipo === k).length, cor: `var(--viz-${i + 1})` }));
@@ -926,7 +950,7 @@ export function relatorios(el) {
   const ac = h("div", "ad-acoes"); ac.style.margin = "14px 0";
   const nomeP = typeof periodoRel === "object" ? "personalizado" : periodoRel + "d";
   ac.append(btn("Imprimir / salvar PDF", "pri", () => { registrar("relatorio_pdf", "", rotulo); window.print(); }),
-    btn("Baixar tudo (Excel)", "pri", () => baixarPlanilhaMulti(`relatorio-${nomeP}`, abas)),
+    btn("Baixar tudo (Excel)", "pri", () => baixarPlanilhaMulti(`relatorio-${nomeP}`, abas, capa)),
     btn("Baixar resumo (Excel)", "", () => baixarCSV(`relatorio-${nomeP}`, ["Indicador", "Período", "Período anterior"], linhas, { tipo: "coluna", titulo: `Relatório Help Floripa — ${rotulo}` })),
     btn("Planilha de negócios", "", () => { baixarCSV("negocios", ["ID", "Nome", "Tipo", "Dono", "Cidade", "Nota", "Avaliações", "Criado", "Atualizado"], D.negocios.map((n) => { const r = D.notas.get("neg_" + n.id); return [n.id, n.nome || "", TIPOS_NEG[n.tipo] || n.tipo, pessoa(n.donoId).nome || n.donoId, nomeCidade(n.cidade), r?.total ? (r.soma / r.total).toFixed(2) : "", r?.total || 0, data(n.criadoEm), data(n.atualizadoEm)]; })); registrar("exportar", "negocios"); }),
     btn("Planilha de denúncias", "", () => { baixarCSV("denuncias", ["Data", "Tipo", "Motivo", "Denunciado", "Por", "Situação", "Ação", "Trecho"], D.denuncias.map((x) => [dataHora(x.criadoEm), x.tipo, MOTIVOS_DEN[x.motivo] || x.motivo, pessoa(x.alvoId).nome || x.alvoId, pessoa(x.autorId).nome || x.autorId, x.status, x.acao || "", x.trecho || ""])); registrar("exportar", "denuncias"); }),

@@ -476,6 +476,11 @@
     .primeira.outra .bolha { border-top-left-radius: 3px; }
     .primeira.minha .bolha { border-top-right-radius: 3px; }
     .bolha .texto { white-space: pre-wrap; }
+    .bolha { --hf-audio-cor: var(--accent); }
+    /* Balão de áudio compacto: horário na mesma linha do tempo e da velocidade. */
+    .bolha.so-audio { padding: 6px 10px 6px 7px; }
+    .bolha.so-audio .meta { position: absolute; right: 10px; bottom: 7px; margin: 0; top: auto; float: none; }
+    .bolha.so-audio .hf-audio-rodape { justify-content: flex-start; gap: 8px; padding-right: 64px; }
     .bolha .texto a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
     .bolha .meta { float: right; display: inline-flex; align-items: center; gap: 3px; margin: 6px 0 -3px 12px; font-size: 11px; opacity: .72; white-space: nowrap; position: relative; top: 2px; }
     .bolha .meta .check { color: inherit; }
@@ -487,15 +492,6 @@
     .bolha img.foto { display: block; max-width: 100%; width: 320px; max-height: 360px; object-fit: cover; border-radius: 7px; cursor: zoom-in; background: var(--panel-2); }
     .bolha video { display: block; max-width: 100%; width: 320px; max-height: 360px; border-radius: 7px; background: #000; }
     /* player de áudio próprio (mesmo visual da bolha, em vez do player branco do navegador) */
-    .audio-msg { display: flex; align-items: center; gap: 10px; width: min(258px, 72vw); padding: 2px 2px 2px 0; }
-    .audio-msg .ap-play { width: 38px; height: 38px; flex: none; border-radius: 50%; border: 0; cursor: pointer; display: grid; place-items: center; background: color-mix(in srgb, currentColor 16%, transparent); color: inherit; }
-    .audio-msg.tocando .ap-play { background: color-mix(in srgb, currentColor 26%, transparent); }
-    .audio-msg .ap-play svg.i { width: 18px; height: 18px; }
-    .audio-msg .ap-corpo { flex: 1; min-width: 0; display: grid; gap: 5px; }
-    .audio-msg .ap-barra { height: 4px; border-radius: 999px; background: color-mix(in srgb, currentColor 22%, transparent); cursor: pointer; position: relative; }
-    .audio-msg .ap-prog { position: absolute; inset: 0 auto 0 0; width: 0; border-radius: 999px; background: currentColor; }
-    .audio-msg .ap-prog::after { content: ""; position: absolute; right: -5px; top: 50%; transform: translateY(-50%); width: 10px; height: 10px; border-radius: 50%; background: currentColor; }
-    .audio-msg .ap-tempo { font-size: 11.5px; font-variant-numeric: tabular-nums; opacity: .8; }
     .menu button svg.i { width: 20px; height: 20px; }
     .bolha.midia.so-midia .meta { position: absolute; right: 10px; bottom: 9px; margin: 0; background: rgba(0, 0, 0, .45); color: #fff; padding: 2px 6px; border-radius: 8px; opacity: 1; }
     .citacao { display: block; border: 0; width: 100%; text-align: left; cursor: pointer; margin: 0 0 5px; padding: 6px 9px; border-radius: 7px; background: var(--quote-bg); border-left: 3px solid var(--accent); font-size: calc(var(--msg-size) - 1.5px); color: inherit; }
@@ -1010,6 +1006,7 @@
     import { buscarPessoas } from "./pessoas.js?v=3";
     import { docComValidade } from "./leituras.js?v=1";
     import { comRitmo } from "./ritmo.js?v=2";
+    import { criarPlayerAudio } from "./audio-ondas.js?v=1";
     import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=5";
     import { abrirQueixa } from "./queixas.js?v=7";
     // ======================================================
@@ -1214,36 +1211,10 @@
     }
     // Player de áudio próprio: play/pausa, barra de progresso e tempo (sem o player branco do navegador).
     // Só um áudio toca por vez. O arquivo só é carregado quando a pessoa aperta play.
-    let audioTocando = null;
-    function criarAudioMsg(url) {
-      const box = document.createElement("div"); box.className = "audio-msg";
-      const bPlay = document.createElement("button"); bPlay.type = "button"; bPlay.className = "ap-play"; bPlay.setAttribute("aria-label", "Tocar áudio");
-      bPlay.appendChild(iconeSvg("play"));
-      const corpo = document.createElement("div"); corpo.className = "ap-corpo";
-      const barra = document.createElement("div"); barra.className = "ap-barra"; barra.setAttribute("role", "slider"); barra.setAttribute("aria-label", "Posição do áudio");
-      const prog = document.createElement("div"); prog.className = "ap-prog"; barra.appendChild(prog);
-      const tempo = document.createElement("span"); tempo.className = "ap-tempo"; tempo.textContent = "0:00";
-      corpo.append(barra, tempo);
-      box.append(bPlay, corpo);
-      const mmss = (s) => (Number.isFinite(s) ? `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}` : "0:00");
-      let audio = null;
-      const icone = (nome) => { bPlay.replaceChildren(iconeSvg(nome)); };
-      const criar = () => {
-        audio = new Audio(url); audio.preload = "metadata";
-        audio.addEventListener("loadedmetadata", () => { if (!box.classList.contains("tocando")) tempo.textContent = mmss(audio.duration); });
-        audio.addEventListener("timeupdate", () => { if (audio.duration) { prog.style.width = `${(audio.currentTime / audio.duration) * 100}%`; tempo.textContent = mmss(audio.duration - audio.currentTime); } });
-        audio.addEventListener("ended", () => { box.classList.remove("tocando"); icone("play"); prog.style.width = "0"; tempo.textContent = mmss(audio.duration); audioTocando = null; });
-        audio.addEventListener("error", () => toast("Não foi possível tocar o áudio."));
-      };
-      bPlay.addEventListener("click", () => {
-        if (!audio) criar();
-        if (audio.paused) {
-          if (audioTocando && audioTocando !== audio) { audioTocando.pause(); }
-          audioTocando = audio; audio.play().then(() => { box.classList.add("tocando"); icone("pausa"); bPlay.setAttribute("aria-label", "Pausar"); }).catch(() => {});
-        } else { audio.pause(); box.classList.remove("tocando"); icone("play"); bPlay.setAttribute("aria-label", "Tocar áudio"); }
-      });
-      barra.addEventListener("click", (e) => { if (!audio || !audio.duration) return; const r = barra.getBoundingClientRect(); audio.currentTime = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * audio.duration; });
-      return box;
+    // Áudio: player com ondas de voz e velocidade (audio-ondas.js). A onda sai do próprio áudio,
+    // calculada quando a mensagem aparece na tela, e fica guardada no aparelho.
+    function criarAudioMsg(m, url) {
+      return criarPlayerAudio({ chave: "m:" + m.id, fonte: url, carregarJa: true, aoErro: () => toast("Não foi possível tocar o áudio.") });
     }
 
     // ---------- status do pedido (delivery e lojinha) ----------
@@ -2545,8 +2516,9 @@
           v.src = url; v.controls = true; v.playsInline = true; v.preload = "metadata";
           bolha.appendChild(v);
         } else if (m.tipoArquivo === "audio") {
-          bolha.appendChild(criarAudioMsg(url));
+          bolha.appendChild(criarAudioMsg(m, url));
           bolha.classList.remove("so-midia");
+          if (!m.texto) bolha.classList.add("so-audio");
         } else {
           const img = document.createElement("img");
           img.className = "foto";

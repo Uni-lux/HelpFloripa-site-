@@ -5,9 +5,12 @@
 // - o conteúdo do anexo fica em equipe_anexos/{id} e só é baixado quando
 //   alguém abre (foto, áudio, arquivo): a lista de mensagens continua leve
 // - busca na conversa, som de aviso e "virar tarefa" em cada mensagem
+// - visual de mensageiro: balões, botão redondo (microfone/enviar), menu da mensagem
+//   com reações e ações (toque longo no celular), áudio com ondas de voz
 // Grupo: equipe_chat/{id} · individual: equipe_dm/{uidA_uidB}/mensagens/{id}
 // =====================================================
-import { C, D, h, ms, toast, avatar, selo, relativo, editarTarefa, nomeEquipe, PAPEIS } from "./admin-base.js?v=9";
+import { C, D, h, ms, toast, avatar, relativo, editarTarefa, nomeEquipe, PAPEIS } from "./admin-base.js?v=9";
+import { criarPlayerAudio } from "./audio-ondas.js?v=1";
 
 const pessoa = (uid) => D.pessoas.get(uid) || { uid, nome: "" };
 export const idPar = (a, b) => [a, b].sort().join("_");
@@ -23,7 +26,7 @@ const seg = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(
 // Prévia curta (lista de conversas, avisos).
 export function previa(m) {
   if (m.texto) return String(m.texto).slice(0, 120);
-  return m.tipoArquivo === "imagem" ? "📷 Foto" : m.tipoArquivo === "audio" ? `🎤 Áudio${m.duracao ? " " + seg(m.duracao) : ""}` : m.tipoArquivo === "arquivo" ? `📎 ${m.nomeArquivo || "Arquivo"}` : "";
+  return m.tipoArquivo === "imagem" ? "Foto" : m.tipoArquivo === "audio" ? `Áudio${m.duracao ? " (" + seg(m.duracao) + ")" : ""}` : m.tipoArquivo === "arquivo" ? `Arquivo: ${m.nomeArquivo || "sem nome"}` : "";
 }
 
 // ---------- anexos ----------
@@ -156,73 +159,108 @@ function textoComMencoes(texto, mencoes = []) {
   return frag;
 }
 
+// ---------- ícones (SVG no traço do painel, iguais em todo aparelho) ----------
+const ICONES = {
+  voltar: '<path d="M15 5l-7 7 7 7"/>',
+  lupa: '<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/>',
+  sino: '<path d="M18 9.5a6 6 0 00-12 0c0 6.5-2.5 8-2.5 8h17S18 16 18 9.5z"/><path d="M10.2 20.5a2 2 0 003.6 0"/>',
+  semSom: '<path d="M18 9.5a6 6 0 00-9.7-4.7M6 9.5c0 6.5-2.5 8-2.5 8H17"/><path d="M10.2 20.5a2 2 0 003.6 0M3 3l18 18"/>',
+  clipe: '<path d="M20.5 11.5l-8.2 8.2a5 5 0 01-7.1-7.1l8.6-8.6a3.4 3.4 0 014.8 4.8l-8.6 8.6a1.7 1.7 0 01-2.4-2.4l7.9-7.9"/>',
+  arroba: '<circle cx="12" cy="12" r="3.6"/><path d="M15.6 12v1.3a2.6 2.6 0 005.2 0V12a8.8 8.8 0 10-3.5 7"/>',
+  mic: '<rect x="9" y="3" width="6" height="11.5" rx="3"/><path d="M5.5 11a6.5 6.5 0 0013 0M12 17.5V21"/>',
+  enviar: '<path d="M4.5 12L20 4.5 13.5 20l-2.2-6.3z"/><path d="M11.3 13.7L20 4.5"/>',
+  lixo: '<path d="M4.5 7h15M10 11v6M14 11v6M6.5 7l1 12.5h9l1-12.5M9.5 7V4.5h5V7"/>',
+  responder: '<path d="M10 8L4.5 13l5.5 5M4.5 13H14a5.5 5.5 0 015.5 5.5V19"/>',
+  tarefa: '<rect x="4.5" y="4.5" width="15" height="15" rx="3"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
+  copiar: '<rect x="8.5" y="8.5" width="11" height="11" rx="2"/><path d="M15.5 8.5V6a1.5 1.5 0 00-1.5-1.5H6A1.5 1.5 0 004.5 6v8A1.5 1.5 0 006 15.5h2.5"/>',
+  sorriso: '<circle cx="12" cy="12" r="8.5"/><path d="M8.5 14a4.2 4.2 0 007 0M9.3 9.6h.01M14.7 9.6h.01"/>',
+  grupo: '<circle cx="9" cy="9" r="3.2"/><circle cx="17" cy="10" r="2.5"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5s4.7 1.5 5.5 4.5M15 15c2.6-.4 4.6.8 5.5 3.5"/>',
+  documento: '<path d="M7 3.5h7l4 4v13H7z"/><path d="M14 3.5v4h4M9.5 12.5h6M9.5 16h6"/>',
+  baixar: '<path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19.5h14"/>',
+  fechar: '<path d="M6 6l12 12M18 6L6 18"/>',
+  seta: '<path d="M6.5 9.5L12 15l5.5-5.5"/>',
+  foto: '<rect x="3.5" y="5" width="17" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 16l-5-5-8.5 8"/>'
+};
+function ic(nome, tam = 22) {
+  const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  s.setAttribute("viewBox", "0 0 24 24"); s.setAttribute("width", tam); s.setAttribute("height", tam); s.setAttribute("aria-hidden", "true"); s.setAttribute("class", "eq-ic");
+  s.innerHTML = ICONES[nome] || "";
+  return s;
+}
+function botaoIcone(nome, rotulo, cls = "eq-icone") {
+  const b = h("button", cls); b.type = "button"; b.setAttribute("aria-label", rotulo); b.title = rotulo; b.appendChild(ic(nome));
+  return b;
+}
+
 // =====================================================
-// Monta o chat dentro de "el"
+// Monta o chat dentro de "el" (visual de mensageiro: lista à esquerda, conversa à direita;
+// no celular, uma tela de cada vez)
 // =====================================================
 export function montarChat(el) {
   const { fb } = C;
   let conv = C.conversaAberta && (C.conversaAberta === "equipe" || C.conversaAberta.includes(C.eu.uid)) ? C.conversaAberta : "equipe";
   let msgsDm = [], pararDm = null, termo = "", respondendo = null;
-  const raiz = h("div", "ad-chat2");
+  const raiz = h("div", "eq-chat");
   // ---------- lista de conversas ----------
-  const lado = h("aside", "ad-conversas"); lado.setAttribute("aria-label", "Conversas da equipe");
-  const ladoTopo = h("div", "ad-conversas-topo"); ladoTopo.append(h("h3", null, "Conversas"));
-  const listaConv = h("div", "ad-conversas-lista");
+  const lado = h("aside", "eq-lista"); lado.setAttribute("aria-label", "Conversas da equipe");
+  const ladoTopo = h("div", "eq-lista-topo"); ladoTopo.append(h("h3", null, "Conversas"));
+  const listaConv = h("div", "eq-lista-itens");
   lado.append(ladoTopo, listaConv);
   // ---------- conversa aberta ----------
-  const painel = h("section", "ad-conversa"); painel.setAttribute("aria-label", "Conversa");
-  const topo = h("div", "ad-conversa-topo");
-  const voltar = h("button", "ad-icone ad-conversa-voltar", "‹"); voltar.type = "button"; voltar.setAttribute("aria-label", "Voltar às conversas");
-  const quem = h("div", "ad-conversa-quem");
-  const acoes = h("div", "ad-conversa-acoes");
-  const bBusca = h("button", "ad-icone", "🔍"); bBusca.type = "button"; bBusca.title = "Buscar na conversa"; bBusca.setAttribute("aria-label", "Buscar na conversa");
-  const bSom = h("button", "ad-icone"); bSom.type = "button";
-  const pintarSom = () => { const on = somAtivo(); bSom.textContent = on ? "🔔" : "🔕"; bSom.title = on ? "Som de aviso ligado" : "Som de aviso desligado"; bSom.setAttribute("aria-pressed", String(on)); };
+  const painel = h("section", "eq-conversa"); painel.setAttribute("aria-label", "Conversa");
+  const topo = h("header", "eq-topo");
+  const voltar = botaoIcone("voltar", "Voltar às conversas", "eq-icone eq-voltar");
+  const quem = h("div", "eq-quem");
+  const bBusca = botaoIcone("lupa", "Buscar na conversa");
+  const bSom = h("button", "eq-icone"); bSom.type = "button";
+  const pintarSom = () => { const on = somAtivo(); bSom.replaceChildren(ic(on ? "sino" : "semSom")); bSom.title = on ? "Som de aviso ligado" : "Som de aviso desligado"; bSom.setAttribute("aria-label", bSom.title); bSom.setAttribute("aria-pressed", String(on)); };
   bSom.addEventListener("click", () => { try { localStorage.setItem("hf-equipe-som", somAtivo() ? "0" : "1"); } catch {} pintarSom(); toast(somAtivo() ? "Som de aviso ligado" : "Som de aviso desligado"); });
   pintarSom();
-  acoes.append(bBusca, bSom);
-  topo.append(voltar, quem, acoes);
-  const barraBusca = h("div", "ad-chat-busca"); barraBusca.hidden = true;
-  const inBusca = h("input"); inBusca.type = "search"; inBusca.placeholder = "Buscar nesta conversa…"; inBusca.setAttribute("aria-label", "Buscar nesta conversa");
-  const resBusca = h("span", "ad-chat-busca-res");
-  barraBusca.append(inBusca, resBusca);
-  const chat = h("div", "ad-chat"); chat.setAttribute("aria-live", "polite");
+  topo.append(voltar, quem, bBusca, bSom);
+  const barraBusca = h("div", "eq-busca"); barraBusca.hidden = true;
+  const inBusca = h("input"); inBusca.type = "search"; inBusca.placeholder = "Buscar nesta conversa"; inBusca.setAttribute("aria-label", "Buscar nesta conversa");
+  const resBusca = h("span", "eq-busca-res");
+  const fBusca = botaoIcone("fechar", "Fechar busca");
+  barraBusca.append(ic("lupa", 18), inBusca, resBusca, fBusca);
+  const chat = h("div", "eq-msgs"); chat.setAttribute("aria-live", "polite");
   // ---------- campo de envio ----------
-  const form = h("form", "ad-chat-form");
-  const sugest = h("div", "ad-mencao-lista"); sugest.hidden = true; sugest.setAttribute("role", "listbox");
-  const respBarra = h("div", "ad-chat-resp"); respBarra.hidden = true;
+  const form = h("form", "eq-rodape");
+  const sugest = h("div", "eq-mencoes"); sugest.hidden = true; sugest.setAttribute("role", "listbox");
+  const respBarra = h("div", "eq-resp"); respBarra.hidden = true;
   const respTx = h("div", "tx");
-  const respX = h("button", "ad-icone", "✕"); respX.type = "button"; respX.setAttribute("aria-label", "Cancelar resposta");
-  respBarra.append(h("span", "ad-chat-resp-bar"), respTx, respX);
-  const barra = h("div", "ad-chat-barra");
+  const respX = botaoIcone("fechar", "Cancelar resposta");
+  respBarra.append(respTx, respX);
+  const barra = h("div", "eq-compor");
   const inArq = h("input"); inArq.type = "file"; inArq.hidden = true;
   inArq.accept = "image/*,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.ppt,.pptx,.zip";
-  const bAnexo = h("button", "ad-icone ad-chat-ferr", "📎"); bAnexo.type = "button"; bAnexo.title = "Enviar foto ou arquivo"; bAnexo.setAttribute("aria-label", "Enviar foto ou arquivo");
-  const bMencao = h("button", "ad-icone ad-chat-ferr", "@"); bMencao.type = "button"; bMencao.title = "Mencionar alguém"; bMencao.setAttribute("aria-label", "Mencionar alguém da equipe");
-  const campo = h("div", "ad-chat-campo");
-  const txt = document.createElement("textarea"); txt.maxLength = 2000; txt.rows = 1; txt.placeholder = "Escreva uma mensagem…"; txt.setAttribute("aria-label", "Mensagem");
-  const conta = h("span", "ad-chat-conta"); conta.setAttribute("aria-hidden", "true");
-  campo.append(txt, conta);
-  const bAudio = h("button", "ad-icone ad-chat-ferr", "🎤"); bAudio.type = "button"; bAudio.title = "Gravar áudio"; bAudio.setAttribute("aria-label", "Gravar áudio");
-  const env = h("button", "ad-bt pri", "Enviar"); env.type = "submit"; env.disabled = true;
-  barra.append(bAnexo, bMencao, campo, bAudio, env, inArq);
-  const gravando = h("div", "ad-chat-gravando"); gravando.hidden = true;
-  const gTempo = h("span", "ad-gravando-tempo", "0:00");
-  const gCancelar = h("button", "ad-bt", "Cancelar"); gCancelar.type = "button";
-  const gEnviar = h("button", "ad-bt pri", "Enviar áudio"); gEnviar.type = "button";
-  gravando.append(h("span", "ad-gravando-ponto"), h("span", null, "Gravando"), gTempo, gCancelar, gEnviar);
-  const dica = h("p", "ad-chat-dica", "Enter envia · Shift+Enter quebra a linha · @ para mencionar · 📎 foto ou arquivo (até 680 KB) · 🎤 áudio (até 2 min)");
-  form.append(sugest, respBarra, barra, gravando, dica);
+  const bAnexo = botaoIcone("clipe", "Enviar foto ou arquivo (até 680 KB)");
+  const caixa = h("div", "eq-caixa");
+  const txt = document.createElement("textarea"); txt.maxLength = 2000; txt.rows = 1; txt.placeholder = "Mensagem"; txt.setAttribute("aria-label", "Mensagem");
+  const bMencao = botaoIcone("arroba", "Mencionar alguém da equipe");
+  const conta = h("span", "eq-conta"); conta.setAttribute("aria-hidden", "true");
+  caixa.append(bAnexo, txt, conta, bMencao);
+  // Botão redondo: microfone com o campo vazio, "enviar" quando tem texto.
+  const bPrincipal = h("button", "eq-principal"); bPrincipal.type = "button";
+  barra.append(caixa, bPrincipal, inArq);
+  const gravando = h("div", "eq-gravando"); gravando.hidden = true;
+  const gCancelar = botaoIcone("lixo", "Descartar áudio", "eq-icone eq-perigo");
+  const gTempo = h("span", "eq-grav-tempo", "0:00");
+  const gEnviar = h("button", "eq-principal"); gEnviar.type = "button"; gEnviar.setAttribute("aria-label", "Enviar áudio"); gEnviar.title = "Enviar áudio"; gEnviar.appendChild(ic("enviar"));
+  const gInfo = h("div", "eq-grav-info"); gInfo.append(h("span", "eq-grav-ponto"), gTempo, h("span", "eq-grav-txt", "Gravando… até 2 min"));
+  gravando.append(gCancelar, gInfo, gEnviar);
+  form.append(sugest, respBarra, barra, gravando);
   painel.append(topo, barraBusca, chat, form);
-  raiz.append(lado, painel);
+  // Menu de uma mensagem (reações + ações): um só para a conversa toda.
+  const menu = h("div", "eq-menu"); menu.hidden = true; menu.setAttribute("role", "menu");
+  raiz.append(lado, painel, menu);
   el.appendChild(raiz);
 
   // ---------- lista de conversas ----------
   const dmDe = (par) => C.dms?.get(par);
   const naoLidaDm = (par) => { const d = dmDe(par); return !!d && d.ultimoAutor !== C.eu.uid && ms(d.ultimaEm) > ms(d.lidoEm?.[C.eu.uid]); };
+  const avGrupo = () => { const a = h("div", "ad-av eq-av-grupo"); a.appendChild(ic("grupo", 20)); return a; };
   function pintarLista() {
     const itens = [];
-    // grupo
     const ultG = C.chat.at(-1);
     itens.push({ id: "equipe", nome: "Equipe", sub: ultG ? `${ultG.autorId === C.eu.uid ? "Você" : primeiro(ultG.nome || nomeDe(ultG.autorId))}: ${previa(ultG)}` : "Conversa com todos", quando: ultG?.em, nao: C.chatNaoLidas || 0, grupo: true });
     D.admins.filter((a) => a.id !== C.eu.uid).forEach((a) => {
@@ -232,14 +270,14 @@ export function montarChat(el) {
     const grupo = itens.shift();
     itens.sort((x, y) => ms(y.quando) - ms(x.quando) || (y.on - x.on) || x.nome.localeCompare(y.nome));
     listaConv.replaceChildren(...[grupo, ...itens].map((it) => {
-      const b = h("button", "ad-conv" + (it.id === conv ? " ativa" : "") + (it.nao ? " nao-lida" : "")); b.type = "button";
+      const b = h("button", "eq-item" + (it.id === conv ? " ativa" : "") + (it.nao ? " nao-lida" : "")); b.type = "button";
       b.setAttribute("aria-current", it.id === conv ? "true" : "false");
       let av;
-      if (it.grupo) { av = h("div", "ad-av ad-av-grupo", "👥"); }
+      if (it.grupo) av = avGrupo();
       else { av = avatar({ ...pessoa(it.uid), nome: it.nome }); av.classList.add("com-ponto"); const pt = h("i", "ad-ponto" + (it.on ? " on" : "")); pt.setAttribute("aria-hidden", "true"); av.appendChild(pt); }
       const tx = h("div", "tx");
       const l1 = h("div", "l1"); l1.append(h("strong", null, it.nome), h("small", null, it.quando ? relativoCurto(it.quando) : ""));
-      const l2 = h("div", "l2"); l2.append(h("span", null, it.sub)); if (it.nao) l2.append(h("b", "ad-conv-nao", it.grupo ? String(it.nao > 99 ? "99+" : it.nao) : "●"));
+      const l2 = h("div", "l2"); l2.append(h("span", null, it.sub)); if (it.nao) l2.append(h("b", "eq-nao", it.grupo ? String(it.nao > 99 ? "99+" : it.nao) : "1"));
       tx.append(l1, l2);
       b.append(av, tx);
       b.addEventListener("click", () => abrir(it.id));
@@ -248,113 +286,128 @@ export function montarChat(el) {
   }
   const relativoCurto = (t) => { const d = Date.now() - ms(t); if (d < 60000) return "agora"; if (d < 3600000) return `${Math.floor(d / 60000)} min`; if (new Date(ms(t)).toDateString() === new Date().toDateString()) return hora(t); return new Date(ms(t)).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }); };
 
-  // ---------- cabeçalho ----------
+  // ---------- cabeçalho compacto ----------
   function pintarTopo() {
     quem.replaceChildren();
+    quem.removeAttribute("title");
     if (conv === "equipe") {
       const nOn = D.admins.filter((a) => C.online(a.id)).length;
-      const av = h("div", "ad-av ad-av-grupo", "👥");
-      const tx = h("div", "tx"); tx.append(h("strong", null, "Equipe"), h("small", null, `${D.admins.length} pessoas · ${nOn} online agora`));
-      quem.append(av, tx);
+      const tx = h("div", "tx"); tx.append(h("strong", null, "Equipe"), h("small", null, `${D.admins.length} pessoas · ${nOn} online`));
+      quem.append(avGrupo(), tx);
     } else {
       const uid = outroDoPar(conv), a = D.admins.find((x) => x.id === uid) || {};
       const on = C.online(uid), pr = C.presenca.get(uid);
-      const av = avatar({ ...pessoa(uid), nome: a.nome || nomeDe(uid) }); av.classList.add("com-ponto"); const pt = h("i", "ad-ponto" + (on ? " on" : "")); av.appendChild(pt);
+      const av = avatar({ ...pessoa(uid), nome: a.nome || nomeDe(uid) }); av.classList.add("com-ponto"); av.appendChild(h("i", "ad-ponto" + (on ? " on" : "")));
       const carga = [D.denuncias.filter((d) => d.responsavel === uid && ["nova", "em_analise"].includes(d.status)).length, D.suporte.filter((x) => x.responsavel === uid && x.status !== "fechado").length, C.tarefas.filter((t) => t.responsavel === uid && t.status !== "feito").length];
-      const tx = h("div", "tx"); tx.append(h("strong", null, a.nome || nomeDe(uid)), h("small", null, `${on ? "Online" : pr?.em ? "Visto " + relativo(pr.em) : "Ainda não abriu o painel"} · ${PAPEIS[a.papel] || PAPEIS.dono} · com ele(a): ${carga[0]} denúncia(s), ${carga[1]} chamado(s), ${carga[2]} tarefa(s)`));
+      const status = h("small", on ? "on" : null, `${on ? "online" : pr?.em ? "visto " + relativo(pr.em) : "ainda não abriu o painel"} · ${PAPEIS[a.papel] || PAPEIS.dono}`);
+      const tx = h("div", "tx"); tx.append(h("strong", null, a.nome || nomeDe(uid)), status);
       quem.append(av, tx);
+      quem.title = `Com ${primeiro(a.nome || nomeDe(uid))}: ${carga[0]} denúncia(s), ${carga[1]} chamado(s) e ${carga[2]} tarefa(s)`;
     }
   }
 
-  // ---------- mensagens ----------
+  // ---------- mensagens (cada uma guarda o seu elemento: um áudio tocando não para quando chega outra) ----------
   const hoje = () => new Date().toLocaleDateString("pt-BR");
+  const ontem = () => new Date(Date.now() - 864e5).toLocaleDateString("pt-BR");
   function mensagensAtuais() { return conv === "equipe" ? C.chat : msgsDm; }
+  const nos = new Map(); // chave -> { ass, el }
+  function criarBalao(m, junto, t) {
+    const meu = m.autorId === C.eu.uid;
+    const p = pessoa(m.autorId);
+    const linha = h("div", "eq-linha" + (meu ? " meu" : "") + (junto ? " junto" : "")); if (m.id) linha.dataset.id = m.id;
+    if (!meu && conv === "equipe") { const av = avatar({ ...p, nome: m.nome || p.nome }); av.classList.add("eq-av-msg"); if (junto) av.classList.add("oculto"); linha.appendChild(av); }
+    const mencionaMe = (m.mencoes || []).includes(C.eu.uid) && !meu;
+    const bm = h("div", "eq-balao" + (meu ? " meu" : "") + (mencionaMe ? " mencao-eu" : "") + (m.tipoArquivo ? " tem-" + m.tipoArquivo : "") + (!m.texto && m.tipoArquivo ? " so-anexo" : ""));
+    bm.tabIndex = 0;
+    if (!meu && !junto && conv === "equipe") bm.appendChild(h("b", "eq-autor", m.nome || p.nome || "Equipe"));
+    if (m.resposta && m.resposta.id) {
+      const cit = h("button", "eq-cit"); cit.type = "button";
+      cit.append(h("b", null, m.resposta.autorId === C.eu.uid ? "Você" : (m.resposta.nome || nomeDe(m.resposta.autorId) || "Equipe")), h("span", null, m.resposta.texto || "Anexo"));
+      cit.addEventListener("click", (e) => { e.stopPropagation(); irParaMensagem(m.resposta.id); });
+      bm.appendChild(cit);
+    }
+    if (m.tipoArquivo === "imagem") {
+      const f = h("button", "eq-foto"); f.type = "button"; f.setAttribute("aria-label", "Abrir foto");
+      if (m.miniatura) { const im = document.createElement("img"); im.src = m.miniatura; im.alt = m.nomeArquivo || "Foto"; im.loading = "lazy"; f.appendChild(im); }
+      else f.append(ic("foto"), h("span", null, "Abrir foto"));
+      f.addEventListener("click", (e) => { e.stopPropagation(); verFoto(m); }); bm.appendChild(f);
+    } else if (m.tipoArquivo === "audio") {
+      bm.appendChild(criarPlayerAudio({ chave: "eq:" + m.anexo, fonte: () => obterAnexo(m.anexo), duracao: m.duracao || 0, aoErro: () => toast("Não foi possível tocar o áudio.") }));
+    } else if (m.tipoArquivo === "arquivo") {
+      const a = h("button", "eq-arquivo"); a.type = "button"; a.setAttribute("aria-label", `Baixar ${m.nomeArquivo || "arquivo"}`);
+      const ext = (String(m.nomeArquivo || "").split(".").pop() || "").slice(0, 4).toUpperCase();
+      const icA = h("span", "ic"); icA.append(ic("documento", 26), h("b", null, ext));
+      const d = h("span", "tx"); d.append(h("strong", null, m.nomeArquivo || "Arquivo"), h("small", null, m.tamanho ? kb(m.tamanho) : "Arquivo"));
+      const bx = h("span", "bx"); bx.appendChild(ic("baixar", 18));
+      a.append(icA, d, bx);
+      a.addEventListener("click", (e) => { e.stopPropagation(); baixarAnexo(m); }); bm.appendChild(a);
+    }
+    const hr = h("span", "eq-hora", hora(m.em));
+    if (m.texto) { const p2 = h("div", "eq-texto"); p2.appendChild(textoComMencoes(m.texto, m.mencoes)); if (t) marcar(p2, t); p2.appendChild(hr); bm.appendChild(p2); }
+    else bm.appendChild(hr);
+    // reações já dadas (agrupadas por emoji, com contagem)
+    const reacoes = m.reacoes || {};
+    const chavesReacao = Object.keys(reacoes);
+    if (chavesReacao.length) {
+      const cont = new Map();
+      chavesReacao.forEach((uid) => { const e = reacoes[uid]; cont.set(e, (cont.get(e) || 0) + 1); });
+      const linhaReac = h("div", "eq-reacoes");
+      [...cont.entries()].forEach(([e, n]) => {
+        const ch = h("button", "eq-reac" + (reacoes[C.eu.uid] === e ? " eu" : "")); ch.type = "button";
+        ch.append(h("span", "em", e), h("span", "n", String(n)));
+        ch.title = chavesReacao.filter((u) => reacoes[u] === e).map((u) => (u === C.eu.uid ? "Você" : nomeDe(u))).join(", ");
+        ch.addEventListener("click", (ev) => { ev.stopPropagation(); reagir(m, e); });
+        linhaReac.appendChild(ch);
+      });
+      bm.appendChild(linhaReac);
+    }
+    // Botão do menu (aparece ao passar o mouse; no celular: toque longo na mensagem).
+    const bMenu = h("button", "eq-balao-menu"); bMenu.type = "button"; bMenu.setAttribute("aria-label", "Opções da mensagem"); bMenu.appendChild(ic("seta", 18));
+    bMenu.addEventListener("click", (e) => { e.stopPropagation(); const r = bMenu.getBoundingClientRect(); abrirMenu(m, r.left, r.bottom + 4, meu); });
+    bm.appendChild(bMenu);
+    bm.addEventListener("contextmenu", (e) => { e.preventDefault(); abrirMenu(m, e.clientX, e.clientY, meu); });
+    bm.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === "ContextMenu") { e.preventDefault(); const r = bm.getBoundingClientRect(); abrirMenu(m, r.left + 12, r.bottom, meu); } });
+    let timerToque = null;
+    bm.addEventListener("touchstart", (e) => { const tq = e.touches[0]; timerToque = setTimeout(() => { navigator.vibrate?.(12); abrirMenu(m, tq.clientX, tq.clientY, meu); }, 480); }, { passive: true });
+    ["touchend", "touchmove", "touchcancel"].forEach((ev) => bm.addEventListener(ev, () => clearTimeout(timerToque), { passive: true }));
+    linha.appendChild(bm);
+    return linha;
+  }
   function pintarChat() {
     const perto = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 80;
     let lista = mensagensAtuais();
     const t = termo.trim().toLowerCase();
     if (t) lista = lista.filter((m) => `${m.texto || ""} ${m.nomeArquivo || ""} ${m.nome || ""}`.toLowerCase().includes(t));
-    resBusca.textContent = t ? `${lista.length} resultado(s)` : "";
+    resBusca.textContent = t ? `${lista.length} resultado${lista.length === 1 ? "" : "s"}` : "";
     if (!lista.length) {
-      const v = h("div", "ad-vazio ad-chat-vazio");
+      const v = h("div", "eq-vazio");
       if (t) v.append(h("strong", null, "Nada encontrado"), h("span", null, `Nenhuma mensagem com "${termo.trim()}".`));
       else v.append(h("strong", null, conv === "equipe" ? "Comece a conversa" : `Conversa com ${nomeDe(outroDoPar(conv))}`), h("span", null, conv === "equipe" ? "As mensagens aqui ficam só entre a equipe." : "Só vocês dois veem esta conversa."));
-      chat.replaceChildren(v); return;
+      nos.clear(); chat.replaceChildren(v); return;
     }
     let diaAnt = "", autorAnt = "", msAnt = 0;
-    const nos = [];
+    const desejados = [], usados = new Set();
     lista.forEach((m) => {
       const dia = ms(m.em) ? new Date(ms(m.em)).toLocaleDateString("pt-BR") : hoje();
-      if (dia !== diaAnt) { nos.push(h("div", "ad-chat-dia", dia === hoje() ? "Hoje" : dia)); diaAnt = dia; autorAnt = ""; }
-      const meu = m.autorId === C.eu.uid;
+      if (dia !== diaAnt) {
+        const k = "dia:" + dia; usados.add(k);
+        let n = nos.get(k); if (!n) { n = { el: h("div", "eq-dia") }; nos.set(k, n); }
+        const rot = dia === hoje() ? "Hoje" : dia === ontem() ? "Ontem" : dia;
+        if (n.el.textContent !== rot) n.el.textContent = rot;
+        desejados.push(n.el); diaAnt = dia; autorAnt = "";
+      }
       const junto = !t && m.autorId === autorAnt && ms(m.em) - msAnt < 5 * 60000;
-      const p = pessoa(m.autorId);
-      const linha = h("div", "ad-chat-linha" + (meu ? " meu" : "") + (junto ? " junto" : "")); if (m.id) linha.dataset.id = m.id;
-      if (!meu) { const av = avatar({ ...p, nome: m.nome || p.nome }); av.classList.add("ad-chat-av"); if (junto) av.style.visibility = "hidden"; linha.appendChild(av); }
-      const mencionaMe = (m.mencoes || []).includes(C.eu.uid) && !meu;
-      const bm = h("div", "ad-msg" + (meu ? " equipe" : "") + (mencionaMe ? " mencao-eu" : ""));
-      if (!meu && !junto && conv === "equipe") bm.appendChild(h("b", "ad-msg-autor", m.nome || p.nome || "Equipe"));
-      if (m.resposta && m.resposta.id) {
-        const cit = h("button", "ad-msg-cit"); cit.type = "button";
-        cit.append(h("b", null, m.resposta.autorId === C.eu.uid ? "Você" : (m.resposta.nome || nomeDe(m.resposta.autorId) || "Equipe")), h("span", null, m.resposta.texto || "Anexo"));
-        cit.addEventListener("click", () => irParaMensagem(m.resposta.id));
-        bm.appendChild(cit);
-      }
-      if (m.tipoArquivo === "imagem") {
-        const f = h("button", "ad-msg-foto"); f.type = "button"; f.setAttribute("aria-label", "Abrir foto");
-        if (m.miniatura) { const im = document.createElement("img"); im.src = m.miniatura; im.alt = m.nomeArquivo || "Foto"; im.loading = "lazy"; f.appendChild(im); } else f.textContent = "📷 Abrir foto";
-        f.addEventListener("click", () => verFoto(m)); bm.appendChild(f);
-      } else if (m.tipoArquivo === "audio") {
-        const a = h("button", "ad-msg-audio"); a.type = "button"; a.append(h("span", "play", "▶"), h("span", null, `Áudio ${m.duracao ? seg(m.duracao) : ""}`));
-        a.addEventListener("click", async () => {
-          a.disabled = true; a.lastChild.textContent = "Carregando…";
-          try { const d = await obterAnexo(m.anexo); const au = document.createElement("audio"); au.controls = true; au.src = d; au.className = "ad-msg-player"; a.replaceWith(au); au.play().catch(() => {}); }
-          catch (e) { a.disabled = false; a.lastChild.textContent = "Tentar de novo"; toast("Não foi possível tocar o áudio."); }
-        });
-        bm.appendChild(a);
-      } else if (m.tipoArquivo === "arquivo") {
-        const a = h("button", "ad-msg-arquivo"); a.type = "button";
-        a.append(h("span", "ic", "📄"), (() => { const d = h("span", "tx"); d.append(h("strong", null, m.nomeArquivo || "Arquivo"), h("small", null, `${m.tamanho ? kb(m.tamanho) + " · " : ""}Baixar`)); return d; })());
-        a.addEventListener("click", () => baixarAnexo(m)); bm.appendChild(a);
-      }
-      if (m.texto) { const p2 = h("div", "ad-msg-texto"); p2.appendChild(textoComMencoes(m.texto, m.mencoes)); if (t) marcar(p2, t); bm.appendChild(p2); }
-      const rod = h("small", null, hora(m.em));
-      bm.appendChild(rod);
-      // reações já dadas (agrupadas por emoji, com contagem)
-      const reacoes = m.reacoes || {};
-      const chavesReacao = Object.keys(reacoes);
-      if (chavesReacao.length) {
-        const cont = new Map();
-        chavesReacao.forEach((uid) => { const e = reacoes[uid]; cont.set(e, (cont.get(e) || 0) + 1); });
-        const linhaReac = h("div", "ad-msg-reacoes");
-        [...cont.entries()].forEach(([e, n]) => {
-          const meuReac = reacoes[C.eu.uid] === e;
-          const ch = h("button", "ad-reac-chip" + (meuReac ? " eu" : "")); ch.type = "button";
-          ch.append(h("span", "em", e), h("span", "n", String(n)));
-          ch.title = chavesReacao.filter((u) => reacoes[u] === e).map((u) => (u === C.eu.uid ? "Você" : nomeDe(u))).join(", ");
-          ch.addEventListener("click", () => alternarReacao(conv, m, e).catch((err) => toast("Não foi possível reagir: " + (err.code || err.message))));
-          linhaReac.appendChild(ch);
-        });
-        bm.appendChild(linhaReac);
-      }
-      // ações: reagir / responder / virar tarefa / copiar
-      const mais = h("div", "ad-msg-acoes");
-      const bReagir = h("button", "ad-msg-acao ad-msg-reagir", "😊 Reagir"); bReagir.type = "button";
-      const picker = h("div", "ad-reac-picker"); picker.hidden = true;
-      EMOJIS.forEach((e) => { const be = h("button", "ad-reac-op" + (reacoes[C.eu.uid] === e ? " eu" : "")); be.type = "button"; be.textContent = e; be.setAttribute("aria-label", "Reagir com " + e); be.addEventListener("click", () => { picker.hidden = true; alternarReacao(conv, m, e).catch((err) => toast("Não foi possível reagir: " + (err.code || err.message))); }); picker.appendChild(be); });
-      bReagir.addEventListener("click", (ev) => { ev.stopPropagation(); const abrirP = picker.hidden; document.querySelectorAll(".ad-reac-picker").forEach((x) => { x.hidden = true; }); picker.hidden = !abrirP; });
-      const bResp = h("button", "ad-msg-acao", "Responder"); bResp.type = "button";
-      bResp.addEventListener("click", () => definirResposta(m));
-      const bt = h("button", "ad-msg-acao", "Criar tarefa"); bt.type = "button";
-      bt.addEventListener("click", () => editarTarefa({ titulo: (m.texto || m.nomeArquivo || "Mensagem do chat").slice(0, 140), descricao: `Do chat ${conv === "equipe" ? "da equipe" : "com " + nomeDe(outroDoPar(conv))} — ${m.nome || nomeDe(m.autorId)} (${hora(m.em)}): ${m.texto || previa(m)}`.slice(0, 2000) }));
-      mais.append(bReagir, bResp, bt);
-      if (m.texto && navigator.clipboard) { const bc = h("button", "ad-msg-acao", "Copiar"); bc.type = "button"; bc.addEventListener("click", () => navigator.clipboard.writeText(m.texto).then(() => toast("Mensagem copiada"))); mais.appendChild(bc); }
-      bm.append(mais, picker);
-      linha.appendChild(bm);
-      nos.push(linha);
+      const k = "m:" + (m.id || ms(m.em) + m.autorId); usados.add(k);
+      const ass = JSON.stringify([junto, t, hora(m.em), m.texto || "", m.reacoes || null, m.resposta || null, m.tipoArquivo || "", m.anexo || "", m.miniatura ? 1 : 0, m.nome || ""]);
+      let n = nos.get(k);
+      if (!n || n.ass !== ass) { n = { ass, el: criarBalao(m, junto, t) }; nos.set(k, n); }
+      desejados.push(n.el);
       autorAnt = m.autorId; msAnt = ms(m.em);
     });
-    chat.replaceChildren(...nos);
+    let atual = chat.firstChild;
+    for (const no of desejados) { if (no === atual) { atual = atual.nextSibling; continue; } chat.insertBefore(no, atual); }
+    while (atual) { const prox = atual.nextSibling; atual.remove(); atual = prox; }
+    for (const k of [...nos.keys()]) if (!usados.has(k)) nos.delete(k);
     if (t) chat.scrollTop = 0; else if (perto || !pintarChat.feito) chat.scrollTop = chat.scrollHeight;
     pintarChat.feito = true;
   }
@@ -362,6 +415,35 @@ export function montarChat(el) {
     const txt0 = no.textContent; const i = txt0.toLowerCase().indexOf(t); if (i < 0) return;
     no.replaceChildren(document.createTextNode(txt0.slice(0, i)), h("mark", null, txt0.slice(i, i + t.length)), document.createTextNode(txt0.slice(i + t.length)));
   }
+  const reagir = (m, e) => alternarReacao(conv, m, e).catch((err) => toast("Não foi possível reagir: " + (err.code || err.message)));
+
+  // ---------- menu da mensagem: reações + responder, criar tarefa, copiar, baixar ----------
+  function fecharMenu() { menu.hidden = true; }
+  function abrirMenu(m, x, y, meu) {
+    menu.replaceChildren();
+    const reacoes = m.reacoes || {};
+    const linhaE = h("div", "eq-menu-emojis");
+    EMOJIS.forEach((e) => {
+      const be = h("button", "eq-menu-emoji" + (reacoes[C.eu.uid] === e ? " eu" : "")); be.type = "button"; be.textContent = e; be.setAttribute("aria-label", "Reagir com " + e);
+      be.addEventListener("click", () => { fecharMenu(); reagir(m, e); });
+      linhaE.appendChild(be);
+    });
+    menu.appendChild(linhaE);
+    const item = (icone, rotulo, fn) => { const b = h("button", "eq-menu-item"); b.type = "button"; b.setAttribute("role", "menuitem"); b.append(ic(icone, 19), h("span", null, rotulo)); b.addEventListener("click", () => { fecharMenu(); fn(); }); menu.appendChild(b); };
+    item("responder", "Responder", () => definirResposta(m));
+    item("tarefa", "Criar tarefa", () => editarTarefa({ titulo: (m.texto || m.nomeArquivo || "Mensagem do chat").slice(0, 140), descricao: `Do chat ${conv === "equipe" ? "da equipe" : "com " + nomeDe(outroDoPar(conv))} — ${m.nome || nomeDe(m.autorId)} (${hora(m.em)}): ${m.texto || previa(m)}`.slice(0, 2000) }));
+    if (m.texto && navigator.clipboard) item("copiar", "Copiar texto", () => navigator.clipboard.writeText(m.texto).then(() => toast("Mensagem copiada")));
+    if (m.anexo && m.tipoArquivo !== "audio") item("baixar", m.tipoArquivo === "imagem" ? "Baixar foto" : "Baixar arquivo", () => baixarAnexo(m));
+    menu.hidden = false;
+    const r = menu.getBoundingClientRect();
+    menu.style.left = Math.max(8, Math.min(meu ? x - r.width + 30 : x, innerWidth - r.width - 8)) + "px";
+    menu.style.top = Math.max(8, Math.min(y, innerHeight - r.height - 8)) + "px";
+    menu.querySelector("button")?.focus({ preventScroll: true });
+  }
+  document.addEventListener("click", (e) => { if (!menu.hidden && !menu.contains(e.target)) fecharMenu(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !menu.hidden) fecharMenu(); });
+  chat.addEventListener("scroll", () => { if (!menu.hidden) fecharMenu(); }, { passive: true });
+
   // ---------- responder / citar ----------
   function pintarResposta() {
     if (!respondendo) { respBarra.hidden = true; respTx.replaceChildren(); return; }
@@ -374,40 +456,50 @@ export function montarChat(el) {
   }
   respX.addEventListener("click", () => { respondendo = null; pintarResposta(); txt.focus(); });
   function irParaMensagem(id) {
-    const alvo = chat.querySelector(`.ad-chat-linha[data-id="${id}"]`);
+    const alvo = chat.querySelector(`.eq-linha[data-id="${CSS.escape(id)}"]`);
     if (!alvo) { toast("Mensagem fora da conversa carregada"); return; }
     alvo.scrollIntoView({ behavior: "smooth", block: "center" });
     alvo.classList.add("destacada"); setTimeout(() => alvo.classList.remove("destacada"), 1600);
   }
-  document.addEventListener("click", () => { chat.querySelectorAll(".ad-reac-picker").forEach((x) => { x.hidden = true; }); });
 
   // ---------- abrir conversa ----------
   function abrir(id) {
-    conv = id; C.conversaAberta = id; termo = ""; inBusca.value = ""; barraBusca.hidden = true; respondendo = null; pintarResposta();
-    pararDm?.(); pararDm = null; msgsDm = []; pintarChat.feito = false;
+    conv = id; C.conversaAberta = id; termo = ""; inBusca.value = ""; barraBusca.hidden = true; respondendo = null; pintarResposta(); fecharMenu();
+    pararDm?.(); pararDm = null; msgsDm = []; pintarChat.feito = false; nos.clear();
     raiz.classList.add("aberta");
     if (id === "equipe") { C.marcarChatVisto?.(); }
     else {
-      chat.replaceChildren(h("div", "ad-vazio", "Carregando…"));
+      chat.replaceChildren(h("div", "eq-vazio", "Carregando…"));
       pararDm = fb.onSnapshot(fb.query(fb.collection(fb.db, "equipe_dm", id, "mensagens"), fb.orderBy("em", "desc"), fb.limit(150)), (s) => {
         msgsDm = s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).reverse();
         if (conv === id) { pintarChat(); if (naoLidaDm(id)) marcarLidaDm(id); }
-      }, (e) => { console.warn("Conversa:", e.code || e.message); chat.replaceChildren(h("div", "ad-vazio", "Não foi possível abrir esta conversa.")); });
+      }, (e) => { console.warn("Conversa:", e.code || e.message); nos.clear(); chat.replaceChildren(h("div", "eq-vazio", "Não foi possível abrir esta conversa.")); });
       if (naoLidaDm(id)) marcarLidaDm(id);
     }
     pintarTopo(); pintarLista();
     if (id === "equipe") pintarChat();
     C.contadores?.();
-    txt.focus({ preventScroll: true });
+    if (matchMedia("(min-width: 761px)").matches) txt.focus({ preventScroll: true });
   }
   voltar.addEventListener("click", () => { raiz.classList.remove("aberta"); });
-  bBusca.addEventListener("click", () => { barraBusca.hidden = !barraBusca.hidden; if (!barraBusca.hidden) inBusca.focus(); else { termo = ""; inBusca.value = ""; pintarChat(); } });
+  const fecharBusca = () => { barraBusca.hidden = true; termo = ""; inBusca.value = ""; pintarChat(); };
+  bBusca.addEventListener("click", () => { if (barraBusca.hidden) { barraBusca.hidden = false; inBusca.focus(); } else fecharBusca(); });
+  fBusca.addEventListener("click", fecharBusca);
+  inBusca.addEventListener("keydown", (e) => { if (e.key === "Escape") fecharBusca(); });
   let tBusca; inBusca.addEventListener("input", () => { clearTimeout(tBusca); tBusca = setTimeout(() => { termo = inBusca.value; pintarChat(); }, 150); });
 
-  // ---------- campo, @menção ----------
+  // ---------- campo, botão redondo, @menção ----------
   const mencoes = new Map(); // primeiro nome (minúsculo) -> uid
   const ajustar = () => { txt.style.height = "auto"; txt.style.height = Math.min(140, txt.scrollHeight) + "px"; };
-  const atualizarCampo = () => { const n = txt.value.trim().length; env.disabled = !n; conta.textContent = txt.value.length > 1600 ? `${2000 - txt.value.length}` : ""; ajustar(); };
+  function pintarPrincipal() {
+    const temTexto = !!txt.value.trim();
+    if (bPrincipal.dataset.modo === (temTexto ? "enviar" : "mic")) return;
+    bPrincipal.dataset.modo = temTexto ? "enviar" : "mic";
+    bPrincipal.replaceChildren(ic(temTexto ? "enviar" : "mic"));
+    const rot = temTexto ? "Enviar" : podeGravar() ? "Gravar áudio" : "Este navegador não grava áudio";
+    bPrincipal.setAttribute("aria-label", rot); bPrincipal.title = rot;
+  }
+  const atualizarCampo = () => { conta.textContent = txt.value.length > 1600 ? `${2000 - txt.value.length}` : ""; ajustar(); pintarPrincipal(); };
   function candidatos(q) {
     return D.admins.filter((a) => a.id !== C.eu.uid).map((a) => ({ uid: a.id, nome: a.nome || nomeDe(a.id) })).filter((a) => primeiro(a.nome).toLowerCase().startsWith(q.toLowerCase()) || a.nome.toLowerCase().includes(q.toLowerCase()));
   }
@@ -415,7 +507,7 @@ export function montarChat(el) {
   function mostrarSugestoes() {
     const tk = tokenAtual(); if (!tk) { sugest.hidden = true; return; }
     const cs = candidatos(tk.q); if (!cs.length) { sugest.hidden = true; return; }
-    sugest.replaceChildren(...cs.slice(0, 6).map((c, i) => { const b = h("button", "ad-mencao-op" + (i === 0 ? " sel" : "")); b.type = "button"; b.setAttribute("role", "option"); const av = avatar({ ...pessoa(c.uid), nome: c.nome }); av.classList.add("ad-chat-av"); b.append(av, h("span", null, c.nome)); b.addEventListener("mousedown", (e) => { e.preventDefault(); escolher(c, tk); }); return b; }));
+    sugest.replaceChildren(...cs.slice(0, 6).map((c, i) => { const b = h("button", "eq-mencao-op" + (i === 0 ? " sel" : "")); b.type = "button"; b.setAttribute("role", "option"); const av = avatar({ ...pessoa(c.uid), nome: c.nome }); av.classList.add("eq-av-msg"); b.append(av, h("span", null, c.nome)); b.addEventListener("mousedown", (e) => { e.preventDefault(); escolher(c, tk); }); return b; }));
     sugest.hidden = false;
   }
   function escolher(c, tk = tokenAtual()) {
@@ -426,7 +518,7 @@ export function montarChat(el) {
   }
   txt.addEventListener("input", () => { atualizarCampo(); mostrarSugestoes(); });
   txt.addEventListener("blur", () => setTimeout(() => { sugest.hidden = true; }, 150));
-  bMencao.addEventListener("click", () => { const p0 = txt.selectionStart ?? txt.value.length; const antes = txt.value.slice(0, p0); const sep = antes && !/\s$/.test(antes) ? " " : ""; txt.value = antes + sep + "@" + txt.value.slice(p0); const pos = (antes + sep + "@").length; txt.focus(); txt.setSelectionRange(pos, pos); mostrarSugestoes(); });
+  bMencao.addEventListener("click", () => { const p0 = txt.selectionStart ?? txt.value.length; const antes = txt.value.slice(0, p0); const sep = antes && !/\s$/.test(antes) ? " " : ""; txt.value = antes + sep + "@" + txt.value.slice(p0); const pos = (antes + sep + "@").length; txt.focus(); txt.setSelectionRange(pos, pos); mostrarSugestoes(); atualizarCampo(); });
   const mencoesDoTexto = (t) => {
     const r = [];
     for (const m of t.matchAll(/@([^\s@.,!?;:]{1,20})/g)) {
@@ -436,17 +528,24 @@ export function montarChat(el) {
     }
     return r;
   };
+  let enviando = false;
   async function enviar() {
-    const t = txt.value.trim(); if (!t) return;
-    env.disabled = true;
-    try { await enviarMensagem(conv, { texto: t, mencoes: mencoesDoTexto(t), resposta: respondendo }); txt.value = ""; mencoes.clear(); respondendo = null; pintarResposta(); }
-    catch (e) { console.error(e); toast("Não foi possível enviar: " + (e.code || e.message)); }
-    finally { atualizarCampo(); txt.focus(); chat.scrollTop = chat.scrollHeight; }
+    const t = txt.value.trim(); if (!t || enviando) return;
+    enviando = true;
+    const resp = respondendo, menc = mencoesDoTexto(t);
+    // Limpa na hora (como num mensageiro); se falhar, o texto volta para o campo.
+    txt.value = ""; mencoes.clear(); respondendo = null; pintarResposta(); atualizarCampo();
+    try { await enviarMensagem(conv, { texto: t, mencoes: menc, resposta: resp }); chat.scrollTop = chat.scrollHeight; }
+    catch (e) { console.error(e); if (!txt.value) { txt.value = t; respondendo = resp; pintarResposta(); atualizarCampo(); } toast("Não foi possível enviar: " + (e.code || e.message)); }
+    finally { enviando = false; }
   }
   form.addEventListener("submit", (e) => { e.preventDefault(); enviar(); });
+  bPrincipal.addEventListener("click", () => { if (txt.value.trim()) enviar(); else if (podeGravar()) iniciarGravacao(); else toast("Este navegador não grava áudio."); });
+  // Tocar no botão não tira o foco do campo (o teclado do celular continua aberto).
+  ["pointerdown", "mousedown"].forEach((ev) => bPrincipal.addEventListener(ev, (e) => { if (document.activeElement === txt && txt.value.trim()) e.preventDefault(); }));
   txt.addEventListener("keydown", (e) => {
     if (!sugest.hidden) {
-      const ops = [...sugest.querySelectorAll(".ad-mencao-op")]; const i = ops.findIndex((o) => o.classList.contains("sel"));
+      const ops = [...sugest.querySelectorAll(".eq-mencao-op")]; const i = ops.findIndex((o) => o.classList.contains("sel"));
       if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); ops[i]?.classList.remove("sel"); ops[(i + (e.key === "ArrowDown" ? 1 : ops.length - 1)) % ops.length]?.classList.add("sel"); return; }
       if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); ops[Math.max(0, i)]?.dispatchEvent(new MouseEvent("mousedown")); return; }
       if (e.key === "Escape") { sugest.hidden = true; return; }
@@ -458,7 +557,7 @@ export function montarChat(el) {
   bAnexo.addEventListener("click", () => inArq.click());
   async function enviarArquivo(arquivo) {
     if (!arquivo) return;
-    bAnexo.disabled = true; const aviso = toast(`Enviando ${arquivo.name || "arquivo"}…`);
+    bAnexo.disabled = true; toast(`Enviando ${arquivo.name || "arquivo"}…`);
     try {
       const anexo = await prepararArquivo(arquivo);
       const legenda = txt.value.trim();
@@ -466,8 +565,9 @@ export function montarChat(el) {
       respondendo = null; pintarResposta();
       if (legenda) { txt.value = ""; mencoes.clear(); atualizarCampo(); }
       chat.scrollTop = chat.scrollHeight;
+      document.querySelector(".ad-toast")?.remove();
     } catch (e) { console.error(e); toast(e.message && !e.code ? e.message : "Não foi possível enviar: " + (e.code || e.message)); }
-    finally { bAnexo.disabled = false; aviso?.remove?.(); inArq.value = ""; }
+    finally { bAnexo.disabled = false; inArq.value = ""; }
   }
   inArq.addEventListener("change", () => enviarArquivo(inArq.files?.[0]));
   // Colar uma imagem (Ctrl+V) ou arrastar um arquivo para dentro do chat.
@@ -478,8 +578,7 @@ export function montarChat(el) {
 
   // ---------- áudio ----------
   let gravador = null, partes = [], inicio = 0, relogio = null, descartar = false;
-  const podeGravar = () => !!navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== "undefined";
-  if (!podeGravar()) { bAudio.disabled = true; bAudio.title = "Este navegador não grava áudio"; }
+  function podeGravar() { return !!navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== "undefined"; }
   async function iniciarGravacao() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -504,7 +603,6 @@ export function montarChat(el) {
     } catch (e) { console.warn(e); toast("Não foi possível usar o microfone. Libere a permissão do navegador."); }
   }
   function parar(cancelar) { descartar = cancelar; if (gravador && gravador.state !== "inactive") gravador.stop(); }
-  bAudio.addEventListener("click", iniciarGravacao);
   gCancelar.addEventListener("click", () => parar(true));
   gEnviar.addEventListener("click", () => parar(false));
 
@@ -514,6 +612,7 @@ export function montarChat(el) {
     pintarLista(); pintarTopo();
     if (conv === "equipe") { pintarChat(); C.marcarChatVisto?.(); }
   };
+  atualizarCampo();
   abrir(conv);
   raiz.classList.remove("aberta"); // no celular começa pela lista
 }
