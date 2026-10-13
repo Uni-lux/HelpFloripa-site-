@@ -11,7 +11,7 @@
 // =====================================================
 import { C, D, h, ms, toast, avatar, relativo, editarTarefa, nomeEquipe, PAPEIS } from "./admin-base.js?v=11";
 import { criarPlayerAudio } from "./audio-ondas.js?v=1";
-import { escolherApagar, editarTextoHF, verEdicoesHF, janelaHF, horaCurta, noPrazo, tempoRestante } from "./msg-acoes.js?v=1";
+import { escolherApagar, editarTextoHF, verEdicoesHF, janelaHF, horaCurta, noPrazo, tempoRestante, podeMexer } from "./msg-acoes.js?v=2";
 
 const pessoa = (uid) => D.pessoas.get(uid) || { uid, nome: "" };
 export const idPar = (a, b) => [a, b].sort().join("_");
@@ -163,7 +163,9 @@ async function apagarEqParaTodos(conv, m, ultima) {
     if (ultima && conv !== "equipe") fb.setDoc(fb.doc(fb.db, "equipe_dm", conv), { participantes: conv.split("_"), ultimaTexto: "Mensagem apagada" }, { merge: true }).catch(() => {});
   } catch (e) {
     console.error(e);
-    toast(e?.code === "permission-denied" ? "Apagar para todos começa a funcionar quando as regras novas forem publicadas." : "Não foi possível apagar: " + (e.code || e.message));
+    toast(e?.code !== "permission-denied" ? "Não foi possível apagar: " + (e.code || e.message)
+      : !podeMexer(m.em) ? "Passaram 10 minutos do envio: agora só dá para apagar para você."
+      : "Apagar para todos começa a funcionar quando as regras novas forem publicadas.");
   }
 }
 async function editarEq(conv, m, ultima) {
@@ -177,7 +179,9 @@ async function editarEq(conv, m, ultima) {
     if (ultima && conv !== "equipe") fb.setDoc(fb.doc(fb.db, "equipe_dm", conv), { participantes: conv.split("_"), ultimaTexto: previa({ ...m, texto: novo }).slice(0, 140) }, { merge: true }).catch(() => {});
   } catch (e) {
     console.error(e);
-    toast(e?.code === "permission-denied" ? "Editar mensagens começa a funcionar quando as regras novas forem publicadas." : "Não foi possível editar: " + (e.code || e.message));
+    toast(e?.code !== "permission-denied" ? "Não foi possível editar: " + (e.code || e.message)
+      : !podeMexer(m.em) ? "Passaram 10 minutos do envio: a mensagem não pode mais ser editada."
+      : "Editar mensagens começa a funcionar quando as regras novas forem publicadas.");
   }
 }
 async function verApagadaEq(m) {
@@ -653,7 +657,8 @@ export function montarChat(el) {
     const item = (icone, rotulo, fn, perigo) => { const b = h("button", "eq-menu-item" + (perigo ? " perigo" : "")); b.type = "button"; b.setAttribute("role", "menuitem"); b.append(ic(icone, 19), h("span", null, rotulo)); b.addEventListener("click", () => { fecharMenu(); fn(); }); menu.appendChild(b); };
     const lista = mensagensAtuais(), ultima = lista.at(-1)?.id === m.id;
     const apagar = async () => {
-      const modo = await escolherApagar({ podeTodos: meu && !m.apagada && !!ms(m.em), jaApagada: !!m.apagada });
+      const minha = meu && !m.apagada && !!ms(m.em);
+      const modo = await escolherApagar({ podeTodos: minha && podeMexer(m.em), prazoPassou: minha && !podeMexer(m.em), jaApagada: !!m.apagada });
       if (modo === "todos") apagarEqParaTodos(conv, m, ultima);
       else if (modo === "mim") { await apagarEqParaMim(conv, m); nos.clear(); pintarChat(); }
     };
@@ -674,7 +679,7 @@ export function montarChat(el) {
     item("tarefa", "Criar tarefa", () => editarTarefa({ titulo: (m.texto || m.nomeArquivo || "Mensagem do chat").slice(0, 140), descricao: `Do chat ${conv === "equipe" ? "da equipe" : "com " + nomeDe(outroDoPar(conv))} — ${m.nome || nomeDe(m.autorId)} (${hora(m.em)}): ${m.texto || previa(m)}`.slice(0, 2000) }));
     if (m.texto && navigator.clipboard) item("copiar", "Copiar texto", () => navigator.clipboard.writeText(m.texto).then(() => toast("Mensagem copiada")));
     if (m.anexo && m.tipoArquivo !== "audio") item("baixar", m.tipoArquivo === "imagem" ? "Baixar foto" : "Baixar arquivo", () => baixarAnexo(m));
-    if (meu && ms(m.em)) item("lapis", "Editar", () => editarEq(conv, m, ultima));
+    if (meu && ms(m.em) && podeMexer(m.em)) item("lapis", "Editar", () => editarEq(conv, m, ultima));
     if (m.editadaEm && Array.isArray(m.edicoes) && m.edicoes.length) item("relogio", "Ver original", () => verEdicoesHF({ atual: m.texto || "", editadaEm: m.editadaEm, edicoes: m.edicoes }));
     if (m.id) item("lixo", "Apagar", apagar, true);
     posicionarMenu(x, y, meu);
