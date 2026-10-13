@@ -169,12 +169,6 @@ service cloud.firestore {
       return exists(c) && get(c).data.get('falaram', {}).get(quem, false) == true;
     }
 
-    // Vínculo aceito no Social (duo, família, amigos...): conhecidos não avaliam.
-    function vinculados(a, b) {
-      let v = /databases/$(database)/documents/vinculos/$(par(a, b));
-      return exists(v) && get(v).data.get('status', '') == 'aceito';
-    }
-
     // Conta desativada (ou com exclusão pedida): perfis_publicos.desativadaAte no futuro.
     function desativada(uid) {
       let p = /databases/$(database)/documents/perfis_publicos/$(uid);
@@ -296,12 +290,29 @@ service cloud.firestore {
             && atendimentoOk();
       }
 
-      // Atendimento (negócios): horário, aviso de ausência e tempo médio de resposta.
+      // Faixa de horário "HH:MM-HH:MM" (00:00 a 23:59).
+      function faixaOk(v) {
+        return v is string && v.matches('^([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9]$');
+      }
+      // Horário de cada dia da semana: lista com 7 textos, de domingo (0) a sábado (6),
+      // "HH:MM-HH:MM" ou "" (fechado). Uma expressão regular só confere a lista toda
+      // (uma por dia estourava o limite de 1.000 expressões por gravação).
+      function semanaOk(s) {
+        return s == null
+            || (s is list && s.size() == 7
+                && s.join(';').matches('^(([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9])?(;(([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9])?){6}$'));
+      }
+
+      // Atendimento (negócios): horário (resumo e por dia), pausa de almoço, aviso de
+      // ausência com data de volta e tempo médio de resposta.
       function atendimentoOk() {
         let a = request.resource.data.get('atendimento', null);
         return a == null
             || (a is map
-                && a.keys().hasOnly(['horario', 'ausente', 'mensagem', 'resposta'])
+                && a.keys().hasOnly(['horario', 'semana', 'almoco', 'ausente', 'mensagem', 'volta', 'resposta'])
+                && (!('semana' in a) || semanaOk(a.semana))
+                && (!('almoco' in a) || a.almoco == null || faixaOk(a.almoco))
+                && (!('volta' in a) || a.volta == null || a.volta is timestamp)
                 && (!('ausente' in a) || a.ausente is bool)
                 && (!('mensagem' in a) || (a.mensagem is string && a.mensagem.size() <= 200))
                 && (!('horario' in a) || a.horario == null
@@ -822,7 +833,8 @@ service cloud.firestore {
     //                          podem mais ser criados: pedir avaliação várias vezes para a
     //                          mesma pessoa não gera notas extras.
     // Para avaliar um negócio: e-mail confirmado, conta com 3 dias, os dois já escreveram
-    // na conversa, não é o dono, sem vínculo aceito no Social e sem bloqueio.
+    // na conversa, não é o dono e sem bloqueio. Quem tem vínculo aceito no Social (amigos,
+    // família...) também avalia: continua valendo uma avaliação por pessoa em cada negócio.
     // n_ e c_ podem ser EDITADAS pelo autor (troca a nota no resumo, sem contar de novo).
     // =====================================================
     match /avaliacoes/{id} {
@@ -860,7 +872,6 @@ service cloud.firestore {
             && contaAntiga(eu)
             && falou(eu, dono, eu)
             && falou(eu, dono, dono)
-            && !vinculados(eu, dono)
             && !bloqueioEntre(eu, dono)
             && pedidoOk(d, eu, d.negocioId)
             && resumoAtualizado('neg_' + d.negocioId);
@@ -1187,7 +1198,7 @@ service cloud.firestore {
 
       allow create: if logado()
                     && emailOk()
-                    && request.resource.data.keys().hasOnly(['tipo', 'alvoId', 'itemId', 'conversaId', 'autorId', 'motivo', 'detalhe', 'trecho', 'status', 'criadoEm'])
+                    && request.resource.data.keys().hasOnly(['tipo', 'alvoId', 'itemId', 'conversaId', 'autorId', 'motivo', 'detalhe', 'trecho', 'contexto', 'status', 'criadoEm'])
                     && request.resource.data.autorId == request.auth.uid
                     && request.resource.data.alvoId is string
                     && request.resource.data.alvoId != request.auth.uid
@@ -1197,6 +1208,11 @@ service cloud.firestore {
                     && request.resource.data.motivo in ['golpe', 'falso', 'assedio', 'odio', 'improprio', 'spam', 'menor', 'outro']
                     && valorTextoAte(request.resource.data.get('detalhe', ''), 500)
                     && valorTextoAte(request.resource.data.get('trecho', ''), 300)
+                    // mensagem: ids de algumas mensagens antes e depois (a equipe abre uma por uma)
+                    && (!('contexto' in request.resource.data)
+                        || (request.resource.data.tipo == 'mensagem'
+                            && request.resource.data.contexto is list
+                            && request.resource.data.contexto.size() <= 12))
                     && request.resource.data.status == 'nova'
                     && request.resource.data.criadoEm == request.time
                     && itemDoAlvo(request.resource.data);
@@ -1287,6 +1303,27 @@ service cloud.firestore {
                     && request.resource.data.atualizadoEm == request.time
                     && request.resource.data.ultimaDe == 'usuario'
                     && !request.resource.data.keys().hasAny(['atendidoPor', 'responsavel', 'responsavelNome', 'assumidoEm']);
+      // A equipe abre uma conversa de suporte com qualquer pessoa ("Suporte Help Floripa"):
+      // o chamado já nasce respondido, com a primeira mensagem da equipe gravada junto.
+      allow create: if admin()
+                    && request.resource.data.keys().hasOnly(camposChamado().concat(['abertoPor']))
+                    && request.resource.data.uid is string
+                    && exists(/databases/$(database)/documents/usuarios/$(request.resource.data.uid))
+                    && request.resource.data.abertoPor == request.auth.uid
+                    && request.resource.data.assunto is string && request.resource.data.assunto.size() >= 3 && request.resource.data.assunto.size() <= 120
+                    && request.resource.data.categoria in ['conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro']
+                    && valorTextoAte(request.resource.data.get('nome', ''), 80)
+                    && valorTextoAte(request.resource.data.get('email', ''), 120)
+                    && request.resource.data.status == 'respondido'
+                    && request.resource.data.criadoEm == request.time
+                    && request.resource.data.atualizadoEm == request.time
+                    && request.resource.data.ultimaDe == 'equipe'
+                    // quem abre pode já ficar como responsável pelo chamado
+                    && (!('responsavel' in request.resource.data)
+                        || (request.resource.data.responsavel == request.auth.uid
+                            && request.resource.data.get('assumidoEm', null) == request.time
+                            && valorTextoAte(request.resource.data.get('responsavelNome', ''), 80)))
+                    && existsAfter(/databases/$(database)/documents/suporte/$(id)/mensagens/inicio);
       allow update: if logado()
                     && ((resource.data.uid == request.auth.uid
                          && mudou().hasOnly(['status', 'atualizadoEm', 'ultimaDe'])

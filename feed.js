@@ -12,8 +12,8 @@ import {
   fb, eu, dados, meusSeguindo, escondido, ganchos, obterPerfil, iniciarRede, carregarMeusSeguindo, linhaPessoa,
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, montarBarraRede, pintarBarraRede, ouvirAvisos, lerOrdenado,
   editarPublicacao, bloquear, comMencoes
-} from "./rede.js?v=27";
-import { abrirDenuncia } from "./denuncias.js?v=1";
+} from "./rede.js?v=28";
+import { abrirDenuncia } from "./denuncias.js?v=2";
 import { buscarPessoas, pessoasRecentes } from "./pessoas.js?v=3";
 import { docsComValidade } from "./leituras.js?v=1";
 

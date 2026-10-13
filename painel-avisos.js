@@ -10,6 +10,7 @@
 // =====================================================
 import { buscarReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=15";
 import { fotoSegura } from "./seguranca.js?v=1";
+import { buscarItensEquipe, TEXTO_EQUIPE, linkEquipe, seloOficial, SUPORTE } from "./avisos-equipe.js?v=1";
 
 const ms = (ts) => ts?.toMillis?.() ?? (typeof ts === "number" ? ts : 0);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
@@ -26,7 +27,9 @@ const ICONES = {
   fio: '<path d="M3 15c3-6 6 4 9-2s6 4 9-2"/><circle cx="12" cy="13" r="1.6" fill="currentColor"/>',
   envelope: '<rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="M4 7l8 6 8-6"/>',
   alerta: '<path d="M12 4l9 16H3z"/><path d="M12 10v4.5M12 17.5h.01"/>',
-  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>'
+  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  suporte: '<path d="M4.5 13v-1.5a7.5 7.5 0 0115 0V13"/><rect x="3.5" y="13" width="4" height="6" rx="1.5"/><rect x="16.5" y="13" width="4" height="6" rx="1.5"/><path d="M18.5 19c0 1.4-1.6 2-4 2h-1.5"/>',
+  megafone: '<path d="M4 10v4h3l6 4V6L7 10H4z"/><path d="M16.5 9a4 4 0 010 6M19 6.5a7.5 7.5 0 010 11"/>'
 };
 const svg = (nome, cls = "") => {
   const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -48,9 +51,11 @@ const TIPOS = {
   resposta: { cor: "#7c5cff", ic: "chat", aba: "publicacoes" },
   reclamacao: { cor: "#ef4444", ic: "alerta", aba: "reclamacoes" },
   "reclamacao-resp": { cor: "#ff7a1a", ic: "chat", aba: "reclamacoes" },
-  "reclamacao-ok": { cor: "#2fbf71", ic: "check", aba: "reclamacoes" }
+  "reclamacao-ok": { cor: "#2fbf71", ic: "check", aba: "reclamacoes" },
+  suporte: { cor: "#00adee", ic: "suporte", aba: "suporte" },
+  aviso: { cor: "#7c5cff", ic: "megafone", aba: "suporte" }
 };
-const ABAS = [["tudo", "Tudo"], ["mensagens", "Mensagens"], ["social", "Social"], ["publicacoes", "Publicações"], ["reclamacoes", "Reclamações"]];
+const ABAS = [["tudo", "Tudo"], ["mensagens", "Mensagens"], ["suporte", "Suporte"], ["social", "Social"], ["publicacoes", "Publicações"], ["reclamacoes", "Reclamações"]];
 const VINCULOS = { duo: "Duo", namoro: "Namorado(a)", casamento: "Cônjuge", melhor_amigo: "Melhor amigo(a)", amigo: "Amigo(a)", irmao: "Irmão(ã)", pai_mae: "Pai/Mãe", filho: "Filho(a)", primo: "Primo(a)", tio: "Tio(a)", sobrinho: "Sobrinho(a)", avo: "Avô/Avó", neto: "Neto(a)", parceiro: "Parceiro(a) de trabalho" };
 const TIPOS_DUO = ["duo", "namoro", "casamento"];
 
@@ -64,6 +69,7 @@ function texto(i) {
     case "curtida": return `deu ${"★".repeat(i.nota)}${"☆".repeat(Math.max(0, 5 - i.nota))} na sua publicação`;
     case "comentario": return "comentou na sua publicação";
     case "resposta": return "respondeu seu comentário";
+    case "aviso": case "suporte": return TEXTO_EQUIPE(i);
     default: return TEXTO_RECLAMACAO[i.tipo] ? TEXTO_RECLAMACAO[i.tipo](i) : "";
   }
 }
@@ -95,15 +101,16 @@ async function prontoFirebase() {
 async function carregar() {
   const uid = eu.uid;
   const ler = (col, ...f) => fs.getDocs(fs.query(fs.collection(db, col), ...f, fs.limit(60))).then((s) => s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) }))).catch(() => []);
-  const [usuario, seg, curt, com, resp, vin, conv, recl] = await Promise.all([
-    fs.getDoc(fs.doc(db, "usuarios", uid)).catch(() => null),
+  const usuario = await fs.getDoc(fs.doc(db, "usuarios", uid)).catch(() => null);
+  const [seg, curt, com, resp, vin, conv, recl, equipe] = await Promise.all([
     ler("relacoes", fs.where("tipo", "==", "seguir"), fs.where("alvoId", "==", uid)),
     ler("curtidas", fs.where("postAutorId", "==", uid)),
     ler("comentarios", fs.where("postAutorId", "==", uid)),
     ler("comentarios", fs.where("respostaAutorId", "==", uid)),
     ler("vinculos", fs.where("participantes", "array-contains", uid)),
     ler("conversas", fs.where("participantes", "array-contains", uid)),
-    buscarReclamacoes(fs, db, uid).catch(() => [])
+    buscarReclamacoes(fs, db, uid).catch(() => []),
+    buscarItensEquipe(fs, db, uid, (usuario?.exists() ? usuario.data().suporteLido : null) || {}).catch(() => [])
   ]);
   const dados = usuario?.exists() ? usuario.data() : {};
   const restritos = new Set(dados.restritos || []);
@@ -124,6 +131,7 @@ async function carregar() {
     if (c.ultimaMensagemRemetenteId && c.ultimaMensagemRemetenteId !== uid && ms(c.atualizadoEm) > lido) itens.push({ tipo: "mensagem", id: c.id, conversaId: c.id, uid: outro, detalhe: c.ultimaMensagem || "", quando: ms(c.atualizadoEm), naoLida: true });
   });
   recl.forEach((x) => itens.push({ ...x }));
+  equipe.forEach((x) => itens.push({ ...x }));
   // Nomes e fotos de quem ainda não veio junto
   const faltam = [...new Set(itens.filter((i) => i.uid && !i.nome).map((i) => i.uid))].slice(0, 40);
   const perfis = new Map();
@@ -214,7 +222,7 @@ const ehNova = (i) => i.quando > vistoAntes || !!i.pendente;
 function avatar(i) {
   const w = el("div", "pa-av");
   const f = el("div", "f");
-  const u = fotoSegura(i.foto);
+  const u = i.oficial ? SUPORTE.foto : fotoSegura(i.foto);
   if (u) { const img = document.createElement("img"); img.src = u; img.alt = ""; img.loading = "lazy"; img.onerror = () => { f.textContent = iniciais(i.nome); }; f.appendChild(img); } else f.textContent = iniciais(i.nome);
   const tp = TIPOS[i.tipo] || TIPOS.mensagem;
   const t = el("span", "t"); t.style.background = tp.cor; t.appendChild(svg(tp.ic));
@@ -223,6 +231,7 @@ function avatar(i) {
 }
 function destino(i) {
   if (i.tipo === "mensagem") return `mensagens.html?conversa=${encodeURIComponent(i.conversaId)}`;
+  if (i.oficial) return linkEquipe(i);
   if (i.tipo.startsWith("reclamacao")) return linkReclamacao(i, eu.uid);
   if (i.tipo === "seguidor" || i.tipo === "social") return `usuarios.html?perfil=${encodeURIComponent(i.uid)}`;
   return "notificacoes.html"; // estrelas e comentários abrem a publicação na página de notificações
@@ -248,9 +257,11 @@ function linha(i) {
   const d = el("div", "pa-item" + (nova ? " nova" : ""));
   d.tabIndex = 0; d.setAttribute("role", "link");
   const tx = el("div", "pa-tx");
-  tx.append(el("b", null, i.nome), document.createTextNode(" " + texto(i)), el("span", "q", tempo(i.quando)));
-  if (i.naoLida) tx.appendChild(el("span", "pa-nl", "não lida"));
-  if (i.detalhe) tx.appendChild(el("small", null, i.tipo === "mensagem" ? i.detalhe : `"${i.detalhe}"`));
+  const nome = el("b", null, i.nome);
+  if (i.oficial) nome.appendChild(seloOficial());
+  tx.append(nome, document.createTextNode(" " + texto(i)), el("span", "q", tempo(i.quando)));
+  if (i.naoLida) tx.appendChild(el("span", "pa-nl", i.oficial ? "nova" : "não lida"));
+  if (i.detalhe) tx.appendChild(el("small", null, i.tipo === "mensagem" || i.oficial ? i.detalhe : `"${i.detalhe}"`));
   if (i.tipo === "social" && i.pendente) {
     const box = el("div", "pa-acoes");
     const sim = el("button", "pa-acao pri", "Aceitar"), nao = el("button", "pa-acao sec", "Recusar");
@@ -271,8 +282,8 @@ function pintar() {
   const corpo = painel.querySelector(".pa-corpo");
   const todos = estado.itens;
   const novos = todos.filter(ehNova).length;
-  const naoLidas = todos.filter((i) => i.naoLida).length;
-  painel.querySelector(".pa-cab p").textContent = (novos ? `${novos} ${novos === 1 ? "nova" : "novas"}` : "Tudo em dia") + (naoLidas ? ` · ${naoLidas} ${naoLidas === 1 ? "mensagem não lida" : "mensagens não lidas"}` : "");
+  const naoLidasMsg = todos.filter((i) => i.naoLida && !i.oficial).length, doSuporte = todos.filter((i) => i.naoLida && i.oficial).length;
+  painel.querySelector(".pa-cab p").textContent = (novos ? `${novos} ${novos === 1 ? "nova" : "novas"}` : "Tudo em dia") + (naoLidasMsg ? ` · ${naoLidasMsg} ${naoLidasMsg === 1 ? "mensagem não lida" : "mensagens não lidas"}` : "") + (doSuporte ? ` · ${doSuporte} do suporte` : "");
   painel.querySelector(".pa-vistas").disabled = !novos;
   painel.querySelectorAll(".pa-aba").forEach((b) => {
     const n = b.dataset.aba === "tudo" ? todos.length : todos.filter((i) => TIPOS[i.tipo]?.aba === b.dataset.aba).length;
@@ -284,7 +295,7 @@ function pintar() {
   if (!lista.length) {
     const v = el("div", "pa-vazio");
     const ic = el("div", "pa-ic"); ic.appendChild(svg("sino"));
-    v.append(ic, el("strong", null, "Nada por aqui ainda"), el("span", null, aba === "tudo" ? "Mensagens, seguidores, estrelas, comentários e reclamações aparecem aqui." : "Nenhuma notificação deste tipo."));
+    v.append(ic, el("strong", null, "Nada por aqui ainda"), el("span", null, aba === "tudo" ? "Mensagens, avisos do suporte, seguidores, estrelas, comentários e reclamações aparecem aqui." : "Nenhuma notificação deste tipo."));
     corpo.appendChild(v);
     return;
   }

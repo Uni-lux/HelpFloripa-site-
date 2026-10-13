@@ -7,16 +7,17 @@ import {
   $, el, icone, pintarAvatar, urlSegura, tempoRelativo, toast, erroAmigavel,
   fb, eu, ganchos, iniciarRede, carregarMeusSeguindo, botaoSeguir, montarBarraRede, pintarBarraRede,
   ouvirAvisos, aoMudarAvisos, avisosVistosEm, marcarAvisosVistos, rotuloVinculo, abrirComentarios
-} from "./rede.js?v=27";
+} from "./rede.js?v=28";
 import { TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=15";
+import { TEXTO_EQUIPE, linkEquipe, seloOficial, fotoSuporte } from "./avisos-equipe.js?v=1";
 
 let filtro = "tudo";
 let vistoAntes = 0;
 const postsCache = new Map();
-const CORES = { seguidor: "#00adee", curtida: "#f5b700", comentario: "#7c5cff", resposta: "#7c5cff", social: "#e0457b", mensagem: "#1fa855", reclamacao: "#ef4444", "reclamacao-resp": "#ff7a1a", "reclamacao-ok": "#2fbf71" };
-const ICONES = { seguidor: "pessoa-mais", curtida: "estrela", comentario: "chat", resposta: "chat", social: "fio", mensagem: "envelope", reclamacao: "alerta", "reclamacao-resp": "chat", "reclamacao-ok": "check" };
-// Filtro de cada tipo (as três de reclamação ficam juntas)
-const grupo = (t) => (t === "resposta" ? "comentario" : t.startsWith("reclamacao") ? "reclamacao" : t);
+const CORES = { seguidor: "#00adee", curtida: "#f5b700", comentario: "#7c5cff", resposta: "#7c5cff", social: "#e0457b", mensagem: "#1fa855", reclamacao: "#ef4444", "reclamacao-resp": "#ff7a1a", "reclamacao-ok": "#2fbf71", suporte: "#00adee", aviso: "#7c5cff" };
+const ICONES = { seguidor: "pessoa-mais", curtida: "estrela", comentario: "chat", resposta: "chat", social: "fio", mensagem: "envelope", reclamacao: "alerta", "reclamacao-resp": "chat", "reclamacao-ok": "check", suporte: "ajuda", aviso: "sino" };
+// Filtro de cada tipo (as três de reclamação ficam juntas; avisos e respostas do suporte também)
+const grupo = (t) => (t === "resposta" ? "comentario" : t.startsWith("reclamacao") ? "reclamacao" : t === "aviso" ? "suporte" : t);
 
 function obterPost(id) {
   if (!postsCache.has(id)) postsCache.set(id, fb.getDoc(fb.doc(fb.db, "diario", id)).then((s) => (s.exists() ? { id, ...s.data() } : null)).catch(() => null));
@@ -46,7 +47,8 @@ function itens(a) {
     ...a.respostas.filter((x) => !a.comentarios.some((c) => c.id === x.id)).map((x) => ({ tipo: "resposta", ...x, texto: "respondeu seu comentário", detalhe: x.texto })),
     ...a.vinculos.map((x) => ({ tipo: "social", ...x, texto: x.pendente ? `quer adicionar você como ${rotuloVinculo(x.tipoParaMim).toLowerCase()}` : `aceitou seu pedido: ${rotuloVinculo(x.tipoParaMim)}` })),
     ...a.mensagens.map((x) => ({ tipo: "mensagem", ...x, texto: "enviou uma mensagem", detalhe: x.ultimaMensagem })),
-    ...(a.reclamacoes || []).map((x) => ({ ...x, texto: TEXTO_RECLAMACAO[x.tipo](x) }))
+    ...(a.reclamacoes || []).map((x) => ({ ...x, texto: TEXTO_RECLAMACAO[x.tipo](x) })),
+    ...(a.equipe || []).map((x) => ({ ...x, texto: TEXTO_EQUIPE(x), pendente: x.naoLida }))
   ].sort((x, y) => y.quando - x.quando);
 }
 
@@ -54,13 +56,16 @@ function linha(i) {
   const d = el("div", "notif" + (i.quando > vistoAntes || i.pendente ? " nova" : ""));
   d.tabIndex = 0; d.setAttribute("role", "button");
   const w = el("div", "av-wrap");
-  const av = el("div", "avatar"); pintarAvatar(av, i.foto, i.nome);
+  const av = el("div", "avatar");
+  if (i.oficial) av.replaceChildren(fotoSuporte()); else pintarAvatar(av, i.foto, i.nome);
   const t = el("span", "tipo"); t.style.background = CORES[i.tipo]; t.appendChild(icone(ICONES[i.tipo], "i"));
   w.append(av, t);
   const tx = el("div", "tx");
-  tx.append(el("b", null, i.nome || "Usuário"), document.createTextNode(" " + i.texto + " "));
+  const nome = el("b", null, i.nome || "Usuário");
+  if (i.oficial) nome.appendChild(seloOficial());
+  tx.append(nome, document.createTextNode(" " + i.texto + " "));
   tx.appendChild(el("span", "quando", tempoRelativo(i.quando ? new Date(i.quando) : null)));
-  if (i.detalhe) tx.appendChild(el("small", null, `"${i.detalhe}"`));
+  if (i.detalhe) tx.appendChild(el("small", null, i.oficial ? i.detalhe : `"${i.detalhe}"`));
   d.append(w, tx);
   // Miniatura da publicação curtida ou comentada
   if (i.postId) obterPost(i.postId).then((p) => {
@@ -79,6 +84,7 @@ function linha(i) {
   }
   const abrir = async () => {
     if (i.tipo === "mensagem") { location.href = `mensagens.html?conversa=${encodeURIComponent(i.id)}`; return; }
+    if (i.oficial) { location.href = linkEquipe(i); return; }
     if (i.tipo.startsWith("reclamacao")) { location.href = linkReclamacao(i, eu.uid); return; }
     if (i.tipo === "comentario" || i.tipo === "curtida" || i.tipo === "resposta") {
       const p = await obterPost(i.postId);
@@ -103,7 +109,7 @@ function pintar(a) {
   corpo.replaceChildren();
   if (!lista.length) {
     const v = el("div", "feed-vazio");
-    v.append(el("strong", null, "Nada por aqui ainda"), el("span", null, "Quando alguém seguir você, der estrelas, comentar suas publicações ou responder uma reclamação, aparece aqui."));
+    v.append(el("strong", null, "Nada por aqui ainda"), el("span", null, "Quando alguém seguir você, der estrelas, comentar suas publicações, responder uma reclamação ou o suporte responder, aparece aqui."));
     corpo.appendChild(v);
     return;
   }

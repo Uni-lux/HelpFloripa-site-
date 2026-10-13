@@ -4,14 +4,15 @@
 import { linha, linhaComparada, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=6";
 import { baixarPlanilhaMulti } from "./planilha.js?v=5";
 import { buscarPessoas } from "./pessoas.js?v=3";
-import { montarChat } from "./admin-chat.js?v=4";
+import { montarChat } from "./admin-chat.js?v=5";
+import { verConteudoDenuncia } from "./admin-denuncia.js?v=1";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
 import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha,
   PAPEIS, DESC_PAPEIS, pode, semPermissao, nomeEquipe, vendoAgora, marcarItem, seloResp, confirmarItem, controlesResp, espera,
   PRIORIDADES, editarTarefa, moverTarefa, garantirNegocios, garantirTodasPessoas, carregarPessoas, guardarPessoas
-} from "./admin-base.js?v=9";
+} from "./admin-base.js?v=10";
 
 const cab = (titulo, sub, extra) => { const c = h("div", "ad-cab"); const t = h("div"); t.append(h("h1", null, titulo)); if (sub) t.append(h("p", null, sub)); c.appendChild(t); if (extra) c.appendChild(extra); return c; };
 const bloco = (titulo, sub) => { const b = h("section", "ad-bloco"); const t = h("div", "ad-bloco-topo"); const tt = h("div"); tt.append(h("h3", null, titulo)); if (sub) tt.append(h("p", null, sub)); t.appendChild(tt); b.appendChild(t); b.topo = t; return b; };
@@ -367,7 +368,7 @@ export function denuncias(el) {
     const ac = h("div", "ad-acoes");
     const item = `denuncia:${d.id}`;
     const nomeItem = `Denúncia: ${MOTIVOS_DEN[d.motivo] || d.motivo} · ${alvo.nome || ""}`;
-    ac.append(btn("Ver conteúdo atual", "", () => { marcarItem(item, nomeItem); return verConteudo(d); }));
+    ac.append(btn("Ver conteúdo denunciado", "", () => { marcarItem(item, nomeItem); return verConteudo(d); }));
     const mod = pode("moderar");
     if (mod && d.status === "nova") ac.append(btn("Em análise", "", async () => { if (!confirmarItem(d, item)) return; marcarItem(item, nomeItem); await atualizar(d, { status: "em_analise", ...(d.responsavel ? {} : { responsavel: C.eu.uid }) }); }));
     if (mod && d.status !== "resolvida" && d.status !== "descartada") {
@@ -406,18 +407,8 @@ export function denuncias(el) {
     }
     await atualizar(d, { status: "resolvida", acao: v.acao, nota: v.nota });
   }
-  async function verConteudo(d) {
-    const { fb } = C;
-    let txt = "";
-    try {
-      if (d.tipo === "publicacao") { const s = await fb.getDoc(fb.doc(fb.db, "diario", d.itemId)); txt = s.exists() ? `Publicação: ${s.data().texto || "(só mídia)"}` : "A publicação já foi apagada."; }
-      else if (d.tipo === "comentario") { const s = await fb.getDoc(fb.doc(fb.db, "comentarios", d.itemId)); txt = s.exists() ? `Comentário: ${s.data().texto}` : "O comentário já foi apagado."; }
-      else if (d.tipo === "mensagem") { const s = await fb.getDoc(fb.doc(fb.db, "conversas", d.conversaId, "mensagens", d.itemId)); txt = s.exists() ? `Mensagem (${dataHora(s.data().criadoEm)}): ${s.data().texto || "(" + (s.data().tipoArquivo || "anexo") + ")"}` : "A mensagem já foi apagada por quem enviou. Use o trecho guardado na denúncia."; }
-      else if (d.tipo === "negocio") { const s = await fb.getDoc(fb.doc(fb.db, "negocios", d.itemId)); const n = s.exists() ? s.data() : null; txt = n ? `Negócio: ${n.nome} — ${n.descricao || ""}` : "O negócio não existe mais."; window.open(`${n?.tipo === "imoveis" ? "imoveis.html" : ({ servicos: "servicos.html", delivery: "delivery.html", lojinha: "shopping.html" }[n?.tipo] || "servicos.html")}?negocio=${encodeURIComponent(d.itemId)}`, "_blank"); }
-      else { abrirFicha(d.alvoId); return; }
-    } catch (e) { txt = "Não foi possível abrir: " + (e.code || e.message); }
-    await modal({ titulo: "Conteúdo denunciado", texto: txt, botao: "Fechar" });
-  }
+  // Conteúdo como apareceu (mensagem com as de antes e depois, foto, áudio, cartões).
+  const verConteudo = (d) => verConteudoDenuncia(d);
   pintar();
 }
 
@@ -609,7 +600,7 @@ export function negocios(el) {
 // ======================================================= SUPORTE
 let filtroSup = "aberto";
 export function suporte(el) {
-  el.appendChild(cab("Suporte", "Chamados abertos pelos usuários (inclui contestações de suspensão)."));
+  el.appendChild(cab("Suporte", "Chamados abertos pelos usuários (inclui contestações de suspensão). Para falar com alguém, abra a ficha da pessoa e toque em \"Abrir conversa de suporte\"."));
   const fil = chips([["aberto", `Esperando (${D.suporte.filter((s) => s.status === "aberto").length})`], ["minhas", "Comigo"], ["livres", "Sem responsável"], ["respondido", "Respondidos"], ["fechado", "Fechados"], ["todos", "Todos"]], filtroSup, (v) => { filtroSup = v; pintar(); });
   fil.style.marginBottom = "12px";
   const lista = h("div", "ad-lista"); el.append(fil, lista);
@@ -620,6 +611,7 @@ export function suporte(el) {
     lista.replaceChildren(...(l.length ? l.map((s) => {
       const c = h("article", "ad-item clicavel"); c.dataset.item = `suporte:${s.id}`; c.tabIndex = 0;
       const top = h("div", "cab"); top.append(selo(CAT[s.categoria] || s.categoria, s.categoria === "contestacao" || s.categoria === "golpe" ? "serio" : "neutro"), selo(s.status === "aberto" ? "Esperando a equipe" : s.status === "respondido" ? "Respondido" : "Fechado", s.status === "aberto" ? "atencao" : s.status === "respondido" ? "info" : "bom"));
+      if (s.abertoPor) top.append(selo(`Aberto pela equipe (${nomeEquipe(s.abertoPor)})`, "info"));
       if (s.status !== "fechado") top.append(seloResp(s));
       if (s.status === "aberto") top.append(espera(s.atualizadoEm, 24));
       top.append(h("span", "quando", relativo(s.atualizadoEm)));
@@ -665,13 +657,13 @@ export function suporte(el) {
       const assumir = !s.responsavel ? { responsavel: C.eu.uid, responsavelNome: nomeEquipe(C.eu.uid), assumidoEm: fb.serverTimestamp() } : {};
       await fb.updateDoc(fb.doc(fb.db, "suporte", s.id), { status: "respondido", atualizadoEm: fb.serverTimestamp(), ultimaDe: "equipe", atendidoPor: C.eu.uid, ...assumir });
       if (assumir.responsavel) Object.assign(s, { responsavel: C.eu.uid, responsavelNome: assumir.responsavelNome });
-      await enviarAviso(s.uid, { titulo: "O suporte respondeu", texto: `Respondemos seu chamado "${s.assunto}". Toque em "Falar com o suporte" aqui embaixo para ver a resposta.`, tipo: "info" }).catch(() => {});
+      // A pessoa é avisada pelas Notificações, pelo sino e por Mensagens (Suporte Help Floripa).
       s.status = "respondido"; await registrar("suporte_resposta", s.uid, s.assunto); toast("Resposta enviada"); fechar(); pintar();
     }));
     cx.append(chat, pr, txt, ac); fundo.appendChild(cx); document.body.appendChild(fundo);
     fundo.addEventListener("click", (e) => { if (e.target === fundo) fechar(); });
     const msgs = await fb.getDocs(fb.query(fb.collection(fb.db, "suporte", s.id, "mensagens"), fb.orderBy("em", "asc"))).catch(() => ({ docs: [] }));
-    chat.replaceChildren(...msgs.docs.map((d) => { const m = d.data(); const b = h("div", "ad-msg" + (m.equipe ? " equipe" : ""), m.texto); b.appendChild(h("small", null, `${m.equipe ? "Equipe" : "Usuário"} · ${dataHora(m.em)}`)); return b; }));
+    chat.replaceChildren(...msgs.docs.map((d) => { const m = d.data(); const b = h("div", "ad-msg" + (m.equipe ? " equipe" : ""), m.texto); b.appendChild(h("small", null, `${m.equipe ? `Suporte Help Floripa (${nomeEquipe(m.autorId)})` : pessoa(s.uid).nome || "Usuário"} · ${dataHora(m.em)}`)); return b; }));
     if (!msgs.docs.length) chat.appendChild(h("div", "ad-vazio", "Sem mensagens."));
     chat.scrollTop = chat.scrollHeight;
   }
@@ -1010,7 +1002,7 @@ export function relatorios(el) {
 }
 
 // ======================================================= REGISTRO E EQUIPE
-const NOMES_ACAO = { aviso: "Enviou aviso", suspender: "Suspendeu", banir: "Baniu", remover_sancao: "Removeu sanção", verificar: "Deu selo", tirar_selo: "Tirou/recusou selo", remover_conteudo: "Removeu conteúdo", esconder_negocio: "Escondeu negócio", mostrar_negocio: "Mostrou negócio", esconder_publicacao: "Escondeu publicação", mostrar_publicacao: "Mostrou publicação", exportar: "Exportou dados", relatorio_pdf: "Gerou relatório", parceria: "Atualizou parceria", parceria_apagar: "Apagou parceria", suporte_resposta: "Respondeu chamado", suporte_fechado: "Fechou chamado", suporte_aberto: "Reabriu chamado", comunicado_novo: "Criou comunicado", comunicado_editar: "Editou comunicado", comunicado_on: "Pôs comunicado no ar", comunicado_off: "Tirou comunicado do ar", comunicado_apagar: "Apagou comunicado", denuncia_resolvida: "Resolveu denúncia", denuncia_descartada: "Descartou denúncia", denuncia_em_analise: "Pôs denúncia em análise", assumiu: "Assumiu", passou: "Passou para outra pessoa", liberou: "Liberou", tarefa_nova: "Criou tarefa", tarefa_editar: "Editou tarefa", tarefa_a_fazer: "Voltou tarefa", tarefa_fazendo: "Começou tarefa", tarefa_feito: "Concluiu tarefa", tarefa_apagar: "Apagou tarefa", nota_interna: "Escreveu nota interna", entrou: "Entrou no painel" };
+const NOMES_ACAO = { aviso: "Enviou aviso", suspender: "Suspendeu", banir: "Baniu", remover_sancao: "Removeu sanção", verificar: "Deu selo", tirar_selo: "Tirou/recusou selo", remover_conteudo: "Removeu conteúdo", esconder_negocio: "Escondeu negócio", mostrar_negocio: "Mostrou negócio", esconder_publicacao: "Escondeu publicação", mostrar_publicacao: "Mostrou publicação", exportar: "Exportou dados", relatorio_pdf: "Gerou relatório", parceria: "Atualizou parceria", parceria_apagar: "Apagou parceria", suporte_resposta: "Respondeu chamado", suporte_conversa: "Abriu conversa de suporte", suporte_fechado: "Fechou chamado", suporte_aberto: "Reabriu chamado", comunicado_novo: "Criou comunicado", comunicado_editar: "Editou comunicado", comunicado_on: "Pôs comunicado no ar", comunicado_off: "Tirou comunicado do ar", comunicado_apagar: "Apagou comunicado", denuncia_resolvida: "Resolveu denúncia", denuncia_descartada: "Descartou denúncia", denuncia_em_analise: "Pôs denúncia em análise", assumiu: "Assumiu", passou: "Passou para outra pessoa", liberou: "Liberou", tarefa_nova: "Criou tarefa", tarefa_editar: "Editou tarefa", tarefa_a_fazer: "Voltou tarefa", tarefa_fazendo: "Começou tarefa", tarefa_feito: "Concluiu tarefa", tarefa_apagar: "Apagou tarefa", nota_interna: "Escreveu nota interna", entrou: "Entrou no painel" };
 export function registro(el) {
   const excel = btn("Baixar Excel", "", () => { const l = filtrar(); baixarCSV("registro-equipe", ["Quando", "Quem", "Ação", "Alvo", "Detalhe"], l.map((x) => [dataHora(x.em), x.porNome || nomeEquipe(x.por), NOMES_ACAO[x.acao] || x.acao, D.pessoas.get(x.alvo)?.nome || x.alvo || "", x.detalhe || ""])); });
   el.appendChild(cab("Registro de ações", "Tudo o que a equipe faz no painel fica aqui. Não pode ser apagado.", excel));

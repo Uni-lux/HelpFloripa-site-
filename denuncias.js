@@ -45,8 +45,11 @@ function css() {
 // tipo: perfil | publicacao | comentario | mensagem | negocio
 // alvoId: uid de quem é o item · itemId: id do item (perfil: o próprio uid)
 // conversaId: só para mensagem · trecho: o texto do item (guardado como prova)
+// contexto: só para mensagem, ids de algumas mensagens antes e depois (a equipe abre cada uma
+//   do servidor, então vê o que foi dito de verdade). Com as regras antigas no servidor, o campo
+//   é recusado: grava de novo sem ele (a denúncia nunca deixa de ser enviada).
 // podeBloquear: mostra "Bloquear também" · aoBloquear(): a página faz o bloqueio
-export async function abrirDenuncia({ fb, eu, tipo, alvoId, itemId, conversaId = "", trecho = "", nomeAlvo = "", podeBloquear = true, aoBloquear } = {}) {
+export async function abrirDenuncia({ fb, eu, tipo, alvoId, itemId, conversaId = "", trecho = "", contexto = [], nomeAlvo = "", podeBloquear = true, aoBloquear } = {}) {
   if (!eu || !alvoId || alvoId === eu.uid) return;
   css();
   const id = `${tipo}_${itemId}_${eu.uid}`.replace(/\//g, "-").slice(0, 400);
@@ -103,7 +106,9 @@ export async function abrirDenuncia({ fb, eu, tipo, alvoId, itemId, conversaId =
     try {
       const dados = { tipo, alvoId, itemId: String(itemId), autorId: eu.uid, motivo, detalhe: txt.value.trim().slice(0, 500), trecho: String(trecho || "").slice(0, 300), status: "nova", criadoEm: fb.serverTimestamp() };
       if (conversaId) dados.conversaId = conversaId;
-      await fb.setDoc(ref, dados);
+      const ctx = tipo === "mensagem" ? [...new Set((contexto || []).map(String).filter(Boolean))].slice(0, 12) : [];
+      try { await fb.setDoc(ref, ctx.length ? { ...dados, contexto: ctx } : dados); }
+      catch (e) { if (e?.code !== "permission-denied" || !ctx.length) throw e; await fb.setDoc(ref, dados); }
       if (cb.checked && aoBloquear) await aoBloquear();
       caixa.replaceChildren(topo);
       const ok = document.createElement("div"); ok.className = "ok";

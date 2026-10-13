@@ -8,7 +8,8 @@
 import { fotoSegura } from "./seguranca.js?v=1";
 import { definirPerfilMenu, definirBadgeMensagens } from "./menu.js?v=5";
 import { buscarReclamacoes } from "./avisos-reclamacoes.js?v=15";
-import "./painel-avisos.js?v=13"; // o sino abre o painel de notificações na própria página
+import { ouvirItensEquipe } from "./avisos-equipe.js?v=1";
+import "./painel-avisos.js?v=14"; // o sino abre o painel de notificações na própria página
 import "./chat-gaveta.js?v=1";
 import { docComValidade } from "./leituras.js?v=1"; // "Mensagens" abre as conversas por cima da página, sem sair dela
 
@@ -79,9 +80,9 @@ async function iniciarTopo() {
     import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js")
   ]);
   const db = window.firebaseDb;
-  let parar = null;
+  let parar = null, pararEquipe = null;
   auth.onAuthStateChanged(window.firebaseAuth, async (u) => {
-    parar?.(); parar = null;
+    parar?.(); parar = null; pararEquipe?.(); pararEquipe = null;
     if (!u) {
       // Visitante (páginas públicas): o topo e o menu levam para o login.
       definirPerfilMenu({ logado: false });
@@ -107,12 +108,16 @@ async function iniciarTopo() {
     // Sino: avisos novos (leitura única, guardada por 15 min) + mensagens que chegaram
     // depois da última vez que as notificações foram vistas (tempo real).
     // O menu "Mensagens" continua mostrando todas as conversas não lidas.
-    let avisosNovos = 0, visto = Infinity, naoLidas = [];
+    // Suporte Help Floripa: avisos da equipe e respostas do suporte ainda não abertos contam
+    // no sino (se chegaram depois da última vez que viu as notificações) e em Mensagens.
+    let avisosNovos = 0, visto = Infinity, naoLidas = [], equipe = [];
     const pintarSino = () => {
-      const n = avisosNovos + naoLidas.filter((t) => t > visto).length, b = $("badgeAvisos");
+      const eqNaoLidas = equipe.filter((i) => i.naoLida);
+      const n = avisosNovos + naoLidas.filter((t) => t > visto).length + eqNaoLidas.filter((i) => i.quando > visto).length, b = $("badgeAvisos");
       if (b) { b.hidden = !n; b.textContent = n > 9 ? "9+" : String(n); }
-      definirBadgeMensagens(naoLidas.length);
+      definirBadgeMensagens(naoLidas.length + eqNaoLidas.length);
     };
+    pararEquipe?.(); pararEquipe = ouvirItensEquipe(fs, db, u.uid, (itens) => { equipe = itens; pintarSino(); });
     contarAvisos(fs, db, u.uid).then((r) => { avisosNovos = r.n; visto = r.visto || 0; pintarSino(); });
     addEventListener("hf:avisos-vistos", () => { avisosNovos = 0; visto = Date.now(); pintarSino(); });
     // Outra aba viu as notificações: zera aqui também.

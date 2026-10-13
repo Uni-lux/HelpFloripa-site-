@@ -23,7 +23,10 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
 - No ar no Firebase: **regras do PR #25** (commit 7f5a28c). O `firestore.rules` do main tem +115 linhas ainda
   não publicadas: chat da equipe (equipe_dm, equipe_anexos, citar, reações — PR #26) e endereço (PR #29).
 - Etapa 1 (PR #27), Etapa 2 (PR #28) e Etapa 3 (PR #29): **mescladas**.
-- **Próximo: Etapa 4.** Depois a Etapa 5.
+- Etapa 4: feita no PR da branch `ccr-bc2c7590-5h27oa` (aguardando merge). Mudou regras (acumuladas no
+  `firestore.rules`): avaliação com vínculo, `denuncias.contexto`, equipe abre `suporte/{id}` para qualquer
+  pessoa (`abertoPor`), `atendimento.semana/almoco/volta`. 56 testes de regras passando.
+- **Próximo: Etapa 5** (esperar ele mandar seguir).
 
 ## Etapa 4 – Moderação, suporte e avaliações (muda regras)
 1. Avaliações: liberar também para quem tem vínculo aceito no Social (hoje `!vinculados` bloqueia, em
@@ -63,6 +66,15 @@ chat da equipe).
 - `admin-chat.js` + `admin.css` (classes `eq-`): chat da equipe estilo mensageiro.
 - `admin-secoes.js`: Estatísticas (filtro Estado→Cidade→Bairro via `localDe`), Relatórios, Excel com capa.
 - CSP: cada página tem a sua em `<meta>`; `fetch` de `data:` é bloqueado (connect-src).
+- **Etapa 4** — `avisos-equipe.js`: avisos (`avisos/`) e respostas do suporte (`suporte/`, `ultimaDe: equipe`)
+  como "Suporte Help Floripa" (selo oficial) em notificações, sino, Mensagens e faixa nas mensagens; leitura do
+  chamado em `usuarios/{uid}.suporteLido` (sem regra nova); `suporte.html?chamado=` / `?aviso=`. Janela ao abrir o
+  site (firebase.js) só para avisos alerta/grave. `admin-denuncia.js`: conteúdo denunciado com contexto (ids em
+  `denuncias.contexto`, lidos um a um). `avaliacoes.js`: `podeAvaliarCliente` + `gravarComMotivo` (motivo real,
+  renova token). Atendimento (`mensagens.html`): `semana` = lista de 7 textos "HH:MM-HH:MM" ou "" validada com UM
+  regex (`join(';')`) — por dia estourava 1.000 expressões; com regras antigas grava compatível no público e
+  completo em `usuarios/{uid}.atendimento`, `completarAtendimento()` completa depois.
+- `versoes.py` agora falha se o mesmo módulo for importado com `?v=` diferentes (arquivo novo fica fora da troca).
 - `scripts/limpeza/converter-cidades.mjs` + workflow manual "Converter cidades" (simula por padrão).
 
 ## Pendências do dono e o que ficou para depois (vindas de sessões anteriores)
