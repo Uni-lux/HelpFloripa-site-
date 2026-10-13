@@ -419,6 +419,14 @@ svg.i.xs { width: 14px; height: 14px; }
 .end-aviso { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; background: var(--panel-2); font-size: 13px; line-height: 1.45; color: var(--muted); }
 .end-aviso strong { color: var(--text); }
 .end-aviso svg { flex: none; margin-top: 2px; color: var(--text); }
+#endCampos { margin-top: 16px; }
+.neg-local { margin-top: 18px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: color-mix(in srgb, var(--panel-2) 60%, transparent); }
+.neg-local-tit { display: grid; gap: 3px; margin-bottom: 12px; }
+.neg-local-tit strong { font-size: 14.5px; }
+.neg-local-tit small { color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+.end-perfil { display: flex; gap: 12px; align-items: flex-start; margin-top: 18px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; font-size: 14px; font-weight: 650; }
+.end-perfil input { width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--accent); flex: none; }
+.end-perfil small { display: block; margin-top: 3px; font-size: 12.5px; font-weight: 500; color: var(--muted); line-height: 1.4; }
 .end-duas { display: grid; grid-template-columns: 1fr 1.6fr; gap: 12px; }
 .end-duas.uf { grid-template-columns: 1fr 80px; }
 .end-duas .campo input { width: 100%; }

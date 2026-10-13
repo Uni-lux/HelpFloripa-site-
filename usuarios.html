@@ -12,8 +12,8 @@
   <link rel="icon" href="favicon.ico" />
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
-  <link rel="stylesheet" href="vitrine.css?v=24" />
-  <link rel="stylesheet" href="rede.css?v=6" />
+  <link rel="stylesheet" href="vitrine.css?v=25" />
+  <link rel="stylesheet" href="rede.css?v=7" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
     // Tema compartilhado com a página de mensagens; aplicado antes de desenhar.
@@ -117,11 +117,7 @@
           <textarea id="edBio" maxlength="280" placeholder="Conte o que você faz, seus serviços e onde atende"></textarea>
           <div class="ajuda"><span>Aparece no seu perfil público</span><span id="edBioCont">0/280</span></div>
         </div>
-        <div class="campo">
-          <label for="edCidade">Cidade</label>
-          <input id="edCidade" list="cidadesSugeridas" maxlength="60" placeholder="Ex.: Florianópolis" />
-          <datalist id="cidadesSugeridas"><option value="Florianópolis"></option><option value="São José"></option><option value="Palhoça"></option><option value="Biguaçu"></option><option value="Santo Amaro da Imperatriz"></option><option value="Governador Celso Ramos"></option></datalist>
-        </div>
+        <div id="edLocal"></div>
         <div class="campo">
           <label for="edTelefone">Telefone</label>
           <input id="edTelefone" type="tel" maxlength="20" autocomplete="tel" placeholder="(48) 90000-0000" />
@@ -215,11 +211,12 @@
       obterPerfil, lerOrdenado, editarPublicacao, comMencoes, salvarImagem, iniciarRede, meusSeguindoPronto, carregarMeusSeguindo, alternarSeguir, botaoSeguir, linhaPessoa,
       removerSeguidor, bloquear, desbloquear, alternarRestricao, compartilharPerfil,
       barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail
-    } from "./rede.js?v=26";
+    } from "./rede.js?v=27";
     import { buscarPessoas, palavrasBusca } from "./pessoas.js?v=3";
     import { abrirDenuncia } from "./denuncias.js?v=1";
+    import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
     import { notaDoPerfil, abrirDetalhamento, avaliarNegocio, avaliarCliente, lerResumo, estrelas, pintarEstrelas, media, notaTexto, TIPOS_NEGOCIO } from "./avaliacoes.js?v=11";
-    import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=30";
+    import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=31";
 
     // ======================================================
     // Estado desta página (o resto vem de rede.js)
@@ -249,7 +246,7 @@
         s.textContent = "@" + p.nickname;
         handle.appendChild(s);
       }
-      const cidade = nomeCidade(p.cidade || p.cidadeNome);
+      const cidade = textoCidade({ cidade: nomeCidade(p.cidade || p.cidadeNome), uf: p.uf });
       if (cidade) {
         const s = document.createElement("span");
         s.append(icone("pin", "i xs"), document.createTextNode(cidade));
@@ -565,13 +562,16 @@
     const NICK_RE = /^[a-z0-9._]{3,20}$/;
     let nickDisponivel = true, timerNick = null;
 
+    let edLocal = null;
     function abrirEditar() {
       edRascunho = { fotoPerfil: dados.fotoPerfil || "", fotoCapa: dados.fotoCapa || "" };
       $("edNome").value = dados.nome || "";
       $("edUsuario").value = dados.nickname || "";
       $("edBio").value = dados.bio || "";
       $("edBioCont").textContent = `${$("edBio").value.length}/280`;
-      $("edCidade").value = nomeCidade(dados.cidade || dados.cidadeNome);
+      // Estado + cidade da lista do IBGE (cidade antiga em texto é convertida na hora).
+      $("edLocal").replaceChildren();
+      edLocal = camposEndereco($("edLocal"), { campos: ["uf", "cidade"], obrigatorios: [], valor: { cidade: nomeCidade(dados.cidade || dados.cidadeNome), uf: dados.uf, cidadeIbge: dados.cidadeIbge } });
       $("edTelefone").value = dados.telefone || "";
       $("edEmail").value = dados.email || eu.email || "";
       nickDisponivel = true;
@@ -620,15 +620,17 @@
       const nome = $("edNome").value.trim();
       const nick = $("edUsuario").value.trim();
       const bio = $("edBio").value.trim();
-      const cidade = $("edCidade").value.trim();
+      const erroLocal = edLocal?.validar();
+      if (erroLocal) { toast(erroLocal); return; }
+      const { uf, cidade, cidadeIbge } = edLocal ? edLocal.ler() : { uf: dados.uf || "", cidade: dados.cidade || "", cidadeIbge: dados.cidadeIbge || null };
       const telefone = $("edTelefone").value.trim();
       if (nome.length < 2) { toast("Informe seu nome."); $("edNome").focus(); return; }
       if (nick && (!NICK_RE.test(nick) || !nickDisponivel)) { toast("Escolha um nome de usuário disponível."); $("edUsuario").focus(); return; }
       const btn = $("edSalvar");
       btn.disabled = true; btn.textContent = "Salvando...";
       try {
-        const publico = { uid: eu.uid, nome, bio, cidade };
-        const privado = { nome, bio, cidade, telefone };
+        const publico = { uid: eu.uid, nome, bio, cidade, uf, cidadeIbge };
+        const privado = { nome, bio, cidade, uf, cidadeIbge, telefone };
         // Fotos novas
         for (const [campo, pasta] of [["fotoPerfil", "fotosPerfil"], ["fotoCapa", "fotosCapa"]]) {
           const novo = edRascunho[campo] || "";
@@ -653,7 +655,7 @@
           publico.nickname = nick; privado.nickname = nick;
         }
         await fb.setDoc(refUsuario, privado, { merge: true });
-        await fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), publico, { merge: true });
+        await gravarComLocal((d) => fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), d, { merge: true }), publico, NOVOS.perfil);
         fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), { uid: eu.uid, busca: palavrasBusca(publico.nome || dados.nome, publico.nickname || dados.nickname) }, { merge: true }).catch(() => {});
         try { if (authFns.updateProfile && nome !== eu.displayName) await authFns.updateProfile(eu, { displayName: nome }); } catch {}
         Object.assign(dados, privado);
@@ -712,7 +714,7 @@
           const p = lista[i];
           const meus = seguidores && uid === eu.uid;
           corpo.appendChild(linhaPessoa({
-            uid: u, nome: p.nome, foto: p.fotoPerfil, sub: p.nickname ? "@" + p.nickname : nomeCidade(p.cidade), meSegue: meus,
+            uid: u, nome: p.nome, foto: p.fotoPerfil, sub: p.nickname ? "@" + p.nickname : textoCidade({ cidade: nomeCidade(p.cidade), uf: p.uf }), meSegue: meus,
             acoes: meus ? [{ rotulo: "Remover", fn: async (_b, linha) => { if (await removerSeguidor(u, p.nome)) linha.remove(); } }] : []
           }));
         });

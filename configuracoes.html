@@ -23,9 +23,9 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="rede.css?v=6" />
+  <link rel="stylesheet" href="rede.css?v=7" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="configuracoes.js?v=28"></script>
+  <script type="module" src="configuracoes.js?v=29"></script>
 </head>
 <body>
   <header class="topo">
@@ -119,22 +119,8 @@
       <div class="folha-topo"><h2 id="tEndereco">Endereço</h2><button type="button" class="icone-btn" data-fechar aria-label="Fechar"><svg class="i"><use href="#i-fechar"/></svg></button></div>
       <div class="folha-corpo pad">
         <div class="end-aviso"><svg class="i"><use href="#i-cadeado"/></svg><span><strong>Seu endereço é privado.</strong> Ele fica guardado na parte protegida da sua conta, que só você e a equipe do Help Floripa (para atendimento e segurança) conseguem ler. Não aparece no perfil, na busca, no social nem nas conversas, a não ser que você mesmo envie.</span></div>
-        <div class="campo">
-          <label for="endCep">CEP</label>
-          <input id="endCep" inputmode="numeric" maxlength="9" autocomplete="postal-code" placeholder="00000-000" />
-          <div class="ajuda"><span id="endCepStatus">Digite o CEP para preencher rua, bairro e cidade</span></div>
-        </div>
-        <div class="campo"><label for="endRua">Rua</label><input id="endRua" maxlength="100" autocomplete="address-line1" /></div>
-        <div class="end-duas">
-          <div class="campo"><label for="endNumero">Número</label><input id="endNumero" maxlength="10" inputmode="numeric" /></div>
-          <div class="campo"><label for="endComplemento">Complemento</label><input id="endComplemento" maxlength="60" autocomplete="address-line2" placeholder="Apto, bloco" /></div>
-        </div>
-        <div class="campo"><label for="endBairro">Bairro</label><input id="endBairro" maxlength="60" /></div>
-        <div class="end-duas uf">
-          <div class="campo"><label for="endCidade">Cidade</label><input id="endCidade" maxlength="60" autocomplete="address-level2" list="cidadesSugeridas" /></div>
-          <div class="campo"><label for="endUf">UF</label><input id="endUf" maxlength="2" autocomplete="address-level1" placeholder="SC" /></div>
-        </div>
-        <div class="campo"><label for="endReferencia">Ponto de referência</label><input id="endReferencia" maxlength="100" placeholder="Opcional" /></div>
+        <div id="endCampos"></div>
+        <label class="end-perfil"><input type="checkbox" id="endUsarPerfil" /><span>Usar esta cidade no meu perfil<small>Só a cidade e o estado aparecem no perfil; rua, número e bairro continuam privados.</small></span></label>
       </div>
       <div class="folha-rodape">
         <button type="button" class="btn sec" id="endRemover" style="margin-right:auto">Remover</button>

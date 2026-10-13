@@ -11,6 +11,7 @@ import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL 
 import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento, media, avaliarNegocio } from "./avaliacoes.js?v=11";
 import { abrirQueixa } from "./queixas.js?v=7";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
+import { camposEndereco, textoCidade, cidadesDe, NOME_UF, semAcento } from "./endereco.js?v=1";
 
 const PARAMS = new URL(import.meta.url).searchParams;
 const TIPO_PAGINA = PARAMS.get("tipo");
@@ -143,7 +144,7 @@ export function cartaoDeNegocio(n) {
 export function cartaoDeAnuncio(a) {
   return {
     tipo: "imoveis", titulo: tituloImovel(a),
-    sub: [FINALIDADE[a.finalidade], [a.bairro, a.cidade].filter(Boolean).join(", ")].filter(Boolean).join(" · "),
+    sub: [FINALIDADE[a.finalidade], [a.bairro, textoCidade(a)].filter(Boolean).join(", ")].filter(Boolean).join(" · "),
     preco: precoImovel(a), foto: fotoPequena((a.fotos || [])[0]),
     link: `imoveis.html?anuncio=${encodeURIComponent(a.id || "")}`
   };
@@ -693,7 +694,7 @@ function cabecalhoCartao(n, extras) {
   txt.appendChild(el("h3", "vt-nome", n.nome || NOMES_TIPO[n.tipo]));
   const sub = el("div", "vt-sub");
   extras.forEach((x) => x && sub.appendChild(x));
-  if (n.cidade) { const s = el("span", "vt-local"); s.append(icone("pin"), document.createTextNode(n.cidade)); sub.appendChild(s); }
+  if (n.cidade) { const s = el("span", "vt-local"); s.append(icone("pin"), document.createTextNode(textoCidade(n))); sub.appendChild(s); }
   txt.appendChild(sub);
   topo.append(avatar(n.foto, n.nome), txt);
   return topo;
@@ -745,7 +746,7 @@ function cartaoDelivery(n) {
   cab.append(el("h3", "vt-nome", n.nome || "Delivery"));
   const sub = el("div", "vt-sub");
   sub.append(estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }), el("span", "vt-tag", nomeCategoria(n)));
-  if (n.cidade) { const s = el("span", "vt-local"); s.append(icone("pin"), document.createTextNode(n.cidade)); sub.appendChild(s); }
+  if (n.cidade) { const s = el("span", "vt-local"); s.append(icone("pin"), document.createTextNode(textoCidade(n))); sub.appendChild(s); }
   cab.appendChild(sub);
   corpo.appendChild(cab);
   const infos = el("div", "vt-infos");
@@ -888,7 +889,7 @@ export function abrirDetalhe(n, opcoes = {}) {
   else if (tipo !== "imoveis") tags.appendChild(el("span", "vt-tag", nomeCategoria(n)));
   else tags.appendChild(el("span", "vt-tag", ANUNCIANTE[n.tipoAnunciante] || "Anunciante"));
   if (tipo === "delivery") { const ab = abertoAgora(n); if (ab !== null) tags.appendChild(el("span", "vt-tag " + (ab ? "ok" : "off"), ab ? "Aberto agora" : "Fechado")); }
-  if (n.cidade) { const s2 = el("span", "vt-local"); s2.append(icone("pin"), document.createTextNode(n.cidade)); tags.appendChild(s2); }
+  if (n.cidade) { const s2 = el("span", "vt-local"); s2.append(icone("pin"), document.createTextNode([n.bairro, textoCidade(n)].filter(Boolean).join(", "))); tags.appendChild(s2); }
   const notaCab = el("div", "vd-nota-cab");
   notaCab.appendChild(estrelasNeg(idNegocio({ ...n, tipo }), { nome: n.nome, donoId: n.donoId, fbx }));
   cab.append(tags, notaCab, linkCriador(n.donoId, dono, opcoes.aoPerfil));
@@ -916,7 +917,9 @@ export function abrirDetalhe(n, opcoes = {}) {
     n.diferenciais.filter((k) => DIFERENCIAIS_SERV[k]).forEach((k) => { const t = el("span", "vt-tag" + (k === "urgencia" ? " urgente" : "")); t.append(icone("check"), document.createTextNode(DIFERENCIAIS_SERV[k])); d.appendChild(t); });
     if (d.children.length) ct.appendChild(d);
   }
-  const fb1 = fatosBox(fatos);
+  // Endereço do local (só quando o negócio informou rua): aparece primeiro.
+  const endLocal = [[n.rua, n.numero].filter(Boolean).join(", "), n.complemento, n.bairro, textoCidade(n)].filter(Boolean).join(" · ");
+  const fb1 = fatosBox([...(n.rua ? [["pin", endLocal, "endereço"]] : []), ...fatos]);
   if (fb1) ct.appendChild(fb1);
   if (n.descricao) { ct.appendChild(titulo4("Sobre")); ct.appendChild(el("p", "texto", n.descricao)); }
 
@@ -1146,13 +1149,14 @@ export function abrirAnuncio(a, opcoes = {}) {
   tags.appendChild(el("span", "vt-tag", FINALIDADE[a.finalidade] || "Imóvel"));
   tags.appendChild(el("span", "vt-tag neutra", CATEGORIAS.imoveis[a.categoria] || "Imóvel"));
   if (a.mobiliado) tags.appendChild(el("span", "vt-tag neutra", "Mobiliado"));
-  const local = [a.bairro, a.cidade].filter(Boolean).join(", ");
+  const local = [a.bairro, textoCidade(a)].filter(Boolean).join(", ");
   if (local) { const s = el("span", "vt-local"); s.append(icone("pin"), document.createTextNode(local)); tags.appendChild(s); }
   cab.append(preco, el("h3", null, tituloImovel(a)), tags);
   ct.appendChild(cab);
   ct.appendChild(specsImovel(a));
   const custo = (Number(a.preco) || 0) + (a.finalidade === "aluguel" ? (Number(a.condominio) || 0) + (Number(a.iptu) || 0) : 0);
   const fatos = fatosBox([
+    ["pin", a.rua ? [[a.rua, a.numero].filter(Boolean).join(", "), a.complemento].filter(Boolean).join(" · ") : "", "endereço"],
     ["casa", moeda(a.condominio), "condomínio"], ["cartao", moeda(a.iptu), "IPTU / mês"],
     ["sacola", a.finalidade === "aluguel" && custo > Number(a.preco) ? moeda(custo) : "", "total por mês"],
     ["cama", Number(a.suites) > 0 ? String(a.suites) : "", Number(a.suites) === 1 ? "suíte" : "suítes"],
@@ -1264,9 +1268,83 @@ function passaCategoria(n, cat) {
   const cats = TIPO === "servicos" ? categoriasDe(n) : [n.categoria];
   return cats.includes(cat) || n.finalidade === cat;
 }
+// ---------- filtro de local: Estado → Cidade (→ Bairro nos imóveis) ----------
+// Guardado no aparelho. Perfis antigos sem estado: a cidade em texto é comparada pelo nome
+// (as contas antigas são todas de SC, então "Florianópolis" sem estado conta como SC).
+const CHAVE_LOCAL = "hf-busca-local";
+let filtroLocal = {};
+try { filtroLocal = JSON.parse(localStorage.getItem(CHAVE_LOCAL) || "{}") || {}; } catch {}
+let nomesSC = null;
+const nomeSemUf = (c) => semAcento(String(c || "").replace(/\s*[\/,-]\s*[A-Za-z]{2}\s*$/, ""));
+function ufDe(n) {
+  if (n.uf) return n.uf;
+  const m = String(n.cidade || "").match(/[\/,-]\s*([A-Za-z]{2})\s*$/);
+  if (m && NOME_UF[m[1].toUpperCase()]) return m[1].toUpperCase();
+  return nomesSC?.has(nomeSemUf(n.cidade)) ? "SC" : "";
+}
+function passaLocal(n) {
+  const f = filtroLocal;
+  if (!f.uf) return true;
+  if (ufDe(n) !== f.uf) return false;
+  if (f.cidadeIbge && !(n.cidadeIbge ? n.cidadeIbge === f.cidadeIbge : nomeSemUf(n.cidade) === semAcento(f.cidade))) return false;
+  if (f.bairro && !semAcento(n.bairro).includes(semAcento(f.bairro))) return false;
+  return true;
+}
+const rotuloLocal = () => (!filtroLocal.uf ? "Todo o Brasil" : filtroLocal.cidadeIbge ? textoCidade(filtroLocal) + (filtroLocal.bairro ? ` · ${filtroLocal.bairro}` : "") : NOME_UF[filtroLocal.uf]);
+function pintarBotaoLocal() {
+  const b = document.getElementById("vtLocalBtn"); if (!b) return;
+  b.querySelector("span").textContent = rotuloLocal();
+  b.classList.toggle("on", !!filtroLocal.uf);
+  b.setAttribute("aria-label", `Onde procurar: ${rotuloLocal()}. Tocar para mudar`);
+}
+function montarFiltroLocal() {
+  const chips = document.getElementById("filterChips");
+  if (!chips || document.getElementById("vtLocalBtn")) return;
+  const b = el("button", "vt-local-btn"); b.type = "button"; b.id = "vtLocalBtn"; b.setAttribute("aria-haspopup", "dialog");
+  b.append(icone("pin"), el("span"), icone("avancar"));
+  chips.parentNode.insertBefore(b, chips);
+  b.addEventListener("click", abrirFiltroLocal);
+  pintarBotaoLocal();
+  if (filtroLocal.uf) cidadesDe("SC").then((l) => { nomesSC = new Set(l.map((c) => semAcento(c.nome))); renderizar(); }).catch(() => {});
+}
+function abrirFiltroLocal() {
+  if (document.getElementById("vtLocalPop")) return;
+  const fundo = el("div", "vt-local-fundo"); fundo.id = "vtLocalPop";
+  const cx = el("div", "vt-local-pop"); cx.setAttribute("role", "dialog"); cx.setAttribute("aria-modal", "true"); cx.setAttribute("aria-label", "Onde procurar");
+  const topo = el("div", "vt-local-topo"); topo.append(el("strong", null, "Onde procurar"));
+  const x = el("button", "vt-local-x"); x.type = "button"; x.setAttribute("aria-label", "Fechar"); x.textContent = "×"; topo.appendChild(x);
+  const campos = el("div", "vt-local-campos");
+  const local = camposEndereco(campos, { campos: TIPO === "imoveis" ? ["uf", "cidade", "bairro"] : ["uf", "cidade"], obrigatorios: [], valor: filtroLocal, rotuloCidade: "Cidade (opcional)" });
+  campos.querySelectorAll(".opcional").forEach((o) => o.remove());
+  const dica = el("small", "vt-local-dica", "Escolha só o estado para ver tudo dele, ou a cidade para ver só ela.");
+  const acoes = el("div", "vt-local-acoes");
+  const limpar = el("button", "vt-local-limpar", "Todo o Brasil"); limpar.type = "button";
+  const aplicar = el("button", "vt-local-aplicar", "Aplicar"); aplicar.type = "button";
+  acoes.append(limpar, aplicar);
+  cx.append(topo, campos, dica, acoes); fundo.appendChild(cx); document.body.appendChild(fundo);
+  setTimeout(() => campos.querySelector("select")?.focus(), 50);
+  const fechar = () => { fundo.remove(); document.removeEventListener("keydown", tecla); document.getElementById("vtLocalBtn")?.focus(); };
+  const tecla = (e) => { if (e.key === "Escape") fechar(); };
+  document.addEventListener("keydown", tecla);
+  fundo.addEventListener("click", (e) => { if (e.target === fundo) fechar(); });
+  x.addEventListener("click", fechar);
+  const salvar = async (f) => {
+    filtroLocal = f;
+    try { localStorage.setItem(CHAVE_LOCAL, JSON.stringify(f)); } catch {}
+    if (f.uf && !nomesSC) { try { nomesSC = new Set((await cidadesDe("SC")).map((c) => semAcento(c.nome))); } catch {} }
+    pintarBotaoLocal(); fechar(); renderizar();
+  };
+  limpar.addEventListener("click", () => salvar({}));
+  aplicar.addEventListener("click", () => {
+    const v = local.ler();
+    if (!v.uf) return salvar({});
+    salvar({ uf: v.uf, ...(v.cidadeIbge ? { cidade: v.cidade, cidadeIbge: v.cidadeIbge } : {}), ...(v.bairro && v.cidadeIbge ? { bairro: v.bairro } : {}) });
+  });
+}
+
 function textoBusca(n) {
   const cats = TIPO === "servicos" ? categoriasDe(n) : [n.categoria];
-  return [n.nome, n.titulo, n.descricao, n.cidade, n.bairro, n.regiao, n.categoriaPersonalizada, ...cats.map((c) => CATEGORIAS[TIPO]?.[c]),
+  return [n.nome, n.titulo, n.descricao, n.cidade, n.uf, NOME_UF[n.uf], n.bairro, n.regiao, n.categoriaPersonalizada, ...cats.map((c) => CATEGORIAS[TIPO]?.[c]),
     ...(n.itens || []).map((i) => [i?.nome, i?.descricao, i?.secao, i?.marca].join(" ")), n.veiculo, donos.get(n.donoId)?.nome].join(" ").toLowerCase();
 }
 
@@ -1333,7 +1411,7 @@ function cartaoPro(n, destaqueEm = "") {
   const tx = el("div", "tx");
   tx.append(el("strong", "nm", n.nome || "Freelancer"), estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }));
   const cats = categoriasDe(n).map((k) => CATEGORIAS.servicos[k]).filter(Boolean);
-  const info = [cats[0] ? (cats.length > 1 ? `${cats[0]} +${cats.length - 1}` : cats[0]) : nomeCategoria(n), n.cidade].filter(Boolean).join(" · ");
+  const info = [cats[0] ? (cats.length > 1 ? `${cats[0]} +${cats.length - 1}` : cats[0]) : nomeCategoria(n), textoCidade(n)].filter(Boolean).join(" · ");
   if (info) tx.appendChild(el("small", null, info));
   tx.appendChild(el("span", "tx-taxa", moeda(n.precoDesde) ? `desde ${moeda(n.precoDesde)}` : "Orçamento grátis"));
   c.append(f, tx);
@@ -1514,7 +1592,7 @@ function linhaPro(n) {
   const cats = categoriasDe(n).map((k) => CATEGORIAS.servicos[k]).filter(Boolean);
   return linhaCompacta({
     classe: "pro", midia: avatar(n.foto, n.nome), titulo: n.nome || "Freelancer",
-    sub: [estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }), [cats.slice(0, 2).join(" · "), n.cidade].filter(Boolean).join(" · ")],
+    sub: [estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }), [cats.slice(0, 2).join(" · "), textoCidade(n)].filter(Boolean).join(" · ")],
     direita: el("span", "pr", moeda(n.precoDesde) ? `desde ${moeda(n.precoDesde)}` : "a combinar"),
     abrir: () => abrirDetalhe(n), rotulo: `Ver ${n.nome}`
   });
@@ -1527,7 +1605,7 @@ function linhaImovel(a) {
   const pr = el("span", "pr", moeda(a.preco) || "Consultar");
   if (moeda(a.preco) && a.finalidade === "aluguel") pr.appendChild(el("small", null, "/mês"));
   return linhaCompacta({
-    classe: "imo", midia: f, titulo: tituloImovel(a), sub: [[a.bairro, a.cidade].filter(Boolean).join(", "), specs], direita: pr,
+    classe: "imo", midia: f, titulo: tituloImovel(a), sub: [[a.bairro, textoCidade(a)].filter(Boolean).join(", "), specs], direita: pr,
     abrir: () => abrirAnuncio(a), rotulo: `Ver ${tituloImovel(a)}`
   });
 }
@@ -1595,7 +1673,7 @@ function linhaDelivery(n) {
   const tx = el("div", "tx");
   tx.appendChild(el("strong", null, n.nome || "Delivery"));
   const linhaSub = el("div", "vt-sub");
-  linhaSub.append(estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }), el("small", null, [nomeCategoria(n), n.cidade].filter(Boolean).join(" · ")));
+  linhaSub.append(estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }), el("small", null, [nomeCategoria(n), textoCidade(n)].filter(Boolean).join(" · ")));
   tx.appendChild(linhaSub);
   const info = el("div", "vt-infos");
   if (n.tempoMin || n.tempoMax) { const s = el("span"); s.append(icone("relogio", "vi s"), document.createTextNode(`${n.tempoMin || "?"}–${n.tempoMax || "?"} min`)); info.appendChild(s); }
@@ -1654,13 +1732,13 @@ function renderizar() {
   const dest = document.getElementById("vtDestaques");
   const cont = document.getElementById("vtContagem");
   const { cat, termo } = filtroAtual();
-  const filtrando = cat !== "todos" || !!termo;
+  const filtrando = cat !== "todos" || !!termo || !!filtroLocal.uf;
   pararGiro?.();
   grade.replaceChildren();
   dest.replaceChildren();
   grade.className = "vt-grade tipo-" + TIPO;
   cont.textContent = ""; // a contagem vai junto do título da lista
-  const lista = todos.filter((n) => passaCategoria(n, cat) && (!termo || textoBusca(n).includes(termo)));
+  const lista = todos.filter((n) => passaCategoria(n, cat) && passaLocal(n) && (!termo || textoBusca(n).includes(termo)));
   pintarVerMais(filtrando);
   const vazio = () => {
     const v = el("div", "vt-vazio");
@@ -1722,6 +1800,7 @@ function renderizar() {
 }
 
 function ligarFiltros() {
+  montarFiltroLocal();
   const chips = document.getElementById("filterChips");
   if (chips) {
     if (!chips.querySelector('[data-filter="outros"]')) {

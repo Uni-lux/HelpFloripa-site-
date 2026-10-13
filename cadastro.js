@@ -4,8 +4,11 @@
 // - @usuário reservado na mesma transação que cria o perfil.
 // =====================================================
 import { $, destinoSeguro, mensagemErro, aviso, firebasePronto } from "./acesso.js?v=2";
+import { camposEndereco, gravarComLocal, NOVOS } from "./endereco.js?v=1";
 
 const IDADE_MIN = 16;
+// Estado e cidade (lista do IBGE): obrigatórios no cadastro.
+const local = camposEndereco($("cadLocal"), { campos: ["uf", "cidade"], rotuloCidade: "Sua cidade" });
 if (destinoSeguro("") ) $("linkLogin").href = `login.html?redirect=${encodeURIComponent(destinoSeguro(""))}`;
 
 // ---------- telefone ----------
@@ -96,6 +99,9 @@ window.addEventListener("beforeunload", (e) => { if (comecou() && !podeSair) { e
     if (i < IDADE_MIN) return erro(`É preciso ter ${IDADE_MIN} anos ou mais para criar uma conta.`, $("nascimento"));
     if (senha.length < 6) return erro("A senha precisa ter pelo menos 6 caracteres.", $("senha"));
     if (senha !== $("confirmar").value) return erro("As senhas não são iguais.", $("confirmar"));
+    const erroLocal = local.validar();
+    if (erroLocal) return erro(erroLocal);
+    const { uf, cidade, cidadeIbge } = local.ler();
     if (!$("aceite").checked) return erro("Para continuar, aceite os Termos de Uso e a Política de Privacidade.", $("aceite"));
 
     const b = $("criar");
@@ -108,15 +114,18 @@ window.addEventListener("beforeunload", (e) => { if (comecou() && !podeSair) { e
       const cred = await A.createUserWithEmailAndPassword(auth, email, senha);
       user = cred.user;
       await A.updateProfile(user, { displayName: nome });
-      await F.runTransaction(db, async (tx) => {
+      // O local completo vai na parte privada; no perfil público, cidade + estado + código IBGE
+      // (com as regras antigas no servidor, o perfil público vai só com o nome da cidade).
+      const criar = (perfil) => F.runTransaction(db, async (tx) => {
         if ((await tx.get(refNick)).exists()) throw new Error("nickname-em-uso");
         tx.set(F.doc(db, "usuarios", user.uid), {
-          uid: user.uid, nome, nickname: nick, dataNascimento: nasc, telefone, email,
+          uid: user.uid, nome, nickname: nick, dataNascimento: nasc, telefone, email, cidade, uf, cidadeIbge,
           fotoPerfil: "", fotoCapa: "", tipoUsuario: "usuario", aceiteTermos: true, criadoEm: F.serverTimestamp()
         });
         tx.set(refNick, { uid: user.uid, criadoEm: F.serverTimestamp() });
-        tx.set(F.doc(db, "perfis_publicos", user.uid), { uid: user.uid, nome, nickname: nick, fotoPerfil: "", cidade: "", criadoEm: F.serverTimestamp() });
+        tx.set(F.doc(db, "perfis_publicos", user.uid), perfil);
       });
+      await gravarComLocal(criar, { uid: user.uid, nome, nickname: nick, fotoPerfil: "", cidade, uf, cidadeIbge, criadoEm: F.serverTimestamp() }, NOVOS.perfil);
       podeSair = true;
       // Sem e-mail confirmado não dá para mandar mensagens, seguir, publicar nem anunciar.
       try { await A.sendEmailVerification(user); } catch (err) { console.warn("E-mail de confirmação não enviado:", err); }

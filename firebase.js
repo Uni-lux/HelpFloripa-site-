@@ -71,6 +71,8 @@ onAuthStateChanged(auth, async (u) => {
       return;
     }
     try { sessionStorage.setItem(chave, "1"); } catch {}
+    // Cidade no padrão novo (estado + cidade do IBGE): converte a antiga ou pede para completar.
+    import("./local-conta.js?v=1").then((m) => m.conferirLocal(db, u, d)).catch((e) => console.warn("[Local]", e?.message || e));
   } catch (e) { console.warn("[Conta] Não foi possível conferir o estado da conta:", e); }
 });
 

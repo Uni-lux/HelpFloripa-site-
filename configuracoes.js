@@ -7,8 +7,9 @@ import {
   $, pintarAvatar, toast, erroAmigavel, abrirFolha, fecharFolha, abrirLista, config, salvarConfig, aplicarTema,
   fb, authFns, eu, refUsuario, dados, perfis, meusBloqueios, restritos, obterPerfil, linhaPessoa,
   desbloquear, alternarRestricao, marcarPresenca, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos, salvarPrivacidadeConta
-} from "./rede.js?v=26";
+} from "./rede.js?v=27";
 import { MOTIVOS_DESATIVAR, desativarConta, pedirExclusao, reautenticar, provedor } from "./conta.js?v=2";
+import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
 
 function pintarConfig() {
   pintarAvatar($("cfgAvatar"), dados.fotoPerfil, dados.nome);
@@ -115,57 +116,43 @@ $("cfgDuoCapa").addEventListener("click", async (e) => {
 });
 
 // ---------- Endereço (fica só em usuarios/{uid}, que as regras deixam só o dono ler) ----------
-const CAMPOS_END = { cep: "endCep", rua: "endRua", numero: "endNumero", complemento: "endComplemento", bairro: "endBairro", cidade: "endCidade", uf: "endUf", referencia: "endReferencia" };
 function resumoEndereco(e) {
-  if (!e || !e.rua) return "";
-  const local = [e.bairro, [e.cidade, e.uf].filter(Boolean).join("/")].filter(Boolean).join(" · ");
+  if (!e || !(e.rua || e.cidade)) return "";
+  const local = [e.bairro, textoCidade(e)].filter(Boolean).join(" · ");
   return `Cadastrado${local ? ": " + local : ""}`;
 }
-const soDigitos = (v) => String(v || "").replace(/\D/g, "");
-function formatarCep(v) { const d = soDigitos(v).slice(0, 8); return d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d; }
-function abrirEndereco() {
+// Campos do endereço (componente comum: Estado, Cidade do IBGE, CEP que preenche o resto...).
+let endCampos = null;
+async function abrirEndereco() {
   const e = dados.endereco || {};
-  for (const [k, id] of Object.entries(CAMPOS_END)) $(id).value = e[k] || "";
-  $("endCep").value = formatarCep(e.cep);
-  $("endCepStatus").textContent = "Digite o CEP para preencher rua, bairro e cidade";
+  $("endCampos").replaceChildren();
+  endCampos = camposEndereco($("endCampos"), {
+    campos: ["cep", "uf", "cidade", "bairro", "rua", "numero", "complemento", "referencia"],
+    obrigatorios: ["uf", "cidade", "rua"],
+    valor: e.cidade ? e : { uf: dados.uf, cidade: dados.cidade, cidadeIbge: dados.cidadeIbge },
+    dicaCep: "Digite o CEP para preencher rua, bairro e cidade"
+  });
+  // Marcado quando o perfil ainda não tem cidade ou já usa a mesma do endereço.
+  $("endUsarPerfil").checked = !dados.cidadeIbge || !e.cidadeIbge || dados.cidadeIbge === e.cidadeIbge;
   $("endRemover").hidden = !dados.endereco;
   abrirFolha("folhaEndereco");
 }
-let ultimoCep = "";
-$("endCep").addEventListener("input", async () => {
-  const campo = $("endCep");
-  campo.value = formatarCep(campo.value);
-  const cep = soDigitos(campo.value);
-  if (cep.length !== 8 || cep === ultimoCep) return;
-  ultimoCep = cep;
-  const st = $("endCepStatus");
-  st.textContent = "Buscando CEP...";
-  try {
-    // Só o CEP é enviado ao ViaCEP; nada da sua conta vai junto.
-    const r = await fetch(`https://viacep.com.br/ws/${cep}/json/`, { referrerPolicy: "no-referrer", credentials: "omit" });
-    const j = await r.json();
-    if (soDigitos($("endCep").value) !== cep) return;
-    if (j.erro) { st.textContent = "CEP não encontrado. Preencha à mão."; return; }
-    if (j.logradouro) $("endRua").value = j.logradouro;
-    if (j.bairro) $("endBairro").value = j.bairro;
-    if (j.localidade) $("endCidade").value = j.localidade;
-    if (j.uf) $("endUf").value = j.uf;
-    st.textContent = "Endereço encontrado. Confira e informe o número.";
-    $("endNumero").focus();
-  } catch { st.textContent = "Não foi possível buscar o CEP agora. Preencha à mão."; }
-});
-$("endUf").addEventListener("input", () => { $("endUf").value = $("endUf").value.replace(/[^a-z]/gi, "").toUpperCase(); });
 $("endSalvar").addEventListener("click", async () => {
-  const e = {};
-  for (const [k, id] of Object.entries(CAMPOS_END)) e[k] = $(id).value.trim().slice(0, 100);
-  e.cep = soDigitos(e.cep);
-  if (e.cep && e.cep.length !== 8) { toast("CEP inválido."); $("endCep").focus(); return; }
-  if (!e.rua) { toast("Informe a rua."); $("endRua").focus(); return; }
-  if (!e.cidade) { toast("Informe a cidade."); $("endCidade").focus(); return; }
+  if (!endCampos) return;
+  const msg = endCampos.validar();
+  if (msg) { toast(msg); return; }
+  const e = endCampos.ler();
   const btn = $("endSalvar");
   btn.disabled = true;
   try {
-    await fb.setDoc(refUsuario, { endereco: { ...e, atualizadoEm: fb.serverTimestamp() } }, { merge: true });
+    const local = { cidade: e.cidade, uf: e.uf, cidadeIbge: e.cidadeIbge };
+    const usarNoPerfil = $("endUsarPerfil").checked;
+    await fb.setDoc(refUsuario, { endereco: { ...e, atualizadoEm: fb.serverTimestamp() }, ...(usarNoPerfil ? local : {}) }, { merge: true });
+    if (usarNoPerfil) {
+      await gravarComLocal((d) => fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), d, { merge: true }), { uid: eu.uid, ...local }, NOVOS.perfil);
+      Object.assign(dados, local);
+      perfis.delete(eu.uid);
+    }
     dados.endereco = e;
     pintarConfig();
     fecharFolha("folhaEndereco");
@@ -174,7 +161,7 @@ $("endSalvar").addEventListener("click", async () => {
   finally { btn.disabled = false; }
 });
 $("endRemover").addEventListener("click", async () => {
-  if (!confirm("Remover seu endereço da conta?")) return;
+  if (!confirm("Remover seu endereço da conta? A cidade do seu perfil continua.")) return;
   try {
     await fb.updateDoc(refUsuario, { endereco: fb.deleteField() });
     delete dados.endereco;
