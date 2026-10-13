@@ -161,25 +161,29 @@ function textoComMencoes(texto, mencoes = []) {
 
 // ---------- ícones (SVG no traço do painel, iguais em todo aparelho) ----------
 const ICONES = {
+  // Os mesmos ícones da página de Mensagens (mensagens.html), para o chat da equipe ter a mesma cara.
   voltar: '<path d="M15 5l-7 7 7 7"/>',
   lupa: '<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/>',
+  mais: '<circle cx="12" cy="5.5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="18.5" r="1.2" fill="currentColor"/>',
   sino: '<path d="M18 9.5a6 6 0 00-12 0c0 6.5-2.5 8-2.5 8h17S18 16 18 9.5z"/><path d="M10.2 20.5a2 2 0 003.6 0"/>',
   semSom: '<path d="M18 9.5a6 6 0 00-9.7-4.7M6 9.5c0 6.5-2.5 8-2.5 8H17"/><path d="M10.2 20.5a2 2 0 003.6 0M3 3l18 18"/>',
-  clipe: '<path d="M20.5 11.5l-8.2 8.2a5 5 0 01-7.1-7.1l8.6-8.6a3.4 3.4 0 014.8 4.8l-8.6 8.6a1.7 1.7 0 01-2.4-2.4l7.9-7.9"/>',
+  clipe: '<path d="M21 11.5l-8.6 8.6a5.5 5.5 0 01-7.8-7.8l8.6-8.6a3.7 3.7 0 015.2 5.2l-8.6 8.6a1.8 1.8 0 01-2.6-2.6l7.9-7.9"/>',
   arroba: '<circle cx="12" cy="12" r="3.6"/><path d="M15.6 12v1.3a2.6 2.6 0 005.2 0V12a8.8 8.8 0 10-3.5 7"/>',
-  mic: '<rect x="9" y="3" width="6" height="11.5" rx="3"/><path d="M5.5 11a6.5 6.5 0 0013 0M12 17.5V21"/>',
-  enviar: '<path d="M4.5 12L20 4.5 13.5 20l-2.2-6.3z"/><path d="M11.3 13.7L20 4.5"/>',
-  lixo: '<path d="M4.5 7h15M10 11v6M14 11v6M6.5 7l1 12.5h9l1-12.5M9.5 7V4.5h5V7"/>',
-  responder: '<path d="M10 8L4.5 13l5.5 5M4.5 13H14a5.5 5.5 0 015.5 5.5V19"/>',
+  mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0013 0M12 17.5V21"/>',
+  enviar: '<path d="M12 19.5V5M5.5 11.2L12 4.7l6.5 6.5" stroke-width="2.4"/>',
+  lixo: '<path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5"/>',
+  responder: '<path d="M10 8V4.5L3 11l7 6.5V14c5 0 8.5 1.5 11 5.5-1-5-4-10.5-11-11.5z"/>',
   tarefa: '<rect x="4.5" y="4.5" width="15" height="15" rx="3"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
-  copiar: '<rect x="8.5" y="8.5" width="11" height="11" rx="2"/><path d="M15.5 8.5V6a1.5 1.5 0 00-1.5-1.5H6A1.5 1.5 0 004.5 6v8A1.5 1.5 0 006 15.5h2.5"/>',
+  copiar: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 012-2h9"/>',
   sorriso: '<circle cx="12" cy="12" r="8.5"/><path d="M8.5 14a4.2 4.2 0 007 0M9.3 9.6h.01M14.7 9.6h.01"/>',
+  perfil: '<circle cx="12" cy="8.5" r="4"/><path d="M4.5 20.5c1.2-3.6 4.1-5.5 7.5-5.5s6.3 1.9 7.5 5.5"/>',
   grupo: '<circle cx="9" cy="9" r="3.2"/><circle cx="17" cy="10" r="2.5"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5s4.7 1.5 5.5 4.5M15 15c2.6-.4 4.6.8 5.5 3.5"/>',
   documento: '<path d="M7 3.5h7l4 4v13H7z"/><path d="M14 3.5v4h4M9.5 12.5h6M9.5 16h6"/>',
-  baixar: '<path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19.5h14"/>',
+  baixar: '<path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/>',
   fechar: '<path d="M6 6l12 12M18 6L6 18"/>',
   seta: '<path d="M6.5 9.5L12 15l5.5-5.5"/>',
-  foto: '<rect x="3.5" y="5" width="17" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 16l-5-5-8.5 8"/>'
+  info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.8h.01"/>',
+  foto: '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 16l-5-5-8.5 8.5"/>'
 };
 function ic(nome, tam = 22) {
   const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -202,21 +206,30 @@ export function montarChat(el) {
   let msgsDm = [], pararDm = null, termo = "", respondendo = null;
   const raiz = h("div", "eq-chat");
   // ---------- lista de conversas ----------
+  // (mesmo desenho da página de Mensagens: título, abas, busca e a lista)
   const lado = h("aside", "eq-lista"); lado.setAttribute("aria-label", "Conversas da equipe");
-  const ladoTopo = h("div", "eq-lista-topo"); ladoTopo.append(h("h3", null, "Conversas"));
+  const ladoTopo = h("div", "eq-lista-topo");
+  const tit = h("h3"); tit.append(h("span", null, "Equipe Help Floripa"), document.createTextNode("Conversas"));
+  const bInfo = botaoIcone("info", "Como adicionar alguém à equipe");
+  bInfo.addEventListener("click", () => C.infoEquipe?.());
+  ladoTopo.append(tit, bInfo);
+  let modoLista = C.modoChatEquipe || (conv === "equipe" ? "equipe" : "individual");
+  const modos = h("div", "eq-modos"); modos.setAttribute("role", "tablist"); modos.setAttribute("aria-label", "Tipo de conversa");
+  const botaoModo = (k, icone, rotulo) => { const b = h("button"); b.type = "button"; b.setAttribute("role", "tab"); b.dataset.modo = k; b.append(ic(icone, 17), document.createTextNode(rotulo), h("b", "eq-modo-n")); b.addEventListener("click", () => { modoLista = C.modoChatEquipe = k; pintarLista(); }); return b; };
+  modos.append(botaoModo("individual", "perfil", "Individual"), botaoModo("equipe", "grupo", "Equipe"));
+  const pesquisa = h("label", "eq-pesquisa"); const inPesq = h("input"); inPesq.type = "search"; inPesq.placeholder = "Pesquisar conversa"; inPesq.setAttribute("aria-label", "Pesquisar conversa"); inPesq.autocomplete = "off";
+  pesquisa.append(ic("lupa", 16), inPesq);
+  inPesq.addEventListener("input", () => pintarLista());
   const listaConv = h("div", "eq-lista-itens");
-  lado.append(ladoTopo, listaConv);
+  lado.append(ladoTopo, modos, pesquisa, listaConv);
   // ---------- conversa aberta ----------
   const painel = h("section", "eq-conversa"); painel.setAttribute("aria-label", "Conversa");
   const topo = h("header", "eq-topo");
   const voltar = botaoIcone("voltar", "Voltar às conversas", "eq-icone eq-voltar");
   const quem = h("div", "eq-quem");
   const bBusca = botaoIcone("lupa", "Buscar na conversa");
-  const bSom = h("button", "eq-icone"); bSom.type = "button";
-  const pintarSom = () => { const on = somAtivo(); bSom.replaceChildren(ic(on ? "sino" : "semSom")); bSom.title = on ? "Som de aviso ligado" : "Som de aviso desligado"; bSom.setAttribute("aria-label", bSom.title); bSom.setAttribute("aria-pressed", String(on)); };
-  bSom.addEventListener("click", () => { try { localStorage.setItem("hf-equipe-som", somAtivo() ? "0" : "1"); } catch {} pintarSom(); toast(somAtivo() ? "Som de aviso ligado" : "Som de aviso desligado"); });
-  pintarSom();
-  topo.append(voltar, quem, bBusca, bSom);
+  const bMais = botaoIcone("mais", "Mais opções");
+  topo.append(voltar, quem, bBusca, bMais);
   const barraBusca = h("div", "eq-busca"); barraBusca.hidden = true;
   const inBusca = h("input"); inBusca.type = "search"; inBusca.placeholder = "Buscar nesta conversa"; inBusca.setAttribute("aria-label", "Buscar nesta conversa");
   const resBusca = h("span", "eq-busca-res");
@@ -237,18 +250,18 @@ export function montarChat(el) {
   const caixa = h("div", "eq-caixa");
   const txt = document.createElement("textarea"); txt.maxLength = 2000; txt.rows = 1; txt.placeholder = "Mensagem"; txt.setAttribute("aria-label", "Mensagem");
   const bMencao = botaoIcone("arroba", "Mencionar alguém da equipe");
+  const bMic = botaoIcone("mic", "Gravar áudio");
   const conta = h("span", "eq-conta"); conta.setAttribute("aria-hidden", "true");
-  caixa.append(bAnexo, txt, conta, bMencao);
-  // Botão redondo: microfone com o campo vazio, "enviar" quando tem texto.
-  const bPrincipal = h("button", "eq-principal"); bPrincipal.type = "button";
-  barra.append(caixa, bPrincipal, inArq);
+  caixa.append(bAnexo, txt, conta, bMencao, bMic);
+  // Gravando: no lugar do campo (ponto vermelho, tempo e lixeira); a seta do botão redondo envia o áudio.
   const gravando = h("div", "eq-gravando"); gravando.hidden = true;
-  const gCancelar = botaoIcone("lixo", "Descartar áudio", "eq-icone eq-perigo");
   const gTempo = h("span", "eq-grav-tempo", "0:00");
-  const gEnviar = h("button", "eq-principal"); gEnviar.type = "button"; gEnviar.setAttribute("aria-label", "Enviar áudio"); gEnviar.title = "Enviar áudio"; gEnviar.appendChild(ic("enviar"));
-  const gInfo = h("div", "eq-grav-info"); gInfo.append(h("span", "eq-grav-ponto"), gTempo, h("span", "eq-grav-txt", "Gravando… até 2 min"));
-  gravando.append(gCancelar, gInfo, gEnviar);
-  form.append(sugest, respBarra, barra, gravando);
+  const gCancelar = botaoIcone("lixo", "Descartar áudio", "eq-icone eq-perigo");
+  gravando.append(h("span", "eq-grav-ponto"), gTempo, h("span", "eq-grav-txt", "Toque na seta para enviar · até 2 min"), gCancelar);
+  // Botão redondo com a seta (como em Mensagens): fica claro enquanto não há o que enviar.
+  const bPrincipal = h("button", "eq-principal"); bPrincipal.type = "button"; bPrincipal.appendChild(ic("enviar"));
+  barra.append(caixa, gravando, bPrincipal, inArq);
+  form.append(sugest, respBarra, barra);
   painel.append(topo, barraBusca, chat, form);
   // Menu de uma mensagem (reações + ações): um só para a conversa toda.
   const menu = h("div", "eq-menu"); menu.hidden = true; menu.setAttribute("role", "menu");
@@ -258,7 +271,7 @@ export function montarChat(el) {
   // ---------- lista de conversas ----------
   const dmDe = (par) => C.dms?.get(par);
   const naoLidaDm = (par) => { const d = dmDe(par); return !!d && d.ultimoAutor !== C.eu.uid && ms(d.ultimaEm) > ms(d.lidoEm?.[C.eu.uid]); };
-  const avGrupo = () => { const a = h("div", "ad-av eq-av-grupo"); a.appendChild(ic("grupo", 20)); return a; };
+  const avGrupo = () => { const a = h("div", "ad-av eq-av-grupo"); a.appendChild(ic("grupo", 24)); return a; };
   function pintarLista() {
     const itens = [];
     const ultG = C.chat.at(-1);
@@ -269,7 +282,21 @@ export function montarChat(el) {
     });
     const grupo = itens.shift();
     itens.sort((x, y) => ms(y.quando) - ms(x.quando) || (y.on - x.on) || x.nome.localeCompare(y.nome));
-    listaConv.replaceChildren(...[grupo, ...itens].map((it) => {
+    // Abas Individual | Equipe com o número de não lidas de cada uma.
+    const nInd = itens.filter((i) => i.nao).length, nEq = grupo.nao;
+    modos.querySelectorAll("button").forEach((b) => {
+      b.setAttribute("aria-selected", String(b.dataset.modo === modoLista));
+      const n = b.dataset.modo === "equipe" ? nEq : nInd, bd = b.querySelector(".eq-modo-n");
+      bd.hidden = !n; bd.textContent = n > 99 ? "99+" : String(n || "");
+    });
+    const termoL = inPesq.value.trim().toLowerCase();
+    const visiveis = (modoLista === "equipe" ? [grupo] : itens).filter((it) => !termoL || it.nome.toLowerCase().includes(termoL));
+    if (!visiveis.length) {
+      const v = h("div", "eq-lista-vazia");
+      v.append(h("strong", null, termoL ? "Nada encontrado" : "Ninguém mais na equipe ainda"), h("span", null, termoL ? `Nenhuma conversa com "${inPesq.value.trim()}".` : "Quando alguém entrar na equipe, a conversa com essa pessoa aparece aqui."));
+      listaConv.replaceChildren(v); return;
+    }
+    listaConv.replaceChildren(...visiveis.map((it) => {
       const b = h("button", "eq-item" + (it.id === conv ? " ativa" : "") + (it.nao ? " nao-lida" : "")); b.type = "button";
       b.setAttribute("aria-current", it.id === conv ? "true" : "false");
       let av;
@@ -421,6 +448,19 @@ export function montarChat(el) {
     no.replaceChildren(document.createTextNode(txt0.slice(0, i)), h("mark", null, txt0.slice(i, i + t.length)), document.createTextNode(txt0.slice(i + t.length)));
   }
   const reagir = (m, e) => alternarReacao(conv, m, e).catch((err) => toast("Não foi possível reagir: " + (err.code || err.message)));
+  // ⋮ do topo da conversa: buscar e som de aviso.
+  bMais.addEventListener("click", (e) => {
+    e.stopPropagation();
+    menu.replaceChildren();
+    const item = (icone, rotulo, fn) => { const b = h("button", "eq-menu-item"); b.type = "button"; b.setAttribute("role", "menuitem"); b.append(ic(icone, 19), h("span", null, rotulo)); b.addEventListener("click", () => { fecharMenu(); fn(); }); menu.appendChild(b); };
+    item("lupa", "Buscar na conversa", () => { barraBusca.hidden = false; inBusca.focus(); });
+    const on = somAtivo();
+    item(on ? "semSom" : "sino", on ? "Desligar som de aviso" : "Ligar som de aviso", () => { try { localStorage.setItem("hf-equipe-som", on ? "0" : "1"); } catch {} toast(on ? "Som de aviso desligado" : "Som de aviso ligado"); });
+    menu.hidden = false;
+    const r = bMais.getBoundingClientRect(), rm = menu.getBoundingClientRect();
+    menu.style.left = Math.max(8, Math.min(r.right - rm.width, innerWidth - rm.width - 8)) + "px";
+    menu.style.top = Math.min(r.bottom + 4, innerHeight - rm.height - 8) + "px";
+  });
 
   // ---------- menu da mensagem: reações + responder, criar tarefa, copiar, baixar ----------
   function fecharMenu() { menu.hidden = true; }
@@ -469,7 +509,7 @@ export function montarChat(el) {
 
   // ---------- abrir conversa ----------
   function abrir(id) {
-    conv = id; C.conversaAberta = id; termo = ""; inBusca.value = ""; barraBusca.hidden = true; respondendo = null; pintarResposta(); fecharMenu();
+    conv = id; C.conversaAberta = id; modoLista = C.modoChatEquipe = id === "equipe" ? "equipe" : "individual"; termo = ""; inBusca.value = ""; barraBusca.hidden = true; respondendo = null; pintarResposta(); fecharMenu();
     pararDm?.(); pararDm = null; msgsDm = []; pintarChat.feito = false; nos.clear();
     raiz.classList.add("aberta");
     if (id === "equipe") { C.marcarChatVisto?.(); }
@@ -497,12 +537,11 @@ export function montarChat(el) {
   const mencoes = new Map(); // primeiro nome (minúsculo) -> uid
   const ajustar = () => { txt.style.height = "auto"; txt.style.height = Math.min(140, txt.scrollHeight) + "px"; };
   function pintarPrincipal() {
-    const temTexto = !!txt.value.trim();
-    if (bPrincipal.dataset.modo === (temTexto ? "enviar" : "mic")) return;
-    bPrincipal.dataset.modo = temTexto ? "enviar" : "mic";
-    bPrincipal.replaceChildren(ic(temTexto ? "enviar" : "mic"));
-    const rot = temTexto ? "Enviar" : podeGravar() ? "Gravar áudio" : "Este navegador não grava áudio";
+    const grav = !!gravador, temTexto = !!txt.value.trim();
+    bPrincipal.classList.toggle("vazio", !temTexto && !grav);
+    const rot = grav ? "Enviar áudio" : "Enviar";
     bPrincipal.setAttribute("aria-label", rot); bPrincipal.title = rot;
+    bMic.hidden = !podeGravar();
   }
   const atualizarCampo = () => { conta.textContent = txt.value.length > 1600 ? `${2000 - txt.value.length}` : ""; ajustar(); pintarPrincipal(); };
   function candidatos(q) {
@@ -545,7 +584,8 @@ export function montarChat(el) {
     finally { enviando = false; }
   }
   form.addEventListener("submit", (e) => { e.preventDefault(); enviar(); });
-  bPrincipal.addEventListener("click", () => { if (txt.value.trim()) enviar(); else if (podeGravar()) iniciarGravacao(); else toast("Este navegador não grava áudio."); });
+  bPrincipal.addEventListener("click", () => { if (gravador) parar(false); else if (txt.value.trim()) enviar(); else txt.focus(); });
+  bMic.addEventListener("click", () => { if (podeGravar()) iniciarGravacao(); else toast("Este navegador não grava áudio."); });
   // Tocar no botão não tira o foco do campo (o teclado do celular continua aberto).
   ["pointerdown", "mousedown"].forEach((ev) => bPrincipal.addEventListener(ev, (e) => { if (document.activeElement === txt && txt.value.trim()) e.preventDefault(); }));
   txt.addEventListener("keydown", (e) => {
@@ -593,7 +633,7 @@ export function montarChat(el) {
       gravador.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
         const tipo = gravador?.mimeType || "audio/webm"; const dur = (Date.now() - inicio) / 1000;
-        gravador = null; clearInterval(relogio); gravando.hidden = true; barra.hidden = false;
+        gravador = null; clearInterval(relogio); gravando.hidden = true; caixa.hidden = false; pintarPrincipal();
         if (descartar || !partes.length) return;
         try {
           const dados = await lerDataUrl(new Blob(partes, { type: tipo }));
@@ -603,13 +643,12 @@ export function montarChat(el) {
         } catch (e) { console.error(e); toast(e.message && !e.code ? e.message : "Não foi possível enviar o áudio."); }
       };
       gravador.start(); inicio = Date.now();
-      barra.hidden = true; gravando.hidden = false; gTempo.textContent = "0:00";
+      caixa.hidden = true; gravando.hidden = false; gTempo.textContent = "0:00"; pintarPrincipal();
       relogio = setInterval(() => { const s = (Date.now() - inicio) / 1000; gTempo.textContent = seg(s); if (s >= LIMITE_AUDIO_SEG) parar(false); }, 250);
     } catch (e) { console.warn(e); toast("Não foi possível usar o microfone. Libere a permissão do navegador."); }
   }
   function parar(cancelar) { descartar = cancelar; if (gravador && gravador.state !== "inactive") gravador.stop(); }
   gCancelar.addEventListener("click", () => parar(true));
-  gEnviar.addEventListener("click", () => parar(false));
 
   // ---------- ao vivo ----------
   C.aoMudarEquipe = () => {

@@ -4,7 +4,7 @@
 import { linha, linhaComparada, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=7";
 import { baixarPlanilhaMulti } from "./planilha.js?v=5";
 import { buscarPessoas } from "./pessoas.js?v=3";
-import { montarChat } from "./admin-chat.js?v=6";
+import { montarChat } from "./admin-chat.js?v=7";
 import { verConteudoDenuncia } from "./admin-denuncia.js?v=2";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
 import {
@@ -1030,14 +1030,21 @@ export function registro(el) {
 }
 export function equipe(el) {
   el.appendChild(cab("Equipe e chat", "Converse com todos ou com cada pessoa da equipe. Dá para mandar foto, arquivo e áudio."));
+  // "Como adicionar alguém à equipe" abre pelo ⓘ do chat (no celular o chat ocupa a tela toda).
+  C.infoEquipe = () => {
+    const fundo = h("div", "ad-modal-fundo"), cx = h("div", "ad-modal"); cx.setAttribute("role", "dialog"); cx.setAttribute("aria-modal", "true");
+    cx.append(h("h3", null, "Adicionar alguém à equipe"), h("p", null, "Por segurança, só pelo console do Firebase (ninguém consegue se dar acesso pelo site)."));
+    const ol = h("ol"); ol.style.color = "var(--muted)"; ol.style.margin = "0"; ol.style.paddingLeft = "20px";
+    ["Abra a ficha da pessoa aqui no painel e copie o ID da conta.", "No Firebase → Firestore Database → coleção admins → Adicionar documento.", "Use o ID copiado como ID do documento e crie o campo nome (texto).", "Opcional: crie o campo papel (texto) com moderacao, suporte ou comercial. Sem esse campo a pessoa tem acesso total (dono).", "Para tirar o acesso, apague o documento."].forEach((x) => ol.appendChild(h("li", null, x)));
+    const tp = h("div", "ad-papeis"); Object.entries(PAPEIS).forEach(([k, v]) => { const d = h("div"); d.append(h("b", null, `${v}${k === "dono" ? "" : ` (papel: ${k})`}`), h("span", null, DESC_PAPEIS[k])); tp.appendChild(d); });
+    const ac = h("div", "ad-acoes"); const ok = h("button", "ad-bt pri", "Fechar"); ok.type = "button"; ac.appendChild(ok);
+    cx.append(ol, tp, ac); fundo.appendChild(cx); document.body.appendChild(fundo);
+    const fechar = () => { fundo.remove(); document.removeEventListener("keydown", tecla, true); };
+    const tecla = (e) => { if (e.key === "Escape") { e.stopPropagation(); fechar(); } };
+    document.addEventListener("keydown", tecla, true);
+    ok.addEventListener("click", fechar); fundo.addEventListener("click", (e) => { if (e.target === fundo) fechar(); }); ok.focus();
+  };
   montarChat(el);
-  const b = bloco("Adicionar alguém à equipe", "Por segurança, só pelo console do Firebase (ninguém consegue se dar acesso pelo site).");
-  b.style.marginTop = "14px";
-  const ol = h("ol"); ol.style.color = "var(--muted)"; ol.style.margin = "0"; ol.style.paddingLeft = "20px";
-  ["Abra a ficha da pessoa aqui no painel e copie o ID da conta.", "No Firebase → Firestore Database → coleção admins → Adicionar documento.", "Use o ID copiado como ID do documento e crie o campo nome (texto).", "Opcional: crie o campo papel (texto) com moderacao, suporte ou comercial. Sem esse campo a pessoa tem acesso total (dono).", "Para tirar o acesso, apague o documento."].forEach((x) => ol.appendChild(h("li", null, x)));
-  b.appendChild(ol);
-  const tp = h("div", "ad-papeis"); Object.entries(PAPEIS).forEach(([k, v]) => { const d = h("div"); d.append(h("b", null, `${v}${k === "dono" ? "" : ` (papel: ${k})`}`), h("span", null, DESC_PAPEIS[k])); tp.appendChild(d); });
-  b.appendChild(tp); el.appendChild(b);
 }
 
 // ======================================================= TAREFAS DA EQUIPE

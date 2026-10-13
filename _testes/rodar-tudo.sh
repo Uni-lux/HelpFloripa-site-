@@ -14,7 +14,7 @@ for t in "t-chat.mjs bruno" "t-chat.mjs ana" "t-audio.mjs" "t-atend.mjs" "t-aval
 done
 echo "== t-forms.mjs"; node seed.mjs > /dev/null 2>&1; timeout 300 node t-forms.mjs pc $RANDOM 2>&1 | grep -v "$F"
 if [ "$R" = "main" ]; then
-  echo "== t-equipe.mjs (precisa das regras novas)"; node seed.mjs > /dev/null 2>&1; timeout 200 node t-equipe.mjs pc 2>&1 | grep -v "$F"
+  echo "== t-equipe.mjs (precisa das regras novas)"; for m in cel pc; do node seed.mjs > /dev/null 2>&1; timeout 200 node t-equipe.mjs $m 2>&1 | grep -v "$F"; done
   echo "== t-virada.mjs"; node seed.mjs > /dev/null 2>&1; timeout 200 node t-virada.mjs 2>&1 | grep -v "$F"
 fi
 echo "== Excel pelo painel"; rm -rf saida/excel; node seed.mjs > /dev/null 2>&1; timeout 300 node t-excel.mjs | grep -c baixado; python3 checar-todos.py saida/excel
