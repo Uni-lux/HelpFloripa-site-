@@ -27,7 +27,7 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   `suporte/{id}` para qualquer pessoa (`abertoPor`), `atendimento.semana/almoco/volta`.
 - Etapa 5: `_regras/parte-1..8-de-8.txt` + `_regras/LEIA-ME.md` (passo a passo) gerados por
   `_testes/dividir-regras.py`; 91 testes de regras passando no arquivo remontado (com e sem as linhas de fim).
-  **Esperando ele publicar** no console; depois, conferir o site inteiro (checklist no LEIA-ME).
+  PR #33 mesclado. **Esperando ele publicar** no console; depois, conferir o site inteiro (checklist no LEIA-ME).
 
 ## Etapa 4 – Moderação, suporte e avaliações (muda regras)
 1. Avaliações: liberar também para quem tem vínculo aceito no Social (hoje `!vinculados` bloqueia, em
@@ -88,6 +88,15 @@ Coisas que só ELE pode fazer (lembrar no momento certo, sem fazer por ele):
 - Rodar o workflow manual "Converter cidades" (primeiro simulando, depois de verdade) depois da Etapa 5.
 - Testar o Excel no Microsoft Excel do celular dele depois de cada mudança em `planilha.js` (já falhou uma vez).
 - **Liberar o site** (tirar o bloqueio de login): só quando ele disser que está pronto.
+- **Deixar o repositório privado (ele decidiu fazer DEPOIS, 13/10/2026).** Hoje o repositório é público: o
+  `firestore.rules`, o histórico, as notas, os testes e os scripts ficam visíveis no GitHub. Sem `_config.yml`, o
+  site provavelmente publica o `firestore.rules` e outros arquivos de trabalho na raiz do site. No plano grátis o
+  GitHub Pages não publica repositório privado: antes de fechar, migrar a publicação. Opções explicadas a ele:
+  GitHub Pro (US$ 4/mês, nada muda), **Cloudflare Pages (grátis, recomendado)**, Firebase Hosting (grátis, mas
+  o deploy automático precisa da chave de conta de serviço como segredo). Ordem para não derrubar o site:
+  montar e testar o novo host → apontar o domínio → só então ele torna o repositório privado.
+  Também oferecido e ainda NÃO feito: `_config.yml` excluindo `firestore.rules`, `README.md` e arquivos de
+  trabalho da publicação. O HTML/JS do site continua visível no navegador de qualquer jeito: a segurança está nas regras.
 
 Ficou para depois da Etapa 5 (combinado com ele, ainda não feito):
 - Plano Blaze + Firebase Storage para fotos/áudios/arquivos (hoje vão em `data:` dentro do Firestore, com limite
