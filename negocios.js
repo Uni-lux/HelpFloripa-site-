@@ -819,5 +819,5 @@ $("negExcluir").addEventListener("click", async () => {
     const n = meusNegocios.find((x) => x.tipo === tipo);
     if (n) abrirFormNegocio(n); else novoNegocio(tipo);
   } else if (p.get("novo")) novoNegocio(null);
-  if (tipo || p.get("novo")) history.replaceState(null, "", "negocios.html");
+  if (tipo || p.get("novo")) history.replaceState(history.state, "", "negocios.html");
 })();

@@ -4,8 +4,8 @@
 // Firebase). As regras do Firestore conferem isso em cada leitura e ação.
 // =====================================================
 import { C, D, $, h, ms, toast, PAPEIS, vendoAgora, pode, garantirNegocios, garantirTodasPessoas, carregarPessoas } from "./admin-base.js?v=11";
-import * as S from "./admin-secoes.js?v=18";
-import { previa, tocarSom } from "./admin-chat.js?v=7";
+import * as S from "./admin-secoes.js?v=19";
+import { previa, tocarSom } from "./admin-chat.js?v=8";
 
 const SECOES = {
   visao: S.visao, estatisticas: S.estatisticas, relatorios: S.relatorios, usuarios: S.usuarios, verificacoes: S.verificacoes,
@@ -31,7 +31,7 @@ function irPara(sec, termo = "") {
     el.appendChild(h("div", "ad-vazio", faltaPessoas ? "Carregando todas as contas para os gráficos..." : "Carregando negócios e anúncios..."));
     Promise.all([garantirNegocios(), faltaPessoas ? garantirTodasPessoas() : null]).then(() => { if (atual === sec) irPara(sec + (filtro ? ":" + filtro : ""), termo); })
       .catch((e) => { el.replaceChildren(h("div", "ad-vazio", "Não foi possível carregar os negócios: " + (e.code || e.message))); });
-    history.replaceState(null, "", `admin.html#${sec}`);
+    history.replaceState(history.state, "", `admin.html#${sec}`);
     return;
   }
   try {
@@ -39,7 +39,7 @@ function irPara(sec, termo = "") {
     else if (sec === "usuarios" && filtro) { const chip = filtro; SECOES.usuarios(el, termo); el.querySelector(`.ad-chip:nth-child(${["todos", "novos", "ativos", "inativos", "negocio", "verificados", "desativado", "exclusao", "sancao"].indexOf(chip) + 1})`)?.click(); }
     else SECOES[sec](el, termo);
   } catch (e) { console.error(e); el.appendChild(h("div", "ad-vazio", "Não foi possível montar esta seção: " + e.message)); }
-  history.replaceState(null, "", `admin.html#${sec}`);
+  history.replaceState(history.state, "", `admin.html#${sec}`);
   C.marcarItem?.(null);
   requestAnimationFrame(() => C.pintarVendo?.());
   if (C.marcarPresenca && sec !== ultimaPresenca) { ultimaPresenca = sec; C.marcarPresenca(true); }

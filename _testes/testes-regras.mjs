@@ -202,6 +202,16 @@ await t("aviso: quem recebeu lê e marca como lido", async () => { await assertS
 await t("aviso: outra pessoa não lê", () => assertFails(getDoc(doc(ctx("ana"), "avisos", "av1"))));
 await t("aviso: usuário comum não envia aviso", () => assertFails(setDoc(doc(ctx("ana"), "avisos", "av2"), { uid: "bia", titulo: "Falso", texto: "x", tipo: "grave", por: "ana", em: serverTimestamp(), lidoEm: null })));
 
+
+// Foto do grupo do chat da equipe.
+const fotoP = "data:image/jpeg;base64,/9j/4AAQ";
+await t("equipe: troca a foto do grupo", () => assertSucceeds(setDoc(doc(ctx("mod2"), "equipe_info", "grupo"), { foto: fotoP, por: "mod2", em: serverTimestamp() })));
+await t("equipe: todos da equipe veem a foto do grupo", () => assertSucceeds(getDoc(doc(ctx("adm"), "equipe_info", "grupo"))));
+await t("equipe: quem não é da equipe não vê nem troca a foto", async () => { await assertFails(getDoc(doc(ctx("ana"), "equipe_info", "grupo"))); await assertFails(setDoc(doc(ctx("ana"), "equipe_info", "grupo"), { foto: fotoP, por: "ana", em: serverTimestamp() })); });
+await t("equipe: foto de outro site é recusada", () => assertFails(setDoc(doc(ctx("adm"), "equipe_info", "grupo"), { foto: "https://exemplo.com/a.jpg", por: "adm", em: serverTimestamp() })));
+await t("equipe: só o documento 'grupo'", () => assertFails(setDoc(doc(ctx("adm"), "equipe_info", "outro"), { foto: fotoP, por: "adm", em: serverTimestamp() })));
+await t("equipe: tirar a foto do grupo", () => assertSucceeds(setDoc(doc(ctx("adm"), "equipe_info", "grupo"), { foto: null, por: "adm", em: serverTimestamp() })));
+
 // ---------- resultado ----------
 for (const r of resultados) console.log(r[0] === "ok" ? "  ✔" : "  ✘", r[1], r[2] ? "→ " + r[2] : "");
 console.log(`\n${ok} passaram, ${falhou} falharam (${arquivo})`);
