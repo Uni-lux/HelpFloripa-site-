@@ -1,3 +1,10 @@
+        // Versão anterior guardada ao editar: o texto e a hora que ele tinha (envio ou última edição).
+        function versaoOk(v) {
+          return v is map && v.keys().hasOnly(['texto', 'em'])
+              && v.texto == resource.data.get('texto', '')
+              && v.em == resource.data.get('editadaEm', resource.data.criadoEm);
+        }
+
         allow read: if logado() && participante();
         // A moderação abre só a mensagem denunciada (uma por vez, sem listar a conversa).
         allow get: if podeModerar();
@@ -13,10 +20,76 @@
                       && textoAte('texto', 4000)
                       && mensagemOk();
 
-        allow update: if false;
+        // Editar (só quem enviou): o texto novo e, na lista "edicoes", a versão anterior (quem
+        // conversa pode ver o original). Cartões de pedido/avaliação e mensagens apagadas não se editam.
+        allow update: if logado()
+                      && request.auth.uid == resource.data.remetenteId
+                      && !('apagada' in resource.data)
+                      && resource.data.get('tipoArquivo', '') in ['', 'imagem', 'video', 'audio']
+                      && mudou().hasOnly(['texto', 'editadaEm', 'edicoes'])
+                      && request.resource.data.texto is string && request.resource.data.texto.size() <= 4000
+                      && (request.resource.data.texto.size() > 0 || 'arquivoUrl' in resource.data)
+                      && request.resource.data.editadaEm == request.time
+                      && request.resource.data.edicoes is list
+                      && request.resource.data.edicoes.size() == resource.data.get('edicoes', []).size() + 1
+                      && request.resource.data.edicoes.size() <= 20
+                      // as versões antigas ficam como estavam; a nova é o texto de antes, com a hora dele
+                      && request.resource.data.edicoes == resource.data.get('edicoes', []).concat([request.resource.data.edicoes[resource.data.get('edicoes', []).size()]])
+                      && versaoOk(request.resource.data.edicoes[resource.data.get('edicoes', []).size()]);
+
+        // Apagar para todos (só quem enviou): no lugar fica "apagou esta mensagem"; o conteúdo vai,
+        // na mesma gravação, para apagadas/{id}, que os dois ainda podem abrir por 24 horas.
+        allow update: if logado()
+                      && request.auth.uid == resource.data.remetenteId
+                      && !('apagada' in resource.data)
+                      && request.resource.data.keys().hasOnly(['remetenteId', 'criadoEm', 'apagada'])
+                      && request.resource.data.remetenteId == resource.data.remetenteId
+                      && request.resource.data.criadoEm == resource.data.criadoEm
+                      && request.resource.data.apagada is map
+                      && request.resource.data.apagada.keys().hasOnly(['por', 'em'])
+                      && request.resource.data.apagada.por == request.auth.uid
+                      && request.resource.data.apagada.em == request.time
+                      && existsAfter(/databases/$(database)/documents/conversas/$(conversaId)/apagadas/$(mensagemId));
 
         allow delete: if logado()
                       && request.auth.uid == resource.data.remetenteId;
+      }
+
+      // ===================================================
+      // CONTEÚDO DE MENSAGEM APAGADA PARA TODOS: conversas/{c}/apagadas/{idDaMensagem}
+      // Os dois da conversa abrem por 24 horas ("Ver mensagem apagada", e dá para denunciar);
+      // depois as regras não deixam mais ler e qualquer um dos dois apaga de vez.
+      // A moderação abre enquanto existir (denúncias).
+      // ===================================================
+      match /apagadas/{mensagemId} {
+        function daConversa() {
+          return request.auth.uid in get(/databases/$(database)/documents/conversas/$(conversaId)).data.participantes;
+        }
+        function original() {
+          return get(/databases/$(database)/documents/conversas/$(conversaId)/mensagens/$(mensagemId)).data;
+        }
+        function noPrazo() { return request.time < resource.data.apagadaEm + duration.value(24, 'h'); }
+        allow get: if logado() && daConversa() && noPrazo();
+        allow get: if podeModerar();
+        allow create: if logado()
+                      && request.resource.data.keys().hasOnly(['remetenteId', 'conteudo', 'apagadaEm'])
+                      && request.resource.data.remetenteId == request.auth.uid
+                      && original().remetenteId == request.auth.uid
+                      && getAfter(/databases/$(database)/documents/conversas/$(conversaId)/mensagens/$(mensagemId)).data.apagada.por == request.auth.uid
+                      && request.resource.data.apagadaEm == request.time
+                      && request.resource.data.conteudo is map
+                      && request.resource.data.conteudo.keys().hasOnly(['texto', 'tipoArquivo', 'arquivoUrl', 'nomeArquivo', 'cartao', 'avaliacao', 'resposta', 'edicoes'])
+                      // o conteúdo guardado é o da mensagem de verdade (não dá para inventar outro)
+                      && request.resource.data.conteudo.get('texto', '') == original().get('texto', '')
+                      && request.resource.data.conteudo.get('tipoArquivo', '') == original().get('tipoArquivo', '')
+                      && request.resource.data.conteudo.get('arquivoUrl', '') == original().get('arquivoUrl', '');
+        // Quem recebeu e denunciou (dentro das 24 horas) marca "denunciada": aí só a moderação apaga.
+        allow update: if logado() && daConversa() && noPrazo()
+                      && request.auth.uid != resource.data.remetenteId
+                      && mudou().hasOnly(['denunciada'])
+                      && request.resource.data.denunciada == true;
+        allow delete: if logado() && daConversa() && !noPrazo() && resource.data.get('denunciada', false) != true;
+        allow delete: if podeModerar();
       }
     }
 
@@ -139,111 +212,4 @@
                         || (request.resource.data.tipo == 'cliente' && doVendedor())
                         || (request.resource.data.tipo == 'publicacao' && daPublicacao()));
 
-      // Edição de n_ / c_ pelo próprio autor: só nota, comentário e (uma vez) o pedido confirmado.
-      allow update: if logado()
-                    && emailOk()
-                    && resource.data.autorId == request.auth.uid
-                    && (id.matches('^n_.*') || id.matches('^c_.*'))
-                    && mudou().hasOnly(['nota', 'comentario', 'atualizadoEm', 'pedidoId'])
-                    && request.resource.data.nota is int && request.resource.data.nota >= 1 && request.resource.data.nota <= 5
-                    && valorTextoAte(request.resource.data.get('comentario', ''), 500)
-                    && request.resource.data.atualizadoEm == request.time
-                    && (!mudou().hasAny(['pedidoId'])
-                        || (!('pedidoId' in resource.data)
-                            && pedidoOk(request.resource.data, id.matches('^n_.*') ? request.auth.uid : resource.data.alvoId, resource.data.negocioId)))
-                    && !bloqueioEntre(request.auth.uid, resource.data.alvoId)
-                    // nota mudou: o resumo precisa trocar a nota antiga pela nova NESTA mesma gravação
-                    && (request.resource.data.nota == resource.data.nota
-                        || (getAfter(/databases/$(database)/documents/notas/$(resource.data.chaves[0])).data.ultima == id
-                            && getAfter(/databases/$(database)/documents/notas/$(resource.data.chaves[0])).data.soma
-                               == get(/databases/$(database)/documents/notas/$(resource.data.chaves[0])).data.soma
-                                  - resource.data.nota + request.resource.data.nota));
-
-      allow delete: if false;
-    }
-
-
-    // =====================================================
-    // RESUMO DAS NOTAS (média e quantas de cada estrela)
-    //   neg_{negocioId} · cli_{uid} · pub_{uid} · post_{postId}
-    // Só aceita somar exatamente a avaliação nova gravada junto.
-    // =====================================================
-    match /notas/{chave} {
-
-      function caminhoNova() {
-        return /databases/$(database)/documents/avaliacoes/$(request.resource.data.ultima);
-      }
-
-      function avaliacaoNova() {
-        return request.resource.data.ultima is string
-            && !exists(caminhoNova())
-            && existsAfter(caminhoNova())
-            && getAfter(caminhoNova()).data.autorId == request.auth.uid
-            && chave in getAfter(caminhoNova()).data.chaves;
-      }
-
-      function estrela() {
-        return 'n' + string(getAfter(caminhoNova()).data.nota);
-      }
-
-      allow read: if logado();
-
-      allow create: if logado()
-                    && avaliacaoNova()
-                    && request.resource.data.keys().hasOnly(['total', 'soma', 'n1', 'n2', 'n3', 'n4', 'n5', 'ultima', 'atualizadoEm'])
-                    && request.resource.data.keys().hasAll(['total', 'soma', 'n1', 'n2', 'n3', 'n4', 'n5', 'ultima'])
-                    && request.resource.data.total == 1
-                    && request.resource.data.soma == getAfter(caminhoNova()).data.nota
-                    && request.resource.data[estrela()] == 1
-                    && request.resource.data.n1 + request.resource.data.n2 + request.resource.data.n3
-                       + request.resource.data.n4 + request.resource.data.n5 == 1;
-
-      allow update: if logado()
-                    && avaliacaoNova()
-                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['total', 'soma', 'ultima', 'atualizadoEm', estrela()])
-                    && request.resource.data.total == resource.data.total + 1
-                    && request.resource.data.soma == resource.data.soma + getAfter(caminhoNova()).data.nota
-                    && request.resource.data[estrela()] == resource.data.get(estrela(), 0) + 1;
-
-      // Edição de uma avaliação n_/c_: troca a nota antiga pela nova (o total não muda).
-      function edicao() {
-        let antes = get(caminhoNova()).data;
-        let depois = getAfter(caminhoNova()).data;
-        return request.resource.data.ultima is string
-            && exists(caminhoNova())
-            && depois.autorId == request.auth.uid
-            && chave in depois.chaves
-            && antes.nota != depois.nota
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['soma', 'ultima', 'atualizadoEm', 'n' + string(antes.nota), 'n' + string(depois.nota)])
-            && request.resource.data.total == resource.data.total
-            && request.resource.data.soma == resource.data.soma - antes.nota + depois.nota
-            && resource.data.get('n' + string(antes.nota), 0) >= 1
-            && request.resource.data['n' + string(antes.nota)] == resource.data.get('n' + string(antes.nota), 0) - 1
-            && request.resource.data['n' + string(depois.nota)] == resource.data.get('n' + string(depois.nota), 0) + 1;
-      }
-
-      allow update: if logado() && edicao();
-
-      allow delete: if false;
-    }
-
-
-    // =====================================================
-    // RECLAMAÇÕES: resposta pública do negócio
-    // Reclamação = avaliação de negócio com nota 1 ou 2 (avaliacoes/{id}).
-    // reclamacoes/{id da avaliação}: o negócio avaliado responde uma vez
-    // (pode editar o texto) e o cliente que reclamou marca como resolvida.
-    // =====================================================
-    match /reclamacoes/{avalId} {
-
-      allow read: if logado();
-
-      function aval() {
-        return get(/databases/$(database)/documents/avaliacoes/$(avalId)).data;
-      }
-
-      function respostaOk(d) {
-        return d.texto is string && d.texto.size() >= 2 && d.texto.size() <= 1000;
-      }
-
-// ===== FIM DA PARTE 4 DE 8 =====
+// ===== FIM DA PARTE 4 DE 9 =====

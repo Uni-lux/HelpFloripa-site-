@@ -1,74 +1,3 @@
-    // Mensagem do chat da equipe (todos ou individual): texto e/ou um anexo
-    // (foto, áudio ou arquivo). O conteúdo do anexo fica em equipe_anexos/{id},
-    // gravado junto, da mesma pessoa e da mesma conversa.
-    function msgEquipeOk(conversa) {
-      let d = request.resource.data;
-      return d.keys().hasOnly(['autorId', 'nome', 'texto', 'em', 'mencoes', 'tipoArquivo', 'anexo', 'nomeArquivo', 'tamanho', 'miniatura', 'duracao', 'resposta', 'reacoes'])
-          && d.autorId == request.auth.uid
-          && valorTextoAte(d.get('nome', ''), 80)
-          && d.texto is string && d.texto.size() <= 2000
-          && (d.texto.size() >= 1 || 'anexo' in d)
-          && d.em == request.time
-          && (!('mencoes' in d) || (d.mencoes is list && d.mencoes.size() <= 10))
-          && (!('resposta' in d)
-              || (d.resposta is map
-                  && d.resposta.keys().hasOnly(['id', 'autorId', 'nome', 'texto'])
-                  && d.resposta.get('id', '') is string
-                  && d.resposta.get('autorId', '') is string
-                  && valorTextoAte(d.resposta.get('nome', ''), 80)
-                  && d.resposta.get('texto', '') is string && d.resposta.get('texto', '').size() <= 200))
-          && (!('reacoes' in d) || (d.reacoes is map && d.reacoes.size() == 0))
-          && (!('anexo' in d)
-              || (d.anexo is string
-                  && d.tipoArquivo in ['imagem', 'audio', 'arquivo']
-                  && getAfter(/databases/$(database)/documents/equipe_anexos/$(d.anexo)).data.autorId == request.auth.uid
-                  && getAfter(/databases/$(database)/documents/equipe_anexos/$(d.anexo)).data.conversa == conversa))
-          && (!('tipoArquivo' in d) || 'anexo' in d)
-          && valorTextoAte(d.get('nomeArquivo', ''), 120)
-          && (!('tamanho' in d) || (d.tamanho is int && d.tamanho >= 0))
-          && (!('duracao' in d) || (d.duracao is int && d.duracao >= 0 && d.duracao <= 600))
-          && (!('miniatura' in d) || (d.miniatura is string && d.miniatura.size() <= 30000 && d.miniatura.matches('^data:image/jpeg;base64,.*')));
-    }
-    // Reação a uma mensagem: cada pessoa guarda só a sua (reacoes[uid] = emoji).
-    // A edição só pode mexer no campo reacoes, e só na própria chave de quem edita.
-    function reacaoValida() {
-      let d = request.resource.data;
-      let a = resource.data;
-      let eu = request.auth.uid;
-      return d.diff(a).affectedKeys().hasOnly(['reacoes'])
-          && d.get('reacoes', {}) is map
-          && d.get('reacoes', {}).diff(a.get('reacoes', {})).affectedKeys().hasOnly([eu])
-          && (!(eu in d.get('reacoes', {})) || d.reacoes[eu] in ['👍', '❤️', '😂', '😮', '😢', '🙏']);
-    }
-    match /equipe_chat/{id} {
-      allow read: if admin();
-      allow create: if admin() && msgEquipeOk('equipe');
-      allow update: if admin() && reacaoValida();
-      allow delete: if false;
-    }
-    // Conversa individual entre duas pessoas da equipe: equipe_dm/{uidA_uidB} (ids em ordem).
-    // O documento guarda só o resumo (última mensagem e quando cada um leu).
-    match /equipe_dm/{par} {
-      function membro() {
-        return admin() && par.split('_').size() == 2 && request.auth.uid in par.split('_')
-            && exists(/databases/$(database)/documents/admins/$(par.split('_')[0]))
-            && exists(/databases/$(database)/documents/admins/$(par.split('_')[1]));
-      }
-      allow read: if admin() && request.auth.uid in resource.data.participantes;
-      allow create, update: if membro()
-                    && request.resource.data.keys().hasOnly(['participantes', 'ultimaEm', 'ultimaTexto', 'ultimoAutor', 'lidoEm'])
-                    && request.resource.data.participantes == par.split('_')
-                    && valorTextoAte(request.resource.data.get('ultimaTexto', ''), 140)
-                    && (!('ultimoAutor' in request.resource.data) || request.resource.data.ultimoAutor in par.split('_'))
-                    && request.resource.data.get('lidoEm', {}) is map;
-      allow delete: if false;
-      match /mensagens/{id} {
-        allow read: if admin() && request.auth.uid in par.split('_');
-        allow create: if admin() && par.split('_').size() == 2 && request.auth.uid in par.split('_') && msgEquipeOk(par);
-        allow update: if admin() && request.auth.uid in par.split('_') && reacaoValida();
-        allow delete: if false;
-      }
-    }
     // Conteúdo dos anexos do chat da equipe (data: URL de até ~900 mil caracteres).
     // Só quem participa da conversa lê; ninguém edita.
     match /equipe_anexos/{id} {
@@ -216,4 +145,78 @@
     }
 
 
-// ===== FIM DA PARTE 7 DE 8 =====
+    // =====================================================
+    // ESTRELAS NAS PUBLICAÇÕES: curtidas/{postId}_{uid}
+    // Nota de 1 a 5, uma por pessoa em cada publicação. A pessoa pode
+    // trocar a nota ou tirar. Ninguém dá estrelas na própria publicação.
+    // =====================================================
+    match /curtidas/{id} {
+
+      allow read: if logado();
+
+      function notaOk(d) {
+        return d.nota is int && d.nota >= 1 && d.nota <= 5;
+      }
+
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['postId', 'uid', 'postAutorId', 'nota', 'criadoEm'])
+                    && request.resource.data.uid == request.auth.uid
+                    && id == request.resource.data.postId + '_' + request.auth.uid
+                    && exists(/databases/$(database)/documents/diario/$(request.resource.data.postId))
+                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
+                    && request.resource.data.postAutorId != request.auth.uid
+                    && notaOk(request.resource.data)
+                    && !bloqueioEntre(request.auth.uid, request.resource.data.postAutorId)
+                    && request.resource.data.criadoEm == request.time;
+
+      allow update: if logado()
+                    && emailOk()
+                    && resource.data.uid == request.auth.uid
+                    && mudou().hasOnly(['nota', 'atualizadoEm'])
+                    && notaOk(request.resource.data)
+                    && request.resource.data.atualizadoEm == request.time;
+
+      allow delete: if logado() && resource.data.uid == request.auth.uid;
+    }
+
+    // =====================================================
+    // COMENTÁRIOS: comentarios/{id}
+    // - Resposta: respostaA = id do comentário respondido (mesma publicação)
+    //   e respostaAutorId = autor dele (para o aviso).
+    // - Quem comentou edita o texto. O dono da publicação oculta um comentário.
+    // - Quem comentou ou o dono da publicação apaga.
+    // - Publicação com comentários ocultos não recebe comentários novos.
+    // =====================================================
+    match /comentarios/{id} {
+
+      allow read: if logado();
+
+      function textoComentarioOk(d) {
+        return d.texto is string && d.texto.size() >= 1 && d.texto.size() <= 500;
+      }
+
+      function respostaOk(d) {
+        return (!('respostaA' in d) && !('respostaAutorId' in d))
+            || (d.respostaA is string
+                && exists(/databases/$(database)/documents/comentarios/$(d.respostaA))
+                && get(/databases/$(database)/documents/comentarios/$(d.respostaA)).data.postId == d.postId
+                && d.respostaAutorId == get(/databases/$(database)/documents/comentarios/$(d.respostaA)).data.autorId);
+      }
+
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['postId', 'postAutorId', 'autorId', 'nome', 'foto', 'texto', 'respostaA', 'respostaAutorId', 'criadoEm'])
+                    && request.resource.data.autorId == request.auth.uid
+                    && textoComentarioOk(request.resource.data)
+                    && valorTextoAte(request.resource.data.get('nome', ''), 80)
+                    && fotoOk(request.resource.data.get('foto', ''))
+                    && exists(/databases/$(database)/documents/diario/$(request.resource.data.postId))
+                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
+                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.get('comentariosOcultos', false) != true
+                    && respostaOk(request.resource.data)
+                    && !bloqueioEntre(request.auth.uid, request.resource.data.postAutorId)
+                    && ritmoOk('com')
+                    && request.resource.data.criadoEm == request.time;
+
+// ===== FIM DA PARTE 8 DE 9 =====

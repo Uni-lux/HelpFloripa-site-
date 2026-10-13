@@ -770,6 +770,13 @@ service cloud.firestore {
               && (!('resposta' in d) || respostaOk(d.resposta));
         }
 
+        // Versão anterior guardada ao editar: o texto e a hora que ele tinha (envio ou última edição).
+        function versaoOk(v) {
+          return v is map && v.keys().hasOnly(['texto', 'em'])
+              && v.texto == resource.data.get('texto', '')
+              && v.em == resource.data.get('editadaEm', resource.data.criadoEm);
+        }
+
         allow read: if logado() && participante();
         // A moderação abre só a mensagem denunciada (uma por vez, sem listar a conversa).
         allow get: if podeModerar();
@@ -785,10 +792,76 @@ service cloud.firestore {
                       && textoAte('texto', 4000)
                       && mensagemOk();
 
-        allow update: if false;
+        // Editar (só quem enviou): o texto novo e, na lista "edicoes", a versão anterior (quem
+        // conversa pode ver o original). Cartões de pedido/avaliação e mensagens apagadas não se editam.
+        allow update: if logado()
+                      && request.auth.uid == resource.data.remetenteId
+                      && !('apagada' in resource.data)
+                      && resource.data.get('tipoArquivo', '') in ['', 'imagem', 'video', 'audio']
+                      && mudou().hasOnly(['texto', 'editadaEm', 'edicoes'])
+                      && request.resource.data.texto is string && request.resource.data.texto.size() <= 4000
+                      && (request.resource.data.texto.size() > 0 || 'arquivoUrl' in resource.data)
+                      && request.resource.data.editadaEm == request.time
+                      && request.resource.data.edicoes is list
+                      && request.resource.data.edicoes.size() == resource.data.get('edicoes', []).size() + 1
+                      && request.resource.data.edicoes.size() <= 20
+                      // as versões antigas ficam como estavam; a nova é o texto de antes, com a hora dele
+                      && request.resource.data.edicoes == resource.data.get('edicoes', []).concat([request.resource.data.edicoes[resource.data.get('edicoes', []).size()]])
+                      && versaoOk(request.resource.data.edicoes[resource.data.get('edicoes', []).size()]);
+
+        // Apagar para todos (só quem enviou): no lugar fica "apagou esta mensagem"; o conteúdo vai,
+        // na mesma gravação, para apagadas/{id}, que os dois ainda podem abrir por 24 horas.
+        allow update: if logado()
+                      && request.auth.uid == resource.data.remetenteId
+                      && !('apagada' in resource.data)
+                      && request.resource.data.keys().hasOnly(['remetenteId', 'criadoEm', 'apagada'])
+                      && request.resource.data.remetenteId == resource.data.remetenteId
+                      && request.resource.data.criadoEm == resource.data.criadoEm
+                      && request.resource.data.apagada is map
+                      && request.resource.data.apagada.keys().hasOnly(['por', 'em'])
+                      && request.resource.data.apagada.por == request.auth.uid
+                      && request.resource.data.apagada.em == request.time
+                      && existsAfter(/databases/$(database)/documents/conversas/$(conversaId)/apagadas/$(mensagemId));
 
         allow delete: if logado()
                       && request.auth.uid == resource.data.remetenteId;
+      }
+
+      // ===================================================
+      // CONTEÚDO DE MENSAGEM APAGADA PARA TODOS: conversas/{c}/apagadas/{idDaMensagem}
+      // Os dois da conversa abrem por 24 horas ("Ver mensagem apagada", e dá para denunciar);
+      // depois as regras não deixam mais ler e qualquer um dos dois apaga de vez.
+      // A moderação abre enquanto existir (denúncias).
+      // ===================================================
+      match /apagadas/{mensagemId} {
+        function daConversa() {
+          return request.auth.uid in get(/databases/$(database)/documents/conversas/$(conversaId)).data.participantes;
+        }
+        function original() {
+          return get(/databases/$(database)/documents/conversas/$(conversaId)/mensagens/$(mensagemId)).data;
+        }
+        function noPrazo() { return request.time < resource.data.apagadaEm + duration.value(24, 'h'); }
+        allow get: if logado() && daConversa() && noPrazo();
+        allow get: if podeModerar();
+        allow create: if logado()
+                      && request.resource.data.keys().hasOnly(['remetenteId', 'conteudo', 'apagadaEm'])
+                      && request.resource.data.remetenteId == request.auth.uid
+                      && original().remetenteId == request.auth.uid
+                      && getAfter(/databases/$(database)/documents/conversas/$(conversaId)/mensagens/$(mensagemId)).data.apagada.por == request.auth.uid
+                      && request.resource.data.apagadaEm == request.time
+                      && request.resource.data.conteudo is map
+                      && request.resource.data.conteudo.keys().hasOnly(['texto', 'tipoArquivo', 'arquivoUrl', 'nomeArquivo', 'cartao', 'avaliacao', 'resposta', 'edicoes'])
+                      // o conteúdo guardado é o da mensagem de verdade (não dá para inventar outro)
+                      && request.resource.data.conteudo.get('texto', '') == original().get('texto', '')
+                      && request.resource.data.conteudo.get('tipoArquivo', '') == original().get('tipoArquivo', '')
+                      && request.resource.data.conteudo.get('arquivoUrl', '') == original().get('arquivoUrl', '');
+        // Quem recebeu e denunciou (dentro das 24 horas) marca "denunciada": aí só a moderação apaga.
+        allow update: if logado() && daConversa() && noPrazo()
+                      && request.auth.uid != resource.data.remetenteId
+                      && mudou().hasOnly(['denunciada'])
+                      && request.resource.data.denunciada == true;
+        allow delete: if logado() && daConversa() && !noPrazo() && resource.data.get('denunciada', false) != true;
+        allow delete: if podeModerar();
       }
     }
 
@@ -1439,10 +1512,43 @@ service cloud.firestore {
           && d.get('reacoes', {}).diff(a.get('reacoes', {})).affectedKeys().hasOnly([eu])
           && (!(eu in d.get('reacoes', {})) || d.reacoes[eu] in ['👍', '❤️', '😂', '😮', '😢', '🙏']);
     }
+    // Editar mensagem do chat da equipe (só quem escreveu): texto novo + versão anterior em "edicoes".
+    function edicaoEquipeOk() {
+      let d = request.resource.data;
+      let a = resource.data;
+      return a.autorId == request.auth.uid
+          && !('apagada' in a)
+          && d.diff(a).affectedKeys().hasOnly(['texto', 'editadaEm', 'edicoes'])
+          && d.texto is string && d.texto.size() <= 2000
+          && (d.texto.size() > 0 || 'anexo' in a)
+          && d.editadaEm == request.time
+          && d.edicoes is list
+          && d.edicoes.size() == a.get('edicoes', []).size() + 1
+          && d.edicoes.size() <= 20
+          && d.edicoes == a.get('edicoes', []).concat([d.edicoes[a.get('edicoes', []).size()]])
+          && d.edicoes[a.get('edicoes', []).size()] is map
+          && d.edicoes[a.get('edicoes', []).size()].keys().hasOnly(['texto', 'em'])
+          && d.edicoes[a.get('edicoes', []).size()].texto == a.get('texto', '')
+          && d.edicoes[a.get('edicoes', []).size()].em == a.get('editadaEm', a.em);
+    }
+    // Apagar para todos no chat da equipe: fica "apagou esta mensagem"; o conteúdo vai para
+    // equipe_apagadas/{id} (abre por 24 horas), gravado junto.
+    function apagarEquipeOk(id) {
+      let d = request.resource.data;
+      let a = resource.data;
+      return a.autorId == request.auth.uid
+          && !('apagada' in a)
+          && d.keys().hasOnly(['autorId', 'nome', 'em', 'apagada'])
+          && d.autorId == a.autorId && d.em == a.em && d.get('nome', '') == a.get('nome', '')
+          && d.apagada is map && d.apagada.keys().hasOnly(['por', 'em'])
+          && d.apagada.por == request.auth.uid && d.apagada.em == request.time
+          && existsAfter(/databases/$(database)/documents/equipe_apagadas/$(id));
+    }
     match /equipe_chat/{id} {
       allow read: if admin();
       allow create: if admin() && msgEquipeOk('equipe');
       allow update: if admin() && reacaoValida();
+      allow update: if admin() && (edicaoEquipeOk() || apagarEquipeOk(id));
       allow delete: if false;
     }
     // Conversa individual entre duas pessoas da equipe: equipe_dm/{uidA_uidB} (ids em ordem).
@@ -1465,9 +1571,35 @@ service cloud.firestore {
         allow read: if admin() && request.auth.uid in par.split('_');
         allow create: if admin() && par.split('_').size() == 2 && request.auth.uid in par.split('_') && msgEquipeOk(par);
         allow update: if admin() && request.auth.uid in par.split('_') && reacaoValida();
+        allow update: if admin() && request.auth.uid in par.split('_') && (edicaoEquipeOk() || apagarEquipeOk(id));
         allow delete: if false;
       }
     }
+    // Conteúdo de mensagem do chat da equipe apagada para todos (abre por 24 horas, só quem participa;
+    // depois disso qualquer um da conversa apaga de vez).
+    match /equipe_apagadas/{id} {
+      function daConversaEq(c) { return c == 'equipe' || request.auth.uid in c.split('_'); }
+      function msgEq(c) {
+        return c == 'equipe' ? /databases/$(database)/documents/equipe_chat/$(id)
+                             : /databases/$(database)/documents/equipe_dm/$(c)/mensagens/$(id);
+      }
+      allow get: if admin() && daConversaEq(resource.data.conversa) && request.time < resource.data.apagadaEm + duration.value(24, 'h');
+      allow create: if admin()
+                    && request.resource.data.keys().hasOnly(['autorId', 'conversa', 'conteudo', 'apagadaEm'])
+                    && request.resource.data.autorId == request.auth.uid
+                    && request.resource.data.conversa is string
+                    && daConversaEq(request.resource.data.conversa)
+                    && get(msgEq(request.resource.data.conversa)).data.autorId == request.auth.uid
+                    && getAfter(msgEq(request.resource.data.conversa)).data.apagada.por == request.auth.uid
+                    && request.resource.data.apagadaEm == request.time
+                    && request.resource.data.conteudo is map
+                    && request.resource.data.conteudo.keys().hasOnly(['texto', 'tipoArquivo', 'anexo', 'nomeArquivo', 'tamanho', 'miniatura', 'duracao', 'resposta', 'mencoes', 'edicoes'])
+                    && request.resource.data.conteudo.get('texto', '') == get(msgEq(request.resource.data.conversa)).data.get('texto', '')
+                    && request.resource.data.conteudo.get('anexo', '') == get(msgEq(request.resource.data.conversa)).data.get('anexo', '');
+      allow update: if false;
+      allow delete: if admin() && daConversaEq(resource.data.conversa) && request.time >= resource.data.apagadaEm + duration.value(24, 'h');
+    }
+
     // Conteúdo dos anexos do chat da equipe (data: URL de até ~900 mil caracteres).
     // Só quem participa da conversa lê; ninguém edita.
     match /equipe_anexos/{id} {

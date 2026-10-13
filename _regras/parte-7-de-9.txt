@@ -1,0 +1,188 @@
+      match /mensagens/{msgId} {
+        function chamado() { return get(/databases/$(database)/documents/suporte/$(id)).data; }
+        // getAfter: o chamado e a primeira mensagem são gravados juntos (tudo ou nada).
+        function chamadoDepois() { return getAfter(/databases/$(database)/documents/suporte/$(id)).data; }
+        allow read: if logado() && (chamado().uid == request.auth.uid || admin());
+        allow create: if logado()
+                      && (chamadoDepois().uid == request.auth.uid || admin())
+                      && request.resource.data.keys().hasOnly(['autorId', 'equipe', 'texto', 'em'])
+                      && request.resource.data.autorId == request.auth.uid
+                      // "equipe" (resposta oficial) só quem é da equipe; no próprio chamado, todos escrevem como usuário
+                      && (request.resource.data.equipe == false || (request.resource.data.equipe == true && admin()))
+                      && request.resource.data.texto is string && request.resource.data.texto.size() >= 1 && request.resource.data.texto.size() <= 2000
+                      && request.resource.data.em == request.time;
+        allow update, delete: if false;
+      }
+    }
+
+    match /parcerias/{id} {
+      // Formulário de Sócios e parcerias: só quem tem conta (e-mail confirmado), até 3 por dia; só a equipe lê.
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.uid == request.auth.uid
+                    && ritmoOk('parc')
+                    && request.resource.data.keys().hasOnly(['nome', 'empresa', 'email', 'telefone', 'tipo', 'mensagem', 'site', 'cidade', 'uid', 'status', 'criadoEm'])
+                    && request.resource.data.nome is string && request.resource.data.nome.size() >= 2 && request.resource.data.nome.size() <= 80
+                    && request.resource.data.email is string && request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+[.][^@\\s]+$') && request.resource.data.email.size() <= 120
+                    && valorTextoAte(request.resource.data.get('empresa', ''), 100)
+                    && valorTextoAte(request.resource.data.get('telefone', ''), 30)
+                    && valorTextoAte(request.resource.data.get('site', ''), 200)
+                    && valorTextoAte(request.resource.data.get('cidade', ''), 80)
+                    && request.resource.data.tipo in ['socio', 'investidor', 'parceiro', 'anunciante', 'imprensa', 'outro']
+                    && request.resource.data.mensagem is string && request.resource.data.mensagem.size() >= 10 && request.resource.data.mensagem.size() <= 2000
+                    && request.resource.data.status == 'novo'
+                    && request.resource.data.criadoEm == request.time;
+      allow read: if admin();
+      allow update: if podeComercial()
+                    && mudou().hasOnly(['status', 'notas', 'atualizadoEm', 'responsavel', 'responsavelNome', 'assumidoEm'])
+                    && request.resource.data.status in ['novo', 'em_conversa', 'proposta', 'fechado', 'recusado']
+                    && (!mudou().hasAny(['responsavelNome', 'assumidoEm']) || responsavelOk())
+                    && valorTextoAte(request.resource.data.get('notas', ''), 3000);
+      allow delete: if podeComercial();
+    }
+
+    // Presença da equipe no painel (quem está online) e chat interno da equipe.
+    match /equipe_presenca/{uid} {
+      allow read: if admin();
+      allow create, update: if admin()
+                    && request.auth.uid == uid
+                    && request.resource.data.keys().hasOnly(['nome', 'em', 'secao', 'item', 'itemNome'])
+                    && valorTextoAte(request.resource.data.get('nome', ''), 80)
+                    && valorTextoAte(request.resource.data.get('secao', ''), 40)
+                    && valorTextoAte(request.resource.data.get('item', null), 160)
+                    && valorTextoAte(request.resource.data.get('itemNome', null), 120)
+                    && request.resource.data.em == request.time;
+      allow delete: if admin() && request.auth.uid == uid;
+    }
+
+    // Mensagem do chat da equipe (todos ou individual): texto e/ou um anexo
+    // (foto, áudio ou arquivo). O conteúdo do anexo fica em equipe_anexos/{id},
+    // gravado junto, da mesma pessoa e da mesma conversa.
+    function msgEquipeOk(conversa) {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['autorId', 'nome', 'texto', 'em', 'mencoes', 'tipoArquivo', 'anexo', 'nomeArquivo', 'tamanho', 'miniatura', 'duracao', 'resposta', 'reacoes'])
+          && d.autorId == request.auth.uid
+          && valorTextoAte(d.get('nome', ''), 80)
+          && d.texto is string && d.texto.size() <= 2000
+          && (d.texto.size() >= 1 || 'anexo' in d)
+          && d.em == request.time
+          && (!('mencoes' in d) || (d.mencoes is list && d.mencoes.size() <= 10))
+          && (!('resposta' in d)
+              || (d.resposta is map
+                  && d.resposta.keys().hasOnly(['id', 'autorId', 'nome', 'texto'])
+                  && d.resposta.get('id', '') is string
+                  && d.resposta.get('autorId', '') is string
+                  && valorTextoAte(d.resposta.get('nome', ''), 80)
+                  && d.resposta.get('texto', '') is string && d.resposta.get('texto', '').size() <= 200))
+          && (!('reacoes' in d) || (d.reacoes is map && d.reacoes.size() == 0))
+          && (!('anexo' in d)
+              || (d.anexo is string
+                  && d.tipoArquivo in ['imagem', 'audio', 'arquivo']
+                  && getAfter(/databases/$(database)/documents/equipe_anexos/$(d.anexo)).data.autorId == request.auth.uid
+                  && getAfter(/databases/$(database)/documents/equipe_anexos/$(d.anexo)).data.conversa == conversa))
+          && (!('tipoArquivo' in d) || 'anexo' in d)
+          && valorTextoAte(d.get('nomeArquivo', ''), 120)
+          && (!('tamanho' in d) || (d.tamanho is int && d.tamanho >= 0))
+          && (!('duracao' in d) || (d.duracao is int && d.duracao >= 0 && d.duracao <= 600))
+          && (!('miniatura' in d) || (d.miniatura is string && d.miniatura.size() <= 30000 && d.miniatura.matches('^data:image/jpeg;base64,.*')));
+    }
+    // Reação a uma mensagem: cada pessoa guarda só a sua (reacoes[uid] = emoji).
+    // A edição só pode mexer no campo reacoes, e só na própria chave de quem edita.
+    function reacaoValida() {
+      let d = request.resource.data;
+      let a = resource.data;
+      let eu = request.auth.uid;
+      return d.diff(a).affectedKeys().hasOnly(['reacoes'])
+          && d.get('reacoes', {}) is map
+          && d.get('reacoes', {}).diff(a.get('reacoes', {})).affectedKeys().hasOnly([eu])
+          && (!(eu in d.get('reacoes', {})) || d.reacoes[eu] in ['👍', '❤️', '😂', '😮', '😢', '🙏']);
+    }
+    // Editar mensagem do chat da equipe (só quem escreveu): texto novo + versão anterior em "edicoes".
+    function edicaoEquipeOk() {
+      let d = request.resource.data;
+      let a = resource.data;
+      return a.autorId == request.auth.uid
+          && !('apagada' in a)
+          && d.diff(a).affectedKeys().hasOnly(['texto', 'editadaEm', 'edicoes'])
+          && d.texto is string && d.texto.size() <= 2000
+          && (d.texto.size() > 0 || 'anexo' in a)
+          && d.editadaEm == request.time
+          && d.edicoes is list
+          && d.edicoes.size() == a.get('edicoes', []).size() + 1
+          && d.edicoes.size() <= 20
+          && d.edicoes == a.get('edicoes', []).concat([d.edicoes[a.get('edicoes', []).size()]])
+          && d.edicoes[a.get('edicoes', []).size()] is map
+          && d.edicoes[a.get('edicoes', []).size()].keys().hasOnly(['texto', 'em'])
+          && d.edicoes[a.get('edicoes', []).size()].texto == a.get('texto', '')
+          && d.edicoes[a.get('edicoes', []).size()].em == a.get('editadaEm', a.em);
+    }
+    // Apagar para todos no chat da equipe: fica "apagou esta mensagem"; o conteúdo vai para
+    // equipe_apagadas/{id} (abre por 24 horas), gravado junto.
+    function apagarEquipeOk(id) {
+      let d = request.resource.data;
+      let a = resource.data;
+      return a.autorId == request.auth.uid
+          && !('apagada' in a)
+          && d.keys().hasOnly(['autorId', 'nome', 'em', 'apagada'])
+          && d.autorId == a.autorId && d.em == a.em && d.get('nome', '') == a.get('nome', '')
+          && d.apagada is map && d.apagada.keys().hasOnly(['por', 'em'])
+          && d.apagada.por == request.auth.uid && d.apagada.em == request.time
+          && existsAfter(/databases/$(database)/documents/equipe_apagadas/$(id));
+    }
+    match /equipe_chat/{id} {
+      allow read: if admin();
+      allow create: if admin() && msgEquipeOk('equipe');
+      allow update: if admin() && reacaoValida();
+      allow update: if admin() && (edicaoEquipeOk() || apagarEquipeOk(id));
+      allow delete: if false;
+    }
+    // Conversa individual entre duas pessoas da equipe: equipe_dm/{uidA_uidB} (ids em ordem).
+    // O documento guarda só o resumo (última mensagem e quando cada um leu).
+    match /equipe_dm/{par} {
+      function membro() {
+        return admin() && par.split('_').size() == 2 && request.auth.uid in par.split('_')
+            && exists(/databases/$(database)/documents/admins/$(par.split('_')[0]))
+            && exists(/databases/$(database)/documents/admins/$(par.split('_')[1]));
+      }
+      allow read: if admin() && request.auth.uid in resource.data.participantes;
+      allow create, update: if membro()
+                    && request.resource.data.keys().hasOnly(['participantes', 'ultimaEm', 'ultimaTexto', 'ultimoAutor', 'lidoEm'])
+                    && request.resource.data.participantes == par.split('_')
+                    && valorTextoAte(request.resource.data.get('ultimaTexto', ''), 140)
+                    && (!('ultimoAutor' in request.resource.data) || request.resource.data.ultimoAutor in par.split('_'))
+                    && request.resource.data.get('lidoEm', {}) is map;
+      allow delete: if false;
+      match /mensagens/{id} {
+        allow read: if admin() && request.auth.uid in par.split('_');
+        allow create: if admin() && par.split('_').size() == 2 && request.auth.uid in par.split('_') && msgEquipeOk(par);
+        allow update: if admin() && request.auth.uid in par.split('_') && reacaoValida();
+        allow update: if admin() && request.auth.uid in par.split('_') && (edicaoEquipeOk() || apagarEquipeOk(id));
+        allow delete: if false;
+      }
+    }
+    // Conteúdo de mensagem do chat da equipe apagada para todos (abre por 24 horas, só quem participa;
+    // depois disso qualquer um da conversa apaga de vez).
+    match /equipe_apagadas/{id} {
+      function daConversaEq(c) { return c == 'equipe' || request.auth.uid in c.split('_'); }
+      function msgEq(c) {
+        return c == 'equipe' ? /databases/$(database)/documents/equipe_chat/$(id)
+                             : /databases/$(database)/documents/equipe_dm/$(c)/mensagens/$(id);
+      }
+      allow get: if admin() && daConversaEq(resource.data.conversa) && request.time < resource.data.apagadaEm + duration.value(24, 'h');
+      allow create: if admin()
+                    && request.resource.data.keys().hasOnly(['autorId', 'conversa', 'conteudo', 'apagadaEm'])
+                    && request.resource.data.autorId == request.auth.uid
+                    && request.resource.data.conversa is string
+                    && daConversaEq(request.resource.data.conversa)
+                    && get(msgEq(request.resource.data.conversa)).data.autorId == request.auth.uid
+                    && getAfter(msgEq(request.resource.data.conversa)).data.apagada.por == request.auth.uid
+                    && request.resource.data.apagadaEm == request.time
+                    && request.resource.data.conteudo is map
+                    && request.resource.data.conteudo.keys().hasOnly(['texto', 'tipoArquivo', 'anexo', 'nomeArquivo', 'tamanho', 'miniatura', 'duracao', 'resposta', 'mencoes', 'edicoes'])
+                    && request.resource.data.conteudo.get('texto', '') == get(msgEq(request.resource.data.conversa)).data.get('texto', '')
+                    && request.resource.data.conteudo.get('anexo', '') == get(msgEq(request.resource.data.conversa)).data.get('anexo', '');
+      allow update: if false;
+      allow delete: if admin() && daConversaEq(resource.data.conversa) && request.time >= resource.data.apagadaEm + duration.value(24, 'h');
+    }
+
+// ===== FIM DA PARTE 7 DE 9 =====

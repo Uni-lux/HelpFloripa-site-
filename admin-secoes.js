@@ -4,8 +4,8 @@
 import { linha, linhaComparada, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=7";
 import { baixarPlanilhaMulti } from "./planilha.js?v=5";
 import { buscarPessoas } from "./pessoas.js?v=3";
-import { montarChat } from "./admin-chat.js?v=8";
-import { verConteudoDenuncia } from "./admin-denuncia.js?v=2";
+import { montarChat } from "./admin-chat.js?v=9";
+import { verConteudoDenuncia } from "./admin-denuncia.js?v=3";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
 import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,

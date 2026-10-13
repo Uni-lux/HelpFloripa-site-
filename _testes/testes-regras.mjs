@@ -2,7 +2,7 @@
 // (não apaga os dados do demo-hf que o navegador usa). Uso: node testes-regras.mjs [arquivo.rules]
 import { initializeTestEnvironment, assertSucceeds, assertFails } from "@firebase/rules-unit-testing";
 import { readFileSync } from "node:fs";
-import { doc, setDoc, updateDoc, getDoc, getDocs, collection, query, where, writeBatch, Timestamp, serverTimestamp, increment, deleteField } from "firebase/firestore";
+import { doc, setDoc, updateDoc, getDoc, getDocs, collection, query, where, writeBatch, Timestamp, serverTimestamp, increment, deleteField, deleteDoc } from "firebase/firestore";
 
 const arquivo = process.argv[2] || new URL("../firestore.rules", import.meta.url).pathname;
 const env = await initializeTestEnvironment({ projectId: "demo-regras", firestore: { rules: readFileSync(arquivo, "utf8"), host: "127.0.0.1", port: 8085 } });
@@ -181,6 +181,67 @@ await t("equipe: anexo de outra conversa é recusado", async () => {
 });
 await t("equipe: reage na conversa individual", () => assertSucceeds(updateDoc(doc(ctx("mod"), "equipe_dm", parEq, "mensagens", "d1"), { "reacoes.mod": "❤️" })));
 await t("equipe: marca a leitura da conversa individual", () => assertSucceeds(updateDoc(doc(ctx("mod"), "equipe_dm", parEq), { "lidoEm.mod": serverTimestamp() })));
+
+// Editar e apagar mensagens (para todos fica "apagou esta mensagem"; o conteúdo abre por 24 horas).
+await semRegras(async (db) => {
+  await setDoc(doc(db, "conversas", convAB, "mensagens", "e1"), { remetenteId: "ana", texto: "Oi Bia", criadoEm: antigo });
+  await setDoc(doc(db, "conversas", convAB, "mensagens", "e2"), { remetenteId: "ana", texto: "foto", tipoArquivo: "imagem", arquivoUrl: "data:image/png;base64,AAAA", criadoEm: antigo });
+  await setDoc(doc(db, "conversas", convAB, "mensagens", "e3"), { remetenteId: "ana", texto: "", tipoArquivo: "cartao", cartao: { nome: "x" }, criadoEm: antigo });
+  await setDoc(doc(db, "admins", "mod"), { nome: "Mod", papel: "moderacao" }, { merge: true });
+});
+const editar = (quem, id, texto, edicoes) => updateDoc(doc(ctx(quem), "conversas", convAB, "mensagens", id), { texto, editadaEm: serverTimestamp(), edicoes });
+await t("editar: quem enviou edita (guarda o texto de antes)", () => assertSucceeds(editar("ana", "e1", "Oi Bia!", [{ texto: "Oi Bia", em: antigo }])));
+await t("editar: segunda edição mantém a primeira", async () => { const m = (await getDoc(doc(ctx("ana"), "conversas", convAB, "mensagens", "e1"))).data(); await assertSucceeds(editar("ana", "e1", "Oi Bia!!", [...m.edicoes, { texto: m.texto, em: m.editadaEm }])); });
+await t("editar: não reescreve o histórico", async () => { const m = (await getDoc(doc(ctx("ana"), "conversas", convAB, "mensagens", "e1"))).data(); await assertFails(editar("ana", "e1", "x", [{ texto: "outra coisa", em: antigo }, m.edicoes[1], { texto: m.texto, em: m.editadaEm }])); });
+await t("editar: versão anterior com texto inventado é recusada", async () => { const m = (await getDoc(doc(ctx("ana"), "conversas", convAB, "mensagens", "e1"))).data(); await assertFails(editar("ana", "e1", "x", [...m.edicoes, { texto: "nunca disse", em: m.editadaEm }])); });
+await t("editar: a outra pessoa não edita", () => assertFails(editar("bia", "e1", "hack", [{ texto: "Oi Bia!!", em: antigo }])));
+await t("editar: legenda de foto", () => assertSucceeds(editar("ana", "e2", "foto da obra", [{ texto: "foto", em: antigo }])));
+await t("editar: não troca a foto junto", () => assertFails(updateDoc(doc(ctx("ana"), "conversas", convAB, "mensagens", "e2"), { arquivoUrl: "data:image/png;base64,BBBB" })));
+await t("editar: cartão não se edita", () => assertFails(editar("ana", "e3", "x", [{ texto: "", em: antigo }])));
+async function apagarTodos(quem, id, conteudo) {
+  const db = ctx(quem), b = writeBatch(db);
+  b.set(doc(db, "conversas", convAB, "mensagens", id), { remetenteId: quem, criadoEm: antigo, apagada: { por: quem, em: serverTimestamp() } });
+  b.set(doc(db, "conversas", convAB, "apagadas", id), { remetenteId: quem, conteudo, apagadaEm: serverTimestamp() });
+  return b.commit();
+}
+await t("apagar p/ todos: a outra pessoa não apaga", () => assertFails(apagarTodos("bia", "e2", { texto: "foto da obra", tipoArquivo: "imagem", arquivoUrl: "data:image/png;base64,AAAA" })));
+await t("apagar p/ todos: conteúdo inventado é recusado", () => assertFails(apagarTodos("ana", "e2", { texto: "outra", tipoArquivo: "imagem", arquivoUrl: "data:image/png;base64,AAAA" })));
+await t("apagar p/ todos: sem guardar o conteúdo é recusado", () => assertFails(updateDoc(doc(ctx("ana"), "conversas", convAB, "mensagens", "e2"), { texto: deleteField(), tipoArquivo: deleteField(), arquivoUrl: deleteField(), edicoes: deleteField(), editadaEm: deleteField(), apagada: { por: "ana", em: serverTimestamp() } })));
+await t("apagar p/ todos: quem enviou apaga (foto)", () => assertSucceeds(apagarTodos("ana", "e2", { texto: "foto da obra", tipoArquivo: "imagem", arquivoUrl: "data:image/png;base64,AAAA", edicoes: [{ texto: "foto", em: antigo }] })));
+await t("apagar p/ todos: os dois veem a mensagem apagada (24 h)", async () => { await assertSucceeds(getDoc(doc(ctx("ana"), "conversas", convAB, "apagadas", "e2"))); await assertSucceeds(getDoc(doc(ctx("bia"), "conversas", convAB, "apagadas", "e2"))); });
+await t("apagar p/ todos: quem não participa não vê", () => assertFails(getDoc(doc(ctx("edu"), "conversas", convAB, "apagadas", "e2"))));
+await t("apagar p/ todos: mensagem apagada não se edita", () => assertFails(editar("ana", "e2", "volta", [{ texto: "", em: antigo }])));
+await t("apagar p/ todos: ninguém apaga o conteúdo antes das 24 h", () => assertFails(deleteDoc(doc(ctx("ana"), "conversas", convAB, "apagadas", "e2"))));
+await t("apagar p/ todos: quem recebeu marca como denunciada", () => assertSucceeds(updateDoc(doc(ctx("bia"), "conversas", convAB, "apagadas", "e2"), { denunciada: true })));
+await t("apagar p/ todos: quem apagou não marca nem muda o conteúdo", async () => { await assertFails(updateDoc(doc(ctx("ana"), "conversas", convAB, "apagadas", "e2"), { denunciada: true })); await assertFails(updateDoc(doc(ctx("bia"), "conversas", convAB, "apagadas", "e2"), { conteudo: {} })); });
+await t("apagar p/ todos: a moderação abre o conteúdo", () => assertSucceeds(getDoc(doc(ctx("mod"), "conversas", convAB, "apagadas", "e2"))));
+await semRegras((db) => setDoc(doc(db, "conversas", convAB, "apagadas", "velha"), { remetenteId: "ana", conteudo: { texto: "x" }, apagadaEm: Timestamp.fromMillis(Date.now() - 25 * 36e5) }));
+await semRegras((db) => setDoc(doc(db, "conversas", convAB, "apagadas", "velhaDen"), { remetenteId: "ana", conteudo: { texto: "x" }, apagadaEm: Timestamp.fromMillis(Date.now() - 25 * 36e5), denunciada: true }));
+await t("apagar p/ todos: depois de 24 h ninguém da conversa lê", async () => { await assertFails(getDoc(doc(ctx("ana"), "conversas", convAB, "apagadas", "velha"))); await assertFails(getDoc(doc(ctx("bia"), "conversas", convAB, "apagadas", "velha"))); });
+await t("apagar p/ todos: depois de 24 h qualquer um dos dois apaga de vez", () => assertSucceeds(deleteDoc(doc(ctx("bia"), "conversas", convAB, "apagadas", "velha"))));
+await t("apagar p/ todos: denunciada fica para a moderação", async () => { await assertFails(deleteDoc(doc(ctx("ana"), "conversas", convAB, "apagadas", "velhaDen"))); await assertSucceeds(getDoc(doc(ctx("mod"), "conversas", convAB, "apagadas", "velhaDen"))); });
+await t("apagar para mim: fica só na própria conta", () => assertSucceeds(setDoc(doc(ctx("bia"), "usuarios", "bia"), { ocultasMsg: { [convAB]: ["e1"] } }, { merge: true })));
+
+// Chat da equipe: editar e apagar.
+await semRegras(async (db) => {
+  await setDoc(doc(db, "equipe_chat", "q1"), { autorId: "adm", nome: "Adm", texto: "Reunião 10h", em: antigo });
+  await setDoc(doc(db, "equipe_dm", parEq, "mensagens", "q2"), { autorId: "adm", nome: "Adm", texto: "Oi", em: antigo });
+});
+await t("equipe: edita a própria mensagem", () => assertSucceeds(updateDoc(doc(ctx("adm"), "equipe_chat", "q1"), { texto: "Reunião 11h", editadaEm: serverTimestamp(), edicoes: [{ texto: "Reunião 10h", em: antigo }] })));
+await t("equipe: não edita a de outra pessoa", () => assertFails(updateDoc(doc(ctx("mod"), "equipe_chat", "q1"), { texto: "x", editadaEm: serverTimestamp(), edicoes: [{ texto: "Reunião 11h", em: antigo }] })));
+async function apagarEq(quem, ref, conversa, conteudo, base) {
+  const db = ctx(quem), b = writeBatch(db);
+  b.set(doc(db, ...ref), { autorId: quem, nome: "Adm", em: antigo, apagada: { por: quem, em: serverTimestamp() } });
+  b.set(doc(db, "equipe_apagadas", ref[ref.length - 1]), { autorId: quem, conversa, conteudo, apagadaEm: serverTimestamp() });
+  return b.commit();
+}
+await t("equipe: outra pessoa não apaga para todos", () => assertFails(apagarEq("mod", ["equipe_chat", "q1"], "equipe", { texto: "Reunião 11h" })));
+await t("equipe: apaga para todos no grupo", async () => { const m = (await getDoc(doc(ctx("adm"), "equipe_chat", "q1"))).data(); await assertSucceeds(apagarEq("adm", ["equipe_chat", "q1"], "equipe", { texto: m.texto, edicoes: m.edicoes })); });
+await t("equipe: todos do grupo veem a apagada (24 h)", () => assertSucceeds(getDoc(doc(ctx("mod2"), "equipe_apagadas", "q1"))));
+await t("equipe: apagar na conversa individual", () => assertSucceeds(apagarEq("adm", ["equipe_dm", parEq, "mensagens", "q2"], parEq, { texto: "Oi" })));
+await t("equipe: terceira pessoa não vê a apagada da individual", () => assertFails(getDoc(doc(ctx("mod2"), "equipe_apagadas", "q2"))));
+await t("equipe: conteúdo de outra conversa é recusado", () => assertFails(apagarEq("adm", ["equipe_dm", parEq, "mensagens", "d1"], "equipe", { texto: "" })));
+await t("equipe: ninguém apaga o conteúdo antes das 24 h", () => assertFails(deleteDoc(doc(ctx("adm"), "equipe_apagadas", "q1"))));
 
 // Suporte do usuário e avisos.
 await t("suporte: usuário abre chamado com a primeira mensagem", async () => {
