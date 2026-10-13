@@ -160,12 +160,22 @@
     /* faixas no topo da conversa */
     .faixa-atend, .faixa-fixada { display: flex; align-items: center; gap: 10px; margin: 0; padding: 8px 14px; border-bottom: 1px solid var(--line); background: var(--panel); font-size: 13px; color: var(--text); }
     .faixa-atend[hidden], .faixa-fixada[hidden] { display: none; }
-    .faixa-atend { flex-wrap: wrap; gap: 4px 12px; color: var(--muted); }
+    /* Atendimento do negócio: uma linha só (não rouba espaço da conversa, nem com o teclado aberto).
+       Tocar mostra o aviso inteiro. */
+    .faixa-atend { display: block; flex-shrink: 0; padding: 6px 14px; color: var(--muted); font-size: 12.5px; line-height: 1.45; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: default; }
+    .faixa-atend.longa { cursor: pointer; padding-right: 34px; position: relative; }
+    .faixa-atend.longa::after { content: ""; position: absolute; right: 14px; top: 11px; width: 7px; height: 7px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); transition: transform .2s; }
+    .faixa-atend.aberta { white-space: normal; }
+    .faixa-atend.aberta::after { transform: translateY(3px) rotate(-135deg); }
     .faixa-atend b { color: var(--text); font-weight: 700; }
-    .faixa-atend .ponto { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; background: #2fbf71; }
+    .faixa-atend .ponto { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; background: #2fbf71; vertical-align: 1px; }
     .faixa-atend .ponto.fechado { background: #8b9ba6; }
     .faixa-atend .ponto.ausente { background: #f5a524; }
-    .faixa-atend .aus { flex-basis: 100%; color: var(--text); }
+    .faixa-atend .sep { margin: 0 6px; opacity: .6; }
+    .faixa-atend .aus { color: var(--text); }
+    .faixa-atend.aberta .aus { display: block; margin-top: 2px; }
+    .faixa-atend.aberta .aus-sep { display: none; }
+    .chat-top, .faixa-fixada, .busca-chat { flex-shrink: 0; }
     .faixa-fixada { width: 100%; border: 0; border-bottom: 1px solid var(--line); text-align: left; cursor: pointer; }
     .faixa-fixada > svg { color: var(--accent); flex-shrink: 0; }
     .faixa-fixada .tx { flex: 1; min-width: 0; display: grid; }
@@ -207,6 +217,7 @@
     .horas input { border: 1px solid var(--line); background: var(--input); color: var(--text); border-radius: 9px; padding: 7px 8px; font: inherit; }
     #atendMensagem { width: 100%; min-height: 64px; resize: vertical; border: 1px solid var(--line); background: var(--input); color: var(--text); border-radius: 10px; padding: 8px 10px; font: inherit; font-size: 13.5px; box-sizing: border-box; margin: 4px 0 8px; }
     .atend-info { color: var(--muted); font-size: 12.5px; margin: 0 0 8px; }
+    #secaoAtend.carregando > :not(h3):not(.atend-info) { opacity: .45; pointer-events: none; }
     /* seleção de várias conversas */
     .barra-selecao { display: flex; align-items: center; gap: 4px; margin: 0 8px 8px; padding: 4px 6px; border-radius: 14px; background: color-mix(in srgb, var(--accent) 14%, var(--panel)); }
     .barra-selecao[hidden] { display: none; }
@@ -265,7 +276,7 @@
     .cartao-msg .cm-tx small { opacity: .75; font-size: 12.5px; }
     .cartao-msg .cm-preco { font-weight: 900; color: var(--assunto); font-size: 14px; }
     .cartao-msg .cm-ver { display: block; margin: 6px 11px 0; padding: 7px 0; text-align: center; border-top: 1px solid color-mix(in srgb, currentColor 15%, transparent); font-size: 13px; font-weight: 800; color: var(--assunto); }
-    .cartao-msg .meta { margin: 4px 10px 6px 12px; }
+    .bolha.cartao-msg .meta { float: none; display: flex; justify-content: flex-end; top: 0; margin: 2px 10px 7px 12px; }
     .bolha.cartao-msg.pedido { min-width: 250px; max-width: min(320px, 88%); }
     .cartao-msg.pedido .cm-ft { aspect-ratio: 3 / 1; }
     .cm-pedido { margin-top: 6px; display: grid; gap: 4px; font-size: 13.5px; }
@@ -355,6 +366,24 @@
     .switch input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
     .btn-sec { border: 1px solid var(--line); background: transparent; border-radius: 9px; padding: 8px 12px; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text); }
     .btn-sec:hover { background: var(--hover); }
+    /* Sair da conta (fim das configurações) + confirmação */
+    .cfg-sair { padding: 4px 16px calc(26px + env(safe-area-inset-bottom)); }
+    .btn-sair { width: 100%; min-height: 48px; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent); background: color-mix(in srgb, var(--danger) 9%, transparent); color: var(--danger); font: inherit; font-size: 15px; font-weight: 750; cursor: pointer; transition: background .15s; }
+    .btn-sair:hover { background: color-mix(in srgb, var(--danger) 16%, transparent); }
+    .btn-sair:focus-visible { outline: 2px solid var(--danger); outline-offset: 2px; }
+    .confirma-fundo { position: fixed; inset: 0; z-index: 85; display: grid; place-items: center; padding: 18px; background: rgba(2, 6, 9, .62); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); animation: confirmaFundo .18s ease-out; }
+    .confirma-fundo[hidden] { display: none; }
+    .confirma-caixa { width: min(380px, 100%); background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 20px; padding: 24px 20px 18px; text-align: center; box-shadow: 0 24px 70px rgba(0, 0, 0, .45); animation: confirmaCaixa .2s cubic-bezier(.2, .8, .2, 1); }
+    .confirma-ic { width: 54px; height: 54px; margin: 0 auto 12px; border-radius: 50%; display: grid; place-items: center; color: var(--danger); background: color-mix(in srgb, var(--danger) 14%, transparent); }
+    .confirma-caixa h3 { margin: 0 0 6px; font-size: 18px; }
+    .confirma-caixa p { margin: 0 0 18px; color: var(--muted); font-size: 14px; line-height: 1.5; }
+    .confirma-acoes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .confirma-acoes button { min-height: 46px; border-radius: 12px; font: inherit; font-size: 15px; font-weight: 750; cursor: pointer; }
+    .confirma-acoes .nao { border: 1px solid var(--line); background: transparent; color: var(--text); }
+    .confirma-acoes .sim { border: 0; background: var(--danger); color: #fff; }
+    .confirma-acoes .sim:disabled { opacity: .7; cursor: default; }
+    @keyframes confirmaFundo { from { opacity: 0; } }
+    @keyframes confirmaCaixa { from { opacity: 0; transform: translateY(12px) scale(.98); } }
     .cfg-rodape { padding: 22px 16px; color: var(--muted); font-size: 12px; text-align: center; display: grid; justify-items: center; gap: 12px; line-height: 1.45; }
     .cfg-link { width: 100%; border: 0; background: none; color: var(--text); text-align: left; text-decoration: none; cursor: pointer; font: inherit; font-size: 14px; border-radius: 10px; }
     .cfg-link:hover .txt { color: var(--accent); }
@@ -428,7 +457,11 @@
     .msgs-status.erro { color: var(--danger); }
     .msgs-anteriores { align-self: center; margin: 6px auto 10px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
     .msgs-anteriores:disabled { opacity: .6; cursor: default; }
-    .dia { align-self: center; margin: 12px 0 8px; padding: 5px 12px; border-radius: 8px; background: var(--panel); color: var(--muted); font-size: 12px; font-weight: 600; box-shadow: var(--shadow); position: sticky; top: 6px; z-index: 2; }
+    .dia { align-self: center; margin: 12px 0 8px; padding: 5px 12px; border-radius: 8px; background: var(--panel); color: var(--muted); font-size: 12px; font-weight: 600; box-shadow: var(--shadow); }
+    /* Dia de quem está rolando: aparece por cima só enquanto rola (como no WhatsApp) e some logo depois,
+       para não ficar tampando mensagens e cartões. */
+    .dia-flutuante { position: absolute; left: 50%; z-index: 4; transform: translate(-50%, -4px); padding: 5px 12px; border-radius: 8px; background: var(--panel); color: var(--muted); font-size: 12px; font-weight: 600; box-shadow: var(--shadow); pointer-events: none; opacity: 0; transition: opacity .25s, transform .25s; }
+    .dia-flutuante.on { opacity: 1; transform: translate(-50%, 0); }
     .aviso-cripto { align-self: center; max-width: 440px; margin: 4px 0 10px; padding: 8px 12px; border-radius: 8px; background: color-mix(in srgb, #f5c542 16%, var(--panel)); color: var(--text); font-size: 12.5px; text-align: center; line-height: 1.45; box-shadow: var(--shadow); }
 
     .linha-msg { display: flex; margin-top: 2px; position: relative; }
@@ -608,6 +641,7 @@
     <symbol id="i-st-entregue" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8 12.5l2.6 2.6L16 9.5"/></symbol>
     <symbol id="i-st-cancelado" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9 9l6 6M15 9l-6 6"/></symbol>
     <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 5.5l12 6.5-12 6.5z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-sair" viewBox="0 0 24 24"><path d="M14 4.5h4.5a1.5 1.5 0 011.5 1.5v12a1.5 1.5 0 01-1.5 1.5H14M10 16l-4-4 4-4M6 12h9.5"/></symbol>
     <symbol id="i-pausa" viewBox="0 0 24 24"><rect x="6.5" y="5" width="4" height="14" rx="1.2" fill="currentColor" stroke="none"/><rect x="13.5" y="5" width="4" height="14" rx="1.2" fill="currentColor" stroke="none"/></symbol>
   </svg>
 
@@ -709,6 +743,7 @@
           <span class="x" id="fixadaTirar" role="button" aria-label="Desafixar" title="Desafixar"><svg class="i s"><use href="#i-fechar"/></svg></span>
         </button>
         <div class="msgs" id="msgs" aria-live="polite"></div>
+        <div class="dia-flutuante" id="diaFlutuante" aria-hidden="true"></div>
         <button type="button" class="ir-fim" id="irFim" aria-label="Ir para a última mensagem" hidden><svg class="i"><use href="#i-seta-baixo"/></svg><b id="irFimQtd"></b></button>
 
         <div class="barra-bloqueio" id="barraBloqueio" hidden>
@@ -916,8 +951,23 @@
         As preferências de aparência, sons e respostas rápidas ficam salvas neste aparelho. Online e confirmação de leitura valem para a sua conta.
         <button type="button" class="btn-sec" id="btnRestaurar">Restaurar padrões deste aparelho</button>
       </div>
+      <div class="cfg-sair">
+        <button type="button" class="btn-sair" id="btnSairConta"><svg class="i s"><use href="#i-sair"/></svg>Sair da conta</button>
+      </div>
     </div>
   </section>
+
+  <div class="confirma-fundo" id="confirmaSair" role="alertdialog" aria-modal="true" aria-labelledby="confirmaSairTitulo" aria-describedby="confirmaSairTexto" hidden>
+    <div class="confirma-caixa">
+      <div class="confirma-ic"><svg class="i"><use href="#i-sair"/></svg></div>
+      <h3 id="confirmaSairTitulo">Sair da conta?</h3>
+      <p id="confirmaSairTexto">Você vai precisar entrar de novo com seu e-mail e senha. Suas conversas continuam salvas.</p>
+      <div class="confirma-acoes">
+        <button type="button" class="nao" id="confirmaSairNao">Cancelar</button>
+        <button type="button" class="sim" id="confirmaSairSim">Sair</button>
+      </div>
+    </div>
+  </div>
   <!-- Ajuda e suporte aqui mesmo (a página de suporte, sem sair das mensagens) -->
   <section class="painel painel-fixo painel-suporte" id="painelSuporte" aria-label="Ajuda e suporte">
     <div class="painel-top">
@@ -1284,6 +1334,21 @@
     }
 
     // ---------- pedido de avaliação ----------
+    // O que já se sabe de cada pedido de avaliação (quem avaliou). Fica guardado nesta aba do
+    // navegador: reabrir a conversa ou chegar mensagem nova mostra na hora, sem "Carregando...".
+    const AVAL_VALIDADE = 5 * 60000;
+    const CHAVE_AVAL = "hf-aval-situacao";
+    const situacaoAval = new Map();
+    try { for (const [k, v] of Object.entries(JSON.parse(sessionStorage.getItem(CHAVE_AVAL) || "{}"))) situacaoAval.set(k, v); } catch {}
+    function guardarSituacaoAval(chave, dados) {
+      // Só o necessário para desenhar o cartão (a nota e se existe), não a avaliação inteira.
+      const enxuto = (a) => (a ? { nota: Number(a.nota) || 0 } : null);
+      situacaoAval.set(chave, { em: Date.now(), dados: { nC: enxuto(dados.nC), nV: enxuto(dados.nV), pC: enxuto(dados.pC), pV: enxuto(dados.pV) } });
+      try { sessionStorage.setItem(CHAVE_AVAL, JSON.stringify(Object.fromEntries([...situacaoAval].slice(-60)))); } catch {}
+    }
+    // Promessa com prazo: se o Firebase não responder, desiste em vez de esperar para sempre.
+    const comPrazo = (promessa, ms) => Promise.race([promessa, new Promise((_, rej) => setTimeout(() => rej(new Error("tempo esgotado")), ms))]);
+
     function cartaoAvaliacao(m) {
       const a = m.avaliacao;
       const souVendedor = m.remetenteId === eu.uid;
@@ -1317,16 +1382,41 @@
       const autor = () => ({ nome: meuPerfil.nome || eu.displayName || "", foto: meuPerfil.fotoPerfil || "" });
       // Uma nota por cliente em cada negócio (n_ / c_). O pedido só marca "Atendimento confirmado".
       const clienteId = souVendedor ? ativa?.outroId : eu.uid;
-      const ler = (id) => fb.getDoc(fb.doc(fb.db, "avaliacoes", id)).then((s) => (s.exists() ? s.data() : null)).catch(() => null);
-      const pintar = async () => {
+      const ler = (id) => fb.getDoc(fb.doc(fb.db, "avaliacoes", id)).then((s) => (s.exists() ? s.data() : null));
+      const chaveSit = `${pid}|${negocioId}|${clienteId}`;
+      // forcar: depois de avaliar. Sem forcar: usa o que já foi lido (abrir a conversa ou chegar
+      // mensagem não busca de novo) e, passados alguns minutos, confere em segundo plano.
+      const pintar = async (forcar = false) => {
+        const guardada = situacaoAval.get(chaveSit);
+        let sit = !forcar && guardada ? guardada.dados : null;
+        const conferirDepois = !forcar && guardada && Date.now() - guardada.em > AVAL_VALIDADE;
+        if (!sit || conferirDepois) {
+          const busca = Promise.all([ler(`n_${negocioId}_${clienteId}`), ler(`c_${negocioId}_${clienteId}`), ler(`p_${pid}_c`), ler(`p_${pid}_v`)])
+            .then(([nC, nV, pC, pV]) => ({ nC, nV, pC, pV }));
+          if (sit) {
+            // Já tem o que mostrar: atualiza calado se algo mudou.
+            busca.then((nova) => { guardarSituacaoAval(chaveSit, nova); if (JSON.stringify(nova) !== JSON.stringify(sit) && box.isConnected) pintar(); }).catch(() => {});
+          } else {
+            sit = await comPrazo(busca, 12000).catch((e) => { console.warn("Avaliação não carregou:", e?.code || e?.message || e); return null; });
+            if (!sit) {
+              // Nunca fica em "Carregando..." para sempre: mostra o motivo e deixa tentar de novo.
+              status.replaceChildren(document.createTextNode("Não foi possível carregar a avaliação agora."));
+              acoes.replaceChildren(botao("Tentar de novo", "sec", () => pintar(true)));
+              // Tenta sozinho mais algumas vezes (ex.: a internet voltou).
+              if ((box._tentativas = (box._tentativas || 0) + 1) <= 4) setTimeout(() => { if (box.isConnected && !situacaoAval.has(chaveSit)) pintar(true); }, 15000);
+              return;
+            }
+            guardarSituacaoAval(chaveSit, sit);
+          }
+        }
+        const { nC, nV, pC, pV } = sit;
         acoes.replaceChildren();
-        const [nC, nV, pC, pV] = await Promise.all([ler(`n_${negocioId}_${clienteId}`), ler(`c_${negocioId}_${clienteId}`), ler(`p_${pid}_c`), ler(`p_${pid}_v`)]);
         const doCliente = nC || pC, doVendedor = nV || pV;
         status.replaceChildren();
         if (souVendedor) {
           // A nota não aparece aqui: ela entra no perfil do negócio (o cliente avalia com liberdade).
           status.textContent = doCliente ? "O cliente respondeu ✓ A nota entra no seu perfil." : "Aguardando a resposta do cliente";
-          const avaliarCli = () => avaliarCliente(fb, eu, negocioId, clienteId, { nomeCliente: ativa?.nome || "cliente", pedidoId: pid, autor: autor(), aoAvaliar: () => { toast("Avaliação do cliente salva"); pintar(); } });
+          const avaliarCli = () => avaliarCliente(fb, eu, negocioId, clienteId, { nomeCliente: ativa?.nome || "cliente", pedidoId: pid, autor: autor(), aoAvaliar: () => { toast("Avaliação do cliente salva"); pintar(true); } });
           if (!doVendedor) acoes.appendChild(botao("Avaliar cliente", "sec", avaliarCli));
           else {
             const d = document.createElement("span"); d.className = "aval-feito"; d.append("Você avaliou o cliente ", estrelas({ total: 1, soma: doVendedor.nota }, { soEstrelas: true }));
@@ -1344,7 +1434,7 @@
             // A nota não vira mensagem no chat: vai direto para o perfil do negócio.
             aoAvaliar: (nota, editou) => {
               toast(editou ? "Avaliação atualizada" : nota <= 2 ? "Avaliação enviada. Se quiser, você pode abrir uma reclamação." : "Obrigado pela avaliação!");
-              pintar();
+              pintar(true);
             }
           });
           if (doCliente) {
@@ -1529,6 +1619,7 @@
     let eu = null;               // usuário logado
     let meuPerfil = {};
     let storageFns = null;       // funções do Storage (se ativo)
+    let authMod = null;          // funções do Firebase Auth (para sair da conta)
     const perfis = new Map();
     let conversas = [];
     let filtro = "todas";
@@ -2007,8 +2098,10 @@
       // A lista acompanha a conversa aberta (ex.: link de uma conversa de negócio).
       if (!restritos.has(c.outroId) && !conversaArquivada(c)) trocarModo(modoDe(c));
       mensagens = [];
+      limparNosConversa();
       limiteMsgs = MSGS_INICIAIS; temMaisMsgs = false; voltarAoPonto = null;
       perfilOutroAtual = {}; // não herda o status da conversa anterior
+      $("faixaAtend").classList.remove("aberta");
       primeiraRender = true;
       novasAbaixo = 0;
       $("topNome").textContent = c.nome;
@@ -2226,6 +2319,7 @@
         const s = document.createElement("div");
         s.className = "msgs-status erro";
         s.textContent = "Não foi possível carregar as mensagens desta conversa.";
+        limparNosConversa();
         $("msgs").replaceChildren(s);
       });
     }
@@ -2260,46 +2354,92 @@
       });
     }
 
+    // A conversa é desenhada aos poucos: cada mensagem guarda o seu elemento e só é refeita quando
+    // muda de verdade. Assim enviar ou receber não recria a tela inteira (o campo de texto não perde
+    // o foco, o teclado do celular não fecha e os cartões não voltam a "Carregando...").
+    const nosConversa = new Map(); // chave -> { assinatura, el }
+    function limparNosConversa() { nosConversa.clear(); }
+    function noFixo(chave, criar) {
+      let n = nosConversa.get(chave);
+      if (!n) { n = { el: criar() }; nosConversa.set(chave, n); }
+      return n.el;
+    }
+    function assinaturaMsg(m, data, primeira) {
+      const original = m.resposta?.id ? mensagens.find((x) => x.id === m.resposta.id) : null;
+      return JSON.stringify([primeira, hora(data), m.texto || "", m.arquivoUrl || "", m.tipoArquivo || "", m.cartao || null, m.avaliacao || null,
+        m.resposta || null, original ? resumoMensagem(original) : "", ativa?.nome || ""]);
+    }
+
     function renderizarMensagens(chegouDoOutro) {
       const caixa = $("msgs");
       const estavaPerto = pertoDoFim();
       const topoAntes = caixa.scrollTop;
-      caixa.replaceChildren();
+      const desejados = [];
+      const usados = new Set();
+      const usar = (chave, el) => { usados.add(chave); desejados.push(el); return el; };
 
-      const aviso = document.createElement("div");
-      aviso.className = "aviso-cripto";
-      aviso.textContent = "Só você e a outra pessoa conseguem abrir esta conversa no site. As mensagens não têm criptografia de ponta a ponta: não compartilhe senhas, códigos ou dados de cartão.";
-      caixa.appendChild(aviso);
+      usar("fixo:aviso", noFixo("fixo:aviso", () => {
+        const aviso = document.createElement("div");
+        aviso.className = "aviso-cripto";
+        aviso.textContent = "Só você e a outra pessoa conseguem abrir esta conversa no site. As mensagens não têm criptografia de ponta a ponta: não compartilhe senhas, códigos ou dados de cartão.";
+        return aviso;
+      }));
 
       if (temMaisMsgs) {
-        const mais = document.createElement("button");
-        mais.type = "button"; mais.className = "msgs-anteriores"; mais.textContent = "Carregar mensagens anteriores";
-        mais.addEventListener("click", () => { mais.disabled = true; mais.textContent = "Carregando..."; carregarAnteriores(); });
-        caixa.appendChild(mais);
+        // Refeito a cada carga de mensagens anteriores (o botão volta ao texto normal).
+        const chaveMais = "fixo:mais:" + limiteMsgs;
+        usar(chaveMais, noFixo(chaveMais, () => {
+          const b = document.createElement("button");
+          b.type = "button"; b.className = "msgs-anteriores"; b.textContent = "Carregar mensagens anteriores";
+          b.addEventListener("click", () => { b.disabled = true; b.textContent = "Carregando..."; carregarAnteriores(); });
+          return b;
+        }));
       }
 
       if (!mensagens.length) {
-        const s = document.createElement("div");
-        s.className = "msgs-status";
-        s.textContent = "Nenhuma mensagem ainda. Diga olá!";
-        caixa.appendChild(s);
+        usar("fixo:vazio", noFixo("fixo:vazio", () => {
+          const s = document.createElement("div");
+          s.className = "msgs-status";
+          s.textContent = "Nenhuma mensagem ainda. Diga olá!";
+          return s;
+        }));
       }
 
       let diaAnterior = null;
       mensagens.forEach((m, i) => {
         const data = paraData(m.criadoEm) || new Date();
         if (!diaAnterior || !mesmoDia(data, diaAnterior)) {
-          const sep = document.createElement("div");
-          sep.className = "dia";
-          sep.textContent = rotuloDia(data);
-          caixa.appendChild(sep);
+          const chaveDia = `dia:${data.getFullYear()}-${data.getMonth()}-${data.getDate()}`;
+          const sep = usar(chaveDia, noFixo(chaveDia, () => { const d = document.createElement("div"); d.className = "dia"; return d; }));
+          const rot = rotuloDia(data);
+          if (sep.textContent !== rot) sep.textContent = rot;
         }
         const anterior = mensagens[i - 1];
         const agrupada = anterior && diaAnterior && mesmoDia(data, diaAnterior) && anterior.remetenteId === m.remetenteId
           && (data - (paraData(anterior.criadoEm) || data)) < 5 * MINUTO;
         diaAnterior = data;
-        caixa.appendChild(criarLinhaMensagem(m, data, !agrupada));
+        const chave = "msg:" + m.id;
+        const ass = assinaturaMsg(m, data, !agrupada);
+        let n = nosConversa.get(chave);
+        if (!n || n.assinatura !== ass) {
+          n = { assinatura: ass, el: criarLinhaMensagem(m, data, !agrupada) };
+          nosConversa.set(chave, n);
+        } else {
+          // "Enviando" -> enviada: só troca a marca, sem refazer a mensagem.
+          n.el.classList.toggle("pendente", !!m.pendente);
+        }
+        usar(chave, n.el);
       });
+
+      // Põe cada elemento no lugar, mexendo só no que mudou.
+      let atual = caixa.firstChild;
+      for (const no of desejados) {
+        if (no === atual) { atual = atual.nextSibling; continue; }
+        caixa.insertBefore(no, atual);
+      }
+      while (atual) { const prox = atual.nextSibling; atual.remove(); atual = prox; }
+      for (const chave of [...nosConversa.keys()]) if (!usados.has(chave)) nosConversa.delete(chave);
+      atualizarChecks();
 
       if (voltarAoPonto != null) {
         caixa.scrollTop = caixa.scrollHeight - voltarAoPonto;
@@ -2440,6 +2580,9 @@
       if (m.texto) bolha.querySelector(".texto").appendChild(meta);
       else bolha.appendChild(meta);
 
+      // O elemento é reaproveitado entre atualizações: o menu usa sempre a versão atual da mensagem
+      // (ex.: depois de "Enviando", já aparece "Apagar para todos").
+      const msgAtual = () => mensagens.find((x) => x.id === m.id) || m;
       const btnOp = document.createElement("button");
       btnOp.type = "button";
       btnOp.className = "btn-opcoes";
@@ -2448,16 +2591,16 @@
       btnOp.addEventListener("click", (e) => {
         e.stopPropagation();
         const r = btnOp.getBoundingClientRect();
-        abrirMenuMensagem(m, r.left, r.bottom + 4);
+        abrirMenuMensagem(msgAtual(), r.left, r.bottom + 4);
       });
       bolha.appendChild(btnOp);
 
-      bolha.addEventListener("contextmenu", (e) => { e.preventDefault(); abrirMenuMensagem(m, e.clientX, e.clientY); });
+      bolha.addEventListener("contextmenu", (e) => { e.preventDefault(); abrirMenuMensagem(msgAtual(), e.clientX, e.clientY); });
       bolha.addEventListener("keydown", (e) => {
         if (e.key === "Enter" || e.key === "ContextMenu") {
           e.preventDefault();
           const r = bolha.getBoundingClientRect();
-          abrirMenuMensagem(m, r.left + 10, r.bottom);
+          abrirMenuMensagem(msgAtual(), r.left + 10, r.bottom);
         }
       });
       // Toque longo no celular abre o menu.
@@ -2466,7 +2609,7 @@
         const t = e.touches[0];
         timerToque = setTimeout(() => {
           if (navigator.vibrate) navigator.vibrate(15);
-          abrirMenuMensagem(m, t.clientX, t.clientY);
+          abrirMenuMensagem(msgAtual(), t.clientX, t.clientY);
         }, 480);
       }, { passive: true });
       ["touchend", "touchmove", "touchcancel"].forEach((ev) => bolha.addEventListener(ev, () => clearTimeout(timerToque), { passive: true }));
@@ -2490,6 +2633,23 @@
       if (pertoDoFim()) { novasAbaixo = 0; $("irFimQtd").textContent = ""; }
     }
     $("msgs").addEventListener("scroll", atualizarBotaoFim, { passive: true });
+    // Etiqueta do dia durante a rolagem: mostra o dia das mensagens do topo da tela e some 1,2 s depois.
+    let timerDiaFlutuante = null, ultimoTopoMsgs = 0;
+    $("msgs").addEventListener("scroll", () => {
+      const caixa = $("msgs"), chip = $("diaFlutuante");
+      const topo = caixa.scrollTop;
+      const mexeu = Math.abs(topo - ultimoTopoMsgs) > 2;
+      ultimoTopoMsgs = topo;
+      if (!mexeu) return;
+      let dia = null;
+      for (const d of caixa.querySelectorAll(".dia")) { if (d.offsetTop - 6 <= topo) dia = d; else break; }
+      clearTimeout(timerDiaFlutuante);
+      if (!dia) { chip.classList.remove("on"); return; }
+      chip.textContent = dia.textContent;
+      chip.style.top = (caixa.offsetTop + 8) + "px";
+      chip.classList.add("on");
+      timerDiaFlutuante = setTimeout(() => chip.classList.remove("on"), 1200);
+    }, { passive: true });
     $("irFim").addEventListener("click", () => irParaFim(true));
 
     // ======================================================
@@ -2584,13 +2744,37 @@
       const a = perfilOutroAtual?.atendimento;
       if (!ativa || assuntoDe(ativa.dados) === "pessoal" || !a) { box.hidden = true; return; }
       box.replaceChildren();
-      const add = (cls, txt, forte) => { const s = document.createElement("span"); if (cls) { const p = document.createElement("i"); p.className = "ponto " + cls; s.appendChild(p); } if (forte) { const b = document.createElement("b"); b.textContent = forte; s.append(b, " "); } s.append(txt); box.appendChild(s); return s; };
+      const add = (cls, txt, forte) => {
+        if (box.children.length) { const sp = document.createElement("span"); sp.className = "sep" + (cls === "aus" ? " aus-sep" : ""); sp.textContent = "·"; box.appendChild(sp); }
+        const s = document.createElement("span");
+        if (cls && cls !== "aus") { const p = document.createElement("i"); p.className = "ponto " + cls; s.appendChild(p); }
+        if (cls === "aus") s.className = "aus";
+        if (forte) { const b = document.createElement("b"); b.textContent = forte; s.append(b, txt ? " " : ""); }
+        s.append(txt); box.appendChild(s); return s;
+      };
       if (a.ausente) add("ausente", "", "Ausente no momento");
-      else if (a.horario?.dias?.length) { const st = situacaoHorario(a.horario); add(st.aberto ? "" : "fechado", ` · ${resumoDias(a.horario.dias)}, ${horaTxt(a.horario.inicio)}–${horaTxt(a.horario.fim)}`, st.txt); }
-      if (a.resposta?.n >= 3) add("", "", `Costuma responder em ${tempoTxt(a.resposta.media)}`);
-      if (a.ausente && a.mensagem) { const s = add("", a.mensagem); s.className = "aus"; }
+      else if (a.horario?.dias?.length) { const st = situacaoHorario(a.horario); add(st.aberto ? "aberto" : "fechado", `${resumoDias(a.horario.dias)}, ${horaTxt(a.horario.inicio)}–${horaTxt(a.horario.fim)}`, st.txt + " ·"); }
+      if (a.resposta?.n >= 3) add("", `Costuma responder em ${tempoTxt(a.resposta.media)}`);
+      if (a.ausente && a.mensagem) add("aus", a.mensagem);
       box.hidden = !box.children.length;
+      // Texto maior que a linha: vira um botão que abre o aviso inteiro.
+      requestAnimationFrame(() => {
+        const longa = box.classList.contains("aberta") || box.scrollWidth > box.clientWidth + 1;
+        box.classList.toggle("longa", longa);
+        if (longa) { box.setAttribute("role", "button"); box.tabIndex = 0; box.setAttribute("aria-expanded", String(box.classList.contains("aberta"))); }
+        else { box.removeAttribute("role"); box.removeAttribute("tabindex"); box.removeAttribute("aria-expanded"); }
+      });
     }
+    function alternarFaixaAtend(e) {
+      const box = $("faixaAtend");
+      if (!box.classList.contains("longa")) return;
+      if (e.type === "keydown" && e.key !== "Enter" && e.key !== " ") return;
+      e.preventDefault();
+      box.classList.toggle("aberta");
+      box.setAttribute("aria-expanded", String(box.classList.contains("aberta")));
+    }
+    $("faixaAtend").addEventListener("click", alternarFaixaAtend);
+    $("faixaAtend").addEventListener("keydown", alternarFaixaAtend);
 
     function pintarAssuntoTopo() {
       pintarFixada();
@@ -2978,6 +3162,11 @@
       $("inputArquivo").dispatchEvent(new Event("change"));
     });
     $("btnEnviar").addEventListener("click", () => enviar());
+    // Tocar em "enviar" não tira o foco do campo: no celular o teclado continua aberto
+    // (antes ele fechava e abria de novo a cada mensagem).
+    ["pointerdown", "mousedown"].forEach((ev) => $("btnEnviar").addEventListener(ev, (e) => {
+      if (document.activeElement === $("texto")) e.preventDefault();
+    }));
     $("btnAudio").addEventListener("click", () => { if (!gravador) iniciarGravacao(); });
 
     // ======================================================
@@ -3309,13 +3498,62 @@
     document.addEventListener("visibilitychange", marcarPresenca);
 
     // ======================================================
+    // Sair da conta (fim das configurações), com confirmação
+    // ======================================================
+    function abrirConfirmaSair() {
+      $("confirmaSair").hidden = false;
+      setTimeout(() => $("confirmaSairNao").focus(), 30);
+    }
+    function fecharConfirmaSair() {
+      $("confirmaSair").hidden = true;
+      $("btnSairConta").focus();
+    }
+    $("btnSairConta").addEventListener("click", abrirConfirmaSair);
+    $("confirmaSairNao").addEventListener("click", fecharConfirmaSair);
+    $("confirmaSair").addEventListener("click", (e) => { if (e.target === $("confirmaSair")) fecharConfirmaSair(); });
+    $("confirmaSair").addEventListener("keydown", (e) => {
+      if (e.key === "Escape") { e.stopPropagation(); fecharConfirmaSair(); }
+      if (e.key === "Tab") { // foco preso dentro da janela
+        const [a, b] = [$("confirmaSairNao"), $("confirmaSairSim")];
+        if (e.shiftKey && document.activeElement === a) { e.preventDefault(); b.focus(); }
+        else if (!e.shiftKey && document.activeElement === b) { e.preventDefault(); a.focus(); }
+      }
+    });
+    $("confirmaSairSim").addEventListener("click", async () => {
+      const b = $("confirmaSairSim");
+      b.disabled = true; b.textContent = "Saindo...";
+      try { sessionStorage.removeItem(CHAVE_AVAL); } catch {}
+      try { await authMod?.signOut(window.firebaseAuth); }
+      catch (e) { console.error(e); b.disabled = false; b.textContent = "Sair"; toast("Não foi possível sair agora. Tente de novo."); return; }
+      irPara("login.html");
+    });
+
+    // ======================================================
     // Atendimento do negócio (configurações)
     // ======================================================
     let diasAtend = [1, 2, 3, 4, 5];
+    // Lê o atendimento direto do servidor. Com o cache do aparelho, uma conexão lenta fazia a tela
+    // mostrar uma cópia antiga (os dias "voltavam") e, ao salvar de novo, a cópia antiga era regravada.
+    const refMeuPerfil = () => fb.doc(fb.db, "perfis_publicos", eu.uid);
+    async function lerAtendimentoDoServidor() {
+      const s = await comPrazo(fb.getDocFromServer(refMeuPerfil()), 9000);
+      const at = s.exists() ? (s.data().atendimento || null) : null;
+      meuPerfil.atendimento = at || undefined;
+      return at;
+    }
     async function pintarConfigAtendimento() {
       const tem = (await negociosDoUsuario()).length > 0;
       $("secaoAtend").hidden = !tem;
       if (!tem) return;
+      const sec = $("secaoAtend");
+      sec.classList.add("carregando");
+      $("atendSalvar").disabled = true;
+      $("atendTempo").textContent = "Carregando o atendimento salvo...";
+      let semServidor = false;
+      try { await lerAtendimentoDoServidor(); }
+      catch (e) { semServidor = true; console.warn("Atendimento lido do aparelho:", e?.code || e?.message); }
+      sec.classList.remove("carregando");
+      $("atendSalvar").disabled = false;
       const a = meuPerfil.atendimento || {};
       $("atendHorarioLig").checked = !!a.horario?.dias?.length;
       diasAtend = a.horario?.dias?.length ? a.horario.dias.map(Number) : [1, 2, 3, 4, 5];
@@ -3323,7 +3561,9 @@
       $("atendFim").value = a.horario?.fim || "18:00";
       $("atendAusente").checked = !!a.ausente;
       $("atendMensagem").value = a.mensagem || "";
-      $("atendTempo").textContent = a.resposta?.n >= 3 ? `Seu tempo médio de resposta: ${tempoTxt(a.resposta.media)} (aparece para os clientes).` : "Os clientes veem isso no topo das conversas de negócio. O tempo médio de resposta aparece depois de 3 respostas.";
+      $("atendTempo").textContent = semServidor
+        ? "Sem conexão com o servidor agora: mostrando a última cópia deste aparelho. Confira antes de salvar."
+        : a.resposta?.n >= 3 ? `Seu tempo médio de resposta: ${tempoTxt(a.resposta.media)} (aparece para os clientes).` : "Os clientes veem isso no topo das conversas de negócio. O tempo médio de resposta aparece depois de 3 respostas.";
       pintarDiasAtend();
     }
     function pintarDiasAtend() {
@@ -3345,11 +3585,21 @@
       const horario = $("atendHorarioLig").checked && diasAtend.length ? { dias: diasAtend, inicio: $("atendInicio").value || "09:00", fim: $("atendFim").value || "18:00" } : null;
       if (horario && hm(horario.fim) <= hm(horario.inicio)) { toast("O horário final precisa ser depois do inicial."); return; }
       const atendimento = { horario, ausente: $("atendAusente").checked, mensagem: $("atendMensagem").value.trim().slice(0, 200) };
+      const btn = $("atendSalvar");
+      btn.disabled = true; btn.textContent = "Salvando...";
       try {
-        await fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), { uid: eu.uid, atendimento }, { merge: true });
+        await comPrazo(fb.setDoc(refMeuPerfil(), { uid: eu.uid, atendimento }, { merge: true }), 15000);
         meuPerfil.atendimento = { ...(meuPerfil.atendimento || {}), ...atendimento };
-        toast("Atendimento salvo");
-      } catch (e) { console.error(e); toast("Não foi possível salvar o atendimento."); }
+        // Confere no servidor o que ficou gravado (dias, horário e ausência).
+        const gravado = await lerAtendimentoDoServidor().catch(() => null);
+        const igual = gravado && JSON.stringify(gravado.horario?.dias || null) === JSON.stringify(horario?.dias || null)
+          && (gravado.horario?.inicio || null) === (horario?.inicio || null) && (gravado.horario?.fim || null) === (horario?.fim || null)
+          && !!gravado.ausente === atendimento.ausente;
+        toast(igual ? "Atendimento salvo" : gravado ? "O atendimento não ficou salvo como você escolheu. Tente de novo." : "Atendimento enviado. Ele aparece para os clientes quando a conexão voltar.");
+      } catch (e) {
+        console.error(e);
+        toast(e?.code === "permission-denied" ? "O servidor recusou o atendimento. Fale com o suporte." : "Não foi possível salvar o atendimento. Confira sua internet e tente de novo.");
+      } finally { btn.disabled = false; btn.textContent = "Salvar atendimento"; }
     });
 
     // ======================================================
@@ -3647,6 +3897,7 @@
         import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"),
       ]);
       fb = { ...firestore, db: window.firebaseDb };
+      authMod = auth;
       if (window.firebaseStorage) {
         try {
           storageFns = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js");

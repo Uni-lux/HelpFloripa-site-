@@ -59,6 +59,8 @@ body.gaveta-aberta .gaveta { transform: none; visibility: visible; }
 .gaveta-rodape a:hover { color: var(--text); }
 .gaveta-sair { justify-self: start; display: inline-flex; align-items: center; gap: 8px; border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent); background: transparent; color: var(--danger); border-radius: 12px; padding: 9px 14px; font-weight: 700; cursor: pointer; }
 .gaveta-sair:hover { background: color-mix(in srgb, var(--danger) 10%, transparent); }
+.gaveta-item .rot small { display: block; margin-top: 1px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.gaveta-item .rot small.pend { color: #ff3b5c; }
 `;
   document.head.appendChild(st);
 }
@@ -170,7 +172,7 @@ function montarGaveta() {
     g.appendChild(sec);
   });
   // Tema
-  const tsec = el("div", "gaveta-secao"); tsec.appendChild(el("h3", null, "Aparência"));
+  const tsec = el("div", "gaveta-secao"); tsec.id = "gavetaAparencia"; tsec.appendChild(el("h3", null, "Aparência"));
   const seg = el("div", "gaveta-tema"); seg.setAttribute("role", "group"); seg.setAttribute("aria-label", "Tema");
   [["claro", "sol", "Claro"], ["escuro", "lua", "Escuro"], ["sistema", "auto", "Automático"]].forEach(([v, ic, r]) => {
     const b = el("button"); b.type = "button"; b.dataset.tema = v; b.append(iconeMenu(ic, "i xs"), document.createTextNode(r));
@@ -212,9 +214,58 @@ async function carregarPerfilSozinho() {
     definirPerfilMenu({ logado: true, nome: p.nome || u.displayName || "", nick: p.nickname || "", foto: p.fotoPerfil || u.photoURL || "" });
   } catch { definirPerfilMenu({ logado: true, nome: u.displayName || "" }); }
 }
+// Equipe: atalho para o painel só para quem tem documento em admins/{uid}, com o número de
+// pendências (denúncias novas e chamados de suporte abertos). Quem é da equipe fica guardado
+// por 10 min nesta aba; as pendências são contadas de novo a cada abertura (no máximo 1x por minuto).
+let secaoEquipe = null, equipeContadaEm = 0;
+async function pintarEquipe() {
+  const u = window.firebaseAuth?.currentUser;
+  if (!gaveta) return;
+  if (!u) { secaoEquipe?.remove(); secaoEquipe = null; return; }
+  if (Date.now() - equipeContadaEm < 60000) return;
+  equipeContadaEm = Date.now();
+  try {
+    const fs = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+    const db = window.firebaseDb;
+    const chave = "hf-equipe-" + u.uid;
+    let eh = null;
+    try { const c = JSON.parse(sessionStorage.getItem(chave) || "null"); if (c && Date.now() - c.em < 600000) eh = c.eh; } catch {}
+    if (eh === null) {
+      eh = (await fs.getDoc(fs.doc(db, "admins", u.uid))).exists();
+      try { sessionStorage.setItem(chave, JSON.stringify({ eh, em: Date.now() })); } catch {}
+    }
+    if (!eh) { secaoEquipe?.remove(); secaoEquipe = null; return; }
+    if (!secaoEquipe) {
+      const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
+      secaoEquipe = el("nav", "gaveta-secao"); secaoEquipe.setAttribute("aria-label", "Equipe");
+      secaoEquipe.appendChild(el("h3", null, "Equipe"));
+      const a = el("a", "gaveta-item"); a.href = "admin.html"; a.id = "gavetaPainel";
+      if ((location.pathname.split("/").pop() || "") === "admin.html") a.setAttribute("aria-current", "page");
+      const i = el("span", "ic"); i.style.setProperty("--c", "#7c5cff"); i.appendChild(iconeMenu("escudo"));
+      const rot = el("span", "rot", "Painel da equipe");
+      const sub = el("small", null, "Conferindo pendências..."); sub.id = "gavetaPainelSub"; rot.appendChild(sub);
+      const b = el("b", "gaveta-badge"); b.id = "gavetaPainelBadge"; b.hidden = true;
+      a.append(i, rot, b);
+      secaoEquipe.appendChild(a);
+      gaveta.insertBefore(secaoEquipe, $("gavetaAparencia"));
+    }
+    const contar = (col, valor) => fs.getCountFromServer(fs.query(fs.collection(db, col), fs.where("status", "==", valor))).then((s) => s.data().count).catch(() => null);
+    const [den, sup] = await Promise.all([contar("denuncias", "nova"), contar("suporte", "aberto")]);
+    const total = (den || 0) + (sup || 0);
+    const b = $("gavetaPainelBadge"), sub = $("gavetaPainelSub");
+    b.hidden = !total; b.textContent = total > 99 ? "99+" : String(total);
+    const partes = [];
+    if (den) partes.push(`${den} ${den === 1 ? "denúncia nova" : "denúncias novas"}`);
+    if (sup) partes.push(`${sup} ${sup === 1 ? "chamado aberto" : "chamados abertos"}`);
+    sub.textContent = partes.length ? partes.join(" · ") : den === null && sup === null ? "Abrir o painel" : "Nada pendente";
+    sub.classList.toggle("pend", !!total);
+    $("gavetaPainel").setAttribute("aria-label", `Painel da equipe${partes.length ? ": " + partes.join(", ") : ""}`);
+  } catch (e) { equipeContadaEm = 0; console.warn("[Menu] Equipe:", e?.code || e?.message); }
+}
 function abrirGaveta() {
   if (!gaveta) montarGaveta();
   carregarPerfilSozinho();
+  pintarEquipe();
   document.body.classList.add("gaveta-aberta");
   $("btnMenu")?.setAttribute("aria-expanded", "true");
   setTimeout(() => gaveta.querySelector(".gaveta-x")?.focus(), 50);

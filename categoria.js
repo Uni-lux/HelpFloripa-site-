@@ -6,7 +6,7 @@
 // - Busca: o botão da lupa leva até o campo.
 // =====================================================
 import { fotoSegura } from "./seguranca.js?v=1";
-import { definirPerfilMenu, definirBadgeMensagens } from "./menu.js?v=4";
+import { definirPerfilMenu, definirBadgeMensagens } from "./menu.js?v=5";
 import { buscarReclamacoes } from "./avisos-reclamacoes.js?v=15";
 import "./painel-avisos.js?v=13"; // o sino abre o painel de notificações na própria página
 import "./chat-gaveta.js?v=1";
