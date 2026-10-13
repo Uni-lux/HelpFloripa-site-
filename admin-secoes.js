@@ -1,8 +1,8 @@
 // =====================================================
 // Painel do administrador — seções
 // =====================================================
-import { linha, linhaComparada, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=4";
-import { baixarPlanilhaMulti } from "./planilha.js?v=3";
+import { linha, linhaComparada, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=5";
+import { baixarPlanilhaMulti } from "./planilha.js?v=4";
 import { buscarPessoas } from "./pessoas.js?v=3";
 import { montarChat } from "./admin-chat.js?v=3";
 import {

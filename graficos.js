@@ -7,7 +7,7 @@
 // Cores: variáveis --viz-* do admin.css (paleta validada para daltonismo,
 // claro e escuro). Uma escala só por gráfico; nada de dois eixos.
 // =====================================================
-import { baixarPlanilha } from "./planilha.js?v=3";
+import { baixarPlanilha } from "./planilha.js?v=4";
 const NS = "http://www.w3.org/2000/svg";
 const s = (tag, attrs = {}) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); return e; };
 const h = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
