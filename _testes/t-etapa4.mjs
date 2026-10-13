@@ -3,6 +3,9 @@
 // Uso: node t-etapa4.mjs   (roda com as regras que estiverem no emulador: pr25 ou main)
 process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8085";
 import { navegador, entrar, USUARIOS as U, BASE } from "./nav.mjs";
+import { readFileSync } from "node:fs";
+// Mesma versão que o painel usa (senão o navegador carrega outra cópia do módulo, sem os dados).
+const VBASE = "./admin-base.js?v=" + readFileSync(new URL("../admin.js", import.meta.url), "utf8").match(/admin-base\.js\?v=(\d+)/)[1];
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, Timestamp, FieldValue } from "firebase-admin/firestore";
 initializeApp({ projectId: "demo-hf" });
@@ -54,7 +57,7 @@ await p.close();
 // ---------- 2) Equipe abre conversa de suporte com o Bruno (pela ficha) ----------
 p = await entrar(ctx, "admin", "admin.html");
 await p.waitForTimeout(5000);
-await p.evaluate((uid) => import("./admin-base.js?v=10").then((m) => m.abrirFicha(uid)), U.bruno);
+await p.evaluate(([v, uid]) => import(v).then((m) => m.abrirFicha(uid)), [VBASE, U.bruno]);
 await p.locator(".ad-gaveta .ad-bt", { hasText: "Abrir conversa de suporte" }).click();
 await p.locator(".ad-modal input").first().fill("Sobre o seu perfil de negócio");
 await p.locator(".ad-modal textarea").first().fill("Olá, Bruno! Vimos que seu horário está desatualizado. Pode conferir?");
@@ -83,10 +86,10 @@ const den = (await db.collection("denuncias").where("tipo", "==", "mensagem").ge
 console.log("contexto guardado:", den?.contexto?.length ?? "sem contexto (regras antigas)");
 await p.close();
 p = await entrar(ctx, "admin", "admin.html"); // as abas dividem o login: entra de novo como equipe
-await p.waitForFunction(() => import("./admin-base.js?v=10").then((m) => m.D.denuncias.some((d) => d.tipo === "mensagem")), null, { timeout: 30000, polling: 1000 });
+await p.waitForFunction((v) => import(v).then((m) => m.D.denuncias.some((d) => d.tipo === "mensagem")), VBASE, { timeout: 30000, polling: 1000 });
 // O painel termina de carregar e redesenha a seção: tenta abrir Denúncias até a lista aparecer.
 for (let i = 0; i < 6 && !(await p.locator(".ad-item[data-item^='denuncia:']").count()); i++) {
-  await p.evaluate(() => import("./admin-base.js?v=10").then((m) => m.C.irPara("denuncias")));
+  await p.evaluate((v) => import(v).then((m) => m.C.irPara("denuncias")), VBASE);
   await p.waitForTimeout(2000);
 }
 await p.locator(".ad-item[data-item^='denuncia:']", { hasText: "Mensagem" }).first().locator(".ad-bt", { hasText: "Ver conteúdo denunciado" }).click({ timeout: 8000 })

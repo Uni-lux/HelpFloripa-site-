@@ -20,14 +20,17 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
 - Excel precisa abrir no **Microsoft Excel**: validar com o Open XML SDK (`_testes/checar-todos.py`).
 
 ## Situação (13/10/2026)
-- No ar no Firebase: **regras do PR #25** (commit 7f5a28c). O `firestore.rules` do main tem +115 linhas ainda
-  não publicadas: chat da equipe (equipe_dm, equipe_anexos, citar, reações — PR #26) e endereço (PR #29).
+- **Regras do Firestore publicadas por ele em 13/10/2026** (as do `firestore.rules` do main, Etapas 1 a 4).
+  Daqui em diante, mudança de regra volta a precisar de publicação manual (combinar com ele).
 - Etapa 1 (PR #27), Etapa 2 (PR #28) e Etapa 3 (PR #29): **mescladas**.
 - Etapa 4 (PR #32): **mesclada**. Mudou regras: avaliação com vínculo, `denuncias.contexto`, equipe abre
   `suporte/{id}` para qualquer pessoa (`abertoPor`), `atendimento.semana/almoco/volta`.
 - Etapa 5: `_regras/parte-1..8-de-8.txt` + `_regras/LEIA-ME.md` (passo a passo) gerados por
   `_testes/dividir-regras.py`; 91 testes de regras passando no arquivo remontado (com e sem as linhas de fim).
-  PR #33 mesclado. **Esperando ele publicar** no console; depois, conferir o site inteiro (checklist no LEIA-ME).
+  PR #33 mesclado e **regras publicadas**. Conferência do site: ele está testando pelo checklist do LEIA-ME.
+- Depois da publicação ele relatou (corrigido no PR seguinte): chat da equipe difícil de achar/rolar no celular,
+  nomes sobrepostos no gráfico "Último acesso" e "9 clientes" com 6 contas (o registro de ações virava contas
+  falsas "Usuário removido" nas Estatísticas).
 
 ## Etapa 4 – Moderação, suporte e avaliações (muda regras)
 1. Avaliações: liberar também para quem tem vínculo aceito no Social (hoje `!vinculados` bloqueia, em
@@ -80,8 +83,6 @@ chat da equipe).
 
 ## Pendências do dono e o que ficou para depois (vindas de sessões anteriores)
 Coisas que só ELE pode fazer (lembrar no momento certo, sem fazer por ele):
-- **Etapa 5:** publicar o `firestore.rules` no console do Firebase (Firestore → Regras: apagar tudo, colar as
-  partes em ordem, Publicar). Até lá, conversa individual da equipe, anexos, citar e reações não funcionam no ar.
 - **Segredo `FIREBASE_SERVICE_ACCOUNT` no GitHub** (Settings → Secrets → Actions). Sem ele não rodam a limpeza
   automática de contas (`limpeza-contas.yml`), a conversão de cidades (`converter-cidades.yml`) nem relatório
   automático. **Configurar a limpeza automática ANTES de liberar o site ao público** (exclusões pedidas há 30 dias).

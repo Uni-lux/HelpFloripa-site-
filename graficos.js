@@ -123,8 +123,31 @@ export function linhaComparada(el, { rotulos, series, formato = num, altura = 23
 }
 
 // itens: [{ rotulo, valor, cor? }] · horizontal para nomes (cidades); vertical para faixas (idades)
+// Nome embaixo da coluna: uma linha, ou duas (quebrando entre palavras) se não couber na largura.
+// Devolve null quando nem em duas linhas cabe (aí o gráfico vira barras deitadas).
+const LARG_LETRA = 6.4; // largura média de uma letra no texto do eixo (11px)
+function linhasDoRotulo(texto, max) {
+  const t = String(texto ?? "");
+  if (t.length * LARG_LETRA <= max) return [t];
+  const p = t.split(/\s+/);
+  let melhor = null;
+  for (let i = 1; i < p.length; i++) {
+    const a = p.slice(0, i).join(" "), b = p.slice(i).join(" ");
+    const maior = Math.max(a.length, b.length);
+    if (maior * LARG_LETRA <= max && (!melhor || maior < melhor.maior)) melhor = { maior, l: [a, b] };
+  }
+  return melhor ? melhor.l : null;
+}
 export function barras(el, { itens, formato = num, horizontal = false, cor = "var(--viz-1)", total = null }) {
   el.replaceChildren();
+  if (!horizontal) {
+    // Nomes que não cabem embaixo das colunas (ex.: celular): quebra em duas linhas ou deita as barras.
+    const larg = Math.max(300, el.clientWidth || 600) - 16;
+    const espaco = larg / Math.max(1, itens.length) - 6;
+    const rot = itens.map((it) => linhasDoRotulo(it.rotulo, espaco));
+    if (rot.some((r) => !r)) return barras(el, { itens, formato, horizontal: true, cor, total });
+    if (rot.some((r) => r.length > 1)) itens = itens.map((it, i) => ({ ...it, _linhas: rot[i] }));
+  }
   const soma = total ?? itens.reduce((a, b) => a + b.valor, 0);
   const max = Math.max(...itens.map((i) => i.valor), 0) || 1;
   if (horizontal) {
@@ -144,7 +167,8 @@ export function barras(el, { itens, formato = num, horizontal = false, cor = "va
     el.appendChild(lista);
     return;
   }
-  const W = Math.max(300, el.clientWidth || 600), H = 220, m = { t: 18, r: 8, b: 30, l: 8 };
+  const duas = itens.some((it) => it._linhas);
+  const W = Math.max(300, el.clientWidth || 600), H = duas ? 234 : 220, m = { t: 18, r: 8, b: duas ? 44 : 30, l: 8 };
   const iw = W - m.l - m.r, ih = H - m.t - m.b;
   const bw = iw / Math.max(1, itens.length), gap = Math.min(10, bw * 0.25);
   const svg = s("svg", { viewBox: `0 0 ${W} ${H}`, width: "100%", height: H, role: "img" });
@@ -155,7 +179,10 @@ export function barras(el, { itens, formato = num, horizontal = false, cor = "va
     const d = hgt <= 0 ? "" : `M${x},${m.t + ih}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${m.t + ih}Z`;
     if (d) svg.appendChild(s("path", { d, fill: it.cor || cor }));
     const v = s("text", { x: x + w / 2, y: y - 5, class: "viz-valor", "text-anchor": "middle" }); v.textContent = formato(it.valor); svg.appendChild(v);
-    const t = s("text", { x: x + w / 2, y: H - 10, class: "viz-eixo", "text-anchor": "middle" }); t.textContent = it.rotulo; svg.appendChild(t);
+    const t = s("text", { x: x + w / 2, y: duas ? H - 24 : H - 10, class: "viz-eixo", "text-anchor": "middle" });
+    if (it._linhas) it._linhas.forEach((ln, k) => { const sp = s("tspan", { x: x + w / 2, dy: k ? 13 : 0 }); sp.textContent = ln; t.appendChild(sp); });
+    else t.textContent = it.rotulo;
+    svg.appendChild(t);
     const alvo = s("rect", { x: m.l + i * bw, y: m.t, width: bw, height: ih, fill: "transparent" });
     alvo.addEventListener("pointermove", (e) => mostrarDica([h("strong", null, it.rotulo), linhaDica("Quantidade", formato(it.valor), it.cor || cor), soma ? linhaDica("Do total", pct(it.valor / soma)) : ""].filter(Boolean), e.clientX, e.clientY));
     alvo.addEventListener("pointerleave", esconderDica);

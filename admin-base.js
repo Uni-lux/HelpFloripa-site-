@@ -22,7 +22,9 @@ export function juntarPessoa(uid, pub = {}, priv = null) {
 }
 export async function carregarPessoas(uids) {
   const { fb } = C;
-  const faltam = [...new Set(uids)].filter((u) => typeof u === "string" && u && !u.includes("/") && !D.pessoas.has(u));
+  // Só ids de conta (o registro de ações também guarda textos como "usuarios" ou "suporte:ID",
+  // que viravam contas falsas "Usuário removido" e entravam nas contagens).
+  const faltam = [...new Set(uids)].filter((u) => typeof u === "string" && /^[A-Za-z0-9]{20,40}$/.test(u) && !D.pessoas.has(u));
   const lotes = [];
   for (let i = 0; i < faltam.length; i += 30) lotes.push(faltam.slice(i, i + 30));
   const ler = (col, l) => fb.getDocs(fb.query(fb.collection(fb.db, col), fb.where(fb.documentId(), "in", l))).then((s) => new Map(s.docs.map((d) => [d.id, d.data()]))).catch(() => new Map());

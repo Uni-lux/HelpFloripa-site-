@@ -444,6 +444,9 @@ input.ad-sel { flex: 1 1 220px; padding: 0 12px; }
   .eq-chat .eq-conversa { display: none; }
   .eq-chat.aberta .eq-lista { display: none; }
   .eq-chat.aberta .eq-conversa { display: flex; }
+  /* Conversa aberta no celular: tela cheia abaixo da barra do painel, campo de digitar sempre à vista
+     (antes era preciso rolar a página e o chat ao mesmo tempo). */
+  .eq-chat.aberta { position: fixed; z-index: 40; top: 60px; left: 0; right: 0; bottom: 0; height: auto; min-height: 0; border: 0; border-radius: 0; }
   .eq-voltar { display: grid; margin-left: -4px; }
   .eq-lista { border-right: 0; }
   .eq-msgs { padding: 10px 8px 8px; }

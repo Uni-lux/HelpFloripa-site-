@@ -19,9 +19,9 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="admin.css?v=11" />
+  <link rel="stylesheet" href="admin.css?v=12" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="admin.js?v=16"></script>
+  <script type="module" src="admin.js?v=17"></script>
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -81,6 +81,7 @@
       <nav class="ad-lateral" id="lateral" aria-label="Seções do painel">
         <h4>Geral</h4>
         <button type="button" class="ad-nav" data-secao="visao"><svg class="i s"><use href="#i-painel"/></svg>Visão geral</button>
+        <button type="button" class="ad-nav" data-secao="equipe"><svg class="i s"><use href="#i-chat"/></svg>Equipe e chat<span class="cont" data-cont="equipe"></span></button>
         <button type="button" class="ad-nav" data-secao="estatisticas"><svg class="i s"><use href="#i-grafico"/></svg>Estatísticas</button>
         <button type="button" class="ad-nav" data-secao="relatorios"><svg class="i s"><use href="#i-doc"/></svg>Relatórios</button>
         <h4>Pessoas</h4>
@@ -100,7 +101,6 @@
         <h4>Equipe</h4>
         <button type="button" class="ad-nav" data-secao="tarefas"><svg class="i s"><use href="#i-tarefas"/></svg>Tarefas<span class="cont" data-cont="tarefas"></span></button>
         <button type="button" class="ad-nav" data-secao="registro"><svg class="i s"><use href="#i-lista"/></svg>Registro de ações</button>
-        <button type="button" class="ad-nav" data-secao="equipe"><svg class="i s"><use href="#i-chat"/></svg>Equipe e chat<span class="cont" data-cont="equipe"></span></button>
       </nav>
       <main class="ad-principal" id="principal" tabindex="-1">
         <div class="ad-vazio">Carregando dados do Help Floripa...</div>
