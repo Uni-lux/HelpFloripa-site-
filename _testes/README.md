@@ -38,7 +38,9 @@ Capturas de tela, Excel baixados e logs ficam em `saida/` (fora do git).
 | `nav.mjs` | Abre o Chromium (celular ou computador) e entra com um usuário: `entrar(ctx, "ana", "pagina.html")`. |
 | `t-chat.mjs`, `t-chat2.mjs` | Chat dos usuários: foco ao enviar, cartão de avaliação (cache, Firebase fora do ar), etiqueta do dia. |
 | `t-audio.mjs` | Player de áudio: ondas, pular, 2x, onda guardada. |
-| `t-atend.mjs` | Dias do atendimento: salvar, recarregar, mudar em outro aparelho. |
+| `t-atend.mjs` | Dias do atendimento (horário por dia): salvar, recarregar, mudar em outro aparelho. |
+| `t-aval.mjs` | Negócio avalia o cliente pelo cartão do chat, motivo real quando não dá, e cliente com vínculo no Social avaliando o negócio. |
+| `t-etapa4.mjs` | Etapa 4: suporte e avisos nas notificações/sino/Mensagens, conversa aberta pela equipe, denúncia com contexto no painel, atendimento com almoço e data de volta (e a faixa numa conversa pessoal). |
 | `t-menu-sair.mjs` | Seção EQUIPE no menu (com pendências) e "Sair da conta". |
 | `t-equipe.mjs` | Chat da equipe (precisa das regras do main). |
 | `t-excel.mjs` | Baixa os Excel do painel; valide com `python3 checar-todos.py saida/excel`. |
@@ -46,7 +48,7 @@ Capturas de tela, Excel baixados e logs ficam em `saida/` (fora do git).
 | `t-local.mjs`, `t-virada.mjs` | Conversão das cidades antigas, janela para completar e a virada regras antigas → novas. |
 | `t-busca.mjs`, `t-estat-local.mjs`, `t-painel.mjs` | Filtro de local da busca, filtros Estado→Cidade→Bairro do painel, topo das Estatísticas no celular. |
 | `gerar-xlsx.mjs`, `checar-xlsx.py`, `checar-todos.py` | Gera planilhas extremas e valida: Open XML SDK da Microsoft (Office 2007/2016/365) + consistência (referências, links, mesclas, nomes) + openpyxl. |
-| `versoes.py` | Aumenta o `?v=` de cada .js/.css alterado (em relação ao HEAD) em todos que o importam, em cascata, uma vez só. Rode antes de cada commit. |
+| `versoes.py` | Aumenta o `?v=` de cada .js/.css alterado (em relação ao HEAD) em todos que o importam, em cascata, uma vez só, e falha se dois arquivos importarem o mesmo módulo com `?v=` diferentes (arquivo novo fica fora da troca automática). Rode antes de cada commit. |
 
 ## Cuidados que já custaram tempo
 - Documentos "interceptados" pelo Playwright (`route.fulfill` na página) quebram a conexão com o emulador: por isso o `servidor-csp.mjs`.

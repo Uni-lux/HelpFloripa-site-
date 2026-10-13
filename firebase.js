@@ -76,15 +76,17 @@ onAuthStateChanged(auth, async (u) => {
   } catch (e) { console.warn("[Conta] Não foi possível conferir o estado da conta:", e); }
 });
 
-// Avisos da equipe (painel do administrador): aparecem numa janela até a pessoa tocar em "Entendi".
-// Confere no máximo a cada 10 minutos por aba.
+// Avisos da equipe (painel do administrador): todos aparecem nas Notificações, no sino e em
+// Mensagens (avisos-equipe.js). Os de alerta e os graves também abrem numa janela até a pessoa
+// tocar em "Entendi". Confere no máximo a cada 10 minutos por aba.
 async function avisosDaEquipe(u) {
   const chave = "hf-avisos-" + u.uid;
   try { if (Date.now() - Number(sessionStorage.getItem(chave) || 0) < 600000) return; sessionStorage.setItem(chave, String(Date.now())); } catch {}
   try {
-    const s = await getDocs(query(collection(db, "avisos"), where("uid", "==", u.uid), where("lidoEm", "==", null), limit(5)));
-    if (s.empty) return;
-    const lista = s.docs.sort((a, b) => (a.data().em?.toMillis?.() ?? 0) - (b.data().em?.toMillis?.() ?? 0));
+    const s = await getDocs(query(collection(db, "avisos"), where("uid", "==", u.uid), where("lidoEm", "==", null), limit(10)));
+    const docs = s.docs.filter((d) => d.data().tipo === "alerta" || d.data().tipo === "grave");
+    if (!docs.length) return;
+    const lista = docs.sort((a, b) => (a.data().em?.toMillis?.() ?? 0) - (b.data().em?.toMillis?.() ?? 0));
     const mostrar = (i) => {
       const d = lista[i]; if (!d) return;
       const a = d.data();
@@ -99,7 +101,7 @@ async function avisosDaEquipe(u) {
       const p = document.createElement("p"); p.textContent = a.texto || ""; p.style.cssText = "margin:0;white-space:pre-wrap;line-height:1.5;color:#c9d4da";
       const b = document.createElement("button"); b.type = "button"; b.textContent = lista.length - i > 1 ? `Entendi (${lista.length - i - 1} restante${lista.length - i - 1 > 1 ? "s" : ""})` : "Entendi";
       b.style.cssText = "min-height:44px;border:0;border-radius:12px;background:#00adee;color:#001a24;font-weight:800;font-size:15px;cursor:pointer";
-      const sup = document.createElement("a"); sup.href = "suporte.html"; sup.textContent = "Falar com o suporte"; sup.style.cssText = "text-align:center;color:#8c9ca7;font-size:13px";
+      const sup = document.createElement("a"); sup.href = "suporte.html?aviso=" + encodeURIComponent(d.id); sup.textContent = "Responder ao suporte"; sup.style.cssText = "text-align:center;color:#8c9ca7;font-size:13px";
       b.addEventListener("click", async () => { fundo.remove(); updateDoc(d.ref, { lidoEm: serverTimestamp() }).catch(() => {}); mostrar(i + 1); });
       cx.append(et, t, p, b, sup); fundo.appendChild(cx); document.body.appendChild(fundo); b.focus();
     };

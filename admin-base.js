@@ -143,7 +143,8 @@ export function estado(p) {
 export const ativoHa = (p, dias) => ms(p.ultimoAcesso) > agora() - dias * DIA;
 
 // ---------- janelas ----------
-export function modal({ titulo, texto = "", campos = [], botao = "Confirmar", perigo = false }) {
+// Sem campos e com botão "Fechar"/"OK" é só um aviso: aparece um botão só.
+export function modal({ titulo, texto = "", campos = [], botao = "Confirmar", perigo = false, cancelar = !(campos.length === 0 && /^(fechar|ok|entendi)$/i.test(botao)) }) {
   return new Promise((resolver) => {
     const fundo = h("div", "ad-modal-fundo");
     const cx = h("form", "ad-modal"); cx.setAttribute("role", "dialog"); cx.setAttribute("aria-modal", "true");
@@ -162,7 +163,7 @@ export function modal({ titulo, texto = "", campos = [], botao = "Confirmar", pe
     const ac = h("div", "ad-acoes");
     const no = h("button", "ad-bt", "Cancelar"); no.type = "button";
     const ok = h("button", "ad-bt " + (perigo ? "perigo cheio" : "pri"), botao); ok.type = "submit";
-    ac.append(no, ok); cx.appendChild(ac); fundo.appendChild(cx); document.body.appendChild(fundo);
+    if (cancelar) ac.append(no); ac.append(ok); cx.appendChild(ac); fundo.appendChild(cx); document.body.appendChild(fundo);
     const fim = (v) => { fundo.remove(); resolver(v); };
     no.addEventListener("click", () => fim(null));
     fundo.addEventListener("click", (e) => { if (e.target === fundo) fim(null); });
@@ -252,6 +253,39 @@ export async function fluxoAviso(uid) {
   if (!v) return false;
   await enviarAviso(uid, v); toast("Aviso enviado"); return true;
 }
+// A equipe abre uma conversa de suporte com a pessoa: aparece para ela como "Suporte Help Floripa"
+// (conta oficial) nas Notificações, no sino, em Mensagens e na página de suporte.
+// Com as regras antigas no servidor (antes da publicação da Etapa 5) a conversa é recusada:
+// a mensagem vai como aviso da equipe, para não se perder.
+export async function abrirConversaSuporte(uid) {
+  const { fb } = C;
+  const p = D.pessoas.get(uid) || {};
+  const v = await modal({ titulo: "Abrir conversa de suporte", texto: `${p.nome || "A pessoa"} recebe a mensagem como "Suporte Help Floripa" (conta oficial) e pode responder pela página de suporte.`, campos: [
+    { nome: "categoria", rotulo: "Assunto", tipo: "select", opcoes: [["conta", "Conta"], ["negocio", "Negócio ou anúncio"], ["golpe", "Golpe ou fraude"], ["denuncia", "Denúncia"], ["contestacao", "Contestação"], ["pagamento", "Pagamento"], ["outro", "Outro"]] },
+    { nome: "assunto", rotulo: "Título da conversa", max: 120, obrigatorio: true, dica: "Ex.: Sobre o seu anúncio de apartamento" },
+    { nome: "texto", rotulo: "Mensagem", tipo: "textarea", obrigatorio: true, max: 2000 }
+  ], botao: "Enviar" });
+  if (!v) return false;
+  if (v.assunto.length < 3) { toast("Escreva um título com pelo menos 3 letras."); return false; }
+  const ref = fb.doc(fb.collection(fb.db, "suporte"));
+  const lote = fb.writeBatch(fb.db);
+  const chamado = { uid, nome: String(p.nome || "").slice(0, 80), assunto: v.assunto.slice(0, 120), categoria: v.categoria, status: "respondido", criadoEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp(), ultimaDe: "equipe",
+    abertoPor: C.eu.uid, atendidoPor: C.eu.uid, responsavel: C.eu.uid, responsavelNome: nomeEquipe(C.eu.uid).slice(0, 80), assumidoEm: fb.serverTimestamp() };
+  lote.set(ref, chamado);
+  lote.set(fb.doc(fb.db, "suporte", ref.id, "mensagens", "inicio"), { autorId: C.eu.uid, equipe: true, texto: v.texto.slice(0, 2000), em: fb.serverTimestamp() });
+  try {
+    await lote.commit();
+    D.suporte.unshift({ id: ref.id, ...chamado, criadoEm: { toMillis: () => agora() }, atualizadoEm: { toMillis: () => agora() }, assumidoEm: { toMillis: () => agora() } });
+    await registrar("suporte_conversa", uid, v.assunto);
+    toast("Conversa de suporte aberta");
+    return true;
+  } catch (e) {
+    if (e?.code !== "permission-denied") throw e;
+    await enviarAviso(uid, { titulo: v.assunto, texto: v.texto, tipo: "info" });
+    toast("Enviado como aviso. A conversa de suporte fica disponível depois da atualização das regras do Firestore.");
+    return true;
+  }
+}
 export async function fluxoSancao(uid, tipoInicial = "suspensao") {
   const banir = tipoInicial === "banimento";
   const v = await modal({ titulo: banir ? "Banir conta" : "Suspender conta",
@@ -315,6 +349,7 @@ export async function abrirFicha(uid) {
   // ações
   const ac = h("div", "ad-acoes");
   const bt = (t, cls, fn) => { const b = h("button", "ad-bt " + cls, t); b.type = "button"; b.addEventListener("click", async () => { b.disabled = true; try { if (await fn()) { await C.recarregar(false); abrirFicha(uid); } } catch (e) { console.error(e); toast("Não foi possível: " + (e.code || e.message)); } finally { b.disabled = false; } }); ac.appendChild(b); };
+  bt("Abrir conversa de suporte", "pri", () => abrirConversaSuporte(uid));
   bt("Enviar aviso", "", () => fluxoAviso(uid));
   const sancionado = st.k === "suspenso" || st.k === "banido";
   const mod = pode("moderar");
@@ -385,7 +420,7 @@ export async function abrirFicha(uid) {
   // sanções e avisos
   const hist = [...(sancao?.historico || []).map((x) => ({ quando: Date.parse(x.em), t: `${x.tipo === "removida" ? "Sanção removida" : x.tipo === "banimento" ? "Banida" : "Suspensa"}${x.ate ? " até " + new Date(x.ate).toLocaleDateString("pt-BR") : ""} · ${x.motivo || ""} · por ${x.por || "equipe"}` })),
     ...avisos.map((a) => ({ quando: ms(a.em), t: `Aviso (${a.tipo}): ${a.titulo}${a.lidoEm ? " · lido" : " · não lido"}` })),
-    ...chamados.map((c) => ({ quando: ms(c.criadoEm), t: `Chamado: ${c.assunto} · ${c.status}` }))].sort((a, b2) => b2.quando - a.quando);
+    ...chamados.map((c) => ({ quando: ms(c.criadoEm), t: `${c.abertoPor ? "Conversa aberta pelo suporte" : "Chamado"}: ${c.assunto} · ${c.status}` }))].sort((a, b2) => b2.quando - a.quando);
   const bH = h("div", "ad-bloco"); bH.append(h("h3", null, "Histórico com a equipe"));
   const lH = h("div", "ad-hist"); lH.style.marginTop = "10px";
   if (!hist.length) lH.appendChild(h("div", null, "Nenhum aviso, sanção ou chamado."));

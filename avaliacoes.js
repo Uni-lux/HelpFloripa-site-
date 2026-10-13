@@ -8,7 +8,10 @@
 // Quem pode avaliar um negócio (conferido aqui e nas regras do Firestore):
 //   - conversou com o dono pelo chat e o dono respondeu (conversas.falaram);
 //   - e-mail confirmado e conta com pelo menos 3 dias;
-//   - não é o dono, não tem vínculo aceito no Social com ele e não há bloqueio.
+//   - não é o dono e não há bloqueio. Quem tem vínculo aceito no Social também avalia
+//     (continua valendo uma avaliação por pessoa em cada negócio).
+// O negócio avalia o cliente quando os dois já escreveram na conversa e não há bloqueio.
+// Se o servidor recusar, a janela mostra o motivo real (motivoRecusa), não um aviso genérico.
 // Pedido de avaliação enviado pelo negócio só marca "Atendimento confirmado": não libera notas extras.
 // - notas/{chave}: resumo (total, soma, n1..n5) de cada negócio (neg_),
 //   de cada cliente (cli_), das publicações de alguém (pub_) e de cada publicação (post_).
@@ -153,7 +156,6 @@ export async function podeAvaliarNegocio(fbx, euX, n, { exigirResposta = true } 
     return { ok: false, motivo: `Para evitar contas falsas, contas novas podem avaliar e reclamar depois de ${DIAS_CONTA} dias. Falta${falta > 1 ? "m" : ""} ${falta} ${falta === 1 ? "dia" : "dias"}.` };
   }
   if (bloq1?.exists() || bloq2?.exists()) return { ok: false, motivo: "Não é possível avaliar: há um bloqueio entre vocês." };
-  if (vinculo?.exists() && vinculo.data().status === "aceito") return { ok: false, motivo: "Vocês estão ligados no Social. Para ser justo, avaliações entre conhecidos não contam." };
   const falaram = conversa?.exists() ? conversa.data().falaram || {} : {};
   if (!falaram[euX.uid] || (exigirResposta && !falaram[donoId])) {
     return { ok: false, motivo: exigirResposta
@@ -162,7 +164,44 @@ export async function podeAvaliarNegocio(fbx, euX, n, { exigirResposta = true } 
   }
   if (legado.docs.some((d) => d.id.startsWith("p_") && d.data().tipo === "negocio")) return { ok: false, motivo: "Você já avaliou este negócio." };
   const ex = existente?.exists() ? existente.data() : null;
-  return { ok: true, existente: ex, negocioId, donoId };
+  return { ok: true, existente: ex, negocioId, donoId, vinculados: vinculo?.exists() && vinculo.data().status === "aceito" };
+}
+
+// Negócio avalia o cliente: confere antes de abrir a janela o mesmo que as regras conferem.
+export async function podeAvaliarCliente(fbx, euX, negocioId, clienteId, nomeCliente = "o cliente") {
+  if (!clienteId || clienteId === euX.uid) return { ok: false, motivo: "Você não pode avaliar a si mesmo." };
+  if (!euX.emailVerified) return { ok: false, motivo: "Confirme seu e-mail para avaliar clientes." };
+  const [negocio, conversa, bloq1, bloq2, sancao] = await Promise.all([
+    fbx.getDoc(fbx.doc(fbx.db, "negocios", negocioId)).catch(() => null),
+    fbx.getDoc(fbx.doc(fbx.db, "conversas", idConversa(euX.uid, clienteId))).catch(() => null),
+    fbx.getDoc(fbx.doc(fbx.db, "bloqueios", `${euX.uid}_${clienteId}`)).catch(() => null),
+    fbx.getDoc(fbx.doc(fbx.db, "bloqueios", `${clienteId}_${euX.uid}`)).catch(() => null),
+    fbx.getDoc(fbx.doc(fbx.db, "sancoes", euX.uid)).catch(() => null)
+  ]);
+  if (sancaoAtiva(sancao)) return { ok: false, motivo: "Sua conta está suspensa no momento, por isso não é possível avaliar. Se achar que é engano, fale com o suporte." };
+  if (negocio && (!negocio.exists() || negocio.data().donoId !== euX.uid)) return { ok: false, motivo: "Este atendimento não é de um negócio seu, por isso não é possível avaliar o cliente por aqui." };
+  if (bloq1?.exists() || bloq2?.exists()) return { ok: false, motivo: "Não é possível avaliar: há um bloqueio entre vocês." };
+  const falaram = conversa?.exists() ? conversa.data().falaram || {} : {};
+  if (!falaram[clienteId]) return { ok: false, motivo: `${nomeCliente} ainda não escreveu para você nesta conversa. A avaliação do cliente libera assim que ele mandar uma mensagem (assim só avalia quem atendeu de verdade).` };
+  if (!falaram[euX.uid]) return { ok: false, motivo: `Mande uma mensagem para ${nomeCliente} nesta conversa antes de avaliar.` };
+  return { ok: true };
+}
+const sancaoAtiva = (s) => !!(s?.exists?.() && (s.data().tipo === "banimento" || (s.data().ate?.toMillis?.() ?? 0) > Date.now()));
+
+// O servidor recusou (permission-denied): descobre o motivo real para mostrar na janela.
+// 1) o "e-mail confirmado" pode estar desatualizado no aparelho: renova a credencial e tenta de novo;
+// 2) confere de novo cada condição; 3) sem motivo encontrado, avisa sem culpar o e-mail.
+async function gravarComMotivo(fbx, euX, gravar, conferir) {
+  try { return await gravar(); }
+  catch (e) {
+    if (e?.code !== "permission-denied") throw e;
+    try { await euX.getIdToken?.(true); return await gravar(); }
+    catch (e2) { if (e2?.code !== "permission-denied") throw e2; }
+    let motivo = "";
+    try { const r = await conferir(); motivo = r?.motivo || ""; } catch {}
+    try { if (!motivo && sancaoAtiva(await fbx.getDoc(fbx.doc(fbx.db, "sancoes", euX.uid)))) motivo = "Sua conta está suspensa no momento, por isso não é possível avaliar."; } catch {}
+    throw Object.assign(new Error(motivo || "O servidor não aceitou a avaliação agora. Tente de novo em alguns minutos; se continuar, fale com o suporte."), { code: "recusada", motivo: true });
+  }
 }
 
 // Fluxo completo de "Avaliar" um negócio (perfil, chat ou link). pedidoId marca "Atendimento confirmado".
@@ -178,7 +217,13 @@ export async function avaliarNegocio(fbx, euX, n, { pedidoId = "", autor = {}, a
     aoEnviar: async ({ nota, comentario }) => {
       const dados = { tipo: "negocio", alvoId: r.donoId, negocioId: r.negocioId, nota, comentario };
       if (pedidoId) dados.pedidoId = pedidoId;
-      await avaliar(fbx, euX, `n_${r.negocioId}_${euX.uid}`, dados, [`neg_${r.negocioId}`], autor);
+      await gravarComMotivo(fbx, euX, () => avaliar(fbx, euX, `n_${r.negocioId}_${euX.uid}`, dados, [`neg_${r.negocioId}`], autor), async () => {
+        const de = await podeAvaliarNegocio(fbx, euX, n);
+        if (!de.ok) return de;
+        // Tudo certo por aqui: com vínculo no Social, o servidor ainda está com as regras antigas.
+        if (de.vinculados) return { motivo: "Vocês estão ligados no Social. A avaliação entre conhecidos será liberada na próxima atualização do Help Floripa. Tente de novo em breve." };
+        return null;
+      });
       aoAvaliar?.(nota, !!ex);
     }
   });
@@ -186,6 +231,8 @@ export async function avaliarNegocio(fbx, euX, n, { pedidoId = "", autor = {}, a
 }
 // Negócio avalia o cliente: também uma por cliente em cada negócio (pode editar).
 export async function avaliarCliente(fbx, euX, negocioId, clienteId, { nomeCliente = "cliente", pedidoId = "", autor = {}, aoAvaliar } = {}) {
+  const pode = await podeAvaliarCliente(fbx, euX, negocioId, clienteId, nomeCliente);
+  if (!pode.ok) { avisar(pode.motivo); return false; }
   let ex = null;
   try { const s = await fbx.getDoc(fbx.doc(fbx.db, "avaliacoes", `c_${negocioId}_${clienteId}`)); ex = s.exists() ? s.data() : null; } catch {}
   abrirAvaliar({
@@ -195,10 +242,12 @@ export async function avaliarCliente(fbx, euX, negocioId, clienteId, { nomeClien
     aoEnviar: async ({ nota, comentario }) => {
       const dados = { tipo: "cliente", alvoId: clienteId, negocioId, nota, comentario };
       if (pedidoId) dados.pedidoId = pedidoId;
-      await avaliar(fbx, euX, `c_${negocioId}_${clienteId}`, dados, [`cli_${clienteId}`], autor);
+      await gravarComMotivo(fbx, euX, () => avaliar(fbx, euX, `c_${negocioId}_${clienteId}`, dados, [`cli_${clienteId}`], autor),
+        () => podeAvaliarCliente(fbx, euX, negocioId, clienteId, nomeCliente));
       aoAvaliar?.(nota, !!ex);
     }
   });
+  return true;
 }
 export async function jaAvaliou(fbx, id) {
   try { return (await fbx.getDoc(fbx.doc(fbx.db, "avaliacoes", id))).exists(); } catch { return false; }
@@ -235,7 +284,9 @@ function css() {
   .hf-aval .grande button.on { color: #f5b700; }
   .hf-aval .grande button:active { transform: scale(.9); }
   .hf-aval .aviso { padding: 10px 12px; border-radius: 12px; font-size: 13px; line-height: 1.4; background: rgba(245,165,36,.14); color: inherit; border: 1px solid rgba(245,165,36,.4); }
-  .hf-aval .aviso[hidden] { display: none; }
+  .hf-aval .aviso[hidden], .hf-aval .erro[hidden] { display: none; }
+  .hf-aval .erro { display: flex; gap: 10px; align-items: flex-start; padding: 11px 12px; border-radius: 12px; font-size: 13.5px; line-height: 1.45; background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.45); color: inherit; }
+  .hf-aval .erro::before { content: "!"; flex: none; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: #ef4444; color: #fff; font-weight: 900; font-size: 13px; }
   .hf-aval .link-rec { justify-self: start; font-size: 13.5px; font-weight: 800; color: #f5a524; text-decoration: none; }
   .hf-aval .link-rec:hover { text-decoration: underline; }
   .hf-aval .legenda { text-align: center; font-weight: 800; min-height: 20px; color: #f5b700; }
@@ -362,6 +413,8 @@ export function abrirAvaliar({ titulo, sub, placeholder = "Conte como foi (opcio
   const aviso = document.createElement("div");
   aviso.className = "aviso"; aviso.hidden = true;
   aviso.textContent = "Notas de 1 e 2 estrelas viram uma reclamação pública na página Reclamações. O negócio pode responder e você marca quando for resolvido.";
+  const erro = document.createElement("div");
+  erro.className = "erro"; erro.hidden = true; erro.setAttribute("role", "alert");
   const acoes = document.createElement("div");
   acoes.className = "acoes";
   const cancelar = document.createElement("button"); cancelar.type = "button"; cancelar.className = "sec"; cancelar.textContent = "Agora não";
@@ -369,12 +422,20 @@ export function abrirAvaliar({ titulo, sub, placeholder = "Conte como foi (opcio
   const enviar = document.createElement("button"); enviar.type = "button"; enviar.className = "pri"; enviar.textContent = textoBotao; enviar.disabled = true;
   enviar.addEventListener("click", async () => {
     if (!nota) return;
-    enviar.disabled = true; enviar.textContent = "Enviando...";
+    enviar.disabled = true; enviar.textContent = "Enviando..."; erro.hidden = true;
     try { await aoEnviar({ nota, comentario: txt.value.trim() }); fechar(); }
-    catch (e) { enviar.disabled = false; enviar.textContent = textoBotao; alert(e?.code === "ja-avaliado" ? "Você já avaliou." : e?.code === "permission-denied" ? "Não foi possível avaliar. Confirme seu e-mail e tente de novo." : "Não foi possível enviar agora. Tente de novo."); }
+    catch (e) {
+      console.warn("Avaliação não enviada:", e?.code || e?.message || e);
+      enviar.disabled = false; enviar.textContent = textoBotao;
+      erro.textContent = e?.code === "ja-avaliado" ? "Você já avaliou." : e?.motivo ? e.message
+        : e?.code === "permission-denied" ? "O servidor não aceitou a avaliação. Tente de novo em alguns minutos; se continuar, fale com o suporte."
+        : "Não foi possível enviar agora. Confira sua internet e tente de novo.";
+      erro.hidden = false;
+      erro.scrollIntoView({ block: "nearest" });
+    }
   });
   acoes.append(cancelar, enviar);
-  caixa.append(grande, legenda, aviso, txt, acoes);
+  caixa.append(grande, legenda, aviso, txt, erro, acoes);
   if (comentarioInicial) txt.value = comentarioInicial;
   if (notaInicial >= 1 && notaInicial <= 5) bots[notaInicial - 1].click();
 }

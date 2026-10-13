@@ -476,3 +476,45 @@ input.ad-sel { flex: 1 1 220px; padding: 0 12px; }
   .ad-cab-acoes > .ad-chip, .ad-cab-acoes > .ad-bt { width: 100%; min-height: 42px; white-space: normal; line-height: 1.25; text-align: center; border-radius: 12px; padding: 6px 10px; }
   .ad-cab-acoes > .ad-bt:last-child:nth-child(odd) { grid-column: 1 / -1; }
 }
+
+/* ---------- Conteúdo denunciado (admin-denuncia.js) ---------- */
+.ad-modal.ad-den { width: min(640px, 100%); max-height: 92vh; display: flex; flex-direction: column; gap: 12px; }
+.ad-den-topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.ad-den-topo h3 { margin: 0; }
+.ad-den-topo p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+.ad-den-corpo { flex: 1; min-height: 120px; overflow-y: auto; overscroll-behavior: contain; display: grid; gap: 10px; align-content: start; }
+.ad-den-info { margin: 0; font-size: 12.5px; color: var(--muted); }
+.ad-den-chat { display: grid; gap: 8px; padding: 12px; border-radius: 14px; background: var(--panel-2); border: 1px solid var(--line); }
+.ad-den-linha { display: flex; }
+.ad-den-linha.dir { justify-content: flex-end; }
+.ad-den-bolha { max-width: 82%; display: grid; gap: 6px; padding: 9px 12px; border-radius: 14px 14px 14px 4px; background: var(--panel); border: 1px solid var(--line); font-size: 14px; line-height: 1.45; }
+.ad-den-linha.dir .ad-den-bolha { border-radius: 14px 14px 4px 14px; background: color-mix(in srgb, var(--accent) 12%, var(--panel)); }
+.ad-den-linha.denunciada .ad-den-bolha { border: 2px solid #ef4444; box-shadow: 0 0 0 4px color-mix(in srgb, #ef4444 14%, transparent); }
+.ad-den-marca { justify-self: start; font-size: 11px; font-weight: 800; letter-spacing: .4px; text-transform: uppercase; color: #fff; background: #ef4444; padding: 2px 8px; border-radius: 999px; }
+.ad-den-quem { display: flex; gap: 8px; align-items: baseline; justify-content: space-between; font-size: 12px; color: var(--muted); }
+.ad-den-quem b { color: var(--text); font-size: 12.5px; }
+.ad-den-texto { white-space: pre-wrap; word-break: break-word; }
+.ad-den-vazio { color: var(--muted); font-size: 13px; font-style: italic; }
+.ad-den-foto { display: block; max-width: 100%; max-height: 320px; border-radius: 10px; object-fit: contain; background: #000; }
+.ad-den-cita { display: grid; gap: 2px; padding: 6px 9px; border-left: 3px solid var(--accent); border-radius: 6px; background: color-mix(in srgb, var(--accent) 8%, transparent); font-size: 12.5px; }
+.ad-den-cita small { color: var(--accent); font-weight: 800; }
+.ad-den-cartao { display: grid; gap: 4px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); border-top: 4px solid var(--accent); background: var(--panel-2); }
+.ad-den-cartao small { font-size: 11px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: var(--accent); }
+.ad-den-cartao.aval { border-top-color: #f5b700; }
+.ad-den-cartao.aval small { color: #c98500; }
+.ad-den-cartao .estrelas { color: #f5b700; letter-spacing: 2px; font-size: 18px; }
+.ad-den-cartao img { width: 100%; max-height: 160px; object-fit: cover; border-radius: 8px; }
+.ad-den-cartao ul { margin: 2px 0; padding-left: 18px; font-size: 13px; }
+.ad-den-ficha { display: grid; gap: 10px; padding: 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel-2); }
+.ad-den-ficha .cab { display: flex; gap: 12px; align-items: center; }
+.ad-den-ficha .cab div { display: grid; gap: 2px; }
+.ad-den-ficha .cab span { color: var(--muted); font-size: 12.5px; }
+.ad-den-ficha .av { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; flex: none; }
+.ad-den-fotos { display: flex; gap: 6px; flex-wrap: wrap; }
+.ad-den-fotos img { width: 96px; height: 96px; object-fit: cover; border-radius: 10px; }
+.ad-den-guardado { display: grid; gap: 2px; padding: 8px 12px; border-radius: 10px; background: var(--panel-2); border-left: 3px solid var(--line); font-size: 13px; white-space: pre-wrap; word-break: break-word; }
+.ad-den-guardado small { color: var(--muted); font-weight: 700; font-size: 11.5px; }
+.ad-den-guardado.relato { border-left-color: var(--accent); }
+.ad-den .ad-acoes { justify-content: flex-end; }
+.ad-den .hf-audio { min-width: 220px; color: var(--text); }
+@media (max-width: 560px) { .ad-den-bolha { max-width: 92%; } }

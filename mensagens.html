@@ -121,6 +121,21 @@
       transition: background .15s, color .15s;
     }
     .icon-btn:hover { background: var(--hover); color: var(--text); }
+    #btnSuporte { position: relative; }
+    .badge-suporte { position: absolute; top: 3px; right: 2px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; background: #ff3b5c; color: #fff; font-size: 10.5px; font-weight: 800; display: grid; place-items: center; box-shadow: 0 0 0 2px var(--panel); }
+    .badge-suporte[hidden] { display: none; }
+    /* Suporte Help Floripa no topo da lista (conta oficial) */
+    .faixa-suporte { display: flex; align-items: center; gap: 12px; margin: 0 8px 8px; padding: 10px 12px; border-radius: 16px; cursor: pointer; text-align: left; font: inherit; color: var(--text);
+      border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line)); background: color-mix(in srgb, var(--accent) 10%, var(--panel)); }
+    .faixa-suporte[hidden] { display: none; }
+    .faixa-suporte:hover { background: color-mix(in srgb, var(--accent) 16%, var(--panel)); }
+    .faixa-suporte:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .faixa-suporte .fs-av { width: 44px; height: 44px; flex: none; border-radius: 50%; overflow: hidden; background: #fff; border: 2px solid var(--accent); }
+    .faixa-suporte .fs-av img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .faixa-suporte .fs-tx { flex: 1; min-width: 0; display: grid; gap: 1px; }
+    .faixa-suporte .fs-tx strong { display: flex; align-items: center; font-size: 15px; }
+    .faixa-suporte .fs-tx small { color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .faixa-suporte .fs-n { min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; background: var(--accent); color: #001a24; font-size: 12px; font-weight: 800; display: grid; place-items: center; }
     .icon-btn:focus-visible, .conv-item:focus-visible, .pill:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
     .avatar {
@@ -170,7 +185,7 @@
     .faixa-atend b { color: var(--text); font-weight: 700; }
     .faixa-atend .ponto { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; background: #2fbf71; vertical-align: 1px; }
     .faixa-atend .ponto.fechado { background: #8b9ba6; }
-    .faixa-atend .ponto.ausente { background: #f5a524; }
+    .faixa-atend .ponto.ausente, .faixa-atend .ponto.almoco { background: #f5a524; }
     .faixa-atend .sep { margin: 0 6px; opacity: .6; }
     .faixa-atend .aus { color: var(--text); }
     .faixa-atend.aberta .aus { display: block; margin-top: 2px; }
@@ -213,9 +228,30 @@
     .dias { display: flex; gap: 4px; flex-wrap: wrap; margin: 4px 0 8px; }
     .dias button { width: 40px; height: 34px; border: 1px solid var(--line); border-radius: 10px; background: transparent; color: var(--muted); font-weight: 700; font-size: 12.5px; cursor: pointer; }
     .dias button.on { background: var(--accent); border-color: var(--accent); color: #001a24; }
-    .horas { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--muted); font-size: 13px; }
-    .horas input { border: 1px solid var(--line); background: var(--input); color: var(--text); border-radius: 9px; padding: 7px 8px; font: inherit; }
+    .horas { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--muted); font-size: 13px; }
+    .horas input { min-width: 0; border: 1px solid var(--line); background: var(--input); color: var(--text); border-radius: 9px; padding: 7px 8px; font: inherit; }
     #atendMensagem { width: 100%; min-height: 64px; resize: vertical; border: 1px solid var(--line); background: var(--input); color: var(--text); border-radius: 10px; padding: 8px 10px; font: inherit; font-size: 13.5px; box-sizing: border-box; margin: 4px 0 8px; }
+    .atend-bloco { margin: 0 0 6px; }
+    .atend-semana { display: grid; gap: 6px; margin: 2px 0 8px; }
+    .dia-linha { display: grid; grid-template-columns: 78px minmax(0, 1fr); align-items: center; gap: 8px; padding: 6px 8px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); }
+    .dia-linha .dia-tog { display: flex; align-items: center; gap: 8px; border: 0; background: none; color: var(--muted); font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer; padding: 4px 2px; text-align: left; }
+    .dia-linha .dia-tog i { width: 30px; height: 18px; border-radius: 9px; background: var(--line); position: relative; flex: none; transition: background .15s; }
+    .dia-linha .dia-tog i::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: transform .15s; }
+    .dia-linha.on .dia-tog { color: var(--text); }
+    .dia-linha.on .dia-tog i { background: var(--accent); }
+    .dia-linha.on .dia-tog i::after { transform: translateX(12px); }
+    .dia-linha .dia-horas { display: flex; align-items: center; gap: 6px; min-width: 0; color: var(--muted); font-size: 13px; }
+    .dia-linha .dia-horas input { width: 0; min-width: 0; flex: 1; border: 1px solid var(--line); background: var(--input); color: var(--text); border-radius: 9px; padding: 6px 6px; font: inherit; font-size: 13.5px; }
+    .dia-linha:not(.on) .dia-horas { opacity: .45; }
+    .dia-linha .fechado { font-size: 13px; color: var(--muted); }
+    .atend-copiar, .atend-limpar { border: 0; background: none; color: var(--accent); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; padding: 2px 0 8px; text-align: left; }
+    .atend-limpar { padding: 0 4px; }
+    .atend-sub { padding-left: 0; }
+    .atend-volta label { color: var(--text); font-weight: 600; }
+    .atend-dica { margin: -4px 0 4px; font-size: 12px; color: var(--muted); }
+    .atend-previa { margin: 6px 0 10px; padding: 9px 12px; border-radius: 12px; border: 1px dashed var(--line); font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+    .atend-previa:empty { display: none; }
+    .atend-previa b { color: var(--text); }
     .atend-info { color: var(--muted); font-size: 12.5px; margin: 0 0 8px; }
     #secaoAtend.carregando > :not(h3):not(.atend-info) { opacity: .45; pointer-events: none; }
     /* seleção de várias conversas */
@@ -650,7 +686,7 @@
         <a href="index.html" class="icon-btn" aria-label="Início do Help Floripa" title="Início"><svg class="i"><use href="#i-casa"/></svg></a>
         <h1><span>Help Floripa</span>Mensagens</h1>
         <button type="button" class="icon-btn" id="btnSelecionar" aria-label="Selecionar conversas" title="Selecionar conversas"><svg class="i"><use href="#i-selecionar"/></svg></button>
-        <button type="button" class="icon-btn" id="btnSuporte" aria-label="Ajuda e suporte" title="Ajuda e suporte"><svg class="i"><use href="#i-suporte"/></svg></button>
+        <button type="button" class="icon-btn" id="btnSuporte" aria-label="Ajuda e suporte" title="Ajuda e suporte"><svg class="i"><use href="#i-suporte"/></svg><b class="badge-suporte" id="badgeSuporte" hidden></b></button>
         <button type="button" class="icon-btn" id="btnNovaConversa" aria-label="Nova conversa" title="Nova conversa"><svg class="i"><use href="#i-nova"/></svg></button>
         <button type="button" class="icon-btn" id="btnConfig" aria-label="Configurações" title="Configurações"><svg class="i"><use href="#i-config"/></svg></button>
       </div>
@@ -677,6 +713,12 @@
         <button type="button" class="pill" data-filtro="restritas" role="tab" aria-selected="false" id="pillRestritas" hidden>Restritas</button>
         <button type="button" class="pill" data-filtro="arquivadas" role="tab" aria-selected="false" id="pillArquivadas" hidden>Arquivadas</button>
       </div>
+      <!-- Suporte Help Floripa (conta oficial): resposta do suporte ou aviso da equipe ainda não aberto -->
+      <button type="button" class="faixa-suporte" id="faixaSuporte" hidden>
+        <span class="fs-av"><img src="logo.png" alt="" /></span>
+        <span class="fs-tx"><strong id="fsNome">Suporte Help Floripa</strong><small id="fsTexto"></small></span>
+        <b class="fs-n" id="fsQtd"></b>
+      </button>
       <div class="conv-list" id="listaConversas"></div>
       <!-- Barra da rede (a mesma do Diário e do Perfil) -->
       <nav class="barra-rede" id="barraRede" aria-label="Rede social">
@@ -853,20 +895,30 @@
 
       <div class="cfg-secao" id="secaoAtend" hidden>
         <h3>Atendimento do seu negócio</h3>
-        <p class="atend-info" id="atendTempo">Os clientes veem isso no topo das conversas de negócio.</p>
+        <p class="atend-info" id="atendTempo">Todos que conversam com você veem isso no topo da conversa.</p>
         <label class="cfg-linha">
-          <div class="txt">Mostrar horário de atendimento<small>Fora do horário, o cliente vê quando você volta.</small></div>
+          <div class="txt">Horário de atendimento<small>Um horário para cada dia. Fora dele, quem escreve vê quando você volta.</small></div>
           <span class="switch"><input type="checkbox" id="atendHorarioLig" /><span></span></span>
         </label>
-        <div id="atendHorario" hidden>
-          <div class="dias" id="atendDias"></div>
-          <div class="horas">das <input type="time" id="atendInicio" value="09:00" aria-label="Início" /> às <input type="time" id="atendFim" value="18:00" aria-label="Fim" /></div>
+        <div id="atendHorario" class="atend-bloco" hidden>
+          <div class="atend-semana" id="atendSemana" role="group" aria-label="Horário de cada dia"></div>
+          <button type="button" class="atend-copiar" id="atendCopiar">Usar o horário do primeiro dia aberto em todos os dias abertos</button>
+          <label class="cfg-linha atend-sub">
+            <div class="txt">Pausa para almoço<small>Durante a pausa, aparece "volta às..." para quem escreve.</small></div>
+            <span class="switch"><input type="checkbox" id="atendAlmocoLig" /><span></span></span>
+          </label>
+          <div class="horas" id="atendAlmoco" hidden>das <input type="time" id="atendAlmocoIni" value="12:00" aria-label="Início do almoço" /> às <input type="time" id="atendAlmocoFim" value="13:00" aria-label="Fim do almoço" /></div>
         </div>
         <label class="cfg-linha">
-          <div class="txt">Estou ausente<small>Férias, folga ou viagem: o cliente vê seu aviso ao abrir a conversa.</small></div>
+          <div class="txt">Estou ausente<small>Férias, folga ou viagem: aparece para todos que conversam com você.</small></div>
           <span class="switch"><input type="checkbox" id="atendAusente" /><span></span></span>
         </label>
-        <textarea id="atendMensagem" maxlength="200" placeholder="Ex.: Estou de folga até segunda. Respondo assim que voltar!" aria-label="Aviso de ausência"></textarea>
+        <div id="atendAusencia" class="atend-bloco" hidden>
+          <div class="horas atend-volta"><label for="atendVolta">Volto em</label> <input type="date" id="atendVolta" /> <button type="button" class="atend-limpar" id="atendVoltaLimpar">Sem data</button></div>
+          <p class="atend-dica">Na data de volta o aviso de ausente sai sozinho.</p>
+          <textarea id="atendMensagem" maxlength="200" placeholder="Ex.: Estou de folga. Respondo assim que voltar!" aria-label="Aviso de ausência"></textarea>
+        </div>
+        <div class="atend-previa" id="atendPrevia" aria-live="polite"></div>
         <button type="button" class="btn-sec" id="atendSalvar">Salvar atendimento</button>
       </div>
 
@@ -1002,13 +1054,14 @@
 
   <script type="module">
     import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura, mostrarAvisoEmail } from "./seguranca.js?v=1";
-    import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO } from "./avaliacoes.js?v=11";
+    import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO } from "./avaliacoes.js?v=12";
     import { buscarPessoas } from "./pessoas.js?v=3";
     import { docComValidade } from "./leituras.js?v=1";
     import { comRitmo } from "./ritmo.js?v=2";
     import { criarPlayerAudio } from "./audio-ondas.js?v=1";
     import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=5";
-    import { abrirQueixa } from "./queixas.js?v=7";
+    import { abrirQueixa } from "./queixas.js?v=8";
+    import { ouvirItensEquipe, linkEquipe, seloOficial, TEXTO_EQUIPE } from "./avisos-equipe.js?v=1";
     // ======================================================
     // Configurações (salvas no aparelho)
     // ======================================================
@@ -2128,6 +2181,7 @@
       try {
         const u = await fb.getDoc(fb.doc(fb.db, "usuarios", eu.uid));
         restritos = new Set(Array.isArray(u.data()?.restritos) ? u.data().restritos : []);
+        atendimentoPrivado = u.data()?.atendimento || null;
         // Online e confirmação de leitura são da conta (valem em todos os aparelhos).
         const pv = u.data()?.privacidade;
         if (pv) { config.mostrarOnline = pv.mostrarOnline !== false; config.confirmacaoLeitura = pv.confirmacaoLeitura !== false; salvarConfig(); }
@@ -2660,9 +2714,13 @@
     // Denunciar uma mensagem recebida (a pessoa não é avisada).
     async function denunciarMensagem(m) {
       if (!ativa) return;
-      const { abrirDenuncia } = await import("./denuncias.js?v=1");
+      const { abrirDenuncia } = await import("./denuncias.js?v=2");
       const outro = ativa.outroId;
-      abrirDenuncia({ fb, eu, tipo: "mensagem", alvoId: m.remetenteId, itemId: m.id, conversaId: ativa.id, trecho: resumoMensagem(m), nomeAlvo: ativa.nome || "",
+      // Contexto para a equipe: até 5 mensagens antes e 5 depois (só os ids; o painel lê do servidor).
+      const salvas = mensagens.filter((x) => !x.pendente);
+      const i = salvas.findIndex((x) => x.id === m.id);
+      const contexto = i < 0 ? [] : salvas.slice(Math.max(0, i - 5), i + 6).map((x) => x.id).filter((id) => id !== m.id);
+      abrirDenuncia({ fb, eu, tipo: "mensagem", alvoId: m.remetenteId, itemId: m.id, conversaId: ativa.id, trecho: resumoMensagem(m), contexto, nomeAlvo: ativa.nome || "",
         podeBloquear: !bloqueios.meus.has(outro), aoBloquear: () => { if (!bloqueios.meus.has(outro)) return alternarBloqueio(); } });
     }
 
@@ -2686,35 +2744,71 @@
       if (id) irParaMensagem(id);
     });
 
-    // Atendimento do negócio: horário, ausência e tempo médio de resposta (no topo da conversa de negócio).
+    // Atendimento do negócio: horário de cada dia, pausa de almoço, ausência (com data de volta) e
+    // tempo médio de resposta. Aparece no topo de TODAS as conversas com quem tem negócio (inclusive
+    // de quem tem vínculo no Social); o tempo de resposta, só nas conversas de negócio.
+    // atendimento.semana: 7 textos "HH:MM-HH:MM" ou "" (domingo a sábado). Perfis antigos só têm
+    // atendimento.horario { dias, inicio, fim }: vale o mesmo horário nos dias marcados.
     const DIAS_CURTOS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+    const DIAS_LONGOS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
     const hm = (t) => { const [h, m] = String(t || "").split(":").map(Number); return (h || 0) * 60 + (m || 0); };
     const horaTxt = (t) => { const [h, m] = String(t || "").split(":"); return `${Number(h)}h${m && m !== "00" ? m : ""}`; };
-    function resumoDias(dias) {
-      const d = [...dias].sort();
-      if (d.length === 7) return "todos os dias";
-      if (d.join() === "1,2,3,4,5") return "seg a sex";
-      if (d.join() === "1,2,3,4,5,6") return "seg a sáb";
-      return d.map((x) => DIAS_CURTOS[x]).join(", ");
+    const FAIXA_RE = /^([01]\d|2[0-3]):[0-5]\d-([01]\d|2[0-3]):[0-5]\d$/;
+    const faixa = (txt) => (FAIXA_RE.test(String(txt || "")) ? { ini: txt.slice(0, 5), fim: txt.slice(6) } : null);
+    function semanaDe(a) {
+      const h = a?.horario;
+      if (Array.isArray(a?.semana) && a.semana.length === 7) {
+        const s = a.semana.map(faixa);
+        // Um aparelho com o site antigo grava só o resumo: se os dias não batem, o resumo é o mais novo.
+        const abertos = s.map((f, i) => (f ? i : null)).filter((x) => x != null).join();
+        if (s.some(Boolean) && (!h?.dias?.length || [...h.dias].map(Number).sort().join() === abertos)) return s;
+        if (!h?.dias?.length) return null;
+      }
+      if (!h?.dias?.length || !h.inicio || !h.fim) return null;
+      const dias = h.dias.map(Number);
+      return Array.from({ length: 7 }, (_, i) => (dias.includes(i) ? { ini: h.inicio, fim: h.fim } : null));
     }
-    function situacaoHorario(h) {
-      const agora = new Date(), min = agora.getHours() * 60 + agora.getMinutes();
-      const dias = (h.dias || []).map(Number);
-      if (dias.includes(agora.getDay()) && min >= hm(h.inicio) && min < hm(h.fim)) return { aberto: true, txt: `Atendendo agora · até ${horaTxt(h.fim)}` };
+    // Ausente vale até a data de volta (no dia da volta o aviso sai sozinho).
+    const ausenteAgora = (a) => !!a?.ausente && !(ms(a.volta) && ms(a.volta) <= Date.now());
+    const dataVoltaTxt = (t) => {
+      const d = new Date(ms(t)), hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+      const dias = Math.round((new Date(d).setHours(0, 0, 0, 0) - hoje) / 864e5);
+      return dias === 1 ? "amanhã" : `${DIAS_CURTOS[d.getDay()]}, ${d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}`;
+    };
+    function resumoSemana(sem, almoco) {
+      const grupos = [];
+      [1, 2, 3, 4, 5, 6, 0].forEach((d) => {
+        const f = sem[d], k = f ? `${f.ini}-${f.fim}` : "";
+        const ult = grupos[grupos.length - 1];
+        if (ult && ult.k === k) ult.dias.push(d); else grupos.push({ k, f, dias: [d] });
+      });
+      const partes = grupos.filter((g) => g.f).map((g) => `${g.dias.length > 2 ? `${DIAS_CURTOS[g.dias[0]]} a ${DIAS_CURTOS[g.dias[g.dias.length - 1]]}` : g.dias.map((x) => DIAS_CURTOS[x]).join(" e ")} ${horaTxt(g.f.ini)}–${horaTxt(g.f.fim)}`);
+      const al = faixa(almoco);
+      if (al) partes.push(`almoço ${horaTxt(al.ini)}–${horaTxt(al.fim)}`);
+      return partes.join(", ");
+    }
+    function situacaoHorario(sem, almoco, agora = new Date()) {
+      const min = agora.getHours() * 60 + agora.getMinutes();
+      const hoje = sem[agora.getDay()], al = faixa(almoco);
+      if (hoje && min >= hm(hoje.ini) && min < hm(hoje.fim)) {
+        if (al && min >= hm(al.ini) && min < hm(al.fim)) return { cls: "almoco", txt: `Pausa para almoço · volta às ${horaTxt(al.fim)}` };
+        return { cls: "aberto", txt: `Atendendo agora · até ${horaTxt(hoje.fim)}` };
+      }
       for (let i = 0; i < 8; i++) {
         const d = new Date(agora); d.setDate(agora.getDate() + i);
-        if (!dias.includes(d.getDay())) continue;
-        if (i === 0 && min >= hm(h.inicio)) continue;
+        const f = sem[d.getDay()];
+        if (!f || (i === 0 && min >= hm(f.ini))) continue;
         const quando = i === 0 ? "hoje" : i === 1 ? "amanhã" : DIAS_CURTOS[d.getDay()];
-        return { aberto: false, txt: `Fora do horário · volta ${quando} às ${horaTxt(h.inicio)}` };
+        return { cls: "fechado", txt: `Fora do horário · volta ${quando} às ${horaTxt(f.ini)}` };
       }
-      return { aberto: false, txt: "Fora do horário" };
+      return { cls: "fechado", txt: "Fora do horário" };
     }
     const tempoTxt = (min) => (min < 1 ? "menos de 1 min" : min < 60 ? `~${Math.round(min)} min` : min < 1440 ? `~${Math.round(min / 60)} h` : "~1 dia");
     function pintarAtendimento() {
       const box = $("faixaAtend");
       const a = perfilOutroAtual?.atendimento;
-      if (!ativa || assuntoDe(ativa.dados) === "pessoal" || !a) { box.hidden = true; return; }
+      if (!ativa || !a) { box.hidden = true; return; }
+      const deNegocio = assuntoDe(ativa.dados) !== "pessoal";
       box.replaceChildren();
       const add = (cls, txt, forte) => {
         if (box.children.length) { const sp = document.createElement("span"); sp.className = "sep" + (cls === "aus" ? " aus-sep" : ""); sp.textContent = "·"; box.appendChild(sp); }
@@ -2724,10 +2818,11 @@
         if (forte) { const b = document.createElement("b"); b.textContent = forte; s.append(b, txt ? " " : ""); }
         s.append(txt); box.appendChild(s); return s;
       };
-      if (a.ausente) add("ausente", "", "Ausente no momento");
-      else if (a.horario?.dias?.length) { const st = situacaoHorario(a.horario); add(st.aberto ? "aberto" : "fechado", `${resumoDias(a.horario.dias)}, ${horaTxt(a.horario.inicio)}–${horaTxt(a.horario.fim)}`, st.txt + " ·"); }
-      if (a.resposta?.n >= 3) add("", `Costuma responder em ${tempoTxt(a.resposta.media)}`);
-      if (a.ausente && a.mensagem) add("aus", a.mensagem);
+      const ausente = ausenteAgora(a), sem = semanaDe(a);
+      if (ausente) add("ausente", ms(a.volta) ? `volta ${dataVoltaTxt(a.volta)}` : "", ms(a.volta) ? "Ausente ·" : "Ausente no momento");
+      else if (sem) { const st = situacaoHorario(sem, a.almoco); add(st.cls, resumoSemana(sem, a.almoco), st.txt + " ·"); }
+      if (deNegocio && a.resposta?.n >= 3) add("", `Costuma responder em ${tempoTxt(a.resposta.media)}`);
+      if (ausente && a.mensagem) add("aus", a.mensagem);
       box.hidden = !box.children.length;
       // Texto maior que a linha: vira um botão que abre o aviso inteiro.
       requestAnimationFrame(() => {
@@ -3503,16 +3598,36 @@
     // ======================================================
     // Atendimento do negócio (configurações)
     // ======================================================
-    let diasAtend = [1, 2, 3, 4, 5];
+    // Campos novos (horário por dia, almoço e data de volta) só são aceitos pelas regras novas do
+    // Firestore. Com as regras antigas no servidor, o perfil público recebe a versão compatível
+    // (horário resumido; a data de volta vai junto do aviso) e o atendimento completo fica na parte
+    // privada da conta (usuarios/{uid}.atendimento). Depois da publicação, completarAtendimento()
+    // grava o completo no perfil público sozinho.
+    const NOVOS_ATEND = ["semana", "almoco", "volta"];
+    let atendimentoPrivado = null;   // usuarios/{uid}.atendimento (lido em carregarPrivacidade)
+    let semanaEdit = [null, { ini: "09:00", fim: "18:00" }, { ini: "09:00", fim: "18:00" }, { ini: "09:00", fim: "18:00" }, { ini: "09:00", fim: "18:00" }, { ini: "09:00", fim: "18:00" }, null];
+    const refMeuPerfil = () => fb.doc(fb.db, "perfis_publicos", eu.uid);
     // Lê o atendimento direto do servidor. Com o cache do aparelho, uma conexão lenta fazia a tela
     // mostrar uma cópia antiga (os dias "voltavam") e, ao salvar de novo, a cópia antiga era regravada.
-    const refMeuPerfil = () => fb.doc(fb.db, "perfis_publicos", eu.uid);
     async function lerAtendimentoDoServidor() {
       const s = await comPrazo(fb.getDocFromServer(refMeuPerfil()), 9000);
       const at = s.exists() ? (s.data().atendimento || null) : null;
       meuPerfil.atendimento = at || undefined;
       return at;
     }
+    // O que vale para editar: o público; se o completo (privado) tiver os campos novos que o
+    // público ainda não tem, vale o completo (salvo com as regras antigas no servidor).
+    // Só vale se o público ainda é a versão compatível DESTE completo (mesmo resumo e mesma
+    // ausência); se o público mudou depois (outro aparelho), o público é o mais novo.
+    const mesmoResumo = (a, b) => (!a && !b) || (!!a && !!b && a.inicio === b.inicio && a.fim === b.fim && [...(a.dias || [])].map(Number).sort().join() === [...(b.dias || [])].map(Number).sort().join());
+    const temNovosAtend = (x) => NOVOS_ATEND.some((k) => x?.[k] != null);
+    const privadoValeAtend = (pub, priv) => temNovosAtend(priv) && !temNovosAtend(pub)
+      && mesmoResumo(pub.horario, priv.horario) && !!pub.ausente === !!priv.ausente;
+    function atendimentoParaEditar() {
+      const pub = meuPerfil.atendimento || {}, priv = atendimentoPrivado || {};
+      return privadoValeAtend(pub, priv) ? { ...pub, ...priv, resposta: pub.resposta } : pub;
+    }
+    const dataInput = (t) => { if (!ms(t)) return ""; const d = new Date(ms(t)); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
     async function pintarConfigAtendimento() {
       const tem = (await negociosDoUsuario()).length > 0;
       $("secaoAtend").hidden = !tem;
@@ -3526,53 +3641,147 @@
       catch (e) { semServidor = true; console.warn("Atendimento lido do aparelho:", e?.code || e?.message); }
       sec.classList.remove("carregando");
       $("atendSalvar").disabled = false;
-      const a = meuPerfil.atendimento || {};
-      $("atendHorarioLig").checked = !!a.horario?.dias?.length;
-      diasAtend = a.horario?.dias?.length ? a.horario.dias.map(Number) : [1, 2, 3, 4, 5];
-      $("atendInicio").value = a.horario?.inicio || "09:00";
-      $("atendFim").value = a.horario?.fim || "18:00";
+      const a = atendimentoParaEditar();
+      const sem = semanaDe(a);
+      $("atendHorarioLig").checked = !!sem;
+      if (sem) semanaEdit = sem.map((f) => (f ? { ...f } : null));
+      const al = faixa(a.almoco);
+      $("atendAlmocoLig").checked = !!al;
+      $("atendAlmocoIni").value = al?.ini || "12:00";
+      $("atendAlmocoFim").value = al?.fim || "13:00";
       $("atendAusente").checked = !!a.ausente;
+      $("atendVolta").value = dataInput(a.volta);
       $("atendMensagem").value = a.mensagem || "";
       $("atendTempo").textContent = semServidor
         ? "Sem conexão com o servidor agora: mostrando a última cópia deste aparelho. Confira antes de salvar."
-        : a.resposta?.n >= 3 ? `Seu tempo médio de resposta: ${tempoTxt(a.resposta.media)} (aparece para os clientes).` : "Os clientes veem isso no topo das conversas de negócio. O tempo médio de resposta aparece depois de 3 respostas.";
+        : a.resposta?.n >= 3 ? `Seu tempo médio de resposta: ${tempoTxt(a.resposta.media)} (aparece nas conversas de negócio).` : "Todos que conversam com você veem isso no topo da conversa. O tempo médio de resposta aparece depois de 3 respostas.";
       pintarDiasAtend();
     }
+    // Uma linha por dia (segunda primeiro): liga/desliga e horário de início e fim.
     function pintarDiasAtend() {
       $("atendHorario").hidden = !$("atendHorarioLig").checked;
-      $("atendMensagem").hidden = !$("atendAusente").checked;
-      const box = $("atendDias");
+      $("atendAusencia").hidden = !$("atendAusente").checked;
+      $("atendAlmoco").hidden = !$("atendAlmocoLig").checked;
+      const box = $("atendSemana");
       box.replaceChildren();
-      ["D", "S", "T", "Q", "Q", "S", "S"].forEach((l, i) => {
-        const b = document.createElement("button"); b.type = "button"; b.textContent = l; b.title = DIAS_CURTOS[i];
-        b.className = diasAtend.includes(i) ? "on" : "";
-        b.setAttribute("aria-pressed", String(diasAtend.includes(i)));
-        b.addEventListener("click", () => { diasAtend = diasAtend.includes(i) ? diasAtend.filter((x) => x !== i) : [...diasAtend, i].sort(); pintarDiasAtend(); });
-        box.appendChild(b);
+      [1, 2, 3, 4, 5, 6, 0].forEach((d) => {
+        const f = semanaEdit[d];
+        const linha = document.createElement("div"); linha.className = "dia-linha" + (f ? " on" : ""); linha.dataset.dia = String(d);
+        const tog = document.createElement("button"); tog.type = "button"; tog.className = "dia-tog";
+        tog.setAttribute("aria-pressed", String(!!f)); tog.setAttribute("aria-label", `${DIAS_LONGOS[d]}: ${f ? "aberto" : "fechado"}`);
+        tog.append(document.createElement("i"), DIAS_LONGOS[d].slice(0, 3));
+        tog.addEventListener("click", () => {
+          const modelo = semanaEdit.find(Boolean) || { ini: "09:00", fim: "18:00" };
+          semanaEdit[d] = semanaEdit[d] ? null : { ...modelo };
+          pintarDiasAtend();
+        });
+        const horas = document.createElement("div"); horas.className = "dia-horas";
+        if (f) {
+          const ini = document.createElement("input"); ini.type = "time"; ini.value = f.ini; ini.className = "ini"; ini.setAttribute("aria-label", `${DIAS_LONGOS[d]}: abre`);
+          const fim = document.createElement("input"); fim.type = "time"; fim.value = f.fim; fim.className = "fim"; fim.setAttribute("aria-label", `${DIAS_LONGOS[d]}: fecha`);
+          ini.addEventListener("change", () => { semanaEdit[d].ini = ini.value || "09:00"; pintarPreviaAtend(); });
+          fim.addEventListener("change", () => { semanaEdit[d].fim = fim.value || "18:00"; pintarPreviaAtend(); });
+          horas.append(ini, "às", fim);
+        } else horas.appendChild(Object.assign(document.createElement("span"), { className: "fechado", textContent: "Fechado" }));
+        linha.append(tog, horas);
+        box.appendChild(linha);
       });
+      pintarPreviaAtend();
     }
-    $("atendHorarioLig").addEventListener("change", pintarDiasAtend);
-    $("atendAusente").addEventListener("change", pintarDiasAtend);
+    // Atendimento escolhido na tela (completo, com os campos novos).
+    function atendimentoDaTela() {
+      const lig = $("atendHorarioLig").checked && semanaEdit.some(Boolean);
+      const semana = lig ? semanaEdit.map((f) => (f ? `${f.ini}-${f.fim}` : "")) : null;
+      const abertos = lig ? semanaEdit.map((f, i) => (f ? i : null)).filter((x) => x != null) : [];
+      const horario = lig ? { dias: abertos, inicio: abertos.map((i) => semanaEdit[i].ini).sort()[0], fim: abertos.map((i) => semanaEdit[i].fim).sort().pop() } : null;
+      const almoco = lig && $("atendAlmocoLig").checked ? `${$("atendAlmocoIni").value || "12:00"}-${$("atendAlmocoFim").value || "13:00"}` : null;
+      const ausente = $("atendAusente").checked;
+      const v = ausente && $("atendVolta").value ? new Date($("atendVolta").value + "T00:00:00") : null;
+      return { horario, semana, almoco, ausente, mensagem: $("atendMensagem").value.trim().slice(0, 200), volta: v && !isNaN(v) ? fb.Timestamp.fromDate(v) : null };
+    }
+    // Prévia: exatamente o que quem conversa com você vai ver agora.
+    function pintarPreviaAtend() {
+      const a = atendimentoDaTela();
+      const box = $("atendPrevia");
+      box.replaceChildren();
+      const sem = semanaDe(a);
+      let txt = "";
+      if (ausenteAgora(a)) txt = `Ausente${ms(a.volta) ? ` · volta ${dataVoltaTxt(a.volta)}` : " no momento"}${a.mensagem ? ` · ${a.mensagem}` : ""}`;
+      else if (sem) { const st = situacaoHorario(sem, a.almoco); txt = `${st.txt} · ${resumoSemana(sem, a.almoco)}`; }
+      if (!txt) return;
+      box.append(Object.assign(document.createElement("b"), { textContent: "Como aparece agora: " }), txt);
+    }
+    ["atendHorarioLig", "atendAusente", "atendAlmocoLig"].forEach((id) => $(id).addEventListener("change", pintarDiasAtend));
+    ["atendAlmocoIni", "atendAlmocoFim", "atendVolta", "atendMensagem"].forEach((id) => $(id).addEventListener("input", pintarPreviaAtend));
+    $("atendVoltaLimpar").addEventListener("click", () => { $("atendVolta").value = ""; pintarPreviaAtend(); });
+    $("atendCopiar").addEventListener("click", () => {
+      const modelo = semanaEdit[[1, 2, 3, 4, 5, 6, 0].find((d) => semanaEdit[d])];
+      if (!modelo) { toast("Abra pelo menos um dia primeiro."); return; }
+      semanaEdit = semanaEdit.map((f) => (f ? { ...modelo } : null));
+      pintarDiasAtend();
+      toast(`Horário ${horaTxt(modelo.ini)}–${horaTxt(modelo.fim)} em todos os dias abertos`);
+    });
+    // Versão que as regras antigas aceitam: sem os campos novos; a data de volta vai no aviso.
+    function atendimentoCompativel(a) {
+      const c = { horario: a.horario, ausente: a.ausente, mensagem: a.mensagem };
+      if (a.ausente && ms(a.volta)) {
+        const extra = `Volto em ${new Date(ms(a.volta)).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}.`;
+        c.mensagem = (a.mensagem ? `${a.mensagem} ${extra}` : extra).slice(0, 200);
+      }
+      return c;
+    }
+    // Grava no perfil público: completo; se o servidor recusar (regras antigas), a versão compatível.
+    // Devolve true quando o completo foi aceito.
+    async function gravarAtendimentoPublico(a) {
+      try { await comPrazo(fb.setDoc(refMeuPerfil(), { uid: eu.uid, atendimento: a }, { merge: true }), 15000); return true; }
+      catch (e) {
+        if (e?.code !== "permission-denied") throw e;
+        await comPrazo(fb.setDoc(refMeuPerfil(), { uid: eu.uid, atendimento: atendimentoCompativel(a) }, { merge: true }), 15000);
+        try { localStorage.setItem("hf-atend-antigas-" + eu.uid, String(Date.now())); } catch {}
+        return false;
+      }
+    }
     $("atendSalvar").addEventListener("click", async () => {
-      const horario = $("atendHorarioLig").checked && diasAtend.length ? { dias: diasAtend, inicio: $("atendInicio").value || "09:00", fim: $("atendFim").value || "18:00" } : null;
-      if (horario && hm(horario.fim) <= hm(horario.inicio)) { toast("O horário final precisa ser depois do inicial."); return; }
-      const atendimento = { horario, ausente: $("atendAusente").checked, mensagem: $("atendMensagem").value.trim().slice(0, 200) };
+      const atendimento = atendimentoDaTela();
+      if ($("atendHorarioLig").checked && !atendimento.semana) { toast("Abra pelo menos um dia ou desligue o horário."); return; }
+      const errado = semanaEdit.findIndex((f) => f && hm(f.fim) <= hm(f.ini));
+      if (atendimento.semana && errado >= 0) { toast(`${DIAS_LONGOS[errado]}: o horário de fechar precisa ser depois do de abrir.`); return; }
+      const al = faixa(atendimento.almoco);
+      if (al && hm(al.fim) <= hm(al.ini)) { toast("O fim do almoço precisa ser depois do início."); return; }
+      if (atendimento.volta && ms(atendimento.volta) <= Date.now()) { toast("A data de volta precisa ser depois de hoje."); return; }
       const btn = $("atendSalvar");
       btn.disabled = true; btn.textContent = "Salvando...";
       try {
-        await comPrazo(fb.setDoc(refMeuPerfil(), { uid: eu.uid, atendimento }, { merge: true }), 15000);
-        meuPerfil.atendimento = { ...(meuPerfil.atendimento || {}), ...atendimento };
-        // Confere no servidor o que ficou gravado (dias, horário e ausência).
+        // Cópia completa na parte privada da conta (sempre aceita) e depois o perfil público.
+        await comPrazo(fb.setDoc(fb.doc(fb.db, "usuarios", eu.uid), { atendimento }, { merge: true }), 15000).catch((e) => console.warn("Cópia do atendimento não salva:", e?.code || e));
+        atendimentoPrivado = atendimento;
+        const completo = await gravarAtendimentoPublico(atendimento);
+        // Confere no servidor o que ficou gravado.
         const gravado = await lerAtendimentoDoServidor().catch(() => null);
-        const igual = gravado && JSON.stringify(gravado.horario?.dias || null) === JSON.stringify(horario?.dias || null)
-          && (gravado.horario?.inicio || null) === (horario?.inicio || null) && (gravado.horario?.fim || null) === (horario?.fim || null)
-          && !!gravado.ausente === atendimento.ausente;
-        toast(igual ? "Atendimento salvo" : gravado ? "O atendimento não ficou salvo como você escolheu. Tente de novo." : "Atendimento enviado. Ele aparece para os clientes quando a conexão voltar.");
+        const esperado = completo ? atendimento : atendimentoCompativel(atendimento);
+        const igual = gravado && mesmoResumo(gravado.horario, esperado.horario) && !!gravado.ausente === esperado.ausente
+          && (!completo || (JSON.stringify(gravado.semana || null) === JSON.stringify(atendimento.semana) && (gravado.almoco || null) === atendimento.almoco));
+        toast(!gravado ? "Atendimento enviado. Ele aparece para os clientes quando a conexão voltar."
+          : !igual ? "O atendimento não ficou salvo como você escolheu. Tente de novo."
+          : completo ? "Atendimento salvo" : "Atendimento salvo. Por enquanto os clientes veem o horário resumido; o horário de cada dia e o almoço aparecem depois da próxima atualização do Help Floripa.");
       } catch (e) {
         console.error(e);
         toast(e?.code === "permission-denied" ? "O servidor recusou o atendimento. Fale com o suporte." : "Não foi possível salvar o atendimento. Confira sua internet e tente de novo.");
       } finally { btn.disabled = false; btn.textContent = "Salvar atendimento"; }
     });
+    // Atendimento salvo com as regras antigas no servidor: assim que as regras novas estiverem
+    // publicadas, grava o completo no perfil público (tenta no máximo uma vez por dia).
+    async function completarAtendimento() {
+      const priv = atendimentoPrivado, pub = meuPerfil.atendimento || {};
+      if (!priv || !privadoValeAtend(pub, priv)) return;
+      let ultima = 0; try { ultima = Number(localStorage.getItem("hf-atend-antigas-" + eu.uid) || 0); } catch {}
+      if (Date.now() - ultima < 864e5) return;
+      if (!(await negociosDoUsuario()).length) return;
+      try {
+        const { resposta, ...semResposta } = priv;
+        if (await gravarAtendimentoPublico(semResposta)) { meuPerfil.atendimento = { ...pub, ...semResposta }; console.info("[Atendimento] Perfil público completado."); }
+      } catch (e) { console.warn("[Atendimento] Não completou:", e?.code || e?.message); }
+    }
 
     // ======================================================
     // Notas do negócio sobre o cliente (só o dono vê)
@@ -3643,12 +3852,33 @@
     // ======================================================
     // Ajuda e suporte sem sair das mensagens
     // ======================================================
-    function abrirSuporte() {
+    // link: abre direto um chamado ou aviso (suporte.html?chamado=... / ?aviso=...).
+    function abrirSuporte(link = "") {
       const q = $("quadroSuporte");
-      if (!q.getAttribute("src")) q.src = "suporte.html";
+      if (typeof link === "string" && link) q.src = link;
+      else if (!q.getAttribute("src")) q.src = "suporte.html";
       abrirPainel("painelSuporte");
     }
-    $("btnSuporte").addEventListener("click", abrirSuporte);
+    $("btnSuporte").addEventListener("click", () => abrirSuporte(itensSuporte.find((i) => i.naoLida) ? "suporte.html" : ""));
+
+    // Suporte Help Floripa: respostas do suporte e avisos da equipe ainda não abertos aparecem
+    // numa faixa no topo da lista (conta oficial, com selo) e no número do botão de suporte.
+    let itensSuporte = [];
+    function pintarFaixaSuporte(itens) {
+      itensSuporte = itens;
+      const novos = itens.filter((i) => i.naoLida);
+      const b = $("badgeSuporte");
+      b.hidden = !novos.length; b.textContent = novos.length > 9 ? "9+" : String(novos.length);
+      const f = $("faixaSuporte");
+      f.hidden = !novos.length;
+      if (!novos.length) return;
+      const nome = $("fsNome"); nome.replaceChildren("Suporte Help Floripa", seloOficial());
+      const i = novos[0];
+      $("fsTexto").textContent = `${TEXTO_EQUIPE(i).replace(/^./, (c) => c.toUpperCase())}: ${i.tipo === "aviso" ? i.titulo : i.detalhe}`;
+      $("fsQtd").textContent = String(novos.length);
+      f.setAttribute("aria-label", `Suporte Help Floripa, conta oficial: ${novos.length} ${novos.length === 1 ? "novidade" : "novidades"}`);
+      f.onclick = () => abrirSuporte(novos.length === 1 ? linkEquipe(i) : "suporte.html");
+    }
     document.querySelectorAll("[data-suporte]").forEach((a) => a.addEventListener("click", (e) => {
       if (e.ctrlKey || e.metaKey || e.shiftKey) return;
       e.preventDefault();
@@ -3894,6 +4124,8 @@
         atualizarBotaoEnviar();
         marcarPresenca();
         ouvirConversas();
+        ouvirItensEquipe(fb, fb.db, eu.uid, pintarFaixaSuporte);
+        setTimeout(completarAtendimento, 4000);
         carregarNotasClientes(); // etiquetas dos clientes (para quem tem negócio)
         $("carregandoApp").hidden = true;
 

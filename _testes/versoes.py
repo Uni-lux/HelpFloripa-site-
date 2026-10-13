@@ -28,3 +28,13 @@ for alvo in mudados:
     for f in arquivos:
         if re.search(r'["\'](?:\./)?' + re.escape(alvo) + r'["\']', open(f, encoding="utf-8").read()): print("SEM ?v:", f, "->", alvo)
 print("alterados:", mudados)
+# Conferência final: quem importa o mesmo arquivo usa o mesmo ?v= (arquivo novo, fora do HEAD,
+# não entra na troca acima; versões diferentes carregam DUAS cópias do módulo no navegador).
+usos = {}
+for f in arquivos:
+    for m in re.finditer(r'["\'](?:\./)?([\w.-]+\.(?:js|css))\?v=(\d+)["\']', open(f, encoding="utf-8").read()):
+        usos.setdefault(m.group(1), {}).setdefault(m.group(2), []).append(f)
+erro = False
+for alvo, vs in sorted(usos.items()):
+    if len(vs) > 1: erro = True; print("VERSÕES DIFERENTES:", alvo, {v: sorted(set(l)) for v, l in vs.items()})
+if erro: raise SystemExit(1)

@@ -9,7 +9,7 @@
 //   com reações e ações (toque longo no celular), áudio com ondas de voz
 // Grupo: equipe_chat/{id} · individual: equipe_dm/{uidA_uidB}/mensagens/{id}
 // =====================================================
-import { C, D, h, ms, toast, avatar, relativo, editarTarefa, nomeEquipe, PAPEIS } from "./admin-base.js?v=9";
+import { C, D, h, ms, toast, avatar, relativo, editarTarefa, nomeEquipe, PAPEIS } from "./admin-base.js?v=10";
 import { criarPlayerAudio } from "./audio-ondas.js?v=1";
 
 const pessoa = (uid) => D.pessoas.get(uid) || { uid, nome: "" };
