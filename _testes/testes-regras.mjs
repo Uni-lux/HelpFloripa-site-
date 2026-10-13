@@ -2,7 +2,7 @@
 // (não apaga os dados do demo-hf que o navegador usa). Uso: node testes-regras.mjs [arquivo.rules]
 import { initializeTestEnvironment, assertSucceeds, assertFails } from "@firebase/rules-unit-testing";
 import { readFileSync } from "node:fs";
-import { doc, setDoc, updateDoc, getDoc, writeBatch, Timestamp, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, updateDoc, getDoc, getDocs, collection, query, where, writeBatch, Timestamp, serverTimestamp, increment, deleteField } from "firebase/firestore";
 
 const arquivo = process.argv[2] || new URL("../firestore.rules", import.meta.url).pathname;
 const env = await initializeTestEnvironment({ projectId: "demo-regras", firestore: { rules: readFileSync(arquivo, "utf8"), host: "127.0.0.1", port: 8085 } });
@@ -126,6 +126,81 @@ await t("atendimento: recusa almoço em formato errado", () => assertFails(atend
 await t("atendimento: recusa volta em texto", () => assertFails(atend({ volta: "20/10" })));
 await t("atendimento: recusa campo desconhecido", () => assertFails(atend({ feriados: [] })));
 await t("atendimento: formato antigo continua valendo", () => assertSucceeds(atend({ horario: { dias: [1, 3], inicio: "10:00", fim: "16:00" }, ausente: false, mensagem: "" })));
+
+
+// ===================== ETAPA 5: conferência geral (o que já existia antes) =====================
+// Mensagens: participante, limite diário (ritmo/{uid}) gravado junto, bloqueio.
+async function mandarMsg(quem, conv, texto, primeira) {
+  const db = ctx(quem), b = writeBatch(db);
+  b.set(doc(collection(db, "conversas", conv, "mensagens")), { remetenteId: quem, texto, criadoEm: serverTimestamp() });
+  if (primeira) b.set(doc(db, "ritmo", quem), { inicio: serverTimestamp(), msg: 1, pub: 0, com: 0, parc: 0, ultimaEm: serverTimestamp(), ultimoTipo: "msg" });
+  else b.set(doc(db, "ritmo", quem), { msg: increment(1), ultimaEm: serverTimestamp(), ultimoTipo: "msg" }, { merge: true });
+  return b.commit();
+}
+const convAB = par("ana", "bia");
+await t("mensagem: participante manda (com o limite diário junto)", () => assertSucceeds(mandarMsg("ana", convAB, "Oi Bia", true)));
+await t("mensagem: segunda mensagem soma 1 no limite", () => assertSucceeds(mandarMsg("ana", convAB, "Tudo bem?", false)));
+await t("mensagem: sem contar no limite diário é recusada", () => assertFails(setDoc(doc(collection(ctx("ana"), "conversas", convAB, "mensagens")), { remetenteId: "ana", texto: "x", criadoEm: serverTimestamp() })));
+await t("mensagem: quem não participa não manda", () => assertFails(mandarMsg("edu", convAB, "intruso", true)));
+await t("mensagem: quem não participa não lê", () => assertFails(getDocs(collection(ctx("edu"), "conversas", convAB, "mensagens"))));
+await t("mensagem: não se passa por outra pessoa", async () => { const db = ctx("ana"), b = writeBatch(db); b.set(doc(collection(db, "conversas", convAB, "mensagens")), { remetenteId: "bia", texto: "fake", criadoEm: serverTimestamp() }); b.set(doc(db, "ritmo", "ana"), { msg: increment(1), ultimaEm: serverTimestamp(), ultimoTipo: "msg" }, { merge: true }); await assertFails(b.commit()); });
+await t("mensagem: citação de mensagem real é aceita", async () => { const db = ctx("ana"), b = writeBatch(db); b.set(doc(collection(db, "conversas", convAB, "mensagens")), { remetenteId: "ana", texto: "respondendo", resposta: { id: "m1", texto: "oi", remetenteId: "bia" }, criadoEm: serverTimestamp() }); b.set(doc(db, "ritmo", "ana"), { msg: increment(1), ultimaEm: serverTimestamp(), ultimoTipo: "msg" }, { merge: true }); await assertSucceeds(b.commit()); });
+await t("mensagem: citação inventada (autor errado) é recusada", async () => { const db = ctx("ana"), b = writeBatch(db); b.set(doc(collection(db, "conversas", convAB, "mensagens")), { remetenteId: "ana", texto: "x", resposta: { id: "m1", texto: "oi", remetenteId: "ana" }, criadoEm: serverTimestamp() }); b.set(doc(db, "ritmo", "ana"), { msg: increment(1), ultimaEm: serverTimestamp(), ultimoTipo: "msg" }, { merge: true }); await assertFails(b.commit()); });
+await semRegras((db) => setDoc(doc(db, "bloqueios", "bia_ana"), { bloqueadorId: "bia", bloqueadoId: "ana" }));
+await t("mensagem: com bloqueio, ninguém manda", () => assertFails(mandarMsg("ana", convAB, "oi?", false)));
+await semRegras(async (db) => { const { deleteDoc } = await import("firebase/firestore"); await deleteDoc(doc(db, "bloqueios", "bia_ana")); });
+await t("conversa: cada um marca só a própria leitura", () => assertSucceeds(updateDoc(doc(ctx("ana"), "conversas", convAB), { "lidoEm.ana": serverTimestamp() })));
+await t("conversa: não marca a leitura da outra pessoa", () => assertFails(updateDoc(doc(ctx("ana"), "conversas", convAB), { "lidoEm.bia": serverTimestamp() })));
+
+// Chat da equipe: grupo, conversa individual, anexos, citar e reações.
+await semRegras((db) => setDoc(doc(db, "admins", "mod2"), { nome: "Mod 2", papel: "suporte" }));
+await t("equipe: manda no grupo", () => assertSucceeds(setDoc(doc(ctx("adm"), "equipe_chat", "g1"), { autorId: "adm", nome: "Adm", texto: "Bom dia", em: serverTimestamp() })));
+await t("equipe: quem não é da equipe não lê o grupo", () => assertFails(getDoc(doc(ctx("ana"), "equipe_chat", "g1"))));
+await t("equipe: citar uma mensagem", () => assertSucceeds(setDoc(doc(ctx("mod"), "equipe_chat", "g2"), { autorId: "mod", nome: "Mod", texto: "Combinado", resposta: { id: "g1", autorId: "adm", nome: "Adm", texto: "Bom dia" }, em: serverTimestamp() })));
+await t("equipe: reagir com emoji (só a própria reação)", () => assertSucceeds(updateDoc(doc(ctx("mod"), "equipe_chat", "g1"), { "reacoes.mod": "👍" })));
+await t("equipe: não reage em nome de outra pessoa", () => assertFails(updateDoc(doc(ctx("mod"), "equipe_chat", "g1"), { "reacoes.adm": "👍" })));
+await t("equipe: emoji fora da lista é recusado", () => assertFails(updateDoc(doc(ctx("mod"), "equipe_chat", "g1"), { "reacoes.mod": "💩" })));
+await t("equipe: tirar a própria reação", () => assertSucceeds(updateDoc(doc(ctx("mod"), "equipe_chat", "g1"), { "reacoes.mod": deleteField() })));
+await t("equipe: não edita o texto de uma mensagem", () => assertFails(updateDoc(doc(ctx("adm"), "equipe_chat", "g1"), { texto: "editado" })));
+const parEq = par("adm", "mod");
+await t("equipe: abre conversa individual", () => assertSucceeds(setDoc(doc(ctx("adm"), "equipe_dm", parEq), { participantes: parEq.split("_"), ultimaEm: serverTimestamp(), ultimaTexto: "Oi", ultimoAutor: "adm", lidoEm: {} })));
+await t("equipe: manda na conversa individual com anexo de áudio (gravado junto)", async () => {
+  const db = ctx("adm"), b = writeBatch(db);
+  b.set(doc(db, "equipe_anexos", "ax1"), { autorId: "adm", conversa: parEq, dados: "data:audio/webm;codecs=opus;base64,AAAA", em: serverTimestamp() });
+  b.set(doc(db, "equipe_dm", parEq, "mensagens", "d1"), { autorId: "adm", nome: "Adm", texto: "", tipoArquivo: "audio", anexo: "ax1", nomeArquivo: "audio", tamanho: 4, duracao: 3, em: serverTimestamp() });
+  await assertSucceeds(b.commit());
+});
+await t("equipe: a outra pessoa da conversa ouve o anexo", () => assertSucceeds(getDoc(doc(ctx("mod"), "equipe_anexos", "ax1"))));
+await t("equipe: terceira pessoa da equipe não lê a conversa individual", () => assertFails(getDoc(doc(ctx("mod2"), "equipe_dm", parEq, "mensagens", "d1"))));
+await t("equipe: terceira pessoa da equipe não abre o anexo", () => assertFails(getDoc(doc(ctx("mod2"), "equipe_anexos", "ax1"))));
+await t("equipe: anexo de outra conversa é recusado", async () => {
+  const db = ctx("adm"), b = writeBatch(db);
+  b.set(doc(db, "equipe_anexos", "ax2"), { autorId: "adm", conversa: "equipe", dados: "data:image/png;base64,AAAA", em: serverTimestamp() });
+  b.set(doc(db, "equipe_dm", parEq, "mensagens", "d2"), { autorId: "adm", nome: "Adm", texto: "", tipoArquivo: "imagem", anexo: "ax2", em: serverTimestamp() });
+  await assertFails(b.commit());
+});
+await t("equipe: reage na conversa individual", () => assertSucceeds(updateDoc(doc(ctx("mod"), "equipe_dm", parEq, "mensagens", "d1"), { "reacoes.mod": "❤️" })));
+await t("equipe: marca a leitura da conversa individual", () => assertSucceeds(updateDoc(doc(ctx("mod"), "equipe_dm", parEq), { "lidoEm.mod": serverTimestamp() })));
+
+// Suporte do usuário e avisos.
+await t("suporte: usuário abre chamado com a primeira mensagem", async () => {
+  const db = ctx("bia"), b = writeBatch(db);
+  b.set(doc(db, "suporte", "cb1"), { uid: "bia", nome: "Bia", email: "bia@t.com", assunto: "Ajuda com a conta", categoria: "conta", status: "aberto", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ultimaDe: "usuario" });
+  b.set(doc(db, "suporte", "cb1", "mensagens", "inicio"), { autorId: "bia", equipe: false, texto: "Não consigo entrar.", em: serverTimestamp() });
+  await assertSucceeds(b.commit());
+});
+await t("suporte: usuário não escreve como equipe", () => assertFails(setDoc(doc(ctx("bia"), "suporte", "cb1", "mensagens", "x"), { autorId: "bia", equipe: true, texto: "oficial", em: serverTimestamp() })));
+await t("suporte: equipe responde", async () => {
+  const db = ctx("mod2"), b = writeBatch(db);
+  b.set(doc(db, "suporte", "cb1", "mensagens", "r1"), { autorId: "mod2", equipe: true, texto: "Vamos ver!", em: serverTimestamp() });
+  b.update(doc(db, "suporte", "cb1"), { status: "respondido", atualizadoEm: serverTimestamp(), ultimaDe: "equipe", atendidoPor: "mod2" });
+  await assertSucceeds(b.commit());
+});
+await t("suporte: usuário guarda a leitura na própria conta", () => assertSucceeds(setDoc(doc(ctx("bia"), "usuarios", "bia"), { suporteLido: { cb1: serverTimestamp() } }, { merge: true })));
+await t("aviso: a equipe envia", () => assertSucceeds(setDoc(doc(ctx("adm"), "avisos", "av1"), { uid: "bia", titulo: "Olá", texto: "Bem-vinda", tipo: "info", por: "adm", em: serverTimestamp(), lidoEm: null })));
+await t("aviso: quem recebeu lê e marca como lido", async () => { await assertSucceeds(getDoc(doc(ctx("bia"), "avisos", "av1"))); await assertSucceeds(updateDoc(doc(ctx("bia"), "avisos", "av1"), { lidoEm: serverTimestamp() })); });
+await t("aviso: outra pessoa não lê", () => assertFails(getDoc(doc(ctx("ana"), "avisos", "av1"))));
+await t("aviso: usuário comum não envia aviso", () => assertFails(setDoc(doc(ctx("ana"), "avisos", "av2"), { uid: "bia", titulo: "Falso", texto: "x", tipo: "grave", por: "ana", em: serverTimestamp(), lidoEm: null })));
 
 // ---------- resultado ----------
 for (const r of resultados) console.log(r[0] === "ok" ? "  ✔" : "  ✘", r[1], r[2] ? "→ " + r[2] : "");

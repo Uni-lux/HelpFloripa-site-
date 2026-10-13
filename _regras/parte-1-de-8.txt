@@ -1,0 +1,276 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function logado() {
+      return request.auth != null;
+    }
+
+    // E-mail confirmado (login com Google já vem confirmado).
+    // Exigido para ações que chegam em outras pessoas: mensagens, seguir,
+    // vínculos, negócios, anúncios e publicações. Freia contas falsas e robôs.
+    // Conta suspensa ou banida pela equipe (sancoes/{uid}) também não age.
+    function emailOk() {
+      return request.auth.token.email_verified == true && !sancionado(request.auth.uid);
+    }
+
+    // Administrador: documento admins/{uid} criado à mão no console do Firebase.
+    function admin() {
+      return request.auth != null
+          && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // Papel na equipe (campo "papel" no documento admins/{uid}, definido no console).
+    // Sem o campo = "dono" (acesso total). Outros: moderacao, suporte, comercial.
+    function papel() {
+      return get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.get('papel', 'dono');
+    }
+    // Moderação: selo, esconder/remover conteúdo, suspender/banir, denúncias, comunicados.
+    function podeModerar() {
+      return admin() && papel() in ['dono', 'moderacao'];
+    }
+    // Comercial: propostas de sócios e parcerias.
+    function podeComercial() {
+      return admin() && papel() in ['dono', 'comercial'];
+    }
+
+    // Suspensão (até uma data) ou banimento (sem data).
+    function sancionado(uid) {
+      let s = /databases/$(database)/documents/sancoes/$(uid);
+      return exists(s)
+          && (get(s).data.tipo == 'banimento'
+              || (get(s).data.get('ate', null) is timestamp && get(s).data.ate > request.time));
+    }
+
+    // Campos que só podem ser alterados pelo painel/admin (Admin SDK ignora as regras).
+    function camposProtegidos() {
+      return ['verificado', 'avaliacaoMedia', 'totalAvaliacoes'];
+    }
+
+    function naoTocaCamposProtegidosNoCreate() {
+      return !request.resource.data.keys().hasAny(camposProtegidos());
+    }
+
+    // No update também ficam travados plano/valorPlanoMensal/tipoUsuario:
+    // são definidos no cadastro e nunca mudam pelo site.
+    function naoTocaCamposProtegidosNoUpdate() {
+      return !request.resource.data.diff(resource.data).affectedKeys()
+               .hasAny(camposProtegidos().concat(['plano', 'valorPlanoMensal', 'tipoUsuario']));
+    }
+
+    // Campo de texto opcional com tamanho máximo (evita documentos gigantes).
+    function textoAte(campo, max) {
+      return !(campo in request.resource.data)
+          || request.resource.data[campo] == null
+          || (request.resource.data[campo] is string
+              && request.resource.data[campo].size() <= max);
+    }
+
+    // Mesmo limite, para um valor qualquer (ex.: campo dentro de um mapa).
+    function valorTextoAte(v, max) {
+      return v == null || (v is string && v.size() <= max);
+    }
+
+    // Local para o Brasil todo: estado (UF) e código IBGE da cidade (7 dígitos; os dois
+    // primeiros são o código do estado, então cidade e estado precisam combinar).
+    // Feito com expressões regulares (uma tabela de 27 estados estourava o limite de
+    // 1.000 expressões por gravação do Firestore).
+    function localOk() {
+      let d = request.resource.data;
+      let uf = d.get('uf', null);
+      let ibge = d.get('cidadeIbge', null);
+      return (uf == null || uf == ''
+              || (uf is string && uf.matches('^(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)$')))
+          && (ibge == null
+              || (ibge is int && uf is string
+                  && (uf + string(ibge)).matches('^(RO11|AC12|AM13|RR14|PA15|AP16|TO17|MA21|PI22|CE23|RN24|PB25|PE26|AL27|SE28|BA29|MG31|ES32|RJ33|SP35|PR41|SC42|RS43|MS50|MT51|GO52|DF53)[0-9]{5}$')));
+    }
+    // Endereço detalhado opcional (negócios e anúncios): CEP com 8 números e textos curtos.
+    function enderecoOk() {
+      let cep = request.resource.data.get('cep', null);
+      return (cep == null || cep == '' || (cep is string && cep.matches('^[0-9]{8}$')))
+          && textoAte('bairro', 60)
+          && textoAte('rua', 100)
+          && textoAte('numero', 10)
+          && textoAte('complemento', 60);
+    }
+
+    // Lista opcional com no máximo N itens.
+    function listaAte(campo, max) {
+      return !(campo in request.resource.data)
+          || request.resource.data[campo] == null
+          || (request.resource.data[campo] is list
+              && request.resource.data[campo].size() <= max);
+    }
+
+    // Foto só pode vir do próprio site: imagem dentro do documento (sem Storage),
+    // Firebase Storage do projeto ou foto da conta Google. Bloqueia imagens de
+    // sites de terceiros (rastreamento por IP, conteúdo impróprio).
+    function fotoOk(v) {
+      return v == null || v == ''
+          || (v is string && v.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/|https://lh3[.]googleusercontent[.]com/).*'));
+    }
+
+    function campoFotoOk(campo) {
+      return !(campo in request.resource.data) || fotoOk(request.resource.data[campo]);
+    }
+
+    // Só os campos que mudaram (para não travar documentos antigos com campos a mais).
+    function mudou() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    // Escondido pela equipe (moderação): o dono não pode mostrar de novo nem tirar a marca.
+    function travaModeracao() {
+      return !mudou().hasAny(['ocultoPelaEquipe'])
+          && !(resource.data.get('ocultoPelaEquipe', false) == true && mudou().hasAny(['ocultoAte']));
+    }
+
+    // A equipe esconde/mostra: só ocultoAte e a marca ocultoPelaEquipe.
+    function moderacaoOk() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ocultoAte', 'ocultoPelaEquipe'])
+          && dataOuNulo('ocultoAte')
+          && request.resource.data.get('ocultoPelaEquipe', false) is bool;
+    }
+
+    // Campos novos ou alterados (campos antigos removidos não contam).
+    function gravou() {
+      let d = request.resource.data.diff(resource.data);
+      return d.addedKeys().union(d.changedKeys());
+    }
+
+    // Bloqueio: bloqueios/{quemBloqueou}_{quemFoiBloqueado}
+    function bloqueou(a, b) {
+      return exists(/databases/$(database)/documents/bloqueios/$(a + '_' + b));
+    }
+
+    function bloqueioEntre(a, b) {
+      return bloqueou(a, b) || bloqueou(b, a);
+    }
+
+    // ---------- avaliações e reclamações justas ----------
+    // Id da conversa / do vínculo entre duas pessoas (ids em ordem).
+    function par(a, b) {
+      return a < b ? a + '_' + b : b + '_' + a;
+    }
+
+    // Conta com pelo menos 3 dias (usuarios.criadoEm é gravado no cadastro e não muda).
+    function contaAntiga(uid) {
+      let u = /databases/$(database)/documents/usuarios/$(uid);
+      return exists(u)
+          && get(u).data.get('criadoEm', null) is timestamp
+          && get(u).data.criadoEm < request.time - duration.value(3, 'd');
+    }
+
+    // Quem já escreveu na conversa entre a e b (conversas.falaram, cada um marca só o seu).
+    function falou(a, b, quem) {
+      let c = /databases/$(database)/documents/conversas/$(par(a, b));
+      return exists(c) && get(c).data.get('falaram', {}).get(quem, false) == true;
+    }
+
+    // Conta desativada (ou com exclusão pedida): perfis_publicos.desativadaAte no futuro.
+    function desativada(uid) {
+      let p = /databases/$(database)/documents/perfis_publicos/$(uid);
+      return exists(p)
+          && get(p).data.get('desativadaAte', null) is timestamp
+          && get(p).data.desativadaAte > request.time;
+    }
+
+    // Campo opcional de data (ex.: ocultoAte): ausente, nulo ou uma data.
+    function dataOuNulo(campo) {
+      return !(campo in request.resource.data)
+          || request.resource.data[campo] == null
+          || request.resource.data[campo] is timestamp;
+    }
+
+    // Quem da equipe assumiu um item: alguém da equipe (ou ninguém), com nome curto.
+    function responsavelOk() {
+      let r = request.resource.data.get('responsavel', null);
+      return (r == null || (r is string && exists(/databases/$(database)/documents/admins/$(r))))
+          && valorTextoAte(request.resource.data.get('responsavelNome', null), 80)
+          && (!mudou().hasAny(['responsavel']) || request.resource.data.get('assumidoEm', null) == request.time);
+    }
+
+    // Anti-spam: cada mensagem, publicação ou comentário conta no limite diário da pessoa
+    // (ritmo/{uid}, gravado junto na mesma operação).
+    function ritmoOk(tipo) {
+      let r = getAfter(/databases/$(database)/documents/ritmo/$(request.auth.uid)).data;
+      return r.ultimaEm == request.time && r.ultimoTipo == tipo;
+    }
+
+    function donoDoNegocio(negocioId) {
+      return get(/databases/$(database)/documents/negocios/$(negocioId)).data.donoId;
+    }
+
+
+    // =====================================================
+    // DADOS PRIVADOS DOS USUÁRIOS
+    // Cada usuário só pode acessar os próprios dados.
+    // =====================================================
+    match /usuarios/{userId} {
+
+      allow read: if logado()
+                  && request.auth.uid == userId;
+      // Dados pessoais (e-mail, telefone, nascimento): na equipe, só dono e moderação (LGPD: o mínimo necessário).
+      allow read: if podeModerar();
+      // A equipe aprova ou recusa o selo de verificado.
+      allow update: if podeModerar()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verificado', 'solicitacaoVerificacao', 'verificacaoRespondidaEm']);
+
+      // criadoEm é a data real do cadastro (conta antiga = pode avaliar/reclamar).
+      allow create: if logado()
+                    && request.auth.uid == userId
+                    && request.resource.data.uid == userId
+                    && request.resource.data.aceiteTermos == true
+                    && (!('criadoEm' in request.resource.data) || request.resource.data.criadoEm == request.time)
+                    && naoTocaCamposProtegidosNoCreate();
+
+      // criadoEm não muda depois de gravado (cadastro antigo sem a data só pode gravar a data de agora).
+      allow update: if logado()
+                    && request.auth.uid == userId
+                    && request.resource.data.uid == resource.data.uid
+                    && (!mudou().hasAny(['criadoEm'])
+                        || (!('criadoEm' in resource.data) && request.resource.data.criadoEm == request.time))
+                    && naoTocaCamposProtegidosNoUpdate();
+
+      allow delete: if logado()
+                    && request.auth.uid == userId;
+    }
+
+
+    // =====================================================
+    // PERFIL PÚBLICO
+    // Usado somente para busca e exibição pública.
+    // NÃO deve conter e-mail, telefone ou data de nascimento.
+    // =====================================================
+    match /perfis_publicos/{userId} {
+
+      // O @ exibido no perfil precisa estar reservado em nicknames/ pelo
+      // próprio usuário. getAfter enxerga a reserva feita na mesma transação
+      // (cadastro) ou numa escrita anterior (edição do perfil).
+      function nickDoDono() {
+        let d = request.resource.data;
+        return !('nickname' in d)
+            || d.nickname == null
+            || d.nickname == ''
+            || getAfter(/databases/$(database)/documents/nicknames/$(d.nickname)).data.uid == request.auth.uid;
+      }
+
+      // Trocou de @: o antigo tem que ser liberado na mesma gravação (ninguém guarda vários @).
+      function liberouNickAntigo() {
+        let antigo = resource.data.get('nickname', '');
+        return antigo == null || antigo == '' || antigo == request.resource.data.get('nickname', '')
+            || !existsAfter(/databases/$(database)/documents/nicknames/$(antigo));
+      }
+
+      function tamanhosOk() {
+        return textoAte('nome', 80)
+            && textoAte('bio', 400)
+            && textoAte('cidade', 80)
+            && localOk()
+            && listaAte('busca', 12)
+            && dataOuNulo('desativadaAte');
+      }
+
+// ===== FIM DA PARTE 1 DE 8 =====

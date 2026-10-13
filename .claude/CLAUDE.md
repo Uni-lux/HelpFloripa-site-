@@ -23,10 +23,11 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
 - No ar no Firebase: **regras do PR #25** (commit 7f5a28c). O `firestore.rules` do main tem +115 linhas ainda
   não publicadas: chat da equipe (equipe_dm, equipe_anexos, citar, reações — PR #26) e endereço (PR #29).
 - Etapa 1 (PR #27), Etapa 2 (PR #28) e Etapa 3 (PR #29): **mescladas**.
-- Etapa 4: feita no PR da branch `ccr-bc2c7590-5h27oa` (aguardando merge). Mudou regras (acumuladas no
-  `firestore.rules`): avaliação com vínculo, `denuncias.contexto`, equipe abre `suporte/{id}` para qualquer
-  pessoa (`abertoPor`), `atendimento.semana/almoco/volta`. 56 testes de regras passando.
-- **Próximo: Etapa 5** (esperar ele mandar seguir).
+- Etapa 4 (PR #32): **mesclada**. Mudou regras: avaliação com vínculo, `denuncias.contexto`, equipe abre
+  `suporte/{id}` para qualquer pessoa (`abertoPor`), `atendimento.semana/almoco/volta`.
+- Etapa 5: `_regras/parte-1..8-de-8.txt` + `_regras/LEIA-ME.md` (passo a passo) gerados por
+  `_testes/dividir-regras.py`; 91 testes de regras passando no arquivo remontado (com e sem as linhas de fim).
+  **Esperando ele publicar** no console; depois, conferir o site inteiro (checklist no LEIA-ME).
 
 ## Etapa 4 – Moderação, suporte e avaliações (muda regras)
 1. Avaliações: liberar também para quem tem vínculo aceito no Social (hoje `!vinculados` bloqueia, em
