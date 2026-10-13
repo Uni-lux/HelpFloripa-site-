@@ -27,10 +27,11 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   `suporte/{id}` para qualquer pessoa (`abertoPor`), `atendimento.semana/almoco/volta`.
 - Etapa 5: `_regras/parte-1..8-de-8.txt` + `_regras/LEIA-ME.md` (passo a passo) gerados por
   `_testes/dividir-regras.py`; 91 testes de regras passando no arquivo remontado (com e sem as linhas de fim).
-  PR #33 mesclado e **regras publicadas**. Conferência do site: ele está testando pelo checklist do LEIA-ME.
-- Depois da publicação ele relatou (corrigido no PR seguinte): chat da equipe difícil de achar/rolar no celular,
-  nomes sobrepostos no gráfico "Último acesso" e "9 clientes" com 6 contas (o registro de ações virava contas
-  falsas "Usuário removido" nas Estatísticas).
+  PR #33 mesclado, **regras publicadas** e **conferência do site feita por ele: tudo funcionando** (13/10/2026).
+- PR #35 (mesclado): chat da equipe em tela cheia no celular e no topo do menu, gráficos de colunas sem nomes
+  sobrepostos (quebra em 2 linhas ou vira barras deitadas) e Estatísticas sem contas falsas do registro de ações.
+- **As 5 etapas estão concluídas.** Próximos passos são as pendências abaixo (só ele pode fazer) e o que ficou
+  para depois.
 
 ## Etapa 4 – Moderação, suporte e avaliações (muda regras)
 1. Avaliações: liberar também para quem tem vínculo aceito no Social (hoje `!vinculados` bloqueia, em
