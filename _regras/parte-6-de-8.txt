@@ -1,0 +1,160 @@
+    match /sancoes/{uid} {
+      allow get: if logado() && request.auth.uid == uid;
+      allow read: if admin();
+      allow create, update: if podeModerar()
+                    && request.resource.data.keys().hasOnly(['tipo', 'motivo', 'ate', 'por', 'em', 'historico'])
+                    && request.resource.data.tipo in ['suspensao', 'banimento']
+                    && valorTextoAte(request.resource.data.get('motivo', ''), 500)
+                    && (request.resource.data.tipo == 'banimento' || request.resource.data.ate is timestamp)
+                    && request.resource.data.por == request.auth.uid
+                    && request.resource.data.em == request.time
+                    && listaAte('historico', 50);
+      allow delete: if podeModerar();
+    }
+
+    match /avisos/{id} {
+      allow read: if logado() && resource.data.uid == request.auth.uid;
+      allow read: if admin();
+      allow create: if admin()
+                    && request.resource.data.keys().hasOnly(['uid', 'titulo', 'texto', 'tipo', 'por', 'em', 'lidoEm'])
+                    && request.resource.data.uid is string
+                    && valorTextoAte(request.resource.data.get('titulo', ''), 120)
+                    && request.resource.data.texto is string && request.resource.data.texto.size() <= 2000
+                    && request.resource.data.tipo in ['info', 'alerta', 'grave']
+                    && request.resource.data.por == request.auth.uid
+                    && request.resource.data.em == request.time
+                    && request.resource.data.lidoEm == null;
+      // quem recebeu marca como lido
+      allow update: if logado()
+                    && resource.data.uid == request.auth.uid
+                    && mudou().hasOnly(['lidoEm'])
+                    && request.resource.data.lidoEm == request.time;
+      allow delete: if false;
+    }
+
+    match /comunicados/{id} {
+      allow read: if logado();
+      allow create, update: if podeModerar()
+                    && request.resource.data.keys().hasOnly(['titulo', 'texto', 'tipo', 'ativo', 'link', 'por', 'em', 'ate'])
+                    && valorTextoAte(request.resource.data.get('titulo', ''), 120)
+                    && valorTextoAte(request.resource.data.get('texto', ''), 600)
+                    && request.resource.data.tipo in ['info', 'novidade', 'alerta']
+                    && request.resource.data.ativo is bool
+                    && request.resource.data.por == request.auth.uid;
+      allow delete: if podeModerar();
+    }
+
+    match /suporte/{id} {
+      function camposChamado() {
+        return ['uid', 'nome', 'email', 'assunto', 'categoria', 'status', 'criadoEm', 'atualizadoEm', 'ultimaDe', 'atendidoPor', 'responsavel', 'responsavelNome', 'assumidoEm'];
+      }
+      allow read: if logado() && resource.data.uid == request.auth.uid;
+      allow read: if admin();
+      // Abrir chamado: não exige e-mail confirmado nem conta livre (quem foi suspenso pode contestar).
+      allow create: if logado()
+                    && request.resource.data.keys().hasOnly(camposChamado())
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.assunto is string && request.resource.data.assunto.size() >= 3 && request.resource.data.assunto.size() <= 120
+                    && request.resource.data.categoria in ['conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro']
+                    && valorTextoAte(request.resource.data.get('nome', ''), 80)
+                    && valorTextoAte(request.resource.data.get('email', ''), 120)
+                    && request.resource.data.status == 'aberto'
+                    && request.resource.data.criadoEm == request.time
+                    && request.resource.data.atualizadoEm == request.time
+                    && request.resource.data.ultimaDe == 'usuario'
+                    && !request.resource.data.keys().hasAny(['atendidoPor', 'responsavel', 'responsavelNome', 'assumidoEm']);
+      // A equipe abre uma conversa de suporte com qualquer pessoa ("Suporte Help Floripa"):
+      // o chamado já nasce respondido, com a primeira mensagem da equipe gravada junto.
+      allow create: if admin()
+                    && request.resource.data.keys().hasOnly(camposChamado().concat(['abertoPor']))
+                    && request.resource.data.uid is string
+                    && exists(/databases/$(database)/documents/usuarios/$(request.resource.data.uid))
+                    && request.resource.data.abertoPor == request.auth.uid
+                    && request.resource.data.assunto is string && request.resource.data.assunto.size() >= 3 && request.resource.data.assunto.size() <= 120
+                    && request.resource.data.categoria in ['conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro']
+                    && valorTextoAte(request.resource.data.get('nome', ''), 80)
+                    && valorTextoAte(request.resource.data.get('email', ''), 120)
+                    && request.resource.data.status == 'respondido'
+                    && request.resource.data.criadoEm == request.time
+                    && request.resource.data.atualizadoEm == request.time
+                    && request.resource.data.ultimaDe == 'equipe'
+                    // quem abre pode já ficar como responsável pelo chamado
+                    && (!('responsavel' in request.resource.data)
+                        || (request.resource.data.responsavel == request.auth.uid
+                            && request.resource.data.get('assumidoEm', null) == request.time
+                            && valorTextoAte(request.resource.data.get('responsavelNome', ''), 80)))
+                    && existsAfter(/databases/$(database)/documents/suporte/$(id)/mensagens/inicio);
+      allow update: if logado()
+                    && ((resource.data.uid == request.auth.uid
+                         && mudou().hasOnly(['status', 'atualizadoEm', 'ultimaDe'])
+                         && request.resource.data.status in ['aberto', 'fechado']
+                         && request.resource.data.ultimaDe == 'usuario')
+                        || (admin()
+                         && mudou().hasOnly(['status', 'atualizadoEm', 'ultimaDe', 'atendidoPor', 'responsavel', 'responsavelNome', 'assumidoEm'])
+                         && request.resource.data.status in ['aberto', 'respondido', 'fechado']
+                         && responsavelOk()))
+                    && request.resource.data.atualizadoEm == request.time;
+      // A equipe só assume ou passa o chamado (sem mexer na data da conversa).
+      allow update: if admin()
+                    && mudou().hasOnly(['responsavel', 'responsavelNome', 'assumidoEm'])
+                    && responsavelOk();
+      allow delete: if false;
+
+      match /mensagens/{msgId} {
+        function chamado() { return get(/databases/$(database)/documents/suporte/$(id)).data; }
+        // getAfter: o chamado e a primeira mensagem são gravados juntos (tudo ou nada).
+        function chamadoDepois() { return getAfter(/databases/$(database)/documents/suporte/$(id)).data; }
+        allow read: if logado() && (chamado().uid == request.auth.uid || admin());
+        allow create: if logado()
+                      && (chamadoDepois().uid == request.auth.uid || admin())
+                      && request.resource.data.keys().hasOnly(['autorId', 'equipe', 'texto', 'em'])
+                      && request.resource.data.autorId == request.auth.uid
+                      // "equipe" (resposta oficial) só quem é da equipe; no próprio chamado, todos escrevem como usuário
+                      && (request.resource.data.equipe == false || (request.resource.data.equipe == true && admin()))
+                      && request.resource.data.texto is string && request.resource.data.texto.size() >= 1 && request.resource.data.texto.size() <= 2000
+                      && request.resource.data.em == request.time;
+        allow update, delete: if false;
+      }
+    }
+
+    match /parcerias/{id} {
+      // Formulário de Sócios e parcerias: só quem tem conta (e-mail confirmado), até 3 por dia; só a equipe lê.
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.uid == request.auth.uid
+                    && ritmoOk('parc')
+                    && request.resource.data.keys().hasOnly(['nome', 'empresa', 'email', 'telefone', 'tipo', 'mensagem', 'site', 'cidade', 'uid', 'status', 'criadoEm'])
+                    && request.resource.data.nome is string && request.resource.data.nome.size() >= 2 && request.resource.data.nome.size() <= 80
+                    && request.resource.data.email is string && request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+[.][^@\\s]+$') && request.resource.data.email.size() <= 120
+                    && valorTextoAte(request.resource.data.get('empresa', ''), 100)
+                    && valorTextoAte(request.resource.data.get('telefone', ''), 30)
+                    && valorTextoAte(request.resource.data.get('site', ''), 200)
+                    && valorTextoAte(request.resource.data.get('cidade', ''), 80)
+                    && request.resource.data.tipo in ['socio', 'investidor', 'parceiro', 'anunciante', 'imprensa', 'outro']
+                    && request.resource.data.mensagem is string && request.resource.data.mensagem.size() >= 10 && request.resource.data.mensagem.size() <= 2000
+                    && request.resource.data.status == 'novo'
+                    && request.resource.data.criadoEm == request.time;
+      allow read: if admin();
+      allow update: if podeComercial()
+                    && mudou().hasOnly(['status', 'notas', 'atualizadoEm', 'responsavel', 'responsavelNome', 'assumidoEm'])
+                    && request.resource.data.status in ['novo', 'em_conversa', 'proposta', 'fechado', 'recusado']
+                    && (!mudou().hasAny(['responsavelNome', 'assumidoEm']) || responsavelOk())
+                    && valorTextoAte(request.resource.data.get('notas', ''), 3000);
+      allow delete: if podeComercial();
+    }
+
+    // Presença da equipe no painel (quem está online) e chat interno da equipe.
+    match /equipe_presenca/{uid} {
+      allow read: if admin();
+      allow create, update: if admin()
+                    && request.auth.uid == uid
+                    && request.resource.data.keys().hasOnly(['nome', 'em', 'secao', 'item', 'itemNome'])
+                    && valorTextoAte(request.resource.data.get('nome', ''), 80)
+                    && valorTextoAte(request.resource.data.get('secao', ''), 40)
+                    && valorTextoAte(request.resource.data.get('item', null), 160)
+                    && valorTextoAte(request.resource.data.get('itemNome', null), 120)
+                    && request.resource.data.em == request.time;
+      allow delete: if admin() && request.auth.uid == uid;
+    }
+
+// ===== FIM DA PARTE 6 DE 8 =====

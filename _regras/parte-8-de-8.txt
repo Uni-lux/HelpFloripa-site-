@@ -1,0 +1,150 @@
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['postId', 'uid', 'postAutorId', 'nota', 'criadoEm'])
+                    && request.resource.data.uid == request.auth.uid
+                    && id == request.resource.data.postId + '_' + request.auth.uid
+                    && exists(/databases/$(database)/documents/diario/$(request.resource.data.postId))
+                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
+                    && request.resource.data.postAutorId != request.auth.uid
+                    && notaOk(request.resource.data)
+                    && !bloqueioEntre(request.auth.uid, request.resource.data.postAutorId)
+                    && request.resource.data.criadoEm == request.time;
+
+      allow update: if logado()
+                    && emailOk()
+                    && resource.data.uid == request.auth.uid
+                    && mudou().hasOnly(['nota', 'atualizadoEm'])
+                    && notaOk(request.resource.data)
+                    && request.resource.data.atualizadoEm == request.time;
+
+      allow delete: if logado() && resource.data.uid == request.auth.uid;
+    }
+
+    // =====================================================
+    // COMENTÁRIOS: comentarios/{id}
+    // - Resposta: respostaA = id do comentário respondido (mesma publicação)
+    //   e respostaAutorId = autor dele (para o aviso).
+    // - Quem comentou edita o texto. O dono da publicação oculta um comentário.
+    // - Quem comentou ou o dono da publicação apaga.
+    // - Publicação com comentários ocultos não recebe comentários novos.
+    // =====================================================
+    match /comentarios/{id} {
+
+      allow read: if logado();
+
+      function textoComentarioOk(d) {
+        return d.texto is string && d.texto.size() >= 1 && d.texto.size() <= 500;
+      }
+
+      function respostaOk(d) {
+        return (!('respostaA' in d) && !('respostaAutorId' in d))
+            || (d.respostaA is string
+                && exists(/databases/$(database)/documents/comentarios/$(d.respostaA))
+                && get(/databases/$(database)/documents/comentarios/$(d.respostaA)).data.postId == d.postId
+                && d.respostaAutorId == get(/databases/$(database)/documents/comentarios/$(d.respostaA)).data.autorId);
+      }
+
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['postId', 'postAutorId', 'autorId', 'nome', 'foto', 'texto', 'respostaA', 'respostaAutorId', 'criadoEm'])
+                    && request.resource.data.autorId == request.auth.uid
+                    && textoComentarioOk(request.resource.data)
+                    && valorTextoAte(request.resource.data.get('nome', ''), 80)
+                    && fotoOk(request.resource.data.get('foto', ''))
+                    && exists(/databases/$(database)/documents/diario/$(request.resource.data.postId))
+                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
+                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.get('comentariosOcultos', false) != true
+                    && respostaOk(request.resource.data)
+                    && !bloqueioEntre(request.auth.uid, request.resource.data.postAutorId)
+                    && ritmoOk('com')
+                    && request.resource.data.criadoEm == request.time;
+
+      allow update: if logado()
+                    && emailOk()
+                    && (
+                      // quem comentou corrige o texto
+                      (resource.data.autorId == request.auth.uid
+                        && mudou().hasOnly(['texto', 'editadoEm'])
+                        && textoComentarioOk(request.resource.data)
+                        && request.resource.data.editadoEm == request.time)
+                      ||
+                      // o dono da publicação oculta ou mostra o comentário
+                      (resource.data.postAutorId == request.auth.uid
+                        && mudou().hasOnly(['oculto'])
+                        && request.resource.data.oculto is bool)
+                    );
+
+      allow delete: if logado()
+                    && (resource.data.autorId == request.auth.uid || resource.data.postAutorId == request.auth.uid);
+      allow delete: if podeModerar();
+    }
+
+    // =====================================================
+    // CURTIDAS EM COMENTÁRIOS: curtidas_comentarios/{comentarioId}_{uid}
+    // =====================================================
+    match /curtidas_comentarios/{id} {
+
+      allow read: if logado();
+
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['comentarioId', 'uid', 'criadoEm'])
+                    && request.resource.data.uid == request.auth.uid
+                    && id == request.resource.data.comentarioId + '_' + request.auth.uid
+                    && exists(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId))
+                    && request.resource.data.criadoEm == request.time;
+
+      allow update: if false;
+      allow delete: if logado() && resource.data.uid == request.auth.uid;
+    }
+
+
+    // =====================================================
+    // DIÁRIO / PUBLICAÇÕES
+    // =====================================================
+    match /diario/{postId} {
+
+      allow read: if logado();
+
+      function publicacaoOk() {
+        let d = request.resource.data;
+        return textoAte('texto', 1000)
+            && textoAte('nome', 80)
+            && campoFotoOk('fotoPerfil')
+            && (!('mediaTipo' in d) || d.mediaTipo in ['', 'image', 'video'])
+            && (!('mediaUrl' in d) || d.mediaUrl == ''
+                || (d.mediaUrl is string
+                    && d.mediaUrl.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*')));
+      }
+
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.autorId == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'fotoPerfil', 'texto', 'mediaUrl', 'mediaTipo', 'criadoEm'])
+                    && ritmoOk('pub')
+                    && publicacaoOk();
+
+      allow update: if logado()
+                    && emailOk()
+                    && resource.data.autorId == request.auth.uid
+                    && request.resource.data.autorId == resource.data.autorId
+                    && gravou().hasOnly(['texto', 'nome', 'fotoPerfil', 'comentariosOcultos', 'ocultoAte', 'editadoEm'])
+                    && dataOuNulo('ocultoAte')
+                    && travaModeracao()
+                    // texto editado: marca a data da edição
+                    && (!mudou().hasAny(['texto']) || request.resource.data.get('editadoEm', null) == request.time)
+                    && (!mudou().hasAny(['editadoEm']) || request.resource.data.editadoEm == request.time)
+                    && (!('comentariosOcultos' in request.resource.data) || request.resource.data.comentariosOcultos is bool)
+                    && publicacaoOk();
+
+      allow delete: if logado()
+                    && resource.data.autorId == request.auth.uid;
+
+      // A equipe esconde ou remove publicações que violam os Termos.
+      allow update: if podeModerar()
+                    && moderacaoOk();
+      allow delete: if podeModerar();
+    }
+  }
+}
+// ===== FIM DA PARTE 8 DE 8 =====
