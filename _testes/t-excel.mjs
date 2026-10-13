@@ -1,0 +1,14 @@
+import { navegador, entrar } from "./nav.mjs";
+const { browser, ctx } = await navegador({});
+const p = await entrar(ctx, "admin", "admin.html#estatisticas");
+await p.waitForSelector(".ad-cab-acoes", { timeout: 30000 });
+await p.waitForTimeout(3000);
+const salvar = async (loc, nome) => { const [d] = await Promise.all([p.waitForEvent("download"), loc.click()]); await d.saveAs(`saida/excel/${nome}`); console.log("baixado", nome, d.suggestedFilename()); };
+await salvar(p.locator(".ad-bt", { hasText: "Baixar tudo (Excel)" }), "estatisticas-tudo.xlsx");
+await p.locator(".ad-chip", { hasText: "Comparar com período anterior" }).click(); await p.waitForTimeout(1500);
+await salvar(p.locator(".ad-bt", { hasText: "Baixar tudo (Excel)" }), "estatisticas-comparar.xlsx");
+await salvar(p.locator("button", { hasText: /^Excel$/ }).first(), "cartao.xlsx");
+await p.locator(".ad-lateral button, .ad-lateral a", { hasText: "Relatórios" }).first().click(); await p.waitForTimeout(4000); console.log("seção:", await p.locator(".ad-cab h1").first().textContent());
+const b = p.locator(".ad-bt", { hasText: "Baixar tudo (Excel)" });
+if (await b.count()) await salvar(b.first(), "relatorio-tudo.xlsx");
+await browser.close();

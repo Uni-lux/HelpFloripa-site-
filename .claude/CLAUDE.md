@@ -1,0 +1,66 @@
+# Help Floripa — notas para o Claude (lidas automaticamente em cada sessão)
+
+Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo GitHub Pages
+(Jekyll: pastas com `_` ou `.` não são publicadas). Firebase Auth/Firestore 10.12.2 carregado do gstatic.
+
+## Regras fixas do dono do projeto
+- Falar em **português**. Visual profissional e caprichado.
+- Trabalhar na branch indicada pela sessão, commit + push e **um PR por etapa**. Ele faz o merge.
+- **NUNCA** publicar, compartilhar ou commitar chave de conta de serviço do Firebase.
+- Não mudar o bloqueio/liberação do site sem ele pedir.
+- `.js` importados com `?v=N`: ao mudar um arquivo, aumentar o `?v=` em todos que o importam
+  (cascata). Use `python3 _testes/versoes.py` antes do commit. `firebase.js` é carregado sem `?v` (sempre foi).
+- **Regras do Firestore: ele publica À MÃO e UMA VEZ, na Etapa 5.** Até lá, acumular em
+  `firestore.rules` e avisar quando uma etapa depender delas. Entrega: dividir o arquivo em partes de
+  ~12.800 bytes, cortando em fim de linha, cada parte terminando com `// ===== FIM DA PARTE X DE N =====`;
+  conferir que as partes juntas dão exatamente o arquivo e rodar os testes de regras no arquivo remontado.
+- Testar de verdade antes de cada push: emulador (firestore 8085, auth 9099, projeto demo-hf) + Playwright.
+  Tudo pronto em `_testes/` (leia `_testes/README.md`). `clearFirestore()` no demo-hf apaga os dados do navegador:
+  os testes de regras usam o projeto `demo-regras`.
+- Excel precisa abrir no **Microsoft Excel**: validar com o Open XML SDK (`_testes/checar-todos.py`).
+
+## Situação (13/10/2026)
+- No ar no Firebase: **regras do PR #25** (commit 7f5a28c). O `firestore.rules` do main tem +115 linhas ainda
+  não publicadas: chat da equipe (equipe_dm, equipe_anexos, citar, reações — PR #26) e endereço (PR #29).
+- Etapa 1 (PR #27), Etapa 2 (PR #28) e Etapa 3 (PR #29): **mescladas**.
+- **Próximo: Etapa 4.** Depois a Etapa 5.
+
+## Etapa 4 – Moderação, suporte e avaliações (muda regras)
+1. Avaliações: liberar também para quem tem vínculo aceito no Social (hoje `!vinculados` bloqueia, em
+   `match /avaliacoes` → `doCliente()`); manter uma por pessoa em cada negócio, conta com 3 dias e os dois terem
+   conversado. O negócio avaliando um cliente mostrou "Não foi possível avaliar. Confirme seu e-mail", mas a
+   causa pode ser outra: investigar e mostrar o motivo real (avaliacoes.js).
+2. Denúncia no painel mostrando o conteúdo completo como apareceu (texto, foto, áudio, cartão de avaliação) e
+   algumas mensagens antes e depois. Hoje aparece só "Mensagem (...): (avaliacao)". O aviso tem "Cancelar" e
+   "Fechar" fazendo a mesma coisa.
+3. Avisos da equipe hoje só aparecem como janela ao abrir o site (`avisosDaEquipe` em firebase.js) e a resposta do
+   suporte não gera notificação. Fazer: avisos e respostas do suporte na página de Notificações e no número do
+   sino e do ícone de mensagens; tocar leva ao chamado; a equipe pode abrir uma conversa de suporte com qualquer
+   usuário, que aparece como "Suporte Help Floripa" com selo oficial.
+4. Tela de atendimento do negócio profissional: horário por dia, pausa de almoço, ausência com data de volta.
+   O aviso de ausente e o horário precisam aparecer para todos que conversam com o negócio, inclusive quem tem
+   vínculo com ele (hoje não aparecem para essas pessoas). Atendimento hoje: `perfis_publicos.atendimento`
+   (`atendimentoOk()` nas regras), configurado em mensagens.html (`pintarConfigAtendimento`).
+
+## Etapa 5 – Regras e conferência final
+Rodar todos os testes de regras, entregar o firestore.rules final dividido em partes (formato acima) e,
+depois que ele publicar, verificar o site inteiro (incluindo conversa individual, anexos, citar e reações do
+chat da equipe).
+
+## Como as coisas funcionam (para não redescobrir)
+- **Campos novos em documentos públicos antes da Etapa 5**: as regras do ar recusam. Padrão usado:
+  `gravarComLocal(gravar, dados, NOVOS.x)` em `endereco.js` grava com os campos novos e, se vier
+  `permission-denied`, grava de novo sem eles (o dado completo fica em `usuarios/{uid}`, que é livre para o dono).
+  `local-conta.js` completa o público sozinho depois da publicação. Siga o mesmo padrão na Etapa 4.
+- **Regras**: limite de 1.000 expressões por gravação. Tabelas/mapas grandes estouram; use regex.
+  Sempre conferir nos testes que não aparece "maximum of 1000 expressions".
+- `endereco.js`: Estado, Cidade do IBGE (`municipios/{UF}.json`, com população para ordenar sugestões), CEP
+  (ViaCEP), `resolverCidade()` para textos antigos, `camposEndereco()` (componente), `textoCidade()`.
+- `audio-ondas.js`: player com ondas (onda calculada do áudio e guardada no aparelho, sem campo novo).
+- `planilha.js`: Excel em OOXML à mão (capa Resumo, gráfico, tabela com total, A4). Qualquer mudança: validar.
+- `mensagens.html`: conversa desenhada aos poucos (`nosConversa`), cartão de avaliação com cache
+  (`situacaoAval`). Não voltar a usar `replaceChildren` na lista inteira.
+- `admin-chat.js` + `admin.css` (classes `eq-`): chat da equipe estilo mensageiro.
+- `admin-secoes.js`: Estatísticas (filtro Estado→Cidade→Bairro via `localDe`), Relatórios, Excel com capa.
+- CSP: cada página tem a sua em `<meta>`; `fetch` de `data:` é bloqueado (connect-src).
+- `scripts/limpeza/converter-cidades.mjs` + workflow manual "Converter cidades" (simula por padrão).

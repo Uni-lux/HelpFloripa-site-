@@ -1,0 +1,18 @@
+import { navegador, entrar } from "./nav.mjs";
+import { mkdirSync } from "node:fs";
+const { browser, ctx } = await navegador({ mobile: process.argv[2] === "cel" });
+const p = await entrar(ctx, "admin", "admin.html#estatisticas");
+await p.waitForSelector(".ad-cab-acoes select", { timeout: 30000 }); await p.waitForTimeout(2500);
+const cart = async (t) => p.evaluate((t) => { const c = [...document.querySelectorAll(".ad-cartao, .ad-grade > *")].find((x) => x.querySelector("h3,strong")?.textContent.trim() === t); return c ? c.textContent.replace(/\s+/g, " ").slice(0, 160) : "(sem cartão)"; }, t);
+const selects = () => p.evaluate(() => [...document.querySelectorAll(".ad-cab-acoes select")].map((s) => [s.getAttribute("aria-label"), [...s.options].map((o) => o.textContent)]));
+console.log("filtros:", JSON.stringify(await selects()));
+const baixar = async (nome) => { const [d] = await Promise.all([p.waitForEvent("download"), p.locator(".ad-bt", { hasText: "Baixar tudo (Excel)" }).click()]); mkdirSync("saida/excel", { recursive: true }); await d.saveAs(`saida/excel/${nome}`); };
+await baixar("brasil.xlsx");
+await p.selectOption('select[aria-label="Filtrar por estado"]', "SC"); await p.waitForTimeout(1200);
+console.log("SC ->", JSON.stringify(await selects()));
+await p.selectOption('select[aria-label="Filtrar por cidade"]', "Florianópolis/SC"); await p.waitForTimeout(1200);
+console.log("Florianópolis ->", JSON.stringify(await selects()));
+await p.selectOption('select[aria-label="Filtrar por bairro"]', "Centro"); await p.waitForTimeout(1200);
+await p.screenshot({ path: `saida/estat-local-${process.argv[2] || "pc"}.png` });
+await baixar("centro.xlsx");
+await browser.close();

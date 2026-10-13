@@ -1,0 +1,21 @@
+{
+  "name": "helpfloripa-testes",
+  "private": true,
+  "type": "module",
+  "description": "Testes locais do Help Floripa: emulador do Firebase (demo-hf), Playwright, regras e Excel. Nada daqui vai para o site.",
+  "scripts": {
+    "emulador": "./emulador.sh",
+    "servidor": "node servidor-csp.mjs",
+    "dados": "node seed.mjs",
+    "regras": "node testes-regras.mjs",
+    "xlsx": "mkdir -p saida/xlsx && node gerar-xlsx.mjs ../planilha.js saida/xlsx && python3 checar-todos.py saida/xlsx"
+  },
+  "dependencies": {
+    "@firebase/rules-unit-testing": "3.0.4",
+    "@xarsh/ooxml-validator": "0.4.0",
+    "firebase": "10.12.2",
+    "firebase-admin": "14.5.0",
+    "firebase-tools": "13.35.1",
+    "playwright-core": "1.64.0"
+  }
+}
