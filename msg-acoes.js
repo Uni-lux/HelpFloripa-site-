@@ -8,6 +8,8 @@
 // conteúdo continua abrindo por 24 horas para quem participa (depois some de vez).
 // =====================================================
 export const PRAZO_APAGADA = 24 * 3600 * 1000;
+// Editar e apagar para todos: só até 10 minutos depois de enviar (as regras do servidor conferem).
+export const PRAZO_MEXER = 10 * 60 * 1000;
 
 const msDe = (t) => (t?.toMillis ? t.toMillis() : t instanceof Date ? t.getTime() : typeof t === "number" ? t : t?.seconds ? t.seconds * 1000 : 0);
 export function horaCurta(t) {
@@ -19,6 +21,7 @@ export function horaCurta(t) {
   return `${d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}, ${hh}`;
 }
 // Ainda dá para abrir o conteúdo? (24 horas contadas de quando foi apagada)
+export const podeMexer = (enviadaEm) => { const v = msDe(enviadaEm); return !!v && Date.now() - v < PRAZO_MEXER; };
 export const noPrazo = (apagadaEm) => { const v = msDe(apagadaEm); return !v || Date.now() - v < PRAZO_APAGADA; };
 export function tempoRestante(apagadaEm) {
   const falta = PRAZO_APAGADA - (Date.now() - (msDe(apagadaEm) || Date.now()));
@@ -111,9 +114,13 @@ function abrirBase({ titulo, sub = "" }) {
 }
 
 // "Apagar mensagem?" — para todos (só quem enviou) e para mim (qualquer mensagem).
-export function escolherApagar({ podeTodos = false, jaApagada = false } = {}) {
+export function escolherApagar({ podeTodos = false, jaApagada = false, prazoPassou = false } = {}) {
   return new Promise((resolver) => {
-    const b = abrirBase({ titulo: "Apagar mensagem?", sub: podeTodos ? "Para todos: no lugar fica o aviso de que você apagou. Os dois ainda podem abrir a mensagem por 24 horas; depois ela some de vez." : (jaApagada ? "O aviso some só da sua tela." : "A mensagem some só da sua tela. A outra pessoa continua vendo.") });
+    const sub = podeTodos ? "Para todos: no lugar fica o aviso de que você apagou. Os dois ainda podem abrir a mensagem por 24 horas; depois ela some de vez."
+      : jaApagada ? "O aviso some só da sua tela."
+      : prazoPassou ? "Já passaram 10 minutos do envio: agora só dá para apagar para você. A outra pessoa continua vendo."
+      : "A mensagem some só da sua tela. A outra pessoa continua vendo.";
+    const b = abrirBase({ titulo: "Apagar mensagem?", sub });
     b.aoFechar(resolver);
     const ops = el("div", "hf-ma-ops");
     const op = (cls, icone, titulo, sub, valor) => {

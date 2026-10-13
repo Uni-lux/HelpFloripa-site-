@@ -794,8 +794,12 @@ service cloud.firestore {
 
         // Editar (só quem enviou): o texto novo e, na lista "edicoes", a versão anterior (quem
         // conversa pode ver o original). Cartões de pedido/avaliação e mensagens apagadas não se editam.
+        // Editar e apagar só até 10 minutos depois de enviar.
+        function noPrazoDeMexer() { return request.time < resource.data.criadoEm + duration.value(10, 'm'); }
+
         allow update: if logado()
                       && request.auth.uid == resource.data.remetenteId
+                      && noPrazoDeMexer()
                       && !('apagada' in resource.data)
                       && resource.data.get('tipoArquivo', '') in ['', 'imagem', 'video', 'audio']
                       && mudou().hasOnly(['texto', 'editadaEm', 'edicoes'])
@@ -813,6 +817,7 @@ service cloud.firestore {
         // na mesma gravação, para apagadas/{id}, que os dois ainda podem abrir por 24 horas.
         allow update: if logado()
                       && request.auth.uid == resource.data.remetenteId
+                      && noPrazoDeMexer()
                       && !('apagada' in resource.data)
                       && request.resource.data.keys().hasOnly(['remetenteId', 'criadoEm', 'apagada'])
                       && request.resource.data.remetenteId == resource.data.remetenteId
@@ -824,7 +829,8 @@ service cloud.firestore {
                       && existsAfter(/databases/$(database)/documents/conversas/$(conversaId)/apagadas/$(mensagemId));
 
         allow delete: if logado()
-                      && request.auth.uid == resource.data.remetenteId;
+                      && request.auth.uid == resource.data.remetenteId
+                      && noPrazoDeMexer();
       }
 
       // ===================================================
@@ -1523,6 +1529,7 @@ service cloud.firestore {
       let d = request.resource.data;
       let a = resource.data;
       return a.autorId == request.auth.uid
+          && request.time < a.em + duration.value(10, 'm')
           && !('apagada' in a)
           && d.diff(a).affectedKeys().hasOnly(['texto', 'editadaEm', 'edicoes'])
           && d.texto is string && d.texto.size() <= 2000
@@ -1543,6 +1550,7 @@ service cloud.firestore {
       let d = request.resource.data;
       let a = resource.data;
       return a.autorId == request.auth.uid
+          && request.time < a.em + duration.value(10, 'm')
           && !('apagada' in a)
           && d.keys().hasOnly(['autorId', 'nome', 'em', 'apagada'])
           && d.autorId == a.autorId && d.em == a.em && d.get('nome', '') == a.get('nome', '')

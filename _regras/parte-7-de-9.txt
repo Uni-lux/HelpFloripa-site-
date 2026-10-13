@@ -102,6 +102,7 @@
       let d = request.resource.data;
       let a = resource.data;
       return a.autorId == request.auth.uid
+          && request.time < a.em + duration.value(10, 'm')
           && !('apagada' in a)
           && d.diff(a).affectedKeys().hasOnly(['texto', 'editadaEm', 'edicoes'])
           && d.texto is string && d.texto.size() <= 2000
@@ -122,6 +123,7 @@
       let d = request.resource.data;
       let a = resource.data;
       return a.autorId == request.auth.uid
+          && request.time < a.em + duration.value(10, 'm')
           && !('apagada' in a)
           && d.keys().hasOnly(['autorId', 'nome', 'em', 'apagada'])
           && d.autorId == a.autorId && d.em == a.em && d.get('nome', '') == a.get('nome', '')

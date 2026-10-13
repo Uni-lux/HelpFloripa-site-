@@ -1,6 +1,6 @@
 # Regras do Firestore — publicação
 
-> **Versão de 13/10/2026 (3ª):** igual à publicada, mais a **foto da equipe** (`equipe_info/grupo`) e
+> **Versão de 13/10/2026 (4ª):** igual à publicada, mais a **foto da equipe** (`equipe_info/grupo`) e
 > **editar / apagar mensagens** (Mensagens e chat da equipe). Agora são **9 partes**.
 > Para publicar, o processo é o mesmo: apagar tudo no console e colar as 9 partes.
 
@@ -8,11 +8,11 @@ Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. S
 `firestore.rules` divididas em **9 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
-- Arquivo de origem: `firestore.rules` (104.139 bytes, 1.917 linhas, sha256 começa com `315a553ce660196b`).
+- Arquivo de origem: `firestore.rules` (104.559 bytes, 1.925 linhas, sha256 começa com `27ea5c2efe8ca9c5`).
 - Cada parte termina com a linha `// ===== FIM DA PARTE X DE 9 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
 - Conferido: as 9 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **131 passaram, 0 falharam**, sem o aviso de limite de 1.000 expressões.
+- Testes de regras no arquivo remontado: **137 passaram, 0 falharam**, sem o aviso de limite de 1.000 expressões.
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.
@@ -28,8 +28,8 @@ linha), para colar no console do Firebase.
 > As regras do ar continuam valendo até o clique em Publicar. A troca leva até 1 minuto para valer.
 
 ## O que passa a funcionar depois de publicar
-- **Editar mensagem** (texto e legenda de foto, vídeo e áudio): aparece "editada" e dá para ver a original.
-- **Apagar para todos:** no lugar fica "Fulano apagou esta mensagem · hora"; os dois abrem a mensagem por
+- **Editar mensagem** (texto e legenda de foto, vídeo e áudio), só até **10 minutos** depois de enviar: aparece "editada" e dá para ver a original.
+- **Apagar para todos** (só até **10 minutos** depois de enviar; depois, só "apagar para mim"): no lugar fica "Fulano apagou esta mensagem · hora"; os dois abrem a mensagem por
   24 horas ("Ver mensagem apagada", com Denunciar; mensagem denunciada não some: fica para a equipe). Antes de publicar, "apagar para todos" apaga de vez
   (como era) e "editar" avisa que falta publicar. "Apagar para mim" já funciona sem as regras novas.
 - **Chat da equipe:** foto do grupo, editar e apagar para todos.

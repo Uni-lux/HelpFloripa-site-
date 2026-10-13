@@ -82,6 +82,14 @@ ok(await pa.locator(".linha-msg", { hasText: "Esta some só para o Bruno" }).cou
 await pb.reload(); await pb.waitForSelector(".linha-msg", { timeout: 20000 }); await pb.waitForTimeout(1500);
 ok(!(await pb.locator(".linha-msg", { hasText: "Esta some só para o Bruno" }).count()), "apagar para mim: continua apagada depois de recarregar");
 if (modo === "novas") ok(await pb.locator(".bolha.apagada").count() >= 1, "depois de recarregar: o aviso de apagada continua");
+// 4) Mensagem com mais de 10 minutos: sem "Editar" e só "Apagar para mim"
+await pa.locator(".linha-msg.minha", { hasText: "O chuveiro ficou ótimo" }).last().locator(".bolha").click({ button: "right" });
+const opsVelha = await pa.locator("#menuMsg button").allTextContents();
+ok(!opsVelha.some((t) => t.includes("Editar")) && opsVelha.some((t) => t.includes("Apagar")), "mais de 10 min: menu sem Editar → " + opsVelha.join(", "));
+await pa.locator("#menuMsg button", { hasText: "Apagar" }).first().click();
+ok(await pa.locator(".hf-ma-op", { hasText: "Apagar para todos" }).count() === 0 && (await pa.locator(".hf-ma-sub").textContent()).includes("10 minutos"), "mais de 10 min: só \"Apagar para mim\", com o aviso dos 10 minutos");
+await pa.screenshot({ path: "saida/apagar-10min.png" });
+await pa.locator(".hf-ma-op", { hasText: "Cancelar" }).click();
 await pb.screenshot({ path: "saida/apagar-cel.png" });
 await pa.screenshot({ path: "saida/apagar-pc.png" });
 await A.browser.close(); await B.browser.close();

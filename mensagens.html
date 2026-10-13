@@ -1053,7 +1053,7 @@
     import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=5";
     import { abrirQueixa } from "./queixas.js?v=8";
     import { ouvirItensEquipe, linkEquipe, seloOficial, TEXTO_EQUIPE } from "./avisos-equipe.js?v=1";
-    import { escolherApagar, editarTextoHF, verEdicoesHF, janelaHF, horaCurta, noPrazo, tempoRestante } from "./msg-acoes.js?v=1";
+    import { escolherApagar, editarTextoHF, verEdicoesHF, janelaHF, horaCurta, noPrazo, tempoRestante, podeMexer } from "./msg-acoes.js?v=2";
     // ======================================================
     // Configurações (salvas no aparelho)
     // ======================================================
@@ -2739,7 +2739,7 @@
       ].filter(Boolean);
       if (m.texto) opcoes.push({ rotulo: "Copiar texto", icone: "copiar", acao: () => copiar(m.texto) });
       if (m.tipoArquivo === "imagem" && urlSegura(m.arquivoUrl)) opcoes.push({ rotulo: "Ver foto", icone: "imagem", acao: () => abrirVisualizador(m.arquivoUrl) });
-      if (minha && !m.pendente && podeEditar(m)) opcoes.push({ rotulo: "Editar", icone: "lapis", acao: () => editarMensagem(m) });
+      if (minha && !m.pendente && podeEditar(m) && podeMexer(m.criadoEm)) opcoes.push({ rotulo: "Editar", icone: "lapis", acao: () => editarMensagem(m) });
       if (m.editadaEm && Array.isArray(m.edicoes) && m.edicoes.length) opcoes.push({ rotulo: "Ver original", icone: "relogio", acao: () => verEdicoesHF({ atual: m.texto || "", editadaEm: m.editadaEm, edicoes: m.edicoes }) });
       if (!m.pendente) opcoes.push({ rotulo: "Apagar", icone: "lixo", perigo: true, acao: () => perguntarApagar(m) });
       if (!minha) opcoes.push({ rotulo: "Denunciar", icone: "alerta", perigo: true, acao: () => denunciarMensagem(m) });
@@ -3025,7 +3025,8 @@
     const ultimaDaConversa = (m) => mensagens.filter((x) => !x.pendente).at(-1)?.id === m.id;
 
     async function perguntarApagar(m) {
-      const modo = await escolherApagar({ podeTodos: m.remetenteId === eu.uid && !m.apagada && !m.pendente, jaApagada: !!m.apagada });
+      const minha = m.remetenteId === eu.uid && !m.apagada && !m.pendente;
+      const modo = await escolherApagar({ podeTodos: minha && podeMexer(m.criadoEm), prazoPassou: minha && !podeMexer(m.criadoEm), jaApagada: !!m.apagada });
       if (modo === "todos") apagarParaTodos(m);
       else if (modo === "mim") apagarParaMim(m);
     }
@@ -3057,6 +3058,7 @@
         toast("Mensagem apagada para todos");
       } catch (e) {
         if (e?.code !== "permission-denied") { console.error(e); toast("Não foi possível apagar a mensagem."); return; }
+        if (!podeMexer(m.criadoEm)) { toast("Passaram 10 minutos do envio: agora só dá para apagar para você."); return; }
         // Regras novas ainda não publicadas: o jeito antigo (some de vez, sem o aviso).
         try { await fb.deleteDoc(fb.doc(fb.db, "conversas", conv, "mensagens", m.id)); toast("Mensagem apagada"); }
         catch (e2) { console.error(e2); toast("Não foi possível apagar a mensagem."); return; }
@@ -3082,7 +3084,9 @@
         if (ativa.dados?.mensagemFixada?.id === m.id) fb.setDoc(refConversa(ativa.id), { mensagemFixada: { id: m.id, texto: resumoMensagem({ ...atual, texto: novo }).slice(0, 200), por: eu.uid, em: fb.serverTimestamp() } }, { merge: true }).catch(() => {});
       } catch (e) {
         console.error(e);
-        toast(e?.code === "permission-denied" ? "Editar mensagens começa a funcionar quando as regras novas forem publicadas." : "Não foi possível editar a mensagem.");
+        toast(e?.code !== "permission-denied" ? "Não foi possível editar a mensagem."
+          : !podeMexer(atual.criadoEm) ? "Passaram 10 minutos do envio: a mensagem não pode mais ser editada."
+          : "Editar mensagens começa a funcionar quando as regras novas forem publicadas.");
       }
     }
 
