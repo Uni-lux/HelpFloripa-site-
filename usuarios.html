@@ -13,7 +13,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="stylesheet" href="vitrine.css?v=25" />
-  <link rel="stylesheet" href="rede.css?v=19" />
+  <link rel="stylesheet" href="rede.css?v=20" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
     // Tema compartilhado com a página de mensagens; aplicado antes de desenhar.
@@ -314,6 +314,7 @@
         btnFoto.appendChild(icone("camera", "i xs"));
         btnFoto.addEventListener("click", () => escolherImagem("foto", true));
         meuCab.raiz.querySelector(".pf-avatar-wrap").appendChild(btnFoto);
+        segurarFoto(meuCab.raiz.querySelector(".pf-avatar-wrap"), () => ({ uid: eu.uid, p: dados, proprio: true }));
         // Ações
         const acoes = meuCab.el("acoes");
         const bEditar = document.createElement("button");
@@ -378,6 +379,68 @@
 
     function abrirInsightsPerfil() {
       import("./insights.js?v=2").then((m) => m.abrirInsights()).catch((e) => toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)));
+    }
+
+    // ======================================================
+    // Foto de perfil ampliada: tocar e SEGURAR na foto (como no Instagram), com as opções do Help Floripa.
+    // ======================================================
+    function segurarFoto(wrap, dadosFoto) {
+      if (wrap._segurar) return;
+      wrap._segurar = true;
+      let tempo = null, x0 = 0, y0 = 0;
+      const parar = () => { clearTimeout(tempo); tempo = null; wrap.classList.remove("segurando"); };
+      wrap.addEventListener("pointerdown", (e) => {
+        if (e.button || e.target.closest(".pf-editar-foto, .pf-rosa")) return;
+        x0 = e.clientX; y0 = e.clientY; wrap.classList.add("segurando");
+        tempo = setTimeout(() => { tempo = null; wrap.classList.remove("segurando"); wrap._segurou = true; navigator.vibrate?.(12); abrirFotoGrande(dadosFoto()); }, 420);
+      });
+      wrap.addEventListener("pointermove", (e) => { if (tempo && Math.hypot(e.clientX - x0, e.clientY - y0) > 10) parar(); });
+      ["pointerup", "pointercancel", "pointerleave"].forEach((t) => wrap.addEventListener(t, () => { if (tempo) parar(); }));
+      wrap.addEventListener("contextmenu", (e) => e.preventDefault());
+      // Depois de segurar, o toque não abre o flash (o clique que vem junto é engolido aqui).
+      wrap.addEventListener("click", (e) => { if (wrap._segurou) { wrap._segurou = false; e.stopPropagation(); e.preventDefault(); } }, true);
+    }
+    function abrirFotoGrande({ uid, p, proprio }) {
+      document.querySelector(".foto-grande")?.remove();
+      const tela = el("div", "foto-grande"); tela.setAttribute("role", "dialog"); tela.setAttribute("aria-modal", "true"); tela.setAttribute("aria-label", `Foto de ${p.nome || "perfil"}`);
+      const fechar = () => { tela.classList.add("saindo"); document.removeEventListener("keydown", tecla); setTimeout(() => tela.remove(), 200); };
+      const tecla = (e) => { if (e.key === "Escape") fechar(); };
+      const bX = el("button", "fg-fechar"); bX.type = "button"; bX.setAttribute("aria-label", "Fechar"); bX.appendChild(icone("fechar", "i"));
+      bX.addEventListener("click", fechar);
+      const centro = el("div", "fg-centro");
+      const foto = el("div", "fg-foto");
+      const av = el("div", "avatar"); pintarAvatar(av, p.fotoPerfil, p.nome);
+      foto.appendChild(av);
+      if (proprio) {
+        const lap = el("button", "fg-lapis"); lap.type = "button"; lap.setAttribute("aria-label", "Trocar a foto de perfil"); lap.appendChild(icone("lapis", "i"));
+        lap.addEventListener("click", () => { fechar(); escolherImagem("foto", true); });
+        foto.appendChild(lap);
+      }
+      const nome = el("div", "fg-nome"); nome.append(el("strong", null, p.nome || "Usuário"));
+      if (p.nickname) nome.append(el("span", null, "@" + p.nickname));
+      centro.append(foto, nome);
+      const url = `${location.origin}${location.pathname.replace(/[^/]*$/, "")}usuarios.html?perfil=${encodeURIComponent(uid)}`;
+      const copiar = async () => { try { await navigator.clipboard.writeText(url); toast("Link do perfil copiado"); } catch { toast("Não foi possível copiar."); } };
+      const temFlash = !!document.querySelector(proprio ? "#meuPerfil .pf-anel.com-flash" : "#ppCabecalho .pf-anel.com-flash");
+      const ops = proprio
+        ? [["compartilhar", "Compartilhar perfil", () => compartilharPerfil(uid, p.nome)], ["link", "Copiar link", copiar],
+           ["lapis", "Editar perfil", () => { fechar(); abrirEditar(); }], ["graf", "Estatísticas", () => { fechar(); abrirInsightsPerfil(); }]]
+        : [["chat", "Mensagem", () => { fechar(); iniciarConversa(uid); }], ["compartilhar", "Compartilhar perfil", () => compartilharPerfil(uid, p.nome)], ["link", "Copiar link", copiar],
+           temFlash ? ["raio", "Ver flash", () => { fechar(); $("ppCabecalho").querySelector(".pf-anel .avatar")?.click(); }]
+                    : ["teia", "Social", () => { location.href = `social.html?uid=${encodeURIComponent(uid)}`; }]];
+      const barra = el("div", "fg-acoes");
+      ops.forEach(([ic, rot, fn]) => {
+        const b = el("button", "fg-acao"); b.type = "button";
+        const c = el("span", "fg-circ"); c.appendChild(icone(ic, "i"));
+        b.append(c, el("span", "fg-rot", rot));
+        b.addEventListener("click", fn);
+        barra.appendChild(b);
+      });
+      tela.append(bX, centro, barra);
+      tela.addEventListener("click", (e) => { if (e.target === tela || e.target === centro) fechar(); });
+      document.addEventListener("keydown", tecla);
+      document.body.appendChild(tela);
+      bX.focus({ preventScroll: true });
     }
 
     const contagem = { seguidores: 0, seguindo: 0 };
@@ -952,6 +1015,7 @@
       preencherCabecalho(ppCab, p);
       pintarNotaPerfil(ppCab, uid);
       anelNoPerfil(ppCab.el("avatar"), uid);
+      segurarFoto(ppCab.raiz.querySelector(".pf-avatar-wrap"), () => ({ uid, p, proprio: false }));
       $("tPerfilPublico").textContent = p.nome || "Perfil";
       abrirFolha("folhaPerfil");
 

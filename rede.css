@@ -1660,3 +1660,29 @@ body:has(.story-visor, .flash-criar) .toast { bottom: auto; top: calc(74px + env
 .pf2 .pf-avatar-wrap .pf-rosa .i { width: 18px; height: 18px; }
 .pf2 .pf-avatar-wrap.com-rosa .pf-editar-foto { right: auto; left: 2px; }
 @media (max-width: 380px) { .pf2 .pf-avatar-wrap .pf-rosa { width: 28px; height: 28px; } .pf2 .pf-avatar-wrap .pf-rosa .i { width: 16px; height: 16px; } }
+
+/* ---------- foto de perfil ampliada (tocar e segurar) ---------- */
+.pf-avatar-wrap { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.pf-avatar-wrap .pf-anel { transition: transform .35s ease; }
+.pf-avatar-wrap.segurando .pf-anel { transform: scale(.94); }
+.foto-grande { position: fixed; inset: 0; z-index: 5200; display: grid; grid-template-rows: auto 1fr auto; padding: calc(14px + env(safe-area-inset-top)) 16px calc(26px + env(safe-area-inset-bottom)); background: radial-gradient(120% 70% at 50% 60%, rgba(40, 48, 78, .96), rgba(14, 17, 22, .97) 70%); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); color: #fff; animation: fg-entra .22s ease both; }
+.foto-grande.saindo { animation: fg-sai .2s ease both; }
+@keyframes fg-entra { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fg-sai { to { opacity: 0; } }
+.fg-fechar { justify-self: end; width: 42px; height: 42px; border-radius: 50%; border: 0; background: rgba(255, 255, 255, .1); color: #fff; display: grid; place-items: center; cursor: pointer; }
+.fg-centro { display: grid; place-content: center; justify-items: center; gap: 18px; }
+.fg-foto { position: relative; width: min(74vw, 340px); aspect-ratio: 1; animation: fg-cresce .32s cubic-bezier(.2, 1.3, .4, 1) both; }
+@keyframes fg-cresce { from { transform: scale(.55); opacity: .4; } to { transform: scale(1); opacity: 1; } }
+.fg-foto .avatar { width: 100%; height: 100%; font-size: clamp(60px, 18vw, 110px); box-shadow: 0 24px 60px rgba(0, 0, 0, .55); }
+.fg-lapis { position: absolute; right: 6%; bottom: 6%; width: 52px; height: 52px; border-radius: 50%; border: 0; background: #14181d; color: #fff; display: grid; place-items: center; cursor: pointer; box-shadow: 0 6px 18px rgba(0, 0, 0, .45); }
+.fg-lapis .i { width: 22px; height: 22px; }
+.fg-nome { display: grid; justify-items: center; gap: 2px; text-align: center; }
+.fg-nome strong { font-size: 19px; }
+.fg-nome span { color: rgba(255, 255, 255, .7); font-size: 14px; }
+.fg-acoes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; max-width: 460px; width: 100%; margin: 0 auto; }
+.fg-acao { display: grid; justify-items: center; gap: 9px; border: 0; background: none; color: #fff; font: inherit; cursor: pointer; padding: 0; }
+.fg-circ { width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .14); transition: background .15s; }
+.fg-circ .i { width: 24px; height: 24px; }
+.fg-acao:hover .fg-circ { background: rgba(255, 255, 255, .14); }
+.fg-rot { font-size: 13px; font-weight: 650; line-height: 1.25; text-align: center; }
+@media (prefers-reduced-motion: reduce) { .foto-grande, .fg-foto { animation: none; } }

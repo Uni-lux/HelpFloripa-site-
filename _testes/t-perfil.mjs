@@ -25,6 +25,16 @@ const caixas = await pa.locator("#meuPerfil [data-el=negocios] .vinculo").evalua
 ok(new Set(caixas).size === 1, "negócios alinhados na mesma linha → " + caixas.join(","));
 await pa.screenshot({ path: "saida/perfil-escuro.png" });
 await pa.screenshot({ path: "saida/perfil-escuro-inteiro.png", fullPage: true });
+// Tocar e segurar na foto: foto grande com as opções do Help Floripa
+const ab = await pa.locator("#meuPerfil .pf-anel").boundingBox();
+await pa.mouse.move(ab.x + ab.width / 2, ab.y + ab.height / 3); await pa.mouse.down(); await pa.waitForTimeout(650); await pa.mouse.up();
+await pa.waitForSelector(".foto-grande", { timeout: 3000 }).catch(() => {});
+const rots = await pa.locator(".foto-grande .fg-rot").allTextContents();
+ok(rots.join("|") === "Compartilhar perfil|Copiar link|Editar perfil|Estatísticas" && await pa.locator(".foto-grande .fg-lapis").count() === 1, "segurar a foto: foto grande, lápis e opções → " + rots.join(" / "));
+await pa.waitForTimeout(400);
+await pa.screenshot({ path: "saida/foto-grande.png" });
+await pa.keyboard.press("Escape"); await pa.waitForTimeout(400);
+ok(await pa.locator(".foto-grande").count() === 0 && await pa.locator(".story-visor").count() === 0, "Esc fecha (e não abre o flash)");
 // Aba Textos: a enquete aparece junto do texto
 await pa.locator(".abas-perfil button[data-aba=textos]").tap(); await pa.waitForTimeout(1500);
 ok(await pa.locator(".lista-textos .texto-item .enquete .enq-op").count() === 2, "aba Textos: a enquete aparece na publicação de texto");
@@ -40,6 +50,11 @@ ok(botoes === 3 && await pa.locator("#ppCabecalho .pf-rosa").count() === 1, `per
 const fora = await pa.locator("#ppCabecalho .pf-acoes > *").evaluateAll((l) => l.some((e) => e.getBoundingClientRect().right > innerWidth));
 ok(!fora, "os botões cabem na tela");
 await pa.screenshot({ path: "saida/perfil-publico-escuro.png" });
+const pb0 = await pa.locator("#ppCabecalho .pf-anel").boundingBox();
+await pa.mouse.move(pb0.x + pb0.width / 2, pb0.y + pb0.height / 3); await pa.mouse.down(); await pa.waitForTimeout(650); await pa.mouse.up();
+await pa.waitForSelector(".foto-grande", { timeout: 3000 }).catch(() => {});
+ok((await pa.locator(".foto-grande .fg-rot").allTextContents())[0] === "Mensagem" && await pa.locator(".foto-grande .fg-lapis").count() === 0, "foto de outra pessoa: Mensagem primeiro, sem lápis");
+await pa.locator(".foto-grande .fg-fechar").click(); await pa.waitForTimeout(400);
 await pa.locator("#ppCabecalho .pf-acoes > .btn.icone").tap(); await pa.waitForTimeout(500);
 ok((await pa.locator("#opcoesCorpo").textContent()).includes("Ver o social"), "⋯: tem \"Ver o social\"");
 // Toque duplo no texto: só as estrelas da barra (sem estrelas por cima do texto)
