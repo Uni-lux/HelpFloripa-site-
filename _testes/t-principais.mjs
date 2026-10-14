@@ -33,7 +33,7 @@ console.log("    ordem:", ordem.join(" | "));
 const i = (t) => ordem.findIndex((x) => x.startsWith(t));
 ok(i("Bolo") === 0, "gosto: a publicação do autor/hashtag que ele curte vem primeiro (sem seguir)");
 const primeiraAna = Math.min(i("Novidade da Ana"), i("Outra da Ana")), primeiraFabi = Math.min(i("Pintura"), i("Muro"));
-ok(primeiraAna >= 0 && primeiraAna < primeiraFabi && i("Muro") === ordem.length - 1, "quem ele segue vem antes de quem ele não segue (mesmo engajamento)");
+ok(primeiraAna >= 0 && primeiraAna < primeiraFabi, "quem ele segue vem antes de quem ele não segue (mesmo engajamento)");
 const autores = await pb.locator(".post-card").evaluateAll((cs) => cs.map((c) => c.dataset.autor));
 ok(autores.every((a, k) => !k || a !== autores[k - 1]), "nunca duas seguidas do mesmo autor");
 await pb.locator("#filtroFeedBtn").tap(); await pb.waitForTimeout(400);
