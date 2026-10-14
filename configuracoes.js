@@ -7,7 +7,7 @@ import {
   $, pintarAvatar, toast, erroAmigavel, abrirFolha, fecharFolha, abrirLista, config, salvarConfig, aplicarTema,
   fb, authFns, eu, refUsuario, dados, perfis, meusBloqueios, restritos, obterPerfil, linhaPessoa,
   desbloquear, alternarRestricao, marcarPresenca, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos, salvarPrivacidadeConta
-} from "./rede.js?v=36";
+} from "./rede.js?v=37";
 import { MOTIVOS_DESATIVAR, desativarConta, pedirExclusao, reautenticar, provedor } from "./conta.js?v=3";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
 
@@ -239,7 +239,7 @@ $("emailSalvar").addEventListener("click", async () => {
 });
 
 // A mesma janela "Sair da conta?" do menu e das mensagens.
-$("cfgSair").addEventListener("click", () => import("./confirmar.js?v=1").then((m) => m.sairDaConta()));
+$("cfgSair").addEventListener("click", () => import("./confirmar.js?v=2").then((m) => m.sairDaConta()));
 
 // ---------- baixar meus dados (LGPD) ----------
 $("cfgBaixarDados").addEventListener("click", async () => {

@@ -9,7 +9,7 @@ const arq = new URL("saida/foto1.png", import.meta.url).pathname;
 // Bruno segue Ana (para ver os stories dela); Ana segue Bruno
 await db.doc(`relacoes/${U.bruno}_${U.ana}`).set({ tipo: "seguir", seguidorId: U.bruno, alvoId: U.ana });
 await db.doc(`relacoes/${U.ana}_${U.bruno}`).set({ tipo: "seguir", seguidorId: U.ana, alvoId: U.bruno });
-const A = await navegador({ mobile: true }), B = await navegador({ mobile: true });
+const A = await navegador({ mobile: true, camera: true }), B = await navegador({ mobile: true });
 const pa = await entrar(A.ctx, "ana", "feed.html");
 await pa.waitForSelector("#btnComporFeed", { timeout: 30000 }); await pa.waitForTimeout(1500);
 // 1) Publicação com hashtag e pessoa marcada
@@ -47,13 +47,23 @@ ok(agendada?.agendadoPara && agendada.agendadoPara.toMillis() > Date.now(), "gra
 ok((await db.collection(`rascunhos/${U.ana}/itens`).get()).size === 0, "rascunho usado foi apagado ao publicar");
 // 4) Flash da Ana: um de foto (com legenda) e um de texto
 await pa.locator(".story-circ").first().tap();
-await pa.waitForSelector(".flash-criar .flash-escolher .flash-esc-btn", { timeout: 5000 });
+// Câmera já liberada: o criador abre direto na câmera do app (como Instagram/TikTok).
+await pa.waitForSelector(".flash-criar .flash-cam-ui .flash-disparo", { timeout: 8000 });
+await pa.waitForFunction(() => document.querySelector(".flash-cam")?.videoWidth > 0, null, { timeout: 8000 });
 ok((await pa.locator(".story-circ .nome").first().textContent()) === "Seu flash", "barra: \"Seu flash\"");
 await pa.screenshot({ path: "saida/flash-criar.png" });
-const escolha = pa.waitForEvent("filechooser");
-await pa.locator(".flash-esc-btn", { hasText: "Galeria" }).tap();
-const fc = await escolha; await fc.setFiles(arq);
+ok(await pa.locator(".flash-filtro").count() === 8, "câmera do app com 8 filtros");
+await pa.locator(".flash-filtro", { hasText: "Pele suave" }).tap(); await pa.waitForTimeout(300);
+ok((await pa.locator(".flash-cambox").evaluate((e) => e.style.filter)).includes("brightness") && Number(await pa.locator(".flash-cam.suave").evaluate((e) => e.style.opacity)) > 0, "filtro Pele suave na prévia da câmera");
+await pa.screenshot({ path: "saida/flash-camera.png" });
+await pa.locator(".flash-disparo").tap();
 await pa.waitForSelector(".flash-midia img.flash-foto", { timeout: 8000 });
+ok(await pa.locator(".flash-cam-ui").count() === 0 && (await pa.locator(".flash-fotobox").evaluate((e) => e.style.filter)).includes("brightness"), "tirou a foto: a câmera fecha e o filtro continua na foto");
+// fechar com coisa feita: janela do site (não a do navegador)
+await pa.locator(".flash-topo .flash-ferr-btn[aria-label=Fechar]").tap();
+await pa.waitForSelector(".hf-confirma", { timeout: 3000 });
+ok((await pa.locator(".hf-confirma h3").textContent()) === "Descartar este flash?", "fechar pergunta \"Descartar este flash?\" na janela do site");
+await pa.locator(".hf-confirma .nao").tap(); await pa.waitForTimeout(300);
 // arrastar a foto no cartão (sem editor separado) e escrever por cima
 const pal = await pa.locator(".flash-palco").boundingBox();
 await pa.mouse.move(pal.x + pal.width / 2, pal.y + pal.height / 2); await pa.mouse.down(); await pa.mouse.move(pal.x + pal.width / 2 + 3, pal.y + pal.height / 2 + 40, { steps: 5 });

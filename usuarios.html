@@ -13,7 +13,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="stylesheet" href="vitrine.css?v=25" />
-  <link rel="stylesheet" href="rede.css?v=14" />
+  <link rel="stylesheet" href="rede.css?v=15" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
     // Tema compartilhado com a página de mensagens; aplicado antes de desenhar.
@@ -216,19 +216,19 @@
   <script type="module">
     import {
       $, ms, paraData, LIMITE_DOC, el, icone, iniciais, urlSegura, pintarAvatar, pintarCapa, nomeCidade, numero, tempoRelativo, dataCompleta,
-      toast, erroAmigavel, notificar, abrirFolha, fecharFolha, pilha, abrirOpcoes, abrirLista,
+      toast, erroAmigavel, notificar, abrirFolha, fecharFolha, pilha, abrirOpcoes, abrirLista, confirmarHF,
       fb, authFns, storageFns, eu, refUsuario, dados, perfis, meusSeguindo, meusBloqueios, bloqueadoPor, restritos, escondido, ganchos,
       obterPerfil, lerOrdenado, editarPublicacao, comMencoes, salvarImagem, iniciarRede, meusSeguindoPronto, carregarMeusSeguindo, alternarSeguir, botaoSeguir, linhaPessoa,
       removerSeguidor, bloquear, desbloquear, alternarRestricao, compartilharPerfil,
       barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail,
       fotosDoPost, carrosselFotos, idsSalvos, contadorEstrelas, silenciado, alternarSilenciar, marcarVista, definirOrigem
-    } from "./rede.js?v=36";
+    } from "./rede.js?v=37";
     import { buscarPessoas, palavrasBusca } from "./pessoas.js?v=3";
     import { abrirDenuncia } from "./denuncias.js?v=2";
     import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
     import { notaDoPerfil, abrirDetalhamento, avaliarNegocio, avaliarCliente, lerResumo, estrelas, pintarEstrelas, media, notaTexto, TIPOS_NEGOCIO } from "./avaliacoes.js?v=13";
     import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=33";
-    import { anelNoPerfil } from "./stories.js?v=3";
+    import { anelNoPerfil } from "./stories.js?v=4";
 
     // ======================================================
     // Estado desta página (o resto vem de rede.js)
@@ -492,7 +492,7 @@
         ja.addEventListener("click", async () => { try { await fb.updateDoc(fb.doc(fb.db, "diario", post.id), { agendadoPara: fb.serverTimestamp() }); post.agendadoPara = { toMillis: () => Date.now() }; toast("Publicada agora"); mostrarPost(); carregarMeusPosts(); } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); } });
         a.appendChild(ja); extra.appendChild(a);
       }
-      if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=3").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
+      if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=4").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
       extra.hidden = !extra.children.length;
       if (!proprio) marcarVista({ ...post, autorId: post.autorId || autor?.uid });
       $("postAnterior").disabled = indice <= 0;
@@ -519,7 +519,7 @@
     $("folhaPost").addEventListener("fechada", () => $("postMidia").querySelector("video")?.pause());
     $("postApagar").addEventListener("click", async () => {
       const post = postCtx.lista[postCtx.indice];
-      if (!confirm("Apagar esta publicação? Essa ação não pode ser desfeita.")) return;
+      if (!await confirmarHF({ titulo: "Apagar esta publicação?", texto: "Ela some do seu perfil e do Diário. Não dá para desfazer.", ok: "Apagar", icone: "lixo" })) return;
       try {
         await fb.deleteDoc(fb.doc(fb.db, "diario", post.id));
         fecharFolha("folhaPost");
@@ -750,7 +750,7 @@
     async function solicitarVerificacao() {
       if (dados.verificado) { toast("Seu perfil já é verificado."); return; }
       if (dados.solicitacaoVerificacao) { toast("Sua solicitação já está em análise."); return; }
-      if (!confirm("Enviar pedido de verificação? Nossa equipe vai analisar seu perfil.")) return;
+      if (!await confirmarHF({ titulo: "Pedir o selo de verificado?", texto: "Nossa equipe vai analisar seu perfil.", ok: "Enviar pedido", icone: "selo", cor: "normal" })) return;
       try {
         await fb.setDoc(refUsuario, { solicitacaoVerificacao: true, solicitacaoVerificacaoEm: fb.serverTimestamp() }, { merge: true });
         dados.solicitacaoVerificacao = true;
@@ -1171,7 +1171,7 @@
         { rotulo: "Ver perfil", icone: "olho", fn: () => abrirPerfilPublico(v.outro) },
         { rotulo: v.pendente ? "Cancelar pedido" : "Desfazer vínculo", sub: v.pendente ? "" : "Some dos dois perfis", icone: "lixo", perigo: true,
           fn: async () => {
-            if (!v.pendente && !confirm(`Desfazer o vínculo com ${nome}?`)) return;
+            if (!v.pendente && !await confirmarHF({ titulo: `Desfazer o vínculo com ${nome}?`, texto: "Ele some dos dois perfis.", ok: "Desfazer", icone: "pessoa" })) return;
             try { await fb.deleteDoc(fb.doc(fb.db, "vinculos", v.id)); toast(v.pendente ? "Pedido cancelado" : "Vínculo desfeito"); }
             catch (e) { toast("Não foi possível: " + erroAmigavel(e)); }
           } }
