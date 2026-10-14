@@ -392,7 +392,7 @@
       wrap.addEventListener("pointerdown", (e) => {
         if (e.button || e.target.closest(".pf-editar-foto, .pf-rosa, .pf-duo-bolha")) return;
         x0 = e.clientX; y0 = e.clientY; wrap.classList.add("segurando");
-        tempo = setTimeout(() => { tempo = null; wrap.classList.remove("segurando"); wrap._segurou = true; navigator.vibrate?.(12); abrirFotoGrande(dadosFoto()); }, 420);
+        tempo = setTimeout(() => { tempo = null; wrap.classList.remove("segurando"); wrap._segurou = true; setTimeout(() => { wrap._segurou = false; }, 700); navigator.vibrate?.(12); abrirFotoGrande(dadosFoto()); }, 420);
       });
       wrap.addEventListener("pointermove", (e) => { if (tempo && Math.hypot(e.clientX - x0, e.clientY - y0) > 10) parar(); });
       ["pointerup", "pointercancel", "pointerleave"].forEach((t) => wrap.addEventListener(t, () => { if (tempo) parar(); }));
@@ -440,7 +440,6 @@
       tela.addEventListener("click", (e) => { if (e.target === tela || e.target === centro) fechar(); });
       document.addEventListener("keydown", tecla);
       document.body.appendChild(tela);
-      bX.focus({ preventScroll: true });
     }
 
     const contagem = { seguidores: 0, seguindo: 0 };
