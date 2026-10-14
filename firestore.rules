@@ -1781,7 +1781,7 @@ service cloud.firestore {
                     && id == request.resource.data.postId + '_' + request.auth.uid
                     && exists(/databases/$(database)/documents/diario/$(request.resource.data.postId))
                     && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
-                    && request.resource.data.postAutorId != request.auth.uid
+                    // pode dar estrelas na própria publicação ("se curtir")
                     && notaOk(request.resource.data)
                     && !bloqueioEntre(request.auth.uid, request.resource.data.postAutorId)
                     && request.resource.data.criadoEm == request.time;
@@ -1890,13 +1890,23 @@ service cloud.firestore {
             && (!('mediaTipo' in d) || d.mediaTipo in ['', 'image', 'video'])
             && (!('mediaUrl' in d) || d.mediaUrl == ''
                 || (d.mediaUrl is string
-                    && d.mediaUrl.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*')));
+                    && d.mediaUrl.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*')))
+            // Várias fotos (2 a 4): a primeira é a mesma de mediaUrl; cada uma do próprio site.
+            && (!('midias' in d)
+                || (d.midias is list && d.midias.size() >= 2 && d.midias.size() <= 4
+                    && d.get('mediaTipo', '') == 'image' && d.midias[0] == d.get('mediaUrl', '')
+                    && fotoPubOk(d.midias[1])
+                    && (d.midias.size() < 3 || fotoPubOk(d.midias[2]))
+                    && (d.midias.size() < 4 || fotoPubOk(d.midias[3]))));
+      }
+      function fotoPubOk(u) {
+        return u is string && u.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*');
       }
 
       allow create: if logado()
                     && emailOk()
                     && request.resource.data.autorId == request.auth.uid
-                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'fotoPerfil', 'texto', 'mediaUrl', 'mediaTipo', 'criadoEm'])
+                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'fotoPerfil', 'texto', 'mediaUrl', 'mediaTipo', 'midias', 'criadoEm'])
                     && ritmoOk('pub')
                     && publicacaoOk();
 

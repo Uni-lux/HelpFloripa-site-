@@ -289,6 +289,26 @@ await t("equipe: foto de outro site é recusada", () => assertFails(setDoc(doc(c
 await t("equipe: só o documento 'grupo'", () => assertFails(setDoc(doc(ctx("adm"), "equipe_info", "outro"), { foto: fotoP, por: "adm", em: serverTimestamp() })));
 await t("equipe: tirar a foto do grupo", () => assertSucceeds(setDoc(doc(ctx("adm"), "equipe_info", "grupo"), { foto: null, por: "adm", em: serverTimestamp() })));
 
+// Diário: várias fotos (2 a 4) numa publicação; salvos ficam na própria conta.
+async function publicar(quem, dadosPub) {
+  const db = ctx(quem), b = writeBatch(db);
+  b.set(doc(collection(db, "diario")), { autorId: quem, nome: quem, fotoPerfil: "", texto: "", criadoEm: serverTimestamp(), ...dadosPub });
+  b.set(doc(db, "ritmo", quem), { inicio: serverTimestamp(), msg: 0, pub: 1, com: 0, parc: 0, ultimaEm: serverTimestamp(), ultimoTipo: "pub" });
+  return b.commit();
+}
+const fP = (n) => "data:image/jpeg;base64,/9j/" + "A".repeat(n);
+await semRegras(async (db) => { const { deleteDoc: dd } = await import("firebase/firestore"); for (const u of ["edu", "nova", "dono"]) await dd(doc(db, "ritmo", u)); });
+await t("diário: publica com 3 fotos", () => assertSucceeds(publicar("edu", { mediaUrl: fP(4), mediaTipo: "image", midias: [fP(4), fP(5), fP(6)] })));
+await t("diário: recusa 5 fotos", () => assertFails(publicar("dono", { mediaUrl: fP(4), mediaTipo: "image", midias: [fP(4), fP(5), fP(6), fP(7), fP(8)] })));
+await t("diário: recusa foto de outro site no meio", () => assertFails(publicar("dono", { mediaUrl: fP(4), mediaTipo: "image", midias: [fP(4), "https://exemplo.com/a.jpg"] })));
+await t("diário: a primeira tem que ser a mesma da capa (mediaUrl)", () => assertFails(publicar("dono", { mediaUrl: fP(4), mediaTipo: "image", midias: [fP(9), fP(5)] })));
+await t("diário: uma foto só continua igual (sem midias)", () => assertSucceeds(publicar("dono", { mediaUrl: fP(4), mediaTipo: "image" })));
+await semRegras((db) => setDoc(doc(db, "diario", "pEdu"), { autorId: "edu", nome: "Edu", texto: "oi", criadoEm: antigo }));
+await t("estrelas: dá estrelas na própria publicação", () => assertSucceeds(setDoc(doc(ctx("edu"), "curtidas", "pEdu_edu"), { postId: "pEdu", uid: "edu", postAutorId: "edu", nota: 5, criadoEm: serverTimestamp() })));
+await t("estrelas: não finge que é de outra pessoa (autor errado)", () => assertFails(setDoc(doc(ctx("bia"), "curtidas", "pEdu_bia"), { postId: "pEdu", uid: "bia", postAutorId: "bia", nota: 5, criadoEm: serverTimestamp() })));
+await t("estrelas: outra pessoa também dá", () => assertSucceeds(setDoc(doc(ctx("bia"), "curtidas", "pEdu_bia"), { postId: "pEdu", uid: "bia", postAutorId: "edu", nota: 4, criadoEm: serverTimestamp() })));
+await t("diário: salvar publicação fica na própria conta", () => assertSucceeds(setDoc(doc(ctx("bia"), "usuarios", "bia"), { salvos: ["p1"] }, { merge: true })));
+
 // ---------- resultado ----------
 for (const r of resultados) console.log(r[0] === "ok" ? "  ✔" : "  ✘", r[1], r[2] ? "→ " + r[2] : "");
 console.log(`\n${ok} passaram, ${falhou} falharam (${arquivo})`);

@@ -62,9 +62,14 @@ export function estrelasDoAutor(fbx, uid, { recarregar = false } = {}) {
   if (!fbx?.db || !uid) return Promise.resolve(null);
   if (recarregar || !cacheEstrelas.has(uid)) {
     const col = fbx.collection(fbx.db, "curtidas");
-    cacheEstrelas.set(uid, Promise.all([1, 2, 3, 4, 5].map((n) =>
+    // As estrelas que a pessoa deu nas próprias publicações não contam na nota do perfil.
+    const minhas = fbx.getDocs(fbx.query(col, fbx.where("uid", "==", uid), fbx.where("postAutorId", "==", uid), fbx.limit(500)))
+      .then((s) => s.docs.map((d) => Number(d.data().nota) || 0)).catch(() => []);
+    cacheEstrelas.set(uid, Promise.all([...[1, 2, 3, 4, 5].map((n) =>
       fbx.getCountFromServer(fbx.query(col, fbx.where("postAutorId", "==", uid), fbx.where("nota", "==", n))).then((x) => x.data().count).catch(() => 0)
-    )).then((c) => {
+    ), minhas]).then((c) => {
+      const proprias = c.pop();
+      proprias.forEach((n) => { if (n >= 1 && n <= 5) c[n - 1] = Math.max(0, c[n - 1] - 1); });
       const r = { total: 0, soma: 0, n1: c[0], n2: c[1], n3: c[2], n4: c[3], n5: c[4] };
       c.forEach((q, i) => { r.total += q; r.soma += q * (i + 1); });
       return r;

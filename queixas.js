@@ -9,7 +9,7 @@
 // negócio pelo chat (o negócio não precisa ter respondido — quem some também pode
 // receber reclamação). As regras do Firestore conferem tudo isso.
 // =====================================================
-import { podeAvaliarNegocio, avisar, DIAS_CONTA } from "./avaliacoes.js?v=12";
+import { podeAvaliarNegocio, avisar, DIAS_CONTA } from "./avaliacoes.js?v=13";
 
 export const MOTIVOS = {
   atraso: "Atraso ou prazo não cumprido",

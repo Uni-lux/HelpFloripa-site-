@@ -25,6 +25,8 @@ const SIMBOLOS = `<symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l
 <symbol id="i-bloquear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/></symbol>
 <symbol id="i-restringir" viewBox="0 0 24 24"><path d="M12 3.5l7 3v5.2c0 4.2-2.9 7.6-7 8.8-4.1-1.2-7-4.6-7-8.8V6.5z"/><path d="M9 12h6"/></symbol>
 <symbol id="i-pessoa-menos" viewBox="0 0 24 24"><circle cx="10" cy="8.5" r="3.8"/><path d="M3.5 20c1-3.4 3.6-5.3 6.5-5.3 1.4 0 2.7.4 3.8 1.2M15 16h6"/></symbol>
+<symbol id="i-salvo" viewBox="0 0 24 24"><path d="M6.5 4.5h11v15.5L12 16l-5.5 4z"/></symbol>
+<symbol id="i-fotos" viewBox="0 0 24 24"><rect x="7" y="7" width="13" height="13" rx="2.2"/><path d="M4 16V6.2A2.2 2.2 0 016.2 4H16"/></symbol>
 <symbol id="i-pontos" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="18.5" cy="12" r="1.3" fill="currentColor"/></symbol>
 <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1"/></symbol>
 <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
@@ -589,7 +591,12 @@ export async function infoEstrelas(postId, { recarregar = false } = {}) {
   const guardado = recarregar ? undefined : contador("e:" + postId);
   const ref = fb.doc(fb.db, "curtidas", `${postId}_${eu.uid}`);
   const [ag, minha] = await Promise.all([
-    guardado ? guardado : fb.getAggregateFromServer(q, { soma: fb.sum("nota"), media: fb.average("nota") }).then((s) => { const d = s.data(); guardarContador("e:" + postId, { soma: d.soma, media: d.media }); return d; }).catch(() => ({ soma: 0, media: null })),
+    guardado ? guardado : fb.getAggregateFromServer(q, { soma: fb.sum("nota"), media: fb.average("nota") }).then((s) => s.data())
+      // Soma/média no servidor pode pedir um índice que ainda não existe (aparecia "Sem notas" mesmo com
+      // notas dadas): então conta lendo as notas da publicação.
+      .catch((e) => { console.warn("Estrelas (soma no servidor):", e?.code || e?.message); return fb.getDocs(fb.query(q, fb.limit(1000))).then((s) => { const notas = s.docs.map((d) => Number(d.data().nota) || 0).filter(Boolean); const soma = notas.reduce((a, b) => a + b, 0); return { soma, media: notas.length ? soma / notas.length : null }; }); })
+      .then((d) => { guardarContador("e:" + postId, { soma: d.soma, media: d.media }); return d; })
+      .catch(() => ({ soma: 0, media: null })),
     // A sua nota: muda só quando você mesmo dá estrelas (a cópia do aparelho se atualiza na hora).
     (recarregar ? fb.getDoc(ref) : docComValidade(fb, ["curtidas", ref.id], 30 * 60000)).then((s) => (s.exists() ? Number(s.data().nota) || 0 : 0)).catch(() => 0)
   ]);
@@ -625,14 +632,14 @@ export async function contarComentarios(postId, { recarregar = false } = {}) {
 
 // Cinco estrelas clicáveis: toque na 3ª = 3 estrelas; toque de novo na mesma = tira.
 export function seletorEstrelas(post, { aoMudar } = {}) {
-  const box = el("div", "estrelas-post");
   const proprio = post.autorId === eu.uid;
-  const linha = el("div", "estrelas-linha"); linha.setAttribute("role", proprio ? "img" : "group");
-  linha.setAttribute("aria-label", proprio ? "Estrelas da sua publicação" : "Dar estrelas");
+  const box = el("div", "estrelas-post" + (proprio ? " proprio-post" : ""));
+  // Todo mundo dá estrelas, inclusive na própria publicação ("se curtir").
+  const linha = el("div", "estrelas-linha"); linha.setAttribute("role", "group");
+  linha.setAttribute("aria-label", "Dar estrelas");
   const bots = [1, 2, 3, 4, 5].map((n) => {
     const b = el("button", "estrela", "★"); b.type = "button";
     b.setAttribute("aria-label", `${n} ${n === 1 ? "estrela" : "estrelas"}`);
-    if (proprio) { b.disabled = true; b.tabIndex = -1; }
     linha.appendChild(b);
     return b;
   });
@@ -641,17 +648,19 @@ export function seletorEstrelas(post, { aoMudar } = {}) {
   let info = { media: 0, n: 0, minha: 0 };
   const pintar = (i, previa = 0) => {
     info = i;
-    const alvo = previa || (proprio ? Math.round(i.media) : i.minha);
+    const alvo = previa || i.minha;
     bots.forEach((b, k) => {
       b.classList.toggle("on", k < alvo);
-      b.classList.toggle("minha", !proprio && !previa && k < i.minha);
-      b.setAttribute("aria-pressed", !proprio && i.minha === k + 1 ? "true" : "false");
+      b.classList.toggle("minha", !previa && k < i.minha);
+      b.setAttribute("aria-pressed", i.minha === k + 1 ? "true" : "false");
     });
-    const media = i.n ? `${i.media.toFixed(1).replace(".", ",")} · ${i.n} ${i.n === 1 ? "nota" : "notas"}` : "Sem notas";
-    txt.textContent = !proprio && i.minha ? `Sua nota: ${i.minha} · ${media}` : media;
+    // A sua nota já entra na média: se só você deu, aparece "1 nota" (nunca "Sem notas" com nota dada).
+    const n = Math.max(i.n, i.minha ? 1 : 0), med = i.n ? i.media : i.minha;
+    const media = n ? `${med.toFixed(1).replace(".", ",")} · ${n} ${n === 1 ? "nota" : "notas"}` : "Sem notas";
+    txt.textContent = i.minha ? `Sua nota: ${i.minha} · ${media}` : media;
   };
   quandoVisivel(box, () => infoEstrelas(post.id).then((i) => pintar(i)));
-  if (!proprio) {
+  {
     bots.forEach((b, k) => {
       // Prévia só com mouse: no toque o "hover" fica preso e confundiria a nota.
       b.addEventListener("pointerenter", (e) => { if (e.pointerType === "mouse") pintar(info, k + 1); });
@@ -663,13 +672,119 @@ export function seletorEstrelas(post, { aoMudar } = {}) {
           pintar(await darEstrelas(post, nova));
           toast(nova ? `Você deu ${nova} ${nova === 1 ? "estrela" : "estrelas"}` : "Nota removida");
           aoMudar?.(info);
-        } catch (e) { toast("Não foi possível salvar: " + erroAmigavel(e)); pintar(info); }
+        } catch (e) { toast(erroEstrelas(e)); pintar(info); }
         finally { linha.classList.remove("salvando"); }
       });
     });
   }
   box.recarregar = () => infoEstrelas(post.id, { recarregar: true }).then((i) => pintar(i));
+  // Toque duplo na foto: 5 estrelas de uma vez (nunca tira a nota, como o coração do Instagram).
+  box.darRapido = async () => {
+    if (info.minha === 5) return true;
+    try { pintar(await darEstrelas(post, 5)); aoMudar?.(info); return info.minha === 5; }
+    catch (e) { toast(erroEstrelas(e)); return false; }
+  };
+  // Na própria publicação, com as regras antigas no servidor, explica em vez de "sem permissão".
+  const erroEstrelas = (e) => (proprio && e?.code === "permission-denied"
+    ? "Dar estrelas na própria publicação começa a funcionar quando as regras novas forem publicadas."
+    : "Não foi possível salvar: " + erroAmigavel(e));
+  // Na própria publicação: tocar no resumo mostra quem deu as estrelas.
+  if (proprio) {
+    txt.classList.add("ver-quem"); txt.setAttribute("role", "button"); txt.tabIndex = 0; txt.title = "Ver quem deu estrelas";
+    box.title = "Toque nas estrelas para dar a sua nota; toque no resumo para ver quem deu";
+    // Abre sempre: a lista é lida na hora (o resumo pode estar guardado de alguns minutos atrás).
+    const ver = () => abrirQuemDeuEstrelas(post).then((n) => { if (n !== info.n) box.recarregar(); });
+    txt.addEventListener("click", ver);
+    txt.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); ver(); } });
+  }
   return box;
+}
+
+// Lista de quem deu estrelas na sua publicação (a nota de cada um, da maior para a menor).
+export async function abrirQuemDeuEstrelas(post) {
+  const corpo = abrirLista("Quem deu estrelas");
+  corpo.appendChild(el("div", "lista-vazia", "Carregando..."));
+  try {
+    const s = await fb.getDocs(fb.query(fb.collection(fb.db, "curtidas"), fb.where("postId", "==", post.id), fb.limit(300)));
+    const notas = s.docs.map((d) => d.data()).filter((d) => d.uid && !escondido(d.uid)).sort((a, b) => (b.nota || 0) - (a.nota || 0));
+    corpo.replaceChildren();
+    if (!notas.length) { corpo.appendChild(el("div", "lista-vazia", "Ninguém deu estrelas ainda.")); return 0; }
+    const media = notas.reduce((a, d) => a + (Number(d.nota) || 0), 0) / notas.length;
+    corpo.appendChild(el("p", "quem-deu-resumo", `${notas.length} ${notas.length === 1 ? "pessoa" : "pessoas"} · média ${media.toFixed(1).replace(".", ",")}`));
+    const perfis = await Promise.all(notas.map((d) => obterPerfil(d.uid).catch(() => ({}))));
+    notas.forEach((d, i) => {
+      const n = Math.max(0, Math.min(5, Number(d.nota) || 0));
+      corpo.appendChild(linhaPessoa({ uid: d.uid, nome: perfis[i].nome || "Usuário", foto: perfis[i].fotoPerfil, sub: "★".repeat(n) + "☆".repeat(5 - n) + `  ${n} ${n === 1 ? "estrela" : "estrelas"}` }));
+    });
+    return notas.length;
+  } catch (e) { corpo.replaceChildren(el("div", "lista-vazia", "Não foi possível carregar: " + erroAmigavel(e))); }
+}
+
+// Estrela grande que aparece no meio da foto (toque duplo).
+export function estrelaNaFoto(alvo) {
+  const s = el("span", "estrela-pulo", "★"); s.setAttribute("aria-hidden", "true");
+  alvo.appendChild(s);
+  setTimeout(() => s.remove(), 900);
+}
+
+// ---------- várias fotos numa publicação ----------
+// midias: lista de fotos (2 a 4); mediaUrl continua sendo a primeira (telas antigas mostram ela).
+export function fotosDoPost(post) {
+  if (post.mediaTipo === "video") return [];
+  const lista = Array.isArray(post.midias) && post.midias.length > 1 ? post.midias : [post.mediaUrl];
+  return lista.map((u) => urlSegura(u)).filter(Boolean);
+}
+// Fotos lado a lado (deslizar), com pontinhos e "1/3". Toque simples e duplo separados.
+export function carrosselFotos(urls, { alt = "Foto da publicação", aoToque, aoToqueDuplo } = {}) {
+  const box = el("div", "carrossel" + (urls.length > 1 ? " varias" : ""));
+  const trilho = el("div", "car-trilho");
+  urls.forEach((u, i) => {
+    const img = document.createElement("img"); img.src = u; img.alt = urls.length > 1 ? `${alt} (${i + 1} de ${urls.length})` : alt; img.loading = i ? "lazy" : "eager"; img.decoding = "async"; img.draggable = false;
+    trilho.appendChild(img);
+  });
+  box.appendChild(trilho);
+  if (urls.length > 1) {
+    const cont = el("span", "car-cont", `1/${urls.length}`);
+    const pontos = el("div", "car-pontos");
+    const ps = urls.map((_, i) => { const p = el("i", i ? "" : "on"); pontos.appendChild(p); return p; });
+    const seta = (dir) => { const b = el("button", "car-seta " + (dir < 0 ? "esq" : "dir")); b.type = "button"; b.setAttribute("aria-label", dir < 0 ? "Foto anterior" : "Próxima foto"); b.appendChild(icone(dir < 0 ? "voltar" : "avancar", "i s")); b.addEventListener("click", (e) => { e.stopPropagation(); trilho.scrollBy({ left: dir * trilho.clientWidth, behavior: "smooth" }); }); return b; };
+    const esq = seta(-1), dir = seta(1);
+    box.append(cont, pontos, esq, dir);
+    const atual = () => Math.round(trilho.scrollLeft / Math.max(1, trilho.clientWidth));
+    const pintar = () => { const i = Math.min(urls.length - 1, atual()); cont.textContent = `${i + 1}/${urls.length}`; ps.forEach((p, k) => p.classList.toggle("on", k === i)); esq.hidden = i === 0; dir.hidden = i === urls.length - 1; };
+    trilho.addEventListener("scroll", () => requestAnimationFrame(pintar), { passive: true });
+    pintar();
+    box.indice = atual;
+  }
+  // Um toque espera um instante para ver se vem o segundo (toque duplo).
+  let ultimo = 0, timer = null;
+  trilho.addEventListener("click", (e) => {
+    const agora = Date.now();
+    if (agora - ultimo < 320) { clearTimeout(timer); ultimo = 0; aoToqueDuplo?.(e); return; }
+    ultimo = agora;
+    clearTimeout(timer);
+    timer = setTimeout(() => aoToque?.(e), aoToqueDuplo ? 300 : 0);
+  });
+  return box;
+}
+
+// ---------- publicações salvas (usuarios/{uid}.salvos: só a própria pessoa vê) ----------
+let salvos = null;
+const listaSalvos = () => { if (!salvos) salvos = Array.isArray(dados?.salvos) ? dados.salvos.slice(-300) : []; return salvos; };
+export const estaSalvo = (id) => listaSalvos().includes(id);
+export const idsSalvos = () => listaSalvos().slice().reverse(); // mais recentes primeiro
+export async function alternarSalvo(post) {
+  const ja = estaSalvo(post.id);
+  salvos = ja ? listaSalvos().filter((x) => x !== post.id) : [...listaSalvos(), post.id];
+  try {
+    await fb.setDoc(refUsuario, { salvos: ja ? fb.arrayRemove(post.id) : fb.arrayUnion(post.id) }, { merge: true });
+    toast(ja ? "Removida dos salvos" : "Publicação salva. Veja em Diário → Salvos.");
+    return !ja;
+  } catch (e) {
+    salvos = ja ? [...listaSalvos(), post.id] : listaSalvos().filter((x) => x !== post.id);
+    toast("Não foi possível salvar: " + erroAmigavel(e));
+    return ja;
+  }
 }
 
 // Barra da publicação: estrelas, comentar e compartilhar.
@@ -688,6 +803,7 @@ export function barraInteracao(post, { aoComentar } = {}) {
   bM.addEventListener("click", () => (aoComentar ? aoComentar() : abrirComentarios(post, { aoMudar: pintarN })));
   bS.addEventListener("click", () => compartilharPerfil(post.autorId, post.nome));
   barra.atualizarComentarios = pintarN;
+  barra.estrelas = est;
   return barra;
 }
 
@@ -895,7 +1011,7 @@ export function abrirCompositor({ aoPublicar } = {}) {
       <textarea class="pub-texto" id="pubTexto" maxlength="1000" placeholder="Compartilhe um trabalho, uma novidade ou uma dica..." aria-label="Texto da publicação"></textarea>
       <div class="pub-previa" id="pubPrevia" hidden></div>
       <div class="pub-ferramentas">
-        <button type="button" class="icone-btn" id="pubFoto" aria-label="Adicionar foto" title="Foto"><svg class="i"><use href="#i-imagem"/></svg></button>
+        <button type="button" class="icone-btn" id="pubFoto" aria-label="Adicionar foto (até 4)" title="Foto (até 4)"><svg class="i"><use href="#i-imagem"/></svg></button>
         <button type="button" class="icone-btn" id="pubVideo" aria-label="Adicionar vídeo" title="Vídeo"><svg class="i"><use href="#i-video"/></svg></button>
         <span class="cont" id="pubCont">0/1000</span>
       </div>
@@ -975,6 +1091,23 @@ export function editarPublicacao(post, aoSalvar) {
   setTimeout(() => $("edPostTexto").focus(), 150);
 }
 
+// Encolhe as fotos (lado e qualidade) até todas juntas caberem num documento.
+async function caberNoDocumento(fotos, limite = 860000) {
+  const total = () => fotos.reduce((a, f) => a + f.length, 0);
+  if (total() <= limite) return fotos;
+  const carregar = (u) => new Promise((ok, falha) => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => falha(new Error("Não foi possível preparar a foto.")); im.src = u; });
+  const imgs = await Promise.all(fotos.map(carregar));
+  for (const [lado, q] of [[1080, 0.72], [960, 0.66], [840, 0.6], [720, 0.55], [600, 0.5], [480, 0.45]]) {
+    fotos = imgs.map((im) => {
+      const e = Math.min(1, lado / Math.max(im.naturalWidth, im.naturalHeight));
+      const cv = document.createElement("canvas"); cv.width = Math.round(im.naturalWidth * e); cv.height = Math.round(im.naturalHeight * e);
+      const cx = cv.getContext("2d"); cx.fillStyle = "#fff"; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(im, 0, 0, cv.width, cv.height);
+      return cv.toDataURL("image/jpeg", q);
+    });
+    if (total() <= limite) return fotos;
+  }
+  throw new Error("As fotos ficaram grandes demais juntas. Tente com menos fotos.");
+}
 function limparPublicacao() {
   $("pubTexto").value = "";
   $("pubCont").textContent = "0/1000";
@@ -983,10 +1116,33 @@ function limparPublicacao() {
   $("pubPrevia").hidden = true;
   $("pubPrevia").replaceChildren();
 }
+export const MAX_FOTOS = 4;
 function mostrarPreviaPublicacao() {
   const box = $("pubPrevia");
   box.replaceChildren();
+  box.classList.toggle("varias", pubMidia?.tipo === "image" && pubMidia.fotos.length > 1);
   if (!pubMidia) { box.hidden = true; return; }
+  if (pubMidia.tipo === "image") {
+    // Até 4 fotos: miniaturas com "x" em cada uma e o quadrado de adicionar mais.
+    pubMidia.fotos.forEach((f, i) => {
+      const it = el("div", "pub-foto");
+      const im = document.createElement("img"); im.src = f; im.alt = `Foto ${i + 1}`;
+      const x = el("button", "icone-btn"); x.type = "button"; x.setAttribute("aria-label", `Tirar a foto ${i + 1}`);
+      x.appendChild(icone("fechar", "i s"));
+      x.addEventListener("click", () => { pubMidia.fotos.splice(i, 1); if (!pubMidia.fotos.length) pubMidia = null; mostrarPreviaPublicacao(); });
+      it.append(im, x);
+      if (pubMidia.fotos.length > 1) it.appendChild(el("span", "pub-foto-n", String(i + 1)));
+      box.appendChild(it);
+    });
+    if (pubMidia.fotos.length < MAX_FOTOS) {
+      const mais = el("button", "pub-foto-mais"); mais.type = "button"; mais.setAttribute("aria-label", "Adicionar outra foto");
+      mais.append(icone("mais", "i"), el("span", null, `${pubMidia.fotos.length}/${MAX_FOTOS}`));
+      mais.addEventListener("click", () => $("pubArquivoFoto").click());
+      box.appendChild(mais);
+    }
+    box.hidden = false;
+    return;
+  }
   const m = document.createElement(pubMidia.tipo === "video" ? "video" : "img");
   m.src = pubMidia.previa;
   if (pubMidia.tipo === "video") { m.controls = true; m.playsInline = true; } else m.alt = "Prévia";
@@ -1004,6 +1160,7 @@ function ligarCompositor() {
     const arquivo = $("pubArquivoFoto").files?.[0];
     $("pubArquivoFoto").value = "";
     if (!arquivo) return;
+    if (pubMidia?.tipo === "image" && pubMidia.fotos.length >= MAX_FOTOS) { toast(`No máximo ${MAX_FOTOS} fotos por publicação.`); return; }
     try {
       const dataUrl = await editarImagem(arquivo, {
         titulo: "Enquadrar publicação",
@@ -1012,7 +1169,9 @@ function ligarCompositor() {
         miniatura: 4 / 5, larguraSaida: 1080, qualidade: 0.8, limiteBytes: LIMITE_DOC
       });
       if (!dataUrl) return;
-      pubMidia = { tipo: "image", dataUrl, previa: dataUrl };
+      if (pubMidia?.tipo !== "image") pubMidia = { tipo: "image", fotos: [] };
+      if (pubMidia.fotos.length >= MAX_FOTOS) { toast(`No máximo ${MAX_FOTOS} fotos por publicação.`); return; }
+      pubMidia.fotos.push(dataUrl);
       mostrarPreviaPublicacao();
     } catch (e) { toast(erroAmigavel(e)); }
   });
@@ -1031,10 +1190,16 @@ function ligarCompositor() {
     const btn = $("pubEnviar");
     btn.disabled = true; btn.textContent = "Publicando...";
     try {
-      let mediaUrl = "", mediaTipo = "";
+      let mediaUrl = "", mediaTipo = "", midias = null;
       if (pubMidia?.tipo === "image") {
-        mediaUrl = await salvarImagem(pubMidia.dataUrl, `diario/${eu.uid}/${Date.now()}.jpg`);
-        mediaTipo = "image";
+        // Sem Storage, as fotos vão dentro do documento (limite de ~1 MB): várias fotos encolhem para caber.
+        let fotos = pubMidia.fotos.slice(0, MAX_FOTOS);
+        if (fotos.length > 1 && !(storageFns && window.firebaseStorage)) fotos = await caberNoDocumento(fotos);
+        const agora = Date.now();
+        const urls = [];
+        for (let i = 0; i < fotos.length; i++) urls.push(await salvarImagem(fotos[i], `diario/${eu.uid}/${agora}-${i}.jpg`));
+        mediaUrl = urls[0]; mediaTipo = "image";
+        if (urls.length > 1) midias = urls;
       } else if (pubMidia?.tipo === "video") {
         const ext = (pubMidia.arquivo.name.split(".").pop() || "mp4").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "mp4";
         const r = storageFns.ref(window.firebaseStorage, `diario/${eu.uid}/${Date.now()}.${ext}`);
@@ -1043,16 +1208,23 @@ function ligarCompositor() {
         mediaTipo = "video";
       }
       const foto = urlSegura(dados.fotoPerfil).startsWith("https://") ? dados.fotoPerfil : "";
-      const ref = await comRitmo(fb, eu.uid, "pub", (lote) => {
+      const gravar = (comVarias) => comRitmo(fb, eu.uid, "pub", (lote) => {
         const r = fb.doc(fb.collection(fb.db, "diario"));
-        lote.set(r, { autorId: eu.uid, nome: dados.nome || "Usuário", fotoPerfil: foto, texto, mediaUrl, mediaTipo, criadoEm: fb.serverTimestamp() });
+        lote.set(r, { autorId: eu.uid, nome: dados.nome || "Usuário", fotoPerfil: foto, texto, mediaUrl, mediaTipo, ...(comVarias && midias ? { midias } : {}), criadoEm: fb.serverTimestamp() });
         return r;
       });
+      let ref, soPrimeira = false;
+      try { ref = await gravar(true); }
+      catch (e) {
+        // Regras antigas no servidor (sem "midias"): publica com a primeira foto.
+        if (!midias || e?.code !== "permission-denied") throw e;
+        ref = await gravar(false); soPrimeira = true; midias = null;
+      }
       btn.disabled = false;
       limparPublicacao();
       fecharFolha("folhaPublicar");
-      toast("Publicado!");
-      $("folhaPublicar").aoPublicar?.({ id: ref.id, autorId: eu.uid, nome: dados.nome, fotoPerfil: foto, texto, mediaUrl, mediaTipo, criadoEm: null });
+      toast(soPrimeira ? "Publicado com a primeira foto. Várias fotos começam a funcionar quando as regras novas forem publicadas." : "Publicado!");
+      $("folhaPublicar").aoPublicar?.({ id: ref.id, autorId: eu.uid, nome: dados.nome, fotoPerfil: foto, texto, mediaUrl, mediaTipo, ...(midias ? { midias } : {}), criadoEm: null });
     } catch (e) {
       if (e?.code !== "limite-diario") console.error(e);
       toast("Não foi possível publicar: " + erroAmigavel(e));

@@ -23,9 +23,9 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="rede.css?v=7" />
+  <link rel="stylesheet" href="rede.css?v=9" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="feed.js?v=29"></script>
+  <script type="module" src="feed.js?v=32"></script>
 </head>
 <body>
   <header class="topo">
@@ -52,6 +52,7 @@
           <div class="filtro-feed" id="filtroFeed" role="group" aria-label="Mostrar publicações de">
             <button type="button" data-filtro="seguindo" aria-pressed="true">Quem eu sigo</button>
             <button type="button" data-filtro="todos" aria-pressed="false">Todos</button>
+            <button type="button" data-filtro="salvos" aria-pressed="false"><svg class="i xs" aria-hidden="true"><use href="#i-salvo"/></svg>Salvos</button>
           </div>
           <div id="listaFeed"></div>
           <div style="text-align:center"><button type="button" class="btn sec" id="maisFeed" hidden>Ver mais publicações</button></div>
