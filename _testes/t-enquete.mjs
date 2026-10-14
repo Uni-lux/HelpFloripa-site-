@@ -41,14 +41,14 @@ await card.locator(".enquete .enq-op", { hasText: "Verde" }).tap(); await pb.wai
 const voto = (await db.doc(`enquete_votos/d_${post.id}_${U.bruno}`).get()).data();
 ok(voto?.opcao === 1 && await card.locator(".enquete .enq-op.minha", { hasText: "Verde" }).count() === 1 && await card.locator(".enquete .enq-pct").count() === 3, "votou em Verde: grava o voto e mostra as porcentagens → " + (await card.locator(".enquete").textContent()).replace(/\s+/g, " ").slice(0, 90));
 await card.screenshot({ path: "saida/enquete-votou.png" });
-await card.locator(".enquete .enq-op", { hasText: "Azul" }).tap(); await pb.waitForTimeout(1500);
-ok((await db.doc(`enquete_votos/d_${post.id}_${U.bruno}`).get()).data()?.opcao === 0, "trocar o voto para Azul");
+await card.locator(".enquete .enq-op", { hasText: "Azul" }).tap({ force: true }); await pb.waitForTimeout(1500);
+ok((await db.doc(`enquete_votos/d_${post.id}_${U.bruno}`).get()).data()?.opcao === 1, "voto único: tocar em Azul depois não troca o voto");
 // 3) Ana vê os números
 await pa.reload(); await pa.waitForSelector(".post-card", { timeout: 30000 });
 const meu = pa.locator(".post-card", { hasText: "Ajudem a escolher" }).first();
 await meu.scrollIntoViewIfNeeded(); await pa.waitForTimeout(2000);
 const txtA = (await meu.locator(".enquete").textContent()).replace(/\s+/g, " ");
-ok(/1 voto/.test(txtA) && txtA.includes("100%"), "autora vê o resultado sem votar → " + txtA.slice(0, 90));
+ok(/1 voto/.test(txtA) && txtA.includes("Verde100%"), "autora vê o resultado sem votar → " + txtA.slice(0, 90));
 // 4) Configurações: quem pode me marcar e quem comenta
 await pa.goto(new URL("configuracoes.html", pa.url()).href);
 await pa.waitForSelector("#cfgMarcar button", { timeout: 30000 }); await pa.waitForTimeout(1500);

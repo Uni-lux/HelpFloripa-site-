@@ -23,6 +23,7 @@ if [ "$R" = "main" ]; then
   echo "== t-coment.mjs"; node seed.mjs > /dev/null 2>&1; timeout 300 node t-coment.mjs 2>&1 | grep -v "$F"
   echo "== t-social2.mjs"; node seed.mjs > /dev/null 2>&1; timeout 300 node t-social2.mjs 2>&1 | grep -v "$F"
   echo "== t-enquete.mjs"; node seed.mjs > /dev/null 2>&1; timeout 300 node t-enquete.mjs 2>&1 | grep -v "$F"
+  echo "== t-perfil.mjs"; node seed.mjs > /dev/null 2>&1; timeout 300 node t-perfil.mjs 2>&1 | grep -v "$F"
   echo "== t-principais.mjs"; node seed.mjs > /dev/null 2>&1; timeout 200 node t-principais.mjs 2>&1 | grep -v "$F"
   echo "== t-recalc.mjs"; node seed.mjs > /dev/null 2>&1; timeout 200 node t-recalc.mjs 2>&1 | grep -v "$F"
   echo "== t-eq-apagar.mjs"; node seed.mjs > /dev/null 2>&1; timeout 300 node t-eq-apagar.mjs 2>&1 | grep -v "$F"

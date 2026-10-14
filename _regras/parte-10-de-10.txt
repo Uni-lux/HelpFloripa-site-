@@ -1,7 +1,3 @@
-      function textoComentarioOk(d) {
-        return d.texto is string && d.texto.size() >= 1 && d.texto.size() <= 500;
-      }
-
       // Quem pode comentar (escolha do autor): o autor sempre pode.
       function segue(a, b) { return exists(/databases/$(database)/documents/relacoes/$(a + '_' + b)); }
       function podeComentar(p) {

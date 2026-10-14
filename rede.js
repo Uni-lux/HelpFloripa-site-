@@ -791,6 +791,8 @@ export function seletorEstrelas(post, { aoMudar } = {}) {
   // Toque duplo na foto: 5 estrelas de uma vez (nunca tira a nota, como o coração do Instagram).
   box.darRapido = async () => (info.minha === 5 ? true : (await dar(5, false)) && info.minha === 5);
   box.darNota = async (n) => (info.minha === n ? true : (await dar(n, false)) && info.minha === n);
+  // Texto e enquete: sem estrelas voando por cima; só as estrelas da barra acendem uma a uma.
+  box.pular = () => { linha.classList.remove("pulo"); void linha.offsetWidth; linha.classList.add("pulo"); navigator.vibrate?.([8, 30, 14]); setTimeout(() => linha.classList.remove("pulo"), 1100); };
   return box;
 }
 
@@ -1039,7 +1041,7 @@ export async function alternarSalvo(post) {
 // ---------- enquete (publicação ou flash) ----------
 // Votos em enquete_votos/{tipo}_{id}_{uid}; a contagem de cada opção é feita no servidor (count).
 // Antes de votar só aparecem as opções; depois do voto (ou para o autor), as porcentagens.
-// Tocar na opção escolhida tira o voto; tocar em outra troca.
+// Voto único: depois de votar não dá para trocar nem tirar (as regras também não deixam).
 export function blocoEnquete(item, { tipo = "d", escura = false } = {}) {
   const e = item?.enquete;
   if (!e?.pergunta || !Array.isArray(e.opcoes) || e.opcoes.length < 2) return null;
@@ -1060,6 +1062,7 @@ export function blocoEnquete(item, { tipo = "d", escura = false } = {}) {
     lista.replaceChildren(...e.opcoes.map((o, i) => {
       const b = el("button", "enq-op" + (meu === i ? " minha" : "") + (mostrar && contas[i] === maior && total ? " lider" : "")); b.type = "button";
       b.setAttribute("aria-pressed", String(meu === i));
+      if (meu !== null) b.setAttribute("aria-disabled", "true");
       const pct = total ? Math.round((contas[i] / total) * 100) : 0;
       const barra = el("i", "enq-barra"); barra.style.width = mostrar ? `${pct}%` : "0%";
       const rot = el("span", "enq-rot", o);
@@ -1069,7 +1072,7 @@ export function blocoEnquete(item, { tipo = "d", escura = false } = {}) {
       b.addEventListener("click", (ev) => { ev.stopPropagation(); votar(i); });
       return b;
     }));
-    rod.textContent = !pronto ? "Carregando..." : `${numero(total)} ${total === 1 ? "voto" : "votos"}${meu === null && !souAutor ? " · toque para votar" : meu !== null ? " · toque de novo para tirar" : ""}`;
+    rod.textContent = !pronto ? "Carregando..." : `${numero(total)} ${total === 1 ? "voto" : "votos"}${meu === null ? " · um voto por pessoa, sem troca" : " · seu voto foi registrado"}`;
   };
   async function carregar() {
     const col = fb.collection(fb.db, "enquete_votos");
@@ -1081,20 +1084,17 @@ export function blocoEnquete(item, { tipo = "d", escura = false } = {}) {
   }
   async function votar(i) {
     if (ocupado || !pronto) return;
+    if (meu !== null) { toast("Você já votou nesta enquete. O voto não pode ser trocado."); return; }
     if (await precisaEmail()) return;
     ocupado = true;
-    const antes = meu, contasAntes = contas.slice();
-    if (antes !== null) contas[antes] = Math.max(0, contas[antes] - 1);
-    meu = antes === i ? null : i;
-    if (meu !== null) contas[meu]++;
+    const contasAntes = contas.slice();
+    meu = i; contas[i]++;
     pintar();
     try {
-      if (meu === null) await fb.deleteDoc(ref);
-      else if (antes === null) await fb.setDoc(ref, { alvo, tipo, itemId: item.id, uid: eu.uid, opcao: meu, criadoEm: fb.serverTimestamp() });
-      else await fb.updateDoc(ref, { opcao: meu });
+      await fb.setDoc(ref, { alvo, tipo, itemId: item.id, uid: eu.uid, opcao: i, criadoEm: fb.serverTimestamp() });
       navigator.vibrate?.(8);
     } catch (err) {
-      meu = antes; contas = contasAntes; pintar();
+      meu = null; contas = contasAntes; pintar();
       toast(err?.code === "permission-denied" ? "Enquetes começam a funcionar quando as regras novas forem publicadas." : "Não foi possível votar: " + erroAmigavel(err));
     } finally { ocupado = false; }
   }

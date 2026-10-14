@@ -57,6 +57,7 @@ async function limpar(uid) {
   }
   await apagar("curtidas", col("curtidas").where("uid", "==", uid));
   await apagar("curtidas_comentarios", col("curtidas_comentarios").where("uid", "==", uid));
+  await apagar("enquete_votos", col("enquete_votos").where("uid", "==", uid));
   await apagar("relacoes", col("relacoes").where("seguidorId", "==", uid));
   await apagar("relacoes", col("relacoes").where("alvoId", "==", uid));
   await apagar("bloqueios", col("bloqueios").where("bloqueadorId", "==", uid));

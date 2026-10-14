@@ -1904,10 +1904,9 @@ service cloud.firestore {
             && d.opcao is int && d.opcao >= 0
             && exists(doc) && d.opcao < get(doc).data.enquete.opcoes.size();
       }
+      // Voto único: depois de votar não dá para trocar nem tirar (a limpeza de contas apaga pelo servidor).
       allow create: if logado() && votoOk() && request.resource.data.criadoEm == request.time && !sancionado(request.auth.uid);
-      allow update: if logado() && resource.data.uid == request.auth.uid && votoOk()
-                    && request.resource.data.alvo == resource.data.alvo && request.resource.data.criadoEm == resource.data.criadoEm;
-      allow delete: if logado() && resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
     }
 
     // ===================================================
