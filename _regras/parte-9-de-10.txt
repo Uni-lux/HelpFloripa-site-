@@ -1,3 +1,70 @@
+    // ===================================================
+    // STORIES (24 horas): stories/{id} — foto (no documento ou no Storage) ou vídeo (Storage).
+    // Somem para todos depois de 24 h (o site filtra; o autor apaga os vencidos). vistos/{uid}: quem viu.
+    // ===================================================
+    match /stories/{id} {
+      allow read: if logado();
+      allow create: if logado() && emailOk()
+                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'tipo', 'midia', 'texto', 'duracao', 'criadoEm'])
+                    && request.resource.data.autorId == request.auth.uid
+                    && request.resource.data.criadoEm == request.time
+                    && request.resource.data.tipo in ['imagem', 'video']
+                    && request.resource.data.midia is string
+                    && request.resource.data.midia.size() <= 950000
+                    && request.resource.data.midia.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*')
+                    && (request.resource.data.tipo == 'imagem' || request.resource.data.midia.matches('^https://firebasestorage[.]googleapis[.]com/.*'))
+                    && valorTextoAte(request.resource.data.get('texto', ''), 150)
+                    && valorTextoAte(request.resource.data.get('nome', ''), 80)
+                    && (!('duracao' in request.resource.data) || (request.resource.data.duracao is number && request.resource.data.duracao <= 60))
+                    && !sancionado(request.auth.uid);
+      allow delete: if logado() && (resource.data.autorId == request.auth.uid || podeModerar());
+      allow update: if false;
+      match /vistos/{uid} {
+        allow create: if logado() && uid == request.auth.uid
+                      && request.resource.data.keys().hasOnly(['criadoEm'])
+                      && request.resource.data.criadoEm == request.time;
+        allow read: if logado() && (uid == request.auth.uid
+                      || get(/databases/$(database)/documents/stories/$(id)).data.autorId == request.auth.uid);
+        allow update, delete: if false;
+      }
+    }
+
+    // ===================================================
+    // RASCUNHOS: rascunhos/{uid}/itens/{id} — só a própria pessoa (texto e fotos ainda não publicados).
+    // ===================================================
+    match /rascunhos/{uid}/itens/{id} {
+      allow read, delete: if logado() && uid == request.auth.uid;
+      allow create, update: if logado() && uid == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['texto', 'fotos', 'atualizadoEm'])
+                    && valorTextoAte(request.resource.data.get('texto', ''), 1000)
+                    && (!('fotos' in request.resource.data) || (request.resource.data.fotos is list && request.resource.data.fotos.size() <= 4));
+    }
+
+    // ===================================================
+    // RESUMO DAS ESTRELAS DE UMA PUBLICAÇÃO: diario_notas/{postId} { total, soma, n1..n5 }
+    // Uma leitura mostra a média e quantas pessoas deram 5, 4, 3, 2 e 1 estrela, com mil ou um milhão
+    // de notas. Só muda junto com a nota de quem grava (curtidas/{postId}_{uid}), na conta exata:
+    // a nota de antes sai e a nova entra. A moderação pode recalcular.
+    // ===================================================
+    match /diario_notas/{postId} {
+      allow read: if logado();
+
+      function minhaNota() { return /databases/$(database)/documents/curtidas/$(postId + '_' + request.auth.uid); }
+      function contaCerta() {
+        let a = exists(minhaNota()) ? get(minhaNota()).data.nota : 0;
+        let d = existsAfter(minhaNota()) ? getAfter(minhaNota()).data.nota : 0;
+        let r = resource == null ? {} : resource.data;
+        let n = request.resource.data;
+        return a != d
+            && n.keys().hasOnly(['total', 'soma', 'n1', 'n2', 'n3', 'n4', 'n5'])
+            && n.get('total', 0) == r.get('total', 0) + (d > 0 ? 1 : 0) - (a > 0 ? 1 : 0)
+            && n.get('soma', 0) == r.get('soma', 0) + d - a
+            && n.get('n1', 0) == r.get('n1', 0) + (d == 1 ? 1 : 0) - (a == 1 ? 1 : 0)
+            && n.get('n2', 0) == r.get('n2', 0) + (d == 2 ? 1 : 0) - (a == 2 ? 1 : 0)
+            && n.get('n3', 0) == r.get('n3', 0) + (d == 3 ? 1 : 0) - (a == 3 ? 1 : 0)
+            && n.get('n4', 0) == r.get('n4', 0) + (d == 4 ? 1 : 0) - (a == 4 ? 1 : 0)
+            && n.get('n5', 0) == r.get('n5', 0) + (d == 5 ? 1 : 0) - (a == 5 ? 1 : 0);
+      }
       allow create, update: if logado() && contaCerta();
       // Recalcular (moderação): números inteiros, sem campo estranho.
       allow create, update: if podeModerar()
@@ -90,7 +157,10 @@
 
       allow create: if logado()
                     && emailOk()
-                    && request.resource.data.keys().hasOnly(['comentarioId', 'uid', 'criadoEm', 'reacao'])
+                    && request.resource.data.keys().hasOnly(['comentarioId', 'uid', 'criadoEm', 'reacao', 'comentarioAutorId'])
+                    // quem escreveu o comentário (para avisar da reação)
+                    && (!('comentarioAutorId' in request.resource.data)
+                        || request.resource.data.comentarioAutorId == get(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId)).data.autorId)
                     && request.resource.data.uid == request.auth.uid
                     && id == request.resource.data.comentarioId + '_' + request.auth.uid
                     && exists(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId))
@@ -130,43 +200,17 @@
                     && (d.midias.size() < 3 || fotoPubOk(d.midias[2]))
                     && (d.midias.size() < 4 || fotoPubOk(d.midias[3]))));
       }
+      // Hashtags (até 10, minúsculas, sem #) e pessoas marcadas (até 10 uids): uma expressão cada (join).
+      function tagsOk(d) {
+        return !('tags' in d) || (d.tags is list && d.tags.size() <= 10
+            && (d.tags.size() == 0 || d.tags.join(' ').matches('^[\\p{Ll}\\p{N}_]{1,30}( [\\p{Ll}\\p{N}_]{1,30}){0,9}$')));
+      }
+      function marcadosOk(d) {
+        return !('marcados' in d) || (d.marcados is list && d.marcados.size() <= 10
+            && (d.marcados.size() == 0 || d.marcados.join(' ').matches('^[A-Za-z0-9]{1,64}( [A-Za-z0-9]{1,64}){0,9}$')));
+      }
       function fotoPubOk(u) {
         return u is string && u.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*');
       }
 
-      allow create: if logado()
-                    && emailOk()
-                    && request.resource.data.autorId == request.auth.uid
-                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'fotoPerfil', 'texto', 'mediaUrl', 'mediaTipo', 'midias', 'criadoEm'])
-                    && ritmoOk('pub')
-                    && publicacaoOk();
-
-      allow update: if logado()
-                    && emailOk()
-                    && resource.data.autorId == request.auth.uid
-                    && request.resource.data.autorId == resource.data.autorId
-                    && gravou().hasOnly(['texto', 'nome', 'fotoPerfil', 'comentariosOcultos', 'ocultoAte', 'editadoEm', 'quemComenta', 'comentarioFixo'])
-                    // quem pode comentar: todos, seguidores, seguidores que o autor segue de volta, ninguém
-                    && (!('quemComenta' in request.resource.data) || request.resource.data.quemComenta in ['todos', 'seguidores', 'mutuos', 'ninguem'])
-                    // comentário fixado no topo (id) ou nulo
-                    && (!('comentarioFixo' in request.resource.data) || request.resource.data.comentarioFixo == null
-                        || (request.resource.data.comentarioFixo is string && request.resource.data.comentarioFixo.size() <= 40))
-                    && dataOuNulo('ocultoAte')
-                    && travaModeracao()
-                    // texto editado: marca a data da edição
-                    && (!mudou().hasAny(['texto']) || request.resource.data.get('editadoEm', null) == request.time)
-                    && (!mudou().hasAny(['editadoEm']) || request.resource.data.editadoEm == request.time)
-                    && (!('comentariosOcultos' in request.resource.data) || request.resource.data.comentariosOcultos is bool)
-                    && publicacaoOk();
-
-      allow delete: if logado()
-                    && resource.data.autorId == request.auth.uid;
-
-      // A equipe esconde ou remove publicações que violam os Termos.
-      allow update: if podeModerar()
-                    && moderacaoOk();
-      allow delete: if podeModerar();
-    }
-  }
-}
-// ===== FIM DA PARTE 9 DE 9 =====
+// ===== FIM DA PARTE 9 DE 10 =====

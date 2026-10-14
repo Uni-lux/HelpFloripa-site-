@@ -187,4 +187,4 @@
       allow delete: if admin() && daConversaEq(resource.data.conversa) && request.time >= resource.data.apagadaEm + duration.value(24, 'h');
     }
 
-// ===== FIM DA PARTE 7 DE 9 =====
+// ===== FIM DA PARTE 7 DE 10 =====

@@ -13,7 +13,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="stylesheet" href="vitrine.css?v=25" />
-  <link rel="stylesheet" href="rede.css?v=11" />
+  <link rel="stylesheet" href="rede.css?v=12" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
     // Tema compartilhado com a página de mensagens; aplicado antes de desenhar.
@@ -162,6 +162,7 @@
             <button type="button" class="btn sec mini" id="postDenunciar"><svg class="i xs"><use href="#i-alerta"/></svg>Denunciar</button>
           </div>
           <p class="texto" id="postTexto"></p>
+          <div class="post-extras" id="postExtras" hidden></div>
         </div>
         <div class="post-social" id="postSocial">
         </div>
@@ -220,8 +221,8 @@
       obterPerfil, lerOrdenado, editarPublicacao, comMencoes, salvarImagem, iniciarRede, meusSeguindoPronto, carregarMeusSeguindo, alternarSeguir, botaoSeguir, linhaPessoa,
       removerSeguidor, bloquear, desbloquear, alternarRestricao, compartilharPerfil,
       barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail,
-      fotosDoPost, carrosselFotos, idsSalvos, contadorEstrelas, acoesPublicacao
-    } from "./rede.js?v=33";
+      fotosDoPost, carrosselFotos, idsSalvos, contadorEstrelas, acoesPublicacao, silenciado, alternarSilenciar, marcarVista, definirOrigem
+    } from "./rede.js?v=34";
     import { buscarPessoas, palavrasBusca } from "./pessoas.js?v=3";
     import { abrirDenuncia } from "./denuncias.js?v=2";
     import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
@@ -385,7 +386,7 @@
       const snap = await lerOrdenado(
         fb.query(col, fb.where("autorId", "==", uid), fb.orderBy("criadoEm", "desc"), fb.limit(120)),
         fb.query(col, fb.where("autorId", "==", uid), fb.limit(120)));
-      return snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((x) => uid === eu.uid || (x.ocultoAte?.toMillis?.() ?? 0) <= Date.now()).sort((a, b) => (ms(b.criadoEm) || Date.now()) - (ms(a.criadoEm) || Date.now()));
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((x) => uid === eu.uid || ((x.ocultoAte?.toMillis?.() ?? 0) <= Date.now() && (x.agendadoPara?.toMillis?.() ?? 0) <= Date.now())).sort((a, b) => (ms(b.criadoEm) || Date.now()) - (ms(a.criadoEm) || Date.now()));
     }
 
     function renderizarGrade(container, posts, { proprio, autor }) {
@@ -427,6 +428,7 @@
           l.textContent = post.texto;
           tile.appendChild(l);
         }
+        if ((post.agendadoPara?.toMillis?.() ?? 0) > Date.now()) { tile.classList.add("agendada"); tile.appendChild(el("span", "selo-agendada", "Agendada")); }
         tile.setAttribute("aria-label", "Abrir publicação");
         tile.addEventListener("click", () => abrirPost(posts, i, { proprio, autor }));
         container.appendChild(tile);
@@ -475,6 +477,23 @@
       $("postEditar").hidden = !proprio;
       $("postDenunciar").hidden = proprio;
       $("postData").textContent = dataCompleta(paraData(post.criadoEm)) + (post.editadoEm ? " · editada" : "");
+      // Pessoas marcadas, agendamento e estatísticas (do autor).
+      const extra = $("postExtras"); extra.replaceChildren();
+      if (Array.isArray(post.marcados) && post.marcados.length) {
+        const l = el("div", "post-com"); l.append(icone("pessoa-mais", "i xs"), document.createTextNode("com "));
+        post.marcados.slice(0, 10).forEach((u, i) => { const b = el("button", null, "..."); b.type = "button"; b.addEventListener("click", () => { fecharFolha("folhaPost"); abrirPerfilPublico(u); }); obterPerfil(u).then((pp) => { b.textContent = String(pp.nome || "Usuário").split(" ")[0]; }).catch(() => {}); if (i) l.appendChild(document.createTextNode(i === post.marcados.length - 1 ? " e " : ", ")); l.appendChild(b); });
+        extra.appendChild(l);
+      }
+      const agenda = post.agendadoPara?.toMillis?.() ?? 0;
+      if (proprio && agenda > Date.now()) {
+        const a = el("div", "aviso-agendada"); a.append(icone("relogio", "i xs"), document.createTextNode(`Agendada para ${new Date(agenda).toLocaleString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}. Só você vê até lá.`));
+        const ja = el("button", "btn pri mini", "Publicar agora"); ja.type = "button";
+        ja.addEventListener("click", async () => { try { await fb.updateDoc(fb.doc(fb.db, "diario", post.id), { agendadoPara: fb.serverTimestamp() }); post.agendadoPara = { toMillis: () => Date.now() }; toast("Publicada agora"); mostrarPost(); carregarMeusPosts(); } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); } });
+        a.appendChild(ja); extra.appendChild(a);
+      }
+      if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=1").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
+      extra.hidden = !extra.children.length;
+      if (!proprio) marcarVista({ ...post, autorId: post.autorId || autor?.uid });
       $("postAnterior").disabled = indice <= 0;
       $("postProximo").disabled = indice >= lista.length - 1;
       pintarSocialPost({ ...post, autorId: post.autorId || autor?.uid });
@@ -541,6 +560,7 @@
         const v = el("div", "vazio-grade"); v.append(el("strong", null, "Nada salvo ainda"), "Nas publicações, toque em Salvar (nos comentários ou no ⋯) para guardar aqui.");
         g.replaceChildren(v); return;
       }
+      definirOrigem("salvos");
       renderizarGrade(g, lista, { proprio: false, autor: null });
     }
     $("abaMinhas").addEventListener("click", () => mostrarAbaPosts(false));
@@ -548,6 +568,7 @@
 
     // ---------- link direto para uma publicação: usuarios.html?post=ID ----------
     async function abrirPostPorLink(id) {
+      definirOrigem("link");
       try {
         const s = await fb.getDoc(fb.doc(fb.db, "diario", id));
         if (!s.exists()) { toast("Essa publicação não existe mais."); return; }
@@ -803,6 +824,7 @@
     // ======================================================
     let ppCab = null, ppMeSegue = false;
     async function abrirPerfilPublico(uid) {
+      definirOrigem("perfil");
       if (!uid) return;
       if (uid === eu.uid) { pilha.slice().forEach(fecharFolha); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
       ppCab = montarCabecalho($("ppCabecalho"));
@@ -895,6 +917,7 @@
           !bloq && !bloqueadoPor.has(uid) && { rotulo: "Adicionar ao meu social", sub: "Duo, família, amigos", icone: "fio", fn: () => abrirNovoVinculo({ uid, ...p }) },
           { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(uid, p.nome) },
           !bloq && ppMeSegue && { rotulo: "Remover seguidor", sub: "Deixa de seguir você, sem aviso", icone: "pessoa-menos", fn: async () => { if (await removerSeguidor(uid, p.nome)) { ppMeSegue = false; abrirPerfilPublico(uid); } } },
+          !bloq && { rotulo: silenciado(uid) ? "Mostrar no meu Diário de novo" : "Silenciar", sub: silenciado(uid) ? "As publicações e stories voltam a aparecer" : "Continua seguindo, mas as publicações e stories somem do seu Diário", icone: "restringir", fn: () => alternarSilenciar(uid, p.nome) },
           !bloq && { rotulo: restritos.has(uid) ? "Remover restrição" : "Restringir", sub: restritos.has(uid) ? "Volta a receber avisos dessa pessoa" : "Mensagens vão para Restritas, sem avisos", icone: "restringir", fn: () => alternarRestricao(uid, p.nome) },
           { rotulo: "Denunciar perfil", sub: "Golpe, perfil falso, assédio...", icone: "alerta", perigo: true,
             fn: () => abrirDenuncia({ fb, eu, tipo: "perfil", alvoId: uid, itemId: uid, trecho: [p.nome, p.nickname ? "@" + p.nickname : "", p.bio].filter(Boolean).join(" · "), nomeAlvo: p.nome || "",

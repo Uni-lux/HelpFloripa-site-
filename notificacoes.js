@@ -7,17 +7,17 @@ import {
   $, el, icone, pintarAvatar, urlSegura, tempoRelativo, toast, erroAmigavel,
   fb, eu, ganchos, iniciarRede, carregarMeusSeguindo, botaoSeguir, montarBarraRede, pintarBarraRede,
   ouvirAvisos, aoMudarAvisos, avisosVistosEm, marcarAvisosVistos, rotuloVinculo, abrirComentarios
-} from "./rede.js?v=33";
+} from "./rede.js?v=34";
 import { TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=15";
 import { TEXTO_EQUIPE, linkEquipe, seloOficial, fotoSuporte } from "./avisos-equipe.js?v=1";
 
 let filtro = "tudo";
 let vistoAntes = 0;
 const postsCache = new Map();
-const CORES = { seguidor: "#00adee", curtida: "#f5b700", comentario: "#7c5cff", resposta: "#7c5cff", social: "#e0457b", mensagem: "#1fa855", reclamacao: "#ef4444", "reclamacao-resp": "#ff7a1a", "reclamacao-ok": "#2fbf71", suporte: "#00adee", aviso: "#7c5cff" };
-const ICONES = { seguidor: "pessoa-mais", curtida: "estrela", comentario: "chat", resposta: "chat", social: "fio", mensagem: "envelope", reclamacao: "alerta", "reclamacao-resp": "chat", "reclamacao-ok": "check", suporte: "ajuda", aviso: "sino" };
+const CORES = { reacao: "#e0457b", marcacao: "#00adee", seguidor: "#00adee", curtida: "#f5b700", comentario: "#7c5cff", resposta: "#7c5cff", social: "#e0457b", mensagem: "#1fa855", reclamacao: "#ef4444", "reclamacao-resp": "#ff7a1a", "reclamacao-ok": "#2fbf71", suporte: "#00adee", aviso: "#7c5cff" };
+const ICONES = { reacao: "coracao", marcacao: "pessoa-mais", seguidor: "pessoa-mais", curtida: "estrela", comentario: "chat", resposta: "chat", social: "fio", mensagem: "envelope", reclamacao: "alerta", "reclamacao-resp": "chat", "reclamacao-ok": "check", suporte: "ajuda", aviso: "sino" };
 // Filtro de cada tipo (as três de reclamação ficam juntas; avisos e respostas do suporte também)
-const grupo = (t) => (t === "resposta" ? "comentario" : t.startsWith("reclamacao") ? "reclamacao" : t === "aviso" ? "suporte" : t);
+const grupo = (t) => (t === "resposta" || t === "reacao" ? "comentario" : t === "marcacao" ? "curtida" : t.startsWith("reclamacao") ? "reclamacao" : t === "aviso" ? "suporte" : t);
 
 function obterPost(id) {
   if (!postsCache.has(id)) postsCache.set(id, fb.getDoc(fb.doc(fb.db, "diario", id)).then((s) => (s.exists() ? { id, ...s.data() } : null)).catch(() => null));
@@ -45,6 +45,8 @@ function itens(a) {
     ...a.curtidas.map((x) => ({ tipo: "curtida", ...x, texto: `deu ${"★".repeat(x.nota)}${"☆".repeat(5 - x.nota)} na sua publicação` })),
     ...a.comentarios.map((x) => ({ tipo: "comentario", ...x, texto: "comentou na sua publicação", detalhe: x.texto })),
     ...a.respostas.filter((x) => !a.comentarios.some((c) => c.id === x.id)).map((x) => ({ tipo: "resposta", ...x, texto: "respondeu seu comentário", detalhe: x.texto })),
+    ...(a.reacoes || []).map((x) => ({ tipo: "reacao", ...x, texto: `reagiu com ${x.reacao} ao seu comentário` })),
+    ...(a.marcacoes || []).map((x) => ({ tipo: "marcacao", ...x, texto: "marcou você numa publicação" })),
     ...a.vinculos.map((x) => ({ tipo: "social", ...x, texto: x.pendente ? `quer adicionar você como ${rotuloVinculo(x.tipoParaMim).toLowerCase()}` : `aceitou seu pedido: ${rotuloVinculo(x.tipoParaMim)}` })),
     ...a.mensagens.map((x) => ({ tipo: "mensagem", ...x, texto: "enviou uma mensagem", detalhe: x.ultimaMensagem })),
     ...(a.reclamacoes || []).map((x) => ({ ...x, texto: TEXTO_RECLAMACAO[x.tipo](x) })),
@@ -86,7 +88,13 @@ function linha(i) {
     if (i.tipo === "mensagem") { location.href = `mensagens.html?conversa=${encodeURIComponent(i.id)}`; return; }
     if (i.oficial) { location.href = linkEquipe(i); return; }
     if (i.tipo.startsWith("reclamacao")) { location.href = linkReclamacao(i, eu.uid); return; }
-    if (i.tipo === "comentario" || i.tipo === "curtida" || i.tipo === "resposta") {
+    if (i.tipo === "reacao") {
+      const c = await fb.getDoc(fb.doc(fb.db, "comentarios", i.comentarioId)).catch(() => null);
+      const p = c?.exists() ? await obterPost(c.data().postId) : null;
+      if (!p) { toast("Esse comentário foi apagado."); return; }
+      abrirComentarios(p); return;
+    }
+    if (i.tipo === "comentario" || i.tipo === "curtida" || i.tipo === "resposta" || i.tipo === "marcacao") {
       const p = await obterPost(i.postId);
       if (!p) { toast("Essa publicação foi apagada."); return; }
       abrirComentarios(p);
