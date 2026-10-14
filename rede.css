@@ -713,6 +713,10 @@ html, body { overflow-x: clip; }
 .post-card .post-midia-f { max-height: 360px; cursor: zoom-in; }
 .post-card .post-midia-f img, .post-card .post-midia-f video { max-height: 360px; object-fit: cover; }
 .post-card .post-midia-f.inteira { max-height: none; cursor: zoom-out; }
+.post-card .post-midia-f { position: relative; }
+.post-card .post-midia-f.alta:not(.inteira) img { object-position: top; }
+.post-card .post-midia-f .ver-inteira { display: none; position: absolute; right: 10px; bottom: 10px; padding: 4px 10px; border-radius: 999px; background: rgba(0,0,0,.62); color: #fff; font-size: 12px; font-weight: 750; pointer-events: none; }
+.post-card .post-midia-f.cortada:not(.inteira) .ver-inteira { display: inline-block; }
 .post-card .post-midia-f.inteira img, .post-card .post-midia-f.inteira video { max-height: 80vh; object-fit: contain; }
 .esqueleto-post { height: 240px; border-radius: 18px; }
 

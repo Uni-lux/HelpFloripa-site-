@@ -589,7 +589,12 @@ export async function infoEstrelas(postId, { recarregar = false } = {}) {
   const guardado = recarregar ? undefined : contador("e:" + postId);
   const ref = fb.doc(fb.db, "curtidas", `${postId}_${eu.uid}`);
   const [ag, minha] = await Promise.all([
-    guardado ? guardado : fb.getAggregateFromServer(q, { soma: fb.sum("nota"), media: fb.average("nota") }).then((s) => { const d = s.data(); guardarContador("e:" + postId, { soma: d.soma, media: d.media }); return d; }).catch(() => ({ soma: 0, media: null })),
+    guardado ? guardado : fb.getAggregateFromServer(q, { soma: fb.sum("nota"), media: fb.average("nota") }).then((s) => s.data())
+      // Soma/média no servidor pode pedir um índice que ainda não existe (aparecia "Sem notas" mesmo com
+      // notas dadas): então conta lendo as notas da publicação.
+      .catch((e) => { console.warn("Estrelas (soma no servidor):", e?.code || e?.message); return fb.getDocs(fb.query(q, fb.limit(1000))).then((s) => { const notas = s.docs.map((d) => Number(d.data().nota) || 0).filter(Boolean); const soma = notas.reduce((a, b) => a + b, 0); return { soma, media: notas.length ? soma / notas.length : null }; }); })
+      .then((d) => { guardarContador("e:" + postId, { soma: d.soma, media: d.media }); return d; })
+      .catch(() => ({ soma: 0, media: null })),
     // A sua nota: muda só quando você mesmo dá estrelas (a cópia do aparelho se atualiza na hora).
     (recarregar ? fb.getDoc(ref) : docComValidade(fb, ["curtidas", ref.id], 30 * 60000)).then((s) => (s.exists() ? Number(s.data().nota) || 0 : 0)).catch(() => 0)
   ]);

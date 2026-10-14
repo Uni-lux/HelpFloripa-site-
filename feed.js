@@ -12,7 +12,7 @@ import {
   fb, eu, dados, meusSeguindo, escondido, ganchos, obterPerfil, iniciarRede, carregarMeusSeguindo, linhaPessoa,
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, montarBarraRede, pintarBarraRede, ouvirAvisos, lerOrdenado,
   editarPublicacao, bloquear, comMencoes
-} from "./rede.js?v=28";
+} from "./rede.js?v=29";
 import { abrirDenuncia } from "./denuncias.js?v=2";
 import { buscarPessoas, pessoasRecentes } from "./pessoas.js?v=3";
 import { docsComValidade } from "./leituras.js?v=1";
@@ -166,6 +166,14 @@ function cartaoPost(post) {
     else {
       const img = document.createElement("img"); img.src = url; img.alt = post.texto ? post.texto.slice(0, 80) : "Publicação"; img.loading = "lazy";
       m.appendChild(img);
+      // Prévia com altura limitada: avisa quando a foto foi cortada; foto bem alta (print de tela)
+      // mostra o começo, não o meio.
+      img.addEventListener("load", () => {
+        const prop = img.naturalHeight / Math.max(1, img.naturalWidth);
+        m.classList.toggle("alta", prop > 1.6);
+        m.classList.toggle("cortada", prop * m.clientWidth > 364);
+      }, { once: true });
+      const dica = el("span", "ver-inteira", "Ver inteira"); dica.setAttribute("aria-hidden", "true"); m.appendChild(dica);
       m.title = "Toque para ver inteira";
       m.addEventListener("click", () => m.classList.toggle("inteira"));
     }
