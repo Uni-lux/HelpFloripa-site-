@@ -39,7 +39,9 @@ ok((await pa.locator(".fio-coment.fixado .coment-reagir").first().textContent())
 const rDoc = (await db.doc(`curtidas_comentarios/k1_${U.ana}`).get()).data();
 ok(rDoc?.reacao === "😂" && rDoc?.comentarioAutorId === U.edu, "reação gravada (com o autor do comentário, para o aviso): " + rDoc?.reacao);
 // enviar para amigos
-await pa.locator("#folhaComentarios .pub-acao", { hasText: "Enviar" }).tap();
+ok(await pa.locator("#folhaComentarios .pub-acao").count() === 0, "comentários sem os botões (foram para a publicação)");
+await pa.keyboard.press("Escape"); await pa.waitForTimeout(400);
+await card.locator(".interacoes .acao[aria-label='Enviar para alguém']").tap();
 await pa.waitForSelector("#folhaLista.aberta", { timeout: 5000 }); await pa.waitForTimeout(1500);
 const linhaB = pa.locator("#listaCorpo .linha", { hasText: "Bruno" }).first();
 await linhaB.locator("button", { hasText: "Enviar" }).tap(); await pa.waitForTimeout(2000);

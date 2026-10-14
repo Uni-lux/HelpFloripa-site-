@@ -45,15 +45,31 @@ await pa.locator("#pubEnviar").tap(); await pa.waitForTimeout(2500);
 const agendada = (await db.collection("diario").where("autorId", "==", U.ana).get()).docs.map((d) => d.data()).find((p) => p.texto.startsWith("Promoção"));
 ok(agendada?.agendadoPara && agendada.agendadoPara.toMillis() > Date.now(), "gravou agendada");
 ok((await db.collection(`rascunhos/${U.ana}/itens`).get()).size === 0, "rascunho usado foi apagado ao publicar");
-// 4) Story da Ana
-const escolha = pa.waitForEvent("filechooser");
+// 4) Flash da Ana: um de foto (com legenda) e um de texto
 await pa.locator(".story-circ").first().tap();
+await pa.waitForSelector(".flash-criar .flash-escolher", { timeout: 5000 });
+ok((await pa.locator(".story-circ .nome").first().textContent()) === "Seu flash", "barra: \"Seu flash\"");
+await pa.screenshot({ path: "saida/flash-criar.png" });
+const escolha = pa.waitForEvent("filechooser");
+await pa.locator(".flash-escolher").tap();
 const fc = await escolha; await fc.setFiles(arq);
 await pa.locator(".hfe-btn.pri").click({ timeout: 15000 });
-await pa.waitForSelector("#folhaLista.aberta .story-previa", { timeout: 8000 });
-await pa.locator("#listaCorpo input[type=text]").fill("Bom dia!");
-await pa.locator("#listaCorpo button", { hasText: "Publicar story" }).tap(); await pa.waitForTimeout(2500);
-ok((await db.collection("stories").where("autorId", "==", U.ana).get()).size === 1, "story publicado");
+await pa.waitForSelector(".flash-palco img", { timeout: 8000 });
+await pa.locator(".flash-legenda").fill("Bom dia!");
+await pa.screenshot({ path: "saida/flash-criar-foto.png" });
+await pa.locator(".flash-publicar").tap(); await pa.waitForTimeout(2500);
+ok(await pa.locator(".flash-criar").count() === 0 && (await db.collection("stories").where("autorId", "==", U.ana).get()).size === 1, "flash de foto publicado");
+await pa.locator(".story-circ").first().tap();
+await pa.locator("#opcoesCorpo button", { hasText: "Novo flash" }).tap();
+await pa.locator(".flash-modos button", { hasText: "Texto" }).tap();
+await pa.waitForSelector(".flash-criar .flash-texto", { timeout: 5000 });
+ok(await pa.locator(".flash-publicar:disabled").count() === 1, "texto vazio: não publica");
+await pa.locator(".flash-texto").fill("Promoção relâmpago hoje até 18h!");
+await pa.locator(".flash-ferr-btn").last().tap(); await pa.locator(".flash-ferr-btn.letra").tap(); await pa.waitForTimeout(300);
+await pa.screenshot({ path: "saida/flash-criar-texto.png" });
+await pa.locator(".flash-publicar").tap(); await pa.waitForTimeout(2500);
+const flashes = (await db.collection("stories").where("autorId", "==", U.ana).get()).docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => a.criadoEm.toMillis() - b.criadoEm.toMillis());
+ok(flashes.length === 2 && flashes[1].tipo === "imagem" && flashes[1].midia.startsWith("data:image/jpeg") && !flashes[1].texto, "flash de texto publicado como foto 1080×1920 (" + Math.round((flashes[1]?.midia.length || 0) / 1024) + " KB)");
 // 5) Bruno: vê o post (alcance), não vê a agendada, tem aviso de marcação, vê o story
 const pb = await entrar(B.ctx, "bruno", "feed.html");
 await pb.waitForSelector(".post-card", { timeout: 30000 }); await pb.waitForTimeout(2500);
@@ -64,17 +80,27 @@ ok((await cardB.locator(".post-com").textContent()).includes("Bruno"), "post mos
 ok(await cardB.locator("a.hashtag").count() === 2, "hashtags viram link");
 ok((await db.doc(`diario/${p1.id}/vistas/${U.bruno}`).get()).exists, "alcance: a vista do Bruno foi contada");
 await cardB.locator(".estrela").nth(3).tap(); await pb.waitForTimeout(1500);
-await cardB.locator(".acoes-post .acao").first().tap(); await pb.waitForTimeout(1500);
-await pb.locator("#folhaComentarios .pub-acao", { hasText: "Salvar" }).tap(); await pb.waitForTimeout(1200);
-await pb.keyboard.press("Escape"); await pb.waitForTimeout(300);
-ok(await pb.locator(".story-circ.novo").count() === 1, "story da Ana aparece com o anel colorido");
+await cardB.locator(".interacoes .acao.salvar").tap(); await pb.waitForTimeout(1200);
+ok(await pb.locator(".story-circ.novo").count() === 1, "flash da Ana aparece com o anel colorido (2 pedaços)");
+await pb.locator("#storiesFeed").screenshot({ path: "saida/flash-barra.png" });
 await pb.locator(".story-circ.novo").first().tap();
 await pb.waitForSelector(".story-visor img", { timeout: 8000 }); await pb.waitForTimeout(500);
-ok((await pb.locator(".story-legenda").textContent()) === "Bom dia!", "story abre em tela cheia com a legenda");
-await pb.screenshot({ path: "saida/story-visor.png" });
-await pb.waitForTimeout(1500);
+ok((await pb.locator(".story-legenda").textContent()) === "Bom dia!" && (await pb.locator(".story-chip").textContent()).includes("Flash"), "flash abre em tela cheia com a legenda e o selo ⚡ Flash");
+await pb.screenshot({ path: "saida/flash-visor.png" });
+// responder e reagir: vão para o Mensagens
+await pb.locator(".story-responder input").tap(); await pb.waitForTimeout(400);
+ok(await pb.locator(".story-caixa.digitando .story-bandeja").count() === 1, "ao escrever: pausa e mostra as reações rápidas");
+await pb.screenshot({ path: "saida/flash-responder.png" });
+await pb.locator(".story-responder input").fill("Que lindo!");
+await pb.locator(".story-env").tap(); await pb.waitForTimeout(2000);
+await pb.locator(".story-raio").tap(); await pb.waitForTimeout(2000);
+const convAB = [U.ana, U.bruno].sort().join("_");
+const msgs = (await db.collection(`conversas/${convAB}/mensagens`).get()).docs.map((d) => d.data().texto);
+ok(msgs.some((t) => t.includes("Respondeu ao seu flash: Que lindo!")) && msgs.some((t) => t.includes("⚡ Reagiu ao seu flash")), "resposta e reação chegaram na conversa → " + msgs.join(" | ").slice(0, 120));
+await pb.locator(".story-toque.dir").tap(); await pb.waitForTimeout(800);
+await pb.screenshot({ path: "saida/flash-texto.png" });
 await pb.locator(".story-visor .story-btn[aria-label=Fechar]").tap(); await pb.waitForTimeout(500);
-ok(await pb.locator(".story-circ.novo").count() === 0, "depois de ver, o anel fica cinza");
+ok(await pb.locator(".story-circ.novo").count() === 0, "depois de ver os dois, o anel fica cinza");
 // busca por hashtag
 await pb.goto(new URL("feed.html?tag=reforma", pb.url()).href); await pb.waitForTimeout(3500);
 ok((await pb.locator("#filtroAtual").textContent()) === "#reforma" && await pb.locator(".post-card", { hasText: "Banheiro novinho" }).count() === 1, "feed.html?tag=reforma mostra a publicação");
@@ -85,7 +111,13 @@ await pb.locator("#opcoesCorpo button", { hasText: "Silenciar" }).tap(); await p
 ok(await pb.locator(".post-card", { hasText: "Banheiro novinho" }).count() === 0, "silenciou: as publicações da Ana somem do Diário");
 await pb.reload(); await pb.waitForTimeout(4000);
 ok(await pb.locator(".post-card", { hasText: "Banheiro novinho" }).count() === 0 && await pb.locator(".story-circ", { hasText: "Ana" }).count() === 0, "continua silenciada depois de recarregar (posts e stories)");
-// 6) Ana: aviso, estatísticas, quem viu o story
+// 6) Ana: quem viu o flash, aviso, estatísticas
+await pa.reload(); await pa.waitForSelector(".story-circ.tem", { timeout: 30000 }); await pa.waitForTimeout(1200);
+await pa.locator(".story-circ").first().tap();
+await pa.locator("#opcoesCorpo button", { hasText: "Ver meus flashes" }).tap();
+await pa.waitForSelector(".story-vistos", { timeout: 8000 }); await pa.waitForTimeout(1500);
+ok((await pa.locator(".story-vistos").textContent()).includes("Visto por 1"), "Ana: \"Visto por 1\" no flash → " + (await pa.locator(".story-vistos").textContent()));
+await pa.locator(".story-visor .story-btn[aria-label=Fechar]").tap(); await pa.waitForTimeout(300);
 await pa.goto(new URL("notificacoes.html", pa.url()).href); await pa.waitForTimeout(3500);
 await pa.goto(new URL("usuarios.html", pa.url()).href); await pa.waitForSelector("#gradePosts .tile", { timeout: 30000 }); await pa.waitForTimeout(1200);
 ok(await pa.locator("#gradePosts .tile.agendada .selo-agendada").count() === 1, "perfil da Ana: a agendada aparece com o selo");

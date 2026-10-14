@@ -1,7 +1,7 @@
 // =====================================================
 // Diário (feed.html)
-// - Aba Diário: publicações de quem você segue (ou de todos), com
-//   estrelas, comentários e compartilhar.
+// - Aba Diário: flashes (24 h) e publicações (Principais ou Amigos), com
+//   estrelas, comentários, enviar, compartilhar e salvar.
 // - Aba Explorar: atalhos para Serviços, Delivery, Shopping e Imóveis
 //   e a busca de pessoas.
 // Links: feed.html?aba=explorar · ?publicar=1
@@ -12,9 +12,10 @@ import {
   fb, eu, dados, meusSeguindo, escondido, ganchos, obterPerfil, iniciarRede, carregarMeusSeguindo, linhaPessoa,
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, montarBarraRede, pintarBarraRede, ouvirAvisos, lerOrdenado,
   editarPublicacao, bloquear, comMencoes, fotosDoPost, carrosselFotos, contadorEstrelas, estaSalvo, alternarSalvo, lerResumosEstrelas, contarComentarios,
-  silenciado, alternarSilenciar, marcarVista, definirOrigem
-} from "./rede.js?v=34";
-import { montarStories } from "./stories.js?v=1";
+  silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto
+} from "./rede.js?v=35";
+import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=1";
+import { montarStories } from "./stories.js?v=2";
 import { abrirDenuncia } from "./denuncias.js?v=2";
 import { buscarPessoas, pessoasRecentes } from "./pessoas.js?v=3";
 import { docsComValidade } from "./leituras.js?v=1";
@@ -25,8 +26,8 @@ const POR_VEZ = 10;
 const postOculto = (p) => (p?.ocultoAte?.toMillis?.() ?? 0) > Date.now() || (p?.agendadoPara?.toMillis?.() ?? 0) > Date.now() || silenciado(p?.autorId);
 // Busca por hashtag: feed.html?tag=reforma
 let tagAtual = (new URLSearchParams(location.search).get("tag") || "").toLowerCase().replace(/^#/, "").slice(0, 30);
-// Filtro do Diário: Principais (melhores publicações pelo engajamento de verdade), Quem eu sigo ou Amigos.
-const FILTROS = { principais: "Principais", seguindo: "Quem eu sigo", amigos: "Amigos" };
+// Filtro do Diário: Principais (o que tem a ver com você + quem você segue, pelo engajamento) ou Amigos.
+const FILTROS = { principais: "Principais", amigos: "Amigos" };
 let aba = "diario", filtro = "principais";
 let posts = [], mostrados = 0;
 
@@ -48,11 +49,11 @@ function pintarFiltro() {
 }
 $("filtroFeedBtn").addEventListener("click", () => abrirOpcoes("Mostrar no Diário", [
   tagAtual && { rotulo: `Sair de #${tagAtual}`, sub: "Voltar para o Diário", icone: "fechar", fn: () => { tagAtual = ""; history.replaceState(history.state, "", "feed.html"); pintarFiltro(); carregarFeed(); } },
-  { rotulo: "Principais" + (filtro === "principais" ? "  ✓" : ""), sub: "As melhores publicações agora, pelo engajamento", icone: "estrela", fn: () => mudarFiltro("principais") },
-  { rotulo: "Quem eu sigo" + (filtro === "seguindo" ? "  ✓" : ""), sub: "Publicações de quem você segue, das mais novas", icone: "pessoa-mais", fn: () => mudarFiltro("seguindo") },
-  { rotulo: "Amigos" + (filtro === "amigos" ? "  ✓" : ""), sub: "Seus vínculos do Social e quem vocês se seguem", icone: "coracao", fn: () => mudarFiltro("amigos") }
+  { rotulo: "Principais" + (filtro === "principais" ? "  ✓" : ""), sub: "O que combina com você e as novidades de quem você segue", icone: "estrela", fn: () => mudarFiltro("principais") },
+  { rotulo: "Amigos" + (filtro === "amigos" ? "  ✓" : ""), sub: "Seus vínculos do Social e quem vocês se seguem, das mais novas", icone: "coracao", fn: () => mudarFiltro("amigos") }
 ]));
 function mudarFiltro(f) { filtro = f; tagAtual = ""; if (location.search.includes("tag=")) history.replaceState(history.state, "", "feed.html"); try { localStorage.setItem("hf-filtro-diario", f); } catch {} pintarFiltro(); carregarFeed(); }
+// ("Quem eu sigo" entrou nos Principais.)
 try { const f = localStorage.getItem("hf-filtro-diario"); if (FILTROS[f]) filtro = f; } catch {}
 pintarFiltro();
 
@@ -81,23 +82,48 @@ async function buscarAmigos() {
   if (!amigos.size) return [];
   return buscarSeguindo([...amigos].slice(0, 300), "amigos");
 }
-// Principais: as publicações recentes ordenadas pelo engajamento de verdade (estrelas, média e comentários),
-// com a idade pesando contra (como as redes fazem) e um empurrão para quem você segue.
+// Principais (como Instagram e TikTok): junta as publicações recentes de todo mundo com as de quem você
+// segue e dá uma nota a cada uma:
+//   engajamento (estrelas, média, comentários) × gosto (autores e hashtags com que você interage) ×
+//   quem você segue (empurrão) × já vista (desce) ÷ idade (as novas sobem).
+// Depois espalha os autores (nunca dois seguidos do mesmo) e mistura um pouco para o Diário não ficar parado.
 async function buscarPrincipais() {
   const q = fb.query(fb.collection(fb.db, "diario"), fb.orderBy("criadoEm", "desc"), fb.limit(120));
-  const s = await docsComValidade(fb, "diario-principais", q, DIARIO_VALIDADE);
-  const lista = s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter((p) => !escondido(p.autorId) && !postOculto(p));
+  const [s, deQuemSigo] = await Promise.all([
+    docsComValidade(fb, "diario-principais", q, DIARIO_VALIDADE),
+    buscarSeguindo().catch(() => []),
+    sincronizarGosto(fb, eu.uid)
+  ]);
+  const vistos = new Set();
+  const lista = [...s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })), ...deQuemSigo]
+    .filter((p) => !vistos.has(p.id) && vistos.add(p.id) && !escondido(p.autorId) && !postOculto(p));
   const resumos = await lerResumosEstrelas(lista.map((p) => p.id));
   const agora = Date.now();
-  const pre = (p) => { const r = resumos.get(p.id) || { total: 0, soma: 0 }; return r.total + Math.max(0, r.soma - 3 * r.total) * 0.4 + (meusSeguindo.has(p.autorId) ? 2 : 0); };
-  // Comentários: conta só para os 40 mais promissores (contagem guardada no aparelho por alguns minutos).
+  const sigo = (p) => p.autorId === eu.uid || meusSeguindo.has(p.autorId);
+  const gosto = new Map(lista.map((p) => [p.id, afinidade(p)]));
+  const eng = (p) => { const r = resumos.get(p.id) || { total: 0, soma: 0 }; return r.total + Math.max(0, r.soma - 3 * r.total) * 0.4; };
+  const pre = (p) => (1 + eng(p)) * (1 + gosto.get(p.id)) * (sigo(p) ? 1.8 : 1);
+  // Comentários: conta só para as 40 mais promissoras (contagem guardada no aparelho por alguns minutos).
   const ordem1 = lista.slice().sort((a, b) => pre(b) - pre(a)).slice(0, 40);
   const com = new Map(await Promise.all(ordem1.map(async (p) => [p.id, await contarComentarios(p.id).catch(() => 0)])));
   const pontos = (p) => {
     const horas = Math.max(0, (agora - (ms(p.criadoEm) || agora)) / 3600e3);
-    return (1 + pre(p) + 2 * (com.get(p.id) || 0)) / Math.pow(horas + 2, 1.35);
+    const base = (1 + eng(p) + 2 * (com.get(p.id) || 0)) * (1 + gosto.get(p.id)) * (sigo(p) ? 1.8 : 1);
+    const visto = p.autorId !== eu.uid && jaVisto(p.id) ? 0.35 : 1;
+    // Quem você segue envelhece mais devagar (você quer ver as novidades deles mesmo sem muito engajamento).
+    return base * visto * (0.9 + Math.random() * 0.2) / Math.pow(horas + 2, sigo(p) ? 1.1 : 1.35);
   };
-  return lista.map((p) => ({ ...p, _pontos: pontos(p) })).sort((a, b) => b._pontos - a._pontos);
+  return espalharAutores(lista.map((p) => ({ ...p, _pontos: pontos(p) })).sort((a, b) => b._pontos - a._pontos));
+}
+// Nunca duas publicações seguidas do mesmo autor (puxa a próxima de outra pessoa, se houver).
+function espalharAutores(lista) {
+  const res = [], resto = lista.slice();
+  while (resto.length) {
+    const ult = res.at(-1)?.autorId;
+    const k = resto.findIndex((p) => p.autorId !== ult);
+    res.push(resto.splice(k < 0 || k > 6 ? 0 : k, 1)[0]);
+  }
+  return res;
 }
 // Hashtag: publicações com a tag (as mais novas primeiro).
 async function buscarTag(tag) {
@@ -122,7 +148,7 @@ async function carregarFeed() {
   $("maisFeed").hidden = true;
   try {
     maisTodos = false;
-    const bruto = tagAtual ? await buscarTag(tagAtual) : filtro === "principais" ? await buscarPrincipais() : filtro === "amigos" ? await buscarAmigos() : await buscarSeguindo();
+    const bruto = tagAtual ? await buscarTag(tagAtual) : filtro === "amigos" ? await buscarAmigos() : await buscarPrincipais();
     posts = bruto.filter((p) => !escondido(p.autorId) && !postOculto(p));
     if (tagAtual || filtro !== "principais") posts.sort((a, b) => ms(b.agendadoPara || b.criadoEm) - ms(a.agendadoPara || a.criadoEm)); // principais: pela pontuação
   } catch (e) {
@@ -135,9 +161,7 @@ async function carregarFeed() {
   if (!posts.length) {
     lista.appendChild(tagAtual ? vazio(`Nada com #${tagAtual} ainda`, "Use a hashtag na sua publicação para começar.", "Publicar agora", () => abrirCompositor({ aoPublicar: ganchos.aoPublicar })) : filtro === "principais"
       ? vazio("Nada publicado ainda", "Seja o primeiro a compartilhar um trabalho ou uma novidade.", "Publicar agora", () => abrirCompositor({ aoPublicar: ganchos.aoPublicar }))
-      : filtro === "amigos"
-        ? vazio("Seus amigos ainda não publicaram", "Amigos são seus vínculos do Social e quem vocês se seguem.", "Ver as principais", () => mudarFiltro("principais"))
-        : vazio("Seu diário está vazio", "Siga pessoas e negócios para ver as publicações deles aqui.", "Ver as principais", () => mudarFiltro("principais")));
+      : vazio("Seus amigos ainda não publicaram", "Amigos são seus vínculos do Social e quem vocês se seguem.", "Ver as principais", () => mudarFiltro("principais")));
     return;
   }
   mostrarMais();
@@ -171,8 +195,11 @@ function vazio(titulo, texto, botao, acao) {
 // Alcance: conta como vista quando a publicação fica pelo menos metade na tela por 1 segundo.
 const vigiaVista = "IntersectionObserver" in window ? new IntersectionObserver((es) => es.forEach((e) => {
   const c = e.target;
-  if (e.isIntersecting) c._tVista = setTimeout(() => { marcarVista(c._post); vigiaVista.unobserve(c); }, 1000);
-  else clearTimeout(c._tVista);
+  if (e.isIntersecting) {
+    c._tVista = setTimeout(() => marcarVista(c._post), 1000);
+    // Ficou olhando (4 s): conta um pouco no gosto (uma vez por publicação).
+    if (!c._olhou) c._tOlhar = setTimeout(() => { c._olhou = true; registrarGosto(c._post, PESO.olhar, eu.uid); }, 4000);
+  } else { clearTimeout(c._tVista); clearTimeout(c._tOlhar); }
 }), { threshold: 0.5 }) : null;
 // Vídeo curto: toca sozinho, sem som e em repetição, quando aparece; tocar liga o som.
 const vigiaVideo = "IntersectionObserver" in window ? new IntersectionObserver((es) => es.forEach((e) => {
@@ -185,10 +212,11 @@ function cartaoPost(post) {
   vigiaVista?.observe(c);
   const cab = el("div", "post-cab");
   const av = el("div", "avatar"); pintarAvatar(av, post.fotoPerfil, post.nome);
-  av.addEventListener("click", () => ganchos.abrirPerfil(post.autorId));
+  const verAutor = () => { registrarGosto(post, PESO.abrir, eu.uid); ganchos.abrirPerfil(post.autorId); };
+  av.addEventListener("click", verAutor);
   const quem = el("div", "quem");
   const nome = el("button", null, post.nome || "Usuário"); nome.type = "button";
-  nome.addEventListener("click", () => ganchos.abrirPerfil(post.autorId));
+  nome.addEventListener("click", verAutor);
   const sub = el("small", null, tempoRelativo(paraData(post.criadoEm)));
   quem.append(nome, sub);
   const mais = el("button", "icone-btn"); mais.type = "button"; mais.setAttribute("aria-label", "Opções da publicação");
@@ -199,9 +227,9 @@ function cartaoPost(post) {
       ? { rotulo: "Remover dos salvos", icone: "salvo", fn: () => alternarSalvo(post) }
       : { rotulo: "Salvar publicação", sub: "Para ver depois no seu Perfil → Salvos", icone: "salvo", fn: () => alternarSalvo(post) },
     { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(post.autorId, post.nome) },
-    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=1").then((m) => m.abrirEstatisticas(post)) },
+    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=2").then((m) => m.abrirEstatisticas(post)) },
     post.autorId === eu.uid && { rotulo: "Editar publicação", icone: "lapis", fn: () => editarPublicacao(post, () => c.replaceWith(cartaoPost(post))) },
-    post.autorId !== eu.uid && { rotulo: silenciado(post.autorId) ? `Mostrar ${nome.textContent} de novo` : `Silenciar ${nome.textContent}`, sub: "Continua seguindo, mas as publicações e stories somem do seu Diário", icone: "restringir",
+    post.autorId !== eu.uid && { rotulo: silenciado(post.autorId) ? `Mostrar ${nome.textContent} de novo` : `Silenciar ${nome.textContent}`, sub: "Continua seguindo, mas as publicações e flashes somem do seu Diário", icone: "restringir",
       fn: async () => { await alternarSilenciar(post.autorId, nome.textContent); if (silenciado(post.autorId)) { posts = posts.filter((x) => x.autorId !== post.autorId); document.querySelectorAll(".post-card").forEach((x) => { if (x.dataset.autor === post.autorId) x.remove(); }); } } },
     post.autorId !== eu.uid && { rotulo: "Denunciar publicação", sub: "Golpe, ofensa, conteúdo impróprio...", icone: "alerta", perigo: true,
       fn: () => abrirDenuncia({ fb, eu, tipo: "publicacao", alvoId: post.autorId, itemId: post.id, trecho: post.texto || "", nomeAlvo: nome.textContent,
@@ -328,14 +356,13 @@ async function pintarLateral() {
   try { await iniciarRede(); }
   catch (e) { $("listaFeed").replaceChildren(vazio("Não foi possível carregar", e.message || "")); return; }
   ganchos.aoPublicar = () => { if (aba !== "diario") trocarAba("diario"); else carregarFeed(); };
-  ganchos.aposSeguir = () => { if (aba === "diario" && filtro === "seguindo") carregarFeed(); };
   montarBarraRede("diario");
   pintarBarraRede();
   ouvirAvisos();
   $("btnComporFeed").addEventListener("click", () => abrirCompositor({ aoPublicar: ganchos.aoPublicar }));
   await carregarMeusSeguindo();
   pintarFiltro();
-  montarStories($("storiesFeed")).catch((e) => console.warn("Stories:", e));
+  montarStories($("storiesFeed")).catch((e) => console.warn("Flash:", e));
   pintarLateral();
   const p = new URLSearchParams(location.search);
   trocarAba(p.get("aba") === "explorar" || p.get("aba") === "pessoas" ? "explorar" : "diario");

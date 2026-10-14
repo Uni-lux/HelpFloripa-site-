@@ -13,7 +13,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="stylesheet" href="vitrine.css?v=25" />
-  <link rel="stylesheet" href="rede.css?v=12" />
+  <link rel="stylesheet" href="rede.css?v=13" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
     // Tema compartilhado com a página de mensagens; aplicado antes de desenhar.
@@ -221,13 +221,14 @@
       obterPerfil, lerOrdenado, editarPublicacao, comMencoes, salvarImagem, iniciarRede, meusSeguindoPronto, carregarMeusSeguindo, alternarSeguir, botaoSeguir, linhaPessoa,
       removerSeguidor, bloquear, desbloquear, alternarRestricao, compartilharPerfil,
       barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail,
-      fotosDoPost, carrosselFotos, idsSalvos, contadorEstrelas, acoesPublicacao, silenciado, alternarSilenciar, marcarVista, definirOrigem
-    } from "./rede.js?v=34";
+      fotosDoPost, carrosselFotos, idsSalvos, contadorEstrelas, silenciado, alternarSilenciar, marcarVista, definirOrigem
+    } from "./rede.js?v=35";
     import { buscarPessoas, palavrasBusca } from "./pessoas.js?v=3";
     import { abrirDenuncia } from "./denuncias.js?v=2";
     import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
     import { notaDoPerfil, abrirDetalhamento, avaliarNegocio, avaliarCliente, lerResumo, estrelas, pintarEstrelas, media, notaTexto, TIPOS_NEGOCIO } from "./avaliacoes.js?v=13";
     import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=33";
+    import { anelNoPerfil } from "./stories.js?v=2";
 
     // ======================================================
     // Estado desta página (o resto vem de rede.js)
@@ -491,7 +492,7 @@
         ja.addEventListener("click", async () => { try { await fb.updateDoc(fb.doc(fb.db, "diario", post.id), { agendadoPara: fb.serverTimestamp() }); post.agendadoPara = { toMillis: () => Date.now() }; toast("Publicada agora"); mostrarPost(); carregarMeusPosts(); } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); } });
         a.appendChild(ja); extra.appendChild(a);
       }
-      if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=1").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
+      if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=2").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
       extra.hidden = !extra.children.length;
       if (!proprio) marcarVista({ ...post, autorId: post.autorId || autor?.uid });
       $("postAnterior").disabled = indice <= 0;
@@ -510,7 +511,7 @@
       box.replaceChildren();
       const lista = el("div");
       const barra = barraPost = barraInteracao(post, { aoComentar: () => lista.querySelector("textarea")?.focus() });
-      box.append(barra, acoesPublicacao(post), lista);
+      box.append(barra, lista);
       montarComentarios(lista, post, { aoMudar: (n) => barra.atualizarComentarios(n) });
     }
     $("postAnterior").addEventListener("click", () => { if (postCtx.indice > 0) { postCtx.indice--; mostrarPost(); } });
@@ -833,6 +834,7 @@
       const p = await obterPerfil(uid);
       preencherCabecalho(ppCab, p);
       pintarNotaPerfil(ppCab, uid);
+      anelNoPerfil(ppCab.el("avatar"), uid);
       $("tPerfilPublico").textContent = p.nome || "Perfil";
       abrirFolha("folhaPerfil");
 
@@ -917,7 +919,7 @@
           !bloq && !bloqueadoPor.has(uid) && { rotulo: "Adicionar ao meu social", sub: "Duo, família, amigos", icone: "fio", fn: () => abrirNovoVinculo({ uid, ...p }) },
           { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(uid, p.nome) },
           !bloq && ppMeSegue && { rotulo: "Remover seguidor", sub: "Deixa de seguir você, sem aviso", icone: "pessoa-menos", fn: async () => { if (await removerSeguidor(uid, p.nome)) { ppMeSegue = false; abrirPerfilPublico(uid); } } },
-          !bloq && { rotulo: silenciado(uid) ? "Mostrar no meu Diário de novo" : "Silenciar", sub: silenciado(uid) ? "As publicações e stories voltam a aparecer" : "Continua seguindo, mas as publicações e stories somem do seu Diário", icone: "restringir", fn: () => alternarSilenciar(uid, p.nome) },
+          !bloq && { rotulo: silenciado(uid) ? "Mostrar no meu Diário de novo" : "Silenciar", sub: silenciado(uid) ? "As publicações e flashes voltam a aparecer" : "Continua seguindo, mas as publicações e flashes somem do seu Diário", icone: "restringir", fn: () => alternarSilenciar(uid, p.nome) },
           !bloq && { rotulo: restritos.has(uid) ? "Remover restrição" : "Restringir", sub: restritos.has(uid) ? "Volta a receber avisos dessa pessoa" : "Mensagens vão para Restritas, sem avisos", icone: "restringir", fn: () => alternarRestricao(uid, p.nome) },
           { rotulo: "Denunciar perfil", sub: "Golpe, perfil falso, assédio...", icone: "alerta", perigo: true,
             fn: () => abrirDenuncia({ fb, eu, tipo: "perfil", alvoId: uid, itemId: uid, trecho: [p.nome, p.nickname ? "@" + p.nickname : "", p.bio].filter(Boolean).join(" · "), nomeAlvo: p.nome || "",
