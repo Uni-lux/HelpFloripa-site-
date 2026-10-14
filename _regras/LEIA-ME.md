@@ -1,18 +1,19 @@
 # Regras do Firestore — publicação
 
 > **Versão de 14/10/2026:** igual à publicada em 13/10, mais **várias fotos numa publicação do Diário**
-> (campo `midias`, de 2 a 4 fotos), **dar estrelas na própria publicação** e o **resumo das estrelas**
-> (`diario_notas`: média e quantas pessoas deram 5, 4, 3, 2 e 1 estrela). Para publicar, o processo é o mesmo: apagar tudo no console e colar as 9 partes.
+> (campo `midias`, de 2 a 4 fotos), **dar estrelas na própria publicação** o **resumo das estrelas**
+> (`diario_notas`: média e quantas pessoas deram 5, 4, 3, 2 e 1 estrela) e os **comentários novos** (quem pode
+> comentar, comentário fixado e reações com emoji). Para publicar, o processo é o mesmo: apagar tudo no console e colar as 9 partes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
 `firestore.rules` divididas em **9 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
-- Arquivo de origem: `firestore.rules` (108.283 bytes, 1.981 linhas, sha256 começa com `76b5b3a62be85de3`).
+- Arquivo de origem: `firestore.rules` (110.000 bytes, 2.005 linhas, sha256 começa com `0d847f65d22174de`).
 - Cada parte termina com a linha `// ===== FIM DA PARTE X DE 9 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
 - Conferido: as 9 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **156 passaram, 0 falharam**, sem o aviso de limite de 1.000 expressões.
+- Testes de regras no arquivo remontado: **173 passaram, 0 falharam**, sem o aviso de limite de 1.000 expressões.
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.
@@ -35,6 +36,9 @@ linha), para colar no console do Firebase.
 - **Resumo das estrelas:** tocar na média (ao lado das estrelas) mostra quantas pessoas deram cada nota, com barras
   e porcentagem; na sua publicação, também quem deu (filtrando por estrela). Uma leitura por publicação, com
   10 ou 1 milhão de notas.
+- **Comentários:** o autor escolhe quem pode comentar (todos, seguidores, seguidores que ele segue, ninguém), fixa
+  um comentário no topo, e todo mundo reage com emoji (❤️ 👍 😂 😮 😢 👏). Antes de publicar, a reação conta como
+  curtida e "quem pode comentar" só ativa/desativa.
 - O resto (toque duplo para dar estrelas, quem deu estrelas, Salvos, editar legenda) já funciona com as regras de hoje.
 
 ## Conferência no site depois de publicar

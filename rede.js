@@ -25,6 +25,8 @@ const SIMBOLOS = `<symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l
 <symbol id="i-bloquear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/></symbol>
 <symbol id="i-restringir" viewBox="0 0 24 24"><path d="M12 3.5l7 3v5.2c0 4.2-2.9 7.6-7 8.8-4.1-1.2-7-4.6-7-8.8V6.5z"/><path d="M9 12h6"/></symbol>
 <symbol id="i-pessoa-menos" viewBox="0 0 24 24"><circle cx="10" cy="8.5" r="3.8"/><path d="M3.5 20c1-3.4 3.6-5.3 6.5-5.3 1.4 0 2.7.4 3.8 1.2M15 16h6"/></symbol>
+<symbol id="i-enviar" viewBox="0 0 24 24"><path d="M21 3.5L10.5 14M21 3.5l-6.5 17-4-6.5-6.5-4z"/></symbol>
+<symbol id="i-tacha" viewBox="0 0 24 24"><path d="M9 4h6l-1 6 3 3H7l3-3z"/><path d="M12 13v7"/></symbol>
 <symbol id="i-salvo" viewBox="0 0 24 24"><path d="M6.5 4.5h11v15.5L12 16l-5.5 4z"/></symbol>
 <symbol id="i-fotos" viewBox="0 0 24 24"><rect x="7" y="7" width="13" height="13" rx="2.2"/><path d="M4 16V6.2A2.2 2.2 0 016.2 4H16"/></symbol>
 <symbol id="i-pontos" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="18.5" cy="12" r="1.3" fill="currentColor"/></symbol>
@@ -605,6 +607,18 @@ export async function lerResumoEstrelas(postId) {
   const s = await fb.getDoc(refResumo(postId)).catch(() => null);
   return s?.exists() ? { ...resumoDe(s.data()), comResumo: true } : { ...(await contarNotas(postId).catch(() => resumoDe({}))), comResumo: false };
 }
+// Vários resumos de uma vez (Principais): 30 por consulta. Sem resumo (publicação antiga) = sem notas.
+export async function lerResumosEstrelas(ids) {
+  const r = new Map();
+  for (let i = 0; i < ids.length; i += 30) {
+    const lote = ids.slice(i, i + 30);
+    try {
+      const s = await fb.getDocs(fb.query(fb.collection(fb.db, "diario_notas"), fb.where(fb.documentId(), "in", lote)));
+      s.docs.forEach((d) => r.set(d.id, resumoDe(d.data())));
+    } catch {}
+  }
+  return r;
+}
 export async function infoEstrelas(postId, { recarregar = false } = {}) {
   if (!recarregar && cacheEstrelas.has(postId)) return cacheEstrelas.get(postId);
   const guardado = recarregar ? undefined : contador("r:" + postId);
@@ -716,6 +730,7 @@ export function seletorEstrelas(post, { aoMudar } = {}) {
   box.recarregar = () => infoEstrelas(post.id, { recarregar: true }).then((i) => pintar(i));
   // Toque duplo na foto: 5 estrelas de uma vez (nunca tira a nota, como o coração do Instagram).
   box.darRapido = async () => (info.minha === 5 ? true : (await dar(5, false)) && info.minha === 5);
+  box.darNota = async (n) => (info.minha === n ? true : (await dar(n, false)) && info.minha === n);
   return box;
 }
 
@@ -764,43 +779,131 @@ export async function abrirResumoEstrelas(post, { info = null, aoDar = null } = 
   }
   corpo.appendChild(sua);
   if (!proprio) return;
-  // quem deu (só na sua publicação)
+  // Quem deu (só na sua publicação): primeiro quem você segue, depois quem é da sua rede (seguido por quem
+  // você segue ou por seus seguidores), depois os demais. Vai carregando sozinho ao rolar.
   const titulo = el("h3", "est-quem-tit", "Quem deu estrelas");
   const chips = el("div", "est-chips"); chips.setAttribute("role", "group"); chips.setAttribute("aria-label", "Filtrar por estrelas");
   const lista = el("div", "est-quem");
-  const mais = el("button", "btn sec mini est-mais", "Ver mais"); mais.type = "button"; mais.hidden = true;
-  corpo.append(titulo, chips, lista, mais);
-  let filtro = 0, ultimo = null;
+  const fimLista = el("div", "est-fim"); fimLista.setAttribute("aria-hidden", "true");
+  corpo.append(titulo, chips, lista, fimLista);
   const opcoes = [[0, "Todas"], [5, "5 ★"], [4, "4 ★"], [3, "3 ★"], [2, "2 ★"], [1, "1 ★"]];
   const bChips = opcoes.map(([k, rot]) => { const b = el("button", null, rot); b.type = "button"; b.addEventListener("click", () => listarQuem(k)); chips.appendChild(b); return [k, b]; });
-  async function carregar(continuar) {
-    const col = fb.collection(fb.db, "curtidas");
-    const q = fb.query(col, fb.where("postId", "==", post.id), ...(filtro ? [fb.where("nota", "==", filtro)] : []), ...(continuar && ultimo ? [fb.startAfter(ultimo)] : []), fb.limit(30));
-    mais.disabled = true;
+  const rede = await minhaRede();
+  let filtro = 0, fase = 0, mostrados = new Set(), ultimo = null, acabou = false, carregando = false, geracao = 0;
+  const col = fb.collection(fb.db, "curtidas");
+  const base = () => [fb.where("postId", "==", post.id), ...(filtro ? [fb.where("nota", "==", filtro)] : [])];
+  async function porGrupo(uids) {
+    const out = [];
+    for (let i = 0; i < uids.length && i < 300; i += 30) {
+      const s = await fb.getDocs(fb.query(col, ...base(), fb.where("uid", "in", uids.slice(i, i + 30)))).catch(() => ({ docs: [] }));
+      out.push(...s.docs.map((d) => d.data()));
+    }
+    return out;
+  }
+  async function linhas(notas, por) {
+    const novas = notas.filter((d) => d.uid && !mostrados.has(d.uid) && !escondido(d.uid));
+    novas.forEach((d) => mostrados.add(d.uid));
+    const perfis = await Promise.all(novas.map((d) => (d.uid === eu.uid ? Promise.resolve({ nome: "Você", fotoPerfil: dados.fotoPerfil }) : obterPerfil(d.uid).catch(() => ({})))));
+    const pontes = await Promise.all(novas.map((d) => (rede.has(d.uid) && !meusSeguindo.has(d.uid) ? obterPerfil(rede.get(d.uid)).then((p) => String(p.nome || "alguém").split(" ")[0]).catch(() => "alguém") : "")));
+    novas.forEach((d, i) => {
+      const n = Math.max(0, Math.min(5, Number(d.nota) || 0));
+      const quem = d.uid === eu.uid ? "" : meusSeguindo.has(d.uid) ? "Você segue" : pontes[i] ? `Seguido por ${pontes[i]}` : "";
+      const l = linhaPessoa({ uid: d.uid, nome: perfis[i].nome || "Usuário", foto: perfis[i].fotoPerfil, sub: `${"★".repeat(n)}${"☆".repeat(5 - n)}  ${n} ${n === 1 ? "estrela" : "estrelas"}${quem ? " · " + quem : ""}`, semSeguir: d.uid === eu.uid });
+      if (por) l.classList.add("da-rede");
+      lista.appendChild(l);
+    });
+    return novas.length;
+  }
+  async function carregarMais() {
+    if (carregando || acabou) return;
+    carregando = true; const g = geracao;
     try {
-      const s = await fb.getDocs(q);
-      if (!continuar) lista.replaceChildren();
-      ultimo = s.docs.at(-1) || ultimo;
-      const notas = s.docs.map((d) => d.data()).filter((d) => d.uid && !escondido(d.uid));
-      const perfis = await Promise.all(notas.map((d) => (d.uid === eu.uid ? Promise.resolve({ nome: "Você", fotoPerfil: dados.fotoPerfil }) : obterPerfil(d.uid).catch(() => ({})))));
-      notas.forEach((d, i) => {
-        const n = Math.max(0, Math.min(5, Number(d.nota) || 0));
-        lista.appendChild(linhaPessoa({ uid: d.uid, nome: perfis[i].nome || "Usuário", foto: perfis[i].fotoPerfil, sub: `${"★".repeat(n)}${"☆".repeat(5 - n)}  ${n} ${n === 1 ? "estrela" : "estrelas"}`, semSeguir: d.uid === eu.uid }));
-      });
+      let n = 0;
+      if (fase === 0) { const r = await porGrupo([...meusSeguindo]); if (g !== geracao) return; n += await linhas(r, true); fase = 1; }
+      if (fase === 1 && n < 15) { const r = await porGrupo([...rede.keys()].filter((u) => !meusSeguindo.has(u))); if (g !== geracao) return; n += await linhas(r, true); fase = 2; }
+      if (fase === 2) {
+        while (n < 15 && !acabou) {
+          const s = await fb.getDocs(fb.query(col, ...base(), ...(ultimo ? [fb.startAfter(ultimo)] : []), fb.limit(30)));
+          if (g !== geracao) return;
+          ultimo = s.docs.at(-1) || ultimo;
+          n += await linhas(s.docs.map((d) => d.data()), false);
+          if (s.size < 30) acabou = true;
+        }
+      }
       if (!lista.children.length) lista.appendChild(el("div", "lista-vazia", filtro ? `Ninguém deu ${filtro} ${filtro === 1 ? "estrela" : "estrelas"}.` : "Ninguém deu estrelas ainda."));
-      mais.hidden = s.size < 30;
-    } catch (e) { lista.replaceChildren(el("div", "lista-vazia", "Não foi possível carregar: " + erroAmigavel(e))); mais.hidden = true; }
-    finally { mais.disabled = false; }
+      fimLista.textContent = acabou ? "" : "Carregando...";
+    } catch (e) { if (g === geracao) { lista.appendChild(el("div", "lista-vazia", "Não foi possível carregar: " + erroAmigavel(e))); acabou = true; } }
+    finally { if (g === geracao) carregando = false; }
+    // Ainda cabe na tela: carrega mais sem esperar rolar.
+    if (!acabou && fimLista.getBoundingClientRect().top < innerHeight + 200) carregarMais();
   }
   function listarQuem(k) {
-    filtro = k; ultimo = null;
+    filtro = k; fase = 0; mostrados = new Set(); ultimo = null; acabou = false; carregando = false; geracao++;
     bChips.forEach(([v, b]) => b.setAttribute("aria-pressed", String(v === k)));
-    lista.replaceChildren(el("div", "lista-vazia", "Carregando..."));
-    carregar(false);
+    lista.replaceChildren();
+    fimLista.textContent = "Carregando...";
+    carregarMais();
     if (k) titulo.scrollIntoView({ behavior: "smooth", block: "start" });
   }
-  mais.addEventListener("click", () => carregar(true));
+  const vigia = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) carregarMais(); }, { rootMargin: "300px" });
+  vigia.observe(fimLista);
+  f.addEventListener("fechada", () => vigia.disconnect(), { once: true });
   listarQuem(0);
+}
+// Sua rede (2º grau): quem é seguido por quem você segue ou por seus seguidores → uid de quem liga vocês.
+let redeCache = null;
+async function minhaRede() {
+  if (redeCache) return redeCache;
+  const r = new Map();
+  try {
+    const seguidores = await docsComValidade(fb, "seguidores-" + eu.uid, fb.query(fb.collection(fb.db, "relacoes"), fb.where("tipo", "==", "seguir"), fb.where("alvoId", "==", eu.uid), fb.limit(500)), 15 * 60000).then((s) => s.docs.map((d) => d.data().seguidorId)).catch(() => []);
+    const ponte = [...new Set([...meusSeguindo].slice(0, 30).concat(seguidores.slice(0, 30)))].filter((u) => u !== eu.uid);
+    for (let i = 0; i < ponte.length; i += 30) {
+      const s = await fb.getDocs(fb.query(fb.collection(fb.db, "relacoes"), fb.where("tipo", "==", "seguir"), fb.where("seguidorId", "in", ponte.slice(i, i + 30)), fb.limit(400))).catch(() => ({ docs: [] }));
+      for (const d of s.docs) {
+        const { seguidorId, alvoId } = d.data();
+        if (alvoId === eu.uid || r.has(alvoId)) continue;
+        r.set(alvoId, seguidorId);
+      }
+    }
+  } catch {}
+  redeCache = r;
+  return r;
+}
+
+// Toque duplo na foto: contagem de estrelas por cima da foto (1, 2, 3, 4...). Tocar de novo para parar: a
+// nota é onde parou. Sem parar, na 5ª as estrelas se juntam numa estrela grande no meio da foto.
+export function contadorEstrelas(alvo, darNota) {
+  if (alvo.querySelector(".contagem")) return Promise.resolve(0);
+  return new Promise((resolver) => {
+    const box = el("div", "contagem"); box.setAttribute("role", "status"); box.setAttribute("aria-live", "polite");
+    const linha = el("div", "cont-linha");
+    const estrelas = [0, 1, 2, 3, 4].map((k) => { const e = el("span", null, "★"); e.style.setProperty("--dx", `${(2 - k) * 52}px`); linha.appendChild(e); return e; });
+    const rotulo = el("div", "cont-rotulo", "Toque para parar");
+    const grande = el("span", "estrela-pulo", "★"); grande.setAttribute("aria-hidden", "true");
+    box.append(linha, rotulo);
+    alvo.appendChild(box);
+    let n = 0, timer = null, fim = false;
+    const finalizar = async (nota, fundir) => {
+      if (fim) return; fim = true; clearTimeout(timer);
+      rotulo.textContent = `${nota} ${nota === 1 ? "estrela" : "estrelas"}`;
+      box.classList.add(fundir ? "fundir" : "parou");
+      if (fundir) { box.appendChild(grande); navigator.vibrate?.([10, 40, 20]); }
+      const ok = await darNota(nota).catch(() => false);
+      setTimeout(() => { box.classList.add("saindo"); setTimeout(() => box.remove(), 260); }, fundir ? 950 : 700);
+      resolver(ok ? nota : 0);
+    };
+    const passo = () => {
+      n++;
+      estrelas[n - 1].classList.add("acesa");
+      navigator.vibrate?.(6);
+      if (n === 5) { setTimeout(() => finalizar(5, true), 260); return; }
+      rotulo.textContent = `${n} · toque para parar`;
+      timer = setTimeout(passo, 420);
+    };
+    box.addEventListener("click", (e) => { e.stopPropagation(); if (n > 0) finalizar(n, false); });
+    timer = setTimeout(passo, 90);
+  });
 }
 
 // Estrela grande que aparece no meio da foto (toque duplo).
@@ -894,151 +997,249 @@ export async function listarComentarios(postId) {
   const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "comentarios"), fb.where("postId", "==", postId), fb.limit(300)));
   return snap.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter((c) => !escondido(c.autorId)).sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm));
 }
-async function curtidasDosComentarios(ids) {
-  const r = new Map(ids.map((id) => [id, { n: 0, eu: false }]));
+// Reações dos comentários (curtidas_comentarios/{comentarioId}_{uid}; sem "reacao" = curtida antiga, conta ❤️).
+export const REACOES = ["❤️", "👍", "😂", "😮", "😢", "👏"];
+async function reacoesDosComentarios(ids) {
+  const r = new Map(ids.map((id) => [id, { n: 0, eu: null, por: new Map() }]));
   for (let i = 0; i < ids.length; i += 30) {
     const lote = ids.slice(i, i + 30);
     try {
       const s = await fb.getDocs(fb.query(fb.collection(fb.db, "curtidas_comentarios"), fb.where("comentarioId", "in", lote)));
-      s.docs.forEach((d) => { const x = r.get(d.data().comentarioId); if (x) { x.n++; if (d.data().uid === eu.uid) x.eu = true; } });
+      s.docs.forEach((d) => {
+        const x = r.get(d.data().comentarioId); if (!x) return;
+        const e = REACOES.includes(d.data().reacao) ? d.data().reacao : "❤️";
+        x.n++; x.por.set(e, (x.por.get(e) || 0) + 1);
+        if (d.data().uid === eu.uid) x.eu = e;
+      });
     } catch {}
   }
   return r;
 }
+// Quem pode comentar (escolha do autor da publicação). As regras do servidor conferem a mesma coisa.
+export const QUEM_COMENTA = { todos: "Todos", seguidores: "Só seguidores", mutuos: "Seguidores que você segue", ninguem: "Ninguém (comentários desativados)" };
+const quemComentaDe = (post) => (post.comentariosOcultos === true ? "ninguem" : (QUEM_COMENTA[post.quemComenta] ? post.quemComenta : "todos"));
+async function possoComentar(post) {
+  const q = quemComentaDe(post);
+  if (post.autorId === eu.uid || q === "todos") return { ok: true };
+  if (q === "ninguem") return { ok: false, msg: "Os comentários desta publicação estão desativados." };
+  const sigo = meusSeguindo.has(post.autorId);
+  if (q === "seguidores") return sigo ? { ok: true } : { ok: false, msg: "Só seguidores podem comentar. Siga para comentar." };
+  const meSegue = sigo && (await fb.getDoc(fb.doc(fb.db, "relacoes", `${post.autorId}_${eu.uid}`)).then((x) => x.exists()).catch(() => false));
+  return meSegue ? { ok: true } : { ok: false, msg: "Só seguidores que o autor segue de volta podem comentar." };
+}
 
-// Lista de comentários com respostas, edição, curtidas e moderação, dentro de "alvo".
+// Comentários no estilo das redes sociais: o fixado no topo (o primeiro comentário fica fixado sozinho, até o
+// autor escolher outro), depois os com mais engajamento (reações + respostas). Reações com emoji, respostas em
+// fio, e o autor da publicação oculta, apaga, fixa e escolhe quem pode comentar.
 export function montarComentarios(alvo, post, { aoMudar } = {}) {
   alvo.replaceChildren();
   const dono = post.autorId === eu.uid;
-  const moder = el("div", "coment-moderacao");
-  const aviso = el("div", "coment-aviso");
+  const config = el("div", "coment-config");
+  const aviso = el("div", "coment-aviso"); aviso.hidden = true;
   const lista = el("div", "comentarios");
   lista.appendChild(el("div", "lista-vazia", "Carregando comentários..."));
   const form = el("form", "novo-comentario");
   const resp = el("div", "respondendo"); resp.hidden = true;
   const respTx = el("span");
-  const respX = el("button", null, "Cancelar"); respX.type = "button";
+  const respX = el("button", "icone-btn"); respX.type = "button"; respX.setAttribute("aria-label", "Cancelar resposta"); respX.appendChild(icone("fechar", "i xs"));
   resp.append(respTx, respX);
   const linhaForm = el("div", "linha-form");
-  const tx = el("textarea"); tx.maxLength = 500; tx.rows = 1; tx.placeholder = "Escreva um comentário...";
+  const meuAv = el("div", "avatar"); pintarAvatar(meuAv, dados.fotoPerfil, dados.nome);
+  const tx = el("textarea"); tx.maxLength = 500; tx.rows = 1; tx.placeholder = "Adicione um comentário...";
   tx.setAttribute("aria-label", "Seu comentário");
-  const env = el("button", "btn pri"); env.type = "submit"; env.textContent = "Enviar";
-  linhaForm.append(tx, env);
+  const env = el("button", "coment-enviar"); env.type = "submit"; env.setAttribute("aria-label", "Publicar comentário"); env.textContent = "Publicar"; env.disabled = true;
+  linhaForm.append(meuAv, tx, env);
   form.append(resp, linhaForm);
-  alvo.append(moder, aviso, lista, form);
-  let respondendo = null;   // comentário que está sendo respondido
-  tx.addEventListener("input", () => { tx.style.height = "auto"; tx.style.height = Math.min(140, tx.scrollHeight) + "px"; });
-  respX.addEventListener("click", () => { respondendo = null; resp.hidden = true; tx.placeholder = "Escreva um comentário..."; });
+  alvo.append(config, aviso, lista, form);
+  let respondendo = null;
+  const ajustar = () => { tx.style.height = "auto"; tx.style.height = Math.min(140, tx.scrollHeight) + "px"; env.disabled = !tx.value.trim(); };
+  tx.addEventListener("input", ajustar);
+  const cancelarResposta = () => { respondendo = null; resp.hidden = true; tx.placeholder = "Adicione um comentário..."; };
+  respX.addEventListener("click", cancelarResposta);
 
-  const pintarModeracao = () => {
-    moder.replaceChildren();
-    aviso.replaceChildren();
-    const ocultos = post.comentariosOcultos === true;
+  // Configuração do autor: quem pode comentar.
+  const pintarConfig = async () => {
+    config.replaceChildren();
+    const q = quemComentaDe(post);
     if (dono) {
-      const b = el("button", "btn sec mini"); b.type = "button";
-      b.append(icone(ocultos ? "olho" : "restringir", "i xs"), document.createTextNode(ocultos ? "Mostrar os comentários" : "Ocultar os comentários"));
-      b.addEventListener("click", async () => {
-        const novo = !ocultos;
-        if (novo && !confirm("Ocultar os comentários desta publicação?\n\nNinguém mais vê nem comenta até você mostrar de novo.")) return;
-        b.disabled = true;
-        try {
-          await fb.updateDoc(fb.doc(fb.db, "diario", post.id), { comentariosOcultos: novo });
-          post.comentariosOcultos = novo;
-          toast(novo ? "Comentários ocultos" : "Comentários visíveis de novo");
-          pintarModeracao(); pintar();
-        } catch (e) { toast("Não foi possível alterar: " + erroAmigavel(e)); b.disabled = false; }
-      });
-      moder.appendChild(b);
-      if (ocultos) moder.appendChild(el("span", "coment-nota", "Só você vê os comentários desta publicação."));
-    } else if (ocultos) {
-      aviso.textContent = "O autor ocultou os comentários desta publicação.";
+      const b = el("button", "coment-quem"); b.type = "button";
+      b.append(icone("chat", "i xs"), el("span", null, "Quem pode comentar: "), el("strong", null, QUEM_COMENTA[q].replace(" (comentários desativados)", "")), icone("avancar", "i xs"));
+      b.addEventListener("click", () => abrirOpcoes("Quem pode comentar", Object.entries(QUEM_COMENTA).map(([k, rot]) => ({
+        rotulo: rot + (k === q ? "  ✓" : ""), icone: k === "ninguem" ? "bloquear" : k === "todos" ? "teia" : "pessoa-mais",
+        sub: k === "mutuos" ? "Quem segue você e você segue de volta" : k === "ninguem" ? "Ninguém comenta; os comentários ficam escondidos" : "",
+        fn: async () => {
+          try {
+            await fb.updateDoc(fb.doc(fb.db, "diario", post.id), { quemComenta: k, comentariosOcultos: k === "ninguem" });
+            post.quemComenta = k; post.comentariosOcultos = k === "ninguem";
+            toast(k === "ninguem" ? "Comentários desativados" : `Agora: ${rot.toLowerCase()}`);
+            pintarConfig().then(pintar);
+          } catch (e) {
+            // Regras de antes: só dá para desativar/ativar tudo.
+            if (e?.code === "permission-denied" && (k === "ninguem" || k === "todos")) {
+              try { await fb.updateDoc(fb.doc(fb.db, "diario", post.id), { comentariosOcultos: k === "ninguem" }); post.comentariosOcultos = k === "ninguem"; toast(k === "ninguem" ? "Comentários desativados" : "Comentários ativados"); pintarConfig().then(pintar); return; } catch {}
+            }
+            toast(e?.code === "permission-denied" ? "Essa opção começa a funcionar quando as regras novas forem publicadas." : "Não foi possível alterar: " + erroAmigavel(e));
+          }
+        }
+      }))));
+      config.appendChild(b);
+      if (q === "ninguem") config.appendChild(el("span", "coment-nota", "Só você vê os comentários desta publicação."));
     }
-    form.hidden = ocultos;
+    const pode = await possoComentar(post);
+    form.hidden = !pode.ok;
+    aviso.hidden = pode.ok || dono;
+    aviso.textContent = pode.ok ? "" : pode.msg;
   };
 
+  let reacoes = new Map();
   const pintar = async () => {
     let itens = [];
     try { itens = await listarComentarios(post.id); } catch { lista.replaceChildren(el("div", "lista-vazia", "Não foi possível carregar os comentários.")); return; }
     cacheNComent.set(post.id, itens.length); guardarContador("c:" + post.id, itens.length);
-    const ocultosTodos = post.comentariosOcultos === true && !dono;
+    const fechados = quemComentaDe(post) === "ninguem" && !dono;
     const visiveis = itens.filter((c) => dono || c.autorId === eu.uid || !c.oculto);
-    aoMudar?.(ocultosTodos ? 0 : visiveis.filter((c) => !c.oculto).length);
-    lista.replaceChildren();
-    if (ocultosTodos) return;
-    if (!visiveis.length) { lista.appendChild(el("div", "lista-vazia", "Seja o primeiro a comentar.")); return; }
+    aoMudar?.(fechados ? 0 : visiveis.filter((c) => !c.oculto).length);
+    if (fechados) { lista.replaceChildren(); return; }
+    if (!visiveis.length) { lista.replaceChildren(el("div", "lista-vazia coment-vazio", "Ainda não há comentários. Comece a conversa.")); return; }
     const porId = new Map(itens.map((c) => [c.id, c]));
     const raiz = (c) => { let x = c, k = 0; while (x.respostaA && porId.has(x.respostaA) && k++ < 20) x = porId.get(x.respostaA); return x; };
-    const curt = await curtidasDosComentarios(visiveis.map((c) => c.id));
+    reacoes = await reacoesDosComentarios(visiveis.map((c) => c.id));
     const raizes = visiveis.filter((c) => raiz(c) === c);
+    const respostasDe = new Map(raizes.map((r) => [r.id, visiveis.filter((c) => c !== r && raiz(c) === r)]));
+    // Fixado: o escolhido pelo autor; sem escolha, o primeiro comentário. "" = o autor tirou o fixado.
+    const primeiro = raizes.slice().sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm))[0];
+    const fixoId = post.comentarioFixo === "" ? null : (post.comentarioFixo && raizes.some((r) => r.id === post.comentarioFixo) ? post.comentarioFixo : primeiro?.id);
+    const engaj = (c) => (reacoes.get(c.id)?.n || 0) + 2 * (respostasDe.get(c.id)?.length || 0);
+    raizes.sort((a, b) => (b.id === fixoId) - (a.id === fixoId) || engaj(b) - engaj(a) || ms(b.criadoEm) - ms(a.criadoEm));
+    lista.replaceChildren();
     raizes.forEach((r) => {
-      const bloco = el("div", "fio-coment");
-      bloco.appendChild(linhaComentario(r, curt.get(r.id), null));
-      const respostas = visiveis.filter((c) => c !== r && raiz(c) === r);
+      const fixo = r.id === fixoId;
+      const bloco = el("div", "fio-coment" + (fixo ? " fixado" : ""));
+      bloco.appendChild(linhaComentario(r, null, { fixo, autoFixo: fixo && !post.comentarioFixo }));
+      const respostas = respostasDe.get(r.id).sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm));
       if (respostas.length) {
         const sub = el("div", "respostas");
-        respostas.forEach((c) => sub.appendChild(linhaComentario(c, curt.get(c.id), c.respostaA !== r.id ? porId.get(c.respostaA) : null)));
+        const mostrar = (todas) => {
+          sub.replaceChildren();
+          (todas ? respostas : respostas.slice(0, 2)).forEach((c) => sub.appendChild(linhaComentario(c, c.respostaA !== r.id ? porId.get(c.respostaA) : null)));
+          if (!todas && respostas.length > 2) { const mais = el("button", "ver-respostas", `Ver mais ${respostas.length - 2} ${respostas.length - 2 === 1 ? "resposta" : "respostas"}`); mais.type = "button"; mais.addEventListener("click", () => mostrar(true)); sub.appendChild(mais); }
+        };
+        mostrar(false);
         bloco.appendChild(sub);
       }
       lista.appendChild(bloco);
     });
   };
 
-  function linhaComentario(c, cur = { n: 0, eu: false }, paraQuem) {
+  async function reagir(c, emoji, pintarReacao) {
+    const ref = fb.doc(fb.db, "curtidas_comentarios", `${c.id}_${eu.uid}`);
+    const r = reacoes.get(c.id) || { n: 0, eu: null, por: new Map() };
+    const antes = r.eu;
+    const tirar = antes === emoji;
+    try {
+      if (tirar) await fb.deleteDoc(ref);
+      else {
+        if (await precisaEmail()) return;
+        try {
+          if (antes) await fb.updateDoc(ref, { reacao: emoji });
+          else await fb.setDoc(ref, { comentarioId: c.id, uid: eu.uid, reacao: emoji, criadoEm: fb.serverTimestamp() });
+        } catch (e) {
+          // Regras de antes: só curtida (sem emoji).
+          if (e?.code !== "permission-denied" || antes) throw e;
+          await fb.setDoc(ref, { comentarioId: c.id, uid: eu.uid, criadoEm: fb.serverTimestamp() });
+          emoji = "❤️"; toast("Por enquanto conta como curtida. Os outros emojis chegam quando as regras novas forem publicadas.");
+        }
+      }
+      if (antes) { r.por.set(antes, Math.max(0, (r.por.get(antes) || 1) - 1)); r.n--; }
+      if (!tirar) { r.por.set(emoji, (r.por.get(emoji) || 0) + 1); r.n++; r.eu = emoji; } else r.eu = null;
+      reacoes.set(c.id, r);
+      pintarReacao();
+    } catch (e) { toast("Não foi possível reagir: " + erroAmigavel(e)); }
+  }
+
+  function seletorReacao(c, ancora, pintarReacao) {
+    document.querySelector(".reacao-pop")?.remove();
+    const pop = el("div", "reacao-pop"); pop.setAttribute("role", "menu");
+    REACOES.forEach((e, k) => {
+      const b = el("button", (reacoes.get(c.id)?.eu === e ? "eu" : ""), e); b.type = "button"; b.style.setProperty("--k", k);
+      b.setAttribute("aria-label", "Reagir com " + e);
+      b.addEventListener("click", (ev) => { ev.stopPropagation(); pop.remove(); reagir(c, e, pintarReacao); });
+      pop.appendChild(b);
+    });
+    document.body.appendChild(pop);
+    const r = ancora.getBoundingClientRect(), rp = pop.getBoundingClientRect();
+    pop.style.left = Math.max(8, Math.min(r.left, innerWidth - rp.width - 8)) + "px";
+    pop.style.top = Math.max(8, r.top - rp.height - 8) + "px";
+    const fora = (ev) => { if (!pop.contains(ev.target)) { pop.remove(); document.removeEventListener("pointerdown", fora, true); } };
+    setTimeout(() => document.addEventListener("pointerdown", fora, true), 0);
+  }
+
+  function linhaComentario(c, paraQuem, { fixo = false, autoFixo = false } = {}) {
     const meu = c.autorId === eu.uid;
     const linha = el("div", "comentario" + (c.oculto ? " oculto" : ""));
+    linha.dataset.id = c.id;
     const av = el("div", "avatar"); pintarAvatar(av, c.foto, c.nome);
     av.addEventListener("click", () => ganchos.abrirPerfil(c.autorId));
     const col = el("div", "col");
-    const bolha = el("div", "bolha");
-    const topo = el("div", "bolha-topo");
-    const nm = el("strong", null, c.nome || "Usuário"); nm.addEventListener("click", () => ganchos.abrirPerfil(c.autorId));
+    const topo = el("div", "coment-topo");
+    const nm = el("button", "coment-nome", c.nome || "Usuário"); nm.type = "button"; nm.addEventListener("click", () => ganchos.abrirPerfil(c.autorId));
     topo.appendChild(nm);
-    // Nome e foto gravados no comentário são escritos por quem comentou: mostra os do perfil.
+    if (c.autorId === post.autorId) topo.appendChild(el("span", "selo-autor", "Autor"));
+    if (paraQuem) topo.appendChild(el("span", "para", `↪ ${paraQuem.nome || "usuário"}`));
+    topo.appendChild(el("span", "coment-quando", tempoRelativo(paraData(c.criadoEm)) + (c.editadoEm ? " · editado" : "")));
+    if (c.oculto) topo.appendChild(el("span", "etiqueta", meu && !dono ? "Oculto pelo autor" : "Oculto"));
     obterPerfil(c.autorId).then((p) => { if ((p.desativadaAte?.toMillis?.() ?? 0) > Date.now()) { linha.remove(); return; } if (p.nome) nm.textContent = p.nome; if (p.nome || p.fotoPerfil) pintarAvatar(av, p.fotoPerfil || c.foto, p.nome || c.nome); });
-    if (paraQuem) topo.appendChild(el("span", "para", `para ${paraQuem.nome || "usuário"}`));
-    if (c.oculto) topo.appendChild(el("span", "etiqueta", meu && !dono ? "Oculto pelo autor da publicação" : "Oculto"));
-    const texto = comMencoes(el("p"), c.texto);
-    bolha.append(topo, texto);
-    const meta = el("div", "meta");
-    meta.appendChild(el("span", null, tempoRelativo(paraData(c.criadoEm)) + (c.editadoEm ? " · editado" : "")));
-    const bt = (rot, fn, cls = "") => { const b = el("button", cls, rot); b.type = "button"; b.addEventListener("click", fn); meta.appendChild(b); return b; };
-    // curtir o comentário
-    const bCurtir = bt(`${cur.eu ? "Curtido" : "Curtir"}${cur.n ? ` (${cur.n})` : ""}`, async () => {
-      bCurtir.disabled = true;
-      const ref = fb.doc(fb.db, "curtidas_comentarios", `${c.id}_${eu.uid}`);
-      try {
-        if (cur.eu) { await fb.deleteDoc(ref); cur.eu = false; cur.n = Math.max(0, cur.n - 1); }
-        else { if (await precisaEmail()) return; await fb.setDoc(ref, { comentarioId: c.id, uid: eu.uid, criadoEm: fb.serverTimestamp() }); cur.eu = true; cur.n++; }
-        bCurtir.textContent = `${cur.eu ? "Curtido" : "Curtir"}${cur.n ? ` (${cur.n})` : ""}`;
-        bCurtir.classList.toggle("ativo", cur.eu);
-      } catch (e) { toast("Não foi possível curtir: " + erroAmigavel(e)); }
-      finally { bCurtir.disabled = false; }
-    }, cur.eu ? "ativo" : "");
-    if (!post.comentariosOcultos) bt("Responder", () => {
-      respondendo = c;
-      respTx.textContent = `Respondendo a ${c.nome || "usuário"}`;
-      resp.hidden = false;
-      tx.placeholder = `Responder a ${c.nome || "usuário"}...`;
-      tx.focus();
-    });
-    if (meu) bt("Editar", () => editar());
-    if (dono && !meu) bt(c.oculto ? "Mostrar" : "Ocultar", async () => {
-      try { await fb.updateDoc(fb.doc(fb.db, "comentarios", c.id), { oculto: !c.oculto }); toast(c.oculto ? "Comentário visível" : "Comentário oculto"); pintar(); }
-      catch (e) { toast("Não foi possível alterar: " + erroAmigavel(e)); }
-    });
-    if (!meu) bt("Denunciar", () => abrirDenunciaComentario(c));
-    if (meu || dono) bt("Apagar", async () => {
-      if (!confirm("Apagar este comentário?")) return;
-      try { await fb.deleteDoc(fb.doc(fb.db, "comentarios", c.id)); pintar(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
-    }, "perigo");
+    const mais = el("button", "icone-btn coment-mais"); mais.type = "button"; mais.setAttribute("aria-label", "Opções do comentário"); mais.appendChild(icone("pontos", "i xs"));
+    topo.appendChild(mais);
+    const texto = comMencoes(el("p", "coment-texto"), c.texto);
+    const acoes = el("div", "coment-acoes");
+    const bReagir = el("button", "coment-reagir"); bReagir.type = "button";
+    const resumo = el("button", "coment-reacoes"); resumo.type = "button"; resumo.setAttribute("aria-label", "Reações");
+    const pintarReacao = () => {
+      const r = reacoes.get(c.id) || { n: 0, eu: null, por: new Map() };
+      bReagir.textContent = r.eu ? `${r.eu} Reagiu` : "Reagir";
+      bReagir.classList.toggle("ativo", !!r.eu);
+      const top = [...r.por.entries()].filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]).slice(0, 3);
+      resumo.hidden = !r.n;
+      resumo.replaceChildren(el("span", "emojis", top.map(([e]) => e).join("")), el("span", "n", numero(r.n)));
+    };
+    pintarReacao();
+    // Toque: escolher o emoji (ou tirar a reação); segurar / clique direito também abre a escolha.
+    let segurar = null, abriu = false;
+    bReagir.addEventListener("pointerdown", () => { abriu = false; segurar = setTimeout(() => { abriu = true; navigator.vibrate?.(12); seletorReacao(c, bReagir, pintarReacao); }, 420); });
+    ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => bReagir.addEventListener(ev, () => clearTimeout(segurar)));
+    bReagir.addEventListener("contextmenu", (e) => { e.preventDefault(); abriu = true; seletorReacao(c, bReagir, pintarReacao); });
+    bReagir.addEventListener("click", () => { if (abriu) { abriu = false; return; } const r = reacoes.get(c.id); if (r?.eu) reagir(c, r.eu, pintarReacao); else seletorReacao(c, bReagir, pintarReacao); });
+    resumo.addEventListener("click", () => seletorReacao(c, bReagir, pintarReacao));
+    acoes.appendChild(bReagir);
+    if (!form.hidden || dono) { const b = el("button", "coment-responder", "Responder"); b.type = "button"; b.addEventListener("click", () => { respondendo = c; respTx.textContent = `Respondendo a ${nm.textContent}`; resp.hidden = false; tx.placeholder = `Responder a ${nm.textContent}...`; tx.focus(); }); acoes.appendChild(b); }
+    acoes.appendChild(resumo);
+    // Menu ⋯: o que cada um pode fazer.
+    mais.addEventListener("click", () => abrirOpcoes("Comentário", [
+      dono && !c.respostaA && { rotulo: fixo ? "Tirar do topo" : "Fixar no topo", icone: "tacha", fn: async () => {
+        const novo = fixo ? "" : c.id;
+        try { await fb.updateDoc(fb.doc(fb.db, "diario", post.id), { comentarioFixo: novo }); post.comentarioFixo = novo; toast(novo ? "Comentário fixado no topo" : "Comentário tirado do topo"); pintar(); }
+        catch (e) { toast(e?.code === "permission-denied" ? "Fixar começa a funcionar quando as regras novas forem publicadas." : "Não foi possível: " + erroAmigavel(e)); }
+      } },
+      meu && { rotulo: "Editar", icone: "lapis", fn: () => editar() },
+      dono && !meu && { rotulo: c.oculto ? "Mostrar comentário" : "Ocultar comentário", sub: c.oculto ? "" : "Só você e quem escreveu continuam vendo", icone: c.oculto ? "olho" : "restringir", fn: async () => {
+        try { await fb.updateDoc(fb.doc(fb.db, "comentarios", c.id), { oculto: !c.oculto }); toast(c.oculto ? "Comentário visível" : "Comentário oculto"); pintar(); }
+        catch (e) { toast("Não foi possível alterar: " + erroAmigavel(e)); }
+      } },
+      !meu && { rotulo: "Denunciar", sub: "Ofensa, golpe, spam...", icone: "alerta", perigo: true, fn: () => abrirDenunciaComentario(c) },
+      (meu || dono) && { rotulo: "Apagar comentário", icone: "lixo", perigo: true, fn: async () => {
+        if (!confirm("Apagar este comentário?")) return;
+        try { await fb.deleteDoc(fb.doc(fb.db, "comentarios", c.id)); toast("Comentário apagado"); pintar(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
+      } }
+    ]));
     function editar() {
       const ed = el("textarea", "editar"); ed.maxLength = 500; ed.value = c.texto;
       const ok = el("button", "btn pri mini", "Salvar"); ok.type = "button";
       const no = el("button", "btn sec mini", "Cancelar"); no.type = "button";
-      const acoes = el("div", "acoes-editar"); acoes.append(ok, no);
-      texto.replaceWith(ed); meta.hidden = true; bolha.appendChild(acoes);
+      const ae = el("div", "acoes-editar"); ae.append(ok, no);
+      texto.replaceWith(ed); acoes.hidden = true; col.appendChild(ae);
       ed.focus();
-      no.addEventListener("click", () => { ed.replaceWith(texto); acoes.remove(); meta.hidden = false; });
+      no.addEventListener("click", () => { ed.replaceWith(texto); ae.remove(); acoes.hidden = false; });
       ok.addEventListener("click", async () => {
         const novo = ed.value.trim();
         if (!novo) { ed.focus(); return; }
@@ -1047,7 +1248,8 @@ export function montarComentarios(alvo, post, { aoMudar } = {}) {
         catch (e) { toast("Não foi possível salvar: " + erroAmigavel(e)); ok.disabled = false; }
       });
     }
-    col.append(bolha, meta);
+    if (fixo) { const f = el("div", "coment-fixo"); f.append(icone("tacha", "i xs"), document.createTextNode(autoFixo ? "Primeiro comentário" : `Fixado por ${dono ? "você" : "o autor"}`)); col.appendChild(f); }
+    col.append(topo, texto, acoes);
     linha.append(av, col);
     return linha;
   }
@@ -1059,27 +1261,93 @@ export function montarComentarios(alvo, post, { aoMudar } = {}) {
     if (await precisaEmail()) return;
     env.disabled = true;
     try {
-      // A foto mostrada vem do perfil; aqui só um link curto (nunca a imagem inteira, que pesava até 200 KB por comentário).
+      // A foto mostrada vem do perfil; aqui só um link curto (nunca a imagem inteira).
       const foto = urlSegura(dados.fotoPerfil).startsWith("https://") ? dados.fotoPerfil : "";
       const doc = { postId: post.id, postAutorId: post.autorId, autorId: eu.uid, nome: String(dados.nome || "Usuário").slice(0, 80), foto, texto: texto.slice(0, 500), criadoEm: fb.serverTimestamp() };
       if (respondendo) { doc.respostaA = respondendo.id; doc.respostaAutorId = respondendo.autorId; }
       await comRitmo(fb, eu.uid, "com", (lote) => lote.set(fb.doc(fb.collection(fb.db, "comentarios")), doc));
-      tx.value = ""; tx.style.height = "auto";
-      respondendo = null; resp.hidden = true; tx.placeholder = "Escreva um comentário...";
+      tx.value = ""; ajustar();
+      cancelarResposta();
       await pintar();
-    } catch (err) { toast("Não foi possível comentar: " + erroAmigavel(err)); }
-    finally { env.disabled = false; }
+    } catch (err) { toast(err?.code === "permission-denied" ? "Você não pode comentar nesta publicação." : "Não foi possível comentar: " + erroAmigavel(err)); }
+    finally { env.disabled = !tx.value.trim(); }
   });
-  pintarModeracao();
-  pintar();
-  return { recarregar: pintar, focar: () => tx.focus() };
+  // A publicação pode ter vindo da cópia do aparelho: lê de novo as escolhas do autor (quem comenta, fixado).
+  fb.getDoc(fb.doc(fb.db, "diario", post.id)).then((d) => {
+    if (d.exists()) { const x = d.data(); post.quemComenta = x.quemComenta; post.comentarioFixo = x.comentarioFixo; post.comentariosOcultos = x.comentariosOcultos; }
+  }).catch(() => {}).then(() => pintarConfig()).then(pintar);
+  return { recarregar: pintar, focar: () => { if (!form.hidden) tx.focus(); } };
 }
 export function abrirComentarios(post, { aoMudar } = {}) {
   const f = criarFolha("folhaComentarios", { titulo: "Comentários", corpoClasse: "folha-corpo pad" });
-  const c = montarComentarios($("c_folhaComentarios"), post, { aoMudar });
+  const corpo = $("c_folhaComentarios");
+  corpo.replaceChildren();
+  const area = el("div");
+  corpo.append(acoesPublicacao(post), area);
+  const c = montarComentarios(area, post, { aoMudar });
   abrirFolha("folhaComentarios");
-  if (!post.comentariosOcultos) setTimeout(() => c.focar(), 120);
+  setTimeout(() => c.focar(), 160);
   return f;
+}
+
+// Barra de ações da publicação: salvar, enviar para amigos e compartilhar.
+export function acoesPublicacao(post) {
+  const barra = el("div", "pub-acoes");
+  const bt = (icon, rot, fn) => { const b = el("button", "pub-acao"); b.type = "button"; b.append(icone(icon, "i s"), el("span", null, rot)); b.addEventListener("click", () => fn(b)); barra.appendChild(b); return b; };
+  const pintarSalvo = (b) => { const s = estaSalvo(post.id); b.classList.toggle("on", s); b.lastChild.textContent = s ? "Salvo" : "Salvar"; b.setAttribute("aria-pressed", String(s)); };
+  const bS = bt("salvo", "Salvar", async (b) => { await alternarSalvo(post); pintarSalvo(b); });
+  pintarSalvo(bS);
+  bt("enviar", "Enviar", () => enviarParaAmigos(post));
+  bt("compartilhar", "Compartilhar", () => compartilharPublicacao(post));
+  return barra;
+}
+export const linkPublicacao = (post) => `${location.origin}${location.pathname.replace(/[^/]*$/, "")}usuarios.html?post=${encodeURIComponent(post.id)}`;
+export async function compartilharPublicacao(post) {
+  const url = linkPublicacao(post);
+  try {
+    if (navigator.share) { await navigator.share({ title: `Publicação de ${post.nome || "Help Floripa"}`, text: String(post.texto || "").slice(0, 120), url }); return; }
+    await navigator.clipboard.writeText(url);
+    toast("Link da publicação copiado");
+  } catch (e) { if (e?.name !== "AbortError") toast("Não foi possível compartilhar."); }
+}
+// Enviar a publicação para alguém pelo Mensagens (vai como cartão; tocar abre a publicação).
+export async function enviarParaAmigos(post) {
+  const corpo = abrirLista("Enviar para");
+  const busca = el("input", "busca-enviar"); busca.type = "search"; busca.placeholder = "Buscar pessoas"; busca.setAttribute("aria-label", "Buscar pessoas");
+  const box = el("div");
+  corpo.append(busca, box);
+  box.appendChild(el("div", "lista-vazia", "Carregando..."));
+  // Primeiro com quem você conversou por último, depois quem você segue.
+  const conv = await fb.getDocs(fb.query(fb.collection(fb.db, "conversas"), fb.where("participantes", "array-contains", eu.uid), fb.limit(40))).catch(() => ({ docs: [] }));
+  const recentes = conv.docs.map((d) => d.data()).sort((a, b) => ms(b.atualizadoEm) - ms(a.atualizadoEm)).map((c) => (c.participantes || []).find((u) => u !== eu.uid)).filter(Boolean);
+  const uids = [...new Set([...recentes, ...meusSeguindo])].filter((u) => u && !escondido(u)).slice(0, 80);
+  const pessoas = await Promise.all(uids.map(async (u) => ({ uid: u, ...(await obterPerfil(u).catch(() => ({}))) })));
+  const pintarLista = () => {
+    const t = busca.value.trim().toLowerCase();
+    box.replaceChildren();
+    const l = pessoas.filter((p) => !t || String(p.nome || "").toLowerCase().includes(t) || String(p.nickname || "").toLowerCase().includes(t));
+    if (!l.length) { box.appendChild(el("div", "lista-vazia", t ? "Ninguém encontrado." : "Siga pessoas ou converse com alguém para enviar.")); return; }
+    l.forEach((p) => box.appendChild(linhaPessoa({ uid: p.uid, nome: p.nome, foto: p.fotoPerfil, sub: p.nickname ? "@" + p.nickname : "", semSeguir: true,
+      acoes: [{ rotulo: "Enviar", classe: "pri", fn: async (b) => { if (b.dataset.enviado) return; await mandarPublicacao(post, p.uid); b.dataset.enviado = "1"; b.textContent = "Enviado ✓"; b.classList.replace("pri", "sec"); } }],
+      aoClicar: () => {} })));
+  };
+  busca.addEventListener("input", pintarLista);
+  pintarLista();
+}
+async function mandarPublicacao(post, uid) {
+  if (await precisaEmail()) throw new Error("e-mail");
+  const ids = [eu.uid, uid].sort(), id = `${ids[0]}_${ids[1]}`;
+  const ref = fb.doc(fb.db, "conversas", id);
+  try {
+    let existe = false; try { existe = (await fb.getDoc(ref)).exists(); } catch {}
+    if (!existe) await fb.setDoc(ref, { participantes: ids, ultimaMensagem: "", atualizadoEm: fb.serverTimestamp() }, { merge: true });
+    const foto = fotosDoPost(post)[0] || "";
+    const cartao = { tipo: "publicacao", titulo: String(post.texto || `Publicação de ${post.nome || "alguém"}`).slice(0, 120), sub: post.nome ? `Publicação de ${String(post.nome).slice(0, 60)}` : "", link: `usuarios.html?post=${post.id}`, ...(foto.startsWith("https://") ? { foto } : {}) };
+    await comRitmo(fb, eu.uid, "msg", (lote) => lote.set(fb.doc(fb.collection(fb.db, "conversas", id, "mensagens")), { remetenteId: eu.uid, texto: "", tipoArquivo: "cartao", cartao, criadoEm: fb.serverTimestamp() }));
+    // Resumo da conversa (como o Mensagens faz depois de enviar).
+    fb.setDoc(ref, { ultimaMensagem: "Publicação", ultimaMensagemRemetenteId: eu.uid, atualizadoEm: fb.serverTimestamp(), falaram: { [eu.uid]: true } }, { merge: true }).catch(() => {});
+    toast("Publicação enviada");
+  } catch (e) { toast("Não foi possível enviar: " + erroAmigavel(e)); throw e; }
 }
 
 // =====================================================

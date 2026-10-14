@@ -1858,6 +1858,16 @@ service cloud.firestore {
         return d.texto is string && d.texto.size() >= 1 && d.texto.size() <= 500;
       }
 
+      // Quem pode comentar (escolha do autor): o autor sempre pode.
+      function segue(a, b) { return exists(/databases/$(database)/documents/relacoes/$(a + '_' + b)); }
+      function podeComentar(p) {
+        let q = p.get('quemComenta', 'todos');
+        return p.autorId == request.auth.uid
+            || q == 'todos'
+            || (q == 'seguidores' && segue(request.auth.uid, p.autorId))
+            || (q == 'mutuos' && segue(request.auth.uid, p.autorId) && segue(p.autorId, request.auth.uid));
+      }
+
       function respostaOk(d) {
         return (!('respostaA' in d) && !('respostaAutorId' in d))
             || (d.respostaA is string
@@ -1876,6 +1886,7 @@ service cloud.firestore {
                     && exists(/databases/$(database)/documents/diario/$(request.resource.data.postId))
                     && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
                     && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.get('comentariosOcultos', false) != true
+                    && podeComentar(get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data)
                     && respostaOk(request.resource.data)
                     && !bloqueioEntre(request.auth.uid, request.resource.data.postAutorId)
                     && ritmoOk('com')
@@ -1908,15 +1919,23 @@ service cloud.firestore {
 
       allow read: if logado();
 
+      // Reação (emoji); sem o campo = curtida antiga (conta como ❤️).
+      function reacaoOk(d) { return !('reacao' in d) || d.reacao in ['❤️', '👍', '😂', '😮', '😢', '👏']; }
+
       allow create: if logado()
                     && emailOk()
-                    && request.resource.data.keys().hasOnly(['comentarioId', 'uid', 'criadoEm'])
+                    && request.resource.data.keys().hasOnly(['comentarioId', 'uid', 'criadoEm', 'reacao'])
                     && request.resource.data.uid == request.auth.uid
                     && id == request.resource.data.comentarioId + '_' + request.auth.uid
                     && exists(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId))
+                    && reacaoOk(request.resource.data)
                     && request.resource.data.criadoEm == request.time;
 
-      allow update: if false;
+      // Trocar a reação (só o emoji).
+      allow update: if logado()
+                    && resource.data.uid == request.auth.uid
+                    && mudou().hasOnly(['reacao'])
+                    && reacaoOk(request.resource.data);
       allow delete: if logado() && resource.data.uid == request.auth.uid;
     }
 
@@ -1960,7 +1979,12 @@ service cloud.firestore {
                     && emailOk()
                     && resource.data.autorId == request.auth.uid
                     && request.resource.data.autorId == resource.data.autorId
-                    && gravou().hasOnly(['texto', 'nome', 'fotoPerfil', 'comentariosOcultos', 'ocultoAte', 'editadoEm'])
+                    && gravou().hasOnly(['texto', 'nome', 'fotoPerfil', 'comentariosOcultos', 'ocultoAte', 'editadoEm', 'quemComenta', 'comentarioFixo'])
+                    // quem pode comentar: todos, seguidores, seguidores que o autor segue de volta, ninguém
+                    && (!('quemComenta' in request.resource.data) || request.resource.data.quemComenta in ['todos', 'seguidores', 'mutuos', 'ninguem'])
+                    // comentário fixado no topo (id) ou nulo
+                    && (!('comentarioFixo' in request.resource.data) || request.resource.data.comentarioFixo == null
+                        || (request.resource.data.comentarioFixo is string && request.resource.data.comentarioFixo.size() <= 40))
                     && dataOuNulo('ocultoAte')
                     && travaModeracao()
                     // texto editado: marca a data da edição

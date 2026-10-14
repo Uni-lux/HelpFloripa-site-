@@ -11,8 +11,8 @@ import {
   $, el, icone, ms, paraData, pintarAvatar, urlSegura, nomeCidade, tempoRelativo, toast, erroAmigavel,
   fb, eu, dados, meusSeguindo, escondido, ganchos, obterPerfil, iniciarRede, carregarMeusSeguindo, linhaPessoa,
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, montarBarraRede, pintarBarraRede, ouvirAvisos, lerOrdenado,
-  editarPublicacao, bloquear, comMencoes, fotosDoPost, carrosselFotos, estrelaNaFoto, estaSalvo, alternarSalvo, idsSalvos
-} from "./rede.js?v=32";
+  editarPublicacao, bloquear, comMencoes, fotosDoPost, carrosselFotos, contadorEstrelas, estaSalvo, alternarSalvo, lerResumosEstrelas, contarComentarios
+} from "./rede.js?v=33";
 import { abrirDenuncia } from "./denuncias.js?v=2";
 import { buscarPessoas, pessoasRecentes } from "./pessoas.js?v=3";
 import { docsComValidade } from "./leituras.js?v=1";
@@ -20,7 +20,9 @@ import { docsComValidade } from "./leituras.js?v=1";
 const POR_VEZ = 10;
 // Publicação de conta desativada (conta.js): escondida até ocultoAte.
 const postOculto = (p) => (p?.ocultoAte?.toMillis?.() ?? 0) > Date.now();
-let aba = "diario", filtro = "seguindo";
+// Filtro do Diário: Principais (melhores publicações pelo engajamento de verdade), Quem eu sigo ou Amigos.
+const FILTROS = { principais: "Principais", seguindo: "Quem eu sigo", amigos: "Amigos" };
+let aba = "diario", filtro = "principais";
 let posts = [], mostrados = 0;
 
 // ---------- abas ----------
@@ -34,31 +36,58 @@ function trocarAba(nova) {
   else carregarFeed();
 }
 document.querySelectorAll("#abasFeed [data-aba]").forEach((b) => b.addEventListener("click", () => trocarAba(b.dataset.aba)));
-document.querySelectorAll("#filtroFeed [data-filtro]").forEach((b) => b.addEventListener("click", () => {
-  filtro = b.dataset.filtro;
-  document.querySelectorAll("#filtroFeed [data-filtro]").forEach((x) => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
-  carregarFeed();
-}));
+function pintarFiltro() { $("filtroAtual").textContent = FILTROS[filtro]; }
+$("filtroFeedBtn").addEventListener("click", () => abrirOpcoes("Mostrar no Diário", [
+  { rotulo: "Principais" + (filtro === "principais" ? "  ✓" : ""), sub: "As melhores publicações agora, pelo engajamento", icone: "estrela", fn: () => mudarFiltro("principais") },
+  { rotulo: "Quem eu sigo" + (filtro === "seguindo" ? "  ✓" : ""), sub: "Publicações de quem você segue, das mais novas", icone: "pessoa-mais", fn: () => mudarFiltro("seguindo") },
+  { rotulo: "Amigos" + (filtro === "amigos" ? "  ✓" : ""), sub: "Seus vínculos do Social e quem vocês se seguem", icone: "coracao", fn: () => mudarFiltro("amigos") }
+]));
+function mudarFiltro(f) { filtro = f; try { localStorage.setItem("hf-filtro-diario", f); } catch {} pintarFiltro(); carregarFeed(); }
+try { const f = localStorage.getItem("hf-filtro-diario"); if (FILTROS[f]) filtro = f; } catch {}
+pintarFiltro();
 
 // ---------- publicações ----------
-async function buscarSeguindo() {
-  const autores = [eu.uid, ...meusSeguindo].filter((u) => !escondido(u));
+async function buscarSeguindo(lista = null, chave = "seguindo") {
+  const autores = (lista || [eu.uid, ...meusSeguindo]).filter((u) => !escondido(u));
   const lotes = [];
   for (let i = 0; i < autores.length; i += 30) lotes.push(autores.slice(i, i + 30));
   // As mais recentes de cada lote de autores (índice diario: autorId + criadoEm).
   const col = fb.collection(fb.db, "diario");
-  const res = await Promise.all(lotes.map((l, k) => docsComValidade(fb, `diario-seguindo-${eu.uid}-${k}`,
+  const res = await Promise.all(lotes.map((l, k) => docsComValidade(fb, `diario-${chave}-${eu.uid}-${k}`,
     fb.query(col, fb.where("autorId", "in", l), fb.orderBy("criadoEm", "desc"), fb.limit(30)), DIARIO_VALIDADE).catch(() => lerOrdenado(
     fb.query(col, fb.where("autorId", "in", l), fb.orderBy("criadoEm", "desc"), fb.limit(30)),
     fb.query(col, fb.where("autorId", "in", l), fb.limit(30))
   )).catch(() => ({ docs: [] }))));
   return res.flatMap((s) => s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })));
 }
-// Salvas: as últimas 60 (lidas uma a uma; apagadas somem da lista).
-async function buscarSalvos() {
-  const ids = idsSalvos().slice(0, 60);
-  const docs = await Promise.all(ids.map((id) => fb.getDoc(fb.doc(fb.db, "diario", id)).catch(() => null)));
-  return docs.filter((d) => d?.exists()).map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) }));
+// Amigos: vínculos aceitos do Social + quem vocês se seguem (você segue e a pessoa segue você).
+async function buscarAmigos() {
+  const [vin, seg] = await Promise.all([
+    fb.getDocs(fb.query(fb.collection(fb.db, "vinculos"), fb.where("participantes", "array-contains", eu.uid), fb.limit(100))).catch(() => ({ docs: [] })),
+    docsComValidade(fb, "seguidores-" + eu.uid, fb.query(fb.collection(fb.db, "relacoes"), fb.where("tipo", "==", "seguir"), fb.where("alvoId", "==", eu.uid), fb.limit(500)), 15 * 60000).catch(() => ({ docs: [] }))
+  ]);
+  const amigos = new Set(vin.docs.map((d) => d.data()).filter((v) => v.status === "aceito").map((v) => (v.participantes || []).find((u) => u !== eu.uid)).filter(Boolean));
+  seg.docs.forEach((d) => { const u = d.data().seguidorId; if (meusSeguindo.has(u)) amigos.add(u); });
+  if (!amigos.size) return [];
+  return buscarSeguindo([...amigos].slice(0, 300), "amigos");
+}
+// Principais: as publicações recentes ordenadas pelo engajamento de verdade (estrelas, média e comentários),
+// com a idade pesando contra (como as redes fazem) e um empurrão para quem você segue.
+async function buscarPrincipais() {
+  const q = fb.query(fb.collection(fb.db, "diario"), fb.orderBy("criadoEm", "desc"), fb.limit(120));
+  const s = await docsComValidade(fb, "diario-principais", q, DIARIO_VALIDADE);
+  const lista = s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter((p) => !escondido(p.autorId) && !postOculto(p));
+  const resumos = await lerResumosEstrelas(lista.map((p) => p.id));
+  const agora = Date.now();
+  const pre = (p) => { const r = resumos.get(p.id) || { total: 0, soma: 0 }; return r.total + Math.max(0, r.soma - 3 * r.total) * 0.4 + (meusSeguindo.has(p.autorId) ? 2 : 0); };
+  // Comentários: conta só para os 40 mais promissores (contagem guardada no aparelho por alguns minutos).
+  const ordem1 = lista.slice().sort((a, b) => pre(b) - pre(a)).slice(0, 40);
+  const com = new Map(await Promise.all(ordem1.map(async (p) => [p.id, await contarComentarios(p.id).catch(() => 0)])));
+  const pontos = (p) => {
+    const horas = Math.max(0, (agora - (ms(p.criadoEm) || agora)) / 3600e3);
+    return (1 + pre(p) + 2 * (com.get(p.id) || 0)) / Math.pow(horas + 2, 1.35);
+  };
+  return lista.map((p) => ({ ...p, _pontos: pontos(p) })).sort((a, b) => b._pontos - a._pontos);
 }
 // O começo do diário vale por 3 min no aparelho (o que você publica aparece na hora).
 const DIARIO_VALIDADE = 3 * 60000;
@@ -78,9 +107,9 @@ async function carregarFeed() {
   $("maisFeed").hidden = true;
   try {
     maisTodos = false;
-    const bruto = filtro === "todos" ? await buscarTodos() : filtro === "salvos" ? await buscarSalvos() : await buscarSeguindo();
+    const bruto = filtro === "principais" ? await buscarPrincipais() : filtro === "amigos" ? await buscarAmigos() : await buscarSeguindo();
     posts = bruto.filter((p) => !escondido(p.autorId) && !postOculto(p));
-    if (filtro !== "salvos") posts.sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm)); // salvos: na ordem em que foram salvos
+    if (filtro !== "principais") posts.sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm)); // principais: pela pontuação
   } catch (e) {
     console.warn(e);
     lista.replaceChildren(vazio("Não foi possível carregar o diário", erroAmigavel(e)));
@@ -89,11 +118,11 @@ async function carregarFeed() {
   mostrados = 0;
   lista.replaceChildren();
   if (!posts.length) {
-    lista.appendChild(filtro === "salvos"
-      ? vazio("Nenhuma publicação salva", "Toque nos três pontinhos de uma publicação e em \"Salvar publicação\" para ver depois aqui. Só você vê o que salvou.")
-      : filtro === "todos"
+    lista.appendChild(filtro === "principais"
       ? vazio("Nada publicado ainda", "Seja o primeiro a compartilhar um trabalho ou uma novidade.", "Publicar agora", () => abrirCompositor({ aoPublicar: ganchos.aoPublicar }))
-      : vazio("Seu diário está vazio", "Siga pessoas e negócios para ver as publicações deles aqui, ou veja as de todo o Help Floripa.", "Ver publicações de todos", () => document.querySelector('#filtroFeed [data-filtro="todos"]').click()));
+      : filtro === "amigos"
+        ? vazio("Seus amigos ainda não publicaram", "Amigos são seus vínculos do Social e quem vocês se seguem.", "Ver as principais", () => mudarFiltro("principais"))
+        : vazio("Seu diário está vazio", "Siga pessoas e negócios para ver as publicações deles aqui.", "Ver as principais", () => mudarFiltro("principais")));
     return;
   }
   mostrarMais();
@@ -102,11 +131,11 @@ function mostrarMais() {
   const lista = $("listaFeed");
   posts.slice(mostrados, mostrados + POR_VEZ).forEach((p) => lista.appendChild(cartaoPost(p)));
   mostrados = Math.min(posts.length, mostrados + POR_VEZ);
-  $("maisFeed").hidden = mostrados >= posts.length && !(filtro === "todos" && maisTodos);
+  $("maisFeed").hidden = mostrados >= posts.length;
 }
 let buscandoMais = false;
 $("maisFeed").addEventListener("click", async () => {
-  if (mostrados < posts.length || filtro !== "todos" || !maisTodos) { mostrarMais(); return; }
+  if (mostrados < posts.length || filtro !== "todos" || !maisTodos) { mostrarMais(); return; } // (filtro "todos" saiu; o resto fica para o caso de voltar)
   if (buscandoMais) return;
   buscandoMais = true; $("maisFeed").disabled = true;
   try {
@@ -139,8 +168,8 @@ function cartaoPost(post) {
   mais.addEventListener("click", () => abrirOpcoes("Publicação", [
     { rotulo: "Ver perfil", icone: "olho", fn: () => ganchos.abrirPerfil(post.autorId) },
     estaSalvo(post.id)
-      ? { rotulo: "Remover dos salvos", icone: "salvo", fn: async () => { await alternarSalvo(post); if (filtro === "salvos" && !estaSalvo(post.id)) { c.remove(); posts = posts.filter((x) => x.id !== post.id); } } }
-      : { rotulo: "Salvar publicação", sub: "Para ver depois em Diário → Salvos", icone: "salvo", fn: () => alternarSalvo(post) },
+      ? { rotulo: "Remover dos salvos", icone: "salvo", fn: () => alternarSalvo(post) }
+      : { rotulo: "Salvar publicação", sub: "Para ver depois no seu Perfil → Salvos", icone: "salvo", fn: () => alternarSalvo(post) },
     { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(post.autorId, post.nome) },
     post.autorId === eu.uid && { rotulo: "Editar publicação", icone: "lapis", fn: () => editarPublicacao(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId !== eu.uid && { rotulo: "Denunciar publicação", sub: "Golpe, ofensa, conteúdo impróprio...", icone: "alerta", perigo: true,
@@ -174,38 +203,29 @@ function cartaoPost(post) {
   }
   const barra = barraInteracao(post);
   const fotos = fotosDoPost(post);
-  if (fotos.length > 1) {
-    // Várias fotos: deslizar para o lado; toque duplo dá 5 estrelas.
-    const m = el("div", "post-midia-f varias");
+  if (fotos.length && post.mediaTipo !== "video") {
+    // A foto aparece no recorte escolhido ao publicar (4:5, 1:1 ou 16:9), sem cortar de novo. Fotos antigas
+    // fora dessas medidas ficam entre 4:5 e 1,91:1. Toque duplo: contagem de estrelas.
+    const m = el("div", "post-midia-f" + (fotos.length > 1 ? " varias" : ""));
     const car = carrosselFotos(fotos, { alt: post.texto ? post.texto.slice(0, 80) : "Publicação", aoToqueDuplo: () => toqueDuplo(m, barra) });
+    const img = car.querySelector("img"); img.loading = "lazy";
+    img.addEventListener("load", () => { const p = img.naturalWidth / Math.max(1, img.naturalHeight); m.style.setProperty("--prop", String(Math.min(1.91, Math.max(0.8, p)))); m.classList.toggle("alta", p < 0.8); }, { once: true });
     m.appendChild(car);
+    m.title = "Toque duas vezes para dar estrelas";
     c.appendChild(m);
   } else if (url) {
     const m = el("div", "post-midia-f");
-    if (post.mediaTipo === "video") { const v = document.createElement("video"); v.src = url; v.controls = true; v.playsInline = true; v.preload = "metadata"; m.appendChild(v); }
-    else {
-      const car = carrosselFotos([url], { alt: post.texto ? post.texto.slice(0, 80) : "Publicação", aoToque: () => m.classList.toggle("inteira"), aoToqueDuplo: () => toqueDuplo(m, barra) });
-      const img = car.querySelector("img"); img.loading = "lazy";
-      m.appendChild(car);
-      // Prévia com altura limitada: avisa quando a foto foi cortada; foto bem alta (print de tela)
-      // mostra o começo, não o meio.
-      img.addEventListener("load", () => {
-        const prop = img.naturalHeight / Math.max(1, img.naturalWidth);
-        m.classList.toggle("alta", prop > 1.6);
-        m.classList.toggle("cortada", prop * m.clientWidth > 364);
-      }, { once: true });
-      const dica = el("span", "ver-inteira", "Ver inteira"); dica.setAttribute("aria-hidden", "true"); m.appendChild(dica);
-      m.title = "Toque para ver inteira · toque duplo para dar 5 estrelas";
-    }
+    const v = document.createElement("video"); v.src = url; v.controls = true; v.playsInline = true; v.preload = "metadata"; m.appendChild(v);
     c.appendChild(m);
   }
   c.appendChild(barra);
   return c;
 }
-// Toque duplo na foto: estrela grande e 5 estrelas (vale também na própria publicação).
+// Toque duplo na foto: a contagem de estrelas (vale também na própria publicação).
 async function toqueDuplo(m, barra) {
-  estrelaNaFoto(m);
-  if (await barra.estrelas?.darRapido?.()) toast("Você deu 5 estrelas");
+  if (!barra.estrelas?.darNota) return;
+  const n = await contadorEstrelas(m, (nota) => barra.estrelas.darNota(nota));
+  if (n) toast(`Você deu ${n} ${n === 1 ? "estrela" : "estrelas"}`);
 }
 
 // ---------- explorar: pessoas ----------
@@ -257,8 +277,6 @@ async function pintarLateral() {
   ouvirAvisos();
   $("btnComporFeed").addEventListener("click", () => abrirCompositor({ aoPublicar: ganchos.aoPublicar }));
   await carregarMeusSeguindo();
-  // Sem ninguém para seguir ainda: começa mostrando as publicações de todos.
-  if (!meusSeguindo.size && filtro === "seguindo") document.querySelectorAll("#filtroFeed [data-filtro]").forEach((x) => { const t = x.dataset.filtro === "todos"; x.setAttribute("aria-pressed", t ? "true" : "false"); if (t) filtro = "todos"; });
   pintarLateral();
   const p = new URLSearchParams(location.search);
   trocarAba(p.get("aba") === "explorar" || p.get("aba") === "pessoas" ? "explorar" : "diario");
