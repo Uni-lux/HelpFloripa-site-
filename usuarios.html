@@ -213,12 +213,12 @@
       removerSeguidor, bloquear, desbloquear, alternarRestricao, compartilharPerfil,
       barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail,
       fotosDoPost, carrosselFotos, estrelaNaFoto, estaSalvo, alternarSalvo
-    } from "./rede.js?v=30";
+    } from "./rede.js?v=31";
     import { buscarPessoas, palavrasBusca } from "./pessoas.js?v=3";
     import { abrirDenuncia } from "./denuncias.js?v=2";
     import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
-    import { notaDoPerfil, abrirDetalhamento, avaliarNegocio, avaliarCliente, lerResumo, estrelas, pintarEstrelas, media, notaTexto, TIPOS_NEGOCIO } from "./avaliacoes.js?v=12";
-    import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=32";
+    import { notaDoPerfil, abrirDetalhamento, avaliarNegocio, avaliarCliente, lerResumo, estrelas, pintarEstrelas, media, notaTexto, TIPOS_NEGOCIO } from "./avaliacoes.js?v=13";
+    import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=33";
 
     // ======================================================
     // Estado desta página (o resto vem de rede.js)
@@ -475,7 +475,7 @@
     }
     let barraPost = null;
     async function toqueDuploPost(alvo) {
-      if (!barraPost?.estrelas || barraPost.estrelas.classList.contains("proprio-post")) { toast("É a sua publicação."); return; }
+      if (!barraPost?.estrelas) return;
       estrelaNaFoto(alvo);
       if (await barraPost.estrelas.darRapido()) toast("Você deu 5 estrelas");
     }

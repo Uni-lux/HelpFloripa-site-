@@ -634,12 +634,12 @@ export async function contarComentarios(postId, { recarregar = false } = {}) {
 export function seletorEstrelas(post, { aoMudar } = {}) {
   const proprio = post.autorId === eu.uid;
   const box = el("div", "estrelas-post" + (proprio ? " proprio-post" : ""));
-  const linha = el("div", "estrelas-linha"); linha.setAttribute("role", proprio ? "img" : "group");
-  linha.setAttribute("aria-label", proprio ? "Estrelas da sua publicação" : "Dar estrelas");
+  // Todo mundo dá estrelas, inclusive na própria publicação ("se curtir").
+  const linha = el("div", "estrelas-linha"); linha.setAttribute("role", "group");
+  linha.setAttribute("aria-label", "Dar estrelas");
   const bots = [1, 2, 3, 4, 5].map((n) => {
     const b = el("button", "estrela", "★"); b.type = "button";
     b.setAttribute("aria-label", `${n} ${n === 1 ? "estrela" : "estrelas"}`);
-    if (proprio) { b.disabled = true; b.tabIndex = -1; }
     linha.appendChild(b);
     return b;
   });
@@ -648,17 +648,19 @@ export function seletorEstrelas(post, { aoMudar } = {}) {
   let info = { media: 0, n: 0, minha: 0 };
   const pintar = (i, previa = 0) => {
     info = i;
-    const alvo = previa || (proprio ? Math.round(i.media) : i.minha);
+    const alvo = previa || i.minha;
     bots.forEach((b, k) => {
       b.classList.toggle("on", k < alvo);
-      b.classList.toggle("minha", !proprio && !previa && k < i.minha);
-      b.setAttribute("aria-pressed", !proprio && i.minha === k + 1 ? "true" : "false");
+      b.classList.toggle("minha", !previa && k < i.minha);
+      b.setAttribute("aria-pressed", i.minha === k + 1 ? "true" : "false");
     });
-    const media = i.n ? `${i.media.toFixed(1).replace(".", ",")} · ${i.n} ${i.n === 1 ? "nota" : "notas"}` : "Sem notas";
-    txt.textContent = !proprio && i.minha ? `Sua nota: ${i.minha} · ${media}` : media;
+    // A sua nota já entra na média: se só você deu, aparece "1 nota" (nunca "Sem notas" com nota dada).
+    const n = Math.max(i.n, i.minha ? 1 : 0), med = i.n ? i.media : i.minha;
+    const media = n ? `${med.toFixed(1).replace(".", ",")} · ${n} ${n === 1 ? "nota" : "notas"}` : "Sem notas";
+    txt.textContent = i.minha ? `Sua nota: ${i.minha} · ${media}` : media;
   };
   quandoVisivel(box, () => infoEstrelas(post.id).then((i) => pintar(i)));
-  if (!proprio) {
+  {
     bots.forEach((b, k) => {
       // Prévia só com mouse: no toque o "hover" fica preso e confundiria a nota.
       b.addEventListener("pointerenter", (e) => { if (e.pointerType === "mouse") pintar(info, k + 1); });
@@ -670,7 +672,7 @@ export function seletorEstrelas(post, { aoMudar } = {}) {
           pintar(await darEstrelas(post, nova));
           toast(nova ? `Você deu ${nova} ${nova === 1 ? "estrela" : "estrelas"}` : "Nota removida");
           aoMudar?.(info);
-        } catch (e) { toast("Não foi possível salvar: " + erroAmigavel(e)); pintar(info); }
+        } catch (e) { toast(erroEstrelas(e)); pintar(info); }
         finally { linha.classList.remove("salvando"); }
       });
     });
@@ -678,14 +680,18 @@ export function seletorEstrelas(post, { aoMudar } = {}) {
   box.recarregar = () => infoEstrelas(post.id, { recarregar: true }).then((i) => pintar(i));
   // Toque duplo na foto: 5 estrelas de uma vez (nunca tira a nota, como o coração do Instagram).
   box.darRapido = async () => {
-    if (proprio) return false;
     if (info.minha === 5) return true;
     try { pintar(await darEstrelas(post, 5)); aoMudar?.(info); return info.minha === 5; }
-    catch (e) { toast("Não foi possível salvar: " + erroAmigavel(e)); return false; }
+    catch (e) { toast(erroEstrelas(e)); return false; }
   };
+  // Na própria publicação, com as regras antigas no servidor, explica em vez de "sem permissão".
+  const erroEstrelas = (e) => (proprio && e?.code === "permission-denied"
+    ? "Dar estrelas na própria publicação começa a funcionar quando as regras novas forem publicadas."
+    : "Não foi possível salvar: " + erroAmigavel(e));
   // Na própria publicação: tocar no resumo mostra quem deu as estrelas.
   if (proprio) {
     txt.classList.add("ver-quem"); txt.setAttribute("role", "button"); txt.tabIndex = 0; txt.title = "Ver quem deu estrelas";
+    box.title = "Toque nas estrelas para dar a sua nota; toque no resumo para ver quem deu";
     // Abre sempre: a lista é lida na hora (o resumo pode estar guardado de alguns minutos atrás).
     const ver = () => abrirQuemDeuEstrelas(post).then((n) => { if (n !== info.n) box.recarregar(); });
     txt.addEventListener("click", ver);

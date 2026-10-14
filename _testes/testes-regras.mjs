@@ -303,6 +303,10 @@ await t("diário: recusa 5 fotos", () => assertFails(publicar("dono", { mediaUrl
 await t("diário: recusa foto de outro site no meio", () => assertFails(publicar("dono", { mediaUrl: fP(4), mediaTipo: "image", midias: [fP(4), "https://exemplo.com/a.jpg"] })));
 await t("diário: a primeira tem que ser a mesma da capa (mediaUrl)", () => assertFails(publicar("dono", { mediaUrl: fP(4), mediaTipo: "image", midias: [fP(9), fP(5)] })));
 await t("diário: uma foto só continua igual (sem midias)", () => assertSucceeds(publicar("dono", { mediaUrl: fP(4), mediaTipo: "image" })));
+await semRegras((db) => setDoc(doc(db, "diario", "pEdu"), { autorId: "edu", nome: "Edu", texto: "oi", criadoEm: antigo }));
+await t("estrelas: dá estrelas na própria publicação", () => assertSucceeds(setDoc(doc(ctx("edu"), "curtidas", "pEdu_edu"), { postId: "pEdu", uid: "edu", postAutorId: "edu", nota: 5, criadoEm: serverTimestamp() })));
+await t("estrelas: não finge que é de outra pessoa (autor errado)", () => assertFails(setDoc(doc(ctx("bia"), "curtidas", "pEdu_bia"), { postId: "pEdu", uid: "bia", postAutorId: "bia", nota: 5, criadoEm: serverTimestamp() })));
+await t("estrelas: outra pessoa também dá", () => assertSucceeds(setDoc(doc(ctx("bia"), "curtidas", "pEdu_bia"), { postId: "pEdu", uid: "bia", postAutorId: "edu", nota: 4, criadoEm: serverTimestamp() })));
 await t("diário: salvar publicação fica na própria conta", () => assertSucceeds(setDoc(doc(ctx("bia"), "usuarios", "bia"), { salvos: ["p1"] }, { merge: true })));
 
 // ---------- resultado ----------

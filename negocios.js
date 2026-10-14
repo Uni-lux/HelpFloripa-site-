@@ -9,10 +9,10 @@
 import {
   $, el, icone, pintarAvatar, urlSegura, nomeCidade, toast, erroAmigavel, abrirFolha, fecharFolha,
   fb, eu, dados, salvarImagem, editarImagem, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos
-} from "./rede.js?v=30";
-import { lerResumos, estrelas, media, notaTexto } from "./avaliacoes.js?v=12";
+} from "./rede.js?v=31";
+import { lerResumos, estrelas, media, notaTexto } from "./avaliacoes.js?v=13";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
-import { buscarAnuncios, DIAS, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO } from "./vitrine.js?v=32";
+import { buscarAnuncios, DIAS, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO } from "./vitrine.js?v=33";
 
 const NEGOCIOS = {
   servicos: { rotulo: "Freelances", img: "servicos.webp", pagina: "servicos.html", desc: "Portfólio, preços, horários e pedidos de orçamento." },

@@ -1,17 +1,17 @@
 # Regras do Firestore — publicação
 
 > **Versão de 14/10/2026:** igual à publicada em 13/10, mais **várias fotos numa publicação do Diário**
-> (campo `midias`, de 2 a 4 fotos). Para publicar, o processo é o mesmo: apagar tudo no console e colar as 9 partes.
+> (campo `midias`, de 2 a 4 fotos) e **dar estrelas na própria publicação**. Para publicar, o processo é o mesmo: apagar tudo no console e colar as 9 partes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
 `firestore.rules` divididas em **9 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
-- Arquivo de origem: `firestore.rules` (105.240 bytes, 1.935 linhas, sha256 começa com `8a8a384b1c6217b5`).
+- Arquivo de origem: `firestore.rules` (105.243 bytes, 1.935 linhas, sha256 começa com `91cc42541ba63e58`).
 - Cada parte termina com a linha `// ===== FIM DA PARTE X DE 9 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
 - Conferido: as 9 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **143 passaram, 0 falharam**, sem o aviso de limite de 1.000 expressões.
+- Testes de regras no arquivo remontado: **146 passaram, 0 falharam**, sem o aviso de limite de 1.000 expressões.
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.
@@ -29,6 +29,8 @@ linha), para colar no console do Firebase.
 ## O que passa a funcionar depois de publicar
 - **Diário: várias fotos numa publicação** (até 4, deslizando para o lado). Antes de publicar as regras, quem
   escolher várias fotos publica só a primeira, com um aviso.
+- **Dar estrelas na própria publicação** ("se curtir"): conta na média da publicação, mas não na nota do perfil
+  nem nos avisos. Antes de publicar as regras, tocar nas estrelas da própria publicação mostra um aviso.
 - O resto (toque duplo para dar estrelas, quem deu estrelas, Salvos, editar legenda) já funciona com as regras de hoje.
 
 ## Conferência no site depois de publicar

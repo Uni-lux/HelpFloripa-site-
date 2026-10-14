@@ -1781,7 +1781,7 @@ service cloud.firestore {
                     && id == request.resource.data.postId + '_' + request.auth.uid
                     && exists(/databases/$(database)/documents/diario/$(request.resource.data.postId))
                     && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
-                    && request.resource.data.postAutorId != request.auth.uid
+                    // pode dar estrelas na própria publicação ("se curtir")
                     && notaOk(request.resource.data)
                     && !bloqueioEntre(request.auth.uid, request.resource.data.postAutorId)
                     && request.resource.data.criadoEm == request.time;

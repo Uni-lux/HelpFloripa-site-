@@ -12,7 +12,7 @@ import {
   fb, eu, dados, meusSeguindo, escondido, ganchos, obterPerfil, iniciarRede, carregarMeusSeguindo, linhaPessoa,
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, montarBarraRede, pintarBarraRede, ouvirAvisos, lerOrdenado,
   editarPublicacao, bloquear, comMencoes, fotosDoPost, carrosselFotos, estrelaNaFoto, estaSalvo, alternarSalvo, idsSalvos
-} from "./rede.js?v=30";
+} from "./rede.js?v=31";
 import { abrirDenuncia } from "./denuncias.js?v=2";
 import { buscarPessoas, pessoasRecentes } from "./pessoas.js?v=3";
 import { docsComValidade } from "./leituras.js?v=1";
@@ -202,9 +202,8 @@ function cartaoPost(post) {
   c.appendChild(barra);
   return c;
 }
-// Toque duplo na foto: estrela grande e 5 estrelas (na própria publicação, só avisa).
+// Toque duplo na foto: estrela grande e 5 estrelas (vale também na própria publicação).
 async function toqueDuplo(m, barra) {
-  if (barra.estrelas?.classList.contains("proprio-post")) { toast("É a sua publicação."); return; }
   estrelaNaFoto(m);
   if (await barra.estrelas?.darRapido?.()) toast("Você deu 5 estrelas");
 }

@@ -86,6 +86,12 @@ const quem = await pa.locator("#listaCorpo").textContent();
 ok(quem.includes("Bruno") && quem.includes("5 estrelas") && quem.includes("1 pessoa"), "quem deu estrelas: " + quem.replace(/\s+/g, " ").slice(0, 90));
 await pa.screenshot({ path: "saida/diario-quem.png" });
 await pa.keyboard.press("Escape"); await pa.waitForTimeout(300);
+// "Se curtir": Ana dá 3 estrelas na própria publicação (entra na média; não vira aviso para ela)
+await meu.locator(".estrela").nth(2).tap(); await pa.waitForTimeout(1500);
+const tProprio = await meu.locator(".estrelas-txt").textContent();
+ok(tProprio.includes("Sua nota: 3") && tProprio.includes("4,0 · 2 notas"), "se curtir: dá estrelas na própria publicação → " + tProprio);
+const mim = await db.doc(`curtidas/${pub.id}_${U.ana}`).get();
+ok(mim.exists && mim.data().nota === 3, "se curtir: nota gravada");
 await meu.locator(".post-cab .icone-btn").tap();
 await pa.locator("#opcoesCorpo button", { hasText: "Editar publicação" }).tap();
 await pa.locator("#edPostTexto").fill("Obra pronta: antes e depois (Trindade)");
