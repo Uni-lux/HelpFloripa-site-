@@ -72,6 +72,25 @@ service cloud.firestore {
       return v == null || (v is string && v.size() <= max);
     }
 
+    // Enquete (publicação ou flash): pergunta (até 120) e 2 a 4 opções (até 40 cada).
+    // No flash, x e y dizem onde a enquete fica na tela (0 a 1).
+    function opcaoOk(o) { return o is string && o.size() >= 1 && o.size() <= 40; }
+    function enqueteOk(e) {
+      return e is map && e.keys().hasOnly(['pergunta', 'opcoes', 'x', 'y'])
+          && e.pergunta is string && e.pergunta.size() >= 1 && e.pergunta.size() <= 120
+          && e.opcoes is list && e.opcoes.size() >= 2 && e.opcoes.size() <= 4
+          && opcaoOk(e.opcoes[0]) && opcaoOk(e.opcoes[1])
+          && (e.opcoes.size() < 3 || opcaoOk(e.opcoes[2]))
+          && (e.opcoes.size() < 4 || opcaoOk(e.opcoes[3]))
+          && (!('x' in e) || (e.x is number && e.x >= 0 && e.x <= 1))
+          && (!('y' in e) || (e.y is number && e.y >= 0 && e.y <= 1));
+    }
+    // Lista de uids (até max), conferida com uma expressão só.
+    function uidsOk(l, max) {
+      return l is list && l.size() <= max
+          && (l.size() == 0 || l.join(' ').matches('^[A-Za-z0-9]{1,64}( [A-Za-z0-9]{1,64})*$'));
+    }
+
     // Local para o Brasil todo: estado (UF) e código IBGE da cidade (7 dígitos; os dois
     // primeiros são o código do estado, então cidade e estado precisam combinar).
     // Feito com expressões regulares (uma tabela de 27 estados estourava o limite de
@@ -255,22 +274,6 @@ service cloud.firestore {
             || d.nickname == null
             || d.nickname == ''
             || getAfter(/databases/$(database)/documents/nicknames/$(d.nickname)).data.uid == request.auth.uid;
-      }
-
-      // Trocou de @: o antigo tem que ser liberado na mesma gravação (ninguém guarda vários @).
-      function liberouNickAntigo() {
-        let antigo = resource.data.get('nickname', '');
-        return antigo == null || antigo == '' || antigo == request.resource.data.get('nickname', '')
-            || !existsAfter(/databases/$(database)/documents/nicknames/$(antigo));
-      }
-
-      function tamanhosOk() {
-        return textoAte('nome', 80)
-            && textoAte('bio', 400)
-            && textoAte('cidade', 80)
-            && localOk()
-            && listaAte('busca', 12)
-            && dataOuNulo('desativadaAte');
       }
 
 // ===== FIM DA PARTE 1 DE 10 =====

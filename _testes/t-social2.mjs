@@ -55,7 +55,7 @@ ok((await pa.locator(".story-circ .nome").first().textContent()) === "Seu flash"
 await pa.screenshot({ path: "saida/flash-criar.png" });
 ok(await pa.locator(".flash-filtro").count() === 10 && await pa.locator(".flash-filtro .amostra canvas").count() === 10, "câmera do app com 10 filtros, cada bolinha com a prévia real");
 await pa.locator(".flash-filtro", { hasText: "Beleza+" }).tap(); await pa.waitForTimeout(600);
-const telaCam = await pa.locator(".flash-cam.tela").evaluate((c) => { const d = c.getContext("2d").getImageData(c.width / 2, c.height / 2, 1, 1).data; return { w: c.width, vis: getComputedStyle(c).display, px: d[0] + d[1] + d[2] }; });
+const telaCam = await pa.locator(".flash-cam.tela").evaluate((c) => { const k = document.createElement("canvas"); k.width = c.width; k.height = c.height; const g = k.getContext("2d"); g.drawImage(c, 0, 0); const d = g.getImageData(c.width / 2, c.height / 2, 1, 1).data; return { w: c.width, vis: getComputedStyle(c).display, px: d[0] + d[1] + d[2], gpu: !!(c.getContext("webgl") || c.getContext("experimental-webgl")) }; });
 ok(await pa.locator(".flash-cambox.filtrada").count() === 1 && telaCam.w > 0 && telaCam.vis === "block" && telaCam.px > 0, "filtro Beleza+ processado ao vivo na câmera → " + JSON.stringify(telaCam));
 await pa.screenshot({ path: "saida/flash-camera.png" });
 await pa.locator(".flash-disparo").tap();
@@ -151,9 +151,10 @@ await pa.waitForSelector(".story-vistos", { timeout: 8000 }); await pa.waitForTi
 ok((await pa.locator(".story-vistos").textContent()).includes("Visto por 1"), "Ana: \"Visto por 1\" no flash → " + (await pa.locator(".story-vistos").textContent()));
 await pa.locator(".story-visor .story-btn[aria-label=Fechar]").tap(); await pa.waitForTimeout(300);
 await pa.goto(new URL("notificacoes.html", pa.url()).href); await pa.waitForTimeout(3500);
-await pa.goto(new URL("usuarios.html", pa.url()).href); await pa.waitForSelector("#gradePosts .tile", { timeout: 30000 }); await pa.waitForTimeout(1200);
-ok(await pa.locator("#gradePosts .tile.agendada .selo-agendada").count() === 1, "perfil da Ana: a agendada aparece com o selo");
-await pa.locator("#gradePosts .tile", { hasText: "Banheiro" }).first().tap(); await pa.waitForTimeout(1500);
+await pa.goto(new URL("usuarios.html", pa.url()).href); await pa.waitForSelector(".lista-textos .texto-item", { timeout: 30000 }); await pa.waitForTimeout(1200);
+ok((await pa.locator(".abas-perfil button[aria-selected=true]").textContent()) === "Textos" && await pa.locator(".lista-textos .texto-item .selo-agendada").count() === 1, "perfil da Ana (só textos): abre na aba Textos, a agendada com o selo");
+await pa.screenshot({ path: "saida/perfil-textos.png" });
+await pa.locator(".lista-textos .texto-item", { hasText: "Banheiro" }).first().locator(".ti-cab").tap(); await pa.waitForTimeout(1500);
 await pa.locator("#postExtras button", { hasText: "Estatísticas" }).tap();
 await pa.waitForSelector("#folhaEstat.aberta .estat-card", { timeout: 10000 }); await pa.waitForTimeout(1500);
 const cards = await pa.locator(".estat-card").allTextContents();
@@ -165,10 +166,10 @@ await pa.screenshot({ path: "saida/estatisticas.png" });
 const pb2 = pb; await pb.goto(new URL("notificacoes.html", pb.url()).href); await pb2.waitForFunction(() => document.getElementById("listaAvisos")?.textContent.includes("marcou você"), null, { timeout: 15000 }).catch(() => {});
 const txtN = await pb2.locator("#listaAvisos").textContent().catch(() => "(sem lista)");
 // perfil do Bruno: a publicação em que a Ana marcou ele aparece junto (filtro Marcações)
-await pb.goto(new URL("usuarios.html", pb.url()).href); await pb.waitForSelector(".filtros-grade button", { timeout: 30000 }); await pb.waitForTimeout(2500);
-const filtrosB = await pb.locator(".filtros-grade button").allTextContents();
-await pb.locator(".filtros-grade button[data-filtro=marc]").tap(); await pb.waitForTimeout(400);
-ok(filtrosB.some((t) => t.startsWith("Marcações")) && await pb.locator("#gradePosts .tile.marcacao", { hasText: "Banheiro" }).count() === 1, "perfil do Bruno: a publicação da Ana com ele aparece em Marcações → " + filtrosB.join(" / "));
+await pb.goto(new URL("usuarios.html", pb.url()).href); await pb.waitForSelector(".abas-perfil button", { timeout: 30000 }); await pb.waitForTimeout(2500);
+const filtrosB = await pb.locator(".abas-perfil button").allTextContents();
+await pb.locator(".abas-perfil button[data-aba=marcados]").tap(); await pb.waitForTimeout(1200);
+ok(filtrosB.includes("Marcados") && await pb.locator("#gradePosts .tile.marcacao", { hasText: "Banheiro" }).count() === 1, "perfil do Bruno: a publicação da Ana com ele aparece em Marcados → " + filtrosB.join(" / "));
 await pb.screenshot({ path: "saida/perfil-marcacoes.png" });
 ok(txtN.includes("marcou você"), "Bruno recebe \"marcou você numa publicação\" → " + txtN.slice(0, 120));
 await A.browser.close(); await B.browser.close();

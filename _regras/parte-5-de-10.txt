@@ -1,3 +1,46 @@
+      function doCliente() {
+        let d = request.resource.data;
+        let dono = donoDoNegocio(d.negocioId);
+        let eu = request.auth.uid;
+        return id == 'n_' + d.negocioId + '_' + eu
+            && d.alvoId == dono
+            && dono != eu
+            && d.chaves == ['neg_' + d.negocioId]
+            && contaAntiga(eu)
+            && falou(eu, dono, eu)
+            && falou(eu, dono, dono)
+            && !bloqueioEntre(eu, dono)
+            && pedidoOk(d, eu, d.negocioId)
+            && resumoAtualizado('neg_' + d.negocioId);
+      }
+
+      function doVendedor() {
+        let d = request.resource.data;
+        let eu = request.auth.uid;
+        return id == 'c_' + d.negocioId + '_' + d.alvoId
+            && donoDoNegocio(d.negocioId) == eu
+            && d.alvoId != eu
+            && d.chaves == ['cli_' + d.alvoId]
+            && falou(eu, d.alvoId, eu)
+            && falou(eu, d.alvoId, d.alvoId)
+            && !bloqueioEntre(eu, d.alvoId)
+            && pedidoOk(d, d.alvoId, d.negocioId)
+            && resumoAtualizado('cli_' + d.alvoId);
+      }
+
+      function daPublicacao() {
+        let d = request.resource.data;
+        let post = get(/databases/$(database)/documents/diario/$(d.postId)).data;
+        return id == 'd_' + d.postId + '_' + request.auth.uid
+            && post.autorId != request.auth.uid
+            && d.alvoId == post.autorId
+            && d.chaves == ['post_' + d.postId, 'pub_' + post.autorId]
+            && resumoAtualizado('post_' + d.postId)
+            && resumoAtualizado('pub_' + post.autorId);
+      }
+
+      allow read: if logado();
+
       allow create: if logado()
                     && emailOk()
                     && base()
@@ -193,46 +236,5 @@
                     && contaAntiga(request.auth.uid)
                     && falou(request.auth.uid, request.resource.data.alvoId, request.auth.uid)
                     && contou();
-
-      allow update: if logado()
-                    && emailOk()
-                    && request.resource.data.autorId == resource.data.autorId
-                    && request.resource.data.alvoId == resource.data.alvoId
-                    && request.resource.data.negocioId == resource.data.negocioId
-                    && (
-                      // o negócio responde ou corrige a resposta (enquanto está aberta)
-                      (resource.data.alvoId == request.auth.uid
-                        && resource.data.status == 'aberta'
-                        && mudou().hasOnly(['resposta', 'respondidaEm'])
-                        && request.resource.data.resposta is string
-                        && request.resource.data.resposta.size() >= 2 && request.resource.data.resposta.size() <= 1000
-                        && request.resource.data.respondidaEm == request.time)
-                      ||
-                      // o cliente marca como resolvida
-                      (resource.data.autorId == request.auth.uid
-                        && resource.data.status == 'aberta'
-                        && mudou().hasOnly(['status', 'resolvidaEm'])
-                        && request.resource.data.status == 'resolvida'
-                        && request.resource.data.resolvidaEm == request.time)
-                      ||
-                      // o cliente reabre (com relato novo), contando na cota
-                      (resource.data.autorId == request.auth.uid
-                        && resource.data.status == 'resolvida'
-                        && mudou().hasOnly(['motivo', 'texto', 'foto', 'status', 'abertaEm', 'aberturas', 'resposta', 'respondidaEm', 'resolvidaEm'])
-                        && relatoOk(request.resource.data)
-                        && request.resource.data.status == 'aberta'
-                        && request.resource.data.abertaEm == request.time
-                        && request.resource.data.aberturas == resource.data.get('aberturas', 1) + 1
-                        && request.resource.data.get('resposta', null) == null
-                        && contou())
-                    );
-
-      allow delete: if false;
-    }
-
-    match /cotas/{uid} {
-
-      allow read: if logado() && request.auth.uid == uid;
-      allow read: if admin();
 
 // ===== FIM DA PARTE 5 DE 10 =====

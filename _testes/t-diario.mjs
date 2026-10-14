@@ -52,28 +52,28 @@ await card.locator(".car-trilho").evaluate((t) => t.scrollTo({ left: t.clientWid
 await pb.waitForTimeout(400);
 ok((await card.locator(".car-cont").textContent()) === "2/3", "feed: deslizar mostra \"2/3\"");
 await pb.screenshot({ path: "saida/diario-carrossel.png" });
-// Toque duplo: contagem de estrelas. Tocar de novo para parar (a nota é onde parou).
+// Toque duplo = 5 estrelas na hora (estrelas surgindo pela foto, sem ficar tocando).
 const box = await card.locator(".car-trilho").boundingBox();
 const meio = [box.x + box.width / 2, box.y + box.height / 2];
 await pb.touchscreen.tap(...meio); await pb.waitForTimeout(90); await pb.touchscreen.tap(...meio);
 await pb.waitForSelector(".post-card .contagem", { timeout: 3000 });
-await pb.waitForTimeout(1000);
+await pb.waitForTimeout(500);
 await pb.screenshot({ path: "saida/diario-estrelas-surgindo.png" });
-const acesas = await card.locator(".contagem .est-voa").count();
-await card.locator(".contagem").tap();
+ok(await card.locator(".contagem .est-voa").count() === 5, "toque duplo: 5 estrelas surgem espalhadas pela foto");
 await pb.waitForTimeout(1800);
-const tPar = await card.locator(".estrelas-txt").textContent();
-ok(acesas >= 2 && acesas <= 4 && tPar.includes(`${acesas},0`) && await card.locator(".estrelas-linha .estrela.on.minha").count() === acesas, `toque duplo + tocar de novo: parou em ${acesas} → ${tPar}`);
-await pb.waitForTimeout(800);
-// Sem parar: chega na 5ª e as estrelas se juntam no meio.
-await pb.touchscreen.tap(...meio); await pb.waitForTimeout(90); await pb.touchscreen.tap(...meio);
-await pb.waitForSelector(".post-card .contagem.fundir", { timeout: 4000 }).catch(() => {});
-await pb.waitForTimeout(250);
-ok(await card.locator(".contagem.fundir .est-voa").count() === 5, "na 5ª: as 5 estrelas espalhadas pela foto crescem juntas");
-await pb.screenshot({ path: "saida/diario-fundir.png" });
-await pb.waitForTimeout(2000);
 const tDbl = await card.locator(".estrelas-txt").textContent();
-ok(tDbl.includes("5,0") && tDbl.includes("1 nota") && await card.locator(".estrelas-linha .estrela.on.minha").count() === 5, "toque duplo até o fim: 5 estrelas → " + tDbl);
+ok(tDbl.includes("5,0") && tDbl.includes("1 nota") && await card.locator(".estrelas-linha .estrela.on.minha").count() === 5 && await card.locator(".estrelas-linha .estrela svg").count() === 5, "toque duplo = 5 estrelas de uma vez (ícones de verdade) → " + tDbl);
+// Arrastar na fileira de estrelas: solta na 3ª = 3 estrelas.
+const linha = card.locator(".estrelas-linha"); const lb = await linha.boundingBox();
+const e3 = await card.locator(".estrelas-linha .estrela").nth(2).boundingBox();
+await pb.mouse.move(lb.x + 4, lb.y + lb.height / 2); await pb.mouse.down();
+await pb.mouse.move(e3.x + e3.width / 2, lb.y + lb.height / 2, { steps: 6 }); await pb.mouse.up();
+await pb.mouse.move(2, 2); await pb.waitForTimeout(1800);
+const tArr = await card.locator(".estrelas-txt").textContent();
+ok(tArr.includes("3,0") && await card.locator(".estrelas-linha .estrela.on.minha").count() === 3, "arrastar pela fileira e soltar na 3ª = 3 estrelas → " + tArr);
+await pb.touchscreen.tap(...meio); await pb.waitForTimeout(90); await pb.touchscreen.tap(...meio);
+await pb.waitForTimeout(2200);
+ok((await card.locator(".estrelas-txt").textContent()).includes("5,0"), "toque duplo de novo volta para 5");
 // Barra da publicação (estilo Instagram): comentar, enviar, compartilhar e salvar.
 ok(await card.locator(".interacoes .acoes-post .acao").count() === 4 && (await card.locator(".interacoes .acoes-post .rot").allTextContents()).join("|") === "Comentar|Enviar|Compartilhar|Salvar", "publicação: Comentar · Enviar · Compartilhar · Salvar (ícone com o nome), embaixo da foto");
 await card.locator(".interacoes .acao.salvar").tap(); await pb.waitForTimeout(800);

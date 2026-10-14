@@ -1,3 +1,19 @@
+      // Trocou de @: o antigo tem que ser liberado na mesma gravação (ninguém guarda vários @).
+      function liberouNickAntigo() {
+        let antigo = resource.data.get('nickname', '');
+        return antigo == null || antigo == '' || antigo == request.resource.data.get('nickname', '')
+            || !existsAfter(/databases/$(database)/documents/nicknames/$(antigo));
+      }
+
+      function tamanhosOk() {
+        return textoAte('nome', 80)
+            && textoAte('bio', 400)
+            && textoAte('cidade', 80)
+            && localOk()
+            && listaAte('busca', 12)
+            && dataOuNulo('desativadaAte');
+      }
+
       // Campos que o site grava no perfil público. Qualquer outro é recusado.
       function camposPerfil() {
         return ['uid', 'nome', 'nickname', 'cidade', 'uf', 'cidadeIbge', 'bio', 'fotoPerfil', 'fotoCapa',
@@ -227,32 +243,5 @@
     // Documento: negocios/{donoId}_{tipo}
     // =====================================================
     match /negocios/{id} {
-
-      // Campos que o site grava. Qualquer outro campo é recusado.
-      function camposNegocio() {
-        return ['donoId', 'tipo', 'nome', 'descricao', 'cidade', 'uf', 'cidadeIbge', 'bairro', 'rua', 'numero', 'complemento', 'cep',
-                'whatsapp', 'foto', 'fotos', 'itens',
-                'categoria', 'categorias', 'categoriaPersonalizada', 'criadoEm', 'atualizadoEm',
-                'precoDesde', 'horario', 'atendimento', 'dias', 'regiao', 'experiencia', 'diferenciais', 'pagamentos', 'cnh', 'veiculo',
-                'horaAbre', 'horaFecha', 'tempoMin', 'tempoMax', 'taxaEntrega', 'pedidoMinimo', 'opcoesEntrega',
-                'entrega', 'tipoAnunciante', 'creci',
-                'ocultoAte'];  // escondido enquanto a conta do dono estiver desativada
-      }
-
-      function negocioOk() {
-        return textoAte('nome', 80)
-            && textoAte('descricao', 600)
-            && textoAte('cidade', 60)
-            && localOk()
-            && enderecoOk()
-            && textoAte('whatsapp', 20)
-            && textoAte('regiao', 100)
-            && textoAte('horario', 60)
-            && textoAte('categoriaPersonalizada', 30)
-            && listaAte('itens', 12)
-            && listaAte('fotos', 5)
-            && dataOuNulo('ocultoAte')
-            && ((resource != null && !mudou().hasAny(['foto'])) || campoFotoOk('foto'));
-      }
 
 // ===== FIM DA PARTE 2 DE 10 =====

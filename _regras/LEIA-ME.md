@@ -4,7 +4,9 @@
 > (campo `midias`, de 2 a 4 fotos), **dar estrelas na própria publicação** o **resumo das estrelas**
 > (`diario_notas`: média e quantas pessoas deram 5, 4, 3, 2 e 1 estrela) e os **comentários novos** (quem pode
 > comentar, comentário fixado e reações com emoji), **stories**, **hashtags e marcações**, **agendar**, **rascunhos**,
-> **alcance e salvos** (estatísticas) e o **aviso de reação** no comentário. Para publicar, o processo é o mesmo: apagar tudo no console e colar as 10 partes.
+> **alcance e salvos** (estatísticas), o **aviso de reação** no comentário, **enquetes** (publicação e Flash, votos em
+> `enquete_votos`), **menções e configurações do Flash** (respostas, público, amigos próximos, ocultar de) e
+> **quem pode me marcar** (`pref_publicas`). Para publicar, o processo é o mesmo: apagar tudo no console e colar as 10 partes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
 `firestore.rules` divididas em **10 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de

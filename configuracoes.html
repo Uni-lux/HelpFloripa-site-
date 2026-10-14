@@ -23,9 +23,9 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="rede.css?v=16" />
+  <link rel="stylesheet" href="rede.css?v=17" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="configuracoes.js?v=41"></script>
+  <script type="module" src="configuracoes.js?v=42"></script>
 </head>
 <body>
   <header class="topo">
@@ -83,6 +83,26 @@
           <button type="button" class="cfg-item" id="cfgRestritos"><svg class="i"><use href="#i-restringir"/></svg><span class="txt">Contas restritas<small id="cfgRestritosTxt">Ninguém restrito</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
           <label class="cfg-item"><svg class="i"><use href="#i-sino"/></svg><span class="txt">Sons de notificação</span><span class="switch"><input type="checkbox" id="cfgSons" /><span></span></span></label>
           <button type="button" class="cfg-item" id="cfgNotifNavegador"><svg class="i"><use href="#i-sino"/></svg><span class="txt">Notificações do navegador<small id="cfgNotifTxt"></small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
+        </div>
+
+        <div class="cfg-bloco">
+          <h3>Diário e Flash</h3>
+          <button type="button" class="cfg-item" id="cfgInsights"><svg class="i"><use href="#i-graf"/></svg><span class="txt">Estatísticas do perfil<small>Alcance, interações, seguidores, público e melhores publicações</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
+          <button type="button" class="cfg-item" id="cfgFlash"><svg class="i"><use href="#i-raio"/></svg><span class="txt">Configurações do Flash<small id="cfgFlashTxt">Amigos próximos, ocultar de, respostas e salvar no aparelho</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
+          <div class="cfg-item" style="cursor:default"><svg class="i"><use href="#i-pessoa-mais"/></svg><span class="txt">Quem pode marcar e mencionar você<small id="cfgMarcarTxt">Nas publicações e nos flashes</small></span></div>
+          <div class="segmentado" id="cfgMarcar">
+            <button type="button" data-valor="todos">Todos</button>
+            <button type="button" data-valor="seguindo">Quem eu sigo</button>
+            <button type="button" data-valor="ninguem">Ninguém</button>
+          </div>
+          <div class="cfg-item" style="cursor:default"><svg class="i"><use href="#i-chat"/></svg><span class="txt">Quem pode comentar nas suas publicações<small>Vale para as próximas; em cada publicação dá para mudar nos comentários</small></span></div>
+          <div class="segmentado" id="cfgComenta">
+            <button type="button" data-valor="todos">Todos</button>
+            <button type="button" data-valor="seguidores">Seguidores</button>
+            <button type="button" data-valor="mutuos">Mútuos</button>
+            <button type="button" data-valor="ninguem">Ninguém</button>
+          </div>
+          <button type="button" class="cfg-item" id="cfgGosto"><svg class="i"><use href="#i-estrela"/></svg><span class="txt">Recomeçar o seu Principais<small>Apaga o que o Diário aprendeu sobre o seu gosto neste aparelho</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
         </div>
 
         <div class="cfg-bloco">

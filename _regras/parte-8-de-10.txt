@@ -1,3 +1,73 @@
+    // Apagar para todos no chat da equipe: fica "apagou esta mensagem"; o conteúdo vai para
+    // equipe_apagadas/{id} (abre por 24 horas), gravado junto.
+    function apagarEquipeOk(id) {
+      let d = request.resource.data;
+      let a = resource.data;
+      return a.autorId == request.auth.uid
+          && request.time < a.em + duration.value(10, 'm')
+          && !('apagada' in a)
+          && d.keys().hasOnly(['autorId', 'nome', 'em', 'apagada'])
+          && d.autorId == a.autorId && d.em == a.em && d.get('nome', '') == a.get('nome', '')
+          && d.apagada is map && d.apagada.keys().hasOnly(['por', 'em'])
+          && d.apagada.por == request.auth.uid && d.apagada.em == request.time
+          && existsAfter(/databases/$(database)/documents/equipe_apagadas/$(id));
+    }
+    match /equipe_chat/{id} {
+      allow read: if admin();
+      allow create: if admin() && msgEquipeOk('equipe');
+      allow update: if admin() && reacaoValida();
+      allow update: if admin() && (edicaoEquipeOk() || apagarEquipeOk(id));
+      allow delete: if false;
+    }
+    // Conversa individual entre duas pessoas da equipe: equipe_dm/{uidA_uidB} (ids em ordem).
+    // O documento guarda só o resumo (última mensagem e quando cada um leu).
+    match /equipe_dm/{par} {
+      function membro() {
+        return admin() && par.split('_').size() == 2 && request.auth.uid in par.split('_')
+            && exists(/databases/$(database)/documents/admins/$(par.split('_')[0]))
+            && exists(/databases/$(database)/documents/admins/$(par.split('_')[1]));
+      }
+      allow read: if admin() && request.auth.uid in resource.data.participantes;
+      allow create, update: if membro()
+                    && request.resource.data.keys().hasOnly(['participantes', 'ultimaEm', 'ultimaTexto', 'ultimoAutor', 'lidoEm'])
+                    && request.resource.data.participantes == par.split('_')
+                    && valorTextoAte(request.resource.data.get('ultimaTexto', ''), 140)
+                    && (!('ultimoAutor' in request.resource.data) || request.resource.data.ultimoAutor in par.split('_'))
+                    && request.resource.data.get('lidoEm', {}) is map;
+      allow delete: if false;
+      match /mensagens/{id} {
+        allow read: if admin() && request.auth.uid in par.split('_');
+        allow create: if admin() && par.split('_').size() == 2 && request.auth.uid in par.split('_') && msgEquipeOk(par);
+        allow update: if admin() && request.auth.uid in par.split('_') && reacaoValida();
+        allow update: if admin() && request.auth.uid in par.split('_') && (edicaoEquipeOk() || apagarEquipeOk(id));
+        allow delete: if false;
+      }
+    }
+    // Conteúdo de mensagem do chat da equipe apagada para todos (abre por 24 horas, só quem participa;
+    // depois disso qualquer um da conversa apaga de vez).
+    match /equipe_apagadas/{id} {
+      function daConversaEq(c) { return c == 'equipe' || request.auth.uid in c.split('_'); }
+      function msgEq(c) {
+        return c == 'equipe' ? /databases/$(database)/documents/equipe_chat/$(id)
+                             : /databases/$(database)/documents/equipe_dm/$(c)/mensagens/$(id);
+      }
+      allow get: if admin() && daConversaEq(resource.data.conversa) && request.time < resource.data.apagadaEm + duration.value(24, 'h');
+      allow create: if admin()
+                    && request.resource.data.keys().hasOnly(['autorId', 'conversa', 'conteudo', 'apagadaEm'])
+                    && request.resource.data.autorId == request.auth.uid
+                    && request.resource.data.conversa is string
+                    && daConversaEq(request.resource.data.conversa)
+                    && get(msgEq(request.resource.data.conversa)).data.autorId == request.auth.uid
+                    && getAfter(msgEq(request.resource.data.conversa)).data.apagada.por == request.auth.uid
+                    && request.resource.data.apagadaEm == request.time
+                    && request.resource.data.conteudo is map
+                    && request.resource.data.conteudo.keys().hasOnly(['texto', 'tipoArquivo', 'anexo', 'nomeArquivo', 'tamanho', 'miniatura', 'duracao', 'resposta', 'mencoes', 'edicoes'])
+                    && request.resource.data.conteudo.get('texto', '') == get(msgEq(request.resource.data.conversa)).data.get('texto', '')
+                    && request.resource.data.conteudo.get('anexo', '') == get(msgEq(request.resource.data.conversa)).data.get('anexo', '');
+      allow update: if false;
+      allow delete: if admin() && daConversaEq(resource.data.conversa) && request.time >= resource.data.apagadaEm + duration.value(24, 'h');
+    }
+
     // Conteúdo dos anexos do chat da equipe (data: URL de até ~900 mil caracteres).
     // Só quem participa da conversa lê; ninguém edita.
     match /equipe_anexos/{id} {
@@ -144,68 +214,5 @@
       allow delete: if logado() && request.auth.uid == uid;
     }
 
-
-    // =====================================================
-    // ESTRELAS NAS PUBLICAÇÕES: curtidas/{postId}_{uid}
-    // Nota de 1 a 5, uma por pessoa em cada publicação. A pessoa pode
-    // trocar a nota ou tirar. Ninguém dá estrelas na própria publicação.
-    // =====================================================
-    match /curtidas/{id} {
-
-      allow read: if logado();
-
-      function notaOk(d) {
-        return d.nota is int && d.nota >= 1 && d.nota <= 5;
-      }
-      // Cada nota muda junto o resumo da publicação (diario_notas/{postId}); as regras do resumo conferem a conta.
-      function resumoJunto(postId) {
-        let r = /databases/$(database)/documents/diario_notas/$(postId);
-        return existsAfter(r)
-            && getAfter(r).data.get('soma', 0) != (exists(r) ? get(r).data.get('soma', 0) : 0);
-      }
-
-      allow create: if logado()
-                    && emailOk()
-                    && request.resource.data.keys().hasOnly(['postId', 'uid', 'postAutorId', 'nota', 'criadoEm', 'origem'])
-                    && (!('origem' in request.resource.data) || request.resource.data.origem in ['principais', 'seguindo', 'amigos', 'perfil', 'link', 'tag', 'salvos'])
-                    && request.resource.data.uid == request.auth.uid
-                    && id == request.resource.data.postId + '_' + request.auth.uid
-                    && exists(/databases/$(database)/documents/diario/$(request.resource.data.postId))
-                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
-                    // pode dar estrelas na própria publicação ("se curtir")
-                    && notaOk(request.resource.data)
-                    && !bloqueioEntre(request.auth.uid, request.resource.data.postAutorId)
-                    && request.resource.data.criadoEm == request.time
-                    && resumoJunto(request.resource.data.postId);
-
-      allow update: if logado()
-                    && emailOk()
-                    && resource.data.uid == request.auth.uid
-                    && mudou().hasOnly(['nota', 'atualizadoEm'])
-                    && notaOk(request.resource.data)
-                    && request.resource.data.atualizadoEm == request.time
-                    && resumoJunto(resource.data.postId);
-
-      // Tirar a nota: tira junto do resumo. Publicação que já não existe: apaga sem resumo (limpeza de conta).
-      allow delete: if logado() && resource.data.uid == request.auth.uid
-                    && (resumoJunto(resource.data.postId)
-                        || !exists(/databases/$(database)/documents/diario/$(resource.data.postId)));
-    }
-
-    // ===================================================
-    // SALVAMENTOS: salvamentos/{postId}_{uid} — só para o autor contar quantos salvaram (não vê quem).
-    // A lista de salvos de cada um continua em usuarios/{uid}.salvos (privada).
-    // ===================================================
-    match /salvamentos/{id} {
-      allow create: if logado()
-                    && request.resource.data.keys().hasOnly(['postId', 'uid', 'postAutorId', 'criadoEm'])
-                    && request.resource.data.uid == request.auth.uid
-                    && id == request.resource.data.postId + '_' + request.auth.uid
-                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
-                    && request.resource.data.criadoEm == request.time;
-      allow read: if logado() && (resource.data.uid == request.auth.uid || resource.data.postAutorId == request.auth.uid);
-      allow delete: if logado() && resource.data.uid == request.auth.uid;
-      allow update: if false;
-    }
 
 // ===== FIM DA PARTE 8 DE 10 =====

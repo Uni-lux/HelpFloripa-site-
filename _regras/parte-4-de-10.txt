@@ -1,3 +1,23 @@
+        function mensagemOk() {
+          let d = request.resource.data;
+          return d.keys().hasOnly(['remetenteId', 'texto', 'criadoEm', 'resposta', 'tipoArquivo', 'arquivoUrl', 'nomeArquivo', 'cartao', 'avaliacao'])
+              && (!('tipoArquivo' in d) || d.tipoArquivo in ['imagem', 'video', 'audio', 'cartao', 'avaliacao'])
+              // pedido de avaliação: aponta para um atendimento criado por quem envia
+              && (!('avaliacao' in d)
+                  || (d.avaliacao is map && d.get('tipoArquivo', '') == 'avaliacao'
+                      && d.avaliacao.keys().hasOnly(['pedidoId', 'titulo', 'tipo', 'negocioNome'])
+                      && get(/databases/$(database)/documents/pedidos/$(d.avaliacao.pedidoId)).data.vendedorId == request.auth.uid
+                      && valorTextoAte(d.avaliacao.get('titulo', ''), 120)
+                      && valorTextoAte(d.avaliacao.get('negocioNome', ''), 80)))
+              // anexo: só do próprio site (dentro da mensagem ou Firebase Storage)
+              && (!('arquivoUrl' in d)
+                  || (d.arquivoUrl is string
+                      && d.arquivoUrl.matches('^(data:(image|video|audio)/[^,]{1,80},|https://firebasestorage[.]googleapis[.]com/).*')))
+              && (!('nomeArquivo' in d) || valorTextoAte(d.nomeArquivo, 120))
+              && (!('cartao' in d) || (d.cartao is map && d.get('tipoArquivo', '') == 'cartao'))
+              && (!('resposta' in d) || respostaOk(d.resposta));
+        }
+
         // Versão anterior guardada ao editar: o texto e a hora que ele tinha (envio ou última edição).
         function versaoOk(v) {
           return v is map && v.keys().hasOnly(['texto', 'em'])
@@ -173,48 +193,5 @@
             || (get(/databases/$(database)/documents/pedidos/$(d.pedidoId)).data.clienteId == cliente
                 && get(/databases/$(database)/documents/pedidos/$(d.pedidoId)).data.negocioId == negocioId);
       }
-
-      function doCliente() {
-        let d = request.resource.data;
-        let dono = donoDoNegocio(d.negocioId);
-        let eu = request.auth.uid;
-        return id == 'n_' + d.negocioId + '_' + eu
-            && d.alvoId == dono
-            && dono != eu
-            && d.chaves == ['neg_' + d.negocioId]
-            && contaAntiga(eu)
-            && falou(eu, dono, eu)
-            && falou(eu, dono, dono)
-            && !bloqueioEntre(eu, dono)
-            && pedidoOk(d, eu, d.negocioId)
-            && resumoAtualizado('neg_' + d.negocioId);
-      }
-
-      function doVendedor() {
-        let d = request.resource.data;
-        let eu = request.auth.uid;
-        return id == 'c_' + d.negocioId + '_' + d.alvoId
-            && donoDoNegocio(d.negocioId) == eu
-            && d.alvoId != eu
-            && d.chaves == ['cli_' + d.alvoId]
-            && falou(eu, d.alvoId, eu)
-            && falou(eu, d.alvoId, d.alvoId)
-            && !bloqueioEntre(eu, d.alvoId)
-            && pedidoOk(d, d.alvoId, d.negocioId)
-            && resumoAtualizado('cli_' + d.alvoId);
-      }
-
-      function daPublicacao() {
-        let d = request.resource.data;
-        let post = get(/databases/$(database)/documents/diario/$(d.postId)).data;
-        return id == 'd_' + d.postId + '_' + request.auth.uid
-            && post.autorId != request.auth.uid
-            && d.alvoId == post.autorId
-            && d.chaves == ['post_' + d.postId, 'pub_' + post.autorId]
-            && resumoAtualizado('post_' + d.postId)
-            && resumoAtualizado('pub_' + post.autorId);
-      }
-
-      allow read: if logado();
 
 // ===== FIM DA PARTE 4 DE 10 =====
