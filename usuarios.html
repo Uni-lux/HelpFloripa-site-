@@ -1186,7 +1186,7 @@
     // O dono escolhe em Configurações: clicável (abre o perfil do duo), só a rosinha ou oculta.
     function desenharDuoCapa(cab, uid, dono, vinculos, podeAbrir) {
       const linha = cab.raiz.querySelector(".pf-avatar-wrap");
-      linha.querySelector(".pf-rosa")?.remove();
+      linha.querySelectorAll(".pf-rosa, .pf-duo-bolha").forEach((x) => x.remove());
       linha.classList.remove("com-rosa");
       if ((dono.duoCapa || "clicavel") === "ocultar") return;
       const duo = vinculos.map((v) => lerVinculo(v, uid)).find((v) => TIPOS_DUO.includes(v.tipo) && !v.pendente && !escondido(v.outro));
