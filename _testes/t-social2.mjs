@@ -47,14 +47,23 @@ ok(agendada?.agendadoPara && agendada.agendadoPara.toMillis() > Date.now(), "gra
 ok((await db.collection(`rascunhos/${U.ana}/itens`).get()).size === 0, "rascunho usado foi apagado ao publicar");
 // 4) Flash da Ana: um de foto (com legenda) e um de texto
 await pa.locator(".story-circ").first().tap();
-await pa.waitForSelector(".flash-criar .flash-escolher", { timeout: 5000 });
+await pa.waitForSelector(".flash-criar .flash-escolher .flash-esc-btn", { timeout: 5000 });
 ok((await pa.locator(".story-circ .nome").first().textContent()) === "Seu flash", "barra: \"Seu flash\"");
 await pa.screenshot({ path: "saida/flash-criar.png" });
 const escolha = pa.waitForEvent("filechooser");
-await pa.locator(".flash-escolher").tap();
+await pa.locator(".flash-esc-btn", { hasText: "Galeria" }).tap();
 const fc = await escolha; await fc.setFiles(arq);
-await pa.locator(".hfe-btn.pri").click({ timeout: 15000 });
-await pa.waitForSelector(".flash-palco img", { timeout: 8000 });
+await pa.waitForSelector(".flash-midia img.flash-foto", { timeout: 8000 });
+// arrastar a foto no cartão (sem editor separado) e escrever por cima
+const pal = await pa.locator(".flash-palco").boundingBox();
+await pa.mouse.move(pal.x + pal.width / 2, pal.y + pal.height / 2); await pa.mouse.down(); await pa.mouse.move(pal.x + pal.width / 2 + 3, pal.y + pal.height / 2 + 40, { steps: 5 });
+ok(await pa.locator(".flash-palco.movendo .fx-faixa.cima").count() === 1, "ao mexer na foto aparecem as faixas de segurança");
+await pa.mouse.up();
+await pa.locator(".flash-ferr-btn[aria-label='Escrever na foto']").tap();
+await pa.locator(".fe-campo").fill("Novidade!");
+await pa.locator(".fe-cores button").nth(2).tap(); await pa.locator(".flash-ferr-btn.destaque").tap();
+await pa.locator(".fe-pronto").tap(); await pa.waitForTimeout(300);
+ok((await pa.locator(".flash-camada .flash-txt").textContent()) === "Novidade!" && await pa.locator(".flash-txt.destaque").count() === 1, "texto por cima da foto, com cor e destaque");
 await pa.locator(".flash-legenda").fill("Bom dia!");
 await pa.screenshot({ path: "saida/flash-criar-foto.png" });
 await pa.locator(".flash-publicar").tap(); await pa.waitForTimeout(2500);

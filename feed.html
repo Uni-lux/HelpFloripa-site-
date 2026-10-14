@@ -23,9 +23,9 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="rede.css?v=13" />
+  <link rel="stylesheet" href="rede.css?v=14" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="feed.js?v=36"></script>
+  <script type="module" src="feed.js?v=37"></script>
 </head>
 <body>
   <header class="topo">
@@ -57,15 +57,28 @@
           <div style="text-align:center"><button type="button" class="btn sec" id="maisFeed" hidden>Ver mais publicações</button></div>
         </section>
         <section id="painelExplorar" aria-label="Explorar" hidden>
-          <h2 class="titulo-sec">Explore o Help Floripa</h2>
-          <div class="atalhos-classes">
-          <a href="servicos.html" class="atalho-classe servicos" style="background-image:url('servicos.webp')"><span class="ic"><svg class="i s"><use href="#i-servicos"/></svg></span><strong>Freelances</strong><small>Profissionais avaliados</small></a>
-          <a href="delivery.html" class="atalho-classe delivery" style="background-image:url('lanchonetes.webp')"><span class="ic"><svg class="i s"><use href="#i-delivery"/></svg></span><strong>Delivery</strong><small>Cardápios da vizinhança</small></a>
-          <a href="shopping.html" class="atalho-classe lojinha" style="background-image:url('shopping.webp')"><span class="ic"><svg class="i s"><use href="#i-lojinha"/></svg></span><strong>Shopping</strong><small>Lojas de Florianópolis</small></a>
-          <a href="imoveis.html" class="atalho-classe imoveis" style="background-image:url('imoveis.webp')"><span class="ic"><svg class="i s"><use href="#i-imoveis"/></svg></span><strong>Imóveis</strong><small>Aluguel, venda e temporada</small></a>
+          <label class="campo-busca busca-explorar"><svg class="i s"><use href="#i-lupa"/></svg><span class="sr">Buscar pessoas</span><input type="search" id="buscaPessoas" placeholder="Buscar pessoas, @usuário ou #hashtag" autocomplete="off" /></label>
+          <div id="exploraConteudo">
+            <div class="atalhos-classes compactos">
+            <a href="servicos.html" class="atalho-classe servicos" style="background-image:url('servicos.webp')"><span class="ic"><svg class="i s"><use href="#i-servicos"/></svg></span><strong>Freelances</strong><small>Profissionais avaliados</small></a>
+            <a href="delivery.html" class="atalho-classe delivery" style="background-image:url('lanchonetes.webp')"><span class="ic"><svg class="i s"><use href="#i-delivery"/></svg></span><strong>Delivery</strong><small>Cardápios da vizinhança</small></a>
+            <a href="shopping.html" class="atalho-classe lojinha" style="background-image:url('shopping.webp')"><span class="ic"><svg class="i s"><use href="#i-lojinha"/></svg></span><strong>Shopping</strong><small>Lojas de Florianópolis</small></a>
+            <a href="imoveis.html" class="atalho-classe imoveis" style="background-image:url('imoveis.webp')"><span class="ic"><svg class="i s"><use href="#i-imoveis"/></svg></span><strong>Imóveis</strong><small>Aluguel, venda e temporada</small></a>
+            </div>
+            <section class="exp-sec" id="secAlta" hidden>
+              <div class="exp-tit"><h2 class="titulo-sec">Em alta agora</h2><small>Hashtags mais usadas nos últimos dias</small></div>
+              <div class="exp-tags" id="exploraTags"></div>
+            </section>
+            <section class="exp-sec" id="secDestaques" hidden>
+              <div class="exp-tit"><h2 class="titulo-sec">Destaques para você</h2><small>As publicações com mais estrelas e comentários</small></div>
+              <div class="exp-grade" id="exploraGrade"></div>
+            </section>
+            <section class="exp-sec" id="secSugestoes" hidden>
+              <div class="exp-tit"><h2 class="titulo-sec">Sugestões para você</h2><small>Pessoas e negócios para seguir</small></div>
+              <div class="exp-sug" id="exploraSugestoes"></div>
+            </section>
           </div>
-          <h2 class="titulo-sec">Encontrar pessoas</h2>
-          <label class="campo-busca"><svg class="i s"><use href="#i-lupa"/></svg><span class="sr">Buscar pessoas</span><input type="search" id="buscaPessoas" placeholder="Buscar pessoas, @usuário ou #hashtag" autocomplete="off" /></label>
+          <h2 class="titulo-sec" id="titPessoas">Ativos recentemente</h2>
           <div class="cartao" style="padding:6px" id="listaPessoas"></div>
         </section>
       </div>

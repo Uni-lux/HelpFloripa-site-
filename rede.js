@@ -10,7 +10,7 @@
 // =====================================================
 import { gravarComLocal, NOVOS } from "./endereco.js?v=1";
 import { comRitmo } from "./ritmo.js?v=2";
-import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=5";
+import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=6";
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
 import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=15";
 import { ouvirItensEquipe, TEXTO_EQUIPE, linkEquipe } from "./avisos-equipe.js?v=1";
@@ -1022,39 +1022,42 @@ export async function alternarSalvo(post) {
   }
 }
 
-// Barra da publicação (como no Instagram), logo abaixo da foto:
-//   linha 1: ★★★★★ (a sua nota)  ·  comentar · enviar · compartilhar  ·········  salvar
-//   linha 2: média e quantas notas (abre o resumo)  ·········  "Ver os N comentários"
+// Barra da publicação, logo abaixo da foto (organizada em duas faixas):
+//   1) ★★★★★ (a sua nota) à esquerda · média e quantas notas à direita (abre o resumo)
+//   2) quatro ações do mesmo tamanho, ícone com o nome embaixo: Comentar · Enviar · Compartilhar · Salvar
 export function barraInteracao(post, { aoComentar } = {}) {
   const barra = el("div", "interacoes");
   const est = seletorEstrelas(post);
   const resumo = est.querySelector(".estrelas-txt");
-  const botao = (nome, rotulo, classe = "acao") => { const b = el("button", classe); b.type = "button"; b.setAttribute("aria-label", rotulo); b.title = rotulo; b.appendChild(icone(nome, "i s")); return b; };
-  const bM = botao("chat", "Comentar");
-  const nM = el("span", "n", "");
-  bM.appendChild(nM);
-  const bE = botao("enviar", "Enviar para alguém");
-  const bS = botao("compartilhar", "Compartilhar");
-  const bG = botao("salvo", "Salvar", "acao salvar");
-  const pintarSalvo = () => { const sv = estaSalvo(post.id); bG.classList.toggle("on", sv); bG.setAttribute("aria-pressed", String(sv)); bG.setAttribute("aria-label", sv ? "Remover dos salvos" : "Salvar"); bG.title = sv ? "Salvo" : "Salvar"; };
+  const botao = (nome, rotulo, texto, classe = "acao") => {
+    const b = el("button", classe); b.type = "button"; b.setAttribute("aria-label", rotulo);
+    const ic = el("span", "ic"); ic.appendChild(icone(nome, "i s"));
+    b.append(ic, el("span", "rot", texto));
+    return b;
+  };
+  const bM = botao("chat", "Comentar", "Comentar", "acao comentar");
+  const bE = botao("enviar", "Enviar para alguém", "Enviar", "acao enviar");
+  const bS = botao("compartilhar", "Compartilhar", "Compartilhar", "acao compartilhar");
+  const bG = botao("salvo", "Salvar", "Salvar", "acao salvar");
+  const pintarSalvo = () => {
+    const sv = estaSalvo(post.id);
+    bG.classList.toggle("on", sv); bG.setAttribute("aria-pressed", String(sv));
+    bG.setAttribute("aria-label", sv ? "Remover dos salvos" : "Salvar");
+    bG.lastChild.textContent = sv ? "Salvo" : "Salvar";
+  };
   pintarSalvo();
-  const acoes = el("div", "acoes-post"); acoes.append(bM, bE, bS);
-  const linha1 = el("div", "int-linha");
-  linha1.append(est, acoes, bG);
-  const verC = el("button", "ver-coment"); verC.type = "button"; verC.hidden = true;
-  const linha2 = el("div", "int-linha resumo");
-  if (resumo) linha2.appendChild(resumo);
-  linha2.appendChild(verC);
-  barra.append(linha1, linha2);
+  const topo = el("div", "int-topo");
+  topo.append(est);
+  if (resumo) topo.appendChild(resumo);
+  const acoes = el("div", "acoes-post"); acoes.append(bM, bE, bS, bG);
+  barra.append(topo, acoes);
   const pintarN = (n) => {
-    nM.textContent = n ? numero(n) : "";
-    verC.hidden = !n;
-    verC.textContent = n === 1 ? "Ver 1 comentário" : `Ver os ${numero(n)} comentários`;
+    bM.lastChild.textContent = n ? `${numero(n)} ${n === 1 ? "comentário" : "comentários"}` : "Comentar";
+    bM.setAttribute("aria-label", n ? `Comentários (${n})` : "Comentar");
   };
   quandoVisivel(barra, () => contarComentarios(post.id).then(pintarN));
   const comentar = () => { registrarGosto(post, PESO.abrir, eu.uid); return aoComentar ? aoComentar() : abrirComentarios(post, { aoMudar: pintarN }); };
   bM.addEventListener("click", comentar);
-  verC.addEventListener("click", comentar);
   bE.addEventListener("click", () => enviarParaAmigos(post));
   bS.addEventListener("click", () => compartilharPublicacao(post));
   bG.addEventListener("click", async () => {

@@ -10,9 +10,9 @@
 // =====================================================
 import {
   $, el, icone, ms, pintarAvatar, toast, erroAmigavel, tempoRelativo, fb, eu, dados, storageFns,
-  meusSeguindo, escondido, silenciado, alternarSilenciar, obterPerfil, abrirOpcoes, abrirLista, linhaPessoa, editarImagem,
+  meusSeguindo, escondido, silenciado, alternarSilenciar, obterPerfil, abrirOpcoes, abrirLista, linhaPessoa,
   salvarImagem, mandarMensagem, ganchos
-} from "./rede.js?v=35";
+} from "./rede.js?v=36";
 
 const DIA = 24 * 3600e3;
 const TEMPO_FOTO = 6000;
@@ -150,51 +150,74 @@ const LETRAS = [
 ];
 const corTexto = (f) => (f === 3 || f === 7 ? "#1a1a1a" : "#ffffff");
 
+// Cores do texto por cima da foto (como no Instagram) e quem fica com letra escura no destaque.
+const CORES = ["#ffffff", "#111111", "#ffd60a", "#ff8a00", "#ff3d7f", "#00adee", "#38ef7d", "#8e2de2"];
+const clara = (c) => ["#ffffff", "#ffd60a", "#38ef7d"].includes(c);
+
 function abrirCriador() {
   const fundo = el("div", "flash-criar"); fundo.setAttribute("role", "dialog"); fundo.setAttribute("aria-modal", "true"); fundo.setAttribute("aria-label", "Novo flash");
   const caixa = el("div", "flash-caixa");
   const palco = el("div", "flash-palco");
+  const midiaBox = el("div", "flash-midia");
+  const guias = el("div", "flash-guias"); guias.setAttribute("aria-hidden", "true");
+  guias.append(el("span", "fx-faixa cima"), el("span", "fx-faixa baixo"), el("span", "fx-guia v"), el("span", "fx-guia h"));
+  const camada = el("div", "flash-camada"); // textos por cima da foto
   const topo = el("div", "flash-topo");
-  const bX = el("button", "story-btn"); bX.type = "button"; bX.setAttribute("aria-label", "Fechar"); bX.appendChild(icone("fechar", "i s"));
-  const titulo = el("strong", "flash-titulo"); titulo.append(el("span", "raio-t", "⚡"), document.createTextNode(" Novo flash"));
+  const bX = el("button", "flash-ferr-btn"); bX.type = "button"; bX.setAttribute("aria-label", "Fechar"); bX.appendChild(icone("fechar", "i s"));
   const ferramentas = el("div", "flash-ferr");
-  topo.append(bX, titulo, ferramentas);
+  topo.append(bX, ferramentas);
+  const lixo = el("div", "flash-lixo"); lixo.appendChild(icone("lixo", "i s")); lixo.setAttribute("aria-hidden", "true");
+  palco.append(midiaBox, guias, camada, topo, lixo);
   const baixo = el("div", "flash-baixo");
   const modos = el("div", "flash-modos"); modos.setAttribute("role", "tablist");
-  const mTexto = el("button", null, "Aa  Texto"); mTexto.type = "button"; mTexto.setAttribute("role", "tab");
   const mFoto = el("button"); mFoto.type = "button"; mFoto.setAttribute("role", "tab"); mFoto.append(icone("camera", "i xs"), document.createTextNode(comStorage() ? "Foto ou vídeo" : "Foto"));
-  modos.append(mTexto, mFoto);
+  const mTexto = el("button", null, "Aa  Texto"); mTexto.type = "button"; mTexto.setAttribute("role", "tab");
+  modos.append(mFoto, mTexto);
   const publicar = el("button", "flash-publicar"); publicar.type = "button";
   publicar.append(el("span", null, "Compartilhar"), el("b", null, "⚡"));
+  const linhaBaixo = el("div", "flash-linha"); linhaBaixo.append(modos, publicar);
   const dica = el("small", "flash-dica", "Fica 24 horas para quem segue você · você vê quem viu");
-  baixo.append(modos, publicar, dica);
-  caixa.append(palco, topo, baixo);
+  baixo.append(linhaBaixo, dica);
+  caixa.append(palco, baixo);
   fundo.appendChild(caixa);
   document.body.appendChild(fundo);
   document.body.classList.add("travado");
 
   let modo = "foto", fundoI = Math.floor(Math.random() * FUNDOS.length), letraI = 0;
   let foto = null, video = null, enviando = false;
-  // Texto
+  // Foto no cartão: zoom (1 a 5) e deslocamento a partir do centro (em px do cartão).
+  let img = null, z = 1, ox = 0, oy = 0;
+  const textos = []; // { texto, x, y (0..1), tam (fração da largura), letra, cor, destaque, el }
+
+  // ---------- modo Texto ----------
   const area = el("textarea", "flash-texto"); area.maxLength = 220; area.rows = 3; area.placeholder = "Escreva algo..."; area.setAttribute("aria-label", "Texto do flash");
-  const bFundo = el("button", "flash-ferr-btn"); bFundo.type = "button"; bFundo.setAttribute("aria-label", "Trocar o fundo"); bFundo.title = "Fundo";
-  const bLetra = el("button", "flash-ferr-btn letra", "Aa"); bLetra.type = "button"; bLetra.title = "Letra";
-  // Foto
-  const escolher = el("button", "flash-escolher"); escolher.type = "button";
-  escolher.append(el("span", "ic"), el("strong", null, comStorage() ? "Escolher foto ou vídeo" : "Escolher uma foto"), el("small", null, "Da galeria ou da câmera · em pé (9:16) fica melhor"));
-  escolher.firstChild.appendChild(icone("camera", "i"));
+  const bFundo = el("button", "flash-ferr-btn cor"); bFundo.type = "button"; bFundo.setAttribute("aria-label", "Trocar o fundo"); bFundo.title = "Fundo";
+  const bLetra = el("button", "flash-ferr-btn letra", "Aa"); bLetra.type = "button"; bLetra.title = "Letra"; bLetra.setAttribute("aria-label", "Trocar a letra");
+  // ---------- modo Foto ----------
+  const escolher = el("div", "flash-escolher");
+  const bigIc = el("span", "ic"); bigIc.appendChild(icone("camera", "i"));
+  const botoesEsc = el("div", "flash-esc-btns");
+  const bCam = el("button", "flash-esc-btn pri"); bCam.type = "button"; bCam.append(icone("camera", "i s"), el("span", null, "Câmera"));
+  const bGal = el("button", "flash-esc-btn"); bGal.type = "button"; bGal.append(icone("imagem", "i s"), el("span", null, "Galeria"));
+  botoesEsc.append(bCam, bGal);
+  escolher.append(bigIc, el("strong", null, "Mostre o que está acontecendo"), el("small", null, comStorage() ? "Foto ou vídeo de até 60 s · em pé fica melhor" : "Uma foto · em pé fica melhor"), botoesEsc);
   const legenda = el("input", "flash-legenda"); legenda.type = "text"; legenda.maxLength = 150; legenda.placeholder = "Adicionar legenda..."; legenda.setAttribute("aria-label", "Legenda do flash");
+  const bAa = el("button", "flash-ferr-btn letra", "Aa"); bAa.type = "button"; bAa.title = "Escrever na foto"; bAa.setAttribute("aria-label", "Escrever na foto");
   const bTrocar = el("button", "flash-ferr-btn"); bTrocar.type = "button"; bTrocar.setAttribute("aria-label", "Trocar a foto"); bTrocar.title = "Trocar"; bTrocar.appendChild(icone("imagem", "i s"));
 
   const ajustarLetra = () => {
     const n = area.value.length;
     area.style.fontSize = (n < 40 ? 34 : n < 90 ? 27 : n < 150 ? 22 : 19) + "px";
   };
+  const prontoParaPublicar = () => (modo === "texto" ? !!area.value.trim() : !!(foto || video));
   function pintar() {
     mTexto.setAttribute("aria-selected", String(modo === "texto")); mFoto.setAttribute("aria-selected", String(modo === "foto"));
     ferramentas.replaceChildren();
-    palco.replaceChildren();
+    midiaBox.replaceChildren();
     palco.style.background = "";
+    palco.classList.toggle("modo-texto", modo === "texto");
+    camada.hidden = modo !== "foto";
+    legenda.remove(); area.remove(); escolher.remove();
     if (modo === "texto") {
       const [a, b] = FUNDOS[fundoI];
       palco.style.background = `linear-gradient(160deg, ${a}, ${b})`;
@@ -208,24 +231,155 @@ function abrirCriador() {
       ferramentas.append(bLetra, bFundo);
       setTimeout(() => area.focus(), 60);
     } else if (foto || video) {
-      const m = foto ? Object.assign(document.createElement("img"), { src: foto, alt: "Prévia do flash" }) : video.el;
-      palco.append(m, legenda);
-      ferramentas.append(bTrocar);
+      if (foto) { midiaBox.appendChild(img); posicionar(); ferramentas.append(bAa, bTrocar); }
+      else { midiaBox.appendChild(video.el); ferramentas.append(bTrocar); }
+      palco.appendChild(legenda);
     } else {
       palco.appendChild(escolher);
     }
-    publicar.disabled = modo === "texto" ? !area.value.trim() : !(foto || video);
+    publicar.disabled = !prontoParaPublicar();
   }
   area.addEventListener("input", () => { ajustarLetra(); publicar.disabled = !area.value.trim(); });
   bFundo.addEventListener("click", () => { fundoI = (fundoI + 1) % FUNDOS.length; pintar(); });
   bLetra.addEventListener("click", () => { letraI = (letraI + 1) % LETRAS.length; toast(`Letra: ${LETRAS[letraI].nome}`); pintar(); });
   mTexto.addEventListener("click", () => { modo = "texto"; pintar(); });
-  mFoto.addEventListener("click", () => { modo = "foto"; pintar(); if (!foto && !video) escolherArquivo(); });
-  escolher.addEventListener("click", escolherArquivo);
-  bTrocar.addEventListener("click", escolherArquivo);
+  mFoto.addEventListener("click", () => { modo = "foto"; pintar(); });
+  bCam.addEventListener("click", () => escolherArquivo(true));
+  bGal.addEventListener("click", () => escolherArquivo(false));
+  bTrocar.addEventListener("click", () => escolherArquivo(false));
+  bAa.addEventListener("click", () => editarTexto(null));
 
-  function escolherArquivo() {
+  // ---------- foto: arrastar e pinça direto no cartão ----------
+  const medidas = () => { const r = palco.getBoundingClientRect(); return { W: r.width, H: r.height }; };
+  const base = () => { const { W, H } = medidas(); return Math.max(W / img.naturalWidth, H / img.naturalHeight); };
+  function limitarFoto() {
+    const { W, H } = medidas(), s = base() * z;
+    const mx = Math.max(0, (img.naturalWidth * s - W) / 2), my = Math.max(0, (img.naturalHeight * s - H) / 2);
+    ox = Math.min(mx, Math.max(-mx, ox)); oy = Math.min(my, Math.max(-my, oy));
+  }
+  function posicionar() {
+    if (!img?.naturalWidth) return;
+    limitarFoto();
+    const { W, H } = medidas(), s = base() * z;
+    const w = img.naturalWidth * s, h = img.naturalHeight * s;
+    img.style.width = w + "px"; img.style.height = h + "px";
+    img.style.left = (W / 2 + ox - w / 2) + "px"; img.style.top = (H / 2 + oy - h / 2) + "px";
+  }
+  const dedos = new Map(); let dist0 = 0, z0 = 1;
+  midiaBox.addEventListener("pointerdown", (e) => {
+    if (!img || !foto) return;
+    midiaBox.setPointerCapture(e.pointerId);
+    dedos.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    palco.classList.add("movendo");
+    if (dedos.size === 2) { const [a, b] = [...dedos.values()]; dist0 = Math.hypot(a.x - b.x, a.y - b.y); z0 = z; }
+  });
+  midiaBox.addEventListener("pointermove", (e) => {
+    if (!dedos.has(e.pointerId)) return;
+    const antes = dedos.get(e.pointerId);
+    dedos.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (dedos.size === 1) { ox += e.clientX - antes.x; oy += e.clientY - antes.y; }
+    else if (dedos.size === 2 && dist0) { const [a, b] = [...dedos.values()]; z = Math.min(5, Math.max(1, z0 * Math.hypot(a.x - b.x, a.y - b.y) / dist0)); }
+    limitarFoto();
+    // Encaixa no meio quando chega perto (linhas cor-de-rosa, como no Instagram).
+    const nx = Math.abs(ox) < 7, ny = Math.abs(oy) < 7;
+    if (nx) ox = 0; if (ny) oy = 0;
+    guias.querySelector(".v").classList.toggle("on", nx); guias.querySelector(".h").classList.toggle("on", ny);
+    posicionar();
+  });
+  const soltarFoto = (e) => { dedos.delete(e.pointerId); if (dedos.size < 2) dist0 = 0; if (!dedos.size) { palco.classList.remove("movendo"); guias.querySelectorAll(".on").forEach((g) => g.classList.remove("on")); } };
+  midiaBox.addEventListener("pointerup", soltarFoto);
+  midiaBox.addEventListener("pointercancel", soltarFoto);
+  midiaBox.addEventListener("wheel", (e) => { if (!img) return; e.preventDefault(); z = Math.min(5, Math.max(1, z * (e.deltaY < 0 ? 1.08 : 1 / 1.08))); posicionar(); }, { passive: false });
+  midiaBox.addEventListener("dblclick", () => { z = 1; ox = 0; oy = 0; posicionar(); });
+  const aoRedimensionar = () => { posicionar(); textos.forEach(pintarTexto); };
+  window.addEventListener("resize", aoRedimensionar);
+
+  // ---------- texto por cima da foto ----------
+  function pintarTexto(t) {
+    const { W } = medidas();
+    const e = t.el;
+    e.textContent = t.texto;
+    e.style.left = t.x * 100 + "%"; e.style.top = t.y * 100 + "%";
+    e.style.font = LETRAS[t.letra].css.replace("1em", Math.round(t.tam * W) + "px");
+    e.style.color = t.destaque ? (clara(t.cor) ? "#111" : "#fff") : t.cor;
+    e.style.background = t.destaque ? t.cor : "transparent";
+    e.classList.toggle("destaque", t.destaque);
+    e.classList.toggle("neon", LETRAS[t.letra].sombra && !t.destaque);
+  }
+  function criarTexto(t) {
+    const e = el("div", "flash-txt"); e.setAttribute("role", "button"); e.tabIndex = 0; e.setAttribute("aria-label", "Texto na foto: toque para editar, arraste para mover");
+    t.el = e; textos.push(t); camada.appendChild(e); pintarTexto(t);
+    let p0 = null, mexeu = false;
+    e.addEventListener("pointerdown", (ev) => { ev.stopPropagation(); e.setPointerCapture(ev.pointerId); p0 = { x: ev.clientX, y: ev.clientY, tx: t.x, ty: t.y }; mexeu = false; });
+    e.addEventListener("pointermove", (ev) => {
+      if (!p0) return;
+      const { W, H } = medidas();
+      const dx = ev.clientX - p0.x, dy = ev.clientY - p0.y;
+      if (!mexeu && Math.hypot(dx, dy) < 5) return;
+      if (!mexeu) { mexeu = true; palco.classList.add("arrastando-txt"); }
+      t.x = Math.min(0.98, Math.max(0.02, p0.tx + dx / W)); t.y = Math.min(0.98, Math.max(0.02, p0.ty + dy / H));
+      const nx = Math.abs(t.x - 0.5) < 0.015; if (nx) t.x = 0.5;
+      guias.querySelector(".v").classList.toggle("on", nx);
+      const rl = lixo.getBoundingClientRect();
+      lixo.classList.toggle("sobre", ev.clientY > rl.top - 20 && Math.abs(ev.clientX - (rl.left + rl.width / 2)) < 70);
+      pintarTexto(t);
+    });
+    const fim = (ev) => {
+      if (!p0) return;
+      p0 = null; palco.classList.remove("arrastando-txt"); guias.querySelector(".v").classList.remove("on");
+      if (lixo.classList.contains("sobre")) { lixo.classList.remove("sobre"); e.remove(); textos.splice(textos.indexOf(t), 1); navigator.vibrate?.(12); return; }
+      if (!mexeu && ev.type === "pointerup") editarTexto(t);
+    };
+    e.addEventListener("pointerup", fim);
+    e.addEventListener("pointercancel", fim);
+    e.addEventListener("keydown", (ev) => { if (ev.key === "Enter") editarTexto(t); });
+  }
+  // Janela de escrever (por cima do cartão): cor, letra, destaque e tamanho.
+  function editarTexto(t) {
+    const novo = !t;
+    const tmp = t ? { ...t } : { texto: "", x: 0.5, y: 0.45, tam: 0.075, letra: 0, cor: "#ffffff", destaque: false };
+    const ed = el("div", "flash-edtxt");
+    const cab = el("div", "fe-cab");
+    const bLe = el("button", "flash-ferr-btn letra", "Aa"); bLe.type = "button"; bLe.setAttribute("aria-label", "Trocar a letra");
+    const bDe = el("button", "flash-ferr-btn destaque"); bDe.type = "button"; bDe.setAttribute("aria-label", "Fundo atrás do texto"); bDe.innerHTML = "<b>A</b>";
+    const ok = el("button", "fe-pronto", "Pronto"); ok.type = "button";
+    cab.append(bLe, bDe, el("span", "esp"), ok);
+    const tam = el("input", "fe-tam"); tam.type = "range"; tam.min = "0.04"; tam.max = "0.16"; tam.step = "0.002"; tam.value = String(tmp.tam); tam.setAttribute("aria-label", "Tamanho do texto");
+    const campo = el("textarea", "fe-campo"); campo.rows = 2; campo.maxLength = 120; campo.value = tmp.texto; campo.placeholder = "Escreva...";
+    const cores = el("div", "fe-cores");
+    CORES.forEach((c) => { const b = el("button"); b.type = "button"; b.style.background = c; b.setAttribute("aria-label", "Cor " + c); b.addEventListener("click", () => { tmp.cor = c; pintarEd(); }); cores.appendChild(b); });
+    ed.append(cab, tam, campo, cores);
+    palco.appendChild(ed);
+    function pintarEd() {
+      const { W } = medidas();
+      campo.style.font = LETRAS[tmp.letra].css.replace("1em", Math.round(tmp.tam * W) + "px");
+      campo.style.color = tmp.destaque ? (clara(tmp.cor) ? "#111" : "#fff") : tmp.cor;
+      campo.style.background = tmp.destaque ? tmp.cor : "transparent";
+      campo.classList.toggle("neon", LETRAS[tmp.letra].sombra && !tmp.destaque);
+      bLe.style.font = LETRAS[tmp.letra].css.replace("1em", "15px");
+      bDe.classList.toggle("on", tmp.destaque);
+      [...cores.children].forEach((b, k) => b.classList.toggle("on", CORES[k] === tmp.cor));
+    }
+    bLe.addEventListener("click", () => { tmp.letra = (tmp.letra + 1) % LETRAS.length; pintarEd(); });
+    bDe.addEventListener("click", () => { tmp.destaque = !tmp.destaque; pintarEd(); });
+    tam.addEventListener("input", () => { tmp.tam = Number(tam.value); pintarEd(); });
+    const concluir = () => {
+      const texto = campo.value.trim();
+      ed.remove();
+      if (t && !texto) { t.el.remove(); textos.splice(textos.indexOf(t), 1); return; }
+      if (!texto) return;
+      tmp.texto = texto;
+      if (novo) criarTexto(tmp); else { Object.assign(t, tmp); pintarTexto(t); }
+    };
+    ok.addEventListener("click", concluir);
+    ed.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.stopPropagation(); concluir(); } });
+    pintarEd();
+    setTimeout(() => campo.focus(), 50);
+  }
+
+  function escolherArquivo(camera) {
     const inp = document.createElement("input"); inp.type = "file"; inp.accept = comStorage() ? "image/*,video/*" : "image/*";
+    if (camera) inp.setAttribute("capture", "environment");
     inp.addEventListener("change", async () => {
       const arq = inp.files?.[0]; if (!arq) return;
       try {
@@ -236,28 +390,71 @@ function abrirCriador() {
           const url = URL.createObjectURL(arq);
           const dur = await new Promise((ok) => { v.onloadedmetadata = () => ok(v.duration); v.onerror = () => ok(0); v.src = url; });
           if (dur > 61) { toast(`O vídeo tem ${Math.round(dur)} s. Flash: até 60 segundos.`); return; }
-          video = { arq, dur, el: v }; foto = null;
+          video = { arq, dur, el: v }; foto = null; img = null;
+          textos.splice(0).forEach((t) => t.el.remove());
           v.play().catch(() => {});
         } else {
-          const midia = await editarImagem(arq, { titulo: "Flash", dica: "Enquadre a foto em pé (9:16). Fica 24 horas para quem segue você.", proporcao: 9 / 16, larguraSaida: 1080, qualidade: 0.8, limiteBytes: 880000 });
-          if (!midia) return;
-          foto = midia; video = null;
+          if (!arq.type.startsWith("image/")) { toast("Escolha uma foto."); return; }
+          const url = URL.createObjectURL(arq);
+          const im = new Image(); im.className = "flash-foto"; im.alt = "Foto do flash"; im.draggable = false;
+          await new Promise((ok, erro) => { im.onload = ok; im.onerror = () => erro(new Error("Não foi possível abrir esta foto. Tente JPG ou PNG.")); im.src = url; });
+          if (foto) URL.revokeObjectURL(foto);
+          foto = url; img = im; video = null; z = 1; ox = 0; oy = 0;
         }
         modo = "foto"; pintar();
+        if (foto && !sessionStorage.getItem("hf-flash-dica")) { toast("Arraste e use dois dedos para ajustar a foto"); try { sessionStorage.setItem("hf-flash-dica", "1"); } catch {} }
       } catch (e) { toast("Não foi possível abrir: " + erroAmigavel(e)); }
     });
     inp.click();
   }
 
-  const fechar = () => { fundo.remove(); document.body.classList.remove("travado"); document.removeEventListener("keydown", tecla); };
-  const tecla = (e) => { if (e.key === "Escape" && !document.querySelector(".hfe-fundo")) fechar(); };
+  const fechar = () => {
+    fundo.remove(); document.body.classList.remove("travado"); document.removeEventListener("keydown", tecla); window.removeEventListener("resize", aoRedimensionar);
+    if (foto) URL.revokeObjectURL(foto);
+  };
+  const tecla = (e) => { if (e.key === "Escape" && !document.querySelector(".hfe-fundo, .flash-edtxt")) fechar(); };
   document.addEventListener("keydown", tecla);
   bX.addEventListener("click", () => {
     if ((area.value.trim() || foto || video) && !confirm("Descartar este flash?")) return;
     fechar();
   });
+  // Foto com os textos: desenha o cartão inteiro em 1080×1920 (o que a pessoa vê é o que vai).
+  function desenharFoto() {
+    const OW = 1080, OH = 1920;
+    const { W } = medidas(), k = OW / W;
+    const c = document.createElement("canvas"); c.width = OW; c.height = OH;
+    const g = c.getContext("2d");
+    g.fillStyle = "#000"; g.fillRect(0, 0, OW, OH);
+    g.imageSmoothingQuality = "high";
+    const s = base() * z * k, w = img.naturalWidth * s, h = img.naturalHeight * s;
+    g.drawImage(img, OW / 2 + ox * k - w / 2, OH / 2 + oy * k - h / 2, w, h);
+    textos.forEach((t) => {
+      const px = Math.round(t.tam * OW);
+      g.font = LETRAS[t.letra].css.replace("1em", px + "px");
+      g.textAlign = "center"; g.textBaseline = "middle";
+      const linhas = t.texto.split("\n");
+      const alt = px * 1.25, y0 = t.y * OH - ((linhas.length - 1) * alt) / 2;
+      linhas.forEach((l, i) => {
+        const y = y0 + i * alt, x = t.x * OW;
+        if (t.destaque) {
+          const lw = g.measureText(l).width + px * 0.7, lh = alt + px * 0.1;
+          g.fillStyle = t.cor;
+          g.beginPath(); (g.roundRect ? g.roundRect(x - lw / 2, y - lh / 2, lw, lh, px * 0.25) : g.rect(x - lw / 2, y - lh / 2, lw, lh)); g.fill();
+          g.fillStyle = clara(t.cor) ? "#111" : "#fff"; g.shadowBlur = 0;
+        } else {
+          g.fillStyle = t.cor;
+          if (LETRAS[t.letra].sombra) { g.shadowColor = "rgba(255,255,255,.95)"; g.shadowBlur = px * 0.35; } else { g.shadowColor = "rgba(0,0,0,.35)"; g.shadowBlur = px * 0.12; }
+        }
+        g.fillText(l, x, y);
+        g.shadowBlur = 0;
+      });
+    });
+    let q = 0.86, url = c.toDataURL("image/jpeg", q);
+    while (url.length > 860000 && q > 0.45) { q -= 0.08; url = c.toDataURL("image/jpeg", q); }
+    return url;
+  }
   publicar.addEventListener("click", async () => {
-    if (enviando) return;
+    if (enviando || !prontoParaPublicar()) return;
     enviando = true; publicar.disabled = true; publicar.classList.add("enviando"); publicar.firstChild.textContent = "Publicando...";
     try {
       if (modo === "texto") {
@@ -272,7 +469,7 @@ function abrirCriador() {
         const texto = legenda.value.trim().slice(0, 150);
         await gravar({ tipo: "video", midia: await storageFns.getDownloadURL(r), duracao: Math.min(60, Math.round(video.dur)), ...(texto ? { texto } : {}) });
       } else {
-        const url = await salvarImagem(foto, `stories/${eu.uid}/${Date.now()}.jpg`);
+        const url = await salvarImagem(desenharFoto(), `stories/${eu.uid}/${Date.now()}.jpg`);
         const texto = legenda.value.trim().slice(0, 150);
         await gravar({ tipo: "imagem", midia: url, ...(texto ? { texto } : {}) });
       }
