@@ -6,7 +6,11 @@ import { navegador, entrar, USUARIOS as U } from "./nav.mjs";
 const ok = (c, t) => console.log(c ? "  ✔" : "  ✘", t);
 initializeApp({ projectId: "demo-hf" }); const db = getFirestore();
 const T = (min) => Timestamp.fromMillis(Date.now() - min * 60000);
-await db.doc("diario/pc").set({ autorId: U.bruno, nome: "Bruno", texto: "Reforma do banheiro", criadoEm: T(120) });
+const PX = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==";
+await db.doc("diario/pc").set({ autorId: U.bruno, nome: "Bruno", texto: "Reforma do banheiro", mediaUrl: PX, criadoEm: T(120) });
+// Publicação com 40 comentários (rolar até o fim)
+await db.doc("diario/pMuitos").set({ autorId: U.edu, nome: "Edu", texto: "Muitos comentários aqui", criadoEm: T(10) });
+for (let i = 1; i <= 40; i++) await db.doc(`comentarios/m${i}`).set({ postId: "pMuitos", postAutorId: U.edu, autorId: i % 2 ? U.fabi : U.gui, nome: i % 2 ? "Fabi" : "Gui", texto: `Comentário número ${i}`, criadoEm: T(9 - i / 10) });
 await db.doc("comentarios/k1").set({ postId: "pc", postAutorId: U.bruno, autorId: U.edu, nome: "Edu", texto: "Primeiro!", criadoEm: T(60) });
 await db.doc("comentarios/k2").set({ postId: "pc", postAutorId: U.bruno, autorId: U.fabi, nome: "Fabi", texto: "Comentário sem engajamento", criadoEm: T(50) });
 await db.doc("comentarios/k3").set({ postId: "pc", postAutorId: U.bruno, autorId: U.gui, nome: "Gui", texto: "Comentário famoso", criadoEm: T(40) });
@@ -29,6 +33,12 @@ const ordem = await pa.locator("#c_folhaComentarios .fio-coment > .comentario .c
 ok(ordem[0] === "Primeiro!" && ordem[1] === "Comentário famoso" && ordem[2] === "Comentário sem engajamento", "ordem: fixado (primeiro) → mais engajamento → resto → " + ordem.join(" | "));
 ok((await pa.locator(".fio-coment.fixado .coment-fixo").textContent()).includes("Primeiro comentário"), "o primeiro comentário fica fixado sozinho");
 ok((await pa.locator(".fio-coment", { hasText: "Comentário famoso" }).locator(".coment-reacoes").first().textContent()).includes("3"), "reações: ❤️ 3 no comentário famoso");
+// Tocar nas reações: quem reagiu, com o emoji de cada um e o filtro por emoji
+await pa.locator(".fio-coment", { hasText: "Comentário famoso" }).locator(".coment-reacoes").first().tap();
+await pa.waitForSelector("#folhaLista.aberta .reagiu-emoji", { timeout: 8000 }).catch(() => {});
+ok(await pa.locator("#listaCorpo .linha .reagiu-emoji").count() === 3 && (await pa.locator("#listaCorpo .est-chips").textContent()).includes("Todas 3"), "quem reagiu: 3 pessoas, cada uma com o seu emoji");
+await pa.screenshot({ path: "saida/coment-quem-reagiu.png" });
+await pa.keyboard.press("Escape"); await pa.waitForTimeout(400);
 ok(await pa.locator(".selo-autor").count() >= 1, "selo \"Autor\" na resposta do dono");
 // reagir com emoji (abre a escolha)
 await pa.locator(".fio-coment.fixado .coment-reagir").first().click();
@@ -76,10 +86,24 @@ await pb.waitForSelector("#folhaEstrelas.aberta .est-quem .linha", { timeout: 10
 const quem = await pb.locator("#folhaEstrelas .est-quem .linha").allTextContents();
 ok(quem.length === 4 && quem[0].includes("Fabi") && quem[0].includes("Você segue") && quem[1].includes("Hele") && quem[1].includes("Seguido por"), "quem deu: 1º quem você segue, 2º sua rede → " + quem.map((t) => t.replace(/\s+/g, " ").slice(0, 40)).join(" | "));
 await pb.screenshot({ path: "saida/coment-quem.png" });
-// Mensagens: o cartão da publicação leva até ela.
+// Mensagens: a publicação aparece como no Instagram (quem publicou, a foto e a legenda) e leva até ela.
 await pb.goto(new URL(`mensagens.html?conversa=${conv}`, pb.url()).href);
-await pb.waitForSelector(".cm-ver", { timeout: 30000 }).catch(() => {});
-const ver = pb.locator(".cm-ver", { hasText: "Ver publicação" }).last();
-ok(await ver.count() === 1 && (await ver.evaluate((e) => e.closest("a")?.getAttribute("href"))) === "usuarios.html?post=pc", "Mensagens: cartão \"Ver publicação\" com o link da publicação");
+await pb.waitForSelector(".pub-msg .pc-midia img", { timeout: 30000 }).catch(() => {});
+await pb.waitForTimeout(1500);
+const pc = pb.locator(".pub-msg .pc").last();
+ok(await pc.count() === 1 && (await pc.getAttribute("href")) === "usuarios.html?post=pc" && await pc.locator(".pc-midia img").count() === 1 && (await pc.locator(".pc-leg").textContent()).includes("Reforma") && (await pc.locator(".pc-cab strong").textContent()).includes("Bruno"),
+  "Mensagens: publicação enviada com foto, autor e legenda → " + (await pc.textContent().catch(() => "")).replace(/\s+/g, " ").slice(0, 80));
 await pb.screenshot({ path: "saida/coment-cartao.png" });
+// Muitos comentários: a lista rola até o último.
+await pa.goto(new URL("feed.html", pa.url()).href);
+const cardM = pa.locator(".post-card", { hasText: "Muitos comentários aqui" }).first();
+await cardM.waitFor({ timeout: 30000 }); await cardM.scrollIntoViewIfNeeded(); await pa.waitForTimeout(1200);
+await cardM.locator(".acao.comentar").tap();
+await pa.waitForSelector("#folhaComentarios.aberta .fio-coment", { timeout: 10000 }); await pa.waitForTimeout(1500);
+const nCom = await pa.locator("#c_folhaComentarios .fio-coment").count();
+const rola = await pa.locator("#c_folhaComentarios").evaluate((e) => { const antes = e.scrollHeight > e.clientHeight + 50; e.scrollTop = e.scrollHeight; return antes; });
+await pa.waitForTimeout(500);
+const ultimo = pa.locator("#c_folhaComentarios .fio-coment").last();
+ok(nCom === 40 && rola && await ultimo.isVisible() && (await ultimo.boundingBox()).y < 780, `40 comentários: a lista rola até o último (${nCom} carregados)`);
+await pa.screenshot({ path: "saida/coment-rolar.png" });
 await A.browser.close(); await B.browser.close();

@@ -311,6 +311,21 @@
     .bolha.cartao-msg { padding: 0; overflow: hidden; min-width: 230px; max-width: min(300px, 84%); }
     .cartao-msg .cm-link { display: block; text-decoration: none; color: inherit; border-top: 4px solid var(--assunto); }
     .cartao-msg .cm-ft { aspect-ratio: 16 / 9; background: var(--panel-2) center / cover; }
+    /* publicação enviada do Diário (como no Instagram) */
+    .bolha.pub-msg { width: min(270px, 80vw); max-width: 84%; padding: 0; background: var(--panel); color: var(--text); border: 1px solid var(--line); }
+    .pub-msg .pc { display: block; color: inherit; text-decoration: none; }
+    .pub-msg .pc-cab { display: flex; align-items: center; gap: 8px; padding: 9px 11px; }
+    .pub-msg .pc-av { width: 28px; height: 28px; font-size: 11px; flex: none; }
+    .pub-msg .pc-cab strong { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pub-msg .pc-midia { position: relative; aspect-ratio: 4 / 5; background: var(--panel-2); display: grid; place-items: center; overflow: hidden; color: var(--muted); font-size: 13px; text-align: center; }
+    .pub-msg .pc-midia img, .pub-msg .pc-midia video { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .pub-msg .pc-midia.so-texto { aspect-ratio: auto; min-height: 120px; padding: 18px 16px; font-size: 16px; font-weight: 700; color: var(--text); line-height: 1.4; background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 22%, var(--panel-2)), var(--panel-2)); }
+    .pub-msg .pc-n { position: absolute; top: 8px; right: 8px; padding: 2px 8px; border-radius: 999px; background: rgba(0,0,0,.6); color: #fff; font-size: 11px; font-weight: 800; }
+    .pub-msg .pc-play { position: absolute; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; background: rgba(0,0,0,.55); color: #fff; font-size: 18px; }
+    .pub-msg .pc-leg { padding: 8px 11px 0; font-size: 13.5px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .pub-msg .pc-leg:empty { display: none; }
+    .pub-msg .pc-ver { display: block; padding: 9px 11px 4px; font-size: 12.5px; font-weight: 800; color: var(--accent); }
+    .pub-msg .pc.sumiu .pc-midia { aspect-ratio: auto; min-height: 90px; font-weight: 700; }
     .cartao-msg .cm-tx { padding: 9px 11px 4px; display: grid; gap: 2px; }
     .cartao-msg .cm-tipo { font-size: 11px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: var(--assunto); }
     .cartao-msg .cm-tx strong { font-size: 14.5px; line-height: 1.3; }
@@ -1683,6 +1698,51 @@
     }
 
     const refConversa = (id) => fb.doc(fb.db, "conversas", id);
+
+    // ---------- publicação enviada (cartão com a foto) ----------
+    // O cartão guarda só o link (usuarios.html?post=ID); a foto, o autor e a legenda vêm da publicação
+    // (cópia do aparelho por 10 min). Publicação apagada: "Publicação indisponível".
+    const postsLidos = new Map();
+    function lerPublicacao(id) {
+      if (!postsLidos.has(id)) postsLidos.set(id, docComValidade(fb, ["diario", id], 10 * 60000).then((s) => (s.exists() ? { id, ...s.data() } : null)).catch(() => undefined));
+      return postsLidos.get(id);
+    }
+    function cartaoPublicacao(c) {
+      const id = (String(c.link || "").match(/[?&]post=([\w-]+)/) || [])[1] || "";
+      const a = document.createElement("a"); a.className = "pc"; a.href = id ? `usuarios.html?post=${encodeURIComponent(id)}` : "#";
+      const cab = document.createElement("div"); cab.className = "pc-cab";
+      const av = document.createElement("span"); av.className = "avatar pc-av";
+      const quem = document.createElement("strong"); quem.textContent = String(c.sub || "").replace(/^Publicação de /, "") || "Publicação";
+      cab.append(av, quem);
+      const midia = document.createElement("div"); midia.className = "pc-midia";
+      const foto0 = urlSegura(c.foto);
+      if (foto0) { const im = document.createElement("img"); im.src = foto0; im.alt = ""; im.loading = "lazy"; midia.appendChild(im); }
+      const leg = document.createElement("div"); leg.className = "pc-leg";
+      const titulo = String(c.titulo || "");
+      leg.textContent = /^Publicação de /.test(titulo) ? "" : titulo;
+      const ver = document.createElement("span"); ver.className = "pc-ver"; ver.textContent = "Ver publicação";
+      a.append(cab, midia, leg, ver);
+      if (!id) return a;
+      lerPublicacao(id).then((p) => {
+        if (p === null) { a.classList.add("sumiu"); midia.replaceChildren(); midia.textContent = "Publicação indisponível"; leg.textContent = "Ela foi apagada ou não está mais disponível."; ver.remove(); a.removeAttribute("href"); return; }
+        if (!p) return; // sem internet: fica o que veio no cartão
+        const fotos = (Array.isArray(p.midias) && p.midias.length ? p.midias : [p.mediaUrl]).map((u) => urlSegura(u)).filter(Boolean);
+        if (p.mediaTipo === "video" && fotos[0]) {
+          const v = document.createElement("video"); v.src = fotos[0]; v.muted = true; v.playsInline = true; v.preload = "metadata";
+          const play = document.createElement("span"); play.className = "pc-play"; play.textContent = "▶";
+          midia.replaceChildren(v, play);
+        } else if (fotos[0]) {
+          const im = document.createElement("img"); im.src = fotos[0]; im.alt = p.texto ? String(p.texto).slice(0, 80) : "Foto da publicação"; im.loading = "lazy"; im.decoding = "async";
+          midia.replaceChildren(im);
+          if (fotos.length > 1) { const n = document.createElement("span"); n.className = "pc-n"; n.textContent = `1/${fotos.length}`; midia.appendChild(n); }
+        } else {
+          midia.classList.add("so-texto"); midia.textContent = String(p.texto || "").slice(0, 220);
+        }
+        leg.textContent = fotos[0] ? String(p.texto || "") : "";
+        obterPerfil(p.autorId).then((pf) => { quem.textContent = pf.nome || p.nome || "Usuário"; pintarAvatar(av, pf.fotoPerfil, pf.nome || p.nome); });
+      });
+      return a;
+    }
     const estaDigitando = (dados, uid) => Date.now() - ms(dados?.digitando?.[uid]) < 6000;
 
     // "lidoEm" é visto pelo outro (confirmação de leitura); "vistoEm" é só para o contador.
@@ -2536,6 +2596,10 @@
         l.append(ic, tx);
         bolha.appendChild(l);
         queueMicrotask(() => atualizarStatusNaTela(c.refMsg));
+      } else if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "publicacao") {
+        // Publicação enviada do Diário: aparece como no Instagram (quem publicou, a foto e a legenda).
+        bolha.classList.add("cartao-msg", "pub-msg");
+        bolha.appendChild(cartaoPublicacao(m.cartao));
       } else if (m.tipoArquivo === "cartao" && m.cartao) {
         const c = m.cartao;
         const tipo = ASSUNTOS[c.tipo] ? c.tipo : "servicos";
@@ -3733,7 +3797,7 @@
     // Sair da conta (fim das configurações), com confirmação
     // ======================================================
     // A mesma janela "Sair da conta?" do menu e das configurações do perfil (confirmar.js).
-    $("btnSairConta").addEventListener("click", () => import("./confirmar.js?v=1").then((m) => m.sairDaConta({ antes: () => { try { sessionStorage.removeItem(CHAVE_AVAL); } catch {} } })));
+    $("btnSairConta").addEventListener("click", () => import("./confirmar.js?v=2").then((m) => m.sairDaConta({ antes: () => { try { sessionStorage.removeItem(CHAVE_AVAL); } catch {} } })));
 
     // ======================================================
     // Atendimento do negócio (configurações)

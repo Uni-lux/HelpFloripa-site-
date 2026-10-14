@@ -8,7 +8,12 @@
 // =====================================================
 const ICONES = {
   sair: '<path d="M10 4.5H6.5A1.5 1.5 0 005 6v12a1.5 1.5 0 001.5 1.5H10"/><path d="M14 8l-4 4 4 4M10 12h10"/>',
-  porta: '<path d="M14 4.5h3.5A1.5 1.5 0 0119 6v12a1.5 1.5 0 01-1.5 1.5H14"/><path d="M10 8l4 4-4 4M14 12H4"/>'
+  porta: '<path d="M14 4.5h3.5A1.5 1.5 0 0119 6v12a1.5 1.5 0 01-1.5 1.5H14"/><path d="M10 8l4 4-4 4M14 12H4"/>',
+  lixo: '<path d="M4.5 7h15M9.5 7V5a1 1 0 011-1h3a1 1 0 011 1v2M6.5 7l.8 12a1.5 1.5 0 001.5 1.4h6.4a1.5 1.5 0 001.5-1.4l.8-12M10 11v6M14 11v6"/>',
+  bloquear: '<circle cx="12" cy="12" r="8"/><path d="M6.5 6.5l11 11"/>',
+  pessoa: '<circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c.6-3.6 3.4-5.5 7-5.5s6.4 1.9 7 5.5"/>',
+  alerta: '<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.2v.1"/>',
+  selo: '<path d="M12 3l2.4 1.8 3 .2.9 2.9 2.2 2-1 2.9 1 2.9-2.2 2-.9 2.9-3 .2L12 21l-2.4-1.8-3-.2-.9-2.9-2.2-2 1-2.9-1-2.9 2.2-2 .9-2.9 3-.2z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>'
 };
 
 let cssPronto = false;
@@ -29,6 +34,8 @@ function css() {
   .hf-confirma-acoes .nao { border: 1px solid var(--line, #22313a); background: transparent; color: inherit; }
   .hf-confirma-acoes .sim { border: 0; background: #e5484d; color: #fff; }
   .hf-confirma-acoes .sim:disabled { opacity: .7; cursor: default; }
+  .hf-confirma.normal .hf-confirma-ic { color: var(--accent, #00adee); background: color-mix(in srgb, var(--accent, #00adee) 14%, transparent); }
+  .hf-confirma.normal .sim { background: var(--accent, #00adee); color: var(--accent-ink, #001a24); }
   .hf-confirma-acoes button:focus-visible { outline: 2px solid var(--accent, #00adee); outline-offset: 2px; }
   @keyframes hfConfFundo { from { opacity: 0; } }
   @keyframes hfConfCaixa { from { opacity: 0; transform: translateY(10px) scale(.97); } }
@@ -37,13 +44,14 @@ function css() {
 }
 
 // Abre a janela. aoConfirmar (opcional) roda com o botão em "aguarde"; se der erro, a janela continua.
-export function confirmarHF({ titulo, texto = "", ok = "Confirmar", cancelar = "Cancelar", icone = "sair", aoConfirmar = null, textoAguarde = "Aguarde..." } = {}) {
+// cor: "perigo" (vermelho, padrão) ou "normal" (azul do site), para o que não apaga nada.
+export function confirmarHF({ titulo, texto = "", ok = "Confirmar", cancelar = "Cancelar", icone = "sair", aoConfirmar = null, textoAguarde = "Aguarde...", cor = "perigo" } = {}) {
   css();
   return new Promise((resolver) => {
     const anterior = document.activeElement;
     const fundo = document.createElement("div"); fundo.className = "hf-confirma-fundo";
     fundo.setAttribute("role", "alertdialog"); fundo.setAttribute("aria-modal", "true");
-    const cx = document.createElement("div"); cx.className = "hf-confirma";
+    const cx = document.createElement("div"); cx.className = "hf-confirma" + (cor === "normal" ? " normal" : "");
     const ic = document.createElement("div"); ic.className = "hf-confirma-ic";
     ic.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONES[icone] || ICONES.sair}</svg>`;
     const h = document.createElement("h3"); h.textContent = titulo; h.id = "hfConfTit" + Date.now();

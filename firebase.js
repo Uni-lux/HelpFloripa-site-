@@ -50,7 +50,7 @@ console.info("[Firebase] Inicializado com sucesso:", app.name, firebaseConfig.pr
 setStatus(`Firebase conectado (${firebaseConfig.projectId})`, "ok");
 
 // "Voltar" que tiraria a pessoa do site pergunta antes ("Sair do Help Floripa?").
-import("./confirmar.js?v=1").then((m) => m.guardarSaida()).catch((e) => console.warn("[Saída]", e?.message || e));
+import("./confirmar.js?v=2").then((m) => m.guardarSaida()).catch((e) => console.warn("[Saída]", e?.message || e));
 
 // Portão da conta: quem entra com a conta desativada ou com a exclusão pedida vai para
 // conta.html (reativar / recuperar). Confere uma vez por sessão do navegador.

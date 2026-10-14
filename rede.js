@@ -18,6 +18,7 @@ import "./painel-avisos.js?v=15";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
 import { palavrasBusca } from "./pessoas.js?v=3"; // o sino abre o painel de notificações na própria página
 import { registrarGosto, PESO } from "./gosto.js?v=1";
+import { confirmarHF } from "./confirmar.js?v=2";
 
 // ---------- ícones ----------
 const SIMBOLOS = `<symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 01-1.5 1.5H15v-6h-6v6H5.5A1.5 1.5 0 014 19z"/></symbol>
@@ -445,7 +446,7 @@ export async function carregarPrivacidade() {
   silenciados = new Set(Array.isArray(dados.silenciados) ? dados.silenciados : []);
 }
 export async function removerSeguidor(uid, nome) {
-  if (!confirm(`Remover ${nome || "esta pessoa"} dos seus seguidores? Ela não será avisada.`)) return false;
+  if (!await confirmarHF({ titulo: `Remover ${nome || "esta pessoa"}?`, texto: "Ela deixa de seguir você e não será avisada.", ok: "Remover", icone: "pessoa" })) return false;
   try {
     await fb.deleteDoc(fb.doc(fb.db, "relacoes", `${uid}_${eu.uid}`));
     ganchos.aposSeguir();
@@ -454,7 +455,7 @@ export async function removerSeguidor(uid, nome) {
   } catch (e) { toast("Não foi possível remover: " + erroAmigavel(e)); return false; }
 }
 export async function bloquear(uid, nome) {
-  if (!confirm(`Bloquear ${nome || "esta pessoa"}?\n\nVocês deixam de se seguir. Ela não consegue abrir seu perfil, seguir você nem enviar mensagens, e suas publicações deixam de aparecer para ela. Ela não será avisada.`)) return false;
+  if (!await confirmarHF({ titulo: `Bloquear ${nome || "esta pessoa"}?`, texto: "Vocês deixam de se seguir. Ela não consegue abrir seu perfil, seguir você nem enviar mensagens, e suas publicações deixam de aparecer para ela. Ela não será avisada.", ok: "Bloquear", icone: "bloquear" })) return false;
   try {
     await fb.setDoc(fb.doc(fb.db, "bloqueios", `${eu.uid}_${uid}`), { bloqueadorId: eu.uid, bloqueadoId: uid, criadoEm: fb.serverTimestamp() });
     const ids = [eu.uid, uid].sort();
@@ -481,7 +482,7 @@ export async function desbloquear(uid) {
 }
 export async function alternarRestricao(uid, nome) {
   const restringir = !restritos.has(uid);
-  if (restringir && !confirm(`Restringir ${nome || "esta pessoa"}?\n\nAs mensagens dela vão para "Restritas", sem notificação, e ela não vê quando você leu. Ela não será avisada.`)) return false;
+  if (restringir && !await confirmarHF({ titulo: `Restringir ${nome || "esta pessoa"}?`, texto: "As mensagens dela vão para \"Restritas\", sem notificação, e ela não vê quando você leu. Ela não será avisada.", ok: "Restringir", icone: "alerta" })) return false;
   try {
     await fb.setDoc(refUsuario, { restritos: restringir ? fb.arrayUnion(uid) : fb.arrayRemove(uid) }, { merge: true });
     if (restringir) restritos.add(uid); else restritos.delete(uid);
@@ -1076,7 +1077,7 @@ export async function listarComentarios(postId) {
 // Reações dos comentários (curtidas_comentarios/{comentarioId}_{uid}; sem "reacao" = curtida antiga, conta ❤️).
 export const REACOES = ["❤️", "👍", "😂", "😮", "😢", "👏"];
 async function reacoesDosComentarios(ids) {
-  const r = new Map(ids.map((id) => [id, { n: 0, eu: null, por: new Map() }]));
+  const r = new Map(ids.map((id) => [id, { n: 0, eu: null, por: new Map(), quem: [] }]));
   for (let i = 0; i < ids.length; i += 30) {
     const lote = ids.slice(i, i + 30);
     try {
@@ -1085,6 +1086,7 @@ async function reacoesDosComentarios(ids) {
         const x = r.get(d.data().comentarioId); if (!x) return;
         const e = REACOES.includes(d.data().reacao) ? d.data().reacao : "❤️";
         x.n++; x.por.set(e, (x.por.get(e) || 0) + 1);
+        x.quem.push({ uid: d.data().uid, e, em: ms(d.data().criadoEm) });
         if (d.data().uid === eu.uid) x.eu = e;
       });
     } catch {}
@@ -1209,7 +1211,8 @@ export function montarComentarios(alvo, post, { aoMudar } = {}) {
 
   async function reagir(c, emoji, pintarReacao) {
     const ref = fb.doc(fb.db, "curtidas_comentarios", `${c.id}_${eu.uid}`);
-    const r = reacoes.get(c.id) || { n: 0, eu: null, por: new Map() };
+    const r = reacoes.get(c.id) || { n: 0, eu: null, por: new Map(), quem: [] };
+    if (!r.quem) r.quem = [];
     const antes = r.eu;
     const tirar = antes === emoji;
     try {
@@ -1228,9 +1231,41 @@ export function montarComentarios(alvo, post, { aoMudar } = {}) {
       }
       if (antes) { r.por.set(antes, Math.max(0, (r.por.get(antes) || 1) - 1)); r.n--; }
       if (!tirar) { r.por.set(emoji, (r.por.get(emoji) || 0) + 1); r.n++; r.eu = emoji; } else r.eu = null;
+      r.quem = r.quem.filter((q) => q.uid !== eu.uid);
+      if (!tirar) r.quem.unshift({ uid: eu.uid, e: emoji, em: Date.now() });
       reacoes.set(c.id, r);
       pintarReacao();
     } catch (e) { toast("Não foi possível reagir: " + erroAmigavel(e)); }
+  }
+
+  // Quem reagiu: cada pessoa com o emoji que escolheu; filtro por emoji (Todas · ❤️ 3 · 😂 1 ...).
+  async function quemReagiu(c) {
+    const corpo = abrirLista("Reações");
+    const r = reacoes.get(c.id) || { quem: [], por: new Map() };
+    const chips = el("div", "est-chips");
+    const box = el("div");
+    corpo.append(chips, box);
+    const perfisR = new Map(await Promise.all(r.quem.map(async (q) => [q.uid, await obterPerfil(q.uid).catch(() => ({}))])));
+    let filtroE = "";
+    const pintarLista = () => {
+      chips.replaceChildren(...["", ...REACOES.filter((e) => r.por.get(e) > 0)].map((e) => {
+        const b = el("button", null, e ? `${e} ${numero(r.por.get(e))}` : `Todas ${numero(r.quem.length)}`); b.type = "button";
+        b.setAttribute("aria-pressed", String(filtroE === e));
+        b.addEventListener("click", () => { filtroE = e; pintarLista(); });
+        return b;
+      }));
+      const lista = r.quem.filter((q) => !filtroE || q.e === filtroE).filter((q) => !escondido(q.uid))
+        .sort((a, b) => (b.uid === eu.uid) - (a.uid === eu.uid) || meusSeguindo.has(b.uid) - meusSeguindo.has(a.uid) || b.em - a.em);
+      box.replaceChildren();
+      if (!lista.length) { box.appendChild(el("div", "lista-vazia", "Ninguém reagiu ainda.")); return; }
+      lista.forEach((q) => {
+        const p = perfisR.get(q.uid) || {};
+        const linha = linhaPessoa({ uid: q.uid, nome: q.uid === eu.uid ? "Você" : (p.nome || "Usuário"), foto: p.fotoPerfil, sub: p.nickname ? "@" + p.nickname : "", semSeguir: q.uid === eu.uid });
+        const emo = el("span", "reagiu-emoji", q.e); linha.querySelector(".avatar")?.after(emo);
+        box.appendChild(linha);
+      });
+    };
+    pintarLista();
   }
 
   function seletorReacao(c, ancora, pintarReacao) {
@@ -1286,7 +1321,7 @@ export function montarComentarios(alvo, post, { aoMudar } = {}) {
     ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => bReagir.addEventListener(ev, () => clearTimeout(segurar)));
     bReagir.addEventListener("contextmenu", (e) => { e.preventDefault(); abriu = true; seletorReacao(c, bReagir, pintarReacao); });
     bReagir.addEventListener("click", () => { if (abriu) { abriu = false; return; } const r = reacoes.get(c.id); if (r?.eu) reagir(c, r.eu, pintarReacao); else seletorReacao(c, bReagir, pintarReacao); });
-    resumo.addEventListener("click", () => seletorReacao(c, bReagir, pintarReacao));
+    resumo.addEventListener("click", () => quemReagiu(c));
     acoes.appendChild(bReagir);
     if (!form.hidden || dono) { const b = el("button", "coment-responder", "Responder"); b.type = "button"; b.addEventListener("click", () => { respondendo = c; respTx.textContent = `Respondendo a ${nm.textContent}`; resp.hidden = false; tx.placeholder = `Responder a ${nm.textContent}...`; tx.focus(); }); acoes.appendChild(b); }
     acoes.appendChild(resumo);
@@ -1304,7 +1339,7 @@ export function montarComentarios(alvo, post, { aoMudar } = {}) {
       } },
       !meu && { rotulo: "Denunciar", sub: "Ofensa, golpe, spam...", icone: "alerta", perigo: true, fn: () => abrirDenunciaComentario(c) },
       (meu || dono) && { rotulo: "Apagar comentário", icone: "lixo", perigo: true, fn: async () => {
-        if (!confirm("Apagar este comentário?")) return;
+        if (!await confirmarHF({ titulo: "Apagar este comentário?", texto: "Ele some para todo mundo. Não dá para desfazer.", ok: "Apagar", icone: "lixo" })) return;
         try { await fb.deleteDoc(fb.doc(fb.db, "comentarios", c.id)); toast("Comentário apagado"); pintar(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
       } }
     ]));
@@ -1676,7 +1711,7 @@ async function abrirRascunhos() {
         pubRascunhoId = r.id;
         mostrarPreviaPublicacao(); fecharFolha("folhaLista");
       });
-      apagar.addEventListener("click", async () => { if (!confirm("Apagar este rascunho?")) return; await fb.deleteDoc(fb.doc(fb.db, "rascunhos", eu.uid, "itens", r.id)).catch(() => {}); l.remove(); if (pubRascunhoId === r.id) pubRascunhoId = null; });
+      apagar.addEventListener("click", async () => { if (!await confirmarHF({ titulo: "Apagar este rascunho?", ok: "Apagar", icone: "lixo" })) return; await fb.deleteDoc(fb.doc(fb.db, "rascunhos", eu.uid, "itens", r.id)).catch(() => {}); l.remove(); if (pubRascunhoId === r.id) pubRascunhoId = null; });
       l.append(th, tx, abrir, apagar);
       corpo.appendChild(l);
     });
@@ -1995,4 +2030,4 @@ export function marcarPresenca() {
 setInterval(marcarPresenca, 8 * 60000);
 document.addEventListener("visibilitychange", marcarPresenca);
 
-export { editarImagem, conferirEmail, emailPendente, MSG_EMAIL };
+export { editarImagem, conferirEmail, emailPendente, MSG_EMAIL, confirmarHF };

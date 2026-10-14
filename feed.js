@@ -12,10 +12,10 @@ import {
   fb, eu, dados, meusSeguindo, escondido, ganchos, obterPerfil, iniciarRede, carregarMeusSeguindo, linhaPessoa,
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, botaoSeguir, montarBarraRede, pintarBarraRede, ouvirAvisos, lerOrdenado,
   editarPublicacao, bloquear, comMencoes, fotosDoPost, carrosselFotos, contadorEstrelas, estaSalvo, alternarSalvo, lerResumosEstrelas, contarComentarios,
-  silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto
-} from "./rede.js?v=36";
+  silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto, confirmarHF
+} from "./rede.js?v=37";
 import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=1";
-import { montarStories } from "./stories.js?v=3";
+import { montarStories } from "./stories.js?v=4";
 import { abrirDenuncia } from "./denuncias.js?v=2";
 import { buscarPessoas, pessoasRecentes } from "./pessoas.js?v=3";
 import { docsComValidade } from "./leituras.js?v=1";
@@ -227,7 +227,7 @@ function cartaoPost(post) {
       ? { rotulo: "Remover dos salvos", icone: "salvo", fn: () => alternarSalvo(post) }
       : { rotulo: "Salvar publicação", sub: "Para ver depois no seu Perfil → Salvos", icone: "salvo", fn: () => alternarSalvo(post) },
     { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(post.autorId, post.nome) },
-    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=3").then((m) => m.abrirEstatisticas(post)) },
+    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=4").then((m) => m.abrirEstatisticas(post)) },
     post.autorId === eu.uid && { rotulo: "Editar publicação", icone: "lapis", fn: () => editarPublicacao(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId !== eu.uid && { rotulo: silenciado(post.autorId) ? `Mostrar ${nome.textContent} de novo` : `Silenciar ${nome.textContent}`, sub: "Continua seguindo, mas as publicações e flashes somem do seu Diário", icone: "restringir",
       fn: async () => { await alternarSilenciar(post.autorId, nome.textContent); if (silenciado(post.autorId)) { posts = posts.filter((x) => x.autorId !== post.autorId); document.querySelectorAll(".post-card").forEach((x) => { if (x.dataset.autor === post.autorId) x.remove(); }); } } },
@@ -235,7 +235,7 @@ function cartaoPost(post) {
       fn: () => abrirDenuncia({ fb, eu, tipo: "publicacao", alvoId: post.autorId, itemId: post.id, trecho: post.texto || "", nomeAlvo: nome.textContent,
         aoBloquear: async () => { if (await bloquear(post.autorId, nome.textContent)) { posts = posts.filter((x) => x.autorId !== post.autorId); carregarFeed(); } } }) },
     post.autorId === eu.uid && { rotulo: "Apagar publicação", icone: "lixo", perigo: true, fn: async () => {
-      if (!confirm("Apagar esta publicação? Essa ação não pode ser desfeita.")) return;
+      if (!await confirmarHF({ titulo: "Apagar esta publicação?", texto: "Ela some do seu perfil e do Diário. Não dá para desfazer.", ok: "Apagar", icone: "lixo" })) return;
       try { await fb.deleteDoc(fb.doc(fb.db, "diario", post.id)); c.remove(); posts = posts.filter((x) => x.id !== post.id); toast("Publicação apagada"); }
       catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
     } }
