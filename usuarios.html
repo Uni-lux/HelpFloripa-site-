@@ -13,7 +13,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="stylesheet" href="vitrine.css?v=25" />
-  <link rel="stylesheet" href="rede.css?v=18" />
+  <link rel="stylesheet" href="rede.css?v=19" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
     // Tema compartilhado com a página de mensagens; aplicado antes de desenhar.
@@ -1118,11 +1118,12 @@
       return b;
     }
 
-    // Duo (Akai Ito): uma rosinha ao lado do nome, no lugar da foto do duo na capa.
+    // Duo (Akai Ito): uma rosinha no canto da foto de perfil, no lugar da foto do duo e do fio na capa.
     // O dono escolhe em Configurações: clicável (abre o perfil do duo), só a rosinha ou oculta.
     function desenharDuoCapa(cab, uid, dono, vinculos, podeAbrir) {
-      const linha = cab.raiz.querySelector(".pf-nome-linha");
+      const linha = cab.raiz.querySelector(".pf-avatar-wrap");
       linha.querySelector(".pf-rosa")?.remove();
+      linha.classList.remove("com-rosa");
       if ((dono.duoCapa || "clicavel") === "ocultar") return;
       const duo = vinculos.map((v) => lerVinculo(v, uid)).find((v) => TIPOS_DUO.includes(v.tipo) && !v.pendente && !escondido(v.outro));
       if (!duo) return;
@@ -1131,6 +1132,7 @@
       btn.className = "pf-rosa";
       btn.appendChild(icone("rosa", "i"));
       linha.appendChild(btn);
+      linha.classList.add("com-rosa");
       const papel = duo.tipo === "duo" ? "Duo" : rotuloTipo(duo.tipo);
       btn.setAttribute("aria-label", papel);
       obterPerfil(duo.outro).then((o) => {

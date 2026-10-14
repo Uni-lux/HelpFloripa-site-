@@ -17,7 +17,7 @@ const escuro = (p) => p.evaluate(() => localStorage.setItem("hf-chat-config", JS
 const pa = await entrar(A.ctx, "ana", "usuarios.html");
 await escuro(pa); await pa.reload();
 await pa.waitForSelector("#meuPerfil .pf2 .pf-acoes .btn", { timeout: 30000 }); await pa.waitForTimeout(2500);
-ok(await pa.locator("#meuPerfil .fio-capa, #meuPerfil .duo-capa").count() === 0 && await pa.locator("#meuPerfil .pf-nome-linha .pf-rosa").count() === 1, "meu perfil: sem fio e sem foto do duo na capa; rosinha ao lado do nome");
+ok(await pa.locator("#meuPerfil .fio-capa, #meuPerfil .duo-capa").count() === 0 && await pa.locator("#meuPerfil .pf-avatar-wrap .pf-rosa").count() === 1, "meu perfil: sem fio e sem foto do duo na capa; rosinha na foto de perfil");
 const larg = await pa.evaluate(() => ({ doc: document.documentElement.scrollWidth, win: innerWidth }));
 ok(larg.doc <= larg.win, "nada passa da largura da tela → " + JSON.stringify(larg));
 ok(await pa.locator("#meuPerfil [data-el=negocios] .vinculo").count() === 4, "os 4 negócios numa linha só");
