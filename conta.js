@@ -110,7 +110,19 @@ export async function apagarTudo(fb, authFns, usuario, aoProgresso = () => {}) {
     pegar("vinculos", "participantes", "array-contains"), pegar("negocios", "donoId"), pegar("anuncios", "donoId")
   ]);
   const docs = [...new Map(lotes.flatMap((l) => l.docs).map((d) => [d.ref.path, d])).values()];
-  await Promise.all(docs.map((d) => fb.deleteDoc(d.ref).catch(() => {})));
+  // Estrelas dadas: saem junto do resumo da publicação (diario_notas); publicação que já não existe, só a nota.
+  const ehNota = (d) => d.ref.path.startsWith("curtidas/");
+  await Promise.all(docs.filter((d) => !ehNota(d)).map((d) => fb.deleteDoc(d.ref).catch(() => {})));
+  await Promise.all(docs.filter(ehNota).map(async (d) => {
+    const { postId, nota } = d.data(); const n = Number(nota) || 0;
+    try {
+      if (!postId || n < 1 || n > 5) throw new Error("sem resumo");
+      const lote = fb.writeBatch(fb.db);
+      lote.delete(d.ref);
+      lote.set(fb.doc(fb.db, "diario_notas", postId), { total: fb.increment(-1), soma: fb.increment(-n), ["n" + n]: fb.increment(-1) }, { merge: true });
+      await lote.commit();
+    } catch { await fb.deleteDoc(d.ref).catch(() => {}); }
+  }));
   aoProgresso("Apagando suas mensagens...");
   const convs = await pegar("conversas", "participantes", "array-contains");
   for (const c of convs.docs) {

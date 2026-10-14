@@ -59,7 +59,8 @@ await pb.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
 await pb.waitForTimeout(150);
 ok(await card.locator(".estrela-pulo").count() === 1, "toque duplo: estrela grande na foto");
 await pb.waitForTimeout(1800);
-ok((await card.locator(".estrelas-txt").textContent()).includes("Sua nota: 5"), "toque duplo: deu 5 estrelas → " + await card.locator(".estrelas-txt").textContent());
+const tDbl = await card.locator(".estrelas-txt").textContent();
+ok(tDbl.includes("5,0") && tDbl.includes("1 nota") && await card.locator(".estrelas-linha .estrela.on.minha").count() === 5, "toque duplo: deu 5 estrelas → " + tDbl);
 await card.locator(".post-cab .icone-btn").tap();
 await pb.locator("#opcoesCorpo button", { hasText: "Salvar publicação" }).tap();
 await pb.waitForTimeout(800);
@@ -79,17 +80,22 @@ console.log("posts da Ana antes do passo 3:", (await db.collection("diario").whe
 await pa.reload(); await pa.waitForSelector(".filtro-feed", { timeout: 30000 }); await pa.waitForTimeout(1500);
 const meu = pa.locator(".post-card", { hasText: "Obra pronta" }).first();
 await meu.scrollIntoViewIfNeeded(); await pa.waitForTimeout(1500);
-await meu.locator(".estrelas-txt.ver-quem").tap();
-await pa.waitForSelector("#folhaLista.aberta", { timeout: 8000 }).catch(() => {});
+await meu.locator(".estrelas-txt").tap();
+await pa.waitForSelector("#folhaEstrelas.aberta", { timeout: 8000 }).catch(() => {});
 await pa.waitForTimeout(1500);
-const quem = await pa.locator("#listaCorpo").textContent();
-ok(quem.includes("Bruno") && quem.includes("5 estrelas") && quem.includes("1 pessoa"), "quem deu estrelas: " + quem.replace(/\s+/g, " ").slice(0, 90));
+const quem = await pa.locator("#c_folhaEstrelas").textContent();
+ok(quem.includes("Bruno") && quem.includes("5 estrelas") && await pa.locator(".est-barra").count() === 5 && await pa.locator(".est-chips button").count() === 6, "resumo do dono: barras, filtro por estrela e quem deu → " + quem.replace(/\s+/g, " ").slice(0, 80));
+await pa.locator(".est-barra").nth(1).tap(); await pa.waitForTimeout(1000); // 4 estrelas: ninguém
+ok((await pa.locator(".est-quem").textContent()).includes("Ninguém deu 4 estrelas"), "filtro 4★: ninguém");
+await pa.locator(".est-chips button", { hasText: "Todas" }).tap(); await pa.waitForTimeout(800);
 await pa.screenshot({ path: "saida/diario-quem.png" });
 await pa.keyboard.press("Escape"); await pa.waitForTimeout(300);
 // "Se curtir": Ana dá 3 estrelas na própria publicação (entra na média; não vira aviso para ela)
 await meu.locator(".estrela").nth(2).tap(); await pa.waitForTimeout(1500);
 const tProprio = await meu.locator(".estrelas-txt").textContent();
-ok(tProprio.includes("Sua nota: 3") && tProprio.includes("4,0 · 2 notas"), "se curtir: dá estrelas na própria publicação → " + tProprio);
+ok(tProprio.includes("4,0") && tProprio.includes("2 notas") && await meu.locator(".estrelas-linha .estrela.on.minha").count() === 3, "se curtir: dá estrelas na própria publicação → " + tProprio);
+const rs = (await db.doc(`diario_notas/${pub.id}`).get()).data();
+ok(rs.total === 2 && rs.soma === 8 && rs.n5 === 1 && rs.n3 === 1, "resumo: " + JSON.stringify(rs));
 const mim = await db.doc(`curtidas/${pub.id}_${U.ana}`).get();
 ok(mim.exists && mim.data().nota === 3, "se curtir: nota gravada");
 await meu.locator(".post-cab .icone-btn").tap();

@@ -585,39 +585,65 @@ async function precisaEmail() {
   toast(MSG_EMAIL);
   return true;
 }
+// ---------- estrelas das publicações ----------
+// diario_notas/{postId} = { total, soma, n1..n5 }: o resumo muda junto com cada nota (mesma gravação) e as
+// regras conferem a conta. Uma leitura mostra a média e a distribuição, com 10 ou 1 milhão de notas.
+// Publicação sem resumo (de antes): conta no servidor quantas notas de cada (5 contagens, sem ler as notas).
+const refResumo = (postId) => fb.doc(fb.db, "diario_notas", postId);
+function resumoDe(d) {
+  const dist = [1, 2, 3, 4, 5].map((k) => Math.max(0, Math.round(Number(d?.["n" + k]) || 0)));
+  const total = dist.reduce((a, b) => a + b, 0);
+  const soma = dist.reduce((a, q, i) => a + q * (i + 1), 0);
+  return { total, soma, dist, media: total ? soma / total : 0 };
+}
+async function contarNotas(postId) {
+  const col = fb.collection(fb.db, "curtidas");
+  const c = await Promise.all([1, 2, 3, 4, 5].map((n) => fb.getCountFromServer(fb.query(col, fb.where("postId", "==", postId), fb.where("nota", "==", n))).then((x) => x.data().count)));
+  return resumoDe({ n1: c[0], n2: c[1], n3: c[2], n4: c[3], n5: c[4] });
+}
+export async function lerResumoEstrelas(postId) {
+  const s = await fb.getDoc(refResumo(postId)).catch(() => null);
+  return s?.exists() ? { ...resumoDe(s.data()), comResumo: true } : { ...(await contarNotas(postId).catch(() => resumoDe({}))), comResumo: false };
+}
 export async function infoEstrelas(postId, { recarregar = false } = {}) {
   if (!recarregar && cacheEstrelas.has(postId)) return cacheEstrelas.get(postId);
-  const q = fb.query(fb.collection(fb.db, "curtidas"), fb.where("postId", "==", postId));
-  const guardado = recarregar ? undefined : contador("e:" + postId);
+  const guardado = recarregar ? undefined : contador("r:" + postId);
   const ref = fb.doc(fb.db, "curtidas", `${postId}_${eu.uid}`);
-  const [ag, minha] = await Promise.all([
-    guardado ? guardado : fb.getAggregateFromServer(q, { soma: fb.sum("nota"), media: fb.average("nota") }).then((s) => s.data())
-      // Soma/média no servidor pode pedir um índice que ainda não existe (aparecia "Sem notas" mesmo com
-      // notas dadas): então conta lendo as notas da publicação.
-      .catch((e) => { console.warn("Estrelas (soma no servidor):", e?.code || e?.message); return fb.getDocs(fb.query(q, fb.limit(1000))).then((s) => { const notas = s.docs.map((d) => Number(d.data().nota) || 0).filter(Boolean); const soma = notas.reduce((a, b) => a + b, 0); return { soma, media: notas.length ? soma / notas.length : null }; }); })
-      .then((d) => { guardarContador("e:" + postId, { soma: d.soma, media: d.media }); return d; })
-      .catch(() => ({ soma: 0, media: null })),
+  const [res, minha] = await Promise.all([
+    guardado ? guardado : lerResumoEstrelas(postId).then((r) => { guardarContador("r:" + postId, r); return r; }),
     // A sua nota: muda só quando você mesmo dá estrelas (a cópia do aparelho se atualiza na hora).
     (recarregar ? fb.getDoc(ref) : docComValidade(fb, ["curtidas", ref.id], 30 * 60000)).then((s) => (s.exists() ? Number(s.data().nota) || 0 : 0)).catch(() => 0)
   ]);
-  const media = Number(ag.media) || 0;
-  const r = { media, n: media ? Math.round((Number(ag.soma) || 0) / media) : 0, minha };
+  const r = { media: res.media, n: res.total, dist: res.dist, comResumo: res.comResumo, minha };
   cacheEstrelas.set(postId, r);
   return r;
 }
-// Dá, troca ou tira (nota 0) as estrelas de uma publicação.
+// Dá, troca ou tira (nota 0) as estrelas: a nota e o resumo da publicação mudam na mesma gravação.
 export async function darEstrelas(post, nota) {
   const ref = fb.doc(fb.db, "curtidas", `${post.id}_${eu.uid}`);
-  const atual = (await infoEstrelas(post.id)).minha;
-  if (!nota) await fb.deleteDoc(ref);
-  else {
-    if (await precisaEmail()) return infoEstrelas(post.id);
-    if (atual) await fb.updateDoc(ref, { nota, atualizadoEm: fb.serverTimestamp() });
-    else {
-      const velha = await fb.getDoc(ref).catch(() => null);
-      if (velha?.exists()) await fb.updateDoc(ref, { nota, atualizadoEm: fb.serverTimestamp() });
-      else await fb.setDoc(ref, { postId: post.id, uid: eu.uid, postAutorId: post.autorId, nota, criadoEm: fb.serverTimestamp() });
-    }
+  if (nota && await precisaEmail()) return infoEstrelas(post.id);
+  const velha = await fb.getDoc(ref).catch(() => null);
+  const antes = velha?.exists() ? Number(velha.data().nota) || 0 : 0;
+  if (antes === nota) return infoEstrelas(post.id, { recarregar: true });
+  const gravarNota = (lote) => {
+    if (!nota) lote.delete(ref);
+    else if (antes) lote.update(ref, { nota, atualizadoEm: fb.serverTimestamp() });
+    else lote.set(ref, { postId: post.id, uid: eu.uid, postAutorId: post.autorId, nota, criadoEm: fb.serverTimestamp() });
+  };
+  const conta = { total: fb.increment((nota ? 1 : 0) - (antes ? 1 : 0)), soma: fb.increment(nota - antes) };
+  if (antes) conta["n" + antes] = fb.increment(-1);
+  if (nota) conta["n" + nota] = fb.increment(1);
+  try {
+    const lote = fb.writeBatch(fb.db);
+    gravarNota(lote);
+    lote.set(refResumo(post.id), conta, { merge: true });
+    await lote.commit();
+  } catch (e) {
+    // Regras de antes no servidor (sem o resumo): grava só a nota, como era.
+    if (e?.code !== "permission-denied") throw e;
+    const lote = fb.writeBatch(fb.db);
+    gravarNota(lote);
+    await lote.commit();
   }
   return infoEstrelas(post.id, { recarregar: true });
 }
@@ -634,7 +660,8 @@ export async function contarComentarios(postId, { recarregar = false } = {}) {
 export function seletorEstrelas(post, { aoMudar } = {}) {
   const proprio = post.autorId === eu.uid;
   const box = el("div", "estrelas-post" + (proprio ? " proprio-post" : ""));
-  // Todo mundo dá estrelas, inclusive na própria publicação ("se curtir").
+  // Todo mundo dá estrelas, inclusive na própria publicação ("se curtir"). As estrelas mostram a SUA nota;
+  // ao lado, a média e quantas notas — tocar abre o resumo (quantas de 5 a 1 estrela).
   const linha = el("div", "estrelas-linha"); linha.setAttribute("role", "group");
   linha.setAttribute("aria-label", "Dar estrelas");
   const bots = [1, 2, 3, 4, 5].map((n) => {
@@ -643,9 +670,9 @@ export function seletorEstrelas(post, { aoMudar } = {}) {
     linha.appendChild(b);
     return b;
   });
-  const txt = el("span", "estrelas-txt", "");
+  const txt = el("button", "estrelas-txt", ""); txt.type = "button";
   box.append(linha, txt);
-  let info = { media: 0, n: 0, minha: 0 };
+  let info = { media: 0, n: 0, dist: [0, 0, 0, 0, 0], minha: 0 };
   const pintar = (i, previa = 0) => {
     info = i;
     const alvo = previa || i.minha;
@@ -654,70 +681,126 @@ export function seletorEstrelas(post, { aoMudar } = {}) {
       b.classList.toggle("minha", !previa && k < i.minha);
       b.setAttribute("aria-pressed", i.minha === k + 1 ? "true" : "false");
     });
-    // A sua nota já entra na média: se só você deu, aparece "1 nota" (nunca "Sem notas" com nota dada).
+    // A sua nota já entra na conta: nunca "Sem notas" com nota dada.
     const n = Math.max(i.n, i.minha ? 1 : 0), med = i.n ? i.media : i.minha;
-    const media = n ? `${med.toFixed(1).replace(".", ",")} · ${n} ${n === 1 ? "nota" : "notas"}` : "Sem notas";
-    txt.textContent = i.minha ? `Sua nota: ${i.minha} · ${media}` : media;
+    txt.replaceChildren();
+    if (n) {
+      txt.append(el("b", "med", med.toFixed(1).replace(".", ",")), el("span", "est-m", "★"), el("span", "qtd", `${numero(n)} ${n === 1 ? "nota" : "notas"}`), icone("avancar", "i xs"));
+      txt.setAttribute("aria-label", `Média ${med.toFixed(1).replace(".", ",")} de 5, ${n} ${n === 1 ? "nota" : "notas"}${i.minha ? `, a sua: ${i.minha}` : ""}. Ver o resumo das estrelas`);
+    } else {
+      txt.append(el("span", "qtd", "Sem notas ainda"));
+      txt.setAttribute("aria-label", "Sem notas ainda. Ver o resumo das estrelas");
+    }
   };
   quandoVisivel(box, () => infoEstrelas(post.id).then((i) => pintar(i)));
-  {
-    bots.forEach((b, k) => {
-      // Prévia só com mouse: no toque o "hover" fica preso e confundiria a nota.
-      b.addEventListener("pointerenter", (e) => { if (e.pointerType === "mouse") pintar(info, k + 1); });
-      b.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") pintar(info); });
-      b.addEventListener("click", async () => {
-        const nova = info.minha === k + 1 ? 0 : k + 1;
-        linha.classList.add("salvando");
-        try {
-          pintar(await darEstrelas(post, nova));
-          toast(nova ? `Você deu ${nova} ${nova === 1 ? "estrela" : "estrelas"}` : "Nota removida");
-          aoMudar?.(info);
-        } catch (e) { toast(erroEstrelas(e)); pintar(info); }
-        finally { linha.classList.remove("salvando"); }
-      });
-    });
-  }
-  box.recarregar = () => infoEstrelas(post.id, { recarregar: true }).then((i) => pintar(i));
-  // Toque duplo na foto: 5 estrelas de uma vez (nunca tira a nota, como o coração do Instagram).
-  box.darRapido = async () => {
-    if (info.minha === 5) return true;
-    try { pintar(await darEstrelas(post, 5)); aoMudar?.(info); return info.minha === 5; }
-    catch (e) { toast(erroEstrelas(e)); return false; }
-  };
-  // Na própria publicação, com as regras antigas no servidor, explica em vez de "sem permissão".
   const erroEstrelas = (e) => (proprio && e?.code === "permission-denied"
     ? "Dar estrelas na própria publicação começa a funcionar quando as regras novas forem publicadas."
     : "Não foi possível salvar: " + erroAmigavel(e));
-  // Na própria publicação: tocar no resumo mostra quem deu as estrelas.
-  if (proprio) {
-    txt.classList.add("ver-quem"); txt.setAttribute("role", "button"); txt.tabIndex = 0; txt.title = "Ver quem deu estrelas";
-    box.title = "Toque nas estrelas para dar a sua nota; toque no resumo para ver quem deu";
-    // Abre sempre: a lista é lida na hora (o resumo pode estar guardado de alguns minutos atrás).
-    const ver = () => abrirQuemDeuEstrelas(post).then((n) => { if (n !== info.n) box.recarregar(); });
-    txt.addEventListener("click", ver);
-    txt.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); ver(); } });
-  }
+  const dar = async (nova, avisar = true) => {
+    linha.classList.add("salvando");
+    try {
+      pintar(await darEstrelas(post, nova));
+      if (avisar) toast(nova ? `Você deu ${nova} ${nova === 1 ? "estrela" : "estrelas"}` : "Nota removida");
+      aoMudar?.(info);
+      return true;
+    } catch (e) { toast(erroEstrelas(e)); pintar(info); return false; }
+    finally { linha.classList.remove("salvando"); }
+  };
+  bots.forEach((b, k) => {
+    // Prévia só com mouse: no toque o "hover" fica preso e confundiria a nota.
+    b.addEventListener("pointerenter", (e) => { if (e.pointerType === "mouse") pintar(info, k + 1); });
+    b.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") pintar(info); });
+    b.addEventListener("click", () => dar(info.minha === k + 1 ? 0 : k + 1));
+  });
+  txt.addEventListener("click", () => abrirResumoEstrelas(post, { info, aoDar: (nova) => dar(nova) }));
+  box.recarregar = () => infoEstrelas(post.id, { recarregar: true }).then((i) => pintar(i));
+  // Toque duplo na foto: 5 estrelas de uma vez (nunca tira a nota, como o coração do Instagram).
+  box.darRapido = async () => (info.minha === 5 ? true : (await dar(5, false)) && info.minha === 5);
   return box;
 }
 
-// Lista de quem deu estrelas na sua publicação (a nota de cada um, da maior para a menor).
-export async function abrirQuemDeuEstrelas(post) {
-  const corpo = abrirLista("Quem deu estrelas");
-  corpo.appendChild(el("div", "lista-vazia", "Carregando..."));
-  try {
-    const s = await fb.getDocs(fb.query(fb.collection(fb.db, "curtidas"), fb.where("postId", "==", post.id), fb.limit(300)));
-    const notas = s.docs.map((d) => d.data()).filter((d) => d.uid && !escondido(d.uid)).sort((a, b) => (b.nota || 0) - (a.nota || 0));
-    corpo.replaceChildren();
-    if (!notas.length) { corpo.appendChild(el("div", "lista-vazia", "Ninguém deu estrelas ainda.")); return 0; }
-    const media = notas.reduce((a, d) => a + (Number(d.nota) || 0), 0) / notas.length;
-    corpo.appendChild(el("p", "quem-deu-resumo", `${notas.length} ${notas.length === 1 ? "pessoa" : "pessoas"} · média ${media.toFixed(1).replace(".", ",")}`));
-    const perfis = await Promise.all(notas.map((d) => obterPerfil(d.uid).catch(() => ({}))));
-    notas.forEach((d, i) => {
-      const n = Math.max(0, Math.min(5, Number(d.nota) || 0));
-      corpo.appendChild(linhaPessoa({ uid: d.uid, nome: perfis[i].nome || "Usuário", foto: perfis[i].fotoPerfil, sub: "★".repeat(n) + "☆".repeat(5 - n) + `  ${n} ${n === 1 ? "estrela" : "estrelas"}` }));
-    });
-    return notas.length;
-  } catch (e) { corpo.replaceChildren(el("div", "lista-vazia", "Não foi possível carregar: " + erroAmigavel(e))); }
+// Resumo das estrelas: média grande, quantas pessoas deram 5, 4, 3, 2 e 1 estrela (barras com %),
+// a sua nota e, na sua publicação, quem deu cada nota (filtro por estrela, 30 por vez).
+export async function abrirResumoEstrelas(post, { info = null, aoDar = null } = {}) {
+  const f = criarFolha("folhaEstrelas", { titulo: "Estrelas da publicação", corpoClasse: "folha-corpo pad" });
+  const corpo = $("c_folhaEstrelas");
+  corpo.replaceChildren(el("div", "lista-vazia", "Carregando..."));
+  abrirFolha("folhaEstrelas");
+  const proprio = post.autorId === eu.uid;
+  let r;
+  try { r = await infoEstrelas(post.id, { recarregar: true }); }
+  catch (e) { corpo.replaceChildren(el("div", "lista-vazia", "Não foi possível carregar: " + erroAmigavel(e))); return; }
+  const total = r.n, minha = r.minha || info?.minha || 0;
+  corpo.replaceChildren();
+  // topo: média e total
+  const topo = el("div", "est-topo");
+  const grande = el("div", "est-grande");
+  grande.append(el("strong", null, total ? r.media.toFixed(1).replace(".", ",") : "–"));
+  const cinco = el("div", "est-cinco"); cinco.setAttribute("aria-hidden", "true");
+  const cheio = el("div", "est-cheio"); cheio.style.width = `${(total ? r.media / 5 : 0) * 100}%`;
+  cinco.append(el("span", null, "★★★★★"), cheio); cheio.appendChild(el("span", null, "★★★★★"));
+  grande.append(cinco, el("small", null, total ? `${total.toLocaleString("pt-BR")} ${total === 1 ? "nota" : "notas"}` : "Ninguém deu estrelas ainda"));
+  // barras 5 → 1
+  const barras = el("div", "est-barras"); barras.setAttribute("role", "list");
+  for (let k = 5; k >= 1; k--) {
+    const q = r.dist[k - 1] || 0, pct = total ? Math.round((q / total) * 100) : 0;
+    const l = el("button", "est-barra" + (proprio ? " clicavel" : "")); l.type = "button"; l.setAttribute("role", "listitem");
+    l.setAttribute("aria-label", `${k} ${k === 1 ? "estrela" : "estrelas"}: ${q.toLocaleString("pt-BR")} (${pct}%)`);
+    if (!proprio) l.disabled = true;
+    const trilho = el("span", "trilho"); const enchido = el("i"); enchido.style.width = `${total ? (q / total) * 100 : 0}%`; trilho.appendChild(enchido);
+    l.append(el("span", "rot", `${k} ★`), trilho, el("span", "qt", numero(q)), el("span", "pc", `${pct}%`));
+    if (proprio) l.addEventListener("click", () => listarQuem(k));
+    barras.appendChild(l);
+  }
+  topo.append(grande, barras);
+  corpo.appendChild(topo);
+  // a sua nota (dá para dar ou trocar daqui)
+  const sua = el("div", "est-sua");
+  sua.appendChild(el("span", null, minha ? `Sua nota: ${minha} ${minha === 1 ? "estrela" : "estrelas"}` : "Você ainda não deu estrelas"));
+  if (aoDar) {
+    const mini = el("div", "est-sua-btns");
+    [1, 2, 3, 4, 5].forEach((k) => { const b = el("button", "estrela" + (k <= minha ? " on minha" : ""), "★"); b.type = "button"; b.setAttribute("aria-label", `Dar ${k} ${k === 1 ? "estrela" : "estrelas"}`); b.addEventListener("click", async () => { if (await aoDar(minha === k ? 0 : k)) abrirResumoEstrelas(post, { aoDar }); }); mini.appendChild(b); });
+    sua.appendChild(mini);
+  }
+  corpo.appendChild(sua);
+  if (!proprio) return;
+  // quem deu (só na sua publicação)
+  const titulo = el("h3", "est-quem-tit", "Quem deu estrelas");
+  const chips = el("div", "est-chips"); chips.setAttribute("role", "group"); chips.setAttribute("aria-label", "Filtrar por estrelas");
+  const lista = el("div", "est-quem");
+  const mais = el("button", "btn sec mini est-mais", "Ver mais"); mais.type = "button"; mais.hidden = true;
+  corpo.append(titulo, chips, lista, mais);
+  let filtro = 0, ultimo = null;
+  const opcoes = [[0, "Todas"], [5, "5 ★"], [4, "4 ★"], [3, "3 ★"], [2, "2 ★"], [1, "1 ★"]];
+  const bChips = opcoes.map(([k, rot]) => { const b = el("button", null, rot); b.type = "button"; b.addEventListener("click", () => listarQuem(k)); chips.appendChild(b); return [k, b]; });
+  async function carregar(continuar) {
+    const col = fb.collection(fb.db, "curtidas");
+    const q = fb.query(col, fb.where("postId", "==", post.id), ...(filtro ? [fb.where("nota", "==", filtro)] : []), ...(continuar && ultimo ? [fb.startAfter(ultimo)] : []), fb.limit(30));
+    mais.disabled = true;
+    try {
+      const s = await fb.getDocs(q);
+      if (!continuar) lista.replaceChildren();
+      ultimo = s.docs.at(-1) || ultimo;
+      const notas = s.docs.map((d) => d.data()).filter((d) => d.uid && !escondido(d.uid));
+      const perfis = await Promise.all(notas.map((d) => (d.uid === eu.uid ? Promise.resolve({ nome: "Você", fotoPerfil: dados.fotoPerfil }) : obterPerfil(d.uid).catch(() => ({})))));
+      notas.forEach((d, i) => {
+        const n = Math.max(0, Math.min(5, Number(d.nota) || 0));
+        lista.appendChild(linhaPessoa({ uid: d.uid, nome: perfis[i].nome || "Usuário", foto: perfis[i].fotoPerfil, sub: `${"★".repeat(n)}${"☆".repeat(5 - n)}  ${n} ${n === 1 ? "estrela" : "estrelas"}`, semSeguir: d.uid === eu.uid }));
+      });
+      if (!lista.children.length) lista.appendChild(el("div", "lista-vazia", filtro ? `Ninguém deu ${filtro} ${filtro === 1 ? "estrela" : "estrelas"}.` : "Ninguém deu estrelas ainda."));
+      mais.hidden = s.size < 30;
+    } catch (e) { lista.replaceChildren(el("div", "lista-vazia", "Não foi possível carregar: " + erroAmigavel(e))); mais.hidden = true; }
+    finally { mais.disabled = false; }
+  }
+  function listarQuem(k) {
+    filtro = k; ultimo = null;
+    bChips.forEach(([v, b]) => b.setAttribute("aria-pressed", String(v === k)));
+    lista.replaceChildren(el("div", "lista-vazia", "Carregando..."));
+    carregar(false);
+    if (k) titulo.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  mais.addEventListener("click", () => carregar(true));
+  listarQuem(0);
 }
 
 // Estrela grande que aparece no meio da foto (toque duplo).

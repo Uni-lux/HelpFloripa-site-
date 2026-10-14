@@ -304,9 +304,31 @@ await t("diário: recusa foto de outro site no meio", () => assertFails(publicar
 await t("diário: a primeira tem que ser a mesma da capa (mediaUrl)", () => assertFails(publicar("dono", { mediaUrl: fP(4), mediaTipo: "image", midias: [fP(9), fP(5)] })));
 await t("diário: uma foto só continua igual (sem midias)", () => assertSucceeds(publicar("dono", { mediaUrl: fP(4), mediaTipo: "image" })));
 await semRegras((db) => setDoc(doc(db, "diario", "pEdu"), { autorId: "edu", nome: "Edu", texto: "oi", criadoEm: antigo }));
-await t("estrelas: dá estrelas na própria publicação", () => assertSucceeds(setDoc(doc(ctx("edu"), "curtidas", "pEdu_edu"), { postId: "pEdu", uid: "edu", postAutorId: "edu", nota: 5, criadoEm: serverTimestamp() })));
-await t("estrelas: não finge que é de outra pessoa (autor errado)", () => assertFails(setDoc(doc(ctx("bia"), "curtidas", "pEdu_bia"), { postId: "pEdu", uid: "bia", postAutorId: "bia", nota: 5, criadoEm: serverTimestamp() })));
-await t("estrelas: outra pessoa também dá", () => assertSucceeds(setDoc(doc(ctx("bia"), "curtidas", "pEdu_bia"), { postId: "pEdu", uid: "bia", postAutorId: "edu", nota: 4, criadoEm: serverTimestamp() })));
+// Estrelas: a nota e o resumo da publicação (diario_notas) mudam juntos, na conta exata.
+async function estrela(quem, postId, autor, nota, antes = 0, resumo = null) {
+  const db = ctx(quem), b = writeBatch(db), ref = doc(db, "curtidas", `${postId}_${quem}`);
+  if (!nota) b.delete(ref);
+  else if (antes) b.update(ref, { nota, atualizadoEm: serverTimestamp() });
+  else b.set(ref, { postId, uid: quem, postAutorId: autor, nota, criadoEm: serverTimestamp() });
+  const conta = resumo || { total: increment((nota ? 1 : 0) - (antes ? 1 : 0)), soma: increment(nota - antes), ...(antes ? { ["n" + antes]: increment(-1) } : {}), ...(nota ? { ["n" + nota]: increment(1) } : {}) };
+  if (resumo !== false) b.set(doc(db, "diario_notas", postId), conta, { merge: true });
+  return b.commit();
+}
+const resumoEdu = async () => (await getDoc(doc(ctx("bia"), "diario_notas", "pEdu"))).data();
+await t("estrelas: dá estrelas na própria publicação (com o resumo)", () => assertSucceeds(estrela("edu", "pEdu", "edu", 5)));
+await t("estrelas: não finge que é de outra pessoa (autor errado)", () => assertFails(estrela("bia", "pEdu", "bia", 5)));
+await t("estrelas: outra pessoa dá 4", () => assertSucceeds(estrela("bia", "pEdu", "edu", 4)));
+await t("estrelas: resumo certo (2 notas, soma 9, um 5 e um 4)", async () => { const r = await resumoEdu(); if (!(r.total === 2 && r.soma === 9 && r.n5 === 1 && r.n4 === 1)) throw new Error(JSON.stringify(r)); });
+await t("estrelas: sem mexer no resumo é recusado", () => assertFails(estrela("ana", "pEdu", "edu", 3, 0, false)));
+await t("estrelas: resumo inflado é recusado (+10 notas)", () => assertFails(estrela("ana", "pEdu", "edu", 3, 0, { total: increment(10), soma: increment(30), n3: increment(10) })));
+await t("estrelas: resumo na estrela errada é recusado", () => assertFails(estrela("ana", "pEdu", "edu", 3, 0, { total: increment(1), soma: increment(3), n5: increment(1) })));
+await t("estrelas: troca de 4 para 2 (sai do 4, entra no 2)", async () => { await assertSucceeds(estrela("bia", "pEdu", "edu", 2, 4)); const r = await resumoEdu(); if (!(r.total === 2 && r.soma === 7 && r.n4 === 0 && r.n2 === 1)) throw new Error(JSON.stringify(r)); });
+await t("estrelas: tirar a nota tira do resumo", async () => { await assertSucceeds(estrela("bia", "pEdu", "edu", 0, 2)); const r = await resumoEdu(); if (!(r.total === 1 && r.soma === 5 && r.n2 === 0)) throw new Error(JSON.stringify(r)); });
+await t("estrelas: mexer no resumo sem dar nota é recusado", () => assertFails(setDoc(doc(ctx("ana"), "diario_notas", "pEdu"), { total: increment(1), soma: increment(5), n5: increment(1) }, { merge: true })));
+await t("estrelas: a moderação recalcula o resumo", () => assertSucceeds(setDoc(doc(ctx("mod"), "diario_notas", "pEdu"), { total: 1, soma: 5, n1: 0, n2: 0, n3: 0, n4: 0, n5: 1 })));
+await t("estrelas: usuário comum não recalcula", () => assertFails(setDoc(doc(ctx("ana"), "diario_notas", "pEdu"), { total: 9, soma: 45, n1: 0, n2: 0, n3: 0, n4: 0, n5: 9 })));
+await semRegras(async (db) => { await setDoc(doc(db, "curtidas", "pSumiu_ana"), { postId: "pSumiu", uid: "ana", postAutorId: "edu", nota: 4 }); });
+await t("estrelas: nota de publicação que já não existe sai sem resumo (limpeza de conta)", () => assertSucceeds(deleteDoc(doc(ctx("ana"), "curtidas", "pSumiu_ana"))));
 await t("diário: salvar publicação fica na própria conta", () => assertSucceeds(setDoc(doc(ctx("bia"), "usuarios", "bia"), { salvos: ["p1"] }, { merge: true })));
 
 // ---------- resultado ----------

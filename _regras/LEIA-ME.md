@@ -1,17 +1,18 @@
 # Regras do Firestore — publicação
 
 > **Versão de 14/10/2026:** igual à publicada em 13/10, mais **várias fotos numa publicação do Diário**
-> (campo `midias`, de 2 a 4 fotos) e **dar estrelas na própria publicação**. Para publicar, o processo é o mesmo: apagar tudo no console e colar as 9 partes.
+> (campo `midias`, de 2 a 4 fotos), **dar estrelas na própria publicação** e o **resumo das estrelas**
+> (`diario_notas`: média e quantas pessoas deram 5, 4, 3, 2 e 1 estrela). Para publicar, o processo é o mesmo: apagar tudo no console e colar as 9 partes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
 `firestore.rules` divididas em **9 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
-- Arquivo de origem: `firestore.rules` (105.243 bytes, 1.935 linhas, sha256 começa com `91cc42541ba63e58`).
+- Arquivo de origem: `firestore.rules` (108.283 bytes, 1.981 linhas, sha256 começa com `76b5b3a62be85de3`).
 - Cada parte termina com a linha `// ===== FIM DA PARTE X DE 9 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
 - Conferido: as 9 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **146 passaram, 0 falharam**, sem o aviso de limite de 1.000 expressões.
+- Testes de regras no arquivo remontado: **156 passaram, 0 falharam**, sem o aviso de limite de 1.000 expressões.
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.
@@ -31,9 +32,14 @@ linha), para colar no console do Firebase.
   escolher várias fotos publica só a primeira, com um aviso.
 - **Dar estrelas na própria publicação** ("se curtir"): conta na média da publicação, mas não na nota do perfil
   nem nos avisos. Antes de publicar as regras, tocar nas estrelas da própria publicação mostra um aviso.
+- **Resumo das estrelas:** tocar na média (ao lado das estrelas) mostra quantas pessoas deram cada nota, com barras
+  e porcentagem; na sua publicação, também quem deu (filtrando por estrela). Uma leitura por publicação, com
+  10 ou 1 milhão de notas.
 - O resto (toque duplo para dar estrelas, quem deu estrelas, Salvos, editar legenda) já funciona com as regras de hoje.
 
 ## Conferência no site depois de publicar
+0. **Logo depois de publicar: Painel → Publicações → "Recalcular estrelas"** (uma vez só). Monta o resumo das
+   publicações que já tinham estrelas antes (sem isso, a média delas recomeçaria do zero).
 1. **Diário → publicar:** escolher 2 ou 3 fotos (aparecem as miniaturas com 2/4, 3/4), publicar e conferir que a
    publicação mostra "1/3" e desliza para o lado. No perfil, a miniatura tem o ícone de várias fotos.
 

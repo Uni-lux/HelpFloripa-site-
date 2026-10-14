@@ -1,4 +1,4 @@
-// Diário: estrelas ("Sua nota" + média, inclusive quando a soma no servidor falha) e prévia de foto alta.
+// Diário: estrelas (média, resumo 5→1 gravado junto; publicação antiga sem resumo) e prévia de foto alta.
 process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8085";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
@@ -19,24 +19,36 @@ const db = getFirestore();
 await db.doc("diario/p-alta").set({ autorId: U.bruno, nome: "Bruno Reparos", texto: "Print de tela", mediaUrl: png(200, 700), mediaTipo: "imagem", criadoEm: Timestamp.now() });
 await db.doc(`curtidas/p-alta_${U.edu}`).set({ postId: "p-alta", uid: U.edu, postAutorId: U.bruno, nota: 3 });
 const modo = process.argv[2] || "normal";
+// normal: com o resumo (diario_notas); antigo: publicação de antes, sem resumo (conta no servidor).
+if (modo === "normal") await db.doc("diario_notas/p-alta").set({ total: 1, soma: 3, n1: 0, n2: 0, n3: 1, n4: 0, n5: 0 });
 const { browser, ctx } = await navegador({ mobile: true });
-if (modo === "sem-soma") await ctx.addInitScript(() => { window.__semSoma = true; });
-if (modo === "sem-soma") await ctx.route(/\/rede\.js(\?.*)?$/, async (r) => { const s = readFileSync(new URL("../rede.js", import.meta.url), "utf8").replace('fb = { ...firestore, db: window.firebaseDb };', 'fb = { ...firestore, db: window.firebaseDb, getAggregateFromServer: () => Promise.reject(Object.assign(new Error("precisa de índice"), { code: "failed-precondition" })) };'); r.fulfill({ body: s, contentType: "text/javascript" }); });
 const p = await entrar(ctx, "ana", "feed.html");
-let avisos = 0; p.on("console", (m) => { if (m.text().includes("Estrelas (soma no servidor)")) avisos++; });
 await p.waitForSelector(".post-card .estrelas-txt", { timeout: 30000 }).catch(() => {});
 await p.locator(".filtro-feed button", { hasText: "Todos" }).click().catch(() => {});
 const card = p.locator(".post-card", { hasText: "Print de tela" }).first();
 await card.waitFor({ timeout: 20000 });
 await card.scrollIntoViewIfNeeded(); await p.waitForTimeout(1500);
 console.log("modo:", modo);
-ok((await card.locator(".estrelas-txt").textContent()).includes("3,0 · 1 nota"), "estrelas antes: " + await card.locator(".estrelas-txt").textContent());
-await card.locator(".estrela").nth(4).click(); await p.waitForTimeout(1500);
-const t = await card.locator(".estrelas-txt").textContent();
-ok(t.includes("Sua nota: 5") && t.includes("4,0 · 2 notas"), "depois de dar 5: " + t);
+const t0 = await card.locator(".estrelas-txt").textContent();
+ok(t0.includes("3,0") && t0.includes("1 nota"), "estrelas antes: " + t0);
+if (modo === "normal") {
+  await card.locator(".estrela").nth(4).tap(); await p.waitForTimeout(1500);
+  const t = await card.locator(".estrelas-txt").textContent();
+  console.log("classes:", await card.locator(".estrelas-linha .estrela").evaluateAll((l) => l.map((b) => b.className)));
+ok(t.includes("4,0") && t.includes("2 notas") && await card.locator(".estrelas-linha .estrela.on.minha").count() === 5, "depois de dar 5: " + t + " (5 estrelas acesas = a sua nota)");
+  const r = (await db.doc("diario_notas/p-alta").get()).data();
+  ok(r.total === 2 && r.soma === 8 && r.n5 === 1 && r.n3 === 1, "resumo gravado junto: " + JSON.stringify(r));
+  await card.locator(".estrelas-txt").click();
+  await p.waitForSelector("#folhaEstrelas.aberta", { timeout: 8000 }); await p.waitForTimeout(800);
+  const barras = await p.locator(".est-barra").allTextContents();
+  ok(barras.length === 5 && barras[0].includes("1") && barras[0].includes("50%") && barras[2].includes("50%") && barras[1].includes("0%"), "resumo: barras 5→1 → " + barras.join(" | "));
+  ok((await p.locator(".est-grande strong").textContent()) === "4,0" && (await p.locator(".est-sua").textContent()).includes("Sua nota: 5"), "resumo: média grande e a sua nota");
+  ok(await p.locator(".est-quem").count() === 0, "resumo: quem deu só aparece para o dono da publicação");
+  await p.screenshot({ path: "saida/estrelas-resumo.png" });
+  await p.keyboard.press("Escape"); await p.waitForTimeout(300);
+}
 ok(await card.locator(".post-midia-f.cortada.alta").count() === 1 && await card.locator(".ver-inteira").isVisible(), "foto alta: mostra o começo e \"Ver inteira\"");
 await card.locator(".post-midia-f").click(); await p.waitForTimeout(300);
 ok(!(await card.locator(".ver-inteira").isVisible()), "tocou: abre inteira e o selo some");
 await p.screenshot({ path: `saida/feed-${modo}.png` });
-ok(modo === "sem-soma" ? avisos > 0 : avisos === 0, "caminho usado: " + (avisos ? "contar lendo as notas" : "soma no servidor"));
 await browser.close();
