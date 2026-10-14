@@ -13,7 +13,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="stylesheet" href="vitrine.css?v=25" />
-  <link rel="stylesheet" href="rede.css?v=8" />
+  <link rel="stylesheet" href="rede.css?v=9" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
     // Tema compartilhado com a página de mensagens; aplicado antes de desenhar.
@@ -150,6 +150,7 @@
           <div class="autor"><div class="avatar" id="postAvatar"></div><div style="flex:1;min-width:0"><strong id="postNome"></strong><small id="postData"></small></div>
             <button type="button" class="btn sec mini" id="postEditar"><svg class="i xs"><use href="#i-lapis"/></svg>Editar</button>
             <button type="button" class="btn perigo mini" id="postApagar"><svg class="i xs"><use href="#i-lixo"/></svg>Apagar</button>
+            <button type="button" class="btn sec mini salvar-post" id="postSalvar" aria-pressed="false"><svg class="i xs"><use href="#i-salvo"/></svg><span>Salvar</span></button>
             <button type="button" class="btn sec mini" id="postDenunciar"><svg class="i xs"><use href="#i-alerta"/></svg>Denunciar</button>
           </div>
           <p class="texto" id="postTexto"></p>
@@ -210,8 +211,9 @@
       fb, authFns, storageFns, eu, refUsuario, dados, perfis, meusSeguindo, meusBloqueios, bloqueadoPor, restritos, escondido, ganchos,
       obterPerfil, lerOrdenado, editarPublicacao, comMencoes, salvarImagem, iniciarRede, meusSeguindoPronto, carregarMeusSeguindo, alternarSeguir, botaoSeguir, linhaPessoa,
       removerSeguidor, bloquear, desbloquear, alternarRestricao, compartilharPerfil,
-      barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail
-    } from "./rede.js?v=29";
+      barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail,
+      fotosDoPost, carrosselFotos, estrelaNaFoto, estaSalvo, alternarSalvo
+    } from "./rede.js?v=30";
     import { buscarPessoas, palavrasBusca } from "./pessoas.js?v=3";
     import { abrirDenuncia } from "./denuncias.js?v=2";
     import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
@@ -404,6 +406,7 @@
           const img = document.createElement("img");
           img.src = url; img.alt = post.texto ? post.texto.slice(0, 80) : "Publicação"; img.loading = "lazy";
           tile.appendChild(img);
+          if (fotosDoPost(post).length > 1) { tile.appendChild(icone("fotos", "i s marca-fotos")); tile.setAttribute("data-fotos", String(fotosDoPost(post).length)); }
         } else {
           tile.classList.add("texto");
           const p = document.createElement("p");
@@ -452,9 +455,8 @@
         v.src = url; v.controls = true; v.playsInline = true;
         midia.appendChild(v);
       } else if (url) {
-        const img = document.createElement("img");
-        img.src = url; img.alt = "Imagem da publicação";
-        midia.appendChild(img);
+        // Uma ou várias fotos (deslizar); toque duplo dá 5 estrelas.
+        midia.appendChild(carrosselFotos(fotosDoPost(post), { alt: "Imagem da publicação", aoToqueDuplo: () => toqueDuploPost(midia) }));
       }
       pintarAvatar($("postAvatar"), autor?.fotoPerfil || post.fotoPerfil, autor?.nome || post.nome);
       $("postNome").textContent = autor?.nome || post.nome || "Usuário";
@@ -464,16 +466,24 @@
       $("postApagar").hidden = !proprio;
       $("postEditar").hidden = !proprio;
       $("postDenunciar").hidden = proprio;
+      $("postSalvar").hidden = proprio; // salvar é para publicações dos outros
+      pintarSalvar(post);
       $("postData").textContent = dataCompleta(paraData(post.criadoEm)) + (post.editadoEm ? " · editada" : "");
       $("postAnterior").disabled = indice <= 0;
       $("postProximo").disabled = indice >= lista.length - 1;
       pintarSocialPost({ ...post, autorId: post.autorId || autor?.uid });
     }
+    let barraPost = null;
+    async function toqueDuploPost(alvo) {
+      if (!barraPost?.estrelas || barraPost.estrelas.classList.contains("proprio-post")) { toast("É a sua publicação."); return; }
+      estrelaNaFoto(alvo);
+      if (await barraPost.estrelas.darRapido()) toast("Você deu 5 estrelas");
+    }
     function pintarSocialPost(post) {
       const box = $("postSocial");
       box.replaceChildren();
       const lista = el("div");
-      const barra = barraInteracao(post, { aoComentar: () => lista.querySelector("textarea")?.focus() });
+      const barra = barraPost = barraInteracao(post, { aoComentar: () => lista.querySelector("textarea")?.focus() });
       box.append(barra, lista);
       montarComentarios(lista, post, { aoMudar: (n) => barra.atualizarComentarios(n) });
     }
@@ -499,6 +509,17 @@
     $("postEditar").addEventListener("click", () => {
       const post = postCtx.lista[postCtx.indice];
       editarPublicacao(post, () => { mostrarPost(); if (postCtx.proprio) renderizarGrade($("gradePosts"), meusPosts, { proprio: true, autor: dados }); });
+    });
+    function pintarSalvar(post) {
+      const salvo = estaSalvo(post.id);
+      $("postSalvar").classList.toggle("on", salvo);
+      $("postSalvar").setAttribute("aria-pressed", String(salvo));
+      $("postSalvar").lastChild.textContent = salvo ? "Salva" : "Salvar";
+    }
+    $("postSalvar").addEventListener("click", async () => {
+      const post = postCtx.lista[postCtx.indice];
+      await alternarSalvo(post);
+      pintarSalvar(post);
     });
     $("postDenunciar").addEventListener("click", () => {
       const post = postCtx.lista[postCtx.indice];

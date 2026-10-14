@@ -11,8 +11,8 @@ import {
   $, el, icone, ms, paraData, pintarAvatar, urlSegura, nomeCidade, tempoRelativo, toast, erroAmigavel,
   fb, eu, dados, meusSeguindo, escondido, ganchos, obterPerfil, iniciarRede, carregarMeusSeguindo, linhaPessoa,
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, montarBarraRede, pintarBarraRede, ouvirAvisos, lerOrdenado,
-  editarPublicacao, bloquear, comMencoes
-} from "./rede.js?v=29";
+  editarPublicacao, bloquear, comMencoes, fotosDoPost, carrosselFotos, estrelaNaFoto, estaSalvo, alternarSalvo, idsSalvos
+} from "./rede.js?v=30";
 import { abrirDenuncia } from "./denuncias.js?v=2";
 import { buscarPessoas, pessoasRecentes } from "./pessoas.js?v=3";
 import { docsComValidade } from "./leituras.js?v=1";
@@ -54,6 +54,12 @@ async function buscarSeguindo() {
   )).catch(() => ({ docs: [] }))));
   return res.flatMap((s) => s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })));
 }
+// Salvas: as últimas 60 (lidas uma a uma; apagadas somem da lista).
+async function buscarSalvos() {
+  const ids = idsSalvos().slice(0, 60);
+  const docs = await Promise.all(ids.map((id) => fb.getDoc(fb.doc(fb.db, "diario", id)).catch(() => null)));
+  return docs.filter((d) => d?.exists()).map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) }));
+}
 // O começo do diário vale por 3 min no aparelho (o que você publica aparece na hora).
 const DIARIO_VALIDADE = 3 * 60000;
 // "Todos": 20 por vez; "Ver mais" busca as 20 seguintes só quando a pessoa chega ao fim.
@@ -72,8 +78,9 @@ async function carregarFeed() {
   $("maisFeed").hidden = true;
   try {
     maisTodos = false;
-    const bruto = filtro === "todos" ? await buscarTodos() : await buscarSeguindo();
-    posts = bruto.filter((p) => !escondido(p.autorId) && !postOculto(p)).sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
+    const bruto = filtro === "todos" ? await buscarTodos() : filtro === "salvos" ? await buscarSalvos() : await buscarSeguindo();
+    posts = bruto.filter((p) => !escondido(p.autorId) && !postOculto(p));
+    if (filtro !== "salvos") posts.sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm)); // salvos: na ordem em que foram salvos
   } catch (e) {
     console.warn(e);
     lista.replaceChildren(vazio("Não foi possível carregar o diário", erroAmigavel(e)));
@@ -82,7 +89,9 @@ async function carregarFeed() {
   mostrados = 0;
   lista.replaceChildren();
   if (!posts.length) {
-    lista.appendChild(filtro === "todos"
+    lista.appendChild(filtro === "salvos"
+      ? vazio("Nenhuma publicação salva", "Toque nos três pontinhos de uma publicação e em \"Salvar publicação\" para ver depois aqui. Só você vê o que salvou.")
+      : filtro === "todos"
       ? vazio("Nada publicado ainda", "Seja o primeiro a compartilhar um trabalho ou uma novidade.", "Publicar agora", () => abrirCompositor({ aoPublicar: ganchos.aoPublicar }))
       : vazio("Seu diário está vazio", "Siga pessoas e negócios para ver as publicações deles aqui, ou veja as de todo o Help Floripa.", "Ver publicações de todos", () => document.querySelector('#filtroFeed [data-filtro="todos"]').click()));
     return;
@@ -129,6 +138,9 @@ function cartaoPost(post) {
   mais.appendChild(icone("pontos", "i s"));
   mais.addEventListener("click", () => abrirOpcoes("Publicação", [
     { rotulo: "Ver perfil", icone: "olho", fn: () => ganchos.abrirPerfil(post.autorId) },
+    estaSalvo(post.id)
+      ? { rotulo: "Remover dos salvos", icone: "salvo", fn: async () => { await alternarSalvo(post); if (filtro === "salvos" && !estaSalvo(post.id)) { c.remove(); posts = posts.filter((x) => x.id !== post.id); } } }
+      : { rotulo: "Salvar publicação", sub: "Para ver depois em Diário → Salvos", icone: "salvo", fn: () => alternarSalvo(post) },
     { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(post.autorId, post.nome) },
     post.autorId === eu.uid && { rotulo: "Editar publicação", icone: "lapis", fn: () => editarPublicacao(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId !== eu.uid && { rotulo: "Denunciar publicação", sub: "Golpe, ofensa, conteúdo impróprio...", icone: "alerta", perigo: true,
@@ -160,12 +172,21 @@ function cartaoPost(post) {
       c.appendChild(vm);
     }
   }
-  if (url) {
+  const barra = barraInteracao(post);
+  const fotos = fotosDoPost(post);
+  if (fotos.length > 1) {
+    // Várias fotos: deslizar para o lado; toque duplo dá 5 estrelas.
+    const m = el("div", "post-midia-f varias");
+    const car = carrosselFotos(fotos, { alt: post.texto ? post.texto.slice(0, 80) : "Publicação", aoToqueDuplo: () => toqueDuplo(m, barra) });
+    m.appendChild(car);
+    c.appendChild(m);
+  } else if (url) {
     const m = el("div", "post-midia-f");
     if (post.mediaTipo === "video") { const v = document.createElement("video"); v.src = url; v.controls = true; v.playsInline = true; v.preload = "metadata"; m.appendChild(v); }
     else {
-      const img = document.createElement("img"); img.src = url; img.alt = post.texto ? post.texto.slice(0, 80) : "Publicação"; img.loading = "lazy";
-      m.appendChild(img);
+      const car = carrosselFotos([url], { alt: post.texto ? post.texto.slice(0, 80) : "Publicação", aoToque: () => m.classList.toggle("inteira"), aoToqueDuplo: () => toqueDuplo(m, barra) });
+      const img = car.querySelector("img"); img.loading = "lazy";
+      m.appendChild(car);
       // Prévia com altura limitada: avisa quando a foto foi cortada; foto bem alta (print de tela)
       // mostra o começo, não o meio.
       img.addEventListener("load", () => {
@@ -174,13 +195,18 @@ function cartaoPost(post) {
         m.classList.toggle("cortada", prop * m.clientWidth > 364);
       }, { once: true });
       const dica = el("span", "ver-inteira", "Ver inteira"); dica.setAttribute("aria-hidden", "true"); m.appendChild(dica);
-      m.title = "Toque para ver inteira";
-      m.addEventListener("click", () => m.classList.toggle("inteira"));
+      m.title = "Toque para ver inteira · toque duplo para dar 5 estrelas";
     }
     c.appendChild(m);
   }
-  c.appendChild(barraInteracao(post));
+  c.appendChild(barra);
   return c;
+}
+// Toque duplo na foto: estrela grande e 5 estrelas (na própria publicação, só avisa).
+async function toqueDuplo(m, barra) {
+  if (barra.estrelas?.classList.contains("proprio-post")) { toast("É a sua publicação."); return; }
+  estrelaNaFoto(m);
+  if (await barra.estrelas?.darRapido?.()) toast("Você deu 5 estrelas");
 }
 
 // ---------- explorar: pessoas ----------
@@ -233,7 +259,7 @@ async function pintarLateral() {
   $("btnComporFeed").addEventListener("click", () => abrirCompositor({ aoPublicar: ganchos.aoPublicar }));
   await carregarMeusSeguindo();
   // Sem ninguém para seguir ainda: começa mostrando as publicações de todos.
-  if (!meusSeguindo.size) document.querySelectorAll("#filtroFeed [data-filtro]").forEach((x) => { const t = x.dataset.filtro === "todos"; x.setAttribute("aria-pressed", t ? "true" : "false"); if (t) filtro = "todos"; });
+  if (!meusSeguindo.size && filtro === "seguindo") document.querySelectorAll("#filtroFeed [data-filtro]").forEach((x) => { const t = x.dataset.filtro === "todos"; x.setAttribute("aria-pressed", t ? "true" : "false"); if (t) filtro = "todos"; });
   pintarLateral();
   const p = new URLSearchParams(location.search);
   trocarAba(p.get("aba") === "explorar" || p.get("aba") === "pessoas" ? "explorar" : "diario");

@@ -15,6 +15,7 @@ done
 A=ar; [ "$R" = "main" ] && A=novas
 echo "== t-apagar.mjs $A"; node seed.mjs > /dev/null 2>&1; timeout 300 node t-apagar.mjs $A 2>&1 | grep -v "$F"
 echo "== t-feed.mjs"; for m in normal sem-soma; do node seed.mjs > /dev/null 2>&1; timeout 200 node t-feed.mjs $m 2>&1 | grep -v "$F"; done
+echo "== t-diario.mjs"; node seed.mjs > /dev/null 2>&1; D=ar; [ "$R" = "main" ] && D=; timeout 300 node t-diario.mjs $D 2>&1 | grep -v "$F"
 echo "== t-forms.mjs"; node seed.mjs > /dev/null 2>&1; timeout 300 node t-forms.mjs pc $RANDOM 2>&1 | grep -v "$F"
 if [ "$R" = "main" ]; then
   echo "== t-equipe.mjs (precisa das regras novas)"; for m in cel pc; do node seed.mjs > /dev/null 2>&1; timeout 200 node t-equipe.mjs $m 2>&1 | grep -v "$F"; done

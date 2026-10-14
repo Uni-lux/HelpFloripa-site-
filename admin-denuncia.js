@@ -118,7 +118,9 @@ async function conteudoOutro(d, corpo, acoes) {
     const p = await ler("diario", d.itemId);
     if (!p) { corpo.appendChild(h("div", "ad-den-vazio", "A publicação já foi apagada.")); return; }
     const midia = p.mediaTipo === "video" && midiaOk(p.mediaUrl, "video") ? Object.assign(document.createElement("video"), { src: p.mediaUrl, controls: true, className: "ad-den-foto" }) : midiaOk(p.mediaUrl, "image") ? Object.assign(img(p.mediaUrl), { className: "ad-den-foto" }) : null;
-    corpo.appendChild(ficha(p.fotoPerfil, p.nome || nomeDe(p.autorId), `Publicada em ${dataHora(p.criadoEm)}${p.editadoEm ? " · editada" : ""}`, [p.texto || "", midia]));
+    // Várias fotos: todas aparecem para a equipe.
+    const outras = p.mediaTipo !== "video" && Array.isArray(p.midias) ? p.midias.slice(1).filter((u) => midiaOk(u, "image")).map((u) => Object.assign(img(u), { className: "ad-den-foto" })) : [];
+    corpo.appendChild(ficha(p.fotoPerfil, p.nome || nomeDe(p.autorId), `Publicada em ${dataHora(p.criadoEm)}${p.editadoEm ? " · editada" : ""}${outras.length ? ` · ${outras.length + 1} fotos` : ""}`, [p.texto || "", midia, ...outras]));
   } else if (d.tipo === "comentario") {
     const c = await ler("comentarios", d.itemId);
     if (!c) { corpo.appendChild(h("div", "ad-den-vazio", "O comentário já foi apagado.")); return; }

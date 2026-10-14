@@ -5,7 +5,7 @@ import { linha, linhaComparada, barras, cartao, destaque, num, baixarCSV } from 
 import { baixarPlanilhaMulti } from "./planilha.js?v=5";
 import { buscarPessoas } from "./pessoas.js?v=3";
 import { montarChat } from "./admin-chat.js?v=10";
-import { verConteudoDenuncia } from "./admin-denuncia.js?v=3";
+import { verConteudoDenuncia } from "./admin-denuncia.js?v=4";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
 import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
@@ -1107,7 +1107,11 @@ export function publicacoes(el) {
       top.append(h("span", "quando", dataHora(p.criadoEm)));
       c.append(top);
       if (p.texto) c.appendChild(h("div", "trecho", p.texto.length > 400 ? p.texto.slice(0, 400) + "…" : p.texto));
-      if (p.mediaUrl && /^(data:image|https:\/\/firebasestorage)/.test(p.mediaUrl) && p.mediaTipo !== "video") { const im = document.createElement("img"); im.src = p.mediaUrl; im.alt = "Imagem da publicação"; im.className = "ad-pub-img"; im.loading = "lazy"; c.appendChild(im); }
+      if (p.mediaUrl && /^(data:image|https:\/\/firebasestorage)/.test(p.mediaUrl) && p.mediaTipo !== "video") {
+        // Todas as fotos da publicação (várias fotos: midias).
+        const fotos = (Array.isArray(p.midias) && p.midias.length > 1 ? p.midias : [p.mediaUrl]).filter((u) => /^(data:image|https:\/\/firebasestorage)/.test(String(u)));
+        fotos.forEach((u, i) => { const im = document.createElement("img"); im.src = u; im.alt = fotos.length > 1 ? `Foto ${i + 1} de ${fotos.length}` : "Imagem da publicação"; im.className = "ad-pub-img"; im.loading = "lazy"; c.appendChild(im); });
+      }
       else if (p.mediaUrl) c.appendChild(h("div", "meta", p.mediaTipo === "video" ? "(vídeo)" : "(mídia)"));
       const ac = h("div", "ad-acoes");
       const ver = h("a", "ad-bt mini", "Abrir no site"); ver.href = `usuarios.html?perfil=${encodeURIComponent(p.autorId)}`; ver.target = "_blank"; ver.textContent = "Ver perfil do autor"; ac.appendChild(ver);
