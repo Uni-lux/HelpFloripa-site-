@@ -58,7 +58,8 @@ const meio = [box.x + box.width / 2, box.y + box.height / 2];
 await pb.touchscreen.tap(...meio); await pb.waitForTimeout(90); await pb.touchscreen.tap(...meio);
 await pb.waitForSelector(".post-card .contagem", { timeout: 3000 });
 await pb.waitForTimeout(1000);
-const acesas = await card.locator(".cont-linha span.acesa").count();
+await pb.screenshot({ path: "saida/diario-estrelas-surgindo.png" });
+const acesas = await card.locator(".contagem .est-voa").count();
 await card.locator(".contagem").tap();
 await pb.waitForTimeout(1800);
 const tPar = await card.locator(".estrelas-txt").textContent();
@@ -67,16 +68,17 @@ await pb.waitForTimeout(800);
 // Sem parar: chega na 5ª e as estrelas se juntam no meio.
 await pb.touchscreen.tap(...meio); await pb.waitForTimeout(90); await pb.touchscreen.tap(...meio);
 await pb.waitForSelector(".post-card .contagem.fundir", { timeout: 4000 }).catch(() => {});
-ok(await card.locator(".contagem.fundir .estrela-pulo").count() === 1, "na 5ª: as estrelas se juntam na estrela grande do meio");
+await pb.waitForTimeout(250);
+ok(await card.locator(".contagem.fundir .est-voa").count() === 5, "na 5ª: as 5 estrelas espalhadas pela foto crescem juntas");
 await pb.screenshot({ path: "saida/diario-fundir.png" });
 await pb.waitForTimeout(2000);
 const tDbl = await card.locator(".estrelas-txt").textContent();
 ok(tDbl.includes("5,0") && tDbl.includes("1 nota") && await card.locator(".estrelas-linha .estrela.on.minha").count() === 5, "toque duplo até o fim: 5 estrelas → " + tDbl);
-// Salvar pelos comentários; aparece no Perfil → Salvos.
-await card.locator(".acoes-post .acao").first().tap();
-await pb.waitForSelector("#folhaComentarios.aberta .pub-acoes", { timeout: 8000 });
-await pb.locator("#folhaComentarios .pub-acao", { hasText: "Salvar" }).tap(); await pb.waitForTimeout(800);
-ok((await pb.locator("#folhaComentarios .pub-acao.on").textContent()).includes("Salvo"), "comentários: botão Salvar vira \"Salvo\"");
+// Barra da publicação (estilo Instagram): comentar, enviar, compartilhar e salvar.
+ok(await card.locator(".interacoes .acoes-post .acao").count() === 3 && await card.locator(".interacoes .acao.salvar").count() === 1, "publicação: comentar, enviar, compartilhar e salvar embaixo da foto");
+await card.locator(".interacoes .acao.salvar").tap(); await pb.waitForTimeout(800);
+ok(await card.locator(".interacoes .acao.salvar.on[aria-pressed=true]").count() === 1, "salvar: o ícone fica preenchido");
+await card.screenshot({ path: "saida/diario-barra.png" });
 await pb.goto(new URL("usuarios.html", pb.url()).href); await pb.waitForSelector("#abaSalvos", { timeout: 30000 }); await pb.waitForTimeout(1200);
 await pb.locator("#abaSalvos").tap(); await pb.waitForTimeout(2000);
 ok(await pb.locator("#gradeSalvos .tile").count() === 1, "Perfil → Salvos: mostra a publicação salva");
@@ -113,6 +115,6 @@ await pa.goto(new URL("usuarios.html", pa.url()).href); await pa.waitForSelector
 ok(await pa.locator("#gradePosts .tile[data-fotos='3'] .marca-fotos").count() === 1, "perfil: miniatura com a marca de várias fotos");
 await pa.locator("#gradePosts .tile[data-fotos='3']").tap(); await pa.waitForTimeout(1200);
 ok(await pa.locator("#postMidia .carrossel.varias img").count() === 3, "perfil: publicação abre com as 3 fotos");
-ok(await pa.locator("#postSocial .pub-acoes .pub-acao").count() === 3, "perfil: publicação aberta tem Salvar, Enviar e Compartilhar");
+ok(await pa.locator("#postSocial .interacoes .acao").count() === 4, "perfil: publicação aberta tem comentar, enviar, compartilhar e salvar");
 await pa.screenshot({ path: "saida/diario-perfil.png" });
 await A.browser.close(); await B.browser.close();

@@ -22,6 +22,7 @@ if [ "$R" = "main" ]; then
   echo "== t-equipe.mjs (precisa das regras novas)"; for m in cel pc; do node seed.mjs > /dev/null 2>&1; timeout 200 node t-equipe.mjs $m 2>&1 | grep -v "$F"; done
   echo "== t-coment.mjs"; node seed.mjs > /dev/null 2>&1; timeout 300 node t-coment.mjs 2>&1 | grep -v "$F"
   echo "== t-social2.mjs"; node seed.mjs > /dev/null 2>&1; timeout 300 node t-social2.mjs 2>&1 | grep -v "$F"
+  echo "== t-principais.mjs"; node seed.mjs > /dev/null 2>&1; timeout 200 node t-principais.mjs 2>&1 | grep -v "$F"
   echo "== t-recalc.mjs"; node seed.mjs > /dev/null 2>&1; timeout 200 node t-recalc.mjs 2>&1 | grep -v "$F"
   echo "== t-eq-apagar.mjs"; node seed.mjs > /dev/null 2>&1; timeout 300 node t-eq-apagar.mjs 2>&1 | grep -v "$F"
   echo "== t-virada.mjs"; node seed.mjs > /dev/null 2>&1; timeout 200 node t-virada.mjs 2>&1 | grep -v "$F"

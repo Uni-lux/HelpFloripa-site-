@@ -48,6 +48,8 @@ Capturas de tela, Excel baixados e logs ficam em `saida/` (fora do git).
 | `t-local.mjs`, `t-virada.mjs` | Conversão das cidades antigas, janela para completar e a virada regras antigas → novas. |
 | `t-saida.mjs` | "Sair da conta?" igual nos três lugares, aviso ao "voltar" que sai do site e do painel (voltar entre páginas do site não pergunta), minha foto e foto da equipe no chat da equipe. |
 | `t-painel2.mjs` | Painel no celular: Estatísticas sem contas falsas vindas do registro de ações, nomes do gráfico sem sobrepor e chat da equipe em tela cheia (campo à vista, conversa no fim). |
+| `t-diario.mjs`, `t-coment.mjs`, `t-social2.mjs` | Diário: carrossel, estrelas surgindo no toque duplo, barra da publicação (comentar/enviar/compartilhar/salvar), comentários, hashtags, marcar, agendar, Flash ⚡ (criar foto e texto, ver, responder, reagir, quem viu). `t-diario` e `t-social2` usam `saida/foto1.png` (criada pelo `t-diario`). |
+| `t-principais.mjs` | Diário → Principais (gosto do aparelho + quem segue, sem dois seguidos do mesmo autor), filtros Principais/Amigos e anel do Flash no perfil. |
 | `t-busca.mjs`, `t-estat-local.mjs`, `t-painel.mjs` | Filtro de local da busca, filtros Estado→Cidade→Bairro do painel, topo das Estatísticas no celular. |
 | `gerar-xlsx.mjs`, `checar-xlsx.py`, `checar-todos.py` | Gera planilhas extremas e valida: Open XML SDK da Microsoft (Office 2007/2016/365) + consistência (referências, links, mesclas, nomes) + openpyxl. |
 | `dividir-regras.py` | Divide o `firestore.rules` em `_regras/parte-X-de-N.txt` (até 12.800 bytes, corte em fim de linha, linha `// ===== FIM DA PARTE X DE N =====`), confere byte a byte e grava os remontados em `saida/` para rodar `node testes-regras.mjs saida/remontado-com-marcas.rules`. |

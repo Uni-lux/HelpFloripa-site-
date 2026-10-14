@@ -5,7 +5,7 @@
 // - salvos: salvamentos (o autor vê quantos, não quem)
 // - origem das estrelas: curtidas.origem; seguidores × não seguidores: compara com quem segue o autor
 // =====================================================
-import { $, el, fb, eu, numero, toast, erroAmigavel, criarFolha, abrirFolha, infoEstrelas, contarComentarios } from "./rede.js?v=34";
+import { $, el, fb, eu, numero, toast, erroAmigavel, criarFolha, abrirFolha, infoEstrelas, contarComentarios } from "./rede.js?v=35";
 
 const ORIGENS = [["principais", "Principais"], ["seguindo", "Quem segue você"], ["amigos", "Amigos"], ["perfil", "Seu perfil"], ["link", "Link compartilhado"], ["tag", "Hashtags"], ["salvos", "Salvos"]];
 const contar = (q) => fb.getCountFromServer(q).then((s) => s.data().count).catch(() => null);

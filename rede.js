@@ -17,6 +17,7 @@ import { ouvirItensEquipe, TEXTO_EQUIPE, linkEquipe } from "./avisos-equipe.js?v
 import "./painel-avisos.js?v=15";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
 import { palavrasBusca } from "./pessoas.js?v=3"; // o sino abre o painel de notificações na própria página
+import { registrarGosto, PESO } from "./gosto.js?v=1";
 
 // ---------- ícones ----------
 const SIMBOLOS = `<symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 01-1.5 1.5H15v-6h-6v6H5.5A1.5 1.5 0 014 19z"/></symbol>
@@ -314,7 +315,7 @@ export let meusBloqueios = new Set();   // quem eu bloqueei
 export let bloqueadoPor = new Set();    // quem me bloqueou
 export let restritos = new Set();       // quem eu restringi
 export const escondido = (uid) => meusBloqueios.has(uid) || bloqueadoPor.has(uid);
-// Silenciados: continua seguindo, mas as publicações e os stories da pessoa não aparecem no Diário (usuarios.silenciados).
+// Silenciados: continua seguindo, mas as publicações e os flashes da pessoa não aparecem no Diário (usuarios.silenciados).
 export let silenciados = new Set();
 export const silenciado = (uid) => silenciados.has(uid);
 export async function alternarSilenciar(uid, nome = "") {
@@ -323,7 +324,7 @@ export async function alternarSilenciar(uid, nome = "") {
     await fb.setDoc(refUsuario, { silenciados: ja ? fb.arrayRemove(uid) : fb.arrayUnion(uid) }, { merge: true });
     if (ja) silenciados.delete(uid); else silenciados.add(uid);
     dados.silenciados = [...silenciados];
-    toast(ja ? `${nome || "Pessoa"} voltou a aparecer no seu Diário` : `${nome || "Pessoa"} silenciada: você continua seguindo, mas não vê as publicações e os stories no Diário`);
+    toast(ja ? `${nome || "Pessoa"} voltou a aparecer no seu Diário` : `${nome || "Pessoa"} silenciada: você continua seguindo, mas não vê as publicações e os flashes no Diário`);
     return !ja;
   } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); return ja; }
 }
@@ -653,6 +654,7 @@ export let origemAtual = "perfil";
 export const definirOrigem = (o) => { origemAtual = o; };
 // Alcance: marca uma vez por publicação (no aparelho e no servidor) que esta conta viu.
 const vistasFeitas = new Set((() => { try { return JSON.parse(localStorage.getItem("hf-vistas") || "[]"); } catch { return []; } })());
+export const jaVisto = (id) => vistasFeitas.has(id);
 export function marcarVista(post) {
   if (!post?.id || !eu || post.autorId === eu.uid || vistasFeitas.has(post.id)) return;
   vistasFeitas.add(post.id);
@@ -686,6 +688,7 @@ export async function darEstrelas(post, nota) {
     gravarNota(lote, false);
     await lote.commit();
   }
+  if (nota > antes) registrarGosto(post, PESO.estrela(nota), eu.uid);
   return infoEstrelas(post.id, { recarregar: true });
 }
 export async function contarComentarios(postId, { recarregar = false } = {}) {
@@ -898,38 +901,53 @@ async function minhaRede() {
   return r;
 }
 
-// Toque duplo na foto: contagem de estrelas por cima da foto (1, 2, 3, 4...). Tocar de novo para parar: a
-// nota é onde parou. Sem parar, na 5ª as estrelas se juntam numa estrela grande no meio da foto.
+// Toque duplo na foto: as estrelas vão SURGINDO espalhadas pela foto e crescendo (1, 2, 3, 4...).
+// Tocar de novo para parar: a nota é onde parou. Sem parar, na 5ª todas crescem juntas e somem.
+// Lugar e tamanho de cada estrela (em % da foto), como uma chuva de estrelas por cima da publicação.
+const LUGARES_ESTRELAS = [
+  { x: 23, y: 21, t: 27, r: -14 },
+  { x: 74, y: 19, t: 18, r: 12 },
+  { x: 55, y: 50, t: 11, r: -6 },
+  { x: 22, y: 63, t: 22, r: 10 },
+  { x: 73, y: 79, t: 12, r: -12 }
+];
 export function contadorEstrelas(alvo, darNota) {
   if (alvo.querySelector(".contagem")) return Promise.resolve(0);
   return new Promise((resolver) => {
     const box = el("div", "contagem"); box.setAttribute("role", "status"); box.setAttribute("aria-live", "polite");
-    const linha = el("div", "cont-linha");
-    const estrelas = [0, 1, 2, 3, 4].map((k) => { const e = el("span", null, "★"); e.style.setProperty("--dx", `${(2 - k) * 52}px`); linha.appendChild(e); return e; });
-    const rotulo = el("div", "cont-rotulo", "Toque para parar");
-    const grande = el("span", "estrela-pulo", "★"); grande.setAttribute("aria-hidden", "true");
-    box.append(linha, rotulo);
+    const ceu = el("div", "cont-ceu"); ceu.setAttribute("aria-hidden", "true");
+    const rotulo = el("div", "cont-rotulo");
+    const mini = el("span", "cont-mini"); const minis = [0, 1, 2, 3, 4].map(() => mini.appendChild(el("i", null, "★")));
+    const txt = el("span", "cont-txt", "Toque para parar");
+    rotulo.append(mini, txt);
+    box.append(ceu, rotulo);
     alvo.appendChild(box);
+    // Um pouco diferente a cada vez (posição e giro), sem sair do desenho.
+    const jit = () => (Math.random() - 0.5) * 6;
     let n = 0, timer = null, fim = false;
-    const finalizar = async (nota, fundir) => {
+    const finalizar = async (nota, todas) => {
       if (fim) return; fim = true; clearTimeout(timer);
-      rotulo.textContent = `${nota} ${nota === 1 ? "estrela" : "estrelas"}`;
-      box.classList.add(fundir ? "fundir" : "parou");
-      if (fundir) { box.appendChild(grande); navigator.vibrate?.([10, 40, 20]); }
+      txt.textContent = `${nota} ${nota === 1 ? "estrela" : "estrelas"}`;
+      box.classList.add(todas ? "fundir" : "parou");
+      if (todas) navigator.vibrate?.([10, 40, 20]);
       const ok = await darNota(nota).catch(() => false);
-      setTimeout(() => { box.classList.add("saindo"); setTimeout(() => box.remove(), 260); }, fundir ? 950 : 700);
+      setTimeout(() => { box.classList.add("saindo"); setTimeout(() => box.remove(), 520); }, todas ? 650 : 520);
       resolver(ok ? nota : 0);
     };
     const passo = () => {
+      const L = LUGARES_ESTRELAS[n];
       n++;
-      estrelas[n - 1].classList.add("acesa");
+      const s = el("span", "est-voa acesa");
+      s.style.cssText = `left:${L.x + jit()}%;top:${L.y + jit()}%;--t:${L.t}%;--r:${L.r + jit() * 2}deg`;
+      ceu.appendChild(s);
+      minis[n - 1].classList.add("on");
       navigator.vibrate?.(6);
-      if (n === 5) { setTimeout(() => finalizar(5, true), 260); return; }
-      rotulo.textContent = `${n} · toque para parar`;
-      timer = setTimeout(passo, 420);
+      if (n === 5) { txt.textContent = "5 estrelas"; setTimeout(() => finalizar(5, true), 380); return; }
+      txt.textContent = `${n} · toque para parar`;
+      timer = setTimeout(passo, 430);
     };
     box.addEventListener("click", (e) => { e.stopPropagation(); if (n > 0) finalizar(n, false); });
-    timer = setTimeout(passo, 90);
+    timer = setTimeout(passo, 60);
   });
 }
 
@@ -994,6 +1012,7 @@ export async function alternarSalvo(post) {
     // Registro para o autor contar quantos salvaram (ele não vê quem). Sem as regras novas, só não conta.
     const reg = fb.doc(fb.db, "salvamentos", `${post.id}_${eu.uid}`);
     (ja ? fb.deleteDoc(reg) : fb.setDoc(reg, { postId: post.id, uid: eu.uid, postAutorId: post.autorId, criadoEm: fb.serverTimestamp() })).catch(() => {});
+    if (!ja) registrarGosto(post, PESO.salvar, eu.uid);
     toast(ja ? "Removida dos salvos" : "Publicação salva. Veja no seu Perfil → Salvos.");
     return !ja;
   } catch (e) {
@@ -1003,21 +1022,45 @@ export async function alternarSalvo(post) {
   }
 }
 
-// Barra da publicação: estrelas, comentar e compartilhar.
+// Barra da publicação (como no Instagram), logo abaixo da foto:
+//   linha 1: ★★★★★ (a sua nota)  ·  comentar · enviar · compartilhar  ·········  salvar
+//   linha 2: média e quantas notas (abre o resumo)  ·········  "Ver os N comentários"
 export function barraInteracao(post, { aoComentar } = {}) {
   const barra = el("div", "interacoes");
   const est = seletorEstrelas(post);
-  const bM = el("button", "acao"); bM.type = "button"; bM.setAttribute("aria-label", "Comentários");
+  const resumo = est.querySelector(".estrelas-txt");
+  const botao = (nome, rotulo, classe = "acao") => { const b = el("button", classe); b.type = "button"; b.setAttribute("aria-label", rotulo); b.title = rotulo; b.appendChild(icone(nome, "i s")); return b; };
+  const bM = botao("chat", "Comentar");
   const nM = el("span", "n", "");
-  bM.append(icone("chat", "i s"), nM);
-  const bS = el("button", "acao"); bS.type = "button"; bS.setAttribute("aria-label", "Compartilhar");
-  bS.append(icone("compartilhar", "i s"));
-  const acoes = el("div", "acoes-post"); acoes.append(bM, bS);
-  barra.append(est, acoes);
-  const pintarN = (n) => { nM.textContent = n ? numero(n) : ""; };
+  bM.appendChild(nM);
+  const bE = botao("enviar", "Enviar para alguém");
+  const bS = botao("compartilhar", "Compartilhar");
+  const bG = botao("salvo", "Salvar", "acao salvar");
+  const pintarSalvo = () => { const sv = estaSalvo(post.id); bG.classList.toggle("on", sv); bG.setAttribute("aria-pressed", String(sv)); bG.setAttribute("aria-label", sv ? "Remover dos salvos" : "Salvar"); bG.title = sv ? "Salvo" : "Salvar"; };
+  pintarSalvo();
+  const acoes = el("div", "acoes-post"); acoes.append(bM, bE, bS);
+  const linha1 = el("div", "int-linha");
+  linha1.append(est, acoes, bG);
+  const verC = el("button", "ver-coment"); verC.type = "button"; verC.hidden = true;
+  const linha2 = el("div", "int-linha resumo");
+  if (resumo) linha2.appendChild(resumo);
+  linha2.appendChild(verC);
+  barra.append(linha1, linha2);
+  const pintarN = (n) => {
+    nM.textContent = n ? numero(n) : "";
+    verC.hidden = !n;
+    verC.textContent = n === 1 ? "Ver 1 comentário" : `Ver os ${numero(n)} comentários`;
+  };
   quandoVisivel(barra, () => contarComentarios(post.id).then(pintarN));
-  bM.addEventListener("click", () => (aoComentar ? aoComentar() : abrirComentarios(post, { aoMudar: pintarN })));
-  bS.addEventListener("click", () => compartilharPerfil(post.autorId, post.nome));
+  const comentar = () => { registrarGosto(post, PESO.abrir, eu.uid); return aoComentar ? aoComentar() : abrirComentarios(post, { aoMudar: pintarN }); };
+  bM.addEventListener("click", comentar);
+  verC.addEventListener("click", comentar);
+  bE.addEventListener("click", () => enviarParaAmigos(post));
+  bS.addEventListener("click", () => compartilharPublicacao(post));
+  bG.addEventListener("click", async () => {
+    bG.classList.add("pulo"); setTimeout(() => bG.classList.remove("pulo"), 400);
+    await alternarSalvo(post); pintarSalvo();
+  });
   barra.atualizarComentarios = pintarN;
   barra.estrelas = est;
   return barra;
@@ -1296,6 +1339,7 @@ export function montarComentarios(alvo, post, { aoMudar } = {}) {
       const doc = { postId: post.id, postAutorId: post.autorId, autorId: eu.uid, nome: String(dados.nome || "Usuário").slice(0, 80), foto, texto: texto.slice(0, 500), criadoEm: fb.serverTimestamp() };
       if (respondendo) { doc.respostaA = respondendo.id; doc.respostaAutorId = respondendo.autorId; }
       await comRitmo(fb, eu.uid, "com", (lote) => lote.set(fb.doc(fb.collection(fb.db, "comentarios")), doc));
+      registrarGosto(post, PESO.comentar, eu.uid);
       tx.value = ""; ajustar();
       cancelarResposta();
       await pintar();
@@ -1313,27 +1357,17 @@ export function abrirComentarios(post, { aoMudar } = {}) {
   const corpo = $("c_folhaComentarios");
   corpo.replaceChildren();
   const area = el("div");
-  corpo.append(acoesPublicacao(post), area);
+  corpo.append(area);
   const c = montarComentarios(area, post, { aoMudar });
   abrirFolha("folhaComentarios");
   setTimeout(() => c.focar(), 160);
   return f;
 }
 
-// Barra de ações da publicação: salvar, enviar para amigos e compartilhar.
-export function acoesPublicacao(post) {
-  const barra = el("div", "pub-acoes");
-  const bt = (icon, rot, fn) => { const b = el("button", "pub-acao"); b.type = "button"; b.append(icone(icon, "i s"), el("span", null, rot)); b.addEventListener("click", () => fn(b)); barra.appendChild(b); return b; };
-  const pintarSalvo = (b) => { const s = estaSalvo(post.id); b.classList.toggle("on", s); b.lastChild.textContent = s ? "Salvo" : "Salvar"; b.setAttribute("aria-pressed", String(s)); };
-  const bS = bt("salvo", "Salvar", async (b) => { await alternarSalvo(post); pintarSalvo(b); });
-  pintarSalvo(bS);
-  bt("enviar", "Enviar", () => enviarParaAmigos(post));
-  bt("compartilhar", "Compartilhar", () => compartilharPublicacao(post));
-  return barra;
-}
 export const linkPublicacao = (post) => `${location.origin}${location.pathname.replace(/[^/]*$/, "")}usuarios.html?post=${encodeURIComponent(post.id)}`;
 export async function compartilharPublicacao(post) {
   const url = linkPublicacao(post);
+  registrarGosto(post, PESO.compartilhar, eu.uid);
   try {
     if (navigator.share) { await navigator.share({ title: `Publicação de ${post.nome || "Help Floripa"}`, text: String(post.texto || "").slice(0, 120), url }); return; }
     await navigator.clipboard.writeText(url);
@@ -1364,20 +1398,25 @@ export async function enviarParaAmigos(post) {
   busca.addEventListener("input", pintarLista);
   pintarLista();
 }
-async function mandarPublicacao(post, uid) {
+// Manda uma mensagem na conversa com a pessoa (cria a conversa se ainda não existe), como o Mensagens faz.
+export async function mandarMensagem(uid, msg, resumo) {
   if (await precisaEmail()) throw new Error("e-mail");
   const ids = [eu.uid, uid].sort(), id = `${ids[0]}_${ids[1]}`;
   const ref = fb.doc(fb.db, "conversas", id);
+  let existe = false; try { existe = (await fb.getDoc(ref)).exists(); } catch {}
+  if (!existe) await fb.setDoc(ref, { participantes: ids, ultimaMensagem: "", atualizadoEm: fb.serverTimestamp() }, { merge: true });
+  await comRitmo(fb, eu.uid, "msg", (lote) => lote.set(fb.doc(fb.collection(fb.db, "conversas", id, "mensagens")), { remetenteId: eu.uid, texto: "", ...msg, criadoEm: fb.serverTimestamp() }));
+  // Resumo da conversa (como o Mensagens faz depois de enviar).
+  fb.setDoc(ref, { ultimaMensagem: String(resumo || msg.texto || "").slice(0, 120), ultimaMensagemRemetenteId: eu.uid, atualizadoEm: fb.serverTimestamp(), falaram: { [eu.uid]: true } }, { merge: true }).catch(() => {});
+}
+async function mandarPublicacao(post, uid) {
   try {
-    let existe = false; try { existe = (await fb.getDoc(ref)).exists(); } catch {}
-    if (!existe) await fb.setDoc(ref, { participantes: ids, ultimaMensagem: "", atualizadoEm: fb.serverTimestamp() }, { merge: true });
     const foto = fotosDoPost(post)[0] || "";
     const cartao = { tipo: "publicacao", titulo: String(post.texto || `Publicação de ${post.nome || "alguém"}`).slice(0, 120), sub: post.nome ? `Publicação de ${String(post.nome).slice(0, 60)}` : "", link: `usuarios.html?post=${post.id}`, ...(foto.startsWith("https://") ? { foto } : {}) };
-    await comRitmo(fb, eu.uid, "msg", (lote) => lote.set(fb.doc(fb.collection(fb.db, "conversas", id, "mensagens")), { remetenteId: eu.uid, texto: "", tipoArquivo: "cartao", cartao, criadoEm: fb.serverTimestamp() }));
-    // Resumo da conversa (como o Mensagens faz depois de enviar).
-    fb.setDoc(ref, { ultimaMensagem: "Publicação", ultimaMensagemRemetenteId: eu.uid, atualizadoEm: fb.serverTimestamp(), falaram: { [eu.uid]: true } }, { merge: true }).catch(() => {});
+    await mandarMensagem(uid, { tipoArquivo: "cartao", cartao }, "Publicação");
+    registrarGosto(post, PESO.enviar, eu.uid);
     toast("Publicação enviada");
-  } catch (e) { toast("Não foi possível enviar: " + erroAmigavel(e)); throw e; }
+  } catch (e) { if (e?.message !== "e-mail") toast("Não foi possível enviar: " + erroAmigavel(e)); throw e; }
 }
 
 // =====================================================
