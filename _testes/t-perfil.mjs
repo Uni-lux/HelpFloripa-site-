@@ -40,9 +40,12 @@ await pa.locator(".abas-perfil button[data-aba=textos]").tap(); await pa.waitFor
 ok(await pa.locator(".lista-textos .texto-item .enquete .enq-op").count() === 2, "aba Textos: a enquete aparece na publicação de texto");
 await pa.screenshot({ path: "saida/perfil-textos-enquete.png" });
 // Rosinha clicável abre o perfil do duo
-await pa.locator("#meuPerfil .pf-rosa").tap();
+await pa.locator("#meuPerfil .pf-rosa").tap(); await pa.waitForTimeout(500);
+ok(await pa.locator("#meuPerfil .pf-duo-bolha.aberta .avatar").count() === 1 && (await pa.locator("#meuPerfil .pf-duo-bolha .nm").textContent()) === "Bruno", "tocar na rosinha: aparece a fotinho do duo");
+await pa.screenshot({ path: "saida/rosinha-bolha.png" });
+await pa.locator("#meuPerfil .pf-duo-bolha").tap();
 await pa.waitForSelector("#folhaPerfil.aberta", { timeout: 10000 }).catch(() => {});
-ok((await pa.locator("#tPerfilPublico").textContent()).includes("Bruno"), "tocar na rosinha abre o perfil do duo");
+ok((await pa.locator("#tPerfilPublico").textContent()).includes("Bruno"), "tocar na fotinho do duo abre o perfil dele");
 // Perfil do Bruno visto pela Ana: Seguir · Mensagem · ⋯ e a rosinha dele
 await pa.waitForSelector("#ppCabecalho .pf-acoes .btn", { timeout: 15000 }); await pa.waitForTimeout(2000);
 const botoes = await pa.locator("#ppCabecalho .pf-acoes > *").count();

@@ -13,7 +13,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="stylesheet" href="vitrine.css?v=25" />
-  <link rel="stylesheet" href="rede.css?v=20" />
+  <link rel="stylesheet" href="rede.css?v=21" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
     // Tema compartilhado com a página de mensagens; aplicado antes de desenhar.
@@ -390,7 +390,7 @@
       let tempo = null, x0 = 0, y0 = 0;
       const parar = () => { clearTimeout(tempo); tempo = null; wrap.classList.remove("segurando"); };
       wrap.addEventListener("pointerdown", (e) => {
-        if (e.button || e.target.closest(".pf-editar-foto, .pf-rosa")) return;
+        if (e.button || e.target.closest(".pf-editar-foto, .pf-rosa, .pf-duo-bolha")) return;
         x0 = e.clientX; y0 = e.clientY; wrap.classList.add("segurando");
         tempo = setTimeout(() => { tempo = null; wrap.classList.remove("segurando"); wrap._segurou = true; navigator.vibrate?.(12); abrirFotoGrande(dadosFoto()); }, 420);
       });
@@ -1199,15 +1199,37 @@
       linha.classList.add("com-rosa");
       const papel = duo.tipo === "duo" ? "Duo" : rotuloTipo(duo.tipo);
       btn.setAttribute("aria-label", papel);
+      btn.setAttribute("aria-expanded", "false");
+      // Tocar na rosinha: aparece a fotinho redonda do duo. "Clicável": a fotinho abre o perfil; "Só a rosinha": só mostra.
+      const bolha = document.createElement("button");
+      bolha.type = "button"; bolha.className = "pf-duo-bolha" + (podeAbrir ? "" : " so-ver"); bolha.hidden = true;
+      const av = document.createElement("div"); av.className = "avatar";
+      const nm = document.createElement("span"); nm.className = "nm";
+      bolha.append(av, nm);
+      linha.appendChild(bolha);
       obterPerfil(duo.outro).then((o) => {
+        pintarAvatar(av, o.fotoPerfil, o.nome);
+        nm.textContent = (o.nome || "Usuário").split(" ")[0];
         btn.setAttribute("aria-label", `${papel}: ${o.nome || "Usuário"}`);
-        btn.title = `${papel} · Akai Ito: ${o.nome || "Usuário"}`;
+        bolha.setAttribute("aria-label", podeAbrir ? `Abrir o perfil de ${o.nome || "Usuário"}` : `${papel}: ${o.nome || "Usuário"}`);
       });
-      if (podeAbrir) btn.addEventListener("click", (e) => { e.stopPropagation(); abrirPerfilPublico(duo.outro); });
-      else if (uid === eu.uid) {
-        btn.classList.add("so-rosa");
-        btn.addEventListener("click", (e) => { e.stopPropagation(); toast("Rosinha em \"Só a rosinha\": visitantes não abrem o perfil do seu duo por aqui. Mude em Configurações."); });
-      } else { btn.classList.add("so-rosa"); btn.addEventListener("click", (e) => { e.stopPropagation(); toast(papel); }); }
+      let fora = null, tempo = null;
+      const esconder = () => { bolha.classList.remove("aberta"); btn.setAttribute("aria-expanded", "false"); clearTimeout(tempo); document.removeEventListener("pointerdown", fora, true); setTimeout(() => { if (!bolha.classList.contains("aberta")) bolha.hidden = true; }, 200); };
+      fora = (e) => { if (!bolha.contains(e.target) && !btn.contains(e.target)) esconder(); };
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (bolha.classList.contains("aberta")) { esconder(); return; }
+        bolha.hidden = false; requestAnimationFrame(() => bolha.classList.add("aberta"));
+        btn.setAttribute("aria-expanded", "true");
+        navigator.vibrate?.(6);
+        document.addEventListener("pointerdown", fora, true);
+        clearTimeout(tempo); tempo = setTimeout(esconder, 5000);
+      });
+      bolha.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (podeAbrir) { esconder(); abrirPerfilPublico(duo.outro); }
+        else if (uid === eu.uid) toast("Rosinha em \"Só a rosinha\": visitantes veem a foto, mas não abrem o perfil do seu duo. Mude em Configurações.");
+      });
     }
 
     // ======================================================

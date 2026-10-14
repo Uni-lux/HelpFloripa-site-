@@ -27,8 +27,8 @@ function pintarConfig() {
   const modoDuo = dados.duoCapa || "clicavel";
   document.querySelectorAll("#cfgDuoCapa [data-valor]").forEach((b) => b.classList.toggle("on", b.dataset.valor === modoDuo));
   $("cfgDuoTxt").textContent = {
-    clicavel: "Uma rosinha aparece ao lado do seu nome e, ao tocar, mostra o seu duo.",
-    foto: "A rosinha aparece, mas ninguém abre o perfil do seu duo por ela.",
+    clicavel: "Rosinha na sua foto de perfil: tocando, aparece a fotinho do seu duo, que abre o perfil.",
+    foto: "Tocando na rosinha aparece a fotinho do seu duo, mas ninguém abre o perfil por ela.",
     ocultar: "A rosinha não aparece no seu perfil."
   }[modoDuo];
   $("cfgEnderecoTxt").textContent = resumoEndereco(dados.endereco) || "Privado: não aparece para outros usuários";
