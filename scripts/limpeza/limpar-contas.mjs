@@ -43,9 +43,18 @@ async function limpar(uid) {
   for (const p of posts.docs) {
     await apagar("comentarios", col("comentarios").where("postId", "==", p.id));
     await apagar("curtidas", col("curtidas").where("postId", "==", p.id));
+    if (!simular) await col("diario_notas").doc(p.id).delete();
   }
   await apagar("diario", col("diario").where("autorId", "==", uid));
   await apagar("comentarios", col("comentarios").where("autorId", "==", uid));
+  // Estrelas que a pessoa deu em publicações de outros: tira do resumo da publicação (diario_notas) também.
+  const dadas = await col("curtidas").where("uid", "==", uid).get();
+  for (const c of dadas.docs) {
+    const { postId, nota } = c.data(); const n = Number(nota) || 0;
+    if (!postId || n < 1 || n > 5 || simular) continue;
+    const resumo = col("diario_notas").doc(postId);
+    if ((await resumo.get()).exists) await resumo.update({ total: FieldValue.increment(-1), soma: FieldValue.increment(-n), ["n" + n]: FieldValue.increment(-1) });
+  }
   await apagar("curtidas", col("curtidas").where("uid", "==", uid));
   await apagar("curtidas_comentarios", col("curtidas_comentarios").where("uid", "==", uid));
   await apagar("relacoes", col("relacoes").where("seguidorId", "==", uid));

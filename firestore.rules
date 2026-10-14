@@ -1773,6 +1773,12 @@ service cloud.firestore {
       function notaOk(d) {
         return d.nota is int && d.nota >= 1 && d.nota <= 5;
       }
+      // Cada nota muda junto o resumo da publicação (diario_notas/{postId}); as regras do resumo conferem a conta.
+      function resumoJunto(postId) {
+        let r = /databases/$(database)/documents/diario_notas/$(postId);
+        return existsAfter(r)
+            && getAfter(r).data.get('soma', 0) != (exists(r) ? get(r).data.get('soma', 0) : 0);
+      }
 
       allow create: if logado()
                     && emailOk()
@@ -1784,16 +1790,56 @@ service cloud.firestore {
                     // pode dar estrelas na própria publicação ("se curtir")
                     && notaOk(request.resource.data)
                     && !bloqueioEntre(request.auth.uid, request.resource.data.postAutorId)
-                    && request.resource.data.criadoEm == request.time;
+                    && request.resource.data.criadoEm == request.time
+                    && resumoJunto(request.resource.data.postId);
 
       allow update: if logado()
                     && emailOk()
                     && resource.data.uid == request.auth.uid
                     && mudou().hasOnly(['nota', 'atualizadoEm'])
                     && notaOk(request.resource.data)
-                    && request.resource.data.atualizadoEm == request.time;
+                    && request.resource.data.atualizadoEm == request.time
+                    && resumoJunto(resource.data.postId);
 
-      allow delete: if logado() && resource.data.uid == request.auth.uid;
+      // Tirar a nota: tira junto do resumo. Publicação que já não existe: apaga sem resumo (limpeza de conta).
+      allow delete: if logado() && resource.data.uid == request.auth.uid
+                    && (resumoJunto(resource.data.postId)
+                        || !exists(/databases/$(database)/documents/diario/$(resource.data.postId)));
+    }
+
+    // ===================================================
+    // RESUMO DAS ESTRELAS DE UMA PUBLICAÇÃO: diario_notas/{postId} { total, soma, n1..n5 }
+    // Uma leitura mostra a média e quantas pessoas deram 5, 4, 3, 2 e 1 estrela, com mil ou um milhão
+    // de notas. Só muda junto com a nota de quem grava (curtidas/{postId}_{uid}), na conta exata:
+    // a nota de antes sai e a nova entra. A moderação pode recalcular.
+    // ===================================================
+    match /diario_notas/{postId} {
+      allow read: if logado();
+
+      function minhaNota() { return /databases/$(database)/documents/curtidas/$(postId + '_' + request.auth.uid); }
+      function contaCerta() {
+        let a = exists(minhaNota()) ? get(minhaNota()).data.nota : 0;
+        let d = existsAfter(minhaNota()) ? getAfter(minhaNota()).data.nota : 0;
+        let r = resource == null ? {} : resource.data;
+        let n = request.resource.data;
+        return a != d
+            && n.keys().hasOnly(['total', 'soma', 'n1', 'n2', 'n3', 'n4', 'n5'])
+            && n.get('total', 0) == r.get('total', 0) + (d > 0 ? 1 : 0) - (a > 0 ? 1 : 0)
+            && n.get('soma', 0) == r.get('soma', 0) + d - a
+            && n.get('n1', 0) == r.get('n1', 0) + (d == 1 ? 1 : 0) - (a == 1 ? 1 : 0)
+            && n.get('n2', 0) == r.get('n2', 0) + (d == 2 ? 1 : 0) - (a == 2 ? 1 : 0)
+            && n.get('n3', 0) == r.get('n3', 0) + (d == 3 ? 1 : 0) - (a == 3 ? 1 : 0)
+            && n.get('n4', 0) == r.get('n4', 0) + (d == 4 ? 1 : 0) - (a == 4 ? 1 : 0)
+            && n.get('n5', 0) == r.get('n5', 0) + (d == 5 ? 1 : 0) - (a == 5 ? 1 : 0);
+      }
+      allow create, update: if logado() && contaCerta();
+      // Recalcular (moderação): números inteiros, sem campo estranho.
+      allow create, update: if podeModerar()
+                    && request.resource.data.keys().hasOnly(['total', 'soma', 'n1', 'n2', 'n3', 'n4', 'n5'])
+                    && request.resource.data.total is int && request.resource.data.soma is int
+                    && request.resource.data.n1 is int && request.resource.data.n2 is int && request.resource.data.n3 is int
+                    && request.resource.data.n4 is int && request.resource.data.n5 is int;
+      allow delete: if podeModerar();
     }
 
     // =====================================================

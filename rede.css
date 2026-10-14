@@ -731,7 +731,12 @@ html, body { overflow-x: clip; }
 .estrelas-linha[role="img"] .estrela { cursor: default; font-size: 20px; }
 .estrelas-linha[role="img"] .estrela:hover { transform: none; }
 .estrelas-linha.salvando { opacity: .55; pointer-events: none; }
-.estrelas-txt { font-size: 12.5px; color: var(--muted); font-weight: 650; }
+.estrelas-txt { display: inline-flex; align-items: center; gap: 4px; border: 0; background: none; padding: 4px 6px; margin: -4px -6px; border-radius: 8px; font: inherit; font-size: 13px; color: var(--muted); font-weight: 650; cursor: pointer; }
+.estrelas-txt:hover { background: color-mix(in srgb, var(--muted) 10%, transparent); }
+.estrelas-txt:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.estrelas-txt .med { color: var(--text); font-size: 14px; font-weight: 800; }
+.estrelas-txt .est-m { color: #f5b301; font-size: 13px; margin-left: -2px; }
+.estrelas-txt .i { width: 14px; height: 14px; opacity: .7; }
 .acoes-post { display: flex; gap: 2px; margin-left: auto; }
 
 /* ---------- comentários ---------- */
@@ -819,10 +824,10 @@ html, body { overflow-x: clip; }
 .post-midia-f, .post-midia { position: relative; }
 .estrela-pulo { position: absolute; left: 50%; top: 50%; z-index: 3; font-size: 96px; line-height: 1; color: #f5b301; text-shadow: 0 4px 24px rgba(0,0,0,.45); transform: translate(-50%, -50%) scale(.2); opacity: 0; pointer-events: none; animation: estrelaPulo .85s cubic-bezier(.2,.9,.3,1.3) forwards; }
 @keyframes estrelaPulo { 15% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); } 30% { transform: translate(-50%, -50%) scale(.95); } 45% { transform: translate(-50%, -50%) scale(1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -60%) scale(1); } }
-@media (prefers-reduced-motion: reduce) { .estrela-pulo { animation-duration: .01s; } }
-.estrelas-txt.ver-quem { cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
-.estrelas-txt.ver-quem:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
-.quem-deu-resumo { margin: 4px 4px 10px; color: var(--muted); font-size: 13.5px; font-weight: 650; }
+/* Celular com "remover animações"/economia de bateria: a estrela aparece parada e some (antes sumia na hora). */
+@keyframes estrelaFixa { 0%, 85% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1); } }
+@media (prefers-reduced-motion: reduce) { .estrela-pulo { animation: estrelaFixa .9s linear forwards; } }
+.car-trilho { touch-action: manipulation; }
 .filtro-feed button { display: inline-flex; align-items: center; gap: 5px; }
 .pub-previa.varias, .pub-previa:has(.pub-foto) { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
 .pub-previa .pub-foto { position: relative; aspect-ratio: 4 / 5; border-radius: 12px; overflow: hidden; background: #000; }
@@ -834,3 +839,30 @@ html, body { overflow-x: clip; }
 .tile .marca-fotos { position: absolute; top: 8px; right: 8px; width: 20px; height: 20px; color: #fff; filter: drop-shadow(0 1px 3px rgba(0,0,0,.6)); }
 .btn.salvar-post.on { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
 .btn.salvar-post.on svg { fill: currentColor; }
+
+/* ---------- resumo das estrelas (folha) ---------- */
+.est-topo { display: grid; grid-template-columns: auto 1fr; gap: 18px; align-items: center; padding: 4px 2px 14px; border-bottom: 1px solid var(--line); }
+.est-grande { display: grid; justify-items: center; gap: 4px; min-width: 96px; }
+.est-grande strong { font-size: 44px; line-height: 1; font-weight: 800; color: var(--text); letter-spacing: -.02em; }
+.est-grande small { color: var(--muted); font-size: 12.5px; font-weight: 650; text-align: center; }
+.est-cinco { position: relative; display: inline-block; font-size: 17px; letter-spacing: 1px; color: color-mix(in srgb, var(--muted) 40%, transparent); line-height: 1; }
+.est-cheio { position: absolute; inset: 0 auto 0 0; overflow: hidden; white-space: nowrap; color: #f5b301; }
+.est-barras { display: grid; gap: 6px; min-width: 0; }
+.est-barra { display: grid; grid-template-columns: 34px 1fr auto 38px; align-items: center; gap: 8px; border: 0; background: none; padding: 3px 4px; margin: 0 -4px; border-radius: 8px; font: inherit; color: var(--text); text-align: left; }
+.est-barra.clicavel { cursor: pointer; }
+.est-barra.clicavel:hover { background: color-mix(in srgb, var(--muted) 10%, transparent); }
+.est-barra:disabled { opacity: 1; cursor: default; }
+.est-barra .rot { font-size: 12.5px; font-weight: 750; color: var(--muted); white-space: nowrap; }
+.est-barra .trilho { height: 9px; border-radius: 999px; background: color-mix(in srgb, var(--muted) 18%, transparent); overflow: hidden; }
+.est-barra .trilho i { display: block; height: 100%; border-radius: inherit; background: #f5b301; min-width: 0; transition: width .4s; }
+.est-barra .qt { font-size: 12.5px; font-weight: 750; text-align: right; min-width: 22px; }
+.est-barra .pc { font-size: 12px; color: var(--muted); text-align: right; }
+.est-sua { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 12px 2px; border-bottom: 1px solid var(--line); font-weight: 700; font-size: 14px; }
+.est-sua-btns { display: inline-flex; gap: 1px; }
+.est-quem-tit { margin: 14px 2px 8px; font-size: 15px; }
+.est-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.est-chips button { border: 1px solid var(--line); background: var(--panel); color: var(--muted); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 12.5px; font-weight: 750; cursor: pointer; }
+.est-chips button[aria-pressed="true"] { background: color-mix(in srgb, var(--accent) 14%, transparent); border-color: color-mix(in srgb, var(--accent) 45%, transparent); color: var(--accent); }
+.est-mais { display: block; margin: 10px auto 0; }
+@media (max-width: 380px) { .est-topo { grid-template-columns: 1fr; } }
+.est-sua:last-child { border-bottom: 0; }

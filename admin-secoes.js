@@ -1093,7 +1093,25 @@ export function publicacoes(el) {
   if (!pode("moderar")) el.appendChild(h("div", "ad-aviso-papel", `Seu papel (${PAPEIS[C.papel]}) pode ver, mas quem esconde ou remove é a moderação.`));
   const busca = document.createElement("input"); busca.type = "search"; busca.className = "ad-sel"; busca.placeholder = "Buscar no texto ou no nome do autor"; busca.setAttribute("aria-label", "Buscar publicações");
   const fil = chips([["recentes", "Recentes"], ["denunciadas", `Denunciadas (${denPorPost.size})`], ["escondidas", "Escondidas"]], filtroPub, (v) => { filtroPub = v; pintar(); });
-  const linhaF = h("div", "ad-acoes"); linhaF.style.marginBottom = "12px"; linhaF.append(fil, busca); el.appendChild(linhaF);
+  const linhaF = h("div", "ad-acoes"); linhaF.style.marginBottom = "12px"; linhaF.append(fil, busca);
+  // Recalcular o resumo das estrelas (diario_notas) a partir das notas: corrige publicações de antes do
+  // resumo e qualquer diferença. Lê só as notas (documentos pequenos), 1.000 por vez.
+  if (pode("moderar")) linhaF.append(btn("Recalcular estrelas", "mini", async (b) => {
+    if (!confirm("Recalcular o resumo das estrelas de todas as publicações? Lê todas as notas dadas.")) return;
+    const { fb } = C; const por = new Map(); let ultimo = null, lidas = 0;
+    for (;;) {
+      const s = await fb.getDocs(fb.query(fb.collection(fb.db, "curtidas"), fb.orderBy(fb.documentId()), ...(ultimo ? [fb.startAfter(ultimo)] : []), fb.limit(1000)));
+      s.docs.forEach((d) => { const x = d.data(), n = Number(x.nota) || 0; if (!x.postId || n < 1 || n > 5) return; const r = por.get(x.postId) || { total: 0, soma: 0, n1: 0, n2: 0, n3: 0, n4: 0, n5: 0 }; r.total++; r.soma += n; r["n" + n]++; por.set(x.postId, r); });
+      lidas += s.size; b.textContent = `Lendo notas… ${lidas}`;
+      if (s.size < 1000) break; ultimo = s.docs.at(-1);
+    }
+    const ids = [...por.keys()];
+    for (let i = 0; i < ids.length; i += 400) { const lote = fb.writeBatch(fb.db); ids.slice(i, i + 400).forEach((id) => lote.set(fb.doc(fb.db, "diario_notas", id), por.get(id))); await lote.commit(); }
+    b.textContent = "Recalcular estrelas";
+    await registrar("recalcular_estrelas", "", `${ids.length} publicações, ${lidas} notas`);
+    toast(`Estrelas recalculadas: ${ids.length} publicação(ões), ${lidas} nota(s).`);
+  }));
+  el.appendChild(linhaF);
   const lista = h("div", "ad-lista"); el.appendChild(lista);
   const escondida = (p) => ms(p.ocultoAte) > agora();
   function pintar() {

@@ -6,6 +6,7 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
 ## Regras fixas do dono do projeto
 - Falar em **português**. Visual profissional e caprichado.
 - Trabalhar na branch indicada pela sessão, commit + push e **um PR por etapa**. Ele faz o merge.
+- **Sempre terminar a resposta com o link do PR** (abrir o PR assim que o trabalho estiver pronto e mandar o link no final).
 - **NUNCA** publicar, compartilhar ou commitar chave de conta de serviço do Firebase.
 - Não mudar o bloqueio/liberação do site sem ele pedir.
 - `.js` importados com `?v=N`: ao mudar um arquivo, aumentar o `?v=` em todos que o importam
@@ -53,7 +54,13 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   (`usuarios.salvos`, filtro "Salvos" no feed, botão na publicação do perfil), carrossel `carrosselFotos`/`fotosDoPost`
   (`diario.midias` 2–4, `midias[0]==mediaUrl`; sem Storage as fotos encolhem para caber no doc). "Se curtir": estrelas
   na própria publicação (regra sem `postAutorId != uid`; não conta em `estrelasDoAutor` nem nos avisos).
-  **Regras de `midias` e "se curtir" NÃO publicadas** (9 partes em `_regras/`, 146 testes); com as regras do ar
+  **Resumo das estrelas** `diario_notas/{postId}` {total,soma,n1..n5}: muda na MESMA gravação da nota (regra
+  `contaCerta` confere antes/depois; `resumoJunto` obriga a nota a mexer no resumo); sem resumo (posts antigos) conta com
+  5 `getCountFromServer`; painel → Publicações → "Recalcular estrelas" (moderação) remonta tudo. Folha
+  `abrirResumoEstrelas` (média, barras 5→1, sua nota, quem deu com filtro só p/ dono). Estrela grande do toque duplo
+  aparece também com "remover animações" (antes sumia na hora). Conta apagada: `conta.js` e `limpar-contas.mjs`
+  tiram a nota do resumo.
+  **Regras de `midias`, "se curtir" e `diario_notas` NÃO publicadas** (9 partes em `_regras/`, 156 testes; depois de publicar, apertar "Recalcular estrelas" no painel); com as regras do ar
   publica só a primeira foto e avisa; estrela na própria publicação avisa que falta publicar.
 - **As 5 etapas estão concluídas.** Próximos passos são as pendências abaixo (só ele pode fazer) e o que ficou
   para depois.
