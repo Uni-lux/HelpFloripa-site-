@@ -11,9 +11,9 @@
 import {
   $, el, icone, ms, pintarAvatar, toast, erroAmigavel, tempoRelativo, fb, eu, dados, storageFns,
   meusSeguindo, escondido, silenciado, alternarSilenciar, obterPerfil, abrirOpcoes, abrirLista, linhaPessoa,
-  salvarImagem, mandarMensagem, ganchos, confirmarHF
-} from "./rede.js?v=37";
-import { FILTROS, filtroPorId, cssFiltro, aplicarFiltro } from "./filtros-foto.js?v=1";
+  salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade
+} from "./rede.js?v=38";
+import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada } from "./filtros-foto.js?v=2";
 
 const DIA = 24 * 3600e3;
 const TEMPO_FOTO = 6000;
@@ -101,7 +101,7 @@ function circulo({ uid, nome, foto, nomeReal, meu = false, lista = [] }) {
   const anel = el("span", "anel"); if (tem) anel.style.background = fundoAnel(lista);
   const av = el("span", "avatar"); pintarAvatar(av, foto, nomeReal || nome); anel.appendChild(av);
   if (meu) { const mais = el("span", "mais"); mais.appendChild(icone("mais", "i xs")); anel.appendChild(mais); }
-  if (tem && !visto && !meu) anel.appendChild(el("span", "raio", "⚡"));
+  if (tem && !visto && !meu) { const r = el("span", "raio"); r.appendChild(icone("raio", "i xs")); anel.appendChild(r); }
   b.append(anel, el("span", "nome", nome));
   b.addEventListener("click", () => {
     if (meu && !tem) { abrirCriador(); return; }
@@ -155,6 +155,22 @@ const corTexto = (f) => (f === 3 || f === 7 ? "#1a1a1a" : "#ffffff");
 const CORES = ["#ffffff", "#111111", "#ffd60a", "#ff8a00", "#ff3d7f", "#00adee", "#38ef7d", "#8e2de2"];
 const clara = (c) => ["#ffffff", "#ffd60a", "#38ef7d"].includes(c);
 
+// Figurinhas (horário, data e localização): 4 estilos, um toque troca.
+const EST_FIG = [
+  { fundo: "#ffffff", cor: "#111111" },
+  { fundo: "rgba(255,255,255,.28)", cor: "#ffffff", borda: "rgba(255,255,255,.55)" },
+  { fundo: "rgba(10,14,18,.72)", cor: "#ffffff" },
+  { fundo: ["#ff8a00", "#ff3d7f"], cor: "#ffffff" }
+];
+const DIAS_SEM = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
+const MESES_C = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+function textoFigurinha(fig, local = "") {
+  const d = new Date();
+  if (fig === "hora") return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  if (fig === "data") return `${DIAS_SEM[d.getDay()]} · ${String(d.getDate()).padStart(2, "0")} ${MESES_C[d.getMonth()]}`;
+  return "📍 " + (local || "Florianópolis");
+}
+
 function abrirCriador() {
   const fundo = el("div", "flash-criar"); fundo.setAttribute("role", "dialog"); fundo.setAttribute("aria-modal", "true"); fundo.setAttribute("aria-label", "Novo flash");
   const caixa = el("div", "flash-caixa");
@@ -175,11 +191,14 @@ function abrirCriador() {
   const mTexto = el("button", null, "Aa  Texto"); mTexto.type = "button"; mTexto.setAttribute("role", "tab");
   modos.append(mFoto, mTexto);
   const publicar = el("button", "flash-publicar"); publicar.type = "button";
-  publicar.append(el("span", null, "Compartilhar"), el("b", null, "⚡"));
+  const raioPub = el("b"); raioPub.appendChild(icone("raio", "i s"));
+  publicar.append(el("span", null, "Compartilhar"), raioPub);
   const linhaBaixo = el("div", "flash-linha"); linhaBaixo.append(modos, publicar);
   const dica = el("small", "flash-dica", "Fica 24 horas para quem segue você · você vê quem viu");
   baixo.append(linhaBaixo, dica);
-  caixa.append(palco, baixo);
+  // Moldura com o degradê do Flash em volta do cartão (que ocupa quase a tela toda).
+  const moldura = el("div", "flash-moldura"); moldura.appendChild(palco);
+  caixa.append(moldura, baixo);
   fundo.appendChild(caixa);
   document.body.appendChild(fundo);
   document.body.classList.add("travado");
@@ -188,7 +207,8 @@ function abrirCriador() {
   let foto = null, video = null, enviando = false;
   // Foto no cartão: zoom (1 a 5) e deslocamento a partir do centro (em px do cartão).
   let img = null, z = 1, ox = 0, oy = 0;
-  let filtro = FILTROS[0];             // filtro escolhido (prévia em CSS; gravado no canvas)
+  let filtro = FILTROS[0];             // filtro escolhido (prévia e foto passam pelo mesmo processamento)
+  const fotoFiltrada = new Map();      // filtro -> foto já processada (prévia rápida)
   let cam = null;                      // { stream, frente } enquanto a câmera do app está aberta
   let virada = false;                  // câmera da frente (selfie)
   const textos = []; // { texto, x, y (0..1), tam (fração da largura), letra, cor, destaque, el }
@@ -208,14 +228,17 @@ function abrirCriador() {
   const legenda = el("input", "flash-legenda"); legenda.type = "text"; legenda.maxLength = 150; legenda.placeholder = "Adicionar legenda..."; legenda.setAttribute("aria-label", "Legenda do flash");
   const bAa = el("button", "flash-ferr-btn letra", "Aa"); bAa.type = "button"; bAa.title = "Escrever na foto"; bAa.setAttribute("aria-label", "Escrever na foto");
   const bTrocar = el("button", "flash-ferr-btn"); bTrocar.type = "button"; bTrocar.setAttribute("aria-label", "Trocar a foto"); bTrocar.title = "Trocar"; bTrocar.appendChild(icone("imagem", "i s"));
+  const bFig = el("button", "flash-ferr-btn"); bFig.type = "button"; bFig.setAttribute("aria-label", "Figurinhas: horário, data e localização"); bFig.title = "Figurinhas"; bFig.appendChild(icone("figurinha", "i s"));
   const bFiltros = el("button", "flash-ferr-btn", "✨"); bFiltros.type = "button"; bFiltros.setAttribute("aria-label", "Filtros"); bFiltros.title = "Filtros";
   // Foto (ou câmera) dentro de uma caixa: o filtro de cor vai na caixa e a "pele suave" é uma cópia desfocada por cima.
   const fotoBox = el("div", "flash-fotobox");
   // Câmera do próprio app (como Instagram e TikTok)
   const camBox = el("div", "flash-cambox");
   const camVideo = document.createElement("video"); camVideo.className = "flash-cam"; camVideo.playsInline = true; camVideo.muted = true; camVideo.autoplay = true;
-  const camSuave = document.createElement("video"); camSuave.className = "flash-cam suave"; camSuave.playsInline = true; camSuave.muted = true; camSuave.autoplay = true; camSuave.setAttribute("aria-hidden", "true");
-  camBox.append(camVideo, camSuave);
+  // Com filtro, a câmera aparece já processada (um canvas desenhado a cada quadro): o que se vê é o que sai na foto.
+  const camTela = document.createElement("canvas"); camTela.className = "flash-cam tela"; camTela.setAttribute("aria-hidden", "true");
+  camBox.append(camVideo, camTela);
+  let quadroId = 0;
   const camUI = el("div", "flash-cam-ui");
   const tiraFiltros = el("div", "flash-filtros"); tiraFiltros.setAttribute("role", "listbox"); tiraFiltros.setAttribute("aria-label", "Filtros");
   const camLinha = el("div", "flash-cam-linha");
@@ -224,7 +247,7 @@ function abrirCriador() {
   const bVirar = el("button", "flash-cam-gal"); bVirar.type = "button"; bVirar.setAttribute("aria-label", "Virar a câmera"); bVirar.innerHTML = '<svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5A2.5 2.5 0 016.5 7h1.8l1.5-2h4.4l1.5 2h1.8A2.5 2.5 0 0120 9.5v7a2.5 2.5 0 01-2.5 2.5h-11A2.5 2.5 0 014 16.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 13.2a3 3 0 015-2.2M15 13a3 3 0 01-5 2.2M14 9.6V11h-1.4M10 16.4V15h1.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   camLinha.append(bCamGal, bDisparo, bVirar);
   camUI.append(tiraFiltros, camLinha);
-  const bLanterna = el("button", "flash-ferr-btn", "⚡"); bLanterna.type = "button"; bLanterna.setAttribute("aria-label", "Lanterna"); bLanterna.title = "Lanterna";
+  const bLanterna = el("button", "flash-ferr-btn"); bLanterna.appendChild(icone("raio-off", "i s")); bLanterna.type = "button"; bLanterna.setAttribute("aria-label", "Lanterna"); bLanterna.title = "Lanterna";
   const bTempo = el("button", "flash-ferr-btn tempo", "3s"); bTempo.type = "button"; bTempo.setAttribute("aria-label", "Esperar 3 segundos"); bTempo.title = "Temporizador";
   const contagemCam = el("div", "flash-contagem"); contagemCam.setAttribute("aria-live", "assertive");
   let comTempo = false, lanterna = false, filtrosAbertos = false;
@@ -267,9 +290,8 @@ function abrirCriador() {
       bTempo.classList.toggle("on", comTempo); bLanterna.classList.toggle("on", lanterna);
     } else if (foto || video) {
       if (foto) {
-        fotoBox.replaceChildren(img, img._suave);
         midiaBox.appendChild(fotoBox); posicionar(); pintarFiltroNaTela();
-        ferramentas.append(bAa, bFiltros, bTrocar);
+        ferramentas.append(bAa, bFig, bFiltros, bTrocar);
         bFiltros.classList.toggle("on", filtrosAbertos);
         if (filtrosAbertos) { pintarTira(); palco.appendChild(tiraFiltros); }
       } else { midiaBox.appendChild(video.el); ferramentas.append(bTrocar); }
@@ -291,7 +313,7 @@ function abrirCriador() {
   bVirar.addEventListener("click", () => { virada = !virada; lanterna = false; abrirCamera(); });
   bTempo.addEventListener("click", () => { comTempo = !comTempo; bTempo.classList.toggle("on", comTempo); toast(comTempo ? "Temporizador: 3 segundos" : "Temporizador desligado"); });
   bLanterna.addEventListener("click", async () => {
-    try { lanterna = !lanterna; await cam.stream.getVideoTracks()[0].applyConstraints({ advanced: [{ torch: lanterna }] }); bLanterna.classList.toggle("on", lanterna); }
+    try { lanterna = !lanterna; await cam.stream.getVideoTracks()[0].applyConstraints({ advanced: [{ torch: lanterna }] }); bLanterna.classList.toggle("on", lanterna); bLanterna.replaceChildren(icone(lanterna ? "raio" : "raio-off", "i s")); }
     catch { lanterna = false; toast("Este aparelho não deixa ligar a lanterna pelo site."); }
   });
   bDisparo.addEventListener("click", () => disparar());
@@ -299,6 +321,7 @@ function abrirCriador() {
   bGal.addEventListener("click", () => escolherArquivo(false));
   bTrocar.addEventListener("click", () => escolherArquivo(false));
   bAa.addEventListener("click", () => editarTexto(null));
+  bFig.addEventListener("click", () => abrirFigurinhas());
 
   // ---------- foto: arrastar e pinça direto no cartão ----------
   const medidas = () => { const r = palco.getBoundingClientRect(); return { W: r.width, H: r.height }; };
@@ -351,6 +374,15 @@ function abrirCriador() {
     const e = t.el;
     e.textContent = t.texto;
     e.style.left = t.x * 100 + "%"; e.style.top = t.y * 100 + "%";
+    if (t.fig) {
+      const es = EST_FIG[t.estilo];
+      e.className = `flash-txt flash-fig fig-${t.fig}`;
+      e.style.font = `${t.fig === "hora" ? 800 : 750} ${Math.round(t.tam * W)}px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
+      e.style.color = es.cor;
+      e.style.background = Array.isArray(es.fundo) ? `linear-gradient(135deg, ${es.fundo[0]}, ${es.fundo[1]})` : es.fundo;
+      e.style.boxShadow = es.borda ? `inset 0 0 0 1.5px ${es.borda}` : "0 4px 14px rgba(0,0,0,.25)";
+      return;
+    }
     e.style.font = LETRAS[t.letra].css.replace("1em", Math.round(t.tam * W) + "px");
     e.style.color = t.destaque ? (clara(t.cor) ? "#111" : "#fff") : t.cor;
     e.style.background = t.destaque ? t.cor : "transparent";
@@ -379,12 +411,51 @@ function abrirCriador() {
       if (!p0) return;
       p0 = null; palco.classList.remove("arrastando-txt"); guias.querySelector(".v").classList.remove("on");
       if (lixo.classList.contains("sobre")) { lixo.classList.remove("sobre"); e.remove(); textos.splice(textos.indexOf(t), 1); navigator.vibrate?.(12); return; }
-      if (!mexeu && ev.type === "pointerup") editarTexto(t);
+      if (!mexeu && ev.type === "pointerup") { if (t.fig) { t.estilo = (t.estilo + 1) % EST_FIG.length; pintarTexto(t); } else editarTexto(t); }
     };
     e.addEventListener("pointerup", fim);
     e.addEventListener("pointercancel", fim);
     e.addEventListener("keydown", (ev) => { if (ev.key === "Enter") editarTexto(t); });
   }
+  // Painel de figurinhas: Horário, Data e Localização (a do perfil; dá para mudar).
+  function abrirFigurinhas() {
+    palco.querySelector(".flash-figs")?.remove();
+    const pn = el("div", "flash-figs");
+    const cab = el("div", "fe-cab"); const ok = el("button", "fe-pronto", "Fechar"); ok.type = "button";
+    cab.append(el("strong", "figs-tit", "Figurinhas"), el("span", "esp"), ok);
+    const grade = el("div", "figs-grade");
+    const localPerfil = [dados.bairro, nomeCidade(dados.cidade || dados.cidadeNome)].filter(Boolean).join(", ");
+    const opcoes = [["hora", "Horário"], ["data", "Data"], ["local", "Localização"]];
+    opcoes.forEach(([fig, rot]) => {
+      const b = el("button", "fig-op"); b.type = "button";
+      const amostra = el("span", `flash-fig fig-${fig} amostra-fig`, textoFigurinha(fig, localPerfil));
+      b.append(amostra, el("small", null, rot));
+      b.addEventListener("click", () => {
+        if (fig === "local") { escolherLocal(localPerfil); return; }
+        pn.remove(); colocarFig(fig, textoFigurinha(fig));
+      });
+      grade.appendChild(b);
+    });
+    ok.addEventListener("click", () => pn.remove());
+    pn.append(cab, grade, el("p", "figs-dica", "Toque na figurinha para trocar o estilo · arraste até a lixeira para tirar"));
+    palco.appendChild(pn);
+    function escolherLocal(sugestao) {
+      grade.replaceChildren();
+      const inp = el("input", "fe-local"); inp.type = "text"; inp.maxLength = 40; inp.value = sugestao || ""; inp.placeholder = "Bairro, cidade ou lugar"; inp.setAttribute("aria-label", "Localização");
+      const usar = el("button", "fe-pronto", "Colocar"); usar.type = "button";
+      const linha = el("div", "fe-linha-local"); linha.append(inp, usar);
+      grade.appendChild(linha);
+      const colocar = () => { const v = inp.value.trim(); if (!v) { inp.focus(); return; } pn.remove(); colocarFig("local", "📍 " + v.slice(0, 40)); };
+      usar.addEventListener("click", colocar);
+      inp.addEventListener("keydown", (e) => { if (e.key === "Enter") colocar(); });
+      setTimeout(() => inp.focus(), 50);
+    }
+  }
+  function colocarFig(fig, texto) {
+    const y = 0.22 + (textos.filter((t) => t.fig).length % 4) * 0.1;
+    criarTexto({ fig, texto, estilo: 0, x: 0.5, y, tam: fig === "hora" ? 0.11 : 0.055, letra: 0, cor: "#fff", destaque: false });
+  }
+
   // Janela de escrever (por cima do cartão): cor, letra, destaque e tamanho.
   function editarTexto(t) {
     const novo = !t;
@@ -429,24 +500,74 @@ function abrirCriador() {
   }
 
   // ---------- filtros ----------
+  // Foto: processada uma vez por filtro (tamanho de tela) e guardada; a câmera é processada ao vivo.
   function pintarFiltroNaTela() {
-    const css = cssFiltro(filtro);
-    // Desfoque da "pele suave" na prévia, proporcional ao tamanho do cartão (o mesmo que vai na foto).
-    const { W } = medidas(), borrao = Math.max(2, W / 120).toFixed(1);
-    fotoBox.style.filter = css; camBox.style.filter = css;
-    [img?._suave, camSuave].forEach((x) => { if (!x) return; x.style.opacity = filtro.suave ? String(filtro.suave) : "0"; x.style.filter = `blur(${borrao}px)`; });
     palco.dataset.filtro = filtro.id;
+    if (cam) { ligarQuadros(); return; }
+    if (!img) return;
+    const c = fotoFiltrada.get(filtro.id);
+    if (c) { fotoBox.replaceChildren(c); return; }
+    // Processa depois de mostrar o "carregando" (no celular leva uma fração de segundo).
+    if (!fotoBox.children.length) { const o = imagemFiltrada(img, FILTROS[0], { max: 1100 }); o.className = "flash-foto"; fotoFiltrada.set("original", o); fotoBox.replaceChildren(o); }
+    const f = filtro, alvo = img;
+    palco.classList.add("processando");
+    requestAnimationFrame(() => setTimeout(() => {
+      if (alvo !== img) return;
+      const n = imagemFiltrada(img, f, { max: 1100 }); n.className = "flash-foto";
+      fotoFiltrada.set(f.id, n);
+      if (filtro === f) fotoBox.replaceChildren(n);
+      palco.classList.remove("processando");
+    }, 0));
+  }
+  // Câmera com filtro: cada quadro do vídeo vai para um canvas pequeno e passa pelo filtro.
+  function ligarQuadros() {
+    cancelAnimationFrame(quadroId);
+    const com = !semFiltro(filtro);
+    camBox.classList.toggle("filtrada", com);
+    if (!com) return;
+    const desenhar = () => {
+      if (!cam || semFiltro(filtro) || !fundo.isConnected) return;
+      quadroId = requestAnimationFrame(desenhar);
+      const vw = camVideo.videoWidth, vh = camVideo.videoHeight;
+      if (!vw || !vh) return;
+      const { W, H } = medidas();
+      const k = Math.min(1, 380 / W), cw = Math.round(W * k), ch = Math.round(H * k);
+      if (camTela.width !== cw || camTela.height !== ch) { camTela.width = cw; camTela.height = ch; }
+      const g = camTela.getContext("2d", { willReadFrequently: true });
+      const esc = Math.max(cw / vw, ch / vh);
+      // (a selfie já aparece espelhada pela caixa inteira, como o vídeo)
+      g.drawImage(camVideo, (cw - vw * esc) / 2, (ch - vh * esc) / 2, vw * esc, vh * esc);
+      aplicarFiltro(camTela, filtro);
+    };
+    desenhar();
+  }
+  // Amostras das bolinhas: a própria foto (ou um quadro da câmera) com cada filtro, como no Instagram.
+  let amostraBase = null;
+  function pegarAmostra() {
+    const fonte = img || (cam && camVideo.videoWidth ? camVideo : null);
+    if (!fonte) return null;
+    const fw = fonte.naturalWidth || fonte.videoWidth, fh = fonte.naturalHeight || fonte.videoHeight;
+    const c = document.createElement("canvas"); c.width = c.height = 96;
+    const lado = Math.min(fw, fh), g = c.getContext("2d");
+    g.drawImage(fonte, (fw - lado) / 2, (fh - lado) / 2, lado, lado, 0, 0, 96, 96);
+    return c;
   }
   function pintarTira() {
+    amostraBase = pegarAmostra() || amostraBase;
     tiraFiltros.replaceChildren(...FILTROS.map((f) => {
       const b = el("button", "flash-filtro" + (f.id === filtro.id ? " on" : "")); b.type = "button"; b.setAttribute("role", "option"); b.setAttribute("aria-selected", String(f.id === filtro.id));
-      const amostra = el("span", "amostra"); amostra.style.filter = cssFiltro(f);
-      if (foto) amostra.style.backgroundImage = `url("${foto}")`;
+      const amostra = el("span", "amostra");
+      if (amostraBase) {
+        const c = document.createElement("canvas"); c.width = c.height = 96;
+        c.getContext("2d").drawImage(amostraBase, 0, 0);
+        aplicarFiltro(c, f);
+        amostra.appendChild(c);
+      }
       b.append(amostra, el("small", null, f.nome));
       b.addEventListener("click", () => escolherFiltro(f));
       return b;
     }));
-    tiraFiltros.querySelector(".on")?.scrollIntoView?.({ inline: "center", block: "nearest" });
+    requestAnimationFrame(() => { const on = tiraFiltros.querySelector(".on"); if (on) tiraFiltros.scrollLeft = on.offsetLeft - tiraFiltros.clientWidth / 2 + on.clientWidth / 2; });
   }
   function escolherFiltro(f) {
     filtro = f;
@@ -473,10 +594,12 @@ function abrirCriador() {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: virada ? "user" : "environment", width: { ideal: 1920 }, height: { ideal: 1080 } } });
       if (!fundo.isConnected) { stream.getTracks().forEach((t) => t.stop()); return; }
       cam = { stream };
-      camVideo.srcObject = stream; camSuave.srcObject = stream;
+      camVideo.srcObject = stream;
       camBox.classList.toggle("espelho", virada);
-      camVideo.play().catch(() => {}); camSuave.play().catch(() => {});
+      camVideo.play().catch(() => {});
       modo = "foto"; pintar();
+      // Quando o primeiro quadro chega: amostras reais nas bolinhas dos filtros.
+      camVideo.addEventListener("loadeddata", () => { if (cam) pintarTira(); }, { once: true });
     } catch (e) {
       cam = null;
       toast(e?.name === "NotAllowedError" ? "Sem permissão para a câmera. Abrindo a câmera do celular." : "Não foi possível abrir a câmera aqui. Abrindo a câmera do celular.");
@@ -486,7 +609,8 @@ function abrirCriador() {
   function pararCamera() {
     if (!cam) return;
     cam.stream.getTracks().forEach((t) => t.stop());
-    camVideo.srcObject = null; camSuave.srcObject = null;
+    cancelAnimationFrame(quadroId);
+    camVideo.srcObject = null;
     cam = null; lanterna = false;
   }
   async function disparar() {
@@ -513,10 +637,9 @@ function abrirCriador() {
   async function usarFoto(url) {
     const im = new Image(); im.className = "flash-foto"; im.alt = "Foto do flash"; im.draggable = false;
     await new Promise((ok, erro) => { im.onload = ok; im.onerror = () => erro(new Error("Não foi possível abrir esta foto. Tente JPG ou PNG.")); im.src = url; });
-    const suave = new Image(); suave.className = "flash-foto suave"; suave.alt = ""; suave.draggable = false; suave.src = url;
-    im._suave = suave;
     if (foto) URL.revokeObjectURL(foto);
     foto = url; img = im; video = null; z = 1; ox = 0; oy = 0;
+    fotoFiltrada.clear(); amostraBase = null; fotoBox.replaceChildren();
     modo = "foto"; pintar();
   }
 
@@ -569,10 +692,25 @@ function abrirCriador() {
     g.fillStyle = "#000"; g.fillRect(0, 0, OW, OH);
     g.imageSmoothingQuality = "high";
     const s = base() * z * k, w = img.naturalWidth * s, h = img.naturalHeight * s;
-    g.drawImage(img, OW / 2 + ox * k - w / 2, OH / 2 + oy * k - h / 2, w, h);
-    aplicarFiltro(c, filtro);
+    // A foto vai com o filtro em tamanho cheio (a prévia usa uma cópia menor, processada do mesmo jeito).
+    const fonte = semFiltro(filtro) ? img : imagemFiltrada(img, filtro, { max: 2200 });
+    g.drawImage(fonte, OW / 2 + ox * k - w / 2, OH / 2 + oy * k - h / 2, w, h);
     textos.forEach((t) => {
       const px = Math.round(t.tam * OW);
+      if (t.fig) {
+        const es = EST_FIG[t.estilo];
+        g.font = `${t.fig === "hora" ? 800 : 750} ${px}px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
+        g.textAlign = "center"; g.textBaseline = "middle";
+        const x = t.x * OW, y = t.y * OH, lw = g.measureText(t.texto).width + px * 0.9, lh = px * 1.5;
+        if (Array.isArray(es.fundo)) { const gr = g.createLinearGradient(x - lw / 2, y - lh / 2, x + lw / 2, y + lh / 2); gr.addColorStop(0, es.fundo[0]); gr.addColorStop(1, es.fundo[1]); g.fillStyle = gr; }
+        else g.fillStyle = es.fundo;
+        g.shadowColor = es.borda ? "transparent" : "rgba(0,0,0,.25)"; g.shadowBlur = es.borda ? 0 : px * 0.4; g.shadowOffsetY = es.borda ? 0 : px * 0.1;
+        g.beginPath(); (g.roundRect ? g.roundRect(x - lw / 2, y - lh / 2, lw, lh, px * 0.32) : g.rect(x - lw / 2, y - lh / 2, lw, lh)); g.fill();
+        g.shadowBlur = 0; g.shadowOffsetY = 0;
+        if (es.borda) { g.strokeStyle = es.borda; g.lineWidth = Math.max(2, px * 0.05); g.stroke(); }
+        g.fillStyle = es.cor; g.fillText(t.texto, x, y + px * 0.04);
+        return;
+      }
       g.font = LETRAS[t.letra].css.replace("1em", px + "px");
       g.textAlign = "center"; g.textBaseline = "middle";
       const linhas = t.texto.split("\n");
@@ -690,7 +828,8 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null } = {}) {
   const bMais = el("button", "story-btn"); bMais.type = "button"; bMais.setAttribute("aria-label", "Opções"); bMais.appendChild(icone("pontos", "i s"));
   const bX = el("button", "story-btn"); bX.type = "button"; bX.setAttribute("aria-label", "Fechar"); bX.appendChild(icone("fechar", "i s"));
   const quem = el("div", "story-quem"); const txtQuem = el("div");
-  const linhaNome = el("div", "story-nome"); linhaNome.append(nome, el("span", "story-chip", "⚡ Flash"));
+  const chip = el("span", "story-chip"); chip.append(icone("raio", "i xs"), document.createTextNode("Flash"));
+  const linhaNome = el("div", "story-nome"); linhaNome.append(nome, chip);
   txtQuem.append(linhaNome, quando); quem.append(av, txtQuem);
   topo.append(quem, bSom, bMais, bX);
   const palco = el("div", "story-palco");

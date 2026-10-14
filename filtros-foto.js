@@ -1,109 +1,121 @@
 // =====================================================
-// Filtros de foto (Flash): os mesmos na prévia (CSS) e na foto gravada (canvas).
-// - Cor: brilho, contraste, saturação, sépia, preto e branco e matiz, como no CSS.
-//   Onde o canvas não aceita "filter" (Safari antigo), a mesma conta é feita pixel a pixel
-//   com uma matriz só (todas essas operações são lineares).
-// - "Pele suave": uma cópia desfocada por cima, bem leve, que suaviza manchas e poros
-//   sem apagar olhos e contornos (desfoque por redução, funciona em qualquer navegador).
+// Filtros de foto do Flash (como os apps de câmera): processados pixel a pixel no canvas,
+// então a prévia ao vivo e a foto gravada são exatamente iguais, em qualquer navegador.
+//
+// Etapas (cada filtro liga as que precisa):
+//  1. beleza   – pele lisa: mistura uma cópia bem desfocada SÓ onde é pele (tom de pele em YCbCr)
+//                e onde não há contorno (olhos, sobrancelhas, boca e cabelo continuam nítidos)
+//  2. nitidez  – "HD": realça os detalhes finos (máscara de nitidez na luminância)
+//  3. brilho   – glow suave nas partes claras (luz de estúdio)
+//  4. exposição, temperatura (quente/frio), contraste, saturação
+//  5. desbotado (pretos levantados, como filme), tons de cinema (sombras azuladas, luzes douradas)
+//  6. preto e branco e vinheta (cantos um pouco mais escuros)
 // =====================================================
 export const FILTROS = [
-  { id: "normal", nome: "Normal" },
-  { id: "suave", nome: "Pele suave", b: 1.05, c: 0.96, s: 1.04, suave: 0.42 },
-  { id: "luz", nome: "Luz", b: 1.12, c: 1.04, s: 1.06 },
-  { id: "vivido", nome: "Vívido", c: 1.12, s: 1.38 },
-  { id: "quente", nome: "Quente", b: 1.03, s: 1.18, sep: 0.22 },
-  { id: "frio", nome: "Frio", b: 1.02, c: 1.03, s: 0.92, h: -12 },
-  { id: "retro", nome: "Retrô", b: 1.05, c: 0.94, s: 0.85, sep: 0.45 },
-  { id: "pb", nome: "P&B", c: 1.12, g: 1 }
+  { id: "original", nome: "Original" },
+  { id: "beleza", nome: "Beleza", beleza: 0.6, exp: 0.04, temp: 0.03, sat: 1.03, brilho: 0.08 },
+  { id: "beleza2", nome: "Beleza+", beleza: 0.9, exp: 0.07, temp: 0.04, sat: 1.02, cont: 0.97, brilho: 0.14 },
+  { id: "radiante", nome: "Radiante", beleza: 0.35, exp: 0.08, sat: 1.1, temp: 0.03, brilho: 0.28, cont: 1.02 },
+  { id: "hd", nome: "HD", nitidez: 0.75, cont: 1.07, sat: 1.1, vinheta: 0.12 },
+  { id: "dourado", nome: "Dourado", temp: 0.13, sat: 1.12, cont: 1.05, luzes: [255, 196, 120, 0.1], vinheta: 0.18, beleza: 0.25 },
+  { id: "brisa", nome: "Brisa", temp: -0.08, exp: 0.06, sat: 0.94, desbotado: 0.06, luzes: [200, 230, 255, 0.06] },
+  { id: "cinema", nome: "Cinema", cont: 1.12, sat: 1.04, sombras: [0, 110, 140, 0.16], luzes: [255, 170, 90, 0.12], vinheta: 0.3, nitidez: 0.25 },
+  { id: "retro", nome: "Retrô", desbotado: 0.14, temp: 0.08, sat: 0.8, cont: 0.95, sombras: [70, 40, 90, 0.08], vinheta: 0.25 },
+  { id: "pb", nome: "P&B", mono: true, cont: 1.16, nitidez: 0.35, vinheta: 0.15 }
 ];
 export const filtroPorId = (id) => FILTROS.find((f) => f.id === id) || FILTROS[0];
+export const semFiltro = (f) => !f || f.id === "original";
 
-// Texto do filtro em CSS (mesma ordem da conta do canvas).
-export function cssFiltro(f) {
-  if (!f || f.id === "normal") return "none";
-  const p = [];
-  if (f.b != null) p.push(`brightness(${f.b})`);
-  if (f.c != null) p.push(`contrast(${f.c})`);
-  if (f.s != null) p.push(`saturate(${f.s})`);
-  if (f.sep != null) p.push(`sepia(${f.sep})`);
-  if (f.g != null) p.push(`grayscale(${f.g})`);
-  if (f.h != null) p.push(`hue-rotate(${f.h}deg)`);
-  return p.join(" ") || "none";
-}
-
-let temFiltroCanvas = null;
-export function canvasAceitaFiltro() {
-  if (temFiltroCanvas != null) return temFiltroCanvas;
-  try { const g = document.createElement("canvas").getContext("2d"); g.filter = "blur(2px)"; temFiltroCanvas = g.filter === "blur(2px)"; }
-  catch { temFiltroCanvas = false; }
-  return temFiltroCanvas;
+// Cópia desfocada (redução e ampliação em 2 passos: macio e igual em todo navegador).
+function desfocar(fonte, w, h, fator) {
+  const pw = Math.max(4, Math.round(w / fator)), ph = Math.max(4, Math.round(h / fator));
+  const p = document.createElement("canvas"); p.width = pw; p.height = ph;
+  const gp = p.getContext("2d"); gp.imageSmoothingQuality = "high"; gp.drawImage(fonte, 0, 0, pw, ph);
+  const m = document.createElement("canvas"); m.width = Math.round(pw * 2.2); m.height = Math.round(ph * 2.2);
+  const gm = m.getContext("2d"); gm.imageSmoothingQuality = "high"; gm.drawImage(p, 0, 0, m.width, m.height);
+  const o = document.createElement("canvas"); o.width = w; o.height = h;
+  const go = o.getContext("2d", { willReadFrequently: true }); go.imageSmoothingQuality = "high"; go.drawImage(m, 0, 0, w, h);
+  return go.getImageData(0, 0, w, h).data;
 }
 
-// ---------- matriz de cor (afim: M·rgb + t), composta na ordem do CSS ----------
-const id3 = () => ({ m: [1, 0, 0, 0, 1, 0, 0, 0, 1], t: [0, 0, 0] });
-function compor(atual, a, off = [0, 0, 0]) { // aplica "a" depois de "atual"
-  const m = new Array(9), t = new Array(3);
-  for (let i = 0; i < 3; i++) {
-    for (let j = 0; j < 3; j++) m[i * 3 + j] = a[i * 3] * atual.m[j] + a[i * 3 + 1] * atual.m[3 + j] + a[i * 3 + 2] * atual.m[6 + j];
-    t[i] = a[i * 3] * atual.t[0] + a[i * 3 + 1] * atual.t[1] + a[i * 3 + 2] * atual.t[2] + off[i];
-  }
-  return { m, t };
-}
-const saturar = (s) => [0.213 + 0.787 * s, 0.715 - 0.715 * s, 0.072 - 0.072 * s, 0.213 - 0.213 * s, 0.715 + 0.285 * s, 0.072 - 0.072 * s, 0.213 - 0.213 * s, 0.715 - 0.715 * s, 0.072 + 0.928 * s];
-const sepia = (a) => { const k = 1 - a; return [0.393 + 0.607 * k, 0.769 - 0.769 * k, 0.189 - 0.189 * k, 0.349 - 0.349 * k, 0.686 + 0.314 * k, 0.168 - 0.168 * k, 0.272 - 0.272 * k, 0.534 - 0.534 * k, 0.131 + 0.869 * k]; };
-function matiz(graus) {
-  const r = (graus * Math.PI) / 180, c = Math.cos(r), s = Math.sin(r);
-  return [0.213 + c * 0.787 - s * 0.213, 0.715 - c * 0.715 - s * 0.715, 0.072 - c * 0.072 + s * 0.928,
-    0.213 - c * 0.213 + s * 0.143, 0.715 + c * 0.285 + s * 0.140, 0.072 - c * 0.072 - s * 0.283,
-    0.213 - c * 0.213 - s * 0.787, 0.715 - c * 0.715 + s * 0.715, 0.072 + c * 0.928 + s * 0.072];
-}
-function matrizDo(f) {
-  let x = id3();
-  if (f.b != null) x = compor(x, [f.b, 0, 0, 0, f.b, 0, 0, 0, f.b]);
-  if (f.c != null) { const o = (0.5 - 0.5 * f.c) * 255; x = compor(x, [f.c, 0, 0, 0, f.c, 0, 0, 0, f.c], [o, o, o]); }
-  if (f.s != null) x = compor(x, saturar(f.s));
-  if (f.sep != null) x = compor(x, sepia(f.sep));
-  if (f.g != null) x = compor(x, saturar(1 - f.g));
-  if (f.h != null) x = compor(x, matiz(f.h));
-  return x;
-}
-function corPixelAPixel(canvas, f) {
-  const g = canvas.getContext("2d");
-  const d = g.getImageData(0, 0, canvas.width, canvas.height), p = d.data;
-  const { m, t } = matrizDo(f);
-  for (let i = 0; i < p.length; i += 4) {
-    const r = p[i], gr = p[i + 1], b = p[i + 2];
-    p[i] = m[0] * r + m[1] * gr + m[2] * b + t[0];
-    p[i + 1] = m[3] * r + m[4] * gr + m[5] * b + t[1];
-    p[i + 2] = m[6] * r + m[7] * gr + m[8] * b + t[2];
-  }
-  g.putImageData(d, 0, 0);
-}
-// Desfoque por redução (rápido e igual em todo navegador).
-function desfocado(canvas, fator = 10) {
-  const w = Math.max(8, Math.round(canvas.width / fator)), h = Math.max(8, Math.round(canvas.height / fator));
-  const p = document.createElement("canvas"); p.width = w; p.height = h;
-  const gp = p.getContext("2d"); gp.imageSmoothingQuality = "high"; gp.drawImage(canvas, 0, 0, w, h);
-  // duas passadas deixam o desfoque mais macio (sem "quadradinhos")
-  const p2 = document.createElement("canvas"); p2.width = Math.round(w * 2.5); p2.height = Math.round(h * 2.5);
-  const g2 = p2.getContext("2d"); g2.imageSmoothingQuality = "high"; g2.drawImage(p, 0, 0, p2.width, p2.height);
-  return p2;
-}
-
-// Aplica o filtro no canvas inteiro (depois de desenhar a foto e antes dos textos).
+// Aplica o filtro no canvas inteiro (no lugar). Serve para a prévia (pequena) e para a foto final.
 export function aplicarFiltro(canvas, f) {
-  if (!f || f.id === "normal") return;
-  const g = canvas.getContext("2d");
-  const temCor = ["b", "c", "s", "sep", "g", "h"].some((k) => f[k] != null);
-  if (temCor) {
-    if (canvasAceitaFiltro()) {
-      const copia = document.createElement("canvas"); copia.width = canvas.width; copia.height = canvas.height;
-      copia.getContext("2d").drawImage(canvas, 0, 0);
-      g.save(); g.filter = cssFiltro(f); g.clearRect(0, 0, canvas.width, canvas.height); g.drawImage(copia, 0, 0); g.restore();
-    } else corPixelAPixel(canvas, f);
+  if (semFiltro(f)) return canvas;
+  const w = canvas.width, h = canvas.height;
+  const g = canvas.getContext("2d", { willReadFrequently: true });
+  const img = g.getImageData(0, 0, w, h), p = img.data;
+  const lado = Math.max(w, h);
+  // Desfoque grande (pele/brilho) proporcional ao tamanho; pequeno para a nitidez.
+  const grande = f.beleza || f.brilho ? desfocar(canvas, w, h, Math.max(4, lado / 90)) : null;
+  const pequeno = f.nitidez ? desfocar(canvas, w, h, Math.max(1.6, lado / 640)) : null;
+  const beleza = f.beleza || 0, nit = f.nitidez || 0, brilho = f.brilho || 0;
+  const exp = 1 + (f.exp || 0), temp = f.temp || 0, cont = f.cont ?? 1, sat = f.sat ?? 1;
+  const desb = (f.desbotado || 0) * 255;
+  const [sr, sg, sb, sa] = f.sombras || [0, 0, 0, 0];
+  const [lr, lg, lb, la] = f.luzes || [0, 0, 0, 0];
+  const vin = f.vinheta || 0, cx = w / 2, cy = h / 2, raio2 = cx * cx + cy * cy;
+  const mono = !!f.mono;
+  for (let y = 0, i = 0; y < h; y++) {
+    const dy = (y - cy) * (y - cy);
+    for (let x = 0; x < w; x++, i += 4) {
+      let r = p[i], gr = p[i + 1], b = p[i + 2];
+      // 1) pele lisa: só onde é pele e onde não há contorno
+      if (beleza) {
+        const R = grande[i], G = grande[i + 1], B = grande[i + 2];
+        const cb = 128 - 0.168736 * r - 0.331264 * gr + 0.5 * b;
+        const cr = 128 + 0.5 * r - 0.418688 * gr - 0.081312 * b;
+        // tom de pele (faixa larga e suave: vale para todos os tons)
+        const pele = Math.max(0, 1 - Math.max(0, Math.abs(cb - 108) - 14) / 14) * Math.max(0, 1 - Math.max(0, Math.abs(cr - 152) - 16) / 14);
+        if (pele > 0) {
+          const det = Math.abs((r + gr + b) - (R + G + B)) / 3; // detalhe local
+          const liso = Math.max(0, 1 - det / 26);
+          const a = beleza * pele * liso * liso;
+          r += (R - r) * a; gr += (G - gr) * a; b += (B - b) * a;
+          // um pouco mais de luz na pele (aparência descansada)
+          const l = 1 + 0.05 * beleza * pele; r *= l; gr *= l; b *= l;
+        }
+      }
+      // 2) nitidez (HD): realça o detalhe fino da luminância
+      if (nit) {
+        const lum = 0.299 * r + 0.587 * gr + 0.114 * b;
+        const lumB = 0.299 * pequeno[i] + 0.587 * pequeno[i + 1] + 0.114 * pequeno[i + 2];
+        const d = (lum - lumB) * nit * 1.6;
+        r += d; gr += d; b += d;
+      }
+      // 3) brilho suave (screen com a cópia desfocada)
+      if (brilho) {
+        r = 255 - (255 - r) * (255 - grande[i] * brilho) / 255;
+        gr = 255 - (255 - gr) * (255 - grande[i + 1] * brilho) / 255;
+        b = 255 - (255 - b) * (255 - grande[i + 2] * brilho) / 255;
+      }
+      // 4) exposição, temperatura, contraste, saturação
+      r *= exp * (1 + temp); gr *= exp * (1 + temp * 0.15); b *= exp * (1 - temp);
+      if (cont !== 1) { r = (r - 128) * cont + 128; gr = (gr - 128) * cont + 128; b = (b - 128) * cont + 128; }
+      let lum = 0.299 * r + 0.587 * gr + 0.114 * b;
+      if (mono) { r = gr = b = lum; }
+      else if (sat !== 1) { r = lum + (r - lum) * sat; gr = lum + (gr - lum) * sat; b = lum + (b - lum) * sat; }
+      // 5) desbotado e tons de cinema
+      if (desb) { r = desb + r * (1 - desb / 255); gr = desb + gr * (1 - desb / 255); b = desb + b * (1 - desb / 255); }
+      if (sa || la) {
+        const t = Math.min(1, Math.max(0, lum / 255));
+        const ks = sa * (1 - t) * (1 - t), kl = la * t * t;
+        r += (sr - r) * ks + (lr - r) * kl; gr += (sg - gr) * ks + (lg - gr) * kl; b += (sb - b) * ks + (lb - b) * kl;
+      }
+      // 6) vinheta
+      if (vin) { const v = 1 - vin * ((x - cx) * (x - cx) + dy) / raio2; r *= v; gr *= v; b *= v; }
+      p[i] = r; p[i + 1] = gr; p[i + 2] = b; // Uint8ClampedArray já limita entre 0 e 255
+    }
   }
-  if (f.suave) {
-    const borrado = desfocado(canvas, 11);
-    g.save(); g.globalAlpha = f.suave; g.imageSmoothingQuality = "high"; g.drawImage(borrado, 0, 0, canvas.width, canvas.height); g.restore();
-  }
+  g.putImageData(img, 0, 0);
+  return canvas;
+}
+
+// Copia uma imagem/vídeo para um canvas novo (com tamanho máximo) e aplica o filtro.
+export function imagemFiltrada(fonte, f, { max = 1440, larg, alt } = {}) {
+  const fw = larg || fonte.naturalWidth || fonte.videoWidth || fonte.width, fh = alt || fonte.naturalHeight || fonte.videoHeight || fonte.height;
+  const k = Math.min(1, max / Math.max(fw, fh));
+  const c = document.createElement("canvas"); c.width = Math.round(fw * k); c.height = Math.round(fh * k);
+  const g = c.getContext("2d", { willReadFrequently: true }); g.imageSmoothingQuality = "high";
+  g.drawImage(fonte, 0, 0, c.width, c.height);
+  return aplicarFiltro(c, f);
 }
