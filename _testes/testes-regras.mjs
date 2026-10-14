@@ -331,6 +331,38 @@ await semRegras(async (db) => { await setDoc(doc(db, "curtidas", "pSumiu_ana"), 
 await t("estrelas: nota de publicação que já não existe sai sem resumo (limpeza de conta)", () => assertSucceeds(deleteDoc(doc(ctx("ana"), "curtidas", "pSumiu_ana"))));
 await t("diário: salvar publicação fica na própria conta", () => assertSucceeds(setDoc(doc(ctx("bia"), "usuarios", "bia"), { salvos: ["p1"] }, { merge: true })));
 
+// Comentários: quem pode comentar, comentário fixado e reações.
+await semRegras(async (db) => {
+  await setDoc(doc(db, "diario", "pCom"), { autorId: "dono", nome: "Dono", texto: "post", criadoEm: antigo });
+  await setDoc(doc(db, "relacoes", "bia_dono"), { tipo: "seguir", seguidorId: "bia", alvoId: "dono" });   // bia segue o dono
+  await setDoc(doc(db, "relacoes", "edu_dono"), { tipo: "seguir", seguidorId: "edu", alvoId: "dono" });   // edu segue o dono...
+  await setDoc(doc(db, "relacoes", "dono_edu"), { tipo: "seguir", seguidorId: "dono", alvoId: "edu" });   // ...e o dono segue o edu
+  for (const u of ["ana", "bia", "edu", "dono"]) await setDoc(doc(db, "ritmo", u), { inicio: Timestamp.now(), msg: 0, pub: 0, com: 0, parc: 0 });
+});
+async function comentar(quem, id, extra = {}) {
+  const db = ctx(quem), b = writeBatch(db);
+  b.set(doc(db, "comentarios", id), { postId: "pCom", postAutorId: "dono", autorId: quem, nome: quem, foto: "", texto: "oi", criadoEm: serverTimestamp(), ...extra });
+  b.set(doc(db, "ritmo", quem), { com: increment(1), ultimaEm: serverTimestamp(), ultimoTipo: "com" }, { merge: true });
+  return b.commit();
+}
+await t("comentários: todos podem comentar (padrão)", () => assertSucceeds(comentar("ana", "c1")));
+await t("comentários: o dono escolhe 'só seguidores'", () => assertSucceeds(updateDoc(doc(ctx("dono"), "diario", "pCom"), { quemComenta: "seguidores" })));
+await t("comentários: quem não segue não comenta", () => assertFails(comentar("ana", "c2")));
+await t("comentários: seguidor comenta", () => assertSucceeds(comentar("bia", "c3")));
+await t("comentários: o dono sempre comenta", () => assertSucceeds(comentar("dono", "c4")));
+await t("comentários: 'seguidores que você segue' recusa quem só segue", async () => { await assertSucceeds(updateDoc(doc(ctx("dono"), "diario", "pCom"), { quemComenta: "mutuos" })); await assertFails(comentar("bia", "c5")); });
+await t("comentários: 'seguidores que você segue' aceita seguidor seguido de volta", () => assertSucceeds(comentar("edu", "c6")));
+await t("comentários: 'ninguém' fecha os comentários", async () => { await assertSucceeds(updateDoc(doc(ctx("dono"), "diario", "pCom"), { quemComenta: "ninguem" })); await assertFails(comentar("edu", "c7")); });
+await t("comentários: valor estranho é recusado", () => assertFails(updateDoc(doc(ctx("dono"), "diario", "pCom"), { quemComenta: "amigos" })));
+await t("comentários: outra pessoa não muda a regra", () => assertFails(updateDoc(doc(ctx("ana"), "diario", "pCom"), { quemComenta: "todos" })));
+await t("comentários: o dono fixa e tira o fixado", async () => { await assertSucceeds(updateDoc(doc(ctx("dono"), "diario", "pCom"), { comentarioFixo: "c3" })); await assertSucceeds(updateDoc(doc(ctx("dono"), "diario", "pCom"), { comentarioFixo: null })); });
+await t("comentários: o dono apaga comentário de outra pessoa", () => assertSucceeds(deleteDoc(doc(ctx("dono"), "comentarios", "c1"))));
+await t("reações: reage com emoji", () => assertSucceeds(setDoc(doc(ctx("ana"), "curtidas_comentarios", "c3_ana"), { comentarioId: "c3", uid: "ana", reacao: "😂", criadoEm: serverTimestamp() })));
+await t("reações: troca o emoji", () => assertSucceeds(updateDoc(doc(ctx("ana"), "curtidas_comentarios", "c3_ana"), { reacao: "❤️" })));
+await t("reações: emoji fora da lista é recusado", () => assertFails(updateDoc(doc(ctx("ana"), "curtidas_comentarios", "c3_ana"), { reacao: "💩" })));
+await t("reações: não troca a reação de outra pessoa", () => assertFails(updateDoc(doc(ctx("bia"), "curtidas_comentarios", "c3_ana"), { reacao: "👍" })));
+await t("reações: curtida antiga (sem emoji) continua valendo", () => assertSucceeds(setDoc(doc(ctx("bia"), "curtidas_comentarios", "c3_bia"), { comentarioId: "c3", uid: "bia", criadoEm: serverTimestamp() })));
+
 // ---------- resultado ----------
 for (const r of resultados) console.log(r[0] === "ok" ? "  ✔" : "  ✘", r[1], r[2] ? "→ " + r[2] : "");
 console.log(`\n${ok} passaram, ${falhou} falharam (${arquivo})`);

@@ -1188,7 +1188,8 @@
       servicos: { nome: "Freelances", cor: "#00adee" },
       delivery: { nome: "Delivery", cor: "#ff7a1a" },
       lojinha: { nome: "Lojinha", cor: "#b066ff" },
-      imoveis: { nome: "Imóveis", cor: "#2fbf71" }
+      imoveis: { nome: "Imóveis", cor: "#2fbf71" },
+      publicacao: { nome: "Publicação", cor: "#f5b301" }
     };
     const reais = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
     // Lista do pedido (itens, unidades e total) dentro do cartão.
@@ -1557,6 +1558,7 @@
         const so = m.cartao.solicitacao;
         return `Orçamento: ${(Array.isArray(so.servicos) && so.servicos.length ? so.servicos.join(", ") : "serviço")}${so.quando?.tipo === "urgente" ? " · Urgente" : ""}`;
       }
+      if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "publicacao") return `Publicação: ${m.cartao?.titulo || ""}`.trim();
       if (m.tipoArquivo === "cartao") return `Interesse: ${m.cartao?.titulo || "portfólio"}`;
       return m.arquivoUrl ? "Arquivo" : "";
     }
@@ -2541,7 +2543,7 @@
         bolha.style.setProperty("--assunto", ASSUNTOS[tipo].cor);
         const ehPedido = Array.isArray(c.pedido?.itens) && c.pedido.itens.length;
         const ehOrc = !!(c.solicitacao && typeof c.solicitacao === "object");
-        const href = /^(servicos|delivery|shopping|imoveis)\.html\?[\w=&%.-]+$/.test(String(c.link || "")) ? c.link : "#";
+        const href = /^((servicos|delivery|shopping|imoveis)\.html|usuarios\.html)\?[\w=&%.-]+$/.test(String(c.link || "")) ? c.link : "#";
         // Pedido e orçamento mostram tudo na própria mensagem; só o rodapé leva ao perfil.
         const link = document.createElement(ehPedido || ehOrc ? "div" : "a");
         link.className = "cm-link";
@@ -2560,7 +2562,7 @@
         const ver = document.createElement(ehPedido || ehOrc ? "a" : "span");
         ver.className = "cm-ver";
         if (ehPedido || ehOrc) ver.href = href;
-        ver.textContent = ehPedido ? (tipo === "delivery" ? "Ver cardápio" : "Ver loja") : ehOrc ? "Ver perfil de serviços" : "Ver detalhes";
+        ver.textContent = ehPedido ? (tipo === "delivery" ? "Ver cardápio" : "Ver loja") : ehOrc ? "Ver perfil de serviços" : tipo === "publicacao" ? "Ver publicação" : "Ver detalhes";
         link.append(tx, ver);
         bolha.appendChild(link);
       }

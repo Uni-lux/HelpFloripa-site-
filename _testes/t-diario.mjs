@@ -45,7 +45,6 @@ ok(pub && Array.isArray(pub.midias) && pub.midias.length === 3 && pub.midias[0] 
 // 2) Bruno vê o carrossel, desliza, dá 5 estrelas com toque duplo e salva
 const pb = await entrar(B.ctx, "bruno", "feed.html");
 await pb.waitForSelector(".filtro-feed", { timeout: 30000 });
-await pb.locator('#filtroFeed [data-filtro="todos"]').tap();
 const card = pb.locator(".post-card", { hasText: "Obra pronta" }).first();
 await card.waitFor({ timeout: 20000 }); await card.scrollIntoViewIfNeeded(); await pb.waitForTimeout(1200);
 ok(await card.locator(".carrossel.varias img").count() === 3 && (await card.locator(".car-cont").textContent()) === "1/3", "feed: carrossel com 3 fotos e \"1/3\"");
@@ -53,29 +52,35 @@ await card.locator(".car-trilho").evaluate((t) => t.scrollTo({ left: t.clientWid
 await pb.waitForTimeout(400);
 ok((await card.locator(".car-cont").textContent()) === "2/3", "feed: deslizar mostra \"2/3\"");
 await pb.screenshot({ path: "saida/diario-carrossel.png" });
+// Toque duplo: contagem de estrelas. Tocar de novo para parar (a nota é onde parou).
 const box = await card.locator(".car-trilho").boundingBox();
-await pb.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2); await pb.waitForTimeout(120);
-await pb.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
-await pb.waitForTimeout(150);
-ok(await card.locator(".estrela-pulo").count() === 1, "toque duplo: estrela grande na foto");
+const meio = [box.x + box.width / 2, box.y + box.height / 2];
+await pb.touchscreen.tap(...meio); await pb.waitForTimeout(90); await pb.touchscreen.tap(...meio);
+await pb.waitForSelector(".post-card .contagem", { timeout: 3000 });
+await pb.waitForTimeout(1000);
+const acesas = await card.locator(".cont-linha span.acesa").count();
+await card.locator(".contagem").tap();
 await pb.waitForTimeout(1800);
-const tDbl = await card.locator(".estrelas-txt").textContent();
-ok(tDbl.includes("5,0") && tDbl.includes("1 nota") && await card.locator(".estrelas-linha .estrela.on.minha").count() === 5, "toque duplo: deu 5 estrelas → " + tDbl);
-await card.locator(".post-cab .icone-btn").tap();
-await pb.locator("#opcoesCorpo button", { hasText: "Salvar publicação" }).tap();
+const tPar = await card.locator(".estrelas-txt").textContent();
+ok(acesas >= 2 && acesas <= 4 && tPar.includes(`${acesas},0`) && await card.locator(".estrelas-linha .estrela.on.minha").count() === acesas, `toque duplo + tocar de novo: parou em ${acesas} → ${tPar}`);
 await pb.waitForTimeout(800);
-await pb.locator('#filtroFeed [data-filtro="salvos"]').tap();
+// Sem parar: chega na 5ª e as estrelas se juntam no meio.
+await pb.touchscreen.tap(...meio); await pb.waitForTimeout(90); await pb.touchscreen.tap(...meio);
+await pb.waitForSelector(".post-card .contagem.fundir", { timeout: 4000 }).catch(() => {});
+ok(await card.locator(".contagem.fundir .estrela-pulo").count() === 1, "na 5ª: as estrelas se juntam na estrela grande do meio");
+await pb.screenshot({ path: "saida/diario-fundir.png" });
 await pb.waitForTimeout(2000);
-ok(await pb.locator("#listaFeed .post-card", { hasText: "Obra pronta" }).count() === 1 && await pb.locator("#listaFeed .post-card").count() === 1, "Salvos: mostra só a publicação salva");
-await pb.reload(); await pb.waitForSelector("#listaFeed .post-card, #listaFeed .feed-vazio", { timeout: 30000 });
-await pb.locator('#filtroFeed [data-filtro="salvos"]').tap(); await pb.waitForTimeout(2000);
-ok(await pb.locator("#listaFeed .post-card", { hasText: "Obra pronta" }).count() === 1 && (await pb.locator("#filtroFeed [aria-pressed=true]").textContent()).includes("Salvos"), "Salvos: continua depois de recarregar");
-await pb.locator("#listaFeed .post-card .post-cab .icone-btn").first().dispatchEvent("click");
-await pb.waitForTimeout(600); console.log("menu:", await pb.locator("#opcoesCorpo button").allTextContents());
-await pb.locator("#opcoesCorpo button", { hasText: "Remover dos salvos" }).tap({ timeout: 5000 }); await pb.waitForTimeout(2500);
-console.log("depois de remover:", await pb.locator("#toast, .toast").allTextContents().catch(() => []), "| cards:", await pb.locator("#listaFeed .post-card").count(), "| filtro:", await pb.locator("#filtroFeed [aria-pressed=true]").textContent());
-ok(await pb.locator("#listaFeed .post-card").count() === 0, "Remover dos salvos: sai da lista");
-console.log("posts da Ana antes do passo 3:", (await db.collection("diario").where("autorId", "==", U.ana).get()).size);
+const tDbl = await card.locator(".estrelas-txt").textContent();
+ok(tDbl.includes("5,0") && tDbl.includes("1 nota") && await card.locator(".estrelas-linha .estrela.on.minha").count() === 5, "toque duplo até o fim: 5 estrelas → " + tDbl);
+// Salvar pelos comentários; aparece no Perfil → Salvos.
+await card.locator(".acoes-post .acao").first().tap();
+await pb.waitForSelector("#folhaComentarios.aberta .pub-acoes", { timeout: 8000 });
+await pb.locator("#folhaComentarios .pub-acao", { hasText: "Salvar" }).tap(); await pb.waitForTimeout(800);
+ok((await pb.locator("#folhaComentarios .pub-acao.on").textContent()).includes("Salvo"), "comentários: botão Salvar vira \"Salvo\"");
+await pb.goto(new URL("usuarios.html", pb.url()).href); await pb.waitForSelector("#abaSalvos", { timeout: 30000 }); await pb.waitForTimeout(1200);
+await pb.locator("#abaSalvos").tap(); await pb.waitForTimeout(2000);
+ok(await pb.locator("#gradeSalvos .tile").count() === 1, "Perfil → Salvos: mostra a publicação salva");
+ok(await pb.locator("#filtroFeed").count() === 0, "(perfil não tem o filtro do Diário)");
 // 3) Ana: quem deu estrelas + editar legenda
 await pa.reload(); await pa.waitForSelector(".filtro-feed", { timeout: 30000 }); await pa.waitForTimeout(1500);
 const meu = pa.locator(".post-card", { hasText: "Obra pronta" }).first();
@@ -108,6 +113,6 @@ await pa.goto(new URL("usuarios.html", pa.url()).href); await pa.waitForSelector
 ok(await pa.locator("#gradePosts .tile[data-fotos='3'] .marca-fotos").count() === 1, "perfil: miniatura com a marca de várias fotos");
 await pa.locator("#gradePosts .tile[data-fotos='3']").tap(); await pa.waitForTimeout(1200);
 ok(await pa.locator("#postMidia .carrossel.varias img").count() === 3, "perfil: publicação abre com as 3 fotos");
-ok(await pa.locator("#postSalvar").isHidden(), "perfil: na própria publicação não aparece Salvar");
+ok(await pa.locator("#postSocial .pub-acoes .pub-acao").count() === 3, "perfil: publicação aberta tem Salvar, Enviar e Compartilhar");
 await pa.screenshot({ path: "saida/diario-perfil.png" });
 await A.browser.close(); await B.browser.close();

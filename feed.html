@@ -23,9 +23,9 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="rede.css?v=10" />
+  <link rel="stylesheet" href="rede.css?v=11" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="feed.js?v=33"></script>
+  <script type="module" src="feed.js?v=34"></script>
 </head>
 <body>
   <header class="topo">
@@ -49,10 +49,8 @@
             <span class="txt">Compartilhe um trabalho, uma novidade ou uma dica...</span>
             <span class="acs"><svg class="i s"><use href="#i-imagem"/></svg></span>
           </button>
-          <div class="filtro-feed" id="filtroFeed" role="group" aria-label="Mostrar publicações de">
-            <button type="button" data-filtro="seguindo" aria-pressed="true">Quem eu sigo</button>
-            <button type="button" data-filtro="todos" aria-pressed="false">Todos</button>
-            <button type="button" data-filtro="salvos" aria-pressed="false"><svg class="i xs" aria-hidden="true"><use href="#i-salvo"/></svg>Salvos</button>
+          <div class="filtro-feed" id="filtroFeed">
+            <button type="button" id="filtroFeedBtn" class="filtro-escolha" aria-haspopup="dialog" title="Escolher o que mostrar no Diário"><svg class="i xs" aria-hidden="true"><use href="#i-estrela"/></svg><span id="filtroAtual">Principais</span><svg class="i xs seta" aria-hidden="true"><use href="#i-avancar"/></svg></button>
           </div>
           <div id="listaFeed"></div>
           <div style="text-align:center"><button type="button" class="btn sec" id="maisFeed" hidden>Ver mais publicações</button></div>

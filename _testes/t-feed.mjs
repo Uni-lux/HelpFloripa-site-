@@ -24,7 +24,6 @@ if (modo === "normal") await db.doc("diario_notas/p-alta").set({ total: 1, soma:
 const { browser, ctx } = await navegador({ mobile: true });
 const p = await entrar(ctx, "ana", "feed.html");
 await p.waitForSelector(".post-card .estrelas-txt", { timeout: 30000 }).catch(() => {});
-await p.locator(".filtro-feed button", { hasText: "Todos" }).click().catch(() => {});
 const card = p.locator(".post-card", { hasText: "Print de tela" }).first();
 await card.waitFor({ timeout: 20000 });
 await card.scrollIntoViewIfNeeded(); await p.waitForTimeout(1500);
@@ -47,8 +46,7 @@ ok(t.includes("4,0") && t.includes("2 notas") && await card.locator(".estrelas-l
   await p.screenshot({ path: "saida/estrelas-resumo.png" });
   await p.keyboard.press("Escape"); await p.waitForTimeout(300);
 }
-ok(await card.locator(".post-midia-f.cortada.alta").count() === 1 && await card.locator(".ver-inteira").isVisible(), "foto alta: mostra o começo e \"Ver inteira\"");
-await card.locator(".post-midia-f").click(); await p.waitForTimeout(300);
-ok(!(await card.locator(".ver-inteira").isVisible()), "tocou: abre inteira e o selo some");
+// Foto: no recorte da publicação; print bem alto fica em 4:5 mostrando o começo; sem "Ver inteira".
+ok(await card.locator(".post-midia-f.alta").count() === 1 && (await card.locator(".post-midia-f").evaluate((m) => m.style.getPropertyValue("--prop"))) === "0.8" && await card.locator(".ver-inteira").count() === 0, "foto alta: fica em 4:5, mostrando o começo, sem \"Ver inteira\"");
 await p.screenshot({ path: `saida/feed-${modo}.png` });
 await browser.close();
