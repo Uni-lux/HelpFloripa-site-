@@ -5,9 +5,12 @@ import { navegador, entrar, USUARIOS as U } from "./nav.mjs";
 const ok = (c, t) => console.log(c ? "  ✔" : "  ✘", t);
 initializeApp({ projectId: "demo-hf" }); const db = getFirestore();
 const agora = Date.now();
-const post = (id, autor, nome, texto, horas, tags = []) => db.doc(`diario/${id}`).set({ autorId: U[autor], nome, texto, tags, criadoEm: Timestamp.fromMillis(agora - horas * 3600e3) });
+const PX = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==";
+const post = (id, autor, nome, texto, horas, tags = [], foto = true) => db.doc(`diario/${id}`).set({ autorId: U[autor], nome, texto, tags, criadoEm: Timestamp.fromMillis(agora - horas * 3600e3), ...(foto ? { mediaUrl: PX } : {}) });
 // Bruno segue Ana. Edu e Fabi: ninguém segue. Mesmo engajamento (nenhum) para todos.
 await db.doc(`relacoes/${U.bruno}_${U.ana}`).set({ tipo: "seguir", seguidorId: U.bruno, alvoId: U.ana });
+// "Ativos recentemente" (sugestões do Explorar) vem de perfis_publicos.ultimoAcesso
+for (const [k, m] of [["edu", 1], ["fabi", 2], ["ana", 3]]) await db.doc(`perfis_publicos/${U[k]}`).set({ ultimoAcesso: Timestamp.fromMillis(agora - m * 60e3) }, { merge: true });
 await post("pEdu1", "edu", "Edu", "Bolo de cenoura #confeitaria", 2, ["confeitaria"]);
 await post("pFabi1", "fabi", "Fabi", "Pintura da sala", 2);
 await post("pAna1", "ana", "Ana Souza", "Novidade da Ana", 2);
@@ -29,7 +32,8 @@ const ordem = await pb.locator(".post-card .post-texto").allTextContents();
 console.log("    ordem:", ordem.join(" | "));
 const i = (t) => ordem.findIndex((x) => x.startsWith(t));
 ok(i("Bolo") === 0, "gosto: a publicação do autor/hashtag que ele curte vem primeiro (sem seguir)");
-ok(i("Novidade da Ana") >= 0 && i("Novidade da Ana") < i("Pintura") && i("Outra da Ana") < i("Muro"), "quem ele segue vem antes de quem ele não segue (mesmo engajamento)");
+const primeiraAna = Math.min(i("Novidade da Ana"), i("Outra da Ana")), primeiraFabi = Math.min(i("Pintura"), i("Muro"));
+ok(primeiraAna >= 0 && primeiraAna < primeiraFabi && i("Muro") === ordem.length - 1, "quem ele segue vem antes de quem ele não segue (mesmo engajamento)");
 const autores = await pb.locator(".post-card").evaluateAll((cs) => cs.map((c) => c.dataset.autor));
 ok(autores.every((a, k) => !k || a !== autores[k - 1]), "nunca duas seguidas do mesmo autor");
 await pb.locator("#filtroFeedBtn").tap(); await pb.waitForTimeout(400);
@@ -43,6 +47,15 @@ await pb.locator("#filtroFeedBtn").tap(); await pb.locator("#opcoesCorpo button"
 await pb.locator(".post-card", { hasText: "Pintura da sala" }).locator(".acao.salvar").tap(); await pb.waitForTimeout(1200);
 const g = await pb.evaluate(() => JSON.parse(localStorage.getItem("hf-gosto") || "{}"));
 ok((g.a?.[U.fabi]?.v || 0) >= 3, "salvar soma no gosto do autor → " + JSON.stringify(g.a?.[U.fabi]));
+// Explorar: busca no topo, Em alta, Destaques (mosaico) e Sugestões
+await pb.locator("#abasFeed [data-aba=explorar]").tap(); await pb.waitForTimeout(3000);
+ok((await pb.locator("#exploraTags").textContent()).includes("#confeitaria"), "Explorar → Em alta: #confeitaria");
+ok(await pb.locator("#exploraGrade .exp-tile").count() >= 3 && await pb.locator("#exploraGrade .exp-tile.grande").count() === 1, "Explorar → Destaques em mosaico (" + await pb.locator("#exploraGrade .exp-tile").count() + " fotos, a 1ª grande)");
+const sug = await pb.locator("#exploraSugestoes .exp-pessoa strong").allTextContents();
+ok(sug.length > 0 && !sug.some((n) => n.includes("Ana")), "Explorar → Sugestões só de quem ele não segue → " + sug.join(", ").slice(0, 80));
+await pb.screenshot({ path: "saida/explorar.png", fullPage: true });
+await pb.locator("#buscaPessoas").fill("edu"); await pb.waitForTimeout(1500);
+ok(await pb.locator("#exploraConteudo").isHidden() && (await pb.locator("#titPessoas").textContent()) === "Resultados", "buscando: esconde o resto e mostra só os resultados");
 // Perfil da Ana: anel do Flash em volta da foto; tocar abre o flash.
 await pb.goto(new URL(`usuarios.html?perfil=${U.ana}`, pb.url()).href);
 await pb.waitForSelector("#ppCabecalho .pf-anel.com-flash", { timeout: 20000 }).catch(() => {});

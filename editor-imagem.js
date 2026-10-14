@@ -14,61 +14,66 @@ const ESTILO_ID = "hf-editor-imagem-estilo";
 function injetarEstilo() {
   if (document.getElementById(ESTILO_ID)) return;
   const css = `
-  .hfe-fundo { position: fixed; inset: 0; z-index: 9000; background: rgba(4, 8, 11, .82); display: grid; place-items: center; padding: 16px; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
-  .hfe-caixa { width: min(620px, 100%); max-height: calc(100dvh - 32px); display: flex; flex-direction: column; background: var(--panel, #10181d); color: var(--text, #e9eef1); border: 1px solid var(--line, #22313a); border-radius: 20px; overflow-x: hidden; overflow-y: auto; box-shadow: 0 24px 80px rgba(0,0,0,.5); font-family: var(--font, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif); }
-  .hfe-topo { display: flex; align-items: center; gap: 8px; padding: 12px 12px 12px 18px; border-bottom: 1px solid var(--line, #22313a); }
-  .hfe-topo h2 { flex: 1; margin: 0; font-size: 17px; font-weight: 700; }
-  .hfe-dica { margin: 0; padding: 10px 18px 0; font-size: 12.5px; color: var(--muted, #8b9ba6); line-height: 1.45; }
-  .hfe-palco { position: relative; flex-shrink: 0; margin: 12px 18px 0; border-radius: 14px; overflow: hidden; background: repeating-conic-gradient(#1a2329 0 25%, #121a1f 0 50%) 0 0 / 22px 22px; touch-action: none; cursor: grab; user-select: none; }
+  .hfe-fundo { position: fixed; inset: 0; z-index: 9000; background: rgba(0, 0, 0, .78); display: grid; place-items: center; padding: 16px; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); animation: hfeEntra .2s ease-out; }
+  @keyframes hfeEntra { from { opacity: 0; } }
+  .hfe-caixa { width: min(560px, 100%); max-height: calc(100dvh - 32px); display: flex; flex-direction: column; background: #0b0f12; color: #f2f5f7; border: 1px solid rgba(255,255,255,.08); border-radius: 20px; overflow: hidden; box-shadow: 0 30px 90px rgba(0,0,0,.6); font-family: var(--font, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif); }
+  .hfe-topo { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; padding: 10px 10px; padding-top: calc(10px + env(safe-area-inset-top)); }
+  .hfe-topo h2 { margin: 0; font-size: 16px; font-weight: 750; letter-spacing: .01em; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hfe-topo .hfe-icone { justify-self: start; border: 0; }
+  .hfe-topo .hfe-btn.pri { justify-self: end; }
+  .hfe-palco { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; background: #000; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
   .hfe-palco:active { cursor: grabbing; }
   .hfe-palco canvas { display: block; width: 100%; height: 100%; }
-  .hfe-moldura { position: absolute; pointer-events: none; box-shadow: 0 0 0 9999px rgba(4, 8, 11, .62); border: 2px solid rgba(255,255,255,.95); }
+  .hfe-moldura { position: absolute; pointer-events: none; box-shadow: 0 0 0 9999px rgba(0, 0, 0, .72); outline: 1px solid rgba(255,255,255,.55); transition: box-shadow .25s, outline-color .25s; border-radius: 4px; }
+  .hfe-palco.movendo .hfe-moldura { box-shadow: 0 0 0 9999px rgba(0, 0, 0, .5); outline-color: rgba(255,255,255,.9); }
   .hfe-moldura.circulo { border-radius: 50%; }
-  .hfe-moldura::before, .hfe-moldura::after { content: ""; position: absolute; inset: 0; pointer-events: none; }
+  .hfe-moldura::before, .hfe-moldura::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; }
+  /* grade dos terços: só enquanto a pessoa mexe na foto */
   .hfe-moldura::before { background:
-      linear-gradient(to right, transparent calc(33.33% - .5px), rgba(255,255,255,.35) calc(33.33% - .5px), rgba(255,255,255,.35) calc(33.33% + .5px), transparent calc(33.33% + .5px), transparent calc(66.66% - .5px), rgba(255,255,255,.35) calc(66.66% - .5px), rgba(255,255,255,.35) calc(66.66% + .5px), transparent calc(66.66% + .5px)),
-      linear-gradient(to bottom, transparent calc(33.33% - .5px), rgba(255,255,255,.35) calc(33.33% - .5px), rgba(255,255,255,.35) calc(33.33% + .5px), transparent calc(33.33% + .5px), transparent calc(66.66% - .5px), rgba(255,255,255,.35) calc(66.66% - .5px), rgba(255,255,255,.35) calc(66.66% + .5px), transparent calc(66.66% + .5px));
+      linear-gradient(to right, transparent calc(33.33% - .5px), rgba(255,255,255,.4) calc(33.33% - .5px), rgba(255,255,255,.4) calc(33.33% + .5px), transparent calc(33.33% + .5px), transparent calc(66.66% - .5px), rgba(255,255,255,.4) calc(66.66% - .5px), rgba(255,255,255,.4) calc(66.66% + .5px), transparent calc(66.66% + .5px)),
+      linear-gradient(to bottom, transparent calc(33.33% - .5px), rgba(255,255,255,.4) calc(33.33% - .5px), rgba(255,255,255,.4) calc(33.33% + .5px), transparent calc(33.33% + .5px), transparent calc(66.66% - .5px), rgba(255,255,255,.4) calc(66.66% - .5px), rgba(255,255,255,.4) calc(66.66% + .5px), transparent calc(66.66% + .5px));
     opacity: 0; transition: opacity .2s; }
   .hfe-palco.movendo .hfe-moldura::before { opacity: 1; }
-  .hfe-moldura::after { inset: 7%; border: 1.5px dashed rgba(255,255,255,.8); border-radius: inherit; box-shadow: 0 0 0 1px rgba(0,0,0,.35); }
-  .hfe-margem { position: absolute; left: 7%; top: 7%; transform: translate(6px, 6px); padding: 2px 7px; border-radius: 6px; background: rgba(0,0,0,.6); color: #fff; font-size: 10.5px; font-weight: 700; pointer-events: none; white-space: nowrap; }
-  .hfe-moldura.circulo .hfe-margem { left: 50%; top: 7%; transform: translate(-50%, 6px); }
-  .hfe-canto { position: absolute; width: 18px; height: 18px; border-color: #fff; border-style: solid; pointer-events: none; }
-  .hfe-canto.a { left: -2px; top: -2px; border-width: 4px 0 0 4px; }
-  .hfe-canto.b { right: -2px; top: -2px; border-width: 4px 4px 0 0; }
-  .hfe-canto.c { left: -2px; bottom: -2px; border-width: 0 0 4px 4px; }
-  .hfe-canto.d { right: -2px; bottom: -2px; border-width: 0 4px 4px 0; }
-  .hfe-moldura.circulo .hfe-canto { display: none; }
-  .hfe-mini { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); border: 2px dotted #7de3ff; pointer-events: none; }
+  /* margem de segurança: aparece fraquinha ao mexer, como as guias do Instagram */
+  .hfe-moldura::after { inset: var(--margem, 6%); border: 1px dashed rgba(255,255,255,.7); opacity: 0; transition: opacity .2s; }
+  .hfe-palco.movendo .hfe-moldura::after { opacity: .75; }
+  /* faixas de cima e de baixo (vertical 9:16): onde ficam o nome e o campo de resposta */
+  .hfe-faixa { position: absolute; left: 0; right: 0; height: 13%; pointer-events: none; opacity: 0; transition: opacity .2s; display: grid; place-items: center; color: rgba(255,255,255,.9); font-size: 10.5px; font-weight: 750; letter-spacing: .03em; text-transform: uppercase; }
+  .hfe-faixa.cima { top: 0; background: linear-gradient(to bottom, rgba(0,0,0,.45), transparent); }
+  .hfe-faixa.baixo { bottom: 0; height: 16%; background: linear-gradient(to top, rgba(0,0,0,.45), transparent); }
+  .hfe-palco.movendo .hfe-faixa { opacity: 1; }
+  /* guias do meio: aparecem quando a foto fica centralizada (encaixa) */
+  .hfe-guia { position: absolute; background: #ff3d7f; opacity: 0; pointer-events: none; transition: opacity .12s; box-shadow: 0 0 4px rgba(255,61,127,.6); }
+  .hfe-guia.v { top: 0; bottom: 0; left: 50%; width: 1px; }
+  .hfe-guia.h { left: 0; right: 0; top: 50%; height: 1px; }
+  .hfe-guia.on { opacity: 1; }
+  .hfe-mini { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); border: 1.5px dotted #7de3ff; pointer-events: none; }
   .hfe-mini span { position: absolute; right: 4px; bottom: 4px; padding: 2px 6px; border-radius: 6px; background: rgba(0, 60, 80, .8); color: #fff; font-size: 10.5px; font-weight: 700; white-space: nowrap; }
-  @media (max-width: 640px) {
-    .hfe-fundo { padding: 0; }
-    .hfe-caixa { width: 100%; max-height: 100dvh; height: 100dvh; border-radius: 0; border: 0; }
-    .hfe-palco { margin: 10px 10px 0; }
-    .hfe-dica { font-size: 12px; padding: 8px 14px 0; }
-    .hfe-formatos, .hfe-legenda, .hfe-controles { padding-left: 14px; padding-right: 14px; }
-    .hfe-rodape { padding: 12px 14px calc(14px + env(safe-area-inset-bottom)); }
-  }
-  .hfe-legenda { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 8px 18px 0; font-size: 11.5px; color: var(--muted, #8b9ba6); }
-  .hfe-legenda i { display: inline-block; width: 18px; height: 0; vertical-align: middle; margin-right: 6px; border-top: 2px solid #fff; }
-  .hfe-legenda i.tr { border-top-style: dashed; }
-  .hfe-legenda i.mi { border-top: 2px dotted #7de3ff; }
   .hfe-rotulo { position: absolute; left: 50%; transform: translateX(-50%); bottom: 8px; padding: 4px 10px; border-radius: 999px; background: rgba(0,0,0,.6); color: #fff; font-size: 11.5px; font-weight: 600; white-space: nowrap; pointer-events: none; }
   .hfe-extra { position: absolute; pointer-events: none; }
   .hfe-extra.avatar-capa { width: 22%; aspect-ratio: 1; left: 5%; bottom: -11%; border-radius: 50%; border: 2px dashed rgba(255,255,255,.7); background: rgba(0,0,0,.35); }
-  .hfe-controles { display: flex; align-items: center; gap: 12px; padding: 14px 18px 4px; }
-  .hfe-controles input[type=range] { flex: 1; accent-color: var(--accent, #00adee); height: 28px; }
-  .hfe-icone { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line, #22313a); background: transparent; color: inherit; display: grid; place-items: center; cursor: pointer; flex-shrink: 0; }
-  .hfe-icone:hover { background: var(--hover, #1a262e); }
+  .hfe-dica { margin: 0; padding: 10px 18px 0; font-size: 12px; color: rgba(255,255,255,.6); line-height: 1.4; text-align: center; }
+  .hfe-formatos { display: flex; justify-content: center; gap: 4px; margin: 10px auto 0; padding: 4px; border-radius: 999px; background: rgba(255,255,255,.08); width: max-content; max-width: calc(100% - 24px); flex-wrap: wrap; }
+  .hfe-formatos[hidden] { display: none; }
+  .hfe-formatos button { border: 0; background: transparent; color: rgba(255,255,255,.75); border-radius: 999px; padding: 7px 14px; font: inherit; font-size: 12.5px; font-weight: 750; cursor: pointer; }
+  .hfe-formatos button.on { background: #fff; color: #0b0f12; }
+  .hfe-controles { display: flex; align-items: center; gap: 10px; padding: 10px 16px; padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
+  .hfe-controles input[type=range] { flex: 1; height: 28px; accent-color: #fff; background: transparent; }
+  .hfe-icone { width: 40px; height: 40px; border-radius: 50%; border: 0; background: rgba(255,255,255,.08); color: inherit; display: grid; place-items: center; cursor: pointer; flex-shrink: 0; transition: background .15s, transform .12s; }
+  .hfe-icone:hover { background: rgba(255,255,255,.16); }
+  .hfe-icone:active { transform: scale(.9); }
   .hfe-icone svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
-  .hfe-formatos { display: flex; gap: 6px; padding: 10px 18px 0; flex-wrap: wrap; }
-  .hfe-formatos button { border: 1px solid var(--line, #22313a); background: transparent; color: var(--muted, #8b9ba6); border-radius: 999px; padding: 6px 12px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
-  .hfe-formatos button.on { border-color: var(--accent, #00adee); color: var(--accent, #00adee); background: color-mix(in srgb, var(--accent, #00adee) 12%, transparent); }
-  .hfe-rodape { display: flex; gap: 10px; justify-content: flex-end; padding: 14px 18px 18px; }
-  .hfe-btn { border: 0; border-radius: 12px; padding: 11px 18px; font-weight: 700; font-size: 14px; cursor: pointer; }
-  .hfe-btn.sec { background: transparent; color: inherit; border: 1px solid var(--line, #22313a); }
+  .hfe-topo .hfe-icone { background: transparent; }
+  .hfe-btn { border: 0; border-radius: 999px; padding: 9px 18px; font: inherit; font-weight: 800; font-size: 14px; cursor: pointer; }
   .hfe-btn.pri { background: var(--accent, #00adee); color: var(--accent-ink, #001a24); }
   .hfe-btn:disabled { opacity: .6; cursor: default; }
+  .hfe-zoom-txt { min-width: 40px; text-align: right; font-size: 12px; font-weight: 750; color: rgba(255,255,255,.7); font-variant-numeric: tabular-nums; }
+  @media (max-width: 640px) {
+    .hfe-fundo { padding: 0; background: #000; }
+    .hfe-caixa { width: 100%; max-height: none; height: 100dvh; border-radius: 0; border: 0; background: #000; }
+  }
+  @media (min-width: 641px) { .hfe-palco { min-height: min(62vh, 560px); } }
+  @media (prefers-reduced-motion: reduce) { .hfe-fundo { animation: none; } }
   `;
   const style = document.createElement("style");
   style.id = ESTILO_ID;
@@ -134,30 +139,28 @@ export async function editarImagem(arquivo, op = {}) {
   fundo.innerHTML = `
     <div class="hfe-caixa">
       <div class="hfe-topo">
+        <button type="button" class="hfe-icone" data-acao="cancelar" aria-label="Cancelar">${svg('<path d="M6 6l12 12M18 6L6 18"/>')}</button>
         <h2></h2>
-        <button type="button" class="hfe-icone" data-acao="cancelar" aria-label="Fechar">${svg('<path d="M6 6l12 12M18 6L6 18"/>')}</button>
+        <button type="button" class="hfe-btn pri" data-acao="ok">Concluir</button>
       </div>
-      <p class="hfe-dica"></p>
-      <div class="hfe-formatos" hidden></div>
       <div class="hfe-palco">
         <canvas></canvas>
-        <div class="hfe-moldura"><span class="hfe-canto a"></span><span class="hfe-canto b"></span><span class="hfe-canto c"></span><span class="hfe-canto d"></span><span class="hfe-margem">Margem segura</span><div class="hfe-mini" hidden><span>Miniatura na grade</span></div><span class="hfe-rotulo"></span></div>
+        <div class="hfe-moldura"><span class="hfe-faixa cima" hidden>Nome e hora</span><span class="hfe-faixa baixo" hidden>Responder</span><span class="hfe-guia v"></span><span class="hfe-guia h"></span><div class="hfe-mini" hidden><span>Miniatura na grade</span></div><span class="hfe-rotulo"></span></div>
       </div>
-      <div class="hfe-legenda"><span><i></i>Borda: o que aparece</span><span><i class="tr"></i>Margem segura: deixe o importante aqui dentro</span><span class="lg-mini" hidden><i class="mi"></i>Recorte da miniatura no perfil</span></div>
+      <div class="hfe-formatos" hidden></div>
+      <p class="hfe-dica"></p>
       <div class="hfe-controles">
         <button type="button" class="hfe-icone" data-acao="menos" aria-label="Diminuir zoom">${svg('<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2M8 11h6"/>')}</button>
         <input type="range" min="1" max="4" step="0.01" value="1" aria-label="Zoom" />
+        <span class="hfe-zoom-txt">1,0×</span>
         <button type="button" class="hfe-icone" data-acao="mais" aria-label="Aumentar zoom">${svg('<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2M8 11h6M11 8v6"/>')}</button>
         <button type="button" class="hfe-icone" data-acao="girar" aria-label="Girar 90 graus">${svg('<path d="M20 11a8 8 0 10-2.3 5.7M20 4v7h-7"/>')}</button>
-      </div>
-      <div class="hfe-rodape">
-        <button type="button" class="hfe-btn sec" data-acao="cancelar">Cancelar</button>
-        <button type="button" class="hfe-btn pri" data-acao="ok">Usar foto</button>
       </div>
     </div>`;
   fundo.querySelector("h2").textContent = op.titulo || "Ajustar foto";
   const dica = fundo.querySelector(".hfe-dica");
-  dica.textContent = op.dica || "Arraste para posicionar e use o zoom. A área dentro da moldura é o que vai aparecer; a linha tracejada marca a margem de segurança.";
+  dica.textContent = op.dica || "Arraste para ajustar e use dois dedos (ou o zoom) para aproximar.";
+  if (op.botao) fundo.querySelector('[data-acao="ok"]').textContent = op.botao;
   const palco = fundo.querySelector(".hfe-palco");
   const canvas = palco.querySelector("canvas");
   const moldura = palco.querySelector(".hfe-moldura");
@@ -217,7 +220,6 @@ export async function editarImagem(arquivo, op = {}) {
     const m = op.miniatura;
     const mostra = !!m && Math.abs(m - proporcao) > 0.01;
     mini.hidden = !mostra;
-    fundo.querySelector(".lg-mini").hidden = !mostra;
     if (!mostra) return;
     // recorte central que a grade do perfil usa
     let w = fw, h = fw / m;
@@ -226,22 +228,26 @@ export async function editarImagem(arquivo, op = {}) {
     mini.style.height = h + "px";
   }
 
+  const zoomTxt = fundo.querySelector(".hfe-zoom-txt");
+  const faixas = moldura.querySelectorAll(".hfe-faixa");
+  const guiaV = moldura.querySelector(".hfe-guia.v"), guiaH = moldura.querySelector(".hfe-guia.h");
+  const pintarZoom = () => { zoomTxt.textContent = (escala / escalaMin).toFixed(1).replace(".", ",") + "×"; };
   function medir() {
-    const caixa = palco.parentElement;
-    const larguraDisp = palco.clientWidth || caixa.clientWidth - 20;
-    // Área grande para enxergar a margem; se não couber tudo, o editor rola.
-    const alturaMax = Math.max(300, Math.min(window.innerHeight * 0.64, 640));
-    W = larguraDisp;
-    H = Math.min(alturaMax, Math.max(260, W / Math.max(proporcao, 0.6) + 24));
-    fw = Math.min(W - 16, (H - 16) * proporcao);
+    // O palco ocupa o espaço que sobra na tela; a moldura é o maior recorte que cabe nele.
+    W = palco.clientWidth || 320;
+    H = palco.clientHeight || Math.max(300, Math.min(window.innerHeight * 0.62, 560));
+    const folga = W < 420 ? 12 : 24;
+    fw = Math.min(W - folga * 2, (H - folga * 2) * proporcao);
     fh = fw / proporcao;
-    palco.style.height = H + "px";
     canvas.width = Math.round(W * dpr);
     canvas.height = Math.round(H * dpr);
     moldura.style.width = fw + "px";
     moldura.style.height = fh + "px";
     moldura.style.left = (W - fw) / 2 + "px";
     moldura.style.top = (H - fh) / 2 + "px";
+    // Em pé (9:16): mostra onde ficam o nome em cima e o campo de resposta embaixo.
+    faixas.forEach((f) => { f.hidden = !(proporcao < 0.7 && !circulo); });
+    moldura.style.setProperty("--margem", proporcao < 0.7 ? "8% 6% 16%" : "6%");
     const zoomAtual = escalaMin ? escala / escalaMin : 1;
     escalaMin = Math.max(fw / fonte.width, fh / fonte.height);
     escala = escalaMin * Math.max(1, zoomAtual || 1);
@@ -249,6 +255,7 @@ export async function editarImagem(arquivo, op = {}) {
     limitar();
     desenhar();
     pintarMiniatura();
+    pintarZoom();
   }
 
   function aplicarZoom(novo, cx = W / 2, cy = H / 2) {
@@ -262,6 +269,7 @@ export async function editarImagem(arquivo, op = {}) {
     zoom.value = String(z);
     limitar();
     desenhar();
+    pintarZoom();
   }
 
   // Arrastar e pinça
@@ -285,6 +293,11 @@ export async function editarImagem(arquivo, op = {}) {
       ox += e.clientX - antes.x;
       oy += e.clientY - antes.y;
       limitar();
+      // Encaixa no meio (como as guias do Instagram) quando chega perto.
+      const nx = Math.abs(ox) < 6, ny = Math.abs(oy) < 6;
+      if (nx) ox = 0; if (ny) oy = 0;
+      guiaV.classList.toggle("on", nx && Math.max(0, (fonte.width * escala - fw) / 2) > 0);
+      guiaH.classList.toggle("on", ny && Math.max(0, (fonte.height * escala - fh) / 2) > 0);
       desenhar();
     } else if (ponteiros.size === 2 && distInicial) {
       const [a, b] = [...ponteiros.values()];
@@ -295,8 +308,10 @@ export async function editarImagem(arquivo, op = {}) {
   const soltar = (e) => {
     ponteiros.delete(e.pointerId);
     if (ponteiros.size < 2) distInicial = 0;
-    if (!ponteiros.size) palco.classList.remove("movendo");
+    if (!ponteiros.size) { palco.classList.remove("movendo"); guiaV.classList.remove("on"); guiaH.classList.remove("on"); }
   };
+  // Toque duplo: volta ao enquadramento inicial.
+  palco.addEventListener("dblclick", () => { ox = 0; oy = 0; aplicarZoom(1); });
   palco.addEventListener("pointerup", soltar);
   palco.addEventListener("pointercancel", soltar);
   palco.addEventListener("wheel", (e) => {

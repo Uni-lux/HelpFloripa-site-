@@ -75,7 +75,7 @@ await pb.waitForTimeout(2000);
 const tDbl = await card.locator(".estrelas-txt").textContent();
 ok(tDbl.includes("5,0") && tDbl.includes("1 nota") && await card.locator(".estrelas-linha .estrela.on.minha").count() === 5, "toque duplo até o fim: 5 estrelas → " + tDbl);
 // Barra da publicação (estilo Instagram): comentar, enviar, compartilhar e salvar.
-ok(await card.locator(".interacoes .acoes-post .acao").count() === 3 && await card.locator(".interacoes .acao.salvar").count() === 1, "publicação: comentar, enviar, compartilhar e salvar embaixo da foto");
+ok(await card.locator(".interacoes .acoes-post .acao").count() === 4 && (await card.locator(".interacoes .acoes-post .rot").allTextContents()).join("|") === "Comentar|Enviar|Compartilhar|Salvar", "publicação: Comentar · Enviar · Compartilhar · Salvar (ícone com o nome), embaixo da foto");
 await card.locator(".interacoes .acao.salvar").tap(); await pb.waitForTimeout(800);
 ok(await card.locator(".interacoes .acao.salvar.on[aria-pressed=true]").count() === 1, "salvar: o ícone fica preenchido");
 await card.screenshot({ path: "saida/diario-barra.png" });
