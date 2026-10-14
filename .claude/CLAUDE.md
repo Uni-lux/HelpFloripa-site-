@@ -6,6 +6,7 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
 ## Regras fixas do dono do projeto
 - Falar em **português**. Visual profissional e caprichado.
 - Trabalhar na branch indicada pela sessão, commit + push e **um PR por etapa**. Ele faz o merge.
+- **Sempre terminar a resposta com o link do PR** (abrir o PR assim que o trabalho estiver pronto e mandar o link no final).
 - **NUNCA** publicar, compartilhar ou commitar chave de conta de serviço do Firebase.
 - Não mudar o bloqueio/liberação do site sem ele pedir.
 - `.js` importados com `?v=N`: ao mudar um arquivo, aumentar o `?v=` em todos que o importam
