@@ -235,4 +235,4 @@
       allow read: if logado() && request.auth.uid == uid;
       allow read: if admin();
 
-// ===== FIM DA PARTE 5 DE 9 =====
+// ===== FIM DA PARTE 5 DE 10 =====

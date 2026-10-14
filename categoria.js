@@ -9,7 +9,7 @@ import { fotoSegura } from "./seguranca.js?v=1";
 import { definirPerfilMenu, definirBadgeMensagens } from "./menu.js?v=6";
 import { buscarReclamacoes } from "./avisos-reclamacoes.js?v=15";
 import { ouvirItensEquipe } from "./avisos-equipe.js?v=1";
-import "./painel-avisos.js?v=14"; // o sino abre o painel de notificações na própria página
+import "./painel-avisos.js?v=15"; // o sino abre o painel de notificações na própria página
 import "./chat-gaveta.js?v=1";
 import { docComValidade } from "./leituras.js?v=1"; // "Mensagens" abre as conversas por cima da página, sem sair dela
 
@@ -52,13 +52,15 @@ async function contarAvisos(fs, db, uid) {
     const visto = ms(usuario.exists() ? usuario.data().notificacoesVistasEm : null);
     const ler = (q) => fs.getDocs(fs.query(...q, fs.limit(60))).then((s) => s.docs.map((d) => d.data())).catch(() => []);
     const col = (n) => fs.collection(db, n);
-    const [seg, curt, com, resp, vin, recl] = await Promise.all([
+    const [seg, curt, com, resp, vin, recl, reac, marc] = await Promise.all([
       ler([col("relacoes"), fs.where("tipo", "==", "seguir"), fs.where("alvoId", "==", uid)]),
       ler([col("curtidas"), fs.where("postAutorId", "==", uid)]),
       ler([col("comentarios"), fs.where("postAutorId", "==", uid)]),
       ler([col("comentarios"), fs.where("respostaAutorId", "==", uid)]),
       ler([col("vinculos"), fs.where("participantes", "array-contains", uid)]),
-      buscarReclamacoes(fs, db, uid).catch(() => [])
+      buscarReclamacoes(fs, db, uid).catch(() => []),
+      ler([col("curtidas_comentarios"), fs.where("comentarioAutorId", "==", uid)]),
+      ler([col("diario"), fs.where("marcados", "array-contains", uid)])
     ]);
     const novo = (t) => t > visto;
     let n = seg.filter((x) => novo(ms(x.criadoEm))).length;
@@ -66,6 +68,8 @@ async function contarAvisos(fs, db, uid) {
     n += [...com, ...resp.filter((r) => r.postAutorId !== uid)].filter((x) => x.autorId !== uid && novo(ms(x.criadoEm))).length;
     n += vin.filter((v) => (v.status !== "aceito" && v.para === uid) || (v.status === "aceito" && v.de === uid && novo(ms(v.aceitoEm)))).length;
     n += recl.filter((x) => novo(x.quando)).length;
+    n += reac.filter((x) => x.uid !== uid && novo(ms(x.criadoEm))).length;
+    n += marc.filter((x) => x.autorId !== uid && novo(ms(x.criadoEm)) && (x.agendadoPara?.toMillis?.() ?? 0) <= Date.now()).length;
     const r = { n, visto, em: Date.now() };
     try { localStorage.setItem(chaveSino(uid), JSON.stringify(r)); } catch {}
     return r;

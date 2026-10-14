@@ -1782,7 +1782,8 @@ service cloud.firestore {
 
       allow create: if logado()
                     && emailOk()
-                    && request.resource.data.keys().hasOnly(['postId', 'uid', 'postAutorId', 'nota', 'criadoEm'])
+                    && request.resource.data.keys().hasOnly(['postId', 'uid', 'postAutorId', 'nota', 'criadoEm', 'origem'])
+                    && (!('origem' in request.resource.data) || request.resource.data.origem in ['principais', 'seguindo', 'amigos', 'perfil', 'link', 'tag', 'salvos'])
                     && request.resource.data.uid == request.auth.uid
                     && id == request.resource.data.postId + '_' + request.auth.uid
                     && exists(/databases/$(database)/documents/diario/$(request.resource.data.postId))
@@ -1805,6 +1806,64 @@ service cloud.firestore {
       allow delete: if logado() && resource.data.uid == request.auth.uid
                     && (resumoJunto(resource.data.postId)
                         || !exists(/databases/$(database)/documents/diario/$(resource.data.postId)));
+    }
+
+    // ===================================================
+    // SALVAMENTOS: salvamentos/{postId}_{uid} — só para o autor contar quantos salvaram (não vê quem).
+    // A lista de salvos de cada um continua em usuarios/{uid}.salvos (privada).
+    // ===================================================
+    match /salvamentos/{id} {
+      allow create: if logado()
+                    && request.resource.data.keys().hasOnly(['postId', 'uid', 'postAutorId', 'criadoEm'])
+                    && request.resource.data.uid == request.auth.uid
+                    && id == request.resource.data.postId + '_' + request.auth.uid
+                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
+                    && request.resource.data.criadoEm == request.time;
+      allow read: if logado() && (resource.data.uid == request.auth.uid || resource.data.postAutorId == request.auth.uid);
+      allow delete: if logado() && resource.data.uid == request.auth.uid;
+      allow update: if false;
+    }
+
+    // ===================================================
+    // STORIES (24 horas): stories/{id} — foto (no documento ou no Storage) ou vídeo (Storage).
+    // Somem para todos depois de 24 h (o site filtra; o autor apaga os vencidos). vistos/{uid}: quem viu.
+    // ===================================================
+    match /stories/{id} {
+      allow read: if logado();
+      allow create: if logado() && emailOk()
+                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'tipo', 'midia', 'texto', 'duracao', 'criadoEm'])
+                    && request.resource.data.autorId == request.auth.uid
+                    && request.resource.data.criadoEm == request.time
+                    && request.resource.data.tipo in ['imagem', 'video']
+                    && request.resource.data.midia is string
+                    && request.resource.data.midia.size() <= 950000
+                    && request.resource.data.midia.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*')
+                    && (request.resource.data.tipo == 'imagem' || request.resource.data.midia.matches('^https://firebasestorage[.]googleapis[.]com/.*'))
+                    && valorTextoAte(request.resource.data.get('texto', ''), 150)
+                    && valorTextoAte(request.resource.data.get('nome', ''), 80)
+                    && (!('duracao' in request.resource.data) || (request.resource.data.duracao is number && request.resource.data.duracao <= 60))
+                    && !sancionado(request.auth.uid);
+      allow delete: if logado() && (resource.data.autorId == request.auth.uid || podeModerar());
+      allow update: if false;
+      match /vistos/{uid} {
+        allow create: if logado() && uid == request.auth.uid
+                      && request.resource.data.keys().hasOnly(['criadoEm'])
+                      && request.resource.data.criadoEm == request.time;
+        allow read: if logado() && (uid == request.auth.uid
+                      || get(/databases/$(database)/documents/stories/$(id)).data.autorId == request.auth.uid);
+        allow update, delete: if false;
+      }
+    }
+
+    // ===================================================
+    // RASCUNHOS: rascunhos/{uid}/itens/{id} — só a própria pessoa (texto e fotos ainda não publicados).
+    // ===================================================
+    match /rascunhos/{uid}/itens/{id} {
+      allow read, delete: if logado() && uid == request.auth.uid;
+      allow create, update: if logado() && uid == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['texto', 'fotos', 'atualizadoEm'])
+                    && valorTextoAte(request.resource.data.get('texto', ''), 1000)
+                    && (!('fotos' in request.resource.data) || (request.resource.data.fotos is list && request.resource.data.fotos.size() <= 4));
     }
 
     // ===================================================
@@ -1924,7 +1983,10 @@ service cloud.firestore {
 
       allow create: if logado()
                     && emailOk()
-                    && request.resource.data.keys().hasOnly(['comentarioId', 'uid', 'criadoEm', 'reacao'])
+                    && request.resource.data.keys().hasOnly(['comentarioId', 'uid', 'criadoEm', 'reacao', 'comentarioAutorId'])
+                    // quem escreveu o comentário (para avisar da reação)
+                    && (!('comentarioAutorId' in request.resource.data)
+                        || request.resource.data.comentarioAutorId == get(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId)).data.autorId)
                     && request.resource.data.uid == request.auth.uid
                     && id == request.resource.data.comentarioId + '_' + request.auth.uid
                     && exists(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId))
@@ -1964,6 +2026,15 @@ service cloud.firestore {
                     && (d.midias.size() < 3 || fotoPubOk(d.midias[2]))
                     && (d.midias.size() < 4 || fotoPubOk(d.midias[3]))));
       }
+      // Hashtags (até 10, minúsculas, sem #) e pessoas marcadas (até 10 uids): uma expressão cada (join).
+      function tagsOk(d) {
+        return !('tags' in d) || (d.tags is list && d.tags.size() <= 10
+            && (d.tags.size() == 0 || d.tags.join(' ').matches('^[\\p{Ll}\\p{N}_]{1,30}( [\\p{Ll}\\p{N}_]{1,30}){0,9}$')));
+      }
+      function marcadosOk(d) {
+        return !('marcados' in d) || (d.marcados is list && d.marcados.size() <= 10
+            && (d.marcados.size() == 0 || d.marcados.join(' ').matches('^[A-Za-z0-9]{1,64}( [A-Za-z0-9]{1,64}){0,9}$')));
+      }
       function fotoPubOk(u) {
         return u is string && u.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*');
       }
@@ -1971,15 +2042,27 @@ service cloud.firestore {
       allow create: if logado()
                     && emailOk()
                     && request.resource.data.autorId == request.auth.uid
-                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'fotoPerfil', 'texto', 'mediaUrl', 'mediaTipo', 'midias', 'criadoEm'])
+                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'fotoPerfil', 'texto', 'mediaUrl', 'mediaTipo', 'midias', 'tags', 'marcados', 'agendadoPara', 'criadoEm'])
                     && ritmoOk('pub')
-                    && publicacaoOk();
+                    && publicacaoOk()
+                    && tagsOk(request.resource.data) && marcadosOk(request.resource.data)
+                    // agendada: aparece para os outros a partir de agendadoPara (até 60 dias)
+                    && (!('agendadoPara' in request.resource.data)
+                        || (request.resource.data.agendadoPara is timestamp
+                            && request.resource.data.agendadoPara > request.time
+                            && request.resource.data.agendadoPara < request.time + duration.value(60, 'd')));
 
       allow update: if logado()
                     && emailOk()
                     && resource.data.autorId == request.auth.uid
                     && request.resource.data.autorId == resource.data.autorId
-                    && gravou().hasOnly(['texto', 'nome', 'fotoPerfil', 'comentariosOcultos', 'ocultoAte', 'editadoEm', 'quemComenta', 'comentarioFixo'])
+                    && gravou().hasOnly(['texto', 'nome', 'fotoPerfil', 'comentariosOcultos', 'ocultoAte', 'editadoEm', 'quemComenta', 'comentarioFixo', 'tags', 'marcados', 'agendadoPara'])
+                    && tagsOk(request.resource.data) && marcadosOk(request.resource.data)
+                    // agendada: publicar agora (agendadoPara = agora) ou mudar a data (até 60 dias)
+                    && (!mudou().hasAny(['agendadoPara'])
+                        || (request.resource.data.agendadoPara is timestamp
+                            && request.resource.data.agendadoPara >= request.time
+                            && request.resource.data.agendadoPara < request.time + duration.value(60, 'd')))
                     // quem pode comentar: todos, seguidores, seguidores que o autor segue de volta, ninguém
                     && (!('quemComenta' in request.resource.data) || request.resource.data.quemComenta in ['todos', 'seguidores', 'mutuos', 'ninguem'])
                     // comentário fixado no topo (id) ou nulo
@@ -1995,6 +2078,16 @@ service cloud.firestore {
 
       allow delete: if logado()
                     && resource.data.autorId == request.auth.uid;
+
+      // Alcance: cada conta que viu a publicação (uma vez). Só o autor lista/conta.
+      match /vistas/{uid} {
+        allow create: if logado() && uid == request.auth.uid
+                      && request.resource.data.keys().hasOnly(['criadoEm', 'origem'])
+                      && request.resource.data.criadoEm == request.time
+                      && (!('origem' in request.resource.data) || request.resource.data.origem in ['principais', 'seguindo', 'amigos', 'perfil', 'link', 'tag', 'salvos']);
+        allow read: if logado() && get(/databases/$(database)/documents/diario/$(postId)).data.autorId == request.auth.uid;
+        allow update, delete: if false;
+      }
 
       // A equipe esconde ou remove publicações que violam os Termos.
       allow update: if podeModerar()

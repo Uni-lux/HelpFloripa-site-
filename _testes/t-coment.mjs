@@ -37,7 +37,7 @@ await pa.screenshot({ path: "saida/coment-reacao.png" });
 await pa.locator(".reacao-pop button", { hasText: "😂" }).click(); await pa.waitForTimeout(1200);
 ok((await pa.locator(".fio-coment.fixado .coment-reagir").first().textContent()).includes("😂") && (await pa.locator(".fio-coment.fixado .coment-reacoes").first().textContent()).includes("😂"), "reagiu com 😂");
 const rDoc = (await db.doc(`curtidas_comentarios/k1_${U.ana}`).get()).data();
-ok(rDoc?.reacao === "😂", "reação gravada: " + rDoc?.reacao);
+ok(rDoc?.reacao === "😂" && rDoc?.comentarioAutorId === U.edu, "reação gravada (com o autor do comentário, para o aviso): " + rDoc?.reacao);
 // enviar para amigos
 await pa.locator("#folhaComentarios .pub-acao", { hasText: "Enviar" }).tap();
 await pa.waitForSelector("#folhaLista.aberta", { timeout: 5000 }); await pa.waitForTimeout(1500);

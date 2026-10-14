@@ -14,7 +14,7 @@ import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=5";
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
 import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=15";
 import { ouvirItensEquipe, TEXTO_EQUIPE, linkEquipe } from "./avisos-equipe.js?v=1";
-import "./painel-avisos.js?v=14";
+import "./painel-avisos.js?v=15";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
 import { palavrasBusca } from "./pessoas.js?v=3"; // o sino abre o painel de notificações na própria página
 
@@ -27,6 +27,8 @@ const SIMBOLOS = `<symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l
 <symbol id="i-pessoa-menos" viewBox="0 0 24 24"><circle cx="10" cy="8.5" r="3.8"/><path d="M3.5 20c1-3.4 3.6-5.3 6.5-5.3 1.4 0 2.7.4 3.8 1.2M15 16h6"/></symbol>
 <symbol id="i-enviar" viewBox="0 0 24 24"><path d="M21 3.5L10.5 14M21 3.5l-6.5 17-4-6.5-6.5-4z"/></symbol>
 <symbol id="i-tacha" viewBox="0 0 24 24"><path d="M9 4h6l-1 6 3 3H7l3-3z"/><path d="M12 13v7"/></symbol>
+<symbol id="i-relogio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+<symbol id="i-rascunho" viewBox="0 0 24 24"><path d="M6 3.5h8l4 4v13H6z"/><path d="M14 3.5v4h4M9 13h6M9 16.5h4"/></symbol>
 <symbol id="i-salvo" viewBox="0 0 24 24"><path d="M6.5 4.5h11v15.5L12 16l-5.5 4z"/></symbol>
 <symbol id="i-fotos" viewBox="0 0 24 24"><rect x="7" y="7" width="13" height="13" rx="2.2"/><path d="M4 16V6.2A2.2 2.2 0 016.2 4H16"/></symbol>
 <symbol id="i-pontos" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="18.5" cy="12" r="1.3" fill="currentColor"/></symbol>
@@ -312,6 +314,19 @@ export let meusBloqueios = new Set();   // quem eu bloqueei
 export let bloqueadoPor = new Set();    // quem me bloqueou
 export let restritos = new Set();       // quem eu restringi
 export const escondido = (uid) => meusBloqueios.has(uid) || bloqueadoPor.has(uid);
+// Silenciados: continua seguindo, mas as publicações e os stories da pessoa não aparecem no Diário (usuarios.silenciados).
+export let silenciados = new Set();
+export const silenciado = (uid) => silenciados.has(uid);
+export async function alternarSilenciar(uid, nome = "") {
+  const ja = silenciados.has(uid);
+  try {
+    await fb.setDoc(refUsuario, { silenciados: ja ? fb.arrayRemove(uid) : fb.arrayUnion(uid) }, { merge: true });
+    if (ja) silenciados.delete(uid); else silenciados.add(uid);
+    dados.silenciados = [...silenciados];
+    toast(ja ? `${nome || "Pessoa"} voltou a aparecer no seu Diário` : `${nome || "Pessoa"} silenciada: você continua seguindo, mas não vê as publicações e os stories no Diário`);
+    return !ja;
+  } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); return ja; }
+}
 // Ganchos que cada página pode trocar.
 export const ganchos = {
   abrirPerfil: (uid) => { if (uid) location.href = uid === eu?.uid ? "usuarios.html" : `usuarios.html?perfil=${encodeURIComponent(uid)}`; },
@@ -426,6 +441,7 @@ export async function carregarPrivacidade() {
   meusBloqueios = new Set(meus ? meus.docs.map((d) => d.data().bloqueadoId) : []);
   bloqueadoPor = new Set(deles ? deles.docs.map((d) => d.data().bloqueadorId) : []);
   restritos = new Set(Array.isArray(dados.restritos) ? dados.restritos : []);
+  silenciados = new Set(Array.isArray(dados.silenciados) ? dados.silenciados : []);
 }
 export async function removerSeguidor(uid, nome) {
   if (!confirm(`Remover ${nome || "esta pessoa"} dos seus seguidores? Ela não será avisada.`)) return false;
@@ -632,6 +648,17 @@ export async function infoEstrelas(postId, { recarregar = false } = {}) {
   cacheEstrelas.set(postId, r);
   return r;
 }
+// De onde a pessoa está vendo (estatísticas do autor): principais, seguindo, amigos, perfil, link, tag, salvos.
+export let origemAtual = "perfil";
+export const definirOrigem = (o) => { origemAtual = o; };
+// Alcance: marca uma vez por publicação (no aparelho e no servidor) que esta conta viu.
+const vistasFeitas = new Set((() => { try { return JSON.parse(localStorage.getItem("hf-vistas") || "[]"); } catch { return []; } })());
+export function marcarVista(post) {
+  if (!post?.id || !eu || post.autorId === eu.uid || vistasFeitas.has(post.id)) return;
+  vistasFeitas.add(post.id);
+  try { localStorage.setItem("hf-vistas", JSON.stringify([...vistasFeitas].slice(-800))); } catch {}
+  fb.setDoc(fb.doc(fb.db, "diario", post.id, "vistas", eu.uid), { criadoEm: fb.serverTimestamp(), origem: origemAtual }).catch(() => {});
+}
 // Dá, troca ou tira (nota 0) as estrelas: a nota e o resumo da publicação mudam na mesma gravação.
 export async function darEstrelas(post, nota) {
   const ref = fb.doc(fb.db, "curtidas", `${post.id}_${eu.uid}`);
@@ -639,10 +666,10 @@ export async function darEstrelas(post, nota) {
   const velha = await fb.getDoc(ref).catch(() => null);
   const antes = velha?.exists() ? Number(velha.data().nota) || 0 : 0;
   if (antes === nota) return infoEstrelas(post.id, { recarregar: true });
-  const gravarNota = (lote) => {
+  const gravarNota = (lote, comOrigem = true) => {
     if (!nota) lote.delete(ref);
     else if (antes) lote.update(ref, { nota, atualizadoEm: fb.serverTimestamp() });
-    else lote.set(ref, { postId: post.id, uid: eu.uid, postAutorId: post.autorId, nota, criadoEm: fb.serverTimestamp() });
+    else lote.set(ref, { postId: post.id, uid: eu.uid, postAutorId: post.autorId, nota, criadoEm: fb.serverTimestamp(), ...(comOrigem ? { origem: origemAtual } : {}) });
   };
   const conta = { total: fb.increment((nota ? 1 : 0) - (antes ? 1 : 0)), soma: fb.increment(nota - antes) };
   if (antes) conta["n" + antes] = fb.increment(-1);
@@ -656,7 +683,7 @@ export async function darEstrelas(post, nota) {
     // Regras de antes no servidor (sem o resumo): grava só a nota, como era.
     if (e?.code !== "permission-denied") throw e;
     const lote = fb.writeBatch(fb.db);
-    gravarNota(lote);
+    gravarNota(lote, false);
     await lote.commit();
   }
   return infoEstrelas(post.id, { recarregar: true });
@@ -964,7 +991,10 @@ export async function alternarSalvo(post) {
   salvos = ja ? listaSalvos().filter((x) => x !== post.id) : [...listaSalvos(), post.id];
   try {
     await fb.setDoc(refUsuario, { salvos: ja ? fb.arrayRemove(post.id) : fb.arrayUnion(post.id) }, { merge: true });
-    toast(ja ? "Removida dos salvos" : "Publicação salva. Veja em Diário → Salvos.");
+    // Registro para o autor contar quantos salvaram (ele não vê quem). Sem as regras novas, só não conta.
+    const reg = fb.doc(fb.db, "salvamentos", `${post.id}_${eu.uid}`);
+    (ja ? fb.deleteDoc(reg) : fb.setDoc(reg, { postId: post.id, uid: eu.uid, postAutorId: post.autorId, criadoEm: fb.serverTimestamp() })).catch(() => {});
+    toast(ja ? "Removida dos salvos" : "Publicação salva. Veja no seu Perfil → Salvos.");
     return !ja;
   } catch (e) {
     salvos = ja ? [...listaSalvos(), post.id] : listaSalvos().filter((x) => x !== post.id);
@@ -1142,7 +1172,7 @@ export function montarComentarios(alvo, post, { aoMudar } = {}) {
         if (await precisaEmail()) return;
         try {
           if (antes) await fb.updateDoc(ref, { reacao: emoji });
-          else await fb.setDoc(ref, { comentarioId: c.id, uid: eu.uid, reacao: emoji, criadoEm: fb.serverTimestamp() });
+          else await fb.setDoc(ref, { comentarioId: c.id, uid: eu.uid, reacao: emoji, comentarioAutorId: c.autorId, criadoEm: fb.serverTimestamp() });
         } catch (e) {
           // Regras de antes: só curtida (sem emoji).
           if (e?.code !== "permission-denied" || antes) throw e;
@@ -1361,15 +1391,21 @@ export function abrirCompositor({ aoPublicar } = {}) {
       <div class="pub-autor"><div class="avatar" id="pubAvatar"></div><strong id="pubNome"></strong></div>
       <textarea class="pub-texto" id="pubTexto" maxlength="1000" placeholder="Compartilhe um trabalho, uma novidade ou uma dica..." aria-label="Texto da publicação"></textarea>
       <div class="pub-previa" id="pubPrevia" hidden></div>
+      <div class="pub-extras" id="pubMarcados" hidden></div>
+      <div class="pub-extras" id="pubAgenda" hidden></div>
       <div class="pub-ferramentas">
         <button type="button" class="icone-btn" id="pubFoto" aria-label="Adicionar foto (até 4)" title="Foto (até 4)"><svg class="i"><use href="#i-imagem"/></svg></button>
-        <button type="button" class="icone-btn" id="pubVideo" aria-label="Adicionar vídeo" title="Vídeo"><svg class="i"><use href="#i-video"/></svg></button>
+        <button type="button" class="icone-btn" id="pubVideo" aria-label="Adicionar vídeo curto (até 60 s)" title="Vídeo curto (até 60 s)"><svg class="i"><use href="#i-video"/></svg></button>
+        <button type="button" class="icone-btn" id="pubMarcar" aria-label="Marcar pessoas" title="Marcar pessoas"><svg class="i"><use href="#i-pessoa-mais"/></svg></button>
+        <button type="button" class="icone-btn" id="pubAgendar" aria-label="Agendar publicação" title="Agendar"><svg class="i"><use href="#i-relogio"/></svg></button>
+        <button type="button" class="icone-btn" id="pubRascunhos" aria-label="Rascunhos" title="Rascunhos"><svg class="i"><use href="#i-rascunho"/></svg></button>
         <span class="cont" id="pubCont">0/1000</span>
       </div>
+      <p class="pub-dica">Use <b>#hashtags</b> para aparecer nas buscas e <b>@nome</b> para mencionar.</p>
       <input type="file" id="pubArquivoFoto" accept="image/*" hidden />
       <input type="file" id="pubArquivoVideo" accept="video/*" hidden />`;
     $("r_folhaPublicar").innerHTML = `
-      <button type="button" class="btn sec" data-fechar>Cancelar</button>
+      <button type="button" class="btn sec" id="pubSalvarRascunho">Salvar rascunho</button>
       <button type="button" class="btn pri" id="pubEnviar">Publicar</button>`;
     ligarCompositor();
     f.addEventListener("fechada", () => { if (!$("pubEnviar").disabled) limparPublicacao(); });
@@ -1378,17 +1414,33 @@ export function abrirCompositor({ aoPublicar } = {}) {
   $("pubNome").textContent = dados.nome || "Você";
   $("pubVideo").hidden = !storageFns;
   $("folhaPublicar").aoPublicar = aoPublicar;
+  pintarExtras();
   abrirFolha("folhaPublicar");
 }
 // @usuário vira link para o perfil (o @ é procurado em nicknames/ ao clicar).
+// #hashtag: minúsculas, letras/números/_, até 30 (as mesmas das regras). Guardadas sem o # em diario.tags.
+export function tagsDoTexto(texto) {
+  const r = new Set();
+  for (const m of String(texto || "").matchAll(/(^|[^\p{L}\p{N}_#])#([\p{L}\p{N}_]{1,30})/gu)) r.add(m[2].toLowerCase());
+  return [...r].slice(0, 10);
+}
 export function comMencoes(alvo, texto) {
   alvo.replaceChildren();
-  const re = /(^|[^\w@])@([a-z0-9._]{3,20})/gi;
+  const re = /(^|[^\w@#])(?:@([a-z0-9._]{3,20})|#([\p{L}\p{N}_]{1,30}))/giu;
   let ultimo = 0, m;
   const t = String(texto || "");
   while ((m = re.exec(t))) {
     const ini = m.index + m[1].length;
     if (ini > ultimo) alvo.appendChild(document.createTextNode(t.slice(ultimo, ini)));
+    if (m[3]) {
+      const tag = m[3].toLowerCase();
+      const a = document.createElement("a");
+      a.href = `feed.html?tag=${encodeURIComponent(tag)}`; a.className = "hashtag"; a.textContent = "#" + m[3];
+      a.addEventListener("click", (e) => e.stopPropagation());
+      alvo.appendChild(a);
+      ultimo = ini + 1 + m[3].length;
+      continue;
+    }
     const nick = m[2].toLowerCase().replace(/\.+$/, "");
     const a = document.createElement("a");
     a.href = "#"; a.className = "mencao"; a.textContent = "@" + nick;
@@ -1459,13 +1511,134 @@ async function caberNoDocumento(fotos, limite = 860000) {
   }
   throw new Error("As fotos ficaram grandes demais juntas. Tente com menos fotos.");
 }
+// Extras da publicação: pessoas marcadas, data agendada e rascunho aberto.
+let pubMarcados = [], pubAgenda = null, pubRascunhoId = null;
+function pintarExtras() {
+  const m = $("pubMarcados");
+  m.replaceChildren();
+  m.hidden = !pubMarcados.length;
+  if (pubMarcados.length) {
+    m.appendChild(el("span", "rot", "Com:"));
+    pubMarcados.forEach((p, i) => {
+      const c = el("span", "chip-extra"); c.append(document.createTextNode(p.nome));
+      const x = el("button", null, "×"); x.type = "button"; x.setAttribute("aria-label", `Tirar ${p.nome}`);
+      x.addEventListener("click", () => { pubMarcados.splice(i, 1); pintarExtras(); });
+      c.appendChild(x); m.appendChild(c);
+    });
+  }
+  const a = $("pubAgenda");
+  a.replaceChildren();
+  a.hidden = !pubAgenda;
+  if (pubAgenda) {
+    const c = el("span", "chip-extra agenda"); c.append(icone("relogio", "i xs"), document.createTextNode(`Agendada para ${pubAgenda.toLocaleString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`));
+    const x = el("button", null, "×"); x.type = "button"; x.setAttribute("aria-label", "Tirar o agendamento");
+    x.addEventListener("click", () => { pubAgenda = null; pintarExtras(); });
+    c.appendChild(x); a.appendChild(c);
+  }
+  $("pubEnviar").textContent = pubAgenda ? "Agendar" : "Publicar";
+}
 function limparPublicacao() {
   $("pubTexto").value = "";
   $("pubCont").textContent = "0/1000";
   if (pubMidia?.previa?.startsWith("blob:")) URL.revokeObjectURL(pubMidia.previa);
   pubMidia = null;
+  pubMarcados = []; pubAgenda = null; pubRascunhoId = null;
   $("pubPrevia").hidden = true;
   $("pubPrevia").replaceChildren();
+  pintarExtras();
+}
+// Marcar pessoas (até 10): quem você segue primeiro; a busca procura qualquer pessoa.
+async function escolherMarcados() {
+  const corpo = abrirLista("Marcar pessoas");
+  const busca = el("input", "busca-enviar"); busca.type = "search"; busca.placeholder = "Buscar pessoas"; busca.setAttribute("aria-label", "Buscar pessoas");
+  const box = el("div");
+  corpo.append(busca, box);
+  const seguindo = await Promise.all([...meusSeguindo].filter((u) => !escondido(u)).slice(0, 60).map(async (u) => ({ uid: u, ...(await obterPerfil(u).catch(() => ({}))) })));
+  let tempo = null;
+  const pintar = (lista) => {
+    box.replaceChildren();
+    if (!lista.length) { box.appendChild(el("div", "lista-vazia", busca.value.trim() ? "Ninguém encontrado." : "Busque pelo nome ou @.")); return; }
+    lista.filter((p) => p.uid && p.uid !== eu.uid).forEach((p) => {
+      const ja = pubMarcados.some((x) => x.uid === p.uid);
+      box.appendChild(linhaPessoa({ uid: p.uid, nome: p.nome, foto: p.fotoPerfil || p.foto, sub: p.nickname ? "@" + p.nickname : "", semSeguir: true, aoClicar: () => {},
+        acoes: [{ rotulo: ja ? "Marcado ✓" : "Marcar", classe: ja ? "sec" : "pri", fn: (b) => {
+          const i = pubMarcados.findIndex((x) => x.uid === p.uid);
+          if (i >= 0) pubMarcados.splice(i, 1);
+          else { if (pubMarcados.length >= 10) { toast("No máximo 10 pessoas."); return; } pubMarcados.push({ uid: p.uid, nome: String(p.nome || "Usuário").split(" ")[0] }); }
+          const marcado = i < 0;
+          b.textContent = marcado ? "Marcado ✓" : "Marcar"; b.classList.toggle("pri", !marcado); b.classList.toggle("sec", marcado);
+          pintarExtras();
+        } }] }));
+    });
+  };
+  pintar(seguindo);
+  busca.addEventListener("input", () => {
+    clearTimeout(tempo);
+    const t = busca.value.trim();
+    if (!t) { pintar(seguindo); return; }
+    tempo = setTimeout(async () => {
+      const { buscarPessoas } = await import("./pessoas.js?v=3");
+      const achados = await buscarPessoas(fb, t, { limite: 20 }).catch(() => []);
+      pintar(achados.map((p) => ({ uid: p.uid, nome: p.nome, fotoPerfil: p.fotoPerfil, nickname: p.nickname })));
+    }, 250);
+  });
+}
+// Agendar: data e hora (de 10 minutos a 60 dias).
+function escolherAgenda() {
+  const corpo = abrirLista("Agendar publicação");
+  const minimo = new Date(Date.now() + 10 * 60000), maximo = new Date(Date.now() + 59 * 864e5);
+  const iso = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  const campo = el("input", "busca-enviar"); campo.type = "datetime-local"; campo.min = iso(minimo); campo.max = iso(maximo);
+  campo.value = iso(pubAgenda || new Date(Date.now() + 3600e3)); campo.setAttribute("aria-label", "Data e hora da publicação");
+  const ok = el("button", "btn pri", "Agendar"); ok.type = "button";
+  const nota = el("p", "pub-dica", "A publicação aparece para todos na hora escolhida. Até lá, só você vê (no seu perfil, marcada como agendada).");
+  ok.addEventListener("click", () => {
+    const d = new Date(campo.value);
+    if (!(d > minimo - 60000 && d < maximo)) { toast("Escolha de 10 minutos a 59 dias a partir de agora."); return; }
+    pubAgenda = d; pintarExtras(); fecharFolha("folhaLista");
+  });
+  corpo.append(campo, nota, ok);
+}
+// Rascunhos: rascunhos/{uid}/itens (texto e fotos; só você vê).
+async function salvarRascunho() {
+  const texto = $("pubTexto").value.trim();
+  const fotos = pubMidia?.tipo === "image" ? pubMidia.fotos.slice(0, MAX_FOTOS) : [];
+  if (!texto && !fotos.length) { toast("Escreva algo ou adicione uma foto para salvar o rascunho."); return; }
+  const b = $("pubSalvarRascunho"); b.disabled = true;
+  try {
+    const cabem = fotos.length ? await caberNoDocumento(fotos, 860000) : [];
+    const ref = pubRascunhoId ? fb.doc(fb.db, "rascunhos", eu.uid, "itens", pubRascunhoId) : fb.doc(fb.collection(fb.db, "rascunhos", eu.uid, "itens"));
+    await fb.setDoc(ref, { texto, fotos: cabem, atualizadoEm: fb.serverTimestamp() });
+    pubRascunhoId = ref.id;
+    toast("Rascunho salvo. Abra em Rascunhos (ícone de folha) quando quiser.");
+  } catch (e) { toast(e?.code === "permission-denied" ? "Rascunhos começam a funcionar quando as regras novas forem publicadas." : "Não foi possível salvar: " + erroAmigavel(e)); }
+  finally { b.disabled = false; }
+}
+async function abrirRascunhos() {
+  const corpo = abrirLista("Rascunhos");
+  corpo.appendChild(el("div", "lista-vazia", "Carregando..."));
+  try {
+    const s = await fb.getDocs(fb.query(fb.collection(fb.db, "rascunhos", eu.uid, "itens"), fb.limit(30)));
+    const itens = s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => ms(b.atualizadoEm) - ms(a.atualizadoEm));
+    corpo.replaceChildren();
+    if (!itens.length) { corpo.appendChild(el("div", "lista-vazia", "Nenhum rascunho. Use \"Salvar rascunho\" para guardar uma publicação e terminar depois.")); return; }
+    itens.forEach((r) => {
+      const l = el("div", "rascunho");
+      const th = el("div", "th"); if (r.fotos?.[0]) th.style.backgroundImage = `url("${r.fotos[0]}")`; else th.appendChild(icone("rascunho", "i"));
+      const tx = el("div", "tx"); tx.append(el("strong", null, (r.texto || "Sem texto").slice(0, 80)), el("small", null, `${r.fotos?.length ? r.fotos.length + " foto(s) · " : ""}${tempoRelativo(paraData(r.atualizadoEm))}`));
+      const abrir = el("button", "btn pri mini", "Abrir"); abrir.type = "button";
+      const apagar = el("button", "icone-btn"); apagar.type = "button"; apagar.setAttribute("aria-label", "Apagar rascunho"); apagar.appendChild(icone("lixo", "i s"));
+      abrir.addEventListener("click", () => {
+        $("pubTexto").value = r.texto || ""; $("pubCont").textContent = `${(r.texto || "").length}/1000`;
+        pubMidia = r.fotos?.length ? { tipo: "image", fotos: [...r.fotos] } : null;
+        pubRascunhoId = r.id;
+        mostrarPreviaPublicacao(); fecharFolha("folhaLista");
+      });
+      apagar.addEventListener("click", async () => { if (!confirm("Apagar este rascunho?")) return; await fb.deleteDoc(fb.doc(fb.db, "rascunhos", eu.uid, "itens", r.id)).catch(() => {}); l.remove(); if (pubRascunhoId === r.id) pubRascunhoId = null; });
+      l.append(th, tx, abrir, apagar);
+      corpo.appendChild(l);
+    });
+  } catch (e) { corpo.replaceChildren(el("div", "lista-vazia", e?.code === "permission-denied" ? "Rascunhos começam a funcionar quando as regras novas forem publicadas." : "Não foi possível abrir: " + erroAmigavel(e))); }
 }
 export const MAX_FOTOS = 4;
 function mostrarPreviaPublicacao() {
@@ -1507,6 +1680,10 @@ function ligarCompositor() {
   $("pubTexto").addEventListener("input", () => { $("pubCont").textContent = `${$("pubTexto").value.length}/1000`; });
   $("pubFoto").addEventListener("click", () => $("pubArquivoFoto").click());
   $("pubVideo").addEventListener("click", () => $("pubArquivoVideo").click());
+  $("pubMarcar").addEventListener("click", escolherMarcados);
+  $("pubAgendar").addEventListener("click", escolherAgenda);
+  $("pubRascunhos").addEventListener("click", abrirRascunhos);
+  $("pubSalvarRascunho").addEventListener("click", salvarRascunho);
   $("pubArquivoFoto").addEventListener("change", async () => {
     const arquivo = $("pubArquivoFoto").files?.[0];
     $("pubArquivoFoto").value = "";
@@ -1531,8 +1708,15 @@ function ligarCompositor() {
     $("pubArquivoVideo").value = "";
     if (!arquivo) return;
     if (arquivo.size > 50 * 1024 * 1024) { toast("O vídeo deve ter até 50 MB."); return; }
-    pubMidia = { tipo: "video", arquivo, previa: URL.createObjectURL(arquivo) };
-    mostrarPreviaPublicacao();
+    // Vídeo curto: até 60 segundos.
+    const previa = URL.createObjectURL(arquivo);
+    const v = document.createElement("video"); v.preload = "metadata"; v.src = previa;
+    v.onloadedmetadata = () => {
+      if (v.duration > 61) { URL.revokeObjectURL(previa); toast(`O vídeo tem ${Math.round(v.duration)} s. No Diário, vídeos de até 60 segundos.`); return; }
+      pubMidia = { tipo: "video", arquivo, previa, duracao: Math.round(v.duration) };
+      mostrarPreviaPublicacao();
+    };
+    v.onerror = () => { URL.revokeObjectURL(previa); toast("Não foi possível ler este vídeo."); };
   });
   $("pubEnviar").addEventListener("click", async () => {
     const texto = $("pubTexto").value.trim();
@@ -1559,27 +1743,33 @@ function ligarCompositor() {
         mediaTipo = "video";
       }
       const foto = urlSegura(dados.fotoPerfil).startsWith("https://") ? dados.fotoPerfil : "";
-      const gravar = (comVarias) => comRitmo(fb, eu.uid, "pub", (lote) => {
+      const tags = tagsDoTexto(texto), marcados = pubMarcados.map((p) => p.uid);
+      const agenda = pubAgenda && pubAgenda > new Date() ? fb.Timestamp.fromDate(pubAgenda) : null;
+      const extras = { ...(tags.length ? { tags } : {}), ...(marcados.length ? { marcados } : {}), ...(agenda ? { agendadoPara: agenda } : {}) };
+      const gravar = (novos) => comRitmo(fb, eu.uid, "pub", (lote) => {
         const r = fb.doc(fb.collection(fb.db, "diario"));
-        lote.set(r, { autorId: eu.uid, nome: dados.nome || "Usuário", fotoPerfil: foto, texto, mediaUrl, mediaTipo, ...(comVarias && midias ? { midias } : {}), criadoEm: fb.serverTimestamp() });
+        lote.set(r, { autorId: eu.uid, nome: dados.nome || "Usuário", fotoPerfil: foto, texto, mediaUrl, mediaTipo, ...(novos && midias ? { midias } : {}), ...(novos ? extras : {}), criadoEm: fb.serverTimestamp() });
         return r;
       });
-      let ref, soPrimeira = false;
+      let ref, semNovos = false;
       try { ref = await gravar(true); }
       catch (e) {
-        // Regras antigas no servidor (sem "midias"): publica com a primeira foto.
-        if (!midias || e?.code !== "permission-denied") throw e;
-        ref = await gravar(false); soPrimeira = true; midias = null;
+        // Regras antigas no servidor: publica sem os campos novos. Agendada não vai na hora: avisa e para.
+        if (e?.code !== "permission-denied" || (!midias && !Object.keys(extras).length)) throw e;
+        if (agenda) { toast("Agendar começa a funcionar quando as regras novas forem publicadas. Publique agora ou salve como rascunho."); return; }
+        ref = await gravar(false); semNovos = true;
       }
+      if (pubRascunhoId) fb.deleteDoc(fb.doc(fb.db, "rascunhos", eu.uid, "itens", pubRascunhoId)).catch(() => {});
+      const post = { id: ref.id, autorId: eu.uid, nome: dados.nome, fotoPerfil: foto, texto, mediaUrl, mediaTipo, ...(!semNovos && midias ? { midias } : {}), ...(!semNovos ? extras : {}), criadoEm: null };
       btn.disabled = false;
       limparPublicacao();
       fecharFolha("folhaPublicar");
-      toast(soPrimeira ? "Publicado com a primeira foto. Várias fotos começam a funcionar quando as regras novas forem publicadas." : "Publicado!");
-      $("folhaPublicar").aoPublicar?.({ id: ref.id, autorId: eu.uid, nome: dados.nome, fotoPerfil: foto, texto, mediaUrl, mediaTipo, ...(midias ? { midias } : {}), criadoEm: null });
+      toast(agenda ? `Agendada para ${agenda.toDate().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}. Até lá, só você vê.` : semNovos ? "Publicado. Várias fotos, hashtags e marcações começam a funcionar quando as regras novas forem publicadas." : "Publicado!");
+      $("folhaPublicar").aoPublicar?.(post);
     } catch (e) {
       if (e?.code !== "limite-diario") console.error(e);
       toast("Não foi possível publicar: " + erroAmigavel(e));
-    } finally { btn.disabled = false; btn.textContent = "Publicar"; }
+    } finally { btn.disabled = false; btn.textContent = pubAgenda ? "Agendar" : "Publicar"; }
   });
 }
 
@@ -1609,7 +1799,7 @@ export function pintarBarraRede() {
 // Avisos (notificações): seguidores, pedidos do social, curtidas,
 // comentários e mensagens. Alimenta o contador e a página de avisos.
 // =====================================================
-export const avisos = { seguidores: [], vinculos: [], curtidas: [], comentarios: [], respostas: [], mensagens: [], reclamacoes: [], equipe: [] };
+export const avisos = { seguidores: [], vinculos: [], curtidas: [], comentarios: [], respostas: [], reacoes: [], marcacoes: [], mensagens: [], reclamacoes: [], equipe: [] };
 export let avisosVistosEm = 0;
 const ouvintesAvisos = new Set();
 export function aoMudarAvisos(fn) { ouvintesAvisos.add(fn); fn(avisos); }
@@ -1625,7 +1815,7 @@ function avisar() {
 }
 export function contarNovos() {
   const t = (x) => x.quando > avisosVistosEm;
-  return avisos.seguidores.filter(t).length + avisos.vinculos.filter((v) => v.pendente || t(v)).length + avisos.curtidas.filter(t).length + avisos.comentarios.filter(t).length + avisos.respostas.filter(t).length + avisos.reclamacoes.filter(t).length + avisos.equipe.filter((x) => x.naoLida && t(x)).length;
+  return avisos.seguidores.filter(t).length + avisos.vinculos.filter((v) => v.pendente || t(v)).length + avisos.curtidas.filter(t).length + avisos.comentarios.filter(t).length + avisos.respostas.filter(t).length + avisos.reacoes.filter(t).length + avisos.marcacoes.filter(t).length + avisos.reclamacoes.filter(t).length + avisos.equipe.filter((x) => x.naoLida && t(x)).length;
 }
 // O painel de notificações (painel-avisos.js) marcou tudo como visto: zera o contador desta página.
 addEventListener("hf:avisos-vistos", () => { avisosVistosEm = Date.now(); if (eu) avisar(); });
@@ -1670,6 +1860,18 @@ export function ouvirAvisos({ notificarNovos = true } = {}) {
   ouvir(fb.query(fb.collection(fb.db, "comentarios"), fb.where("postAutorId", "==", eu.uid), fb.limit(100)), async (snap, novos) => {
     avisos.comentarios = snap.docs.map((d) => { const c = d.data({ serverTimestamps: "estimate" }); return { id: d.id, uid: c.autorId, postId: c.postId, texto: c.texto, nome: c.nome || "Usuário", foto: c.foto || "", quando: ms(c.criadoEm) }; }).filter((x) => ok(x.uid));
     if (novos && notificarNovos) avisos.comentarios.filter((x) => novos.has(x.id)).forEach((x) => notificar("Novo comentário", `${x.nome}: ${x.texto}`, () => { location.href = "notificacoes.html"; }));
+  });
+  // Reações nos meus comentários
+  ouvir(fb.query(fb.collection(fb.db, "curtidas_comentarios"), fb.where("comentarioAutorId", "==", eu.uid), fb.limit(100)), async (snap, novos) => {
+    const l = await Promise.all(snap.docs.map(async (d) => ({ id: d.id, uid: d.data().uid, comentarioId: d.data().comentarioId, reacao: d.data().reacao || "❤️", quando: ms(d.data().criadoEm), ...(await perfilDe(d.data().uid)) })));
+    avisos.reacoes = l.filter((x) => ok(x.uid));
+    if (novos && notificarNovos) avisos.reacoes.filter((x) => novos.has(x.id)).forEach((x) => notificar("Reagiram ao seu comentário", `${x.nome} reagiu com ${x.reacao}`, () => { location.href = "notificacoes.html"; }));
+  });
+  // Publicações em que me marcaram
+  ouvir(fb.query(fb.collection(fb.db, "diario"), fb.where("marcados", "array-contains", eu.uid), fb.limit(50)), async (snap, novos) => {
+    const l = snap.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter((p) => (p.agendadoPara?.toMillis?.() ?? 0) <= Date.now());
+    avisos.marcacoes = (await Promise.all(l.map(async (p) => ({ id: p.id, uid: p.autorId, postId: p.id, quando: ms(p.criadoEm), ...(await perfilDe(p.autorId)) })))).filter((x) => ok(x.uid));
+    if (novos && notificarNovos) avisos.marcacoes.filter((x) => novos.has(x.id)).forEach((x) => notificar("Marcaram você", `${x.nome} marcou você numa publicação`, () => { location.href = "notificacoes.html"; }));
   });
   // Respostas aos meus comentários (em qualquer publicação)
   ouvir(fb.query(fb.collection(fb.db, "comentarios"), fb.where("respostaAutorId", "==", eu.uid), fb.limit(100)), async (snap, novos) => {

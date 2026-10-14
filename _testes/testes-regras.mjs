@@ -363,6 +363,34 @@ await t("reações: emoji fora da lista é recusado", () => assertFails(updateDo
 await t("reações: não troca a reação de outra pessoa", () => assertFails(updateDoc(doc(ctx("bia"), "curtidas_comentarios", "c3_ana"), { reacao: "👍" })));
 await t("reações: curtida antiga (sem emoji) continua valendo", () => assertSucceeds(setDoc(doc(ctx("bia"), "curtidas_comentarios", "c3_bia"), { comentarioId: "c3", uid: "bia", criadoEm: serverTimestamp() })));
 
+// Diário: hashtags, marcar pessoas, agendar; alcance; salvamentos; stories; rascunhos; aviso de reação.
+async function publicar2(quem, dadosPub) {
+  const db = ctx(quem), b = writeBatch(db);
+  b.set(doc(collection(db, "diario")), { autorId: quem, nome: quem, fotoPerfil: "", texto: "x", criadoEm: serverTimestamp(), ...dadosPub });
+  b.set(doc(db, "ritmo", quem), { pub: increment(1), ultimaEm: serverTimestamp(), ultimoTipo: "pub" }, { merge: true });
+  return b.commit();
+}
+await t("diário: hashtags e pessoas marcadas", () => assertSucceeds(publicar2("edu", { tags: ["reforma", "floripa", "obra_2026", "decoração"], marcados: ["bia", "dono"] })));
+await t("diário: hashtag com maiúscula ou espaço é recusada", () => assertFails(publicar2("edu", { tags: ["Reforma"] })));
+await t("diário: mais de 10 marcados é recusado", () => assertFails(publicar2("edu", { marcados: Array.from({ length: 11 }, (_, i) => "usuario" + i) })));
+await t("diário: agendar para daqui a 2 dias", () => assertSucceeds(publicar2("edu", { agendadoPara: Timestamp.fromMillis(Date.now() + 2 * 864e5) })));
+await t("diário: agendar no passado é recusado", () => assertFails(publicar2("edu", { agendadoPara: Timestamp.fromMillis(Date.now() - 3600e3) })));
+await t("diário: agendar para mais de 60 dias é recusado", () => assertFails(publicar2("edu", { agendadoPara: Timestamp.fromMillis(Date.now() + 61 * 864e5) })));
+await semRegras((db) => setDoc(doc(db, "diario", "pAlc"), { autorId: "dono", nome: "Dono", texto: "x", criadoEm: antigo }));
+await t("alcance: quem vê marca a visualização (uma vez)", () => assertSucceeds(setDoc(doc(ctx("ana"), "diario", "pAlc", "vistas", "ana"), { criadoEm: serverTimestamp(), origem: "principais" })));
+await t("alcance: não marca em nome de outra pessoa", () => assertFails(setDoc(doc(ctx("ana"), "diario", "pAlc", "vistas", "bia"), { criadoEm: serverTimestamp() })));
+await t("alcance: o autor conta quem viu; outra pessoa não", async () => { await assertSucceeds(getDocs(collection(ctx("dono"), "diario", "pAlc", "vistas"))); await assertFails(getDocs(collection(ctx("ana"), "diario", "pAlc", "vistas"))); });
+await t("salvamentos: salvar deixa um registro para a contagem do autor", () => assertSucceeds(setDoc(doc(ctx("ana"), "salvamentos", "pAlc_ana"), { postId: "pAlc", uid: "ana", postAutorId: "dono", criadoEm: serverTimestamp() })));
+await t("salvamentos: o autor conta; outra pessoa não lista", async () => { await assertSucceeds(getDocs(query(collection(ctx("dono"), "salvamentos"), where("postAutorId", "==", "dono")))); await assertFails(getDocs(query(collection(ctx("bia"), "salvamentos"), where("postAutorId", "==", "dono")))); });
+const fotoS = "data:image/jpeg;base64,/9j/AAAA";
+await t("stories: publica foto", () => assertSucceeds(setDoc(doc(ctx("ana"), "stories", "s1"), { autorId: "ana", nome: "Ana", tipo: "imagem", midia: fotoS, texto: "bom dia", criadoEm: serverTimestamp() })));
+await t("stories: vídeo dentro do documento é recusado (só Storage)", () => assertFails(setDoc(doc(ctx("ana"), "stories", "s2"), { autorId: "ana", nome: "Ana", tipo: "video", midia: fotoS, criadoEm: serverTimestamp() })));
+await t("stories: quem vê marca; só a autora lista quem viu", async () => { await assertSucceeds(setDoc(doc(ctx("bia"), "stories", "s1", "vistos", "bia"), { criadoEm: serverTimestamp() })); await assertSucceeds(getDocs(collection(ctx("ana"), "stories", "s1", "vistos"))); await assertFails(getDocs(collection(ctx("edu"), "stories", "s1", "vistos"))); });
+await t("stories: outra pessoa não apaga", () => assertFails(deleteDoc(doc(ctx("bia"), "stories", "s1"))));
+await t("rascunhos: só a própria pessoa", async () => { await assertSucceeds(setDoc(doc(ctx("ana"), "rascunhos", "ana", "itens", "r1"), { texto: "ideia", fotos: [], atualizadoEm: serverTimestamp() })); await assertFails(getDoc(doc(ctx("bia"), "rascunhos", "ana", "itens", "r1"))); });
+await t("reação com o autor do comentário certo (para o aviso)", () => assertSucceeds(setDoc(doc(ctx("edu"), "curtidas_comentarios", "c3_edu"), { comentarioId: "c3", uid: "edu", reacao: "👏", comentarioAutorId: "bia", criadoEm: serverTimestamp() })));
+await t("reação com autor do comentário errado é recusada", () => assertFails(setDoc(doc(ctx("dono"), "curtidas_comentarios", "c3_dono"), { comentarioId: "c3", uid: "dono", reacao: "👏", comentarioAutorId: "ana", criadoEm: serverTimestamp() })));
+
 // ---------- resultado ----------
 for (const r of resultados) console.log(r[0] === "ok" ? "  ✔" : "  ✘", r[1], r[2] ? "→ " + r[2] : "");
 console.log(`\n${ok} passaram, ${falhou} falharam (${arquivo})`);

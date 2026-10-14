@@ -11,15 +11,20 @@ import {
   $, el, icone, ms, paraData, pintarAvatar, urlSegura, nomeCidade, tempoRelativo, toast, erroAmigavel,
   fb, eu, dados, meusSeguindo, escondido, ganchos, obterPerfil, iniciarRede, carregarMeusSeguindo, linhaPessoa,
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, montarBarraRede, pintarBarraRede, ouvirAvisos, lerOrdenado,
-  editarPublicacao, bloquear, comMencoes, fotosDoPost, carrosselFotos, contadorEstrelas, estaSalvo, alternarSalvo, lerResumosEstrelas, contarComentarios
-} from "./rede.js?v=33";
+  editarPublicacao, bloquear, comMencoes, fotosDoPost, carrosselFotos, contadorEstrelas, estaSalvo, alternarSalvo, lerResumosEstrelas, contarComentarios,
+  silenciado, alternarSilenciar, marcarVista, definirOrigem
+} from "./rede.js?v=34";
+import { montarStories } from "./stories.js?v=1";
 import { abrirDenuncia } from "./denuncias.js?v=2";
 import { buscarPessoas, pessoasRecentes } from "./pessoas.js?v=3";
 import { docsComValidade } from "./leituras.js?v=1";
 
 const POR_VEZ = 10;
 // Publicação de conta desativada (conta.js): escondida até ocultoAte.
-const postOculto = (p) => (p?.ocultoAte?.toMillis?.() ?? 0) > Date.now();
+// Agendada: só aparece na hora marcada. Silenciado: some do seu Diário (você continua seguindo).
+const postOculto = (p) => (p?.ocultoAte?.toMillis?.() ?? 0) > Date.now() || (p?.agendadoPara?.toMillis?.() ?? 0) > Date.now() || silenciado(p?.autorId);
+// Busca por hashtag: feed.html?tag=reforma
+let tagAtual = (new URLSearchParams(location.search).get("tag") || "").toLowerCase().replace(/^#/, "").slice(0, 30);
 // Filtro do Diário: Principais (melhores publicações pelo engajamento de verdade), Quem eu sigo ou Amigos.
 const FILTROS = { principais: "Principais", seguindo: "Quem eu sigo", amigos: "Amigos" };
 let aba = "diario", filtro = "principais";
@@ -36,13 +41,18 @@ function trocarAba(nova) {
   else carregarFeed();
 }
 document.querySelectorAll("#abasFeed [data-aba]").forEach((b) => b.addEventListener("click", () => trocarAba(b.dataset.aba)));
-function pintarFiltro() { $("filtroAtual").textContent = FILTROS[filtro]; }
+function pintarFiltro() {
+  $("filtroAtual").textContent = tagAtual ? "#" + tagAtual : FILTROS[filtro];
+  $("filtroFeedBtn").classList.toggle("com-tag", !!tagAtual);
+  definirOrigem(tagAtual ? "tag" : filtro);
+}
 $("filtroFeedBtn").addEventListener("click", () => abrirOpcoes("Mostrar no Diário", [
+  tagAtual && { rotulo: `Sair de #${tagAtual}`, sub: "Voltar para o Diário", icone: "fechar", fn: () => { tagAtual = ""; history.replaceState(history.state, "", "feed.html"); pintarFiltro(); carregarFeed(); } },
   { rotulo: "Principais" + (filtro === "principais" ? "  ✓" : ""), sub: "As melhores publicações agora, pelo engajamento", icone: "estrela", fn: () => mudarFiltro("principais") },
   { rotulo: "Quem eu sigo" + (filtro === "seguindo" ? "  ✓" : ""), sub: "Publicações de quem você segue, das mais novas", icone: "pessoa-mais", fn: () => mudarFiltro("seguindo") },
   { rotulo: "Amigos" + (filtro === "amigos" ? "  ✓" : ""), sub: "Seus vínculos do Social e quem vocês se seguem", icone: "coracao", fn: () => mudarFiltro("amigos") }
 ]));
-function mudarFiltro(f) { filtro = f; try { localStorage.setItem("hf-filtro-diario", f); } catch {} pintarFiltro(); carregarFeed(); }
+function mudarFiltro(f) { filtro = f; tagAtual = ""; if (location.search.includes("tag=")) history.replaceState(history.state, "", "feed.html"); try { localStorage.setItem("hf-filtro-diario", f); } catch {} pintarFiltro(); carregarFeed(); }
 try { const f = localStorage.getItem("hf-filtro-diario"); if (FILTROS[f]) filtro = f; } catch {}
 pintarFiltro();
 
@@ -89,6 +99,11 @@ async function buscarPrincipais() {
   };
   return lista.map((p) => ({ ...p, _pontos: pontos(p) })).sort((a, b) => b._pontos - a._pontos);
 }
+// Hashtag: publicações com a tag (as mais novas primeiro).
+async function buscarTag(tag) {
+  const s = await fb.getDocs(fb.query(fb.collection(fb.db, "diario"), fb.where("tags", "array-contains", tag), fb.limit(80)));
+  return s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) }));
+}
 // O começo do diário vale por 3 min no aparelho (o que você publica aparece na hora).
 const DIARIO_VALIDADE = 3 * 60000;
 // "Todos": 20 por vez; "Ver mais" busca as 20 seguintes só quando a pessoa chega ao fim.
@@ -107,9 +122,9 @@ async function carregarFeed() {
   $("maisFeed").hidden = true;
   try {
     maisTodos = false;
-    const bruto = filtro === "principais" ? await buscarPrincipais() : filtro === "amigos" ? await buscarAmigos() : await buscarSeguindo();
+    const bruto = tagAtual ? await buscarTag(tagAtual) : filtro === "principais" ? await buscarPrincipais() : filtro === "amigos" ? await buscarAmigos() : await buscarSeguindo();
     posts = bruto.filter((p) => !escondido(p.autorId) && !postOculto(p));
-    if (filtro !== "principais") posts.sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm)); // principais: pela pontuação
+    if (tagAtual || filtro !== "principais") posts.sort((a, b) => ms(b.agendadoPara || b.criadoEm) - ms(a.agendadoPara || a.criadoEm)); // principais: pela pontuação
   } catch (e) {
     console.warn(e);
     lista.replaceChildren(vazio("Não foi possível carregar o diário", erroAmigavel(e)));
@@ -118,7 +133,7 @@ async function carregarFeed() {
   mostrados = 0;
   lista.replaceChildren();
   if (!posts.length) {
-    lista.appendChild(filtro === "principais"
+    lista.appendChild(tagAtual ? vazio(`Nada com #${tagAtual} ainda`, "Use a hashtag na sua publicação para começar.", "Publicar agora", () => abrirCompositor({ aoPublicar: ganchos.aoPublicar })) : filtro === "principais"
       ? vazio("Nada publicado ainda", "Seja o primeiro a compartilhar um trabalho ou uma novidade.", "Publicar agora", () => abrirCompositor({ aoPublicar: ganchos.aoPublicar }))
       : filtro === "amigos"
         ? vazio("Seus amigos ainda não publicaram", "Amigos são seus vínculos do Social e quem vocês se seguem.", "Ver as principais", () => mudarFiltro("principais"))
@@ -153,8 +168,21 @@ function vazio(titulo, texto, botao, acao) {
   return v;
 }
 
+// Alcance: conta como vista quando a publicação fica pelo menos metade na tela por 1 segundo.
+const vigiaVista = "IntersectionObserver" in window ? new IntersectionObserver((es) => es.forEach((e) => {
+  const c = e.target;
+  if (e.isIntersecting) c._tVista = setTimeout(() => { marcarVista(c._post); vigiaVista.unobserve(c); }, 1000);
+  else clearTimeout(c._tVista);
+}), { threshold: 0.5 }) : null;
+// Vídeo curto: toca sozinho, sem som e em repetição, quando aparece; tocar liga o som.
+const vigiaVideo = "IntersectionObserver" in window ? new IntersectionObserver((es) => es.forEach((e) => {
+  const v = e.target;
+  if (e.isIntersecting && e.intersectionRatio >= 0.6) v.play().catch(() => {}); else v.pause();
+}), { threshold: [0, 0.6] }) : null;
 function cartaoPost(post) {
   const c = el("article", "post-card");
+  c.dataset.autor = post.autorId; c._post = post;
+  vigiaVista?.observe(c);
   const cab = el("div", "post-cab");
   const av = el("div", "avatar"); pintarAvatar(av, post.fotoPerfil, post.nome);
   av.addEventListener("click", () => ganchos.abrirPerfil(post.autorId));
@@ -171,7 +199,10 @@ function cartaoPost(post) {
       ? { rotulo: "Remover dos salvos", icone: "salvo", fn: () => alternarSalvo(post) }
       : { rotulo: "Salvar publicação", sub: "Para ver depois no seu Perfil → Salvos", icone: "salvo", fn: () => alternarSalvo(post) },
     { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(post.autorId, post.nome) },
+    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=1").then((m) => m.abrirEstatisticas(post)) },
     post.autorId === eu.uid && { rotulo: "Editar publicação", icone: "lapis", fn: () => editarPublicacao(post, () => c.replaceWith(cartaoPost(post))) },
+    post.autorId !== eu.uid && { rotulo: silenciado(post.autorId) ? `Mostrar ${nome.textContent} de novo` : `Silenciar ${nome.textContent}`, sub: "Continua seguindo, mas as publicações e stories somem do seu Diário", icone: "restringir",
+      fn: async () => { await alternarSilenciar(post.autorId, nome.textContent); if (silenciado(post.autorId)) { posts = posts.filter((x) => x.autorId !== post.autorId); document.querySelectorAll(".post-card").forEach((x) => { if (x.dataset.autor === post.autorId) x.remove(); }); } } },
     post.autorId !== eu.uid && { rotulo: "Denunciar publicação", sub: "Golpe, ofensa, conteúdo impróprio...", icone: "alerta", perigo: true,
       fn: () => abrirDenuncia({ fb, eu, tipo: "publicacao", alvoId: post.autorId, itemId: post.id, trecho: post.texto || "", nomeAlvo: nome.textContent,
         aoBloquear: async () => { if (await bloquear(post.autorId, nome.textContent)) { posts = posts.filter((x) => x.autorId !== post.autorId); carregarFeed(); } } }) },
@@ -190,6 +221,18 @@ function cartaoPost(post) {
     sub.textContent = [p.nickname ? "@" + p.nickname : "", tempoRelativo(paraData(post.criadoEm)), post.editadoEm ? "editada" : ""].filter(Boolean).join(" · ");
   });
   const url = urlSegura(post.mediaUrl);
+  // Pessoas marcadas: "com Ana e Bruno".
+  if (Array.isArray(post.marcados) && post.marcados.length) {
+    const linhaM = el("div", "post-com");
+    linhaM.append(icone("pessoa-mais", "i xs"), document.createTextNode("com "));
+    post.marcados.slice(0, 10).forEach((u, i) => {
+      const b = el("button", null, "..."); b.type = "button"; b.addEventListener("click", () => ganchos.abrirPerfil(u));
+      obterPerfil(u).then((p) => { b.textContent = String(p.nome || "Usuário").split(" ")[0]; }).catch(() => { b.textContent = "Usuário"; });
+      if (i) linhaM.appendChild(document.createTextNode(i === post.marcados.length - 1 ? " e " : ", "));
+      linhaM.appendChild(b);
+    });
+    c.appendChild(linhaM);
+  }
   if (post.texto) {
     const t = comMencoes(el("p", "post-texto" + (url ? "" : " so-texto")), post.texto);
     c.appendChild(t);
@@ -215,7 +258,11 @@ function cartaoPost(post) {
     c.appendChild(m);
   } else if (url) {
     const m = el("div", "post-midia-f");
-    const v = document.createElement("video"); v.src = url; v.controls = true; v.playsInline = true; v.preload = "metadata"; m.appendChild(v);
+    const v = document.createElement("video"); v.src = url; v.muted = true; v.loop = true; v.playsInline = true; v.preload = "metadata";
+    const som = el("button", "video-som"); som.type = "button"; som.setAttribute("aria-label", "Ligar o som"); som.textContent = "🔇";
+    som.addEventListener("click", (e) => { e.stopPropagation(); v.muted = !v.muted; som.textContent = v.muted ? "🔇" : "🔊"; som.setAttribute("aria-label", v.muted ? "Ligar o som" : "Desligar o som"); if (v.paused) v.play().catch(() => {}); });
+    v.addEventListener("click", () => (v.paused ? v.play() : v.pause()));
+    m.classList.add("video"); m.append(v, som); vigiaVideo?.observe(v);
     c.appendChild(m);
   }
   c.appendChild(barra);
@@ -234,6 +281,16 @@ let tempoBusca = null;
 async function carregarPessoas() {
   const corpo = $("listaPessoas");
   const termo = $("buscaPessoas").value.trim();
+  // #hashtag na busca: leva às publicações com a tag.
+  if (/^#[\p{L}\p{N}_]{1,30}$/u.test(termo)) {
+    const tag = termo.slice(1).toLowerCase();
+    const n = await fb.getCountFromServer(fb.query(fb.collection(fb.db, "diario"), fb.where("tags", "array-contains", tag))).then((x) => x.data().count).catch(() => null);
+    if ($("buscaPessoas").value.trim() !== termo) return;
+    const b = el("a", "linha-tag"); b.href = `feed.html?tag=${encodeURIComponent(tag)}`;
+    b.append(el("span", "ic-tag", "#"), el("strong", null, "#" + tag), el("small", null, n == null ? "Ver publicações" : `${n} ${n === 1 ? "publicação" : "publicações"}`));
+    corpo.replaceChildren(el("div", "grupo-titulo", "Hashtag"), b);
+    return;
+  }
   if (!corpo.children.length) corpo.replaceChildren(el("div", "lista-vazia", "Carregando pessoas..."));
   const achados = await buscarPessoas(fb, termo, { limite: termo ? 30 : 40 });
   if ($("buscaPessoas").value.trim() !== termo) return;
@@ -277,6 +334,8 @@ async function pintarLateral() {
   ouvirAvisos();
   $("btnComporFeed").addEventListener("click", () => abrirCompositor({ aoPublicar: ganchos.aoPublicar }));
   await carregarMeusSeguindo();
+  pintarFiltro();
+  montarStories($("storiesFeed")).catch((e) => console.warn("Stories:", e));
   pintarLateral();
   const p = new URLSearchParams(location.search);
   trocarAba(p.get("aba") === "explorar" || p.get("aba") === "pessoas" ? "explorar" : "diario");

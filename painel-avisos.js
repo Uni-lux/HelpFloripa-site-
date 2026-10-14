@@ -49,6 +49,8 @@ const TIPOS = {
   curtida: { cor: "#f5b700", ic: "estrela", aba: "publicacoes" },
   comentario: { cor: "#7c5cff", ic: "chat", aba: "publicacoes" },
   resposta: { cor: "#7c5cff", ic: "chat", aba: "publicacoes" },
+  reacao: { cor: "#e0457b", ic: "chat", aba: "publicacoes" },
+  marcacao: { cor: "#00adee", ic: "pessoa", aba: "publicacoes" },
   reclamacao: { cor: "#ef4444", ic: "alerta", aba: "reclamacoes" },
   "reclamacao-resp": { cor: "#ff7a1a", ic: "chat", aba: "reclamacoes" },
   "reclamacao-ok": { cor: "#2fbf71", ic: "check", aba: "reclamacoes" },
@@ -69,6 +71,8 @@ function texto(i) {
     case "curtida": return `deu ${"★".repeat(i.nota)}${"☆".repeat(Math.max(0, 5 - i.nota))} na sua publicação`;
     case "comentario": return "comentou na sua publicação";
     case "resposta": return "respondeu seu comentário";
+    case "reacao": return `reagiu com ${i.reacao || "❤️"} ao seu comentário`;
+    case "marcacao": return "marcou você numa publicação";
     case "aviso": case "suporte": return TEXTO_EQUIPE(i);
     default: return TEXTO_RECLAMACAO[i.tipo] ? TEXTO_RECLAMACAO[i.tipo](i) : "";
   }
@@ -102,7 +106,7 @@ async function carregar() {
   const uid = eu.uid;
   const ler = (col, ...f) => fs.getDocs(fs.query(fs.collection(db, col), ...f, fs.limit(60))).then((s) => s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) }))).catch(() => []);
   const usuario = await fs.getDoc(fs.doc(db, "usuarios", uid)).catch(() => null);
-  const [seg, curt, com, resp, vin, conv, recl, equipe] = await Promise.all([
+  const [seg, curt, com, resp, vin, conv, recl, equipe, reac, marc] = await Promise.all([
     ler("relacoes", fs.where("tipo", "==", "seguir"), fs.where("alvoId", "==", uid)),
     ler("curtidas", fs.where("postAutorId", "==", uid)),
     ler("comentarios", fs.where("postAutorId", "==", uid)),
@@ -110,7 +114,9 @@ async function carregar() {
     ler("vinculos", fs.where("participantes", "array-contains", uid)),
     ler("conversas", fs.where("participantes", "array-contains", uid)),
     buscarReclamacoes(fs, db, uid).catch(() => []),
-    buscarItensEquipe(fs, db, uid, (usuario?.exists() ? usuario.data().suporteLido : null) || {}).catch(() => [])
+    buscarItensEquipe(fs, db, uid, (usuario?.exists() ? usuario.data().suporteLido : null) || {}).catch(() => []),
+    ler("curtidas_comentarios", fs.where("comentarioAutorId", "==", uid)),
+    ler("diario", fs.where("marcados", "array-contains", uid))
   ]);
   const dados = usuario?.exists() ? usuario.data() : {};
   const restritos = new Set(dados.restritos || []);
@@ -118,6 +124,8 @@ async function carregar() {
   seg.forEach((r) => itens.push({ tipo: "seguidor", id: "s_" + r.id, uid: r.seguidorId, quando: ms(r.criadoEm) }));
   curt.filter((c) => c.uid !== uid && Number(c.nota) > 0).forEach((c) => itens.push({ tipo: "curtida", id: "c_" + c.id, uid: c.uid, nota: Number(c.nota), postId: c.postId, quando: Math.max(ms(c.criadoEm), ms(c.atualizadoEm)) }));
   com.filter((c) => c.autorId !== uid).forEach((c) => itens.push({ tipo: "comentario", id: "m_" + c.id, uid: c.autorId, nome: c.nome, foto: c.foto, detalhe: c.texto, postId: c.postId, quando: ms(c.criadoEm) }));
+  reac.filter((r) => r.uid !== uid).forEach((r) => itens.push({ tipo: "reacao", id: "e_" + r.id, uid: r.uid, reacao: r.reacao || "❤️", quando: ms(r.criadoEm) }));
+  marc.filter((p) => p.autorId !== uid && (p.agendadoPara?.toMillis?.() ?? 0) <= Date.now()).forEach((p) => itens.push({ tipo: "marcacao", id: "k_" + p.id, uid: p.autorId, postId: p.id, quando: ms(p.criadoEm) }));
   resp.filter((c) => c.autorId !== uid && c.postAutorId !== uid).forEach((c) => itens.push({ tipo: "resposta", id: "r_" + c.id, uid: c.autorId, nome: c.nome, foto: c.foto, detalhe: c.texto, postId: c.postId, quando: ms(c.criadoEm) }));
   vin.forEach((v) => {
     const outro = (v.participantes || []).find((x) => x !== uid);
