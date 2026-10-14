@@ -10,8 +10,8 @@
 import {
   $, el, icone, fb, eu, dados, numero, toast, erroAmigavel, criarFolha, abrirFolha, fotosDoPost, ms, paraData,
   tempoRelativo, obterPerfil, nomeCidade, ganchos
-} from "./rede.js?v=39";
-import { secaoGrafico, secaoHoras } from "./estatisticas-post.js?v=6";
+} from "./rede.js?v=40";
+import { secaoGrafico, secaoHoras } from "./estatisticas-post.js?v=7";
 
 const DIA = 864e5;
 const PERIODOS = [[7, "7 dias"], [30, "30 dias"], [90, "90 dias"]];

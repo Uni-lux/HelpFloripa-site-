@@ -5,7 +5,7 @@
 > (`diario_notas`: média e quantas pessoas deram 5, 4, 3, 2 e 1 estrela) e os **comentários novos** (quem pode
 > comentar, comentário fixado e reações com emoji), **stories**, **hashtags e marcações**, **agendar**, **rascunhos**,
 > **alcance e salvos** (estatísticas), o **aviso de reação** no comentário, **enquetes** (publicação e Flash, votos em
-> `enquete_votos`), **menções e configurações do Flash** (respostas, público, amigos próximos, ocultar de) e
+> `enquete_votos`, voto único: não troca nem tira), **menções e configurações do Flash** (respostas, público, amigos próximos, ocultar de) e
 > **quem pode me marcar** (`pref_publicas`). Para publicar, o processo é o mesmo: apagar tudo no console e colar as 10 partes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do

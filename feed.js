@@ -13,9 +13,9 @@ import {
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, botaoSeguir, montarBarraRede, pintarBarraRede, ouvirAvisos, lerOrdenado,
   editarPublicacao, bloquear, comMencoes, fotosDoPost, carrosselFotos, contadorEstrelas, estaSalvo, alternarSalvo, lerResumosEstrelas, contarComentarios,
   silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto, confirmarHF, blocoEnquete
-} from "./rede.js?v=39";
+} from "./rede.js?v=40";
 import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=1";
-import { montarStories } from "./stories.js?v=6";
+import { montarStories } from "./stories.js?v=7";
 import { abrirDenuncia } from "./denuncias.js?v=2";
 import { buscarPessoas, pessoasRecentes } from "./pessoas.js?v=3";
 import { docsComValidade } from "./leituras.js?v=1";
@@ -227,7 +227,7 @@ function cartaoPost(post) {
       ? { rotulo: "Remover dos salvos", icone: "salvo", fn: () => alternarSalvo(post) }
       : { rotulo: "Salvar publicação", sub: "Para ver depois no seu Perfil → Salvos", icone: "salvo", fn: () => alternarSalvo(post) },
     { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(post.autorId, post.nome) },
-    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=6").then((m) => m.abrirEstatisticas(post)) },
+    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=7").then((m) => m.abrirEstatisticas(post)) },
     post.autorId === eu.uid && { rotulo: "Editar publicação", icone: "lapis", fn: () => editarPublicacao(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId !== eu.uid && { rotulo: silenciado(post.autorId) ? `Mostrar ${nome.textContent} de novo` : `Silenciar ${nome.textContent}`, sub: "Continua seguindo, mas as publicações e flashes somem do seu Diário", icone: "restringir",
       fn: async () => { await alternarSilenciar(post.autorId, nome.textContent); if (silenciado(post.autorId)) { posts = posts.filter((x) => x.autorId !== post.autorId); document.querySelectorAll(".post-card").forEach((x) => { if (x.dataset.autor === post.autorId) x.remove(); }); } } },
@@ -275,7 +275,7 @@ function cartaoPost(post) {
   }
   const barra = barraInteracao(post);
   // Publicação só de texto: toque duplo no texto dá as 5 estrelas (como na foto).
-  if (c._texto) toqueDuploEm(c._texto, () => toqueDuplo(c._texto, barra));
+  if (c._texto) toqueDuploEm(c._texto, () => toqueDuplo(c._texto, barra, true));
   const fotos = fotosDoPost(post);
   if (fotos.length && post.mediaTipo !== "video") {
     // A foto aparece no recorte escolhido ao publicar (4:5, 1:1 ou 16:9), sem cortar de novo. Fotos antigas
@@ -305,15 +305,17 @@ function cartaoPost(post) {
 function toqueDuploEm(alvo, fn) {
   let ultimo = 0;
   alvo.addEventListener("click", (e) => {
-    if (e.target.closest("a, button")) return;
+    if (e.target.closest("a, button, .enquete")) return;
     const agora = Date.now();
     if (agora - ultimo < 320) { ultimo = 0; window.getSelection?.()?.removeAllRanges?.(); fn(); return; }
     ultimo = agora;
   });
 }
 // Toque duplo: 5 estrelas na hora (vale também na própria publicação). Para dar menos, use as estrelas da barra.
-async function toqueDuplo(m, barra) {
+// Na publicação só de texto (simples) as estrelas não voam por cima: só as da barra acendem.
+async function toqueDuplo(m, barra, simples = false) {
   if (!barra.estrelas?.darNota) return;
+  if (simples) { barra.estrelas.pular?.(); await barra.estrelas.darNota(5); return; }
   await contadorEstrelas(m, (nota) => barra.estrelas.darNota(nota));
 }
 

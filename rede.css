@@ -1589,3 +1589,69 @@ body:has(.story-visor, .flash-criar) .toast { bottom: auto; top: calc(74px + env
 .ins-leg .nao::before { background: color-mix(in srgb, var(--accent) 22%, var(--panel-2)); }
 .estat-secao h4 { margin: 10px 0 2px; font-size: 13px; color: var(--muted); font-weight: 750; }
 @media (max-width: 420px) { .ins-top { grid-template-columns: 16px 40px minmax(0, 1fr) auto; } .ins-top .nums:last-child { display: none; } }
+
+/* ===== Diário parte 8 ===== */
+/* toque duplo no texto: as estrelas da barra acendem uma a uma (sem estrelas voando por cima) */
+.estrelas-linha.pulo .estrela .i { animation: est-acende .55s cubic-bezier(.3, 1.7, .5, 1) both; }
+.estrelas-linha.pulo .estrela:nth-child(2) .i { animation-delay: .06s; }
+.estrelas-linha.pulo .estrela:nth-child(3) .i { animation-delay: .12s; }
+.estrelas-linha.pulo .estrela:nth-child(4) .i { animation-delay: .18s; }
+.estrelas-linha.pulo .estrela:nth-child(5) .i { animation-delay: .24s; }
+@keyframes est-acende { 0% { transform: scale(1); } 45% { transform: scale(1.45) rotate(-8deg); color: #ffc21a; filter: drop-shadow(0 0 6px rgba(255, 194, 26, .7)); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .estrelas-linha.pulo .estrela .i { animation: none; } }
+/* enquete: voto único */
+.enquete.votou .enq-op { cursor: default; }
+.enquete.votou .enq-op:not(.minha):hover { border-color: var(--line); }
+.enquete.votou .enq-op:active { transform: none; }
+.texto-item .enquete { margin: 6px 0 2px; cursor: default; }
+
+/* ---------- perfil no modelo enviado (cabeçalho limpo, sem cartão no tema escuro) ---------- */
+.pf2 { --pf-fundo: var(--panel); }
+#meuPerfil > .pf2 { --pf-fundo: var(--bg); }
+:root[data-theme="dark"] .pf2 { background: transparent; border: 0; border-radius: 0; overflow: visible; }
+:root[data-theme="dark"] #meuPerfil > .pf2 { margin: -16px -16px 0; }
+:root[data-theme="dark"] .pf2 .pf-capa { border-radius: 0; }
+:root[data-theme="dark"] .pf2 .pf-capa::after { background: linear-gradient(180deg, rgba(0,0,0,.22) 0%, transparent 24%, transparent 40%, color-mix(in srgb, var(--pf-fundo) 62%, transparent) 68%, var(--pf-fundo) 100%); }
+@media (min-width: 700px) { :root[data-theme="dark"] #meuPerfil > .pf2 { margin: 0; } :root[data-theme="dark"] #meuPerfil > .pf2 .pf-capa { border-radius: 24px 24px 0 0; } }
+.pf2 .pf-capa { height: clamp(280px, 62vw, 340px); }
+.pf2 .pf-topo { align-items: center; gap: 16px; padding: 0 18px 6px; }
+.pf2 .pf-anel { width: 108px; height: 108px; padding: 3px; }
+.pf2 .pf-anel .avatar { border: 3.5px solid var(--pf-fundo); }
+.pf2 .pf-editar-foto { border-color: var(--pf-fundo); }
+.pf2 .pf-ident { padding: 10px 0 0; }
+.pf2 .pf-nome-linha { gap: 7px; flex-wrap: nowrap; }
+.pf2 .pf-nome { font-size: clamp(22px, 6vw, 28px); line-height: 1.12; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pf2 .pf-handle { gap: 2px 14px; font-size: 14px; margin-top: 4px; }
+.pf2 .pf-handle span:first-child { font-weight: 600; }
+.pf2 .pf-bio { font-size: 14.5px; margin-top: 8px; }
+/* rosinha do duo ao lado do nome (no lugar da foto do duo e do fio na capa) */
+.pf-rosa { flex: none; width: 26px; height: 26px; border-radius: 50%; border: 0; padding: 0; display: grid; place-items: center; cursor: pointer; background: #fff; color: #e0243b; box-shadow: 0 2px 10px rgba(224, 36, 59, .45); text-shadow: none; transition: transform .15s; }
+.pf-rosa .i { width: 17px; height: 17px; }
+.pf-rosa:hover { transform: scale(1.1) rotate(-6deg); }
+.pf-rosa.so-rosa { cursor: default; }
+.pf-rosa.so-rosa:hover { transform: none; }
+/* ações: principal · secundária · ⋯ */
+.pf2 .pf-corpo { padding: 14px 18px 18px; }
+.pf2 .pf-acoes, .pf2 .pf-acoes:has(> :nth-child(4)) { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) 50px; gap: 10px; }
+.pf2 .pf-acoes > .btn { min-height: 48px; border-radius: 14px; font-size: 15.5px; }
+.pf2 .pf-acoes > .btn .i { width: 18px; height: 18px; }
+.pf2 .pf-acoes > .btn.sec { background: color-mix(in srgb, var(--panel-2) 70%, transparent); border: 1px solid var(--line); }
+.pf2 .pf-acoes > .btn.seguindo { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); border: 1.5px solid color-mix(in srgb, var(--accent) 55%, transparent); box-shadow: none; }
+.pf2 .pf-acoes > .btn.icone { width: 50px; }
+/* negócios: até 5 por linha, sem rolar para o lado */
+.pf2 [data-el="negocios"] { margin-top: 20px; }
+.pf2 [data-el="negocios"] .vinculos { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; overflow: visible; padding: 6px 0 0; }
+.pf2 [data-el="negocios"] .vinculo { width: auto; min-width: 0; }
+.pf2 [data-el="negocios"] .vinculo .avatar { width: clamp(50px, 14.5vw, 64px); height: clamp(50px, 14.5vw, 64px); box-shadow: none; outline: 2.5px solid var(--cor, var(--accent)); outline-offset: 3px; margin: 6px auto 0; }
+.pf2 [data-el="negocios"] .vinculo .papel { margin-top: 10px; max-width: 100%; font-size: 13px; }
+.pf2 [data-el="negocios"] .vinculo.novo .avatar { outline: 0; border: 2px dashed var(--accent); background: transparent; }
+.pf2 [data-el="negocios"] .vinculo.novo .nome { margin-top: 10px; font-size: 13px; }
+.pf2 [data-el="negocios"] .vinculo.novo .papel { margin-top: -3px; font-size: 11.5px; white-space: nowrap; }
+/* números */
+.pf2 .pf-stats { margin-top: 20px; background: transparent; border-radius: 16px; }
+.pf2 .pf-stat { padding: 14px 4px; }
+.pf2 .pf-stat .num { font-size: 21px; }
+.pf2 .pf-stat .rot { font-size: 12.5px; }
+.pf2 .pf-painel { background: transparent; }
+@media (max-width: 380px) { .pf2 .pf-anel { width: 92px; height: 92px; } .pf2 .pf-topo { gap: 12px; padding: 0 14px 6px; } .pf2 .pf-corpo { padding: 14px 14px 18px; } .pf2 .pf-stat .rot { font-size: 11px; } }
+.pf2 [data-el="negocios"] .vinculo .papel { font-size: 12.5px; overflow: visible; text-overflow: clip; letter-spacing: -.1px; }

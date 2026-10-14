@@ -401,9 +401,10 @@ const voto = (quem, opcao, item = "pEnq", tipo = "d") => setDoc(doc(ctx(quem), "
 await t("voto: vota na opção 2", () => assertSucceeds(voto("bia", 2)));
 await t("voto: opção que não existe é recusada", () => assertFails(voto("ana", 3)));
 await t("voto: em nome de outra pessoa é recusado", () => assertFails(setDoc(doc(ctx("ana"), "enquete_votos", "d_pEnq_bia"), { alvo: "d_pEnq", tipo: "d", itemId: "pEnq", uid: "bia", opcao: 0, criadoEm: serverTimestamp() })));
-await t("voto: troca o voto", () => assertSucceeds(updateDoc(doc(ctx("bia"), "enquete_votos", "d_pEnq_bia"), { opcao: 0 })));
-await t("voto: tira o voto", () => assertSucceeds(deleteDoc(doc(ctx("bia"), "enquete_votos", "d_pEnq_bia"))));
-await t("voto: outra pessoa não apaga o voto", async () => { await assertSucceeds(voto("bia", 1)); await assertFails(deleteDoc(doc(ctx("ana"), "enquete_votos", "d_pEnq_bia"))); });
+await t("voto único: não troca o voto", () => assertFails(updateDoc(doc(ctx("bia"), "enquete_votos", "d_pEnq_bia"), { opcao: 0 })));
+await t("voto único: não tira o voto", () => assertFails(deleteDoc(doc(ctx("bia"), "enquete_votos", "d_pEnq_bia"))));
+await t("voto único: não vota de novo por cima", () => assertFails(voto("bia", 0)));
+await t("voto: outra pessoa não apaga o voto", () => assertFails(deleteDoc(doc(ctx("ana"), "enquete_votos", "d_pEnq_bia"))));
 await t("flash: com enquete (posição), menções e escolhas", () => assertSucceeds(setDoc(doc(ctx("ana"), "stories", "sEnq"), { autorId: "ana", nome: "Ana", tipo: "imagem", midia: fotoS, enquete: { pergunta: "Gostou?", opcoes: ["Sim", "Não"], x: 0.5, y: 0.6 }, mencoes: ["bia", "edu"], respostas: "seguindo", publico: "amigos", lista: ["bia"], ocultoPara: ["edu"], criadoEm: serverTimestamp() })));
 await t("flash: quem responde com valor estranho é recusado", () => assertFails(setDoc(doc(ctx("ana"), "stories", "sX"), { autorId: "ana", nome: "Ana", tipo: "imagem", midia: fotoS, respostas: "qualquer", criadoEm: serverTimestamp() })));
 await t("voto: na enquete do flash", () => assertSucceeds(voto("bia", 1, "sEnq", "f")));

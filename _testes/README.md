@@ -50,6 +50,7 @@ Capturas de tela, Excel baixados e logs ficam em `saida/` (fora do git).
 | `t-painel2.mjs` | Painel no celular: Estatísticas sem contas falsas vindas do registro de ações, nomes do gráfico sem sobrepor e chat da equipe em tela cheia (campo à vista, conversa no fim). |
 | `t-diario.mjs`, `t-coment.mjs`, `t-social2.mjs` | Diário: carrossel, estrelas surgindo no toque duplo, barra da publicação (comentar/enviar/compartilhar/salvar), comentários, hashtags, marcar, agendar, Flash ⚡ (criar foto e texto, ver, responder, reagir, quem viu). `t-diario` e `t-social2` usam `saida/foto1.png` (criada pelo `t-diario`). |
 | `t-enquete.mjs` | Enquete na publicação (criar, votar, trocar, resultado da autora), Configurações → Diário e Flash (quem marca, quem comenta, Flash) e estatísticas do perfil (`insights.js`). |
+| `t-perfil.mjs` | Perfil no tema escuro: rosinha do duo, botões que cabem na tela, negócios numa linha, enquete na aba Textos, toque duplo no texto (só a barra) e voto único. |
 | `t-principais.mjs` | Diário → Principais (gosto do aparelho + quem segue, sem dois seguidos do mesmo autor), filtros Principais/Amigos, Explorar (em alta, destaques, sugestões, busca) e anel do Flash no perfil. |
 | `t-busca.mjs`, `t-estat-local.mjs`, `t-painel.mjs` | Filtro de local da busca, filtros Estado→Cidade→Bairro do painel, topo das Estatísticas no celular. |
 | `gerar-xlsx.mjs`, `checar-xlsx.py`, `checar-todos.py` | Gera planilhas extremas e valida: Open XML SDK da Microsoft (Office 2007/2016/365) + consistência (referências, links, mesclas, nomes) + openpyxl. |
