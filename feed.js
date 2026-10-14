@@ -13,9 +13,9 @@ import {
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, botaoSeguir, montarBarraRede, pintarBarraRede, ouvirAvisos, lerOrdenado,
   editarPublicacao, bloquear, comMencoes, fotosDoPost, carrosselFotos, contadorEstrelas, estaSalvo, alternarSalvo, lerResumosEstrelas, contarComentarios,
   silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto, confirmarHF
-} from "./rede.js?v=37";
+} from "./rede.js?v=38";
 import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=1";
-import { montarStories } from "./stories.js?v=4";
+import { montarStories } from "./stories.js?v=5";
 import { abrirDenuncia } from "./denuncias.js?v=2";
 import { buscarPessoas, pessoasRecentes } from "./pessoas.js?v=3";
 import { docsComValidade } from "./leituras.js?v=1";
@@ -227,7 +227,7 @@ function cartaoPost(post) {
       ? { rotulo: "Remover dos salvos", icone: "salvo", fn: () => alternarSalvo(post) }
       : { rotulo: "Salvar publicação", sub: "Para ver depois no seu Perfil → Salvos", icone: "salvo", fn: () => alternarSalvo(post) },
     { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(post.autorId, post.nome) },
-    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=4").then((m) => m.abrirEstatisticas(post)) },
+    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=5").then((m) => m.abrirEstatisticas(post)) },
     post.autorId === eu.uid && { rotulo: "Editar publicação", icone: "lapis", fn: () => editarPublicacao(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId !== eu.uid && { rotulo: silenciado(post.autorId) ? `Mostrar ${nome.textContent} de novo` : `Silenciar ${nome.textContent}`, sub: "Continua seguindo, mas as publicações e flashes somem do seu Diário", icone: "restringir",
       fn: async () => { await alternarSilenciar(post.autorId, nome.textContent); if (silenciado(post.autorId)) { posts = posts.filter((x) => x.autorId !== post.autorId); document.querySelectorAll(".post-card").forEach((x) => { if (x.dataset.autor === post.autorId) x.remove(); }); } } },
@@ -262,7 +262,10 @@ function cartaoPost(post) {
     c.appendChild(linhaM);
   }
   if (post.texto) {
-    const t = comMencoes(el("p", "post-texto" + (url ? "" : " so-texto")), post.texto);
+    // Texto curto sem foto: cartão em destaque (texto grande no meio, fundo com o tom da publicação).
+    const cartaoTexto = !url && post.texto.length <= 160 && (post.texto.match(/\n/g) || []).length <= 3;
+    const t = comMencoes(el("p", "post-texto" + (url ? "" : " so-texto") + (cartaoTexto ? " cartao-texto" : "")), post.texto);
+    if (cartaoTexto) { t.dataset.tom = String(tomDoTexto(post.id)); t.classList.toggle("curtinho", post.texto.length <= 60); }
     c.appendChild(t);
     // Texto longo: mostra o começo e "ver mais".
     if (post.texto.length > 220) {
@@ -296,6 +299,8 @@ function cartaoPost(post) {
   c.appendChild(barra);
   return c;
 }
+// Tom do cartão de texto (sempre o mesmo para a mesma publicação; igual ao do perfil).
+function tomDoTexto(id) { let h = 0; for (const c of String(id || "")) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h % 5; }
 // Toque duplo na foto: a contagem de estrelas (vale também na própria publicação).
 async function toqueDuplo(m, barra) {
   if (!barra.estrelas?.darNota) return;

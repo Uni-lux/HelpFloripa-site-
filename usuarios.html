@@ -13,7 +13,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="stylesheet" href="vitrine.css?v=25" />
-  <link rel="stylesheet" href="rede.css?v=15" />
+  <link rel="stylesheet" href="rede.css?v=16" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
     // Tema compartilhado com a página de mensagens; aplicado antes de desenhar.
@@ -222,13 +222,13 @@
       removerSeguidor, bloquear, desbloquear, alternarRestricao, compartilharPerfil,
       barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail,
       fotosDoPost, carrosselFotos, idsSalvos, contadorEstrelas, silenciado, alternarSilenciar, marcarVista, definirOrigem
-    } from "./rede.js?v=37";
+    } from "./rede.js?v=38";
     import { buscarPessoas, palavrasBusca } from "./pessoas.js?v=3";
     import { abrirDenuncia } from "./denuncias.js?v=2";
     import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
     import { notaDoPerfil, abrirDetalhamento, avaliarNegocio, avaliarCliente, lerResumo, estrelas, pintarEstrelas, media, notaTexto, TIPOS_NEGOCIO } from "./avaliacoes.js?v=13";
     import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=33";
-    import { anelNoPerfil } from "./stories.js?v=4";
+    import { anelNoPerfil } from "./stories.js?v=5";
 
     // ======================================================
     // Estado desta página (o resto vem de rede.js)
@@ -390,7 +390,42 @@
       return snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((x) => uid === eu.uid || ((x.ocultoAte?.toMillis?.() ?? 0) <= Date.now() && (x.agendadoPara?.toMillis?.() ?? 0) <= Date.now())).sort((a, b) => (ms(b.criadoEm) || Date.now()) - (ms(a.criadoEm) || Date.now()));
     }
 
-    function renderizarGrade(container, posts, { proprio, autor }) {
+    // Publicações em que a pessoa foi marcada ou mencionada (de outras contas): aparecem junto no perfil.
+    const marcacoesCache = new Map();
+    async function buscarMarcacoes(uid) {
+      const s = await fb.getDocs(fb.query(fb.collection(fb.db, "diario"), fb.where("marcados", "array-contains", uid), fb.limit(60))).catch(() => ({ docs: [] }));
+      return s.docs.map((d) => ({ id: d.id, ...d.data() }))
+        .filter((x) => x.autorId !== uid && !escondido(x.autorId) && (x.ocultoAte?.toMillis?.() ?? 0) <= Date.now() && (x.agendadoPara?.toMillis?.() ?? 0) <= Date.now());
+    }
+    const tipoPost = (p) => (p._marcacao ? "marc" : urlSegura(p.mediaUrl) ? (p.mediaTipo === "video" ? "video" : "foto") : "texto");
+    const FILTROS_GRADE = [["tudo", "Tudo", "grade"], ["foto", "Fotos", "imagem"], ["video", "Vídeos", "video"], ["texto", "Textos", "lapis"], ["marc", "Marcações", "pessoa-mais"]];
+    const filtroDaGrade = new WeakMap();
+    // Grade organizada: Tudo · Fotos · Vídeos · Textos · Marcações (com a quantidade de cada).
+    function renderizarGrade(container, posts, opcoes) {
+      const { uid } = opcoes;
+      if (!uid) { desenharGrade(container, posts, opcoes); return; }
+      let barra = container.previousElementSibling;
+      if (!barra?.classList.contains("filtros-grade")) { barra = el("div", "filtros-grade"); barra.setAttribute("role", "tablist"); barra.setAttribute("aria-label", "Mostrar"); container.before(barra); }
+      if (!marcacoesCache.has(uid)) {
+        marcacoesCache.set(uid, null);
+        buscarMarcacoes(uid).then((l) => { marcacoesCache.set(uid, l); if (container.isConnected && l.length) renderizarGrade(container, posts, opcoes); });
+      }
+      const marcadas = (marcacoesCache.get(uid) || []).map((p) => ({ ...p, _marcacao: true }));
+      const todos = [...posts, ...marcadas].sort((a, b) => (ms(b.criadoEm) || Date.now()) - (ms(a.criadoEm) || Date.now()));
+      const conta = { tudo: todos.length, foto: 0, video: 0, texto: 0, marc: marcadas.length };
+      posts.forEach((p) => { conta[tipoPost(p)]++; });
+      let atual = filtroDaGrade.get(container) || "tudo";
+      if (atual !== "tudo" && !conta[atual]) atual = "tudo";
+      barra.replaceChildren(...FILTROS_GRADE.filter(([k]) => k === "tudo" || conta[k]).map(([k, rot, ic]) => {
+        const b = el("button"); b.type = "button"; b.setAttribute("role", "tab"); b.setAttribute("aria-selected", String(k === atual)); b.dataset.filtro = k;
+        b.append(icone(ic, "i xs"), el("span", null, rot), el("b", null, String(conta[k])));
+        b.addEventListener("click", () => { filtroDaGrade.set(container, k); renderizarGrade(container, posts, opcoes); });
+        return b;
+      }));
+      barra.hidden = !todos.length;
+      desenharGrade(container, atual === "tudo" ? todos : todos.filter((p) => tipoPost(p) === atual), opcoes);
+    }
+    function desenharGrade(container, posts, { proprio, autor }) {
       container.replaceChildren();
       if (!posts.length) {
         const v = document.createElement("div");
@@ -407,21 +442,28 @@
         tile.className = "tile";
         const url = urlSegura(post.mediaUrl);
         if (url && post.mediaTipo === "video") {
+          tile.classList.add("video");
           const v = document.createElement("video");
           v.src = url; v.muted = true; v.playsInline = true; v.preload = "metadata";
           tile.appendChild(v);
-          const m = icone("play", "i s marca-video");
-          tile.appendChild(m);
+          const m = el("span", "selo-video"); m.appendChild(icone("play", "i xs")); tile.appendChild(m);
         } else if (url) {
           const img = document.createElement("img");
           img.src = url; img.alt = post.texto ? post.texto.slice(0, 80) : "Publicação"; img.loading = "lazy";
           tile.appendChild(img);
           if (fotosDoPost(post).length > 1) { tile.appendChild(icone("fotos", "i s marca-fotos")); tile.setAttribute("data-fotos", String(fotosDoPost(post).length)); }
         } else {
-          tile.classList.add("texto");
-          const p = document.createElement("p");
-          p.textContent = post.texto || "Publicação";
-          tile.appendChild(p);
+          // Texto: cartão com aspas, o texto em destaque (maior quando é curto) e quem escreveu embaixo.
+          const txt = String(post.texto || "Publicação");
+          tile.classList.add("texto", txt.length <= 60 ? "t-curto" : txt.length <= 160 ? "t-medio" : "t-longo");
+          tile.dataset.tom = String(tomDoTexto(post.id));
+          const p = el("p", null, txt);
+          const rod = el("span", "tt-rodape");
+          const av = el("span", "avatar");
+          const quem = post._marcacao ? { foto: post.fotoPerfil, nome: post.nome } : { foto: autor?.fotoPerfil || post.fotoPerfil, nome: autor?.nome || post.nome };
+          pintarAvatar(av, quem.foto, quem.nome);
+          rod.append(av, el("span", null, tempoRelativo(paraData(post.criadoEm))));
+          tile.append(el("span", "tt-aspas", "“"), p, rod);
         }
         if (url && post.texto) {
           const l = document.createElement("span");
@@ -429,12 +471,22 @@
           l.textContent = post.texto;
           tile.appendChild(l);
         }
+        if (post._marcacao) {
+          // Marcação: a foto de quem publicou no canto ("em conjunto").
+          tile.classList.add("marcacao");
+          const s = el("span", "selo-marcado"); const av = el("span", "avatar"); pintarAvatar(av, post.fotoPerfil, post.nome);
+          s.append(av, icone("pessoa-mais", "i xs")); s.title = `Publicação de ${post.nome || "outra pessoa"} com você`;
+          tile.appendChild(s);
+          obterPerfil(post.autorId).then((pp) => { if (pp.fotoPerfil || pp.nome) pintarAvatar(av, pp.fotoPerfil, pp.nome); }).catch(() => {});
+        }
         if ((post.agendadoPara?.toMillis?.() ?? 0) > Date.now()) { tile.classList.add("agendada"); tile.appendChild(el("span", "selo-agendada", "Agendada")); }
-        tile.setAttribute("aria-label", "Abrir publicação");
+        tile.setAttribute("aria-label", post._marcacao ? `Publicação de ${post.nome || "outra pessoa"} com marcação` : "Abrir publicação");
         tile.addEventListener("click", () => abrirPost(posts, i, { proprio, autor }));
         container.appendChild(tile);
       });
     }
+    // Tom do cartão de texto (sempre o mesmo para a mesma publicação).
+    function tomDoTexto(id) { let h = 0; for (const c of String(id || "")) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h % 5; }
 
     async function carregarMeusPosts() {
       try {
@@ -443,7 +495,7 @@
         console.warn("Publicações indisponíveis:", e);
         meusPosts = [];
       }
-      renderizarGrade($("gradePosts"), meusPosts, { proprio: true, autor: dados });
+      renderizarGrade($("gradePosts"), meusPosts, { proprio: true, autor: dados, uid: eu.uid });
       renderizarMeuPerfil();
     }
 
@@ -455,8 +507,12 @@
       abrirFolha("folhaPost");
     }
     function mostrarPost() {
-      const { lista, indice, proprio, autor } = postCtx;
+      const { lista, indice } = postCtx;
       const post = lista[indice];
+      // Marcação (publicação de outra pessoa no seu perfil): sem editar/apagar e com o autor verdadeiro.
+      const proprio = postCtx.proprio && !post._marcacao;
+      const autor = post._marcacao ? null : postCtx.autor;
+      if (post._marcacao) obterPerfil(post.autorId).then((pp) => { if (postCtx.lista[postCtx.indice] !== post) return; if (pp.nome) $("postNome").textContent = pp.nome; pintarAvatar($("postAvatar"), pp.fotoPerfil || post.fotoPerfil, pp.nome || post.nome); }).catch(() => {});
       const midia = $("postMidia");
       midia.replaceChildren();
       const url = urlSegura(post.mediaUrl);
@@ -492,7 +548,7 @@
         ja.addEventListener("click", async () => { try { await fb.updateDoc(fb.doc(fb.db, "diario", post.id), { agendadoPara: fb.serverTimestamp() }); post.agendadoPara = { toMillis: () => Date.now() }; toast("Publicada agora"); mostrarPost(); carregarMeusPosts(); } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); } });
         a.appendChild(ja); extra.appendChild(a);
       }
-      if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=4").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
+      if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=5").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
       extra.hidden = !extra.children.length;
       if (!proprio) marcarVista({ ...post, autorId: post.autorId || autor?.uid });
       $("postAnterior").disabled = indice <= 0;
@@ -524,7 +580,7 @@
         await fb.deleteDoc(fb.doc(fb.db, "diario", post.id));
         fecharFolha("folhaPost");
         meusPosts = meusPosts.filter((p) => p.id !== post.id);
-        renderizarGrade($("gradePosts"), meusPosts, { proprio: true, autor: dados });
+        renderizarGrade($("gradePosts"), meusPosts, { proprio: true, autor: dados, uid: eu.uid });
         renderizarMeuPerfil();
         toast("Publicação apagada");
       } catch (e) {
@@ -535,7 +591,7 @@
 
     $("postEditar").addEventListener("click", () => {
       const post = postCtx.lista[postCtx.indice];
-      editarPublicacao(post, () => { mostrarPost(); if (postCtx.proprio) renderizarGrade($("gradePosts"), meusPosts, { proprio: true, autor: dados }); });
+      editarPublicacao(post, () => { mostrarPost(); if (postCtx.proprio) renderizarGrade($("gradePosts"), meusPosts, { proprio: true, autor: dados, uid: eu.uid }); });
     });
     $("postDenunciar").addEventListener("click", () => {
       const post = postCtx.lista[postCtx.indice];
@@ -550,6 +606,8 @@
       $("abaMinhas").setAttribute("aria-selected", String(!salvos));
       $("abaSalvos").setAttribute("aria-selected", String(salvos));
       $("gradePosts").hidden = salvos; $("btnCompor").hidden = salvos;
+      const barraF = $("gradePosts").previousElementSibling;
+      if (barraF?.classList.contains("filtros-grade")) barraF.classList.toggle("escondida", salvos);
       $("gradeSalvos").hidden = !salvos; $("notaSalvos").hidden = !salvos;
       if (!salvos) return;
       const g = $("gradeSalvos");
@@ -733,7 +791,7 @@
         Object.assign(dados, privado);
         perfis.delete(eu.uid);
         renderizarMeuPerfil();
-        renderizarGrade($("gradePosts"), meusPosts, { proprio: true, autor: dados });
+        renderizarGrade($("gradePosts"), meusPosts, { proprio: true, autor: dados, uid: eu.uid });
         fecharFolha("folhaEditar");
         toast("Perfil atualizado");
       } catch (e) {
@@ -903,7 +961,7 @@
       ppCab.stat("seguidores").addEventListener("click", () => abrirListaRelacoes(uid, "seguidores"));
       ppCab.stat("seguindo").addEventListener("click", () => abrirListaRelacoes(uid, "seguindo"));
       ppCab.stat("nota").addEventListener("click", () => abrirAvaliacoes(p, uid));
-      renderizarGrade($("ppGrade"), lista, { proprio: false, autor: p });
+      renderizarGrade($("ppGrade"), lista, { proprio: false, autor: { ...p, uid }, uid });
     }
 
     // ======================================================

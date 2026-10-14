@@ -58,6 +58,10 @@ const SIMBOLOS = `<symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l
 <symbol id="i-video" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2.5"/><path d="M16 10.5l5-3v9l-5-3z"/></symbol>
 <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></symbol>
 <symbol id="i-lixo" viewBox="0 0 24 24"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5"/></symbol>
+<symbol id="i-raio" viewBox="0 0 24 24"><path d="M13.4 2.6L5.2 13.3a.6.6 0 00.5 1h5.1l-1.2 6.9c-.1.6.7.9 1 .4l8.2-10.7a.6.6 0 00-.5-1h-5.1l1.2-6.9c.1-.6-.7-.9-1-.4z" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-raio-off" viewBox="0 0 24 24"><path d="M13.4 2.6L5.2 13.3a.6.6 0 00.5 1h5.1l-1.2 6.9c-.1.6.7.9 1 .4l8.2-10.7a.6.6 0 00-.5-1h-5.1l1.2-6.9c.1-.6-.7-.9-1-.4z"/><path d="M3.5 3.5l17 17"/></symbol>
+<symbol id="i-figurinha" viewBox="0 0 24 24"><path d="M20 12.5V7a3 3 0 00-3-3H7a3 3 0 00-3 3v10a3 3 0 003 3h5.5z"/><path d="M12.5 20c0-4.1 3.4-7.5 7.5-7.5"/><path d="M9 9.5v.1M15 9.5v.1M8.8 14c1.6 1.4 3.4 1.6 4.7.9"/></symbol>
+<symbol id="i-local" viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0113 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></symbol>
 <symbol id="i-estrela" viewBox="0 0 24 24"><path d="M12 3.8l2.5 5.2 5.7.8-4.1 4 1 5.6L12 16.7l-5.1 2.7 1-5.6-4.1-4 5.7-.8z" fill="currentColor" stroke="none"/></symbol>
 <symbol id="i-selo" viewBox="0 0 24 24"><path d="M12 2.5l2.4 1.8 3-.2.9 2.9 2.5 1.7-1 2.8 1 2.8-2.5 1.7-.9 2.9-3-.2L12 21.5l-2.4-1.8-3 .2-.9-2.9-2.5-1.7 1-2.8-1-2.8 2.5-1.7.9-2.9 3 .2z" fill="currentColor" stroke="none"/><path d="M8.3 12.2l2.5 2.5 5-5.2" stroke="#fff" stroke-width="2.2"/></symbol>
 <symbol id="i-sair" viewBox="0 0 24 24"><path d="M15 4h3.5A1.5 1.5 0 0120 5.5v13a1.5 1.5 0 01-1.5 1.5H15M10 16.5L14.5 12 10 7.5M14.5 12H4"/></symbol>
@@ -1501,6 +1505,12 @@ export function tagsDoTexto(texto) {
   for (const m of String(texto || "").matchAll(/(^|[^\p{L}\p{N}_#])#([\p{L}\p{N}_]{1,30})/gu)) r.add(m[2].toLowerCase());
   return [...r].slice(0, 10);
 }
+// @usuário do texto -> uid (nicknames/{nick}); no máximo 10.
+export async function uidsMencionados(texto) {
+  const nicks = [...new Set([...String(texto || "").matchAll(/(^|[^\w@#])@([a-z0-9._]{3,20})/gi)].map((m) => m[2].toLowerCase().replace(/\.+$/, "")))].slice(0, 10);
+  const r = await Promise.all(nicks.map((n) => fb.getDoc(fb.doc(fb.db, "nicknames", n)).then((s) => (s.exists() ? s.data().uid : null)).catch(() => null)));
+  return r.filter((u) => typeof u === "string" && /^[A-Za-z0-9]{1,64}$/.test(u));
+}
 export function comMencoes(alvo, texto) {
   alvo.replaceChildren();
   const re = /(^|[^\w@#])(?:@([a-z0-9._]{3,20})|#([\p{L}\p{N}_]{1,30}))/giu;
@@ -1820,7 +1830,9 @@ function ligarCompositor() {
         mediaTipo = "video";
       }
       const foto = urlSegura(dados.fotoPerfil).startsWith("https://") ? dados.fotoPerfil : "";
-      const tags = tagsDoTexto(texto), marcados = pubMarcados.map((p) => p.uid);
+      // Quem foi mencionado com @ também fica marcado (a publicação aparece no perfil da pessoa e ela é avisada).
+      const mencionados = await uidsMencionados(texto);
+      const tags = tagsDoTexto(texto), marcados = [...new Set([...pubMarcados.map((p) => p.uid), ...mencionados])].filter((u) => u && u !== eu.uid).slice(0, 10);
       const agenda = pubAgenda && pubAgenda > new Date() ? fb.Timestamp.fromDate(pubAgenda) : null;
       const extras = { ...(tags.length ? { tags } : {}), ...(marcados.length ? { marcados } : {}), ...(agenda ? { agendadoPara: agenda } : {}) };
       const gravar = (novos) => comRitmo(fb, eu.uid, "pub", (lote) => {
