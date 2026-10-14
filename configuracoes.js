@@ -6,8 +6,8 @@
 import {
   $, pintarAvatar, toast, erroAmigavel, abrirFolha, fecharFolha, abrirLista, config, salvarConfig, aplicarTema,
   fb, authFns, eu, refUsuario, dados, perfis, meusBloqueios, restritos, obterPerfil, linhaPessoa,
-  desbloquear, alternarRestricao, marcarPresenca, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos, salvarPrivacidadeConta
-} from "./rede.js?v=38";
+  desbloquear, alternarRestricao, marcarPresenca, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos, salvarPrivacidadeConta, confirmarHF
+} from "./rede.js?v=39";
 import { MOTIVOS_DESATIVAR, desativarConta, pedirExclusao, reautenticar, provedor } from "./conta.js?v=3";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
 
@@ -36,12 +36,49 @@ function pintarConfig() {
   $("cfgOnline").checked = config.mostrarOnline !== false;
   $("cfgSons").checked = config.sons !== false;
   $("cfgLeitura").checked = config.confirmacaoLeitura !== false;
+  // Diário e Flash
+  const qc = dados.diarioConfig?.quemComenta || "todos";
+  document.querySelectorAll("#cfgComenta [data-valor]").forEach((b) => b.classList.toggle("on", b.dataset.valor === qc));
+  const pm = permiteMarcar || dados.permiteMarcar || "todos";
+  document.querySelectorAll("#cfgMarcar [data-valor]").forEach((b) => b.classList.toggle("on", b.dataset.valor === pm));
+  $("cfgMarcarTxt").textContent = { todos: "Qualquer pessoa pode marcar e mencionar você", seguindo: "Só quem você segue pode marcar e mencionar você", ninguem: "Ninguém pode marcar ou mencionar você" }[pm];
+  const fc = dados.flashConfig || {};
+  $("cfgFlashTxt").textContent = [fc.publico === "amigos" ? "Só Amigos próximos" : "Todos que seguem você", Array.isArray(fc.ocultarDe) && fc.ocultarDe.length ? `oculto de ${fc.ocultarDe.length}` : "", fc.respostas === "ninguem" ? "respostas desligadas" : fc.respostas === "seguindo" ? "respostas de quem você segue" : ""].filter(Boolean).join(" · ");
 }
+// Quem pode marcar/mencionar (pref_publicas/{uid}: os outros leem antes de marcar). Cópia em usuarios/{uid}.
+let permiteMarcar = null;
+async function lerPermiteMarcar() {
+  try { const d = await fb.getDoc(fb.doc(fb.db, "pref_publicas", eu.uid)); permiteMarcar = d.exists() ? d.data().permiteMarcar || "todos" : null; } catch {}
+  pintarConfig();
+}
+document.querySelectorAll("#cfgMarcar [data-valor]").forEach((b) => b.addEventListener("click", async () => {
+  const v = b.dataset.valor, antes = permiteMarcar;
+  permiteMarcar = v; dados.permiteMarcar = v; pintarConfig();
+  fb.setDoc(refUsuario, { permiteMarcar: v }, { merge: true }).catch(() => {});
+  try { await fb.setDoc(fb.doc(fb.db, "pref_publicas", eu.uid), { permiteMarcar: v, atualizadoEm: fb.serverTimestamp() }, { merge: true }); toast("Salvo"); }
+  catch (e) { permiteMarcar = antes; pintarConfig(); toast(e?.code === "permission-denied" ? "Essa escolha começa a funcionar quando as regras novas forem publicadas." : "Não foi possível salvar: " + erroAmigavel(e)); }
+}));
+document.querySelectorAll("#cfgComenta [data-valor]").forEach((b) => b.addEventListener("click", async () => {
+  const v = b.dataset.valor;
+  dados.diarioConfig = { ...(dados.diarioConfig || {}), quemComenta: v }; pintarConfig();
+  try { await fb.setDoc(refUsuario, { diarioConfig: { quemComenta: v } }, { merge: true }); toast("Salvo: vale para as próximas publicações"); }
+  catch (e) { toast("Não foi possível salvar: " + erroAmigavel(e)); }
+}));
+$("cfgFlash").addEventListener("click", () => import("./stories.js?v=6").then((m) => {
+  m.abrirConfigFlash();
+  const f = $("folhaLista"); const volta = () => { f?.removeEventListener("fechada", volta); setTimeout(pintarConfig, 60); }; f?.addEventListener("fechada", volta);
+}));
+$("cfgInsights").addEventListener("click", () => import("./insights.js?v=1").then((m) => m.abrirInsights()));
+$("cfgGosto").addEventListener("click", async () => {
+  if (!await confirmarHF({ titulo: "Recomeçar o seu Principais?", texto: "O Diário esquece o que aprendeu sobre o seu gosto neste aparelho e volta a mostrar o que está em alta.", ok: "Recomeçar", icone: "alerta", cor: "normal" })) return;
+  try { localStorage.removeItem("hf-gosto"); } catch {}
+  toast("Pronto: o Principais recomeçou");
+});
 
 async function solicitarVerificacao() {
   if (dados.verificado) { toast("Seu perfil já é verificado."); return; }
   if (dados.solicitacaoVerificacao) { toast("Sua solicitação já está em análise."); return; }
-  if (!confirm("Enviar pedido de verificação? Nossa equipe vai analisar seu perfil.")) return;
+  if (!await confirmarHF({ titulo: "Pedir o selo de verificado?", texto: "Nossa equipe vai analisar seu perfil.", ok: "Enviar pedido", icone: "selo", cor: "normal" })) return;
   try {
     await fb.setDoc(refUsuario, { solicitacaoVerificacao: true, solicitacaoVerificacaoEm: fb.serverTimestamp() }, { merge: true });
     dados.solicitacaoVerificacao = true;
@@ -329,6 +366,7 @@ $("excConfirmar").addEventListener("click", async () => {
   pintarBarraRede();
   ouvirAvisos({ notificarNovos: false });
   pintarConfig();
+  lerPermiteMarcar();
   $("cfgConteudo").hidden = false;
   $("cfgCarregando").hidden = true;
   aplicarTema();

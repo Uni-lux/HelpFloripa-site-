@@ -6,7 +6,7 @@
 // Avisos da equipe (avisos/{id}) ficam no topo; ?aviso=ID abre um aviso e ?chamado=ID um chamado
 // (links das notificações). Abrir marca como lido (avisos.lidoEm / usuarios.suporteLido).
 // =====================================================
-import { $, el, toast, erroAmigavel, abrirFolha, fecharFolha, fb, eu, dados, iniciarRede, montarBarraRede, pintarBarraRede } from "./rede.js?v=38";
+import { $, el, toast, erroAmigavel, abrirFolha, fecharFolha, fb, eu, dados, iniciarRede, montarBarraRede, pintarBarraRede } from "./rede.js?v=39";
 import { SUPORTE, seloOficial, fotoSuporte, marcarChamadoLido } from "./avisos-equipe.js?v=1";
 
 const CAT = { conta: "Conta", negocio: "Negócio", golpe: "Golpe", denuncia: "Denúncia", contestacao: "Contestação", pagamento: "Pagamento", sugestao: "Sugestão", outro: "Outro" };

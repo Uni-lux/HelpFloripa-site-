@@ -13,7 +13,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="stylesheet" href="vitrine.css?v=25" />
-  <link rel="stylesheet" href="rede.css?v=16" />
+  <link rel="stylesheet" href="rede.css?v=17" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
     // Tema compartilhado com a página de mensagens; aplicado antes de desenhar.
@@ -45,14 +45,8 @@
       <section id="meuPerfil" aria-label="Seu perfil"></section>
 
       <section id="painelPosts" aria-labelledby="tPosts">
-        <div class="secao-perfil">
-          <h2 id="tPosts" class="sr-only">Publicações</h2>
-          <div class="abas-posts" role="tablist" aria-label="Suas publicações">
-            <button type="button" role="tab" id="abaMinhas" aria-selected="true"><svg class="i xs"><use href="#i-grade"/></svg>Publicações</button>
-            <button type="button" role="tab" id="abaSalvos" aria-selected="false"><svg class="i xs"><use href="#i-salvo"/></svg>Salvos</button>
-          </div>
-          <a class="btn sec mini" href="feed.html"><svg class="i xs"><use href="#i-feed"/></svg>Ver o diário</a>
-        </div>
+        <h2 id="tPosts" class="sr-only">Publicações</h2>
+        <div class="abas-perfil" id="abasMeuPerfil" role="tablist" aria-label="Conteúdo do perfil"></div>
         <button type="button" class="compor" id="btnCompor">
           <div class="avatar" id="comporAvatar"></div>
           <span class="txt">Compartilhe um trabalho, uma novidade ou uma foto...</span>
@@ -67,27 +61,32 @@
 
   <!-- Modelo do cabeçalho de perfil (usado no seu perfil e no perfil de outras pessoas) -->
   <template id="tplPerfil">
-    <div class="pf">
-      <div class="pf-capa sem-foto" data-el="capa"></div>
-      <div class="pf-corpo">
-        <div class="pf-linha-avatar">
+    <div class="pf pf2">
+      <div class="pf-hero">
+        <div class="pf-capa sem-foto" data-el="capa"></div>
+        <div class="pf-topo">
           <div class="pf-avatar-wrap">
             <div class="pf-anel"><div class="avatar" data-el="avatar"></div></div>
           </div>
-          <div class="pf-acoes" data-el="acoes"></div>
+          <div class="pf-ident">
+            <div class="pf-nome-linha">
+              <h1 class="pf-nome" data-el="nome"></h1>
+              <span class="selo" data-el="selo" title="Perfil verificado" hidden><svg class="i"><use href="#i-selo"/></svg></span>
+            </div>
+            <div class="pf-handle" data-el="handle"></div>
+            <p class="pf-bio" data-el="bio"></p>
+          </div>
         </div>
-        <div class="pf-nome-linha">
-          <h1 class="pf-nome" data-el="nome"></h1>
-          <span class="selo" data-el="selo" title="Perfil verificado" hidden><svg class="i"><use href="#i-selo"/></svg></span>
-        </div>
-        <div class="pf-handle" data-el="handle"></div>
-        <p class="pf-bio" data-el="bio"></p>
+      </div>
+      <div class="pf-corpo">
+        <div class="pf-acoes" data-el="acoes"></div>
         <div class="social" data-el="negocios" hidden></div>
         <div class="pf-stats">
           <button type="button" class="pf-stat" data-stat="posts"><span class="num">0</span><span class="rot">Publicações</span></button>
           <button type="button" class="pf-stat" data-stat="seguidores"><span class="num">0</span><span class="rot">Seguidores</span></button>
           <button type="button" class="pf-stat" data-stat="seguindo"><span class="num">0</span><span class="rot">Seguindo</span></button>
           <button type="button" class="pf-stat" data-stat="nota"><span class="num"><svg class="i xs"><use href="#i-estrela"/></svg><em style="font-style:normal">–</em></span><span class="rot">Avaliação</span></button>
+          <button type="button" class="pf-stat pf-stat-mais" data-stat="insights" aria-label="Ver as estatísticas do perfil" hidden><svg class="i s"><use href="#i-avancar"/></svg></button>
         </div>
         <div data-el="extra"></div>
       </div>
@@ -208,7 +207,7 @@
       <div class="folha-topo"><h2 id="tPerfilPublico">Perfil</h2><button type="button" class="icone-btn" data-fechar aria-label="Fechar"><svg class="i"><use href="#i-fechar"/></svg></button></div>
       <div class="folha-corpo">
         <div id="ppCabecalho"></div>
-        <div class="pp-conteudo"><h3>Publicações</h3><div class="grade" id="ppGrade"></div></div>
+        <div class="pp-conteudo"><div class="grade" id="ppGrade"></div></div>
       </div>
     </div>
   </div>
@@ -221,14 +220,14 @@
       obterPerfil, lerOrdenado, editarPublicacao, comMencoes, salvarImagem, iniciarRede, meusSeguindoPronto, carregarMeusSeguindo, alternarSeguir, botaoSeguir, linhaPessoa,
       removerSeguidor, bloquear, desbloquear, alternarRestricao, compartilharPerfil,
       barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail,
-      fotosDoPost, carrosselFotos, idsSalvos, contadorEstrelas, silenciado, alternarSilenciar, marcarVista, definirOrigem
-    } from "./rede.js?v=38";
+      fotosDoPost, carrosselFotos, idsSalvos, contadorEstrelas, silenciado, alternarSilenciar, marcarVista, definirOrigem, lerResumosEstrelas, contarComentarios, blocoEnquete
+    } from "./rede.js?v=39";
     import { buscarPessoas, palavrasBusca } from "./pessoas.js?v=3";
     import { abrirDenuncia } from "./denuncias.js?v=2";
     import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
     import { notaDoPerfil, abrirDetalhamento, avaliarNegocio, avaliarCliente, lerResumo, estrelas, pintarEstrelas, media, notaTexto, TIPOS_NEGOCIO } from "./avaliacoes.js?v=13";
     import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=33";
-    import { anelNoPerfil } from "./stories.js?v=5";
+    import { anelNoPerfil } from "./stories.js?v=6";
 
     // ======================================================
     // Estado desta página (o resto vem de rede.js)
@@ -333,6 +332,9 @@
         meuCab.stat("seguidores").addEventListener("click", () => abrirListaRelacoes(eu.uid, "seguidores"));
         meuCab.stat("seguindo").addEventListener("click", () => abrirListaRelacoes(eu.uid, "seguindo"));
         meuCab.stat("nota").addEventListener("click", () => abrirAvaliacoes(dados, eu.uid));
+        const bIns = meuCab.stat("insights");
+        bIns.hidden = false;
+        bIns.addEventListener("click", abrirInsightsPerfil);
       }
       pintarMeuSocial();
       preencherCabecalho(meuCab, dados, { posts: meusPosts.length, seguidores: contagem.seguidores, seguindo: contagem.seguindo });
@@ -351,6 +353,15 @@
       // Verificação
       const extra = meuCab.el("extra");
       extra.replaceChildren();
+      const painel = document.createElement("button");
+      painel.type = "button"; painel.className = "pf-painel";
+      const tp = document.createElement("span"); tp.className = "tx";
+      const t1 = document.createElement("strong"); t1.textContent = "Estatísticas do perfil";
+      const t2 = document.createElement("small"); t2.textContent = "Alcance, interações, seguidores e público";
+      tp.append(t1, t2);
+      painel.append(icone("graf", "i s"), tp, icone("avancar", "i xs"));
+      painel.addEventListener("click", abrirInsightsPerfil);
+      extra.appendChild(painel);
       if (!dados.verificado) {
         const c = document.createElement("button");
         c.type = "button"; c.className = "chip-verif";
@@ -363,6 +374,10 @@
       renderizarNegocios(meuCab.el("negocios"), meusNegocios, { proprio: true, dono: dados });
       pintarAvatar($("comporAvatar"), dados.fotoPerfil, dados.nome);
       document.title = `${dados.nome || "Meu perfil"} | Help Floripa`;
+    }
+
+    function abrirInsightsPerfil() {
+      import("./insights.js?v=1").then((m) => m.abrirInsights()).catch((e) => toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)));
     }
 
     const contagem = { seguidores: 0, seguindo: 0 };
@@ -390,49 +405,95 @@
       return snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((x) => uid === eu.uid || ((x.ocultoAte?.toMillis?.() ?? 0) <= Date.now() && (x.agendadoPara?.toMillis?.() ?? 0) <= Date.now())).sort((a, b) => (ms(b.criadoEm) || Date.now()) - (ms(a.criadoEm) || Date.now()));
     }
 
-    // Publicações em que a pessoa foi marcada ou mencionada (de outras contas): aparecem junto no perfil.
+    // Publicações em que a pessoa foi marcada ou mencionada (de outras contas): aba Marcados.
     const marcacoesCache = new Map();
     async function buscarMarcacoes(uid) {
       const s = await fb.getDocs(fb.query(fb.collection(fb.db, "diario"), fb.where("marcados", "array-contains", uid), fb.limit(60))).catch(() => ({ docs: [] }));
       return s.docs.map((d) => ({ id: d.id, ...d.data() }))
-        .filter((x) => x.autorId !== uid && !escondido(x.autorId) && (x.ocultoAte?.toMillis?.() ?? 0) <= Date.now() && (x.agendadoPara?.toMillis?.() ?? 0) <= Date.now());
+        .filter((x) => x.autorId !== uid && !escondido(x.autorId) && (x.ocultoAte?.toMillis?.() ?? 0) <= Date.now() && (x.agendadoPara?.toMillis?.() ?? 0) <= Date.now())
+        .sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
     }
-    const tipoPost = (p) => (p._marcacao ? "marc" : urlSegura(p.mediaUrl) ? (p.mediaTipo === "video" ? "video" : "foto") : "texto");
-    const FILTROS_GRADE = [["tudo", "Tudo", "grade"], ["foto", "Fotos", "imagem"], ["video", "Vídeos", "video"], ["texto", "Textos", "lapis"], ["marc", "Marcações", "pessoa-mais"]];
-    const filtroDaGrade = new WeakMap();
-    // Grade organizada: Tudo · Fotos · Vídeos · Textos · Marcações (com a quantidade de cada).
+    const temMidia = (p) => !!urlSegura(p.mediaUrl);
+    // Abas do perfil (sublinhadas, como Instagram e TikTok):
+    //   Publicações (fotos e vídeos em grade) · Reels (vídeos) · Textos (lista, como Threads/X) · Salvos (só você) · Marcados
+    const ABAS_PERFIL = [["posts", "Publicações", "grade"], ["reels", "Reels", "video"], ["textos", "Textos", "doc"], ["salvos", "Salvos", "salvo"], ["marcados", "Marcados", "pessoa-mais"]];
+    const abaDaGrade = new WeakMap();
     function renderizarGrade(container, posts, opcoes) {
-      const { uid } = opcoes;
+      const { uid, proprio } = opcoes;
       if (!uid) { desenharGrade(container, posts, opcoes); return; }
-      let barra = container.previousElementSibling;
-      if (!barra?.classList.contains("filtros-grade")) { barra = el("div", "filtros-grade"); barra.setAttribute("role", "tablist"); barra.setAttribute("aria-label", "Mostrar"); container.before(barra); }
+      // barra de abas e lista de textos (criadas uma vez, junto da grade)
+      let barra = opcoes.barra || container.previousElementSibling;
+      if (!barra?.classList.contains("abas-perfil")) { barra = el("div", "abas-perfil"); barra.setAttribute("role", "tablist"); barra.setAttribute("aria-label", "Conteúdo do perfil"); container.before(barra); }
+      let listaT = container.parentElement.querySelector(":scope > .lista-textos");
+      if (!listaT) { listaT = el("div", "lista-textos"); container.after(listaT); }
       if (!marcacoesCache.has(uid)) {
         marcacoesCache.set(uid, null);
-        buscarMarcacoes(uid).then((l) => { marcacoesCache.set(uid, l); if (container.isConnected && l.length) renderizarGrade(container, posts, opcoes); });
+        buscarMarcacoes(uid).then((l) => { marcacoesCache.set(uid, l); if (container.isConnected && abaDaGrade.get(container) === "marcados") renderizarGrade(container, posts, opcoes); });
       }
-      const marcadas = (marcacoesCache.get(uid) || []).map((p) => ({ ...p, _marcacao: true }));
-      const todos = [...posts, ...marcadas].sort((a, b) => (ms(b.criadoEm) || Date.now()) - (ms(a.criadoEm) || Date.now()));
-      const conta = { tudo: todos.length, foto: 0, video: 0, texto: 0, marc: marcadas.length };
-      posts.forEach((p) => { conta[tipoPost(p)]++; });
-      let atual = filtroDaGrade.get(container) || "tudo";
-      if (atual !== "tudo" && !conta[atual]) atual = "tudo";
-      barra.replaceChildren(...FILTROS_GRADE.filter(([k]) => k === "tudo" || conta[k]).map(([k, rot, ic]) => {
-        const b = el("button"); b.type = "button"; b.setAttribute("role", "tab"); b.setAttribute("aria-selected", String(k === atual)); b.dataset.filtro = k;
-        b.append(icone(ic, "i xs"), el("span", null, rot), el("b", null, String(conta[k])));
-        b.addEventListener("click", () => { filtroDaGrade.set(container, k); renderizarGrade(container, posts, opcoes); });
+      const grupos = {
+        posts: posts.filter(temMidia),
+        reels: posts.filter((p) => temMidia(p) && p.mediaTipo === "video"),
+        textos: posts.filter((p) => !temMidia(p)),
+        marcados: (marcacoesCache.get(uid) || []).map((p) => ({ ...p, _marcacao: true }))
+      };
+      let atual = abaDaGrade.get(container) || (grupos.posts.length || !grupos.textos.length ? "posts" : "textos");
+      if (atual === "salvos" && !proprio) atual = "posts";
+      barra.replaceChildren(...ABAS_PERFIL.filter(([k]) => k !== "salvos" || proprio).map(([k, rot, ic]) => {
+        const b = el("button"); b.type = "button"; b.setAttribute("role", "tab"); b.setAttribute("aria-selected", String(k === atual)); b.dataset.aba = k;
+        if (k === "salvos") b.id = "abaSalvos";
+        b.append(icone(ic, "i s"), el("span", null, rot));
+        b.addEventListener("click", () => { abaDaGrade.set(container, k); renderizarGrade(container, posts, opcoes); });
         return b;
       }));
-      barra.hidden = !todos.length;
-      desenharGrade(container, atual === "tudo" ? todos : todos.filter((p) => tipoPost(p) === atual), opcoes);
+      // Salvos (só você): grade própria
+      const salvosEl = $("gradeSalvos"), notaS = $("notaSalvos");
+      if (proprio) { salvosEl.hidden = atual !== "salvos"; notaS.hidden = atual !== "salvos"; $("btnCompor").hidden = atual === "salvos" || atual === "marcados"; }
+      container.hidden = atual === "salvos" || atual === "textos";
+      listaT.hidden = atual !== "textos";
+      if (atual === "salvos") { mostrarSalvos(); return; }
+      if (atual === "textos") { desenharTextos(listaT, grupos.textos, opcoes); return; }
+      const vazios = { posts: proprio ? "Suas fotos e vídeos aparecem aqui." : "Nenhuma foto ou vídeo ainda.", reels: "Os vídeos publicados aparecem aqui.", marcados: proprio ? "Quando alguém marcar ou mencionar você numa publicação, ela aparece aqui." : "Nenhuma publicação com marcação ainda." };
+      if (atual === "marcados" && marcacoesCache.get(uid) === null) { container.replaceChildren(el("div", "vazio-grade", "Carregando...")); return; }
+      desenharGrade(container, grupos[atual], { ...opcoes, vazio: vazios[atual] });
     }
-    function desenharGrade(container, posts, { proprio, autor }) {
+    // Textos: lista como no Threads/X — foto, nome, @ e hora, o texto inteiro (até 8 linhas) e os números.
+    function desenharTextos(box, lista, { autor }) {
+      box.replaceChildren();
+      if (!lista.length) { box.appendChild(el("div", "vazio-grade", "Nenhum texto publicado ainda.")); return; }
+      lerResumosEstrelas(lista.map((p) => p.id)).catch(() => new Map()).then((res) => {
+        lista.forEach((post, i) => {
+          const it = el("article", "texto-item"); it.tabIndex = 0; it.setAttribute("role", "button");
+          const av = el("div", "avatar"); pintarAvatar(av, autor?.fotoPerfil || post.fotoPerfil, autor?.nome || post.nome);
+          const corpoT = el("div", "ti-corpo");
+          const cab = el("div", "ti-cab");
+          cab.append(el("strong", null, autor?.nome || post.nome || "Usuário"));
+          if (autor?.verificado) { const s = el("span", "selo"); s.appendChild(icone("selo", "i")); cab.appendChild(s); }
+          cab.appendChild(el("span", "ti-meta", [autor?.nickname ? "@" + autor.nickname : "", tempoRelativo(paraData(post.criadoEm))].filter(Boolean).join(" · ")));
+          const tx = comMencoes(el("p", "ti-texto"), post.texto || "");
+          const rod = el("div", "ti-rodape");
+          const r = res.get(post.id);
+          const est = el("span", "ti-num"); est.append(icone("estrela", "i"), document.createTextNode(r?.total ? `${(r.soma / r.total).toFixed(1).replace(".", ",")} · ${numero(r.total)}` : "0"));
+          const com = el("span", "ti-num"); com.append(icone("chat", "i"), document.createTextNode("…"));
+          contarComentarios(post.id).then((n) => { com.lastChild.textContent = numero(n); }).catch(() => { com.lastChild.textContent = "0"; });
+          rod.append(est, com);
+          if ((post.agendadoPara?.toMillis?.() ?? 0) > Date.now()) rod.appendChild(el("span", "selo-agendada", "Agendada"));
+          corpoT.append(cab, tx, rod);
+          it.append(av, corpoT);
+          const abrir = (e) => { if (e.target.closest("a")) return; abrirPost(lista, i, { proprio: !!autor && autor === dados, autor }); };
+          it.addEventListener("click", abrir);
+          it.addEventListener("keydown", (e) => { if (e.key === "Enter") abrir(e); });
+          box.appendChild(it);
+        });
+      });
+    }
+    function desenharGrade(container, posts, { proprio, autor, vazio }) {
       container.replaceChildren();
       if (!posts.length) {
         const v = document.createElement("div");
         v.className = "vazio-grade";
         const t = document.createElement("strong");
-        t.textContent = proprio ? "Sua vitrine começa aqui" : "Nenhuma publicação ainda";
-        v.append(t, proprio ? "Publique fotos dos seus trabalhos, novidades e avisos para seus seguidores." : "Quando essa pessoa publicar, aparece aqui.");
+        t.textContent = proprio ? "Sua vitrine começa aqui" : "Nada por aqui ainda";
+        v.append(t, vazio || (proprio ? "Publique fotos dos seus trabalhos, novidades e avisos para seus seguidores." : "Quando essa pessoa publicar, aparece aqui."));
         container.appendChild(v);
         return;
       }
@@ -495,7 +556,7 @@
         console.warn("Publicações indisponíveis:", e);
         meusPosts = [];
       }
-      renderizarGrade($("gradePosts"), meusPosts, { proprio: true, autor: dados, uid: eu.uid });
+      renderizarGrade($("gradePosts"), meusPosts, { proprio: true, autor: dados, uid: eu.uid, barra: $("abasMeuPerfil") });
       renderizarMeuPerfil();
     }
 
@@ -536,6 +597,8 @@
       $("postData").textContent = dataCompleta(paraData(post.criadoEm)) + (post.editadoEm ? " · editada" : "");
       // Pessoas marcadas, agendamento e estatísticas (do autor).
       const extra = $("postExtras"); extra.replaceChildren();
+      const enq = blocoEnquete(post);
+      if (enq) extra.appendChild(enq);
       if (Array.isArray(post.marcados) && post.marcados.length) {
         const l = el("div", "post-com"); l.append(icone("pessoa-mais", "i xs"), document.createTextNode("com "));
         post.marcados.slice(0, 10).forEach((u, i) => { const b = el("button", null, "..."); b.type = "button"; b.addEventListener("click", () => { fecharFolha("folhaPost"); abrirPerfilPublico(u); }); obterPerfil(u).then((pp) => { b.textContent = String(pp.nome || "Usuário").split(" ")[0]; }).catch(() => {}); if (i) l.appendChild(document.createTextNode(i === post.marcados.length - 1 ? " e " : ", ")); l.appendChild(b); });
@@ -548,7 +611,7 @@
         ja.addEventListener("click", async () => { try { await fb.updateDoc(fb.doc(fb.db, "diario", post.id), { agendadoPara: fb.serverTimestamp() }); post.agendadoPara = { toMillis: () => Date.now() }; toast("Publicada agora"); mostrarPost(); carregarMeusPosts(); } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); } });
         a.appendChild(ja); extra.appendChild(a);
       }
-      if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=5").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
+      if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=6").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
       extra.hidden = !extra.children.length;
       if (!proprio) marcarVista({ ...post, autorId: post.autorId || autor?.uid });
       $("postAnterior").disabled = indice <= 0;
@@ -556,12 +619,13 @@
       pintarSocialPost({ ...post, autorId: post.autorId || autor?.uid });
     }
     let barraPost = null;
-    // Toque duplo na foto: contagem de estrelas (como no Diário).
+    // Toque duplo na foto ou no texto: 5 estrelas na hora (como no Diário).
     async function toqueDuploPost(alvo) {
       if (!barraPost?.estrelas?.darNota) return;
-      const n = await contadorEstrelas(alvo, (nota) => barraPost.estrelas.darNota(nota));
-      if (n) toast(`Você deu ${n} ${n === 1 ? "estrela" : "estrelas"}`);
+      await contadorEstrelas(alvo, (nota) => barraPost.estrelas.darNota(nota));
     }
+    // Texto da publicação aberta: dois toques também dão as estrelas (links continuam com um toque).
+    { let ult = 0; $("postTexto").addEventListener("click", (e) => { if (e.target.closest("a, button") || !$("postMidia").hidden) return; const ag = Date.now(); if (ag - ult < 320) { ult = 0; toqueDuploPost($("postTexto")); } else ult = ag; }); }
     function pintarSocialPost(post) {
       const box = $("postSocial");
       box.replaceChildren();
@@ -580,7 +644,7 @@
         await fb.deleteDoc(fb.doc(fb.db, "diario", post.id));
         fecharFolha("folhaPost");
         meusPosts = meusPosts.filter((p) => p.id !== post.id);
-        renderizarGrade($("gradePosts"), meusPosts, { proprio: true, autor: dados, uid: eu.uid });
+        renderizarGrade($("gradePosts"), meusPosts, { proprio: true, autor: dados, uid: eu.uid, barra: $("abasMeuPerfil") });
         renderizarMeuPerfil();
         toast("Publicação apagada");
       } catch (e) {
@@ -591,7 +655,7 @@
 
     $("postEditar").addEventListener("click", () => {
       const post = postCtx.lista[postCtx.indice];
-      editarPublicacao(post, () => { mostrarPost(); if (postCtx.proprio) renderizarGrade($("gradePosts"), meusPosts, { proprio: true, autor: dados, uid: eu.uid }); });
+      editarPublicacao(post, () => { mostrarPost(); if (postCtx.proprio) renderizarGrade($("gradePosts"), meusPosts, { proprio: true, autor: dados, uid: eu.uid, barra: $("abasMeuPerfil") }); });
     });
     $("postDenunciar").addEventListener("click", () => {
       const post = postCtx.lista[postCtx.indice];
@@ -602,28 +666,19 @@
     });
 
     // ---------- Salvos (só você vê) ----------
-    async function mostrarAbaPosts(salvos) {
-      $("abaMinhas").setAttribute("aria-selected", String(!salvos));
-      $("abaSalvos").setAttribute("aria-selected", String(salvos));
-      $("gradePosts").hidden = salvos; $("btnCompor").hidden = salvos;
-      const barraF = $("gradePosts").previousElementSibling;
-      if (barraF?.classList.contains("filtros-grade")) barraF.classList.toggle("escondida", salvos);
-      $("gradeSalvos").hidden = !salvos; $("notaSalvos").hidden = !salvos;
-      if (!salvos) return;
+    async function mostrarSalvos() {
       const g = $("gradeSalvos");
       g.replaceChildren(el("div", "vazio-grade", "Carregando..."));
       const ids = idsSalvos().slice(0, 90);
       const docs = await Promise.all(ids.map((id) => fb.getDoc(fb.doc(fb.db, "diario", id)).catch(() => null)));
       const lista = docs.filter((d) => d?.exists()).map((d) => ({ id: d.id, ...d.data() })).filter((p) => !escondido(p.autorId) && (p.ocultoAte?.toMillis?.() ?? 0) <= Date.now());
       if (!lista.length) {
-        const v = el("div", "vazio-grade"); v.append(el("strong", null, "Nada salvo ainda"), "Nas publicações, toque em Salvar (nos comentários ou no ⋯) para guardar aqui.");
+        const v = el("div", "vazio-grade"); v.append(el("strong", null, "Nada salvo ainda"), "Nas publicações, toque em Salvar para guardar aqui.");
         g.replaceChildren(v); return;
       }
       definirOrigem("salvos");
-      renderizarGrade(g, lista, { proprio: false, autor: null });
+      desenharGrade(g, lista, { proprio: false, autor: null });
     }
-    $("abaMinhas").addEventListener("click", () => mostrarAbaPosts(false));
-    $("abaSalvos").addEventListener("click", () => mostrarAbaPosts(true));
 
     // ---------- link direto para uma publicação: usuarios.html?post=ID ----------
     async function abrirPostPorLink(id) {
@@ -791,7 +846,7 @@
         Object.assign(dados, privado);
         perfis.delete(eu.uid);
         renderizarMeuPerfil();
-        renderizarGrade($("gradePosts"), meusPosts, { proprio: true, autor: dados, uid: eu.uid });
+        renderizarGrade($("gradePosts"), meusPosts, { proprio: true, autor: dados, uid: eu.uid, barra: $("abasMeuPerfil") });
         fecharFolha("folhaEditar");
         toast("Perfil atualizado");
       } catch (e) {
@@ -1196,10 +1251,10 @@
         av.appendChild(icone("mais", "i s"));
         const n = document.createElement("span");
         n.className = "nome";
-        n.textContent = lista.length ? "Criar" : "Criar perfil";
+        n.textContent = "Novo";
         const pp = document.createElement("span");
         pp.className = "papel";
-        pp.textContent = "de negócio";
+        pp.textContent = "negócio";
         novo.append(av, n, pp);
         novo.addEventListener("click", () => { location.href = "negocios.html?novo=1"; });
         linha.appendChild(novo);

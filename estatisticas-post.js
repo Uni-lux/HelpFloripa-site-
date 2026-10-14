@@ -12,7 +12,7 @@
 import {
   $, el, icone, fb, eu, numero, toast, erroAmigavel, criarFolha, abrirFolha, infoEstrelas, contarComentarios,
   lerResumosEstrelas, fotosDoPost, ms, paraData, dataCompleta, tempoRelativo
-} from "./rede.js?v=38";
+} from "./rede.js?v=39";
 
 const ORIGENS = [["principais", "Principais"], ["seguindo", "Quem segue você"], ["amigos", "Amigos"], ["perfil", "Seu perfil"], ["link", "Link compartilhado"], ["tag", "Hashtags"], ["salvos", "Salvos"]];
 const contar = (q) => fb.getCountFromServer(q).then((s) => s.data().count).catch(() => null);
@@ -167,7 +167,7 @@ function horasMaisVistas(vistas) {
 }
 
 // Gráfico de área (um só valor, somado no tempo), com linha guia e caixinha ao passar o dedo/mouse.
-function secaoGrafico(titulo, sub, tempos, inicio) {
+export function secaoGrafico(titulo, sub, tempos, inicio) {
   const s = el("div", "estat-secao");
   const cab = el("div", "estat-graf-cab"); cab.append(el("h3", null, titulo), el("small", null, sub));
   s.appendChild(cab);
@@ -214,7 +214,7 @@ function secaoGrafico(titulo, sub, tempos, inicio) {
 }
 
 // Horários do dia em que mais viram (24 colunas).
-function secaoHoras(vistas) {
+export function secaoHoras(vistas) {
   const s = el("div", "estat-secao");
   const cab = el("div", "estat-graf-cab"); cab.append(el("h3", null, "Horários em que mais viram"), el("small", null, "visualizações por hora do dia"));
   s.appendChild(cab);

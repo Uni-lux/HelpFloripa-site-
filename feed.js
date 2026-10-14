@@ -12,10 +12,10 @@ import {
   fb, eu, dados, meusSeguindo, escondido, ganchos, obterPerfil, iniciarRede, carregarMeusSeguindo, linhaPessoa,
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, botaoSeguir, montarBarraRede, pintarBarraRede, ouvirAvisos, lerOrdenado,
   editarPublicacao, bloquear, comMencoes, fotosDoPost, carrosselFotos, contadorEstrelas, estaSalvo, alternarSalvo, lerResumosEstrelas, contarComentarios,
-  silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto, confirmarHF
-} from "./rede.js?v=38";
+  silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto, confirmarHF, blocoEnquete
+} from "./rede.js?v=39";
 import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=1";
-import { montarStories } from "./stories.js?v=5";
+import { montarStories } from "./stories.js?v=6";
 import { abrirDenuncia } from "./denuncias.js?v=2";
 import { buscarPessoas, pessoasRecentes } from "./pessoas.js?v=3";
 import { docsComValidade } from "./leituras.js?v=1";
@@ -227,7 +227,7 @@ function cartaoPost(post) {
       ? { rotulo: "Remover dos salvos", icone: "salvo", fn: () => alternarSalvo(post) }
       : { rotulo: "Salvar publicação", sub: "Para ver depois no seu Perfil → Salvos", icone: "salvo", fn: () => alternarSalvo(post) },
     { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(post.autorId, post.nome) },
-    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=5").then((m) => m.abrirEstatisticas(post)) },
+    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=6").then((m) => m.abrirEstatisticas(post)) },
     post.autorId === eu.uid && { rotulo: "Editar publicação", icone: "lapis", fn: () => editarPublicacao(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId !== eu.uid && { rotulo: silenciado(post.autorId) ? `Mostrar ${nome.textContent} de novo` : `Silenciar ${nome.textContent}`, sub: "Continua seguindo, mas as publicações e flashes somem do seu Diário", icone: "restringir",
       fn: async () => { await alternarSilenciar(post.autorId, nome.textContent); if (silenciado(post.autorId)) { posts = posts.filter((x) => x.autorId !== post.autorId); document.querySelectorAll(".post-card").forEach((x) => { if (x.dataset.autor === post.autorId) x.remove(); }); } } },
@@ -262,11 +262,9 @@ function cartaoPost(post) {
     c.appendChild(linhaM);
   }
   if (post.texto) {
-    // Texto curto sem foto: cartão em destaque (texto grande no meio, fundo com o tom da publicação).
-    const cartaoTexto = !url && post.texto.length <= 160 && (post.texto.match(/\n/g) || []).length <= 3;
-    const t = comMencoes(el("p", "post-texto" + (url ? "" : " so-texto") + (cartaoTexto ? " cartao-texto" : "")), post.texto);
-    if (cartaoTexto) { t.dataset.tom = String(tomDoTexto(post.id)); t.classList.toggle("curtinho", post.texto.length <= 60); }
+    const t = comMencoes(el("p", "post-texto" + (url ? "" : " so-texto")), post.texto);
     c.appendChild(t);
+    if (!url) c._texto = t;
     // Texto longo: mostra o começo e "ver mais".
     if (post.texto.length > 220) {
       t.classList.add("curto");
@@ -276,6 +274,8 @@ function cartaoPost(post) {
     }
   }
   const barra = barraInteracao(post);
+  // Publicação só de texto: toque duplo no texto dá as 5 estrelas (como na foto).
+  if (c._texto) toqueDuploEm(c._texto, () => toqueDuplo(c._texto, barra));
   const fotos = fotosDoPost(post);
   if (fotos.length && post.mediaTipo !== "video") {
     // A foto aparece no recorte escolhido ao publicar (4:5, 1:1 ou 16:9), sem cortar de novo. Fotos antigas
@@ -296,16 +296,25 @@ function cartaoPost(post) {
     m.classList.add("video"); m.append(v, som); vigiaVideo?.observe(v);
     c.appendChild(m);
   }
+  const enq = blocoEnquete(post);
+  if (enq) c.appendChild(enq);
   c.appendChild(barra);
   return c;
 }
-// Tom do cartão de texto (sempre o mesmo para a mesma publicação; igual ao do perfil).
-function tomDoTexto(id) { let h = 0; for (const c of String(id || "")) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h % 5; }
-// Toque duplo na foto: a contagem de estrelas (vale também na própria publicação).
+// Dois toques rápidos no elemento (links e "ver mais" continuam funcionando com um toque).
+function toqueDuploEm(alvo, fn) {
+  let ultimo = 0;
+  alvo.addEventListener("click", (e) => {
+    if (e.target.closest("a, button")) return;
+    const agora = Date.now();
+    if (agora - ultimo < 320) { ultimo = 0; window.getSelection?.()?.removeAllRanges?.(); fn(); return; }
+    ultimo = agora;
+  });
+}
+// Toque duplo: 5 estrelas na hora (vale também na própria publicação). Para dar menos, use as estrelas da barra.
 async function toqueDuplo(m, barra) {
   if (!barra.estrelas?.darNota) return;
-  const n = await contadorEstrelas(m, (nota) => barra.estrelas.darNota(nota));
-  if (n) toast(`Você deu ${n} ${n === 1 ? "estrela" : "estrelas"}`);
+  await contadorEstrelas(m, (nota) => barra.estrelas.darNota(nota));
 }
 
 // ---------- explorar: pessoas ----------
@@ -389,7 +398,7 @@ function pintarDestaques(lista, resumos) {
     a.appendChild(im);
     if (fotosDoPost(p).length > 1) a.appendChild(icone("fotos", "i xs marca"));
     const r = resumos.get(p.id);
-    if (r?.total) a.appendChild(el("span", "exp-nota", `★ ${(r.soma / r.total).toFixed(1).replace(".", ",")}`));
+    if (r?.total) { const nt = el("span", "exp-nota"); nt.append(icone("estrela", "i"), document.createTextNode((r.soma / r.total).toFixed(1).replace(".", ","))); a.appendChild(nt); }
     if (i === 0) a.appendChild(el("span", "exp-quem", p.nome || ""));
     return a;
   }));

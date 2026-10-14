@@ -1,3 +1,66 @@
+    // =====================================================
+    // ESTRELAS NAS PUBLICAÇÕES: curtidas/{postId}_{uid}
+    // Nota de 1 a 5, uma por pessoa em cada publicação. A pessoa pode
+    // trocar a nota ou tirar. Ninguém dá estrelas na própria publicação.
+    // =====================================================
+    match /curtidas/{id} {
+
+      allow read: if logado();
+
+      function notaOk(d) {
+        return d.nota is int && d.nota >= 1 && d.nota <= 5;
+      }
+      // Cada nota muda junto o resumo da publicação (diario_notas/{postId}); as regras do resumo conferem a conta.
+      function resumoJunto(postId) {
+        let r = /databases/$(database)/documents/diario_notas/$(postId);
+        return existsAfter(r)
+            && getAfter(r).data.get('soma', 0) != (exists(r) ? get(r).data.get('soma', 0) : 0);
+      }
+
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['postId', 'uid', 'postAutorId', 'nota', 'criadoEm', 'origem'])
+                    && (!('origem' in request.resource.data) || request.resource.data.origem in ['principais', 'seguindo', 'amigos', 'perfil', 'link', 'tag', 'salvos'])
+                    && request.resource.data.uid == request.auth.uid
+                    && id == request.resource.data.postId + '_' + request.auth.uid
+                    && exists(/databases/$(database)/documents/diario/$(request.resource.data.postId))
+                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
+                    // pode dar estrelas na própria publicação ("se curtir")
+                    && notaOk(request.resource.data)
+                    && !bloqueioEntre(request.auth.uid, request.resource.data.postAutorId)
+                    && request.resource.data.criadoEm == request.time
+                    && resumoJunto(request.resource.data.postId);
+
+      allow update: if logado()
+                    && emailOk()
+                    && resource.data.uid == request.auth.uid
+                    && mudou().hasOnly(['nota', 'atualizadoEm'])
+                    && notaOk(request.resource.data)
+                    && request.resource.data.atualizadoEm == request.time
+                    && resumoJunto(resource.data.postId);
+
+      // Tirar a nota: tira junto do resumo. Publicação que já não existe: apaga sem resumo (limpeza de conta).
+      allow delete: if logado() && resource.data.uid == request.auth.uid
+                    && (resumoJunto(resource.data.postId)
+                        || !exists(/databases/$(database)/documents/diario/$(resource.data.postId)));
+    }
+
+    // ===================================================
+    // SALVAMENTOS: salvamentos/{postId}_{uid} — só para o autor contar quantos salvaram (não vê quem).
+    // A lista de salvos de cada um continua em usuarios/{uid}.salvos (privada).
+    // ===================================================
+    match /salvamentos/{id} {
+      allow create: if logado()
+                    && request.resource.data.keys().hasOnly(['postId', 'uid', 'postAutorId', 'criadoEm'])
+                    && request.resource.data.uid == request.auth.uid
+                    && id == request.resource.data.postId + '_' + request.auth.uid
+                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
+                    && request.resource.data.criadoEm == request.time;
+      allow read: if logado() && (resource.data.uid == request.auth.uid || resource.data.postAutorId == request.auth.uid);
+      allow delete: if logado() && resource.data.uid == request.auth.uid;
+      allow update: if false;
+    }
+
     // ===================================================
     // STORIES (24 horas): stories/{id} — foto (no documento ou no Storage) ou vídeo (Storage).
     // Somem para todos depois de 24 h (o site filtra; o autor apaga os vencidos). vistos/{uid}: quem viu.
@@ -5,7 +68,14 @@
     match /stories/{id} {
       allow read: if logado();
       allow create: if logado() && emailOk()
-                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'tipo', 'midia', 'texto', 'duracao', 'criadoEm'])
+                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'tipo', 'midia', 'texto', 'duracao', 'enquete', 'mencoes', 'respostas', 'publico', 'lista', 'ocultoPara', 'criadoEm'])
+                    // enquete, pessoas mencionadas e as escolhas do autor (quem responde, quem vê)
+                    && (!('enquete' in request.resource.data) || enqueteOk(request.resource.data.enquete))
+                    && (!('mencoes' in request.resource.data) || uidsOk(request.resource.data.mencoes, 10))
+                    && (!('respostas' in request.resource.data) || request.resource.data.respostas in ['todos', 'seguindo', 'ninguem'])
+                    && (!('publico' in request.resource.data) || request.resource.data.publico in ['todos', 'amigos'])
+                    && (!('lista' in request.resource.data) || uidsOk(request.resource.data.lista, 150))
+                    && (!('ocultoPara' in request.resource.data) || uidsOk(request.resource.data.ocultoPara, 100))
                     && request.resource.data.autorId == request.auth.uid
                     && request.resource.data.criadoEm == request.time
                     && request.resource.data.tipo in ['imagem', 'video']
@@ -32,6 +102,44 @@
     // ===================================================
     // RASCUNHOS: rascunhos/{uid}/itens/{id} — só a própria pessoa (texto e fotos ainda não publicados).
     // ===================================================
+    // ===================================================
+    // VOTOS DAS ENQUETES: enquete_votos/{alvo}_{uid} — alvo = tipo + "_" + itemId (tipo d = publicação, f = flash).
+    // Um voto por pessoa (pode trocar ou tirar). A contagem é feita no servidor (count por opção).
+    // ===================================================
+    match /enquete_votos/{id} {
+      allow read: if logado();
+      function votoOk() {
+        let d = request.resource.data;
+        let doc = d.tipo == 'd'
+          ? /databases/$(database)/documents/diario/$(d.itemId)
+          : /databases/$(database)/documents/stories/$(d.itemId);
+        return d.keys().hasOnly(['alvo', 'tipo', 'itemId', 'uid', 'opcao', 'criadoEm'])
+            && d.uid == request.auth.uid
+            && d.tipo in ['d', 'f']
+            && d.itemId is string && d.itemId.matches('^[A-Za-z0-9]{1,64}$')
+            && d.alvo == d.tipo + '_' + d.itemId
+            && id == d.alvo + '_' + request.auth.uid
+            && d.opcao is int && d.opcao >= 0
+            && exists(doc) && d.opcao < get(doc).data.enquete.opcoes.size();
+      }
+      allow create: if logado() && votoOk() && request.resource.data.criadoEm == request.time && !sancionado(request.auth.uid);
+      allow update: if logado() && resource.data.uid == request.auth.uid && votoOk()
+                    && request.resource.data.alvo == resource.data.alvo && request.resource.data.criadoEm == resource.data.criadoEm;
+      allow delete: if logado() && resource.data.uid == request.auth.uid;
+    }
+
+    // ===================================================
+    // PREFERÊNCIAS PÚBLICAS: pref_publicas/{uid} — o que os outros precisam saber antes de interagir
+    // (quem pode marcar/mencionar a pessoa). Só o dono grava; qualquer pessoa logada lê.
+    // ===================================================
+    match /pref_publicas/{uid} {
+      allow read: if logado();
+      allow create, update: if logado() && uid == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['permiteMarcar', 'atualizadoEm'])
+                    && (!('permiteMarcar' in request.resource.data) || request.resource.data.permiteMarcar in ['todos', 'seguindo', 'ninguem']);
+      allow delete: if logado() && uid == request.auth.uid;
+    }
+
     match /rascunhos/{uid}/itens/{id} {
       allow read, delete: if logado() && uid == request.auth.uid;
       allow create, update: if logado() && uid == request.auth.uid
@@ -86,131 +194,5 @@
     match /comentarios/{id} {
 
       allow read: if logado();
-
-      function textoComentarioOk(d) {
-        return d.texto is string && d.texto.size() >= 1 && d.texto.size() <= 500;
-      }
-
-      // Quem pode comentar (escolha do autor): o autor sempre pode.
-      function segue(a, b) { return exists(/databases/$(database)/documents/relacoes/$(a + '_' + b)); }
-      function podeComentar(p) {
-        let q = p.get('quemComenta', 'todos');
-        return p.autorId == request.auth.uid
-            || q == 'todos'
-            || (q == 'seguidores' && segue(request.auth.uid, p.autorId))
-            || (q == 'mutuos' && segue(request.auth.uid, p.autorId) && segue(p.autorId, request.auth.uid));
-      }
-
-      function respostaOk(d) {
-        return (!('respostaA' in d) && !('respostaAutorId' in d))
-            || (d.respostaA is string
-                && exists(/databases/$(database)/documents/comentarios/$(d.respostaA))
-                && get(/databases/$(database)/documents/comentarios/$(d.respostaA)).data.postId == d.postId
-                && d.respostaAutorId == get(/databases/$(database)/documents/comentarios/$(d.respostaA)).data.autorId);
-      }
-
-      allow create: if logado()
-                    && emailOk()
-                    && request.resource.data.keys().hasOnly(['postId', 'postAutorId', 'autorId', 'nome', 'foto', 'texto', 'respostaA', 'respostaAutorId', 'criadoEm'])
-                    && request.resource.data.autorId == request.auth.uid
-                    && textoComentarioOk(request.resource.data)
-                    && valorTextoAte(request.resource.data.get('nome', ''), 80)
-                    && fotoOk(request.resource.data.get('foto', ''))
-                    && exists(/databases/$(database)/documents/diario/$(request.resource.data.postId))
-                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
-                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.get('comentariosOcultos', false) != true
-                    && podeComentar(get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data)
-                    && respostaOk(request.resource.data)
-                    && !bloqueioEntre(request.auth.uid, request.resource.data.postAutorId)
-                    && ritmoOk('com')
-                    && request.resource.data.criadoEm == request.time;
-
-      allow update: if logado()
-                    && emailOk()
-                    && (
-                      // quem comentou corrige o texto
-                      (resource.data.autorId == request.auth.uid
-                        && mudou().hasOnly(['texto', 'editadoEm'])
-                        && textoComentarioOk(request.resource.data)
-                        && request.resource.data.editadoEm == request.time)
-                      ||
-                      // o dono da publicação oculta ou mostra o comentário
-                      (resource.data.postAutorId == request.auth.uid
-                        && mudou().hasOnly(['oculto'])
-                        && request.resource.data.oculto is bool)
-                    );
-
-      allow delete: if logado()
-                    && (resource.data.autorId == request.auth.uid || resource.data.postAutorId == request.auth.uid);
-      allow delete: if podeModerar();
-    }
-
-    // =====================================================
-    // CURTIDAS EM COMENTÁRIOS: curtidas_comentarios/{comentarioId}_{uid}
-    // =====================================================
-    match /curtidas_comentarios/{id} {
-
-      allow read: if logado();
-
-      // Reação (emoji); sem o campo = curtida antiga (conta como ❤️).
-      function reacaoOk(d) { return !('reacao' in d) || d.reacao in ['❤️', '👍', '😂', '😮', '😢', '👏']; }
-
-      allow create: if logado()
-                    && emailOk()
-                    && request.resource.data.keys().hasOnly(['comentarioId', 'uid', 'criadoEm', 'reacao', 'comentarioAutorId'])
-                    // quem escreveu o comentário (para avisar da reação)
-                    && (!('comentarioAutorId' in request.resource.data)
-                        || request.resource.data.comentarioAutorId == get(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId)).data.autorId)
-                    && request.resource.data.uid == request.auth.uid
-                    && id == request.resource.data.comentarioId + '_' + request.auth.uid
-                    && exists(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId))
-                    && reacaoOk(request.resource.data)
-                    && request.resource.data.criadoEm == request.time;
-
-      // Trocar a reação (só o emoji).
-      allow update: if logado()
-                    && resource.data.uid == request.auth.uid
-                    && mudou().hasOnly(['reacao'])
-                    && reacaoOk(request.resource.data);
-      allow delete: if logado() && resource.data.uid == request.auth.uid;
-    }
-
-
-    // =====================================================
-    // DIÁRIO / PUBLICAÇÕES
-    // =====================================================
-    match /diario/{postId} {
-
-      allow read: if logado();
-
-      function publicacaoOk() {
-        let d = request.resource.data;
-        return textoAte('texto', 1000)
-            && textoAte('nome', 80)
-            && campoFotoOk('fotoPerfil')
-            && (!('mediaTipo' in d) || d.mediaTipo in ['', 'image', 'video'])
-            && (!('mediaUrl' in d) || d.mediaUrl == ''
-                || (d.mediaUrl is string
-                    && d.mediaUrl.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*')))
-            // Várias fotos (2 a 4): a primeira é a mesma de mediaUrl; cada uma do próprio site.
-            && (!('midias' in d)
-                || (d.midias is list && d.midias.size() >= 2 && d.midias.size() <= 4
-                    && d.get('mediaTipo', '') == 'image' && d.midias[0] == d.get('mediaUrl', '')
-                    && fotoPubOk(d.midias[1])
-                    && (d.midias.size() < 3 || fotoPubOk(d.midias[2]))
-                    && (d.midias.size() < 4 || fotoPubOk(d.midias[3]))));
-      }
-      // Hashtags (até 10, minúsculas, sem #) e pessoas marcadas (até 10 uids): uma expressão cada (join).
-      function tagsOk(d) {
-        return !('tags' in d) || (d.tags is list && d.tags.size() <= 10
-            && (d.tags.size() == 0 || d.tags.join(' ').matches('^[\\p{Ll}\\p{N}_]{1,30}( [\\p{Ll}\\p{N}_]{1,30}){0,9}$')));
-      }
-      function marcadosOk(d) {
-        return !('marcados' in d) || (d.marcados is list && d.marcados.size() <= 10
-            && (d.marcados.size() == 0 || d.marcados.join(' ').matches('^[A-Za-z0-9]{1,64}( [A-Za-z0-9]{1,64}){0,9}$')));
-      }
-      function fotoPubOk(u) {
-        return u is string && u.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*');
-      }
 
 // ===== FIM DA PARTE 9 DE 10 =====

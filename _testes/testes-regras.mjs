@@ -391,6 +391,27 @@ await t("rascunhos: só a própria pessoa", async () => { await assertSucceeds(s
 await t("reação com o autor do comentário certo (para o aviso)", () => assertSucceeds(setDoc(doc(ctx("edu"), "curtidas_comentarios", "c3_edu"), { comentarioId: "c3", uid: "edu", reacao: "👏", comentarioAutorId: "bia", criadoEm: serverTimestamp() })));
 await t("reação com autor do comentário errado é recusada", () => assertFails(setDoc(doc(ctx("dono"), "curtidas_comentarios", "c3_dono"), { comentarioId: "c3", uid: "dono", reacao: "👏", comentarioAutorId: "ana", criadoEm: serverTimestamp() })));
 
+// Enquetes (publicação e flash), menções e escolhas do flash, "quem pode me marcar" no perfil.
+await semRegras((db) => setDoc(doc(db, "diario", "pEnq"), { autorId: "dono", nome: "Dono", texto: "Qual cor?", enquete: { pergunta: "Qual cor?", opcoes: ["Azul", "Verde", "Rosa"] }, criadoEm: antigo }));
+await t("enquete: publicação com enquete (3 opções)", () => assertSucceeds(publicar2("edu", { enquete: { pergunta: "Qual é melhor?", opcoes: ["Sim", "Não", "Talvez"] } })));
+await t("enquete: com 1 opção é recusada", () => assertFails(publicar2("edu", { enquete: { pergunta: "?", opcoes: ["Só uma"] } })));
+await t("enquete: com 5 opções é recusada", () => assertFails(publicar2("edu", { enquete: { pergunta: "?", opcoes: ["a", "b", "c", "d", "e"] } })));
+await t("enquete: opção com mais de 40 letras é recusada", () => assertFails(publicar2("edu", { enquete: { pergunta: "?", opcoes: ["a", "x".repeat(41)] } })));
+const voto = (quem, opcao, item = "pEnq", tipo = "d") => setDoc(doc(ctx(quem), "enquete_votos", `${tipo}_${item}_${quem}`), { alvo: `${tipo}_${item}`, tipo, itemId: item, uid: quem, opcao, criadoEm: serverTimestamp() });
+await t("voto: vota na opção 2", () => assertSucceeds(voto("bia", 2)));
+await t("voto: opção que não existe é recusada", () => assertFails(voto("ana", 3)));
+await t("voto: em nome de outra pessoa é recusado", () => assertFails(setDoc(doc(ctx("ana"), "enquete_votos", "d_pEnq_bia"), { alvo: "d_pEnq", tipo: "d", itemId: "pEnq", uid: "bia", opcao: 0, criadoEm: serverTimestamp() })));
+await t("voto: troca o voto", () => assertSucceeds(updateDoc(doc(ctx("bia"), "enquete_votos", "d_pEnq_bia"), { opcao: 0 })));
+await t("voto: tira o voto", () => assertSucceeds(deleteDoc(doc(ctx("bia"), "enquete_votos", "d_pEnq_bia"))));
+await t("voto: outra pessoa não apaga o voto", async () => { await assertSucceeds(voto("bia", 1)); await assertFails(deleteDoc(doc(ctx("ana"), "enquete_votos", "d_pEnq_bia"))); });
+await t("flash: com enquete (posição), menções e escolhas", () => assertSucceeds(setDoc(doc(ctx("ana"), "stories", "sEnq"), { autorId: "ana", nome: "Ana", tipo: "imagem", midia: fotoS, enquete: { pergunta: "Gostou?", opcoes: ["Sim", "Não"], x: 0.5, y: 0.6 }, mencoes: ["bia", "edu"], respostas: "seguindo", publico: "amigos", lista: ["bia"], ocultoPara: ["edu"], criadoEm: serverTimestamp() })));
+await t("flash: quem responde com valor estranho é recusado", () => assertFails(setDoc(doc(ctx("ana"), "stories", "sX"), { autorId: "ana", nome: "Ana", tipo: "imagem", midia: fotoS, respostas: "qualquer", criadoEm: serverTimestamp() })));
+await t("voto: na enquete do flash", () => assertSucceeds(voto("bia", 1, "sEnq", "f")));
+await t("preferências: quem pode me marcar (seguindo)", () => assertSucceeds(setDoc(doc(ctx("ana"), "pref_publicas", "ana"), { permiteMarcar: "seguindo", atualizadoEm: serverTimestamp() })));
+await t("preferências: valor estranho é recusado", () => assertFails(setDoc(doc(ctx("ana"), "pref_publicas", "ana"), { permiteMarcar: "todo mundo" })));
+await t("preferências: outra pessoa não grava", () => assertFails(setDoc(doc(ctx("bia"), "pref_publicas", "ana"), { permiteMarcar: "todos" })));
+await t("preferências: qualquer pessoa logada lê", () => assertSucceeds(getDoc(doc(ctx("bia"), "pref_publicas", "ana"))));
+
 // ---------- resultado ----------
 for (const r of resultados) console.log(r[0] === "ok" ? "  ✔" : "  ✘", r[1], r[2] ? "→ " + r[2] : "");
 console.log(`\n${ok} passaram, ${falhou} falharam (${arquivo})`);

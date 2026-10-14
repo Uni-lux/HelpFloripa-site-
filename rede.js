@@ -58,6 +58,8 @@ const SIMBOLOS = `<symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l
 <symbol id="i-video" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2.5"/><path d="M16 10.5l5-3v9l-5-3z"/></symbol>
 <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></symbol>
 <symbol id="i-lixo" viewBox="0 0 24 24"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5"/></symbol>
+<symbol id="i-enquete" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="3.5" rx="1.75"/><rect x="4" y="10.25" width="11" height="3.5" rx="1.75"/><rect x="4" y="15.5" width="7" height="3.5" rx="1.75"/></symbol>
+<symbol id="i-graf" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/></symbol>
 <symbol id="i-raio" viewBox="0 0 24 24"><path d="M13.4 2.6L5.2 13.3a.6.6 0 00.5 1h5.1l-1.2 6.9c-.1.6.7.9 1 .4l8.2-10.7a.6.6 0 00-.5-1h-5.1l1.2-6.9c.1-.6-.7-.9-1-.4z" fill="currentColor" stroke="none"/></symbol>
 <symbol id="i-raio-off" viewBox="0 0 24 24"><path d="M13.4 2.6L5.2 13.3a.6.6 0 00.5 1h5.1l-1.2 6.9c-.1.6.7.9 1 .4l8.2-10.7a.6.6 0 00-.5-1h-5.1l1.2-6.9c.1-.6-.7-.9-1-.4z"/><path d="M3.5 3.5l17 17"/></symbol>
 <symbol id="i-figurinha" viewBox="0 0 24 24"><path d="M20 12.5V7a3 3 0 00-3-3H7a3 3 0 00-3 3v10a3 3 0 003 3h5.5z"/><path d="M12.5 20c0-4.1 3.4-7.5 7.5-7.5"/><path d="M9 9.5v.1M15 9.5v.1M8.8 14c1.6 1.4 3.4 1.6 4.7.9"/></symbol>
@@ -714,7 +716,7 @@ export function seletorEstrelas(post, { aoMudar } = {}) {
   const linha = el("div", "estrelas-linha"); linha.setAttribute("role", "group");
   linha.setAttribute("aria-label", "Dar estrelas");
   const bots = [1, 2, 3, 4, 5].map((n) => {
-    const b = el("button", "estrela", "★"); b.type = "button";
+    const b = el("button", "estrela"); b.appendChild(icone("estrela", "i")); b.type = "button";
     b.setAttribute("aria-label", `${n} ${n === 1 ? "estrela" : "estrelas"}`);
     linha.appendChild(b);
     return b;
@@ -734,7 +736,7 @@ export function seletorEstrelas(post, { aoMudar } = {}) {
     const n = Math.max(i.n, i.minha ? 1 : 0), med = i.n ? i.media : i.minha;
     txt.replaceChildren();
     if (n) {
-      txt.append(el("b", "med", med.toFixed(1).replace(".", ",")), el("span", "est-m", "★"), el("span", "qtd", `${numero(n)} ${n === 1 ? "nota" : "notas"}`), icone("avancar", "i xs"));
+      txt.append(el("b", "med", med.toFixed(1).replace(".", ",")), (() => { const m = el("span", "est-m"); m.appendChild(icone("estrela", "i")); return m; })(), el("span", "qtd", `${numero(n)} ${n === 1 ? "nota" : "notas"}`), icone("avancar", "i xs"));
       txt.setAttribute("aria-label", `Média ${med.toFixed(1).replace(".", ",")} de 5, ${n} ${n === 1 ? "nota" : "notas"}${i.minha ? `, a sua: ${i.minha}` : ""}. Ver o resumo das estrelas`);
     } else {
       txt.append(el("span", "qtd", "Sem notas ainda"));
@@ -759,8 +761,31 @@ export function seletorEstrelas(post, { aoMudar } = {}) {
     // Prévia só com mouse: no toque o "hover" fica preso e confundiria a nota.
     b.addEventListener("pointerenter", (e) => { if (e.pointerType === "mouse") pintar(info, k + 1); });
     b.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") pintar(info); });
-    b.addEventListener("click", () => dar(info.minha === k + 1 ? 0 : k + 1));
+    b.addEventListener("click", (e) => { if (linha._ignorarClique && e.detail) return; dar(info.minha === k + 1 ? 0 : k + 1); });
   });
+  // Arrastar o dedo pelas estrelas: a nota acompanha o dedo e vale onde soltar (um gesto só para dar 5).
+  const estrelaEm = (x) => { let k = 1; bots.forEach((b, i) => { if (x >= b.getBoundingClientRect().left) k = i + 1; }); return k; };
+  let arrasto = null;
+  linha.addEventListener("pointerdown", (e) => {
+    if (e.button || linha.classList.contains("salvando")) return;
+    arrasto = { x0: e.clientX, k: estrelaEm(e.clientX), moveu: false };
+    try { linha.setPointerCapture(e.pointerId); } catch {}
+    pintar(info, arrasto.k);
+  });
+  linha.addEventListener("pointermove", (e) => {
+    if (!arrasto) return;
+    if (Math.abs(e.clientX - arrasto.x0) > 6) arrasto.moveu = true;
+    const k = estrelaEm(e.clientX);
+    if (k !== arrasto.k) { arrasto.k = k; navigator.vibrate?.(4); }
+    pintar(info, k);
+  });
+  linha.addEventListener("pointerup", () => {
+    if (!arrasto) return;
+    const { k, moveu } = arrasto; arrasto = null;
+    linha._ignorarClique = true; setTimeout(() => { linha._ignorarClique = false; }, 60);
+    dar(!moveu && info.minha === k ? 0 : k);
+  });
+  linha.addEventListener("pointercancel", () => { arrasto = null; pintar(info); });
   txt.addEventListener("click", () => abrirResumoEstrelas(post, { info, aoDar: (nova) => dar(nova) }));
   box.recarregar = () => infoEstrelas(post.id, { recarregar: true }).then((i) => pintar(i));
   // Toque duplo na foto: 5 estrelas de uma vez (nunca tira a nota, como o coração do Instagram).
@@ -788,7 +813,7 @@ export async function abrirResumoEstrelas(post, { info = null, aoDar = null } = 
   grande.append(el("strong", null, total ? r.media.toFixed(1).replace(".", ",") : "–"));
   const cinco = el("div", "est-cinco"); cinco.setAttribute("aria-hidden", "true");
   const cheio = el("div", "est-cheio"); cheio.style.width = `${(total ? r.media / 5 : 0) * 100}%`;
-  cinco.append(el("span", null, "★★★★★"), cheio); cheio.appendChild(el("span", null, "★★★★★"));
+  cinco.append(estrelasEmLinha(0, "fila"), cheio); cheio.appendChild(estrelasEmLinha(5, "fila"));
   grande.append(cinco, el("small", null, total ? `${total.toLocaleString("pt-BR")} ${total === 1 ? "nota" : "notas"}` : "Ninguém deu estrelas ainda"));
   // barras 5 → 1
   const barras = el("div", "est-barras"); barras.setAttribute("role", "list");
@@ -798,7 +823,8 @@ export async function abrirResumoEstrelas(post, { info = null, aoDar = null } = 
     l.setAttribute("aria-label", `${k} ${k === 1 ? "estrela" : "estrelas"}: ${q.toLocaleString("pt-BR")} (${pct}%)`);
     if (!proprio) l.disabled = true;
     const trilho = el("span", "trilho"); const enchido = el("i"); enchido.style.width = `${total ? (q / total) * 100 : 0}%`; trilho.appendChild(enchido);
-    l.append(el("span", "rot", `${k} ★`), trilho, el("span", "qt", numero(q)), el("span", "pc", `${pct}%`));
+    const rk = el("span", "rot", String(k)); rk.appendChild(icone("estrela", "i"));
+    l.append(rk, trilho, el("span", "qt", numero(q)), el("span", "pc", `${pct}%`));
     if (proprio) l.addEventListener("click", () => listarQuem(k));
     barras.appendChild(l);
   }
@@ -809,7 +835,7 @@ export async function abrirResumoEstrelas(post, { info = null, aoDar = null } = 
   sua.appendChild(el("span", null, minha ? `Sua nota: ${minha} ${minha === 1 ? "estrela" : "estrelas"}` : "Você ainda não deu estrelas"));
   if (aoDar) {
     const mini = el("div", "est-sua-btns");
-    [1, 2, 3, 4, 5].forEach((k) => { const b = el("button", "estrela" + (k <= minha ? " on minha" : ""), "★"); b.type = "button"; b.setAttribute("aria-label", `Dar ${k} ${k === 1 ? "estrela" : "estrelas"}`); b.addEventListener("click", async () => { if (await aoDar(minha === k ? 0 : k)) abrirResumoEstrelas(post, { aoDar }); }); mini.appendChild(b); });
+    [1, 2, 3, 4, 5].forEach((k) => { const b = el("button", "estrela" + (k <= minha ? " on minha" : "")); b.appendChild(icone("estrela", "i")); b.type = "button"; b.setAttribute("aria-label", `Dar ${k} ${k === 1 ? "estrela" : "estrelas"}`); b.addEventListener("click", async () => { if (await aoDar(minha === k ? 0 : k)) abrirResumoEstrelas(post, { aoDar }); }); mini.appendChild(b); });
     sua.appendChild(mini);
   }
   corpo.appendChild(sua);
@@ -821,8 +847,8 @@ export async function abrirResumoEstrelas(post, { info = null, aoDar = null } = 
   const lista = el("div", "est-quem");
   const fimLista = el("div", "est-fim"); fimLista.setAttribute("aria-hidden", "true");
   corpo.append(titulo, chips, lista, fimLista);
-  const opcoes = [[0, "Todas"], [5, "5 ★"], [4, "4 ★"], [3, "3 ★"], [2, "2 ★"], [1, "1 ★"]];
-  const bChips = opcoes.map(([k, rot]) => { const b = el("button", null, rot); b.type = "button"; b.addEventListener("click", () => listarQuem(k)); chips.appendChild(b); return [k, b]; });
+  const opcoes = [[0, "Todas"], [5, "5"], [4, "4"], [3, "3"], [2, "2"], [1, "1"]];
+  const bChips = opcoes.map(([k, rot]) => { const b = el("button", null, rot); if (k) b.appendChild(icone("estrela", "i")); b.type = "button"; b.addEventListener("click", () => listarQuem(k)); chips.appendChild(b); return [k, b]; });
   const rede = await minhaRede();
   let filtro = 0, fase = 0, mostrados = new Set(), ultimo = null, acabou = false, carregando = false, geracao = 0;
   const col = fb.collection(fb.db, "curtidas");
@@ -843,7 +869,8 @@ export async function abrirResumoEstrelas(post, { info = null, aoDar = null } = 
     novas.forEach((d, i) => {
       const n = Math.max(0, Math.min(5, Number(d.nota) || 0));
       const quem = d.uid === eu.uid ? "" : meusSeguindo.has(d.uid) ? "Você segue" : pontes[i] ? `Seguido por ${pontes[i]}` : "";
-      const l = linhaPessoa({ uid: d.uid, nome: perfis[i].nome || "Usuário", foto: perfis[i].fotoPerfil, sub: `${"★".repeat(n)}${"☆".repeat(5 - n)}  ${n} ${n === 1 ? "estrela" : "estrelas"}${quem ? " · " + quem : ""}`, semSeguir: d.uid === eu.uid });
+      const l = linhaPessoa({ uid: d.uid, nome: perfis[i].nome || "Usuário", foto: perfis[i].fotoPerfil, sub: `${n} ${n === 1 ? "estrela" : "estrelas"}${quem ? " · " + quem : ""}`, semSeguir: d.uid === eu.uid });
+      l.querySelector(".txt small")?.prepend(estrelasEmLinha(n));
       if (por) l.classList.add("da-rede");
       lista.appendChild(l);
     });
@@ -906,9 +933,8 @@ async function minhaRede() {
   return r;
 }
 
-// Toque duplo na foto: as estrelas vão SURGINDO espalhadas pela foto e crescendo (1, 2, 3, 4...).
-// Tocar de novo para parar: a nota é onde parou. Sem parar, na 5ª todas crescem juntas e somem.
-// Lugar e tamanho de cada estrela (em % da foto), como uma chuva de estrelas por cima da publicação.
+// Toque duplo (foto ou texto): 5 estrelas de uma vez, como o coração do Instagram. As estrelas SURGEM
+// espalhadas e crescem, rapidinho, e a nota vai na hora. Para dar menos, toque ou arraste nas estrelas da barra.
 const LUGARES_ESTRELAS = [
   { x: 23, y: 21, t: 27, r: -14 },
   { x: 74, y: 19, t: 18, r: 12 },
@@ -918,42 +944,25 @@ const LUGARES_ESTRELAS = [
 ];
 export function contadorEstrelas(alvo, darNota) {
   if (alvo.querySelector(".contagem")) return Promise.resolve(0);
-  return new Promise((resolver) => {
-    const box = el("div", "contagem"); box.setAttribute("role", "status"); box.setAttribute("aria-live", "polite");
-    const ceu = el("div", "cont-ceu"); ceu.setAttribute("aria-hidden", "true");
-    const rotulo = el("div", "cont-rotulo");
-    const mini = el("span", "cont-mini"); const minis = [0, 1, 2, 3, 4].map(() => mini.appendChild(el("i", null, "★")));
-    const txt = el("span", "cont-txt", "Toque para parar");
-    rotulo.append(mini, txt);
-    box.append(ceu, rotulo);
-    alvo.appendChild(box);
-    // Um pouco diferente a cada vez (posição e giro), sem sair do desenho.
-    const jit = () => (Math.random() - 0.5) * 6;
-    let n = 0, timer = null, fim = false;
-    const finalizar = async (nota, todas) => {
-      if (fim) return; fim = true; clearTimeout(timer);
-      txt.textContent = `${nota} ${nota === 1 ? "estrela" : "estrelas"}`;
-      box.classList.add(todas ? "fundir" : "parou");
-      if (todas) navigator.vibrate?.([10, 40, 20]);
-      const ok = await darNota(nota).catch(() => false);
-      setTimeout(() => { box.classList.add("saindo"); setTimeout(() => box.remove(), 520); }, todas ? 650 : 520);
-      resolver(ok ? nota : 0);
-    };
-    const passo = () => {
-      const L = LUGARES_ESTRELAS[n];
-      n++;
-      const s = el("span", "est-voa acesa");
-      s.style.cssText = `left:${L.x + jit()}%;top:${L.y + jit()}%;--t:${L.t}%;--r:${L.r + jit() * 2}deg`;
-      ceu.appendChild(s);
-      minis[n - 1].classList.add("on");
-      navigator.vibrate?.(6);
-      if (n === 5) { txt.textContent = "5 estrelas"; setTimeout(() => finalizar(5, true), 380); return; }
-      txt.textContent = `${n} · toque para parar`;
-      timer = setTimeout(passo, 430);
-    };
-    box.addEventListener("click", (e) => { e.stopPropagation(); if (n > 0) finalizar(n, false); });
-    timer = setTimeout(passo, 60);
+  const box = el("div", "contagem rapida"); box.setAttribute("aria-hidden", "true");
+  const ceu = el("div", "cont-ceu");
+  box.appendChild(ceu);
+  alvo.appendChild(box);
+  const jit = () => (Math.random() - 0.5) * 6;
+  LUGARES_ESTRELAS.forEach((L, k) => {
+    const s = el("span", "est-voa acesa");
+    s.style.cssText = `left:${L.x + jit()}%;top:${L.y + jit()}%;--t:${L.t}%;--r:${L.r + jit() * 2}deg;animation-delay:${k * 70}ms`;
+    ceu.appendChild(s);
   });
+  navigator.vibrate?.([8, 30, 14]);
+  setTimeout(() => { box.classList.add("saindo"); setTimeout(() => box.remove(), 520); }, 1000);
+  return darNota(5).then((ok) => (ok ? 5 : 0)).catch(() => 0);
+}
+// Estrelas pequenas em linha (ícones de verdade), para listas e resumos: ★★★★☆
+export function estrelasEmLinha(n, classe = "est-linha-mini") {
+  const box = el("span", classe); box.setAttribute("aria-label", `${n} de 5 estrelas`);
+  for (let k = 1; k <= 5; k++) box.appendChild(icone("estrela", "i" + (k <= n ? " on" : "")));
+  return box;
 }
 
 // Estrela grande que aparece no meio da foto (toque duplo).
@@ -1025,6 +1034,74 @@ export async function alternarSalvo(post) {
     toast("Não foi possível salvar: " + erroAmigavel(e));
     return ja;
   }
+}
+
+// ---------- enquete (publicação ou flash) ----------
+// Votos em enquete_votos/{tipo}_{id}_{uid}; a contagem de cada opção é feita no servidor (count).
+// Antes de votar só aparecem as opções; depois do voto (ou para o autor), as porcentagens.
+// Tocar na opção escolhida tira o voto; tocar em outra troca.
+export function blocoEnquete(item, { tipo = "d", escura = false } = {}) {
+  const e = item?.enquete;
+  if (!e?.pergunta || !Array.isArray(e.opcoes) || e.opcoes.length < 2) return null;
+  const box = el("div", "enquete" + (escura ? " escura" : ""));
+  const cab = el("div", "enq-cab"); cab.append(icone("enquete", "i xs"), el("span", null, "Enquete"));
+  const perg = el("strong", "enq-perg", e.pergunta);
+  const lista = el("div", "enq-opcoes"); lista.setAttribute("role", "group"); lista.setAttribute("aria-label", e.pergunta);
+  const rod = el("div", "enq-rodape");
+  box.append(cab, perg, lista, rod);
+  const alvo = `${tipo}_${item.id}`;
+  const ref = fb.doc(fb.db, "enquete_votos", `${alvo}_${eu.uid}`);
+  const souAutor = item.autorId === eu.uid;
+  let meu = null, contas = e.opcoes.map(() => 0), pronto = false, ocupado = false;
+  const pintar = () => {
+    const total = contas.reduce((a, n) => a + n, 0), mostrar = pronto && (meu !== null || souAutor);
+    const maior = Math.max(...contas);
+    box.classList.toggle("votou", meu !== null);
+    lista.replaceChildren(...e.opcoes.map((o, i) => {
+      const b = el("button", "enq-op" + (meu === i ? " minha" : "") + (mostrar && contas[i] === maior && total ? " lider" : "")); b.type = "button";
+      b.setAttribute("aria-pressed", String(meu === i));
+      const pct = total ? Math.round((contas[i] / total) * 100) : 0;
+      const barra = el("i", "enq-barra"); barra.style.width = mostrar ? `${pct}%` : "0%";
+      const rot = el("span", "enq-rot", o);
+      if (meu === i) rot.prepend(icone("check", "i xs"));
+      b.append(barra, rot);
+      if (mostrar) b.appendChild(el("span", "enq-pct", `${pct}%`));
+      b.addEventListener("click", (ev) => { ev.stopPropagation(); votar(i); });
+      return b;
+    }));
+    rod.textContent = !pronto ? "Carregando..." : `${numero(total)} ${total === 1 ? "voto" : "votos"}${meu === null && !souAutor ? " · toque para votar" : meu !== null ? " · toque de novo para tirar" : ""}`;
+  };
+  async function carregar() {
+    const col = fb.collection(fb.db, "enquete_votos");
+    const [m, ...cs] = await Promise.all([
+      fb.getDoc(ref).then((d) => (d.exists() ? Number(d.data().opcao) : null)).catch(() => null),
+      ...e.opcoes.map((_, i) => fb.getCountFromServer(fb.query(col, fb.where("alvo", "==", alvo), fb.where("opcao", "==", i))).then((x) => x.data().count).catch(() => 0))
+    ]);
+    meu = m; contas = cs; pronto = true; pintar();
+  }
+  async function votar(i) {
+    if (ocupado || !pronto) return;
+    if (await precisaEmail()) return;
+    ocupado = true;
+    const antes = meu, contasAntes = contas.slice();
+    if (antes !== null) contas[antes] = Math.max(0, contas[antes] - 1);
+    meu = antes === i ? null : i;
+    if (meu !== null) contas[meu]++;
+    pintar();
+    try {
+      if (meu === null) await fb.deleteDoc(ref);
+      else if (antes === null) await fb.setDoc(ref, { alvo, tipo, itemId: item.id, uid: eu.uid, opcao: meu, criadoEm: fb.serverTimestamp() });
+      else await fb.updateDoc(ref, { opcao: meu });
+      navigator.vibrate?.(8);
+    } catch (err) {
+      meu = antes; contas = contasAntes; pintar();
+      toast(err?.code === "permission-denied" ? "Enquetes começam a funcionar quando as regras novas forem publicadas." : "Não foi possível votar: " + erroAmigavel(err));
+    } finally { ocupado = false; }
+  }
+  pintar();
+  quandoVisivel(box, carregar);
+  box.recarregar = carregar;
+  return box;
 }
 
 // Barra da publicação, logo abaixo da foto (organizada em duas faixas):
@@ -1474,10 +1551,12 @@ export function abrirCompositor({ aoPublicar } = {}) {
       <div class="pub-previa" id="pubPrevia" hidden></div>
       <div class="pub-extras" id="pubMarcados" hidden></div>
       <div class="pub-extras" id="pubAgenda" hidden></div>
+      <div class="pub-enquete" id="pubEnquete" hidden></div>
       <div class="pub-ferramentas">
         <button type="button" class="icone-btn" id="pubFoto" aria-label="Adicionar foto (até 4)" title="Foto (até 4)"><svg class="i"><use href="#i-imagem"/></svg></button>
         <button type="button" class="icone-btn" id="pubVideo" aria-label="Adicionar vídeo curto (até 60 s)" title="Vídeo curto (até 60 s)"><svg class="i"><use href="#i-video"/></svg></button>
         <button type="button" class="icone-btn" id="pubMarcar" aria-label="Marcar pessoas" title="Marcar pessoas"><svg class="i"><use href="#i-pessoa-mais"/></svg></button>
+        <button type="button" class="icone-btn" id="pubEnqueteBtn" aria-label="Criar enquete" title="Enquete"><svg class="i"><use href="#i-enquete"/></svg></button>
         <button type="button" class="icone-btn" id="pubAgendar" aria-label="Agendar publicação" title="Agendar"><svg class="i"><use href="#i-relogio"/></svg></button>
         <button type="button" class="icone-btn" id="pubRascunhos" aria-label="Rascunhos" title="Rascunhos"><svg class="i"><use href="#i-rascunho"/></svg></button>
         <span class="cont" id="pubCont">0/1000</span>
@@ -1505,11 +1584,25 @@ export function tagsDoTexto(texto) {
   for (const m of String(texto || "").matchAll(/(^|[^\p{L}\p{N}_#])#([\p{L}\p{N}_]{1,30})/gu)) r.add(m[2].toLowerCase());
   return [...r].slice(0, 10);
 }
-// @usuário do texto -> uid (nicknames/{nick}); no máximo 10.
+// Pode marcar/mencionar a pessoa? Configurações → "Quem pode me marcar" (pref_publicas/{uid}.permiteMarcar:
+// todos, seguindo = só quem ela segue, ninguem). Sem a preferência (ou sem as regras novas), pode.
+export async function podeMarcar(uid) {
+  if (!uid || uid === eu?.uid) return true;
+  try {
+    const p = await fb.getDoc(fb.doc(fb.db, "pref_publicas", uid));
+    const v = p.exists() ? p.data().permiteMarcar : "todos";
+    if (v === "ninguem") return false;
+    if (v === "seguindo") return (await fb.getDoc(fb.doc(fb.db, "relacoes", `${uid}_${eu.uid}`))).exists();
+    return true;
+  } catch { return true; }
+}
+// @usuário do texto -> uid (nicknames/{nick}); no máximo 10. Quem não aceita ser marcado por você fica de fora.
 export async function uidsMencionados(texto) {
   const nicks = [...new Set([...String(texto || "").matchAll(/(^|[^\w@#])@([a-z0-9._]{3,20})/gi)].map((m) => m[2].toLowerCase().replace(/\.+$/, "")))].slice(0, 10);
   const r = await Promise.all(nicks.map((n) => fb.getDoc(fb.doc(fb.db, "nicknames", n)).then((s) => (s.exists() ? s.data().uid : null)).catch(() => null)));
-  return r.filter((u) => typeof u === "string" && /^[A-Za-z0-9]{1,64}$/.test(u));
+  const uids = r.filter((u) => typeof u === "string" && /^[A-Za-z0-9]{1,64}$/.test(u));
+  const ok = await Promise.all(uids.map(podeMarcar));
+  return uids.filter((_, i) => ok[i]);
 }
 export function comMencoes(alvo, texto) {
   alvo.replaceChildren();
@@ -1599,7 +1692,38 @@ async function caberNoDocumento(fotos, limite = 860000) {
   throw new Error("As fotos ficaram grandes demais juntas. Tente com menos fotos.");
 }
 // Extras da publicação: pessoas marcadas, data agendada e rascunho aberto.
-let pubMarcados = [], pubAgenda = null, pubRascunhoId = null;
+let pubMarcados = [], pubAgenda = null, pubRascunhoId = null, pubEnquete = null;
+// Enquete no compositor: pergunta e de 2 a 4 opções.
+function pintarEnqueteCompositor() {
+  const box = $("pubEnquete");
+  box.hidden = !pubEnquete;
+  $("pubEnqueteBtn").classList.toggle("ativo", !!pubEnquete);
+  if (!pubEnquete) { box.replaceChildren(); return; }
+  box.replaceChildren();
+  const cab = el("div", "pe-cab"); cab.append(icone("enquete", "i xs"), el("strong", null, "Enquete"));
+  const tirar = el("button", "pe-tirar", "Tirar"); tirar.type = "button";
+  tirar.addEventListener("click", () => { pubEnquete = null; pintarEnqueteCompositor(); });
+  cab.appendChild(tirar);
+  const perg = el("input", "pe-pergunta"); perg.type = "text"; perg.maxLength = 120; perg.placeholder = "Faça uma pergunta..."; perg.value = pubEnquete.pergunta; perg.setAttribute("aria-label", "Pergunta da enquete");
+  perg.addEventListener("input", () => { pubEnquete.pergunta = perg.value; });
+  box.append(cab, perg);
+  pubEnquete.opcoes.forEach((o, i) => {
+    const l = el("div", "pe-opcao");
+    const inp = el("input"); inp.type = "text"; inp.maxLength = 40; inp.placeholder = `Opção ${i + 1}`; inp.value = o; inp.setAttribute("aria-label", `Opção ${i + 1}`);
+    inp.addEventListener("input", () => { pubEnquete.opcoes[i] = inp.value; });
+    l.appendChild(inp);
+    if (pubEnquete.opcoes.length > 2) { const x = el("button", "pe-x", "×"); x.type = "button"; x.setAttribute("aria-label", `Tirar a opção ${i + 1}`); x.addEventListener("click", () => { pubEnquete.opcoes.splice(i, 1); pintarEnqueteCompositor(); }); l.appendChild(x); }
+    box.appendChild(l);
+  });
+  if (pubEnquete.opcoes.length < 4) { const mais = el("button", "pe-mais"); mais.type = "button"; mais.append(icone("mais", "i xs"), document.createTextNode("Adicionar opção")); mais.addEventListener("click", () => { pubEnquete.opcoes.push(""); pintarEnqueteCompositor(); box.querySelectorAll(".pe-opcao input").item(pubEnquete.opcoes.length - 1)?.focus(); }); box.appendChild(mais); }
+}
+function enqueteDoCompositor() {
+  if (!pubEnquete) return null;
+  const pergunta = pubEnquete.pergunta.trim().slice(0, 120), opcoes = pubEnquete.opcoes.map((o) => o.trim().slice(0, 40)).filter(Boolean);
+  if (!pergunta) throw new Error("Escreva a pergunta da enquete.");
+  if (opcoes.length < 2) throw new Error("A enquete precisa de pelo menos 2 opções.");
+  return { pergunta, opcoes };
+}
 function pintarExtras() {
   const m = $("pubMarcados");
   m.replaceChildren();
@@ -1629,7 +1753,7 @@ function limparPublicacao() {
   $("pubCont").textContent = "0/1000";
   if (pubMidia?.previa?.startsWith("blob:")) URL.revokeObjectURL(pubMidia.previa);
   pubMidia = null;
-  pubMarcados = []; pubAgenda = null; pubRascunhoId = null;
+  pubMarcados = []; pubAgenda = null; pubRascunhoId = null; pubEnquete = null; pintarEnqueteCompositor();
   $("pubPrevia").hidden = true;
   $("pubPrevia").replaceChildren();
   pintarExtras();
@@ -1648,10 +1772,14 @@ async function escolherMarcados() {
     lista.filter((p) => p.uid && p.uid !== eu.uid).forEach((p) => {
       const ja = pubMarcados.some((x) => x.uid === p.uid);
       box.appendChild(linhaPessoa({ uid: p.uid, nome: p.nome, foto: p.fotoPerfil || p.foto, sub: p.nickname ? "@" + p.nickname : "", semSeguir: true, aoClicar: () => {},
-        acoes: [{ rotulo: ja ? "Marcado ✓" : "Marcar", classe: ja ? "sec" : "pri", fn: (b) => {
+        acoes: [{ rotulo: ja ? "Marcado ✓" : "Marcar", classe: ja ? "sec" : "pri", fn: async (b) => {
           const i = pubMarcados.findIndex((x) => x.uid === p.uid);
           if (i >= 0) pubMarcados.splice(i, 1);
-          else { if (pubMarcados.length >= 10) { toast("No máximo 10 pessoas."); return; } pubMarcados.push({ uid: p.uid, nome: String(p.nome || "Usuário").split(" ")[0] }); }
+          else {
+            if (pubMarcados.length >= 10) { toast("No máximo 10 pessoas."); return; }
+            if (!(await podeMarcar(p.uid))) { toast(`${String(p.nome || "Essa pessoa").split(" ")[0]} não aceita ser marcada por você.`); return; }
+            pubMarcados.push({ uid: p.uid, nome: String(p.nome || "Usuário").split(" ")[0] });
+          }
           const marcado = i < 0;
           b.textContent = marcado ? "Marcado ✓" : "Marcar"; b.classList.toggle("pri", !marcado); b.classList.toggle("sec", marcado);
           pintarExtras();
@@ -1768,6 +1896,7 @@ function ligarCompositor() {
   $("pubFoto").addEventListener("click", () => $("pubArquivoFoto").click());
   $("pubVideo").addEventListener("click", () => $("pubArquivoVideo").click());
   $("pubMarcar").addEventListener("click", escolherMarcados);
+  $("pubEnqueteBtn").addEventListener("click", () => { if (!pubEnquete) { pubEnquete = { pergunta: "", opcoes: ["", ""] }; pintarEnqueteCompositor(); $("pubEnquete").querySelector(".pe-pergunta")?.focus(); } else { pubEnquete = null; pintarEnqueteCompositor(); } });
   $("pubAgendar").addEventListener("click", escolherAgenda);
   $("pubRascunhos").addEventListener("click", abrirRascunhos);
   $("pubSalvarRascunho").addEventListener("click", salvarRascunho);
@@ -1807,7 +1936,9 @@ function ligarCompositor() {
   });
   $("pubEnviar").addEventListener("click", async () => {
     const texto = $("pubTexto").value.trim();
-    if (!texto && !pubMidia) { toast("Escreva algo ou adicione uma foto."); return; }
+    if (!texto && !pubMidia && !pubEnquete) { toast("Escreva algo ou adicione uma foto."); return; }
+    let enquete = null;
+    try { enquete = enqueteDoCompositor(); } catch (e) { toast(e.message); return; }
     if (await precisaEmail()) return;
     const btn = $("pubEnviar");
     btn.disabled = true; btn.textContent = "Publicando...";
@@ -1834,7 +1965,7 @@ function ligarCompositor() {
       const mencionados = await uidsMencionados(texto);
       const tags = tagsDoTexto(texto), marcados = [...new Set([...pubMarcados.map((p) => p.uid), ...mencionados])].filter((u) => u && u !== eu.uid).slice(0, 10);
       const agenda = pubAgenda && pubAgenda > new Date() ? fb.Timestamp.fromDate(pubAgenda) : null;
-      const extras = { ...(tags.length ? { tags } : {}), ...(marcados.length ? { marcados } : {}), ...(agenda ? { agendadoPara: agenda } : {}) };
+      const extras = { ...(tags.length ? { tags } : {}), ...(marcados.length ? { marcados } : {}), ...(agenda ? { agendadoPara: agenda } : {}), ...(enquete ? { enquete } : {}) };
       const gravar = (novos) => comRitmo(fb, eu.uid, "pub", (lote) => {
         const r = fb.doc(fb.collection(fb.db, "diario"));
         lote.set(r, { autorId: eu.uid, nome: dados.nome || "Usuário", fotoPerfil: foto, texto, mediaUrl, mediaTipo, ...(novos && midias ? { midias } : {}), ...(novos ? extras : {}), criadoEm: fb.serverTimestamp() });
@@ -1846,9 +1977,13 @@ function ligarCompositor() {
         // Regras antigas no servidor: publica sem os campos novos. Agendada não vai na hora: avisa e para.
         if (e?.code !== "permission-denied" || (!midias && !Object.keys(extras).length)) throw e;
         if (agenda) { toast("Agendar começa a funcionar quando as regras novas forem publicadas. Publique agora ou salve como rascunho."); return; }
+        if (enquete) { toast("Enquetes começam a funcionar quando as regras novas forem publicadas. Tire a enquete para publicar agora."); return; }
         ref = await gravar(false); semNovos = true;
       }
       if (pubRascunhoId) fb.deleteDoc(fb.doc(fb.db, "rascunhos", eu.uid, "itens", pubRascunhoId)).catch(() => {});
+      // Configurações → "Quem pode comentar nas suas publicações" (padrão da conta).
+      const qcPadrao = dados.diarioConfig?.quemComenta;
+      if (qcPadrao && qcPadrao !== "todos" && !semNovos) fb.updateDoc(ref, { quemComenta: qcPadrao }).catch(() => {});
       const post = { id: ref.id, autorId: eu.uid, nome: dados.nome, fotoPerfil: foto, texto, mediaUrl, mediaTipo, ...(!semNovos && midias ? { midias } : {}), ...(!semNovos ? extras : {}), criadoEm: null };
       btn.disabled = false;
       limparPublicacao();

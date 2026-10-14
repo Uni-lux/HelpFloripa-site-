@@ -72,6 +72,25 @@ service cloud.firestore {
       return v == null || (v is string && v.size() <= max);
     }
 
+    // Enquete (publicação ou flash): pergunta (até 120) e 2 a 4 opções (até 40 cada).
+    // No flash, x e y dizem onde a enquete fica na tela (0 a 1).
+    function opcaoOk(o) { return o is string && o.size() >= 1 && o.size() <= 40; }
+    function enqueteOk(e) {
+      return e is map && e.keys().hasOnly(['pergunta', 'opcoes', 'x', 'y'])
+          && e.pergunta is string && e.pergunta.size() >= 1 && e.pergunta.size() <= 120
+          && e.opcoes is list && e.opcoes.size() >= 2 && e.opcoes.size() <= 4
+          && opcaoOk(e.opcoes[0]) && opcaoOk(e.opcoes[1])
+          && (e.opcoes.size() < 3 || opcaoOk(e.opcoes[2]))
+          && (e.opcoes.size() < 4 || opcaoOk(e.opcoes[3]))
+          && (!('x' in e) || (e.x is number && e.x >= 0 && e.x <= 1))
+          && (!('y' in e) || (e.y is number && e.y >= 0 && e.y <= 1));
+    }
+    // Lista de uids (até max), conferida com uma expressão só.
+    function uidsOk(l, max) {
+      return l is list && l.size() <= max
+          && (l.size() == 0 || l.join(' ').matches('^[A-Za-z0-9]{1,64}( [A-Za-z0-9]{1,64})*$'));
+    }
+
     // Local para o Brasil todo: estado (UF) e código IBGE da cidade (7 dígitos; os dois
     // primeiros são o código do estado, então cidade e estado precisam combinar).
     // Feito com expressões regulares (uma tabela de 27 estados estourava o limite de
@@ -1831,7 +1850,14 @@ service cloud.firestore {
     match /stories/{id} {
       allow read: if logado();
       allow create: if logado() && emailOk()
-                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'tipo', 'midia', 'texto', 'duracao', 'criadoEm'])
+                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'tipo', 'midia', 'texto', 'duracao', 'enquete', 'mencoes', 'respostas', 'publico', 'lista', 'ocultoPara', 'criadoEm'])
+                    // enquete, pessoas mencionadas e as escolhas do autor (quem responde, quem vê)
+                    && (!('enquete' in request.resource.data) || enqueteOk(request.resource.data.enquete))
+                    && (!('mencoes' in request.resource.data) || uidsOk(request.resource.data.mencoes, 10))
+                    && (!('respostas' in request.resource.data) || request.resource.data.respostas in ['todos', 'seguindo', 'ninguem'])
+                    && (!('publico' in request.resource.data) || request.resource.data.publico in ['todos', 'amigos'])
+                    && (!('lista' in request.resource.data) || uidsOk(request.resource.data.lista, 150))
+                    && (!('ocultoPara' in request.resource.data) || uidsOk(request.resource.data.ocultoPara, 100))
                     && request.resource.data.autorId == request.auth.uid
                     && request.resource.data.criadoEm == request.time
                     && request.resource.data.tipo in ['imagem', 'video']
@@ -1858,6 +1884,44 @@ service cloud.firestore {
     // ===================================================
     // RASCUNHOS: rascunhos/{uid}/itens/{id} — só a própria pessoa (texto e fotos ainda não publicados).
     // ===================================================
+    // ===================================================
+    // VOTOS DAS ENQUETES: enquete_votos/{alvo}_{uid} — alvo = tipo + "_" + itemId (tipo d = publicação, f = flash).
+    // Um voto por pessoa (pode trocar ou tirar). A contagem é feita no servidor (count por opção).
+    // ===================================================
+    match /enquete_votos/{id} {
+      allow read: if logado();
+      function votoOk() {
+        let d = request.resource.data;
+        let doc = d.tipo == 'd'
+          ? /databases/$(database)/documents/diario/$(d.itemId)
+          : /databases/$(database)/documents/stories/$(d.itemId);
+        return d.keys().hasOnly(['alvo', 'tipo', 'itemId', 'uid', 'opcao', 'criadoEm'])
+            && d.uid == request.auth.uid
+            && d.tipo in ['d', 'f']
+            && d.itemId is string && d.itemId.matches('^[A-Za-z0-9]{1,64}$')
+            && d.alvo == d.tipo + '_' + d.itemId
+            && id == d.alvo + '_' + request.auth.uid
+            && d.opcao is int && d.opcao >= 0
+            && exists(doc) && d.opcao < get(doc).data.enquete.opcoes.size();
+      }
+      allow create: if logado() && votoOk() && request.resource.data.criadoEm == request.time && !sancionado(request.auth.uid);
+      allow update: if logado() && resource.data.uid == request.auth.uid && votoOk()
+                    && request.resource.data.alvo == resource.data.alvo && request.resource.data.criadoEm == resource.data.criadoEm;
+      allow delete: if logado() && resource.data.uid == request.auth.uid;
+    }
+
+    // ===================================================
+    // PREFERÊNCIAS PÚBLICAS: pref_publicas/{uid} — o que os outros precisam saber antes de interagir
+    // (quem pode marcar/mencionar a pessoa). Só o dono grava; qualquer pessoa logada lê.
+    // ===================================================
+    match /pref_publicas/{uid} {
+      allow read: if logado();
+      allow create, update: if logado() && uid == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['permiteMarcar', 'atualizadoEm'])
+                    && (!('permiteMarcar' in request.resource.data) || request.resource.data.permiteMarcar in ['todos', 'seguindo', 'ninguem']);
+      allow delete: if logado() && uid == request.auth.uid;
+    }
+
     match /rascunhos/{uid}/itens/{id} {
       allow read, delete: if logado() && uid == request.auth.uid;
       allow create, update: if logado() && uid == request.auth.uid
@@ -2042,7 +2106,8 @@ service cloud.firestore {
       allow create: if logado()
                     && emailOk()
                     && request.resource.data.autorId == request.auth.uid
-                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'fotoPerfil', 'texto', 'mediaUrl', 'mediaTipo', 'midias', 'tags', 'marcados', 'agendadoPara', 'criadoEm'])
+                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'fotoPerfil', 'texto', 'mediaUrl', 'mediaTipo', 'midias', 'tags', 'marcados', 'agendadoPara', 'enquete', 'criadoEm'])
+                    && (!('enquete' in request.resource.data) || enqueteOk(request.resource.data.enquete))
                     && ritmoOk('pub')
                     && publicacaoOk()
                     && tagsOk(request.resource.data) && marcadosOk(request.resource.data)
