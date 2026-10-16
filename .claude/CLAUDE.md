@@ -225,3 +225,29 @@ Ficou para depois da Etapa 5 (combinado com ele, ainda não feito):
 - Planos pagos para negócios e revisar os textos que dizem "grátis" no site.
 - Relatório da equipe enviado por e-mail automaticamente (depende do segredo acima).
 - Existe um orçamento de custos/preços feito numa sessão anterior (doc no Claude); custos sobem com Blaze/Storage.
+
+## Capacidade e plano para nível nacional (conversado com ele em 16/10/2026, ainda NÃO feito)
+Capacidade hoje (plano grátis Spark; estimativa, não medição): ~50 a 100 pessoas ativas por dia. Limites grátis:
+50 mil leituras/dia, 20 mil gravações/dia, 1 GB no banco, 10 GB/mês baixados (o mais apertado, porque as fotos
+vão em `data:` dentro dos documentos e o Diário lê 120 publicações de uma vez). Estourou = para até o dia seguinte.
+Com o **Blaze**: escala sozinho (1 milhão de conexões simultâneas, 10 mil gravações/s; ~1 gravação/s por documento,
+ex.: `diario_notas` de post viral), paga só o que passar da cota grátis. Estimativa mensal (dólar ~R$ 5,50):
+1.000 ativos ≈ R$ 1–2 mil do jeito atual ou R$ 150–400 com fotos no Storage + feed leve; 10.000 ≈ R$ 10–20 mil
+ou R$ 2–4 mil. Blaze não tem teto: recomendar alerta de orçamento (ex.: R$ 50) e App Check.
+**Etapa nacional** (sugerida a ele, em ordem; ele ainda não mandou começar):
+1. Busca por cidade NO SERVIDOR: hoje Freelances/Delivery/Lojinha/Imóveis baixam os perfis e filtram no aparelho
+   (`passaLocal` em `vitrine.js`); trocar por consulta com `cidadeIbge`/`uf`, 20 por vez (índices compostos).
+   Diário: paginar (20 por vez + rolagem infinita) em vez de `limit(120)` em `feed.js`.
+2. Fotos no Firebase Storage (Blaze) em vez de `data:` no Firestore (maior peso de custo e velocidade).
+3. Abrir na cidade da pessoa (do cadastro ou perguntando na 1ª visita), "Perto de você", hoje o padrão é "Todo o Brasil".
+4. Textos e marca: páginas dizem "Florianópolis em um só lugar" (index, sobre, termos...). DECISÃO DELE: manter a
+   marca Help Floripa com textos "no Brasil/na sua cidade" ou nome nacional. Ajustar SEO (título, descrição, sitemap.xml).
+5. Segurança/moderação em escala: App Check, limite de mensagens/publicações por minuto (anti-spam), filtros
+   automáticos (palavras, foto imprópria) e mais gente na equipe.
+6. Jurídico: termos e privacidade revisados por advogado para atuação nacional (LGPD, encarregado de dados,
+   responsabilidade em serviços/vendas entre usuários).
+7. PWA: instalar como app (manifest + service worker) e notificações com o site fechado (push).
+8. Pendências dele (ver acima): segredo `FIREBASE_SERVICE_ACCOUNT`, "Converter cidades", publicar regras, liberar o site.
+9. Depois: planos pagos/destaque pago para negócios e revisar textos "grátis".
+Recomendado a ele: 1, 2, 3 e 7 numa "Etapa nacional" (parte muda regras); 4 quando ele decidir a marca; 5 e 6 junto
+da liberação ao público.
