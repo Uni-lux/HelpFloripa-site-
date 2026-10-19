@@ -2,8 +2,8 @@
 // Diário (feed.html)
 // - Aba Diário: flashes (24 h) e publicações (Principais ou Amigos), com
 //   estrelas, comentários, enviar, compartilhar e salvar.
-// - Aba Explorar: atalhos para Serviços, Delivery, Shopping e Imóveis
-//   e a busca de pessoas.
+// - Aba Explorar (explorar.js): busca completa, em alta, enquetes abertas,
+//   sugestões, negócios e destaques.
 // Links: feed.html?aba=explorar · ?publicar=1
 // =====================================================
 import { textoCidade } from "./endereco.js?v=1";
@@ -13,11 +13,12 @@ import {
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, botaoSeguir, montarBarraRede, pintarBarraRede, ouvirAvisos, lerOrdenado,
   editarPublicacao, bloquear, comMencoes, fotosDoPost, carrosselFotos, contadorEstrelas, estaSalvo, alternarSalvo, escolherColecao, lerResumosEstrelas, contarComentarios,
   silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto, confirmarHF, blocoEnquete, blocoCaixa
-} from "./rede.js?v=43";
+} from "./rede.js?v=44";
 import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=1";
-import { montarStories, abrirFlashPorId, repostarFlash } from "./stories.js?v=13";
+import { montarStories, abrirFlashPorId, repostarFlash } from "./stories.js?v=14";
 import { abrirDenuncia } from "./denuncias.js?v=2";
-import { buscarPessoas, pessoasRecentes } from "./pessoas.js?v=3";
+import { pessoasRecentes } from "./pessoas.js?v=3";
+import { abrirExplorar } from "./explorar.js?v=1";
 import { docsComValidade } from "./leituras.js?v=1";
 
 const POR_VEZ = 10;
@@ -38,7 +39,7 @@ function trocarAba(nova) {
   $("painelFeed").hidden = aba !== "diario";
   $("painelExplorar").hidden = aba !== "explorar";
   history.replaceState(history.state, "", aba === "explorar" ? "feed.html?aba=explorar" : "feed.html");
-  if (aba === "explorar") { carregarPessoas(); carregarExplorar(); }
+  if (aba === "explorar") abrirExplorar();
   else carregarFeed();
 }
 document.querySelectorAll("#abasFeed [data-aba]").forEach((b) => b.addEventListener("click", () => trocarAba(b.dataset.aba)));
@@ -228,7 +229,7 @@ function cartaoPost(post) {
       : { rotulo: "Salvar publicação", sub: "Para ver depois no seu Perfil → Salvos", icone: "salvo", fn: () => alternarSalvo(post) },
     { rotulo: "Salvar em uma coleção", sub: "Organize seus salvos em pastas", icone: "fotos", fn: () => escolherColecao(post) },
     { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(post.autorId, post.nome) },
-    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=10").then((m) => m.abrirEstatisticas(post)) },
+    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=11").then((m) => m.abrirEstatisticas(post)) },
     post.autorId === eu.uid && { rotulo: "Editar publicação", icone: "lapis", fn: () => editarPublicacao(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId !== eu.uid && { rotulo: silenciado(post.autorId) ? `Mostrar ${nome.textContent} de novo` : `Silenciar ${nome.textContent}`, sub: "Continua seguindo, mas as publicações e flashes somem do seu Diário", icone: "restringir",
       fn: async () => { await alternarSilenciar(post.autorId, nome.textContent); if (silenciado(post.autorId)) { posts = posts.filter((x) => x.autorId !== post.autorId); document.querySelectorAll(".post-card").forEach((x) => { if (x.dataset.autor === post.autorId) x.remove(); }); } } },
@@ -320,109 +321,6 @@ async function toqueDuplo(m, barra, simples = false) {
   if (!barra.estrelas?.darNota) return;
   if (simples) { barra.estrelas.pular?.(); await barra.estrelas.darNota(5); return; }
   await contadorEstrelas(m, (nota) => barra.estrelas.darNota(nota));
-}
-
-// ---------- explorar: pessoas ----------
-// Busca no Firebase só quem combina com o que foi digitado (pessoas.js); sem busca, quem esteve ativo por último.
-let tempoBusca = null;
-async function carregarPessoas() {
-  const corpo = $("listaPessoas");
-  const termo = $("buscaPessoas").value.trim();
-  // Buscando: só os resultados. Sem busca: tudo o que o Explorar mostra.
-  $("exploraConteudo").hidden = !!termo;
-  $("titPessoas").textContent = termo ? "Resultados" : "Ativos recentemente";
-  // #hashtag na busca: leva às publicações com a tag.
-  if (/^#[\p{L}\p{N}_]{1,30}$/u.test(termo)) {
-    const tag = termo.slice(1).toLowerCase();
-    const n = await fb.getCountFromServer(fb.query(fb.collection(fb.db, "diario"), fb.where("tags", "array-contains", tag))).then((x) => x.data().count).catch(() => null);
-    if ($("buscaPessoas").value.trim() !== termo) return;
-    const b = el("a", "linha-tag"); b.href = `feed.html?tag=${encodeURIComponent(tag)}`;
-    b.append(el("span", "ic-tag", "#"), el("strong", null, "#" + tag), el("small", null, n == null ? "Ver publicações" : `${n} ${n === 1 ? "publicação" : "publicações"}`));
-    corpo.replaceChildren(el("div", "grupo-titulo", "Hashtag"), b);
-    return;
-  }
-  if (!corpo.children.length) corpo.replaceChildren(el("div", "lista-vazia", "Carregando pessoas..."));
-  const achados = await buscarPessoas(fb, termo, { limite: termo ? 30 : 40 });
-  if ($("buscaPessoas").value.trim() !== termo) return;
-  let lista = achados.filter((p) => p.uid !== eu.uid && !escondido(p.uid));
-  if (!termo) lista = [...lista.filter((p) => !meusSeguindo.has(p.uid)), ...lista.filter((p) => meusSeguindo.has(p.uid))];
-  corpo.replaceChildren(...(termo ? [el("div", "grupo-titulo", `${lista.length} ${lista.length === 1 ? "pessoa encontrada" : "pessoas encontradas"}`)] : []));
-  if (!lista.length) { corpo.appendChild(el("div", "lista-vazia", "Ninguém encontrado. Tente o @usuário ou outra parte do nome.")); return; }
-  lista.slice(0, termo ? 60 : 8).forEach((p) => corpo.appendChild(linhaPessoa({
-    uid: p.uid, nome: p.nome, foto: p.fotoPerfil,
-    sub: [p.nickname ? "@" + p.nickname : "", nomeCidade(p.cidade || p.cidadeNome)].filter(Boolean).join(" · ")
-  })));
-}
-$("buscaPessoas").addEventListener("input", () => { clearTimeout(tempoBusca); tempoBusca = setTimeout(carregarPessoas, 300); });
-
-// ---------- explorar: em alta, destaques e sugestões ----------
-// Usa as mesmas 120 publicações recentes dos Principais (lidas uma vez e guardadas por 3 min).
-let explorarFeito = 0;
-async function carregarExplorar() {
-  if (Date.now() - explorarFeito < 3 * 60000) return;
-  explorarFeito = Date.now();
-  try {
-    const q = fb.query(fb.collection(fb.db, "diario"), fb.orderBy("criadoEm", "desc"), fb.limit(120));
-    const s = await docsComValidade(fb, "diario-principais", q, DIARIO_VALIDADE);
-    const lista = s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter((p) => !escondido(p.autorId) && !postOculto(p));
-    pintarAlta(lista);
-    const resumos = await lerResumosEstrelas(lista.map((p) => p.id));
-    pintarDestaques(lista, resumos);
-  } catch (e) { console.warn("Explorar:", e); }
-  pintarSugestoes().catch(() => {});
-}
-// Em alta: as hashtags mais usadas (peso maior para as mais novas).
-function pintarAlta(lista) {
-  const conta = new Map(), agora = Date.now();
-  lista.forEach((p) => (p.tags || []).forEach((t) => {
-    const peso = 1 / (1 + Math.max(0, agora - ms(p.criadoEm)) / (3 * 864e5));
-    const x = conta.get(t) || { t, n: 0, p: 0 }; x.n++; x.p += peso; conta.set(t, x);
-  }));
-  const top = [...conta.values()].sort((a, b) => b.p - a.p).slice(0, 12);
-  $("secAlta").hidden = !top.length;
-  $("exploraTags").replaceChildren(...top.map((x, i) => {
-    const a = el("a", "exp-tag" + (i < 3 ? " quente" : "")); a.href = `feed.html?tag=${encodeURIComponent(x.t)}`;
-    a.append(el("b", null, "#" + x.t), el("small", null, `${x.n} ${x.n === 1 ? "publicação" : "publicações"}`));
-    return a;
-  }));
-}
-// Destaques: mosaico de fotos (a primeira grande), pelo engajamento e pelo seu gosto.
-function pintarDestaques(lista, resumos) {
-  const agora = Date.now();
-  const nota = (p) => {
-    const r = resumos.get(p.id) || { total: 0, soma: 0 };
-    const horas = Math.max(0, (agora - (ms(p.criadoEm) || agora)) / 3600e3);
-    return (1 + r.total + Math.max(0, r.soma - 3 * r.total) * 0.4) * (1 + afinidade(p)) / Math.pow(horas + 6, 0.8);
-  };
-  const fotos = lista.filter((p) => p.autorId !== eu.uid && fotosDoPost(p).length).sort((a, b) => nota(b) - nota(a)).slice(0, 12);
-  $("secDestaques").hidden = fotos.length < 3;
-  $("exploraGrade").replaceChildren(...fotos.map((p, i) => {
-    const a = el("a", "exp-tile" + (i === 0 ? " grande" : "")); a.href = `usuarios.html?post=${encodeURIComponent(p.id)}`;
-    a.setAttribute("aria-label", `Publicação de ${p.nome || "alguém"}`);
-    const im = document.createElement("img"); im.src = fotosDoPost(p)[0]; im.alt = ""; im.loading = "lazy"; im.decoding = "async";
-    a.appendChild(im);
-    if (fotosDoPost(p).length > 1) a.appendChild(icone("fotos", "i xs marca"));
-    const r = resumos.get(p.id);
-    if (r?.total) { const nt = el("span", "exp-nota"); nt.append(icone("estrela", "i"), document.createTextNode((r.soma / r.total).toFixed(1).replace(".", ","))); a.appendChild(nt); }
-    if (i === 0) a.appendChild(el("span", "exp-quem", p.nome || ""));
-    return a;
-  }));
-}
-// Sugestões: quem esteve ativo e você ainda não segue (cartões para deslizar).
-async function pintarSugestoes() {
-  const recentes = await pessoasRecentes(fb, { limite: 40 });
-  const sug = recentes.filter((p) => p.uid !== eu.uid && !meusSeguindo.has(p.uid) && !escondido(p.uid)).slice(0, 12);
-  $("secSugestoes").hidden = !sug.length;
-  $("exploraSugestoes").replaceChildren(...sug.map((p) => {
-    const c = el("div", "exp-pessoa");
-    const av = el("div", "avatar"); pintarAvatar(av, p.fotoPerfil, p.nome);
-    const nome = el("strong", null, p.nome || "Usuário");
-    const sub = el("small", null, p.nickname ? "@" + p.nickname : nomeCidade(p.cidade || p.cidadeNome) || "Help Floripa");
-    const abrir = () => ganchos.abrirPerfil(p.uid);
-    av.addEventListener("click", abrir); nome.addEventListener("click", abrir);
-    c.append(av, nome, sub, botaoSeguir(p.uid));
-    return c;
-  }));
 }
 
 // ---------- lateral (computador) ----------
