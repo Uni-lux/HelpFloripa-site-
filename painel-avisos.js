@@ -11,6 +11,7 @@
 import { buscarReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=15";
 import { fotoSegura } from "./seguranca.js?v=1";
 import { buscarItensEquipe, TEXTO_EQUIPE, linkEquipe, seloOficial, SUPORTE } from "./avisos-equipe.js?v=1";
+import { enquetesEncerradas, textoEnqueteFim } from "./enquetes.js?v=1";
 
 const ms = (ts) => ts?.toMillis?.() ?? (typeof ts === "number" ? ts : 0);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
@@ -29,6 +30,7 @@ const ICONES = {
   alerta: '<path d="M12 4l9 16H3z"/><path d="M12 10v4.5M12 17.5h.01"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
   suporte: '<path d="M4.5 13v-1.5a7.5 7.5 0 0115 0V13"/><rect x="3.5" y="13" width="4" height="6" rx="1.5"/><rect x="16.5" y="13" width="4" height="6" rx="1.5"/><path d="M18.5 19c0 1.4-1.6 2-4 2h-1.5"/>',
+  enquete: '<rect x="4" y="5" width="16" height="3.5" rx="1.75"/><rect x="4" y="10.25" width="11" height="3.5" rx="1.75"/><rect x="4" y="15.5" width="7" height="3.5" rx="1.75"/>',
   megafone: '<path d="M4 10v4h3l6 4V6L7 10H4z"/><path d="M16.5 9a4 4 0 010 6M19 6.5a7.5 7.5 0 010 11"/>'
 };
 const svg = (nome, cls = "") => {
@@ -51,6 +53,7 @@ const TIPOS = {
   resposta: { cor: "#7c5cff", ic: "chat", aba: "publicacoes" },
   reacao: { cor: "#e0457b", ic: "chat", aba: "publicacoes" },
   marcacao: { cor: "#00adee", ic: "pessoa", aba: "publicacoes" },
+  enquete: { cor: "#7c5cff", ic: "enquete", aba: "publicacoes" },
   reclamacao: { cor: "#ef4444", ic: "alerta", aba: "reclamacoes" },
   "reclamacao-resp": { cor: "#ff7a1a", ic: "chat", aba: "reclamacoes" },
   "reclamacao-ok": { cor: "#2fbf71", ic: "check", aba: "reclamacoes" },
@@ -73,6 +76,7 @@ function texto(i) {
     case "resposta": return "respondeu seu comentário";
     case "reacao": return `reagiu com ${i.reacao || "❤️"} ao seu comentário`;
     case "marcacao": return "marcou você numa publicação";
+    case "enquete": return i.souAutor ? "terminou. Veja o resultado." : textoEnqueteFim(i).titulo;
     case "aviso": case "suporte": return TEXTO_EQUIPE(i);
     default: return TEXTO_RECLAMACAO[i.tipo] ? TEXTO_RECLAMACAO[i.tipo](i) : "";
   }
@@ -121,6 +125,8 @@ async function carregar() {
   const dados = usuario?.exists() ? usuario.data() : {};
   const restritos = new Set(dados.restritos || []);
   const itens = [];
+  // Enquetes que terminaram (minhas e em que votei)
+  (await enquetesEncerradas(fs, db, uid, dados).catch(() => [])).forEach((x) => itens.push({ ...x, ...(x.souAutor ? { nome: "Sua enquete", foto: dados.fotoPerfil || "" } : {}), detalhe: textoEnqueteFim(x).detalhe }));
   seg.forEach((r) => itens.push({ tipo: "seguidor", id: "s_" + r.id, uid: r.seguidorId, quando: ms(r.criadoEm) }));
   curt.filter((c) => c.uid !== uid && Number(c.nota) > 0).forEach((c) => itens.push({ tipo: "curtida", id: "c_" + c.id, uid: c.uid, nota: Number(c.nota), postId: c.postId, quando: Math.max(ms(c.criadoEm), ms(c.atualizadoEm)) }));
   com.filter((c) => c.autorId !== uid).forEach((c) => itens.push({ tipo: "comentario", id: "m_" + c.id, uid: c.autorId, nome: c.nome, foto: c.foto, detalhe: c.texto, postId: c.postId, quando: ms(c.criadoEm) }));
@@ -242,6 +248,7 @@ function destino(i) {
   if (i.oficial) return linkEquipe(i);
   if (i.tipo.startsWith("reclamacao")) return linkReclamacao(i, eu.uid);
   if (i.tipo === "seguidor" || i.tipo === "social") return `usuarios.html?perfil=${encodeURIComponent(i.uid)}`;
+  if (i.tipo === "enquete") return `notificacoes.html?enquete=${encodeURIComponent(i.alvo)}`;
   return "notificacoes.html"; // estrelas e comentários abrem a publicação na página de notificações
 }
 async function responderVinculo(i, aceitar, botoes) {
@@ -269,7 +276,7 @@ function linha(i) {
   if (i.oficial) nome.appendChild(seloOficial());
   tx.append(nome, document.createTextNode(" " + texto(i)), el("span", "q", tempo(i.quando)));
   if (i.naoLida) tx.appendChild(el("span", "pa-nl", i.oficial ? "nova" : "não lida"));
-  if (i.detalhe) tx.appendChild(el("small", null, i.tipo === "mensagem" || i.oficial ? i.detalhe : `"${i.detalhe}"`));
+  if (i.detalhe) tx.appendChild(el("small", null, i.tipo === "mensagem" || i.tipo === "enquete" || i.oficial ? i.detalhe : `"${i.detalhe}"`));
   if (i.tipo === "social" && i.pendente) {
     const box = el("div", "pa-acoes");
     const sim = el("button", "pa-acao pri", "Aceitar"), nao = el("button", "pa-acao sec", "Recusar");

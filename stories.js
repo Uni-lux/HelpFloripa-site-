@@ -11,9 +11,10 @@
 import {
   $, el, icone, ms, pintarAvatar, toast, erroAmigavel, tempoRelativo, fb, eu, dados, storageFns,
   meusSeguindo, escondido, silenciado, alternarSilenciar, obterPerfil, abrirOpcoes, abrirLista, linhaPessoa,
-  salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar
-} from "./rede.js?v=41";
+  salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete
+} from "./rede.js?v=42";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
+import { seletorDuracao, fimEscolhido, MAX_FLASH_MIN } from "./enquetes.js?v=1";
 
 const DIA = 24 * 3600e3;
 const TEMPO_FOTO = 6000;
@@ -404,6 +405,8 @@ function abrirCriador() {
       e.style.fontSize = Math.round(W * 0.042) + "px";
       const card = el("div", "fe-enq"); card.appendChild(el("strong", null, t.pergunta));
       t.opcoes.forEach((o) => card.appendChild(el("span", null, o)));
+      const d = t.duracao || { dur: 1440 };
+      card.appendChild(el("small", "fe-enq-dur", d.fim ? `Termina às ${new Date(d.fim).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : `Dura ${d.dur >= 1440 ? "24 h" : d.dur / 60 + " h"}`));
       e.replaceChildren(card);
       return;
     }
@@ -518,7 +521,9 @@ function abrirCriador() {
       if (ops.length < 4) { const m = el("button", "enq-ed-mais", "+ Adicionar opção"); m.type = "button"; m.addEventListener("click", () => { ops.push(""); pintarOps(); }); lista.appendChild(m); }
     };
     pintarOps();
-    box.append(perg, lista);
+    // Duração: no flash vai até 24 h (acaba junto com ele).
+    const duracao = { ...(t?.duracao || { dur: 1440 }) };
+    box.append(perg, lista, seletorDuracao(duracao, { maxMin: MAX_FLASH_MIN, escuro: true }));
     pn.append(cab, box);
     palco.appendChild(pn);
     setTimeout(() => perg.focus(), 50);
@@ -527,8 +532,8 @@ function abrirCriador() {
       if (!pergunta) { toast("Escreva a pergunta."); perg.focus(); return; }
       if (opcoes.length < 2) { toast("Coloque pelo menos 2 opções."); return; }
       pn.remove();
-      if (t) { t.pergunta = pergunta; t.opcoes = opcoes; pintarTexto(t); }
-      else criarTexto({ enq: true, pergunta, opcoes, texto: "", x: 0.5, y: 0.6, tam: 0.05, letra: 0, cor: "#111", destaque: false });
+      if (t) { t.pergunta = pergunta; t.opcoes = opcoes; t.duracao = duracao; pintarTexto(t); }
+      else criarTexto({ enq: true, pergunta, opcoes, duracao, texto: "", x: 0.5, y: 0.6, tam: 0.05, letra: 0, cor: "#111", destaque: false });
     });
   }
   // Menção: escolher a pessoa (quem você segue e com quem conversou); vira "@usuário" na foto e ela é avisada.
@@ -873,9 +878,11 @@ function abrirCriador() {
         const texto = legenda.value.trim().slice(0, 150);
         const enq = textos.find((t) => t.enq);
         const mencoes = [...new Set(textos.filter((t) => t.fig === "mencao" && t.uid).map((t) => t.uid))].slice(0, 10);
-        await gravar({ tipo: "imagem", midia: url, ...(texto ? { texto } : {}),
-          ...(enq ? { enquete: { pergunta: enq.pergunta, opcoes: enq.opcoes, x: Math.round(enq.x * 1000) / 1000, y: Math.round(enq.y * 1000) / 1000 } } : {}),
+        const enquete = enq ? { pergunta: enq.pergunta, opcoes: enq.opcoes, x: Math.round(enq.x * 1000) / 1000, y: Math.round(enq.y * 1000) / 1000,
+          fimEm: fb.Timestamp.fromMillis(fimEscolhido(enq.duracao || { dur: 1440 }, { maxMin: MAX_FLASH_MIN })) } : null;
+        const ref = await gravar({ tipo: "imagem", midia: url, ...(texto ? { texto } : {}), ...(enquete ? { enquete } : {}),
           ...(mencoes.length ? { mencoes } : {}) }, { imagem });
+        if (enquete) registrarEnquete("f_" + ref.id, enquete);
       }
       fechar();
     } catch (e) {

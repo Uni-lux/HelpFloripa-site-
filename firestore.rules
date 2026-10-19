@@ -74,9 +74,11 @@ service cloud.firestore {
 
     // Enquete (publicação ou flash): pergunta (até 120) e 2 a 4 opções (até 40 cada).
     // No flash, x e y dizem onde a enquete fica na tela (0 a 1).
+    // fimEm: quando a votação acaba (depois de inicio, até maxMin minutos depois; sem fimEm = enquete antiga, sem fim).
     function opcaoOk(o) { return o is string && o.size() >= 1 && o.size() <= 40; }
-    function enqueteOk(e) {
-      return e is map && e.keys().hasOnly(['pergunta', 'opcoes', 'x', 'y'])
+    function enqueteOk(e, inicio, maxMin) {
+      return e is map && e.keys().hasOnly(['pergunta', 'opcoes', 'x', 'y', 'fimEm'])
+          && (!('fimEm' in e) || (e.fimEm is timestamp && e.fimEm > inicio && e.fimEm <= inicio + duration.value(maxMin, 'm')))
           && e.pergunta is string && e.pergunta.size() >= 1 && e.pergunta.size() <= 120
           && e.opcoes is list && e.opcoes.size() >= 2 && e.opcoes.size() <= 4
           && opcaoOk(e.opcoes[0]) && opcaoOk(e.opcoes[1])
@@ -1852,7 +1854,8 @@ service cloud.firestore {
       allow create: if logado() && emailOk()
                     && request.resource.data.keys().hasOnly(['autorId', 'nome', 'tipo', 'midia', 'texto', 'duracao', 'enquete', 'mencoes', 'respostas', 'publico', 'lista', 'ocultoPara', 'criadoEm'])
                     // enquete, pessoas mencionadas e as escolhas do autor (quem responde, quem vê)
-                    && (!('enquete' in request.resource.data) || enqueteOk(request.resource.data.enquete))
+                    // no flash a enquete acaba junto com ele (até 24 h, com 10 min de folga)
+                    && (!('enquete' in request.resource.data) || enqueteOk(request.resource.data.enquete, request.time, 1450))
                     && (!('mencoes' in request.resource.data) || uidsOk(request.resource.data.mencoes, 10))
                     && (!('respostas' in request.resource.data) || request.resource.data.respostas in ['todos', 'seguindo', 'ninguem'])
                     && (!('publico' in request.resource.data) || request.resource.data.publico in ['todos', 'amigos'])
@@ -1886,6 +1889,7 @@ service cloud.firestore {
     // ===================================================
     // ===================================================
     // VOTOS DAS ENQUETES: enquete_votos/{alvo}_{uid} — alvo = tipo + "_" + itemId (tipo d = publicação, f = flash).
+    // fimEm (opcional) = o mesmo fim da enquete; votar só até o fim.
     // Um voto por pessoa (pode trocar ou tirar). A contagem é feita no servidor (count por opção).
     // ===================================================
     match /enquete_votos/{id} {
@@ -1895,14 +1899,18 @@ service cloud.firestore {
         let doc = d.tipo == 'd'
           ? /databases/$(database)/documents/diario/$(d.itemId)
           : /databases/$(database)/documents/stories/$(d.itemId);
-        return d.keys().hasOnly(['alvo', 'tipo', 'itemId', 'uid', 'opcao', 'criadoEm'])
+        let e = get(doc).data.enquete;
+        return d.keys().hasOnly(['alvo', 'tipo', 'itemId', 'uid', 'opcao', 'fimEm', 'criadoEm'])
             && d.uid == request.auth.uid
             && d.tipo in ['d', 'f']
             && d.itemId is string && d.itemId.matches('^[A-Za-z0-9]{1,64}$')
             && d.alvo == d.tipo + '_' + d.itemId
             && id == d.alvo + '_' + request.auth.uid
             && d.opcao is int && d.opcao >= 0
-            && exists(doc) && d.opcao < get(doc).data.enquete.opcoes.size();
+            && exists(doc) && d.opcao < e.opcoes.size()
+            // depois do fim não dá mais para votar; o voto leva o fim junto (as notificações do resultado usam)
+            && (!('fimEm' in e) || request.time < e.fimEm)
+            && (!('fimEm' in d) || ('fimEm' in e && d.fimEm == e.fimEm));
       }
       // Voto único: depois de votar não dá para trocar nem tirar (a limpeza de contas apaga pelo servidor).
       allow create: if logado() && votoOk() && request.resource.data.criadoEm == request.time && !sancionado(request.auth.uid);
@@ -2106,7 +2114,9 @@ service cloud.firestore {
                     && emailOk()
                     && request.resource.data.autorId == request.auth.uid
                     && request.resource.data.keys().hasOnly(['autorId', 'nome', 'fotoPerfil', 'texto', 'mediaUrl', 'mediaTipo', 'midias', 'tags', 'marcados', 'agendadoPara', 'enquete', 'criadoEm'])
-                    && (!('enquete' in request.resource.data) || enqueteOk(request.resource.data.enquete))
+                    // enquete: até 7 dias a partir de quando aparece (agora ou a data agendada), com 10 min de folga
+                    && (!('enquete' in request.resource.data) || enqueteOk(request.resource.data.enquete,
+                          'agendadoPara' in request.resource.data ? request.resource.data.agendadoPara : request.time, 10090))
                     && ritmoOk('pub')
                     && publicacaoOk()
                     && tagsOk(request.resource.data) && marcadosOk(request.resource.data)

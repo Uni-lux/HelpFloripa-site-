@@ -1,3 +1,14 @@
+      // O @ exibido no perfil precisa estar reservado em nicknames/ pelo
+      // próprio usuário. getAfter enxerga a reserva feita na mesma transação
+      // (cadastro) ou numa escrita anterior (edição do perfil).
+      function nickDoDono() {
+        let d = request.resource.data;
+        return !('nickname' in d)
+            || d.nickname == null
+            || d.nickname == ''
+            || getAfter(/databases/$(database)/documents/nicknames/$(d.nickname)).data.uid == request.auth.uid;
+      }
+
       // Trocou de @: o antigo tem que ser liberado na mesma gravação (ninguém guarda vários @).
       function liberouNickAntigo() {
         let antigo = resource.data.get('nickname', '');

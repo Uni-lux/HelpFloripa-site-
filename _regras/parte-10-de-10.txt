@@ -1,3 +1,19 @@
+    // =====================================================
+    // COMENTÁRIOS: comentarios/{id}
+    // - Resposta: respostaA = id do comentário respondido (mesma publicação)
+    //   e respostaAutorId = autor dele (para o aviso).
+    // - Quem comentou edita o texto. O dono da publicação oculta um comentário.
+    // - Quem comentou ou o dono da publicação apaga.
+    // - Publicação com comentários ocultos não recebe comentários novos.
+    // =====================================================
+    match /comentarios/{id} {
+
+      allow read: if logado();
+
+      function textoComentarioOk(d) {
+        return d.texto is string && d.texto.size() >= 1 && d.texto.size() <= 500;
+      }
+
       // Quem pode comentar (escolha do autor): o autor sempre pode.
       function segue(a, b) { return exists(/databases/$(database)/documents/relacoes/$(a + '_' + b)); }
       function podeComentar(p) {
@@ -124,7 +140,9 @@
                     && emailOk()
                     && request.resource.data.autorId == request.auth.uid
                     && request.resource.data.keys().hasOnly(['autorId', 'nome', 'fotoPerfil', 'texto', 'mediaUrl', 'mediaTipo', 'midias', 'tags', 'marcados', 'agendadoPara', 'enquete', 'criadoEm'])
-                    && (!('enquete' in request.resource.data) || enqueteOk(request.resource.data.enquete))
+                    // enquete: até 7 dias a partir de quando aparece (agora ou a data agendada), com 10 min de folga
+                    && (!('enquete' in request.resource.data) || enqueteOk(request.resource.data.enquete,
+                          'agendadoPara' in request.resource.data ? request.resource.data.agendadoPara : request.time, 10090))
                     && ritmoOk('pub')
                     && publicacaoOk()
                     && tagsOk(request.resource.data) && marcadosOk(request.resource.data)

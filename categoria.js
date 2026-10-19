@@ -9,7 +9,8 @@ import { fotoSegura } from "./seguranca.js?v=1";
 import { definirPerfilMenu, definirBadgeMensagens } from "./menu.js?v=7";
 import { buscarReclamacoes } from "./avisos-reclamacoes.js?v=15";
 import { ouvirItensEquipe } from "./avisos-equipe.js?v=1";
-import "./painel-avisos.js?v=15"; // o sino abre o painel de notificações na própria página
+import { enquetesEncerradas } from "./enquetes.js?v=1";
+import "./painel-avisos.js?v=16"; // o sino abre o painel de notificações na própria página
 import "./chat-gaveta.js?v=1";
 import { docComValidade } from "./leituras.js?v=1"; // "Mensagens" abre as conversas por cima da página, sem sair dela
 
@@ -70,6 +71,7 @@ async function contarAvisos(fs, db, uid) {
     n += recl.filter((x) => novo(x.quando)).length;
     n += reac.filter((x) => x.uid !== uid && novo(ms(x.criadoEm))).length;
     n += marc.filter((x) => x.autorId !== uid && novo(ms(x.criadoEm)) && (x.agendadoPara?.toMillis?.() ?? 0) <= Date.now()).length;
+    n += (await enquetesEncerradas(fs, db, uid, usuario.exists() ? usuario.data() : {}).catch(() => [])).filter((x) => novo(x.quando)).length;
     const r = { n, visto, em: Date.now() };
     try { localStorage.setItem(chaveSino(uid), JSON.stringify(r)); } catch {}
     return r;

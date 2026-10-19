@@ -408,6 +408,28 @@ await t("voto: outra pessoa não apaga o voto", () => assertFails(deleteDoc(doc(
 await t("flash: com enquete (posição), menções e escolhas", () => assertSucceeds(setDoc(doc(ctx("ana"), "stories", "sEnq"), { autorId: "ana", nome: "Ana", tipo: "imagem", midia: fotoS, enquete: { pergunta: "Gostou?", opcoes: ["Sim", "Não"], x: 0.5, y: 0.6 }, mencoes: ["bia", "edu"], respostas: "seguindo", publico: "amigos", lista: ["bia"], ocultoPara: ["edu"], criadoEm: serverTimestamp() })));
 await t("flash: quem responde com valor estranho é recusado", () => assertFails(setDoc(doc(ctx("ana"), "stories", "sX"), { autorId: "ana", nome: "Ana", tipo: "imagem", midia: fotoS, respostas: "qualquer", criadoEm: serverTimestamp() })));
 await t("voto: na enquete do flash", () => assertSucceeds(voto("bia", 1, "sEnq", "f")));
+// Enquete com duração (fimEm): publicação até 7 dias (a partir da data agendada, se houver), flash até 24 h; votar só até o fim.
+const daqui = (min) => Timestamp.fromMillis(Date.now() + min * 60000);
+await t("enquete: com fim em 1 dia", () => assertSucceeds(publicar2("bia", { enquete: { pergunta: "Vai?", opcoes: ["Sim", "Não"], fimEm: daqui(1440) } })));
+await t("enquete: fim em 7 dias (personalizado)", () => assertSucceeds(publicar2("bia", { enquete: { pergunta: "Vai?", opcoes: ["Sim", "Não"], fimEm: daqui(7 * 1440) } })));
+await t("enquete: fim depois de 7 dias é recusado", () => assertFails(publicar2("bia", { enquete: { pergunta: "Vai?", opcoes: ["Sim", "Não"], fimEm: daqui(7 * 1440 + 60) } })));
+await t("enquete: fim no passado é recusado", () => assertFails(publicar2("bia", { enquete: { pergunta: "Vai?", opcoes: ["Sim", "Não"], fimEm: daqui(-5) } })));
+await t("enquete: fim que não é data é recusado", () => assertFails(publicar2("bia", { enquete: { pergunta: "Vai?", opcoes: ["Sim", "Não"], fimEm: "amanhã" } })));
+await t("enquete agendada: o fim conta a partir da data agendada", () => assertSucceeds(publicar2("bia", { agendadoPara: daqui(3 * 1440), enquete: { pergunta: "Vai?", opcoes: ["Sim", "Não"], fimEm: daqui(3 * 1440 + 1440) } })));
+await t("enquete agendada: fim antes de aparecer é recusado", () => assertFails(publicar2("bia", { agendadoPara: daqui(3 * 1440), enquete: { pergunta: "Vai?", opcoes: ["Sim", "Não"], fimEm: daqui(1440) } })));
+await t("flash: enquete com fim em 24 h", () => assertSucceeds(setDoc(doc(ctx("ana"), "stories", "sEnq2"), { autorId: "ana", nome: "Ana", tipo: "imagem", midia: fotoS, enquete: { pergunta: "Gostou?", opcoes: ["Sim", "Não"], x: 0.5, y: 0.6, fimEm: daqui(1440) }, criadoEm: serverTimestamp() })));
+await t("flash: enquete passando de 24 h é recusada", () => assertFails(setDoc(doc(ctx("ana"), "stories", "sEnq3"), { autorId: "ana", nome: "Ana", tipo: "imagem", midia: fotoS, enquete: { pergunta: "Gostou?", opcoes: ["Sim", "Não"], fimEm: daqui(1440 + 60) }, criadoEm: serverTimestamp() })));
+await semRegras(async (db) => {
+  await setDoc(doc(db, "diario", "pAberta"), { autorId: "dono", nome: "Dono", texto: "?", enquete: { pergunta: "Qual?", opcoes: ["A", "B"], fimEm: daqui(600) }, criadoEm: antigo });
+  await setDoc(doc(db, "diario", "pFechada"), { autorId: "dono", nome: "Dono", texto: "?", enquete: { pergunta: "Qual?", opcoes: ["A", "B"], fimEm: daqui(-10) }, criadoEm: antigo });
+});
+const votoF = (quem, item, fimEm) => setDoc(doc(ctx(quem), "enquete_votos", `d_${item}_${quem}`), { alvo: `d_${item}`, tipo: "d", itemId: item, uid: quem, opcao: 0, ...(fimEm ? { fimEm } : {}), criadoEm: serverTimestamp() });
+const fimAberta = (await (async () => { let v; await semRegras(async (db) => { v = (await getDoc(doc(db, "diario", "pAberta"))).data().enquete.fimEm; }); return v; })());
+await t("voto: com o fim igual ao da enquete", () => assertSucceeds(votoF("bia", "pAberta", fimAberta)));
+await t("voto: com fim diferente do da enquete é recusado", () => assertFails(votoF("edu", "pAberta", daqui(5000))));
+await t("voto: sem o campo fim também vale (versão antiga do site)", () => assertSucceeds(votoF("ana", "pAberta")));
+await t("voto: depois do fim da enquete é recusado", () => assertFails(votoF("bia", "pFechada")));
+await t("voto: com fim numa enquete sem fim é recusado", () => assertFails(votoF("edu", "pEnq", daqui(60))));
 await t("preferências: quem pode me marcar (seguindo)", () => assertSucceeds(setDoc(doc(ctx("ana"), "pref_publicas", "ana"), { permiteMarcar: "seguindo", atualizadoEm: serverTimestamp() })));
 await t("preferências: valor estranho é recusado", () => assertFails(setDoc(doc(ctx("ana"), "pref_publicas", "ana"), { permiteMarcar: "todo mundo" })));
 await t("preferências: outra pessoa não grava", () => assertFails(setDoc(doc(ctx("bia"), "pref_publicas", "ana"), { permiteMarcar: "todos" })));
