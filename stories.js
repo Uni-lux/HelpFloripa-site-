@@ -40,7 +40,7 @@ async function carregar() {
     docs = s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) }));
   } catch (e) { console.warn("Flash:", e?.code || e?.message); }
   porAutor = new Map();
-  docs.filter((x) => ativo(x) && (x.autorId === eu.uid || (meusSeguindo.has(x.autorId) && !escondido(x.autorId) && !silenciado(x.autorId) && podeVer(x))))
+  docs.filter((x) => ativo(x) && (x.autorId === eu.uid || (x.perfil !== false && meusSeguindo.has(x.autorId) && !escondido(x.autorId) && !silenciado(x.autorId) && podeVer(x))))
     .forEach((x) => { if (!porAutor.has(x.autorId)) porAutor.set(x.autorId, []); porAutor.get(x.autorId).push(x); });
   limparVencidos();
   pintarBarra();
@@ -127,6 +127,40 @@ function circulo({ uid, nome, foto, nomeReal, meu = false, lista = [] }) {
   return b;
 }
 
+// Mensagem com o cartão do flash (o Mensagens mostra a miniatura enquanto o flash existe, 24 h):
+// acao = resposta | reacao | mencao | enviar | repost. O cartão guarda só o id; a foto vem do flash.
+function msgFlash(s, acao, extra = {}) {
+  return { tipoArquivo: "cartao", cartao: { tipo: "flash", acao, flashId: s.id, autorId: s.autorId, nome: String(s.nome || "").slice(0, 80), ...extra } };
+}
+const PAGINA_NEGOCIO = { servicos: "servicos.html", delivery: "delivery.html", lojinha: "shopping.html", imoveis: "imoveis.html" };
+const ICONE_NEGOCIO = { servicos: "servicos", delivery: "delivery", lojinha: "lojinha", imoveis: "imoveis" };
+const linkNegocio = (l) => `${PAGINA_NEGOCIO[l.tipo] || "servicos.html"}?negocio=${encodeURIComponent(l.negocioId)}`;
+
+// Abrir um flash pelo link (feed.html?flash=ID), vindo de uma mensagem.
+export async function abrirFlashPorId(id) {
+  try {
+    const d = await fb.getDoc(fb.doc(fb.db, "stories", id));
+    if (!d.exists() || !ativo(d.data({ serverTimestamps: "estimate" }))) { toast("Esse flash não está mais disponível (passou de 24 horas)."); return; }
+    const x = { id: d.id, ...d.data({ serverTimestamps: "estimate" }) };
+    if (x.autorId !== eu.uid && (escondido(x.autorId) || !podeVer(x))) { toast("Esse flash não está disponível."); return; }
+    const s = await fb.getDocs(fb.query(fb.collection(fb.db, "stories"), fb.where("autorId", "==", x.autorId), fb.limit(30))).catch(() => null);
+    const lista = (s?.docs || [d]).map((k) => ({ id: k.id, ...k.data({ serverTimestamps: "estimate" }) })).filter((k) => ativo(k) && (k.autorId === eu.uid || podeVer(k))).sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm));
+    porAutor.set(x.autorId, lista.length ? lista : [x]);
+    abrirVisor(x.autorId, { so: true, comecarEm: id });
+  } catch (e) { toast("Não foi possível abrir o flash: " + erroAmigavel(e)); }
+}
+// Repostar um flash em que você foi mencionado (abre o criador com a foto dele).
+export async function repostarFlash(id) {
+  try {
+    const d = await fb.getDoc(fb.doc(fb.db, "stories", id));
+    if (!d.exists() || !ativo(d.data({ serverTimestamps: "estimate" }))) { toast("Esse flash já saiu do ar (passou de 24 horas)."); return; }
+    const x = { id: d.id, ...d.data({ serverTimestamps: "estimate" }) };
+    if (!(Array.isArray(x.mencoes) && x.mencoes.includes(eu.uid))) { toast("Só quem foi mencionado no flash pode repostar."); return; }
+    if (x.tipo === "video") { toast("Repostar vídeo precisa do armazenamento de arquivos ligado."); return; }
+    abrirCriador({ repost: x });
+  } catch (e) { toast("Não foi possível repostar: " + erroAmigavel(e)); }
+}
+
 // Criar um flash de fora do Diário (o "+" na foto do seu perfil). aoPublicar roda depois de publicar.
 let depoisDePublicar = null;
 export function novoFlash(aoPublicar) { depoisDePublicar = aoPublicar || null; abrirCriador(); }
@@ -136,7 +170,7 @@ export async function anelNoPerfil(avatar, uid) {
   if (!avatar || !uid || escondido(uid)) return;
   try {
     const s = await fb.getDocs(fb.query(fb.collection(fb.db, "stories"), fb.where("autorId", "==", uid), fb.limit(30)));
-    const lista = s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter(ativo).sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm));
+    const lista = s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter((x) => ativo(x) && (uid === eu.uid || (x.perfil !== false && podeVer(x)))).sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm));
     const wrap = avatar.parentElement;
     if (!lista.length) { wrap?.classList.remove("com-flash"); return; }
     if (!avatar.isConnected) return;
@@ -188,7 +222,7 @@ function textoFigurinha(fig, local = "") {
   return "📍 " + (local || "Florianópolis");
 }
 
-function abrirCriador() {
+function abrirCriador({ repost = null } = {}) {
   const fundo = el("div", "flash-criar"); fundo.setAttribute("role", "dialog"); fundo.setAttribute("aria-modal", "true"); fundo.setAttribute("aria-label", "Novo flash");
   const caixa = el("div", "flash-caixa");
   const palco = el("div", "flash-palco");
@@ -216,7 +250,42 @@ function abrirCriador() {
   publicar.append(el("span", null, "Compartilhar"), raioPub);
   const linhaBaixo = el("div", "flash-linha"); linhaBaixo.append(modos, publicar);
   const dica = el("small", "flash-dica", "Fica 24 horas para quem segue você · você vê quem viu");
-  baixo.append(linhaBaixo, dica);
+  // "Publicar em": seu perfil e/ou os seus perfis de negócio (um, alguns ou todos). Só aparece se você tem negócio.
+  const destinos = el("div", "flash-destinos"); destinos.hidden = true;
+  const dest = { perfil: true, negocios: new Set() };
+  let meusNeg = [];
+  const pintarDestinos = () => {
+    const nomes = meusNeg.filter((n) => dest.negocios.has(n.id)).map((n) => n.nome);
+    const chip = (rot, on, av, fn, cls = "") => {
+      const b = el("button", "flash-dest " + cls + (on ? " on" : "")); b.type = "button"; b.setAttribute("aria-pressed", String(on));
+      b.append(av, el("span", null, rot), el("i", "ok"));
+      b.addEventListener("click", fn);
+      return b;
+    };
+    const avEu = el("span", "avatar"); pintarAvatar(avEu, dados.fotoPerfil, dados.nome);
+    destinos.replaceChildren(el("strong", "flash-dest-tit", "Publicar em"), el("div", "flash-dest-lista"));
+    const lista = destinos.lastChild;
+    lista.appendChild(chip("Seu perfil", dest.perfil, avEu, () => { if (dest.perfil && !dest.negocios.size) { toast("Escolha pelo menos um lugar para publicar."); return; } dest.perfil = !dest.perfil; pintarDestinos(); }));
+    meusNeg.forEach((n) => {
+      const av = el("span", "avatar neg-av " + n.tipo);
+      if (n.foto && /^(data:image|https:)/.test(n.foto)) pintarAvatar(av, n.foto, n.nome); else av.appendChild(icone(ICONE_NEGOCIO[n.tipo] || "loja", "i xs"));
+      lista.appendChild(chip(n.nome || "Negócio", dest.negocios.has(n.id), av, () => {
+        if (dest.negocios.has(n.id)) { if (!dest.perfil && dest.negocios.size === 1) { toast("Escolha pelo menos um lugar para publicar."); return; } dest.negocios.delete(n.id); }
+        else dest.negocios.add(n.id);
+        pintarDestinos();
+      }));
+    });
+    const onde = [dest.perfil ? "no seu perfil" : "", ...nomes].filter(Boolean);
+    dica.textContent = `Fica 24 horas ${onde.length > 1 ? "em " + onde.slice(0, -1).join(", ") + " e " + onde.slice(-1) : onde[0] === "no seu perfil" ? "no seu perfil, para quem segue você" : "no perfil de " + onde[0]} · você vê quem viu`;
+  };
+  fb.getDocs(fb.query(fb.collection(fb.db, "negocios"), fb.where("donoId", "==", eu.uid), fb.limit(8))).then((x) => {
+    meusNeg = x.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => PAGINA_NEGOCIO[n.tipo] && /^[A-Za-z0-9]+_(servicos|delivery|lojinha|imoveis)$/.test(n.id));
+    if (!meusNeg.length) return;
+    destinos.hidden = false; pintarDestinos();
+  }).catch(() => {});
+  // Campos do lugar escolhido (vão em todo flash publicado por este criador).
+  const camposDestino = () => (dest.negocios.size ? { negocios: [...dest.negocios].slice(0, 4), ...(dest.perfil ? {} : { perfil: false }) } : {});
+  baixo.append(destinos, linhaBaixo, dica);
   // Moldura com o degradê do Flash em volta do cartão (que ocupa quase a tela toda).
   const moldura = el("div", "flash-moldura"); moldura.appendChild(palco);
   caixa.append(moldura, baixo);
@@ -399,6 +468,14 @@ function abrirCriador() {
     const e = t.el;
     e.textContent = t.texto;
     e.style.left = t.x * 100 + "%"; e.style.top = t.y * 100 + "%";
+    if (t.lk) {
+      // Prévia do link para o perfil de negócio (quem vê toca e vai para o perfil).
+      e.className = "flash-txt flash-link";
+      e.style.fontSize = Math.round(W * 0.04) + "px";
+      const pill = el("span", "fe-link"); pill.append(icone(ICONE_NEGOCIO[t.negocio.tipo] || "loja", "i s"), el("span", null, t.negocio.nome || "Perfil do negócio"), icone("avancar", "i xs"));
+      e.replaceChildren(pill);
+      return;
+    }
     if (t.cx) {
       // Prévia da caixa de perguntas (quem vê escreve a resposta; aqui só arrasta ou toca para editar).
       e.className = "flash-txt flash-enq";
@@ -457,7 +534,7 @@ function abrirCriador() {
       if (!p0) return;
       p0 = null; palco.classList.remove("arrastando-txt"); guias.querySelector(".v").classList.remove("on");
       if (lixo.classList.contains("sobre")) { lixo.classList.remove("sobre"); e.remove(); textos.splice(textos.indexOf(t), 1); navigator.vibrate?.(12); return; }
-      if (!mexeu && ev.type === "pointerup") { if (t.enq) editarEnquete(t); else if (t.cx) editarCaixa(t); else if (t.fig) { t.estilo = (t.estilo + 1) % EST_FIG.length; pintarTexto(t); } else editarTexto(t); }
+      if (!mexeu && ev.type === "pointerup") { if (t.enq) editarEnquete(t); else if (t.cx) editarCaixa(t); else if (t.lk) escolherNegocio(t); else if (t.fig) { t.estilo = (t.estilo + 1) % EST_FIG.length; pintarTexto(t); } else editarTexto(t); }
     };
     e.addEventListener("pointerup", fim);
     e.addEventListener("pointercancel", fim);
@@ -472,11 +549,11 @@ function abrirCriador() {
     const grade = el("div", "figs-grade");
     const localPerfil = [dados.bairro, nomeCidade(dados.cidade || dados.cidadeNome)].filter(Boolean).join(", ");
     // Enquete e menção (interativas) primeiro
-    [["enq", "Enquete", "enquete"], ["cx", "Perguntas", "caixa"], ["mencao", "Menção", "pessoa-mais"]].forEach(([k, rot, ic]) => {
+    [["enq", "Enquete", "enquete"], ["cx", "Perguntas", "caixa"], ["mencao", "Menção", "pessoa-mais"], ["lk", "Link", "loja"]].forEach(([k, rot, ic]) => {
       const b = el("button", "fig-op"); b.type = "button";
-      const amostra = el("span", `flash-fig amostra-fig fig-${k === "cx" ? "enq" : k}`); amostra.append(icone(ic, "i s"), document.createTextNode(k === "enq" ? "ENQUETE" : k === "cx" ? "PERGUNTAS" : "@MENÇÃO"));
-      b.append(amostra, el("small", null, rot));
-      b.addEventListener("click", () => { pn.remove(); if (k === "enq") editarEnquete(textos.find((t) => t.enq) || null); else if (k === "cx") editarCaixa(textos.find((t) => t.cx) || null); else escolherMencao(); });
+      const amostra = el("span", `flash-fig amostra-fig fig-${k === "cx" || k === "lk" ? "enq" : k}`); amostra.append(icone(ic, "i s"), document.createTextNode(k === "enq" ? "ENQUETE" : k === "cx" ? "PERGUNTAS" : k === "lk" ? "NEGÓCIO" : "@MENÇÃO"));
+      b.append(amostra, el("small", null, k === "lk" ? "Link do negócio" : rot));
+      b.addEventListener("click", () => { pn.remove(); if (k === "enq") editarEnquete(textos.find((t) => t.enq) || null); else if (k === "cx") editarCaixa(textos.find((t) => t.cx) || null); else if (k === "lk") escolherNegocio(textos.find((t) => t.lk) || null); else escolherMencao(); });
       grade.appendChild(b);
     });
     const opcoes = [["hora", "Horário"], ["data", "Data"], ["local", "Localização"]];
@@ -568,6 +645,49 @@ function abrirCriador() {
       if (t) { t.pergunta = pergunta; t.anonima = estado.anonima; pintarTexto(t); }
       else criarTexto({ cx: true, pergunta, anonima: estado.anonima, texto: "", x: 0.5, y: 0.42, tam: 0.05, letra: 0, cor: "#111", destaque: false });
     });
+  }
+  // Link para o perfil de um negócio: os seus primeiro, e a busca entre todos os negócios do site.
+  let negociosP = null;
+  async function escolherNegocio(t) {
+    palco.querySelector(".flash-figs")?.remove();
+    const pn = el("div", "flash-figs");
+    const cab = el("div", "fe-cab"); const ok = el("button", "fe-pronto", t ? "Tirar" : "Fechar"); ok.type = "button";
+    cab.append(el("strong", "figs-tit", "Link para um negócio"), el("span", "esp"), ok);
+    const busca = el("input", "fe-local"); busca.type = "search"; busca.placeholder = "Buscar negócio pelo nome"; busca.setAttribute("aria-label", "Buscar negócio");
+    const lista = el("div", "mencao-lista");
+    const corpo = el("div", "mencao-corpo"); corpo.append(busca, el("p", "figs-dica", "Quem vê o flash toca no link e vai direto para o perfil do negócio."), lista);
+    pn.append(cab, corpo);
+    palco.appendChild(pn);
+    ok.addEventListener("click", () => { pn.remove(); if (t) { t.el.remove(); textos.splice(textos.indexOf(t), 1); } });
+    lista.appendChild(el("p", "figs-dica", "Carregando..."));
+    negociosP ||= fb.getDocs(fb.query(fb.collection(fb.db, "negocios"), fb.limit(300))).then((x) => x.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => n.nome && PAGINA_NEGOCIO[n.tipo] && !escondido(n.donoId))).catch(() => []);
+    const todos = await negociosP;
+    const meus = todos.filter((n) => n.donoId === eu.uid);
+    const ROT = { servicos: "Freelances", delivery: "Delivery", lojinha: "Lojinha", imoveis: "Imóveis" };
+    const item = (n) => {
+      const b = el("button", "mencao-item"); b.type = "button";
+      const av = el("span", "avatar neg-av " + n.tipo); if (n.foto && /^(data:image|https:)/.test(n.foto)) pintarAvatar(av, n.foto, n.nome); else av.appendChild(icone(ICONE_NEGOCIO[n.tipo], "i s"));
+      const tx = el("span", "tx"); tx.append(el("strong", null, n.nome), el("small", null, [ROT[n.tipo], n.donoId === eu.uid ? "seu negócio" : ""].filter(Boolean).join(" · ")));
+      b.append(av, tx);
+      b.addEventListener("click", () => {
+        pn.remove();
+        const negocio = { id: n.id, nome: n.nome, tipo: n.tipo };
+        if (t) { t.negocio = negocio; pintarTexto(t); }
+        else { textos.filter((x) => x.lk).forEach((x) => { x.el.remove(); textos.splice(textos.indexOf(x), 1); }); criarTexto({ lk: true, negocio, texto: "", x: 0.5, y: 0.68, tam: 0.05, letra: 0, cor: "#111", destaque: false }); }
+      });
+      return b;
+    };
+    const pintarL = () => {
+      const q = busca.value.trim().toLowerCase();
+      const outros = todos.filter((n) => n.donoId !== eu.uid && (!q || String(n.nome).toLowerCase().includes(q))).slice(0, 30);
+      const m = meus.filter((n) => !q || String(n.nome).toLowerCase().includes(q));
+      const blocos = [];
+      if (m.length) blocos.push(el("p", "figs-sec", "Seus negócios"), ...m.map(item));
+      if (outros.length) blocos.push(el("p", "figs-sec", q ? "Encontrados" : "Outros negócios"), ...outros.map(item));
+      lista.replaceChildren(...(blocos.length ? blocos : [el("p", "figs-dica", q ? "Nenhum negócio com esse nome." : "Ainda não há negócios no site.")]));
+    };
+    busca.addEventListener("input", pintarL);
+    pintarL();
   }
   // Menção: escolher a pessoa (quem você segue e com quem conversou); vira "@usuário" na foto e ela é avisada.
   async function escolherMencao() {
@@ -792,7 +912,7 @@ function abrirCriador() {
   async function usarFoto(url) {
     const im = new Image(); im.className = "flash-foto"; im.alt = "Foto do flash"; im.draggable = false;
     await new Promise((ok, erro) => { im.onload = ok; im.onerror = () => erro(new Error("Não foi possível abrir esta foto. Tente JPG ou PNG.")); im.src = url; });
-    if (foto) URL.revokeObjectURL(foto);
+    if (foto?.startsWith("blob:")) URL.revokeObjectURL(foto);
     foto = url; img = im; video = null; z = 1; ox = 0; oy = 0;
     fotoFiltrada.clear(); amostraBase = null; fotoBox.replaceChildren();
     modo = "foto"; pintar();
@@ -851,7 +971,7 @@ function abrirCriador() {
     const fonte = semFiltro(filtro) ? img : imagemFiltrada(img, filtro, { max: 2200 });
     g.drawImage(fonte, OW / 2 + ox * k - w / 2, OH / 2 + oy * k - h / 2, w, h);
     textos.forEach((t) => {
-      if (t.enq || t.cx) return; // enquete e caixa de perguntas ficam por cima, interativas (não vão desenhadas)
+      if (t.enq || t.cx || t.lk) return; // enquete, caixa de perguntas e link ficam por cima, interativos (não vão desenhados)
       const px = Math.round(t.tam * OW);
       if (t.fig) {
         const es = EST_FIG[t.estilo];
@@ -897,14 +1017,14 @@ function abrirCriador() {
       if (modo === "texto") {
         const midia = desenharTexto(area.value.trim(), FUNDOS[fundoI], LETRAS[letraI], corTexto(fundoI));
         const url = await salvarImagem(midia, `stories/${eu.uid}/${Date.now()}.jpg`);
-        await gravar({ tipo: "imagem", midia: url }, { imagem: midia });
+        await gravar({ tipo: "imagem", midia: url, ...camposDestino() }, { imagem: midia });
       } else if (video) {
         toast("Enviando o vídeo...");
         const ext = (video.arq.name.split(".").pop() || "mp4").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "mp4";
         const r = storageFns.ref(window.firebaseStorage, `stories/${eu.uid}/${Date.now()}.${ext}`);
         await storageFns.uploadBytes(r, video.arq, { contentType: video.arq.type });
         const texto = legenda.value.trim().slice(0, 150);
-        await gravar({ tipo: "video", midia: await storageFns.getDownloadURL(r), duracao: Math.min(60, Math.round(video.dur)), ...(texto ? { texto } : {}) });
+        await gravar({ tipo: "video", midia: await storageFns.getDownloadURL(r), duracao: Math.min(60, Math.round(video.dur)), ...(texto ? { texto } : {}), ...camposDestino() });
       } else {
         const imagem = desenharFoto();
         const url = await salvarImagem(imagem, `stories/${eu.uid}/${Date.now()}.jpg`);
@@ -915,9 +1035,13 @@ function abrirCriador() {
           fimEm: fb.Timestamp.fromMillis(fimEscolhido(enq.duracao || { dur: 1440 }, { maxMin: MAX_FLASH_MIN })), ...(enq.anonima ? { anonima: true } : {}) } : null;
         const cx = textos.find((t) => t.cx);
         const caixa = cx ? { pergunta: cx.pergunta, anonima: !!cx.anonima, x: Math.round(cx.x * 1000) / 1000, y: Math.round(cx.y * 1000) / 1000 } : null;
-        const ref = await gravar({ tipo: "imagem", midia: url, ...(texto ? { texto } : {}), ...(enquete ? { enquete } : {}), ...(caixa ? { caixa } : {}),
+        const lk = textos.find((t) => t.lk);
+        const link = lk ? { negocioId: lk.negocio.id, nome: String(lk.negocio.nome || "").slice(0, 80), tipo: lk.negocio.tipo, x: Math.round(lk.x * 1000) / 1000, y: Math.round(lk.y * 1000) / 1000 } : null;
+        const repostDe = repost ? { storyId: repost.id, autorId: repost.autorId, nome: String(repost.nome || "").slice(0, 80) } : null;
+        const ref = await gravar({ tipo: "imagem", midia: url, ...(texto ? { texto } : {}), ...camposDestino(), ...(enquete ? { enquete } : {}), ...(caixa ? { caixa } : {}), ...(link ? { link } : {}), ...(repostDe ? { repostDe } : {}),
           ...(mencoes.length ? { mencoes } : {}) }, { imagem });
         if (enquete) registrarEnquete("f_" + ref.id, enquete);
+        if (repost && repost.autorId !== eu.uid) mandarMensagem(repost.autorId, msgFlash({ id: ref.id, autorId: eu.uid, nome: dados.nome }, "repost", { original: repost.id }), "Repostou seu flash").catch(() => {});
       }
       fechar();
     } catch (e) {
@@ -926,6 +1050,13 @@ function abrirCriador() {
     }
   });
   pintar();
+  if (repost) {
+    // Repostar: a foto do flash original, com o selo de quem fez (o original fica creditado).
+    const selo = el("div", "flash-repost-selo"); selo.append(icone("raio", "i xs"), document.createTextNode(`Repostando o flash de ${String(repost.nome || "alguém").split(" ")[0]}`));
+    palco.appendChild(selo);
+    usarFoto(repost.midia).catch((e) => toast(erroAmigavel(e)));
+    return;
+  }
   // Câmera já liberada antes: abre direto nela (como Instagram e TikTok). Sem permissão: fica a escolha Câmera/Galeria.
   navigator.permissions?.query?.({ name: "camera" }).then((p) => { if (p.state === "granted" && modo === "foto" && !foto && !video) abrirCamera(); }).catch(() => {});
 }
@@ -978,9 +1109,9 @@ async function gravar(extra, { imagem = null } = {}) {
     ...(cfg.ocultarDe.length ? { ocultoPara: cfg.ocultarDe.slice(0, 100) } : {})
   };
   const ref = await fb.addDoc(fb.collection(fb.db, "stories"), { autorId: eu.uid, nome: String(dados.nome || "Usuário").slice(0, 80), ...extra, ...escolhas, criadoEm: fb.serverTimestamp() });
-  toast(cfg.publico === "amigos" ? "⚡ Flash publicado para os Amigos próximos." : "⚡ Flash publicado! Fica 24 horas.");
+  toast(cfg.publico === "amigos" ? "⚡ Flash publicado para os Amigos próximos." : extra.negocios?.length ? `⚡ Flash publicado${extra.perfil === false ? " só" : ""} ${extra.negocios.length === 1 ? "no perfil do negócio" : `em ${extra.negocios.length} perfis de negócio`}${extra.perfil === false ? "" : " e no seu perfil"}! Fica 24 horas.` : "⚡ Flash publicado! Fica 24 horas.");
   // Quem foi mencionado recebe uma mensagem (como no Instagram).
-  (extra.mencoes || []).forEach((u) => mandarMensagem(u, { texto: `⚡ Mencionou você no flash. Veja no Diário antes que acabe (24 h).` }, "Mencionou você no flash").catch(() => {}));
+  (extra.mencoes || []).forEach((u) => mandarMensagem(u, msgFlash({ id: ref.id, autorId: eu.uid, nome: dados.nome }, "mencao"), "Mencionou você no flash").catch(() => {}));
   // Salvar no aparelho (Configurações do Flash).
   if (cfg.salvarAparelho && imagem) { const a = document.createElement("a"); a.href = imagem; a.download = `flash-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, "-")}.jpg`; document.body.appendChild(a); a.click(); a.remove(); }
   carregar();
@@ -1074,15 +1205,42 @@ function escolherPessoas(titulo, atuais) {
   });
 }
 
+// Enviar um flash para alguém: quem você segue e com quem conversou por último.
+async function enviarFlash(s, aoFechar) {
+  const corpo = abrirLista("Enviar flash");
+  const f = $("folhaLista"); const volta = () => { f?.removeEventListener("fechada", volta); aoFechar?.(); }; f?.addEventListener("fechada", volta);
+  const busca = el("input", "rel-busca-campo"); busca.type = "search"; busca.placeholder = "Buscar pessoas"; busca.setAttribute("aria-label", "Buscar pessoas");
+  const box = el("div");
+  corpo.append(busca, box);
+  box.appendChild(el("div", "lista-vazia", "Carregando..."));
+  const conv = await fb.getDocs(fb.query(fb.collection(fb.db, "conversas"), fb.where("participantes", "array-contains", eu.uid), fb.limit(40))).catch(() => ({ docs: [] }));
+  const recentes = conv.docs.map((d) => d.data()).sort((a, b) => ms(b.atualizadoEm) - ms(a.atualizadoEm)).map((c) => (c.participantes || []).find((u) => u !== eu.uid)).filter(Boolean);
+  const uids = [...new Set([...recentes, ...meusSeguindo])].filter((u) => u && u !== eu.uid && u !== s.autorId && !escondido(u)).slice(0, 80);
+  const pessoas = await Promise.all(uids.map(async (u) => ({ uid: u, ...(await obterPerfil(u).catch(() => ({}))) })));
+  const pintarL = () => {
+    const q = busca.value.trim().toLowerCase().replace(/^@/, "");
+    const l = pessoas.filter((p) => !q || String(p.nome || "").toLowerCase().includes(q) || String(p.nickname || "").toLowerCase().includes(q));
+    box.replaceChildren(...(l.length ? l.map((p) => linhaPessoa({ uid: p.uid, nome: p.nome, foto: p.fotoPerfil, sub: p.nickname ? "@" + p.nickname : "", semSeguir: true, aoClicar: () => {},
+      acoes: [{ rotulo: "Enviar", classe: "pri", fn: async (b) => {
+        if (b.dataset.enviado) return;
+        try { await mandarMensagem(p.uid, msgFlash(s, "enviar"), `Flash de ${String(s.nome || "alguém").split(" ")[0]}`); b.dataset.enviado = "1"; b.textContent = "Enviado ✓"; b.classList.replace("pri", "sec"); }
+        catch (e) { if (e?.message !== "e-mail") toast("Não foi possível enviar: " + erroAmigavel(e)); }
+      } }] })) : [el("div", "lista-vazia", q ? "Ninguém encontrado." : "Siga pessoas ou converse com alguém para enviar.")]));
+  };
+  busca.addEventListener("input", pintarL);
+  pintarL();
+}
+
 // =====================================================
 // Ver (tela cheia)
 // =====================================================
-function abrirVisor(uidInicial, { so = false, aoFechar = null } = {}) {
+function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null } = {}) {
   const ordem = so ? [uidInicial] : [eu.uid, ...ordemAutores()].filter((u) => porAutor.get(u)?.length);
   let ai = Math.max(0, ordem.indexOf(uidInicial)), si = 0;
   // Começa no primeiro flash ainda não visto desse autor.
   const inicioDo = (u) => { const l = porAutor.get(u) || []; const k = l.findIndex((x) => !vistosLocal.has(x.id)); return k < 0 ? 0 : k; };
   si = inicioDo(ordem[ai]);
+  if (comecarEm) { const k = (porAutor.get(ordem[ai]) || []).findIndex((x) => x.id === comecarEm); if (k >= 0) si = k; }
   const fundo = el("div", "story-visor"); fundo.setAttribute("role", "dialog"); fundo.setAttribute("aria-modal", "true"); fundo.setAttribute("aria-label", "Flash");
   const caixa = el("div", "story-caixa");
   const barras = el("div", "story-barras");
@@ -1095,7 +1253,9 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null } = {}) {
   const chip = el("span", "story-chip"); chip.append(icone("raio", "i xs"), document.createTextNode("Flash"));
   const linhaNome = el("div", "story-nome"); linhaNome.append(nome, chip);
   txtQuem.append(linhaNome, quando); quem.append(av, txtQuem);
-  topo.append(quem, bSom, bMais, bX);
+  // Enviar o flash para alguém (vai como cartão no Mensagens)
+  const bEnv = el("button", "story-btn"); bEnv.type = "button"; bEnv.setAttribute("aria-label", "Enviar este flash"); bEnv.title = "Enviar"; bEnv.appendChild(icone("enviar", "i s"));
+  topo.append(quem, bSom, bEnv, bMais, bX);
   const palco = el("div", "story-palco");
   const legenda = el("div", "story-legenda");
   const rodape = el("div", "story-rodape");
@@ -1123,15 +1283,16 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null } = {}) {
   const bandeja = el("div", "story-bandeja"); bandeja.setAttribute("aria-label", "Reações rápidas");
   REACOES.forEach((r) => { const b = el("button", null, r); b.type = "button"; b.setAttribute("aria-label", "Reagir com " + r); b.addEventListener("pointerdown", (e) => e.preventDefault()); b.addEventListener("click", () => reagir(r, b)); bandeja.appendChild(b); });
 
-  async function enviarResposta(texto, resumo) {
+  // Resposta e reação vão como cartão do flash no Mensagens (com a miniatura enquanto ele existir).
+  async function enviarResposta(acao, extra, resumo) {
     const s = atual(); if (!s) return false;
-    try { await mandarMensagem(s.autorId, { texto }, resumo); return true; }
+    try { await mandarMensagem(s.autorId, msgFlash(s, acao, extra), resumo); return true; }
     catch (e) { if (e?.message !== "e-mail") toast("Não foi possível enviar: " + erroAmigavel(e)); return false; }
   }
   async function reagir(r, origem) {
     voarEmoji(r, origem);
     navigator.vibrate?.(8);
-    if (await enviarResposta(`${r} Reagiu ao seu flash ⚡`, `Reagiu ao seu flash: ${r}`)) toast("Reação enviada");
+    if (await enviarResposta("reacao", { emoji: r }, `Reagiu ao seu flash: ${r}`)) toast("Reação enviada");
   }
   function voarEmoji(r, origem) {
     const box = caixa.getBoundingClientRect(), o = origem?.getBoundingClientRect?.() || { left: box.left + box.width / 2, top: box.bottom - 80, width: 0 };
@@ -1150,7 +1311,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null } = {}) {
     e.preventDefault();
     const t = campo.value.trim(); if (!t) return;
     bEnviar.disabled = true;
-    if (await enviarResposta(`⚡ Respondeu ao seu flash: ${t}`.slice(0, 400), `Respondeu ao seu flash: ${t}`)) { campo.value = ""; toast("Resposta enviada pelo Mensagens"); campo.blur(); }
+    if (await enviarResposta("resposta", { texto: t.slice(0, 300) }, `Respondeu ao seu flash: ${t}`)) { campo.value = ""; toast("Resposta enviada pelo Mensagens"); campo.blur(); }
     bEnviar.disabled = false;
   });
   campo.addEventListener("focus", () => { digitando = true; caixa.classList.add("digitando"); pausar(true); });
@@ -1198,6 +1359,40 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null } = {}) {
         const f = $("folhaLista"); const volta = () => { f?.removeEventListener("fechada", volta); if (document.querySelector(".story-visor")) document.body.classList.add("travado"); pausar(false); }; f?.addEventListener("fechada", volta);
       });
     }
+    // Uma linha só para "1 pessoa mencionada" e "Adicionar ao seu flash" (não empilham por cima da foto).
+    const linhaAcoes = () => rodape.querySelector(".story-linha-acoes") || rodape.appendChild(el("div", "story-linha-acoes"));
+    // Repost: crédito de quem fez o flash original (tocar abre o perfil).
+    topo.querySelector(".story-repost")?.remove();
+    if (s.repostDe?.autorId) {
+      const r = el("button", "story-repost"); r.type = "button";
+      r.append(icone("raio", "i xs"), document.createTextNode(`Flash de ${String(s.repostDe.nome || "alguém").split(" ")[0]}`));
+      r.addEventListener("click", (e) => { e.stopPropagation(); fechar(); ganchos.abrirPerfil(s.repostDe.autorId); });
+      txtQuem.appendChild(r);
+    }
+    // Também nos perfis de negócio (o dono escolheu ao publicar)
+    topo.querySelector(".story-onde")?.remove();
+    if (Array.isArray(s.negocios) && s.negocios.length) {
+      const o = el("span", "story-repost story-onde"); o.append(icone("loja", "i xs"), document.createTextNode(`${s.perfil === false ? "Só no" : "Também no"} perfil ${s.negocios.length === 1 ? "do negócio" : `de ${s.negocios.length} negócios`}`));
+      txtQuem.appendChild(o);
+    }
+    // Link para o perfil de um negócio (figurinha): tocar vai para o perfil.
+    caixa.querySelector(".story-link")?.remove();
+    if (s.link?.negocioId && PAGINA_NEGOCIO[s.link.tipo]) {
+      const a = el("a", "story-link"); a.href = linkNegocio(s.link);
+      a.style.left = `${(s.link.x ?? 0.5) * 100}%`; a.style.top = `${(s.link.y ?? 0.68) * 100}%`;
+      a.append(icone(ICONE_NEGOCIO[s.link.tipo] || "loja", "i s"), el("span", null, s.link.nome || "Ver o negócio"), icone("avancar", "i xs"));
+      a.setAttribute("aria-label", `Abrir o perfil de ${s.link.nome || "negócio"}`);
+      ["pointerdown", "pointerup"].forEach((ev) => a.addEventListener(ev, (e) => e.stopPropagation()));
+      a.addEventListener("click", (e) => { e.stopPropagation(); pausar(true); });
+      caixa.appendChild(a);
+    }
+    // Fui mencionado: posso repostar no meu flash.
+    if (!meu && Array.isArray(s.mencoes) && s.mencoes.includes(eu.uid) && s.tipo !== "video") {
+      const rp = el("button", "story-repostar"); rp.type = "button";
+      rp.append(icone("mais", "i xs"), document.createTextNode("Adicionar ao seu flash"));
+      rp.addEventListener("click", (e) => { e.stopPropagation(); fechar(); abrirCriador({ repost: s }); });
+      linhaAcoes().appendChild(rp);
+    }
     // Pessoas mencionadas: chip que abre a lista (tocar leva ao perfil).
     if (Array.isArray(s.mencoes) && s.mencoes.length) {
       const bm = el("button", "story-mencoes"); bm.type = "button";
@@ -1209,7 +1404,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null } = {}) {
         const ps = await Promise.all(s.mencoes.map((u) => obterPerfil(u).then((p) => ({ uid: u, ...p })).catch(() => ({ uid: u }))));
         ps.forEach((p) => corpoL.appendChild(linhaPessoa({ uid: p.uid, nome: p.nome || "Usuário", foto: p.fotoPerfil, sub: p.nickname ? "@" + p.nickname : "" })));
       });
-      rodape.appendChild(bm);
+      linhaAcoes().prepend(bm);
     }
     if (meu) {
       const v = el("button", "story-vistos"); v.type = "button";
@@ -1310,6 +1505,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null } = {}) {
     b.addEventListener("click", (e) => { if (e.detail === 0) (b === dir ? proximo : anterior)(); }); // teclado
   });
   bX.addEventListener("click", fechar);
+  bEnv.addEventListener("click", (e) => { e.stopPropagation(); const s = atual(); if (!s) return; pausar(true); enviarFlash(s, () => { if (document.querySelector(".story-visor")) document.body.classList.add("travado"); pausar(false); }); });
   bMais.addEventListener("click", () => {
     const s = atual(); if (!s) return;
     pausar(true);

@@ -1,3 +1,60 @@
+    // =====================================================
+    // PEDIDOS / ATENDIMENTOS
+    // O negócio registra o atendimento para pedir avaliação ao cliente.
+    // Só vale entre pessoas que já conversam no chat.
+    // =====================================================
+    match /pedidos/{id} {
+
+      allow read: if logado()
+                  && (resource.data.vendedorId == request.auth.uid
+                      || resource.data.clienteId == request.auth.uid);
+      allow read: if admin();
+
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['vendedorId', 'clienteId', 'negocioId', 'tipo', 'titulo', 'conversaId', 'criadoEm'])
+                    && request.resource.data.vendedorId == request.auth.uid
+                    && request.resource.data.clienteId is string
+                    && request.resource.data.clienteId != request.auth.uid
+                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis']
+                    && request.resource.data.negocioId == request.auth.uid + '_' + request.resource.data.tipo
+                    && exists(/databases/$(database)/documents/negocios/$(request.resource.data.negocioId))
+                    && request.auth.uid in get(/databases/$(database)/documents/conversas/$(request.resource.data.conversaId)).data.participantes
+                    && request.resource.data.clienteId in get(/databases/$(database)/documents/conversas/$(request.resource.data.conversaId)).data.participantes
+                    && valorTextoAte(request.resource.data.get('titulo', ''), 120)
+                    && request.resource.data.criadoEm == request.time
+                    && !bloqueioEntre(request.auth.uid, request.resource.data.clienteId);
+
+      allow update, delete: if false;
+    }
+
+
+    // =====================================================
+    // AVALIAÇÕES
+    //   n_{negocio}_{cliente}: cliente avalia o negócio — UMA por cliente em cada negócio
+    //   c_{negocio}_{cliente}: negócio avalia o cliente — UMA por cliente em cada negócio
+    //   d_{post}_{uid}       : alguém avalia uma publicação (1 vez por publicação)
+    //   p_{pedido}_c / _v    : modelo antigo (1 por pedido). Continuam valendo, mas não
+    //                          podem mais ser criados: pedir avaliação várias vezes para a
+    //                          mesma pessoa não gera notas extras.
+    // Para avaliar um negócio: e-mail confirmado, conta com 3 dias, os dois já escreveram
+    // na conversa, não é o dono e sem bloqueio. Quem tem vínculo aceito no Social (amigos,
+    // família...) também avalia: continua valendo uma avaliação por pessoa em cada negócio.
+    // n_ e c_ podem ser EDITADAS pelo autor (troca a nota no resumo, sem contar de novo).
+    // =====================================================
+    match /avaliacoes/{id} {
+
+      function base() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['tipo', 'autorId', 'autorNome', 'autorFoto', 'alvoId', 'negocioId', 'pedidoId', 'postId', 'nota', 'comentario', 'chaves', 'criadoEm'])
+            && d.autorId == request.auth.uid
+            && d.nota is int && d.nota >= 1 && d.nota <= 5
+            && valorTextoAte(d.get('comentario', ''), 500)
+            && valorTextoAte(d.get('autorNome', ''), 80)
+            && fotoOk(d.get('autorFoto', ''))
+            && d.criadoEm == request.time;
+      }
+
       function resumoAtualizado(chave) {
         return getAfter(/databases/$(database)/documents/notas/$(chave)).data.ultima == id;
       }
@@ -176,76 +233,5 @@
                     && request.resource.data.autorId == request.auth.uid
                     && respostaOk(request.resource.data)
                     && request.resource.data.criadoEm == request.time;
-
-      allow update: if logado()
-                    && emailOk()
-                    && request.resource.data.autorId == resource.data.autorId
-                    && (
-                      // o negócio corrige a resposta
-                      (resource.data.autorId == request.auth.uid
-                        && mudou().hasOnly(['texto', 'editadoEm'])
-                        && respostaOk(request.resource.data)
-                        && request.resource.data.editadoEm == request.time)
-                      ||
-                      // o cliente que reclamou marca como resolvida (ou não)
-                      (aval().autorId == request.auth.uid
-                        && mudou().hasOnly(['resolvido', 'resolvidoEm'])
-                        && request.resource.data.resolvido is bool
-                        && request.resource.data.resolvidoEm == request.time)
-                    );
-
-      allow delete: if false;
-    }
-
-
-    // =====================================================
-    // RECLAMAÇÕES ABERTAS PELO CLIENTE (separadas da nota)
-    // queixas/{negocioId}_{cliente}: uma por cliente em cada negócio.
-    //   - abrir: e-mail confirmado, conta com 3 dias, já mandou mensagem ao negócio
-    //     (o negócio não precisa ter respondido) e dentro da cota (cotas/{uid}).
-    //   - o dono do negócio responde (pode corrigir a resposta);
-    //   - só o cliente marca como resolvida; resolvida, pode reabrir (conta na cota).
-    //   - ninguém apaga.
-    // cotas/{uid}: no máximo 3 reclamações a cada 30 dias (janela que começa na primeira).
-    // =====================================================
-    match /queixas/{id} {
-
-      function motivoOk(m) {
-        return m in ['atraso', 'qualidade', 'cobranca', 'ausencia', 'atendimento', 'golpe', 'outro'];
-      }
-
-      function relatoOk(d) {
-        return motivoOk(d.motivo)
-            && d.texto is string && d.texto.size() >= 20 && d.texto.size() <= 1000
-            && fotoOk(d.get('foto', ''));
-      }
-
-      // A cota foi atualizada nesta mesma gravação.
-      function contou() {
-        return getAfter(/databases/$(database)/documents/cotas/$(request.auth.uid)).data.ultimaEm == request.time;
-      }
-
-      allow read: if logado();
-
-      allow create: if logado()
-                    && emailOk()
-                    && request.resource.data.keys().hasOnly(['negocioId', 'alvoId', 'autorId', 'autorNome', 'negocioNome', 'tipo', 'motivo', 'texto', 'foto',
-                                                              'status', 'abertaEm', 'criadoEm', 'aberturas', 'resposta', 'respondidaEm', 'resolvidaEm'])
-                    && request.resource.data.autorId == request.auth.uid
-                    && id == request.resource.data.negocioId + '_' + request.auth.uid
-                    && request.resource.data.alvoId == donoDoNegocio(request.resource.data.negocioId)
-                    && request.resource.data.alvoId != request.auth.uid
-                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis']
-                    && relatoOk(request.resource.data)
-                    && valorTextoAte(request.resource.data.get('autorNome', ''), 80)
-                    && valorTextoAte(request.resource.data.get('negocioNome', ''), 80)
-                    && request.resource.data.status == 'aberta'
-                    && request.resource.data.aberturas == 1
-                    && request.resource.data.get('resposta', null) == null
-                    && request.resource.data.criadoEm == request.time
-                    && request.resource.data.abertaEm == request.time
-                    && contaAntiga(request.auth.uid)
-                    && falou(request.auth.uid, request.resource.data.alvoId, request.auth.uid)
-                    && contou();
 
 // ===== FIM DA PARTE 5 DE 11 =====

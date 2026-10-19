@@ -13,7 +13,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="stylesheet" href="vitrine.css?v=25" />
-  <link rel="stylesheet" href="rede.css?v=24" />
+  <link rel="stylesheet" href="rede.css?v=26" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
     // Tema compartilhado com a página de mensagens; aplicado antes de desenhar.
@@ -226,8 +226,9 @@
     import { abrirDenuncia } from "./denuncias.js?v=2";
     import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
     import { notaDoPerfil, abrirDetalhamento, avaliarNegocio, avaliarCliente, lerResumo, estrelas, pintarEstrelas, media, notaTexto, TIPOS_NEGOCIO } from "./avaliacoes.js?v=13";
-    import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=33";
-    import { anelNoPerfil, novoFlash } from "./stories.js?v=10";
+    import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=34";
+    import { anelNegocio } from "./flash-negocio.js?v=1";
+    import { anelNoPerfil, novoFlash } from "./stories.js?v=12";
 
     // ======================================================
     // Estado desta página (o resto vem de rede.js)
@@ -1466,6 +1467,8 @@
         papel.className = "papel";
         papel.textContent = t.rotulo;
         b.append(av, nome, papel);
+        // Flash do negócio: anel na foto; tocar na foto abre o flash (o resto do botão abre o perfil do negócio).
+        anelNegocio(fb, eu, av, n, { aoPerfil: (uid) => abrirPerfilPublico(uid), aoMensagem: proprio ? null : () => iniciarConversa(n.donoId) });
         b.addEventListener("click", () => abrirPerfilNegocio(n, {
           fb, eu, dono, proprio,
           aoMensagem: (uid, cartao) => iniciarConversa(uid, cartao),

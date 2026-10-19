@@ -75,16 +75,14 @@ service cloud.firestore {
     // Enquete (publicação ou flash): pergunta (até 120) e 2 a 4 opções (até 40 cada).
     // No flash, x e y dizem onde a enquete fica na tela (0 a 1).
     // fimEm: quando a votação acaba (depois de inicio, até maxMin minutos depois; sem fimEm = enquete antiga, sem fim).
-    function opcaoOk(o) { return o is string && o.size() >= 1 && o.size() <= 40; }
     function enqueteOk(e, inicio, maxMin) {
       return e is map && e.keys().hasOnly(['pergunta', 'opcoes', 'x', 'y', 'fimEm', 'anonima'])
           && (!('anonima' in e) || e.anonima is bool)
           && (!('fimEm' in e) || (e.fimEm is timestamp && e.fimEm > inicio && e.fimEm <= inicio + duration.value(maxMin, 'm')))
           && e.pergunta is string && e.pergunta.size() >= 1 && e.pergunta.size() <= 120
+          // 2 a 4 opções de 1 a 40 letras, conferidas numa expressão só (opção não tem quebra de linha)
           && e.opcoes is list && e.opcoes.size() >= 2 && e.opcoes.size() <= 4
-          && opcaoOk(e.opcoes[0]) && opcaoOk(e.opcoes[1])
-          && (e.opcoes.size() < 3 || opcaoOk(e.opcoes[2]))
-          && (e.opcoes.size() < 4 || opcaoOk(e.opcoes[3]))
+          && e.opcoes.join('\n').matches('^[^\n]{1,40}(\n[^\n]{1,40}){1,3}$')
           && (!('x' in e) || (e.x is number && e.x >= 0 && e.x <= 1))
           && (!('y' in e) || (e.y is number && e.y >= 0 && e.y <= 1));
     }
@@ -96,6 +94,39 @@ service cloud.firestore {
           && c.anonima is bool
           && (!('x' in c) || (c.x is number && c.x >= 0 && c.x <= 1))
           && (!('y' in c) || (c.y is number && c.y >= 0 && c.y <= 1));
+    }
+    // Flash: figurinha que leva ao perfil de um negócio (qualquer negócio que exista).
+    function linkFlashOk(l) {
+      return l is map && l.keys().hasOnly(['negocioId', 'nome', 'tipo', 'x', 'y'])
+          && l.negocioId is string && l.negocioId.matches('^[A-Za-z0-9_-]{1,100}$')
+          && exists(/databases/$(database)/documents/negocios/$(l.negocioId))
+          && valorTextoAte(l.get('nome', ''), 80)
+          && l.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis']
+          && (!('x' in l) || (l.x is number && l.x >= 0 && l.x <= 1))
+          && (!('y' in l) || (l.y is number && l.y >= 0 && l.y <= 1));
+    }
+    // Flash repostado: só quem foi mencionado no flash original (que ainda existe) reposta.
+    function repostOk(r) {
+      let orig = /databases/$(database)/documents/stories/$(r.storyId);
+      return r is map && r.keys().hasOnly(['storyId', 'autorId', 'nome'])
+          && r.storyId is string && r.storyId.matches('^[A-Za-z0-9]{1,64}$')
+          && exists(orig)
+          && get(orig).data.autorId == r.autorId
+          && get(orig).data.get('mencoes', []).hasAny([request.auth.uid])
+          && valorTextoAte(r.get('nome', ''), 80);
+    }
+    // Flash nos perfis de negócio da própria pessoa (ids = uid_tipo, até 4) e se aparece também no perfil pessoal.
+    function negociosFlashOk(d) {
+      let n = '(' + request.auth.uid + '_(servicos|delivery|lojinha|imoveis))';
+      return (!('negocios' in d) || (d.negocios is list && d.negocios.size() >= 1 && d.negocios.size() <= 4
+                                      && d.negocios.join(' ').matches('^' + n + '( ' + n + '){0,3}$')))
+          && (!('perfil' in d) || (d.perfil is bool && (d.perfil || 'negocios' in d)));
+    }
+    function extrasFlashOk(d) {
+      return negociosFlashOk(d)
+          && (!('caixa' in d) || caixaOk(d.caixa))
+          && (!('link' in d) || linkFlashOk(d.link))
+          && (!('repostDe' in d) || repostOk(d.repostDe));
     }
     // Lista de uids (até max), conferida com uma expressão só.
     function uidsOk(l, max) {
@@ -229,45 +260,5 @@ service cloud.firestore {
       let r = getAfter(/databases/$(database)/documents/ritmo/$(request.auth.uid)).data;
       return r.ultimaEm == request.time && r.ultimoTipo == tipo;
     }
-
-    function donoDoNegocio(negocioId) {
-      return get(/databases/$(database)/documents/negocios/$(negocioId)).data.donoId;
-    }
-
-
-    // =====================================================
-    // DADOS PRIVADOS DOS USUÁRIOS
-    // Cada usuário só pode acessar os próprios dados.
-    // =====================================================
-    match /usuarios/{userId} {
-
-      allow read: if logado()
-                  && request.auth.uid == userId;
-      // Dados pessoais (e-mail, telefone, nascimento): na equipe, só dono e moderação (LGPD: o mínimo necessário).
-      allow read: if podeModerar();
-      // A equipe aprova ou recusa o selo de verificado.
-      allow update: if podeModerar()
-                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verificado', 'solicitacaoVerificacao', 'verificacaoRespondidaEm']);
-
-      // criadoEm é a data real do cadastro (conta antiga = pode avaliar/reclamar).
-      allow create: if logado()
-                    && request.auth.uid == userId
-                    && request.resource.data.uid == userId
-                    && request.resource.data.aceiteTermos == true
-                    && (!('criadoEm' in request.resource.data) || request.resource.data.criadoEm == request.time)
-                    && naoTocaCamposProtegidosNoCreate();
-
-      // criadoEm não muda depois de gravado (cadastro antigo sem a data só pode gravar a data de agora).
-      allow update: if logado()
-                    && request.auth.uid == userId
-                    && request.resource.data.uid == resource.data.uid
-                    && (!mudou().hasAny(['criadoEm'])
-                        || (!('criadoEm' in resource.data) && request.resource.data.criadoEm == request.time))
-                    && naoTocaCamposProtegidosNoUpdate();
-
-      allow delete: if logado()
-                    && request.auth.uid == userId;
-    }
-
 
 // ===== FIM DA PARTE 1 DE 11 =====

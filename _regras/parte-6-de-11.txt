@@ -1,6 +1,77 @@
       allow update: if logado()
                     && emailOk()
                     && request.resource.data.autorId == resource.data.autorId
+                    && (
+                      // o negócio corrige a resposta
+                      (resource.data.autorId == request.auth.uid
+                        && mudou().hasOnly(['texto', 'editadoEm'])
+                        && respostaOk(request.resource.data)
+                        && request.resource.data.editadoEm == request.time)
+                      ||
+                      // o cliente que reclamou marca como resolvida (ou não)
+                      (aval().autorId == request.auth.uid
+                        && mudou().hasOnly(['resolvido', 'resolvidoEm'])
+                        && request.resource.data.resolvido is bool
+                        && request.resource.data.resolvidoEm == request.time)
+                    );
+
+      allow delete: if false;
+    }
+
+
+    // =====================================================
+    // RECLAMAÇÕES ABERTAS PELO CLIENTE (separadas da nota)
+    // queixas/{negocioId}_{cliente}: uma por cliente em cada negócio.
+    //   - abrir: e-mail confirmado, conta com 3 dias, já mandou mensagem ao negócio
+    //     (o negócio não precisa ter respondido) e dentro da cota (cotas/{uid}).
+    //   - o dono do negócio responde (pode corrigir a resposta);
+    //   - só o cliente marca como resolvida; resolvida, pode reabrir (conta na cota).
+    //   - ninguém apaga.
+    // cotas/{uid}: no máximo 3 reclamações a cada 30 dias (janela que começa na primeira).
+    // =====================================================
+    match /queixas/{id} {
+
+      function motivoOk(m) {
+        return m in ['atraso', 'qualidade', 'cobranca', 'ausencia', 'atendimento', 'golpe', 'outro'];
+      }
+
+      function relatoOk(d) {
+        return motivoOk(d.motivo)
+            && d.texto is string && d.texto.size() >= 20 && d.texto.size() <= 1000
+            && fotoOk(d.get('foto', ''));
+      }
+
+      // A cota foi atualizada nesta mesma gravação.
+      function contou() {
+        return getAfter(/databases/$(database)/documents/cotas/$(request.auth.uid)).data.ultimaEm == request.time;
+      }
+
+      allow read: if logado();
+
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['negocioId', 'alvoId', 'autorId', 'autorNome', 'negocioNome', 'tipo', 'motivo', 'texto', 'foto',
+                                                              'status', 'abertaEm', 'criadoEm', 'aberturas', 'resposta', 'respondidaEm', 'resolvidaEm'])
+                    && request.resource.data.autorId == request.auth.uid
+                    && id == request.resource.data.negocioId + '_' + request.auth.uid
+                    && request.resource.data.alvoId == donoDoNegocio(request.resource.data.negocioId)
+                    && request.resource.data.alvoId != request.auth.uid
+                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis']
+                    && relatoOk(request.resource.data)
+                    && valorTextoAte(request.resource.data.get('autorNome', ''), 80)
+                    && valorTextoAte(request.resource.data.get('negocioNome', ''), 80)
+                    && request.resource.data.status == 'aberta'
+                    && request.resource.data.aberturas == 1
+                    && request.resource.data.get('resposta', null) == null
+                    && request.resource.data.criadoEm == request.time
+                    && request.resource.data.abertaEm == request.time
+                    && contaAntiga(request.auth.uid)
+                    && falou(request.auth.uid, request.resource.data.alvoId, request.auth.uid)
+                    && contou();
+
+      allow update: if logado()
+                    && emailOk()
+                    && request.resource.data.autorId == resource.data.autorId
                     && request.resource.data.alvoId == resource.data.alvoId
                     && request.resource.data.negocioId == resource.data.negocioId
                     && (
@@ -150,40 +221,4 @@
       allow delete: if podeModerar();
     }
 
-    match /avisos/{id} {
-      allow read: if logado() && resource.data.uid == request.auth.uid;
-      allow read: if admin();
-      allow create: if admin()
-                    && request.resource.data.keys().hasOnly(['uid', 'titulo', 'texto', 'tipo', 'por', 'em', 'lidoEm'])
-                    && request.resource.data.uid is string
-                    && valorTextoAte(request.resource.data.get('titulo', ''), 120)
-                    && request.resource.data.texto is string && request.resource.data.texto.size() <= 2000
-                    && request.resource.data.tipo in ['info', 'alerta', 'grave']
-                    && request.resource.data.por == request.auth.uid
-                    && request.resource.data.em == request.time
-                    && request.resource.data.lidoEm == null;
-      // quem recebeu marca como lido
-      allow update: if logado()
-                    && resource.data.uid == request.auth.uid
-                    && mudou().hasOnly(['lidoEm'])
-                    && request.resource.data.lidoEm == request.time;
-      allow delete: if false;
-    }
-
-    match /comunicados/{id} {
-      allow read: if logado();
-      allow create, update: if podeModerar()
-                    && request.resource.data.keys().hasOnly(['titulo', 'texto', 'tipo', 'ativo', 'link', 'por', 'em', 'ate'])
-                    && valorTextoAte(request.resource.data.get('titulo', ''), 120)
-                    && valorTextoAte(request.resource.data.get('texto', ''), 600)
-                    && request.resource.data.tipo in ['info', 'novidade', 'alerta']
-                    && request.resource.data.ativo is bool
-                    && request.resource.data.por == request.auth.uid;
-      allow delete: if podeModerar();
-    }
-
-    match /suporte/{id} {
-      function camposChamado() {
-        return ['uid', 'nome', 'email', 'assunto', 'categoria', 'status', 'criadoEm', 'atualizadoEm', 'ultimaDe', 'atendidoPor', 'responsavel', 'responsavelNome', 'assumidoEm'];
-      }
 // ===== FIM DA PARTE 6 DE 11 =====

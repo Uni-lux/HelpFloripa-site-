@@ -1,3 +1,34 @@
+    // Reação a uma mensagem: cada pessoa guarda só a sua (reacoes[uid] = emoji).
+    // A edição só pode mexer no campo reacoes, e só na própria chave de quem edita.
+    function reacaoValida() {
+      let d = request.resource.data;
+      let a = resource.data;
+      let eu = request.auth.uid;
+      return d.diff(a).affectedKeys().hasOnly(['reacoes'])
+          && d.get('reacoes', {}) is map
+          && d.get('reacoes', {}).diff(a.get('reacoes', {})).affectedKeys().hasOnly([eu])
+          && (!(eu in d.get('reacoes', {})) || d.reacoes[eu] in ['👍', '❤️', '😂', '😮', '😢', '🙏']);
+    }
+    // Editar mensagem do chat da equipe (só quem escreveu): texto novo + versão anterior em "edicoes".
+    function edicaoEquipeOk() {
+      let d = request.resource.data;
+      let a = resource.data;
+      return a.autorId == request.auth.uid
+          && request.time < a.em + duration.value(10, 'm')
+          && !('apagada' in a)
+          && d.diff(a).affectedKeys().hasOnly(['texto', 'editadaEm', 'edicoes'])
+          && d.texto is string && d.texto.size() <= 2000
+          && (d.texto.size() > 0 || 'anexo' in a)
+          && d.editadaEm == request.time
+          && d.edicoes is list
+          && d.edicoes.size() == a.get('edicoes', []).size() + 1
+          && d.edicoes.size() <= 20
+          && d.edicoes == a.get('edicoes', []).concat([d.edicoes[a.get('edicoes', []).size()]])
+          && d.edicoes[a.get('edicoes', []).size()] is map
+          && d.edicoes[a.get('edicoes', []).size()].keys().hasOnly(['texto', 'em'])
+          && d.edicoes[a.get('edicoes', []).size()].texto == a.get('texto', '')
+          && d.edicoes[a.get('edicoes', []).size()].em == a.get('editadaEm', a.em);
+    }
     // Apagar para todos no chat da equipe: fica "apagou esta mensagem"; o conteúdo vai para
     // equipe_apagadas/{id} (abre por 24 horas), gravado junto.
     function apagarEquipeOk(id) {
@@ -179,40 +210,4 @@
             && v == (k == t ? (janelaNova() ? 1 : resource.data.get(k, 0) + 1)
                             : (janelaNova() ? 0 : resource.data.get(k, 0)));
       }
-      allow get: if logado() && request.auth.uid == uid;
-      allow read: if admin();
-      allow create, update: if logado()
-                    && request.auth.uid == uid
-                    && request.resource.data.keys().hasOnly(['inicio', 'msg', 'pub', 'com', 'parc', 'ultimaEm', 'ultimoTipo'])
-                    && request.resource.data.ultimoTipo in ['msg', 'pub', 'com', 'parc']
-                    && request.resource.data.ultimaEm == request.time
-                    && request.resource.data.inicio == (janelaNova() ? request.time : resource.data.inicio)
-                    && contaOk('msg', request.resource.data.ultimoTipo)
-                    && contaOk('pub', request.resource.data.ultimoTipo)
-                    && contaOk('com', request.resource.data.ultimoTipo)
-                    && contaOk('parc', request.resource.data.ultimoTipo)
-                    && request.resource.data.get(request.resource.data.ultimoTipo, 0) <= limite(request.resource.data.ultimoTipo);
-      allow delete: if false;
-    }
-
-
-    // =====================================================
-    // PEDIDOS DE EXCLUSÃO DE CONTA: exclusoes/{uid}
-    // A pessoa pede a exclusão; durante 30 dias pode recuperar a conta (apaga este
-    // documento). Depois disso a limpeza automática (Admin SDK, fora das regras)
-    // apaga a conta e os dados e anonimiza avaliações e reclamações.
-    // =====================================================
-    match /exclusoes/{uid} {
-      allow get: if logado() && request.auth.uid == uid;
-      allow read: if admin();
-      allow create: if logado()
-                    && request.auth.uid == uid
-                    && request.resource.data.keys().hasOnly(['pedidaEm', 'motivo'])
-                    && request.resource.data.pedidaEm == request.time
-                    && valorTextoAte(request.resource.data.get('motivo', ''), 300);
-      allow update: if false;
-      allow delete: if logado() && request.auth.uid == uid;
-    }
-
-
 // ===== FIM DA PARTE 8 DE 11 =====
