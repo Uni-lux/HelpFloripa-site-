@@ -23,9 +23,9 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="rede.css?v=26" />
+  <link rel="stylesheet" href="rede.css?v=27" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="configuracoes.js?v=49"></script>
+  <script type="module" src="configuracoes.js?v=50"></script>
 </head>
 <body>
   <header class="topo">
@@ -85,10 +85,10 @@
           <button type="button" class="cfg-item" id="cfgNotifNavegador"><svg class="i"><use href="#i-sino"/></svg><span class="txt">Notificações do navegador<small id="cfgNotifTxt"></small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
         </div>
 
-        <div class="cfg-bloco">
+        <div class="cfg-bloco" id="diario">
           <h3>Diário e Flash</h3>
           <button type="button" class="cfg-item" id="cfgInsights"><svg class="i"><use href="#i-graf"/></svg><span class="txt">Estatísticas do perfil<small>Alcance, interações, seguidores, público e melhores publicações</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
-          <button type="button" class="cfg-item" id="cfgFlash"><svg class="i"><use href="#i-raio"/></svg><span class="txt">Configurações do Flash<small id="cfgFlashTxt">Amigos próximos, ocultar de, respostas e salvar no aparelho</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
+          <button type="button" class="cfg-item" id="cfgFlash"><svg class="i"><use href="#i-raio"/></svg><span class="txt">Configurações do Flash<small id="cfgFlashTxt">Quem vê, onde publicar, respostas, câmera e salvar no aparelho</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
           <div class="cfg-item" style="cursor:default"><svg class="i"><use href="#i-pessoa-mais"/></svg><span class="txt">Quem pode marcar e mencionar você<small id="cfgMarcarTxt">Nas publicações e nos flashes</small></span></div>
           <div class="segmentado" id="cfgMarcar">
             <button type="button" data-valor="todos">Todos</button>
