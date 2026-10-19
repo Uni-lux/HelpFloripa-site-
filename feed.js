@@ -15,7 +15,7 @@ import {
   silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto, confirmarHF, blocoEnquete, blocoCaixa
 } from "./rede.js?v=43";
 import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=1";
-import { montarStories } from "./stories.js?v=10";
+import { montarStories, abrirFlashPorId, repostarFlash } from "./stories.js?v=11";
 import { abrirDenuncia } from "./denuncias.js?v=2";
 import { buscarPessoas, pessoasRecentes } from "./pessoas.js?v=3";
 import { docsComValidade } from "./leituras.js?v=1";
@@ -459,4 +459,7 @@ async function pintarLateral() {
   const p = new URLSearchParams(location.search);
   trocarAba(p.get("aba") === "explorar" || p.get("aba") === "pessoas" ? "explorar" : "diario");
   if (p.get("publicar")) abrirCompositor({ aoPublicar: ganchos.aoPublicar });
+  // Links das mensagens do Flash: feed.html?flash=ID abre o flash; ?repostar=ID abre o criador para repostar.
+  if (/^[A-Za-z0-9]{1,64}$/.test(p.get("flash") || "")) abrirFlashPorId(p.get("flash"));
+  if (/^[A-Za-z0-9]{1,64}$/.test(p.get("repostar") || "")) repostarFlash(p.get("repostar"));
 })();

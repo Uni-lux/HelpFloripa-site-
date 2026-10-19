@@ -52,6 +52,7 @@ Capturas de tela, Excel baixados e logs ficam em `saida/` (fora do git).
 | `t-enquete.mjs` | Enquete na publicação (criar, votar, trocar, resultado da autora), Configurações → Diário e Flash (quem marca, quem comenta, Flash) e estatísticas do perfil (`insights.js`). |
 | `t-perfil.mjs` | Perfil no tema escuro: rosinha do duo, botões que cabem na tela, negócios numa linha, enquete na aba Textos, toque duplo no texto (só a barra) e voto único. |
 | `t-enquete2.mjs` | Enquete com duração (compositor e Flash), prazo, voto bloqueado depois do fim, resultado final com troféu, "Ver votos" e o resultado nas notificações (dono e quem votou), no painel do sino. |
+| `t-flash3.mjs` | Flash completo: menção como cartão no Mensagens com "Adicionar ao seu flash" (repost com crédito), figurinha de link para negócio, reação/resposta/enviar como cartão com a miniatura e `feed.html?flash=ID`. |
 | `t-caixa.mjs` | Enquete anônima (voto em enquete_anon + contagem, sem "Ver votos") e caixa de perguntas com nome e anônima na publicação e no Flash: responder, ver respostas, Responder pelo Mensagens e notificações. |
 | `t-salvos.mjs` | "+" do Flash na foto do perfil, Seguidores/Seguindo com abas, busca e filtros (não segue de volta, mútuos), Salvos com coleções e ícone dos atalhos do Explorar. |
 | `t-principais.mjs` | Diário → Principais (gosto do aparelho + quem segue, sem dois seguidos do mesmo autor), filtros Principais/Amigos, Explorar (em alta, destaques, sugestões, busca) e anel do Flash no perfil. |

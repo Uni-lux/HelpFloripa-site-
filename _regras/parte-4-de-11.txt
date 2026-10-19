@@ -1,3 +1,61 @@
+      // Com bloqueio entre os dois, ninguém mexe na conversa (evita "recado"
+      // pelo resumo da última mensagem).
+      allow update: if logado()
+                    && request.auth.uid in resource.data.participantes
+                    && request.resource.data.participantes == resource.data.participantes
+                    && !bloqueioEntre(resource.data.participantes[0], resource.data.participantes[1])
+                    && mudou().hasOnly(['ultimaMensagem', 'ultimaMensagemRemetenteId', 'atualizadoEm', 'lidoEm', 'vistoEm', 'digitando', 'contexto', 'arquivadaPara', 'ocultaPara', 'falaram', 'fixadaPara', 'silenciadaPara', 'mensagemFixada'])
+                    // o resumo da última mensagem só pode ser escrito por quem mandou
+                    && (!mudou().hasAny(['ultimaMensagem', 'ultimaMensagemRemetenteId'])
+                        || request.resource.data.get('ultimaMensagemRemetenteId', '') == request.auth.uid)
+                    && soMinhaChave('lidoEm')
+                    && soMinhaChave('vistoEm')
+                    && soMinhaChave('digitando')
+                    // arquivar / apagar "só para mim": cada um mexe só na própria marca
+                    && soMinhaChave('arquivadaPara')
+                    && soMinhaChave('ocultaPara')
+                    // fixar no topo / silenciar avisos: cada um só a própria marca
+                    && soMinhaChave('fixadaPara')
+                    && soMinhaChave('silenciadaPara')
+                    // falaram: cada um marca só que ELE escreveu (usado para liberar avaliação e reclamação)
+                    && soMinhaChave('falaram')
+                    && (!mudou().hasAny(['falaram']) || request.resource.data.falaram[request.auth.uid] == true)
+                    && (!mudou().hasAny(['contexto']) || contextoOk())
+                    // mensagem fixada no topo da conversa (qualquer um dos dois fixa ou tira)
+                    && (!mudou().hasAny(['mensagemFixada'])
+                        || request.resource.data.mensagemFixada == null
+                        || (request.resource.data.mensagemFixada is map
+                            && request.resource.data.mensagemFixada.keys().hasOnly(['id', 'texto', 'por', 'em'])
+                            && request.resource.data.mensagemFixada.id is string
+                            && request.resource.data.mensagemFixada.por == request.auth.uid
+                            && valorTextoAte(request.resource.data.mensagemFixada.get('texto', ''), 200)))
+                    && textoAte('ultimaMensagem', 200);
+
+      allow delete: if logado()
+                    && request.auth.uid in resource.data.participantes;
+
+
+      // ===================================================
+      // MENSAGENS DA CONVERSA
+      // ===================================================
+      match /mensagens/{mensagemId} {
+
+        function participante() {
+          return request.auth.uid in
+                 get(/databases/$(database)/documents/conversas/$(conversaId)).data.participantes;
+        }
+
+        function semBloqueio() {
+          let p = get(/databases/$(database)/documents/conversas/$(conversaId)).data.participantes;
+          return !bloqueioEntre(p[0], p[1]);
+        }
+
+        // A outra pessoa da conversa não pode estar com a conta desativada.
+        function outroAtivo() {
+          let p = get(/databases/$(database)/documents/conversas/$(conversaId)).data.participantes;
+          return !desativada(p[0] == request.auth.uid ? p[1] : p[0]);
+        }
+
         // Resposta (citação): precisa apontar para uma mensagem real desta conversa,
         // com o autor verdadeiro. Impede citar algo que a outra pessoa nunca disse.
         function respostaOk(r) {
@@ -137,62 +195,5 @@
       }
     }
 
-
-    // =====================================================
-    // PEDIDOS / ATENDIMENTOS
-    // O negócio registra o atendimento para pedir avaliação ao cliente.
-    // Só vale entre pessoas que já conversam no chat.
-    // =====================================================
-    match /pedidos/{id} {
-
-      allow read: if logado()
-                  && (resource.data.vendedorId == request.auth.uid
-                      || resource.data.clienteId == request.auth.uid);
-      allow read: if admin();
-
-      allow create: if logado()
-                    && emailOk()
-                    && request.resource.data.keys().hasOnly(['vendedorId', 'clienteId', 'negocioId', 'tipo', 'titulo', 'conversaId', 'criadoEm'])
-                    && request.resource.data.vendedorId == request.auth.uid
-                    && request.resource.data.clienteId is string
-                    && request.resource.data.clienteId != request.auth.uid
-                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis']
-                    && request.resource.data.negocioId == request.auth.uid + '_' + request.resource.data.tipo
-                    && exists(/databases/$(database)/documents/negocios/$(request.resource.data.negocioId))
-                    && request.auth.uid in get(/databases/$(database)/documents/conversas/$(request.resource.data.conversaId)).data.participantes
-                    && request.resource.data.clienteId in get(/databases/$(database)/documents/conversas/$(request.resource.data.conversaId)).data.participantes
-                    && valorTextoAte(request.resource.data.get('titulo', ''), 120)
-                    && request.resource.data.criadoEm == request.time
-                    && !bloqueioEntre(request.auth.uid, request.resource.data.clienteId);
-
-      allow update, delete: if false;
-    }
-
-
-    // =====================================================
-    // AVALIAÇÕES
-    //   n_{negocio}_{cliente}: cliente avalia o negócio — UMA por cliente em cada negócio
-    //   c_{negocio}_{cliente}: negócio avalia o cliente — UMA por cliente em cada negócio
-    //   d_{post}_{uid}       : alguém avalia uma publicação (1 vez por publicação)
-    //   p_{pedido}_c / _v    : modelo antigo (1 por pedido). Continuam valendo, mas não
-    //                          podem mais ser criados: pedir avaliação várias vezes para a
-    //                          mesma pessoa não gera notas extras.
-    // Para avaliar um negócio: e-mail confirmado, conta com 3 dias, os dois já escreveram
-    // na conversa, não é o dono e sem bloqueio. Quem tem vínculo aceito no Social (amigos,
-    // família...) também avalia: continua valendo uma avaliação por pessoa em cada negócio.
-    // n_ e c_ podem ser EDITADAS pelo autor (troca a nota no resumo, sem contar de novo).
-    // =====================================================
-    match /avaliacoes/{id} {
-
-      function base() {
-        let d = request.resource.data;
-        return d.keys().hasOnly(['tipo', 'autorId', 'autorNome', 'autorFoto', 'alvoId', 'negocioId', 'pedidoId', 'postId', 'nota', 'comentario', 'chaves', 'criadoEm'])
-            && d.autorId == request.auth.uid
-            && d.nota is int && d.nota >= 1 && d.nota <= 5
-            && valorTextoAte(d.get('comentario', ''), 500)
-            && valorTextoAte(d.get('autorNome', ''), 80)
-            && fotoOk(d.get('autorFoto', ''))
-            && d.criadoEm == request.time;
-      }
 
 // ===== FIM DA PARTE 4 DE 11 =====

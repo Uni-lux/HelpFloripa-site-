@@ -97,6 +97,31 @@ service cloud.firestore {
           && (!('x' in c) || (c.x is number && c.x >= 0 && c.x <= 1))
           && (!('y' in c) || (c.y is number && c.y >= 0 && c.y <= 1));
     }
+    // Flash: figurinha que leva ao perfil de um negócio (qualquer negócio que exista).
+    function linkFlashOk(l) {
+      return l is map && l.keys().hasOnly(['negocioId', 'nome', 'tipo', 'x', 'y'])
+          && l.negocioId is string && l.negocioId.matches('^[A-Za-z0-9_-]{1,100}$')
+          && exists(/databases/$(database)/documents/negocios/$(l.negocioId))
+          && valorTextoAte(l.get('nome', ''), 80)
+          && l.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis']
+          && (!('x' in l) || (l.x is number && l.x >= 0 && l.x <= 1))
+          && (!('y' in l) || (l.y is number && l.y >= 0 && l.y <= 1));
+    }
+    // Flash repostado: só quem foi mencionado no flash original (que ainda existe) reposta.
+    function repostOk(r) {
+      let orig = /databases/$(database)/documents/stories/$(r.storyId);
+      return r is map && r.keys().hasOnly(['storyId', 'autorId', 'nome'])
+          && r.storyId is string && r.storyId.matches('^[A-Za-z0-9]{1,64}$')
+          && exists(orig)
+          && get(orig).data.autorId == r.autorId
+          && get(orig).data.get('mencoes', []).hasAny([request.auth.uid])
+          && valorTextoAte(r.get('nome', ''), 80);
+    }
+    function extrasFlashOk(d) {
+      return (!('caixa' in d) || caixaOk(d.caixa))
+          && (!('link' in d) || linkFlashOk(d.link))
+          && (!('repostDe' in d) || repostOk(d.repostDe));
+    }
     // Lista de uids (até max), conferida com uma expressão só.
     function uidsOk(l, max) {
       return l is list && l.size() <= max
@@ -240,34 +265,5 @@ service cloud.firestore {
     // Cada usuário só pode acessar os próprios dados.
     // =====================================================
     match /usuarios/{userId} {
-
-      allow read: if logado()
-                  && request.auth.uid == userId;
-      // Dados pessoais (e-mail, telefone, nascimento): na equipe, só dono e moderação (LGPD: o mínimo necessário).
-      allow read: if podeModerar();
-      // A equipe aprova ou recusa o selo de verificado.
-      allow update: if podeModerar()
-                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verificado', 'solicitacaoVerificacao', 'verificacaoRespondidaEm']);
-
-      // criadoEm é a data real do cadastro (conta antiga = pode avaliar/reclamar).
-      allow create: if logado()
-                    && request.auth.uid == userId
-                    && request.resource.data.uid == userId
-                    && request.resource.data.aceiteTermos == true
-                    && (!('criadoEm' in request.resource.data) || request.resource.data.criadoEm == request.time)
-                    && naoTocaCamposProtegidosNoCreate();
-
-      // criadoEm não muda depois de gravado (cadastro antigo sem a data só pode gravar a data de agora).
-      allow update: if logado()
-                    && request.auth.uid == userId
-                    && request.resource.data.uid == resource.data.uid
-                    && (!mudou().hasAny(['criadoEm'])
-                        || (!('criadoEm' in resource.data) && request.resource.data.criadoEm == request.time))
-                    && naoTocaCamposProtegidosNoUpdate();
-
-      allow delete: if logado()
-                    && request.auth.uid == userId;
-    }
-
 
 // ===== FIM DA PARTE 1 DE 11 =====

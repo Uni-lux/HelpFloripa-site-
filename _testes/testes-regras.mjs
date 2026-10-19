@@ -472,6 +472,20 @@ await t("caixa: outra pessoa não lista as respostas do dono", () => assertFails
 await t("caixa anônima: o dono não lê a autoria", () => assertFails(getDoc(doc(ctx("dono"), "caixa_autoria", idAnon))));
 await t("caixa anônima: a moderação lê a autoria", () => assertSucceeds(getDoc(doc(ctx("mod"), "caixa_autoria", idAnon))));
 await t("caixa: o dono apaga uma resposta", () => assertSucceeds(deleteDoc(doc(ctx("dono"), "caixa_respostas", idAnon))));
+// Flash: figurinha com link para um negócio e repostar quando foi mencionado.
+await semRegras(async (db) => {
+  await setDoc(doc(db, "negocios", "dono_servicos"), { donoId: "dono", tipo: "servicos", nome: "Reparos", criadoEm: antigo }, { merge: true });
+  await setDoc(doc(db, "stories", "sMen"), { autorId: "dono", nome: "Dono", tipo: "imagem", midia: fotoS, mencoes: ["bia"], criadoEm: Timestamp.now() });
+});
+const flash = (quem, extra) => setDoc(doc(collection(ctx(quem), "stories")), { autorId: quem, nome: quem, tipo: "imagem", midia: fotoS, criadoEm: serverTimestamp(), ...extra });
+await t("flash: figurinha de link para um negócio", () => assertSucceeds(flash("ana", { link: { negocioId: "dono_servicos", nome: "Reparos", tipo: "servicos", x: 0.5, y: 0.7 } })));
+await t("flash: link para negócio que não existe é recusado", () => assertFails(flash("ana", { link: { negocioId: "nao_existe", nome: "X", tipo: "servicos" } })));
+await t("flash: link com tipo estranho é recusado", () => assertFails(flash("ana", { link: { negocioId: "dono_servicos", nome: "X", tipo: "site" } })));
+await t("flash: quem foi mencionado reposta", () => assertSucceeds(flash("bia", { repostDe: { storyId: "sMen", autorId: "dono", nome: "Dono" } })));
+await t("flash: com TUDO junto (repost, link, caixa, enquete anônima, menções, amigos, ocultar) fica dentro do limite", () => assertSucceeds(flash("bia", { texto: "Tudo", repostDe: { storyId: "sMen", autorId: "dono", nome: "Dono" }, link: { negocioId: "dono_servicos", nome: "Reparos", tipo: "servicos", x: 0.5, y: 0.8 }, caixa: { pergunta: "Pergunte", anonima: true, x: 0.5, y: 0.3 }, enquete: { pergunta: "Gostou?", opcoes: ["Sim", "Não", "Talvez", "Mais ou menos"], x: 0.5, y: 0.6, anonima: true, fimEm: daqui(1400) }, mencoes: ["ana", "edu", "dono"], respostas: "seguindo", publico: "amigos", lista: ["ana", "edu"], ocultoPara: ["dono"] })));
+await t("flash: quem não foi mencionado não reposta", () => assertFails(flash("ana", { repostDe: { storyId: "sMen", autorId: "dono", nome: "Dono" } })));
+await t("flash: repost com autor errado é recusado", () => assertFails(flash("bia", { repostDe: { storyId: "sMen", autorId: "ana", nome: "Ana" } })));
+await t("flash: repost de flash que não existe é recusado", () => assertFails(flash("bia", { repostDe: { storyId: "naoExiste", autorId: "dono", nome: "Dono" } })));
 await t("preferências: quem pode me marcar (seguindo)", () => assertSucceeds(setDoc(doc(ctx("ana"), "pref_publicas", "ana"), { permiteMarcar: "seguindo", atualizadoEm: serverTimestamp() })));
 await t("preferências: valor estranho é recusado", () => assertFails(setDoc(doc(ctx("ana"), "pref_publicas", "ana"), { permiteMarcar: "todo mundo" })));
 await t("preferências: outra pessoa não grava", () => assertFails(setDoc(doc(ctx("bia"), "pref_publicas", "ana"), { permiteMarcar: "todos" })));

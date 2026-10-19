@@ -1916,3 +1916,28 @@ body:has(.story-visor, .flash-criar) .toast { bottom: auto; top: calc(74px + env
 .fe-cx-cab { display: inline-flex; align-items: center; gap: .3em; font-size: .62em; font-weight: 850; letter-spacing: .06em; opacity: .92; }
 .fe-cx .fe-cx-campo { background: rgba(255,255,255,.95) !important; color: #8a949c !important; font-weight: 600 !important; }
 .notif .avatar.anonimo .i { width: 22px; height: 22px; }
+
+/* ---------- Flash: link para negócio, repost, enviar ---------- */
+.story-link { position: absolute; z-index: 4; transform: translate(-50%, -50%); display: inline-flex; align-items: center; gap: 8px; max-width: 82%; padding: 10px 14px 10px 10px; border-radius: 14px; background: rgba(255,255,255,.96); color: #111; text-decoration: none; font-weight: 850; font-size: 15px; box-shadow: 0 8px 24px rgba(0,0,0,.3); }
+.story-link > .i:first-child { flex: none; width: 30px; height: 30px; padding: 6px; box-sizing: border-box; border-radius: 9px; background: linear-gradient(135deg, #00adee, #0052d4); color: #fff; }
+.story-link span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.story-link > .i:last-child { flex: none; width: 14px; height: 14px; color: #5d6b75; }
+.story-visor .limpo .story-link, .story-caixa.limpo .story-link { opacity: 0; }
+.story-repost { display: inline-flex; align-items: center; gap: 4px; margin-top: 3px; padding: 2px 8px 2px 6px; border-radius: 999px; border: 0; background: rgba(255,255,255,.18); color: #fff; font: inherit; font-size: 11.5px; font-weight: 800; cursor: pointer; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.story-repost .i { width: 11px; height: 11px; color: #ffc61a; }
+.story-linha-acoes { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; }
+.story-linha-acoes .story-mencoes { justify-self: auto; white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.story-linha-acoes .story-repostar:only-child { margin-left: auto; }
+.story-repostar { flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; border: 0; background: #fff; color: #111; font: inherit; font-size: 13.5px; font-weight: 850; cursor: pointer; box-shadow: 0 6px 18px rgba(0,0,0,.3); }
+.story-repostar .i { width: 14px; height: 14px; }
+.flash-repost-selo { position: absolute; left: 50%; top: 64px; transform: translateX(-50%); z-index: 6; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: rgba(0,0,0,.55); color: #fff; font-size: 12.5px; font-weight: 800; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); pointer-events: none; white-space: nowrap; }
+.flash-repost-selo .i { width: 13px; height: 13px; color: #ffc61a; }
+.flash-txt.flash-link { padding: 0; background: none; text-shadow: none; }
+.fe-link { display: inline-flex; align-items: center; gap: .45em; padding: .55em .8em .55em .55em; border-radius: .8em; background: rgba(255,255,255,.96); color: #111; font-weight: 850; white-space: nowrap; box-shadow: 0 8px 22px rgba(0,0,0,.3); }
+.fe-link > .i:first-child { width: 1.7em; height: 1.7em; padding: .35em; box-sizing: border-box; border-radius: .5em; background: linear-gradient(135deg, #00adee, #0052d4); color: #fff; }
+.fe-link > .i:last-child { width: .8em; height: .8em; color: #5d6b75; }
+.figs-sec { margin: 10px 2px 4px; font-size: 11.5px; font-weight: 850; letter-spacing: .06em; text-transform: uppercase; color: rgba(255,255,255,.7); }
+.neg-av { display: grid; place-items: center; color: #fff; }
+.neg-av.servicos { background: #00adee; } .neg-av.delivery { background: #ff7a1a; } .neg-av.lojinha { background: #b066ff; } .neg-av.imoveis { background: #2fbf71; }
+.neg-av .i { width: 18px; height: 18px; }
+.rel-busca-campo { display: block; width: calc(100% - 32px); margin: 4px 16px 10px; height: 40px; box-sizing: border-box; border-radius: 12px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); padding: 0 12px; font: inherit; font-size: 14.5px; }

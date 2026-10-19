@@ -97,6 +97,31 @@ service cloud.firestore {
           && (!('x' in c) || (c.x is number && c.x >= 0 && c.x <= 1))
           && (!('y' in c) || (c.y is number && c.y >= 0 && c.y <= 1));
     }
+    // Flash: figurinha que leva ao perfil de um negócio (qualquer negócio que exista).
+    function linkFlashOk(l) {
+      return l is map && l.keys().hasOnly(['negocioId', 'nome', 'tipo', 'x', 'y'])
+          && l.negocioId is string && l.negocioId.matches('^[A-Za-z0-9_-]{1,100}$')
+          && exists(/databases/$(database)/documents/negocios/$(l.negocioId))
+          && valorTextoAte(l.get('nome', ''), 80)
+          && l.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis']
+          && (!('x' in l) || (l.x is number && l.x >= 0 && l.x <= 1))
+          && (!('y' in l) || (l.y is number && l.y >= 0 && l.y <= 1));
+    }
+    // Flash repostado: só quem foi mencionado no flash original (que ainda existe) reposta.
+    function repostOk(r) {
+      let orig = /databases/$(database)/documents/stories/$(r.storyId);
+      return r is map && r.keys().hasOnly(['storyId', 'autorId', 'nome'])
+          && r.storyId is string && r.storyId.matches('^[A-Za-z0-9]{1,64}$')
+          && exists(orig)
+          && get(orig).data.autorId == r.autorId
+          && get(orig).data.get('mencoes', []).hasAny([request.auth.uid])
+          && valorTextoAte(r.get('nome', ''), 80);
+    }
+    function extrasFlashOk(d) {
+      return (!('caixa' in d) || caixaOk(d.caixa))
+          && (!('link' in d) || linkFlashOk(d.link))
+          && (!('repostDe' in d) || repostOk(d.repostDe));
+    }
     // Lista de uids (até max), conferida com uma expressão só.
     function uidsOk(l, max) {
       return l is list && l.size() <= max
@@ -1862,8 +1887,9 @@ service cloud.firestore {
     match /stories/{id} {
       allow read: if logado();
       allow create: if logado() && emailOk()
-                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'tipo', 'midia', 'texto', 'duracao', 'enquete', 'caixa', 'mencoes', 'respostas', 'publico', 'lista', 'ocultoPara', 'criadoEm'])
-                    && (!('caixa' in request.resource.data) || caixaOk(request.resource.data.caixa))
+                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'tipo', 'midia', 'texto', 'duracao', 'enquete', 'caixa', 'link', 'repostDe', 'mencoes', 'respostas', 'publico', 'lista', 'ocultoPara', 'criadoEm'])
+                    // caixa de perguntas, link para negócio e repost (só confere o que veio)
+                    && (!request.resource.data.keys().hasAny(['caixa', 'link', 'repostDe']) || extrasFlashOk(request.resource.data))
                     // enquete, pessoas mencionadas e as escolhas do autor (quem responde, quem vê)
                     // no flash a enquete acaba junto com ele (até 24 h, com 10 min de folga)
                     && (!('enquete' in request.resource.data) || enqueteOk(request.resource.data.enquete, request.time, 1450))

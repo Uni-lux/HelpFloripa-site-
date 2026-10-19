@@ -1,3 +1,39 @@
+    match /avisos/{id} {
+      allow read: if logado() && resource.data.uid == request.auth.uid;
+      allow read: if admin();
+      allow create: if admin()
+                    && request.resource.data.keys().hasOnly(['uid', 'titulo', 'texto', 'tipo', 'por', 'em', 'lidoEm'])
+                    && request.resource.data.uid is string
+                    && valorTextoAte(request.resource.data.get('titulo', ''), 120)
+                    && request.resource.data.texto is string && request.resource.data.texto.size() <= 2000
+                    && request.resource.data.tipo in ['info', 'alerta', 'grave']
+                    && request.resource.data.por == request.auth.uid
+                    && request.resource.data.em == request.time
+                    && request.resource.data.lidoEm == null;
+      // quem recebeu marca como lido
+      allow update: if logado()
+                    && resource.data.uid == request.auth.uid
+                    && mudou().hasOnly(['lidoEm'])
+                    && request.resource.data.lidoEm == request.time;
+      allow delete: if false;
+    }
+
+    match /comunicados/{id} {
+      allow read: if logado();
+      allow create, update: if podeModerar()
+                    && request.resource.data.keys().hasOnly(['titulo', 'texto', 'tipo', 'ativo', 'link', 'por', 'em', 'ate'])
+                    && valorTextoAte(request.resource.data.get('titulo', ''), 120)
+                    && valorTextoAte(request.resource.data.get('texto', ''), 600)
+                    && request.resource.data.tipo in ['info', 'novidade', 'alerta']
+                    && request.resource.data.ativo is bool
+                    && request.resource.data.por == request.auth.uid;
+      allow delete: if podeModerar();
+    }
+
+    match /suporte/{id} {
+      function camposChamado() {
+        return ['uid', 'nome', 'email', 'assunto', 'categoria', 'status', 'criadoEm', 'atualizadoEm', 'ultimaDe', 'atendidoPor', 'responsavel', 'responsavelNome', 'assumidoEm'];
+      }
       allow read: if logado() && resource.data.uid == request.auth.uid;
       allow read: if admin();
       // Abrir chamado: não exige e-mail confirmado nem conta livre (quem foi suspenso pode contestar).
@@ -137,36 +173,5 @@
           && (!('tamanho' in d) || (d.tamanho is int && d.tamanho >= 0))
           && (!('duracao' in d) || (d.duracao is int && d.duracao >= 0 && d.duracao <= 600))
           && (!('miniatura' in d) || (d.miniatura is string && d.miniatura.size() <= 30000 && d.miniatura.matches('^data:image/jpeg;base64,.*')));
-    }
-    // Reação a uma mensagem: cada pessoa guarda só a sua (reacoes[uid] = emoji).
-    // A edição só pode mexer no campo reacoes, e só na própria chave de quem edita.
-    function reacaoValida() {
-      let d = request.resource.data;
-      let a = resource.data;
-      let eu = request.auth.uid;
-      return d.diff(a).affectedKeys().hasOnly(['reacoes'])
-          && d.get('reacoes', {}) is map
-          && d.get('reacoes', {}).diff(a.get('reacoes', {})).affectedKeys().hasOnly([eu])
-          && (!(eu in d.get('reacoes', {})) || d.reacoes[eu] in ['👍', '❤️', '😂', '😮', '😢', '🙏']);
-    }
-    // Editar mensagem do chat da equipe (só quem escreveu): texto novo + versão anterior em "edicoes".
-    function edicaoEquipeOk() {
-      let d = request.resource.data;
-      let a = resource.data;
-      return a.autorId == request.auth.uid
-          && request.time < a.em + duration.value(10, 'm')
-          && !('apagada' in a)
-          && d.diff(a).affectedKeys().hasOnly(['texto', 'editadaEm', 'edicoes'])
-          && d.texto is string && d.texto.size() <= 2000
-          && (d.texto.size() > 0 || 'anexo' in a)
-          && d.editadaEm == request.time
-          && d.edicoes is list
-          && d.edicoes.size() == a.get('edicoes', []).size() + 1
-          && d.edicoes.size() <= 20
-          && d.edicoes == a.get('edicoes', []).concat([d.edicoes[a.get('edicoes', []).size()]])
-          && d.edicoes[a.get('edicoes', []).size()] is map
-          && d.edicoes[a.get('edicoes', []).size()].keys().hasOnly(['texto', 'em'])
-          && d.edicoes[a.get('edicoes', []).size()].texto == a.get('texto', '')
-          && d.edicoes[a.get('edicoes', []).size()].em == a.get('editadaEm', a.em);
     }
 // ===== FIM DA PARTE 7 DE 11 =====
