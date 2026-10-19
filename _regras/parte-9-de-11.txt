@@ -104,9 +104,9 @@
     match /stories/{id} {
       allow read: if logado();
       allow create: if logado() && emailOk()
-                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'tipo', 'midia', 'texto', 'duracao', 'enquete', 'caixa', 'link', 'repostDe', 'mencoes', 'respostas', 'publico', 'lista', 'ocultoPara', 'criadoEm'])
-                    // caixa de perguntas, link para negócio e repost (só confere o que veio)
-                    && (!request.resource.data.keys().hasAny(['caixa', 'link', 'repostDe']) || extrasFlashOk(request.resource.data))
+                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'tipo', 'midia', 'texto', 'duracao', 'enquete', 'caixa', 'link', 'repostDe', 'negocios', 'perfil', 'mencoes', 'respostas', 'publico', 'lista', 'ocultoPara', 'criadoEm'])
+                    // caixa de perguntas, link para negócio, repost e perfis de negócio (só confere o que veio)
+                    && (!request.resource.data.keys().hasAny(['caixa', 'link', 'repostDe', 'negocios', 'perfil']) || extrasFlashOk(request.resource.data))
                     // enquete, pessoas mencionadas e as escolhas do autor (quem responde, quem vê)
                     // no flash a enquete acaba junto com ele (até 24 h, com 10 min de folga)
                     && (!('enquete' in request.resource.data) || enqueteOk(request.resource.data.enquete, request.time, 1450))

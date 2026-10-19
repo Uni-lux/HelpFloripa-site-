@@ -1,3 +1,14 @@
+    function donoDoNegocio(negocioId) {
+      return get(/databases/$(database)/documents/negocios/$(negocioId)).data.donoId;
+    }
+
+
+    // =====================================================
+    // DADOS PRIVADOS DOS USUÁRIOS
+    // Cada usuário só pode acessar os próprios dados.
+    // =====================================================
+    match /usuarios/{userId} {
+
       allow read: if logado()
                   && request.auth.uid == userId;
       // Dados pessoais (e-mail, telefone, nascimento): na equipe, só dono e moderação (LGPD: o mínimo necessário).

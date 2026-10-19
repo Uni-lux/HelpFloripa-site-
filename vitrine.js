@@ -11,6 +11,7 @@ import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL 
 import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento, media, avaliarNegocio } from "./avaliacoes.js?v=13";
 import { abrirQueixa } from "./queixas.js?v=9";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
+import { anelNegocio } from "./flash-negocio.js?v=1";
 import { camposEndereco, textoCidade, cidadesDe, NOME_UF, semAcento } from "./endereco.js?v=1";
 
 const PARAMS = new URL(import.meta.url).searchParams;
@@ -874,8 +875,14 @@ export function abrirDetalhe(n, opcoes = {}) {
 
   const capa = el("div", "vd-capa");
   capa.style.backgroundImage = `url("${fotos[0] || TEXTOS[tipo].img}")`;
-  capa.appendChild(avatar(n.foto, n.nome, "vt-avatar vd-logo"));
+  const logo = avatar(n.foto, n.nome, "vt-avatar vd-logo");
+  capa.appendChild(logo);
   caixa.appendChild(capa);
+  // Flash do negócio: anel na foto (o dono escolhe, ao publicar o flash, em quais negócios ele aparece).
+  if (euX) anelNegocio(fbx, euX, logo, { ...n, tipo, id: n.id || idNegocio({ ...n, tipo }) }, {
+    aoMensagem: proprio ? null : () => aoMensagem(n.donoId, cartaoDeNegocio({ ...n, tipo })),
+    aoPerfil: opcoes.aoPerfil || null
+  });
   const ct = el("div", "conteudo");
   if (proprio) {
     const aviso = el("div", "vd-previa");

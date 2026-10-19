@@ -1941,3 +1941,18 @@ body:has(.story-visor, .flash-criar) .toast { bottom: auto; top: calc(74px + env
 .neg-av.servicos { background: #00adee; } .neg-av.delivery { background: #ff7a1a; } .neg-av.lojinha { background: #b066ff; } .neg-av.imoveis { background: #2fbf71; }
 .neg-av .i { width: 18px; height: 18px; }
 .rel-busca-campo { display: block; width: calc(100% - 32px); margin: 4px 16px 10px; height: 40px; box-sizing: border-box; border-radius: 12px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); padding: 0 12px; font: inherit; font-size: 14.5px; }
+
+/* ---------- Flash: publicar no seu perfil e/ou nos perfis de negócio ---------- */
+.flash-destinos { display: grid; gap: 6px; margin-bottom: 8px; }
+.flash-destinos[hidden] { display: none; }
+.flash-dest-tit { font-size: 12px; font-weight: 850; letter-spacing: .05em; text-transform: uppercase; color: rgba(255,255,255,.75); }
+.flash-dest-lista { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.flash-dest-lista::-webkit-scrollbar { display: none; }
+.flash-dest { flex: none; display: inline-flex; align-items: center; gap: 7px; padding: 5px 10px 5px 5px; border-radius: 999px; border: 1.5px solid rgba(255,255,255,.25); background: rgba(255,255,255,.08); color: #fff; font: inherit; font-size: 13px; font-weight: 750; cursor: pointer; max-width: 200px; }
+.flash-dest .avatar { width: 26px; height: 26px; font-size: 10px; flex: none; }
+.flash-dest .neg-av .i { width: 14px; height: 14px; }
+.flash-dest span:not(.avatar) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.flash-dest .ok { flex: none; width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(255,255,255,.5); box-sizing: border-box; }
+.flash-dest.on { border-color: #ffd60a; background: rgba(255,214,10,.16); }
+.flash-dest.on .ok { border: 0; background: #ffd60a url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23111' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / 12px no-repeat; }
+.story-onde .i { color: #fff; }
