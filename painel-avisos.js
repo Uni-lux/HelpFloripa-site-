@@ -11,7 +11,7 @@
 import { buscarReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=15";
 import { fotoSegura } from "./seguranca.js?v=1";
 import { buscarItensEquipe, TEXTO_EQUIPE, linkEquipe, seloOficial, SUPORTE } from "./avisos-equipe.js?v=1";
-import { enquetesEncerradas, textoEnqueteFim } from "./enquetes.js?v=1";
+import { enquetesEncerradas, textoEnqueteFim } from "./enquetes.js?v=2";
 
 const ms = (ts) => ts?.toMillis?.() ?? (typeof ts === "number" ? ts : 0);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
@@ -30,6 +30,7 @@ const ICONES = {
   alerta: '<path d="M12 4l9 16H3z"/><path d="M12 10v4.5M12 17.5h.01"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
   suporte: '<path d="M4.5 13v-1.5a7.5 7.5 0 0115 0V13"/><rect x="3.5" y="13" width="4" height="6" rx="1.5"/><rect x="16.5" y="13" width="4" height="6" rx="1.5"/><path d="M18.5 19c0 1.4-1.6 2-4 2h-1.5"/>',
+  caixa: '<path d="M5 4.5h14a1.5 1.5 0 011.5 1.5v10a1.5 1.5 0 01-1.5 1.5h-6.5L8 21v-3.5H5A1.5 1.5 0 013.5 16V6A1.5 1.5 0 015 4.5z"/><path d="M10 9.2a2 2 0 113 1.7c-.6.4-1 .8-1 1.5M12 14.6h.01"/>',
   enquete: '<rect x="4" y="5" width="16" height="3.5" rx="1.75"/><rect x="4" y="10.25" width="11" height="3.5" rx="1.75"/><rect x="4" y="15.5" width="7" height="3.5" rx="1.75"/>',
   megafone: '<path d="M4 10v4h3l6 4V6L7 10H4z"/><path d="M16.5 9a4 4 0 010 6M19 6.5a7.5 7.5 0 010 11"/>'
 };
@@ -54,6 +55,7 @@ const TIPOS = {
   reacao: { cor: "#e0457b", ic: "chat", aba: "publicacoes" },
   marcacao: { cor: "#00adee", ic: "pessoa", aba: "publicacoes" },
   enquete: { cor: "#7c5cff", ic: "enquete", aba: "publicacoes" },
+  caixa: { cor: "#ff7a1a", ic: "caixa", aba: "publicacoes" },
   reclamacao: { cor: "#ef4444", ic: "alerta", aba: "reclamacoes" },
   "reclamacao-resp": { cor: "#ff7a1a", ic: "chat", aba: "reclamacoes" },
   "reclamacao-ok": { cor: "#2fbf71", ic: "check", aba: "reclamacoes" },
@@ -76,6 +78,7 @@ function texto(i) {
     case "resposta": return "respondeu seu comentário";
     case "reacao": return `reagiu com ${i.reacao || "❤️"} ao seu comentário`;
     case "marcacao": return "marcou você numa publicação";
+    case "caixa": return "respondeu sua caixa de perguntas";
     case "enquete": return i.souAutor ? "terminou. Veja o resultado." : textoEnqueteFim(i).titulo;
     case "aviso": case "suporte": return TEXTO_EQUIPE(i);
     default: return TEXTO_RECLAMACAO[i.tipo] ? TEXTO_RECLAMACAO[i.tipo](i) : "";
@@ -110,7 +113,7 @@ async function carregar() {
   const uid = eu.uid;
   const ler = (col, ...f) => fs.getDocs(fs.query(fs.collection(db, col), ...f, fs.limit(60))).then((s) => s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) }))).catch(() => []);
   const usuario = await fs.getDoc(fs.doc(db, "usuarios", uid)).catch(() => null);
-  const [seg, curt, com, resp, vin, conv, recl, equipe, reac, marc] = await Promise.all([
+  const [seg, curt, com, resp, vin, conv, recl, equipe, reac, marc, caixas] = await Promise.all([
     ler("relacoes", fs.where("tipo", "==", "seguir"), fs.where("alvoId", "==", uid)),
     ler("curtidas", fs.where("postAutorId", "==", uid)),
     ler("comentarios", fs.where("postAutorId", "==", uid)),
@@ -120,11 +123,13 @@ async function carregar() {
     buscarReclamacoes(fs, db, uid).catch(() => []),
     buscarItensEquipe(fs, db, uid, (usuario?.exists() ? usuario.data().suporteLido : null) || {}).catch(() => []),
     ler("curtidas_comentarios", fs.where("comentarioAutorId", "==", uid)),
-    ler("diario", fs.where("marcados", "array-contains", uid))
+    ler("diario", fs.where("marcados", "array-contains", uid)),
+    ler("caixa_respostas", fs.where("autorId", "==", uid))
   ]);
   const dados = usuario?.exists() ? usuario.data() : {};
   const restritos = new Set(dados.restritos || []);
   const itens = [];
+  caixas.forEach((r) => itens.push({ tipo: "caixa", id: "x_" + r.id, anonima: !!r.anonima, uid: r.anonima ? "" : r.uid, nome: r.anonima ? "Anônimo" : r.nome, foto: r.anonima ? "" : r.foto, detalhe: r.texto, quando: ms(r.criadoEm) }));
   // Enquetes que terminaram (minhas e em que votei)
   (await enquetesEncerradas(fs, db, uid, dados).catch(() => [])).forEach((x) => itens.push({ ...x, ...(x.souAutor ? { nome: "Sua enquete", foto: dados.fotoPerfil || "" } : {}), detalhe: textoEnqueteFim(x).detalhe }));
   seg.forEach((r) => itens.push({ tipo: "seguidor", id: "s_" + r.id, uid: r.seguidorId, quando: ms(r.criadoEm) }));

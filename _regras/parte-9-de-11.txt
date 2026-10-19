@@ -68,7 +68,8 @@
     match /stories/{id} {
       allow read: if logado();
       allow create: if logado() && emailOk()
-                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'tipo', 'midia', 'texto', 'duracao', 'enquete', 'mencoes', 'respostas', 'publico', 'lista', 'ocultoPara', 'criadoEm'])
+                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'tipo', 'midia', 'texto', 'duracao', 'enquete', 'caixa', 'mencoes', 'respostas', 'publico', 'lista', 'ocultoPara', 'criadoEm'])
+                    && (!('caixa' in request.resource.data) || caixaOk(request.resource.data.caixa))
                     // enquete, pessoas mencionadas e as escolhas do autor (quem responde, quem vê)
                     // no flash a enquete acaba junto com ele (até 24 h, com 10 min de folga)
                     && (!('enquete' in request.resource.data) || enqueteOk(request.resource.data.enquete, request.time, 1450))
@@ -124,6 +125,7 @@
             && id == d.alvo + '_' + request.auth.uid
             && d.opcao is int && d.opcao >= 0
             && exists(doc) && d.opcao < e.opcoes.size()
+            && e.get('anonima', false) == false
             // depois do fim não dá mais para votar; o voto leva o fim junto (as notificações do resultado usam)
             && (!('fimEm' in e) || request.time < e.fimEm)
             && (!('fimEm' in d) || ('fimEm' in e && d.fimEm == e.fimEm));
@@ -134,58 +136,61 @@
     }
 
     // ===================================================
-    // PREFERÊNCIAS PÚBLICAS: pref_publicas/{uid} — o que os outros precisam saber antes de interagir
-    // (quem pode marcar/mencionar a pessoa). Só o dono grava; qualquer pessoa logada lê.
+    // ENQUETE ANÔNIMA: o voto fica em enquete_anon/{alvo}_{uid} (ninguém lista; só a própria pessoa lê o dela)
+    // e a contagem em enquete_contas/{alvo} = { n0, n1, n2, n3 }, que sobe +1 na MESMA gravação do voto.
+    // Assim nem o autor da enquete sabe quem votou em quê.
     // ===================================================
-    match /pref_publicas/{uid} {
-      allow read: if logado();
-      allow create, update: if logado() && uid == request.auth.uid
-                    && request.resource.data.keys().hasOnly(['permiteMarcar', 'atualizadoEm'])
-                    && (!('permiteMarcar' in request.resource.data) || request.resource.data.permiteMarcar in ['todos', 'seguindo', 'ninguem']);
-      allow delete: if logado() && uid == request.auth.uid;
-    }
-
-    match /rascunhos/{uid}/itens/{id} {
-      allow read, delete: if logado() && uid == request.auth.uid;
-      allow create, update: if logado() && uid == request.auth.uid
-                    && request.resource.data.keys().hasOnly(['texto', 'fotos', 'atualizadoEm'])
-                    && valorTextoAte(request.resource.data.get('texto', ''), 1000)
-                    && (!('fotos' in request.resource.data) || (request.resource.data.fotos is list && request.resource.data.fotos.size() <= 4));
-    }
-
-    // ===================================================
-    // RESUMO DAS ESTRELAS DE UMA PUBLICAÇÃO: diario_notas/{postId} { total, soma, n1..n5 }
-    // Uma leitura mostra a média e quantas pessoas deram 5, 4, 3, 2 e 1 estrela, com mil ou um milhão
-    // de notas. Só muda junto com a nota de quem grava (curtidas/{postId}_{uid}), na conta exata:
-    // a nota de antes sai e a nova entra. A moderação pode recalcular.
-    // ===================================================
-    match /diario_notas/{postId} {
-      allow read: if logado();
-
-      function minhaNota() { return /databases/$(database)/documents/curtidas/$(postId + '_' + request.auth.uid); }
-      function contaCerta() {
-        let a = exists(minhaNota()) ? get(minhaNota()).data.nota : 0;
-        let d = existsAfter(minhaNota()) ? getAfter(minhaNota()).data.nota : 0;
-        let r = resource == null ? {} : resource.data;
-        let n = request.resource.data;
-        return a != d
-            && n.keys().hasOnly(['total', 'soma', 'n1', 'n2', 'n3', 'n4', 'n5'])
-            && n.get('total', 0) == r.get('total', 0) + (d > 0 ? 1 : 0) - (a > 0 ? 1 : 0)
-            && n.get('soma', 0) == r.get('soma', 0) + d - a
-            && n.get('n1', 0) == r.get('n1', 0) + (d == 1 ? 1 : 0) - (a == 1 ? 1 : 0)
-            && n.get('n2', 0) == r.get('n2', 0) + (d == 2 ? 1 : 0) - (a == 2 ? 1 : 0)
-            && n.get('n3', 0) == r.get('n3', 0) + (d == 3 ? 1 : 0) - (a == 3 ? 1 : 0)
-            && n.get('n4', 0) == r.get('n4', 0) + (d == 4 ? 1 : 0) - (a == 4 ? 1 : 0)
-            && n.get('n5', 0) == r.get('n5', 0) + (d == 5 ? 1 : 0) - (a == 5 ? 1 : 0);
+    match /enquete_anon/{id} {
+      function votoAnonOk() {
+        let d = request.resource.data;
+        let doc = d.tipo == 'd'
+          ? /databases/$(database)/documents/diario/$(d.itemId)
+          : /databases/$(database)/documents/stories/$(d.itemId);
+        let e = get(doc).data.enquete;
+        let contas = /databases/$(database)/documents/enquete_contas/$(d.alvo);
+        let k = 'n' + string(d.opcao);
+        return d.keys().hasOnly(['alvo', 'tipo', 'itemId', 'uid', 'opcao', 'fimEm', 'criadoEm'])
+            && d.uid == request.auth.uid && d.criadoEm == request.time
+            && d.tipo in ['d', 'f']
+            && d.itemId is string && d.itemId.matches('^[A-Za-z0-9]{1,64}$')
+            && d.alvo == d.tipo + '_' + d.itemId
+            && id == d.alvo + '_' + request.auth.uid
+            && d.opcao is int && d.opcao >= 0 && d.opcao < e.opcoes.size()
+            && e.get('anonima', false) == true
+            && (!('fimEm' in e) || request.time < e.fimEm)
+            && (!('fimEm' in d) || ('fimEm' in e && d.fimEm == e.fimEm))
+            // a contagem da opção sobe exatamente 1 junto com o voto
+            && getAfter(contas).data.get(k, 0) == (exists(contas) ? get(contas).data.get(k, 0) : 0) + 1;
       }
-      allow create, update: if logado() && contaCerta();
-      // Recalcular (moderação): números inteiros, sem campo estranho.
-      allow create, update: if podeModerar()
-                    && request.resource.data.keys().hasOnly(['total', 'soma', 'n1', 'n2', 'n3', 'n4', 'n5'])
-                    && request.resource.data.total is int && request.resource.data.soma is int
-                    && request.resource.data.n1 is int && request.resource.data.n2 is int && request.resource.data.n3 is int
-                    && request.resource.data.n4 is int && request.resource.data.n5 is int;
-      allow delete: if podeModerar();
+      allow get: if logado() && id.matches('.*_' + request.auth.uid);
+      // listar só os próprios votos (o resultado chega nas notificações de quem votou)
+      allow list: if logado() && resource.data.uid == request.auth.uid;
+      allow create: if logado() && !sancionado(request.auth.uid) && votoAnonOk();
+      allow update, delete: if false;
+    }
+    match /enquete_contas/{alvo} {
+      allow read: if logado();
+      function votoDeAgora() { return /databases/$(database)/documents/enquete_anon/$(alvo + '_' + request.auth.uid); }
+      function chaveDoVoto() { return 'n' + string(getAfter(votoDeAgora()).data.opcao); }
+      allow create: if logado() && !exists(votoDeAgora()) && existsAfter(votoDeAgora())
+                    && request.resource.data.keys().hasOnly([chaveDoVoto()])
+                    && request.resource.data[chaveDoVoto()] == 1;
+      allow update: if logado() && !exists(votoDeAgora()) && existsAfter(votoDeAgora())
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly([chaveDoVoto()])
+                    && request.resource.data[chaveDoVoto()] == resource.data.get(chaveDoVoto(), 0) + 1;
+      allow delete: if false;
     }
 
-// ===== FIM DA PARTE 9 DE 10 =====
+    // ===================================================
+    // CAIXA DE PERGUNTAS: caixa_respostas/{id} = { alvo, tipo, itemId, autorId (dono da publicação/flash),
+    //   uid, nome, foto (só se NÃO for anônima), texto (até 300), anonima, criadoEm }.
+    // Anônima: sem uid/nome/foto; quem respondeu fica em caixa_autoria/{id} (só a moderação lê).
+    // O dono lê e apaga as respostas; quem respondeu (não anônima) lê e apaga a sua.
+    // ===================================================
+    match /caixa_respostas/{id} {
+      function caixaDoItem(d) {
+        return get(d.tipo == 'd'
+          ? /databases/$(database)/documents/diario/$(d.itemId)
+          : /databases/$(database)/documents/stories/$(d.itemId)).data;
+      }
+// ===== FIM DA PARTE 9 DE 11 =====

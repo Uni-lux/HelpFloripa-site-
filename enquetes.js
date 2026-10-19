@@ -108,11 +108,13 @@ export function guardarInfoEnquete(alvo, item) {
   const ks = Object.keys(m); if (ks.length > 120) ks.slice(0, ks.length - 120).forEach((k) => delete m[k]);
   gravarLocal(CH_INFO, m);
 }
-async function contarVotos(fs, db, alvo, n) {
+async function contarVotos(fs, db, alvo, n, anon = false) {
   const res = lerLocal(CH_RES);
   if (res[alvo]) return res[alvo].c;
   const col = fs.collection(db, "enquete_votos");
-  const c = await Promise.all(Array.from({ length: n }, (_, i) => fs.getCountFromServer(fs.query(col, fs.where("alvo", "==", alvo), fs.where("opcao", "==", i))).then((x) => x.data().count)));
+  const c = anon
+    ? await fs.getDoc(fs.doc(db, "enquete_contas", alvo)).then((d) => Array.from({ length: n }, (_, i) => Number(d.exists() ? d.data()["n" + i] || 0 : 0)))
+    : await Promise.all(Array.from({ length: n }, (_, i) => fs.getCountFromServer(fs.query(col, fs.where("alvo", "==", alvo), fs.where("opcao", "==", i))).then((x) => x.data().count)));
   res[alvo] = { c, em: Date.now() };
   const ks = Object.keys(res); if (ks.length > 200) ks.slice(0, ks.length - 200).forEach((k) => delete res[k]);
   gravarLocal(CH_RES, res);
@@ -130,10 +132,15 @@ export async function enquetesEncerradas(fs, db, uid, dadosUsuario = {}) {
     const s = await fs.getDocs(fs.query(fs.collection(db, "enquete_votos"), fs.where("uid", "==", uid), fs.limit(100)));
     votos = s.docs.map((d) => d.data()).filter((v) => v.fimEm && msDe(v.fimEm) <= agora && msDe(v.fimEm) > desde && !meusAlvos.has(v.alvo));
   } catch {}
+  // Votos em enquetes anônimas (cada pessoa lista só os dela)
+  try {
+    const s = await fs.getDocs(fs.query(fs.collection(db, "enquete_anon"), fs.where("uid", "==", uid), fs.limit(100)));
+    votos.push(...s.docs.map((d) => ({ ...d.data(), anon: true })).filter((v) => v.fimEm && msDe(v.fimEm) <= agora && msDe(v.fimEm) > desde && !meusAlvos.has(v.alvo)));
+  } catch {}
   const info = lerLocal(CH_INFO);
   const lista = [
-    ...minhas.map((x) => ({ alvo: x.a, souAutor: true, uid, pergunta: x.p, opcoes: x.o, quando: x.f })),
-    ...votos.map((v) => ({ alvo: v.alvo, souAutor: false, minha: Number(v.opcao), quando: msDe(v.fimEm), itemTipo: v.tipo, itemId: v.itemId, info: info[v.alvo] }))
+    ...minhas.map((x) => ({ alvo: x.a, souAutor: true, uid, pergunta: x.p, opcoes: x.o, quando: x.f, anon: !!x.an })),
+    ...votos.map((v) => ({ alvo: v.alvo, souAutor: false, minha: Number(v.opcao), quando: msDe(v.fimEm), itemTipo: v.tipo, itemId: v.itemId, info: info[v.alvo], anon: !!v.anon }))
   ].sort((a, b) => b.quando - a.quando).slice(0, 15);
   const itens = await Promise.all(lista.map(async (x) => {
     const [itemTipo, ...resto] = x.alvo.split("_"); const itemId = resto.join("_");
@@ -150,9 +157,9 @@ export async function enquetesEncerradas(fs, db, uid, dadosUsuario = {}) {
       }
     }
     if (!pergunta || !Array.isArray(opcoes)) return null;
-    const contas = await contarVotos(fs, db, x.alvo, opcoes.length).catch(() => null);
+    const contas = await contarVotos(fs, db, x.alvo, opcoes.length, x.anon).catch(() => null);
     if (!contas) return null;
-    return { tipo: "enquete", id: "q_" + x.alvo, alvo: x.alvo, itemTipo, itemId, uid: autor, souAutor: x.souAutor, nome, pergunta, opcoes, contas, minha: x.minha, quando: x.quando };
+    return { tipo: "enquete", id: "q_" + x.alvo, alvo: x.alvo, itemTipo, itemId, uid: autor, souAutor: x.souAutor, nome, pergunta, opcoes, contas, minha: x.minha, anon: x.anon, quando: x.quando };
   }));
   return itens.filter(Boolean);
 }
@@ -164,4 +171,21 @@ export function textoEnqueteFim(i) {
     titulo: i.souAutor ? "Sua enquete terminou" : "· a enquete em que você votou terminou",
     detalhe: `“${i.pergunta}”: ${r.texto}${!i.souAutor && i.opcoes[i.minha] != null ? ` · você votou em “${i.opcoes[i.minha]}”` : ""}`
   };
+}
+
+// Chave liga/desliga (ex.: "Votação anônima"). estado[chave] vira true/false.
+export function linhaChave(estado, chave, { titulo, sub = "", escuro = false, aoMudar } = {}) {
+  const l = document.createElement("label");
+  l.className = "enq-chave" + (escuro ? " escuro" : "");
+  const tx = document.createElement("span"); tx.className = "tx";
+  const t = document.createElement("strong"); t.textContent = titulo;
+  tx.appendChild(t);
+  if (sub) { const s = document.createElement("small"); s.textContent = sub; tx.appendChild(s); }
+  const sw = document.createElement("span"); sw.className = "switch";
+  const inp = document.createElement("input"); inp.type = "checkbox"; inp.checked = !!estado[chave];
+  inp.setAttribute("aria-label", titulo);
+  inp.addEventListener("change", () => { estado[chave] = inp.checked; aoMudar?.(inp.checked); });
+  sw.append(inp, document.createElement("span"));
+  l.append(tx, sw);
+  return l;
 }

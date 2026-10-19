@@ -1,3 +1,15 @@
+        // Resposta (citação): precisa apontar para uma mensagem real desta conversa,
+        // com o autor verdadeiro. Impede citar algo que a outra pessoa nunca disse.
+        function respostaOk(r) {
+          let caminho = /databases/$(database)/documents/conversas/$(conversaId)/mensagens/$(r.id);
+          return r is map
+              && r.keys().hasOnly(['id', 'texto', 'remetenteId'])
+              && r.id is string
+              && valorTextoAte(r.get('texto', ''), 200)
+              && exists(caminho)
+              && get(caminho).data.remetenteId == r.remetenteId;
+        }
+
         function mensagemOk() {
           let d = request.resource.data;
           return d.keys().hasOnly(['remetenteId', 'texto', 'criadoEm', 'resposta', 'tipoArquivo', 'arquivoUrl', 'nomeArquivo', 'cartao', 'avaliacao'])
@@ -183,15 +195,4 @@
             && d.criadoEm == request.time;
       }
 
-      function resumoAtualizado(chave) {
-        return getAfter(/databases/$(database)/documents/notas/$(chave)).data.ultima == id;
-      }
-
-      // "Atendimento confirmado": pedido real entre os dois, do mesmo negócio.
-      function pedidoOk(d, cliente, negocioId) {
-        return !('pedidoId' in d)
-            || (get(/databases/$(database)/documents/pedidos/$(d.pedidoId)).data.clienteId == cliente
-                && get(/databases/$(database)/documents/pedidos/$(d.pedidoId)).data.negocioId == negocioId);
-      }
-
-// ===== FIM DA PARTE 4 DE 10 =====
+// ===== FIM DA PARTE 4 DE 11 =====

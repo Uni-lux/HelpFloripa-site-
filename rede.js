@@ -14,12 +14,12 @@ import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=6";
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
 import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=15";
 import { ouvirItensEquipe, TEXTO_EQUIPE, linkEquipe } from "./avisos-equipe.js?v=1";
-import "./painel-avisos.js?v=16";
+import "./painel-avisos.js?v=17";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
 import { palavrasBusca } from "./pessoas.js?v=3"; // o sino abre o painel de notificações na própria página
 import { registrarGosto, PESO } from "./gosto.js?v=1";
 import { confirmarHF } from "./confirmar.js?v=2";
-import { seletorDuracao, fimEscolhido, fimDaEnquete, encerrada, faltaTexto, dataCurta, resumoResultado, guardarInfoEnquete, enquetesEncerradas, textoEnqueteFim, MAX_PUB_MIN } from "./enquetes.js?v=1";
+import { seletorDuracao, fimEscolhido, fimDaEnquete, encerrada, faltaTexto, dataCurta, resumoResultado, guardarInfoEnquete, enquetesEncerradas, textoEnqueteFim, linhaChave, MAX_PUB_MIN } from "./enquetes.js?v=2";
 
 // ---------- ícones ----------
 const SIMBOLOS = `<symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 01-1.5 1.5H15v-6h-6v6H5.5A1.5 1.5 0 014 19z"/></symbol>
@@ -31,6 +31,8 @@ const SIMBOLOS = `<symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l
 <symbol id="i-enviar" viewBox="0 0 24 24"><path d="M21 3.5L10.5 14M21 3.5l-6.5 17-4-6.5-6.5-4z"/></symbol>
 <symbol id="i-tacha" viewBox="0 0 24 24"><path d="M9 4h6l-1 6 3 3H7l3-3z"/><path d="M12 13v7"/></symbol>
 <symbol id="i-trofeu" viewBox="0 0 24 24"><path d="M8 4.5h8v5a4 4 0 01-8 0z"/><path d="M8 6.5H5.2a2.6 2.6 0 002.9 3.4M16 6.5h2.8a2.6 2.6 0 01-2.9 3.4M12 13.5v3.5M8.5 20h7M9.5 20l.6-3h3.8l.6 3"/></symbol>
+<symbol id="i-caixa" viewBox="0 0 24 24"><path d="M5 4.5h14a1.5 1.5 0 011.5 1.5v10a1.5 1.5 0 01-1.5 1.5h-6.5L8 21v-3.5H5A1.5 1.5 0 013.5 16V6A1.5 1.5 0 015 4.5z"/><path d="M10 9.2a2 2 0 113 1.7c-.6.4-1 .8-1 1.5M12 14.6h.01"/></symbol>
+<symbol id="i-mascara" viewBox="0 0 24 24"><path d="M3 8.5c3-1.6 6-2 9-2s6 .4 9 2c0 4.6-2.2 8-5 8-1.8 0-2.6-1.6-4-1.6S9.8 16.5 8 16.5c-2.8 0-5-3.4-5-8z"/><path d="M7 11c.8-.7 2-.7 2.8 0M14.2 11c.8-.7 2-.7 2.8 0"/></symbol>
 <symbol id="i-relogio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
 <symbol id="i-rascunho" viewBox="0 0 24 24"><path d="M6 3.5h8l4 4v13H6z"/><path d="M14 3.5v4h4M9 13h6M9 16.5h4"/></symbol>
 <symbol id="i-salvo" viewBox="0 0 24 24"><path d="M6.5 4.5h11v15.5L12 16l-5.5 4z"/></symbol>
@@ -1119,10 +1121,14 @@ export function blocoEnquete(item, { tipo = "d", escura = false } = {}) {
   rod.appendChild(rodTx);
   box.append(cab, perg, lista, rod);
   const alvo = `${tipo}_${item.id}`;
-  const ref = fb.doc(fb.db, "enquete_votos", `${alvo}_${eu.uid}`);
+  // Anônima: o voto fica em enquete_anon (ninguém lista) e a contagem em enquete_contas/{alvo}.
+  const anon = e.anonima === true;
+  const ref = fb.doc(fb.db, anon ? "enquete_anon" : "enquete_votos", `${alvo}_${eu.uid}`);
+  const refContas = fb.doc(fb.db, "enquete_contas", alvo);
   const souAutor = item.autorId === eu.uid;
   const fim = fimDaEnquete(e);
-  if (souAutor) {
+  if (anon) { const a = el("span", "enq-anon"); a.append(icone("mascara", "i xs"), document.createTextNode("Anônima")); a.title = "Ninguém vê quem votou, nem quem criou a enquete"; tit.after(a); box.classList.add("anonima"); }
+  if (souAutor && !anon) {
     const ver = el("button", "enq-ver"); ver.type = "button"; ver.append(icone("pessoa-mais", "i xs"), document.createTextNode("Ver votos"));
     ver.addEventListener("click", (ev) => { ev.stopPropagation(); verVotosEnquete(item, alvo, contas); });
     rod.appendChild(ver);
@@ -1158,7 +1164,8 @@ export function blocoEnquete(item, { tipo = "d", escura = false } = {}) {
     const votos = `${numero(total)} ${total === 1 ? "voto" : "votos"}`;
     rodTx.textContent = !pronto ? "Carregando..."
       : acabou ? `Resultado final · ${votos}`
-      : meu !== null ? `${votos} · seu voto foi registrado`
+      : meu !== null ? `${votos} · seu voto foi registrado${anon ? " (anônimo)" : ""}`
+      : anon ? `${votos} · voto anônimo: ninguém vê em quem você votou`
       : `${votos} · toque para votar (um voto, sem troca)`;
     // Contagem regressiva enquanto estiver na tela
     clearTimeout(relogio);
@@ -1166,8 +1173,13 @@ export function blocoEnquete(item, { tipo = "d", escura = false } = {}) {
   };
   async function carregar() {
     const col = fb.collection(fb.db, "enquete_votos");
+    const meuVoto = fb.getDoc(ref).then((d) => (d.exists() ? Number(d.data().opcao) : null)).catch(() => null);
+    if (anon) {
+      const [m, c] = await Promise.all([meuVoto, fb.getDoc(refContas).then((d) => (d.exists() ? d.data() : {})).catch(() => ({}))]);
+      meu = m; contas = e.opcoes.map((_, i) => Number(c["n" + i]) || 0); pronto = true; pintar(); return;
+    }
     const [m, ...cs] = await Promise.all([
-      fb.getDoc(ref).then((d) => (d.exists() ? Number(d.data().opcao) : null)).catch(() => null),
+      meuVoto,
       ...e.opcoes.map((_, i) => fb.getCountFromServer(fb.query(col, fb.where("alvo", "==", alvo), fb.where("opcao", "==", i))).then((x) => x.data().count).catch(() => 0))
     ]);
     meu = m; contas = cs; pronto = true; pintar();
@@ -1182,7 +1194,14 @@ export function blocoEnquete(item, { tipo = "d", escura = false } = {}) {
     meu = i; contas[i]++;
     pintar();
     try {
-      await fb.setDoc(ref, { alvo, tipo, itemId: item.id, uid: eu.uid, opcao: i, ...(e.fimEm ? { fimEm: e.fimEm } : {}), criadoEm: fb.serverTimestamp() });
+      const voto = { alvo, tipo, itemId: item.id, uid: eu.uid, opcao: i, ...(e.fimEm ? { fimEm: e.fimEm } : {}), criadoEm: fb.serverTimestamp() };
+      if (anon) {
+        // voto e contagem juntos (as regras conferem que a opção sobe exatamente 1)
+        const lote = fb.writeBatch(fb.db);
+        lote.set(ref, voto);
+        lote.set(refContas, { ["n" + i]: fb.increment(1) }, { merge: true });
+        await lote.commit();
+      } else await fb.setDoc(ref, voto);
       if (fim) guardarInfoEnquete(alvo, item);
       navigator.vibrate?.(8);
       if (fim) toast(`Voto registrado. Quando a enquete terminar, o resultado chega nas suas notificações.`);
@@ -1196,6 +1215,124 @@ export function blocoEnquete(item, { tipo = "d", escura = false } = {}) {
   box.recarregar = carregar;
   return box;
 }
+// ---------- caixa de perguntas (publicação ou flash) ----------
+// item.caixa = { pergunta, anonima }. Quem vê escreve e envia; o autor vê as respostas (anônimas sem nome).
+// caixa_respostas/{id}: { alvo, tipo, itemId, autorId, uid?, nome?, foto?, texto, anonima, criadoEm };
+// anônima: quem respondeu só fica em caixa_autoria/{id} (só a moderação lê).
+export function blocoCaixa(item, { tipo = "d", escura = false } = {}) {
+  const c = item?.caixa;
+  if (!c?.pergunta) return null;
+  const alvo = `${tipo}_${item.id}`;
+  const souAutor = item.autorId === eu.uid;
+  const box = el("div", "caixa-perg" + (escura ? " escura" : "") + (c.anonima ? " anonima" : ""));
+  const cab = el("div", "cx-cab");
+  const tit = el("span", "cx-tit"); tit.append(icone("caixa", "i xs"), el("span", null, "Caixa de perguntas"));
+  cab.appendChild(tit);
+  if (c.anonima) { const a = el("span", "enq-anon"); a.append(icone("mascara", "i xs"), document.createTextNode("Anônima")); a.title = "Quem responde não aparece para o autor"; cab.appendChild(a); }
+  box.append(cab, el("strong", "cx-perg", c.pergunta));
+  ["pointerdown", "pointerup", "click", "dblclick"].forEach((ev) => box.addEventListener(ev, (e) => e.stopPropagation()));
+  if (souAutor) {
+    const ver = el("button", "cx-ver"); ver.type = "button";
+    const n = el("strong", null, "…"), rot = el("span", null, "respostas");
+    ver.append(icone("caixa", "i s"), n, rot, icone("avancar", "i xs"));
+    ver.addEventListener("click", () => verRespostasCaixa(item, alvo, () => contar()));
+    const contar = () => fb.getCountFromServer(fb.query(fb.collection(fb.db, "caixa_respostas"), fb.where("autorId", "==", eu.uid), fb.where("alvo", "==", alvo)))
+      .then((x) => { const k = x.data().count; n.textContent = numero(k); rot.textContent = k === 1 ? "resposta · ver" : "respostas · ver"; })
+      .catch(() => { n.textContent = ""; rot.textContent = "Ver respostas"; });
+    quandoVisivel(box, contar);
+    box.append(ver, el("small", "cx-nota", c.anonima ? "Respostas anônimas: você não vê quem respondeu." : "Você vê o nome de quem respondeu."));
+    return box;
+  }
+  const form = el("form", "cx-form");
+  const campo = document.createElement("textarea"); campo.rows = 1; campo.maxLength = 300; campo.placeholder = "Escreva sua resposta..."; campo.setAttribute("aria-label", "Sua resposta");
+  const env = el("button", "cx-enviar"); env.type = "submit"; env.disabled = true; env.setAttribute("aria-label", "Enviar resposta"); env.appendChild(icone("enviar", "i s"));
+  form.append(campo, env);
+  const nota = el("small", "cx-nota", c.anonima ? "Anônima: seu nome não aparece para quem perguntou." : "Seu nome aparece para quem perguntou.");
+  const ajustar = () => { campo.style.height = "auto"; campo.style.height = Math.min(120, campo.scrollHeight) + "px"; env.disabled = !campo.value.trim(); };
+  campo.addEventListener("input", ajustar);
+  campo.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); } });
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const texto = campo.value.trim().slice(0, 300);
+    if (!texto) return;
+    if (await precisaEmail()) return;
+    env.disabled = true;
+    try {
+      const r = fb.doc(fb.collection(fb.db, "caixa_respostas"));
+      const base = { alvo, tipo, itemId: item.id, autorId: item.autorId, texto, anonima: !!c.anonima, criadoEm: fb.serverTimestamp() };
+      if (c.anonima) {
+        const lote = fb.writeBatch(fb.db);
+        lote.set(r, base);
+        lote.set(fb.doc(fb.db, "caixa_autoria", r.id), { uid: eu.uid, criadoEm: fb.serverTimestamp() });
+        await lote.commit();
+      } else {
+        const foto = urlSegura(dados.fotoPerfil).startsWith("https://") ? dados.fotoPerfil : "";
+        await fb.setDoc(r, { ...base, uid: eu.uid, nome: String(dados.nome || "Usuário").slice(0, 80), ...(foto ? { foto } : {}) });
+      }
+      campo.value = ""; ajustar();
+      box.classList.add("enviada");
+      nota.textContent = c.anonima ? "Resposta enviada sem o seu nome ✓ Pode mandar outra." : "Resposta enviada ✓ Pode mandar outra.";
+      navigator.vibrate?.(8);
+    } catch (err) {
+      toast(err?.code === "permission-denied" ? "A caixa de perguntas começa a funcionar quando as regras novas forem publicadas." : "Não foi possível enviar: " + erroAmigavel(err));
+    } finally { env.disabled = !campo.value.trim(); }
+  });
+  box.append(form, nota);
+  return box;
+}
+// Respostas da caixa (só o autor): anônimas aparecem como "Anônimo".
+export async function verRespostasCaixa(item, alvo, aoMudar) {
+  const corpo = abrirLista("Respostas");
+  const topo = el("div", "vv-topo"); topo.append(el("strong", null, item.caixa.pergunta), el("small", null, item.caixa.anonima ? "Caixa anônima · você não vê quem respondeu" : "Caixa de perguntas"));
+  corpo.replaceChildren(topo, el("div", "lista-vazia", "Carregando..."));
+  try {
+    const s = await fb.getDocs(fb.query(fb.collection(fb.db, "caixa_respostas"), fb.where("autorId", "==", eu.uid), fb.where("alvo", "==", alvo), fb.limit(200)));
+    const lista = s.docs.map((d) => ({ id: d.id, ...d.data() })).filter((r) => !r.uid || !escondido(r.uid)).sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
+    corpo.replaceChildren(topo);
+    if (!lista.length) { corpo.appendChild(el("div", "lista-vazia", "Ainda sem respostas. Quando alguém responder, aparece aqui e nas suas notificações.")); return; }
+    lista.forEach((r) => {
+      const l = el("div", "cx-resp");
+      const av = el("div", "avatar");
+      if (r.anonima) { av.classList.add("anonimo"); av.appendChild(icone("mascara", "i s")); } else pintarAvatar(av, r.foto, r.nome);
+      const tx = el("div", "tx");
+      const quem = el("div", "quem"); quem.append(el("strong", null, r.anonima ? "Anônimo" : r.nome || "Usuário"), el("span", null, tempoRelativo(paraData(r.criadoEm))));
+      tx.append(quem, el("p", null, r.texto));
+      const acoes = el("div", "cx-acoes");
+      if (!r.anonima && r.uid) {
+        const resp = el("button", "btn mini sec"); resp.type = "button"; resp.append(icone("chat", "i xs"), document.createTextNode("Responder"));
+        // Responder ali mesmo: um campo abre embaixo e a resposta vai pelo Mensagens.
+        resp.addEventListener("click", () => {
+          if (l.querySelector(".cx-responder")) { l.querySelector(".cx-responder textarea").focus(); return; }
+          const f = el("form", "cx-form cx-responder");
+          const t = document.createElement("textarea"); t.rows = 1; t.maxLength = 900; t.placeholder = `Responder a ${String(r.nome || "essa pessoa").split(" ")[0]} no Mensagens...`;
+          const b = el("button", "cx-enviar"); b.type = "submit"; b.setAttribute("aria-label", "Enviar"); b.appendChild(icone("enviar", "i s"));
+          f.append(t, b); tx.appendChild(f); t.focus();
+          f.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            if (!t.value.trim()) return;
+            b.disabled = true;
+            try {
+              await mandarMensagem(r.uid, { texto: `💬 Sobre a sua resposta “${r.texto.slice(0, 80)}”: ${t.value.trim()}`.slice(0, 1000) }, "Respondeu na caixa de perguntas");
+              f.replaceWith(el("small", "cx-nota", "Enviado no Mensagens ✓"));
+            } catch (err) { b.disabled = false; if (err?.message !== "e-mail") toast("Não foi possível enviar: " + erroAmigavel(err)); }
+          });
+        });
+        acoes.appendChild(resp);
+      }
+      const apagar = el("button", "btn mini sec"); apagar.type = "button"; apagar.append(icone("lixo", "i xs"), document.createTextNode("Apagar"));
+      apagar.addEventListener("click", async () => {
+        if (!(await confirmarHF({ titulo: "Apagar esta resposta?", texto: "Ela some da sua caixa de perguntas.", ok: "Apagar", icone: "lixo" }))) return;
+        try { await fb.deleteDoc(fb.doc(fb.db, "caixa_respostas", r.id)); l.remove(); aoMudar?.(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
+      });
+      acoes.appendChild(apagar);
+      tx.appendChild(acoes);
+      l.append(av, tx);
+      if (!r.anonima && r.uid) av.addEventListener("click", () => ganchos.abrirPerfil(r.uid));
+      corpo.appendChild(l);
+    });
+  } catch (err) { corpo.replaceChildren(topo, el("div", "lista-vazia", "Não foi possível carregar: " + erroAmigavel(err))); }
+}
+
 // Resultado de uma enquete que terminou (vem das notificações): barras, a mais votada e o seu voto.
 export function abrirResultadoEnquete(x) {
   const corpo = abrirLista("Resultado da enquete");
@@ -1709,11 +1846,13 @@ export function abrirCompositor({ aoPublicar } = {}) {
       <div class="pub-extras" id="pubMarcados" hidden></div>
       <div class="pub-extras" id="pubAgenda" hidden></div>
       <div class="pub-enquete" id="pubEnquete" hidden></div>
+      <div class="pub-enquete pub-caixa" id="pubCaixa" hidden></div>
       <div class="pub-ferramentas">
         <button type="button" class="icone-btn" id="pubFoto" aria-label="Adicionar foto (até 4)" title="Foto (até 4)"><svg class="i"><use href="#i-imagem"/></svg></button>
         <button type="button" class="icone-btn" id="pubVideo" aria-label="Adicionar vídeo curto (até 60 s)" title="Vídeo curto (até 60 s)"><svg class="i"><use href="#i-video"/></svg></button>
         <button type="button" class="icone-btn" id="pubMarcar" aria-label="Marcar pessoas" title="Marcar pessoas"><svg class="i"><use href="#i-pessoa-mais"/></svg></button>
         <button type="button" class="icone-btn" id="pubEnqueteBtn" aria-label="Criar enquete" title="Enquete"><svg class="i"><use href="#i-enquete"/></svg></button>
+        <button type="button" class="icone-btn" id="pubCaixaBtn" aria-label="Caixa de perguntas" title="Caixa de perguntas"><svg class="i"><use href="#i-caixa"/></svg></button>
         <button type="button" class="icone-btn" id="pubAgendar" aria-label="Agendar publicação" title="Agendar"><svg class="i"><use href="#i-relogio"/></svg></button>
         <button type="button" class="icone-btn" id="pubRascunhos" aria-label="Rascunhos" title="Rascunhos"><svg class="i"><use href="#i-rascunho"/></svg></button>
         <span class="cont" id="pubCont">0/1000</span>
@@ -1849,7 +1988,7 @@ async function caberNoDocumento(fotos, limite = 860000) {
   throw new Error("As fotos ficaram grandes demais juntas. Tente com menos fotos.");
 }
 // Extras da publicação: pessoas marcadas, data agendada e rascunho aberto.
-let pubMarcados = [], pubAgenda = null, pubRascunhoId = null, pubEnquete = null;
+let pubMarcados = [], pubAgenda = null, pubRascunhoId = null, pubEnquete = null, pubCaixa = null;
 // Enquete no compositor: pergunta e de 2 a 4 opções.
 function pintarEnqueteCompositor() {
   const box = $("pubEnquete");
@@ -1874,6 +2013,7 @@ function pintarEnqueteCompositor() {
     box.appendChild(l);
   });
   if (pubEnquete.opcoes.length < 4) { const mais = el("button", "pe-mais"); mais.type = "button"; mais.append(icone("mais", "i xs"), document.createTextNode("Adicionar opção")); mais.addEventListener("click", () => { pubEnquete.opcoes.push(""); pintarEnqueteCompositor(); box.querySelectorAll(".pe-opcao input").item(pubEnquete.opcoes.length - 1)?.focus(); }); box.appendChild(mais); }
+  box.appendChild(linhaChave(pubEnquete, "anonima", { titulo: "Votação anônima", sub: "Ninguém vê quem votou, nem você" }));
   // Duração: 1 h, 6 h, 12 h, 1 dia (padrão) ou personalizado (até 7 dias a partir de quando a publicação aparece).
   box.appendChild(seletorDuracao(pubEnquete.duracao, { maxMin: MAX_PUB_MIN, base: () => (pubAgenda && pubAgenda > new Date() ? pubAgenda.getTime() : Date.now()) }));
 }
@@ -1884,14 +2024,35 @@ function enqueteDoCompositor() {
   if (opcoes.length < 2) throw new Error("A enquete precisa de pelo menos 2 opções.");
   const base = pubAgenda && pubAgenda > new Date() ? pubAgenda.getTime() : Date.now();
   const fim = fimEscolhido(pubEnquete.duracao, { maxMin: MAX_PUB_MIN, base });
-  return { pergunta, opcoes, fimEm: fb.Timestamp.fromMillis(fim) };
+  return { pergunta, opcoes, fimEm: fb.Timestamp.fromMillis(fim), ...(pubEnquete.anonima ? { anonima: true } : {}) };
+}
+// Caixa de perguntas no compositor: a pergunta e se as respostas são anônimas.
+function pintarCaixaCompositor() {
+  const box = $("pubCaixa");
+  box.hidden = !pubCaixa;
+  $("pubCaixaBtn").classList.toggle("ativo", !!pubCaixa);
+  if (!pubCaixa) { box.replaceChildren(); return; }
+  const cab = el("div", "pe-cab"); cab.append(icone("caixa", "i xs"), el("strong", null, "Caixa de perguntas"));
+  const tirar = el("button", "pe-tirar", "Tirar"); tirar.type = "button";
+  tirar.addEventListener("click", () => { pubCaixa = null; pintarCaixaCompositor(); });
+  cab.appendChild(tirar);
+  const perg = el("input", "pe-pergunta"); perg.type = "text"; perg.maxLength = 120; perg.placeholder = "Ex.: Me faça uma pergunta"; perg.value = pubCaixa.pergunta; perg.setAttribute("aria-label", "Texto da caixa de perguntas");
+  perg.addEventListener("input", () => { pubCaixa.pergunta = perg.value; });
+  box.replaceChildren(cab, perg, el("small", "pe-dica", "Quem vê escreve a resposta numa caixa de texto. As respostas chegam só para você."),
+    linhaChave(pubCaixa, "anonima", { titulo: "Respostas anônimas", sub: "Você não vê quem respondeu" }));
+}
+function caixaDoCompositor() {
+  if (!pubCaixa) return null;
+  const pergunta = pubCaixa.pergunta.trim().slice(0, 120);
+  if (!pergunta) throw new Error("Escreva o texto da caixa de perguntas.");
+  return { pergunta, anonima: !!pubCaixa.anonima };
 }
 // Guarda a enquete nos dados da própria conta: quando terminar, o resultado vem nas notificações.
 export function registrarEnquete(alvo, enquete) {
   const fim = fimDaEnquete(enquete);
   if (!fim) return;
   const lista = (Array.isArray(dados.enquetes) ? dados.enquetes : []).filter((x) => x?.a !== alvo && x.f > Date.now() - 30 * 864e5);
-  lista.push({ a: alvo, p: enquete.pergunta, o: enquete.opcoes, f: fim });
+  lista.push({ a: alvo, p: enquete.pergunta, o: enquete.opcoes, f: fim, ...(enquete.anonima ? { an: true } : {}) });
   dados.enquetes = lista.slice(-40);
   fb.setDoc(refUsuario, { enquetes: dados.enquetes }, { merge: true }).catch(() => {});
 }
@@ -1924,7 +2085,7 @@ function limparPublicacao() {
   $("pubCont").textContent = "0/1000";
   if (pubMidia?.previa?.startsWith("blob:")) URL.revokeObjectURL(pubMidia.previa);
   pubMidia = null;
-  pubMarcados = []; pubAgenda = null; pubRascunhoId = null; pubEnquete = null; pintarEnqueteCompositor();
+  pubMarcados = []; pubAgenda = null; pubRascunhoId = null; pubEnquete = null; pintarEnqueteCompositor(); pubCaixa = null; pintarCaixaCompositor();
   $("pubPrevia").hidden = true;
   $("pubPrevia").replaceChildren();
   pintarExtras();
@@ -2067,6 +2228,7 @@ function ligarCompositor() {
   $("pubFoto").addEventListener("click", () => $("pubArquivoFoto").click());
   $("pubVideo").addEventListener("click", () => $("pubArquivoVideo").click());
   $("pubMarcar").addEventListener("click", escolherMarcados);
+  $("pubCaixaBtn").addEventListener("click", () => { if (!pubCaixa) { pubCaixa = { pergunta: "Me faça uma pergunta", anonima: false }; pintarCaixaCompositor(); $("pubCaixa").querySelector(".pe-pergunta")?.select(); } else { pubCaixa = null; pintarCaixaCompositor(); } });
   $("pubEnqueteBtn").addEventListener("click", () => { if (!pubEnquete) { pubEnquete = { pergunta: "", opcoes: ["", ""], duracao: { dur: 1440 } }; pintarEnqueteCompositor(); $("pubEnquete").querySelector(".pe-pergunta")?.focus(); } else { pubEnquete = null; pintarEnqueteCompositor(); } });
   $("pubAgendar").addEventListener("click", escolherAgenda);
   $("pubRascunhos").addEventListener("click", abrirRascunhos);
@@ -2107,9 +2269,9 @@ function ligarCompositor() {
   });
   $("pubEnviar").addEventListener("click", async () => {
     const texto = $("pubTexto").value.trim();
-    if (!texto && !pubMidia && !pubEnquete) { toast("Escreva algo ou adicione uma foto."); return; }
-    let enquete = null;
-    try { enquete = enqueteDoCompositor(); } catch (e) { toast(e.message); return; }
+    if (!texto && !pubMidia && !pubEnquete && !pubCaixa) { toast("Escreva algo ou adicione uma foto."); return; }
+    let enquete = null, caixa = null;
+    try { enquete = enqueteDoCompositor(); caixa = caixaDoCompositor(); } catch (e) { toast(e.message); return; }
     if (await precisaEmail()) return;
     const btn = $("pubEnviar");
     btn.disabled = true; btn.textContent = "Publicando...";
@@ -2136,7 +2298,7 @@ function ligarCompositor() {
       const mencionados = await uidsMencionados(texto);
       const tags = tagsDoTexto(texto), marcados = [...new Set([...pubMarcados.map((p) => p.uid), ...mencionados])].filter((u) => u && u !== eu.uid).slice(0, 10);
       const agenda = pubAgenda && pubAgenda > new Date() ? fb.Timestamp.fromDate(pubAgenda) : null;
-      const extras = { ...(tags.length ? { tags } : {}), ...(marcados.length ? { marcados } : {}), ...(agenda ? { agendadoPara: agenda } : {}), ...(enquete ? { enquete } : {}) };
+      const extras = { ...(tags.length ? { tags } : {}), ...(marcados.length ? { marcados } : {}), ...(agenda ? { agendadoPara: agenda } : {}), ...(enquete ? { enquete } : {}), ...(caixa ? { caixa } : {}) };
       const gravar = (novos) => comRitmo(fb, eu.uid, "pub", (lote) => {
         const r = fb.doc(fb.collection(fb.db, "diario"));
         lote.set(r, { autorId: eu.uid, nome: dados.nome || "Usuário", fotoPerfil: foto, texto, mediaUrl, mediaTipo, ...(novos && midias ? { midias } : {}), ...(novos ? extras : {}), criadoEm: fb.serverTimestamp() });
@@ -2149,6 +2311,7 @@ function ligarCompositor() {
         if (e?.code !== "permission-denied" || (!midias && !Object.keys(extras).length)) throw e;
         if (agenda) { toast("Agendar começa a funcionar quando as regras novas forem publicadas. Publique agora ou salve como rascunho."); return; }
         if (enquete) { toast("Enquetes começam a funcionar quando as regras novas forem publicadas. Tire a enquete para publicar agora."); return; }
+        if (caixa) { toast("A caixa de perguntas começa a funcionar quando as regras novas forem publicadas. Tire a caixa para publicar agora."); return; }
         ref = await gravar(false); semNovos = true;
       }
       if (enquete && !semNovos) registrarEnquete("d_" + ref.id, enquete);
@@ -2195,7 +2358,7 @@ export function pintarBarraRede() {
 // Avisos (notificações): seguidores, pedidos do social, curtidas,
 // comentários e mensagens. Alimenta o contador e a página de avisos.
 // =====================================================
-export const avisos = { seguidores: [], vinculos: [], curtidas: [], comentarios: [], respostas: [], reacoes: [], marcacoes: [], enquetes: [], mensagens: [], reclamacoes: [], equipe: [] };
+export const avisos = { seguidores: [], vinculos: [], curtidas: [], comentarios: [], respostas: [], reacoes: [], marcacoes: [], enquetes: [], caixas: [], mensagens: [], reclamacoes: [], equipe: [] };
 export let avisosVistosEm = 0;
 const ouvintesAvisos = new Set();
 export function aoMudarAvisos(fn) { ouvintesAvisos.add(fn); fn(avisos); }
@@ -2211,7 +2374,7 @@ function avisar() {
 }
 export function contarNovos() {
   const t = (x) => x.quando > avisosVistosEm;
-  return avisos.seguidores.filter(t).length + avisos.vinculos.filter((v) => v.pendente || t(v)).length + avisos.curtidas.filter(t).length + avisos.comentarios.filter(t).length + avisos.respostas.filter(t).length + avisos.reacoes.filter(t).length + avisos.marcacoes.filter(t).length + avisos.enquetes.filter(t).length + avisos.reclamacoes.filter(t).length + avisos.equipe.filter((x) => x.naoLida && t(x)).length;
+  return avisos.seguidores.filter(t).length + avisos.vinculos.filter((v) => v.pendente || t(v)).length + avisos.curtidas.filter(t).length + avisos.comentarios.filter(t).length + avisos.respostas.filter(t).length + avisos.reacoes.filter(t).length + avisos.marcacoes.filter(t).length + avisos.enquetes.filter(t).length + avisos.caixas.filter(t).length + avisos.reclamacoes.filter(t).length + avisos.equipe.filter((x) => x.naoLida && t(x)).length;
 }
 // O painel de notificações (painel-avisos.js) marcou tudo como visto: zera o contador desta página.
 addEventListener("hf:avisos-vistos", () => { avisosVistosEm = Date.now(); if (eu) avisar(); });
@@ -2314,6 +2477,12 @@ export function ouvirAvisos({ notificarNovos = true } = {}) {
     primeiraEquipe = false;
     avisos.equipe = itens;
     avisar();
+  });
+  // Respostas nas minhas caixas de perguntas (anônimas chegam sem nome)
+  ouvir(fb.query(fb.collection(fb.db, "caixa_respostas"), fb.where("autorId", "==", eu.uid), fb.limit(100)), async (snap, novos) => {
+    const l = snap.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter((r) => r.anonima || ok(r.uid));
+    avisos.caixas = l.map((r) => ({ id: r.id, uid: r.anonima ? "" : r.uid, anonima: !!r.anonima, nome: r.anonima ? "Anônimo" : r.nome || "Usuário", foto: r.anonima ? "" : r.foto || "", texto: r.texto, alvo: r.alvo, itemTipo: r.tipo, itemId: r.itemId, quando: ms(r.criadoEm) }));
+    if (novos && notificarNovos) avisos.caixas.filter((x) => novos.has(x.id)).forEach((x) => notificar("Nova resposta na sua caixa de perguntas", `${x.nome}: ${x.texto}`, () => { location.href = "notificacoes.html"; }));
   });
   // Enquetes que terminaram (minhas e em que votei): confere ao abrir e a cada 3 min.
   const enqAvisadas = (() => { try { return new Set(JSON.parse(localStorage.getItem("hf-enq-avisadas") || "[]")); } catch { return new Set(); } })();

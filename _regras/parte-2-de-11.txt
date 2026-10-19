@@ -1,3 +1,10 @@
+    // =====================================================
+    // PERFIL PÚBLICO
+    // Usado somente para busca e exibição pública.
+    // NÃO deve conter e-mail, telefone ou data de nascimento.
+    // =====================================================
+    match /perfis_publicos/{userId} {
+
       // O @ exibido no perfil precisa estar reservado em nicknames/ pelo
       // próprio usuário. getAfter enxerga a reserva feita na mesma transação
       // (cadastro) ou numa escrita anterior (edição do perfil).
@@ -249,10 +256,4 @@
     }
 
 
-    // =====================================================
-    // PERFIS DE NEGÓCIO (serviços, delivery, lojinha, imóveis)
-    // Documento: negocios/{donoId}_{tipo}
-    // =====================================================
-    match /negocios/{id} {
-
-// ===== FIM DA PARTE 2 DE 10 =====
+// ===== FIM DA PARTE 2 DE 11 =====

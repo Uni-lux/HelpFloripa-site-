@@ -6,19 +6,19 @@
 import {
   $, el, icone, pintarAvatar, urlSegura, tempoRelativo, toast, erroAmigavel,
   fb, eu, ganchos, iniciarRede, carregarMeusSeguindo, botaoSeguir, montarBarraRede, pintarBarraRede,
-  ouvirAvisos, aoMudarAvisos, avisosVistosEm, marcarAvisosVistos, rotuloVinculo, abrirComentarios, abrirResultadoEnquete
-} from "./rede.js?v=42";
+  ouvirAvisos, aoMudarAvisos, avisosVistosEm, marcarAvisosVistos, rotuloVinculo, abrirComentarios, abrirResultadoEnquete, verRespostasCaixa
+} from "./rede.js?v=43";
 import { TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=15";
 import { TEXTO_EQUIPE, linkEquipe, seloOficial, fotoSuporte } from "./avisos-equipe.js?v=1";
-import { textoEnqueteFim, resumoResultado } from "./enquetes.js?v=1";
+import { textoEnqueteFim, resumoResultado } from "./enquetes.js?v=2";
 
 let filtro = "tudo";
 let vistoAntes = 0;
 const postsCache = new Map();
-const CORES = { enquete: "#7c5cff", reacao: "#e0457b", marcacao: "#00adee", seguidor: "#00adee", curtida: "#f5b700", comentario: "#7c5cff", resposta: "#7c5cff", social: "#e0457b", mensagem: "#1fa855", reclamacao: "#ef4444", "reclamacao-resp": "#ff7a1a", "reclamacao-ok": "#2fbf71", suporte: "#00adee", aviso: "#7c5cff" };
-const ICONES = { enquete: "enquete", reacao: "coracao", marcacao: "pessoa-mais", seguidor: "pessoa-mais", curtida: "estrela", comentario: "chat", resposta: "chat", social: "fio", mensagem: "envelope", reclamacao: "alerta", "reclamacao-resp": "chat", "reclamacao-ok": "check", suporte: "ajuda", aviso: "sino" };
+const CORES = { caixa: "#ff7a1a", enquete: "#7c5cff", reacao: "#e0457b", marcacao: "#00adee", seguidor: "#00adee", curtida: "#f5b700", comentario: "#7c5cff", resposta: "#7c5cff", social: "#e0457b", mensagem: "#1fa855", reclamacao: "#ef4444", "reclamacao-resp": "#ff7a1a", "reclamacao-ok": "#2fbf71", suporte: "#00adee", aviso: "#7c5cff" };
+const ICONES = { caixa: "caixa", enquete: "enquete", reacao: "coracao", marcacao: "pessoa-mais", seguidor: "pessoa-mais", curtida: "estrela", comentario: "chat", resposta: "chat", social: "fio", mensagem: "envelope", reclamacao: "alerta", "reclamacao-resp": "chat", "reclamacao-ok": "check", suporte: "ajuda", aviso: "sino" };
 // Filtro de cada tipo (as três de reclamação ficam juntas; avisos e respostas do suporte também)
-const grupo = (t) => (t === "resposta" || t === "reacao" ? "comentario" : t === "enquete" ? "enquete" : t === "marcacao" ? "curtida" : t.startsWith("reclamacao") ? "reclamacao" : t === "aviso" ? "suporte" : t);
+const grupo = (t) => (t === "resposta" || t === "reacao" ? "comentario" : t === "enquete" || t === "caixa" ? "enquete" : t === "marcacao" ? "curtida" : t.startsWith("reclamacao") ? "reclamacao" : t === "aviso" ? "suporte" : t);
 
 function obterPost(id) {
   if (!postsCache.has(id)) postsCache.set(id, fb.getDoc(fb.doc(fb.db, "diario", id)).then((s) => (s.exists() ? { id, ...s.data() } : null)).catch(() => null));
@@ -48,6 +48,7 @@ function itens(a) {
     ...a.respostas.filter((x) => !a.comentarios.some((c) => c.id === x.id)).map((x) => ({ tipo: "resposta", ...x, texto: "respondeu seu comentário", detalhe: x.texto })),
     ...(a.reacoes || []).map((x) => ({ tipo: "reacao", ...x, texto: `reagiu com ${x.reacao} ao seu comentário` })),
     ...(a.marcacoes || []).map((x) => ({ tipo: "marcacao", ...x, texto: "marcou você numa publicação" })),
+    ...(a.caixas || []).map((x) => ({ tipo: "caixa", ...x, texto: "respondeu sua caixa de perguntas", detalhe: x.texto })),
     ...(a.enquetes || []).map((x) => ({ ...x, texto: x.souAutor ? "terminou. Veja o resultado." : textoEnqueteFim(x).titulo, detalhe: "" })),
     ...a.vinculos.map((x) => ({ tipo: "social", ...x, texto: x.pendente ? `quer adicionar você como ${rotuloVinculo(x.tipoParaMim).toLowerCase()}` : `aceitou seu pedido: ${rotuloVinculo(x.tipoParaMim)}` })),
     ...a.mensagens.map((x) => ({ tipo: "mensagem", ...x, texto: "enviou uma mensagem", detalhe: x.ultimaMensagem })),
@@ -78,7 +79,9 @@ function linha(i) {
   d.tabIndex = 0; d.setAttribute("role", "button");
   const w = el("div", "av-wrap");
   const av = el("div", "avatar");
-  if (i.oficial) av.replaceChildren(fotoSuporte()); else pintarAvatar(av, i.foto, i.nome);
+  if (i.oficial) av.replaceChildren(fotoSuporte());
+  else if (i.tipo === "caixa" && i.anonima) { av.classList.add("anonimo"); av.replaceChildren(icone("mascara", "i s")); }
+  else pintarAvatar(av, i.foto, i.nome);
   const t = el("span", "tipo"); t.style.background = CORES[i.tipo]; t.appendChild(icone(ICONES[i.tipo], "i"));
   w.append(av, t);
   const tx = el("div", "tx");
@@ -106,6 +109,12 @@ function linha(i) {
   }
   const abrir = async () => {
     if (i.tipo === "enquete") { abrirResultadoEnquete(i); return; }
+    if (i.tipo === "caixa") {
+      const s = await fb.getDoc(fb.doc(fb.db, i.itemTipo === "f" ? "stories" : "diario", i.itemId)).catch(() => null);
+      if (!s?.exists() || !s.data().caixa) { toast(i.itemTipo === "f" ? "Esse flash já saiu do ar. A resposta: " + i.texto : "Essa publicação foi apagada."); return; }
+      verRespostasCaixa({ id: s.id, ...s.data() }, i.alvo);
+      return;
+    }
     if (i.tipo === "mensagem") { location.href = `mensagens.html?conversa=${encodeURIComponent(i.id)}`; return; }
     if (i.oficial) { location.href = linkEquipe(i); return; }
     if (i.tipo.startsWith("reclamacao")) { location.href = linkReclamacao(i, eu.uid); return; }
