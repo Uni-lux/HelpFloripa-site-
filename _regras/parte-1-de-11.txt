@@ -74,9 +74,12 @@ service cloud.firestore {
 
     // Enquete (publicação ou flash): pergunta (até 120) e 2 a 4 opções (até 40 cada).
     // No flash, x e y dizem onde a enquete fica na tela (0 a 1).
+    // fimEm: quando a votação acaba (depois de inicio, até maxMin minutos depois; sem fimEm = enquete antiga, sem fim).
     function opcaoOk(o) { return o is string && o.size() >= 1 && o.size() <= 40; }
-    function enqueteOk(e) {
-      return e is map && e.keys().hasOnly(['pergunta', 'opcoes', 'x', 'y'])
+    function enqueteOk(e, inicio, maxMin) {
+      return e is map && e.keys().hasOnly(['pergunta', 'opcoes', 'x', 'y', 'fimEm', 'anonima'])
+          && (!('anonima' in e) || e.anonima is bool)
+          && (!('fimEm' in e) || (e.fimEm is timestamp && e.fimEm > inicio && e.fimEm <= inicio + duration.value(maxMin, 'm')))
           && e.pergunta is string && e.pergunta.size() >= 1 && e.pergunta.size() <= 120
           && e.opcoes is list && e.opcoes.size() >= 2 && e.opcoes.size() <= 4
           && opcaoOk(e.opcoes[0]) && opcaoOk(e.opcoes[1])
@@ -84,6 +87,15 @@ service cloud.firestore {
           && (e.opcoes.size() < 4 || opcaoOk(e.opcoes[3]))
           && (!('x' in e) || (e.x is number && e.x >= 0 && e.x <= 1))
           && (!('y' in e) || (e.y is number && e.y >= 0 && e.y <= 1));
+    }
+    // Caixa de perguntas (publicação ou flash): o autor pergunta e quem vê responde com texto.
+    // anonima: quem responde não aparece para o autor (só a moderação sabe, em caixa_autoria).
+    function caixaOk(c) {
+      return c is map && c.keys().hasOnly(['pergunta', 'anonima', 'x', 'y'])
+          && c.pergunta is string && c.pergunta.size() >= 1 && c.pergunta.size() <= 120
+          && c.anonima is bool
+          && (!('x' in c) || (c.x is number && c.x >= 0 && c.x <= 1))
+          && (!('y' in c) || (c.y is number && c.y >= 0 && c.y <= 1));
     }
     // Lista de uids (até max), conferida com uma expressão só.
     function uidsOk(l, max) {
@@ -258,22 +270,4 @@ service cloud.firestore {
     }
 
 
-    // =====================================================
-    // PERFIL PÚBLICO
-    // Usado somente para busca e exibição pública.
-    // NÃO deve conter e-mail, telefone ou data de nascimento.
-    // =====================================================
-    match /perfis_publicos/{userId} {
-
-      // O @ exibido no perfil precisa estar reservado em nicknames/ pelo
-      // próprio usuário. getAfter enxerga a reserva feita na mesma transação
-      // (cadastro) ou numa escrita anterior (edição do perfil).
-      function nickDoDono() {
-        let d = request.resource.data;
-        return !('nickname' in d)
-            || d.nickname == null
-            || d.nickname == ''
-            || getAfter(/databases/$(database)/documents/nicknames/$(d.nickname)).data.uid == request.auth.uid;
-      }
-
-// ===== FIM DA PARTE 1 DE 10 =====
+// ===== FIM DA PARTE 1 DE 11 =====

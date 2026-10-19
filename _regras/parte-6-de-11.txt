@@ -186,4 +186,4 @@
       function camposChamado() {
         return ['uid', 'nome', 'email', 'assunto', 'categoria', 'status', 'criadoEm', 'atualizadoEm', 'ultimaDe', 'atendidoPor', 'responsavel', 'responsavelNome', 'assumidoEm'];
       }
-// ===== FIM DA PARTE 6 DE 10 =====
+// ===== FIM DA PARTE 6 DE 11 =====

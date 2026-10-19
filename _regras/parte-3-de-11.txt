@@ -1,3 +1,9 @@
+    // =====================================================
+    // PERFIS DE NEGÓCIO (serviços, delivery, lojinha, imóveis)
+    // Documento: negocios/{donoId}_{tipo}
+    // =====================================================
+    match /negocios/{id} {
+
       // Campos que o site grava. Qualquer outro campo é recusado.
       function camposNegocio() {
         return ['donoId', 'tipo', 'nome', 'descricao', 'cidade', 'uf', 'cidadeIbge', 'bairro', 'rua', 'numero', 'complemento', 'cep',
@@ -233,16 +239,4 @@
           return !desativada(p[0] == request.auth.uid ? p[1] : p[0]);
         }
 
-        // Resposta (citação): precisa apontar para uma mensagem real desta conversa,
-        // com o autor verdadeiro. Impede citar algo que a outra pessoa nunca disse.
-        function respostaOk(r) {
-          let caminho = /databases/$(database)/documents/conversas/$(conversaId)/mensagens/$(r.id);
-          return r is map
-              && r.keys().hasOnly(['id', 'texto', 'remetenteId'])
-              && r.id is string
-              && valorTextoAte(r.get('texto', ''), 200)
-              && exists(caminho)
-              && get(caminho).data.remetenteId == r.remetenteId;
-        }
-
-// ===== FIM DA PARTE 3 DE 10 =====
+// ===== FIM DA PARTE 3 DE 11 =====

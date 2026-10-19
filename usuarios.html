@@ -13,7 +13,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="stylesheet" href="vitrine.css?v=25" />
-  <link rel="stylesheet" href="rede.css?v=22" />
+  <link rel="stylesheet" href="rede.css?v=24" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
     // Tema compartilhado com a página de mensagens; aplicado antes de desenhar.
@@ -220,14 +220,14 @@
       obterPerfil, lerOrdenado, editarPublicacao, comMencoes, salvarImagem, iniciarRede, meusSeguindoPronto, carregarMeusSeguindo, alternarSeguir, botaoSeguir, linhaPessoa,
       removerSeguidor, bloquear, desbloquear, alternarRestricao, compartilharPerfil,
       barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail,
-      fotosDoPost, carrosselFotos, idsSalvos, listaColecoes, gravarColecoes, novaColecao, escolherColecao, alternarSalvo, contadorEstrelas, silenciado, alternarSilenciar, marcarVista, definirOrigem, lerResumosEstrelas, contarComentarios, blocoEnquete
-    } from "./rede.js?v=41";
+      fotosDoPost, carrosselFotos, idsSalvos, listaColecoes, gravarColecoes, novaColecao, escolherColecao, alternarSalvo, contadorEstrelas, silenciado, alternarSilenciar, marcarVista, definirOrigem, lerResumosEstrelas, contarComentarios, blocoEnquete, blocoCaixa
+    } from "./rede.js?v=43";
     import { buscarPessoas, palavrasBusca } from "./pessoas.js?v=3";
     import { abrirDenuncia } from "./denuncias.js?v=2";
     import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
     import { notaDoPerfil, abrirDetalhamento, avaliarNegocio, avaliarCliente, lerResumo, estrelas, pintarEstrelas, media, notaTexto, TIPOS_NEGOCIO } from "./avaliacoes.js?v=13";
     import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=33";
-    import { anelNoPerfil, novoFlash } from "./stories.js?v=8";
+    import { anelNoPerfil, novoFlash } from "./stories.js?v=10";
 
     // ======================================================
     // Estado desta página (o resto vem de rede.js)
@@ -381,7 +381,7 @@
     }
 
     function abrirInsightsPerfil() {
-      import("./insights.js?v=3").then((m) => m.abrirInsights()).catch((e) => toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)));
+      import("./insights.js?v=5").then((m) => m.abrirInsights()).catch((e) => toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)));
     }
 
     // ======================================================
@@ -546,6 +546,8 @@
           corpoT.append(cab, tx);
           const enq = blocoEnquete(post);
           if (enq) corpoT.appendChild(enq);
+          const cx = blocoCaixa(post);
+          if (cx) corpoT.appendChild(cx);
           corpoT.appendChild(rod);
           it.append(av, corpoT);
           const abrir = (e) => { if (e.target.closest("a, .enquete")) return; abrirPost(lista, i, { proprio: !!autor && autor === dados, autor }); };
@@ -692,6 +694,8 @@
       const extra = $("postExtras"); extra.replaceChildren();
       const enq = blocoEnquete(post);
       if (enq) extra.appendChild(enq);
+      const cx = blocoCaixa(post);
+      if (cx) extra.appendChild(cx);
       if (Array.isArray(post.marcados) && post.marcados.length) {
         const l = el("div", "post-com"); l.append(icone("pessoa-mais", "i xs"), document.createTextNode("com "));
         post.marcados.slice(0, 10).forEach((u, i) => { const b = el("button", null, "..."); b.type = "button"; b.addEventListener("click", () => { fecharFolha("folhaPost"); abrirPerfilPublico(u); }); obterPerfil(u).then((pp) => { b.textContent = String(pp.nome || "Usuário").split(" ")[0]; }).catch(() => {}); if (i) l.appendChild(document.createTextNode(i === post.marcados.length - 1 ? " e " : ", ")); l.appendChild(b); });
@@ -704,7 +708,7 @@
         ja.addEventListener("click", async () => { try { await fb.updateDoc(fb.doc(fb.db, "diario", post.id), { agendadoPara: fb.serverTimestamp() }); post.agendadoPara = { toMillis: () => Date.now() }; toast("Publicada agora"); mostrarPost(); carregarMeusPosts(); } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); } });
         a.appendChild(ja); extra.appendChild(a);
       }
-      if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=8").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
+      if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=10").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
       extra.hidden = !extra.children.length;
       if (!proprio) marcarVista({ ...post, autorId: post.autorId || autor?.uid });
       $("postAnterior").disabled = indice <= 0;

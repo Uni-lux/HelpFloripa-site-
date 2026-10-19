@@ -58,6 +58,21 @@ async function limpar(uid) {
   await apagar("curtidas", col("curtidas").where("uid", "==", uid));
   await apagar("curtidas_comentarios", col("curtidas_comentarios").where("uid", "==", uid));
   await apagar("enquete_votos", col("enquete_votos").where("uid", "==", uid));
+  // Votos de enquetes anônimas: tira da contagem (enquete_contas) e apaga o voto.
+  const anonimos = await col("enquete_anon").where("uid", "==", uid).get();
+  for (const v of anonimos.docs) {
+    const { alvo, opcao } = v.data();
+    if (simular || !alvo || !Number.isInteger(opcao)) continue;
+    const c = col("enquete_contas").doc(alvo);
+    if ((await c.get()).exists) await c.update({ ["n" + opcao]: FieldValue.increment(-1) });
+  }
+  await apagar("enquete_anon", col("enquete_anon").where("uid", "==", uid));
+  // Caixa de perguntas: respostas que a pessoa deu (com nome e anônimas) e as que recebeu.
+  await apagar("caixa_respostas", col("caixa_respostas").where("uid", "==", uid));
+  await apagar("caixa_respostas", col("caixa_respostas").where("autorId", "==", uid));
+  const autorias = await col("caixa_autoria").where("uid", "==", uid).get();
+  for (const a of autorias.docs) { if (!simular) { await col("caixa_respostas").doc(a.id).delete(); await a.ref.delete(); } }
+  r.caixa_autoria = autorias.size;
   await apagar("relacoes", col("relacoes").where("seguidorId", "==", uid));
   await apagar("relacoes", col("relacoes").where("alvoId", "==", uid));
   await apagar("bloqueios", col("bloqueios").where("bloqueadorId", "==", uid));
