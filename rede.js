@@ -920,7 +920,7 @@ export async function abrirResumoEstrelas(post, { info = null, aoDar = null } = 
 }
 // Sua rede (2º grau): quem é seguido por quem você segue ou por seus seguidores → uid de quem liga vocês.
 let redeCache = null;
-async function minhaRede() {
+export async function minhaRede() {
   if (redeCache) return redeCache;
   const r = new Map();
   try {

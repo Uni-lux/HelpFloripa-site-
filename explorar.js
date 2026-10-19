@@ -1,0 +1,421 @@
+// =====================================================
+// Explorar (aba do feed.html)
+// - Busca completa: Tudo | Pessoas | Negócios | Hashtags | Publicações,
+//   com as buscas recentes guardadas no aparelho (hf-buscas).
+// - O que está acontecendo: hashtags em alta (e as que estão subindo),
+//   enquetes abertas para votar e negócios da sua cidade.
+// - Sugestões com o motivo (Seguido por, Segue você, mesma cidade), que dá para dispensar.
+// - Destaques em mosaico com filtros (Tudo, Fotos, Vídeos, Textos) e "Ver mais".
+// Sem campo nem regra nova: lê o que o Diário e as vitrines já leem.
+// =====================================================
+import {
+  $, el, icone, ms, pintarAvatar, urlSegura, nomeCidade, fb, eu, dados, meusSeguindo, escondido, silenciado, ganchos,
+  obterPerfil, linhaPessoa, botaoSeguir, fotosDoPost, lerResumosEstrelas, minhaRede
+} from "./rede.js?v=44";
+import { afinidade } from "./gosto.js?v=1";
+import { buscarPessoas, pessoasRecentes, semAcento } from "./pessoas.js?v=3";
+import { docsComValidade } from "./leituras.js?v=1";
+import { lerResumos, media } from "./avaliacoes.js?v=13";
+import { CATEGORIAS, CORES_TIPO, NOMES_TIPO, PAGINA_TIPO, nomeCategoria, categoriasDe } from "./vitrine.js?v=34";
+import { fimDaEnquete, faltaTexto } from "./enquetes.js?v=2";
+
+const DIARIO_VALIDADE = 3 * 60000, DIA = 864e5, HORA = 3600e3;
+const postOculto = (p) => (p?.ocultoAte?.toMillis?.() ?? 0) > Date.now() || (p?.agendadoPara?.toMillis?.() ?? 0) > Date.now() || silenciado(p?.autorId);
+const lerLocal = (k, padrao) => { try { const v = JSON.parse(localStorage.getItem(k) || "null"); return v ?? padrao; } catch { return padrao; } };
+const gravarLocal = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
+const NOME_TIPO = (t) => (t === "lojinha" ? "Shopping" : NOMES_TIPO[t] || "Negócio");
+const IMG_TIPO = { servicos: "servicos.webp", delivery: "lanchonetes.webp", lojinha: "shopping.webp", imoveis: "imoveis.webp" };
+const linkNegocio = (n) => (n.tipo === "imoveis" ? `usuarios.html?perfil=${encodeURIComponent(n.donoId)}` : `${PAGINA_TIPO[n.tipo]}?negocio=${encodeURIComponent(n.id)}`);
+const linkPost = (p) => `usuarios.html?post=${encodeURIComponent(p.id)}`;
+
+// ---------- dados (lidos uma vez e guardados) ----------
+// As mesmas 120 publicações recentes dos Principais (mesma chave no aparelho).
+let postsP = null, postsEm = 0;
+function postsRecentes() {
+  if (postsP && Date.now() - postsEm < DIARIO_VALIDADE) return postsP;
+  postsEm = Date.now();
+  const q = fb.query(fb.collection(fb.db, "diario"), fb.orderBy("criadoEm", "desc"), fb.limit(120));
+  return (postsP = docsComValidade(fb, "diario-principais", q, DIARIO_VALIDADE)
+    .then((s) => s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter((p) => !escondido(p.autorId) && !postOculto(p)))
+    .catch((e) => { postsP = null; console.warn("Explorar:", e); return []; }));
+}
+// Negócios atualizados por último (os mesmos da página inicial, guardados por 10 min).
+let negociosP = null;
+function negociosRecentes() {
+  return (negociosP ||= (async () => {
+    const col = fb.collection(fb.db, "negocios");
+    const s = await docsComValidade(fb, "explorar-negocios", fb.query(col, fb.orderBy("atualizadoEm", "desc"), fb.limit(200)), 10 * 60000)
+      .catch(() => fb.getDocs(fb.query(col, fb.limit(200))));
+    return s.docs.map((d) => ({ id: d.id, ...d.data() }))
+      .filter((n) => n.nome && NOMES_TIPO[n.tipo] && (n.ocultoAte?.toMillis?.() ?? 0) <= Date.now() && !escondido(n.donoId))
+      .map((n) => ({ ...n, _txt: semAcento([n.nome, nomeCategoria(n), ...categoriasDe(n).map((c) => CATEGORIAS[n.tipo]?.[c]), n.bairro, nomeCidade(n.cidade), n.descricao].filter(Boolean).join(" ")) }));
+  })().catch((e) => { negociosP = null; console.warn("Explorar (negócios):", e); return []; }));
+}
+const notasNegocios = new Map();
+async function notasDe(lista) {
+  const falta = lista.filter((n) => !notasNegocios.has(n.id));
+  if (falta.length) {
+    const r = await lerResumos(fb, falta.map((n) => "neg_" + n.id)).catch(() => ({}));
+    falta.forEach((n) => notasNegocios.set(n.id, r["neg_" + n.id] || null));
+  }
+  return (n) => notasNegocios.get(n.id);
+}
+// Quem segue você (mesma leitura guardada da "Sua rede").
+let seguidoresP = null;
+const meusSeguidores = () => (seguidoresP ||= docsComValidade(fb, "seguidores-" + eu.uid, fb.query(fb.collection(fb.db, "relacoes"), fb.where("tipo", "==", "seguir"), fb.where("alvoId", "==", eu.uid), fb.limit(500)), 15 * 60000)
+  .then((s) => new Set(s.docs.map((d) => d.data().seguidorId))).catch(() => new Set()));
+// "Florianópolis/SC", "florianopolis" e "Florianópolis" são a mesma cidade.
+const nomeCid = (v) => String(nomeCidade(v) || "").split(/\s*[\/,]\s*|\s+-\s+/)[0].trim();
+const chaveCidade = (v) => semAcento(nomeCid(v));
+const minhaCidade = () => chaveCidade(dados.cidade || dados.cidadeNome);
+
+// ---------- buscas recentes ----------
+const CHAVE_BUSCAS = "hf-buscas";
+const buscasRecentes = () => lerLocal(CHAVE_BUSCAS, []).filter((x) => typeof x === "string").slice(0, 10);
+function guardarBusca(t) {
+  t = String(t || "").trim().slice(0, 40);
+  if (t.length < 2) return;
+  gravarLocal(CHAVE_BUSCAS, [t, ...buscasRecentes().filter((x) => semAcento(x) !== semAcento(t))].slice(0, 10));
+}
+function pintarRecentes() {
+  const box = $("buscaRecentes");
+  const lista = buscasRecentes();
+  const mostrar = document.activeElement === $("buscaPessoas") && !$("buscaPessoas").value.trim() && lista.length;
+  box.hidden = !mostrar;
+  if (!mostrar) { box.replaceChildren(); return; }
+  const cab = el("div", "br-cab");
+  const limpar = el("button", "br-limpar", "Limpar tudo"); limpar.type = "button";
+  limpar.addEventListener("pointerdown", (e) => e.preventDefault());
+  limpar.addEventListener("click", () => { gravarLocal(CHAVE_BUSCAS, []); pintarRecentes(); });
+  cab.append(el("strong", null, "Buscas recentes"), limpar);
+  box.replaceChildren(cab, ...lista.map((t) => {
+    const l = el("div", "br-item");
+    const b = el("button", "br-usar"); b.type = "button";
+    const ic = el("span", "br-ic"); ic.appendChild(t.startsWith("#") ? document.createTextNode("#") : icone("relogio", "i xs"));
+    b.append(ic, el("span", null, t));
+    b.addEventListener("pointerdown", (e) => e.preventDefault());
+    b.addEventListener("click", () => { $("buscaPessoas").value = t; guardarBusca(t); box.hidden = true; buscar(); });
+    const x = el("button", "br-tirar"); x.type = "button"; x.setAttribute("aria-label", `Tirar "${t}" das buscas recentes`); x.appendChild(icone("fechar", "i xs"));
+    x.addEventListener("pointerdown", (e) => e.preventDefault());
+    x.addEventListener("click", () => { gravarLocal(CHAVE_BUSCAS, buscasRecentes().filter((y) => y !== t)); pintarRecentes(); });
+    l.append(b, x);
+    return l;
+  }));
+}
+
+// ---------- busca ----------
+const ABAS_BUSCA = [["tudo", "Tudo"], ["pessoas", "Pessoas"], ["negocios", "Negócios"], ["tags", "Hashtags"], ["posts", "Publicações"]];
+let abaBusca = "tudo", tempoBusca = null, ultimoTermo = "";
+let achados = { pessoas: [], negocios: [], tags: [], posts: [] };
+
+async function buscar() {
+  const termo = $("buscaPessoas").value.trim();
+  pintarRecentes();
+  $("exploraConteudo").hidden = !!termo;
+  $("abasBusca").hidden = !termo;
+  if (!termo) { ultimoTermo = ""; $("titPessoas").textContent = "Ativos recentemente"; return carregarAtivos(); }
+  $("titPessoas").textContent = "Resultados";
+  if (termo !== ultimoTermo) abaBusca = termo.startsWith("#") ? "tags" : "tudo";
+  ultimoTermo = termo;
+  const corpo = $("listaPessoas");
+  if (!corpo.querySelector(".res-sec, .linha")) corpo.replaceChildren(el("div", "lista-vazia", "Buscando..."));
+  const limpo = termo.replace(/^[#@]/, "");
+  const t = semAcento(limpo);
+  const [pessoas, negocios, posts] = await Promise.all([
+    termo.startsWith("#") ? [] : buscarPessoas(fb, termo, { limite: 30 }),
+    termo.startsWith("#") || termo.startsWith("@") ? [] : negociosRecentes(),
+    postsRecentes()
+  ]);
+  if ($("buscaPessoas").value.trim() !== termo) return;
+  // Hashtags: as das publicações recentes que começam com o que foi digitado (e a exata, contada no servidor).
+  const tags = new Map();
+  if (!termo.startsWith("@")) posts.forEach((p) => (p.tags || []).forEach((tg) => { if (semAcento(tg).startsWith(t)) tags.set(tg, (tags.get(tg) || 0) + 1); }));
+  const exata = /^[\p{L}\p{N}_]{1,30}$/u.test(limpo) && !termo.startsWith("@") ? limpo.toLowerCase() : "";
+  if (exata && !tags.has(exata) && termo.startsWith("#")) tags.set(exata, 0);
+  achados = {
+    pessoas: pessoas.filter((p) => p.uid !== eu.uid && !escondido(p.uid)),
+    negocios: t.length < 2 ? [] : negocios.filter((n) => t.split(/\s+/).every((x) => n._txt.includes(x)))
+      .sort((a, b) => peso(b) - peso(a)).slice(0, 40),
+    tags: [...tags].map(([tag, n]) => ({ tag, n })).sort((a, b) => b.n - a.n || (b.tag === exata) - (a.tag === exata)).slice(0, 20),
+    posts: t.length < 2 || termo.startsWith("@") ? [] : posts.filter((p) => semAcento(`${p.texto || ""} ${(p.tags || []).join(" ")} ${p.enquete?.pergunta || ""}`).includes(t)).slice(0, 30)
+  };
+  function peso(n) { const nm = semAcento(n.nome); return (nm.startsWith(t) ? 3 : nm.includes(t) ? 2 : 0) + (minhaCidade() && chaveCidade(n.cidade) === minhaCidade() ? 1 : 0); }
+  pintarAbasBusca();
+  pintarResultados();
+  // A contagem exata da hashtag vem do servidor (todas as publicações, não só as recentes).
+  if (exata && achados.tags.some((x) => x.tag === exata)) {
+    const n = await fb.getCountFromServer(fb.query(fb.collection(fb.db, "diario"), fb.where("tags", "array-contains", exata))).then((x) => x.data().count).catch(() => null);
+    const item = achados.tags.find((x) => x.tag === exata);
+    if (n == null || !item || $("buscaPessoas").value.trim() !== termo) return;
+    // Hashtag que ninguém usou: sai da lista. Usada: mostra o total e sobe para o topo.
+    if (!n) achados.tags = achados.tags.filter((x) => x !== item);
+    else { item.n = Math.max(item.n, n); item.contada = true; achados.tags = [item, ...achados.tags.filter((x) => x !== item)]; }
+    pintarAbasBusca(); pintarResultados();
+  }
+}
+function pintarAbasBusca() {
+  $("abasBusca").replaceChildren(...ABAS_BUSCA.map(([id, nome]) => {
+    const b = el("button"); b.type = "button"; b.setAttribute("role", "tab"); b.dataset.aba = id;
+    b.setAttribute("aria-selected", String(abaBusca === id));
+    b.append(document.createTextNode(nome));
+    if (id !== "tudo") b.appendChild(el("b", null, String(achados[id].length)));
+    b.addEventListener("click", () => { abaBusca = id; pintarAbasBusca(); pintarResultados(); });
+    return b;
+  }));
+}
+function pintarResultados() {
+  const corpo = $("listaPessoas");
+  const total = achados.pessoas.length + achados.negocios.length + achados.tags.length + achados.posts.length;
+  if (!total) { corpo.replaceChildren(el("div", "lista-vazia", "Nada encontrado. Tente o @usuário, uma #hashtag ou outra palavra.")); return; }
+  const secoes = [];
+  const tudo = abaBusca === "tudo";
+  const secao = (id, titulo, itens, limite) => {
+    if (!itens.length || (!tudo && abaBusca !== id)) return;
+    const s = el("div", "res-sec");
+    const cab = el("div", "grupo-titulo", titulo);
+    if (tudo && itens.length > limite) {
+      const ver = el("button", "res-ver", "Ver tudo"); ver.type = "button";
+      ver.addEventListener("click", () => { abaBusca = id; pintarAbasBusca(); pintarResultados(); });
+      cab.appendChild(ver);
+    }
+    s.appendChild(cab);
+    s.append(...desenhar(id, itens.slice(0, tudo ? limite : 60)));
+    secoes.push(s);
+  };
+  secao("pessoas", plural(achados.pessoas.length, "pessoa", "pessoas"), achados.pessoas, 4);
+  secao("negocios", plural(achados.negocios.length, "negócio", "negócios"), achados.negocios, 3);
+  secao("tags", "Hashtags", achados.tags, 3);
+  secao("posts", plural(achados.posts.length, "publicação", "publicações"), achados.posts, 6);
+  corpo.replaceChildren(...(secoes.length ? secoes : [el("div", "lista-vazia", "Nada nesta aba. Veja em Tudo.")]));
+  if (achados.negocios.length && (tudo || abaBusca === "negocios")) notasDe(achados.negocios.slice(0, 60)).then((nota) => corpo.querySelectorAll("[data-neg]").forEach((x) => pintarNota(x, nota({ id: x.dataset.neg })))).catch(() => {});
+}
+function desenhar(id, itens) {
+  if (id === "pessoas") return itens.map((p) => linhaPessoa({
+    uid: p.uid, nome: p.nome, foto: p.fotoPerfil,
+    sub: [p.nickname ? "@" + p.nickname : "", nomeCidade(p.cidade || p.cidadeNome)].filter(Boolean).join(" · ")
+  }));
+  if (id === "negocios") return itens.map(linhaNegocio);
+  if (id === "tags") return itens.map((x) => {
+    const b = el("a", "linha-tag"); b.href = `feed.html?tag=${encodeURIComponent(x.tag)}`;
+    b.append(el("span", "ic-tag", "#"), el("strong", null, "#" + x.tag), el("small", null, x.n ? `${plural(x.n, "publicação", "publicações")}${x.contada ? "" : " recentes"}` : "Ver publicações"));
+    return b;
+  });
+  const g = el("div", "exp-grade res-grade");
+  g.append(...itens.map((p) => tilePost(p, null, false)));
+  return [g];
+}
+function linhaNegocio(n) {
+  const a = el("a", "linha linha-neg"); a.href = linkNegocio(n); a.dataset.neg = n.id;
+  a.style.setProperty("--c", CORES_TIPO[n.tipo] || "var(--accent)");
+  const av = el("div", "avatar neg");
+  const f = urlSegura(n.foto) || urlSegura((n.fotos || [])[0]);
+  pintarAvatar(av, f, n.nome);
+  const t = el("div", "txt");
+  t.append(el("strong", null, n.nome), el("small", null, [NOME_TIPO(n.tipo), nomeCategoria(n) !== NOMES_TIPO[n.tipo] ? nomeCategoria(n) : "", [n.bairro, nomeCid(n.cidade)].filter(Boolean).join(", ")].filter(Boolean).join(" · ")));
+  a.append(av, t, el("span", "neg-nota"));
+  return a;
+}
+function pintarNota(alvo, r) {
+  const box = alvo.querySelector(".neg-nota");
+  if (!box) return;
+  box.replaceChildren();
+  if (r?.total) box.append(icone("estrela", "i xs"), document.createTextNode(media(r).toFixed(1).replace(".", ",")));
+}
+
+// ---------- "Ativos recentemente" (sem busca) ----------
+async function carregarAtivos() {
+  const corpo = $("listaPessoas");
+  if (!corpo.querySelector(".linha")) corpo.replaceChildren(el("div", "lista-vazia", "Carregando pessoas..."));
+  const lista = (await pessoasRecentes(fb, { limite: 40 })).filter((p) => p.uid !== eu.uid && !escondido(p.uid));
+  if ($("buscaPessoas").value.trim()) return;
+  const ordem = [...lista.filter((p) => !meusSeguindo.has(p.uid)), ...lista.filter((p) => meusSeguindo.has(p.uid))];
+  corpo.replaceChildren();
+  if (!ordem.length) { corpo.appendChild(el("div", "lista-vazia", "Ninguém por aqui ainda.")); return; }
+  ordem.slice(0, 8).forEach((p) => corpo.appendChild(linhaPessoa({
+    uid: p.uid, nome: p.nome, foto: p.fotoPerfil,
+    sub: [p.nickname ? "@" + p.nickname : "", nomeCidade(p.cidade || p.cidadeNome)].filter(Boolean).join(" · ")
+  })));
+}
+
+// ---------- início do Explorar ----------
+let feitoEm = 0;
+export async function abrirExplorar() {
+  buscar();
+  if (Date.now() - feitoEm < 3 * 60000) return;
+  feitoEm = Date.now();
+  const lista = await postsRecentes();
+  pintarAlta(lista);
+  pintarEnquetes(lista);
+  lerResumosEstrelas(lista.map((p) => p.id)).then((r) => { resumosPosts = r; postsDestaque = lista; pintarDestaques(); }).catch(() => {});
+  pintarNegocios().catch((e) => console.warn("Explorar (negócios):", e));
+  pintarSugestoes().catch((e) => console.warn("Explorar (sugestões):", e));
+}
+
+// Em alta: as hashtags mais usadas (peso maior para as mais novas). "Subindo" = metade ou mais do uso nas últimas 24 h.
+function pintarAlta(lista) {
+  const conta = new Map(), agora = Date.now();
+  lista.forEach((p) => (p.tags || []).forEach((t) => {
+    const idade = Math.max(0, agora - ms(p.criadoEm));
+    const x = conta.get(t) || { t, n: 0, p: 0, hoje: 0 };
+    x.n++; x.p += 1 / (1 + idade / (3 * DIA)); if (idade < DIA) x.hoje++;
+    conta.set(t, x);
+  }));
+  const top = [...conta.values()].sort((a, b) => b.p - a.p).slice(0, 12);
+  $("secAlta").hidden = !top.length;
+  $("exploraTags").replaceChildren(...top.map((x, i) => {
+    const subindo = x.hoje >= 2 && x.hoje * 2 >= x.n;
+    const a = el("a", "exp-tag" + (i < 3 ? " quente" : "") + (subindo ? " subindo" : "")); a.href = `feed.html?tag=${encodeURIComponent(x.t)}`;
+    a.append(el("b", null, "#" + x.t), el("small", null, subindo ? `${plural(x.hoje, "publicação", "publicações")} hoje` : plural(x.n, "publicação", "publicações")));
+    return a;
+  }));
+}
+
+// Enquetes abertas: as que ainda dá para votar (as que terminam antes vêm primeiro).
+function pintarEnquetes(lista) {
+  const agora = Date.now();
+  const abertas = lista.filter((p) => p.enquete?.pergunta && p.autorId !== eu.uid && (fimDaEnquete(p.enquete) ? fimDaEnquete(p.enquete) > agora : agora - ms(p.criadoEm) < 7 * DIA))
+    .sort((a, b) => (fimDaEnquete(a.enquete) || 9e15) - (fimDaEnquete(b.enquete) || 9e15)).slice(0, 10);
+  $("secEnquetes").hidden = !abertas.length;
+  $("exploraEnquetes").replaceChildren(...abertas.map((p) => {
+    const a = el("a", "exp-enq"); a.href = linkPost(p);
+    const topo = el("div", "enq-topo");
+    topo.append(icone("enquete", "i xs"), el("span", null, p.enquete.anonima ? "Enquete anônima" : "Enquete"));
+    const fim = fimDaEnquete(p.enquete);
+    if (fim) { const f = el("span", "enq-prazo" + (fim - agora < 3 * HORA ? " acabando" : "")); f.append(icone("relogio", "i xs"), document.createTextNode(faltaTexto(fim).replace(/^termina/, "Termina"))); topo.appendChild(f); }
+    const ops = el("div", "enq-ops");
+    (p.enquete.opcoes || []).slice(0, 4).forEach((o) => ops.appendChild(el("span", null, String(o?.texto ?? o ?? ""))));
+    const quem = el("div", "enq-quem");
+    const av = el("span", "avatar"); pintarAvatar(av, p.fotoPerfil, p.nome);
+    quem.append(av, el("small", null, p.nome || "Usuário"), el("b", "enq-votar", "Votar"));
+    a.append(topo, el("strong", "enq-perg", p.enquete.pergunta), ops, quem);
+    return a;
+  }));
+}
+
+// Negócios: os da sua cidade primeiro (bem avaliados e novos); sem nenhum na cidade, os de todo lugar.
+async function pintarNegocios() {
+  const todos = (await negociosRecentes()).filter((n) => n.donoId !== eu.uid);
+  const cid = minhaCidade();
+  const daCidade = cid ? todos.filter((n) => chaveCidade(n.cidade) === cid) : [];
+  const base = (daCidade.length >= 3 ? daCidade : todos).slice(0, 60);
+  const nota = await notasDe(base);
+  const agora = Date.now();
+  const novo = (n) => agora - ms(n.criadoEm || n.atualizadoEm) < 14 * DIA;
+  const peso = (n) => { const r = nota(n); const m = r?.total ? media(r) : 0; return (r?.total ? m * m * (1 + Math.log1p(r.total)) / 5 : 0.8) * (novo(n) ? 1.6 : 1) / (1 + (agora - ms(n.atualizadoEm)) / (30 * DIA)); };
+  const top = base.sort((a, b) => peso(b) - peso(a)).slice(0, 12);
+  $("secNegocios").hidden = !top.length;
+  if (!top.length) return;
+  const cidade = daCidade.length >= 3 ? nomeCid(dados.cidade || dados.cidadeNome) : "";
+  $("titNegocios").textContent = cidade ? `Negócios em ${cidade}` : "Negócios em destaque";
+  $("subNegocios").textContent = cidade ? "Bem avaliados e novidades perto de você" : "Bem avaliados e novidades no Help Floripa";
+  $("exploraNegocios").replaceChildren(...top.map((n) => {
+    const a = el("a", "exp-neg"); a.href = linkNegocio(n);
+    a.style.setProperty("--c", CORES_TIPO[n.tipo] || "var(--accent)");
+    const capa = el("div", "capa");
+    const f = urlSegura((n.fotos || []).find((x) => urlSegura(x))) || urlSegura(n.foto);
+    const img = document.createElement("img"); img.src = f || IMG_TIPO[n.tipo]; img.alt = ""; img.loading = "lazy"; img.decoding = "async";
+    capa.append(img, el("span", "tag", NOME_TIPO(n.tipo)));
+    if (novo(n)) capa.appendChild(el("span", "novo", "Novo"));
+    const tx = el("div", "tx");
+    tx.append(el("strong", null, n.nome), el("small", null, [nomeCategoria(n), n.bairro || nomeCid(n.cidade)].filter(Boolean).join(" · ")));
+    const r = nota(n);
+    const nt = el("span", "nota");
+    if (r?.total) nt.append(icone("estrela", "i xs"), document.createTextNode(`${media(r).toFixed(1).replace(".", ",")} (${r.total})`));
+    else nt.textContent = "Sem avaliações ainda";
+    tx.appendChild(nt);
+    a.append(capa, tx);
+    return a;
+  }));
+}
+
+// Sugestões: quem é da sua rede (seguido por quem você segue), quem segue você, gente da sua cidade e quem esteve ativo.
+const CHAVE_DISPENSADOS = "hf-sug-dispensados";
+async function pintarSugestoes() {
+  const fora = new Set(lerLocal(CHAVE_DISPENSADOS, []));
+  const pode = (u) => u && u !== eu.uid && !meusSeguindo.has(u) && !escondido(u) && !fora.has(u);
+  const [recentes, rede, seguidores] = await Promise.all([pessoasRecentes(fb, { limite: 40 }), minhaRede().catch(() => new Map()), meusSeguidores()]);
+  const cand = new Map();
+  recentes.forEach((p) => { if (pode(p.uid)) cand.set(p.uid, p); });
+  // Da rede e quem segue você, mesmo sem ter entrado agora (até 10 perfis a mais).
+  const extras = [...new Set([...seguidores, ...rede.keys()])].filter((u) => pode(u) && !cand.has(u)).slice(0, 10);
+  (await Promise.all(extras.map((u) => obterPerfil(u).then((p) => ({ uid: u, ...p })).catch(() => null)))).forEach((p) => { if (p?.nome) cand.set(p.uid, p); });
+  const cid = minhaCidade();
+  const pontes = new Map();
+  await Promise.all([...cand.keys()].filter((u) => rede.has(u)).map((u) => obterPerfil(rede.get(u)).then((p) => pontes.set(u, String(p.nome || "").split(" ")[0])).catch(() => {})));
+  const motivo = (p) => seguidores.has(p.uid) ? ["Segue você", 4] : pontes.get(p.uid) ? [`Seguido por ${pontes.get(p.uid)}`, 3]
+    : cid && chaveCidade(p.cidade || p.cidadeNome) === cid ? [`Em ${nomeCid(p.cidade || p.cidadeNome)}`, 1.5] : ["Ativo recentemente", 1];
+  const sug = [...cand.values()].map((p) => ({ p, m: motivo(p) })).sort((a, b) => b.m[1] - a.m[1] || ms(b.p.ultimoAcesso) - ms(a.p.ultimoAcesso)).slice(0, 12);
+  $("secSugestoes").hidden = !sug.length;
+  $("exploraSugestoes").replaceChildren(...sug.map(({ p, m }) => {
+    const c = el("div", "exp-pessoa");
+    const x = el("button", "sug-tirar"); x.type = "button"; x.setAttribute("aria-label", `Não sugerir ${p.nome || "esta pessoa"}`); x.appendChild(icone("fechar", "i xs"));
+    x.addEventListener("click", () => {
+      gravarLocal(CHAVE_DISPENSADOS, [p.uid, ...lerLocal(CHAVE_DISPENSADOS, []).filter((u) => u !== p.uid)].slice(0, 200));
+      c.classList.add("saindo"); setTimeout(() => { c.remove(); if (!$("exploraSugestoes").children.length) $("secSugestoes").hidden = true; }, 200);
+    });
+    const av = el("div", "avatar"); pintarAvatar(av, p.fotoPerfil, p.nome);
+    const nome = el("strong", null, p.nome || "Usuário");
+    const sub = el("small", null, p.nickname ? "@" + p.nickname : "Help Floripa");
+    const mot = el("span", "sug-motivo" + (m[1] >= 3 ? " forte" : ""), m[0]);
+    const abrir = () => ganchos.abrirPerfil(p.uid);
+    av.addEventListener("click", abrir); nome.addEventListener("click", abrir);
+    c.append(x, av, nome, sub, mot, botaoSeguir(p.uid, { meSegue: seguidores.has(p.uid) }));
+    return c;
+  }));
+}
+
+// Destaques: mosaico pelo engajamento e pelo seu gosto, com filtros e "Ver mais".
+const FILTROS_DEST = [["tudo", "Tudo"], ["fotos", "Fotos"], ["videos", "Vídeos"], ["textos", "Textos"]];
+const tipoPost = (p) => (p.mediaTipo === "video" && urlSegura(p.mediaUrl) ? "videos" : fotosDoPost(p).length ? "fotos" : "textos");
+let filtroDest = lerLocal("hf-explorar-filtro", "tudo"), mostrarDest = 12, resumosPosts = new Map(), postsDestaque = [];
+if (!FILTROS_DEST.some(([id]) => id === filtroDest)) filtroDest = "tudo";
+function pintarDestaques() {
+  const agora = Date.now();
+  const nota = (p) => {
+    const r = resumosPosts.get(p.id) || { total: 0, soma: 0 };
+    const horas = Math.max(0, (agora - (ms(p.criadoEm) || agora)) / HORA);
+    return (1 + r.total + Math.max(0, r.soma - 3 * r.total) * 0.4) * (1 + afinidade(p)) / Math.pow(horas + 6, 0.8);
+  };
+  const base = postsDestaque.filter((p) => p.autorId !== eu.uid && (tipoPost(p) !== "textos" || String(p.texto || p.enquete?.pergunta || "").trim().length >= 8));
+  const conta = Object.fromEntries(FILTROS_DEST.map(([id]) => [id, id === "tudo" ? base.length : base.filter((p) => tipoPost(p) === id).length]));
+  const lista = base.filter((p) => filtroDest === "tudo" || tipoPost(p) === filtroDest).sort((a, b) => nota(b) - nota(a));
+  $("secDestaques").hidden = base.length < 3;
+  $("filtrosDestaque").replaceChildren(...FILTROS_DEST.filter(([id]) => id === "tudo" || conta[id]).map(([id, nome]) => {
+    const b = el("button", null, nome); b.type = "button"; b.setAttribute("role", "tab"); b.setAttribute("aria-selected", String(filtroDest === id));
+    b.addEventListener("click", () => { filtroDest = id; mostrarDest = 12; gravarLocal("hf-explorar-filtro", id); pintarDestaques(); });
+    return b;
+  }));
+  $("exploraGrade").replaceChildren(...(lista.length ? lista.slice(0, mostrarDest).map((p, i) => tilePost(p, resumosPosts.get(p.id), i % 12 === 0)) : [el("div", "lista-vazia", "Nada por aqui ainda.")]));
+  $("maisDestaques").hidden = lista.length <= mostrarDest;
+}
+function tilePost(p, r, grande) {
+  const tipo = tipoPost(p);
+  const a = el("a", "exp-tile" + (grande ? " grande" : "") + (tipo === "textos" ? " texto" : "")); a.href = linkPost(p);
+  a.setAttribute("aria-label", `Publicação de ${p.nome || "alguém"}`);
+  if (tipo === "fotos") {
+    const im = document.createElement("img"); im.src = fotosDoPost(p)[0]; im.alt = ""; im.loading = "lazy"; im.decoding = "async";
+    a.appendChild(im);
+    if (fotosDoPost(p).length > 1) a.appendChild(icone("fotos", "i xs marca"));
+  } else if (tipo === "videos") {
+    const v = document.createElement("video"); v.src = urlSegura(p.mediaUrl); v.muted = true; v.playsInline = true; v.preload = "metadata"; v.setAttribute("aria-hidden", "true");
+    a.append(v, icone("play", "i xs marca"));
+  } else {
+    let h = 0; for (const c of String(p.id)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+    a.dataset.tom = String(h % 5);
+    if (p.enquete?.pergunta) a.appendChild(icone("enquete", "i xs marca"));
+    a.append(el("p", null, String(p.enquete?.pergunta || p.texto || "").slice(0, 160)), el("span", "exp-autor", p.nome || ""));
+  }
+  if (r?.total) { const nt = el("span", "exp-nota"); nt.append(icone("estrela", "i"), document.createTextNode((r.soma / r.total).toFixed(1).replace(".", ","))); a.appendChild(nt); }
+  if (grande && tipo !== "textos") a.appendChild(el("span", "exp-quem", p.nome || ""));
+  return a;
+}
+
+// ---------- ligações ----------
+$("buscaPessoas").addEventListener("input", () => { clearTimeout(tempoBusca); pintarRecentes(); tempoBusca = setTimeout(buscar, 300); });
+$("buscaPessoas").addEventListener("focus", pintarRecentes);
+$("buscaPessoas").addEventListener("blur", () => setTimeout(pintarRecentes, 150));
+$("buscaPessoas").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); guardarBusca($("buscaPessoas").value); clearTimeout(tempoBusca); buscar(); $("buscaPessoas").blur(); } });
+// Abrir um resultado guarda a busca.
+$("listaPessoas").addEventListener("click", (e) => { if ($("buscaPessoas").value.trim() && e.target.closest("a, .linha")) guardarBusca($("buscaPessoas").value); }, true);
+$("maisDestaques").addEventListener("click", () => { mostrarDest += 12; pintarDestaques(); });
