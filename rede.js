@@ -1020,6 +1020,64 @@ let salvos = null;
 const listaSalvos = () => { if (!salvos) salvos = Array.isArray(dados?.salvos) ? dados.salvos.slice(-300) : []; return salvos; };
 export const estaSalvo = (id) => listaSalvos().includes(id);
 export const idsSalvos = () => listaSalvos().slice().reverse(); // mais recentes primeiro
+// Coleções dos salvos (usuarios/{uid}.colecoes = [{ id, nome, ids: [postId...] }], só a própria pessoa vê; sem regra nova).
+let colecoes = null;
+export const listaColecoes = () => (colecoes ||= (Array.isArray(dados?.colecoes) ? dados.colecoes : []).filter((c) => c && c.id && Array.isArray(c.ids)).map((c) => ({ id: String(c.id), nome: String(c.nome || "Coleção").slice(0, 40), ids: c.ids.slice(-300) })).slice(0, 30));
+export async function gravarColecoes(lista) {
+  const antes = listaColecoes();
+  colecoes = lista;
+  try { await fb.setDoc(refUsuario, { colecoes: lista }, { merge: true }); if (dados) dados.colecoes = lista; return true; }
+  catch (e) { colecoes = antes; toast("Não foi possível salvar a coleção: " + erroAmigavel(e)); return false; }
+}
+function tirarDasColecoes(postId) {
+  const l = listaColecoes();
+  if (l.some((c) => c.ids.includes(postId))) gravarColecoes(l.map((c) => ({ ...c, ids: c.ids.filter((x) => x !== postId) })));
+}
+export async function novaColecao(nome) {
+  const n = String(nome || "").trim().replace(/\s+/g, " ").slice(0, 40);
+  if (!n) return null;
+  if (listaColecoes().length >= 30) { toast("Você chegou ao limite de 30 coleções."); return null; }
+  if (listaColecoes().some((c) => c.nome.toLowerCase() === n.toLowerCase())) { toast("Já existe uma coleção com esse nome."); return null; }
+  const c = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), nome: n, ids: [] };
+  return (await gravarColecoes([...listaColecoes(), c])) ? c : null;
+}
+// "Salvar em": marcar/desmarcar as coleções da publicação (salva também em Todos os salvos).
+export function escolherColecao(post, aoMudar) {
+  const corpo = abrirLista("Salvar em");
+  const pintar = () => {
+    const l = listaColecoes();
+    const linhas = l.map((c) => {
+      const dentro = c.ids.includes(post.id);
+      const b = el("button", "col-linha" + (dentro ? " dentro" : "")); b.type = "button"; b.setAttribute("aria-pressed", String(dentro));
+      const ic = el("span", "col-ic"); ic.appendChild(icone("salvo", "i s"));
+      const tx = el("span", "col-tx"); tx.append(el("strong", null, c.nome), el("small", null, `${c.ids.length} ${c.ids.length === 1 ? "item" : "itens"}`));
+      const ok = el("span", "col-ok"); ok.appendChild(icone("check", "i xs"));
+      b.append(ic, tx, ok);
+      b.addEventListener("click", async () => {
+        if (!estaSalvo(post.id)) await alternarSalvo(post);
+        const nova = listaColecoes().map((x) => (x.id !== c.id ? x : { ...x, ids: dentro ? x.ids.filter((i) => i !== post.id) : [...x.ids, post.id] }));
+        if (await gravarColecoes(nova)) { pintar(); aoMudar?.(); toast(dentro ? `Removida de “${c.nome}”` : `Salva em “${c.nome}”`); }
+      });
+      return b;
+    });
+    const form = el("form", "col-nova");
+    const campo = document.createElement("input"); campo.maxLength = 40; campo.placeholder = "Nova coleção (ex.: Ideias, Lugares, Receitas)"; campo.setAttribute("aria-label", "Nome da nova coleção");
+    const bt = el("button", "btn pri mini"); bt.type = "submit"; bt.append(icone("mais", "i xs"), document.createTextNode("Criar"));
+    form.append(campo, bt);
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault(); bt.disabled = true;
+      const c = await novaColecao(campo.value);
+      if (c) {
+        if (!estaSalvo(post.id)) await alternarSalvo(post);
+        await gravarColecoes(listaColecoes().map((x) => (x.id === c.id ? { ...x, ids: [post.id] } : x)));
+        toast(`Salva em “${c.nome}”`); pintar(); aoMudar?.();
+      }
+      bt.disabled = false;
+    });
+    corpo.replaceChildren(el("p", "col-sub", "Organize o que você salvou. Só você vê suas coleções."), ...linhas, form);
+  };
+  pintar();
+}
 export async function alternarSalvo(post) {
   const ja = estaSalvo(post.id);
   salvos = ja ? listaSalvos().filter((x) => x !== post.id) : [...listaSalvos(), post.id];
@@ -1029,7 +1087,8 @@ export async function alternarSalvo(post) {
     const reg = fb.doc(fb.db, "salvamentos", `${post.id}_${eu.uid}`);
     (ja ? fb.deleteDoc(reg) : fb.setDoc(reg, { postId: post.id, uid: eu.uid, postAutorId: post.autorId, criadoEm: fb.serverTimestamp() })).catch(() => {});
     if (!ja) registrarGosto(post, PESO.salvar, eu.uid);
-    toast(ja ? "Removida dos salvos" : "Publicação salva. Veja no seu Perfil → Salvos.");
+    if (ja) tirarDasColecoes(post.id);
+    toast(ja ? "Removida dos salvos" : listaColecoes().length ? "Salva · toque para pôr numa coleção" : "Salva no seu Perfil → Salvos · toque para criar uma coleção", ja ? null : () => escolherColecao(post));
     return !ja;
   } catch (e) {
     salvos = ja ? [...listaSalvos(), post.id] : listaSalvos().filter((x) => x !== post.id);

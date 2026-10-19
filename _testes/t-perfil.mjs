@@ -30,7 +30,7 @@ const ab = await pa.locator("#meuPerfil .pf-anel").boundingBox();
 await pa.mouse.move(ab.x + ab.width / 2, ab.y + ab.height / 3); await pa.mouse.down(); await pa.waitForTimeout(650); await pa.mouse.up();
 await pa.waitForSelector(".foto-grande", { timeout: 3000 }).catch(() => {});
 const rots = await pa.locator(".foto-grande .fg-rot").allTextContents();
-ok(rots.join("|") === "Compartilhar perfil|Copiar link|Editar perfil|Estatísticas" && await pa.locator(".foto-grande .fg-lapis").count() === 1, "segurar a foto: foto grande, lápis e opções → " + rots.join(" / "));
+ok(rots.join("|") === "Novo flash|Compartilhar perfil|Copiar link|Editar perfil" && await pa.locator(".foto-grande .fg-lapis").count() === 1, "segurar a foto: foto grande, lápis e opções → " + rots.join(" / "));
 await pa.waitForTimeout(400);
 await pa.screenshot({ path: "saida/foto-grande.png" });
 await pa.keyboard.press("Escape"); await pa.waitForTimeout(400);
