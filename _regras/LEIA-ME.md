@@ -1,33 +1,35 @@
 # Regras do Firestore — publicação
 
-> **Versão de 14/10/2026:** igual à publicada em 13/10, mais **várias fotos numa publicação do Diário**
+> **Versão de 19/10/2026:** igual à publicada em 13/10, mais **várias fotos numa publicação do Diário**
 > (campo `midias`, de 2 a 4 fotos), **dar estrelas na própria publicação** o **resumo das estrelas**
 > (`diario_notas`: média e quantas pessoas deram 5, 4, 3, 2 e 1 estrela) e os **comentários novos** (quem pode
 > comentar, comentário fixado e reações com emoji), **stories**, **hashtags e marcações**, **agendar**, **rascunhos**,
 > **alcance e salvos** (estatísticas), o **aviso de reação** no comentário, **enquetes** (publicação e Flash, votos em
-> `enquete_votos`, voto único: não troca nem tira), **menções e configurações do Flash** (respostas, público, amigos próximos, ocultar de) e
-> **quem pode me marcar** (`pref_publicas`). Para publicar, o processo é o mesmo: apagar tudo no console e colar as 10 partes.
+> `enquete_votos`, voto único: não troca nem tira), **menções e configurações do Flash** (respostas, público, amigos próximos, ocultar de),
+> **quem pode me marcar** (`pref_publicas`), **duração da enquete** (`fimEm`: votar só até o fim), **enquete anônima**
+> (`enquete_anon` + `enquete_contas`) e **caixa de perguntas** (`caixa_respostas`, anônima com `caixa_autoria`).
+> Para publicar, o processo é o mesmo: apagar tudo no console e colar as 11 partes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
-`firestore.rules` divididas em **10 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
+`firestore.rules` divididas em **11 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
-- Arquivo de origem: `firestore.rules` (116.867 bytes, 2.098 linhas, sha256 começa com `acdecf8d6542cfc6`).
-- Cada parte termina com a linha `// ===== FIM DA PARTE X DE 10 =====`. É um comentário: **pode colar junto**,
+- Arquivo de origem: `firestore.rules` (128.346 bytes, 2.275 linhas, sha256 começa com `83c641f3ed0ae994`).
+- Cada parte termina com a linha `// ===== FIM DA PARTE X DE 11 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
-- Conferido: as 10 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **191 passaram, 0 falharam**, sem o aviso de limite de 1.000 expressões.
+- Conferido: as 11 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
+- Testes de regras no arquivo remontado: **255 passaram, 0 falharam**, sem o aviso de limite de 1.000 expressões.
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.
 2. Clique dentro do editor, selecione tudo (Ctrl+A, ou "Selecionar tudo" no celular) e **apague**.
-3. Abra `parte-1-de-10.txt`, copie **tudo** e cole no editor.
-4. Vá até o fim do que colou (depois da linha `// ===== FIM DA PARTE 1 DE 10 =====`), abra a parte 2,
-   copie tudo e cole logo abaixo. Repita até a parte 10, **em ordem**.
+3. Abra `parte-1-de-11.txt`, copie **tudo** e cole no editor.
+4. Vá até o fim do que colou (depois da linha `// ===== FIM DA PARTE 1 DE 11 =====`), abra a parte 2,
+   copie tudo e cole logo abaixo. Repita até a parte 11, **em ordem**.
 5. Confira: a primeira linha do editor é `rules_version = '2';` e a última é
-   `// ===== FIM DA PARTE 10 DE 10 =====`, logo depois de uma linha só com `}`.
+   `// ===== FIM DA PARTE 11 DE 11 =====`, logo depois de uma linha só com `}`.
 6. Clique em **Publicar**. Se o console mostrar um erro (linha vermelha), **não publique**: provavelmente
-   uma parte ficou faltando ou repetida. Confira se as 10 linhas `FIM DA PARTE` aparecem, de 1 a 10, uma vez cada.
+   uma parte ficou faltando ou repetida. Confira se as 11 linhas `FIM DA PARTE` aparecem, de 1 a 11, uma vez cada.
 
 > As regras do ar continuam valendo até o clique em Publicar. A troca leva até 1 minuto para valer.
 
@@ -45,6 +47,11 @@ linha), para colar no console do Firebase.
 - **Stories (24 h), hashtags, marcar pessoas, agendar, rascunhos e estatísticas (alcance, salvos, origem):** só
   funcionam depois de publicar. Antes disso, a publicação sai sem hashtags/marcações, agendar e rascunho avisam
   que falta publicar, e as estatísticas mostram só estrelas e comentários.
+- **Enquetes** (publicação e Flash): duração (1 h a 1 dia, ou personalizada até 7 dias), votar só até o fim,
+  **votação anônima** e o resultado nas notificações de quem votou e do dono. Antes de publicar, publicar uma enquete avisa
+  que falta publicar as regras.
+- **Caixa de perguntas** (publicação e Flash), com nome ou **anônima**: quem vê escreve a resposta e o dono recebe nas
+  notificações. Antes de publicar, ela avisa que falta publicar as regras.
 - O resto (toque duplo para dar estrelas, quem deu estrelas, Salvos, editar legenda) já funciona com as regras de hoje.
 
 ## Conferência no site depois de publicar
