@@ -251,41 +251,71 @@ function abrirCriador({ repost = null } = {}) {
   const linhaBaixo = el("div", "flash-linha"); linhaBaixo.append(modos, publicar);
   const dica = el("small", "flash-dica", "Fica 24 horas para quem segue você · você vê quem viu");
   // "Publicar em": seu perfil e/ou os seus perfis de negócio (um, alguns ou todos). Só aparece se você tem negócio.
-  const destinos = el("div", "flash-destinos"); destinos.hidden = true;
+  // Fica num botão da barra de cima (e nas figurinhas), para não ocupar o espaço embaixo do cartão.
   const dest = { perfil: true, negocios: new Set() };
   let meusNeg = [];
-  const pintarDestinos = () => {
+  const bOnde = el("button", "flash-ferr-btn flash-onde"); bOnde.type = "button"; bOnde.title = "Publicar em"; bOnde.setAttribute("aria-label", "Onde publicar");
+  const contaOnde = el("b", "flash-onde-n");
+  bOnde.append(icone("loja", "i s"), contaOnde);
+  const resumoDestino = () => {
     const nomes = meusNeg.filter((n) => dest.negocios.has(n.id)).map((n) => n.nome);
-    const chip = (rot, on, av, fn, cls = "") => {
-      const b = el("button", "flash-dest " + cls + (on ? " on" : "")); b.type = "button"; b.setAttribute("aria-pressed", String(on));
-      b.append(av, el("span", null, rot), el("i", "ok"));
+    const onde = [dest.perfil ? "no seu perfil" : "", ...nomes].filter(Boolean);
+    const total = onde.length;
+    contaOnde.textContent = String(total); contaOnde.hidden = total < 2 && dest.perfil;
+    bOnde.classList.toggle("on", !!dest.negocios.size);
+    bOnde.setAttribute("aria-label", `Onde publicar: ${onde.join(", ")}`);
+    dica.textContent = !meusNeg.length ? "Fica 24 horas para quem segue você · você vê quem viu"
+      : `Fica 24 h ${total > 1 ? "em " + onde.slice(0, -1).join(", ") + " e " + onde.slice(-1) : onde[0] === "no seu perfil" ? "no seu perfil" : "no perfil de " + onde[0]} · toque para mudar`;
+    dica.classList.toggle("clicavel", !!meusNeg.length);
+  };
+  function escolherDestinos() {
+    palco.querySelector(".flash-figs")?.remove();
+    const pn = el("div", "flash-figs");
+    const cab = el("div", "fe-cab"); const ok = el("button", "fe-pronto", "Pronto"); ok.type = "button";
+    cab.append(el("strong", "figs-tit", "Publicar em"), el("span", "esp"), ok);
+    const lista = el("div", "mencao-lista");
+    const corpo = el("div", "mencao-corpo"); corpo.append(el("p", "figs-dica", "Escolha onde o flash aparece: no seu perfil e/ou nos perfis dos seus negócios (um, alguns ou todos)."), lista);
+    pn.append(cab, corpo);
+    palco.appendChild(pn);
+    ok.addEventListener("click", () => pn.remove());
+    const linha = (rot, sub, on, av, fn) => {
+      const b = el("button", "mencao-item flash-dest-item" + (on ? " on" : "")); b.type = "button"; b.setAttribute("aria-pressed", String(on));
+      const tx = el("span", "tx"); tx.append(el("strong", null, rot), el("small", null, sub));
+      b.append(av, tx, el("i", "ok"));
       b.addEventListener("click", fn);
       return b;
     };
-    const avEu = el("span", "avatar"); pintarAvatar(avEu, dados.fotoPerfil, dados.nome);
-    destinos.replaceChildren(el("strong", "flash-dest-tit", "Publicar em"), el("div", "flash-dest-lista"));
-    const lista = destinos.lastChild;
-    lista.appendChild(chip("Seu perfil", dest.perfil, avEu, () => { if (dest.perfil && !dest.negocios.size) { toast("Escolha pelo menos um lugar para publicar."); return; } dest.perfil = !dest.perfil; pintarDestinos(); }));
-    meusNeg.forEach((n) => {
-      const av = el("span", "avatar neg-av " + n.tipo);
-      if (n.foto && /^(data:image|https:)/.test(n.foto)) pintarAvatar(av, n.foto, n.nome); else av.appendChild(icone(ICONE_NEGOCIO[n.tipo] || "loja", "i xs"));
-      lista.appendChild(chip(n.nome || "Negócio", dest.negocios.has(n.id), av, () => {
-        if (dest.negocios.has(n.id)) { if (!dest.perfil && dest.negocios.size === 1) { toast("Escolha pelo menos um lugar para publicar."); return; } dest.negocios.delete(n.id); }
-        else dest.negocios.add(n.id);
-        pintarDestinos();
+    const pintarL = () => {
+      const avEu = el("span", "avatar"); pintarAvatar(avEu, dados.fotoPerfil, dados.nome);
+      lista.replaceChildren(linha("Seu perfil", "Diário e o anel do seu perfil, para quem segue você", dest.perfil, avEu, () => {
+        if (dest.perfil && !dest.negocios.size) { toast("Escolha pelo menos um lugar para publicar."); return; }
+        dest.perfil = !dest.perfil; pintarL(); resumoDestino();
+      }), ...meusNeg.map((n) => {
+        const av = el("span", "avatar neg-av " + n.tipo);
+        if (n.foto && /^(data:image|https:)/.test(n.foto)) pintarAvatar(av, n.foto, n.nome); else av.appendChild(icone(ICONE_NEGOCIO[n.tipo] || "loja", "i xs"));
+        return linha(n.nome || "Negócio", "Perfil do negócio: aparece com o anel do Flash", dest.negocios.has(n.id), av, () => {
+          if (dest.negocios.has(n.id)) { if (!dest.perfil && dest.negocios.size === 1) { toast("Escolha pelo menos um lugar para publicar."); return; } dest.negocios.delete(n.id); }
+          else dest.negocios.add(n.id);
+          pintarL(); resumoDestino();
+        });
       }));
-    });
-    const onde = [dest.perfil ? "no seu perfil" : "", ...nomes].filter(Boolean);
-    dica.textContent = `Fica 24 horas ${onde.length > 1 ? "em " + onde.slice(0, -1).join(", ") + " e " + onde.slice(-1) : onde[0] === "no seu perfil" ? "no seu perfil, para quem segue você" : "no perfil de " + onde[0]} · você vê quem viu`;
-  };
+    };
+    pintarL();
+  }
+  bOnde.addEventListener("click", escolherDestinos);
+  dica.addEventListener("click", () => { if (meusNeg.length) escolherDestinos(); });
   fb.getDocs(fb.query(fb.collection(fb.db, "negocios"), fb.where("donoId", "==", eu.uid), fb.limit(8))).then((x) => {
     meusNeg = x.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => PAGINA_NEGOCIO[n.tipo] && /^[A-Za-z0-9]+_(servicos|delivery|lojinha|imoveis)$/.test(n.id));
     if (!meusNeg.length) return;
-    destinos.hidden = false; pintarDestinos();
+    // Onde publicar por padrão (Configurações do Flash)
+    const cfg = configFlash();
+    cfg.ondeNegocios.filter((id) => meusNeg.some((n) => n.id === id)).forEach((id) => dest.negocios.add(id));
+    dest.perfil = cfg.ondePerfil || !dest.negocios.size;
+    resumoDestino(); pintar();
   }).catch(() => {});
   // Campos do lugar escolhido (vão em todo flash publicado por este criador).
   const camposDestino = () => (dest.negocios.size ? { negocios: [...dest.negocios].slice(0, 4), ...(dest.perfil ? {} : { perfil: false }) } : {});
-  baixo.append(destinos, linhaBaixo, dica);
+  baixo.append(linhaBaixo, dica);
   // Moldura com o degradê do Flash em volta do cartão (que ocupa quase a tela toda).
   const moldura = el("div", "flash-moldura"); moldura.appendChild(palco);
   caixa.append(moldura, baixo);
@@ -370,6 +400,7 @@ function abrirCriador({ repost = null } = {}) {
       bLetra.style.font = L.css.replace("1em", "15px");
       palco.appendChild(area);
       ferramentas.append(bLetra, bFundo);
+      if (meusNeg.length) ferramentas.append(bOnde);
       setTimeout(() => area.focus(), 60);
     } else if (cam) {
       midiaBox.appendChild(camBox);
@@ -385,9 +416,10 @@ function abrirCriador({ repost = null } = {}) {
       if (foto) {
         midiaBox.appendChild(fotoBox); posicionar(); pintarFiltroNaTela();
         ferramentas.append(bAa, bFig, bFiltros, bTrocar);
+        if (meusNeg.length) ferramentas.prepend(bOnde);
         bFiltros.classList.toggle("on", filtrosAbertos);
         if (filtrosAbertos) { pintarTira(); palco.appendChild(tiraFiltros); }
-      } else { midiaBox.appendChild(video.el); ferramentas.append(bTrocar); }
+      } else { midiaBox.appendChild(video.el); ferramentas.append(bTrocar); if (meusNeg.length) ferramentas.prepend(bOnde); }
       palco.appendChild(legenda);
     } else {
       palco.appendChild(escolher);
@@ -549,6 +581,14 @@ function abrirCriador({ repost = null } = {}) {
     const grade = el("div", "figs-grade");
     const localPerfil = [dados.bairro, nomeCidade(dados.cidade || dados.cidadeNome)].filter(Boolean).join(", ");
     // Enquete e menção (interativas) primeiro
+    // Onde publicar (seu perfil e/ou os perfis dos seus negócios): o primeiro da lista, quando você tem negócio.
+    if (meusNeg.length) {
+      const b = el("button", "fig-op"); b.type = "button";
+      const amostra = el("span", "flash-fig amostra-fig fig-enq"); amostra.append(icone("loja", "i s"), document.createTextNode("PUBLICAR EM"));
+      b.append(amostra, el("small", null, dest.negocios.size ? `${dest.negocios.size + (dest.perfil ? 1 : 0)} lugares` : "Seus negócios"));
+      b.addEventListener("click", () => { pn.remove(); escolherDestinos(); });
+      grade.appendChild(b);
+    }
     [["enq", "Enquete", "enquete"], ["cx", "Perguntas", "caixa"], ["mencao", "Menção", "pessoa-mais"], ["lk", "Link", "loja"]].forEach(([k, rot, ic]) => {
       const b = el("button", "fig-op"); b.type = "button";
       const amostra = el("span", `flash-fig amostra-fig fig-${k === "cx" || k === "lk" ? "enq" : k}`); amostra.append(icone(ic, "i s"), document.createTextNode(k === "enq" ? "ENQUETE" : k === "cx" ? "PERGUNTAS" : k === "lk" ? "NEGÓCIO" : "@MENÇÃO"));
@@ -1058,7 +1098,7 @@ function abrirCriador({ repost = null } = {}) {
     return;
   }
   // Câmera já liberada antes: abre direto nela (como Instagram e TikTok). Sem permissão: fica a escolha Câmera/Galeria.
-  navigator.permissions?.query?.({ name: "camera" }).then((p) => { if (p.state === "granted" && modo === "foto" && !foto && !video) abrirCamera(); }).catch(() => {});
+  if (configFlash().cameraDireto) navigator.permissions?.query?.({ name: "camera" }).then((p) => { if (p.state === "granted" && modo === "foto" && !foto && !video) abrirCamera(); }).catch(() => {});
 }
 
 // Flash de texto: quadro 1080×1920 com o fundo e a letra escolhidos (vira uma foto JPEG).
@@ -1130,49 +1170,118 @@ export function configFlash() {
     publico: c.publico === "amigos" ? "amigos" : "todos",
     amigos: Array.isArray(c.amigos) ? c.amigos : [],
     ocultarDe: Array.isArray(c.ocultarDe) ? c.ocultarDe : [],
-    salvarAparelho: !!c.salvarAparelho
+    salvarAparelho: !!c.salvarAparelho,
+    cameraDireto: c.cameraDireto !== false,           // abre a câmera do app direto (quando já tem permissão)
+    somVideo: c.somVideo === true,                    // vídeos dos flashes começam com som
+    ondePerfil: c.ondePerfil !== false,               // onde publicar por padrão: seu perfil...
+    ondeNegocios: Array.isArray(c.ondeNegocios) ? c.ondeNegocios.slice(0, 4) : [] // ...e estes negócios
   };
 }
 async function salvarConfigFlash(c) {
   dados.flashConfig = c;
   try { await fb.setDoc(refUsuario, { flashConfig: c }, { merge: true }); } catch (e) { toast("Não foi possível salvar: " + erroAmigavel(e)); }
 }
+// Configurações do Flash (cartões por assunto): seus flashes agora, quem vê, onde publicar, respostas,
+// câmera e vídeo, salvar no aparelho e menções. Tudo em usuarios/{uid}.flashConfig (só a própria pessoa).
 export function abrirConfigFlash() {
-  const corpo = abrirLista("Configurações do Flash");
+  const raiz = el("div", "cfg2");
+  abrirLista("Configurações do Flash").appendChild(raiz);
+  const corpo = raiz;
+  let meusNeg = null, ativos = null;
   const pintar = () => {
     const c = configFlash();
+    const salvar = async (mud) => { await salvarConfigFlash({ ...configFlash(), ...mud }); pintar(); };
     corpo.replaceChildren();
-    const secao = (titulo, sub) => { const s = el("div", "cfgf-secao"); s.append(el("h3", null, titulo)); if (sub) s.append(el("p", null, sub)); corpo.appendChild(s); return s; };
-    const opcoesR = (s, valores, atual, aoEscolher) => {
-      const g = el("div", "cfgf-opcoes");
+    const cartao = (ic, cor, titulo, sub) => {
+      const k = el("section", "cfg2-card");
+      const cab = el("div", "cfg2-cab");
+      const t = el("span", "cfg2-ic"); t.style.setProperty("--c", cor); t.appendChild(icone(ic, "i s"));
+      const tx = el("div", "cfg2-tx"); tx.append(el("h3", null, titulo)); if (sub) tx.append(el("p", null, sub));
+      cab.append(t, tx); k.appendChild(cab); corpo.appendChild(k);
+      return k;
+    };
+    const linha = (rot, sub, dir, fn) => {
+      const b = el(fn ? "button" : "div", "cfg2-linha"); if (fn) { b.type = "button"; b.addEventListener("click", fn); }
+      const tx = el("span", "tx"); tx.append(el("strong", null, rot)); if (sub) tx.append(el("small", null, sub));
+      b.append(tx); if (dir) b.append(dir); return b;
+    };
+    const chave = (on, fn) => {
+      const l = el("label", "switch"); const i = el("input"); i.type = "checkbox"; i.checked = on;
+      i.addEventListener("change", () => fn(i.checked)); l.append(i, el("span")); l.addEventListener("click", (e) => e.stopPropagation()); return l;
+    };
+    const opcoes = (k, valores, atual, fn) => {
+      const g = el("div", "cfg2-seg"); g.setAttribute("role", "radiogroup");
       valores.forEach(([v, rot, sub]) => {
-        const b = el("button", "cfgf-op" + (v === atual ? " on" : "")); b.type = "button"; b.setAttribute("aria-pressed", String(v === atual));
-        const tx = el("span", "tx"); tx.append(el("strong", null, rot)); if (sub) tx.append(el("small", null, sub));
-        b.append(el("span", "radio"), tx);
-        b.addEventListener("click", async () => { await aoEscolher(v); pintar(); });
+        const b = el("button", "cfg2-op" + (v === atual ? " on" : "")); b.type = "button"; b.setAttribute("role", "radio"); b.setAttribute("aria-checked", String(v === atual));
+        b.append(el("span", "radio"), el("span", "tx")); b.lastChild.append(el("strong", null, rot)); if (sub) b.lastChild.append(el("small", null, sub));
+        b.addEventListener("click", () => { if (v !== atual) fn(v); });
         g.appendChild(b);
       });
-      s.appendChild(g);
+      k.appendChild(g);
     };
-    const s1 = secao("Quem pode compartilhar com você", "Para quem os seus próximos flashes aparecem.");
-    opcoesR(s1, [["todos", "Todos que seguem você"], ["amigos", "Amigos próximos", `${c.amigos.length} ${c.amigos.length === 1 ? "pessoa" : "pessoas"} · anel verde`]], c.publico, (v) => salvarConfigFlash({ ...c, publico: v }));
-    const bAm = el("button", "btn sec mini", "Editar Amigos próximos"); bAm.type = "button";
-    bAm.addEventListener("click", async () => { const l = await escolherPessoas("Amigos próximos", c.amigos); if (l) { await salvarConfigFlash({ ...configFlash(), amigos: l }); } abrirConfigFlash(); });
-    s1.appendChild(bAm);
-    const s2 = secao("Ocultar flash de", "Essas pessoas não veem os seus flashes (e não sabem disso).");
-    const bOc = el("button", "btn sec mini", c.ocultarDe.length ? `${c.ocultarDe.length} ${c.ocultarDe.length === 1 ? "pessoa" : "pessoas"} · editar` : "Escolher pessoas"); bOc.type = "button";
-    bOc.addEventListener("click", async () => { const l = await escolherPessoas("Ocultar flash de", c.ocultarDe); if (l) await salvarConfigFlash({ ...configFlash(), ocultarDe: l }); abrirConfigFlash(); });
-    s2.appendChild(bOc);
-    const s3 = secao("Respostas e reações", "Quem pode responder e reagir aos seus flashes (chega no Mensagens).");
-    opcoesR(s3, [["todos", "Todos que veem"], ["seguindo", "Só quem você segue"], ["ninguem", "Ninguém (desligado)"]], c.respostas, (v) => salvarConfigFlash({ ...c, respostas: v }));
-    const s4 = secao("Salvar no aparelho", "Guarda uma cópia de cada flash de foto ou texto que você publicar.");
-    const sw = el("label", "cfgf-switch"); const cb = el("input"); cb.type = "checkbox"; cb.checked = c.salvarAparelho;
-    cb.addEventListener("change", () => salvarConfigFlash({ ...configFlash(), salvarAparelho: cb.checked }));
-    sw.append(el("span", null, "Salvar automaticamente"), cb);
-    s4.appendChild(sw);
-    corpo.appendChild(el("p", "pub-dica", "Valem para os próximos flashes. Os que já estão no ar continuam como foram publicados."));
+    const seta = () => icone("avancar", "i xs cfg2-seta");
+
+    // 1) Seus flashes agora
+    const k0 = cartao("raio", "#ff8a00", "Seus flashes agora", ativos == null ? "Carregando..." : ativos.length ? `${ativos.length} ${ativos.length === 1 ? "flash no ar" : "flashes no ar"} · somem 24 h depois de publicados` : "Nenhum flash no ar agora.");
+    const acoes0 = el("div", "cfg2-acoes");
+    if (ativos?.length) { const v = el("button", "btn sec mini", "Ver e quem viu"); v.type = "button"; v.addEventListener("click", () => { fecharLista(); porAutor.set(eu.uid, ativos); abrirVisor(eu.uid, { so: true }); }); acoes0.appendChild(v); }
+    const nv = el("button", "btn pri mini", "Novo flash"); nv.type = "button"; nv.addEventListener("click", () => { fecharLista(); abrirCriador(); }); acoes0.appendChild(nv);
+    k0.appendChild(acoes0);
+
+    // 2) Quem vê
+    const k1 = cartao("olho", "#00adee", "Quem vê os seus flashes", "Vale para os próximos flashes.");
+    opcoes(k1, [["todos", "Todos que seguem você"], ["amigos", "Amigos próximos", `${c.amigos.length} ${c.amigos.length === 1 ? "pessoa" : "pessoas"} · anel verde`]], c.publico, (v) => salvar({ publico: v }));
+    k1.append(
+      linha("Amigos próximos", c.amigos.length ? `${c.amigos.length} na lista` : "Ninguém na lista ainda", seta(), async () => { const l = await escolherPessoas("Amigos próximos", c.amigos); if (l) await salvarConfigFlash({ ...configFlash(), amigos: l }); abrirConfigFlash(); }),
+      linha("Ocultar flash de", c.ocultarDe.length ? `${c.ocultarDe.length} ${c.ocultarDe.length === 1 ? "pessoa não vê" : "pessoas não veem"} (e não sabem disso)` : "Ninguém oculto", seta(), async () => { const l = await escolherPessoas("Ocultar flash de", c.ocultarDe); if (l) await salvarConfigFlash({ ...configFlash(), ocultarDe: l }); abrirConfigFlash(); })
+    );
+
+    // 3) Onde publicar por padrão (só para quem tem negócio)
+    if (meusNeg?.length) {
+      const k2 = cartao("loja", "#2fbf71", "Onde publicar por padrão", "Já vem marcado no \"Publicar em\" (dá para mudar em cada flash).");
+      const neg = new Set(c.ondeNegocios.filter((id) => meusNeg.some((n) => n.id === id)));
+      k2.appendChild(linha("Seu perfil", "Diário e o anel do seu perfil", chave(c.ondePerfil, (on) => { if (!on && !neg.size) { toast("Deixe pelo menos um lugar marcado."); pintar(); return; } salvar({ ondePerfil: on }); })));
+      meusNeg.forEach((n) => k2.appendChild(linha(n.nome || "Negócio", "Perfil do negócio", chave(neg.has(n.id), (on) => {
+        if (on) neg.add(n.id); else neg.delete(n.id);
+        if (!neg.size && !c.ondePerfil) { toast("Deixe pelo menos um lugar marcado."); pintar(); return; }
+        salvar({ ondeNegocios: [...neg] });
+      }))));
+    }
+
+    // 4) Respostas e reações
+    const k3 = cartao("chat", "#7c5cff", "Respostas e reações", "Chegam no Mensagens como cartão do flash.");
+    opcoes(k3, [["todos", "Todos que veem"], ["seguindo", "Só quem você segue"], ["ninguem", "Ninguém", "Desliga respostas e reações"]], c.respostas, (v) => salvar({ respostas: v }));
+
+    // 5) Câmera e vídeo
+    const k4 = cartao("camera", "#ff3d7f", "Câmera e vídeo");
+    k4.append(
+      linha("Abrir a câmera direto", "Ao criar um flash, já abre a câmera do app (se você deu permissão)", chave(c.cameraDireto, (on) => salvar({ cameraDireto: on }))),
+      linha("Vídeos com som", "Os vídeos dos flashes começam com o som ligado", chave(c.somVideo, (on) => salvar({ somVideo: on })))
+    );
+
+    // 6) Salvar no aparelho
+    const k5 = cartao("imagem", "#f5b301", "Salvar no aparelho");
+    k5.appendChild(linha("Salvar automaticamente", "Guarda uma cópia de cada flash de foto ou texto que você publicar", chave(c.salvarAparelho, (on) => salvar({ salvarAparelho: on }))));
+
+    // 7) Menções
+    const k6 = cartao("pessoa-mais", "#00adee", "Menções", "Quem pode mencionar você nos flashes e publicações.");
+    const a = el("a", "cfg2-linha"); a.href = "configuracoes.html#diario";
+    a.append(el("span", "tx"), seta()); a.firstChild.append(el("strong", null, "Quem pode mencionar você"), el("small", null, "Ajuste em Configurações → Diário e Flash"));
+    k6.appendChild(a);
+
+    corpo.appendChild(el("p", "cfg2-nota", "As escolhas valem para os próximos flashes. Os que já estão no ar continuam como foram publicados."));
   };
+  const fecharLista = () => $("folhaLista")?.querySelector("[data-fechar]")?.click();
   pintar();
+  // Dados que precisam de leitura: seus flashes no ar e os seus negócios.
+  fb.getDocs(fb.query(fb.collection(fb.db, "stories"), fb.where("autorId", "==", eu.uid), fb.limit(30))).then((x) => {
+    ativos = x.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter(ativo).sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm));
+    if (corpo.isConnected) pintar();
+  }).catch(() => { ativos = []; if (corpo.isConnected) pintar(); });
+  fb.getDocs(fb.query(fb.collection(fb.db, "negocios"), fb.where("donoId", "==", eu.uid), fb.limit(8))).then((x) => {
+    meusNeg = x.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => PAGINA_NEGOCIO[n.tipo] && /^[A-Za-z0-9]+_(servicos|delivery|lojinha|imoveis)$/.test(n.id));
+    if (meusNeg.length && corpo.isConnected) pintar();
+  }).catch(() => {});
 }
 // Escolher pessoas (entre quem segue você e quem você segue). Devolve a lista nova ou null se fechar sem concluir.
 function escolherPessoas(titulo, atuais) {
@@ -1450,7 +1559,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null 
     if (!vistosLocal.has(s.id)) { vistosLocal.add(s.id); guardarVistos(); }
     if (!meu) fb.setDoc(fb.doc(fb.db, "stories", s.id, "vistos", eu.uid), { criadoEm: fb.serverTimestamp() }).catch(() => {});
   }
-  let somDesligado = false;
+  let somDesligado = !configFlash().somVideo;
   const pintarSom = () => { bSom.textContent = somDesligado ? "🔇" : "🔊"; bSom.setAttribute("aria-label", somDesligado ? "Ligar o som" : "Desligar o som"); };
   bSom.addEventListener("click", (e) => { e.stopPropagation(); somDesligado = !somDesligado; if (video) video.muted = somDesligado; pintarSom(); });
   function animarBarra(dur) {

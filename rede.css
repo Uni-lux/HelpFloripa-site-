@@ -996,7 +996,7 @@ html, body { overflow-x: clip; }
 .story-circ.meu:not(.tem) .anel { background: transparent; border: 1.5px dashed color-mix(in srgb, var(--muted) 55%, transparent); }
 .story-circ.novo .anel { box-shadow: 0 4px 16px -6px rgba(255,138,0,.6); }
 .story-circ .avatar { width: 100%; height: 100%; border-radius: 50%; border: 3px solid var(--bg); box-sizing: border-box; font-size: 18px; }
-.story-circ .mais { position: absolute; right: -2px; bottom: -2px; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(135deg, #ffd60a, #ff8a00); color: #1a1205; border: 2.5px solid var(--bg); }
+.story-circ .mais { position: absolute; right: -2px; bottom: -2px; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(135deg, #5ad8ff, #00adee 45%, #0062d6); color: #fff; border: 2.5px solid var(--bg); box-shadow: 0 3px 10px rgba(0, 140, 238, .5); }
 .story-circ .mais .i { width: 13px; height: 13px; stroke-width: 3; }
 .story-circ .raio { position: absolute; right: -3px; bottom: -3px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: #0b1014; border: 2px solid var(--bg); font-size: 12px; line-height: 1; }
 .story-circ .nome { max-width: 74px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 650; color: var(--muted); }
@@ -1718,7 +1718,7 @@ body:has(.story-visor, .flash-criar) .toast { bottom: auto; top: calc(74px + env
 .rel-selo { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 6px; background: var(--panel-2); border: 1px solid var(--line); color: var(--muted); font-size: 10.5px; font-weight: 800; vertical-align: 2px; }
 
 /* "+" do Flash na foto do seu perfil */
-.pf-mais-flash { background: var(--accent) !important; color: #fff !important; }
+.pf-mais-flash { background: linear-gradient(135deg, #5ad8ff, #00adee 45%, #0062d6) !important; color: #fff !important; box-shadow: 0 4px 14px rgba(0, 140, 238, .55), inset 0 1px 0 rgba(255,255,255,.45) !important; }
 .pf-mais-flash .i { width: 16px; height: 16px; stroke-width: 3; }
 
 /* ---------- Salvos: coleções, filtros e grade com quem publicou ---------- */
@@ -1942,17 +1942,47 @@ body:has(.story-visor, .flash-criar) .toast { bottom: auto; top: calc(74px + env
 .neg-av .i { width: 18px; height: 18px; }
 .rel-busca-campo { display: block; width: calc(100% - 32px); margin: 4px 16px 10px; height: 40px; box-sizing: border-box; border-radius: 12px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); padding: 0 12px; font: inherit; font-size: 14.5px; }
 
-/* ---------- Flash: publicar no seu perfil e/ou nos perfis de negócio ---------- */
-.flash-destinos { display: grid; gap: 6px; margin-bottom: 8px; }
-.flash-destinos[hidden] { display: none; }
-.flash-dest-tit { font-size: 12px; font-weight: 850; letter-spacing: .05em; text-transform: uppercase; color: rgba(255,255,255,.75); }
-.flash-dest-lista { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
-.flash-dest-lista::-webkit-scrollbar { display: none; }
-.flash-dest { flex: none; display: inline-flex; align-items: center; gap: 7px; padding: 5px 10px 5px 5px; border-radius: 999px; border: 1.5px solid rgba(255,255,255,.25); background: rgba(255,255,255,.08); color: #fff; font: inherit; font-size: 13px; font-weight: 750; cursor: pointer; max-width: 200px; }
-.flash-dest .avatar { width: 26px; height: 26px; font-size: 10px; flex: none; }
-.flash-dest .neg-av .i { width: 14px; height: 14px; }
-.flash-dest span:not(.avatar) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.flash-dest .ok { flex: none; width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(255,255,255,.5); box-sizing: border-box; }
-.flash-dest.on { border-color: #ffd60a; background: rgba(255,214,10,.16); }
-.flash-dest.on .ok { border: 0; background: #ffd60a url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23111' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / 12px no-repeat; }
+/* ---------- Flash: publicar no seu perfil e/ou nos perfis de negócio (botão na barra de cima) ---------- */
+.flash-onde { position: relative; }
+.flash-onde.on { background: #ffd60a !important; color: #111 !important; }
+.flash-onde.on .i { color: #111 !important; stroke: #111; }
+.flash-onde-n { position: absolute; right: -2px; top: -2px; min-width: 18px; height: 18px; padding: 0 4px; box-sizing: border-box; border-radius: 999px; background: #ff3d7f; color: #fff; font-size: 11px; font-weight: 850; display: grid; place-items: center; border: 2px solid #000; }
+.flash-onde-n[hidden] { display: none; }
+.flash-dest-item .ok { flex: none; margin-left: auto; width: 22px; height: 22px; border-radius: 50%; border: 2px solid rgba(255,255,255,.5); box-sizing: border-box; }
+.flash-dest-item.on { box-shadow: inset 0 0 0 1.5px #ffd60a; }
+.flash-dest-item.on .ok { border: 0; background: #ffd60a url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23111' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / 13px no-repeat; }
+.flash-dest-item .neg-av .i { width: 16px; height: 16px; }
+.flash-dica.clicavel { cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .story-onde .i { color: #fff; }
+
+/* Borda colorida só quando tem flash (antes o anel azul aparecia sempre e parecia flash) */
+.pf-anel:not(.com-flash), .pf2 .pf-anel:not(.com-flash) { background: color-mix(in srgb, var(--muted) 28%, transparent); box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+[data-el="negocios"] .vinculo:not(.novo) .avatar:not(.fn-anel) { box-shadow: 0 0 0 3px var(--panel), 0 0 0 4.5px color-mix(in srgb, var(--muted) 35%, transparent); }
+.pf2 [data-el="negocios"] .vinculo:not(.novo) .avatar:not(.fn-anel) { box-shadow: none; outline: 2px solid color-mix(in srgb, var(--muted) 35%, transparent); outline-offset: 3px; }
+.pf2 [data-el="negocios"] .vinculo .avatar.fn-anel { outline: 0; }
+
+/* ---------- Configurações do Flash (cartões por assunto) ---------- */
+.cfg2 { display: grid; gap: 12px; padding: 4px 14px 16px; }
+.cfg2-card { border-radius: 18px; background: var(--panel-2); border: 1px solid var(--line); padding: 14px; display: grid; gap: 10px; }
+.cfg2-cab { display: flex; gap: 12px; align-items: center; }
+.cfg2-ic { --c: var(--accent); flex: none; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, var(--c), color-mix(in srgb, var(--c) 60%, #000)); box-shadow: 0 6px 16px color-mix(in srgb, var(--c) 35%, transparent); }
+.cfg2-ic .i { width: 20px; height: 20px; }
+.cfg2-tx { min-width: 0; }
+.cfg2-tx h3 { margin: 0; font-size: 15.5px; letter-spacing: -.01em; }
+.cfg2-tx p { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); line-height: 1.35; }
+.cfg2-acoes { display: flex; gap: 8px; flex-wrap: wrap; }
+.cfg2-seg { display: grid; gap: 6px; }
+.cfg2-op { display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--panel); color: var(--text); font: inherit; text-align: left; cursor: pointer; transition: border-color .15s, background .15s; }
+.cfg2-op .radio { flex: none; width: 20px; height: 20px; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--muted) 60%, transparent); box-sizing: border-box; }
+.cfg2-op.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 9%, var(--panel)); }
+.cfg2-op.on .radio { border: 6px solid var(--accent); }
+.cfg2-op .tx { display: grid; gap: 1px; min-width: 0; }
+.cfg2-op strong { font-size: 14.5px; }
+.cfg2-op small { font-size: 12px; color: var(--muted); }
+.cfg2-linha { display: flex; align-items: center; gap: 12px; padding: 11px 2px; border: 0; border-top: 1px solid var(--line); background: none; color: var(--text); font: inherit; text-align: left; width: 100%; text-decoration: none; cursor: pointer; }
+div.cfg2-linha { cursor: default; }
+.cfg2-linha .tx { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.cfg2-linha strong { font-size: 14.5px; }
+.cfg2-linha small { font-size: 12px; color: var(--muted); line-height: 1.35; }
+.cfg2-seta { color: var(--muted); flex: none; }
+.cfg2-nota { margin: 2px 4px 0; font-size: 12px; color: var(--muted); text-align: center; }

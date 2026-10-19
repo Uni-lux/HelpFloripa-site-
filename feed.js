@@ -15,7 +15,7 @@ import {
   silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto, confirmarHF, blocoEnquete, blocoCaixa
 } from "./rede.js?v=43";
 import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=1";
-import { montarStories, abrirFlashPorId, repostarFlash } from "./stories.js?v=12";
+import { montarStories, abrirFlashPorId, repostarFlash } from "./stories.js?v=13";
 import { abrirDenuncia } from "./denuncias.js?v=2";
 import { buscarPessoas, pessoasRecentes } from "./pessoas.js?v=3";
 import { docsComValidade } from "./leituras.js?v=1";

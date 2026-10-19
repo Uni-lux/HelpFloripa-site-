@@ -15,23 +15,29 @@ async function novoFlash(escolher) {
   await pb.waitForFunction(() => document.querySelector(".flash-cam")?.videoWidth > 0, null, { timeout: 8000 });
   await pb.locator(".flash-disparo").tap();
   await pb.waitForSelector(".flash-fotobox canvas.flash-foto", { timeout: 8000 });
-  await pb.waitForSelector(".flash-destinos:not([hidden]) .flash-dest", { timeout: 8000 });
+  await pb.waitForSelector(".flash-ferr .flash-onde", { timeout: 8000 });
+  await pb.locator(".flash-ferr .flash-onde").tap();
+  await pb.waitForSelector(".flash-figs .flash-dest-item", { timeout: 5000 });
   await escolher();
+  await pb.locator(".flash-figs .fe-pronto").tap();
   await pb.waitForTimeout(300);
 }
 // 1) Só no negócio "Bruno Reparos"
 await novoFlash(async () => {
-  { const d = await pb.locator(".flash-dest").allTextContents(); ok(d[0].endsWith("Seu perfil") && d.length === 3 && d.includes("Bruno Reparos") && d.includes("Bruno Imóveis"), "Publicar em: seu perfil e os 2 negócios → " + d.join(" / ")); }
-  await pb.locator(".flash-dest", { hasText: "Bruno Reparos" }).tap();
-  await pb.locator(".flash-dest", { hasText: "Seu perfil" }).tap();
-  ok((await pb.locator(".flash-dica").textContent()).includes("no perfil de Bruno Reparos"), "dica: 'Fica 24 horas no perfil de Bruno Reparos'");
+  { const d = await pb.locator(".flash-dest-item strong").allTextContents(); ok(d[0] === "Seu perfil" && d.length === 3 && d.includes("Bruno Reparos") && d.includes("Bruno Imóveis"), "Publicar em: seu perfil e os 2 negócios → " + d.join(" / ")); }
+  await pb.locator(".flash-dest-item", { hasText: "Bruno Reparos" }).tap();
+  await pb.locator(".flash-dest-item", { hasText: "Seu perfil" }).tap();
+  ok((await pb.locator(".flash-dica").textContent()).includes("no perfil de Bruno Reparos"), "dica: 'Fica 24 h no perfil de Bruno Reparos'");
   await pb.screenshot({ path: "saida/fn-publicar-em.png" });
 });
+const pub = await pb.locator(".flash-publicar").boundingBox();
+ok(pub && pub.y + pub.height <= (pb.viewportSize()?.height || 800), "o botão Compartilhar fica inteiro na tela");
+await pb.screenshot({ path: "saida/fn-criador.png" });
 await pb.locator(".flash-publicar").tap(); await pb.waitForTimeout(3000);
 // 2) No perfil e nos dois negócios
 await novoFlash(async () => {
-  await pb.locator(".flash-dest", { hasText: "Bruno Reparos" }).tap();
-  await pb.locator(".flash-dest", { hasText: "Bruno Imóveis" }).tap();
+  await pb.locator(".flash-dest-item", { hasText: "Bruno Reparos" }).tap();
+  await pb.locator(".flash-dest-item", { hasText: "Bruno Imóveis" }).tap();
 });
 await pb.locator(".flash-publicar").tap(); await pb.waitForTimeout(3000);
 const st = (await db.collection("stories").where("autorId", "==", U.bruno).get()).docs.map((d) => d.data()).sort((a, b) => a.criadoEm.toMillis() - b.criadoEm.toMillis());
