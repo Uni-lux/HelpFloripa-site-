@@ -12,7 +12,7 @@ import {
   $, el, icone, ms, pintarAvatar, toast, erroAmigavel, tempoRelativo, fb, eu, dados, storageFns,
   meusSeguindo, escondido, silenciado, alternarSilenciar, obterPerfil, abrirOpcoes, abrirLista, linhaPessoa,
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar
-} from "./rede.js?v=40";
+} from "./rede.js?v=41";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 
 const DIA = 24 * 3600e3;
@@ -126,20 +126,27 @@ function circulo({ uid, nome, foto, nomeReal, meu = false, lista = [] }) {
   return b;
 }
 
+// Criar um flash de fora do Diário (o "+" na foto do seu perfil). aoPublicar roda depois de publicar.
+let depoisDePublicar = null;
+export function novoFlash(aoPublicar) { depoisDePublicar = aoPublicar || null; abrirCriador(); }
+
 // Perfil: anel em volta da foto quando a pessoa tem flash ativo (tocar abre).
 export async function anelNoPerfil(avatar, uid) {
   if (!avatar || !uid || escondido(uid)) return;
   try {
     const s = await fb.getDocs(fb.query(fb.collection(fb.db, "stories"), fb.where("autorId", "==", uid), fb.limit(30)));
     const lista = s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter(ativo).sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm));
-    if (!lista.length || !avatar.isConnected) return;
-    porAutor.set(uid, lista);
     const wrap = avatar.parentElement;
+    if (!lista.length) { wrap?.classList.remove("com-flash"); return; }
+    if (!avatar.isConnected) return;
+    porAutor.set(uid, lista);
+    if (avatar._anelFlash) { wrap.classList.add("com-flash"); wrap.style.setProperty("--anel-flash", fundoAnel(lista)); return; }
+    avatar._anelFlash = true;
     wrap.classList.add("com-flash");
     wrap.style.setProperty("--anel-flash", fundoAnel(lista));
     avatar.setAttribute("role", "button"); avatar.tabIndex = 0;
     avatar.setAttribute("aria-label", "Ver o flash");
-    const abrir = (e) => { e.stopPropagation(); abrirVisor(uid, { so: true, aoFechar: () => wrap.style.setProperty("--anel-flash", fundoAnel(lista)) }); };
+    const abrir = (e) => { e.stopPropagation(); abrirVisor(uid, { so: true, aoFechar: () => wrap.style.setProperty("--anel-flash", fundoAnel(porAutor.get(uid) || lista)) }); };
     avatar.addEventListener("click", abrir);
     avatar.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") abrir(e); });
   } catch {}
@@ -935,6 +942,8 @@ async function gravar(extra, { imagem = null } = {}) {
   // Salvar no aparelho (Configurações do Flash).
   if (cfg.salvarAparelho && imagem) { const a = document.createElement("a"); a.href = imagem; a.download = `flash-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, "-")}.jpg`; document.body.appendChild(a); a.click(); a.remove(); }
   carregar();
+  const depois = depoisDePublicar; depoisDePublicar = null;
+  try { depois?.(); } catch {}
   return ref;
 }
 

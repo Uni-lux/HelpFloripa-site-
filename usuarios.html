@@ -13,7 +13,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="stylesheet" href="vitrine.css?v=25" />
-  <link rel="stylesheet" href="rede.css?v=21" />
+  <link rel="stylesheet" href="rede.css?v=22" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
     // Tema compartilhado com a página de mensagens; aplicado antes de desenhar.
@@ -220,14 +220,14 @@
       obterPerfil, lerOrdenado, editarPublicacao, comMencoes, salvarImagem, iniciarRede, meusSeguindoPronto, carregarMeusSeguindo, alternarSeguir, botaoSeguir, linhaPessoa,
       removerSeguidor, bloquear, desbloquear, alternarRestricao, compartilharPerfil,
       barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail,
-      fotosDoPost, carrosselFotos, idsSalvos, contadorEstrelas, silenciado, alternarSilenciar, marcarVista, definirOrigem, lerResumosEstrelas, contarComentarios, blocoEnquete
-    } from "./rede.js?v=40";
+      fotosDoPost, carrosselFotos, idsSalvos, listaColecoes, gravarColecoes, novaColecao, escolherColecao, alternarSalvo, contadorEstrelas, silenciado, alternarSilenciar, marcarVista, definirOrigem, lerResumosEstrelas, contarComentarios, blocoEnquete
+    } from "./rede.js?v=41";
     import { buscarPessoas, palavrasBusca } from "./pessoas.js?v=3";
     import { abrirDenuncia } from "./denuncias.js?v=2";
     import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
     import { notaDoPerfil, abrirDetalhamento, avaliarNegocio, avaliarCliente, lerResumo, estrelas, pintarEstrelas, media, notaTexto, TIPOS_NEGOCIO } from "./avaliacoes.js?v=13";
     import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=33";
-    import { anelNoPerfil } from "./stories.js?v=7";
+    import { anelNoPerfil, novoFlash } from "./stories.js?v=8";
 
     // ======================================================
     // Estado desta página (o resto vem de rede.js)
@@ -307,14 +307,17 @@
         btnCapa.append(icone("camera", "i xs"), document.createTextNode("Editar capa"));
         btnCapa.addEventListener("click", () => escolherImagem("capa", true));
         meuCab.el("capa").appendChild(btnCapa);
+        // "+" na foto = novo flash (como no Instagram). Trocar a foto fica no lápis da foto grande (tocar e segurar).
         const btnFoto = document.createElement("button");
         btnFoto.type = "button";
-        btnFoto.className = "pf-editar-foto";
-        btnFoto.setAttribute("aria-label", "Alterar foto de perfil");
-        btnFoto.appendChild(icone("camera", "i xs"));
-        btnFoto.addEventListener("click", () => escolherImagem("foto", true));
+        btnFoto.className = "pf-editar-foto pf-mais-flash";
+        btnFoto.setAttribute("aria-label", "Novo flash");
+        btnFoto.title = "Novo flash";
+        btnFoto.appendChild(icone("mais", "i xs"));
+        btnFoto.addEventListener("click", (e) => { e.stopPropagation(); novoFlash(() => anelNoPerfil(meuCab.el("avatar"), eu.uid)); });
         meuCab.raiz.querySelector(".pf-avatar-wrap").appendChild(btnFoto);
         segurarFoto(meuCab.raiz.querySelector(".pf-avatar-wrap"), () => ({ uid: eu.uid, p: dados, proprio: true }));
+        anelNoPerfil(meuCab.el("avatar"), eu.uid);
         // Ações
         const acoes = meuCab.el("acoes");
         const bEditar = document.createElement("button");
@@ -378,7 +381,7 @@
     }
 
     function abrirInsightsPerfil() {
-      import("./insights.js?v=2").then((m) => m.abrirInsights()).catch((e) => toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)));
+      import("./insights.js?v=3").then((m) => m.abrirInsights()).catch((e) => toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)));
     }
 
     // ======================================================
@@ -423,8 +426,8 @@
       const copiar = async () => { try { await navigator.clipboard.writeText(url); toast("Link do perfil copiado"); } catch { toast("Não foi possível copiar."); } };
       const temFlash = !!document.querySelector(proprio ? "#meuPerfil .pf-anel.com-flash" : "#ppCabecalho .pf-anel.com-flash");
       const ops = proprio
-        ? [["compartilhar", "Compartilhar perfil", () => compartilharPerfil(uid, p.nome)], ["link", "Copiar link", copiar],
-           ["lapis", "Editar perfil", () => { fechar(); abrirEditar(); }], ["graf", "Estatísticas", () => { fechar(); abrirInsightsPerfil(); }]]
+        ? [["mais", "Novo flash", () => { fechar(); novoFlash(() => anelNoPerfil(meuCab.el("avatar"), eu.uid)); }], ["compartilhar", "Compartilhar perfil", () => compartilharPerfil(uid, p.nome)],
+           ["link", "Copiar link", copiar], ["lapis", "Editar perfil", () => { fechar(); abrirEditar(); }]]
         : [["chat", "Mensagem", () => { fechar(); iniciarConversa(uid); }], ["compartilhar", "Compartilhar perfil", () => compartilharPerfil(uid, p.nome)], ["link", "Copiar link", copiar],
            temFlash ? ["raio", "Ver flash", () => { fechar(); $("ppCabecalho").querySelector(".pf-anel .avatar")?.click(); }]
                     : ["teia", "Social", () => { location.href = `social.html?uid=${encodeURIComponent(uid)}`; }]];
@@ -443,6 +446,7 @@
     }
 
     const contagem = { seguidores: 0, seguindo: 0 };
+    const ppContagem = { seguidores: 0, seguindo: 0 }; // do perfil aberto (abas da lista)
     async function contarRelacoes(campo, uid) {
       const q = fb.query(fb.collection(fb.db, "relacoes"), fb.where("tipo", "==", "seguir"), fb.where(campo, "==", uid));
       try { return (await fb.getCountFromServer(q)).data().count; }
@@ -551,7 +555,7 @@
         });
       });
     }
-    function desenharGrade(container, posts, { proprio, autor, vazio }) {
+    function desenharGrade(container, posts, { proprio, autor, vazio, salvo }) {
       container.replaceChildren();
       if (!posts.length) {
         const v = document.createElement("div");
@@ -604,6 +608,30 @@
           s.append(av, icone("pessoa-mais", "i xs")); s.title = `Publicação de ${post.nome || "outra pessoa"} com você`;
           tile.appendChild(s);
           obterPerfil(post.autorId).then((pp) => { if (pp.fotoPerfil || pp.nome) pintarAvatar(av, pp.fotoPerfil, pp.nome); }).catch(() => {});
+        }
+        if (salvo) {
+          // Salvos: quem publicou embaixo e o marcador no canto (coleções, remover).
+          tile.classList.add("salvo-tile");
+          tile.querySelector(".legenda")?.remove();
+          if (url) {
+            const q = el("span", "sv-autor"); const av = el("span", "avatar"); pintarAvatar(av, post.fotoPerfil, post.nome);
+            const nm = el("span", null, String(post.nome || "Usuário").split(" ")[0]);
+            q.append(av, nm); tile.appendChild(q);
+            obterPerfil(post.autorId).then((pp) => { if (pp.fotoPerfil || pp.nome) { pintarAvatar(av, pp.fotoPerfil, pp.nome); nm.textContent = String(pp.nome || post.nome || "Usuário").split(" ")[0]; } }).catch(() => {});
+          }
+          const mk = el("span", "sv-marca"); mk.setAttribute("role", "button"); mk.tabIndex = 0; mk.setAttribute("aria-label", "Opções do salvo"); mk.appendChild(icone("salvo", "i xs"));
+          const opc = (e) => {
+            e.stopPropagation(); e.preventDefault();
+            const naCol = listaColecoes().find((c) => c.id === salvosVista.colecao);
+            abrirOpcoes("Salvo", [
+              { rotulo: "Salvar em uma coleção", sub: "Escolha ou crie uma pasta", icone: "fotos", fn: () => escolherColecao(post, () => mostrarSalvos()) },
+              naCol && { rotulo: `Tirar de “${naCol.nome}”`, sub: "Continua em Todos os salvos", icone: "fechar", fn: async () => { if (await gravarColecoes(listaColecoes().map((c) => (c.id === naCol.id ? { ...c, ids: c.ids.filter((x) => x !== post.id) } : c)))) mostrarSalvos(); } },
+              { rotulo: "Remover dos salvos", icone: "lixo", perigo: true, fn: async () => { await alternarSalvo(post); mostrarSalvos(); } }
+            ]);
+          };
+          mk.addEventListener("click", opc);
+          mk.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") opc(e); });
+          tile.appendChild(mk);
         }
         if ((post.agendadoPara?.toMillis?.() ?? 0) > Date.now()) { tile.classList.add("agendada"); tile.appendChild(el("span", "selo-agendada", "Agendada")); }
         tile.setAttribute("aria-label", post._marcacao ? `Publicação de ${post.nome || "outra pessoa"} com marcação` : "Abrir publicação");
@@ -676,7 +704,7 @@
         ja.addEventListener("click", async () => { try { await fb.updateDoc(fb.doc(fb.db, "diario", post.id), { agendadoPara: fb.serverTimestamp() }); post.agendadoPara = { toMillis: () => Date.now() }; toast("Publicada agora"); mostrarPost(); carregarMeusPosts(); } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); } });
         a.appendChild(ja); extra.appendChild(a);
       }
-      if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=7").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
+      if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=8").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
       extra.hidden = !extra.children.length;
       if (!proprio) marcarVista({ ...post, autorId: post.autorId || autor?.uid });
       $("postAnterior").disabled = indice <= 0;
@@ -731,19 +759,127 @@
         aoBloquear: async () => { if (await bloquear(autorId, nomeA)) { fecharFolha("folhaPost"); abrirPerfilPublico(autorId); } } });
     });
 
-    // ---------- Salvos (só você vê) ----------
+    // ---------- Salvos (só você vê): coleções em cima, filtros e a grade com quem publicou ----------
+    let salvosVista = { colecao: "", tipo: "tudo" };
+    const tipoDoPost = (p) => (!urlSegura(p.mediaUrl) ? "textos" : p.mediaTipo === "video" ? "videos" : "fotos");
+    function capaColecao(posts) {
+      const m = el("span", "col-capa" + (posts.length >= 4 ? " q4" : posts.length >= 2 ? " q2" : ""));
+      (posts.length ? posts.slice(0, posts.length >= 4 ? 4 : posts.length >= 2 ? 2 : 1) : [null]).forEach((p) => {
+        const c = el("span", "col-cel");
+        const u = p && urlSegura(p.mediaUrl);
+        if (u && p.mediaTipo !== "video") { const i = document.createElement("img"); i.src = u; i.alt = ""; i.loading = "lazy"; c.appendChild(i); }
+        else if (u) { const v = document.createElement("video"); v.src = u; v.muted = true; v.preload = "metadata"; c.appendChild(v); }
+        else if (p) { c.classList.add("txt"); c.dataset.tom = String(tomDoTexto(p.id)); c.textContent = String(p.texto || "").slice(0, 40); }
+        else { c.classList.add("vazia"); c.appendChild(icone("salvo", "i s")); }
+        m.appendChild(c);
+      });
+      return m;
+    }
     async function mostrarSalvos() {
       const g = $("gradeSalvos");
       g.replaceChildren(el("div", "vazio-grade", "Carregando..."));
       const ids = idsSalvos().slice(0, 90);
       const docs = await Promise.all(ids.map((id) => fb.getDoc(fb.doc(fb.db, "diario", id)).catch(() => null)));
       const lista = docs.filter((d) => d?.exists()).map((d) => ({ id: d.id, ...d.data() })).filter((p) => !escondido(p.autorId) && (p.ocultoAte?.toMillis?.() ?? 0) <= Date.now());
+      const porId = new Map(lista.map((p) => [p.id, p]));
+      g.replaceChildren();
+      g.classList.add("salvos2");
       if (!lista.length) {
-        const v = el("div", "vazio-grade"); v.append(el("strong", null, "Nada salvo ainda"), "Nas publicações, toque em Salvar para guardar aqui.");
+        const v = el("div", "vazio-grade salvos-vazio");
+        const ic = el("span", "sv-ic"); ic.appendChild(icone("salvo", "i"));
+        v.append(ic, el("strong", null, "Guarde o que vale rever"), "Toque em Salvar numa publicação para guardar aqui. Depois, organize em coleções.");
         g.replaceChildren(v); return;
       }
+      const cols = listaColecoes();
+      const atual = cols.find((c) => c.id === salvosVista.colecao) || null;
+      if (!atual) salvosVista.colecao = "";
+      const base = atual ? atual.ids.slice().reverse().map((id) => porId.get(id)).filter(Boolean) : lista;
+
+      // Cabeçalho: coleções (ou o nome da coleção aberta)
+      if (!atual) {
+        const tit = el("div", "sv-titulo"); tit.append(el("strong", null, "Coleções"), el("span", null, `${lista.length} ${lista.length === 1 ? "salvo" : "salvos"}`));
+        const linha = el("div", "col-carrossel");
+        const cartao = (nome, posts, n, fn, cls = "") => {
+          const b = el("button", "col-cartao " + cls); b.type = "button";
+          b.append(capaColecao(posts), el("strong", null, nome), el("small", null, n == null ? "" : `${n} ${n === 1 ? "item" : "itens"}`));
+          b.addEventListener("click", fn);
+          return b;
+        };
+        linha.appendChild(cartao("Todos os salvos", lista, lista.length, () => {}, "ativa"));
+        cols.forEach((c) => { const ps = c.ids.slice().reverse().map((id) => porId.get(id)).filter(Boolean); linha.appendChild(cartao(c.nome, ps, ps.length, () => { salvosVista = { colecao: c.id, tipo: "tudo" }; mostrarSalvos(); })); });
+        const nova = el("button", "col-cartao col-criar"); nova.type = "button";
+        const capa = el("span", "col-capa"); const mais = el("span", "col-cel vazia"); mais.appendChild(icone("mais", "i")); capa.appendChild(mais);
+        nova.append(capa, el("strong", null, "Nova coleção"), el("small", null, "Organize em pastas"));
+        nova.addEventListener("click", criarColecaoSalvos);
+        linha.appendChild(nova);
+        g.append(tit, linha);
+      } else {
+        const topo = el("div", "sv-col-topo");
+        const v = el("button", "icone-btn"); v.type = "button"; v.setAttribute("aria-label", "Voltar para todos os salvos"); v.appendChild(icone("voltar", "i s"));
+        v.addEventListener("click", () => { salvosVista = { colecao: "", tipo: "tudo" }; mostrarSalvos(); });
+        const tx = el("div", "sv-col-tx"); tx.append(el("strong", null, atual.nome), el("small", null, `${base.length} ${base.length === 1 ? "item" : "itens"} · só você vê`));
+        const m = el("button", "icone-btn"); m.type = "button"; m.setAttribute("aria-label", "Opções da coleção"); m.appendChild(icone("pontos", "i s"));
+        m.addEventListener("click", () => abrirOpcoes(atual.nome, [
+          { rotulo: "Renomear coleção", icone: "lapis", fn: () => renomearColecao(atual) },
+          { rotulo: "Apagar coleção", sub: "As publicações continuam em Todos os salvos", icone: "lixo", perigo: true, fn: async () => {
+            if (!(await confirmarHF({ titulo: "Apagar a coleção?", texto: `“${atual.nome}” some, mas as publicações continuam nos seus salvos.`, ok: "Apagar", icone: "lixo" }))) return;
+            if (await gravarColecoes(listaColecoes().filter((c) => c.id !== atual.id))) { salvosVista = { colecao: "", tipo: "tudo" }; toast("Coleção apagada"); mostrarSalvos(); }
+          } }
+        ]));
+        topo.append(v, tx, m);
+        g.appendChild(topo);
+      }
+
+      // Filtros por tipo (com contagem)
+      const tipos = [["tudo", "Tudo"], ["fotos", "Fotos"], ["videos", "Vídeos"], ["textos", "Textos"]].filter(([k]) => k === "tudo" || base.some((p) => tipoDoPost(p) === k));
+      if (!tipos.some(([k]) => k === salvosVista.tipo)) salvosVista.tipo = "tudo";
+      if (tipos.length > 2) {
+        const chips = el("div", "rel-chips sv-chips");
+        tipos.forEach(([k, rot]) => {
+          const c = el("button", "rel-chip" + (k === salvosVista.tipo ? " ativo" : "")); c.type = "button"; c.setAttribute("aria-pressed", String(k === salvosVista.tipo));
+          c.append(el("span", null, rot), el("em", null, String(k === "tudo" ? base.length : base.filter((p) => tipoDoPost(p) === k).length)));
+          c.addEventListener("click", () => { salvosVista.tipo = k; mostrarSalvos(); });
+          chips.appendChild(c);
+        });
+        g.appendChild(chips);
+      }
+      const vis = salvosVista.tipo === "tudo" ? base : base.filter((p) => tipoDoPost(p) === salvosVista.tipo);
+      const grade = el("div", "grade sv-grade");
+      g.appendChild(grade);
       definirOrigem("salvos");
-      desenharGrade(g, lista, { proprio: false, autor: null });
+      if (!vis.length) {
+        const v = el("div", "vazio-grade"); v.append(el("strong", null, "Coleção vazia"), "Nas publicações, toque em ⋯ → Salvar em uma coleção.");
+        grade.replaceChildren(v); return;
+      }
+      desenharGrade(grade, vis, { proprio: false, autor: null, salvo: true });
+    }
+    async function criarColecaoSalvos() {
+      const nome = await pedirTexto("Nova coleção", "Ex.: Ideias, Lugares, Receitas", "");
+      if (nome == null) return;
+      const c = await novaColecao(nome);
+      if (c) { toast(`Coleção “${c.nome}” criada. Nas publicações, toque em ⋯ → Salvar em uma coleção.`); salvosVista = { colecao: c.id, tipo: "tudo" }; mostrarSalvos(); }
+    }
+    async function renomearColecao(c) {
+      const nome = await pedirTexto("Renomear coleção", "Nome da coleção", c.nome);
+      if (!nome?.trim()) return;
+      if (await gravarColecoes(listaColecoes().map((x) => (x.id === c.id ? { ...x, nome: nome.trim().replace(/\s+/g, " ").slice(0, 40) } : x)))) mostrarSalvos();
+    }
+    // Campo de texto numa folha (sem o prompt() do navegador).
+    function pedirTexto(titulo, dica, valor) {
+      return new Promise((resolve) => {
+        const corpo = abrirLista(titulo);
+        let feito = false;
+        const form = el("form", "col-nova col-nova-folha");
+        const campo = document.createElement("input"); campo.maxLength = 40; campo.placeholder = dica; campo.value = valor || ""; campo.setAttribute("aria-label", titulo);
+        const bt = el("button", "btn pri"); bt.type = "submit"; bt.textContent = valor ? "Salvar" : "Criar";
+        form.append(campo, bt);
+        form.addEventListener("submit", (e) => { e.preventDefault(); if (!campo.value.trim()) { campo.focus(); return; } feito = true; fecharFolha("folhaLista"); resolve(campo.value); });
+        corpo.appendChild(form);
+        const folha = $("folhaLista");
+        const obs = new MutationObserver(() => { if (!folha.classList.contains("aberta")) { obs.disconnect(); if (!feito) resolve(null); } });
+        obs.observe(folha, { attributes: true, attributeFilter: ["class", "hidden"] });
+        setTimeout(() => campo.focus(), 150);
+      });
     }
 
     // ---------- link direto para uma publicação: usuarios.html?post=ID ----------
@@ -940,42 +1076,95 @@
     // ======================================================
     // Seguir
     // ======================================================
+    // Quem me segue (para os filtros "não segue de volta" e o selo "Segue você"): uma leitura por página.
+    let meusSeguidoresP = null;
+    const meusSeguidores = () => (meusSeguidoresP ||= fb.getDocs(fb.query(fb.collection(fb.db, "relacoes"), fb.where("tipo", "==", "seguir"), fb.where("alvoId", "==", eu.uid), fb.limit(500)))
+      .then((s) => new Set(s.docs.map((d) => d.data().seguidorId))).catch(() => { meusSeguidoresP = null; return new Set(); }));
+    const semAcento = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+    // Seguidores / Seguindo: abas no topo, busca por nome ou @ e filtros úteis (não segue de volta, mútuos...).
     async function abrirListaRelacoes(uid, tipo) {
-      const seguidores = tipo === "seguidores";
-      $("tLista").textContent = seguidores ? "Seguidores" : "Seguindo";
+      const proprioL = uid === eu.uid;
       const corpo = $("listaCorpo");
-      corpo.innerHTML = '<div class="lista-vazia">Carregando...</div>';
+      $("tLista").textContent = proprioL ? "Sua rede" : "Conexões";
+      corpo.replaceChildren();
       abrirFolha("folhaLista");
-      try {
+      const topo = el("div", "rel-topo");
+      const abas = el("div", "rel-abas"); abas.setAttribute("role", "tablist");
+      const busca = el("label", "rel-busca"); busca.appendChild(icone("lupa", "i s"));
+      const campo = document.createElement("input"); campo.type = "search"; campo.placeholder = "Buscar por nome ou @usuário"; campo.setAttribute("aria-label", "Buscar na lista"); campo.autocomplete = "off";
+      const limpar = el("button", "rel-limpar"); limpar.type = "button"; limpar.hidden = true; limpar.setAttribute("aria-label", "Limpar busca"); limpar.appendChild(icone("fechar", "i xs"));
+      busca.append(campo, limpar);
+      const chips = el("div", "rel-chips");
+      topo.append(abas, busca, chips);
+      const lista = el("div", "rel-lista");
+      corpo.append(topo, lista);
+      const cache = {};
+      let atual = tipo, filtro = "todos";
+      const carregarTipo = (t) => (cache[t] ||= (async () => {
         await meusSeguindoPronto;
-        const campoFiltro = seguidores ? "alvoId" : "seguidorId";
-        const campoOutro = seguidores ? "seguidorId" : "alvoId";
-        const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "relacoes"), fb.where("tipo", "==", "seguir"), fb.where(campoFiltro, "==", uid), fb.limit(200)));
-        const uids = snap.docs.map((d) => d.data()[campoOutro]).filter((u) => u && !escondido(u));
-        const lista = await Promise.all(uids.map(obterPerfil));
-        corpo.replaceChildren();
-        if (!uids.length) {
-          const v = document.createElement("div");
-          v.className = "lista-vazia";
-          v.textContent = seguidores ? "Ainda sem seguidores." : "Ainda não segue ninguém.";
-          corpo.appendChild(v);
-          return;
-        }
-        uids.forEach((u, i) => {
-          const p = lista[i];
-          const meus = seguidores && uid === eu.uid;
-          corpo.appendChild(linhaPessoa({
-            uid: u, nome: p.nome, foto: p.fotoPerfil, sub: p.nickname ? "@" + p.nickname : textoCidade({ cidade: nomeCidade(p.cidade), uf: p.uf }), meSegue: meus,
-            acoes: meus ? [{ rotulo: "Remover", fn: async (_b, linha) => { if (await removerSeguidor(u, p.nome)) linha.remove(); } }] : []
-          }));
-        });
-      } catch (e) {
-        corpo.innerHTML = "";
-        const v = document.createElement("div");
-        v.className = "lista-vazia";
-        v.textContent = "Não foi possível carregar: " + erroAmigavel(e);
-        corpo.appendChild(v);
-      }
+        const seg = t === "seguidores";
+        const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "relacoes"), fb.where("tipo", "==", "seguir"), fb.where(seg ? "alvoId" : "seguidorId", "==", uid), fb.limit(300)));
+        const rel = snap.docs.map((d) => d.data()).filter((r) => r[seg ? "seguidorId" : "alvoId"] && !escondido(r[seg ? "seguidorId" : "alvoId"]))
+          .sort((x, y) => ms(y.criadoEm) - ms(x.criadoEm));
+        const [perfis, meSeguem] = await Promise.all([Promise.all(rel.map((r) => obterPerfil(r[seg ? "seguidorId" : "alvoId"]).catch(() => ({})))), meusSeguidores()]);
+        return rel.map((r, i) => { const u = r[seg ? "seguidorId" : "alvoId"], p = perfis[i] || {}; return { uid: u, p, desde: r.criadoEm, sigo: meusSeguindo.has(u), meSegue: meSeguem.has(u), txt: semAcento(`${p.nome || ""} ${p.nickname || ""}`) }; });
+      })());
+      // Filtros de cada lista (contados na hora).
+      const FILTROS_REL = {
+        seguidores: proprioL
+          ? [["todos", "Todos", () => true], ["naoSigo", "Você não segue de volta", (x) => !x.sigo], ["mutuos", "Mútuos", (x) => x.sigo]]
+          : [["todos", "Todos", () => true], ["sigo", "Quem você segue", (x) => x.sigo], ["meSeguem", "Seguem você", (x) => x.meSegue]],
+        seguindo: proprioL
+          ? [["todos", "Todos", () => true], ["naoMeSegue", "Não seguem você de volta", (x) => !x.meSegue], ["mutuos", "Mútuos", (x) => x.meSegue]]
+          : [["todos", "Todos", () => true], ["sigo", "Quem você segue", (x) => x.sigo], ["meSeguem", "Seguem você", (x) => x.meSegue]]
+      };
+      const pintarAbas = () => {
+        abas.replaceChildren(...[["seguidores", "Seguidores"], ["seguindo", "Seguindo"]].map(([k, rot]) => {
+          const b = el("button", "rel-aba" + (k === atual ? " ativa" : "")); b.type = "button"; b.setAttribute("role", "tab"); b.setAttribute("aria-selected", String(k === atual));
+          const n = k === "seguidores" ? (proprioL ? contagem.seguidores : ppContagem.seguidores) : (proprioL ? contagem.seguindo : ppContagem.seguindo);
+          b.append(el("strong", null, String(n ?? "")), el("span", null, rot));
+          b.addEventListener("click", () => { if (k === atual) return; atual = k; filtro = "todos"; pintarAbas(); desenhar(); });
+          return b;
+        }));
+      };
+      const desenhar = async () => {
+        const meu = atual;
+        if (!cache[meu]) lista.replaceChildren(el("div", "lista-vazia", "Carregando..."));
+        let itens;
+        try { itens = await carregarTipo(meu); } catch (e) { delete cache[meu]; if (meu === atual) lista.replaceChildren(el("div", "lista-vazia", "Não foi possível carregar: " + erroAmigavel(e))); return; }
+        if (meu !== atual) return;
+        itens.forEach((x) => { x.sigo = meusSeguindo.has(x.uid); });
+        const fs = FILTROS_REL[meu];
+        chips.replaceChildren(...fs.map(([k, rot, f]) => {
+          const n = itens.filter(f).length;
+          const c = el("button", "rel-chip" + (k === filtro ? " ativo" : "")); c.type = "button"; c.setAttribute("aria-pressed", String(k === filtro));
+          c.append(el("span", null, rot), el("em", null, String(n)));
+          c.addEventListener("click", () => { filtro = k; desenhar(); });
+          return c;
+        }));
+        const termo = semAcento(campo.value.trim().replace(/^@/, ""));
+        const f = (fs.find(([k]) => k === filtro) || fs[0])[2];
+        const vis = itens.filter((x) => f(x) && (!termo || x.txt.includes(termo)));
+        if (!itens.length) { lista.replaceChildren(el("div", "lista-vazia", meu === "seguidores" ? "Ainda sem seguidores." : "Ainda não segue ninguém.")); return; }
+        if (!vis.length) { lista.replaceChildren(el("div", "lista-vazia", termo ? `Ninguém encontrado para “${campo.value.trim()}”.` : "Ninguém nesse filtro.")); return; }
+        const dica = filtro === "naoMeSegue" ? "Essas contas não seguem você. Toque em Seguindo para deixar de seguir." : filtro === "naoSigo" ? "Essas pessoas seguem você, mas você não segue de volta." : "";
+        lista.replaceChildren(...(dica ? [el("p", "rel-dica", dica)] : []), ...vis.map((x) => {
+          const meusSeg = meu === "seguidores" && proprioL;
+          const sub = [x.p.nickname ? "@" + x.p.nickname : textoCidade({ cidade: nomeCidade(x.p.cidade), uf: x.p.uf })].filter(Boolean).join("");
+          const l = linhaPessoa({
+            uid: x.uid, nome: x.p.nome, foto: x.p.fotoPerfil, sub, meSegue: x.meSegue,
+            acoes: meusSeg ? [{ rotulo: "Remover", fn: async (_b, linha) => { if (await removerSeguidor(x.uid, x.p.nome)) { linha.remove(); const i = itens.indexOf(x); if (i >= 0) itens.splice(i, 1); contagem.seguidores = Math.max(0, contagem.seguidores - 1); pintarAbas(); } } }] : []
+          });
+          if (x.meSegue && x.uid !== eu.uid && !meusSeg) { const t = el("span", "rel-selo", "Segue você"); const sm = l.querySelector(".txt small"); if (sm) sm.append(t); else l.querySelector(".txt")?.append(t); }
+          return l;
+        }));
+      };
+      let espera = null;
+      campo.addEventListener("input", () => { limpar.hidden = !campo.value; clearTimeout(espera); espera = setTimeout(desenhar, 120); });
+      limpar.addEventListener("click", () => { campo.value = ""; limpar.hidden = true; desenhar(); campo.focus(); });
+      pintarAbas();
+      desenhar();
     }
 
 
@@ -1057,11 +1246,9 @@
       await meusSeguindoPronto;
       const meSegue = inv.status === "fulfilled" && inv.value.exists();
       const lista = posts.status === "fulfilled" ? posts.value : [];
-      preencherCabecalho(ppCab, p, {
-        posts: lista.length,
-        seguidores: c1.status === "fulfilled" ? c1.value : 0,
-        seguindo: c2.status === "fulfilled" ? c2.value : 0
-      });
+      ppContagem.seguidores = c1.status === "fulfilled" ? c1.value : 0;
+      ppContagem.seguindo = c2.status === "fulfilled" ? c2.value : 0;
+      preencherCabecalho(ppCab, p, { posts: lista.length, ...ppContagem });
       const acoes = ppCab.el("acoes");
       acoes.replaceChildren();
       ppMeSegue = meSegue;
