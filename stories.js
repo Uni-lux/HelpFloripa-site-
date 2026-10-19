@@ -113,15 +113,10 @@ function circulo({ uid, nome, foto, nomeReal, meu = false, lista = [] }) {
   if (meu) { const mais = el("span", "mais"); mais.appendChild(icone("mais", "i xs")); anel.appendChild(mais); }
   if (tem && !visto && !meu) { const r = el("span", "raio"); r.appendChild(icone("raio", "i xs")); anel.appendChild(r); }
   b.append(anel, el("span", "nome", nome));
-  b.addEventListener("click", () => {
-    if (meu && !tem) { abrirCriador(); return; }
-    if (meu) {
-      abrirOpcoes("Seu flash", [
-        { rotulo: "Ver meus flashes", sub: `${tem} ${tem === 1 ? "ativo" : "ativos"} · quem viu e quantas vezes`, icone: "olho", fn: () => abrirVisor(eu.uid) },
-        { rotulo: "Novo flash", sub: "Foto, vídeo curto ou texto", icone: "camera", fn: () => abrirCriador() }
-      ]);
-      return;
-    }
+  // Seu flash: tocar na foto abre os seus flashes; tocar no "+" (ou sem flash nenhum) abre o criador.
+  b.addEventListener("click", (e) => {
+    if (meu && (!tem || e.target.closest(".mais"))) { abrirCriador(); return; }
+    if (meu) { abrirVisor(eu.uid); return; }
     abrirVisor(uid);
   });
   return b;

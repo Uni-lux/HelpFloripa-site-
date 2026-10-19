@@ -54,6 +54,26 @@ await p.screenshot({ path: "saida/explorar-textos.png", fullPage: true });
 await p.locator("#filtrosDestaque button", { hasText: "Fotos" }).tap(); await p.waitForTimeout(300);
 ok(await p.locator("#exploraGrade .exp-tile.texto").count() === 0 && await p.locator("#exploraGrade .exp-tile img").count() === 3, "Fotos: só fotos");
 
+// Tocar numa publicação: abre a tela do Explorar (como no Instagram), com a tocada em cima e as parecidas embaixo.
+await p.locator("#filtrosDestaque button", { hasText: "Tudo" }).tap(); await p.waitForTimeout(300);
+await p.locator("#exploraGrade .exp-tile", { hasText: "eletricista" }).tap();
+await p.waitForSelector(".visor-exp .post-card", { timeout: 8000 }); await p.waitForTimeout(800);
+ok(p.url().includes("feed.html") && await p.locator(".visor-exp").isVisible(), "tocar na publicação não sai para o perfil: abre a tela da publicação");
+ok((await p.locator(".visor-exp .post-card").first().textContent()).includes("eletricista"), "a publicação tocada vem primeiro");
+const nCards = await p.locator(".visor-exp .post-card").count();
+ok(nCards >= 5, "embaixo vêm mais publicações (" + nCards + " cartões)");
+ok(await p.locator(".visor-exp .post-card .enquete, .visor-exp .post-card .enq-opcoes").count() >= 1 && await p.locator(".visor-exp .post-card .post-midia-f").count() >= 1, "tem foto e enquete na mesma rolagem");
+await p.screenshot({ path: "saida/explorar-visor.png" });
+await p.locator(".visor-exp .ve-rolagem").evaluate((r) => r.scrollTo(0, r.scrollHeight)); await p.waitForTimeout(1500);
+ok((await p.locator(".visor-exp .ve-fim").textContent()).includes("Você viu tudo"), "rolando até o fim: carrega o resto e avisa quando acabou");
+const ids = await p.locator(".visor-exp .post-card").evaluateAll((cs) => cs.map((c) => c._post?.id));
+ok(new Set(ids).size === ids.length, "sem repetir publicação (" + ids.length + ")");
+await p.goBack(); await p.waitForTimeout(500);
+ok(await p.locator(".visor-exp").count() === 0 && p.url().includes("feed.html") && await p.locator("#painelExplorar").isVisible(), "voltar do celular fecha a tela e fica no Explorar");
+await p.locator("#exploraGrade .exp-tile").first().tap(); await p.waitForSelector(".visor-exp .post-card", { timeout: 8000 });
+await p.locator(".visor-exp .ve-topo .icone-btn").tap(); await p.waitForTimeout(500);
+ok(await p.locator(".visor-exp").count() === 0 && await p.locator("#painelExplorar").isVisible(), "seta de voltar fecha a tela");
+
 // Busca: abas e resultados
 await p.locator("#buscaPessoas").fill("faxina"); await p.waitForTimeout(1800);
 ok(await p.locator("#abasBusca").isVisible() && await p.locator("#exploraConteudo").isHidden(), "buscando: abas aparecem e o resto some");

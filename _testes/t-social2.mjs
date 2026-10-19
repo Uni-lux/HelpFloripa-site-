@@ -91,8 +91,8 @@ await pa.locator(".flash-legenda").fill("Bom dia!");
 await pa.screenshot({ path: "saida/flash-criar-foto.png" });
 await pa.locator(".flash-publicar").tap(); await pa.waitForTimeout(2500);
 ok(await pa.locator(".flash-criar").count() === 0 && (await db.collection("stories").where("autorId", "==", U.ana).get()).size === 1, "flash de foto publicado");
-await pa.locator(".story-circ").first().tap();
-await pa.locator("#opcoesCorpo button", { hasText: "Novo flash" }).tap();
+// Seu flash: o "+" abre direto o criador (sem menu).
+await pa.locator(".story-circ.meu .mais").tap();
 await pa.locator(".flash-modos button", { hasText: "Texto" }).tap();
 await pa.waitForSelector(".flash-criar .flash-texto", { timeout: 5000 });
 ok(await pa.locator(".flash-publicar:disabled").count() === 1, "texto vazio: não publica");
@@ -145,8 +145,9 @@ await pb.reload(); await pb.waitForTimeout(4000);
 ok(await pb.locator(".post-card", { hasText: "Banheiro novinho" }).count() === 0 && await pb.locator(".story-circ", { hasText: "Ana" }).count() === 0, "continua silenciada depois de recarregar (posts e stories)");
 // 6) Ana: quem viu o flash, aviso, estatísticas
 await pa.reload(); await pa.waitForSelector(".story-circ.tem", { timeout: 30000 }); await pa.waitForTimeout(1200);
-await pa.locator(".story-circ").first().tap();
-await pa.locator("#opcoesCorpo button", { hasText: "Ver meus flashes" }).tap();
+// Seu flash: tocar na foto abre direto os seus flashes.
+await pa.locator(".story-circ.meu .avatar").tap();
+ok(await pa.locator("#opcoesCorpo button", { hasText: "Ver meus flashes" }).count() === 0, "tocar na foto do Seu flash abre direto (sem menu)");
 await pa.waitForSelector(".story-vistos", { timeout: 8000 }); await pa.waitForTimeout(1500);
 ok((await pa.locator(".story-vistos").textContent()).includes("Visto por 1"), "Ana: \"Visto por 1\" no flash → " + (await pa.locator(".story-vistos").textContent()));
 await pa.locator(".story-visor .story-btn[aria-label=Fechar]").tap(); await pa.waitForTimeout(300);
