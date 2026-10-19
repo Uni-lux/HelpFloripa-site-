@@ -15,10 +15,10 @@ import {
   silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto, confirmarHF, blocoEnquete, blocoCaixa
 } from "./rede.js?v=44";
 import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=1";
-import { montarStories, abrirFlashPorId, repostarFlash } from "./stories.js?v=14";
+import { montarStories, abrirFlashPorId, repostarFlash } from "./stories.js?v=15";
 import { abrirDenuncia } from "./denuncias.js?v=2";
 import { pessoasRecentes } from "./pessoas.js?v=3";
-import { abrirExplorar } from "./explorar.js?v=1";
+import { abrirExplorar, definirCartao } from "./explorar.js?v=2";
 import { docsComValidade } from "./leituras.js?v=1";
 
 const POR_VEZ = 10;
@@ -345,6 +345,7 @@ async function pintarLateral() {
 (async function iniciar() {
   try { await iniciarRede(); }
   catch (e) { $("listaFeed").replaceChildren(vazio("Não foi possível carregar", e.message || "")); return; }
+  definirCartao(cartaoPost);
   ganchos.aoPublicar = () => { if (aba !== "diario") trocarAba("diario"); else carregarFeed(); };
   montarBarraRede("diario");
   pintarBarraRede();

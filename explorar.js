@@ -10,7 +10,7 @@
 // =====================================================
 import {
   $, el, icone, ms, pintarAvatar, urlSegura, nomeCidade, fb, eu, dados, meusSeguindo, escondido, silenciado, ganchos,
-  obterPerfil, linhaPessoa, botaoSeguir, fotosDoPost, lerResumosEstrelas, minhaRede
+  obterPerfil, linhaPessoa, botaoSeguir, fotosDoPost, lerResumosEstrelas, minhaRede, jaVisto, definirOrigem, origemAtual, pilha
 } from "./rede.js?v=44";
 import { afinidade } from "./gosto.js?v=1";
 import { buscarPessoas, pessoasRecentes, semAcento } from "./pessoas.js?v=3";
@@ -31,13 +31,13 @@ const linkPost = (p) => `usuarios.html?post=${encodeURIComponent(p.id)}`;
 
 // ---------- dados (lidos uma vez e guardados) ----------
 // As mesmas 120 publicações recentes dos Principais (mesma chave no aparelho).
-let postsP = null, postsEm = 0;
+let postsP = null, postsEm = 0, ultimoDoc = null, acabouAntigas = false;
 function postsRecentes() {
   if (postsP && Date.now() - postsEm < DIARIO_VALIDADE) return postsP;
   postsEm = Date.now();
   const q = fb.query(fb.collection(fb.db, "diario"), fb.orderBy("criadoEm", "desc"), fb.limit(120));
   return (postsP = docsComValidade(fb, "diario-principais", q, DIARIO_VALIDADE)
-    .then((s) => s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter((p) => !escondido(p.autorId) && !postOculto(p)))
+    .then((s) => (ultimoDoc = s.docs.at(-1) || null, s.size < 120 && (acabouAntigas = true), s).docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter((p) => !escondido(p.autorId) && !postOculto(p)))
     .catch((e) => { postsP = null; console.warn("Explorar:", e); return []; }));
 }
 // Negócios atualizados por último (os mesmos da página inicial, guardados por 10 min).
@@ -392,6 +392,8 @@ function pintarDestaques() {
 function tilePost(p, r, grande) {
   const tipo = tipoPost(p);
   const a = el("a", "exp-tile" + (grande ? " grande" : "") + (tipo === "textos" ? " texto" : "")); a.href = linkPost(p);
+  // Toque: abre a publicação na tela do Explorar (como no Instagram), com as parecidas embaixo.
+  a.addEventListener("click", (e) => { if (!cartaoPost || e.ctrlKey || e.metaKey || e.shiftKey) return; e.preventDefault(); abrirVisor(p); });
   a.setAttribute("aria-label", `Publicação de ${p.nome || "alguém"}`);
   if (tipo === "fotos") {
     const im = document.createElement("img"); im.src = fotosDoPost(p)[0]; im.alt = ""; im.loading = "lazy"; im.decoding = "async";
@@ -419,3 +421,116 @@ $("buscaPessoas").addEventListener("keydown", (e) => { if (e.key === "Enter") { 
 // Abrir um resultado guarda a busca.
 $("listaPessoas").addEventListener("click", (e) => { if ($("buscaPessoas").value.trim() && e.target.closest("a, .linha")) guardarBusca($("buscaPessoas").value); }, true);
 $("maisDestaques").addEventListener("click", () => { mostrarDest += 12; pintarDestaques(); });
+
+// ---------- tela da publicação (como o Explorar do Instagram) ----------
+// A publicação tocada em cima e, rolando, as parecidas: mesmas hashtags, mesmo tipo (foto, vídeo, texto,
+// enquete), mesmo autor, o seu gosto e o engajamento. Acabaram as 120 recentes: busca as mais antigas, 30 por vez.
+// O cartão é o mesmo do Diário (feed.js passa com definirCartao).
+let cartaoPost = null;
+export function definirCartao(fn) { cartaoPost = fn; }
+const POR_VEZ_VISOR = 6;
+let visor = null;
+
+async function maisAntigas() {
+  if (acabouAntigas || !ultimoDoc) return [];
+  const s = await fb.getDocs(fb.query(fb.collection(fb.db, "diario"), fb.orderBy("criadoEm", "desc"), fb.startAfter(ultimoDoc), fb.limit(30))).catch(() => null);
+  if (!s) return [];
+  if (s.size < 30) acabouAntigas = true;
+  ultimoDoc = s.docs.at(-1) || ultimoDoc;
+  const novas = s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter((p) => !escondido(p.autorId) && !postOculto(p));
+  const r = await lerResumosEstrelas(novas.map((p) => p.id)).catch(() => new Map());
+  r.forEach((v, k) => resumosPosts.set(k, v));
+  return novas;
+}
+function parecida(origem) {
+  const tags = new Set((origem.tags || []).map((t) => String(t).toLowerCase()));
+  const tipo = tipoPost(origem), agora = Date.now();
+  return (p) => {
+    let s = 0;
+    (p.tags || []).forEach((t) => { if (tags.has(String(t).toLowerCase())) s += 3; });
+    if (tipoPost(p) === tipo) s += 1.2;
+    if (!!p.enquete === !!origem.enquete && p.enquete) s += 1;
+    if (p.autorId === origem.autorId) s += 1.5;
+    s += afinidade(p) * 1.5;
+    const r = resumosPosts.get(p.id);
+    if (r?.total) s += Math.log1p(r.total) * 0.8 + Math.max(0, r.soma / r.total - 3) * 0.4;
+    s += 2 / (1 + Math.max(0, agora - ms(p.criadoEm)) / DIA);
+    if (jaVisto(p.id)) s *= 0.5;
+    return s * (0.9 + Math.random() * 0.2);
+  };
+}
+function fecharVisor({ doHistorico = false } = {}) {
+  if (!visor) return;
+  const v = visor; visor = null;
+  v.io?.disconnect();
+  v.el.querySelectorAll("video").forEach((x) => x.pause());
+  v.el.classList.add("saindo");
+  setTimeout(() => v.el.remove(), 180);
+  if (!pilha.length) document.body.classList.remove("travado");
+  definirOrigem(v.origemAntes);
+  if (!doHistorico && history.state?.hfVisorExp) history.back();
+}
+addEventListener("popstate", () => { if (visor && !history.state?.hfVisorExp) fecharVisor({ doHistorico: true }); });
+
+async function abrirVisor(origem) {
+  if (visor) fecharVisor({ doHistorico: true });
+  const caixa = el("div", "visor-exp");
+  caixa.setAttribute("role", "dialog"); caixa.setAttribute("aria-label", "Publicações do Explorar");
+  const topo = el("div", "ve-topo");
+  const voltar = el("button", "icone-btn"); voltar.type = "button"; voltar.setAttribute("aria-label", "Voltar ao Explorar"); voltar.appendChild(icone("voltar", "i"));
+  const tit = el("div", "ve-tit");
+  tit.append(el("strong", null, "Explorar"), el("small", null, (origem.tags || []).length ? `#${origem.tags[0]} e parecidas` : "Publicações para você"));
+  topo.append(voltar, tit);
+  const lista = el("div", "ve-lista");
+  const fim = el("div", "ve-fim");
+  const mais = el("button", "btn sec", "Ver mais"); mais.type = "button";
+  fim.appendChild(mais);
+  const rolagem = el("div", "ve-rolagem");
+  rolagem.append(lista, fim);
+  caixa.append(topo, rolagem);
+  document.body.appendChild(caixa);
+  document.body.classList.add("travado");
+  history.pushState({ ...(history.state || {}), hfVisorExp: true, hfBase: false, hfGuarda: false }, "", location.href);
+  const v = visor = { el: caixa, usados: new Set([origem.id]), ultimoAutor: origem.autorId, carregando: false, acabou: false, origemAntes: origemAtual, nota: parecida(origem) };
+  definirOrigem("principais");
+  voltar.addEventListener("click", () => fecharVisor());
+  lista.appendChild(cartaoPost(origem));
+
+  const pool = (await postsRecentes()).slice();
+  async function adicionar() {
+    if (v.carregando || v.acabou || visor !== v) return;
+    v.carregando = true; mais.disabled = true; mais.textContent = "Carregando...";
+    try {
+      let candidatas = pool.filter((p) => !v.usados.has(p.id) && p.autorId !== eu.uid);
+      if (candidatas.length < POR_VEZ_VISOR && !acabouAntigas) {
+        const velhas = await maisAntigas();
+        const ids = new Set(pool.map((p) => p.id));
+        velhas.forEach((p) => { if (!ids.has(p.id)) pool.push(p); });
+        candidatas = pool.filter((p) => !v.usados.has(p.id) && p.autorId !== eu.uid);
+      }
+      if (visor !== v) return;
+      const notas = new Map(candidatas.map((p) => [p.id, v.nota(p)]));
+      candidatas.sort((a, b) => notas.get(b.id) - notas.get(a.id));
+      for (let n = 0; n < POR_VEZ_VISOR && candidatas.length; n++) {
+        // Nunca duas seguidas do mesmo autor (se houver outra entre as 4 melhores).
+        let k = candidatas.findIndex((p, i) => i < 4 && p.autorId !== v.ultimoAutor);
+        if (k < 0) k = 0;
+        const p = candidatas.splice(k, 1)[0];
+        v.usados.add(p.id); v.ultimoAutor = p.autorId;
+        lista.appendChild(cartaoPost(p));
+      }
+      if (!candidatas.length && acabouAntigas) {
+        v.acabou = true;
+        const b = el("button", "btn sec", "Voltar ao Explorar"); b.type = "button"; b.addEventListener("click", () => fecharVisor());
+        fim.replaceChildren(el("p", "ve-acabou", "Você viu tudo por aqui. Volte mais tarde para ver novidades."), b);
+      }
+    } finally { v.carregando = false; mais.disabled = false; mais.textContent = "Ver mais"; }
+  }
+  mais.addEventListener("click", adicionar);
+  await adicionar();
+  // Chegando perto do fim, carrega mais sozinho.
+  if ("IntersectionObserver" in window) {
+    v.io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) adicionar(); }, { root: rolagem, rootMargin: "0px 0px 900px 0px" });
+    v.io.observe(fim);
+  }
+}
