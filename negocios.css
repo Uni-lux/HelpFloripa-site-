@@ -1,0 +1,136 @@
+/* =====================================================
+   Meus negócios (negocios.html): painel do anunciante, cartões de criar com a cor de cada
+   classe (as mesmas da página inicial) e o formulário que muda de cor conforme o tipo.
+   ===================================================== */
+:root { --c-servicos: #00adee; --c-delivery: #ff7a1a; --c-lojinha: #b066ff; --c-imoveis: #2fbf71; }
+.servicos { --c: var(--c-servicos); }
+.delivery { --c: var(--c-delivery); }
+.lojinha { --c: var(--c-lojinha); }
+.imoveis { --c: var(--c-imoveis); }
+
+/* ---------- topo ---------- */
+.ng-hero { position: relative; overflow: hidden; display: grid; gap: 16px; margin: 4px 0 22px; padding: 22px 20px 18px; border-radius: 24px; border: 1px solid var(--line);
+  background:
+    radial-gradient(70% 120% at 0% 0%, color-mix(in srgb, var(--c-servicos) 22%, transparent), transparent 70%),
+    radial-gradient(60% 120% at 100% 0%, color-mix(in srgb, var(--c-lojinha) 18%, transparent), transparent 70%),
+    radial-gradient(60% 120% at 100% 100%, color-mix(in srgb, var(--c-delivery) 14%, transparent), transparent 70%),
+    var(--panel); }
+.ng-kicker { display: inline-block; font-size: 11.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.ng-hero h1 { margin: 4px 0 4px; font-size: 28px; font-weight: 850; letter-spacing: -.6px; }
+.ng-hero p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.45; max-width: 46ch; }
+.ng-slots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.ng-slot { display: grid; justify-items: center; gap: 6px; padding: 10px 4px; border-radius: 16px; border: 1px dashed color-mix(in srgb, var(--c) 45%, var(--line));
+  background: color-mix(in srgb, var(--panel) 70%, transparent); color: var(--muted); font: inherit; font-size: 12px; font-weight: 750; text-decoration: none; cursor: pointer; transition: transform .15s, border-color .15s; }
+.ng-slot:hover { transform: translateY(-2px); border-color: var(--c); color: var(--text); }
+.ng-slot .ic { width: 34px; height: 34px; border-radius: 12px; display: grid; place-items: center; color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); }
+.ng-slot.feito { border-style: solid; border-color: color-mix(in srgb, var(--c) 55%, transparent); color: var(--text); background: color-mix(in srgb, var(--c) 10%, var(--panel)); }
+.ng-slot.feito .ic { background: var(--c); color: #fff; box-shadow: 0 6px 16px -6px var(--c); }
+.ng-slot.feito .ic svg { stroke-width: 3; }
+
+.ng-tit { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 2px 12px; margin: 22px 2px 10px; }
+.ng-tit h2 { margin: 0; font-size: 18px; font-weight: 850; letter-spacing: -.2px; }
+.ng-tit small { color: var(--muted); font-size: 12.5px; }
+
+/* ---------- cartões dos perfis criados ---------- */
+.neg-grade { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.neg-grade:empty { display: none; }
+.neg-card { border-radius: 24px; scroll-margin-top: 80px; box-shadow: 0 1px 0 color-mix(in srgb, var(--c) 30%, transparent) inset; }
+.neg-card::before { content: ""; position: absolute; inset: 0 0 auto; height: 3px; z-index: 2; background: var(--c); }
+.neg-card .capa { height: 112px; background: #06202c var(--img) center / cover no-repeat; }
+.neg-card .capa::after { background: linear-gradient(160deg, color-mix(in srgb, var(--c) 45%, transparent) 0%, rgba(0, 0, 0, .15) 45%, rgba(0, 0, 0, .55) 100%); }
+.neg-card .capa .tag { display: inline-flex; align-items: center; gap: 5px; padding: 5px 11px 5px 9px; box-shadow: 0 6px 16px -6px var(--c); }
+.ng-status { position: absolute; right: 12px; top: 12px; z-index: 1; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px;
+  background: rgba(0, 0, 0, .45); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); color: #fff; font-size: 11.5px; font-weight: 750; }
+.ng-status i { width: 7px; height: 7px; border-radius: 50%; background: #2fbf71; box-shadow: 0 0 0 3px rgba(47, 191, 113, .25); }
+.ng-status.off i { background: #ef4444; box-shadow: 0 0 0 3px rgba(239, 68, 68, .25); }
+.neg-card .corpo { gap: 12px; }
+.ng-cab { display: flex; align-items: flex-start; gap: 12px; margin-top: -30px; position: relative; z-index: 1; }
+.ng-cab > div:last-child { min-width: 0; display: grid; gap: 2px; padding-top: 36px; }
+.neg-card .ng-cab .avatar { width: 66px; height: 66px; margin: 0; font-size: 20px; border: 3px solid var(--panel); box-shadow: 0 0 0 2px var(--c);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--c) 55%, #000), var(--c)); }
+.neg-card h3 { font-size: 17px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.neg-card .meta { font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.neg-card .nums div { padding: 9px 6px; border-radius: 14px; background: var(--panel-2); }
+.neg-card .nums b { font-size: 17px; }
+.neg-card .nums div:first-child b { color: var(--c); }
+.ng-comp { display: grid; gap: 7px; padding: 11px 12px; border-radius: 14px; border: 1px solid color-mix(in srgb, var(--c) 25%, var(--line)); background: color-mix(in srgb, var(--c) 6%, transparent); }
+.ng-comp-topo { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13px; }
+.ng-comp-topo span { color: var(--muted); font-size: 12px; }
+.ng-comp-barra { height: 6px; border-radius: 99px; background: var(--panel-2); overflow: hidden; }
+.ng-comp-barra i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, color-mix(in srgb, var(--c) 60%, #fff), var(--c)); transition: width .5s; }
+.ng-comp.ok { border-color: color-mix(in srgb, var(--ok) 35%, var(--line)); background: color-mix(in srgb, var(--ok) 7%, transparent); }
+.ng-comp.ok .ng-comp-topo strong { color: var(--ok); }
+.ng-comp-falta { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0; border: 0; background: none; color: var(--muted); font: inherit; font-size: 12.5px; text-align: left; cursor: pointer; }
+.ng-comp-falta svg { color: var(--c); flex: none; }
+.ng-comp-falta:hover { color: var(--text); }
+.neg-card .acoes { gap: 8px; }
+.neg-card .acoes .btn { min-height: 38px; }
+.btn.ng-pri { background: var(--c); color: #fff; border-color: transparent; box-shadow: 0 8px 20px -12px var(--c); }
+.btn.ng-pri:hover { background: color-mix(in srgb, var(--c) 85%, #000); }
+.btn.ng-so-ic { padding-left: 11px; padding-right: 11px; }
+.btn.ng-alerta { color: #ef4444; border-color: color-mix(in srgb, #ef4444 40%, var(--line)); }
+
+/* ---------- cartões de criar (cada tipo com a sua cara) ---------- */
+.ng-criar { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.ng-criar:empty { display: none; }
+.ng-novo { position: relative; overflow: hidden; isolation: isolate; display: grid; align-content: start; gap: 6px; min-height: 250px; padding: 18px; border-radius: 24px; text-align: left;
+  border: 1px solid color-mix(in srgb, var(--c) 45%, transparent); color: #fff; font: inherit; cursor: pointer;
+  background: #071017 var(--img) center / cover no-repeat; transition: transform .2s, box-shadow .2s; }
+.ng-novo::before { content: ""; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(180deg, rgba(4, 10, 14, .55) 0%, rgba(4, 10, 14, .82) 55%, rgba(4, 10, 14, .94) 100%), linear-gradient(135deg, color-mix(in srgb, var(--c) 55%, transparent), transparent 60%); }
+.ng-novo:hover { transform: translateY(-3px); box-shadow: 0 18px 40px -18px var(--c); }
+.ng-novo:focus-visible { outline: 3px solid var(--c); outline-offset: 3px; }
+.ng-novo-topo { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.ng-novo-ic { width: 46px; height: 46px; border-radius: 15px; display: grid; place-items: center; color: #fff;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--c) 70%, #fff 30%), var(--c)); box-shadow: 0 10px 24px -8px var(--c); }
+.ng-novo-tag { padding: 4px 11px; border-radius: 999px; font-size: 11.5px; font-weight: 800; letter-spacing: .03em; color: #fff; background: color-mix(in srgb, var(--c) 35%, rgba(0, 0, 0, .3)); border: 1px solid color-mix(in srgb, var(--c) 60%, transparent); }
+.ng-novo strong { font-size: 20px; font-weight: 850; letter-spacing: -.3px; line-height: 1.2; }
+.ng-novo > small { font-size: 13px; line-height: 1.45; color: rgba(255, 255, 255, .78); }
+.ng-novo-pts { list-style: none; margin: 6px 0 4px; padding: 0; display: grid; gap: 5px; font-size: 13px; color: rgba(255, 255, 255, .92); }
+.ng-novo-pts li { display: flex; align-items: center; gap: 7px; }
+.ng-novo-pts svg { color: var(--c); flex: none; stroke-width: 3; }
+.ng-novo-cta { justify-self: start; display: inline-flex; align-items: center; gap: 7px; margin-top: 8px; padding: 10px 16px; border-radius: 999px; background: var(--c); color: #fff;
+  font-size: 14px; font-weight: 800; box-shadow: 0 10px 24px -10px var(--c); }
+.ng-novo:hover .ng-novo-cta svg { transform: translateX(3px); }
+.ng-novo-cta svg { transition: transform .2s; }
+
+/* ---------- formulário ---------- */
+#folhaNegocio { --c: var(--c-servicos); }
+#folhaNegocio[data-tipo="delivery"] { --c: var(--c-delivery); }
+#folhaNegocio[data-tipo="lojinha"] { --c: var(--c-lojinha); }
+#folhaNegocio[data-tipo="imoveis"] { --c: var(--c-imoveis); }
+#folhaNegocio .folha-topo { position: relative; background: linear-gradient(180deg, color-mix(in srgb, var(--c) 14%, transparent), transparent); transition: background .3s; }
+#folhaNegocio .folha-topo::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--c); transition: background .3s; }
+#folhaNegocio #negSalvar { background: var(--c); color: #fff; box-shadow: 0 10px 24px -12px var(--c); }
+#folhaNegocio #negSalvar:hover { background: color-mix(in srgb, var(--c) 85%, #000); }
+#folhaNegocio .marca-op.on { border-color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); }
+#folhaNegocio input:focus, #folhaNegocio textarea:focus, #folhaNegocio select:focus { border-color: var(--c); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 22%, transparent); outline: none; }
+#folhaNegocio .neg-mais > summary::after { color: var(--c); }
+#negAvatar { background: linear-gradient(135deg, color-mix(in srgb, var(--c) 55%, #000), var(--c)); box-shadow: 0 0 0 3px var(--panel), 0 0 0 5px color-mix(in srgb, var(--c) 60%, transparent); transition: background .3s; }
+#negAvatar.vazio svg { width: 30px; height: 30px; }
+
+.ng-tipos { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.ng-tipos.um { grid-template-columns: 1fr; }
+.ng-tipo { position: relative; display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 16px; border: 1.5px solid var(--line); background: var(--panel-2);
+  color: var(--text); font: inherit; text-align: left; cursor: pointer; transition: border-color .15s, background .15s, transform .15s; }
+.ng-tipo .ic { flex: none; width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; color: var(--c); background: color-mix(in srgb, var(--c) 15%, transparent); transition: background .15s, color .15s; }
+.ng-tipo .tx { min-width: 0; display: grid; gap: 1px; }
+.ng-tipo strong { font-size: 14px; }
+.ng-tipo small { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ng-tipo .ok { position: absolute; right: 9px; top: 9px; width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--line); }
+.ng-tipo:not(:disabled):hover { border-color: color-mix(in srgb, var(--c) 60%, var(--line)); }
+.ng-tipo.on { border-color: var(--c); background: color-mix(in srgb, var(--c) 12%, var(--panel)); box-shadow: 0 8px 22px -14px var(--c); }
+.ng-tipo.on .ic { background: var(--c); color: #fff; }
+.ng-tipo.on .ok { border-color: var(--c); background: var(--c) radial-gradient(circle, #fff 0 3px, transparent 3.5px); }
+.ng-tipo:disabled { cursor: default; opacity: .5; }
+.ng-tipo:disabled small { color: var(--ok); font-weight: 700; }
+.ng-tipos.um .ng-tipo { cursor: default; }
+
+@media (max-width: 560px) {
+  .ng-hero { padding: 18px 16px 16px; border-radius: 22px; }
+  .ng-hero h1 { font-size: 25px; }
+  .ng-slot { font-size: 11px; padding: 9px 2px; }
+  .neg-grade, .ng-criar { grid-template-columns: 1fr; }
+  .ng-novo { min-height: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .ng-novo, .ng-slot, .ng-tipo, .ng-comp-barra i { transition: none; } }

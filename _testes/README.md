@@ -57,6 +57,7 @@ Capturas de tela, Excel baixados e logs ficam em `saida/` (fora do git).
 | `t-flash-cfg.mjs` | Configurações do Flash em cartões (onde publicar por padrão, câmera direto, respostas), "+" com a cor do Flash e borda neutra sem flash. |
 | `t-caixa.mjs` | Enquete anônima (voto em enquete_anon + contagem, sem "Ver votos") e caixa de perguntas com nome e anônima na publicação e no Flash: responder, ver respostas, Responder pelo Mensagens e notificações. |
 | `t-salvos.mjs` | "+" do Flash na foto do perfil, Seguidores/Seguindo com abas, busca e filtros (não segue de volta, mútuos), Salvos com coleções e ícone dos atalhos do Explorar. |
+| `t-negocios.mjs` | Meus negócios: topo com os 4 tipos, cartões dos perfis (completude, compartilhar), cartões de criar com a cor de cada classe e formulário que muda de cor/textos pelo tipo (`dark` ou `light`). |
 | `t-campos.mjs` | Janelas do site no lugar das do navegador: lista de opções com busca (Estado), horário com rodas, confirmação (Remover endereço) e "Baixar meus dados" como relatório HTML legível. |
 | `t-suporte2.mjs` | Suporte refeito (atalhos, assunto em cartões, conversa com etapas, reportar atendimento, nota, denunciar pela busca), painel (KPIs, reportar a pessoa, Reportes do suporte) e o cartão da publicação no chat. |
 | `t-voltar.mjs` | "Voltar" fecha a janela de cima (comentários, confirmação, lista de Estados), volta para a aba anterior (Diário/Explorar, perfil, seções do painel); "Cobrar resposta" guardado depois de recarregar; cartões de publicação e flash no chat. |

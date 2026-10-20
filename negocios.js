@@ -15,11 +15,32 @@ import { lerResumos, estrelas, media, notaTexto } from "./avaliacoes.js?v=13";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
 import { buscarAnuncios, DIAS, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO } from "./vitrine.js?v=36";
 
+// Cada tipo com a cor da sua classe na página inicial (inicio.css: --c-servicos etc.) e uma chamada própria.
 const NEGOCIOS = {
-  servicos: { rotulo: "Freelances", img: "servicos.webp", pagina: "servicos.html", desc: "Portfólio, preços, horários e pedidos de orçamento." },
-  delivery: { rotulo: "Delivery", img: "lanchonetes.webp", pagina: "delivery.html", desc: "Cardápio com fotos, taxa, horário e pedidos prontos." },
-  lojinha: { rotulo: "Lojinha", img: "shopping.webp", pagina: "shopping.html", desc: "Produtos com fotos, tamanhos, cores e estoque." },
-  imoveis: { rotulo: "Imóveis", img: "imoveis.webp", pagina: "imoveis.html", desc: "Anúncios de aluguel, venda e temporada." }
+  servicos: {
+    rotulo: "Freelances", img: "servicos.webp", pagina: "servicos.html", desc: "Portfólio, preços, horários e pedidos de orçamento.",
+    chamada: "Ofereça seus serviços", frase: "Trabalhe por conta e receba pedidos de orçamento pelo chat.", cta: "Oferecer serviços",
+    pontos: ["Portfólio com fotos", "Preços e orçamentos", "Região e dias de atendimento"],
+    phNome: "Ex.: Marido de Aluguel do João", phDesc: "Que serviços você faz, sua experiência e a região que atende..."
+  },
+  delivery: {
+    rotulo: "Delivery", img: "lanchonetes.webp", pagina: "delivery.html", desc: "Cardápio com fotos, taxa, horário e pedidos prontos.",
+    chamada: "Abra seu delivery", frase: "Cardápio bonito e pedidos chegando direto nas mensagens.", cta: "Abrir delivery",
+    pontos: ["Cardápio com fotos e seções", "Taxa, pedido mínimo e tempo", "Entrega ou retirada"],
+    phNome: "Ex.: Burger da Ilha", phDesc: "Sua especialidade, o que deixa a comida de vocês especial, bairros onde entregam..."
+  },
+  lojinha: {
+    rotulo: "Lojinha", img: "shopping.webp", pagina: "shopping.html", desc: "Produtos com fotos, tamanhos, cores e estoque.",
+    chamada: "Monte sua lojinha", frase: "Venda seus produtos no Shopping do Help Floripa.", cta: "Montar lojinha",
+    pontos: ["Produtos com fotos e promoções", "Tamanhos, cores e estoque", "Entrega ou retirada"],
+    phNome: "Ex.: Ateliê da Maria", phDesc: "O que você vende, marcas, como funciona a entrega e as trocas..."
+  },
+  imoveis: {
+    rotulo: "Imóveis", img: "imoveis.webp", pagina: "imoveis.html", desc: "Anúncios de aluguel, venda e temporada.",
+    chamada: "Anuncie imóveis", frase: "Alugue, venda ou ofereça temporada para quem busca na região.", cta: "Anunciar imóveis",
+    pontos: ["Aluguel, venda ou temporada", "Até 5 fotos por imóvel", "Quantos anúncios quiser"],
+    phNome: "Ex.: João Imóveis", phDesc: "Quem você é, a região onde atua e como prefere ser procurado..."
+  }
 };
 let meusNegocios = [];
 
@@ -51,63 +72,140 @@ async function carregarNumeros() {
   } catch (e) { console.warn("Números dos negócios:", e); }
   pintarPainel();
 }
+// O que falta para o perfil ficar completo (o que mais pesa para o cliente escolher).
+function completude(n) {
+  const itens = n.itens || [], fotos = n.fotos || [];
+  const lista = [
+    ["Foto ou logo", !!urlSegura(n.foto)],
+    ["Descrição", String(n.descricao || "").trim().length >= 40],
+    ["WhatsApp", !!String(n.whatsapp || "").trim()],
+    ["Bairro", !!n.bairro]
+  ];
+  if (n.tipo === "servicos") lista.push(["Serviços com preço", itens.some((i) => Number(i.preco) > 0)], ["Fotos de trabalhos", fotos.length > 0], ["Horário", !!n.horario]);
+  if (n.tipo === "delivery") lista.push(["3 itens no cardápio", itens.length >= 3], ["Fotos dos pratos", itens.some((i) => urlSegura(i.foto))], ["Foto de capa", fotos.length > 0], ["Horário", !!(n.horaAbre && n.horaFecha)]);
+  if (n.tipo === "lojinha") lista.push(["3 produtos", itens.length >= 3], ["Fotos dos produtos", itens.length > 0 && itens.every((i) => urlSegura(i.foto))], ["Formas de pagamento", (n.pagamentos || []).length > 0]);
+  if (n.tipo === "imoveis") lista.push(["Um imóvel anunciado", numeros.anuncios > 0], ["CRECI", n.tipoAnunciante === "proprietario" || !!n.creci]);
+  const feitos = lista.filter((x) => x[1]).length;
+  return { pct: Math.round((feitos / lista.length) * 100), faltam: lista.filter((x) => !x[1]).map((x) => x[0]) };
+}
+const linkNegocio = (n) => new URL(`${PAGINA_TIPO[n.tipo]}?negocio=${encodeURIComponent(n.id)}`, location.href).href;
+async function compartilharNegocio(n) {
+  const url = linkNegocio(n);
+  try {
+    if (navigator.share) { await navigator.share({ title: n.nome, text: `${n.nome} no Help Floripa`, url }); return; }
+    await navigator.clipboard.writeText(url);
+    toast("Link do perfil copiado");
+  } catch (e) { if (e?.name !== "AbortError") toast("Não foi possível compartilhar agora."); }
+}
+function btnIc(classe, ic, texto, tag = "button") {
+  const b = el(tag, classe);
+  if (tag === "button") b.type = "button";
+  b.append(icone(ic, "i xs"));
+  if (texto) b.append(document.createTextNode(texto));
+  return b;
+}
 function pintarPainel() {
-  const grade = $("painelNegocios");
-  grade.replaceChildren();
+  const grade = $("painelNegocios"), criar = $("criarNegocios"), slots = $("slotsNegocios");
+  grade.replaceChildren(); criar.replaceChildren(); slots.replaceChildren();
   Object.entries(NEGOCIOS).forEach(([tipo, t]) => {
     const n = meusNegocios.find((x) => x.tipo === tipo);
+    // Faixa do topo: um lugar por tipo, aceso quando criado.
+    const sl = el(n ? "a" : "button", `ng-slot ${tipo}${n ? " feito" : ""}`);
+    const slIc = el("span", "ic"); slIc.appendChild(icone(n ? "check" : tipo, "i xs"));
+    sl.append(slIc, el("span", null, t.rotulo));
+    if (n) { sl.href = "#neg-" + tipo; sl.title = `${t.rotulo}: criado`; }
+    else { sl.type = "button"; sl.title = `Criar ${t.rotulo}`; sl.addEventListener("click", () => novoNegocio(tipo)); }
+    slots.appendChild(sl);
+
     if (!n) {
-      const c = el("button", `neg-card novo ${tipo}`); c.type = "button";
-      const ic = el("span", "ic"); ic.appendChild(icone(tipo, "i"));
-      c.append(ic, el("strong", null, `Criar perfil de ${t.rotulo}`), el("small", null, t.desc));
+      // Cartão de criar: foto e cor da classe, chamada e o que o perfil oferece.
+      const c = el("button", `ng-novo ${tipo}`); c.type = "button";
+      c.style.setProperty("--img", `url("${t.img}")`);
+      const ic = el("span", "ng-novo-ic"); ic.appendChild(icone(tipo, "i"));
+      const topo = el("div", "ng-novo-topo"); topo.append(ic, el("span", "ng-novo-tag", t.rotulo));
+      const pts = el("ul", "ng-novo-pts");
+      t.pontos.forEach((p) => { const li = el("li"); li.append(icone("check", "i xs"), document.createTextNode(p)); pts.appendChild(li); });
+      const cta = el("span", "ng-novo-cta"); cta.append(document.createTextNode(t.cta), icone("avancar", "i xs"));
+      c.append(topo, el("strong", null, t.chamada), el("small", null, t.frase), pts, cta);
       c.addEventListener("click", () => novoNegocio(tipo));
-      grade.appendChild(c);
+      criar.appendChild(c);
       return;
     }
     const c = el("article", `neg-card ${tipo}`);
+    c.id = "neg-" + tipo;
     const capa = el("div", "capa");
     const f = urlSegura((n.fotos || [])[0]) || t.img;
-    capa.style.backgroundImage = `url("${f}")`;
-    capa.appendChild(el("span", "tag", t.rotulo));
+    capa.style.setProperty("--img", `url("${f}")`);
+    const tag = el("span", "tag"); tag.append(icone(tipo, "i xs"), document.createTextNode(t.rotulo));
+    capa.appendChild(tag);
+    const oculto = (n.ocultoAte?.toMillis?.() ?? 0) > Date.now();
+    const st = el("span", "ng-status" + (oculto ? " off" : ""));
+    st.append(el("i"), document.createTextNode(oculto ? "Fora do ar" : "No ar"));
+    capa.appendChild(st);
     const corpo = el("div", "corpo");
     const av = el("div", "avatar"); pintarAvatar(av, n.foto, n.nome);
     const resumo = numeros.resumos["neg_" + n.id];
     const rec = numeros.reclamacoes[n.id] || { total: 0, pendentes: 0 };
     const nums = el("div", "nums");
-    const bloco = (valor, rot) => { const d = el("div"); d.append(el("b", null, valor), el("span", null, rot)); return d; };
+    const bloco = (valor, rot, alerta) => { const d = el("div", alerta ? "alerta" : null); d.append(el("b", null, valor), el("span", null, rot)); return d; };
+    const qtd = (n.itens || []).length;
     nums.append(
       bloco(resumo?.total ? notaTexto(media(resumo)) : "–", "nota"),
       bloco(String(resumo?.total || 0), resumo?.total === 1 ? "avaliação" : "avaliações"),
-      tipo === "imoveis" ? bloco(String(numeros.anuncios), numeros.anuncios === 1 ? "anúncio" : "anúncios") : bloco(String(rec.pendentes), rec.pendentes === 1 ? "reclamação" : "reclamações")
+      tipo === "imoveis" ? bloco(String(numeros.anuncios), numeros.anuncios === 1 ? "anúncio" : "anúncios")
+        : bloco(String(qtd), { servicos: qtd === 1 ? "serviço" : "serviços", delivery: qtd === 1 ? "item" : "itens", lojinha: qtd === 1 ? "produto" : "produtos" }[tipo])
     );
+    // Quanto do perfil está preenchido e o que falta.
+    const comp = completude(n);
+    const cp = el("div", "ng-comp" + (comp.pct === 100 ? " ok" : ""));
+    const cpTopo = el("div", "ng-comp-topo");
+    cpTopo.append(el("strong", null, comp.pct === 100 ? "Perfil completo" : `Perfil ${comp.pct}% completo`), el("span", null, comp.pct === 100 ? "" : `${comp.faltam.length} ${comp.faltam.length === 1 ? "item" : "itens"}`));
+    const barra = el("div", "ng-comp-barra"); const enc = el("i"); enc.style.width = comp.pct + "%"; barra.appendChild(enc);
+    cp.append(cpTopo, barra);
+    if (comp.faltam.length) {
+      const falta = el("button", "ng-comp-falta"); falta.type = "button";
+      falta.append(el("span", null, "Falta: " + comp.faltam.slice(0, 3).join(", ") + (comp.faltam.length > 3 ? "…" : "")), icone("avancar", "i xs"));
+      falta.addEventListener("click", () => abrirFormNegocio(n));
+      cp.appendChild(falta);
+    }
     const acoes = el("div", "acoes");
-    const bE = el("button", "btn pri mini"); bE.type = "button"; bE.append(icone("lapis", "i xs"), document.createTextNode(tipo === "imoveis" ? "Editar e anúncios" : "Editar"));
+    const bE = btnIc("btn mini ng-pri", "lapis", tipo === "imoveis" ? "Editar e anúncios" : "Editar");
     bE.addEventListener("click", () => abrirFormNegocio(n));
-    const bV = el("a", "btn sec mini"); bV.append(icone("olho", "i xs"), document.createTextNode("Ver na vitrine"));
-    bV.href = tipo === "imoveis" ? "imoveis.html" : `${PAGINA_TIPO[tipo]}?negocio=${encodeURIComponent(n.id)}`;
-    acoes.append(bE, bV);
+    const bV = btnIc("btn sec mini", "olho", "Vitrine", "a");
+    bV.href = `${PAGINA_TIPO[tipo]}?negocio=${encodeURIComponent(n.id)}`;
+    const bC = btnIc("btn sec mini ng-so-ic", "compartilhar", "");
+    bC.setAttribute("aria-label", "Compartilhar perfil"); bC.title = "Compartilhar perfil";
+    bC.addEventListener("click", () => compartilharNegocio(n));
+    acoes.append(bE, bV, bC);
     if (rec.total) {
-      const bR = el("a", "btn sec mini"); bR.append(icone("alerta", "i xs"), document.createTextNode(rec.pendentes ? `Responder (${rec.pendentes})` : "Reclamações"));
+      const bR = btnIc("btn sec mini" + (rec.pendentes ? " ng-alerta" : ""), "alerta", rec.pendentes ? `Responder ${rec.pendentes} ${rec.pendentes === 1 ? "reclamação" : "reclamações"}` : "Reclamações", "a");
       bR.href = `reclamacoes.html?negocio=${encodeURIComponent(n.id)}`;
       acoes.appendChild(bR);
     }
-    corpo.append(av, el("h3", null, n.nome || t.rotulo), el("div", "meta", [n.cidade, (n.itens || []).length ? `${n.itens.length} ${tipo === "servicos" ? "serviços" : tipo === "delivery" ? "itens no cardápio" : "produtos"}` : ""].filter(Boolean).join(" · ") || t.desc));
-    if (resumo?.total) corpo.appendChild(estrelas(resumo));
+    const cab = el("div", "ng-cab");
+    const cabTx = el("div");
+    cabTx.append(el("h3", null, n.nome || t.rotulo), el("div", "meta", [[n.bairro, n.cidade].filter(Boolean).join(", "), tipo === "servicos" && (n.categorias || []).length ? (n.categorias || []).map((k) => CATS_NEGOCIO.servicos[k]).filter(Boolean).slice(0, 2).join(" · ") : CATS_NEGOCIO[tipo]?.[n.categoria] && n.categoria !== "outros" ? CATS_NEGOCIO[tipo][n.categoria] : ""].filter(Boolean).join(" · ") || t.desc));
+    if (resumo?.total) cabTx.appendChild(estrelas(resumo));
+    cab.append(av, cabTx);
+    corpo.appendChild(cab);
     // Escondido da vitrine: pela equipe (moderação) ou porque a conta está desativada.
-    if ((n.ocultoAte?.toMillis?.() ?? 0) > Date.now()) {
+    if (oculto) {
       const av2 = el("div", "neg-aviso");
       const ln = el("a", null, "Falar com o suporte"); ln.href = "suporte.html";
       av2.append(el("strong", null, n.ocultoPelaEquipe ? "Escondido pela equipe" : "Escondido da vitrine"),
         el("span", null, n.ocultoPelaEquipe ? "Este perfil não aparece para os clientes por violar os Termos de Uso. " : "Este perfil não aparece para os clientes enquanto a conta estiver desativada. "), ln);
       corpo.appendChild(av2);
     }
-    corpo.append(nums, acoes);
+    corpo.append(nums, cp, acoes);
     c.append(capa, corpo);
     grade.appendChild(c);
   });
   const total = meusNegocios.length;
-  $("resumoNegocios").textContent = total ? `${total} de 4 perfis criados` : "Você ainda não tem perfis de negócio";
-  $("btnNovoNegocio").hidden = total >= 4;
+  $("resumoNegocios").textContent = total === 4 ? "Você tem os 4 tipos de perfil. Mantenha todos completos e atualizados."
+    : total ? `${total} de 4 perfis criados · você pode ter um de cada tipo` : "Crie seu primeiro perfil e apareça para quem procura na sua região.";
+  $("titSeus").hidden = !total;
+  $("titCriar").hidden = total >= 4;
+  $("titCriarTx").textContent = total ? "Crie mais um perfil" : "Escolha por onde começar";
 }
 // Anunciar é permitido a partir de 18 anos (a data vem do cadastro).
 function maiorDeIdade() {
@@ -122,9 +220,8 @@ function maiorDeIdade() {
 function novoNegocio(tipo) {
   if (!maiorDeIdade()) { toast("Para criar um perfil de negócio é preciso ter 18 anos ou mais."); return; }
   abrirFormNegocio(null);
-  if (tipo && NEGOCIOS[tipo]) document.querySelector(`#negTipo [data-valor="${tipo}"]`)?.click();
+  if (tipo && NEGOCIOS[tipo]) escolherTipo(tipo);
 }
-$("btnNovoNegocio").addEventListener("click", () => novoNegocio(null));
 
 // =====================================================
 // Formulário (o mesmo que ficava no perfil)
@@ -135,13 +232,11 @@ function abrirFormNegocio(n) {
   const usados = new Set(meusNegocios.map((x) => x.tipo));
   negTipo = n ? n.tipo : Object.keys(NEGOCIOS).find((k) => !usados.has(k)) || "servicos";
   negFoto = n?.foto || "";
-  document.querySelectorAll("#negTipo [data-valor]").forEach((b) => {
-    b.classList.toggle("on", b.dataset.valor === negTipo);
-    b.disabled = n ? b.dataset.valor !== n.tipo : usados.has(b.dataset.valor);
-  });
+  pintarTipos(n ? [n.tipo] : Object.keys(NEGOCIOS), n ? new Set() : usados);
   $("negTipoAjuda").textContent = n ? "O tipo não pode ser trocado depois de criado." : "Você pode ter um perfil de cada tipo.";
   $("tNegocio").textContent = n ? "Editar perfil de negócio" : "Novo perfil de negócio";
   $("negNome").value = n?.nome || "";
+  aplicarTipoNoForm();
   $("negDesc").value = n?.descricao || "";
   $("negDescCont").textContent = `${$("negDesc").value.length}/500`;
   // Local do negócio: começa pelo do próprio negócio ou, num perfil novo, pela cidade da conta.
@@ -695,16 +790,59 @@ $("anExcluir").addEventListener("click", async () => {
 });
 
 function pintarFotoNegocio() {
-  pintarAvatar($("negAvatar"), negFoto, $("negNome").value || NEGOCIOS[negTipo].rotulo);
+  const av = $("negAvatar");
+  // Sem foto e sem nome: o ícone do tipo na cor dele (em vez de uma letra solta).
+  if (!negFoto && !$("negNome").value.trim()) { av.replaceChildren(icone(negTipo, "i")); av.classList.add("vazio"); }
+  else { av.classList.remove("vazio"); pintarAvatar(av, negFoto, $("negNome").value); }
   $("negRemoverFoto").hidden = !negFoto;
+}
+// Tipos em cartões com a cor de cada classe; os já criados ficam marcados e travados.
+function pintarTipos(tipos, usados) {
+  const box = $("negTipo");
+  box.replaceChildren();
+  box.classList.toggle("um", tipos.length === 1);
+  tipos.forEach((tipo) => {
+    const t = NEGOCIOS[tipo];
+    const b = el("button", `ng-tipo ${tipo}`); b.type = "button"; b.dataset.valor = tipo;
+    b.setAttribute("role", "radio");
+    const ic = el("span", "ic"); ic.appendChild(icone(tipo, "i s"));
+    const tx = el("span", "tx"); tx.append(el("strong", null, t.rotulo), el("small", null, usados.has(tipo) ? "Já criado" : tipos.length === 1 ? t.desc : t.chamada));
+    b.append(ic, tx, el("span", "ok"));
+    b.disabled = usados.has(tipo);
+    box.appendChild(b);
+  });
+  marcarTipo();
+}
+function marcarTipo() {
+  document.querySelectorAll("#negTipo [data-valor]").forEach((x) => { const on = x.dataset.valor === negTipo; x.classList.toggle("on", on); x.setAttribute("aria-checked", String(on)); });
+}
+function aplicarTipoNoForm() {
+  const t = NEGOCIOS[negTipo];
+  $("folhaNegocio").dataset.tipo = negTipo;
+  $("negNome").placeholder = t.phNome;
+  $("negDesc").placeholder = t.phDesc;
+  if (!negEditando) $("tNegocio").textContent = `Novo perfil · ${t.rotulo}`;
+  pintarFotoNegocio();
+}
+function escolherTipo(tipo) {
+  if (!NEGOCIOS[tipo] || tipo === negTipo) return;
+  negTipo = tipo;
+  marcarTipo();
+  negExtra = { fotos: [], itens: [] };
+  aplicarTipoNoForm();
+  montarExtras();
 }
 $("negTipo").addEventListener("click", (e) => {
   const b = e.target.closest("[data-valor]");
   if (!b || b.disabled) return;
-  negTipo = b.dataset.valor;
-  document.querySelectorAll("#negTipo [data-valor]").forEach((x) => x.classList.toggle("on", x === b));
-  negExtra = { fotos: [], itens: [] };
-  montarExtras();
+  escolherTipo(b.dataset.valor);
+});
+$("negNome").addEventListener("input", () => { if (!negFoto) pintarFotoNegocio(); });
+// WhatsApp no formato (48) 99999-9999 enquanto digita.
+$("negWhats").addEventListener("input", () => {
+  const i = $("negWhats"), d = i.value.replace(/\D/g, "").replace(/^55(?=\d{10,11}$)/, "").slice(0, 11);
+  if (!d) { i.value = ""; return; }
+  i.value = d.length <= 2 ? `(${d}` : d.length <= 6 ? `(${d.slice(0, 2)}) ${d.slice(2)}` : d.length <= 10 ? `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}` : `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
 });
 $("negDesc").addEventListener("input", () => { $("negDescCont").textContent = `${$("negDesc").value.length}/500`; });
 $("negTrocarFoto").addEventListener("click", () => $("negArquivo").click());

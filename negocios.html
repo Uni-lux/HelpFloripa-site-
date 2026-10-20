@@ -25,8 +25,9 @@
   </script>
   <link rel="stylesheet" href="vitrine.css?v=25" />
   <link rel="stylesheet" href="rede.css?v=30" />
+  <link rel="stylesheet" href="negocios.css?v=1" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="negocios.js?v=53"></script>
+  <script type="module" src="negocios.js?v=54"></script>
 </head>
 <body>
   <header class="topo">
@@ -38,11 +39,20 @@
   </header>
 
   <main class="pagina larga">
-    <div class="cab-pagina">
-      <div><h1>Meus negócios</h1><p id="resumoNegocios">Carregando...</p></div>
-      <button type="button" class="btn pri" id="btnNovoNegocio" hidden><svg class="i s"><use href="#i-mais"/></svg>Novo perfil</button>
-    </div>
+    <section class="ng-hero">
+      <div class="ng-hero-tx">
+        <span class="ng-kicker">Painel do anunciante</span>
+        <h1>Meus negócios</h1>
+        <p id="resumoNegocios">Carregando...</p>
+      </div>
+      <div class="ng-slots" id="slotsNegocios" aria-label="Perfis criados"></div>
+    </section>
+
+    <div class="ng-tit" id="titSeus" hidden><h2>Seus perfis</h2><small>Toque em Editar para completar e atualizar</small></div>
     <div class="neg-grade" id="painelNegocios"><div class="esqueleto-post"></div><div class="esqueleto-post"></div></div>
+
+    <div class="ng-tit" id="titCriar" hidden><h2 id="titCriarTx">Crie mais um perfil</h2><small>Um perfil de cada tipo, todos ligados à sua conta</small></div>
+    <div class="ng-criar" id="criarNegocios"></div>
 
     <div class="duas-col" style="margin-top:18px">
       <div class="cartao">
@@ -72,12 +82,7 @@
       <div class="folha-corpo pad">
         <div class="campo" style="margin-top:0">
           <label>Tipo de perfil</label>
-          <div class="segmentado" id="negTipo" style="margin:0">
-            <button type="button" data-valor="servicos">Freelances</button>
-            <button type="button" data-valor="delivery">Delivery</button>
-            <button type="button" data-valor="lojinha">Lojinha</button>
-            <button type="button" data-valor="imoveis">Imóveis</button>
-          </div>
+          <div class="ng-tipos" id="negTipo" role="radiogroup" aria-label="Tipo de perfil"></div>
           <div class="ajuda"><span id="negTipoAjuda">Você pode ter um perfil de cada tipo.</span></div>
         </div>
         <div class="campo">

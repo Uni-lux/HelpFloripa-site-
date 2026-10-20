@@ -34,6 +34,8 @@ export async function navegador({ mobile = false, headless = true, csp = process
     const p = FB + nome;
     return existsSync(p) ? r.fulfill({ body: readFileSync(p), contentType: "text/javascript" }) : r.abort();
   });
+  // Aviso de manutenção (manutencao.js) fora dos testes: o cartão cobre botões embaixo da tela.
+  await ctx.route(/\/manutencao\.js(\?.*)?$/, (r) => r.fulfill({ body: "export function avisoManutencao() {}", contentType: "text/javascript" }));
   await ctx.route(/\/firebase\.js(\?.*)?$/, (r) => r.fulfill({ body: firebasePatch(), contentType: "text/javascript" }));
   await ctx.route(/^https?:\/\/(?!hf\.local|127\.0\.0\.1|localhost|www\.gstatic\.com)/, (r) => r.abort());
   return { browser, ctx };
