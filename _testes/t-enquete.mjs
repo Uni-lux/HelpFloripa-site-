@@ -58,8 +58,8 @@ await pa.locator("#cfgComenta button[data-valor=seguidores]").tap(); await pa.wa
 ok((await db.doc(`usuarios/${U.ana}`).get()).data()?.diarioConfig?.quemComenta === "seguidores", "configurações: quem comenta = seguidores");
 await pa.screenshot({ path: "saida/config-diario.png", fullPage: true });
 await pa.locator("#cfgFlash").tap();
-await pa.waitForSelector(".cfgf-op", { timeout: 15000 }); await pa.waitForTimeout(500);
-await pa.locator(".cfgf-op", { hasText: "Só quem você segue" }).tap(); await pa.waitForTimeout(1200);
+await pa.waitForSelector(".cfg2-op", { timeout: 15000 }); await pa.waitForTimeout(500);
+await pa.locator(".cfg2-op", { hasText: "Só quem você segue" }).tap(); await pa.waitForTimeout(1200);
 ok((await db.doc(`usuarios/${U.ana}`).get()).data()?.flashConfig?.respostas === "seguindo", "configurações do Flash: respostas só de quem segue");
 await pa.screenshot({ path: "saida/config-flash.png" });
 // 5) Estatísticas do perfil (pelo perfil)
