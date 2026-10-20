@@ -99,7 +99,37 @@ const avEdu = (await db.collection("avisos").where("uid", "==", U.edu).get()).do
 ok(avEdu.includes("não confere") && avEdu.includes("30 dias"), "a pessoa recebe o aviso com o motivo");
 await pa.locator(".ad-chip", { hasText: /^Aprovadas/ }).click(); await pa.waitForTimeout(300);
 ok(await pa.locator(".ad-item", { hasText: "Ana" }).locator(".ad-bt", { hasText: "Tirar o selo" }).count() === 1, "aba Aprovadas: histórico com Tirar o selo");
+// Ficha: o dono dá o selo direto (com motivo, fica no registro); menor de 18 não; a moderação não tem o botão
+const ficha = (uid) => pa.evaluate(async (u) => { const t = await (await fetch("admin.js")).text(); const v = t.match(/admin-base\.js\?v=\d+/)[0]; (await import("./" + v)).abrirFicha(u); }, uid);
+await ficha(U.hele); await pa.waitForSelector(".ad-gaveta", { timeout: 8000 });
+await pa.locator(".ad-gaveta .ad-bt", { hasText: "Dar selo direto" }).click(); await pa.waitForSelector(".ad-modal", { timeout: 5000 });
+await pa.locator(".ad-modal select").selectOption("parceiro");
+await pa.locator(".ad-modal textarea").fill("Contrato de parceria assinado em 10/10/2026.");
+await pa.screenshot({ path: "saida/verif-direto.png" });
+await pa.locator(".ad-modal button[type=submit]").click(); await pa.waitForTimeout(2500);
+ok((await db.doc(`usuarios/${U.hele}`).get()).data().verificado === true && (await db.doc(`perfis_publicos/${U.hele}`).get()).data().verificado === true, "dono: selo direto na conta e no perfil público");
+const logH = (await db.collection("admin_log").where("alvo", "==", U.hele).get()).docs.map((d) => d.data()).find((x) => x.acao === "verificar");
+ok(logH && logH.detalhe.includes("Selo direto (dono)") && logH.detalhe.includes("Contrato"), "registro: selo direto com o motivo → " + (logH?.detalhe || ""));
+await pa.locator(".ad-gaveta-fundo").click({ position: { x: 5, y: 5 } }).catch(() => {}); await pa.keyboard.press("Escape"); await pa.waitForTimeout(400);
+await ficha(U.fabi); await pa.waitForSelector(".ad-gaveta", { timeout: 8000 });
+await pa.locator(".ad-gaveta .ad-bt", { hasText: "Dar selo direto" }).click(); await pa.waitForTimeout(600);
+ok(await pa.locator(".hf-confirma", { hasText: "maiores de 18" }).count() === 1 && await pa.locator(".ad-modal").count() === 0, "dono: menor de 18 não recebe o selo direto");
 await D.browser.close();
+
+// Moderação (papel moderacao): sem "Dar selo" na ficha; pedido sem documento não aprova
+await db.doc(`admins/${U.gui}`).set({ nome: "Gui", papel: "moderacao" });
+await db.doc(`usuarios/${U.gui}`).set({ cidade: "Florianópolis", uf: "SC", cidadeIbge: 4205407 }, { merge: true });
+await db.doc(`perfis_publicos/${U.gui}`).set({ cidade: "Florianópolis", uf: "SC", cidadeIbge: 4205407 }, { merge: true });
+await db.doc(`usuarios/${U.dani}`).set({ solicitacaoVerificacao: true, solicitacaoVerificacaoEm: Timestamp.now(), verificacaoPedido: { categoria: "pessoa", nomeLegal: "Daniela Alves", semDocumento: true, status: "pendente" } }, { merge: true });
+const M = await navegador({ mobile: false });
+const pm = await entrar(M.ctx, "gui", "admin.html");
+await pm.waitForSelector(".ad-kpis", { timeout: 30000 }); await pm.waitForTimeout(1500);
+await pm.locator('.ad-nav[data-secao="verificacoes"]').click(); await pm.waitForTimeout(800);
+const cDani = pm.locator(".ad-vf", { hasText: "Daniela Alves" });
+ok(await cDani.locator(".ad-bt", { hasText: "Aprovar" }).isDisabled() && await cDani.locator(".ad-vf-nota").count() === 1, "moderação: pedido sem documento não aprova (só o dono)");
+await cDani.locator(".ad-bt", { hasText: "Ver ficha" }).click(); await pm.waitForSelector(".ad-gaveta .ad-bt", { timeout: 10000 });
+ok(await pm.locator(".ad-gaveta .ad-bt", { hasText: /Dar selo/ }).count() === 0 && await pm.locator(".ad-gaveta .ad-bt", { hasText: "Ver pedido de verificação" }).count() === 1, "moderação: na ficha não tem \"Dar selo\", só \"Ver pedido de verificação\"");
+await M.browser.close();
 
 // Ana: selo no perfil e explicação ao tocar; Edu: "não aprovado" com motivo
 p = await entrar(B.ctx, "ana", "usuarios.html");

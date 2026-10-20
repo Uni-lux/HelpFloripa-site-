@@ -117,6 +117,7 @@ await t("suporte: abertoPor precisa ser quem abre", () => assertFails(abrirConve
 const atend = (a) => updateDoc(doc(ctx("bia"), "perfis_publicos", "bia"), { atendimento: a });
 await t("atendimento: horário por dia, almoço e volta", () => assertSucceeds(atend({ horario: { dias: [1, 2, 3, 4, 5, 6], inicio: "08:00", fim: "18:00" }, semana: ["", "08:00-18:00", "08:00-18:00", "08:00-18:00", "08:00-18:00", "08:00-17:00", "09:00-12:00"], almoco: "12:00-13:00", ausente: true, mensagem: "Férias", volta: Timestamp.fromMillis(Date.now() + 5 * 864e5) })));
 await t("atendimento: os 7 dias", () => assertSucceeds(atend({ semana: ["10:00-14:00", "08:00-18:00", "08:00-18:00", "08:00-18:00", "08:00-18:00", "08:00-18:00", "08:00-12:00"], almoco: null, volta: null, ausente: false })));
+await t("perfil público: gravação com TUDO junto (atendimento, local, busca, opções) fica dentro do limite", () => assertSucceeds(updateDoc(doc(ctx("bia"), "perfis_publicos", "bia"), { nome: "Bia Souza", bio: "Bio completa da Bia", cidade: "Florianópolis", uf: "SC", cidadeIbge: 4205407, busca: ["bia", "souza", "bia", "s", "so", "sou", "souz", "b", "bi", "x", "y", "z"], socialVisibilidade: "amigos", duoCapa: "rosa", fotoPerfil: "data:image/jpeg;base64,AAAA", fotoCapa: "data:image/jpeg;base64,AAAA", atualizadoEm: serverTimestamp(), atendimento: { horario: { dias: [1, 2, 3, 4, 5, 6], inicio: "08:00", fim: "18:00" }, semana: ["", "08:00-18:00", "08:00-18:00", "08:00-18:00", "08:00-18:00", "08:00-17:00", "09:00-12:00"], almoco: "12:00-13:00", ausente: true, mensagem: "Férias", volta: Timestamp.fromMillis(Date.now() + 5 * 864e5) } })));
 await t("atendimento: recusa hora inválida", () => assertFails(atend({ semana: ["", "25:00-26:00", "", "", "", "", ""] })));
 await t("atendimento: recusa texto solto num dia", () => assertFails(atend({ semana: ["", "8h às 18h", "", "", "", "", ""] })));
 await t("atendimento: recusa número no lugar do texto", () => assertFails(atend({ semana: ["", 8, "", "", "", "", ""] })));
@@ -543,6 +544,21 @@ await t("verificação: a moderação aprova e apaga a foto", () => assertSuccee
 
 await t("verificação: documento de tamanho real (~600 KB) passa", () => assertSucceeds(setDoc(doc(ctx("edu"), "verificacoes", "edu"), pedidoV({ uid: "edu", documento: "data:image/jpeg;base64," + "Q".repeat(598000) }))));
 await t("verificação: documento grande demais (> 700 KB) é recusado", () => assertFails(setDoc(doc(ctx("gui"), "verificacoes", "gui"), pedidoV({ uid: "gui", documento: "data:image/jpeg;base64," + "Q".repeat(710000) }))));
+// selo: a moderação só dá com o pedido aprovado; o dono dá direto; tirar é livre
+await semRegras(async (db) => { for (const u of ["bia", "edu", "hele"]) { await setDoc(doc(db, "usuarios", u), { uid: u, nome: u }, { merge: true }); await setDoc(doc(db, "perfis_publicos", u), { uid: u, nome: u }, { merge: true }); } });
+await t("selo: a moderação dá o selo com o pedido aprovado", () => assertSucceeds(updateDoc(doc(ctx("mod"), "usuarios", "bia"), { verificado: true, solicitacaoVerificacao: false, verificacaoRespondidaEm: serverTimestamp() })));
+await t("selo: e no perfil público também", () => assertSucceeds(updateDoc(doc(ctx("mod"), "perfis_publicos", "bia"), { verificado: true })));
+await t("selo: a moderação NÃO dá o selo com o pedido ainda em análise", () => assertFails(updateDoc(doc(ctx("mod"), "usuarios", "edu"), { verificado: true })));
+await t("selo: nem no perfil público", () => assertFails(updateDoc(doc(ctx("mod"), "perfis_publicos", "edu"), { verificado: true })));
+await t("selo: a moderação NÃO dá o selo para quem não pediu", () => assertFails(updateDoc(doc(ctx("mod"), "usuarios", "hele"), { verificado: true })));
+await t("selo: o dono do site dá o selo direto", () => assertSucceeds(updateDoc(doc(ctx("adm"), "usuarios", "hele"), { verificado: true })));
+await t("selo: o dono dá no perfil público também", () => assertSucceeds(updateDoc(doc(ctx("adm"), "perfis_publicos", "hele"), { verificado: true })));
+await t("selo: a moderação tira o selo", () => assertSucceeds(updateDoc(doc(ctx("mod"), "usuarios", "hele"), { verificado: false })));
+await t("selo: a moderação tira do perfil público", () => assertSucceeds(updateDoc(doc(ctx("mod"), "perfis_publicos", "hele"), { verificado: false })));
+await t("selo: o suporte não dá nem tira", () => assertFails(updateDoc(doc(ctx("mod2"), "usuarios", "bia"), { verificado: false })));
+await t("selo: a pessoa não se dá o selo", () => assertFails(updateDoc(doc(ctx("hele"), "usuarios", "hele"), { verificado: true })));
+await t("verificação: a moderação não muda um pedido já decidido", () => assertFails(updateDoc(doc(ctx("mod"), "verificacoes", "bia"), { status: "recusada", motivoRecusa: "x", analisadaPor: "mod", analisadaEm: serverTimestamp() })));
+await t("verificação: a moderação não aprova um pedido cancelado", async () => { await semRegras((db) => setDoc(doc(db, "verificacoes", "hele"), { uid: "hele", status: "cancelada" })); await assertFails(updateDoc(doc(ctx("mod"), "verificacoes", "hele"), { status: "aprovada", analisadaPor: "mod", analisadaEm: serverTimestamp() })); });
 
 // ---------- resultado ----------
 for (const r of resultados) console.log(r[0] === "ok" ? "  ✔" : "  ✘", r[1], r[2] ? "→ " + r[2] : "");

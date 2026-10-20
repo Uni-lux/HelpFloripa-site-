@@ -30,6 +30,15 @@ service cloud.firestore {
     function podeModerar() {
       return admin() && papel() in ['dono', 'moderacao'];
     }
+    // Selo de verificado: tirar é livre para a moderação; dar, só com o pedido aprovado
+    // (verificacoes/{uid}) ou pelo dono do site (casos especiais, com motivo no registro).
+    function seloLiberado(uid) {
+      return request.resource.data.get('verificado', false) != true
+          || resource.data.get('verificado', false) == true
+          || papel() == 'dono'
+          || (exists(/databases/$(database)/documents/verificacoes/$(uid))
+              && get(/databases/$(database)/documents/verificacoes/$(uid)).data.status == 'aprovada');
+    }
     // Comercial: propostas de sócios e parcerias.
     function podeComercial() {
       return admin() && papel() in ['dono', 'comercial'];
@@ -278,7 +287,8 @@ service cloud.firestore {
       allow read: if podeModerar();
       // A equipe aprova ou recusa o selo de verificado.
       allow update: if podeModerar()
-                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verificado', 'solicitacaoVerificacao', 'verificacaoRespondidaEm']);
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verificado', 'solicitacaoVerificacao', 'verificacaoRespondidaEm'])
+                    && seloLiberado(userId);
 
       // criadoEm é a data real do cadastro (conta antiga = pode avaliar/reclamar).
       allow create: if logado()
@@ -402,7 +412,10 @@ service cloud.firestore {
       // A equipe marca o selo e esconde contas suspensas/banidas.
       allow update: if podeModerar()
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verificado', 'desativadaAte'])
-                    && dataOuNulo('desativadaAte');
+                    && dataOuNulo('desativadaAte')
+                    // o selo público só acende se a conta já tem o selo (dado pelas regras de usuarios)
+                    && (request.resource.data.get('verificado', false) != true
+                        || get(/databases/$(database)/documents/usuarios/$(userId)).data.get('verificado', false) == true);
 
       allow create: if logado()
                     && request.auth.uid == userId
@@ -1532,8 +1545,9 @@ service cloud.firestore {
                     && mudou().hasOnly(['status', 'atualizadoEm', 'documento'])
                     && !('documento' in request.resource.data)
                     && request.resource.data.atualizadoEm == request.time;
-      // A moderação analisa e decide; ao aprovar ou recusar, a foto do documento é apagada.
+      // A moderação analisa e decide um pedido em aberto; ao aprovar ou recusar, a foto do documento é apagada.
       allow update: if podeModerar()
+                    && resource.data.status in ['pendente', 'em_analise']
                     && mudou().hasOnly(['status', 'motivoRecusa', 'analisadaPor', 'analisadaEm', 'documento', 'atualizadoEm'])
                     && request.resource.data.status in ['em_analise', 'aprovada', 'recusada']
                     && request.resource.data.analisadaPor == request.auth.uid

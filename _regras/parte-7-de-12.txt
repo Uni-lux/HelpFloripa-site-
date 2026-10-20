@@ -131,8 +131,9 @@
                     && mudou().hasOnly(['status', 'atualizadoEm', 'documento'])
                     && !('documento' in request.resource.data)
                     && request.resource.data.atualizadoEm == request.time;
-      // A moderação analisa e decide; ao aprovar ou recusar, a foto do documento é apagada.
+      // A moderação analisa e decide um pedido em aberto; ao aprovar ou recusar, a foto do documento é apagada.
       allow update: if podeModerar()
+                    && resource.data.status in ['pendente', 'em_analise']
                     && mudou().hasOnly(['status', 'motivoRecusa', 'analisadaPor', 'analisadaEm', 'documento', 'atualizadoEm'])
                     && request.resource.data.status in ['em_analise', 'aprovada', 'recusada']
                     && request.resource.data.analisadaPor == request.auth.uid

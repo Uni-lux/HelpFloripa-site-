@@ -30,6 +30,15 @@ service cloud.firestore {
     function podeModerar() {
       return admin() && papel() in ['dono', 'moderacao'];
     }
+    // Selo de verificado: tirar é livre para a moderação; dar, só com o pedido aprovado
+    // (verificacoes/{uid}) ou pelo dono do site (casos especiais, com motivo no registro).
+    function seloLiberado(uid) {
+      return request.resource.data.get('verificado', false) != true
+          || resource.data.get('verificado', false) == true
+          || papel() == 'dono'
+          || (exists(/databases/$(database)/documents/verificacoes/$(uid))
+              && get(/databases/$(database)/documents/verificacoes/$(uid)).data.status == 'aprovada');
+    }
     // Comercial: propostas de sócios e parcerias.
     function podeComercial() {
       return admin() && papel() in ['dono', 'comercial'];
@@ -244,21 +253,6 @@ service cloud.firestore {
       return !(campo in request.resource.data)
           || request.resource.data[campo] == null
           || request.resource.data[campo] is timestamp;
-    }
-
-    // Quem da equipe assumiu um item: alguém da equipe (ou ninguém), com nome curto.
-    function responsavelOk() {
-      let r = request.resource.data.get('responsavel', null);
-      return (r == null || (r is string && exists(/databases/$(database)/documents/admins/$(r))))
-          && valorTextoAte(request.resource.data.get('responsavelNome', null), 80)
-          && (!mudou().hasAny(['responsavel']) || request.resource.data.get('assumidoEm', null) == request.time);
-    }
-
-    // Anti-spam: cada mensagem, publicação ou comentário conta no limite diário da pessoa
-    // (ritmo/{uid}, gravado junto na mesma operação).
-    function ritmoOk(tipo) {
-      let r = getAfter(/databases/$(database)/documents/ritmo/$(request.auth.uid)).data;
-      return r.ultimaEm == request.time && r.ultimoTipo == tipo;
     }
 
 // ===== FIM DA PARTE 1 DE 12 =====

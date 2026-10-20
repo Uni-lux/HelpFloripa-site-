@@ -1,4 +1,40 @@
       allow create: if logado()
+                    && request.resource.data.keys().hasOnly(['bloqueadorId', 'bloqueadoId', 'criadoEm'])
+                    && request.resource.data.bloqueadorId == request.auth.uid
+                    && request.resource.data.bloqueadoId is string
+                    && request.resource.data.bloqueadoId != request.auth.uid
+                    && id == request.auth.uid + '_' + request.resource.data.bloqueadoId;
+
+      allow update: if false;
+
+      allow delete: if logado()
+                    && resource.data.bloqueadorId == request.auth.uid;
+    }
+
+
+    // =====================================================
+    // VÍNCULOS SOCIAIS (duo, família, amigos)
+    // Documento: vinculos/{uidMenor}_{uidMaior}
+    // =====================================================
+    match /vinculos/{id} {
+
+      function inversos() {
+        return {
+          'duo': 'duo', 'namoro': 'namoro', 'casamento': 'casamento',
+          'melhor_amigo': 'melhor_amigo', 'amigo': 'amigo', 'irmao': 'irmao',
+          'pai_mae': 'filho', 'filho': 'pai_mae', 'primo': 'primo',
+          'tio': 'sobrinho', 'sobrinho': 'tio', 'avo': 'neto', 'neto': 'avo',
+          'parceiro': 'parceiro'
+        };
+      }
+
+      // Pedidos pendentes só são visíveis para os dois envolvidos.
+      allow read: if logado()
+                  && (resource.data.status == 'aceito'
+                      || request.auth.uid in resource.data.participantes);
+      allow read: if admin();
+
+      allow create: if logado()
                     && emailOk()
                     && request.resource.data.keys().hasOnly(['participantes', 'de', 'para', 'tipoDe', 'tipoPara', 'status', 'criadoEm'])
                     && request.resource.data.de == request.auth.uid
