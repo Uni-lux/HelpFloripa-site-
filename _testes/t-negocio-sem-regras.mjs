@@ -10,7 +10,7 @@ const { browser, ctx } = await navegador({ mobile: true });
 let p = await entrar(ctx, "bruno", "negocios.html");
 await p.waitForSelector(".neg-card.servicos .ng-pri", { timeout: 20000 });
 await p.click(".neg-card.servicos .ng-pri"); await p.waitForTimeout(700);
-await p.locator("#negExtras .marca-op", { hasText: "Reformas" }).click();
+await p.fill("#negAreasBusca", "reforma"); await p.locator("#negExtras .marca-op", { hasText: "Reformas" }).click();
 await p.fill("#negInsta", "bruno.reparos");
 await p.locator("#negHorario .ng-chip", { hasText: "Seg a sex" }).click();
 await p.click("#negSalvar"); await p.waitForTimeout(3000);

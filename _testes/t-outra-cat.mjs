@@ -7,7 +7,7 @@ process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8085";
 const db = getFirestore(initializeApp({ projectId: "demo-hf" }));
 const { browser, ctx } = await navegador({ mobile: true });
 const p = await entrar(ctx, "bruno", "negocios.html?tipo=servicos");
-await p.waitForSelector("#negExtras .marca-op", { timeout: 20000 }); await p.waitForTimeout(1200);
+await p.waitForSelector("#negAreasBusca", { timeout: 20000 }); await p.waitForTimeout(1200);
 
 // Freelances: marcar "Outra (escrever)" mostra o campo; salvar vazio avisa; escrito grava.
 await p.locator("#negExtras .marca-op", { hasText: "Outra (escrever)" }).click(); await p.waitForTimeout(300);

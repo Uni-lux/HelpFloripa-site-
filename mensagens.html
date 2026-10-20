@@ -412,11 +412,16 @@
     .aval-feito { font-size: 12.5px; display: inline-flex; align-items: center; gap: 6px; opacity: .85; }
     .menu-titulo { padding: 8px 14px 4px; font-size: 12px; font-weight: 800; opacity: .7; }
     .cm-pedido .info { font-size: 12.5px; }
+    .cm-pedido .cupom { margin-top: 2px; padding: 6px 9px; border-radius: 10px; border: 1px dashed color-mix(in srgb, var(--assunto) 60%, transparent); background: color-mix(in srgb, var(--assunto) 10%, transparent); font-size: 12.5px; }
+    .cm-pedido .cupom span:first-child { font-weight: 800; color: var(--assunto); }
+    .cm-pedido .cupom span:last-child { white-space: normal; text-align: right; overflow-wrap: anywhere; }
     .cm-pedido .info span:first-child { opacity: .7; flex-shrink: 0; }
     .cm-pedido .info span:last-child { text-align: right; font-weight: 700; white-space: normal !important; overflow-wrap: anywhere; }
     .cm-pedido .tot + .info { margin-top: 4px; }
     .cm-pedido .urgente span:last-child { color: #ff6b6b; }
     .cm-orc .info { padding: 4px 0; border-bottom: 1px solid color-mix(in srgb, currentColor 10%, transparent); }
+    .cm-pedido div.cupom, .cm-orc div.info.cupom { margin: 4px 0 2px; padding: 7px 10px; border: 1px dashed color-mix(in srgb, var(--assunto) 60%, transparent); }
+    .cm-pedido div.cupom span:first-child { opacity: 1; }
     a.cm-ver { text-decoration: none; }
     .cm-pedido .obs { margin: 4px 0 0; padding: 6px 8px; border-radius: 8px; background: color-mix(in srgb, currentColor 8%, transparent); font-size: 12.5px; white-space: pre-wrap; }
     .extra.cartao-pend { border-left-color: var(--assunto); }
@@ -1287,6 +1292,7 @@
       });
       if (Number(p.taxa) > 0) linha("Entrega", reais(p.taxa), "sub");
       linha("Total", reais(p.total), "tot");
+      if (p.cupom && typeof p.cupom === "object") linha(p.cupom.codigo ? "Cupom" : "Promoção", [p.cupom.codigo, p.cupom.titulo].filter(Boolean).map((x) => String(x).slice(0, 60)).join(" · "), "cupom");
       const PAG = { pix: "Pix", credito: "Cartão de crédito", debito: "Cartão de débito", dinheiro: "Dinheiro", vale: "Vale-refeição" };
       if (p.modo) linha(p.modo === "retirada" ? "Recebimento" : "Entrega em", p.modo === "retirada" ? "Retirada no local" : String(p.endereco || "a combinar").slice(0, 200), "info");
       if (p.pagamento) linha("Pagamento", (PAG[p.pagamento] || String(p.pagamento).slice(0, 20)) + (Number(p.troco) > 0 ? ` · troco p/ ${reais(p.troco)}` : ""), "info");
@@ -1323,6 +1329,7 @@
       linha("Serviço", (Array.isArray(so.servicos) ? so.servicos : []).slice(0, 12).map((x) => String(x).slice(0, 60)).join(", "));
       linha("Quando", textoQuandoMsg(so.quando), so.quando?.tipo === "urgente" ? "urgente" : "");
       linha("Local", String(so.local || "").slice(0, 80) || (so.modo === "online" ? "Online" : so.modo === "local" ? "No local do profissional" : ""));
+      if (so.cupom && typeof so.cupom === "object") linha(so.cupom.codigo ? "Cupom" : "Promoção", [so.cupom.codigo, so.cupom.titulo].filter(Boolean).map((x) => String(x).slice(0, 60)).join(" · "), "cupom");
       if (so.descricao) {
         const o = document.createElement("p");
         o.className = "obs";

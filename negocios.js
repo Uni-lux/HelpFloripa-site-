@@ -12,9 +12,9 @@ import {
   fb, eu, dados, salvarImagem, editarImagem, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos, criarFolha
 } from "./rede.js?v=47";
 import { lerResumos, estrelas, media, notaTexto } from "./avaliacoes.js?v=13";
-import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
+import { camposEndereco, gravarComLocal, NOVOS, textoCidade, semAcento } from "./endereco.js?v=1";
 import { lerStats, listaDias, somarPeriodo } from "./estat-negocio.js?v=1";
-import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO } from "./vitrine.js?v=38";
+import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO, CATEGORIAS, GRUPOS_SERV, PALAVRAS_SERV, prazoPromo } from "./vitrine.js?v=39";
 
 // Cada tipo com a cor da sua classe na página inicial (inicio.css: --c-servicos etc.) e uma chamada própria.
 const NEGOCIOS = {
@@ -217,6 +217,8 @@ function pintarPainel() {
     if (resumo?.total) cabTx.appendChild(estrelas(resumo));
     cab.append(av, cabTx);
     corpo.appendChild(cab);
+    const stPromo = situacaoPromo(n);
+    if (stPromo) corpo.appendChild(stPromo);
     // Escondido da vitrine: pela equipe (moderação) ou porque a conta está desativada.
     if (oculto) {
       const av2 = el("div", "neg-aviso");
@@ -299,9 +301,10 @@ let negEditando = null, negTipo = "servicos", negFoto = "", negCapa = "", negSem
 // ficam guardados na conta (usuarios.negociosExtras) e vão para o perfil sozinhos depois (sincronizarExtras).
 const NOVOS_NEG = ["instagram", "site", "cnpj", "capa", "semana", "promocao"];
 const extrasPendentes = (id) => (dados.negociosExtras && typeof dados.negociosExtras === "object" ? dados.negociosExtras[id] : null) || null;
-function abrirFormNegocio(n) {
+function abrirFormNegocio(n, { promo = false } = {}) {
   if (n) { const p = extrasPendentes(n.id); if (p) n = { ...n, ...Object.fromEntries(Object.entries(p).filter(([k]) => NOVOS_NEG.includes(k) && !n[k])) }; }
   negEditando = n;
+  areasBusca = ""; areasAbertos = null;
   const usados = new Set(meusNegocios.map((x) => x.tipo));
   negTipo = n ? n.tipo : Object.keys(NEGOCIOS).find((k) => !usados.has(k)) || "servicos";
   negFoto = n?.foto || "";
@@ -329,7 +332,9 @@ function abrirFormNegocio(n) {
   negSemana = semanaInicial(n);
   montarHorario();
   const pr = n?.promocao;
-  negPromo = pr?.titulo ? { titulo: pr.titulo, texto: pr.texto || "", codigo: pr.codigo || "", ate: dataInput(pr.ate?.toDate ? pr.ate.toDate() : pr.ate?.seconds ? new Date(pr.ate.seconds * 1000) : new Date(Date.now() + 14 * 864e5)), ativa: (pr.ate?.toMillis?.() ?? (pr.ate?.seconds || 0) * 1000) > Date.now() } : null;
+  // Promoção vencida: fica desligada, com a data de fim anterior à vista; ao religar, começa com um prazo novo.
+  const fimPr = msPromo(pr?.ate), prNoAr = fimPr > Date.now();
+  negPromo = pr?.titulo ? { titulo: pr.titulo, texto: pr.texto || "", codigo: pr.codigo || "", ate: prNoAr ? dataInput(new Date(fimPr)) : dataInput(null), ativa: prNoAr, terminou: prNoAr ? 0 : fimPr } : null;
   montarPromo();
   $("negExcluir").hidden = !n;
   negExtra = JSON.parse(JSON.stringify({ ...(n || {}), criadoEm: null, atualizadoEm: null }));
@@ -338,11 +343,12 @@ function abrirFormNegocio(n) {
   pintarFotoNegocio();
   montarExtras();
   abrirFolha("folhaNegocio");
+  if (promo) setTimeout(() => $("negPromo")?.scrollIntoView({ block: "center", behavior: "smooth" }), 300);
 }
 
 // ---------- campos próprios de cada tipo ----------
 const CATS_NEGOCIO = {
-  servicos: { limpeza: "Limpeza", reformas: "Reformas", beleza: "Saúde e Beleza", transporte: "Transporte", pets: "Pets", outros: "Outra (escrever)" },
+  servicos: { ...CATEGORIAS.servicos, outros: "Outra (escrever)" },
   delivery: { hamburguer: "Hambúrguer", pizza: "Pizza", sushi: "Sushi", doces: "Doces", bebidas: "Bebidas", outros: "Outra (escrever)" },
   lojinha: { roupas: "Moda e roupas", calcados: "Calçados", acessorios: "Acessórios", beleza: "Beleza", eletronicos: "Eletrônicos", casa: "Casa e decoração", mercado: "Mercado", artesanato: "Artesanato", infantil: "Infantil", esportes: "Esportes", outros: "Outra (escrever)" },
   imoveis: { apartamento: "Apartamento", casa: "Casa", kitnet: "Kitnet", terreno: "Terreno", comercial: "Comercial", outros: "Outro (escrever)" }
@@ -409,6 +415,90 @@ function marcas(chave, opcoes, aoMudar, alvo = negExtra) {
   });
   return box;
 }
+// Áreas de atuação dos Freelances: escolhidas em cima (a 1ª é a principal), busca e grupos que abrem e fecham.
+const MAX_AREAS = 6;
+let areasBusca = "", areasAbertos = null;
+function seletorAreas() {
+  const box = el("div", "campo areas");
+  const cats = negExtra.categorias;
+  const nomeArea = (k) => (k === "outros" ? (negExtra.categoriaPersonalizada || "").trim() || "Outra" : CATS_NEGOCIO.servicos[k] || k);
+  if (!areasAbertos) areasAbertos = new Set(GRUPOS_SERV.filter((g) => cats.some((k) => k in g.areas)).map((g) => g.nome));
+  const mudar = (k) => {
+    const i = cats.indexOf(k);
+    if (i >= 0) cats.splice(i, 1);
+    else if (cats.length >= MAX_AREAS) { toast(`Escolha até ${MAX_AREAS} áreas. Tire uma para marcar outra.`); return; }
+    else cats.push(k);
+    montarExtras();
+  };
+  const cab = el("div", "areas-cab");
+  cab.append(el("label", null, "Áreas de atuação"), el("span", "areas-conta" + (cats.length ? " on" : ""), `${cats.length} de ${MAX_AREAS}`));
+  box.appendChild(cab);
+
+  // Escolhidas: a primeira é a principal (aparece no cartão); tocar numa a torna principal.
+  const esc = el("div", "areas-escolhidas");
+  if (!cats.length) esc.appendChild(el("p", "areas-vazio", "Nenhuma área ainda. Escolha abaixo o que você faz."));
+  cats.forEach((k, i) => {
+    const c = el("div", "area-esc" + (i === 0 ? " principal" : ""));
+    const b = el("button", "area-esc-nome"); b.type = "button";
+    b.append(el("span", null, nomeArea(k)));
+    if (i === 0) b.appendChild(el("small", null, "Principal"));
+    else b.setAttribute("aria-label", `Tornar ${nomeArea(k)} a área principal`);
+    b.addEventListener("click", () => { if (i) { cats.splice(i, 1); cats.unshift(k); montarExtras(); } });
+    const x = el("button", "area-esc-x"); x.type = "button"; x.setAttribute("aria-label", `Tirar ${nomeArea(k)}`);
+    x.appendChild(icone("fechar", "i xs"));
+    x.addEventListener("click", () => mudar(k));
+    c.append(b, x);
+    esc.appendChild(c);
+  });
+  box.appendChild(esc);
+  if (cats.length > 1) box.appendChild(el("div", "ajuda", "A principal aparece no seu cartão. Toque em outra para torná-la principal."));
+
+  const busca = document.createElement("input");
+  busca.type = "search"; busca.className = "areas-busca"; busca.id = "negAreasBusca";
+  busca.placeholder = "Buscar: eletricista, aulas, fotógrafo..."; busca.value = areasBusca; busca.autocomplete = "off";
+  const lista = el("div", "areas-grupos");
+  const op = (k, nome) => {
+    const l = el("label", "marca-op" + (cats.includes(k) ? " on" : ""));
+    const c = document.createElement("input"); c.type = "checkbox"; c.checked = cats.includes(k);
+    c.addEventListener("change", () => mudar(k));
+    l.append(c, document.createTextNode(nome));
+    return l;
+  };
+  const pintarLista = () => {
+    lista.replaceChildren();
+    const q = semAcento(areasBusca);
+    if (q) {
+      const achou = Object.keys(PALAVRAS_SERV).filter((k) => semAcento(CATS_NEGOCIO.servicos[k] + " " + PALAVRAS_SERV[k]).includes(q));
+      const m = el("div", "marcas");
+      achou.forEach((k) => m.appendChild(op(k, CATS_NEGOCIO.servicos[k])));
+      m.appendChild(op("outros", achou.length ? "Outra (escrever)" : `Não achou? Escrever "${areasBusca.trim().slice(0, 30)}"`));
+      if (!achou.length && !cats.includes("outros")) m.lastChild.querySelector("input").addEventListener("change", () => { negExtra.categoriaPersonalizada = areasBusca.trim().slice(0, 30); areasBusca = ""; }, { capture: true });
+      lista.appendChild(m);
+      return;
+    }
+    GRUPOS_SERV.forEach((g) => {
+      const n = cats.filter((k) => k in g.areas).length;
+      const d = document.createElement("details");
+      d.className = "area-grupo"; d.open = areasAbertos.has(g.nome);
+      d.addEventListener("toggle", () => { d.open ? areasAbertos.add(g.nome) : areasAbertos.delete(g.nome); });
+      const sm = document.createElement("summary");
+      sm.append(el("span", null, g.nome), el("small", n ? "on" : "", n ? `${n} ${n === 1 ? "escolhida" : "escolhidas"}` : `${Object.keys(g.areas).length} áreas`));
+      const m = el("div", "marcas");
+      Object.entries(g.areas).forEach(([k, [nome]]) => m.appendChild(op(k, nome)));
+      d.append(sm, m);
+      lista.appendChild(d);
+    });
+    const outra = el("div", "marcas area-outra");
+    outra.appendChild(op("outros", "Outra (escrever)"));
+    lista.appendChild(outra);
+  };
+  busca.addEventListener("input", () => { areasBusca = busca.value; pintarLista(); });
+  pintarLista();
+  box.append(busca, lista);
+  if (cats.includes("outros")) box.appendChild(campo(CAT_PROPRIA.servicos[0], entrada("categoriaPersonalizada", { placeholder: CAT_PROPRIA.servicos[1], max: 30 }), CAT_PROPRIA.servicos[2]));
+  box.appendChild(el("div", "ajuda", "Você aparece no filtro de cada área escolhida."));
+  return box;
+}
 function secao(titulo, dica) {
   const s = document.createElement("div");
   s.className = "neg-secao";
@@ -447,8 +537,8 @@ function montarExtras() {
   if (t === "servicos") {
     // Várias profissões: cada área de atuação aparece no filtro da página.
     if (!Array.isArray(negExtra.categorias) || !negExtra.categorias.length) negExtra.categorias = negExtra.categoria ? [negExtra.categoria] : [];
-    info.appendChild(campo("Áreas de atuação", marcas("categorias", CATS_NEGOCIO.servicos, () => montarExtras()), "Marque todas que você faz. Você aparece em cada filtro marcado."));
-    if (negExtra.categorias.includes("outros")) info.appendChild(campo(CAT_PROPRIA.servicos[0], entrada("categoriaPersonalizada", { placeholder: CAT_PROPRIA.servicos[1], max: 30 }), CAT_PROPRIA.servicos[2]));
+    negExtra.categorias = negExtra.categorias.filter((k) => k in CATS_NEGOCIO.servicos).slice(0, MAX_AREAS);
+    info.appendChild(seletorAreas());
     if (negExtra.categorias.includes("transporte")) {
       const mot = document.createElement("div");
       mot.className = "neg-bloco";
@@ -558,7 +648,7 @@ function montarExtras() {
         if (t === "servicos" && (negExtra.categorias || []).length > 1) {
           const sel = document.createElement("select");
           sel.className = "area-item"; sel.setAttribute("aria-label", "Área do serviço");
-          negExtra.categorias.forEach((k) => { const o = document.createElement("option"); o.value = k; o.textContent = CATS_NEGOCIO.servicos[k]; sel.appendChild(o); });
+          negExtra.categorias.forEach((k) => { const o = document.createElement("option"); o.value = k; o.textContent = k === "outros" ? negExtra.categoriaPersonalizada || "Outra" : CATS_NEGOCIO.servicos[k]; sel.appendChild(o); });
           if (!negExtra.categorias.includes(it.categoria)) it.categoria = negExtra.categorias[0];
           sel.value = it.categoria;
           sel.addEventListener("change", () => { it.categoria = sel.value; });
@@ -991,12 +1081,33 @@ function montarHorario() {
 }
 
 // ---------- promoção / cupom ----------
+const msPromo = (ate) => ate?.toMillis?.() ?? (ate?.seconds || 0) * 1000;
+// Faixa no cartão de Meus negócios: no ar (com o prazo e o cupom), aguardando a atualização ou encerrada.
+function situacaoPromo(n) {
+  const pend = extrasPendentes(n.id);
+  const pr = pend && "promocao" in pend ? pend.promocao : n.promocao;
+  if (!pr?.titulo) return null;
+  const fim = msPromo(pr.ate), noAr = fim > Date.now();
+  const d = el("button", "ng-promo-st " + (!noAr ? "fim" : pend && "promocao" in pend ? "espera" : "on"));
+  d.type = "button";
+  const tx = el("span", "tx");
+  tx.append(el("strong", null, !noAr ? "Promoção encerrada" : pend && "promocao" in pend ? "Promoção salva" : "Promoção no ar"),
+    el("small", null, !noAr ? `Terminou em ${new Date(fim).toLocaleDateString("pt-BR")} · toque para criar outra`
+      : pend && "promocao" in pend ? "Aparece para os clientes assim que a atualização do sistema for publicada"
+      : [pr.titulo, prazoPromo(pr.ate)].join(" · ")));
+  d.append(icone("selo", "i s"), tx);
+  if (noAr && pr.codigo) d.appendChild(el("span", "cupom", pr.codigo));
+  d.addEventListener("click", () => abrirFormNegocio(n, { promo: true }));
+  return d;
+}
 const dataInput = (d) => { const x = d instanceof Date && !isNaN(d) ? d : new Date(Date.now() + 14 * 864e5); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`; };
 function montarPromo() {
   const box = $("negPromo");
   box.replaceChildren();
   const tit = el("div", "ng-bloco-tit");
-  const tx = el("div"); tx.append(el("strong", null, "Promoção ou cupom"), el("small", null, "Destaque no topo do perfil, com prazo para acabar"));
+  const tx = el("div"); tx.append(el("strong", null, "Promoção ou cupom"), el("small", null, negPromo?.terminou && !negPromo.ativa
+    ? `A última terminou em ${new Date(negPromo.terminou).toLocaleDateString("pt-BR")}. Ligue para criar outra.`
+    : "Destaque no topo do perfil e selo nos cartões, com prazo para acabar"));
   const chave = el("label", "ng-chave ng-chave-dir");
   const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = !!negPromo?.ativa; cb.setAttribute("aria-label", "Promoção ativa");
   chave.append(cb, el("i"));
@@ -1004,7 +1115,7 @@ function montarPromo() {
   tit.append(icP, tx, chave);
   box.appendChild(tit);
   cb.addEventListener("change", () => {
-    if (cb.checked) negPromo = { titulo: "", texto: "", codigo: "", ate: dataInput(null), ...(negPromo || {}), ativa: true };
+    if (cb.checked) negPromo = { titulo: "", texto: "", codigo: "", ate: dataInput(null), ...(negPromo || {}), ativa: true, terminou: 0 };
     else if (negPromo) negPromo.ativa = false;
     montarPromo();
   });
@@ -1022,7 +1133,7 @@ function montarPromo() {
     return campo(rot, i, ajuda);
   };
   const hoje = new Date(), max = new Date(Date.now() + 60 * 864e5);
-  const ate = document.createElement("input"); ate.type = "date"; ate.id = "negPromo_ate"; ate.dataset.nativo = "";
+  const ate = document.createElement("input"); ate.type = "date"; ate.id = "negPromo_ate"; ate.dataset.titulo = "Promoção válida até";
   ate.min = dataInput(hoje); ate.max = dataInput(max); ate.value = p.ate || dataInput(null);
   ate.addEventListener("change", () => { p.ate = ate.value; pintarPrevia(); });
   const previa = el("div", "ng-promo-previa");
@@ -1040,7 +1151,7 @@ function montarPromo() {
   box.append(
     ent("titulo", "Título", { max: 60, ph: "Ex.: 10% de desconto no primeiro pedido" }),
     ent("texto", "Detalhes (opcional)", { max: 200, area: true, ph: "Regras, o que está incluso, como usar..." }),
-    grade("", ent("codigo", "Código do cupom (opcional)", { max: 20, ph: "BEMVINDO10", ajuda: "Letras e números. O cliente copia com um toque." }), campo("Válida até", ate, "No máximo 60 dias.")),
+    grade("", ent("codigo", "Código do cupom (opcional)", { max: 20, ph: "BEMVINDO10", ajuda: "Letras e números. O cliente copia com um toque e ele já vai junto no pedido." }), campo("Válida até", ate, "Até o fim do dia. No máximo 60 dias.")),
     previa
   );
 }

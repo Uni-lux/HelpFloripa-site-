@@ -674,3 +674,26 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
 .vd-horario-dia strong.fechado { color: var(--vt-muted); font-weight: 600; }
 .vd-horario-dia.hoje { background: color-mix(in srgb, var(--vc) 8%, transparent); }
 .vd-horario-dia.hoje span, .vd-horario-dia.hoje strong { color: var(--vc); font-weight: 800; }
+
+/* ---------- promoção / cupom: selo nos cartões e bloco no pedido ---------- */
+.vt-promo-tag { position: absolute; right: 6px; bottom: 6px; z-index: 1; display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px 3px 6px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 800; color: #fff; background: linear-gradient(135deg, #f43f5e, #f97316); box-shadow: 0 4px 12px -4px rgba(244, 63, 94, .7); }
+.vt-promo-tag svg { width: 12px; height: 12px; }
+.vt-del .tag-dest ~ .st.urg ~ .vt-promo-tag { bottom: 30px; }
+.vt-bolha-loja { position: relative; }
+.vt-bolha-promo { position: absolute; top: 48px; left: 50%; transform: translateX(-50%); padding: 1px 7px; border-radius: 999px; font-size: 9.5px; font-style: normal; font-weight: 800; color: #fff;
+  background: linear-gradient(135deg, #f43f5e, #f97316); box-shadow: 0 0 0 2px var(--vt-bg); white-space: nowrap; }
+.vd-cupom-ped { display: flex; align-items: flex-start; gap: 12px; margin: 12px 0 2px; padding: 12px 14px; border-radius: 16px; border: 1.5px dashed color-mix(in srgb, var(--vc) 55%, transparent);
+  background: color-mix(in srgb, var(--vc) 7%, transparent); }
+.vd-cupom-ped .ic { flex: none; width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; color: #fff; background: var(--vc); }
+.vd-cupom-ped .tx { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.vd-cupom-ped .tx small { font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--vc); }
+.vd-cupom-ped .tx strong { font-size: 14.5px; line-height: 1.3; color: var(--vt-text); }
+.vd-cupom-ped .nota { font-size: 12.5px; color: var(--vt-muted); line-height: 1.35; }
+.vd-cupom-ped.ok { border-style: solid; border-color: #16a34a; background: color-mix(in srgb, #16a34a 9%, transparent); }
+.vd-cupom-ped.ok .ic { background: #16a34a; }
+.vd-cupom-ped.ok .tx small { color: #16a34a; }
+.vd-cupom-ped > .vd-link { align-self: center; padding: 7px 12px; }
+.vd-cupom-linha { display: flex; gap: 8px; margin-top: 6px; }
+.vd-cupom-linha .vd-input { flex: 1; min-width: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .06em; text-transform: uppercase; }
+.vd-cupom-linha .vt-btn { flex: none; width: auto; padding: 0 16px; }

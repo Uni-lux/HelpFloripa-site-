@@ -23,8 +23,57 @@ const TIPO = TIPO_PAGINA || "servicos";
 export const CORES_TIPO = { servicos: "#00adee", delivery: "#ff7a1a", lojinha: "#b066ff", imoveis: "#2fbf71" };
 export const NOMES_TIPO = { servicos: "Freelances", delivery: "Delivery", lojinha: "Lojinha", imoveis: "Imóveis" };
 export const PAGINA_TIPO = { servicos: "servicos.html", delivery: "delivery.html", lojinha: "shopping.html", imoveis: "imoveis.html" };
+// Áreas de atuação dos Freelances, em grupos. [nome, palavras que a busca também encontra].
+// As chaves antigas (limpeza, reformas, beleza, transporte, pets, outros) continuam valendo.
+export const GRUPOS_SERV = [
+  { nome: "Casa e reparos", areas: {
+    limpeza: ["Limpeza e faxina", "faxina diarista faxineira passadeira limpeza pos obra higienizacao sofa"],
+    reformas: ["Reformas e obras", "pedreiro obra azulejo piso gesso drywall construcao telhado"],
+    eletrica: ["Eletricista", "eletrica tomada chuveiro disjuntor instalacao iluminacao"],
+    hidraulica: ["Encanador", "hidraulica vazamento desentupimento caixa d agua torneira"],
+    pintura: ["Pintura", "pintor parede textura grafiato"],
+    montagem: ["Montagem de móveis", "montador marceneiro marcenaria moveis planejados"],
+    marido: ["Marido de aluguel", "pequenos reparos consertos gerais instalacoes"],
+    jardim: ["Jardinagem e piscina", "jardineiro paisagismo poda grama piscineiro"],
+    climatizacao: ["Ar-condicionado", "refrigeracao climatizacao instalacao limpeza de ar"],
+    eletro: ["Conserto de eletrodomésticos", "maquina de lavar geladeira fogao microondas tecnico"]
+  } },
+  { nome: "Beleza e bem-estar", areas: {
+    beleza: ["Beleza e estética", "cabeleireiro cabelo manicure unha maquiagem sobrancelha barbeiro depilacao cilios estetica saude"],
+    saude: ["Saúde e terapias", "massagem fisioterapia psicologo nutricionista enfermagem terapeuta"],
+    fitness: ["Personal e esportes", "personal trainer academia yoga pilates treino"]
+  } },
+  { nome: "Aulas e cursos", areas: {
+    aulas: ["Aulas particulares", "reforco escolar professor matematica vestibular enem"],
+    idiomas: ["Idiomas", "ingles espanhol frances traducao professor de idioma"],
+    musica: ["Música", "pianista piano violao guitarra musico banda cantor aula de musica"]
+  } },
+  { nome: "Eventos e arte", areas: {
+    fotografia: ["Foto e vídeo", "fotografo fotografia filmagem video drone ensaio"],
+    eventos: ["Festas e eventos", "decoracao garcom recreacao dj animador cerimonial"],
+    culinaria: ["Culinária e buffet", "cozinheira chef buffet bolo doces confeitaria salgados marmita"],
+    costura: ["Costura e artesanato", "costureira ajustes bainha artesanato croche"]
+  } },
+  { nome: "Transporte", areas: {
+    transporte: ["Motorista e transporte", "motorista transporte van escolar transfer viagem"],
+    mudancas: ["Mudanças e fretes", "mudanca frete carreto caminhao"],
+    entregas: ["Entregas e motoboy", "motoboy entregador entrega rapida"]
+  } },
+  { nome: "Cuidados e pets", areas: {
+    pets: ["Pets", "banho e tosa passeador adestrador pet sitter cachorro gato veterinario"],
+    baba: ["Babá", "baba cuidadora de criancas"],
+    idosos: ["Cuidador de idosos", "cuidadora acompanhante idoso"]
+  } },
+  { nome: "Tecnologia e escritório", areas: {
+    tecnologia: ["Informática e celular", "computador notebook formatacao conserto de celular tecnico de informatica"],
+    digital: ["Design e marketing", "designer logo social media sites programacao marketing digital"],
+    consultoria: ["Contabilidade e consultoria", "contador mei imposto de renda advogado consultor"]
+  } }
+];
+const AREAS_SERV = Object.assign({}, ...GRUPOS_SERV.map((g) => g.areas));
+export const PALAVRAS_SERV = Object.fromEntries(Object.entries(AREAS_SERV).map(([k, [, p]]) => [k, p]));
 export const CATEGORIAS = {
-  servicos: { limpeza: "Limpeza", reformas: "Reformas", beleza: "Saúde e Beleza", transporte: "Transporte / Motorista", pets: "Pets", outros: "Outros" },
+  servicos: { ...Object.fromEntries(Object.entries(AREAS_SERV).map(([k, [nome]]) => [k, nome])), outros: "Outros" },
   delivery: { hamburguer: "Hambúrguer", pizza: "Pizza", sushi: "Sushi", doces: "Doces", bebidas: "Bebidas", outros: "Outros" },
   lojinha: { roupas: "Moda e roupas", calcados: "Calçados", acessorios: "Acessórios", beleza: "Beleza", eletronicos: "Eletrônicos", casa: "Casa e decoração", mercado: "Mercado", artesanato: "Artesanato", infantil: "Infantil", esportes: "Esportes", outros: "Outros" },
   imoveis: { apartamento: "Apartamento", casa: "Casa", kitnet: "Kitnet", terreno: "Terreno", comercial: "Comercial", outros: "Outros" }
@@ -267,6 +316,7 @@ function textoPedidoWhats(n, r, extra) {
   l.push(`Total: ${reais(r.total)}${r.aCombinar ? " + itens a combinar" : ""}`);
   if (extra.modo) l.push(extra.modo === "retirada" ? "Vou retirar no local." : `Entregar em: ${extra.endereco || "(combinar)"}`);
   if (extra.pagamento) l.push(`Pagamento: ${PAGAMENTOS[extra.pagamento] || extra.pagamento}${extra.troco ? ` (troco para ${reais(extra.troco)})` : ""}`);
+  if (extra.cupom) l.push(textoCupom(extra.cupom));
   if (extra.obs) l.push("", `Obs.: ${extra.obs}`);
   return l.join("\n");
 }
@@ -280,7 +330,8 @@ function cartaoDePedido(n, r, extra) {
       itens: r.linhas.slice(0, 30).map(({ nome, qtd, preco }) => ({ nome, qtd, preco })),
       subtotal: r.subtotal, taxa: r.taxa, total: r.total, obs: String(extra.obs || "").slice(0, 300),
       modo: extra.modo || "", endereco: String(extra.endereco || "").slice(0, 200),
-      pagamento: extra.pagamento || "", troco: Number(extra.troco) > 0 ? Number(extra.troco) : null
+      pagamento: extra.pagamento || "", troco: Number(extra.troco) > 0 ? Number(extra.troco) : null,
+      cupom: cupomDoEstado(extra.cupom)
     }
   };
 }
@@ -320,6 +371,71 @@ function chipsEscolha(opcoes, { multi = false, valor = multi ? [] : "", aoMudar 
   });
   return box;
 }
+// ---------- cupom / promoção no pedido e no orçamento ----------
+// Ao copiar o cupom no perfil ele fica guardado no aparelho e já entra no pedido daquele negócio.
+const chaveCupom = (n) => `hf-cupom-${n.id || n.donoId + "_" + n.tipo}`;
+const normCupom = (v) => String(v || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 20);
+function guardarCupom(n, codigo) { try { sessionStorage.setItem(chaveCupom(n), codigo); } catch {} }
+function cupomGuardado(n) { try { return sessionStorage.getItem(chaveCupom(n)) || ""; } catch { return ""; } }
+// "Termina hoje", "Termina amanhã", "Faltam 3 dias" (até 7 dias) ou "Válida até 20 de outubro".
+export function prazoPromo(ate) {
+  const fim = new Date(ate?.toMillis?.() ?? ate);
+  const dia = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const dias = Math.round((dia(fim) - dia(new Date())) / 864e5);
+  if (dias <= 0) return `Termina hoje às ${fim.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+  if (dias === 1) return "Termina amanhã";
+  if (dias <= 7) return `Faltam ${dias} dias`;
+  return "Válida até " + fim.toLocaleDateString("pt-BR", { day: "2-digit", month: "long" });
+}
+// Bloco do pedido: promoção sem código entra sozinha; com código, a pessoa digita (ou já vem do "Copiar").
+function blocoCupom(n, estado) {
+  const promo = promoAtiva(n);
+  estado.cupom = null;
+  if (!promo) return null;
+  const box = el("div", "vd-cupom-ped");
+  if (promo.codigo && normCupom(cupomGuardado(n)) === promo.codigo) estado.cupom = { codigo: promo.codigo, titulo: promo.titulo };
+  if (!promo.codigo) estado.cupom = { codigo: "", titulo: promo.titulo };
+  const pintar = () => {
+    box.replaceChildren();
+    box.classList.toggle("ok", !!estado.cupom);
+    const ic = el("span", "ic"); ic.appendChild(icone(estado.cupom ? "check" : "cupom", "vi"));
+    const tx = el("div", "tx");
+    box.append(ic, tx);
+    if (estado.cupom) {
+      tx.append(el("small", null, promo.codigo ? "Cupom aplicado" : "Promoção do negócio"), el("strong", null, promo.titulo),
+        el("span", "nota", promo.codigo ? `Código ${promo.codigo} · vai junto no pedido` : "Vai junto no pedido. O negócio confirma o desconto na conversa."));
+      if (promo.codigo) {
+        const x = el("button", "vd-link"); x.type = "button"; x.textContent = "Remover";
+        x.addEventListener("click", () => { estado.cupom = null; guardarCupom(n, ""); pintar(); });
+        box.appendChild(x);
+      }
+      return;
+    }
+    tx.append(el("small", null, "Tem um cupom?"), el("span", "nota", `${promo.titulo} · ${prazoPromo(promo.ate)}`));
+    const linha = el("div", "vd-cupom-linha");
+    const i = document.createElement("input");
+    i.className = "vd-input"; i.placeholder = "Código do cupom"; i.maxLength = 20; i.autocapitalize = "characters"; i.autocomplete = "off"; i.spellcheck = false;
+    i.addEventListener("input", () => { i.value = normCupom(i.value); });
+    const ap = el("button", "vt-btn sec"); ap.type = "button"; ap.textContent = "Aplicar";
+    const aplicar = () => {
+      const c = normCupom(i.value);
+      if (!c) { toast("Digite o código do cupom."); i.focus(); return; }
+      if (c !== promo.codigo) { toast("Cupom inválido ou vencido. Confira o código no perfil do negócio."); i.select(); return; }
+      estado.cupom = { codigo: promo.codigo, titulo: promo.titulo };
+      guardarCupom(n, promo.codigo);
+      toast("Cupom aplicado");
+      pintar();
+    };
+    ap.addEventListener("click", aplicar);
+    i.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); aplicar(); } });
+    linha.append(i, ap);
+    tx.appendChild(linha);
+  };
+  pintar();
+  return box;
+}
+const cupomDoEstado = (c) => (c ? { codigo: String(c.codigo || "").slice(0, 20), titulo: String(c.titulo || "").slice(0, 60) } : null);
+const textoCupom = (c) => (c ? (c.codigo ? `Cupom: ${c.codigo} (${c.titulo})` : `Promoção: ${c.titulo}`) : "");
 function campoVd(rotulo, ...filhos) {
   const c = el("div", "vd-campo");
   c.append(el("label", null, rotulo), ...filhos);
@@ -340,7 +456,8 @@ function abrirPedido(n, opcoes, aoMudar) {
   const ct = el("div", "conteudo");
   caixa.appendChild(ct);
   const receb = opcoesRecebimento(n);
-  const estado = { modo: receb[0], pagamento: "", troco: null, endereco: "", obs: "" };
+  const estado = { modo: receb[0], pagamento: "", troco: null, endereco: "", obs: "", cupom: null };
+  let caixaCupom = null;
   const pintar = () => {
     const carrinho = lerCarrinho(n);
     const r = resumoPedido(n, carrinho, estado.modo);
@@ -399,6 +516,9 @@ function abrirPedido(n, opcoes, aoMudar) {
       ct.appendChild(campoVd("Troco para quanto?", tr));
     }
 
+    // O bloco do cupom é montado uma vez e reaproveitado (o pedido se redesenha a cada mudança).
+    if (caixaCupom === null) caixaCupom = blocoCupom(n, estado) || false;
+    if (caixaCupom) ct.appendChild(caixaCupom);
     const tot = el("div", "vd-totais");
     const linha = (a, b, cls) => { const d = el("div", cls || ""); d.append(el("span", null, a), el("span", null, b)); tot.appendChild(d); };
     linha(`Subtotal (${r.unidades} ${r.unidades === 1 ? "item" : "itens"})`, reais(r.subtotal));
@@ -571,7 +691,7 @@ export function abrirOrcamento(n, opcoes = {}, preIdx = null) {
     if (estado.quando === "urgente" && !(n.diferenciais || []).includes("urgencia")) quandoBox.appendChild(el("p", "vd-nota", "Este profissional não marcou que atende urgências, mas você pode perguntar."));
     if (estado.quando === "agendar") {
       const d = document.createElement("input");
-      d.type = "date"; d.className = "vd-input";
+      d.type = "date"; d.className = "vd-input"; d.dataset.titulo = "Para qual dia?";
       const hoje = new Date(); d.min = new Date(hoje.getTime() - hoje.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
       d.value = estado.data;
       d.addEventListener("change", () => { estado.data = d.value; });
@@ -601,9 +721,12 @@ export function abrirOrcamento(n, opcoes = {}, preIdx = null) {
   } else if (modos.includes("online")) ct.appendChild(el("p", "vd-dica", "Atendimento online."));
   else if (modos.includes("local")) ct.appendChild(el("p", "vd-dica", "Atendimento no local do profissional."));
 
+  const cupomOrc = blocoCupom(n, estado);
+  if (cupomOrc) ct.appendChild(cupomOrc);
   const montar = () => {
     const nomes = estado.servicos.map((k) => opServ[k]).filter(Boolean);
     return {
+      cupom: cupomDoEstado(estado.cupom),
       servicos: nomes.slice(0, 12), descricao: estado.descricao.trim().slice(0, 600),
       quando: { tipo: estado.quando, data: estado.quando === "agendar" ? estado.data : "", periodo: estado.quando === "agendar" ? estado.periodo : "" },
       local: estado.local.trim().slice(0, 80),
@@ -637,7 +760,7 @@ export function abrirOrcamento(n, opcoes = {}, preIdx = null) {
       const s = montar();
       const txt = [`Olá! Vi seu perfil "${n.nome}" no Help Floripa e gostaria de um orçamento.`, "",
         s.servicos.length ? `Serviço: ${s.servicos.join(", ")}` : "", `Descrição: ${s.descricao}`,
-        `Quando: ${textoQuando(s.quando)}`, s.local ? `Local: ${s.local}` : ""].filter(Boolean).join("\n");
+        `Quando: ${textoQuando(s.quando)}`, s.local ? `Local: ${s.local}` : "", textoCupom(s.cupom)].filter(Boolean).join("\n");
       w.href = w.href.split("?")[0] + "?text=" + encodeURIComponent(txt);
     });
     barra.appendChild(w);
@@ -970,14 +1093,16 @@ export function abrirDetalhe(n, opcoes = {}) {
     const tx = el("div", "tx");
     tx.append(el("small", null, "Promoção"), el("strong", null, promo.titulo));
     if (promo.texto) tx.appendChild(el("p", null, promo.texto));
-    tx.appendChild(el("span", "ate", "Válida até " + new Date(promo.ate.toMillis()).toLocaleDateString("pt-BR", { day: "2-digit", month: "long" })));
+    tx.appendChild(el("span", "ate", prazoPromo(promo.ate)));
     p.append(ic, tx);
     if (promo.codigo) {
       const b = el("button", "vd-cupom"); b.type = "button";
       b.append(el("span", null, promo.codigo), el("small", null, "Copiar"), icone("copiar"));
       b.setAttribute("aria-label", `Copiar o cupom ${promo.codigo}`);
       b.addEventListener("click", async () => {
-        try { await navigator.clipboard.writeText(promo.codigo); toast(`Cupom ${promo.codigo} copiado. Use no pedido.`); } catch { toast(`Cupom: ${promo.codigo}`); }
+        guardarCupom(n, promo.codigo);
+        const usar = n.tipo === "delivery" || n.tipo === "lojinha" ? "Ele já entra no seu pedido." : n.tipo === "servicos" ? "Ele já entra no seu pedido de orçamento." : "Mostre ao falar com o anunciante.";
+        try { await navigator.clipboard.writeText(promo.codigo); toast(`Cupom ${promo.codigo} copiado. ${usar}`); } catch { toast(`Cupom ${promo.codigo}. ${usar}`); }
         contar("cupom");
       });
       p.appendChild(b);
@@ -1401,7 +1526,7 @@ function montarSecao() {
 
 function filtroAtual() {
   const chip = document.querySelector("#filterChips .chip.active");
-  return { cat: chip?.dataset.filter || "todos", termo: (document.getElementById("searchInput")?.value || "").trim().toLowerCase() };
+  return { cat: chip?.dataset.filter || "todos", termo: semAcento(document.getElementById("searchInput")?.value || "") };
 }
 function passaCategoria(n, cat) {
   if (cat === "todos") return true;
@@ -1485,8 +1610,8 @@ function abrirFiltroLocal() {
 
 function textoBusca(n) {
   const cats = TIPO === "servicos" ? categoriasDe(n) : [n.categoria];
-  return [n.nome, n.titulo, n.descricao, n.cidade, n.uf, NOME_UF[n.uf], n.bairro, n.regiao, n.categoriaPersonalizada, ...cats.map((c) => CATEGORIAS[TIPO]?.[c]),
-    ...(n.itens || []).map((i) => [i?.nome, i?.descricao, i?.secao, i?.marca].join(" ")), n.veiculo, donos.get(n.donoId)?.nome].join(" ").toLowerCase();
+  return [n.nome, n.titulo, n.descricao, n.cidade, n.uf, NOME_UF[n.uf], n.bairro, n.regiao, n.categoriaPersonalizada, ...cats.map((c) => CATEGORIAS[TIPO]?.[c]), ...(TIPO === "servicos" ? cats.map((c) => PALAVRAS_SERV[c]) : []),
+    ...(n.itens || []).map((i) => [i?.nome, i?.descricao, i?.secao, i?.marca].join(" ")), n.veiculo, donos.get(n.donoId)?.nome].join(" ").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
 // Carrossel horizontal com título (arrasta com o dedo; setas no computador).
@@ -1548,6 +1673,7 @@ function cartaoPro(n, destaqueEm = "") {
     f.appendChild(t);
   }
   if ((n.diferenciais || []).includes("urgencia")) f.appendChild(el("span", "st urg", "Urgência"));
+  seloPromo(f, n);
   f.appendChild(avatar(n.foto, n.nome, "vt-avatar logo"));
   const tx = el("div", "tx");
   tx.append(el("strong", "nm", n.nome || "Freelancer"), estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }));
@@ -1767,6 +1893,7 @@ function tileDelivery(n) {
   const prato = (n.itens || []).find((i) => urlSegura(i?.foto));
   f.style.backgroundImage = `url("${urlSegura(prato?.foto) || TEXTOS.delivery.img}")`;
   if (ab !== null) f.appendChild(el("span", "st " + (ab ? "on" : "off"), ab ? "Aberto" : "Fechado"));
+  seloPromo(f, n);
   f.appendChild(avatar(n.foto, n.nome, "vt-avatar logo"));
   const tx = el("div", "tx");
   tx.append(el("strong", "nm", n.nome || "Delivery"), estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }));
@@ -1832,10 +1959,19 @@ function linhaDelivery(n) {
   return c;
 }
 // Shopping: loja em bolinha (como stories)
+// Selo no canto da foto do cartão quando o negócio tem promoção no ar.
+function seloPromo(f, n) {
+  const p = promoAtiva(n);
+  if (!p) return;
+  const s = el("span", "vt-promo-tag");
+  s.append(icone("cupom", "vi s"), document.createTextNode(p.codigo ? "Cupom" : "Promoção"));
+  f.appendChild(s);
+}
 function bolhaLoja(n) {
   const c = el("button", "vt-bolha-loja");
   c.type = "button";
   c.append(avatar(n.foto, n.nome), el("span", null, n.nome || "Loja"), estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }));
+  if (promoAtiva(n)) { c.classList.add("com-promo"); c.appendChild(el("em", "vt-bolha-promo", promoAtiva(n).codigo ? "Cupom" : "Promoção")); }
   c.addEventListener("click", () => abrirDetalhe(n));
   return c;
 }
@@ -1895,8 +2031,8 @@ function renderizar() {
     const produtos = [];
     lista.forEach((n) => (n.itens || []).forEach((i, idx) => {
       if (!i?.nome) return;
-      const alvo = [i.nome, i.descricao, i.marca, n.nome, ...(i.cores || []), ...(i.tamanhos || [])].join(" ").toLowerCase();
-      if (termo && !alvo.includes(termo) && !String(n.nome || "").toLowerCase().includes(termo)) return;
+      const alvo = [i.nome, i.descricao, i.marca, n.nome, ...(i.cores || []), ...(i.tamanhos || [])].join(" ");
+      if (termo && !semAcento(alvo).includes(termo) && !semAcento(n.nome).includes(termo)) return;
       produtos.push({ n, i, idx });
     }));
     if (!produtos.length) return vazio();
@@ -1955,7 +2091,7 @@ function ligarFiltros() {
 }
 
 // Cria filtros para as categorias personalizadas que existem ("Outro" escrito pela pessoa: Pianista, Chácara...).
-// No Shopping também para as categorias fixas que têm loja.
+// No Shopping e nos Freelances também para as categorias fixas que têm alguém (as áreas sem filtro na página).
 function chipsDinamicos() {
   const chips = document.getElementById("filterChips");
   if (!chips) return;
@@ -1965,6 +2101,7 @@ function chipsDinamicos() {
     const cats = TIPO === "servicos" ? categoriasDe(n) : [n.categoria];
     if (cats.includes("outros") && n.categoriaPersonalizada) novos.push(["c:" + n.categoriaPersonalizada, n.categoriaPersonalizada]);
     if (TIPO === "lojinha" && n.categoria !== "outros" && CATEGORIAS.lojinha[n.categoria]) novos.push([n.categoria, CATEGORIAS.lojinha[n.categoria]]);
+    if (TIPO === "servicos") cats.forEach((k) => { if (k !== "outros" && CATEGORIAS.servicos[k]) novos.push([k, CATEGORIAS.servicos[k]]); });
   });
   const outros = chips.querySelector('[data-filter="outros"]');
   new Map(novos).forEach((rotulo, f) => {
