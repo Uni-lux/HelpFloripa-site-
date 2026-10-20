@@ -146,14 +146,26 @@
         function chamado() { return get(/databases/$(database)/documents/suporte/$(id)).data; }
         // getAfter: o chamado e a primeira mensagem são gravados juntos (tudo ou nada).
         function chamadoDepois() { return getAfter(/databases/$(database)/documents/suporte/$(id)).data; }
+        // Anexo: foto (JPEG) ou PDF dentro da mensagem, ou um arquivo do Storage do Firebase (foto, vídeo ou PDF).
+        function anexoOk(x) {
+          return x is map
+              && x.keys().hasOnly(['tipo', 'url', 'nome'])
+              && x.tipo in ['imagem', 'video', 'arquivo']
+              && valorTextoAte(x.get('nome', ''), 120)
+              && x.url is string && x.url.size() <= 750000
+              && x.url.matches('^(data:(image/jpeg|application/pdf);base64,|https://firebasestorage[.]googleapis[.]com/).*');
+        }
         allow read: if logado() && (chamado().uid == request.auth.uid || admin());
         allow create: if logado()
                       && (chamadoDepois().uid == request.auth.uid || admin())
-                      && request.resource.data.keys().hasOnly(['autorId', 'equipe', 'texto', 'em'])
+                      && request.resource.data.keys().hasOnly(['autorId', 'equipe', 'texto', 'em', 'anexo'])
                       && request.resource.data.autorId == request.auth.uid
                       // "equipe" (resposta oficial) só quem é da equipe; no próprio chamado, todos escrevem como usuário
                       && (request.resource.data.equipe == false || (request.resource.data.equipe == true && admin()))
-                      && request.resource.data.texto is string && request.resource.data.texto.size() >= 1 && request.resource.data.texto.size() <= 2000
+                      && request.resource.data.texto is string && request.resource.data.texto.size() <= 2000
+                      // texto vazio só com anexo
+                      && (request.resource.data.texto.size() >= 1 || 'anexo' in request.resource.data)
+                      && (!('anexo' in request.resource.data) || anexoOk(request.resource.data.anexo))
                       && request.resource.data.em == request.time;
         allow update, delete: if false;
       }

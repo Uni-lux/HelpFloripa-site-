@@ -42,7 +42,7 @@
   </script>
   <link rel="stylesheet" href="rede.css?v=31" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="suporte.js?v=37"></script>
+  <script type="module" src="suporte.js?v=38"></script>
 </head>
 <body>
   <header class="topo">
@@ -82,6 +82,11 @@
         <div class="sup-passo"><b>2</b> Conte o que aconteceu</div>
         <div class="campo"><label for="supAssunto">Resumo</label><input id="supAssunto" maxlength="120" placeholder="Ex.: Não consigo editar meu cardápio" /></div>
         <div class="campo"><label for="supTexto">Detalhes</label><textarea id="supTexto" maxlength="2000" placeholder="O que aconteceu, quando, em qual página e com quem (se for o caso)..."></textarea><div class="ajuda"><span>Nunca envie senhas ou códigos de verificação.</span><span id="supCont">0/2000</span></div></div>
+        <div class="campo"><label>Prints, fotos ou arquivos (opcional)</label>
+          <div id="supAnexos"></div>
+          <button type="button" class="sup-add-anexo" id="supAnexar"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.5l-8.3 8.3a5 5 0 01-7.1-7.1l8.6-8.6a3.4 3.4 0 014.8 4.8l-8.6 8.6a1.7 1.7 0 01-2.4-2.4l7.9-7.9"/></svg><span>Adicionar print, foto, vídeo ou PDF</span></button>
+          <input type="file" id="supArquivo" hidden multiple />
+          <div class="ajuda"><span>Até 3. Um print da tela ajuda muito a equipe a entender.</span></div></div>
       </div>
       <div class="folha-rodape"><button type="button" class="btn sec" data-fechar>Cancelar</button><button type="button" class="btn pri" id="supEnviar">Enviar chamado</button></div>
     </div>
@@ -100,7 +105,10 @@
         <div id="chMsgs" class="sup-chat"></div>
         <div id="chNota"></div>
       </div>
+      <div class="sup-compor-box" id="chAnexoPrevia"></div>
       <div class="sup-compor" id="chResponder">
+        <button type="button" class="sup-clipe" id="chAnexar" aria-label="Anexar foto, vídeo ou PDF" title="Anexar"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.5l-8.3 8.3a5 5 0 01-7.1-7.1l8.6-8.6a3.4 3.4 0 014.8 4.8l-8.6 8.6a1.7 1.7 0 01-2.4-2.4l7.9-7.9"/></svg></button>
+        <input type="file" id="chArquivo" hidden />
         <textarea id="chTexto" maxlength="2000" rows="1" placeholder="Escreva para a equipe..." aria-label="Responder ao suporte"></textarea>
         <button type="button" class="sup-enviar" id="chEnviar" aria-label="Enviar"><svg class="i"><use href="#i-enviar"/></svg></button>
       </div>
@@ -235,6 +243,18 @@
     .sup-av img { width: 100%; height: 100%; object-fit: cover; }
     .sup-msg.equipe b { display: flex; align-items: center; font-size: 12.5px; margin-bottom: 2px; color: var(--accent); }
     .sup-sistema { justify-self: center; max-width: 92%; padding: 8px 12px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 8%, transparent); color: var(--muted); font-size: 12.5px; text-align: center; }
+    .folha-topo, .sup-topo-tx, .sup-msg b, .sup-av { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+    .sup-clipe { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border: 0; border-radius: 50%; background: color-mix(in srgb, var(--muted) 14%, transparent); color: var(--text); cursor: pointer; }
+    .sup-clipe svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .sup-compor-box:empty { display: none; }
+    .sup-compor-box { padding: 8px 12px 0; background: var(--panel); border-top: 1px solid var(--line); }
+    .sup-compor-box .ax-previa { margin: 0; }
+    .sup-add-anexo { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 48px; border-radius: 14px; border: 1.5px dashed var(--line); background: none; color: var(--accent); font: inherit; font-size: 14px; font-weight: 750; cursor: pointer; }
+    .sup-add-anexo svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .sup-add-anexo[hidden] { display: none; }
+    #supAnexos { display: grid; gap: 6px; }
+    #supAnexos:not(:empty) { margin-bottom: 8px; }
+    .sup-msg .ax-anexo, .sup-msg .ax-doc { margin-top: 6px; }
     .sup-compor { display: flex; gap: 8px; align-items: flex-end; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--panel); }
     .sup-compor textarea { flex: 1; min-height: 44px; max-height: 140px; resize: none; padding: 11px 14px; border-radius: 22px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font: inherit; font-size: 15px; line-height: 1.4; outline: none; }
     .sup-compor textarea:focus { border-color: var(--accent); }

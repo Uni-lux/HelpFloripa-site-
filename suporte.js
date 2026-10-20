@@ -20,6 +20,7 @@ import { SUPORTE, seloOficial, fotoSuporte, marcarChamadoLido } from "./avisos-e
 import { buscarPessoas } from "./pessoas.js?v=3";
 import { abrirDenuncia } from "./denuncias.js?v=4";
 import { ligarVoltar } from "./voltar.js?v=4";
+import { prepararAnexo, blocoAnexo, previaAnexo, aceitos } from "./anexos-suporte.js?v=1";
 // O voltar fecha as janelas desta página (também dentro das Mensagens), sem depender da cópia do firebase.js no aparelho.
 ligarVoltar();
 
@@ -157,6 +158,14 @@ $("supEnviar").addEventListener("click", async () => {
   const b = $("supEnviar"); b.disabled = true;
   try {
     const id = await criarChamado({ assunto, categoria, texto });
+    // Anexos vão logo depois, como mensagens do chamado (regras novas; sem elas, o chamado vai sem eles).
+    let semAnexo = false;
+    for (const a of anexosNovo) {
+      try { await fb.addDoc(fb.collection(fb.db, "suporte", id, "mensagens"), { autorId: eu.uid, equipe: false, texto: "", anexo: a, em: fb.serverTimestamp() }); }
+      catch (e) { if (e?.code === "permission-denied") { semAnexo = true; break; } throw e; }
+    }
+    anexosNovo = []; pintarAnexosNovo();
+    if (semAnexo) setTimeout(() => toast("Os anexos ainda não podem ser enviados (atualização do sistema pendente). Descreva no texto, por enquanto."), 3500);
     fecharFolha("folhaNovo");
     $("supAssunto").value = ""; $("supTexto").value = ""; $("supCont").textContent = "0/2000";
     toast(`Chamado ${protocolo(id)} enviado. A equipe responde por aqui e você recebe um aviso.`);
@@ -165,6 +174,27 @@ $("supEnviar").addEventListener("click", async () => {
   } catch (e) { toast("Não foi possível enviar: " + erroAmigavel(e)); }
   finally { b.disabled = false; }
 });
+// ---------- anexos (fotos, vídeos e PDF) ----------
+let anexosNovo = [], anexoResp = null;
+async function escolherArquivos(input, max, aoPronto) {
+  input.accept = aceitos();
+  input.onchange = async () => {
+    const arqs = [...(input.files || [])].slice(0, max);
+    input.value = "";
+    for (const f of arqs) {
+      try { toast("Preparando o anexo..."); aoPronto(await prepararAnexo(f, `suporte/${eu.uid}`)); toast("Anexo pronto"); }
+      catch (e) { toast(e?.message || "Não foi possível usar esse arquivo."); }
+    }
+  };
+  input.click();
+}
+function pintarAnexosNovo() {
+  $("supAnexos").replaceChildren(...anexosNovo.map((a, i) => previaAnexo(a, () => { anexosNovo.splice(i, 1); pintarAnexosNovo(); })));
+  $("supAnexar").hidden = anexosNovo.length >= 3;
+}
+$("supAnexar").addEventListener("click", () => escolherArquivos($("supArquivo"), 3 - anexosNovo.length, (a) => { if (anexosNovo.length < 3) anexosNovo.push(a); pintarAnexosNovo(); }));
+function pintarAnexoResp() { $("chAnexoPrevia").replaceChildren(...(anexoResp ? [previaAnexo(anexoResp, () => { anexoResp = null; pintarAnexoResp(); })] : [])); }
+$("chAnexar").addEventListener("click", () => escolherArquivos($("chArquivo"), 1, (a) => { anexoResp = a; pintarAnexoResp(); $("chTexto").focus(); }));
 // Chamado e primeira mensagem vão juntos: se algo falhar, nada fica pela metade.
 async function criarChamado({ assunto, categoria, texto }) {
   const ref = fb.doc(fb.collection(fb.db, "suporte"));
@@ -204,11 +234,14 @@ async function abrir(c) {
     const m = d.data({ serverTimestamps: "estimate" });
     const dd = ms(m.em) ? new Date(ms(m.em)).toLocaleDateString("pt-BR", { weekday: "short", day: "numeric", month: "long" }) : "";
     if (dd && dd !== dia) { dia = dd; nos.push(el("div", "sup-dia", dd)); }
-    if (!m.equipe) { const b = el("div", "sup-msg meu", m.texto); b.appendChild(el("small", null, hora(m.em))); nos.push(b); return; }
+    const ax = blocoAnexo(m.anexo);
+    if (!m.equipe) { const b = el("div", "sup-msg meu", m.texto || ""); if (ax) b.appendChild(ax); b.appendChild(el("small", null, hora(m.em))); nos.push(b); return; }
     const linha = el("div", "sup-linha-equipe");
     const av = el("span", "sup-av"); av.appendChild(fotoSuporte());
     const b = el("div", "sup-msg equipe");
-    b.append(nomeOficial("b"), el("div", null, m.texto), el("small", null, hora(m.em)));
+    b.append(nomeOficial("b"), el("div", null, m.texto || ""));
+    if (ax) b.appendChild(ax);
+    b.appendChild(el("small", null, hora(m.em)));
     linha.append(av, b);
     nos.push(linha);
   });
@@ -258,10 +291,19 @@ $("chTexto").addEventListener("input", () => { const t = $("chTexto"); t.style.h
 $("chTexto").addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); $("chEnviar").click(); } });
 $("chEnviar").addEventListener("click", async () => {
   const texto = $("chTexto").value.trim();
-  if (!texto || !atual) return;
+  if ((!texto && !anexoResp) || !atual) return;
   const b = $("chEnviar"); b.disabled = true;
   try {
-    await fb.addDoc(fb.collection(fb.db, "suporte", atual.id, "mensagens"), { autorId: eu.uid, equipe: false, texto, em: fb.serverTimestamp() });
+    const col = fb.collection(fb.db, "suporte", atual.id, "mensagens");
+    try { await fb.addDoc(col, { autorId: eu.uid, equipe: false, texto, ...(anexoResp ? { anexo: anexoResp } : {}), em: fb.serverTimestamp() }); }
+    catch (e) {
+      // Regras do ar ainda sem anexos: manda só o texto (se tiver) e avisa.
+      if (e?.code !== "permission-denied" || !anexoResp) throw e;
+      if (texto) await fb.addDoc(col, { autorId: eu.uid, equipe: false, texto, em: fb.serverTimestamp() });
+      toast("O anexo ainda não pode ser enviado (atualização do sistema pendente)." + (texto ? " A mensagem foi enviada." : ""));
+      if (!texto) return;
+    }
+    anexoResp = null; pintarAnexoResp();
     await fb.updateDoc(fb.doc(fb.db, "suporte", atual.id), { status: "aberto", atualizadoEm: fb.serverTimestamp(), ultimaDe: "usuario" });
     $("chTexto").value = ""; $("chTexto").style.height = ""; Object.assign(atual, { status: "aberto", ultimaDe: "usuario" });
     await abrir(atual);
