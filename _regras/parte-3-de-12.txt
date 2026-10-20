@@ -78,7 +78,7 @@
                 'precoDesde', 'horario', 'atendimento', 'dias', 'regiao', 'experiencia', 'diferenciais', 'pagamentos', 'cnh', 'veiculo',
                 'horaAbre', 'horaFecha', 'tempoMin', 'tempoMax', 'taxaEntrega', 'pedidoMinimo', 'opcoesEntrega',
                 'entrega', 'tipoAnunciante', 'creci',
-                'instagram', 'site', 'capa', 'cnpj', 'promocao', 'semana',
+                'instagram', 'site', 'capa', 'cnpj', 'promocao', 'semana', 'geo',
                 'ocultoAte'];  // escondido enquanto a conta do dono estiver desativada
       }
 
@@ -105,7 +105,8 @@
             && (!m.hasAny(['semana']) || d.get('semana', null) == null
                 || (d.semana is list && d.semana.size() == 7
                     && d.semana.join(';').matches('^(([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9])?(;(([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9])?){6}$')))
-            && (!m.hasAny(['promocao']) || d.get('promocao', null) == null || promocaoOk(d.promocao));
+            && (!m.hasAny(['promocao']) || d.get('promocao', null) == null || promocaoOk(d.promocao))
+            && (!m.hasAny(['geo']) || geoOk(d.get('geo', null)));
       }
 
       function negocioOk() {
@@ -167,6 +168,7 @@
                 'uf', 'cidadeIbge', 'rua', 'numero', 'complemento', 'cep',
                 'disponivel', 'hospedes', 'caracteristicas', 'condicoes', 'descricao', 'fotos', 'criadoEm', 'atualizadoEm',
                 'categoriaPersonalizada',  // tipo escrito pela pessoa quando escolhe "Outro" (Chácara, Galpão...)
+                'geo',                     // ponto do endereço (Perto de você)
                 'ocultoAte'];
       }
 
@@ -179,6 +181,7 @@
             && textoAte('andar', 12)
             && textoAte('disponivel', 20)
             && textoAte('categoriaPersonalizada', 30)
+            && geoOk(request.resource.data.get('geo', null))
             && listaAte('fotos', 5)
             && listaAte('caracteristicas', 20)
             && listaAte('condicoes', 12)
@@ -243,14 +246,6 @@
         return !mudou().hasAny([campo])
             || (request.resource.data[campo] is map
                 && request.resource.data[campo].diff(resource.data.get(campo, {})).affectedKeys().hasOnly([request.auth.uid]));
-      }
-
-      function contextoOk() {
-        let c = request.resource.data.get('contexto', null);
-        return c == null
-            || (c is map && c.keys().hasOnly(['tipo', 'titulo'])
-                && c.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis']
-                && valorTextoAte(c.get('titulo', ''), 120));
       }
 
 // ===== FIM DA PARTE 3 DE 12 =====

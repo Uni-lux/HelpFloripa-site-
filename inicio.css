@@ -240,3 +240,10 @@ body[data-classe="inicio"] { --classe: #00adee; --classe-2: #7de3ff; --classe-in
 .hm-filtro .t-servicos { --cor-f: #00adee; } .hm-filtro .t-delivery { --cor-f: #ff7a1a; } .hm-filtro .t-lojinha { --cor-f: #b066ff; } .hm-filtro .t-imoveis { --cor-f: #2fbf71; }
 .hm-filtro button.on { background: var(--text); border-color: var(--text); color: var(--bg); }
 .hm-filtro button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Perto de você */
+.mini .capa .dist { position: absolute; right: 8px; bottom: 8px; z-index: 1; display: inline-flex; align-items: center; gap: 3px; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; color: #fff; background: rgba(4, 14, 24, .66); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.mini.imovel .capa .dist { bottom: auto; top: 8px; right: 8px; }
+.perto-loc { display: inline-flex; align-items: center; gap: 6px; height: 34px; margin: -4px 0 12px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--accent); font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
+.perto-loc[hidden] { display: none; }
+.perto-loc svg { width: 15px; height: 15px; }

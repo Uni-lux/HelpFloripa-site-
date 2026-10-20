@@ -30,11 +30,11 @@
     })();
   </script>
   <link rel="stylesheet" href="categoria.css?v=7" />
-  <link rel="stylesheet" href="inicio.css?v=10" />
+  <link rel="stylesheet" href="inicio.css?v=11" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
   <script type="module" src="categoria.js?v=35"></script>
-  <script type="module" src="inicio.js?v=37"></script>
+  <script type="module" src="inicio.js?v=38"></script>
 </head>
 <body data-classe="inicio">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -146,6 +146,15 @@
       <button type="button" class="seta ant" id="bannerAnt" aria-label="Anúncio anterior"><svg class="i s" aria-hidden="true"><use href="#i-seta"/></svg></button>
       <button type="button" class="seta prox" id="bannerProx" aria-label="Próximo anúncio"><svg class="i s" aria-hidden="true"><use href="#i-seta"/></svg></button>
       <div class="banner-pontos" id="bannerPontos"></div>
+    </section>
+
+    <section class="secao-home carrossel" id="secPerto" aria-labelledby="t-secPerto">
+      <div class="secao-cab">
+        <div><h2 id="t-secPerto">Perto de você</h2><p id="pertoSub">Profissionais, delivery, lojas e imóveis da sua região.</p></div>
+        <div class="setas"><button type="button" class="ant" aria-label="Anteriores"><svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></button><button type="button" class="prox" aria-label="Próximos"><svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></button></div>
+      </div>
+      <button type="button" class="perto-loc" id="pertoLoc" hidden><svg class="i xs" aria-hidden="true"><use href="#i-pin"/></svg><span>Usar minha localização</span></button>
+      <div class="trilho" id="trilhoPerto"></div>
     </section>
 
     <section class="secao-home carrossel" id="secTop" aria-labelledby="t-secTop">

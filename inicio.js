@@ -11,7 +11,8 @@ import { fotoSegura } from "./seguranca.js?v=1";
 import { enfeitarSelect } from "./escolha.js?v=3";
 import { estrelas, lerResumos, media } from "./avaliacoes.js?v=13";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
-import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=41";
+import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao } from "./perto.js?v=1";
+import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=42";
 
 const $ = (id) => document.getElementById(id);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
@@ -107,7 +108,7 @@ document.querySelectorAll(".carrossel").forEach((c) => {
   c.querySelector(".prox")?.addEventListener("click", () => t.scrollBy({ left: t.clientWidth * 0.85, behavior: "smooth" }));
 });
 function esqueletos(id, n = 4) { const t = $(id); t.replaceChildren(...Array.from({ length: n }, () => el("div", "mini esqueleto"))); }
-["trilhoTop", "trilhoNovos", "trilhoImoveis"].forEach((id) => esqueletos(id));
+["trilhoPerto", "trilhoTop", "trilhoNovos", "trilhoImoveis"].forEach((id) => esqueletos(id));
 
 function fundo(div, url) { if (url) div.style.backgroundImage = `url("${url}")`; }
 
@@ -247,7 +248,42 @@ function filtroTipos(secId, lista, montar) {
 setInterval(() => revezamentos.forEach((fn) => fn()), 1600);
 
 // ---------- dados ----------
+// ---------- Perto de você ----------
+// Negócios e imóveis mais perto: GPS do aparelho (se a pessoa deixou) ou o centro da cidade do perfil.
+function seloDistancia(card, x) {
+  if (!Number.isFinite(x._km)) return card;
+  const s = el("span", "dist"); s.textContent = textoDistancia(x._km, x._aprox);
+  card.querySelector(".capa")?.appendChild(s);
+  return card;
+}
+async function montarPerto(fs, db, u, negocios, imoveis, nota) {
+  const sec = $("secPerto"), sub = $("pertoSub"), bt = $("pertoLoc");
+  const perfil = await docComValidade({ ...fs, db }, ["perfis_publicos", u.uid], 10 * 60000).then((s) => (s.exists() ? s.data() : {})).catch(() => ({}));
+  let pos = await minhaPosicao(perfil).catch(() => null);
+  const desenhar = async () => {
+    bt.hidden = pos?.origem === "gps";
+    if (!pos) { sub.textContent = "Ative a localização para ver quem atende perto de você."; preencher("trilhoPerto", []); bt.hidden = false; return; }
+    const nome = await rotuloPosicao(pos);
+    sub.textContent = pos.origem === "gps" ? `Do mais perto ao mais longe de onde você está${nome ? ` · ${nome}` : ""}` : `Pela cidade do seu perfil${nome ? ` · ${nome}` : ""}. Use a localização para ver mais exato.`;
+    const itens = await comDistancia([...negocios.filter((n) => n.tipo !== "imoveis"), ...imoveis.map((a) => ({ ...a, tipo: "imoveis", _anuncio: true }))], pos);
+    const perto = itens.filter((x) => Number.isFinite(x._km)).sort((a, b) => a._km - b._km);
+    const raio = perto.filter((x) => x._km <= 60);
+    const lista = (raio.length >= 4 ? raio : perto).slice(0, 24);
+    if (!lista.length) { sub.textContent = "Ainda não tem ninguém cadastrado perto de você."; }
+    filtroTipos("secPerto", lista, (l) => preencher("trilhoPerto", l.slice(0, 16).map((x) => seloDistancia(x._anuncio ? cartaoImovel(x) : cartaoNegocio(x, nota(x)), x))));
+  };
+  bt.addEventListener("click", async () => {
+    bt.disabled = true; bt.querySelector("span").textContent = "Localizando...";
+    try { pos = await pedirLocalizacao(); await desenhar(); }
+    catch (e) { sub.textContent = e?.message || "Não deu para pegar a sua localização."; }
+    finally { bt.disabled = false; bt.querySelector("span").textContent = "Usar minha localização"; }
+  });
+  await desenhar();
+  sec.hidden = false;
+}
+
 async function carregar(fs, db, u) {
+  let negociosPerto = [], imoveisPerto = [], notaPerto = () => null;
   // Os totais por categoria ficam guardados por 30 min.
   let totais = {};
   try { const t = JSON.parse(localStorage.getItem("hf-totais-inicio") || "null"); if (t && Date.now() - t.em < 1800000) totais = t; } catch {}
@@ -275,6 +311,7 @@ async function carregar(fs, db, u) {
     const lista = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => n.nome && n.oculto !== true && !oculto(n) && NOMES_TIPO[n.tipo]);
     const resumos = await lerResumos({ ...fs, db }, lista.map((n) => "neg_" + n.id));
     const nota = (n) => resumos["neg_" + n.id];
+    negociosPerto = lista; notaPerto = nota;
     // Peso pela nota: média alta e mais avaliações pesam mais; sem nota ainda entra, com peso pequeno.
     const pesoNota = (n) => { const r = nota(n); if (!r?.total) return 1; const m = media(r); return 1 + (m * m * (1 + Math.log1p(r.total))) / 5; };
     const tempoNota = (n) => 4500 + 900 * (nota(n)?.total ? media(nota(n)) : 0); // 4,5 s a ~9 s na tela
@@ -294,6 +331,7 @@ async function carregar(fs, db, u) {
     const snap = await docsComValidade({ ...fs, db }, "inicio-imoveis", fs.query(an, fs.where("tipo", "==", "imovel"), fs.orderBy("atualizadoEm", "desc"), fs.limit(24)), 10 * 60000)
       .catch(() => fs.getDocs(fs.query(an, fs.where("tipo", "==", "imovel"), fs.limit(24))));
     const ims = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((a) => a.ativo !== false && !oculto(a)).sort((a, b) => ms(b.atualizadoEm || b.criadoEm) - ms(a.atualizadoEm || a.criadoEm)).slice(0, 30);
+    imoveisPerto = ims;
     const agora = Date.now();
     revezar("trilhoImoveis", ims, {
       criar: cartaoImovel,
@@ -301,6 +339,7 @@ async function carregar(fs, db, u) {
       tempo: () => 6000
     });
   } catch { preencher("trilhoImoveis", []); }
+  montarPerto(fs, db, u, negociosPerto, imoveisPerto, notaPerto).catch((e) => { console.warn("Perto de você indisponível:", e); preencher("trilhoPerto", []); });
 }
 
 (async function iniciar() {
