@@ -9,7 +9,7 @@
 // =====================================================
 const CAMADAS = [
   ".folha.aberta", ".hfc", ".hf-confirma-fundo", ".hf-den-fundo", ".hf-aval-fundo", ".ad-modal-fundo", ".ad-gaveta-fundo",
-  ".story-visor", ".fn-visor", ".flash-criar", ".hfe-fundo", ".esc-lista", ".vt-modal", ".vt-local-fundo", ".foto-grande", ".pv-fundo"
+  ".story-visor", ".fn-visor", ".flash-criar", ".hfe-fundo", ".esc-lista", ".vt-modal", ".vt-local-fundo", ".foto-grande", ".pv-fundo", ".pl-fundo"
 ].map((x) => x + ":not([data-sem-voltar])").join(", ");
 const pilha = [];
 let saindo = false, ligado = false;

@@ -217,4 +217,4 @@
                     && responsavelOk()
                     && valorTextoAte(request.resource.data.get('nota', ''), 1000);
 
-// ===== FIM DA PARTE 6 DE 12 =====
+// ===== FIM DA PARTE 6 DE 13 =====

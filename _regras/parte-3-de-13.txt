@@ -1,3 +1,18 @@
+    // =====================================================
+    // BLOQUEIOS
+    // Documento: bloqueios/{bloqueadorId}_{bloqueadoId}
+    // =====================================================
+    match /bloqueios/{id} {
+
+      allow get: if logado()
+                 && (id.split('_')[0] == request.auth.uid
+                     || id.split('_')[1] == request.auth.uid);
+      allow read: if admin();
+
+      allow list: if logado()
+                  && (resource.data.bloqueadorId == request.auth.uid
+                      || resource.data.bloqueadoId == request.auth.uid);
+
       allow create: if logado()
                     && request.resource.data.keys().hasOnly(['bloqueadorId', 'bloqueadoId', 'criadoEm'])
                     && request.resource.data.bloqueadorId == request.auth.uid
@@ -241,11 +256,4 @@
 
     match /conversas/{conversaId} {
 
-      // Cada pessoa só mexe na própria marca de leitura / "digitando".
-      function soMinhaChave(campo) {
-        return !mudou().hasAny([campo])
-            || (request.resource.data[campo] is map
-                && request.resource.data[campo].diff(resource.data.get(campo, {})).affectedKeys().hasOnly([request.auth.uid]));
-      }
-
-// ===== FIM DA PARTE 3 DE 12 =====
+// ===== FIM DA PARTE 3 DE 13 =====

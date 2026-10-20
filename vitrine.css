@@ -639,7 +639,7 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
 
 /* ---------- perfil do negócio: selos, promoção, atalhos e horário por dia ---------- */
 .vd-selos { display: flex; flex-wrap: wrap; gap: 6px; }
-.vd-selo-ok, .vd-selo-cnpj { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px 4px 7px; border-radius: 999px; font-size: 12px; font-weight: 750; }
+.vd-selo-ok, .vd-selo-cnpj, .vd-selo-pro { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px 4px 7px; border-radius: 999px; font-size: 12px; font-weight: 750; }
 .vd-selo-ok { background: color-mix(in srgb, #1d9bf0 14%, transparent); color: #1d9bf0; }
 .vd-selo-ok svg { fill: #1d9bf0; stroke: #fff; }
 .vd-selo-cnpj { background: var(--vt-card-2); color: var(--vt-text-2); border: 1px solid var(--vt-line); }
@@ -733,3 +733,9 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
 .vt-f-loc { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--classe, var(--accent)); background: none; color: var(--classe, var(--accent)); font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
 .vt-f-loc svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; }
 .vt-f-seg.seis { grid-template-columns: repeat(3, 1fr); }
+
+/* Plano Pro: selo no nome do cartão e no perfil do negócio */
+.nm.com-pro { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.nm.com-pro .selo-pro { flex: none; height: 16px; font-size: 9px; padding: 0 5px; }
+.vd-selo-pro { background: color-mix(in srgb, #7c3aed 14%, transparent); color: #8b5cf6; }
+.vd-selo-pro .selo-pro { height: 16px; font-size: 9px; padding: 0 5px; }

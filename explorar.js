@@ -11,14 +11,14 @@
 import {
   $, el, icone, ms, toast, pintarAvatar, urlSegura, nomeCidade, fb, eu, dados, meusSeguindo, escondido, silenciado, ganchos,
   obterPerfil, linhaPessoa, botaoSeguir, fotosDoPost, lerResumosEstrelas, minhaRede, jaVisto, definirOrigem, origemAtual, pilha
-} from "./rede.js?v=48";
+} from "./rede.js?v=49";
 import { afinidade } from "./gosto.js?v=1";
 import { buscarPessoas, pessoasRecentes, semAcento } from "./pessoas.js?v=3";
 import { docsComValidade } from "./leituras.js?v=1";
 import { lerResumos, media } from "./avaliacoes.js?v=13";
-import { CATEGORIAS, CORES_TIPO, NOMES_TIPO, PAGINA_TIPO, nomeCategoria, nomeCat, categoriasDe } from "./vitrine.js?v=42";
+import { CATEGORIAS, CORES_TIPO, NOMES_TIPO, PAGINA_TIPO, nomeCategoria, nomeCat, categoriasDe } from "./vitrine.js?v=43";
 import { fimDaEnquete, faltaTexto } from "./enquetes.js?v=3";
-import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao } from "./perto.js?v=1";
+import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, distanciaKm } from "./perto.js?v=1";
 
 const DIARIO_VALIDADE = 3 * 60000, DIA = 864e5, HORA = 3600e3;
 const postOculto = (p) => (p?.ocultoAte?.toMillis?.() ?? 0) > Date.now() || (p?.agendadoPara?.toMillis?.() ?? 0) > Date.now() || silenciado(p?.autorId);
@@ -406,7 +406,8 @@ async function pintarPostsPerto(lista) {
   const perfis = new Map(await Promise.all(autores.map((u) => obterPerfil(u).then((x) => [u, x || {}]).catch(() => [u, {}]))));
   const locais = await comDistancia(autores.map((u) => ({ uid: u, cidade: perfis.get(u)?.cidade, uf: perfis.get(u)?.uf, cidadeIbge: perfis.get(u)?.cidadeIbge })), pos);
   const km = new Map(locais.map((x) => [x.uid, x._km]));
-  const perto = base.filter((p) => km.get(p.autorId) <= 50).sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm)).slice(0, 9);
+  // Com local na publicação vale o lugar dela (até 30 km); sem, a cidade de quem publicou (até 50 km).
+  const perto = base.filter((p) => (p.local && Number.isFinite(p.local.lat) ? distanciaKm(pos, p.local) <= 30 : km.get(p.autorId) <= 50)).sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm)).slice(0, 9);
   sec.hidden = perto.length < 3;
   if (sec.hidden) return;
   const onde = await rotuloPosicao(pos);

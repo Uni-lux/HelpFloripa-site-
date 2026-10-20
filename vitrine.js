@@ -15,7 +15,12 @@ import { docComValidade, docsComValidade } from "./leituras.js?v=1";
 import { anelNegocio } from "./flash-negocio.js?v=2";
 import { camposEndereco, textoCidade, cidadesDe, NOME_UF, semAcento } from "./endereco.js?v=1";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao } from "./perto.js?v=1";
+import { lerPlano, ehPro, seloPro } from "./planos.js?v=1";
 import { usarEstat, registrarVisita, registrarAcao, registrarItem, chaveItem as chaveEstat, chaveAnuncio } from "./estat-negocio.js?v=1";
+// Plano de quem anuncia (Pro aparece primeiro na ordem padrão e com o selo).
+const planosDonos = new Map();
+const proDe = (n) => ehPro(planosDonos.get(n?.donoId));
+const proPrimeiro = (f) => (a, b) => (proDe(b.n || b) - proDe(a.n || a)) || f(a, b);
 
 const PARAMS = new URL(import.meta.url).searchParams;
 const TIPO_PAGINA = PARAMS.get("tipo");
@@ -1086,7 +1091,14 @@ export function abrirDetalhe(n, opcoes = {}) {
   const conf0 = el("div", "vd-selos");
   if (dono.verificado) { const v = el("span", "vd-selo-ok"); v.append(icone("verificado"), document.createTextNode("Responsável verificado")); v.title = "A identidade de quem criou este perfil foi conferida pela equipe do Help Floripa."; conf0.appendChild(v); }
   if (cnpjTxt(n.cnpj)) { const c = el("span", "vd-selo-cnpj"); c.append(icone("cartao"), document.createTextNode(`CNPJ ${cnpjTxt(n.cnpj)}`)); conf0.appendChild(c); }
-  if (conf0.children.length) cab.appendChild(conf0);
+  cab.appendChild(conf0); conf0.hidden = !conf0.children.length;
+  // Selo do plano Pro (lido do plano da conta, guardado 10 min).
+  lerPlano(fbx || fb, n.donoId).then((pl) => {
+    if (!ehPro(pl)) return;
+    const pr = el("span", "vd-selo-pro"); pr.append(seloPro(), document.createTextNode("Negócio Pro"));
+    pr.title = "Este negócio assina o plano Pro do Help Floripa.";
+    conf0.prepend(pr); conf0.hidden = false;
+  }).catch(() => {});
   ct.appendChild(cab);
 
   // Promoção ou cupom com prazo.
@@ -1827,7 +1839,7 @@ function pontuacao(n) { const r = notaDe(n); if (!r?.total) return 0; return (me
 // Peso no revezamento: nota alta aparece mais; sem nota ainda entra, com peso pequeno.
 function pesoServ(n) { const r = notaDe(n); if (!r?.total) return 1; const m = media(r); return 1 + (m * m * (1 + Math.log1p(r.total))) / 5; }
 const ORDENS_SERV = {
-  melhores: ["Melhores", (a, b) => pontuacao(b) - pontuacao(a) || (notaDe(b)?.total || 0) - (notaDe(a)?.total || 0)],
+  melhores: ["Melhores", proPrimeiro((a, b) => pontuacao(b) - pontuacao(a) || (notaDe(b)?.total || 0) - (notaDe(a)?.total || 0))],
   novos: ["Novos", (a, b) => tsMs(b.criadoEm || b.atualizadoEm) - tsMs(a.criadoEm || a.atualizadoEm)],
   preco: ["Menor preço", (a, b) => (Number(a.precoDesde) || Infinity) - (Number(b.precoDesde) || Infinity)],
   maior: ["Maior preço", (a, b) => (Number(b.precoDesde) || 0) - (Number(a.precoDesde) || 0)],
@@ -1837,6 +1849,12 @@ let ordemServ = "melhores";
 let pararGiro = null;
 const SEM_MOVIMENTO = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+// Nome do cartão com o selo Pro ao lado (quando a conta tem o plano).
+function nomeComSelo(n, padrao) {
+  const s = el("strong", "nm", n.nome || padrao);
+  if (proDe(n)) { s.classList.add("com-pro"); s.append(" ", seloPro()); }
+  return s;
+}
 // Cartão dos Freelances: o mesmo modelo das páginas irmãs (foto do trabalho em cima, avatar,
 // nome, nota, categoria e preço). Nos destaques leva a etiqueta "Destaque em <categoria>".
 function cartaoPro(n, destaqueEm = "") {
@@ -1852,7 +1870,7 @@ function cartaoPro(n, destaqueEm = "") {
   seloPromo(f, n);
   f.appendChild(avatar(n.foto, n.nome, "vt-avatar logo"));
   const tx = el("div", "tx");
-  tx.append(el("strong", "nm", n.nome || "Freelancer"), estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }));
+  tx.append(nomeComSelo(n, "Freelancer"), estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }));
   const cats = categoriasDe(n).map((k) => CATEGORIAS.servicos[k] && nomeCat(n, k)).filter(Boolean);
   const info = [cats[0] ? (cats.length > 1 ? `${cats[0]} +${cats.length - 1}` : cats[0]) : nomeCategoria(n), textoCidade(n)].filter(Boolean).join(" · ");
   if (info) tx.appendChild(el("small", null, info));
@@ -1918,7 +1936,7 @@ function girar(trilho, slots, peso = pesoServ) {
 
 // ---------- Imóveis: grade compacta (3 por fileira no celular) ----------
 const ORDENS_IMOVEL = {
-  recentes: ["Recentes", (a, b) => tsMs(b.atualizadoEm || b.criadoEm) - tsMs(a.atualizadoEm || a.criadoEm)],
+  recentes: ["Recentes", proPrimeiro((a, b) => tsMs(b.atualizadoEm || b.criadoEm) - tsMs(a.atualizadoEm || a.criadoEm))],
   melhores: ["Melhores", (a, b) => pontuacao(b) - pontuacao(a)],
   menor: ["Menor preço", (a, b) => (Number(a.preco) || Infinity) - (Number(b.preco) || Infinity)],
   maior: ["Maior preço", (a, b) => (Number(b.preco) || 0) - (Number(a.preco) || 0)],
@@ -2075,7 +2093,7 @@ function tileDelivery(n) {
   seloPromo(f, n);
   f.appendChild(avatar(n.foto, n.nome, "vt-avatar logo"));
   const tx = el("div", "tx");
-  tx.append(el("strong", "nm", n.nome || "Delivery"), estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }));
+  tx.append(nomeComSelo(n, "Delivery"), estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }));
   const info = [nomeCategoria(n), n.tempoMin || n.tempoMax ? `${n.tempoMin || "?"}–${n.tempoMax || "?"} min` : ""].filter(Boolean).join(" · ");
   if (info) tx.appendChild(el("small", null, info));
   tx.appendChild(el("span", "tx-taxa" + (Number(n.taxaEntrega) > 0 ? "" : " gratis"), Number(n.taxaEntrega) > 0 ? `Entrega ${moeda(n.taxaEntrega)}` : "Entrega grátis"));
@@ -2084,7 +2102,7 @@ function tileDelivery(n) {
   return tornarClicavel(c, () => abrirDetalhe(n), `Ver ${n.nome}`);
 }
 const ORDENS_PRECO = (preco, nota, km = kmDe) => ({
-  melhores: ["Melhores", (a, b) => nota(b) - nota(a)],
+  melhores: ["Melhores", proPrimeiro((a, b) => nota(b) - nota(a))],
   menor: ["Menor preço", (a, b) => (preco(a) || Infinity) - (preco(b) || Infinity)],
   maior: ["Maior preço", (a, b) => (preco(b) || 0) - (preco(a) || 0)],
   perto: ["Mais perto", (a, b) => km(a) - km(b)]
@@ -2367,6 +2385,7 @@ function pintarVerMais(filtrando) {
 const DONOS_VALIDADE = 30 * 60000; // nome e foto de quem anuncia: cópia do aparelho por 30 min
 async function carregarDonos(ids) {
   await Promise.all([...new Set(ids)].map(async (id) => {
+    if (!planosDonos.has(id)) planosDonos.set(id, await lerPlano(fb, id).catch(() => null));
     if (donos.has(id)) return;
     try { const s = await docComValidade(fb, ["perfis_publicos", id], DONOS_VALIDADE); donos.set(id, s.exists() ? s.data() : {}); } catch { donos.set(id, {}); }
   }));

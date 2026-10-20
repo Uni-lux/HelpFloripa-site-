@@ -10,12 +10,13 @@ import { confirmarHF } from "./confirmar.js?v=4";
 import {
   $, el, icone, pintarAvatar, urlSegura, nomeCidade, toast, erroAmigavel, abrirFolha, fecharFolha,
   fb, eu, dados, salvarImagem, editarImagem, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos, criarFolha
-} from "./rede.js?v=48";
+} from "./rede.js?v=49";
 import { lerResumos, estrelas, media, notaTexto } from "./avaliacoes.js?v=13";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade, semAcento } from "./endereco.js?v=1";
 import { lerStats, listaDias, somarPeriodo } from "./estat-negocio.js?v=1";
 import { geocodificar, geoOk } from "./perto.js?v=1";
-import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO, CATEGORIAS, GRUPOS_SERV, PALAVRAS_SERV, prazoPromo } from "./vitrine.js?v=42";
+import { abrirPlanos, lerPlano, esquecerPlano, ehPro, pedidoAberto, seloPro, PRECO_PRO, reais } from "./planos.js?v=1";
+import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO, CATEGORIAS, GRUPOS_SERV, PALAVRAS_SERV, prazoPromo } from "./vitrine.js?v=43";
 
 // Cada tipo com a cor da sua classe na página inicial (inicio.css: --c-servicos etc.) e uma chamada própria.
 const NEGOCIOS = {
@@ -54,6 +55,26 @@ async function carregarMeusNegocios() {
   try { meusNegocios = await buscarNegocios(eu.uid); } catch (e) { console.warn("Negócios indisponíveis:", e); meusNegocios = []; }
   pintarPainel();
   sincronizarExtras();
+  pintarPlano();
+}
+// Cartão do plano (Grátis / Pro / pedido esperando o Pix). Link direto: negocios.html?planos=1
+async function pintarPlano() {
+  const box = $("planoBox");
+  esquecerPlano(eu.uid);
+  const [plano, pedido] = await Promise.all([lerPlano(fb, eu.uid), pedidoAberto(fb, eu.uid)]);
+  const pro = ehPro(plano);
+  const ic = el("span", "ng-plano-ic"); ic.appendChild(pro ? seloPro() : icone("estrela", "i"));
+  const tx = el("span", "ng-plano-tx");
+  const ate = pro ? new Date(plano.ate.toMillis()).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }) : "";
+  tx.append(
+    el("strong", null, pro ? "Plano Pro ativo" : pedido ? "Pedido do Pro aguardando o Pix" : "Seu plano: Grátis"),
+    el("small", null, pro ? `Até ${ate} · selo Pro, destaque e estatísticas completas` : pedido ? `${reais(pedido.valor)} · toque para ver o código Pix` : `Conheça o Pro: destaque nas vitrines por ${reais(PRECO_PRO)}/mês`)
+  );
+  const cta = el("span", "ng-plano-cta"); cta.append(document.createTextNode(pro ? "Renovar" : pedido ? "Ver Pix" : "Ver planos"), icone("avancar", "i xs"));
+  box.className = "ng-plano" + (pro ? " pro" : pedido ? " espera" : "");
+  box.replaceChildren(ic, tx, cta);
+  box.hidden = false;
+  box.onclick = () => abrirPlanos({ fb, eu, dados, toast, aoMudar: () => pintarPlano() });
 }
 // Campos novos guardados na conta enquanto as regras não estavam publicadas: tenta levar para o perfil.
 async function sincronizarExtras() {
@@ -266,7 +287,7 @@ function maiorDeIdade() {
 // Estatísticas do negócio (insights-negocio.js, carregado só quando abre).
 async function abrirEstatisticas(n) {
   try {
-    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=2");
+    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=3");
     abrirInsightsNegocio(n, { aoEditar: (neg) => abrirFormNegocio(meusNegocios.find((x) => x.id === neg.id) || neg) });
   } catch (e) { toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)); }
 }
@@ -1393,6 +1414,6 @@ $("negExcluir").addEventListener("click", async () => {
   else if (p.get("insights")) {
     const n = meusNegocios.find((x) => x.id === p.get("insights"));
     if (n) abrirEstatisticas(n); else if (p.get("insights") === "todos") escolherEstatisticas();
-  }
-  if (tipo || p.get("novo") || p.get("insights")) history.replaceState(history.state, "", "negocios.html");
+  } else if (p.get("planos")) abrirPlanos({ fb, eu, dados, toast, aoMudar: () => pintarPlano() });
+  if (tipo || p.get("novo") || p.get("insights") || p.get("planos")) history.replaceState(history.state, "", "negocios.html");
 })();

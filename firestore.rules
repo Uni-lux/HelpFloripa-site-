@@ -131,11 +131,24 @@ service cloud.firestore {
                                       && d.negocios.join(' ').matches('^' + n + '( ' + n + '){0,3}$')))
           && (!('perfil' in d) || (d.perfil is bool && (d.perfil || 'negocios' in d)));
     }
+    // Publicação do Diário compartilhada no flash: a publicação existe, o autor confere e ele não desligou
+    // "Permitir que compartilhem minhas publicações no Flash" (pref_publicas.permiteFlash; sem o documento, pode).
+    function postFlashOk(r) {
+      let orig = /databases/$(database)/documents/diario/$(r.postId);
+      let pref = /databases/$(database)/documents/pref_publicas/$(r.autorId);
+      return r is map && r.keys().hasOnly(['postId', 'autorId', 'nome'])
+          && r.postId is string && r.postId.matches('^[A-Za-z0-9]{1,64}$')
+          && r.autorId is string
+          && exists(orig) && get(orig).data.autorId == r.autorId
+          && (r.autorId == request.auth.uid || !exists(pref) || get(pref).data.get('permiteFlash', true) != false)
+          && valorTextoAte(r.get('nome', ''), 80);
+    }
     function extrasFlashOk(d) {
       return negociosFlashOk(d)
           && (!('caixa' in d) || caixaOk(d.caixa))
           && (!('link' in d) || linkFlashOk(d.link))
-          && (!('repostDe' in d) || repostOk(d.repostDe));
+          && (!('repostDe' in d) || repostOk(d.repostDe))
+          && (!('postDe' in d) || postFlashOk(d.postDe));
     }
     // Lista de uids (até max), conferida com uma expressão só.
     function uidsOk(l, max) {
@@ -1655,6 +1668,46 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Planos dos negócios (Grátis e Pro, Pix manual). A pessoa cria o pedido (pendente) e pode cancelar;
+    // a equipe (dono/comercial) confere o pagamento, marca pago/recusado e ativa planos/{uid}.
+    match /planos_pedidos/{id} {
+      allow read: if (logado() && resource.data.uid == request.auth.uid) || podeComercial();
+      allow create: if logado() && emailOk()
+                    && request.resource.data.keys().hasOnly(['uid', 'nome', 'email', 'plano', 'meses', 'valor', 'txid', 'status', 'criadoEm'])
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.plano == 'pro'
+                    && request.resource.data.meses in [1, 3, 6, 12]
+                    && request.resource.data.valor is number && request.resource.data.valor > 0 && request.resource.data.valor <= 1000
+                    && request.resource.data.txid is string && request.resource.data.txid.matches('^[A-Z0-9]{4,25}$')
+                    && valorTextoAte(request.resource.data.get('nome', ''), 80)
+                    && valorTextoAte(request.resource.data.get('email', ''), 120)
+                    && request.resource.data.status == 'pendente'
+                    && request.resource.data.criadoEm == request.time;
+      allow update: if logado() && resource.data.uid == request.auth.uid
+                    && resource.data.status == 'pendente'
+                    && mudou().hasOnly(['status'])
+                    && request.resource.data.status == 'cancelado';
+      allow update: if podeComercial()
+                    && resource.data.status == 'pendente'
+                    && mudou().hasOnly(['status', 'decididoPor', 'decididoEm', 'motivo'])
+                    && request.resource.data.status in ['pago', 'recusado']
+                    && request.resource.data.decididoPor == request.auth.uid
+                    && request.resource.data.decididoEm == request.time
+                    && valorTextoAte(request.resource.data.get('motivo', ''), 300);
+      allow delete: if false;
+    }
+    // Plano ativo da conta: público (selo Pro e destaque); só a equipe comercial muda.
+    match /planos/{uid} {
+      allow read: if logado();
+      allow create, update: if podeComercial()
+                    && request.resource.data.keys().hasOnly(['plano', 'ate', 'ativadoEm', 'ativadoPor', 'pedidoId', 'meses'])
+                    && request.resource.data.plano in ['pro', 'gratis']
+                    && request.resource.data.ate is timestamp
+                    && request.resource.data.ativadoPor == request.auth.uid
+                    && request.resource.data.ativadoEm == request.time;
+      allow delete: if podeComercial();
+    }
+
     match /parcerias/{id} {
       // Formulário de Sócios e parcerias: só quem tem conta (e-mail confirmado), até 3 por dia; só a equipe lê.
       allow create: if logado()
@@ -2044,9 +2097,9 @@ service cloud.firestore {
     match /stories/{id} {
       allow read: if logado();
       allow create: if logado() && emailOk()
-                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'tipo', 'midia', 'texto', 'duracao', 'enquete', 'caixa', 'link', 'repostDe', 'negocios', 'perfil', 'mencoes', 'respostas', 'publico', 'lista', 'ocultoPara', 'criadoEm'])
+                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'tipo', 'midia', 'texto', 'duracao', 'enquete', 'caixa', 'link', 'repostDe', 'postDe', 'negocios', 'perfil', 'mencoes', 'respostas', 'publico', 'lista', 'ocultoPara', 'criadoEm'])
                     // caixa de perguntas, link para negócio, repost e perfis de negócio (só confere o que veio)
-                    && (!request.resource.data.keys().hasAny(['caixa', 'link', 'repostDe', 'negocios', 'perfil']) || extrasFlashOk(request.resource.data))
+                    && (!request.resource.data.keys().hasAny(['caixa', 'link', 'repostDe', 'postDe', 'negocios', 'perfil']) || extrasFlashOk(request.resource.data))
                     // enquete, pessoas mencionadas e as escolhas do autor (quem responde, quem vê)
                     // no flash a enquete acaba junto com ele (até 24 h, com 10 min de folga)
                     && (!('enquete' in request.resource.data) || enqueteOk(request.resource.data.enquete, request.time, 1450))
@@ -2209,8 +2262,9 @@ service cloud.firestore {
     match /pref_publicas/{uid} {
       allow read: if logado();
       allow create, update: if logado() && uid == request.auth.uid
-                    && request.resource.data.keys().hasOnly(['permiteMarcar', 'atualizadoEm'])
-                    && (!('permiteMarcar' in request.resource.data) || request.resource.data.permiteMarcar in ['todos', 'seguindo', 'ninguem']);
+                    && request.resource.data.keys().hasOnly(['permiteMarcar', 'permiteFlash', 'atualizadoEm'])
+                    && (!('permiteMarcar' in request.resource.data) || request.resource.data.permiteMarcar in ['todos', 'seguindo', 'ninguem'])
+                    && (!('permiteFlash' in request.resource.data) || request.resource.data.permiteFlash is bool);
       allow delete: if logado() && uid == request.auth.uid;
     }
 
@@ -2391,6 +2445,14 @@ service cloud.firestore {
         return !('marcados' in d) || (d.marcados is list && d.marcados.size() <= 10
             && (d.marcados.size() == 0 || d.marcados.join(' ').matches('^[A-Za-z0-9]{1,64}( [A-Za-z0-9]{1,64}){0,9}$')));
       }
+      // Local da publicação ("Trindade, Florianópolis"): nome e o ponto arredondado, dentro do Brasil.
+      function localPubOk(d) {
+        return !('local' in d) || d.local == null
+            || (d.local is map && d.local.keys().hasOnly(['nome', 'lat', 'lng'])
+                && d.local.nome is string && d.local.nome.size() >= 2 && d.local.nome.size() <= 80
+                && d.local.lat is number && d.local.lat >= -34 && d.local.lat <= 6
+                && d.local.lng is number && d.local.lng >= -75 && d.local.lng <= -28);
+      }
       function fotoPubOk(u) {
         return u is string && u.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*');
       }
@@ -2398,7 +2460,8 @@ service cloud.firestore {
       allow create: if logado()
                     && emailOk()
                     && request.resource.data.autorId == request.auth.uid
-                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'fotoPerfil', 'texto', 'mediaUrl', 'mediaTipo', 'midias', 'tags', 'marcados', 'agendadoPara', 'enquete', 'caixa', 'criadoEm'])
+                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'fotoPerfil', 'texto', 'mediaUrl', 'mediaTipo', 'midias', 'tags', 'marcados', 'agendadoPara', 'enquete', 'caixa', 'local', 'criadoEm'])
+                    && localPubOk(request.resource.data)
                     && (!('caixa' in request.resource.data) || caixaOk(request.resource.data.caixa))
                     // enquete: até 7 dias a partir de quando aparece (agora ou a data agendada), com 10 min de folga
                     && (!('enquete' in request.resource.data) || enqueteOk(request.resource.data.enquete,
@@ -2416,7 +2479,8 @@ service cloud.firestore {
                     && emailOk()
                     && resource.data.autorId == request.auth.uid
                     && request.resource.data.autorId == resource.data.autorId
-                    && gravou().hasOnly(['texto', 'nome', 'fotoPerfil', 'comentariosOcultos', 'ocultoAte', 'editadoEm', 'quemComenta', 'comentarioFixo', 'tags', 'marcados', 'agendadoPara'])
+                    && gravou().hasOnly(['texto', 'nome', 'fotoPerfil', 'comentariosOcultos', 'ocultoAte', 'editadoEm', 'quemComenta', 'comentarioFixo', 'tags', 'marcados', 'agendadoPara', 'local'])
+                    && localPubOk(request.resource.data)
                     && tagsOk(request.resource.data) && marcadosOk(request.resource.data)
                     // agendada: publicar agora (agendadoPara = agora) ou mudar a data (até 60 dias)
                     && (!mudou().hasAny(['agendadoPara'])

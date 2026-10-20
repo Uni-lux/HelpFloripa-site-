@@ -6,8 +6,8 @@ import { cartaoComunicado } from "./comunicados.js?v=1";
 import { linha, linhaComparada, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=7";
 import { baixarPlanilhaMulti } from "./planilha.js?v=5";
 import { buscarPessoas } from "./pessoas.js?v=3";
-import { montarChat } from "./admin-chat.js?v=18";
-import { verConteudoDenuncia } from "./admin-denuncia.js?v=10";
+import { montarChat } from "./admin-chat.js?v=19";
+import { verConteudoDenuncia } from "./admin-denuncia.js?v=11";
 import { prepararAnexo, blocoAnexo, previaAnexo, aceitos } from "./anexos-suporte.js?v=1";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
 import {
@@ -15,7 +15,7 @@ import {
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha,
   PAPEIS, DESC_PAPEIS, pode, semPermissao, nomeEquipe, vendoAgora, marcarItem, seloResp, confirmarItem, controlesResp, espera,
   PRIORIDADES, editarTarefa, moverTarefa, garantirNegocios, garantirTodasPessoas, carregarPessoas, guardarPessoas
-} from "./admin-base.js?v=17";
+} from "./admin-base.js?v=18";
 
 const cab = (titulo, sub, extra) => { const c = h("div", "ad-cab"); const t = h("div"); t.append(h("h1", null, titulo)); if (sub) t.append(h("p", null, sub)); c.appendChild(t); if (extra) c.appendChild(extra); return c; };
 const bloco = (titulo, sub) => { const b = h("section", "ad-bloco"); const t = h("div", "ad-bloco-topo"); const tt = h("div"); tt.append(h("h3", null, titulo)); if (sub) tt.append(h("p", null, sub)); t.appendChild(tt); b.appendChild(t); b.topo = t; return b; };
@@ -725,10 +725,11 @@ export function suporte(el) {
   const CAT = { conta: "Conta", pagamento: "Pagamento", golpe: "Golpe", denuncia: "Denúncia", contestacao: "Contestação", negocio: "Negócio", sugestao: "Sugestão", outro: "Outro" };
   function pintar() {
     const abertoOu = (s) => s.status !== "fechado";
-    const l = D.suporte.filter((s) => filtroSup === "todos" || (filtroSup === "minhas" ? s.responsavel === C.eu.uid && abertoOu(s) : filtroSup === "livres" ? !s.responsavel && abertoOu(s) : s.status === filtroSup)).sort((a, b) => (filtroSup === "aberto" ? ms(a.atualizadoEm) - ms(b.atualizadoEm) : ms(b.atualizadoEm) - ms(a.atualizadoEm)));
+    const l = D.suporte.filter((s) => filtroSup === "todos" || (filtroSup === "minhas" ? s.responsavel === C.eu.uid && abertoOu(s) : filtroSup === "livres" ? !s.responsavel && abertoOu(s) : s.status === filtroSup)).sort((a, b) => (filtroSup === "aberto" ? proSup(b) - proSup(a) || ms(a.atualizadoEm) - ms(b.atualizadoEm) : ms(b.atualizadoEm) - ms(a.atualizadoEm)));
     lista.replaceChildren(...(l.length ? l.map((s) => {
       const c = h("article", "ad-item clicavel"); c.dataset.item = `suporte:${s.id}`; c.tabIndex = 0;
       const top = h("div", "cab"); top.append(selo(CAT[s.categoria] || s.categoria, s.categoria === "contestacao" || s.categoria === "golpe" ? "serio" : "neutro"), selo(s.status === "aberto" ? "Esperando a equipe" : s.status === "respondido" ? "Respondido" : "Fechado", s.status === "aberto" ? "atencao" : s.status === "respondido" ? "info" : "bom"));
+      if (proSup(s)) top.append(selo("PRO · prioridade", "info"));
       if (s.abertoPor) top.append(selo(`Aberto pela equipe (${nomeEquipe(s.abertoPor)})`, "info"));
       if (s.status !== "fechado") top.append(seloResp(s));
       if (s.status === "aberto") top.append(espera(s.atualizadoEm, 24));
@@ -822,6 +823,101 @@ export function suporte(el) {
     chat.replaceChildren(...msgs.docs.map((d) => { const m = d.data(); const b = h("div", "ad-msg" + (m.equipe ? " equipe" : ""), m.texto || ""); const ax = blocoAnexo(m.anexo); if (ax) b.appendChild(ax); b.appendChild(h("small", null, `${m.equipe ? `Suporte Help Floripa (${nomeEquipe(m.autorId)})` : pessoa(s.uid).nome || "Usuário"} · ${dataHora(m.em)}`)); return b; }));
     if (!msgs.docs.length) chat.appendChild(h("div", "ad-vazio", "Sem mensagens."));
     chat.scrollTop = chat.scrollHeight;
+  }
+  pintar();
+}
+
+// Atendimento prioritário do plano Pro: os chamados de quem tem o Pro ativo sobem na fila.
+const proSup = (s) => { const p = D.planos.get(s.uid); return p?.plano === "pro" && ms(p.ate) > agora() ? 1 : 0; };
+// ======================================================= PLANOS (Pro, Pix manual)
+let filtroPlanos = "pendente";
+const reaisPl = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+export function planos(el) {
+  el.appendChild(cab("Planos", "Pedidos do plano Pro pagos por Pix. Confira o pagamento no extrato (valor e código do pedido) antes de ativar. O plano vence sozinho na data."));
+  const pedidos = [...D.planosPedidos].sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
+  const pend = pedidos.filter((p) => p.status === "pendente").sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm));
+  const ativos = [...D.planos.entries()].filter(([, p]) => p.plano === "pro" && ms(p.ate) > agora()).map(([uid, p]) => ({ uid, ...p })).sort((a, b) => ms(a.ate) - ms(b.ate));
+  const mes = agora() - 30 * DIA;
+  const recebido = pedidos.filter((p) => p.status === "pago" && ms(p.decididoEm) >= mes).reduce((t, p) => t + (Number(p.valor) || 0), 0);
+  const kp = h("div", "ad-kpis");
+  kp.append(destaque({ rotulo: "Esperando o Pix", valor: pend.length, alerta: pend.some((p) => ms(p.criadoEm) < agora() - 2 * DIA) }),
+    destaque({ rotulo: "Negócios Pro ativos", valor: ativos.length }),
+    destaque({ rotulo: "Recebido em 30 dias", valor: Math.round(recebido), formato: () => reaisPl(recebido) }),
+    destaque({ rotulo: "Vencem em 7 dias", valor: ativos.filter((p) => ms(p.ate) < agora() + 7 * DIA).length }));
+  el.appendChild(kp);
+  const fil = chips([["pendente", `Esperando (${pend.length})`], ["ativos", `Ativos (${ativos.length})`], ["historico", "Histórico"]], filtroPlanos, (v) => { filtroPlanos = v; pintar(); });
+  fil.style.marginBottom = "12px";
+  const lista = h("div", "ad-lista"); el.append(fil, lista);
+  const podeVender = pode("comercial");
+  function pintar() {
+    if (filtroPlanos === "pendente") lista.replaceChildren(...(pend.length ? pend.map(cartaoPedido) : [h("div", "ad-vazio", "Nenhum pedido esperando o pagamento.")]));
+    else if (filtroPlanos === "ativos") lista.replaceChildren(...(ativos.length ? ativos.map(cartaoAtivo) : [h("div", "ad-vazio", "Nenhum negócio com o Pro ativo.")]));
+    else { const l = pedidos.filter((p) => p.status !== "pendente"); lista.replaceChildren(...(l.length ? l.map(cartaoPedido) : [h("div", "ad-vazio", "Nada por aqui ainda.")])); }
+  }
+  const ST = { pendente: ["Esperando o Pix", "atencao"], pago: ["Pago e ativado", "bom"], recusado: ["Recusado", "serio"], cancelado: ["Cancelado pela pessoa", "neutro"] };
+  function cartaoPedido(p) {
+    const c = h("article", "ad-item"); c.dataset.item = `plano:${p.id}`;
+    const top = h("div", "cab"); top.append(pessoaCel({ ...pessoa(p.uid), nome: pessoa(p.uid).nome || p.nome }, p.email || ""));
+    top.append(selo(...(ST[p.status] || [p.status, ""])), h("span", "quando", relativo(p.criadoEm)));
+    c.appendChild(top);
+    c.append(h("strong", null, `Pro · ${p.meses} ${p.meses === 1 ? "mês" : "meses"} · ${reaisPl(p.valor)}`),
+      h("div", "meta", `Pedido #${String(p.id).slice(-6).toUpperCase()} · código no Pix: ${p.txid || "—"} · ${dataHora(p.criadoEm)}`));
+    const atual = D.planos.get(p.uid);
+    if (atual?.plano === "pro" && ms(atual.ate) > agora()) c.appendChild(h("div", "meta", `Já é Pro até ${data(atual.ate)}: os meses somam a partir dessa data.`));
+    if (p.status !== "pendente") c.appendChild(h("div", "meta", `${ST[p.status]?.[0] || p.status}${p.decididoEm ? " · " + dataHora(p.decididoEm) : ""}${p.decididoPor ? " · " + nomeEquipe(p.decididoPor) : ""}${p.motivo ? " · " + p.motivo : ""}`));
+    if (p.status === "pendente" && podeVender) {
+      const ac = h("div", "ad-acoes");
+      ac.append(btn("Confirmar pagamento e ativar", "pri", () => ativar(p)), btn("Recusar", "perigo", () => recusar(p)), btn("Ver ficha", "", () => abrirFicha(p.uid)));
+      c.appendChild(ac);
+    } else { const ac = h("div", "ad-acoes"); ac.appendChild(btn("Ver ficha", "", () => abrirFicha(p.uid))); c.appendChild(ac); }
+    return c;
+  }
+  function cartaoAtivo(p) {
+    const c = h("article", "ad-item");
+    const top = h("div", "cab"); top.append(pessoaCel(pessoa(p.uid), "")); top.append(selo("PRO", "info"));
+    const falta = Math.ceil((ms(p.ate) - agora()) / DIA);
+    top.append(h("span", "quando", falta <= 7 ? `vence em ${falta} ${falta === 1 ? "dia" : "dias"}` : `até ${data(p.ate)}`));
+    c.append(top, h("div", "meta", `Ativado ${p.ativadoEm ? dataHora(p.ativadoEm) : ""}${p.ativadoPor ? " · " + nomeEquipe(p.ativadoPor) : ""}`));
+    const ac = h("div", "ad-acoes");
+    if (podeVender) ac.append(btn("Encerrar o Pro agora", "perigo", () => encerrar(p)));
+    ac.append(btn("Ver ficha", "", () => abrirFicha(p.uid)));
+    c.appendChild(ac);
+    return c;
+  }
+  async function ativar(p) {
+    if (!(await confirmarHF({ titulo: "Confirmar o pagamento?", texto: `Ative só depois de ver ${reaisPl(p.valor)} no extrato (código ${p.txid}). O Pro fica ativo por ${p.meses} ${p.meses === 1 ? "mês" : "meses"}.`, ok: "Ativar o Pro", cor: "normal", icone: "check" }))) return;
+    const { fb } = C;
+    const atual = D.planos.get(p.uid);
+    const base = Math.max(agora(), atual?.plano === "pro" ? ms(atual.ate) : 0);
+    const ate = fb.Timestamp.fromMillis(base + p.meses * 30 * DIA);
+    const lote = fb.writeBatch(fb.db);
+    lote.update(fb.doc(fb.db, "planos_pedidos", p.id), { status: "pago", decididoPor: C.eu.uid, decididoEm: fb.serverTimestamp() });
+    lote.set(fb.doc(fb.db, "planos", p.uid), { plano: "pro", ate, meses: p.meses, pedidoId: p.id, ativadoEm: fb.serverTimestamp(), ativadoPor: C.eu.uid });
+    await lote.commit();
+    Object.assign(p, { status: "pago", decididoPor: C.eu.uid, decididoEm: { toMillis: () => agora() } });
+    D.planos.set(p.uid, { plano: "pro", ate, meses: p.meses, pedidoId: p.id, ativadoEm: { toMillis: () => agora() }, ativadoPor: C.eu.uid });
+    await registrar("plano_ativar", p.uid, `Pro · ${p.meses} ${p.meses === 1 ? "mês" : "meses"} · ${reaisPl(p.valor)} · até ${new Date(ate.toMillis()).toLocaleDateString("pt-BR")}`, "planos_pedidos:" + p.id);
+    await enviarAviso(p.uid, { titulo: "Seu plano Pro está ativo", texto: `Recebemos o seu Pix de ${reaisPl(p.valor)}. O plano Pro vale até ${new Date(ate.toMillis()).toLocaleDateString("pt-BR")} para todos os seus negócios. Obrigado!`, tipo: "info" }).catch(() => {});
+    toast("Pro ativado"); C.irPara("planos");
+  }
+  async function recusar(p) {
+    const v = await modal({ titulo: "Recusar o pedido?", texto: "A pessoa recebe um aviso com o motivo.", campos: [{ nome: "motivo", rotulo: "Motivo", valor: "Pagamento não encontrado", max: 300, obrigatorio: true }], botao: "Recusar pedido", perigo: true });
+    if (!v) return;
+    const motivo = v.motivo;
+    const { fb } = C;
+    await fb.updateDoc(fb.doc(fb.db, "planos_pedidos", p.id), { status: "recusado", motivo: motivo.slice(0, 300), decididoPor: C.eu.uid, decididoEm: fb.serverTimestamp() });
+    Object.assign(p, { status: "recusado", motivo, decididoPor: C.eu.uid, decididoEm: { toMillis: () => agora() } });
+    await registrar("plano_recusar", p.uid, motivo, "planos_pedidos:" + p.id);
+    await enviarAviso(p.uid, { titulo: "Pedido do plano Pro não confirmado", texto: `Não conseguimos confirmar o pagamento do pedido #${String(p.id).slice(-6).toUpperCase()}. Motivo: ${motivo}. Se você já pagou, envie o comprovante pelo Suporte.`, tipo: "alerta" }).catch(() => {});
+    toast("Pedido recusado"); C.irPara("planos");
+  }
+  async function encerrar(p) {
+    if (!(await confirmarHF({ titulo: "Encerrar o Pro agora?", texto: "O selo e o destaque saem na hora. Use em caso de estorno ou erro.", ok: "Encerrar", icone: "alerta" }))) return;
+    const { fb } = C;
+    await fb.setDoc(fb.doc(fb.db, "planos", p.uid), { plano: "gratis", ate: fb.Timestamp.fromMillis(agora()), ativadoEm: fb.serverTimestamp(), ativadoPor: C.eu.uid });
+    D.planos.set(p.uid, { plano: "gratis", ate: { toMillis: () => agora() } });
+    await registrar("plano_encerrar", p.uid, "Pro encerrado pela equipe");
+    toast("Pro encerrado"); C.irPara("planos");
   }
   pintar();
 }

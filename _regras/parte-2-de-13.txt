@@ -1,3 +1,24 @@
+    // Quem já escreveu na conversa entre a e b (conversas.falaram, cada um marca só o seu).
+    function falou(a, b, quem) {
+      let c = /databases/$(database)/documents/conversas/$(par(a, b));
+      return exists(c) && get(c).data.get('falaram', {}).get(quem, false) == true;
+    }
+
+    // Conta desativada (ou com exclusão pedida): perfis_publicos.desativadaAte no futuro.
+    function desativada(uid) {
+      let p = /databases/$(database)/documents/perfis_publicos/$(uid);
+      return exists(p)
+          && get(p).data.get('desativadaAte', null) is timestamp
+          && get(p).data.desativadaAte > request.time;
+    }
+
+    // Campo opcional de data (ex.: ocultoAte): ausente, nulo ou uma data.
+    function dataOuNulo(campo) {
+      return !(campo in request.resource.data)
+          || request.resource.data[campo] == null
+          || request.resource.data[campo] is timestamp;
+    }
+
     // Quem da equipe assumiu um item: alguém da equipe (ou ninguém), com nome curto.
     function responsavelOk() {
       let r = request.resource.data.get('responsavel', null);
@@ -234,19 +255,4 @@
     }
 
 
-    // =====================================================
-    // BLOQUEIOS
-    // Documento: bloqueios/{bloqueadorId}_{bloqueadoId}
-    // =====================================================
-    match /bloqueios/{id} {
-
-      allow get: if logado()
-                 && (id.split('_')[0] == request.auth.uid
-                     || id.split('_')[1] == request.auth.uid);
-      allow read: if admin();
-
-      allow list: if logado()
-                  && (resource.data.bloqueadorId == request.auth.uid
-                      || resource.data.bloqueadoId == request.auth.uid);
-
-// ===== FIM DA PARTE 2 DE 12 =====
+// ===== FIM DA PARTE 2 DE 13 =====

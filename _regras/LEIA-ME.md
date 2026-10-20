@@ -14,29 +14,33 @@
 > do documento, que só a pessoa e a moderação leem e que é apagada na decisão) e a **trava do selo** (a moderação só dá o selo
 > com o pedido aprovado; só o dono do site dá o selo direto) e, nos **perfis de negócio**, Instagram, site, CNPJ, capa,
 > horário de cada dia e promoção/cupom, mais as **estatísticas dos negócios** (`neg_visitas`: a visita de cada pessoa,
-> que só ela lê; `neg_stats`: os números do dia, que só o dono do negócio lê e que só sobem +1 junto com uma visita ou ação nova).
-> Para publicar, o processo é o mesmo: apagar tudo no console e colar as 12 partes.
+> que só ela lê; `neg_stats`: os números do dia, que só o dono do negócio lê e que só sobem +1 junto com uma visita ou ação nova),
+> anexos no suporte, ponto do endereço (`geo`), **local nas publicações** (`diario.local`), **publicação no Flash**
+> (`stories.postDe`, com o crédito; `pref_publicas.permiteFlash` deixa o autor desligar) e os **planos dos negócios**
+> (`planos_pedidos`: a pessoa pede o Pro e só a equipe comercial/dono confirma o Pix; `planos`: o plano ativo, que só a
+> equipe comercial/dono grava).
+> Para publicar, o processo é o mesmo: apagar tudo no console e colar as 13 partes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
-`firestore.rules` divididas em **12 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
+`firestore.rules` divididas em **13 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
 - Arquivo de origem: `firestore.rules` (137.833 bytes, 2.406 linhas, sha256 começa com `1109c85e7804b735`).
-- Cada parte termina com a linha `// ===== FIM DA PARTE X DE 12 =====`. É um comentário: **pode colar junto**,
+- Cada parte termina com a linha `// ===== FIM DA PARTE X DE 13 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
-- Conferido: as 12 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
+- Conferido: as 13 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
 - Testes de regras no arquivo remontado: **321 passaram, 0 falharam**, sem o aviso de limite de 1.000 expressões.
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.
 2. Clique dentro do editor, selecione tudo (Ctrl+A, ou "Selecionar tudo" no celular) e **apague**.
-3. Abra `parte-1-de-12.txt`, copie **tudo** e cole no editor.
-4. Vá até o fim do que colou (depois da linha `// ===== FIM DA PARTE 1 DE 12 =====`), abra a parte 2,
-   copie tudo e cole logo abaixo. Repita até a parte 12, **em ordem**.
+3. Abra `parte-1-de-13.txt`, copie **tudo** e cole no editor.
+4. Vá até o fim do que colou (depois da linha `// ===== FIM DA PARTE 1 DE 13 =====`), abra a parte 2,
+   copie tudo e cole logo abaixo. Repita até a parte 13, **em ordem**.
 5. Confira: a primeira linha do editor é `rules_version = '2';` e a última é
-   `// ===== FIM DA PARTE 12 DE 12 =====`, logo depois de uma linha só com `}`.
+   `// ===== FIM DA PARTE 13 DE 13 =====`, logo depois de uma linha só com `}`.
 6. Clique em **Publicar**. Se o console mostrar um erro (linha vermelha), **não publique**: provavelmente
-   uma parte ficou faltando ou repetida. Confira se as 12 linhas `FIM DA PARTE` aparecem, de 1 a 12, uma vez cada.
+   uma parte ficou faltando ou repetida. Confira se as 13 linhas `FIM DA PARTE` aparecem, de 1 a 13, uma vez cada.
 
 > As regras do ar continuam valendo até o clique em Publicar. A troca leva até 1 minuto para valer.
 

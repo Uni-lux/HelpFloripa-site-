@@ -247,3 +247,5 @@ body[data-classe="inicio"] { --classe: #00adee; --classe-2: #7de3ff; --classe-in
 .perto-loc { display: inline-flex; align-items: center; gap: 6px; height: 34px; margin: -4px 0 12px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--accent); font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
 .perto-loc[hidden] { display: none; }
 .perto-loc svg { width: 15px; height: 15px; }
+.mini .capa .hm-pro { position: absolute; left: 8px; bottom: 8px; z-index: 1; box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+.mini.imovel .capa .hm-pro { bottom: auto; top: 8px; left: 8px; }

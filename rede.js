@@ -9,6 +9,7 @@
 // - Barra inferior, avisos (notificações) e presença online.
 // =====================================================
 import { gravarComLocal, NOVOS } from "./endereco.js?v=1";
+import { pedirLocalizacao, posicaoDe, rotuloPosicao } from "./perto.js?v=1";
 import { comRitmo } from "./ritmo.js?v=2";
 import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
@@ -1779,7 +1780,15 @@ export function abrirComentarios(post, { aoMudar } = {}) {
 }
 
 export const linkPublicacao = (post) => `${location.origin}${location.pathname.replace(/[^/]*$/, "")}usuarios.html?post=${encodeURIComponent(post.id)}`;
+// Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
+  abrirOpcoes("Compartilhar", [
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=21").then((m) => m.compartilharNoFlash(post)); } },
+    { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
+    { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
+  ]);
+}
+async function compartilharLink(post) {
   const url = linkPublicacao(post);
   registrarGosto(post, PESO.compartilhar, eu.uid);
   try {
@@ -1846,6 +1855,7 @@ export function abrirCompositor({ aoPublicar } = {}) {
       <div class="pub-previa" id="pubPrevia" hidden></div>
       <div class="pub-extras" id="pubMarcados" hidden></div>
       <div class="pub-extras" id="pubAgenda" hidden></div>
+      <div class="pub-extras" id="pubLocalBox" hidden></div>
       <div class="pub-enquete" id="pubEnquete" hidden></div>
       <div class="pub-enquete pub-caixa" id="pubCaixa" hidden></div>
       <div class="pub-ferramentas">
@@ -1854,6 +1864,7 @@ export function abrirCompositor({ aoPublicar } = {}) {
         <button type="button" class="icone-btn" id="pubMarcar" aria-label="Marcar pessoas" title="Marcar pessoas"><svg class="i"><use href="#i-pessoa-mais"/></svg></button>
         <button type="button" class="icone-btn" id="pubEnqueteBtn" aria-label="Criar enquete" title="Enquete"><svg class="i"><use href="#i-enquete"/></svg></button>
         <button type="button" class="icone-btn" id="pubCaixaBtn" aria-label="Caixa de perguntas" title="Caixa de perguntas"><svg class="i"><use href="#i-caixa"/></svg></button>
+        <button type="button" class="icone-btn" id="pubLocal" aria-label="Adicionar local" title="Adicionar local"><svg class="i"><use href="#i-local"/></svg></button>
         <button type="button" class="icone-btn" id="pubAgendar" aria-label="Agendar publicação" title="Agendar"><svg class="i"><use href="#i-relogio"/></svg></button>
         <button type="button" class="icone-btn" id="pubRascunhos" aria-label="Rascunhos" title="Rascunhos"><svg class="i"><use href="#i-rascunho"/></svg></button>
         <span class="cont" id="pubCont">0/1000</span>
@@ -1989,6 +2000,7 @@ async function caberNoDocumento(fotos, limite = 860000) {
   throw new Error("As fotos ficaram grandes demais juntas. Tente com menos fotos.");
 }
 // Extras da publicação: pessoas marcadas, data agendada e rascunho aberto.
+let pubLocal = null;
 let pubMarcados = [], pubAgenda = null, pubRascunhoId = null, pubEnquete = null, pubCaixa = null;
 // Enquete no compositor: pergunta e de 2 a 4 opções.
 function pintarEnqueteCompositor() {
@@ -2079,14 +2091,85 @@ function pintarExtras() {
     x.addEventListener("click", () => { pubAgenda = null; pintarExtras(); });
     c.appendChild(x); a.appendChild(c);
   }
+  const lb = $("pubLocalBox");
+  lb.replaceChildren();
+  lb.hidden = !pubLocal;
+  if (pubLocal) {
+    const c = el("span", "chip-extra local"); c.append(icone("local", "i xs"), document.createTextNode(pubLocal.nome));
+    const x = el("button", null, "×"); x.type = "button"; x.setAttribute("aria-label", "Tirar o local");
+    x.addEventListener("click", () => { pubLocal = null; pintarExtras(); });
+    c.appendChild(x); lb.appendChild(c);
+  }
   $("pubEnviar").textContent = pubAgenda ? "Agendar" : "Publicar";
+}
+// ---------- Adicionar local (como no Instagram) ----------
+// O local vai na publicação como { nome, lat, lng }. Da localização atual o ponto é arredondado para ~1 km
+// (mostra o bairro, não a sua casa); de um lugar buscado, ~100 m. Nomes e pontos vêm do OpenStreetMap.
+const LOCAIS_RECENTES = "hf-locais";
+const nomeDoLugar = (a = {}, nomeLugar = "") => [nomeLugar || a.suburb || a.neighbourhood || a.quarter || a.village, a.city || a.town || a.municipality].filter(Boolean).filter((x, i, l) => l.indexOf(x) === i).join(", ");
+async function nominatim(caminho) {
+  const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 7000);
+  try { const r = await fetch(`https://nominatim.openstreetmap.org/${caminho}&accept-language=pt-BR&addressdetails=1`, { signal: ctrl.signal }); return await r.json(); }
+  catch { return null; } finally { clearTimeout(t); }
+}
+function locaisRecentes() { try { return JSON.parse(localStorage.getItem(LOCAIS_RECENTES) || "[]").slice(0, 6); } catch { return []; } }
+function guardarLocal(l) { try { localStorage.setItem(LOCAIS_RECENTES, JSON.stringify([l, ...locaisRecentes().filter((x) => x.nome !== l.nome)].slice(0, 6))); } catch {} }
+function escolherLocal() {
+  const corpo = abrirLista("Adicionar local");
+  const usar = (l) => { pubLocal = { nome: String(l.nome).slice(0, 80), lat: Number(l.lat), lng: Number(l.lng) }; guardarLocal(pubLocal); pintarExtras(); fecharFolha("folhaLista"); };
+  const linha = (ic, titulo, sub, fn) => {
+    const b = el("button", "linha-local"); b.type = "button";
+    const i = el("span", "ll-ic"); i.appendChild(icone(ic, "i s"));
+    const t = el("span", "ll-tx"); t.append(el("b", null, titulo)); if (sub) t.appendChild(el("small", null, sub));
+    b.append(i, t); b.addEventListener("click", fn); return b;
+  };
+  const busca = el("input", "busca-enviar"); busca.type = "search"; busca.placeholder = "Buscar um lugar, bairro ou cidade"; busca.setAttribute("aria-label", "Buscar local"); busca.autocomplete = "off";
+  const res = el("div", "lista-locais");
+  const fixos = el("div", "lista-locais");
+  fixos.appendChild(linha("local", "Usar minha localização atual", "Mostra o bairro, não o endereço exato", async () => {
+    try {
+      toast("Localizando...");
+      const p = await pedirLocalizacao();
+      const j = await nominatim(`reverse?format=jsonv2&lat=${p.lat}&lon=${p.lng}&zoom=16`);
+      const nome = nomeDoLugar(j?.address) || (await rotuloPosicao(p)) || "Perto de mim";
+      usar({ nome, lat: Number(p.lat.toFixed(2)), lng: Number(p.lng.toFixed(2)) });
+    } catch (e) { toast(e?.message || "Não deu para pegar a sua localização."); }
+  }));
+  // A cidade do perfil (sem GPS).
+  posicaoDe(dados).then(async (p) => {
+    if (!p) return;
+    const nome = String(dados.cidade || "").split("/")[0].trim() || (await rotuloPosicao(p));
+    if (nome) fixos.appendChild(linha("casa", nome, "Sua cidade (do perfil)", () => usar({ nome, lat: Number(p.lat.toFixed(2)), lng: Number(p.lng.toFixed(2)) })));
+  }).catch(() => {});
+  const recentes = locaisRecentes();
+  const recBox = el("div", "lista-locais");
+  if (recentes.length) { recBox.appendChild(el("p", "pub-dica", "Usados recentemente")); recentes.forEach((l) => recBox.appendChild(linha("relogio", l.nome, "", () => usar(l)))); }
+  let tempo = 0;
+  busca.addEventListener("input", () => {
+    clearTimeout(tempo);
+    const q = busca.value.trim();
+    if (q.length < 3) { res.replaceChildren(); recBox.hidden = false; return; }
+    recBox.hidden = true;
+    tempo = setTimeout(async () => {
+      res.replaceChildren(el("p", "pub-dica", "Procurando..."));
+      const lista = (await nominatim(`search?format=jsonv2&limit=6&countrycodes=br&q=${encodeURIComponent(q)}`)) || [];
+      if (busca.value.trim() !== q) return;
+      res.replaceChildren(...(lista.length ? lista.map((x) => {
+        const nome = nomeDoLugar(x.address, x.name) || String(x.display_name || "").split(",").slice(0, 2).join(",").trim();
+        const sub = [x.address?.state, x.address?.country].filter(Boolean).join(", ");
+        return linha("local", nome, sub, () => usar({ nome, lat: Number(Number(x.lat).toFixed(3)), lng: Number(Number(x.lon).toFixed(3)) }));
+      }) : [el("p", "pub-dica", "Nenhum lugar encontrado. Tente outro nome.")]));
+    }, 450);
+  });
+  corpo.append(busca, res, fixos, recBox);
+  setTimeout(() => busca.focus({ preventScroll: true }), 120);
 }
 function limparPublicacao() {
   $("pubTexto").value = "";
   $("pubCont").textContent = "0/1000";
   if (pubMidia?.previa?.startsWith("blob:")) URL.revokeObjectURL(pubMidia.previa);
   pubMidia = null;
-  pubMarcados = []; pubAgenda = null; pubRascunhoId = null; pubEnquete = null; pintarEnqueteCompositor(); pubCaixa = null; pintarCaixaCompositor();
+  pubMarcados = []; pubAgenda = null; pubLocal = null; pubRascunhoId = null; pubEnquete = null; pintarEnqueteCompositor(); pubCaixa = null; pintarCaixaCompositor();
   $("pubPrevia").hidden = true;
   $("pubPrevia").replaceChildren();
   pintarExtras();
@@ -2232,6 +2315,7 @@ function ligarCompositor() {
   $("pubCaixaBtn").addEventListener("click", () => { if (!pubCaixa) { pubCaixa = { pergunta: "Me faça uma pergunta", anonima: false }; pintarCaixaCompositor(); $("pubCaixa").querySelector(".pe-pergunta")?.select(); } else { pubCaixa = null; pintarCaixaCompositor(); } });
   $("pubEnqueteBtn").addEventListener("click", () => { if (!pubEnquete) { pubEnquete = { pergunta: "", opcoes: ["", ""], duracao: { dur: 1440 } }; pintarEnqueteCompositor(); $("pubEnquete").querySelector(".pe-pergunta")?.focus(); } else { pubEnquete = null; pintarEnqueteCompositor(); } });
   $("pubAgendar").addEventListener("click", escolherAgenda);
+  $("pubLocal").addEventListener("click", escolherLocal);
   $("pubRascunhos").addEventListener("click", abrirRascunhos);
   $("pubSalvarRascunho").addEventListener("click", salvarRascunho);
   $("pubArquivoFoto").addEventListener("change", async () => {
@@ -2299,7 +2383,7 @@ function ligarCompositor() {
       const mencionados = await uidsMencionados(texto);
       const tags = tagsDoTexto(texto), marcados = [...new Set([...pubMarcados.map((p) => p.uid), ...mencionados])].filter((u) => u && u !== eu.uid).slice(0, 10);
       const agenda = pubAgenda && pubAgenda > new Date() ? fb.Timestamp.fromDate(pubAgenda) : null;
-      const extras = { ...(tags.length ? { tags } : {}), ...(marcados.length ? { marcados } : {}), ...(agenda ? { agendadoPara: agenda } : {}), ...(enquete ? { enquete } : {}), ...(caixa ? { caixa } : {}) };
+      const extras = { ...(tags.length ? { tags } : {}), ...(marcados.length ? { marcados } : {}), ...(agenda ? { agendadoPara: agenda } : {}), ...(enquete ? { enquete } : {}), ...(caixa ? { caixa } : {}), ...(pubLocal ? { local: { ...pubLocal } } : {}) };
       const gravar = (novos) => comRitmo(fb, eu.uid, "pub", (lote) => {
         const r = fb.doc(fb.collection(fb.db, "diario"));
         lote.set(r, { autorId: eu.uid, nome: dados.nome || "Usuário", fotoPerfil: foto, texto, mediaUrl, mediaTipo, ...(novos && midias ? { midias } : {}), ...(novos ? extras : {}), criadoEm: fb.serverTimestamp() });
@@ -2324,7 +2408,7 @@ function ligarCompositor() {
       btn.disabled = false;
       limparPublicacao();
       fecharFolha("folhaPublicar");
-      toast(agenda ? `Agendada para ${agenda.toDate().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}. Até lá, só você vê.` : semNovos ? "Publicado. Várias fotos, hashtags e marcações começam a funcionar quando as regras novas forem publicadas." : "Publicado!");
+      toast(agenda ? `Agendada para ${agenda.toDate().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}. Até lá, só você vê.` : semNovos ? "Publicado. Várias fotos, hashtags, marcações e o local começam a funcionar quando as regras novas forem publicadas." : "Publicado!");
       $("folhaPublicar").aoPublicar?.(post);
     } catch (e) {
       if (e?.code !== "limite-diario") console.error(e);

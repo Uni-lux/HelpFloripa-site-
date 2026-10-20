@@ -6,6 +6,10 @@ import { navegador, entrar, USUARIOS as U } from "./nav.mjs";
 import { mkdirSync } from "node:fs";
 mkdirSync("saida/excel-neg", { recursive: true });
 const NEG = `${U.bruno}_servicos`;
+// O relatório em Excel é do plano Pro: o Bruno tem o Pro neste teste.
+process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8085";
+const { initializeApp } = await import("firebase-admin/app"); const { getFirestore, Timestamp } = await import("firebase-admin/firestore");
+await getFirestore(initializeApp({ projectId: "demo-hf" })).doc(`planos/${U.bruno}`).set({ plano: "pro", ate: Timestamp.fromMillis(Date.now() + 30 * 864e5), ativadoEm: Timestamp.now(), ativadoPor: U.admin });
 const { browser, ctx } = await navegador({ mobile: true });
 await ctx.addInitScript(() => { try { localStorage.setItem("hf-chat-config", JSON.stringify({ tema: "escuro" })); } catch {} });
 const ok = (c, m) => console.log(c ? "  ✔" : "  ✘", m);

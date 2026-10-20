@@ -23,9 +23,9 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="rede.css?v=32" />
+  <link rel="stylesheet" href="rede.css?v=33" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="configuracoes.js?v=59"></script>
+  <script type="module" src="configuracoes.js?v=60"></script>
 </head>
 <body>
   <header class="topo">
@@ -96,6 +96,7 @@
             <button type="button" data-valor="seguindo">Quem eu sigo</button>
             <button type="button" data-valor="ninguem">Ninguém</button>
           </div>
+          <label class="cfg-item"><svg class="i"><use href="#i-raio"/></svg><span class="txt">Permitir compartilhar no Flash<small>Outras pessoas podem pôr as suas publicações no flash delas, com o seu nome e o link para a original</small></span><span class="switch"><input type="checkbox" id="cfgPermiteFlash" /><span></span></span></label>
           <div class="cfg-item" style="cursor:default"><svg class="i"><use href="#i-chat"/></svg><span class="txt">Quem pode comentar nas suas publicações<small>Vale para as próximas; em cada publicação dá para mudar nos comentários</small></span></div>
           <div class="segmentado" id="cfgComenta">
             <button type="button" data-valor="todos">Todos</button>
