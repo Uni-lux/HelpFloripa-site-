@@ -77,17 +77,8 @@ $("cfgGosto").addEventListener("click", async () => {
   toast("Pronto: o Principais recomeçou");
 });
 
-async function solicitarVerificacao() {
-  if (dados.verificado) { toast("Seu perfil já é verificado."); return; }
-  if (dados.solicitacaoVerificacao) { toast("Sua solicitação já está em análise."); return; }
-  if (!await confirmarHF({ titulo: "Pedir o selo de verificado?", texto: "Nossa equipe vai analisar seu perfil.", ok: "Enviar pedido", icone: "selo", cor: "normal" })) return;
-  try {
-    await fb.setDoc(refUsuario, { solicitacaoVerificacao: true, solicitacaoVerificacaoEm: fb.serverTimestamp() }, { merge: true });
-    dados.solicitacaoVerificacao = true;
-    pintarConfig();
-    toast("Solicitação enviada");
-  } catch (e) { toast("Não foi possível enviar: " + erroAmigavel(e)); }
-}
+// Verificação: tela completa (verificacao.js) com situação, requisitos e o pedido em passos.
+function solicitarVerificacao() { import("./verificacao.js?v=1").then((m) => m.abrirVerificacao({ aoMudar: pintarConfig })); }
 
 async function abrirContas(tipo) {
   const bloqueados = tipo === "bloqueados";

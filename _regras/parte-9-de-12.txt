@@ -1,3 +1,21 @@
+    // Conteúdo dos anexos do chat da equipe (data: URL de até ~900 mil caracteres).
+    // Só quem participa da conversa lê; ninguém edita.
+    match /equipe_anexos/{id} {
+      allow read: if admin()
+                  && (resource.data.conversa == 'equipe' || request.auth.uid in resource.data.conversa.split('_'));
+      allow create: if admin()
+                    && request.resource.data.keys().hasOnly(['autorId', 'conversa', 'dados', 'em'])
+                    && request.resource.data.autorId == request.auth.uid
+                    && request.resource.data.em == request.time
+                    && request.resource.data.conversa is string
+                    && (request.resource.data.conversa == 'equipe'
+                        || (request.resource.data.conversa.split('_').size() == 2 && request.auth.uid in request.resource.data.conversa.split('_')))
+                    && request.resource.data.dados is string
+                    && request.resource.data.dados.size() <= 950000
+                    && request.resource.data.dados.matches('^data:[a-z]+/[-+.a-z0-9]{1,80}(;[^,]{0,80})?,.*');
+      allow update, delete: if false;
+    }
+
     // Foto do grupo "Equipe" no chat da equipe: equipe_info/grupo. Qualquer pessoa da equipe troca.
     match /equipe_info/{id} {
       allow read: if admin();

@@ -1,6 +1,6 @@
 # Regras do Firestore — publicação
 
-> **Versão de 19/10/2026:** igual à publicada em 13/10, mais **várias fotos numa publicação do Diário**
+> **Versão de 20/10/2026:** igual à publicada em 13/10, mais **várias fotos numa publicação do Diário**
 > (campo `midias`, de 2 a 4 fotos), **dar estrelas na própria publicação** o **resumo das estrelas**
 > (`diario_notas`: média e quantas pessoas deram 5, 4, 3, 2 e 1 estrela) e os **comentários novos** (quem pode
 > comentar, comentário fixado e reações com emoji), **stories**, **hashtags e marcações**, **agendar**, **rascunhos**,
@@ -10,18 +10,19 @@
 > (`enquete_anon` + `enquete_contas`), **caixa de perguntas** (`caixa_respostas`, anônima com `caixa_autoria`), **Flash com link para negócio**
 > (`stories.link`), **repostar o flash em que você foi mencionado** (`stories.repostDe`) e **flash nos perfis de negócio**
 > (`stories.negocios` e `stories.perfil`), **reportar o atendimento do suporte** (`reportes`: só a moderação e os
-> donos leem) e a **nota do atendimento** (`suporte_notas`) e a opção **"Só a rosinha"** do duo no perfil (`duoCapa: rosa`).
+> donos leem) e a **nota do atendimento** (`suporte_notas`) e a opção **"Só a rosinha"** do duo no perfil (`duoCapa: rosa`) e a **verificação do perfil** (`verificacoes`: pedido com a foto
+> do documento, que só a pessoa e a moderação leem e que é apagada na decisão).
 > Para publicar, o processo é o mesmo: apagar tudo no console e colar as 12 partes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
 `firestore.rules` divididas em **12 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
-- Arquivo de origem: `firestore.rules` (134.050 bytes, 2.354 linhas, sha256 começa com `1a025abf3d00fafd`).
+- Arquivo de origem: `firestore.rules` (136.824 bytes, 2.392 linhas, sha256 começa com `f9a76e249731dfc0`).
 - Cada parte termina com a linha `// ===== FIM DA PARTE X DE 12 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
 - Conferido: as 12 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **291 passaram, 0 falharam**, sem o aviso de limite de 1.000 expressões.
+- Testes de regras no arquivo remontado: **307 passaram, 0 falharam**, sem o aviso de limite de 1.000 expressões.
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.
@@ -62,6 +63,8 @@ linha), para colar no console do Firebase.
   veem (antes de publicar, vai como um chamado de "Denúncia"); a equipe pode **Reportar à moderação** a pessoa de um
   chamado; e quem abriu o chamado dá **nota de 1 a 5** depois de encerrado (antes de publicar, avisa que ainda não
   está disponível).
+- **Verificação do perfil:** o pedido vai com a **foto do documento** para a moderação conferir no painel (Verificações),
+  e a foto é apagada quando a equipe aprova ou recusa. Antes de publicar, o pedido chega à equipe sem a foto do documento.
 - O resto (toque duplo para dar estrelas, quem deu estrelas, Salvos, editar legenda) já funciona com as regras de hoje.
 
 ## Conferência no site depois de publicar
