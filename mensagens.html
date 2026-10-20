@@ -224,7 +224,26 @@
     .pv-perfil .avatar { width: 84px; height: 84px; font-size: 28px; box-shadow: 0 0 0 3px var(--panel), 0 0 0 5px color-mix(in srgb, var(--accent) 55%, transparent); }
     .pv-perfil h3 { margin: 8px 0 0; font-size: 19px; display: inline-flex; align-items: center; gap: 6px; }
     .pv-perfil h3 svg { width: 18px; height: 18px; color: #1d9bf0; }
-    .pv-perfil .arroba { color: var(--muted); font-size: 13.5px; }
+    .ax-grade { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 6px; }
+    .ax-op { display: grid; justify-items: center; align-content: start; gap: 5px; padding: 6px 2px; border: 0; border-radius: 16px; background: none; color: inherit; font: inherit; cursor: pointer; text-align: center; }
+    .ax-op:hover { background: color-mix(in srgb, var(--muted) 10%, transparent); }
+    .ax-ic { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; color: #fff; background: linear-gradient(145deg, color-mix(in srgb, var(--ax) 80%, #fff), var(--ax)); box-shadow: 0 8px 18px -8px var(--ax); }
+    .ax-ic svg.i { width: 25px; height: 25px; }
+    .ax-op b { font-size: 12.5px; font-weight: 750; line-height: 1.2; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ax-op small { font-size: 10.5px; color: var(--muted); line-height: 1.2; }
+    .pv-fundo { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+    .pv-id { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 2px; }
+    .pv-chip { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 10px; border-radius: 999px; background: color-mix(in srgb, var(--muted) 13%, transparent); color: var(--muted); font-size: 13px; font-weight: 650; line-height: 1; }
+    .pv-chip b { font-weight: 800; color: var(--accent); margin-right: -3px; }
+    .pv-chip svg.i { width: 13px; height: 13px; }
+    .pv-verif { display: inline-flex; align-items: center; gap: 5px; margin-top: 4px; padding: 4px 10px; border-radius: 999px; background: color-mix(in srgb, #1d9bf0 14%, transparent); color: #1d9bf0; font-size: 12.5px; font-weight: 800; }
+    .pv-verif svg.i { width: 15px; height: 15px; }
+    .pv-nota-geral { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; font-size: 13.5px; color: var(--muted); }
+    .pv-nota-geral b { color: var(--text); font-size: 14.5px; }
+    .pv-nota-geral svg.i, .pv-nota svg.i { width: 15px; height: 15px; color: #f5b301; fill: #f5b301; stroke: #f5b301; }
+    .pv-nota { display: inline-flex; align-items: center; gap: 3px; font-size: 12.5px; color: var(--muted); }
+    .pv-nota b { color: var(--text); }
+    .pv-nota em { font-style: normal; font-weight: 700; color: var(--muted); }
     .pv-perfil p { margin: 6px 0 0; font-size: 14px; line-height: 1.45; color: var(--text); max-width: 34ch; overflow-wrap: anywhere; }
     .pv-perfil .cid { font-size: 13px; color: var(--muted); }
     .pv-negs { display: grid; gap: 10px; }
@@ -832,6 +851,8 @@
     <symbol id="i-fechar" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
     <symbol id="i-check2" viewBox="0 0 24 24"><path d="M2.5 12.5L7 17l9.5-9.5M11.5 16l1 1L22 7.5"/></symbol>
+    <symbol id="i-loja" viewBox="0 0 24 24"><path d="M4 9.5l1.5-5h13l1.5 5M4 9.5h16M4 9.5a2.7 2.7 0 005.3 0 2.7 2.7 0 005.4 0 2.7 2.7 0 005.3 0M5.5 12v7.5h13V12M10 19.5v-4.5h4v4.5"/></symbol>
+    <symbol id="i-cartao-neg" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="8.5" cy="11" r="2.2"/><path d="M5.8 16c.5-1.5 1.5-2.3 2.7-2.3s2.2.8 2.7 2.3M14 10h4M14 13.5h3"/></symbol>
     <symbol id="i-cartao" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h4"/></symbol>
     <symbol id="i-local" viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0113 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></symbol>
     <symbol id="i-pessoa" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.8 20c.8-3.6 3.6-5.8 7.2-5.8s6.4 2.2 7.2 5.8"/></symbol>
@@ -997,6 +1018,7 @@
             <div class="caixa-texto" id="caixaTexto">
               <button type="button" class="icon-btn" id="btnAnexar" aria-label="Anexar foto" title="Anexar"><svg class="i"><use href="#i-clipe"/></svg></button>
               <input type="file" id="inputArquivo" accept="image/*" hidden />
+              <input type="file" id="inputCamera" accept="image/*" capture="environment" hidden />
               <textarea id="texto" rows="1" maxlength="4000" placeholder="Mensagem" aria-label="Mensagem"></textarea>
               <button type="button" class="icon-btn" id="btnAudio" aria-label="Gravar mensagem de voz" title="Gravar áudio"><svg class="i"><use href="#i-mic"/></svg></button>
             </div>
@@ -1234,7 +1256,7 @@
   <script type="module">
     import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura, mostrarAvisoEmail } from "./seguranca.js?v=1";
     import { confirmarHF } from "./confirmar.js?v=4";
-    import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO } from "./avaliacoes.js?v=13";
+    import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO, lerResumos, media, notaTexto } from "./avaliacoes.js?v=13";
     import { buscarPessoas } from "./pessoas.js?v=3";
     import { docComValidade } from "./leituras.js?v=1";
     import { comRitmo } from "./ritmo.js?v=2";
@@ -3491,15 +3513,22 @@
     async function abrirPreviaPerfil() {
       if (!ativa || ativa.equipe) return;
       const uid = ativa.outroId;
+      try { window.getSelection()?.removeAllRanges(); } catch {}
       const { corpo, fechar } = abrirGaveta("Perfil");
       const p = perfilOutroAtual || (await obterPerfil(uid)) || {};
       const topo = elm("div", "pv-perfil");
       const av = elm("div", "avatar"); pintarAvatar(av, p.fotoPerfil, p.nome || ativa.nome);
       const h = elm("h3", null, p.nome || ativa.nome || "Usuário");
-      if (p.verificado) h.appendChild(usar("selo"));
+      if (p.verificado) { const sv = usar("selo"); sv.setAttribute("aria-label", "Perfil verificado"); h.appendChild(sv); }
       topo.append(av, h);
-      if (p.nickname) topo.appendChild(elm("span", "arroba", "@" + p.nickname));
-      if (p.cidade) topo.appendChild(elm("span", "cid", String(p.cidade).replace(/\s*\/\s*/, " · ")));
+      // @ e cidade numa linha só, cada um no seu "chip" (o @ ficava solto e parecia quebrado).
+      const linhaId = elm("div", "pv-id");
+      if (p.nickname) { const a = elm("span", "pv-chip"); a.append(elm("b", null, "@"), document.createTextNode(String(p.nickname).replace(/^@/, ""))); linhaId.appendChild(a); }
+      if (p.cidade) { const c = elm("span", "pv-chip"); c.append(usar("local"), document.createTextNode(String(p.cidade).split("/")[0].trim())); linhaId.appendChild(c); }
+      if (linhaId.children.length) topo.appendChild(linhaId);
+      if (p.verificado) { const v = elm("span", "pv-verif"); v.append(usar("selo"), document.createTextNode("Perfil verificado")); topo.appendChild(v); }
+      const notaGeral = elm("div", "pv-nota-geral"); notaGeral.hidden = true;
+      topo.appendChild(notaGeral);
       if (p.bio) topo.appendChild(elm("p", null, String(p.bio).slice(0, 220)));
       corpo.appendChild(topo);
       const verPerfilBtn = elm("button", "pv-btn"); verPerfilBtn.type = "button";
@@ -3514,8 +3543,17 @@
         const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "negocios"), fb.where("donoId", "==", uid)));
         negs = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => !(ms(n.ocultoAte) > Date.now()));
       } catch (e) { console.warn(e); }
-      lista.replaceChildren();
       if (!negs.length) { sec.remove(); return; }
+      // Estrelas de cada negócio e a média de todos (mesmos resumos das vitrines).
+      let resumos = {};
+      try { resumos = await lerResumos(fb, negs.map((n) => "neg_" + n.id)); } catch {}
+      lista.replaceChildren();
+      const tot = Object.values(resumos).reduce((t, x) => ({ total: t.total + (x?.total || 0), soma: t.soma + (x?.soma || 0) }), { total: 0, soma: 0 });
+      notaGeral.replaceChildren();
+      if (tot.total) {
+        notaGeral.append(usar("estrela"), elm("b", null, notaTexto(media(tot))), document.createTextNode(` · ${tot.total} ${tot.total === 1 ? "avaliação" : "avaliações"}`));
+      } else notaGeral.append(document.createTextNode("Ainda sem avaliações"));
+      notaGeral.hidden = false;
       const ORDEM = ["servicos", "delivery", "lojinha", "imoveis"];
       negs.sort((x, y) => ORDEM.indexOf(x.tipo) - ORDEM.indexOf(y.tipo));
       const IR = { servicos: "Orçamento", delivery: "Pedir", lojinha: "Ver loja", imoveis: "Ver imóveis" };
@@ -3528,7 +3566,11 @@
         tx.append(elm("small", null, (ASSUNTOS[n.tipo] || ASSUNTOS.servicos).nome), elm("b", null, n.nome || (ASSUNTOS[n.tipo] || {}).nome));
         const pr = n.promocao?.titulo && ms(n.promocao.ate) > Date.now() ? n.promocao : null;
         const info = elm("span", pr ? "promo" : null, pr ? (pr.codigo ? `Cupom ${pr.codigo} · ${pr.titulo}` : pr.titulo) : [n.bairro, String(n.cidade || "").split("/")[0]].filter(Boolean).join(", ") || (n.descricao || "").slice(0, 60));
-        tx.appendChild(info);
+        const rs = resumos["neg_" + n.id];
+        const nota = elm("span", "pv-nota");
+        if (rs?.total) nota.append(usar("estrela"), elm("b", null, notaTexto(media(rs))), document.createTextNode(` (${rs.total})`));
+        else nota.append(elm("em", null, "Novo"));
+        tx.append(nota, info);
         b.append(ft, tx, elm("span", "ir", IR[n.tipo] || "Abrir"));
         b.addEventListener("click", async () => {
           b.disabled = true;
@@ -3825,7 +3867,65 @@
       atualizarBotaoEnviar();
     }
     $("cancelarAnexo").addEventListener("click", removerAnexo);
-    $("btnAnexar").addEventListener("click", () => $("inputArquivo").click());
+    $("btnAnexar").addEventListener("click", abrirAnexar);
+    // Câmera: a foto entra no mesmo caminho da galeria (prévia, legenda e envio).
+    $("inputCamera").addEventListener("change", () => {
+      const f = $("inputCamera").files?.[0];
+      $("inputCamera").value = "";
+      if (!f) return;
+      const dt = new DataTransfer(); dt.items.add(f);
+      $("inputArquivo").files = dt.files;
+      $("inputArquivo").dispatchEvent(new Event("change"));
+    });
+    // Gaveta "Anexar" (como nos mensageiros): galeria, câmera, localização, endereço e os cartões de negócio.
+    async function abrirAnexar() {
+      if (!ativa) return;
+      const { corpo, fechar } = abrirGaveta("Anexar");
+      const grade = elm("div", "ax-grade");
+      const op = (icone, rot, cor, fn, sub) => {
+        const b = elm("button", "ax-op"); b.type = "button"; b.style.setProperty("--ax", cor);
+        const ic = elm("span", "ax-ic"); ic.appendChild(usar(icone, "i"));
+        b.append(ic, elm("b", null, rot));
+        if (sub) b.appendChild(elm("small", null, sub));
+        b.addEventListener("click", () => { fechar(); setTimeout(fn, 200); });
+        grade.appendChild(b);
+        return b;
+      };
+      op("imagem", "Galeria", "#8b5cf6", () => $("inputArquivo").click(), storageFns ? "Fotos e vídeos" : "Fotos");
+      op("camera", "Câmera", "#ec4899", () => $("inputCamera").click(), "Tirar foto");
+      op("local", "Localização", "#22c55e", enviarLocalizacao, "Onde estou agora");
+      op("casa", "Endereço", "#f59e0b", usarMeuEndereco, "O seu, salvo");
+      corpo.appendChild(grade);
+      // Cartões de negócio: o meu (para mandar a quem conversa) e os da pessoa (para pedir sem sair daqui).
+      const sec = elm("div", "pv-sec"); sec.appendChild(elm("h4", null, "Negócios"));
+      const g2 = elm("div", "ax-grade");
+      sec.appendChild(g2);
+      corpo.appendChild(sec);
+      const add2 = (icone, rot, cor, fn, sub) => { const b = op(icone, rot, cor, fn, sub); g2.appendChild(b); };
+      add2("loja", "Fazer pedido", "#ff7a1a", abrirPreviaPerfil, "Negócios da pessoa");
+      const meus = await negociosDoUsuario().catch(() => []);
+      (meus || []).forEach((n) => add2("cartao-neg", n.nome || ASSUNTOS[n.tipo]?.nome || "Meu negócio", (ASSUNTOS[n.tipo] || ASSUNTOS.servicos).cor, async () => {
+        try { const v = await carregarVitrine(); cartaoPendente = v.cartaoDeNegocio(n); try { sessionStorage.setItem("hf-cartao-pendente", JSON.stringify({ conversaId: ativa.id, cartao: cartaoPendente })); } catch {} pintarCartaoPendente(); $("texto")?.focus({ preventScroll: true }); }
+        catch { toast("Não foi possível preparar o cartão."); }
+      }, `Enviar ${(ASSUNTOS[n.tipo] || {}).nome || "perfil"}`));
+    }
+    // Põe o texto no campo (a pessoa confere e envia).
+    function colocarNoCampo(t) { const c = $("texto"); c.value = c.value ? c.value.trimEnd() + "\n" + t : t; c.dispatchEvent(new Event("input", { bubbles: true })); c.focus({ preventScroll: true }); }
+    function enviarLocalizacao() {
+      if (!navigator.geolocation) { toast("Este aparelho não informa a localização."); return; }
+      toast("Pegando a sua localização...");
+      navigator.geolocation.getCurrentPosition((pos) => {
+        const { latitude: la, longitude: lo } = pos.coords;
+        colocarNoCampo(`📍 Minha localização: https://maps.google.com/?q=${la.toFixed(6)},${lo.toFixed(6)}`);
+      }, () => toast("Não deu para pegar a localização. Confira a permissão do navegador."), { enableHighAccuracy: true, timeout: 12000 });
+    }
+    async function usarMeuEndereco() {
+      try {
+        const e = (await fb.getDoc(fb.doc(fb.db, "usuarios", eu.uid))).data()?.endereco;
+        if (!e?.rua && !e?.bairro) { toast("Você ainda não salvou um endereço. Cadastre em Configurações > Endereço."); return; }
+        colocarNoCampo("🏠 " + [[e.rua, e.numero].filter(Boolean).join(", "), e.complemento, e.bairro, [e.cidade, e.uf].filter(Boolean).join("/"), e.referencia ? `ref.: ${e.referencia}` : ""].filter(Boolean).join(" · "));
+      } catch { toast("Não foi possível ler o seu endereço agora."); }
+    }
 
     $("inputArquivo").addEventListener("change", () => {
       const arquivo = $("inputArquivo").files?.[0];
