@@ -4,6 +4,12 @@
 import { navegador, entrar, USUARIOS as U } from "./nav.mjs";
 const ok = (c, m) => console.log(c ? "  ✔" : "  ✘", m);
 const conv = [U.ana, U.bruno].sort().join("_");
+import { initializeApp } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
+process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8085";
+const db = getFirestore(initializeApp({ projectId: "demo-hf" }));
+await db.doc(`notas/neg_${U.bruno}_servicos`).set({ total: 4, soma: 18, n1: 0, n2: 0, n3: 0, n4: 2, n5: 2 });
+await db.doc(`perfis_publicos/${U.bruno}`).set({ verificado: true }, { merge: true });
 const { browser, ctx } = await navegador({ mobile: true });
 await ctx.addInitScript(() => { try { localStorage.setItem("hf-chat-config", JSON.stringify({ tema: "escuro" })); } catch {} });
 const p = await entrar(ctx, "ana", `mensagens.html?conversa=${conv}`);
@@ -20,6 +26,12 @@ ok(p.url() === url0, "segurar não abriu o perfil (continua na conversa)");
 await p.waitForSelector(".pv-neg", { timeout: 8000 }).catch(() => {});
 ok(await p.locator(".pv-neg").count() >= 1, "negócios da pessoa na prévia: " + (await p.locator(".pv-neg .tx b").allTextContents()).join(", "));
 await p.screenshot({ path: "saida/previa-perfil.png" });
+const geral = await p.locator(".pv-nota-geral").textContent();
+ok(geral.includes("4,5") && geral.includes("4 avaliações"), "média geral das estrelas: " + geral.trim());
+ok((await p.locator(".pv-neg").first().locator(".pv-nota").textContent()).includes("4,5"), "estrelas no negócio");
+ok(await p.locator(".pv-verif").count() === 1, "selo de perfil verificado");
+ok((await p.locator(".pv-chip").first().textContent()) === "@brunoreparos", "@ no chip: " + await p.locator(".pv-chip").first().textContent());
+ok(await p.evaluate(() => getComputedStyle(document.querySelector(".pv-fundo")).userSelect) === "none", "segurar não seleciona o texto da gaveta");
 
 // voltar fecha só a prévia
 await p.goBack(); await p.waitForTimeout(700);

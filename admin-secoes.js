@@ -8,6 +8,7 @@ import { baixarPlanilhaMulti } from "./planilha.js?v=5";
 import { buscarPessoas } from "./pessoas.js?v=3";
 import { montarChat } from "./admin-chat.js?v=18";
 import { verConteudoDenuncia } from "./admin-denuncia.js?v=10";
+import { prepararAnexo, blocoAnexo, previaAnexo, aceitos } from "./anexos-suporte.js?v=1";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
 import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
@@ -782,6 +783,18 @@ export function suporte(el) {
     const pr = document.createElement("select"); pr.className = "ad-sel-mini"; pr.setAttribute("aria-label", "Inserir resposta pronta");
     PRONTAS.forEach(([v, t]) => pr.appendChild(new Option(t, v)));
     pr.addEventListener("change", () => { if (pr.value) { const nome = (pessoa(s.uid).nome || s.nome || "").split(" ")[0]; txt.value = (txt.value ? txt.value + "\n\n" : "") + (nome ? pr.value.replace(/^Olá!/, `Olá, ${nome}!`) : pr.value); pr.value = ""; txt.focus(); } });
+    // Anexo da resposta (foto, vídeo com Storage ou PDF): um por mensagem.
+    let anexo = null;
+    const boxAnexo = h("div", "ad-anexo-previa");
+    const inArq = document.createElement("input"); inArq.type = "file"; inArq.hidden = true;
+    const pintarAnexo = () => boxAnexo.replaceChildren(...(anexo ? [previaAnexo(anexo, () => { anexo = null; pintarAnexo(); })] : []));
+    const btAnexo = btn("Anexar foto ou PDF", "", () => { inArq.accept = aceitos(); inArq.click(); });
+    inArq.addEventListener("change", async () => {
+      const f = inArq.files?.[0]; inArq.value = ""; if (!f) return;
+      try { toast("Preparando o anexo..."); anexo = await prepararAnexo(f, `suporte/equipe_${C.eu.uid}`); pintarAnexo(); }
+      catch (e) { toast(e?.message || "Não foi possível usar esse arquivo."); }
+    });
+    const msgEquipe = (t) => ({ autorId: C.eu.uid, equipe: true, texto: t, ...(anexo ? { anexo } : {}), em: fb.serverTimestamp() });
     const ac = h("div", "ad-acoes");
     const fechar = () => { fundo.remove(); marcarItem(null); };
     ac.append(btn("Ver ficha", "", () => { fechar(); abrirFicha(s.uid); }), btn(s.status === "fechado" ? "Reabrir" : "Fechar chamado", "", async () => {
@@ -789,23 +802,24 @@ export function suporte(el) {
       await fb.updateDoc(fb.doc(fb.db, "suporte", s.id), { status: novo, atualizadoEm: fb.serverTimestamp(), ultimaDe: "equipe", atendidoPor: C.eu.uid });
       s.status = novo; await registrar("suporte_" + novo, s.uid, s.assunto, `suporte:${s.id}`); toast("Chamado atualizado"); fechar(); pintar();
     }), btn("Reportar à moderação", "perigo", () => reportarPessoa(s)), btn("Sair", "", fechar), btn("Responder e encerrar", "", async () => {
-      const t = txt.value.trim(); if (!t) { toast("Escreva a resposta."); return; }
-      await fb.addDoc(fb.collection(fb.db, "suporte", s.id, "mensagens"), { autorId: C.eu.uid, equipe: true, texto: t, em: fb.serverTimestamp() });
+      const t = txt.value.trim(); if (!t && !anexo) { toast("Escreva a resposta."); return; }
+      await fb.addDoc(fb.collection(fb.db, "suporte", s.id, "mensagens"), msgEquipe(t));
       await fb.updateDoc(fb.doc(fb.db, "suporte", s.id), { status: "fechado", atualizadoEm: fb.serverTimestamp(), ultimaDe: "equipe", atendidoPor: C.eu.uid });
       s.status = "fechado"; await registrar("suporte_resposta", s.uid, s.assunto, `suporte:${s.id}`); await registrar("suporte_fechado", s.uid, s.assunto, `suporte:${s.id}`); toast("Resposta enviada e chamado encerrado"); fechar(); pintar();
     }), btn("Responder", "pri", async () => {
-      const t = txt.value.trim(); if (!t) { toast("Escreva a resposta."); return; }
-      await fb.addDoc(fb.collection(fb.db, "suporte", s.id, "mensagens"), { autorId: C.eu.uid, equipe: true, texto: t, em: fb.serverTimestamp() });
+      const t = txt.value.trim(); if (!t && !anexo) { toast("Escreva a resposta."); return; }
+      await fb.addDoc(fb.collection(fb.db, "suporte", s.id, "mensagens"), msgEquipe(t));
       const assumir = !s.responsavel ? { responsavel: C.eu.uid, responsavelNome: nomeEquipe(C.eu.uid), assumidoEm: fb.serverTimestamp() } : {};
       await fb.updateDoc(fb.doc(fb.db, "suporte", s.id), { status: "respondido", atualizadoEm: fb.serverTimestamp(), ultimaDe: "equipe", atendidoPor: C.eu.uid, ...assumir });
       if (assumir.responsavel) Object.assign(s, { responsavel: C.eu.uid, responsavelNome: assumir.responsavelNome });
       // A pessoa é avisada pelas Notificações, pelo sino e por Mensagens (Suporte Help Floripa).
       s.status = "respondido"; await registrar("suporte_resposta", s.uid, s.assunto, `suporte:${s.id}`); toast("Resposta enviada"); fechar(); pintar();
     }));
-    cx.append(chat, pr, txt, ac); fundo.appendChild(cx); document.body.appendChild(fundo);
+    const linhaAnexo = h("div", "ad-anexo-linha"); linhaAnexo.append(btAnexo, inArq);
+    cx.append(chat, pr, txt, boxAnexo, linhaAnexo, ac); fundo.appendChild(cx); document.body.appendChild(fundo);
     fundo.addEventListener("click", (e) => { if (e.target === fundo) fechar(); });
     const msgs = await fb.getDocs(fb.query(fb.collection(fb.db, "suporte", s.id, "mensagens"), fb.orderBy("em", "asc"))).catch(() => ({ docs: [] }));
-    chat.replaceChildren(...msgs.docs.map((d) => { const m = d.data(); const b = h("div", "ad-msg" + (m.equipe ? " equipe" : ""), m.texto); b.appendChild(h("small", null, `${m.equipe ? `Suporte Help Floripa (${nomeEquipe(m.autorId)})` : pessoa(s.uid).nome || "Usuário"} · ${dataHora(m.em)}`)); return b; }));
+    chat.replaceChildren(...msgs.docs.map((d) => { const m = d.data(); const b = h("div", "ad-msg" + (m.equipe ? " equipe" : ""), m.texto || ""); const ax = blocoAnexo(m.anexo); if (ax) b.appendChild(ax); b.appendChild(h("small", null, `${m.equipe ? `Suporte Help Floripa (${nomeEquipe(m.autorId)})` : pessoa(s.uid).nome || "Usuário"} · ${dataHora(m.em)}`)); return b; }));
     if (!msgs.docs.length) chat.appendChild(h("div", "ad-vazio", "Sem mensagens."));
     chat.scrollTop = chat.scrollHeight;
   }

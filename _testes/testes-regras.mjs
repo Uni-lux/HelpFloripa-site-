@@ -108,6 +108,15 @@ await t("suporte: a equipe abre conversa com um usuário", async () => { idSup =
 await t("suporte: o usuário vê a conversa aberta pela equipe", () => assertSucceeds(getDoc(doc(ctx("ana"), "suporte", idSup))));
 await t("suporte: o usuário lê a mensagem da equipe", () => assertSucceeds(getDoc(doc(ctx("ana"), "suporte", idSup, "mensagens", "inicio"))));
 await t("suporte: o usuário responde", async () => { const db = ctx("ana"), b = writeBatch(db); b.set(doc(db, "suporte", idSup, "mensagens", "r1"), { autorId: "ana", equipe: false, texto: "Obrigada!", em: serverTimestamp() }); b.update(doc(db, "suporte", idSup), { status: "aberto", atualizadoEm: serverTimestamp(), ultimaDe: "usuario" }); await assertSucceeds(b.commit()); });
+const msgSup = (quem, extra) => setDoc(doc(ctx(quem), "suporte", idSup, "mensagens", "ax" + Math.random().toString(36).slice(2, 8)), { autorId: quem, equipe: quem === "adm", texto: "", em: serverTimestamp(), ...extra });
+await t("suporte: usuário manda foto sem texto", () => assertSucceeds(msgSup("ana", { anexo: { tipo: "imagem", url: "data:image/jpeg;base64,AAAA", nome: "print.jpg" } })));
+await t("suporte: usuário manda PDF", () => assertSucceeds(msgSup("ana", { texto: "Segue o comprovante", anexo: { tipo: "arquivo", url: "data:application/pdf;base64,JVBE", nome: "comprovante.pdf" } })));
+await t("suporte: vídeo pelo Storage", () => assertSucceeds(msgSup("ana", { anexo: { tipo: "video", url: "https://firebasestorage.googleapis.com/v0/b/x/o/v.mp4", nome: "tela.mp4" } })));
+await t("suporte: equipe responde com foto", () => assertSucceeds(msgSup("adm", { texto: "Veja como fazer", anexo: { tipo: "imagem", url: "data:image/jpeg;base64,AAAA", nome: "passo.jpg" } })));
+await t("suporte: recusa anexo de outro site", () => assertFails(msgSup("ana", { anexo: { tipo: "imagem", url: "https://exemplo.com/x.jpg" } })));
+await t("suporte: recusa PNG/HTML em data:", () => assertFails(msgSup("ana", { anexo: { tipo: "arquivo", url: "data:text/html;base64,PGgxPg==" } })));
+await t("suporte: recusa mensagem vazia sem anexo", () => assertFails(msgSup("ana", {})));
+await t("suporte: recusa anexo grande demais", () => assertFails(msgSup("ana", { anexo: { tipo: "imagem", url: "data:image/jpeg;base64," + "A".repeat(760000) } })));
 await t("suporte: outra pessoa não lê", () => assertFails(getDoc(doc(ctx("bia"), "suporte", idSup))));
 await t("suporte: usuário comum não abre conversa em nome de outro", () => assertFails(abrirConversaSuporte("bia", "ana")));
 await t("suporte: equipe não abre sem a primeira mensagem", () => assertFails(abrirConversaSuporte("adm", "ana", {}, false)));
