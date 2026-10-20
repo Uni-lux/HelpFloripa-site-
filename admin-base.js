@@ -3,7 +3,7 @@
 // Estado (D), utilitários, janelas, ações de moderação (todas registradas
 // em admin_log) e a ficha completa do usuário.
 // =====================================================
-import { confirmarHF } from "./confirmar.js?v=4";
+import { confirmarHF, avisoHF } from "./confirmar.js?v=4";
 export const C = { fb: null, A: null, eu: null, nome: "", irPara: () => {}, recarregar: async () => {}, contadores: () => {}, presenca: new Map(), chat: [], online: () => false, marcarChatVisto: () => {}, aoMudarEquipe: null, papel: "dono", tarefas: [], marcarItem: null, pintarVendo: null, aoMudarTarefas: null };
 export const D = {
   pessoas: new Map(), negocios: [], anuncios: [], posts: [], denuncias: [], queixas: [], suporte: [], parcerias: [], reportes: [], notasSuporte: [], verificacoes: [],
@@ -238,13 +238,31 @@ export async function tirarSancao(uid, motivo = "Sanção removida pela equipe")
   await registrar("remover_sancao", uid, motivo);
   D.sancoes.set(uid, { tipo: "suspensao", ate: { toMillis: () => agora() - 1 }, historico });
 }
-export async function definirSelo(uid, sim) {
+export async function definirSelo(uid, sim, detalhe = "") {
   const { fb } = C;
   await fb.updateDoc(fb.doc(fb.db, "usuarios", uid), { verificado: sim, solicitacaoVerificacao: false, verificacaoRespondidaEm: fb.serverTimestamp() });
   await fb.updateDoc(fb.doc(fb.db, "perfis_publicos", uid), { verificado: sim }).catch(() => {});
   const p = D.pessoas.get(uid); if (p) { p.verificado = sim; p.solicitacaoVerificacao = false; }
   D.pendVerif = D.pendVerif.filter((x) => x !== uid);
-  await registrar(sim ? "verificar" : "tirar_selo", uid);
+  await registrar(sim ? "verificar" : "tirar_selo", uid, detalhe);
+}
+// Selo direto, sem pedido: só o dono do site (parceiros, órgãos públicos, pessoas conhecidas). Motivo obrigatório
+// (fica no Registro de ações) e nunca para menor de 18. A moderação dá o selo só pelo pedido aprovado.
+export const MOTIVOS_SELO = { parceiro: "Parceiro oficial do Help Floripa", orgao: "Órgão público ou instituição", conhecido: "Pessoa ou marca conhecida", imprensa: "Imprensa", outro: "Outro" };
+export async function darSeloDireto(uid) {
+  if ((C.papel || "dono") !== "dono") { semPermissao(); return false; }
+  const p = D.pessoas.get(uid) || {};
+  const anos = idade(p.dataNascimento);
+  if (anos != null && anos < 18) { await avisoHF({ titulo: "Não dá para verificar", texto: `Pelo cadastro, esta pessoa tem ${anos} anos. O selo é só para maiores de 18.`, icone: "alerta" }); return false; }
+  const r = await modal({ titulo: "Dar o selo direto", texto: "Sem pedido e sem documento: use só em casos especiais. O motivo fica no Registro de ações.", campos: [
+    { nome: "tipo", rotulo: "Por quê", tipo: "select", opcoes: Object.entries(MOTIVOS_SELO) },
+    { nome: "texto", rotulo: "Como a identidade foi confirmada", tipo: "textarea", max: 500, obrigatorio: true, dica: "Ex.: contrato de parceria assinado em 10/10; conta oficial confirmada por e-mail da prefeitura." }
+  ], botao: "Dar o selo" });
+  if (!r) return false;
+  if (r.texto.length < 10) { toast("Conte em poucas palavras como a identidade foi confirmada."); return false; }
+  await definirSelo(uid, true, `Selo direto (dono) · ${MOTIVOS_SELO[r.tipo] || r.tipo}: ${r.texto}`);
+  await enviarAviso(uid, { titulo: "Seu perfil foi verificado", texto: "Parabéns! O seu perfil agora tem o selo azul de verificado, ao lado do seu nome em todo o Help Floripa.\n\nPara manter o selo, mantenha o mesmo nome e siga os Termos de Uso.", tipo: "info" });
+  return true;
 }
 
 // Fluxos com janela (usados na ficha, nas denúncias e nas verificações)
@@ -360,7 +378,10 @@ export async function abrirFicha(uid) {
   if (mod && sancionado) bt("Remover sanção", "pri", async () => { if (!(await confirmarHF({ titulo: "Remover a sanção?", texto: "A suspensão ou o banimento desta conta deixa de valer.", ok: "Remover", icone: "escudo", cor: "normal" }))) return false; await tirarSancao(uid); toast("Sanção removida"); return true; });
   else if (mod) { bt("Suspender", "perigo", async () => { if (!(await confirmarItem(null, `usuario:${uid}`))) return false; return fluxoSancao(uid, "suspensao"); }); bt("Banir", "perigo", async () => { if (!(await confirmarItem(null, `usuario:${uid}`))) return false; return fluxoSancao(uid, "banimento"); }); }
   bt("Criar tarefa", "", () => editarTarefa({ ligacao: `usuario:${uid}`, ligacaoNome: p.nome || uid }).then(() => false));
-  if (mod) bt(p.verificado ? "Tirar selo" : "Dar selo verificado", "", async () => { const dar = !p.verificado; await definirSelo(uid, dar); if (dar) await enviarAviso(uid, { titulo: "Seu perfil foi verificado", texto: "Parabéns! Seu perfil agora tem o selo de verificado.", tipo: "info" }); toast("Selo atualizado"); return true; });
+  // Selo: tirar (moderação); dar direto só o dono; a moderação vai pelo pedido (Verificações).
+  if (mod && p.verificado) bt("Tirar selo", "", async () => { if (!(await confirmarHF({ titulo: "Tirar o selo?", texto: "O perfil deixa de aparecer como verificado.", ok: "Tirar o selo", icone: "olhoOff" }))) return false; await definirSelo(uid, false); toast("Selo retirado"); return true; });
+  else if ((C.papel || "dono") === "dono") bt("Dar selo direto", "", async () => { if (!(await darSeloDireto(uid))) return false; toast("Perfil verificado"); return true; });
+  else if (mod && D.pendVerif.includes(uid)) bt("Ver pedido de verificação", "", () => { C.irPara("verificacoes"); return false; });
   const ver = h("a", "ad-bt", "Ver perfil no site"); ver.href = `usuarios.html?perfil=${encodeURIComponent(uid)}`; ver.target = "_blank"; ac.appendChild(ver);
   if (p.email) { const em = h("a", "ad-bt", "E-mail"); em.href = `mailto:${p.email}`; ac.appendChild(em); }
   const tel = String(p.telefone || "").replace(/\D/g, ""); if (tel.length >= 10) { const w = h("a", "ad-bt", "WhatsApp"); w.href = `https://wa.me/55${tel}`; w.target = "_blank"; w.rel = "noopener"; ac.appendChild(w); }

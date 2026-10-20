@@ -1,3 +1,18 @@
+    // Quem da equipe assumiu um item: alguém da equipe (ou ninguém), com nome curto.
+    function responsavelOk() {
+      let r = request.resource.data.get('responsavel', null);
+      return (r == null || (r is string && exists(/databases/$(database)/documents/admins/$(r))))
+          && valorTextoAte(request.resource.data.get('responsavelNome', null), 80)
+          && (!mudou().hasAny(['responsavel']) || request.resource.data.get('assumidoEm', null) == request.time);
+    }
+
+    // Anti-spam: cada mensagem, publicação ou comentário conta no limite diário da pessoa
+    // (ritmo/{uid}, gravado junto na mesma operação).
+    function ritmoOk(tipo) {
+      let r = getAfter(/databases/$(database)/documents/ritmo/$(request.auth.uid)).data;
+      return r.ultimaEm == request.time && r.ultimoTipo == tipo;
+    }
+
     function donoDoNegocio(negocioId) {
       return get(/databases/$(database)/documents/negocios/$(negocioId)).data.donoId;
     }
@@ -15,7 +30,8 @@
       allow read: if podeModerar();
       // A equipe aprova ou recusa o selo de verificado.
       allow update: if podeModerar()
-                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verificado', 'solicitacaoVerificacao', 'verificacaoRespondidaEm']);
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verificado', 'solicitacaoVerificacao', 'verificacaoRespondidaEm'])
+                    && seloLiberado(userId);
 
       // criadoEm é a data real do cadastro (conta antiga = pode avaliar/reclamar).
       allow create: if logado()
@@ -139,7 +155,10 @@
       // A equipe marca o selo e esconde contas suspensas/banidas.
       allow update: if podeModerar()
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verificado', 'desativadaAte'])
-                    && dataOuNulo('desativadaAte');
+                    && dataOuNulo('desativadaAte')
+                    // o selo público só acende se a conta já tem o selo (dado pelas regras de usuarios)
+                    && (request.resource.data.get('verificado', false) != true
+                        || get(/databases/$(database)/documents/usuarios/$(userId)).data.get('verificado', false) == true);
 
       allow create: if logado()
                     && request.auth.uid == userId
@@ -229,41 +248,5 @@
       allow list: if logado()
                   && (resource.data.bloqueadorId == request.auth.uid
                       || resource.data.bloqueadoId == request.auth.uid);
-
-      allow create: if logado()
-                    && request.resource.data.keys().hasOnly(['bloqueadorId', 'bloqueadoId', 'criadoEm'])
-                    && request.resource.data.bloqueadorId == request.auth.uid
-                    && request.resource.data.bloqueadoId is string
-                    && request.resource.data.bloqueadoId != request.auth.uid
-                    && id == request.auth.uid + '_' + request.resource.data.bloqueadoId;
-
-      allow update: if false;
-
-      allow delete: if logado()
-                    && resource.data.bloqueadorId == request.auth.uid;
-    }
-
-
-    // =====================================================
-    // VÍNCULOS SOCIAIS (duo, família, amigos)
-    // Documento: vinculos/{uidMenor}_{uidMaior}
-    // =====================================================
-    match /vinculos/{id} {
-
-      function inversos() {
-        return {
-          'duo': 'duo', 'namoro': 'namoro', 'casamento': 'casamento',
-          'melhor_amigo': 'melhor_amigo', 'amigo': 'amigo', 'irmao': 'irmao',
-          'pai_mae': 'filho', 'filho': 'pai_mae', 'primo': 'primo',
-          'tio': 'sobrinho', 'sobrinho': 'tio', 'avo': 'neto', 'neto': 'avo',
-          'parceiro': 'parceiro'
-        };
-      }
-
-      // Pedidos pendentes só são visíveis para os dois envolvidos.
-      allow read: if logado()
-                  && (resource.data.status == 'aceito'
-                      || request.auth.uid in resource.data.participantes);
-      allow read: if admin();
 
 // ===== FIM DA PARTE 2 DE 12 =====

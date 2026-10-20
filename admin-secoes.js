@@ -6,15 +6,15 @@ import { cartaoComunicado } from "./comunicados.js?v=1";
 import { linha, linhaComparada, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=7";
 import { baixarPlanilhaMulti } from "./planilha.js?v=5";
 import { buscarPessoas } from "./pessoas.js?v=3";
-import { montarChat } from "./admin-chat.js?v=17";
-import { verConteudoDenuncia } from "./admin-denuncia.js?v=9";
+import { montarChat } from "./admin-chat.js?v=18";
+import { verConteudoDenuncia } from "./admin-denuncia.js?v=10";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
 import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha,
   PAPEIS, DESC_PAPEIS, pode, semPermissao, nomeEquipe, vendoAgora, marcarItem, seloResp, confirmarItem, controlesResp, espera,
   PRIORIDADES, editarTarefa, moverTarefa, garantirNegocios, garantirTodasPessoas, carregarPessoas, guardarPessoas
-} from "./admin-base.js?v=16";
+} from "./admin-base.js?v=17";
 
 const cab = (titulo, sub, extra) => { const c = h("div", "ad-cab"); const t = h("div"); t.append(h("h1", null, titulo)); if (sub) t.append(h("p", null, sub)); c.appendChild(t); if (extra) c.appendChild(extra); return c; };
 const bloco = (titulo, sub) => { const b = h("section", "ad-bloco"); const t = h("div", "ad-bloco-topo"); const tt = h("div"); tt.append(h("h3", null, titulo)); if (sub) tt.append(h("p", null, sub)); t.appendChild(tt); b.appendChild(t); b.topo = t; return b; };
@@ -966,7 +966,10 @@ export function verificacoes(el) {
     ac.append(btn("Ver ficha", "", () => abrirFicha(p.uid)));
     if (pode("moderar")) {
       const apr = btn("Aprovar", "pri", () => aprovar(p, v));
+      // Pedido antigo (sem formulário nem documento): as regras só deixam o dono aprovar.
+      const antigo = !(v && D.verificacoes.includes(v)), soDono = antigo && (C.papel || "dono") !== "dono";
       if (menor) { apr.disabled = true; apr.title = "Menores de 18 anos não podem ser verificados"; }
+      else if (soDono) { apr.disabled = true; apr.title = "Pedido sem documento: só o dono do site pode aprovar"; c.appendChild(h("div", "ad-vf-nota", "Pedido sem documento: só o dono do site pode aprovar. Peça à pessoa que envie o pedido de novo pelo site, com o documento.")); }
       ac.append(btn("Recusar", "perigo", () => recusar(p, v, menor ? "idade" : "")), apr);
     }
     c.appendChild(ac);
@@ -989,18 +992,20 @@ export function verificacoes(el) {
     c.appendChild(ac);
     return c;
   }
+  // Grava a decisão no pedido. Vem ANTES do selo: as regras só deixam a moderação dar o selo com o pedido aprovado.
   async function decidir(p, v, status, motivo = "") {
     const { fb } = C;
-    if (v && D.verificacoes.includes(v)) {
-      const mud = { status, analisadaPor: C.eu.uid, analisadaEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp(), documento: fb.deleteField(), ...(motivo ? { motivoRecusa: motivo.slice(0, 500) } : {}) };
-      await fb.updateDoc(fb.doc(fb.db, "verificacoes", p.uid), mud).catch((e) => console.warn("Verificação:", e.code || e));
-      Object.assign(v, { status, analisadaPor: C.eu.uid, analisadaEm: { toMillis: () => Date.now() }, motivoRecusa: motivo || v.motivoRecusa }); delete v.documento;
-    }
+    if (!(v && D.verificacoes.includes(v))) return true;
+    const mud = { status, analisadaPor: C.eu.uid, analisadaEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp(), documento: fb.deleteField(), ...(motivo ? { motivoRecusa: motivo.slice(0, 500) } : {}) };
+    try { await fb.updateDoc(fb.doc(fb.db, "verificacoes", p.uid), mud); }
+    catch (e) { console.warn("Verificação:", e.code || e); toast("Não foi possível gravar a decisão: " + (e.code || e.message)); return false; }
+    Object.assign(v, { status, analisadaPor: C.eu.uid, analisadaEm: { toMillis: () => Date.now() }, motivoRecusa: motivo || v.motivoRecusa }); delete v.documento;
+    return true;
   }
   async function aprovar(p, v) {
     if (!(await confirmItemV(p))) return;
-    await definirSelo(p.uid, true);
-    await decidir(p, v, "aprovada");
+    if (!(await decidir(p, v, "aprovada"))) return;
+    await definirSelo(p.uid, true, `Pedido aprovado${v?.nomeLegal ? " · documento: " + v.nomeLegal : ""}`);
     await enviarAviso(p.uid, { titulo: "Seu perfil foi verificado", texto: "Parabéns! O seu perfil agora tem o selo azul de verificado, ao lado do seu nome em todo o Help Floripa.\n\nPara manter o selo, mantenha o mesmo nome e siga os Termos de Uso.", tipo: "info" });
     toast("Perfil verificado"); C.irPara("verificacoes");
   }
@@ -1012,8 +1017,8 @@ export function verificacoes(el) {
     if (!r) return;
     const base = (MOTIVOS_RECUSA.find((m) => m[0] === r.pronto) || [])[1] || "";
     const motivo = [base, String(r.texto || "").trim()].filter(Boolean).join(" ") || "O perfil não atende aos critérios de verificação no momento.";
-    await definirSelo(p.uid, false);
-    await decidir(p, v, "recusada", motivo);
+    if (!(await decidir(p, v, "recusada", motivo))) return;
+    await definirSelo(p.uid, false, "Pedido não aprovado");
     await enviarAviso(p.uid, { titulo: "Pedido de verificação não aprovado", texto: r.pronto === "idade" ? `${motivo}\n\nO seu perfil continua normal: só o selo que fica para depois.` : `${motivo}\n\nVocê pode pedir de novo em 30 dias, em Configurações → Verificação do perfil.`, tipo: "info" });
     toast("Pedido não aprovado"); C.irPara("verificacoes");
   }

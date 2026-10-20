@@ -11,18 +11,19 @@
 > (`stories.link`), **repostar o flash em que você foi mencionado** (`stories.repostDe`) e **flash nos perfis de negócio**
 > (`stories.negocios` e `stories.perfil`), **reportar o atendimento do suporte** (`reportes`: só a moderação e os
 > donos leem) e a **nota do atendimento** (`suporte_notas`) e a opção **"Só a rosinha"** do duo no perfil (`duoCapa: rosa`) e a **verificação do perfil** (`verificacoes`: pedido com a foto
-> do documento, que só a pessoa e a moderação leem e que é apagada na decisão).
+> do documento, que só a pessoa e a moderação leem e que é apagada na decisão) e a **trava do selo** (a moderação só dá o selo
+> com o pedido aprovado; só o dono do site dá o selo direto).
 > Para publicar, o processo é o mesmo: apagar tudo no console e colar as 12 partes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
 `firestore.rules` divididas em **12 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
-- Arquivo de origem: `firestore.rules` (136.824 bytes, 2.392 linhas, sha256 começa com `f9a76e249731dfc0`).
+- Arquivo de origem: `firestore.rules` (137.833 bytes, 2.406 linhas, sha256 começa com `1109c85e7804b735`).
 - Cada parte termina com a linha `// ===== FIM DA PARTE X DE 12 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
 - Conferido: as 12 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **307 passaram, 0 falharam**, sem o aviso de limite de 1.000 expressões.
+- Testes de regras no arquivo remontado: **321 passaram, 0 falharam**, sem o aviso de limite de 1.000 expressões.
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.
@@ -65,6 +66,8 @@ linha), para colar no console do Firebase.
   está disponível).
 - **Verificação do perfil:** o pedido vai com a **foto do documento** para a moderação conferir no painel (Verificações),
   e a foto é apagada quando a equipe aprova ou recusa. Antes de publicar, o pedido chega à equipe sem a foto do documento.
+- **Trava do selo:** quem é da moderação só consegue dar o selo a quem tem o pedido aprovado (tirar continua livre); só o
+  **dono** do site dá o selo direto, sem pedido. O perfil público só mostra o selo se a conta tiver o selo.
 - O resto (toque duplo para dar estrelas, quem deu estrelas, Salvos, editar legenda) já funciona com as regras de hoje.
 
 ## Conferência no site depois de publicar

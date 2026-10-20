@@ -683,3 +683,4 @@ input.ad-sel { flex: 1 1 220px; padding: 0 12px; }
 .ad-vf-zoom img { max-width: 100%; max-height: 92vh; border-radius: 12px; }
 .ad-vf-alerta { margin: 0 0 10px; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, #e5484d 10%, transparent); border: 1px solid color-mix(in srgb, #e5484d 35%, transparent); color: var(--text); font-size: 13px; font-weight: 650; line-height: 1.45; }
 .ad-vf .ad-bt:disabled { opacity: .45; cursor: not-allowed; }
+.ad-vf-nota { margin: 4px 0 0; padding: 8px 12px; border-radius: 10px; background: var(--panel-2, #f3f5f8); color: var(--muted); font-size: 12.5px; line-height: 1.45; }
