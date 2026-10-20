@@ -57,7 +57,7 @@ ok((await cartoes("ana", "bruno")).some((m) => m.cartao.acao === "repost" && m.r
 await pbm.goto(BASE + "feed.html"); await pbm.waitForSelector(".story-circ", { timeout: 30000 }); await pbm.waitForTimeout(1500);
 await pbm.locator(".story-circ:not(.meu)").first().tap();
 await pbm.waitForSelector(".story-visor .story-link", { timeout: 10000 });
-ok((await pbm.locator(".story-visor .story-link").getAttribute("href")) === `servicos.html?negocio=${encodeURIComponent(U.bruno + "_servicos")}`, "visor: figurinha do negócio leva ao perfil (servicos.html?negocio=...)");
+ok((await pbm.locator(".story-visor .story-link").getAttribute("href")) === `servicos.html?negocio=${encodeURIComponent(U.bruno + "_servicos")}&de=flash`, "visor: figurinha do negócio leva ao perfil (servicos.html?negocio=...&de=flash)");
 ok(await pbm.locator(".story-visor .story-repostar").count() === 1, "visor: quem foi mencionado vê 'Adicionar ao seu flash'");
 await pbm.waitForTimeout(700); await pbm.screenshot({ path: "saida/f3-visor-link.png" });
 await pbm.locator(".story-responder input").tap(); await pbm.waitForTimeout(300);

@@ -12,6 +12,7 @@ const p = await entrar(ctx, "dani", "admin.html#publicacoes");
 p.on("dialog", (d) => d.accept());
 await p.waitForSelector("button:has-text('Recalcular estrelas')", { timeout: 40000 });
 await p.locator("button:has-text('Recalcular estrelas')").click();
+await p.locator(".hf-confirma .sim").click(); // janela do site (confirmarHF), não a do navegador
 await p.waitForTimeout(4000);
 const r = (await db.doc("diario_notas/velho").get()).data();
 ok(r.total === 3 && r.soma === 14 && r.n5 === 2 && r.n4 === 1 && r.n3 === 0, "recalculou: " + JSON.stringify(r));
