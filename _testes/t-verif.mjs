@@ -2,7 +2,8 @@
 // (documento, conferências, aprovar/recusar apagando a foto), selo no perfil e "não aprovado" com motivo.
 process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8085";
 import { initializeApp } from "firebase-admin/app"; import { getFirestore, Timestamp } from "firebase-admin/firestore";
-import { navegador, entrar, USUARIOS as U, BASE } from "./nav.mjs";
+import { navegador, entrar, USUARIOS as U, BASE, garantirImagem } from "./nav.mjs";
+garantirImagem("saida/capa-teste.jpg");
 let falhas = 0;
 const ok = (c, t) => { if (!c) falhas++; console.log(c ? "  ✔" : "  ✘", t); };
 initializeApp({ projectId: "demo-hf" }); const db = getFirestore();

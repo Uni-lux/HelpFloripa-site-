@@ -1,13 +1,13 @@
 // Sair da conta (a mesma janela nos três lugares), aviso ao "voltar" que sai do site e do painel,
 // foto da equipe e minha foto no chat da equipe.
 process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8085";
-import { navegador, entrar, USUARIOS as U, BASE } from "./nav.mjs";
+import { navegador, entrar, USUARIOS as U, BASE, garantirImagem } from "./nav.mjs";
 import { readFileSync } from "node:fs";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 initializeApp({ projectId: "demo-hf" });
 const db = getFirestore();
-const FOTO = new URL("saida/foto-teste.png", import.meta.url).pathname;
+const FOTO = garantirImagem("saida/foto-teste.png", 800, 800);
 const VBASE = "./admin-base.js?v=" + readFileSync(new URL("../admin.js", import.meta.url), "utf8").match(/admin-base\.js\?v=(\d+)/)[1];
 const janela = async (p) => (await p.locator(".hf-confirma").textContent().catch(() => "")).replace(/\s+/g, " ").trim();
 const logado = (p) => p.evaluate(() => window.firebaseAuth?.currentUser?.email || null);

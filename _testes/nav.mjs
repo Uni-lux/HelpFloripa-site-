@@ -1,6 +1,7 @@
 // Abre páginas do site (direto do disco) num Chromium ligado ao emulador demo-hf.
 import { chromium } from "playwright-core";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, writeFileSync, mkdirSync } from "node:fs";
+import { deflateSync } from "node:zlib";
 import { extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 export const SITE = process.env.SITE || fileURLToPath(new URL("..", import.meta.url));
@@ -50,4 +51,18 @@ export async function entrar(ctx, quem, pagina) {
   await page.evaluate(([e]) => window.__login(e, "teste123"), [`${quem}@teste.com`]);
   if (pagina) await page.goto(BASE + pagina);
   return page;
+}
+
+// Imagem de teste (PNG em degradê) criada na hora se ainda não existe: os testes não dependem da ordem.
+export function garantirImagem(caminho, w = 1200, h = 800) {
+  const arq = caminho.startsWith("/") ? caminho : fileURLToPath(new URL(caminho, import.meta.url));
+  if (existsSync(arq)) return arq;
+  mkdirSync(arq.replace(/\/[^/]*$/, ""), { recursive: true });
+  const linhas = Buffer.alloc((w * 3 + 1) * h);
+  for (let y = 0; y < h; y++) { const o = y * (w * 3 + 1); for (let x = 0; x < w; x++) { linhas[o + 1 + x * 3] = (x * 255 / w) | 0; linhas[o + 2 + x * 3] = (y * 255 / h) | 0; linhas[o + 3 + x * 3] = 160; } }
+  const crc = (b) => { let c = ~0; for (const v of b) { c ^= v; for (let k = 0; k < 8; k++) c = (c >>> 1) ^ (0xedb88320 & -(c & 1)); } return ~c >>> 0; };
+  const bloco = (t, d) => { const l = Buffer.alloc(4); l.writeUInt32BE(d.length); const td = Buffer.concat([Buffer.from(t), d]); const c = Buffer.alloc(4); c.writeUInt32BE(crc(td)); return Buffer.concat([l, td, c]); };
+  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr[8] = 8; ihdr[9] = 2;
+  writeFileSync(arq, Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), bloco("IHDR", ihdr), bloco("IDAT", deflateSync(linhas)), bloco("IEND", Buffer.alloc(0))]));
+  return arq;
 }

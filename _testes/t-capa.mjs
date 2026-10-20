@@ -1,7 +1,8 @@
 // Editor da foto de capa: a moldura tem o formato da capa do perfil nesta tela, com a foto de perfil
 // e o nome marcados onde ficam; a capa salva sai nesse formato.
 process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8085";
-import { navegador, entrar } from "./nav.mjs";
+import { navegador, entrar, garantirImagem } from "./nav.mjs";
+garantirImagem("saida/capa-teste.jpg");
 let falhas = 0;
 const ok = (c, t) => { if (!c) falhas++; console.log(c ? "  ✔" : "  ✘", t); };
 const B = await navegador({ mobile: true });
