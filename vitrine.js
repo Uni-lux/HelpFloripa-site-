@@ -107,6 +107,7 @@ const el = (tag, cls, texto) => { const e = document.createElement(tag); if (cls
 const ICONES = {
   chat: '<path d="M20.5 11.6c0 4.3-3.8 7.6-8.5 7.6-1.2 0-2.3-.2-3.3-.6L4 20l1.2-3.6c-1.1-1.3-1.7-3-1.7-4.8C3.5 7.4 7.3 4 12 4s8.5 3.4 8.5 7.6z"/>',
   whats: '<path d="M20.5 11.7a8.5 8.5 0 01-12.6 7.5L3.5 20.5l1.3-4.2A8.5 8.5 0 1120.5 11.7z"/><path d="M9 8.5c0 3.5 3 6.5 6.5 6.5l1-1.6-2-1-1 .8a4.5 4.5 0 01-2.4-2.4l.8-1-1-2z"/>',
+  filtro: '<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',
   pin: '<path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0113 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/>',
   relogio: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4.5l3 1.8"/>',
   moto: '<circle cx="6" cy="17" r="2.6"/><circle cx="18" cy="17" r="2.6"/><path d="M8.6 17h6.8M14 7h3l2.5 7.5M12 11h5M6 14.4L9 9h4"/>',
@@ -331,7 +332,9 @@ function cartaoDePedido(n, r, extra) {
       subtotal: r.subtotal, taxa: r.taxa, total: r.total, obs: String(extra.obs || "").slice(0, 300),
       modo: extra.modo || "", endereco: String(extra.endereco || "").slice(0, 200),
       pagamento: extra.pagamento || "", troco: Number(extra.troco) > 0 ? Number(extra.troco) : null,
-      cupom: cupomDoEstado(extra.cupom)
+      cupom: cupomDoEstado(extra.cupom),
+      // Previsão de entrega mostrada no cartão do pedido ("30–50 min").
+      prazo: n.tipo === "delivery" && extra.modo !== "retirada" && (n.tempoMin || n.tempoMax) ? `${n.tempoMin || n.tempoMax}–${n.tempoMax || n.tempoMin} min` : ""
     }
   };
 }
@@ -1608,6 +1611,135 @@ function abrirFiltroLocal() {
   });
 }
 
+// ---------- Filtros (gaveta) ----------
+// Opções de cada página, como nos apps de entrega e de imóveis. Ficam guardadas no aparelho;
+// os filtros ligados aparecem como etiquetas com "x" logo abaixo da barra.
+const nota4 = (n) => { const r = notaDe(n); return !!r?.total && media(r) >= 4; };
+const FILTROS = {
+  servicos: [
+    ["agora", "Atendendo agora", (n) => situacaoHorario(n)?.aberto === true],
+    ["nota4", "Nota 4 ou mais", nota4],
+    ["promo", "Com promoção", (n) => !!promoAtiva(n)],
+    ["urgencia", "Atende urgência", (n) => (n.diferenciais || []).includes("urgencia")],
+    ["orcamento", "Orçamento grátis", (n) => (n.diferenciais || []).includes("orcamentoGratis")],
+    ["domicilio", "Vai até você", (n) => (n.atendimento || []).includes("domicilio")],
+    ["online", "Atende online", (n) => (n.atendimento || []).includes("online")],
+    ["garantia", "Dá garantia", (n) => (n.diferenciais || []).includes("garantia")]
+  ],
+  delivery: [
+    ["aberto", "Aberto agora", (n) => abertoAgora(n) === true],
+    ["gratis", "Entrega grátis", (n) => !(Number(n.taxaEntrega) > 0)],
+    ["rapido", "Até 40 min", (n) => Number(n.tempoMax || n.tempoMin) > 0 && Number(n.tempoMax || n.tempoMin) <= 40],
+    ["promo", "Com cupom ou promoção", (n) => !!promoAtiva(n)],
+    ["nota4", "Nota 4 ou mais", nota4],
+    ["retirada", "Retirada no local", (n) => (n.opcoesEntrega || []).includes("retirada")],
+    ["pix", "Aceita Pix", (n) => !Array.isArray(n.pagamentos) || !n.pagamentos.length || n.pagamentos.includes("pix")]
+  ],
+  lojinha: [
+    ["promo", "Com cupom ou promoção", (n) => !!promoAtiva(n)],
+    ["desconto", "Produtos com desconto", (n) => (n.itens || []).some((i) => Number(i?.precoAntigo) > Number(i?.preco) && Number(i?.preco) > 0)],
+    ["entrega", "Faz entrega", (n) => (n.entrega || ["entrega"]).includes("entrega")],
+    ["retirada", "Retirada", (n) => (n.entrega || ["retirada"]).includes("retirada")],
+    ["nota4", "Nota 4 ou mais", nota4],
+    ["pix", "Aceita Pix", (n) => !Array.isArray(n.pagamentos) || !n.pagamentos.length || n.pagamentos.includes("pix")]
+  ],
+  imoveis: [
+    ["mobiliado", "Mobiliado", (a) => !!a.mobiliado],
+    ["pets", "Aceita pets", (a) => (a.condicoes || []).includes("pets")],
+    ["vaga", "Com vaga", (a) => Number(a.vagas) > 0],
+    ["fotos", "Com fotos", (a) => (a.fotos || []).some((f) => urlSegura(f))],
+    ["piscina", "Piscina", (a) => (a.caracteristicas || []).includes("piscina")],
+    ["vistaMar", "Vista para o mar", (a) => (a.caracteristicas || []).includes("vistaMar")],
+    ["semFiador", "Sem fiador", (a) => (a.condicoes || []).includes("semFiador")]
+  ]
+};
+const CHAVE_FILTROS = `hf-filtros-${TIPO}`;
+let filtrosX = { liga: [], quartos: 0, precoMax: 0 };
+try { const f = JSON.parse(localStorage.getItem(CHAVE_FILTROS) || "null"); if (f) filtrosX = { liga: Array.isArray(f.liga) ? f.liga : [], quartos: Number(f.quartos) || 0, precoMax: Number(f.precoMax) || 0 }; } catch {}
+const opcoesFiltro = () => FILTROS[TIPO] || [];
+const filtrosLigados = () => filtrosX.liga.filter((k) => opcoesFiltro().some((o) => o[0] === k)).length + (filtrosX.quartos ? 1 : 0) + (filtrosX.precoMax ? 1 : 0);
+function passaExtras(n, f = filtrosX) {
+  for (const k of f.liga) { const o = opcoesFiltro().find((x) => x[0] === k); if (o && !o[2](n)) return false; }
+  if (TIPO === "imoveis") {
+    if (f.quartos && !(Number(n.quartos) >= f.quartos)) return false;
+    if (f.precoMax && !(Number(n.preco) > 0 && Number(n.preco) <= f.precoMax)) return false;
+  }
+  return true;
+}
+function guardarFiltros() { try { localStorage.setItem(CHAVE_FILTROS, JSON.stringify(filtrosX)); } catch {} }
+function montarBotaoFiltros() {
+  const chips = document.getElementById("filterChips");
+  if (!chips || document.getElementById("vtFiltrosBtn") || !opcoesFiltro().length) return;
+  const b = el("button", "vt-filtros-btn"); b.type = "button"; b.id = "vtFiltrosBtn"; b.setAttribute("aria-haspopup", "dialog");
+  b.append(icone("filtro"), el("span", null, "Filtros"), el("b"));
+  chips.parentNode.insertBefore(b, chips);
+  b.addEventListener("click", abrirFiltros);
+  const ativos = el("div", "vt-ativos"); ativos.id = "vtAtivos"; ativos.hidden = true;
+  chips.parentNode.insertAdjacentElement("afterend", ativos);
+  pintarFiltrosAtivos();
+}
+function pintarFiltrosAtivos() {
+  const b = document.getElementById("vtFiltrosBtn"), box = document.getElementById("vtAtivos");
+  if (!b || !box) return;
+  const n = filtrosLigados();
+  b.classList.toggle("on", !!n);
+  b.querySelector("b").textContent = n ? String(n) : "";
+  b.setAttribute("aria-label", n ? `Filtros, ${n} ligados` : "Filtros");
+  box.replaceChildren();
+  const pilula = (rot, tirar) => { const p = el("button", "vt-ativo"); p.type = "button"; p.append(el("span", null, rot), icone("fechar")); p.setAttribute("aria-label", `Tirar o filtro ${rot}`); p.addEventListener("click", () => { tirar(); guardarFiltros(); pintarFiltrosAtivos(); renderizar(); }); box.appendChild(p); };
+  filtrosX.liga.forEach((k) => { const o = opcoesFiltro().find((x) => x[0] === k); if (o) pilula(o[1], () => { filtrosX.liga = filtrosX.liga.filter((x) => x !== k); }); });
+  if (filtrosX.quartos) pilula(`${filtrosX.quartos}+ quartos`, () => { filtrosX.quartos = 0; });
+  if (filtrosX.precoMax) pilula(`Até ${moeda(filtrosX.precoMax)}`, () => { filtrosX.precoMax = 0; });
+  if (n > 1) { const l = el("button", "vt-ativo limpar", "Limpar tudo"); l.type = "button"; l.addEventListener("click", () => { filtrosX = { liga: [], quartos: 0, precoMax: 0 }; guardarFiltros(); pintarFiltrosAtivos(); renderizar(); }); box.appendChild(l); }
+  box.hidden = !n;
+}
+function abrirFiltros() {
+  if (document.getElementById("vtFiltrosPop")) return;
+  const rasc = { liga: [...filtrosX.liga], quartos: filtrosX.quartos, precoMax: filtrosX.precoMax };
+  const fundo = el("div", "vt-local-fundo vt-filtros-fundo"); fundo.id = "vtFiltrosPop";
+  const cx = el("div", "vt-local-pop vt-filtros-pop"); cx.setAttribute("role", "dialog"); cx.setAttribute("aria-modal", "true"); cx.setAttribute("aria-label", "Filtros");
+  const topo = el("div", "vt-local-topo"); topo.append(el("strong", null, "Filtros"));
+  const x = el("button", "vt-local-x"); x.type = "button"; x.setAttribute("aria-label", "Fechar"); x.textContent = "×"; topo.appendChild(x);
+  const corpo = el("div", "vt-filtros-corpo");
+  const sec = (t) => { const d = el("div", "vt-f-sec"); d.appendChild(el("h4", null, t)); corpo.appendChild(d); return d; };
+  const chipF = (rot, on, mudar) => { const c = el("button", "vt-f-chip" + (on ? " on" : ""), rot); c.type = "button"; c.setAttribute("aria-pressed", String(on)); c.addEventListener("click", () => { mudar(); pintar(); }); return c; };
+  const aplicar = el("button", "vt-local-aplicar"); aplicar.type = "button";
+  const pintar = () => {
+    corpo.replaceChildren();
+    const s1 = sec(TIPO === "imoveis" ? "Comodidades" : "Mostrar só");
+    const g1 = el("div", "vt-f-chips");
+    opcoesFiltro().forEach(([k, rot]) => g1.appendChild(chipF(rot, rasc.liga.includes(k), () => { rasc.liga = rasc.liga.includes(k) ? rasc.liga.filter((y) => y !== k) : [...rasc.liga, k]; })));
+    s1.appendChild(g1);
+    if (TIPO === "imoveis") {
+      const s2 = sec("Quartos");
+      const g2 = el("div", "vt-f-seg");
+      [[0, "Todos"], [1, "1+"], [2, "2+"], [3, "3+"], [4, "4+"]].forEach(([v, rot]) => g2.appendChild(chipF(rot, rasc.quartos === v, () => { rasc.quartos = v; })));
+      s2.appendChild(g2);
+      const s3 = sec("Preço até");
+      const g3 = el("div", "vt-f-chips");
+      [[0, "Qualquer"], [1500, "R$ 1.500"], [2500, "R$ 2.500"], [4000, "R$ 4.000"], [500000, "R$ 500 mil"], [1000000, "R$ 1 milhão"]].forEach(([v, rot]) => g3.appendChild(chipF(rot, rasc.precoMax === v, () => { rasc.precoMax = v; })));
+      s3.appendChild(g3);
+    }
+    const { cat, termo } = filtroAtual();
+    const total = todos.filter((n) => passaCategoria(n, cat) && passaLocal(n) && (!termo || textoBusca(n).includes(termo)) && passaExtras(n, rasc)).length;
+    aplicar.textContent = total ? `Ver ${total} ${total === 1 ? "resultado" : "resultados"}` : "Nenhum resultado";
+    aplicar.disabled = !total && (rasc.liga.length || rasc.quartos || rasc.precoMax);
+  };
+  const acoes = el("div", "vt-local-acoes");
+  const limpar = el("button", "vt-local-limpar", "Limpar"); limpar.type = "button";
+  acoes.append(limpar, aplicar);
+  cx.append(topo, corpo, acoes); fundo.appendChild(cx); document.body.appendChild(fundo);
+  const fechar = () => { fundo.remove(); document.removeEventListener("keydown", tecla); document.getElementById("vtFiltrosBtn")?.focus(); };
+  const tecla = (e) => { if (e.key === "Escape") fechar(); };
+  document.addEventListener("keydown", tecla);
+  fundo.addEventListener("click", (e) => { if (e.target === fundo) fechar(); });
+  x.addEventListener("click", fechar);
+  limpar.addEventListener("click", () => { rasc.liga = []; rasc.quartos = 0; rasc.precoMax = 0; pintar(); });
+  aplicar.addEventListener("click", () => { filtrosX = rasc; guardarFiltros(); pintarFiltrosAtivos(); fechar(); renderizar(); document.getElementById("vitrine")?.scrollIntoView({ behavior: "smooth", block: "start" }); });
+  pintar();
+  setTimeout(() => cx.querySelector(".vt-f-chip")?.focus({ preventScroll: true }), 50);
+}
+
 function textoBusca(n) {
   const cats = TIPO === "servicos" ? categoriasDe(n) : [n.categoria];
   return [n.nome, n.titulo, n.descricao, n.cidade, n.uf, NOME_UF[n.uf], n.bairro, n.regiao, n.categoriaPersonalizada, ...cats.map((c) => CATEGORIAS[TIPO]?.[c]), ...(TIPO === "servicos" ? cats.map((c) => PALAVRAS_SERV[c]) : []),
@@ -2009,17 +2141,18 @@ function renderizar() {
   const dest = document.getElementById("vtDestaques");
   const cont = document.getElementById("vtContagem");
   const { cat, termo } = filtroAtual();
-  const filtrando = cat !== "todos" || !!termo || !!filtroLocal.uf;
+  const filtrando = cat !== "todos" || !!termo || !!filtroLocal.uf || filtrosLigados() > 0;
   pararGiro?.();
   grade.replaceChildren();
   dest.replaceChildren();
   grade.className = "vt-grade tipo-" + TIPO;
   cont.textContent = ""; // a contagem vai junto do título da lista
-  const lista = todos.filter((n) => passaCategoria(n, cat) && passaLocal(n) && (!termo || textoBusca(n).includes(termo)));
+  const lista = todos.filter((n) => passaCategoria(n, cat) && passaLocal(n) && (!termo || textoBusca(n).includes(termo)) && passaExtras(n));
   pintarVerMais(filtrando);
   const vazio = () => {
     const v = el("div", "vt-vazio");
-    v.append(el("strong", null, todos.length ? "Nada encontrado com esse filtro" : TEXTOS[TIPO].vazio), todos.length ? "Tente outra categoria ou palavra." : "Seja o primeiro: crie seu perfil de negócio pelo seu perfil.");
+    v.append(el("strong", null, todos.length ? "Nada encontrado com esse filtro" : TEXTOS[TIPO].vazio), todos.length ? (filtrosLigados() ? "Tire algum filtro ou tente outra categoria." : "Tente outra categoria ou palavra.") : "Seja o primeiro: crie seu perfil de negócio pelo seu perfil.");
+    if (todos.length && filtrosLigados()) { const l = el("button", "vt-criar"); l.type = "button"; l.textContent = "Limpar filtros"; l.addEventListener("click", () => { filtrosX = { liga: [], quartos: 0, precoMax: 0 }; guardarFiltros(); pintarFiltrosAtivos(); renderizar(); }); v.append(document.createElement("br"), l); }
     if (!todos.length) { const a = el("a", "vt-criar"); a.href = `negocios.html?tipo=${TIPO}`; a.append(icone("mais"), document.createTextNode(TEXTOS[TIPO].criar)); v.append(document.createElement("br"), a); }
     grade.appendChild(v);
   };
@@ -2078,6 +2211,7 @@ function renderizar() {
 
 function ligarFiltros() {
   montarFiltroLocal();
+  montarBotaoFiltros();
   const chips = document.getElementById("filterChips");
   if (chips) {
     if (!chips.querySelector('[data-filter="outros"]')) {

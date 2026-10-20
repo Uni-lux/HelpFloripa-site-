@@ -231,3 +231,12 @@ body[data-classe="inicio"] { --classe: #00adee; --classe-2: #7de3ff; --classe-in
 @media (prefers-reduced-motion: reduce) {
   .hh-foto img, .classe-card, .classe-card::after, .trilho .slot > * { animation: none !important; }
 }
+
+/* filtro por tipo nos carrosséis do início */
+.hm-filtro { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: -2px 0 12px; padding: 2px; }
+.hm-filtro::-webkit-scrollbar { display: none; }
+.hm-filtro button { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font: inherit; font-size: 13px; font-weight: 750; cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
+.hm-filtro button[class^="t-"]::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--cor-f); }
+.hm-filtro .t-servicos { --cor-f: #00adee; } .hm-filtro .t-delivery { --cor-f: #ff7a1a; } .hm-filtro .t-lojinha { --cor-f: #b066ff; } .hm-filtro .t-imoveis { --cor-f: #2fbf71; }
+.hm-filtro button.on { background: var(--text); border-color: var(--text); color: var(--bg); }
+.hm-filtro button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

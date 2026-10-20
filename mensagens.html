@@ -255,6 +255,61 @@
     .pedido-trilha i { flex: 1; height: 4px; border-radius: 4px; background: var(--line); }
     .pedido-trilha i.on { background: var(--cor-st, #2fbf71); }
     .bolha.status-msg { padding: 8px 12px; }
+    /* cartão do pedido (delivery e lojinha) */
+    .bolha.cartao-msg.pedido-pro { width: min(330px, 88%); max-width: none; padding: 0; overflow: hidden; }
+    .pd { display: grid; color: inherit; border-top: 4px solid var(--assunto); }
+    .pd-cab { display: flex; align-items: center; gap: 10px; padding: 11px 12px 9px; }
+    .pd-logo { flex: none; width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; color: #fff; background: var(--assunto) center / cover no-repeat; }
+    .pd-logo svg.i { width: 22px; height: 22px; }
+    .pd-cab-tx { min-width: 0; display: grid; gap: 1px; }
+    .pd-cab-tx small { font-size: 10.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--assunto); }
+    .pd-cab-tx strong { font-size: 15px; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pd-status { margin: 0 10px; padding: 10px 11px; border-radius: 14px; background: color-mix(in srgb, var(--cor-st) 12%, transparent); border: 1px solid color-mix(in srgb, var(--cor-st) 30%, transparent); display: grid; gap: 9px; }
+    .pd-st-topo { display: flex; align-items: center; gap: 10px; }
+    .pd-st-ic { flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: #fff; background: var(--cor-st); }
+    .pd-st-ic svg.i { width: 19px; height: 19px; }
+    .pd-st-topo b { display: block; font-size: 14px; }
+    .pd-st-topo small { display: block; font-size: 12px; opacity: .78; line-height: 1.35; }
+    .pd-passos { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); position: relative; }
+    .pd-passos li { position: relative; display: grid; justify-items: center; gap: 4px; font-size: 10.5px; font-weight: 700; opacity: .55; text-align: center; }
+    .pd-passos li::before { content: ""; position: absolute; top: 8px; right: 50%; width: 100%; height: 2px; background: color-mix(in srgb, currentColor 25%, transparent); z-index: 0; }
+    .pd-passos li:first-child::before { display: none; }
+    .pd-passos li.feito::before, .pd-passos li.atual::before { background: var(--cor-st); }
+    .pd-passos li i { position: relative; z-index: 1; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; background: var(--panel); border: 2px solid color-mix(in srgb, currentColor 35%, transparent); color: #fff; }
+    .pd-passos li i svg.i { width: 11px; height: 11px; stroke-width: 3.4; }
+    .pd-passos li.feito, .pd-passos li.atual { opacity: 1; }
+    .pd-passos li.feito i, .pd-passos li.atual i { background: var(--cor-st); border-color: var(--cor-st); }
+    .pd-passos li.atual span { color: var(--cor-st); font-weight: 800; }
+    .pd-acoes { display: flex; gap: 6px; }
+    .pd-acoes button { min-height: 36px; border-radius: 11px; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
+    .pd-acoes .pri { flex: 1; border: 0; background: var(--cor-st); color: #fff; }
+    .pd-acoes .sec { flex: 1; border: 1px solid color-mix(in srgb, currentColor 25%, transparent); background: none; color: inherit; }
+    .pd-acoes .ic { flex: none; width: 38px; display: grid; place-items: center; border: 1px solid color-mix(in srgb, currentColor 25%, transparent); background: none; color: inherit; }
+    .pd-sec { margin: 11px 12px 2px; font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; opacity: .65; }
+    .pd-itens { list-style: none; margin: 0; padding: 0 12px; display: grid; }
+    .pd-itens li { display: flex; align-items: flex-start; gap: 8px; padding: 7px 0; font-size: 13.5px; border-bottom: 1px solid color-mix(in srgb, currentColor 10%, transparent); }
+    .pd-itens .q { flex: none; min-width: 28px; padding: 1px 0; border-radius: 6px; text-align: center; font-size: 12px; font-weight: 800; color: var(--assunto); background: color-mix(in srgb, var(--assunto) 14%, transparent); }
+    .pd-itens .n { flex: 1; min-width: 0; overflow-wrap: anywhere; line-height: 1.3; }
+    .pd-itens .n small { display: block; font-size: 11.5px; opacity: .65; }
+    .pd-itens .v { flex: none; font-weight: 700; white-space: nowrap; }
+    .pd-mais { margin: 4px 0 0; padding: 6px 0; border: 0; background: none; color: var(--assunto); font: inherit; font-size: 12.5px; font-weight: 800; cursor: pointer; text-align: left; }
+    .pd-valores { margin: 8px 12px 0; display: grid; gap: 4px; font-size: 13px; }
+    .pd-valores div { display: flex; justify-content: space-between; gap: 10px; }
+    .pd-valores div span:first-child { opacity: .75; }
+    .pd-valores .gratis span:last-child { color: #2fbf71; font-weight: 800; }
+    .pd-valores .cupom span:first-child { opacity: 1; font-weight: 800; color: var(--assunto); }
+    .pd-valores .cupom span:last-child { text-align: right; overflow-wrap: anywhere; }
+    .pd-valores .tot { margin-top: 4px; padding-top: 8px; border-top: 1px dashed color-mix(in srgb, currentColor 22%, transparent); font-size: 16px; font-weight: 900; }
+    .pd-valores .tot span:first-child { opacity: 1; }
+    .pd-valores .tot span:last-child { color: var(--assunto); }
+    .pd-info { margin: 10px 12px 0; display: grid; gap: 8px; }
+    .pd-info > div { display: flex; align-items: flex-start; gap: 9px; font-size: 13px; }
+    .pd-info-ic { flex: none; width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center; background: color-mix(in srgb, currentColor 9%, transparent); }
+    .pd-info-ic svg.i { width: 16px; height: 16px; }
+    .pd-info small { display: block; font-size: 11px; opacity: .65; font-weight: 700; }
+    .pd-info span { overflow-wrap: anywhere; line-height: 1.35; }
+    .pd-ver { display: block; margin: 10px 0 0; padding: 10px 12px; text-align: center; border-top: 1px solid color-mix(in srgb, currentColor 12%, transparent); font-size: 13px; font-weight: 800; color: var(--assunto); text-decoration: none; }
+    .bolha.pedido-pro .meta, .bolha.pedido-pro .hora { padding: 0 12px 8px; }
     .status-linha { display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
     .status-linha .ic { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--cor-st, #00adee) 20%, transparent); color: var(--cor-st, #00adee); flex-shrink: 0; }
     .status-linha .ic svg.i { width: 18px; height: 18px; }
@@ -777,6 +832,8 @@
     <symbol id="i-fechar" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
     <symbol id="i-check2" viewBox="0 0 24 24"><path d="M2.5 12.5L7 17l9.5-9.5M11.5 16l1 1L22 7.5"/></symbol>
+    <symbol id="i-cartao" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h4"/></symbol>
+    <symbol id="i-local" viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0113 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></symbol>
     <symbol id="i-pessoa" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.8 20c.8-3.6 3.6-5.8 7.2-5.8s6.4 2.2 7.2 5.8"/></symbol>
     <symbol id="i-selo" viewBox="0 0 24 24"><path d="M12 2.8l2.3 1.7 2.8-.2.9 2.7 2.3 1.7-.9 2.7.9 2.7-2.3 1.7-.9 2.7-2.8-.2L12 21.2l-2.3-1.7-2.8.2-.9-2.7-2.3-1.7.9-2.7-.9-2.7L5.9 7l.9-2.7 2.8.2z" fill="currentColor" stroke="none"/><path d="M8.6 12.2l2.3 2.3 4.6-4.8" stroke="#fff" stroke-width="2.2"/></symbol>
     <symbol id="i-relogio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4.5l3 1.8"/></symbol>
@@ -1427,29 +1484,143 @@
       pintarStatusPedido(box, m, tipo);
       return box;
     }
+    // Andamento do pedido: situação em destaque, etapas com nome e, para o negócio, o botão da próxima etapa.
+    const ETAPA_CURTA = { recebido: "Recebido", preparando: "Preparando", saiu: "A caminho", separando: "Separando", enviado: "Enviado", entregue: "Entregue" };
     function pintarStatusPedido(box, m, tipo) {
       const k = statusAtual(m.id);
       const etapas = etapasDe(tipo);
       const idx = etapas.findIndex((e) => e[0] === k);
+      const souNegocio = m.remetenteId !== eu.uid;
       box.replaceChildren();
-      box.style.setProperty("--cor-st", corStatus(k));
-      if (k !== "cancelado") {
-        const trilha = document.createElement("div"); trilha.className = "pedido-trilha";
-        etapas.forEach((_, i) => { const t = document.createElement("i"); if (i <= idx) t.className = "on"; trilha.appendChild(t); });
-        box.appendChild(trilha);
-      }
-      const linha = document.createElement("div"); linha.className = "pedido-status";
+      box.className = "pd-status";
+      box.style.setProperty("--cor-st", k ? corStatus(k) : "#f5a524");
       const st = infoStatus(tipo, k);
-      const pill = document.createElement("span"); pill.className = "pill";
-      pill.append(iconeSvg(st ? st[2] : "relogio"), document.createTextNode(st ? st[1] : "Aguardando o negócio confirmar"));
-      linha.appendChild(pill);
-      // Quem recebeu o pedido (o negócio) atualiza o andamento.
-      if (m.remetenteId !== eu.uid && k !== "entregue" && k !== "cancelado") {
-        const b = document.createElement("button"); b.type = "button"; b.textContent = k ? "Próxima etapa" : "Confirmar pedido";
-        b.addEventListener("click", (e) => { e.stopPropagation(); escolherStatus(m, tipo, e.clientX, e.clientY); });
-        linha.appendChild(b);
+      const topo = document.createElement("div"); topo.className = "pd-st-topo";
+      const ic = document.createElement("span"); ic.className = "pd-st-ic"; ic.appendChild(iconeSvg(st ? st[2] : "relogio"));
+      const tx = document.createElement("div");
+      const b = document.createElement("b"); b.textContent = st ? st[1] : souNegocio ? "Novo pedido" : "Aguardando confirmação";
+      const sm = document.createElement("small");
+      sm.textContent = k === "cancelado" ? "Este pedido foi cancelado."
+        : k === "entregue" ? "Pedido concluído. Obrigado!"
+        : !k ? (souNegocio ? "Confirme para o cliente saber que você recebeu." : "O negócio ainda vai confirmar o seu pedido.")
+        : m.cartao?.pedido?.prazo && tipo === "delivery" && k !== "entregue" ? `Previsão: ${String(m.cartao.pedido.prazo).slice(0, 20)}` : "O andamento aparece aqui.";
+      tx.append(b, sm);
+      topo.append(ic, tx);
+      box.appendChild(topo);
+      if (k !== "cancelado") {
+        const passos = document.createElement("ol"); passos.className = "pd-passos";
+        etapas.forEach(([chave], i) => {
+          const li = document.createElement("li");
+          if (i < idx) li.className = "feito"; else if (i === idx) li.className = "atual";
+          const bola = document.createElement("i"); if (i <= idx) bola.appendChild(iconeSvg("check"));
+          const nome = document.createElement("span"); nome.textContent = ETAPA_CURTA[chave] || chave;
+          li.append(bola, nome);
+          passos.appendChild(li);
+        });
+        box.appendChild(passos);
       }
-      box.appendChild(linha);
+      const acoes = document.createElement("div"); acoes.className = "pd-acoes";
+      if (souNegocio && k !== "entregue" && k !== "cancelado") {
+        const prox = etapas[idx + 1];
+        const pri = document.createElement("button"); pri.type = "button"; pri.className = "pri";
+        pri.textContent = !k ? "Confirmar pedido" : `Marcar: ${ETAPA_CURTA[prox[0]] || prox[1]}`;
+        pri.addEventListener("click", (e) => { e.stopPropagation(); mudarStatusPedido(m, tipo, prox[0]); });
+        const mais = document.createElement("button"); mais.type = "button"; mais.className = "ic"; mais.setAttribute("aria-label", "Outras opções do pedido");
+        mais.appendChild(iconeSvg("mais"));
+        mais.addEventListener("click", (e) => { e.stopPropagation(); escolherStatus(m, tipo, e.clientX, e.clientY); });
+        acoes.append(pri, mais);
+      } else if (!souNegocio && !k) {
+        // O cliente pode desistir enquanto o negócio não confirmou.
+        const c = document.createElement("button"); c.type = "button"; c.className = "sec"; c.textContent = "Cancelar pedido";
+        c.addEventListener("click", (e) => { e.stopPropagation(); mudarStatusPedido(m, tipo, "cancelado"); });
+        acoes.appendChild(c);
+      }
+      if (acoes.children.length) box.appendChild(acoes);
+    }
+    async function mudarStatusPedido(m, tipo, k) {
+      if (!ativa) return;
+      if (k === "cancelado" && !(await confirmarHF({ titulo: "Cancelar este pedido?", texto: m.remetenteId === eu.uid ? "O negócio vê na conversa que você desistiu." : "Ele fica marcado como cancelado e o cliente vê na conversa.", ok: "Cancelar pedido", cancelar: "Voltar", icone: "alerta" }))) return;
+      try {
+        await publicarMensagem(ativa.id, { remetenteId: eu.uid, texto: "", criadoEm: fb.serverTimestamp(), tipoArquivo: "cartao",
+          cartao: { tipo, status: k, refMsg: m.id, titulo: String(m.cartao?.titulo || "").slice(0, 80) } });
+      } catch (erro) { console.error(erro); toast(erro?.code === "limite-diario" ? erro.message : "Não foi possível atualizar o pedido."); }
+    }
+    // Cartão do pedido (delivery e lojinha), como nos apps de pedido: número, negócio, andamento,
+    // itens, valores (com cupom), entrega, pagamento e observações.
+    const PAG_MSG = { pix: "Pix", credito: "Cartão de crédito", debito: "Cartão de débito", dinheiro: "Dinheiro", vale: "Vale-refeição" };
+    function cartaoPedido(m, c, tipo, href) {
+      const p = c.pedido;
+      const box = document.createElement("div"); box.className = "pd";
+      const cab = document.createElement("div"); cab.className = "pd-cab";
+      const logo = document.createElement("span"); logo.className = "pd-logo";
+      const foto = urlSegura(c.foto);
+      if (foto) logo.style.backgroundImage = `url("${foto}")`; else logo.appendChild(iconeSvg(tipo === "delivery" ? "st-preparando" : "st-separando"));
+      const ct = document.createElement("div"); ct.className = "pd-cab-tx";
+      const nomeNeg = String(c.titulo || "").replace(/^Pedido · /, "") || ASSUNTOS[tipo].nome;
+      const sm = document.createElement("small"); sm.textContent = `${ASSUNTOS[tipo].nome} · Pedido #${String(m.id || "").slice(-6).toUpperCase()}`;
+      const st = document.createElement("strong"); st.textContent = nomeNeg;
+      ct.append(sm, st);
+      cab.append(logo, ct);
+      box.appendChild(cab);
+      box.appendChild(statusPedido(m, tipo));
+
+      // Itens: os 4 primeiros e "ver todos".
+      const itens = p.itens.slice(0, 30);
+      const lista = document.createElement("ul"); lista.className = "pd-itens";
+      const unidades = itens.reduce((t, i) => t + (Math.max(0, parseInt(i?.qtd, 10) || 0)), 0);
+      const pintarItens = (todos) => {
+        lista.replaceChildren();
+        (todos ? itens : itens.slice(0, 4)).forEach((i) => {
+          const qtd = Math.max(0, Math.min(999, parseInt(i?.qtd, 10) || 0));
+          const preco = Number(i?.preco) > 0 ? Number(i.preco) : 0;
+          const li = document.createElement("li");
+          const q = document.createElement("span"); q.className = "q"; q.textContent = `${qtd}×`;
+          const n = document.createElement("span"); n.className = "n";
+          n.append(document.createTextNode(String(i?.nome || "Item").slice(0, 60)));
+          if (preco && qtd > 1) { const u = document.createElement("small"); u.textContent = `${reais(preco)} cada`; n.appendChild(u); }
+          const v = document.createElement("span"); v.className = "v"; v.textContent = preco ? reais(qtd * preco) : "a combinar";
+          li.append(q, n, v);
+          lista.appendChild(li);
+        });
+        if (itens.length > 4) {
+          const mais = document.createElement("button"); mais.type = "button"; mais.className = "pd-mais";
+          mais.textContent = todos ? "Mostrar menos" : `Ver todos os ${itens.length} itens`;
+          mais.addEventListener("click", (e) => { e.stopPropagation(); pintarItens(!todos); });
+          lista.appendChild(mais);
+        }
+      };
+      pintarItens(false);
+      const titItens = document.createElement("div"); titItens.className = "pd-sec"; titItens.textContent = `${unidades} ${unidades === 1 ? "item" : "itens"}`;
+      box.append(titItens, lista);
+
+      // Valores
+      const val = document.createElement("div"); val.className = "pd-valores";
+      const linha = (a, b, cls) => { const d = document.createElement("div"); if (cls) d.className = cls; const x = document.createElement("span"); x.textContent = a; const y = document.createElement("span"); y.textContent = b; d.append(x, y); val.appendChild(d); };
+      const subtotal = Number(p.subtotal) >= 0 && p.subtotal != null ? Number(p.subtotal) : itens.reduce((t, i) => t + (Number(i?.preco) || 0) * (parseInt(i?.qtd, 10) || 0), 0);
+      linha("Subtotal", reais(subtotal));
+      if (tipo === "delivery" || Number(p.taxa) > 0) linha(p.modo === "retirada" ? "Retirada" : "Entrega", p.modo === "retirada" ? "Sem taxa" : Number(p.taxa) > 0 ? reais(p.taxa) : "Grátis", Number(p.taxa) > 0 ? "" : "gratis");
+      if (p.cupom && typeof p.cupom === "object") linha(p.cupom.codigo ? `Cupom ${String(p.cupom.codigo).slice(0, 20)}` : "Promoção", String(p.cupom.titulo || "a combinar").slice(0, 60), "cupom");
+      linha("Total", reais(p.total) + (itens.some((i) => !(Number(i?.preco) > 0)) ? " + a combinar" : ""), "tot");
+      box.appendChild(val);
+
+      // Entrega, pagamento e observação
+      const info = document.createElement("div"); info.className = "pd-info";
+      const item = (icone, rot, txt) => {
+        if (!txt) return;
+        const d = document.createElement("div");
+        const i = document.createElement("span"); i.className = "pd-info-ic"; i.appendChild(iconeSvg(icone));
+        const t = document.createElement("div"); const s1 = document.createElement("small"); s1.textContent = rot; const s2 = document.createElement("span"); s2.textContent = txt;
+        t.append(s1, s2); d.append(i, t); info.appendChild(d);
+      };
+      if (p.modo) item(p.modo === "retirada" ? "st-recebido" : "local", p.modo === "retirada" ? "Recebimento" : "Entregar em", p.modo === "retirada" ? "Retirada no local" : String(p.endereco || "A combinar").slice(0, 200));
+      if (p.pagamento) item("cartao", "Pagamento", (PAG_MSG[p.pagamento] || String(p.pagamento).slice(0, 20)) + (Number(p.troco) > 0 ? ` · troco para ${reais(p.troco)}` : "") + " · na entrega/retirada");
+      if (p.obs) item("chat", "Observação", String(p.obs).slice(0, 300));
+      if (info.children.length) box.appendChild(info);
+
+      const ver = document.createElement("a"); ver.className = "pd-ver"; ver.href = href;
+      ver.textContent = tipo === "delivery" ? (m.remetenteId === eu.uid ? "Pedir mais · ver cardápio" : "Ver cardápio") : (m.remetenteId === eu.uid ? "Ver mais produtos" : "Ver loja");
+      box.appendChild(ver);
+      return box;
     }
     function atualizarStatusNaTela(refId) {
       const m = mensagens.find((x) => x.id === refId);
@@ -2875,6 +3046,14 @@
         // Publicação enviada do Diário: aparece como no Instagram (quem publicou, a foto e a legenda).
         bolha.classList.add("cartao-msg", "pub-msg");
         bolha.appendChild(cartaoPublicacao(m.cartao));
+      } else if (m.tipoArquivo === "cartao" && Array.isArray(m.cartao?.pedido?.itens) && m.cartao.pedido.itens.length) {
+        // Pedido de delivery ou lojinha: cartão completo, como nos apps de pedido.
+        const c = m.cartao;
+        const tipo = ASSUNTOS[c.tipo] ? c.tipo : "delivery";
+        const href = /^((servicos|delivery|shopping|imoveis)\.html|usuarios\.html)\?[\w=&%.-]+$/.test(String(c.link || "")) ? c.link : "#";
+        bolha.classList.add("cartao-msg", "pedido", "pedido-pro");
+        bolha.style.setProperty("--assunto", ASSUNTOS[tipo].cor);
+        bolha.appendChild(cartaoPedido(m, c, tipo, href));
       } else if (m.tipoArquivo === "cartao" && m.cartao) {
         const c = m.cartao;
         const tipo = ASSUNTOS[c.tipo] ? c.tipo : "servicos";
@@ -2896,7 +3075,7 @@
         tx.append(tp, ti);
         if (c.sub) { const s = document.createElement("small"); s.textContent = c.sub; tx.appendChild(s); }
         if (c.preco && !ehPedido && !ehOrc) { const p = document.createElement("span"); p.className = "cm-preco"; p.textContent = c.preco; tx.appendChild(p); }
-        if (ehPedido) { bolha.classList.add("pedido"); tp.textContent = `${ASSUNTOS[tipo].nome} · Pedido`; tx.appendChild(blocoPedido(c.pedido)); tx.appendChild(statusPedido(m, tipo)); }
+
         if (ehOrc) { bolha.classList.add("pedido"); tp.textContent = "Pedido de orçamento"; tx.appendChild(blocoSolicitacao(c.solicitacao)); }
         const ver = document.createElement(ehPedido || ehOrc ? "a" : "span");
         ver.className = "cm-ver";
@@ -3296,8 +3475,8 @@
     // volta para esta conversa como cartão, sem sair do chat.
     let vitrineMod = null;
     function carregarVitrine() {
-      if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=27"; l.dataset.vitrine = ""; document.head.appendChild(l); }
-      return (vitrineMod ||= import("./vitrine.js?v=39"));
+      if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=28"; l.dataset.vitrine = ""; document.head.appendChild(l); }
+      return (vitrineMod ||= import("./vitrine.js?v=40"));
     }
     function usarCartaoNaConversa(uid, cartao) {
       document.querySelectorAll(".vt-modal").forEach((m) => m.remove());
