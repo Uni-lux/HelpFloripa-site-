@@ -56,6 +56,9 @@ import("./voltar.js?v=3").then((m) => m.ligarVoltar()).catch((e) => console.warn
 // "Voltar" que tiraria a pessoa do site pergunta antes ("Sair do Help Floripa?").
 import("./confirmar.js?v=4").then((m) => m.guardarSaida()).catch((e) => console.warn("[Saída]", e?.message || e));
 
+// Aviso temporário de manutenção (liga e desliga no próprio manutencao.js).
+import("./manutencao.js?v=1").then((m) => m.avisoManutencao()).catch((e) => console.warn("[Manutenção]", e?.message || e));
+
 // Portão da conta: quem entra com a conta desativada ou com a exclusão pedida vai para
 // conta.html (reativar / recuperar). Confere uma vez por sessão do navegador.
 const PAGINAS_LIVRES = ["conta.html", "login.html", "cadastre-se.html", "verificar-email.html", "termos.html", "privacidade.html", "ajuda.html", "contato.html", "suporte.html"];
