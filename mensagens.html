@@ -312,23 +312,38 @@
     .cartao-msg .cm-link { display: block; text-decoration: none; color: inherit; border-top: 4px solid var(--assunto); }
     .cartao-msg .cm-ft { aspect-ratio: 16 / 9; background: var(--panel-2) center / cover; }
     /* publicação enviada do Diário (como no Instagram) */
-    .bolha.flash-msg { width: min(280px, 80vw); max-width: 84%; padding: 0; background: var(--panel); color: var(--text); border: 1px solid var(--line); overflow: hidden; }
-    .flash-msg .fc-cab { display: flex; align-items: center; gap: 6px; padding: 9px 12px 7px; font-size: 12.5px; font-weight: 800; color: var(--muted); }
-    .flash-msg .fc-raio { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; font-size: 11px; background: linear-gradient(135deg, #ffd60a, #ff8a00); }
-    .flash-msg .fc-corpo { display: flex; gap: 10px; padding: 0 10px 10px; align-items: flex-start; }
-    .flash-msg .fc-mini { flex: none; width: 86px; aspect-ratio: 9 / 16; border-radius: 12px; overflow: hidden; display: grid; place-items: center; background: linear-gradient(160deg, #1c2a33, #0b1014); color: rgba(255,255,255,.7); font-size: 11px; font-weight: 700; text-align: center; padding: 0; text-decoration: none; position: relative; box-shadow: 0 0 0 2px #ff8a00, 0 0 0 4px var(--panel); margin: 4px; }
-    .flash-msg .fc-mini img, .flash-msg .fc-mini video { width: 100%; height: 100%; object-fit: cover; display: block; }
+    /* Flash no chat (resposta, reação, menção, enviado, repost): cartão próprio, com a miniatura 9:16 e o prazo de 24 h */
+    .bolha.cartao-msg.flash-msg, .minha .bolha.cartao-msg.flash-msg { width: min(250px, 74vw); max-width: 84%; padding: 0; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 22px; overflow: hidden; box-shadow: 0 6px 22px rgba(0,0,0,.16); }
+    .bolha.cartao-msg.flash-msg .meta { margin: 0 12px 8px; color: var(--muted); }
+    .flash-msg .fc-cab { display: flex; align-items: center; gap: 8px; padding: 10px 12px 8px; font-size: 12.5px; font-weight: 750; color: var(--muted); line-height: 1.25; }
+    .flash-msg .fc-raio { flex: none; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, #ffd60a, #ff8a00 55%, #ff3d77); box-shadow: 0 3px 10px rgba(255, 106, 0, .35); }
+    .flash-msg .fc-raio svg { width: 13px; height: 13px; fill: #fff; }
+    .flash-msg .fc-mini { position: relative; display: block; margin: 0 10px; aspect-ratio: 9 / 14; border-radius: 16px; overflow: hidden; background: linear-gradient(160deg, #1c2a33, #0b1014); color: rgba(255,255,255,.75); text-decoration: none; isolation: isolate; }
+    .flash-msg .fc-mini::after { content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 2.5px; background: linear-gradient(135deg, #ffd60a, #ff8a00 45%, #ff3d77); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; z-index: 3; }
+    .flash-msg .fc-mini img, .flash-msg .fc-mini video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
     .flash-msg .fc-mini.carregando { animation: fc-pisca 1.2s ease-in-out infinite; }
-    .flash-msg .fc-mini.sumiu { box-shadow: 0 0 0 1px var(--line); padding: 6px; }
     @keyframes fc-pisca { 50% { opacity: .55; } }
-    .flash-msg .fc-lado { flex: 1; min-width: 0; display: grid; gap: 8px; align-content: center; min-height: 100%; padding-top: 4px; }
-    .flash-msg .fc-emoji { font-size: 44px; line-height: 1; }
-    .flash-msg .fc-texto { margin: 0; padding: 8px 11px; border-radius: 14px; background: var(--panel-2, rgba(127,127,127,.12)); font-size: 14.5px; line-height: 1.35; overflow-wrap: anywhere; }
-    .flash-msg .fc-btn { justify-self: start; padding: 8px 12px; border-radius: 10px; background: #00adee; color: #fff; font-size: 13px; font-weight: 800; text-decoration: none; }
-    .flash-msg .fc-ver { font-size: 13px; font-weight: 800; color: #00adee; }
+    .flash-msg .fc-topo { position: absolute; z-index: 2; left: 0; right: 0; top: 0; display: flex; align-items: center; gap: 7px; padding: 10px 10px 26px; background: linear-gradient(rgba(0,0,0,.6), transparent); color: #fff; }
+    .flash-msg .fc-topo .avatar { width: 28px; height: 28px; font-size: 11px; flex: none; box-shadow: 0 0 0 2px #fff; }
+    .flash-msg .fc-topo b { font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 1px 4px rgba(0,0,0,.5); }
+    .flash-msg .fc-tempo { margin-left: auto; flex: none; padding: 2px 7px; border-radius: 999px; background: rgba(0,0,0,.4); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); font-size: 10.5px; font-weight: 800; }
+    .flash-msg .fc-barra { position: absolute; z-index: 2; left: 10px; right: 10px; top: 6px; height: 2.5px; border-radius: 2px; background: rgba(255,255,255,.35); overflow: hidden; }
+    .flash-msg .fc-barra i { display: block; height: 100%; background: #fff; }
+    .flash-msg .fc-baixo { position: absolute; z-index: 2; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; padding: 28px 10px 12px; background: linear-gradient(transparent, rgba(0,0,0,.6)); }
+    .flash-msg .fc-ver { display: inline-flex; align-items: center; gap: 5px; padding: 7px 14px; border-radius: 999px; background: rgba(255,255,255,.18); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,.35); color: #fff; font-size: 12.5px; font-weight: 800; }
+    .flash-msg .fc-ver svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+    .flash-msg .fc-mini.sumiu { aspect-ratio: auto; min-height: 120px; display: grid; place-items: center; align-content: center; gap: 6px; padding: 16px; text-align: center; font-size: 13px; font-weight: 750; }
+    .flash-msg .fc-mini.sumiu svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 1.8; opacity: .8; }
+    .flash-msg .fc-mini.sumiu small { font-weight: 600; opacity: .7; font-size: 11.5px; }
+    .flash-msg .fc-lado { display: grid; gap: 8px; padding: 10px 12px 4px; }
+    .flash-msg .fc-lado:empty { display: none; }
+    .flash-msg .fc-emoji { justify-self: center; font-size: 46px; line-height: 1; margin: -32px 0 0; position: relative; z-index: 4; filter: drop-shadow(0 4px 8px rgba(0,0,0,.35)); }
+    .flash-msg .fc-texto { margin: 0; padding: 9px 12px; border-radius: 16px; background: var(--panel-2, rgba(127,127,127,.12)); font-size: 14.5px; line-height: 1.4; overflow-wrap: anywhere; }
+    .flash-msg .fc-btn { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 10px 12px; border-radius: 14px; background: linear-gradient(135deg, #ff8a00, #ff3d77); color: #fff; font-size: 13.5px; font-weight: 800; text-decoration: none; box-shadow: 0 6px 16px rgba(255, 61, 119, .3); }
+    .flash-msg .fc-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
     .flash-msg .fc-nota { font-size: 11.5px; color: var(--muted); }
     /* Publicação enviada do Diário: cartão próprio (não pega a cor do balão), estilo Instagram */
-    .msg .bolha.pub-msg { width: min(286px, 80vw); max-width: 86%; padding: 0; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 6px 22px rgba(0,0,0,.16); }
+    .bolha.cartao-msg.pub-msg, .minha .bolha.cartao-msg.pub-msg { width: min(286px, 80vw); max-width: 86%; padding: 0; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 6px 22px rgba(0,0,0,.16); }
     .pub-msg .pc { display: block; color: inherit; text-decoration: none; -webkit-tap-highlight-color: transparent; }
     .pub-msg .pc-cab { display: flex; align-items: center; gap: 9px; padding: 10px 12px; }
     .pub-msg .pc-av { width: 34px; height: 34px; font-size: 12px; flex: none; box-shadow: 0 0 0 2px var(--panel), 0 0 0 3.5px color-mix(in srgb, var(--accent) 65%, transparent); }
@@ -369,7 +384,8 @@
     .pub-msg .pc:hover .pc-ver svg { transform: translateX(3px); }
     .pub-msg .pc.sumiu .pc-midia { aspect-ratio: auto; min-height: 96px; font-weight: 700; display: grid; gap: 6px; padding: 18px; }
     .pub-msg .pc.sumiu .pc-midia svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.8; }
-    .msg .bolha.pub-msg .meta { margin: 0 12px 8px; }
+    .bolha.cartao-msg.pub-msg .meta { margin: 0 12px 8px; color: var(--muted); }
+    .bolha.cartao-msg.pub-msg .meta .check { filter: none; }
     .cartao-msg .cm-tx { padding: 9px 11px 4px; display: grid; gap: 2px; }
     .cartao-msg .cm-tipo { font-size: 11px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: var(--assunto); }
     .cartao-msg .cm-tx strong { font-size: 14.5px; line-height: 1.3; }
@@ -1104,14 +1120,14 @@
 
   <script type="module">
     import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura, mostrarAvisoEmail } from "./seguranca.js?v=1";
-    import { confirmarHF } from "./confirmar.js?v=3";
+    import { confirmarHF } from "./confirmar.js?v=4";
     import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO } from "./avaliacoes.js?v=13";
     import { buscarPessoas } from "./pessoas.js?v=3";
     import { docComValidade } from "./leituras.js?v=1";
     import { comRitmo } from "./ritmo.js?v=2";
     import { criarPlayerAudio } from "./audio-ondas.js?v=1";
     import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=6";
-    import { abrirQueixa } from "./queixas.js?v=10";
+    import { abrirQueixa } from "./queixas.js?v=11";
     import { ouvirItensEquipe, linkEquipe, seloOficial, TEXTO_EQUIPE } from "./avisos-equipe.js?v=1";
     import { escolherApagar, editarTextoHF, verEdicoesHF, janelaHF, horaCurta, noPrazo, tempoRestante, podeMexer } from "./msg-acoes.js?v=2";
     // ======================================================
@@ -1876,40 +1892,62 @@
         default: return meu ? `Você enviou o flash de ${quem}` : `Enviou o flash de ${quem}`;
       }
     }
+    const SVG_FC = {
+      raio: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 2L4 14h7l-1.5 8L20 10h-7z"/></svg>',
+      olho: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></svg>',
+      mais: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
+      sumiu: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>'
+    };
     function cartaoFlash(c, m) {
       const meu = m.remetenteId === eu.uid;
       const id = /^[A-Za-z0-9]{1,64}$/.test(String(c.flashId || "")) ? c.flashId : "";
       const box = document.createElement("div"); box.className = "fc";
       const cab = document.createElement("div"); cab.className = "fc-cab";
-      const raio = document.createElement("span"); raio.className = "fc-raio"; raio.textContent = "⚡";
+      const raio = document.createElement("span"); raio.className = "fc-raio"; raio.innerHTML = SVG_FC.raio;
       cab.append(raio, document.createTextNode(rotuloFlash(c, meu)));
-      const corpo = document.createElement("div"); corpo.className = "fc-corpo";
       const mini = document.createElement("a"); mini.className = "fc-mini carregando"; mini.target = "_top";
       if (id) mini.href = `feed.html?flash=${encodeURIComponent(id)}`;
       mini.setAttribute("aria-label", "Ver o flash");
+      // Por cima da miniatura: quem publicou, quanto tempo falta e "Ver flash".
+      const topo = document.createElement("div"); topo.className = "fc-topo";
+      const av = document.createElement("span"); av.className = "avatar"; pintarAvatar(av, "", c.nome || "Flash");
+      const quem = document.createElement("b"); quem.textContent = String(c.nome || "Flash").split(" ").slice(0, 2).join(" ");
+      const tempo = document.createElement("span"); tempo.className = "fc-tempo";
+      topo.append(av, quem, tempo);
+      const barra = document.createElement("span"); barra.className = "fc-barra"; const bi = document.createElement("i"); barra.appendChild(bi);
+      const baixo = document.createElement("div"); baixo.className = "fc-baixo";
+      const ver = document.createElement("span"); ver.className = "fc-ver"; ver.innerHTML = SVG_FC.olho; ver.append("Ver flash");
+      baixo.appendChild(ver);
+      mini.append(barra, topo, baixo);
       const lado = document.createElement("div"); lado.className = "fc-lado";
       if (c.acao === "reacao" && c.emoji) { const e = document.createElement("span"); e.className = "fc-emoji"; e.textContent = String(c.emoji).slice(0, 8); lado.appendChild(e); }
       if (c.texto) { const t = document.createElement("p"); t.className = "fc-texto"; t.textContent = String(c.texto).slice(0, 300); lado.appendChild(t); }
       let botao = null;
       if (c.acao === "mencao" && !meu && id) {
         botao = document.createElement("a"); botao.className = "fc-btn"; botao.target = "_top"; botao.href = `feed.html?repostar=${encodeURIComponent(id)}`;
-        botao.textContent = "Adicionar ao seu flash"; lado.appendChild(botao);
+        botao.innerHTML = SVG_FC.mais; botao.append("Adicionar ao seu flash"); lado.appendChild(botao);
       }
-      if (!lado.children.length) { const v = document.createElement("span"); v.className = "fc-ver"; v.textContent = "Ver flash ›"; lado.appendChild(v); }
-      corpo.append(mini, lado);
-      box.append(cab, corpo);
-      if (!id) return box;
+      box.append(cab, mini, lado);
+      if (!id) { mini.classList.remove("carregando"); return box; }
+      obterPerfil(c.autorId).then((p) => { if (p?.nome) quem.textContent = String(p.nome).split(" ").slice(0, 2).join(" "); pintarAvatar(av, p?.fotoPerfil, p?.nome || c.nome); }).catch(() => {});
       lerFlash(id).then((f) => {
         mini.classList.remove("carregando");
         if (f === undefined) return; // sem internet
         if (!f || f.tipo === "video" && !/^https:/.test(String(f.midia || ""))) {
-          mini.classList.add("sumiu"); mini.removeAttribute("href"); mini.textContent = "Flash indisponível";
-          botao?.remove(); box.querySelector(".fc-ver")?.remove();
-          const n = document.createElement("small"); n.className = "fc-nota"; n.textContent = "Os flashes ficam no ar por 24 horas."; lado.appendChild(n);
+          mini.classList.add("sumiu"); mini.removeAttribute("href"); mini.replaceChildren(); mini.insertAdjacentHTML("afterbegin", SVG_FC.sumiu);
+          const t = document.createElement("span"); t.textContent = "Flash indisponível";
+          const n = document.createElement("small"); n.textContent = "Os flashes ficam no ar por 24 horas.";
+          mini.append(t, n);
+          botao?.remove();
           return;
         }
-        if (f.tipo === "video") { const v = document.createElement("video"); v.src = f.midia; v.muted = true; v.playsInline = true; v.preload = "metadata"; mini.appendChild(v); }
-        else if (urlSegura(f.midia)) { const im = document.createElement("img"); im.src = urlSegura(f.midia); im.alt = "Miniatura do flash"; im.loading = "lazy"; im.decoding = "async"; mini.appendChild(im); }
+        if (f.tipo === "video") { const v = document.createElement("video"); v.src = f.midia; v.muted = true; v.playsInline = true; v.preload = "metadata"; mini.prepend(v); }
+        else if (urlSegura(f.midia)) { const im = document.createElement("img"); im.src = urlSegura(f.midia); im.alt = "Miniatura do flash"; im.loading = "lazy"; im.decoding = "async"; mini.prepend(im); }
+        // Quanto falta das 24 h (a barra fina em cima, como no visor).
+        const resta = 864e5 - (Date.now() - (ms(f.criadoEm) || Date.now()));
+        bi.style.width = Math.max(4, Math.min(100, (resta / 864e5) * 100)) + "%";
+        tempo.textContent = resta > 3600e3 ? `${Math.floor(resta / 3600e3)} h` : `${Math.max(1, Math.round(resta / 60e3))} min`;
+        tempo.title = "Tempo até o flash sair do ar";
       });
       return box;
     }
@@ -3004,7 +3042,7 @@
     // Denunciar uma mensagem recebida (a pessoa não é avisada).
     async function denunciarMensagem(m) {
       if (!ativa) return;
-      const { abrirDenuncia } = await import("./denuncias.js?v=3");
+      const { abrirDenuncia } = await import("./denuncias.js?v=4");
       const outro = ativa.outroId;
       // Contexto para a equipe: até 5 mensagens antes e 5 depois (só os ids; o painel lê do servidor).
       const salvas = mensagens.filter((x) => !x.pendente);
@@ -3970,7 +4008,7 @@
     // Sair da conta (fim das configurações), com confirmação
     // ======================================================
     // A mesma janela "Sair da conta?" do menu e das configurações do perfil (confirmar.js).
-    $("btnSairConta").addEventListener("click", () => import("./confirmar.js?v=3").then((m) => m.sairDaConta({ antes: () => { try { sessionStorage.removeItem(CHAVE_AVAL); } catch {} } })));
+    $("btnSairConta").addEventListener("click", () => import("./confirmar.js?v=4").then((m) => m.sairDaConta({ antes: () => { try { sessionStorage.removeItem(CHAVE_AVAL); } catch {} } })));
 
     // ======================================================
     // Atendimento do negócio (configurações)

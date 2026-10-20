@@ -3,9 +3,9 @@
 // Só entra quem tem o documento admins/{uid} (criado à mão no console do
 // Firebase). As regras do Firestore conferem isso em cada leitura e ação.
 // =====================================================
-import { C, D, $, h, ms, toast, PAPEIS, vendoAgora, pode, garantirNegocios, garantirTodasPessoas, carregarPessoas } from "./admin-base.js?v=13";
-import * as S from "./admin-secoes.js?v=26";
-import { previa, tocarSom } from "./admin-chat.js?v=13";
+import { C, D, $, h, ms, toast, PAPEIS, vendoAgora, pode, garantirNegocios, garantirTodasPessoas, carregarPessoas } from "./admin-base.js?v=14";
+import * as S from "./admin-secoes.js?v=27";
+import { previa, tocarSom } from "./admin-chat.js?v=14";
 
 const SECOES = {
   visao: S.visao, estatisticas: S.estatisticas, relatorios: S.relatorios, usuarios: S.usuarios, verificacoes: S.verificacoes,
@@ -19,6 +19,11 @@ const PRECISAM_NEGOCIOS = new Set(["estatisticas", "relatorios", "verificacoes",
 // Seções que usam todas as contas (gráficos de idade, cidade, bairro...).
 const PRECISAM_PESSOAS = new Set(["estatisticas", "relatorios"]);
 
+let porHistorico = false;
+addEventListener("popstate", () => {
+  const s = location.hash.slice(1) || "visao";
+  if (s !== atual && SECOES[s] && C.irPara) { porHistorico = true; try { irPara(s); } finally { porHistorico = false; } }
+});
 function irPara(sec, termo = "") {
   let filtro = "";
   if (sec.includes(":")) [sec, filtro] = sec.split(":");
@@ -39,7 +44,9 @@ function irPara(sec, termo = "") {
     else if (sec === "usuarios" && filtro) { const chip = filtro; SECOES.usuarios(el, termo); el.querySelector(`.ad-chip:nth-child(${["todos", "novos", "ativos", "inativos", "negocio", "verificados", "desativado", "exclusao", "sancao"].indexOf(chip) + 1})`)?.click(); }
     else SECOES[sec](el, termo);
   } catch (e) { console.error(e); el.appendChild(h("div", "ad-vazio", "Não foi possível montar esta seção: " + e.message)); }
-  history.replaceState(history.state, "", `admin.html#${sec}`);
+  // Trocar de seção é um passo no histórico: o "voltar" volta para a seção anterior.
+  if (!porHistorico && location.hash.slice(1) && location.hash.slice(1) !== sec) { const st = { ...(history.state || {}) }; delete st.hfBase; delete st.hfGuarda; delete st.hfCamadas; history.pushState(st, "", `admin.html#${sec}`); }
+  else history.replaceState(history.state, "", `admin.html#${sec}`);
   C.marcarItem?.(null);
   requestAnimationFrame(() => C.pintarVendo?.());
   if (C.marcarPresenca && sec !== ultimaPresenca) { ultimaPresenca = sec; C.marcarPresenca(true); }

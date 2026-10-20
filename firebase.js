@@ -51,8 +51,10 @@ setStatus(`Firebase conectado (${firebaseConfig.projectId})`, "ok");
 
 // Listas (<select>) e horários no visual do site, no lugar das janelas do celular (campos.js).
 import("./campos.js?v=1").then((m) => m.ligarCampos()).catch((e) => console.warn("[Campos]", e?.message || e));
+// "Voltar" fecha a janela que está aberta por cima, em vez de sair da página (voltar.js).
+import("./voltar.js?v=1").then((m) => m.ligarVoltar()).catch((e) => console.warn("[Voltar]", e?.message || e));
 // "Voltar" que tiraria a pessoa do site pergunta antes ("Sair do Help Floripa?").
-import("./confirmar.js?v=3").then((m) => m.guardarSaida()).catch((e) => console.warn("[Saída]", e?.message || e));
+import("./confirmar.js?v=4").then((m) => m.guardarSaida()).catch((e) => console.warn("[Saída]", e?.message || e));
 
 // Portão da conta: quem entra com a conta desativada ou com a exclusão pedida vai para
 // conta.html (reativar / recuperar). Confere uma vez por sessão do navegador.

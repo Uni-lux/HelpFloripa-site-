@@ -13,12 +13,12 @@ import {
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, botaoSeguir, montarBarraRede, pintarBarraRede, ouvirAvisos, lerOrdenado,
   editarPublicacao, bloquear, comMencoes, fotosDoPost, carrosselFotos, contadorEstrelas, estaSalvo, alternarSalvo, escolherColecao, lerResumosEstrelas, contarComentarios,
   silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto, confirmarHF, blocoEnquete, blocoCaixa
-} from "./rede.js?v=45";
+} from "./rede.js?v=46";
 import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=1";
-import { montarStories, abrirFlashPorId, repostarFlash } from "./stories.js?v=16";
-import { abrirDenuncia } from "./denuncias.js?v=3";
+import { montarStories, abrirFlashPorId, repostarFlash } from "./stories.js?v=17";
+import { abrirDenuncia } from "./denuncias.js?v=4";
 import { pessoasRecentes } from "./pessoas.js?v=3";
-import { abrirExplorar, definirCartao } from "./explorar.js?v=3";
+import { abrirExplorar, definirCartao } from "./explorar.js?v=4";
 import { docsComValidade } from "./leituras.js?v=1";
 
 const POR_VEZ = 10;
@@ -33,16 +33,19 @@ let aba = "diario", filtro = "principais";
 let posts = [], mostrados = 0;
 
 // ---------- abas ----------
-function trocarAba(nova) {
+function trocarAba(nova, { passo = false } = {}) {
+  // Tocar na aba é um passo no histórico: o "voltar" volta para a aba anterior.
+  if (passo && nova !== aba) { const st = { ...(history.state || {}), hfAbaFeed: nova }; delete st.hfBase; delete st.hfGuarda; delete st.hfCamadas; history.pushState(st, "", nova === "explorar" ? "feed.html?aba=explorar" : "feed.html"); }
   aba = nova;
   document.querySelectorAll("#abasFeed [data-aba]").forEach((b) => b.setAttribute("aria-selected", b.dataset.aba === aba ? "true" : "false"));
   $("painelFeed").hidden = aba !== "diario";
   $("painelExplorar").hidden = aba !== "explorar";
-  history.replaceState(history.state, "", aba === "explorar" ? "feed.html?aba=explorar" : "feed.html");
+  if (!passo) history.replaceState({ ...(history.state || {}), hfAbaFeed: aba }, "", aba === "explorar" ? "feed.html?aba=explorar" : "feed.html");
   if (aba === "explorar") abrirExplorar();
   else carregarFeed();
 }
-document.querySelectorAll("#abasFeed [data-aba]").forEach((b) => b.addEventListener("click", () => trocarAba(b.dataset.aba)));
+document.querySelectorAll("#abasFeed [data-aba]").forEach((b) => b.addEventListener("click", () => trocarAba(b.dataset.aba, { passo: true })));
+addEventListener("popstate", () => { const a = history.state?.hfAbaFeed || (new URLSearchParams(location.search).get("aba") === "explorar" ? "explorar" : "diario"); if (a !== aba && eu) trocarAba(a); });
 function pintarFiltro() {
   $("filtroAtual").textContent = tagAtual ? "#" + tagAtual : FILTROS[filtro];
   $("filtroFeedBtn").classList.toggle("com-tag", !!tagAtual);
@@ -229,7 +232,7 @@ function cartaoPost(post) {
       : { rotulo: "Salvar publicação", sub: "Para ver depois no seu Perfil → Salvos", icone: "salvo", fn: () => alternarSalvo(post) },
     { rotulo: "Salvar em uma coleção", sub: "Organize seus salvos em pastas", icone: "fotos", fn: () => escolherColecao(post) },
     { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(post.autorId, post.nome) },
-    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=12").then((m) => m.abrirEstatisticas(post)) },
+    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=13").then((m) => m.abrirEstatisticas(post)) },
     post.autorId === eu.uid && { rotulo: "Editar publicação", icone: "lapis", fn: () => editarPublicacao(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId !== eu.uid && { rotulo: silenciado(post.autorId) ? `Mostrar ${nome.textContent} de novo` : `Silenciar ${nome.textContent}`, sub: "Continua seguindo, mas as publicações e flashes somem do seu Diário", icone: "restringir",
       fn: async () => { await alternarSilenciar(post.autorId, nome.textContent); if (silenciado(post.autorId)) { posts = posts.filter((x) => x.autorId !== post.autorId); document.querySelectorAll(".post-card").forEach((x) => { if (x.dataset.autor === post.autorId) x.remove(); }); } } },

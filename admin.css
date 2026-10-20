@@ -622,3 +622,8 @@ input.ad-sel { flex: 1 1 220px; padding: 0 12px; }
 .eq-foto-grupo, .eq-av-com-lapis { position: relative; display: inline-block; flex: none; }
 .eq-lapis-p { width: 19px; height: 19px; right: -4px; bottom: -4px; cursor: pointer; }
 .eq-lapis-p:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* Cobrar resposta (reclamações): quem cobrou e quando */
+.ad-cobrar { display: grid; gap: 4px; justify-items: start; }
+.ad-cobrado { color: var(--muted); font-size: 11.5px; white-space: nowrap; }
+.ad-cobrado[hidden] { display: none; }

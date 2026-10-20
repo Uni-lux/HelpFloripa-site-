@@ -5,7 +5,7 @@
 // console do Firebase. As regras conferem que o item é mesmo de quem foi denunciado.
 // =====================================================
 
-import { avisoHF } from "./confirmar.js?v=3";
+import { avisoHF } from "./confirmar.js?v=4";
 export const MOTIVOS_DENUNCIA = [
   ["golpe", "Golpe ou fraude", "Pediu pagamento adiantado, cobrou e sumiu, link suspeito"],
   ["falso", "Perfil falso", "Se passa por outra pessoa ou empresa"],

@@ -1,19 +1,19 @@
 // =====================================================
 // Painel do administrador — seções
 // =====================================================
-import { confirmarHF } from "./confirmar.js?v=3";
+import { confirmarHF } from "./confirmar.js?v=4";
 import { linha, linhaComparada, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=7";
 import { baixarPlanilhaMulti } from "./planilha.js?v=5";
 import { buscarPessoas } from "./pessoas.js?v=3";
-import { montarChat } from "./admin-chat.js?v=13";
-import { verConteudoDenuncia } from "./admin-denuncia.js?v=6";
+import { montarChat } from "./admin-chat.js?v=14";
+import { verConteudoDenuncia } from "./admin-denuncia.js?v=7";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
 import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha,
   PAPEIS, DESC_PAPEIS, pode, semPermissao, nomeEquipe, vendoAgora, marcarItem, seloResp, confirmarItem, controlesResp, espera,
   PRIORIDADES, editarTarefa, moverTarefa, garantirNegocios, garantirTodasPessoas, carregarPessoas, guardarPessoas
-} from "./admin-base.js?v=13";
+} from "./admin-base.js?v=14";
 
 const cab = (titulo, sub, extra) => { const c = h("div", "ad-cab"); const t = h("div"); t.append(h("h1", null, titulo)); if (sub) t.append(h("p", null, sub)); c.appendChild(t); if (extra) c.appendChild(extra); return c; };
 const bloco = (titulo, sub) => { const b = h("section", "ad-bloco"); const t = h("div", "ad-bloco-topo"); const tt = h("div"); tt.append(h("h3", null, titulo)); if (sub) tt.append(h("p", null, sub)); t.appendChild(tt); b.appendChild(t); b.topo = t; return b; };
@@ -445,16 +445,34 @@ export function reclamacoes(el) {
   const tab = h("div", "ad-tabela"); const t = document.createElement("table");
   const th = h("tr"); ["Aberta em", "Cliente", "Negócio", "Motivo", "Situação", "Relato", ""].forEach((x) => th.appendChild(h("th", null, x)));
   const thead = h("thead"); thead.appendChild(th); const tb = h("tbody");
+  // Cobranças já feitas (de qualquer pessoa da equipe), lidas do registro de ações.
+  const cobradas = new Map(), pintores = [];
+  lerCobrancas().then((m) => { m.forEach((v, k) => cobradas.set(k, v)); pintores.forEach((f) => f()); });
   [...q].sort((a, b) => ms(b.abertaEm) - ms(a.abertaEm)).slice(0, 300).forEach((x) => {
     const tr = h("tr", "clicavel");
     const atras = x.status === "aberta" && !x.resposta && ms(x.abertaEm) < agora() - 7 * DIA;
     const st = h("td"); st.appendChild(selo(x.status === "resolvida" ? "Resolvida" : atras ? "Sem resposta" : x.resposta ? "Respondida" : "Aguardando", x.status === "resolvida" ? "bom" : atras ? "critico" : x.resposta ? "info" : "atencao"));
     const acao = h("td");
-    if (x.status === "aberta" && !x.resposta) acao.appendChild(btn(x.cobradaEm ? "Cobrado" : "Cobrar resposta", "mini", async (b) => {
-      if (x.cobradaEm && !(await confirmarHF({ titulo: "Cobrar de novo?", texto: "Este negócio já foi cobrado nesta sessão.", ok: "Cobrar de novo", icone: "alerta", cor: "normal" }))) return;
-      await enviarAviso(x.alvoId, { titulo: "Você tem uma reclamação sem resposta", texto: `Um cliente abriu uma reclamação sobre "${x.negocioNome || "seu negócio"}" em ${data(x.abertaEm)} e ainda não teve resposta.\n\nResponda pela página Reclamações. Reclamações sem resposta pesam na confiança do seu perfil.`, tipo: "alerta" });
-      x.cobradaEm = agora(); b.textContent = "Cobrado"; toast("Negócio avisado");
-    }));
+    if (x.status === "aberta" && !x.resposta) {
+      // A cobrança fica guardada no registro de ações (admin_log): sair e voltar mostra quem cobrou e quando.
+      const b = btn("Cobrar resposta", "mini", async () => {
+        const ult = cobradas.get(x.id);
+        if (ult && !(await confirmarHF({ titulo: "Cobrar de novo?", texto: `${ult.porNome || nomeEquipe(ult.por) || "Alguém da equipe"} já cobrou ${relativo(ult.em)}. O negócio recebe outro aviso.`, ok: "Cobrar de novo", icone: "alerta", cor: "normal" }))) return;
+        await enviarAviso(x.alvoId, { titulo: "Você tem uma reclamação sem resposta", texto: `Um cliente abriu uma reclamação sobre "${x.negocioNome || "seu negócio"}" em ${data(x.abertaEm)} e ainda não teve resposta.\n\nResponda pela página Reclamações. Reclamações sem resposta pesam na confiança do seu perfil.`, tipo: "alerta" });
+        await registrar("cobrar_reclamacao", x.alvoId, `queixa:${x.id} ${x.negocioNome || ""}`);
+        cobradas.set(x.id, { por: C.eu.uid, porNome: C.nome, em: { toMillis: () => Date.now() } });
+        pintarCobranca(); toast("Negócio avisado");
+      });
+      const info = h("small", "ad-cobrado");
+      const pintarCobranca = () => {
+        const ult = cobradas.get(x.id);
+        b.textContent = ult ? "Cobrar de novo" : "Cobrar resposta";
+        info.textContent = ult ? `Cobrado ${relativo(ult.em)} · ${ult.porNome || nomeEquipe(ult.por) || "equipe"}` : "";
+        info.hidden = !ult;
+      };
+      pintores.push(pintarCobranca); pintarCobranca();
+      const w = h("div", "ad-cobrar"); w.append(b, info); acao.appendChild(w);
+    }
     tr.append(h("td", null, data(x.abertaEm)), h("td", null, pessoa(x.autorId).nome || x.autorNome || "—"), h("td", null, x.negocioNome || x.negocioId), h("td", null, MOTIVOS_QX[x.motivo] || x.motivo), st, h("td", null, String(x.texto || "").slice(0, 80)), acao);
     tr.addEventListener("click", (e) => { if (!e.target.closest("button")) abrirFicha(x.alvoId); });
     tb.appendChild(tr);
@@ -673,6 +691,17 @@ function reportesSuporte(el) {
   pintar();
 }
 let abrirChamadoSuporte = null; // ligado pela seção Suporte (abrir a conversa a partir de um reporte)
+
+// "Cobrar resposta" das reclamações: a última cobrança de cada uma (admin_log, acao cobrar_reclamacao).
+let cobrancasP = null;
+function lerCobrancas() {
+  const { fb } = C;
+  return (cobrancasP ||= fb.getDocs(fb.query(fb.collection(fb.db, "admin_log"), fb.where("acao", "==", "cobrar_reclamacao"), fb.limit(2000))).then((s) => {
+    const m = new Map();
+    s.docs.forEach((d) => { const x = d.data(); const id = (String(x.detalhe || "").match(/^queixa:([\w-]+)/) || [])[1]; if (id && (!m.has(id) || ms(x.em) > ms(m.get(id).em))) m.set(id, x); });
+    return m;
+  }).catch((e) => { cobrancasP = null; console.warn("Cobranças:", e.code || e); return new Map(); }));
+}
 
 // ======================================================= SUPORTE
 let filtroSup = "aberto";
@@ -1114,7 +1143,7 @@ export function relatorios(el) {
 }
 
 // ======================================================= REGISTRO E EQUIPE
-const NOMES_ACAO = { aviso: "Enviou aviso", suspender: "Suspendeu", banir: "Baniu", remover_sancao: "Removeu sanção", verificar: "Deu selo", tirar_selo: "Tirou/recusou selo", remover_conteudo: "Removeu conteúdo", esconder_negocio: "Escondeu negócio", mostrar_negocio: "Mostrou negócio", esconder_publicacao: "Escondeu publicação", mostrar_publicacao: "Mostrou publicação", exportar: "Exportou dados", relatorio_pdf: "Gerou relatório", parceria: "Atualizou parceria", parceria_apagar: "Apagou parceria", suporte_resposta: "Respondeu chamado", suporte_conversa: "Abriu conversa de suporte", suporte_fechado: "Fechou chamado", suporte_aberto: "Reabriu chamado", reporte_novo: "Reportou pessoa do suporte", reporte_em_analise: "Pôs reporte em análise", reporte_resolvido: "Resolveu reporte", reporte_descartado: "Descartou reporte", comunicado_novo: "Criou comunicado", comunicado_editar: "Editou comunicado", comunicado_on: "Pôs comunicado no ar", comunicado_off: "Tirou comunicado do ar", comunicado_apagar: "Apagou comunicado", denuncia_resolvida: "Resolveu denúncia", denuncia_descartada: "Descartou denúncia", denuncia_em_analise: "Pôs denúncia em análise", assumiu: "Assumiu", passou: "Passou para outra pessoa", liberou: "Liberou", tarefa_nova: "Criou tarefa", tarefa_editar: "Editou tarefa", tarefa_a_fazer: "Voltou tarefa", tarefa_fazendo: "Começou tarefa", tarefa_feito: "Concluiu tarefa", tarefa_apagar: "Apagou tarefa", nota_interna: "Escreveu nota interna", entrou: "Entrou no painel" };
+const NOMES_ACAO = { aviso: "Enviou aviso", suspender: "Suspendeu", banir: "Baniu", remover_sancao: "Removeu sanção", verificar: "Deu selo", tirar_selo: "Tirou/recusou selo", remover_conteudo: "Removeu conteúdo", esconder_negocio: "Escondeu negócio", mostrar_negocio: "Mostrou negócio", esconder_publicacao: "Escondeu publicação", mostrar_publicacao: "Mostrou publicação", exportar: "Exportou dados", relatorio_pdf: "Gerou relatório", parceria: "Atualizou parceria", parceria_apagar: "Apagou parceria", suporte_resposta: "Respondeu chamado", suporte_conversa: "Abriu conversa de suporte", suporte_fechado: "Fechou chamado", suporte_aberto: "Reabriu chamado", reporte_novo: "Reportou pessoa do suporte", cobrar_reclamacao: "Cobrou resposta de reclamação", reporte_em_analise: "Pôs reporte em análise", reporte_resolvido: "Resolveu reporte", reporte_descartado: "Descartou reporte", comunicado_novo: "Criou comunicado", comunicado_editar: "Editou comunicado", comunicado_on: "Pôs comunicado no ar", comunicado_off: "Tirou comunicado do ar", comunicado_apagar: "Apagou comunicado", denuncia_resolvida: "Resolveu denúncia", denuncia_descartada: "Descartou denúncia", denuncia_em_analise: "Pôs denúncia em análise", assumiu: "Assumiu", passou: "Passou para outra pessoa", liberou: "Liberou", tarefa_nova: "Criou tarefa", tarefa_editar: "Editou tarefa", tarefa_a_fazer: "Voltou tarefa", tarefa_fazendo: "Começou tarefa", tarefa_feito: "Concluiu tarefa", tarefa_apagar: "Apagou tarefa", nota_interna: "Escreveu nota interna", entrou: "Entrou no painel" };
 export function registro(el) {
   const excel = btn("Baixar Excel", "", () => { const l = filtrar(); baixarCSV("registro-equipe", ["Quando", "Quem", "Ação", "Alvo", "Detalhe"], l.map((x) => [dataHora(x.em), x.porNome || nomeEquipe(x.por), NOMES_ACAO[x.acao] || x.acao, D.pessoas.get(x.alvo)?.nome || x.alvo || "", x.detalhe || ""])); });
   el.appendChild(cab("Registro de ações", "Tudo o que a equipe faz no painel fica aqui. Não pode ser apagado.", excel));
