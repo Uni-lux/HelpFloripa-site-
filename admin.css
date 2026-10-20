@@ -644,3 +644,24 @@ input.ad-sel { flex: 1 1 220px; padding: 0 12px; }
   .ad-registro .ad-reg-det { grid-column: 1 / -1; color: var(--muted); font-size: 13px; }
   .ad-registro .ad-reg-det:empty { display: none; }
 }
+/* Registro: nada passa do cartão (códigos longos quebram) e cada ação abre os detalhes */
+.ad-registro td { overflow-wrap: anywhere; word-break: break-word; }
+.ad-registro tr.clicavel { cursor: pointer; }
+.ad-registro tr.clicavel:hover { background: var(--hover, rgba(127,127,127,.06)); }
+.ad-reg-ver span { color: var(--accent); font-size: 12.5px; font-weight: 750; white-space: nowrap; }
+.ad-acao-det { width: min(520px, 100%); }
+.ad-acao-tag { display: inline-block; padding: 3px 10px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); font-size: 12px; font-weight: 800; }
+.ad-acao-det h3 { margin: 8px 0 12px; overflow-wrap: anywhere; }
+.ad-acao-dl { display: grid; grid-template-columns: 110px 1fr; gap: 8px 12px; margin: 0 0 14px; font-size: 14px; }
+.ad-acao-dl dt { color: var(--muted); font-weight: 650; }
+.ad-acao-dl dd { margin: 0; overflow-wrap: anywhere; }
+.ad-acao-item { display: grid; gap: 4px; margin: 0 0 14px; padding: 12px 14px; border-radius: 14px; background: var(--panel-2, rgba(127,127,127,.08)); border: 1px solid var(--line); font-size: 13.5px; overflow-wrap: anywhere; }
+.ad-acao-item span { color: var(--muted); }
+.ad-acao-item q { margin-top: 4px; font-style: italic; }
+@media (max-width: 760px) {
+  .ad-registro { width: 100%; max-width: 100%; }
+  .ad-registro tr { min-width: 0; }
+  .ad-registro .ad-reg-ver { grid-column: 1 / -1; padding-top: 6px; border-top: 1px solid var(--line); margin-top: 4px; }
+  .ad-acao-dl { grid-template-columns: 1fr; gap: 2px; }
+  .ad-acao-dl dd { margin-bottom: 8px; }
+}
