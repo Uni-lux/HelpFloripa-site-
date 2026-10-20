@@ -11,7 +11,7 @@
 import { buscarReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=15";
 import { fotoSegura } from "./seguranca.js?v=1";
 import { buscarItensEquipe, TEXTO_EQUIPE, linkEquipe, seloOficial, SUPORTE } from "./avisos-equipe.js?v=1";
-import { enquetesEncerradas, textoEnqueteFim } from "./enquetes.js?v=2";
+import { enquetesEncerradas, textoEnqueteFim } from "./enquetes.js?v=3";
 
 const ms = (ts) => ts?.toMillis?.() ?? (typeof ts === "number" ? ts : 0);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };

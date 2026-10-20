@@ -286,7 +286,7 @@ const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julh
 const SEMANA = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
 const maiuscula = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 const isoDia = (d) => `${d.getFullYear()}-${dois(d.getMonth() + 1)}-${dois(d.getDate())}`;
-const lerDia = (v) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || ""); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; };
+const lerDia = (v) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(v || ""); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; };
 export function abrirData(input) {
   const min = lerDia(input.min), max = lerDia(input.max);
   const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
@@ -381,11 +381,29 @@ export function abrirData(input) {
   const limpar = document.createElement("button"); limpar.type = "button"; limpar.className = "sec"; limpar.textContent = input.required || !input.value ? "Cancelar" : "Limpar";
   const pronto = document.createElement("button"); pronto.type = "button"; pronto.className = "pri"; pronto.textContent = "Pronto";
   limpar.addEventListener("click", () => { if (!input.required && input.value) { input.value = ""; disparar(input); } fechar(); });
+  const comHora = input.type === "datetime-local";
+  if (comHora) pronto.textContent = "Escolher horário";
   pronto.addEventListener("click", () => {
     if (!escolhido) { fechar(); return; }
     const v = isoDia(escolhido);
-    if (input.value !== v) { input.value = v; disparar(input); }
+    if (!comHora) {
+      if (input.value !== v) { input.value = v; disparar(input); }
+      fechar();
+      return;
+    }
+    // Data e hora: depois do dia, as rodas do horário (começa no horário que já estava, ou no do limite).
     fechar();
+    const tmp = document.createElement("input"); tmp.type = "time"; tmp.step = input.step || 300; tmp.required = true;
+    tmp.dataset.titulo = `Horário · ${escolhido.getDate()} de ${MESES[escolhido.getMonth()]}`;
+    const hAtual = /T(\d{2}:\d{2})/.exec(input.value || "")?.[1] || (v === String(input.min).slice(0, 10) && /T(\d{2}:\d{2})/.exec(input.min)?.[1]) || "";
+    tmp.dataset.padrao = hAtual || "09:00"; // vazio: o "Pronto" das rodas sempre grava
+    tmp.addEventListener("change", () => {
+      let valor = `${v}T${tmp.value}`;
+      if (input.min && valor < input.min.slice(0, 16)) valor = input.min.slice(0, 16);
+      if (input.max && valor > input.max.slice(0, 16)) valor = input.max.slice(0, 16);
+      if (input.value !== valor) { input.value = valor; disparar(input); }
+    });
+    setTimeout(() => abrirHora(tmp), 280);
   });
   rod.append(limpar, pronto); cx.appendChild(rod);
   pintarVisor(); pintar();
@@ -394,7 +412,7 @@ export function abrirData(input) {
 
 // ---------- ligar no documento inteiro ----------
 const alvo = (e) => {
-  const c = e.target?.closest?.("select, input[type=time], input[type=date]");
+  const c = e.target?.closest?.("select, input[type=time], input[type=date], input[type=datetime-local]");
   if (!c || c.disabled || c.readOnly || c.dataset.nativo != null || c.dataset.enfeitado || c.closest("[data-nativo]")) return null;
   if (c.tagName === "SELECT" && (c.multiple || c.size > 1)) return null;
   return c;
@@ -402,7 +420,7 @@ const alvo = (e) => {
 const abrir = (c) => {
   if (Date.now() - (c._hfcEm || 0) < 500) return;
   c._hfcEm = Date.now();
-  if (c.tagName === "SELECT") abrirSelect(c); else if (c.type === "date") abrirData(c); else abrirHora(c);
+  if (c.tagName === "SELECT") abrirSelect(c); else if (c.type === "date" || c.type === "datetime-local") abrirData(c); else abrirHora(c);
 };
 let inicio = null;
 export function ligarCampos() {

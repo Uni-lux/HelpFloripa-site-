@@ -177,19 +177,68 @@
     .faixa-atend[hidden], .faixa-fixada[hidden] { display: none; }
     /* Atendimento do negócio: uma linha só (não rouba espaço da conversa, nem com o teclado aberto).
        Tocar mostra o aviso inteiro. */
-    .faixa-atend { display: block; flex-shrink: 0; padding: 6px 14px; color: var(--muted); font-size: 12.5px; line-height: 1.45; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: default; }
-    .faixa-atend.longa { cursor: pointer; padding-right: 34px; position: relative; }
-    .faixa-atend.longa::after { content: ""; position: absolute; right: 14px; top: 11px; width: 7px; height: 7px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); transition: transform .2s; }
-    .faixa-atend.aberta { white-space: normal; }
-    .faixa-atend.aberta::after { transform: translateY(3px) rotate(-135deg); }
+    .faixa-atend { display: block; flex-shrink: 0; position: relative; padding: 7px 34px 7px 14px; color: var(--muted); font-size: 12.5px; line-height: 1.45; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+    .faixa-atend::after { content: ""; position: absolute; right: 16px; top: 50%; width: 7px; height: 7px; margin-top: -4px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(-45deg); }
+    #btnQuem { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+    .faixa-atend:hover { background: color-mix(in srgb, var(--muted) 8%, var(--panel)); }
     .faixa-atend b { color: var(--text); font-weight: 700; }
     .faixa-atend .ponto { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; background: #2fbf71; vertical-align: 1px; }
     .faixa-atend .ponto.fechado { background: #8b9ba6; }
     .faixa-atend .ponto.ausente, .faixa-atend .ponto.almoco { background: #f5a524; }
     .faixa-atend .sep { margin: 0 6px; opacity: .6; }
     .faixa-atend .aus { color: var(--text); }
-    .faixa-atend.aberta .aus { display: block; margin-top: 2px; }
-    .faixa-atend.aberta .aus-sep { display: none; }
+    /* gavetas do chat: atendimento e prévia do perfil (tocar e segurar no nome) */
+    .pv-fundo { position: fixed; inset: 0; z-index: 3000; background: rgba(2, 8, 14, .55); opacity: 0; transition: opacity .2s; }
+    .pv-fundo.on { opacity: 1; }
+    .pv-gaveta { position: absolute; left: 0; right: 0; bottom: 0; max-height: 88vh; display: flex; flex-direction: column; background: var(--panel); color: var(--text); border-top: 1px solid var(--line);
+      border-radius: 24px 24px 0 0; box-shadow: 0 -18px 60px rgba(0, 0, 0, .4); transform: translateY(100%); transition: transform .28s cubic-bezier(.2, .8, .2, 1); padding-bottom: env(safe-area-inset-bottom); outline: none; }
+    .pv-fundo.on .pv-gaveta { transform: none; }
+    @media (min-width: 700px) { .pv-gaveta { left: 50%; right: auto; width: 440px; bottom: 50%; transform: translate(-50%, 54%); opacity: 0; border-radius: 22px; border: 1px solid var(--line); transition: transform .2s, opacity .2s; }
+      .pv-fundo.on .pv-gaveta { transform: translate(-50%, 50%); opacity: 1; } }
+    .pv-gaveta::before { content: ""; flex: none; width: 42px; height: 5px; margin: 8px auto 0; border-radius: 99px; background: var(--line); }
+    .pv-cab { flex: none; display: flex; align-items: center; gap: 10px; padding: 8px 12px 6px 20px; }
+    .pv-cab strong { flex: 1; font-size: 17px; font-weight: 800; }
+    .pv-x { width: 38px; height: 38px; display: grid; place-items: center; border: 0; border-radius: 50%; background: color-mix(in srgb, var(--muted) 14%, transparent); color: inherit; cursor: pointer; }
+    .pv-corpo { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 4px 16px 18px; display: grid; gap: 14px; align-content: start; }
+    .pv-sec { display: grid; gap: 8px; }
+    .pv-sec > h4 { margin: 4px 2px 0; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+    .pv-status { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 18px; border: 1px solid var(--line); background: var(--panel-2, var(--bg)); }
+    .pv-status .pt { flex: none; width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; color: #fff; background: #2fbf71; }
+    .pv-status.fechado .pt { background: #8b9ba6; } .pv-status.ausente .pt, .pv-status.almoco .pt { background: #f5a524; }
+    .pv-status .tx { display: grid; gap: 2px; min-width: 0; } .pv-status .tx b { font-size: 15.5px; } .pv-status .tx small { color: var(--muted); font-size: 13px; line-height: 1.4; }
+    .pv-aviso { padding: 12px 14px; border-radius: 16px; border: 1px dashed color-mix(in srgb, #f5a524 60%, transparent); background: color-mix(in srgb, #f5a524 9%, transparent); font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
+    .pv-aviso small { display: block; margin-bottom: 3px; font-size: 11.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: #f5a524; }
+    .pv-dias { border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+    .pv-dia { display: flex; justify-content: space-between; gap: 10px; padding: 10px 14px; font-size: 14px; }
+    .pv-dia + .pv-dia { border-top: 1px solid var(--line); }
+    .pv-dia span:last-child { font-weight: 700; font-variant-numeric: tabular-nums; }
+    .pv-dia.fech span:last-child { color: var(--muted); font-weight: 600; }
+    .pv-dia.hoje { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+    .pv-dia.hoje span:first-child { font-weight: 800; color: var(--accent); }
+    .pv-dia.hoje span:first-child::after { content: " · hoje"; font-weight: 600; }
+    .pv-info { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 16px; border: 1px solid var(--line); font-size: 14px; }
+    .pv-info svg { flex: none; color: var(--accent); }
+    .pv-btn { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--line); background: none; color: inherit; font: inherit; font-size: 14.5px; font-weight: 800; cursor: pointer; }
+    .pv-btn.pri { border: 0; background: var(--accent); color: var(--accent-ink, #001a24); }
+    .pv-perfil { display: grid; justify-items: center; gap: 4px; text-align: center; padding: 6px 0 2px; }
+    .pv-perfil .avatar { width: 84px; height: 84px; font-size: 28px; box-shadow: 0 0 0 3px var(--panel), 0 0 0 5px color-mix(in srgb, var(--accent) 55%, transparent); }
+    .pv-perfil h3 { margin: 8px 0 0; font-size: 19px; display: inline-flex; align-items: center; gap: 6px; }
+    .pv-perfil h3 svg { width: 18px; height: 18px; color: #1d9bf0; }
+    .pv-perfil .arroba { color: var(--muted); font-size: 13.5px; }
+    .pv-perfil p { margin: 6px 0 0; font-size: 14px; line-height: 1.45; color: var(--text); max-width: 34ch; overflow-wrap: anywhere; }
+    .pv-perfil .cid { font-size: 13px; color: var(--muted); }
+    .pv-negs { display: grid; gap: 10px; }
+    .pv-neg { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px; border-radius: 18px; border: 1px solid var(--line); background: var(--panel-2, var(--bg)); color: inherit; font: inherit; text-align: left; cursor: pointer; position: relative; overflow: hidden; }
+    .pv-neg::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--cor); }
+    .pv-neg .ft { flex: none; width: 56px; height: 56px; border-radius: 14px; background: color-mix(in srgb, var(--cor) 25%, var(--panel)) center / cover no-repeat; display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 18px; }
+    .pv-neg .tx { flex: 1; min-width: 0; display: grid; gap: 2px; }
+    .pv-neg .tx small { font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--cor); }
+    .pv-neg .tx b { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pv-neg .tx span { font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pv-neg .ir { flex: none; padding: 7px 11px; border-radius: 999px; font-size: 12.5px; font-weight: 800; color: #fff; background: var(--cor); }
+    .pv-neg .promo { color: #f43f5e !important; font-weight: 700; }
+    .pv-vazio { padding: 6px 2px; color: var(--muted); font-size: 13.5px; }
+    .pv-dica { margin: -2px 2px 0; font-size: 12.5px; color: var(--muted); text-align: center; }
     .chat-top, .faixa-fixada, .busca-chat { flex-shrink: 0; }
     .faixa-fixada { width: 100%; border: 0; border-bottom: 1px solid var(--line); text-align: left; cursor: pointer; }
     .faixa-fixada > svg { color: var(--accent); flex-shrink: 0; }
@@ -728,6 +777,8 @@
     <symbol id="i-fechar" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
     <symbol id="i-check2" viewBox="0 0 24 24"><path d="M2.5 12.5L7 17l9.5-9.5M11.5 16l1 1L22 7.5"/></symbol>
+    <symbol id="i-pessoa" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.8 20c.8-3.6 3.6-5.8 7.2-5.8s6.4 2.2 7.2 5.8"/></symbol>
+    <symbol id="i-selo" viewBox="0 0 24 24"><path d="M12 2.8l2.3 1.7 2.8-.2.9 2.7 2.3 1.7-.9 2.7.9 2.7-2.3 1.7-.9 2.7-2.8-.2L12 21.2l-2.3-1.7-2.8.2-.9-2.7-2.3-1.7.9-2.7-.9-2.7L5.9 7l.9-2.7 2.8.2z" fill="currentColor" stroke="none"/><path d="M8.6 12.2l2.3 2.3 4.6-4.8" stroke="#fff" stroke-width="2.2"/></symbol>
     <symbol id="i-relogio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4.5l3 1.8"/></symbol>
     <symbol id="i-mais" viewBox="0 0 24 24"><circle cx="12" cy="5.5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="18.5" r="1.2" fill="currentColor"/></symbol>
     <symbol id="i-seta-baixo" viewBox="0 0 24 24"><path d="M6 9.5l6 6 6-6"/></symbol>
@@ -3167,24 +3218,165 @@
       // Ausente com horário: o horário continua aparecendo (quem escreve sabe quando você atende).
       if (ausente && sem) add("", resumoSemana(sem, a.almoco), "Horário:");
       box.hidden = !box.children.length;
-      // Texto maior que a linha: vira um botão que abre o aviso inteiro.
-      requestAnimationFrame(() => {
-        const longa = box.classList.contains("aberta") || box.scrollWidth > box.clientWidth + 1;
-        box.classList.toggle("longa", longa);
-        if (longa) { box.setAttribute("role", "button"); box.tabIndex = 0; box.setAttribute("aria-expanded", String(box.classList.contains("aberta"))); }
-        else { box.removeAttribute("role"); box.removeAttribute("tabindex"); box.removeAttribute("aria-expanded"); }
-      });
+      // A faixa é um resumo de uma linha; tocar abre a gaveta com tudo organizado.
+      box.setAttribute("role", "button"); box.tabIndex = 0; box.setAttribute("aria-label", "Ver o atendimento: " + box.textContent);
     }
     function alternarFaixaAtend(e) {
-      const box = $("faixaAtend");
-      if (!box.classList.contains("longa")) return;
       if (e.type === "keydown" && e.key !== "Enter" && e.key !== " ") return;
       e.preventDefault();
-      box.classList.toggle("aberta");
-      box.setAttribute("aria-expanded", String(box.classList.contains("aberta")));
+      abrirGavetaAtendimento();
     }
     $("faixaAtend").addEventListener("click", alternarFaixaAtend);
     $("faixaAtend").addEventListener("keydown", alternarFaixaAtend);
+
+    // ---------- gavetas do chat (atendimento e prévia do perfil) ----------
+    // Sobem de baixo, por cima da conversa. O "voltar" do celular fecha (voltar.js: .pv-fundo).
+    const usar = (n, cls = "i s") => { const sv = document.createElementNS("http://www.w3.org/2000/svg", "svg"); sv.setAttribute("class", cls); const u = document.createElementNS("http://www.w3.org/2000/svg", "use"); u.setAttribute("href", "#i-" + n); sv.appendChild(u); return sv; };
+    const elm = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+    function abrirGaveta(titulo) {
+      document.querySelector(".pv-fundo")?._fechar?.();
+      const fundo = elm("div", "pv-fundo");
+      const g = elm("div", "pv-gaveta"); g.setAttribute("role", "dialog"); g.setAttribute("aria-modal", "true"); g.setAttribute("aria-label", titulo); g.tabIndex = -1;
+      const cab = elm("div", "pv-cab"); const x = elm("button", "pv-x"); x.type = "button"; x.setAttribute("aria-label", "Fechar"); x.appendChild(usar("fechar"));
+      cab.append(elm("strong", null, titulo), x);
+      const corpo = elm("div", "pv-corpo");
+      g.append(cab, corpo); fundo.appendChild(g);
+      const fechar = () => { if (!fundo.isConnected || fundo._saindo) return; fundo._saindo = true; fundo.dataset.semVoltar = ""; fundo.classList.remove("on"); setTimeout(() => fundo.remove(), 250); };
+      fundo._fechar = fechar;
+      x.addEventListener("click", fechar);
+      fundo.addEventListener("click", (e) => { if (e.target === fundo) fechar(); });
+      fundo.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); fechar(); } });
+      // Arrastar a gaveta para baixo (pelo topo) fecha.
+      let y0 = null;
+      cab.addEventListener("touchstart", (e) => { y0 = e.touches[0].clientY; }, { passive: true });
+      cab.addEventListener("touchend", (e) => { if (y0 != null && e.changedTouches[0].clientY - y0 > 60) fechar(); y0 = null; }, { passive: true });
+      document.body.appendChild(fundo);
+      requestAnimationFrame(() => { fundo.classList.add("on"); g.focus({ preventScroll: true }); });
+      return { corpo, fechar };
+    }
+    function abrirGavetaAtendimento() {
+      const a = perfilOutroAtual?.atendimento;
+      if (!ativa || !a) return;
+      const { corpo, fechar } = abrirGaveta("Atendimento");
+      const ausente = ausenteAgora(a), sem = semanaDe(a);
+      const st = ausente ? { cls: "ausente", txt: "Ausente no momento", sub: ms(a.volta) ? `Volta ${dataVoltaTxt(a.volta)}` : "Sem data de volta" }
+        : sem ? { ...situacaoHorario(sem, a.almoco) } : { cls: "fechado", txt: "Sem horário definido" };
+      const box = elm("div", "pv-status " + st.cls);
+      const pt = elm("span", "pt"); pt.appendChild(usar(st.cls === "aberto" ? "check" : st.cls === "fechado" ? "relogio" : "relogio", "i"));
+      const tx = elm("div", "tx"); tx.append(elm("b", null, st.txt.split(" · ")[0]));
+      const sub = st.sub || st.txt.split(" · ").slice(1).join(" · ");
+      if (sub) tx.appendChild(elm("small", null, maiusc(sub)));
+      box.append(pt, tx);
+      corpo.appendChild(box);
+      if (ausente && a.mensagem) { const av = elm("div", "pv-aviso"); av.append(elm("small", null, "Aviso"), document.createTextNode(String(a.mensagem).slice(0, 200))); corpo.appendChild(av); }
+      if (sem) {
+        const sec = elm("div", "pv-sec"); sec.appendChild(elm("h4", null, "Horário de atendimento"));
+        const dias = elm("div", "pv-dias");
+        const hoje = new Date().getDay();
+        [1, 2, 3, 4, 5, 6, 0].forEach((d) => {
+          const f = sem[d];
+          const l = elm("div", "pv-dia" + (f ? "" : " fech") + (d === hoje ? " hoje" : ""));
+          l.append(elm("span", null, DIAS_LONGOS[d]), elm("span", null, f ? `${horaTxt(f.ini)} às ${horaTxt(f.fim)}` : "Fechado"));
+          dias.appendChild(l);
+        });
+        sec.appendChild(dias);
+        const al = faixa(a.almoco);
+        if (al) { const i = elm("div", "pv-info"); i.append(usar("relogio"), document.createTextNode(`Pausa para almoço das ${horaTxt(al.ini)} às ${horaTxt(al.fim)}`)); sec.appendChild(i); }
+        corpo.appendChild(sec);
+      }
+      if (a.resposta?.n >= 3) { const i = elm("div", "pv-info"); i.append(usar("chat"), document.createTextNode(`Costuma responder em ${tempoTxt(a.resposta.media)}`)); corpo.appendChild(i); }
+      const ver = elm("button", "pv-btn"); ver.type = "button"; ver.append(usar("pessoa"), document.createTextNode("Ver perfil e negócios"));
+      ver.addEventListener("click", () => { fechar(); setTimeout(abrirPreviaPerfil, 260); });
+      corpo.appendChild(ver);
+    }
+    const maiusc = (t) => String(t).charAt(0).toUpperCase() + String(t).slice(1);
+
+    // Prévia do perfil (tocar e SEGURAR o nome no topo): foto, nome, bio e os negócios da pessoa.
+    // Tocar num negócio abre o perfil dele aqui mesmo (cardápio, loja, pedir orçamento); o pedido
+    // volta para esta conversa como cartão, sem sair do chat.
+    let vitrineMod = null;
+    function carregarVitrine() {
+      if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=27"; l.dataset.vitrine = ""; document.head.appendChild(l); }
+      return (vitrineMod ||= import("./vitrine.js?v=39"));
+    }
+    function usarCartaoNaConversa(uid, cartao) {
+      document.querySelectorAll(".vt-modal").forEach((m) => m.remove());
+      document.querySelector(".pv-fundo")?._fechar?.();
+      if (!ativa || uid !== ativa.outroId) return;
+      cartaoPendente = cartao;
+      try { sessionStorage.setItem("hf-cartao-pendente", JSON.stringify({ conversaId: ativa.id, cartao })); } catch {}
+      pintarCartaoPendente();
+      setTimeout(() => $("texto")?.focus({ preventScroll: true }), 300);
+      toast("Pronto: é só enviar.");
+    }
+    async function abrirPreviaPerfil() {
+      if (!ativa || ativa.equipe) return;
+      const uid = ativa.outroId;
+      const { corpo, fechar } = abrirGaveta("Perfil");
+      const p = perfilOutroAtual || (await obterPerfil(uid)) || {};
+      const topo = elm("div", "pv-perfil");
+      const av = elm("div", "avatar"); pintarAvatar(av, p.fotoPerfil, p.nome || ativa.nome);
+      const h = elm("h3", null, p.nome || ativa.nome || "Usuário");
+      if (p.verificado) h.appendChild(usar("selo"));
+      topo.append(av, h);
+      if (p.nickname) topo.appendChild(elm("span", "arroba", "@" + p.nickname));
+      if (p.cidade) topo.appendChild(elm("span", "cid", String(p.cidade).replace(/\s*\/\s*/, " · ")));
+      if (p.bio) topo.appendChild(elm("p", null, String(p.bio).slice(0, 220)));
+      corpo.appendChild(topo);
+      const verPerfilBtn = elm("button", "pv-btn"); verPerfilBtn.type = "button";
+      verPerfilBtn.append(usar("pessoa"), document.createTextNode("Ver perfil completo"));
+      verPerfilBtn.addEventListener("click", () => { fechar(); verPerfil(); });
+      const sec = elm("div", "pv-sec"); sec.appendChild(elm("h4", null, "Negócios"));
+      const lista = elm("div", "pv-negs"); lista.appendChild(elm("div", "pv-vazio", "Carregando..."));
+      sec.appendChild(lista);
+      corpo.append(sec, verPerfilBtn);
+      let negs = [];
+      try {
+        const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "negocios"), fb.where("donoId", "==", uid)));
+        negs = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => !(ms(n.ocultoAte) > Date.now()));
+      } catch (e) { console.warn(e); }
+      lista.replaceChildren();
+      if (!negs.length) { sec.remove(); return; }
+      const ORDEM = ["servicos", "delivery", "lojinha", "imoveis"];
+      negs.sort((x, y) => ORDEM.indexOf(x.tipo) - ORDEM.indexOf(y.tipo));
+      const IR = { servicos: "Orçamento", delivery: "Pedir", lojinha: "Ver loja", imoveis: "Ver imóveis" };
+      negs.forEach((n) => {
+        const b = elm("button", "pv-neg"); b.type = "button";
+        b.style.setProperty("--cor", (ASSUNTOS[n.tipo] || ASSUNTOS.servicos).cor);
+        const ft = elm("span", "ft");
+        if (urlSegura(n.foto)) ft.style.backgroundImage = `url("${urlSegura(n.foto)}")`; else ft.textContent = String(n.nome || "?").trim().charAt(0).toUpperCase();
+        const tx = elm("span", "tx");
+        tx.append(elm("small", null, (ASSUNTOS[n.tipo] || ASSUNTOS.servicos).nome), elm("b", null, n.nome || (ASSUNTOS[n.tipo] || {}).nome));
+        const pr = n.promocao?.titulo && ms(n.promocao.ate) > Date.now() ? n.promocao : null;
+        const info = elm("span", pr ? "promo" : null, pr ? (pr.codigo ? `Cupom ${pr.codigo} · ${pr.titulo}` : pr.titulo) : [n.bairro, String(n.cidade || "").split("/")[0]].filter(Boolean).join(", ") || (n.descricao || "").slice(0, 60));
+        tx.appendChild(info);
+        b.append(ft, tx, elm("span", "ir", IR[n.tipo] || "Abrir"));
+        b.addEventListener("click", async () => {
+          b.disabled = true;
+          try {
+            const v = await carregarVitrine();
+            v.abrirDetalhe(n, { fb, eu, dono: p, proprio: false, origem: "mensagens", aoMensagem: usarCartaoNaConversa, aoPerfil: () => { document.querySelectorAll(".vt-modal").forEach((m) => m.remove()); } });
+          } catch (e) { console.error(e); toast("Não foi possível abrir agora."); }
+          finally { b.disabled = false; }
+        });
+        lista.appendChild(b);
+      });
+      corpo.insertBefore(elm("p", "pv-dica", "Peça, compre ou peça orçamento por aqui: tudo volta para esta conversa."), verPerfilBtn);
+    }
+    // Segurar o nome no topo abre a prévia; tocar continua abrindo o perfil.
+    (() => {
+      const b = $("btnQuem");
+      let t = 0, x0 = 0, y0 = 0, segurou = false;
+      const parar = () => clearTimeout(t);
+      b.addEventListener("pointerdown", (e) => {
+        segurou = false; x0 = e.clientX; y0 = e.clientY; parar();
+        t = setTimeout(() => { segurou = true; try { navigator.vibrate?.(12); } catch {} abrirPreviaPerfil(); }, 450);
+      });
+      b.addEventListener("pointermove", (e) => { if (Math.hypot(e.clientX - x0, e.clientY - y0) > 10) parar(); });
+      ["pointerup", "pointercancel", "pointerleave"].forEach((ev) => b.addEventListener(ev, parar));
+      b.addEventListener("contextmenu", (e) => e.preventDefault());
+      b.addEventListener("click", (e) => { if (segurou) { e.preventDefault(); e.stopImmediatePropagation(); segurou = false; } }, true);
+    })();
 
     function pintarAssuntoTopo() {
       pintarFixada();

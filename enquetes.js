@@ -68,7 +68,8 @@ export function seletorDuracao(estado, { maxMin = MAX_PUB_MIN, base = () => Date
         if (m === "perso") { estado.fim = Math.min(base() + maxMin * MIN, Math.max(base() + 2 * HORA, fimAtual())); delete estado.dur; }
         else { estado.dur = m; delete estado.fim; }
         pintar(); aoMudar?.();
-        if (m === "perso") setTimeout(() => { try { campo.showPicker?.(); } catch {} campo.focus(); }, 30);
+        // Personalizar: abre o calendário do site (campos.js); sem ele, o do navegador.
+        if (m === "perso") setTimeout(() => { if (window.__hfCampos) { campo.click(); return; } try { campo.showPicker?.(); } catch {} campo.focus(); }, 30);
       });
       return b;
     }));
