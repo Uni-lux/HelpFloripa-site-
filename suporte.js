@@ -15,10 +15,10 @@
 // Avisos da equipe (avisos/{id}); ?aviso=ID abre um aviso e ?chamado=ID um chamado
 // (links das notificações). Abrir marca como lido (avisos.lidoEm / usuarios.suporteLido).
 // =====================================================
-import { $, el, icone, toast, erroAmigavel, abrirFolha, fecharFolha, abrirOpcoes, linhaPessoa, fb, eu, dados, iniciarRede, montarBarraRede, pintarBarraRede } from "./rede.js?v=45";
+import { $, el, icone, toast, erroAmigavel, abrirFolha, fecharFolha, abrirOpcoes, linhaPessoa, fb, eu, dados, iniciarRede, montarBarraRede, pintarBarraRede } from "./rede.js?v=46";
 import { SUPORTE, seloOficial, fotoSuporte, marcarChamadoLido } from "./avisos-equipe.js?v=1";
 import { buscarPessoas } from "./pessoas.js?v=3";
-import { abrirDenuncia } from "./denuncias.js?v=3";
+import { abrirDenuncia } from "./denuncias.js?v=4";
 
 const CATS = [
   ["conta", "Minha conta", "Acesso, senha, e-mail", "chave", "#00adee", "Se não consegue entrar, diga o e-mail da conta e o que aparece na tela. Nunca mande a sua senha."],

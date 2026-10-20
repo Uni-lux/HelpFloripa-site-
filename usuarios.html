@@ -221,14 +221,14 @@
       removerSeguidor, bloquear, desbloquear, alternarRestricao, compartilharPerfil,
       barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail,
       fotosDoPost, carrosselFotos, idsSalvos, listaColecoes, gravarColecoes, novaColecao, escolherColecao, alternarSalvo, contadorEstrelas, silenciado, alternarSilenciar, marcarVista, definirOrigem, lerResumosEstrelas, contarComentarios, blocoEnquete, blocoCaixa
-    } from "./rede.js?v=45";
+    } from "./rede.js?v=46";
     import { buscarPessoas, palavrasBusca } from "./pessoas.js?v=3";
-    import { abrirDenuncia } from "./denuncias.js?v=3";
+    import { abrirDenuncia } from "./denuncias.js?v=4";
     import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
     import { notaDoPerfil, abrirDetalhamento, avaliarNegocio, avaliarCliente, lerResumo, estrelas, pintarEstrelas, media, notaTexto, TIPOS_NEGOCIO } from "./avaliacoes.js?v=13";
-    import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=35";
+    import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=36";
     import { anelNegocio } from "./flash-negocio.js?v=1";
-    import { anelNoPerfil, novoFlash } from "./stories.js?v=16";
+    import { anelNoPerfil, novoFlash } from "./stories.js?v=17";
 
     // ======================================================
     // Estado desta página (o resto vem de rede.js)
@@ -382,7 +382,7 @@
     }
 
     function abrirInsightsPerfil() {
-      import("./insights.js?v=7").then((m) => m.abrirInsights()).catch((e) => toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)));
+      import("./insights.js?v=8").then((m) => m.abrirInsights()).catch((e) => toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)));
     }
 
     // ======================================================
@@ -505,11 +505,18 @@
       };
       let atual = abaDaGrade.get(container) || (grupos.posts.length || !grupos.textos.length ? "posts" : "textos");
       if (atual === "salvos" && !proprio) atual = "posts";
+      ultimaGrade = { container, posts, opcoes }; if (!abaInicial) abaInicial = atual;
       barra.replaceChildren(...ABAS_PERFIL.filter(([k]) => k !== "salvos" || proprio).map(([k, rot, ic]) => {
         const b = el("button"); b.type = "button"; b.setAttribute("role", "tab"); b.setAttribute("aria-selected", String(k === atual)); b.dataset.aba = k;
         if (k === "salvos") b.id = "abaSalvos";
         b.append(icone(ic, "i s"), el("span", null, rot));
-        b.addEventListener("click", () => { abaDaGrade.set(container, k); renderizarGrade(container, posts, opcoes); });
+        b.addEventListener("click", () => {
+          if (k === atual) return;
+          abaDaGrade.set(container, k); renderizarGrade(container, posts, opcoes);
+          // Cada aba é um passo: o "voltar" volta para a aba anterior.
+          const st = { ...(history.state || {}), hfAbaPerfil: k }; delete st.hfBase; delete st.hfGuarda; delete st.hfCamadas;
+          history.pushState(st, "", location.href);
+        });
         return b;
       }));
       // Salvos (só você): grade própria
@@ -523,6 +530,12 @@
       if (atual === "marcados" && marcacoesCache.get(uid) === null) { container.replaceChildren(el("div", "vazio-grade", "Carregando...")); return; }
       desenharGrade(container, grupos[atual], { ...opcoes, vazio: vazios[atual] });
     }
+    let ultimaGrade = null, abaInicial = "";
+    addEventListener("popstate", () => {
+      if (!ultimaGrade) return;
+      const k = history.state?.hfAbaPerfil || abaInicial;
+      if (k && abaDaGrade.get(ultimaGrade.container) !== k) { abaDaGrade.set(ultimaGrade.container, k); renderizarGrade(ultimaGrade.container, ultimaGrade.posts, ultimaGrade.opcoes); }
+    });
     // Textos: lista como no Threads/X — foto, nome, @ e hora, o texto inteiro (até 8 linhas) e os números.
     function desenharTextos(box, lista, { autor }) {
       box.replaceChildren();
@@ -709,7 +722,7 @@
         ja.addEventListener("click", async () => { try { await fb.updateDoc(fb.doc(fb.db, "diario", post.id), { agendadoPara: fb.serverTimestamp() }); post.agendadoPara = { toMillis: () => Date.now() }; toast("Publicada agora"); mostrarPost(); carregarMeusPosts(); } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); } });
         a.appendChild(ja); extra.appendChild(a);
       }
-      if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=12").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
+      if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=13").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
       extra.hidden = !extra.children.length;
       if (!proprio) marcarVista({ ...post, autorId: post.autorId || autor?.uid });
       $("postAnterior").disabled = indice <= 0;

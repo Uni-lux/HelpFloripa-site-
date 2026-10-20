@@ -18,7 +18,7 @@ import "./painel-avisos.js?v=17";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
 import { palavrasBusca } from "./pessoas.js?v=3"; // o sino abre o painel de notificações na própria página
 import { registrarGosto, PESO } from "./gosto.js?v=1";
-import { confirmarHF } from "./confirmar.js?v=3";
+import { confirmarHF } from "./confirmar.js?v=4";
 import { seletorDuracao, fimEscolhido, fimDaEnquete, encerrada, faltaTexto, dataCurta, resumoResultado, guardarInfoEnquete, enquetesEncerradas, textoEnqueteFim, linhaChave, MAX_PUB_MIN } from "./enquetes.js?v=2";
 
 // ---------- ícones ----------
@@ -1934,7 +1934,7 @@ export function comMencoes(alvo, texto) {
 
 // Denunciar um comentário (denuncias.js, carregado só quando precisa).
 async function abrirDenunciaComentario(c) {
-  const { abrirDenuncia } = await import("./denuncias.js?v=3");
+  const { abrirDenuncia } = await import("./denuncias.js?v=4");
   const p = await obterPerfil(c.autorId);
   abrirDenuncia({ fb, eu, tipo: "comentario", alvoId: c.autorId, itemId: c.id, trecho: c.texto || "", nomeAlvo: p.nome || c.nome || "",
     aoBloquear: () => bloquear(c.autorId, p.nome || c.nome) });

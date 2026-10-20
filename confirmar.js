@@ -54,11 +54,12 @@ function css() {
 // Abre a janela. aoConfirmar (opcional) roda com o botão em "aguarde"; se der erro, a janela continua.
 // cor: "perigo" (vermelho, padrão) ou "normal" (azul do site), para o que não apaga nada.
 // soOk: um botão só (aviso no lugar do alert() do navegador; use avisoHF).
-export function confirmarHF({ titulo, texto = "", ok = "Confirmar", cancelar = "Cancelar", icone = "sair", aoConfirmar = null, textoAguarde = "Aguarde...", cor = "perigo", soOk = false } = {}) {
+export function confirmarHF({ titulo, texto = "", ok = "Confirmar", cancelar = "Cancelar", icone = "sair", aoConfirmar = null, textoAguarde = "Aguarde...", cor = "perigo", soOk = false, semVoltar = false } = {}) {
   css();
   return new Promise((resolver) => {
     const anterior = document.activeElement;
     const fundo = document.createElement("div"); fundo.className = "hf-confirma-fundo";
+    if (semVoltar) fundo.dataset.semVoltar = ""; // a pergunta "Sair?" do voltar não vira um passo do histórico (voltar.js)
     fundo.setAttribute("role", "alertdialog"); fundo.setAttribute("aria-modal", "true");
     const cx = document.createElement("div"); cx.className = "hf-confirma" + (cor === "normal" ? " normal" : "");
     const ic = document.createElement("div"); ic.className = "hf-confirma-ic";
@@ -132,7 +133,8 @@ export function guardarSaida() {
     history.replaceState({ ...(history.state || {}), hfBase: true }, "", location.href);
     history.pushState({ hfGuarda: true }, "", location.href);
   };
-  const primeiraInteracao = () => { removeEventListener("pointerdown", primeiraInteracao, true); removeEventListener("keydown", primeiraInteracao, true); armar(); };
+  // Com uma janela aberta por cima (voltar.js), espera ela fechar para marcar a página.
+  const primeiraInteracao = () => { if (history.state?.hfCamadas) return; removeEventListener("pointerdown", primeiraInteracao, true); removeEventListener("keydown", primeiraInteracao, true); armar(); };
   if (!jaProtegida) { addEventListener("pointerdown", primeiraInteracao, true); addEventListener("keydown", primeiraInteracao, true); }
   addEventListener("popstate", async (e) => {
     if (saindo || aberta || !e.state?.hfBase) return;
@@ -140,7 +142,7 @@ export function guardarSaida() {
     const sair = await confirmarHF({
       titulo: painel ? "Sair do painel?" : "Sair do Help Floripa?",
       texto: painel ? "Você vai sair do painel da equipe. Quer mesmo sair?" : "Você vai sair do site. Quer mesmo sair?",
-      ok: "Sair", cancelar: "Ficar", icone: "porta"
+      ok: "Sair", cancelar: "Ficar", icone: "porta", semVoltar: true
     });
     aberta = false;
     if (!sair) { history.pushState({ hfGuarda: true }, "", location.href); return; }

@@ -7,10 +7,10 @@
 // Links diretos: pagina.html?negocio=ID  ·  imoveis.html?anuncio=ID
 // =====================================================
 
-import { confirmarHF } from "./confirmar.js?v=3";
+import { confirmarHF } from "./confirmar.js?v=4";
 import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL } from "./seguranca.js?v=1";
 import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento, media, avaliarNegocio } from "./avaliacoes.js?v=13";
-import { abrirQueixa } from "./queixas.js?v=10";
+import { abrirQueixa } from "./queixas.js?v=11";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
 import { anelNegocio } from "./flash-negocio.js?v=1";
 import { camposEndereco, textoCidade, cidadesDe, NOME_UF, semAcento } from "./endereco.js?v=1";
@@ -1109,7 +1109,7 @@ export function abrirDetalhe(n, opcoes = {}) {
     // Golpe ou perfil falso não precisa de conversa: vai para a equipe analisar.
     const bD = el("button", "vd-denunciar", "Denunciar golpe ou perfil falso"); bD.type = "button";
     bD.addEventListener("click", async () => {
-      const { abrirDenuncia } = await import("./denuncias.js?v=3");
+      const { abrirDenuncia } = await import("./denuncias.js?v=4");
       abrirDenuncia({ fb: fbx, eu: euX, tipo: "negocio", alvoId: n.donoId, itemId: idNegocio(n), trecho: [n.nome, n.descricao].filter(Boolean).join(" · "), nomeAlvo: n.nome || "", podeBloquear: false });
     });
     conf.append(bA, bR, el("small", null, "Só avalia ou reclama quem conversou com o negócio pelo chat."), bD);
