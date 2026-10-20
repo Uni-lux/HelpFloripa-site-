@@ -16,7 +16,7 @@ import { afinidade } from "./gosto.js?v=1";
 import { buscarPessoas, pessoasRecentes, semAcento } from "./pessoas.js?v=3";
 import { docsComValidade } from "./leituras.js?v=1";
 import { lerResumos, media } from "./avaliacoes.js?v=13";
-import { CATEGORIAS, CORES_TIPO, NOMES_TIPO, PAGINA_TIPO, nomeCategoria, categoriasDe } from "./vitrine.js?v=37";
+import { CATEGORIAS, CORES_TIPO, NOMES_TIPO, PAGINA_TIPO, nomeCategoria, nomeCat, categoriasDe } from "./vitrine.js?v=38";
 import { fimDaEnquete, faltaTexto } from "./enquetes.js?v=2";
 
 const DIARIO_VALIDADE = 3 * 60000, DIA = 864e5, HORA = 3600e3;
@@ -49,7 +49,7 @@ function negociosRecentes() {
       .catch(() => fb.getDocs(fb.query(col, fb.limit(200))));
     return s.docs.map((d) => ({ id: d.id, ...d.data() }))
       .filter((n) => n.nome && NOMES_TIPO[n.tipo] && (n.ocultoAte?.toMillis?.() ?? 0) <= Date.now() && !escondido(n.donoId))
-      .map((n) => ({ ...n, _txt: semAcento([n.nome, nomeCategoria(n), ...categoriasDe(n).map((c) => CATEGORIAS[n.tipo]?.[c]), n.bairro, nomeCidade(n.cidade), n.descricao].filter(Boolean).join(" ")) }));
+      .map((n) => ({ ...n, _txt: semAcento([n.nome, nomeCategoria(n), ...categoriasDe(n).map((c) => nomeCat(n, c)), n.bairro, nomeCidade(n.cidade), n.descricao].filter(Boolean).join(" ")) }));
   })().catch((e) => { negociosP = null; console.warn("Explorar (negócios):", e); return []; }));
 }
 const notasNegocios = new Map();

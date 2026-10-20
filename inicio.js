@@ -11,7 +11,7 @@ import { fotoSegura } from "./seguranca.js?v=1";
 import { enfeitarSelect } from "./escolha.js?v=3";
 import { estrelas, lerResumos, media } from "./avaliacoes.js?v=13";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
-import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria } from "./vitrine.js?v=37";
+import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=38";
 
 const $ = (id) => document.getElementById(id);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
@@ -127,7 +127,7 @@ function cartaoNegocio(n, resumo) {
   capa.appendChild(av);
   const tx = el("div", "tx");
   tx.appendChild(el("strong", null, n.nome || "Negócio"));
-  const cat = n.tipo === "servicos" ? (n.categorias || [n.categoria]).map((k) => CATEGORIAS.servicos[k]).filter(Boolean).slice(0, 2).join(" · ") : nomeCategoria(n);
+  const cat = n.tipo === "servicos" ? (n.categorias || [n.categoria]).map((k) => CATEGORIAS.servicos[k] && nomeCat(n, k)).filter(Boolean).slice(0, 2).join(" · ") : nomeCategoria(n);
   tx.appendChild(el("small", null, [cat, n.cidade].filter(Boolean).join(" · ")));
   tx.appendChild(estrelas(resumo, { compacto: true }));
   a.append(capa, tx);
@@ -145,7 +145,7 @@ function cartaoImovel(an) {
   if (moeda(an.preco) && an.finalidade === "temporada") preco.appendChild(el("small", null, "/dia"));
   capa.appendChild(preco);
   const tx = el("div", "tx");
-  tx.appendChild(el("strong", null, an.titulo || `${CATEGORIAS.imoveis[an.categoria] || "Imóvel"} para ${(FINALIDADE[an.finalidade] || "negociar").toLowerCase()}`));
+  tx.appendChild(el("strong", null, an.titulo || `${(CATEGORIAS.imoveis[an.categoria] && nomeCat(an, an.categoria)) || "Imóvel"} para ${(FINALIDADE[an.finalidade] || "negociar").toLowerCase()}`));
   tx.appendChild(el("small", null, [an.bairro, an.cidade].filter(Boolean).join(", ") || "Florianópolis"));
   const specs = [an.quartos ? `${an.quartos} ${Number(an.quartos) === 1 ? "quarto" : "quartos"}` : "", an.vagas ? `${an.vagas} ${Number(an.vagas) === 1 ? "vaga" : "vagas"}` : "", an.area ? `${an.area} m²` : ""].filter(Boolean).join(" · ");
   if (specs) tx.appendChild(el("span", "specs", specs));

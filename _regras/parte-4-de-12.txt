@@ -1,3 +1,8 @@
+      // Conversa ainda não criada: só quem faz parte dela (o id tem os dois uids) pode consultar.
+      allow get: if logado()
+                 && ((resource == null && request.auth.uid in conversaId.split('_'))
+                     || (resource != null && request.auth.uid in resource.data.participantes));
+
       allow list: if logado()
                   && request.auth.uid in resource.data.participantes;
       // A moderação vê quem conversa com quem (para a ficha e denúncias), mas não lista mensagens.

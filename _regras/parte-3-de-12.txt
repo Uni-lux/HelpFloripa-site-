@@ -166,6 +166,7 @@
                 'quartos', 'suites', 'banheiros', 'vagas', 'area', 'andar', 'bairro', 'cidade', 'mobiliado',
                 'uf', 'cidadeIbge', 'rua', 'numero', 'complemento', 'cep',
                 'disponivel', 'hospedes', 'caracteristicas', 'condicoes', 'descricao', 'fotos', 'criadoEm', 'atualizadoEm',
+                'categoriaPersonalizada',  // tipo escrito pela pessoa quando escolhe "Outro" (Chácara, Galpão...)
                 'ocultoAte'];
       }
 
@@ -177,6 +178,7 @@
             && enderecoOk()
             && textoAte('andar', 12)
             && textoAte('disponivel', 20)
+            && textoAte('categoriaPersonalizada', 30)
             && listaAte('fotos', 5)
             && listaAte('caracteristicas', 20)
             && listaAte('condicoes', 12)
@@ -250,10 +252,5 @@
                 && c.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis']
                 && valorTextoAte(c.get('titulo', ''), 120));
       }
-
-      // Conversa ainda não criada: só quem faz parte dela (o id tem os dois uids) pode consultar.
-      allow get: if logado()
-                 && ((resource == null && request.auth.uid in conversaId.split('_'))
-                     || (resource != null && request.auth.uid in resource.data.participantes));
 
 // ===== FIM DA PARTE 3 DE 12 =====

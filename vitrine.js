@@ -157,14 +157,18 @@ function abertoAgora(n) {
 }
 // Áreas de atuação do profissional (aceita cadastro antigo com uma categoria só).
 export const nomeCategoria = (n) => (n.categoria === "outros" && n.categoriaPersonalizada ? n.categoriaPersonalizada : CATEGORIAS[n.tipo]?.[n.categoria] || NOMES_TIPO[n.tipo]);
+// Nome de uma categoria do perfil/anúncio: "outros" mostra o que a pessoa escreveu (Pianista, Chácara...).
+export const nomeCat = (n, k) => (k === "outros" && n.categoriaPersonalizada ? n.categoriaPersonalizada : CATEGORIAS[n.tipo === "imovel" ? "imoveis" : n.tipo]?.[k] || k);
+// Filtro/grupo de uma categoria: a personalizada vira "c:Nome" (um filtro só dela).
+const chaveCat = (n, k) => (k === "outros" && n.categoriaPersonalizada ? "c:" + n.categoriaPersonalizada : k);
 export const categoriasDe = (n) => (Array.isArray(n.categorias) && n.categorias.length ? n.categorias : n.categoria ? [n.categoria] : []);
 const precoImovel = (a) => (moeda(a.preco) ? moeda(a.preco) + (a.finalidade === "aluguel" ? "/mês" : a.finalidade === "temporada" ? "/dia" : "") : "Consultar");
-const tituloImovel = (a) => a.titulo || `${CATEGORIAS.imoveis[a.categoria] || "Imóvel"} para ${(FINALIDADE[a.finalidade] || "negociar").toLowerCase()}`;
+const tituloImovel = (a) => a.titulo || `${(a.categoria && nomeCat(a, a.categoria)) || "Imóvel"} para ${(FINALIDADE[a.finalidade] || "negociar").toLowerCase()}`;
 const fotoPequena = (u) => { const s = urlSegura(u); return s && s.length < 220000 ? s : ""; };
 
 // ---------- conversa com cartão do que o cliente quer ----------
 export function cartaoDeNegocio(n) {
-  const cats = categoriasDe(n).map((c) => CATEGORIAS[n.tipo]?.[c]).filter(Boolean);
+  const cats = categoriasDe(n).map((c) => CATEGORIAS[n.tipo]?.[c] && nomeCat(n, c)).filter(Boolean);
   return {
     tipo: n.tipo, titulo: n.nome || NOMES_TIPO[n.tipo],
     sub: [NOMES_TIPO[n.tipo], cats.slice(0, 2).join(", ")].filter(Boolean).join(" · "),
@@ -545,7 +549,7 @@ export function abrirOrcamento(n, opcoes = {}, preIdx = null) {
   const ct = el("div", "conteudo");
   caixa.appendChild(ct);
   const itens = (n.itens || []).map((i, idx) => ({ i, idx })).filter(({ i }) => i?.nome);
-  const opServ = itens.length ? Object.fromEntries(itens.map(({ i, idx }) => [String(idx), i.nome])) : Object.fromEntries(categoriasDe(n).map((k) => [k, CATEGORIAS.servicos[k] || k]));
+  const opServ = itens.length ? Object.fromEntries(itens.map(({ i, idx }) => [String(idx), i.nome])) : Object.fromEntries(categoriasDe(n).map((k) => [k, nomeCat(n, k)]));
   const estado = { servicos: preIdx !== null && opServ[String(preIdx)] ? [String(preIdx)] : (Object.keys(opServ).length === 1 ? Object.keys(opServ) : []), descricao: "", quando: "", data: "", periodo: "", local: "" };
   const modos = n.atendimento || [];
 
@@ -749,7 +753,7 @@ function cartaoServico(n) {
   const cats = categoriasDe(n);
   c.appendChild(cabecalhoCartao(n, [estrelasNeg(idNegocio(n), { nome: n.nome, donoId: n.donoId })]));
   const areas = el("div", "vt-areas");
-  cats.slice(0, 3).forEach((k) => areas.appendChild(el("span", "vt-tag", CATEGORIAS.servicos[k] || k)));
+  cats.slice(0, 3).forEach((k) => areas.appendChild(el("span", "vt-tag", nomeCat(n, k))));
   if (cats.length > 3) areas.appendChild(el("span", "vt-tag neutra", `+${cats.length - 3}`));
   (n.diferenciais || []).filter((k) => k === "urgencia" || k === "orcamentoGratis").forEach((k) => { const t = el("span", "vt-tag " + (k === "urgencia" ? "urgente" : "ok")); t.append(icone("check", "vi s"), document.createTextNode(DIFERENCIAIS_SERV[k])); areas.appendChild(t); });
   if (Array.isArray(n.cnh) && n.cnh.length) { const t = el("span", "vt-tag cnh"); t.append(icone("cnh"), document.createTextNode(`CNH ${n.cnh.join(" · ")}`)); areas.appendChild(t); }
@@ -941,7 +945,7 @@ export function abrirDetalhe(n, opcoes = {}) {
   const cab = el("div", "vd-cab");
   cab.appendChild(el("h3", null, n.nome || NOMES_TIPO[tipo]));
   const tags = el("div", "vt-sub");
-  if (tipo === "servicos") categoriasDe(n).forEach((k) => tags.appendChild(el("span", "vt-tag", CATEGORIAS.servicos[k] || k)));
+  if (tipo === "servicos") categoriasDe(n).forEach((k) => tags.appendChild(el("span", "vt-tag", nomeCat(n, k))));
   else if (tipo !== "imoveis") tags.appendChild(el("span", "vt-tag", nomeCategoria(n)));
   else tags.appendChild(el("span", "vt-tag", ANUNCIANTE[n.tipoAnunciante] || "Anunciante"));
   const sitH = situacaoHorario(n);
@@ -1061,7 +1065,7 @@ export function abrirDetalhe(n, opcoes = {}) {
     const grupos = [...cats, ""].map((k) => [k, comIdx.filter(({ i }) => (i.categoria || "") === k || (!k && !cats.includes(i.categoria || "")))]).filter(([, l]) => l.length);
     ct.appendChild(titulo4("Serviços e preços"));
     grupos.forEach(([k, lista]) => {
-      if (grupos.length > 1) ct.appendChild(el("div", "vd-subtitulo", k ? CATEGORIAS.servicos[k] || k : "Outros serviços"));
+      if (grupos.length > 1) ct.appendChild(el("div", "vd-subtitulo", k ? nomeCat(n, k) : "Outros serviços"));
       const ul = el("div", "vd-servicos");
       lista.forEach(({ i, idx }) => {
         const li = el("div", "vd-serv");
@@ -1284,7 +1288,7 @@ export function abrirAnuncio(a, opcoes = {}) {
   const preco = el("div", "vd-preco", precoImovel(a));
   const tags = el("div", "vt-sub");
   tags.appendChild(el("span", "vt-tag", FINALIDADE[a.finalidade] || "Imóvel"));
-  tags.appendChild(el("span", "vt-tag neutra", CATEGORIAS.imoveis[a.categoria] || "Imóvel"));
+  tags.appendChild(el("span", "vt-tag neutra", (CATEGORIAS.imoveis[a.categoria] && nomeCat(a, a.categoria)) || "Imóvel"));
   if (a.mobiliado) tags.appendChild(el("span", "vt-tag neutra", "Mobiliado"));
   const local = [a.bairro, textoCidade(a)].filter(Boolean).join(", ");
   if (local) { const s = el("span", "vt-local"); s.append(icone("pin"), document.createTextNode(local)); tags.appendChild(s); }
@@ -1401,8 +1405,8 @@ function filtroAtual() {
 }
 function passaCategoria(n, cat) {
   if (cat === "todos") return true;
-  if (cat.startsWith("c:")) return n.categoria === "outros" && (n.categoriaPersonalizada || "") === cat.slice(2);
   const cats = TIPO === "servicos" ? categoriasDe(n) : [n.categoria];
+  if (cat.startsWith("c:")) return cats.includes("outros") && (n.categoriaPersonalizada || "") === cat.slice(2);
   return cats.includes(cat) || n.finalidade === cat;
 }
 // ---------- filtro de local: Estado → Cidade (→ Bairro nos imóveis) ----------
@@ -1547,7 +1551,7 @@ function cartaoPro(n, destaqueEm = "") {
   f.appendChild(avatar(n.foto, n.nome, "vt-avatar logo"));
   const tx = el("div", "tx");
   tx.append(el("strong", "nm", n.nome || "Freelancer"), estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }));
-  const cats = categoriasDe(n).map((k) => CATEGORIAS.servicos[k]).filter(Boolean);
+  const cats = categoriasDe(n).map((k) => CATEGORIAS.servicos[k] && nomeCat(n, k)).filter(Boolean);
   const info = [cats[0] ? (cats.length > 1 ? `${cats[0]} +${cats.length - 1}` : cats[0]) : nomeCategoria(n), textoCidade(n)].filter(Boolean).join(" · ");
   if (info) tx.appendChild(el("small", null, info));
   tx.appendChild(el("span", "tx-taxa", moeda(n.precoDesde) ? `desde ${moeda(n.precoDesde)}` : "Orçamento grátis"));
@@ -1726,7 +1730,7 @@ function linhaCompacta({ classe = "", midia, titulo, sub = [], direita, abrir, r
   return tornarClicavel(c, abrir, rotulo);
 }
 function linhaPro(n) {
-  const cats = categoriasDe(n).map((k) => CATEGORIAS.servicos[k]).filter(Boolean);
+  const cats = categoriasDe(n).map((k) => CATEGORIAS.servicos[k] && nomeCat(n, k)).filter(Boolean);
   return linhaCompacta({
     classe: "pro", midia: avatar(n.foto, n.nome), titulo: n.nome || "Freelancer",
     sub: [estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }), [cats.slice(0, 2).join(" · "), textoCidade(n)].filter(Boolean).join(" · ")],
@@ -1915,7 +1919,7 @@ function renderizar() {
     if (top) dest.appendChild(top);
     grade.appendChild(barraLista(titulo("Todos os profissionais"), lista.length, ORDENS_SERV, ordemServ, (k) => { ordemServ = k; renderizar(); }));
     mostrarItens(grade, [...lista].sort(ORDENS_SERV[ordemServ][1]), {
-      filtrando, tile: (n) => cartaoPro(n), linha: linhaPro, grupos: (n) => categoriasDe(n), nomeGrupo: (g) => CATEGORIAS.servicos[g] || "Outros"
+      filtrando, tile: (n) => cartaoPro(n), linha: linhaPro, grupos: (n) => categoriasDe(n).map((k) => chaveCat(n, k)), nomeGrupo: (g) => (g.startsWith("c:") ? g.slice(2) : CATEGORIAS.servicos[g] || "Outros")
     });
   } else if (TIPO === "delivery") {
     const abertos = lista.filter((n) => abertoAgora(n) === true);
@@ -1924,14 +1928,14 @@ function renderizar() {
     grade.appendChild(barraLista(titulo("Todos os restaurantes"), lista.length, ORDENS_DELIVERY, ordemDelivery, (k) => { ordemDelivery = k; renderizar(); }));
     mostrarItens(grade, ordem, {
       filtrando, tile: tileDelivery, linha: (n) => tornarClicavel(linhaDelivery(n), () => abrirDetalhe(n), `Ver ${n.nome}`),
-      grupos: (n) => n.categoria || "outros", nomeGrupo: (g) => CATEGORIAS.delivery[g] || "Outros"
+      grupos: (n) => chaveCat(n, n.categoria || "outros"), nomeGrupo: (g) => (g.startsWith("c:") ? g.slice(2) : CATEGORIAS.delivery[g] || "Outros")
     });
   } else {
     const top = !filtrando && secaoDestaquesImoveis(lista);
     if (top) dest.appendChild(top);
     grade.appendChild(barraLista(titulo("Todos os imóveis"), lista.length, ORDENS_IMOVEL, ordemImovel, (k) => { ordemImovel = k; renderizar(); }));
     mostrarItens(grade, [...lista].sort(ORDENS_IMOVEL[ordemImovel][1]), {
-      filtrando, tile: cartaoImovelMini, linha: linhaImovel, grupos: (a) => a.categoria || "outros", nomeGrupo: (g) => CATEGORIAS.imoveis[g] || "Outros"
+      filtrando, tile: cartaoImovelMini, linha: linhaImovel, grupos: (a) => chaveCat(a, a.categoria || "outros"), nomeGrupo: (g) => (g.startsWith("c:") ? g.slice(2) : CATEGORIAS.imoveis[g] || "Outros")
     });
   }
 }
@@ -1950,15 +1954,17 @@ function ligarFiltros() {
   document.getElementById("searchForm")?.addEventListener("submit", () => setTimeout(() => { renderizar(); document.getElementById("vitrine")?.scrollIntoView({ behavior: "smooth", block: "start" }); }, 0));
 }
 
-// Shopping: cria filtros para as categorias que existem (inclusive as personalizadas).
+// Cria filtros para as categorias personalizadas que existem ("Outro" escrito pela pessoa: Pianista, Chácara...).
+// No Shopping também para as categorias fixas que têm loja.
 function chipsDinamicos() {
   const chips = document.getElementById("filterChips");
-  if (!chips || TIPO !== "lojinha") return;
+  if (!chips) return;
   const existentes = new Set([...chips.querySelectorAll("[data-filter]")].map((c) => c.dataset.filter));
   const novos = [];
   todos.forEach((n) => {
-    if (n.categoria === "outros" && n.categoriaPersonalizada) novos.push(["c:" + n.categoriaPersonalizada, n.categoriaPersonalizada]);
-    else if (n.categoria && CATEGORIAS.lojinha[n.categoria]) novos.push([n.categoria, CATEGORIAS.lojinha[n.categoria]]);
+    const cats = TIPO === "servicos" ? categoriasDe(n) : [n.categoria];
+    if (cats.includes("outros") && n.categoriaPersonalizada) novos.push(["c:" + n.categoriaPersonalizada, n.categoriaPersonalizada]);
+    if (TIPO === "lojinha" && n.categoria !== "outros" && CATEGORIAS.lojinha[n.categoria]) novos.push([n.categoria, CATEGORIAS.lojinha[n.categoria]]);
   });
   const outros = chips.querySelector('[data-filter="outros"]');
   new Map(novos).forEach((rotulo, f) => {
