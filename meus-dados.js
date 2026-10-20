@@ -53,18 +53,22 @@ export async function juntarDados(fb, uid, obterPerfil) {
   const lista = (col, campo, op = "==") => fb.getDocs(fb.query(fb.collection(fb.db, col), fb.where(campo, op, uid))).then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() }))).catch(() => []);
   const um = (col, id) => fb.getDoc(fb.doc(fb.db, col, id)).then((s) => (s.exists() ? s.data() : null)).catch(() => null);
   const [conta, perfil, negocios, anuncios, publicacoes, comentarios, estrelasDadas, seguindo, seguidores, conexoes, bloqueios, avaliacoesFeitas, avaliacoesRecebidas,
-    reclamacoesFeitas, reclamacoesRecebidas, chamados, avisos, conversas, enquetesVotadas, respostasCaixa] = await Promise.all([
+    reclamacoesFeitas, reclamacoesRecebidas, chamados, avisos, conversas, enquetesVotadas, respostasCaixa, visitasNegocios] = await Promise.all([
     um("usuarios", uid), um("perfis_publicos", uid), lista("negocios", "donoId"), lista("anuncios", "donoId"), lista("diario", "autorId"), lista("comentarios", "autorId"),
     lista("curtidas", "uid"), lista("relacoes", "seguidorId"), lista("relacoes", "alvoId"), lista("vinculos", "participantes", "array-contains"), lista("bloqueios", "bloqueadorId"),
     lista("avaliacoes", "autorId"), lista("avaliacoes", "alvoId"), lista("queixas", "autorId"), lista("queixas", "alvoId"), lista("suporte", "uid"), lista("avisos", "uid"),
-    lista("conversas", "participantes", "array-contains"), lista("enquete_votos", "uid"), lista("caixa_respostas", "uid")
+    lista("conversas", "participantes", "array-contains"), lista("enquete_votos", "uid"), lista("caixa_respostas", "uid"), lista("neg_visitas", "uid")
   ]);
+  // Perfis de negócio que a pessoa visitou (estatísticas dos negócios): o nome no lugar do código.
+  const nomesNeg = new Map();
+  await Promise.all([...new Set(visitasNegocios.map((v) => v.negocioId))].slice(0, 200).map(async (id) => { const n = await um("negocios", id); nomesNeg.set(id, n?.nome || "Perfil de negócio removido"); }));
+  visitasNegocios.forEach((v) => { v.negocioNome = nomesNeg.get(v.negocioId) || ""; });
   // Mensagens das suas conversas (até 1.000 por conversa).
   for (const c of conversas) {
     c.mensagens = await fb.getDocs(fb.query(fb.collection(fb.db, "conversas", c.id, "mensagens"), fb.orderBy("criadoEm", "asc"), fb.limit(1000))).then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() }))).catch(() => []);
   }
   const dados = { conta, perfil, negocios, anuncios, publicacoes, comentarios, estrelasDadas, seguindo, seguidores, conexoes, bloqueios, avaliacoesFeitas, avaliacoesRecebidas,
-    reclamacoesFeitas, reclamacoesRecebidas, chamados, avisos, conversas, enquetesVotadas, respostasCaixa };
+    reclamacoesFeitas, reclamacoesRecebidas, chamados, avisos, conversas, enquetesVotadas, respostasCaixa, visitasNegocios };
   // Nomes das pessoas que aparecem (no lugar dos códigos).
   const uids = new Set();
   const coletar = (v, k) => {
@@ -143,6 +147,7 @@ export function relatorioHTML({ dados, nomes }, uid) {
     ["reclamacoesRecebidas", "Reclamações sobre você", "", () => dados.reclamacoesRecebidas.map((q) => cartao(q.negocioNome || "Reclamação", quando(q), tabela(q))).join("")],
     ["enquetes", "Enquetes em que você votou", "", () => linhasSimples(dados.enquetesVotadas, (x) => `Opção ${Number(x.opcao) + 1} <span class="cinza">· ${x.tipo === "f" ? "num flash" : "numa publicação"}</span>`)],
     ["caixa", "Suas respostas em caixas de perguntas", "", () => dados.respostasCaixa.map((r) => cartao(resumo(r.texto) || "Resposta", quando(r), tabela(r))).join("")],
+    ["visitas", "Perfis de negócio que você visitou", "Usado só para as estatísticas dos negócios: o dono vê quantas pessoas visitaram, nunca quem.", () => linhasSimples([...dados.visitasNegocios].sort((a, b) => String(b.dia).localeCompare(String(a.dia))), (v) => `${esc(v.negocioNome || "Perfil de negócio")} <span class="cinza">· ${String(v.dia).replace(/^(\d{4})(\d{2})(\d{2})$/, "$3/$2/$1")}${(v.acoes || []).length ? ` · ${v.acoes.length} ${v.acoes.length === 1 ? "ação" : "ações"}` : ""}</span>`)],
     ["suporte", "Chamados no suporte", "", () => dados.chamados.map((s) => cartao(s.assunto || "Chamado", quando(s), tabela(s))).join("")],
     ["avisos", "Avisos da equipe", "", () => dados.avisos.map((a) => cartao(a.titulo || "Aviso", quando(a), tabela(a))).join("")],
     ["conversas", "Suas conversas", "Mensagens das conversas no Mensagens (até 1.000 por conversa).", () => dados.conversas.map(conversa).join("")]
@@ -178,7 +183,7 @@ export function relatorioHTML({ dados, nomes }, uid) {
   const quantos = { conta: conta(dados.conta), perfil: conta(dados.perfil), negocios: dados.negocios.length, anuncios: dados.anuncios.length, publicacoes: dados.publicacoes.length,
     comentarios: dados.comentarios.length, estrelas: dados.estrelasDadas.length, seguindo: dados.seguindo.length, seguidores: dados.seguidores.length, conexoes: dados.conexoes.length,
     bloqueios: dados.bloqueios.length, avaliacoesFeitas: dados.avaliacoesFeitas.length, avaliacoesRecebidas: dados.avaliacoesRecebidas.length, reclamacoesFeitas: dados.reclamacoesFeitas.length,
-    reclamacoesRecebidas: dados.reclamacoesRecebidas.length, enquetes: dados.enquetesVotadas.length, caixa: dados.respostasCaixa.length, suporte: dados.chamados.length,
+    reclamacoesRecebidas: dados.reclamacoesRecebidas.length, enquetes: dados.enquetesVotadas.length, caixa: dados.respostasCaixa.length, visitas: dados.visitasNegocios.length, suporte: dados.chamados.length,
     avisos: dados.avisos.length, conversas: dados.conversas.length };
   const corpo = SECOES.map(([id, titulo, sub, fn]) => {
     const h = fn();

@@ -16,7 +16,7 @@ import { afinidade } from "./gosto.js?v=1";
 import { buscarPessoas, pessoasRecentes, semAcento } from "./pessoas.js?v=3";
 import { docsComValidade } from "./leituras.js?v=1";
 import { lerResumos, media } from "./avaliacoes.js?v=13";
-import { CATEGORIAS, CORES_TIPO, NOMES_TIPO, PAGINA_TIPO, nomeCategoria, categoriasDe } from "./vitrine.js?v=36";
+import { CATEGORIAS, CORES_TIPO, NOMES_TIPO, PAGINA_TIPO, nomeCategoria, categoriasDe } from "./vitrine.js?v=37";
 import { fimDaEnquete, faltaTexto } from "./enquetes.js?v=2";
 
 const DIARIO_VALIDADE = 3 * 60000, DIA = 864e5, HORA = 3600e3;
@@ -26,7 +26,7 @@ const gravarLocal = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v))
 const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
 const NOME_TIPO = (t) => (t === "lojinha" ? "Shopping" : NOMES_TIPO[t] || "Negócio");
 const IMG_TIPO = { servicos: "servicos.webp", delivery: "lanchonetes.webp", lojinha: "shopping.webp", imoveis: "imoveis.webp" };
-const linkNegocio = (n) => (n.tipo === "imoveis" ? `usuarios.html?perfil=${encodeURIComponent(n.donoId)}` : `${PAGINA_TIPO[n.tipo]}?negocio=${encodeURIComponent(n.id)}`);
+const linkNegocio = (n) => `${PAGINA_TIPO[n.tipo]}?negocio=${encodeURIComponent(n.id)}&de=explorar`;
 const linkPost = (p) => `usuarios.html?post=${encodeURIComponent(p.id)}`;
 
 // ---------- dados (lidos uma vez e guardados) ----------

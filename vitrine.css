@@ -636,3 +636,41 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
 @keyframes vtLocalCaixa { from { opacity: 0; transform: translateY(12px); } }
 @media (max-width: 600px) { .vt-local-fundo { place-items: end center; padding: 0; } .vt-local-pop { border-radius: 20px 20px 0 0; padding-bottom: calc(18px + env(safe-area-inset-bottom)); } }
 @media (prefers-reduced-motion: reduce) { .vt-local-fundo, .vt-local-pop { animation: none; } }
+
+/* ---------- perfil do negócio: selos, promoção, atalhos e horário por dia ---------- */
+.vd-selos { display: flex; flex-wrap: wrap; gap: 6px; }
+.vd-selo-ok, .vd-selo-cnpj { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px 4px 7px; border-radius: 999px; font-size: 12px; font-weight: 750; }
+.vd-selo-ok { background: color-mix(in srgb, #1d9bf0 14%, transparent); color: #1d9bf0; }
+.vd-selo-ok svg { fill: #1d9bf0; stroke: #fff; }
+.vd-selo-cnpj { background: var(--vt-card-2); color: var(--vt-text-2); border: 1px solid var(--vt-line); }
+.vd-promo { position: relative; display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 18px; overflow: hidden;
+  background: linear-gradient(120deg, color-mix(in srgb, var(--vc) 22%, transparent), color-mix(in srgb, var(--vc) 6%, transparent));
+  border: 1px dashed color-mix(in srgb, var(--vc) 60%, transparent); }
+.vd-promo .ic { flex: none; width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; color: #fff; background: var(--vc); box-shadow: 0 8px 20px -8px var(--vc); }
+.vd-promo .tx { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.vd-promo .tx small { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--vc); }
+.vd-promo .tx strong { font-size: 15.5px; line-height: 1.3; }
+.vd-promo .tx p { margin: 0; font-size: 13px; color: var(--vt-text-2); line-height: 1.4; }
+.vd-promo .ate { font-size: 12px; color: var(--vt-muted); }
+.vd-cupom { flex: none; display: grid; justify-items: center; gap: 1px; padding: 8px 12px; border-radius: 12px; border: 1.5px dashed var(--vc); background: var(--vt-card); cursor: pointer; }
+.vd-cupom span { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; font-weight: 800; letter-spacing: .06em; color: var(--vc); }
+.vd-cupom small { display: none; }
+.vd-cupom svg { width: 14px; height: 14px; color: var(--vt-muted); }
+.vd-links { display: flex; flex-wrap: wrap; gap: 8px; }
+.vd-link { flex: none; display: inline-flex; align-items: center; gap: 7px; padding: 9px 14px; border-radius: 999px; border: 1px solid var(--vt-line); background: var(--vt-card-2);
+  color: var(--vt-text); font-size: 13px; font-weight: 700; text-decoration: none; cursor: pointer; }
+.vd-link:hover { border-color: var(--vc); color: var(--vc); }
+.vd-link svg { color: var(--vc); }
+.vd-horario { display: grid; gap: 0; border: 1px solid var(--vt-line); border-radius: 16px; overflow: hidden; }
+.vd-horario-agora { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 11px 14px; background: var(--vt-card-2); font-size: 13.5px; }
+.vd-horario-agora i { width: 8px; height: 8px; border-radius: 50%; background: var(--vt-ok); box-shadow: 0 0 0 4px color-mix(in srgb, var(--vt-ok) 25%, transparent); }
+.vd-horario-agora.off i { background: var(--vt-bad); box-shadow: 0 0 0 4px color-mix(in srgb, var(--vt-bad) 22%, transparent); }
+.vd-horario-agora.ok strong { color: var(--vt-ok); }
+.vd-horario-agora.off strong { color: var(--vt-bad); }
+.vd-horario-agora span { color: var(--vt-muted); }
+.vd-horario-dia { display: flex; justify-content: space-between; gap: 10px; padding: 9px 14px; border-top: 1px solid var(--vt-line); font-size: 13.5px; }
+.vd-horario-dia span { color: var(--vt-text-2); }
+.vd-horario-dia strong { font-weight: 700; font-variant-numeric: tabular-nums; }
+.vd-horario-dia strong.fechado { color: var(--vt-muted); font-weight: 600; }
+.vd-horario-dia.hoje { background: color-mix(in srgb, var(--vc) 8%, transparent); }
+.vd-horario-dia.hoje span, .vd-horario-dia.hoje strong { color: var(--vc); font-weight: 800; }

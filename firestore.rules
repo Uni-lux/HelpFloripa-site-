@@ -586,7 +586,34 @@ service cloud.firestore {
                 'precoDesde', 'horario', 'atendimento', 'dias', 'regiao', 'experiencia', 'diferenciais', 'pagamentos', 'cnh', 'veiculo',
                 'horaAbre', 'horaFecha', 'tempoMin', 'tempoMax', 'taxaEntrega', 'pedidoMinimo', 'opcoesEntrega',
                 'entrega', 'tipoAnunciante', 'creci',
+                'instagram', 'site', 'capa', 'cnpj', 'promocao', 'semana',
                 'ocultoAte'];  // escondido enquanto a conta do dono estiver desativada
+      }
+
+      // Promoção/cupom com prazo (até 62 dias): título, texto, código opcional (A-Z e 0-9).
+      function promocaoOk(p) {
+        return p is map
+            && p.keys().hasOnly(['titulo', 'texto', 'codigo', 'ate'])
+            && p.titulo is string && p.titulo.size() >= 3 && p.titulo.size() <= 60
+            && valorTextoAte(p.get('texto', ''), 200)
+            && (p.get('codigo', '') == '' || (p.codigo is string && p.codigo.matches('^[A-Z0-9]{3,20}$')))
+            && p.ate is timestamp && p.ate < request.time + duration.value(62, 'd');
+      }
+
+      // Instagram (só o @, sem link), site (http/https, até 120) e CNPJ (14 números) num regex só;
+      // capa (foto do site); horário de cada dia (7 textos "HH:MM-HH:MM" ou "", domingo a sábado) e promoção.
+      // Só confere o que mudou: a gravação completa ficava perto do limite de 1.000 expressões.
+      function extrasNegocioOk() {
+        let d = request.resource.data;
+        let m = resource == null ? d.keys() : mudou();
+        return (!m.hasAny(['instagram', 'site', 'cnpj'])
+                || [d.get('instagram', ''), d.get('site', ''), d.get('cnpj', '')].join('\n')
+                     .matches('^[A-Za-z0-9._]{0,30}\n(https?://[^ \n]{3,112})?\n([0-9]{14})?$'))
+            && (!m.hasAny(['capa']) || fotoOk(d.get('capa', null)))
+            && (!m.hasAny(['semana']) || d.get('semana', null) == null
+                || (d.semana is list && d.semana.size() == 7
+                    && d.semana.join(';').matches('^(([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9])?(;(([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9])?){6}$')))
+            && (!m.hasAny(['promocao']) || d.get('promocao', null) == null || promocaoOk(d.promocao));
       }
 
       function negocioOk() {
@@ -602,7 +629,8 @@ service cloud.firestore {
             && listaAte('itens', 12)
             && listaAte('fotos', 5)
             && dataOuNulo('ocultoAte')
-            && ((resource != null && !mudou().hasAny(['foto'])) || campoFotoOk('foto'));
+            && ((resource != null && !mudou().hasAny(['foto'])) || campoFotoOk('foto'))
+            && extrasNegocioOk();
       }
 
       allow read: if logado();
@@ -2402,5 +2430,108 @@ service cloud.firestore {
                     && moderacaoOk();
       allow delete: if podeModerar();
     }
+    // =====================================================
+    // ESTATÍSTICAS DOS NEGÓCIOS (como o Google Meu Negócio e o painel profissional do Instagram)
+    // neg_visitas/{negocio}_{uid}_{dia}: uma por pessoa, por negócio, por dia (horário de Brasília).
+    //   Só a própria pessoa lê. Guarda a origem, a hora e o que ela fez (WhatsApp, rota, site...).
+    // neg_stats/{negocio}_{dia}: os números do dia, que só o dono do negócio lê.
+    //   Cada número só sobe +1 na MESMA gravação em que a visita nasce ou ganha uma ação nova:
+    //   ninguém infla as contas, e o dono não vê QUEM visitou (só quantos).
+    // =====================================================
+    function diaBR() {
+      let t = request.time - duration.value(3, 'h');
+      return string(t.year()) + (t.month() < 10 ? '0' : '') + string(t.month()) + (t.day() < 10 ? '0' : '') + string(t.day());
+    }
+    function horaBR() {
+      return (request.time.hours() + 21) % 24;
+    }
+    function caminhoStats(negocioId, dia) {
+      return /databases/$(database)/documents/neg_stats/$(negocioId + '_' + dia);
+    }
+    function caminhoVisita(negocioId, dia) {
+      return /databases/$(database)/documents/neg_visitas/$(negocioId + '_' + request.auth.uid + '_' + dia);
+    }
+
+    match /neg_visitas/{id} {
+      function visitaNova() {
+        let d = request.resource.data;
+        let st = caminhoStats(d.negocioId, d.dia);
+        return d.keys().hasOnly(['negocioId', 'uid', 'dia', 'hora', 'origem', 'acoes', 'itens'])
+            && d.uid == request.auth.uid
+            && d.negocioId is string && d.negocioId.size() <= 60
+            && d.dia == diaBR() && d.hora == horaBR()
+            && id == d.negocioId + '_' + request.auth.uid + '_' + d.dia
+            && d.origem in ['vitrine', 'busca', 'explorar', 'inicio', 'perfil', 'link', 'flash', 'mensagens', 'outro']
+            && d.acoes == [] && d.itens == []
+            && get(/databases/$(database)/documents/negocios/$(d.negocioId)).data.donoId != request.auth.uid
+            && getAfter(st).data.v == (exists(st) ? get(st).data.v : 0) + 1;
+      }
+      // Uma ação nova (cada uma conta uma vez por pessoa no dia) ou um item visto (prato, produto, imóvel).
+      function novoNaLista(campo, max) {
+        let d = request.resource.data;
+        let x = d[campo][d[campo].size() - 1];
+        let st = caminhoStats(resource.data.negocioId, resource.data.dia);
+        let mapa = campo == 'acoes' ? 'a' : 'it';
+        return d.diff(resource.data).affectedKeys().hasOnly([campo])
+            && d[campo].size() <= max
+            && d[campo] == resource.data[campo].concat([x])
+            && !(x in resource.data[campo])
+            && (campo == 'acoes' ? acaoValida(x) : itemValido(x))
+            && getAfter(st).data[mapa].get(x, 0) == get(st).data[mapa].get(x, 0) + 1;
+      }
+      function acaoValida(x) {
+        return x in ['whats', 'mensagem', 'orcamento', 'pedido', 'rota', 'site', 'instagram', 'compartilhar', 'cupom', 'avaliar'];
+      }
+      function itemValido(x) {
+        return x is string && x.matches('^(p_[a-z0-9_]{1,30}|an_[A-Za-z0-9]{1,30})$');
+      }
+      // A própria pessoa confere a visita do dia (inclusive se ela ainda não existe).
+      allow read: if logado() && (resource == null || resource.data.uid == request.auth.uid);
+      allow create: if logado() && visitaNova();
+      allow update: if logado() && resource.data.uid == request.auth.uid
+                    && (novoNaLista('acoes', 12) || novoNaLista('itens', 40));
+      allow delete: if false;
+    }
+
+    match /neg_stats/{id} {
+      function statsNovo() {
+        let d = request.resource.data;
+        let vis = caminhoVisita(d.negocioId, d.dia);
+        let va = getAfter(vis).data;
+        return d.keys().hasOnly(['negocioId', 'donoId', 'dia', 'v', 'o', 'h', 'a', 'it'])
+            && id == d.negocioId + '_' + d.dia
+            && d.donoId == get(/databases/$(database)/documents/negocios/$(d.negocioId)).data.donoId
+            && !exists(vis) && va.dia == d.dia
+            && d.v == 1
+            && d.o.keys().hasOnly([va.origem]) && d.o[va.origem] == 1
+            && d.h.keys().hasOnly([string(va.hora)]) && d.h[string(va.hora)] == 1
+            && d.a == {} && d.it == {};
+      }
+      function maisUmNoMapa(d, r, mapa, x) {
+        return d[mapa].diff(r[mapa]).affectedKeys().hasOnly([x]) && d[mapa][x] == r[mapa].get(x, 0) + 1;
+      }
+      function statsMais() {
+        let d = request.resource.data;
+        let r = resource.data;
+        let k = d.diff(r).affectedKeys();
+        let vis = caminhoVisita(r.negocioId, r.dia);
+        return (k.hasOnly(['v', 'o', 'h'])
+                && !exists(vis) && getAfter(vis).data.dia == r.dia
+                && d.v == r.v + 1
+                && maisUmNoMapa(d, r, 'o', getAfter(vis).data.origem)
+                && maisUmNoMapa(d, r, 'h', string(getAfter(vis).data.hora)))
+            || (k.hasOnly(['a'])
+                && getAfter(vis).data.acoes.size() == get(vis).data.acoes.size() + 1
+                && maisUmNoMapa(d, r, 'a', getAfter(vis).data.acoes[getAfter(vis).data.acoes.size() - 1]))
+            || (k.hasOnly(['it'])
+                && getAfter(vis).data.itens.size() == get(vis).data.itens.size() + 1
+                && maisUmNoMapa(d, r, 'it', getAfter(vis).data.itens[getAfter(vis).data.itens.size() - 1]));
+      }
+      allow read: if logado() && (resource.data.donoId == request.auth.uid || podeModerar());
+      allow create: if logado() && statsNovo();
+      allow update: if logado() && statsMais();
+      allow delete: if false;
+    }
+
   }
 }

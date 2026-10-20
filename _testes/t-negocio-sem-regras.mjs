@@ -1,0 +1,40 @@
+// Campos novos do negócio com as regras ANTIGAS (antes da publicação): grava o resto, guarda Instagram/site/etc. na conta,
+// a visita não quebra nada e as estatísticas avisam; com as regras novas, os campos vão para o perfil sozinhos.
+// Uso: node t-negocio-sem-regras.mjs saida/antigas.rules   (git show HEAD~N:firestore.rules > saida/antigas.rules)
+import { navegador, entrar, USUARIOS as U } from "./nav.mjs";
+import { execSync } from "node:child_process";
+const antigas = process.argv[2] || "saida/antigas.rules";
+const ok = (c, m) => console.log(c ? "  ✔" : "  ✘", m);
+execSync(`node trocar-regras.mjs ${antigas}`);
+const { browser, ctx } = await navegador({ mobile: true });
+let p = await entrar(ctx, "bruno", "negocios.html");
+await p.waitForSelector(".neg-card.servicos .ng-pri", { timeout: 20000 });
+await p.click(".neg-card.servicos .ng-pri"); await p.waitForTimeout(700);
+await p.locator("#negExtras .marca-op", { hasText: "Reformas" }).click();
+await p.fill("#negInsta", "bruno.reparos");
+await p.locator("#negHorario .ng-chip", { hasText: "Seg a sex" }).click();
+await p.click("#negSalvar"); await p.waitForTimeout(3000);
+const t = (await p.locator("[class*=toast]").allTextContents()).join(" ");
+ok(t.includes("assim que a atualização"), "salva e avisa que os campos novos aparecem depois");
+const conta = await p.evaluate(async (uid) => { const fs = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"); return (await fs.getDoc(fs.doc(window.firebaseDb, "usuarios", uid))).data().negociosExtras; }, U.bruno);
+ok(conta?.[`${U.bruno}_servicos`]?.instagram === "bruno.reparos", "campos novos guardados na conta");
+await p.click(".neg-card.servicos .ng-pri"); await p.waitForTimeout(700);
+ok(await p.inputValue("#negInsta") === "bruno.reparos", "o formulário mostra o que ficou guardado");
+await p.close();
+const a = await entrar(ctx, "ana", `servicos.html?negocio=${U.bruno}_servicos`);
+const erros = []; a.on("pageerror", (e) => erros.push(e.message));
+await a.waitForSelector(".vd-cab", { timeout: 20000 }); await a.waitForTimeout(2000);
+ok(!erros.length, "visita sem as regras não dá erro na página");
+await a.close();
+p = await entrar(ctx, "bruno", "negocios.html");
+await p.waitForSelector(".neg-card.servicos .ng-est", { timeout: 20000 });
+await p.click(".neg-card.servicos .ng-est"); await p.waitForSelector(".ni-kpi", { timeout: 15000 });
+ok(await p.locator(".ni-aviso").count() === 1, "estatísticas avisam que começam a contar depois da publicação");
+await p.screenshot({ path: "saida/ins-sem-regras.png" });
+await p.close();
+execSync("node trocar-regras.mjs main");
+p = await entrar(ctx, "bruno", "negocios.html");
+await p.waitForSelector(".neg-card.servicos", { timeout: 20000 }); await p.waitForTimeout(3000);
+const neg = await p.evaluate(async (id) => { const fs = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"); return (await fs.getDoc(fs.doc(window.firebaseDb, "negocios", id))).data(); }, `${U.bruno}_servicos`);
+ok(neg.instagram === "bruno.reparos" && neg.semana?.[1] === "08:00-18:00", "com as regras novas, os campos vão para o perfil sozinhos");
+await browser.close();

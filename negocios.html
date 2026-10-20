@@ -23,11 +23,11 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="vitrine.css?v=25" />
-  <link rel="stylesheet" href="rede.css?v=30" />
-  <link rel="stylesheet" href="negocios.css?v=1" />
+  <link rel="stylesheet" href="vitrine.css?v=26" />
+  <link rel="stylesheet" href="rede.css?v=31" />
+  <link rel="stylesheet" href="negocios.css?v=2" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="negocios.js?v=54"></script>
+  <script type="module" src="negocios.js?v=55"></script>
 </head>
 <body>
   <header class="topo">
@@ -46,6 +46,7 @@
         <p id="resumoNegocios">Carregando...</p>
       </div>
       <div class="ng-slots" id="slotsNegocios" aria-label="Perfis criados"></div>
+      <div class="ng-resumo" id="resumoEstat" hidden></div>
     </section>
 
     <div class="ng-tit" id="titSeus" hidden><h2>Seus perfis</h2><small>Toque em Editar para completar e atualizar</small></div>
@@ -68,6 +69,7 @@
       <div class="cartao">
         <h2>Atalhos</h2>
         <div class="atalhos">
+          <button type="button" class="btn sec" id="atalhoEstat"><svg class="i s"><use href="#i-graf"/></svg>Estatísticas dos negócios</button>
           <a class="btn sec" href="reclamacoes.html?aba=recebidas"><svg class="i s"><use href="#i-alerta"/></svg>Reclamações recebidas</a>
           <a class="btn sec" href="mensagens.html"><svg class="i s"><use href="#i-chat"/></svg>Pedidos e conversas</a>
           <a class="btn sec" href="profissionais.html"><svg class="i s"><use href="#i-ajuda"/></svg>Guia para anunciantes</a>
@@ -94,13 +96,30 @@
           </div>
           <input type="file" id="negArquivo" accept="image/*" hidden />
         </div>
+        <div class="campo" id="negCapaCampo">
+          <label>Capa do perfil</label>
+          <div class="ng-capa-ed" id="negCapa">
+            <button type="button" class="ng-capa-vazia" id="negCapaEscolher"><svg class="i"><use href="#i-imagem"/></svg><span>Escolher capa</span><small>Aparece no topo do seu perfil e na vitrine</small></button>
+          </div>
+          <input type="file" id="negArquivoCapa" accept="image/*" hidden />
+        </div>
         <div class="campo"><label for="negNome">Nome</label><input id="negNome" maxlength="60" placeholder="Ex.: Marido de Aluguel do João" /></div>
         <div class="campo"><label for="negDesc">Descrição</label><textarea id="negDesc" maxlength="500" placeholder="O que você oferece, horários, região de atendimento..."></textarea><div class="ajuda"><span></span><span id="negDescCont">0/500</span></div></div>
         <div class="neg-local">
           <div class="neg-local-tit"><strong>Onde fica</strong><small>Estado e cidade aparecem no perfil e na busca. Rua e número só se você atende num endereço (loja, consultório, ponto de retirada).</small></div>
           <div id="negLocal"></div>
         </div>
-        <div class="campo"><label for="negWhats">WhatsApp para contato (opcional)</label><input id="negWhats" type="tel" maxlength="20" placeholder="(48) 90000-0000" /><div class="ajuda"><span>Aparece como botão no perfil do negócio e na vitrine</span></div></div>
+        <div class="ng-bloco">
+          <div class="ng-bloco-tit"><span class="ng-bloco-ic"><svg class="i s"><use href="#i-chat"/></svg></span><div><strong>Contato e redes</strong><small>Botões no seu perfil: cada toque entra nas estatísticas</small></div></div>
+          <div class="campo"><label for="negWhats">WhatsApp para contato (opcional)</label><input id="negWhats" type="tel" maxlength="20" placeholder="(48) 90000-0000" /><div class="ajuda"><span>Aparece como botão no perfil do negócio e na vitrine</span></div></div>
+          <div class="grade-campos">
+            <div class="campo"><label for="negInsta">Instagram (opcional)</label><div class="ng-prefixo"><span>@</span><input id="negInsta" maxlength="31" placeholder="seunegocio" autocapitalize="off" autocomplete="off" spellcheck="false" /></div></div>
+            <div class="campo"><label for="negSite">Site (opcional)</label><input id="negSite" type="url" inputmode="url" maxlength="120" placeholder="https://seusite.com.br" autocapitalize="off" spellcheck="false" /></div>
+          </div>
+          <div class="campo"><label for="negCnpj">CNPJ (opcional)</label><input id="negCnpj" inputmode="numeric" maxlength="18" placeholder="00.000.000/0000-00" /><div class="ajuda"><span id="negCnpjAjuda">Aparece no perfil e passa mais confiança. Conferimos se o número é válido.</span></div></div>
+        </div>
+        <div class="ng-bloco" id="negHorario"></div>
+        <div class="ng-bloco" id="negPromo"></div>
         <div id="negExtras"></div>
         <input type="file" id="negArquivoExtra" accept="image/*" hidden />
       </div>

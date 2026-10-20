@@ -1,3 +1,74 @@
+      function publicacaoOk() {
+        let d = request.resource.data;
+        return textoAte('texto', 1000)
+            && textoAte('nome', 80)
+            && campoFotoOk('fotoPerfil')
+            && (!('mediaTipo' in d) || d.mediaTipo in ['', 'image', 'video'])
+            && (!('mediaUrl' in d) || d.mediaUrl == ''
+                || (d.mediaUrl is string
+                    && d.mediaUrl.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*')))
+            // Várias fotos (2 a 4): a primeira é a mesma de mediaUrl; cada uma do próprio site.
+            && (!('midias' in d)
+                || (d.midias is list && d.midias.size() >= 2 && d.midias.size() <= 4
+                    && d.get('mediaTipo', '') == 'image' && d.midias[0] == d.get('mediaUrl', '')
+                    && fotoPubOk(d.midias[1])
+                    && (d.midias.size() < 3 || fotoPubOk(d.midias[2]))
+                    && (d.midias.size() < 4 || fotoPubOk(d.midias[3]))));
+      }
+      // Hashtags (até 10, minúsculas, sem #) e pessoas marcadas (até 10 uids): uma expressão cada (join).
+      function tagsOk(d) {
+        return !('tags' in d) || (d.tags is list && d.tags.size() <= 10
+            && (d.tags.size() == 0 || d.tags.join(' ').matches('^[\\p{Ll}\\p{N}_]{1,30}( [\\p{Ll}\\p{N}_]{1,30}){0,9}$')));
+      }
+      function marcadosOk(d) {
+        return !('marcados' in d) || (d.marcados is list && d.marcados.size() <= 10
+            && (d.marcados.size() == 0 || d.marcados.join(' ').matches('^[A-Za-z0-9]{1,64}( [A-Za-z0-9]{1,64}){0,9}$')));
+      }
+      function fotoPubOk(u) {
+        return u is string && u.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*');
+      }
+
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.autorId == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'fotoPerfil', 'texto', 'mediaUrl', 'mediaTipo', 'midias', 'tags', 'marcados', 'agendadoPara', 'enquete', 'caixa', 'criadoEm'])
+                    && (!('caixa' in request.resource.data) || caixaOk(request.resource.data.caixa))
+                    // enquete: até 7 dias a partir de quando aparece (agora ou a data agendada), com 10 min de folga
+                    && (!('enquete' in request.resource.data) || enqueteOk(request.resource.data.enquete,
+                          'agendadoPara' in request.resource.data ? request.resource.data.agendadoPara : request.time, 10090))
+                    && ritmoOk('pub')
+                    && publicacaoOk()
+                    && tagsOk(request.resource.data) && marcadosOk(request.resource.data)
+                    // agendada: aparece para os outros a partir de agendadoPara (até 60 dias)
+                    && (!('agendadoPara' in request.resource.data)
+                        || (request.resource.data.agendadoPara is timestamp
+                            && request.resource.data.agendadoPara > request.time
+                            && request.resource.data.agendadoPara < request.time + duration.value(60, 'd')));
+
+      allow update: if logado()
+                    && emailOk()
+                    && resource.data.autorId == request.auth.uid
+                    && request.resource.data.autorId == resource.data.autorId
+                    && gravou().hasOnly(['texto', 'nome', 'fotoPerfil', 'comentariosOcultos', 'ocultoAte', 'editadoEm', 'quemComenta', 'comentarioFixo', 'tags', 'marcados', 'agendadoPara'])
+                    && tagsOk(request.resource.data) && marcadosOk(request.resource.data)
+                    // agendada: publicar agora (agendadoPara = agora) ou mudar a data (até 60 dias)
+                    && (!mudou().hasAny(['agendadoPara'])
+                        || (request.resource.data.agendadoPara is timestamp
+                            && request.resource.data.agendadoPara >= request.time
+                            && request.resource.data.agendadoPara < request.time + duration.value(60, 'd')))
+                    // quem pode comentar: todos, seguidores, seguidores que o autor segue de volta, ninguém
+                    && (!('quemComenta' in request.resource.data) || request.resource.data.quemComenta in ['todos', 'seguidores', 'mutuos', 'ninguem'])
+                    // comentário fixado no topo (id) ou nulo
+                    && (!('comentarioFixo' in request.resource.data) || request.resource.data.comentarioFixo == null
+                        || (request.resource.data.comentarioFixo is string && request.resource.data.comentarioFixo.size() <= 40))
+                    && dataOuNulo('ocultoAte')
+                    && travaModeracao()
+                    // texto editado: marca a data da edição
+                    && (!mudou().hasAny(['texto']) || request.resource.data.get('editadoEm', null) == request.time)
+                    && (!mudou().hasAny(['editadoEm']) || request.resource.data.editadoEm == request.time)
+                    && (!('comentariosOcultos' in request.resource.data) || request.resource.data.comentariosOcultos is bool)
+                    && publicacaoOk();
+
       allow delete: if logado()
                     && resource.data.autorId == request.auth.uid;
 
@@ -16,6 +87,109 @@
                     && moderacaoOk();
       allow delete: if podeModerar();
     }
+    // =====================================================
+    // ESTATÍSTICAS DOS NEGÓCIOS (como o Google Meu Negócio e o painel profissional do Instagram)
+    // neg_visitas/{negocio}_{uid}_{dia}: uma por pessoa, por negócio, por dia (horário de Brasília).
+    //   Só a própria pessoa lê. Guarda a origem, a hora e o que ela fez (WhatsApp, rota, site...).
+    // neg_stats/{negocio}_{dia}: os números do dia, que só o dono do negócio lê.
+    //   Cada número só sobe +1 na MESMA gravação em que a visita nasce ou ganha uma ação nova:
+    //   ninguém infla as contas, e o dono não vê QUEM visitou (só quantos).
+    // =====================================================
+    function diaBR() {
+      let t = request.time - duration.value(3, 'h');
+      return string(t.year()) + (t.month() < 10 ? '0' : '') + string(t.month()) + (t.day() < 10 ? '0' : '') + string(t.day());
+    }
+    function horaBR() {
+      return (request.time.hours() + 21) % 24;
+    }
+    function caminhoStats(negocioId, dia) {
+      return /databases/$(database)/documents/neg_stats/$(negocioId + '_' + dia);
+    }
+    function caminhoVisita(negocioId, dia) {
+      return /databases/$(database)/documents/neg_visitas/$(negocioId + '_' + request.auth.uid + '_' + dia);
+    }
+
+    match /neg_visitas/{id} {
+      function visitaNova() {
+        let d = request.resource.data;
+        let st = caminhoStats(d.negocioId, d.dia);
+        return d.keys().hasOnly(['negocioId', 'uid', 'dia', 'hora', 'origem', 'acoes', 'itens'])
+            && d.uid == request.auth.uid
+            && d.negocioId is string && d.negocioId.size() <= 60
+            && d.dia == diaBR() && d.hora == horaBR()
+            && id == d.negocioId + '_' + request.auth.uid + '_' + d.dia
+            && d.origem in ['vitrine', 'busca', 'explorar', 'inicio', 'perfil', 'link', 'flash', 'mensagens', 'outro']
+            && d.acoes == [] && d.itens == []
+            && get(/databases/$(database)/documents/negocios/$(d.negocioId)).data.donoId != request.auth.uid
+            && getAfter(st).data.v == (exists(st) ? get(st).data.v : 0) + 1;
+      }
+      // Uma ação nova (cada uma conta uma vez por pessoa no dia) ou um item visto (prato, produto, imóvel).
+      function novoNaLista(campo, max) {
+        let d = request.resource.data;
+        let x = d[campo][d[campo].size() - 1];
+        let st = caminhoStats(resource.data.negocioId, resource.data.dia);
+        let mapa = campo == 'acoes' ? 'a' : 'it';
+        return d.diff(resource.data).affectedKeys().hasOnly([campo])
+            && d[campo].size() <= max
+            && d[campo] == resource.data[campo].concat([x])
+            && !(x in resource.data[campo])
+            && (campo == 'acoes' ? acaoValida(x) : itemValido(x))
+            && getAfter(st).data[mapa].get(x, 0) == get(st).data[mapa].get(x, 0) + 1;
+      }
+      function acaoValida(x) {
+        return x in ['whats', 'mensagem', 'orcamento', 'pedido', 'rota', 'site', 'instagram', 'compartilhar', 'cupom', 'avaliar'];
+      }
+      function itemValido(x) {
+        return x is string && x.matches('^(p_[a-z0-9_]{1,30}|an_[A-Za-z0-9]{1,30})$');
+      }
+      // A própria pessoa confere a visita do dia (inclusive se ela ainda não existe).
+      allow read: if logado() && (resource == null || resource.data.uid == request.auth.uid);
+      allow create: if logado() && visitaNova();
+      allow update: if logado() && resource.data.uid == request.auth.uid
+                    && (novoNaLista('acoes', 12) || novoNaLista('itens', 40));
+      allow delete: if false;
+    }
+
+    match /neg_stats/{id} {
+      function statsNovo() {
+        let d = request.resource.data;
+        let vis = caminhoVisita(d.negocioId, d.dia);
+        let va = getAfter(vis).data;
+        return d.keys().hasOnly(['negocioId', 'donoId', 'dia', 'v', 'o', 'h', 'a', 'it'])
+            && id == d.negocioId + '_' + d.dia
+            && d.donoId == get(/databases/$(database)/documents/negocios/$(d.negocioId)).data.donoId
+            && !exists(vis) && va.dia == d.dia
+            && d.v == 1
+            && d.o.keys().hasOnly([va.origem]) && d.o[va.origem] == 1
+            && d.h.keys().hasOnly([string(va.hora)]) && d.h[string(va.hora)] == 1
+            && d.a == {} && d.it == {};
+      }
+      function maisUmNoMapa(d, r, mapa, x) {
+        return d[mapa].diff(r[mapa]).affectedKeys().hasOnly([x]) && d[mapa][x] == r[mapa].get(x, 0) + 1;
+      }
+      function statsMais() {
+        let d = request.resource.data;
+        let r = resource.data;
+        let k = d.diff(r).affectedKeys();
+        let vis = caminhoVisita(r.negocioId, r.dia);
+        return (k.hasOnly(['v', 'o', 'h'])
+                && !exists(vis) && getAfter(vis).data.dia == r.dia
+                && d.v == r.v + 1
+                && maisUmNoMapa(d, r, 'o', getAfter(vis).data.origem)
+                && maisUmNoMapa(d, r, 'h', string(getAfter(vis).data.hora)))
+            || (k.hasOnly(['a'])
+                && getAfter(vis).data.acoes.size() == get(vis).data.acoes.size() + 1
+                && maisUmNoMapa(d, r, 'a', getAfter(vis).data.acoes[getAfter(vis).data.acoes.size() - 1]))
+            || (k.hasOnly(['it'])
+                && getAfter(vis).data.itens.size() == get(vis).data.itens.size() + 1
+                && maisUmNoMapa(d, r, 'it', getAfter(vis).data.itens[getAfter(vis).data.itens.size() - 1]));
+      }
+      allow read: if logado() && (resource.data.donoId == request.auth.uid || podeModerar());
+      allow create: if logado() && statsNovo();
+      allow update: if logado() && statsMais();
+      allow delete: if false;
+    }
+
   }
 }
 // ===== FIM DA PARTE 12 DE 12 =====

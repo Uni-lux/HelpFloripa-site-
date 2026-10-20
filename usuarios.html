@@ -12,8 +12,8 @@
   <link rel="icon" href="favicon.ico" />
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
-  <link rel="stylesheet" href="vitrine.css?v=25" />
-  <link rel="stylesheet" href="rede.css?v=30" />
+  <link rel="stylesheet" href="vitrine.css?v=26" />
+  <link rel="stylesheet" href="rede.css?v=31" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
     // Tema compartilhado com a página de mensagens; aplicado antes de desenhar.
@@ -226,9 +226,9 @@
     import { abrirDenuncia } from "./denuncias.js?v=4";
     import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
     import { notaDoPerfil, abrirDetalhamento, avaliarNegocio, avaliarCliente, lerResumo, estrelas, pintarEstrelas, media, notaTexto, TIPOS_NEGOCIO } from "./avaliacoes.js?v=13";
-    import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=36";
-    import { anelNegocio } from "./flash-negocio.js?v=1";
-    import { anelNoPerfil, novoFlash } from "./stories.js?v=18";
+    import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=37";
+    import { anelNegocio } from "./flash-negocio.js?v=2";
+    import { anelNoPerfil, novoFlash } from "./stories.js?v=19";
     import { abrirVerificacao, explicarSelo } from "./verificacao.js?v=2";
 
     // ======================================================
@@ -386,7 +386,7 @@
     }
 
     function abrirInsightsPerfil() {
-      import("./insights.js?v=9").then((m) => m.abrirInsights()).catch((e) => toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)));
+      import("./insights.js?v=10").then((m) => m.abrirInsights()).catch((e) => toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)));
     }
 
     // ======================================================
@@ -1498,7 +1498,7 @@
         // Flash do negócio: anel na foto; tocar na foto abre o flash (o resto do botão abre o perfil do negócio).
         anelNegocio(fb, eu, av, n, { aoPerfil: (uid) => abrirPerfilPublico(uid), aoMensagem: proprio ? null : () => iniciarConversa(n.donoId) });
         b.addEventListener("click", () => abrirPerfilNegocio(n, {
-          fb, eu, dono, proprio,
+          fb, eu, dono, proprio, origem: "perfil",
           aoMensagem: (uid, cartao) => iniciarConversa(uid, cartao),
           aoPerfil: (uid) => abrirPerfilPublico(uid),
           aoEditar: proprio ? (neg) => { location.href = `negocios.html?tipo=${encodeURIComponent(neg.tipo)}`; } : null

@@ -78,7 +78,7 @@ ok(await p.locator(".visor-exp").count() === 0 && await p.locator("#painelExplor
 await p.locator("#buscaPessoas").fill("faxina"); await p.waitForTimeout(1800);
 ok(await p.locator("#abasBusca").isVisible() && await p.locator("#exploraConteudo").isHidden(), "buscando: abas aparecem e o resto some");
 ok((await p.locator("#listaPessoas .linha-neg").first().textContent()).includes("Fabi Faxina"), "busca \"faxina\" acha o negócio Fabi Faxina");
-ok((await p.locator("#listaPessoas .linha-neg").first().getAttribute("href")) === `servicos.html?negocio=${U.fabi}_servicos`, "negócio leva à vitrine");
+ok((await p.locator("#listaPessoas .linha-neg").first().getAttribute("href")) === `servicos.html?negocio=${U.fabi}_servicos&de=explorar`, "negócio leva à vitrine (com a origem para as estatísticas)");
 await p.locator("#buscaPessoas").press("Enter"); await p.waitForTimeout(300);
 await p.locator("#buscaPessoas").fill("bolo"); await p.waitForTimeout(1800);
 ok(await p.locator("#listaPessoas .exp-tile").count() === 1, "busca \"bolo\" acha a publicação pela legenda");

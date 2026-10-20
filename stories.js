@@ -129,7 +129,7 @@ function msgFlash(s, acao, extra = {}) {
 }
 const PAGINA_NEGOCIO = { servicos: "servicos.html", delivery: "delivery.html", lojinha: "shopping.html", imoveis: "imoveis.html" };
 const ICONE_NEGOCIO = { servicos: "servicos", delivery: "delivery", lojinha: "lojinha", imoveis: "imoveis" };
-const linkNegocio = (l) => `${PAGINA_NEGOCIO[l.tipo] || "servicos.html"}?negocio=${encodeURIComponent(l.negocioId)}`;
+const linkNegocio = (l) => `${PAGINA_NEGOCIO[l.tipo] || "servicos.html"}?negocio=${encodeURIComponent(l.negocioId)}&de=flash`;
 
 // Abrir um flash pelo link (feed.html?flash=ID), vindo de uma mensagem.
 export async function abrirFlashPorId(id) {

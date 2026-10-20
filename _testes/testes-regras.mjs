@@ -560,6 +560,84 @@ await t("selo: a pessoa não se dá o selo", () => assertFails(updateDoc(doc(ctx
 await t("verificação: a moderação não muda um pedido já decidido", () => assertFails(updateDoc(doc(ctx("mod"), "verificacoes", "bia"), { status: "recusada", motivoRecusa: "x", analisadaPor: "mod", analisadaEm: serverTimestamp() })));
 await t("verificação: a moderação não aprova um pedido cancelado", async () => { await semRegras((db) => setDoc(doc(db, "verificacoes", "hele"), { uid: "hele", status: "cancelada" })); await assertFails(updateDoc(doc(ctx("mod"), "verificacoes", "hele"), { status: "aprovada", analisadaPor: "mod", analisadaEm: serverTimestamp() })); });
 
+// ===================== NEGÓCIOS: campos novos e estatísticas (neg_visitas + neg_stats) =====================
+await semRegras(async (db) => {
+  await setDoc(doc(db, "usuarios", "loja"), { uid: "loja", nome: "Loja", criadoEm: antigo, aceiteTermos: true });
+  await setDoc(doc(db, "negocios", "loja_delivery"), { donoId: "loja", tipo: "delivery", nome: "Burger", cidade: "Florianópolis" });
+});
+const negX = (extra) => ({ donoId: "loja", tipo: "delivery", nome: "Burger", cidade: "Florianópolis", atualizadoEm: serverTimestamp(), ...extra });
+const grava = (extra) => setDoc(doc(ctx("loja"), "negocios", "loja_delivery"), negX(extra));
+await t("negócio: Instagram, site, CNPJ, capa, horário por dia e promoção", () => assertSucceeds(grava({
+  instagram: "burger.da_ilha", site: "https://burgerdailha.com.br", cnpj: "11222333000181", capa: "data:image/jpeg;base64,AAAA",
+  semana: ["", "11:00-23:00", "11:00-23:00", "11:00-23:00", "11:00-23:00", "11:00-23:59", "18:00-23:59"],
+  promocao: { titulo: "10% no primeiro pedido", texto: "Use o cupom no chat.", codigo: "BEMVINDO10", ate: Timestamp.fromMillis(Date.now() + 10 * 864e5) } })));
+await t("negócio com TUDO junto (de vazio para completo: 12 itens, 5 fotos, todos os campos) cabe no limite", async () => { await grava({}); await assertSucceeds(grava({
+  descricao: "x".repeat(600), whatsapp: "48999998888", foto: "data:image/jpeg;base64,AAAA", fotos: Array(5).fill("data:image/jpeg;base64,AAAA"),
+  itens: Array.from({ length: 12 }, (_, i) => ({ nome: "Item " + i, preco: 10, foto: "data:image/jpeg;base64,AAAA", secao: "Lanches", descricao: "abc", precoAntigo: 12 })),
+  categoria: "hamburguer", horaAbre: "11:00", horaFecha: "23:00", tempoMin: 30, tempoMax: 50, taxaEntrega: 5, pedidoMinimo: 20, dias: ["seg", "ter"], opcoesEntrega: ["entrega"], pagamentos: ["pix"],
+  uf: "SC", cidadeIbge: 4205407, bairro: "Centro", rua: "Rua A", numero: "1", complemento: "", cep: "88010001",
+  instagram: "burger", site: "https://burger.com", cnpj: "11222333000181", capa: "data:image/jpeg;base64,AAAA",
+  semana: ["", "11:00-23:00", "11:00-23:00", "11:00-23:00", "11:00-23:00", "11:00-23:59", "18:00-23:59"],
+  promocao: { titulo: "Promo", texto: "x".repeat(200), codigo: "CUPOM10", ate: Timestamp.fromMillis(Date.now() + 864e5) } })); });
+await t("negócio: site com mais de 120 letras é recusado", () => assertFails(grava({ site: "https://" + "a".repeat(120) })));
+await t("negócio: Instagram com espaço/@ é recusado", () => assertFails(grava({ instagram: "@burger da ilha" })));
+await t("negócio: site que não é http(s) é recusado", () => assertFails(grava({ site: "javascript:alert(1)" })));
+await t("negócio: CNPJ com 13 números é recusado", () => assertFails(grava({ cnpj: "1122233300018" })));
+await t("negócio: capa de outro site é recusada", () => assertFails(grava({ capa: "https://exemplo.com/x.jpg" })));
+await t("negócio: horário com 6 dias é recusado", () => assertFails(grava({ semana: ["", "", "", "", "", ""] })));
+await t("negócio: horário inválido (25:00) é recusado", () => assertFails(grava({ semana: ["25:00-26:00", "", "", "", "", "", ""] })));
+await t("negócio: promoção de 90 dias é recusada (máx. 62)", () => assertFails(grava({ promocao: { titulo: "Promo longa", ate: Timestamp.fromMillis(Date.now() + 90 * 864e5) } })));
+await t("negócio: cupom com minúsculas é recusado", () => assertFails(grava({ promocao: { titulo: "Promo", codigo: "abc10", ate: Timestamp.fromMillis(Date.now() + 864e5) } })));
+await t("negócio: promoção e campos novos vazios valem", () => assertSucceeds(grava({ instagram: "", site: "", cnpj: "", promocao: null, semana: null })));
+
+const agoraBR = () => { const d = new Date(Date.now() - 3 * 3600e3); return { dia: `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, "0")}${String(d.getUTCDate()).padStart(2, "0")}`, hora: d.getUTCHours() }; };
+const NEG = "loja_delivery";
+async function visitar(quem, origem = "vitrine", mexer = {}) {
+  const { dia, hora } = agoraBR();
+  const db = ctx(quem), b = writeBatch(db);
+  const visita = { negocioId: NEG, uid: quem, dia, hora, origem, acoes: [], itens: [], ...(mexer.visita || {}) };
+  b.set(doc(db, "neg_visitas", mexer.idVisita || `${NEG}_${quem}_${dia}`), visita);
+  let existe = false; await semRegras(async (d0) => { existe = (await getDoc(doc(d0, "neg_stats", `${NEG}_${dia}`))).exists(); });
+  const st = doc(db, "neg_stats", `${NEG}_${dia}`);
+  if (mexer.semStats) {} else if (existe) b.update(st, { v: increment(mexer.mais || 1), [`o.${origem}`]: increment(1), [`h.${hora}`]: increment(1) });
+  else b.set(st, { negocioId: NEG, donoId: "loja", dia, v: mexer.mais || 1, o: { [origem]: 1 }, h: { [String(hora)]: 1 }, a: {}, it: {} });
+  return b.commit();
+}
+async function agir(quem, campo, x, mexer = {}) {
+  const { dia } = agoraBR();
+  const db = ctx(quem), b = writeBatch(db);
+  const ref = doc(db, "neg_visitas", `${NEG}_${quem}_${dia}`);
+  let antes = []; await semRegras(async (d0) => { antes = (await getDoc(doc(d0, "neg_visitas", `${NEG}_${quem}_${dia}`))).data()?.[campo] || []; });
+  if (!mexer.semVisita) b.update(ref, { [campo]: [...antes, x] });
+  if (!mexer.semStats) b.update(doc(db, "neg_stats", `${NEG}_${dia}`), { [`${campo === "acoes" ? "a" : "it"}.${x}`]: increment(1) });
+  return b.commit();
+}
+await t("estatística: a pessoa confere a visita do dia que ainda não existe", () => assertSucceeds(getDoc(doc(ctx("ana"), "neg_visitas", `${NEG}_ana_${agoraBR().dia}`))));
+await t("estatística: cliente visita o negócio (visita + número do dia juntos)", () => assertSucceeds(visitar("ana", "busca")));
+await t("estatística: a mesma pessoa no mesmo dia não conta de novo", () => assertFails(visitar("ana", "busca")));
+await t("estatística: outra pessoa visita (sobe para 2)", () => assertSucceeds(visitar("bia", "link")));
+await t("estatística: o dono visitando o próprio negócio não conta", () => assertFails(visitar("loja")));
+await t("estatística: visita sem subir o número é recusada", () => assertFails(visitar("edu", "vitrine", { semStats: true })));
+await t("estatística: subir +2 numa visita é recusado", () => assertFails(visitar("edu", "vitrine", { mais: 2 })));
+await t("estatística: dia errado é recusado", () => assertFails(visitar("edu", "vitrine", { visita: { dia: "20200101" } })));
+await t("estatística: hora errada é recusada", () => assertFails(visitar("edu", "vitrine", { visita: { hora: (agoraBR().hora + 5) % 24 } })));
+await t("estatística: origem desconhecida é recusada", () => assertFails(visitar("edu", "hacker")));
+await t("estatística: visita em nome de outra pessoa é recusada", () => assertFails(visitar("edu", "vitrine", { visita: { uid: "ana" } })));
+await t("estatística: inflar o número sozinho é recusado", () => assertFails(updateDoc(doc(ctx("edu"), "neg_stats", `${NEG}_${agoraBR().dia}`), { v: increment(1) })));
+await t("estatística: tocar no WhatsApp conta (ação + número juntos)", () => assertSucceeds(agir("ana", "acoes", "whats")));
+await t("estatística: a mesma ação no mesmo dia não conta de novo", () => assertFails(agir("ana", "acoes", "whats")));
+await t("estatística: outra ação (rota) conta", () => assertSucceeds(agir("ana", "acoes", "rota")));
+await t("estatística: ação sem subir o número é recusada", () => assertFails(agir("ana", "acoes", "site", { semStats: true })));
+await t("estatística: subir o número da ação sem a visita é recusado", () => assertFails(agir("ana", "acoes", "site", { semVisita: true })));
+await t("estatística: ação desconhecida é recusada", () => assertFails(agir("ana", "acoes", "hackear")));
+await t("estatística: item visto (prato) conta", () => assertSucceeds(agir("bia", "itens", "p_x_bacon")));
+await t("estatística: item com nome estranho é recusado", () => assertFails(agir("bia", "itens", "p_X Bacon!")));
+await t("estatística: o dono lê os números do negócio", async () => { const r = await assertSucceeds(getDocs(query(collection(ctx("loja"), "neg_stats"), where("donoId", "==", "loja")))); const d = r.docs[0].data(); if (d.v !== 2 || d.a.whats !== 1 || d.a.rota !== 1 || d.it.p_x_bacon !== 1 || d.o.busca !== 1 || d.o.link !== 1) throw new Error("números errados: " + JSON.stringify(d)); });
+await t("estatística: outra pessoa não lê os números", () => assertFails(getDocs(query(collection(ctx("bia"), "neg_stats"), where("donoId", "==", "loja")))));
+await t("estatística: o dono NÃO lê quem visitou", () => assertFails(getDoc(doc(ctx("loja"), "neg_visitas", `${NEG}_ana_${agoraBR().dia}`))));
+await t("estatística: a pessoa lê a própria visita", () => assertSucceeds(getDoc(doc(ctx("ana"), "neg_visitas", `${NEG}_ana_${agoraBR().dia}`))));
+await t("estatística: ninguém apaga visitas nem números", () => assertFails(deleteDoc(doc(ctx("loja"), "neg_stats", `${NEG}_${agoraBR().dia}`))));
+
 // ---------- resultado ----------
 for (const r of resultados) console.log(r[0] === "ok" ? "  ✔" : "  ✘", r[1], r[2] ? "→ " + r[2] : "");
 console.log(`\n${ok} passaram, ${falhou} falharam (${arquivo})`);
