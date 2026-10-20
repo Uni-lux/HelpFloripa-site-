@@ -1,3 +1,96 @@
+    // Foto do grupo "Equipe" no chat da equipe: equipe_info/grupo. Qualquer pessoa da equipe troca.
+    match /equipe_info/{id} {
+      allow read: if admin();
+      allow create, update: if admin()
+                    && id == 'grupo'
+                    && request.resource.data.keys().hasOnly(['foto', 'por', 'em'])
+                    && (request.resource.data.foto == null
+                        || (request.resource.data.foto is string && request.resource.data.foto.size() <= 250000 && fotoOk(request.resource.data.foto)))
+                    && request.resource.data.por == request.auth.uid
+                    && request.resource.data.em == request.time;
+      allow delete: if false;
+    }
+
+    // Quadro de tarefas da equipe: quem faz o quê.
+    match /equipe_tarefas/{id} {
+      function tarefaOk() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['titulo', 'descricao', 'status', 'prioridade', 'responsavel', 'responsavelNome', 'prazo', 'ligacao', 'ligacaoNome', 'criadoPor', 'criadoPorNome', 'criadoEm', 'atualizadoEm', 'concluidaEm'])
+            && d.titulo is string && d.titulo.size() >= 2 && d.titulo.size() <= 140
+            && valorTextoAte(d.get('descricao', null), 2000)
+            && d.status in ['a_fazer', 'fazendo', 'feito']
+            && d.prioridade in ['baixa', 'normal', 'alta', 'urgente']
+            && (d.get('responsavel', null) == null || (d.responsavel is string && exists(/databases/$(database)/documents/admins/$(d.responsavel))))
+            && valorTextoAte(d.get('responsavelNome', null), 80)
+            && (d.get('prazo', null) == null || d.prazo is timestamp)
+            && valorTextoAte(d.get('ligacao', null), 160)
+            && valorTextoAte(d.get('ligacaoNome', null), 120)
+            && valorTextoAte(d.get('criadoPorNome', null), 80)
+            && d.atualizadoEm == request.time;
+      }
+      allow read: if admin();
+      allow create: if admin() && tarefaOk()
+                    && request.resource.data.criadoPor == request.auth.uid
+                    && request.resource.data.criadoEm == request.time;
+      allow update: if admin() && tarefaOk()
+                    && request.resource.data.criadoPor == resource.data.criadoPor
+                    && request.resource.data.criadoEm == resource.data.criadoEm;
+      allow delete: if admin() && (resource.data.criadoPor == request.auth.uid || papel() == 'dono');
+    }
+
+    // Notas internas da equipe sobre um usuário (só a equipe vê; ninguém edita).
+    match /notas_internas/{id} {
+      allow read: if admin();
+      allow create: if admin()
+                    && request.resource.data.keys().hasOnly(['alvo', 'texto', 'autorId', 'autorNome', 'em'])
+                    && request.resource.data.alvo is string && request.resource.data.alvo.size() <= 128
+                    && request.resource.data.autorId == request.auth.uid
+                    && valorTextoAte(request.resource.data.get('autorNome', null), 80)
+                    && request.resource.data.texto is string && request.resource.data.texto.size() >= 1 && request.resource.data.texto.size() <= 2000
+                    && request.resource.data.em == request.time;
+      allow update: if false;
+      allow delete: if admin() && (resource.data.autorId == request.auth.uid || papel() == 'dono');
+    }
+
+    match /admin_log/{id} {
+      allow read: if admin();
+      allow create: if admin()
+                    && request.resource.data.por == request.auth.uid
+                    && request.resource.data.em == request.time
+                    && request.resource.data.acao is string && request.resource.data.acao.size() <= 60
+                    && valorTextoAte(request.resource.data.get('detalhe', ''), 1000);
+      allow update, delete: if false;
+    }
+
+    match /estatisticas/{id} {
+      allow read: if admin();
+      allow write: if false;
+    }
+
+    match /relatorios/{id} {
+      allow read: if admin();
+      allow write: if false;
+    }
+
+
+    // =====================================================
+    // LIMITE DIÁRIO (anti-spam): ritmo/{uid}
+    // Janela de 24 h a partir da primeira ação. Por janela: até 500 mensagens,
+    // 20 publicações e 200 comentários. Cada ação soma exatamente 1 no seu tipo.
+    // =====================================================
+    match /ritmo/{uid} {
+      function limite(t) {
+        return t == 'msg' ? 500 : (t == 'pub' ? 20 : (t == 'parc' ? 3 : 200));
+      }
+      function janelaNova() {
+        return resource == null || resource.data.inicio < request.time - duration.value(1, 'd');
+      }
+      function contaOk(k, t) {
+        let v = request.resource.data.get(k, 0);
+        return v is int
+            && v == (k == t ? (janelaNova() ? 1 : resource.data.get(k, 0) + 1)
+                            : (janelaNova() ? 0 : resource.data.get(k, 0)));
+      }
       allow get: if logado() && request.auth.uid == uid;
       allow read: if admin();
       allow create, update: if logado()
@@ -97,79 +190,4 @@
       allow update: if false;
     }
 
-    // ===================================================
-    // STORIES (24 horas): stories/{id} — foto (no documento ou no Storage) ou vídeo (Storage).
-    // Somem para todos depois de 24 h (o site filtra; o autor apaga os vencidos). vistos/{uid}: quem viu.
-    // ===================================================
-    match /stories/{id} {
-      allow read: if logado();
-      allow create: if logado() && emailOk()
-                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'tipo', 'midia', 'texto', 'duracao', 'enquete', 'caixa', 'link', 'repostDe', 'negocios', 'perfil', 'mencoes', 'respostas', 'publico', 'lista', 'ocultoPara', 'criadoEm'])
-                    // caixa de perguntas, link para negócio, repost e perfis de negócio (só confere o que veio)
-                    && (!request.resource.data.keys().hasAny(['caixa', 'link', 'repostDe', 'negocios', 'perfil']) || extrasFlashOk(request.resource.data))
-                    // enquete, pessoas mencionadas e as escolhas do autor (quem responde, quem vê)
-                    // no flash a enquete acaba junto com ele (até 24 h, com 10 min de folga)
-                    && (!('enquete' in request.resource.data) || enqueteOk(request.resource.data.enquete, request.time, 1450))
-                    && (!('mencoes' in request.resource.data) || uidsOk(request.resource.data.mencoes, 10))
-                    && (!('respostas' in request.resource.data) || request.resource.data.respostas in ['todos', 'seguindo', 'ninguem'])
-                    && (!('publico' in request.resource.data) || request.resource.data.publico in ['todos', 'amigos'])
-                    && (!('lista' in request.resource.data) || uidsOk(request.resource.data.lista, 150))
-                    && (!('ocultoPara' in request.resource.data) || uidsOk(request.resource.data.ocultoPara, 100))
-                    && request.resource.data.autorId == request.auth.uid
-                    && request.resource.data.criadoEm == request.time
-                    && request.resource.data.tipo in ['imagem', 'video']
-                    && request.resource.data.midia is string
-                    && request.resource.data.midia.size() <= 950000
-                    && request.resource.data.midia.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*')
-                    && (request.resource.data.tipo == 'imagem' || request.resource.data.midia.matches('^https://firebasestorage[.]googleapis[.]com/.*'))
-                    && valorTextoAte(request.resource.data.get('texto', ''), 150)
-                    && valorTextoAte(request.resource.data.get('nome', ''), 80)
-                    && (!('duracao' in request.resource.data) || (request.resource.data.duracao is number && request.resource.data.duracao <= 60))
-                    && !sancionado(request.auth.uid);
-      allow delete: if logado() && (resource.data.autorId == request.auth.uid || podeModerar());
-      allow update: if false;
-      match /vistos/{uid} {
-        allow create: if logado() && uid == request.auth.uid
-                      && request.resource.data.keys().hasOnly(['criadoEm'])
-                      && request.resource.data.criadoEm == request.time;
-        allow read: if logado() && (uid == request.auth.uid
-                      || get(/databases/$(database)/documents/stories/$(id)).data.autorId == request.auth.uid);
-        allow update, delete: if false;
-      }
-    }
-
-    // ===================================================
-    // RASCUNHOS: rascunhos/{uid}/itens/{id} — só a própria pessoa (texto e fotos ainda não publicados).
-    // ===================================================
-    // ===================================================
-    // VOTOS DAS ENQUETES: enquete_votos/{alvo}_{uid} — alvo = tipo + "_" + itemId (tipo d = publicação, f = flash).
-    // fimEm (opcional) = o mesmo fim da enquete; votar só até o fim.
-    // Um voto por pessoa (pode trocar ou tirar). A contagem é feita no servidor (count por opção).
-    // ===================================================
-    match /enquete_votos/{id} {
-      allow read: if logado();
-      function votoOk() {
-        let d = request.resource.data;
-        let doc = d.tipo == 'd'
-          ? /databases/$(database)/documents/diario/$(d.itemId)
-          : /databases/$(database)/documents/stories/$(d.itemId);
-        let e = get(doc).data.enquete;
-        return d.keys().hasOnly(['alvo', 'tipo', 'itemId', 'uid', 'opcao', 'fimEm', 'criadoEm'])
-            && d.uid == request.auth.uid
-            && d.tipo in ['d', 'f']
-            && d.itemId is string && d.itemId.matches('^[A-Za-z0-9]{1,64}$')
-            && d.alvo == d.tipo + '_' + d.itemId
-            && id == d.alvo + '_' + request.auth.uid
-            && d.opcao is int && d.opcao >= 0
-            && exists(doc) && d.opcao < e.opcoes.size()
-            && e.get('anonima', false) == false
-            // depois do fim não dá mais para votar; o voto leva o fim junto (as notificações do resultado usam)
-            && (!('fimEm' in e) || request.time < e.fimEm)
-            && (!('fimEm' in d) || ('fimEm' in e && d.fimEm == e.fimEm));
-      }
-      // Voto único: depois de votar não dá para trocar nem tirar (a limpeza de contas apaga pelo servidor).
-      allow create: if logado() && votoOk() && request.resource.data.criadoEm == request.time && !sancionado(request.auth.uid);
-      allow update, delete: if false;
-    }
-
-// ===== FIM DA PARTE 9 DE 11 =====
+// ===== FIM DA PARTE 9 DE 12 =====

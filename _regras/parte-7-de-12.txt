@@ -103,75 +103,51 @@
       }
     }
 
-    match /parcerias/{id} {
-      // Formulário de Sócios e parcerias: só quem tem conta (e-mail confirmado), até 3 por dia; só a equipe lê.
+    // Reporte de atendimento do suporte (só a moderação e os donos leem; o suporte não).
+    //   atendimento_{chamado}_{uid}: quem abriu o chamado reporta como foi atendido (demora, grosseria...).
+    //   usuario_{chamado}_{uid}: alguém da equipe reporta a pessoa do chamado (ofensas, ameaça, golpe...).
+    match /reportes/{id} {
+      function chamadoDe(c) { return get(/databases/$(database)/documents/suporte/$(c)).data; }
+      allow get: if logado() && resource.data.autorId == request.auth.uid;
+      allow read: if podeModerar();
       allow create: if logado()
-                    && emailOk()
-                    && request.resource.data.uid == request.auth.uid
-                    && ritmoOk('parc')
-                    && request.resource.data.keys().hasOnly(['nome', 'empresa', 'email', 'telefone', 'tipo', 'mensagem', 'site', 'cidade', 'uid', 'status', 'criadoEm'])
-                    && request.resource.data.nome is string && request.resource.data.nome.size() >= 2 && request.resource.data.nome.size() <= 80
-                    && request.resource.data.email is string && request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+[.][^@\\s]+$') && request.resource.data.email.size() <= 120
-                    && valorTextoAte(request.resource.data.get('empresa', ''), 100)
-                    && valorTextoAte(request.resource.data.get('telefone', ''), 30)
-                    && valorTextoAte(request.resource.data.get('site', ''), 200)
-                    && valorTextoAte(request.resource.data.get('cidade', ''), 80)
-                    && request.resource.data.tipo in ['socio', 'investidor', 'parceiro', 'anunciante', 'imprensa', 'outro']
-                    && request.resource.data.mensagem is string && request.resource.data.mensagem.size() >= 10 && request.resource.data.mensagem.size() <= 2000
+                    && request.resource.data.keys().hasOnly(['tipo', 'chamadoId', 'assunto', 'autorId', 'alvoId', 'alvoNome', 'motivo', 'detalhe', 'status', 'criadoEm'])
+                    && request.resource.data.autorId == request.auth.uid
+                    && request.resource.data.chamadoId is string
+                    && id == request.resource.data.tipo + '_' + request.resource.data.chamadoId + '_' + request.auth.uid
+                    && request.resource.data.motivo.matches('^(demora|grosseria|nao_resolveu|errado|dados|ofensa|ameaca|golpe|spam|outro)$')
+                    && valorTextoAte(request.resource.data.get('detalhe', ''), 1000)
+                    && valorTextoAte(request.resource.data.get('assunto', ''), 120)
+                    && valorTextoAte(request.resource.data.get('alvoNome', ''), 80)
                     && request.resource.data.status == 'novo'
+                    && request.resource.data.criadoEm == request.time
+                    && ((request.resource.data.tipo == 'atendimento'
+                         && chamadoDe(request.resource.data.chamadoId).uid == request.auth.uid
+                         && (!('alvoId' in request.resource.data) || request.resource.data.alvoId is string))
+                        || (request.resource.data.tipo == 'usuario'
+                         && admin()
+                         && request.resource.data.alvoId == chamadoDe(request.resource.data.chamadoId).uid));
+      allow update: if podeModerar()
+                    && mudou().hasOnly(['status', 'nota', 'analisadaEm', 'analisadaPor', 'responsavel', 'responsavelNome', 'assumidoEm'])
+                    && request.resource.data.status in ['novo', 'em_analise', 'resolvido', 'descartado']
+                    && (!mudou().hasAny(['status', 'nota', 'analisadaEm', 'analisadaPor']) || request.resource.data.analisadaPor == request.auth.uid)
+                    && responsavelOk()
+                    && valorTextoAte(request.resource.data.get('nota', ''), 1000);
+      allow delete: if false;
+    }
+
+    // Nota do atendimento (1 a 5) dada por quem abriu o chamado, uma vez; a equipe lê.
+    match /suporte_notas/{chamadoId} {
+      allow read: if admin() || (logado() && resource.data.uid == request.auth.uid);
+      allow create: if logado()
+                    && request.resource.data.keys().hasOnly(['uid', 'nota', 'comentario', 'atendidoPor', 'criadoEm'])
+                    && request.resource.data.uid == request.auth.uid
+                    && get(/databases/$(database)/documents/suporte/$(chamadoId)).data.uid == request.auth.uid
+                    && request.resource.data.nota is int && request.resource.data.nota >= 1 && request.resource.data.nota <= 5
+                    && valorTextoAte(request.resource.data.get('comentario', ''), 500)
+                    && (!('atendidoPor' in request.resource.data) || request.resource.data.atendidoPor is string)
                     && request.resource.data.criadoEm == request.time;
-      allow read: if admin();
-      allow update: if podeComercial()
-                    && mudou().hasOnly(['status', 'notas', 'atualizadoEm', 'responsavel', 'responsavelNome', 'assumidoEm'])
-                    && request.resource.data.status in ['novo', 'em_conversa', 'proposta', 'fechado', 'recusado']
-                    && (!mudou().hasAny(['responsavelNome', 'assumidoEm']) || responsavelOk())
-                    && valorTextoAte(request.resource.data.get('notas', ''), 3000);
-      allow delete: if podeComercial();
+      allow update, delete: if false;
     }
 
-    // Presença da equipe no painel (quem está online) e chat interno da equipe.
-    match /equipe_presenca/{uid} {
-      allow read: if admin();
-      allow create, update: if admin()
-                    && request.auth.uid == uid
-                    && request.resource.data.keys().hasOnly(['nome', 'em', 'secao', 'item', 'itemNome'])
-                    && valorTextoAte(request.resource.data.get('nome', ''), 80)
-                    && valorTextoAte(request.resource.data.get('secao', ''), 40)
-                    && valorTextoAte(request.resource.data.get('item', null), 160)
-                    && valorTextoAte(request.resource.data.get('itemNome', null), 120)
-                    && request.resource.data.em == request.time;
-      allow delete: if admin() && request.auth.uid == uid;
-    }
-
-    // Mensagem do chat da equipe (todos ou individual): texto e/ou um anexo
-    // (foto, áudio ou arquivo). O conteúdo do anexo fica em equipe_anexos/{id},
-    // gravado junto, da mesma pessoa e da mesma conversa.
-    function msgEquipeOk(conversa) {
-      let d = request.resource.data;
-      return d.keys().hasOnly(['autorId', 'nome', 'texto', 'em', 'mencoes', 'tipoArquivo', 'anexo', 'nomeArquivo', 'tamanho', 'miniatura', 'duracao', 'resposta', 'reacoes'])
-          && d.autorId == request.auth.uid
-          && valorTextoAte(d.get('nome', ''), 80)
-          && d.texto is string && d.texto.size() <= 2000
-          && (d.texto.size() >= 1 || 'anexo' in d)
-          && d.em == request.time
-          && (!('mencoes' in d) || (d.mencoes is list && d.mencoes.size() <= 10))
-          && (!('resposta' in d)
-              || (d.resposta is map
-                  && d.resposta.keys().hasOnly(['id', 'autorId', 'nome', 'texto'])
-                  && d.resposta.get('id', '') is string
-                  && d.resposta.get('autorId', '') is string
-                  && valorTextoAte(d.resposta.get('nome', ''), 80)
-                  && d.resposta.get('texto', '') is string && d.resposta.get('texto', '').size() <= 200))
-          && (!('reacoes' in d) || (d.reacoes is map && d.reacoes.size() == 0))
-          && (!('anexo' in d)
-              || (d.anexo is string
-                  && d.tipoArquivo in ['imagem', 'audio', 'arquivo']
-                  && getAfter(/databases/$(database)/documents/equipe_anexos/$(d.anexo)).data.autorId == request.auth.uid
-                  && getAfter(/databases/$(database)/documents/equipe_anexos/$(d.anexo)).data.conversa == conversa))
-          && (!('tipoArquivo' in d) || 'anexo' in d)
-          && valorTextoAte(d.get('nomeArquivo', ''), 120)
-          && (!('tamanho' in d) || (d.tamanho is int && d.tamanho >= 0))
-          && (!('duracao' in d) || (d.duracao is int && d.duracao >= 0 && d.duracao <= 600))
-          && (!('miniatura' in d) || (d.miniatura is string && d.miniatura.size() <= 30000 && d.miniatura.matches('^data:image/jpeg;base64,.*')));
-    }
-// ===== FIM DA PARTE 7 DE 11 =====
+// ===== FIM DA PARTE 7 DE 12 =====

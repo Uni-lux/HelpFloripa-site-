@@ -261,4 +261,4 @@ service cloud.firestore {
       return r.ultimaEm == request.time && r.ultimoTipo == tipo;
     }
 
-// ===== FIM DA PARTE 1 DE 11 =====
+// ===== FIM DA PARTE 1 DE 12 =====

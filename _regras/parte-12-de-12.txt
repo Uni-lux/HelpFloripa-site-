@@ -1,0 +1,21 @@
+      allow delete: if logado()
+                    && resource.data.autorId == request.auth.uid;
+
+      // Alcance: cada conta que viu a publicação (uma vez). Só o autor lista/conta.
+      match /vistas/{uid} {
+        allow create: if logado() && uid == request.auth.uid
+                      && request.resource.data.keys().hasOnly(['criadoEm', 'origem'])
+                      && request.resource.data.criadoEm == request.time
+                      && (!('origem' in request.resource.data) || request.resource.data.origem in ['principais', 'seguindo', 'amigos', 'perfil', 'link', 'tag', 'salvos']);
+        allow read: if logado() && get(/databases/$(database)/documents/diario/$(postId)).data.autorId == request.auth.uid;
+        allow update, delete: if false;
+      }
+
+      // A equipe esconde ou remove publicações que violam os Termos.
+      allow update: if podeModerar()
+                    && moderacaoOk();
+      allow delete: if podeModerar();
+    }
+  }
+}
+// ===== FIM DA PARTE 12 DE 12 =====

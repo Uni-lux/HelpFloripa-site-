@@ -38,7 +38,7 @@
   </script>
   <link rel="stylesheet" href="rede.css?v=29" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="suporte.js?v=32"></script>
+  <script type="module" src="suporte.js?v=33"></script>
 </head>
 <body>
   <header class="topo">
@@ -49,46 +49,95 @@
     <a href="configuracoes.html" class="icone-btn" aria-label="Configurações" title="Configurações"><svg class="i"><use href="#i-config"/></svg></a>
   </header>
   <main class="pagina">
-    <div class="cab-pagina"><div><h1>Ajuda e suporte</h1><p>Fale com a equipe do Help Floripa. Respondemos pelo próprio chamado.</p></div><button type="button" class="btn pri" id="btnNovo">Novo chamado</button></div>
-    <div class="end-aviso" style="margin-bottom:14px"><svg class="i"><use href="#i-ajuda"/></svg><span>Antes, veja se a resposta já está na <a href="ajuda.html" target="_top">Central de ajuda</a>. Para denunciar um perfil, publicação ou mensagem, use o botão <strong>Denunciar</strong> no próprio conteúdo.</span></div>
+    <section class="sup-hero">
+      <div class="sup-hero-tx">
+        <span class="sup-hero-selo"><img src="logo.png" alt="" /> Suporte Help Floripa</span>
+        <h1>Como podemos ajudar?</h1>
+        <p>Abra um chamado e acompanhe por aqui. Quando a equipe responder, você recebe um aviso.</p>
+      </div>
+      <div class="sup-atalhos">
+        <button type="button" class="sup-atalho pri" id="btnNovo"><span class="ic"><svg class="i"><use href="#i-chat"/></svg></span><b>Novo chamado</b><small>Fale com a equipe</small></button>
+        <a class="sup-atalho" href="ajuda.html" target="_top"><span class="ic"><svg class="i"><use href="#i-ajuda"/></svg></span><b>Central de ajuda</b><small>Respostas rápidas</small></a>
+        <button type="button" class="sup-atalho" id="btnDenunciar"><span class="ic perigo"><svg class="i"><use href="#i-alerta"/></svg></span><b>Denunciar</b><small>Golpe, abuso ou perfil falso</small></button>
+        <button type="button" class="sup-atalho" id="btnContestar"><span class="ic"><svg class="i"><use href="#i-restringir"/></svg></span><b>Contestar decisão</b><small>Suspensão ou remoção</small></button>
+      </div>
+    </section>
     <div class="estado" id="supCarregando"><div class="spinner"></div>Carregando...</div>
     <div id="supLista" class="sup-lista" hidden></div>
   </main>
 
+  <!-- Novo chamado: escolher o assunto (cartões) e contar o que aconteceu -->
   <div class="folha cheia" id="folhaNovo" role="dialog" aria-modal="true" aria-labelledby="tNovo">
     <div class="folha-caixa">
       <div class="folha-topo"><h2 id="tNovo">Novo chamado</h2><button type="button" class="icone-btn" data-fechar aria-label="Fechar"><svg class="i"><use href="#i-fechar"/></svg></button></div>
       <div class="folha-corpo pad">
-        <div class="campo"><label for="supCategoria">Assunto</label>
-          <select id="supCategoria">
-            <option value="conta">Minha conta (acesso, senha, e-mail)</option>
-            <option value="negocio">Meu negócio ou anúncio</option>
-            <option value="golpe">Golpe ou fraude</option>
-            <option value="denuncia">Acompanhar uma denúncia</option>
-            <option value="contestacao">Contestar suspensão, banimento ou remoção</option>
-            <option value="pagamento">Pagamento ou cobrança</option>
-            <option value="sugestao">Sugestão ou elogio</option>
-            <option value="outro">Outro</option>
-          </select>
-        </div>
+        <div class="sup-passo"><b>1</b> Sobre o que é?</div>
+        <div class="sup-cats" id="supCats" role="radiogroup" aria-label="Assunto do chamado"></div>
+        <select id="supCategoria" hidden data-nativo aria-hidden="true" tabindex="-1"></select>
+        <div class="sup-dica" id="supDica" hidden></div>
+        <div class="sup-passo"><b>2</b> Conte o que aconteceu</div>
         <div class="campo"><label for="supAssunto">Resumo</label><input id="supAssunto" maxlength="120" placeholder="Ex.: Não consigo editar meu cardápio" /></div>
-        <div class="campo"><label for="supTexto">Conte com detalhes</label><textarea id="supTexto" maxlength="2000" placeholder="O que aconteceu, quando, com quem (se for o caso)..."></textarea><div class="ajuda"><span>Nunca envie senhas ou códigos de verificação.</span><span id="supCont">0/2000</span></div></div>
+        <div class="campo"><label for="supTexto">Detalhes</label><textarea id="supTexto" maxlength="2000" placeholder="O que aconteceu, quando, em qual página e com quem (se for o caso)..."></textarea><div class="ajuda"><span>Nunca envie senhas ou códigos de verificação.</span><span id="supCont">0/2000</span></div></div>
       </div>
       <div class="folha-rodape"><button type="button" class="btn sec" data-fechar>Cancelar</button><button type="button" class="btn pri" id="supEnviar">Enviar chamado</button></div>
     </div>
   </div>
 
+  <!-- Chamado: conversa com a equipe -->
   <div class="folha cheia" id="folhaChamado" role="dialog" aria-modal="true" aria-labelledby="tChamado">
-    <div class="folha-caixa">
-      <div class="folha-topo"><h2 id="tChamado">Chamado</h2><button type="button" class="icone-btn" data-fechar aria-label="Fechar"><svg class="i"><use href="#i-fechar"/></svg></button></div>
-      <div class="folha-corpo pad">
-        <p id="chMeta" style="margin:0 0 10px;color:var(--muted);font-size:13px"></p>
-        <div id="chMsgs" class="sup-chat"></div>
-        <div class="campo" id="chResponder"><label for="chTexto">Responder</label><textarea id="chTexto" maxlength="2000"></textarea></div>
+    <div class="folha-caixa sup-conversa">
+      <div class="folha-topo">
+        <div class="sup-topo-tx"><h2 id="tChamado">Chamado</h2><small id="chMeta"></small></div>
+        <button type="button" class="icone-btn" id="chMais" aria-label="Opções do chamado"><svg class="i"><use href="#i-pontos"/></svg></button>
+        <button type="button" class="icone-btn" data-fechar aria-label="Fechar"><svg class="i"><use href="#i-fechar"/></svg></button>
       </div>
-      <div class="folha-rodape"><button type="button" class="btn sec" id="chFechar">Encerrar chamado</button><button type="button" class="btn pri" id="chEnviar">Enviar</button></div>
+      <div class="folha-corpo">
+        <ol class="sup-etapas" id="chEtapas" aria-label="Andamento do chamado"></ol>
+        <div id="chMsgs" class="sup-chat"></div>
+        <div id="chNota"></div>
+      </div>
+      <div class="sup-compor" id="chResponder">
+        <textarea id="chTexto" maxlength="2000" rows="1" placeholder="Escreva para a equipe..." aria-label="Responder ao suporte"></textarea>
+        <button type="button" class="sup-enviar" id="chEnviar" aria-label="Enviar"><svg class="i"><use href="#i-enviar"/></svg></button>
+      </div>
+      <div class="sup-fechado" id="chFechadoBox" hidden><span>Este chamado foi encerrado.</span><button type="button" class="btn sec mini" id="chReabrir">Reabrir</button></div>
+      <button type="button" id="chFechar" hidden></button>
     </div>
   </div>
+
+  <!-- Reportar o atendimento: vai para a moderação e os donos (não para quem atendeu) -->
+  <div class="folha" id="folhaReportar" role="dialog" aria-modal="true" aria-labelledby="tReportar">
+    <div class="folha-caixa">
+      <div class="folha-topo"><h2 id="tReportar">Reportar este atendimento</h2><button type="button" class="icone-btn" data-fechar aria-label="Fechar"><svg class="i"><use href="#i-fechar"/></svg></button></div>
+      <div class="folha-corpo pad">
+        <div class="sup-privado"><svg class="i"><use href="#i-cadeado"/></svg><span><b>Vai direto para a moderação e os responsáveis pelo Help Floripa</b>, não para quem te atendeu. A pessoa não fica sabendo quem reportou.</span></div>
+        <div class="sup-motivos" id="repMotivos" role="radiogroup" aria-label="O que aconteceu"></div>
+        <div class="campo"><label for="repDetalhe">Conte mais (opcional)</label><textarea id="repDetalhe" maxlength="1000" placeholder="O que aconteceu no atendimento?"></textarea></div>
+      </div>
+      <div class="folha-rodape"><button type="button" class="btn sec" data-fechar>Cancelar</button><button type="button" class="btn pri" id="repEnviar">Enviar reporte</button></div>
+    </div>
+  </div>
+
+  <!-- Denunciar alguém (sem estar no perfil ou na conversa) -->
+  <div class="folha cheia" id="folhaDenunciar" role="dialog" aria-modal="true" aria-labelledby="tDenunciar">
+    <div class="folha-caixa">
+      <div class="folha-topo"><h2 id="tDenunciar">Denunciar</h2><button type="button" class="icone-btn" data-fechar aria-label="Fechar"><svg class="i"><use href="#i-fechar"/></svg></button></div>
+      <div class="folha-corpo pad">
+        <div class="sup-privado perigo"><svg class="i"><use href="#i-alerta"/></svg><span>Em perigo agora? Ligue <b>190</b> (Polícia). A denúncia é sigilosa: a pessoa não sabe quem denunciou.</span></div>
+        <div class="sup-passo"><b>1</b> Quem você quer denunciar?</div>
+        <label class="campo-busca"><svg class="i s"><use href="#i-lupa"/></svg><span class="sr">Buscar pessoa</span><input type="search" id="denBusca" placeholder="Nome ou @usuário" autocomplete="off" /></label>
+        <div id="denLista" class="sup-den-lista"></div>
+        <div class="sup-passo"><b>2</b> Outras formas</div>
+        <ul class="sup-comos">
+          <li><b>Publicação ou comentário:</b> toque em <i>⋯</i> e em <i>Denunciar</i>.</li>
+          <li><b>Mensagem:</b> segure a mensagem e toque em <i>Denunciar</i>.</li>
+          <li><b>Negócio:</b> no perfil do negócio, toque em <i>Denunciar</i>.</li>
+          <li><b>Problema com um negócio</b> (pedido, entrega, cobrança): use <a href="reclamacoes.html" target="_top">Reclamações</a>.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
   <div class="folha" id="folhaAviso" role="dialog" aria-modal="true" aria-labelledby="avTitulo">
     <div class="folha-caixa">
       <div class="folha-topo"><h2 id="avTitulo">Aviso da equipe</h2><button type="button" class="icone-btn" data-fechar aria-label="Fechar"><svg class="i"><use href="#i-fechar"/></svg></button></div>
@@ -100,36 +149,122 @@
     </div>
   </div>
   <style>
+    .sup-hero { position: relative; overflow: hidden; margin: 0 0 18px; padding: 20px 16px 16px; border-radius: 24px; background: radial-gradient(120% 120% at 100% 0%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 60%), var(--panel); border: 1px solid var(--line); }
+    .sup-hero-selo { display: inline-flex; align-items: center; gap: 7px; padding: 4px 10px 4px 4px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); font-size: 12.5px; font-weight: 800; }
+    .sup-hero-selo img { width: 22px; height: 22px; border-radius: 50%; background: #fff; object-fit: cover; }
+    .sup-hero h1 { margin: 10px 0 4px; font-size: 24px; letter-spacing: -.01em; }
+    .sup-hero p { margin: 0 0 16px; color: var(--muted); font-size: 14px; line-height: 1.5; }
+    .sup-atalhos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    @media (min-width: 700px) { .sup-atalhos { grid-template-columns: repeat(4, 1fr); } }
+    .sup-atalho { display: grid; justify-items: start; gap: 2px; padding: 12px; border-radius: 16px; border: 1px solid var(--line); background: var(--bg); color: var(--text); text-align: left; font: inherit; text-decoration: none; cursor: pointer; transition: transform .12s, border-color .15s; }
+    .sup-atalho:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+    .sup-atalho:active { transform: scale(.98); }
+    .sup-atalho .ic { width: 38px; height: 38px; margin-bottom: 6px; border-radius: 12px; display: grid; place-items: center; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+    .sup-atalho .ic.perigo { background: color-mix(in srgb, #e5484d 14%, transparent); color: #e5484d; }
+    .sup-atalho b { font-size: 14.5px; } .sup-atalho small { color: var(--muted); font-size: 12px; }
+    .sup-atalho.pri { background: var(--accent); border-color: var(--accent); color: var(--accent-ink, #001a24); }
+    .sup-atalho.pri .ic { background: rgba(255,255,255,.28); color: inherit; } .sup-atalho.pri small { color: inherit; opacity: .8; }
     .sup-lista { display: grid; gap: 10px; }
-    .sup-secao { margin: 8px 2px 0; font-size: 12px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+    .sup-secao { margin: 10px 2px 0; font-size: 12px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+    .sup-abas { display: flex; gap: 6px; margin: 4px 0 2px; }
+    .sup-abas button { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--muted); font: inherit; font-size: 13.5px; font-weight: 750; cursor: pointer; }
+    .sup-abas button b { font-size: 11.5px; padding: 1px 7px; border-radius: 999px; background: color-mix(in srgb, var(--muted) 16%, transparent); }
+    .sup-abas button[aria-selected="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+    .sup-item { display: flex; gap: 12px; align-items: flex-start; padding: 14px; border-radius: 18px; background: var(--panel); border: 1px solid var(--line); cursor: pointer; text-align: left; width: 100%; font: inherit; color: var(--text); transition: background .12s, border-color .15s; }
+    .sup-item:hover { background: var(--hover); }
     .sup-item.novo { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent); }
+    .sup-item .sup-ic { flex: none; width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; background: color-mix(in srgb, var(--c, var(--accent)) 15%, transparent); color: var(--c, var(--accent)); }
+    .sup-item .sup-tx { flex: 1; min-width: 0; display: grid; gap: 3px; }
+    .sup-item .l1 { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .sup-item strong { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sup-item small { color: var(--muted); font-size: 12.5px; }
+    .sup-proto { font-variant-numeric: tabular-nums; font-weight: 750; letter-spacing: .03em; }
+    .sup-trecho { color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .sup-aviso { border-left: 4px solid var(--accent); }
     .sup-aviso.alerta { border-left-color: #ec835a; } .sup-aviso.grave { border-left-color: #d03b3b; }
-    .sup-trecho { color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sup-st { font-size: 11.5px; font-weight: 800; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+    .sup-st.aberto { background: color-mix(in srgb, #fab219 18%, transparent); color: #b07800; } :root[data-theme="dark"] .sup-st.aberto { color: #fab219; }
+    .sup-st.atendimento { background: color-mix(in srgb, #8b5cf6 16%, transparent); color: #7c4ddb; } :root[data-theme="dark"] .sup-st.atendimento { color: #b399ff; }
+    .sup-st.respondido, .sup-st.novo { background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); }
     .sup-st.novo { background: var(--accent); color: #fff; }
+    .sup-st.fechado { background: var(--panel-2); color: var(--muted); }
+    .sup-vazio { display: grid; justify-items: center; gap: 6px; padding: 30px 16px; border-radius: 18px; border: 1px dashed var(--line); text-align: center; color: var(--muted); }
+    .sup-vazio svg { width: 34px; height: 34px; color: var(--accent); }
+    .sup-vazio b { color: var(--text); font-size: 15px; }
+    /* novo chamado */
+    .sup-passo { display: flex; align-items: center; gap: 8px; margin: 4px 0 10px; font-weight: 800; font-size: 14.5px; }
+    .sup-passo b { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--accent-ink, #001a24); font-size: 12.5px; }
+    .sup-cats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+    .sup-cat { display: grid; gap: 2px; justify-items: start; padding: 11px 12px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--panel); color: var(--text); text-align: left; font: inherit; cursor: pointer; transition: border-color .15s, background .15s; }
+    .sup-cat .ic { width: 30px; height: 30px; margin-bottom: 4px; border-radius: 10px; display: grid; place-items: center; background: color-mix(in srgb, var(--c) 15%, transparent); color: var(--c); }
+    .sup-cat .ic .i { width: 17px; height: 17px; }
+    .sup-cat b { font-size: 13.5px; line-height: 1.25; } .sup-cat small { color: var(--muted); font-size: 11.5px; line-height: 1.3; }
+    .sup-cat[aria-checked="true"] { border-color: var(--c); background: color-mix(in srgb, var(--c) 9%, var(--panel)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 14%, transparent); }
+    .sup-dica { display: flex; gap: 10px; margin: -4px 0 16px; padding: 12px 14px; border-radius: 14px; background: color-mix(in srgb, var(--accent) 8%, var(--panel)); border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--line)); font-size: 13.5px; line-height: 1.5; }
+    .sup-dica .i { flex: none; color: var(--accent); margin-top: 1px; }
+    .sup-dica[hidden] { display: none; }
+    /* conversa */
+    .sup-conversa { display: flex; flex-direction: column; }
+    .sup-conversa .folha-corpo { flex: 1; min-height: 0; padding: 12px 14px; background: color-mix(in srgb, var(--bg) 70%, var(--panel)); }
+    .sup-topo-tx { flex: 1; min-width: 0; display: grid; }
+    .sup-topo-tx h2 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sup-topo-tx small { color: var(--muted); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sup-etapas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin: 0 0 14px; padding: 12px 10px; list-style: none; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); }
+    .sup-etapas li { position: relative; display: grid; justify-items: center; gap: 5px; text-align: center; font-size: 11px; font-weight: 750; color: var(--muted); }
+    .sup-etapas li::before { content: ""; width: 12px; height: 12px; border-radius: 50%; background: var(--panel-2); border: 2px solid var(--line); z-index: 1; }
+    .sup-etapas li + li::after { content: ""; position: absolute; top: 6px; right: 50%; width: 100%; height: 2px; background: var(--line); }
+    .sup-etapas li.feito { color: var(--text); }
+    .sup-etapas li.feito::before { background: var(--accent); border-color: var(--accent); }
+    .sup-etapas li.feito + li.feito::after { background: var(--accent); }
+    .sup-etapas li.atual::before { box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent); }
+    .sup-chat { display: grid; gap: 8px; }
+    .sup-dia { justify-self: center; padding: 3px 10px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); color: var(--muted); font-size: 11.5px; font-weight: 750; }
+    .sup-msg { max-width: 82%; padding: 9px 12px; border-radius: 16px 16px 16px 5px; background: var(--panel); border: 1px solid var(--line); white-space: pre-wrap; word-break: break-word; font-size: 14.5px; line-height: 1.45; }
+    .sup-msg.meu { margin-left: auto; border-radius: 16px 16px 5px 16px; background: var(--accent); border-color: var(--accent); color: var(--accent-ink, #001a24); }
+    .sup-msg.meu small { color: inherit; opacity: .72; }
+    .sup-msg.equipe { background: var(--panel); }
+    .sup-msg small { display: block; margin-top: 4px; color: var(--muted); font-size: 11px; text-align: right; }
     .sup-oficial-nome { display: inline-flex; align-items: center; font-weight: 800; }
     .sup-linha-equipe { display: flex; gap: 8px; align-items: flex-end; max-width: 90%; }
     .sup-linha-equipe .sup-msg { max-width: none; }
     .sup-av { width: 32px; height: 32px; flex: none; border-radius: 50%; overflow: hidden; background: #fff; border: 1px solid var(--line); display: grid; place-items: center; }
     .sup-av img { width: 100%; height: 100%; object-fit: cover; }
     .sup-msg.equipe b { display: flex; align-items: center; font-size: 12.5px; margin-bottom: 2px; color: var(--accent); }
+    .sup-sistema { justify-self: center; max-width: 92%; padding: 8px 12px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 8%, transparent); color: var(--muted); font-size: 12.5px; text-align: center; }
+    .sup-compor { display: flex; gap: 8px; align-items: flex-end; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--panel); }
+    .sup-compor textarea { flex: 1; min-height: 44px; max-height: 140px; resize: none; padding: 11px 14px; border-radius: 22px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font: inherit; font-size: 15px; line-height: 1.4; outline: none; }
+    .sup-compor textarea:focus { border-color: var(--accent); }
+    .sup-enviar { flex: none; width: 44px; height: 44px; border-radius: 50%; border: 0; display: grid; place-items: center; background: var(--accent); color: var(--accent-ink, #001a24); cursor: pointer; }
+    .sup-enviar:disabled { opacity: .5; }
+    .sup-fechado { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--panel); color: var(--muted); font-size: 13.5px; }
+    .sup-fechado[hidden], .sup-compor[hidden] { display: none; }
+    .sup-nota { margin: 14px 0 4px; padding: 16px; border-radius: 18px; background: var(--panel); border: 1px solid var(--line); text-align: center; }
+    .sup-nota h3 { margin: 0 0 4px; font-size: 16px; } .sup-nota p { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
+    .sup-estrelas { display: flex; justify-content: center; gap: 6px; margin-bottom: 10px; }
+    .sup-estrelas button { width: 42px; height: 42px; border: 0; background: none; padding: 0; cursor: pointer; color: color-mix(in srgb, var(--muted) 45%, transparent); transition: transform .12s, color .12s; }
+    .sup-estrelas button svg { width: 34px; height: 34px; fill: currentColor; }
+    .sup-estrelas button.on { color: #ffb400; } .sup-estrelas button:active { transform: scale(.9); }
+    .sup-nota textarea { width: 100%; min-height: 64px; margin-bottom: 10px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font: inherit; font-size: 14px; resize: vertical; }
+    .sup-nota.feita { color: var(--muted); font-size: 13.5px; }
+    .sup-nota.feita b { color: #ffb400; letter-spacing: 1px; }
+    /* reportar e denunciar */
+    .sup-privado { display: flex; gap: 10px; margin: 0 0 14px; padding: 12px 14px; border-radius: 14px; background: color-mix(in srgb, var(--accent) 8%, var(--panel)); border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line)); font-size: 13.5px; line-height: 1.5; }
+    .sup-privado .i { flex: none; color: var(--accent); }
+    .sup-privado.perigo { background: color-mix(in srgb, #e5484d 8%, var(--panel)); border-color: color-mix(in srgb, #e5484d 28%, var(--line)); } .sup-privado.perigo .i { color: #e5484d; }
+    .sup-motivos { display: grid; gap: 6px; margin-bottom: 14px; }
+    .sup-motivo { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--panel); color: var(--text); font: inherit; font-size: 14.5px; font-weight: 650; text-align: left; cursor: pointer; }
+    .sup-motivo::before { content: ""; flex: none; width: 18px; height: 18px; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--muted) 55%, transparent); }
+    .sup-motivo[aria-checked="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--panel)); }
+    .sup-motivo[aria-checked="true"]::before { border: 5px solid var(--accent); }
+    .sup-den-lista { margin: 8px 0 18px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); overflow: hidden; }
+    .sup-den-lista:empty { display: none; }
+    .sup-comos { margin: 0; padding: 0 0 0 18px; display: grid; gap: 8px; font-size: 13.5px; line-height: 1.5; color: var(--muted); }
+    .sup-comos b { color: var(--text); }
     .av-cab { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; }
     .av-cab .sup-av { width: 42px; height: 42px; }
     .av-cab div { display: grid; gap: 2px; } .av-cab small { color: var(--muted); font-size: 12.5px; }
     .av-texto { margin: 0; white-space: pre-wrap; line-height: 1.55; font-size: 15px; }
     #folhaAviso[data-tipo="grave"] .folha-caixa { border-top: 4px solid #d03b3b; } #folhaAviso[data-tipo="alerta"] .folha-caixa { border-top: 4px solid #ec835a; }
-    .sup-item { display: grid; gap: 4px; padding: 14px 16px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); cursor: pointer; text-align: left; width: 100%; }
-    .sup-item:hover { background: var(--hover); }
-    .sup-item .l1 { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; } .sup-item small { color: var(--muted); }
-    .sup-st { font-size: 11.5px; font-weight: 800; padding: 3px 8px; border-radius: 999px; }
-    .sup-st.aberto { background: color-mix(in srgb, #fab219 18%, transparent); color: #b07800; } :root[data-theme="dark"] .sup-st.aberto { color: #fab219; }
-    .sup-st.respondido { background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); }
-    .sup-st.fechado { background: var(--panel-2); color: var(--muted); }
-    .sup-chat { display: grid; gap: 8px; }
-    .sup-msg { max-width: 85%; padding: 10px 12px; border-radius: 14px; background: var(--panel-2); white-space: pre-wrap; word-break: break-word; font-size: 14px; line-height: 1.45; }
-    .sup-msg.equipe { background: color-mix(in srgb, var(--accent) 14%, var(--panel)); }
-    .sup-msg.meu { margin-left: auto; }
-    .sup-msg small { display: block; margin-top: 4px; color: var(--muted); font-size: 11px; }
   </style>
 </body>
 </html>

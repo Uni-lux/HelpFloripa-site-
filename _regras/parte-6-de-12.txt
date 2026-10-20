@@ -221,4 +221,4 @@
       allow delete: if podeModerar();
     }
 
-// ===== FIM DA PARTE 6 DE 11 =====
+// ===== FIM DA PARTE 6 DE 12 =====
