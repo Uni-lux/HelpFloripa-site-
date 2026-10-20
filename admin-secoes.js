@@ -2,10 +2,11 @@
 // Painel do administrador — seções
 // =====================================================
 import { confirmarHF } from "./confirmar.js?v=4";
+import { cartaoComunicado } from "./comunicados.js?v=1";
 import { linha, linhaComparada, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=7";
 import { baixarPlanilhaMulti } from "./planilha.js?v=5";
 import { buscarPessoas } from "./pessoas.js?v=3";
-import { montarChat } from "./admin-chat.js?v=14";
+import { montarChat } from "./admin-chat.js?v=15";
 import { verConteudoDenuncia } from "./admin-denuncia.js?v=7";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
 import {
@@ -1041,7 +1042,9 @@ export function comunicados(el) {
     const it = h("article", "ad-item"); const top = h("div", "cab");
     const vivo = c.ativo && (!c.ate || ms(c.ate) > agora());
     top.append(selo(vivo ? "No ar" : "Fora do ar", vivo ? "bom" : "neutro"), selo({ info: "Informativo", novidade: "Novidade", alerta: "Alerta" }[c.tipo] || c.tipo, "info"), h("span", "quando", dataHora(c.em)));
-    it.append(top, h("strong", null, c.titulo), h("div", "meta", c.texto || ""));
+    // Prévia: do jeito que aparece no início do site.
+    const prev = cartaoComunicado(c); prev.style.margin = "4px 0 2px"; prev.style.animation = "none";
+    it.append(top, prev);
     if (c.ate) it.appendChild(h("div", "meta", `Sai do ar em ${dataHora(c.ate)}`));
     const ac = h("div", "ad-acoes"); if (pode("moderar")) ac.append(btn("Editar", "", () => editar(c)), btn(c.ativo ? "Tirar do ar" : "Colocar no ar", "", async () => { const { fb } = C; await fb.updateDoc(fb.doc(fb.db, "comunicados", c.id), { ...limpo(c), ativo: !c.ativo, por: C.eu.uid }); c.ativo = !c.ativo; await registrar("comunicado_" + (c.ativo ? "on" : "off"), "", c.titulo); C.irPara("comunicados"); }), btn("Apagar", "perigo", async () => { if (!(await confirmarHF({ titulo: "Apagar este comunicado?", texto: "Ele sai do ar e não dá para desfazer.", ok: "Apagar", icone: "lixo" }))) return; const { fb } = C; await fb.deleteDoc(fb.doc(fb.db, "comunicados", c.id)); D.comunicados = D.comunicados.filter((x) => x !== c); await registrar("comunicado_apagar", "", c.titulo); C.irPara("comunicados"); }));
     it.appendChild(ac); lista.appendChild(it);
@@ -1144,8 +1147,25 @@ export function relatorios(el) {
 
 // ======================================================= REGISTRO E EQUIPE
 const NOMES_ACAO = { aviso: "Enviou aviso", suspender: "Suspendeu", banir: "Baniu", remover_sancao: "Removeu sanção", verificar: "Deu selo", tirar_selo: "Tirou/recusou selo", remover_conteudo: "Removeu conteúdo", esconder_negocio: "Escondeu negócio", mostrar_negocio: "Mostrou negócio", esconder_publicacao: "Escondeu publicação", mostrar_publicacao: "Mostrou publicação", exportar: "Exportou dados", relatorio_pdf: "Gerou relatório", parceria: "Atualizou parceria", parceria_apagar: "Apagou parceria", suporte_resposta: "Respondeu chamado", suporte_conversa: "Abriu conversa de suporte", suporte_fechado: "Fechou chamado", suporte_aberto: "Reabriu chamado", reporte_novo: "Reportou pessoa do suporte", cobrar_reclamacao: "Cobrou resposta de reclamação", reporte_em_analise: "Pôs reporte em análise", reporte_resolvido: "Resolveu reporte", reporte_descartado: "Descartou reporte", comunicado_novo: "Criou comunicado", comunicado_editar: "Editou comunicado", comunicado_on: "Pôs comunicado no ar", comunicado_off: "Tirou comunicado do ar", comunicado_apagar: "Apagou comunicado", denuncia_resolvida: "Resolveu denúncia", denuncia_descartada: "Descartou denúncia", denuncia_em_analise: "Pôs denúncia em análise", assumiu: "Assumiu", passou: "Passou para outra pessoa", liberou: "Liberou", tarefa_nova: "Criou tarefa", tarefa_editar: "Editou tarefa", tarefa_a_fazer: "Voltou tarefa", tarefa_fazendo: "Começou tarefa", tarefa_feito: "Concluiu tarefa", tarefa_apagar: "Apagou tarefa", nota_interna: "Escreveu nota interna", entrou: "Entrou no painel" };
+// Alvo do registro em texto de gente: a pessoa (link para a ficha), ou o item que a equipe assumiu/passou
+// ("suporte:ID" vira "Chamado #ABC123 · assunto", "denuncias:..." vira "Denúncia · motivo · pessoa"), ou a lista exportada.
+const LISTAS_EXPORT = { usuarios: "Lista de usuários", negocios: "Lista de negócios", denuncias: "Lista de denúncias", reclamacoes: "Lista de reclamações" };
+function alvoLegivel(x) {
+  const a = String(x.alvo || "");
+  if (!a) return { texto: "—" };
+  if (D.pessoas.has(a)) return { texto: pessoa(a).nome || "Conta", uid: a };
+  const [col, id] = a.includes(":") ? [a.slice(0, a.indexOf(":")), a.slice(a.indexOf(":") + 1)] : ["", ""];
+  if (col === "suporte") { const c = D.suporte.find((s) => s.id === id); return { texto: `Chamado ${protocolo(id)}${c ? " · " + c.assunto : ""}`, sub: c ? pessoa(c.uid).nome || c.nome || "" : "", ir: "suporte" }; }
+  if (col === "denuncias" || col === "denuncia") { const d = D.denuncias.find((z) => z.id === id); const tipo = (id.split("_")[0] || "").replace(/^\w/, (l) => l.toUpperCase()); return { texto: `Denúncia${tipo ? " de " + tipo.toLowerCase() : ""}${d ? " · " + (MOTIVOS_DEN[d.motivo] || d.motivo) : ""}`, sub: d ? `contra ${pessoa(d.alvoId).nome || "conta"}` : "", ir: "denuncias" }; }
+  if (col === "parcerias" || col === "parceria") { const pp = D.parcerias.find((z) => z.id === id); return { texto: `Proposta${pp ? " · " + (pp.empresa || pp.nome) : ""}`, ir: "parcerias" }; }
+  if (col === "reportes") return { texto: "Reporte do suporte", ir: "denuncias:reportes" };
+  if (LISTAS_EXPORT[a]) return { texto: LISTAS_EXPORT[a] };
+  if (/^[A-Za-z0-9]{20,40}$/.test(a)) return { texto: "Conta não carregada", sub: "ID " + a.slice(0, 6) + "…", uid: a };
+  if (/@/.test(a)) return { texto: a };
+  return { texto: a.length > 40 ? a.slice(0, 38) + "…" : a };
+}
 export function registro(el) {
-  const excel = btn("Baixar Excel", "", () => { const l = filtrar(); baixarCSV("registro-equipe", ["Quando", "Quem", "Ação", "Alvo", "Detalhe"], l.map((x) => [dataHora(x.em), x.porNome || nomeEquipe(x.por), NOMES_ACAO[x.acao] || x.acao, D.pessoas.get(x.alvo)?.nome || x.alvo || "", x.detalhe || ""])); });
+  const excel = btn("Baixar Excel", "", () => { const l = filtrar(); baixarCSV("registro-equipe", ["Quando", "Quem", "Ação", "Alvo", "Detalhe"], l.map((x) => [dataHora(x.em), x.porNome || nomeEquipe(x.por), NOMES_ACAO[x.acao] || x.acao, alvoLegivel(x).texto, x.detalhe || ""])); });
   el.appendChild(cab("Registro de ações", "Tudo o que a equipe faz no painel fica aqui. Não pode ser apagado.", excel));
   const linhaF = h("div", "ad-acoes"); linhaF.style.marginBottom = "12px";
   const selQuem = document.createElement("select"); selQuem.className = "ad-sel"; selQuem.setAttribute("aria-label", "Filtrar por pessoa da equipe");
@@ -1157,12 +1177,22 @@ export function registro(el) {
   const info = h("p"); info.style.color = "var(--muted)"; const tab = h("div", "ad-tabela"); el.append(info, tab);
   function filtrar() {
     const t = busca.value.trim().toLowerCase();
-    return D.log.filter((x) => (!selQuem.value || x.por === selQuem.value) && (!selAcao.value || x.acao === selAcao.value) && (!t || [x.detalhe, x.alvo, D.pessoas.get(x.alvo)?.nome].some((v) => String(v || "").toLowerCase().includes(t))));
+    return D.log.filter((x) => (!selQuem.value || x.por === selQuem.value) && (!selAcao.value || x.acao === selAcao.value) && (!t || [x.detalhe, x.alvo, alvoLegivel(x).texto].some((v) => String(v || "").toLowerCase().includes(t))));
   }
   function pintar() {
     const l = filtrar(); info.textContent = `${num(l.length)} ${l.length === 1 ? "ação" : "ações"} (últimas 300 carregadas)`;
     const t = document.createElement("table"); const th = h("tr"); ["Quando", "Quem", "Ação", "Alvo", "Detalhe"].forEach((x) => th.appendChild(h("th", null, x))); t.appendChild(th);
-    l.forEach((x) => { const tr = h("tr"); const alvo = h("td"); if (x.alvo && D.pessoas.has(x.alvo)) { const a = h("a", null, pessoa(x.alvo).nome); a.href = "#"; a.addEventListener("click", (e) => { e.preventDefault(); abrirFicha(x.alvo); }); alvo.appendChild(a); } else alvo.textContent = x.alvo || "—"; tr.append(h("td", null, dataHora(x.em)), h("td", null, x.porNome || nomeEquipe(x.por)), h("td", null, NOMES_ACAO[x.acao] || x.acao), alvo, h("td", null, x.detalhe || "")); t.appendChild(tr); });
+    l.forEach((x) => {
+      const tr = h("tr"); const alvo = h("td"); alvo.dataset.rot = "Alvo";
+      const r = alvoLegivel(x);
+      if (r.uid || r.ir) { const ln = h("a", null, r.texto); ln.href = "#"; ln.addEventListener("click", (e) => { e.preventDefault(); if (r.uid) abrirFicha(r.uid); else C.irPara(r.ir); }); alvo.appendChild(ln); }
+      else alvo.appendChild(h("span", null, r.texto));
+      if (r.sub) alvo.appendChild(h("small", "ad-alvo-sub", r.sub));
+      const c1 = h("td", "ad-reg-quando", dataHora(x.em)), c2 = h("td", "ad-reg-quem", x.porNome || nomeEquipe(x.por)), c3 = h("td", "ad-reg-acao", NOMES_ACAO[x.acao] || x.acao), c5 = h("td", "ad-reg-det", x.detalhe || "");
+      c1.dataset.rot = "Quando"; c2.dataset.rot = "Quem"; c3.dataset.rot = "Ação"; c5.dataset.rot = "Detalhe";
+      tr.append(c1, c2, c3, alvo, c5); t.appendChild(tr);
+    });
+    tab.classList.add("ad-registro");
     tab.replaceChildren(l.length ? t : h("div", "ad-vazio", "Nenhuma ação com esses filtros."));
   }
   [selQuem, selAcao].forEach((e) => e.addEventListener("change", pintar)); let tempo; busca.addEventListener("input", () => { clearTimeout(tempo); tempo = setTimeout(pintar, 200); });

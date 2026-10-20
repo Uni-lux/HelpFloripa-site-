@@ -58,7 +58,10 @@ function conferir() {
 }
 
 export function ligarVoltar() {
-  if (ligado || window.top !== window.self) return;
+  // Dentro de outra página do site (ex.: Ajuda e suporte nas Mensagens) também vale: o histórico é o mesmo.
+  let deFora = false;
+  try { deFora = window.top !== window.self && window.top.location.origin !== location.origin; } catch { deFora = true; }
+  if (ligado || deFora) return;
   ligado = true;
   // Chegou (ou recarregou) com passos que não existem mais: começa do zero.
   if (nivel()) { try { history.replaceState(estado(0), "", location.href); } catch {} }

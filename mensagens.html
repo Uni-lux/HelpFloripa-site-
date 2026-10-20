@@ -1126,7 +1126,7 @@
     import { docComValidade } from "./leituras.js?v=1";
     import { comRitmo } from "./ritmo.js?v=2";
     import { criarPlayerAudio } from "./audio-ondas.js?v=1";
-    import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=6";
+    import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
     import { abrirQueixa } from "./queixas.js?v=11";
     import { ouvirItensEquipe, linkEquipe, seloOficial, TEXTO_EQUIPE } from "./avisos-equipe.js?v=1";
     import { escolherApagar, editarTextoHF, verEdicoesHF, janelaHF, horaCurta, noPrazo, tempoRestante, podeMexer } from "./msg-acoes.js?v=2";
@@ -3936,7 +3936,7 @@
       $("inputFundoFoto").value = "";
       if (!arquivo) return;
       try {
-        const { editarImagem } = await import("./editor-imagem.js?v=6");
+        const { editarImagem } = await import("./editor-imagem.js?v=7");
         // A moldura tem o formato da área da conversa nesta tela.
         const area = document.querySelector(".chat");
         const larg = area.offsetWidth || window.innerWidth;

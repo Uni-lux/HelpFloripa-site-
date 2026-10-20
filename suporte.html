@@ -10,7 +10,11 @@
     if (window.top !== window.self) {
       var mesmoSite = false;
       try { mesmoSite = window.top.location.origin === window.location.origin; } catch (e) {}
-      if (mesmoSite) document.documentElement.classList.add("embutido");
+      if (mesmoSite) {
+        document.documentElement.classList.add("embutido");
+        // Dentro das Mensagens a Central de ajuda abre aqui mesmo: o "voltar" volta para o suporte.
+        document.addEventListener("DOMContentLoaded", function () { var l = document.getElementById("lnkAjuda"); if (l) l.removeAttribute("target"); });
+      }
       else { document.documentElement.style.display = "none"; try { window.top.location.replace(window.self.location.href); } catch (e) {} }
     }
   </script>
@@ -36,9 +40,9 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="rede.css?v=29" />
+  <link rel="stylesheet" href="rede.css?v=30" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="suporte.js?v=34"></script>
+  <script type="module" src="suporte.js?v=35"></script>
 </head>
 <body>
   <header class="topo">
@@ -57,7 +61,7 @@
       </div>
       <div class="sup-atalhos">
         <button type="button" class="sup-atalho pri" id="btnNovo"><span class="ic"><svg class="i"><use href="#i-chat"/></svg></span><b>Novo chamado</b><small>Fale com a equipe</small></button>
-        <a class="sup-atalho" href="ajuda.html" target="_top"><span class="ic"><svg class="i"><use href="#i-ajuda"/></svg></span><b>Central de ajuda</b><small>Respostas rápidas</small></a>
+        <a class="sup-atalho" href="ajuda.html" target="_top" id="lnkAjuda"><span class="ic"><svg class="i"><use href="#i-ajuda"/></svg></span><b>Central de ajuda</b><small>Respostas rápidas</small></a>
         <button type="button" class="sup-atalho" id="btnDenunciar"><span class="ic perigo"><svg class="i"><use href="#i-alerta"/></svg></span><b>Denunciar</b><small>Golpe, abuso ou perfil falso</small></button>
         <button type="button" class="sup-atalho" id="btnContestar"><span class="ic"><svg class="i"><use href="#i-restringir"/></svg></span><b>Contestar decisão</b><small>Suspensão ou remoção</small></button>
       </div>

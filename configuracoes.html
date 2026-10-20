@@ -23,9 +23,9 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="rede.css?v=29" />
+  <link rel="stylesheet" href="rede.css?v=30" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="configuracoes.js?v=54"></script>
+  <script type="module" src="configuracoes.js?v=55"></script>
 </head>
 <body>
   <header class="topo">
@@ -73,8 +73,9 @@
           </div>
           <div class="cfg-item" style="cursor:default"><svg class="i"><use href="#i-rosa"/></svg><span class="txt">Rosinha do duo no perfil<small id="cfgDuoTxt"></small></span></div>
           <div class="segmentado" id="cfgDuoCapa">
-            <button type="button" data-valor="clicavel">Clicável</button>
-            <button type="button" data-valor="foto">Só a rosinha</button>
+            <button type="button" data-valor="clicavel">Foto e nome</button>
+            <button type="button" data-valor="foto">Só a foto</button>
+            <button type="button" data-valor="rosa">Só a rosinha</button>
             <button type="button" data-valor="ocultar">Ocultar</button>
           </div>
           <label class="cfg-item"><svg class="i"><use href="#i-olho"/></svg><span class="txt">Mostrar quando estou online<small>Aparece como "online" nas conversas</small></span><span class="switch"><input type="checkbox" id="cfgOnline" /><span></span></span></label>

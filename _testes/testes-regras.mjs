@@ -520,6 +520,9 @@ await t("nota do atendimento: outra pessoa não avalia", () => assertFails(setDo
 await t("nota do atendimento: nota 6 é recusada", async () => { await semRegras((db) => setDoc(doc(db, "suporte", "cb9"), { uid: "bia", assunto: "x", categoria: "conta", status: "fechado" })); await assertFails(setDoc(doc(ctx("bia"), "suporte_notas", "cb9"), { uid: "bia", nota: 6, criadoEm: serverTimestamp() })); });
 await t("nota do atendimento: a equipe lê", () => assertSucceeds(getDoc(doc(ctx("mod2"), "suporte_notas", "cb1"))));
 
+await t("perfil: rosinha do duo \"Só a rosinha\" (rosa)", () => assertSucceeds(updateDoc(doc(ctx("ana"), "perfis_publicos", "ana"), { duoCapa: "rosa" })));
+await t("perfil: rosinha com valor estranho é recusada", () => assertFails(updateDoc(doc(ctx("ana"), "perfis_publicos", "ana"), { duoCapa: "piscando" })));
+
 // ---------- resultado ----------
 for (const r of resultados) console.log(r[0] === "ok" ? "  ✔" : "  ✘", r[1], r[2] ? "→ " + r[2] : "");
 console.log(`\n${ok} passaram, ${falhou} falharam (${arquivo})`);

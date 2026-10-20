@@ -13,7 +13,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="stylesheet" href="vitrine.css?v=25" />
-  <link rel="stylesheet" href="rede.css?v=29" />
+  <link rel="stylesheet" href="rede.css?v=30" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
     // Tema compartilhado com a página de mensagens; aplicado antes de desenhar.
@@ -221,14 +221,14 @@
       removerSeguidor, bloquear, desbloquear, alternarRestricao, compartilharPerfil,
       barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail,
       fotosDoPost, carrosselFotos, idsSalvos, listaColecoes, gravarColecoes, novaColecao, escolherColecao, alternarSalvo, contadorEstrelas, silenciado, alternarSilenciar, marcarVista, definirOrigem, lerResumosEstrelas, contarComentarios, blocoEnquete, blocoCaixa
-    } from "./rede.js?v=46";
+    } from "./rede.js?v=47";
     import { buscarPessoas, palavrasBusca } from "./pessoas.js?v=3";
     import { abrirDenuncia } from "./denuncias.js?v=4";
     import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
     import { notaDoPerfil, abrirDetalhamento, avaliarNegocio, avaliarCliente, lerResumo, estrelas, pintarEstrelas, media, notaTexto, TIPOS_NEGOCIO } from "./avaliacoes.js?v=13";
     import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=36";
     import { anelNegocio } from "./flash-negocio.js?v=1";
-    import { anelNoPerfil, novoFlash } from "./stories.js?v=17";
+    import { anelNoPerfil, novoFlash } from "./stories.js?v=18";
 
     // ======================================================
     // Estado desta página (o resto vem de rede.js)
@@ -382,7 +382,7 @@
     }
 
     function abrirInsightsPerfil() {
-      import("./insights.js?v=8").then((m) => m.abrirInsights()).catch((e) => toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)));
+      import("./insights.js?v=9").then((m) => m.abrirInsights()).catch((e) => toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)));
     }
 
     // ======================================================
@@ -722,7 +722,7 @@
         ja.addEventListener("click", async () => { try { await fb.updateDoc(fb.doc(fb.db, "diario", post.id), { agendadoPara: fb.serverTimestamp() }); post.agendadoPara = { toMillis: () => Date.now() }; toast("Publicada agora"); mostrarPost(); carregarMeusPosts(); } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); } });
         a.appendChild(ja); extra.appendChild(a);
       }
-      if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=13").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
+      if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=14").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
       extra.hidden = !extra.children.length;
       if (!proprio) marcarVista({ ...post, autorId: post.autorId || autor?.uid });
       $("postAnterior").disabled = indice <= 0;
@@ -923,6 +923,23 @@
       foto: { titulo: "Foto de perfil", dica: "O círculo mostra exatamente como sua foto aparece. Deixe o rosto dentro da linha tracejada.", proporcao: 1, circulo: true, larguraSaida: 480, qualidade: 0.86, limiteBytes: 250000 },
       capa: { titulo: "Foto de capa", dica: "A moldura mostra a capa inteira. O círculo tracejado marca onde sua foto de perfil fica por cima.", proporcao: 3, extra: "avatar-capa", larguraSaida: 1500, qualidade: 0.8, limiteBytes: 500000 }
     };
+    // Capa: a moldura tem o formato da capa NESTA tela, com a foto de perfil e o nome no lugar onde ficam.
+    function opcoesCapa() {
+      const base = { ...OPCOES_IMAGEM.capa };
+      const raiz = meuCab?.raiz || document.querySelector(".pf2");
+      const capa = raiz?.querySelector(".pf-capa");
+      const r = capa?.getBoundingClientRect();
+      if (!r || r.width < 50 || r.height < 50) return base;
+      const fr = (el) => { const b = el?.getBoundingClientRect(); return b && b.width ? { x: (b.left - r.left) / r.width, y: (b.top - r.top) / r.height, w: b.width / r.width, h: b.height / r.height } : null; };
+      const marcas = [];
+      const foto = fr(raiz.querySelector(".pf-anel") || raiz.querySelector(".pf-avatar-wrap"));
+      if (foto) marcas.push({ forma: "circulo", rotulo: "Sua foto", ...foto });
+      const ident = raiz.querySelector(".pf-ident");
+      const t = fr(ident);
+      if (t) marcas.push({ forma: "texto", rotulo: "Nome e bio", ...t, h: Math.min(t.h, 1 - t.y) });
+      return { ...base, proporcao: Math.max(1.3, Math.min(3.2, r.width / r.height)), extra: "", marcas, escurecerBaixo: true,
+        dica: "A moldura é a sua capa como aparece no perfil. A foto e o nome ficam por cima, nas marcas tracejadas: deixe o principal livre." };
+    }
     let edRascunho = null; // alterações pendentes no "Editar perfil"
     let salvarDireto = false;
 
@@ -935,7 +952,7 @@
       input.value = "";
       if (!arquivo) return;
       try {
-        const dataUrl = await editarImagem(arquivo, OPCOES_IMAGEM[tipo]);
+        const dataUrl = await editarImagem(arquivo, tipo === "capa" ? opcoesCapa() : OPCOES_IMAGEM[tipo]);
         if (!dataUrl) return;
         if (salvarDireto) {
           toast("Salvando...");
@@ -1392,7 +1409,8 @@
       const linha = cab.raiz.querySelector(".pf-avatar-wrap");
       linha.querySelectorAll(".pf-rosa, .pf-duo-bolha").forEach((x) => x.remove());
       linha.classList.remove("com-rosa");
-      if ((dono.duoCapa || "clicavel") === "ocultar") return;
+      const modo = dono.duoCapa || "clicavel";
+      if (modo === "ocultar") return;
       const duo = vinculos.map((v) => lerVinculo(v, uid)).find((v) => TIPOS_DUO.includes(v.tipo) && !v.pendente && !escondido(v.outro));
       if (!duo) return;
       const btn = document.createElement("button");
@@ -1406,7 +1424,7 @@
       btn.setAttribute("aria-expanded", "false");
       // Tocar na rosinha: aparece a fotinho redonda do duo. "Clicável": a fotinho abre o perfil; "Só a rosinha": só mostra.
       const bolha = document.createElement("button");
-      bolha.type = "button"; bolha.className = "pf-duo-bolha" + (podeAbrir ? "" : " so-ver"); bolha.hidden = true;
+      bolha.type = "button"; bolha.className = "pf-duo-bolha" + (podeAbrir ? "" : " so-ver") + (modo === "foto" ? " sem-nome" : ""); bolha.hidden = true;
       const av = document.createElement("div"); av.className = "avatar";
       const nm = document.createElement("span"); nm.className = "nm";
       bolha.append(av, nm);
@@ -1422,6 +1440,8 @@
       fora = (e) => { if (!bolha.contains(e.target) && !btn.contains(e.target)) esconder(); };
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
+        // "Só a rosinha": não mostra foto nem nome, só a rosinha pulsa.
+        if (modo === "rosa") { btn.classList.remove("pulsa"); void btn.offsetWidth; btn.classList.add("pulsa"); navigator.vibrate?.(6); if (uid === eu.uid) toast("Rosinha em \"Só a rosinha\": ninguém vê a foto nem o nome do seu duo. Mude em Configurações."); return; }
         if (bolha.classList.contains("aberta")) { esconder(); return; }
         bolha.hidden = false; requestAnimationFrame(() => bolha.classList.add("aberta"));
         btn.setAttribute("aria-expanded", "true");
