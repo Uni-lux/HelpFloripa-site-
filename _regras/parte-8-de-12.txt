@@ -1,3 +1,60 @@
+      allow read: if (logado() && request.auth.uid == uid) || podeModerar();
+      // Pedir (ou pedir de novo depois de não aprovado ou cancelado).
+      allow create: if logado() && request.auth.uid == uid && pedidoOk(request.resource.data);
+      allow update: if logado() && request.auth.uid == uid
+                    && resource.data.status in ['recusada', 'cancelada']
+                    && pedidoOk(request.resource.data);
+      // Cancelar o próprio pedido (a foto do documento sai junto).
+      allow update: if logado() && request.auth.uid == uid
+                    && resource.data.status in ['pendente', 'em_analise']
+                    && request.resource.data.status == 'cancelada'
+                    && mudou().hasOnly(['status', 'atualizadoEm', 'documento'])
+                    && !('documento' in request.resource.data)
+                    && request.resource.data.atualizadoEm == request.time;
+      // A moderação analisa e decide um pedido em aberto; ao aprovar ou recusar, a foto do documento é apagada.
+      allow update: if podeModerar()
+                    && resource.data.status in ['pendente', 'em_analise']
+                    && mudou().hasOnly(['status', 'motivoRecusa', 'analisadaPor', 'analisadaEm', 'documento', 'atualizadoEm'])
+                    && request.resource.data.status in ['em_analise', 'aprovada', 'recusada']
+                    && request.resource.data.analisadaPor == request.auth.uid
+                    && (request.resource.data.status == 'em_analise' || !('documento' in request.resource.data))
+                    && valorTextoAte(request.resource.data.get('motivoRecusa', ''), 500);
+      allow delete: if (logado() && request.auth.uid == uid) || podeModerar();
+    }
+
+    // Reporte de atendimento do suporte (só a moderação e os donos leem; o suporte não).
+    //   atendimento_{chamado}_{uid}: quem abriu o chamado reporta como foi atendido (demora, grosseria...).
+    //   usuario_{chamado}_{uid}: alguém da equipe reporta a pessoa do chamado (ofensas, ameaça, golpe...).
+    match /reportes/{id} {
+      function chamadoDe(c) { return get(/databases/$(database)/documents/suporte/$(c)).data; }
+      allow get: if logado() && resource.data.autorId == request.auth.uid;
+      allow read: if podeModerar();
+      allow create: if logado()
+                    && request.resource.data.keys().hasOnly(['tipo', 'chamadoId', 'assunto', 'autorId', 'alvoId', 'alvoNome', 'motivo', 'detalhe', 'status', 'criadoEm'])
+                    && request.resource.data.autorId == request.auth.uid
+                    && request.resource.data.chamadoId is string
+                    && id == request.resource.data.tipo + '_' + request.resource.data.chamadoId + '_' + request.auth.uid
+                    && request.resource.data.motivo.matches('^(demora|grosseria|nao_resolveu|errado|dados|ofensa|ameaca|golpe|spam|outro)$')
+                    && valorTextoAte(request.resource.data.get('detalhe', ''), 1000)
+                    && valorTextoAte(request.resource.data.get('assunto', ''), 120)
+                    && valorTextoAte(request.resource.data.get('alvoNome', ''), 80)
+                    && request.resource.data.status == 'novo'
+                    && request.resource.data.criadoEm == request.time
+                    && ((request.resource.data.tipo == 'atendimento'
+                         && chamadoDe(request.resource.data.chamadoId).uid == request.auth.uid
+                         && (!('alvoId' in request.resource.data) || request.resource.data.alvoId is string))
+                        || (request.resource.data.tipo == 'usuario'
+                         && admin()
+                         && request.resource.data.alvoId == chamadoDe(request.resource.data.chamadoId).uid));
+      allow update: if podeModerar()
+                    && mudou().hasOnly(['status', 'nota', 'analisadaEm', 'analisadaPor', 'responsavel', 'responsavelNome', 'assumidoEm'])
+                    && request.resource.data.status in ['novo', 'em_analise', 'resolvido', 'descartado']
+                    && (!mudou().hasAny(['status', 'nota', 'analisadaEm', 'analisadaPor']) || request.resource.data.analisadaPor == request.auth.uid)
+                    && responsavelOk()
+                    && valorTextoAte(request.resource.data.get('nota', ''), 1000);
+      allow delete: if false;
+    }
+
     // Nota do atendimento (1 a 5) dada por quem abriu o chamado, uma vez; a equipe lê.
     match /suporte_notas/{chamadoId} {
       allow read: if admin() || (logado() && resource.data.uid == request.auth.uid);
@@ -114,74 +171,4 @@
           && d.edicoes[a.get('edicoes', []).size()].texto == a.get('texto', '')
           && d.edicoes[a.get('edicoes', []).size()].em == a.get('editadaEm', a.em);
     }
-    // Apagar para todos no chat da equipe: fica "apagou esta mensagem"; o conteúdo vai para
-    // equipe_apagadas/{id} (abre por 24 horas), gravado junto.
-    function apagarEquipeOk(id) {
-      let d = request.resource.data;
-      let a = resource.data;
-      return a.autorId == request.auth.uid
-          && request.time < a.em + duration.value(10, 'm')
-          && !('apagada' in a)
-          && d.keys().hasOnly(['autorId', 'nome', 'em', 'apagada'])
-          && d.autorId == a.autorId && d.em == a.em && d.get('nome', '') == a.get('nome', '')
-          && d.apagada is map && d.apagada.keys().hasOnly(['por', 'em'])
-          && d.apagada.por == request.auth.uid && d.apagada.em == request.time
-          && existsAfter(/databases/$(database)/documents/equipe_apagadas/$(id));
-    }
-    match /equipe_chat/{id} {
-      allow read: if admin();
-      allow create: if admin() && msgEquipeOk('equipe');
-      allow update: if admin() && reacaoValida();
-      allow update: if admin() && (edicaoEquipeOk() || apagarEquipeOk(id));
-      allow delete: if false;
-    }
-    // Conversa individual entre duas pessoas da equipe: equipe_dm/{uidA_uidB} (ids em ordem).
-    // O documento guarda só o resumo (última mensagem e quando cada um leu).
-    match /equipe_dm/{par} {
-      function membro() {
-        return admin() && par.split('_').size() == 2 && request.auth.uid in par.split('_')
-            && exists(/databases/$(database)/documents/admins/$(par.split('_')[0]))
-            && exists(/databases/$(database)/documents/admins/$(par.split('_')[1]));
-      }
-      allow read: if admin() && request.auth.uid in resource.data.participantes;
-      allow create, update: if membro()
-                    && request.resource.data.keys().hasOnly(['participantes', 'ultimaEm', 'ultimaTexto', 'ultimoAutor', 'lidoEm'])
-                    && request.resource.data.participantes == par.split('_')
-                    && valorTextoAte(request.resource.data.get('ultimaTexto', ''), 140)
-                    && (!('ultimoAutor' in request.resource.data) || request.resource.data.ultimoAutor in par.split('_'))
-                    && request.resource.data.get('lidoEm', {}) is map;
-      allow delete: if false;
-      match /mensagens/{id} {
-        allow read: if admin() && request.auth.uid in par.split('_');
-        allow create: if admin() && par.split('_').size() == 2 && request.auth.uid in par.split('_') && msgEquipeOk(par);
-        allow update: if admin() && request.auth.uid in par.split('_') && reacaoValida();
-        allow update: if admin() && request.auth.uid in par.split('_') && (edicaoEquipeOk() || apagarEquipeOk(id));
-        allow delete: if false;
-      }
-    }
-    // Conteúdo de mensagem do chat da equipe apagada para todos (abre por 24 horas, só quem participa;
-    // depois disso qualquer um da conversa apaga de vez).
-    match /equipe_apagadas/{id} {
-      function daConversaEq(c) { return c == 'equipe' || request.auth.uid in c.split('_'); }
-      function msgEq(c) {
-        return c == 'equipe' ? /databases/$(database)/documents/equipe_chat/$(id)
-                             : /databases/$(database)/documents/equipe_dm/$(c)/mensagens/$(id);
-      }
-      allow get: if admin() && daConversaEq(resource.data.conversa) && request.time < resource.data.apagadaEm + duration.value(24, 'h');
-      allow create: if admin()
-                    && request.resource.data.keys().hasOnly(['autorId', 'conversa', 'conteudo', 'apagadaEm'])
-                    && request.resource.data.autorId == request.auth.uid
-                    && request.resource.data.conversa is string
-                    && daConversaEq(request.resource.data.conversa)
-                    && get(msgEq(request.resource.data.conversa)).data.autorId == request.auth.uid
-                    && getAfter(msgEq(request.resource.data.conversa)).data.apagada.por == request.auth.uid
-                    && request.resource.data.apagadaEm == request.time
-                    && request.resource.data.conteudo is map
-                    && request.resource.data.conteudo.keys().hasOnly(['texto', 'tipoArquivo', 'anexo', 'nomeArquivo', 'tamanho', 'miniatura', 'duracao', 'resposta', 'mencoes', 'edicoes'])
-                    && request.resource.data.conteudo.get('texto', '') == get(msgEq(request.resource.data.conversa)).data.get('texto', '')
-                    && request.resource.data.conteudo.get('anexo', '') == get(msgEq(request.resource.data.conversa)).data.get('anexo', '');
-      allow update: if false;
-      allow delete: if admin() && daConversaEq(resource.data.conversa) && request.time >= resource.data.apagadaEm + duration.value(24, 'h');
-    }
-
 // ===== FIM DA PARTE 8 DE 12 =====

@@ -12,6 +12,7 @@ import {
   tempoRelativo, obterPerfil, nomeCidade, ganchos
 } from "./rede.js?v=47";
 import { secaoGrafico, secaoHoras } from "./estatisticas-post.js?v=14";
+import { lerStats, listaDias, somarPeriodo } from "./estat-negocio.js?v=1";
 
 const DIA = 864e5;
 const PERIODOS = [[7, "7 dias"], [30, "30 dias"], [90, "90 dias"]];
@@ -186,6 +187,35 @@ function montar(corpo, D, dias, trocarPeriodo) {
     }
   }
   corpo.appendChild(el("p", "pub-dica", "Contas alcançadas contam cada pessoa uma vez no período. Você não entra nas contas."));
+  secaoNegocios(corpo, dias);
+}
+
+// ---------- seus negócios: atalho para as estatísticas de cada perfil de negócio ----------
+const TIPOS_NEG = { servicos: ["Freelances", "#00adee"], delivery: ["Delivery", "#ff7a1a"], lojinha: ["Lojinha", "#b066ff"], imoveis: ["Imóveis", "#2fbf71"] };
+async function secaoNegocios(corpo, dias) {
+  const negs = await lerTodos(fb.query(fb.collection(fb.db, "negocios"), fb.where("donoId", "==", eu.uid), fb.limit(8)));
+  if (!negs?.length) return;
+  const stats = await lerStats(fb, eu.uid).catch(() => null);
+  const s = el("div", "estat-secao ins-negs");
+  const cab = el("div", "estat-graf-cab"); cab.append(el("h3", null, "Seus negócios"), el("small", null, `visitas e contatos nos últimos ${dias} dias`));
+  s.appendChild(cab);
+  negs.sort((a, b) => Object.keys(TIPOS_NEG).indexOf(a.tipo) - Object.keys(TIPOS_NEG).indexOf(b.tipo)).forEach((n) => {
+    const [rot, cor] = TIPOS_NEG[n.tipo] || ["Negócio", "#00adee"];
+    const a = el("a", "ins-neg"); a.href = `negocios.html?insights=${encodeURIComponent(n.id)}`;
+    a.style.setProperty("--c", cor);
+    const ic = el("span", "ic"); ic.appendChild(icone(n.tipo, "i s"));
+    const tx = el("span", "tx"); tx.append(el("strong", null, n.nome || rot), el("small", null, rot));
+    a.append(ic, tx);
+    if (stats) {
+      const r = somarPeriodo(stats, n.id, listaDias(dias)), ant = somarPeriodo(stats, n.id, listaDias(dias, 1));
+      const num = (v, rotN, antes) => { const b = el("span", "nums"); b.append(el("b", null, numero(v)), el("small", null, rotN)); if (antes || v) b.appendChild(el("i", v >= antes ? "sobe" : "desce", !antes ? "novo" : `${v >= antes ? "▲" : "▼"} ${fmtPct(Math.abs((v - antes) / antes))}`)); return b; };
+      a.append(num(r.v, r.v === 1 ? "visita" : "visitas", ant.v), num(r.contatos, r.contatos === 1 ? "contato" : "contatos", ant.contatos));
+    }
+    a.appendChild(icone("avancar", "i xs"));
+    s.appendChild(a);
+  });
+  if (!stats) s.appendChild(el("p", "pub-dica", "As visitas dos negócios começam a contar quando as regras novas forem publicadas."));
+  corpo.appendChild(s);
 }
 
 function barraLinha(rot, n, total, texto) {

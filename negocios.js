@@ -9,11 +9,12 @@
 import { confirmarHF } from "./confirmar.js?v=4";
 import {
   $, el, icone, pintarAvatar, urlSegura, nomeCidade, toast, erroAmigavel, abrirFolha, fecharFolha,
-  fb, eu, dados, salvarImagem, editarImagem, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos
+  fb, eu, dados, salvarImagem, editarImagem, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos, criarFolha
 } from "./rede.js?v=47";
 import { lerResumos, estrelas, media, notaTexto } from "./avaliacoes.js?v=13";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
-import { buscarAnuncios, DIAS, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO } from "./vitrine.js?v=36";
+import { lerStats, listaDias, somarPeriodo } from "./estat-negocio.js?v=1";
+import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO } from "./vitrine.js?v=37";
 
 // Cada tipo com a cor da sua classe na página inicial (inicio.css: --c-servicos etc.) e uma chamada própria.
 const NEGOCIOS = {
@@ -51,10 +52,24 @@ async function buscarNegocios(uid) {
 async function carregarMeusNegocios() {
   try { meusNegocios = await buscarNegocios(eu.uid); } catch (e) { console.warn("Negócios indisponíveis:", e); meusNegocios = []; }
   pintarPainel();
+  sincronizarExtras();
+}
+// Campos novos guardados na conta enquanto as regras não estavam publicadas: tenta levar para o perfil.
+async function sincronizarExtras() {
+  for (const n of meusNegocios) {
+    const p = extrasPendentes(n.id);
+    if (!p) continue;
+    try {
+      await fb.setDoc(fb.doc(fb.db, "negocios", n.id), { ...p, atualizadoEm: fb.serverTimestamp() }, { merge: true });
+      Object.assign(n, p);
+      await fb.setDoc(fb.doc(fb.db, "usuarios", eu.uid), { negociosExtras: { [n.id]: fb.deleteField() } }, { merge: true });
+      delete dados.negociosExtras[n.id];
+    } catch { return; } // ainda sem as regras novas
+  }
 }
 
 // ---------- painel ----------
-let numeros = { resumos: {}, reclamacoes: {}, anuncios: 0 };
+let numeros = { resumos: {}, reclamacoes: {}, anuncios: 0, stats: null };
 async function carregarNumeros() {
   try {
     const [resumos, avs, resp, ans] = await Promise.all([
@@ -68,22 +83,24 @@ async function carregarNumeros() {
     await Promise.all(recl.map(async (r) => { try { if ((await fb.getDoc(fb.doc(fb.db, "reclamacoes", r.id))).exists()) respondidas.add(r.id); } catch {} }));
     const porNeg = {};
     recl.forEach((r) => { porNeg[r.negocioId] = porNeg[r.negocioId] || { total: 0, pendentes: 0 }; porNeg[r.negocioId].total++; if (!respondidas.has(r.id)) porNeg[r.negocioId].pendentes++; });
-    numeros = { resumos, reclamacoes: porNeg, anuncios: ans.length };
+    const stats = await lerStats(fb, eu.uid).catch(() => null);
+    numeros = { resumos, reclamacoes: porNeg, anuncios: ans.length, stats };
   } catch (e) { console.warn("Números dos negócios:", e); }
   pintarPainel();
 }
 // O que falta para o perfil ficar completo (o que mais pesa para o cliente escolher).
 function completude(n) {
   const itens = n.itens || [], fotos = n.fotos || [];
+  const temSemana = Array.isArray(n.semana) && n.semana.some(Boolean);
   const lista = [
     ["Foto ou logo", !!urlSegura(n.foto)],
     ["Descrição", String(n.descricao || "").trim().length >= 40],
     ["WhatsApp", !!String(n.whatsapp || "").trim()],
     ["Bairro", !!n.bairro]
   ];
-  if (n.tipo === "servicos") lista.push(["Serviços com preço", itens.some((i) => Number(i.preco) > 0)], ["Fotos de trabalhos", fotos.length > 0], ["Horário", !!n.horario]);
-  if (n.tipo === "delivery") lista.push(["3 itens no cardápio", itens.length >= 3], ["Fotos dos pratos", itens.some((i) => urlSegura(i.foto))], ["Foto de capa", fotos.length > 0], ["Horário", !!(n.horaAbre && n.horaFecha)]);
-  if (n.tipo === "lojinha") lista.push(["3 produtos", itens.length >= 3], ["Fotos dos produtos", itens.length > 0 && itens.every((i) => urlSegura(i.foto))], ["Formas de pagamento", (n.pagamentos || []).length > 0]);
+  if (n.tipo === "servicos") lista.push(["Serviços com preço", itens.some((i) => Number(i.preco) > 0)], ["Fotos de trabalhos", fotos.length > 0], ["Horário", temSemana || !!n.horario]);
+  if (n.tipo === "delivery") lista.push(["3 itens no cardápio", itens.length >= 3], ["Fotos dos pratos", itens.some((i) => urlSegura(i.foto))], ["Foto de capa", fotos.length > 0], ["Horário", temSemana || !!(n.horaAbre && n.horaFecha)]);
+  if (n.tipo === "lojinha") lista.push(["3 produtos", itens.length >= 3], ["Fotos dos produtos", itens.length > 0 && itens.every((i) => urlSegura(i.foto))], ["Formas de pagamento", (n.pagamentos || []).length > 0], ["Horário", temSemana]);
   if (n.tipo === "imoveis") lista.push(["Um imóvel anunciado", numeros.anuncios > 0], ["CRECI", n.tipoAnunciante === "proprietario" || !!n.creci]);
   const feitos = lista.filter((x) => x[1]).length;
   return { pct: Math.round((feitos / lista.length) * 100), faltam: lista.filter((x) => !x[1]).map((x) => x[0]) };
@@ -168,6 +185,18 @@ function pintarPainel() {
       falta.addEventListener("click", () => abrirFormNegocio(n));
       cp.appendChild(falta);
     }
+    // Últimos 30 dias (estat-negocio.js): visitas e contatos, com a variação.
+    const est = el("button", "ng-est"); est.type = "button";
+    const at = numeros.stats ? somarPeriodo(numeros.stats, n.id, listaDias(30)) : null;
+    const an = numeros.stats ? somarPeriodo(numeros.stats, n.id, listaDias(30, 1)) : null;
+    const varTxt = (a, b) => (!b ? (a ? "novo" : "") : `${a >= b ? "▲" : "▼"} ${Math.round(Math.abs((a - b) / b) * 100)}%`);
+    const blocoE = (valor, rot, v) => { const d = el("span", "ng-est-n"); d.append(el("b", null, valor), el("small", null, rot)); if (v) d.appendChild(el("i", v.startsWith("▼") ? "desce" : "sobe", v)); return d; };
+    if (at) est.append(blocoE(String(at.v), at.v === 1 ? "visita" : "visitas", varTxt(at.v, an.v)), blocoE(String(at.contatos), at.contatos === 1 ? "contato" : "contatos", varTxt(at.contatos, an.contatos)), blocoE(at.v ? `${Math.round((at.contatos / at.v) * 100)}%` : "–", "taxa de contato"));
+    else est.append(el("span", "ng-est-vazio", "Visitas, contatos, horários de pico e mais"));
+    const estFim = el("span", "ng-est-ver"); estFim.append(icone("graf", "i xs"), document.createTextNode("Estatísticas"), icone("avancar", "i xs"));
+    est.append(estFim);
+    est.title = "Últimos 30 dias";
+    est.addEventListener("click", () => abrirEstatisticas(n));
     const acoes = el("div", "acoes");
     const bE = btnIc("btn mini ng-pri", "lapis", tipo === "imoveis" ? "Editar e anúncios" : "Editar");
     bE.addEventListener("click", () => abrirFormNegocio(n));
@@ -196,7 +225,8 @@ function pintarPainel() {
         el("span", null, n.ocultoPelaEquipe ? "Este perfil não aparece para os clientes por violar os Termos de Uso. " : "Este perfil não aparece para os clientes enquanto a conta estiver desativada. "), ln);
       corpo.appendChild(av2);
     }
-    corpo.append(nums, cp, acoes);
+    const estTit = el("div", "ng-est-tit"); estTit.append(el("span", null, "Últimos 30 dias"));
+    corpo.append(nums, estTit, est, cp, acoes);
     c.append(capa, corpo);
     grade.appendChild(c);
   });
@@ -204,6 +234,19 @@ function pintarPainel() {
   $("resumoNegocios").textContent = total === 4 ? "Você tem os 4 tipos de perfil. Mantenha todos completos e atualizados."
     : total ? `${total} de 4 perfis criados · você pode ter um de cada tipo` : "Crie seu primeiro perfil e apareça para quem procura na sua região.";
   $("titSeus").hidden = !total;
+  // Resumo dos 30 dias de todos os negócios, no topo.
+  const resumo = $("resumoEstat");
+  resumo.replaceChildren();
+  if (total && numeros.stats) {
+    const soma = (desl) => meusNegocios.reduce((t, n) => { const r = somarPeriodo(numeros.stats, n.id, listaDias(30, desl)); return { v: t.v + r.v, c: t.c + r.contatos }; }, { v: 0, c: 0 });
+    const a = soma(0), b = soma(1);
+    const item = (valor, rot, antes) => { const d = el("div", "ng-res-item"); d.append(el("b", null, valor.toLocaleString("pt-BR")), el("span", null, rot)); if (antes || valor) d.appendChild(el("small", valor >= antes ? "sobe" : "desce", !antes ? "novo" : `${valor >= antes ? "▲" : "▼"} ${Math.round(Math.abs((valor - antes) / antes) * 100)}%`)); return d; };
+    resumo.append(item(a.v, "visitas em 30 dias", b.v), item(a.c, "contatos", b.c));
+    const ver = el("button", "ng-res-ver"); ver.type = "button"; ver.append(icone("graf", "i xs"), document.createTextNode("Ver estatísticas"));
+    ver.addEventListener("click", () => escolherEstatisticas());
+    resumo.appendChild(ver);
+  }
+  resumo.hidden = !resumo.children.length;
   $("titCriar").hidden = total >= 4;
   $("titCriarTx").textContent = total ? "Crie mais um perfil" : "Escolha por onde começar";
 }
@@ -217,6 +260,31 @@ function maiorDeIdade() {
   if (h.getMonth() < n.getMonth() || (h.getMonth() === n.getMonth() && h.getDate() < n.getDate())) i--;
   return i >= 18;
 }
+// Estatísticas do negócio (insights-negocio.js, carregado só quando abre).
+async function abrirEstatisticas(n) {
+  try {
+    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=1");
+    abrirInsightsNegocio(n, { aoEditar: (neg) => abrirFormNegocio(meusNegocios.find((x) => x.id === neg.id) || neg) });
+  } catch (e) { toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)); }
+}
+function escolherEstatisticas() {
+  if (!meusNegocios.length) { toast("Crie um perfil de negócio para ver as estatísticas."); return; }
+  if (meusNegocios.length === 1) { abrirEstatisticas(meusNegocios[0]); return; }
+  criarFolha("folhaEscolherEst", { titulo: "Estatísticas de qual negócio?", corpoClasse: "folha-corpo pad" });
+  const corpo = $("c_folhaEscolherEst");
+  corpo.replaceChildren();
+  meusNegocios.forEach((n) => {
+    const b = el("button", `ng-escolha ${n.tipo}`); b.type = "button";
+    const av = el("div", "avatar"); pintarAvatar(av, n.foto, n.nome);
+    const r = numeros.stats ? somarPeriodo(numeros.stats, n.id, listaDias(30)) : null;
+    const tx = el("span", "tx"); tx.append(el("strong", null, n.nome || NEGOCIOS[n.tipo].rotulo), el("small", null, NEGOCIOS[n.tipo].rotulo + (r ? ` · ${r.v} visitas em 30 dias` : "")));
+    b.append(av, tx, icone("avancar", "i xs"));
+    b.addEventListener("click", () => { fecharFolha("folhaEscolherEst"); setTimeout(() => abrirEstatisticas(n), 200); });
+    corpo.appendChild(b);
+  });
+  abrirFolha("folhaEscolherEst");
+}
+$("atalhoEstat").addEventListener("click", () => escolherEstatisticas());
 function novoNegocio(tipo) {
   if (!maiorDeIdade()) { toast("Para criar um perfil de negócio é preciso ter 18 anos ou mais."); return; }
   abrirFormNegocio(null);
@@ -226,8 +294,13 @@ function novoNegocio(tipo) {
 // =====================================================
 // Formulário (o mesmo que ficava no perfil)
 // =====================================================
-let negEditando = null, negTipo = "servicos", negFoto = "";
+let negEditando = null, negTipo = "servicos", negFoto = "", negCapa = "", negSemana = ["", "", "", "", "", "", ""], negPromo = null;
+// Campos novos (Instagram, site, CNPJ, capa, horário por dia e promoção): sem as regras novas publicadas,
+// ficam guardados na conta (usuarios.negociosExtras) e vão para o perfil sozinhos depois (sincronizarExtras).
+const NOVOS_NEG = ["instagram", "site", "cnpj", "capa", "semana", "promocao"];
+const extrasPendentes = (id) => (dados.negociosExtras && typeof dados.negociosExtras === "object" ? dados.negociosExtras[id] : null) || null;
 function abrirFormNegocio(n) {
+  if (n) { const p = extrasPendentes(n.id); if (p) n = { ...n, ...Object.fromEntries(Object.entries(p).filter(([k]) => NOVOS_NEG.includes(k) && !n[k])) }; }
   negEditando = n;
   const usados = new Set(meusNegocios.map((x) => x.tipo));
   negTipo = n ? n.tipo : Object.keys(NEGOCIOS).find((k) => !usados.has(k)) || "servicos";
@@ -247,6 +320,17 @@ function abrirFormNegocio(n) {
     dicaCep: "Opcional: o CEP preenche estado, cidade, bairro e rua"
   });
   $("negWhats").value = n?.whatsapp || "";
+  $("negInsta").value = n?.instagram || "";
+  $("negSite").value = n?.site || "";
+  $("negCnpj").value = mascaraCnpj(n?.cnpj || "");
+  conferirCnpj();
+  negCapa = n?.capa || "";
+  pintarCapaNegocio();
+  negSemana = semanaInicial(n);
+  montarHorario();
+  const pr = n?.promocao;
+  negPromo = pr?.titulo ? { titulo: pr.titulo, texto: pr.texto || "", codigo: pr.codigo || "", ate: dataInput(pr.ate?.toDate ? pr.ate.toDate() : pr.ate?.seconds ? new Date(pr.ate.seconds * 1000) : new Date(Date.now() + 14 * 864e5)), ativa: (pr.ate?.toMillis?.() ?? (pr.ate?.seconds || 0) * 1000) > Date.now() } : null;
+  montarPromo();
   $("negExcluir").hidden = !n;
   negExtra = JSON.parse(JSON.stringify({ ...(n || {}), criadoEm: null, atualizadoEm: null }));
   negExtra.fotos = Array.isArray(negExtra.fotos) ? negExtra.fotos : [];
@@ -301,24 +385,6 @@ function seletor(chave, opcoes, aoMudar) {
   s.addEventListener("change", () => { negExtra[chave] = s.value; aoMudar?.(); });
   return s;
 }
-// Hora com duas listas (hora e minuto): evita o relógio do celular, que corta o botão "Definir" em alguns aparelhos.
-function seletorHora(chave) {
-  const box = document.createElement("div");
-  box.className = "hora-sel";
-  const [h0, m0] = String(negExtra[chave] || "").split(":");
-  const hs = document.createElement("select"), mss = document.createElement("select");
-  hs.setAttribute("aria-label", "Hora"); mss.setAttribute("aria-label", "Minutos");
-  const vazio = document.createElement("option"); vazio.value = ""; vazio.textContent = "--"; hs.appendChild(vazio);
-  for (let h = 0; h < 24; h++) { const o = document.createElement("option"); o.value = String(h).padStart(2, "0"); o.textContent = o.value; hs.appendChild(o); }
-  ["00", "15", "30", "45"].forEach((m) => { const o = document.createElement("option"); o.value = m; o.textContent = m; mss.appendChild(o); });
-  hs.value = h0 || "";
-  mss.value = ["00", "15", "30", "45"].includes(m0) ? m0 : "00";
-  const salvar = () => { negExtra[chave] = hs.value ? `${hs.value}:${mss.value}` : ""; };
-  hs.addEventListener("change", salvar); mss.addEventListener("change", salvar);
-  box.append(hs, document.createTextNode(":"), mss);
-  return box;
-}
-
 function marcas(chave, opcoes, aoMudar, alvo = negExtra) {
   const box = document.createElement("div");
   box.className = "marcas";
@@ -368,7 +434,7 @@ function montarExtras() {
   mais.open = negMaisAberto;
   mais.addEventListener("toggle", () => { negMaisAberto = mais.open; });
   const sumMais = document.createElement("summary");
-  sumMais.append(document.createTextNode("Mais detalhes (opcional)"), Object.assign(document.createElement("small"), { textContent: { servicos: "dias, região, experiência, diferenciais e pagamento", delivery: "dias, entrega ou retirada e pagamento", lojinha: "formas de pagamento" }[t] || "" }));
+  sumMais.append(document.createTextNode("Mais detalhes (opcional)"), Object.assign(document.createElement("small"), { textContent: { servicos: "região, experiência, diferenciais e pagamento", delivery: "formas de pagamento", lojinha: "formas de pagamento" }[t] || "" }));
   mais.appendChild(sumMais);
   if (t === "servicos") {
     // Várias profissões: cada área de atuação aparece no filtro da página.
@@ -383,8 +449,7 @@ function montarExtras() {
         campo("Veículo (opcional)", entrada("veiculo", { placeholder: "Ex.: Fiorino, van 15 lugares, moto", max: 60 })));
       info.appendChild(mot);
     }
-    info.appendChild(grade("", campo("A partir de (R$)", entrada("precoDesde", { numero: true, placeholder: "80" })), campo("Horário de atendimento", entrada("horario", { placeholder: "8h às 18h" }))));
-    mais.appendChild(campo("Dias de atendimento", marcas("dias", DIAS)));
+    info.appendChild(campo("A partir de (R$)", entrada("precoDesde", { numero: true, placeholder: "80" }), "O menor preço que você cobra. O horário fica em \"Horário de atendimento\", mais abaixo."));
     info.appendChild(campo("Como você atende", marcas("atendimento", { domicilio: "Vou até o cliente", local: "No meu local", online: "Online" })));
     mais.appendChild(grade("", campo("Região que atende", entrada("regiao", { placeholder: "Ex.: Ilha toda, Continente", max: 80 })), campo("Anos de experiência", entrada("experiencia", { numero: true, placeholder: "5", max: 3 }))));
     mais.appendChild(campo("Diferenciais", marcas("diferenciais", DIFERENCIAIS_SERV), "Aparecem em destaque no seu perfil."));
@@ -396,14 +461,12 @@ function montarExtras() {
     if (t === "lojinha" && negExtra.categoria === "outros") info.appendChild(campo("Sua categoria", entrada("categoriaPersonalizada", { placeholder: "Ex.: Papelaria, Plantas, Suplementos", max: 30 }), "Vira um filtro próprio na página do Shopping."));
   }
   if (t === "delivery") {
-    info.appendChild(grade("", campo("Abre às", seletorHora("horaAbre")), campo("Fecha às", seletorHora("horaFecha"))));
     info.appendChild(grade("quatro",
       campo("Entrega mín. (min)", entrada("tempoMin", { numero: true, placeholder: "30", max: 4 })),
       campo("Entrega máx. (min)", entrada("tempoMax", { numero: true, placeholder: "50", max: 4 })),
       campo("Taxa (R$)", entrada("taxaEntrega", { numero: true, placeholder: "0 = grátis" })),
       campo("Pedido mín. (R$)", entrada("pedidoMinimo", { numero: true, placeholder: "20" }))));
     if (!Array.isArray(negExtra.opcoesEntrega)) negExtra.opcoesEntrega = ["entrega"];
-    mais.appendChild(campo("Dias de funcionamento", marcas("dias", DIAS)));
     info.appendChild(campo("Como o cliente recebe", marcas("opcoesEntrega", { entrega: "Entrega", retirada: "Retirada no local" })));
     mais.appendChild(campo("Formas de pagamento", marcas("pagamentos", PAGAMENTOS)));
   }
@@ -789,6 +852,173 @@ $("anExcluir").addEventListener("click", async () => {
   } catch (e) { toast("Não foi possível excluir: " + erroAmigavel(e)); }
 });
 
+// ---------- CNPJ ----------
+const soNumeros = (v) => String(v || "").replace(/\D/g, "");
+function mascaraCnpj(v) {
+  const d = soNumeros(v).slice(0, 14);
+  return d.replace(/^(\d{2})(\d)/, "$1.$2").replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3").replace(/\.(\d{3})(\d)/, ".$1/$2").replace(/(\d{4})(\d)/, "$1-$2");
+}
+// Dígitos verificadores do CNPJ (mesma conta da Receita Federal).
+function cnpjValido(v) {
+  const d = soNumeros(v);
+  if (d.length !== 14 || /^(\d)\1+$/.test(d)) return false;
+  const dv = (base) => { let soma = 0, peso = base.length - 7; for (const c of base) { soma += Number(c) * peso--; if (peso < 2) peso = 9; } const r = soma % 11; return r < 2 ? 0 : 11 - r; };
+  return dv(d.slice(0, 12)) === Number(d[12]) && dv(d.slice(0, 13)) === Number(d[13]);
+}
+function conferirCnpj() {
+  const v = $("negCnpj").value, d = soNumeros(v), aj = $("negCnpjAjuda");
+  aj.classList.remove("ok", "erro");
+  if (!d) aj.textContent = "Aparece no perfil e passa mais confiança. Conferimos se o número é válido.";
+  else if (d.length < 14) aj.textContent = `Faltam ${14 - d.length} números.`;
+  else if (cnpjValido(d)) { aj.textContent = "✓ CNPJ válido"; aj.classList.add("ok"); }
+  else { aj.textContent = "Este CNPJ não é válido. Confira os números."; aj.classList.add("erro"); }
+}
+$("negCnpj").addEventListener("input", () => { $("negCnpj").value = mascaraCnpj($("negCnpj").value); conferirCnpj(); });
+// Instagram: aceita @nome ou o link do perfil.
+const nomeInstagram = (v) => String(v || "").trim().replace(/^https?:\/\/(www\.)?instagram\.com\//i, "").replace(/^@/, "").replace(/[/?#].*$/, "");
+const siteCompleto = (v) => { const t = String(v || "").trim(); return !t ? "" : /^https?:\/\//i.test(t) ? t : "https://" + t; };
+
+// ---------- capa ----------
+function pintarCapaNegocio() {
+  const box = $("negCapa");
+  box.querySelector(".ng-capa-foto")?.remove();
+  $("negCapaEscolher").hidden = !!negCapa;
+  if (!negCapa) return;
+  const f = el("div", "ng-capa-foto");
+  f.style.backgroundImage = `url("${urlSegura(negCapa)}")`;
+  const trocar = el("button", "btn sec mini"); trocar.type = "button"; trocar.append(icone("camera", "i xs"), document.createTextNode("Trocar"));
+  trocar.addEventListener("click", () => $("negArquivoCapa").click());
+  const tirar = el("button", "btn sec mini"); tirar.type = "button"; tirar.append(icone("lixo", "i xs"), document.createTextNode("Remover"));
+  tirar.addEventListener("click", () => { negCapa = ""; pintarCapaNegocio(); });
+  const bts = el("div", "bts"); bts.append(trocar, tirar);
+  f.appendChild(bts);
+  box.appendChild(f);
+}
+$("negCapaEscolher").addEventListener("click", () => $("negArquivoCapa").click());
+$("negArquivoCapa").addEventListener("change", async () => {
+  const arquivo = $("negArquivoCapa").files?.[0];
+  $("negArquivoCapa").value = "";
+  if (!arquivo) return;
+  try {
+    const d = await editarImagem(arquivo, { titulo: "Capa do perfil", dica: "A capa aparece larga no topo do perfil. Deixe o principal no meio.", proporcao: 2, larguraSaida: 1200, qualidade: 0.74, limiteBytes: 190000 });
+    if (d) { negCapa = d; pintarCapaNegocio(); }
+  } catch (e) { toast(erroAmigavel(e)); }
+});
+
+// ---------- horário de cada dia (domingo = 0 ... sábado = 6) ----------
+const NOMES_DIA = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+const CHAVES_DIA = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
+const FAIXA = /^([01]\d|2[0-3]):[0-5]\d-([01]\d|2[0-3]):[0-5]\d$/;
+// Começa pelo horário por dia; sem ele, monta a partir do cadastro antigo (dias + abre/fecha ou "8h às 18h").
+function semanaInicial(n) {
+  if (Array.isArray(n?.semana) && n.semana.length === 7) return n.semana.map((x) => (FAIXA.test(x || "") ? x : ""));
+  const p2 = (v) => String(v).padStart(2, "0");
+  let faixa = "";
+  if (n?.horaAbre && n?.horaFecha) faixa = `${n.horaAbre}-${n.horaFecha}`;
+  else if (n?.horario) {
+    const m = /(\d{1,2})(?:[:h](\d{2}))?\s*h?\s*(?:às|as|a|-|–|até)\s*(\d{1,2})(?:[:h](\d{2}))?/i.exec(n.horario);
+    if (m) faixa = `${p2(m[1])}:${m[2] || "00"}-${p2(m[3])}:${m[4] || "00"}`;
+  }
+  if (!FAIXA.test(faixa)) return ["", "", "", "", "", "", ""];
+  const dias = Array.isArray(n?.dias) && n.dias.length ? n.dias : null;
+  return CHAVES_DIA.map((k) => (!dias || dias.includes(k) ? faixa : ""));
+}
+function montarHorario() {
+  const box = $("negHorario");
+  box.replaceChildren();
+  const tit = el("div", "ng-bloco-tit");
+  const tx = el("div"); tx.append(el("strong", null, negTipo === "servicos" ? "Horário de atendimento" : "Horário de funcionamento"), el("small", null, "Seu perfil mostra \"Aberto agora\" e quando abre ou fecha"));
+  const icH = el("span", "ng-bloco-ic"); icH.appendChild(icone("relogio", "i s"));
+  tit.append(icH, tx);
+  const atalhos = el("div", "ng-hor-atalhos");
+  const atalho = (rot, fn) => { const b = el("button", "ng-chip", rot); b.type = "button"; b.addEventListener("click", () => { fn(); montarHorario(); }); atalhos.appendChild(b); };
+  atalho("Seg a sex, 8h às 18h", () => { negSemana = negSemana.map((_, i) => (i >= 1 && i <= 5 ? "08:00-18:00" : "")); });
+  atalho("Todos os dias", () => { const base = negSemana.find(Boolean) || "08:00-18:00"; negSemana = negSemana.map(() => base); });
+  atalho("Copiar o 1º dia para todos", () => { const base = [1, 2, 3, 4, 5, 6, 0].map((i) => negSemana[i]).find(Boolean); if (base) negSemana = negSemana.map((x) => (x ? base : "")); else toast("Abra pelo menos um dia primeiro."); });
+  atalho("Limpar", () => { negSemana = ["", "", "", "", "", "", ""]; });
+  const lista = el("div", "ng-hor-lista");
+  [1, 2, 3, 4, 5, 6, 0].forEach((i) => {
+    const l = el("div", "ng-hor-dia" + (negSemana[i] ? " aberto" : ""));
+    const chave = el("label", "ng-chave");
+    const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = !!negSemana[i];
+    cb.setAttribute("aria-label", `${NOMES_DIA[i]} aberto`);
+    chave.append(cb, el("i"));
+    const nome = el("span", "nome", NOMES_DIA[i].slice(0, 3));
+    nome.title = NOMES_DIA[i];
+    const horas = el("div", "horas");
+    if (negSemana[i]) {
+      const [a, f] = negSemana[i].split("-");
+      const ia = document.createElement("input"); ia.type = "time"; ia.step = "900"; ia.value = a; ia.setAttribute("aria-label", `${NOMES_DIA[i]}: abre às`);
+      const ifc = document.createElement("input"); ifc.type = "time"; ifc.step = "900"; ifc.value = f; ifc.setAttribute("aria-label", `${NOMES_DIA[i]}: fecha às`);
+      const mudar = () => { if (ia.value && ifc.value) negSemana[i] = `${ia.value.slice(0, 5)}-${ifc.value.slice(0, 5)}`; };
+      ia.addEventListener("change", mudar); ifc.addEventListener("change", mudar);
+      horas.append(ia, el("span", null, "às"), ifc);
+    } else horas.appendChild(el("span", "fechado", "Fechado"));
+    cb.addEventListener("change", () => {
+      negSemana[i] = cb.checked ? ([1, 2, 3, 4, 5, 6, 0].map((k) => negSemana[k]).find(Boolean) || "08:00-18:00") : "";
+      montarHorario();
+    });
+    l.append(chave, nome, horas);
+    lista.appendChild(l);
+  });
+  box.append(tit, atalhos, lista);
+}
+
+// ---------- promoção / cupom ----------
+const dataInput = (d) => { const x = d instanceof Date && !isNaN(d) ? d : new Date(Date.now() + 14 * 864e5); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`; };
+function montarPromo() {
+  const box = $("negPromo");
+  box.replaceChildren();
+  const tit = el("div", "ng-bloco-tit");
+  const tx = el("div"); tx.append(el("strong", null, "Promoção ou cupom"), el("small", null, "Destaque no topo do perfil, com prazo para acabar"));
+  const chave = el("label", "ng-chave ng-chave-dir");
+  const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = !!negPromo?.ativa; cb.setAttribute("aria-label", "Promoção ativa");
+  chave.append(cb, el("i"));
+  const icP = el("span", "ng-bloco-ic"); icP.appendChild(icone("selo", "i s"));
+  tit.append(icP, tx, chave);
+  box.appendChild(tit);
+  cb.addEventListener("change", () => {
+    if (cb.checked) negPromo = { titulo: "", texto: "", codigo: "", ate: dataInput(null), ...(negPromo || {}), ativa: true };
+    else if (negPromo) negPromo.ativa = false;
+    montarPromo();
+  });
+  if (!negPromo?.ativa) return;
+  const p = negPromo;
+  const ent = (chaveP, rot, { max = 60, area = false, ph = "", tipo = "text", ajuda = "" } = {}) => {
+    const i = document.createElement(area ? "textarea" : "input");
+    if (!area) i.type = tipo;
+    i.maxLength = max; i.placeholder = ph; i.value = p[chaveP] || ""; i.id = "negPromo_" + chaveP;
+    i.addEventListener("input", () => {
+      if (chaveP === "codigo") { const pos = i.selectionStart; i.value = i.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 20); try { i.setSelectionRange(pos, pos); } catch {} }
+      p[chaveP] = i.value;
+      pintarPrevia();
+    });
+    return campo(rot, i, ajuda);
+  };
+  const hoje = new Date(), max = new Date(Date.now() + 60 * 864e5);
+  const ate = document.createElement("input"); ate.type = "date"; ate.id = "negPromo_ate"; ate.dataset.nativo = "";
+  ate.min = dataInput(hoje); ate.max = dataInput(max); ate.value = p.ate || dataInput(null);
+  ate.addEventListener("change", () => { p.ate = ate.value; pintarPrevia(); });
+  const previa = el("div", "ng-promo-previa");
+  const pintarPrevia = () => {
+    previa.replaceChildren();
+    const ic = el("span", "ic"); ic.appendChild(icone("selo", "i s"));
+    const t = el("div", "tx");
+    t.append(el("small", null, "Prévia"), el("strong", null, p.titulo || "Título da promoção"));
+    if (p.texto) t.appendChild(el("p", null, p.texto));
+    if (p.ate) t.appendChild(el("span", "ate", "Válida até " + new Date(p.ate + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "long" })));
+    previa.append(ic, t);
+    if (p.codigo) previa.appendChild(el("span", "cupom", p.codigo));
+  };
+  pintarPrevia();
+  box.append(
+    ent("titulo", "Título", { max: 60, ph: "Ex.: 10% de desconto no primeiro pedido" }),
+    ent("texto", "Detalhes (opcional)", { max: 200, area: true, ph: "Regras, o que está incluso, como usar..." }),
+    grade("", ent("codigo", "Código do cupom (opcional)", { max: 20, ph: "BEMVINDO10", ajuda: "Letras e números. O cliente copia com um toque." }), campo("Válida até", ate, "No máximo 60 dias.")),
+    previa
+  );
+}
+
 function pintarFotoNegocio() {
   const av = $("negAvatar");
   // Sem foto e sem nome: o ícone do tipo na cor dele (em vez de uma letra solta).
@@ -819,6 +1049,9 @@ function marcarTipo() {
 function aplicarTipoNoForm() {
   const t = NEGOCIOS[negTipo];
   $("folhaNegocio").dataset.tipo = negTipo;
+  // Delivery já tem a "Foto de capa" no cardápio; nos outros, a capa é separada.
+  $("negCapaCampo").hidden = negTipo === "delivery";
+  if ($("negHorario").children.length) montarHorario();
   $("negNome").placeholder = t.phNome;
   $("negDesc").placeholder = t.phDesc;
   if (!negEditando) $("tNegocio").textContent = `Novo perfil · ${t.rotulo}`;
@@ -862,14 +1095,46 @@ $("negSalvar").addEventListener("click", async () => {
   if (nome.length < 2) { toast("Dê um nome ao seu negócio."); $("negNome").focus(); return; }
   const erroLocal = negLocal?.validar();
   if (erroLocal) { toast(erroLocal); return; }
+  // Campos novos: confere antes de gravar (as regras recusam o que estiver fora do padrão).
+  const insta = nomeInstagram($("negInsta").value);
+  if (insta && !/^[A-Za-z0-9._]{1,30}$/.test(insta)) { toast("Instagram: use só o nome do perfil (letras, números, ponto e _)."); $("negInsta").focus(); return; }
+  const site = siteCompleto($("negSite").value);
+  if (site && (!/^https?:\/\/[^\s]{3,}$/.test(site) || site.length > 120)) { toast("Confira o endereço do site."); $("negSite").focus(); return; }
+  const cnpj = soNumeros($("negCnpj").value);
+  if (cnpj && !cnpjValido(cnpj)) { toast("O CNPJ não é válido. Confira os números ou deixe em branco."); $("negCnpj").focus(); return; }
+  for (const [i, f] of negSemana.entries()) {
+    if (f && (!FAIXA.test(f) || f.split("-")[0] === f.split("-")[1])) { toast(`Confira o horário de ${NOMES_DIA[i].toLowerCase()}.`); return; }
+  }
+  let promocao = null;
+  if (negPromo?.ativa) {
+    const tt = String(negPromo.titulo || "").trim();
+    if (tt.length < 3) { toast("Dê um título à promoção (ou desligue a promoção)."); $("negPromo_titulo")?.focus(); return; }
+    const codigo = String(negPromo.codigo || "").trim();
+    if (codigo && !/^[A-Z0-9]{3,20}$/.test(codigo)) { toast("O código do cupom precisa ter de 3 a 20 letras ou números."); return; }
+    const fim = new Date((negPromo.ate || dataInput(null)) + "T23:59:00");
+    if (isNaN(fim) || fim.getTime() < Date.now()) { toast("A data final da promoção já passou."); return; }
+    if (fim.getTime() > Date.now() + 61 * 864e5) { toast("A promoção pode durar no máximo 60 dias."); return; }
+    promocao = { titulo: tt.slice(0, 60), texto: String(negPromo.texto || "").trim().slice(0, 200), codigo, ate: fb.Timestamp.fromDate(fim) };
+  }
   const btn = $("negSalvar");
   btn.disabled = true; btn.textContent = "Salvando...";
   try {
     const id = `${eu.uid}_${negTipo}`;
     let foto = negFoto;
     if (foto.startsWith("data:")) foto = await salvarImagem(foto, `negocios/${id}.jpg`);
+    let capa = negTipo === "delivery" ? "" : negCapa;
+    if (capa.startsWith("data:")) capa = await salvarImagem(capa, `negocios/${id}_capa.jpg`);
     const x = negExtra;
     if (negTipo === "servicos" && !(x.categorias || []).length) { throw new Error("Marque pelo menos uma área de atuação."); }
+    // Horário por dia: também preenche os campos antigos (dias, abre/fecha, resumo), que a vitrine e os filtros usam.
+    const semana = negSemana.some(Boolean) ? [...negSemana] : null;
+    if (semana) {
+      x.dias = CHAVES_DIA.filter((_, i) => semana[i]);
+      const cont = {}; semana.filter(Boolean).forEach((f) => { cont[f] = (cont[f] || 0) + 1; });
+      const comum = Object.entries(cont).sort((a, b) => b[1] - a[1])[0][0].split("-");
+      if (negTipo === "delivery") { x.horaAbre = comum[0]; x.horaFecha = comum[1]; }
+      if (negTipo === "servicos") x.horario = `${comum[0]} às ${comum[1]}`;
+    }
     const extras = { categoria: negTipo === "servicos" ? x.categorias[0] : (x.categoria || Object.keys(CATS_NEGOCIO[negTipo])[0]), fotos: [], itens: [] };
     const campos = {
       servicos: ["categorias", "precoDesde", "horario", "atendimento", "dias", "regiao", "experiencia", "diferenciais", "pagamentos"],
@@ -916,13 +1181,31 @@ $("negSalvar").addEventListener("click", async () => {
     const dadosNeg = {
       donoId: eu.uid, tipo: negTipo, nome, descricao: $("negDesc").value.trim(),
       cidade: loc.cidade, uf: loc.uf, cidadeIbge: loc.cidadeIbge, bairro: loc.bairro, rua: loc.rua, numero: loc.numero, complemento: loc.complemento, cep: loc.cep,
-      whatsapp: $("negWhats").value.trim(), foto, ...extras, atualizadoEm: fb.serverTimestamp()
+      whatsapp: $("negWhats").value.trim(), foto, ...extras, atualizadoEm: fb.serverTimestamp(),
+      instagram: insta, site, cnpj, capa, semana, promocao
     };
     if (JSON.stringify(dadosNeg).length > 950000) throw new Error("Fotos demais para um perfil. Remova algumas fotos e tente de novo.");
     dadosNeg.criadoEm = negEditando?.criadoEm || fb.serverTimestamp();
-    await gravarComLocal((d) => fb.setDoc(fb.doc(fb.db, "negocios", id), d), dadosNeg, NOVOS.negocio);
+    const gravar = (d) => gravarComLocal((dd) => fb.setDoc(fb.doc(fb.db, "negocios", id), dd), d, NOVOS.negocio);
+    let pendente = false;
+    try { await gravar(dadosNeg); }
+    catch (e) {
+      // Regras novas ainda não publicadas: grava sem os campos novos e guarda eles na conta.
+      if (e?.code !== "permission-denied") throw e;
+      const novos = Object.fromEntries(NOVOS_NEG.map((k) => [k, dadosNeg[k]]));
+      const sem = { ...dadosNeg }; NOVOS_NEG.forEach((k) => delete sem[k]);
+      await gravar(sem);
+      await fb.setDoc(fb.doc(fb.db, "usuarios", eu.uid), { negociosExtras: { [id]: novos } }, { merge: true });
+      dados.negociosExtras = { ...(dados.negociosExtras || {}), [id]: novos };
+      pendente = true;
+    }
+    if (!pendente && extrasPendentes(id)) {
+      fb.setDoc(fb.doc(fb.db, "usuarios", eu.uid), { negociosExtras: { [id]: fb.deleteField() } }, { merge: true }).catch(() => {});
+      if (dados.negociosExtras) delete dados.negociosExtras[id];
+    }
     fecharFolha("folhaNegocio");
-    toast(negEditando ? "Perfil de negócio atualizado" : "Perfil de negócio criado");
+    toast(pendente ? "Salvo. Instagram, site, CNPJ, capa, horário e promoção aparecem para os clientes assim que a atualização do sistema for publicada."
+      : negEditando ? "Perfil de negócio atualizado" : "Perfil de negócio criado");
     carregarMeusNegocios().then(carregarNumeros);
   } catch (e) { toast("Não foi possível salvar: " + erroAmigavel(e)); }
   finally { btn.disabled = false; btn.textContent = "Salvar"; }
@@ -958,5 +1241,9 @@ $("negExcluir").addEventListener("click", async () => {
     const n = meusNegocios.find((x) => x.tipo === tipo);
     if (n) abrirFormNegocio(n); else novoNegocio(tipo);
   } else if (p.get("novo")) novoNegocio(null);
-  if (tipo || p.get("novo")) history.replaceState(history.state, "", "negocios.html");
+  else if (p.get("insights")) {
+    const n = meusNegocios.find((x) => x.id === p.get("insights"));
+    if (n) abrirEstatisticas(n); else if (p.get("insights") === "todos") escolherEstatisticas();
+  }
+  if (tipo || p.get("novo") || p.get("insights")) history.replaceState(history.state, "", "negocios.html");
 })();

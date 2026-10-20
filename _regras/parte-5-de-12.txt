@@ -1,3 +1,35 @@
+        function noPrazo() { return request.time < resource.data.apagadaEm + duration.value(24, 'h'); }
+        allow get: if logado() && daConversa() && noPrazo();
+        allow get: if podeModerar();
+        allow create: if logado()
+                      && request.resource.data.keys().hasOnly(['remetenteId', 'conteudo', 'apagadaEm'])
+                      && request.resource.data.remetenteId == request.auth.uid
+                      && original().remetenteId == request.auth.uid
+                      && getAfter(/databases/$(database)/documents/conversas/$(conversaId)/mensagens/$(mensagemId)).data.apagada.por == request.auth.uid
+                      && request.resource.data.apagadaEm == request.time
+                      && request.resource.data.conteudo is map
+                      && request.resource.data.conteudo.keys().hasOnly(['texto', 'tipoArquivo', 'arquivoUrl', 'nomeArquivo', 'cartao', 'avaliacao', 'resposta', 'edicoes'])
+                      // o conteúdo guardado é o da mensagem de verdade (não dá para inventar outro)
+                      && request.resource.data.conteudo.get('texto', '') == original().get('texto', '')
+                      && request.resource.data.conteudo.get('tipoArquivo', '') == original().get('tipoArquivo', '')
+                      && request.resource.data.conteudo.get('arquivoUrl', '') == original().get('arquivoUrl', '');
+        // Quem recebeu e denunciou (dentro das 24 horas) marca "denunciada": aí só a moderação apaga.
+        allow update: if logado() && daConversa() && noPrazo()
+                      && request.auth.uid != resource.data.remetenteId
+                      && mudou().hasOnly(['denunciada'])
+                      && request.resource.data.denunciada == true;
+        // Denunciada (pela marca ou porque existe a denúncia, mesmo feita antes de apagar): fica para a moderação.
+        function temDenuncia() {
+          let p = get(/databases/$(database)/documents/conversas/$(conversaId)).data.participantes;
+          let quemRecebeu = p[0] == resource.data.remetenteId ? p[1] : p[0];
+          return exists(/databases/$(database)/documents/denuncias/$('mensagem_' + mensagemId + '_' + quemRecebeu));
+        }
+        allow delete: if logado() && daConversa() && !noPrazo() && resource.data.get('denunciada', false) != true && !temDenuncia();
+        allow delete: if podeModerar();
+      }
+    }
+
+
     // =====================================================
     // PEDIDOS / ATENDIMENTOS
     // O negócio registra o atendimento para pedir avaliação ao cliente.
@@ -181,57 +213,5 @@
                     && request.resource.data.total == resource.data.total + 1
                     && request.resource.data.soma == resource.data.soma + getAfter(caminhoNova()).data.nota
                     && request.resource.data[estrela()] == resource.data.get(estrela(), 0) + 1;
-
-      // Edição de uma avaliação n_/c_: troca a nota antiga pela nova (o total não muda).
-      function edicao() {
-        let antes = get(caminhoNova()).data;
-        let depois = getAfter(caminhoNova()).data;
-        return request.resource.data.ultima is string
-            && exists(caminhoNova())
-            && depois.autorId == request.auth.uid
-            && chave in depois.chaves
-            && antes.nota != depois.nota
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['soma', 'ultima', 'atualizadoEm', 'n' + string(antes.nota), 'n' + string(depois.nota)])
-            && request.resource.data.total == resource.data.total
-            && request.resource.data.soma == resource.data.soma - antes.nota + depois.nota
-            && resource.data.get('n' + string(antes.nota), 0) >= 1
-            && request.resource.data['n' + string(antes.nota)] == resource.data.get('n' + string(antes.nota), 0) - 1
-            && request.resource.data['n' + string(depois.nota)] == resource.data.get('n' + string(depois.nota), 0) + 1;
-      }
-
-      allow update: if logado() && edicao();
-
-      allow delete: if false;
-    }
-
-
-    // =====================================================
-    // RECLAMAÇÕES: resposta pública do negócio
-    // Reclamação = avaliação de negócio com nota 1 ou 2 (avaliacoes/{id}).
-    // reclamacoes/{id da avaliação}: o negócio avaliado responde uma vez
-    // (pode editar o texto) e o cliente que reclamou marca como resolvida.
-    // =====================================================
-    match /reclamacoes/{avalId} {
-
-      allow read: if logado();
-
-      function aval() {
-        return get(/databases/$(database)/documents/avaliacoes/$(avalId)).data;
-      }
-
-      function respostaOk(d) {
-        return d.texto is string && d.texto.size() >= 2 && d.texto.size() <= 1000;
-      }
-
-      allow create: if logado()
-                    && emailOk()
-                    && exists(/databases/$(database)/documents/avaliacoes/$(avalId))
-                    && aval().tipo == 'negocio'
-                    && aval().nota <= 2
-                    && aval().alvoId == request.auth.uid
-                    && request.resource.data.keys().hasOnly(['texto', 'autorId', 'criadoEm'])
-                    && request.resource.data.autorId == request.auth.uid
-                    && respostaOk(request.resource.data)
-                    && request.resource.data.criadoEm == request.time;
 
 // ===== FIM DA PARTE 5 DE 12 =====

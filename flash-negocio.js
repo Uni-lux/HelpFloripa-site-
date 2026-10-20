@@ -124,7 +124,7 @@ export function abrirVisorNegocio(fbx, euX, n, lista, { aoMensagem = null, aoPer
     palco.replaceChildren();
     caixa.querySelector(".fn-link")?.remove();
     if (s.link?.negocioId && PAGINA[s.link.tipo]) {
-      const a = el("a", "fn-link", "↗ " + (s.link.nome || "Ver o negócio")); a.href = `${PAGINA[s.link.tipo]}?negocio=${encodeURIComponent(s.link.negocioId)}`;
+      const a = el("a", "fn-link", "↗ " + (s.link.nome || "Ver o negócio")); a.href = `${PAGINA[s.link.tipo]}?negocio=${encodeURIComponent(s.link.negocioId)}&de=flash`;
       a.style.left = `${(s.link.x ?? 0.5) * 100}%`; a.style.top = `${(s.link.y ?? 0.68) * 100}%`;
       caixa.appendChild(a);
     }

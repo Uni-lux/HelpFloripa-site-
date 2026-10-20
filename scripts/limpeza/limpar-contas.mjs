@@ -73,6 +73,9 @@ async function limpar(uid) {
   const autorias = await col("caixa_autoria").where("uid", "==", uid).get();
   for (const a of autorias.docs) { if (!simular) { await col("caixa_respostas").doc(a.id).delete(); await a.ref.delete(); } }
   r.caixa_autoria = autorias.size;
+  // Estatísticas dos negócios: as visitas que a pessoa fez e os números dos negócios dela.
+  await apagar("neg_visitas", col("neg_visitas").where("uid", "==", uid));
+  await apagar("neg_stats", col("neg_stats").where("donoId", "==", uid));
   await apagar("relacoes", col("relacoes").where("seguidorId", "==", uid));
   await apagar("relacoes", col("relacoes").where("alvoId", "==", uid));
   await apagar("bloqueios", col("bloqueios").where("bloqueadorId", "==", uid));

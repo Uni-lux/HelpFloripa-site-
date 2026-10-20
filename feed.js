@@ -15,10 +15,10 @@ import {
   silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto, confirmarHF, blocoEnquete, blocoCaixa
 } from "./rede.js?v=47";
 import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=1";
-import { montarStories, abrirFlashPorId, repostarFlash } from "./stories.js?v=18";
+import { montarStories, abrirFlashPorId, repostarFlash } from "./stories.js?v=19";
 import { abrirDenuncia } from "./denuncias.js?v=4";
 import { pessoasRecentes } from "./pessoas.js?v=3";
-import { abrirExplorar, definirCartao } from "./explorar.js?v=5";
+import { abrirExplorar, definirCartao } from "./explorar.js?v=6";
 import { docsComValidade } from "./leituras.js?v=1";
 
 const POR_VEZ = 10;

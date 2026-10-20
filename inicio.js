@@ -11,7 +11,7 @@ import { fotoSegura } from "./seguranca.js?v=1";
 import { enfeitarSelect } from "./escolha.js?v=3";
 import { estrelas, lerResumos, media } from "./avaliacoes.js?v=13";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
-import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria } from "./vitrine.js?v=36";
+import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria } from "./vitrine.js?v=37";
 
 const $ = (id) => document.getElementById(id);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
@@ -116,7 +116,7 @@ const oculto = (x) => (x?.ocultoAte?.toMillis?.() ?? 0) > Date.now();
 
 function cartaoNegocio(n, resumo) {
   const a = el("a", "mini");
-  a.href = n.tipo === "imoveis" ? `usuarios.html?perfil=${encodeURIComponent(n.donoId)}` : `${PAGINA_TIPO[n.tipo]}?negocio=${encodeURIComponent(n.id)}`;
+  a.href = `${PAGINA_TIPO[n.tipo]}?negocio=${encodeURIComponent(n.id)}&de=inicio`;
   a.style.setProperty("--c", `var(--c-${n.tipo})`);
   const capa = el("div", "capa");
   fundo(capa, fotoSegura((n.fotos || []).find(fotoSegura)) || fotoSegura(n.foto) || IMG_TIPO[n.tipo]);

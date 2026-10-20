@@ -12,7 +12,9 @@
 > (`stories.negocios` e `stories.perfil`), **reportar o atendimento do suporte** (`reportes`: só a moderação e os
 > donos leem) e a **nota do atendimento** (`suporte_notas`) e a opção **"Só a rosinha"** do duo no perfil (`duoCapa: rosa`) e a **verificação do perfil** (`verificacoes`: pedido com a foto
 > do documento, que só a pessoa e a moderação leem e que é apagada na decisão) e a **trava do selo** (a moderação só dá o selo
-> com o pedido aprovado; só o dono do site dá o selo direto).
+> com o pedido aprovado; só o dono do site dá o selo direto) e, nos **perfis de negócio**, Instagram, site, CNPJ, capa,
+> horário de cada dia e promoção/cupom, mais as **estatísticas dos negócios** (`neg_visitas`: a visita de cada pessoa,
+> que só ela lê; `neg_stats`: os números do dia, que só o dono do negócio lê e que só sobem +1 junto com uma visita ou ação nova).
 > Para publicar, o processo é o mesmo: apagar tudo no console e colar as 12 partes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do

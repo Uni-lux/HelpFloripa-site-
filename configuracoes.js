@@ -66,11 +66,11 @@ document.querySelectorAll("#cfgComenta [data-valor]").forEach((b) => b.addEventL
   try { await fb.setDoc(refUsuario, { diarioConfig: { quemComenta: v } }, { merge: true }); toast("Salvo: vale para as próximas publicações"); }
   catch (e) { toast("Não foi possível salvar: " + erroAmigavel(e)); }
 }));
-$("cfgFlash").addEventListener("click", () => import("./stories.js?v=18").then((m) => {
+$("cfgFlash").addEventListener("click", () => import("./stories.js?v=19").then((m) => {
   m.abrirConfigFlash();
   const f = $("folhaLista"); const volta = () => { f?.removeEventListener("fechada", volta); setTimeout(pintarConfig, 60); }; f?.addEventListener("fechada", volta);
 }));
-$("cfgInsights").addEventListener("click", () => import("./insights.js?v=9").then((m) => m.abrirInsights()));
+$("cfgInsights").addEventListener("click", () => import("./insights.js?v=10").then((m) => m.abrirInsights()));
 $("cfgGosto").addEventListener("click", async () => {
   if (!await confirmarHF({ titulo: "Recomeçar o seu Principais?", texto: "O Diário esquece o que aprendeu sobre o seu gosto neste aparelho e volta a mostrar o que está em alta.", ok: "Recomeçar", icone: "alerta", cor: "normal" })) return;
   try { localStorage.removeItem("hf-gosto"); } catch {}
@@ -288,7 +288,7 @@ async function baixarDados(formato) {
   const b = $("cfgBaixarDados"); b.disabled = true;
   toast("Juntando seus dados... pode levar alguns segundos.");
   try {
-    const m = await import("./meus-dados.js?v=1");
+    const m = await import("./meus-dados.js?v=2");
     const pacote = await m.juntarDados(fb, eu.uid, obterPerfil);
     const dia = new Date().toISOString().slice(0, 10);
     if (formato === "json") baixarArquivo(m.jsonDos(pacote.dados), "application/json", `meus-dados-help-floripa-${dia}.json`);

@@ -12,8 +12,9 @@ import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL 
 import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento, media, avaliarNegocio } from "./avaliacoes.js?v=13";
 import { abrirQueixa } from "./queixas.js?v=11";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
-import { anelNegocio } from "./flash-negocio.js?v=1";
+import { anelNegocio } from "./flash-negocio.js?v=2";
 import { camposEndereco, textoCidade, cidadesDe, NOME_UF, semAcento } from "./endereco.js?v=1";
+import { usarEstat, registrarVisita, registrarAcao, registrarItem, chaveItem as chaveEstat, chaveAnuncio } from "./estat-negocio.js?v=1";
 
 const PARAMS = new URL(import.meta.url).searchParams;
 const TIPO_PAGINA = PARAMS.get("tipo");
@@ -79,6 +80,13 @@ const ICONES = {
   check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
   lixo: '<path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13"/>',
   alerta: '<path d="M12 4l9 16H3z"/><path d="M12 10v4.5M12 17.5h.01"/>',
+  instagram: '<rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M17.2 6.8h.01"/>',
+  site: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.3 2.4 3.5 5.2 3.5 8.5s-1.2 6.1-3.5 8.5c-2.3-2.4-3.5-5.2-3.5-8.5s1.2-6.1 3.5-8.5z"/>',
+  rota: '<path d="M12 3l8.5 8.5L12 20l-8.5-8.5z"/><path d="M9.5 13v-2.5h5M13 8.5l1.5 2-1.5 2"/>',
+  compartilhar: '<path d="M12 15V4M8 8l4-4 4 4M5 12v6.5A1.5 1.5 0 006.5 20h11a1.5 1.5 0 001.5-1.5V12"/>',
+  cupom: '<path d="M4 7.5A1.5 1.5 0 015.5 6h13A1.5 1.5 0 0120 7.5V10a2 2 0 000 4v2.5a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 16.5V14a2 2 0 000-4z"/><path d="M14 6v12" stroke-dasharray="2 2"/>',
+  copiar: '<rect x="8.5" y="8.5" width="11" height="11" rx="2"/><path d="M15.5 8.5V6a1.5 1.5 0 00-1.5-1.5H6A1.5 1.5 0 004.5 6v8A1.5 1.5 0 006 15.5h2.5"/>',
+  verificado: '<path d="M12 2.8l2.3 1.7 2.9.1.9 2.8 2.3 1.8-.9 2.8.9 2.8-2.3 1.8-.9 2.8-2.9.1L12 21.2l-2.3-1.7-2.9-.1-.9-2.8-2.3-1.8.9-2.8-.9-2.8 2.3-1.8.9-2.8 2.9-.1z"/><path d="M8.6 12.2l2.3 2.3 4.6-4.8"/>',
   // modos de exibição da lista
   "m-linhas": '<rect x="3" y="4.5" width="7.5" height="6" rx="1.5"/><rect x="12.5" y="4.5" width="7.5" height="6" rx="1.5"/><rect x="3" y="13.5" width="7.5" height="6" rx="1.5"/><rect x="12.5" y="13.5" width="7.5" height="6" rx="1.5"/><path d="M22 6.5v2M22 15.5v2"/>',
   "m-1": '<rect x="3.5" y="4" width="17" height="6.5" rx="1.5"/><rect x="3.5" y="13.5" width="17" height="6.5" rx="1.5"/>',
@@ -106,7 +114,7 @@ function toast(t) {
   document.body.appendChild(d);
   setTimeout(() => d.remove(), 3500);
 }
-function linkWhats(numeroBruto, texto) {
+function linkWhats(numeroBruto, texto, aoClicar = null) {
   const numero = String(numeroBruto || "").replace(/\D/g, "");
   if (numero.length < 10) return null;
   const a = el("a", "vt-btn whats");
@@ -114,10 +122,32 @@ function linkWhats(numeroBruto, texto) {
   a.target = "_blank";
   a.rel = "noopener noreferrer";
   a.append(icone("whats"), document.createTextNode("WhatsApp"));
-  a.addEventListener("click", (e) => e.stopPropagation());
+  a.addEventListener("click", (e) => { e.stopPropagation(); aoClicar?.(); });
   return a;
 }
+// Horário de cada dia (domingo a sábado): "HH:MM-HH:MM" ou "" (fechado). Vale para todos os tipos.
+export const NOMES_DIA = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+export const semanaDe = (n) => (Array.isArray(n?.semana) && n.semana.length === 7 && n.semana.some(Boolean) ? n.semana : null);
+const faixaMin = (s) => { const r = /^(\d\d):(\d\d)-(\d\d):(\d\d)$/.exec(s || ""); return r ? [Number(r[1]) * 60 + Number(r[2]), Number(r[3]) * 60 + Number(r[4])] : null; };
+const horaTxt = (s) => String(s || "").replace("-", " às ");
+// Aberto agora e a próxima mudança ("fecha às 23:00", "abre amanhã às 11:00").
+export function situacaoHorario(n, agora = new Date()) {
+  const sem = semanaDe(n);
+  if (!sem) return null;
+  const d = agora.getDay(), m = agora.getHours() * 60 + agora.getMinutes();
+  const hoje = faixaMin(sem[d]), ontem = faixaMin(sem[(d + 6) % 7]);
+  if (ontem && ontem[1] <= ontem[0] && m < ontem[1]) return { aberto: true, texto: `Fecha às ${sem[(d + 6) % 7].split("-")[1]}` };
+  if (hoje && (hoje[1] > hoje[0] ? m >= hoje[0] && m < hoje[1] : m >= hoje[0])) return { aberto: true, texto: `Fecha às ${sem[d].split("-")[1]}` };
+  if (hoje && m < hoje[0]) return { aberto: false, texto: `Abre hoje às ${sem[d].split("-")[0]}` };
+  for (let i = 1; i <= 7; i++) {
+    const k = (d + i) % 7;
+    if (sem[k]) return { aberto: false, texto: `Abre ${i === 1 ? "amanhã" : NOMES_DIA[k].toLowerCase()} às ${sem[k].split("-")[0]}` };
+  }
+  return { aberto: false, texto: "Fechado" };
+}
 function abertoAgora(n) {
+  const sit = situacaoHorario(n);
+  if (sit) return sit.aberto;
   if (!n.horaAbre || !n.horaFecha) return null;
   const [ha, ma] = n.horaAbre.split(":").map(Number), [hf, mf] = n.horaFecha.split(":").map(Number);
   if ([ha, ma, hf, mf].some((x) => !Number.isFinite(x))) return null;
@@ -140,7 +170,7 @@ export function cartaoDeNegocio(n) {
     sub: [NOMES_TIPO[n.tipo], cats.slice(0, 2).join(", ")].filter(Boolean).join(" · "),
     preco: n.tipo === "servicos" && moeda(n.precoDesde) ? `a partir de ${moeda(n.precoDesde)}` : "",
     foto: fotoPequena(n.foto) || fotoPequena((n.fotos || [])[0]),
-    link: `${PAGINA_TIPO[n.tipo]}?negocio=${encodeURIComponent(n.id || "")}`
+    link: `${PAGINA_TIPO[n.tipo]}?negocio=${encodeURIComponent(n.id || "")}&de=mensagens`
   };
 }
 export function cartaoDeAnuncio(a) {
@@ -148,7 +178,7 @@ export function cartaoDeAnuncio(a) {
     tipo: "imoveis", titulo: tituloImovel(a),
     sub: [FINALIDADE[a.finalidade], [a.bairro, textoCidade(a)].filter(Boolean).join(", ")].filter(Boolean).join(" · "),
     preco: precoImovel(a), foto: fotoPequena((a.fotos || [])[0]),
-    link: `imoveis.html?anuncio=${encodeURIComponent(a.id || "")}`
+    link: `imoveis.html?anuncio=${encodeURIComponent(a.id || "")}&de=mensagens`
   };
 }
 // Abre (ou cria) a conversa, marca o assunto e deixa o cartão pronto para ir junto na mensagem.
@@ -393,12 +423,13 @@ function abrirPedido(n, opcoes, aoMudar) {
     env.addEventListener("click", () => {
       if (!validar()) return;
       const cartao = cartaoDePedido(n, resumoPedido(n, lerCarrinho(n), estado.modo), extra());
+      contarAcao(n, "pedido", opcoes.origem);
       gravarCarrinho(n, {});
       document.querySelectorAll(".vt-modal").forEach((m) => m.remove());
       (opcoes.aoMensagem || conversar)(n.donoId, cartao);
     });
     barra.appendChild(env);
-    const w = linkWhats(n.whatsapp, "");
+    const w = linkWhats(n.whatsapp, "", () => contarAcao(n, "whats", opcoes.origem));
     if (w) {
       w.addEventListener("click", (e) => {
         if (!validar()) { e.preventDefault(); return; }
@@ -431,6 +462,8 @@ export function abrirProduto(n, idx, opcoes = {}) {
   const proprio = opcoes.proprio ?? (!!euX && n.donoId === euX.uid);
   const { caixa, sair } = novaJanela(n.tipo, i.nome);
   caixa.classList.add("vd-produto");
+  usarEstat(opcoes.fb || fb, euX);
+  if (!proprio) registrarItem(negEstat(n), chaveEstat(i.nome), opcoes.origem || origemPadrao());
   const foto = el("div", "vd-prod-foto");
   if (urlSegura(i.foto)) foto.style.backgroundImage = `url("${i.foto}")`; else { foto.classList.add("vazia"); foto.appendChild(icone("foto", "vi")); }
   const est = estoqueDe(i);
@@ -588,11 +621,12 @@ export function abrirOrcamento(n, opcoes = {}, preIdx = null) {
     if (!validar()) return;
     const s = montar();
     const cartao = { ...cartaoDeNegocio(n), titulo: `Orçamento · ${n.nome || "Freelances"}`, sub: s.servicos.join(", "), preco: QUANDO[s.quando.tipo] || "", solicitacao: s };
+    contarAcao(n, "orcamento", opcoes.origem);
     document.querySelectorAll(".vt-modal").forEach((m) => m.remove());
     (opcoes.aoMensagem || conversar)(n.donoId, cartao);
   });
   barra.appendChild(env);
-  const w = linkWhats(n.whatsapp, "");
+  const w = linkWhats(n.whatsapp, "", () => contarAcao(n, "whats", opcoes.origem));
   if (w) {
     w.addEventListener("click", (e) => {
       if (!validar()) { e.preventDefault(); return; }
@@ -626,6 +660,14 @@ const notasNeg = new Map();
 // Conta do dono desativada: o conteúdo fica escondido até ocultoAte (conta.js).
 const oculto = (x) => (x?.ocultoAte?.toMillis?.() ?? 0) > Date.now();
 const idNegocio = (n) => n.id || `${n.donoId}_${n.tipo}`;
+// Capa própria do perfil (campo novo) ou a primeira foto.
+const capaDe = (n) => urlSegura(n.capa) || urlSegura((n.fotos || []).find(urlSegura));
+export const promoAtiva = (n) => (n?.promocao?.titulo && (n.promocao.ate?.toMillis?.() ?? 0) > Date.now() ? n.promocao : null);
+const cnpjTxt = (c) => (/^\d{14}$/.test(c || "") ? c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5") : "");
+// De onde a pessoa abriu o perfil (estatísticas do negócio).
+const origemPadrao = () => (TIPO_PAGINA ? (filtroAtual().termo ? "busca" : "vitrine") : "outro");
+const negEstat = (n, tipo = n.tipo) => ({ id: idNegocio({ ...n, tipo }), donoId: n.donoId, tipo });
+const contarAcao = (n, acao, origem) => { if (!(eu && n.donoId === eu.uid)) registrarAcao(negEstat(n), acao, origem || origemPadrao()); };
 function estrelasNeg(negId, { compacto = false, nome = "", donoId = "", fbx = null } = {}) {
   const f = fbx || fb;
   const abrir = () => lerResumo(f, "neg_" + negId).then((r) => abrirDetalhamento({
@@ -664,7 +706,7 @@ function linkCriador(uid, dono, aoPerfil) {
   return a;
 }
 
-function botoes(donoId, { texto, whats, textoWhats, cartao, editarHref, acao }) {
+function botoes(donoId, { texto, whats, textoWhats, cartao, editarHref, acao, neg = null }) {
   const box = el("div", "vt-botoes");
   if (eu && donoId === eu.uid) {
     const ed = el("a", "vt-btn sec");
@@ -674,11 +716,11 @@ function botoes(donoId, { texto, whats, textoWhats, cartao, editarHref, acao }) 
     box.appendChild(ed);
     return box;
   }
-  const w = linkWhats(whats, textoWhats);
+  const w = linkWhats(whats, textoWhats, () => neg && contarAcao(neg, "whats"));
   const m = el("button", "vt-btn " + (w ? "sec" : "pri"));
   m.type = "button";
   m.append(icone("chat"), document.createTextNode(texto));
-  m.addEventListener("click", (e) => { e.stopPropagation(); acao ? acao() : conversar(donoId, cartao); });
+  m.addEventListener("click", (e) => { e.stopPropagation(); if (acao) acao(); else { if (neg) contarAcao(neg, "mensagem"); conversar(donoId, cartao); } });
   box.appendChild(m);
   if (w) box.appendChild(w);
   return box;
@@ -686,7 +728,7 @@ function botoes(donoId, { texto, whats, textoWhats, cartao, editarHref, acao }) 
 const botoesNegocio = (n) => botoes(n.donoId, {
   texto: n.tipo === "delivery" ? "Ver cardápio" : TEXTO_CONTATO[n.tipo], whats: n.whatsapp, cartao: cartaoDeNegocio(n),
   acao: n.tipo === "servicos" ? () => abrirOrcamento(n) : n.tipo === "delivery" ? () => abrirDetalhe(n) : null,
-  textoWhats: `Olá! Vi "${n.nome}" no Help Floripa.`, editarHref: `negocios.html?tipo=${n.tipo}`
+  textoWhats: `Olá! Vi "${n.nome}" no Help Floripa.`, editarHref: `negocios.html?tipo=${n.tipo}`, neg: n
 });
 
 // ---------- cartões por tipo ----------
@@ -739,7 +781,7 @@ function cartaoServico(n) {
 function cartaoDelivery(n) {
   const c = el("article", "vt-card vt-delivery");
   const capa = el("div", "capa");
-  capa.style.backgroundImage = `url("${urlSegura((n.fotos || [])[0]) || TEXTOS.delivery.img}")`;
+  capa.style.backgroundImage = `url("${capaDe(n) || TEXTOS.delivery.img}")`;
   const aberto = abertoAgora(n);
   if (aberto !== null) capa.appendChild(el("span", "vt-tag " + (aberto ? "ok" : "off"), aberto ? "Aberto agora" : "Fechado"));
   capa.appendChild(avatar(n.foto, n.nome, "vt-avatar logo"));
@@ -846,18 +888,18 @@ function fatosBox(lista) {
   });
   return fatos.children.length ? fatos : null;
 }
-function barraContato({ proprio, aoEditar, editarHref, sair, texto, whats, textoWhats, aoMensagem, donoId, cartao }) {
+function barraContato({ proprio, aoEditar, editarHref, sair, texto, whats, textoWhats, aoMensagem, donoId, cartao, aoContar = () => {}, contaMensagem = true }) {
   const barra = el("div", "vd-acoes");
   if (proprio) {
     if (aoEditar) { const b = el("button", "vt-btn pri"); b.type = "button"; b.append(icone("lapis"), document.createTextNode("Editar")); b.addEventListener("click", () => { sair(); aoEditar(); }); barra.appendChild(b); }
     else { const a = el("a", "vt-btn pri"); a.href = editarHref; a.append(icone("lapis"), document.createTextNode("Editar")); barra.appendChild(a); }
     return barra;
   }
-  const w = linkWhats(whats, textoWhats);
+  const w = linkWhats(whats, textoWhats, () => aoContar("whats"));
   const m = el("button", "vt-btn " + (w ? "sec" : "pri"));
   m.type = "button";
   m.append(icone("chat"), document.createTextNode(texto));
-  m.addEventListener("click", () => aoMensagem(donoId, cartao));
+  m.addEventListener("click", () => { if (contaMensagem) aoContar("mensagem"); aoMensagem(donoId, cartao); });
   barra.appendChild(m);
   if (w) barra.appendChild(w);
   return barra;
@@ -873,9 +915,15 @@ export function abrirDetalhe(n, opcoes = {}) {
   const aoMensagem = opcoes.aoMensagem || ((uid, cartao) => prepararConversa(fbx, euX, uid, cartao));
   const { caixa, sair } = novaJanela(tipo, n.nome || "Negócio");
   const fotos = (n.fotos || []).filter(urlSegura);
+  // Estatísticas: a visita (uma por pessoa no dia) e cada ação do cliente.
+  usarEstat(fbx, euX);
+  const origem = opcoes.origem || origemPadrao();
+  const neg = negEstat(n, tipo);
+  const contar = (acao) => { if (!proprio) registrarAcao(neg, acao, origem); };
+  if (!proprio) registrarVisita(neg, origem);
 
   const capa = el("div", "vd-capa");
-  capa.style.backgroundImage = `url("${fotos[0] || TEXTOS[tipo].img}")`;
+  capa.style.backgroundImage = `url("${capaDe(n) || TEXTOS[tipo].img}")`;
   const logo = avatar(n.foto, n.nome, "vt-avatar vd-logo");
   capa.appendChild(logo);
   caixa.appendChild(capa);
@@ -896,22 +944,81 @@ export function abrirDetalhe(n, opcoes = {}) {
   if (tipo === "servicos") categoriasDe(n).forEach((k) => tags.appendChild(el("span", "vt-tag", CATEGORIAS.servicos[k] || k)));
   else if (tipo !== "imoveis") tags.appendChild(el("span", "vt-tag", nomeCategoria(n)));
   else tags.appendChild(el("span", "vt-tag", ANUNCIANTE[n.tipoAnunciante] || "Anunciante"));
-  if (tipo === "delivery") { const ab = abertoAgora(n); if (ab !== null) tags.appendChild(el("span", "vt-tag " + (ab ? "ok" : "off"), ab ? "Aberto agora" : "Fechado")); }
+  const sitH = situacaoHorario(n);
+  if (sitH) tags.appendChild(el("span", "vt-tag " + (sitH.aberto ? "ok" : "off"), sitH.aberto ? "Aberto agora" : "Fechado"));
+  else if (tipo === "delivery") { const ab = abertoAgora(n); if (ab !== null) tags.appendChild(el("span", "vt-tag " + (ab ? "ok" : "off"), ab ? "Aberto agora" : "Fechado")); }
   if (n.cidade) { const s2 = el("span", "vt-local"); s2.append(icone("pin"), document.createTextNode([n.bairro, textoCidade(n)].filter(Boolean).join(", "))); tags.appendChild(s2); }
   const notaCab = el("div", "vd-nota-cab");
   notaCab.appendChild(estrelasNeg(idNegocio({ ...n, tipo }), { nome: n.nome, donoId: n.donoId, fbx }));
   cab.append(tags, notaCab, linkCriador(n.donoId, dono, opcoes.aoPerfil));
+  // Confiança: responsável com perfil verificado e CNPJ informado.
+  const conf0 = el("div", "vd-selos");
+  if (dono.verificado) { const v = el("span", "vd-selo-ok"); v.append(icone("verificado"), document.createTextNode("Responsável verificado")); v.title = "A identidade de quem criou este perfil foi conferida pela equipe do Help Floripa."; conf0.appendChild(v); }
+  if (cnpjTxt(n.cnpj)) { const c = el("span", "vd-selo-cnpj"); c.append(icone("cartao"), document.createTextNode(`CNPJ ${cnpjTxt(n.cnpj)}`)); conf0.appendChild(c); }
+  if (conf0.children.length) cab.appendChild(conf0);
   ct.appendChild(cab);
+
+  // Promoção ou cupom com prazo.
+  const promo = promoAtiva(n);
+  if (promo) {
+    const p = el("div", "vd-promo");
+    const ic = el("span", "ic"); ic.appendChild(icone("cupom", "vi"));
+    const tx = el("div", "tx");
+    tx.append(el("small", null, "Promoção"), el("strong", null, promo.titulo));
+    if (promo.texto) tx.appendChild(el("p", null, promo.texto));
+    tx.appendChild(el("span", "ate", "Válida até " + new Date(promo.ate.toMillis()).toLocaleDateString("pt-BR", { day: "2-digit", month: "long" })));
+    p.append(ic, tx);
+    if (promo.codigo) {
+      const b = el("button", "vd-cupom"); b.type = "button";
+      b.append(el("span", null, promo.codigo), el("small", null, "Copiar"), icone("copiar"));
+      b.setAttribute("aria-label", `Copiar o cupom ${promo.codigo}`);
+      b.addEventListener("click", async () => {
+        try { await navigator.clipboard.writeText(promo.codigo); toast(`Cupom ${promo.codigo} copiado. Use no pedido.`); } catch { toast(`Cupom: ${promo.codigo}`); }
+        contar("cupom");
+      });
+      p.appendChild(b);
+    }
+    ct.appendChild(p);
+  }
+
+  // Atalhos: Instagram, site, como chegar e compartilhar.
+  const links = el("div", "vd-links");
+  const linkExt = (ic, rot, href, acao) => {
+    const a = el("a", "vd-link"); a.href = href; a.target = "_blank"; a.rel = "noopener noreferrer";
+    a.append(icone(ic), el("span", null, rot));
+    a.addEventListener("click", () => contar(acao));
+    links.appendChild(a);
+  };
+  if (/^[A-Za-z0-9._]{1,30}$/.test(n.instagram || "")) linkExt("instagram", "@" + n.instagram, `https://instagram.com/${n.instagram}`, "instagram");
+  if (/^https?:\/\/\S{3,}$/.test(n.site || "")) linkExt("site", "Site", n.site, "site");
+  if (n.rua) {
+    const end = [[n.rua, n.numero].filter(Boolean).join(", "), n.bairro, textoCidade(n), n.uf].filter(Boolean).join(", ");
+    linkExt("rota", "Como chegar", `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(end)}`, "rota");
+  }
+  {
+    const b = el("button", "vd-link"); b.type = "button";
+    b.append(icone("compartilhar"), el("span", null, "Compartilhar"));
+    b.addEventListener("click", async () => {
+      const url = new URL(`${PAGINA_TIPO[tipo]}?negocio=${encodeURIComponent(neg.id)}`, location.href).href;
+      try {
+        if (navigator.share) await navigator.share({ title: n.nome, text: `${n.nome} no Help Floripa`, url });
+        else { await navigator.clipboard.writeText(url); toast("Link copiado"); }
+        contar("compartilhar");
+      } catch (e) { if (e?.name !== "AbortError") toast("Não foi possível compartilhar agora."); }
+    });
+    links.appendChild(b);
+  }
+  ct.appendChild(links);
 
   const listaDias = (d) => (Array.isArray(d) && d.length ? (d.length === 7 ? "Todos os dias" : Object.keys(DIAS).filter((k) => d.includes(k)).map((k) => DIAS[k]).join(", ")) : "");
   const listaPag = (p) => (Array.isArray(p) && p.length ? p.filter((k) => PAGAMENTOS[k]).map((k) => PAGAMENTOS[k]).join(", ") : "");
   const fatos = {
-    servicos: () => [["sacola", moeda(n.precoDesde) || "A combinar", "a partir de"], ["relogio", [listaDias(n.dias), n.horario].filter(Boolean).join(" · "), "atendimento"],
+    servicos: () => [["sacola", moeda(n.precoDesde) || "A combinar", "a partir de"], ["relogio", sitH ? "" : [listaDias(n.dias), n.horario].filter(Boolean).join(" · "), "atendimento"],
       ["casa", (n.atendimento || []).filter((k) => MODOS[k]).map((k) => MODOS[k]).join(" · "), "como atende"],
       ["pin", n.regiao || "", "região"], ["selo", Number(n.experiencia) > 0 ? `${n.experiencia} ${Number(n.experiencia) === 1 ? "ano" : "anos"}` : "", "experiência"],
       ["cnh", Array.isArray(n.cnh) && n.cnh.length ? n.cnh.join(" · ") : "", "CNH"], ["carro", n.veiculo || "", "veículo"],
       ["cartao", listaPag(n.pagamentos), "pagamento"]],
-    delivery: () => [["relogio", [listaDias(n.dias), n.horaAbre && n.horaFecha ? `${n.horaAbre}–${n.horaFecha}` : ""].filter(Boolean).join(" · "), "funcionamento"],
+    delivery: () => [["relogio", sitH ? "" : [listaDias(n.dias), n.horaAbre && n.horaFecha ? `${n.horaAbre}–${n.horaFecha}` : ""].filter(Boolean).join(" · "), "funcionamento"],
       ["moto", n.tempoMin || n.tempoMax ? `${n.tempoMin || "?"}–${n.tempoMax || "?"} min` : "", "tempo de entrega"],
       ["moto", Number(n.taxaEntrega) > 0 ? moeda(n.taxaEntrega) : "Grátis", "taxa de entrega"], ["sacola", moeda(n.pedidoMinimo), "pedido mínimo"],
       ["casa", opcoesRecebimento(n).map((k) => (k === "entrega" ? "Entrega" : "Retirada")).join(" · "), "como receber"],
@@ -930,9 +1037,23 @@ export function abrirDetalhe(n, opcoes = {}) {
   const fb1 = fatosBox([...(n.rua ? [["pin", endLocal, "endereço"]] : []), ...fatos]);
   if (fb1) ct.appendChild(fb1);
   if (n.descricao) { ct.appendChild(titulo4("Sobre")); ct.appendChild(el("p", "texto", n.descricao)); }
+  if (sitH) {
+    ct.appendChild(titulo4(tipo === "servicos" ? "Horário de atendimento" : "Horário de funcionamento"));
+    const h = el("div", "vd-horario");
+    const st = el("div", "vd-horario-agora " + (sitH.aberto ? "ok" : "off"));
+    st.append(el("i"), el("strong", null, sitH.aberto ? "Aberto agora" : "Fechado agora"), el("span", null, sitH.texto));
+    h.appendChild(st);
+    const hoje = new Date().getDay();
+    [1, 2, 3, 4, 5, 6, 0].forEach((k) => {
+      const l = el("div", "vd-horario-dia" + (k === hoje ? " hoje" : ""));
+      l.append(el("span", null, NOMES_DIA[k] + (k === hoje ? " (hoje)" : "")), el("strong", n.semana[k] ? null : "fechado", n.semana[k] ? horaTxt(n.semana[k]) : "Fechado"));
+      h.appendChild(l);
+    });
+    ct.appendChild(h);
+  }
 
   const itens = (n.itens || []).filter((i) => i?.nome);
-  const orcar = (idx = null) => (proprio ? null : abrirOrcamento(n, { ...opcoes, fb: fbx, eu: euX, aoMensagem }, idx));
+  const orcar = (idx = null) => (proprio ? null : abrirOrcamento(n, { ...opcoes, fb: fbx, eu: euX, aoMensagem, origem }, idx));
   if (tipo === "servicos" && itens.length) {
     // serviços agrupados por área de atuação, cada um com como cobra, duração e o que inclui
     const cats = categoriasDe(n);
@@ -956,7 +1077,7 @@ export function abrirDetalhe(n, opcoes = {}) {
         if (!proprio) {
           const b = el("button", "vd-pedir", "Pedir");
           b.type = "button";
-          b.addEventListener("click", () => orcar(idx));
+          b.addEventListener("click", () => { if (!proprio) registrarItem(neg, chaveEstat(i.nome), origem); orcar(idx); });
           pr.appendChild(b);
         }
         li.append(tx, pr);
@@ -986,10 +1107,10 @@ export function abrirDetalhe(n, opcoes = {}) {
       const ver = el("button", "vt-btn pri");
       ver.type = "button";
       ver.append(document.createTextNode("Ver pedido"), icone("avancar"));
-      ver.addEventListener("click", () => abrirPedido(n, { ...opcoes, fb: fbx, eu: euX, aoMensagem }, pintarItens));
+      ver.addEventListener("click", () => abrirPedido(n, { ...opcoes, fb: fbx, eu: euX, aoMensagem, origem }, pintarItens));
       barraCarrinho.append(info, ver);
     };
-    const opcoesProduto = () => ({ ...opcoes, fb: fbx, eu: euX, aoMensagem, proprio, aoMudarCarrinho: pintarItens });
+    const opcoesProduto = () => ({ ...opcoes, fb: fbx, eu: euX, aoMensagem, proprio, aoMudarCarrinho: pintarItens, origem });
     const pintarItens = () => {
       const carrinho = lerCarrinho(n);
       area.replaceChildren();
@@ -1016,7 +1137,7 @@ export function abrirDetalhe(n, opcoes = {}) {
             else lado.classList.add("sem-foto");
             if (!proprio && est !== 0) {
               const chave = chaveItem(i, idx);
-              lado.appendChild(controleQtd(carrinho[chave] || 0, limiteItem(i), (q) => { mudarCarrinho(n, chave, q); pintarItens(); }));
+              lado.appendChild(controleQtd(carrinho[chave] || 0, limiteItem(i), (q) => { if (q > 0) registrarItem(neg, chaveEstat(i.nome), origem); mudarCarrinho(n, chave, q); pintarItens(); }));
             } else if (est === 0) lado.appendChild(el("span", "vd-selo-inline", "Esgotado"));
             row.append(tx, lado);
             box.appendChild(row);
@@ -1091,7 +1212,8 @@ export function abrirDetalhe(n, opcoes = {}) {
   ct.appendChild(barraContato({
     proprio, sair, aoEditar: opcoes.aoEditar ? () => opcoes.aoEditar(n) : null, editarHref: `negocios.html?tipo=${tipo}`,
     texto: tipo === "imoveis" ? "Falar com o anunciante" : TEXTO_CONTATO[tipo], whats: n.whatsapp,
-    textoWhats: `Olá! Vi "${n.nome}" no Help Floripa.`, aoMensagem: tipo === "servicos" ? () => orcar() : aoMensagem, donoId: n.donoId, cartao: cartaoDeNegocio(n)
+    textoWhats: `Olá! Vi "${n.nome}" no Help Floripa.`, aoMensagem: tipo === "servicos" ? () => orcar() : aoMensagem, donoId: n.donoId, cartao: cartaoDeNegocio(n),
+    aoContar: contar, contaMensagem: tipo !== "servicos"
   }));
   // Avaliar e reclamar: abertos pelo cliente (uma nota por cliente; reclamação com limite justo).
   if (!proprio && euX && fbx) {
@@ -1101,6 +1223,7 @@ export function abrirDetalhe(n, opcoes = {}) {
     bA.append(icone("estrela"), document.createTextNode("Avaliar"));
     bA.addEventListener("click", () => avaliarNegocio(fbx, euX, n, { autor, aoAvaliar: (nota, editou) => {
       toast(editou ? "Avaliação atualizada" : "Obrigado pela avaliação!");
+      contar("avaliar");
       lerResumo(fbx, "neg_" + idNegocio(n), { recarregar: true }).then((r) => { notasNeg.set(idNegocio(n), r); const e = notaCab.querySelector(".hf-estrelas"); if (e) pintarEstrelas(e, r); });
     } }));
     const bR = el("button", "vt-btn sec reclamar"); bR.type = "button";
@@ -1146,6 +1269,12 @@ export function abrirAnuncio(a, opcoes = {}) {
   const aoMensagem = opcoes.aoMensagem || ((uid, cartao) => prepararConversa(fbx, euX, uid, cartao));
   const { caixa, sair } = novaJanela("imoveis", tituloImovel(a));
   const fotos = (a.fotos || []).filter(urlSegura);
+  // Estatísticas do perfil de imóveis do anunciante: visita + qual imóvel foi visto.
+  usarEstat(fbx, euX);
+  const negIm = { id: `${a.donoId}_imoveis`, donoId: a.donoId, tipo: "imoveis" };
+  const origemAn = opcoes.origem || origemPadrao();
+  const contarIm = (acao) => { if (!proprio) registrarAcao(negIm, acao, origemAn); };
+  if (!proprio) { registrarVisita(negIm, origemAn); if (a.id && !a.legado) registrarItem(negIm, chaveAnuncio(a.id), origemAn); }
   const g = el("div", "vd-fotos");
   (fotos.length ? fotos : [TEXTOS.imoveis.img]).forEach((f, i) => { const im = document.createElement("img"); im.src = f; im.alt = `Foto ${i + 1}`; g.appendChild(im); });
   caixa.appendChild(g);
@@ -1208,7 +1337,7 @@ export function abrirAnuncio(a, opcoes = {}) {
   ct.appendChild(barraContato({
     proprio, sair, aoEditar: opcoes.aoEditar ? () => opcoes.aoEditar(anunciante) : null, editarHref: "negocios.html?tipo=imoveis",
     texto: "Tenho interesse", whats: a.whatsapp || anunciante.whatsapp, textoWhats: `Olá! Tenho interesse no imóvel "${tituloImovel(a)}" que vi no Help Floripa.`,
-    aoMensagem, donoId: a.donoId, cartao: cartaoDeAnuncio(a)
+    aoMensagem, donoId: a.donoId, cartao: cartaoDeAnuncio(a), aoContar: contarIm
   }));
   if (proprio && a.id && !a.legado) {
     // Fechou negócio? Um toque apaga o anúncio.
@@ -1408,7 +1537,7 @@ const SEM_MOVIMENTO = matchMedia("(prefers-reduced-motion: reduce)").matches;
 function cartaoPro(n, destaqueEm = "") {
   const c = el("article", "vt-del vt-free");
   const f = el("div", "ft");
-  f.style.backgroundImage = `url("${urlSegura((n.fotos || []).find(urlSegura)) || TEXTOS.servicos.img}")`;
+  f.style.backgroundImage = `url("${capaDe(n) || TEXTOS.servicos.img}")`;
   if (destaqueEm) {
     const t = el("span", "tag-dest");
     t.append(icone("selo", "vi s"), document.createTextNode(`Destaque em ${CATEGORIAS.servicos[destaqueEm] || "Freelances"}`));
@@ -1933,6 +2062,7 @@ async function iniciar() {
   auth.onAuthStateChanged(window.firebaseAuth, async (u) => {
     if (!u || eu) return;
     eu = u;
+    usarEstat(fb, eu);
     conferirEmail(u);
     try {
       await carregarLote(true);
@@ -1945,6 +2075,8 @@ async function iniciar() {
     // link direto vindo de uma mensagem
     const pg = new URLSearchParams(location.search);
     const idNeg = pg.get("negocio"), idAn = pg.get("anuncio");
+    // De onde veio o link (estatísticas): explorar, início, flash, mensagens; sem nada = link compartilhado.
+    const origemLink = ["explorar", "inicio", "flash", "mensagens", "perfil"].includes(pg.get("de")) ? pg.get("de") : "link";
     // Fora da lista carregada? Busca direto pelo id antes de dizer que não existe.
     const buscarDireto = async (col, id) => {
       try { const d = await fb.getDoc(fb.doc(fb.db, col, id)); return d.exists() ? { id: d.id, ...d.data() } : null; } catch { return null; }
@@ -1952,7 +2084,7 @@ async function iniciar() {
     if (idAn) {
       let a = todos.find((x) => x.id === idAn);
       if (!a) { a = await buscarDireto("anuncios", idAn); if (a && (a.ativo === false || oculto(a))) a = null; if (a) await carregarDonos([a.donoId]).catch(() => {}); }
-      if (a) abrirAnuncio(a); else toast("Este imóvel não está mais disponível.");
+      if (a) abrirAnuncio(a, { origem: origemLink }); else toast("Este imóvel não está mais disponível.");
     } else if (idNeg) {
       let n = todos.find((x) => x.id === idNeg);
       if (!n) {
@@ -1960,7 +2092,7 @@ async function iniciar() {
         if (n && (n.tipo !== TIPO || !n.nome || n.oculto === true || oculto(n))) n = null;
         if (n) { await carregarDonos([n.donoId]).catch(() => {}); const r = await lerResumos(fb, ["neg_" + idNegocio(n)]).catch(() => ({})); notasNeg.set(idNegocio(n), r["neg_" + idNegocio(n)]); }
       }
-      if (n) abrirDetalhe(n); else toast("Este perfil não está mais disponível.");
+      if (n) abrirDetalhe(n, { origem: origemLink }); else toast("Este perfil não está mais disponível.");
     }
   });
 }
