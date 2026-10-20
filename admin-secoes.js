@@ -1,18 +1,19 @@
 // =====================================================
 // Painel do administrador — seções
 // =====================================================
+import { confirmarHF } from "./confirmar.js?v=3";
 import { linha, linhaComparada, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=7";
 import { baixarPlanilhaMulti } from "./planilha.js?v=5";
 import { buscarPessoas } from "./pessoas.js?v=3";
-import { montarChat } from "./admin-chat.js?v=11";
-import { verConteudoDenuncia } from "./admin-denuncia.js?v=4";
+import { montarChat } from "./admin-chat.js?v=12";
+import { verConteudoDenuncia } from "./admin-denuncia.js?v=5";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
 import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha,
   PAPEIS, DESC_PAPEIS, pode, semPermissao, nomeEquipe, vendoAgora, marcarItem, seloResp, confirmarItem, controlesResp, espera,
   PRIORIDADES, editarTarefa, moverTarefa, garantirNegocios, garantirTodasPessoas, carregarPessoas, guardarPessoas
-} from "./admin-base.js?v=11";
+} from "./admin-base.js?v=12";
 
 const cab = (titulo, sub, extra) => { const c = h("div", "ad-cab"); const t = h("div"); t.append(h("h1", null, titulo)); if (sub) t.append(h("p", null, sub)); c.appendChild(t); if (extra) c.appendChild(extra); return c; };
 const bloco = (titulo, sub) => { const b = h("section", "ad-bloco"); const t = h("div", "ad-bloco-topo"); const tt = h("div"); tt.append(h("h3", null, titulo)); if (sub) tt.append(h("p", null, sub)); t.appendChild(tt); b.appendChild(t); b.topo = t; return b; };
@@ -371,10 +372,10 @@ export function denuncias(el) {
     const nomeItem = `Denúncia: ${MOTIVOS_DEN[d.motivo] || d.motivo} · ${alvo.nome || ""}`;
     ac.append(btn("Ver conteúdo denunciado", "", () => { marcarItem(item, nomeItem); return verConteudo(d); }));
     const mod = pode("moderar");
-    if (mod && d.status === "nova") ac.append(btn("Em análise", "", async () => { if (!confirmarItem(d, item)) return; marcarItem(item, nomeItem); await atualizar(d, { status: "em_analise", ...(d.responsavel ? {} : { responsavel: C.eu.uid }) }); }));
+    if (mod && d.status === "nova") ac.append(btn("Em análise", "", async () => { if (!(await confirmarItem(d, item))) return; marcarItem(item, nomeItem); await atualizar(d, { status: "em_analise", ...(d.responsavel ? {} : { responsavel: C.eu.uid }) }); }));
     if (mod && d.status !== "resolvida" && d.status !== "descartada") {
-      ac.append(btn("Descartar", "", async () => { if (!confirmarItem(d, item)) return; marcarItem(item, nomeItem); const v = await modal({ titulo: "Descartar denúncia", campos: [{ nome: "nota", rotulo: "Por quê? (só a equipe vê)", tipo: "textarea" }], botao: "Descartar" }); if (v) await atualizar(d, { status: "descartada", acao: "nenhuma", nota: v.nota }); }));
-      ac.append(btn("Resolver com ação", "pri", () => { if (!confirmarItem(d, item)) return; marcarItem(item, nomeItem); return resolver(d); }));
+      ac.append(btn("Descartar", "", async () => { if (!(await confirmarItem(d, item))) return; marcarItem(item, nomeItem); const v = await modal({ titulo: "Descartar denúncia", campos: [{ nome: "nota", rotulo: "Por quê? (só a equipe vê)", tipo: "textarea" }], botao: "Descartar" }); if (v) await atualizar(d, { status: "descartada", acao: "nenhuma", nota: v.nota }); }));
+      ac.append(btn("Resolver com ação", "pri", async () => { if (!(await confirmarItem(d, item))) return; marcarItem(item, nomeItem); return resolver(d); }));
     }
     c.appendChild(ac);
     if (d.status === "nova" || d.status === "em_analise") c.appendChild(controlesResp("denuncias", d, { permitido: mod, aoMudar: pintar }));
@@ -441,7 +442,7 @@ export function reclamacoes(el) {
     const st = h("td"); st.appendChild(selo(x.status === "resolvida" ? "Resolvida" : atras ? "Sem resposta" : x.resposta ? "Respondida" : "Aguardando", x.status === "resolvida" ? "bom" : atras ? "critico" : x.resposta ? "info" : "atencao"));
     const acao = h("td");
     if (x.status === "aberta" && !x.resposta) acao.appendChild(btn(x.cobradaEm ? "Cobrado" : "Cobrar resposta", "mini", async (b) => {
-      if (x.cobradaEm && !confirm("Já foi cobrado nesta sessão. Cobrar de novo?")) return;
+      if (x.cobradaEm && !(await confirmarHF({ titulo: "Cobrar de novo?", texto: "Este negócio já foi cobrado nesta sessão.", ok: "Cobrar de novo", icone: "alerta", cor: "normal" }))) return;
       await enviarAviso(x.alvoId, { titulo: "Você tem uma reclamação sem resposta", texto: `Um cliente abriu uma reclamação sobre "${x.negocioNome || "seu negócio"}" em ${data(x.abertaEm)} e ainda não teve resposta.\n\nResponda pela página Reclamações. Reclamações sem resposta pesam na confiança do seu perfil.`, tipo: "alerta" });
       x.cobradaEm = agora(); b.textContent = "Cobrado"; toast("Negócio avisado");
     }));
@@ -462,7 +463,7 @@ export function sancoes(el) {
   ativos.forEach(([uid, s]) => {
     const c = h("article", "ad-item"); const top = h("div", "cab"); top.append(pessoaCel(pessoa(uid)), selo(s.tipo === "banimento" ? "Banida" : `Suspensa até ${data(s.ate)}`, s.tipo === "banimento" ? "critico" : "serio"));
     c.append(top, h("div", "meta", `Motivo: ${s.motivo || "—"} · desde ${dataHora(s.em)}`));
-    const ac = h("div", "ad-acoes"); ac.append(btn("Ver ficha", "", () => abrirFicha(uid))); if (pode("moderar")) ac.append(btn("Remover sanção", "pri", async () => { if (!confirm("Remover a restrição desta conta?")) return; await tirarSancao(uid); toast("Sanção removida"); await C.recarregar(false); C.irPara("sancoes"); }));
+    const ac = h("div", "ad-acoes"); ac.append(btn("Ver ficha", "", () => abrirFicha(uid))); if (pode("moderar")) ac.append(btn("Remover sanção", "pri", async () => { if (!(await confirmarHF({ titulo: "Remover a restrição?", texto: "A conta volta a usar o site normalmente.", ok: "Remover", icone: "escudo", cor: "normal" }))) return; await tirarSancao(uid); toast("Sanção removida"); await C.recarregar(false); C.irPara("sancoes"); }));
     c.appendChild(ac); lista.appendChild(c);
   });
   el.appendChild(lista);
@@ -581,7 +582,7 @@ export function negocios(el) {
       const ac = h("td"); const w = h("div", "ad-acoes"); w.style.flexWrap = "nowrap";
       const link = h("a", "ad-bt", "Ver"); link.href = `${n.tipo === "imoveis" ? "imoveis.html" : ({ servicos: "servicos.html", delivery: "delivery.html", lojinha: "shopping.html" }[n.tipo])}?negocio=${encodeURIComponent(n.id)}`; link.target = "_blank";
       w.append(link); if (pode("moderar")) w.append(btn(esc ? "Mostrar" : "Esconder", esc ? "" : "perigo", async () => {
-        if (!esc && !confirm(`Esconder "${n.nome}" da vitrine?`)) return;
+        if (!esc && !(await confirmarHF({ titulo: "Esconder da vitrine?", texto: `"${n.nome}" deixa de aparecer para todos até ser mostrado de novo.`, ok: "Esconder", icone: "olhoOff" }))) return;
         await fb.updateDoc(fb.doc(fb.db, "negocios", n.id), { ocultoAte: esc ? null : fb.Timestamp.fromDate(new Date("2999-12-31")), ocultoPelaEquipe: !esc });
         n.ocultoAte = esc ? null : { toMillis: () => new Date("2999-12-31").getTime() };
         const m = D.negocios.find((x) => x.id === n.id); if (m) m.ocultoAte = n.ocultoAte;
@@ -636,7 +637,7 @@ export function suporte(el) {
   async function abrirChamado(s) {
     const { fb } = C;
     const item = `suporte:${s.id}`;
-    if (!confirmarItem(s, item)) return;
+    if (!(await confirmarItem(s, item))) return;
     marcarItem(item, `Chamado: ${s.assunto}`);
     const fundo = h("div", "ad-modal-fundo"), cx = h("div", "ad-modal"); cx.style.width = "min(620px,100%)";
     const topoCh = h("div", "cab"); topoCh.append(seloResp(s)); const vendo = vendoAgora(item); if (vendo.length) topoCh.append(selo(`${vendo.join(", ")} também está aqui`, "atencao"));
@@ -704,7 +705,7 @@ export function parcerias(el) {
 
   async function atualizarProposta(p) {
     if (!pode("comercial")) { semPermissao(); return; }
-    if (!confirmarItem(p, `parceria:${p.id}`)) return;
+    if (!(await confirmarItem(p, `parceria:${p.id}`))) return;
     const v = await modal({ titulo: "Atualizar proposta", campos: [{ nome: "status", rotulo: "Etapa", tipo: "select", opcoes: COLS, valor: p.status || "novo" }, { nome: "notas", rotulo: "Notas internas", tipo: "textarea", valor: p.notas || "", max: 3000 }], botao: "Salvar" });
     if (!v) return;
     const { fb } = C;
@@ -742,7 +743,7 @@ export function parcerias(el) {
     if (p.uid) ac.append(btn("Ver ficha", "", () => { fechar(); abrirFicha(p.uid); }));
     if (p.email) { const a = h("a", "ad-bt", "E-mail"); a.href = `mailto:${p.email}?subject=Help Floripa — ${encodeURIComponent(TIPO[p.tipo] || "Parceria")}`; ac.appendChild(a); }
     if (tel.length >= 10) { const w = h("a", "ad-bt", "WhatsApp"); w.href = `https://wa.me/${tel.length <= 11 ? "55" + tel : tel}`; w.target = "_blank"; w.rel = "noopener"; ac.appendChild(w); }
-    if (pode("comercial")) ac.append(btn("Apagar", "perigo", async () => { if (!confirm("Apagar esta proposta? Não dá para desfazer.")) return; const { fb } = C; await fb.deleteDoc(fb.doc(fb.db, "parcerias", p.id)); D.parcerias = D.parcerias.filter((x) => x !== p); await registrar("parceria_apagar", p.email || p.nome, p.empresa || ""); toast("Proposta apagada"); fechar(); C.irPara("parcerias"); }));
+    if (pode("comercial")) ac.append(btn("Apagar", "perigo", async () => { if (!(await confirmarHF({ titulo: "Apagar esta proposta?", texto: "Não dá para desfazer.", ok: "Apagar", icone: "lixo" }))) return; const { fb } = C; await fb.deleteDoc(fb.doc(fb.db, "parcerias", p.id)); D.parcerias = D.parcerias.filter((x) => x !== p); await registrar("parceria_apagar", p.email || p.nome, p.empresa || ""); toast("Proposta apagada"); fechar(); C.irPara("parcerias"); }));
     ac.append(btn("Fechar", "", fechar));
     if (pode("comercial")) ac.append(btn("Mudar etapa / notas", "pri", async () => { fechar(); await atualizarProposta(p); }));
     cx.appendChild(ac); fundo.appendChild(cx); document.body.appendChild(fundo);
@@ -903,7 +904,7 @@ export function comunicados(el) {
     top.append(selo(vivo ? "No ar" : "Fora do ar", vivo ? "bom" : "neutro"), selo({ info: "Informativo", novidade: "Novidade", alerta: "Alerta" }[c.tipo] || c.tipo, "info"), h("span", "quando", dataHora(c.em)));
     it.append(top, h("strong", null, c.titulo), h("div", "meta", c.texto || ""));
     if (c.ate) it.appendChild(h("div", "meta", `Sai do ar em ${dataHora(c.ate)}`));
-    const ac = h("div", "ad-acoes"); if (pode("moderar")) ac.append(btn("Editar", "", () => editar(c)), btn(c.ativo ? "Tirar do ar" : "Colocar no ar", "", async () => { const { fb } = C; await fb.updateDoc(fb.doc(fb.db, "comunicados", c.id), { ...limpo(c), ativo: !c.ativo, por: C.eu.uid }); c.ativo = !c.ativo; await registrar("comunicado_" + (c.ativo ? "on" : "off"), "", c.titulo); C.irPara("comunicados"); }), btn("Apagar", "perigo", async () => { if (!confirm("Apagar este comunicado?")) return; const { fb } = C; await fb.deleteDoc(fb.doc(fb.db, "comunicados", c.id)); D.comunicados = D.comunicados.filter((x) => x !== c); await registrar("comunicado_apagar", "", c.titulo); C.irPara("comunicados"); }));
+    const ac = h("div", "ad-acoes"); if (pode("moderar")) ac.append(btn("Editar", "", () => editar(c)), btn(c.ativo ? "Tirar do ar" : "Colocar no ar", "", async () => { const { fb } = C; await fb.updateDoc(fb.doc(fb.db, "comunicados", c.id), { ...limpo(c), ativo: !c.ativo, por: C.eu.uid }); c.ativo = !c.ativo; await registrar("comunicado_" + (c.ativo ? "on" : "off"), "", c.titulo); C.irPara("comunicados"); }), btn("Apagar", "perigo", async () => { if (!(await confirmarHF({ titulo: "Apagar este comunicado?", texto: "Ele sai do ar e não dá para desfazer.", ok: "Apagar", icone: "lixo" }))) return; const { fb } = C; await fb.deleteDoc(fb.doc(fb.db, "comunicados", c.id)); D.comunicados = D.comunicados.filter((x) => x !== c); await registrar("comunicado_apagar", "", c.titulo); C.irPara("comunicados"); }));
     it.appendChild(ac); lista.appendChild(it);
   });
   el.appendChild(lista);
@@ -1075,7 +1076,7 @@ export function tarefas(el) {
         if (i > 0) ac.append(btn("← " + COLS[i - 1][1], "mini", () => moverTarefa(t, COLS[i - 1][0])));
         if (i < 2) ac.append(btn(i === 0 ? "Começar →" : "Concluir ✓", "mini pri", () => moverTarefa(t, COLS[i + 1][0])));
         ac.append(btn("Editar", "mini", () => editarTarefa({}, t)));
-        if (t.criadoPor === C.eu.uid || C.papel === "dono") ac.append(btn("Apagar", "mini perigo", async () => { if (!confirm("Apagar esta tarefa?")) return; const { fb } = C; await fb.deleteDoc(fb.doc(fb.db, "equipe_tarefas", t.id)); await registrar("tarefa_apagar", "", t.titulo); }));
+        if (t.criadoPor === C.eu.uid || C.papel === "dono") ac.append(btn("Apagar", "mini perigo", async () => { if (!(await confirmarHF({ titulo: "Apagar esta tarefa?", texto: "Ela some para toda a equipe.", ok: "Apagar", icone: "lixo" }))) return; const { fb } = C; await fb.deleteDoc(fb.doc(fb.db, "equipe_tarefas", t.id)); await registrar("tarefa_apagar", "", t.titulo); }));
         c.appendChild(ac); col.appendChild(c);
       });
       if (!itens.length) col.appendChild(h("div", "meta", "—"));
@@ -1097,7 +1098,7 @@ export function publicacoes(el) {
   // Recalcular o resumo das estrelas (diario_notas) a partir das notas: corrige publicações de antes do
   // resumo e qualquer diferença. Lê só as notas (documentos pequenos), 1.000 por vez.
   if (pode("moderar")) linhaF.append(btn("Recalcular estrelas", "mini", async (b) => {
-    if (!confirm("Recalcular o resumo das estrelas de todas as publicações? Lê todas as notas dadas.")) return;
+    if (!(await confirmarHF({ titulo: "Recalcular as estrelas?", texto: "Refaz o resumo das estrelas de todas as publicações. Lê todas as notas dadas.", ok: "Recalcular", icone: "recarregar", cor: "normal" }))) return;
     const { fb } = C; const por = new Map(); let ultimo = null, lidas = 0;
     for (;;) {
       const s = await fb.getDocs(fb.query(fb.collection(fb.db, "curtidas"), fb.orderBy(fb.documentId()), ...(ultimo ? [fb.startAfter(ultimo)] : []), fb.limit(1000)));
@@ -1140,7 +1141,7 @@ export function publicacoes(el) {
           p.ocultoAte = vai ? { toMillis: () => new Date("2999-12-31").getTime() } : null;
           await registrar(vai ? "esconder_publicacao" : "mostrar_publicacao", p.autorId, String(p.texto || "").slice(0, 120)); toast(vai ? "Publicação escondida" : "Publicação visível de novo"); pintar();
         }), btn("Remover", "mini perigo", async () => {
-          if (!confirm("Remover esta publicação de vez? Não dá para desfazer.")) return;
+          if (!(await confirmarHF({ titulo: "Remover esta publicação?", texto: "Ela é apagada de vez. Não dá para desfazer.", ok: "Remover", icone: "lixo" }))) return;
           const { fb } = C; await fb.deleteDoc(fb.doc(fb.db, "diario", p.id));
           D.posts = D.posts.filter((x) => x !== p); await registrar("remover_conteudo", p.autorId, `publicacao ${p.id}: ${String(p.texto || "").slice(0, 100)}`); toast("Publicação removida"); pintar();
         }), btn("Avisar autor", "mini", () => fluxoAviso(p.autorId)));

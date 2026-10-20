@@ -1075,13 +1075,14 @@
 
   <script type="module">
     import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura, mostrarAvisoEmail } from "./seguranca.js?v=1";
+    import { confirmarHF } from "./confirmar.js?v=3";
     import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO } from "./avaliacoes.js?v=13";
     import { buscarPessoas } from "./pessoas.js?v=3";
     import { docComValidade } from "./leituras.js?v=1";
     import { comRitmo } from "./ritmo.js?v=2";
     import { criarPlayerAudio } from "./audio-ondas.js?v=1";
     import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=6";
-    import { abrirQueixa } from "./queixas.js?v=9";
+    import { abrirQueixa } from "./queixas.js?v=10";
     import { ouvirItensEquipe, linkEquipe, seloOficial, TEXTO_EQUIPE } from "./avisos-equipe.js?v=1";
     import { escolherApagar, editarTextoHF, verEdicoesHF, janelaHF, horaCurta, noPrazo, tempoRestante, podeMexer } from "./msg-acoes.js?v=2";
     // ======================================================
@@ -1366,7 +1367,7 @@
         b.append(iconeSvg(ic), document.createTextNode(rot));
         b.addEventListener("click", async (e) => {
           e.stopPropagation(); fecharMenu();
-          if (k === "cancelado" && !confirm("Marcar este pedido como cancelado? O cliente vê na conversa.")) return;
+          if (k === "cancelado" && !(await confirmarHF({ titulo: "Cancelar este pedido?", texto: "Ele fica marcado como cancelado e o cliente vê na conversa.", ok: "Marcar cancelado", cancelar: "Voltar", icone: "alerta" }))) return;
           try {
             await publicarMensagem(ativa.id, { remetenteId: eu.uid, texto: "", criadoEm: fb.serverTimestamp(), tipoArquivo: "cartao",
               cartao: { tipo, status: k, refMsg: m.id, titulo: String(m.cartao?.titulo || "").slice(0, 80) } });
@@ -1923,7 +1924,7 @@
       } catch (e) { console.error(e); toast("Não foi possível arquivar agora."); }
     }
     async function apagarConversaParaMim(c) {
-      if (!confirm(`Apagar a conversa com ${c.nome}?\n\nEla some da sua lista e as mensagens antigas ficam ocultas só para você. A outra pessoa continua vendo.`)) return;
+      if (!(await confirmarHF({ titulo: `Apagar a conversa com ${c.nome}?`, ok: "Apagar", icone: "lixo", texto: `Ela some da sua lista e as mensagens antigas ficam ocultas só para você. A outra pessoa continua vendo.` }))) return;
       try {
         await fb.setDoc(refConversa(c.id), { ocultaPara: { [eu.uid]: fb.serverTimestamp() }, arquivadaPara: { [eu.uid]: null } }, { merge: true });
         if (ativa?.id === c.id) fecharConversa();
@@ -1992,7 +1993,7 @@
     $("selApagar").addEventListener("click", async () => {
       const lista = conversas.filter((c) => selecionadas.has(c.id));
       if (!lista.length) return;
-      if (!confirm(`Apagar ${lista.length} ${lista.length === 1 ? "conversa" : "conversas"}?\n\nElas somem da sua lista e as mensagens antigas ficam ocultas só para você. A outra pessoa continua vendo.`)) return;
+      if (!(await confirmarHF({ titulo: `Apagar ${lista.length} ${lista.length === 1 ? "conversa" : "conversas"}?`, texto: "Elas somem da sua lista e as mensagens antigas ficam ocultas só para você. A outra pessoa continua vendo.", ok: "Apagar", icone: "lixo" }))) return;
       const r = await Promise.allSettled(lista.map((c) => fb.setDoc(refConversa(c.id), { ocultaPara: { [eu.uid]: fb.serverTimestamp() }, arquivadaPara: { [eu.uid]: null } }, { merge: true })));
       if (ativa && r.some((x, i) => x.status === "fulfilled" && lista[i].id === ativa.id)) fecharConversa();
       avisarLote(r, "apagada");
@@ -2350,7 +2351,7 @@
           bloqueios.meus.delete(uid);
           toast(`${nome} desbloqueado`);
         } else {
-          if (!confirm(`Bloquear ${nome}?\n\nVocês deixam de se seguir e ninguém consegue enviar mensagens nesta conversa. A pessoa não é avisada.`)) return;
+          if (!(await confirmarHF({ titulo: `Bloquear ${nome}?`, texto: "Vocês deixam de se seguir e ninguém consegue enviar mensagens nesta conversa. A pessoa não é avisada.", ok: "Bloquear", icone: "bloquear" }))) return;
           await fb.setDoc(ref, { bloqueadorId: eu.uid, bloqueadoId: uid, criadoEm: fb.serverTimestamp() });
           await Promise.all([
             fb.deleteDoc(fb.doc(fb.db, "relacoes", `${eu.uid}_${uid}`)).catch(() => {}),
@@ -2370,7 +2371,7 @@
     async function alternarRestricao() {
       if (!ativa) return;
       const uid = ativa.outroId, restringir = !restritos.has(uid);
-      if (restringir && !confirm(`Restringir ${ativa.nome || "este contato"}?\n\nA conversa vai para "Restritas", sem notificações, e a pessoa não vê quando você leu. Ela não é avisada.`)) return;
+      if (restringir && !(await confirmarHF({ titulo: `Restringir ${ativa.nome || "este contato"}?`, texto: "A conversa vai para \"Restritas\", sem notificações, e a pessoa não vê quando você leu. Ela não é avisada.", ok: "Restringir", icone: "escudo" }))) return;
       try {
         await fb.setDoc(fb.doc(fb.db, "usuarios", eu.uid), { restritos: restringir ? fb.arrayUnion(uid) : fb.arrayRemove(uid) }, { merge: true });
         if (restringir) restritos.add(uid); else restritos.delete(uid);
@@ -2908,7 +2909,7 @@
     // Denunciar uma mensagem recebida (a pessoa não é avisada).
     async function denunciarMensagem(m) {
       if (!ativa) return;
-      const { abrirDenuncia } = await import("./denuncias.js?v=2");
+      const { abrirDenuncia } = await import("./denuncias.js?v=3");
       const outro = ativa.outroId;
       // Contexto para a equipe: até 5 mensagens antes e 5 depois (só os ids; o painel lê do servidor).
       const salvas = mensagens.filter((x) => !x.pendente);
@@ -3874,7 +3875,7 @@
     // Sair da conta (fim das configurações), com confirmação
     // ======================================================
     // A mesma janela "Sair da conta?" do menu e das configurações do perfil (confirmar.js).
-    $("btnSairConta").addEventListener("click", () => import("./confirmar.js?v=2").then((m) => m.sairDaConta({ antes: () => { try { sessionStorage.removeItem(CHAVE_AVAL); } catch {} } })));
+    $("btnSairConta").addEventListener("click", () => import("./confirmar.js?v=3").then((m) => m.sairDaConta({ antes: () => { try { sessionStorage.removeItem(CHAVE_AVAL); } catch {} } })));
 
     // ======================================================
     // Atendimento do negócio (configurações)
@@ -4336,8 +4337,8 @@
     }));
 
     // Restaurar padrões deste aparelho (online e confirmação de leitura são da conta: ficam como estão).
-    $("btnRestaurar").addEventListener("click", () => {
-      if (!confirm("Voltar tema, papel de parede, tamanho do texto, sons e atalhos para o padrão? Suas respostas rápidas continuam salvas.")) return;
+    $("btnRestaurar").addEventListener("click", async () => {
+      if (!(await confirmarHF({ titulo: "Restaurar o padrão?", texto: "Tema, papel de parede, tamanho do texto, sons e atalhos voltam ao padrão. Suas respostas rápidas continuam salvas.", ok: "Restaurar", icone: "recarregar", cor: "normal" }))) return;
       config = { ...CONFIG_PADRAO, mostrarOnline: config.mostrarOnline, confirmacaoLeitura: config.confirmacaoLeitura };
       salvarConfig();
       toast("Padrões restaurados");

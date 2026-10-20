@@ -57,6 +57,7 @@ Capturas de tela, Excel baixados e logs ficam em `saida/` (fora do git).
 | `t-flash-cfg.mjs` | Configurações do Flash em cartões (onde publicar por padrão, câmera direto, respostas), "+" com a cor do Flash e borda neutra sem flash. |
 | `t-caixa.mjs` | Enquete anônima (voto em enquete_anon + contagem, sem "Ver votos") e caixa de perguntas com nome e anônima na publicação e no Flash: responder, ver respostas, Responder pelo Mensagens e notificações. |
 | `t-salvos.mjs` | "+" do Flash na foto do perfil, Seguidores/Seguindo com abas, busca e filtros (não segue de volta, mútuos), Salvos com coleções e ícone dos atalhos do Explorar. |
+| `t-campos.mjs` | Janelas do site no lugar das do navegador: lista de opções com busca (Estado), horário com rodas, confirmação (Remover endereço) e "Baixar meus dados" como relatório HTML legível. |
 | `t-explorar.mjs` | Explorar (etapa 4): busca com abas (Pessoas, Negócios, Hashtags, Publicações) e buscas recentes, hashtag subindo, enquetes abertas, negócios da cidade, sugestões com motivo e dispensar, filtros dos destaques, e tocar numa publicação abre a tela com as parecidas embaixo (rolagem infinita, voltar fecha). |
 | `t-principais.mjs` | Diário → Principais (gosto do aparelho + quem segue, sem dois seguidos do mesmo autor), filtros Principais/Amigos, Explorar (em alta, destaques, sugestões, busca) e anel do Flash no perfil. |
 | `t-busca.mjs`, `t-estat-local.mjs`, `t-painel.mjs` | Filtro de local da busca, filtros Estado→Cidade→Bairro do painel, topo das Estatísticas no celular. |

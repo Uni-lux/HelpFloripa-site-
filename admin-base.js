@@ -3,6 +3,7 @@
 // Estado (D), utilitários, janelas, ações de moderação (todas registradas
 // em admin_log) e a ficha completa do usuário.
 // =====================================================
+import { confirmarHF } from "./confirmar.js?v=3";
 export const C = { fb: null, A: null, eu: null, nome: "", irPara: () => {}, recarregar: async () => {}, contadores: () => {}, presenca: new Map(), chat: [], online: () => false, marcarChatVisto: () => {}, aoMudarEquipe: null, papel: "dono", tarefas: [], marcarItem: null, pintarVendo: null, aoMudarTarefas: null };
 export const D = {
   pessoas: new Map(), negocios: [], anuncios: [], posts: [], denuncias: [], queixas: [], suporte: [], parcerias: [],
@@ -355,8 +356,8 @@ export async function abrirFicha(uid) {
   bt("Enviar aviso", "", () => fluxoAviso(uid));
   const sancionado = st.k === "suspenso" || st.k === "banido";
   const mod = pode("moderar");
-  if (mod && sancionado) bt("Remover sanção", "pri", async () => { if (!confirm("Remover a suspensão/banimento desta conta?")) return false; await tirarSancao(uid); toast("Sanção removida"); return true; });
-  else if (mod) { bt("Suspender", "perigo", () => { if (!confirmarItem(null, `usuario:${uid}`)) return false; return fluxoSancao(uid, "suspensao"); }); bt("Banir", "perigo", () => { if (!confirmarItem(null, `usuario:${uid}`)) return false; return fluxoSancao(uid, "banimento"); }); }
+  if (mod && sancionado) bt("Remover sanção", "pri", async () => { if (!(await confirmarHF({ titulo: "Remover a sanção?", texto: "A suspensão ou o banimento desta conta deixa de valer.", ok: "Remover", icone: "escudo", cor: "normal" }))) return false; await tirarSancao(uid); toast("Sanção removida"); return true; });
+  else if (mod) { bt("Suspender", "perigo", async () => { if (!(await confirmarItem(null, `usuario:${uid}`))) return false; return fluxoSancao(uid, "suspensao"); }); bt("Banir", "perigo", async () => { if (!(await confirmarItem(null, `usuario:${uid}`))) return false; return fluxoSancao(uid, "banimento"); }); }
   bt("Criar tarefa", "", () => editarTarefa({ ligacao: `usuario:${uid}`, ligacaoNome: p.nome || uid }).then(() => false));
   if (mod) bt(p.verificado ? "Tirar selo" : "Dar selo verificado", "", async () => { const dar = !p.verificado; await definirSelo(uid, dar); if (dar) await enviarAviso(uid, { titulo: "Seu perfil foi verificado", texto: "Parabéns! Seu perfil agora tem o selo de verificado.", tipo: "info" }); toast("Selo atualizado"); return true; });
   const ver = h("a", "ad-bt", "Ver perfil no site"); ver.href = `usuarios.html?perfil=${encodeURIComponent(uid)}`; ver.target = "_blank"; ac.appendChild(ver);
@@ -414,7 +415,7 @@ export async function abrirFicha(uid) {
   const pintarNotas = async () => {
     const lista = await fb.getDocs(fb.query(fb.collection(fb.db, "notas_internas"), fb.where("alvo", "==", uid), fb.limit(100))).then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() }))).catch(() => []);
     lista.sort((a, b2) => ms(b2.em) - ms(a.em));
-    lN.replaceChildren(...(lista.length ? lista.map((n) => { const d = h("div", "ad-nota"); d.append(h("b", null, `${n.autorNome || nomeEquipe(n.autorId)} · ${dataHora(n.em)}`), h("span", null, n.texto)); if (n.autorId === C.eu.uid || C.papel === "dono") { const x = h("button", "ad-link-perigo", "apagar"); x.type = "button"; x.addEventListener("click", async () => { if (!confirm("Apagar esta nota?")) return; await fb.deleteDoc(fb.doc(fb.db, "notas_internas", n.id)); pintarNotas(); }); d.appendChild(x); } return d; }) : [h("div", null, "Nenhuma nota ainda.")]));
+    lN.replaceChildren(...(lista.length ? lista.map((n) => { const d = h("div", "ad-nota"); d.append(h("b", null, `${n.autorNome || nomeEquipe(n.autorId)} · ${dataHora(n.em)}`), h("span", null, n.texto)); if (n.autorId === C.eu.uid || C.papel === "dono") { const x = h("button", "ad-link-perigo", "apagar"); x.type = "button"; x.addEventListener("click", async () => { if (!(await confirmarHF({ titulo: "Apagar esta nota?", texto: "A nota interna some para toda a equipe.", ok: "Apagar", icone: "lixo" }))) return; await fb.deleteDoc(fb.doc(fb.db, "notas_internas", n.id)); pintarNotas(); }); d.appendChild(x); } return d; }) : [h("div", null, "Nenhuma nota ainda.")]));
   };
   fN.addEventListener("submit", async (e) => { e.preventDefault(); const t = tN.value.trim(); if (!t) return; bS.disabled = true; try { await fb.addDoc(fb.collection(fb.db, "notas_internas"), { alvo: uid, texto: t, autorId: C.eu.uid, autorNome: C.nome.slice(0, 80), em: fb.serverTimestamp() }); tN.value = ""; await registrar("nota_interna", uid, t.slice(0, 120)); toast("Nota salva"); pintarNotas(); } catch (err) { toast("Não foi possível: " + (err.code || err.message)); } finally { bS.disabled = false; } });
   bN.append(fN, lN); corpo.appendChild(bN); pintarNotas();
@@ -453,12 +454,12 @@ export function seloResp(o) {
   return selo(meu ? "Com você" : `Com ${o.responsavelNome || nomeEquipe(o.responsavel)}`, meu ? "info" : "atencao");
 }
 // Antes de agir: avisa se outra pessoa assumiu o item ou está com ele aberto agora.
-export function confirmarItem(o, item) {
+export async function confirmarItem(o, item) {
   const outros = vendoAgora(item);
   const dono = o?.responsavel && o.responsavel !== C.eu.uid ? (o.responsavelNome || nomeEquipe(o.responsavel)) : "";
   if (!dono && !outros.length) return true;
   const msg = [dono && `${dono} assumiu este item.`, outros.length && `${outros.join(", ")} ${outros.length > 1 ? "estão" : "está"} com ele aberto agora.`].filter(Boolean).join(" ");
-  return confirm(`${msg}\n\nPara não fazerem o mesmo trabalho, combine no chat da equipe.\nContinuar mesmo assim?`);
+  return confirmarHF({ titulo: "Continuar mesmo assim?", texto: `${msg}\n\nPara não fazerem o mesmo trabalho, combine no chat da equipe.`, ok: "Continuar", icone: "pessoa", cor: "normal" });
 }
 // Botões Assumir / Liberar / Passar para...
 export function controlesResp(colecao, o, { permitido = true, aoMudar } = {}) {
@@ -476,7 +477,7 @@ export function controlesResp(colecao, o, { permitido = true, aoMudar } = {}) {
   const bt = (t, cls, fn) => { const b = h("button", "ad-bt mini " + cls, t); b.type = "button"; b.addEventListener("click", async (e) => { e.stopPropagation(); b.disabled = true; try { await fn(); } catch (err) { console.error(err); toast("Não foi possível: " + (err.code || err.message)); } finally { b.disabled = false; } }); return b; };
   if (!o.responsavel) w.appendChild(bt("Assumir", "pri", () => salvar(C.eu.uid)));
   else if (o.responsavel === C.eu.uid) w.appendChild(bt("Liberar", "", () => salvar(null)));
-  else w.appendChild(bt("Assumir no lugar", "", async () => { if (confirm(`${o.responsavelNome || nomeEquipe(o.responsavel)} está com este item. Assumir mesmo assim?`)) await salvar(C.eu.uid); }));
+  else w.appendChild(bt("Assumir no lugar", "", async () => { if (await confirmarHF({ titulo: "Assumir no lugar?", texto: `${o.responsavelNome || nomeEquipe(o.responsavel)} está com este item. Se você assumir, ele passa para você.`, ok: "Assumir", icone: "pessoa", cor: "normal" })) await salvar(C.eu.uid); }));
   const outros = D.admins.filter((a) => a.id !== o.responsavel);
   if (outros.length) {
     const sel = document.createElement("select"); sel.className = "ad-sel-mini"; sel.setAttribute("aria-label", "Passar para alguém da equipe");

@@ -3,11 +3,12 @@
 // Conta, endereço, aparência, privacidade, notificações,
 // contas bloqueadas e restritas, sair e excluir a conta.
 // =====================================================
+import { avisoHF } from "./confirmar.js?v=3";
 import {
   $, pintarAvatar, toast, erroAmigavel, abrirFolha, fecharFolha, abrirLista, config, salvarConfig, aplicarTema,
   fb, authFns, eu, refUsuario, dados, perfis, meusBloqueios, restritos, obterPerfil, linhaPessoa,
-  desbloquear, alternarRestricao, marcarPresenca, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos, salvarPrivacidadeConta, confirmarHF
-} from "./rede.js?v=44";
+  desbloquear, alternarRestricao, marcarPresenca, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos, salvarPrivacidadeConta, confirmarHF, abrirOpcoes
+} from "./rede.js?v=45";
 import { MOTIVOS_DESATIVAR, desativarConta, pedirExclusao, reautenticar, provedor } from "./conta.js?v=3";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
 
@@ -64,11 +65,11 @@ document.querySelectorAll("#cfgComenta [data-valor]").forEach((b) => b.addEventL
   try { await fb.setDoc(refUsuario, { diarioConfig: { quemComenta: v } }, { merge: true }); toast("Salvo: vale para as próximas publicações"); }
   catch (e) { toast("Não foi possível salvar: " + erroAmigavel(e)); }
 }));
-$("cfgFlash").addEventListener("click", () => import("./stories.js?v=15").then((m) => {
+$("cfgFlash").addEventListener("click", () => import("./stories.js?v=16").then((m) => {
   m.abrirConfigFlash();
   const f = $("folhaLista"); const volta = () => { f?.removeEventListener("fechada", volta); setTimeout(pintarConfig, 60); }; f?.addEventListener("fechada", volta);
 }));
-$("cfgInsights").addEventListener("click", () => import("./insights.js?v=6").then((m) => m.abrirInsights()));
+$("cfgInsights").addEventListener("click", () => import("./insights.js?v=7").then((m) => m.abrirInsights()));
 $("cfgGosto").addEventListener("click", async () => {
   if (!await confirmarHF({ titulo: "Recomeçar o seu Principais?", texto: "O Diário esquece o que aprendeu sobre o seu gosto neste aparelho e volta a mostrar o que está em alta.", ok: "Recomeçar", icone: "alerta", cor: "normal" })) return;
   try { localStorage.removeItem("hf-gosto"); } catch {}
@@ -198,7 +199,7 @@ $("endSalvar").addEventListener("click", async () => {
   finally { btn.disabled = false; }
 });
 $("endRemover").addEventListener("click", async () => {
-  if (!confirm("Remover seu endereço da conta? A cidade do seu perfil continua.")) return;
+  if (!(await confirmarHF({ titulo: "Remover seu endereço?", texto: "O endereço sai da sua conta. A cidade do seu perfil continua.", ok: "Remover", icone: "lixo" }))) return;
   try {
     await fb.updateDoc(refUsuario, { endereco: fb.deleteField() });
     delete dados.endereco;
@@ -276,36 +277,34 @@ $("emailSalvar").addEventListener("click", async () => {
 });
 
 // A mesma janela "Sair da conta?" do menu e das mensagens.
-$("cfgSair").addEventListener("click", () => import("./confirmar.js?v=2").then((m) => m.sairDaConta()));
+$("cfgSair").addEventListener("click", () => import("./confirmar.js?v=3").then((m) => m.sairDaConta()));
 
 // ---------- baixar meus dados (LGPD) ----------
-$("cfgBaixarDados").addEventListener("click", async () => {
+// Relatório para ler (HTML, abre em qualquer navegador e salva em PDF) ou arquivo técnico (JSON).
+function baixarArquivo(conteudo, tipo, nome) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([conteudo], { type: tipo }));
+  a.download = nome;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+}
+async function baixarDados(formato) {
   const b = $("cfgBaixarDados"); b.disabled = true;
   toast("Juntando seus dados... pode levar alguns segundos.");
   try {
-    const uid = eu.uid;
-    const lista = (col, campo, op = "==") => fb.getDocs(fb.query(fb.collection(fb.db, col), fb.where(campo, op, uid))).then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() }))).catch(() => []);
-    const um = (col, id) => fb.getDoc(fb.doc(fb.db, col, id)).then((s) => (s.exists() ? s.data() : null)).catch(() => null);
-    const [conta, perfil, negocios, anuncios, publicacoes, comentarios, estrelasDadas, seguindo, seguidores, conexoes, bloqueios, avaliacoesFeitas, avaliacoesRecebidas, reclamacoesFeitas, reclamacoesRecebidas, chamados, avisos, conversas] = await Promise.all([
-      um("usuarios", uid), um("perfis_publicos", uid), lista("negocios", "donoId"), lista("anuncios", "donoId"), lista("diario", "autorId"), lista("comentarios", "autorId"),
-      lista("curtidas", "uid"), lista("relacoes", "seguidorId"), lista("relacoes", "alvoId"), lista("vinculos", "participantes", "array-contains"), lista("bloqueios", "bloqueadorId"),
-      lista("avaliacoes", "autorId"), lista("avaliacoes", "alvoId"), lista("queixas", "autorId"), lista("queixas", "alvoId"), lista("suporte", "uid"), lista("avisos", "uid"),
-      lista("conversas", "participantes", "array-contains")
-    ]);
-    // Mensagens das suas conversas (até 1.000 por conversa).
-    for (const c of conversas) {
-      c.mensagens = await fb.getDocs(fb.query(fb.collection(fb.db, "conversas", c.id, "mensagens"), fb.orderBy("criadoEm", "asc"), fb.limit(1000))).then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() }))).catch(() => []);
-    }
-    const limpar = (v) => JSON.parse(JSON.stringify(v, (k, x) => (x && typeof x === "object" && typeof x.toDate === "function" ? x.toDate().toISOString() : x)));
-    const pacote = limpar({ geradoEm: new Date().toISOString(), aviso: "Cópia dos seus dados no Help Floripa (LGPD, art. 18). Senha e dados de segurança do login ficam no Google Firebase e não são incluídos.", conta, perfil, negocios, anuncios, publicacoes, comentarios, estrelasDadas, seguindo, seguidores, conexoes, bloqueios, avaliacoesFeitas, avaliacoesRecebidas, reclamacoesFeitas, reclamacoesRecebidas, chamados, avisos, conversas });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([JSON.stringify(pacote, null, 2)], { type: "application/json" }));
-    a.download = `meus-dados-help-floripa-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(a); a.click(); a.remove();
-    toast("Pronto! O arquivo foi baixado.");
+    const m = await import("./meus-dados.js?v=1");
+    const pacote = await m.juntarDados(fb, eu.uid, obterPerfil);
+    const dia = new Date().toISOString().slice(0, 10);
+    if (formato === "json") baixarArquivo(m.jsonDos(pacote.dados), "application/json", `meus-dados-help-floripa-${dia}.json`);
+    else baixarArquivo(m.relatorioHTML(pacote, eu.uid), "text/html;charset=utf-8", `meus-dados-help-floripa-${dia}.html`);
+    toast(formato === "json" ? "Pronto! O arquivo técnico foi baixado." : "Pronto! Abra o arquivo baixado para ver seus dados.");
   } catch (e) { console.error(e); toast("Não foi possível juntar os dados: " + erroAmigavel(e)); }
   finally { b.disabled = false; }
-});
+}
+$("cfgBaixarDados").addEventListener("click", () => abrirOpcoes("Baixar meus dados", [
+  { rotulo: "Relatório para ler", sub: "Página organizada, com fotos e conversas. Abre em qualquer navegador e salva em PDF", icone: "doc", fn: () => baixarDados("html") },
+  { rotulo: "Arquivo técnico (JSON)", sub: "Os mesmos dados, para levar a outro serviço", icone: "grade", fn: () => baixarDados("json") }
+]));
 
 // ---------- desativar ----------
 let desDias = 7;
@@ -335,7 +334,7 @@ $("desConfirmar").addEventListener("click", async () => {
     toast("Desativando sua conta...");
     await desativarConta(fb, eu.uid, { motivo, detalhe: $("desDetalhe").value.trim(), reativarEm });
     await authFns.signOut(window.firebaseAuth).catch(() => {});
-    alert(auto ? `Sua conta foi desativada e volta sozinha em ${dataLonga(reativarEm)}. Se quiser voltar antes, é só entrar.` : "Sua conta foi desativada. Para reativar, é só entrar de novo.");
+    await avisoHF({ titulo: "Conta desativada", icone: "check", texto: auto ? `Sua conta foi desativada e volta sozinha em ${dataLonga(reativarEm)}. Se quiser voltar antes, é só entrar.` : "Sua conta foi desativada. Para reativar, é só entrar de novo." });
     location.href = "login.html";
   } catch (e) { console.error(e); toast(erroSenha(e)); }
   finally { b.disabled = false; }
@@ -353,7 +352,7 @@ $("excConfirmar").addEventListener("click", async () => {
     await pedirExclusao(fb, eu.uid, { motivo: $("excMotivo").value.trim() });
     const quando = new Date(Date.now() + 30 * 864e5).toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" });
     await authFns.signOut(window.firebaseAuth).catch(() => {});
-    alert(`Exclusão agendada para ${quando}. Até lá, sua conta fica desativada e você pode recuperá-la entrando de novo.`);
+    await avisoHF({ titulo: "Exclusão agendada", icone: "check", texto: `Sua conta será excluída em ${quando}. Até lá, ela fica desativada e você pode recuperá-la entrando de novo.` });
     location.href = "index.html";
   } catch (e) { console.error(e); toast(erroSenha(e)); }
   finally { b.disabled = !$("excEntendi").checked; }

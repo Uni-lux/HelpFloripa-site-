@@ -9,6 +9,7 @@
 // negócio pelo chat (o negócio não precisa ter respondido — quem some também pode
 // receber reclamação). As regras do Firestore conferem tudo isso.
 // =====================================================
+import { avisoHF } from "./confirmar.js?v=3";
 import { podeAvaliarNegocio, avisar, DIAS_CONTA } from "./avaliacoes.js?v=13";
 
 export const MOTIVOS = {
@@ -120,7 +121,7 @@ export async function abrirQueixa(fbx, euX, n, { autor = {}, aoAbrir } = {}) {
   inp.addEventListener("change", async () => {
     const a = inp.files?.[0]; if (!a) return;
     foto = await reduzirFoto(a).catch(() => "");
-    prev.hidden = !foto; if (foto) prev.src = foto; else alert("Não foi possível usar essa foto. Tente outra.");
+    prev.hidden = !foto; if (foto) prev.src = foto; else avisoHF({ titulo: "Não deu para usar essa foto", texto: "Tente outra foto.", icone: "alerta" });
   });
   fotoBox.append(lbl, prev);
   const regras = document.createElement("ul"); regras.className = "qx-regras";
@@ -137,7 +138,7 @@ export async function abrirQueixa(fbx, euX, n, { autor = {}, aoAbrir } = {}) {
       fechar(); aoAbrir?.(id);
     } catch (e) {
       env.disabled = false; env.textContent = atual ? "Reabrir reclamação" : "Enviar reclamação";
-      alert(e?.code === "cota" || e?.code === "aberta" ? e.message : e?.code === "permission-denied" ? `Não foi possível enviar. Confira: e-mail confirmado, conta com ${DIAS_CONTA} dias e mensagem enviada para o negócio pelo chat.` : "Não foi possível enviar agora. Tente de novo.");
+      avisoHF({ titulo: "Não foi possível enviar", icone: "alerta", texto: e?.code === "cota" || e?.code === "aberta" ? e.message : e?.code === "permission-denied" ? `Não foi possível enviar. Confira: e-mail confirmado, conta com ${DIAS_CONTA} dias e mensagem enviada para o negócio pelo chat.` : "Não foi possível enviar agora. Tente de novo." });
     }
   });
   acoes.append(canc, env);

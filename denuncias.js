@@ -5,6 +5,7 @@
 // console do Firebase. As regras conferem que o item é mesmo de quem foi denunciado.
 // =====================================================
 
+import { avisoHF } from "./confirmar.js?v=3";
 export const MOTIVOS_DENUNCIA = [
   ["golpe", "Golpe ou fraude", "Pediu pagamento adiantado, cobrou e sumiu, link suspeito"],
   ["falso", "Perfil falso", "Se passa por outra pessoa ou empresa"],
@@ -122,7 +123,7 @@ export async function abrirDenuncia({ fb, eu, tipo, alvoId, itemId, conversaId =
     } catch (e) {
       console.error(e);
       env.disabled = false; env.textContent = "Enviar denúncia";
-      alert(e?.code === "permission-denied" ? "Não foi possível enviar. Confirme seu e-mail e tente de novo." : "Não foi possível enviar agora. Tente de novo.");
+      avisoHF({ titulo: "Não foi possível enviar", texto: e?.code === "permission-denied" ? "Confirme seu e-mail e tente de novo." : "Tente de novo daqui a pouco.", icone: "alerta" });
     }
   });
 }
