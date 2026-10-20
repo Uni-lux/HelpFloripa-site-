@@ -103,6 +103,44 @@
       }
     }
 
+    // Pedido do selo de verificado: a pessoa e a moderação leem. A foto do documento é apagada na decisão.
+    match /verificacoes/{uid} {
+      function pedidoOk(d) {
+        return d.keys().hasOnly(['uid', 'categoria', 'nomeLegal', 'conhecidoComo', 'documentoTipo', 'documento', 'links', 'motivo', 'status', 'criadoEm', 'atualizadoEm'])
+            && d.uid == uid
+            && d.categoria is string && d.categoria.matches('^(pessoa|profissional|negocio|publica|organizacao)$')
+            && d.nomeLegal is string && d.nomeLegal.size() >= 5 && d.nomeLegal.size() <= 120
+            && valorTextoAte(d.get('conhecidoComo', ''), 80)
+            && d.documentoTipo is string && d.documentoTipo.matches('^(rg|cnh|passaporte|rne|cnpj)$')
+            && d.documento is string && d.documento.size() <= 700000 && d.documento.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')
+            && (!('links' in d) || (d.links is list && d.links.size() <= 3))
+            && valorTextoAte(d.get('motivo', ''), 500)
+            && d.status == 'pendente'
+            && d.criadoEm == request.time && d.atualizadoEm == request.time;
+      }
+      allow read: if (logado() && request.auth.uid == uid) || podeModerar();
+      // Pedir (ou pedir de novo depois de não aprovado ou cancelado).
+      allow create: if logado() && request.auth.uid == uid && pedidoOk(request.resource.data);
+      allow update: if logado() && request.auth.uid == uid
+                    && resource.data.status in ['recusada', 'cancelada']
+                    && pedidoOk(request.resource.data);
+      // Cancelar o próprio pedido (a foto do documento sai junto).
+      allow update: if logado() && request.auth.uid == uid
+                    && resource.data.status in ['pendente', 'em_analise']
+                    && request.resource.data.status == 'cancelada'
+                    && mudou().hasOnly(['status', 'atualizadoEm', 'documento'])
+                    && !('documento' in request.resource.data)
+                    && request.resource.data.atualizadoEm == request.time;
+      // A moderação analisa e decide; ao aprovar ou recusar, a foto do documento é apagada.
+      allow update: if podeModerar()
+                    && mudou().hasOnly(['status', 'motivoRecusa', 'analisadaPor', 'analisadaEm', 'documento', 'atualizadoEm'])
+                    && request.resource.data.status in ['em_analise', 'aprovada', 'recusada']
+                    && request.resource.data.analisadaPor == request.auth.uid
+                    && (request.resource.data.status == 'em_analise' || !('documento' in request.resource.data))
+                    && valorTextoAte(request.resource.data.get('motivoRecusa', ''), 500);
+      allow delete: if (logado() && request.auth.uid == uid) || podeModerar();
+    }
+
     // Reporte de atendimento do suporte (só a moderação e os donos leem; o suporte não).
     //   atendimento_{chamado}_{uid}: quem abriu o chamado reporta como foi atendido (demora, grosseria...).
     //   usuario_{chamado}_{uid}: alguém da equipe reporta a pessoa do chamado (ofensas, ameaça, golpe...).
@@ -134,20 +172,6 @@
                     && responsavelOk()
                     && valorTextoAte(request.resource.data.get('nota', ''), 1000);
       allow delete: if false;
-    }
-
-    // Nota do atendimento (1 a 5) dada por quem abriu o chamado, uma vez; a equipe lê.
-    match /suporte_notas/{chamadoId} {
-      allow read: if admin() || (logado() && resource.data.uid == request.auth.uid);
-      allow create: if logado()
-                    && request.resource.data.keys().hasOnly(['uid', 'nota', 'comentario', 'atendidoPor', 'criadoEm'])
-                    && request.resource.data.uid == request.auth.uid
-                    && get(/databases/$(database)/documents/suporte/$(chamadoId)).data.uid == request.auth.uid
-                    && request.resource.data.nota is int && request.resource.data.nota >= 1 && request.resource.data.nota <= 5
-                    && valorTextoAte(request.resource.data.get('comentario', ''), 500)
-                    && (!('atendidoPor' in request.resource.data) || request.resource.data.atendidoPor is string)
-                    && request.resource.data.criadoEm == request.time;
-      allow update, delete: if false;
     }
 
 // ===== FIM DA PARTE 7 DE 12 =====

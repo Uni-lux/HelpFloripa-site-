@@ -229,6 +229,7 @@
     import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=36";
     import { anelNegocio } from "./flash-negocio.js?v=1";
     import { anelNoPerfil, novoFlash } from "./stories.js?v=18";
+    import { abrirVerificacao, explicarSelo } from "./verificacao.js?v=2";
 
     // ======================================================
     // Estado desta página (o resto vem de rede.js)
@@ -251,6 +252,9 @@
       pintarAvatar(h.el("avatar"), p.fotoPerfil, p.nome);
       h.el("nome").textContent = p.nome || "Usuário";
       h.el("selo").hidden = !p.verificado;
+      // Tocar no selo: o que ele quer dizer (como nas outras redes).
+      const selo = h.el("selo"); selo.setAttribute("role", "button"); selo.tabIndex = 0;
+      selo.onclick = (e) => { e.stopPropagation(); explicarSelo(p.nome || ""); };
       const handle = h.el("handle");
       handle.replaceChildren();
       if (p.nickname) {
@@ -1097,17 +1101,8 @@
     // ======================================================
     // Verificação, compartilhar
     // ======================================================
-    async function solicitarVerificacao() {
-      if (dados.verificado) { toast("Seu perfil já é verificado."); return; }
-      if (dados.solicitacaoVerificacao) { toast("Sua solicitação já está em análise."); return; }
-      if (!await confirmarHF({ titulo: "Pedir o selo de verificado?", texto: "Nossa equipe vai analisar seu perfil.", ok: "Enviar pedido", icone: "selo", cor: "normal" })) return;
-      try {
-        await fb.setDoc(refUsuario, { solicitacaoVerificacao: true, solicitacaoVerificacaoEm: fb.serverTimestamp() }, { merge: true });
-        dados.solicitacaoVerificacao = true;
-        renderizarMeuPerfil();
-        toast("Solicitação enviada");
-      } catch (e) { toast("Não foi possível enviar: " + erroAmigavel(e)); }
-    }
+    // Verificação: tela completa (verificacao.js) com situação, requisitos e o pedido em passos.
+    function solicitarVerificacao() { abrirVerificacao({ aoMudar: () => renderizarMeuPerfil() }); }
     // ======================================================
     // Seguir
     // ======================================================

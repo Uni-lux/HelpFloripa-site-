@@ -6,15 +6,15 @@ import { cartaoComunicado } from "./comunicados.js?v=1";
 import { linha, linhaComparada, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=7";
 import { baixarPlanilhaMulti } from "./planilha.js?v=5";
 import { buscarPessoas } from "./pessoas.js?v=3";
-import { montarChat } from "./admin-chat.js?v=16";
-import { verConteudoDenuncia } from "./admin-denuncia.js?v=8";
+import { montarChat } from "./admin-chat.js?v=17";
+import { verConteudoDenuncia } from "./admin-denuncia.js?v=9";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
 import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha,
   PAPEIS, DESC_PAPEIS, pode, semPermissao, nomeEquipe, vendoAgora, marcarItem, seloResp, confirmarItem, controlesResp, espera,
   PRIORIDADES, editarTarefa, moverTarefa, garantirNegocios, garantirTodasPessoas, carregarPessoas, guardarPessoas
-} from "./admin-base.js?v=15";
+} from "./admin-base.js?v=16";
 
 const cab = (titulo, sub, extra) => { const c = h("div", "ad-cab"); const t = h("div"); t.append(h("h1", null, titulo)); if (sub) t.append(h("p", null, sub)); c.appendChild(t); if (extra) c.appendChild(extra); return c; };
 const bloco = (titulo, sub) => { const b = h("section", "ad-bloco"); const t = h("div", "ad-bloco-topo"); const tt = h("div"); tt.append(h("h3", null, titulo)); if (sub) tt.append(h("p", null, sub)); t.appendChild(tt); b.appendChild(t); b.topo = t; return b; };
@@ -892,23 +892,132 @@ export function parcerias(el) {
 }
 
 // ======================================================= VERIFICAÇÕES
+// Pedidos do selo: tipo de perfil, nome no documento x nome no perfil, foto do documento, links, motivo e o
+// histórico da conta. Aprovar ou recusar (com motivo) apaga a foto do documento e avisa a pessoa.
+const TIPOS_VERIF = { pessoa: "Pessoa", profissional: "Profissional", negocio: "Negócio ou marca", publica: "Figura pública", organizacao: "Organização" };
+const DOCS_VERIF = { rg: "RG", cnh: "CNH", passaporte: "Passaporte", rne: "RNE / CRNM", cnpj: "Cartão CNPJ" };
+const MOTIVOS_RECUSA = [
+  ["doc", "O documento está ilegível, cortado ou com reflexo. Envie uma foto nítida da frente inteira."],
+  ["nome", "O nome do documento não confere com o nome do perfil."],
+  ["perfil", "O perfil está incompleto ou não representa uma pessoa ou negócio real."],
+  ["imitacao", "O perfil parece se passar por outra pessoa ou marca."],
+  ["idade", "A verificação é só para maiores de 18 anos, pela data de nascimento do documento. Você poderá pedir de novo quando completar 18 anos."],
+  ["criterio", "No momento o perfil não atende aos critérios de verificação. Você pode pedir de novo em 30 dias."],
+  ["outro", ""]
+];
+let filtroVerif = "pendente";
+const semAcentoV = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 export function verificacoes(el) {
-  el.appendChild(cab("Verificações", "Pedidos de selo de perfil verificado. Confira se é quem diz ser antes de aprovar."));
-  const pend = D.pendVerif.map(pessoa).filter((p) => !p.verificado).sort((a, b) => ms(a.solicitacaoVerificacaoEm) - ms(b.solicitacaoVerificacaoEm));
-  const lista = h("div", "ad-lista");
-  if (!pend.length) lista.appendChild(h("div", "ad-vazio", "Nenhum pedido de verificação esperando."));
-  pend.forEach((p) => {
-    const negs = D.negocios.filter((n) => n.donoId === p.uid);
-    const den = D.denuncias.filter((d) => d.alvoId === p.uid).length;
-    const c = h("article", "ad-item"); const top = h("div", "cab"); top.append(pessoaCel(p), h("span", "quando", `pediu ${relativo(p.solicitacaoVerificacaoEm)}`));
-    c.append(top, h("div", "meta", `Conta desde ${data(p.criadoEm)} · ${negs.length} negócio(s) · ${den} denúncia(s) · último acesso ${relativo(p.ultimoAcesso)}`));
+  el.appendChild(cab("Verificações", "Pedidos do selo de verificado. Confira o documento, o nome e o perfil antes de aprovar. A foto do documento é apagada na decisão."));
+  const pedidoDe = (uid) => D.verificacoes.find((v) => v.id === uid) || (pessoa(uid).verificacaoPedido ? { id: uid, ...pessoa(uid).verificacaoPedido } : null);
+  const pendentes = D.pendVerif.map((u) => ({ p: pessoa(u), v: pedidoDe(u) })).filter((x) => !x.p.verificado).sort((a, b) => ms(a.v?.criadoEm || a.p.solicitacaoVerificacaoEm) - ms(b.v?.criadoEm || b.p.solicitacaoVerificacaoEm));
+  const decididas = (st) => D.verificacoes.filter((v) => v.status === st).sort((a, b) => ms(b.analisadaEm) - ms(a.analisadaEm));
+  const kp = h("div", "ad-kpis");
+  const aprov = decididas("aprovada"), recus = decididas("recusada");
+  kp.append(destaque({ rotulo: "Esperando análise", valor: pendentes.length, alerta: pendentes.some((x) => ms(x.v?.criadoEm || x.p.solicitacaoVerificacaoEm) < agora() - 3 * DIA) }),
+    destaque({ rotulo: "Aprovadas", valor: aprov.length }), destaque({ rotulo: "Não aprovadas", valor: recus.length }),
+    destaque({ rotulo: "Taxa de aprovação", valor: aprov.length + recus.length ? Math.round(100 * aprov.length / (aprov.length + recus.length)) : 0, formato: (v) => (aprov.length + recus.length ? v + "%" : "—") }));
+  el.appendChild(kp);
+  const fil = chips([["pendente", `Esperando (${pendentes.length})`], ["aprovada", `Aprovadas (${aprov.length})`], ["recusada", `Não aprovadas (${recus.length})`]], filtroVerif, (v) => { filtroVerif = v; pintar(); });
+  fil.style.marginBottom = "12px";
+  const lista = h("div", "ad-lista"); el.append(fil, lista);
+  function pintar() {
+    if (filtroVerif === "pendente") lista.replaceChildren(...(pendentes.length ? pendentes.map(({ p, v }) => cartaoPedido(p, v)) : [h("div", "ad-vazio", "Nenhum pedido de verificação esperando.")]));
+    else { const l = decididas(filtroVerif); lista.replaceChildren(...(l.length ? l.map((v) => cartaoDecidido(v)) : [h("div", "ad-vazio", "Nada por aqui ainda.")])); }
+  }
+  function linhaConf(ok, texto) { const d = h("div", "ad-vf-conf " + (ok === true ? "ok" : ok === false ? "nao" : "")); d.append(h("span", "ic", ok === true ? "✓" : ok === false ? "!" : "·"), h("span", null, texto)); return d; }
+  function cartaoPedido(p, v) {
+    const c = h("article", "ad-item ad-vf"); c.dataset.item = `verificacao:${p.uid}`;
+    const top = h("div", "cab"); top.append(pessoaCel(p, p.nickname ? "@" + p.nickname : ""));
+    if (v?.categoria) top.append(selo(TIPOS_VERIF[v.categoria] || v.categoria, "info"));
+    top.append(h("span", "quando", `pediu ${relativo(v?.criadoEm || p.solicitacaoVerificacaoEm)}`));
+    c.appendChild(top);
+    const corpo = h("div", "ad-vf-corpo");
+    // documento
+    const doc = h("div", "ad-vf-doc");
+    if (v?.documento) {
+      const im = document.createElement("img"); im.src = v.documento; im.alt = "Documento enviado"; im.loading = "lazy";
+      im.addEventListener("click", () => { const f = h("div", "ad-modal-fundo ad-vf-zoom"); const g = document.createElement("img"); g.src = v.documento; g.alt = "Documento"; f.appendChild(g); f.addEventListener("click", () => f.remove()); document.body.appendChild(f); });
+      doc.append(im, h("small", null, `${DOCS_VERIF[v.documentoTipo] || "Documento"} · toque para ampliar`));
+    } else doc.append(h("div", "ad-vf-semdoc", v ? "Sem foto do documento (pedido feito antes das regras novas)" : "Pedido antigo, sem formulário"), h("small", null, "Peça o documento pelo suporte, se precisar"));
+    // conferências
+    const conf = h("div", "ad-vf-confs");
+    const nomePerfil = p.nome || v?.conhecidoComo || "";
+    if (v?.nomeLegal) {
+      const iguais = semAcentoV(v.nomeLegal).split(" ").filter((x) => x.length > 2).some((x) => semAcentoV(nomePerfil).includes(x));
+      conf.append(linhaConf(iguais, `Nome no documento: ${v.nomeLegal}`), linhaConf(null, `Nome no perfil: ${nomePerfil || "—"}`));
+    }
+    // idade: só maiores de 18 (a data do cadastro a pessoa pode mudar; vale a do documento)
+    const anos = idade(p.dataNascimento), menor = anos != null && anos < 18;
+    conf.append(linhaConf(anos == null ? null : !menor, anos == null ? "Sem data de nascimento no cadastro: confira a idade no documento"
+      : `Nascimento no cadastro: ${new Date(p.dataNascimento + "T00:00:00").toLocaleDateString("pt-BR")} (${anos} anos${menor ? " · menor de idade" : ""}). Confira no documento`));
+    const dias = ms(p.criadoEm) ? Math.floor((agora() - ms(p.criadoEm)) / DIA) : null;
+    conf.append(linhaConf(dias == null ? null : dias >= 7, `Conta desde ${data(p.criadoEm)}${dias != null ? ` (${dias} dias)` : ""}`));
+    const den = D.denuncias.filter((d) => d.alvoId === p.uid);
+    conf.append(linhaConf(!den.length, den.length ? `${den.length} denúncia(s) contra (${den.filter((d) => d.status === "resolvida").length} confirmadas)` : "Nenhuma denúncia contra"));
+    const sanc = D.sancoes.get?.(p.uid); conf.append(linhaConf(!sanc, sanc ? `Já teve ${sanc.tipo === "banimento" ? "banimento" : "suspensão"}` : "Nunca foi suspensa"));
+    const negs = D.negocios.filter((n) => n.donoId === p.uid); if (negs.length) conf.append(linhaConf(null, `${negs.length} negócio(s): ${negs.map((n) => n.nome).slice(0, 3).join(", ")}`));
+    conf.append(linhaConf(!!p.fotoPerfil, p.fotoPerfil ? "Tem foto de perfil" : "Sem foto de perfil"));
+    if (v?.links?.length) { const ls = h("div", "ad-vf-links"); v.links.forEach((l) => { const a = h("a", null, l.replace(/^https?:\/\//, "").slice(0, 60)); a.href = l; a.target = "_blank"; a.rel = "noopener noreferrer"; ls.appendChild(a); }); conf.appendChild(ls); }
+    if (v?.motivo) conf.appendChild(h("div", "trecho", v.motivo));
+    corpo.append(doc, conf);
+    c.appendChild(corpo);
     const ac = h("div", "ad-acoes");
     ac.append(btn("Ver ficha", "", () => abrirFicha(p.uid)));
-    if (pode("moderar")) ac.append(btn("Recusar", "perigo", async () => { const v = await modal({ titulo: "Recusar verificação", campos: [{ nome: "motivo", rotulo: "Motivo (a pessoa vai ver)", tipo: "textarea", obrigatorio: true }], botao: "Recusar" }); if (!v) return; await definirSelo(p.uid, false); await enviarAviso(p.uid, { titulo: "Pedido de verificação recusado", texto: v.motivo, tipo: "info" }); toast("Pedido recusado"); C.irPara("verificacoes"); }),
-      btn("Aprovar", "pri", async () => { await definirSelo(p.uid, true); await enviarAviso(p.uid, { titulo: "Seu perfil foi verificado", texto: "Parabéns! Seu perfil agora tem o selo de verificado.", tipo: "info" }); toast("Perfil verificado"); C.irPara("verificacoes"); }));
-    c.appendChild(ac); lista.appendChild(c);
-  });
-  el.appendChild(lista);
+    if (pode("moderar")) {
+      const apr = btn("Aprovar", "pri", () => aprovar(p, v));
+      if (menor) { apr.disabled = true; apr.title = "Menores de 18 anos não podem ser verificados"; }
+      ac.append(btn("Recusar", "perigo", () => recusar(p, v, menor ? "idade" : "")), apr);
+    }
+    c.appendChild(ac);
+    if (menor) c.insertBefore(h("div", "ad-vf-alerta", `Menor de idade (${anos} anos): a verificação é só para maiores de 18. Recuse com o motivo "idade".`), corpo);
+    return c;
+  }
+  function cartaoDecidido(v) {
+    const p = pessoa(v.id);
+    const c = h("article", "ad-item");
+    const top = h("div", "cab"); top.append(pessoaCel(p, p.nickname ? "@" + p.nickname : ""), selo(v.status === "aprovada" ? "Aprovada" : "Não aprovada", v.status === "aprovada" ? "bom" : "critico"));
+    if (v.categoria) top.append(selo(TIPOS_VERIF[v.categoria] || v.categoria, "info"));
+    top.append(h("span", "quando", dataHora(v.analisadaEm)));
+    c.append(top, h("div", "meta", `${v.nomeLegal ? "Documento: " + v.nomeLegal + " · " : ""}decidido por ${nomeEquipe(v.analisadaPor)}`));
+    if (v.motivoRecusa) c.appendChild(h("div", "trecho", v.motivoRecusa));
+    const ac = h("div", "ad-acoes"); ac.append(btn("Ver ficha", "", () => abrirFicha(v.id)));
+    if (v.status === "aprovada" && pode("moderar") && pessoa(v.id).verificado) ac.append(btn("Tirar o selo", "perigo", async () => {
+      if (!(await confirmarHF({ titulo: "Tirar o selo?", texto: "O perfil deixa de aparecer como verificado.", ok: "Tirar o selo", icone: "olhoOff" }))) return;
+      await definirSelo(v.id, false); toast("Selo retirado"); pintar();
+    }));
+    c.appendChild(ac);
+    return c;
+  }
+  async function decidir(p, v, status, motivo = "") {
+    const { fb } = C;
+    if (v && D.verificacoes.includes(v)) {
+      const mud = { status, analisadaPor: C.eu.uid, analisadaEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp(), documento: fb.deleteField(), ...(motivo ? { motivoRecusa: motivo.slice(0, 500) } : {}) };
+      await fb.updateDoc(fb.doc(fb.db, "verificacoes", p.uid), mud).catch((e) => console.warn("Verificação:", e.code || e));
+      Object.assign(v, { status, analisadaPor: C.eu.uid, analisadaEm: { toMillis: () => Date.now() }, motivoRecusa: motivo || v.motivoRecusa }); delete v.documento;
+    }
+  }
+  async function aprovar(p, v) {
+    if (!(await confirmItemV(p))) return;
+    await definirSelo(p.uid, true);
+    await decidir(p, v, "aprovada");
+    await enviarAviso(p.uid, { titulo: "Seu perfil foi verificado", texto: "Parabéns! O seu perfil agora tem o selo azul de verificado, ao lado do seu nome em todo o Help Floripa.\n\nPara manter o selo, mantenha o mesmo nome e siga os Termos de Uso.", tipo: "info" });
+    toast("Perfil verificado"); C.irPara("verificacoes");
+  }
+  async function confirmItemV(p) { return confirmarItem(null, `verificacao:${p.uid}`); }
+  async function recusar(p, v, sugerido = "") {
+    const r = await modal({ titulo: "Não aprovar a verificação", texto: "A pessoa recebe o motivo e pode pedir de novo em 30 dias.", campos: [
+      { nome: "pronto", rotulo: "Motivo", tipo: "select", opcoes: MOTIVOS_RECUSA.map(([k, t]) => [k, k === "outro" ? "Outro (escrever)" : t.slice(0, 70) + (t.length > 70 ? "…" : "")]), valor: sugerido || "doc" },
+      { nome: "texto", rotulo: "Mensagem para a pessoa (opcional: completa ou troca o motivo)", tipo: "textarea" }], botao: "Não aprovar", perigo: true });
+    if (!r) return;
+    const base = (MOTIVOS_RECUSA.find((m) => m[0] === r.pronto) || [])[1] || "";
+    const motivo = [base, String(r.texto || "").trim()].filter(Boolean).join(" ") || "O perfil não atende aos critérios de verificação no momento.";
+    await definirSelo(p.uid, false);
+    await decidir(p, v, "recusada", motivo);
+    await enviarAviso(p.uid, { titulo: "Pedido de verificação não aprovado", texto: r.pronto === "idade" ? `${motivo}\n\nO seu perfil continua normal: só o selo que fica para depois.` : `${motivo}\n\nVocê pode pedir de novo em 30 dias, em Configurações → Verificação do perfil.`, tipo: "info" });
+    toast("Pedido não aprovado"); C.irPara("verificacoes");
+  }
+  pintar();
 }
 
 // ======================================================= ESTATÍSTICAS

@@ -1,3 +1,17 @@
+    // Nota do atendimento (1 a 5) dada por quem abriu o chamado, uma vez; a equipe lê.
+    match /suporte_notas/{chamadoId} {
+      allow read: if admin() || (logado() && resource.data.uid == request.auth.uid);
+      allow create: if logado()
+                    && request.resource.data.keys().hasOnly(['uid', 'nota', 'comentario', 'atendidoPor', 'criadoEm'])
+                    && request.resource.data.uid == request.auth.uid
+                    && get(/databases/$(database)/documents/suporte/$(chamadoId)).data.uid == request.auth.uid
+                    && request.resource.data.nota is int && request.resource.data.nota >= 1 && request.resource.data.nota <= 5
+                    && valorTextoAte(request.resource.data.get('comentario', ''), 500)
+                    && (!('atendidoPor' in request.resource.data) || request.resource.data.atendidoPor is string)
+                    && request.resource.data.criadoEm == request.time;
+      allow update, delete: if false;
+    }
+
     match /parcerias/{id} {
       // Formulário de Sócios e parcerias: só quem tem conta (e-mail confirmado), até 3 por dia; só a equipe lê.
       allow create: if logado()
@@ -168,24 +182,6 @@
                     && request.resource.data.conteudo.get('anexo', '') == get(msgEq(request.resource.data.conversa)).data.get('anexo', '');
       allow update: if false;
       allow delete: if admin() && daConversaEq(resource.data.conversa) && request.time >= resource.data.apagadaEm + duration.value(24, 'h');
-    }
-
-    // Conteúdo dos anexos do chat da equipe (data: URL de até ~900 mil caracteres).
-    // Só quem participa da conversa lê; ninguém edita.
-    match /equipe_anexos/{id} {
-      allow read: if admin()
-                  && (resource.data.conversa == 'equipe' || request.auth.uid in resource.data.conversa.split('_'));
-      allow create: if admin()
-                    && request.resource.data.keys().hasOnly(['autorId', 'conversa', 'dados', 'em'])
-                    && request.resource.data.autorId == request.auth.uid
-                    && request.resource.data.em == request.time
-                    && request.resource.data.conversa is string
-                    && (request.resource.data.conversa == 'equipe'
-                        || (request.resource.data.conversa.split('_').size() == 2 && request.auth.uid in request.resource.data.conversa.split('_')))
-                    && request.resource.data.dados is string
-                    && request.resource.data.dados.size() <= 950000
-                    && request.resource.data.dados.matches('^data:[a-z]+/[-+.a-z0-9]{1,80}(;[^,]{0,80})?,.*');
-      allow update, delete: if false;
     }
 
 // ===== FIM DA PARTE 8 DE 12 =====

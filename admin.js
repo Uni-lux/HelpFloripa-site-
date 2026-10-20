@@ -3,9 +3,9 @@
 // Só entra quem tem o documento admins/{uid} (criado à mão no console do
 // Firebase). As regras do Firestore conferem isso em cada leitura e ação.
 // =====================================================
-import { C, D, $, h, ms, toast, PAPEIS, vendoAgora, pode, garantirNegocios, garantirTodasPessoas, carregarPessoas } from "./admin-base.js?v=15";
-import * as S from "./admin-secoes.js?v=29";
-import { previa, tocarSom } from "./admin-chat.js?v=16";
+import { C, D, $, h, ms, toast, PAPEIS, vendoAgora, pode, garantirNegocios, garantirTodasPessoas, carregarPessoas } from "./admin-base.js?v=16";
+import * as S from "./admin-secoes.js?v=31";
+import { previa, tocarSom } from "./admin-chat.js?v=17";
 
 const SECOES = {
   visao: S.visao, estatisticas: S.estatisticas, relatorios: S.relatorios, usuarios: S.usuarios, verificacoes: S.verificacoes,
@@ -191,10 +191,13 @@ async function carregar(mostrar = true) {
   D.negociosProntos = false; D.negocios = []; D.anuncios = []; D.posts = [];
   Object.assign(D, { posts, denuncias, queixas, suporte, parcerias, comunicados, log, admins, estatisticas });
   // Reportes do suporte (só moderação e donos leem) e notas do atendimento.
-  [D.reportes, D.notasSuporte] = await Promise.all([
+  [D.reportes, D.notasSuporte, D.verificacoes] = await Promise.all([
     pode("moderar") ? todos(fb.query(col("reportes"), fb.limit(500))) : Promise.resolve([]),
-    todos(fb.query(col("suporte_notas"), fb.limit(2000)))
+    todos(fb.query(col("suporte_notas"), fb.limit(2000))),
+    pode("moderar") ? todos(fb.query(col("verificacoes"), fb.limit(500))) : Promise.resolve([])
   ]);
+  // Pedidos de verificação: os do usuarios.solicitacaoVerificacao e os da coleção nova.
+  D.pendVerif = [...new Set([...D.pendVerif, ...D.verificacoes.filter((v) => v.status === "pendente" || v.status === "em_analise").map((v) => v.id)])];
   D.sancoes = new Map(sancoes.map((s) => [s.id, s]));
   D.exclusoes = new Map(exclusoes.map((s) => [s.id, s]));
   D.notas = new Map(notas.map((n) => [n.id, n]));
@@ -202,7 +205,7 @@ async function carregar(mostrar = true) {
   await carregarPessoas([
     ...D.pendVerif, ...denuncias.flatMap((d) => [d.alvoId, d.autorId]), ...queixas.flatMap((q) => [q.alvoId, q.autorId]),
     ...suporte.map((s) => s.uid), ...parcerias.map((p) => p.uid), ...sancoes.map((s) => s.id), ...exclusoes.map((s) => s.id),
-    ...log.flatMap((x) => [x.alvo, x.por]), ...admins.map((a) => a.id), ...D.reportes.flatMap((r) => [r.autorId, r.alvoId])
+    ...log.flatMap((x) => [x.alvo, x.por]), ...admins.map((a) => a.id), ...D.reportes.flatMap((r) => [r.autorId, r.alvoId]), ...D.verificacoes.map((v) => v.id)
   ]);
   D.contagens = { diario: nPosts, diario7: nPosts7, conversas: nConversas, comentarios: nComentarios, avaliacoes: nAvaliacoes };
   D.carregadoEm = Date.now();

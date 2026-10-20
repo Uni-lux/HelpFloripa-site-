@@ -523,6 +523,27 @@ await t("nota do atendimento: a equipe lê", () => assertSucceeds(getDoc(doc(ctx
 await t("perfil: rosinha do duo \"Só a rosinha\" (rosa)", () => assertSucceeds(updateDoc(doc(ctx("ana"), "perfis_publicos", "ana"), { duoCapa: "rosa" })));
 await t("perfil: rosinha com valor estranho é recusada", () => assertFails(updateDoc(doc(ctx("ana"), "perfis_publicos", "ana"), { duoCapa: "piscando" })));
 
+// ---------- verificação do perfil ----------
+const docJ = "data:image/jpeg;base64," + "A".repeat(4000);
+const pedidoV = (extra) => ({ uid: "bia", categoria: "profissional", nomeLegal: "Beatriz Souza", conhecidoComo: "Bia", documentoTipo: "rg", documento: docJ, links: ["https://instagram.com/bia"], motivo: "Tenho perfis falsos com meu nome.", status: "pendente", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
+await t("verificação: a pessoa envia o pedido com a foto do documento", () => assertSucceeds(setDoc(doc(ctx("bia"), "verificacoes", "bia"), pedidoV())));
+await t("verificação: não envia em nome de outra pessoa", () => assertFails(setDoc(doc(ctx("ana"), "verificacoes", "bia2"), pedidoV({ uid: "bia2" }))));
+await t("verificação: documento que não é foto JPEG é recusado", () => assertFails(setDoc(doc(ctx("edu"), "verificacoes", "edu"), pedidoV({ uid: "edu", documento: "data:text/html;base64,PHNjcmlwdD4=" }))));
+await t("verificação: tipo de perfil estranho é recusado", () => assertFails(setDoc(doc(ctx("edu"), "verificacoes", "edu"), pedidoV({ uid: "edu", categoria: "rei" }))));
+await t("verificação: outra pessoa não lê o pedido", () => assertFails(getDoc(doc(ctx("ana"), "verificacoes", "bia"))));
+await t("verificação: o suporte não lê (só a moderação)", () => assertFails(getDoc(doc(ctx("mod2"), "verificacoes", "bia"))));
+await t("verificação: a moderação lê", () => assertSucceeds(getDoc(doc(ctx("mod"), "verificacoes", "bia"))));
+await t("verificação: aprovar sem apagar a foto do documento é recusado", () => assertFails(updateDoc(doc(ctx("mod"), "verificacoes", "bia"), { status: "aprovada", analisadaPor: "mod", analisadaEm: serverTimestamp() })));
+await t("verificação: a pessoa não muda o pedido em análise (só cancela)", () => assertFails(updateDoc(doc(ctx("bia"), "verificacoes", "bia"), { nomeLegal: "Outro Nome" })));
+await t("verificação: a moderação recusa com motivo e apaga a foto", () => assertSucceeds(updateDoc(doc(ctx("mod"), "verificacoes", "bia"), { status: "recusada", motivoRecusa: "Documento ilegível.", analisadaPor: "mod", analisadaEm: serverTimestamp(), documento: deleteField() })));
+await t("verificação: depois de recusada, pede de novo", () => assertSucceeds(setDoc(doc(ctx("bia"), "verificacoes", "bia"), pedidoV())));
+await t("verificação: a pessoa cancela (a foto sai junto)", () => assertSucceeds(updateDoc(doc(ctx("bia"), "verificacoes", "bia"), { status: "cancelada", atualizadoEm: serverTimestamp(), documento: deleteField() })));
+await t("verificação: a moderação não aprova em nome de outro", async () => { await setDoc(doc(ctx("bia"), "verificacoes", "bia"), pedidoV()); await assertFails(updateDoc(doc(ctx("mod"), "verificacoes", "bia"), { status: "aprovada", analisadaPor: "adm", analisadaEm: serverTimestamp(), documento: deleteField() })); });
+await t("verificação: a moderação aprova e apaga a foto", () => assertSucceeds(updateDoc(doc(ctx("mod"), "verificacoes", "bia"), { status: "aprovada", analisadaPor: "mod", analisadaEm: serverTimestamp(), documento: deleteField() })));
+
+await t("verificação: documento de tamanho real (~600 KB) passa", () => assertSucceeds(setDoc(doc(ctx("edu"), "verificacoes", "edu"), pedidoV({ uid: "edu", documento: "data:image/jpeg;base64," + "Q".repeat(598000) }))));
+await t("verificação: documento grande demais (> 700 KB) é recusado", () => assertFails(setDoc(doc(ctx("gui"), "verificacoes", "gui"), pedidoV({ uid: "gui", documento: "data:image/jpeg;base64," + "Q".repeat(710000) }))));
+
 // ---------- resultado ----------
 for (const r of resultados) console.log(r[0] === "ok" ? "  ✔" : "  ✘", r[1], r[2] ? "→ " + r[2] : "");
 console.log(`\n${ok} passaram, ${falhou} falharam (${arquivo})`);
