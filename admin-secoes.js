@@ -6,15 +6,15 @@ import { cartaoComunicado } from "./comunicados.js?v=1";
 import { linha, linhaComparada, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=7";
 import { baixarPlanilhaMulti } from "./planilha.js?v=5";
 import { buscarPessoas } from "./pessoas.js?v=3";
-import { montarChat } from "./admin-chat.js?v=15";
-import { verConteudoDenuncia } from "./admin-denuncia.js?v=7";
+import { montarChat } from "./admin-chat.js?v=16";
+import { verConteudoDenuncia } from "./admin-denuncia.js?v=8";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
 import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha,
   PAPEIS, DESC_PAPEIS, pode, semPermissao, nomeEquipe, vendoAgora, marcarItem, seloResp, confirmarItem, controlesResp, espera,
   PRIORIDADES, editarTarefa, moverTarefa, garantirNegocios, garantirTodasPessoas, carregarPessoas, guardarPessoas
-} from "./admin-base.js?v=14";
+} from "./admin-base.js?v=15";
 
 const cab = (titulo, sub, extra) => { const c = h("div", "ad-cab"); const t = h("div"); t.append(h("h1", null, titulo)); if (sub) t.append(h("p", null, sub)); c.appendChild(t); if (extra) c.appendChild(extra); return c; };
 const bloco = (titulo, sub) => { const b = h("section", "ad-bloco"); const t = h("div", "ad-bloco-topo"); const tt = h("div"); tt.append(h("h3", null, titulo)); if (sub) tt.append(h("p", null, sub)); t.appendChild(tt); b.appendChild(t); b.topo = t; return b; };
@@ -398,7 +398,7 @@ export function denuncias(el) {
     await fb.updateDoc(fb.doc(fb.db, "denuncias", d.id), dados);
     Object.assign(d, campos, campos.responsavel ? { responsavelNome: nomeEquipe(campos.responsavel) } : {}, { analisadaEm: { toMillis: () => agora() } });
     marcarItem(null);
-    await registrar("denuncia_" + campos.status, d.alvoId, `${d.id}${campos.acao ? " · " + campos.acao : ""}`);
+    await registrar("denuncia_" + campos.status, d.alvoId, `${d.id}${campos.acao ? " · " + campos.acao : ""}`, `denuncias:${d.id}`);
     toast("Denúncia atualizada"); pintar();
   }
   async function resolver(d) {
@@ -787,12 +787,12 @@ export function suporte(el) {
     ac.append(btn("Ver ficha", "", () => { fechar(); abrirFicha(s.uid); }), btn(s.status === "fechado" ? "Reabrir" : "Fechar chamado", "", async () => {
       const novo = s.status === "fechado" ? "aberto" : "fechado";
       await fb.updateDoc(fb.doc(fb.db, "suporte", s.id), { status: novo, atualizadoEm: fb.serverTimestamp(), ultimaDe: "equipe", atendidoPor: C.eu.uid });
-      s.status = novo; await registrar("suporte_" + novo, s.uid, s.assunto); toast("Chamado atualizado"); fechar(); pintar();
+      s.status = novo; await registrar("suporte_" + novo, s.uid, s.assunto, `suporte:${s.id}`); toast("Chamado atualizado"); fechar(); pintar();
     }), btn("Reportar à moderação", "perigo", () => reportarPessoa(s)), btn("Sair", "", fechar), btn("Responder e encerrar", "", async () => {
       const t = txt.value.trim(); if (!t) { toast("Escreva a resposta."); return; }
       await fb.addDoc(fb.collection(fb.db, "suporte", s.id, "mensagens"), { autorId: C.eu.uid, equipe: true, texto: t, em: fb.serverTimestamp() });
       await fb.updateDoc(fb.doc(fb.db, "suporte", s.id), { status: "fechado", atualizadoEm: fb.serverTimestamp(), ultimaDe: "equipe", atendidoPor: C.eu.uid });
-      s.status = "fechado"; await registrar("suporte_resposta", s.uid, s.assunto); await registrar("suporte_fechado", s.uid, s.assunto); toast("Resposta enviada e chamado encerrado"); fechar(); pintar();
+      s.status = "fechado"; await registrar("suporte_resposta", s.uid, s.assunto, `suporte:${s.id}`); await registrar("suporte_fechado", s.uid, s.assunto, `suporte:${s.id}`); toast("Resposta enviada e chamado encerrado"); fechar(); pintar();
     }), btn("Responder", "pri", async () => {
       const t = txt.value.trim(); if (!t) { toast("Escreva a resposta."); return; }
       await fb.addDoc(fb.collection(fb.db, "suporte", s.id, "mensagens"), { autorId: C.eu.uid, equipe: true, texto: t, em: fb.serverTimestamp() });
@@ -800,7 +800,7 @@ export function suporte(el) {
       await fb.updateDoc(fb.doc(fb.db, "suporte", s.id), { status: "respondido", atualizadoEm: fb.serverTimestamp(), ultimaDe: "equipe", atendidoPor: C.eu.uid, ...assumir });
       if (assumir.responsavel) Object.assign(s, { responsavel: C.eu.uid, responsavelNome: assumir.responsavelNome });
       // A pessoa é avisada pelas Notificações, pelo sino e por Mensagens (Suporte Help Floripa).
-      s.status = "respondido"; await registrar("suporte_resposta", s.uid, s.assunto); toast("Resposta enviada"); fechar(); pintar();
+      s.status = "respondido"; await registrar("suporte_resposta", s.uid, s.assunto, `suporte:${s.id}`); toast("Resposta enviada"); fechar(); pintar();
     }));
     cx.append(chat, pr, txt, ac); fundo.appendChild(cx); document.body.appendChild(fundo);
     fundo.addEventListener("click", (e) => { if (e.target === fundo) fechar(); });
@@ -1150,6 +1150,25 @@ const NOMES_ACAO = { aviso: "Enviou aviso", suspender: "Suspendeu", banir: "Bani
 // Alvo do registro em texto de gente: a pessoa (link para a ficha), ou o item que a equipe assumiu/passou
 // ("suporte:ID" vira "Chamado #ABC123 · assunto", "denuncias:..." vira "Denúncia · motivo · pessoa"), ou a lista exportada.
 const LISTAS_EXPORT = { usuarios: "Lista de usuários", negocios: "Lista de negócios", denuncias: "Lista de denúncias", reclamacoes: "Lista de reclamações" };
+// Item da ação: o "ref" gravado, o alvo "colecao:ID", o ID da denúncia no detalhe ou, nos chamados antigos, o chamado
+// da pessoa com aquele assunto.
+const ID_DEN = /\b(perfil|publicacao|comentario|mensagem|negocio)_[A-Za-z0-9-]{6,}_[A-Za-z0-9]{20,40}\b/;
+const ACAO_DEN = { nenhuma: "sem ação", aviso: "aviso enviado", remover: "conteúdo removido", suspender: "conta suspensa", banir: "conta banida", esconder: "conteúdo escondido" };
+const NOME_ITEM_DEN = { perfil: "perfil", publicacao: "publicação", comentario: "comentário", mensagem: "mensagem", negocio: "negócio" };
+function refDe(x) {
+  if (x.ref) return x.ref;
+  if (String(x.alvo || "").includes(":")) return x.alvo;
+  const m = String(x.detalhe || "").match(ID_DEN); if (m) return "denuncias:" + m[0];
+  const q = String(x.detalhe || "").match(/^queixa:([\w-]+)/); if (q) return "queixas:" + q[1];
+  if (/^suporte_/.test(x.acao || "")) { const c = D.suporte.find((s) => s.uid === x.alvo && s.assunto === x.detalhe); if (c) return "suporte:" + c.id; }
+  return "";
+}
+function detalheLegivel(x) {
+  let t = String(x.detalhe || "");
+  t = t.replace(ID_DEN, (id, tipo) => `Denúncia de ${NOME_ITEM_DEN[tipo] || tipo}`).replace(/^queixa:[\w-]+\s*/, "Reclamação ");
+  t = t.replace(/ · (nenhuma|aviso|remover|suspender|banir|esconder)$/, (_, a) => " · " + ACAO_DEN[a]);
+  return t.trim();
+}
 function alvoLegivel(x) {
   const a = String(x.alvo || "");
   if (!a) return { texto: "—" };
@@ -1164,8 +1183,51 @@ function alvoLegivel(x) {
   if (/@/.test(a)) return { texto: a };
   return { texto: a.length > 40 ? a.slice(0, 38) + "…" : a };
 }
+// Detalhes de uma ação do registro: tudo o que foi gravado e o atalho para o que aconteceu (chamado, denúncia, ficha...).
+function detalheAcao(x) {
+  const fundo = h("div", "ad-modal-fundo"), cx = h("div", "ad-modal ad-acao-det"); cx.setAttribute("role", "dialog"); cx.setAttribute("aria-modal", "true");
+  const fechar = () => fundo.remove();
+  const ref = refDe(x), [col, id] = ref.includes(":") ? [ref.slice(0, ref.indexOf(":")), ref.slice(ref.indexOf(":") + 1)] : ["", ""];
+  const a = alvoLegivel(x);
+  cx.append(h("span", "ad-acao-tag", NOMES_ACAO[x.acao] || x.acao), h("h3", null, a.texto !== "—" ? a.texto : (NOMES_ACAO[x.acao] || x.acao)));
+  const dl = h("dl", "ad-acao-dl");
+  const linha = (rot, val) => { if (!val) return; dl.append(h("dt", null, rot), h("dd", null, val)); };
+  linha("Quando", dataHora(x.em) + (ms(x.em) ? ` (${relativo(x.em)})` : ""));
+  linha("Quem fez", x.porNome || nomeEquipe(x.por));
+  linha("Ação", NOMES_ACAO[x.acao] || x.acao);
+  linha("Alvo", [a.texto, a.sub].filter(Boolean).join(" · "));
+  linha("Detalhe", detalheLegivel(x));
+  cx.appendChild(dl);
+  // O que aconteceu no item
+  const box = h("div", "ad-acao-item");
+  const ac = h("div", "ad-acoes");
+  if (col === "suporte") {
+    const c = D.suporte.find((z) => z.id === id);
+    if (c) {
+      box.append(h("b", null, `Chamado ${protocolo(c.id)}`), h("span", null, `${c.assunto} · ${({ aberto: "Esperando a equipe", respondido: "Respondido", fechado: "Fechado" })[c.status] || c.status} · aberto em ${dataHora(c.criadoEm)}`));
+      ac.append(btn("Abrir o chamado", "pri", () => { fechar(); C.irPara("suporte:todos"); setTimeout(() => abrirChamadoSuporte?.(c), 60); }));
+    } else box.append(h("span", null, "Chamado não encontrado entre os carregados."));
+  } else if (col === "denuncias" || col === "denuncia") {
+    const d = D.denuncias.find((z) => z.id === id);
+    if (d) {
+      box.append(h("b", null, `Denúncia de ${NOME_ITEM_DEN[d.tipo] || d.tipo} · ${MOTIVOS_DEN[d.motivo] || d.motivo}`), h("span", null, `contra ${pessoa(d.alvoId).nome || "conta"} · por ${pessoa(d.autorId).nome || "conta"} · ${dataHora(d.criadoEm)}`));
+      if (d.trecho) box.appendChild(h("q", null, d.trecho));
+      ac.append(btn("Ver o conteúdo denunciado", "pri", () => { fechar(); return verConteudoDenuncia(d); }));
+    } else box.append(h("span", null, "Denúncia não encontrada entre as carregadas."));
+  } else if (col === "parcerias" || col === "parceria") ac.append(btn("Abrir Sócios e parcerias", "", () => { fechar(); C.irPara("parcerias"); }));
+  else if (col === "queixas") ac.append(btn("Abrir Reclamações", "", () => { fechar(); C.irPara("reclamacoes"); }));
+  else if (col === "reportes") ac.append(btn("Abrir Reportes do suporte", "", () => { fechar(); C.irPara("denuncias:reportes"); }));
+  if (box.children.length) cx.appendChild(box);
+  if (a.uid) ac.append(btn("Ver ficha da pessoa", "", () => { fechar(); abrirFicha(a.uid); }));
+  ac.append(btn("Fechar", "", fechar));
+  cx.appendChild(ac);
+  fundo.appendChild(cx); document.body.appendChild(fundo);
+  fundo.addEventListener("click", (e) => { if (e.target === fundo) fechar(); });
+  fundo.addEventListener("keydown", (e) => { if (e.key === "Escape") fechar(); });
+  cx.tabIndex = -1; cx.focus();
+}
 export function registro(el) {
-  const excel = btn("Baixar Excel", "", () => { const l = filtrar(); baixarCSV("registro-equipe", ["Quando", "Quem", "Ação", "Alvo", "Detalhe"], l.map((x) => [dataHora(x.em), x.porNome || nomeEquipe(x.por), NOMES_ACAO[x.acao] || x.acao, alvoLegivel(x).texto, x.detalhe || ""])); });
+  const excel = btn("Baixar Excel", "", () => { const l = filtrar(); baixarCSV("registro-equipe", ["Quando", "Quem", "Ação", "Alvo", "Detalhe"], l.map((x) => [dataHora(x.em), x.porNome || nomeEquipe(x.por), NOMES_ACAO[x.acao] || x.acao, alvoLegivel(x).texto, detalheLegivel(x)])); });
   el.appendChild(cab("Registro de ações", "Tudo o que a equipe faz no painel fica aqui. Não pode ser apagado.", excel));
   const linhaF = h("div", "ad-acoes"); linhaF.style.marginBottom = "12px";
   const selQuem = document.createElement("select"); selQuem.className = "ad-sel"; selQuem.setAttribute("aria-label", "Filtrar por pessoa da equipe");
@@ -1181,16 +1243,20 @@ export function registro(el) {
   }
   function pintar() {
     const l = filtrar(); info.textContent = `${num(l.length)} ${l.length === 1 ? "ação" : "ações"} (últimas 300 carregadas)`;
-    const t = document.createElement("table"); const th = h("tr"); ["Quando", "Quem", "Ação", "Alvo", "Detalhe"].forEach((x) => th.appendChild(h("th", null, x))); t.appendChild(th);
+    const t = document.createElement("table"); const th = h("tr"); ["Quando", "Quem", "Ação", "Alvo", "Detalhe", ""].forEach((x) => th.appendChild(h("th", null, x))); t.appendChild(th);
     l.forEach((x) => {
       const tr = h("tr"); const alvo = h("td"); alvo.dataset.rot = "Alvo";
       const r = alvoLegivel(x);
       if (r.uid || r.ir) { const ln = h("a", null, r.texto); ln.href = "#"; ln.addEventListener("click", (e) => { e.preventDefault(); if (r.uid) abrirFicha(r.uid); else C.irPara(r.ir); }); alvo.appendChild(ln); }
       else alvo.appendChild(h("span", null, r.texto));
       if (r.sub) alvo.appendChild(h("small", "ad-alvo-sub", r.sub));
-      const c1 = h("td", "ad-reg-quando", dataHora(x.em)), c2 = h("td", "ad-reg-quem", x.porNome || nomeEquipe(x.por)), c3 = h("td", "ad-reg-acao", NOMES_ACAO[x.acao] || x.acao), c5 = h("td", "ad-reg-det", x.detalhe || "");
+      const c1 = h("td", "ad-reg-quando", dataHora(x.em)), c2 = h("td", "ad-reg-quem", x.porNome || nomeEquipe(x.por)), c3 = h("td", "ad-reg-acao", NOMES_ACAO[x.acao] || x.acao), c5 = h("td", "ad-reg-det", detalheLegivel(x));
+      tr.classList.add("clicavel"); tr.tabIndex = 0;
+      tr.addEventListener("click", (e) => { if (!e.target.closest("a")) detalheAcao(x); });
+      tr.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target === tr) detalheAcao(x); });
       c1.dataset.rot = "Quando"; c2.dataset.rot = "Quem"; c3.dataset.rot = "Ação"; c5.dataset.rot = "Detalhe";
-      tr.append(c1, c2, c3, alvo, c5); t.appendChild(tr);
+      const c6 = h("td", "ad-reg-ver"); c6.appendChild(h("span", null, "Ver detalhes ›"));
+      tr.append(c1, c2, c3, alvo, c5, c6); t.appendChild(tr);
     });
     tab.classList.add("ad-registro");
     tab.replaceChildren(l.length ? t : h("div", "ad-vazio", "Nenhuma ação com esses filtros."));

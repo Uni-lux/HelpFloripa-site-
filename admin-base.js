@@ -183,9 +183,10 @@ export function modal({ titulo, texto = "", campos = [], botao = "Confirmar", pe
 }
 
 // ---------- ações (todas registradas) ----------
-export async function registrar(acao, alvo = "", detalhe = "") {
+// ref (opcional): o item da ação ("suporte:ID", "denuncias:ID"...), para o Registro abrir direto o que aconteceu.
+export async function registrar(acao, alvo = "", detalhe = "", ref = "") {
   const { fb } = C;
-  try { await fb.addDoc(fb.collection(fb.db, "admin_log"), { acao, alvo, detalhe: String(detalhe).slice(0, 1000), por: C.eu.uid, porNome: C.nome, em: fb.serverTimestamp() }); }
+  try { await fb.addDoc(fb.collection(fb.db, "admin_log"), { acao, alvo, detalhe: String(detalhe).slice(0, 1000), ...(ref ? { ref: String(ref).slice(0, 300) } : {}), por: C.eu.uid, porNome: C.nome, em: fb.serverTimestamp() }); }
   catch (e) { console.warn("Registro de ação falhou:", e); }
   try { C.contadores(); } catch {}
 }

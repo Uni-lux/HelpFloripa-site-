@@ -13,6 +13,11 @@ const ch = db.collection("suporte").doc("chReg");
 await ch.set({ uid: U.ana, nome: "Ana Souza", assunto: "Não consigo editar o cardápio", categoria: "negocio", status: "aberto", criadoEm: Timestamp.now(), atualizadoEm: Timestamp.now(), ultimaDe: "usuario" });
 await db.collection("admin_log").add({ acao: "assumiu", alvo: "suporte:chReg", detalhe: "Chamado: Não consigo editar o cardápio", por: U.admin, porNome: "Carla Equipe", em: Timestamp.now() });
 await db.collection("admin_log").add({ acao: "exportar", alvo: "usuarios", detalhe: "", por: U.admin, porNome: "Carla Equipe", em: Timestamp.now() });
+// formato antigo: resposta de chamado (alvo = pessoa, detalhe = assunto) e denúncia com o ID comprido no detalhe
+await db.collection("admin_log").add({ acao: "suporte_resposta", alvo: U.ana, detalhe: "Não consigo editar o cardápio", por: U.admin, porNome: "Carla Equipe", em: Timestamp.fromMillis(Date.now() - 1000) });
+const idDen = `mensagem_BKzhGblc9TR1WEuW2z2k_${U.ana}`;
+await db.doc(`denuncias/${idDen}`).set({ tipo: "mensagem", alvoId: U.bruno, itemId: "BKzhGblc9TR1WEuW2z2k", conversaId: U.conv, autorId: U.ana, motivo: "golpe", trecho: "Me manda o Pix adiantado", status: "resolvida", criadoEm: Timestamp.now() });
+await db.collection("admin_log").add({ acao: "denuncia_resolvida", alvo: U.bruno, detalhe: `${idDen} · aviso`, por: U.admin, porNome: "Carla Equipe", em: Timestamp.fromMillis(Date.now() - 2000) });
 // duo da Ana com o Bruno
 const par = [U.ana, U.bruno].sort().join("_");
 await db.doc(`vinculos/${par}`).set({ participantes: [U.ana, U.bruno], de: U.ana, para: U.bruno, tipoDe: "duo", tipoPara: "duo", status: "aceito", criadoEm: Timestamp.now() });
@@ -91,6 +96,19 @@ ok(reg.includes("Chamado #CHREG · Não consigo editar o cardápio") && !reg.inc
 const larg = await pa.locator(".ad-registro tr").nth(1).evaluate((e) => e.getBoundingClientRect().width);
 ok(larg <= 400, "registro no celular: cada ação num cartão (" + Math.round(larg) + " px)");
 await pa.screenshot({ path: "saida/registro.png" });
+ok(await pa.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), "registro: nada passa da largura da tela");
+ok(reg.includes("Denúncia de mensagem · aviso enviado") && !reg.includes("mensagem_BKzh"), "detalhe da denúncia legível (sem o código)");
+await pa.locator(".ad-registro tr", { hasText: "Respondeu chamado" }).first().click(); await pa.waitForSelector(".ad-acao-det", { timeout: 5000 });
+ok((await pa.locator(".ad-acao-det").textContent()).includes("Chamado #CHREG") && await pa.locator(".ad-acao-det .ad-bt", { hasText: "Abrir o chamado" }).count() === 1, "tocar na ação abre os detalhes com o chamado (registro antigo achado pelo assunto)");
+await pa.screenshot({ path: "saida/registro-detalhe.png" });
+await pa.locator(".ad-acao-det .ad-bt", { hasText: "Abrir o chamado" }).click();
+await pa.waitForSelector(".ad-modal .ad-chat", { timeout: 8000 }).catch(() => {});
+ok((await pa.locator(".ad-modal h3").first().textContent().catch(() => "")).includes("Não consigo editar o cardápio"), "Abrir o chamado mostra a conversa do chamado");
+await pa.screenshot({ path: "saida/registro-chamado.png" });
+await pa.goto(BASE + "admin.html#registro"); await pa.reload(); await pa.waitForSelector(".ad-registro", { timeout: 30000 }); await pa.waitForTimeout(800);
+await pa.locator(".ad-registro tr", { hasText: "Resolveu denúncia" }).first().click(); await pa.waitForSelector(".ad-acao-det", { timeout: 5000 });
+ok((await pa.locator(".ad-acao-det").textContent()).includes("Golpe") && await pa.locator(".ad-acao-det .ad-bt", { hasText: "Ver o conteúdo denunciado" }).count() === 1, "denúncia: detalhes com motivo, trecho e Ver o conteúdo denunciado");
+await pa.locator(".ad-acao-det .ad-bt", { hasText: "Fechar" }).click();
 await pa.evaluate(() => document.querySelector('.ad-nav[data-secao="comunicados"]').click()); await pa.waitForTimeout(800);
 ok(await pa.locator(".ad-item .hfcom").count() >= 1, "painel → Comunicados: prévia igual à do site");
 await pa.screenshot({ path: "saida/comunicados-painel.png" });
