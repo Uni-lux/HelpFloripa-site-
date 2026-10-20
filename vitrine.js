@@ -7,9 +7,10 @@
 // Links diretos: pagina.html?negocio=ID  ·  imoveis.html?anuncio=ID
 // =====================================================
 
+import { confirmarHF } from "./confirmar.js?v=3";
 import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL } from "./seguranca.js?v=1";
 import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento, media, avaliarNegocio } from "./avaliacoes.js?v=13";
-import { abrirQueixa } from "./queixas.js?v=9";
+import { abrirQueixa } from "./queixas.js?v=10";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
 import { anelNegocio } from "./flash-negocio.js?v=1";
 import { camposEndereco, textoCidade, cidadesDe, NOME_UF, semAcento } from "./endereco.js?v=1";
@@ -408,7 +409,7 @@ function abrirPedido(n, opcoes, aoMudar) {
     ct.appendChild(barra);
     const limpar = el("button", "vd-limpar", "Esvaziar carrinho");
     limpar.type = "button";
-    limpar.addEventListener("click", () => { if (confirm("Tirar todos os itens do carrinho?")) { gravarCarrinho(n, {}); aoMudar?.(); pintar(); } });
+    limpar.addEventListener("click", async () => { if (await confirmarHF({ titulo: "Esvaziar o carrinho?", texto: "Todos os itens saem do carrinho.", ok: "Esvaziar", icone: "carrinho" })) { gravarCarrinho(n, {}); aoMudar?.(); pintar(); } });
     ct.appendChild(limpar);
   };
   pintar();
@@ -1049,7 +1050,7 @@ export function abrirDetalhe(n, opcoes = {}) {
       const novos = [...n.itens];
       if (est === null || est <= 1) {
         const msg = est === 1 ? `"${item.nome}" foi vendido? Era a última unidade, então ele sai da loja.` : `Tirar "${item.nome}" da loja?`;
-        if (!confirm(msg)) return;
+        if (!(await confirmarHF({ titulo: est === 1 ? "Última unidade vendida?" : "Tirar da loja?", texto: msg, ok: est === 1 ? "Sim, vendido" : "Tirar", icone: est === 1 ? "check" : "lixo", cor: est === 1 ? "normal" : "perigo" }))) return;
         novos.splice(idx, 1);
       } else novos[idx] = { ...item, estoque: est - 1 };
       try {
@@ -1108,7 +1109,7 @@ export function abrirDetalhe(n, opcoes = {}) {
     // Golpe ou perfil falso não precisa de conversa: vai para a equipe analisar.
     const bD = el("button", "vd-denunciar", "Denunciar golpe ou perfil falso"); bD.type = "button";
     bD.addEventListener("click", async () => {
-      const { abrirDenuncia } = await import("./denuncias.js?v=2");
+      const { abrirDenuncia } = await import("./denuncias.js?v=3");
       abrirDenuncia({ fb: fbx, eu: euX, tipo: "negocio", alvoId: n.donoId, itemId: idNegocio(n), trecho: [n.nome, n.descricao].filter(Boolean).join(" · "), nomeAlvo: n.nome || "", podeBloquear: false });
     });
     conf.append(bA, bR, el("small", null, "Só avalia ou reclama quem conversou com o negócio pelo chat."), bD);
@@ -1216,7 +1217,7 @@ export function abrirAnuncio(a, opcoes = {}) {
     fim.type = "button";
     fim.append(icone("check"), document.createTextNode(`${rotulo} · apagar`));
     fim.addEventListener("click", async () => {
-      if (!confirm(`Imóvel ${rotulo.toLowerCase()}? O anúncio será apagado e sai da vitrine.`)) return;
+      if (!(await confirmarHF({ titulo: `Imóvel ${rotulo.toLowerCase()}?`, texto: "O anúncio será apagado e sai da vitrine.", ok: `${rotulo} · apagar`, icone: "check" }))) return;
       try {
         await fbx.deleteDoc(fbx.doc(fbx.db, "anuncios", a.id));
         toast(`Imóvel marcado como ${rotulo.toLowerCase()} e removido.`);

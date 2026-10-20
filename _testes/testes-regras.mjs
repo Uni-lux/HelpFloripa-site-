@@ -498,6 +498,28 @@ await t("preferências: valor estranho é recusado", () => assertFails(setDoc(do
 await t("preferências: outra pessoa não grava", () => assertFails(setDoc(doc(ctx("bia"), "pref_publicas", "ana"), { permiteMarcar: "todos" })));
 await t("preferências: qualquer pessoa logada lê", () => assertSucceeds(getDoc(doc(ctx("bia"), "pref_publicas", "ana"))));
 
+// ---------- reportes do suporte e nota do atendimento ----------
+const rep = (quem, id, extra) => setDoc(doc(ctx(quem), "reportes", id), { tipo: "atendimento", chamadoId: "cb1", assunto: "Ajuda com a conta", autorId: quem, alvoId: "mod2", motivo: "grosseria", detalhe: "Foi rude", status: "novo", criadoEm: serverTimestamp(), ...extra });
+await t("reporte: quem abriu o chamado reporta o atendimento", () => assertSucceeds(rep("bia", "atendimento_cb1_bia")));
+await t("reporte: id fora do padrão é recusado", () => assertFails(rep("bia", "qualquer")));
+await t("reporte: outra pessoa não reporta o chamado de alguém", () => assertFails(rep("ana", "atendimento_cb1_ana")));
+await t("reporte: motivo estranho é recusado", () => assertFails(rep("bia", "atendimento_cb1_bia", { motivo: "xingou" })));
+await t("reporte: quem reportou vê o próprio reporte", () => assertSucceeds(getDoc(doc(ctx("bia"), "reportes", "atendimento_cb1_bia"))));
+await t("reporte: o suporte (quem atendeu) não lê", () => assertFails(getDoc(doc(ctx("mod2"), "reportes", "atendimento_cb1_bia"))));
+await t("reporte: o suporte não lista os reportes", () => assertFails(getDocs(query(collection(ctx("mod2"), "reportes")))));
+await t("reporte: a moderação lê", () => assertSucceeds(getDoc(doc(ctx("mod"), "reportes", "atendimento_cb1_bia"))));
+await t("reporte: o dono lista", () => assertSucceeds(getDocs(query(collection(ctx("adm"), "reportes")))));
+await t("reporte: a moderação resolve com nota", () => assertSucceeds(updateDoc(doc(ctx("mod"), "reportes", "atendimento_cb1_bia"), { status: "resolvido", nota: "Conversamos com a equipe", analisadaPor: "mod", analisadaEm: serverTimestamp() })));
+await t("reporte: quem reportou não muda a situação", () => assertFails(updateDoc(doc(ctx("bia"), "reportes", "atendimento_cb1_bia"), { status: "descartado" })));
+await t("reporte: a equipe reporta a pessoa do chamado", () => assertSucceeds(setDoc(doc(ctx("mod2"), "reportes", "usuario_cb1_mod2"), { tipo: "usuario", chamadoId: "cb1", assunto: "Ajuda", autorId: "mod2", alvoId: "bia", alvoNome: "Bia", motivo: "ofensa", status: "novo", criadoEm: serverTimestamp() })));
+await t("reporte: a equipe não reporta outra pessoa que não é do chamado", () => assertFails(setDoc(doc(ctx("mod2"), "reportes", "usuario_cb1_mod2"), { tipo: "usuario", chamadoId: "cb1", autorId: "mod2", alvoId: "ana", motivo: "ofensa", status: "novo", criadoEm: serverTimestamp() })));
+await t("reporte: usuário comum não reporta como equipe", () => assertFails(setDoc(doc(ctx("bia"), "reportes", "usuario_cb1_bia"), { tipo: "usuario", chamadoId: "cb1", autorId: "bia", alvoId: "bia", motivo: "ofensa", status: "novo", criadoEm: serverTimestamp() })));
+await t("nota do atendimento: quem abriu dá 5 estrelas", () => assertSucceeds(setDoc(doc(ctx("bia"), "suporte_notas", "cb1"), { uid: "bia", nota: 5, comentario: "Rápido!", atendidoPor: "mod2", criadoEm: serverTimestamp() })));
+await t("nota do atendimento: não troca depois", () => assertFails(setDoc(doc(ctx("bia"), "suporte_notas", "cb1"), { uid: "bia", nota: 1, criadoEm: serverTimestamp() })));
+await t("nota do atendimento: outra pessoa não avalia", () => assertFails(setDoc(doc(ctx("ana"), "suporte_notas", "cb1"), { uid: "ana", nota: 1, criadoEm: serverTimestamp() })));
+await t("nota do atendimento: nota 6 é recusada", async () => { await semRegras((db) => setDoc(doc(db, "suporte", "cb9"), { uid: "bia", assunto: "x", categoria: "conta", status: "fechado" })); await assertFails(setDoc(doc(ctx("bia"), "suporte_notas", "cb9"), { uid: "bia", nota: 6, criadoEm: serverTimestamp() })); });
+await t("nota do atendimento: a equipe lê", () => assertSucceeds(getDoc(doc(ctx("mod2"), "suporte_notas", "cb1"))));
+
 // ---------- resultado ----------
 for (const r of resultados) console.log(r[0] === "ok" ? "  ✔" : "  ✘", r[1], r[2] ? "→ " + r[2] : "");
 console.log(`\n${ok} passaram, ${falhou} falharam (${arquivo})`);

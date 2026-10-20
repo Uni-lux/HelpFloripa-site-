@@ -12,8 +12,8 @@
 // =====================================================
 import { fotoSegura, conferirEmail, emailPendente, MSG_EMAIL } from "./seguranca.js?v=1";
 import { estrelas } from "./avaliacoes.js?v=13";
-import { abrirQueixa, responderQueixa, resolverQueixa, semResposta, MOTIVOS, PRAZO_DIAS } from "./queixas.js?v=9";
-import { NOMES_TIPO, PAGINA_TIPO } from "./vitrine.js?v=34";
+import { abrirQueixa, responderQueixa, resolverQueixa, semResposta, MOTIVOS, PRAZO_DIAS } from "./queixas.js?v=10";
+import { NOMES_TIPO, PAGINA_TIPO } from "./vitrine.js?v=35";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
 
 const $ = (id) => document.getElementById(id);

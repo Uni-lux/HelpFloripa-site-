@@ -6,13 +6,14 @@
 //   e os anúncios de imóveis.
 // Links: negocios.html?tipo=servicos (abre o formulário) · ?novo=1
 // =====================================================
+import { confirmarHF } from "./confirmar.js?v=3";
 import {
   $, el, icone, pintarAvatar, urlSegura, nomeCidade, toast, erroAmigavel, abrirFolha, fecharFolha,
   fb, eu, dados, salvarImagem, editarImagem, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos
-} from "./rede.js?v=44";
+} from "./rede.js?v=45";
 import { lerResumos, estrelas, media, notaTexto } from "./avaliacoes.js?v=13";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
-import { buscarAnuncios, DIAS, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO } from "./vitrine.js?v=34";
+import { buscarAnuncios, DIAS, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO } from "./vitrine.js?v=35";
 
 const NEGOCIOS = {
   servicos: { rotulo: "Freelances", img: "servicos.webp", pagina: "servicos.html", desc: "Portfólio, preços, horários e pedidos de orçamento." },
@@ -546,7 +547,7 @@ async function pintarMeusAnuncios(lista) {
 }
 async function concluirAnuncio(a, depois) {
   const rotulo = a.finalidade === "venda" ? "vendido" : "alugado";
-  if (!confirm(`Imóvel ${rotulo}? O anúncio "${a.titulo || "sem título"}" será apagado e sai da vitrine.`)) return;
+  if (!(await confirmarHF({ titulo: `Imóvel ${rotulo}?`, texto: `O anúncio "${a.titulo || "sem título"}" será apagado e sai da vitrine.`, ok: "Apagar anúncio", icone: "check" }))) return;
   try {
     await fb.deleteDoc(fb.doc(fb.db, "anuncios", a.id));
     toast(`Parabéns! Imóvel marcado como ${rotulo} e removido.`);
@@ -655,7 +656,7 @@ $("anSalvar").addEventListener("click", async () => {
   if (erroLocal) { toast(erroLocal); return; }
   const l = anLocal.ler();
   const localAn = { cidade: l.cidade, uf: l.uf, cidadeIbge: l.cidadeIbge, bairro: l.bairro, rua: l.rua, numero: l.numero, complemento: l.complemento, cep: l.cep };
-  if (!Number(a.preco) && !confirm("Publicar sem preço? O anúncio vai mostrar \"Consultar\".")) return;
+  if (!Number(a.preco) && !(await confirmarHF({ titulo: "Publicar sem preço?", texto: "O anúncio vai mostrar \"Consultar\" no lugar do preço.", ok: "Publicar", icone: "info", cor: "normal" }))) return;
   const btn = $("anSalvar");
   btn.disabled = true; btn.textContent = "Publicando...";
   try {
@@ -683,7 +684,7 @@ $("anSalvar").addEventListener("click", async () => {
   finally { btn.disabled = false; btn.textContent = "Publicar anúncio"; }
 });
 $("anExcluir").addEventListener("click", async () => {
-  if (!anEditandoId || !confirm("Excluir este anúncio?")) return;
+  if (!anEditandoId || !(await confirmarHF({ titulo: "Excluir este anúncio?", texto: "Ele sai da vitrine e não dá para desfazer.", ok: "Excluir", icone: "lixo" }))) return;
   try {
     await fb.deleteDoc(fb.doc(fb.db, "anuncios", anEditandoId));
     fecharFolha("folhaAnuncio");
@@ -790,7 +791,7 @@ $("negSalvar").addEventListener("click", async () => {
 });
 $("negExcluir").addEventListener("click", async () => {
   const imoveis = negEditando?.tipo === "imoveis";
-  if (!negEditando || !confirm(`Excluir o perfil "${negEditando.nome}"?${imoveis ? "\n\nTodos os seus anúncios de imóveis também serão excluídos." : ""}`)) return;
+  if (!negEditando || !(await confirmarHF({ titulo: `Excluir o perfil "${negEditando.nome}"?`, texto: `Ele sai da vitrine e não dá para desfazer.${imoveis ? " Todos os seus anúncios de imóveis também serão excluídos." : ""}`, ok: "Excluir", icone: "lixo" }))) return;
   try {
     // Imóveis: os anúncios saem junto (senão ficavam no ar sem anunciante).
     if (imoveis) {

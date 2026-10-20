@@ -1504,6 +1504,53 @@ service cloud.firestore {
       }
     }
 
+    // Reporte de atendimento do suporte (só a moderação e os donos leem; o suporte não).
+    //   atendimento_{chamado}_{uid}: quem abriu o chamado reporta como foi atendido (demora, grosseria...).
+    //   usuario_{chamado}_{uid}: alguém da equipe reporta a pessoa do chamado (ofensas, ameaça, golpe...).
+    match /reportes/{id} {
+      function chamadoDe(c) { return get(/databases/$(database)/documents/suporte/$(c)).data; }
+      allow get: if logado() && resource.data.autorId == request.auth.uid;
+      allow read: if podeModerar();
+      allow create: if logado()
+                    && request.resource.data.keys().hasOnly(['tipo', 'chamadoId', 'assunto', 'autorId', 'alvoId', 'alvoNome', 'motivo', 'detalhe', 'status', 'criadoEm'])
+                    && request.resource.data.autorId == request.auth.uid
+                    && request.resource.data.chamadoId is string
+                    && id == request.resource.data.tipo + '_' + request.resource.data.chamadoId + '_' + request.auth.uid
+                    && request.resource.data.motivo.matches('^(demora|grosseria|nao_resolveu|errado|dados|ofensa|ameaca|golpe|spam|outro)$')
+                    && valorTextoAte(request.resource.data.get('detalhe', ''), 1000)
+                    && valorTextoAte(request.resource.data.get('assunto', ''), 120)
+                    && valorTextoAte(request.resource.data.get('alvoNome', ''), 80)
+                    && request.resource.data.status == 'novo'
+                    && request.resource.data.criadoEm == request.time
+                    && ((request.resource.data.tipo == 'atendimento'
+                         && chamadoDe(request.resource.data.chamadoId).uid == request.auth.uid
+                         && (!('alvoId' in request.resource.data) || request.resource.data.alvoId is string))
+                        || (request.resource.data.tipo == 'usuario'
+                         && admin()
+                         && request.resource.data.alvoId == chamadoDe(request.resource.data.chamadoId).uid));
+      allow update: if podeModerar()
+                    && mudou().hasOnly(['status', 'nota', 'analisadaEm', 'analisadaPor', 'responsavel', 'responsavelNome', 'assumidoEm'])
+                    && request.resource.data.status in ['novo', 'em_analise', 'resolvido', 'descartado']
+                    && (!mudou().hasAny(['status', 'nota', 'analisadaEm', 'analisadaPor']) || request.resource.data.analisadaPor == request.auth.uid)
+                    && responsavelOk()
+                    && valorTextoAte(request.resource.data.get('nota', ''), 1000);
+      allow delete: if false;
+    }
+
+    // Nota do atendimento (1 a 5) dada por quem abriu o chamado, uma vez; a equipe lê.
+    match /suporte_notas/{chamadoId} {
+      allow read: if admin() || (logado() && resource.data.uid == request.auth.uid);
+      allow create: if logado()
+                    && request.resource.data.keys().hasOnly(['uid', 'nota', 'comentario', 'atendidoPor', 'criadoEm'])
+                    && request.resource.data.uid == request.auth.uid
+                    && get(/databases/$(database)/documents/suporte/$(chamadoId)).data.uid == request.auth.uid
+                    && request.resource.data.nota is int && request.resource.data.nota >= 1 && request.resource.data.nota <= 5
+                    && valorTextoAte(request.resource.data.get('comentario', ''), 500)
+                    && (!('atendidoPor' in request.resource.data) || request.resource.data.atendidoPor is string)
+                    && request.resource.data.criadoEm == request.time;
+      allow update, delete: if false;
+    }
+
     match /parcerias/{id} {
       // Formulário de Sócios e parcerias: só quem tem conta (e-mail confirmado), até 3 por dia; só a equipe lê.
       allow create: if logado()

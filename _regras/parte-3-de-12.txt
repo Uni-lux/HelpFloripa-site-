@@ -211,4 +211,4 @@
                     && contextoOk()
                     && textoAte('ultimaMensagem', 200);
 
-// ===== FIM DA PARTE 3 DE 11 =====
+// ===== FIM DA PARTE 3 DE 12 =====

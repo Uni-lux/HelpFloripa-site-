@@ -1,3 +1,74 @@
+    match /parcerias/{id} {
+      // Formulário de Sócios e parcerias: só quem tem conta (e-mail confirmado), até 3 por dia; só a equipe lê.
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.uid == request.auth.uid
+                    && ritmoOk('parc')
+                    && request.resource.data.keys().hasOnly(['nome', 'empresa', 'email', 'telefone', 'tipo', 'mensagem', 'site', 'cidade', 'uid', 'status', 'criadoEm'])
+                    && request.resource.data.nome is string && request.resource.data.nome.size() >= 2 && request.resource.data.nome.size() <= 80
+                    && request.resource.data.email is string && request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+[.][^@\\s]+$') && request.resource.data.email.size() <= 120
+                    && valorTextoAte(request.resource.data.get('empresa', ''), 100)
+                    && valorTextoAte(request.resource.data.get('telefone', ''), 30)
+                    && valorTextoAte(request.resource.data.get('site', ''), 200)
+                    && valorTextoAte(request.resource.data.get('cidade', ''), 80)
+                    && request.resource.data.tipo in ['socio', 'investidor', 'parceiro', 'anunciante', 'imprensa', 'outro']
+                    && request.resource.data.mensagem is string && request.resource.data.mensagem.size() >= 10 && request.resource.data.mensagem.size() <= 2000
+                    && request.resource.data.status == 'novo'
+                    && request.resource.data.criadoEm == request.time;
+      allow read: if admin();
+      allow update: if podeComercial()
+                    && mudou().hasOnly(['status', 'notas', 'atualizadoEm', 'responsavel', 'responsavelNome', 'assumidoEm'])
+                    && request.resource.data.status in ['novo', 'em_conversa', 'proposta', 'fechado', 'recusado']
+                    && (!mudou().hasAny(['responsavelNome', 'assumidoEm']) || responsavelOk())
+                    && valorTextoAte(request.resource.data.get('notas', ''), 3000);
+      allow delete: if podeComercial();
+    }
+
+    // Presença da equipe no painel (quem está online) e chat interno da equipe.
+    match /equipe_presenca/{uid} {
+      allow read: if admin();
+      allow create, update: if admin()
+                    && request.auth.uid == uid
+                    && request.resource.data.keys().hasOnly(['nome', 'em', 'secao', 'item', 'itemNome'])
+                    && valorTextoAte(request.resource.data.get('nome', ''), 80)
+                    && valorTextoAte(request.resource.data.get('secao', ''), 40)
+                    && valorTextoAte(request.resource.data.get('item', null), 160)
+                    && valorTextoAte(request.resource.data.get('itemNome', null), 120)
+                    && request.resource.data.em == request.time;
+      allow delete: if admin() && request.auth.uid == uid;
+    }
+
+    // Mensagem do chat da equipe (todos ou individual): texto e/ou um anexo
+    // (foto, áudio ou arquivo). O conteúdo do anexo fica em equipe_anexos/{id},
+    // gravado junto, da mesma pessoa e da mesma conversa.
+    function msgEquipeOk(conversa) {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['autorId', 'nome', 'texto', 'em', 'mencoes', 'tipoArquivo', 'anexo', 'nomeArquivo', 'tamanho', 'miniatura', 'duracao', 'resposta', 'reacoes'])
+          && d.autorId == request.auth.uid
+          && valorTextoAte(d.get('nome', ''), 80)
+          && d.texto is string && d.texto.size() <= 2000
+          && (d.texto.size() >= 1 || 'anexo' in d)
+          && d.em == request.time
+          && (!('mencoes' in d) || (d.mencoes is list && d.mencoes.size() <= 10))
+          && (!('resposta' in d)
+              || (d.resposta is map
+                  && d.resposta.keys().hasOnly(['id', 'autorId', 'nome', 'texto'])
+                  && d.resposta.get('id', '') is string
+                  && d.resposta.get('autorId', '') is string
+                  && valorTextoAte(d.resposta.get('nome', ''), 80)
+                  && d.resposta.get('texto', '') is string && d.resposta.get('texto', '').size() <= 200))
+          && (!('reacoes' in d) || (d.reacoes is map && d.reacoes.size() == 0))
+          && (!('anexo' in d)
+              || (d.anexo is string
+                  && d.tipoArquivo in ['imagem', 'audio', 'arquivo']
+                  && getAfter(/databases/$(database)/documents/equipe_anexos/$(d.anexo)).data.autorId == request.auth.uid
+                  && getAfter(/databases/$(database)/documents/equipe_anexos/$(d.anexo)).data.conversa == conversa))
+          && (!('tipoArquivo' in d) || 'anexo' in d)
+          && valorTextoAte(d.get('nomeArquivo', ''), 120)
+          && (!('tamanho' in d) || (d.tamanho is int && d.tamanho >= 0))
+          && (!('duracao' in d) || (d.duracao is int && d.duracao >= 0 && d.duracao <= 600))
+          && (!('miniatura' in d) || (d.miniatura is string && d.miniatura.size() <= 30000 && d.miniatura.matches('^data:image/jpeg;base64,.*')));
+    }
     // Reação a uma mensagem: cada pessoa guarda só a sua (reacoes[uid] = emoji).
     // A edição só pode mexer no campo reacoes, e só na própria chave de quem edita.
     function reacaoValida() {
@@ -117,97 +188,4 @@
       allow update, delete: if false;
     }
 
-    // Foto do grupo "Equipe" no chat da equipe: equipe_info/grupo. Qualquer pessoa da equipe troca.
-    match /equipe_info/{id} {
-      allow read: if admin();
-      allow create, update: if admin()
-                    && id == 'grupo'
-                    && request.resource.data.keys().hasOnly(['foto', 'por', 'em'])
-                    && (request.resource.data.foto == null
-                        || (request.resource.data.foto is string && request.resource.data.foto.size() <= 250000 && fotoOk(request.resource.data.foto)))
-                    && request.resource.data.por == request.auth.uid
-                    && request.resource.data.em == request.time;
-      allow delete: if false;
-    }
-
-    // Quadro de tarefas da equipe: quem faz o quê.
-    match /equipe_tarefas/{id} {
-      function tarefaOk() {
-        let d = request.resource.data;
-        return d.keys().hasOnly(['titulo', 'descricao', 'status', 'prioridade', 'responsavel', 'responsavelNome', 'prazo', 'ligacao', 'ligacaoNome', 'criadoPor', 'criadoPorNome', 'criadoEm', 'atualizadoEm', 'concluidaEm'])
-            && d.titulo is string && d.titulo.size() >= 2 && d.titulo.size() <= 140
-            && valorTextoAte(d.get('descricao', null), 2000)
-            && d.status in ['a_fazer', 'fazendo', 'feito']
-            && d.prioridade in ['baixa', 'normal', 'alta', 'urgente']
-            && (d.get('responsavel', null) == null || (d.responsavel is string && exists(/databases/$(database)/documents/admins/$(d.responsavel))))
-            && valorTextoAte(d.get('responsavelNome', null), 80)
-            && (d.get('prazo', null) == null || d.prazo is timestamp)
-            && valorTextoAte(d.get('ligacao', null), 160)
-            && valorTextoAte(d.get('ligacaoNome', null), 120)
-            && valorTextoAte(d.get('criadoPorNome', null), 80)
-            && d.atualizadoEm == request.time;
-      }
-      allow read: if admin();
-      allow create: if admin() && tarefaOk()
-                    && request.resource.data.criadoPor == request.auth.uid
-                    && request.resource.data.criadoEm == request.time;
-      allow update: if admin() && tarefaOk()
-                    && request.resource.data.criadoPor == resource.data.criadoPor
-                    && request.resource.data.criadoEm == resource.data.criadoEm;
-      allow delete: if admin() && (resource.data.criadoPor == request.auth.uid || papel() == 'dono');
-    }
-
-    // Notas internas da equipe sobre um usuário (só a equipe vê; ninguém edita).
-    match /notas_internas/{id} {
-      allow read: if admin();
-      allow create: if admin()
-                    && request.resource.data.keys().hasOnly(['alvo', 'texto', 'autorId', 'autorNome', 'em'])
-                    && request.resource.data.alvo is string && request.resource.data.alvo.size() <= 128
-                    && request.resource.data.autorId == request.auth.uid
-                    && valorTextoAte(request.resource.data.get('autorNome', null), 80)
-                    && request.resource.data.texto is string && request.resource.data.texto.size() >= 1 && request.resource.data.texto.size() <= 2000
-                    && request.resource.data.em == request.time;
-      allow update: if false;
-      allow delete: if admin() && (resource.data.autorId == request.auth.uid || papel() == 'dono');
-    }
-
-    match /admin_log/{id} {
-      allow read: if admin();
-      allow create: if admin()
-                    && request.resource.data.por == request.auth.uid
-                    && request.resource.data.em == request.time
-                    && request.resource.data.acao is string && request.resource.data.acao.size() <= 60
-                    && valorTextoAte(request.resource.data.get('detalhe', ''), 1000);
-      allow update, delete: if false;
-    }
-
-    match /estatisticas/{id} {
-      allow read: if admin();
-      allow write: if false;
-    }
-
-    match /relatorios/{id} {
-      allow read: if admin();
-      allow write: if false;
-    }
-
-
-    // =====================================================
-    // LIMITE DIÁRIO (anti-spam): ritmo/{uid}
-    // Janela de 24 h a partir da primeira ação. Por janela: até 500 mensagens,
-    // 20 publicações e 200 comentários. Cada ação soma exatamente 1 no seu tipo.
-    // =====================================================
-    match /ritmo/{uid} {
-      function limite(t) {
-        return t == 'msg' ? 500 : (t == 'pub' ? 20 : (t == 'parc' ? 3 : 200));
-      }
-      function janelaNova() {
-        return resource == null || resource.data.inicio < request.time - duration.value(1, 'd');
-      }
-      function contaOk(k, t) {
-        let v = request.resource.data.get(k, 0);
-        return v is int
-            && v == (k == t ? (janelaNova() ? 1 : resource.data.get(k, 0) + 1)
-                            : (janelaNova() ? 0 : resource.data.get(k, 0)));
-      }
-// ===== FIM DA PARTE 8 DE 11 =====
+// ===== FIM DA PARTE 8 DE 12 =====
