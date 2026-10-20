@@ -6,7 +6,7 @@
 // Dados: neg_stats (estat-negocio.js), avaliacoes, reclamacoes e anuncios.
 // Abrir: abrirInsightsNegocio(negocio, { aoEditar }) · negocios.html?insights=ID
 // =====================================================
-import { $, el, icone, fb, eu, numero, criarFolha, abrirFolha, urlSegura, pintarAvatar } from "./rede.js?v=47";
+import { $, el, icone, fb, eu, numero, criarFolha, abrirFolha, urlSegura, pintarAvatar } from "./rede.js?v=48";
 import { lerStats, listaDias, somarPeriodo, dataDoDia, chaveItem, chaveAnuncio, ORIGENS, ACOES, CONTATOS } from "./estat-negocio.js?v=1";
 import { baixarPlanilhaMulti } from "./planilha.js?v=5";
 

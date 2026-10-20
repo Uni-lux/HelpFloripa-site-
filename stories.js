@@ -12,9 +12,9 @@ import {
   $, el, icone, ms, pintarAvatar, toast, erroAmigavel, tempoRelativo, fb, eu, dados, storageFns,
   meusSeguindo, escondido, silenciado, alternarSilenciar, obterPerfil, abrirOpcoes, abrirLista, linhaPessoa,
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa
-} from "./rede.js?v=47";
+} from "./rede.js?v=48";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
-import { seletorDuracao, fimEscolhido, linhaChave, MAX_FLASH_MIN } from "./enquetes.js?v=2";
+import { seletorDuracao, fimEscolhido, linhaChave, MAX_FLASH_MIN } from "./enquetes.js?v=3";
 
 const DIA = 24 * 3600e3;
 const TEMPO_FOTO = 6000;

@@ -11,7 +11,7 @@ import { fotoSegura } from "./seguranca.js?v=1";
 import { enfeitarSelect } from "./escolha.js?v=3";
 import { estrelas, lerResumos, media } from "./avaliacoes.js?v=13";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
-import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria } from "./vitrine.js?v=37";
+import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=41";
 
 const $ = (id) => document.getElementById(id);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
@@ -127,7 +127,7 @@ function cartaoNegocio(n, resumo) {
   capa.appendChild(av);
   const tx = el("div", "tx");
   tx.appendChild(el("strong", null, n.nome || "Negócio"));
-  const cat = n.tipo === "servicos" ? (n.categorias || [n.categoria]).map((k) => CATEGORIAS.servicos[k]).filter(Boolean).slice(0, 2).join(" · ") : nomeCategoria(n);
+  const cat = n.tipo === "servicos" ? (n.categorias || [n.categoria]).map((k) => CATEGORIAS.servicos[k] && nomeCat(n, k)).filter(Boolean).slice(0, 2).join(" · ") : nomeCategoria(n);
   tx.appendChild(el("small", null, [cat, n.cidade].filter(Boolean).join(" · ")));
   tx.appendChild(estrelas(resumo, { compacto: true }));
   a.append(capa, tx);
@@ -145,7 +145,7 @@ function cartaoImovel(an) {
   if (moeda(an.preco) && an.finalidade === "temporada") preco.appendChild(el("small", null, "/dia"));
   capa.appendChild(preco);
   const tx = el("div", "tx");
-  tx.appendChild(el("strong", null, an.titulo || `${CATEGORIAS.imoveis[an.categoria] || "Imóvel"} para ${(FINALIDADE[an.finalidade] || "negociar").toLowerCase()}`));
+  tx.appendChild(el("strong", null, an.titulo || `${(CATEGORIAS.imoveis[an.categoria] && nomeCat(an, an.categoria)) || "Imóvel"} para ${(FINALIDADE[an.finalidade] || "negociar").toLowerCase()}`));
   tx.appendChild(el("small", null, [an.bairro, an.cidade].filter(Boolean).join(", ") || "Florianópolis"));
   const specs = [an.quartos ? `${an.quartos} ${Number(an.quartos) === 1 ? "quarto" : "quartos"}` : "", an.vagas ? `${an.vagas} ${Number(an.vagas) === 1 ? "vaga" : "vagas"}` : "", an.area ? `${an.area} m²` : ""].filter(Boolean).join(" · ");
   if (specs) tx.appendChild(el("span", "specs", specs));
@@ -168,6 +168,8 @@ const SEM_MOVIMENTO = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const revezamentos = [];
 function revezar(id, itens, { criar, peso, tempo, chave = (x) => x.id, lugares = 8 }) {
   const trilho = $(id);
+  // Trocar o filtro monta o trilho de novo: o revezamento antigo para sozinho.
+  const geracao = (trilho._geracao = (trilho._geracao || 0) + 1);
   const total = Math.min(itens.length, lugares);
   // Começa pelos de maior peso (os melhores aparecem primeiro).
   const ordem = [...itens].sort((a, b) => peso(b) - peso(a));
@@ -213,7 +215,7 @@ function revezar(id, itens, { criar, peso, tempo, chave = (x) => x.id, lugares =
     }, 420);
   }
   revezamentos.push(() => {
-    if (!naTela || document.hidden || Date.now() < pausaAte) return;
+    if (trilho._geracao !== geracao || !naTela || document.hidden || Date.now() < pausaAte) return;
     const vis = visiveis();
     // Troca o cartão visível que já cumpriu seu tempo (o mais antigo primeiro).
     const vencido = vis.filter((s) => Date.now() - s.desde >= tempo(s.item)).sort((a, b) => a.desde - b.desde)[0];
@@ -221,6 +223,25 @@ function revezar(id, itens, { criar, peso, tempo, chave = (x) => x.id, lugares =
     const novo = sortear(new Set(vis.map((s) => chave(s.item))));
     if (novo) trocar(vencido, novo);
   });
+}
+// Filtro por tipo em cima de um carrossel (Tudo · Freelances · Delivery · Lojas · Imóveis): só os
+// tipos que têm alguém aparecem; com um tipo só, o filtro nem aparece.
+const ROT_FILTRO = { servicos: "Freelances", delivery: "Delivery", lojinha: "Lojas", imoveis: "Imóveis" };
+function filtroTipos(secId, lista, montar) {
+  const sec = $(secId); if (!sec) return;
+  sec.querySelector(".hm-filtro")?.remove();
+  const tipos = Object.keys(ROT_FILTRO).filter((t) => lista.some((n) => n.tipo === t));
+  montar(lista);
+  if (tipos.length < 2) return;
+  const box = el("div", "hm-filtro"); box.setAttribute("role", "tablist"); box.setAttribute("aria-label", "Filtrar por tipo");
+  const pintar = (atual) => box.querySelectorAll("button").forEach((b) => { const on = b.dataset.t === atual; b.classList.toggle("on", on); b.setAttribute("aria-selected", String(on)); });
+  [["", "Tudo"], ...tipos.map((t) => [t, ROT_FILTRO[t]])].forEach(([t, rot]) => {
+    const b = el("button", t ? "t-" + t : "", rot); b.type = "button"; b.dataset.t = t; b.setAttribute("role", "tab");
+    b.addEventListener("click", () => { pintar(t); montar(t ? lista.filter((n) => n.tipo === t) : lista); });
+    box.appendChild(b);
+  });
+  pintar("");
+  sec.querySelector(".secao-cab").insertAdjacentElement("afterend", box);
 }
 // Um relógio só para todos os trilhos; cada um troca no máximo um cartão por vez.
 setInterval(() => revezamentos.forEach((fn) => fn()), 1600);
@@ -260,12 +281,12 @@ async function carregar(fs, db, u) {
     const comNota = lista.filter((n) => nota(n)?.total);
     // "Mais bem avaliados" sempre aparece: sem notas ainda, mostra todos e convida a avaliar.
     if (!comNota.length) $("secTop").querySelector(".secao-cab p").textContent = "Ainda sem notas por aqui. Depois do atendimento, avalie quem te atendeu.";
-    revezar("trilhoTop", (comNota.length ? comNota : lista).slice(0, 40), { criar: (n) => cartaoNegocio(n, nota(n)), peso: pesoNota, tempo: tempoNota });
+    filtroTipos("secTop", (comNota.length ? comNota : lista).slice(0, 40), (l) => revezar("trilhoTop", l, { criar: (n) => cartaoNegocio(n, nota(n)), peso: pesoNota, tempo: tempoNota }));
     const agora = Date.now(), DIA = 86400000;
     const novos = [...lista].filter((n) => n.tipo !== "imoveis").sort((a, b) => ms(b.atualizadoEm) - ms(a.atualizadoEm)).slice(0, 30);
     // Mais novos pesam mais; a nota também conta.
     const pesoNovo = (n) => { const dias = (agora - ms(n.atualizadoEm || n.criadoEm)) / DIA; return (dias < 3 ? 4 : dias < 14 ? 2.5 : 1) * (0.6 + pesoNota(n) / 5); };
-    revezar("trilhoNovos", novos, { criar: (n) => cartaoNegocio(n, nota(n)), peso: pesoNovo, tempo: tempoNota });
+    filtroTipos("secNovos", novos, (l) => revezar("trilhoNovos", l, { criar: (n) => cartaoNegocio(n, nota(n)), peso: pesoNovo, tempo: tempoNota }));
   } catch (e) { console.warn("Vitrine da página inicial indisponível:", e); preencher("trilhoTop", []); preencher("trilhoNovos", []); }
 
   try {

@@ -10,11 +10,11 @@ import { confirmarHF } from "./confirmar.js?v=4";
 import {
   $, el, icone, pintarAvatar, urlSegura, nomeCidade, toast, erroAmigavel, abrirFolha, fecharFolha,
   fb, eu, dados, salvarImagem, editarImagem, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos, criarFolha
-} from "./rede.js?v=47";
+} from "./rede.js?v=48";
 import { lerResumos, estrelas, media, notaTexto } from "./avaliacoes.js?v=13";
-import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
+import { camposEndereco, gravarComLocal, NOVOS, textoCidade, semAcento } from "./endereco.js?v=1";
 import { lerStats, listaDias, somarPeriodo } from "./estat-negocio.js?v=1";
-import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO } from "./vitrine.js?v=37";
+import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO, CATEGORIAS, GRUPOS_SERV, PALAVRAS_SERV, prazoPromo } from "./vitrine.js?v=41";
 
 // Cada tipo com a cor da sua classe na página inicial (inicio.css: --c-servicos etc.) e uma chamada própria.
 const NEGOCIOS = {
@@ -213,10 +213,12 @@ function pintarPainel() {
     }
     const cab = el("div", "ng-cab");
     const cabTx = el("div");
-    cabTx.append(el("h3", null, n.nome || t.rotulo), el("div", "meta", [[n.bairro, n.cidade].filter(Boolean).join(", "), tipo === "servicos" && (n.categorias || []).length ? (n.categorias || []).map((k) => CATS_NEGOCIO.servicos[k]).filter(Boolean).slice(0, 2).join(" · ") : CATS_NEGOCIO[tipo]?.[n.categoria] && n.categoria !== "outros" ? CATS_NEGOCIO[tipo][n.categoria] : ""].filter(Boolean).join(" · ") || t.desc));
+    cabTx.append(el("h3", null, n.nome || t.rotulo), el("div", "meta", [[n.bairro, n.cidade].filter(Boolean).join(", "), tipo === "servicos" && (n.categorias || []).length ? (n.categorias || []).map((k) => (k === "outros" ? n.categoriaPersonalizada : CATS_NEGOCIO.servicos[k])).filter(Boolean).slice(0, 2).join(" · ") : n.categoria === "outros" ? n.categoriaPersonalizada || "" : CATS_NEGOCIO[tipo]?.[n.categoria] || ""].filter(Boolean).join(" · ") || t.desc));
     if (resumo?.total) cabTx.appendChild(estrelas(resumo));
     cab.append(av, cabTx);
     corpo.appendChild(cab);
+    const stPromo = situacaoPromo(n);
+    if (stPromo) corpo.appendChild(stPromo);
     // Escondido da vitrine: pela equipe (moderação) ou porque a conta está desativada.
     if (oculto) {
       const av2 = el("div", "neg-aviso");
@@ -263,7 +265,7 @@ function maiorDeIdade() {
 // Estatísticas do negócio (insights-negocio.js, carregado só quando abre).
 async function abrirEstatisticas(n) {
   try {
-    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=1");
+    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=2");
     abrirInsightsNegocio(n, { aoEditar: (neg) => abrirFormNegocio(meusNegocios.find((x) => x.id === neg.id) || neg) });
   } catch (e) { toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)); }
 }
@@ -299,9 +301,10 @@ let negEditando = null, negTipo = "servicos", negFoto = "", negCapa = "", negSem
 // ficam guardados na conta (usuarios.negociosExtras) e vão para o perfil sozinhos depois (sincronizarExtras).
 const NOVOS_NEG = ["instagram", "site", "cnpj", "capa", "semana", "promocao"];
 const extrasPendentes = (id) => (dados.negociosExtras && typeof dados.negociosExtras === "object" ? dados.negociosExtras[id] : null) || null;
-function abrirFormNegocio(n) {
+function abrirFormNegocio(n, { promo = false } = {}) {
   if (n) { const p = extrasPendentes(n.id); if (p) n = { ...n, ...Object.fromEntries(Object.entries(p).filter(([k]) => NOVOS_NEG.includes(k) && !n[k])) }; }
   negEditando = n;
+  areasBusca = ""; areasAbertos = null;
   const usados = new Set(meusNegocios.map((x) => x.tipo));
   negTipo = n ? n.tipo : Object.keys(NEGOCIOS).find((k) => !usados.has(k)) || "servicos";
   negFoto = n?.foto || "";
@@ -329,7 +332,9 @@ function abrirFormNegocio(n) {
   negSemana = semanaInicial(n);
   montarHorario();
   const pr = n?.promocao;
-  negPromo = pr?.titulo ? { titulo: pr.titulo, texto: pr.texto || "", codigo: pr.codigo || "", ate: dataInput(pr.ate?.toDate ? pr.ate.toDate() : pr.ate?.seconds ? new Date(pr.ate.seconds * 1000) : new Date(Date.now() + 14 * 864e5)), ativa: (pr.ate?.toMillis?.() ?? (pr.ate?.seconds || 0) * 1000) > Date.now() } : null;
+  // Promoção vencida: fica desligada, com a data de fim anterior à vista; ao religar, começa com um prazo novo.
+  const fimPr = msPromo(pr?.ate), prNoAr = fimPr > Date.now();
+  negPromo = pr?.titulo ? { titulo: pr.titulo, texto: pr.texto || "", codigo: pr.codigo || "", ate: prNoAr ? dataInput(new Date(fimPr)) : dataInput(null), ativa: prNoAr, terminou: prNoAr ? 0 : fimPr } : null;
   montarPromo();
   $("negExcluir").hidden = !n;
   negExtra = JSON.parse(JSON.stringify({ ...(n || {}), criadoEm: null, atualizadoEm: null }));
@@ -338,15 +343,24 @@ function abrirFormNegocio(n) {
   pintarFotoNegocio();
   montarExtras();
   abrirFolha("folhaNegocio");
+  if (promo) setTimeout(() => $("negPromo")?.scrollIntoView({ block: "center", behavior: "smooth" }), 300);
 }
 
 // ---------- campos próprios de cada tipo ----------
 const CATS_NEGOCIO = {
-  servicos: { limpeza: "Limpeza", reformas: "Reformas", beleza: "Saúde e Beleza", transporte: "Transporte", pets: "Pets", outros: "Outros" },
-  delivery: { hamburguer: "Hambúrguer", pizza: "Pizza", sushi: "Sushi", doces: "Doces", bebidas: "Bebidas", outros: "Outros" },
+  servicos: { ...CATEGORIAS.servicos, outros: "Outra (escrever)" },
+  delivery: { hamburguer: "Hambúrguer", pizza: "Pizza", sushi: "Sushi", doces: "Doces", bebidas: "Bebidas", outros: "Outra (escrever)" },
   lojinha: { roupas: "Moda e roupas", calcados: "Calçados", acessorios: "Acessórios", beleza: "Beleza", eletronicos: "Eletrônicos", casa: "Casa e decoração", mercado: "Mercado", artesanato: "Artesanato", infantil: "Infantil", esportes: "Esportes", outros: "Outra (escrever)" },
-  imoveis: { apartamento: "Apartamento", casa: "Casa", kitnet: "Kitnet", terreno: "Terreno", comercial: "Comercial", outros: "Outros" }
+  imoveis: { apartamento: "Apartamento", casa: "Casa", kitnet: "Kitnet", terreno: "Terreno", comercial: "Comercial", outros: "Outro (escrever)" }
 };
+// "Outra (escrever)": o que a pessoa escreve vira um filtro próprio na página (até 30 letras).
+const CAT_PROPRIA = {
+  servicos: ["Qual é a sua área?", "Ex.: Pianista, Fotógrafo, Aulas de inglês", "Aparece no seu perfil e vira um filtro próprio em Freelances."],
+  delivery: ["Qual é a sua comida?", "Ex.: Açaí, Marmitas, Comida árabe", "Aparece no seu perfil e vira um filtro próprio no Delivery."],
+  lojinha: ["Sua categoria", "Ex.: Papelaria, Plantas, Suplementos", "Vira um filtro próprio na página do Shopping."],
+  imoveis: ["Qual é o tipo do imóvel?", "Ex.: Chácara, Galpão, Sítio, Cobertura", "Aparece no anúncio e vira um filtro próprio em Imóveis."]
+};
+const textoCatPropria = (v) => String(v || "").replace(/\s+/g, " ").trim().slice(0, 30);
 const CONFIG_EXTRAS = {
   servicos: { itens: { titulo: "Serviços e preços", dica: "Cada serviço que você faz, com preço e como cobra. O cliente escolhe na hora de pedir orçamento.", max: 12, foto: false, rotulo: "Nome do serviço" }, fotos: { titulo: "Portfólio: fotos de trabalhos", max: 3, proporcao: 4 / 3 } },
   delivery: { itens: { titulo: "Cardápio", dica: "Cada prato com foto, preço, seção (Lanches, Bebidas...) e descrição.", max: 12, foto: true, proporcao: 1, rotulo: "Nome do prato" }, fotos: { titulo: "Foto de capa", max: 1, proporcao: 2 } },
@@ -401,6 +415,90 @@ function marcas(chave, opcoes, aoMudar, alvo = negExtra) {
   });
   return box;
 }
+// Áreas de atuação dos Freelances: escolhidas em cima (a 1ª é a principal), busca e grupos que abrem e fecham.
+const MAX_AREAS = 6;
+let areasBusca = "", areasAbertos = null;
+function seletorAreas() {
+  const box = el("div", "campo areas");
+  const cats = negExtra.categorias;
+  const nomeArea = (k) => (k === "outros" ? (negExtra.categoriaPersonalizada || "").trim() || "Outra" : CATS_NEGOCIO.servicos[k] || k);
+  if (!areasAbertos) areasAbertos = new Set(GRUPOS_SERV.filter((g) => cats.some((k) => k in g.areas)).map((g) => g.nome));
+  const mudar = (k) => {
+    const i = cats.indexOf(k);
+    if (i >= 0) cats.splice(i, 1);
+    else if (cats.length >= MAX_AREAS) { toast(`Escolha até ${MAX_AREAS} áreas. Tire uma para marcar outra.`); return; }
+    else cats.push(k);
+    montarExtras();
+  };
+  const cab = el("div", "areas-cab");
+  cab.append(el("label", null, "Áreas de atuação"), el("span", "areas-conta" + (cats.length ? " on" : ""), `${cats.length} de ${MAX_AREAS}`));
+  box.appendChild(cab);
+
+  // Escolhidas: a primeira é a principal (aparece no cartão); tocar numa a torna principal.
+  const esc = el("div", "areas-escolhidas");
+  if (!cats.length) esc.appendChild(el("p", "areas-vazio", "Nenhuma área ainda. Escolha abaixo o que você faz."));
+  cats.forEach((k, i) => {
+    const c = el("div", "area-esc" + (i === 0 ? " principal" : ""));
+    const b = el("button", "area-esc-nome"); b.type = "button";
+    b.append(el("span", null, nomeArea(k)));
+    if (i === 0) b.appendChild(el("small", null, "Principal"));
+    else b.setAttribute("aria-label", `Tornar ${nomeArea(k)} a área principal`);
+    b.addEventListener("click", () => { if (i) { cats.splice(i, 1); cats.unshift(k); montarExtras(); } });
+    const x = el("button", "area-esc-x"); x.type = "button"; x.setAttribute("aria-label", `Tirar ${nomeArea(k)}`);
+    x.appendChild(icone("fechar", "i xs"));
+    x.addEventListener("click", () => mudar(k));
+    c.append(b, x);
+    esc.appendChild(c);
+  });
+  box.appendChild(esc);
+  if (cats.length > 1) box.appendChild(el("div", "ajuda", "A principal aparece no seu cartão. Toque em outra para torná-la principal."));
+
+  const busca = document.createElement("input");
+  busca.type = "search"; busca.className = "areas-busca"; busca.id = "negAreasBusca";
+  busca.placeholder = "Buscar: eletricista, aulas, fotógrafo..."; busca.value = areasBusca; busca.autocomplete = "off";
+  const lista = el("div", "areas-grupos");
+  const op = (k, nome) => {
+    const l = el("label", "marca-op" + (cats.includes(k) ? " on" : ""));
+    const c = document.createElement("input"); c.type = "checkbox"; c.checked = cats.includes(k);
+    c.addEventListener("change", () => mudar(k));
+    l.append(c, document.createTextNode(nome));
+    return l;
+  };
+  const pintarLista = () => {
+    lista.replaceChildren();
+    const q = semAcento(areasBusca);
+    if (q) {
+      const achou = Object.keys(PALAVRAS_SERV).filter((k) => semAcento(CATS_NEGOCIO.servicos[k] + " " + PALAVRAS_SERV[k]).includes(q));
+      const m = el("div", "marcas");
+      achou.forEach((k) => m.appendChild(op(k, CATS_NEGOCIO.servicos[k])));
+      m.appendChild(op("outros", achou.length ? "Outra (escrever)" : `Não achou? Escrever "${areasBusca.trim().slice(0, 30)}"`));
+      if (!achou.length && !cats.includes("outros")) m.lastChild.querySelector("input").addEventListener("change", () => { negExtra.categoriaPersonalizada = areasBusca.trim().slice(0, 30); areasBusca = ""; }, { capture: true });
+      lista.appendChild(m);
+      return;
+    }
+    GRUPOS_SERV.forEach((g) => {
+      const n = cats.filter((k) => k in g.areas).length;
+      const d = document.createElement("details");
+      d.className = "area-grupo"; d.open = areasAbertos.has(g.nome);
+      d.addEventListener("toggle", () => { d.open ? areasAbertos.add(g.nome) : areasAbertos.delete(g.nome); });
+      const sm = document.createElement("summary");
+      sm.append(el("span", null, g.nome), el("small", n ? "on" : "", n ? `${n} ${n === 1 ? "escolhida" : "escolhidas"}` : `${Object.keys(g.areas).length} áreas`));
+      const m = el("div", "marcas");
+      Object.entries(g.areas).forEach(([k, [nome]]) => m.appendChild(op(k, nome)));
+      d.append(sm, m);
+      lista.appendChild(d);
+    });
+    const outra = el("div", "marcas area-outra");
+    outra.appendChild(op("outros", "Outra (escrever)"));
+    lista.appendChild(outra);
+  };
+  busca.addEventListener("input", () => { areasBusca = busca.value; pintarLista(); });
+  pintarLista();
+  box.append(busca, lista);
+  if (cats.includes("outros")) box.appendChild(campo(CAT_PROPRIA.servicos[0], entrada("categoriaPersonalizada", { placeholder: CAT_PROPRIA.servicos[1], max: 30 }), CAT_PROPRIA.servicos[2]));
+  box.appendChild(el("div", "ajuda", "Você aparece no filtro de cada área escolhida."));
+  return box;
+}
 function secao(titulo, dica) {
   const s = document.createElement("div");
   s.className = "neg-secao";
@@ -439,7 +537,8 @@ function montarExtras() {
   if (t === "servicos") {
     // Várias profissões: cada área de atuação aparece no filtro da página.
     if (!Array.isArray(negExtra.categorias) || !negExtra.categorias.length) negExtra.categorias = negExtra.categoria ? [negExtra.categoria] : [];
-    info.appendChild(campo("Áreas de atuação", marcas("categorias", CATS_NEGOCIO.servicos, () => montarExtras()), "Marque todas que você faz. Você aparece em cada filtro marcado."));
+    negExtra.categorias = negExtra.categorias.filter((k) => k in CATS_NEGOCIO.servicos).slice(0, MAX_AREAS);
+    info.appendChild(seletorAreas());
     if (negExtra.categorias.includes("transporte")) {
       const mot = document.createElement("div");
       mot.className = "neg-bloco";
@@ -457,8 +556,8 @@ function montarExtras() {
   } else if (t === "imoveis") {
     info.appendChild(grade("", campo("Você é", seletor("tipoAnunciante", { proprietario: "Proprietário(a)", corretor: "Corretor(a)", imobiliaria: "Imobiliária" })), campo("CRECI (se tiver)", entrada("creci", { placeholder: "Ex.: 12345-J", max: 20 }))));
   } else {
-    info.appendChild(campo("Categoria", seletor("categoria", CATS_NEGOCIO[t], () => { if (t === "lojinha") montarExtras(); }), "Define em qual filtro da página você aparece"));
-    if (t === "lojinha" && negExtra.categoria === "outros") info.appendChild(campo("Sua categoria", entrada("categoriaPersonalizada", { placeholder: "Ex.: Papelaria, Plantas, Suplementos", max: 30 }), "Vira um filtro próprio na página do Shopping."));
+    info.appendChild(campo("Categoria", seletor("categoria", CATS_NEGOCIO[t], () => montarExtras()), "Define em qual filtro da página você aparece"));
+    if (negExtra.categoria === "outros") info.appendChild(campo(CAT_PROPRIA[t][0], entrada("categoriaPersonalizada", { placeholder: CAT_PROPRIA[t][1], max: 30 }), CAT_PROPRIA[t][2]));
   }
   if (t === "delivery") {
     info.appendChild(grade("quatro",
@@ -549,7 +648,7 @@ function montarExtras() {
         if (t === "servicos" && (negExtra.categorias || []).length > 1) {
           const sel = document.createElement("select");
           sel.className = "area-item"; sel.setAttribute("aria-label", "Área do serviço");
-          negExtra.categorias.forEach((k) => { const o = document.createElement("option"); o.value = k; o.textContent = CATS_NEGOCIO.servicos[k]; sel.appendChild(o); });
+          negExtra.categorias.forEach((k) => { const o = document.createElement("option"); o.value = k; o.textContent = k === "outros" ? negExtra.categoriaPersonalizada || "Outra" : CATS_NEGOCIO.servicos[k]; sel.appendChild(o); });
           if (!negExtra.categorias.includes(it.categoria)) it.categoria = negExtra.categorias[0];
           sel.value = it.categoria;
           sel.addEventListener("change", () => { it.categoria = sel.value; });
@@ -684,7 +783,7 @@ async function pintarMeusAnuncios(lista) {
     const tx = document.createElement("div");
     tx.className = "tx";
     const t1 = document.createElement("strong");
-    t1.textContent = a.titulo || `${CATS_NEGOCIO.imoveis[a.categoria] || "Imóvel"} · ${FINALIDADES[a.finalidade] || ""}`;
+    t1.textContent = a.titulo || `${(a.categoria === "outros" && a.categoriaPersonalizada) || CATS_NEGOCIO.imoveis[a.categoria] || "Imóvel"} · ${FINALIDADES[a.finalidade] || ""}`;
     const t2 = document.createElement("small");
     t2.textContent = [FINALIDADES[a.finalidade], moedaBR(a.preco), a.bairro].filter(Boolean).join(" · ");
     tx.append(t1, t2);
@@ -745,14 +844,17 @@ function abrirFormAnuncio(a) {
     i.addEventListener("input", () => { anEdit[chave] = numero ? numeroBR(i.value) : i.value.trim(); });
     return i;
   };
-  const sel = (chave, opcoes) => {
+  const sel = (chave, opcoes, aoMudar) => {
     const s = document.createElement("select");
     Object.entries(opcoes).forEach(([v, t]) => { const o = document.createElement("option"); o.value = v; o.textContent = t; s.appendChild(o); });
     s.value = anEdit[chave] in opcoes ? anEdit[chave] : Object.keys(opcoes)[0];
     anEdit[chave] = s.value;
-    s.addEventListener("change", () => { anEdit[chave] = s.value; });
+    s.addEventListener("change", () => { anEdit[chave] = s.value; aoMudar?.(); });
     return s;
   };
+  // "Outro (escrever)": campo para a pessoa dizer o tipo (Chácara, Galpão...).
+  const tipoProprio = campo(CAT_PROPRIA.imoveis[0], ent("categoriaPersonalizada", { placeholder: CAT_PROPRIA.imoveis[1], max: 30 }), CAT_PROPRIA.imoveis[2]);
+  const mostrarTipoProprio = () => { tipoProprio.hidden = anEdit.categoria !== "outros"; };
   const desc = document.createElement("textarea");
   desc.maxLength = 800; desc.placeholder = "Diferenciais, estado do imóvel, o que está incluso, regras..."; desc.value = anEdit.descricao || "";
   desc.addEventListener("input", () => { anEdit.descricao = desc.value.trim(); });
@@ -787,7 +889,8 @@ function abrirFormAnuncio(a) {
   corpo.append(
     fotosSec,
     campo("Título do anúncio", ent("titulo", { placeholder: "Ex.: Apartamento 2 quartos perto da UFSC", max: 80 })),
-    grade("", campo("Finalidade", sel("finalidade", FINALIDADES)), campo("Tipo de imóvel", sel("categoria", CATS_NEGOCIO.imoveis))),
+    grade("", campo("Finalidade", sel("finalidade", FINALIDADES)), campo("Tipo de imóvel", sel("categoria", CATS_NEGOCIO.imoveis, mostrarTipoProprio))),
+    tipoProprio,
     grade("", campo("Preço (R$)", ent("preco", { numero: true, placeholder: "2500" }), "Aluguel: por mês · Temporada: por diária"), campo("Condomínio (R$)", ent("condominio", { numero: true }))),
     grade("quatro",
       campo("Quartos", ent("quartos", { numero: true, max: 3 })),
@@ -805,6 +908,7 @@ function abrirFormAnuncio(a) {
     campo("Condições", marcas("condicoes", CONDICOES_IMOVEL, null, anEdit), "Garantias do aluguel, financiamento, pets..."),
     campo("Descrição", desc)
   );
+  mostrarTipoProprio();
   abrirFolha("folhaAnuncio");
 }
 
@@ -814,6 +918,8 @@ $("anSalvar").addEventListener("click", async () => {
   if (erroLocal) { toast(erroLocal); return; }
   const l = anLocal.ler();
   const localAn = { cidade: l.cidade, uf: l.uf, cidadeIbge: l.cidadeIbge, bairro: l.bairro, rua: l.rua, numero: l.numero, complemento: l.complemento, cep: l.cep };
+  const tipoProprioTx = a.categoria === "outros" ? textoCatPropria(a.categoriaPersonalizada) : "";
+  if (a.categoria === "outros" && !tipoProprioTx) { toast(`Escreva o tipo do imóvel (campo "${CAT_PROPRIA.imoveis[0]}").`); return; }
   if (!Number(a.preco) && !(await confirmarHF({ titulo: "Publicar sem preço?", texto: "O anúncio vai mostrar \"Consultar\" no lugar do preço.", ok: "Publicar", icone: "info", cor: "normal" }))) return;
   const btn = $("anSalvar");
   btn.disabled = true; btn.textContent = "Publicando...";
@@ -830,10 +936,20 @@ $("anSalvar").addEventListener("click", async () => {
       hospedes: a.hospedes ?? null, caracteristicas: (a.caracteristicas || []).filter((k) => CARACT_IMOVEL[k]), condicoes: (a.condicoes || []).filter((k) => CONDICOES_IMOVEL[k]),
       criadoEm: a.criadoEm || fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp()
     };
+    if (tipoProprioTx) dadosAn.categoriaPersonalizada = tipoProprioTx;
     if (!anEditandoId) dadosAn.criadoEm = fb.serverTimestamp();
     else delete dadosAn.criadoEm;
     if (JSON.stringify(dadosAn).length > 950000) throw new Error("Fotos pesadas demais. Remova uma foto e tente de novo.");
-    await gravarComLocal((d) => fb.setDoc(ref, d, { merge: true }), dadosAn, NOVOS.anuncio);
+    // Regras do ar ainda sem "categoriaPersonalizada" nos anúncios: grava sem ela e usa o tipo escrito no título.
+    const gravarAn = async (d) => {
+      try { await fb.setDoc(ref, d, { merge: true }); }
+      catch (e) {
+        if (e?.code !== "permission-denied" || !("categoriaPersonalizada" in d)) throw e;
+        const { categoriaPersonalizada: cp, ...resto } = d;
+        await fb.setDoc(ref, { ...resto, titulo: resto.titulo || (cp ? `${cp} para ${(FINALIDADES[resto.finalidade] || "negociar").toLowerCase()}` : "") }, { merge: true });
+      }
+    };
+    await gravarComLocal(gravarAn, dadosAn, NOVOS.anuncio);
     fecharFolha("folhaAnuncio");
     toast(anEditandoId ? "Imóvel atualizado" : "Imóvel anunciado");
     const lista = document.querySelector("#negExtras .neg-anuncios");
@@ -965,12 +1081,33 @@ function montarHorario() {
 }
 
 // ---------- promoção / cupom ----------
+const msPromo = (ate) => ate?.toMillis?.() ?? (ate?.seconds || 0) * 1000;
+// Faixa no cartão de Meus negócios: no ar (com o prazo e o cupom), aguardando a atualização ou encerrada.
+function situacaoPromo(n) {
+  const pend = extrasPendentes(n.id);
+  const pr = pend && "promocao" in pend ? pend.promocao : n.promocao;
+  if (!pr?.titulo) return null;
+  const fim = msPromo(pr.ate), noAr = fim > Date.now();
+  const d = el("button", "ng-promo-st " + (!noAr ? "fim" : pend && "promocao" in pend ? "espera" : "on"));
+  d.type = "button";
+  const tx = el("span", "tx");
+  tx.append(el("strong", null, !noAr ? "Promoção encerrada" : pend && "promocao" in pend ? "Promoção salva" : "Promoção no ar"),
+    el("small", null, !noAr ? `Terminou em ${new Date(fim).toLocaleDateString("pt-BR")} · toque para criar outra`
+      : pend && "promocao" in pend ? "Aparece para os clientes assim que a atualização do sistema for publicada"
+      : [pr.titulo, prazoPromo(pr.ate)].join(" · ")));
+  d.append(icone("selo", "i s"), tx);
+  if (noAr && pr.codigo) d.appendChild(el("span", "cupom", pr.codigo));
+  d.addEventListener("click", () => abrirFormNegocio(n, { promo: true }));
+  return d;
+}
 const dataInput = (d) => { const x = d instanceof Date && !isNaN(d) ? d : new Date(Date.now() + 14 * 864e5); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`; };
 function montarPromo() {
   const box = $("negPromo");
   box.replaceChildren();
   const tit = el("div", "ng-bloco-tit");
-  const tx = el("div"); tx.append(el("strong", null, "Promoção ou cupom"), el("small", null, "Destaque no topo do perfil, com prazo para acabar"));
+  const tx = el("div"); tx.append(el("strong", null, "Promoção ou cupom"), el("small", null, negPromo?.terminou && !negPromo.ativa
+    ? `A última terminou em ${new Date(negPromo.terminou).toLocaleDateString("pt-BR")}. Ligue para criar outra.`
+    : "Destaque no topo do perfil e selo nos cartões, com prazo para acabar"));
   const chave = el("label", "ng-chave ng-chave-dir");
   const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = !!negPromo?.ativa; cb.setAttribute("aria-label", "Promoção ativa");
   chave.append(cb, el("i"));
@@ -978,7 +1115,7 @@ function montarPromo() {
   tit.append(icP, tx, chave);
   box.appendChild(tit);
   cb.addEventListener("change", () => {
-    if (cb.checked) negPromo = { titulo: "", texto: "", codigo: "", ate: dataInput(null), ...(negPromo || {}), ativa: true };
+    if (cb.checked) negPromo = { titulo: "", texto: "", codigo: "", ate: dataInput(null), ...(negPromo || {}), ativa: true, terminou: 0 };
     else if (negPromo) negPromo.ativa = false;
     montarPromo();
   });
@@ -996,7 +1133,7 @@ function montarPromo() {
     return campo(rot, i, ajuda);
   };
   const hoje = new Date(), max = new Date(Date.now() + 60 * 864e5);
-  const ate = document.createElement("input"); ate.type = "date"; ate.id = "negPromo_ate"; ate.dataset.nativo = "";
+  const ate = document.createElement("input"); ate.type = "date"; ate.id = "negPromo_ate"; ate.dataset.titulo = "Promoção válida até";
   ate.min = dataInput(hoje); ate.max = dataInput(max); ate.value = p.ate || dataInput(null);
   ate.addEventListener("change", () => { p.ate = ate.value; pintarPrevia(); });
   const previa = el("div", "ng-promo-previa");
@@ -1014,7 +1151,7 @@ function montarPromo() {
   box.append(
     ent("titulo", "Título", { max: 60, ph: "Ex.: 10% de desconto no primeiro pedido" }),
     ent("texto", "Detalhes (opcional)", { max: 200, area: true, ph: "Regras, o que está incluso, como usar..." }),
-    grade("", ent("codigo", "Código do cupom (opcional)", { max: 20, ph: "BEMVINDO10", ajuda: "Letras e números. O cliente copia com um toque." }), campo("Válida até", ate, "No máximo 60 dias.")),
+    grade("", ent("codigo", "Código do cupom (opcional)", { max: 20, ph: "BEMVINDO10", ajuda: "Letras e números. O cliente copia com um toque e ele já vai junto no pedido." }), campo("Válida até", ate, "Até o fim do dia. No máximo 60 dias.")),
     previa
   );
 }
@@ -1126,6 +1263,8 @@ $("negSalvar").addEventListener("click", async () => {
     if (capa.startsWith("data:")) capa = await salvarImagem(capa, `negocios/${id}_capa.jpg`);
     const x = negExtra;
     if (negTipo === "servicos" && !(x.categorias || []).length) { throw new Error("Marque pelo menos uma área de atuação."); }
+    const temOutra = negTipo === "servicos" ? x.categorias.includes("outros") : x.categoria === "outros";
+    if (temOutra && negTipo !== "imoveis" && !textoCatPropria(x.categoriaPersonalizada)) { $("negX_categoriaPersonalizada")?.focus(); throw new Error(`Escreva ${negTipo === "servicos" ? "qual é a sua área" : "a sua categoria"} (campo "${CAT_PROPRIA[negTipo][0]}").`); }
     // Horário por dia: também preenche os campos antigos (dias, abre/fecha, resumo), que a vitrine e os filtros usam.
     const semana = negSemana.some(Boolean) ? [...negSemana] : null;
     if (semana) {
@@ -1137,13 +1276,13 @@ $("negSalvar").addEventListener("click", async () => {
     }
     const extras = { categoria: negTipo === "servicos" ? x.categorias[0] : (x.categoria || Object.keys(CATS_NEGOCIO[negTipo])[0]), fotos: [], itens: [] };
     const campos = {
-      servicos: ["categorias", "precoDesde", "horario", "atendimento", "dias", "regiao", "experiencia", "diferenciais", "pagamentos"],
-      delivery: ["horaAbre", "horaFecha", "tempoMin", "tempoMax", "taxaEntrega", "pedidoMinimo", "dias", "opcoesEntrega", "pagamentos"],
+      servicos: ["categorias", "precoDesde", "horario", "atendimento", "dias", "regiao", "experiencia", "diferenciais", "pagamentos", "categoriaPersonalizada"],
+      delivery: ["horaAbre", "horaFecha", "tempoMin", "tempoMax", "taxaEntrega", "pedidoMinimo", "dias", "opcoesEntrega", "pagamentos", "categoriaPersonalizada"],
       lojinha: ["entrega", "pagamentos", "categoriaPersonalizada"],
       imoveis: ["tipoAnunciante", "creci"]
     }[negTipo];
     campos.forEach((k) => { extras[k] = x[k] ?? null; });
-    if (negTipo === "lojinha") extras.categoriaPersonalizada = extras.categoria === "outros" ? String(x.categoriaPersonalizada || "").trim().slice(0, 30) : "";
+    if (negTipo !== "imoveis") extras.categoriaPersonalizada = temOutra ? textoCatPropria(x.categoriaPersonalizada) : "";
     if (negTipo === "servicos") {
       const motorista = x.categorias.includes("transporte");
       extras.cnh = motorista ? (x.cnh || []) : [];

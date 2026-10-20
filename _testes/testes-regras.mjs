@@ -48,6 +48,8 @@ await t("negócio: sem endereço detalhado continua valendo", () => assertSuccee
 const anuncio = (extra) => ({ donoId: "dono", tipo: "imovel", titulo: "Apto 2 quartos", finalidade: "aluguel", categoria: "apartamento", bairro: "Trindade", cidade: "Florianópolis", uf: "SC", cidadeIbge: 4205407, ...extra });
 await t("anúncio: cria com estado, cidade, bairro, rua e CEP", () => assertSucceeds(setDoc(doc(ctx("dono"), "anuncios", "a1"), anuncio({ rua: "Rua Lauro Linhares", cep: "88036001" }))));
 await t("anúncio: recusa UF errada", () => assertFails(setDoc(doc(ctx("dono"), "anuncios", "a2"), anuncio({ uf: "sc" }))));
+await t("anúncio: tipo escrito pela pessoa (Outro) até 30 letras", () => assertSucceeds(setDoc(doc(ctx("dono"), "anuncios", "a4"), anuncio({ categoria: "outros", categoriaPersonalizada: "Chácara" }))));
+await t("anúncio: recusa tipo escrito com mais de 30 letras", () => assertFails(setDoc(doc(ctx("dono"), "anuncios", "a5"), anuncio({ categoria: "outros", categoriaPersonalizada: "x".repeat(31) }))));
 await t("anúncio: recusa campo desconhecido", () => assertFails(setDoc(doc(ctx("dono"), "anuncios", "a3"), anuncio({ estado: "SC" }))));
 await t("usuário: endereço completo na parte privada", () => assertSucceeds(setDoc(doc(ctx("ana"), "usuarios", "ana"), { cidade: "Florianópolis", uf: "SC", cidadeIbge: 4205407, endereco: { cep: "88010001", uf: "SC", cidade: "Florianópolis", cidadeIbge: 4205407, bairro: "Centro", rua: "Rua A", numero: "1", complemento: "" } }, { merge: true })));
 await t("usuário: outra pessoa não lê o endereço", () => assertFails(getDoc(doc(ctx("bia"), "usuarios", "ana"))));

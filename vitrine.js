@@ -23,8 +23,57 @@ const TIPO = TIPO_PAGINA || "servicos";
 export const CORES_TIPO = { servicos: "#00adee", delivery: "#ff7a1a", lojinha: "#b066ff", imoveis: "#2fbf71" };
 export const NOMES_TIPO = { servicos: "Freelances", delivery: "Delivery", lojinha: "Lojinha", imoveis: "Imóveis" };
 export const PAGINA_TIPO = { servicos: "servicos.html", delivery: "delivery.html", lojinha: "shopping.html", imoveis: "imoveis.html" };
+// Áreas de atuação dos Freelances, em grupos. [nome, palavras que a busca também encontra].
+// As chaves antigas (limpeza, reformas, beleza, transporte, pets, outros) continuam valendo.
+export const GRUPOS_SERV = [
+  { nome: "Casa e reparos", areas: {
+    limpeza: ["Limpeza e faxina", "faxina diarista faxineira passadeira limpeza pos obra higienizacao sofa"],
+    reformas: ["Reformas e obras", "pedreiro obra azulejo piso gesso drywall construcao telhado"],
+    eletrica: ["Eletricista", "eletrica tomada chuveiro disjuntor instalacao iluminacao"],
+    hidraulica: ["Encanador", "hidraulica vazamento desentupimento caixa d agua torneira"],
+    pintura: ["Pintura", "pintor parede textura grafiato"],
+    montagem: ["Montagem de móveis", "montador marceneiro marcenaria moveis planejados"],
+    marido: ["Marido de aluguel", "pequenos reparos consertos gerais instalacoes"],
+    jardim: ["Jardinagem e piscina", "jardineiro paisagismo poda grama piscineiro"],
+    climatizacao: ["Ar-condicionado", "refrigeracao climatizacao instalacao limpeza de ar"],
+    eletro: ["Conserto de eletrodomésticos", "maquina de lavar geladeira fogao microondas tecnico"]
+  } },
+  { nome: "Beleza e bem-estar", areas: {
+    beleza: ["Beleza e estética", "cabeleireiro cabelo manicure unha maquiagem sobrancelha barbeiro depilacao cilios estetica saude"],
+    saude: ["Saúde e terapias", "massagem fisioterapia psicologo nutricionista enfermagem terapeuta"],
+    fitness: ["Personal e esportes", "personal trainer academia yoga pilates treino"]
+  } },
+  { nome: "Aulas e cursos", areas: {
+    aulas: ["Aulas particulares", "reforco escolar professor matematica vestibular enem"],
+    idiomas: ["Idiomas", "ingles espanhol frances traducao professor de idioma"],
+    musica: ["Música", "pianista piano violao guitarra musico banda cantor aula de musica"]
+  } },
+  { nome: "Eventos e arte", areas: {
+    fotografia: ["Foto e vídeo", "fotografo fotografia filmagem video drone ensaio"],
+    eventos: ["Festas e eventos", "decoracao garcom recreacao dj animador cerimonial"],
+    culinaria: ["Culinária e buffet", "cozinheira chef buffet bolo doces confeitaria salgados marmita"],
+    costura: ["Costura e artesanato", "costureira ajustes bainha artesanato croche"]
+  } },
+  { nome: "Transporte", areas: {
+    transporte: ["Motorista e transporte", "motorista transporte van escolar transfer viagem"],
+    mudancas: ["Mudanças e fretes", "mudanca frete carreto caminhao"],
+    entregas: ["Entregas e motoboy", "motoboy entregador entrega rapida"]
+  } },
+  { nome: "Cuidados e pets", areas: {
+    pets: ["Pets", "banho e tosa passeador adestrador pet sitter cachorro gato veterinario"],
+    baba: ["Babá", "baba cuidadora de criancas"],
+    idosos: ["Cuidador de idosos", "cuidadora acompanhante idoso"]
+  } },
+  { nome: "Tecnologia e escritório", areas: {
+    tecnologia: ["Informática e celular", "computador notebook formatacao conserto de celular tecnico de informatica"],
+    digital: ["Design e marketing", "designer logo social media sites programacao marketing digital"],
+    consultoria: ["Contabilidade e consultoria", "contador mei imposto de renda advogado consultor"]
+  } }
+];
+const AREAS_SERV = Object.assign({}, ...GRUPOS_SERV.map((g) => g.areas));
+export const PALAVRAS_SERV = Object.fromEntries(Object.entries(AREAS_SERV).map(([k, [, p]]) => [k, p]));
 export const CATEGORIAS = {
-  servicos: { limpeza: "Limpeza", reformas: "Reformas", beleza: "Saúde e Beleza", transporte: "Transporte / Motorista", pets: "Pets", outros: "Outros" },
+  servicos: { ...Object.fromEntries(Object.entries(AREAS_SERV).map(([k, [nome]]) => [k, nome])), outros: "Outros" },
   delivery: { hamburguer: "Hambúrguer", pizza: "Pizza", sushi: "Sushi", doces: "Doces", bebidas: "Bebidas", outros: "Outros" },
   lojinha: { roupas: "Moda e roupas", calcados: "Calçados", acessorios: "Acessórios", beleza: "Beleza", eletronicos: "Eletrônicos", casa: "Casa e decoração", mercado: "Mercado", artesanato: "Artesanato", infantil: "Infantil", esportes: "Esportes", outros: "Outros" },
   imoveis: { apartamento: "Apartamento", casa: "Casa", kitnet: "Kitnet", terreno: "Terreno", comercial: "Comercial", outros: "Outros" }
@@ -58,6 +107,7 @@ const el = (tag, cls, texto) => { const e = document.createElement(tag); if (cls
 const ICONES = {
   chat: '<path d="M20.5 11.6c0 4.3-3.8 7.6-8.5 7.6-1.2 0-2.3-.2-3.3-.6L4 20l1.2-3.6c-1.1-1.3-1.7-3-1.7-4.8C3.5 7.4 7.3 4 12 4s8.5 3.4 8.5 7.6z"/>',
   whats: '<path d="M20.5 11.7a8.5 8.5 0 01-12.6 7.5L3.5 20.5l1.3-4.2A8.5 8.5 0 1120.5 11.7z"/><path d="M9 8.5c0 3.5 3 6.5 6.5 6.5l1-1.6-2-1-1 .8a4.5 4.5 0 01-2.4-2.4l.8-1-1-2z"/>',
+  filtro: '<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',
   pin: '<path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0113 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/>',
   relogio: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4.5l3 1.8"/>',
   moto: '<circle cx="6" cy="17" r="2.6"/><circle cx="18" cy="17" r="2.6"/><path d="M8.6 17h6.8M14 7h3l2.5 7.5M12 11h5M6 14.4L9 9h4"/>',
@@ -157,14 +207,18 @@ function abertoAgora(n) {
 }
 // Áreas de atuação do profissional (aceita cadastro antigo com uma categoria só).
 export const nomeCategoria = (n) => (n.categoria === "outros" && n.categoriaPersonalizada ? n.categoriaPersonalizada : CATEGORIAS[n.tipo]?.[n.categoria] || NOMES_TIPO[n.tipo]);
+// Nome de uma categoria do perfil/anúncio: "outros" mostra o que a pessoa escreveu (Pianista, Chácara...).
+export const nomeCat = (n, k) => (k === "outros" && n.categoriaPersonalizada ? n.categoriaPersonalizada : CATEGORIAS[n.tipo === "imovel" ? "imoveis" : n.tipo]?.[k] || k);
+// Filtro/grupo de uma categoria: a personalizada vira "c:Nome" (um filtro só dela).
+const chaveCat = (n, k) => (k === "outros" && n.categoriaPersonalizada ? "c:" + n.categoriaPersonalizada : k);
 export const categoriasDe = (n) => (Array.isArray(n.categorias) && n.categorias.length ? n.categorias : n.categoria ? [n.categoria] : []);
 const precoImovel = (a) => (moeda(a.preco) ? moeda(a.preco) + (a.finalidade === "aluguel" ? "/mês" : a.finalidade === "temporada" ? "/dia" : "") : "Consultar");
-const tituloImovel = (a) => a.titulo || `${CATEGORIAS.imoveis[a.categoria] || "Imóvel"} para ${(FINALIDADE[a.finalidade] || "negociar").toLowerCase()}`;
+const tituloImovel = (a) => a.titulo || `${(a.categoria && nomeCat(a, a.categoria)) || "Imóvel"} para ${(FINALIDADE[a.finalidade] || "negociar").toLowerCase()}`;
 const fotoPequena = (u) => { const s = urlSegura(u); return s && s.length < 220000 ? s : ""; };
 
 // ---------- conversa com cartão do que o cliente quer ----------
 export function cartaoDeNegocio(n) {
-  const cats = categoriasDe(n).map((c) => CATEGORIAS[n.tipo]?.[c]).filter(Boolean);
+  const cats = categoriasDe(n).map((c) => CATEGORIAS[n.tipo]?.[c] && nomeCat(n, c)).filter(Boolean);
   return {
     tipo: n.tipo, titulo: n.nome || NOMES_TIPO[n.tipo],
     sub: [NOMES_TIPO[n.tipo], cats.slice(0, 2).join(", ")].filter(Boolean).join(" · "),
@@ -263,6 +317,7 @@ function textoPedidoWhats(n, r, extra) {
   l.push(`Total: ${reais(r.total)}${r.aCombinar ? " + itens a combinar" : ""}`);
   if (extra.modo) l.push(extra.modo === "retirada" ? "Vou retirar no local." : `Entregar em: ${extra.endereco || "(combinar)"}`);
   if (extra.pagamento) l.push(`Pagamento: ${PAGAMENTOS[extra.pagamento] || extra.pagamento}${extra.troco ? ` (troco para ${reais(extra.troco)})` : ""}`);
+  if (extra.cupom) l.push(textoCupom(extra.cupom));
   if (extra.obs) l.push("", `Obs.: ${extra.obs}`);
   return l.join("\n");
 }
@@ -276,7 +331,10 @@ function cartaoDePedido(n, r, extra) {
       itens: r.linhas.slice(0, 30).map(({ nome, qtd, preco }) => ({ nome, qtd, preco })),
       subtotal: r.subtotal, taxa: r.taxa, total: r.total, obs: String(extra.obs || "").slice(0, 300),
       modo: extra.modo || "", endereco: String(extra.endereco || "").slice(0, 200),
-      pagamento: extra.pagamento || "", troco: Number(extra.troco) > 0 ? Number(extra.troco) : null
+      pagamento: extra.pagamento || "", troco: Number(extra.troco) > 0 ? Number(extra.troco) : null,
+      cupom: cupomDoEstado(extra.cupom),
+      // Previsão de entrega mostrada no cartão do pedido ("30–50 min").
+      prazo: n.tipo === "delivery" && extra.modo !== "retirada" && (n.tempoMin || n.tempoMax) ? `${n.tempoMin || n.tempoMax}–${n.tempoMax || n.tempoMin} min` : ""
     }
   };
 }
@@ -316,6 +374,71 @@ function chipsEscolha(opcoes, { multi = false, valor = multi ? [] : "", aoMudar 
   });
   return box;
 }
+// ---------- cupom / promoção no pedido e no orçamento ----------
+// Ao copiar o cupom no perfil ele fica guardado no aparelho e já entra no pedido daquele negócio.
+const chaveCupom = (n) => `hf-cupom-${n.id || n.donoId + "_" + n.tipo}`;
+const normCupom = (v) => String(v || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 20);
+function guardarCupom(n, codigo) { try { sessionStorage.setItem(chaveCupom(n), codigo); } catch {} }
+function cupomGuardado(n) { try { return sessionStorage.getItem(chaveCupom(n)) || ""; } catch { return ""; } }
+// "Termina hoje", "Termina amanhã", "Faltam 3 dias" (até 7 dias) ou "Válida até 20 de outubro".
+export function prazoPromo(ate) {
+  const fim = new Date(ate?.toMillis?.() ?? ate);
+  const dia = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const dias = Math.round((dia(fim) - dia(new Date())) / 864e5);
+  if (dias <= 0) return `Termina hoje às ${fim.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+  if (dias === 1) return "Termina amanhã";
+  if (dias <= 7) return `Faltam ${dias} dias`;
+  return "Válida até " + fim.toLocaleDateString("pt-BR", { day: "2-digit", month: "long" });
+}
+// Bloco do pedido: promoção sem código entra sozinha; com código, a pessoa digita (ou já vem do "Copiar").
+function blocoCupom(n, estado) {
+  const promo = promoAtiva(n);
+  estado.cupom = null;
+  if (!promo) return null;
+  const box = el("div", "vd-cupom-ped");
+  if (promo.codigo && normCupom(cupomGuardado(n)) === promo.codigo) estado.cupom = { codigo: promo.codigo, titulo: promo.titulo };
+  if (!promo.codigo) estado.cupom = { codigo: "", titulo: promo.titulo };
+  const pintar = () => {
+    box.replaceChildren();
+    box.classList.toggle("ok", !!estado.cupom);
+    const ic = el("span", "ic"); ic.appendChild(icone(estado.cupom ? "check" : "cupom", "vi"));
+    const tx = el("div", "tx");
+    box.append(ic, tx);
+    if (estado.cupom) {
+      tx.append(el("small", null, promo.codigo ? "Cupom aplicado" : "Promoção do negócio"), el("strong", null, promo.titulo),
+        el("span", "nota", promo.codigo ? `Código ${promo.codigo} · vai junto no pedido` : "Vai junto no pedido. O negócio confirma o desconto na conversa."));
+      if (promo.codigo) {
+        const x = el("button", "vd-link"); x.type = "button"; x.textContent = "Remover";
+        x.addEventListener("click", () => { estado.cupom = null; guardarCupom(n, ""); pintar(); });
+        box.appendChild(x);
+      }
+      return;
+    }
+    tx.append(el("small", null, "Tem um cupom?"), el("span", "nota", `${promo.titulo} · ${prazoPromo(promo.ate)}`));
+    const linha = el("div", "vd-cupom-linha");
+    const i = document.createElement("input");
+    i.className = "vd-input"; i.placeholder = "Código do cupom"; i.maxLength = 20; i.autocapitalize = "characters"; i.autocomplete = "off"; i.spellcheck = false;
+    i.addEventListener("input", () => { i.value = normCupom(i.value); });
+    const ap = el("button", "vt-btn sec"); ap.type = "button"; ap.textContent = "Aplicar";
+    const aplicar = () => {
+      const c = normCupom(i.value);
+      if (!c) { toast("Digite o código do cupom."); i.focus(); return; }
+      if (c !== promo.codigo) { toast("Cupom inválido ou vencido. Confira o código no perfil do negócio."); i.select(); return; }
+      estado.cupom = { codigo: promo.codigo, titulo: promo.titulo };
+      guardarCupom(n, promo.codigo);
+      toast("Cupom aplicado");
+      pintar();
+    };
+    ap.addEventListener("click", aplicar);
+    i.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); aplicar(); } });
+    linha.append(i, ap);
+    tx.appendChild(linha);
+  };
+  pintar();
+  return box;
+}
+const cupomDoEstado = (c) => (c ? { codigo: String(c.codigo || "").slice(0, 20), titulo: String(c.titulo || "").slice(0, 60) } : null);
+const textoCupom = (c) => (c ? (c.codigo ? `Cupom: ${c.codigo} (${c.titulo})` : `Promoção: ${c.titulo}`) : "");
 function campoVd(rotulo, ...filhos) {
   const c = el("div", "vd-campo");
   c.append(el("label", null, rotulo), ...filhos);
@@ -336,7 +459,8 @@ function abrirPedido(n, opcoes, aoMudar) {
   const ct = el("div", "conteudo");
   caixa.appendChild(ct);
   const receb = opcoesRecebimento(n);
-  const estado = { modo: receb[0], pagamento: "", troco: null, endereco: "", obs: "" };
+  const estado = { modo: receb[0], pagamento: "", troco: null, endereco: "", obs: "", cupom: null };
+  let caixaCupom = null;
   const pintar = () => {
     const carrinho = lerCarrinho(n);
     const r = resumoPedido(n, carrinho, estado.modo);
@@ -395,6 +519,9 @@ function abrirPedido(n, opcoes, aoMudar) {
       ct.appendChild(campoVd("Troco para quanto?", tr));
     }
 
+    // O bloco do cupom é montado uma vez e reaproveitado (o pedido se redesenha a cada mudança).
+    if (caixaCupom === null) caixaCupom = blocoCupom(n, estado) || false;
+    if (caixaCupom) ct.appendChild(caixaCupom);
     const tot = el("div", "vd-totais");
     const linha = (a, b, cls) => { const d = el("div", cls || ""); d.append(el("span", null, a), el("span", null, b)); tot.appendChild(d); };
     linha(`Subtotal (${r.unidades} ${r.unidades === 1 ? "item" : "itens"})`, reais(r.subtotal));
@@ -545,7 +672,7 @@ export function abrirOrcamento(n, opcoes = {}, preIdx = null) {
   const ct = el("div", "conteudo");
   caixa.appendChild(ct);
   const itens = (n.itens || []).map((i, idx) => ({ i, idx })).filter(({ i }) => i?.nome);
-  const opServ = itens.length ? Object.fromEntries(itens.map(({ i, idx }) => [String(idx), i.nome])) : Object.fromEntries(categoriasDe(n).map((k) => [k, CATEGORIAS.servicos[k] || k]));
+  const opServ = itens.length ? Object.fromEntries(itens.map(({ i, idx }) => [String(idx), i.nome])) : Object.fromEntries(categoriasDe(n).map((k) => [k, nomeCat(n, k)]));
   const estado = { servicos: preIdx !== null && opServ[String(preIdx)] ? [String(preIdx)] : (Object.keys(opServ).length === 1 ? Object.keys(opServ) : []), descricao: "", quando: "", data: "", periodo: "", local: "" };
   const modos = n.atendimento || [];
 
@@ -567,7 +694,7 @@ export function abrirOrcamento(n, opcoes = {}, preIdx = null) {
     if (estado.quando === "urgente" && !(n.diferenciais || []).includes("urgencia")) quandoBox.appendChild(el("p", "vd-nota", "Este profissional não marcou que atende urgências, mas você pode perguntar."));
     if (estado.quando === "agendar") {
       const d = document.createElement("input");
-      d.type = "date"; d.className = "vd-input";
+      d.type = "date"; d.className = "vd-input"; d.dataset.titulo = "Para qual dia?";
       const hoje = new Date(); d.min = new Date(hoje.getTime() - hoje.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
       d.value = estado.data;
       d.addEventListener("change", () => { estado.data = d.value; });
@@ -597,9 +724,12 @@ export function abrirOrcamento(n, opcoes = {}, preIdx = null) {
   } else if (modos.includes("online")) ct.appendChild(el("p", "vd-dica", "Atendimento online."));
   else if (modos.includes("local")) ct.appendChild(el("p", "vd-dica", "Atendimento no local do profissional."));
 
+  const cupomOrc = blocoCupom(n, estado);
+  if (cupomOrc) ct.appendChild(cupomOrc);
   const montar = () => {
     const nomes = estado.servicos.map((k) => opServ[k]).filter(Boolean);
     return {
+      cupom: cupomDoEstado(estado.cupom),
       servicos: nomes.slice(0, 12), descricao: estado.descricao.trim().slice(0, 600),
       quando: { tipo: estado.quando, data: estado.quando === "agendar" ? estado.data : "", periodo: estado.quando === "agendar" ? estado.periodo : "" },
       local: estado.local.trim().slice(0, 80),
@@ -633,7 +763,7 @@ export function abrirOrcamento(n, opcoes = {}, preIdx = null) {
       const s = montar();
       const txt = [`Olá! Vi seu perfil "${n.nome}" no Help Floripa e gostaria de um orçamento.`, "",
         s.servicos.length ? `Serviço: ${s.servicos.join(", ")}` : "", `Descrição: ${s.descricao}`,
-        `Quando: ${textoQuando(s.quando)}`, s.local ? `Local: ${s.local}` : ""].filter(Boolean).join("\n");
+        `Quando: ${textoQuando(s.quando)}`, s.local ? `Local: ${s.local}` : "", textoCupom(s.cupom)].filter(Boolean).join("\n");
       w.href = w.href.split("?")[0] + "?text=" + encodeURIComponent(txt);
     });
     barra.appendChild(w);
@@ -749,7 +879,7 @@ function cartaoServico(n) {
   const cats = categoriasDe(n);
   c.appendChild(cabecalhoCartao(n, [estrelasNeg(idNegocio(n), { nome: n.nome, donoId: n.donoId })]));
   const areas = el("div", "vt-areas");
-  cats.slice(0, 3).forEach((k) => areas.appendChild(el("span", "vt-tag", CATEGORIAS.servicos[k] || k)));
+  cats.slice(0, 3).forEach((k) => areas.appendChild(el("span", "vt-tag", nomeCat(n, k))));
   if (cats.length > 3) areas.appendChild(el("span", "vt-tag neutra", `+${cats.length - 3}`));
   (n.diferenciais || []).filter((k) => k === "urgencia" || k === "orcamentoGratis").forEach((k) => { const t = el("span", "vt-tag " + (k === "urgencia" ? "urgente" : "ok")); t.append(icone("check", "vi s"), document.createTextNode(DIFERENCIAIS_SERV[k])); areas.appendChild(t); });
   if (Array.isArray(n.cnh) && n.cnh.length) { const t = el("span", "vt-tag cnh"); t.append(icone("cnh"), document.createTextNode(`CNH ${n.cnh.join(" · ")}`)); areas.appendChild(t); }
@@ -941,7 +1071,7 @@ export function abrirDetalhe(n, opcoes = {}) {
   const cab = el("div", "vd-cab");
   cab.appendChild(el("h3", null, n.nome || NOMES_TIPO[tipo]));
   const tags = el("div", "vt-sub");
-  if (tipo === "servicos") categoriasDe(n).forEach((k) => tags.appendChild(el("span", "vt-tag", CATEGORIAS.servicos[k] || k)));
+  if (tipo === "servicos") categoriasDe(n).forEach((k) => tags.appendChild(el("span", "vt-tag", nomeCat(n, k))));
   else if (tipo !== "imoveis") tags.appendChild(el("span", "vt-tag", nomeCategoria(n)));
   else tags.appendChild(el("span", "vt-tag", ANUNCIANTE[n.tipoAnunciante] || "Anunciante"));
   const sitH = situacaoHorario(n);
@@ -966,14 +1096,16 @@ export function abrirDetalhe(n, opcoes = {}) {
     const tx = el("div", "tx");
     tx.append(el("small", null, "Promoção"), el("strong", null, promo.titulo));
     if (promo.texto) tx.appendChild(el("p", null, promo.texto));
-    tx.appendChild(el("span", "ate", "Válida até " + new Date(promo.ate.toMillis()).toLocaleDateString("pt-BR", { day: "2-digit", month: "long" })));
+    tx.appendChild(el("span", "ate", prazoPromo(promo.ate)));
     p.append(ic, tx);
     if (promo.codigo) {
       const b = el("button", "vd-cupom"); b.type = "button";
       b.append(el("span", null, promo.codigo), el("small", null, "Copiar"), icone("copiar"));
       b.setAttribute("aria-label", `Copiar o cupom ${promo.codigo}`);
       b.addEventListener("click", async () => {
-        try { await navigator.clipboard.writeText(promo.codigo); toast(`Cupom ${promo.codigo} copiado. Use no pedido.`); } catch { toast(`Cupom: ${promo.codigo}`); }
+        guardarCupom(n, promo.codigo);
+        const usar = n.tipo === "delivery" || n.tipo === "lojinha" ? "Ele já entra no seu pedido." : n.tipo === "servicos" ? "Ele já entra no seu pedido de orçamento." : "Mostre ao falar com o anunciante.";
+        try { await navigator.clipboard.writeText(promo.codigo); toast(`Cupom ${promo.codigo} copiado. ${usar}`); } catch { toast(`Cupom ${promo.codigo}. ${usar}`); }
         contar("cupom");
       });
       p.appendChild(b);
@@ -1061,7 +1193,7 @@ export function abrirDetalhe(n, opcoes = {}) {
     const grupos = [...cats, ""].map((k) => [k, comIdx.filter(({ i }) => (i.categoria || "") === k || (!k && !cats.includes(i.categoria || "")))]).filter(([, l]) => l.length);
     ct.appendChild(titulo4("Serviços e preços"));
     grupos.forEach(([k, lista]) => {
-      if (grupos.length > 1) ct.appendChild(el("div", "vd-subtitulo", k ? CATEGORIAS.servicos[k] || k : "Outros serviços"));
+      if (grupos.length > 1) ct.appendChild(el("div", "vd-subtitulo", k ? nomeCat(n, k) : "Outros serviços"));
       const ul = el("div", "vd-servicos");
       lista.forEach(({ i, idx }) => {
         const li = el("div", "vd-serv");
@@ -1284,7 +1416,7 @@ export function abrirAnuncio(a, opcoes = {}) {
   const preco = el("div", "vd-preco", precoImovel(a));
   const tags = el("div", "vt-sub");
   tags.appendChild(el("span", "vt-tag", FINALIDADE[a.finalidade] || "Imóvel"));
-  tags.appendChild(el("span", "vt-tag neutra", CATEGORIAS.imoveis[a.categoria] || "Imóvel"));
+  tags.appendChild(el("span", "vt-tag neutra", (CATEGORIAS.imoveis[a.categoria] && nomeCat(a, a.categoria)) || "Imóvel"));
   if (a.mobiliado) tags.appendChild(el("span", "vt-tag neutra", "Mobiliado"));
   const local = [a.bairro, textoCidade(a)].filter(Boolean).join(", ");
   if (local) { const s = el("span", "vt-local"); s.append(icone("pin"), document.createTextNode(local)); tags.appendChild(s); }
@@ -1397,12 +1529,12 @@ function montarSecao() {
 
 function filtroAtual() {
   const chip = document.querySelector("#filterChips .chip.active");
-  return { cat: chip?.dataset.filter || "todos", termo: (document.getElementById("searchInput")?.value || "").trim().toLowerCase() };
+  return { cat: chip?.dataset.filter || "todos", termo: semAcento(document.getElementById("searchInput")?.value || "") };
 }
 function passaCategoria(n, cat) {
   if (cat === "todos") return true;
-  if (cat.startsWith("c:")) return n.categoria === "outros" && (n.categoriaPersonalizada || "") === cat.slice(2);
   const cats = TIPO === "servicos" ? categoriasDe(n) : [n.categoria];
+  if (cat.startsWith("c:")) return cats.includes("outros") && (n.categoriaPersonalizada || "") === cat.slice(2);
   return cats.includes(cat) || n.finalidade === cat;
 }
 // ---------- filtro de local: Estado → Cidade (→ Bairro nos imóveis) ----------
@@ -1479,10 +1611,140 @@ function abrirFiltroLocal() {
   });
 }
 
+// ---------- Filtros (gaveta) ----------
+// Opções de cada página, como nos apps de entrega e de imóveis. Ficam guardadas no aparelho;
+// os filtros ligados aparecem como etiquetas com "x" logo abaixo da barra.
+const nota4 = (n) => { const r = notaDe(n); return !!r?.total && media(r) >= 4; };
+const FILTROS = {
+  servicos: [
+    ["agora", "Atendendo agora", (n) => situacaoHorario(n)?.aberto === true],
+    ["nota4", "Nota 4 ou mais", nota4],
+    ["promo", "Com promoção", (n) => !!promoAtiva(n)],
+    ["urgencia", "Atende urgência", (n) => (n.diferenciais || []).includes("urgencia")],
+    ["orcamento", "Orçamento grátis", (n) => (n.diferenciais || []).includes("orcamentoGratis")],
+    ["domicilio", "Vai até você", (n) => (n.atendimento || []).includes("domicilio")],
+    ["online", "Atende online", (n) => (n.atendimento || []).includes("online")],
+    ["garantia", "Dá garantia", (n) => (n.diferenciais || []).includes("garantia")]
+  ],
+  delivery: [
+    ["aberto", "Aberto agora", (n) => abertoAgora(n) === true],
+    ["gratis", "Entrega grátis", (n) => !(Number(n.taxaEntrega) > 0)],
+    ["rapido", "Até 40 min", (n) => Number(n.tempoMax || n.tempoMin) > 0 && Number(n.tempoMax || n.tempoMin) <= 40],
+    ["promo", "Com cupom ou promoção", (n) => !!promoAtiva(n)],
+    ["nota4", "Nota 4 ou mais", nota4],
+    ["retirada", "Retirada no local", (n) => (n.opcoesEntrega || []).includes("retirada")],
+    ["pix", "Aceita Pix", (n) => !Array.isArray(n.pagamentos) || !n.pagamentos.length || n.pagamentos.includes("pix")]
+  ],
+  lojinha: [
+    ["promo", "Com cupom ou promoção", (n) => !!promoAtiva(n)],
+    ["desconto", "Produtos com desconto", (n) => (n.itens || []).some((i) => Number(i?.precoAntigo) > Number(i?.preco) && Number(i?.preco) > 0)],
+    ["entrega", "Faz entrega", (n) => (n.entrega || ["entrega"]).includes("entrega")],
+    ["retirada", "Retirada", (n) => (n.entrega || ["retirada"]).includes("retirada")],
+    ["nota4", "Nota 4 ou mais", nota4],
+    ["pix", "Aceita Pix", (n) => !Array.isArray(n.pagamentos) || !n.pagamentos.length || n.pagamentos.includes("pix")]
+  ],
+  imoveis: [
+    ["mobiliado", "Mobiliado", (a) => !!a.mobiliado],
+    ["pets", "Aceita pets", (a) => (a.condicoes || []).includes("pets")],
+    ["vaga", "Com vaga", (a) => Number(a.vagas) > 0],
+    ["fotos", "Com fotos", (a) => (a.fotos || []).some((f) => urlSegura(f))],
+    ["piscina", "Piscina", (a) => (a.caracteristicas || []).includes("piscina")],
+    ["vistaMar", "Vista para o mar", (a) => (a.caracteristicas || []).includes("vistaMar")],
+    ["semFiador", "Sem fiador", (a) => (a.condicoes || []).includes("semFiador")]
+  ]
+};
+const CHAVE_FILTROS = `hf-filtros-${TIPO}`;
+let filtrosX = { liga: [], quartos: 0, precoMax: 0 };
+try { const f = JSON.parse(localStorage.getItem(CHAVE_FILTROS) || "null"); if (f) filtrosX = { liga: Array.isArray(f.liga) ? f.liga : [], quartos: Number(f.quartos) || 0, precoMax: Number(f.precoMax) || 0 }; } catch {}
+const opcoesFiltro = () => FILTROS[TIPO] || [];
+const filtrosLigados = () => filtrosX.liga.filter((k) => opcoesFiltro().some((o) => o[0] === k)).length + (filtrosX.quartos ? 1 : 0) + (filtrosX.precoMax ? 1 : 0);
+function passaExtras(n, f = filtrosX) {
+  for (const k of f.liga) { const o = opcoesFiltro().find((x) => x[0] === k); if (o && !o[2](n)) return false; }
+  if (TIPO === "imoveis") {
+    if (f.quartos && !(Number(n.quartos) >= f.quartos)) return false;
+    if (f.precoMax && !(Number(n.preco) > 0 && Number(n.preco) <= f.precoMax)) return false;
+  }
+  return true;
+}
+function guardarFiltros() { try { localStorage.setItem(CHAVE_FILTROS, JSON.stringify(filtrosX)); } catch {} }
+function montarBotaoFiltros() {
+  const chips = document.getElementById("filterChips");
+  if (!chips || document.getElementById("vtFiltrosBtn") || !opcoesFiltro().length) return;
+  const b = el("button", "vt-filtros-btn"); b.type = "button"; b.id = "vtFiltrosBtn"; b.setAttribute("aria-haspopup", "dialog");
+  b.append(icone("filtro"), el("span", null, "Filtros"), el("b"));
+  chips.parentNode.insertBefore(b, chips);
+  b.addEventListener("click", abrirFiltros);
+  const ativos = el("div", "vt-ativos"); ativos.id = "vtAtivos"; ativos.hidden = true;
+  chips.parentNode.insertAdjacentElement("afterend", ativos);
+  pintarFiltrosAtivos();
+}
+function pintarFiltrosAtivos() {
+  const b = document.getElementById("vtFiltrosBtn"), box = document.getElementById("vtAtivos");
+  if (!b || !box) return;
+  const n = filtrosLigados();
+  b.classList.toggle("on", !!n);
+  b.querySelector("b").textContent = n ? String(n) : "";
+  b.setAttribute("aria-label", n ? `Filtros, ${n} ligados` : "Filtros");
+  box.replaceChildren();
+  const pilula = (rot, tirar) => { const p = el("button", "vt-ativo"); p.type = "button"; p.append(el("span", null, rot), icone("fechar")); p.setAttribute("aria-label", `Tirar o filtro ${rot}`); p.addEventListener("click", () => { tirar(); guardarFiltros(); pintarFiltrosAtivos(); renderizar(); }); box.appendChild(p); };
+  filtrosX.liga.forEach((k) => { const o = opcoesFiltro().find((x) => x[0] === k); if (o) pilula(o[1], () => { filtrosX.liga = filtrosX.liga.filter((x) => x !== k); }); });
+  if (filtrosX.quartos) pilula(`${filtrosX.quartos}+ quartos`, () => { filtrosX.quartos = 0; });
+  if (filtrosX.precoMax) pilula(`Até ${moeda(filtrosX.precoMax)}`, () => { filtrosX.precoMax = 0; });
+  if (n > 1) { const l = el("button", "vt-ativo limpar", "Limpar tudo"); l.type = "button"; l.addEventListener("click", () => { filtrosX = { liga: [], quartos: 0, precoMax: 0 }; guardarFiltros(); pintarFiltrosAtivos(); renderizar(); }); box.appendChild(l); }
+  box.hidden = !n;
+}
+function abrirFiltros() {
+  if (document.getElementById("vtFiltrosPop")) return;
+  const rasc = { liga: [...filtrosX.liga], quartos: filtrosX.quartos, precoMax: filtrosX.precoMax };
+  const fundo = el("div", "vt-local-fundo vt-filtros-fundo"); fundo.id = "vtFiltrosPop";
+  const cx = el("div", "vt-local-pop vt-filtros-pop"); cx.setAttribute("role", "dialog"); cx.setAttribute("aria-modal", "true"); cx.setAttribute("aria-label", "Filtros");
+  const topo = el("div", "vt-local-topo"); topo.append(el("strong", null, "Filtros"));
+  const x = el("button", "vt-local-x"); x.type = "button"; x.setAttribute("aria-label", "Fechar"); x.textContent = "×"; topo.appendChild(x);
+  const corpo = el("div", "vt-filtros-corpo");
+  const sec = (t) => { const d = el("div", "vt-f-sec"); d.appendChild(el("h4", null, t)); corpo.appendChild(d); return d; };
+  const chipF = (rot, on, mudar) => { const c = el("button", "vt-f-chip" + (on ? " on" : ""), rot); c.type = "button"; c.setAttribute("aria-pressed", String(on)); c.addEventListener("click", () => { mudar(); pintar(); }); return c; };
+  const aplicar = el("button", "vt-local-aplicar"); aplicar.type = "button";
+  const pintar = () => {
+    corpo.replaceChildren();
+    const s1 = sec(TIPO === "imoveis" ? "Comodidades" : "Mostrar só");
+    const g1 = el("div", "vt-f-chips");
+    opcoesFiltro().forEach(([k, rot]) => g1.appendChild(chipF(rot, rasc.liga.includes(k), () => { rasc.liga = rasc.liga.includes(k) ? rasc.liga.filter((y) => y !== k) : [...rasc.liga, k]; })));
+    s1.appendChild(g1);
+    if (TIPO === "imoveis") {
+      const s2 = sec("Quartos");
+      const g2 = el("div", "vt-f-seg");
+      [[0, "Todos"], [1, "1+"], [2, "2+"], [3, "3+"], [4, "4+"]].forEach(([v, rot]) => g2.appendChild(chipF(rot, rasc.quartos === v, () => { rasc.quartos = v; })));
+      s2.appendChild(g2);
+      const s3 = sec("Preço até");
+      const g3 = el("div", "vt-f-chips");
+      [[0, "Qualquer"], [1500, "R$ 1.500"], [2500, "R$ 2.500"], [4000, "R$ 4.000"], [500000, "R$ 500 mil"], [1000000, "R$ 1 milhão"]].forEach(([v, rot]) => g3.appendChild(chipF(rot, rasc.precoMax === v, () => { rasc.precoMax = v; })));
+      s3.appendChild(g3);
+    }
+    const { cat, termo } = filtroAtual();
+    const total = todos.filter((n) => passaCategoria(n, cat) && passaLocal(n) && (!termo || textoBusca(n).includes(termo)) && passaExtras(n, rasc)).length;
+    const algum = !!(rasc.liga.length || rasc.quartos || rasc.precoMax);
+    aplicar.textContent = !algum ? "Mostrar todos" : total ? `Ver ${total} ${total === 1 ? "resultado" : "resultados"}` : "Nenhum resultado";
+    aplicar.disabled = algum && !total;
+  };
+  const acoes = el("div", "vt-local-acoes");
+  const limpar = el("button", "vt-local-limpar", "Limpar"); limpar.type = "button";
+  acoes.append(limpar, aplicar);
+  cx.append(topo, corpo, acoes); fundo.appendChild(cx); document.body.appendChild(fundo);
+  const fechar = () => { fundo.remove(); document.removeEventListener("keydown", tecla); document.getElementById("vtFiltrosBtn")?.focus(); };
+  const tecla = (e) => { if (e.key === "Escape") fechar(); };
+  document.addEventListener("keydown", tecla);
+  fundo.addEventListener("click", (e) => { if (e.target === fundo) fechar(); });
+  x.addEventListener("click", fechar);
+  limpar.addEventListener("click", () => { rasc.liga = []; rasc.quartos = 0; rasc.precoMax = 0; pintar(); });
+  aplicar.addEventListener("click", () => { filtrosX = rasc; guardarFiltros(); pintarFiltrosAtivos(); fechar(); renderizar(); document.getElementById("vitrine")?.scrollIntoView({ behavior: "smooth", block: "start" }); });
+  pintar();
+  setTimeout(() => cx.querySelector(".vt-f-chip")?.focus({ preventScroll: true }), 50);
+}
+
 function textoBusca(n) {
   const cats = TIPO === "servicos" ? categoriasDe(n) : [n.categoria];
-  return [n.nome, n.titulo, n.descricao, n.cidade, n.uf, NOME_UF[n.uf], n.bairro, n.regiao, n.categoriaPersonalizada, ...cats.map((c) => CATEGORIAS[TIPO]?.[c]),
-    ...(n.itens || []).map((i) => [i?.nome, i?.descricao, i?.secao, i?.marca].join(" ")), n.veiculo, donos.get(n.donoId)?.nome].join(" ").toLowerCase();
+  return [n.nome, n.titulo, n.descricao, n.cidade, n.uf, NOME_UF[n.uf], n.bairro, n.regiao, n.categoriaPersonalizada, ...cats.map((c) => CATEGORIAS[TIPO]?.[c]), ...(TIPO === "servicos" ? cats.map((c) => PALAVRAS_SERV[c]) : []),
+    ...(n.itens || []).map((i) => [i?.nome, i?.descricao, i?.secao, i?.marca].join(" ")), n.veiculo, donos.get(n.donoId)?.nome].join(" ").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
 // Carrossel horizontal com título (arrasta com o dedo; setas no computador).
@@ -1544,10 +1806,11 @@ function cartaoPro(n, destaqueEm = "") {
     f.appendChild(t);
   }
   if ((n.diferenciais || []).includes("urgencia")) f.appendChild(el("span", "st urg", "Urgência"));
+  seloPromo(f, n);
   f.appendChild(avatar(n.foto, n.nome, "vt-avatar logo"));
   const tx = el("div", "tx");
   tx.append(el("strong", "nm", n.nome || "Freelancer"), estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }));
-  const cats = categoriasDe(n).map((k) => CATEGORIAS.servicos[k]).filter(Boolean);
+  const cats = categoriasDe(n).map((k) => CATEGORIAS.servicos[k] && nomeCat(n, k)).filter(Boolean);
   const info = [cats[0] ? (cats.length > 1 ? `${cats[0]} +${cats.length - 1}` : cats[0]) : nomeCategoria(n), textoCidade(n)].filter(Boolean).join(" · ");
   if (info) tx.appendChild(el("small", null, info));
   tx.appendChild(el("span", "tx-taxa", moeda(n.precoDesde) ? `desde ${moeda(n.precoDesde)}` : "Orçamento grátis"));
@@ -1726,7 +1989,7 @@ function linhaCompacta({ classe = "", midia, titulo, sub = [], direita, abrir, r
   return tornarClicavel(c, abrir, rotulo);
 }
 function linhaPro(n) {
-  const cats = categoriasDe(n).map((k) => CATEGORIAS.servicos[k]).filter(Boolean);
+  const cats = categoriasDe(n).map((k) => CATEGORIAS.servicos[k] && nomeCat(n, k)).filter(Boolean);
   return linhaCompacta({
     classe: "pro", midia: avatar(n.foto, n.nome), titulo: n.nome || "Freelancer",
     sub: [estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }), [cats.slice(0, 2).join(" · "), textoCidade(n)].filter(Boolean).join(" · ")],
@@ -1763,6 +2026,7 @@ function tileDelivery(n) {
   const prato = (n.itens || []).find((i) => urlSegura(i?.foto));
   f.style.backgroundImage = `url("${urlSegura(prato?.foto) || TEXTOS.delivery.img}")`;
   if (ab !== null) f.appendChild(el("span", "st " + (ab ? "on" : "off"), ab ? "Aberto" : "Fechado"));
+  seloPromo(f, n);
   f.appendChild(avatar(n.foto, n.nome, "vt-avatar logo"));
   const tx = el("div", "tx");
   tx.append(el("strong", "nm", n.nome || "Delivery"), estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }));
@@ -1828,10 +2092,19 @@ function linhaDelivery(n) {
   return c;
 }
 // Shopping: loja em bolinha (como stories)
+// Selo no canto da foto do cartão quando o negócio tem promoção no ar.
+function seloPromo(f, n) {
+  const p = promoAtiva(n);
+  if (!p) return;
+  const s = el("span", "vt-promo-tag");
+  s.append(icone("cupom", "vi s"), document.createTextNode(p.codigo ? "Cupom" : "Promoção"));
+  f.appendChild(s);
+}
 function bolhaLoja(n) {
   const c = el("button", "vt-bolha-loja");
   c.type = "button";
   c.append(avatar(n.foto, n.nome), el("span", null, n.nome || "Loja"), estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }));
+  if (promoAtiva(n)) { c.classList.add("com-promo"); c.appendChild(el("em", "vt-bolha-promo", promoAtiva(n).codigo ? "Cupom" : "Promoção")); }
   c.addEventListener("click", () => abrirDetalhe(n));
   return c;
 }
@@ -1869,17 +2142,18 @@ function renderizar() {
   const dest = document.getElementById("vtDestaques");
   const cont = document.getElementById("vtContagem");
   const { cat, termo } = filtroAtual();
-  const filtrando = cat !== "todos" || !!termo || !!filtroLocal.uf;
+  const filtrando = cat !== "todos" || !!termo || !!filtroLocal.uf || filtrosLigados() > 0;
   pararGiro?.();
   grade.replaceChildren();
   dest.replaceChildren();
   grade.className = "vt-grade tipo-" + TIPO;
   cont.textContent = ""; // a contagem vai junto do título da lista
-  const lista = todos.filter((n) => passaCategoria(n, cat) && passaLocal(n) && (!termo || textoBusca(n).includes(termo)));
+  const lista = todos.filter((n) => passaCategoria(n, cat) && passaLocal(n) && (!termo || textoBusca(n).includes(termo)) && passaExtras(n));
   pintarVerMais(filtrando);
   const vazio = () => {
     const v = el("div", "vt-vazio");
-    v.append(el("strong", null, todos.length ? "Nada encontrado com esse filtro" : TEXTOS[TIPO].vazio), todos.length ? "Tente outra categoria ou palavra." : "Seja o primeiro: crie seu perfil de negócio pelo seu perfil.");
+    v.append(el("strong", null, todos.length ? "Nada encontrado com esse filtro" : TEXTOS[TIPO].vazio), todos.length ? (filtrosLigados() ? "Tire algum filtro ou tente outra categoria." : "Tente outra categoria ou palavra.") : "Seja o primeiro: crie seu perfil de negócio pelo seu perfil.");
+    if (todos.length && filtrosLigados()) { const l = el("button", "vt-criar"); l.type = "button"; l.textContent = "Limpar filtros"; l.addEventListener("click", () => { filtrosX = { liga: [], quartos: 0, precoMax: 0 }; guardarFiltros(); pintarFiltrosAtivos(); renderizar(); }); v.append(document.createElement("br"), l); }
     if (!todos.length) { const a = el("a", "vt-criar"); a.href = `negocios.html?tipo=${TIPO}`; a.append(icone("mais"), document.createTextNode(TEXTOS[TIPO].criar)); v.append(document.createElement("br"), a); }
     grade.appendChild(v);
   };
@@ -1891,8 +2165,8 @@ function renderizar() {
     const produtos = [];
     lista.forEach((n) => (n.itens || []).forEach((i, idx) => {
       if (!i?.nome) return;
-      const alvo = [i.nome, i.descricao, i.marca, n.nome, ...(i.cores || []), ...(i.tamanhos || [])].join(" ").toLowerCase();
-      if (termo && !alvo.includes(termo) && !String(n.nome || "").toLowerCase().includes(termo)) return;
+      const alvo = [i.nome, i.descricao, i.marca, n.nome, ...(i.cores || []), ...(i.tamanhos || [])].join(" ");
+      if (termo && !semAcento(alvo).includes(termo) && !semAcento(n.nome).includes(termo)) return;
       produtos.push({ n, i, idx });
     }));
     if (!produtos.length) return vazio();
@@ -1915,7 +2189,7 @@ function renderizar() {
     if (top) dest.appendChild(top);
     grade.appendChild(barraLista(titulo("Todos os profissionais"), lista.length, ORDENS_SERV, ordemServ, (k) => { ordemServ = k; renderizar(); }));
     mostrarItens(grade, [...lista].sort(ORDENS_SERV[ordemServ][1]), {
-      filtrando, tile: (n) => cartaoPro(n), linha: linhaPro, grupos: (n) => categoriasDe(n), nomeGrupo: (g) => CATEGORIAS.servicos[g] || "Outros"
+      filtrando, tile: (n) => cartaoPro(n), linha: linhaPro, grupos: (n) => categoriasDe(n).map((k) => chaveCat(n, k)), nomeGrupo: (g) => (g.startsWith("c:") ? g.slice(2) : CATEGORIAS.servicos[g] || "Outros")
     });
   } else if (TIPO === "delivery") {
     const abertos = lista.filter((n) => abertoAgora(n) === true);
@@ -1924,20 +2198,21 @@ function renderizar() {
     grade.appendChild(barraLista(titulo("Todos os restaurantes"), lista.length, ORDENS_DELIVERY, ordemDelivery, (k) => { ordemDelivery = k; renderizar(); }));
     mostrarItens(grade, ordem, {
       filtrando, tile: tileDelivery, linha: (n) => tornarClicavel(linhaDelivery(n), () => abrirDetalhe(n), `Ver ${n.nome}`),
-      grupos: (n) => n.categoria || "outros", nomeGrupo: (g) => CATEGORIAS.delivery[g] || "Outros"
+      grupos: (n) => chaveCat(n, n.categoria || "outros"), nomeGrupo: (g) => (g.startsWith("c:") ? g.slice(2) : CATEGORIAS.delivery[g] || "Outros")
     });
   } else {
     const top = !filtrando && secaoDestaquesImoveis(lista);
     if (top) dest.appendChild(top);
     grade.appendChild(barraLista(titulo("Todos os imóveis"), lista.length, ORDENS_IMOVEL, ordemImovel, (k) => { ordemImovel = k; renderizar(); }));
     mostrarItens(grade, [...lista].sort(ORDENS_IMOVEL[ordemImovel][1]), {
-      filtrando, tile: cartaoImovelMini, linha: linhaImovel, grupos: (a) => a.categoria || "outros", nomeGrupo: (g) => CATEGORIAS.imoveis[g] || "Outros"
+      filtrando, tile: cartaoImovelMini, linha: linhaImovel, grupos: (a) => chaveCat(a, a.categoria || "outros"), nomeGrupo: (g) => (g.startsWith("c:") ? g.slice(2) : CATEGORIAS.imoveis[g] || "Outros")
     });
   }
 }
 
 function ligarFiltros() {
   montarFiltroLocal();
+  montarBotaoFiltros();
   const chips = document.getElementById("filterChips");
   if (chips) {
     if (!chips.querySelector('[data-filter="outros"]')) {
@@ -1950,15 +2225,18 @@ function ligarFiltros() {
   document.getElementById("searchForm")?.addEventListener("submit", () => setTimeout(() => { renderizar(); document.getElementById("vitrine")?.scrollIntoView({ behavior: "smooth", block: "start" }); }, 0));
 }
 
-// Shopping: cria filtros para as categorias que existem (inclusive as personalizadas).
+// Cria filtros para as categorias personalizadas que existem ("Outro" escrito pela pessoa: Pianista, Chácara...).
+// No Shopping e nos Freelances também para as categorias fixas que têm alguém (as áreas sem filtro na página).
 function chipsDinamicos() {
   const chips = document.getElementById("filterChips");
-  if (!chips || TIPO !== "lojinha") return;
+  if (!chips) return;
   const existentes = new Set([...chips.querySelectorAll("[data-filter]")].map((c) => c.dataset.filter));
   const novos = [];
   todos.forEach((n) => {
-    if (n.categoria === "outros" && n.categoriaPersonalizada) novos.push(["c:" + n.categoriaPersonalizada, n.categoriaPersonalizada]);
-    else if (n.categoria && CATEGORIAS.lojinha[n.categoria]) novos.push([n.categoria, CATEGORIAS.lojinha[n.categoria]]);
+    const cats = TIPO === "servicos" ? categoriasDe(n) : [n.categoria];
+    if (cats.includes("outros") && n.categoriaPersonalizada) novos.push(["c:" + n.categoriaPersonalizada, n.categoriaPersonalizada]);
+    if (TIPO === "lojinha" && n.categoria !== "outros" && CATEGORIAS.lojinha[n.categoria]) novos.push([n.categoria, CATEGORIAS.lojinha[n.categoria]]);
+    if (TIPO === "servicos") cats.forEach((k) => { if (k !== "outros" && CATEGORIAS.servicos[k]) novos.push([k, CATEGORIAS.servicos[k]]); });
   });
   const outros = chips.querySelector('[data-filter="outros"]');
   new Map(novos).forEach((rotulo, f) => {

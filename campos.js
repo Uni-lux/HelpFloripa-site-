@@ -3,6 +3,7 @@
 // - <select>: painel com as opções (sobe de baixo no celular, janela no computador),
 //   com busca quando a lista é grande (ex.: os 27 estados) e grupos (<optgroup>).
 // - <input type="time">: seletor de horário com duas rodas (horas e minutos).
+// - <input type="date">: calendário do mês (respeita min/max), atalhos e escolha rápida de mês e ano.
 // Funciona em todas as páginas (ligado no firebase.js), inclusive nos campos criados
 // depois pelo JavaScript: os toques são ouvidos no documento inteiro. O campo original
 // continua no lugar (mesmo visual, mesmo valor) e recebe "input"/"change" como antes.
@@ -67,12 +68,37 @@ const CSS = `
 .hfc-rodape .sec { border: 1px solid var(--line, #213038); background: none; color: inherit; }
 .hfc-rodape .pri { border: 0; background: var(--accent, #00adee); color: var(--accent-ink, #001a24); }
 .hfc button:focus-visible, .hfc-op:focus-visible { outline: 2px solid var(--accent, #00adee); outline-offset: 2px; }
+/* calendário */
+.hfc-cal { flex: none; padding: 0 14px; }
+.hfc-dia-visor { padding: 0 6px 10px; font-size: 22px; font-weight: 800; letter-spacing: -.01em; }
+.hfc-dia-visor small { display: block; font-size: 12.5px; font-weight: 700; color: var(--muted, #8c9ca7); letter-spacing: 0; }
+.hfc-mes { display: flex; align-items: center; gap: 6px; padding: 0 0 6px; }
+.hfc-mes-tit { flex: 1; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 10px; border: 0; border-radius: 12px; background: none; color: inherit; font: inherit; font-size: 15.5px; font-weight: 800; cursor: pointer; text-align: left; }
+.hfc-mes-tit::after { content: ""; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); margin: -4px 0 0 4px; opacity: .7; }
+.hfc-mes-tit.aberto::after { transform: rotate(-135deg); margin-top: 3px; }
+.hfc-nav { width: 40px; height: 40px; display: grid; place-items: center; border: 0; border-radius: 50%; background: color-mix(in srgb, var(--muted, #8c9ca7) 12%, transparent); color: inherit; cursor: pointer; }
+.hfc-nav svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.hfc-nav:disabled { opacity: .3; cursor: default; }
+.hfc-semana, .hfc-dias { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.hfc-semana span { padding: 6px 0; text-align: center; font-size: 12px; font-weight: 800; color: var(--muted, #8c9ca7); }
+.hfc-dias button { aspect-ratio: 1; max-height: 46px; width: 100%; display: grid; place-items: center; border: 0; border-radius: 50%; background: none; color: inherit; font: inherit; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; cursor: pointer; }
+.hfc-dias button:hover:not(:disabled) { background: color-mix(in srgb, var(--muted, #8c9ca7) 14%, transparent); }
+.hfc-dias button.hoje { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent, #00adee) 70%, transparent); color: var(--accent, #00adee); }
+.hfc-dias button.on { background: var(--accent, #00adee); color: var(--accent-ink, #001a24); box-shadow: none; font-weight: 900; }
+.hfc-dias button:disabled { opacity: .28; cursor: default; }
+.hfc-dias .fora { visibility: hidden; }
+.hfc-grade { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; max-height: 286px; overflow-y: auto; overscroll-behavior: contain; padding: 2px; }
+.hfc-grade button { min-height: 46px; border: 1px solid var(--line, #213038); border-radius: 14px; background: none; color: inherit; font: inherit; font-size: 15px; font-weight: 750; text-transform: capitalize; cursor: pointer; }
+.hfc-grade button.on { background: var(--accent, #00adee); border-color: var(--accent, #00adee); color: var(--accent-ink, #001a24); }
+.hfc-grade button:disabled { opacity: .3; cursor: default; }
 @media (prefers-reduced-motion: reduce) { .hfc, .hfc-fundo { transition: none !important; } }
 `;
 const ICONE = {
   x: '<path d="M6 6l12 12M18 6L6 18"/>',
   lupa: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/>',
-  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>'
+  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  esq: '<path d="M15 6l-6 6 6 6"/>',
+  dir: '<path d="M9 6l6 6-6 6"/>'
 };
 const svg = (n) => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONE[n]}</svg>`;
 let cssPronto = false;
@@ -255,9 +281,138 @@ export function abrirHora(input) {
   requestAnimationFrame(() => rh.focus({ preventScroll: true }));
 }
 
+// ---------- data ----------
+const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+const SEMANA = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+const maiuscula = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+const isoDia = (d) => `${d.getFullYear()}-${dois(d.getMonth() + 1)}-${dois(d.getDate())}`;
+const lerDia = (v) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(v || ""); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; };
+export function abrirData(input) {
+  const min = lerDia(input.min), max = lerDia(input.max);
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const dentro = (d) => (!min || d >= min) && (!max || d <= max);
+  let escolhido = lerDia(input.value);
+  // Começa no dia escolhido; sem valor, em hoje (ou no limite mais perto, se hoje não pode).
+  let base = escolhido || (dentro(hoje) ? hoje : min && hoje < min ? min : max || hoje);
+  let ano = base.getFullYear(), mes = base.getMonth(), modo = "dias"; // dias | anos | meses
+  const { cx, fechar } = painel(tituloDe(input, "Escolha a data"));
+  const caixa = document.createElement("div"); caixa.className = "hfc-cal";
+  const visor = document.createElement("div"); visor.className = "hfc-dia-visor"; visor.setAttribute("aria-live", "polite");
+  const topo = document.createElement("div"); topo.className = "hfc-mes";
+  const tit = document.createElement("button"); tit.type = "button"; tit.className = "hfc-mes-tit"; tit.setAttribute("aria-label", "Escolher mês e ano");
+  const ant = document.createElement("button"); ant.type = "button"; ant.className = "hfc-nav"; ant.innerHTML = svg("esq"); ant.setAttribute("aria-label", "Mês anterior");
+  const prox = document.createElement("button"); prox.type = "button"; prox.className = "hfc-nav"; prox.innerHTML = svg("dir"); prox.setAttribute("aria-label", "Próximo mês");
+  topo.append(tit, ant, prox);
+  const corpo = document.createElement("div");
+  caixa.append(visor, topo, corpo);
+  cx.appendChild(caixa);
+  const pintarVisor = () => {
+    visor.innerHTML = "";
+    const sm = document.createElement("small"); sm.textContent = escolhido ? maiuscula(SEMANA[escolhido.getDay()]) + (SEMANA[escolhido.getDay()].endsWith("o") ? "" : "-feira") : "Nenhuma data escolhida";
+    visor.append(sm, document.createTextNode(escolhido ? `${escolhido.getDate()} de ${MESES[escolhido.getMonth()]} de ${escolhido.getFullYear()}` : "Toque num dia"));
+  };
+  const mesPode = (a, m) => (!min || new Date(a, m + 1, 0) >= min) && (!max || new Date(a, m, 1) <= max);
+  function pintar() {
+    corpo.replaceChildren();
+    tit.classList.toggle("aberto", modo !== "dias");
+    tit.textContent = modo === "anos" ? "Escolha o ano" : modo === "meses" ? String(ano) : `${maiuscula(MESES[mes])} de ${ano}`;
+    ant.hidden = prox.hidden = modo !== "dias";
+    ant.disabled = !mesPode(mes ? ano : ano - 1, mes ? mes - 1 : 11);
+    prox.disabled = !mesPode(mes === 11 ? ano + 1 : ano, mes === 11 ? 0 : mes + 1);
+    if (modo === "anos") {
+      const g = document.createElement("div"); g.className = "hfc-grade";
+      const a0 = min ? min.getFullYear() : hoje.getFullYear() - 100, a1 = max ? max.getFullYear() : hoje.getFullYear() + 10;
+      for (let a = a1; a >= a0; a--) {
+        const b = document.createElement("button"); b.type = "button"; b.textContent = a; b.classList.toggle("on", a === ano);
+        b.addEventListener("click", () => { ano = a; modo = "meses"; pintar(); });
+        g.appendChild(b);
+      }
+      corpo.appendChild(g);
+      requestAnimationFrame(() => g.querySelector(".on")?.scrollIntoView({ block: "center" }));
+      return;
+    }
+    if (modo === "meses") {
+      const g = document.createElement("div"); g.className = "hfc-grade";
+      MESES.forEach((nome, m) => {
+        const b = document.createElement("button"); b.type = "button"; b.textContent = nome.slice(0, 3); b.setAttribute("aria-label", nome);
+        b.classList.toggle("on", m === mes); b.disabled = !mesPode(ano, m);
+        b.addEventListener("click", () => { mes = m; modo = "dias"; pintar(); });
+        g.appendChild(b);
+      });
+      corpo.appendChild(g);
+      return;
+    }
+    const sem = document.createElement("div"); sem.className = "hfc-semana";
+    ["D", "S", "T", "Q", "Q", "S", "S"].forEach((l, i) => { const s = document.createElement("span"); s.textContent = l; s.title = SEMANA[i]; sem.appendChild(s); });
+    const dias = document.createElement("div"); dias.className = "hfc-dias"; dias.setAttribute("role", "grid");
+    const pri = new Date(ano, mes, 1).getDay(), total = new Date(ano, mes + 1, 0).getDate();
+    for (let i = 0; i < pri; i++) { const v = document.createElement("span"); v.className = "fora"; dias.appendChild(v); }
+    for (let d = 1; d <= total; d++) {
+      const dt = new Date(ano, mes, d);
+      const b = document.createElement("button"); b.type = "button"; b.textContent = d;
+      b.setAttribute("aria-label", `${SEMANA[dt.getDay()]}, ${d} de ${MESES[mes]}`);
+      b.disabled = !dentro(dt);
+      b.classList.toggle("hoje", +dt === +hoje);
+      b.classList.toggle("on", !!escolhido && +dt === +escolhido);
+      b.addEventListener("click", () => { escolhido = dt; pintarVisor(); pintar(); });
+      dias.appendChild(b);
+    }
+    corpo.append(sem, dias);
+  }
+  const mudarMes = (n) => { const d = new Date(ano, mes + n, 1); ano = d.getFullYear(); mes = d.getMonth(); pintar(); };
+  ant.addEventListener("click", () => mudarMes(-1));
+  prox.addEventListener("click", () => mudarMes(1));
+  tit.addEventListener("click", () => { modo = modo === "dias" ? "anos" : "dias"; pintar(); });
+  // Arrastar para o lado troca o mês.
+  let x0 = null;
+  corpo.addEventListener("touchstart", (e) => { x0 = modo === "dias" ? e.touches[0].clientX : null; }, { passive: true });
+  corpo.addEventListener("touchend", (e) => { if (x0 === null) return; const dx = e.changedTouches[0].clientX - x0; x0 = null; if (Math.abs(dx) > 50) { const b = dx < 0 ? prox : ant; if (!b.disabled) mudarMes(dx < 0 ? 1 : -1); } }, { passive: true });
+  // Atalhos (só os que cabem entre min e max). Datas longe de hoje (ex.: nascimento) não ganham atalhos.
+  const at = document.createElement("div"); at.className = "hfc-atalhos";
+  [["Hoje", 0], ["Amanhã", 1], ["Em 7 dias", 7], ["Em 15 dias", 15], ["Em 30 dias", 30]].forEach(([rot, n]) => {
+    const d = new Date(hoje); d.setDate(d.getDate() + n);
+    if (!dentro(d)) return;
+    const b = document.createElement("button"); b.type = "button"; b.textContent = rot;
+    b.addEventListener("click", () => { escolhido = d; ano = d.getFullYear(); mes = d.getMonth(); modo = "dias"; pintarVisor(); pintar(); });
+    at.appendChild(b);
+  });
+  if (at.children.length > 1) caixa.appendChild(at);
+  const rod = document.createElement("div"); rod.className = "hfc-rodape";
+  const limpar = document.createElement("button"); limpar.type = "button"; limpar.className = "sec"; limpar.textContent = input.required || !input.value ? "Cancelar" : "Limpar";
+  const pronto = document.createElement("button"); pronto.type = "button"; pronto.className = "pri"; pronto.textContent = "Pronto";
+  limpar.addEventListener("click", () => { if (!input.required && input.value) { input.value = ""; disparar(input); } fechar(); });
+  const comHora = input.type === "datetime-local";
+  if (comHora) pronto.textContent = "Escolher horário";
+  pronto.addEventListener("click", () => {
+    if (!escolhido) { fechar(); return; }
+    const v = isoDia(escolhido);
+    if (!comHora) {
+      if (input.value !== v) { input.value = v; disparar(input); }
+      fechar();
+      return;
+    }
+    // Data e hora: depois do dia, as rodas do horário (começa no horário que já estava, ou no do limite).
+    fechar();
+    const tmp = document.createElement("input"); tmp.type = "time"; tmp.step = input.step || 300; tmp.required = true;
+    tmp.dataset.titulo = `Horário · ${escolhido.getDate()} de ${MESES[escolhido.getMonth()]}`;
+    const hAtual = /T(\d{2}:\d{2})/.exec(input.value || "")?.[1] || (v === String(input.min).slice(0, 10) && /T(\d{2}:\d{2})/.exec(input.min)?.[1]) || "";
+    tmp.dataset.padrao = hAtual || "09:00"; // vazio: o "Pronto" das rodas sempre grava
+    tmp.addEventListener("change", () => {
+      let valor = `${v}T${tmp.value}`;
+      if (input.min && valor < input.min.slice(0, 16)) valor = input.min.slice(0, 16);
+      if (input.max && valor > input.max.slice(0, 16)) valor = input.max.slice(0, 16);
+      if (input.value !== valor) { input.value = valor; disparar(input); }
+    });
+    setTimeout(() => abrirHora(tmp), 280);
+  });
+  rod.append(limpar, pronto); cx.appendChild(rod);
+  pintarVisor(); pintar();
+  requestAnimationFrame(() => (corpo.querySelector(".on") || corpo.querySelector(".hoje:not(:disabled)") || cx).focus({ preventScroll: true }));
+}
+
 // ---------- ligar no documento inteiro ----------
 const alvo = (e) => {
-  const c = e.target?.closest?.("select, input[type=time]");
+  const c = e.target?.closest?.("select, input[type=time], input[type=date], input[type=datetime-local]");
   if (!c || c.disabled || c.readOnly || c.dataset.nativo != null || c.dataset.enfeitado || c.closest("[data-nativo]")) return null;
   if (c.tagName === "SELECT" && (c.multiple || c.size > 1)) return null;
   return c;
@@ -265,7 +420,7 @@ const alvo = (e) => {
 const abrir = (c) => {
   if (Date.now() - (c._hfcEm || 0) < 500) return;
   c._hfcEm = Date.now();
-  if (c.tagName === "SELECT") abrirSelect(c); else abrirHora(c);
+  if (c.tagName === "SELECT") abrirSelect(c); else if (c.type === "date" || c.type === "datetime-local") abrirData(c); else abrirHora(c);
 };
 let inicio = null;
 export function ligarCampos() {

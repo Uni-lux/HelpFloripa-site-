@@ -14,7 +14,7 @@ const ok = (c, m) => console.log(c ? "  ✔" : "  ✘", m);
 let p = await entrar(ctx, "bruno", "negocios.html");
 await p.waitForSelector(".neg-card.servicos .ng-pri", { timeout: 20000 });
 await p.click(".neg-card.servicos .ng-pri"); await p.waitForTimeout(700);
-await p.locator("#negExtras .marca-op", { hasText: "Reformas" }).click();
+await p.fill("#negAreasBusca", "reforma"); await p.locator("#negExtras .marca-op", { hasText: "Reformas" }).click();
 await p.fill("#negWhats", "48999887766");
 await p.fill("#negInsta", "@bruno.reparos");
 await p.fill("#negSite", "brunoreparos.com.br");

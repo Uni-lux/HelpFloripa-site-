@@ -674,3 +674,53 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
 .vd-horario-dia strong.fechado { color: var(--vt-muted); font-weight: 600; }
 .vd-horario-dia.hoje { background: color-mix(in srgb, var(--vc) 8%, transparent); }
 .vd-horario-dia.hoje span, .vd-horario-dia.hoje strong { color: var(--vc); font-weight: 800; }
+
+/* ---------- promoção / cupom: selo nos cartões e bloco no pedido ---------- */
+.vt-promo-tag { position: absolute; right: 6px; bottom: 6px; z-index: 1; display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px 3px 6px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 800; color: #fff; background: linear-gradient(135deg, #f43f5e, #f97316); box-shadow: 0 4px 12px -4px rgba(244, 63, 94, .7); }
+.vt-promo-tag svg { width: 12px; height: 12px; }
+.vt-del .tag-dest ~ .st.urg ~ .vt-promo-tag { bottom: 30px; }
+.vt-bolha-loja { position: relative; }
+.vt-bolha-promo { position: absolute; top: 48px; left: 50%; transform: translateX(-50%); padding: 1px 7px; border-radius: 999px; font-size: 9.5px; font-style: normal; font-weight: 800; color: #fff;
+  background: linear-gradient(135deg, #f43f5e, #f97316); box-shadow: 0 0 0 2px var(--vt-bg); white-space: nowrap; }
+.vd-cupom-ped { display: flex; align-items: flex-start; gap: 12px; margin: 12px 0 2px; padding: 12px 14px; border-radius: 16px; border: 1.5px dashed color-mix(in srgb, var(--vc) 55%, transparent);
+  background: color-mix(in srgb, var(--vc) 7%, transparent); }
+.vd-cupom-ped .ic { flex: none; width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; color: #fff; background: var(--vc); }
+.vd-cupom-ped .tx { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.vd-cupom-ped .tx small { font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--vc); }
+.vd-cupom-ped .tx strong { font-size: 14.5px; line-height: 1.3; color: var(--vt-text); }
+.vd-cupom-ped .nota { font-size: 12.5px; color: var(--vt-muted); line-height: 1.35; }
+.vd-cupom-ped.ok { border-style: solid; border-color: #16a34a; background: color-mix(in srgb, #16a34a 9%, transparent); }
+.vd-cupom-ped.ok .ic { background: #16a34a; }
+.vd-cupom-ped.ok .tx small { color: #16a34a; }
+.vd-cupom-ped > .vd-link { align-self: center; padding: 7px 12px; }
+.vd-cupom-linha { display: flex; gap: 8px; margin-top: 6px; }
+.vd-cupom-linha .vd-input { flex: 1; min-width: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .06em; text-transform: uppercase; }
+.vd-cupom-linha .vt-btn { flex: none; width: auto; padding: 0 16px; }
+
+/* ---------- barra de filtros: Local + Filtros em cima, categorias embaixo; etiquetas dos filtros ligados ---------- */
+.filtros:has(.vt-local-btn) { flex-wrap: wrap; row-gap: 10px; }
+.filtros:has(.vt-local-btn) .filter-chips { flex: 1 1 100%; }
+.filtros:has(.vt-filtros-btn) .vt-local-btn { flex: 1 1 auto; max-width: none; justify-content: flex-start; }
+.filtros:has(.vt-filtros-btn) .vt-local-btn svg:last-child { margin-left: auto; }
+.vt-filtros-btn { flex: none; position: relative; display: inline-flex; align-items: center; gap: 7px; height: 38px; padding: 0 14px 0 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font: inherit; font-size: 13.5px; font-weight: 750; cursor: pointer; }
+.vt-filtros-btn svg { width: 17px; height: 17px; color: var(--classe, var(--accent)); fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.vt-filtros-btn b { display: none; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 99px; background: var(--classe, var(--accent)); color: #fff; font-size: 11.5px; line-height: 19px; text-align: center; }
+.vt-filtros-btn.on { border-color: var(--classe, var(--accent)); background: color-mix(in srgb, var(--classe, var(--accent)) 12%, var(--panel)); }
+.vt-filtros-btn.on b { display: inline-block; }
+.vt-filtros-btn:focus-visible { outline: 2px solid var(--classe, var(--accent)); outline-offset: 2px; }
+.vt-ativos { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 10px 0 0; }
+.vt-ativos::-webkit-scrollbar { display: none; }
+.vt-ativos[hidden] { display: none; }
+.vt-ativo { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px 0 12px; border-radius: 999px; border: 0; background: color-mix(in srgb, var(--classe, var(--accent)) 16%, transparent); color: var(--classe, var(--accent)); font: inherit; font-size: 12.5px; font-weight: 800; cursor: pointer; }
+.vt-ativo svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2.4; }
+.vt-ativo.limpar { background: none; color: var(--muted); text-decoration: underline; }
+.vt-filtros-pop { max-height: min(86vh, 680px); grid-template-rows: auto minmax(0, 1fr) auto; }
+.vt-filtros-corpo { overflow-y: auto; overscroll-behavior: contain; display: grid; gap: 16px; align-content: start; padding: 2px; }
+.vt-f-sec h4 { margin: 0 0 9px; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.vt-f-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.vt-f-seg { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.vt-f-chip { min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel-2, var(--panel)); color: var(--text); font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer; }
+.vt-f-seg .vt-f-chip { padding: 0 4px; border-radius: 12px; }
+.vt-f-chip.on { border-color: var(--classe, var(--accent)); background: color-mix(in srgb, var(--classe, var(--accent)) 16%, transparent); color: var(--classe, var(--accent)); }
+.vt-local-aplicar:disabled { opacity: .5; cursor: default; }

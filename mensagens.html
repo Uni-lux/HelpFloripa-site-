@@ -177,19 +177,68 @@
     .faixa-atend[hidden], .faixa-fixada[hidden] { display: none; }
     /* Atendimento do negócio: uma linha só (não rouba espaço da conversa, nem com o teclado aberto).
        Tocar mostra o aviso inteiro. */
-    .faixa-atend { display: block; flex-shrink: 0; padding: 6px 14px; color: var(--muted); font-size: 12.5px; line-height: 1.45; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: default; }
-    .faixa-atend.longa { cursor: pointer; padding-right: 34px; position: relative; }
-    .faixa-atend.longa::after { content: ""; position: absolute; right: 14px; top: 11px; width: 7px; height: 7px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); transition: transform .2s; }
-    .faixa-atend.aberta { white-space: normal; }
-    .faixa-atend.aberta::after { transform: translateY(3px) rotate(-135deg); }
+    .faixa-atend { display: block; flex-shrink: 0; position: relative; padding: 7px 34px 7px 14px; color: var(--muted); font-size: 12.5px; line-height: 1.45; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+    .faixa-atend::after { content: ""; position: absolute; right: 16px; top: 50%; width: 7px; height: 7px; margin-top: -4px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(-45deg); }
+    #btnQuem { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+    .faixa-atend:hover { background: color-mix(in srgb, var(--muted) 8%, var(--panel)); }
     .faixa-atend b { color: var(--text); font-weight: 700; }
     .faixa-atend .ponto { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; background: #2fbf71; vertical-align: 1px; }
     .faixa-atend .ponto.fechado { background: #8b9ba6; }
     .faixa-atend .ponto.ausente, .faixa-atend .ponto.almoco { background: #f5a524; }
     .faixa-atend .sep { margin: 0 6px; opacity: .6; }
     .faixa-atend .aus { color: var(--text); }
-    .faixa-atend.aberta .aus { display: block; margin-top: 2px; }
-    .faixa-atend.aberta .aus-sep { display: none; }
+    /* gavetas do chat: atendimento e prévia do perfil (tocar e segurar no nome) */
+    .pv-fundo { position: fixed; inset: 0; z-index: 3000; background: rgba(2, 8, 14, .55); opacity: 0; transition: opacity .2s; }
+    .pv-fundo.on { opacity: 1; }
+    .pv-gaveta { position: absolute; left: 0; right: 0; bottom: 0; max-height: 88vh; display: flex; flex-direction: column; background: var(--panel); color: var(--text); border-top: 1px solid var(--line);
+      border-radius: 24px 24px 0 0; box-shadow: 0 -18px 60px rgba(0, 0, 0, .4); transform: translateY(100%); transition: transform .28s cubic-bezier(.2, .8, .2, 1); padding-bottom: env(safe-area-inset-bottom); outline: none; }
+    .pv-fundo.on .pv-gaveta { transform: none; }
+    @media (min-width: 700px) { .pv-gaveta { left: 50%; right: auto; width: 440px; bottom: 50%; transform: translate(-50%, 54%); opacity: 0; border-radius: 22px; border: 1px solid var(--line); transition: transform .2s, opacity .2s; }
+      .pv-fundo.on .pv-gaveta { transform: translate(-50%, 50%); opacity: 1; } }
+    .pv-gaveta::before { content: ""; flex: none; width: 42px; height: 5px; margin: 8px auto 0; border-radius: 99px; background: var(--line); }
+    .pv-cab { flex: none; display: flex; align-items: center; gap: 10px; padding: 8px 12px 6px 20px; }
+    .pv-cab strong { flex: 1; font-size: 17px; font-weight: 800; }
+    .pv-x { width: 38px; height: 38px; display: grid; place-items: center; border: 0; border-radius: 50%; background: color-mix(in srgb, var(--muted) 14%, transparent); color: inherit; cursor: pointer; }
+    .pv-corpo { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 4px 16px 18px; display: grid; gap: 14px; align-content: start; }
+    .pv-sec { display: grid; gap: 8px; }
+    .pv-sec > h4 { margin: 4px 2px 0; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+    .pv-status { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 18px; border: 1px solid var(--line); background: var(--panel-2, var(--bg)); }
+    .pv-status .pt { flex: none; width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; color: #fff; background: #2fbf71; }
+    .pv-status.fechado .pt { background: #8b9ba6; } .pv-status.ausente .pt, .pv-status.almoco .pt { background: #f5a524; }
+    .pv-status .tx { display: grid; gap: 2px; min-width: 0; } .pv-status .tx b { font-size: 15.5px; } .pv-status .tx small { color: var(--muted); font-size: 13px; line-height: 1.4; }
+    .pv-aviso { padding: 12px 14px; border-radius: 16px; border: 1px dashed color-mix(in srgb, #f5a524 60%, transparent); background: color-mix(in srgb, #f5a524 9%, transparent); font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
+    .pv-aviso small { display: block; margin-bottom: 3px; font-size: 11.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: #f5a524; }
+    .pv-dias { border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+    .pv-dia { display: flex; justify-content: space-between; gap: 10px; padding: 10px 14px; font-size: 14px; }
+    .pv-dia + .pv-dia { border-top: 1px solid var(--line); }
+    .pv-dia span:last-child { font-weight: 700; font-variant-numeric: tabular-nums; }
+    .pv-dia.fech span:last-child { color: var(--muted); font-weight: 600; }
+    .pv-dia.hoje { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+    .pv-dia.hoje span:first-child { font-weight: 800; color: var(--accent); }
+    .pv-dia.hoje span:first-child::after { content: " · hoje"; font-weight: 600; }
+    .pv-info { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 16px; border: 1px solid var(--line); font-size: 14px; }
+    .pv-info svg { flex: none; color: var(--accent); }
+    .pv-btn { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--line); background: none; color: inherit; font: inherit; font-size: 14.5px; font-weight: 800; cursor: pointer; }
+    .pv-btn.pri { border: 0; background: var(--accent); color: var(--accent-ink, #001a24); }
+    .pv-perfil { display: grid; justify-items: center; gap: 4px; text-align: center; padding: 6px 0 2px; }
+    .pv-perfil .avatar { width: 84px; height: 84px; font-size: 28px; box-shadow: 0 0 0 3px var(--panel), 0 0 0 5px color-mix(in srgb, var(--accent) 55%, transparent); }
+    .pv-perfil h3 { margin: 8px 0 0; font-size: 19px; display: inline-flex; align-items: center; gap: 6px; }
+    .pv-perfil h3 svg { width: 18px; height: 18px; color: #1d9bf0; }
+    .pv-perfil .arroba { color: var(--muted); font-size: 13.5px; }
+    .pv-perfil p { margin: 6px 0 0; font-size: 14px; line-height: 1.45; color: var(--text); max-width: 34ch; overflow-wrap: anywhere; }
+    .pv-perfil .cid { font-size: 13px; color: var(--muted); }
+    .pv-negs { display: grid; gap: 10px; }
+    .pv-neg { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px; border-radius: 18px; border: 1px solid var(--line); background: var(--panel-2, var(--bg)); color: inherit; font: inherit; text-align: left; cursor: pointer; position: relative; overflow: hidden; }
+    .pv-neg::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--cor); }
+    .pv-neg .ft { flex: none; width: 56px; height: 56px; border-radius: 14px; background: color-mix(in srgb, var(--cor) 25%, var(--panel)) center / cover no-repeat; display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 18px; }
+    .pv-neg .tx { flex: 1; min-width: 0; display: grid; gap: 2px; }
+    .pv-neg .tx small { font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--cor); }
+    .pv-neg .tx b { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pv-neg .tx span { font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pv-neg .ir { flex: none; padding: 7px 11px; border-radius: 999px; font-size: 12.5px; font-weight: 800; color: #fff; background: var(--cor); }
+    .pv-neg .promo { color: #f43f5e !important; font-weight: 700; }
+    .pv-vazio { padding: 6px 2px; color: var(--muted); font-size: 13.5px; }
+    .pv-dica { margin: -2px 2px 0; font-size: 12.5px; color: var(--muted); text-align: center; }
     .chat-top, .faixa-fixada, .busca-chat { flex-shrink: 0; }
     .faixa-fixada { width: 100%; border: 0; border-bottom: 1px solid var(--line); text-align: left; cursor: pointer; }
     .faixa-fixada > svg { color: var(--accent); flex-shrink: 0; }
@@ -206,6 +255,61 @@
     .pedido-trilha i { flex: 1; height: 4px; border-radius: 4px; background: var(--line); }
     .pedido-trilha i.on { background: var(--cor-st, #2fbf71); }
     .bolha.status-msg { padding: 8px 12px; }
+    /* cartão do pedido (delivery e lojinha) */
+    .bolha.cartao-msg.pedido-pro { width: min(330px, 88%); max-width: none; padding: 0; overflow: hidden; }
+    .pd { display: grid; color: inherit; border-top: 4px solid var(--assunto); }
+    .pd-cab { display: flex; align-items: center; gap: 10px; padding: 11px 12px 9px; }
+    .pd-logo { flex: none; width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; color: #fff; background: var(--assunto) center / cover no-repeat; }
+    .pd-logo svg.i { width: 22px; height: 22px; }
+    .pd-cab-tx { min-width: 0; display: grid; gap: 1px; }
+    .pd-cab-tx small { font-size: 10.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--assunto); }
+    .pd-cab-tx strong { font-size: 15px; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pd-status { margin: 0 10px; padding: 10px 11px; border-radius: 14px; background: color-mix(in srgb, var(--cor-st) 12%, transparent); border: 1px solid color-mix(in srgb, var(--cor-st) 30%, transparent); display: grid; gap: 9px; }
+    .pd-st-topo { display: flex; align-items: center; gap: 10px; }
+    .pd-st-ic { flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: #fff; background: var(--cor-st); }
+    .pd-st-ic svg.i { width: 19px; height: 19px; }
+    .pd-st-topo b { display: block; font-size: 14px; }
+    .pd-st-topo small { display: block; font-size: 12px; opacity: .78; line-height: 1.35; }
+    .pd-passos { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); position: relative; }
+    .pd-passos li { position: relative; display: grid; justify-items: center; gap: 4px; font-size: 10.5px; font-weight: 700; opacity: .55; text-align: center; }
+    .pd-passos li::before { content: ""; position: absolute; top: 8px; right: 50%; width: 100%; height: 2px; background: color-mix(in srgb, currentColor 25%, transparent); z-index: 0; }
+    .pd-passos li:first-child::before { display: none; }
+    .pd-passos li.feito::before, .pd-passos li.atual::before { background: var(--cor-st); }
+    .pd-passos li i { position: relative; z-index: 1; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; background: var(--panel); border: 2px solid color-mix(in srgb, currentColor 35%, transparent); color: #fff; }
+    .pd-passos li i svg.i { width: 11px; height: 11px; stroke-width: 3.4; }
+    .pd-passos li.feito, .pd-passos li.atual { opacity: 1; }
+    .pd-passos li.feito i, .pd-passos li.atual i { background: var(--cor-st); border-color: var(--cor-st); }
+    .pd-passos li.atual span { color: var(--cor-st); font-weight: 800; }
+    .pd-acoes { display: flex; gap: 6px; }
+    .pd-acoes button { min-height: 36px; border-radius: 11px; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
+    .pd-acoes .pri { flex: 1; border: 0; background: var(--cor-st); color: #fff; }
+    .pd-acoes .sec { flex: 1; border: 1px solid color-mix(in srgb, currentColor 25%, transparent); background: none; color: inherit; }
+    .pd-acoes .ic { flex: none; width: 38px; display: grid; place-items: center; border: 1px solid color-mix(in srgb, currentColor 25%, transparent); background: none; color: inherit; }
+    .pd-sec { margin: 11px 12px 2px; font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; opacity: .65; }
+    .pd-itens { list-style: none; margin: 0; padding: 0 12px; display: grid; }
+    .pd-itens li { display: flex; align-items: flex-start; gap: 8px; padding: 7px 0; font-size: 13.5px; border-bottom: 1px solid color-mix(in srgb, currentColor 10%, transparent); }
+    .pd-itens .q { flex: none; min-width: 28px; padding: 1px 0; border-radius: 6px; text-align: center; font-size: 12px; font-weight: 800; color: var(--assunto); background: color-mix(in srgb, var(--assunto) 14%, transparent); }
+    .pd-itens .n { flex: 1; min-width: 0; overflow-wrap: anywhere; line-height: 1.3; }
+    .pd-itens .n small { display: block; font-size: 11.5px; opacity: .65; }
+    .pd-itens .v { flex: none; font-weight: 700; white-space: nowrap; }
+    .pd-mais { margin: 4px 0 0; padding: 6px 0; border: 0; background: none; color: var(--assunto); font: inherit; font-size: 12.5px; font-weight: 800; cursor: pointer; text-align: left; }
+    .pd-valores { margin: 8px 12px 0; display: grid; gap: 4px; font-size: 13px; }
+    .pd-valores div { display: flex; justify-content: space-between; gap: 10px; }
+    .pd-valores div span:first-child { opacity: .75; }
+    .pd-valores .gratis span:last-child { color: #2fbf71; font-weight: 800; }
+    .pd-valores .cupom span:first-child { opacity: 1; font-weight: 800; color: var(--assunto); }
+    .pd-valores .cupom span:last-child { text-align: right; overflow-wrap: anywhere; }
+    .pd-valores .tot { margin-top: 4px; padding-top: 8px; border-top: 1px dashed color-mix(in srgb, currentColor 22%, transparent); font-size: 16px; font-weight: 900; }
+    .pd-valores .tot span:first-child { opacity: 1; }
+    .pd-valores .tot span:last-child { color: var(--assunto); }
+    .pd-info { margin: 10px 12px 0; display: grid; gap: 8px; }
+    .pd-info > div { display: flex; align-items: flex-start; gap: 9px; font-size: 13px; }
+    .pd-info-ic { flex: none; width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center; background: color-mix(in srgb, currentColor 9%, transparent); }
+    .pd-info-ic svg.i { width: 16px; height: 16px; }
+    .pd-info small { display: block; font-size: 11px; opacity: .65; font-weight: 700; }
+    .pd-info span { overflow-wrap: anywhere; line-height: 1.35; }
+    .pd-ver { display: block; margin: 10px 0 0; padding: 10px 12px; text-align: center; border-top: 1px solid color-mix(in srgb, currentColor 12%, transparent); font-size: 13px; font-weight: 800; color: var(--assunto); text-decoration: none; }
+    .bolha.pedido-pro .meta, .bolha.pedido-pro .hora { padding: 0 12px 8px; }
     .status-linha { display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
     .status-linha .ic { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--cor-st, #00adee) 20%, transparent); color: var(--cor-st, #00adee); flex-shrink: 0; }
     .status-linha .ic svg.i { width: 18px; height: 18px; }
@@ -412,11 +516,16 @@
     .aval-feito { font-size: 12.5px; display: inline-flex; align-items: center; gap: 6px; opacity: .85; }
     .menu-titulo { padding: 8px 14px 4px; font-size: 12px; font-weight: 800; opacity: .7; }
     .cm-pedido .info { font-size: 12.5px; }
+    .cm-pedido .cupom { margin-top: 2px; padding: 6px 9px; border-radius: 10px; border: 1px dashed color-mix(in srgb, var(--assunto) 60%, transparent); background: color-mix(in srgb, var(--assunto) 10%, transparent); font-size: 12.5px; }
+    .cm-pedido .cupom span:first-child { font-weight: 800; color: var(--assunto); }
+    .cm-pedido .cupom span:last-child { white-space: normal; text-align: right; overflow-wrap: anywhere; }
     .cm-pedido .info span:first-child { opacity: .7; flex-shrink: 0; }
     .cm-pedido .info span:last-child { text-align: right; font-weight: 700; white-space: normal !important; overflow-wrap: anywhere; }
     .cm-pedido .tot + .info { margin-top: 4px; }
     .cm-pedido .urgente span:last-child { color: #ff6b6b; }
     .cm-orc .info { padding: 4px 0; border-bottom: 1px solid color-mix(in srgb, currentColor 10%, transparent); }
+    .cm-pedido div.cupom, .cm-orc div.info.cupom { margin: 4px 0 2px; padding: 7px 10px; border: 1px dashed color-mix(in srgb, var(--assunto) 60%, transparent); }
+    .cm-pedido div.cupom span:first-child { opacity: 1; }
     a.cm-ver { text-decoration: none; }
     .cm-pedido .obs { margin: 4px 0 0; padding: 6px 8px; border-radius: 8px; background: color-mix(in srgb, currentColor 8%, transparent); font-size: 12.5px; white-space: pre-wrap; }
     .extra.cartao-pend { border-left-color: var(--assunto); }
@@ -723,6 +832,10 @@
     <symbol id="i-fechar" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
     <symbol id="i-check2" viewBox="0 0 24 24"><path d="M2.5 12.5L7 17l9.5-9.5M11.5 16l1 1L22 7.5"/></symbol>
+    <symbol id="i-cartao" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h4"/></symbol>
+    <symbol id="i-local" viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0113 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></symbol>
+    <symbol id="i-pessoa" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.8 20c.8-3.6 3.6-5.8 7.2-5.8s6.4 2.2 7.2 5.8"/></symbol>
+    <symbol id="i-selo" viewBox="0 0 24 24"><path d="M12 2.8l2.3 1.7 2.8-.2.9 2.7 2.3 1.7-.9 2.7.9 2.7-2.3 1.7-.9 2.7-2.8-.2L12 21.2l-2.3-1.7-2.8.2-.9-2.7-2.3-1.7.9-2.7-.9-2.7L5.9 7l.9-2.7 2.8.2z" fill="currentColor" stroke="none"/><path d="M8.6 12.2l2.3 2.3 4.6-4.8" stroke="#fff" stroke-width="2.2"/></symbol>
     <symbol id="i-relogio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4.5l3 1.8"/></symbol>
     <symbol id="i-mais" viewBox="0 0 24 24"><circle cx="12" cy="5.5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="18.5" r="1.2" fill="currentColor"/></symbol>
     <symbol id="i-seta-baixo" viewBox="0 0 24 24"><path d="M6 9.5l6 6 6-6"/></symbol>
@@ -1287,6 +1400,7 @@
       });
       if (Number(p.taxa) > 0) linha("Entrega", reais(p.taxa), "sub");
       linha("Total", reais(p.total), "tot");
+      if (p.cupom && typeof p.cupom === "object") linha(p.cupom.codigo ? "Cupom" : "Promoção", [p.cupom.codigo, p.cupom.titulo].filter(Boolean).map((x) => String(x).slice(0, 60)).join(" · "), "cupom");
       const PAG = { pix: "Pix", credito: "Cartão de crédito", debito: "Cartão de débito", dinheiro: "Dinheiro", vale: "Vale-refeição" };
       if (p.modo) linha(p.modo === "retirada" ? "Recebimento" : "Entrega em", p.modo === "retirada" ? "Retirada no local" : String(p.endereco || "a combinar").slice(0, 200), "info");
       if (p.pagamento) linha("Pagamento", (PAG[p.pagamento] || String(p.pagamento).slice(0, 20)) + (Number(p.troco) > 0 ? ` · troco p/ ${reais(p.troco)}` : ""), "info");
@@ -1323,6 +1437,7 @@
       linha("Serviço", (Array.isArray(so.servicos) ? so.servicos : []).slice(0, 12).map((x) => String(x).slice(0, 60)).join(", "));
       linha("Quando", textoQuandoMsg(so.quando), so.quando?.tipo === "urgente" ? "urgente" : "");
       linha("Local", String(so.local || "").slice(0, 80) || (so.modo === "online" ? "Online" : so.modo === "local" ? "No local do profissional" : ""));
+      if (so.cupom && typeof so.cupom === "object") linha(so.cupom.codigo ? "Cupom" : "Promoção", [so.cupom.codigo, so.cupom.titulo].filter(Boolean).map((x) => String(x).slice(0, 60)).join(" · "), "cupom");
       if (so.descricao) {
         const o = document.createElement("p");
         o.className = "obs";
@@ -1369,29 +1484,143 @@
       pintarStatusPedido(box, m, tipo);
       return box;
     }
+    // Andamento do pedido: situação em destaque, etapas com nome e, para o negócio, o botão da próxima etapa.
+    const ETAPA_CURTA = { recebido: "Recebido", preparando: "Preparando", saiu: "A caminho", separando: "Separando", enviado: "Enviado", entregue: "Entregue" };
     function pintarStatusPedido(box, m, tipo) {
       const k = statusAtual(m.id);
       const etapas = etapasDe(tipo);
       const idx = etapas.findIndex((e) => e[0] === k);
+      const souNegocio = m.remetenteId !== eu.uid;
       box.replaceChildren();
-      box.style.setProperty("--cor-st", corStatus(k));
-      if (k !== "cancelado") {
-        const trilha = document.createElement("div"); trilha.className = "pedido-trilha";
-        etapas.forEach((_, i) => { const t = document.createElement("i"); if (i <= idx) t.className = "on"; trilha.appendChild(t); });
-        box.appendChild(trilha);
-      }
-      const linha = document.createElement("div"); linha.className = "pedido-status";
+      box.className = "pd-status";
+      box.style.setProperty("--cor-st", k ? corStatus(k) : "#f5a524");
       const st = infoStatus(tipo, k);
-      const pill = document.createElement("span"); pill.className = "pill";
-      pill.append(iconeSvg(st ? st[2] : "relogio"), document.createTextNode(st ? st[1] : "Aguardando o negócio confirmar"));
-      linha.appendChild(pill);
-      // Quem recebeu o pedido (o negócio) atualiza o andamento.
-      if (m.remetenteId !== eu.uid && k !== "entregue" && k !== "cancelado") {
-        const b = document.createElement("button"); b.type = "button"; b.textContent = k ? "Próxima etapa" : "Confirmar pedido";
-        b.addEventListener("click", (e) => { e.stopPropagation(); escolherStatus(m, tipo, e.clientX, e.clientY); });
-        linha.appendChild(b);
+      const topo = document.createElement("div"); topo.className = "pd-st-topo";
+      const ic = document.createElement("span"); ic.className = "pd-st-ic"; ic.appendChild(iconeSvg(st ? st[2] : "relogio"));
+      const tx = document.createElement("div");
+      const b = document.createElement("b"); b.textContent = st ? st[1] : souNegocio ? "Novo pedido" : "Aguardando confirmação";
+      const sm = document.createElement("small");
+      sm.textContent = k === "cancelado" ? "Este pedido foi cancelado."
+        : k === "entregue" ? "Pedido concluído. Obrigado!"
+        : !k ? (souNegocio ? "Confirme para o cliente saber que você recebeu." : "O negócio ainda vai confirmar o seu pedido.")
+        : m.cartao?.pedido?.prazo && tipo === "delivery" && k !== "entregue" ? `Previsão: ${String(m.cartao.pedido.prazo).slice(0, 20)}` : "O andamento aparece aqui.";
+      tx.append(b, sm);
+      topo.append(ic, tx);
+      box.appendChild(topo);
+      if (k !== "cancelado") {
+        const passos = document.createElement("ol"); passos.className = "pd-passos";
+        etapas.forEach(([chave], i) => {
+          const li = document.createElement("li");
+          if (i < idx) li.className = "feito"; else if (i === idx) li.className = "atual";
+          const bola = document.createElement("i"); if (i <= idx) bola.appendChild(iconeSvg("check"));
+          const nome = document.createElement("span"); nome.textContent = ETAPA_CURTA[chave] || chave;
+          li.append(bola, nome);
+          passos.appendChild(li);
+        });
+        box.appendChild(passos);
       }
-      box.appendChild(linha);
+      const acoes = document.createElement("div"); acoes.className = "pd-acoes";
+      if (souNegocio && k !== "entregue" && k !== "cancelado") {
+        const prox = etapas[idx + 1];
+        const pri = document.createElement("button"); pri.type = "button"; pri.className = "pri";
+        pri.textContent = !k ? "Confirmar pedido" : `Marcar: ${ETAPA_CURTA[prox[0]] || prox[1]}`;
+        pri.addEventListener("click", (e) => { e.stopPropagation(); mudarStatusPedido(m, tipo, prox[0]); });
+        const mais = document.createElement("button"); mais.type = "button"; mais.className = "ic"; mais.setAttribute("aria-label", "Outras opções do pedido");
+        mais.appendChild(iconeSvg("mais"));
+        mais.addEventListener("click", (e) => { e.stopPropagation(); escolherStatus(m, tipo, e.clientX, e.clientY); });
+        acoes.append(pri, mais);
+      } else if (!souNegocio && !k) {
+        // O cliente pode desistir enquanto o negócio não confirmou.
+        const c = document.createElement("button"); c.type = "button"; c.className = "sec"; c.textContent = "Cancelar pedido";
+        c.addEventListener("click", (e) => { e.stopPropagation(); mudarStatusPedido(m, tipo, "cancelado"); });
+        acoes.appendChild(c);
+      }
+      if (acoes.children.length) box.appendChild(acoes);
+    }
+    async function mudarStatusPedido(m, tipo, k) {
+      if (!ativa) return;
+      if (k === "cancelado" && !(await confirmarHF({ titulo: "Cancelar este pedido?", texto: m.remetenteId === eu.uid ? "O negócio vê na conversa que você desistiu." : "Ele fica marcado como cancelado e o cliente vê na conversa.", ok: "Cancelar pedido", cancelar: "Voltar", icone: "alerta" }))) return;
+      try {
+        await publicarMensagem(ativa.id, { remetenteId: eu.uid, texto: "", criadoEm: fb.serverTimestamp(), tipoArquivo: "cartao",
+          cartao: { tipo, status: k, refMsg: m.id, titulo: String(m.cartao?.titulo || "").slice(0, 80) } });
+      } catch (erro) { console.error(erro); toast(erro?.code === "limite-diario" ? erro.message : "Não foi possível atualizar o pedido."); }
+    }
+    // Cartão do pedido (delivery e lojinha), como nos apps de pedido: número, negócio, andamento,
+    // itens, valores (com cupom), entrega, pagamento e observações.
+    const PAG_MSG = { pix: "Pix", credito: "Cartão de crédito", debito: "Cartão de débito", dinheiro: "Dinheiro", vale: "Vale-refeição" };
+    function cartaoPedido(m, c, tipo, href) {
+      const p = c.pedido;
+      const box = document.createElement("div"); box.className = "pd";
+      const cab = document.createElement("div"); cab.className = "pd-cab";
+      const logo = document.createElement("span"); logo.className = "pd-logo";
+      const foto = urlSegura(c.foto);
+      if (foto) logo.style.backgroundImage = `url("${foto}")`; else logo.appendChild(iconeSvg(tipo === "delivery" ? "st-preparando" : "st-separando"));
+      const ct = document.createElement("div"); ct.className = "pd-cab-tx";
+      const nomeNeg = String(c.titulo || "").replace(/^Pedido · /, "") || ASSUNTOS[tipo].nome;
+      const sm = document.createElement("small"); sm.textContent = `${ASSUNTOS[tipo].nome} · Pedido #${String(m.id || "").slice(-6).toUpperCase()}`;
+      const st = document.createElement("strong"); st.textContent = nomeNeg;
+      ct.append(sm, st);
+      cab.append(logo, ct);
+      box.appendChild(cab);
+      box.appendChild(statusPedido(m, tipo));
+
+      // Itens: os 4 primeiros e "ver todos".
+      const itens = p.itens.slice(0, 30);
+      const lista = document.createElement("ul"); lista.className = "pd-itens";
+      const unidades = itens.reduce((t, i) => t + (Math.max(0, parseInt(i?.qtd, 10) || 0)), 0);
+      const pintarItens = (todos) => {
+        lista.replaceChildren();
+        (todos ? itens : itens.slice(0, 4)).forEach((i) => {
+          const qtd = Math.max(0, Math.min(999, parseInt(i?.qtd, 10) || 0));
+          const preco = Number(i?.preco) > 0 ? Number(i.preco) : 0;
+          const li = document.createElement("li");
+          const q = document.createElement("span"); q.className = "q"; q.textContent = `${qtd}×`;
+          const n = document.createElement("span"); n.className = "n";
+          n.append(document.createTextNode(String(i?.nome || "Item").slice(0, 60)));
+          if (preco && qtd > 1) { const u = document.createElement("small"); u.textContent = `${reais(preco)} cada`; n.appendChild(u); }
+          const v = document.createElement("span"); v.className = "v"; v.textContent = preco ? reais(qtd * preco) : "a combinar";
+          li.append(q, n, v);
+          lista.appendChild(li);
+        });
+        if (itens.length > 4) {
+          const mais = document.createElement("button"); mais.type = "button"; mais.className = "pd-mais";
+          mais.textContent = todos ? "Mostrar menos" : `Ver todos os ${itens.length} itens`;
+          mais.addEventListener("click", (e) => { e.stopPropagation(); pintarItens(!todos); });
+          lista.appendChild(mais);
+        }
+      };
+      pintarItens(false);
+      const titItens = document.createElement("div"); titItens.className = "pd-sec"; titItens.textContent = `${unidades} ${unidades === 1 ? "item" : "itens"}`;
+      box.append(titItens, lista);
+
+      // Valores
+      const val = document.createElement("div"); val.className = "pd-valores";
+      const linha = (a, b, cls) => { const d = document.createElement("div"); if (cls) d.className = cls; const x = document.createElement("span"); x.textContent = a; const y = document.createElement("span"); y.textContent = b; d.append(x, y); val.appendChild(d); };
+      const subtotal = Number(p.subtotal) >= 0 && p.subtotal != null ? Number(p.subtotal) : itens.reduce((t, i) => t + (Number(i?.preco) || 0) * (parseInt(i?.qtd, 10) || 0), 0);
+      linha("Subtotal", reais(subtotal));
+      if (tipo === "delivery" || Number(p.taxa) > 0) linha(p.modo === "retirada" ? "Retirada" : "Entrega", p.modo === "retirada" ? "Sem taxa" : Number(p.taxa) > 0 ? reais(p.taxa) : "Grátis", Number(p.taxa) > 0 ? "" : "gratis");
+      if (p.cupom && typeof p.cupom === "object") linha(p.cupom.codigo ? `Cupom ${String(p.cupom.codigo).slice(0, 20)}` : "Promoção", String(p.cupom.titulo || "a combinar").slice(0, 60), "cupom");
+      linha("Total", reais(p.total) + (itens.some((i) => !(Number(i?.preco) > 0)) ? " + a combinar" : ""), "tot");
+      box.appendChild(val);
+
+      // Entrega, pagamento e observação
+      const info = document.createElement("div"); info.className = "pd-info";
+      const item = (icone, rot, txt) => {
+        if (!txt) return;
+        const d = document.createElement("div");
+        const i = document.createElement("span"); i.className = "pd-info-ic"; i.appendChild(iconeSvg(icone));
+        const t = document.createElement("div"); const s1 = document.createElement("small"); s1.textContent = rot; const s2 = document.createElement("span"); s2.textContent = txt;
+        t.append(s1, s2); d.append(i, t); info.appendChild(d);
+      };
+      if (p.modo) item(p.modo === "retirada" ? "st-recebido" : "local", p.modo === "retirada" ? "Recebimento" : "Entregar em", p.modo === "retirada" ? "Retirada no local" : String(p.endereco || "A combinar").slice(0, 200));
+      if (p.pagamento) item("cartao", "Pagamento", (PAG_MSG[p.pagamento] || String(p.pagamento).slice(0, 20)) + (Number(p.troco) > 0 ? ` · troco para ${reais(p.troco)}` : "") + " · na entrega/retirada");
+      if (p.obs) item("chat", "Observação", String(p.obs).slice(0, 300));
+      if (info.children.length) box.appendChild(info);
+
+      const ver = document.createElement("a"); ver.className = "pd-ver"; ver.href = href;
+      ver.textContent = tipo === "delivery" ? (m.remetenteId === eu.uid ? "Pedir mais · ver cardápio" : "Ver cardápio") : (m.remetenteId === eu.uid ? "Ver mais produtos" : "Ver loja");
+      box.appendChild(ver);
+      return box;
     }
     function atualizarStatusNaTela(refId) {
       const m = mensagens.find((x) => x.id === refId);
@@ -2817,6 +3046,14 @@
         // Publicação enviada do Diário: aparece como no Instagram (quem publicou, a foto e a legenda).
         bolha.classList.add("cartao-msg", "pub-msg");
         bolha.appendChild(cartaoPublicacao(m.cartao));
+      } else if (m.tipoArquivo === "cartao" && Array.isArray(m.cartao?.pedido?.itens) && m.cartao.pedido.itens.length) {
+        // Pedido de delivery ou lojinha: cartão completo, como nos apps de pedido.
+        const c = m.cartao;
+        const tipo = ASSUNTOS[c.tipo] ? c.tipo : "delivery";
+        const href = /^((servicos|delivery|shopping|imoveis)\.html|usuarios\.html)\?[\w=&%.-]+$/.test(String(c.link || "")) ? c.link : "#";
+        bolha.classList.add("cartao-msg", "pedido", "pedido-pro");
+        bolha.style.setProperty("--assunto", ASSUNTOS[tipo].cor);
+        bolha.appendChild(cartaoPedido(m, c, tipo, href));
       } else if (m.tipoArquivo === "cartao" && m.cartao) {
         const c = m.cartao;
         const tipo = ASSUNTOS[c.tipo] ? c.tipo : "servicos";
@@ -2838,7 +3075,7 @@
         tx.append(tp, ti);
         if (c.sub) { const s = document.createElement("small"); s.textContent = c.sub; tx.appendChild(s); }
         if (c.preco && !ehPedido && !ehOrc) { const p = document.createElement("span"); p.className = "cm-preco"; p.textContent = c.preco; tx.appendChild(p); }
-        if (ehPedido) { bolha.classList.add("pedido"); tp.textContent = `${ASSUNTOS[tipo].nome} · Pedido`; tx.appendChild(blocoPedido(c.pedido)); tx.appendChild(statusPedido(m, tipo)); }
+
         if (ehOrc) { bolha.classList.add("pedido"); tp.textContent = "Pedido de orçamento"; tx.appendChild(blocoSolicitacao(c.solicitacao)); }
         const ver = document.createElement(ehPedido || ehOrc ? "a" : "span");
         ver.className = "cm-ver";
@@ -3160,24 +3397,165 @@
       // Ausente com horário: o horário continua aparecendo (quem escreve sabe quando você atende).
       if (ausente && sem) add("", resumoSemana(sem, a.almoco), "Horário:");
       box.hidden = !box.children.length;
-      // Texto maior que a linha: vira um botão que abre o aviso inteiro.
-      requestAnimationFrame(() => {
-        const longa = box.classList.contains("aberta") || box.scrollWidth > box.clientWidth + 1;
-        box.classList.toggle("longa", longa);
-        if (longa) { box.setAttribute("role", "button"); box.tabIndex = 0; box.setAttribute("aria-expanded", String(box.classList.contains("aberta"))); }
-        else { box.removeAttribute("role"); box.removeAttribute("tabindex"); box.removeAttribute("aria-expanded"); }
-      });
+      // A faixa é um resumo de uma linha; tocar abre a gaveta com tudo organizado.
+      box.setAttribute("role", "button"); box.tabIndex = 0; box.setAttribute("aria-label", "Ver o atendimento: " + box.textContent);
     }
     function alternarFaixaAtend(e) {
-      const box = $("faixaAtend");
-      if (!box.classList.contains("longa")) return;
       if (e.type === "keydown" && e.key !== "Enter" && e.key !== " ") return;
       e.preventDefault();
-      box.classList.toggle("aberta");
-      box.setAttribute("aria-expanded", String(box.classList.contains("aberta")));
+      abrirGavetaAtendimento();
     }
     $("faixaAtend").addEventListener("click", alternarFaixaAtend);
     $("faixaAtend").addEventListener("keydown", alternarFaixaAtend);
+
+    // ---------- gavetas do chat (atendimento e prévia do perfil) ----------
+    // Sobem de baixo, por cima da conversa. O "voltar" do celular fecha (voltar.js: .pv-fundo).
+    const usar = (n, cls = "i s") => { const sv = document.createElementNS("http://www.w3.org/2000/svg", "svg"); sv.setAttribute("class", cls); const u = document.createElementNS("http://www.w3.org/2000/svg", "use"); u.setAttribute("href", "#i-" + n); sv.appendChild(u); return sv; };
+    const elm = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+    function abrirGaveta(titulo) {
+      document.querySelector(".pv-fundo")?._fechar?.();
+      const fundo = elm("div", "pv-fundo");
+      const g = elm("div", "pv-gaveta"); g.setAttribute("role", "dialog"); g.setAttribute("aria-modal", "true"); g.setAttribute("aria-label", titulo); g.tabIndex = -1;
+      const cab = elm("div", "pv-cab"); const x = elm("button", "pv-x"); x.type = "button"; x.setAttribute("aria-label", "Fechar"); x.appendChild(usar("fechar"));
+      cab.append(elm("strong", null, titulo), x);
+      const corpo = elm("div", "pv-corpo");
+      g.append(cab, corpo); fundo.appendChild(g);
+      const fechar = () => { if (!fundo.isConnected || fundo._saindo) return; fundo._saindo = true; fundo.dataset.semVoltar = ""; fundo.classList.remove("on"); setTimeout(() => fundo.remove(), 250); };
+      fundo._fechar = fechar;
+      x.addEventListener("click", fechar);
+      fundo.addEventListener("click", (e) => { if (e.target === fundo) fechar(); });
+      fundo.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); fechar(); } });
+      // Arrastar a gaveta para baixo (pelo topo) fecha.
+      let y0 = null;
+      cab.addEventListener("touchstart", (e) => { y0 = e.touches[0].clientY; }, { passive: true });
+      cab.addEventListener("touchend", (e) => { if (y0 != null && e.changedTouches[0].clientY - y0 > 60) fechar(); y0 = null; }, { passive: true });
+      document.body.appendChild(fundo);
+      requestAnimationFrame(() => { fundo.classList.add("on"); g.focus({ preventScroll: true }); });
+      return { corpo, fechar };
+    }
+    function abrirGavetaAtendimento() {
+      const a = perfilOutroAtual?.atendimento;
+      if (!ativa || !a) return;
+      const { corpo, fechar } = abrirGaveta("Atendimento");
+      const ausente = ausenteAgora(a), sem = semanaDe(a);
+      const st = ausente ? { cls: "ausente", txt: "Ausente no momento", sub: ms(a.volta) ? `Volta ${dataVoltaTxt(a.volta)}` : "Sem data de volta" }
+        : sem ? { ...situacaoHorario(sem, a.almoco) } : { cls: "fechado", txt: "Sem horário definido" };
+      const box = elm("div", "pv-status " + st.cls);
+      const pt = elm("span", "pt"); pt.appendChild(usar(st.cls === "aberto" ? "check" : st.cls === "fechado" ? "relogio" : "relogio", "i"));
+      const tx = elm("div", "tx"); tx.append(elm("b", null, st.txt.split(" · ")[0]));
+      const sub = st.sub || st.txt.split(" · ").slice(1).join(" · ");
+      if (sub) tx.appendChild(elm("small", null, maiusc(sub)));
+      box.append(pt, tx);
+      corpo.appendChild(box);
+      if (ausente && a.mensagem) { const av = elm("div", "pv-aviso"); av.append(elm("small", null, "Aviso"), document.createTextNode(String(a.mensagem).slice(0, 200))); corpo.appendChild(av); }
+      if (sem) {
+        const sec = elm("div", "pv-sec"); sec.appendChild(elm("h4", null, "Horário de atendimento"));
+        const dias = elm("div", "pv-dias");
+        const hoje = new Date().getDay();
+        [1, 2, 3, 4, 5, 6, 0].forEach((d) => {
+          const f = sem[d];
+          const l = elm("div", "pv-dia" + (f ? "" : " fech") + (d === hoje ? " hoje" : ""));
+          l.append(elm("span", null, DIAS_LONGOS[d]), elm("span", null, f ? `${horaTxt(f.ini)} às ${horaTxt(f.fim)}` : "Fechado"));
+          dias.appendChild(l);
+        });
+        sec.appendChild(dias);
+        const al = faixa(a.almoco);
+        if (al) { const i = elm("div", "pv-info"); i.append(usar("relogio"), document.createTextNode(`Pausa para almoço das ${horaTxt(al.ini)} às ${horaTxt(al.fim)}`)); sec.appendChild(i); }
+        corpo.appendChild(sec);
+      }
+      if (a.resposta?.n >= 3) { const i = elm("div", "pv-info"); i.append(usar("chat"), document.createTextNode(`Costuma responder em ${tempoTxt(a.resposta.media)}`)); corpo.appendChild(i); }
+      const ver = elm("button", "pv-btn"); ver.type = "button"; ver.append(usar("pessoa"), document.createTextNode("Ver perfil e negócios"));
+      ver.addEventListener("click", () => { fechar(); setTimeout(abrirPreviaPerfil, 260); });
+      corpo.appendChild(ver);
+    }
+    const maiusc = (t) => String(t).charAt(0).toUpperCase() + String(t).slice(1);
+
+    // Prévia do perfil (tocar e SEGURAR o nome no topo): foto, nome, bio e os negócios da pessoa.
+    // Tocar num negócio abre o perfil dele aqui mesmo (cardápio, loja, pedir orçamento); o pedido
+    // volta para esta conversa como cartão, sem sair do chat.
+    let vitrineMod = null;
+    function carregarVitrine() {
+      if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=28"; l.dataset.vitrine = ""; document.head.appendChild(l); }
+      return (vitrineMod ||= import("./vitrine.js?v=41"));
+    }
+    function usarCartaoNaConversa(uid, cartao) {
+      document.querySelectorAll(".vt-modal").forEach((m) => m.remove());
+      document.querySelector(".pv-fundo")?._fechar?.();
+      if (!ativa || uid !== ativa.outroId) return;
+      cartaoPendente = cartao;
+      try { sessionStorage.setItem("hf-cartao-pendente", JSON.stringify({ conversaId: ativa.id, cartao })); } catch {}
+      pintarCartaoPendente();
+      setTimeout(() => $("texto")?.focus({ preventScroll: true }), 300);
+      toast("Pronto: é só enviar.");
+    }
+    async function abrirPreviaPerfil() {
+      if (!ativa || ativa.equipe) return;
+      const uid = ativa.outroId;
+      const { corpo, fechar } = abrirGaveta("Perfil");
+      const p = perfilOutroAtual || (await obterPerfil(uid)) || {};
+      const topo = elm("div", "pv-perfil");
+      const av = elm("div", "avatar"); pintarAvatar(av, p.fotoPerfil, p.nome || ativa.nome);
+      const h = elm("h3", null, p.nome || ativa.nome || "Usuário");
+      if (p.verificado) h.appendChild(usar("selo"));
+      topo.append(av, h);
+      if (p.nickname) topo.appendChild(elm("span", "arroba", "@" + p.nickname));
+      if (p.cidade) topo.appendChild(elm("span", "cid", String(p.cidade).replace(/\s*\/\s*/, " · ")));
+      if (p.bio) topo.appendChild(elm("p", null, String(p.bio).slice(0, 220)));
+      corpo.appendChild(topo);
+      const verPerfilBtn = elm("button", "pv-btn"); verPerfilBtn.type = "button";
+      verPerfilBtn.append(usar("pessoa"), document.createTextNode("Ver perfil completo"));
+      verPerfilBtn.addEventListener("click", () => { fechar(); verPerfil(); });
+      const sec = elm("div", "pv-sec"); sec.appendChild(elm("h4", null, "Negócios"));
+      const lista = elm("div", "pv-negs"); lista.appendChild(elm("div", "pv-vazio", "Carregando..."));
+      sec.appendChild(lista);
+      corpo.append(sec, verPerfilBtn);
+      let negs = [];
+      try {
+        const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "negocios"), fb.where("donoId", "==", uid)));
+        negs = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => !(ms(n.ocultoAte) > Date.now()));
+      } catch (e) { console.warn(e); }
+      lista.replaceChildren();
+      if (!negs.length) { sec.remove(); return; }
+      const ORDEM = ["servicos", "delivery", "lojinha", "imoveis"];
+      negs.sort((x, y) => ORDEM.indexOf(x.tipo) - ORDEM.indexOf(y.tipo));
+      const IR = { servicos: "Orçamento", delivery: "Pedir", lojinha: "Ver loja", imoveis: "Ver imóveis" };
+      negs.forEach((n) => {
+        const b = elm("button", "pv-neg"); b.type = "button";
+        b.style.setProperty("--cor", (ASSUNTOS[n.tipo] || ASSUNTOS.servicos).cor);
+        const ft = elm("span", "ft");
+        if (urlSegura(n.foto)) ft.style.backgroundImage = `url("${urlSegura(n.foto)}")`; else ft.textContent = String(n.nome || "?").trim().charAt(0).toUpperCase();
+        const tx = elm("span", "tx");
+        tx.append(elm("small", null, (ASSUNTOS[n.tipo] || ASSUNTOS.servicos).nome), elm("b", null, n.nome || (ASSUNTOS[n.tipo] || {}).nome));
+        const pr = n.promocao?.titulo && ms(n.promocao.ate) > Date.now() ? n.promocao : null;
+        const info = elm("span", pr ? "promo" : null, pr ? (pr.codigo ? `Cupom ${pr.codigo} · ${pr.titulo}` : pr.titulo) : [n.bairro, String(n.cidade || "").split("/")[0]].filter(Boolean).join(", ") || (n.descricao || "").slice(0, 60));
+        tx.appendChild(info);
+        b.append(ft, tx, elm("span", "ir", IR[n.tipo] || "Abrir"));
+        b.addEventListener("click", async () => {
+          b.disabled = true;
+          try {
+            const v = await carregarVitrine();
+            v.abrirDetalhe(n, { fb, eu, dono: p, proprio: false, origem: "mensagens", aoMensagem: usarCartaoNaConversa, aoPerfil: () => { document.querySelectorAll(".vt-modal").forEach((m) => m.remove()); } });
+          } catch (e) { console.error(e); toast("Não foi possível abrir agora."); }
+          finally { b.disabled = false; }
+        });
+        lista.appendChild(b);
+      });
+      corpo.insertBefore(elm("p", "pv-dica", "Peça, compre ou peça orçamento por aqui: tudo volta para esta conversa."), verPerfilBtn);
+    }
+    // Segurar o nome no topo abre a prévia; tocar continua abrindo o perfil.
+    (() => {
+      const b = $("btnQuem");
+      let t = 0, x0 = 0, y0 = 0, segurou = false;
+      const parar = () => clearTimeout(t);
+      b.addEventListener("pointerdown", (e) => {
+        segurou = false; x0 = e.clientX; y0 = e.clientY; parar();
+        t = setTimeout(() => { segurou = true; try { navigator.vibrate?.(12); } catch {} abrirPreviaPerfil(); }, 450);
+      });
+      b.addEventListener("pointermove", (e) => { if (Math.hypot(e.clientX - x0, e.clientY - y0) > 10) parar(); });
+      ["pointerup", "pointercancel", "pointerleave"].forEach((ev) => b.addEventListener(ev, parar));
+      b.addEventListener("contextmenu", (e) => e.preventDefault());
+      b.addEventListener("click", (e) => { if (segurou) { e.preventDefault(); e.stopImmediatePropagation(); segurou = false; } }, true);
+    })();
 
     function pintarAssuntoTopo() {
       pintarFixada();
