@@ -901,6 +901,7 @@ const MOTIVOS_RECUSA = [
   ["nome", "O nome do documento não confere com o nome do perfil."],
   ["perfil", "O perfil está incompleto ou não representa uma pessoa ou negócio real."],
   ["imitacao", "O perfil parece se passar por outra pessoa ou marca."],
+  ["idade", "A verificação é só para maiores de 18 anos, pela data de nascimento do documento. Você poderá pedir de novo quando completar 18 anos."],
   ["criterio", "No momento o perfil não atende aos critérios de verificação. Você pode pedir de novo em 30 dias."],
   ["outro", ""]
 ];
@@ -946,6 +947,10 @@ export function verificacoes(el) {
       const iguais = semAcentoV(v.nomeLegal).split(" ").filter((x) => x.length > 2).some((x) => semAcentoV(nomePerfil).includes(x));
       conf.append(linhaConf(iguais, `Nome no documento: ${v.nomeLegal}`), linhaConf(null, `Nome no perfil: ${nomePerfil || "—"}`));
     }
+    // idade: só maiores de 18 (a data do cadastro a pessoa pode mudar; vale a do documento)
+    const anos = idade(p.dataNascimento), menor = anos != null && anos < 18;
+    conf.append(linhaConf(anos == null ? null : !menor, anos == null ? "Sem data de nascimento no cadastro: confira a idade no documento"
+      : `Nascimento no cadastro: ${new Date(p.dataNascimento + "T00:00:00").toLocaleDateString("pt-BR")} (${anos} anos${menor ? " · menor de idade" : ""}). Confira no documento`));
     const dias = ms(p.criadoEm) ? Math.floor((agora() - ms(p.criadoEm)) / DIA) : null;
     conf.append(linhaConf(dias == null ? null : dias >= 7, `Conta desde ${data(p.criadoEm)}${dias != null ? ` (${dias} dias)` : ""}`));
     const den = D.denuncias.filter((d) => d.alvoId === p.uid);
@@ -959,8 +964,13 @@ export function verificacoes(el) {
     c.appendChild(corpo);
     const ac = h("div", "ad-acoes");
     ac.append(btn("Ver ficha", "", () => abrirFicha(p.uid)));
-    if (pode("moderar")) ac.append(btn("Recusar", "perigo", () => recusar(p, v)), btn("Aprovar", "pri", () => aprovar(p, v)));
+    if (pode("moderar")) {
+      const apr = btn("Aprovar", "pri", () => aprovar(p, v));
+      if (menor) { apr.disabled = true; apr.title = "Menores de 18 anos não podem ser verificados"; }
+      ac.append(btn("Recusar", "perigo", () => recusar(p, v, menor ? "idade" : "")), apr);
+    }
     c.appendChild(ac);
+    if (menor) c.insertBefore(h("div", "ad-vf-alerta", `Menor de idade (${anos} anos): a verificação é só para maiores de 18. Recuse com o motivo "idade".`), corpo);
     return c;
   }
   function cartaoDecidido(v) {
@@ -995,16 +1005,16 @@ export function verificacoes(el) {
     toast("Perfil verificado"); C.irPara("verificacoes");
   }
   async function confirmItemV(p) { return confirmarItem(null, `verificacao:${p.uid}`); }
-  async function recusar(p, v) {
+  async function recusar(p, v, sugerido = "") {
     const r = await modal({ titulo: "Não aprovar a verificação", texto: "A pessoa recebe o motivo e pode pedir de novo em 30 dias.", campos: [
-      { nome: "pronto", rotulo: "Motivo", tipo: "select", opcoes: MOTIVOS_RECUSA.map(([k, t]) => [k, k === "outro" ? "Outro (escrever)" : t.slice(0, 70) + (t.length > 70 ? "…" : "")]) },
+      { nome: "pronto", rotulo: "Motivo", tipo: "select", opcoes: MOTIVOS_RECUSA.map(([k, t]) => [k, k === "outro" ? "Outro (escrever)" : t.slice(0, 70) + (t.length > 70 ? "…" : "")]), valor: sugerido || "doc" },
       { nome: "texto", rotulo: "Mensagem para a pessoa (opcional: completa ou troca o motivo)", tipo: "textarea" }], botao: "Não aprovar", perigo: true });
     if (!r) return;
     const base = (MOTIVOS_RECUSA.find((m) => m[0] === r.pronto) || [])[1] || "";
     const motivo = [base, String(r.texto || "").trim()].filter(Boolean).join(" ") || "O perfil não atende aos critérios de verificação no momento.";
     await definirSelo(p.uid, false);
     await decidir(p, v, "recusada", motivo);
-    await enviarAviso(p.uid, { titulo: "Pedido de verificação não aprovado", texto: `${motivo}\n\nVocê pode pedir de novo em 30 dias, em Configurações → Verificação do perfil.`, tipo: "info" });
+    await enviarAviso(p.uid, { titulo: "Pedido de verificação não aprovado", texto: r.pronto === "idade" ? `${motivo}\n\nO seu perfil continua normal: só o selo que fica para depois.` : `${motivo}\n\nVocê pode pedir de novo em 30 dias, em Configurações → Verificação do perfil.`, tipo: "info" });
     toast("Pedido não aprovado"); C.irPara("verificacoes");
   }
   pintar();

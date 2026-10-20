@@ -78,7 +78,7 @@ $("cfgGosto").addEventListener("click", async () => {
 });
 
 // Verificação: tela completa (verificacao.js) com situação, requisitos e o pedido em passos.
-function solicitarVerificacao() { import("./verificacao.js?v=1").then((m) => m.abrirVerificacao({ aoMudar: pintarConfig })); }
+function solicitarVerificacao() { import("./verificacao.js?v=2").then((m) => m.abrirVerificacao({ aoMudar: pintarConfig })); }
 
 async function abrirContas(tipo) {
   const bloqueados = tipo === "bloqueados";

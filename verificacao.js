@@ -18,7 +18,7 @@ export const TIPOS_VERIF = [
   ["organizacao", "Organização", "ONG, órgão público, associação", "teia"]
 ];
 export const DOCUMENTOS = [["rg", "RG (identidade)"], ["cnh", "CNH (carteira de motorista)"], ["passaporte", "Passaporte"], ["rne", "RNE / CRNM (estrangeiro)"], ["cnpj", "Cartão CNPJ (negócio)"]];
-const DIA = 864e5, CONTA_MIN_DIAS = 7, ESPERA_DIAS = 30;
+const DIA = 864e5, CONTA_MIN_DIAS = 7, ESPERA_DIAS = 30, IDADE_MIN = 18;
 const ms = (t) => t?.toMillis?.() ?? (t instanceof Date ? t.getTime() : 0);
 const dataLonga = (t) => (ms(t) ? new Date(ms(t)).toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" }) : "");
 export const protocoloVerif = (uid) => "#V" + String(uid || "").replace(/[^A-Za-z0-9]/g, "").slice(0, 5).toUpperCase();
@@ -83,6 +83,8 @@ const CSS = `
 .vf-doc-area.com-foto { border-style: solid; border-color: #1d9bf0; padding: 8px; }
 .vf-privado { display: flex; gap: 8px; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, #12a150 9%, transparent); color: var(--text); font-size: 12.5px; line-height: 1.45; }
 .vf-privado .i { flex: none; width: 16px; height: 16px; color: #12a150; margin-top: 1px; }
+.vf-idade { background: color-mix(in srgb, #1d9bf0 7%, var(--panel)); border-color: color-mix(in srgb, #1d9bf0 30%, var(--line)); }
+.vf-idade h4 .i { width: 20px; height: 20px; color: #1d9bf0; flex: none; }
 .vf-links { display: grid; gap: 8px; }
 .vf-links input { width: 100%; box-sizing: border-box; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); color: var(--text); font: inherit; font-size: 15px; outline: none; }
 .vf-links input:focus { border-color: var(--accent); }
@@ -127,11 +129,18 @@ async function lerSancao() {
   const s = await fb.getDoc(fb.doc(fb.db, "sancoes", eu.uid)).then((x) => (x.exists() ? x.data() : null)).catch(() => null);
   return s && (s.tipo === "banimento" || ms(s.ate) > Date.now());
 }
+// Dia em que a pessoa faz 18 anos (0 se o cadastro não tem a data). A equipe confere a idade no documento.
+function dia18() {
+  const n = String(dados.dataNascimento || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return n ? new Date(+n[1] + IDADE_MIN, +n[2] - 1, +n[3]).getTime() : 0;
+}
+const menorDeIdade = () => dia18() > Date.now();
 function requisitos(sancao) {
   const dias = ms(dados.criadoEm) ? Math.floor((Date.now() - ms(dados.criadoEm)) / DIA) : 999;
   const nome = String(dados.nome || "").trim();
   return [
     { ok: !!eu.emailVerified, texto: "E-mail confirmado", dica: "Confirme pelo link que enviamos", link: "verificar-email.html" },
+    { ok: !menorDeIdade(), texto: `Ter ${IDADE_MIN} anos ou mais`, dica: menorDeIdade() ? `A partir de ${dataLonga(new Date(dia18()))}` : "" },
     { ok: !!dados.fotoPerfil, texto: "Foto de perfil", dica: "Uma foto em que dá para ver você ou a sua marca", link: "usuarios.html?acao=editar" },
     { ok: nome.split(/\s+/).length >= 2, texto: "Nome e sobrenome no perfil", dica: "O nome como você é conhecido", link: "usuarios.html?acao=editar" },
     { ok: String(dados.bio || "").trim().length >= 10, texto: "Bio preenchida", dica: "Conte em poucas palavras quem você é", link: "usuarios.html?acao=editar" },
@@ -202,7 +211,7 @@ export async function abrirVerificacao({ aoMudar } = {}) {
   if (pedido?.status === "recusada") {
     const h = hero("nao", "alerta", "Pedido não aprovado", "Desta vez não foi possível verificar o seu perfil.");
     if (pedido.motivoRecusa) { const m = el("div", "vf-motivo"); m.append(el("b", null, "Motivo"), document.createTextNode(pedido.motivoRecusa)); h.appendChild(m); }
-    bloqueadoAte = ms(pedido.analisadaEm) + ESPERA_DIAS * DIA;
+    bloqueadoAte = Math.max(ms(pedido.analisadaEm) + ESPERA_DIAS * DIA, menorDeIdade() ? dia18() : 0);
     if (bloqueadoAte > Date.now()) h.appendChild(el("p", null, `Você pode pedir de novo a partir de ${dataLonga(new Date(bloqueadoAte))}.`));
   } else {
     hero("", "selo", "Selo de perfil verificado", "O selo azul mostra que o Help Floripa confirmou que o perfil é de quem ele diz ser. Ajuda clientes e amigos a confiarem em você.");
@@ -224,10 +233,20 @@ export async function abrirVerificacao({ aoMudar } = {}) {
   sr.appendChild(ul);
   box.appendChild(sr);
   const podePedir = req.every((r) => r.ok) && bloqueadoAte <= Date.now();
-  if (!podePedir) { box.appendChild(el("p", "vf-nota", bloqueadoAte > Date.now() ? "Enquanto isso, deixe o perfil completo: isso ajuda na próxima análise." : "Quando todos os requisitos estiverem marcados, o pedido aparece aqui.")); return; }
+  if (menorDeIdade()) box.appendChild(avisoIdade());
+  if (!podePedir) { if (!menorDeIdade()) box.appendChild(el("p", "vf-nota", bloqueadoAte > Date.now() ? "Enquanto isso, deixe o perfil completo: isso ajuda na próxima análise." : "Quando todos os requisitos estiverem marcados, o pedido aparece aqui.")); return; }
   box.appendChild(formulario(aoMudar));
 }
 
+// Menor de 18: explica por que ainda não dá e o que fazer se alguém se passar por ela.
+function avisoIdade() {
+  const d = el("div", "vf-sec vf-idade");
+  const t = el("h4"); t.append(icone("relogio", "i"), document.createTextNode(`A verificação é para maiores de ${IDADE_MIN} anos`));
+  d.append(t,
+    el("p", null, `Como nas outras redes sociais, o selo é só para quem já tem ${IDADE_MIN} anos, porque a equipe confere um documento de identidade. Você poderá pedir a partir de ${dataLonga(new Date(dia18()))}, e não precisa fazer nada até lá.`),
+    el("p", null, "O seu perfil continua normal e protegido: se alguém se passar por você, denuncie o perfil (⋯ → Denunciar → Perfil falso). A equipe remove imitações de qualquer idade."));
+  return d;
+}
 function itemInfo(ic, titulo, valor) { const li = el("li"); li.appendChild(icone(ic, "i")); const t = el("span"); t.append(el("b", null, titulo), el("small", null, valor)); li.appendChild(t); return li; }
 function secBeneficios() {
   const s = el("div", "vf-sec");

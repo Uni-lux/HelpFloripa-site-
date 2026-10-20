@@ -13,6 +13,13 @@ await db.doc(`perfis_publicos/${U.ana}`).set({ fotoPerfil: PX }, { merge: true }
 await db.doc(`verificacoes/${U.edu}`).set({ uid: U.edu, categoria: "profissional", nomeLegal: "Carlos Pereira", conhecidoComo: "Eduardo Lima", documentoTipo: "cnh", documento: PX, links: [], motivo: "", status: "pendente", criadoEm: Timestamp.now(), atualizadoEm: Timestamp.now() });
 await db.doc(`usuarios/${U.edu}`).set({ solicitacaoVerificacao: true, solicitacaoVerificacaoEm: Timestamp.now() }, { merge: true });
 
+// Fabi: 17 anos, com tudo o mais em dia e um pedido antigo esperando (feito antes de a idade ser conferida)
+const n17 = new Date(); n17.setFullYear(n17.getFullYear() - 17); n17.setMonth(n17.getMonth() - 2);
+const nasc17 = n17.toISOString().slice(0, 10);
+await db.doc(`usuarios/${U.fabi}`).set({ fotoPerfil: PX, bio: "Estudante e fotógrafa nas horas vagas.", dataNascimento: nasc17 }, { merge: true });
+await db.doc(`verificacoes/${U.fabi}`).set({ uid: U.fabi, categoria: "pessoa", nomeLegal: "Fabiana Rocha", conhecidoComo: "", documentoTipo: "rg", documento: PX, links: [], motivo: "", status: "pendente", criadoEm: Timestamp.now(), atualizadoEm: Timestamp.now() });
+await db.doc(`usuarios/${U.fabi}`).set({ solicitacaoVerificacao: true, solicitacaoVerificacaoEm: Timestamp.now() }, { merge: true });
+
 const B = await navegador({ mobile: true });
 // Bruno: sem foto e sem bio → requisitos faltando, sem formulário
 let p = await entrar(B.ctx, "bruno", "configuracoes.html");
@@ -21,11 +28,23 @@ await p.locator("#cfgVerificacao").tap(); await p.waitForSelector("#folhaVerif.a
 ok(await p.locator(".vf-req li.falta").count() >= 1 && await p.locator(".vf-enviar").count() === 0, "requisitos faltando: aparecem marcados e o pedido não abre → " + (await p.locator(".vf-req li.falta").allTextContents()).join(", "));
 await p.close();
 
+// Fabi (17 anos): requisito da idade faltando, explicação e sem formulário (mesmo com pedido antigo, cancela antes)
+await db.doc(`verificacoes/${U.fabi}`).update({ status: "cancelada" });
+p = await entrar(B.ctx, "fabi", "configuracoes.html");
+await p.waitForTimeout(2000);
+await p.locator("#cfgVerificacao").tap(); await p.waitForSelector("#folhaVerif.aberta .vf-req", { timeout: 10000 });
+const fIdade = p.locator(".vf-req li.falta", { hasText: "18 anos" });
+ok(await fIdade.count() === 1 && /A partir de \d+ de/.test(await fIdade.textContent()), "menor de 18: requisito da idade faltando, com a data em que poderá pedir → " + (await fIdade.textContent().catch(() => "")));
+ok(await p.locator(".vf-idade").count() === 1 && await p.locator(".vf-enviar").count() === 0, "menor de 18: explicação (por que e o que fazer contra imitações) e sem formulário");
+await p.locator(".vf-idade").scrollIntoViewIfNeeded(); await p.screenshot({ path: "saida/verif-menor.png" });
+await p.close();
+await db.doc(`verificacoes/${U.fabi}`).update({ status: "pendente" });
+
 // Ana: tudo certo → pedido em passos
 p = await entrar(B.ctx, "ana", "configuracoes.html");
 await p.waitForTimeout(2000);
 await p.locator("#cfgVerificacao").tap(); await p.waitForSelector("#folhaVerif.aberta .vf-tipos", { timeout: 10000 });
-ok(await p.locator(".vf-req li.falta").count() === 0 && await p.locator(".vf-req li").count() === 6, "requisitos: 6 conferidos, todos ok");
+ok(await p.locator(".vf-req li.falta").count() === 0 && await p.locator(".vf-req li").count() === 7, "requisitos: 7 conferidos, todos ok");
 ok(await p.locator(".vf-beneficios li").count() >= 4, "o que o selo traz (benefícios)");
 await p.screenshot({ path: "saida/verif-inicio.png" });
 ok(await p.locator(".vf-enviar").isDisabled(), "Enviar só libera com tudo preenchido");
@@ -56,6 +75,15 @@ ok(await cAna.locator(".ad-vf-doc img").count() === 1 && await cAna.locator(".ad
 const cEdu = pa.locator(".ad-vf", { hasText: "Carlos Pereira" });
 ok(await cEdu.locator(".ad-vf-conf.nao", { hasText: "Nome no documento" }).count() === 1, "painel: nome do documento que não confere aparece em vermelho");
 await pa.screenshot({ path: "saida/verif-painel.png", fullPage: true });
+const cFabi = pa.locator(".ad-vf", { hasText: "Fabiana Rocha" });
+ok(await cFabi.locator(".ad-vf-alerta").count() === 1 && await cFabi.locator(".ad-vf-conf.nao", { hasText: "menor de idade" }).count() === 1, "painel: pedido de menor de 18 com alerta e a idade em vermelho");
+ok(await cFabi.locator(".ad-bt", { hasText: "Aprovar" }).isDisabled(), "painel: Aprovar travado para menor de 18");
+await cFabi.screenshot({ path: "saida/verif-painel-menor.png" });
+await cFabi.locator(".ad-bt", { hasText: "Recusar" }).click(); await pa.waitForTimeout(300);
+ok(await pa.locator(".ad-modal select").inputValue() === "idade", "recusar menor: motivo \"idade\" já vem escolhido");
+await pa.locator(".ad-modal button[type=submit]").click(); await pa.waitForTimeout(2000);
+const avFabi = (await db.collection("avisos").where("uid", "==", U.fabi).get()).docs.map((d) => d.data().texto).join(" ");
+ok(avFabi.includes("maiores de 18") && !avFabi.includes("30 dias"), "aviso para a menor: explica a idade, sem \"pedir em 30 dias\"");
 await cAna.locator(".ad-bt", { hasText: "Aprovar" }).click(); await pa.waitForTimeout(400);
 if (await pa.locator(".hf-confirma .sim").count()) await pa.locator(".hf-confirma .sim").click();
 await pa.waitForTimeout(2000);
