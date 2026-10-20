@@ -1722,8 +1722,9 @@ function abrirFiltros() {
     }
     const { cat, termo } = filtroAtual();
     const total = todos.filter((n) => passaCategoria(n, cat) && passaLocal(n) && (!termo || textoBusca(n).includes(termo)) && passaExtras(n, rasc)).length;
-    aplicar.textContent = total ? `Ver ${total} ${total === 1 ? "resultado" : "resultados"}` : "Nenhum resultado";
-    aplicar.disabled = !total && (rasc.liga.length || rasc.quartos || rasc.precoMax);
+    const algum = !!(rasc.liga.length || rasc.quartos || rasc.precoMax);
+    aplicar.textContent = !algum ? "Mostrar todos" : total ? `Ver ${total} ${total === 1 ? "resultado" : "resultados"}` : "Nenhum resultado";
+    aplicar.disabled = algum && !total;
   };
   const acoes = el("div", "vt-local-acoes");
   const limpar = el("button", "vt-local-limpar", "Limpar"); limpar.type = "button";
