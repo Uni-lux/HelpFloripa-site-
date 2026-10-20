@@ -15,11 +15,11 @@
 // Avisos da equipe (avisos/{id}); ?aviso=ID abre um aviso e ?chamado=ID um chamado
 // (links das notificações). Abrir marca como lido (avisos.lidoEm / usuarios.suporteLido).
 // =====================================================
-import { $, el, icone, toast, erroAmigavel, abrirFolha, fecharFolha, abrirOpcoes, linhaPessoa, fb, eu, dados, iniciarRede, montarBarraRede, pintarBarraRede } from "./rede.js?v=48";
+import { $, el, icone, toast, erroAmigavel, abrirFolha, fecharFolha, abrirOpcoes, linhaPessoa, fb, eu, dados, iniciarRede, montarBarraRede, pintarBarraRede } from "./rede.js?v=49";
 import { SUPORTE, seloOficial, fotoSuporte, marcarChamadoLido } from "./avisos-equipe.js?v=1";
 import { buscarPessoas } from "./pessoas.js?v=3";
 import { abrirDenuncia } from "./denuncias.js?v=4";
-import { ligarVoltar } from "./voltar.js?v=4";
+import { ligarVoltar } from "./voltar.js?v=5";
 import { prepararAnexo, blocoAnexo, previaAnexo, aceitos } from "./anexos-suporte.js?v=1";
 // O voltar fecha as janelas desta página (também dentro das Mensagens), sem depender da cópia do firebase.js no aparelho.
 ligarVoltar();

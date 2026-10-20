@@ -13,13 +13,14 @@ import {
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, botaoSeguir, montarBarraRede, pintarBarraRede, ouvirAvisos, lerOrdenado,
   editarPublicacao, bloquear, comMencoes, fotosDoPost, carrosselFotos, contadorEstrelas, estaSalvo, alternarSalvo, escolherColecao, lerResumosEstrelas, contarComentarios,
   silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto, confirmarHF, blocoEnquete, blocoCaixa
-} from "./rede.js?v=48";
+} from "./rede.js?v=49";
 import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=1";
-import { montarStories, abrirFlashPorId, repostarFlash } from "./stories.js?v=20";
+import { montarStories, abrirFlashPorId, repostarFlash } from "./stories.js?v=21";
 import { abrirDenuncia } from "./denuncias.js?v=4";
 import { pessoasRecentes } from "./pessoas.js?v=3";
-import { abrirExplorar, definirCartao } from "./explorar.js?v=12";
+import { abrirExplorar, definirCartao } from "./explorar.js?v=13";
 import { docsComValidade } from "./leituras.js?v=1";
+import { distanciaKm } from "./perto.js?v=1";
 
 const POR_VEZ = 10;
 // Publicação de conta desativada (conta.js): escondida até ocultoAte.
@@ -27,6 +28,23 @@ const POR_VEZ = 10;
 const postOculto = (p) => (p?.ocultoAte?.toMillis?.() ?? 0) > Date.now() || (p?.agendadoPara?.toMillis?.() ?? 0) > Date.now() || silenciado(p?.autorId);
 // Busca por hashtag: feed.html?tag=reforma
 let tagAtual = (new URLSearchParams(location.search).get("tag") || "").toLowerCase().replace(/^#/, "").slice(0, 30);
+// Publicações de um lugar: feed.html?local=-27.44,-48.50&n=Jurerê (o que foi publicado a até 3 km dali).
+let localAtual = (() => {
+  const pg = new URLSearchParams(location.search), m = /^(-?\d{1,2}(?:\.\d+)?),(-?\d{1,3}(?:\.\d+)?)$/.exec(pg.get("local") || "");
+  return m ? { lat: Number(m[1]), lng: Number(m[2]), nome: String(pg.get("n") || "Este lugar").slice(0, 80) } : null;
+})();
+function abrirLocal(l) {
+  localAtual = { lat: Number(l.lat), lng: Number(l.lng), nome: l.nome };
+  tagAtual = "";
+  history.pushState({ ...(history.state || {}), hfAbaFeed: "diario" }, "", `feed.html?local=${l.lat},${l.lng}&n=${encodeURIComponent(l.nome)}`);
+  if (aba !== "diario") trocarAba("diario"); else { pintarFiltro(); carregarFeed(); }
+  scrollTo({ top: 0, behavior: "smooth" });
+}
+async function buscarLocal(l) {
+  const s = await fb.getDocs(fb.query(fb.collection(fb.db, "diario"), fb.orderBy("criadoEm", "desc"), fb.limit(200)));
+  return s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) }))
+    .filter((p) => p.local && (p.local.nome === l.nome || distanciaKm(l, p.local) <= 3));
+}
 // Filtro do Diário: Principais (o que tem a ver com você + quem você segue, pelo engajamento) ou Amigos.
 const FILTROS = { principais: "Principais", amigos: "Amigos" };
 let aba = "diario", filtro = "principais";
@@ -47,16 +65,17 @@ function trocarAba(nova, { passo = false } = {}) {
 document.querySelectorAll("#abasFeed [data-aba]").forEach((b) => b.addEventListener("click", () => trocarAba(b.dataset.aba, { passo: true })));
 addEventListener("popstate", () => { const a = history.state?.hfAbaFeed || (new URLSearchParams(location.search).get("aba") === "explorar" ? "explorar" : "diario"); if (a !== aba && eu) trocarAba(a); });
 function pintarFiltro() {
-  $("filtroAtual").textContent = tagAtual ? "#" + tagAtual : FILTROS[filtro];
-  $("filtroFeedBtn").classList.toggle("com-tag", !!tagAtual);
-  definirOrigem(tagAtual ? "tag" : filtro);
+  $("filtroAtual").textContent = localAtual ? "📍 " + localAtual.nome : tagAtual ? "#" + tagAtual : FILTROS[filtro];
+  $("filtroFeedBtn").classList.toggle("com-tag", !!(tagAtual || localAtual));
+  definirOrigem(tagAtual || localAtual ? "tag" : filtro);
 }
 $("filtroFeedBtn").addEventListener("click", () => abrirOpcoes("Mostrar no Diário", [
   tagAtual && { rotulo: `Sair de #${tagAtual}`, sub: "Voltar para o Diário", icone: "fechar", fn: () => { tagAtual = ""; history.replaceState(history.state, "", "feed.html"); pintarFiltro(); carregarFeed(); } },
+  localAtual && { rotulo: `Sair de ${localAtual.nome}`, sub: "Voltar para o Diário", icone: "fechar", fn: () => { localAtual = null; history.replaceState(history.state, "", "feed.html"); pintarFiltro(); carregarFeed(); } },
   { rotulo: "Principais" + (filtro === "principais" ? "  ✓" : ""), sub: "O que combina com você e as novidades de quem você segue", icone: "estrela", fn: () => mudarFiltro("principais") },
   { rotulo: "Amigos" + (filtro === "amigos" ? "  ✓" : ""), sub: "Seus vínculos do Social e quem vocês se seguem, das mais novas", icone: "coracao", fn: () => mudarFiltro("amigos") }
 ]));
-function mudarFiltro(f) { filtro = f; tagAtual = ""; if (location.search.includes("tag=")) history.replaceState(history.state, "", "feed.html"); try { localStorage.setItem("hf-filtro-diario", f); } catch {} pintarFiltro(); carregarFeed(); }
+function mudarFiltro(f) { filtro = f; tagAtual = ""; localAtual = null; if (/tag=|local=/.test(location.search)) history.replaceState(history.state, "", "feed.html"); try { localStorage.setItem("hf-filtro-diario", f); } catch {} pintarFiltro(); carregarFeed(); }
 // ("Quem eu sigo" entrou nos Principais.)
 try { const f = localStorage.getItem("hf-filtro-diario"); if (FILTROS[f]) filtro = f; } catch {}
 pintarFiltro();
@@ -152,9 +171,9 @@ async function carregarFeed() {
   $("maisFeed").hidden = true;
   try {
     maisTodos = false;
-    const bruto = tagAtual ? await buscarTag(tagAtual) : filtro === "amigos" ? await buscarAmigos() : await buscarPrincipais();
+    const bruto = localAtual ? await buscarLocal(localAtual) : tagAtual ? await buscarTag(tagAtual) : filtro === "amigos" ? await buscarAmigos() : await buscarPrincipais();
     posts = bruto.filter((p) => !escondido(p.autorId) && !postOculto(p));
-    if (tagAtual || filtro !== "principais") posts.sort((a, b) => ms(b.agendadoPara || b.criadoEm) - ms(a.agendadoPara || a.criadoEm)); // principais: pela pontuação
+    if (localAtual || tagAtual || filtro !== "principais") posts.sort((a, b) => ms(b.agendadoPara || b.criadoEm) - ms(a.agendadoPara || a.criadoEm)); // principais: pela pontuação
   } catch (e) {
     console.warn(e);
     lista.replaceChildren(vazio("Não foi possível carregar o diário", erroAmigavel(e)));
@@ -163,7 +182,7 @@ async function carregarFeed() {
   mostrados = 0;
   lista.replaceChildren();
   if (!posts.length) {
-    lista.appendChild(tagAtual ? vazio(`Nada com #${tagAtual} ainda`, "Use a hashtag na sua publicação para começar.", "Publicar agora", () => abrirCompositor({ aoPublicar: ganchos.aoPublicar })) : filtro === "principais"
+    lista.appendChild(localAtual ? vazio(`Nada publicado em ${localAtual.nome} ainda`, "Adicione o local na sua publicação para começar.", "Publicar agora", () => abrirCompositor({ aoPublicar: ganchos.aoPublicar })) : tagAtual ? vazio(`Nada com #${tagAtual} ainda`, "Use a hashtag na sua publicação para começar.", "Publicar agora", () => abrirCompositor({ aoPublicar: ganchos.aoPublicar })) : filtro === "principais"
       ? vazio("Nada publicado ainda", "Seja o primeiro a compartilhar um trabalho ou uma novidade.", "Publicar agora", () => abrirCompositor({ aoPublicar: ganchos.aoPublicar }))
       : vazio("Seus amigos ainda não publicaram", "Amigos são seus vínculos do Social e quem vocês se seguem.", "Ver as principais", () => mudarFiltro("principais")));
     return;
@@ -222,7 +241,15 @@ function cartaoPost(post) {
   const nome = el("button", null, post.nome || "Usuário"); nome.type = "button";
   nome.addEventListener("click", verAutor);
   const sub = el("small", null, tempoRelativo(paraData(post.criadoEm)));
-  quem.append(nome, sub);
+  quem.append(nome);
+  // Local da publicação: tocar mostra o que foi publicado ali.
+  if (post.local?.nome && Number.isFinite(post.local.lat)) {
+    const lb = el("button", "local-post"); lb.type = "button"; lb.setAttribute("aria-label", `Publicações em ${post.local.nome}`);
+    lb.append(icone("local", "i xs"), document.createTextNode(post.local.nome));
+    lb.addEventListener("click", (e) => { e.stopPropagation(); abrirLocal(post.local); });
+    quem.appendChild(lb);
+  }
+  quem.appendChild(sub);
   const mais = el("button", "icone-btn"); mais.type = "button"; mais.setAttribute("aria-label", "Opções da publicação");
   mais.appendChild(icone("pontos", "i s"));
   mais.addEventListener("click", () => abrirOpcoes("Publicação", [
@@ -232,7 +259,7 @@ function cartaoPost(post) {
       : { rotulo: "Salvar publicação", sub: "Para ver depois no seu Perfil → Salvos", icone: "salvo", fn: () => alternarSalvo(post) },
     { rotulo: "Salvar em uma coleção", sub: "Organize seus salvos em pastas", icone: "fotos", fn: () => escolherColecao(post) },
     { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(post.autorId, post.nome) },
-    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=15").then((m) => m.abrirEstatisticas(post)) },
+    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=16").then((m) => m.abrirEstatisticas(post)) },
     post.autorId === eu.uid && { rotulo: "Editar publicação", icone: "lapis", fn: () => editarPublicacao(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId !== eu.uid && { rotulo: silenciado(post.autorId) ? `Mostrar ${nome.textContent} de novo` : `Silenciar ${nome.textContent}`, sub: "Continua seguindo, mas as publicações e flashes somem do seu Diário", icone: "restringir",
       fn: async () => { await alternarSilenciar(post.autorId, nome.textContent); if (silenciado(post.autorId)) { posts = posts.filter((x) => x.autorId !== post.autorId); document.querySelectorAll(".post-card").forEach((x) => { if (x.dataset.autor === post.autorId) x.remove(); }); } } },

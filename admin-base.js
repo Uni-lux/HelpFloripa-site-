@@ -6,7 +6,7 @@
 import { confirmarHF, avisoHF } from "./confirmar.js?v=4";
 export const C = { fb: null, A: null, eu: null, nome: "", irPara: () => {}, recarregar: async () => {}, contadores: () => {}, presenca: new Map(), chat: [], online: () => false, marcarChatVisto: () => {}, aoMudarEquipe: null, papel: "dono", tarefas: [], marcarItem: null, pintarVendo: null, aoMudarTarefas: null };
 export const D = {
-  pessoas: new Map(), negocios: [], anuncios: [], posts: [], denuncias: [], queixas: [], suporte: [], parcerias: [], reportes: [], notasSuporte: [], verificacoes: [],
+  pessoas: new Map(), negocios: [], anuncios: [], posts: [], denuncias: [], queixas: [], suporte: [], parcerias: [], planosPedidos: [], planos: new Map(), reportes: [], notasSuporte: [], verificacoes: [],
   sancoes: new Map(), exclusoes: new Map(), notas: new Map(), comunicados: [], log: [], admins: [], estatisticas: [],
   contagens: {}, carregadoEm: 0,
   contNeg: {}, negociosProntos: false, // negócios: só os totais ao abrir; a lista inteira só quando uma seção precisa
@@ -457,7 +457,7 @@ export async function abrirFicha(uid) {
 // Papel vem do documento admins/{uid} (campo "papel"); sem campo = dono (acesso total).
 // As regras do Firestore garantem as permissões; aqui o painel só esconde o que não vale.
 export const PAPEIS = { dono: "Dono", moderacao: "Moderação", suporte: "Suporte", comercial: "Comercial" };
-export const DESC_PAPEIS = { dono: "Acesso total", moderacao: "Denúncias, publicações, selos, suspensões e comunicados", suporte: "Chamados de suporte e avisos", comercial: "Sócios e parcerias" };
+export const DESC_PAPEIS = { dono: "Acesso total", moderacao: "Denúncias, publicações, selos, suspensões e comunicados", suporte: "Chamados de suporte e avisos", comercial: "Sócios, parcerias e planos" };
 export function pode(acao) {
   const p = C.papel || "dono";
   if (acao === "moderar") return p === "dono" || p === "moderacao";

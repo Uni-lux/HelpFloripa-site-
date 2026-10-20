@@ -214,4 +214,4 @@
                     && request.resource.data.soma == resource.data.soma + getAfter(caminhoNova()).data.nota
                     && request.resource.data[estrela()] == resource.data.get(estrela(), 0) + 1;
 
-// ===== FIM DA PARTE 5 DE 12 =====
+// ===== FIM DA PARTE 5 DE 13 =====

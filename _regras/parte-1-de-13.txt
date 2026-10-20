@@ -131,11 +131,24 @@ service cloud.firestore {
                                       && d.negocios.join(' ').matches('^' + n + '( ' + n + '){0,3}$')))
           && (!('perfil' in d) || (d.perfil is bool && (d.perfil || 'negocios' in d)));
     }
+    // Publicação do Diário compartilhada no flash: a publicação existe, o autor confere e ele não desligou
+    // "Permitir que compartilhem minhas publicações no Flash" (pref_publicas.permiteFlash; sem o documento, pode).
+    function postFlashOk(r) {
+      let orig = /databases/$(database)/documents/diario/$(r.postId);
+      let pref = /databases/$(database)/documents/pref_publicas/$(r.autorId);
+      return r is map && r.keys().hasOnly(['postId', 'autorId', 'nome'])
+          && r.postId is string && r.postId.matches('^[A-Za-z0-9]{1,64}$')
+          && r.autorId is string
+          && exists(orig) && get(orig).data.autorId == r.autorId
+          && (r.autorId == request.auth.uid || !exists(pref) || get(pref).data.get('permiteFlash', true) != false)
+          && valorTextoAte(r.get('nome', ''), 80);
+    }
     function extrasFlashOk(d) {
       return negociosFlashOk(d)
           && (!('caixa' in d) || caixaOk(d.caixa))
           && (!('link' in d) || linkFlashOk(d.link))
-          && (!('repostDe' in d) || repostOk(d.repostDe));
+          && (!('repostDe' in d) || repostOk(d.repostDe))
+          && (!('postDe' in d) || postFlashOk(d.postDe));
     }
     // Lista de uids (até max), conferida com uma expressão só.
     function uidsOk(l, max) {
@@ -241,25 +254,4 @@ service cloud.firestore {
           && get(u).data.criadoEm < request.time - duration.value(3, 'd');
     }
 
-    // Quem já escreveu na conversa entre a e b (conversas.falaram, cada um marca só o seu).
-    function falou(a, b, quem) {
-      let c = /databases/$(database)/documents/conversas/$(par(a, b));
-      return exists(c) && get(c).data.get('falaram', {}).get(quem, false) == true;
-    }
-
-    // Conta desativada (ou com exclusão pedida): perfis_publicos.desativadaAte no futuro.
-    function desativada(uid) {
-      let p = /databases/$(database)/documents/perfis_publicos/$(uid);
-      return exists(p)
-          && get(p).data.get('desativadaAte', null) is timestamp
-          && get(p).data.desativadaAte > request.time;
-    }
-
-    // Campo opcional de data (ex.: ocultoAte): ausente, nulo ou uma data.
-    function dataOuNulo(campo) {
-      return !(campo in request.resource.data)
-          || request.resource.data[campo] == null
-          || request.resource.data[campo] is timestamp;
-    }
-
-// ===== FIM DA PARTE 1 DE 12 =====
+// ===== FIM DA PARTE 1 DE 13 =====

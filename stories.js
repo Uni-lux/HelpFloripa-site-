@@ -11,8 +11,9 @@
 import {
   $, el, icone, ms, pintarAvatar, toast, erroAmigavel, tempoRelativo, fb, eu, dados, storageFns,
   meusSeguindo, escondido, silenciado, alternarSilenciar, obterPerfil, abrirOpcoes, abrirLista, linhaPessoa,
-  salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa
-} from "./rede.js?v=48";
+  salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
+  fotosDoPost, urlSegura
+} from "./rede.js?v=49";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { seletorDuracao, fimEscolhido, linhaChave, MAX_FLASH_MIN } from "./enquetes.js?v=3";
 
@@ -156,6 +157,75 @@ export async function repostarFlash(id) {
   } catch (e) { toast("Não foi possível repostar: " + erroAmigavel(e)); }
 }
 
+// ---------- publicação do Diário no flash (como "Adicionar ao story" do Instagram) ----------
+// Monta a imagem 1080×1920 com o cartão da publicação (autor, foto ou texto e o começo da legenda) e abre o
+// criador com ela; o flash grava postDe {postId, autorId, nome}: o crédito e o link para a publicação.
+// O autor pode desligar em Configurações → Diário e Flash (pref_publicas.permiteFlash = false).
+function carregarImg(url) {
+  return new Promise((ok, erro) => { const i = new Image(); i.crossOrigin = "anonymous"; i.onload = () => ok(i); i.onerror = () => erro(new Error("imagem")); i.src = url; });
+}
+function linhasDe(ctx, texto, larg, max) {
+  const palavras = String(texto || "").replace(/\s+/g, " ").trim().split(" ");
+  const linhas = []; let atual = "";
+  for (const p of palavras) {
+    const t = atual ? atual + " " + p : p;
+    if (ctx.measureText(t).width > larg && atual) { linhas.push(atual); atual = p; if (linhas.length === max) break; } else atual = t;
+  }
+  if (linhas.length < max && atual) linhas.push(atual);
+  if (linhas.length === max && palavras.join(" ").length > linhas.join(" ").length) linhas[max - 1] = linhas[max - 1].replace(/\s*\S*$/, "") + "…";
+  return linhas;
+}
+async function imagemDaPublicacao(post) {
+  const W = 1080, H = 1920, c = document.createElement("canvas"); c.width = W; c.height = H;
+  const ctx = c.getContext("2d");
+  // Navegador antigo sem roundRect: cantos retos.
+  if (!ctx.roundRect) ctx.roundRect = function (x, y, w, h) { this.rect(x, y, w, h); };
+  const foto = fotosDoPost(post)[0];
+  let im = null; if (foto) im = await carregarImg(foto).catch(() => null);
+  // Fundo: a própria foto desfocada e escurecida (ou um degradê).
+  if (im) { ctx.filter = "blur(40px) brightness(.55)"; const k = Math.max(W / im.width, H / im.height) * 1.15; ctx.drawImage(im, (W - im.width * k) / 2, (H - im.height * k) / 2, im.width * k, im.height * k); ctx.filter = "none"; }
+  else { const g = ctx.createLinearGradient(0, 0, W, H); g.addColorStop(0, "#0b3d5c"); g.addColorStop(1, "#6d28d9"); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
+  // Cartão branco no meio
+  const CW = 860, X = (W - CW) / 2, pad = 34;
+  const mW = CW, mH = im ? Math.round(Math.min(1.25, Math.max(0.8, im.height / im.width)) * mW) : 0;
+  ctx.font = "500 34px system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
+  const leg = linhasDe(ctx, post.texto || post.enquete?.pergunta || "", CW - pad * 2, im ? 2 : 8);
+  const altTexto = im ? (leg.length ? leg.length * 46 + pad : 0) : Math.max(200, leg.length * 64 + pad * 2);
+  const CH = 130 + mH + altTexto + pad;
+  const Y = Math.max(160, (H - CH) / 2 - 40);
+  ctx.save(); ctx.shadowColor = "rgba(0,0,0,.45)"; ctx.shadowBlur = 60; ctx.shadowOffsetY = 18;
+  ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.roundRect(X, Y, CW, CH, 40); ctx.fill(); ctx.restore();
+  ctx.save(); ctx.beginPath(); ctx.roundRect(X, Y, CW, CH, 40); ctx.clip();
+  // Autor
+  const av = urlSegura(post.fotoPerfil) ? await carregarImg(post.fotoPerfil).catch(() => null) : null;
+  ctx.save(); ctx.beginPath(); ctx.arc(X + pad + 36, Y + 65, 36, 0, Math.PI * 2); ctx.clip();
+  if (av) ctx.drawImage(av, X + pad, Y + 29, 72, 72); else { ctx.fillStyle = "#00adee"; ctx.fillRect(X + pad, Y + 29, 72, 72); ctx.fillStyle = "#fff"; ctx.font = "800 30px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.fillText(String(post.nome || "?").trim().charAt(0).toUpperCase(), X + pad + 36, Y + 76); ctx.textAlign = "left"; }
+  ctx.restore();
+  ctx.fillStyle = "#0f1b22"; ctx.font = "800 36px system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
+  ctx.fillText(String(post.nome || "Usuário").slice(0, 28), X + pad + 92, Y + 60);
+  ctx.fillStyle = "#6b7c86"; ctx.font = "600 26px system-ui, sans-serif";
+  ctx.fillText(post.local?.nome ? String(post.local.nome).slice(0, 34) : "Diário · Help Floripa", X + pad + 92, Y + 96);
+  let y = Y + 130;
+  if (im) { const k = Math.max(mW / im.width, mH / im.height); ctx.drawImage(im, X + (mW - im.width * k) / 2, y + (mH - im.height * k) / 2, im.width * k, im.height * k); y += mH + pad; }
+  ctx.fillStyle = "#0f1b22";
+  if (im) { ctx.font = "500 34px system-ui, sans-serif"; leg.forEach((l, i) => ctx.fillText(l, X + pad, y + 18 + i * 46)); }
+  else { ctx.font = "700 46px system-ui, sans-serif"; const ll = linhasDe(ctx, post.texto || post.enquete?.pergunta || "", CW - pad * 2, 8); ll.forEach((l, i) => ctx.fillText(l, X + pad, y + pad + 30 + i * 64)); }
+  ctx.restore();
+  return c.toDataURL("image/jpeg", 0.88);
+}
+export async function compartilharNoFlash(post) {
+  if (!post?.id) return;
+  if (post.mediaTipo === "video") { toast("Vídeos ainda não vão para o flash. Compartilhe uma publicação com foto ou texto."); return; }
+  if (post.autorId !== eu.uid) {
+    try { const p = await fb.getDoc(fb.doc(fb.db, "pref_publicas", post.autorId)); if (p.exists() && p.data().permiteFlash === false) { toast(`${String(post.nome || "Quem publicou").split(" ")[0]} não permite compartilhar as publicações no Flash.`); return; } } catch {}
+  }
+  toast("Preparando...");
+  let imagem = null;
+  try { imagem = await imagemDaPublicacao(post); } catch (e) { console.warn(e); }
+  if (!imagem) { toast("Não foi possível preparar a publicação para o flash."); return; }
+  abrirCriador({ post: { id: post.id, autorId: post.autorId, nome: post.nome, imagem } });
+}
+
 // Criar um flash de fora do Diário (o "+" na foto do seu perfil). aoPublicar roda depois de publicar.
 let depoisDePublicar = null;
 export function novoFlash(aoPublicar) { depoisDePublicar = aoPublicar || null; abrirCriador(); }
@@ -217,7 +287,7 @@ function textoFigurinha(fig, local = "") {
   return "📍 " + (local || "Florianópolis");
 }
 
-function abrirCriador({ repost = null } = {}) {
+function abrirCriador({ repost = null, post = null } = {}) {
   const fundo = el("div", "flash-criar"); fundo.setAttribute("role", "dialog"); fundo.setAttribute("aria-modal", "true"); fundo.setAttribute("aria-label", "Novo flash");
   const caixa = el("div", "flash-caixa");
   const palco = el("div", "flash-palco");
@@ -1073,7 +1143,8 @@ function abrirCriador({ repost = null } = {}) {
         const lk = textos.find((t) => t.lk);
         const link = lk ? { negocioId: lk.negocio.id, nome: String(lk.negocio.nome || "").slice(0, 80), tipo: lk.negocio.tipo, x: Math.round(lk.x * 1000) / 1000, y: Math.round(lk.y * 1000) / 1000 } : null;
         const repostDe = repost ? { storyId: repost.id, autorId: repost.autorId, nome: String(repost.nome || "").slice(0, 80) } : null;
-        const ref = await gravar({ tipo: "imagem", midia: url, ...(texto ? { texto } : {}), ...camposDestino(), ...(enquete ? { enquete } : {}), ...(caixa ? { caixa } : {}), ...(link ? { link } : {}), ...(repostDe ? { repostDe } : {}),
+        const postDe = post ? { postId: post.id, autorId: post.autorId, nome: String(post.nome || "").slice(0, 80) } : null;
+        const ref = await gravar({ tipo: "imagem", midia: url, ...(texto ? { texto } : {}), ...camposDestino(), ...(enquete ? { enquete } : {}), ...(caixa ? { caixa } : {}), ...(link ? { link } : {}), ...(repostDe ? { repostDe } : {}), ...(postDe ? { postDe } : {}),
           ...(mencoes.length ? { mencoes } : {}) }, { imagem });
         if (enquete) registrarEnquete("f_" + ref.id, enquete);
         if (repost && repost.autorId !== eu.uid) mandarMensagem(repost.autorId, msgFlash({ id: ref.id, autorId: eu.uid, nome: dados.nome }, "repost", { original: repost.id }), "Repostou seu flash").catch(() => {});
@@ -1085,6 +1156,13 @@ function abrirCriador({ repost = null } = {}) {
     }
   });
   pintar();
+  if (post) {
+    // Publicação do Diário: o cartão dela já desenhado, com o selo de quem publicou.
+    const selo = el("div", "flash-repost-selo"); selo.append(icone("fotos", "i xs"), document.createTextNode(`Publicação de ${String(post.nome || "alguém").split(" ")[0]}`));
+    palco.appendChild(selo);
+    usarFoto(post.imagem).catch((e) => toast(erroAmigavel(e)));
+    return;
+  }
   if (repost) {
     // Repostar: a foto do flash original, com o selo de quem fez (o original fica creditado).
     const selo = el("div", "flash-repost-selo"); selo.append(icone("raio", "i xs"), document.createTextNode(`Repostando o flash de ${String(repost.nome || "alguém").split(" ")[0]}`));
@@ -1479,8 +1557,18 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null 
       const o = el("span", "story-repost story-onde"); o.append(icone("loja", "i xs"), document.createTextNode(`${s.perfil === false ? "Só no" : "Também no"} perfil ${s.negocios.length === 1 ? "do negócio" : `de ${s.negocios.length} negócios`}`));
       txtQuem.appendChild(o);
     }
+    // Publicação do Diário compartilhada: botão para abrir a publicação original (crédito ao autor).
+    caixa.querySelector(".story-post")?.remove();
+    if (s.postDe?.postId) {
+      const a = el("a", "story-link story-post"); a.href = `usuarios.html?post=${encodeURIComponent(s.postDe.postId)}`;
+      a.style.left = "50%"; a.style.top = "86%";
+      a.append(icone("fotos", "i s"), el("span", null, s.postDe.autorId === s.autorId ? "Ver publicação" : `Ver publicação de ${String(s.postDe.nome || "").split(" ")[0] || "quem publicou"}`), icone("avancar", "i xs"));
+      ["pointerdown", "pointerup"].forEach((ev) => a.addEventListener(ev, (e) => e.stopPropagation()));
+      a.addEventListener("click", (e) => { e.stopPropagation(); pausar(true); });
+      caixa.appendChild(a);
+    }
     // Link para o perfil de um negócio (figurinha): tocar vai para o perfil.
-    caixa.querySelector(".story-link")?.remove();
+    caixa.querySelector(".story-link:not(.story-post)")?.remove();
     if (s.link?.negocioId && PAGINA_NEGOCIO[s.link.tipo]) {
       const a = el("a", "story-link"); a.href = linkNegocio(s.link);
       a.style.left = `${(s.link.x ?? 0.5) * 100}%`; a.style.top = `${(s.link.y ?? 0.68) * 100}%`;

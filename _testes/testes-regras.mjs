@@ -314,6 +314,9 @@ async function publicar(quem, dadosPub) {
   return b.commit();
 }
 const fP = (n) => "data:image/jpeg;base64,/9j/" + "A".repeat(n);
+await t("diário: publicação com local", () => assertSucceeds(publicar("bia", { texto: "Na praia", local: { nome: "Jurerê, Florianópolis", lat: -27.44, lng: -48.5 } })));
+await t("diário: recusa local fora do Brasil", () => assertFails(publicar("ana", { local: { nome: "Paris", lat: 48.85, lng: 2.35 } })));
+await t("diário: recusa local com campo a mais", () => assertFails(publicar("ana", { local: { nome: "Centro", lat: -27.5, lng: -48.5, endereco: "Rua X, 10" } })));
 await semRegras(async (db) => { const { deleteDoc: dd } = await import("firebase/firestore"); for (const u of ["edu", "nova", "dono"]) await dd(doc(db, "ritmo", u)); });
 await t("diário: publica com 3 fotos", () => assertSucceeds(publicar("edu", { mediaUrl: fP(4), mediaTipo: "image", midias: [fP(4), fP(5), fP(6)] })));
 await t("diário: recusa 5 fotos", () => assertFails(publicar("dono", { mediaUrl: fP(4), mediaTipo: "image", midias: [fP(4), fP(5), fP(6), fP(7), fP(8)] })));
@@ -495,6 +498,9 @@ await semRegras(async (db) => {
   await setDoc(doc(db, "stories", "sMen"), { autorId: "dono", nome: "Dono", tipo: "imagem", midia: fotoS, mencoes: ["bia"], criadoEm: Timestamp.now() });
 });
 const flash = (quem, extra) => setDoc(doc(collection(ctx(quem), "stories")), { autorId: quem, nome: quem, tipo: "imagem", midia: fotoS, criadoEm: serverTimestamp(), ...extra });
+await t("flash: publicação do Diário compartilhada (com crédito)", () => assertSucceeds(flash("ana", { postDe: { postId: "pCom", autorId: "dono", nome: "Dono" } })));
+await t("flash: recusa publicação com autor errado", () => assertFails(flash("ana", { postDe: { postId: "pCom", autorId: "bia", nome: "Bia" } })));
+await t("flash: recusa publicação que não existe", () => assertFails(flash("ana", { postDe: { postId: "naoExiste", autorId: "dono", nome: "Dono" } })));
 await t("flash: figurinha de link para um negócio", () => assertSucceeds(flash("ana", { link: { negocioId: "dono_servicos", nome: "Reparos", tipo: "servicos", x: 0.5, y: 0.7 } })));
 await t("flash: link para negócio que não existe é recusado", () => assertFails(flash("ana", { link: { negocioId: "nao_existe", nome: "X", tipo: "servicos" } })));
 await t("flash: link com tipo estranho é recusado", () => assertFails(flash("ana", { link: { negocioId: "dono_servicos", nome: "X", tipo: "site" } })));
@@ -511,6 +517,10 @@ await t("flash: quem não foi mencionado não reposta", () => assertFails(flash(
 await t("flash: repost com autor errado é recusado", () => assertFails(flash("bia", { repostDe: { storyId: "sMen", autorId: "ana", nome: "Ana" } })));
 await t("flash: repost de flash que não existe é recusado", () => assertFails(flash("bia", { repostDe: { storyId: "naoExiste", autorId: "dono", nome: "Dono" } })));
 await t("preferências: quem pode me marcar (seguindo)", () => assertSucceeds(setDoc(doc(ctx("ana"), "pref_publicas", "ana"), { permiteMarcar: "seguindo", atualizadoEm: serverTimestamp() })));
+await t("preferências: não permitir compartilhar no flash", () => assertSucceeds(setDoc(doc(ctx("dono"), "pref_publicas", "dono"), { permiteFlash: false, atualizadoEm: serverTimestamp() })));
+await t("flash: autor desligou o compartilhamento → recusado", () => assertFails(flash("ana", { postDe: { postId: "pCom", autorId: "dono", nome: "Dono" } })));
+await t("flash: o próprio autor ainda compartilha a dele", () => assertSucceeds(flash("dono", { postDe: { postId: "pCom", autorId: "dono", nome: "Dono" } })));
+await t("preferências: permiteFlash só verdadeiro/falso", () => assertFails(setDoc(doc(ctx("dono"), "pref_publicas", "dono"), { permiteFlash: "sim" })));
 await t("preferências: valor estranho é recusado", () => assertFails(setDoc(doc(ctx("ana"), "pref_publicas", "ana"), { permiteMarcar: "todo mundo" })));
 await t("preferências: outra pessoa não grava", () => assertFails(setDoc(doc(ctx("bia"), "pref_publicas", "ana"), { permiteMarcar: "todos" })));
 await t("preferências: qualquer pessoa logada lê", () => assertSucceeds(getDoc(doc(ctx("bia"), "pref_publicas", "ana"))));
@@ -653,6 +663,29 @@ await t("estatística: outra pessoa não lê os números", () => assertFails(get
 await t("estatística: o dono NÃO lê quem visitou", () => assertFails(getDoc(doc(ctx("loja"), "neg_visitas", `${NEG}_ana_${agoraBR().dia}`))));
 await t("estatística: a pessoa lê a própria visita", () => assertSucceeds(getDoc(doc(ctx("ana"), "neg_visitas", `${NEG}_ana_${agoraBR().dia}`))));
 await t("estatística: ninguém apaga visitas nem números", () => assertFails(deleteDoc(doc(ctx("loja"), "neg_stats", `${NEG}_${agoraBR().dia}`))));
+
+// ---------- planos dos negócios (Pro, Pix manual) ----------
+await semRegras((db) => setDoc(doc(db, "admins", "com"), { nome: "Comercial", papel: "comercial" }));
+const pedidoPlano = (uid, x = {}) => ({ uid, nome: "Loja X", email: uid + "@t.com", plano: "pro", meses: 3, valor: 119.7, txid: "HFLOJA123ABC", status: "pendente", criadoEm: serverTimestamp(), ...x });
+await t("plano: a pessoa faz o pedido do Pro", () => assertSucceeds(setDoc(doc(ctx("loja"), "planos_pedidos", "pp1"), pedidoPlano("loja"))));
+await t("plano: pedido em nome de outra pessoa é recusado", () => assertFails(setDoc(doc(ctx("bia"), "planos_pedidos", "pp2"), pedidoPlano("loja"))));
+await t("plano: período fora da lista é recusado", () => assertFails(setDoc(doc(ctx("loja"), "planos_pedidos", "pp3"), pedidoPlano("loja", { meses: 2 }))));
+await t("plano: pedido já pago é recusado", () => assertFails(setDoc(doc(ctx("loja"), "planos_pedidos", "pp3"), pedidoPlano("loja", { status: "pago" }))));
+await t("plano: sem e-mail confirmado é recusado", () => assertFails(setDoc(doc(ctx("loja", false), "planos_pedidos", "pp3"), pedidoPlano("loja"))));
+await t("plano: a pessoa lê os próprios pedidos", () => assertSucceeds(getDocs(query(collection(ctx("loja"), "planos_pedidos"), where("uid", "==", "loja")))));
+await t("plano: outra pessoa não lê o pedido", () => assertFails(getDoc(doc(ctx("bia"), "planos_pedidos", "pp1"))));
+await t("plano: a pessoa não marca o próprio pedido como pago", () => assertFails(updateDoc(doc(ctx("loja"), "planos_pedidos", "pp1"), { status: "pago" })));
+await t("plano: a pessoa não se dá o Pro", () => assertFails(setDoc(doc(ctx("loja"), "planos", "loja"), { plano: "pro", ate: Timestamp.fromMillis(Date.now() + 9e9), ativadoEm: serverTimestamp(), ativadoPor: "loja" })));
+await t("plano: moderação não confirma pagamento", () => assertFails(updateDoc(doc(ctx("mod"), "planos_pedidos", "pp1"), { status: "pago", decididoPor: "mod", decididoEm: serverTimestamp() })));
+await t("plano: comercial lê os pedidos", () => assertSucceeds(getDocs(query(collection(ctx("com"), "planos_pedidos"), where("status", "==", "pendente")))));
+await t("plano: comercial confirma o pagamento", () => assertSucceeds(updateDoc(doc(ctx("com"), "planos_pedidos", "pp1"), { status: "pago", decididoPor: "com", decididoEm: serverTimestamp() })));
+await t("plano: comercial ativa o Pro", () => assertSucceeds(setDoc(doc(ctx("com"), "planos", "loja"), { plano: "pro", ate: Timestamp.fromMillis(Date.now() + 90 * 864e5), meses: 3, pedidoId: "pp1", ativadoEm: serverTimestamp(), ativadoPor: "com" })));
+await t("plano: ativar com campo a mais é recusado", () => assertFails(setDoc(doc(ctx("com"), "planos", "loja"), { plano: "pro", ate: Timestamp.fromMillis(Date.now()), ativadoEm: serverTimestamp(), ativadoPor: "com", desconto: 100 })));
+await t("plano: qualquer logado lê o plano (selo Pro)", () => assertSucceeds(getDoc(doc(ctx("bia"), "planos", "loja"))));
+await t("plano: pedido já decidido não muda mais", () => assertFails(updateDoc(doc(ctx("com"), "planos_pedidos", "pp1"), { status: "recusado", decididoPor: "com", decididoEm: serverTimestamp() })));
+await t("plano: a pessoa cancela um pedido pendente", async () => { await setDoc(doc(ctx("loja"), "planos_pedidos", "pp4"), pedidoPlano("loja")); await assertSucceeds(updateDoc(doc(ctx("loja"), "planos_pedidos", "pp4"), { status: "cancelado" })); });
+await t("plano: o dono do site também ativa", () => assertSucceeds(setDoc(doc(ctx("adm"), "planos", "bia"), { plano: "pro", ate: Timestamp.fromMillis(Date.now() + 30 * 864e5), ativadoEm: serverTimestamp(), ativadoPor: "adm" })));
+await t("plano: ninguém apaga pedido", () => assertFails(deleteDoc(doc(ctx("com"), "planos_pedidos", "pp4"))));
 
 // ---------- resultado ----------
 for (const r of resultados) console.log(r[0] === "ok" ? "  ✔" : "  ✘", r[1], r[2] ? "→ " + r[2] : "");

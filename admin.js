@@ -3,14 +3,14 @@
 // Só entra quem tem o documento admins/{uid} (criado à mão no console do
 // Firebase). As regras do Firestore conferem isso em cada leitura e ação.
 // =====================================================
-import { C, D, $, h, ms, toast, PAPEIS, vendoAgora, pode, garantirNegocios, garantirTodasPessoas, carregarPessoas } from "./admin-base.js?v=17";
-import * as S from "./admin-secoes.js?v=33";
-import { previa, tocarSom } from "./admin-chat.js?v=18";
+import { C, D, $, h, ms, toast, PAPEIS, vendoAgora, pode, garantirNegocios, garantirTodasPessoas, carregarPessoas } from "./admin-base.js?v=18";
+import * as S from "./admin-secoes.js?v=34";
+import { previa, tocarSom } from "./admin-chat.js?v=19";
 
 const SECOES = {
   visao: S.visao, estatisticas: S.estatisticas, relatorios: S.relatorios, usuarios: S.usuarios, verificacoes: S.verificacoes,
   suporte: S.suporte, denuncias: S.denuncias, reclamacoes: S.reclamacoes, sancoes: S.sancoes, negocios: S.negocios,
-  parcerias: S.parcerias, comunicados: S.comunicados, registro: S.registro, equipe: S.equipe,
+  parcerias: S.parcerias, planos: S.planos, comunicados: S.comunicados, registro: S.registro, equipe: S.equipe,
   tarefas: S.tarefas, publicacoes: S.publicacoes
 };
 let atual = "visao", ultimaPresenca = "";
@@ -64,6 +64,7 @@ function contadores() {
   set("reclamacoes", pend(D.queixas.filter((q) => q.status === "aberta" && !q.resposta && ms(q.abertaEm) < Date.now() - 7 * 864e5).length));
   set("sancoes", pend([...D.sancoes.values()].filter((s) => s.tipo === "banimento" || ms(s.ate) > Date.now()).length));
   set("parcerias", pend(D.parcerias.filter((p) => (p.status || "novo") === "novo").length));
+  set("planos", pend((D.planosPedidos || []).filter((p) => p.status === "pendente").length));
   set("equipe", pend((C.chatNaoLidas || 0) + (C.dmNaoLidas || 0)));
   set("tarefas", pend(C.tarefas.filter((t) => t.status !== "feito" && t.responsavel === C.eu?.uid).length));
   const on = D.admins.filter((a) => a.id !== C.eu?.uid && C.online(a.id)).length;
@@ -191,11 +192,16 @@ async function carregar(mostrar = true) {
   D.negociosProntos = false; D.negocios = []; D.anuncios = []; D.posts = [];
   Object.assign(D, { posts, denuncias, queixas, suporte, parcerias, comunicados, log, admins, estatisticas });
   // Reportes do suporte (só moderação e donos leem) e notas do atendimento.
-  [D.reportes, D.notasSuporte, D.verificacoes] = await Promise.all([
+  let planosAtivos;
+  [D.reportes, D.notasSuporte, D.verificacoes, D.planosPedidos, planosAtivos] = await Promise.all([
     pode("moderar") ? todos(fb.query(col("reportes"), fb.limit(500))) : Promise.resolve([]),
     todos(fb.query(col("suporte_notas"), fb.limit(2000))),
-    pode("moderar") ? todos(fb.query(col("verificacoes"), fb.limit(500))) : Promise.resolve([])
+    pode("moderar") ? todos(fb.query(col("verificacoes"), fb.limit(500))) : Promise.resolve([]),
+    // Planos (Pro): sem as regras novas publicadas a leitura falha e a seção fica vazia.
+    pode("comercial") ? todos(fb.query(col("planos_pedidos"), fb.limit(500))).catch(() => []) : Promise.resolve([]),
+    todos(fb.query(col("planos"), fb.limit(1000))).catch(() => [])
   ]);
+  D.planos = new Map(planosAtivos.map((p) => [p.id, p]));
   // Pedidos de verificação: os do usuarios.solicitacaoVerificacao e os da coleção nova.
   D.pendVerif = [...new Set([...D.pendVerif, ...D.verificacoes.filter((v) => v.status === "pendente" || v.status === "em_analise").map((v) => v.id)])];
   D.sancoes = new Map(sancoes.map((s) => [s.id, s]));
@@ -205,7 +211,7 @@ async function carregar(mostrar = true) {
   await carregarPessoas([
     ...D.pendVerif, ...denuncias.flatMap((d) => [d.alvoId, d.autorId]), ...queixas.flatMap((q) => [q.alvoId, q.autorId]),
     ...suporte.map((s) => s.uid), ...parcerias.map((p) => p.uid), ...sancoes.map((s) => s.id), ...exclusoes.map((s) => s.id),
-    ...log.flatMap((x) => [x.alvo, x.por]), ...admins.map((a) => a.id), ...D.reportes.flatMap((r) => [r.autorId, r.alvoId]), ...D.verificacoes.map((v) => v.id)
+    ...log.flatMap((x) => [x.alvo, x.por]), ...admins.map((a) => a.id), ...D.reportes.flatMap((r) => [r.autorId, r.alvoId]), ...D.verificacoes.map((v) => v.id), ...D.planosPedidos.map((p) => p.uid), ...D.planos.keys()
   ]);
   D.contagens = { diario: nPosts, diario7: nPosts7, conversas: nConversas, comentarios: nComentarios, avaliacoes: nAvaliacoes };
   D.carregadoEm = Date.now();

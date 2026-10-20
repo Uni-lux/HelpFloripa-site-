@@ -1,3 +1,10 @@
+      // Cada pessoa só mexe na própria marca de leitura / "digitando".
+      function soMinhaChave(campo) {
+        return !mudou().hasAny([campo])
+            || (request.resource.data[campo] is map
+                && request.resource.data[campo].diff(resource.data.get(campo, {})).affectedKeys().hasOnly([request.auth.uid]));
+      }
+
       function contextoOk() {
         let c = request.resource.data.get('contexto', null);
         return c == null
@@ -196,4 +203,4 @@
         function original() {
           return get(/databases/$(database)/documents/conversas/$(conversaId)/mensagens/$(mensagemId)).data;
         }
-// ===== FIM DA PARTE 4 DE 12 =====
+// ===== FIM DA PARTE 4 DE 13 =====
