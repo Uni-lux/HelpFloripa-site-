@@ -294,7 +294,7 @@ function escolherImagem() {
 }
 async function editarFoto(titulo, dica) {
   const arquivo = await escolherImagem(); if (!arquivo) return null;
-  const { editarImagem } = await import("./editor-imagem.js?v=6");
+  const { editarImagem } = await import("./editor-imagem.js?v=7");
   return editarImagem(arquivo, { ...OPCOES_FOTO, titulo, dica });
 }
 // Minha foto de perfil (a mesma do site: aparece no perfil, nas mensagens e aqui).

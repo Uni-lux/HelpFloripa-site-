@@ -84,7 +84,7 @@
       function opcoesOk() {
         let d = request.resource.data;
         return (!('socialVisibilidade' in d) || d.socialVisibilidade in ['todos', 'seguidores', 'amigos', 'ocultar'])
-            && (!('duoCapa' in d) || d.duoCapa in ['clicavel', 'foto', 'ocultar'])
+            && (!('duoCapa' in d) || d.duoCapa in ['clicavel', 'foto', 'rosa', 'ocultar'])
             && (!('nickname' in d) || valorTextoAte(d.nickname, 20))
             && atendimentoOk();
       }

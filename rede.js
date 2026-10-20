@@ -10,7 +10,7 @@
 // =====================================================
 import { gravarComLocal, NOVOS } from "./endereco.js?v=1";
 import { comRitmo } from "./ritmo.js?v=2";
-import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=6";
+import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
 import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=15";
 import { ouvirItensEquipe, TEXTO_EQUIPE, linkEquipe } from "./avisos-equipe.js?v=1";
@@ -419,7 +419,8 @@ export async function iniciarRede({ sincronizar = false } = {}) {
   const pubSnap = await fb.getDoc(fb.doc(fb.db, "perfis_publicos", eu.uid)).catch(() => null);
   const pub = pubSnap?.exists() ? pubSnap.data() : {};
   if (pub.socialVisibilidade) dados.socialVisibilidade = pub.socialVisibilidade;
-  if (pub.duoCapa) dados.duoCapa = pub.duoCapa;
+  // "Só a rosinha" (rosa) fica na conta; no público pode estar "foto" enquanto as regras novas não forem publicadas.
+  if (pub.duoCapa && !(dados.duoCapa === "rosa" && pub.duoCapa === "foto")) dados.duoCapa = pub.duoCapa;
   if (!dados.nickname && pub.nickname) dados.nickname = pub.nickname;
   if (sincronizar) {
     const publico = {

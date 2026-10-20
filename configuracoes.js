@@ -8,7 +8,7 @@ import {
   $, pintarAvatar, toast, erroAmigavel, abrirFolha, fecharFolha, abrirLista, config, salvarConfig, aplicarTema,
   fb, authFns, eu, refUsuario, dados, perfis, meusBloqueios, restritos, obterPerfil, linhaPessoa,
   desbloquear, alternarRestricao, marcarPresenca, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos, salvarPrivacidadeConta, confirmarHF, abrirOpcoes
-} from "./rede.js?v=46";
+} from "./rede.js?v=47";
 import { MOTIVOS_DESATIVAR, desativarConta, pedirExclusao, reautenticar, provedor } from "./conta.js?v=3";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
 
@@ -28,8 +28,9 @@ function pintarConfig() {
   const modoDuo = dados.duoCapa || "clicavel";
   document.querySelectorAll("#cfgDuoCapa [data-valor]").forEach((b) => b.classList.toggle("on", b.dataset.valor === modoDuo));
   $("cfgDuoTxt").textContent = {
-    clicavel: "Rosinha na sua foto de perfil: tocando, aparece a fotinho do seu duo, que abre o perfil.",
-    foto: "Tocando na rosinha aparece a fotinho do seu duo, mas ninguém abre o perfil por ela.",
+    clicavel: "Tocando na rosinha aparecem a foto e o nome do seu duo, que abrem o perfil.",
+    foto: "Tocando na rosinha aparece só a fotinho do seu duo, sem o nome. Ninguém abre o perfil por ela.",
+    rosa: "Só a rosinha na sua foto de perfil: sem foto nem nome do seu duo.",
     ocultar: "A rosinha não aparece no seu perfil."
   }[modoDuo];
   $("cfgEnderecoTxt").textContent = resumoEndereco(dados.endereco) || "Privado: não aparece para outros usuários";
@@ -65,11 +66,11 @@ document.querySelectorAll("#cfgComenta [data-valor]").forEach((b) => b.addEventL
   try { await fb.setDoc(refUsuario, { diarioConfig: { quemComenta: v } }, { merge: true }); toast("Salvo: vale para as próximas publicações"); }
   catch (e) { toast("Não foi possível salvar: " + erroAmigavel(e)); }
 }));
-$("cfgFlash").addEventListener("click", () => import("./stories.js?v=17").then((m) => {
+$("cfgFlash").addEventListener("click", () => import("./stories.js?v=18").then((m) => {
   m.abrirConfigFlash();
   const f = $("folhaLista"); const volta = () => { f?.removeEventListener("fechada", volta); setTimeout(pintarConfig, 60); }; f?.addEventListener("fechada", volta);
 }));
-$("cfgInsights").addEventListener("click", () => import("./insights.js?v=8").then((m) => m.abrirInsights()));
+$("cfgInsights").addEventListener("click", () => import("./insights.js?v=9").then((m) => m.abrirInsights()));
 $("cfgGosto").addEventListener("click", async () => {
   if (!await confirmarHF({ titulo: "Recomeçar o seu Principais?", texto: "O Diário esquece o que aprendeu sobre o seu gosto neste aparelho e volta a mostrar o que está em alta.", ok: "Recomeçar", icone: "alerta", cor: "normal" })) return;
   try { localStorage.removeItem("hf-gosto"); } catch {}
@@ -147,9 +148,13 @@ $("cfgDuoCapa").addEventListener("click", async (e) => {
   dados.duoCapa = b.dataset.valor;
   pintarConfig();
   try {
-    await fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), { uid: eu.uid, duoCapa: b.dataset.valor }, { merge: true });
+    const v = b.dataset.valor;
+    await fb.setDoc(refUsuario, { duoCapa: v }, { merge: true }).catch(() => {});
+    // "Só a rosinha" é valor novo nas regras: até elas serem publicadas, o público fica em "Só a foto" (o mais perto).
+    await fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), { uid: eu.uid, duoCapa: v }, { merge: true })
+      .catch((err) => { if (v === "rosa" && err?.code === "permission-denied") return fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), { uid: eu.uid, duoCapa: "foto" }, { merge: true }); throw err; });
     perfis.delete(eu.uid);
-    toast({ clicavel: "Duo clicável na capa", foto: "Duo aparece só como foto", ocultar: "Duo oculto da capa" }[b.dataset.valor]);
+    toast({ clicavel: "Rosinha com a foto e o nome do duo", foto: "Rosinha com só a foto do duo", rosa: "Só a rosinha, sem foto nem nome", ocultar: "Rosinha oculta do perfil" }[v]);
   } catch (err) { dados.duoCapa = antes; pintarConfig(); toast("Não foi possível salvar: " + erroAmigavel(err)); }
 });
 

@@ -627,3 +627,20 @@ input.ad-sel { flex: 1 1 220px; padding: 0 12px; }
 .ad-cobrar { display: grid; gap: 4px; justify-items: start; }
 .ad-cobrado { color: var(--muted); font-size: 11.5px; white-space: nowrap; }
 .ad-cobrado[hidden] { display: none; }
+/* Registro de ações: alvo legível e, no celular, cada ação vira um cartão */
+.ad-alvo-sub { display: block; color: var(--muted); font-size: 11.5px; margin-top: 2px; }
+.ad-registro .ad-reg-acao { font-weight: 700; }
+@media (max-width: 760px) {
+  .ad-registro { border: 0; background: none; overflow: visible; }
+  .ad-registro table, .ad-registro tbody, .ad-registro tr, .ad-registro td { display: block; width: 100%; }
+  .ad-registro tr:first-child { display: none; }
+  .ad-registro tr { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; margin: 0 0 10px; padding: 12px 14px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); }
+  .ad-registro td { padding: 0; border: 0; }
+  .ad-registro .ad-reg-acao { grid-column: 1; font-size: 14.5px; }
+  .ad-registro .ad-reg-quando { grid-column: 2; grid-row: 1; color: var(--muted); font-size: 12px; text-align: right; white-space: nowrap; }
+  .ad-registro .ad-reg-quem { grid-column: 1 / -1; color: var(--muted); font-size: 12.5px; }
+  .ad-registro .ad-reg-quem::before { content: "por "; }
+  .ad-registro td[data-rot="Alvo"] { grid-column: 1 / -1; font-size: 14px; }
+  .ad-registro .ad-reg-det { grid-column: 1 / -1; color: var(--muted); font-size: 13px; }
+  .ad-registro .ad-reg-det:empty { display: none; }
+}

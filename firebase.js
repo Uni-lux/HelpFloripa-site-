@@ -52,7 +52,7 @@ setStatus(`Firebase conectado (${firebaseConfig.projectId})`, "ok");
 // Listas (<select>) e horários no visual do site, no lugar das janelas do celular (campos.js).
 import("./campos.js?v=1").then((m) => m.ligarCampos()).catch((e) => console.warn("[Campos]", e?.message || e));
 // "Voltar" fecha a janela que está aberta por cima, em vez de sair da página (voltar.js).
-import("./voltar.js?v=1").then((m) => m.ligarVoltar()).catch((e) => console.warn("[Voltar]", e?.message || e));
+import("./voltar.js?v=2").then((m) => m.ligarVoltar()).catch((e) => console.warn("[Voltar]", e?.message || e));
 // "Voltar" que tiraria a pessoa do site pergunta antes ("Sair do Help Floripa?").
 import("./confirmar.js?v=4").then((m) => m.guardarSaida()).catch((e) => console.warn("[Saída]", e?.message || e));
 
@@ -94,25 +94,10 @@ async function avisosDaEquipe(u) {
     const docs = s.docs.filter((d) => d.data().tipo === "alerta" || d.data().tipo === "grave");
     if (!docs.length) return;
     const lista = docs.sort((a, b) => (a.data().em?.toMillis?.() ?? 0) - (b.data().em?.toMillis?.() ?? 0));
-    const mostrar = (i) => {
-      const d = lista[i]; if (!d) return;
-      const a = d.data();
-      const cor = a.tipo === "grave" ? "#d03b3b" : a.tipo === "alerta" ? "#ec835a" : "#00adee";
-      const fundo = document.createElement("div");
-      fundo.setAttribute("role", "dialog"); fundo.setAttribute("aria-modal", "true");
-      fundo.style.cssText = "position:fixed;inset:0;z-index:9800;display:grid;place-items:center;padding:18px;background:rgba(2,6,9,.78);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif";
-      const cx = document.createElement("div");
-      cx.style.cssText = `width:min(460px,100%);background:#0f161b;color:#eaf0f3;border:1px solid #213038;border-top:4px solid ${cor};border-radius:18px;padding:20px;display:grid;gap:10px;box-shadow:0 30px 80px rgba(0,0,0,.6)`;
-      const et = document.createElement("small"); et.textContent = "Aviso da equipe Help Floripa"; et.style.cssText = `color:${cor};font-weight:800;letter-spacing:.4px;text-transform:uppercase;font-size:11.5px`;
-      const t = document.createElement("strong"); t.textContent = a.titulo || "Aviso"; t.style.fontSize = "18px";
-      const p = document.createElement("p"); p.textContent = a.texto || ""; p.style.cssText = "margin:0;white-space:pre-wrap;line-height:1.5;color:#c9d4da";
-      const b = document.createElement("button"); b.type = "button"; b.textContent = lista.length - i > 1 ? `Entendi (${lista.length - i - 1} restante${lista.length - i - 1 > 1 ? "s" : ""})` : "Entendi";
-      b.style.cssText = "min-height:44px;border:0;border-radius:12px;background:#00adee;color:#001a24;font-weight:800;font-size:15px;cursor:pointer";
-      const sup = document.createElement("a"); sup.href = "suporte.html?aviso=" + encodeURIComponent(d.id); sup.textContent = "Responder ao suporte"; sup.style.cssText = "text-align:center;color:#8c9ca7;font-size:13px";
-      b.addEventListener("click", async () => { fundo.remove(); updateDoc(d.ref, { lidoEm: serverTimestamp() }).catch(() => {}); mostrar(i + 1); });
-      cx.append(et, t, p, b, sup); fundo.appendChild(cx); document.body.appendChild(fundo); b.focus();
-    };
-    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => mostrar(0)); else mostrar(0);
+    // Janela no visual do site (comunicados.js): tipo, Suporte Help Floripa com selo, "1 de 3", Responder / Entendi.
+    const { janelaAvisos } = await import("./comunicados.js?v=1");
+    const abrir = () => janelaAvisos(lista.map((d) => ({ id: d.id, ...d.data() })), { aoLer: (a) => { const d = lista.find((x) => x.id === a.id); if (d) updateDoc(d.ref, { lidoEm: serverTimestamp() }).catch(() => {}); } });
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", abrir); else abrir();
   } catch (e) { console.warn("[Avisos]", e); }
 }
 

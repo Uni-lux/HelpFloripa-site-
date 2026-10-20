@@ -52,6 +52,15 @@ function injetarEstilo() {
   .hfe-rotulo { position: absolute; left: 50%; transform: translateX(-50%); bottom: 8px; padding: 4px 10px; border-radius: 999px; background: rgba(0,0,0,.6); color: #fff; font-size: 11.5px; font-weight: 600; white-space: nowrap; pointer-events: none; }
   .hfe-extra { position: absolute; pointer-events: none; }
   .hfe-extra.avatar-capa { width: 22%; aspect-ratio: 1; left: 5%; bottom: -11%; border-radius: 50%; border: 2px dashed rgba(255,255,255,.7); background: rgba(0,0,0,.35); }
+  /* marcas do site por cima da foto (capa: foto de perfil e nome) */
+  .hfe-moldura.com-marcas { border-radius: 14px; overflow: visible; }
+  .hfe-escuro { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: linear-gradient(180deg, rgba(0,0,0,.18) 0%, transparent 28%, rgba(4,8,11,.5) 62%, rgba(4,8,11,.85) 100%); opacity: .9; transition: opacity .2s; }
+  .hfe-palco.movendo .hfe-escuro { opacity: .45; }
+  .hfe-marca { position: absolute; pointer-events: none; display: grid; place-items: center; transition: opacity .2s, border-color .2s; opacity: .8; }
+  .hfe-palco.movendo .hfe-marca { opacity: 1; }
+  .hfe-marca.circulo { border-radius: 50%; border: 2px dashed rgba(255,255,255,.85); background: rgba(0,0,0,.28); box-shadow: 0 6px 20px rgba(0,0,0,.35); }
+  .hfe-marca.texto { border-radius: 10px; border: 1.5px dashed rgba(255,255,255,.55); background: repeating-linear-gradient(180deg, rgba(255,255,255,.18) 0 7px, transparent 7px 16px) left 10px top 10px / 70% calc(100% - 20px) no-repeat; }
+  .hfe-marca span { padding: 3px 8px; border-radius: 999px; background: rgba(0,0,0,.6); color: #fff; font-size: 10.5px; font-weight: 750; white-space: nowrap; }
   .hfe-dica { margin: 0; padding: 10px 18px 0; font-size: 12px; color: rgba(255,255,255,.6); line-height: 1.4; text-align: center; }
   .hfe-formatos { display: flex; justify-content: center; gap: 4px; margin: 10px auto 0; padding: 4px; border-radius: 999px; background: rgba(255,255,255,.08); width: max-content; max-width: calc(100% - 24px); flex-wrap: wrap; }
   .hfe-formatos[hidden] { display: none; }
@@ -117,6 +126,8 @@ const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
  * @param {boolean} [op.circulo=false]
  * @param {string} [op.rotulo] texto dentro da moldura
  * @param {string} [op.extra] "avatar-capa" desenha onde a foto de perfil fica sobre a capa
+ * @param {Array<{forma:"circulo"|"texto", x:number, y:number, w:number, h:number, rotulo?:string}>} [op.marcas]
+ *   o que fica por cima da foto no site (frações da moldura): ex. a foto de perfil e o nome sobre a capa
  * @param {number} [op.larguraSaida=1080]
  * @param {number} [op.qualidade=0.82]
  * @param {number} [op.limiteBytes] tamanho máximo do data URL (reduz qualidade até caber)
@@ -168,7 +179,18 @@ export async function editarImagem(arquivo, op = {}) {
   const zoom = fundo.querySelector('input[type="range"]');
   if (circulo) moldura.classList.add("circulo");
   if (op.rotulo) rotulo.textContent = op.rotulo; else rotulo.remove();
-  if (op.extra === "avatar-capa") {
+  // Marcas do que fica por cima da foto no site (medidas da tela real): ficam fraquinhas e acendem ao mexer.
+  if (Array.isArray(op.marcas) && op.marcas.length) {
+    moldura.classList.add("com-marcas");
+    if (op.escurecerBaixo) { const g = document.createElement("div"); g.className = "hfe-escuro"; moldura.appendChild(g); }
+    op.marcas.forEach((m) => {
+      const e = document.createElement("div");
+      e.className = "hfe-marca " + (m.forma === "circulo" ? "circulo" : "texto");
+      Object.assign(e.style, { left: (m.x * 100) + "%", top: (m.y * 100) + "%", width: (m.w * 100) + "%", height: (m.h * 100) + "%" });
+      if (m.rotulo) { const r = document.createElement("span"); r.textContent = m.rotulo; e.appendChild(r); }
+      moldura.appendChild(e);
+    });
+  } else if (op.extra === "avatar-capa") {
     const extra = document.createElement("div");
     extra.className = "hfe-extra avatar-capa";
     moldura.appendChild(extra);
