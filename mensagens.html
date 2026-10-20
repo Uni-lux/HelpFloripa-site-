@@ -2432,6 +2432,12 @@
     // Botão "voltar" do celular: fecha primeiro o painel aberto (configurações, nova conversa),
     // depois a conversa, e só então sai das mensagens.
     window.addEventListener("popstate", (e) => {
+      // Ajuda e suporte: se há uma janela aberta lá dentro (Novo chamado, Denunciar...), o voltar fecha só ela.
+      if (!e.state?.painel && $("painelSuporte").classList.contains("aberto")) {
+        let fechouDentro = false;
+        try { fechouDentro = !!$("quadroSuporte").contentWindow?.__hfFecharTopo?.(); } catch {}
+        if (fechouDentro) { history.pushState({ ...(history.state || {}), painel: "painelSuporte" }, "", location.href); return; }
+      }
       if (!e.state?.painel && document.querySelector(".painel.aberto")) fecharPaineis();
       const id = new URLSearchParams(location.search).get("conversa");
       if (id) { if (ativa?.id !== id) abrirConversa(id, { historico: false }); }

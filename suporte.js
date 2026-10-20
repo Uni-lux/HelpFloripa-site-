@@ -19,6 +19,9 @@ import { $, el, icone, toast, erroAmigavel, abrirFolha, fecharFolha, abrirOpcoes
 import { SUPORTE, seloOficial, fotoSuporte, marcarChamadoLido } from "./avisos-equipe.js?v=1";
 import { buscarPessoas } from "./pessoas.js?v=3";
 import { abrirDenuncia } from "./denuncias.js?v=4";
+import { ligarVoltar } from "./voltar.js?v=3";
+// O voltar fecha as janelas desta página (também dentro das Mensagens), sem depender da cópia do firebase.js no aparelho.
+ligarVoltar();
 
 const CATS = [
   ["conta", "Minha conta", "Acesso, senha, e-mail", "chave", "#00adee", "Se não consegue entrar, diga o e-mail da conta e o que aparece na tela. Nunca mande a sua senha."],

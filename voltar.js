@@ -57,12 +57,22 @@ function conferir() {
   document.querySelectorAll(CAMADAS).forEach((c) => { if (!pilha.includes(c) && !pilha.some((p) => p.contains(c))) abriu(c); });
 }
 
+// Para a página de fora (Mensagens) fechar a janela de cima desta, se o "voltar" chegar lá primeiro.
+function fecharTopo() {
+  const c = pilha.pop(); if (!c) return false;
+  fechar(c);
+  try { history.replaceState(estado(pilha.length), "", location.href); } catch {} // o passo daqui fica igual ao que sobrou aberto
+  return true;
+}
+
 export function ligarVoltar() {
   // Dentro de outra página do site (ex.: Ajuda e suporte nas Mensagens) também vale: o histórico é o mesmo.
   let deFora = false;
   try { deFora = window.top !== window.self && window.top.location.origin !== location.origin; } catch { deFora = true; }
-  if (ligado || deFora) return;
-  ligado = true;
+  // Um só por página, mesmo que duas cópias deste arquivo (versões diferentes) sejam carregadas.
+  if (ligado || deFora || window.__hfVoltarLigado) return;
+  ligado = true; window.__hfVoltarLigado = true;
+  window.__hfFecharTopo = fecharTopo;
   // Chegou (ou recarregou) com passos que não existem mais: começa do zero.
   if (nivel()) { try { history.replaceState(estado(0), "", location.href); } catch {} }
   let agendado = false;

@@ -50,6 +50,15 @@ await p.screenshot({ path: "saida/ajuda-embutida.png" });
 await p.evaluate(() => history.back()); await p.waitForTimeout(1500);
 ok((await urlQuadro()) === "suporte.html" && await p.locator("#painelSuporte.aberto").count() === 1, "voltar da Central de ajuda volta para o suporte (não para as Mensagens)");
 
+// Reserva: se o "voltar" chega direto nas Mensagens (o celular pula o passo de dentro), fecha só a janela do suporte.
+await f.locator("#btnDenunciar").tap(); await f.locator("#folhaDenunciar.aberta").waitFor({ timeout: 8000 });
+await p.evaluate(() => window.dispatchEvent(new PopStateEvent("popstate", { state: {} })));
+await p.waitForTimeout(600);
+ok(await f.locator("#folhaDenunciar.aberta").count() === 0 && await p.locator("#painelSuporte.aberto").count() === 1, "voltar que chega nas Mensagens fecha só o Denunciar (o suporte continua aberto)");
+await f.locator("#btnContestar").tap(); await f.locator("#folhaNovo.aberta").waitFor({ timeout: 8000 });
+await p.evaluate(() => history.back()); await p.waitForTimeout(700);
+ok(await f.locator("#folhaNovo.aberta").count() === 0 && await p.locator("#painelSuporte.aberto").count() === 1, "Contestar decisão: voltar fecha e continua no suporte");
+
 // Rosinha do duo
 await p.goto(BASE + "configuracoes.html"); await p.waitForTimeout(2500);
 ok(await p.locator("#cfgDuoCapa button").count() === 4, "rosinha: 4 opções (Foto e nome, Só a foto, Só a rosinha, Ocultar)");
