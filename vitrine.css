@@ -724,3 +724,12 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
 .vt-f-seg .vt-f-chip { padding: 0 4px; border-radius: 12px; }
 .vt-f-chip.on { border-color: var(--classe, var(--accent)); background: color-mix(in srgb, var(--classe, var(--accent)) 16%, transparent); color: var(--classe, var(--accent)); }
 .vt-local-aplicar:disabled { opacity: .5; cursor: default; }
+
+/* distância (Perto de você) */
+.vt-dist { position: absolute; left: 6px; top: 6px; z-index: 1; display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px 2px 5px; border-radius: 999px; font-size: 10.5px; font-weight: 800; color: #fff; background: rgba(4, 14, 24, .62); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.vt-dist svg { width: 11px; height: 11px; }
+.vt-del .tag-dest ~ .vt-dist, .vt-imo .tag ~ .vt-dist { top: auto; bottom: 6px; left: auto; right: 6px; }
+.vt-f-onde { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; font-size: 13px; color: var(--muted); }
+.vt-f-loc { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--classe, var(--accent)); background: none; color: var(--classe, var(--accent)); font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
+.vt-f-loc svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; }
+.vt-f-seg.seis { grid-template-columns: repeat(3, 1fr); }

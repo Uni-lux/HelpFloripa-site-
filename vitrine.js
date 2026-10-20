@@ -14,6 +14,7 @@ import { abrirQueixa } from "./queixas.js?v=11";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
 import { anelNegocio } from "./flash-negocio.js?v=2";
 import { camposEndereco, textoCidade, cidadesDe, NOME_UF, semAcento } from "./endereco.js?v=1";
+import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao } from "./perto.js?v=1";
 import { usarEstat, registrarVisita, registrarAcao, registrarItem, chaveItem as chaveEstat, chaveAnuncio } from "./estat-negocio.js?v=1";
 
 const PARAMS = new URL(import.meta.url).searchParams;
@@ -1611,6 +1612,28 @@ function abrirFiltroLocal() {
   });
 }
 
+// ---------- Perto de você ----------
+// Posição da pessoa (GPS guardado no aparelho ou o centro da cidade do perfil) e a distância de cada item.
+let posEu = null, rotuloEu = "";
+const kmDe = (n) => (Number.isFinite(n?._km) ? n._km : Infinity);
+const distDe = (n) => (posEu && Number.isFinite(n?._km) ? textoDistancia(n._km, n._aprox) : "");
+function seloDist(f, n) {
+  const t = distDe(n);
+  if (!t) return;
+  const s = el("span", "vt-dist"); s.append(icone("pin", "vi s"), document.createTextNode(t));
+  f.appendChild(s);
+}
+async function definirPosicao(p) {
+  posEu = p;
+  rotuloEu = p ? await rotuloPosicao(p) : "";
+  if (p) await comDistancia(todos, p);
+}
+// "Mais perto" sem posição nenhuma: pede a localização (com a cidade do perfil já dá para ordenar).
+async function garantirPosicao(ordem) {
+  if (ordem !== "perto" || posEu) return;
+  try { await definirPosicao(await pedirLocalizacao()); } catch (e) { toast(e?.message || "Ative a localização para ver o que está mais perto."); }
+}
+
 // ---------- Filtros (gaveta) ----------
 // Opções de cada página, como nos apps de entrega e de imóveis. Ficam guardadas no aparelho;
 // os filtros ligados aparecem como etiquetas com "x" logo abaixo da barra.
@@ -1654,12 +1677,13 @@ const FILTROS = {
   ]
 };
 const CHAVE_FILTROS = `hf-filtros-${TIPO}`;
-let filtrosX = { liga: [], quartos: 0, precoMax: 0 };
-try { const f = JSON.parse(localStorage.getItem(CHAVE_FILTROS) || "null"); if (f) filtrosX = { liga: Array.isArray(f.liga) ? f.liga : [], quartos: Number(f.quartos) || 0, precoMax: Number(f.precoMax) || 0 }; } catch {}
+let filtrosX = { liga: [], quartos: 0, precoMax: 0, raio: 0 };
+try { const f = JSON.parse(localStorage.getItem(CHAVE_FILTROS) || "null"); if (f) filtrosX = { liga: Array.isArray(f.liga) ? f.liga : [], quartos: Number(f.quartos) || 0, precoMax: Number(f.precoMax) || 0, raio: Number(f.raio) || 0 }; } catch {}
 const opcoesFiltro = () => FILTROS[TIPO] || [];
-const filtrosLigados = () => filtrosX.liga.filter((k) => opcoesFiltro().some((o) => o[0] === k)).length + (filtrosX.quartos ? 1 : 0) + (filtrosX.precoMax ? 1 : 0);
+const filtrosLigados = () => filtrosX.liga.filter((k) => opcoesFiltro().some((o) => o[0] === k)).length + (filtrosX.quartos ? 1 : 0) + (filtrosX.precoMax ? 1 : 0) + (filtrosX.raio ? 1 : 0);
 function passaExtras(n, f = filtrosX) {
   for (const k of f.liga) { const o = opcoesFiltro().find((x) => x[0] === k); if (o && !o[2](n)) return false; }
+  if (f.raio && posEu && !(kmDe(n) <= f.raio)) return false;
   if (TIPO === "imoveis") {
     if (f.quartos && !(Number(n.quartos) >= f.quartos)) return false;
     if (f.precoMax && !(Number(n.preco) > 0 && Number(n.preco) <= f.precoMax)) return false;
@@ -1690,12 +1714,13 @@ function pintarFiltrosAtivos() {
   filtrosX.liga.forEach((k) => { const o = opcoesFiltro().find((x) => x[0] === k); if (o) pilula(o[1], () => { filtrosX.liga = filtrosX.liga.filter((x) => x !== k); }); });
   if (filtrosX.quartos) pilula(`${filtrosX.quartos}+ quartos`, () => { filtrosX.quartos = 0; });
   if (filtrosX.precoMax) pilula(`Até ${moeda(filtrosX.precoMax)}`, () => { filtrosX.precoMax = 0; });
-  if (n > 1) { const l = el("button", "vt-ativo limpar", "Limpar tudo"); l.type = "button"; l.addEventListener("click", () => { filtrosX = { liga: [], quartos: 0, precoMax: 0 }; guardarFiltros(); pintarFiltrosAtivos(); renderizar(); }); box.appendChild(l); }
+  if (filtrosX.raio) pilula(`Até ${filtrosX.raio} km`, () => { filtrosX.raio = 0; });
+  if (n > 1) { const l = el("button", "vt-ativo limpar", "Limpar tudo"); l.type = "button"; l.addEventListener("click", () => { filtrosX = { liga: [], quartos: 0, precoMax: 0, raio: 0 }; guardarFiltros(); pintarFiltrosAtivos(); renderizar(); }); box.appendChild(l); }
   box.hidden = !n;
 }
 function abrirFiltros() {
   if (document.getElementById("vtFiltrosPop")) return;
-  const rasc = { liga: [...filtrosX.liga], quartos: filtrosX.quartos, precoMax: filtrosX.precoMax };
+  const rasc = { liga: [...filtrosX.liga], quartos: filtrosX.quartos, precoMax: filtrosX.precoMax, raio: filtrosX.raio };
   const fundo = el("div", "vt-local-fundo vt-filtros-fundo"); fundo.id = "vtFiltrosPop";
   const cx = el("div", "vt-local-pop vt-filtros-pop"); cx.setAttribute("role", "dialog"); cx.setAttribute("aria-modal", "true"); cx.setAttribute("aria-label", "Filtros");
   const topo = el("div", "vt-local-topo"); topo.append(el("strong", null, "Filtros"));
@@ -1706,6 +1731,23 @@ function abrirFiltros() {
   const aplicar = el("button", "vt-local-aplicar"); aplicar.type = "button";
   const pintar = () => {
     corpo.replaceChildren();
+    // Distância: com GPS é exata; com a cidade do perfil, aproximada.
+    const s0 = sec("Distância");
+    const onde = el("div", "vt-f-onde");
+    const usar = el("button", "vt-f-loc"); usar.type = "button";
+    usar.append(icone("pin", "vi s"), document.createTextNode(posEu?.origem === "gps" ? "Atualizar minha localização" : "Usar minha localização"));
+    usar.addEventListener("click", async () => {
+      usar.disabled = true; usar.lastChild.textContent = "Localizando...";
+      try { await definirPosicao(await pedirLocalizacao()); } catch (e) { toast(e?.message || "Não foi possível pegar a localização."); }
+      pintar();
+    });
+    onde.append(el("span", null, posEu ? `${posEu.origem === "gps" ? "Você está perto de" : "Pela cidade do seu perfil:"} ${rotuloEu || "sua região"}` : "Ative a localização para filtrar pela distância."), usar);
+    s0.appendChild(onde);
+    if (posEu) {
+      const g0 = el("div", "vt-f-seg seis");
+      [[0, "Qualquer"], [2, "2 km"], [5, "5 km"], [10, "10 km"], [25, "25 km"], [50, "50 km"]].forEach(([v, rot]) => g0.appendChild(chipF(rot, rasc.raio === v, () => { rasc.raio = v; })));
+      s0.appendChild(g0);
+    }
     const s1 = sec(TIPO === "imoveis" ? "Comodidades" : "Mostrar só");
     const g1 = el("div", "vt-f-chips");
     opcoesFiltro().forEach(([k, rot]) => g1.appendChild(chipF(rot, rasc.liga.includes(k), () => { rasc.liga = rasc.liga.includes(k) ? rasc.liga.filter((y) => y !== k) : [...rasc.liga, k]; })));
@@ -1722,7 +1764,7 @@ function abrirFiltros() {
     }
     const { cat, termo } = filtroAtual();
     const total = todos.filter((n) => passaCategoria(n, cat) && passaLocal(n) && (!termo || textoBusca(n).includes(termo)) && passaExtras(n, rasc)).length;
-    const algum = !!(rasc.liga.length || rasc.quartos || rasc.precoMax);
+    const algum = !!(rasc.liga.length || rasc.quartos || rasc.precoMax || rasc.raio);
     aplicar.textContent = !algum ? "Mostrar todos" : total ? `Ver ${total} ${total === 1 ? "resultado" : "resultados"}` : "Nenhum resultado";
     aplicar.disabled = algum && !total;
   };
@@ -1735,7 +1777,7 @@ function abrirFiltros() {
   document.addEventListener("keydown", tecla);
   fundo.addEventListener("click", (e) => { if (e.target === fundo) fechar(); });
   x.addEventListener("click", fechar);
-  limpar.addEventListener("click", () => { rasc.liga = []; rasc.quartos = 0; rasc.precoMax = 0; pintar(); });
+  limpar.addEventListener("click", () => { rasc.liga = []; rasc.quartos = 0; rasc.precoMax = 0; rasc.raio = 0; pintar(); });
   aplicar.addEventListener("click", () => { filtrosX = rasc; guardarFiltros(); pintarFiltrosAtivos(); fechar(); renderizar(); document.getElementById("vitrine")?.scrollIntoView({ behavior: "smooth", block: "start" }); });
   pintar();
   setTimeout(() => cx.querySelector(".vt-f-chip")?.focus({ preventScroll: true }), 50);
@@ -1788,7 +1830,8 @@ const ORDENS_SERV = {
   melhores: ["Melhores", (a, b) => pontuacao(b) - pontuacao(a) || (notaDe(b)?.total || 0) - (notaDe(a)?.total || 0)],
   novos: ["Novos", (a, b) => tsMs(b.criadoEm || b.atualizadoEm) - tsMs(a.criadoEm || a.atualizadoEm)],
   preco: ["Menor preço", (a, b) => (Number(a.precoDesde) || Infinity) - (Number(b.precoDesde) || Infinity)],
-  maior: ["Maior preço", (a, b) => (Number(b.precoDesde) || 0) - (Number(a.precoDesde) || 0)]
+  maior: ["Maior preço", (a, b) => (Number(b.precoDesde) || 0) - (Number(a.precoDesde) || 0)],
+  perto: ["Mais perto", (a, b) => kmDe(a) - kmDe(b)]
 };
 let ordemServ = "melhores";
 let pararGiro = null;
@@ -1814,6 +1857,7 @@ function cartaoPro(n, destaqueEm = "") {
   const info = [cats[0] ? (cats.length > 1 ? `${cats[0]} +${cats.length - 1}` : cats[0]) : nomeCategoria(n), textoCidade(n)].filter(Boolean).join(" · ");
   if (info) tx.appendChild(el("small", null, info));
   tx.appendChild(el("span", "tx-taxa", moeda(n.precoDesde) ? `desde ${moeda(n.precoDesde)}` : "Orçamento grátis"));
+  seloDist(f, n);
   c.append(f, tx);
   return tornarClicavel(c, () => abrirDetalhe(n), `Ver ${n.nome}`);
 }
@@ -1877,7 +1921,8 @@ const ORDENS_IMOVEL = {
   recentes: ["Recentes", (a, b) => tsMs(b.atualizadoEm || b.criadoEm) - tsMs(a.atualizadoEm || a.criadoEm)],
   melhores: ["Melhores", (a, b) => pontuacao(b) - pontuacao(a)],
   menor: ["Menor preço", (a, b) => (Number(a.preco) || Infinity) - (Number(b.preco) || Infinity)],
-  maior: ["Maior preço", (a, b) => (Number(b.preco) || 0) - (Number(a.preco) || 0)]
+  maior: ["Maior preço", (a, b) => (Number(b.preco) || 0) - (Number(a.preco) || 0)],
+  perto: ["Mais perto", (a, b) => kmDe(a) - kmDe(b)]
 };
 let ordemImovel = "recentes";
 function cartaoImovelMini(a) {
@@ -1901,6 +1946,7 @@ function cartaoImovelMini(a) {
     const s = el("span"); s.append(icone(ic, "vi s"), document.createTextNode(String(v))); sp.appendChild(s);
   });
   if (sp.children.length) tx.appendChild(sp);
+  seloDist(f, a);
   c.append(f, tx);
   return tornarClicavel(c, () => abrirAnuncio(a), `Ver ${tituloImovel(a)}`);
 }
@@ -1992,7 +2038,7 @@ function linhaPro(n) {
   const cats = categoriasDe(n).map((k) => CATEGORIAS.servicos[k] && nomeCat(n, k)).filter(Boolean);
   return linhaCompacta({
     classe: "pro", midia: avatar(n.foto, n.nome), titulo: n.nome || "Freelancer",
-    sub: [estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }), [cats.slice(0, 2).join(" · "), textoCidade(n)].filter(Boolean).join(" · ")],
+    sub: [estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }), [distDe(n), cats.slice(0, 2).join(" · "), textoCidade(n)].filter(Boolean).join(" · ")],
     direita: el("span", "pr", moeda(n.precoDesde) ? `desde ${moeda(n.precoDesde)}` : "a combinar"),
     abrir: () => abrirDetalhe(n), rotulo: `Ver ${n.nome}`
   });
@@ -2005,7 +2051,7 @@ function linhaImovel(a) {
   const pr = el("span", "pr", moeda(a.preco) || "Consultar");
   if (moeda(a.preco) && a.finalidade === "aluguel") pr.appendChild(el("small", null, "/mês"));
   return linhaCompacta({
-    classe: "imo", midia: f, titulo: tituloImovel(a), sub: [[a.bairro, textoCidade(a)].filter(Boolean).join(", "), specs], direita: pr,
+    classe: "imo", midia: f, titulo: tituloImovel(a), sub: [[distDe(a), [a.bairro, textoCidade(a)].filter(Boolean).join(", ")].filter(Boolean).join(" · "), specs], direita: pr,
     abrir: () => abrirAnuncio(a), rotulo: `Ver ${tituloImovel(a)}`
   });
 }
@@ -2033,16 +2079,18 @@ function tileDelivery(n) {
   const info = [nomeCategoria(n), n.tempoMin || n.tempoMax ? `${n.tempoMin || "?"}–${n.tempoMax || "?"} min` : ""].filter(Boolean).join(" · ");
   if (info) tx.appendChild(el("small", null, info));
   tx.appendChild(el("span", "tx-taxa" + (Number(n.taxaEntrega) > 0 ? "" : " gratis"), Number(n.taxaEntrega) > 0 ? `Entrega ${moeda(n.taxaEntrega)}` : "Entrega grátis"));
+  seloDist(f, n);
   c.append(f, tx);
   return tornarClicavel(c, () => abrirDetalhe(n), `Ver ${n.nome}`);
 }
-const ORDENS_PRECO = (preco, nota) => ({
+const ORDENS_PRECO = (preco, nota, km = kmDe) => ({
   melhores: ["Melhores", (a, b) => nota(b) - nota(a)],
   menor: ["Menor preço", (a, b) => (preco(a) || Infinity) - (preco(b) || Infinity)],
-  maior: ["Maior preço", (a, b) => (preco(b) || 0) - (preco(a) || 0)]
+  maior: ["Maior preço", (a, b) => (preco(b) || 0) - (preco(a) || 0)],
+  perto: ["Mais perto", (a, b) => km(a) - km(b)]
 });
 const ORDENS_DELIVERY = ORDENS_PRECO(precoMin, (n) => pontuacao(n));
-const ORDENS_PRODUTO = ORDENS_PRECO((x) => Number(x.i.preco) || NaN, (x) => pontuacao(x.n));
+const ORDENS_PRODUTO = ORDENS_PRECO((x) => Number(x.i.preco) || NaN, (x) => pontuacao(x.n), (x) => kmDe(x.n));
 let ordemDelivery = "melhores", ordemProduto = "melhores";
 
 // Imóveis em destaque: imóveis de quem tem as melhores notas como anunciante (e os mais novos),
@@ -2153,7 +2201,7 @@ function renderizar() {
   const vazio = () => {
     const v = el("div", "vt-vazio");
     v.append(el("strong", null, todos.length ? "Nada encontrado com esse filtro" : TEXTOS[TIPO].vazio), todos.length ? (filtrosLigados() ? "Tire algum filtro ou tente outra categoria." : "Tente outra categoria ou palavra.") : "Seja o primeiro: crie seu perfil de negócio pelo seu perfil.");
-    if (todos.length && filtrosLigados()) { const l = el("button", "vt-criar"); l.type = "button"; l.textContent = "Limpar filtros"; l.addEventListener("click", () => { filtrosX = { liga: [], quartos: 0, precoMax: 0 }; guardarFiltros(); pintarFiltrosAtivos(); renderizar(); }); v.append(document.createElement("br"), l); }
+    if (todos.length && filtrosLigados()) { const l = el("button", "vt-criar"); l.type = "button"; l.textContent = "Limpar filtros"; l.addEventListener("click", () => { filtrosX = { liga: [], quartos: 0, precoMax: 0, raio: 0 }; guardarFiltros(); pintarFiltrosAtivos(); renderizar(); }); v.append(document.createElement("br"), l); }
     if (!todos.length) { const a = el("a", "vt-criar"); a.href = `negocios.html?tipo=${TIPO}`; a.append(icone("mais"), document.createTextNode(TEXTOS[TIPO].criar)); v.append(document.createElement("br"), a); }
     grade.appendChild(v);
   };
@@ -2171,7 +2219,7 @@ function renderizar() {
     }));
     if (!produtos.length) return vazio();
     produtos.sort((a, b) => ORDENS_PRODUTO[ordemProduto][1](a, b) || (estoqueDe(a.i) === 0) - (estoqueDe(b.i) === 0));
-    grade.appendChild(barraLista(titulo("Todos os produtos"), produtos.length, ORDENS_PRODUTO, ordemProduto, (k) => { ordemProduto = k; renderizar(); }));
+    grade.appendChild(barraLista(titulo("Todos os produtos"), produtos.length, ORDENS_PRODUTO, ordemProduto, (k) => { ordemProduto = k; garantirPosicao(k).then(renderizar); }));
     mostrarItens(grade, produtos, {
       filtrando, linha: linhaProduto,
       tile: ({ n, i, idx }) => tornarClicavel(cartaoProduto(n, i, idx), () => abrirProduto(n, idx), `Ver ${i.nome}`),
@@ -2187,7 +2235,7 @@ function renderizar() {
     // 1) Destaques de cada categoria (revezando)  2) Todos, no modo escolhido
     const top = !filtrando && secaoDestaquesServ(lista);
     if (top) dest.appendChild(top);
-    grade.appendChild(barraLista(titulo("Todos os profissionais"), lista.length, ORDENS_SERV, ordemServ, (k) => { ordemServ = k; renderizar(); }));
+    grade.appendChild(barraLista(titulo("Todos os profissionais"), lista.length, ORDENS_SERV, ordemServ, (k) => { ordemServ = k; garantirPosicao(k).then(renderizar); }));
     mostrarItens(grade, [...lista].sort(ORDENS_SERV[ordemServ][1]), {
       filtrando, tile: (n) => cartaoPro(n), linha: linhaPro, grupos: (n) => categoriasDe(n).map((k) => chaveCat(n, k)), nomeGrupo: (g) => (g.startsWith("c:") ? g.slice(2) : CATEGORIAS.servicos[g] || "Outros")
     });
@@ -2195,7 +2243,7 @@ function renderizar() {
     const abertos = lista.filter((n) => abertoAgora(n) === true);
     if (!filtrando && abertos.length) dest.appendChild(carrossel("Abertos agora", abertos.slice(0, 10).map((n) => tornarClicavel(cartaoDelivery(n), () => abrirDetalhe(n), `Ver ${n.nome}`)), "abertos"));
     const ordem = [...lista].sort((a, b) => ORDENS_DELIVERY[ordemDelivery][1](a, b) || (abertoAgora(b) === true) - (abertoAgora(a) === true));
-    grade.appendChild(barraLista(titulo("Todos os restaurantes"), lista.length, ORDENS_DELIVERY, ordemDelivery, (k) => { ordemDelivery = k; renderizar(); }));
+    grade.appendChild(barraLista(titulo("Todos os restaurantes"), lista.length, ORDENS_DELIVERY, ordemDelivery, (k) => { ordemDelivery = k; garantirPosicao(k).then(renderizar); }));
     mostrarItens(grade, ordem, {
       filtrando, tile: tileDelivery, linha: (n) => tornarClicavel(linhaDelivery(n), () => abrirDetalhe(n), `Ver ${n.nome}`),
       grupos: (n) => chaveCat(n, n.categoria || "outros"), nomeGrupo: (g) => (g.startsWith("c:") ? g.slice(2) : CATEGORIAS.delivery[g] || "Outros")
@@ -2203,7 +2251,7 @@ function renderizar() {
   } else {
     const top = !filtrando && secaoDestaquesImoveis(lista);
     if (top) dest.appendChild(top);
-    grade.appendChild(barraLista(titulo("Todos os imóveis"), lista.length, ORDENS_IMOVEL, ordemImovel, (k) => { ordemImovel = k; renderizar(); }));
+    grade.appendChild(barraLista(titulo("Todos os imóveis"), lista.length, ORDENS_IMOVEL, ordemImovel, (k) => { ordemImovel = k; garantirPosicao(k).then(renderizar); }));
     mostrarItens(grade, [...lista].sort(ORDENS_IMOVEL[ordemImovel][1]), {
       filtrando, tile: cartaoImovelMini, linha: linhaImovel, grupos: (a) => chaveCat(a, a.categoria || "outros"), nomeGrupo: (g) => (g.startsWith("c:") ? g.slice(2) : CATEGORIAS.imoveis[g] || "Outros")
     });
@@ -2290,6 +2338,7 @@ async function carregarLote(primeira = false) {
   const idsNotas = [...new Set(add.map((n) => (TIPO === "imoveis" ? `${n.donoId}_imoveis` : idNegocio(n))))].filter((i) => !notasNeg.has(i));
   const [r] = await Promise.all([lerResumos(fb, idsNotas.map((i) => "neg_" + i)), carregarDonos(add.map((n) => n.donoId))]);
   idsNotas.forEach((i) => notasNeg.set(i, r["neg_" + i]));
+  if (posEu) await comDistancia(add, posEu);
   return add.length;
 }
 const temMais = () => maisNeg || (TIPO === "imoveis" && maisAn);
@@ -2343,6 +2392,9 @@ async function iniciar() {
     usarEstat(fb, eu);
     conferirEmail(u);
     try {
+      // Onde a pessoa está: GPS guardado no aparelho ou a cidade do perfil público.
+      const perfil = await docComValidade(fb, ["perfis_publicos", u.uid], DONOS_VALIDADE).then((s2) => (s2.exists() ? s2.data() : {})).catch(() => ({}));
+      await definirPosicao(await minhaPosicao(perfil).catch(() => null));
       await carregarLote(true);
     } catch (e) {
       console.warn("Vitrine indisponível:", e);

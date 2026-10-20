@@ -178,6 +178,13 @@ service cloud.firestore {
     // Foto só pode vir do próprio site: imagem dentro do documento (sem Storage),
     // Firebase Storage do projeto ou foto da conta Google. Bloqueia imagens de
     // sites de terceiros (rastreamento por IP, conteúdo impróprio).
+    // Ponto do endereço (negócio ou anúncio) para "Perto de você": só lat/lng dentro do Brasil.
+    function geoOk(g) {
+      return g == null
+          || (g is map && g.keys().hasOnly(['lat', 'lng'])
+              && g.lat is number && g.lat >= -34 && g.lat <= 6
+              && g.lng is number && g.lng >= -75 && g.lng <= -28);
+    }
     function fotoOk(v) {
       return v == null || v == ''
           || (v is string && v.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/|https://lh3[.]googleusercontent[.]com/).*'));

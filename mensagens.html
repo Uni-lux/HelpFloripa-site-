@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <!-- Segurança: só carrega recursos de origens conhecidas e não deixa outro site embutir esta página -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://www.google.com https://www.recaptcha.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://firebasestorage.googleapis.com https://lh3.googleusercontent.com https://images.unsplash.com https://upload.wikimedia.org https://randomuser.me https://www.gstatic.com https://www.google.com; media-src 'self' data: blob: https://firebasestorage.googleapis.com; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com https://viacep.com.br https://www.google.com https://www.gstatic.com; frame-src 'self' https://helpfloripa-61e0d.firebaseapp.com https://accounts.google.com https://www.google.com https://www.recaptcha.net; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self' https://formsubmit.co; upgrade-insecure-requests" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://www.google.com https://www.recaptcha.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://tile.openstreetmap.org https://firebasestorage.googleapis.com https://lh3.googleusercontent.com https://images.unsplash.com https://upload.wikimedia.org https://randomuser.me https://www.gstatic.com https://www.google.com; media-src 'self' data: blob: https://firebasestorage.googleapis.com; connect-src 'self' https://nominatim.openstreetmap.org https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com https://viacep.com.br https://www.google.com https://www.gstatic.com; frame-src 'self' https://helpfloripa-61e0d.firebaseapp.com https://accounts.google.com https://www.google.com https://www.recaptcha.net; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self' https://formsubmit.co; upgrade-insecure-requests" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <script>
     // Outro site não pode embutir esta página. Dentro do próprio Help Floripa (gaveta de mensagens) pode.
@@ -14,7 +14,7 @@
       else { document.documentElement.style.display = "none"; try { window.top.location.replace(window.self.location.href); } catch (e) {} }
     }
   </script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
   <meta name="theme-color" content="#0b1014" />
   <title>Mensagens | Help Floripa</title>
   <link rel="icon" href="favicon.ico" />
@@ -151,7 +151,7 @@
     .app {
       display: grid;
       grid-template-columns: minmax(300px, 390px) 1fr;
-      height: 100vh; height: 100dvh;
+      height: 100vh; height: 100dvh; height: var(--vv, 100dvh);
       max-width: 1600px; margin: 0 auto;
       background: var(--panel);
       box-shadow: 0 0 0 1px var(--line);
@@ -224,6 +224,30 @@
     .pv-perfil .avatar { width: 84px; height: 84px; font-size: 28px; box-shadow: 0 0 0 3px var(--panel), 0 0 0 5px color-mix(in srgb, var(--accent) 55%, transparent); }
     .pv-perfil h3 { margin: 8px 0 0; font-size: 19px; display: inline-flex; align-items: center; gap: 6px; }
     .pv-perfil h3 svg { width: 18px; height: 18px; color: #1d9bf0; }
+    /* cartão de localização/endereço */
+    .bolha.cartao-msg.local-msg { width: min(300px, 82%); padding: 4px; overflow: hidden; }
+    .lc { display: grid; }
+    .lc-abrir { display: block; color: inherit; text-decoration: none; }
+    .lc-mapa { position: relative; height: 150px; border-radius: 12px; overflow: hidden;
+      background: linear-gradient(90deg, transparent 47%, #fff 47%, #fff 53%, transparent 53%) 0 0 / 110px 100%, linear-gradient(0deg, transparent 44%, #fff 44%, #fff 50%, transparent 50%) 0 0 / 100% 90px, linear-gradient(28deg, transparent 49%, #f6e7b4 49%, #f6e7b4 52%, transparent 52%), #e6ece4; }
+    .lc-meio { position: absolute; left: 50%; top: 50%; }
+    .lc-meio img { position: absolute; width: 256px; height: 256px; max-width: none; user-select: none; }
+    .lc-sem { background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 22%, #e8eef2), color-mix(in srgb, #f59e0b 22%, #e8eef2)); }
+    .lc-pino { position: absolute; left: 50%; top: 50%; width: 38px; height: 38px; margin: -38px 0 0 -19px; display: grid; place-items: center; border-radius: 50% 50% 50% 4px; transform: rotate(-45deg); background: #e5484d; box-shadow: 0 6px 14px rgba(0,0,0,.35); color: #fff; }
+    .lc-pino svg.i { transform: rotate(45deg); width: 19px; height: 19px; }
+    .lc-sem .lc-pino { background: #f59e0b; }
+    .lc-cred { position: absolute; right: 4px; bottom: 3px; padding: 0 4px; border-radius: 4px; background: rgba(255,255,255,.75); color: #333; font-size: 9px; }
+    .lc-tx { display: flex; align-items: flex-start; gap: 9px; padding: 9px 8px 6px; }
+    .lc-ic { flex: none; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, #e5484d 18%, transparent); color: #e5484d; }
+    .local-msg .lc-ic svg.i { width: 17px; height: 17px; }
+    .lc-tx > div { min-width: 0; display: grid; gap: 1px; }
+    .lc-tx b { font-size: 14.5px; }
+    .lc-tx span { font-size: 13px; line-height: 1.35; overflow-wrap: anywhere; }
+    .lc-tx small { font-size: 11.5px; opacity: .7; }
+    .lc-acoes { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid color-mix(in srgb, currentColor 14%, transparent); }
+    .lc-acoes a, .lc-acoes button { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; border: 0; background: none; color: inherit; font: inherit; font-size: 13px; font-weight: 800; text-decoration: none; cursor: pointer; }
+    .lc-acoes > * + * { border-left: 1px solid color-mix(in srgb, currentColor 14%, transparent); }
+    .lc-previa { padding: 4px; border-radius: 16px; background: var(--bolha-minha, color-mix(in srgb, var(--accent) 30%, var(--panel))); color: var(--text); }
     .ax-grade { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 6px; }
     .ax-op { display: grid; justify-items: center; align-content: start; gap: 5px; padding: 6px 2px; border: 0; border-radius: 16px; background: none; color: inherit; font: inherit; cursor: pointer; text-align: center; }
     .ax-op:hover { background: color-mix(in srgb, var(--muted) 10%, transparent); }
@@ -851,6 +875,7 @@
     <symbol id="i-fechar" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
     <symbol id="i-check2" viewBox="0 0 24 24"><path d="M2.5 12.5L7 17l9.5-9.5M11.5 16l1 1L22 7.5"/></symbol>
+    <symbol id="i-rota" viewBox="0 0 24 24"><path d="M12 3l8 8-8 8-8-8z"/><path d="M9.5 13v-1.5a1.5 1.5 0 011.5-1.5h3.5M13 8.5l1.8 1.5L13 11.5"/></symbol>
     <symbol id="i-loja" viewBox="0 0 24 24"><path d="M4 9.5l1.5-5h13l1.5 5M4 9.5h16M4 9.5a2.7 2.7 0 005.3 0 2.7 2.7 0 005.4 0 2.7 2.7 0 005.3 0M5.5 12v7.5h13V12M10 19.5v-4.5h4v4.5"/></symbol>
     <symbol id="i-cartao-neg" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="8.5" cy="11" r="2.2"/><path d="M5.8 16c.5-1.5 1.5-2.3 2.7-2.3s2.2.8 2.7 2.3M14 10h4M14 13.5h3"/></symbol>
     <symbol id="i-cartao" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h4"/></symbol>
@@ -1879,6 +1904,8 @@
         const n = m.cartao.pedido.itens.reduce((s, i) => s + (Number(i?.qtd) || 0), 0);
         return `Pedido: ${n} ${n === 1 ? "item" : "itens"} · ${reais(m.cartao.pedido.total)}`;
       }
+      if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "local") return "📍 Localização";
+      if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "endereco") return "🏠 Endereço";
       if (m.tipoArquivo === "avaliacao") return "Pedido de avaliação";
       if (m.tipoArquivo === "cartao" && m.cartao?.status) return `Pedido: ${(infoStatus(m.cartao.tipo, m.cartao.status) || [0, "status atualizado"])[1]}`;
       if (m.tipoArquivo === "cartao" && m.cartao?.solicitacao) {
@@ -3061,6 +3088,9 @@
         l.append(ic, tx);
         bolha.appendChild(l);
         queueMicrotask(() => atualizarStatusNaTela(c.refMsg));
+      } else if (m.tipoArquivo === "cartao" && (m.cartao?.tipo === "local" || m.cartao?.tipo === "endereco")) {
+        bolha.classList.add("cartao-msg", "local-msg");
+        bolha.appendChild(cartaoLocal(m.cartao, m.remetenteId === eu.uid));
       } else if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "flash") {
         bolha.classList.add("cartao-msg", "flash-msg");
         bolha.appendChild(cartaoFlash(m.cartao, m));
@@ -3131,7 +3161,12 @@
         }
       }
 
-      if (m.texto) {
+      // Localização mandada como texto (versão anterior): vira o cartão com mapa.
+      const locTexto = !m.tipoArquivo && /^📍 Minha localização: https:\/\/maps\.google\.com\/\?q=(-?\d{1,3}\.\d+),(-?\d{1,3}\.\d+)$/.exec(m.texto || "");
+      if (locTexto) {
+        bolha.classList.add("cartao-msg", "local-msg");
+        bolha.appendChild(cartaoLocal({ tipo: "local", lat: Number(locTexto[1]), lng: Number(locTexto[2]) }, m.remetenteId === eu.uid));
+      } else if (m.texto) {
         const t = document.createElement("div");
         t.className = "texto";
         t.appendChild(textoComLinks(m.texto));
@@ -3156,7 +3191,7 @@
         chk.appendChild(icone(st.icone));
         meta.appendChild(chk);
       }
-      if (m.texto) bolha.querySelector(".texto").appendChild(meta);
+      if (m.texto && bolha.querySelector(".texto")) bolha.querySelector(".texto").appendChild(meta);
       else bolha.appendChild(meta);
 
       ligarMenuBolha(bolha, m);
@@ -3497,8 +3532,8 @@
     // volta para esta conversa como cartão, sem sair do chat.
     let vitrineMod = null;
     function carregarVitrine() {
-      if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=28"; l.dataset.vitrine = ""; document.head.appendChild(l); }
-      return (vitrineMod ||= import("./vitrine.js?v=41"));
+      if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=29"; l.dataset.vitrine = ""; document.head.appendChild(l); }
+      return (vitrineMod ||= import("./vitrine.js?v=42"));
     }
     function usarCartaoNaConversa(uid, cartao) {
       document.querySelectorAll(".vt-modal").forEach((m) => m.remove());
@@ -3909,21 +3944,110 @@
         catch { toast("Não foi possível preparar o cartão."); }
       }, `Enviar ${(ASSUNTOS[n.tipo] || {}).nome || "perfil"}`));
     }
-    // Põe o texto no campo (a pessoa confere e envia).
-    function colocarNoCampo(t) { const c = $("texto"); c.value = c.value ? c.value.trimEnd() + "\n" + t : t; c.dispatchEvent(new Event("input", { bubbles: true })); c.focus({ preventScroll: true }); }
+    // ---------- localização e endereço (cartão com mapa, como no WhatsApp) ----------
+    // cartao { tipo: "local", lat, lng, precisao?, endereco? } ou { tipo: "endereco", endereco, linha2?, lat?, lng? }.
+    // O mapa é montado com os "azulejos" do OpenStreetMap (sem chave); o nome da rua vem do Nominatim só na hora de enviar.
+    const coordOk = (la, lo) => Number.isFinite(la) && Number.isFinite(lo) && Math.abs(la) <= 90 && Math.abs(lo) <= 180;
+    function mapaEstatico(la, lo, z = 16) {
+      const box = elm("div", "lc-mapa");
+      const n = 2 ** z, rad = (la * Math.PI) / 180;
+      const px = ((lo + 180) / 360) * n * 256, py = ((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * n * 256;
+      const meio = elm("div", "lc-meio");
+      for (let tx = Math.floor((px - 360) / 256); tx <= Math.floor((px + 360) / 256); tx++) {
+        for (let ty = Math.floor((py - 160) / 256); ty <= Math.floor((py + 160) / 256); ty++) {
+          const img = document.createElement("img"); img.alt = ""; img.loading = "lazy"; img.decoding = "async"; img.draggable = false;
+          img.onerror = () => img.remove(); // sem internet para o mapa: fica o fundo desenhado
+          img.src = `https://tile.openstreetmap.org/${z}/${((tx % n) + n) % n}/${ty}.png`;
+          img.style.left = `${tx * 256 - px}px`; img.style.top = `${ty * 256 - py}px`;
+          meio.appendChild(img);
+        }
+      }
+      const pino = elm("span", "lc-pino"); pino.appendChild(usar("local", "i"));
+      box.append(meio, pino, elm("span", "lc-cred", "© OpenStreetMap"));
+      return box;
+    }
+    const linkMapa = (c) => (coordOk(c.lat, c.lng) ? `https://www.google.com/maps/search/?api=1&query=${c.lat},${c.lng}` : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.endereco || "")}`);
+    const linkRota = (c) => `https://www.google.com/maps/dir/?api=1&destination=${coordOk(c.lat, c.lng) ? `${c.lat},${c.lng}` : encodeURIComponent(c.endereco || "")}`;
+    function cartaoLocal(c, minha) {
+      const box = elm("div", "lc");
+      const local = c.tipo === "local";
+      const temCoord = coordOk(Number(c.lat), Number(c.lng));
+      const abrir = document.createElement("a"); abrir.className = "lc-abrir"; abrir.href = linkMapa(c); abrir.target = "_blank"; abrir.rel = "noopener";
+      if (temCoord) abrir.appendChild(mapaEstatico(Number(c.lat), Number(c.lng)));
+      else { const sem = elm("div", "lc-mapa lc-sem"); const pino = elm("span", "lc-pino"); pino.appendChild(usar("casa", "i")); sem.appendChild(pino); abrir.appendChild(sem); }
+      const tx = elm("div", "lc-tx");
+      const ic = elm("span", "lc-ic"); ic.appendChild(usar(local ? "local" : "casa", "i"));
+      const t2 = elm("div");
+      t2.append(elm("b", null, local ? (minha ? "Minha localização" : "Localização") : "Endereço"),
+        elm("span", null, String(c.endereco || (temCoord ? `${Number(c.lat).toFixed(5)}, ${Number(c.lng).toFixed(5)}` : "")).slice(0, 200)));
+      if (c.linha2) t2.appendChild(elm("small", null, String(c.linha2).slice(0, 120)));
+      else if (local && Number(c.precisao) > 0) t2.appendChild(elm("small", null, `Precisão de ${Math.round(c.precisao)} m`));
+      tx.append(ic, t2);
+      abrir.appendChild(tx);
+      const acoes = elm("div", "lc-acoes");
+      const rota = document.createElement("a"); rota.href = linkRota(c); rota.target = "_blank"; rota.rel = "noopener"; rota.append(usar("rota", "i s"), document.createTextNode("Como chegar"));
+      const copiar = elm("button"); copiar.type = "button"; copiar.append(usar("copiar", "i s"), document.createTextNode("Copiar"));
+      copiar.addEventListener("click", (e) => { e.stopPropagation(); const t = [c.endereco, c.linha2].filter(Boolean).join(" · ") || `${c.lat}, ${c.lng}`; navigator.clipboard?.writeText(t).then(() => toast("Copiado"), () => toast(t)); });
+      acoes.append(rota, copiar);
+      box.append(abrir, acoes);
+      return box;
+    }
+    // Nome da rua a partir das coordenadas (só quem envia consulta; quem recebe já vê pronto).
+    async function enderecoDe(la, lo) {
+      try {
+        const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 6000);
+        const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${la}&lon=${lo}&zoom=18&addressdetails=1&accept-language=pt-BR`, { signal: ctrl.signal });
+        clearTimeout(t);
+        const a = (await r.json())?.address || {};
+        const rua = [a.road || a.pedestrian || a.footway, a.house_number].filter(Boolean).join(", ");
+        return [rua, a.suburb || a.neighbourhood || a.quarter, a.city || a.town || a.village].filter(Boolean).join(" · ");
+      } catch { return ""; }
+    }
+    async function coordDe(texto) {
+      try {
+        const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 6000);
+        const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=br&q=${encodeURIComponent(texto)}`, { signal: ctrl.signal });
+        clearTimeout(t);
+        const x = (await r.json())?.[0];
+        return x ? { lat: Number(Number(x.lat).toFixed(6)), lng: Number(Number(x.lon).toFixed(6)) } : null;
+      } catch { return null; }
+    }
+    // Gaveta de confirmação: mostra o cartão como vai chegar e envia com um toque.
+    function confirmarEnvioLocal(titulo, cartao, rotuloBotao) {
+      const { corpo, fechar } = abrirGaveta(titulo);
+      const prev = elm("div", "lc-previa"); prev.appendChild(cartaoLocal(cartao, true));
+      const enviar = elm("button", "pv-btn pri"); enviar.type = "button"; enviar.append(usar("enviar", "i s"), document.createTextNode(rotuloBotao));
+      enviar.addEventListener("click", async () => {
+        if (!ativa) return;
+        enviar.disabled = true;
+        try {
+          await publicarMensagem(ativa.id, { remetenteId: eu.uid, texto: "", criadoEm: fb.serverTimestamp(), tipoArquivo: "cartao", cartao });
+          fechar();
+        } catch (e) { console.error(e); enviar.disabled = false; toast(e?.code === "limite-diario" ? e.message : "Não foi possível enviar agora."); }
+      });
+      corpo.append(prev, enviar);
+      return { corpo, prev };
+    }
     function enviarLocalizacao() {
       if (!navigator.geolocation) { toast("Este aparelho não informa a localização."); return; }
       toast("Pegando a sua localização...");
-      navigator.geolocation.getCurrentPosition((pos) => {
-        const { latitude: la, longitude: lo } = pos.coords;
-        colocarNoCampo(`📍 Minha localização: https://maps.google.com/?q=${la.toFixed(6)},${lo.toFixed(6)}`);
+      navigator.geolocation.getCurrentPosition(async (pos) => {
+        const la = Number(pos.coords.latitude.toFixed(6)), lo = Number(pos.coords.longitude.toFixed(6));
+        const cartao = { tipo: "local", lat: la, lng: lo, precisao: Math.round(pos.coords.accuracy || 0) };
+        const { prev } = confirmarEnvioLocal("Enviar localização", cartao, "Enviar localização atual");
+        const end = await enderecoDe(la, lo);
+        if (end && prev.isConnected) { cartao.endereco = end.slice(0, 200); prev.replaceChildren(cartaoLocal(cartao, true)); }
       }, () => toast("Não deu para pegar a localização. Confira a permissão do navegador."), { enableHighAccuracy: true, timeout: 12000 });
     }
     async function usarMeuEndereco() {
       try {
         const e = (await fb.getDoc(fb.doc(fb.db, "usuarios", eu.uid))).data()?.endereco;
         if (!e?.rua && !e?.bairro) { toast("Você ainda não salvou um endereço. Cadastre em Configurações > Endereço."); return; }
-        colocarNoCampo("🏠 " + [[e.rua, e.numero].filter(Boolean).join(", "), e.complemento, e.bairro, [e.cidade, e.uf].filter(Boolean).join("/"), e.referencia ? `ref.: ${e.referencia}` : ""].filter(Boolean).join(" · "));
+        const rua = [[e.rua, e.numero].filter(Boolean).join(", "), e.complemento].filter(Boolean).join(" · ");
+        const cartao = { tipo: "endereco", endereco: [rua, e.bairro].filter(Boolean).join(" · ").slice(0, 200), linha2: [[e.cidade, e.uf].filter(Boolean).join("/"), e.cep ? `CEP ${String(e.cep).replace(/^(\d{5})(\d{3})$/, "$1-$2")}` : "", e.referencia ? `Ref.: ${e.referencia}` : ""].filter(Boolean).join(" · ").slice(0, 120) };
+        const { prev } = confirmarEnvioLocal("Enviar endereço", cartao, "Enviar endereço");
+        const c = await coordDe([e.rua, e.numero, e.bairro, e.cidade, e.uf].filter(Boolean).join(", "));
+        if (c && prev.isConnected) { Object.assign(cartao, c); prev.replaceChildren(cartaoLocal(cartao, true)); }
       } catch { toast("Não foi possível ler o seu endereço agora."); }
     }
 
@@ -4113,6 +4237,19 @@
     // Sem Storage o áudio vai dentro da mensagem, então limitamos a duração.
     const LIMITE_AUDIO_SEG = () => (storageFns ? 300 : 120);
 
+    // Teclado do celular: a conversa encolhe junto com a área visível (o campo nunca fica atrás do teclado).
+    // O "interactive-widget=resizes-content" do viewport já faz isso no Chrome; aqui é a reserva (Safari e afins).
+    if (window.visualViewport) {
+      const vv = window.visualViewport;
+      const acompanhar = () => {
+        const teclado = innerHeight - vv.height > 120;
+        document.documentElement.style.setProperty("--vv", teclado ? vv.height + "px" : "");
+        if (teclado && (scrollY || vv.offsetTop)) scrollTo(0, 0);
+        if (teclado && document.activeElement?.id === "texto" && pertoDoFim()) irParaFim();
+      };
+      vv.addEventListener("resize", acompanhar);
+      vv.addEventListener("scroll", acompanhar);
+    }
     function ajustarAltura() {
       const t = $("texto");
       t.style.height = "42px";

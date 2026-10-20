@@ -14,7 +14,8 @@ import {
 import { lerResumos, estrelas, media, notaTexto } from "./avaliacoes.js?v=13";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade, semAcento } from "./endereco.js?v=1";
 import { lerStats, listaDias, somarPeriodo } from "./estat-negocio.js?v=1";
-import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO, CATEGORIAS, GRUPOS_SERV, PALAVRAS_SERV, prazoPromo } from "./vitrine.js?v=41";
+import { geocodificar, geoOk } from "./perto.js?v=1";
+import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO, CATEGORIAS, GRUPOS_SERV, PALAVRAS_SERV, prazoPromo } from "./vitrine.js?v=42";
 
 // Cada tipo com a cor da sua classe na página inicial (inicio.css: --c-servicos etc.) e uma chamada própria.
 const NEGOCIOS = {
@@ -299,7 +300,14 @@ function novoNegocio(tipo) {
 let negEditando = null, negTipo = "servicos", negFoto = "", negCapa = "", negSemana = ["", "", "", "", "", "", ""], negPromo = null;
 // Campos novos (Instagram, site, CNPJ, capa, horário por dia e promoção): sem as regras novas publicadas,
 // ficam guardados na conta (usuarios.negociosExtras) e vão para o perfil sozinhos depois (sincronizarExtras).
-const NOVOS_NEG = ["instagram", "site", "cnpj", "capa", "semana", "promocao"];
+const NOVOS_NEG = ["instagram", "site", "cnpj", "capa", "semana", "promocao", "geo"];
+// Ponto do endereço para o "Perto de você": reaproveita o anterior se o endereço não mudou; senão procura
+// (OpenStreetMap). Sem rua nem CEP, fica sem ponto e vale o centro da cidade.
+const MESMO_END = ["rua", "numero", "bairro", "cidadeIbge", "cep"];
+async function pontoDoEndereco(loc, antigo) {
+  if (antigo && geoOk(antigo.geo) && MESMO_END.every((k) => String(antigo[k] ?? "") === String(loc[k] ?? ""))) return antigo.geo;
+  return (await geocodificar(loc).catch(() => null)) || null;
+}
 const extrasPendentes = (id) => (dados.negociosExtras && typeof dados.negociosExtras === "object" ? dados.negociosExtras[id] : null) || null;
 function abrirFormNegocio(n, { promo = false } = {}) {
   if (n) { const p = extrasPendentes(n.id); if (p) n = { ...n, ...Object.fromEntries(Object.entries(p).filter(([k]) => NOVOS_NEG.includes(k) && !n[k])) }; }
@@ -937,6 +945,7 @@ $("anSalvar").addEventListener("click", async () => {
       criadoEm: a.criadoEm || fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp()
     };
     if (tipoProprioTx) dadosAn.categoriaPersonalizada = tipoProprioTx;
+    dadosAn.geo = await pontoDoEndereco(localAn, anEditandoId ? a : null);
     if (!anEditandoId) dadosAn.criadoEm = fb.serverTimestamp();
     else delete dadosAn.criadoEm;
     if (JSON.stringify(dadosAn).length > 950000) throw new Error("Fotos pesadas demais. Remova uma foto e tente de novo.");
@@ -949,7 +958,7 @@ $("anSalvar").addEventListener("click", async () => {
         await fb.setDoc(ref, { ...resto, titulo: resto.titulo || (cp ? `${cp} para ${(FINALIDADES[resto.finalidade] || "negociar").toLowerCase()}` : "") }, { merge: true });
       }
     };
-    await gravarComLocal(gravarAn, dadosAn, NOVOS.anuncio);
+    await gravarComLocal(gravarAn, dadosAn, [...NOVOS.anuncio, "geo"]);
     fecharFolha("folhaAnuncio");
     toast(anEditandoId ? "Imóvel atualizado" : "Imóvel anunciado");
     const lista = document.querySelector("#negExtras .neg-anuncios");
@@ -1317,11 +1326,12 @@ $("negSalvar").addEventListener("click", async () => {
       extras.itens.push(item);
     }
     const loc = negLocal.ler();
+    const geo = await pontoDoEndereco(loc, negEditando);
     const dadosNeg = {
       donoId: eu.uid, tipo: negTipo, nome, descricao: $("negDesc").value.trim(),
       cidade: loc.cidade, uf: loc.uf, cidadeIbge: loc.cidadeIbge, bairro: loc.bairro, rua: loc.rua, numero: loc.numero, complemento: loc.complemento, cep: loc.cep,
       whatsapp: $("negWhats").value.trim(), foto, ...extras, atualizadoEm: fb.serverTimestamp(),
-      instagram: insta, site, cnpj, capa, semana, promocao
+      instagram: insta, site, cnpj, capa, semana, promocao, geo
     };
     if (JSON.stringify(dadosNeg).length > 950000) throw new Error("Fotos demais para um perfil. Remova algumas fotos e tente de novo.");
     dadosNeg.criadoEm = negEditando?.criadoEm || fb.serverTimestamp();

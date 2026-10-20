@@ -1,3 +1,11 @@
+      function contextoOk() {
+        let c = request.resource.data.get('contexto', null);
+        return c == null
+            || (c is map && c.keys().hasOnly(['tipo', 'titulo'])
+                && c.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis']
+                && valorTextoAte(c.get('titulo', ''), 120));
+      }
+
       // Conversa ainda não criada: só quem faz parte dela (o id tem os dois uids) pode consultar.
       allow get: if logado()
                  && ((resource == null && request.auth.uid in conversaId.split('_'))

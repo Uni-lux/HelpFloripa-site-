@@ -9,15 +9,16 @@
 // Sem campo nem regra nova: lê o que o Diário e as vitrines já leem.
 // =====================================================
 import {
-  $, el, icone, ms, pintarAvatar, urlSegura, nomeCidade, fb, eu, dados, meusSeguindo, escondido, silenciado, ganchos,
+  $, el, icone, ms, toast, pintarAvatar, urlSegura, nomeCidade, fb, eu, dados, meusSeguindo, escondido, silenciado, ganchos,
   obterPerfil, linhaPessoa, botaoSeguir, fotosDoPost, lerResumosEstrelas, minhaRede, jaVisto, definirOrigem, origemAtual, pilha
 } from "./rede.js?v=48";
 import { afinidade } from "./gosto.js?v=1";
 import { buscarPessoas, pessoasRecentes, semAcento } from "./pessoas.js?v=3";
 import { docsComValidade } from "./leituras.js?v=1";
 import { lerResumos, media } from "./avaliacoes.js?v=13";
-import { CATEGORIAS, CORES_TIPO, NOMES_TIPO, PAGINA_TIPO, nomeCategoria, nomeCat, categoriasDe } from "./vitrine.js?v=41";
+import { CATEGORIAS, CORES_TIPO, NOMES_TIPO, PAGINA_TIPO, nomeCategoria, nomeCat, categoriasDe } from "./vitrine.js?v=42";
 import { fimDaEnquete, faltaTexto } from "./enquetes.js?v=3";
+import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao } from "./perto.js?v=1";
 
 const DIARIO_VALIDADE = 3 * 60000, DIA = 864e5, HORA = 3600e3;
 const postOculto = (p) => (p?.ocultoAte?.toMillis?.() ?? 0) > Date.now() || (p?.agendadoPara?.toMillis?.() ?? 0) > Date.now() || silenciado(p?.autorId);
@@ -249,6 +250,7 @@ export async function abrirExplorar() {
   pintarEnquetes(lista);
   lerResumosEstrelas(lista.map((p) => p.id)).then((r) => { resumosPosts = r; postsDestaque = lista; pintarDestaques(); }).catch(() => {});
   pintarNegocios().catch((e) => console.warn("Explorar (negócios):", e));
+  pintarPostsPerto(lista).catch((e) => console.warn("Explorar (perto):", e));
   pintarSugestoes().catch((e) => console.warn("Explorar (sugestões):", e));
 }
 
@@ -293,22 +295,45 @@ function pintarEnquetes(lista) {
   }));
 }
 
-// Negócios: os da sua cidade primeiro (bem avaliados e novos); sem nenhum na cidade, os de todo lugar.
+// "Perto de você": posição da pessoa (GPS guardado no aparelho ou a cidade do perfil).
+let posEu = null, posPronta = null;
+const posicao = () => (posPronta ||= minhaPosicao(dados).then((p) => (posEu = p)).catch(() => null));
+// Botão "Usar minha localização" dentro do título da seção (some quando já tem GPS).
+function botaoLocal(alvo, aoMudar) {
+  alvo.querySelector(".exp-loc")?.remove();
+  if (posEu?.origem === "gps") return;
+  const b = el("button", "exp-loc"); b.type = "button"; b.append(icone("local", "i xs"), document.createTextNode("Usar minha localização"));
+  b.addEventListener("click", async () => {
+    b.disabled = true; b.lastChild.textContent = "Localizando...";
+    try { posEu = await pedirLocalizacao(); posPronta = Promise.resolve(posEu); aoMudar(); }
+    catch (e) { b.disabled = false; b.lastChild.textContent = "Usar minha localização"; toast(e?.message || "Não deu para pegar a sua localização."); }
+  });
+  alvo.appendChild(b);
+}
+// Negócios: os mais perto primeiro (pela distância e pela nota); sem localização, os da sua cidade.
 async function pintarNegocios() {
   const todos = (await negociosRecentes()).filter((n) => n.donoId !== eu.uid);
+  const pos = await posicao();
+  if (pos) await comDistancia(todos, pos);
   const cid = minhaCidade();
   const daCidade = cid ? todos.filter((n) => chaveCidade(n.cidade) === cid) : [];
-  const base = (daCidade.length >= 3 ? daCidade : todos).slice(0, 60);
+  const perto = pos ? todos.filter((n) => n._km <= 60) : [];
+  const base = (perto.length >= 3 ? perto : daCidade.length >= 3 ? daCidade : todos).slice(0, 60);
   const nota = await notasDe(base);
   const agora = Date.now();
   const novo = (n) => agora - ms(n.criadoEm || n.atualizadoEm) < 14 * DIA;
   const peso = (n) => { const r = nota(n); const m = r?.total ? media(r) : 0; return (r?.total ? m * m * (1 + Math.log1p(r.total)) / 5 : 0.8) * (novo(n) ? 1.6 : 1) / (1 + (agora - ms(n.atualizadoEm)) / (30 * DIA)); };
-  const top = base.sort((a, b) => peso(b) - peso(a)).slice(0, 12);
+  // Perto pesa mais: 1 km vale quase o dobro de 10 km.
+  const pesoPerto = (n) => peso(n) / (pos && Number.isFinite(n._km) ? 1 + n._km / 8 : 1);
+  const top = base.sort((a, b) => pesoPerto(b) - pesoPerto(a)).slice(0, 12);
   $("secNegocios").hidden = !top.length;
   if (!top.length) return;
-  const cidade = daCidade.length >= 3 ? nomeCid(dados.cidade || dados.cidadeNome) : "";
-  $("titNegocios").textContent = cidade ? `Negócios em ${cidade}` : "Negócios em destaque";
-  $("subNegocios").textContent = cidade ? "Bem avaliados e novidades perto de você" : "Bem avaliados e novidades no Help Floripa";
+  const porPerto = perto.length >= 3;
+  const cidade = !porPerto && daCidade.length >= 3 ? nomeCid(dados.cidade || dados.cidadeNome) : "";
+  const onde = porPerto ? await rotuloPosicao(pos) : "";
+  $("titNegocios").textContent = porPerto ? "Perto de você" : cidade ? `Negócios em ${cidade}` : "Negócios em destaque";
+  $("subNegocios").textContent = porPerto ? `Negócios ${pos.origem === "gps" ? "perto de onde você está" : "da sua cidade e arredores"}${onde ? ` · ${onde}` : ""}` : cidade ? "Bem avaliados e novidades perto de você" : "Bem avaliados e novidades no Help Floripa";
+  botaoLocal($("titNegocios").parentElement, () => { pintarNegocios(); if (postsDestaque.length) pintarPostsPerto(postsDestaque); });
   $("exploraNegocios").replaceChildren(...top.map((n) => {
     const a = el("a", "exp-neg"); a.href = linkNegocio(n);
     a.style.setProperty("--c", CORES_TIPO[n.tipo] || "var(--accent)");
@@ -317,6 +342,7 @@ async function pintarNegocios() {
     const img = document.createElement("img"); img.src = f || IMG_TIPO[n.tipo]; img.alt = ""; img.loading = "lazy"; img.decoding = "async";
     capa.append(img, el("span", "tag", NOME_TIPO(n.tipo)));
     if (novo(n)) capa.appendChild(el("span", "novo", "Novo"));
+    if (pos && Number.isFinite(n._km)) { const d = el("span", "dist"); d.append(icone("local", "i xs"), document.createTextNode(textoDistancia(n._km, n._aprox))); capa.appendChild(d); }
     const tx = el("div", "tx");
     tx.append(el("strong", null, n.nome), el("small", null, [nomeCategoria(n), n.bairro || nomeCid(n.cidade)].filter(Boolean).join(" · ")));
     const r = nota(n);
@@ -370,6 +396,23 @@ const FILTROS_DEST = [["tudo", "Tudo"], ["fotos", "Fotos"], ["videos", "Vídeos"
 const tipoPost = (p) => (p.mediaTipo === "video" && urlSegura(p.mediaUrl) ? "videos" : fotosDoPost(p).length ? "fotos" : "textos");
 let filtroDest = lerLocal("hf-explorar-filtro", "tudo"), mostrarDest = 12, resumosPosts = new Map(), postsDestaque = [];
 if (!FILTROS_DEST.some(([id]) => id === filtroDest)) filtroDest = "tudo";
+// Publicações de pessoas da sua região (pela cidade do perfil de quem publicou, até 50 km).
+async function pintarPostsPerto(lista) {
+  const sec = $("secPostsPerto"); if (!sec) return;
+  const pos = await posicao();
+  if (!pos) { sec.hidden = true; return; }
+  const base = lista.filter((p) => p.autorId !== eu.uid && !postOculto(p)).slice(0, 120);
+  const autores = [...new Set(base.map((p) => p.autorId))];
+  const perfis = new Map(await Promise.all(autores.map((u) => obterPerfil(u).then((x) => [u, x || {}]).catch(() => [u, {}]))));
+  const locais = await comDistancia(autores.map((u) => ({ uid: u, cidade: perfis.get(u)?.cidade, uf: perfis.get(u)?.uf, cidadeIbge: perfis.get(u)?.cidadeIbge })), pos);
+  const km = new Map(locais.map((x) => [x.uid, x._km]));
+  const perto = base.filter((p) => km.get(p.autorId) <= 50).sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm)).slice(0, 9);
+  sec.hidden = perto.length < 3;
+  if (sec.hidden) return;
+  const onde = await rotuloPosicao(pos);
+  $("subPostsPerto").textContent = `De quem mora ${onde ? `em ${onde} e arredores` : "perto de você"}`;
+  $("gradePostsPerto").replaceChildren(...perto.map((p) => tilePost(p, resumosPosts.get(p.id), false)));
+}
 function pintarDestaques() {
   const agora = Date.now();
   const nota = (p) => {
