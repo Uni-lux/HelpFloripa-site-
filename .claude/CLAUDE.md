@@ -423,6 +423,9 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   Ativos/Histórico, "Confirmar pagamento e ativar" (writeBatch pedido pago + planos; soma a partir do `ate` atual; aviso
   para a pessoa; registro `plano_ativar`), "Recusar" (motivo + aviso), "Encerrar o Pro agora". `.pl-fundo` no voltar.js.
   Testes `t-local-flash.mjs`, `t-planos.mjs`.
+- **Para o próximo chat (21/10/2026):** PR #72 (local nas publicações, publicação no Flash e planos) aberto, esperando o
+  merge dele. Os 53 testes `_testes/t-*.mjs` passam (`t-insights-neg` dá o Pro ao Bruno porque o Excel é do Pro).
+  Pendente dele: preencher `PIX.chave` em `planos.js` (ou passar a chave) e publicar as 13 partes de `_regras/`.
 - **As 5 etapas estão concluídas.** Próximos passos são as pendências abaixo (só ele pode fazer) e o que ficou
   para depois.
 
