@@ -136,10 +136,24 @@
     }
     // Condição especial (baixa renda) ou parceria pelos planos: um pedido por pessoa (id = uid). A pessoa envia,
     // cancela enquanto está aberto e pede de novo depois de decidido; só os donos do site leem e negociam.
+    // Condição especial: a pessoa diz qual documento prova a baixa renda (ou que manda depois), declara que é verdade e
+    // pode anexar a foto/PDF; o anexo sai do documento quando os donos decidem (ou quando ela cancela).
     match /planos_negociacoes/{uid} {
+      function comprovanteOk(x) {
+        return x is map
+            && x.keys().hasOnly(['tipo', 'url', 'nome'])
+            && x.tipo in ['imagem', 'arquivo']
+            && valorTextoAte(x.get('nome', ''), 120)
+            && x.url is string && x.url.size() <= 750000
+            && x.url.matches('^(data:(image/jpeg|application/pdf);base64,|https://firebasestorage[.]googleapis[.]com/).*');
+      }
       function pedidoNegOk() {
         let d = request.resource.data;
-        return d.keys().hasOnly(['uid', 'nome', 'email', 'tipo', 'plano', 'valorProposto', 'contato', 'mensagem', 'status', 'criadoEm'])
+        return d.keys().hasOnly(['uid', 'nome', 'email', 'tipo', 'plano', 'valorProposto', 'contato', 'mensagem', 'status', 'criadoEm', 'comprovanteTipo', 'comprovante', 'declaracao'])
+          && (d.tipo != 'apoio' || (d.get('declaracao', false) == true
+              && d.get('comprovanteTipo', '') is string
+              && d.get('comprovanteTipo', '').matches('^(cadunico|bolsa|bpc|cnis|renda|desemprego|tarifa|mei|isento|depois)$')))
+          && (!('comprovante' in d) || (d.tipo == 'apoio' && comprovanteOk(d.comprovante)))
           && d.uid == request.auth.uid && uid == request.auth.uid
           && d.tipo in ['apoio', 'parceria']
           && d.plano in ['plus', 'pro', 'premium']

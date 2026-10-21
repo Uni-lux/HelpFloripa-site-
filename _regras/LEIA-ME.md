@@ -20,7 +20,8 @@
 > (`planos_pedidos`: a pessoa pede o Plus, o Pro ou o Premium e **só os donos do site** confirmam o Pix; `planos`: o plano
 > ativo, que só os donos gravam; `planos_negociacoes`: pedido de **condição especial (baixa renda) ou parceria**, que só a
 > pessoa e os donos leem), o **teste grátis de 30 dias** no primeiro acesso (a própria pessoa grava `planos/{uid}` com
-> `teste: true`, uma vez por conta) e o **registro de ações** (`admin_log`), que agora **só os donos leem** (o resto da equipe só vê
+> `teste: true`, uma vez por conta) e o **comprovante de baixa renda** na condição especial (qual documento, declaração e foto/PDF,
+> que os donos apagam ao decidir) e o **registro de ações** (`admin_log`), que agora **só os donos leem** (o resto da equipe só vê
 > as cobranças das reclamações).
 > Para publicar, o processo é o mesmo: apagar tudo no console e colar as 13 partes.
 
@@ -28,7 +29,7 @@ Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. S
 `firestore.rules` divididas em **13 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
-- Arquivo de origem: `firestore.rules` (155.339 bytes, 2.681 linhas, sha256 começa com `be7a44862e0d4570`).
+- Arquivo de origem: `firestore.rules` (156.613 bytes, 2.697 linhas, sha256 começa com `80a8bc3ab0d0af56`).
 - Cada parte termina com a linha `// ===== FIM DA PARTE X DE 13 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
 - Conferido: as 13 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.

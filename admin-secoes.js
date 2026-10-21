@@ -10,7 +10,7 @@ import { montarChat } from "./admin-chat.js?v=20";
 import { verConteudoDenuncia } from "./admin-denuncia.js?v=12";
 import { prepararAnexo, blocoAnexo, previaAnexo, aceitos } from "./anexos-suporte.js?v=1";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
-import { PLANOS, ORDEM_PLANOS, nivelPlano, nomePlano, diasRestantes, creditoDias, TIPOS_NEG as TIPOS_NEG_PL } from "./planos.js?v=3";
+import { PLANOS, ORDEM_PLANOS, nivelPlano, nomePlano, diasRestantes, creditoDias, descontoDe, nomeDocRenda, TIPOS_NEG as TIPOS_NEG_PL } from "./planos.js?v=4";
 import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha,
@@ -877,7 +877,7 @@ export function planos(el) {
     const top = h("div", "cab"); top.append(pessoaCel({ ...pessoa(p.uid), nome: pessoa(p.uid).nome || p.nome }, p.email || ""));
     top.append(selo(...(ST[p.status] || [p.status, ""])), h("span", "quando", relativo(p.criadoEm)));
     c.appendChild(top);
-    c.append(h("strong", null, `${nomePlano(p.plano || "pro")} · ${nMeses(p.meses)} · ${reaisPl(p.valor)}`),
+    c.append(h("strong", null, `${nomePlano(p.plano || "pro")} · ${nMeses(p.meses)} · ${reaisPl(p.valor)}${descontoDe(p.meses) ? ` (${Math.round(descontoDe(p.meses) * 100)}% de desconto)` : ""}`),
       h("div", "meta", `Pedido #${String(p.id).slice(-6).toUpperCase()} · código no Pix: ${p.txid || "—"} · ${dataHora(p.criadoEm)}`));
     const atual = D.planos.get(p.uid);
     if (nivelPlano(atual)) {
@@ -957,6 +957,15 @@ export function planos(el) {
     c.append(h("strong", null, `${TIPOS_NEG_PL[n.tipo] || "Pedido"} · quer o ${nomePlano(n.plano)} (${reaisPl(PLANOS[n.plano]?.preco)}/mês)`),
       h("div", "meta", [n.valorProposto ? `Propõe ${reaisPl(n.valorProposto)} por mês` : "Sem valor proposto", n.contato ? `Contato: ${n.contato}` : "", dataHora(n.criadoEm)].filter(Boolean).join(" · ")));
     const q = h("q", "ad-neg-msg", n.mensagem || ""); c.appendChild(q);
+    // Prova de baixa renda: qual documento, a declaração e o anexo (apagado quando a decisão é tomada).
+    if (n.tipo === "apoio") {
+      const pv = h("div", "ad-neg-prova");
+      pv.append(h("b", null, `Comprovante: ${nomeDocRenda(n.comprovanteTipo) || "não informado"}`), h("small", null, n.declaracao ? "Declarou que as informações são verdadeiras." : "Sem a declaração (pedido antigo)."));
+      const ax = n.comprovante && blocoAnexo(n.comprovante);
+      if (ax) pv.appendChild(ax);
+      else pv.appendChild(h("small", null, n.status === "aprovado" || n.status === "recusado" ? "O documento foi apagado depois da decisão." : n.comprovanteTipo === "depois" ? "Vai mandar o documento pelo suporte: use \"Conversar pelo suporte\"." : "Nenhum documento anexado."));
+      c.appendChild(pv);
+    }
     const atual = D.planos.get(uid); if (nivelPlano(atual)) c.appendChild(h("div", "meta", `Hoje tem o ${nomePlano(atual.plano)} (${faltaTxt(atual)}).`));
     if (n.status === "aprovado") c.appendChild(h("div", "meta", `Aprovado: ${nomePlano(n.planoConcedido)} por ${nMeses(n.meses)} · ${n.valorAcordado ? reaisPl(n.valorAcordado) + " combinado" : "sem custo"}${n.decididoPor ? " · " + nomeEquipe(n.decididoPor) : ""} · ${dataHora(n.decididoEm)}`));
     if (n.resposta) c.appendChild(h("div", "meta", `Resposta: ${n.resposta}`));
@@ -972,8 +981,10 @@ export function planos(el) {
   }
   async function mudarNeg(n, campos, acao, detalhe) {
     const { fb } = C;
-    await fb.updateDoc(fb.doc(fb.db, "planos_negociacoes", n.id), { ...campos, decididoPor: C.eu.uid, decididoEm: fb.serverTimestamp() });
-    Object.assign(n, campos, { decididoPor: C.eu.uid, decididoEm: { toMillis: () => agora() } });
+    // Ao decidir, o documento da pessoa sai do pedido (só fica guardado enquanto está em análise).
+    const apagar = campos.status === "aprovado" || campos.status === "recusado" ? { comprovante: fb.deleteField() } : {};
+    await fb.updateDoc(fb.doc(fb.db, "planos_negociacoes", n.id), { ...campos, ...apagar, decididoPor: C.eu.uid, decididoEm: fb.serverTimestamp() });
+    Object.assign(n, campos, { decididoPor: C.eu.uid, decididoEm: { toMillis: () => agora() } }); if (apagar.comprovante) delete n.comprovante;
     await registrar(acao, n.uid || n.id, detalhe, "planos_negociacoes:" + n.id);
     toast("Pedido atualizado"); C.irPara("planos");
   }
@@ -992,10 +1003,10 @@ export function planos(el) {
     const ate = fimDoPlano(uid, v.plano, meses);
     const lote = fb.writeBatch(fb.db);
     const campos = { status: "aprovado", planoConcedido: v.plano, meses, valorAcordado: valor, resposta: v.resposta.slice(0, 600) };
-    lote.update(fb.doc(fb.db, "planos_negociacoes", n.id), { ...campos, decididoPor: C.eu.uid, decididoEm: fb.serverTimestamp() });
+    lote.update(fb.doc(fb.db, "planos_negociacoes", n.id), { ...campos, comprovante: fb.deleteField(), decididoPor: C.eu.uid, decididoEm: fb.serverTimestamp() });
     lote.set(fb.doc(fb.db, "planos", uid), { plano: v.plano, ate, meses, negociacaoId: n.id, ativadoEm: fb.serverTimestamp(), ativadoPor: C.eu.uid });
     await lote.commit();
-    Object.assign(n, campos, { decididoPor: C.eu.uid, decididoEm: { toMillis: () => agora() } });
+    Object.assign(n, campos, { decididoPor: C.eu.uid, decididoEm: { toMillis: () => agora() } }); delete n.comprovante;
     D.planos.set(uid, { plano: v.plano, ate, meses, negociacaoId: n.id, ativadoEm: { toMillis: () => agora() }, ativadoPor: C.eu.uid });
     const fim = new Date(ate.toMillis()).toLocaleDateString("pt-BR");
     await registrar("negociacao_aprovar", uid, `${TIPOS_NEG_PL[n.tipo] || "Pedido"} · ${nomePlano(v.plano)} · ${nMeses(meses)} · ${valor ? reaisPl(valor) : "sem custo"} · até ${fim}`, "planos_negociacoes:" + n.id);

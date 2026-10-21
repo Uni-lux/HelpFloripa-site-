@@ -6,12 +6,14 @@
                     && pedidoNegOk();
       allow update: if logado() && uid == request.auth.uid
                     && resource.data.status in ['novo', 'em_conversa']
-                    && mudou().hasOnly(['status'])
+                    && mudou().hasOnly(['status', 'comprovante'])
+                    && !('comprovante' in request.resource.data)
                     && request.resource.data.status == 'cancelado';
       allow update: if donoDoSite()
                     && resource.data.status in ['novo', 'em_conversa']
-                    && mudou().hasOnly(['status', 'resposta', 'decididoPor', 'decididoEm', 'planoConcedido', 'meses', 'valorAcordado'])
+                    && mudou().hasOnly(['status', 'resposta', 'decididoPor', 'decididoEm', 'planoConcedido', 'meses', 'valorAcordado', 'comprovante'])
                     && request.resource.data.status in ['em_conversa', 'aprovado', 'recusado']
+                    && (request.resource.data.status == 'em_conversa' ? !mudou().hasAny(['comprovante']) : !('comprovante' in request.resource.data))
                     && request.resource.data.decididoPor == request.auth.uid
                     && request.resource.data.decididoEm == request.time
                     && valorTextoAte(request.resource.data.get('resposta', ''), 600)
