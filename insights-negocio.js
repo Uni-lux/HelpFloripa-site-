@@ -6,19 +6,19 @@
 // Dados: neg_stats (estat-negocio.js), avaliacoes, reclamacoes e anuncios.
 // Abrir: abrirInsightsNegocio(negocio, { aoEditar }) · negocios.html?insights=ID
 // =====================================================
-import { $, el, icone, fb, eu, dados, toast, numero, criarFolha, abrirFolha, urlSegura, pintarAvatar } from "./rede.js?v=49";
-import { lerPlano, ehPago, abrirPlanos } from "./planos.js?v=5";
+import { $, el, icone, fb, eu, dados, toast, numero, criarFolha, abrirFolha, urlSegura, pintarAvatar } from "./rede.js?v=50";
+import { lerPlano, ehPago, abrirPlanos } from "./planos.js?v=6";
 import { lerStats, listaDias, somarPeriodo, dataDoDia, chaveItem, chaveAnuncio, ORIGENS, ACOES, CONTATOS } from "./estat-negocio.js?v=1";
 import { baixarPlanilhaMulti } from "./planilha.js?v=5";
 
 const PERIODOS = [[7, "7 dias"], [30, "30 dias"], [90, "90 dias"]];
-const ROTULO_TIPO = { servicos: "Freelances", delivery: "Delivery", lojinha: "Lojinha", imoveis: "Imóveis" };
+const ROTULO_TIPO = { servicos: "Freelances", delivery: "Delivery", lojinha: "Lojinha", imoveis: "Imóveis", saude: "Saúde" };
 const DIAS_SEM = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const DIAS_SEM_LONGO = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
 const ICONE_ACAO = { whats: "whats", mensagem: "chat", orcamento: "doc", pedido: "loja", rota: "local", site: "link", instagram: "imagem", compartilhar: "compartilhar", cupom: "selo", avaliar: "estrela" };
 const ICONE_ORIGEM = { vitrine: "grade", busca: "lupa", explorar: "bussola", inicio: "casa", perfil: "pessoa-mais", link: "link", flash: "raio", mensagens: "chat", outro: "mais" };
 // Etapa final do funil em cada tipo: o que vale como "negócio fechado" no Help Floripa.
-const FINAL = { servicos: ["orcamento", "Pedidos de orçamento"], delivery: ["pedido", "Pedidos enviados"], lojinha: ["pedido", "Pedidos enviados"], imoveis: ["mensagem", "Conversas iniciadas"] };
+const FINAL = { servicos: ["orcamento", "Pedidos de orçamento"], delivery: ["pedido", "Pedidos enviados"], lojinha: ["pedido", "Pedidos enviados"], imoveis: ["mensagem", "Conversas iniciadas"], saude: ["orcamento", "Pedidos de agendamento"] };
 const pct = (v) => `${(v * 100).toFixed(v > 0 && v < 0.1 ? 1 : 0).replace(".", ",")}%`;
 const ms = (t) => t?.toMillis?.() ?? 0;
 const lerTodos = (q) => fb.getDocs(q).then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() })));
@@ -212,7 +212,7 @@ function montar(corpo, n, D, dias, trocar, opcoes) {
     (n.itens || []).forEach((i) => { const k = chaveItem(i.nome); if (k) nomes.set(k, { nome: i.nome, foto: i.foto, preco: i.preco }); });
     D.anuncios.forEach((a) => { const k = chaveAnuncio(a.id); if (k) nomes.set(k, { nome: a.titulo || "Imóvel", foto: (a.fotos || [])[0], preco: a.preco }); });
     const top = Object.entries(atual.it).sort((a, b) => b[1] - a[1]).slice(0, 8);
-    const titulo = { servicos: "Serviços mais procurados", delivery: "Pratos mais vistos", lojinha: "Produtos mais vistos", imoveis: "Imóveis mais vistos" }[n.tipo];
+    const titulo = { servicos: "Serviços mais procurados", delivery: "Pratos mais vistos", lojinha: "Produtos mais vistos", imoveis: "Imóveis mais vistos", saude: "Atendimentos mais procurados" }[n.tipo];
     const s = secao(titulo, n.tipo === "servicos" ? "serviços tocados em \"Pedir\"" : n.tipo === "delivery" ? "pratos colocados no carrinho" : "abertos pelos clientes", "fotos");
     if (!top.length) s.appendChild(el("p", "ni-vazio", "Ainda sem itens vistos no período."));
     else {

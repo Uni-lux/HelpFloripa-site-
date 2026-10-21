@@ -10,13 +10,14 @@ import { confirmarHF } from "./confirmar.js?v=4";
 import {
   $, el, icone, pintarAvatar, urlSegura, nomeCidade, toast, erroAmigavel, abrirFolha, fecharFolha,
   fb, eu, dados, salvarImagem, editarImagem, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos, criarFolha
-} from "./rede.js?v=49";
-import { lerResumos, estrelas, media, notaTexto } from "./avaliacoes.js?v=13";
+} from "./rede.js?v=50";
+import { lerResumos, estrelas, media, notaTexto } from "./avaliacoes.js?v=14";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade, semAcento } from "./endereco.js?v=1";
 import { lerStats, listaDias, somarPeriodo } from "./estat-negocio.js?v=1";
 import { geocodificar, geoOk } from "./perto.js?v=1";
-import { abrirPlanos, lerPlano, esquecerPlano, nivelPlano, pedidoAberto, lerNegociacao, testeDisponivel, seloPlano, nomePlano, diasRestantes, textoFalta, PRECO_MIN, DIAS_TESTE, reais } from "./planos.js?v=5";
-import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO, CATEGORIAS, GRUPOS_SERV, PALAVRAS_SERV, prazoPromo } from "./vitrine.js?v=47";
+import { abrirPlanos, lerPlano, esquecerPlano, nivelPlano, pedidoAberto, lerNegociacao, testeDisponivel, seloPlano, nomePlano, diasRestantes, textoFalta, PRECO_MIN, DIAS_TESTE, reais } from "./planos.js?v=6";
+import { PROFISSOES_SAUDE, CATEGORIAS_SAUDE, MODALIDADES_SAUDE, PUBLICO_SAUDE, PUBLICO_VET, CONVENIOS, IDIOMAS, UFS, conselhoDe, ehVet, textoRegistro } from "./saude-dados.js?v=1";
+import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO, CATEGORIAS, GRUPOS_SERV, PALAVRAS_SERV, prazoPromo } from "./vitrine.js?v=48";
 
 // Cada tipo com a cor da sua classe na página inicial (inicio.css: --c-servicos etc.) e uma chamada própria.
 const NEGOCIOS = {
@@ -43,9 +44,24 @@ const NEGOCIOS = {
     chamada: "Anuncie imóveis", frase: "Alugue, venda ou ofereça temporada para quem busca na região.", cta: "Anunciar imóveis",
     pontos: ["Aluguel, venda ou temporada", "Até 5 fotos por imóvel", "Quantos anúncios quiser"],
     phNome: "Ex.: João Imóveis", phDesc: "Quem você é, a região onde atua e como prefere ser procurado..."
+  },
+  saude: {
+    rotulo: "Saúde", img: "saude.svg", pagina: "saude.html", desc: "Registro no conselho, convênios, consultas e agendamentos.",
+    chamada: "Atenda pela saúde", frase: "Médicos, enfermagem, psicólogos, veterinários e mais recebendo agendamentos pelo chat.", cta: "Criar perfil de saúde",
+    pontos: ["Registro do conselho à vista", "Convênios, valor e online ou em casa", "Pedidos de agendamento no chat"],
+    phNome: "Ex.: Dra. Ana Souza · Psicóloga", phDesc: "Sua formação, como é o seu atendimento, o que você trata e para quem..."
   }
 };
 let meusNegocios = [];
+// Comunidade (doações, trocas, quartos...): não é perfil de negócio, mas aparece aqui com os anúncios da pessoa.
+let meusComunidade = null;
+async function carregarComunidade() {
+  try {
+    const s = await fb.getDocs(fb.query(fb.collection(fb.db, "comunidade"), fb.where("donoId", "==", eu.uid), fb.limit(50)));
+    meusComunidade = s.docs.map((d) => d.data()).filter((a) => a.status !== "concluido");
+  } catch { meusComunidade = []; }
+  pintarPainel();
+}
 
 async function buscarNegocios(uid) {
   const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "negocios"), fb.where("donoId", "==", uid), fb.limit(8)));
@@ -56,6 +72,7 @@ async function carregarMeusNegocios() {
   pintarPainel();
   sincronizarExtras();
   pintarPlano();
+  if (meusComunidade === null) carregarComunidade();
 }
 // Cartão do plano (teste grátis disponível / plano ou teste com os dias que faltam / pedido esperando o Pix /
 // pedido de condição especial / sem plano). Link direto: negocios.html?planos=1
@@ -131,6 +148,10 @@ function completude(n) {
   if (n.tipo === "delivery") lista.push(["3 itens no cardápio", itens.length >= 3], ["Fotos dos pratos", itens.some((i) => urlSegura(i.foto))], ["Foto de capa", fotos.length > 0], ["Horário", temSemana || !!(n.horaAbre && n.horaFecha)]);
   if (n.tipo === "lojinha") lista.push(["3 produtos", itens.length >= 3], ["Fotos dos produtos", itens.length > 0 && itens.every((i) => urlSegura(i.foto))], ["Formas de pagamento", (n.pagamentos || []).length > 0], ["Horário", temSemana]);
   if (n.tipo === "imoveis") lista.push(["Um imóvel anunciado", numeros.anuncios > 0], ["CRECI", n.tipoAnunciante === "proprietario" || !!n.creci]);
+  if (n.tipo === "saude") {
+    const sd = n.saude || {};
+    lista.push(["Registro no conselho", !conselhoDe(sd) || !!textoRegistro(sd)], ["Especialidades", (sd.especialidades || []).length > 0], ["Valor ou convênios", Number(sd.valorConsulta) > 0 || (sd.convenios || []).length > 0], ["Consultas e procedimentos", itens.length > 0], ["Horário", temSemana]);
+  }
   const feitos = lista.filter((x) => x[1]).length;
   return { pct: Math.round((feitos / lista.length) * 100), faltam: lista.filter((x) => !x[1]).map((x) => x[0]) };
 }
@@ -199,7 +220,7 @@ function pintarPainel() {
       bloco(resumo?.total ? notaTexto(media(resumo)) : "–", "nota"),
       bloco(String(resumo?.total || 0), resumo?.total === 1 ? "avaliação" : "avaliações"),
       tipo === "imoveis" ? bloco(String(numeros.anuncios), numeros.anuncios === 1 ? "anúncio" : "anúncios")
-        : bloco(String(qtd), { servicos: qtd === 1 ? "serviço" : "serviços", delivery: qtd === 1 ? "item" : "itens", lojinha: qtd === 1 ? "produto" : "produtos" }[tipo])
+        : bloco(String(qtd), { servicos: qtd === 1 ? "serviço" : "serviços", delivery: qtd === 1 ? "item" : "itens", lojinha: qtd === 1 ? "produto" : "produtos", saude: qtd === 1 ? "atendimento" : "atendimentos" }[tipo])
     );
     // Quanto do perfil está preenchido e o que falta.
     const comp = completude(n);
@@ -242,7 +263,7 @@ function pintarPainel() {
     }
     const cab = el("div", "ng-cab");
     const cabTx = el("div");
-    cabTx.append(el("h3", null, n.nome || t.rotulo), el("div", "meta", [[n.bairro, n.cidade].filter(Boolean).join(", "), tipo === "servicos" && (n.categorias || []).length ? (n.categorias || []).map((k) => (k === "outros" ? n.categoriaPersonalizada : CATS_NEGOCIO.servicos[k])).filter(Boolean).slice(0, 2).join(" · ") : n.categoria === "outros" ? n.categoriaPersonalizada || "" : CATS_NEGOCIO[tipo]?.[n.categoria] || ""].filter(Boolean).join(" · ") || t.desc));
+    cabTx.append(el("h3", null, n.nome || t.rotulo), el("div", "meta", [[n.bairro, n.cidade].filter(Boolean).join(", "), tipo === "servicos" && (n.categorias || []).length ? (n.categorias || []).map((k) => (k === "outros" ? n.categoriaPersonalizada : CATS_NEGOCIO.servicos[k])).filter(Boolean).slice(0, 2).join(" · ") : tipo === "saude" ? [n.saude?.profissao === "outros" ? n.saude.profissaoOutra : PROFISSOES_SAUDE[n.saude?.profissao]?.nome, textoRegistro(n.saude)].filter(Boolean).join(" · ") : n.categoria === "outros" ? n.categoriaPersonalizada || "" : CATS_NEGOCIO[tipo]?.[n.categoria] || ""].filter(Boolean).join(" · ") || t.desc));
     if (resumo?.total) cabTx.appendChild(estrelas(resumo));
     cab.append(av, cabTx);
     corpo.appendChild(cab);
@@ -261,9 +282,11 @@ function pintarPainel() {
     c.append(capa, corpo);
     grade.appendChild(c);
   });
+  cartaoComunidade(grade, criar, slots);
   const total = meusNegocios.length;
-  $("resumoNegocios").textContent = total === 4 ? "Você tem os 4 tipos de perfil. Mantenha todos completos e atualizados."
-    : total ? `${total} de 4 perfis criados · você pode ter um de cada tipo` : "Crie seu primeiro perfil e apareça para quem procura na sua região.";
+  const nTipos = Object.keys(NEGOCIOS).length;
+  $("resumoNegocios").textContent = total === nTipos ? `Você tem os ${nTipos} tipos de perfil. Mantenha todos completos e atualizados.`
+    : total ? `${total} de ${nTipos} perfis criados · você pode ter um de cada tipo` : "Crie seu primeiro perfil e apareça para quem procura na sua região.";
   $("titSeus").hidden = !total;
   // Resumo dos 30 dias de todos os negócios, no topo.
   const resumo = $("resumoEstat");
@@ -278,8 +301,46 @@ function pintarPainel() {
     resumo.appendChild(ver);
   }
   resumo.hidden = !resumo.children.length;
-  $("titCriar").hidden = total >= 4;
+  $("titCriar").hidden = total >= nTipos;
   $("titCriarTx").textContent = total ? "Crie mais um perfil" : "Escolha por onde começar";
+}
+// Comunidade no painel: lugar no topo, cartão de criar (com o aviso de que é proibido vender) ou o resumo dos anúncios.
+function cartaoComunidade(grade, criar, slots) {
+  const n = (meusComunidade || []).length;
+  const sl = el("a", `ng-slot comunidade${n ? " feito" : ""}`);
+  const slIc = el("span", "ic"); slIc.appendChild(icone(n ? "check" : "comunidade", "i xs"));
+  sl.append(slIc, el("span", null, "Comunidade"));
+  sl.href = n ? "comunidade.html?meus=1" : "comunidade.html?novo=doacao"; sl.title = n ? "Comunidade: seus anúncios" : "Anunciar na Comunidade";
+  slots.appendChild(sl);
+  const aviso = () => { const a = el("div", "ng-com-aviso"); a.append(icone("alerta", "i xs"), el("span", null, "Proibido vender ou cobrar. Quem descumpre é banido da Comunidade.")); return a; };
+  if (!n) {
+    const c = el("a", "ng-novo comunidade"); c.href = "comunidade.html?novo=doacao";
+    c.style.setProperty("--img", 'url("comunidade.svg")');
+    const ic = el("span", "ng-novo-ic"); ic.appendChild(icone("comunidade", "i"));
+    const topo = el("div", "ng-novo-topo"); topo.append(ic, el("span", "ng-novo-tag", "Comunidade"));
+    const pts = el("ul", "ng-novo-pts");
+    ["Doações e trocas de graça", "Pedidos de ajuda e achados e perdidos", "Vagas em quarto compartilhado"].forEach((p) => { const li = el("li"); li.append(icone("check", "i xs"), document.createTextNode(p)); pts.appendChild(li); });
+    const cta = el("span", "ng-novo-cta"); cta.append(document.createTextNode("Abrir a Comunidade"), icone("avancar", "i xs"));
+    const av = aviso(); av.classList.add("ng-novo-aviso");
+    c.append(topo, el("strong", null, "Doe, troque e ajude"), el("small", null, "O mural do bairro: o que sobra na sua casa pode ser o que falta na do vizinho."), pts, av, cta);
+    criar.appendChild(c);
+    return;
+  }
+  const c = el("article", "neg-card comunidade");
+  const capa = el("div", "capa"); capa.style.setProperty("--img", 'url("comunidade.svg")');
+  const tag = el("span", "tag"); tag.append(icone("comunidade", "i xs"), document.createTextNode("Comunidade")); capa.appendChild(tag);
+  const corpo = el("div", "corpo");
+  const cab = el("div", "ng-cab"); const tx = el("div");
+  tx.append(el("h3", null, `${n} ${n === 1 ? "anúncio ativo" : "anúncios ativos"}`), el("div", "meta", "Doações, trocas, pedidos, quartos e achados e perdidos"));
+  cab.appendChild(tx);
+  const acoes = el("div", "acoes");
+  const bV = btnIc("btn mini ng-pri", "olho", "Meus anúncios", "a"); bV.href = "comunidade.html?meus=1";
+  const bN = btnIc("btn sec mini", "mais", "Novo anúncio", "a"); bN.href = "comunidade.html?novo=doacao";
+  acoes.append(bV, bN);
+  const av = aviso(); av.classList.add("ng-com-aviso");
+  corpo.append(cab, av, acoes);
+  c.append(capa, corpo);
+  grade.appendChild(c);
 }
 // Anunciar é permitido a partir de 18 anos (a data vem do cadastro).
 function maiorDeIdade() {
@@ -294,7 +355,7 @@ function maiorDeIdade() {
 // Estatísticas do negócio (insights-negocio.js, carregado só quando abre).
 async function abrirEstatisticas(n) {
   try {
-    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=7");
+    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=8");
     abrirInsightsNegocio(n, { aoEditar: (neg) => abrirFormNegocio(meusNegocios.find((x) => x.id === neg.id) || neg) });
   } catch (e) { toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)); }
 }
@@ -387,7 +448,8 @@ const CATS_NEGOCIO = {
   servicos: { ...CATEGORIAS.servicos, outros: "Outra (escrever)" },
   delivery: { hamburguer: "Hambúrguer", pizza: "Pizza", sushi: "Sushi", doces: "Doces", bebidas: "Bebidas", outros: "Outra (escrever)" },
   lojinha: { roupas: "Moda e roupas", calcados: "Calçados", acessorios: "Acessórios", beleza: "Beleza", eletronicos: "Eletrônicos", casa: "Casa e decoração", mercado: "Mercado", artesanato: "Artesanato", infantil: "Infantil", esportes: "Esportes", outros: "Outra (escrever)" },
-  imoveis: { apartamento: "Apartamento", casa: "Casa", kitnet: "Kitnet", terreno: "Terreno", comercial: "Comercial", outros: "Outro (escrever)" }
+  imoveis: { apartamento: "Apartamento", casa: "Casa", kitnet: "Kitnet", terreno: "Terreno", comercial: "Comercial", outros: "Outro (escrever)" },
+  saude: CATEGORIAS_SAUDE
 };
 // "Outra (escrever)": o que a pessoa escreve vira um filtro próprio na página (até 30 letras).
 const CAT_PROPRIA = {
@@ -401,7 +463,8 @@ const CONFIG_EXTRAS = {
   servicos: { itens: { titulo: "Serviços e preços", dica: "Cada serviço que você faz, com preço e como cobra. O cliente escolhe na hora de pedir orçamento.", max: 12, foto: false, rotulo: "Nome do serviço" }, fotos: { titulo: "Portfólio: fotos de trabalhos", max: 3, proporcao: 4 / 3 } },
   delivery: { itens: { titulo: "Cardápio", dica: "Cada prato com foto, preço, seção (Lanches, Bebidas...) e descrição.", max: 12, foto: true, proporcao: 1, rotulo: "Nome do prato" }, fotos: { titulo: "Foto de capa", max: 1, proporcao: 2 } },
   lojinha: { itens: { titulo: "Produtos", dica: "Toque em \"Detalhes do produto\" para tamanho, cor, marca, estado e ficha técnica.", max: 12, foto: true, proporcao: 3 / 4, rotulo: "Nome do produto" }, fotos: null },
-  imoveis: { itens: null, fotos: null }
+  imoveis: { itens: null, fotos: null },
+  saude: { itens: { titulo: "Consultas e procedimentos", dica: "Cada atendimento com valor (opcional) e duração. O paciente escolhe ao pedir o agendamento.", max: 12, foto: false, rotulo: "Ex.: Consulta, Retorno, Curativo" }, fotos: { titulo: "Fotos do local de atendimento", max: 3, proporcao: 4 / 3 } }
 };
 let negExtra = {};
 let negMaisAberto = false;
@@ -568,7 +631,7 @@ function montarExtras() {
   mais.open = negMaisAberto;
   mais.addEventListener("toggle", () => { negMaisAberto = mais.open; });
   const sumMais = document.createElement("summary");
-  sumMais.append(document.createTextNode("Mais detalhes (opcional)"), Object.assign(document.createElement("small"), { textContent: { servicos: "região, experiência, diferenciais e pagamento", delivery: "formas de pagamento", lojinha: "formas de pagamento" }[t] || "" }));
+  sumMais.append(document.createTextNode("Mais detalhes (opcional)"), Object.assign(document.createElement("small"), { textContent: { servicos: "região, experiência, diferenciais e pagamento", delivery: "formas de pagamento", lojinha: "formas de pagamento", saude: "público, idiomas, formação e acessibilidade" }[t] || "" }));
   mais.appendChild(sumMais);
   if (t === "servicos") {
     // Várias profissões: cada área de atuação aparece no filtro da página.
@@ -589,6 +652,8 @@ function montarExtras() {
     mais.appendChild(grade("", campo("Região que atende", entrada("regiao", { placeholder: "Ex.: Ilha toda, Continente", max: 80 })), campo("Anos de experiência", entrada("experiencia", { numero: true, placeholder: "5", max: 3 }))));
     mais.appendChild(campo("Diferenciais", marcas("diferenciais", DIFERENCIAIS_SERV), "Aparecem em destaque no seu perfil."));
     mais.appendChild(campo("Formas de pagamento", marcas("pagamentos", { pix: "Pix", credito: "Crédito", debito: "Débito", dinheiro: "Dinheiro" })));
+  } else if (t === "saude") {
+    montarSaude(info, mais);
   } else if (t === "imoveis") {
     info.appendChild(grade("", campo("Você é", seletor("tipoAnunciante", { proprietario: "Proprietário(a)", corretor: "Corretor(a)", imobiliaria: "Imobiliária" })), campo("CRECI (se tiver)", entrada("creci", { placeholder: "Ex.: 12345-J", max: 20 }))));
   } else {
@@ -724,12 +789,132 @@ function montarExtras() {
     box.appendChild(sec);
   }
 }
+// ---------- Saúde: profissão, registro no conselho, especialidades, como atende, convênios e valor ----------
+// Tudo fica em negExtra.saude (vai inteiro para negocios.saude); a profissão também vira a `categoria` (filtros).
+function montarSaude(info, mais) {
+  const sd = negExtra.saude = (negExtra.saude && typeof negExtra.saude === "object") ? negExtra.saude : {};
+  if (!PROFISSOES_SAUDE[sd.profissao]) sd.profissao = "medico";
+  ["especialidades", "modalidades", "convenios", "publico", "idiomas"].forEach((k) => { if (!Array.isArray(sd[k])) sd[k] = []; });
+  if (sd.particular === undefined) sd.particular = true;
+  const prof = PROFISSOES_SAUDE[sd.profissao];
+  const opsProf = Object.fromEntries(Object.entries(PROFISSOES_SAUDE).map(([k, p]) => [k, p.nome]));
+  const sel = document.createElement("select"); sel.id = "negX_profissao";
+  Object.entries(opsProf).forEach(([v, t]) => { const o = document.createElement("option"); o.value = v; o.textContent = t; sel.appendChild(o); });
+  sel.value = sd.profissao;
+  sel.addEventListener("change", () => { sd.profissao = sel.value; sd.especialidades = []; sd.publico = []; montarExtras(); });
+  info.appendChild(campo("Profissão", sel, "Define em qual filtro da página de Saúde você aparece."));
+  if (sd.profissao === "outros") {
+    const o = document.createElement("input"); o.id = "negX_profissaoOutra"; o.maxLength = 40; o.placeholder = "Ex.: Acupunturista, Doula, Podólogo"; o.value = sd.profissaoOutra || "";
+    o.addEventListener("input", () => { sd.profissaoOutra = o.value.replace(/\s+/g, " ").trim(); });
+    info.appendChild(campo("Qual é a sua profissão?", o, "Aparece no seu perfil e vira um filtro próprio em Saúde."));
+  }
+  // Registro no conselho: número + estado (e RQE para médico especialista).
+  const cons = conselhoDe(sd);
+  const bloco = el("div", "neg-bloco neg-registro");
+  const t2 = el("strong", null, cons ? `Registro no ${cons}` : "Registro profissional (se tiver)");
+  const reg = document.createElement("input"); reg.id = "negX_registro"; reg.maxLength = 20; reg.inputMode = "text"; reg.placeholder = cons === "COREN" ? "Ex.: 123456-TE" : "Ex.: 12345"; reg.value = sd.registro || "";
+  reg.addEventListener("input", () => { sd.registro = reg.value.replace(/[^0-9A-Za-z./ -]/g, "").trim(); });
+  const uf = document.createElement("select"); uf.id = "negX_registroUf";
+  ["", ...UFS].forEach((u) => { const o = document.createElement("option"); o.value = u; o.textContent = u || "UF"; uf.appendChild(o); });
+  uf.value = sd.registroUf || "SC";
+  if (!sd.registroUf) sd.registroUf = "SC";
+  uf.addEventListener("change", () => { sd.registroUf = uf.value; });
+  const g = grade("", campo("Número", reg), campo("Estado", uf));
+  bloco.append(t2, g);
+  if (prof.rqe) {
+    const rqe = document.createElement("input"); rqe.id = "negX_rqe"; rqe.maxLength = 12; rqe.placeholder = "Ex.: 6789"; rqe.value = sd.rqe || "";
+    rqe.addEventListener("input", () => { sd.rqe = rqe.value.replace(/[^0-9A-Za-z./-]/g, "").trim(); });
+    bloco.appendChild(campo("RQE (especialista, opcional)", rqe));
+  }
+  const avReg = el("p", "neg-aviso-saude");
+  avReg.textContent = cons ? `O número aparece no seu perfil com o link para o site do ${cons === "CRM" ? "CFM" : "conselho"}. Informar registro que não é seu é crime e leva ao banimento da conta.` : "Se a sua profissão não tem conselho, deixe em branco e conte sua formação em \"Mais detalhes\".";
+  bloco.appendChild(avReg);
+  info.appendChild(bloco);
+  // Especialidades: sugestões da profissão (toque para marcar) + escrever outra. Até 6.
+  const esp = el("div", "campo");
+  const lE = document.createElement("label"); lE.textContent = "Especialidades e áreas de atuação"; esp.appendChild(lE);
+  const chips = el("div", "marcas");
+  const pintarEsp = () => {
+    chips.replaceChildren();
+    [...new Set([...prof.esp, ...sd.especialidades])].forEach((e) => {
+      const l = document.createElement("label"); l.className = "marca-op";
+      const c = document.createElement("input"); c.type = "checkbox"; c.checked = sd.especialidades.includes(e);
+      l.classList.toggle("on", c.checked);
+      c.addEventListener("change", () => {
+        if (c.checked && sd.especialidades.length >= 6) { c.checked = false; toast("Escolha até 6 especialidades."); return; }
+        sd.especialidades = c.checked ? [...sd.especialidades, e] : sd.especialidades.filter((x) => x !== e);
+        l.classList.toggle("on", c.checked);
+      });
+      l.append(c, document.createTextNode(e));
+      chips.appendChild(l);
+    });
+  };
+  pintarEsp();
+  const outra = document.createElement("input"); outra.id = "negX_espOutra"; outra.maxLength = 40; outra.placeholder = "Escrever outra e tocar em Adicionar";
+  const add = el("button", "btn sec mini", "Adicionar"); add.type = "button";
+  add.addEventListener("click", () => {
+    const v = outra.value.replace(/\s+/g, " ").trim().slice(0, 40);
+    if (v.length < 2) return;
+    if (sd.especialidades.length >= 6) { toast("Escolha até 6 especialidades."); return; }
+    if (!sd.especialidades.includes(v)) sd.especialidades.push(v);
+    outra.value = ""; pintarEsp();
+  });
+  const linhaOutra = el("div", "neg-esp-outra"); linhaOutra.append(outra, add);
+  esp.append(chips, linhaOutra);
+  info.appendChild(esp);
+  // Como atende, valor e convênios.
+  info.appendChild(campo("Como você atende", marcas("modalidades", MODALIDADES_SAUDE, null, sd)));
+  const valor = document.createElement("input"); valor.id = "negX_valorConsulta"; valor.inputMode = "decimal"; valor.maxLength = 10; valor.placeholder = "250"; valor.value = mostrarNumero(sd.valorConsulta);
+  valor.addEventListener("input", () => { sd.valorConsulta = numeroBR(valor.value); });
+  const dur = document.createElement("input"); dur.id = "negX_duracao"; dur.inputMode = "numeric"; dur.maxLength = 3; dur.placeholder = "50"; dur.value = sd.duracao ?? "";
+  dur.addEventListener("input", () => { const v = parseInt(dur.value, 10); sd.duracao = Number.isInteger(v) && v > 0 ? Math.min(v, 600) : null; });
+  info.appendChild(grade("", campo(ehVet(sd) ? "Consulta veterinária (R$)" : "Valor da consulta (R$)", valor), campo("Duração (min)", dur)));
+  const part = el("label", "marca-op linha"); const pc = document.createElement("input"); pc.type = "checkbox"; pc.checked = !!sd.particular;
+  part.classList.toggle("on", pc.checked);
+  pc.addEventListener("change", () => { sd.particular = pc.checked; part.classList.toggle("on", pc.checked); });
+  part.append(pc, document.createTextNode("Atendo particular"));
+  const conv = el("div", "campo");
+  const lC = document.createElement("label"); lC.textContent = "Convênios que aceita"; conv.appendChild(lC);
+  conv.append(part, marcas("convenios", Object.fromEntries(CONVENIOS.map((c) => [c, c])), null, sd));
+  info.appendChild(conv);
+  // Mais detalhes: público, idiomas, formação e acessibilidade.
+  const pub = ehVet(sd) ? PUBLICO_VET : PUBLICO_SAUDE;
+  mais.appendChild(campo(ehVet(sd) ? "Animais que atende" : "Público que atende", marcas("publico", pub, null, sd)));
+  mais.appendChild(campo("Idiomas", marcas("idiomas", Object.fromEntries(IDIOMAS.map((c) => [c, c])), null, sd)));
+  const form = document.createElement("input"); form.id = "negX_formacao"; form.maxLength = 200; form.placeholder = "Ex.: Medicina UFSC · Residência em Pediatria HU"; form.value = sd.formacao || "";
+  form.addEventListener("input", () => { sd.formacao = form.value.replace(/\s+/g, " ").trim(); });
+  mais.appendChild(campo("Formação", form));
+  const ac = el("label", "marca-op linha"); const acc = document.createElement("input"); acc.type = "checkbox"; acc.checked = !!sd.acessivel;
+  ac.classList.toggle("on", acc.checked);
+  acc.addEventListener("change", () => { sd.acessivel = acc.checked; ac.classList.toggle("on", acc.checked); });
+  ac.append(acc, document.createTextNode("Local de atendimento com acessibilidade"));
+  mais.appendChild(ac);
+  mais.appendChild(el("p", "neg-aviso-saude", "Siga o código de ética da sua profissão na divulgação: nada de \"antes e depois\", promessa de resultado ou preço como chamariz."));
+}
+// O mapa `saude` que vai para o perfil (só o que as regras aceitam, já limpo).
+function saudeParaSalvar(sd) {
+  const txt = (v, m) => String(v || "").replace(/[\n\r]+/g, " ").trim().slice(0, m);
+  const lista = (v, m, max) => (Array.isArray(v) ? v : []).map((x) => txt(x, m)).filter(Boolean).slice(0, max);
+  const pub = ehVet(sd) ? PUBLICO_VET : PUBLICO_SAUDE;
+  return {
+    profissao: sd.profissao, profissaoOutra: sd.profissao === "outros" ? txt(sd.profissaoOutra, 40) : "",
+    especialidades: lista(sd.especialidades, 40, 6),
+    registro: txt(sd.registro, 20).replace(/[^0-9A-Za-z./ -]/g, ""), registroUf: UFS.includes(sd.registroUf) ? sd.registroUf : "",
+    rqe: PROFISSOES_SAUDE[sd.profissao]?.rqe ? txt(sd.rqe, 12).replace(/[^0-9A-Za-z./-]/g, "") : "",
+    modalidades: (sd.modalidades || []).filter((k) => MODALIDADES_SAUDE[k]),
+    convenios: lista(sd.convenios, 30, 15), particular: !!sd.particular,
+    valorConsulta: Number(sd.valorConsulta) > 0 ? Math.min(Math.round(Number(sd.valorConsulta) * 100) / 100, 100000) : null,
+    duracao: Number.isInteger(sd.duracao) && sd.duracao > 0 ? Math.min(sd.duracao, 600) : null,
+    publico: (sd.publico || []).filter((k) => pub[k]), idiomas: lista(sd.idiomas, 20, 7),
+    acessivel: !!sd.acessivel, formacao: txt(sd.formacao, 200)
+  };
+}
 // Detalhes de cada item (abre e fecha): muda conforme o tipo do negócio.
 function detalhesItem(t, it) {
   const det = document.createElement("details");
   det.className = "item-det";
   const sum = document.createElement("summary");
-  sum.textContent = { servicos: "Detalhes do serviço", delivery: "Seção e descrição", lojinha: "Detalhes do produto" }[t] || "Detalhes";
+  sum.textContent = { servicos: "Detalhes do serviço", delivery: "Seção e descrição", lojinha: "Detalhes do produto", saude: "Duração e o que inclui" }[t] || "Detalhes";
   det.appendChild(sum);
   const corpo = document.createElement("div");
   corpo.className = "item-det-corpo";
@@ -767,6 +952,11 @@ function detalhesItem(t, it) {
       sel("unidade", "Como cobra", UNIDADES_SERV),
       txt("duracao", "Duração média", { placeholder: "Ex.: 2 horas", max: 30 }),
       txt("descricao", "O que está incluso", { placeholder: "Ex.: até 3 cômodos, material incluso", max: 160, area: true }));
+    corpo.classList.add("dois");
+  } else if (t === "saude") {
+    corpo.append(
+      txt("duracao", "Duração", { placeholder: "Ex.: 50 min", max: 30 }),
+      txt("descricao", "O que inclui", { placeholder: "Ex.: avaliação, pedido de exames e retorno em 30 dias", max: 160, area: true }));
     corpo.classList.add("dois");
   } else if (t === "delivery") {
     if (!document.getElementById("secoesCardapio")) {
@@ -1300,7 +1490,14 @@ $("negSalvar").addEventListener("click", async () => {
     if (capa.startsWith("data:")) capa = await salvarImagem(capa, `negocios/${id}_capa.jpg`);
     const x = negExtra;
     if (negTipo === "servicos" && !(x.categorias || []).length) { throw new Error("Marque pelo menos uma área de atuação."); }
-    const temOutra = negTipo === "servicos" ? x.categorias.includes("outros") : x.categoria === "outros";
+    if (negTipo === "saude") {
+      const sd = x.saude || {};
+      if (sd.profissao === "outros" && String(sd.profissaoOutra || "").trim().length < 3) { $("negX_profissaoOutra")?.focus(); throw new Error("Escreva qual é a sua profissão."); }
+      if (conselhoDe(sd) && !String(sd.registro || "").trim()) { $("negX_registro")?.focus(); throw new Error(`Informe o número do seu registro no ${conselhoDe(sd)}.`); }
+      if (conselhoDe(sd) && !sd.registroUf) { $("negX_registroUf")?.focus(); throw new Error("Escolha o estado do registro."); }
+      if (!(sd.modalidades || []).length) throw new Error("Marque como você atende (consultório, online ou em casa).");
+    }
+    const temOutra = negTipo === "servicos" ? x.categorias.includes("outros") : negTipo === "saude" ? false : x.categoria === "outros";
     if (temOutra && negTipo !== "imoveis" && !textoCatPropria(x.categoriaPersonalizada)) { $("negX_categoriaPersonalizada")?.focus(); throw new Error(`Escreva ${negTipo === "servicos" ? "qual é a sua área" : "a sua categoria"} (campo "${CAT_PROPRIA[negTipo][0]}").`); }
     // Horário por dia: também preenche os campos antigos (dias, abre/fecha, resumo), que a vitrine e os filtros usam.
     const semana = negSemana.some(Boolean) ? [...negSemana] : null;
@@ -1309,17 +1506,22 @@ $("negSalvar").addEventListener("click", async () => {
       const cont = {}; semana.filter(Boolean).forEach((f) => { cont[f] = (cont[f] || 0) + 1; });
       const comum = Object.entries(cont).sort((a, b) => b[1] - a[1])[0][0].split("-");
       if (negTipo === "delivery") { x.horaAbre = comum[0]; x.horaFecha = comum[1]; }
-      if (negTipo === "servicos") x.horario = `${comum[0]} às ${comum[1]}`;
+      if (negTipo === "servicos" || negTipo === "saude") x.horario = `${comum[0]} às ${comum[1]}`;
     }
-    const extras = { categoria: negTipo === "servicos" ? x.categorias[0] : (x.categoria || Object.keys(CATS_NEGOCIO[negTipo])[0]), fotos: [], itens: [] };
+    const extras = { categoria: negTipo === "servicos" ? x.categorias[0] : negTipo === "saude" ? x.saude.profissao : (x.categoria || Object.keys(CATS_NEGOCIO[negTipo])[0]), fotos: [], itens: [] };
     const campos = {
       servicos: ["categorias", "precoDesde", "horario", "atendimento", "dias", "regiao", "experiencia", "diferenciais", "pagamentos", "categoriaPersonalizada"],
       delivery: ["horaAbre", "horaFecha", "tempoMin", "tempoMax", "taxaEntrega", "pedidoMinimo", "dias", "opcoesEntrega", "pagamentos", "categoriaPersonalizada"],
       lojinha: ["entrega", "pagamentos", "categoriaPersonalizada"],
-      imoveis: ["tipoAnunciante", "creci"]
+      imoveis: ["tipoAnunciante", "creci"],
+      saude: ["dias", "horario"]
     }[negTipo];
     campos.forEach((k) => { extras[k] = x[k] ?? null; });
-    if (negTipo !== "imoveis") extras.categoriaPersonalizada = temOutra ? textoCatPropria(x.categoriaPersonalizada) : "";
+    if (negTipo !== "imoveis" && negTipo !== "saude") extras.categoriaPersonalizada = temOutra ? textoCatPropria(x.categoriaPersonalizada) : "";
+    if (negTipo === "saude") {
+      extras.saude = saudeParaSalvar(x.saude);
+      extras.categoriaPersonalizada = extras.saude.profissao === "outros" ? textoCatPropria(extras.saude.profissaoOutra) : "";
+    }
     if (negTipo === "servicos") {
       const motorista = x.categorias.includes("transporte");
       extras.cnh = motorista ? (x.cnh || []) : [];
@@ -1351,6 +1553,7 @@ $("negSalvar").addEventListener("click", async () => {
       if (negTipo === "delivery") Object.assign(item, { secao: curto(it.secao, 24), descricao: curto(it.descricao, 160), precoAntigo: Number(it.precoAntigo) > 0 ? Number(it.precoAntigo) : null });
       if (negTipo === "servicos") Object.assign(item, { unidade: UNIDADES_SERV[it.unidade] ? it.unidade : "fixo", duracao: curto(it.duracao, 30), descricao: curto(it.descricao, 160) });
       if (negTipo === "servicos") item.categoria = x.categorias.includes(it.categoria) ? it.categoria : x.categorias[0];
+      if (negTipo === "saude") Object.assign(item, { duracao: curto(it.duracao, 30), descricao: curto(it.descricao, 160) });
       extras.itens.push(item);
     }
     const loc = negLocal.ler();
@@ -1367,6 +1570,8 @@ $("negSalvar").addEventListener("click", async () => {
     let pendente = false;
     try { await gravar(dadosNeg); }
     catch (e) {
+      // Saúde só existe nas regras novas: sem elas, não há como guardar o perfil ainda.
+      if (e?.code === "permission-denied" && negTipo === "saude") throw new Error("o perfil de Saúde começa a funcionar quando a atualização do sistema for publicada.");
       // Regras novas ainda não publicadas: grava sem os campos novos e guarda eles na conta.
       if (e?.code !== "permission-denied") throw e;
       const novos = Object.fromEntries(NOVOS_NEG.map((k) => [k, dadosNeg[k]]));

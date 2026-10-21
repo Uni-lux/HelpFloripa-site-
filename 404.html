@@ -207,6 +207,8 @@
             <option value="delivery">Delivery</option>
             <option value="lojinha">Shopping</option>
             <option value="imoveis">Imóveis</option>
+            <option value="saude">Saúde</option>
+            <option value="comunidade">Comunidade</option>
           </select>
           <label class="sr" for="termo">O que você procura?</label>
           <input type="search" id="termo" placeholder="Ex.: diarista, eletricista" autocomplete="off" enterkeyhint="search" />
@@ -298,9 +300,9 @@
       }
 
       // Busca: leva para a classe escolhida.
-      var PAGINA = { servicos: "/servicos.html", delivery: "/delivery.html", lojinha: "/shopping.html", imoveis: "/imoveis.html" };
-      var DICA = { servicos: "Ex.: diarista, eletricista", delivery: "Ex.: pizza, hambúrguer", lojinha: "Ex.: tênis, fone", imoveis: "Ex.: apartamento na Trindade" };
-      var COR = { servicos: "var(--c-servicos)", delivery: "var(--c-delivery)", lojinha: "var(--c-lojinha)", imoveis: "var(--c-imoveis)" };
+      var PAGINA = { servicos: "/servicos.html", delivery: "/delivery.html", lojinha: "/shopping.html", imoveis: "/imoveis.html", saude: "/saude.html", comunidade: "/comunidade.html" };
+      var DICA = { servicos: "Ex.: diarista, eletricista", delivery: "Ex.: pizza, hambúrguer", lojinha: "Ex.: tênis, fone", imoveis: "Ex.: apartamento na Trindade", saude: "Ex.: pediatra, psicóloga", comunidade: "Ex.: berço, sofá" };
+      var COR = { servicos: "var(--c-servicos)", delivery: "var(--c-delivery)", lojinha: "var(--c-lojinha)", imoveis: "var(--c-imoveis)", saude: "#0fb5a6", comunidade: "#e5487f" };
       function classe() { var c = $("classe").value; $("termo").placeholder = DICA[c]; $("busca").style.setProperty("--b", COR[c]); }
       $("classe").addEventListener("change", function () { classe(); $("termo").focus(); });
       classe();
@@ -320,7 +322,7 @@
   </script>
   <script type="module">
     // Seletor bonito no lugar da lista nativa do celular
-    import { enfeitarSelect } from "./escolha.js?v=3";
+    import { enfeitarSelect } from "./escolha.js?v=4";
     enfeitarSelect(document.getElementById("classe"), { titulo: "Onde você quer buscar?" });
   </script>
 </body>

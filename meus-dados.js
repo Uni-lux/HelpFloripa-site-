@@ -28,7 +28,7 @@ const ROTULOS = {
 };
 const VALORES = {
   status: { aceito: "Aceito", pendente: "Pendente", aberta: "Aberta", resolvida: "Resolvida", nova: "Nova", em_analise: "Em análise", descartada: "Descartada", fechado: "Fechado", aberto: "Aberto" },
-  tipo: { seguir: "Seguir", servicos: "Freelances", delivery: "Delivery", lojinha: "Shopping", imoveis: "Imóveis", imovel: "Imóvel", duo: "Duo", namoro: "Namorado(a)",
+  tipo: { seguir: "Seguir", servicos: "Freelances", delivery: "Delivery", lojinha: "Shopping", imoveis: "Imóveis", saude: "Saúde", comunidade: "Comunidade", imovel: "Imóvel", duo: "Duo", namoro: "Namorado(a)",
     casamento: "Cônjuge", melhor_amigo: "Melhor amigo(a)", amigo: "Amigo(a)", irmao: "Irmão(ã)", pai_mae: "Pai/Mãe", filho: "Filho(a)", primo: "Primo(a)", tio: "Tio(a)",
     sobrinho: "Sobrinho(a)", avo: "Avô/Avó", neto: "Neto(a)", parceiro: "Parceiro(a) de trabalho", alerta: "Alerta", grave: "Grave", info: "Informativo" },
   finalidade: { aluguel: "Aluguel", venda: "Venda", temporada: "Temporada" },
@@ -53,11 +53,11 @@ export async function juntarDados(fb, uid, obterPerfil) {
   const lista = (col, campo, op = "==") => fb.getDocs(fb.query(fb.collection(fb.db, col), fb.where(campo, op, uid))).then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() }))).catch(() => []);
   const um = (col, id) => fb.getDoc(fb.doc(fb.db, col, id)).then((s) => (s.exists() ? s.data() : null)).catch(() => null);
   const [conta, perfil, negocios, anuncios, publicacoes, comentarios, estrelasDadas, seguindo, seguidores, conexoes, bloqueios, avaliacoesFeitas, avaliacoesRecebidas,
-    reclamacoesFeitas, reclamacoesRecebidas, chamados, avisos, conversas, enquetesVotadas, respostasCaixa, visitasNegocios] = await Promise.all([
+    reclamacoesFeitas, reclamacoesRecebidas, chamados, avisos, conversas, enquetesVotadas, respostasCaixa, visitasNegocios, comunidade] = await Promise.all([
     um("usuarios", uid), um("perfis_publicos", uid), lista("negocios", "donoId"), lista("anuncios", "donoId"), lista("diario", "autorId"), lista("comentarios", "autorId"),
     lista("curtidas", "uid"), lista("relacoes", "seguidorId"), lista("relacoes", "alvoId"), lista("vinculos", "participantes", "array-contains"), lista("bloqueios", "bloqueadorId"),
     lista("avaliacoes", "autorId"), lista("avaliacoes", "alvoId"), lista("queixas", "autorId"), lista("queixas", "alvoId"), lista("suporte", "uid"), lista("avisos", "uid"),
-    lista("conversas", "participantes", "array-contains"), lista("enquete_votos", "uid"), lista("caixa_respostas", "uid"), lista("neg_visitas", "uid")
+    lista("conversas", "participantes", "array-contains"), lista("enquete_votos", "uid"), lista("caixa_respostas", "uid"), lista("neg_visitas", "uid"), lista("comunidade", "donoId")
   ]);
   // Perfis de negócio que a pessoa visitou (estatísticas dos negócios): o nome no lugar do código.
   const nomesNeg = new Map();
@@ -68,7 +68,7 @@ export async function juntarDados(fb, uid, obterPerfil) {
     c.mensagens = await fb.getDocs(fb.query(fb.collection(fb.db, "conversas", c.id, "mensagens"), fb.orderBy("criadoEm", "asc"), fb.limit(1000))).then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() }))).catch(() => []);
   }
   const dados = { conta, perfil, negocios, anuncios, publicacoes, comentarios, estrelasDadas, seguindo, seguidores, conexoes, bloqueios, avaliacoesFeitas, avaliacoesRecebidas,
-    reclamacoesFeitas, reclamacoesRecebidas, chamados, avisos, conversas, enquetesVotadas, respostasCaixa, visitasNegocios };
+    reclamacoesFeitas, reclamacoesRecebidas, chamados, avisos, conversas, enquetesVotadas, respostasCaixa, visitasNegocios, comunidade };
   // Nomes das pessoas que aparecem (no lugar dos códigos).
   const uids = new Set();
   const coletar = (v, k) => {
@@ -132,8 +132,9 @@ export function relatorioHTML({ dados, nomes }, uid) {
   const SECOES = [
     ["conta", "Sua conta", "Os dados que você informou no cadastro e nas configurações.", () => dados.conta ? cartao("Dados da conta", "", tabela(dados.conta)) : ""],
     ["perfil", "Seu perfil público", "O que as outras pessoas veem no seu perfil.", () => dados.perfil ? cartao("Perfil público", "", tabela(dados.perfil)) : ""],
-    ["negocios", "Seus negócios", "Perfis de Freelances, Delivery, Shopping e Imóveis.", () => dados.negocios.map((n) => cartao(n.nome || "Negócio", VALORES.tipo[n.tipo] || "", tabela(n))).join("")],
+    ["negocios", "Seus negócios", "Perfis de Freelances, Delivery, Shopping, Imóveis e Saúde.", () => dados.negocios.map((n) => cartao(n.nome || "Negócio", VALORES.tipo[n.tipo] || "", tabela(n))).join("")],
     ["anuncios", "Seus anúncios", "Imóveis anunciados.", () => dados.anuncios.map((a) => cartao(a.titulo || "Anúncio", VALORES.finalidade[a.finalidade] || "", tabela(a))).join("")],
+    ["comunidade", "Seus anúncios na Comunidade", "Doações, trocas, pedidos, quartos e achados e perdidos.", () => (dados.comunidade || []).map((a) => cartao(a.titulo || "Anúncio", quando(a), tabela(a))).join("")],
     ["publicacoes", "Suas publicações", "Tudo o que você publicou no Diário.", () => dados.publicacoes.sort((a, b) => (b.criadoEm?.toMillis?.() || 0) - (a.criadoEm?.toMillis?.() || 0)).map((p) => cartao(resumo(p.texto || p.enquete?.pergunta) || "Publicação", quando(p), tabela(p))).join("")],
     ["comentarios", "Seus comentários", "", () => dados.comentarios.map((c) => cartao(resumo(c.texto) || "Comentário", quando(c), tabela(c))).join("")],
     ["estrelas", "Estrelas que você deu", "", () => linhasSimples(dados.estrelasDadas, (x) => `${"★".repeat(Math.max(0, Math.min(5, Number(x.nota) || 0)))} <span class="cinza">para a publicação de</span> ${esc(quem(x.postAutorId))}`)],
@@ -180,7 +181,7 @@ export function relatorioHTML({ dados, nomes }, uid) {
   }
 
   const conta = (n) => (Array.isArray(n) ? n.length : n ? 1 : 0);
-  const quantos = { conta: conta(dados.conta), perfil: conta(dados.perfil), negocios: dados.negocios.length, anuncios: dados.anuncios.length, publicacoes: dados.publicacoes.length,
+  const quantos = { conta: conta(dados.conta), perfil: conta(dados.perfil), negocios: dados.negocios.length, anuncios: dados.anuncios.length, comunidade: (dados.comunidade || []).length, publicacoes: dados.publicacoes.length,
     comentarios: dados.comentarios.length, estrelas: dados.estrelasDadas.length, seguindo: dados.seguindo.length, seguidores: dados.seguidores.length, conexoes: dados.conexoes.length,
     bloqueios: dados.bloqueios.length, avaliacoesFeitas: dados.avaliacoesFeitas.length, avaliacoesRecebidas: dados.avaliacoesRecebidas.length, reclamacoesFeitas: dados.reclamacoesFeitas.length,
     reclamacoesRecebidas: dados.reclamacoesRecebidas.length, enquetes: dados.enquetesVotadas.length, caixa: dados.respostasCaixa.length, visitas: dados.visitasNegocios.length, suporte: dados.chamados.length,

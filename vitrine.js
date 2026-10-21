@@ -1,7 +1,7 @@
 // =====================================================
 // Vitrine de negócios do Help Floripa
 // Na página:  <script type="module" src="vitrine.js?tipo=servicos"></script>
-// Tipos: servicos | delivery | lojinha | imoveis
+// Tipos: servicos | delivery | lojinha | imoveis | saude
 // Negócios: coleção "negocios" (um perfil de cada tipo por pessoa).
 // Imóveis:  coleção "anuncios" (vários imóveis por pessoa).
 // Links diretos: pagina.html?negocio=ID  ·  imoveis.html?anuncio=ID
@@ -9,13 +9,14 @@
 
 import { confirmarHF } from "./confirmar.js?v=4";
 import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL } from "./seguranca.js?v=1";
-import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento, media, avaliarNegocio } from "./avaliacoes.js?v=13";
-import { abrirQueixa } from "./queixas.js?v=11";
+import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento, media, avaliarNegocio } from "./avaliacoes.js?v=14";
+import { abrirQueixa } from "./queixas.js?v=12";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
-import { anelNegocio } from "./flash-negocio.js?v=2";
+import { anelNegocio } from "./flash-negocio.js?v=3";
 import { camposEndereco, textoCidade, cidadesDe, NOME_UF, semAcento } from "./endereco.js?v=1";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao } from "./perto.js?v=1";
-import { lerPlano, nivelPlano, seloPlano, nomePlano } from "./planos.js?v=5";
+import { lerPlano, nivelPlano, seloPlano, nomePlano } from "./planos.js?v=6";
+import { PROFISSOES_SAUDE, CATEGORIAS_SAUDE, SITE_CONSELHO, MODALIDADES_SAUDE, PUBLICO_SAUDE, PUBLICO_VET, nomeProfissao, conselhoDe, ehVet, textoRegistro, textoValor, AVISO_EMERGENCIA, AVISO_REGISTRO } from "./saude-dados.js?v=1";
 import { usarEstat, registrarVisita, registrarAcao, registrarItem, chaveItem as chaveEstat, chaveAnuncio } from "./estat-negocio.js?v=1";
 // Plano de quem anuncia: todo plano pago tem o selo; Pro e Premium aparecem antes na ordem padrão
 // (Premium antes de todos).
@@ -28,9 +29,9 @@ const PARAMS = new URL(import.meta.url).searchParams;
 const TIPO_PAGINA = PARAMS.get("tipo");
 const TIPO = TIPO_PAGINA || "servicos";
 
-export const CORES_TIPO = { servicos: "#00adee", delivery: "#ff7a1a", lojinha: "#b066ff", imoveis: "#2fbf71" };
-export const NOMES_TIPO = { servicos: "Freelances", delivery: "Delivery", lojinha: "Lojinha", imoveis: "Imóveis" };
-export const PAGINA_TIPO = { servicos: "servicos.html", delivery: "delivery.html", lojinha: "shopping.html", imoveis: "imoveis.html" };
+export const CORES_TIPO = { servicos: "#00adee", delivery: "#ff7a1a", lojinha: "#b066ff", imoveis: "#2fbf71", saude: "#0fb5a6", comunidade: "#e5487f" };
+export const NOMES_TIPO = { servicos: "Freelances", delivery: "Delivery", lojinha: "Lojinha", imoveis: "Imóveis", saude: "Saúde", comunidade: "Comunidade" };
+export const PAGINA_TIPO = { servicos: "servicos.html", delivery: "delivery.html", lojinha: "shopping.html", imoveis: "imoveis.html", saude: "saude.html", comunidade: "comunidade.html" };
 // Áreas de atuação dos Freelances, em grupos. [nome, palavras que a busca também encontra].
 // As chaves antigas (limpeza, reformas, beleza, transporte, pets, outros) continuam valendo.
 export const GRUPOS_SERV = [
@@ -84,7 +85,8 @@ export const CATEGORIAS = {
   servicos: { ...Object.fromEntries(Object.entries(AREAS_SERV).map(([k, [nome]]) => [k, nome])), outros: "Outros" },
   delivery: { hamburguer: "Hambúrguer", pizza: "Pizza", sushi: "Sushi", doces: "Doces", bebidas: "Bebidas", outros: "Outros" },
   lojinha: { roupas: "Moda e roupas", calcados: "Calçados", acessorios: "Acessórios", beleza: "Beleza", eletronicos: "Eletrônicos", casa: "Casa e decoração", mercado: "Mercado", artesanato: "Artesanato", infantil: "Infantil", esportes: "Esportes", outros: "Outros" },
-  imoveis: { apartamento: "Apartamento", casa: "Casa", kitnet: "Kitnet", terreno: "Terreno", comercial: "Comercial", outros: "Outros" }
+  imoveis: { apartamento: "Apartamento", casa: "Casa", kitnet: "Kitnet", terreno: "Terreno", comercial: "Comercial", outros: "Outros" },
+  saude: CATEGORIAS_SAUDE
 };
 export const FINALIDADE = { aluguel: "Aluguel", venda: "Venda", temporada: "Temporada" };
 // Opções usadas no formulário (usuarios.html) e na vitrine.
@@ -101,10 +103,11 @@ const TEXTOS = {
   servicos: { titulo: "Profissionais da <span>comunidade</span>", sub: "Autônomos que atendem em Florianópolis e região.", criar: "Criar meu perfil de freelancer", vazio: "Nenhum profissional por aqui ainda", img: "servicos.webp" },
   delivery: { titulo: "Cardápios da <span>vizinhança</span>", sub: "Peça direto com quem faz, sem intermediário.", criar: "Cadastrar meu delivery", vazio: "Nenhum delivery cadastrado ainda", img: "lanchonetes.webp" },
   lojinha: { titulo: "Lojinhas <span>locais</span>", sub: "Produtos de quem vende perto de você.", criar: "Abrir minha lojinha", vazio: "Nenhuma lojinha aberta ainda", img: "shopping.webp" },
-  imoveis: { titulo: "Imóveis <span>anunciados</span>", sub: "Aluguel, venda e temporada direto com o anunciante.", criar: "Anunciar imóvel", vazio: "Nenhum imóvel anunciado ainda", img: "imoveis.webp" }
+  imoveis: { titulo: "Imóveis <span>anunciados</span>", sub: "Aluguel, venda e temporada direto com o anunciante.", criar: "Anunciar imóvel", vazio: "Nenhum imóvel anunciado ainda", img: "imoveis.webp" },
+  saude: { titulo: "Profissionais de <span>saúde</span>", sub: "Médicos, enfermagem, psicólogos, veterinários e mais, com o registro do conselho à vista.", criar: "Criar meu perfil de saúde", vazio: "Nenhum profissional de saúde por aqui ainda", img: "saude.svg" }
 };
 const MODOS = { domicilio: "Vai até você", local: "No local", online: "Online" };
-const TEXTO_CONTATO = { servicos: "Pedir orçamento", delivery: "Fazer pedido", lojinha: "Falar com a loja", imoveis: "Tenho interesse" };
+const TEXTO_CONTATO = { servicos: "Pedir orçamento", delivery: "Fazer pedido", lojinha: "Falar com a loja", imoveis: "Tenho interesse", saude: "Agendar consulta" };
 
 // ---------- utilitários ----------
 // Fotos só do próprio site (seguranca.js): evita imagens de terceiros que rastreiam visitantes.
@@ -145,6 +148,10 @@ const ICONES = {
   cupom: '<path d="M4 7.5A1.5 1.5 0 015.5 6h13A1.5 1.5 0 0120 7.5V10a2 2 0 000 4v2.5a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 16.5V14a2 2 0 000-4z"/><path d="M14 6v12" stroke-dasharray="2 2"/>',
   copiar: '<rect x="8.5" y="8.5" width="11" height="11" rx="2"/><path d="M15.5 8.5V6a1.5 1.5 0 00-1.5-1.5H6A1.5 1.5 0 004.5 6v8A1.5 1.5 0 006 15.5h2.5"/>',
   verificado: '<path d="M12 2.8l2.3 1.7 2.9.1.9 2.8 2.3 1.8-.9 2.8.9 2.8-2.3 1.8-.9 2.8-2.9.1L12 21.2l-2.3-1.7-2.9-.1-.9-2.8-2.3-1.8.9-2.8-.9-2.8 2.3-1.8.9-2.8 2.9-.1z"/><path d="M8.6 12.2l2.3 2.3 4.6-4.8"/>',
+  saude: '<path d="M9.5 3.5h5v6h6v5h-6v6h-5v-6h-6v-5h6z"/>',
+  online: '<rect x="3.5" y="5" width="17" height="11.5" rx="2"/><path d="M8.5 20h7M12 16.5V20"/><path d="M10.5 8.8v4.4l3.6-2.2z"/>',
+  estetoscopio: '<path d="M6 3.5v5a4 4 0 008 0v-5"/><path d="M10 12.5v2.5a4.5 4.5 0 009 0v-2"/><circle cx="19" cy="11" r="2"/>',
+  escudo: '<path d="M12 3l7.5 3v5.5c0 4.5-3.2 8-7.5 9.5-4.3-1.5-7.5-5-7.5-9.5V6z"/><path d="M8.8 12l2.2 2.2 4.2-4.4"/>',
   // modos de exibição da lista
   "m-linhas": '<rect x="3" y="4.5" width="7.5" height="6" rx="1.5"/><rect x="12.5" y="4.5" width="7.5" height="6" rx="1.5"/><rect x="3" y="13.5" width="7.5" height="6" rx="1.5"/><rect x="12.5" y="13.5" width="7.5" height="6" rx="1.5"/><path d="M22 6.5v2M22 15.5v2"/>',
   "m-1": '<rect x="3.5" y="4" width="17" height="6.5" rx="1.5"/><rect x="3.5" y="13.5" width="17" height="6.5" rx="1.5"/>',
@@ -229,8 +236,8 @@ export function cartaoDeNegocio(n) {
   const cats = categoriasDe(n).map((c) => CATEGORIAS[n.tipo]?.[c] && nomeCat(n, c)).filter(Boolean);
   return {
     tipo: n.tipo, titulo: n.nome || NOMES_TIPO[n.tipo],
-    sub: [NOMES_TIPO[n.tipo], cats.slice(0, 2).join(", ")].filter(Boolean).join(" · "),
-    preco: n.tipo === "servicos" && moeda(n.precoDesde) ? `a partir de ${moeda(n.precoDesde)}` : "",
+    sub: n.tipo === "saude" ? [nomeProfissao(n.saude), textoRegistro(n.saude)].filter(Boolean).join(" · ") : [NOMES_TIPO[n.tipo], cats.slice(0, 2).join(", ")].filter(Boolean).join(" · "),
+    preco: n.tipo === "servicos" && moeda(n.precoDesde) ? `a partir de ${moeda(n.precoDesde)}` : n.tipo === "saude" ? textoValor(n.saude, moeda) : "",
     foto: fotoPequena(n.foto) || fotoPequena((n.fotos || [])[0]),
     link: `${PAGINA_TIPO[n.tipo]}?negocio=${encodeURIComponent(n.id || "")}&de=mensagens`
   };
@@ -1080,7 +1087,10 @@ export function abrirDetalhe(n, opcoes = {}) {
   cab.appendChild(el("h3", null, n.nome || NOMES_TIPO[tipo]));
   const tags = el("div", "vt-sub");
   if (tipo === "servicos") categoriasDe(n).forEach((k) => tags.appendChild(el("span", "vt-tag", nomeCat(n, k))));
-  else if (tipo !== "imoveis") tags.appendChild(el("span", "vt-tag", nomeCategoria(n)));
+  else if (tipo === "saude") {
+    tags.appendChild(el("span", "vt-tag", nomeProfissao(n.saude)));
+    (n.saude?.especialidades || []).slice(0, 4).forEach((e) => tags.appendChild(el("span", "vt-tag neutra", e)));
+  } else if (tipo !== "imoveis") tags.appendChild(el("span", "vt-tag", nomeCategoria(n)));
   else tags.appendChild(el("span", "vt-tag", ANUNCIANTE[n.tipoAnunciante] || "Anunciante"));
   const sitH = situacaoHorario(n);
   if (sitH) tags.appendChild(el("span", "vt-tag " + (sitH.aberto ? "ok" : "off"), sitH.aberto ? "Aberto agora" : "Fechado"));
@@ -1102,6 +1112,8 @@ export function abrirDetalhe(n, opcoes = {}) {
     conf0.prepend(pr); conf0.hidden = false;
   }).catch(() => {});
   ct.appendChild(cab);
+  // Saúde: registro no conselho com o link para conferir, como atende e o aviso de emergência.
+  if (tipo === "saude") ct.appendChild(blocoSaude(n));
 
   // Promoção ou cupom com prazo.
   const promo = promoAtiva(n);
@@ -1119,7 +1131,7 @@ export function abrirDetalhe(n, opcoes = {}) {
       b.setAttribute("aria-label", `Copiar o cupom ${promo.codigo}`);
       b.addEventListener("click", async () => {
         guardarCupom(n, promo.codigo);
-        const usar = n.tipo === "delivery" || n.tipo === "lojinha" ? "Ele já entra no seu pedido." : n.tipo === "servicos" ? "Ele já entra no seu pedido de orçamento." : "Mostre ao falar com o anunciante.";
+        const usar = n.tipo === "delivery" || n.tipo === "lojinha" ? "Ele já entra no seu pedido." : n.tipo === "servicos" ? "Ele já entra no seu pedido de orçamento." : n.tipo === "saude" ? "Ele já entra no seu pedido de agendamento." : "Mostre ao falar com o anunciante.";
         try { await navigator.clipboard.writeText(promo.codigo); toast(`Cupom ${promo.codigo} copiado. ${usar}`); } catch { toast(`Cupom ${promo.codigo}. ${usar}`); }
         contar("cupom");
       });
@@ -1172,7 +1184,19 @@ export function abrirDetalhe(n, opcoes = {}) {
       ["cartao", listaPag(n.pagamentos), "pagamento"]],
     lojinha: () => [["moto", (n.entrega || []).map((k) => (k === "entrega" ? "Entrega" : "Retirada")).join(" · "), "como receber"],
       ["sacola", (n.itens || []).filter((i) => i?.nome).length || "", "produtos"], ["cartao", listaPag(n.pagamentos), "pagamento"]],
-    imoveis: () => [["selo", n.creci || "", "CRECI"]]
+    imoveis: () => [["selo", n.creci || "", "CRECI"]],
+    saude: () => {
+      const sd = n.saude || {}, pub = ehVet(sd) ? PUBLICO_VET : PUBLICO_SAUDE;
+      const conv = [sd.particular ? "Particular" : "", ...(sd.convenios || [])].filter(Boolean);
+      return [["sacola", [Number(sd.valorConsulta) > 0 ? moeda(sd.valorConsulta) : "", Number(sd.duracao) > 0 ? `${sd.duracao} min` : ""].filter(Boolean).join(" · "), ehVet(sd) ? "consulta veterinária" : "consulta"],
+        ["cartao", conv.join(", "), "convênios e particular"],
+        ["casa", (sd.modalidades || []).filter((k) => MODALIDADES_SAUDE[k]).map((k) => MODALIDADES_SAUDE[k]).join(" · "), "como atende"],
+        ["selo", (sd.publico || []).filter((k) => pub[k]).map((k) => pub[k]).join(", "), ehVet(sd) ? "animais que atende" : "atende"],
+        ["chat", (sd.idiomas || []).join(", "), "idiomas"],
+        ["check", sd.acessivel ? "Local com acessibilidade" : "", "acessibilidade"],
+        ["selo", String(sd.formacao || ""), "formação"],
+        ["relogio", sitH ? "" : [listaDias(n.dias), n.horario].filter(Boolean).join(" · "), "atendimento"]];
+    }
   }[tipo]();
   if (tipo === "servicos" && Array.isArray(n.diferenciais) && n.diferenciais.length) {
     const d = el("div", "vd-diferenciais");
@@ -1185,7 +1209,7 @@ export function abrirDetalhe(n, opcoes = {}) {
   if (fb1) ct.appendChild(fb1);
   if (n.descricao) { ct.appendChild(titulo4("Sobre")); ct.appendChild(el("p", "texto", n.descricao)); }
   if (sitH) {
-    ct.appendChild(titulo4(tipo === "servicos" ? "Horário de atendimento" : "Horário de funcionamento"));
+    ct.appendChild(titulo4(tipo === "servicos" || tipo === "saude" ? "Horário de atendimento" : "Horário de funcionamento"));
     const h = el("div", "vd-horario");
     const st = el("div", "vd-horario-agora " + (sitH.aberto ? "ok" : "off"));
     st.append(el("i"), el("strong", null, sitH.aberto ? "Aberto agora" : "Fechado agora"), el("span", null, sitH.texto));
@@ -1201,7 +1225,30 @@ export function abrirDetalhe(n, opcoes = {}) {
 
   const itens = (n.itens || []).filter((i) => i?.nome);
   const orcar = (idx = null) => (proprio ? null : abrirOrcamento(n, { ...opcoes, fb: fbx, eu: euX, aoMensagem, origem }, idx));
-  if (tipo === "servicos" && itens.length) {
+  const agendar = (idx = null) => (proprio ? null : abrirAgendamento(n, { ...opcoes, fb: fbx, eu: euX, aoMensagem, origem }, idx));
+  if (tipo === "saude" && itens.length) {
+    // Consultas e procedimentos com preço e duração; "Agendar" já leva o escolhido.
+    ct.appendChild(titulo4(ehVet(n.saude) ? "Consultas e serviços" : "Consultas e procedimentos"));
+    const ul = el("div", "vd-servicos");
+    (n.itens || []).forEach((i, idx) => {
+      if (!i?.nome) return;
+      const li = el("div", "vd-serv");
+      const tx = el("div", "tx");
+      tx.appendChild(el("strong", null, i.nome));
+      if (i.duracao) tx.appendChild(el("small", null, `⏱ ${i.duracao}`));
+      if (i.descricao) tx.appendChild(el("p", null, i.descricao));
+      const pr = el("div", "pr");
+      pr.append(el("strong", null, moeda(i.preco) || "Consultar"));
+      if (!proprio) {
+        const b = el("button", "vd-pedir", "Agendar"); b.type = "button";
+        b.addEventListener("click", () => { registrarItem(neg, chaveEstat(i.nome), origem); agendar(idx); });
+        pr.appendChild(b);
+      }
+      li.append(tx, pr);
+      ul.appendChild(li);
+    });
+    ct.appendChild(ul);
+  } else if (tipo === "servicos" && itens.length) {
     // serviços agrupados por área de atuação, cada um com como cobra, duração e o que inclui
     const cats = categoriasDe(n);
     const comIdx = (n.itens || []).map((i, idx) => ({ i, idx })).filter(({ i }) => i?.nome);
@@ -1349,7 +1396,7 @@ export function abrirDetalhe(n, opcoes = {}) {
   } else {
     const galeria = tipo === "delivery" ? [] : fotos;
     if (galeria.length) {
-      ct.appendChild(titulo4(tipo === "servicos" ? "Trabalhos realizados" : "Fotos"));
+      ct.appendChild(titulo4(tipo === "servicos" ? "Trabalhos realizados" : tipo === "saude" ? "O local de atendimento" : "Fotos"));
       const g = el("div", "vd-galeria");
       galeria.forEach((f, i) => { const im = document.createElement("img"); im.src = f; im.alt = `Foto ${i + 1}`; im.loading = "lazy"; g.appendChild(im); });
       ct.appendChild(g);
@@ -1359,8 +1406,8 @@ export function abrirDetalhe(n, opcoes = {}) {
   ct.appendChild(barraContato({
     proprio, sair, aoEditar: opcoes.aoEditar ? () => opcoes.aoEditar(n) : null, editarHref: `negocios.html?tipo=${tipo}`,
     texto: tipo === "imoveis" ? "Falar com o anunciante" : TEXTO_CONTATO[tipo], whats: n.whatsapp,
-    textoWhats: `Olá! Vi "${n.nome}" no Help Floripa.`, aoMensagem: tipo === "servicos" ? () => orcar() : aoMensagem, donoId: n.donoId, cartao: cartaoDeNegocio(n),
-    aoContar: contar, contaMensagem: tipo !== "servicos"
+    textoWhats: `Olá! Vi "${n.nome}" no Help Floripa.`, aoMensagem: tipo === "servicos" ? () => orcar() : tipo === "saude" ? () => agendar() : aoMensagem, donoId: n.donoId, cartao: cartaoDeNegocio(n),
+    aoContar: contar, contaMensagem: tipo !== "servicos" && tipo !== "saude"
   }));
   // Avaliar e reclamar: abertos pelo cliente (uma nota por cliente; reclamação com limite justo).
   if (!proprio && euX && fbx) {
@@ -1379,7 +1426,7 @@ export function abrirDetalhe(n, opcoes = {}) {
     // Golpe ou perfil falso não precisa de conversa: vai para a equipe analisar.
     const bD = el("button", "vd-denunciar", "Denunciar golpe ou perfil falso"); bD.type = "button";
     bD.addEventListener("click", async () => {
-      const { abrirDenuncia } = await import("./denuncias.js?v=4");
+      const { abrirDenuncia } = await import("./denuncias.js?v=5");
       abrirDenuncia({ fb: fbx, eu: euX, tipo: "negocio", alvoId: n.donoId, itemId: idNegocio(n), trecho: [n.nome, n.descricao].filter(Boolean).join(" · "), nomeAlvo: n.nome || "", podeBloquear: false });
     });
     conf.append(bA, bR, el("small", null, "Só avalia ou reclama quem conversou com o negócio pelo chat."), bD);
@@ -1389,6 +1436,156 @@ export function abrirDetalhe(n, opcoes = {}) {
   const bc = ct.querySelector(".vd-carrinho");
   if (bc) ct.insertBefore(bc, ct.lastChild);
   caixa.appendChild(ct);
+}
+
+// Registro do conselho (com link para conferir), formas de atendimento e avisos de saúde.
+function blocoSaude(n) {
+  const sd = n.saude || {}, box = el("div", "vd-saude");
+  const reg = textoRegistro(sd), cons = conselhoDe(sd);
+  const l1 = el("div", "vd-saude-reg");
+  const ic = el("span", "ic"); ic.appendChild(icone("escudo", "vi"));
+  const tx = el("div", "tx");
+  tx.append(el("small", null, cons ? "Registro profissional" : "Profissão"), el("strong", null, reg || (cons ? `${cons} não informado` : nomeProfissao(sd))));
+  if (reg) tx.appendChild(el("span", null, AVISO_REGISTRO));
+  l1.append(ic, tx);
+  if (reg && SITE_CONSELHO[cons]) {
+    const a = el("a", "vd-saude-conf"); a.href = SITE_CONSELHO[cons]; a.target = "_blank"; a.rel = "noopener noreferrer";
+    a.append(document.createTextNode(`Conferir no ${cons === "CRM" ? "CFM" : cons}`), icone("avancar"));
+    l1.appendChild(a);
+  }
+  box.appendChild(l1);
+  const mods = (sd.modalidades || []).filter((k) => MODALIDADES_SAUDE[k]);
+  if (mods.length) {
+    const m = el("div", "vd-saude-mod");
+    mods.forEach((k) => { const t = el("span", "vt-tag " + k); t.append(icone(k === "online" ? "online" : k === "domicilio" ? "casa" : "estetoscopio"), document.createTextNode(MODALIDADES_SAUDE[k])); m.appendChild(t); });
+    box.appendChild(m);
+  }
+  const av = el("p", "vd-saude-urg"); av.append(icone("alerta"), document.createTextNode(AVISO_EMERGENCIA));
+  box.appendChild(av);
+  return box;
+}
+// Pedido de agendamento (vai como cartão na conversa, igual ao orçamento): o que, para quem, como, convênio e quando.
+export function abrirAgendamento(n, opcoes = {}, preIdx = null) {
+  const fbx = opcoes.fb || fb, euX = opcoes.eu || eu;
+  if (!euX) { location.href = "login.html"; return; }
+  const sd = n.saude || {}, vet = ehVet(sd);
+  const { caixa } = novaJanela("saude", "Agendar consulta");
+  caixa.classList.add("vd-pedido");
+  const ct = el("div", "conteudo");
+  caixa.appendChild(ct);
+  const itens = (n.itens || []).map((i, idx) => ({ i, idx })).filter(({ i }) => i?.nome);
+  const opServ = itens.length ? Object.fromEntries(itens.map(({ i, idx }) => [String(idx), i.nome])) : { consulta: vet ? "Consulta veterinária" : "Consulta" };
+  const mods = (sd.modalidades || []).filter((k) => MODALIDADES_SAUDE[k]);
+  const conv = [...(sd.particular || !(sd.convenios || []).length ? ["Particular"] : []), ...(sd.convenios || [])];
+  const estado = { servicos: preIdx !== null && opServ[String(preIdx)] ? [String(preIdx)] : Object.keys(opServ).length === 1 ? Object.keys(opServ) : [], quem: vet ? "pet" : "eu", nomeQuem: "", modo: mods.length === 1 ? mods[0] : "", convenio: conv.length === 1 ? conv[0] : "", quando: "", data: "", periodo: "", descricao: "", local: "" };
+  const cab = el("div", "vd-cab");
+  cab.append(el("h3", null, "Agendar consulta"), linhaNegocioMini(n));
+  ct.appendChild(cab);
+  ct.appendChild(el("p", "vd-dica", "Escolha o que precisa e quando prefere. O profissional responde pelo chat com o horário disponível."));
+  if (Object.keys(opServ).length > 1) ct.appendChild(campoVd("Qual atendimento?", chipsEscolha(opServ, { multi: true, valor: estado.servicos, aoMudar: (v) => { estado.servicos = v; } })));
+  const quemBox = el("div");
+  const pintarQuem = () => {
+    const ops = vet ? { pet: "Meu pet" } : { eu: "Para mim", outra: "Para outra pessoa" };
+    quemBox.replaceChildren(campoVd(vet ? "Para qual animal?" : "Para quem?", ...(vet ? [] : [chipsEscolha(ops, { valor: estado.quem, aoMudar: (v) => { estado.quem = v; pintarQuem(); } })])));
+    if (vet || estado.quem === "outra") {
+      const i = document.createElement("input"); i.className = "vd-input"; i.maxLength = 60; i.value = estado.nomeQuem;
+      i.placeholder = vet ? "Nome, espécie e idade (ex.: Thor, cachorro, 4 anos)" : "Nome e idade (ex.: minha mãe, 72 anos)";
+      i.addEventListener("input", () => { estado.nomeQuem = i.value; });
+      quemBox.lastChild.appendChild(i);
+    }
+  };
+  pintarQuem();
+  ct.appendChild(quemBox);
+  const modoBox = el("div");
+  const pintarModo = () => {
+    if (!mods.length) return;
+    modoBox.replaceChildren(campoVd("Como prefere ser atendido?", chipsEscolha(Object.fromEntries(mods.map((k) => [k, MODALIDADES_SAUDE[k]])), { valor: estado.modo, aoMudar: (v) => { estado.modo = v; pintarModo(); } })));
+    if (estado.modo === "domicilio") {
+      const loc = document.createElement("input"); loc.className = "vd-input"; loc.maxLength = 80; loc.value = estado.local;
+      loc.placeholder = "Bairro e cidade (ex.: Trindade, Florianópolis)";
+      loc.addEventListener("input", () => { estado.local = loc.value; });
+      const c = campoVd("Onde?", loc);
+      c.appendChild(el("small", "vd-nota", "Mande só o bairro agora. O endereço completo você passa depois de combinar."));
+      modoBox.appendChild(c);
+    }
+  };
+  pintarModo();
+  ct.appendChild(modoBox);
+  if (conv.length > 1) ct.appendChild(campoVd("Particular ou convênio?", chipsEscolha(Object.fromEntries(conv.map((c) => [c, c])), { valor: estado.convenio, aoMudar: (v) => { estado.convenio = v; } })));
+  const quandoBox = el("div");
+  const opQuando = { primeira: "Primeiro horário livre", agendar: "Escolher o dia", flexivel: "Sou flexível" };
+  const pintarQuando = () => {
+    quandoBox.replaceChildren(campoVd("Quando?", chipsEscolha(opQuando, { valor: estado.quando, aoMudar: (v) => { estado.quando = v; pintarQuando(); } })));
+    if (estado.quando === "agendar") {
+      const d = document.createElement("input");
+      d.type = "date"; d.className = "vd-input"; d.dataset.titulo = "Qual dia?";
+      const hoje = new Date(); d.min = new Date(hoje.getTime() - hoje.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+      d.value = estado.data;
+      d.addEventListener("change", () => { estado.data = d.value; });
+      const g = el("div", "vd-duas");
+      g.append(campoVd("Dia", d), campoVd("Período", chipsEscolha(PERIODOS, { valor: estado.periodo, aoMudar: (v) => { estado.periodo = v; } })));
+      quandoBox.appendChild(g);
+    }
+  };
+  pintarQuando();
+  ct.appendChild(quandoBox);
+  const desc = document.createElement("textarea");
+  desc.className = "vd-obs"; desc.maxLength = 400;
+  desc.placeholder = vet ? "Ex.: primeira consulta, vacinas atrasadas, está sem comer há 2 dias..." : "Ex.: primeira consulta, retorno, quero tirar uma dúvida sobre...";
+  desc.addEventListener("input", () => { estado.descricao = desc.value; });
+  const cDesc = campoVd("Algo que o profissional precisa saber? (opcional)", desc);
+  cDesc.appendChild(el("small", "vd-nota", "Não mande exames, documentos ou detalhes muito pessoais agora: combine isso direto com o profissional."));
+  ct.appendChild(cDesc);
+  const urg = el("p", "vd-saude-urg"); urg.append(icone("alerta"), document.createTextNode(AVISO_EMERGENCIA));
+  ct.appendChild(urg);
+  const cupom = blocoCupom(n, estado);
+  if (cupom) ct.appendChild(cupom);
+  const montar = () => {
+    const nomes = estado.servicos.map((k) => opServ[k]).filter(Boolean);
+    const quem = vet ? `Pet: ${estado.nomeQuem.trim()}` : estado.quem === "outra" ? `Para: ${estado.nomeQuem.trim() || "outra pessoa"}` : "Para mim";
+    return {
+      cupom: cupomDoEstado(estado.cupom),
+      servicos: nomes.slice(0, 12), descricao: estado.descricao.trim().slice(0, 400),
+      quando: { tipo: estado.quando === "agendar" ? "agendar" : "flexivel", data: estado.quando === "agendar" ? estado.data : "", periodo: estado.quando === "agendar" ? estado.periodo : "" },
+      local: estado.modo === "domicilio" ? estado.local.trim().slice(0, 80) : "", modo: estado.modo === "consultorio" ? "local" : estado.modo,
+      saude: { quem: quem.slice(0, 80), convenio: String(estado.convenio || "").slice(0, 40), atendimento: MODALIDADES_SAUDE[estado.modo] || "", primeiro: estado.quando === "primeira" }
+    };
+  };
+  const validar = () => {
+    if (Object.keys(opServ).length > 1 && !estado.servicos.length) { toast("Escolha o atendimento."); return false; }
+    if ((vet || estado.quem === "outra") && estado.nomeQuem.trim().length < 2) { toast(vet ? "Conte qual é o animal." : "Diga para quem é a consulta."); return false; }
+    if (mods.length > 1 && !estado.modo) { toast("Escolha como prefere ser atendido."); return false; }
+    if (conv.length > 1 && !estado.convenio) { toast("Escolha particular ou o convênio."); return false; }
+    if (!estado.quando) { toast("Diga quando prefere."); return false; }
+    if (estado.quando === "agendar" && !estado.data) { toast("Escolha o dia."); return false; }
+    return true;
+  };
+  const textoQuandoS = (s) => (s.saude.primeiro ? "Primeiro horário livre" : textoQuando(s.quando));
+  const barra = el("div", "vd-acoes");
+  const env = el("button", "vt-btn pri"); env.type = "button";
+  env.append(icone("chat"), document.createTextNode("Enviar pedido de agendamento"));
+  env.addEventListener("click", () => {
+    if (!validar()) return;
+    const s = montar();
+    const cartao = { ...cartaoDeNegocio(n), titulo: `Agendamento · ${n.nome || "Saúde"}`, sub: (s.servicos.join(", ") || "Consulta"), preco: textoQuandoS(s), solicitacao: s };
+    contarAcao(n, "orcamento", opcoes.origem);
+    document.querySelectorAll(".vt-modal").forEach((m) => m.remove());
+    (opcoes.aoMensagem || conversar)(n.donoId, cartao);
+  });
+  barra.appendChild(env);
+  const w = linkWhats(n.whatsapp, "", () => contarAcao(n, "whats", opcoes.origem));
+  if (w) {
+    w.addEventListener("click", (e) => {
+      if (!validar()) { e.preventDefault(); return; }
+      const s = montar();
+      const txt = [`Olá! Vi seu perfil "${n.nome}" no Help Floripa e gostaria de agendar.`, "",
+        s.servicos.length ? `Atendimento: ${s.servicos.join(", ")}` : "", s.saude.quem, s.saude.atendimento ? `Como: ${s.saude.atendimento}` : "",
+        s.saude.convenio ? `Pagamento: ${s.saude.convenio}` : "", `Quando: ${textoQuandoS(s)}`, s.local ? `Local: ${s.local}` : "", s.descricao ? `Obs.: ${s.descricao}` : "", textoCupom(s.cupom)].filter(Boolean).join("\n");
+      w.href = w.href.split("?")[0] + "?text=" + encodeURIComponent(txt);
+    });
+    barra.appendChild(w);
+  }
+  ct.appendChild(barra);
 }
 
 function miniImovel(a, aoClicar) {
@@ -1550,6 +1747,8 @@ function passaCategoria(n, cat) {
   if (cat === "todos") return true;
   const cats = TIPO === "servicos" ? categoriasDe(n) : [n.categoria];
   if (cat.startsWith("c:")) return cats.includes("outros") && (n.categoriaPersonalizada || "") === cat.slice(2);
+  // Saúde: "Enfermagem" junta enfermeiros e técnicos de enfermagem.
+  if (TIPO === "saude" && cat === "enfermagem") return cats.includes("enfermeiro") || cats.includes("tecEnfermagem");
   return cats.includes(cat) || n.finalidade === cat;
 }
 // ---------- filtro de local: Estado → Cidade (→ Bairro nos imóveis) ----------
@@ -1680,6 +1879,19 @@ const FILTROS = {
     ["nota4", "Nota 4 ou mais", nota4],
     ["pix", "Aceita Pix", (n) => !Array.isArray(n.pagamentos) || !n.pagamentos.length || n.pagamentos.includes("pix")]
   ],
+  saude: [
+    ["online", "Atende online", (n) => (n.saude?.modalidades || []).includes("online")],
+    ["domicilio", "Atende em casa", (n) => (n.saude?.modalidades || []).includes("domicilio")],
+    ["consultorio", "Consultório", (n) => (n.saude?.modalidades || []).includes("consultorio")],
+    ["convenio", "Aceita convênio", (n) => (n.saude?.convenios || []).length > 0],
+    ["particular", "Particular", (n) => !!n.saude?.particular],
+    ["agora", "Atendendo agora", (n) => situacaoHorario(n)?.aberto === true],
+    ["nota4", "Nota 4 ou mais", nota4],
+    ["registro", "Com registro informado", (n) => !!textoRegistro(n.saude)],
+    ["acessivel", "Local acessível", (n) => !!n.saude?.acessivel],
+    ["criancas", "Atende crianças", (n) => (n.saude?.publico || []).some((k) => k === "criancas" || k === "bebes")],
+    ["promo", "Com promoção", (n) => !!promoAtiva(n)]
+  ],
   imoveis: [
     ["mobiliado", "Mobiliado", (a) => !!a.mobiliado],
     ["pets", "Aceita pets", (a) => (a.condicoes || []).includes("pets")],
@@ -1800,7 +2012,8 @@ function abrirFiltros() {
 function textoBusca(n) {
   const cats = TIPO === "servicos" ? categoriasDe(n) : [n.categoria];
   return [n.nome, n.titulo, n.descricao, n.cidade, n.uf, NOME_UF[n.uf], n.bairro, n.regiao, n.categoriaPersonalizada, ...cats.map((c) => CATEGORIAS[TIPO]?.[c]), ...(TIPO === "servicos" ? cats.map((c) => PALAVRAS_SERV[c]) : []),
-    ...(n.itens || []).map((i) => [i?.nome, i?.descricao, i?.secao, i?.marca].join(" ")), n.veiculo, donos.get(n.donoId)?.nome].join(" ").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    ...(n.itens || []).map((i) => [i?.nome, i?.descricao, i?.secao, i?.marca].join(" ")), n.veiculo, donos.get(n.donoId)?.nome,
+    ...(n.saude ? [nomeProfissao(n.saude), conselhoDe(n.saude), ...(n.saude.especialidades || []), ...(n.saude.convenios || []), n.saude.formacao] : [])].join(" ").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
 // Carrossel horizontal com título (arrasta com o dedo; setas no computador).
@@ -1882,6 +2095,43 @@ function cartaoPro(n, destaqueEm = "") {
   return tornarClicavel(c, () => abrirDetalhe(n), `Ver ${n.nome}`);
 }
 const cartaoTop = (n, cat) => cartaoPro(n, cat);
+// Saúde: foto do local (ou a capa da classe), avatar, nome com selo, nota, profissão + registro e a consulta.
+function cartaoSaude(n) {
+  const sd = n.saude || {};
+  const c = el("article", "vt-del vt-free vt-saude");
+  const f = el("div", "ft");
+  f.style.backgroundImage = `url("${capaDe(n) || TEXTOS.saude.img}")`;
+  const mods = (sd.modalidades || []).filter((k) => k === "online" || k === "domicilio");
+  if (mods.length) f.appendChild(el("span", "st saude-mod", mods.map((k) => (k === "online" ? "Online" : "Em casa")).join(" · ")));
+  seloPromo(f, n);
+  f.appendChild(avatar(n.foto, n.nome, "vt-avatar logo"));
+  const tx = el("div", "tx");
+  tx.append(nomeComSelo(n, "Profissional de saúde"), estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }));
+  const esp = (sd.especialidades || [])[0];
+  tx.appendChild(el("small", null, [nomeProfissao(sd), esp].filter(Boolean).join(" · ")));
+  const reg = textoRegistro(sd);
+  if (reg) { const r = el("small", "reg"); r.append(icone("escudo"), document.createTextNode(reg.split(" · ")[0])); tx.appendChild(r); }
+  tx.appendChild(el("span", "tx-taxa", textoValor(sd, moeda) || textoCidade(n) || "Agende pelo chat"));
+  seloDist(f, n);
+  c.append(f, tx);
+  return tornarClicavel(c, () => abrirDetalhe(n), `Ver ${n.nome}`);
+}
+function linhaSaude(n) {
+  const sd = n.saude || {};
+  return linhaCompacta({
+    classe: "pro", midia: avatar(n.foto, n.nome), titulo: n.nome || "Profissional de saúde",
+    sub: [estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }), [distDe(n), nomeProfissao(sd), (sd.especialidades || [])[0], textoCidade(n)].filter(Boolean).join(" · ")],
+    direita: el("span", "pr", Number(sd.valorConsulta) > 0 ? moeda(sd.valorConsulta) : (sd.convenios || []).length ? "Convênios" : "Agendar"),
+    abrir: () => abrirDetalhe(n), rotulo: `Ver ${n.nome}`
+  });
+}
+const ORDENS_SAUDE = {
+  melhores: ["Melhores", proPrimeiro((a, b) => pontuacao(b) - pontuacao(a) || (notaDe(b)?.total || 0) - (notaDe(a)?.total || 0))],
+  perto: ["Mais perto", (a, b) => kmDe(a) - kmDe(b)],
+  preco: ["Menor valor", (a, b) => (Number(a.saude?.valorConsulta) || Infinity) - (Number(b.saude?.valorConsulta) || Infinity)],
+  novos: ["Novos", (a, b) => tsMs(b.criadoEm || b.atualizadoEm) - tsMs(a.criadoEm || a.atualizadoEm)]
+};
+let ordemSaude = "melhores";
 
 // Destaques: um lugar por categoria. Começa pelo melhor de cada uma e, de tempos em tempos,
 // revezam os mais bem avaliados daquela categoria (peso pela nota; quem ainda não apareceu
@@ -2259,6 +2509,15 @@ function renderizar() {
     mostrarItens(grade, [...lista].sort(ORDENS_SERV[ordemServ][1]), {
       filtrando, tile: (n) => cartaoPro(n), linha: linhaPro, grupos: (n) => categoriasDe(n).map((k) => chaveCat(n, k)), nomeGrupo: (g) => (g.startsWith("c:") ? g.slice(2) : CATEGORIAS.servicos[g] || "Outros")
     });
+  } else if (TIPO === "saude") {
+    // Online agora / atendendo agora em cima; depois todos, agrupados pela profissão.
+    const online = lista.filter((n) => (n.saude?.modalidades || []).includes("online"));
+    if (!filtrando && online.length >= 2) dest.appendChild(carrossel("Atendem online", online.sort(ORDENS_SAUDE.melhores[1]).slice(0, 10).map(cartaoSaude), "online"));
+    grade.appendChild(barraLista(titulo("Todos os profissionais de saúde"), lista.length, ORDENS_SAUDE, ordemSaude, (k) => { ordemSaude = k; garantirPosicao(k).then(renderizar); }));
+    mostrarItens(grade, [...lista].sort(ORDENS_SAUDE[ordemSaude][1]), {
+      filtrando, tile: cartaoSaude, linha: linhaSaude,
+      grupos: (n) => chaveCat(n, n.categoria || n.saude?.profissao || "outros"), nomeGrupo: (g) => (g.startsWith("c:") ? g.slice(2) : CATEGORIAS.saude[g] || "Outros")
+    });
   } else if (TIPO === "delivery") {
     const abertos = lista.filter((n) => abertoAgora(n) === true);
     if (!filtrando && abertos.length) dest.appendChild(carrossel("Abertos agora", abertos.slice(0, 10).map((n) => tornarClicavel(cartaoDelivery(n), () => abrirDetalhe(n), `Ver ${n.nome}`)), "abertos"));
@@ -2303,7 +2562,7 @@ function chipsDinamicos() {
   todos.forEach((n) => {
     const cats = TIPO === "servicos" ? categoriasDe(n) : [n.categoria];
     if (cats.includes("outros") && n.categoriaPersonalizada) novos.push(["c:" + n.categoriaPersonalizada, n.categoriaPersonalizada]);
-    if (TIPO === "lojinha" && n.categoria !== "outros" && CATEGORIAS.lojinha[n.categoria]) novos.push([n.categoria, CATEGORIAS.lojinha[n.categoria]]);
+    if ((TIPO === "lojinha" || TIPO === "saude") && n.categoria !== "outros" && CATEGORIAS[TIPO][n.categoria] && !(TIPO === "saude" && /^(enfermeiro|tecEnfermagem)$/.test(n.categoria))) novos.push([n.categoria, CATEGORIAS[TIPO][n.categoria]]);
     if (TIPO === "servicos") cats.forEach((k) => { if (k !== "outros" && CATEGORIAS.servicos[k]) novos.push([k, CATEGORIAS.servicos[k]]); });
   });
   const outros = chips.querySelector('[data-filter="outros"]');

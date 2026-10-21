@@ -56,6 +56,13 @@ service cloud.firestore {
               || (get(s).data.get('ate', null) is timestamp && get(s).data.ate > request.time));
     }
 
+    // Banido de um programa (um tipo de perfil de negócio ou a Comunidade): programa_banidos/{uid}_{tipo},
+    // sem data = para sempre; com `ate`, até essa data.
+    function banidoDoPrograma(uid, tipo) {
+      let b = /databases/$(database)/documents/programa_banidos/$(uid + '_' + tipo);
+      return exists(b) && (get(b).data.get('ate', null) == null || get(b).data.ate > request.time);
+    }
+
     // Campos que só podem ser alterados pelo painel/admin (Admin SDK ignora as regras).
     function camposProtegidos() {
       return ['verificado', 'avaliacaoMedia', 'totalAvaliacoes'];
@@ -73,11 +80,9 @@ service cloud.firestore {
     }
 
     // Campo de texto opcional com tamanho máximo (evita documentos gigantes).
+    // (Lê o campo uma vez só com get: gasta menos do limite de 1.000 expressões por gravação.)
     function textoAte(campo, max) {
-      return !(campo in request.resource.data)
-          || request.resource.data[campo] == null
-          || (request.resource.data[campo] is string
-              && request.resource.data[campo].size() <= max);
+      return valorTextoAte(request.resource.data.get(campo, null), max);
     }
 
     // Mesmo limite, para um valor qualquer (ex.: campo dentro de um mapa).
@@ -114,7 +119,7 @@ service cloud.firestore {
           && l.negocioId is string && l.negocioId.matches('^[A-Za-z0-9_-]{1,100}$')
           && exists(/databases/$(database)/documents/negocios/$(l.negocioId))
           && valorTextoAte(l.get('nome', ''), 80)
-          && l.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis']
+          && l.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude']
           && (!('x' in l) || (l.x is number && l.x >= 0 && l.x <= 1))
           && (!('y' in l) || (l.y is number && l.y >= 0 && l.y <= 1));
     }
@@ -130,7 +135,7 @@ service cloud.firestore {
     }
     // Flash nos perfis de negócio da própria pessoa (ids = uid_tipo, até 4) e se aparece também no perfil pessoal.
     function negociosFlashOk(d) {
-      let n = '(' + request.auth.uid + '_(servicos|delivery|lojinha|imoveis))';
+      let n = '(' + request.auth.uid + '_(servicos|delivery|lojinha|imoveis|saude))';
       return (!('negocios' in d) || (d.negocios is list && d.negocios.size() >= 1 && d.negocios.size() <= 4
                                       && d.negocios.join(' ').matches('^' + n + '( ' + n + '){0,3}$')))
           && (!('perfil' in d) || (d.perfil is bool && (d.perfil || 'negocios' in d)));
@@ -186,10 +191,10 @@ service cloud.firestore {
 
     // Lista opcional com no máximo N itens.
     function listaAte(campo, max) {
-      return !(campo in request.resource.data)
-          || request.resource.data[campo] == null
-          || (request.resource.data[campo] is list
-              && request.resource.data[campo].size() <= max);
+      return listaValorAte(request.resource.data.get(campo, null), max);
+    }
+    function listaValorAte(v, max) {
+      return v == null || (v is list && v.size() <= max);
     }
 
     // Foto só pode vir do próprio site: imagem dentro do documento (sem Storage),
@@ -244,10 +249,4 @@ service cloud.firestore {
       return bloqueou(a, b) || bloqueou(b, a);
     }
 
-    // ---------- avaliações e reclamações justas ----------
-    // Id da conversa / do vínculo entre duas pessoas (ids em ordem).
-    function par(a, b) {
-      return a < b ? a + '_' + b : b + '_' + a;
-    }
-
-// ===== FIM DA PARTE 1 DE 13 =====
+// ===== FIM DA PARTE 1 DE 14 =====

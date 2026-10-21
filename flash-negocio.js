@@ -53,7 +53,7 @@ function css() {
   document.head.appendChild(st);
 }
 
-const PAGINA = { servicos: "servicos.html", delivery: "delivery.html", lojinha: "shopping.html", imoveis: "imoveis.html" };
+const PAGINA = { servicos: "servicos.html", delivery: "delivery.html", lojinha: "shopping.html", imoveis: "imoveis.html", saude: "saude.html" };
 const cache = new Map();
 // Flashes ativos que o dono colocou neste perfil de negócio (o que a pessoa pode ver), do mais antigo ao mais novo.
 export function flashesDoNegocio(fbx, euX, negId) {

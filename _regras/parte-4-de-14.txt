@@ -1,0 +1,199 @@
+      function anuncioOk() {
+        return textoAte('titulo', 100)
+            && textoAte('descricao', 1000)
+            && textoAte('cidade', 60)
+            && localOk()
+            && enderecoOk()
+            && textoAte('andar', 12)
+            && textoAte('disponivel', 20)
+            && textoAte('categoriaPersonalizada', 30)
+            && geoOk(request.resource.data.get('geo', null))
+            && listaAte('fotos', 5)
+            && listaAte('caracteristicas', 20)
+            && listaAte('condicoes', 12)
+            && dataOuNulo('ocultoAte');
+      }
+
+      allow read: if logado();
+
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.donoId == request.auth.uid
+                    && request.resource.data.tipo in ['imovel']
+                    && request.resource.data.keys().hasOnly(camposAnuncio())
+                    && naoTocaCamposProtegidosNoCreate()
+                    && anuncioOk();
+
+      allow update: if logado()
+                    && emailOk()
+                    && resource.data.donoId == request.auth.uid
+                    && request.resource.data.donoId == resource.data.donoId
+                    && request.resource.data.tipo == resource.data.tipo
+                    && gravou().hasOnly(camposAnuncio())
+                    && naoTocaCamposProtegidosNoUpdate()
+                    && travaModeracao()
+                    && anuncioOk();
+
+      allow delete: if logado()
+                    && resource.data.donoId == request.auth.uid;
+
+      // A equipe esconde (ocultoAte) o conteúdo de contas suspensas/banidas.
+      allow update: if podeModerar()
+                    && moderacaoOk();
+    }
+
+
+    // =====================================================
+    // COMUNIDADE: doações, trocas, pedidos de ajuda, vagas em quarto compartilhado e achados e perdidos.
+    // Documento: comunidade/{id}. É PROIBIDO vender ou cobrar: não aceita preço, "R$" nem "vendo/venda" no texto
+    // (o quarto compartilhado só mostra a divisão das despesas, no campo próprio). Quem descumpre é banido do
+    // programa (programa_banidos/{uid}_comunidade) e pode ter a conta suspensa.
+    // =====================================================
+    match /comunidade/{id} {
+      function camposComunidade() {
+        return ['donoId', 'categoria', 'tipoItem', 'titulo', 'descricao', 'fotos', 'estado', 'entrega', 'status',
+                'bairro', 'cidade', 'uf', 'cidadeIbge', 'geo', 'quarto', 'achado', 'aceiteRegras',
+                'criadoEm', 'atualizadoEm', 'ocultoAte', 'ocultoPelaEquipe'];
+      }
+      // Vaga em quarto/moradia compartilhada: só a divisão das despesas entre moradores.
+      function quartoOk(q) {
+        return q is map
+            && q.keys().hasOnly(['vaga', 'rateio', 'contasInclusas', 'mobiliado', 'vagas', 'para', 'disponivelEm', 'regras'])
+            && q.get('vaga', 'quarto').matches('^(individual|compartilhado|republica)$')
+            && (q.get('rateio', null) == null || (q.rateio is number && q.rateio >= 0 && q.rateio <= 5000))
+            && q.get('contasInclusas', false) is bool && q.get('mobiliado', false) is bool
+            && (q.get('vagas', null) == null || (q.vagas is int && q.vagas >= 1 && q.vagas <= 10))
+            && [q.get('para', 'todos'), q.get('disponivelEm', ''), q.get('regras', '')].join('\n')
+                 .matches('^(todos|mulheres|homens|lgbt)\n([0-9]{4}-[0-9]{2}-[0-9]{2})?\n[^\n]{0,300}$');
+      }
+      // Achados e perdidos: perdi / encontrei, onde e quando.
+      function achadoOk(a) {
+        return a is map && a.keys().hasOnly(['tipo', 'data', 'local'])
+            && [a.get('tipo', ''), a.get('data', ''), a.get('local', '')].join('\n')
+                 .matches('^(perdido|encontrado)\n([0-9]{4}-[0-9]{2}-[0-9]{2})?\n[^\n]{0,80}$');
+      }
+      function comunidadeOk() {
+        let d = request.resource.data;
+        let texto = d.get('titulo', '') + ' ' + d.get('descricao', '');
+        return d.categoria in ['doacao', 'troca', 'pedido', 'quarto', 'achados']
+            && d.titulo is string && d.titulo.size() >= 3 && d.titulo.size() <= 80
+            && textoAte('descricao', 1000)
+            && textoAte('tipoItem', 20)
+            && textoAte('cidade', 60)
+            && localOk()
+            && textoAte('bairro', 60)
+            && geoOk(d.get('geo', null))
+            && listaAte('fotos', 4)
+            && d.get('estado', 'usado') in ['novo', 'seminovo', 'usado', 'reparo']
+            && d.get('entrega', 'combinar') in ['combinar', 'retirar', 'entrego']
+            && d.status in ['disponivel', 'reservado', 'concluido']
+            && d.aceiteRegras == true
+            && (d.categoria == 'quarto' ? quartoOk(d.get('quarto', null)) : !('quarto' in d))
+            && (d.categoria == 'achados' ? achadoOk(d.get('achado', null)) : !('achado' in d))
+            // Sem venda: nada de "vendo/venda/vende..." e, fora do quarto, nada de "R$".
+            && !texto.matches('(?i)(?s).*\\b(vendo|venda|vende|vender|vendem|vendas)\\b.*')
+            && (d.categoria == 'quarto' || !texto.matches('(?s).*[Rr][$].*'))
+            && dataOuNulo('ocultoAte');
+      }
+      allow read: if logado();
+      allow create: if logado() && emailOk()
+                    && request.resource.data.donoId == request.auth.uid
+                    && request.resource.data.keys().hasOnly(camposComunidade())
+                    && !('ocultoPelaEquipe' in request.resource.data)
+                    && !banidoDoPrograma(request.auth.uid, 'comunidade')
+                    && !sancionado(request.auth.uid)
+                    && request.resource.data.criadoEm == request.time
+                    && comunidadeOk();
+      allow update: if logado() && emailOk()
+                    && resource.data.donoId == request.auth.uid
+                    && request.resource.data.donoId == resource.data.donoId
+                    && request.resource.data.criadoEm == resource.data.criadoEm
+                    && gravou().hasOnly(camposComunidade())
+                    && travaModeracao()
+                    && !banidoDoPrograma(request.auth.uid, 'comunidade')
+                    && comunidadeOk();
+      allow delete: if logado() && (resource.data.donoId == request.auth.uid || podeModerar());
+      // A equipe esconde (anúncio com venda, golpe, conta suspensa).
+      allow update: if podeModerar() && moderacaoOk();
+    }
+
+    // Banimento de um programa (um tipo de perfil de negócio ou a Comunidade). Só a moderação cria/apaga;
+    // a pessoa lê o próprio (para ver o motivo e até quando).
+    match /programa_banidos/{id} {
+      allow get: if logado() && (id.split('_')[0] == request.auth.uid || admin());
+      allow list: if admin();
+      allow create, update: if podeModerar()
+                    && request.resource.data.keys().hasOnly(['uid', 'tipo', 'motivo', 'ate', 'por', 'em'])
+                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'comunidade']
+                    && id == request.resource.data.uid + '_' + request.resource.data.tipo
+                    && request.resource.data.motivo is string && request.resource.data.motivo.size() >= 3 && request.resource.data.motivo.size() <= 300
+                    && (request.resource.data.get('ate', null) == null || request.resource.data.ate is timestamp)
+                    && request.resource.data.por == request.auth.uid
+                    && request.resource.data.em == request.time;
+      allow delete: if podeModerar();
+    }
+
+    // =====================================================
+    // CONVERSAS
+    // Documento: conversas/{uidMenor}_{uidMaior}
+    // =====================================================
+    // =====================================================
+    // NOTAS DO NEGÓCIO SOBRE O CLIENTE: notas_clientes/{donoId}_{clienteId}
+    // Etiquetas e anotação particular. Só quem escreveu lê; o cliente não vê.
+    // =====================================================
+    match /notas_clientes/{id} {
+      allow get: if logado() && id.split('_')[0] == request.auth.uid;
+      allow list: if logado() && resource.data.donoId == request.auth.uid;
+      allow create, update: if logado()
+                    && request.resource.data.keys().hasOnly(['donoId', 'clienteId', 'etiquetas', 'nota', 'atualizadoEm'])
+                    && request.resource.data.donoId == request.auth.uid
+                    && request.resource.data.clienteId is string
+                    && id == request.auth.uid + '_' + request.resource.data.clienteId
+                    && request.resource.data.etiquetas is list && request.resource.data.etiquetas.size() <= 8
+                    && valorTextoAte(request.resource.data.get('nota', ''), 1000)
+                    && request.resource.data.atualizadoEm == request.time;
+      allow delete: if logado() && resource.data.donoId == request.auth.uid;
+    }
+
+    match /conversas/{conversaId} {
+
+      // Cada pessoa só mexe na própria marca de leitura / "digitando".
+      function soMinhaChave(campo) {
+        return !mudou().hasAny([campo])
+            || (request.resource.data[campo] is map
+                && request.resource.data[campo].diff(resource.data.get(campo, {})).affectedKeys().hasOnly([request.auth.uid]));
+      }
+
+      function contextoOk() {
+        let c = request.resource.data.get('contexto', null);
+        return c == null
+            || (c is map && c.keys().hasOnly(['tipo', 'titulo'])
+                && c.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'comunidade']
+                && valorTextoAte(c.get('titulo', ''), 120));
+      }
+
+      // Conversa ainda não criada: só quem faz parte dela (o id tem os dois uids) pode consultar.
+      allow get: if logado()
+                 && ((resource == null && request.auth.uid in conversaId.split('_'))
+                     || (resource != null && request.auth.uid in resource.data.participantes));
+
+      allow list: if logado()
+                  && request.auth.uid in resource.data.participantes;
+      // A moderação vê quem conversa com quem (para a ficha e denúncias), mas não lista mensagens.
+      allow read: if podeModerar();
+
+      allow create: if logado()
+                    && request.resource.data.participantes is list
+                    && request.resource.data.participantes.size() == 2
+                    && request.auth.uid in request.resource.data.participantes
+                    && request.resource.data.participantes[0] < request.resource.data.participantes[1]
+                    && conversaId == request.resource.data.participantes[0]
+                                     + '_' + request.resource.data.participantes[1]
+                    && !bloqueioEntre(request.resource.data.participantes[0],
+                                      request.resource.data.participantes[1])
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['participantes', 'ultimaMensagem', 'atualizadoEm', 'contexto', 'criadoEm'])
+                    && contextoOk()
+                    && textoAte('ultimaMensagem', 200);
+
+// ===== FIM DA PARTE 4 DE 14 =====

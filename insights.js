@@ -10,8 +10,8 @@
 import {
   $, el, icone, fb, eu, dados, numero, toast, erroAmigavel, criarFolha, abrirFolha, fotosDoPost, ms, paraData,
   tempoRelativo, obterPerfil, nomeCidade, ganchos
-} from "./rede.js?v=49";
-import { secaoGrafico, secaoHoras } from "./estatisticas-post.js?v=16";
+} from "./rede.js?v=50";
+import { secaoGrafico, secaoHoras } from "./estatisticas-post.js?v=17";
 import { lerStats, listaDias, somarPeriodo } from "./estat-negocio.js?v=1";
 
 const DIA = 864e5;
@@ -191,7 +191,7 @@ function montar(corpo, D, dias, trocarPeriodo) {
 }
 
 // ---------- seus negócios: atalho para as estatísticas de cada perfil de negócio ----------
-const TIPOS_NEG = { servicos: ["Freelances", "#00adee"], delivery: ["Delivery", "#ff7a1a"], lojinha: ["Lojinha", "#b066ff"], imoveis: ["Imóveis", "#2fbf71"] };
+const TIPOS_NEG = { servicos: ["Freelances", "#00adee"], delivery: ["Delivery", "#ff7a1a"], lojinha: ["Lojinha", "#b066ff"], imoveis: ["Imóveis", "#2fbf71"], saude: ["Saúde", "#0fb5a6"] };
 async function secaoNegocios(corpo, dias) {
   const negs = await lerTodos(fb.query(fb.collection(fb.db, "negocios"), fb.where("donoId", "==", eu.uid), fb.limit(8)));
   if (!negs?.length) return;

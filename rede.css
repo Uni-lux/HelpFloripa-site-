@@ -659,7 +659,7 @@ body.com-barra { padding-bottom: calc(74px + env(safe-area-inset-bottom)); }
 .neg-card.novo { place-items: center; min-height: 240px; border-style: dashed; cursor: pointer; text-align: center; padding: 20px; color: var(--muted); }
 .neg-card.novo:hover { border-color: var(--c); color: var(--text); }
 .neg-card.novo .ic { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; background: color-mix(in srgb, var(--c) 14%, transparent); color: var(--c); margin: 0 auto 8px; }
-.neg-card.servicos { --c: #00adee; } .neg-card.delivery { --c: #ff7a1a; } .neg-card.lojinha { --c: #b066ff; } .neg-card.imoveis { --c: #2fbf71; }
+.neg-card.servicos { --c: #00adee; } .neg-card.delivery { --c: #ff7a1a; } .neg-card.lojinha { --c: #b066ff; } .neg-card.imoveis { --c: #2fbf71; } .neg-card.saude { --c: #0fb5a6; } .neg-card.comunidade { --c: #e5487f; }
 
 @media (max-width: 900px) {
   .duas-col { grid-template-columns: 1fr; }
@@ -800,6 +800,8 @@ html, body { overflow-x: clip; }
 .atalho-classe.delivery, .atalho-mini.delivery { --c: #ff7a1a; }
 .atalho-classe.lojinha, .atalho-mini.lojinha { --c: #b066ff; }
 .atalho-classe.imoveis, .atalho-mini.imoveis { --c: #2fbf71; }
+.atalho-classe.saude, .atalho-mini.saude { --c: #0fb5a6; }
+.atalho-classe.comunidade, .atalho-mini.comunidade { --c: #e5487f; }
 @media (min-width: 700px) { .atalhos-classes { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
@@ -2030,7 +2032,7 @@ body:has(.story-visor, .flash-criar) .toast { bottom: auto; top: calc(74px + env
 .fe-link > .i:last-child { width: .8em; height: .8em; color: #5d6b75; }
 .figs-sec { margin: 10px 2px 4px; font-size: 11.5px; font-weight: 850; letter-spacing: .06em; text-transform: uppercase; color: rgba(255,255,255,.7); }
 .neg-av { display: grid; place-items: center; color: #fff; }
-.neg-av.servicos { background: #00adee; } .neg-av.delivery { background: #ff7a1a; } .neg-av.lojinha { background: #b066ff; } .neg-av.imoveis { background: #2fbf71; }
+.neg-av.servicos { background: #00adee; } .neg-av.delivery { background: #ff7a1a; } .neg-av.lojinha { background: #b066ff; } .neg-av.imoveis { background: #2fbf71; } .neg-av.saude { background: #0fb5a6; } .neg-av.comunidade { background: #e5487f; }
 .neg-av .i { width: 18px; height: 18px; }
 .rel-busca-campo { display: block; width: calc(100% - 32px); margin: 4px 16px 10px; height: 40px; box-sizing: border-box; border-radius: 12px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); padding: 0 12px; font: inherit; font-size: 14.5px; }
 

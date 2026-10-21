@@ -8,17 +8,17 @@
 // - Banner de anúncios: passa sozinho e aceita arrastar com o dedo.
 // =====================================================
 import { fotoSegura } from "./seguranca.js?v=1";
-import { enfeitarSelect } from "./escolha.js?v=3";
-import { estrelas, lerResumos, media } from "./avaliacoes.js?v=13";
+import { enfeitarSelect } from "./escolha.js?v=4";
+import { estrelas, lerResumos, media } from "./avaliacoes.js?v=14";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
-import { lerPlano, nivelPlano, seloPlano } from "./planos.js?v=5";
+import { lerPlano, nivelPlano, seloPlano } from "./planos.js?v=6";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao } from "./perto.js?v=1";
-import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=47";
+import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=48";
 
 const $ = (id) => document.getElementById(id);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
 const ms = (ts) => ts?.toMillis?.() ?? 0;
-const IMG_TIPO = { servicos: "servicos.webp", delivery: "lanchonetes.webp", lojinha: "shopping.webp", imoveis: "imoveis.webp" };
+const IMG_TIPO = { servicos: "servicos.webp", delivery: "lanchonetes.webp", lojinha: "shopping.webp", imoveis: "imoveis.webp", saude: "saude.svg" };
 const iniciais = (n) => { const p = String(n || "?").trim().split(/\s+/); return ((p[0]?.[0] || "?") + (p.length > 1 ? p[p.length - 1][0] : "")).toUpperCase(); };
 
 // ---------- saudação ----------
@@ -37,7 +37,9 @@ const DICAS = {
   servicos: "Ex.: diarista, eletricista, manicure",
   delivery: "Ex.: pizza, hambúrguer, açaí",
   lojinha: "Ex.: tênis, fone, vestido",
-  imoveis: "Ex.: apartamento na Trindade"
+  imoveis: "Ex.: apartamento na Trindade",
+  saude: "Ex.: pediatra, psicóloga, Unimed",
+  comunidade: "Ex.: berço, sofá, quarto na Trindade"
 };
 function escolherClasse(tipo) {
   classeBusca = tipo;
@@ -228,7 +230,7 @@ function revezar(id, itens, { criar, peso, tempo, chave = (x) => x.id, lugares =
 }
 // Filtro por tipo em cima de um carrossel (Tudo · Freelances · Delivery · Lojas · Imóveis): só os
 // tipos que têm alguém aparecem; com um tipo só, o filtro nem aparece.
-const ROT_FILTRO = { servicos: "Freelances", delivery: "Delivery", lojinha: "Lojas", imoveis: "Imóveis" };
+const ROT_FILTRO = { servicos: "Freelances", delivery: "Delivery", lojinha: "Lojas", imoveis: "Imóveis", saude: "Saúde" };
 function filtroTipos(secId, lista, montar) {
   const sec = $(secId); if (!sec) return;
   sec.querySelector(".hm-filtro")?.remove();
@@ -300,13 +302,15 @@ async function carregar(fs, db, u) {
     try { const n = (await fs.getCountFromServer(q)).data().count; totais[nome] = n; totais.em = totais.em || Date.now(); try { localStorage.setItem("hf-totais-inicio", JSON.stringify(totais)); } catch {} return n; } catch { return null; }
   };
   const neg = fs.collection(db, "negocios");
-  const rotulos = { servicos: ["profissional", "profissionais"], delivery: ["cardápio", "cardápios"], lojinha: ["loja", "lojas"], imoveis: ["imóvel", "imóveis"] };
+  const rotulos = { servicos: ["profissional", "profissionais"], delivery: ["cardápio", "cardápios"], lojinha: ["loja", "lojas"], imoveis: ["imóvel", "imóveis"], saude: ["profissional", "profissionais"], comunidade: ["anúncio", "anúncios"] };
   Promise.all([
     contar(fs.query(neg, fs.where("tipo", "==", "servicos")), "servicos"),
     contar(fs.query(neg, fs.where("tipo", "==", "delivery")), "delivery"),
     contar(fs.query(neg, fs.where("tipo", "==", "lojinha")), "lojinha"),
-    contar(fs.query(fs.collection(db, "anuncios"), fs.where("tipo", "==", "imovel")), "imoveis")
-  ]).then((ns) => ["servicos", "delivery", "lojinha", "imoveis"].forEach((t, k) => {
+    contar(fs.query(fs.collection(db, "anuncios"), fs.where("tipo", "==", "imovel")), "imoveis"),
+    contar(fs.query(neg, fs.where("tipo", "==", "saude")), "saude"),
+    contar(fs.query(fs.collection(db, "comunidade"), fs.where("status", "==", "disponivel")), "comunidade")
+  ]).then((ns) => ["servicos", "delivery", "lojinha", "imoveis", "saude", "comunidade"].forEach((t, k) => {
     const alvo = $("conta-" + t);
     if (alvo && ns[k] != null) alvo.textContent = ns[k] ? `${ns[k]} ${rotulos[t][ns[k] === 1 ? 0 : 1]}` : "Seja o primeiro";
   }));

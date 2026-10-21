@@ -6,10 +6,11 @@
 //   abrir uma mensagem por vez, sem listar a conversa): a equipe vê o que foi dito de verdade.
 // - publicação, comentário, perfil e negócio: o conteúdo completo, com foto.
 // =====================================================
-import { C, D, h, toast, dataHora, abrirFicha, TIPOS_NEG } from "./admin-base.js?v=19";
+import { C, D, h, toast, dataHora, abrirFicha, TIPOS_NEG } from "./admin-base.js?v=20";
 import { criarPlayerAudio } from "./audio-ondas.js?v=1";
 
-const TITULOS = { perfil: "Perfil denunciado", publicacao: "Publicação denunciada", comentario: "Comentário denunciado", mensagem: "Mensagem denunciada", negocio: "Negócio denunciado" };
+const TITULOS = { perfil: "Perfil denunciado", publicacao: "Publicação denunciada", comentario: "Comentário denunciado", mensagem: "Mensagem denunciada", negocio: "Negócio denunciado", comunidade: "Anúncio da Comunidade denunciado" };
+const CAT_COMUNIDADE = { doacao: "Doação", troca: "Troca", pedido: "Pedido de ajuda", quarto: "Quarto compartilhado", achados: "Achados e perdidos" };
 // Só mostra mídia do próprio site (dentro do documento ou do Firebase Storage do projeto).
 const midiaOk = (u, tipos = "image|video|audio") => typeof u === "string" && new RegExp(`^(data:(${tipos})/[^,]{1,80},|https://firebasestorage\\.googleapis\\.com/|https://lh3\\.googleusercontent\\.com/)`).test(u);
 const reais = (v) => (Number(v) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -131,8 +132,15 @@ async function conteudoOutro(d, corpo, acoes) {
     if (!n) { corpo.appendChild(h("div", "ad-den-vazio", "O negócio não existe mais.")); return; }
     const fotos = h("div", "ad-den-fotos"); (Array.isArray(n.fotos) ? n.fotos : []).filter((u) => midiaOk(u, "image")).slice(0, 5).forEach((u) => fotos.appendChild(img(u)));
     corpo.appendChild(ficha(n.foto, n.nome, [TIPOS_NEG[n.tipo] || n.tipo, n.cidade].filter(Boolean).join(" · "), [n.descricao || "", fotos.children.length ? fotos : ""]));
-    const pag = n.tipo === "imoveis" ? "imoveis.html" : ({ servicos: "servicos.html", delivery: "delivery.html", lojinha: "shopping.html" }[n.tipo] || "servicos.html");
+    const pag = ({ servicos: "servicos.html", delivery: "delivery.html", lojinha: "shopping.html", imoveis: "imoveis.html", saude: "saude.html" }[n.tipo] || "servicos.html");
     const a = h("a", "ad-bt", "Abrir no site"); a.href = `${pag}?negocio=${encodeURIComponent(d.itemId)}`; a.target = "_blank"; a.rel = "noopener"; acoes.prepend(a);
+  } else if (d.tipo === "comunidade") {
+    const a = await ler("comunidade", d.itemId);
+    if (!a) { corpo.appendChild(h("div", "ad-den-vazio", "O anúncio já foi apagado.")); return; }
+    const fotos = h("div", "ad-den-fotos"); (Array.isArray(a.fotos) ? a.fotos : []).filter((u) => midiaOk(u, "image")).slice(0, 4).forEach((u) => fotos.appendChild(img(u)));
+    const extra = a.quarto ? `Divisão: ${a.quarto.rateio ? "R$ " + a.quarto.rateio + "/mês" : "a combinar"}${a.quarto.regras ? " · Regras: " + a.quarto.regras : ""}` : "";
+    corpo.appendChild(ficha("", a.titulo, [CAT_COMUNIDADE[a.categoria] || a.categoria, a.status, a.bairro, a.cidade, `publicado em ${dataHora(a.criadoEm)}`].filter(Boolean).join(" · "), [a.descricao || "", extra, fotos.children.length ? fotos : ""]));
+    const ln = h("a", "ad-bt", "Abrir no site"); ln.href = `comunidade.html?item=${encodeURIComponent(d.itemId)}`; ln.target = "_blank"; ln.rel = "noopener"; acoes.prepend(ln);
   } else if (d.tipo === "perfil") {
     const p = await ler("perfis_publicos", d.itemId);
     if (!p) { corpo.appendChild(h("div", "ad-den-vazio", "O perfil não existe mais.")); return; }

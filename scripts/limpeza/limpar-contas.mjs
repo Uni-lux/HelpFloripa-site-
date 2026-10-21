@@ -83,6 +83,7 @@ async function limpar(uid) {
   await apagar("vinculos", col("vinculos").where("participantes", "array-contains", uid));
   await apagar("negocios", col("negocios").where("donoId", "==", uid));
   await apagar("anuncios", col("anuncios").where("donoId", "==", uid));
+  await apagar("comunidade", col("comunidade").where("donoId", "==", uid));
   // mensagens que a pessoa enviou (a conversa continua para a outra pessoa)
   const convs = await col("conversas").where("participantes", "array-contains", uid).get();
   for (const c of convs.docs) await apagar("mensagens", c.ref.collection("mensagens").where("remetenteId", "==", uid));

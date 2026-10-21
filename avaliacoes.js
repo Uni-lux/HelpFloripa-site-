@@ -19,7 +19,7 @@
 // =====================================================
 import { docComValidade, esquecer } from "./leituras.js?v=1";
 
-const TIPOS_NEGOCIO = { servicos: "Freelances", delivery: "Delivery", lojinha: "Loja", imoveis: "Imóveis" };
+const TIPOS_NEGOCIO = { servicos: "Freelances", delivery: "Delivery", lojinha: "Loja", imoveis: "Imóveis", saude: "Saúde" };
 export const CHAVES_NEGOCIO = (uid) => Object.keys(TIPOS_NEGOCIO).map((t) => `neg_${uid}_${t}`);
 
 // ---------- números ----------

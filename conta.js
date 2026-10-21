@@ -48,9 +48,9 @@ export function estadoConta(d = {}) {
 async function marcarConteudo(fb, uid, ate) {
   const valor = ate ? fb.Timestamp.fromDate(ate) : null;
   const buscar = (col, campo) => fb.getDocs(fb.query(fb.collection(fb.db, col), fb.where(campo, "==", uid))).catch(() => ({ docs: [] }));
-  const [neg, an, posts] = await Promise.all([buscar("negocios", "donoId"), buscar("anuncios", "donoId"), buscar("diario", "autorId")]);
+  const [neg, an, posts, com] = await Promise.all([buscar("negocios", "donoId"), buscar("anuncios", "donoId"), buscar("diario", "autorId"), buscar("comunidade", "donoId")]);
   // O que a equipe escondeu por moderação continua escondido (o dono nem pode mexer).
-  const refs = [...neg.docs, ...an.docs, ...posts.docs].filter((d) => d.data().ocultoPelaEquipe !== true).map((d) => d.ref);
+  const refs = [...neg.docs, ...an.docs, ...posts.docs, ...com.docs].filter((d) => d.data().ocultoPelaEquipe !== true).map((d) => d.ref);
   for (let i = 0; i < refs.length; i += 400) {
     const lote = fb.writeBatch(fb.db);
     refs.slice(i, i + 400).forEach((r) => lote.update(r, { ocultoAte: valor }));
@@ -107,7 +107,7 @@ export async function apagarTudo(fb, authFns, usuario, aoProgresso = () => {}) {
     pegar("diario", "autorId"), pegar("comentarios", "autorId"), pegar("comentarios", "postAutorId"),
     pegar("curtidas", "uid"), pegar("curtidas_comentarios", "uid"),
     pegar("relacoes", "seguidorId"), pegar("relacoes", "alvoId"), pegar("bloqueios", "bloqueadorId"),
-    pegar("vinculos", "participantes", "array-contains"), pegar("negocios", "donoId"), pegar("anuncios", "donoId")
+    pegar("vinculos", "participantes", "array-contains"), pegar("negocios", "donoId"), pegar("anuncios", "donoId"), pegar("comunidade", "donoId")
   ]);
   const docs = [...new Map(lotes.flatMap((l) => l.docs).map((d) => [d.ref.path, d])).values()];
   // Estrelas dadas: saem junto do resumo da publicação (diario_notas); publicação que já não existe, só a nota.

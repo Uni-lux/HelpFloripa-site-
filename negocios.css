@@ -2,11 +2,13 @@
    Meus negócios (negocios.html): painel do anunciante, cartões de criar com a cor de cada
    classe (as mesmas da página inicial) e o formulário que muda de cor conforme o tipo.
    ===================================================== */
-:root { --c-servicos: #00adee; --c-delivery: #ff7a1a; --c-lojinha: #b066ff; --c-imoveis: #2fbf71; }
+:root { --c-servicos: #00adee; --c-delivery: #ff7a1a; --c-lojinha: #b066ff; --c-imoveis: #2fbf71; --c-saude: #0fb5a6; --c-comunidade: #e5487f; }
 .servicos { --c: var(--c-servicos); }
 .delivery { --c: var(--c-delivery); }
 .lojinha { --c: var(--c-lojinha); }
 .imoveis { --c: var(--c-imoveis); }
+.saude { --c: var(--c-saude); }
+.comunidade { --c: var(--c-comunidade); }
 
 /* ---------- topo ---------- */
 .ng-hero { position: relative; overflow: hidden; display: grid; gap: 16px; margin: 4px 0 22px; padding: 22px 20px 18px; border-radius: 24px; border: 1px solid var(--line);
@@ -18,7 +20,8 @@
 .ng-kicker { display: inline-block; font-size: 11.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
 .ng-hero h1 { margin: 4px 0 4px; font-size: 28px; font-weight: 850; letter-spacing: -.6px; }
 .ng-hero p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.45; max-width: 46ch; }
-.ng-slots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.ng-slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+@media (min-width: 700px) { .ng-slots { grid-template-columns: repeat(6, 1fr); } }
 .ng-slot { display: grid; justify-items: center; gap: 6px; padding: 10px 4px; border-radius: 16px; border: 1px dashed color-mix(in srgb, var(--c) 45%, var(--line));
   background: color-mix(in srgb, var(--panel) 70%, transparent); color: var(--muted); font: inherit; font-size: 12px; font-weight: 750; text-decoration: none; cursor: pointer; transition: transform .15s, border-color .15s; }
 .ng-slot:hover { transform: translateY(-2px); border-color: var(--c); color: var(--text); }
@@ -99,6 +102,7 @@
 #folhaNegocio[data-tipo="delivery"] { --c: var(--c-delivery); }
 #folhaNegocio[data-tipo="lojinha"] { --c: var(--c-lojinha); }
 #folhaNegocio[data-tipo="imoveis"] { --c: var(--c-imoveis); }
+#folhaNegocio[data-tipo="saude"] { --c: var(--c-saude); }
 #folhaNegocio .folha-topo { position: relative; background: linear-gradient(180deg, color-mix(in srgb, var(--c) 14%, transparent), transparent); transition: background .3s; }
 #folhaNegocio .folha-topo::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--c); transition: background .3s; }
 #folhaNegocio #negSalvar { background: var(--c); color: #fff; box-shadow: 0 10px 24px -12px var(--c); }
@@ -246,6 +250,7 @@
 .ni-folha[data-tipo="delivery"] { --c: var(--c-delivery); }
 .ni-folha[data-tipo="lojinha"] { --c: var(--c-lojinha); }
 .ni-folha[data-tipo="imoveis"] { --c: var(--c-imoveis); }
+.ni-folha[data-tipo="saude"] { --c: var(--c-saude); }
 .ni-folha .folha-topo { background: linear-gradient(180deg, color-mix(in srgb, var(--c) 14%, transparent), transparent); }
 .ni-corpo { padding: 14px 16px 28px; display: grid; gap: 14px; align-content: start; }
 .ni-carregando { padding: 40px 0; text-align: center; color: var(--muted); }
@@ -385,3 +390,14 @@
 .ni-periodo button.travado { opacity: .85; }
 .ni-baixar.travado { background: linear-gradient(135deg, #7c3aed, #2563eb); }
 .ni-baixar.travado .ni-pro { background: rgba(255,255,255,.22); }
+
+/* ---------- Saúde no formulário: registro, especialidades e avisos ---------- */
+.neg-registro { display: grid; gap: 8px; }
+.neg-aviso-saude { margin: 2px 0 0; padding: 9px 12px; border-radius: 12px; font-size: 12.5px; line-height: 1.45; color: var(--muted); background: color-mix(in srgb, var(--c) 8%, transparent); border: 1px solid color-mix(in srgb, var(--c) 25%, var(--line)); }
+.neg-esp-outra { display: flex; gap: 8px; margin-top: 8px; }
+.neg-esp-outra input { flex: 1; min-width: 0; }
+.marca-op.linha { display: inline-flex; margin: 2px 0 8px; }
+/* Comunidade: cartão especial em Meus negócios (abre a página da Comunidade) */
+.ng-novo.comunidade .ng-novo-aviso, .neg-card.comunidade .ng-com-aviso { display: flex; gap: 8px; align-items: flex-start; margin-top: 4px; padding: 8px 10px; border-radius: 12px; font-size: 12px; line-height: 1.4; text-align: left;
+  background: color-mix(in srgb, #ef4444 12%, transparent); border: 1px solid color-mix(in srgb, #ef4444 30%, transparent); color: var(--text); }
+a.ng-novo, a.ng-novo * { text-decoration: none; }

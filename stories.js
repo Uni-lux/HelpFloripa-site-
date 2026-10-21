@@ -13,7 +13,7 @@ import {
   meusSeguindo, escondido, silenciado, alternarSilenciar, obterPerfil, abrirOpcoes, abrirLista, linhaPessoa,
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura
-} from "./rede.js?v=49";
+} from "./rede.js?v=50";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { seletorDuracao, fimEscolhido, linhaChave, MAX_FLASH_MIN } from "./enquetes.js?v=3";
 
@@ -128,8 +128,8 @@ function circulo({ uid, nome, foto, nomeReal, meu = false, lista = [] }) {
 function msgFlash(s, acao, extra = {}) {
   return { tipoArquivo: "cartao", cartao: { tipo: "flash", acao, flashId: s.id, autorId: s.autorId, nome: String(s.nome || "").slice(0, 80), ...extra } };
 }
-const PAGINA_NEGOCIO = { servicos: "servicos.html", delivery: "delivery.html", lojinha: "shopping.html", imoveis: "imoveis.html" };
-const ICONE_NEGOCIO = { servicos: "servicos", delivery: "delivery", lojinha: "lojinha", imoveis: "imoveis" };
+const PAGINA_NEGOCIO = { servicos: "servicos.html", delivery: "delivery.html", lojinha: "shopping.html", imoveis: "imoveis.html", saude: "saude.html" };
+const ICONE_NEGOCIO = { servicos: "servicos", delivery: "delivery", lojinha: "lojinha", imoveis: "imoveis", saude: "saude" };
 const linkNegocio = (l) => `${PAGINA_NEGOCIO[l.tipo] || "servicos.html"}?negocio=${encodeURIComponent(l.negocioId)}&de=flash`;
 
 // Abrir um flash pelo link (feed.html?flash=ID), vindo de uma mensagem.
@@ -370,7 +370,7 @@ function abrirCriador({ repost = null, post = null } = {}) {
   bOnde.addEventListener("click", escolherDestinos);
   dica.addEventListener("click", () => { if (meusNeg.length) escolherDestinos(); });
   fb.getDocs(fb.query(fb.collection(fb.db, "negocios"), fb.where("donoId", "==", eu.uid), fb.limit(8))).then((x) => {
-    meusNeg = x.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => PAGINA_NEGOCIO[n.tipo] && /^[A-Za-z0-9]+_(servicos|delivery|lojinha|imoveis)$/.test(n.id));
+    meusNeg = x.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => PAGINA_NEGOCIO[n.tipo] && /^[A-Za-z0-9]+_(servicos|delivery|lojinha|imoveis|saude)$/.test(n.id));
     if (!meusNeg.length) return;
     // Onde publicar por padrão (Configurações do Flash)
     const cfg = configFlash();
@@ -768,7 +768,7 @@ function abrirCriador({ repost = null, post = null } = {}) {
     negociosP ||= fb.getDocs(fb.query(fb.collection(fb.db, "negocios"), fb.limit(300))).then((x) => x.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => n.nome && PAGINA_NEGOCIO[n.tipo] && !escondido(n.donoId))).catch(() => []);
     const todos = await negociosP;
     const meus = todos.filter((n) => n.donoId === eu.uid);
-    const ROT = { servicos: "Freelances", delivery: "Delivery", lojinha: "Lojinha", imoveis: "Imóveis" };
+    const ROT = { servicos: "Freelances", delivery: "Delivery", lojinha: "Lojinha", imoveis: "Imóveis", saude: "Saúde" };
     const item = (n) => {
       const b = el("button", "mencao-item"); b.type = "button";
       const av = el("span", "avatar neg-av " + n.tipo); if (n.foto && /^(data:image|https:)/.test(n.foto)) pintarAvatar(av, n.foto, n.nome); else av.appendChild(icone(ICONE_NEGOCIO[n.tipo], "i s"));
@@ -1352,7 +1352,7 @@ export function abrirConfigFlash() {
     if (corpo.isConnected) pintar();
   }).catch(() => { ativos = []; if (corpo.isConnected) pintar(); });
   fb.getDocs(fb.query(fb.collection(fb.db, "negocios"), fb.where("donoId", "==", eu.uid), fb.limit(8))).then((x) => {
-    meusNeg = x.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => PAGINA_NEGOCIO[n.tipo] && /^[A-Za-z0-9]+_(servicos|delivery|lojinha|imoveis)$/.test(n.id));
+    meusNeg = x.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => PAGINA_NEGOCIO[n.tipo] && /^[A-Za-z0-9]+_(servicos|delivery|lojinha|imoveis|saude)$/.test(n.id));
     if (meusNeg.length && corpo.isConnected) pintar();
   }).catch(() => {});
 }
