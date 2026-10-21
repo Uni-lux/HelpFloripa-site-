@@ -1,3 +1,72 @@
+    // ===================================================
+    // RESUMO DAS ESTRELAS DE UMA PUBLICAÇÃO: diario_notas/{postId} { total, soma, n1..n5 }
+    // Uma leitura mostra a média e quantas pessoas deram 5, 4, 3, 2 e 1 estrela, com mil ou um milhão
+    // de notas. Só muda junto com a nota de quem grava (curtidas/{postId}_{uid}), na conta exata:
+    // a nota de antes sai e a nova entra. A moderação pode recalcular.
+    // ===================================================
+    match /diario_notas/{postId} {
+      allow read: if logado();
+
+      function minhaNota() { return /databases/$(database)/documents/curtidas/$(postId + '_' + request.auth.uid); }
+      function contaCerta() {
+        let a = exists(minhaNota()) ? get(minhaNota()).data.nota : 0;
+        let d = existsAfter(minhaNota()) ? getAfter(minhaNota()).data.nota : 0;
+        let r = resource == null ? {} : resource.data;
+        let n = request.resource.data;
+        return a != d
+            && n.keys().hasOnly(['total', 'soma', 'n1', 'n2', 'n3', 'n4', 'n5'])
+            && n.get('total', 0) == r.get('total', 0) + (d > 0 ? 1 : 0) - (a > 0 ? 1 : 0)
+            && n.get('soma', 0) == r.get('soma', 0) + d - a
+            && n.get('n1', 0) == r.get('n1', 0) + (d == 1 ? 1 : 0) - (a == 1 ? 1 : 0)
+            && n.get('n2', 0) == r.get('n2', 0) + (d == 2 ? 1 : 0) - (a == 2 ? 1 : 0)
+            && n.get('n3', 0) == r.get('n3', 0) + (d == 3 ? 1 : 0) - (a == 3 ? 1 : 0)
+            && n.get('n4', 0) == r.get('n4', 0) + (d == 4 ? 1 : 0) - (a == 4 ? 1 : 0)
+            && n.get('n5', 0) == r.get('n5', 0) + (d == 5 ? 1 : 0) - (a == 5 ? 1 : 0);
+      }
+      allow create, update: if logado() && contaCerta();
+      // Recalcular (moderação): números inteiros, sem campo estranho.
+      allow create, update: if podeModerar()
+                    && request.resource.data.keys().hasOnly(['total', 'soma', 'n1', 'n2', 'n3', 'n4', 'n5'])
+                    && request.resource.data.total is int && request.resource.data.soma is int
+                    && request.resource.data.n1 is int && request.resource.data.n2 is int && request.resource.data.n3 is int
+                    && request.resource.data.n4 is int && request.resource.data.n5 is int;
+      allow delete: if podeModerar();
+    }
+
+    // =====================================================
+    // COMENTÁRIOS: comentarios/{id}
+    // - Resposta: respostaA = id do comentário respondido (mesma publicação)
+    //   e respostaAutorId = autor dele (para o aviso).
+    // - Quem comentou edita o texto. O dono da publicação oculta um comentário.
+    // - Quem comentou ou o dono da publicação apaga.
+    // - Publicação com comentários ocultos não recebe comentários novos.
+    // =====================================================
+    match /comentarios/{id} {
+
+      allow read: if logado();
+
+      function textoComentarioOk(d) {
+        return d.texto is string && d.texto.size() >= 1 && d.texto.size() <= 500;
+      }
+
+      // Quem pode comentar (escolha do autor): o autor sempre pode.
+      function segue(a, b) { return exists(/databases/$(database)/documents/relacoes/$(a + '_' + b)); }
+      function podeComentar(p) {
+        let q = p.get('quemComenta', 'todos');
+        return p.autorId == request.auth.uid
+            || q == 'todos'
+            || (q == 'seguidores' && segue(request.auth.uid, p.autorId))
+            || (q == 'mutuos' && segue(request.auth.uid, p.autorId) && segue(p.autorId, request.auth.uid));
+      }
+
+      function respostaOk(d) {
+        return (!('respostaA' in d) && !('respostaAutorId' in d))
+            || (d.respostaA is string
+                && exists(/databases/$(database)/documents/comentarios/$(d.respostaA))
+                && get(/databases/$(database)/documents/comentarios/$(d.respostaA)).data.postId == d.postId
+                && d.respostaAutorId == get(/databases/$(database)/documents/comentarios/$(d.respostaA)).data.autorId);
+      }
+
       allow create: if logado()
                     && emailOk()
                     && request.resource.data.keys().hasOnly(['postId', 'postAutorId', 'autorId', 'nome', 'foto', 'texto', 'respostaA', 'respostaAutorId', 'criadoEm'])
@@ -127,70 +196,5 @@
                         || (request.resource.data.agendadoPara is timestamp
                             && request.resource.data.agendadoPara > request.time
                             && request.resource.data.agendadoPara < request.time + duration.value(60, 'd')));
-
-      allow update: if logado()
-                    && emailOk()
-                    && resource.data.autorId == request.auth.uid
-                    && request.resource.data.autorId == resource.data.autorId
-                    && gravou().hasOnly(['texto', 'nome', 'fotoPerfil', 'comentariosOcultos', 'ocultoAte', 'editadoEm', 'quemComenta', 'comentarioFixo', 'tags', 'marcados', 'agendadoPara', 'local'])
-                    && localPubOk(request.resource.data)
-                    && tagsOk(request.resource.data) && marcadosOk(request.resource.data)
-                    // agendada: publicar agora (agendadoPara = agora) ou mudar a data (até 60 dias)
-                    && (!mudou().hasAny(['agendadoPara'])
-                        || (request.resource.data.agendadoPara is timestamp
-                            && request.resource.data.agendadoPara >= request.time
-                            && request.resource.data.agendadoPara < request.time + duration.value(60, 'd')))
-                    // quem pode comentar: todos, seguidores, seguidores que o autor segue de volta, ninguém
-                    && (!('quemComenta' in request.resource.data) || request.resource.data.quemComenta in ['todos', 'seguidores', 'mutuos', 'ninguem'])
-                    // comentário fixado no topo (id) ou nulo
-                    && (!('comentarioFixo' in request.resource.data) || request.resource.data.comentarioFixo == null
-                        || (request.resource.data.comentarioFixo is string && request.resource.data.comentarioFixo.size() <= 40))
-                    && dataOuNulo('ocultoAte')
-                    && travaModeracao()
-                    // texto editado: marca a data da edição
-                    && (!mudou().hasAny(['texto']) || request.resource.data.get('editadoEm', null) == request.time)
-                    && (!mudou().hasAny(['editadoEm']) || request.resource.data.editadoEm == request.time)
-                    && (!('comentariosOcultos' in request.resource.data) || request.resource.data.comentariosOcultos is bool)
-                    && publicacaoOk();
-
-      allow delete: if logado()
-                    && resource.data.autorId == request.auth.uid;
-
-      // Alcance: cada conta que viu a publicação (uma vez). Só o autor lista/conta.
-      match /vistas/{uid} {
-        allow create: if logado() && uid == request.auth.uid
-                      && request.resource.data.keys().hasOnly(['criadoEm', 'origem'])
-                      && request.resource.data.criadoEm == request.time
-                      && (!('origem' in request.resource.data) || request.resource.data.origem in ['principais', 'seguindo', 'amigos', 'perfil', 'link', 'tag', 'salvos']);
-        allow read: if logado() && get(/databases/$(database)/documents/diario/$(postId)).data.autorId == request.auth.uid;
-        allow update, delete: if false;
-      }
-
-      // A equipe esconde ou remove publicações que violam os Termos.
-      allow update: if podeModerar()
-                    && moderacaoOk();
-      allow delete: if podeModerar();
-    }
-    // =====================================================
-    // ESTATÍSTICAS DOS NEGÓCIOS (como o Google Meu Negócio e o painel profissional do Instagram)
-    // neg_visitas/{negocio}_{uid}_{dia}: uma por pessoa, por negócio, por dia (horário de Brasília).
-    //   Só a própria pessoa lê. Guarda a origem, a hora e o que ela fez (WhatsApp, rota, site...).
-    // neg_stats/{negocio}_{dia}: os números do dia, que só o dono do negócio lê.
-    //   Cada número só sobe +1 na MESMA gravação em que a visita nasce ou ganha uma ação nova:
-    //   ninguém infla as contas, e o dono não vê QUEM visitou (só quantos).
-    // =====================================================
-    function diaBR() {
-      let t = request.time - duration.value(3, 'h');
-      return string(t.year()) + (t.month() < 10 ? '0' : '') + string(t.month()) + (t.day() < 10 ? '0' : '') + string(t.day());
-    }
-    function horaBR() {
-      return (request.time.hours() + 21) % 24;
-    }
-    function caminhoStats(negocioId, dia) {
-      return /databases/$(database)/documents/neg_stats/$(negocioId + '_' + dia);
-    }
-    function caminhoVisita(negocioId, dia) {
-      return /databases/$(database)/documents/neg_visitas/$(negocioId + '_' + request.auth.uid + '_' + dia);
-    }
 
 // ===== FIM DA PARTE 12 DE 13 =====

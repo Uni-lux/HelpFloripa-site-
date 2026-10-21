@@ -1,3 +1,34 @@
+      function avaliacaoNova() {
+        return request.resource.data.ultima is string
+            && !exists(caminhoNova())
+            && existsAfter(caminhoNova())
+            && getAfter(caminhoNova()).data.autorId == request.auth.uid
+            && chave in getAfter(caminhoNova()).data.chaves;
+      }
+
+      function estrela() {
+        return 'n' + string(getAfter(caminhoNova()).data.nota);
+      }
+
+      allow read: if logado();
+
+      allow create: if logado()
+                    && avaliacaoNova()
+                    && request.resource.data.keys().hasOnly(['total', 'soma', 'n1', 'n2', 'n3', 'n4', 'n5', 'ultima', 'atualizadoEm'])
+                    && request.resource.data.keys().hasAll(['total', 'soma', 'n1', 'n2', 'n3', 'n4', 'n5', 'ultima'])
+                    && request.resource.data.total == 1
+                    && request.resource.data.soma == getAfter(caminhoNova()).data.nota
+                    && request.resource.data[estrela()] == 1
+                    && request.resource.data.n1 + request.resource.data.n2 + request.resource.data.n3
+                       + request.resource.data.n4 + request.resource.data.n5 == 1;
+
+      allow update: if logado()
+                    && avaliacaoNova()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['total', 'soma', 'ultima', 'atualizadoEm', estrela()])
+                    && request.resource.data.total == resource.data.total + 1
+                    && request.resource.data.soma == resource.data.soma + getAfter(caminhoNova()).data.nota
+                    && request.resource.data[estrela()] == resource.data.get(estrela(), 0) + 1;
+
       // Edição de uma avaliação n_/c_: troca a nota antiga pela nova (o total não muda).
       function edicao() {
         let antes = get(caminhoNova()).data;
@@ -206,15 +237,5 @@
                 && request.auth.uid in get(/databases/$(database)/documents/conversas/$(d.conversaId)).data.participantes
                 && get(/databases/$(database)/documents/conversas/$(d.conversaId)/mensagens/$(d.itemId)).data.remetenteId == d.alvoId);
       }
-
-      allow get: if logado() && resource.data.autorId == request.auth.uid;
-      allow read: if admin();
-      // A equipe registra a análise e quem assumiu o caso (para ninguém fazer o mesmo trabalho).
-      allow update: if podeModerar()
-                    && mudou().hasOnly(['status', 'acao', 'nota', 'analisadaEm', 'analisadaPor', 'responsavel', 'responsavelNome', 'assumidoEm'])
-                    && request.resource.data.status in ['nova', 'em_analise', 'resolvida', 'descartada']
-                    && (!mudou().hasAny(['status', 'acao', 'nota', 'analisadaEm', 'analisadaPor']) || request.resource.data.analisadaPor == request.auth.uid)
-                    && responsavelOk()
-                    && valorTextoAte(request.resource.data.get('nota', ''), 1000);
 
 // ===== FIM DA PARTE 6 DE 13 =====

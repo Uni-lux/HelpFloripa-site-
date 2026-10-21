@@ -17,15 +17,17 @@
 > que só ela lê; `neg_stats`: os números do dia, que só o dono do negócio lê e que só sobem +1 junto com uma visita ou ação nova),
 > anexos no suporte, ponto do endereço (`geo`), **local nas publicações** (`diario.local`), **publicação no Flash**
 > (`stories.postDe`, com o crédito; `pref_publicas.permiteFlash` deixa o autor desligar) e os **planos dos negócios**
-> (`planos_pedidos`: a pessoa pede o Pro e só a equipe comercial/dono confirma o Pix; `planos`: o plano ativo, que só a
-> equipe comercial/dono grava).
+> (`planos_pedidos`: a pessoa pede o Plus, o Pro ou o Premium e **só os donos do site** confirmam o Pix; `planos`: o plano
+> ativo, que só os donos gravam; `planos_negociacoes`: pedido de **condição especial (baixa renda) ou parceria**, que só a
+> pessoa e os donos leem) e o **registro de ações** (`admin_log`), que agora **só os donos leem** (o resto da equipe só vê
+> as cobranças das reclamações).
 > Para publicar, o processo é o mesmo: apagar tudo no console e colar as 13 partes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
 `firestore.rules` divididas em **13 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
-- Arquivo de origem: `firestore.rules` (137.833 bytes, 2.406 linhas, sha256 começa com `1109c85e7804b735`).
+- Arquivo de origem: `firestore.rules` (154.425 bytes, 2.670 linhas, sha256 começa com `6ebba0345b56b3a7`).
 - Cada parte termina com a linha `// ===== FIM DA PARTE X DE 13 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
 - Conferido: as 13 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.

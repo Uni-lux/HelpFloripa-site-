@@ -43,6 +43,10 @@ service cloud.firestore {
     function podeComercial() {
       return admin() && papel() in ['dono', 'comercial'];
     }
+    // Só os donos do site: planos (pagamentos, negociações, receita) e o registro de ações da equipe.
+    function donoDoSite() {
+      return admin() && papel() == 'dono';
+    }
 
     // Suspensão (até uma data) ou banimento (sem data).
     function sancionado(uid) {
@@ -1668,14 +1672,14 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // Planos dos negócios (Grátis e Pro, Pix manual). A pessoa cria o pedido (pendente) e pode cancelar;
-    // a equipe (dono/comercial) confere o pagamento, marca pago/recusado e ativa planos/{uid}.
+    // Planos dos negócios (Grátis + Plus, Pro e Premium, Pix manual). A pessoa cria o pedido (pendente) e pode
+    // cancelar; só os donos do site conferem o pagamento, marcam pago/recusado e ativam planos/{uid}.
     match /planos_pedidos/{id} {
-      allow read: if (logado() && resource.data.uid == request.auth.uid) || podeComercial();
+      allow read: if (logado() && resource.data.uid == request.auth.uid) || donoDoSite();
       allow create: if logado() && emailOk()
                     && request.resource.data.keys().hasOnly(['uid', 'nome', 'email', 'plano', 'meses', 'valor', 'txid', 'status', 'criadoEm'])
                     && request.resource.data.uid == request.auth.uid
-                    && request.resource.data.plano == 'pro'
+                    && request.resource.data.plano in ['plus', 'pro', 'premium']
                     && request.resource.data.meses in [1, 3, 6, 12]
                     && request.resource.data.valor is number && request.resource.data.valor > 0 && request.resource.data.valor <= 1000
                     && request.resource.data.txid is string && request.resource.data.txid.matches('^[A-Z0-9]{4,25}$')
@@ -1687,7 +1691,7 @@ service cloud.firestore {
                     && resource.data.status == 'pendente'
                     && mudou().hasOnly(['status'])
                     && request.resource.data.status == 'cancelado';
-      allow update: if podeComercial()
+      allow update: if donoDoSite()
                     && resource.data.status == 'pendente'
                     && mudou().hasOnly(['status', 'decididoPor', 'decididoEm', 'motivo'])
                     && request.resource.data.status in ['pago', 'recusado']
@@ -1696,16 +1700,56 @@ service cloud.firestore {
                     && valorTextoAte(request.resource.data.get('motivo', ''), 300);
       allow delete: if false;
     }
-    // Plano ativo da conta: público (selo Pro e destaque); só a equipe comercial muda.
+    // Plano ativo da conta: público (selo e destaque); só os donos do site mudam.
     match /planos/{uid} {
       allow read: if logado();
-      allow create, update: if podeComercial()
-                    && request.resource.data.keys().hasOnly(['plano', 'ate', 'ativadoEm', 'ativadoPor', 'pedidoId', 'meses'])
-                    && request.resource.data.plano in ['pro', 'gratis']
+      allow create, update: if donoDoSite()
+                    && request.resource.data.keys().hasOnly(['plano', 'ate', 'ativadoEm', 'ativadoPor', 'pedidoId', 'negociacaoId', 'meses'])
+                    && request.resource.data.plano in ['plus', 'pro', 'premium', 'gratis']
                     && request.resource.data.ate is timestamp
                     && request.resource.data.ativadoPor == request.auth.uid
                     && request.resource.data.ativadoEm == request.time;
-      allow delete: if podeComercial();
+      allow delete: if donoDoSite();
+    }
+    // Condição especial (baixa renda) ou parceria pelos planos: um pedido por pessoa (id = uid). A pessoa envia,
+    // cancela enquanto está aberto e pede de novo depois de decidido; só os donos do site leem e negociam.
+    match /planos_negociacoes/{uid} {
+      function pedidoNegOk() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['uid', 'nome', 'email', 'tipo', 'plano', 'valorProposto', 'contato', 'mensagem', 'status', 'criadoEm'])
+          && d.uid == request.auth.uid && uid == request.auth.uid
+          && d.tipo in ['apoio', 'parceria']
+          && d.plano in ['plus', 'pro', 'premium']
+          && d.valorProposto is number && d.valorProposto >= 0 && d.valorProposto <= 1000
+          && d.mensagem is string && d.mensagem.size() >= 20 && d.mensagem.size() <= 1500
+          && valorTextoAte(d.get('contato', ''), 40)
+          && valorTextoAte(d.get('nome', ''), 80)
+          && valorTextoAte(d.get('email', ''), 120)
+          && d.status == 'novo'
+          && d.criadoEm == request.time;
+      }
+      allow read: if (logado() && uid == request.auth.uid) || donoDoSite();
+      allow create: if logado() && emailOk() && pedidoNegOk();
+      // Pedir de novo: só depois que o anterior foi decidido ou cancelado (substitui o documento inteiro).
+      allow update: if logado() && emailOk() && uid == request.auth.uid
+                    && resource.data.status in ['aprovado', 'recusado', 'cancelado']
+                    && pedidoNegOk();
+      allow update: if logado() && uid == request.auth.uid
+                    && resource.data.status in ['novo', 'em_conversa']
+                    && mudou().hasOnly(['status'])
+                    && request.resource.data.status == 'cancelado';
+      allow update: if donoDoSite()
+                    && resource.data.status in ['novo', 'em_conversa']
+                    && mudou().hasOnly(['status', 'resposta', 'decididoPor', 'decididoEm', 'planoConcedido', 'meses', 'valorAcordado'])
+                    && request.resource.data.status in ['em_conversa', 'aprovado', 'recusado']
+                    && request.resource.data.decididoPor == request.auth.uid
+                    && request.resource.data.decididoEm == request.time
+                    && valorTextoAte(request.resource.data.get('resposta', ''), 600)
+                    && (request.resource.data.status != 'aprovado'
+                        || (request.resource.data.planoConcedido in ['plus', 'pro', 'premium']
+                            && request.resource.data.meses is int && request.resource.data.meses >= 1 && request.resource.data.meses <= 24
+                            && request.resource.data.valorAcordado is number && request.resource.data.valorAcordado >= 0 && request.resource.data.valorAcordado <= 5000));
+      allow delete: if false;
     }
 
     match /parcerias/{id} {
@@ -1953,7 +1997,8 @@ service cloud.firestore {
     }
 
     match /admin_log/{id} {
-      allow read: if admin();
+      // Só os donos do site leem o registro; o resto da equipe só vê as cobranças das reclamações.
+      allow read: if donoDoSite() || (admin() && resource.data.acao == 'cobrar_reclamacao');
       allow create: if admin()
                     && request.resource.data.por == request.auth.uid
                     && request.resource.data.em == request.time

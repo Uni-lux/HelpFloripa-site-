@@ -372,6 +372,14 @@
 .ng-plano.pro { border-color: color-mix(in srgb, #2fbf71 45%, var(--line)); background: linear-gradient(120deg, color-mix(in srgb, #2fbf71 12%, var(--panel)), color-mix(in srgb, #7c3aed 10%, var(--panel))); }
 .ng-plano.espera { border-color: color-mix(in srgb, #f5a524 50%, var(--line)); }
 .ng-plano.espera .ng-plano-ic { background: #f5a524; }
+.ng-plano-falta { justify-self: start; margin-top: 3px; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 800; color: #2fbf71; background: color-mix(in srgb, #2fbf71 16%, transparent); }
+.ng-plano-falta.perto { color: #f5a524; background: color-mix(in srgb, #f5a524 18%, transparent); }
+.ng-plano-barra { display: block; height: 5px; margin-top: 4px; border-radius: 999px; background: color-mix(in srgb, var(--muted) 22%, transparent); overflow: hidden; }
+.ng-plano-barra i { display: block; height: 100%; border-radius: inherit; background: #2fbf71; }
+.ng-plano.perto { border-color: color-mix(in srgb, #f5a524 55%, var(--line)); }
+.ng-plano.perto .ng-plano-barra i { background: #f5a524; }
+.ng-plano-ic:has(.selo-pro) { width: auto; min-width: 40px; padding: 0 5px; box-sizing: border-box; }
+.ng-plano-ic .selo-pro { font-size: 9.5px; padding: 0; letter-spacing: .03em; }
 /* Recursos do Pro nas estatísticas (90 dias e Excel) */
 .ni-pro { display: inline-flex; align-items: center; height: 15px; margin-left: 5px; padding: 0 4px; border-radius: 5px; font-size: 8.5px; font-weight: 900; letter-spacing: .06em; color: #fff; background: linear-gradient(135deg, #7c3aed, #2563eb); vertical-align: middle; }
 .ni-periodo button.travado { opacity: .85; }

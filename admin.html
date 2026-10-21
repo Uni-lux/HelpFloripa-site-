@@ -19,9 +19,9 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="admin.css?v=23" />
+  <link rel="stylesheet" href="admin.css?v=24" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="admin.js?v=35"></script>
+  <script type="module" src="admin.js?v=36"></script>
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -96,12 +96,12 @@
         <h4>Negócios</h4>
         <button type="button" class="ad-nav" data-secao="negocios"><svg class="i s"><use href="#i-loja"/></svg>Negócios e anúncios</button>
         <button type="button" class="ad-nav" data-secao="parcerias"><svg class="i s"><use href="#i-aperto"/></svg>Sócios e parcerias<span class="cont" data-cont="parcerias"></span></button>
-        <button type="button" class="ad-nav" data-secao="planos"><svg class="i s"><use href="#i-estrela"/></svg>Planos<span class="cont" data-cont="planos"></span></button>
+        <button type="button" class="ad-nav" data-secao="planos" data-so-dono hidden><svg class="i s"><use href="#i-estrela"/></svg>Planos e receita<span class="cont" data-cont="planos"></span></button>
         <h4>Comunicação</h4>
         <button type="button" class="ad-nav" data-secao="comunicados"><svg class="i s"><use href="#i-megafone"/></svg>Comunicados</button>
         <h4>Equipe</h4>
         <button type="button" class="ad-nav" data-secao="tarefas"><svg class="i s"><use href="#i-tarefas"/></svg>Tarefas<span class="cont" data-cont="tarefas"></span></button>
-        <button type="button" class="ad-nav" data-secao="registro"><svg class="i s"><use href="#i-lista"/></svg>Registro de ações</button>
+        <button type="button" class="ad-nav" data-secao="registro" data-so-dono hidden><svg class="i s"><use href="#i-lista"/></svg>Registro e histórico</button>
       </nav>
       <main class="ad-principal" id="principal" tabindex="-1">
         <div class="ad-vazio">Carregando dados do Help Floripa...</div>

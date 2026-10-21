@@ -15,12 +15,14 @@ import { docComValidade, docsComValidade } from "./leituras.js?v=1";
 import { anelNegocio } from "./flash-negocio.js?v=2";
 import { camposEndereco, textoCidade, cidadesDe, NOME_UF, semAcento } from "./endereco.js?v=1";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao } from "./perto.js?v=1";
-import { lerPlano, ehPro, seloPro } from "./planos.js?v=1";
+import { lerPlano, nivelPlano, seloPlano, nomePlano } from "./planos.js?v=2";
 import { usarEstat, registrarVisita, registrarAcao, registrarItem, chaveItem as chaveEstat, chaveAnuncio } from "./estat-negocio.js?v=1";
-// Plano de quem anuncia (Pro aparece primeiro na ordem padrão e com o selo).
+// Plano de quem anuncia: todo plano pago tem o selo; Pro e Premium aparecem antes na ordem padrão
+// (Premium antes de todos).
 const planosDonos = new Map();
-const proDe = (n) => ehPro(planosDonos.get(n?.donoId));
-const proPrimeiro = (f) => (a, b) => (proDe(b.n || b) - proDe(a.n || a)) || f(a, b);
+const nivelDe = (n) => nivelPlano(planosDonos.get(n?.donoId));
+const destaqueDe = (n) => { const v = nivelDe(n); return v >= 2 ? v : 0; };
+const proPrimeiro = (f) => (a, b) => (destaqueDe(b.n || b) - destaqueDe(a.n || a)) || f(a, b);
 
 const PARAMS = new URL(import.meta.url).searchParams;
 const TIPO_PAGINA = PARAMS.get("tipo");
@@ -1092,11 +1094,11 @@ export function abrirDetalhe(n, opcoes = {}) {
   if (dono.verificado) { const v = el("span", "vd-selo-ok"); v.append(icone("verificado"), document.createTextNode("Responsável verificado")); v.title = "A identidade de quem criou este perfil foi conferida pela equipe do Help Floripa."; conf0.appendChild(v); }
   if (cnpjTxt(n.cnpj)) { const c = el("span", "vd-selo-cnpj"); c.append(icone("cartao"), document.createTextNode(`CNPJ ${cnpjTxt(n.cnpj)}`)); conf0.appendChild(c); }
   cab.appendChild(conf0); conf0.hidden = !conf0.children.length;
-  // Selo do plano Pro (lido do plano da conta, guardado 10 min).
+  // Selo do plano pago (lido do plano da conta, guardado 10 min).
   lerPlano(fbx || fb, n.donoId).then((pl) => {
-    if (!ehPro(pl)) return;
-    const pr = el("span", "vd-selo-pro"); pr.append(seloPro(), document.createTextNode("Negócio Pro"));
-    pr.title = "Este negócio assina o plano Pro do Help Floripa.";
+    if (!nivelPlano(pl)) return;
+    const pr = el("span", "vd-selo-pro"); pr.append(seloPlano(pl), document.createTextNode(`Negócio ${nomePlano(pl.plano)}`));
+    pr.title = `Este negócio assina o plano ${nomePlano(pl.plano)} do Help Floripa.`;
     conf0.prepend(pr); conf0.hidden = false;
   }).catch(() => {});
   ct.appendChild(cab);
@@ -1852,7 +1854,7 @@ const SEM_MOVIMENTO = matchMedia("(prefers-reduced-motion: reduce)").matches;
 // Nome do cartão com o selo Pro ao lado (quando a conta tem o plano).
 function nomeComSelo(n, padrao) {
   const s = el("strong", "nm", n.nome || padrao);
-  if (proDe(n)) { s.classList.add("com-pro"); s.append(" ", seloPro()); }
+  if (nivelDe(n)) { s.classList.add("com-pro"); s.append(" ", seloPlano(planosDonos.get(n.donoId))); }
   return s;
 }
 // Cartão dos Freelances: o mesmo modelo das páginas irmãs (foto do trabalho em cima, avatar,

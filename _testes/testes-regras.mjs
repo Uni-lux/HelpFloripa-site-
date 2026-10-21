@@ -2,7 +2,7 @@
 // (não apaga os dados do demo-hf que o navegador usa). Uso: node testes-regras.mjs [arquivo.rules]
 import { initializeTestEnvironment, assertSucceeds, assertFails } from "@firebase/rules-unit-testing";
 import { readFileSync } from "node:fs";
-import { doc, setDoc, updateDoc, getDoc, getDocs, collection, query, where, writeBatch, Timestamp, serverTimestamp, increment, deleteField, deleteDoc } from "firebase/firestore";
+import { doc, setDoc, updateDoc, getDoc, getDocs, collection, query, where, writeBatch, Timestamp, serverTimestamp, increment, deleteField, deleteDoc, orderBy, limit, addDoc } from "firebase/firestore";
 
 const arquivo = process.argv[2] || new URL("../firestore.rules", import.meta.url).pathname;
 const env = await initializeTestEnvironment({ projectId: "demo-regras", firestore: { rules: readFileSync(arquivo, "utf8"), host: "127.0.0.1", port: 8085 } });
@@ -677,15 +677,61 @@ await t("plano: outra pessoa não lê o pedido", () => assertFails(getDoc(doc(ct
 await t("plano: a pessoa não marca o próprio pedido como pago", () => assertFails(updateDoc(doc(ctx("loja"), "planos_pedidos", "pp1"), { status: "pago" })));
 await t("plano: a pessoa não se dá o Pro", () => assertFails(setDoc(doc(ctx("loja"), "planos", "loja"), { plano: "pro", ate: Timestamp.fromMillis(Date.now() + 9e9), ativadoEm: serverTimestamp(), ativadoPor: "loja" })));
 await t("plano: moderação não confirma pagamento", () => assertFails(updateDoc(doc(ctx("mod"), "planos_pedidos", "pp1"), { status: "pago", decididoPor: "mod", decididoEm: serverTimestamp() })));
-await t("plano: comercial lê os pedidos", () => assertSucceeds(getDocs(query(collection(ctx("com"), "planos_pedidos"), where("status", "==", "pendente")))));
-await t("plano: comercial confirma o pagamento", () => assertSucceeds(updateDoc(doc(ctx("com"), "planos_pedidos", "pp1"), { status: "pago", decididoPor: "com", decididoEm: serverTimestamp() })));
-await t("plano: comercial ativa o Pro", () => assertSucceeds(setDoc(doc(ctx("com"), "planos", "loja"), { plano: "pro", ate: Timestamp.fromMillis(Date.now() + 90 * 864e5), meses: 3, pedidoId: "pp1", ativadoEm: serverTimestamp(), ativadoPor: "com" })));
-await t("plano: ativar com campo a mais é recusado", () => assertFails(setDoc(doc(ctx("com"), "planos", "loja"), { plano: "pro", ate: Timestamp.fromMillis(Date.now()), ativadoEm: serverTimestamp(), ativadoPor: "com", desconto: 100 })));
-await t("plano: qualquer logado lê o plano (selo Pro)", () => assertSucceeds(getDoc(doc(ctx("bia"), "planos", "loja"))));
-await t("plano: pedido já decidido não muda mais", () => assertFails(updateDoc(doc(ctx("com"), "planos_pedidos", "pp1"), { status: "recusado", decididoPor: "com", decididoEm: serverTimestamp() })));
+await t("plano: comercial NÃO lê os pedidos (só donos)", () => assertFails(getDocs(query(collection(ctx("com"), "planos_pedidos"), where("status", "==", "pendente")))));
+await t("plano: comercial NÃO confirma o pagamento", () => assertFails(updateDoc(doc(ctx("com"), "planos_pedidos", "pp1"), { status: "pago", decididoPor: "com", decididoEm: serverTimestamp() })));
+await t("plano: comercial NÃO ativa plano", () => assertFails(setDoc(doc(ctx("com"), "planos", "loja"), { plano: "pro", ate: Timestamp.fromMillis(Date.now() + 90 * 864e5), meses: 3, pedidoId: "pp1", ativadoEm: serverTimestamp(), ativadoPor: "com" })));
+await t("plano: dono lê os pedidos", () => assertSucceeds(getDocs(query(collection(ctx("adm"), "planos_pedidos"), where("status", "==", "pendente")))));
+await t("plano: dono confirma o pagamento", () => assertSucceeds(updateDoc(doc(ctx("adm"), "planos_pedidos", "pp1"), { status: "pago", decididoPor: "adm", decididoEm: serverTimestamp() })));
+await t("plano: dono ativa o Pro", () => assertSucceeds(setDoc(doc(ctx("adm"), "planos", "loja"), { plano: "pro", ate: Timestamp.fromMillis(Date.now() + 90 * 864e5), meses: 3, pedidoId: "pp1", ativadoEm: serverTimestamp(), ativadoPor: "adm" })));
+await t("plano: ativar com campo a mais é recusado", () => assertFails(setDoc(doc(ctx("adm"), "planos", "loja"), { plano: "pro", ate: Timestamp.fromMillis(Date.now()), ativadoEm: serverTimestamp(), ativadoPor: "adm", desconto: 100 })));
+await t("plano: plano que não existe é recusado", () => assertFails(setDoc(doc(ctx("adm"), "planos", "loja"), { plano: "ouro", ate: Timestamp.fromMillis(Date.now() + 9e8), ativadoEm: serverTimestamp(), ativadoPor: "adm" })));
+await t("plano: qualquer logado lê o plano (selo)", () => assertSucceeds(getDoc(doc(ctx("bia"), "planos", "loja"))));
+await t("plano: pedido já decidido não muda mais", () => assertFails(updateDoc(doc(ctx("adm"), "planos_pedidos", "pp1"), { status: "recusado", decididoPor: "adm", decididoEm: serverTimestamp() })));
 await t("plano: a pessoa cancela um pedido pendente", async () => { await setDoc(doc(ctx("loja"), "planos_pedidos", "pp4"), pedidoPlano("loja")); await assertSucceeds(updateDoc(doc(ctx("loja"), "planos_pedidos", "pp4"), { status: "cancelado" })); });
-await t("plano: o dono do site também ativa", () => assertSucceeds(setDoc(doc(ctx("adm"), "planos", "bia"), { plano: "pro", ate: Timestamp.fromMillis(Date.now() + 30 * 864e5), ativadoEm: serverTimestamp(), ativadoPor: "adm" })));
-await t("plano: ninguém apaga pedido", () => assertFails(deleteDoc(doc(ctx("com"), "planos_pedidos", "pp4"))));
+await t("plano: pedido do Plus e do Premium", async () => { await assertSucceeds(setDoc(doc(ctx("loja"), "planos_pedidos", "pp5"), pedidoPlano("loja", { plano: "plus", meses: 1, valor: 29.9 }))); await assertSucceeds(setDoc(doc(ctx("loja"), "planos_pedidos", "pp6"), pedidoPlano("loja", { plano: "premium", meses: 12, valor: 718.8 }))); });
+await t("plano: pedido de plano inexistente é recusado", () => assertFails(setDoc(doc(ctx("loja"), "planos_pedidos", "pp7"), pedidoPlano("loja", { plano: "ouro" }))));
+await t("plano: dono ativa o Premium", () => assertSucceeds(setDoc(doc(ctx("adm"), "planos", "bia"), { plano: "premium", ate: Timestamp.fromMillis(Date.now() + 30 * 864e5), ativadoEm: serverTimestamp(), ativadoPor: "adm" })));
+await t("plano: ninguém apaga pedido", () => assertFails(deleteDoc(doc(ctx("adm"), "planos_pedidos", "pp4"))));
+
+// ---------- condição especial / parceria pelos planos (só donos negociam) ----------
+const negPlano = (uid, x = {}) => ({ uid, nome: "Loja X", email: uid + "@t.com", tipo: "apoio", plano: "pro", valorProposto: 15, contato: "48 99999-0000", mensagem: "Sou autônoma e a renda caiu este mês, consigo pagar menos.", status: "novo", criadoEm: serverTimestamp(), ...x });
+await t("negociação: a pessoa pede condição especial", () => assertSucceeds(setDoc(doc(ctx("loja"), "planos_negociacoes", "loja"), negPlano("loja"))));
+await t("negociação: em nome de outra pessoa é recusado", () => assertFails(setDoc(doc(ctx("bia"), "planos_negociacoes", "loja"), negPlano("bia"))));
+await t("negociação: no documento de outra pessoa é recusado", () => assertFails(setDoc(doc(ctx("bia"), "planos_negociacoes", "loja2"), negPlano("bia"))));
+await t("negociação: mensagem curta é recusada", () => assertFails(setDoc(doc(ctx("bia"), "planos_negociacoes", "bia"), negPlano("bia", { mensagem: "quero" }))));
+await t("negociação: tipo estranho é recusado", () => assertFails(setDoc(doc(ctx("bia"), "planos_negociacoes", "bia"), negPlano("bia", { tipo: "golpe" }))));
+await t("negociação: sem e-mail confirmado é recusado", () => assertFails(setDoc(doc(ctx("bia", false), "planos_negociacoes", "bia"), negPlano("bia"))));
+await t("negociação: a pessoa já aprovada não se aprova", () => assertFails(updateDoc(doc(ctx("loja"), "planos_negociacoes", "loja"), { status: "aprovado" })));
+await t("negociação: pedir de novo com um aberto é recusado", () => assertFails(setDoc(doc(ctx("loja"), "planos_negociacoes", "loja"), negPlano("loja", { tipo: "parceria" }))));
+await t("negociação: a pessoa lê o próprio pedido", () => assertSucceeds(getDoc(doc(ctx("loja"), "planos_negociacoes", "loja"))));
+await t("negociação: outra pessoa não lê", () => assertFails(getDoc(doc(ctx("bia"), "planos_negociacoes", "loja"))));
+await t("negociação: comercial não lê", () => assertFails(getDocs(collection(ctx("com"), "planos_negociacoes"))));
+await t("negociação: moderação não lê", () => assertFails(getDoc(doc(ctx("mod"), "planos_negociacoes", "loja"))));
+await t("negociação: comercial não aprova", () => assertFails(updateDoc(doc(ctx("com"), "planos_negociacoes", "loja"), { status: "aprovado", planoConcedido: "pro", meses: 3, valorAcordado: 0, decididoPor: "com", decididoEm: serverTimestamp() })));
+await t("negociação: dono lista os pedidos", () => assertSucceeds(getDocs(collection(ctx("adm"), "planos_negociacoes"))));
+await t("negociação: dono põe em conversa", () => assertSucceeds(updateDoc(doc(ctx("adm"), "planos_negociacoes", "loja"), { status: "em_conversa", decididoPor: "adm", decididoEm: serverTimestamp() })));
+await t("negociação: aprovar sem plano é recusado", () => assertFails(updateDoc(doc(ctx("adm"), "planos_negociacoes", "loja"), { status: "aprovado", decididoPor: "adm", decididoEm: serverTimestamp() })));
+await t("negociação: dono aprova (plano + negociação juntos)", async () => {
+  const db = ctx("adm"); const b = writeBatch(db);
+  b.update(doc(db, "planos_negociacoes", "loja"), { status: "aprovado", planoConcedido: "pro", meses: 3, valorAcordado: 45, resposta: "Liberado!", decididoPor: "adm", decididoEm: serverTimestamp() });
+  b.set(doc(db, "planos", "loja"), { plano: "pro", ate: Timestamp.fromMillis(Date.now() + 90 * 864e5), meses: 3, negociacaoId: "loja", ativadoEm: serverTimestamp(), ativadoPor: "adm" });
+  await assertSucceeds(b.commit());
+});
+await t("negociação: decidida não muda mais pela equipe", () => assertFails(updateDoc(doc(ctx("adm"), "planos_negociacoes", "loja"), { status: "recusado", decididoPor: "adm", decididoEm: serverTimestamp() })));
+await t("negociação: depois de decidida, a pessoa pede de novo", () => assertSucceeds(setDoc(doc(ctx("loja"), "planos_negociacoes", "loja"), negPlano("loja", { tipo: "parceria", valorProposto: 0 }))));
+await t("negociação: pedido novo não leva a decisão antiga", () => assertFails(setDoc(doc(ctx("bia"), "planos_negociacoes", "bia"), negPlano("bia", { valorAcordado: 0 }))));
+await t("negociação: a pessoa cancela o pedido aberto", () => assertSucceeds(updateDoc(doc(ctx("loja"), "planos_negociacoes", "loja"), { status: "cancelado" })));
+await t("negociação: ninguém apaga", () => assertFails(deleteDoc(doc(ctx("adm"), "planos_negociacoes", "loja"))));
+
+// ---------- registro de ações: só os donos leem (o resto vê só as cobranças) ----------
+await semRegras((db) => Promise.all([setDoc(doc(db, "admin_log", "l1"), { acao: "aviso", alvo: "bia", por: "mod", em: Timestamp.now() }), setDoc(doc(db, "admin_log", "l2"), { acao: "cobrar_reclamacao", alvo: "loja", detalhe: "queixa:q1", por: "mod", em: Timestamp.now() })]));
+await t("registro: dono lê tudo", () => assertSucceeds(getDocs(query(collection(ctx("adm"), "admin_log"), orderBy("em", "desc"), limit(50)))));
+await t("registro: dono lê o dia (histórico por pessoa)", () => assertSucceeds(getDocs(query(collection(ctx("adm"), "admin_log"), where("em", ">=", Timestamp.fromMillis(Date.now() - 864e5)), orderBy("em", "asc")))));
+await t("registro: moderação NÃO lê o registro", () => assertFails(getDocs(query(collection(ctx("mod"), "admin_log"), orderBy("em", "desc"), limit(50)))));
+await t("registro: comercial NÃO lê uma ação", () => assertFails(getDoc(doc(ctx("com"), "admin_log", "l1"))));
+await t("registro: moderação lê as cobranças das reclamações", () => assertSucceeds(getDocs(query(collection(ctx("mod"), "admin_log"), where("acao", "==", "cobrar_reclamacao")))));
+await t("registro: toda a equipe continua registrando", () => assertSucceeds(addDoc(collection(ctx("mod"), "admin_log"), { acao: "entrou", alvo: "", detalhe: "Entrou no painel", por: "mod", porNome: "Mod", em: serverTimestamp() })));
+await t("registro: fora da equipe não registra", () => assertFails(addDoc(collection(ctx("bia"), "admin_log"), { acao: "entrou", por: "bia", em: serverTimestamp() })));
 
 // ---------- resultado ----------
 for (const r of resultados) console.log(r[0] === "ok" ? "  ✔" : "  ✘", r[1], r[2] ? "→ " + r[2] : "");

@@ -1,3 +1,68 @@
+      allow update: if logado()
+                    && emailOk()
+                    && resource.data.autorId == request.auth.uid
+                    && request.resource.data.autorId == resource.data.autorId
+                    && gravou().hasOnly(['texto', 'nome', 'fotoPerfil', 'comentariosOcultos', 'ocultoAte', 'editadoEm', 'quemComenta', 'comentarioFixo', 'tags', 'marcados', 'agendadoPara', 'local'])
+                    && localPubOk(request.resource.data)
+                    && tagsOk(request.resource.data) && marcadosOk(request.resource.data)
+                    // agendada: publicar agora (agendadoPara = agora) ou mudar a data (até 60 dias)
+                    && (!mudou().hasAny(['agendadoPara'])
+                        || (request.resource.data.agendadoPara is timestamp
+                            && request.resource.data.agendadoPara >= request.time
+                            && request.resource.data.agendadoPara < request.time + duration.value(60, 'd')))
+                    // quem pode comentar: todos, seguidores, seguidores que o autor segue de volta, ninguém
+                    && (!('quemComenta' in request.resource.data) || request.resource.data.quemComenta in ['todos', 'seguidores', 'mutuos', 'ninguem'])
+                    // comentário fixado no topo (id) ou nulo
+                    && (!('comentarioFixo' in request.resource.data) || request.resource.data.comentarioFixo == null
+                        || (request.resource.data.comentarioFixo is string && request.resource.data.comentarioFixo.size() <= 40))
+                    && dataOuNulo('ocultoAte')
+                    && travaModeracao()
+                    // texto editado: marca a data da edição
+                    && (!mudou().hasAny(['texto']) || request.resource.data.get('editadoEm', null) == request.time)
+                    && (!mudou().hasAny(['editadoEm']) || request.resource.data.editadoEm == request.time)
+                    && (!('comentariosOcultos' in request.resource.data) || request.resource.data.comentariosOcultos is bool)
+                    && publicacaoOk();
+
+      allow delete: if logado()
+                    && resource.data.autorId == request.auth.uid;
+
+      // Alcance: cada conta que viu a publicação (uma vez). Só o autor lista/conta.
+      match /vistas/{uid} {
+        allow create: if logado() && uid == request.auth.uid
+                      && request.resource.data.keys().hasOnly(['criadoEm', 'origem'])
+                      && request.resource.data.criadoEm == request.time
+                      && (!('origem' in request.resource.data) || request.resource.data.origem in ['principais', 'seguindo', 'amigos', 'perfil', 'link', 'tag', 'salvos']);
+        allow read: if logado() && get(/databases/$(database)/documents/diario/$(postId)).data.autorId == request.auth.uid;
+        allow update, delete: if false;
+      }
+
+      // A equipe esconde ou remove publicações que violam os Termos.
+      allow update: if podeModerar()
+                    && moderacaoOk();
+      allow delete: if podeModerar();
+    }
+    // =====================================================
+    // ESTATÍSTICAS DOS NEGÓCIOS (como o Google Meu Negócio e o painel profissional do Instagram)
+    // neg_visitas/{negocio}_{uid}_{dia}: uma por pessoa, por negócio, por dia (horário de Brasília).
+    //   Só a própria pessoa lê. Guarda a origem, a hora e o que ela fez (WhatsApp, rota, site...).
+    // neg_stats/{negocio}_{dia}: os números do dia, que só o dono do negócio lê.
+    //   Cada número só sobe +1 na MESMA gravação em que a visita nasce ou ganha uma ação nova:
+    //   ninguém infla as contas, e o dono não vê QUEM visitou (só quantos).
+    // =====================================================
+    function diaBR() {
+      let t = request.time - duration.value(3, 'h');
+      return string(t.year()) + (t.month() < 10 ? '0' : '') + string(t.month()) + (t.day() < 10 ? '0' : '') + string(t.day());
+    }
+    function horaBR() {
+      return (request.time.hours() + 21) % 24;
+    }
+    function caminhoStats(negocioId, dia) {
+      return /databases/$(database)/documents/neg_stats/$(negocioId + '_' + dia);
+    }
+    function caminhoVisita(negocioId, dia) {
+      return /databases/$(database)/documents/neg_visitas/$(negocioId + '_' + request.auth.uid + '_' + dia);
+    }
+
     match /neg_visitas/{id} {
       function visitaNova() {
         let d = request.resource.data;

@@ -7,7 +7,7 @@
 // Abrir: abrirInsightsNegocio(negocio, { aoEditar }) · negocios.html?insights=ID
 // =====================================================
 import { $, el, icone, fb, eu, dados, toast, numero, criarFolha, abrirFolha, urlSegura, pintarAvatar } from "./rede.js?v=49";
-import { lerPlano, ehPro, abrirPlanos } from "./planos.js?v=1";
+import { lerPlano, ehPago, abrirPlanos } from "./planos.js?v=2";
 import { lerStats, listaDias, somarPeriodo, dataDoDia, chaveItem, chaveAnuncio, ORIGENS, ACOES, CONTATOS } from "./estat-negocio.js?v=1";
 import { baixarPlanilhaMulti } from "./planilha.js?v=5";
 
@@ -56,7 +56,7 @@ export async function abrirInsightsNegocio(n, opcoes = {}) {
   corpo.replaceChildren(el("div", "ni-carregando", "Calculando as estatísticas..."));
   abrirFolha("folhaInsNeg");
   let D;
-  try { const [d, pl] = await Promise.all([carregar(n), lerPlano(fb, n.donoId || eu.uid)]); D = d; D.pro = ehPro(pl); }
+  try { const [d, pl] = await Promise.all([carregar(n), lerPlano(fb, n.donoId || eu.uid)]); D = d; D.pro = ehPago(pl); } // pro = qualquer plano pago (90 dias e Excel)
   catch (e) { corpo.replaceChildren(el("div", "lista-vazia", "Não foi possível calcular agora. Tente de novo em instantes.")); return; }
   let dias = 30;
   const pintar = () => { corpo.replaceChildren(); montar(corpo, n, D, dias, (d) => { dias = d; pintar(); corpo.scrollTop = 0; }, opcoes); };
@@ -100,12 +100,12 @@ function montar(corpo, n, D, dias, trocar, opcoes) {
   const qt = el("div"); qt.append(el("strong", null, n.nome || ROTULO_TIPO[n.tipo]), el("span", "ni-tipo", ROTULO_TIPO[n.tipo] || ""));
   quem.append(av, qt);
   const per = el("div", "ni-periodo"); per.setAttribute("role", "tablist");
-  // 90 dias e o Excel são do plano Pro: no Grátis o botão mostra o cadeado e abre os planos.
-  const verPlanos = () => abrirPlanos({ fb, eu, dados, toast });
+  // 90 dias e o Excel vêm em todos os planos pagos (a partir do Plus): no Grátis o botão mostra a etiqueta e abre os planos.
+  const verPlanos = () => abrirPlanos({ fb, eu, dados, toast, plano: "plus" });
   PERIODOS.forEach(([d, rot]) => {
     const travado = d > 30 && !D.pro;
     const b = el("button", travado ? "travado" : null, rot); b.type = "button"; b.setAttribute("role", "tab"); b.setAttribute("aria-selected", String(d === dias));
-    if (travado) { b.appendChild(el("span", "ni-pro", "PRO")); b.title = "Disponível no plano Pro"; }
+    if (travado) { b.appendChild(el("span", "ni-pro", "PLUS")); b.title = "Disponível a partir do plano Plus"; }
     b.addEventListener("click", () => (travado ? verPlanos() : trocar(d)));
     per.appendChild(b);
   });
@@ -299,7 +299,7 @@ function montar(corpo, n, D, dias, trocar, opcoes) {
   const rodape = el("div", "ni-rodape");
   const bx = el("button", "btn ni-baixar"); bx.type = "button";
   bx.append(icone("doc", "i s"), document.createTextNode("Baixar relatório (Excel)"));
-  if (!D.pro) { bx.classList.add("travado"); bx.appendChild(el("span", "ni-pro", "PRO")); bx.title = "Disponível no plano Pro"; }
+  if (!D.pro) { bx.classList.add("travado"); bx.appendChild(el("span", "ni-pro", "PLUS")); bx.title = "Disponível a partir do plano Plus"; }
   bx.addEventListener("click", () => (D.pro ? baixarRelatorio(n, atual, antes, dias, D, avPer, avAntes) : verPlanos()));
   rodape.append(bx, el("p", null, "Como contamos: cada pessoa conta uma vez por dia (visita e cada ação). Você não entra nas contas, e o Help Floripa não mostra quem visitou, só quantos. Dias e horários no horário de Brasília."));
   corpo.appendChild(rodape);

@@ -11,9 +11,9 @@ import { fotoSegura } from "./seguranca.js?v=1";
 import { enfeitarSelect } from "./escolha.js?v=3";
 import { estrelas, lerResumos, media } from "./avaliacoes.js?v=13";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
-import { lerPlano, ehPro, seloPro } from "./planos.js?v=1";
+import { lerPlano, nivelPlano, seloPlano } from "./planos.js?v=2";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao } from "./perto.js?v=1";
-import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=43";
+import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=44";
 
 const $ = (id) => document.getElementById(id);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
@@ -255,7 +255,7 @@ function seloDistancia(card, x) {
   if (!Number.isFinite(x._km)) return card;
   const s = el("span", "dist"); s.textContent = textoDistancia(x._km, x._aprox);
   card.querySelector(".capa")?.appendChild(s);
-  if (x._pro) card.querySelector(".capa")?.appendChild(seloPro("selo-pro hm-pro"));
+  if (x._plano) card.querySelector(".capa")?.appendChild(seloPlano(x._plano, "selo-pro hm-pro"));
   return card;
 }
 async function montarPerto(fs, db, u, negocios, imoveis, nota) {
@@ -271,8 +271,10 @@ async function montarPerto(fs, db, u, negocios, imoveis, nota) {
     // Plano Pro: aparece antes (conta como se estivesse 40% mais perto) e com o selo.
     const comKm = itens.filter((x) => Number.isFinite(x._km));
     const fsb = { ...fs, db };
-    await Promise.all([...new Set(comKm.map((x) => x.donoId).filter(Boolean))].map(async (id) => { const pl = await lerPlano(fsb, id).catch(() => null); comKm.forEach((x) => { if (x.donoId === id) x._pro = ehPro(pl); }); }));
-    const perto = comKm.sort((a, b) => a._km * (a._pro ? 0.6 : 1) - b._km * (b._pro ? 0.6 : 1));
+    await Promise.all([...new Set(comKm.map((x) => x.donoId).filter(Boolean))].map(async (id) => { const pl = await lerPlano(fsb, id).catch(() => null); const nv = nivelPlano(pl); comKm.forEach((x) => { if (x.donoId === id) { x._nivel = nv; x._plano = nv ? pl : null; } }); }));
+    // Pro conta 40% mais perto e Premium 50% (o Plus só tem o selo).
+    const peso = (x) => (x._nivel >= 3 ? 0.5 : x._nivel === 2 ? 0.6 : 1);
+    const perto = comKm.sort((a, b) => a._km * peso(a) - b._km * peso(b));
     const raio = perto.filter((x) => x._km <= 60);
     const lista = (raio.length >= 4 ? raio : perto).slice(0, 24);
     if (!lista.length) { sub.textContent = "Ainda não tem ninguém cadastrado perto de você."; }
