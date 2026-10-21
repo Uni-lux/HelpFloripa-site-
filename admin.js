@@ -3,9 +3,9 @@
 // Só entra quem tem o documento admins/{uid} (criado à mão no console do
 // Firebase). As regras do Firestore conferem isso em cada leitura e ação.
 // =====================================================
-import { C, D, $, h, ms, toast, PAPEIS, vendoAgora, pode, garantirNegocios, garantirTodasPessoas, carregarPessoas } from "./admin-base.js?v=18";
-import * as S from "./admin-secoes.js?v=34";
-import { previa, tocarSom } from "./admin-chat.js?v=19";
+import { C, D, $, h, ms, toast, PAPEIS, vendoAgora, pode, registrar, garantirNegocios, garantirTodasPessoas, carregarPessoas } from "./admin-base.js?v=19";
+import * as S from "./admin-secoes.js?v=35";
+import { previa, tocarSom } from "./admin-chat.js?v=20";
 
 const SECOES = {
   visao: S.visao, estatisticas: S.estatisticas, relatorios: S.relatorios, usuarios: S.usuarios, verificacoes: S.verificacoes,
@@ -14,6 +14,8 @@ const SECOES = {
   tarefas: S.tarefas, publicacoes: S.publicacoes
 };
 let atual = "visao", ultimaPresenca = "";
+// Só os donos do site: planos (pagamentos, negociações, receita) e o registro de ações da equipe.
+const SO_DONO = new Set(["planos", "registro"]);
 // Seções que usam a lista inteira de negócios (as outras só precisam dos totais).
 const PRECISAM_NEGOCIOS = new Set(["estatisticas", "relatorios", "verificacoes", "publicacoes"]);
 // Seções que usam todas as contas (gráficos de idade, cidade, bairro...).
@@ -28,6 +30,7 @@ function irPara(sec, termo = "") {
   let filtro = "";
   if (sec.includes(":")) [sec, filtro] = sec.split(":");
   if (!SECOES[sec]) sec = "visao";
+  if (SO_DONO.has(sec) && !pode("dono")) { if (!porHistorico) toast("Só os donos do site veem esta seção."); sec = "visao"; filtro = ""; }
   atual = sec;
   document.querySelectorAll(".ad-nav").forEach((b) => { if (b.dataset.secao === sec) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
   const el = $("principal"); el.replaceChildren();
@@ -64,7 +67,7 @@ function contadores() {
   set("reclamacoes", pend(D.queixas.filter((q) => q.status === "aberta" && !q.resposta && ms(q.abertaEm) < Date.now() - 7 * 864e5).length));
   set("sancoes", pend([...D.sancoes.values()].filter((s) => s.tipo === "banimento" || ms(s.ate) > Date.now()).length));
   set("parcerias", pend(D.parcerias.filter((p) => (p.status || "novo") === "novo").length));
-  set("planos", pend((D.planosPedidos || []).filter((p) => p.status === "pendente").length));
+  set("planos", pend((D.planosPedidos || []).filter((p) => p.status === "pendente").length + (D.planosNeg || []).filter((n) => n.status === "novo").length));
   set("equipe", pend((C.chatNaoLidas || 0) + (C.dmNaoLidas || 0)));
   set("tarefas", pend(C.tarefas.filter((t) => t.status !== "feito" && t.responsavel === C.eu?.uid).length));
   const on = D.admins.filter((a) => a.id !== C.eu?.uid && C.online(a.id)).length;
@@ -174,7 +177,7 @@ async function carregar(mostrar = true) {
     Promise.resolve([]) /* publicações: só os totais; a lista vem junto com a dos negócios */, todos(fb.query(col("denuncias"), fb.limit(1500))), todos(fb.query(col("queixas"), fb.limit(1500))),
     ordenado("suporte", "atualizadoEm", 500), todos(fb.query(col("parcerias"), fb.limit(500))), todos(fb.query(col("sancoes"), fb.limit(1000))),
     todos(fb.query(col("exclusoes"), fb.limit(1000))), todos(fb.query(col("notas"), fb.limit(5000))), todos(fb.query(col("comunicados"), fb.limit(100))),
-    ordenado("admin_log", "em", 300), todos(fb.query(col("admins"), fb.limit(50))), ordenado("estatisticas", "dia", 400),
+    pode("dono") ? ordenado("admin_log", "em", 300) : Promise.resolve([]), todos(fb.query(col("admins"), fb.limit(50))), ordenado("estatisticas", "dia", 400),
     contar("diario"), pode("moderar") ? contar("conversas") : Promise.resolve(null), contar("comentarios"), contar("avaliacoes"),
     contarQ(fb.query(col("diario"), fb.where("criadoEm", ">=", seteDias)))
   ]);
@@ -193,12 +196,13 @@ async function carregar(mostrar = true) {
   Object.assign(D, { posts, denuncias, queixas, suporte, parcerias, comunicados, log, admins, estatisticas });
   // Reportes do suporte (só moderação e donos leem) e notas do atendimento.
   let planosAtivos;
-  [D.reportes, D.notasSuporte, D.verificacoes, D.planosPedidos, planosAtivos] = await Promise.all([
+  [D.reportes, D.notasSuporte, D.verificacoes, D.planosPedidos, D.planosNeg, planosAtivos] = await Promise.all([
     pode("moderar") ? todos(fb.query(col("reportes"), fb.limit(500))) : Promise.resolve([]),
     todos(fb.query(col("suporte_notas"), fb.limit(2000))),
     pode("moderar") ? todos(fb.query(col("verificacoes"), fb.limit(500))) : Promise.resolve([]),
-    // Planos (Pro): sem as regras novas publicadas a leitura falha e a seção fica vazia.
-    pode("comercial") ? todos(fb.query(col("planos_pedidos"), fb.limit(500))).catch(() => []) : Promise.resolve([]),
+    // Planos e negociações (só donos): sem as regras novas publicadas a leitura falha e a seção fica vazia.
+    pode("dono") ? todos(fb.query(col("planos_pedidos"), fb.limit(1000))).catch(() => []) : Promise.resolve([]),
+    pode("dono") ? todos(fb.query(col("planos_negociacoes"), fb.limit(500))).catch(() => []) : Promise.resolve([]),
     todos(fb.query(col("planos"), fb.limit(1000))).catch(() => [])
   ]);
   D.planos = new Map(planosAtivos.map((p) => [p.id, p]));
@@ -211,7 +215,7 @@ async function carregar(mostrar = true) {
   await carregarPessoas([
     ...D.pendVerif, ...denuncias.flatMap((d) => [d.alvoId, d.autorId]), ...queixas.flatMap((q) => [q.alvoId, q.autorId]),
     ...suporte.map((s) => s.uid), ...parcerias.map((p) => p.uid), ...sancoes.map((s) => s.id), ...exclusoes.map((s) => s.id),
-    ...log.flatMap((x) => [x.alvo, x.por]), ...admins.map((a) => a.id), ...D.reportes.flatMap((r) => [r.autorId, r.alvoId]), ...D.verificacoes.map((v) => v.id), ...D.planosPedidos.map((p) => p.uid), ...D.planos.keys()
+    ...log.flatMap((x) => [x.alvo, x.por]), ...admins.map((a) => a.id), ...D.reportes.flatMap((r) => [r.autorId, r.alvoId]), ...D.verificacoes.map((v) => v.id), ...D.planosPedidos.map((p) => p.uid), ...D.planosNeg.map((n) => n.uid || n.id), ...D.planos.keys()
   ]);
   D.contagens = { diario: nPosts, diario7: nPosts7, conversas: nConversas, comentarios: nComentarios, avaliacoes: nAvaliacoes };
   D.carregadoEm = Date.now();
@@ -242,6 +246,7 @@ async function carregar(mostrar = true) {
   C.papel = PAPEIS[ficha?.papel] ? ficha.papel : "dono";
   C.tarefas = [];
   document.body.dataset.papel = C.papel;
+  document.querySelectorAll("[data-so-dono]").forEach((b) => { b.hidden = !pode("dono"); });
   const mp = $("meuPapel"); if (mp) { mp.textContent = PAPEIS[C.papel]; mp.hidden = false; }
   C.irPara = irPara;
   C.contadores = contadores;
@@ -257,7 +262,15 @@ async function carregar(mostrar = true) {
   atual = (location.hash.slice(1) || "visao");
   await carregar(true);
   equipeAoVivo();
+  marcarEntrada();
 })();
+
+// Primeira entrada do dia no painel vai para o registro (o histórico de cada pessoa começa por ela).
+function marcarEntrada() {
+  const dia = new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10), chave = `hf-painel-entrou-${C.eu.uid}`;
+  try { if (localStorage.getItem(chave) === dia) return; localStorage.setItem(chave, dia); } catch {}
+  registrar("entrou", "", `Papel: ${PAPEIS[C.papel] || C.papel}`);
+}
 
 function menuLateral(abrir) {
   const lat = $("lateral");

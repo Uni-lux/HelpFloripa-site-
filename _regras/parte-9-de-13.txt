@@ -1,3 +1,43 @@
+    match /parcerias/{id} {
+      // Formulário de Sócios e parcerias: só quem tem conta (e-mail confirmado), até 3 por dia; só a equipe lê.
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.uid == request.auth.uid
+                    && ritmoOk('parc')
+                    && request.resource.data.keys().hasOnly(['nome', 'empresa', 'email', 'telefone', 'tipo', 'mensagem', 'site', 'cidade', 'uid', 'status', 'criadoEm'])
+                    && request.resource.data.nome is string && request.resource.data.nome.size() >= 2 && request.resource.data.nome.size() <= 80
+                    && request.resource.data.email is string && request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+[.][^@\\s]+$') && request.resource.data.email.size() <= 120
+                    && valorTextoAte(request.resource.data.get('empresa', ''), 100)
+                    && valorTextoAte(request.resource.data.get('telefone', ''), 30)
+                    && valorTextoAte(request.resource.data.get('site', ''), 200)
+                    && valorTextoAte(request.resource.data.get('cidade', ''), 80)
+                    && request.resource.data.tipo in ['socio', 'investidor', 'parceiro', 'anunciante', 'imprensa', 'outro']
+                    && request.resource.data.mensagem is string && request.resource.data.mensagem.size() >= 10 && request.resource.data.mensagem.size() <= 2000
+                    && request.resource.data.status == 'novo'
+                    && request.resource.data.criadoEm == request.time;
+      allow read: if admin();
+      allow update: if podeComercial()
+                    && mudou().hasOnly(['status', 'notas', 'atualizadoEm', 'responsavel', 'responsavelNome', 'assumidoEm'])
+                    && request.resource.data.status in ['novo', 'em_conversa', 'proposta', 'fechado', 'recusado']
+                    && (!mudou().hasAny(['responsavelNome', 'assumidoEm']) || responsavelOk())
+                    && valorTextoAte(request.resource.data.get('notas', ''), 3000);
+      allow delete: if podeComercial();
+    }
+
+    // Presença da equipe no painel (quem está online) e chat interno da equipe.
+    match /equipe_presenca/{uid} {
+      allow read: if admin();
+      allow create, update: if admin()
+                    && request.auth.uid == uid
+                    && request.resource.data.keys().hasOnly(['nome', 'em', 'secao', 'item', 'itemNome'])
+                    && valorTextoAte(request.resource.data.get('nome', ''), 80)
+                    && valorTextoAte(request.resource.data.get('secao', ''), 40)
+                    && valorTextoAte(request.resource.data.get('item', null), 160)
+                    && valorTextoAte(request.resource.data.get('itemNome', null), 120)
+                    && request.resource.data.em == request.time;
+      allow delete: if admin() && request.auth.uid == uid;
+    }
+
     // Mensagem do chat da equipe (todos ou individual): texto e/ou um anexo
     // (foto, áudio ou arquivo). O conteúdo do anexo fica em equipe_anexos/{id},
     // gravado junto, da mesma pessoa e da mesma conversa.
@@ -146,46 +186,6 @@
                     && request.resource.data.dados.size() <= 950000
                     && request.resource.data.dados.matches('^data:[a-z]+/[-+.a-z0-9]{1,80}(;[^,]{0,80})?,.*');
       allow update, delete: if false;
-    }
-
-    // Foto do grupo "Equipe" no chat da equipe: equipe_info/grupo. Qualquer pessoa da equipe troca.
-    match /equipe_info/{id} {
-      allow read: if admin();
-      allow create, update: if admin()
-                    && id == 'grupo'
-                    && request.resource.data.keys().hasOnly(['foto', 'por', 'em'])
-                    && (request.resource.data.foto == null
-                        || (request.resource.data.foto is string && request.resource.data.foto.size() <= 250000 && fotoOk(request.resource.data.foto)))
-                    && request.resource.data.por == request.auth.uid
-                    && request.resource.data.em == request.time;
-      allow delete: if false;
-    }
-
-    // Quadro de tarefas da equipe: quem faz o quê.
-    match /equipe_tarefas/{id} {
-      function tarefaOk() {
-        let d = request.resource.data;
-        return d.keys().hasOnly(['titulo', 'descricao', 'status', 'prioridade', 'responsavel', 'responsavelNome', 'prazo', 'ligacao', 'ligacaoNome', 'criadoPor', 'criadoPorNome', 'criadoEm', 'atualizadoEm', 'concluidaEm'])
-            && d.titulo is string && d.titulo.size() >= 2 && d.titulo.size() <= 140
-            && valorTextoAte(d.get('descricao', null), 2000)
-            && d.status in ['a_fazer', 'fazendo', 'feito']
-            && d.prioridade in ['baixa', 'normal', 'alta', 'urgente']
-            && (d.get('responsavel', null) == null || (d.responsavel is string && exists(/databases/$(database)/documents/admins/$(d.responsavel))))
-            && valorTextoAte(d.get('responsavelNome', null), 80)
-            && (d.get('prazo', null) == null || d.prazo is timestamp)
-            && valorTextoAte(d.get('ligacao', null), 160)
-            && valorTextoAte(d.get('ligacaoNome', null), 120)
-            && valorTextoAte(d.get('criadoPorNome', null), 80)
-            && d.atualizadoEm == request.time;
-      }
-      allow read: if admin();
-      allow create: if admin() && tarefaOk()
-                    && request.resource.data.criadoPor == request.auth.uid
-                    && request.resource.data.criadoEm == request.time;
-      allow update: if admin() && tarefaOk()
-                    && request.resource.data.criadoPor == resource.data.criadoPor
-                    && request.resource.data.criadoEm == resource.data.criadoEm;
-      allow delete: if admin() && (resource.data.criadoPor == request.auth.uid || papel() == 'dono');
     }
 
 // ===== FIM DA PARTE 9 DE 13 =====

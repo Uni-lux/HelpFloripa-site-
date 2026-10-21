@@ -1,3 +1,27 @@
+    // =====================================================
+    // CONVERSAS
+    // Documento: conversas/{uidMenor}_{uidMaior}
+    // =====================================================
+    // =====================================================
+    // NOTAS DO NEGÓCIO SOBRE O CLIENTE: notas_clientes/{donoId}_{clienteId}
+    // Etiquetas e anotação particular. Só quem escreveu lê; o cliente não vê.
+    // =====================================================
+    match /notas_clientes/{id} {
+      allow get: if logado() && id.split('_')[0] == request.auth.uid;
+      allow list: if logado() && resource.data.donoId == request.auth.uid;
+      allow create, update: if logado()
+                    && request.resource.data.keys().hasOnly(['donoId', 'clienteId', 'etiquetas', 'nota', 'atualizadoEm'])
+                    && request.resource.data.donoId == request.auth.uid
+                    && request.resource.data.clienteId is string
+                    && id == request.auth.uid + '_' + request.resource.data.clienteId
+                    && request.resource.data.etiquetas is list && request.resource.data.etiquetas.size() <= 8
+                    && valorTextoAte(request.resource.data.get('nota', ''), 1000)
+                    && request.resource.data.atualizadoEm == request.time;
+      allow delete: if logado() && resource.data.donoId == request.auth.uid;
+    }
+
+    match /conversas/{conversaId} {
+
       // Cada pessoa só mexe na própria marca de leitura / "digitando".
       function soMinhaChave(campo) {
         return !mudou().hasAny([campo])
@@ -170,37 +194,4 @@
                       && request.resource.data.edicoes == resource.data.get('edicoes', []).concat([request.resource.data.edicoes[resource.data.get('edicoes', []).size()]])
                       && versaoOk(request.resource.data.edicoes[resource.data.get('edicoes', []).size()]);
 
-        // Apagar para todos (só quem enviou): no lugar fica "apagou esta mensagem"; o conteúdo vai,
-        // na mesma gravação, para apagadas/{id}, que os dois ainda podem abrir por 24 horas.
-        allow update: if logado()
-                      && request.auth.uid == resource.data.remetenteId
-                      && noPrazoDeMexer()
-                      && !('apagada' in resource.data)
-                      && request.resource.data.keys().hasOnly(['remetenteId', 'criadoEm', 'apagada'])
-                      && request.resource.data.remetenteId == resource.data.remetenteId
-                      && request.resource.data.criadoEm == resource.data.criadoEm
-                      && request.resource.data.apagada is map
-                      && request.resource.data.apagada.keys().hasOnly(['por', 'em'])
-                      && request.resource.data.apagada.por == request.auth.uid
-                      && request.resource.data.apagada.em == request.time
-                      && existsAfter(/databases/$(database)/documents/conversas/$(conversaId)/apagadas/$(mensagemId));
-
-        allow delete: if logado()
-                      && request.auth.uid == resource.data.remetenteId
-                      && noPrazoDeMexer();
-      }
-
-      // ===================================================
-      // CONTEÚDO DE MENSAGEM APAGADA PARA TODOS: conversas/{c}/apagadas/{idDaMensagem}
-      // Os dois da conversa abrem por 24 horas ("Ver mensagem apagada", e dá para denunciar);
-      // depois as regras não deixam mais ler e qualquer um dos dois apaga de vez.
-      // A moderação abre enquanto existir (denúncias).
-      // ===================================================
-      match /apagadas/{mensagemId} {
-        function daConversa() {
-          return request.auth.uid in get(/databases/$(database)/documents/conversas/$(conversaId)).data.participantes;
-        }
-        function original() {
-          return get(/databases/$(database)/documents/conversas/$(conversaId)/mensagens/$(mensagemId)).data;
-        }
 // ===== FIM DA PARTE 4 DE 13 =====

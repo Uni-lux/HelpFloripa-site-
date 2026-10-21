@@ -1,3 +1,12 @@
+      allow update: if false;
+
+      // Quem segue pode deixar de seguir; quem é seguido pode remover o seguidor.
+      allow delete: if logado()
+                    && (resource.data.seguidorId == request.auth.uid
+                        || resource.data.alvoId == request.auth.uid);
+    }
+
+
     // =====================================================
     // BLOQUEIOS
     // Documento: bloqueios/{bloqueadorId}_{bloqueadoId}
@@ -231,29 +240,5 @@
                     && moderacaoOk();
     }
 
-
-    // =====================================================
-    // CONVERSAS
-    // Documento: conversas/{uidMenor}_{uidMaior}
-    // =====================================================
-    // =====================================================
-    // NOTAS DO NEGÓCIO SOBRE O CLIENTE: notas_clientes/{donoId}_{clienteId}
-    // Etiquetas e anotação particular. Só quem escreveu lê; o cliente não vê.
-    // =====================================================
-    match /notas_clientes/{id} {
-      allow get: if logado() && id.split('_')[0] == request.auth.uid;
-      allow list: if logado() && resource.data.donoId == request.auth.uid;
-      allow create, update: if logado()
-                    && request.resource.data.keys().hasOnly(['donoId', 'clienteId', 'etiquetas', 'nota', 'atualizadoEm'])
-                    && request.resource.data.donoId == request.auth.uid
-                    && request.resource.data.clienteId is string
-                    && id == request.auth.uid + '_' + request.resource.data.clienteId
-                    && request.resource.data.etiquetas is list && request.resource.data.etiquetas.size() <= 8
-                    && valorTextoAte(request.resource.data.get('nota', ''), 1000)
-                    && request.resource.data.atualizadoEm == request.time;
-      allow delete: if logado() && resource.data.donoId == request.auth.uid;
-    }
-
-    match /conversas/{conversaId} {
 
 // ===== FIM DA PARTE 3 DE 13 =====

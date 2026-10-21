@@ -1,3 +1,36 @@
+        // Apagar para todos (só quem enviou): no lugar fica "apagou esta mensagem"; o conteúdo vai,
+        // na mesma gravação, para apagadas/{id}, que os dois ainda podem abrir por 24 horas.
+        allow update: if logado()
+                      && request.auth.uid == resource.data.remetenteId
+                      && noPrazoDeMexer()
+                      && !('apagada' in resource.data)
+                      && request.resource.data.keys().hasOnly(['remetenteId', 'criadoEm', 'apagada'])
+                      && request.resource.data.remetenteId == resource.data.remetenteId
+                      && request.resource.data.criadoEm == resource.data.criadoEm
+                      && request.resource.data.apagada is map
+                      && request.resource.data.apagada.keys().hasOnly(['por', 'em'])
+                      && request.resource.data.apagada.por == request.auth.uid
+                      && request.resource.data.apagada.em == request.time
+                      && existsAfter(/databases/$(database)/documents/conversas/$(conversaId)/apagadas/$(mensagemId));
+
+        allow delete: if logado()
+                      && request.auth.uid == resource.data.remetenteId
+                      && noPrazoDeMexer();
+      }
+
+      // ===================================================
+      // CONTEÚDO DE MENSAGEM APAGADA PARA TODOS: conversas/{c}/apagadas/{idDaMensagem}
+      // Os dois da conversa abrem por 24 horas ("Ver mensagem apagada", e dá para denunciar);
+      // depois as regras não deixam mais ler e qualquer um dos dois apaga de vez.
+      // A moderação abre enquanto existir (denúncias).
+      // ===================================================
+      match /apagadas/{mensagemId} {
+        function daConversa() {
+          return request.auth.uid in get(/databases/$(database)/documents/conversas/$(conversaId)).data.participantes;
+        }
+        function original() {
+          return get(/databases/$(database)/documents/conversas/$(conversaId)/mensagens/$(mensagemId)).data;
+        }
         function noPrazo() { return request.time < resource.data.apagadaEm + duration.value(24, 'h'); }
         allow get: if logado() && daConversa() && noPrazo();
         allow get: if podeModerar();
@@ -182,36 +215,5 @@
       function caminhoNova() {
         return /databases/$(database)/documents/avaliacoes/$(request.resource.data.ultima);
       }
-
-      function avaliacaoNova() {
-        return request.resource.data.ultima is string
-            && !exists(caminhoNova())
-            && existsAfter(caminhoNova())
-            && getAfter(caminhoNova()).data.autorId == request.auth.uid
-            && chave in getAfter(caminhoNova()).data.chaves;
-      }
-
-      function estrela() {
-        return 'n' + string(getAfter(caminhoNova()).data.nota);
-      }
-
-      allow read: if logado();
-
-      allow create: if logado()
-                    && avaliacaoNova()
-                    && request.resource.data.keys().hasOnly(['total', 'soma', 'n1', 'n2', 'n3', 'n4', 'n5', 'ultima', 'atualizadoEm'])
-                    && request.resource.data.keys().hasAll(['total', 'soma', 'n1', 'n2', 'n3', 'n4', 'n5', 'ultima'])
-                    && request.resource.data.total == 1
-                    && request.resource.data.soma == getAfter(caminhoNova()).data.nota
-                    && request.resource.data[estrela()] == 1
-                    && request.resource.data.n1 + request.resource.data.n2 + request.resource.data.n3
-                       + request.resource.data.n4 + request.resource.data.n5 == 1;
-
-      allow update: if logado()
-                    && avaliacaoNova()
-                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['total', 'soma', 'ultima', 'atualizadoEm', estrela()])
-                    && request.resource.data.total == resource.data.total + 1
-                    && request.resource.data.soma == resource.data.soma + getAfter(caminhoNova()).data.nota
-                    && request.resource.data[estrela()] == resource.data.get(estrela(), 0) + 1;
 
 // ===== FIM DA PARTE 5 DE 13 =====

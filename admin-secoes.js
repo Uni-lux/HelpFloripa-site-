@@ -6,16 +6,17 @@ import { cartaoComunicado } from "./comunicados.js?v=1";
 import { linha, linhaComparada, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=7";
 import { baixarPlanilhaMulti } from "./planilha.js?v=5";
 import { buscarPessoas } from "./pessoas.js?v=3";
-import { montarChat } from "./admin-chat.js?v=19";
-import { verConteudoDenuncia } from "./admin-denuncia.js?v=11";
+import { montarChat } from "./admin-chat.js?v=20";
+import { verConteudoDenuncia } from "./admin-denuncia.js?v=12";
 import { prepararAnexo, blocoAnexo, previaAnexo, aceitos } from "./anexos-suporte.js?v=1";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
+import { PLANOS, ORDEM_PLANOS, nivelPlano, nomePlano, diasRestantes, creditoDias, TIPOS_NEG as TIPOS_NEG_PL } from "./planos.js?v=2";
 import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha,
   PAPEIS, DESC_PAPEIS, pode, semPermissao, nomeEquipe, vendoAgora, marcarItem, seloResp, confirmarItem, controlesResp, espera,
-  PRIORIDADES, editarTarefa, moverTarefa, garantirNegocios, garantirTodasPessoas, carregarPessoas, guardarPessoas
-} from "./admin-base.js?v=18";
+  PRIORIDADES, editarTarefa, moverTarefa, garantirNegocios, garantirTodasPessoas, carregarPessoas, guardarPessoas, abrirConversaSuporte
+} from "./admin-base.js?v=19";
 
 const cab = (titulo, sub, extra) => { const c = h("div", "ad-cab"); const t = h("div"); t.append(h("h1", null, titulo)); if (sub) t.append(h("p", null, sub)); c.appendChild(t); if (extra) c.appendChild(extra); return c; };
 const bloco = (titulo, sub) => { const b = h("section", "ad-bloco"); const t = h("div", "ad-bloco-topo"); const tt = h("div"); tt.append(h("h3", null, titulo)); if (sub) tt.append(h("p", null, sub)); t.appendChild(tt); b.appendChild(t); b.topo = t; return b; };
@@ -827,78 +828,102 @@ export function suporte(el) {
   pintar();
 }
 
-// Atendimento prioritário do plano Pro: os chamados de quem tem o Pro ativo sobem na fila.
-const proSup = (s) => { const p = D.planos.get(s.uid); return p?.plano === "pro" && ms(p.ate) > agora() ? 1 : 0; };
-// ======================================================= PLANOS (Pro, Pix manual)
+// Atendimento prioritário (planos Pro e Premium): os chamados de quem tem o plano ativo sobem na fila.
+const proSup = (s) => (nivelPlano(D.planos.get(s.uid)) >= 2 ? 1 : 0);
+// ======================================================= PLANOS (Plus, Pro e Premium · Pix manual) — só donos
 let filtroPlanos = "pendente";
 const reaisPl = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const nMeses = (m) => `${m} ${Number(m) === 1 ? "mês" : "meses"}`;
+const mesDe = (t) => { const d = new Date(ms(t) - 3 * 3600e3); return d.toISOString().slice(0, 7); }; // AAAA-MM em Brasília
+const nomeMes = (k) => { const [a, m] = k.split("-").map(Number); return new Date(a, m - 1, 15).toLocaleDateString("pt-BR", { month: "short", year: "2-digit" }).replace(".", ""); };
+// Tudo o que entrou de dinheiro: Pix confirmados + valores combinados nas negociações aprovadas.
+function entradas() {
+  return [
+    ...D.planosPedidos.filter((p) => p.status === "pago").map((p) => ({ em: p.decididoEm, valor: Number(p.valor) || 0, plano: p.plano || "pro", uid: p.uid, origem: "Pix" })),
+    ...D.planosNeg.filter((n) => n.status === "aprovado" && Number(n.valorAcordado) > 0).map((n) => ({ em: n.decididoEm, valor: Number(n.valorAcordado) || 0, plano: n.planoConcedido || n.plano, uid: n.uid || n.id, origem: "Negociação" }))
+  ].filter((e) => ms(e.em));
+}
 export function planos(el) {
-  el.appendChild(cab("Planos", "Pedidos do plano Pro pagos por Pix. Confira o pagamento no extrato (valor e código do pedido) antes de ativar. O plano vence sozinho na data."));
+  if (!pode("dono")) { el.appendChild(h("div", "ad-vazio", "Só os donos do site veem os planos e a receita.")); return; }
+  el.appendChild(cab("Planos e receita", "Pedidos pagos por Pix (confira no extrato o valor e o código antes de ativar), pedidos de condição especial e parceria, e a receita. O plano vence sozinho na data. Só os donos veem esta seção."));
   const pedidos = [...D.planosPedidos].sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
   const pend = pedidos.filter((p) => p.status === "pendente").sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm));
-  const ativos = [...D.planos.entries()].filter(([, p]) => p.plano === "pro" && ms(p.ate) > agora()).map(([uid, p]) => ({ uid, ...p })).sort((a, b) => ms(a.ate) - ms(b.ate));
+  const negs = [...D.planosNeg].sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
+  const negAbertas = negs.filter((n) => n.status === "novo" || n.status === "em_conversa");
+  const ativos = [...D.planos.entries()].filter(([, p]) => nivelPlano(p) > 0).map(([uid, p]) => ({ uid, ...p })).sort((a, b) => ms(a.ate) - ms(b.ate));
   const mes = agora() - 30 * DIA;
-  const recebido = pedidos.filter((p) => p.status === "pago" && ms(p.decididoEm) >= mes).reduce((t, p) => t + (Number(p.valor) || 0), 0);
+  const recebido = entradas().filter((e) => ms(e.em) >= mes).reduce((t, e) => t + e.valor, 0);
   const kp = h("div", "ad-kpis");
   kp.append(destaque({ rotulo: "Esperando o Pix", valor: pend.length, alerta: pend.some((p) => ms(p.criadoEm) < agora() - 2 * DIA) }),
-    destaque({ rotulo: "Negócios Pro ativos", valor: ativos.length }),
+    destaque({ rotulo: "Negociações abertas", valor: negAbertas.length, alerta: negAbertas.some((n) => n.status === "novo" && ms(n.criadoEm) < agora() - 3 * DIA) }),
+    destaque({ rotulo: "Planos ativos", valor: ativos.length, dica: ORDEM_PLANOS.map((k) => `${ativos.filter((p) => p.plano === k).length} ${PLANOS[k].nome}`).join(" · ") }),
     destaque({ rotulo: "Recebido em 30 dias", valor: Math.round(recebido), formato: () => reaisPl(recebido) }),
     destaque({ rotulo: "Vencem em 7 dias", valor: ativos.filter((p) => ms(p.ate) < agora() + 7 * DIA).length }));
   el.appendChild(kp);
-  const fil = chips([["pendente", `Esperando (${pend.length})`], ["ativos", `Ativos (${ativos.length})`], ["historico", "Histórico"]], filtroPlanos, (v) => { filtroPlanos = v; pintar(); });
+  const fil = chips([["pendente", `Esperando (${pend.length})`], ["negociacoes", `Negociações (${negAbertas.length})`], ["ativos", `Ativos (${ativos.length})`], ["historico", "Histórico"], ["receita", "Receita"]], filtroPlanos, (v) => { filtroPlanos = v; pintar(); });
   fil.style.marginBottom = "12px";
   const lista = h("div", "ad-lista"); el.append(fil, lista);
-  const podeVender = pode("comercial");
   function pintar() {
     if (filtroPlanos === "pendente") lista.replaceChildren(...(pend.length ? pend.map(cartaoPedido) : [h("div", "ad-vazio", "Nenhum pedido esperando o pagamento.")]));
-    else if (filtroPlanos === "ativos") lista.replaceChildren(...(ativos.length ? ativos.map(cartaoAtivo) : [h("div", "ad-vazio", "Nenhum negócio com o Pro ativo.")]));
+    else if (filtroPlanos === "negociacoes") lista.replaceChildren(...(negs.length ? [...negAbertas, ...negs.filter((n) => !negAbertas.includes(n))].map(cartaoNeg) : [h("div", "ad-vazio", "Nenhum pedido de condição especial ou parceria.")]));
+    else if (filtroPlanos === "ativos") lista.replaceChildren(...(ativos.length ? ativos.map(cartaoAtivo) : [h("div", "ad-vazio", "Nenhum negócio com plano pago ativo.")]));
+    else if (filtroPlanos === "receita") lista.replaceChildren(receita());
     else { const l = pedidos.filter((p) => p.status !== "pendente"); lista.replaceChildren(...(l.length ? l.map(cartaoPedido) : [h("div", "ad-vazio", "Nada por aqui ainda.")])); }
   }
   const ST = { pendente: ["Esperando o Pix", "atencao"], pago: ["Pago e ativado", "bom"], recusado: ["Recusado", "serio"], cancelado: ["Cancelado pela pessoa", "neutro"] };
+  const faltaTxt = (p) => { const f = diasRestantes(p); return f <= 0 ? "vence hoje" : `falta${f === 1 ? "" : "m"} ${f} ${f === 1 ? "dia" : "dias"}`; };
   function cartaoPedido(p) {
     const c = h("article", "ad-item"); c.dataset.item = `plano:${p.id}`;
     const top = h("div", "cab"); top.append(pessoaCel({ ...pessoa(p.uid), nome: pessoa(p.uid).nome || p.nome }, p.email || ""));
     top.append(selo(...(ST[p.status] || [p.status, ""])), h("span", "quando", relativo(p.criadoEm)));
     c.appendChild(top);
-    c.append(h("strong", null, `Pro · ${p.meses} ${p.meses === 1 ? "mês" : "meses"} · ${reaisPl(p.valor)}`),
+    c.append(h("strong", null, `${nomePlano(p.plano || "pro")} · ${nMeses(p.meses)} · ${reaisPl(p.valor)}`),
       h("div", "meta", `Pedido #${String(p.id).slice(-6).toUpperCase()} · código no Pix: ${p.txid || "—"} · ${dataHora(p.criadoEm)}`));
     const atual = D.planos.get(p.uid);
-    if (atual?.plano === "pro" && ms(atual.ate) > agora()) c.appendChild(h("div", "meta", `Já é Pro até ${data(atual.ate)}: os meses somam a partir dessa data.`));
+    if (nivelPlano(atual)) {
+      const cr = creditoDias(atual, p.plano || "pro");
+      c.appendChild(h("div", "meta", atual.plano === (p.plano || "pro") ? `Já tem o ${nomePlano(atual.plano)} até ${data(atual.ate)} (${faltaTxt(atual)}): os meses somam a partir dessa data.` : `Troca do ${nomePlano(atual.plano)} (${faltaTxt(atual)}) pelo ${nomePlano(p.plano)}: começa hoje${cr ? ` + ${cr} dias de crédito` : ""}.`));
+    }
     if (p.status !== "pendente") c.appendChild(h("div", "meta", `${ST[p.status]?.[0] || p.status}${p.decididoEm ? " · " + dataHora(p.decididoEm) : ""}${p.decididoPor ? " · " + nomeEquipe(p.decididoPor) : ""}${p.motivo ? " · " + p.motivo : ""}`));
-    if (p.status === "pendente" && podeVender) {
-      const ac = h("div", "ad-acoes");
-      ac.append(btn("Confirmar pagamento e ativar", "pri", () => ativar(p)), btn("Recusar", "perigo", () => recusar(p)), btn("Ver ficha", "", () => abrirFicha(p.uid)));
-      c.appendChild(ac);
-    } else { const ac = h("div", "ad-acoes"); ac.appendChild(btn("Ver ficha", "", () => abrirFicha(p.uid))); c.appendChild(ac); }
+    const ac = h("div", "ad-acoes");
+    if (p.status === "pendente") ac.append(btn("Confirmar pagamento e ativar", "pri", () => ativar(p)), btn("Recusar", "perigo", () => recusar(p)));
+    ac.appendChild(btn("Ver ficha", "", () => abrirFicha(p.uid)));
+    c.appendChild(ac);
     return c;
   }
   function cartaoAtivo(p) {
     const c = h("article", "ad-item");
-    const top = h("div", "cab"); top.append(pessoaCel(pessoa(p.uid), "")); top.append(selo("PRO", "info"));
-    const falta = Math.ceil((ms(p.ate) - agora()) / DIA);
-    top.append(h("span", "quando", falta <= 7 ? `vence em ${falta} ${falta === 1 ? "dia" : "dias"}` : `até ${data(p.ate)}`));
-    c.append(top, h("div", "meta", `Ativado ${p.ativadoEm ? dataHora(p.ativadoEm) : ""}${p.ativadoPor ? " · " + nomeEquipe(p.ativadoPor) : ""}`));
+    const top = h("div", "cab"); top.append(pessoaCel(pessoa(p.uid), "")); top.append(selo(nomePlano(p.plano).toUpperCase(), "info"));
+    const falta = diasRestantes(p);
+    top.append(h("span", "quando", falta <= 7 ? faltaTxt(p) : `até ${data(p.ate)}`));
+    c.append(top, h("div", "meta", `${faltaTxt(p).replace(/^./, (l) => l.toUpperCase())} · vence em ${data(p.ate)}${p.negociacaoId ? " · por negociação" : ""}`),
+      h("div", "meta", `Ativado ${p.ativadoEm ? dataHora(p.ativadoEm) : ""}${p.ativadoPor ? " · " + nomeEquipe(p.ativadoPor) : ""}`));
     const ac = h("div", "ad-acoes");
-    if (podeVender) ac.append(btn("Encerrar o Pro agora", "perigo", () => encerrar(p)));
-    ac.append(btn("Ver ficha", "", () => abrirFicha(p.uid)));
+    ac.append(btn("Encerrar o plano agora", "perigo", () => encerrar(p)), btn("Ver ficha", "", () => abrirFicha(p.uid)));
     c.appendChild(ac);
     return c;
   }
+  // Data final do plano novo: mesmo plano soma a partir do fim do atual; troca começa hoje com os dias de crédito.
+  function fimDoPlano(uid, plano, meses) {
+    const atual = D.planos.get(uid);
+    const mesmo = nivelPlano(atual) && atual.plano === plano;
+    const base = mesmo ? Math.max(agora(), ms(atual.ate)) : agora() + creditoDias(atual, plano) * DIA;
+    return C.fb.Timestamp.fromMillis(base + meses * 30 * DIA);
+  }
   async function ativar(p) {
-    if (!(await confirmarHF({ titulo: "Confirmar o pagamento?", texto: `Ative só depois de ver ${reaisPl(p.valor)} no extrato (código ${p.txid}). O Pro fica ativo por ${p.meses} ${p.meses === 1 ? "mês" : "meses"}.`, ok: "Ativar o Pro", cor: "normal", icone: "check" }))) return;
+    const k = p.plano || "pro";
+    if (!(await confirmarHF({ titulo: "Confirmar o pagamento?", texto: `Ative só depois de ver ${reaisPl(p.valor)} no extrato (código ${p.txid}). O ${nomePlano(k)} fica ativo por ${nMeses(p.meses)}.`, ok: `Ativar o ${nomePlano(k)}`, cor: "normal", icone: "check" }))) return;
     const { fb } = C;
-    const atual = D.planos.get(p.uid);
-    const base = Math.max(agora(), atual?.plano === "pro" ? ms(atual.ate) : 0);
-    const ate = fb.Timestamp.fromMillis(base + p.meses * 30 * DIA);
+    const ate = fimDoPlano(p.uid, k, p.meses);
     const lote = fb.writeBatch(fb.db);
     lote.update(fb.doc(fb.db, "planos_pedidos", p.id), { status: "pago", decididoPor: C.eu.uid, decididoEm: fb.serverTimestamp() });
-    lote.set(fb.doc(fb.db, "planos", p.uid), { plano: "pro", ate, meses: p.meses, pedidoId: p.id, ativadoEm: fb.serverTimestamp(), ativadoPor: C.eu.uid });
+    lote.set(fb.doc(fb.db, "planos", p.uid), { plano: k, ate, meses: p.meses, pedidoId: p.id, ativadoEm: fb.serverTimestamp(), ativadoPor: C.eu.uid });
     await lote.commit();
     Object.assign(p, { status: "pago", decididoPor: C.eu.uid, decididoEm: { toMillis: () => agora() } });
-    D.planos.set(p.uid, { plano: "pro", ate, meses: p.meses, pedidoId: p.id, ativadoEm: { toMillis: () => agora() }, ativadoPor: C.eu.uid });
-    await registrar("plano_ativar", p.uid, `Pro · ${p.meses} ${p.meses === 1 ? "mês" : "meses"} · ${reaisPl(p.valor)} · até ${new Date(ate.toMillis()).toLocaleDateString("pt-BR")}`, "planos_pedidos:" + p.id);
-    await enviarAviso(p.uid, { titulo: "Seu plano Pro está ativo", texto: `Recebemos o seu Pix de ${reaisPl(p.valor)}. O plano Pro vale até ${new Date(ate.toMillis()).toLocaleDateString("pt-BR")} para todos os seus negócios. Obrigado!`, tipo: "info" }).catch(() => {});
-    toast("Pro ativado"); C.irPara("planos");
+    D.planos.set(p.uid, { plano: k, ate, meses: p.meses, pedidoId: p.id, ativadoEm: { toMillis: () => agora() }, ativadoPor: C.eu.uid });
+    await registrar("plano_ativar", p.uid, `${nomePlano(k)} · ${nMeses(p.meses)} · ${reaisPl(p.valor)} · até ${new Date(ate.toMillis()).toLocaleDateString("pt-BR")}`, "planos_pedidos:" + p.id);
+    await enviarAviso(p.uid, { titulo: `Seu plano ${nomePlano(k)} está ativo`, texto: `Recebemos o seu Pix de ${reaisPl(p.valor)}. O plano ${nomePlano(k)} vale até ${new Date(ate.toMillis()).toLocaleDateString("pt-BR")} para todos os seus negócios. Obrigado!`, tipo: "info" }).catch(() => {});
+    toast(`${nomePlano(k)} ativado`); C.irPara("planos");
   }
   async function recusar(p) {
     const v = await modal({ titulo: "Recusar o pedido?", texto: "A pessoa recebe um aviso com o motivo.", campos: [{ nome: "motivo", rotulo: "Motivo", valor: "Pagamento não encontrado", max: 300, obrigatorio: true }], botao: "Recusar pedido", perigo: true });
@@ -908,16 +933,115 @@ export function planos(el) {
     await fb.updateDoc(fb.doc(fb.db, "planos_pedidos", p.id), { status: "recusado", motivo: motivo.slice(0, 300), decididoPor: C.eu.uid, decididoEm: fb.serverTimestamp() });
     Object.assign(p, { status: "recusado", motivo, decididoPor: C.eu.uid, decididoEm: { toMillis: () => agora() } });
     await registrar("plano_recusar", p.uid, motivo, "planos_pedidos:" + p.id);
-    await enviarAviso(p.uid, { titulo: "Pedido do plano Pro não confirmado", texto: `Não conseguimos confirmar o pagamento do pedido #${String(p.id).slice(-6).toUpperCase()}. Motivo: ${motivo}. Se você já pagou, envie o comprovante pelo Suporte.`, tipo: "alerta" }).catch(() => {});
+    await enviarAviso(p.uid, { titulo: `Pedido do plano ${nomePlano(p.plano)} não confirmado`, texto: `Não conseguimos confirmar o pagamento do pedido #${String(p.id).slice(-6).toUpperCase()}. Motivo: ${motivo}. Se você já pagou, envie o comprovante pelo Suporte.`, tipo: "alerta" }).catch(() => {});
     toast("Pedido recusado"); C.irPara("planos");
   }
   async function encerrar(p) {
-    if (!(await confirmarHF({ titulo: "Encerrar o Pro agora?", texto: "O selo e o destaque saem na hora. Use em caso de estorno ou erro.", ok: "Encerrar", icone: "alerta" }))) return;
+    if (!(await confirmarHF({ titulo: `Encerrar o ${nomePlano(p.plano)} agora?`, texto: "O selo e o destaque saem na hora. Use em caso de estorno ou erro.", ok: "Encerrar", icone: "alerta" }))) return;
     const { fb } = C;
     await fb.setDoc(fb.doc(fb.db, "planos", p.uid), { plano: "gratis", ate: fb.Timestamp.fromMillis(agora()), ativadoEm: fb.serverTimestamp(), ativadoPor: C.eu.uid });
     D.planos.set(p.uid, { plano: "gratis", ate: { toMillis: () => agora() } });
-    await registrar("plano_encerrar", p.uid, "Pro encerrado pela equipe");
-    toast("Pro encerrado"); C.irPara("planos");
+    await registrar("plano_encerrar", p.uid, `${nomePlano(p.plano)} encerrado pela equipe`);
+    toast("Plano encerrado"); C.irPara("planos");
+  }
+
+  // ---------- condição especial (baixa renda) e parcerias pelos planos ----------
+  const ST_NEG = { novo: ["Novo", "atencao"], em_conversa: ["Em conversa", "info"], aprovado: ["Aprovado", "bom"], recusado: ["Não aprovado", "serio"], cancelado: ["Cancelado pela pessoa", "neutro"] };
+  function cartaoNeg(n) {
+    const uid = n.uid || n.id;
+    const c = h("article", "ad-item ad-neg"); c.dataset.item = `negociacao:${n.id}`;
+    const top = h("div", "cab"); top.append(pessoaCel({ ...pessoa(uid), nome: pessoa(uid).nome || n.nome }, n.email || ""));
+    top.append(selo(...(ST_NEG[n.status] || [n.status, ""])), h("span", "quando", relativo(n.criadoEm)));
+    c.appendChild(top);
+    c.append(h("strong", null, `${TIPOS_NEG_PL[n.tipo] || "Pedido"} · quer o ${nomePlano(n.plano)} (${reaisPl(PLANOS[n.plano]?.preco)}/mês)`),
+      h("div", "meta", [n.valorProposto ? `Propõe ${reaisPl(n.valorProposto)} por mês` : "Sem valor proposto", n.contato ? `Contato: ${n.contato}` : "", dataHora(n.criadoEm)].filter(Boolean).join(" · ")));
+    const q = h("q", "ad-neg-msg", n.mensagem || ""); c.appendChild(q);
+    const atual = D.planos.get(uid); if (nivelPlano(atual)) c.appendChild(h("div", "meta", `Hoje tem o ${nomePlano(atual.plano)} (${faltaTxt(atual)}).`));
+    if (n.status === "aprovado") c.appendChild(h("div", "meta", `Aprovado: ${nomePlano(n.planoConcedido)} por ${nMeses(n.meses)} · ${n.valorAcordado ? reaisPl(n.valorAcordado) + " combinado" : "sem custo"}${n.decididoPor ? " · " + nomeEquipe(n.decididoPor) : ""} · ${dataHora(n.decididoEm)}`));
+    if (n.resposta) c.appendChild(h("div", "meta", `Resposta: ${n.resposta}`));
+    const ac = h("div", "ad-acoes");
+    if (n.status === "novo" || n.status === "em_conversa") {
+      ac.append(btn("Aprovar e dar o plano", "pri", () => aprovarNeg(n)));
+      if (n.status === "novo") ac.append(btn("Marcar em conversa", "", () => mudarNeg(n, { status: "em_conversa" }, "negociacao_conversa", "Em conversa")));
+      ac.append(btn("Não aprovar", "perigo", () => recusarNeg(n)));
+    }
+    ac.append(btn("Conversar pelo suporte", "", async () => { if (await abrirConversaSuporte(uid) && n.status === "novo") await mudarNeg(n, { status: "em_conversa" }, "negociacao_conversa", "Conversa aberta pelo suporte"); }), btn("Ver ficha", "", () => abrirFicha(uid)));
+    c.appendChild(ac);
+    return c;
+  }
+  async function mudarNeg(n, campos, acao, detalhe) {
+    const { fb } = C;
+    await fb.updateDoc(fb.doc(fb.db, "planos_negociacoes", n.id), { ...campos, decididoPor: C.eu.uid, decididoEm: fb.serverTimestamp() });
+    Object.assign(n, campos, { decididoPor: C.eu.uid, decididoEm: { toMillis: () => agora() } });
+    await registrar(acao, n.uid || n.id, detalhe, "planos_negociacoes:" + n.id);
+    toast("Pedido atualizado"); C.irPara("planos");
+  }
+  async function aprovarNeg(n) {
+    const uid = n.uid || n.id;
+    const v = await modal({ titulo: "Aprovar e dar o plano", texto: `${pessoa(uid).nome || n.nome || "A pessoa"} recebe o plano na hora e um aviso com a sua mensagem. Valor 0 = sem custo (cortesia ou parceria).`, campos: [
+      { nome: "plano", rotulo: "Plano", tipo: "select", valor: n.plano, opcoes: ORDEM_PLANOS.map((k) => [k, `${PLANOS[k].nome} (${reaisPl(PLANOS[k].preco)}/mês)`]) },
+      { nome: "meses", rotulo: "Por quantos meses", tipo: "select", valor: "1", opcoes: [["1", "1 mês"], ["2", "2 meses"], ["3", "3 meses"], ["6", "6 meses"], ["12", "12 meses"]] },
+      { nome: "valor", rotulo: "Valor combinado no total (R$)", valor: n.valorProposto ? String(n.valorProposto).replace(".", ",") : "0", max: 10, dica: "0 = sem custo" },
+      { nome: "resposta", rotulo: "Mensagem para a pessoa", tipo: "textarea", max: 600, valor: n.tipo === "parceria" ? "Que bom ter você como parceiro do Help Floripa!" : "Entendemos a sua situação e liberamos uma condição especial para você." }
+    ], botao: "Aprovar" });
+    if (!v) return;
+    const meses = Number(v.meses) || 1, valor = Math.round((Number(String(v.valor).replace(/[^\d,.]/g, "").replace(",", ".")) || 0) * 100) / 100;
+    if (!PLANOS[v.plano] || valor < 0 || valor > 5000) { toast("Confira o plano e o valor."); return; }
+    const { fb } = C;
+    const ate = fimDoPlano(uid, v.plano, meses);
+    const lote = fb.writeBatch(fb.db);
+    const campos = { status: "aprovado", planoConcedido: v.plano, meses, valorAcordado: valor, resposta: v.resposta.slice(0, 600) };
+    lote.update(fb.doc(fb.db, "planos_negociacoes", n.id), { ...campos, decididoPor: C.eu.uid, decididoEm: fb.serverTimestamp() });
+    lote.set(fb.doc(fb.db, "planos", uid), { plano: v.plano, ate, meses, negociacaoId: n.id, ativadoEm: fb.serverTimestamp(), ativadoPor: C.eu.uid });
+    await lote.commit();
+    Object.assign(n, campos, { decididoPor: C.eu.uid, decididoEm: { toMillis: () => agora() } });
+    D.planos.set(uid, { plano: v.plano, ate, meses, negociacaoId: n.id, ativadoEm: { toMillis: () => agora() }, ativadoPor: C.eu.uid });
+    const fim = new Date(ate.toMillis()).toLocaleDateString("pt-BR");
+    await registrar("negociacao_aprovar", uid, `${TIPOS_NEG_PL[n.tipo] || "Pedido"} · ${nomePlano(v.plano)} · ${nMeses(meses)} · ${valor ? reaisPl(valor) : "sem custo"} · até ${fim}`, "planos_negociacoes:" + n.id);
+    await enviarAviso(uid, { titulo: `Seu pedido foi aprovado: plano ${nomePlano(v.plano)}`, texto: `${v.resposta ? v.resposta + "\n\n" : ""}O plano ${nomePlano(v.plano)} vale até ${fim} para todos os seus negócios${valor ? ` (valor combinado: ${reaisPl(valor)})` : ""}.`, tipo: "info" }).catch(() => {});
+    toast("Plano liberado"); C.irPara("planos");
+  }
+  async function recusarNeg(n) {
+    const v = await modal({ titulo: "Não aprovar o pedido?", texto: "A pessoa recebe um aviso com a sua resposta e pode pedir de novo depois.", campos: [{ nome: "resposta", rotulo: "Resposta", tipo: "textarea", max: 600, obrigatorio: true, valor: "Agora não conseguimos oferecer essa condição, mas você pode continuar no plano Grátis e pedir de novo mais para frente." }], botao: "Não aprovar", perigo: true });
+    if (!v) return;
+    await mudarNeg(n, { status: "recusado", resposta: v.resposta.slice(0, 600) }, "negociacao_recusar", v.resposta);
+    await enviarAviso(n.uid || n.id, { titulo: "Sobre o seu pedido de condição especial", texto: v.resposta, tipo: "info" }).catch(() => {});
+  }
+
+  // ---------- receita (só donos) ----------
+  function receita() {
+    const w = h("div", "ad-receita");
+    const ent = entradas();
+    const soma = (l) => l.reduce((t, e) => t + e.valor, 0);
+    const mesAtual = mesDe(agora()), d = new Date(agora() - 3 * 3600e3); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() - 1);
+    const mesPassado = d.toISOString().slice(0, 7);
+    const esteMes = soma(ent.filter((e) => mesDe(e.em) === mesAtual)), passado = soma(ent.filter((e) => mesDe(e.em) === mesPassado));
+    const ano = soma(ent.filter((e) => ms(e.em) >= agora() - 365 * DIA)), total = soma(ent);
+    // Receita recorrente: o que os planos ativos valem por mês (preço de tabela).
+    const recorrente = ativos.filter((p) => !p.negociacaoId).reduce((t, p) => t + (PLANOS[p.plano]?.preco || 0), 0);
+    const pagantes = new Set(ent.map((e) => e.uid)).size;
+    const kp = h("div", "ad-kpis");
+    const f = (v) => () => reaisPl(v);
+    kp.append(destaque({ rotulo: "Este mês", valor: Math.round(esteMes), formato: f(esteMes), antes: null, dica: `mês passado: ${reaisPl(passado)}` }),
+      destaque({ rotulo: "Últimos 12 meses", valor: Math.round(ano), formato: f(ano) }),
+      destaque({ rotulo: "Total recebido", valor: Math.round(total), formato: f(total), dica: `${ent.length} pagamentos · ${pagantes} ${pagantes === 1 ? "conta" : "contas"}` }),
+      destaque({ rotulo: "Receita recorrente (mês)", valor: Math.round(recorrente), formato: f(recorrente), dica: "planos ativos pelo preço de tabela" }),
+      destaque({ rotulo: "Ticket médio", valor: ent.length ? Math.round(total / ent.length) : 0, formato: f(ent.length ? total / ent.length : 0) }));
+    w.appendChild(kp);
+    const meses = []; const m0 = new Date(agora() - 3 * 3600e3); m0.setUTCDate(1);
+    for (let i = 11; i >= 0; i--) { const x = new Date(m0); x.setUTCMonth(x.getUTCMonth() - i); meses.push(x.toISOString().slice(0, 7)); }
+    const porMes = meses.map((k) => ({ rotulo: nomeMes(k), valor: Math.round(soma(ent.filter((e) => mesDe(e.em) === k)) * 100) / 100 }));
+    const g = h("div", "ad-grade");
+    g.appendChild(cartao({ titulo: "Receita por mês", sub: "Pix confirmados + valores combinados nas negociações", largo: true, cabecalho: ["Mês", "Recebido (R$)"], linhas: porMes.map((p) => [p.rotulo, p.valor]), nomeArquivo: "receita-por-mes", desenhar: (el) => barras(el, { itens: porMes, formato: (v) => reaisPl(v) }) }));
+    const porPlano = ORDEM_PLANOS.map((k) => ({ rotulo: PLANOS[k].nome, valor: Math.round(soma(ent.filter((e) => e.plano === k)) * 100) / 100 }));
+    g.appendChild(cartao({ titulo: "Receita por plano", sub: "Desde o começo", cabecalho: ["Plano", "Recebido (R$)"], linhas: porPlano.map((p) => [p.rotulo, p.valor]), grafico: "barra", nomeArquivo: "receita-por-plano", desenhar: (el) => barras(el, { itens: porPlano, horizontal: true, formato: (v) => reaisPl(v) }) }));
+    const ult = [...ent].sort((a, b) => ms(b.em) - ms(a.em)).slice(0, 30);
+    const bl = bloco("Últimos pagamentos", `${ult.length} mais recentes`);
+    bl.appendChild(ult.length ? h("div", "ad-pags") : h("div", "ad-vazio", "Nenhum pagamento ainda."));
+    ult.forEach((e) => { const l = h("div", "ad-pag"); l.append(h("span", null, `${pessoa(e.uid).nome || "Conta"} · ${nomePlano(e.plano)}${e.origem === "Negociação" ? " · negociado" : ""}`), h("b", null, reaisPl(e.valor)), h("small", null, dataHora(e.em))); bl.lastChild.appendChild(l); });
+    g.appendChild(bl);
+    w.appendChild(g);
+    return w;
   }
   pintar();
 }
@@ -1370,7 +1494,7 @@ export function relatorios(el) {
 }
 
 // ======================================================= REGISTRO E EQUIPE
-const NOMES_ACAO = { aviso: "Enviou aviso", suspender: "Suspendeu", banir: "Baniu", remover_sancao: "Removeu sanção", verificar: "Deu selo", tirar_selo: "Tirou/recusou selo", remover_conteudo: "Removeu conteúdo", esconder_negocio: "Escondeu negócio", mostrar_negocio: "Mostrou negócio", esconder_publicacao: "Escondeu publicação", mostrar_publicacao: "Mostrou publicação", exportar: "Exportou dados", relatorio_pdf: "Gerou relatório", parceria: "Atualizou parceria", parceria_apagar: "Apagou parceria", suporte_resposta: "Respondeu chamado", suporte_conversa: "Abriu conversa de suporte", suporte_fechado: "Fechou chamado", suporte_aberto: "Reabriu chamado", reporte_novo: "Reportou pessoa do suporte", cobrar_reclamacao: "Cobrou resposta de reclamação", reporte_em_analise: "Pôs reporte em análise", reporte_resolvido: "Resolveu reporte", reporte_descartado: "Descartou reporte", comunicado_novo: "Criou comunicado", comunicado_editar: "Editou comunicado", comunicado_on: "Pôs comunicado no ar", comunicado_off: "Tirou comunicado do ar", comunicado_apagar: "Apagou comunicado", denuncia_resolvida: "Resolveu denúncia", denuncia_descartada: "Descartou denúncia", denuncia_em_analise: "Pôs denúncia em análise", assumiu: "Assumiu", passou: "Passou para outra pessoa", liberou: "Liberou", tarefa_nova: "Criou tarefa", tarefa_editar: "Editou tarefa", tarefa_a_fazer: "Voltou tarefa", tarefa_fazendo: "Começou tarefa", tarefa_feito: "Concluiu tarefa", tarefa_apagar: "Apagou tarefa", nota_interna: "Escreveu nota interna", entrou: "Entrou no painel" };
+const NOMES_ACAO = { aviso: "Enviou aviso", suspender: "Suspendeu", banir: "Baniu", remover_sancao: "Removeu sanção", verificar: "Deu selo", tirar_selo: "Tirou/recusou selo", remover_conteudo: "Removeu conteúdo", esconder_negocio: "Escondeu negócio", mostrar_negocio: "Mostrou negócio", esconder_publicacao: "Escondeu publicação", mostrar_publicacao: "Mostrou publicação", exportar: "Exportou dados", relatorio_pdf: "Gerou relatório", parceria: "Atualizou parceria", parceria_apagar: "Apagou parceria", suporte_resposta: "Respondeu chamado", suporte_conversa: "Abriu conversa de suporte", suporte_fechado: "Fechou chamado", suporte_aberto: "Reabriu chamado", reporte_novo: "Reportou pessoa do suporte", cobrar_reclamacao: "Cobrou resposta de reclamação", reporte_em_analise: "Pôs reporte em análise", reporte_resolvido: "Resolveu reporte", reporte_descartado: "Descartou reporte", comunicado_novo: "Criou comunicado", comunicado_editar: "Editou comunicado", comunicado_on: "Pôs comunicado no ar", comunicado_off: "Tirou comunicado do ar", comunicado_apagar: "Apagou comunicado", denuncia_resolvida: "Resolveu denúncia", denuncia_descartada: "Descartou denúncia", denuncia_em_analise: "Pôs denúncia em análise", assumiu: "Assumiu", passou: "Passou para outra pessoa", liberou: "Liberou", tarefa_nova: "Criou tarefa", tarefa_editar: "Editou tarefa", tarefa_a_fazer: "Voltou tarefa", tarefa_fazendo: "Começou tarefa", tarefa_feito: "Concluiu tarefa", tarefa_apagar: "Apagou tarefa", nota_interna: "Escreveu nota interna", entrou: "Entrou no painel", plano_ativar: "Ativou plano", plano_recusar: "Recusou pedido de plano", plano_encerrar: "Encerrou plano", negociacao_aprovar: "Aprovou condição especial", negociacao_recusar: "Não aprovou condição especial", negociacao_conversa: "Negociou plano", verificacao_aprovar: "Aprovou verificação", verificacao_recusar: "Recusou verificação" };
 // Alvo do registro em texto de gente: a pessoa (link para a ficha), ou o item que a equipe assumiu/passou
 // ("suporte:ID" vira "Chamado #ABC123 · assunto", "denuncias:..." vira "Denúncia · motivo · pessoa"), ou a lista exportada.
 const LISTAS_EXPORT = { usuarios: "Lista de usuários", negocios: "Lista de negócios", denuncias: "Lista de denúncias", reclamacoes: "Lista de reclamações" };
@@ -1441,6 +1565,7 @@ function detalheAcao(x) {
   } else if (col === "parcerias" || col === "parceria") ac.append(btn("Abrir Sócios e parcerias", "", () => { fechar(); C.irPara("parcerias"); }));
   else if (col === "queixas") ac.append(btn("Abrir Reclamações", "", () => { fechar(); C.irPara("reclamacoes"); }));
   else if (col === "reportes") ac.append(btn("Abrir Reportes do suporte", "", () => { fechar(); C.irPara("denuncias:reportes"); }));
+  else if ((col === "planos_pedidos" || col === "planos_negociacoes") && pode("dono")) ac.append(btn("Abrir Planos", "", () => { fechar(); filtroPlanos = col === "planos_pedidos" ? "historico" : "negociacoes"; C.irPara("planos"); }));
   if (box.children.length) cx.appendChild(box);
   if (a.uid) ac.append(btn("Ver ficha da pessoa", "", () => { fechar(); abrirFicha(a.uid); }));
   ac.append(btn("Fechar", "", fechar));
@@ -1450,9 +1575,117 @@ function detalheAcao(x) {
   fundo.addEventListener("keydown", (e) => { if (e.key === "Escape") fechar(); });
   cx.tabIndex = -1; cx.focus();
 }
+// ======================================================= REGISTRO E HISTÓRICO (só donos)
+let abaRegistro = "pessoas", diaHistorico = "";
 export function registro(el) {
+  if (!pode("dono")) { el.appendChild(h("div", "ad-vazio", "Só os donos do site veem o registro de ações.")); return; }
+  el.appendChild(cab("Registro e histórico", "Tudo o que a equipe faz no painel fica registrado e não pode ser apagado. Em \"Por pessoa\", veja o que cada um fez em cada dia. Só os donos veem esta seção."));
+  const fil = chips([["pessoas", "Por pessoa (dia)"], ["todas", "Todas as ações"]], abaRegistro, (v) => { abaRegistro = v; pintar(); });
+  fil.style.marginBottom = "12px";
+  const corpo = h("div"); el.append(fil, corpo);
+  const pintar = () => { corpo.replaceChildren(); if (abaRegistro === "todas") todasAcoes(corpo); else historicoPorPessoa(corpo); };
+  pintar();
+}
+// Dia em Brasília (AAAA-MM-DD) e o intervalo em milissegundos.
+const hojeBR = () => new Date(agora() - 3 * 3600e3).toISOString().slice(0, 10);
+const intervaloDia = (dia) => { const ini = Date.parse(dia + "T00:00:00-03:00"); return [ini, ini + DIA]; };
+const somarDia = (dia, n) => new Date(Date.parse(dia + "T12:00:00-03:00") + n * DIA - 3 * 3600e3).toISOString().slice(0, 10);
+const horaBR = (t) => new Date(ms(t)).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" });
+const cacheDias = new Map();
+function lerDia(dia) {
+  const [ini, fim] = intervaloDia(dia);
+  const c = cacheDias.get(dia); if (c && (dia !== hojeBR() || agora() - c.em < 60000)) return c.p;
+  const { fb } = C;
+  const p = fb.getDocs(fb.query(fb.collection(fb.db, "admin_log"), fb.where("em", ">=", fb.Timestamp.fromMillis(ini)), fb.where("em", "<", fb.Timestamp.fromMillis(fim)), fb.orderBy("em", "asc"), fb.limit(2000)))
+    .then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() })))
+    .catch((e) => { cacheDias.delete(dia); throw e; });
+  cacheDias.set(dia, { em: agora(), p });
+  return p;
+}
+function historicoPorPessoa(el) {
+  if (!diaHistorico) diaHistorico = hojeBR();
+  const barra = h("div", "ad-dia");
+  const ant = h("button", "ad-bt", "‹"); ant.type = "button"; ant.setAttribute("aria-label", "Dia anterior");
+  const prox = h("button", "ad-bt", "›"); prox.type = "button"; prox.setAttribute("aria-label", "Próximo dia");
+  const inp = document.createElement("input"); inp.type = "date"; inp.className = "ad-sel"; inp.max = hojeBR(); inp.value = diaHistorico; inp.setAttribute("aria-label", "Escolher o dia");
+  const rot = h("strong", "ad-dia-rot");
+  const hoje = h("button", "ad-bt", "Hoje"); hoje.type = "button";
+  barra.append(ant, rot, prox, inp, hoje);
+  const area = h("div"); el.append(barra, area);
+  const ir = (d) => { if (!d || d > hojeBR()) return; diaHistorico = d; inp.value = d; carregarDia(); };
+  ant.addEventListener("click", () => ir(somarDia(diaHistorico, -1)));
+  prox.addEventListener("click", () => ir(somarDia(diaHistorico, 1)));
+  hoje.addEventListener("click", () => ir(hojeBR()));
+  inp.addEventListener("change", () => ir(inp.value));
+  let aberto = null;
+  async function carregarDia() {
+    const dia = diaHistorico;
+    const dt = new Date(dia + "T12:00:00-03:00");
+    rot.textContent = dia === hojeBR() ? "Hoje" : dia === somarDia(hojeBR(), -1) ? "Ontem" : dt.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short", timeZone: "America/Sao_Paulo" });
+    prox.disabled = dia >= hojeBR();
+    area.replaceChildren(h("div", "ad-vazio", "Carregando o histórico do dia..."));
+    let log;
+    try { log = await lerDia(dia); } catch (e) { area.replaceChildren(h("div", "ad-vazio", "Não foi possível ler o registro: " + (e.code || e.message))); return; }
+    if (dia !== diaHistorico) return;
+    const quem = [...new Set([...D.admins.map((a) => a.id), ...log.map((x) => x.por)])];
+    const porPessoa = new Map(quem.map((u) => [u, log.filter((x) => x.por === u)]));
+    quem.sort((a, b) => porPessoa.get(b).length - porPessoa.get(a).length || nomeEquipe(a).localeCompare(nomeEquipe(b)));
+    const resumo = h("p", "ad-dia-resumo", `${num(log.length)} ${log.length === 1 ? "ação" : "ações"} da equipe · ${[...porPessoa.values()].filter((l) => l.length).length} de ${quem.length} ${quem.length === 1 ? "pessoa" : "pessoas"} com atividade`);
+    const grade = h("div", "ad-hist-grade");
+    quem.forEach((uid) => grade.appendChild(cartaoPessoa(uid, porPessoa.get(uid))));
+    area.replaceChildren(resumo, grade);
+    if (aberto && quem.includes(aberto)) abrirLinha(aberto, porPessoa.get(aberto));
+    function cartaoPessoa(uid, l) {
+      const adm = D.admins.find((a) => a.id === uid);
+      const c = h("button", "ad-hist-pessoa"); c.type = "button"; c.dataset.uid = uid; c.setAttribute("aria-expanded", "false");
+      const p = { ...pessoa(uid), nome: nomeEquipe(uid) };
+      const on = C.online(uid), pres = C.presenca.get(uid);
+      const tt = h("div", "tx");
+      tt.append(h("b", null, p.nome), h("small", null, `${adm ? PAPEIS[adm.papel] || "Dono" : "Fora da equipe"} · ${on ? "online agora" : pres?.em ? "visto " + relativo(pres.em) : "sem sinal"}`));
+      const n = h("div", "n"); n.append(h("strong", null, String(l.length)), h("span", null, l.length === 1 ? "ação" : "ações"));
+      const top = h("div", "linha"); top.append(avatar(p), tt, n);
+      if (on) top.firstChild.classList.add("on");
+      c.appendChild(top);
+      if (l.length) {
+        c.appendChild(h("div", "meta", `${horaBR(l[0].em)} – ${horaBR(l[l.length - 1].em)}`));
+        const tipos = contarPor(l, (x) => NOMES_ACAO[x.acao] || x.acao).slice(0, 3);
+        const tg = h("div", "tags"); tipos.forEach(([t, q]) => tg.appendChild(h("span", null, `${t}${q > 1 ? " ×" + q : ""}`))); c.appendChild(tg);
+      } else c.appendChild(h("div", "meta", "Nenhuma ação registrada neste dia."));
+      c.addEventListener("click", () => { aberto = aberto === uid ? null : uid; abrirLinha(aberto, aberto ? l : null); });
+      return c;
+    }
+    function abrirLinha(uid, l) {
+      area.querySelector(".ad-hist-linha")?.remove();
+      area.querySelectorAll(".ad-hist-pessoa").forEach((b) => { const on = b.dataset.uid === uid; b.classList.toggle("on", on); b.setAttribute("aria-expanded", String(on)); });
+      if (!uid) return;
+      const box = h("section", "ad-bloco ad-hist-linha");
+      const bt = h("div", "ad-bloco-topo"); const tt = h("div"); tt.append(h("h3", null, `${nomeEquipe(uid)} · ${rot.textContent.toLowerCase() === "hoje" ? "hoje" : rot.textContent}`), h("p", null, l.length ? `${l.length} ${l.length === 1 ? "ação" : "ações"}, da primeira à última. Toque para ver os detalhes.` : "Nenhuma ação neste dia."));
+      bt.appendChild(tt);
+      if (l.length) bt.appendChild(btn("Baixar Excel", "", () => baixarCSV(`historico-${nomeEquipe(uid).split(" ")[0].toLowerCase()}-${dia}`, ["Hora", "Ação", "Alvo", "Detalhe"], l.map((x) => [horaBR(x.em), NOMES_ACAO[x.acao] || x.acao, alvoLegivel(x).texto, detalheLegivel(x)]))));
+      box.appendChild(bt);
+      const ol = h("ol", "ad-timeline");
+      l.forEach((x) => {
+        const li = h("li"); li.tabIndex = 0;
+        const a = alvoLegivel(x);
+        li.append(h("time", null, horaBR(x.em)), h("b", null, NOMES_ACAO[x.acao] || x.acao));
+        const sub = [a.texto !== "—" ? a.texto : "", detalheLegivel(x)].filter(Boolean).join(" · ");
+        if (sub) li.appendChild(h("span", null, sub));
+        li.addEventListener("click", () => detalheAcao(x));
+        li.addEventListener("keydown", (e) => { if (e.key === "Enter") detalheAcao(x); });
+        ol.appendChild(li);
+      });
+      if (l.length) box.appendChild(ol);
+      const alvo = area.querySelector(`.ad-hist-pessoa[data-uid="${uid}"]`);
+      // No celular a linha do tempo abre logo abaixo da pessoa; no computador, embaixo da grade.
+      if (matchMedia("(max-width: 700px)").matches && alvo) alvo.after(box); else area.appendChild(box);
+      box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }
+  carregarDia();
+}
+function todasAcoes(el) {
   const excel = btn("Baixar Excel", "", () => { const l = filtrar(); baixarCSV("registro-equipe", ["Quando", "Quem", "Ação", "Alvo", "Detalhe"], l.map((x) => [dataHora(x.em), x.porNome || nomeEquipe(x.por), NOMES_ACAO[x.acao] || x.acao, alvoLegivel(x).texto, detalheLegivel(x)])); });
-  el.appendChild(cab("Registro de ações", "Tudo o que a equipe faz no painel fica aqui. Não pode ser apagado.", excel));
+  const topoT = h("div", "ad-acoes"); topoT.style.margin = "0 0 10px"; topoT.appendChild(excel); el.appendChild(topoT);
   const linhaF = h("div", "ad-acoes"); linhaF.style.marginBottom = "12px";
   const selQuem = document.createElement("select"); selQuem.className = "ad-sel"; selQuem.setAttribute("aria-label", "Filtrar por pessoa da equipe");
   selQuem.append(new Option("Toda a equipe", ""), ...[...new Set(D.log.map((x) => x.por))].map((uid) => new Option(nomeEquipe(uid), uid)));

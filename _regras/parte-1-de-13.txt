@@ -43,6 +43,10 @@ service cloud.firestore {
     function podeComercial() {
       return admin() && papel() in ['dono', 'comercial'];
     }
+    // Só os donos do site: planos (pagamentos, negociações, receita) e o registro de ações da equipe.
+    function donoDoSite() {
+      return admin() && papel() == 'dono';
+    }
 
     // Suspensão (até uma data) ou banimento (sem data).
     function sancionado(uid) {
@@ -244,14 +248,6 @@ service cloud.firestore {
     // Id da conversa / do vínculo entre duas pessoas (ids em ordem).
     function par(a, b) {
       return a < b ? a + '_' + b : b + '_' + a;
-    }
-
-    // Conta com pelo menos 3 dias (usuarios.criadoEm é gravado no cadastro e não muda).
-    function contaAntiga(uid) {
-      let u = /databases/$(database)/documents/usuarios/$(uid);
-      return exists(u)
-          && get(u).data.get('criadoEm', null) is timestamp
-          && get(u).data.criadoEm < request.time - duration.value(3, 'd');
     }
 
 // ===== FIM DA PARTE 1 DE 13 =====

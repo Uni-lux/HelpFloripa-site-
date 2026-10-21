@@ -1,3 +1,11 @@
+    // Conta com pelo menos 3 dias (usuarios.criadoEm é gravado no cadastro e não muda).
+    function contaAntiga(uid) {
+      let u = /databases/$(database)/documents/usuarios/$(uid);
+      return exists(u)
+          && get(u).data.get('criadoEm', null) is timestamp
+          && get(u).data.criadoEm < request.time - duration.value(3, 'd');
+    }
+
     // Quem já escreveu na conversa entre a e b (conversas.falaram, cada um marca só o seu).
     function falou(a, b, quem) {
       let c = /databases/$(database)/documents/conversas/$(par(a, b));
@@ -245,14 +253,5 @@
                     && request.resource.data.alvoId != request.auth.uid
                     && id == request.auth.uid + '_' + request.resource.data.alvoId
                     && !bloqueioEntre(request.auth.uid, request.resource.data.alvoId);
-
-      allow update: if false;
-
-      // Quem segue pode deixar de seguir; quem é seguido pode remover o seguidor.
-      allow delete: if logado()
-                    && (resource.data.seguidorId == request.auth.uid
-                        || resource.data.alvoId == request.auth.uid);
-    }
-
 
 // ===== FIM DA PARTE 2 DE 13 =====
