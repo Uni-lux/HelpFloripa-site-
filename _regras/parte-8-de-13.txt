@@ -113,10 +113,21 @@
       allow delete: if false;
     }
     // Plano ativo da conta: público (selo e destaque); só os donos do site mudam.
+    // Primeiro acesso: a própria pessoa começa 30 dias grátis no plano que escolher (só se a conta nunca teve plano).
     match /planos/{uid} {
       allow read: if logado();
+      allow create: if logado() && emailOk() && uid == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['plano', 'ate', 'ativadoEm', 'ativadoPor', 'teste', 'meses'])
+                    && request.resource.data.plano in ['plus', 'pro', 'premium']
+                    && request.resource.data.teste == true
+                    && request.resource.data.meses == 1
+                    && request.resource.data.ate is timestamp
+                    && request.resource.data.ate > request.time + duration.value(29, 'd')
+                    && request.resource.data.ate <= request.time + duration.value(31, 'd')
+                    && request.resource.data.ativadoPor == request.auth.uid
+                    && request.resource.data.ativadoEm == request.time;
       allow create, update: if donoDoSite()
-                    && request.resource.data.keys().hasOnly(['plano', 'ate', 'ativadoEm', 'ativadoPor', 'pedidoId', 'negociacaoId', 'meses'])
+                    && request.resource.data.keys().hasOnly(['plano', 'ate', 'ativadoEm', 'ativadoPor', 'pedidoId', 'negociacaoId', 'meses', 'teste'])
                     && request.resource.data.plano in ['plus', 'pro', 'premium', 'gratis']
                     && request.resource.data.ate is timestamp
                     && request.resource.data.ativadoPor == request.auth.uid
@@ -125,10 +136,24 @@
     }
     // Condição especial (baixa renda) ou parceria pelos planos: um pedido por pessoa (id = uid). A pessoa envia,
     // cancela enquanto está aberto e pede de novo depois de decidido; só os donos do site leem e negociam.
+    // Condição especial: a pessoa diz qual documento prova a baixa renda (ou que manda depois), declara que é verdade e
+    // pode anexar a foto/PDF; o anexo sai do documento quando os donos decidem (ou quando ela cancela).
     match /planos_negociacoes/{uid} {
+      function comprovanteOk(x) {
+        return x is map
+            && x.keys().hasOnly(['tipo', 'url', 'nome'])
+            && x.tipo in ['imagem', 'arquivo']
+            && valorTextoAte(x.get('nome', ''), 120)
+            && x.url is string && x.url.size() <= 750000
+            && x.url.matches('^(data:(image/jpeg|application/pdf);base64,|https://firebasestorage[.]googleapis[.]com/).*');
+      }
       function pedidoNegOk() {
         let d = request.resource.data;
-        return d.keys().hasOnly(['uid', 'nome', 'email', 'tipo', 'plano', 'valorProposto', 'contato', 'mensagem', 'status', 'criadoEm'])
+        return d.keys().hasOnly(['uid', 'nome', 'email', 'tipo', 'plano', 'valorProposto', 'contato', 'mensagem', 'status', 'criadoEm', 'comprovanteTipo', 'comprovante', 'declaracao'])
+          && (d.tipo != 'apoio' || (d.get('declaracao', false) == true
+              && d.get('comprovanteTipo', '') is string
+              && d.get('comprovanteTipo', '').matches('^(cadunico|bolsa|bpc|cnis|renda|desemprego|tarifa|mei|isento|depois)$')))
+          && (!('comprovante' in d) || (d.tipo == 'apoio' && comprovanteOk(d.comprovante)))
           && d.uid == request.auth.uid && uid == request.auth.uid
           && d.tipo in ['apoio', 'parceria']
           && d.plano in ['plus', 'pro', 'premium']
@@ -140,28 +165,4 @@
           && d.status == 'novo'
           && d.criadoEm == request.time;
       }
-      allow read: if (logado() && uid == request.auth.uid) || donoDoSite();
-      allow create: if logado() && emailOk() && pedidoNegOk();
-      // Pedir de novo: só depois que o anterior foi decidido ou cancelado (substitui o documento inteiro).
-      allow update: if logado() && emailOk() && uid == request.auth.uid
-                    && resource.data.status in ['aprovado', 'recusado', 'cancelado']
-                    && pedidoNegOk();
-      allow update: if logado() && uid == request.auth.uid
-                    && resource.data.status in ['novo', 'em_conversa']
-                    && mudou().hasOnly(['status'])
-                    && request.resource.data.status == 'cancelado';
-      allow update: if donoDoSite()
-                    && resource.data.status in ['novo', 'em_conversa']
-                    && mudou().hasOnly(['status', 'resposta', 'decididoPor', 'decididoEm', 'planoConcedido', 'meses', 'valorAcordado'])
-                    && request.resource.data.status in ['em_conversa', 'aprovado', 'recusado']
-                    && request.resource.data.decididoPor == request.auth.uid
-                    && request.resource.data.decididoEm == request.time
-                    && valorTextoAte(request.resource.data.get('resposta', ''), 600)
-                    && (request.resource.data.status != 'aprovado'
-                        || (request.resource.data.planoConcedido in ['plus', 'pro', 'premium']
-                            && request.resource.data.meses is int && request.resource.data.meses >= 1 && request.resource.data.meses <= 24
-                            && request.resource.data.valorAcordado is number && request.resource.data.valorAcordado >= 0 && request.resource.data.valorAcordado <= 5000));
-      allow delete: if false;
-    }
-
 // ===== FIM DA PARTE 8 DE 13 =====

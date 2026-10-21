@@ -7,7 +7,7 @@
 // Abrir: abrirInsightsNegocio(negocio, { aoEditar }) · negocios.html?insights=ID
 // =====================================================
 import { $, el, icone, fb, eu, dados, toast, numero, criarFolha, abrirFolha, urlSegura, pintarAvatar } from "./rede.js?v=49";
-import { lerPlano, ehPago, abrirPlanos } from "./planos.js?v=2";
+import { lerPlano, ehPago, abrirPlanos } from "./planos.js?v=5";
 import { lerStats, listaDias, somarPeriodo, dataDoDia, chaveItem, chaveAnuncio, ORIGENS, ACOES, CONTATOS } from "./estat-negocio.js?v=1";
 import { baixarPlanilhaMulti } from "./planilha.js?v=5";
 
@@ -100,7 +100,7 @@ function montar(corpo, n, D, dias, trocar, opcoes) {
   const qt = el("div"); qt.append(el("strong", null, n.nome || ROTULO_TIPO[n.tipo]), el("span", "ni-tipo", ROTULO_TIPO[n.tipo] || ""));
   quem.append(av, qt);
   const per = el("div", "ni-periodo"); per.setAttribute("role", "tablist");
-  // 90 dias e o Excel vêm em todos os planos pagos (a partir do Plus): no Grátis o botão mostra a etiqueta e abre os planos.
+  // 90 dias e o Excel vêm em todos os planos pagos (a partir do Plus): sem plano o botão mostra a etiqueta e abre os planos.
   const verPlanos = () => abrirPlanos({ fb, eu, dados, toast, plano: "plus" });
   PERIODOS.forEach(([d, rot]) => {
     const travado = d > 30 && !D.pro;

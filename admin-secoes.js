@@ -10,7 +10,7 @@ import { montarChat } from "./admin-chat.js?v=20";
 import { verConteudoDenuncia } from "./admin-denuncia.js?v=12";
 import { prepararAnexo, blocoAnexo, previaAnexo, aceitos } from "./anexos-suporte.js?v=1";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
-import { PLANOS, ORDEM_PLANOS, nivelPlano, nomePlano, diasRestantes, creditoDias, TIPOS_NEG as TIPOS_NEG_PL } from "./planos.js?v=2";
+import { PLANOS, ORDEM_PLANOS, nivelPlano, nomePlano, diasRestantes, creditoDias, descontoDe, nomeDocRenda, TIPOS_NEG as TIPOS_NEG_PL } from "./planos.js?v=5";
 import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha,
@@ -845,7 +845,7 @@ function entradas() {
 }
 export function planos(el) {
   if (!pode("dono")) { el.appendChild(h("div", "ad-vazio", "Só os donos do site veem os planos e a receita.")); return; }
-  el.appendChild(cab("Planos e receita", "Pedidos pagos por Pix (confira no extrato o valor e o código antes de ativar), pedidos de condição especial e parceria, e a receita. O plano vence sozinho na data. Só os donos veem esta seção."));
+  el.appendChild(cab("Planos e receita", "Pedidos pagos por Pix (confira no extrato o valor e o código antes de ativar), pedidos de condição especial, parceria ou negociação, e a receita. O plano vence sozinho na data. Só os donos veem esta seção."));
   const pedidos = [...D.planosPedidos].sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
   const pend = pedidos.filter((p) => p.status === "pendente").sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm));
   const negs = [...D.planosNeg].sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
@@ -856,7 +856,7 @@ export function planos(el) {
   const kp = h("div", "ad-kpis");
   kp.append(destaque({ rotulo: "Esperando o Pix", valor: pend.length, alerta: pend.some((p) => ms(p.criadoEm) < agora() - 2 * DIA) }),
     destaque({ rotulo: "Negociações abertas", valor: negAbertas.length, alerta: negAbertas.some((n) => n.status === "novo" && ms(n.criadoEm) < agora() - 3 * DIA) }),
-    destaque({ rotulo: "Planos ativos", valor: ativos.length, dica: ORDEM_PLANOS.map((k) => `${ativos.filter((p) => p.plano === k).length} ${PLANOS[k].nome}`).join(" · ") }),
+    destaque({ rotulo: "Planos ativos", valor: ativos.length, dica: ORDEM_PLANOS.map((k) => `${ativos.filter((p) => p.plano === k).length} ${PLANOS[k].nome}`).join(" · ") + ` · ${ativos.filter((p) => p.teste).length} em teste grátis` }),
     destaque({ rotulo: "Recebido em 30 dias", valor: Math.round(recebido), formato: () => reaisPl(recebido) }),
     destaque({ rotulo: "Vencem em 7 dias", valor: ativos.filter((p) => ms(p.ate) < agora() + 7 * DIA).length }));
   el.appendChild(kp);
@@ -865,7 +865,7 @@ export function planos(el) {
   const lista = h("div", "ad-lista"); el.append(fil, lista);
   function pintar() {
     if (filtroPlanos === "pendente") lista.replaceChildren(...(pend.length ? pend.map(cartaoPedido) : [h("div", "ad-vazio", "Nenhum pedido esperando o pagamento.")]));
-    else if (filtroPlanos === "negociacoes") lista.replaceChildren(...(negs.length ? [...negAbertas, ...negs.filter((n) => !negAbertas.includes(n))].map(cartaoNeg) : [h("div", "ad-vazio", "Nenhum pedido de condição especial ou parceria.")]));
+    else if (filtroPlanos === "negociacoes") lista.replaceChildren(...(negs.length ? [...negAbertas, ...negs.filter((n) => !negAbertas.includes(n))].map(cartaoNeg) : [h("div", "ad-vazio", "Nenhum pedido de condição especial, parceria ou negociação.")]));
     else if (filtroPlanos === "ativos") lista.replaceChildren(...(ativos.length ? ativos.map(cartaoAtivo) : [h("div", "ad-vazio", "Nenhum negócio com plano pago ativo.")]));
     else if (filtroPlanos === "receita") lista.replaceChildren(receita());
     else { const l = pedidos.filter((p) => p.status !== "pendente"); lista.replaceChildren(...(l.length ? l.map(cartaoPedido) : [h("div", "ad-vazio", "Nada por aqui ainda.")])); }
@@ -877,7 +877,7 @@ export function planos(el) {
     const top = h("div", "cab"); top.append(pessoaCel({ ...pessoa(p.uid), nome: pessoa(p.uid).nome || p.nome }, p.email || ""));
     top.append(selo(...(ST[p.status] || [p.status, ""])), h("span", "quando", relativo(p.criadoEm)));
     c.appendChild(top);
-    c.append(h("strong", null, `${nomePlano(p.plano || "pro")} · ${nMeses(p.meses)} · ${reaisPl(p.valor)}`),
+    c.append(h("strong", null, `${nomePlano(p.plano || "pro")} · ${nMeses(p.meses)} · ${reaisPl(p.valor)}${descontoDe(p.meses) ? ` (${Math.round(descontoDe(p.meses) * 100)}% de desconto)` : ""}`),
       h("div", "meta", `Pedido #${String(p.id).slice(-6).toUpperCase()} · código no Pix: ${p.txid || "—"} · ${dataHora(p.criadoEm)}`));
     const atual = D.planos.get(p.uid);
     if (nivelPlano(atual)) {
@@ -894,9 +894,10 @@ export function planos(el) {
   function cartaoAtivo(p) {
     const c = h("article", "ad-item");
     const top = h("div", "cab"); top.append(pessoaCel(pessoa(p.uid), "")); top.append(selo(nomePlano(p.plano).toUpperCase(), "info"));
+    if (p.teste) top.append(selo("TESTE GRÁTIS", "atencao"));
     const falta = diasRestantes(p);
     top.append(h("span", "quando", falta <= 7 ? faltaTxt(p) : `até ${data(p.ate)}`));
-    c.append(top, h("div", "meta", `${faltaTxt(p).replace(/^./, (l) => l.toUpperCase())} · vence em ${data(p.ate)}${p.negociacaoId ? " · por negociação" : ""}`),
+    c.append(top, h("div", "meta", `${faltaTxt(p).replace(/^./, (l) => l.toUpperCase())} · vence em ${data(p.ate)}${p.negociacaoId ? " · por negociação" : ""}${p.teste ? " · teste grátis de 30 dias" : ""}`),
       h("div", "meta", `Ativado ${p.ativadoEm ? dataHora(p.ativadoEm) : ""}${p.ativadoPor ? " · " + nomeEquipe(p.ativadoPor) : ""}`));
     const ac = h("div", "ad-acoes");
     ac.append(btn("Encerrar o plano agora", "perigo", () => encerrar(p)), btn("Ver ficha", "", () => abrirFicha(p.uid)));
@@ -956,6 +957,15 @@ export function planos(el) {
     c.append(h("strong", null, `${TIPOS_NEG_PL[n.tipo] || "Pedido"} · quer o ${nomePlano(n.plano)} (${reaisPl(PLANOS[n.plano]?.preco)}/mês)`),
       h("div", "meta", [n.valorProposto ? `Propõe ${reaisPl(n.valorProposto)} por mês` : "Sem valor proposto", n.contato ? `Contato: ${n.contato}` : "", dataHora(n.criadoEm)].filter(Boolean).join(" · ")));
     const q = h("q", "ad-neg-msg", n.mensagem || ""); c.appendChild(q);
+    // Prova de baixa renda: qual documento, a declaração e o anexo (apagado quando a decisão é tomada).
+    if (n.tipo === "apoio") {
+      const pv = h("div", "ad-neg-prova");
+      pv.append(h("b", null, `Comprovante: ${nomeDocRenda(n.comprovanteTipo) || "não informado"}`), h("small", null, n.declaracao ? "Declarou que as informações são verdadeiras." : "Sem a declaração (pedido antigo)."));
+      const ax = n.comprovante && blocoAnexo(n.comprovante);
+      if (ax) pv.appendChild(ax);
+      else pv.appendChild(h("small", null, n.status === "aprovado" || n.status === "recusado" ? "O documento foi apagado depois da decisão." : n.comprovanteTipo === "depois" ? "Vai mandar o documento pelo suporte: use \"Conversar pelo suporte\"." : "Nenhum documento anexado."));
+      c.appendChild(pv);
+    }
     const atual = D.planos.get(uid); if (nivelPlano(atual)) c.appendChild(h("div", "meta", `Hoje tem o ${nomePlano(atual.plano)} (${faltaTxt(atual)}).`));
     if (n.status === "aprovado") c.appendChild(h("div", "meta", `Aprovado: ${nomePlano(n.planoConcedido)} por ${nMeses(n.meses)} · ${n.valorAcordado ? reaisPl(n.valorAcordado) + " combinado" : "sem custo"}${n.decididoPor ? " · " + nomeEquipe(n.decididoPor) : ""} · ${dataHora(n.decididoEm)}`));
     if (n.resposta) c.appendChild(h("div", "meta", `Resposta: ${n.resposta}`));
@@ -971,8 +981,10 @@ export function planos(el) {
   }
   async function mudarNeg(n, campos, acao, detalhe) {
     const { fb } = C;
-    await fb.updateDoc(fb.doc(fb.db, "planos_negociacoes", n.id), { ...campos, decididoPor: C.eu.uid, decididoEm: fb.serverTimestamp() });
-    Object.assign(n, campos, { decididoPor: C.eu.uid, decididoEm: { toMillis: () => agora() } });
+    // Ao decidir, o documento da pessoa sai do pedido (só fica guardado enquanto está em análise).
+    const apagar = campos.status === "aprovado" || campos.status === "recusado" ? { comprovante: fb.deleteField() } : {};
+    await fb.updateDoc(fb.doc(fb.db, "planos_negociacoes", n.id), { ...campos, ...apagar, decididoPor: C.eu.uid, decididoEm: fb.serverTimestamp() });
+    Object.assign(n, campos, { decididoPor: C.eu.uid, decididoEm: { toMillis: () => agora() } }); if (apagar.comprovante) delete n.comprovante;
     await registrar(acao, n.uid || n.id, detalhe, "planos_negociacoes:" + n.id);
     toast("Pedido atualizado"); C.irPara("planos");
   }
@@ -982,7 +994,7 @@ export function planos(el) {
       { nome: "plano", rotulo: "Plano", tipo: "select", valor: n.plano, opcoes: ORDEM_PLANOS.map((k) => [k, `${PLANOS[k].nome} (${reaisPl(PLANOS[k].preco)}/mês)`]) },
       { nome: "meses", rotulo: "Por quantos meses", tipo: "select", valor: "1", opcoes: [["1", "1 mês"], ["2", "2 meses"], ["3", "3 meses"], ["6", "6 meses"], ["12", "12 meses"]] },
       { nome: "valor", rotulo: "Valor combinado no total (R$)", valor: n.valorProposto ? String(n.valorProposto).replace(".", ",") : "0", max: 10, dica: "0 = sem custo" },
-      { nome: "resposta", rotulo: "Mensagem para a pessoa", tipo: "textarea", max: 600, valor: n.tipo === "parceria" ? "Que bom ter você como parceiro do Help Floripa!" : "Entendemos a sua situação e liberamos uma condição especial para você." }
+      { nome: "resposta", rotulo: "Mensagem para a pessoa", tipo: "textarea", max: 600, valor: n.tipo === "parceria" ? "Topamos a sua proposta. Que bom ter você com o Help Floripa!" : "Entendemos a sua situação e liberamos uma condição especial para você." }
     ], botao: "Aprovar" });
     if (!v) return;
     const meses = Number(v.meses) || 1, valor = Math.round((Number(String(v.valor).replace(/[^\d,.]/g, "").replace(",", ".")) || 0) * 100) / 100;
@@ -991,10 +1003,10 @@ export function planos(el) {
     const ate = fimDoPlano(uid, v.plano, meses);
     const lote = fb.writeBatch(fb.db);
     const campos = { status: "aprovado", planoConcedido: v.plano, meses, valorAcordado: valor, resposta: v.resposta.slice(0, 600) };
-    lote.update(fb.doc(fb.db, "planos_negociacoes", n.id), { ...campos, decididoPor: C.eu.uid, decididoEm: fb.serverTimestamp() });
+    lote.update(fb.doc(fb.db, "planos_negociacoes", n.id), { ...campos, comprovante: fb.deleteField(), decididoPor: C.eu.uid, decididoEm: fb.serverTimestamp() });
     lote.set(fb.doc(fb.db, "planos", uid), { plano: v.plano, ate, meses, negociacaoId: n.id, ativadoEm: fb.serverTimestamp(), ativadoPor: C.eu.uid });
     await lote.commit();
-    Object.assign(n, campos, { decididoPor: C.eu.uid, decididoEm: { toMillis: () => agora() } });
+    Object.assign(n, campos, { decididoPor: C.eu.uid, decididoEm: { toMillis: () => agora() } }); delete n.comprovante;
     D.planos.set(uid, { plano: v.plano, ate, meses, negociacaoId: n.id, ativadoEm: { toMillis: () => agora() }, ativadoPor: C.eu.uid });
     const fim = new Date(ate.toMillis()).toLocaleDateString("pt-BR");
     await registrar("negociacao_aprovar", uid, `${TIPOS_NEG_PL[n.tipo] || "Pedido"} · ${nomePlano(v.plano)} · ${nMeses(meses)} · ${valor ? reaisPl(valor) : "sem custo"} · até ${fim}`, "planos_negociacoes:" + n.id);
@@ -1002,10 +1014,10 @@ export function planos(el) {
     toast("Plano liberado"); C.irPara("planos");
   }
   async function recusarNeg(n) {
-    const v = await modal({ titulo: "Não aprovar o pedido?", texto: "A pessoa recebe um aviso com a sua resposta e pode pedir de novo depois.", campos: [{ nome: "resposta", rotulo: "Resposta", tipo: "textarea", max: 600, obrigatorio: true, valor: "Agora não conseguimos oferecer essa condição, mas você pode continuar no plano Grátis e pedir de novo mais para frente." }], botao: "Não aprovar", perigo: true });
+    const v = await modal({ titulo: "Não aprovar o pedido?", texto: "A pessoa recebe um aviso com a sua resposta e pode pedir de novo depois.", campos: [{ nome: "resposta", rotulo: "Resposta", tipo: "textarea", max: 600, obrigatorio: true, valor: "Agora não conseguimos oferecer essa condição, mas você pode assinar um dos planos quando puder e pedir de novo mais para frente." }], botao: "Não aprovar", perigo: true });
     if (!v) return;
     await mudarNeg(n, { status: "recusado", resposta: v.resposta.slice(0, 600) }, "negociacao_recusar", v.resposta);
-    await enviarAviso(n.uid || n.id, { titulo: "Sobre o seu pedido de condição especial", texto: v.resposta, tipo: "info" }).catch(() => {});
+    await enviarAviso(n.uid || n.id, { titulo: n.tipo === "parceria" ? "Sobre a sua proposta de negociação" : "Sobre o seu pedido de condição especial", texto: v.resposta, tipo: "info" }).catch(() => {});
   }
 
   // ---------- receita (só donos) ----------
@@ -1018,7 +1030,7 @@ export function planos(el) {
     const esteMes = soma(ent.filter((e) => mesDe(e.em) === mesAtual)), passado = soma(ent.filter((e) => mesDe(e.em) === mesPassado));
     const ano = soma(ent.filter((e) => ms(e.em) >= agora() - 365 * DIA)), total = soma(ent);
     // Receita recorrente: o que os planos ativos valem por mês (preço de tabela).
-    const recorrente = ativos.filter((p) => !p.negociacaoId).reduce((t, p) => t + (PLANOS[p.plano]?.preco || 0), 0);
+    const recorrente = ativos.filter((p) => !p.negociacaoId && !p.teste).reduce((t, p) => t + (PLANOS[p.plano]?.preco || 0), 0);
     const pagantes = new Set(ent.map((e) => e.uid)).size;
     const kp = h("div", "ad-kpis");
     const f = (v) => () => reaisPl(v);
@@ -1494,7 +1506,7 @@ export function relatorios(el) {
 }
 
 // ======================================================= REGISTRO E EQUIPE
-const NOMES_ACAO = { aviso: "Enviou aviso", suspender: "Suspendeu", banir: "Baniu", remover_sancao: "Removeu sanção", verificar: "Deu selo", tirar_selo: "Tirou/recusou selo", remover_conteudo: "Removeu conteúdo", esconder_negocio: "Escondeu negócio", mostrar_negocio: "Mostrou negócio", esconder_publicacao: "Escondeu publicação", mostrar_publicacao: "Mostrou publicação", exportar: "Exportou dados", relatorio_pdf: "Gerou relatório", parceria: "Atualizou parceria", parceria_apagar: "Apagou parceria", suporte_resposta: "Respondeu chamado", suporte_conversa: "Abriu conversa de suporte", suporte_fechado: "Fechou chamado", suporte_aberto: "Reabriu chamado", reporte_novo: "Reportou pessoa do suporte", cobrar_reclamacao: "Cobrou resposta de reclamação", reporte_em_analise: "Pôs reporte em análise", reporte_resolvido: "Resolveu reporte", reporte_descartado: "Descartou reporte", comunicado_novo: "Criou comunicado", comunicado_editar: "Editou comunicado", comunicado_on: "Pôs comunicado no ar", comunicado_off: "Tirou comunicado do ar", comunicado_apagar: "Apagou comunicado", denuncia_resolvida: "Resolveu denúncia", denuncia_descartada: "Descartou denúncia", denuncia_em_analise: "Pôs denúncia em análise", assumiu: "Assumiu", passou: "Passou para outra pessoa", liberou: "Liberou", tarefa_nova: "Criou tarefa", tarefa_editar: "Editou tarefa", tarefa_a_fazer: "Voltou tarefa", tarefa_fazendo: "Começou tarefa", tarefa_feito: "Concluiu tarefa", tarefa_apagar: "Apagou tarefa", nota_interna: "Escreveu nota interna", entrou: "Entrou no painel", plano_ativar: "Ativou plano", plano_recusar: "Recusou pedido de plano", plano_encerrar: "Encerrou plano", negociacao_aprovar: "Aprovou condição especial", negociacao_recusar: "Não aprovou condição especial", negociacao_conversa: "Negociou plano", verificacao_aprovar: "Aprovou verificação", verificacao_recusar: "Recusou verificação" };
+const NOMES_ACAO = { aviso: "Enviou aviso", suspender: "Suspendeu", banir: "Baniu", remover_sancao: "Removeu sanção", verificar: "Deu selo", tirar_selo: "Tirou/recusou selo", remover_conteudo: "Removeu conteúdo", esconder_negocio: "Escondeu negócio", mostrar_negocio: "Mostrou negócio", esconder_publicacao: "Escondeu publicação", mostrar_publicacao: "Mostrou publicação", exportar: "Exportou dados", relatorio_pdf: "Gerou relatório", parceria: "Atualizou parceria", parceria_apagar: "Apagou parceria", suporte_resposta: "Respondeu chamado", suporte_conversa: "Abriu conversa de suporte", suporte_fechado: "Fechou chamado", suporte_aberto: "Reabriu chamado", reporte_novo: "Reportou pessoa do suporte", cobrar_reclamacao: "Cobrou resposta de reclamação", reporte_em_analise: "Pôs reporte em análise", reporte_resolvido: "Resolveu reporte", reporte_descartado: "Descartou reporte", comunicado_novo: "Criou comunicado", comunicado_editar: "Editou comunicado", comunicado_on: "Pôs comunicado no ar", comunicado_off: "Tirou comunicado do ar", comunicado_apagar: "Apagou comunicado", denuncia_resolvida: "Resolveu denúncia", denuncia_descartada: "Descartou denúncia", denuncia_em_analise: "Pôs denúncia em análise", assumiu: "Assumiu", passou: "Passou para outra pessoa", liberou: "Liberou", tarefa_nova: "Criou tarefa", tarefa_editar: "Editou tarefa", tarefa_a_fazer: "Voltou tarefa", tarefa_fazendo: "Começou tarefa", tarefa_feito: "Concluiu tarefa", tarefa_apagar: "Apagou tarefa", nota_interna: "Escreveu nota interna", entrou: "Entrou no painel", plano_ativar: "Ativou plano", plano_recusar: "Recusou pedido de plano", plano_encerrar: "Encerrou plano", negociacao_aprovar: "Aprovou negociação de plano", negociacao_recusar: "Não aprovou negociação de plano", negociacao_conversa: "Negociou plano", verificacao_aprovar: "Aprovou verificação", verificacao_recusar: "Recusou verificação" };
 // Alvo do registro em texto de gente: a pessoa (link para a ficha), ou o item que a equipe assumiu/passou
 // ("suporte:ID" vira "Chamado #ABC123 · assunto", "denuncias:..." vira "Denúncia · motivo · pessoa"), ou a lista exportada.
 const LISTAS_EXPORT = { usuarios: "Lista de usuários", negocios: "Lista de negócios", denuncias: "Lista de denúncias", reclamacoes: "Lista de reclamações" };

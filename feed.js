@@ -18,7 +18,7 @@ import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=
 import { montarStories, abrirFlashPorId, repostarFlash } from "./stories.js?v=21";
 import { abrirDenuncia } from "./denuncias.js?v=4";
 import { pessoasRecentes } from "./pessoas.js?v=3";
-import { abrirExplorar, definirCartao } from "./explorar.js?v=14";
+import { abrirExplorar, definirCartao } from "./explorar.js?v=17";
 import { docsComValidade } from "./leituras.js?v=1";
 import { distanciaKm } from "./perto.js?v=1";
 
