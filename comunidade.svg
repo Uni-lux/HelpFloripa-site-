@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 533" width="800" height="533">
+  <defs>
+    <linearGradient id="f" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4a0a2a"/><stop offset=".5" stop-color="#b8285f"/><stop offset="1" stop-color="#ff8a5c"/></linearGradient>
+    <radialGradient id="l" cx=".2" cy=".2" r=".6"><stop offset="0" stop-color="#ffd6e6" stop-opacity=".5"/><stop offset="1" stop-color="#ffd6e6" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="800" height="533" fill="url(#f)"/>
+  <rect width="800" height="533" fill="url(#l)"/>
+  <g fill="none" stroke="#fff" stroke-opacity=".12" stroke-width="2"><circle cx="150" cy="110" r="160"/><circle cx="690" cy="460" r="200"/></g>
+  <!-- caixa de doação -->
+  <g transform="translate(90 200)">
+    <path d="M0 70l130-50 130 50v150L130 270 0 220z" fill="#ffe3cf"/>
+    <path d="M0 70l130 50 130-50" fill="none" stroke="#e7a37f" stroke-width="6"/>
+    <path d="M130 120v150" stroke="#e7a37f" stroke-width="6"/>
+    <path d="M0 70l130-50 130 50-130 50z" fill="#fff1e6"/>
+    <path d="M130 160c-14-24-58-20-58 10 0 26 58 52 58 52s58-26 58-52c0-30-44-34-58-10z" fill="#ff4f7d"/>
+  </g>
+  <!-- casa com quarto -->
+  <g transform="translate(470 120)" fill="none" stroke="#fff" stroke-width="12" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M0 120L120 20l120 100"/>
+    <path d="M24 102v150h192V102"/>
+    <rect x="62" y="150" width="56" height="50" rx="6" fill="#ffffff" fill-opacity=".18"/>
+    <rect x="140" y="150" width="50" height="102" rx="6"/>
+  </g>
+  <!-- mãos -->
+  <g transform="translate(360 330)" fill="#fff" fill-opacity=".92">
+    <path d="M0 90c40-10 70-30 100-30h70c14 0 14 22 0 22h-50 70c30 0 60-30 80-40 16-8 28 10 14 22-30 26-70 66-120 66H0z"/>
+  </g>
+  <g fill="#fff" fill-opacity=".85"><circle cx="420" cy="80" r="8"/><circle cx="700" cy="70" r="5"/><circle cx="60" cy="470" r="7"/></g>
+</svg>

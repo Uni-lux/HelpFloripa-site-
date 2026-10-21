@@ -1,6 +1,6 @@
 # Regras do Firestore — publicação
 
-> **Versão de 20/10/2026:** igual à publicada em 13/10, mais **várias fotos numa publicação do Diário**
+> **Versão de 21/10/2026:** igual à publicada em 13/10, mais **várias fotos numa publicação do Diário**
 > (campo `midias`, de 2 a 4 fotos), **dar estrelas na própria publicação** o **resumo das estrelas**
 > (`diario_notas`: média e quantas pessoas deram 5, 4, 3, 2 e 1 estrela) e os **comentários novos** (quem pode
 > comentar, comentário fixado e reações com emoji), **stories**, **hashtags e marcações**, **agendar**, **rascunhos**,
@@ -22,29 +22,33 @@
 > pessoa e os donos leem), o **teste grátis de 30 dias** no primeiro acesso (a própria pessoa grava `planos/{uid}` com
 > `teste: true`, uma vez por conta) e o **comprovante de baixa renda** na condição especial (qual documento, declaração e foto/PDF,
 > que os donos apagam ao decidir) e o **registro de ações** (`admin_log`), que agora **só os donos leem** (o resto da equipe só vê
-> as cobranças das reclamações).
-> Para publicar, o processo é o mesmo: apagar tudo no console e colar as 13 partes.
+> as cobranças das reclamações) e, **novo nesta versão**: o tipo de negócio **Saúde** (`negocios.saude`: profissão,
+> registro no conselho, especialidades, atendimento, valor, convênios), a **Comunidade** (`comunidade`: doar, trocar, pedir
+> ajuda, dividir quarto e achados e perdidos — a regra **recusa "vendo/venda" e "R$"** fora da divisão das despesas do quarto),
+> o **banimento de um programa** (`programa_banidos`: quem é banido da Comunidade ou de um tipo de negócio não anuncia mais lá)
+> e a denúncia com o motivo **"Venda ou cobrança"**.
+> Para publicar, o processo é o mesmo: apagar tudo no console e colar as 14 partes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
-`firestore.rules` divididas em **13 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
+`firestore.rules` divididas em **14 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
-- Arquivo de origem: `firestore.rules` (156.613 bytes, 2.697 linhas, sha256 começa com `80a8bc3ab0d0af56`).
-- Cada parte termina com a linha `// ===== FIM DA PARTE X DE 13 =====`. É um comentário: **pode colar junto**,
+- Arquivo de origem: `firestore.rules` (164.784 bytes, 2.808 linhas, sha256 começa com `8e1cd188337bf607`).
+- Cada parte termina com a linha `// ===== FIM DA PARTE X DE 14 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
-- Conferido: as 13 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **321 passaram, 0 falharam**, sem o aviso de limite de 1.000 expressões.
+- Conferido: as 14 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
+- Testes de regras no arquivo remontado: **500 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.
 2. Clique dentro do editor, selecione tudo (Ctrl+A, ou "Selecionar tudo" no celular) e **apague**.
-3. Abra `parte-1-de-13.txt`, copie **tudo** e cole no editor.
-4. Vá até o fim do que colou (depois da linha `// ===== FIM DA PARTE 1 DE 13 =====`), abra a parte 2,
-   copie tudo e cole logo abaixo. Repita até a parte 13, **em ordem**.
+3. Abra `parte-1-de-14.txt`, copie **tudo** e cole no editor.
+4. Vá até o fim do que colou (depois da linha `// ===== FIM DA PARTE 1 DE 14 =====`), abra a parte 2,
+   copie tudo e cole logo abaixo. Repita até a parte 14, **em ordem**.
 5. Confira: a primeira linha do editor é `rules_version = '2';` e a última é
-   `// ===== FIM DA PARTE 13 DE 13 =====`, logo depois de uma linha só com `}`.
+   `// ===== FIM DA PARTE 14 DE 14 =====`, logo depois de uma linha só com `}`.
 6. Clique em **Publicar**. Se o console mostrar um erro (linha vermelha), **não publique**: provavelmente
-   uma parte ficou faltando ou repetida. Confira se as 13 linhas `FIM DA PARTE` aparecem, de 1 a 13, uma vez cada.
+   uma parte ficou faltando ou repetida. Confira se as 14 linhas `FIM DA PARTE` aparecem, de 1 a 14, uma vez cada.
 
 > As regras do ar continuam valendo até o clique em Publicar. A troca leva até 1 minuto para valer.
 
@@ -78,6 +82,8 @@ linha), para colar no console do Firebase.
   e a foto é apagada quando a equipe aprova ou recusa. Antes de publicar, o pedido chega à equipe sem a foto do documento.
 - **Trava do selo:** quem é da moderação só consegue dar o selo a quem tem o pedido aprovado (tirar continua livre); só o
   **dono** do site dá o selo direto, sem pedido. O perfil público só mostra o selo se a conta tiver o selo.
+- **Saúde e Comunidade:** criar o perfil de Saúde e publicar na Comunidade só funcionam depois de publicar (antes, o
+  site avisa que falta publicar as regras). O painel ganha **"Banir de um programa"** na ficha e na denúncia.
 - O resto (toque duplo para dar estrelas, quem deu estrelas, Salvos, editar legenda) já funciona com as regras de hoje.
 
 ## Conferência no site depois de publicar

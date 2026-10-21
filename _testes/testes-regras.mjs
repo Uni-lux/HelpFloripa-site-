@@ -754,6 +754,72 @@ await t("registro: moderação lê as cobranças das reclamações", () => asser
 await t("registro: toda a equipe continua registrando", () => assertSucceeds(addDoc(collection(ctx("mod"), "admin_log"), { acao: "entrou", alvo: "", detalhe: "Entrou no painel", por: "mod", porNome: "Mod", em: serverTimestamp() })));
 await t("registro: fora da equipe não registra", () => assertFails(addDoc(collection(ctx("bia"), "admin_log"), { acao: "entrou", por: "bia", em: serverTimestamp() })));
 
+// ---------- Saúde (perfil de negócio) ----------
+const sau = (uid, x = {}, s = {}) => ({ donoId: uid, tipo: "saude", nome: "Dra. Ana · Psicóloga", cidade: "Florianópolis", uf: "SC", cidadeIbge: 4205407, categoria: "psicologo", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(),
+  saude: { profissao: "psicologo", profissaoOutra: "", especialidades: ["Ansiedade e depressão", "TCC"], registro: "12/34567", registroUf: "SC", rqe: "", modalidades: ["consultorio", "online"], convenios: ["Unimed"], particular: true, valorConsulta: 180, duracao: 50, publico: ["adultos", "adolescentes"], idiomas: ["Português"], acessivel: true, formacao: "Psicologia UFSC", ...s }, ...x });
+await t("saúde: cria o perfil completo", () => assertSucceeds(setDoc(doc(ctx("ana"), "negocios", "ana_saude"), sau("ana"))));
+await t("saúde: atualiza a especialidade", () => assertSucceeds(updateDoc(doc(ctx("ana"), "negocios", "ana_saude"), { "saude.especialidades": ["Luto"], atualizadoEm: serverTimestamp() })));
+await t("saúde: profissão que não existe é recusada", () => assertFails(setDoc(doc(ctx("bia"), "negocios", "bia_saude"), sau("bia", {}, { profissao: "mago" }))));
+await t("saúde: perfil sem o mapa saúde é recusado", async () => { const d = sau("bia"); delete d.saude; await assertFails(setDoc(doc(ctx("bia"), "negocios", "bia_saude"), d)); });
+await t("saúde: campo estranho no mapa é recusado", () => assertFails(setDoc(doc(ctx("bia"), "negocios", "bia_saude"), sau("bia", {}, { nota: 5 }))));
+await t("saúde: registro com caractere estranho é recusado", () => assertFails(setDoc(doc(ctx("bia"), "negocios", "bia_saude"), sau("bia", {}, { registro: "<script>" }))));
+await t("saúde: modalidade estranha é recusada", () => assertFails(setDoc(doc(ctx("bia"), "negocios", "bia_saude"), sau("bia", {}, { modalidades: ["teletransporte"] }))));
+await t("saúde: especialidade com mais de 40 letras é recusada", () => assertFails(setDoc(doc(ctx("bia"), "negocios", "bia_saude"), sau("bia", {}, { especialidades: ["x".repeat(41)] }))));
+await t("saúde: mais de 30 itens nas listas é recusado", () => assertFails(setDoc(doc(ctx("bia"), "negocios", "bia_saude"), sau("bia", {}, { especialidades: Array(10).fill("a"), convenios: Array(15).fill("b"), idiomas: Array(7).fill("c") }))));
+await t("saúde: faltando campo no mapa é recusado", async () => { const d = sau("bia"); delete d.saude.formacao; await assertFails(setDoc(doc(ctx("bia"), "negocios", "bia_saude"), d)); });
+await t("saúde: particular que não é sim/não é recusado", () => assertFails(setDoc(doc(ctx("bia"), "negocios", "bia_saude"), sau("bia", {}, { particular: "sim" }))));
+await t("saúde: duração absurda é recusada", () => assertFails(setDoc(doc(ctx("bia"), "negocios", "bia_saude"), sau("bia", {}, { duracao: 5000 }))));
+await t("saúde: valor da consulta absurdo é recusado", () => assertFails(setDoc(doc(ctx("bia"), "negocios", "bia_saude"), sau("bia", {}, { valorConsulta: 999999 }))));
+await t("saúde: veterinário com público de pets e sem registro de RQE", () => assertSucceeds(setDoc(doc(ctx("bia"), "negocios", "bia_saude"), sau("bia", { categoria: "veterinario" }, { profissao: "veterinario", publico: ["caes", "gatos"], registro: "1234", rqe: "" }))));
+await t("saúde: perfil de saúde com TUDO junto (máximo) cabe nas regras", () => assertSucceeds(setDoc(doc(ctx("dono"), "negocios", "dono_saude"), sau("dono", { instagram: "dra.ana", site: "https://ana.com.br", cnpj: "", semana: ["", "08:00-12:00", "08:00-18:00", "08:00-18:00", "08:00-18:00", "08:00-18:00", ""], promocao: { titulo: "Primeira consulta", texto: "10% na primeira", codigo: "BEMVINDO", ate: Timestamp.fromMillis(Date.now() + 10 * 864e5) }, geo: { lat: -27.6, lng: -48.5 }, capa: "data:image/jpeg;base64,AAA" },
+  { profissao: "medico", especialidades: ["Clínica geral", "Pediatria", "Geriatria", "Cardiologia", "Neurologia", "Dermatologia"], registro: "123456", rqe: "9876", modalidades: ["consultorio", "online", "domicilio"], convenios: ["Unimed", "Bradesco Saúde", "SulAmérica", "Amil", "Hapvida NotreDame", "Porto Saúde", "Cassi", "Geap", "Saúde Caixa", "Postal Saúde", "SC Saúde", "Petlove Saúde", "Outro 1", "Outro 2", "Outro 3"], publico: ["bebes", "criancas", "adolescentes", "adultos", "idosos", "gestantes"], idiomas: ["Português", "Inglês", "Espanhol", "Libras", "Italiano", "Francês", "Alemão"], formacao: "y".repeat(200) }))));
+
+// ---------- banimento de um programa ----------
+await t("banimento: moderação bane da Comunidade", () => assertSucceeds(setDoc(doc(ctx("mod"), "programa_banidos", "bia_comunidade"), { uid: "bia", tipo: "comunidade", motivo: "Vendendo celular", por: "mod", em: serverTimestamp() })));
+await t("banimento: a pessoa lê o próprio", () => assertSucceeds(getDoc(doc(ctx("bia"), "programa_banidos", "bia_comunidade"))));
+await t("banimento: outra pessoa não lê", () => assertFails(getDoc(doc(ctx("ana"), "programa_banidos", "bia_comunidade"))));
+await t("banimento: usuário comum não bane", () => assertFails(setDoc(doc(ctx("ana"), "programa_banidos", "bia_saude"), { uid: "bia", tipo: "saude", motivo: "teste", por: "ana", em: serverTimestamp() })));
+await t("banimento: id que não bate é recusado", () => assertFails(setDoc(doc(ctx("mod"), "programa_banidos", "bia_x"), { uid: "bia", tipo: "saude", motivo: "teste", por: "mod", em: serverTimestamp() })));
+await t("banimento: banido do programa Saúde não cria o perfil de novo", async () => {
+  await assertSucceeds(setDoc(doc(ctx("mod"), "programa_banidos", "bia_saude"), { uid: "bia", tipo: "saude", motivo: "Registro falso", por: "mod", em: serverTimestamp() }));
+  await assertSucceeds(deleteDoc(doc(ctx("bia"), "negocios", "bia_saude")));
+  await assertFails(setDoc(doc(ctx("bia"), "negocios", "bia_saude"), sau("bia", { categoria: "veterinario" }, { profissao: "veterinario", publico: ["caes"], registro: "1234" })));
+});
+await t("banimento: com prazo vencido, volta a poder", async () => {
+  await assertSucceeds(setDoc(doc(ctx("mod"), "programa_banidos", "bia_saude"), { uid: "bia", tipo: "saude", motivo: "Registro falso", ate: Timestamp.fromMillis(Date.now() - 1000), por: "mod", em: serverTimestamp() }));
+  await assertSucceeds(setDoc(doc(ctx("bia"), "negocios", "bia_saude"), sau("bia", { categoria: "veterinario" }, { profissao: "veterinario", publico: ["caes"], registro: "1234" })));
+});
+await t("banimento: escondido pela equipe, o dono não mostra o perfil de novo", async () => {
+  await assertSucceeds(updateDoc(doc(ctx("mod"), "negocios", "bia_saude"), { ocultoAte: Timestamp.fromMillis(Date.now() + 9e9), ocultoPelaEquipe: true }));
+  await assertFails(updateDoc(doc(ctx("bia"), "negocios", "bia_saude"), { ocultoAte: null, atualizadoEm: serverTimestamp() }));
+});
+
+// ---------- Comunidade ----------
+const com = (uid, x = {}) => ({ donoId: uid, categoria: "doacao", tipoItem: "moveis", titulo: "Sofá de 3 lugares", descricao: "Em bom estado, retirar no Centro.", fotos: [], estado: "usado", entrega: "retirar", status: "disponivel", uf: "SC", cidade: "Florianópolis", cidadeIbge: 4205407, bairro: "Centro", aceiteRegras: true, criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...x });
+await t("comunidade: doação", () => assertSucceeds(setDoc(doc(ctx("ana"), "comunidade", "c1"), com("ana"))));
+await t("comunidade: sem aceitar as regras é recusado", () => assertFails(setDoc(doc(ctx("ana"), "comunidade", "c2"), com("ana", { aceiteRegras: false }))));
+await t("comunidade: 'vendo' no texto é recusado", () => assertFails(setDoc(doc(ctx("ana"), "comunidade", "c2"), com("ana", { titulo: "Vendo sofá" }))));
+await t("comunidade: 'VENDA' na descrição é recusado", () => assertFails(setDoc(doc(ctx("ana"), "comunidade", "c2"), com("ana", { descricao: "Faço VENDA barato" }))));
+await t("comunidade: 'R$' na doação é recusado", () => assertFails(setDoc(doc(ctx("ana"), "comunidade", "c2"), com("ana", { descricao: "Só R$ 20 do frete" }))));
+await t("comunidade: palavra parecida (vendedor) passa", () => assertSucceeds(setDoc(doc(ctx("ana"), "comunidade", "c2"), com("ana", { descricao: "Era do meu avô, que foi vendedor ambulante." }))));
+await t("comunidade: quarto compartilhado com divisão das despesas", () => assertSucceeds(setDoc(doc(ctx("ana"), "comunidade", "c3"), com("ana", { categoria: "quarto", titulo: "Vaga no Pantanal", tipoItem: "", estado: "usado", quarto: { vaga: "compartilhado", rateio: 600, contasInclusas: true, mobiliado: true, vagas: 1, para: "mulheres", disponivelEm: "2026-11-01", regras: "Não fumantes" }, descricao: "Divisão R$ 600 com contas." }))));
+await t("comunidade: quarto sem os dados da vaga é recusado", () => assertFails(setDoc(doc(ctx("ana"), "comunidade", "c4"), com("ana", { categoria: "quarto" }))));
+await t("comunidade: quarto com divisão absurda é recusado", () => assertFails(setDoc(doc(ctx("ana"), "comunidade", "c4"), com("ana", { categoria: "quarto", quarto: { vaga: "individual", rateio: 99000, para: "todos" } }))));
+await t("comunidade: doação não leva dados de quarto", () => assertFails(setDoc(doc(ctx("ana"), "comunidade", "c4"), com("ana", { quarto: { vaga: "individual", para: "todos" } }))));
+await t("comunidade: achados e perdidos", () => assertSucceeds(setDoc(doc(ctx("ana"), "comunidade", "c5"), com("ana", { categoria: "achados", titulo: "Carteira marrom", achado: { tipo: "perdido", data: "2026-10-20", local: "TICEN" } }))));
+await t("comunidade: categoria estranha é recusada", () => assertFails(setDoc(doc(ctx("ana"), "comunidade", "c6"), com("ana", { categoria: "venda" }))));
+await t("comunidade: em nome de outra pessoa é recusado", () => assertFails(setDoc(doc(ctx("dono"), "comunidade", "c6"), com("ana"))));
+await t("comunidade: banido do programa não anuncia", () => assertFails(setDoc(doc(ctx("bia"), "comunidade", "c7"), com("bia"))));
+await t("comunidade: dono marca como concluído", () => assertSucceeds(updateDoc(doc(ctx("ana"), "comunidade", "c1"), { status: "concluido", atualizadoEm: serverTimestamp() })));
+await t("comunidade: dono não troca o texto para venda", () => assertFails(updateDoc(doc(ctx("ana"), "comunidade", "c2"), { titulo: "Vendo tudo", atualizadoEm: serverTimestamp() })));
+await t("comunidade: outra pessoa não edita", () => assertFails(updateDoc(doc(ctx("dono"), "comunidade", "c2"), { status: "concluido" })));
+await t("comunidade: moderação esconde", () => assertSucceeds(updateDoc(doc(ctx("mod"), "comunidade", "c2"), { ocultoAte: Timestamp.fromMillis(Date.now() + 9e9), ocultoPelaEquipe: true })));
+await t("comunidade: escondido pela equipe, o dono não mostra de novo", () => assertFails(updateDoc(doc(ctx("ana"), "comunidade", "c2"), { ocultoAte: null })));
+await t("comunidade: moderação apaga", () => assertSucceeds(deleteDoc(doc(ctx("mod"), "comunidade", "c5"))));
+await t("comunidade: denúncia de venda no anúncio", () => assertSucceeds(setDoc(doc(ctx("dono"), "denuncias", "comunidade_c3_dono"), { tipo: "comunidade", alvoId: "ana", itemId: "c3", autorId: "dono", motivo: "venda", detalhe: "", trecho: "Vaga no Pantanal", status: "nova", criadoEm: serverTimestamp() })));
+await t("comunidade: denúncia contra quem não é o dono é recusada", () => assertFails(setDoc(doc(ctx("dono"), "denuncias", "comunidade_c3_dono2"), { tipo: "comunidade", alvoId: "bia", itemId: "c3", autorId: "dono", motivo: "venda", status: "nova", criadoEm: serverTimestamp() })));
+await t("conversa: assunto Saúde e Comunidade", () => assertSucceeds(setDoc(doc(ctx("ana"), "conversas", "ana_zeca"), { participantes: ["ana", "zeca"], ultimaMensagem: "", atualizadoEm: serverTimestamp(), contexto: { tipo: "comunidade", titulo: "Sofá" } })));
+
 // ---------- resultado ----------
 for (const r of resultados) console.log(r[0] === "ok" ? "  ✔" : "  ✘", r[1], r[2] ? "→ " + r[2] : "");
 console.log(`\n${ok} passaram, ${falhou} falharam (${arquivo})`);

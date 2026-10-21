@@ -56,6 +56,13 @@ service cloud.firestore {
               || (get(s).data.get('ate', null) is timestamp && get(s).data.ate > request.time));
     }
 
+    // Banido de um programa (um tipo de perfil de negócio ou a Comunidade): programa_banidos/{uid}_{tipo},
+    // sem data = para sempre; com `ate`, até essa data.
+    function banidoDoPrograma(uid, tipo) {
+      let b = /databases/$(database)/documents/programa_banidos/$(uid + '_' + tipo);
+      return exists(b) && (get(b).data.get('ate', null) == null || get(b).data.ate > request.time);
+    }
+
     // Campos que só podem ser alterados pelo painel/admin (Admin SDK ignora as regras).
     function camposProtegidos() {
       return ['verificado', 'avaliacaoMedia', 'totalAvaliacoes'];
@@ -73,11 +80,9 @@ service cloud.firestore {
     }
 
     // Campo de texto opcional com tamanho máximo (evita documentos gigantes).
+    // (Lê o campo uma vez só com get: gasta menos do limite de 1.000 expressões por gravação.)
     function textoAte(campo, max) {
-      return !(campo in request.resource.data)
-          || request.resource.data[campo] == null
-          || (request.resource.data[campo] is string
-              && request.resource.data[campo].size() <= max);
+      return valorTextoAte(request.resource.data.get(campo, null), max);
     }
 
     // Mesmo limite, para um valor qualquer (ex.: campo dentro de um mapa).
@@ -114,7 +119,7 @@ service cloud.firestore {
           && l.negocioId is string && l.negocioId.matches('^[A-Za-z0-9_-]{1,100}$')
           && exists(/databases/$(database)/documents/negocios/$(l.negocioId))
           && valorTextoAte(l.get('nome', ''), 80)
-          && l.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis']
+          && l.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude']
           && (!('x' in l) || (l.x is number && l.x >= 0 && l.x <= 1))
           && (!('y' in l) || (l.y is number && l.y >= 0 && l.y <= 1));
     }
@@ -130,7 +135,7 @@ service cloud.firestore {
     }
     // Flash nos perfis de negócio da própria pessoa (ids = uid_tipo, até 4) e se aparece também no perfil pessoal.
     function negociosFlashOk(d) {
-      let n = '(' + request.auth.uid + '_(servicos|delivery|lojinha|imoveis))';
+      let n = '(' + request.auth.uid + '_(servicos|delivery|lojinha|imoveis|saude))';
       return (!('negocios' in d) || (d.negocios is list && d.negocios.size() >= 1 && d.negocios.size() <= 4
                                       && d.negocios.join(' ').matches('^' + n + '( ' + n + '){0,3}$')))
           && (!('perfil' in d) || (d.perfil is bool && (d.perfil || 'negocios' in d)));
@@ -186,10 +191,10 @@ service cloud.firestore {
 
     // Lista opcional com no máximo N itens.
     function listaAte(campo, max) {
-      return !(campo in request.resource.data)
-          || request.resource.data[campo] == null
-          || (request.resource.data[campo] is list
-              && request.resource.data[campo].size() <= max);
+      return listaValorAte(request.resource.data.get(campo, null), max);
+    }
+    function listaValorAte(v, max) {
+      return v == null || (v is list && v.size() <= max);
     }
 
     // Foto só pode vir do próprio site: imagem dentro do documento (sem Storage),
@@ -611,7 +616,19 @@ service cloud.firestore {
                 'horaAbre', 'horaFecha', 'tempoMin', 'tempoMax', 'taxaEntrega', 'pedidoMinimo', 'opcoesEntrega',
                 'entrega', 'tipoAnunciante', 'creci',
                 'instagram', 'site', 'capa', 'cnpj', 'promocao', 'semana', 'geo',
+                'saude',       // perfil de Saúde: profissão, registro no conselho, especialidades, convênios...
                 'ocultoAte'];  // escondido enquanto a conta do dono estiver desativada
+      }
+
+      // Saúde: um mapa só, sempre com os 15 campos (o site grava todos), conferido com dois regex
+      // (gasta pouco do limite de 1.000 expressões: a gravação de um negócio completo já chega perto).
+      function saudeOk(s) {
+        return s.keys().hasOnly(['profissao', 'profissaoOutra', 'especialidades', 'registro', 'registroUf', 'rqe', 'modalidades',
+                                 'convenios', 'particular', 'valorConsulta', 'duracao', 'publico', 'idiomas', 'acessivel', 'formacao'])
+            && [s.profissao, s.profissaoOutra, s.registro, s.registroUf, s.rqe, s.formacao, s.modalidades.join(','), s.publico.join(','),
+                string(s.particular), string(s.acessivel), string(s.valorConsulta), string(s.duracao)].join('\n')
+                 .matches('^(medico|enfermeiro|tecEnfermagem|psicologo|veterinario|dentista|fisioterapeuta|nutricionista|fonoaudiologo|terapeutaOcupacional|farmaceutico|educadorFisico|cuidador|outros)\n[^\n]{0,40}\n[0-9A-Za-z./ -]{0,20}\n([A-Z]{2})?\n[0-9A-Za-z./-]{0,12}\n[^\n]{0,200}\n((consultorio|online|domicilio)(,(consultorio|online|domicilio)){0,2})?\n([a-z]{3,14}(,[a-z]{3,14}){0,5})?\n(true|false)\n(true|false)\n(null|[0-9]{1,5}([.][0-9]{1,2})?)\n(null|[1-9][0-9]{0,2})$')
+            && [s.especialidades.join('\n'), s.convenios.join('\n'), s.idiomas.join('\n')].join('\n').matches('^[^\n]{0,40}(\n[^\n]{0,40}){0,29}$');
       }
 
       // Promoção/cupom com prazo (até 62 dias): título, texto, código opcional (A-Z e 0-9).
@@ -638,7 +655,8 @@ service cloud.firestore {
                 || (d.semana is list && d.semana.size() == 7
                     && d.semana.join(';').matches('^(([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9])?(;(([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9])?){6}$')))
             && (!m.hasAny(['promocao']) || d.get('promocao', null) == null || promocaoOk(d.promocao))
-            && (!m.hasAny(['geo']) || geoOk(d.get('geo', null)));
+            && (!m.hasAny(['geo']) || geoOk(d.get('geo', null)))
+            && (!m.hasAny(['saude']) || saudeOk(d.get('saude', null)));
       }
 
       function negocioOk() {
@@ -663,10 +681,12 @@ service cloud.firestore {
       allow create: if logado()
                     && emailOk()
                     && request.resource.data.donoId == request.auth.uid
-                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis']
+                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude']
                     && id == request.auth.uid + '_' + request.resource.data.tipo
                     && request.resource.data.keys().hasOnly(camposNegocio())
                     && naoTocaCamposProtegidosNoCreate()
+                    && !banidoDoPrograma(request.auth.uid, request.resource.data.tipo)
+                    && (request.resource.data.tipo != 'saude' || request.resource.data.get('saude', null) is map)
                     && negocioOk();
 
       allow update: if logado()
@@ -750,6 +770,96 @@ service cloud.firestore {
 
 
     // =====================================================
+    // COMUNIDADE: doações, trocas, pedidos de ajuda, vagas em quarto compartilhado e achados e perdidos.
+    // Documento: comunidade/{id}. É PROIBIDO vender ou cobrar: não aceita preço, "R$" nem "vendo/venda" no texto
+    // (o quarto compartilhado só mostra a divisão das despesas, no campo próprio). Quem descumpre é banido do
+    // programa (programa_banidos/{uid}_comunidade) e pode ter a conta suspensa.
+    // =====================================================
+    match /comunidade/{id} {
+      function camposComunidade() {
+        return ['donoId', 'categoria', 'tipoItem', 'titulo', 'descricao', 'fotos', 'estado', 'entrega', 'status',
+                'bairro', 'cidade', 'uf', 'cidadeIbge', 'geo', 'quarto', 'achado', 'aceiteRegras',
+                'criadoEm', 'atualizadoEm', 'ocultoAte', 'ocultoPelaEquipe'];
+      }
+      // Vaga em quarto/moradia compartilhada: só a divisão das despesas entre moradores.
+      function quartoOk(q) {
+        return q is map
+            && q.keys().hasOnly(['vaga', 'rateio', 'contasInclusas', 'mobiliado', 'vagas', 'para', 'disponivelEm', 'regras'])
+            && q.get('vaga', 'quarto').matches('^(individual|compartilhado|republica)$')
+            && (q.get('rateio', null) == null || (q.rateio is number && q.rateio >= 0 && q.rateio <= 5000))
+            && q.get('contasInclusas', false) is bool && q.get('mobiliado', false) is bool
+            && (q.get('vagas', null) == null || (q.vagas is int && q.vagas >= 1 && q.vagas <= 10))
+            && [q.get('para', 'todos'), q.get('disponivelEm', ''), q.get('regras', '')].join('\n')
+                 .matches('^(todos|mulheres|homens|lgbt)\n([0-9]{4}-[0-9]{2}-[0-9]{2})?\n[^\n]{0,300}$');
+      }
+      // Achados e perdidos: perdi / encontrei, onde e quando.
+      function achadoOk(a) {
+        return a is map && a.keys().hasOnly(['tipo', 'data', 'local'])
+            && [a.get('tipo', ''), a.get('data', ''), a.get('local', '')].join('\n')
+                 .matches('^(perdido|encontrado)\n([0-9]{4}-[0-9]{2}-[0-9]{2})?\n[^\n]{0,80}$');
+      }
+      function comunidadeOk() {
+        let d = request.resource.data;
+        let texto = d.get('titulo', '') + ' ' + d.get('descricao', '');
+        return d.categoria in ['doacao', 'troca', 'pedido', 'quarto', 'achados']
+            && d.titulo is string && d.titulo.size() >= 3 && d.titulo.size() <= 80
+            && textoAte('descricao', 1000)
+            && textoAte('tipoItem', 20)
+            && textoAte('cidade', 60)
+            && localOk()
+            && textoAte('bairro', 60)
+            && geoOk(d.get('geo', null))
+            && listaAte('fotos', 4)
+            && d.get('estado', 'usado') in ['novo', 'seminovo', 'usado', 'reparo']
+            && d.get('entrega', 'combinar') in ['combinar', 'retirar', 'entrego']
+            && d.status in ['disponivel', 'reservado', 'concluido']
+            && d.aceiteRegras == true
+            && (d.categoria == 'quarto' ? quartoOk(d.get('quarto', null)) : !('quarto' in d))
+            && (d.categoria == 'achados' ? achadoOk(d.get('achado', null)) : !('achado' in d))
+            // Sem venda: nada de "vendo/venda/vende..." e, fora do quarto, nada de "R$".
+            && !texto.matches('(?i)(?s).*\\b(vendo|venda|vende|vender|vendem|vendas)\\b.*')
+            && (d.categoria == 'quarto' || !texto.matches('(?s).*[Rr][$].*'))
+            && dataOuNulo('ocultoAte');
+      }
+      allow read: if logado();
+      allow create: if logado() && emailOk()
+                    && request.resource.data.donoId == request.auth.uid
+                    && request.resource.data.keys().hasOnly(camposComunidade())
+                    && !('ocultoPelaEquipe' in request.resource.data)
+                    && !banidoDoPrograma(request.auth.uid, 'comunidade')
+                    && !sancionado(request.auth.uid)
+                    && request.resource.data.criadoEm == request.time
+                    && comunidadeOk();
+      allow update: if logado() && emailOk()
+                    && resource.data.donoId == request.auth.uid
+                    && request.resource.data.donoId == resource.data.donoId
+                    && request.resource.data.criadoEm == resource.data.criadoEm
+                    && gravou().hasOnly(camposComunidade())
+                    && travaModeracao()
+                    && !banidoDoPrograma(request.auth.uid, 'comunidade')
+                    && comunidadeOk();
+      allow delete: if logado() && (resource.data.donoId == request.auth.uid || podeModerar());
+      // A equipe esconde (anúncio com venda, golpe, conta suspensa).
+      allow update: if podeModerar() && moderacaoOk();
+    }
+
+    // Banimento de um programa (um tipo de perfil de negócio ou a Comunidade). Só a moderação cria/apaga;
+    // a pessoa lê o próprio (para ver o motivo e até quando).
+    match /programa_banidos/{id} {
+      allow get: if logado() && (id.split('_')[0] == request.auth.uid || admin());
+      allow list: if admin();
+      allow create, update: if podeModerar()
+                    && request.resource.data.keys().hasOnly(['uid', 'tipo', 'motivo', 'ate', 'por', 'em'])
+                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'comunidade']
+                    && id == request.resource.data.uid + '_' + request.resource.data.tipo
+                    && request.resource.data.motivo is string && request.resource.data.motivo.size() >= 3 && request.resource.data.motivo.size() <= 300
+                    && (request.resource.data.get('ate', null) == null || request.resource.data.ate is timestamp)
+                    && request.resource.data.por == request.auth.uid
+                    && request.resource.data.em == request.time;
+      allow delete: if podeModerar();
+    }
+
+    // =====================================================
     // CONVERSAS
     // Documento: conversas/{uidMenor}_{uidMaior}
     // =====================================================
@@ -784,7 +894,7 @@ service cloud.firestore {
         let c = request.resource.data.get('contexto', null);
         return c == null
             || (c is map && c.keys().hasOnly(['tipo', 'titulo'])
-                && c.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis']
+                && c.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'comunidade']
                 && valorTextoAte(c.get('titulo', ''), 120));
       }
 
@@ -1028,7 +1138,7 @@ service cloud.firestore {
                     && request.resource.data.vendedorId == request.auth.uid
                     && request.resource.data.clienteId is string
                     && request.resource.data.clienteId != request.auth.uid
-                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis']
+                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude']
                     && request.resource.data.negocioId == request.auth.uid + '_' + request.resource.data.tipo
                     && exists(/databases/$(database)/documents/negocios/$(request.resource.data.negocioId))
                     && request.auth.uid in get(/databases/$(database)/documents/conversas/$(request.resource.data.conversaId)).data.participantes
@@ -1304,7 +1414,7 @@ service cloud.firestore {
                     && id == request.resource.data.negocioId + '_' + request.auth.uid
                     && request.resource.data.alvoId == donoDoNegocio(request.resource.data.negocioId)
                     && request.resource.data.alvoId != request.auth.uid
-                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis']
+                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude']
                     && relatoOk(request.resource.data)
                     && valorTextoAte(request.resource.data.get('autorNome', ''), 80)
                     && valorTextoAte(request.resource.data.get('negocioNome', ''), 80)
@@ -1397,6 +1507,7 @@ service cloud.firestore {
             || (d.tipo == 'publicacao' && get(/databases/$(database)/documents/diario/$(d.itemId)).data.autorId == d.alvoId)
             || (d.tipo == 'comentario' && get(/databases/$(database)/documents/comentarios/$(d.itemId)).data.autorId == d.alvoId)
             || (d.tipo == 'negocio' && get(/databases/$(database)/documents/negocios/$(d.itemId)).data.donoId == d.alvoId)
+            || (d.tipo == 'comunidade' && get(/databases/$(database)/documents/comunidade/$(d.itemId)).data.donoId == d.alvoId)
             || (d.tipo == 'mensagem'
                 && d.conversaId is string
                 && request.auth.uid in get(/databases/$(database)/documents/conversas/$(d.conversaId)).data.participantes
@@ -1420,9 +1531,9 @@ service cloud.firestore {
                     && request.resource.data.alvoId is string
                     && request.resource.data.alvoId != request.auth.uid
                     && request.resource.data.itemId is string
-                    && request.resource.data.tipo in ['perfil', 'publicacao', 'comentario', 'mensagem', 'negocio']
+                    && request.resource.data.tipo in ['perfil', 'publicacao', 'comentario', 'mensagem', 'negocio', 'comunidade']
                     && id == request.resource.data.tipo + '_' + request.resource.data.itemId + '_' + request.auth.uid
-                    && request.resource.data.motivo in ['golpe', 'falso', 'assedio', 'odio', 'improprio', 'spam', 'menor', 'outro']
+                    && request.resource.data.motivo in ['golpe', 'falso', 'assedio', 'odio', 'improprio', 'spam', 'menor', 'venda', 'outro']
                     && valorTextoAte(request.resource.data.get('detalhe', ''), 500)
                     && valorTextoAte(request.resource.data.get('trecho', ''), 300)
                     // mensagem: ids de algumas mensagens antes e depois (a equipe abre uma por uma)

@@ -1281,13 +1281,13 @@
   <script type="module">
     import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura, mostrarAvisoEmail } from "./seguranca.js?v=1";
     import { confirmarHF } from "./confirmar.js?v=4";
-    import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO, lerResumos, media, notaTexto } from "./avaliacoes.js?v=13";
+    import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO, lerResumos, media, notaTexto } from "./avaliacoes.js?v=14";
     import { buscarPessoas } from "./pessoas.js?v=3";
     import { docComValidade } from "./leituras.js?v=1";
     import { comRitmo } from "./ritmo.js?v=2";
     import { criarPlayerAudio } from "./audio-ondas.js?v=1";
     import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
-    import { abrirQueixa } from "./queixas.js?v=11";
+    import { abrirQueixa } from "./queixas.js?v=12";
     import { ouvirItensEquipe, linkEquipe, seloOficial, TEXTO_EQUIPE } from "./avisos-equipe.js?v=1";
     import { escolherApagar, editarTextoHF, verEdicoesHF, janelaHF, horaCurta, noPrazo, tempoRestante, podeMexer } from "./msg-acoes.js?v=2";
     // ======================================================
@@ -1425,6 +1425,8 @@
       delivery: { nome: "Delivery", cor: "#ff7a1a" },
       lojinha: { nome: "Lojinha", cor: "#b066ff" },
       imoveis: { nome: "Imóveis", cor: "#2fbf71" },
+      saude: { nome: "Saúde", cor: "#0fb5a6" },
+      comunidade: { nome: "Comunidade", cor: "#e5487f" },
       publicacao: { nome: "Publicação", cor: "#f5b301" }
     };
     const reais = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -1481,9 +1483,11 @@
         d.append(x, y);
         box.appendChild(d);
       };
-      linha("Serviço", (Array.isArray(so.servicos) ? so.servicos : []).slice(0, 12).map((x) => String(x).slice(0, 60)).join(", "));
-      linha("Quando", textoQuandoMsg(so.quando), so.quando?.tipo === "urgente" ? "urgente" : "");
-      linha("Local", String(so.local || "").slice(0, 80) || (so.modo === "online" ? "Online" : so.modo === "local" ? "No local do profissional" : ""));
+      const sd = so.saude && typeof so.saude === "object" ? so.saude : null;
+      linha(sd ? "Atendimento" : "Serviço", (Array.isArray(so.servicos) ? so.servicos : []).slice(0, 12).map((x) => String(x).slice(0, 60)).join(", "));
+      if (sd) { linha("Para", String(sd.quem || "").slice(0, 80)); linha("Como", String(sd.atendimento || "").slice(0, 40)); linha("Pagamento", String(sd.convenio || "").slice(0, 40)); }
+      linha("Quando", sd?.primeiro ? "Primeiro horário livre" : textoQuandoMsg(so.quando), so.quando?.tipo === "urgente" ? "urgente" : "");
+      if (!sd || so.local) linha("Local", String(so.local || "").slice(0, 80) || (so.modo === "online" ? "Online" : so.modo === "local" ? "No local do profissional" : ""));
       if (so.cupom && typeof so.cupom === "object") linha(so.cupom.codigo ? "Cupom" : "Promoção", [so.cupom.codigo, so.cupom.titulo].filter(Boolean).map((x) => String(x).slice(0, 60)).join(" · "), "cupom");
       if (so.descricao) {
         const o = document.createElement("p");
@@ -1910,7 +1914,7 @@
       if (m.tipoArquivo === "cartao" && m.cartao?.status) return `Pedido: ${(infoStatus(m.cartao.tipo, m.cartao.status) || [0, "status atualizado"])[1]}`;
       if (m.tipoArquivo === "cartao" && m.cartao?.solicitacao) {
         const so = m.cartao.solicitacao;
-        return `Orçamento: ${(Array.isArray(so.servicos) && so.servicos.length ? so.servicos.join(", ") : "serviço")}${so.quando?.tipo === "urgente" ? " · Urgente" : ""}`;
+        return `${so.saude ? "Agendamento" : "Orçamento"}: ${(Array.isArray(so.servicos) && so.servicos.length ? so.servicos.join(", ") : so.saude ? "consulta" : "serviço")}${so.quando?.tipo === "urgente" ? " · Urgente" : ""}`;
       }
       if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "flash") return `⚡ ${rotuloFlash(m.cartao, m.remetenteId === eu.uid)}${m.cartao.emoji ? " " + m.cartao.emoji : m.cartao.texto ? ": " + m.cartao.texto : ""}`;
       if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "publicacao") return `Publicação: ${m.cartao?.titulo || ""}`.trim();
@@ -3102,7 +3106,7 @@
         // Pedido de delivery ou lojinha: cartão completo, como nos apps de pedido.
         const c = m.cartao;
         const tipo = ASSUNTOS[c.tipo] ? c.tipo : "delivery";
-        const href = /^((servicos|delivery|shopping|imoveis)\.html|usuarios\.html)\?[\w=&%.-]+$/.test(String(c.link || "")) ? c.link : "#";
+        const href = /^((servicos|delivery|shopping|imoveis|saude|comunidade)\.html|usuarios\.html)\?[\w=&%.-]+$/.test(String(c.link || "")) ? c.link : "#";
         bolha.classList.add("cartao-msg", "pedido", "pedido-pro");
         bolha.style.setProperty("--assunto", ASSUNTOS[tipo].cor);
         bolha.appendChild(cartaoPedido(m, c, tipo, href));
@@ -3113,7 +3117,7 @@
         bolha.style.setProperty("--assunto", ASSUNTOS[tipo].cor);
         const ehPedido = Array.isArray(c.pedido?.itens) && c.pedido.itens.length;
         const ehOrc = !!(c.solicitacao && typeof c.solicitacao === "object");
-        const href = /^((servicos|delivery|shopping|imoveis)\.html|usuarios\.html)\?[\w=&%.-]+$/.test(String(c.link || "")) ? c.link : "#";
+        const href = /^((servicos|delivery|shopping|imoveis|saude|comunidade)\.html|usuarios\.html)\?[\w=&%.-]+$/.test(String(c.link || "")) ? c.link : "#";
         // Pedido e orçamento mostram tudo na própria mensagem; só o rodapé leva ao perfil.
         const link = document.createElement(ehPedido || ehOrc ? "div" : "a");
         link.className = "cm-link";
@@ -3128,11 +3132,11 @@
         if (c.sub) { const s = document.createElement("small"); s.textContent = c.sub; tx.appendChild(s); }
         if (c.preco && !ehPedido && !ehOrc) { const p = document.createElement("span"); p.className = "cm-preco"; p.textContent = c.preco; tx.appendChild(p); }
 
-        if (ehOrc) { bolha.classList.add("pedido"); tp.textContent = "Pedido de orçamento"; tx.appendChild(blocoSolicitacao(c.solicitacao)); }
+        if (ehOrc) { bolha.classList.add("pedido"); tp.textContent = tipo === "saude" ? "Pedido de agendamento" : "Pedido de orçamento"; tx.appendChild(blocoSolicitacao(c.solicitacao)); }
         const ver = document.createElement(ehPedido || ehOrc ? "a" : "span");
         ver.className = "cm-ver";
         if (ehPedido || ehOrc) ver.href = href;
-        ver.textContent = ehPedido ? (tipo === "delivery" ? "Ver cardápio" : "Ver loja") : ehOrc ? "Ver perfil de serviços" : tipo === "publicacao" ? "Ver publicação" : "Ver detalhes";
+        ver.textContent = ehPedido ? (tipo === "delivery" ? "Ver cardápio" : "Ver loja") : ehOrc ? (tipo === "saude" ? "Ver perfil de saúde" : "Ver perfil de serviços") : tipo === "publicacao" ? "Ver publicação" : tipo === "comunidade" ? "Ver anúncio" : "Ver detalhes";
         link.append(tx, ver);
         bolha.appendChild(link);
       }
@@ -3342,7 +3346,7 @@
     // Denunciar uma mensagem recebida (a pessoa não é avisada).
     async function denunciarMensagem(m) {
       if (!ativa) return;
-      const { abrirDenuncia } = await import("./denuncias.js?v=4");
+      const { abrirDenuncia } = await import("./denuncias.js?v=5");
       const outro = ativa.outroId;
       // Contexto para a equipe: até 5 mensagens antes e 5 depois (só os ids; o painel lê do servidor).
       const salvas = mensagens.filter((x) => !x.pendente);
@@ -3532,8 +3536,8 @@
     // volta para esta conversa como cartão, sem sair do chat.
     let vitrineMod = null;
     function carregarVitrine() {
-      if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=30"; l.dataset.vitrine = ""; document.head.appendChild(l); }
-      return (vitrineMod ||= import("./vitrine.js?v=47"));
+      if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=31"; l.dataset.vitrine = ""; document.head.appendChild(l); }
+      return (vitrineMod ||= import("./vitrine.js?v=48"));
     }
     function usarCartaoNaConversa(uid, cartao) {
       document.querySelectorAll(".vt-modal").forEach((m) => m.remove());
@@ -3589,9 +3593,9 @@
         notaGeral.append(usar("estrela"), elm("b", null, notaTexto(media(tot))), document.createTextNode(` · ${tot.total} ${tot.total === 1 ? "avaliação" : "avaliações"}`));
       } else notaGeral.append(document.createTextNode("Ainda sem avaliações"));
       notaGeral.hidden = false;
-      const ORDEM = ["servicos", "delivery", "lojinha", "imoveis"];
+      const ORDEM = ["servicos", "delivery", "lojinha", "imoveis", "saude"];
       negs.sort((x, y) => ORDEM.indexOf(x.tipo) - ORDEM.indexOf(y.tipo));
-      const IR = { servicos: "Orçamento", delivery: "Pedir", lojinha: "Ver loja", imoveis: "Ver imóveis" };
+      const IR = { servicos: "Orçamento", delivery: "Pedir", lojinha: "Ver loja", imoveis: "Ver imóveis", saude: "Agendar" };
       negs.forEach((n) => {
         const b = elm("button", "pv-neg"); b.type = "button";
         b.style.setProperty("--cor", (ASSUNTOS[n.tipo] || ASSUNTOS.servicos).cor);

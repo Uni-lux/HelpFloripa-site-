@@ -255,6 +255,12 @@ export const STATUS_NEG = { novo: "Recebido · em análise", em_conversa: "Em co
 export async function lerNegociacao(fb, uid) {
   try { const s = await fb.getDoc(fb.doc(fb.db, "planos_negociacoes", uid)); return s.exists() ? { id: s.id, ...s.data() } : null; } catch { return null; }
 }
+// Telefone com DDD formatado enquanto digita (tira o +55 colado de outro lugar).
+export function formatarTelefone(v) {
+  const d = String(v || "").replace(/\D/g, "").replace(/^55(?=\d{10,11}$)/, "").slice(0, 11);
+  if (!d) return "";
+  return d.length <= 2 ? `(${d}` : d.length <= 6 ? `(${d.slice(0, 2)}) ${d.slice(2)}` : d.length <= 10 ? `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}` : `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
 const negAberta = (n) => n && (n.status === "novo" || n.status === "em_conversa");
 // Teste grátis: só para quem nunca teve plano (planos/{uid} não existe). Erro de leitura = não oferece.
 export async function testeDisponivel(fb, uid) {
@@ -480,7 +486,11 @@ export async function abrirPlanos(op) {
     lv.append(lvTxt, valor);
     const lm = el("label"); const lmTxt = el("span"); const msg = el("textarea"); msg.maxLength = 1500; msg.id = "plNegMsg";
     lm.append(lmTxt, msg);
-    const lc = el("label"); lc.append(document.createTextNode("WhatsApp ou telefone para contato "), el("small", null, "(opcional)")); const contato = el("input"); contato.type = "tel"; contato.maxLength = 40; contato.placeholder = "(48) 99999-9999"; lc.appendChild(contato);
+    const lc = el("label"); const lcTxt = el("span"); lcTxt.append(document.createTextNode("WhatsApp ou telefone para contato "), el("small", null, "(opcional)"));
+    const contato = el("input"); contato.type = "tel"; contato.inputMode = "tel"; contato.autocomplete = "tel"; contato.maxLength = 15; contato.placeholder = "(48) 99999-9999"; contato.id = "plNegContato";
+    // Mesmo formato do WhatsApp de Meus negócios: (DD) 9999-9999 ou (DD) 99999-9999 enquanto digita.
+    contato.addEventListener("input", () => { contato.value = formatarTelefone(contato.value); });
+    lc.append(lcTxt, contato);
     const enviar = el("button", "pl-btn"); enviar.type = "submit"; enviar.textContent = "Enviar para a equipe";
     const nota = el("p", "pl-nota", "Só os responsáveis pelo Help Floripa leem o seu pedido. A resposta chega nas notificações e pelo Suporte.");
     // Prova de baixa renda (só na condição especial): qual documento, o arquivo e a declaração.
@@ -541,6 +551,8 @@ export async function abrirPlanos(op) {
         if (!ck.checked) { toast("Confirme a declaração para enviar."); ck.focus(); return; }
       }
       if (texto.length < 20) { toast("Conte um pouco mais (pelo menos 20 letras)."); msg.focus(); return; }
+      const digitos = contato.value.replace(/\D/g, "");
+      if (digitos && (digitos.length < 10 || digitos.length > 11)) { toast("Confira o telefone: DDD + número, como (48) 99999-9999."); contato.focus(); return; }
       const v = Number(String(valor.value).replace(/[^\d,.]/g, "").replace(/\.(?=\d{3}\b)/g, "").replace(",", ".")) || 0;
       if (v < 0 || v > 1000) { toast("Confira o valor."); valor.focus(); return; }
       enviar.disabled = true;

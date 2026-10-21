@@ -458,6 +458,21 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   apaga. Painel: `.ad-neg-prova` com o documento.
   Segunda opção virou **"Parceria ou negociação"** (tipo continua `parceria`; aberta a qualquer pessoa: outro valor, prazo,
   troca ou parceria; "A gente aceita negociar"), sem comprovante de renda. Registro: "Aprovou negociação de plano".
+- **Saúde e Comunidade (PR depois do #74, MUDA REGRAS — não publicadas; 14 partes, 500 testes):** 2 tipos novos.
+  **Saúde** (`tipo: "saude"`, cor #0fb5a6, `saude.html`, `vitrine.js?tipo=saude`): `saude-dados.js` (profissões com
+  conselho CRM/COREN/CRP/CRMV/CRO/CREFITO/CRN/CRFa/CRF/CREF, especialidades, modalidades, convênios, `textoRegistro`,
+  `AVISO_EMERGENCIA`); `negocios.saude` {profissao, profissaoOutra, registro, registroUf, rqe, especialidades,
+  modalidades, valorConsulta, duracao, particular, convenios, publico, idiomas, formacao, acessivel} (regra `saudeOk`
+  num regex só com `string()` para bool/número — o "TUDO junto" estava no limite de 1.000; `textoAte`/`listaAte` agora
+  leem o campo 1× com `get`). Detalhe com registro + "Conferir no CRP" e aviso 192/193; `abrirAgendamento` vira cartão
+  `solicitacao.saude` no chat ("Pedido de agendamento"). **Comunidade** (`comunidade.html/js/css`, cor #e5487f, coleção
+  `comunidade`: doacao/troca/pedido/quarto/achados, 60 dias e renovar): aviso fixo "proibido vender ou cobrar", regra
+  recusa "vend*"/"R$" (fora do rateio do quarto), denúncia com motivo `venda`. **Banimento de programa**
+  `programa_banidos/{uid}_{tipo}` (`banidoDoPrograma` na regra; painel: ficha e denúncia → `banirPrograma` em
+  admin-base.js, esconde o conteúdo e manda aviso grave). Classes do topo agora 6 (3 por linha no celular). Telefone
+  da negociação formatado (`formatarTelefone` em planos.js). Capas `saude.svg`/`comunidade.svg` são ilustrações
+  (dá para trocar por foto). Teste `t-saude-comunidade.mjs`.
+  Pergunta em aberto para ele: criar negócio sem plano e o que acontece depois do teste grátis.
 - **As 5 etapas estão concluídas.** Próximos passos são as pendências abaixo (só ele pode fazer) e o que ficou
   para depois.
 

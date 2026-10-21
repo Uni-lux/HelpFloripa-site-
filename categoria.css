@@ -42,6 +42,8 @@ body[data-classe="servicos"] { --classe: #00adee; --classe-2: #7de3ff; --classe-
 body[data-classe="delivery"] { --classe: #ff7a1a; --classe-2: #ffc15e; --classe-ink: #2a1100; }
 body[data-classe="lojinha"] { --classe: #b066ff; --classe-2: #ff8ad8; --classe-ink: #1d0033; }
 body[data-classe="imoveis"] { --classe: #2fbf71; --classe-2: #a4f0b6; --classe-ink: #002612; }
+body[data-classe="saude"] { --classe: #0fb5a6; --classe-2: #9ff3e6; --classe-ink: #00261f; }
+body[data-classe="comunidade"] { --classe: #e5487f; --classe-2: #ffb38a; --classe-ink: #2b0013; }
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -101,6 +103,8 @@ svg.i.xs { width: 14px; height: 14px; }
 .classe-link.delivery { --c: #ff7a1a; }
 .classe-link.lojinha { --c: #b066ff; }
 .classe-link.imoveis { --c: #2fbf71; }
+.classe-link.saude { --c: #0fb5a6; }
+.classe-link.comunidade { --c: #e5487f; }
 
 /* ---------- página ---------- */
 .pagina { width: min(1180px, 100%); margin: 0 auto; padding: 12px 16px calc(28px + env(safe-area-inset-bottom)); }
@@ -116,7 +120,7 @@ svg.i.xs { width: 14px; height: 14px; }
     radial-gradient(120% 90% at 0% 100%, color-mix(in srgb, var(--classe) 55%, transparent), transparent 60%),
     linear-gradient(180deg, rgba(3, 8, 12, .35), rgba(3, 8, 12, .82));
 }
-.hero-corpo { padding: clamp(24px, 5vw, 48px) clamp(18px, 4vw, 44px) clamp(20px, 4vw, 34px); display: grid; gap: 14px; max-width: 760px; }
+.hero-corpo { padding: clamp(24px, 5vw, 48px) clamp(18px, 4vw, 44px) clamp(20px, 4vw, 34px); display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; max-width: 760px; }
 .selo-classe {
   justify-self: start; display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px 6px 8px; border-radius: 999px;
   background: rgba(255, 255, 255, .14); border: 1px solid rgba(255, 255, 255, .22); font-size: 12px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase;
@@ -242,8 +246,8 @@ svg.i.xs { width: 14px; height: 14px; }
   .rodape-home > div:first-child { grid-column: 1 / -1; }
 }
 
-/* ---------- botões das 4 classes dentro do painel, logo abaixo da busca ---------- */
-.classes.classes-painel { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; width: 100%; margin: 4px 0 0; padding: 0; overflow: visible; }
+/* ---------- botões das 6 classes dentro do painel, logo abaixo da busca (3 por linha no celular) ---------- */
+.classes.classes-painel { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; width: 100%; margin: 4px 0 0; padding: 0; overflow: visible; }
 .classes-painel .classe-link {
   flex-direction: column; gap: 4px; padding: 9px 4px; min-width: 0; font-size: 12.5px; border-radius: 14px;
   color: #fff; background: rgba(4, 12, 20, .5); border-color: rgba(255, 255, 255, .14); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
@@ -251,3 +255,8 @@ svg.i.xs { width: 14px; height: 14px; }
 .classes-painel .classe-link:hover { background: rgba(4, 12, 20, .65); border-color: var(--c); }
 .classes-painel .classe-link[aria-current="page"] { background: var(--c); border-color: var(--c); box-shadow: 0 8px 22px color-mix(in srgb, var(--c) 45%, transparent); }
 @media (min-width: 700px) { .classes-painel .classe-link { flex-direction: row; gap: 7px; padding: 10px 12px; font-size: 13.5px; } }
+@media (min-width: 980px) { .classes.classes-painel { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+/* Aviso de emergência na página de Saúde */
+.aviso-saude { display: flex; gap: 10px; align-items: flex-start; margin: 4px 0 14px; padding: 12px 14px; border-radius: 16px; font-size: 13.5px; line-height: 1.45;
+  background: color-mix(in srgb, #ef4444 9%, var(--panel)); border: 1px solid color-mix(in srgb, #ef4444 32%, var(--line)); }
+.aviso-saude svg { flex: none; color: #ef4444; margin-top: 2px; }

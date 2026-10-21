@@ -124,8 +124,8 @@ export function pessoaCel(p, sub) {
   return d;
 }
 export const selo = (texto, tipo = "neutro") => h("span", "ad-selo " + tipo, texto);
-export const TIPOS_NEG = { servicos: "Freelances", delivery: "Delivery", lojinha: "Lojinha", imoveis: "Imóveis" };
-export const MOTIVOS_DEN = { golpe: "Golpe ou fraude", falso: "Perfil falso", assedio: "Assédio ou ofensa", odio: "Discurso de ódio", improprio: "Conteúdo impróprio", spam: "Spam", menor: "Menor de idade", outro: "Outro" };
+export const TIPOS_NEG = { servicos: "Freelances", delivery: "Delivery", lojinha: "Lojinha", imoveis: "Imóveis", saude: "Saúde" };
+export const MOTIVOS_DEN = { golpe: "Golpe ou fraude", falso: "Perfil falso", assedio: "Assédio ou ofensa", odio: "Discurso de ódio", improprio: "Conteúdo impróprio", spam: "Spam", menor: "Menor de idade", venda: "Venda/cobrança na Comunidade", outro: "Outro" };
 export const MOTIVOS_QX = { atraso: "Atraso", qualidade: "Qualidade", cobranca: "Cobrança", ausencia: "Não compareceu", atendimento: "Atendimento", golpe: "Suspeita de golpe", outro: "Outro" };
 
 let tempoToast = null;
@@ -377,6 +377,7 @@ export async function abrirFicha(uid) {
   const mod = pode("moderar");
   if (mod && sancionado) bt("Remover sanção", "pri", async () => { if (!(await confirmarHF({ titulo: "Remover a sanção?", texto: "A suspensão ou o banimento desta conta deixa de valer.", ok: "Remover", icone: "escudo", cor: "normal" }))) return false; await tirarSancao(uid); toast("Sanção removida"); return true; });
   else if (mod) { bt("Suspender", "perigo", async () => { if (!(await confirmarItem(null, `usuario:${uid}`))) return false; return fluxoSancao(uid, "suspensao"); }); bt("Banir", "perigo", async () => { if (!(await confirmarItem(null, `usuario:${uid}`))) return false; return fluxoSancao(uid, "banimento"); }); }
+  if (mod) bt("Banir de um programa", "perigo", () => banirPrograma(uid));
   bt("Criar tarefa", "", () => editarTarefa({ ligacao: `usuario:${uid}`, ligacaoNome: p.nome || uid }).then(() => false));
   // Selo: tirar (moderação); dar direto só o dono; a moderação vai pelo pedido (Verificações).
   if (mod && p.verificado) bt("Tirar selo", "", async () => { if (!(await confirmarHF({ titulo: "Tirar o selo?", texto: "O perfil deixa de aparecer como verificado.", ok: "Tirar o selo", icone: "olhoOff" }))) return false; await definirSelo(uid, false); toast("Selo retirado"); return true; });
@@ -451,6 +452,38 @@ export async function abrirFicha(uid) {
   if (!hist.length) lH.appendChild(h("div", null, "Nenhum aviso, sanção ou chamado."));
   hist.forEach((x) => lH.appendChild(h("div", null, `${x.quando ? new Date(x.quando).toLocaleDateString("pt-BR") : ""} · ${x.t}`)));
   bH.appendChild(lH); corpo.appendChild(bH);
+}
+
+// ---------- banimento de um programa (um tipo de negócio ou a Comunidade) ----------
+// programa_banidos/{uid}_{tipo}: a pessoa não cria mais perfil daquele tipo (nem anúncio na Comunidade) até `ate`.
+// O que ela já tem no programa é escondido pela equipe (o dono não consegue mostrar de novo).
+export const PROGRAMAS = { comunidade: "Comunidade", saude: "Saúde", servicos: "Freelances", delivery: "Delivery", lojinha: "Lojinha", imoveis: "Imóveis" };
+export async function banirPrograma(uid, tipoInicial = "comunidade", motivoInicial = "") {
+  const { fb } = C;
+  const p = D.pessoas.get(uid) || {};
+  const v = await modal({ titulo: "Banir de um programa", texto: `${p.nome || "A pessoa"} não poderá mais anunciar no programa escolhido e o que tem nele sai do ar. A conta continua funcionando (para tudo, use Suspender ou Banir).`, campos: [
+    { nome: "tipo", rotulo: "Programa", tipo: "select", valor: tipoInicial, opcoes: Object.entries(PROGRAMAS) },
+    { nome: "dias", rotulo: "Por quanto tempo", tipo: "select", valor: "0", opcoes: [["7", "7 dias"], ["30", "30 dias"], ["90", "90 dias"], ["0", "Sem prazo"]] },
+    { nome: "motivo", rotulo: "Motivo (a pessoa vê)", tipo: "textarea", max: 300, obrigatorio: true, valor: motivoInicial || (tipoInicial === "comunidade" ? "Venda ou cobrança na Comunidade, o que é proibido." : "") }
+  ], botao: "Banir do programa", perigo: true });
+  if (!v) return false;
+  if (v.motivo.length < 3) { toast("Escreva o motivo."); return false; }
+  const dias = Number(v.dias) || 0;
+  const ate = dias ? fb.Timestamp.fromMillis(agora() + dias * DIA) : null;
+  await fb.setDoc(fb.doc(fb.db, "programa_banidos", `${uid}_${v.tipo}`), { uid, tipo: v.tipo, motivo: v.motivo.slice(0, 300), ...(ate ? { ate } : {}), por: C.eu.uid, em: fb.serverTimestamp() });
+  // Esconde o que a pessoa tem no programa (perfil do tipo ou os anúncios da Comunidade).
+  const esconder = { ocultoAte: fb.Timestamp.fromDate(new Date("2999-12-31")), ocultoPelaEquipe: true };
+  let escondidos = 0;
+  if (v.tipo === "comunidade") {
+    const s = await fb.getDocs(fb.query(fb.collection(fb.db, "comunidade"), fb.where("donoId", "==", uid), fb.limit(100))).catch(() => ({ docs: [] }));
+    for (const d of s.docs) { try { await fb.updateDoc(d.ref, esconder); escondidos++; } catch {} }
+  } else {
+    try { await fb.updateDoc(fb.doc(fb.db, "negocios", `${uid}_${v.tipo}`), esconder); escondidos++; } catch {}
+  }
+  await registrar("banir_programa", uid, `${PROGRAMAS[v.tipo]} · ${dias ? dias + " dias" : "sem prazo"} · ${v.motivo}${escondidos ? ` · ${escondidos} item(ns) escondido(s)` : ""}`);
+  await enviarAviso(uid, { titulo: `Você foi banido(a) de ${PROGRAMAS[v.tipo]}`, texto: `${dias ? `Por ${dias} dias.` : "Sem prazo para acabar."} Motivo: ${v.motivo}\n\nSe achar que foi um engano, fale com a gente pelo Suporte.`, tipo: "grave" }).catch(() => {});
+  toast(`Banido(a) de ${PROGRAMAS[v.tipo]}`);
+  return true;
 }
 
 // ---------- equipe: papéis, quem assumiu cada item, quem está vendo ----------

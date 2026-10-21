@@ -6,17 +6,17 @@ import { cartaoComunicado } from "./comunicados.js?v=1";
 import { linha, linhaComparada, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=7";
 import { baixarPlanilhaMulti } from "./planilha.js?v=5";
 import { buscarPessoas } from "./pessoas.js?v=3";
-import { montarChat } from "./admin-chat.js?v=20";
-import { verConteudoDenuncia } from "./admin-denuncia.js?v=12";
+import { montarChat } from "./admin-chat.js?v=21";
+import { verConteudoDenuncia } from "./admin-denuncia.js?v=13";
 import { prepararAnexo, blocoAnexo, previaAnexo, aceitos } from "./anexos-suporte.js?v=1";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
-import { PLANOS, ORDEM_PLANOS, nivelPlano, nomePlano, diasRestantes, creditoDias, descontoDe, nomeDocRenda, TIPOS_NEG as TIPOS_NEG_PL } from "./planos.js?v=5";
+import { PLANOS, ORDEM_PLANOS, nivelPlano, nomePlano, diasRestantes, creditoDias, descontoDe, nomeDocRenda, TIPOS_NEG as TIPOS_NEG_PL } from "./planos.js?v=6";
 import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha,
   PAPEIS, DESC_PAPEIS, pode, semPermissao, nomeEquipe, vendoAgora, marcarItem, seloResp, confirmarItem, controlesResp, espera,
-  PRIORIDADES, editarTarefa, moverTarefa, garantirNegocios, garantirTodasPessoas, carregarPessoas, guardarPessoas, abrirConversaSuporte
-} from "./admin-base.js?v=19";
+  PRIORIDADES, editarTarefa, moverTarefa, garantirNegocios, garantirTodasPessoas, carregarPessoas, guardarPessoas, abrirConversaSuporte, banirPrograma
+} from "./admin-base.js?v=20";
 
 const cab = (titulo, sub, extra) => { const c = h("div", "ad-cab"); const t = h("div"); t.append(h("h1", null, titulo)); if (sub) t.append(h("p", null, sub)); c.appendChild(t); if (extra) c.appendChild(extra); return c; };
 const bloco = (titulo, sub) => { const b = h("section", "ad-bloco"); const t = h("div", "ad-bloco-topo"); const tt = h("div"); tt.append(h("h3", null, titulo)); if (sub) tt.append(h("p", null, sub)); t.appendChild(tt); b.appendChild(t); b.topo = t; return b; };
@@ -405,17 +405,19 @@ export function denuncias(el) {
   }
   async function resolver(d) {
     const v = await modal({ titulo: "Resolver denúncia", texto: "Escolha o que fazer. Tudo fica no registro de ações.", campos: [
-      { nome: "acao", rotulo: "Ação", tipo: "select", opcoes: [["aviso", "Enviar aviso à pessoa"], ["remover", "Remover o conteúdo (publicação/comentário) ou esconder o negócio"], ["suspensao", "Suspender a conta"], ["banimento", "Banir a conta"], ["nenhuma", "Nenhuma (só marcar como resolvida)"]] },
+      { nome: "acao", rotulo: "Ação", tipo: "select", valor: d.tipo === "comunidade" && d.motivo === "venda" ? "programa" : "aviso", opcoes: [["aviso", "Enviar aviso à pessoa"], ["remover", "Remover o conteúdo (publicação/comentário) ou esconder o negócio/anúncio"], ...(d.tipo === "comunidade" || d.tipo === "negocio" ? [["programa", "Esconder e banir do programa (Comunidade ou o tipo do negócio)"]] : []), ["suspensao", "Suspender a conta"], ["banimento", "Banir a conta"], ["nenhuma", "Nenhuma (só marcar como resolvida)"]] },
       { nome: "nota", rotulo: "Anotação interna", tipo: "textarea" }
     ], botao: "Continuar" });
     if (!v) return;
     const { fb } = C;
     if (v.acao === "aviso" && !(await fluxoAviso(d.alvoId))) return;
     if ((v.acao === "suspensao" || v.acao === "banimento") && !(await fluxoSancao(d.alvoId, v.acao))) return;
+    if (v.acao === "programa" && !(await banirPrograma(d.alvoId, d.tipo === "comunidade" ? "comunidade" : String(d.itemId).split("_").pop(), d.tipo === "comunidade" && d.motivo === "venda" ? "Venda ou cobrança na Comunidade, o que é proibido." : ""))) return;
     if (v.acao === "remover") {
       if (d.tipo === "publicacao") { await fb.deleteDoc(fb.doc(fb.db, "diario", d.itemId)); D.posts = D.posts.filter((x) => x.id !== d.itemId); }
       else if (d.tipo === "comentario") await fb.deleteDoc(fb.doc(fb.db, "comentarios", d.itemId));
       else if (d.tipo === "negocio") { await fb.updateDoc(fb.doc(fb.db, "negocios", d.itemId), { ocultoAte: fb.Timestamp.fromDate(new Date("2999-12-31")), ocultoPelaEquipe: true }); const n = D.negocios.find((x) => x.id === d.itemId); if (n) n.ocultoAte = { toMillis: () => new Date("2999-12-31").getTime() }; }
+      else if (d.tipo === "comunidade") await fb.updateDoc(fb.doc(fb.db, "comunidade", d.itemId), { ocultoAte: fb.Timestamp.fromDate(new Date("2999-12-31")), ocultoPelaEquipe: true });
       else { toast("Perfis e mensagens não são removidos: use aviso, suspensão ou banimento."); return; }
       await registrar("remover_conteudo", d.alvoId, `${d.tipo} ${d.itemId}`);
     }
@@ -1506,15 +1508,15 @@ export function relatorios(el) {
 }
 
 // ======================================================= REGISTRO E EQUIPE
-const NOMES_ACAO = { aviso: "Enviou aviso", suspender: "Suspendeu", banir: "Baniu", remover_sancao: "Removeu sanção", verificar: "Deu selo", tirar_selo: "Tirou/recusou selo", remover_conteudo: "Removeu conteúdo", esconder_negocio: "Escondeu negócio", mostrar_negocio: "Mostrou negócio", esconder_publicacao: "Escondeu publicação", mostrar_publicacao: "Mostrou publicação", exportar: "Exportou dados", relatorio_pdf: "Gerou relatório", parceria: "Atualizou parceria", parceria_apagar: "Apagou parceria", suporte_resposta: "Respondeu chamado", suporte_conversa: "Abriu conversa de suporte", suporte_fechado: "Fechou chamado", suporte_aberto: "Reabriu chamado", reporte_novo: "Reportou pessoa do suporte", cobrar_reclamacao: "Cobrou resposta de reclamação", reporte_em_analise: "Pôs reporte em análise", reporte_resolvido: "Resolveu reporte", reporte_descartado: "Descartou reporte", comunicado_novo: "Criou comunicado", comunicado_editar: "Editou comunicado", comunicado_on: "Pôs comunicado no ar", comunicado_off: "Tirou comunicado do ar", comunicado_apagar: "Apagou comunicado", denuncia_resolvida: "Resolveu denúncia", denuncia_descartada: "Descartou denúncia", denuncia_em_analise: "Pôs denúncia em análise", assumiu: "Assumiu", passou: "Passou para outra pessoa", liberou: "Liberou", tarefa_nova: "Criou tarefa", tarefa_editar: "Editou tarefa", tarefa_a_fazer: "Voltou tarefa", tarefa_fazendo: "Começou tarefa", tarefa_feito: "Concluiu tarefa", tarefa_apagar: "Apagou tarefa", nota_interna: "Escreveu nota interna", entrou: "Entrou no painel", plano_ativar: "Ativou plano", plano_recusar: "Recusou pedido de plano", plano_encerrar: "Encerrou plano", negociacao_aprovar: "Aprovou negociação de plano", negociacao_recusar: "Não aprovou negociação de plano", negociacao_conversa: "Negociou plano", verificacao_aprovar: "Aprovou verificação", verificacao_recusar: "Recusou verificação" };
+const NOMES_ACAO = { aviso: "Enviou aviso", suspender: "Suspendeu", banir: "Baniu", remover_sancao: "Removeu sanção", verificar: "Deu selo", tirar_selo: "Tirou/recusou selo", remover_conteudo: "Removeu conteúdo", esconder_negocio: "Escondeu negócio", mostrar_negocio: "Mostrou negócio", esconder_publicacao: "Escondeu publicação", mostrar_publicacao: "Mostrou publicação", exportar: "Exportou dados", relatorio_pdf: "Gerou relatório", parceria: "Atualizou parceria", parceria_apagar: "Apagou parceria", suporte_resposta: "Respondeu chamado", suporte_conversa: "Abriu conversa de suporte", suporte_fechado: "Fechou chamado", suporte_aberto: "Reabriu chamado", reporte_novo: "Reportou pessoa do suporte", cobrar_reclamacao: "Cobrou resposta de reclamação", reporte_em_analise: "Pôs reporte em análise", reporte_resolvido: "Resolveu reporte", reporte_descartado: "Descartou reporte", comunicado_novo: "Criou comunicado", comunicado_editar: "Editou comunicado", comunicado_on: "Pôs comunicado no ar", comunicado_off: "Tirou comunicado do ar", comunicado_apagar: "Apagou comunicado", denuncia_resolvida: "Resolveu denúncia", denuncia_descartada: "Descartou denúncia", denuncia_em_analise: "Pôs denúncia em análise", assumiu: "Assumiu", passou: "Passou para outra pessoa", liberou: "Liberou", tarefa_nova: "Criou tarefa", tarefa_editar: "Editou tarefa", tarefa_a_fazer: "Voltou tarefa", tarefa_fazendo: "Começou tarefa", tarefa_feito: "Concluiu tarefa", tarefa_apagar: "Apagou tarefa", nota_interna: "Escreveu nota interna", entrou: "Entrou no painel", banir_programa: "Baniu de um programa", plano_ativar: "Ativou plano", plano_recusar: "Recusou pedido de plano", plano_encerrar: "Encerrou plano", negociacao_aprovar: "Aprovou negociação de plano", negociacao_recusar: "Não aprovou negociação de plano", negociacao_conversa: "Negociou plano", verificacao_aprovar: "Aprovou verificação", verificacao_recusar: "Recusou verificação" };
 // Alvo do registro em texto de gente: a pessoa (link para a ficha), ou o item que a equipe assumiu/passou
 // ("suporte:ID" vira "Chamado #ABC123 · assunto", "denuncias:..." vira "Denúncia · motivo · pessoa"), ou a lista exportada.
 const LISTAS_EXPORT = { usuarios: "Lista de usuários", negocios: "Lista de negócios", denuncias: "Lista de denúncias", reclamacoes: "Lista de reclamações" };
 // Item da ação: o "ref" gravado, o alvo "colecao:ID", o ID da denúncia no detalhe ou, nos chamados antigos, o chamado
 // da pessoa com aquele assunto.
-const ID_DEN = /\b(perfil|publicacao|comentario|mensagem|negocio)_[A-Za-z0-9-]{6,}_[A-Za-z0-9]{20,40}\b/;
+const ID_DEN = /\b(perfil|publicacao|comentario|mensagem|negocio|comunidade)_[A-Za-z0-9-]{6,}_[A-Za-z0-9]{20,40}\b/;
 const ACAO_DEN = { nenhuma: "sem ação", aviso: "aviso enviado", remover: "conteúdo removido", suspender: "conta suspensa", banir: "conta banida", esconder: "conteúdo escondido" };
-const NOME_ITEM_DEN = { perfil: "perfil", publicacao: "publicação", comentario: "comentário", mensagem: "mensagem", negocio: "negócio" };
+const NOME_ITEM_DEN = { perfil: "perfil", publicacao: "publicação", comentario: "comentário", mensagem: "mensagem", negocio: "negócio", comunidade: "anúncio da Comunidade" };
 function refDe(x) {
   if (x.ref) return x.ref;
   if (String(x.alvo || "").includes(":")) return x.alvo;

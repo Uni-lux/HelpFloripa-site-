@@ -1,3 +1,13 @@
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['tipo', 'seguidorId', 'alvoId', 'criadoEm'])
+                    && request.resource.data.tipo == 'seguir'
+                    && request.resource.data.seguidorId == request.auth.uid
+                    && request.resource.data.alvoId is string
+                    && request.resource.data.alvoId != request.auth.uid
+                    && id == request.auth.uid + '_' + request.resource.data.alvoId
+                    && !bloqueioEntre(request.auth.uid, request.resource.data.alvoId);
+
       allow update: if false;
 
       // Quem segue pode deixar de seguir; quem é seguido pode remover o seguidor.
@@ -103,7 +113,19 @@
                 'horaAbre', 'horaFecha', 'tempoMin', 'tempoMax', 'taxaEntrega', 'pedidoMinimo', 'opcoesEntrega',
                 'entrega', 'tipoAnunciante', 'creci',
                 'instagram', 'site', 'capa', 'cnpj', 'promocao', 'semana', 'geo',
+                'saude',       // perfil de Saúde: profissão, registro no conselho, especialidades, convênios...
                 'ocultoAte'];  // escondido enquanto a conta do dono estiver desativada
+      }
+
+      // Saúde: um mapa só, sempre com os 15 campos (o site grava todos), conferido com dois regex
+      // (gasta pouco do limite de 1.000 expressões: a gravação de um negócio completo já chega perto).
+      function saudeOk(s) {
+        return s.keys().hasOnly(['profissao', 'profissaoOutra', 'especialidades', 'registro', 'registroUf', 'rqe', 'modalidades',
+                                 'convenios', 'particular', 'valorConsulta', 'duracao', 'publico', 'idiomas', 'acessivel', 'formacao'])
+            && [s.profissao, s.profissaoOutra, s.registro, s.registroUf, s.rqe, s.formacao, s.modalidades.join(','), s.publico.join(','),
+                string(s.particular), string(s.acessivel), string(s.valorConsulta), string(s.duracao)].join('\n')
+                 .matches('^(medico|enfermeiro|tecEnfermagem|psicologo|veterinario|dentista|fisioterapeuta|nutricionista|fonoaudiologo|terapeutaOcupacional|farmaceutico|educadorFisico|cuidador|outros)\n[^\n]{0,40}\n[0-9A-Za-z./ -]{0,20}\n([A-Z]{2})?\n[0-9A-Za-z./-]{0,12}\n[^\n]{0,200}\n((consultorio|online|domicilio)(,(consultorio|online|domicilio)){0,2})?\n([a-z]{3,14}(,[a-z]{3,14}){0,5})?\n(true|false)\n(true|false)\n(null|[0-9]{1,5}([.][0-9]{1,2})?)\n(null|[1-9][0-9]{0,2})$')
+            && [s.especialidades.join('\n'), s.convenios.join('\n'), s.idiomas.join('\n')].join('\n').matches('^[^\n]{0,40}(\n[^\n]{0,40}){0,29}$');
       }
 
       // Promoção/cupom com prazo (até 62 dias): título, texto, código opcional (A-Z e 0-9).
@@ -130,7 +152,8 @@
                 || (d.semana is list && d.semana.size() == 7
                     && d.semana.join(';').matches('^(([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9])?(;(([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9])?){6}$')))
             && (!m.hasAny(['promocao']) || d.get('promocao', null) == null || promocaoOk(d.promocao))
-            && (!m.hasAny(['geo']) || geoOk(d.get('geo', null)));
+            && (!m.hasAny(['geo']) || geoOk(d.get('geo', null)))
+            && (!m.hasAny(['saude']) || saudeOk(d.get('saude', null)));
       }
 
       function negocioOk() {
@@ -155,10 +178,12 @@
       allow create: if logado()
                     && emailOk()
                     && request.resource.data.donoId == request.auth.uid
-                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis']
+                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude']
                     && id == request.auth.uid + '_' + request.resource.data.tipo
                     && request.resource.data.keys().hasOnly(camposNegocio())
                     && naoTocaCamposProtegidosNoCreate()
+                    && !banidoDoPrograma(request.auth.uid, request.resource.data.tipo)
+                    && (request.resource.data.tipo != 'saude' || request.resource.data.get('saude', null) is map)
                     && negocioOk();
 
       allow update: if logado()
@@ -196,49 +221,4 @@
                 'ocultoAte'];
       }
 
-      function anuncioOk() {
-        return textoAte('titulo', 100)
-            && textoAte('descricao', 1000)
-            && textoAte('cidade', 60)
-            && localOk()
-            && enderecoOk()
-            && textoAte('andar', 12)
-            && textoAte('disponivel', 20)
-            && textoAte('categoriaPersonalizada', 30)
-            && geoOk(request.resource.data.get('geo', null))
-            && listaAte('fotos', 5)
-            && listaAte('caracteristicas', 20)
-            && listaAte('condicoes', 12)
-            && dataOuNulo('ocultoAte');
-      }
-
-      allow read: if logado();
-
-      allow create: if logado()
-                    && emailOk()
-                    && request.resource.data.donoId == request.auth.uid
-                    && request.resource.data.tipo in ['imovel']
-                    && request.resource.data.keys().hasOnly(camposAnuncio())
-                    && naoTocaCamposProtegidosNoCreate()
-                    && anuncioOk();
-
-      allow update: if logado()
-                    && emailOk()
-                    && resource.data.donoId == request.auth.uid
-                    && request.resource.data.donoId == resource.data.donoId
-                    && request.resource.data.tipo == resource.data.tipo
-                    && gravou().hasOnly(camposAnuncio())
-                    && naoTocaCamposProtegidosNoUpdate()
-                    && travaModeracao()
-                    && anuncioOk();
-
-      allow delete: if logado()
-                    && resource.data.donoId == request.auth.uid;
-
-      // A equipe esconde (ocultoAte) o conteúdo de contas suspensas/banidas.
-      allow update: if podeModerar()
-                    && moderacaoOk();
-    }
-
-
-// ===== FIM DA PARTE 3 DE 13 =====
+// ===== FIM DA PARTE 3 DE 14 =====

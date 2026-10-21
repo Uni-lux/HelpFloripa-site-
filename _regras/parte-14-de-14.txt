@@ -1,21 +1,3 @@
-      allow create: if logado()
-                    && emailOk()
-                    && request.resource.data.autorId == request.auth.uid
-                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'fotoPerfil', 'texto', 'mediaUrl', 'mediaTipo', 'midias', 'tags', 'marcados', 'agendadoPara', 'enquete', 'caixa', 'local', 'criadoEm'])
-                    && localPubOk(request.resource.data)
-                    && (!('caixa' in request.resource.data) || caixaOk(request.resource.data.caixa))
-                    // enquete: até 7 dias a partir de quando aparece (agora ou a data agendada), com 10 min de folga
-                    && (!('enquete' in request.resource.data) || enqueteOk(request.resource.data.enquete,
-                          'agendadoPara' in request.resource.data ? request.resource.data.agendadoPara : request.time, 10090))
-                    && ritmoOk('pub')
-                    && publicacaoOk()
-                    && tagsOk(request.resource.data) && marcadosOk(request.resource.data)
-                    // agendada: aparece para os outros a partir de agendadoPara (até 60 dias)
-                    && (!('agendadoPara' in request.resource.data)
-                        || (request.resource.data.agendadoPara is timestamp
-                            && request.resource.data.agendadoPara > request.time
-                            && request.resource.data.agendadoPara < request.time + duration.value(60, 'd')));
-
       allow update: if logado()
                     && emailOk()
                     && resource.data.autorId == request.auth.uid
@@ -164,4 +146,4 @@
 
   }
 }
-// ===== FIM DA PARTE 13 DE 13 =====
+// ===== FIM DA PARTE 14 DE 14 =====

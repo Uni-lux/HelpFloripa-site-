@@ -1,3 +1,9 @@
+    // ---------- avaliações e reclamações justas ----------
+    // Id da conversa / do vínculo entre duas pessoas (ids em ordem).
+    function par(a, b) {
+      return a < b ? a + '_' + b : b + '_' + a;
+    }
+
     // Conta com pelo menos 3 dias (usuarios.criadoEm é gravado no cadastro e não muda).
     function contaAntiga(uid) {
       let u = /databases/$(database)/documents/usuarios/$(uid);
@@ -244,14 +250,4 @@
 
       allow read: if logado();
 
-      allow create: if logado()
-                    && emailOk()
-                    && request.resource.data.keys().hasOnly(['tipo', 'seguidorId', 'alvoId', 'criadoEm'])
-                    && request.resource.data.tipo == 'seguir'
-                    && request.resource.data.seguidorId == request.auth.uid
-                    && request.resource.data.alvoId is string
-                    && request.resource.data.alvoId != request.auth.uid
-                    && id == request.auth.uid + '_' + request.resource.data.alvoId
-                    && !bloqueioEntre(request.auth.uid, request.resource.data.alvoId);
-
-// ===== FIM DA PARTE 2 DE 13 =====
+// ===== FIM DA PARTE 2 DE 14 =====

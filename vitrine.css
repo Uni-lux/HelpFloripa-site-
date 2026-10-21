@@ -30,6 +30,8 @@
 .vitrine[data-tipo="delivery"] { --vc: #ff7a1a; --vc-ink: #2a1100; }
 .vitrine[data-tipo="lojinha"] { --vc: #b066ff; --vc-ink: #1d0033; }
 .vitrine[data-tipo="imoveis"] { --vc: #2fbf71; --vc-ink: #002612; }
+.vitrine[data-tipo="saude"] { --vc: #0fb5a6; --vc-ink: #00261f; }
+.vitrine[data-tipo="comunidade"] { --vc: #e5487f; --vc-ink: #2b0013; }
 .vitrine * { box-sizing: border-box; }
 .vitrine [hidden] { display: none !important; }
 .vitrine button { font: inherit; color: inherit; }
@@ -739,3 +741,23 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
 .nm.com-pro .selo-pro { flex: none; height: 16px; font-size: 9px; padding: 0 5px; }
 .vd-selo-pro { background: color-mix(in srgb, #7c3aed 14%, transparent); color: #8b5cf6; }
 .vd-selo-pro .selo-pro { height: 16px; font-size: 9px; padding: 0 5px; }
+
+/* ---------- Saúde: registro do conselho, como atende e avisos ---------- */
+.vd-saude { display: grid; gap: 10px; margin: 4px 0 14px; padding: 14px; border-radius: 18px; border: 1px solid color-mix(in srgb, var(--vc) 40%, var(--line)); background: color-mix(in srgb, var(--vc) 7%, var(--panel)); }
+.vd-saude-reg { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.vd-saude-reg .ic { flex: none; width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; color: #fff; background: var(--vc); box-shadow: 0 8px 20px -10px var(--vc); }
+.vd-saude-reg .tx { flex: 1; min-width: 180px; display: grid; gap: 1px; }
+.vd-saude-reg .tx small { font-size: 11.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.vd-saude-reg .tx strong { font-size: 16px; }
+.vd-saude-reg .tx span { font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+.vd-saude-conf { display: inline-flex; align-items: center; gap: 4px; padding: 8px 12px; border-radius: 999px; border: 1px solid var(--vc); color: var(--vc); font-size: 13px; font-weight: 800; text-decoration: none; white-space: nowrap; }
+.vd-saude-conf .vi { width: 14px; height: 14px; }
+.vd-saude-mod { display: flex; flex-wrap: wrap; gap: 6px; }
+.vd-saude-mod .vt-tag { display: inline-flex; align-items: center; gap: 5px; }
+.vd-saude-mod .vt-tag .vi { width: 14px; height: 14px; }
+.vd-saude-urg { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 10px 12px; border-radius: 12px; font-size: 12.5px; line-height: 1.45; color: var(--text);
+  background: color-mix(in srgb, #ef4444 9%, transparent); border: 1px solid color-mix(in srgb, #ef4444 30%, transparent); }
+.vd-saude-urg .vi { flex: none; width: 16px; height: 16px; color: #ef4444; margin-top: 1px; }
+.vt-saude .tx small.reg { display: inline-flex; align-items: center; gap: 4px; color: var(--vc); font-weight: 700; }
+.vt-saude .tx small.reg .vi { width: 13px; height: 13px; }
+.vt-saude .ft .st.saude-mod { background: var(--vc); color: #fff; }

@@ -1,5 +1,5 @@
 // =====================================================
-// Denúncias: perfil, publicação, comentário, mensagem ou perfil de negócio.
+// Denúncias: perfil, publicação, comentário, mensagem, perfil de negócio ou anúncio da Comunidade.
 // denuncias/{tipo}_{item}_{quemDenunciou}: uma denúncia por pessoa em cada item.
 // A pessoa denunciada não é avisada. A equipe do Help Floripa analisa pelo
 // console do Firebase. As regras conferem que o item é mesmo de quem foi denunciado.
@@ -16,7 +16,9 @@ export const MOTIVOS_DENUNCIA = [
   ["menor", "Menor de idade", "Parece ter menos de 16 anos, ou menor vendendo/anunciando"],
   ["outro", "Outro motivo", "Conte no campo abaixo"]
 ];
-const ROTULO = { perfil: "este perfil", publicacao: "esta publicação", comentario: "este comentário", mensagem: "esta mensagem", negocio: "este negócio" };
+const ROTULO = { perfil: "este perfil", publicacao: "esta publicação", comentario: "este comentário", mensagem: "esta mensagem", negocio: "este negócio", comunidade: "este anúncio" };
+// Comunidade: vender ou cobrar é proibido, então esse motivo vem primeiro.
+const MOTIVO_VENDA = ["venda", "Está vendendo ou cobrando", "Pediu dinheiro, Pix, \"frete\" ou qualquer valor"];
 
 let cssPronto = false;
 function css() {
@@ -83,7 +85,7 @@ export async function abrirDenuncia({ fb, eu, tipo, alvoId, itemId, conversaId =
   intro.textContent = `${nomeAlvo ? nomeAlvo + " não" : "A pessoa não"} será avisada. Nossa equipe analisa cada denúncia e pode remover o conteúdo ou suspender a conta.`;
   const ops = document.createElement("div"); ops.className = "ops";
   let motivo = "";
-  MOTIVOS_DENUNCIA.forEach(([v, titulo, dica]) => {
+  (tipo === "comunidade" ? [MOTIVO_VENDA, ...MOTIVOS_DENUNCIA] : MOTIVOS_DENUNCIA).forEach(([v, titulo, dica]) => {
     const l = document.createElement("label"); l.className = "op";
     const r = document.createElement("input"); r.type = "radio"; r.name = "hfDenMotivo"; r.value = v;
     r.addEventListener("change", () => { motivo = v; atualizar(); });

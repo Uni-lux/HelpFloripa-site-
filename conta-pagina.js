@@ -6,7 +6,7 @@
 //   - exclusão vencida: Concluir exclusão (confirma a senha) / Sair
 // =====================================================
 import { destinoSeguro, firebasePronto } from "./acesso.js?v=2";
-import { estadoConta, reativarConta, apagarTudo, reautenticar } from "./conta.js?v=3";
+import { estadoConta, reativarConta, apagarTudo, reautenticar } from "./conta.js?v=4";
 
 const $ = (id) => document.getElementById(id);
 const data = (t) => new Date(t).toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" });

@@ -1,42 +1,3 @@
-    // Pedido do selo de verificado: a pessoa e a moderação leem. A foto do documento é apagada na decisão.
-    match /verificacoes/{uid} {
-      function pedidoOk(d) {
-        return d.keys().hasOnly(['uid', 'categoria', 'nomeLegal', 'conhecidoComo', 'documentoTipo', 'documento', 'links', 'motivo', 'status', 'criadoEm', 'atualizadoEm'])
-            && d.uid == uid
-            && d.categoria is string && d.categoria.matches('^(pessoa|profissional|negocio|publica|organizacao)$')
-            && d.nomeLegal is string && d.nomeLegal.size() >= 5 && d.nomeLegal.size() <= 120
-            && valorTextoAte(d.get('conhecidoComo', ''), 80)
-            && d.documentoTipo is string && d.documentoTipo.matches('^(rg|cnh|passaporte|rne|cnpj)$')
-            && d.documento is string && d.documento.size() <= 700000 && d.documento.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')
-            && (!('links' in d) || (d.links is list && d.links.size() <= 3))
-            && valorTextoAte(d.get('motivo', ''), 500)
-            && d.status == 'pendente'
-            && d.criadoEm == request.time && d.atualizadoEm == request.time;
-      }
-      allow read: if (logado() && request.auth.uid == uid) || podeModerar();
-      // Pedir (ou pedir de novo depois de não aprovado ou cancelado).
-      allow create: if logado() && request.auth.uid == uid && pedidoOk(request.resource.data);
-      allow update: if logado() && request.auth.uid == uid
-                    && resource.data.status in ['recusada', 'cancelada']
-                    && pedidoOk(request.resource.data);
-      // Cancelar o próprio pedido (a foto do documento sai junto).
-      allow update: if logado() && request.auth.uid == uid
-                    && resource.data.status in ['pendente', 'em_analise']
-                    && request.resource.data.status == 'cancelada'
-                    && mudou().hasOnly(['status', 'atualizadoEm', 'documento'])
-                    && !('documento' in request.resource.data)
-                    && request.resource.data.atualizadoEm == request.time;
-      // A moderação analisa e decide um pedido em aberto; ao aprovar ou recusar, a foto do documento é apagada.
-      allow update: if podeModerar()
-                    && resource.data.status in ['pendente', 'em_analise']
-                    && mudou().hasOnly(['status', 'motivoRecusa', 'analisadaPor', 'analisadaEm', 'documento', 'atualizadoEm'])
-                    && request.resource.data.status in ['em_analise', 'aprovada', 'recusada']
-                    && request.resource.data.analisadaPor == request.auth.uid
-                    && (request.resource.data.status == 'em_analise' || !('documento' in request.resource.data))
-                    && valorTextoAte(request.resource.data.get('motivoRecusa', ''), 500);
-      allow delete: if (logado() && request.auth.uid == uid) || podeModerar();
-    }
-
     // Reporte de atendimento do suporte (só a moderação e os donos leem; o suporte não).
     //   atendimento_{chamado}_{uid}: quem abriu o chamado reporta como foi atendido (demora, grosseria...).
     //   usuario_{chamado}_{uid}: alguém da equipe reporta a pessoa do chamado (ofensas, ameaça, golpe...).
@@ -165,4 +126,30 @@
           && d.status == 'novo'
           && d.criadoEm == request.time;
       }
-// ===== FIM DA PARTE 8 DE 13 =====
+      allow read: if (logado() && uid == request.auth.uid) || donoDoSite();
+      allow create: if logado() && emailOk() && pedidoNegOk();
+      // Pedir de novo: só depois que o anterior foi decidido ou cancelado (substitui o documento inteiro).
+      allow update: if logado() && emailOk() && uid == request.auth.uid
+                    && resource.data.status in ['aprovado', 'recusado', 'cancelado']
+                    && pedidoNegOk();
+      allow update: if logado() && uid == request.auth.uid
+                    && resource.data.status in ['novo', 'em_conversa']
+                    && mudou().hasOnly(['status', 'comprovante'])
+                    && !('comprovante' in request.resource.data)
+                    && request.resource.data.status == 'cancelado';
+      allow update: if donoDoSite()
+                    && resource.data.status in ['novo', 'em_conversa']
+                    && mudou().hasOnly(['status', 'resposta', 'decididoPor', 'decididoEm', 'planoConcedido', 'meses', 'valorAcordado', 'comprovante'])
+                    && request.resource.data.status in ['em_conversa', 'aprovado', 'recusado']
+                    && (request.resource.data.status == 'em_conversa' ? !mudou().hasAny(['comprovante']) : !('comprovante' in request.resource.data))
+                    && request.resource.data.decididoPor == request.auth.uid
+                    && request.resource.data.decididoEm == request.time
+                    && valorTextoAte(request.resource.data.get('resposta', ''), 600)
+                    && (request.resource.data.status != 'aprovado'
+                        || (request.resource.data.planoConcedido in ['plus', 'pro', 'premium']
+                            && request.resource.data.meses is int && request.resource.data.meses >= 1 && request.resource.data.meses <= 24
+                            && request.resource.data.valorAcordado is number && request.resource.data.valorAcordado >= 0 && request.resource.data.valorAcordado <= 5000));
+      allow delete: if false;
+    }
+
+// ===== FIM DA PARTE 9 DE 14 =====
