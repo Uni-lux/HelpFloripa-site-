@@ -473,6 +473,11 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   da negociação formatado (`formatarTelefone` em planos.js). Capas `saude.svg`/`comunidade.svg` são ilustrações
   (dá para trocar por foto). Teste `t-saude-comunidade.mjs`.
   Pergunta em aberto para ele: criar negócio sem plano e o que acontece depois do teste grátis.
+- **Saúde e Comunidade em todas as páginas (PR depois do #75, sem regra nova):** rodapés "Explorar", atalhos do
+  Diário/Explorar (`feed.html`, 3 colunas a partir de 700 px), cartões em Sobre/Clientes/Profissionais (`info.css`
+  `--c-saude/--c-comunidade`), Ajuda (FAQ de Saúde, Comunidade e "Quanto custa anunciar?" com os planos), filtro Saúde
+  em Reclamações, `acesso.js` (login volta para saude/comunidade), link "Ver" do painel para Saúde e textos que listavam
+  só os 4 tipos. #75 (Saúde e Comunidade) mesclado e no ar; as regras ainda não publicadas (14 partes).
 - **As 5 etapas estão concluídas.** Próximos passos são as pendências abaixo (só ele pode fazer) e o que ficou
   para depois.
 

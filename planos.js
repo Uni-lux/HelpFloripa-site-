@@ -32,7 +32,7 @@ export const valorPeriodo = (k, meses) => Math.round((PLANOS[k]?.preco || 0) * m
 export const DIAS_TESTE = 30; // teste grátis no primeiro acesso
 // O que cada plano tem: [benefício, Plus, Pro, Premium] (tudo o que está marcado o site já faz).
 export const BENEFICIOS = [
-  ["Perfil de negócio (Freelances, Delivery, Shopping e Imóveis)", true, true, true],
+  ["Perfil de negócio (Freelances, Delivery, Shopping, Imóveis e Saúde)", true, true, true],
   ["Pedidos, orçamentos e conversas pelo chat", true, true, true],
   ["Avaliações, cupons e promoções", true, true, true],
   ["Selo do plano no perfil e nos cartões", true, true, true],

@@ -1,7 +1,7 @@
 // =====================================================
 // Entrar (login.html)
 // =====================================================
-import { $, destinoSeguro, mensagemErro, aviso, firebasePronto } from "./acesso.js?v=2";
+import { $, destinoSeguro, mensagemErro, aviso, firebasePronto } from "./acesso.js?v=3";
 
 const destino = destinoSeguro("index.html");
 if (new URLSearchParams(location.search).get("redirect")) aviso("avisoLogin", "Entre na sua conta para continuar.", "info");

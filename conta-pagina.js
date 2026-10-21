@@ -5,7 +5,7 @@
 //   - exclusão dentro de 30 dias: Recuperar minha conta / Sair
 //   - exclusão vencida: Concluir exclusão (confirma a senha) / Sair
 // =====================================================
-import { destinoSeguro, firebasePronto } from "./acesso.js?v=2";
+import { destinoSeguro, firebasePronto } from "./acesso.js?v=3";
 import { estadoConta, reativarConta, apagarTudo, reautenticar } from "./conta.js?v=4";
 
 const $ = (id) => document.getElementById(id);

@@ -2464,7 +2464,7 @@
           vazio.append(titulo, modo === "negocios" ? "Nenhuma mensagem de negócio sem ler." : "Nenhuma mensagem pessoal sem ler.");
         } else if (modo === "negocios") {
           titulo.textContent = "Nenhuma conversa de negócio";
-          vazio.append(titulo, "Quando alguém falar com você por um perfil de negócio (Freelances, Delivery, Lojinha ou Imóveis), ou você falar com um, a conversa aparece aqui com a categoria.");
+          vazio.append(titulo, "Quando alguém falar com você por um perfil de negócio (Freelances, Delivery, Lojinha, Imóveis ou Saúde) ou por um anúncio da Comunidade, ou você falar com um, a conversa aparece aqui com a categoria.");
         } else {
           titulo.textContent = "Nenhuma conversa ainda";
           const btn = document.createElement("button");
@@ -3537,7 +3537,7 @@
     let vitrineMod = null;
     function carregarVitrine() {
       if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=31"; l.dataset.vitrine = ""; document.head.appendChild(l); }
-      return (vitrineMod ||= import("./vitrine.js?v=48"));
+      return (vitrineMod ||= import("./vitrine.js?v=49"));
     }
     function usarCartaoNaConversa(uid, cartao) {
       document.querySelectorAll(".vt-modal").forEach((m) => m.remove());

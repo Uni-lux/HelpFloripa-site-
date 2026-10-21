@@ -802,7 +802,7 @@ html, body { overflow-x: clip; }
 .atalho-classe.imoveis, .atalho-mini.imoveis { --c: #2fbf71; }
 .atalho-classe.saude, .atalho-mini.saude { --c: #0fb5a6; }
 .atalho-classe.comunidade, .atalho-mini.comunidade { --c: #e5487f; }
-@media (min-width: 700px) { .atalhos-classes { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (min-width: 700px) { .atalhos-classes { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* ---------- desativar / excluir conta (configuracoes.html) ---------- */
