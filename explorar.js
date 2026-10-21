@@ -16,7 +16,7 @@ import { afinidade } from "./gosto.js?v=1";
 import { buscarPessoas, pessoasRecentes, semAcento } from "./pessoas.js?v=3";
 import { docsComValidade } from "./leituras.js?v=1";
 import { lerResumos, media } from "./avaliacoes.js?v=13";
-import { CATEGORIAS, CORES_TIPO, NOMES_TIPO, PAGINA_TIPO, nomeCategoria, nomeCat, categoriasDe } from "./vitrine.js?v=46";
+import { CATEGORIAS, CORES_TIPO, NOMES_TIPO, PAGINA_TIPO, nomeCategoria, nomeCat, categoriasDe } from "./vitrine.js?v=47";
 import { fimDaEnquete, faltaTexto } from "./enquetes.js?v=3";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, distanciaKm } from "./perto.js?v=1";
 

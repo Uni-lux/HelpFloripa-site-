@@ -10,7 +10,7 @@ import { montarChat } from "./admin-chat.js?v=20";
 import { verConteudoDenuncia } from "./admin-denuncia.js?v=12";
 import { prepararAnexo, blocoAnexo, previaAnexo, aceitos } from "./anexos-suporte.js?v=1";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
-import { PLANOS, ORDEM_PLANOS, nivelPlano, nomePlano, diasRestantes, creditoDias, descontoDe, nomeDocRenda, TIPOS_NEG as TIPOS_NEG_PL } from "./planos.js?v=4";
+import { PLANOS, ORDEM_PLANOS, nivelPlano, nomePlano, diasRestantes, creditoDias, descontoDe, nomeDocRenda, TIPOS_NEG as TIPOS_NEG_PL } from "./planos.js?v=5";
 import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha,
@@ -845,7 +845,7 @@ function entradas() {
 }
 export function planos(el) {
   if (!pode("dono")) { el.appendChild(h("div", "ad-vazio", "Só os donos do site veem os planos e a receita.")); return; }
-  el.appendChild(cab("Planos e receita", "Pedidos pagos por Pix (confira no extrato o valor e o código antes de ativar), pedidos de condição especial e parceria, e a receita. O plano vence sozinho na data. Só os donos veem esta seção."));
+  el.appendChild(cab("Planos e receita", "Pedidos pagos por Pix (confira no extrato o valor e o código antes de ativar), pedidos de condição especial, parceria ou negociação, e a receita. O plano vence sozinho na data. Só os donos veem esta seção."));
   const pedidos = [...D.planosPedidos].sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
   const pend = pedidos.filter((p) => p.status === "pendente").sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm));
   const negs = [...D.planosNeg].sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
@@ -865,7 +865,7 @@ export function planos(el) {
   const lista = h("div", "ad-lista"); el.append(fil, lista);
   function pintar() {
     if (filtroPlanos === "pendente") lista.replaceChildren(...(pend.length ? pend.map(cartaoPedido) : [h("div", "ad-vazio", "Nenhum pedido esperando o pagamento.")]));
-    else if (filtroPlanos === "negociacoes") lista.replaceChildren(...(negs.length ? [...negAbertas, ...negs.filter((n) => !negAbertas.includes(n))].map(cartaoNeg) : [h("div", "ad-vazio", "Nenhum pedido de condição especial ou parceria.")]));
+    else if (filtroPlanos === "negociacoes") lista.replaceChildren(...(negs.length ? [...negAbertas, ...negs.filter((n) => !negAbertas.includes(n))].map(cartaoNeg) : [h("div", "ad-vazio", "Nenhum pedido de condição especial, parceria ou negociação.")]));
     else if (filtroPlanos === "ativos") lista.replaceChildren(...(ativos.length ? ativos.map(cartaoAtivo) : [h("div", "ad-vazio", "Nenhum negócio com plano pago ativo.")]));
     else if (filtroPlanos === "receita") lista.replaceChildren(receita());
     else { const l = pedidos.filter((p) => p.status !== "pendente"); lista.replaceChildren(...(l.length ? l.map(cartaoPedido) : [h("div", "ad-vazio", "Nada por aqui ainda.")])); }
@@ -994,7 +994,7 @@ export function planos(el) {
       { nome: "plano", rotulo: "Plano", tipo: "select", valor: n.plano, opcoes: ORDEM_PLANOS.map((k) => [k, `${PLANOS[k].nome} (${reaisPl(PLANOS[k].preco)}/mês)`]) },
       { nome: "meses", rotulo: "Por quantos meses", tipo: "select", valor: "1", opcoes: [["1", "1 mês"], ["2", "2 meses"], ["3", "3 meses"], ["6", "6 meses"], ["12", "12 meses"]] },
       { nome: "valor", rotulo: "Valor combinado no total (R$)", valor: n.valorProposto ? String(n.valorProposto).replace(".", ",") : "0", max: 10, dica: "0 = sem custo" },
-      { nome: "resposta", rotulo: "Mensagem para a pessoa", tipo: "textarea", max: 600, valor: n.tipo === "parceria" ? "Que bom ter você como parceiro do Help Floripa!" : "Entendemos a sua situação e liberamos uma condição especial para você." }
+      { nome: "resposta", rotulo: "Mensagem para a pessoa", tipo: "textarea", max: 600, valor: n.tipo === "parceria" ? "Topamos a sua proposta. Que bom ter você com o Help Floripa!" : "Entendemos a sua situação e liberamos uma condição especial para você." }
     ], botao: "Aprovar" });
     if (!v) return;
     const meses = Number(v.meses) || 1, valor = Math.round((Number(String(v.valor).replace(/[^\d,.]/g, "").replace(",", ".")) || 0) * 100) / 100;
@@ -1017,7 +1017,7 @@ export function planos(el) {
     const v = await modal({ titulo: "Não aprovar o pedido?", texto: "A pessoa recebe um aviso com a sua resposta e pode pedir de novo depois.", campos: [{ nome: "resposta", rotulo: "Resposta", tipo: "textarea", max: 600, obrigatorio: true, valor: "Agora não conseguimos oferecer essa condição, mas você pode assinar um dos planos quando puder e pedir de novo mais para frente." }], botao: "Não aprovar", perigo: true });
     if (!v) return;
     await mudarNeg(n, { status: "recusado", resposta: v.resposta.slice(0, 600) }, "negociacao_recusar", v.resposta);
-    await enviarAviso(n.uid || n.id, { titulo: "Sobre o seu pedido de condição especial", texto: v.resposta, tipo: "info" }).catch(() => {});
+    await enviarAviso(n.uid || n.id, { titulo: n.tipo === "parceria" ? "Sobre a sua proposta de negociação" : "Sobre o seu pedido de condição especial", texto: v.resposta, tipo: "info" }).catch(() => {});
   }
 
   // ---------- receita (só donos) ----------
@@ -1506,7 +1506,7 @@ export function relatorios(el) {
 }
 
 // ======================================================= REGISTRO E EQUIPE
-const NOMES_ACAO = { aviso: "Enviou aviso", suspender: "Suspendeu", banir: "Baniu", remover_sancao: "Removeu sanção", verificar: "Deu selo", tirar_selo: "Tirou/recusou selo", remover_conteudo: "Removeu conteúdo", esconder_negocio: "Escondeu negócio", mostrar_negocio: "Mostrou negócio", esconder_publicacao: "Escondeu publicação", mostrar_publicacao: "Mostrou publicação", exportar: "Exportou dados", relatorio_pdf: "Gerou relatório", parceria: "Atualizou parceria", parceria_apagar: "Apagou parceria", suporte_resposta: "Respondeu chamado", suporte_conversa: "Abriu conversa de suporte", suporte_fechado: "Fechou chamado", suporte_aberto: "Reabriu chamado", reporte_novo: "Reportou pessoa do suporte", cobrar_reclamacao: "Cobrou resposta de reclamação", reporte_em_analise: "Pôs reporte em análise", reporte_resolvido: "Resolveu reporte", reporte_descartado: "Descartou reporte", comunicado_novo: "Criou comunicado", comunicado_editar: "Editou comunicado", comunicado_on: "Pôs comunicado no ar", comunicado_off: "Tirou comunicado do ar", comunicado_apagar: "Apagou comunicado", denuncia_resolvida: "Resolveu denúncia", denuncia_descartada: "Descartou denúncia", denuncia_em_analise: "Pôs denúncia em análise", assumiu: "Assumiu", passou: "Passou para outra pessoa", liberou: "Liberou", tarefa_nova: "Criou tarefa", tarefa_editar: "Editou tarefa", tarefa_a_fazer: "Voltou tarefa", tarefa_fazendo: "Começou tarefa", tarefa_feito: "Concluiu tarefa", tarefa_apagar: "Apagou tarefa", nota_interna: "Escreveu nota interna", entrou: "Entrou no painel", plano_ativar: "Ativou plano", plano_recusar: "Recusou pedido de plano", plano_encerrar: "Encerrou plano", negociacao_aprovar: "Aprovou condição especial", negociacao_recusar: "Não aprovou condição especial", negociacao_conversa: "Negociou plano", verificacao_aprovar: "Aprovou verificação", verificacao_recusar: "Recusou verificação" };
+const NOMES_ACAO = { aviso: "Enviou aviso", suspender: "Suspendeu", banir: "Baniu", remover_sancao: "Removeu sanção", verificar: "Deu selo", tirar_selo: "Tirou/recusou selo", remover_conteudo: "Removeu conteúdo", esconder_negocio: "Escondeu negócio", mostrar_negocio: "Mostrou negócio", esconder_publicacao: "Escondeu publicação", mostrar_publicacao: "Mostrou publicação", exportar: "Exportou dados", relatorio_pdf: "Gerou relatório", parceria: "Atualizou parceria", parceria_apagar: "Apagou parceria", suporte_resposta: "Respondeu chamado", suporte_conversa: "Abriu conversa de suporte", suporte_fechado: "Fechou chamado", suporte_aberto: "Reabriu chamado", reporte_novo: "Reportou pessoa do suporte", cobrar_reclamacao: "Cobrou resposta de reclamação", reporte_em_analise: "Pôs reporte em análise", reporte_resolvido: "Resolveu reporte", reporte_descartado: "Descartou reporte", comunicado_novo: "Criou comunicado", comunicado_editar: "Editou comunicado", comunicado_on: "Pôs comunicado no ar", comunicado_off: "Tirou comunicado do ar", comunicado_apagar: "Apagou comunicado", denuncia_resolvida: "Resolveu denúncia", denuncia_descartada: "Descartou denúncia", denuncia_em_analise: "Pôs denúncia em análise", assumiu: "Assumiu", passou: "Passou para outra pessoa", liberou: "Liberou", tarefa_nova: "Criou tarefa", tarefa_editar: "Editou tarefa", tarefa_a_fazer: "Voltou tarefa", tarefa_fazendo: "Começou tarefa", tarefa_feito: "Concluiu tarefa", tarefa_apagar: "Apagou tarefa", nota_interna: "Escreveu nota interna", entrou: "Entrou no painel", plano_ativar: "Ativou plano", plano_recusar: "Recusou pedido de plano", plano_encerrar: "Encerrou plano", negociacao_aprovar: "Aprovou negociação de plano", negociacao_recusar: "Não aprovou negociação de plano", negociacao_conversa: "Negociou plano", verificacao_aprovar: "Aprovou verificação", verificacao_recusar: "Recusou verificação" };
 // Alvo do registro em texto de gente: a pessoa (link para a ficha), ou o item que a equipe assumiu/passou
 // ("suporte:ID" vira "Chamado #ABC123 · assunto", "denuncias:..." vira "Denúncia · motivo · pessoa"), ou a lista exportada.
 const LISTAS_EXPORT = { usuarios: "Lista de usuários", negocios: "Lista de negócios", denuncias: "Lista de denúncias", reclamacoes: "Lista de reclamações" };

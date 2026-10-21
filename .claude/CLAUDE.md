@@ -456,6 +456,8 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   arquivo, url data:/Storage ≤750000, nome} via `prepararAnexo` (anexos-suporte.js). Regra: apoio exige declaração e tipo;
   parceria não leva comprovante; dono só decide (aprovado/recusado) APAGANDO o `comprovante` (deleteField); cancelar também
   apaga. Painel: `.ad-neg-prova` com o documento.
+  Segunda opção virou **"Parceria ou negociação"** (tipo continua `parceria`; aberta a qualquer pessoa: outro valor, prazo,
+  troca ou parceria; "A gente aceita negociar"), sem comprovante de renda. Registro: "Aprovou negociação de plano".
 - **As 5 etapas estão concluídas.** Próximos passos são as pendências abaixo (só ele pode fazer) e o que ficou
   para depois.
 

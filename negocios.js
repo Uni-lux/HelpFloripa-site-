@@ -15,8 +15,8 @@ import { lerResumos, estrelas, media, notaTexto } from "./avaliacoes.js?v=13";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade, semAcento } from "./endereco.js?v=1";
 import { lerStats, listaDias, somarPeriodo } from "./estat-negocio.js?v=1";
 import { geocodificar, geoOk } from "./perto.js?v=1";
-import { abrirPlanos, lerPlano, esquecerPlano, nivelPlano, pedidoAberto, lerNegociacao, testeDisponivel, seloPlano, nomePlano, diasRestantes, textoFalta, PRECO_MIN, DIAS_TESTE, reais } from "./planos.js?v=4";
-import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO, CATEGORIAS, GRUPOS_SERV, PALAVRAS_SERV, prazoPromo } from "./vitrine.js?v=46";
+import { abrirPlanos, lerPlano, esquecerPlano, nivelPlano, pedidoAberto, lerNegociacao, testeDisponivel, seloPlano, nomePlano, diasRestantes, textoFalta, PRECO_MIN, DIAS_TESTE, reais } from "./planos.js?v=5";
+import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO, CATEGORIAS, GRUPOS_SERV, PALAVRAS_SERV, prazoPromo } from "./vitrine.js?v=47";
 
 // Cada tipo com a cor da sua classe na página inicial (inicio.css: --c-servicos etc.) e uma chamada própria.
 const NEGOCIOS = {
@@ -294,7 +294,7 @@ function maiorDeIdade() {
 // Estatísticas do negócio (insights-negocio.js, carregado só quando abre).
 async function abrirEstatisticas(n) {
   try {
-    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=6");
+    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=7");
     abrirInsightsNegocio(n, { aoEditar: (neg) => abrirFormNegocio(meusNegocios.find((x) => x.id === neg.id) || neg) });
   } catch (e) { toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)); }
 }

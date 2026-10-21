@@ -5,7 +5,8 @@
 // - Pagamento por Pix (manual): a pessoa escolhe o plano e o período, o pedido fica em planos_pedidos/{id}
 //   e aparece o Pix (copia e cola + QR Code). O dono do site confere o pagamento no painel e ativa: planos/{uid}
 //   { plano: "plus" | "pro" | "premium", ate } — vale para todos os negócios da conta e vence sozinho na data.
-// - Quem não consegue pagar agora (baixa renda) ou quer fazer parceria pede uma condição especial:
+// - Quem não consegue pagar agora (baixa renda) pede uma condição especial; parceria ou negociação (valor, prazo,
+//   troca) é aberta a qualquer pessoa — a gente aceita negociar:
 //   planos_negociacoes/{uid} (uma por pessoa); só os donos do site leem e negociam.
 // - Preços, benefícios e a chave Pix ficam aqui em cima (mudar o ?v= de quem importa ao editar).
 // Sem dependência do rede.js.
@@ -235,7 +236,7 @@ export async function pedidoAberto(fb, uid) {
   } catch { return null; }
 }
 // Pedido de condição especial ou parceria da pessoa (planos_negociacoes/{uid}).
-export const TIPOS_NEG = { apoio: "Condição especial", parceria: "Parceria" };
+export const TIPOS_NEG = { apoio: "Condição especial", parceria: "Parceria ou negociação" };
 // Documentos que costumam provar baixa renda (a pessoa escolhe um; "depois" = manda pelo Suporte).
 export const DOCS_RENDA = [
   ["cadunico", "Folha resumo do CadÚnico", "Cadastro Único com o seu NIS (app Meu CadÚnico ou no CRAS)"],
@@ -424,10 +425,10 @@ export async function abrirPlanos(op) {
       const v = el("button", "pl-btn sec"); v.type = "button"; v.textContent = "Ver o meu pedido"; v.addEventListener("click", () => mostrarNegociacao(neg.tipo));
       aj.appendChild(v);
     } else {
-      aj.append(el("b", null, "Não dá para pagar agora?"), el("p", null, "Se você está passando por um momento difícil ou tem baixa renda, conte a sua situação: a gente avalia com carinho e pode negociar um valor ou uma condição especial. Tem uma proposta de parceria? Fale com a gente também."));
+      aj.append(el("b", null, "Não dá para pagar agora?"), el("p", null, "A gente aceita negociar. Se você tem baixa renda ou está num momento difícil, peça uma condição especial. Quer propor outro valor, outro prazo, uma troca ou uma parceria? Mande a sua proposta."));
       const bts = el("div", "bts");
       const a1 = el("button", "pl-btn verde"); a1.type = "button"; a1.textContent = "Pedir condição especial"; a1.addEventListener("click", () => mostrarNegociacao("apoio"));
-      const a2 = el("button", "pl-btn sec"); a2.type = "button"; a2.textContent = "Propor parceria"; a2.addEventListener("click", () => mostrarNegociacao("parceria"));
+      const a2 = el("button", "pl-btn sec"); a2.type = "button"; a2.textContent = "Parceria ou negociação"; a2.addEventListener("click", () => mostrarNegociacao("parceria"));
       bts.append(a1, a2); aj.appendChild(bts);
     }
     corpo.appendChild(aj);
@@ -470,7 +471,7 @@ export async function abrirPlanos(op) {
     const f = el("form", "pl-form"); f.noValidate = true;
     const tit = el("h3"), intro = el("p");
     const tipos = el("div", "pl-tipos");
-    Object.entries(TIPOS_NEG).forEach(([k, rot]) => { const b = el("button", "pl-per"); b.type = "button"; b.dataset.t = k; b.append(el("b", null, rot), el("small", null, k === "apoio" ? "Baixa renda ou momento difícil" : "Empresa, projeto ou troca")); b.addEventListener("click", () => { tipo = k; pintarTipo(); }); tipos.appendChild(b); });
+    Object.entries(TIPOS_NEG).forEach(([k, rot]) => { const b = el("button", "pl-per"); b.type = "button"; b.dataset.t = k; b.append(el("b", null, rot), el("small", null, k === "apoio" ? "Baixa renda ou momento difícil" : "Outro valor, prazo, troca ou parceria")); b.addEventListener("click", () => { tipo = k; pintarTipo(); }); tipos.appendChild(b); });
     const lp = el("label"); lp.appendChild(document.createTextNode("Plano que você quer"));
     const chipsP = el("div", "pl-chips");
     ORDEM_PLANOS.forEach((k) => { const b = el("button", "pl-chip", `${PLANOS[k].nome} · ${reais(PLANOS[k].preco)}`); b.type = "button"; b.dataset.p = k; b.addEventListener("click", () => { planoQ = k; chipsP.querySelectorAll(".pl-chip").forEach((z) => z.classList.toggle("on", z.dataset.p === planoQ)); }); chipsP.appendChild(b); });
@@ -523,11 +524,11 @@ export async function abrirPlanos(op) {
       tipos.querySelectorAll(".pl-per").forEach((b) => b.classList.toggle("on", b.dataset.t === tipo));
       const ap = tipo === "apoio";
       prova.hidden = !ap;
-      tit.textContent = ap ? "Pedir condição especial" : "Propor uma parceria";
-      intro.textContent = ap ? "Conte um pouco da sua situação e quanto consegue pagar hoje. Cada pedido é visto com cuidado e pode virar um desconto, um prazo maior ou um período sem custo." : "Conte quem você é e o que propõe (divulgação, troca de serviços, projeto social, empresa parceira...). A gente responde com uma proposta.";
+      tit.textContent = ap ? "Pedir condição especial" : "Parceria ou negociação";
+      intro.textContent = ap ? "Conte um pouco da sua situação e quanto consegue pagar hoje. Cada pedido é visto com cuidado e pode virar um desconto, um prazo maior ou um período sem custo." : "A gente aceita negociar: proponha um valor, um prazo de pagamento, uma troca (divulgação, serviços) ou uma parceria. A equipe responde com uma proposta.";
       lvTxt.replaceChildren(document.createTextNode(ap ? "Quanto você consegue pagar por mês? " : "Valor que você propõe por mês "), el("small", null, "(opcional)"));
       lmTxt.replaceChildren(document.createTextNode(ap ? "Sua situação" : "Sua proposta"), el("small", null, " (pelo menos 20 letras)"));
-      msg.placeholder = ap ? "Ex.: Sou autônoma, faço doces em casa e a renda caiu este mês. Consigo pagar um valor menor por enquanto..." : "Ex.: Tenho uma loja no centro e posso divulgar o Help Floripa no balcão em troca do plano Pro...";
+      msg.placeholder = ap ? "Ex.: Sou autônoma, faço doces em casa e a renda caiu este mês. Consigo pagar um valor menor por enquanto..." : "Ex.: Consigo pagar R$ 30 por mês no Pro se for o ano todo. Ou posso divulgar o Help Floripa na minha loja em troca do plano...";
     }
     chipsP.querySelector('[data-p="pro"]').classList.add("on");
     pintarTipo();
