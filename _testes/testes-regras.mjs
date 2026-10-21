@@ -693,6 +693,18 @@ await t("plano: pedido de plano inexistente é recusado", () => assertFails(setD
 await t("plano: dono ativa o Premium", () => assertSucceeds(setDoc(doc(ctx("adm"), "planos", "bia"), { plano: "premium", ate: Timestamp.fromMillis(Date.now() + 30 * 864e5), ativadoEm: serverTimestamp(), ativadoPor: "adm" })));
 await t("plano: ninguém apaga pedido", () => assertFails(deleteDoc(doc(ctx("adm"), "planos_pedidos", "pp4"))));
 
+// ---------- teste grátis de 30 dias no primeiro acesso ----------
+const teste = (uid, x = {}) => ({ plano: "pro", teste: true, meses: 1, ate: Timestamp.fromMillis(Date.now() + 30 * 864e5), ativadoEm: serverTimestamp(), ativadoPor: uid, ...x });
+await t("teste grátis: a pessoa começa 30 dias no primeiro acesso", () => assertSucceeds(setDoc(doc(ctx("ana"), "planos", "ana"), teste("ana"))));
+await t("teste grátis: não começa de novo (a conta já teve plano)", () => assertFails(setDoc(doc(ctx("ana"), "planos", "ana"), teste("ana", { plano: "premium" }))));
+await t("teste grátis: quem já pagou não ganha teste", () => assertFails(setDoc(doc(ctx("loja"), "planos", "loja"), teste("loja"))));
+await t("teste grátis: mais de 30 dias é recusado", () => assertFails(setDoc(doc(ctx("dono"), "planos", "dono"), teste("dono", { ate: Timestamp.fromMillis(Date.now() + 60 * 864e5) }))));
+await t("teste grátis: sem a marca de teste é recusado", () => assertFails(setDoc(doc(ctx("dono"), "planos", "dono"), teste("dono", { teste: false }))));
+await t("teste grátis: para outra conta é recusado", () => assertFails(setDoc(doc(ctx("bia"), "planos", "dono"), teste("bia"))));
+await t("teste grátis: sem e-mail confirmado é recusado", () => assertFails(setDoc(doc(ctx("dono", false), "planos", "dono"), teste("dono"))));
+await t("teste grátis: a pessoa não estica o próprio teste", () => assertFails(updateDoc(doc(ctx("ana"), "planos", "ana"), { ate: Timestamp.fromMillis(Date.now() + 300 * 864e5) })));
+await t("teste grátis: dono do site ativa o plano pago por cima do teste", () => assertSucceeds(setDoc(doc(ctx("adm"), "planos", "ana"), { plano: "pro", ate: Timestamp.fromMillis(Date.now() + 120 * 864e5), meses: 3, pedidoId: "pp9", ativadoEm: serverTimestamp(), ativadoPor: "adm" })));
+
 // ---------- condição especial / parceria pelos planos (só donos negociam) ----------
 const negPlano = (uid, x = {}) => ({ uid, nome: "Loja X", email: uid + "@t.com", tipo: "apoio", plano: "pro", valorProposto: 15, contato: "48 99999-0000", mensagem: "Sou autônoma e a renda caiu este mês, consigo pagar menos.", status: "novo", criadoEm: serverTimestamp(), ...x });
 await t("negociação: a pessoa pede condição especial", () => assertSucceeds(setDoc(doc(ctx("loja"), "planos_negociacoes", "loja"), negPlano("loja"))));

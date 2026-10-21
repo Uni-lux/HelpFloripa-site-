@@ -15,8 +15,8 @@ import { lerResumos, estrelas, media, notaTexto } from "./avaliacoes.js?v=13";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade, semAcento } from "./endereco.js?v=1";
 import { lerStats, listaDias, somarPeriodo } from "./estat-negocio.js?v=1";
 import { geocodificar, geoOk } from "./perto.js?v=1";
-import { abrirPlanos, lerPlano, esquecerPlano, nivelPlano, pedidoAberto, lerNegociacao, seloPlano, nomePlano, diasRestantes, textoFalta, PRECO_MIN, reais } from "./planos.js?v=2";
-import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO, CATEGORIAS, GRUPOS_SERV, PALAVRAS_SERV, prazoPromo } from "./vitrine.js?v=44";
+import { abrirPlanos, lerPlano, esquecerPlano, nivelPlano, pedidoAberto, lerNegociacao, testeDisponivel, seloPlano, nomePlano, diasRestantes, textoFalta, PRECO_MIN, DIAS_TESTE, reais } from "./planos.js?v=3";
+import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO, CATEGORIAS, GRUPOS_SERV, PALAVRAS_SERV, prazoPromo } from "./vitrine.js?v=45";
 
 // Cada tipo com a cor da sua classe na página inicial (inicio.css: --c-servicos etc.) e uma chamada própria.
 const NEGOCIOS = {
@@ -57,27 +57,27 @@ async function carregarMeusNegocios() {
   sincronizarExtras();
   pintarPlano();
 }
-// Cartão do plano (Grátis / plano pago com os dias que faltam / pedido esperando o Pix / pedido de condição
-// especial). Link direto: negocios.html?planos=1
+// Cartão do plano (teste grátis disponível / plano ou teste com os dias que faltam / pedido esperando o Pix /
+// pedido de condição especial / sem plano). Link direto: negocios.html?planos=1
 async function pintarPlano() {
   const box = $("planoBox");
   esquecerPlano(eu.uid);
-  const [plano, pedido, neg] = await Promise.all([lerPlano(fb, eu.uid), pedidoAberto(fb, eu.uid), lerNegociacao(fb, eu.uid)]);
+  const [plano, pedido, neg, teste] = await Promise.all([lerPlano(fb, eu.uid), pedidoAberto(fb, eu.uid), lerNegociacao(fb, eu.uid), testeDisponivel(fb, eu.uid)]);
   const pago = nivelPlano(plano) > 0, nome = nomePlano(plano?.plano), dias = pago ? diasRestantes(plano) : 0;
   const negAberta = neg && (neg.status === "novo" || neg.status === "em_conversa");
   const ic = el("span", "ng-plano-ic"); ic.appendChild(pago ? seloPlano(plano) : icone("estrela", "i"));
   const tx = el("span", "ng-plano-tx");
   const ate = pago ? new Date(plano.ate.toMillis()).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }) : "";
   tx.append(
-    el("strong", null, pago ? `Plano ${nome} ativo` : pedido ? `Pedido do ${nomePlano(pedido.plano)} aguardando o Pix` : negAberta ? "Pedido de condição especial enviado" : "Seu plano: Grátis"),
-    el("small", null, pago ? `Vence em ${ate}` : pedido ? `${reais(pedido.valor)} · toque para ver o código Pix` : negAberta ? "A equipe está avaliando · toque para ver" : `Planos a partir de ${reais(PRECO_MIN)}/mês: selo, destaque e estatísticas completas`)
+    el("strong", null, pago ? (plano.teste ? `Teste grátis do ${nome}` : `Plano ${nome} ativo`) : pedido ? `Pedido do ${nomePlano(pedido.plano)} aguardando o Pix` : negAberta ? "Pedido de condição especial enviado" : teste ? `Comece com ${DIAS_TESTE} dias grátis` : plano?.teste ? "Seu teste grátis terminou" : "Sem plano ativo"),
+    el("small", null, pago ? `${plano.teste ? "Termina" : "Vence"} em ${ate}` : pedido ? `${reais(pedido.valor)} · toque para ver o código Pix` : negAberta ? "A equipe está avaliando · toque para ver" : teste ? "Escolha o Plus, o Pro ou o Premium e use grátis no primeiro acesso" : `Assine a partir de ${reais(PRECO_MIN)}/mês para ter o selo, o destaque e as estatísticas completas`)
   );
   if (pago) {
     const f = el("span", "ng-plano-falta" + (dias <= 7 ? " perto" : ""), textoFalta(dias).replace(/^./, (c) => c.toUpperCase()));
     const barra = el("span", "ng-plano-barra"); const i = el("i"); i.style.width = Math.max(3, Math.min(100, (dias / Math.max(dias, (Number(plano.meses) || 1) * 30)) * 100)) + "%"; barra.appendChild(i);
     tx.append(f, barra);
   }
-  const cta = el("span", "ng-plano-cta"); cta.append(document.createTextNode(pago ? "Renovar" : pedido ? "Ver Pix" : negAberta ? "Ver" : "Ver planos"), icone("avancar", "i xs"));
+  const cta = el("span", "ng-plano-cta"); cta.append(document.createTextNode(pago ? (plano.teste ? "Assinar" : "Renovar") : pedido ? "Ver Pix" : negAberta ? "Ver" : teste ? "Testar grátis" : "Ver planos"), icone("avancar", "i xs"));
   box.className = "ng-plano" + (pago ? " pro" + (dias <= 7 ? " perto" : "") : pedido || negAberta ? " espera" : "");
   box.replaceChildren(ic, tx, cta);
   box.hidden = false;
@@ -294,7 +294,7 @@ function maiorDeIdade() {
 // Estatísticas do negócio (insights-negocio.js, carregado só quando abre).
 async function abrirEstatisticas(n) {
   try {
-    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=4");
+    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=5");
     abrirInsightsNegocio(n, { aoEditar: (neg) => abrirFormNegocio(meusNegocios.find((x) => x.id === neg.id) || neg) });
   } catch (e) { toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)); }
 }

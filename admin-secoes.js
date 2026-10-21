@@ -10,7 +10,7 @@ import { montarChat } from "./admin-chat.js?v=20";
 import { verConteudoDenuncia } from "./admin-denuncia.js?v=12";
 import { prepararAnexo, blocoAnexo, previaAnexo, aceitos } from "./anexos-suporte.js?v=1";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
-import { PLANOS, ORDEM_PLANOS, nivelPlano, nomePlano, diasRestantes, creditoDias, TIPOS_NEG as TIPOS_NEG_PL } from "./planos.js?v=2";
+import { PLANOS, ORDEM_PLANOS, nivelPlano, nomePlano, diasRestantes, creditoDias, TIPOS_NEG as TIPOS_NEG_PL } from "./planos.js?v=3";
 import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha,
@@ -856,7 +856,7 @@ export function planos(el) {
   const kp = h("div", "ad-kpis");
   kp.append(destaque({ rotulo: "Esperando o Pix", valor: pend.length, alerta: pend.some((p) => ms(p.criadoEm) < agora() - 2 * DIA) }),
     destaque({ rotulo: "Negociações abertas", valor: negAbertas.length, alerta: negAbertas.some((n) => n.status === "novo" && ms(n.criadoEm) < agora() - 3 * DIA) }),
-    destaque({ rotulo: "Planos ativos", valor: ativos.length, dica: ORDEM_PLANOS.map((k) => `${ativos.filter((p) => p.plano === k).length} ${PLANOS[k].nome}`).join(" · ") }),
+    destaque({ rotulo: "Planos ativos", valor: ativos.length, dica: ORDEM_PLANOS.map((k) => `${ativos.filter((p) => p.plano === k).length} ${PLANOS[k].nome}`).join(" · ") + ` · ${ativos.filter((p) => p.teste).length} em teste grátis` }),
     destaque({ rotulo: "Recebido em 30 dias", valor: Math.round(recebido), formato: () => reaisPl(recebido) }),
     destaque({ rotulo: "Vencem em 7 dias", valor: ativos.filter((p) => ms(p.ate) < agora() + 7 * DIA).length }));
   el.appendChild(kp);
@@ -894,9 +894,10 @@ export function planos(el) {
   function cartaoAtivo(p) {
     const c = h("article", "ad-item");
     const top = h("div", "cab"); top.append(pessoaCel(pessoa(p.uid), "")); top.append(selo(nomePlano(p.plano).toUpperCase(), "info"));
+    if (p.teste) top.append(selo("TESTE GRÁTIS", "atencao"));
     const falta = diasRestantes(p);
     top.append(h("span", "quando", falta <= 7 ? faltaTxt(p) : `até ${data(p.ate)}`));
-    c.append(top, h("div", "meta", `${faltaTxt(p).replace(/^./, (l) => l.toUpperCase())} · vence em ${data(p.ate)}${p.negociacaoId ? " · por negociação" : ""}`),
+    c.append(top, h("div", "meta", `${faltaTxt(p).replace(/^./, (l) => l.toUpperCase())} · vence em ${data(p.ate)}${p.negociacaoId ? " · por negociação" : ""}${p.teste ? " · teste grátis de 30 dias" : ""}`),
       h("div", "meta", `Ativado ${p.ativadoEm ? dataHora(p.ativadoEm) : ""}${p.ativadoPor ? " · " + nomeEquipe(p.ativadoPor) : ""}`));
     const ac = h("div", "ad-acoes");
     ac.append(btn("Encerrar o plano agora", "perigo", () => encerrar(p)), btn("Ver ficha", "", () => abrirFicha(p.uid)));
@@ -1002,7 +1003,7 @@ export function planos(el) {
     toast("Plano liberado"); C.irPara("planos");
   }
   async function recusarNeg(n) {
-    const v = await modal({ titulo: "Não aprovar o pedido?", texto: "A pessoa recebe um aviso com a sua resposta e pode pedir de novo depois.", campos: [{ nome: "resposta", rotulo: "Resposta", tipo: "textarea", max: 600, obrigatorio: true, valor: "Agora não conseguimos oferecer essa condição, mas você pode continuar no plano Grátis e pedir de novo mais para frente." }], botao: "Não aprovar", perigo: true });
+    const v = await modal({ titulo: "Não aprovar o pedido?", texto: "A pessoa recebe um aviso com a sua resposta e pode pedir de novo depois.", campos: [{ nome: "resposta", rotulo: "Resposta", tipo: "textarea", max: 600, obrigatorio: true, valor: "Agora não conseguimos oferecer essa condição, mas você pode assinar um dos planos quando puder e pedir de novo mais para frente." }], botao: "Não aprovar", perigo: true });
     if (!v) return;
     await mudarNeg(n, { status: "recusado", resposta: v.resposta.slice(0, 600) }, "negociacao_recusar", v.resposta);
     await enviarAviso(n.uid || n.id, { titulo: "Sobre o seu pedido de condição especial", texto: v.resposta, tipo: "info" }).catch(() => {});
@@ -1018,7 +1019,7 @@ export function planos(el) {
     const esteMes = soma(ent.filter((e) => mesDe(e.em) === mesAtual)), passado = soma(ent.filter((e) => mesDe(e.em) === mesPassado));
     const ano = soma(ent.filter((e) => ms(e.em) >= agora() - 365 * DIA)), total = soma(ent);
     // Receita recorrente: o que os planos ativos valem por mês (preço de tabela).
-    const recorrente = ativos.filter((p) => !p.negociacaoId).reduce((t, p) => t + (PLANOS[p.plano]?.preco || 0), 0);
+    const recorrente = ativos.filter((p) => !p.negociacaoId && !p.teste).reduce((t, p) => t + (PLANOS[p.plano]?.preco || 0), 0);
     const pagantes = new Set(ent.map((e) => e.uid)).size;
     const kp = h("div", "ad-kpis");
     const f = (v) => () => reaisPl(v);

@@ -113,10 +113,21 @@
       allow delete: if false;
     }
     // Plano ativo da conta: público (selo e destaque); só os donos do site mudam.
+    // Primeiro acesso: a própria pessoa começa 30 dias grátis no plano que escolher (só se a conta nunca teve plano).
     match /planos/{uid} {
       allow read: if logado();
+      allow create: if logado() && emailOk() && uid == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['plano', 'ate', 'ativadoEm', 'ativadoPor', 'teste', 'meses'])
+                    && request.resource.data.plano in ['plus', 'pro', 'premium']
+                    && request.resource.data.teste == true
+                    && request.resource.data.meses == 1
+                    && request.resource.data.ate is timestamp
+                    && request.resource.data.ate > request.time + duration.value(29, 'd')
+                    && request.resource.data.ate <= request.time + duration.value(31, 'd')
+                    && request.resource.data.ativadoPor == request.auth.uid
+                    && request.resource.data.ativadoEm == request.time;
       allow create, update: if donoDoSite()
-                    && request.resource.data.keys().hasOnly(['plano', 'ate', 'ativadoEm', 'ativadoPor', 'pedidoId', 'negociacaoId', 'meses'])
+                    && request.resource.data.keys().hasOnly(['plano', 'ate', 'ativadoEm', 'ativadoPor', 'pedidoId', 'negociacaoId', 'meses', 'teste'])
                     && request.resource.data.plano in ['plus', 'pro', 'premium', 'gratis']
                     && request.resource.data.ate is timestamp
                     && request.resource.data.ativadoPor == request.auth.uid
@@ -140,28 +151,4 @@
           && d.status == 'novo'
           && d.criadoEm == request.time;
       }
-      allow read: if (logado() && uid == request.auth.uid) || donoDoSite();
-      allow create: if logado() && emailOk() && pedidoNegOk();
-      // Pedir de novo: só depois que o anterior foi decidido ou cancelado (substitui o documento inteiro).
-      allow update: if logado() && emailOk() && uid == request.auth.uid
-                    && resource.data.status in ['aprovado', 'recusado', 'cancelado']
-                    && pedidoNegOk();
-      allow update: if logado() && uid == request.auth.uid
-                    && resource.data.status in ['novo', 'em_conversa']
-                    && mudou().hasOnly(['status'])
-                    && request.resource.data.status == 'cancelado';
-      allow update: if donoDoSite()
-                    && resource.data.status in ['novo', 'em_conversa']
-                    && mudou().hasOnly(['status', 'resposta', 'decididoPor', 'decididoEm', 'planoConcedido', 'meses', 'valorAcordado'])
-                    && request.resource.data.status in ['em_conversa', 'aprovado', 'recusado']
-                    && request.resource.data.decididoPor == request.auth.uid
-                    && request.resource.data.decididoEm == request.time
-                    && valorTextoAte(request.resource.data.get('resposta', ''), 600)
-                    && (request.resource.data.status != 'aprovado'
-                        || (request.resource.data.planoConcedido in ['plus', 'pro', 'premium']
-                            && request.resource.data.meses is int && request.resource.data.meses >= 1 && request.resource.data.meses <= 24
-                            && request.resource.data.valorAcordado is number && request.resource.data.valorAcordado >= 0 && request.resource.data.valorAcordado <= 5000));
-      allow delete: if false;
-    }
-
 // ===== FIM DA PARTE 8 DE 13 =====

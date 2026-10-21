@@ -1,5 +1,7 @@
 // =====================================================
-// Planos dos perfis profissionais: Grátis + 3 planos pagos (Plus, Pro e Premium).
+// Planos dos perfis profissionais: Plus, Pro e Premium (não existe plano Grátis).
+// - Primeiro acesso: 30 dias grátis no plano que a pessoa escolher (uma vez por conta; ela mesma grava
+//   planos/{uid} com teste: true, só se a conta nunca teve plano).
 // - Pagamento por Pix (manual): a pessoa escolhe o plano e o período, o pedido fica em planos_pedidos/{id}
 //   e aparece o Pix (copia e cola + QR Code). O dono do site confere o pagamento no painel e ativa: planos/{uid}
 //   { plano: "plus" | "pro" | "premium", ate } — vale para todos os negócios da conta e vence sozinho na data.
@@ -21,26 +23,27 @@ export const PLANOS = {
 export const ORDEM_PLANOS = ["plus", "pro", "premium"];
 export const PRECO_MIN = Math.min(...ORDEM_PLANOS.map((k) => PLANOS[k].preco));
 export const PERIODOS = [[1, "1 mês"], [3, "3 meses"], [6, "6 meses"], [12, "12 meses"]];
-// O que cada plano tem: [benefício, Grátis, Plus, Pro, Premium] (tudo o que está marcado o site já faz).
+export const DIAS_TESTE = 30; // teste grátis no primeiro acesso
+// O que cada plano tem: [benefício, Plus, Pro, Premium] (tudo o que está marcado o site já faz).
 export const BENEFICIOS = [
-  ["Perfil de negócio (Freelances, Delivery, Shopping e Imóveis)", true, true, true, true],
-  ["Pedidos, orçamentos e conversas pelo chat", true, true, true, true],
-  ["Avaliações, cupons e promoções", true, true, true, true],
-  ["Estatísticas dos últimos 7 e 30 dias", true, true, true, true],
-  ["Selo do plano no perfil e nos cartões", false, true, true, true],
-  ["Estatísticas de 90 dias e relatório em Excel", false, true, true, true],
-  ["Aparece antes nas vitrines e no Perto de você", false, false, true, true],
-  ["Atendimento prioritário no Suporte", false, false, true, true],
-  ["Topo das vitrines (antes de todos) e destaque máximo", false, false, false, true]
+  ["Perfil de negócio (Freelances, Delivery, Shopping e Imóveis)", true, true, true],
+  ["Pedidos, orçamentos e conversas pelo chat", true, true, true],
+  ["Avaliações, cupons e promoções", true, true, true],
+  ["Selo do plano no perfil e nos cartões", true, true, true],
+  ["Estatísticas de 90 dias e relatório em Excel", true, true, true],
+  ["Aparece antes nas vitrines e no Perto de você", false, true, true],
+  ["Atendimento prioritário no Suporte", false, true, true],
+  ["Topo das vitrines (antes de todos) e destaque máximo", false, false, true]
 ];
 
 const ms = (t) => t?.toMillis?.() ?? (t?.seconds ? t.seconds * 1000 : typeof t === "number" ? t : 0);
 const DIA = 864e5;
-// Nível do plano ativo (0 = Grátis ou vencido). Planos antigos "pro" continuam valendo.
+// Nível do plano ativo (0 = sem plano ou vencido). Planos antigos "pro" continuam valendo.
 export const nivelPlano = (p) => (PLANOS[p?.plano] && ms(p.ate) > Date.now() ? PLANOS[p.plano].nivel : 0);
 export const ehPago = (p) => nivelPlano(p) >= 1;   // 90 dias, Excel e selo
 export const ehPro = (p) => nivelPlano(p) >= 2;    // destaque nas vitrines e suporte prioritário
-export const nomePlano = (k) => PLANOS[k]?.nome || "Grátis";
+export const nomePlano = (k) => PLANOS[k]?.nome || "Sem plano";
+export const emTeste = (p) => !!p?.teste && nivelPlano(p) > 0;
 // Dias que faltam para o plano vencer (arredondado para cima; 0 quando já venceu).
 export const diasRestantes = (p) => Math.max(0, Math.ceil((ms(p?.ate) - Date.now()) / DIA));
 export const textoFalta = (d) => (d <= 0 ? "vence hoje" : d === 1 ? "falta 1 dia" : `faltam ${d} dias`);
@@ -48,6 +51,7 @@ export const reais = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "cur
 // Troca de plano com dias sobrando: o que sobrou vira dias do plano novo, na proporção do preço.
 export function creditoDias(atual, novoPlano) {
   if (!nivelPlano(atual) || atual.plano === novoPlano) return 0;
+  if (atual.teste) return diasRestantes(atual); // no teste grátis, os meses pagos começam quando o teste acaba
   return Math.floor((diasRestantes(atual) * PLANOS[atual.plano].preco) / PLANOS[novoPlano].preco);
 }
 
@@ -155,8 +159,9 @@ const CSS = `
 .pl-card.on { border-color: var(--c); background: color-mix(in srgb, var(--c) 13%, var(--panel-2, #162128)); box-shadow: 0 10px 24px -16px var(--c); }
 .pl-card .tag { position: absolute; top: -9px; right: 14px; padding: 2px 8px; border-radius: 999px; font-size: 10.5px; font-weight: 900; letter-spacing: .04em; text-transform: uppercase; color: #fff; background: var(--c); }
 .pl-card .atual { grid-column: 1 / -1; margin-top: 4px; font-size: 12px; font-weight: 800; color: #2fbf71; }
-.pl-tabela.c4 .pl-lin { grid-template-columns: 1fr repeat(4, 40px); gap: 4px; padding: 10px; font-size: 13px; }
-.pl-tabela.c4 .pl-lin.cab { font-size: 10.5px; letter-spacing: .02em; }
+.pl-tabela.c3 .pl-lin { grid-template-columns: 1fr repeat(3, 58px); gap: 4px; padding: 10px; font-size: 13px; }
+.pl-tabela.c3 .pl-lin.cab { font-size: 11px; letter-spacing: .02em; }
+.pl-btn.pl-teste { background: linear-gradient(135deg, #16a34a, #2fbf71); box-shadow: 0 12px 26px -12px #16a34a; }
 .pl-lin.cab span:last-child { color: inherit; }
 .pl-lin span.sel { background: color-mix(in srgb, var(--c, #7c3aed) 14%, transparent); border-radius: 8px; }
 .pl-lin.cab span.sel { color: var(--c, #7c3aed); }
@@ -215,6 +220,16 @@ export async function lerNegociacao(fb, uid) {
   try { const s = await fb.getDoc(fb.doc(fb.db, "planos_negociacoes", uid)); return s.exists() ? { id: s.id, ...s.data() } : null; } catch { return null; }
 }
 const negAberta = (n) => n && (n.status === "novo" || n.status === "em_conversa");
+// Teste grátis: só para quem nunca teve plano (planos/{uid} não existe). Erro de leitura = não oferece.
+export async function testeDisponivel(fb, uid) {
+  try { return !(await fb.getDoc(fb.doc(fb.db, "planos", uid))).exists(); } catch { return false; }
+}
+export async function comecarTeste(fb, uid, plano) {
+  const dados = { plano, teste: true, meses: 1, ate: fb.Timestamp.fromMillis(Date.now() + DIAS_TESTE * DIA), ativadoEm: fb.serverTimestamp(), ativadoPor: uid };
+  await fb.setDoc(fb.doc(fb.db, "planos", uid), dados);
+  esquecerPlano(uid);
+  return dados;
+}
 const dataLonga = (t) => new Date(ms(t)).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
 
 // Cartão "Seu plano X · faltam N dias" (barra do tempo que sobra; laranja na última semana).
@@ -226,7 +241,8 @@ export function cartaoStatus(plano) {
   const c = el("div", "pl-status" + (!nv ? " vencido" : d <= 7 ? " perto" : ""));
   const lin = el("div", "lin"), t = el("div");
   if (nv) {
-    t.append(el("b", null, `Seu plano ${nomePlano(k)} está ativo`), el("small", null, `Vence em ${dataLonga(plano.ate)}. ${d <= 7 ? "Renove agora para não perder o destaque." : "Renove antes para somar os dias."}`));
+    if (plano.teste) t.append(el("b", null, `Teste grátis do ${nomePlano(k)}`), el("small", null, `Termina em ${dataLonga(plano.ate)}. ${d <= 7 ? "Assine agora para não perder o selo e o destaque." : "Assine quando quiser: os meses pagos começam depois do teste."}`));
+    else t.append(el("b", null, `Seu plano ${nomePlano(k)} está ativo`), el("small", null, `Vence em ${dataLonga(plano.ate)}. ${d <= 7 ? "Renove agora para não perder o destaque." : "Renove antes para somar os dias."}`));
     const dd = el("div", "dias"); dd.append(el("strong", null, String(d)), el("span", null, d === 1 ? "dia" : "dias"));
     lin.append(seloPlano(k), t, dd); c.appendChild(lin);
     const total = Math.max(d, (Number(plano.meses) || 1) * 30);
@@ -234,7 +250,7 @@ export function cartaoStatus(plano) {
     b.setAttribute("role", "progressbar"); b.setAttribute("aria-label", `${textoFalta(d)} do plano`); b.setAttribute("aria-valuemin", "0"); b.setAttribute("aria-valuemax", String(total)); b.setAttribute("aria-valuenow", String(d));
     c.appendChild(b);
   } else {
-    t.append(el("b", null, `Seu plano ${nomePlano(k)} venceu`), el("small", null, `Venceu em ${dataLonga(plano.ate)}. Escolha um plano abaixo para voltar a ter o destaque.`));
+    t.append(el("b", null, plano.teste ? `Seu teste grátis do ${nomePlano(k)} terminou` : `Seu plano ${nomePlano(k)} venceu`), el("small", null, `${plano.teste ? "Terminou" : "Venceu"} em ${dataLonga(plano.ate)}. Escolha um plano abaixo para voltar a ter o selo e o destaque.`));
     lin.append(seloPlano(k), t); c.appendChild(lin);
   }
   return c;
@@ -257,7 +273,7 @@ export async function abrirPlanos(op) {
   fundo.addEventListener("click", (e) => { if (e.target === fundo) fechar(); });
   x.addEventListener("click", fechar);
   corpo.appendChild(el("p", "pl-nota", "Carregando..."));
-  let [plano, pedido, neg] = await Promise.all([lerPlano(fb, eu.uid), pedidoAberto(fb, eu.uid), lerNegociacao(fb, eu.uid)]);
+  let [plano, pedido, neg, teste] = await Promise.all([lerPlano(fb, eu.uid), pedidoAberto(fb, eu.uid), lerNegociacao(fb, eu.uid), testeDisponivel(fb, eu.uid)]);
   if (pedido) { mostrarPix(pedido); return; }
   if (op.negociar) { mostrarNegociacao(op.negociar); return; }
   pintarEscolha();
@@ -265,9 +281,11 @@ export async function abrirPlanos(op) {
   function pintarEscolha() {
     corpo.replaceChildren(); cx.scrollTop = 0;
     const hero = el("div", "pl-hero");
-    hero.append(el("small", null, "Planos Help Floripa"), el("h3", null, "Mais clientes para o seu negócio"),
+    hero.append(el("small", null, teste ? `${DIAS_TESTE} dias grátis no primeiro acesso` : "Planos Help Floripa"), el("h3", null, "Mais clientes para o seu negócio"),
       el("p", null, "Selo no perfil, destaque nas vitrines e no Perto de você, estatísticas completas e atendimento prioritário."));
-    const preco = el("div", "pl-preco"); preco.append(el("span", "de", "A partir de"), el("b", null, reais(PRECO_MIN)), el("span", null, "por mês · vale para todos os seus negócios"));
+    const preco = el("div", "pl-preco");
+    if (teste) preco.append(el("span", "de", "Escolha qualquer plano e use"), el("b", null, `${DIAS_TESTE} dias grátis`), el("span", null, `depois a partir de ${reais(PRECO_MIN)} por mês · vale para todos os seus negócios`));
+    else preco.append(el("span", "de", "A partir de"), el("b", null, reais(PRECO_MIN)), el("span", null, "por mês · vale para todos os seus negócios"));
     hero.appendChild(preco);
     corpo.appendChild(hero);
     const st = cartaoStatus(plano); if (st) corpo.appendChild(st);
@@ -282,22 +300,37 @@ export async function abrirPlanos(op) {
       const pv = el("div", "pv", reais(P.preco)); pv.appendChild(el("span", null, "por mês"));
       b.append(el("b", null, P.nome), pv, el("small", null, P.frase));
       if (k === "pro") b.appendChild(el("span", "tag", "Mais escolhido"));
-      if (k === atual) b.appendChild(el("span", "atual", `Seu plano atual · ${textoFalta(diasRestantes(plano))}`));
+      if (k === atual) b.appendChild(el("span", "atual", `${plano.teste ? "Em teste grátis" : "Seu plano atual"} · ${textoFalta(diasRestantes(plano))}`));
       b.addEventListener("click", () => { escolhido = k; pintarSel(); });
       cards.appendChild(b);
     });
     corpo.appendChild(cards);
 
     corpo.appendChild(el("div", "pl-sec", "O que cada plano tem"));
-    const tab = el("div", "pl-tabela c4");
-    const cab = el("div", "pl-lin cab"); cab.append(el("span", null, "Recursos"), el("span", null, "Grátis"), ...ORDEM_PLANOS.map((k) => { const c = el("span", null, PLANOS[k].nome); c.dataset.col = k; return c; })); tab.appendChild(cab);
+    const tab = el("div", "pl-tabela c3");
+    const cab = el("div", "pl-lin cab"); cab.append(el("span", null, "Recursos"), ...ORDEM_PLANOS.map((k) => { const c = el("span", null, PLANOS[k].nome); c.dataset.col = k; return c; })); tab.appendChild(cab);
     BENEFICIOS.forEach(([nome, ...tem]) => {
       const l = el("div", "pl-lin"); l.appendChild(el("span", null, nome));
-      tem.forEach((v, i) => { const c = el("span", v ? "pl-sim" : "pl-nao", v ? "✓" : "—"); if (i) c.dataset.col = ORDEM_PLANOS[i - 1]; l.appendChild(c); });
+      tem.forEach((v, i) => { const c = el("span", v ? "pl-sim" : "pl-nao", v ? "✓" : "—"); c.dataset.col = ORDEM_PLANOS[i]; l.appendChild(c); });
       tab.appendChild(l);
     });
     corpo.appendChild(tab);
 
+    // Primeiro acesso: começa o teste grátis no plano escolhido (sem pagar nada agora).
+    const btnTeste = el("button", "pl-btn pl-teste"); btnTeste.type = "button"; btnTeste.hidden = !teste;
+    btnTeste.addEventListener("click", async () => {
+      btnTeste.disabled = true;
+      try {
+        plano = await comecarTeste(fb, eu.uid, escolhido); teste = false;
+        plano = { ...plano, ativadoEm: { toMillis: () => Date.now() } };
+        toast(`Pronto! ${DIAS_TESTE} dias grátis no ${nomePlano(escolhido)}.`);
+        op.aoMudar?.(); pintarEscolha();
+      } catch (e) {
+        btnTeste.disabled = false;
+        toast(e?.code === "permission-denied" ? "O teste grátis começa a funcionar quando a atualização do sistema for publicada." : "Não foi possível começar o teste agora.");
+      }
+    });
+    if (teste) corpo.append(btnTeste, el("p", "pl-nota", `Sem pagar nada e sem compromisso. No fim dos ${DIAS_TESTE} dias você escolhe se quer assinar. O teste grátis vale uma vez por conta.`));
     const secPer = el("div", "pl-sec"); corpo.appendChild(secPer);
     const per = el("div", "pl-periodos");
     PERIODOS.forEach(([m, rot]) => {
@@ -315,11 +348,13 @@ export async function abrirPlanos(op) {
       tab.style.setProperty("--c", P.cor);
       tab.querySelectorAll("[data-col]").forEach((c) => c.classList.toggle("sel", c.dataset.col === escolhido));
       per.querySelectorAll(".pl-per").forEach((b) => { b.classList.toggle("on", Number(b.dataset.m) === meses); b.querySelector("small").textContent = reais(P.preco * Number(b.dataset.m)); });
-      secPer.textContent = `${escolhido === atual ? "Renovar o" : "Assinar o"} ${P.nome} por`;
+      secPer.textContent = `${teste ? "Ou já assinar o" : escolhido === atual ? (plano?.teste ? "Assinar o" : "Renovar o") : "Assinar o"} ${P.nome} por`;
+      btnTeste.textContent = `Começar ${DIAS_TESTE} dias grátis no ${P.nome}`;
+      btn.classList.toggle("sec", teste);
       btn.textContent = `Pagar ${reais(P.preco * meses)} com Pix`;
       const cr = creditoDias(plano, escolhido);
       credito.hidden = !atual || escolhido === atual;
-      credito.textContent = cr > 0 ? `Trocar de plano: os ${diasRestantes(plano)} dias que sobram do ${nomePlano(atual)} viram ${cr} ${cr === 1 ? "dia" : "dias"} a mais no ${P.nome}, somados aos meses que você pagar.` : "";
+      credito.textContent = cr > 0 && plano?.teste ? `Você ainda tem ${cr} ${cr === 1 ? "dia" : "dias"} de teste grátis: o ${P.nome} já começa agora e os meses que você pagar contam depois disso.` : cr > 0 ? `Trocar de plano: os ${diasRestantes(plano)} dias que sobram do ${nomePlano(atual)} viram ${cr} ${cr === 1 ? "dia" : "dias"} a mais no ${P.nome}, somados aos meses que você pagar.` : "";
       if (!cr) credito.hidden = true;
     }
     pintarSel();
@@ -337,7 +372,7 @@ export async function abrirPlanos(op) {
         toast(e?.code === "permission-denied" ? "A assinatura começa a funcionar quando a atualização do sistema for publicada." : "Não foi possível criar o pedido agora.");
       }
     });
-    corpo.append(btn, el("p", "pl-nota", "Sem fidelidade: o plano vale pelo período pago e não renova sozinho. Depois você continua no Grátis."));
+    corpo.append(btn, el("p", "pl-nota", "Sem fidelidade: o plano vale pelo período pago e não renova sozinho. Quando acaba, o selo e o destaque saem até você renovar."));
 
     // Quem não consegue pagar agora (baixa renda) ou quer fazer parceria: pedido para negociar.
     const aj = el("div", "pl-ajuda");
