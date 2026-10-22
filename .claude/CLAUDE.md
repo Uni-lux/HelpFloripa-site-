@@ -20,6 +20,38 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   os testes de regras usam o projeto `demo-regras`.
 - Excel precisa abrir no **Microsoft Excel**: validar com o Open XML SDK (`_testes/checar-todos.py`).
 
+## História e visão do projeto (documento do dono, 22/10/2026 — base de contexto)
+- Help Floripa é uma **iniciativa empresarial** (não "só um site"): plataforma que conecta quem precisa (clientes) e quem
+  oferece (autônomos e pequenos negócios), com identidade própria, categorias, cadastros, perfis, comunicação e monetização.
+  Há um amigo como possível cofundador (divisão de responsabilidades/participação ainda em definição). Começar como MEI e
+  evoluir para LTDA. CNPJ do rodapé 61.935.934/0001-00 é informação dada por ele (situação cadastral a verificar).
+- Frase da marca: **"Tudo que você precisa em um só lugar."** Frentes: serviços, lanches/delivery, shopping/produtos,
+  aluguéis/imóveis e cadastro de clientes/profissionais/negócios (hoje o site também tem Saúde e Comunidade).
+- Modelo: marketplace/intermediadora; prestadores são **autônomos, sem vínculo empregatício**. Receitas *consideradas*
+  (não tratar como já implantadas): **comissão de 10–15%** sobre o valor acordado, **planos Premium**, publicidade/patrocínio.
+  Comissão exige regras claras (quando é devida, confirmação, pagamento, cancelamento, reembolso).
+- **Identidade visual — NÃO mudar sem autorização dele:** escura e tecnológica; fundo #000000, painéis #111111, ciano
+  #00ADEE, ciano de hover #0087C2, textos brancos/neutros. Não trocar cores, conceito ou reconstruir a interface em outro estilo.
+  Funcionar bem no computador e no celular (sem cortes, sobreposição, texto ilegível ou botão difícil de tocar).
+- Princípios: não inventar preço (valor analisado/acordado; cliente pode informar orçamento máximo); números como avaliações e
+  pedidos só com dados reais; tela de pagamento ≠ integração financeira (confirmar backend/provedor antes de dizer que funciona);
+  segurança nunca "concluída" só por pôr um cabeçalho ou regra; confirmar no código antes de afirmar que algo funciona.
+- Navegação desejada: marca centralizada, menu à esquerda, notificação e perfil acessíveis (também no computador); menu
+  lateral com o nome "Help Floripa" sem subtítulo; opções Cliente, Profissionais, Ajuda, Seja sócio-parceiro. **Não
+  reintroduzir o "painel de parcerias" que ele descartou** nem outras funções removidas. Login só por e-mail e senha (sem
+  Google/Facebook na interface). Serviços: categorias Limpeza e Cuidados, Obras e Reformas, Saúde e Beleza, Transporte e
+  Logística, Pet, Tosa, Assistência, Tecnologias e **"Outros" sempre por último**. Início: título "Bem-vindo à Help Floripa",
+  Ponte Hercílio Luz à noite, carrossel com 3 imagens, cartões das categorias.
+- Área de atuação no documento: **"somente Florianópolis por enquanto"** (São José saiu).
+- **Diferenças entre o documento e o site atual (PERGUNTAR antes de mexer; ele pediu nível nacional nesta mesma conversa):**
+  1) atuação só Florianópolis × site inteiro preparado para todo o Brasil (PRs #76–#85); 2) comissão 10–15% × site diz
+  "sem comissão" (Termos, Ajuda, Sobre, Profissionais, início, cadastro, login, delivery); 3) cores #000/#111/#0087C2 ×
+  tema escuro atual #070b0e/#0f161b/#0093cc (+ tema claro e Automático); 4) título "Bem-vindo à Help Floripa" × "Tudo o que
+  você precisa perto de você, num só lugar."; 5) categorias de serviço do documento × as 7 grupos/~27 áreas atuais
+  (`GRUPOS_SERV`, "Outra" já fica por último); 6) menu com subtítulo e seções novas × "sem subtítulo" e 4 opções; 7) "painel de
+  parcerias" descartado: confirmar se é o painel do admin (Parcerias) ou a página Sócios e parcerias, que hoje existe.
+  Documento chegou cortado na seção 16 (pode haver mais partes).
+
 ## Situação (13/10/2026)
 - **Regras do Firestore publicadas por ele em 13/10/2026** (as do `firestore.rules` do main, Etapas 1 a 4).
   Daqui em diante, mudança de regra volta a precisar de publicação manual (combinar com ele).
