@@ -2,7 +2,7 @@
 // (não apaga os dados do demo-hf que o navegador usa). Uso: node testes-regras.mjs [arquivo.rules]
 import { initializeTestEnvironment, assertSucceeds, assertFails } from "@firebase/rules-unit-testing";
 import { readFileSync } from "node:fs";
-import { doc, setDoc, updateDoc, getDoc, getDocs, collection, query, where, writeBatch, Timestamp, serverTimestamp, increment, deleteField, deleteDoc, orderBy, limit, addDoc } from "firebase/firestore";
+import { doc, setDoc, updateDoc, getDoc, getDocs, collection, query, where, writeBatch, Timestamp, serverTimestamp, increment, deleteField, deleteDoc, orderBy, limit, addDoc, documentId } from "firebase/firestore";
 
 const arquivo = process.argv[2] || new URL("../firestore.rules", import.meta.url).pathname;
 const env = await initializeTestEnvironment({ projectId: "demo-regras", firestore: { rules: readFileSync(arquivo, "utf8"), host: "127.0.0.1", port: 8085 } });
@@ -497,8 +497,30 @@ await t("enquete: publicação com enquete (3 opções)", () => assertSucceeds(p
 await t("enquete: com 1 opção é recusada", () => assertFails(publicar2("edu", { enquete: { pergunta: "?", opcoes: ["Só uma"] } })));
 await t("enquete: com 5 opções é recusada", () => assertFails(publicar2("edu", { enquete: { pergunta: "?", opcoes: ["a", "b", "c", "d", "e"] } })));
 await t("enquete: opção com mais de 40 letras é recusada", () => assertFails(publicar2("edu", { enquete: { pergunta: "?", opcoes: ["a", "x".repeat(41)] } })));
-const voto = (quem, opcao, item = "pEnq", tipo = "d") => setDoc(doc(ctx(quem), "enquete_votos", `${tipo}_${item}_${quem}`), { alvo: `${tipo}_${item}`, tipo, itemId: item, uid: quem, opcao, criadoEm: serverTimestamp() });
+// Voto + o pedaço da contagem (enquete_contas/{alvo}_{fatia}) subindo na mesma gravação.
+const votoLote = (col, quem, opcao, item, tipo, { fatia = 3, pedaco = fatia, mexer = 1, chave = opcao, fimEm = null, contar = true } = {}) => {
+  const db = ctx(quem), b = writeBatch(db), alvo = `${tipo}_${item}`;
+  b.set(doc(db, col, `${alvo}_${quem}`), { alvo, tipo, itemId: item, uid: quem, opcao, fatia, ...(fimEm ? { fimEm } : {}), criadoEm: serverTimestamp() });
+  if (contar) b.set(doc(db, "enquete_contas", `${alvo}_${pedaco}`), { ["n" + chave]: increment(mexer) }, { merge: true });
+  return b.commit();
+};
+const voto = (quem, opcao, item = "pEnq", tipo = "d", op = {}) => votoLote("enquete_votos", quem, opcao, item, tipo, op);
 await t("voto: vota na opção 2", () => assertSucceeds(voto("bia", 2)));
+await t("contagem em pedaços: votar sem subir o pedaço é recusado", () => assertFails(voto("ana", 0, "pEnq", "d", { contar: false })));
+await t("contagem em pedaços: subir outro pedaço (não o da fatia do voto) é recusado", () => assertFails(voto("ana", 0, "pEnq", "d", { fatia: 2, pedaco: 5 })));
+await t("contagem em pedaços: fatia 10 (fora de 0–9) é recusada", () => assertFails(voto("ana", 0, "pEnq", "d", { fatia: 10 })));
+await t("contagem em pedaços: subir 2 é recusado", () => assertFails(voto("ana", 0, "pEnq", "d", { mexer: 2 })));
+await t("contagem em pedaços: subir outra opção é recusado", () => assertFails(voto("ana", 0, "pEnq", "d", { chave: 1 })));
+await t("contagem em pedaços: subir sem votar é recusado", () => assertFails(setDoc(doc(ctx("ana"), "enquete_contas", "d_pEnq_3"), { n0: increment(1) }, { merge: true })));
+await t("contagem em pedaços: contagem num documento só (sem fatia) é recusada", () => assertFails(setDoc(doc(ctx("ana"), "enquete_contas", "d_pEnq"), { n0: increment(1) }, { merge: true })));
+await t("contagem em pedaços: voto sem fatia é recusado", () => assertFails(setDoc(doc(ctx("ana"), "enquete_votos", "d_pEnq_ana"), { alvo: "d_pEnq", tipo: "d", itemId: "pEnq", uid: "ana", opcao: 0, criadoEm: serverTimestamp() })));
+await t("contagem em pedaços: votos em fatias diferentes somam certo", async () => {
+  await assertSucceeds(voto("edu", 2, "pEnq", "d", { fatia: 7 }));
+  let soma = 0;
+  await semRegras(async (db) => { for (let f = 0; f < 10; f++) { const x = await getDoc(doc(db, "enquete_contas", `d_pEnq_${f}`)); soma += x.exists() ? x.data().n2 || 0 : 0; } });
+  if (soma !== 2) throw new Error("n2 somado = " + soma);
+});
+await t("contagem em pedaços: todos leem os pedaços (consulta por id)", () => assertSucceeds(getDocs(query(collection(ctx("ana"), "enquete_contas"), where(documentId(), "in", ["d_pEnq_3", "d_pEnq_7", "d_pEnq_0"])))));
 await t("voto: opção que não existe é recusada", () => assertFails(voto("ana", 3)));
 await t("voto: em nome de outra pessoa é recusado", () => assertFails(setDoc(doc(ctx("ana"), "enquete_votos", "d_pEnq_bia"), { alvo: "d_pEnq", tipo: "d", itemId: "pEnq", uid: "bia", opcao: 0, criadoEm: serverTimestamp() })));
 await t("voto único: não troca o voto", () => assertFails(updateDoc(doc(ctx("bia"), "enquete_votos", "d_pEnq_bia"), { opcao: 0 })));
@@ -523,7 +545,7 @@ await semRegras(async (db) => {
   await setDoc(doc(db, "diario", "pAberta"), { autorId: "dono", nome: "Dono", texto: "?", enquete: { pergunta: "Qual?", opcoes: ["A", "B"], fimEm: daqui(600) }, criadoEm: antigo });
   await setDoc(doc(db, "diario", "pFechada"), { autorId: "dono", nome: "Dono", texto: "?", enquete: { pergunta: "Qual?", opcoes: ["A", "B"], fimEm: daqui(-10) }, criadoEm: antigo });
 });
-const votoF = (quem, item, fimEm) => setDoc(doc(ctx(quem), "enquete_votos", `d_${item}_${quem}`), { alvo: `d_${item}`, tipo: "d", itemId: item, uid: quem, opcao: 0, ...(fimEm ? { fimEm } : {}), criadoEm: serverTimestamp() });
+const votoF = (quem, item, fimEm) => voto(quem, 0, item, "d", { fimEm });
 const fimAberta = (await (async () => { let v; await semRegras(async (db) => { v = (await getDoc(doc(db, "diario", "pAberta"))).data().enquete.fimEm; }); return v; })());
 await t("voto: com o fim igual ao da enquete", () => assertSucceeds(votoF("bia", "pAberta", fimAberta)));
 await t("voto: com fim diferente do da enquete é recusado", () => assertFails(votoF("edu", "pAberta", daqui(5000))));
@@ -538,12 +560,13 @@ await semRegras(async (db) => {
   await setDoc(doc(db, "diario", "pCaixa"), { autorId: "dono", nome: "Dono", texto: "Perguntem!", caixa: { pergunta: "Me pergunte algo", anonima: false }, criadoEm: antigo });
   await setDoc(doc(db, "diario", "pCaixaA"), { autorId: "dono", nome: "Dono", texto: "Perguntem!", caixa: { pergunta: "Anônimo", anonima: true }, criadoEm: antigo });
 });
-const votoAnon = (quem, opcao, mexer = 1, item = "pAnon") => { const db = ctx(quem); const b = writeBatch(db); b.set(doc(db, "enquete_anon", `d_${item}_${quem}`), { alvo: `d_${item}`, tipo: "d", itemId: item, uid: quem, opcao, criadoEm: serverTimestamp() }); b.set(doc(db, "enquete_contas", `d_${item}`), { ["n" + opcao]: increment(mexer) }, { merge: true }); return b.commit(); };
+const votoAnon = (quem, opcao, mexer = 1, item = "pAnon", op = {}) => votoLote("enquete_anon", quem, opcao, item, "d", { mexer, ...op });
 await t("anônima: vota com a contagem subindo 1", () => assertSucceeds(votoAnon("bia", 1)));
 await t("anônima: segundo voto também conta (outra pessoa)", () => assertSucceeds(votoAnon("edu", 1)));
 await t("anônima: subir a contagem em 2 é recusado", () => assertFails(votoAnon("ana", 0, 2)));
-await t("anônima: votar sem mexer na contagem é recusado", () => assertFails(setDoc(doc(ctx("ana"), "enquete_anon", "d_pAnon_ana"), { alvo: "d_pAnon", tipo: "d", itemId: "pAnon", uid: "ana", opcao: 0, criadoEm: serverTimestamp() })));
-await t("anônima: mexer na contagem sem votar é recusado", () => assertFails(setDoc(doc(ctx("ana"), "enquete_contas", "d_pAnon"), { n0: increment(1) }, { merge: true })));
+await t("anônima: votar sem mexer na contagem é recusado", () => assertFails(votoAnon("ana", 0, 1, "pAnon", { contar: false })));
+await t("anônima: subir o pedaço de outra fatia é recusado", () => assertFails(votoAnon("ana", 0, 1, "pAnon", { fatia: 1, pedaco: 2 })));
+await t("anônima: mexer na contagem sem votar é recusado", () => assertFails(setDoc(doc(ctx("ana"), "enquete_contas", "d_pAnon_3"), { n0: increment(1) }, { merge: true })));
 await t("anônima: não vota duas vezes", () => assertFails(votoAnon("bia", 0)));
 await t("anônima: voto público (enquete_votos) é recusado", () => assertFails(voto("ana", 0, "pAnon")));
 await t("anônima: o autor não lista quem votou", () => assertFails(getDocs(query(collection(ctx("dono"), "enquete_anon"), where("alvo", "==", "d_pAnon")))));
@@ -551,7 +574,7 @@ await t("anônima: o autor não lê o voto de alguém", () => assertFails(getDoc
 await t("anônima: a pessoa lista os próprios votos", () => assertSucceeds(getDocs(query(collection(ctx("bia"), "enquete_anon"), where("uid", "==", "bia")))));
 await t("anônima: listar votos de outra pessoa é recusado", () => assertFails(getDocs(query(collection(ctx("ana"), "enquete_anon"), where("uid", "==", "bia")))));
 await t("anônima: a pessoa lê o próprio voto (e o que não existe)", async () => { await assertSucceeds(getDoc(doc(ctx("bia"), "enquete_anon", "d_pAnon_bia"))); await assertSucceeds(getDoc(doc(ctx("ana"), "enquete_anon", "d_pAnon_ana"))); });
-await t("anônima: todos leem a contagem", async () => { const s = await assertSucceeds(getDoc(doc(ctx("ana"), "enquete_contas", "d_pAnon"))); if (s.data().n1 !== 2) throw new Error("n1=" + s.data().n1); });
+await t("anônima: todos leem a contagem", async () => { const s = await assertSucceeds(getDoc(doc(ctx("ana"), "enquete_contas", "d_pAnon_3"))); if (s.data().n1 !== 2) throw new Error("n1=" + s.data().n1); });
 await t("caixa: publicação com caixa de perguntas", () => assertSucceeds(publicar2("bia", { caixa: { pergunta: "Me pergunte", anonima: true } })));
 await t("caixa: sem dizer se é anônima é recusada", () => assertFails(publicar2("bia", { caixa: { pergunta: "Me pergunte" } })));
 await t("caixa: no flash", () => assertSucceeds(setDoc(doc(ctx("ana"), "stories", "sCaixa"), { autorId: "ana", nome: "Ana", tipo: "imagem", midia: fotoS, caixa: { pergunta: "Pergunte", anonima: false, x: 0.5, y: 0.5 }, criadoEm: serverTimestamp() })));

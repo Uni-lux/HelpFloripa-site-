@@ -209,4 +209,4 @@
             && getAfter(r).data.get('soma', 0) != (exists(r) ? get(r).data.get('soma', 0) : 0);
       }
 
-// ===== FIM DA PARTE 11 DE 14 =====
+// ===== FIM DA PARTE 11 DE 15 =====

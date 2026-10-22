@@ -7,7 +7,7 @@
 > **alcance e salvos** (estatísticas), o **aviso de reação** no comentário, **enquetes** (publicação e Flash, votos em
 > `enquete_votos`, voto único: não troca nem tira), **menções e configurações do Flash** (respostas, público, amigos próximos, ocultar de),
 > **quem pode me marcar** (`pref_publicas`), **duração da enquete** (`fimEm`: votar só até o fim), **enquete anônima**
-> (`enquete_anon` + `enquete_contas`), **caixa de perguntas** (`caixa_respostas`, anônima com `caixa_autoria`), **Flash com link para negócio**
+> (`enquete_anon`), **contagem das enquetes em 10 pedaços** (`enquete_contas/{alvo}_{fatia}`, sobe junto com cada voto), **caixa de perguntas** (`caixa_respostas`, anônima com `caixa_autoria`), **Flash com link para negócio**
 > (`stories.link`), **repostar o flash em que você foi mencionado** (`stories.repostDe`) e **flash nos perfis de negócio**
 > (`stories.negocios` e `stories.perfil`), **reportar o atendimento do suporte** (`reportes`: só a moderação e os
 > donos leem) e a **nota do atendimento** (`suporte_notas`) e a opção **"Só a rosinha"** do duo no perfil (`duoCapa: rosa`) e a **verificação do perfil** (`verificacoes`: pedido com a foto
@@ -37,28 +37,28 @@
 > **Chat da equipe por canais (22/10):** canais por setor (`equipe_canais`: Avisos, Segurança, Moderação, Pagamentos,
 > Negócios, Conta e Comercial; toda a equipe lê, em Avisos só os donos escrevem; anexos e apagar/editar como no Geral) e a
 > **situação de cada um** no painel (`equipe_presenca.status`: disponível, em pausa ou fora do turno).
-> Para publicar, o processo é o mesmo: apagar tudo no console e colar as 14 partes.
+> Para publicar, o processo é o mesmo: apagar tudo no console e colar as 15 partes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
-`firestore.rules` divididas em **14 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
+`firestore.rules` divididas em **15 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
 - Arquivo de origem: `firestore.rules` (170.578 bytes, 2.882 linhas, sha256 começa com `cbe73f5129ae5fea`).
-- Cada parte termina com a linha `// ===== FIM DA PARTE X DE 14 =====`. É um comentário: **pode colar junto**,
+- Cada parte termina com a linha `// ===== FIM DA PARTE X DE 15 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
-- Conferido: as 14 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **550 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
+- Conferido: as 15 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
+- Testes de regras no arquivo remontado: **561 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.
 2. Clique dentro do editor, selecione tudo (Ctrl+A, ou "Selecionar tudo" no celular) e **apague**.
-3. Abra `parte-1-de-14.txt`, copie **tudo** e cole no editor.
-4. Vá até o fim do que colou (depois da linha `// ===== FIM DA PARTE 1 DE 14 =====`), abra a parte 2,
-   copie tudo e cole logo abaixo. Repita até a parte 14, **em ordem**.
+3. Abra `parte-1-de-15.txt`, copie **tudo** e cole no editor.
+4. Vá até o fim do que colou (depois da linha `// ===== FIM DA PARTE 1 DE 15 =====`), abra a parte 2,
+   copie tudo e cole logo abaixo. Repita até a parte 15, **em ordem**.
 5. Confira: a primeira linha do editor é `rules_version = '2';` e a última é
-   `// ===== FIM DA PARTE 14 DE 14 =====`, logo depois de uma linha só com `}`.
+   `// ===== FIM DA PARTE 15 DE 15 =====`, logo depois de uma linha só com `}`.
 6. Clique em **Publicar**. Se o console mostrar um erro (linha vermelha), **não publique**: provavelmente
-   uma parte ficou faltando ou repetida. Confira se as 14 linhas `FIM DA PARTE` aparecem, de 1 a 14, uma vez cada.
+   uma parte ficou faltando ou repetida. Confira se as 15 linhas `FIM DA PARTE` aparecem, de 1 a 15, uma vez cada.
 
 > As regras do ar continuam valendo até o clique em Publicar. A troca leva até 1 minuto para valer.
 

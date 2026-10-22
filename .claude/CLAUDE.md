@@ -681,6 +681,17 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   Contadores num doc só NÃO foram divididos: o SDK já repete gravação recusada por disputa; dividir exige reescrever
   `contaCerta`/`resumoJunto` nas regras (perto do limite de 1.000) — só se uma publicação/negócio passar de ~1 gravação/s.
   `t-busca-regiao` já falhava no main (2 itens), igual antes e depois.
+- **Enquetes para muita gente (PR depois do #87, MUDA REGRAS — não publicadas; 15 partes, 561 testes):** contagem em 10
+  pedaços `enquete_contas/{alvo}_{fatia}` {n0..n3} para enquete pública E anônima: o voto leva `fatia` (0–9, `sortearFatia`)
+  e o pedaço sobe +1 na MESMA gravação (writeBatch; regra `fatiaSobe(d)` nos dois votos; `enquete_contas/{cid}` só aceita id
+  `^[df]_id_[0-9]$` com o voto da pessoa sendo criado agora, na fatia dele). Documento único antigo (`enquete_contas/{alvo}`)
+  e voto sem fatia são recusados (nada disso estava no ar). `enquetes.js`: `FATIAS`, `lerContasEnquete` (consulta
+  `documentId in` os 10 ids, soma; guardado 90 s em `hf-enq-contas`; o autor sempre lê na hora), `contarVotos` usa os pedaços.
+  `blocoEnquete`: só lê a contagem para o autor, depois de votar ou quando encerra (`precisaContas`, `temContas`, `tentou`);
+  antes de votar o rodapé não mostra número. "Ver votos": números pela contagem + "Mostrando as N pessoas mais recentes"
+  (lista até 300). `limpar-contas.mjs` desconta o pedaço do voto (público e anônimo). Teste `t-enquete-escala.mjs`
+  (FS_PORTA=8086, medidor conta `contagensPor` coleção). `t-caixa` (para em `.notif`) e `t-enquete2` (notificação do Bruno)
+  falham igual no código de antes.
 - **As 5 etapas estão concluídas.** Próximos passos são as pendências abaixo (só ele pode fazer) e o que ficou
   para depois.
 

@@ -2390,8 +2390,16 @@ service cloud.firestore {
     // ===================================================
     // VOTOS DAS ENQUETES: enquete_votos/{alvo}_{uid} — alvo = tipo + "_" + itemId (tipo d = publicação, f = flash).
     // fimEm (opcional) = o mesmo fim da enquete; votar só até o fim.
-    // Um voto por pessoa (pode trocar ou tirar). A contagem é feita no servidor (count por opção).
+    // Um voto por pessoa, sem trocar. A contagem fica dividida em 10 pedaços (enquete_contas/{alvo}_{fatia},
+    // ver abaixo): o voto leva a fatia (0–9) e o pedaço dela sobe +1 na MESMA gravação.
     // ===================================================
+    // A contagem da opção do voto sobe exatamente 1 no pedaço escolhido (votos públicos e anônimos).
+    function fatiaSobe(d) {
+      let pedaco = /databases/$(database)/documents/enquete_contas/$(d.alvo + '_' + string(d.fatia));
+      let k = 'n' + string(d.opcao);
+      return d.fatia is int && d.fatia >= 0 && d.fatia < 10
+          && getAfter(pedaco).data.get(k, 0) == (exists(pedaco) ? get(pedaco).data.get(k, 0) : 0) + 1;
+    }
     match /enquete_votos/{id} {
       allow read: if logado();
       function votoOk() {
@@ -2400,7 +2408,7 @@ service cloud.firestore {
           ? /databases/$(database)/documents/diario/$(d.itemId)
           : /databases/$(database)/documents/stories/$(d.itemId);
         let e = get(doc).data.enquete;
-        return d.keys().hasOnly(['alvo', 'tipo', 'itemId', 'uid', 'opcao', 'fimEm', 'criadoEm'])
+        return d.keys().hasOnly(['alvo', 'tipo', 'itemId', 'uid', 'opcao', 'fatia', 'fimEm', 'criadoEm'])
             && d.uid == request.auth.uid
             && d.tipo in ['d', 'f']
             && d.itemId is string && d.itemId.matches('^[A-Za-z0-9]{1,64}$')
@@ -2411,7 +2419,8 @@ service cloud.firestore {
             && e.get('anonima', false) == false
             // depois do fim não dá mais para votar; o voto leva o fim junto (as notificações do resultado usam)
             && (!('fimEm' in e) || request.time < e.fimEm)
-            && (!('fimEm' in d) || ('fimEm' in e && d.fimEm == e.fimEm));
+            && (!('fimEm' in d) || ('fimEm' in e && d.fimEm == e.fimEm))
+            && fatiaSobe(d);
       }
       // Voto único: depois de votar não dá para trocar nem tirar (a limpeza de contas apaga pelo servidor).
       allow create: if logado() && votoOk() && request.resource.data.criadoEm == request.time && !sancionado(request.auth.uid);
@@ -2420,7 +2429,7 @@ service cloud.firestore {
 
     // ===================================================
     // ENQUETE ANÔNIMA: o voto fica em enquete_anon/{alvo}_{uid} (ninguém lista; só a própria pessoa lê o dela)
-    // e a contagem em enquete_contas/{alvo} = { n0, n1, n2, n3 }, que sobe +1 na MESMA gravação do voto.
+    // e a contagem nos mesmos pedaços enquete_contas/{alvo}_{fatia}, que sobem +1 na MESMA gravação do voto.
     // Assim nem o autor da enquete sabe quem votou em quê.
     // ===================================================
     match /enquete_anon/{id} {
@@ -2430,9 +2439,7 @@ service cloud.firestore {
           ? /databases/$(database)/documents/diario/$(d.itemId)
           : /databases/$(database)/documents/stories/$(d.itemId);
         let e = get(doc).data.enquete;
-        let contas = /databases/$(database)/documents/enquete_contas/$(d.alvo);
-        let k = 'n' + string(d.opcao);
-        return d.keys().hasOnly(['alvo', 'tipo', 'itemId', 'uid', 'opcao', 'fimEm', 'criadoEm'])
+        return d.keys().hasOnly(['alvo', 'tipo', 'itemId', 'uid', 'opcao', 'fatia', 'fimEm', 'criadoEm'])
             && d.uid == request.auth.uid && d.criadoEm == request.time
             && d.tipo in ['d', 'f']
             && d.itemId is string && d.itemId.matches('^[A-Za-z0-9]{1,64}$')
@@ -2443,7 +2450,7 @@ service cloud.firestore {
             && (!('fimEm' in e) || request.time < e.fimEm)
             && (!('fimEm' in d) || ('fimEm' in e && d.fimEm == e.fimEm))
             // a contagem da opção sobe exatamente 1 junto com o voto
-            && getAfter(contas).data.get(k, 0) == (exists(contas) ? get(contas).data.get(k, 0) : 0) + 1;
+            && fatiaSobe(d);
       }
       allow get: if logado() && id.matches('.*_' + request.auth.uid);
       // listar só os próprios votos (o resultado chega nas notificações de quem votou)
@@ -2451,14 +2458,27 @@ service cloud.firestore {
       allow create: if logado() && !sancionado(request.auth.uid) && votoAnonOk();
       allow update, delete: if false;
     }
-    match /enquete_contas/{alvo} {
+    // CONTAGEM DAS ENQUETES em 10 pedaços: enquete_contas/{alvo}_{fatia} = { n0..n3 } (fatia 0–9). Cada voto sobe
+    // 1 pedaço sorteado: um documento só aguentava ~1 voto por segundo; assim a enquete aguenta ~10× mais, e ler o
+    // resultado custa no máximo 10 leituras, com quantos votos for. Só sobe junto com o voto de quem grava
+    // (público em enquete_votos ou anônimo em enquete_anon), na fatia do voto, +1 na opção dele.
+    match /enquete_contas/{cid} {
       allow read: if logado();
-      function votoDeAgora() { return /databases/$(database)/documents/enquete_anon/$(alvo + '_' + request.auth.uid); }
+      function partes() { return cid.split('_'); }
+      function votoEm(colecao) { return /databases/$(database)/documents/$(colecao)/$(partes()[0] + '_' + partes()[1] + '_' + request.auth.uid); }
+      function votoDeAgora() {
+        return !exists(votoEm('enquete_anon')) && existsAfter(votoEm('enquete_anon')) ? votoEm('enquete_anon') : votoEm('enquete_votos');
+      }
       function chaveDoVoto() { return 'n' + string(getAfter(votoDeAgora()).data.opcao); }
-      allow create: if logado() && !exists(votoDeAgora()) && existsAfter(votoDeAgora())
+      function pedacoDoVoto() {
+        return cid.matches('^[df]_[A-Za-z0-9]{1,64}_[0-9]$')
+            && !exists(votoDeAgora()) && existsAfter(votoDeAgora())
+            && string(getAfter(votoDeAgora()).data.fatia) == partes()[2];
+      }
+      allow create: if logado() && pedacoDoVoto()
                     && request.resource.data.keys().hasOnly([chaveDoVoto()])
                     && request.resource.data[chaveDoVoto()] == 1;
-      allow update: if logado() && !exists(votoDeAgora()) && existsAfter(votoDeAgora())
+      allow update: if logado() && pedacoDoVoto()
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly([chaveDoVoto()])
                     && request.resource.data[chaveDoVoto()] == resource.data.get(chaveDoVoto(), 0) + 1;
       allow delete: if false;

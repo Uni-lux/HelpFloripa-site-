@@ -10,7 +10,7 @@ import { confirmarHF } from "./confirmar.js?v=4";
 import {
   $, el, icone, pintarAvatar, urlSegura, nomeCidade, toast, erroAmigavel, abrirFolha, fecharFolha,
   fb, eu, dados, salvarImagem, editarImagem, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos, criarFolha
-} from "./rede.js?v=57";
+} from "./rede.js?v=58";
 import { lerResumos, estrelas, media, notaTexto } from "./avaliacoes.js?v=14";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade, semAcento } from "./endereco.js?v=1";
 import { lerStats, listaDias, somarPeriodo } from "./estat-negocio.js?v=1";
@@ -357,7 +357,7 @@ function maiorDeIdade() {
 // Estatísticas do negócio (insights-negocio.js, carregado só quando abre).
 async function abrirEstatisticas(n) {
   try {
-    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=17");
+    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=18");
     abrirInsightsNegocio(n, { aoEditar: (neg) => abrirFormNegocio(meusNegocios.find((x) => x.id === neg.id) || neg) });
   } catch (e) { toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)); }
 }
