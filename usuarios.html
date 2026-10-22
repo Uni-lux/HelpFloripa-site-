@@ -13,7 +13,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="stylesheet" href="vitrine.css?v=31" />
-  <link rel="stylesheet" href="rede.css?v=41" />
+  <link rel="stylesheet" href="rede.css?v=42" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
     // Tema compartilhado com a página de mensagens; aplicado antes de desenhar.
@@ -575,6 +575,32 @@
         });
       });
     }
+    // Quadradinho no modelo do cartão (Salvos): selo + pergunta + opções/campo, ou citação; quem publicou embaixo.
+    function miniModelo(post, autor) {
+      const box = el("span", "mm");
+      const e = post.enquete?.pergunta && Array.isArray(post.enquete.opcoes) ? post.enquete : null;
+      const cx = !e && post.caixa?.pergunta ? post.caixa : null;
+      if (e || cx) {
+        box.classList.add(e ? "mm-enq" : "mm-cx");
+        const selo = el("span", "mm-selo"); selo.append(icone(e ? "enquete" : "caixa", "i xs"), el("span", null, e ? "Enquete" : "Perguntas"));
+        box.append(selo, el("strong", "mm-perg", (e || cx).pergunta));
+        if (e) {
+          const ops = el("span", "mm-ops");
+          e.opcoes.slice(0, 2).forEach((o) => { const op = el("span", "mm-op"); op.append(el("i"), el("span", null, o)); ops.appendChild(op); });
+          if (e.opcoes.length > 2) ops.appendChild(el("span", "mm-mais", `+${e.opcoes.length - 2} ${e.opcoes.length - 2 === 1 ? "opção" : "opções"}`));
+          box.appendChild(ops);
+        } else box.appendChild(el("span", "mm-campo", "Escreva sua resposta…"));
+      } else {
+        const txt = String(post.texto || "Publicação");
+        box.classList.add("mm-cit", txt.length <= 60 ? "t-curto" : txt.length <= 160 ? "t-medio" : "t-longo");
+        box.append(el("span", "mm-aspas", "“"), el("p", null, txt));
+      }
+      const rod = el("span", "mm-rodape"); const av = el("span", "avatar");
+      pintarAvatar(av, autor?.fotoPerfil || post.fotoPerfil, autor?.nome || post.nome);
+      rod.append(av, el("span", null, tempoRelativo(paraData(post.criadoEm))));
+      box.appendChild(rod);
+      return box;
+    }
     function desenharGrade(container, posts, { proprio, autor, vazio, salvo }) {
       container.replaceChildren();
       if (!posts.length) {
@@ -602,6 +628,9 @@
           img.src = url; img.alt = post.texto ? post.texto.slice(0, 80) : "Publicação"; img.loading = "lazy";
           tile.appendChild(img);
           if (fotosDoPost(post).length > 1) { tile.appendChild(icone("fotos", "i s marca-fotos")); tile.setAttribute("data-fotos", String(fotosDoPost(post).length)); }
+        } else if (salvo) {
+          // Salvos: o mesmo modelo do Diário e do Flash — enquete, caixa de perguntas ou citação.
+          tile.appendChild(miniModelo(post, autor));
         } else {
           // Texto: cartão com aspas, o texto em destaque (maior quando é curto) e quem escreveu embaixo.
           const txt = String(post.texto || "Publicação");
@@ -614,6 +643,11 @@
           pintarAvatar(av, quem.foto, quem.nome);
           rod.append(av, el("span", null, tempoRelativo(paraData(post.criadoEm))));
           tile.append(el("span", "tt-aspas", "“"), p, rod);
+        }
+        // Foto com enquete ou caixa de perguntas: selo no canto (nos Salvos).
+        if (salvo && url && (post.enquete?.pergunta || post.caixa?.pergunta)) {
+          const sb = el("span", "sv-tipo"); sb.append(icone(post.enquete?.pergunta ? "enquete" : "caixa", "i xs"), el("span", null, post.enquete?.pergunta ? "Enquete" : "Perguntas"));
+          tile.appendChild(sb);
         }
         if (url && post.texto) {
           const l = document.createElement("span");
@@ -791,7 +825,13 @@
         const u = p && urlSegura(p.mediaUrl);
         if (u && p.mediaTipo !== "video") { const i = document.createElement("img"); i.src = u; i.alt = ""; i.loading = "lazy"; c.appendChild(i); }
         else if (u) { const v = document.createElement("video"); v.src = u; v.muted = true; v.preload = "metadata"; c.appendChild(v); }
-        else if (p) { c.classList.add("txt"); c.dataset.tom = String(tomDoTexto(p.id)); c.textContent = String(p.texto || "").slice(0, 40); }
+        else if (p) {
+          c.classList.add("txt", "mm-capa");
+          const tipo = p.enquete?.pergunta ? "enquete" : p.caixa?.pergunta ? "caixa" : "";
+          if (tipo) c.appendChild(icone(tipo, "i xs"));
+          else c.appendChild(el("b", null, "“"));
+          c.appendChild(el("span", null, String((p.enquete?.pergunta || p.caixa?.pergunta || p.texto || "")).slice(0, 48)));
+        }
         else { c.classList.add("vazia"); c.appendChild(icone("salvo", "i s")); }
         m.appendChild(c);
       });
