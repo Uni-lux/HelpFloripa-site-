@@ -9,6 +9,7 @@ import { buscarPessoas } from "./pessoas.js?v=3";
 import { montarChat } from "./admin-chat.js?v=21";
 import { verConteudoDenuncia } from "./admin-denuncia.js?v=13";
 import { prepararAnexo, blocoAnexo, previaAnexo, aceitos } from "./anexos-suporte.js?v=2";
+import { FILAS, filaDe, PRIORIDADES as PRIO_SUP, prioridadeChamado, situacaoPrazo, ordemFila } from "./suporte-fila.js?v=1";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
 import { PLANOS, ORDEM_PLANOS, DIAS_BONUS, nivelPlano, nomePlano, diasRestantes, creditoDias, descontoDe, nomeDocRenda, TIPOS_NEG as TIPOS_NEG_PL } from "./planos.js?v=9";
 import {
@@ -710,32 +711,63 @@ function lerCobrancas() {
 
 // ======================================================= SUPORTE
 let filtroSup = "aberto";
+let filaSup = "todas";
 export function suporte(el) {
-  el.appendChild(cab("Suporte", "Chamados abertos pelos usuários (inclui contestações de suspensão). Para falar com alguém, abra a ficha da pessoa e toque em \"Abrir conversa de suporte\"."));
+  el.appendChild(cab("Suporte", "Fila nacional de chamados: cada um entra num setor pelo assunto, com prioridade e prazo da primeira resposta. Toque em \"Pegar o próximo\" para receber o mais urgente da fila (ninguém pega o mesmo chamado). Para falar com alguém, abra a ficha da pessoa e toque em \"Abrir conversa de suporte\"."));
   const notaDe = (id) => D.notasSuporte.find((n) => n.id === id);
   const notas = D.notasSuporte.filter((n) => n.nota >= 1);
+  const nivelDe = (s) => nivelPlano(D.planos.get(s.uid));
+  const abertos = D.suporte.filter((s) => s.status === "aberto");
+  const atrasados = abertos.filter((s) => situacaoPrazo(s, nivelDe(s))?.atrasado);
+  const urgentes = abertos.filter((s) => prioridadeChamado(s, nivelDe(s)) === "urgente");
+  // Tempo da 1ª resposta (últimos 30 dias, chamados que já têm a hora gravada).
+  const comPrim = D.suporte.filter((s) => s.primeiraRespostaEm && ms(s.criadoEm) > agora() - 30 * DIA);
+  const mediaH = comPrim.length ? comPrim.reduce((a, s) => a + Math.max(0, ms(s.primeiraRespostaEm) - ms(s.criadoEm)), 0) / comPrim.length / 3600e3 : null;
+  const meuPapel = D.admins.find((a) => a.id === C.eu.uid)?.papel || "dono";
+  const escMeu = (s) => s.status !== "fechado" && ((s.escalonadoPara === "donos" && meuPapel === "dono") || (s.escalonadoPara === "moderacao" && (meuPapel === "moderacao" || meuPapel === "dono")));
   const kp = h("div", "ad-kpis");
   kp.append(
-    destaque({ rotulo: "Esperando a equipe", valor: D.suporte.filter((s) => s.status === "aberto").length, dica: `${D.suporte.filter((s) => s.status === "aberto" && !s.responsavel).length} sem responsável` }),
-    destaque({ rotulo: "Esperando há +24 h", valor: D.suporte.filter((s) => s.status === "aberto" && ms(s.atualizadoEm) < agora() - DIA).length }),
+    destaque({ rotulo: "Na fila", valor: abertos.filter((s) => !s.responsavel).length, dica: `${abertos.length} esperando a equipe` }),
+    destaque({ rotulo: "Prazo estourado", valor: atrasados.length, dica: atrasados.length ? "responda estes primeiro" : "tudo no prazo" }),
+    destaque({ rotulo: "Urgentes (golpe)", valor: urgentes.length, dica: "prazo de 2 h" }),
+    destaque({ rotulo: "1ª resposta (média)", valor: mediaH, formato: (v) => (v == null ? "—" : v < 1 ? `${Math.round(v * 60)} min` : `${v.toFixed(1).replace(".", ",")} h`), dica: `${comPrim.length} chamados em 30 dias` }),
     destaque({ rotulo: "Comigo", valor: D.suporte.filter((s) => s.responsavel === C.eu.uid && s.status !== "fechado").length }),
     destaque({ rotulo: "Nota do atendimento", valor: notas.length ? notas.reduce((a, n) => a + n.nota, 0) / notas.length : null, formato: notaTxt, dica: `${notas.length} ${notas.length === 1 ? "avaliação" : "avaliações"}` })
   );
   el.appendChild(kp);
-  const fil = chips([["aberto", `Esperando (${D.suporte.filter((s) => s.status === "aberto").length})`], ["minhas", "Comigo"], ["livres", "Sem responsável"], ["respondido", "Respondidos"], ["fechado", "Fechados"], ["todos", "Todos"]], filtroSup, (v) => { filtroSup = v; pintar(); });
+  // "Pegar o próximo": o chamado mais urgente da fila (do setor escolhido) vai para você, travado numa transação.
+  const proximo = h("div", "ad-sup-proximo");
+  const btProx = btn("Pegar o próximo da fila", "pri", () => pegarProximo());
+  proximo.append(btProx, h("span", null, "Atrasados primeiro, depois urgente → alta → normal, e quem espera há mais tempo."));
+  el.appendChild(proximo);
+  // Filas (setores) com quantos esperam em cada uma.
+  const filas = chips([["todas", `Todas as filas (${abertos.length})`], ...Object.entries(FILAS).map(([k, f]) => [k, `${f.nome} (${abertos.filter((s) => filaDe(s.categoria) === k).length})`])], filaSup, (v) => { filaSup = v; pintar(); });
+  filas.classList.add("ad-sup-filas"); filas.style.marginBottom = "8px";
+  const fil = chips([["aberto", `Esperando (${abertos.length})`], ["minhas", "Comigo"], ["livres", "Sem responsável"], ["atrasados", `Prazo estourado (${atrasados.length})`], ["escalados", `Escalados para mim (${D.suporte.filter(escMeu).length})`], ["respondido", "Respondidos"], ["fechado", "Fechados"], ["todos", "Todos"]], filtroSup, (v) => { filtroSup = v; pintar(); });
   fil.style.marginBottom = "12px";
-  const lista = h("div", "ad-lista"); el.append(fil, lista);
+  // Ritmo da equipe hoje: quantos cada atendente respondeu e quantos estão com ele.
+  const hoje0 = new Date(new Date(agora() - 3 * 3600e3).toISOString().slice(0, 10) + "T00:00:00-03:00").getTime();
+  const ritmo = h("details", "ad-sup-ritmo");
+  const linhas = D.admins.map((a) => [a.id, D.suporte.filter((s) => s.atendidoPor === a.id && ms(s.atualizadoEm) >= hoje0).length, D.suporte.filter((s) => s.responsavel === a.id && s.status !== "fechado").length]).sort((x, y) => y[1] - x[1]);
+  ritmo.append(h("summary", null, "Atendimento da equipe hoje"), ...linhas.map(([u, r, c]) => { const l = h("div", "ad-sup-ritmo-l"); l.append(avatar({ ...pessoa(u), nome: nomeEquipe(u) }), h("span", null, nomeEquipe(u)), h("b", null, `${r} respondidos`), h("small", null, `${c} com ${nomeEquipe(u).split(" ")[0]}`)); return l; }));
+  const lista = h("div", "ad-lista"); el.append(filas, fil, ritmo, lista);
   const CAT = { conta: "Conta", pagamento: "Pagamento", golpe: "Golpe", denuncia: "Denúncia", contestacao: "Contestação", negocio: "Negócio", sugestao: "Sugestão", outro: "Outro" };
+  const COR_PRIO = { urgente: "critico", alta: "atencao", normal: "neutro" };
   function pintar() {
     const abertoOu = (s) => s.status !== "fechado";
-    const l = D.suporte.filter((s) => filtroSup === "todos" || (filtroSup === "minhas" ? s.responsavel === C.eu.uid && abertoOu(s) : filtroSup === "livres" ? !s.responsavel && abertoOu(s) : s.status === filtroSup)).sort((a, b) => (filtroSup === "aberto" ? proSup(b) - proSup(a) || ms(a.atualizadoEm) - ms(b.atualizadoEm) : ms(b.atualizadoEm) - ms(a.atualizadoEm)));
-    lista.replaceChildren(...(l.length ? l.map((s) => {
+    const naFila = (s) => filaSup === "todas" || filaDe(s.categoria) === filaSup;
+    const l = D.suporte.filter((s) => naFila(s) && (filtroSup === "todos" || (filtroSup === "minhas" ? s.responsavel === C.eu.uid && abertoOu(s) : filtroSup === "livres" ? !s.responsavel && abertoOu(s)
+      : filtroSup === "atrasados" ? situacaoPrazo(s, nivelDe(s))?.atrasado : filtroSup === "escalados" ? escMeu(s) : s.status === filtroSup)))
+      .sort((a, b) => (filtroSup === "fechado" || filtroSup === "todos" ? ms(b.atualizadoEm) - ms(a.atualizadoEm) : ordemFila(a, b, nivelDe)));
+    lista.replaceChildren(...(l.length ? l.slice(0, 300).map((s) => {
       const c = h("article", "ad-item clicavel"); c.dataset.item = `suporte:${s.id}`; c.tabIndex = 0;
-      const top = h("div", "cab"); top.append(selo(CAT[s.categoria] || s.categoria, s.categoria === "contestacao" || s.categoria === "golpe" ? "serio" : "neutro"), selo(s.status === "aberto" ? "Esperando a equipe" : s.status === "respondido" ? "Respondido" : "Fechado", s.status === "aberto" ? "atencao" : s.status === "respondido" ? "info" : "bom"));
+      const top = h("div", "cab"); const pr = prioridadeChamado(s, nivelDe(s)), pz = situacaoPrazo(s, nivelDe(s));
+      top.append(selo(PRIO_SUP[pr].nome, COR_PRIO[pr]), selo(FILAS[filaDe(s.categoria)].nome, "neutro"), selo(CAT[s.categoria] || s.categoria, s.categoria === "contestacao" || s.categoria === "golpe" ? "serio" : "neutro"), selo(s.status === "aberto" ? "Esperando a equipe" : s.status === "respondido" ? "Respondido" : "Fechado", s.status === "aberto" ? "atencao" : s.status === "respondido" ? "info" : "neutro"));
+      if (pz) top.append(selo(pz.texto, pz.atrasado ? "critico" : pz.perto ? "atencao" : "neutro"));
+      if (s.escalonadoPara) top.append(selo(`Escalado: ${s.escalonadoPara === "donos" ? "donos" : "moderação"}`, "serio"));
       if (proSup(s)) top.append(selo("PRO · prioridade", "info"));
       if (s.abertoPor) top.append(selo(`Aberto pela equipe (${nomeEquipe(s.abertoPor)})`, "info"));
       if (s.status !== "fechado") top.append(seloResp(s));
-      if (s.status === "aberto") top.append(espera(s.atualizadoEm, 24));
       if (s.status === "aberto" && s.ultimaDe === "usuario" && s.atendidoPor) top.append(selo("Nova mensagem da pessoa", "info"));
       const nt = notaDe(s.id); if (nt) top.append(selo(`${"★".repeat(nt.nota)} ${nt.nota}/5`, nt.nota <= 2 ? "critico" : "bom"));
       top.append(selo(protocolo(s.id), "neutro"));
@@ -746,6 +778,32 @@ export function suporte(el) {
       c.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target === c) abrirChamado(s); });
       return c;
     }) : [h("div", "ad-vazio", "Nenhum chamado aqui.")]));
+  }
+  // Pega o próximo: busca os que esperam AGORA no servidor e tenta travar um por um (transação: se outra pessoa
+  // pegou no mesmo segundo, passa para o seguinte).
+  async function pegarProximo() {
+    const { fb } = C;
+    btProx.disabled = true;
+    try {
+      const vivos = await fb.getDocs(fb.query(fb.collection(fb.db, "suporte"), fb.where("status", "==", "aberto"), fb.limit(500))).then((x) => x.docs.map((d) => ({ id: d.id, ...d.data() }))).catch(() => abertos);
+      vivos.forEach((v) => { const i = D.suporte.findIndex((x) => x.id === v.id); if (i >= 0) Object.assign(D.suporte[i], v); else D.suporte.push(v); });
+      const cands = D.suporte.filter((x) => x.status === "aberto" && !x.responsavel && (filaSup === "todas" || filaDe(x.categoria) === filaSup)).sort((a, b) => ordemFila(a, b, nivelDe));
+      for (const s of cands.slice(0, 15)) {
+        const ref = fb.doc(fb.db, "suporte", s.id);
+        const ok = await fb.runTransaction(fb.db, async (tx) => {
+          const d = await tx.get(ref);
+          if (!d.exists() || d.data().responsavel || d.data().status !== "aberto") return false;
+          tx.update(ref, { responsavel: C.eu.uid, responsavelNome: nomeEquipe(C.eu.uid), assumidoEm: fb.serverTimestamp() });
+          return true;
+        }).catch(() => false);
+        if (!ok) continue;
+        Object.assign(s, { responsavel: C.eu.uid, responsavelNome: nomeEquipe(C.eu.uid), assumidoEm: { toMillis: () => agora() } });
+        registrar("suporte_pegar", s.uid, s.assunto, `suporte:${s.id}`).catch(() => {});
+        pintar(); abrirChamado(s);
+        return;
+      }
+      toast(filaSup === "todas" ? "Fila vazia: nenhum chamado esperando sem responsável." : `Nada esperando na fila ${FILAS[filaSup].nome}.`);
+    } finally { btProx.disabled = false; }
   }
   // A equipe reporta a pessoa do chamado para a moderação (ofensas, ameaça, golpe...).
   async function reportarPessoa(s) {
@@ -780,12 +838,19 @@ export function suporte(el) {
     const fundo = h("div", "ad-modal-fundo"), cx = h("div", "ad-modal"); cx.style.width = "min(620px,100%)";
     const topoCh = h("div", "cab"); topoCh.append(seloResp(s)); const vendo = vendoAgora(item); if (vendo.length) topoCh.append(selo(`${vendo.join(", ")} também está aqui`, "atencao"));
     topoCh.prepend(selo(protocolo(s.id), "neutro"));
+    { const nv = nivelPlano(D.planos.get(s.uid)), pr = prioridadeChamado(s, nv), pz = situacaoPrazo(s, nv);
+      topoCh.append(selo(`Prioridade ${PRIO_SUP[pr].nome.toLowerCase()}`, pr === "urgente" ? "critico" : pr === "alta" ? "atencao" : "neutro"), selo(FILAS[filaDe(s.categoria)].nome, "neutro"));
+      if (pz) topoCh.append(selo(pz.texto, pz.atrasado ? "critico" : "neutro"));
+      if (s.escalonadoPara) topoCh.append(selo(`Escalado: ${s.escalonadoPara === "donos" ? "donos" : "moderação"}`, "serio")); }
     const nt = notaDe(s.id); if (nt) topoCh.append(selo(`Nota ${nt.nota}/5${nt.comentario ? " · " + nt.comentario.slice(0, 60) : ""}`, nt.nota <= 2 ? "critico" : "bom"));
     cx.append(topoCh, h("h3", null, s.assunto), h("p", null, `${pessoa(s.uid).nome || s.nome || s.uid}${s.email ? " · " + s.email : ""} · ${CAT[s.categoria] || s.categoria} · aberto em ${dataHora(s.criadoEm)}`));
     const chat = h("div", "ad-chat"); chat.appendChild(h("div", "ad-vazio", "Carregando..."));
     const txt = document.createElement("textarea"); txt.maxLength = 2000; txt.placeholder = "Escreva a resposta da equipe..."; Object.assign(txt.style, { width: "100%", minHeight: "90px", padding: "10px 12px", borderRadius: "10px", border: "1px solid var(--line)", background: "var(--input)" });
     const pr = document.createElement("select"); pr.className = "ad-sel-mini"; pr.setAttribute("aria-label", "Inserir resposta pronta");
     PRONTAS.forEach(([v, t]) => pr.appendChild(new Option(t, v)));
+    // Respostas prontas da equipe (suporte_respostas), primeiro as do assunto deste chamado.
+    const daEquipe = (D.respostasSup || []).slice().sort((a, b) => (b.categoria === s.categoria) - (a.categoria === s.categoria));
+    if (daEquipe.length) { const g = document.createElement("optgroup"); g.label = "Da equipe"; daEquipe.forEach((r) => g.appendChild(new Option(r.titulo, r.texto))); pr.appendChild(g); }
     pr.addEventListener("change", () => { if (pr.value) { const nome = (pessoa(s.uid).nome || s.nome || "").split(" ")[0]; txt.value = (txt.value ? txt.value + "\n\n" : "") + (nome ? pr.value.replace(/^Olá!/, `Olá, ${nome}!`) : pr.value); pr.value = ""; txt.focus(); } });
     // Anexo da resposta (foto, vídeo com Storage ou PDF): um por mensagem.
     let anexo = null;
@@ -799,6 +864,38 @@ export function suporte(el) {
       catch (e) { toast(e?.message || "Não foi possível usar esse arquivo."); }
     });
     const msgEquipe = (t) => ({ autorId: C.eu.uid, equipe: true, texto: t, ...(anexo ? { anexo } : {}), em: fb.serverTimestamp() });
+    // Atualiza o chamado e grava a hora da 1ª resposta da equipe (métrica). Sem as regras novas, grava sem ela.
+    const atualizarChamado = async (campos) => {
+      const ref = fb.doc(fb.db, "suporte", s.id), prim = !s.primeiraRespostaEm && campos.ultimaDe === "equipe" && !s.abertoPor;
+      try { await fb.updateDoc(ref, { ...campos, ...(prim ? { primeiraRespostaEm: fb.serverTimestamp() } : {}) }); if (prim) s.primeiraRespostaEm = { toMillis: () => agora() }; }
+      catch (e) { if (!prim || e?.code !== "permission-denied") throw e; await fb.updateDoc(ref, campos); }
+    };
+    // Transferir de setor / trocar prioridade e escalar (regras novas; sem elas, avisa).
+    const mexerFila = async (campos, oQue) => {
+      try { await fb.updateDoc(fb.doc(fb.db, "suporte", s.id), campos); Object.assign(s, campos); await registrar("suporte_fila", s.uid, `${protocolo(s.id)} · ${oQue}`, `suporte:${s.id}`); toast(oQue); fechar(); pintar(); }
+      catch (e) { toast(e?.code === "permission-denied" ? "Transferir e escalar começam a funcionar quando as regras novas forem publicadas." : "Não foi possível: " + (e.code || e.message)); }
+    };
+    const transferir = async () => {
+      const v = await modal({ titulo: "Transferir o chamado", texto: "Muda o setor (assunto) e a prioridade. O prazo passa a contar pela nova prioridade.", campos: [
+        { nome: "categoria", rotulo: "Setor / assunto", tipo: "select", valor: s.categoria, opcoes: Object.entries(CAT).map(([k, n]) => [k, `${n} · fila ${FILAS[filaDe(k)].nome}`]) },
+        { nome: "prioridade", rotulo: "Prioridade", tipo: "select", valor: prioridadeChamado(s, nivelPlano(D.planos.get(s.uid))), opcoes: Object.entries(PRIO_SUP).map(([k, p]) => [k, `${p.nome} (resposta em até ${p.horas} h)`]) }], botao: "Transferir" });
+      if (v) mexerFila({ categoria: v.categoria, prioridade: v.prioridade }, `Transferido para ${CAT[v.categoria]} (${PRIO_SUP[v.prioridade].nome.toLowerCase()})`);
+    };
+    const escalar = async () => {
+      const v = await modal({ titulo: "Escalar o chamado", texto: "Para casos que você não pode resolver: a moderação (contas, conteúdo, golpes) ou os donos (pagamentos, planos, exceções) veem em \"Escalados para mim\".", campos: [
+        { nome: "para", rotulo: "Para quem", tipo: "select", valor: s.escalonadoPara || "moderacao", opcoes: [["moderacao", "Moderação"], ["donos", "Donos do site"], ["", "Tirar o escalonamento"]] }], botao: "Escalar" });
+      if (v) mexerFila({ escalonadoPara: v.para }, v.para ? `Escalado para ${v.para === "donos" ? "os donos" : "a moderação"}` : "Escalonamento retirado");
+    };
+    const salvarPronta = async () => {
+      const t = txt.value.trim(); if (t.length < 2) { toast("Escreva a resposta no campo e depois salve."); return; }
+      const v = await modal({ titulo: "Salvar como resposta pronta", texto: "Fica disponível para toda a equipe em \"Respostas prontas\".", campos: [{ nome: "titulo", rotulo: "Nome da resposta", max: 60, obrigatorio: true, valor: t.slice(0, 40) }], botao: "Salvar" });
+      if (!v) return;
+      try {
+        const dados = { titulo: v.titulo.trim().slice(0, 60), texto: t.slice(0, 2000), categoria: s.categoria, autorId: C.eu.uid, autorNome: nomeEquipe(C.eu.uid), em: fb.serverTimestamp() };
+        const ref = await fb.addDoc(fb.collection(fb.db, "suporte_respostas"), dados);
+        (D.respostasSup ||= []).push({ id: ref.id, ...dados }); toast("Resposta pronta salva para a equipe");
+      } catch (e) { toast(e?.code === "permission-denied" ? "As respostas da equipe começam a funcionar quando as regras novas forem publicadas." : "Não foi possível salvar."); }
+    };
     const ac = h("div", "ad-acoes");
     const fechar = () => { fundo.remove(); marcarItem(null); };
     ac.append(btn("Ver ficha", "", () => { fechar(); abrirFicha(s.uid); }), btn(s.status === "fechado" ? "Reabrir" : "Fechar chamado", "", async () => {
@@ -808,19 +905,31 @@ export function suporte(el) {
     }), btn("Reportar à moderação", "perigo", () => reportarPessoa(s)), btn("Sair", "", fechar), btn("Responder e encerrar", "", async () => {
       const t = txt.value.trim(); if (!t && !anexo) { toast("Escreva a resposta."); return; }
       await fb.addDoc(fb.collection(fb.db, "suporte", s.id, "mensagens"), msgEquipe(t));
-      await fb.updateDoc(fb.doc(fb.db, "suporte", s.id), { status: "fechado", atualizadoEm: fb.serverTimestamp(), ultimaDe: "equipe", atendidoPor: C.eu.uid });
+      await atualizarChamado({ status: "fechado", atualizadoEm: fb.serverTimestamp(), ultimaDe: "equipe", atendidoPor: C.eu.uid });
       s.status = "fechado"; await registrar("suporte_resposta", s.uid, s.assunto, `suporte:${s.id}`); await registrar("suporte_fechado", s.uid, s.assunto, `suporte:${s.id}`); toast("Resposta enviada e chamado encerrado"); fechar(); pintar();
     }), btn("Responder", "pri", async () => {
       const t = txt.value.trim(); if (!t && !anexo) { toast("Escreva a resposta."); return; }
       await fb.addDoc(fb.collection(fb.db, "suporte", s.id, "mensagens"), msgEquipe(t));
       const assumir = !s.responsavel ? { responsavel: C.eu.uid, responsavelNome: nomeEquipe(C.eu.uid), assumidoEm: fb.serverTimestamp() } : {};
-      await fb.updateDoc(fb.doc(fb.db, "suporte", s.id), { status: "respondido", atualizadoEm: fb.serverTimestamp(), ultimaDe: "equipe", atendidoPor: C.eu.uid, ...assumir });
+      await atualizarChamado({ status: "respondido", atualizadoEm: fb.serverTimestamp(), ultimaDe: "equipe", atendidoPor: C.eu.uid, ...assumir });
       if (assumir.responsavel) Object.assign(s, { responsavel: C.eu.uid, responsavelNome: assumir.responsavelNome });
       // A pessoa é avisada pelas Notificações, pelo sino e por Mensagens (Suporte Help Floripa).
       s.status = "respondido"; await registrar("suporte_resposta", s.uid, s.assunto, `suporte:${s.id}`); toast("Resposta enviada"); fechar(); pintar();
     }));
-    const linhaAnexo = h("div", "ad-anexo-linha"); linhaAnexo.append(btAnexo, inArq);
-    cx.append(chat, pr, txt, boxAnexo, linhaAnexo, ac); fundo.appendChild(cx); document.body.appendChild(fundo);
+    const linhaAnexo = h("div", "ad-anexo-linha"); linhaAnexo.append(btAnexo, inArq, btn("Salvar como resposta pronta", "", salvarPronta));
+    const fila = h("div", "ad-acoes ad-sup-fila-acoes"); fila.append(btn("Transferir / prioridade", "", transferir), btn("Escalar", "", escalar));
+    // Notas internas: só a equipe vê (a pessoa do chamado nunca vê).
+    const notasBox = h("details", "ad-sup-notas"); notasBox.appendChild(h("summary", null, "Notas internas (só a equipe vê)"));
+    const notasLista = h("div", "ad-sup-notas-l"), notaTxt = document.createElement("textarea"); notaTxt.maxLength = 1000; notaTxt.placeholder = "Ex.: Já pedi o comprovante; golpe parecido com a denúncia #ABC123...";
+    const pintarNotas = (l) => notasLista.replaceChildren(...(l.length ? l.map((n) => { const d = h("div", "ad-sup-nota"); d.append(h("b", null, n.nome || nomeEquipe(n.autorId)), h("span", null, n.texto), h("small", null, dataHora(n.em))); return d; }) : [h("div", "ad-vazio", "Nenhuma nota ainda.")]));
+    notasBox.append(notasLista, notaTxt, btn("Salvar nota", "", async () => {
+      const t = notaTxt.value.trim(); if (!t) return;
+      try { await fb.addDoc(fb.collection(fb.db, "suporte", s.id, "notas"), { autorId: C.eu.uid, nome: nomeEquipe(C.eu.uid), texto: t.slice(0, 1000), em: fb.serverTimestamp() }); notaTxt.value = ""; carregarNotas(); }
+      catch (e) { toast(e?.code === "permission-denied" ? "As notas internas começam a funcionar quando as regras novas forem publicadas." : "Não foi possível salvar a nota."); }
+    }));
+    const carregarNotas = () => fb.getDocs(fb.query(fb.collection(fb.db, "suporte", s.id, "notas"), fb.orderBy("em", "asc"))).then((x) => { pintarNotas(x.docs.map((d) => d.data({ serverTimestamps: "estimate" }))); if (x.size) { notasBox.open = true; notasBox.querySelector("summary").textContent = `Notas internas (${x.size}) · só a equipe vê`; } }).catch(() => pintarNotas([]));
+    carregarNotas();
+    cx.append(chat, notasBox, fila, pr, txt, boxAnexo, linhaAnexo, ac); fundo.appendChild(cx); document.body.appendChild(fundo);
     fundo.addEventListener("click", (e) => { if (e.target === fundo) fechar(); });
     const msgs = await fb.getDocs(fb.query(fb.collection(fb.db, "suporte", s.id, "mensagens"), fb.orderBy("em", "asc"))).catch(() => ({ docs: [] }));
     chat.replaceChildren(...msgs.docs.map((d) => { const m = d.data(); const b = h("div", "ad-msg" + (m.equipe ? " equipe" : ""), m.texto || ""); const ax = blocoAnexo(m.anexo); if (ax) b.appendChild(ax); b.appendChild(h("small", null, `${m.equipe ? `Suporte Help Floripa (${nomeEquipe(m.autorId)})` : pessoa(s.uid).nome || "Usuário"} · ${dataHora(m.em)}`)); return b; }));
@@ -1512,7 +1621,7 @@ export function relatorios(el) {
 }
 
 // ======================================================= REGISTRO E EQUIPE
-const NOMES_ACAO = { aviso: "Enviou aviso", suspender: "Suspendeu", banir: "Baniu", remover_sancao: "Removeu sanção", verificar: "Deu selo", tirar_selo: "Tirou/recusou selo", remover_conteudo: "Removeu conteúdo", esconder_negocio: "Escondeu negócio", mostrar_negocio: "Mostrou negócio", esconder_publicacao: "Escondeu publicação", mostrar_publicacao: "Mostrou publicação", exportar: "Exportou dados", relatorio_pdf: "Gerou relatório", parceria: "Atualizou parceria", parceria_apagar: "Apagou parceria", suporte_resposta: "Respondeu chamado", suporte_conversa: "Abriu conversa de suporte", suporte_fechado: "Fechou chamado", suporte_aberto: "Reabriu chamado", reporte_novo: "Reportou pessoa do suporte", cobrar_reclamacao: "Cobrou resposta de reclamação", reporte_em_analise: "Pôs reporte em análise", reporte_resolvido: "Resolveu reporte", reporte_descartado: "Descartou reporte", comunicado_novo: "Criou comunicado", comunicado_editar: "Editou comunicado", comunicado_on: "Pôs comunicado no ar", comunicado_off: "Tirou comunicado do ar", comunicado_apagar: "Apagou comunicado", denuncia_resolvida: "Resolveu denúncia", denuncia_descartada: "Descartou denúncia", denuncia_em_analise: "Pôs denúncia em análise", assumiu: "Assumiu", passou: "Passou para outra pessoa", liberou: "Liberou", tarefa_nova: "Criou tarefa", tarefa_editar: "Editou tarefa", tarefa_a_fazer: "Voltou tarefa", tarefa_fazendo: "Começou tarefa", tarefa_feito: "Concluiu tarefa", tarefa_apagar: "Apagou tarefa", nota_interna: "Escreveu nota interna", entrou: "Entrou no painel", banir_programa: "Baniu de um programa", plano_ativar: "Ativou plano", plano_recusar: "Recusou pedido de plano", plano_encerrar: "Encerrou plano", negociacao_aprovar: "Aprovou negociação de plano", negociacao_recusar: "Não aprovou negociação de plano", negociacao_conversa: "Negociou plano", verificacao_aprovar: "Aprovou verificação", verificacao_recusar: "Recusou verificação" };
+const NOMES_ACAO = { aviso: "Enviou aviso", suspender: "Suspendeu", banir: "Baniu", remover_sancao: "Removeu sanção", verificar: "Deu selo", tirar_selo: "Tirou/recusou selo", remover_conteudo: "Removeu conteúdo", esconder_negocio: "Escondeu negócio", mostrar_negocio: "Mostrou negócio", esconder_publicacao: "Escondeu publicação", mostrar_publicacao: "Mostrou publicação", exportar: "Exportou dados", relatorio_pdf: "Gerou relatório", parceria: "Atualizou parceria", parceria_apagar: "Apagou parceria", suporte_resposta: "Respondeu chamado", suporte_pegar: "Pegou chamado da fila", suporte_fila: "Transferiu/escalou chamado", suporte_conversa: "Abriu conversa de suporte", suporte_fechado: "Fechou chamado", suporte_aberto: "Reabriu chamado", reporte_novo: "Reportou pessoa do suporte", cobrar_reclamacao: "Cobrou resposta de reclamação", reporte_em_analise: "Pôs reporte em análise", reporte_resolvido: "Resolveu reporte", reporte_descartado: "Descartou reporte", comunicado_novo: "Criou comunicado", comunicado_editar: "Editou comunicado", comunicado_on: "Pôs comunicado no ar", comunicado_off: "Tirou comunicado do ar", comunicado_apagar: "Apagou comunicado", denuncia_resolvida: "Resolveu denúncia", denuncia_descartada: "Descartou denúncia", denuncia_em_analise: "Pôs denúncia em análise", assumiu: "Assumiu", passou: "Passou para outra pessoa", liberou: "Liberou", tarefa_nova: "Criou tarefa", tarefa_editar: "Editou tarefa", tarefa_a_fazer: "Voltou tarefa", tarefa_fazendo: "Começou tarefa", tarefa_feito: "Concluiu tarefa", tarefa_apagar: "Apagou tarefa", nota_interna: "Escreveu nota interna", entrou: "Entrou no painel", banir_programa: "Baniu de um programa", plano_ativar: "Ativou plano", plano_recusar: "Recusou pedido de plano", plano_encerrar: "Encerrou plano", negociacao_aprovar: "Aprovou negociação de plano", negociacao_recusar: "Não aprovou negociação de plano", negociacao_conversa: "Negociou plano", verificacao_aprovar: "Aprovou verificação", verificacao_recusar: "Recusou verificação" };
 // Alvo do registro em texto de gente: a pessoa (link para a ficha), ou o item que a equipe assumiu/passou
 // ("suporte:ID" vira "Chamado #ABC123 · assunto", "denuncias:..." vira "Denúncia · motivo · pessoa"), ou a lista exportada.
 const LISTAS_EXPORT = { usuarios: "Lista de usuários", negocios: "Lista de negócios", denuncias: "Lista de denúncias", reclamacoes: "Lista de reclamações" };

@@ -42,7 +42,7 @@
   </script>
   <link rel="stylesheet" href="rede.css?v=36" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="suporte.js?v=42"></script>
+  <script type="module" src="suporte.js?v=43"></script>
 </head>
 <body>
   <header class="topo">
@@ -79,9 +79,11 @@
         <div class="sup-cats" id="supCats" role="radiogroup" aria-label="Assunto do chamado"></div>
         <select id="supCategoria" hidden data-nativo aria-hidden="true" tabindex="-1"></select>
         <div class="sup-dica" id="supDica" hidden></div>
+        <p class="sup-previsao" id="supPrevisao" hidden></p>
         <div class="sup-passo"><b>2</b> Conte o que aconteceu</div>
         <div class="campo"><label for="supAssunto">Resumo</label><input id="supAssunto" maxlength="120" placeholder="Ex.: Não consigo editar meu cardápio" /></div>
         <div class="campo"><label for="supTexto">Detalhes</label><textarea id="supTexto" maxlength="2000" placeholder="O que aconteceu, quando, em qual página e com quem (se for o caso)..."></textarea><div class="ajuda"><span>Nunca envie senhas ou códigos de verificação.</span><span id="supCont">0/2000</span></div></div>
+        <section class="sup-sugestoes" id="supSugestoes" hidden aria-live="polite"></section>
         <div class="campo"><label>Prints, fotos ou arquivos (opcional)</label>
           <div id="supAnexos"></div>
           <button type="button" class="sup-add-anexo" id="supAnexar"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.5l-8.3 8.3a5 5 0 01-7.1-7.1l8.6-8.6a3.4 3.4 0 014.8 4.8l-8.6 8.6a1.7 1.7 0 01-2.4-2.4l7.9-7.9"/></svg><span>Adicionar print, foto, vídeo ou PDF</span></button>
@@ -212,6 +214,18 @@
     .sup-cat .ic .i { width: 17px; height: 17px; }
     .sup-cat b { font-size: 13.5px; line-height: 1.25; } .sup-cat small { color: var(--muted); font-size: 11.5px; line-height: 1.3; }
     .sup-cat[aria-checked="true"] { border-color: var(--c); background: color-mix(in srgb, var(--c) 9%, var(--panel)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 14%, transparent); }
+    /* Prioridade e prazo da resposta + sugestões da Central antes de abrir o chamado (suporte nacional) */
+    .sup-previsao { display: flex; align-items: center; gap: 8px; margin: -6px 0 16px; font-size: 13px; color: var(--muted); }
+    .sup-previsao b { padding: 3px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 800; color: #fff; background: #64748b; }
+    .sup-previsao b.urgente { background: #e5484d; } .sup-previsao b.alta { background: #f08c00; }
+    .sup-sugestoes { margin: 2px 0 16px; padding: 14px; border-radius: 16px; border: 1px solid color-mix(in srgb, #2fbf71 40%, var(--line)); background: color-mix(in srgb, #2fbf71 7%, var(--panel)); }
+    .sup-sugestoes h3 { margin: 0 0 4px; font-size: 14.5px; } .sup-sugestoes > p { margin: 0 0 10px; font-size: 12.5px; color: var(--muted); }
+    .sup-sugestoes details { border-top: 1px solid var(--line); padding: 10px 0; } .sup-sugestoes details:first-of-type { border-top: 0; }
+    .sup-sugestoes summary { cursor: pointer; font-weight: 700; font-size: 14px; list-style: none; display: flex; gap: 8px; align-items: flex-start; }
+    .sup-sugestoes summary::before { content: "?"; flex: none; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 900; color: #fff; background: #2fbf71; }
+    .sup-sugestoes .resp { margin: 8px 0 0 28px; font-size: 13.5px; line-height: 1.5; color: var(--text); }
+    .sup-sugestoes .resp a { color: var(--accent); }
+    .sup-resolveu { margin: 10px 0 0 28px; padding: 8px 14px; border: 0; border-radius: 999px; background: #2fbf71; color: #fff; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
     .sup-dica { display: flex; gap: 10px; margin: -4px 0 16px; padding: 12px 14px; border-radius: 14px; background: color-mix(in srgb, var(--accent) 8%, var(--panel)); border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--line)); font-size: 13.5px; line-height: 1.5; }
     .sup-dica .i { flex: none; color: var(--accent); margin-top: 1px; }
     .sup-dica[hidden] { display: none; }

@@ -743,3 +743,34 @@ input.ad-sel { flex: 1 1 220px; padding: 0 12px; }
 .ad-reg-pessoa .ad-av, .ad-reg-quem-lk .ad-av { width: 28px; height: 28px; font-size: 11px; flex: none; }
 .ad-reg-quem-lk { display: inline-flex; align-items: center; gap: 8px; color: inherit; text-decoration: none; font-weight: 700; }
 .ad-reg-quem-lk:hover span { text-decoration: underline; }
+
+/* Suporte em nível nacional: pegar o próximo, filas, ritmo da equipe, notas internas */
+.ad-sup-proximo { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 4px 0 12px; padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line)); border-radius: 16px; background: color-mix(in srgb, var(--accent) 7%, var(--panel)); }
+.ad-sup-proximo > span { flex: 1 1 220px; color: var(--muted); font-size: 12.5px; line-height: 1.4; }
+.ad-sup-filas { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.ad-sup-filas::-webkit-scrollbar { display: none; }
+.ad-sup-filas .ad-chip { flex: 0 0 auto; white-space: nowrap; }
+.ad-sup-ritmo, .ad-sup-notas { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); margin-bottom: 12px; }
+.ad-sup-ritmo > summary, .ad-sup-notas > summary { cursor: pointer; padding: 11px 14px; font-weight: 800; font-size: 13.5px; list-style: none; display: flex; align-items: center; gap: 8px; }
+.ad-sup-ritmo > summary::-webkit-details-marker, .ad-sup-notas > summary::-webkit-details-marker { display: none; }
+.ad-sup-ritmo > summary::after, .ad-sup-notas > summary::after { content: "▾"; margin-left: auto; color: var(--muted); transition: transform .2s; }
+.ad-sup-ritmo[open] > summary::after, .ad-sup-notas[open] > summary::after { transform: rotate(180deg); }
+.ad-sup-ritmo-l { display: grid; grid-template-columns: 30px 1fr auto; grid-template-rows: auto auto; column-gap: 10px; align-items: center; padding: 8px 14px; border-top: 1px solid var(--line); }
+.ad-sup-ritmo-l > :first-child { grid-row: 1 / 3; width: 30px; height: 30px; }
+.ad-sup-ritmo-l > span { font-weight: 700; font-size: 13.5px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ad-sup-ritmo-l > b { font-size: 12.5px; color: var(--accent); grid-row: 1 / 3; grid-column: 3; }
+.ad-sup-ritmo-l > small { color: var(--muted); font-size: 11.5px; grid-column: 2; }
+.ad-sup-notas { margin: 10px 0; background: color-mix(in srgb, #f5b400 6%, var(--panel)); border-color: color-mix(in srgb, #f5b400 35%, var(--line)); }
+.ad-sup-notas > summary::before { content: "🔒"; font-size: 13px; }
+.ad-sup-notas-l { display: grid; gap: 8px; padding: 0 14px 10px; max-height: 220px; overflow-y: auto; }
+.ad-sup-nota { display: grid; gap: 2px; padding: 9px 11px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); overflow-wrap: anywhere; }
+.ad-sup-nota > b { font-size: 12.5px; } .ad-sup-nota > span { font-size: 13.5px; line-height: 1.4; white-space: pre-wrap; } .ad-sup-nota > small { color: var(--muted); font-size: 11px; }
+.ad-sup-notas > textarea { display: block; width: calc(100% - 28px); margin: 0 14px 8px; min-height: 64px; box-sizing: border-box; }
+.ad-sup-notas > button { margin: 0 14px 12px; }
+.ad-sup-notas .ad-vazio { padding: 12px; }
+.ad-sup-fila-acoes { margin: 8px 0; }
+@media (max-width: 640px) {
+  .ad-sup-proximo { padding: 11px 12px; } .ad-sup-proximo > button { width: 100%; }
+  .ad-anexo-linha { flex-wrap: wrap; }
+  .ad-sup-fila-acoes > button { flex: 1 1 0; }
+}

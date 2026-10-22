@@ -1,3 +1,38 @@
+      allow get: if admin() && daConversaEq(resource.data.conversa) && request.time < resource.data.apagadaEm + duration.value(24, 'h');
+      allow create: if admin()
+                    && request.resource.data.keys().hasOnly(['autorId', 'conversa', 'conteudo', 'apagadaEm'])
+                    && request.resource.data.autorId == request.auth.uid
+                    && request.resource.data.conversa is string
+                    && daConversaEq(request.resource.data.conversa)
+                    && get(msgEq(request.resource.data.conversa)).data.autorId == request.auth.uid
+                    && getAfter(msgEq(request.resource.data.conversa)).data.apagada.por == request.auth.uid
+                    && request.resource.data.apagadaEm == request.time
+                    && request.resource.data.conteudo is map
+                    && request.resource.data.conteudo.keys().hasOnly(['texto', 'tipoArquivo', 'anexo', 'nomeArquivo', 'tamanho', 'miniatura', 'duracao', 'resposta', 'mencoes', 'edicoes'])
+                    && request.resource.data.conteudo.get('texto', '') == get(msgEq(request.resource.data.conversa)).data.get('texto', '')
+                    && request.resource.data.conteudo.get('anexo', '') == get(msgEq(request.resource.data.conversa)).data.get('anexo', '');
+      allow update: if false;
+      allow delete: if admin() && daConversaEq(resource.data.conversa) && request.time >= resource.data.apagadaEm + duration.value(24, 'h');
+    }
+
+    // Conteúdo dos anexos do chat da equipe (data: URL de até ~900 mil caracteres).
+    // Só quem participa da conversa lê; ninguém edita.
+    match /equipe_anexos/{id} {
+      allow read: if admin()
+                  && (resource.data.conversa == 'equipe' || request.auth.uid in resource.data.conversa.split('_'));
+      allow create: if admin()
+                    && request.resource.data.keys().hasOnly(['autorId', 'conversa', 'dados', 'em'])
+                    && request.resource.data.autorId == request.auth.uid
+                    && request.resource.data.em == request.time
+                    && request.resource.data.conversa is string
+                    && (request.resource.data.conversa == 'equipe'
+                        || (request.resource.data.conversa.split('_').size() == 2 && request.auth.uid in request.resource.data.conversa.split('_')))
+                    && request.resource.data.dados is string
+                    && request.resource.data.dados.size() <= 950000
+                    && request.resource.data.dados.matches('^data:[a-z]+/[-+.a-z0-9]{1,80}(;[^,]{0,80})?,.*');
+      allow update, delete: if false;
+    }
+
     // Foto do grupo "Equipe" no chat da equipe: equipe_info/grupo. Qualquer pessoa da equipe troca.
     match /equipe_info/{id} {
       allow read: if admin();
@@ -173,22 +208,6 @@
       allow delete: if logado() && resource.data.uid == request.auth.uid
                     && (resumoJunto(resource.data.postId)
                         || !exists(/databases/$(database)/documents/diario/$(resource.data.postId)));
-    }
-
-    // ===================================================
-    // SALVAMENTOS: salvamentos/{postId}_{uid} — só para o autor contar quantos salvaram (não vê quem).
-    // A lista de salvos de cada um continua em usuarios/{uid}.salvos (privada).
-    // ===================================================
-    match /salvamentos/{id} {
-      allow create: if logado()
-                    && request.resource.data.keys().hasOnly(['postId', 'uid', 'postAutorId', 'criadoEm'])
-                    && request.resource.data.uid == request.auth.uid
-                    && id == request.resource.data.postId + '_' + request.auth.uid
-                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
-                    && request.resource.data.criadoEm == request.time;
-      allow read: if logado() && (resource.data.uid == request.auth.uid || resource.data.postAutorId == request.auth.uid);
-      allow delete: if logado() && resource.data.uid == request.auth.uid;
-      allow update: if false;
     }
 
 // ===== FIM DA PARTE 11 DE 14 =====

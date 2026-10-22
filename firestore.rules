@@ -1619,7 +1619,26 @@ service cloud.firestore {
 
     match /suporte/{id} {
       function camposChamado() {
-        return ['uid', 'nome', 'email', 'assunto', 'categoria', 'status', 'criadoEm', 'atualizadoEm', 'ultimaDe', 'atendidoPor', 'responsavel', 'responsavelNome', 'assumidoEm'];
+        return ['uid', 'nome', 'email', 'assunto', 'categoria', 'status', 'criadoEm', 'atualizadoEm', 'ultimaDe', 'atendidoPor', 'responsavel', 'responsavelNome', 'assumidoEm',
+                'prioridade', 'escalonadoPara', 'primeiraRespostaEm'];
+      }
+      // Suporte nacional (suporte-fila.js): golpe = urgente; pagamento, contestação ou plano Pro/Premium = alta; o resto = normal.
+      // Quem abre não escolhe ser urgente: a prioridade tem que bater com o assunto (ou com o plano da conta).
+      function prioridadeOk(d) {
+        let p = d.get('prioridade', 'normal');
+        return p == 'normal'
+            || (p == 'urgente' && d.categoria == 'golpe')
+            || (p == 'alta' && (d.categoria in ['pagamento', 'contestacao']
+                || (exists(/databases/$(database)/documents/planos/$(request.auth.uid))
+                    && get(/databases/$(database)/documents/planos/$(request.auth.uid)).data.plano in ['pro', 'premium']
+                    && get(/databases/$(database)/documents/planos/$(request.auth.uid)).data.ate > request.time)));
+      }
+      // A equipe: prioridade, transferir de setor (categoria), escalar (moderação ou donos) e a hora da 1ª resposta.
+      function filaEquipeOk(d) {
+        return d.get('prioridade', 'normal') in ['urgente', 'alta', 'normal']
+            && d.categoria in ['conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro']
+            && d.get('escalonadoPara', '') in ['', 'moderacao', 'donos']
+            && (!mudou().hasAny(['primeiraRespostaEm']) || d.primeiraRespostaEm == request.time);
       }
       allow read: if logado() && resource.data.uid == request.auth.uid;
       allow read: if admin();
@@ -1635,7 +1654,8 @@ service cloud.firestore {
                     && request.resource.data.criadoEm == request.time
                     && request.resource.data.atualizadoEm == request.time
                     && request.resource.data.ultimaDe == 'usuario'
-                    && !request.resource.data.keys().hasAny(['atendidoPor', 'responsavel', 'responsavelNome', 'assumidoEm']);
+                    && prioridadeOk(request.resource.data)
+                    && !request.resource.data.keys().hasAny(['atendidoPor', 'responsavel', 'responsavelNome', 'assumidoEm', 'escalonadoPara', 'primeiraRespostaEm']);
       // A equipe abre uma conversa de suporte com qualquer pessoa ("Suporte Help Floripa"):
       // o chamado já nasce respondido, com a primeira mensagem da equipe gravada junto.
       allow create: if admin()
@@ -1663,14 +1683,14 @@ service cloud.firestore {
                          && request.resource.data.status in ['aberto', 'fechado']
                          && request.resource.data.ultimaDe == 'usuario')
                         || (admin()
-                         && mudou().hasOnly(['status', 'atualizadoEm', 'ultimaDe', 'atendidoPor', 'responsavel', 'responsavelNome', 'assumidoEm'])
+                         && mudou().hasOnly(['status', 'atualizadoEm', 'ultimaDe', 'atendidoPor', 'responsavel', 'responsavelNome', 'assumidoEm', 'primeiraRespostaEm'])
                          && request.resource.data.status in ['aberto', 'respondido', 'fechado']
-                         && responsavelOk()))
+                         && responsavelOk() && filaEquipeOk(request.resource.data)))
                     && request.resource.data.atualizadoEm == request.time;
-      // A equipe só assume ou passa o chamado (sem mexer na data da conversa).
+      // A equipe assume ou passa o chamado, troca a prioridade, transfere de setor ou escala (sem mexer na data da conversa).
       allow update: if admin()
-                    && mudou().hasOnly(['responsavel', 'responsavelNome', 'assumidoEm'])
-                    && responsavelOk();
+                    && mudou().hasOnly(['responsavel', 'responsavelNome', 'assumidoEm', 'prioridade', 'categoria', 'escalonadoPara'])
+                    && responsavelOk() && filaEquipeOk(request.resource.data);
       allow delete: if false;
 
       match /mensagens/{msgId} {
@@ -1700,9 +1720,33 @@ service cloud.firestore {
                       && request.resource.data.em == request.time;
         allow update, delete: if false;
       }
+      // Notas internas do chamado: só a equipe lê e escreve (a pessoa nunca vê). Não se editam nem apagam.
+      match /notas/{notaId} {
+        allow read: if admin();
+        allow create: if admin()
+                      && request.resource.data.keys().hasOnly(['autorId', 'nome', 'texto', 'em'])
+                      && request.resource.data.autorId == request.auth.uid
+                      && request.resource.data.texto is string && request.resource.data.texto.size() >= 1 && request.resource.data.texto.size() <= 1000
+                      && valorTextoAte(request.resource.data.get('nome', ''), 80)
+                      && request.resource.data.em == request.time;
+        allow update, delete: if false;
+      }
     }
 
     // Pedido do selo de verificado: a pessoa e a moderação leem. A foto do documento é apagada na decisão.
+    // Respostas prontas do suporte, compartilhadas pela equipe (suporte nacional): só a equipe lê e mexe.
+    match /suporte_respostas/{id} {
+      allow read: if admin();
+      allow create, update: if admin()
+                    && request.resource.data.keys().hasOnly(['titulo', 'texto', 'categoria', 'autorId', 'autorNome', 'em'])
+                    && request.resource.data.titulo is string && request.resource.data.titulo.size() >= 2 && request.resource.data.titulo.size() <= 60
+                    && request.resource.data.texto is string && request.resource.data.texto.size() >= 2 && request.resource.data.texto.size() <= 2000
+                    && request.resource.data.get('categoria', '') in ['', 'conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro']
+                    && request.resource.data.autorId == request.auth.uid
+                    && valorTextoAte(request.resource.data.get('autorNome', ''), 80)
+                    && request.resource.data.em == request.time;
+      allow delete: if admin();
+    }
     match /verificacoes/{uid} {
       function pedidoOk(d) {
         return d.keys().hasOnly(['uid', 'categoria', 'nomeLegal', 'conhecidoComo', 'documentoTipo', 'documento', 'links', 'motivo', 'status', 'criadoEm', 'atualizadoEm'])

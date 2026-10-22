@@ -5,7 +5,9 @@
 // uma conversa com a pessoa: tudo aparece como "Suporte Help Floripa" (conta oficial).
 // - Início: atalhos (Novo chamado, Central de ajuda, Denunciar, Contestar), avisos da equipe e
 //   os chamados em abas (Em andamento | Encerrados), com protocolo e situação.
-// - Novo chamado: assunto em cartões com dica de cada um.
+// - Novo chamado: assunto em cartões com dica de cada um; prioridade e prazo da resposta (suporte-fila.js: golpe =
+//   urgente 2 h, pagamento/contestação/plano Pro = alta 8 h, o resto 24 h); enquanto a pessoa escreve, as respostas da
+//   Central de Ajuda que combinam aparecem ("Resolveu" não abre chamado); até 3 chamados em andamento por pessoa.
 // - Conversa: etapas (Recebido → Em atendimento → Respondido → Encerrado), balões por dia,
 //   ⋯ com Encerrar/Reabrir, Reportar este atendimento e Copiar protocolo; encerrado: nota de 1 a 5
 //   (suporte_notas/{chamado}).
@@ -21,6 +23,9 @@ import { buscarPessoas } from "./pessoas.js?v=3";
 import { abrirDenuncia } from "./denuncias.js?v=5";
 import { ligarVoltar } from "./voltar.js?v=6";
 import { prepararAnexo, blocoAnexo, previaAnexo, aceitos } from "./anexos-suporte.js?v=2";
+import { PRIORIDADES, prioridadeDe, prioridadeChamado, textoPrevisao, MAX_ABERTOS } from "./suporte-fila.js?v=1";
+import { palavrasDe } from "./busca.js?v=1";
+import { lerPlano, nivelPlano } from "./planos-base.js?v=2";
 // O voltar fecha as janelas desta página (também dentro das Mensagens), sem depender da cópia do firebase.js no aparelho.
 ligarVoltar();
 
@@ -60,7 +65,9 @@ const novaResposta = (c) => c.status === "respondido" && c.ultimaDe === "equipe"
 function nomeOficial(tag = "strong") { const n = el(tag, "sup-oficial-nome", SUPORTE.nome); n.appendChild(seloOficial()); return n; }
 
 // ---------- início ----------
+let nivelEu = 0;
 async function carregar() {
+  lerPlano(fb, eu.uid).then((p) => { nivelEu = nivelPlano(p); pintarPrevisao(); }).catch(() => {});
   const [s, sa] = await Promise.all([
     fb.getDocs(fb.query(fb.collection(fb.db, "suporte"), fb.where("uid", "==", eu.uid), fb.limit(50))).catch(() => ({ docs: [] })),
     fb.getDocs(fb.query(fb.collection(fb.db, "avisos"), fb.where("uid", "==", eu.uid), fb.limit(30))).catch(() => ({ docs: [] }))
@@ -142,7 +149,54 @@ function pintarCats() {
   $("supDica").hidden = !dica;
   $("supDica").replaceChildren(icone("ajuda", "i s"), el("span", null, dica || ""));
 }
-function escolherCat(v) { catEscolhida = CAT[v] ? v : "outro"; pintarCats(); }
+function escolherCat(v) { catEscolhida = CAT[v] ? v : "outro"; pintarCats(); pintarPrevisao(); }
+// Prioridade e prazo que a pessoa vê antes de enviar.
+function pintarPrevisao() {
+  const box = $("supPrevisao"); if (!box) return;
+  const k = prioridadeDe(catEscolhida, nivelEu), P = PRIORIDADES[k];
+  box.hidden = false;
+  box.replaceChildren(el("b", k, `Prioridade ${P.nome.toLowerCase()}`), el("span", null, `a equipe responde em até ${P.horas} h${k === "alta" && nivelEu >= 2 ? " (atendimento prioritário do seu plano)" : ""}`));
+}
+// ---------- antes de abrir: respostas da Central de Ajuda (ajuda.html) que combinam com o que a pessoa escreve ----------
+let artigosP = null;
+function artigos() {
+  return (artigosP ||= fetch("ajuda.html").then((r) => r.text()).then((html) => {
+    const d = new DOMParser().parseFromString(html, "text/html");
+    return [...d.querySelectorAll("details")].map((x) => {
+      const pergunta = x.querySelector("summary")?.textContent.trim() || "", resp = x.querySelector(".resp");
+      return pergunta && resp ? { pergunta, html: resp.innerHTML, palavras: new Set(palavrasDe(pergunta + " " + resp.textContent)) } : null;
+    }).filter(Boolean);
+  }).catch(() => []));
+}
+// Palavras parecidas contam (as 5 primeiras letras: "cardapio" e "cardápios").
+const raiz = (p) => p.slice(0, 5);
+let esperaSug = null;
+async function pintarSugestoes() {
+  const box = $("supSugestoes"); if (!box) return;
+  const minhas = [...new Set(palavrasDe($("supAssunto").value + " " + $("supTexto").value).filter((p) => p.length >= 4).map(raiz))];
+  if (minhas.length < 2) { box.hidden = true; return; }
+  const lista = (await artigos()).map((a) => {
+    const deles = new Set([...a.palavras].map(raiz));
+    return { a, n: minhas.filter((p) => deles.has(p)).length };
+  }).filter((x) => x.n >= 2).sort((x, y) => y.n - x.n).slice(0, 3);
+  if (!lista.length) { box.hidden = true; return; }
+  const cab = el("h3", null, "Isso pode resolver agora"), sub = el("p", null, "Respostas da Central de Ajuda para o que você escreveu. Se não resolver, é só enviar o chamado.");
+  box.replaceChildren(cab, sub, ...lista.map(({ a }) => {
+    const d = el("details"); const sm = el("summary", null, a.pergunta); const r = el("div", "resp"); r.innerHTML = a.html;
+    r.querySelectorAll("a").forEach((ln) => { ln.target = "_blank"; ln.rel = "noopener"; });
+    const ok = el("button", "sup-resolveu", "Resolveu, não preciso do chamado"); ok.type = "button";
+    ok.addEventListener("click", () => {
+      try { const k = "hf-sup-resolvidos"; localStorage.setItem(k, String(Number(localStorage.getItem(k) || 0) + 1)); } catch {}
+      fecharFolha("folhaNovo"); $("supAssunto").value = ""; $("supTexto").value = ""; box.hidden = true;
+      toast("Que bom que resolveu! Se precisar, é só abrir um chamado.");
+    });
+    d.append(sm, r, ok); return d;
+  }));
+  box.hidden = false;
+}
+const agendarSugestoes = () => { clearTimeout(esperaSug); esperaSug = setTimeout(pintarSugestoes, 450); };
+$("supAssunto").addEventListener("input", agendarSugestoes);
+$("supTexto").addEventListener("input", agendarSugestoes);
 function novoChamado({ categoria = catEscolhida, assunto = "" } = {}) {
   escolherCat(categoria);
   if (assunto) $("supAssunto").value = assunto;
@@ -155,6 +209,8 @@ $("supEnviar").addEventListener("click", async () => {
   const assunto = $("supAssunto").value.trim(), texto = $("supTexto").value.trim(), categoria = catEscolhida;
   if (assunto.length < 3) { toast("Escreva um resumo do assunto."); $("supAssunto").focus(); return; }
   if (texto.length < 10) { toast("Conte um pouco mais (mínimo de 10 caracteres)."); $("supTexto").focus(); return; }
+  // Até 3 chamados em andamento por pessoa (a fila nacional fica justa para todo mundo).
+  if (chamados.filter((c) => c.status !== "fechado" && !c.abertoPor).length >= MAX_ABERTOS) { toast(`Você já tem ${MAX_ABERTOS} chamados em andamento. Continue por um deles ou espere a equipe responder.`); return; }
   const b = $("supEnviar"); b.disabled = true;
   try {
     const id = await criarChamado({ assunto, categoria, texto });
@@ -197,9 +253,14 @@ function pintarAnexoResp() { $("chAnexoPrevia").replaceChildren(...(anexoResp ? 
 $("chAnexar").addEventListener("click", () => escolherArquivos($("chArquivo"), 1, (a) => { anexoResp = a; pintarAnexoResp(); $("chTexto").focus(); }));
 // Chamado e primeira mensagem vão juntos: se algo falhar, nada fica pela metade.
 async function criarChamado({ assunto, categoria, texto }) {
+  const prioridade = prioridadeDe(categoria, nivelEu);
+  try { return await gravarChamado({ assunto, categoria, texto, prioridade }); }
+  catch (e) { if (e?.code !== "permission-denied") throw e; return gravarChamado({ assunto, categoria, texto }); } // regras antigas: sem a prioridade
+}
+async function gravarChamado({ assunto, categoria, texto, prioridade }) {
   const ref = fb.doc(fb.collection(fb.db, "suporte"));
   const lote = fb.writeBatch(fb.db);
-  lote.set(ref, { uid: eu.uid, nome: String(dados.nome || "").slice(0, 80), email: String(eu.email || "").slice(0, 120), assunto: assunto.slice(0, 120), categoria, status: "aberto", criadoEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp(), ultimaDe: "usuario" });
+  lote.set(ref, { ...(prioridade ? { prioridade } : {}), uid: eu.uid, nome: String(dados.nome || "").slice(0, 80), email: String(eu.email || "").slice(0, 120), assunto: assunto.slice(0, 120), categoria, status: "aberto", criadoEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp(), ultimaDe: "usuario" });
   lote.set(fb.doc(fb.db, "suporte", ref.id, "mensagens", "inicio"), { autorId: eu.uid, equipe: false, texto: texto.slice(0, 2000), em: fb.serverTimestamp() });
   await lote.commit();
   return ref.id;
@@ -220,7 +281,8 @@ function pintarCompositor(c) {
 async function abrir(c) {
   atual = c;
   $("tChamado").textContent = c.assunto;
-  $("chMeta").textContent = `${protocolo(c.id)} · ${c.abertoPor ? "Aberto pelo suporte" : nomeCat(c.categoria)} · ${quando(c.criadoEm)}`;
+  const esperando = c.status === "aberto" && !c.primeiraRespostaEm && !c.abertoPor;
+  $("chMeta").textContent = `${protocolo(c.id)} · ${c.abertoPor ? "Aberto pelo suporte" : nomeCat(c.categoria)} · ${quando(c.criadoEm)}${esperando ? " · " + textoPrevisao(c, nivelEu) : ""}`;
   pintarEtapas(c); pintarCompositor(c);
   $("chNota").replaceChildren();
   const box = $("chMsgs"); box.replaceChildren(el("div", "lista-vazia", "Carregando..."));
