@@ -55,15 +55,12 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   reescreve tudo; arquivo completo quando pedido; explicar a causa e dar solução prática; decisão não definida = perguntar, não
   inventar; separar o que está pronto, o que é possível, o que depende de serviço externo e o que precisa de validação jurídica
   ou financeira. Construir por etapas, com visão de longo prazo.
-- **Diferenças entre o documento e o site atual (PERGUNTAR antes de mexer; ele pediu nível nacional nesta mesma conversa):**
-  1) atuação só Florianópolis × site inteiro preparado para todo o Brasil (PRs #76–#85); 2) comissão 10–15% × site diz
-  "sem comissão" (Termos, Ajuda, Sobre, Profissionais, início, cadastro, login, delivery); 3) cores #000/#111/#0087C2 ×
-  tema escuro atual #070b0e/#0f161b/#0093cc (+ tema claro e Automático); 4) título "Bem-vindo à Help Floripa" × "Tudo o que
-  você precisa perto de você, num só lugar."; 5) categorias de serviço do documento × as 7 grupos/~27 áreas atuais
-  (`GRUPOS_SERV`, "Outra" já fica por último); 6) menu com subtítulo e seções novas × "sem subtítulo" e 4 opções; 7) "painel de
-  parcerias" descartado: confirmar se é o painel do admin (Parcerias) ou a página Sócios e parcerias, que hoje existe.
-  Documento completo (seções 1–23) recebido em 22/10/2026; versão juntada com a história técnica: documento "Help Floripa —
-  História, evolução e diagnóstico" (https://claude.ai/artifact/QygAianAGKf94wMR7T99oW).
+- **Diferenças entre o documento e o site atual: decididas por ele em 22/10/2026 — eram dados antigos, vale o site
+  como está.** Não perguntar de novo nem mudar por causa do documento: atuação em todo o Brasil, textos atuais sobre
+  comissão, tema escuro atual (#070b0e/#0f161b/#0093cc + claro e Automático), título atual do início, os 7 grupos de
+  `GRUPOS_SERV`, menu atual e a página Sócios e parcerias. Documento completo (seções 1–23) recebido em 22/10/2026;
+  versão juntada com a história técnica: documento "Help Floripa — História, evolução e diagnóstico"
+  (https://claude.ai/artifact/QygAianAGKf94wMR7T99oW).
 
 ## Situação (13/10/2026)
 - **Regras do Firestore publicadas por ele em 13/10/2026** (as do `firestore.rules` do main, Etapas 1 a 4).
