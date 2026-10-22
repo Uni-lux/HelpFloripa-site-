@@ -30,7 +30,8 @@ a { color: var(--accent); }
 
 /* ---------- topo ---------- */
 .ad-topo { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 12px; height: 60px; padding: 0 18px; background: color-mix(in srgb, var(--panel) 92%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
-.ad-marca { display: flex; align-items: baseline; gap: 10px; text-decoration: none; color: var(--text); white-space: nowrap; }
+.ad-marca { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text); white-space: nowrap; }
+.ad-logo { width: 34px; height: 34px; border-radius: 10px; flex: none; box-shadow: 0 2px 8px rgba(0, 0, 0, .25); }
 .ad-marca strong { font-weight: 900; letter-spacing: .5px; font-size: 17px; } .ad-marca strong span { color: var(--accent); }
 .ad-marca small { font-size: 11px; font-weight: 800; letter-spacing: 1.2px; color: var(--muted); text-transform: uppercase; border: 1px solid var(--line); padding: 3px 7px; border-radius: 999px; }
 .ad-busca { flex: 1; max-width: 520px; margin-left: auto; position: relative; }
@@ -307,7 +308,7 @@ input.ad-sel { flex: 1 1 220px; padding: 0 12px; }
   .ad-coluna { min-height: 0; }
 }
 @media (max-width: 400px) {
-  .ad-marca strong { font-size: 0; } .ad-marca strong::before { content: "HF"; font-size: 16px; color: var(--accent); }
+  .ad-marca strong { display: none; } /* no celular fica só a logomarca */
 }
 
 /* ---------- chat da equipe: visual de mensageiro (WhatsApp/Instagram) ---------- */
