@@ -1,26 +1,22 @@
 // =====================================================
 // Avisos da rede social (notificacoes.html)
-// Seguidores, estrelas, comentários, respostas, pedidos do social e mensagens.
-// Os dados chegam em tempo real por rede.js (ouvirAvisos).
+// Seguidores, estrelas, comentários, respostas, pedidos do social, mensagens, enquetes, avaliações,
+// reclamações, suporte e o plano. Os dados chegam em tempo real por rede.js (ouvirAvisos) e são
+// desenhados pela lista comum com o painel do sino (avisos-lista.js).
 // =====================================================
 import {
   $, el, icone, pintarAvatar, urlSegura, tempoRelativo, toast, erroAmigavel,
-  fb, eu, ganchos, iniciarRede, carregarMeusSeguindo, botaoSeguir, montarBarraRede, pintarBarraRede,
+  fb, eu, dados, refUsuario, ganchos, iniciarRede, carregarMeusSeguindo, botaoSeguir, montarBarraRede, pintarBarraRede,
   ouvirAvisos, aoMudarAvisos, avisosVistosEm, marcarAvisosVistos, rotuloVinculo, abrirComentarios, abrirResultadoEnquete, verRespostasCaixa
-} from "./rede.js?v=54";
+} from "./rede.js?v=55";
 import { TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=16";
 import { TEXTO_EQUIPE, linkEquipe, seloOficial, fotoSuporte } from "./avisos-equipe.js?v=1";
 import { textoEnqueteFim, resumoResultado } from "./enquetes.js?v=3";
-import { textoPlano, PLANOS } from "./planos-base.js?v=3";
-import { agrupar, secoes, nomesDoGrupo, textoDoGrupo } from "./avisos-agrupar.js?v=1";
+import { textoPlano } from "./planos-base.js?v=3";
+import { criarLista } from "./avisos-lista.js?v=1";
 
-let filtro = "tudo";
-let vistoAntes = 0;
+let vistoAntes = 0, ultimo = null, abriuPedida = false;
 const postsCache = new Map();
-const CORES = { avaliacao: "#f5b700", plano: "#7c3aed", caixa: "#ff7a1a", enquete: "#7c5cff", reacao: "#e0457b", marcacao: "#00adee", seguidor: "#00adee", curtida: "#f5b700", comentario: "#7c5cff", resposta: "#7c5cff", social: "#e0457b", mensagem: "#1fa855", reclamacao: "#ef4444", "reclamacao-resp": "#ff7a1a", "reclamacao-ok": "#2fbf71", suporte: "#00adee", aviso: "#7c5cff" };
-const ICONES = { avaliacao: "estrela", plano: "selo", caixa: "caixa", enquete: "enquete", reacao: "coracao", marcacao: "pessoa-mais", seguidor: "pessoa-mais", curtida: "estrela", comentario: "chat", resposta: "chat", social: "fio", mensagem: "envelope", reclamacao: "alerta", "reclamacao-resp": "chat", "reclamacao-ok": "check", suporte: "ajuda", aviso: "sino" };
-// Filtro de cada tipo (as três de reclamação ficam juntas; avisos e respostas do suporte também)
-const grupo = (t) => (t === "resposta" || t === "reacao" ? "comentario" : t === "enquete" || t === "caixa" ? "enquete" : t === "marcacao" ? "curtida" : t.startsWith("reclamacao") || t === "avaliacao" || t === "plano" ? "reclamacao" : t === "aviso" ? "suporte" : t);
 
 function obterPost(id) {
   if (!postsCache.has(id)) postsCache.set(id, fb.getDoc(fb.doc(fb.db, "diario", id)).then((s) => (s.exists() ? { id, ...s.data() } : null)).catch(() => null));
@@ -42,18 +38,19 @@ async function responderVinculo(v, aceitar) {
   } catch (e) { toast("Não foi possível responder: " + erroAmigavel(e)); }
 }
 
+// Os ids seguem os do painel do sino (painel-avisos.js), para "lida" e "removida" valerem nos dois.
 function itens(a) {
   return [
-    ...a.seguidores.map((x) => ({ tipo: "seguidor", ...x, texto: "começou a seguir você" })),
-    ...a.curtidas.map((x) => ({ tipo: "curtida", ...x, texto: `deu ${"★".repeat(x.nota)}${"☆".repeat(5 - x.nota)} na sua publicação` })),
-    ...a.comentarios.map((x) => ({ tipo: "comentario", ...x, texto: "comentou na sua publicação", detalhe: x.texto })),
-    ...a.respostas.filter((x) => !a.comentarios.some((c) => c.id === x.id)).map((x) => ({ tipo: "resposta", ...x, texto: "respondeu seu comentário", detalhe: x.texto })),
-    ...(a.reacoes || []).map((x) => ({ tipo: "reacao", ...x, texto: `reagiu com ${x.reacao} ao seu comentário` })),
-    ...(a.marcacoes || []).map((x) => ({ tipo: "marcacao", ...x, texto: "marcou você numa publicação" })),
-    ...(a.caixas || []).map((x) => ({ tipo: "caixa", ...x, texto: "respondeu sua caixa de perguntas", detalhe: x.texto })),
+    ...a.seguidores.map((x) => ({ tipo: "seguidor", ...x, docId: x.id, id: "s_" + x.id, texto: "começou a seguir você" })),
+    ...a.curtidas.map((x) => ({ tipo: "curtida", ...x, docId: x.id, id: "c_" + x.id, texto: `deu ${x.nota} ${x.nota === 1 ? "estrela" : "estrelas"} na sua publicação` })),
+    ...a.comentarios.map((x) => ({ tipo: "comentario", ...x, docId: x.id, id: "m_" + x.id, texto: "comentou na sua publicação", detalhe: x.texto })),
+    ...a.respostas.filter((x) => !a.comentarios.some((c) => c.id === x.id)).map((x) => ({ tipo: "resposta", ...x, docId: x.id, id: "r_" + x.id, texto: "respondeu seu comentário", detalhe: x.texto })),
+    ...(a.reacoes || []).map((x) => ({ tipo: "reacao", ...x, docId: x.id, id: "e_" + x.id, texto: `reagiu com ${x.reacao} ao seu comentário` })),
+    ...(a.marcacoes || []).map((x) => ({ tipo: "marcacao", ...x, docId: x.id, id: "k_" + x.id, texto: "marcou você numa publicação" })),
+    ...(a.caixas || []).map((x) => ({ tipo: "caixa", ...x, docId: x.id, id: "x_" + x.id, texto: "respondeu sua caixa de perguntas", detalhe: x.texto })),
     ...(a.enquetes || []).map((x) => ({ ...x, texto: x.souAutor ? "terminou. Veja o resultado." : textoEnqueteFim(x).titulo, detalhe: "" })),
     ...a.vinculos.map((x) => ({ tipo: "social", ...x, texto: x.pendente ? `quer adicionar você como ${rotuloVinculo(x.tipoParaMim).toLowerCase()}` : `aceitou seu pedido: ${rotuloVinculo(x.tipoParaMim)}` })),
-    ...a.mensagens.map((x) => ({ tipo: "mensagem", ...x, texto: "enviou uma mensagem", detalhe: x.ultimaMensagem })),
+    ...a.mensagens.map((x) => ({ tipo: "mensagem", ...x, naoLida: true, texto: "enviou uma mensagem", detalhe: x.ultimaMensagem })),
     ...(a.reclamacoes || []).map((x) => ({ ...x, texto: TEXTO_RECLAMACAO[x.tipo](x) })),
     ...(a.equipe || []).map((x) => ({ ...x, texto: TEXTO_EQUIPE(x), pendente: x.naoLida })),
     ...(a.planos || []).map((x) => ({ ...x, texto: textoPlano(x) }))
@@ -77,44 +74,9 @@ function miniResultado(i) {
   return box;
 }
 
-function linha(i) {
-  const d = el("div", "notif" + (i.quando > vistoAntes || i.pendente ? " nova" : ""));
-  d.tabIndex = 0; d.setAttribute("role", "button");
-  const w = el("div", "av-wrap" + (i.grupo ? " duplo" : ""));
-  const av = el("div", "avatar");
-  if (i.oficial) av.replaceChildren(fotoSuporte());
-  else if (i.tipo === "caixa" && i.anonima) { av.classList.add("anonimo"); av.replaceChildren(icone("mascara", "i s")); }
-  else if (i.tipo === "plano") { av.classList.add("plano"); av.style.setProperty("--pc", PLANOS[i.plano]?.cor || "#7c3aed"); av.replaceChildren(icone("selo", "i s")); }
-  else pintarAvatar(av, (i.grupo ? i.grupo[0] : i).foto, (i.grupo ? i.grupo[0] : i).nome);
-  // Linha agrupada: duas fotos sobrepostas, como nas redes sociais.
-  if (i.grupo) { const av2 = el("div", "avatar"); pintarAvatar(av2, i.grupo[1].foto, i.grupo[1].nome); w.appendChild(av2); }
-  const t = el("span", "tipo"); t.style.background = CORES[i.tipo]; t.appendChild(icone(ICONES[i.tipo], "i"));
-  w.append(av, t);
-  const tx = el("div", "tx");
-  const nome = el("b", null, nomesDoGrupo(i));
-  if (i.oficial) nome.appendChild(seloOficial());
-  tx.append(nome, document.createTextNode(" " + (i.grupo ? textoDoGrupo(i) : i.texto) + " "));
-  tx.appendChild(el("span", "quando", tempoRelativo(i.quando ? new Date(i.quando) : null)));
-  if (i.detalhe) tx.appendChild(el("small", null, i.oficial || i.tipo === "plano" ? i.detalhe : `"${i.detalhe}"`));
-  if (i.tipo === "enquete") tx.appendChild(miniResultado(i));
-  d.append(w, tx);
-  // Miniatura da publicação curtida ou comentada
-  if (i.postId) obterPost(i.postId).then((p) => {
-    const u = urlSegura(p?.mediaUrl);
-    if (u && p.mediaTipo !== "video") { const img = document.createElement("img"); img.className = "mini-foto"; img.src = u; img.alt = ""; d.appendChild(img); }
-  });
-  if (i.tipo === "seguidor" && !i.grupo) { const box = el("div", "acoes-linha"); box.appendChild(botaoSeguir(i.uid, { meSegue: true })); d.appendChild(box); }
-  if (i.tipo === "social" && i.pendente) {
-    const box = el("div", "acoes-linha");
-    [["Aceitar", "pri", true], ["Recusar", "sec", false]].forEach(([r, c, sim]) => {
-      const b = el("button", `btn mini ${c}`, r); b.type = "button";
-      b.addEventListener("click", async (e) => { e.stopPropagation(); b.disabled = true; await responderVinculo(i, sim); b.disabled = false; });
-      box.appendChild(b);
-    });
-    d.appendChild(box);
-  }
-  const abrir = async () => {
-    if (i.tipo === "enquete") { abrirResultadoEnquete(i); return; }
+// O que acontece ao tocar numa notificação (ou no botão de ação dela).
+async function abrirItem(i) {
+  if (i.tipo === "enquete") { abrirResultadoEnquete(i); return; }
     if (i.tipo === "caixa") {
       const s = await fb.getDoc(fb.doc(fb.db, i.itemTipo === "f" ? "stories" : "diario", i.itemId)).catch(() => null);
       if (!s?.exists() || !s.data().caixa) { toast(i.itemTipo === "f" ? "Esse flash já saiu do ar. A resposta: " + i.texto : "Essa publicação foi apagada."); return; }
@@ -138,59 +100,36 @@ function linha(i) {
       return;
     }
     ganchos.abrirPerfil(i.uid);
-  };
-  d.addEventListener("click", (e) => { if (!e.target.closest("button")) abrir(); });
-  d.addEventListener("keydown", (e) => { if (e.target === d && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); abrir(); } });
-  return d;
 }
 
-function pintar(a) {
-  const corpo = $("listaAvisos");
-  const todos = itens(a);
-  const cont = { tudo: todos.length };
-  todos.forEach((i) => { const t = grupo(i.tipo); cont[t] = (cont[t] || 0) + 1; });
-  document.querySelectorAll("#abasAvisos [data-filtro]").forEach((b) => { const n = cont[b.dataset.filtro] || 0; b.querySelector("em").textContent = n ? String(n) : ""; });
-  const lista = filtro === "tudo" ? todos : todos.filter((i) => grupo(i.tipo) === filtro);
-  corpo.replaceChildren();
-  if (!lista.length) {
-    const v = el("div", "feed-vazio");
-    v.append(el("strong", null, "Nada por aqui ainda"), el("span", null, "Quando alguém seguir você, der estrelas, comentar, avaliar seu negócio, responder uma reclamação, o suporte responder ou o seu plano estiver perto de vencer, aparece aqui."));
-    corpo.appendChild(v);
-    return;
-  }
-  const nova = (i) => i.quando > vistoAntes || !!i.pendente;
-  secoes(agrupar(lista, nova), nova).forEach(([t, l]) => {
-    corpo.appendChild(el("div", "grupo-titulo", t));
-    l.slice(0, 120).forEach((i) => corpo.appendChild(linha(i)));
-  });
+let lista = null;
+// Preferências por categoria: usuarios/{uid}.prefNotif (o próprio dono grava; o número do sino respeita).
+async function salvarPrefs(prefs) {
+  await fb.setDoc(refUsuario, { prefNotif: prefs }, { merge: true });
+  dados.prefNotif = prefs;
+  try { localStorage.removeItem("hf-sino-" + eu.uid); } catch {}
+  window.dispatchEvent(new CustomEvent("hf:prefs-notif", { detail: prefs }));
 }
-
-document.querySelectorAll("#abasAvisos [data-filtro]").forEach((b) => b.addEventListener("click", () => {
-  filtro = b.dataset.filtro;
-  document.querySelectorAll("#abasAvisos [data-filtro]").forEach((x) => x.setAttribute("aria-selected", x === b ? "true" : "false"));
-  aoMudarAvisosUmaVez();
-}));
-let ultimo = null, abriuPedida = false;
-function aoMudarAvisosUmaVez() { if (ultimo) pintar(ultimo); }
-
-function pintarPermissao() {
-  const box = $("avisoNavegador");
-  box.hidden = !("Notification" in window) || Notification.permission !== "default";
-}
-$("ativarNotif").addEventListener("click", async () => { try { await Notification.requestPermission(); } catch {} pintarPermissao(); });
+const miniatura = (i) => obterPost(i.postId).then((p) => (p ? { foto: p.mediaTipo !== "video" ? urlSegura(p.mediaUrl) : "", texto: p.texto || "" } : null));
 
 (async function iniciar() {
   try { await iniciarRede(); }
   catch (e) { $("listaAvisos").replaceChildren(el("div", "lista-vazia", e.message || "Não foi possível carregar.")); return; }
   montarBarraRede("avisos");
   pintarBarraRede();
-  carregarMeusSeguindo().then(() => ultimo && pintar(ultimo));
-  pintarPermissao();
   ouvirAvisos({ notificarNovos: false });
   vistoAntes = avisosVistosEm;
+  lista = criarLista({ raiz: $("listaAvisos"), uid: eu.uid, ganchos: {
+    abrir: abrirItem, miniatura, salvarPrefs,
+    botaoSeguir: (uid) => botaoSeguir(uid, { meSegue: true }),
+    responderVinculo: (i, sim) => responderVinculo(i, sim),
+    extra: (i) => (i.tipo === "enquete" ? miniResultado(i) : null),
+    marcarTodasVistas: () => marcarAvisosVistos()
+  } });
+  carregarMeusSeguindo().then(() => ultimo && lista.pintar(itens(ultimo)));
   const pedida = new URLSearchParams(location.search).get("enquete");
   aoMudarAvisos((a) => {
-    ultimo = a; pintar(a);
+    ultimo = a; lista.pintar(itens(a), { vistoAntes, prefs: dados.prefNotif || {} });
     const x = pedida && (a.enquetes || []).find((e) => e.alvo === pedida);
     if (x && !abriuPedida) { abriuPedida = true; abrirResultadoEnquete(x); }
   });

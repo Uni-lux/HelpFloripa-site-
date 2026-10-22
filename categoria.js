@@ -11,7 +11,7 @@ import { buscarReclamacoes } from "./avisos-reclamacoes.js?v=16";
 import { avisoPlano } from "./planos-base.js?v=3";
 import { ouvirItensEquipe } from "./avisos-equipe.js?v=1";
 import { enquetesEncerradas } from "./enquetes.js?v=3";
-import "./painel-avisos.js?v=19"; // o sino abre o painel de notificações na própria página
+import "./painel-avisos.js?v=20"; // o sino abre o painel de notificações na própria página
 import "./chat-gaveta.js?v=1";
 import { docComValidade } from "./leituras.js?v=1"; // "Mensagens" abre as conversas por cima da página, sem sair dela
 
@@ -65,18 +65,28 @@ async function contarAvisos(fs, db, uid) {
       ler([col("diario"), fs.where("marcados", "array-contains", uid)])
     ]);
     const novo = (t) => t > visto;
-    let n = seg.filter((x) => novo(ms(x.criadoEm))).length;
-    n += curt.filter((x) => x.uid !== uid && Number(x.nota) > 0 && novo(Math.max(ms(x.criadoEm), ms(x.atualizadoEm)))).length;
-    n += [...com, ...resp.filter((r) => r.postAutorId !== uid)].filter((x) => x.autorId !== uid && novo(ms(x.criadoEm))).length;
-    n += vin.filter((v) => (v.status !== "aceito" && v.para === uid) || (v.status === "aceito" && v.de === uid && novo(ms(v.aceitoEm)))).length;
-    n += recl.filter((x) => novo(x.quando)).length;
-    n += reac.filter((x) => x.uid !== uid && novo(ms(x.criadoEm))).length;
-    n += marc.filter((x) => x.autorId !== uid && novo(ms(x.criadoEm)) && (x.agendadoPara?.toMillis?.() ?? 0) <= Date.now()).length;
-    n += (await ler([col("caixa_respostas"), fs.where("autorId", "==", uid)])).filter((x) => novo(ms(x.criadoEm))).length;
-    n += (await enquetesEncerradas(fs, db, uid, usuario.exists() ? usuario.data() : {}).catch(() => [])).filter((x) => novo(x.quando)).length;
-    const plano = await avisoPlano({ ...fs, db }, uid).catch(() => null);
-    if (plano && novo(plano.quando)) n++;
-    const r = { n, visto, em: Date.now() };
+    // Preferências de notificação (usuarios.prefNotif): categoria desligada não conta.
+    const prefs = (usuario.exists() ? usuario.data().prefNotif : null) || {};
+    const on = (c) => prefs[c] !== false;
+    let n = 0;
+    if (on("seguidores")) n += seg.filter((x) => novo(ms(x.criadoEm))).length;
+    if (on("publicacoes")) {
+      n += curt.filter((x) => x.uid !== uid && Number(x.nota) > 0 && novo(Math.max(ms(x.criadoEm), ms(x.atualizadoEm)))).length;
+      n += [...com, ...resp.filter((r) => r.postAutorId !== uid)].filter((x) => x.autorId !== uid && novo(ms(x.criadoEm))).length;
+      n += reac.filter((x) => x.uid !== uid && novo(ms(x.criadoEm))).length;
+      n += marc.filter((x) => x.autorId !== uid && novo(ms(x.criadoEm)) && (x.agendadoPara?.toMillis?.() ?? 0) <= Date.now()).length;
+    }
+    if (on("social")) n += vin.filter((v) => (v.status !== "aceito" && v.para === uid) || (v.status === "aceito" && v.de === uid && novo(ms(v.aceitoEm)))).length;
+    if (on("negocios")) {
+      n += recl.filter((x) => novo(x.quando)).length;
+      const plano = await avisoPlano({ ...fs, db }, uid).catch(() => null);
+      if (plano && novo(plano.quando)) n++;
+    }
+    if (on("enquetes")) {
+      n += (await ler([col("caixa_respostas"), fs.where("autorId", "==", uid)])).filter((x) => novo(ms(x.criadoEm))).length;
+      n += (await enquetesEncerradas(fs, db, uid, usuario.exists() ? usuario.data() : {}).catch(() => [])).filter((x) => novo(x.quando)).length;
+    }
+    const r = { n, visto, msgs: on("mensagens"), em: Date.now() };
     try { localStorage.setItem(chaveSino(uid), JSON.stringify(r)); } catch {}
     return r;
   } catch { return { n: 0, visto: Date.now() }; }
@@ -120,15 +130,18 @@ async function iniciarTopo() {
     // O menu "Mensagens" continua mostrando todas as conversas não lidas.
     // Suporte Help Floripa: avisos da equipe e respostas do suporte ainda não abertos contam
     // no sino (se chegaram depois da última vez que viu as notificações) e em Mensagens.
-    let avisosNovos = 0, visto = Infinity, naoLidas = [], equipe = [];
+    let avisosNovos = 0, visto = Infinity, naoLidas = [], equipe = [], msgsNoSino = true;
     const pintarSino = () => {
       const eqNaoLidas = equipe.filter((i) => i.naoLida);
-      const n = avisosNovos + naoLidas.filter((t) => t > visto).length + eqNaoLidas.filter((i) => i.quando > visto).length, b = $("badgeAvisos");
+      const n = avisosNovos + (msgsNoSino ? naoLidas.filter((t) => t > visto).length : 0) + eqNaoLidas.filter((i) => i.quando > visto).length, b = $("badgeAvisos");
       if (b) { b.hidden = !n; b.textContent = n > 9 ? "9+" : String(n); }
       definirBadgeMensagens(naoLidas.length + eqNaoLidas.length);
     };
     pararEquipe?.(); pararEquipe = ouvirItensEquipe(fs, db, u.uid, (itens) => { equipe = itens; pintarSino(); });
-    contarAvisos(fs, db, u.uid).then((r) => { avisosNovos = r.n; visto = r.visto || 0; pintarSino(); });
+    const recontar = () => contarAvisos(fs, db, u.uid).then((r) => { avisosNovos = r.n; visto = r.visto || 0; msgsNoSino = r.msgs !== false; pintarSino(); });
+    recontar();
+    // Preferências de notificação mudaram: conta de novo (o número guardado já foi apagado).
+    addEventListener("hf:prefs-notif", recontar);
     addEventListener("hf:avisos-vistos", () => { avisosNovos = 0; visto = Date.now(); pintarSino(); });
     // Outra aba viu as notificações: zera aqui também.
     addEventListener("storage", (e) => { if (e.key === chaveSino(u.uid)) { const r = sinoGuardado(u.uid); if (r) { avisosNovos = r.n; visto = r.visto || 0; pintarSino(); } } });

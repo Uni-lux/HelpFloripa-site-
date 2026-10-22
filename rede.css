@@ -2121,3 +2121,8 @@ div.cfg2-linha { cursor: default; }
 /* local na publicação */
 .post-cab .quem .local-post { display: inline-flex; align-items: center; gap: 3px; max-width: 100%; padding: 0; border: 0; background: none; color: var(--text); font: inherit; font-size: 12.5px; font-weight: 650; cursor: pointer; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .post-cab .quem .local-post svg { flex: none; width: 12px; height: 12px; color: #e5484d; }
+
+/* página de notificações: lista comum com o painel do sino (avisos-lista.js) */
+.nt-pagina { padding: 12px 12px 8px; }
+.nt-pagina .nt2-barra { position: sticky; top: calc(var(--topo, 60px) + env(safe-area-inset-top)); z-index: 3; margin: -12px -12px 4px; padding: 12px 12px 10px; background: var(--panel); border-bottom: 1px solid var(--line); border-radius: 20px 20px 0 0; }
+.nt-pagina .nt2-acoes .btn { padding: 7px 12px; font-size: 12.5px; border-radius: 10px; }
