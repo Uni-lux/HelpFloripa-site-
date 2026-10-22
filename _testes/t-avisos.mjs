@@ -106,7 +106,7 @@ await pa.locator(".ad-acao-det .ad-bt", { hasText: "Abrir o chamado" }).click();
 await pa.waitForSelector(".ad-modal .ad-chat", { timeout: 8000 }).catch(() => {});
 ok((await pa.locator(".ad-modal h3").first().textContent().catch(() => "")).includes("Não consigo editar o cardápio"), "Abrir o chamado mostra a conversa do chamado");
 await pa.screenshot({ path: "saida/registro-chamado.png" });
-await pa.goto(BASE + "admin.html#registro"); await pa.reload(); await pa.waitForSelector(".ad-registro", { timeout: 30000 }); await pa.waitForTimeout(800);
+await pa.goto(BASE + "admin.html#registro"); await pa.reload(); await pa.locator(".ad-chip", { hasText: "Todas as ações" }).click({ timeout: 30000 }); await pa.waitForSelector(".ad-registro", { timeout: 30000 }); await pa.waitForTimeout(800);
 await pa.locator(".ad-registro tr", { hasText: "Resolveu denúncia" }).first().click(); await pa.waitForSelector(".ad-acao-det", { timeout: 5000 });
 ok((await pa.locator(".ad-acao-det").textContent()).includes("Golpe") && await pa.locator(".ad-acao-det .ad-bt", { hasText: "Ver o conteúdo denunciado" }).count() === 1, "denúncia: detalhes com motivo, trecho e Ver o conteúdo denunciado");
 await pa.locator(".ad-acao-det .ad-bt", { hasText: "Fechar" }).click();
