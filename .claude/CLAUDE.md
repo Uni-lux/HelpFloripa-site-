@@ -558,7 +558,8 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   Etapas que ainda faltam da lista nacional: 2) otimização do Diário, perfil e Mensagens; 3) mapa/endereços com mais capacidade
   que o Nominatim; 4) Pix automático (Mercado Pago, precisa do Blaze); 5) material do que não é programação (advogado, regras de
   publicidade dos conselhos de saúde, roteiro de teste no celular). Storage: lembrete em 26/10 (trig_0125yEkm2exoQLsnzU4hmT8s).
-  Em aberto com ele: negócio sem plano depois dos 30 dias grátis. Emulador: depois que o contêiner reinicia, subir de novo
+  Respondido por ele (22/10): os 30 dias grátis são só para quem ASSINA (primeira assinatura: dias do período pago + 30 de
+  bônus; depois segue normal, renovando pelo preço do plano). É o que já está feito (`primeiraAssinatura`/`DIAS_BONUS`). Emulador: depois que o contêiner reinicia, subir de novo
   (`setsid nohup ./emulador.sh` e `setsid nohup node servidor-csp.mjs`) e rodar `node seed.mjs`.
 - **As 5 etapas estão concluídas.** Próximos passos são as pendências abaixo (só ele pode fazer) e o que ficou
   para depois.
