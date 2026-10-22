@@ -6,8 +6,9 @@ import { cartaoComunicado } from "./comunicados.js?v=1";
 import { linha, linhaComparada, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=7";
 import { baixarPlanilhaMulti } from "./planilha.js?v=5";
 import { buscarPessoas } from "./pessoas.js?v=3";
-import { montarChat } from "./admin-chat.js?v=21";
-import { verConteudoDenuncia } from "./admin-denuncia.js?v=13";
+import { montarChat, postarNaConversa, idPar } from "./admin-chat.js?v=22";
+import { CANAIS, canalDaFila, STATUS } from "./equipe-canais.js?v=1";
+import { verConteudoDenuncia } from "./admin-denuncia.js?v=14";
 import { prepararAnexo, blocoAnexo, previaAnexo, aceitos } from "./anexos-suporte.js?v=2";
 import { FILAS, filaDe, PRIORIDADES as PRIO_SUP, prioridadeChamado, situacaoPrazo, ordemFila } from "./suporte-fila.js?v=1";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
@@ -17,7 +18,7 @@ import {
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha,
   PAPEIS, DESC_PAPEIS, pode, semPermissao, nomeEquipe, vendoAgora, marcarItem, seloResp, confirmarItem, controlesResp, espera,
   PRIORIDADES, editarTarefa, moverTarefa, garantirNegocios, garantirTodasPessoas, carregarPessoas, guardarPessoas, abrirConversaSuporte, banirPrograma
-} from "./admin-base.js?v=20";
+} from "./admin-base.js?v=21";
 
 const cab = (titulo, sub, extra) => { const c = h("div", "ad-cab"); const t = h("div"); t.append(h("h1", null, titulo)); if (sub) t.append(h("p", null, sub)); c.appendChild(t); if (extra) c.appendChild(extra); return c; };
 const bloco = (titulo, sub) => { const b = h("section", "ad-bloco"); const t = h("div", "ad-bloco-topo"); const tt = h("div"); tt.append(h("h3", null, titulo)); if (sub) tt.append(h("p", null, sub)); t.appendChild(tt); b.appendChild(t); b.topo = t; return b; };
@@ -697,6 +698,8 @@ function reportesSuporte(el) {
   pintar();
 }
 let abrirChamadoSuporte = null; // ligado pela seção Suporte (abrir a conversa a partir de um reporte)
+// Abrir um chamado de qualquer lugar do painel (cartão "#PROTOCOLO" no chat da equipe).
+C.abrirChamado = (s) => { C.irPara("suporte:todos"); setTimeout(() => abrirChamadoSuporte?.(s), 60); };
 
 // "Cobrar resposta" das reclamações: a última cobrança de cada uma (admin_log, acao cobrar_reclamacao).
 let cobrancasP = null;
@@ -738,7 +741,12 @@ export function suporte(el) {
   // "Pegar o próximo": o chamado mais urgente da fila (do setor escolhido) vai para você, travado numa transação.
   const proximo = h("div", "ad-sup-proximo");
   const btProx = btn("Pegar o próximo da fila", "pri", () => pegarProximo());
-  proximo.append(btProx, h("span", null, "Atrasados primeiro, depois urgente → alta → normal, e quem espera há mais tempo."));
+  // Quem está disponível agora (no painel e não em pausa ou fora do turno) para atender cada fila.
+  const disp = D.admins.filter((a) => (C.statusDe ? C.statusDe(a.id) : C.online(a.id) && "disponivel") === "disponivel");
+  const meuSt = STATUS[C.meuStatus] || STATUS.disponivel;
+  const linhaDisp = h("small", "ad-sup-disp");
+  linhaDisp.append(h("i", "ad-ponto " + meuSt.cls), document.createTextNode(`Você: ${meuSt.nome} · ${disp.length} ${disp.length === 1 ? "pessoa disponível" : "pessoas disponíveis"} agora`));
+  proximo.append(btProx, h("span", null, "Atrasados primeiro, depois urgente → alta → normal, e quem espera há mais tempo."), linhaDisp);
   el.appendChild(proximo);
   // Filas (setores) com quantos esperam em cada uma.
   const filas = chips([["todas", `Todas as filas (${abertos.length})`], ...Object.entries(FILAS).map(([k, f]) => [k, `${f.nome} (${abertos.filter((s) => filaDe(s.categoria) === k).length})`])], filaSup, (v) => { filaSup = v; pintar(); });
@@ -784,6 +792,8 @@ export function suporte(el) {
   async function pegarProximo() {
     const { fb } = C;
     btProx.disabled = true;
+    // Quem pega da fila está atendendo: volta para "Disponível" se estava em pausa ou fora do turno.
+    if (C.meuStatus && C.meuStatus !== "disponivel") { C.mudarStatus?.("disponivel"); toast("Sua situação voltou para Disponível"); }
     try {
       const vivos = await fb.getDocs(fb.query(fb.collection(fb.db, "suporte"), fb.where("status", "==", "aberto"), fb.limit(500))).then((x) => x.docs.map((d) => ({ id: d.id, ...d.data() }))).catch(() => abertos);
       vivos.forEach((v) => { const i = D.suporte.findIndex((x) => x.id === v.id); if (i >= 0) Object.assign(D.suporte[i], v); else D.suporte.push(v); });
@@ -871,8 +881,18 @@ export function suporte(el) {
       catch (e) { if (!prim || e?.code !== "permission-denied") throw e; await fb.updateDoc(ref, campos); }
     };
     // Transferir de setor / trocar prioridade e escalar (regras novas; sem elas, avisa).
+    // Transferir e escalar avisam o canal do setor no chat da equipe (com o cartão do chamado).
+    const avisarCanal = (campos) => {
+      const quem = nomeEquipe(C.eu.uid).split(" ")[0], tit = `${protocolo(s.id)} · ${String(s.assunto || "").slice(0, 80)}`;
+      if (campos.categoria) return postarNaConversa(canalDaFila(filaDe(campos.categoria)), `↪ ${quem} transferiu para este setor (prioridade ${PRIO_SUP[campos.prioridade]?.nome.toLowerCase() || "normal"}): ${tit}`);
+      if (campos.escalonadoPara === "moderacao") return postarNaConversa("moderacao", `⬆ ${quem} escalou para a moderação: ${tit}`);
+      if (campos.escalonadoPara === "donos") {
+        const donos = D.admins.filter((a) => (a.papel || "dono") === "dono" && a.id !== C.eu.uid);
+        return postarNaConversa("equipe", `⬆ ${quem} escalou para os donos ${donos.map((a) => "@" + (a.nome || nomeEquipe(a.id)).split(" ")[0]).join(" ")}: ${tit}`, donos.map((a) => a.id));
+      }
+    };
     const mexerFila = async (campos, oQue) => {
-      try { await fb.updateDoc(fb.doc(fb.db, "suporte", s.id), campos); Object.assign(s, campos); await registrar("suporte_fila", s.uid, `${protocolo(s.id)} · ${oQue}`, `suporte:${s.id}`); toast(oQue); fechar(); pintar(); }
+      try { await fb.updateDoc(fb.doc(fb.db, "suporte", s.id), campos); Object.assign(s, campos); await registrar("suporte_fila", s.uid, `${protocolo(s.id)} · ${oQue}`, `suporte:${s.id}`); avisarCanal(campos); toast(oQue); fechar(); pintar(); }
       catch (e) { toast(e?.code === "permission-denied" ? "Transferir e escalar começam a funcionar quando as regras novas forem publicadas." : "Não foi possível: " + (e.code || e.message)); }
     };
     const transferir = async () => {
@@ -885,6 +905,18 @@ export function suporte(el) {
       const v = await modal({ titulo: "Escalar o chamado", texto: "Para casos que você não pode resolver: a moderação (contas, conteúdo, golpes) ou os donos (pagamentos, planos, exceções) veem em \"Escalados para mim\".", campos: [
         { nome: "para", rotulo: "Para quem", tipo: "select", valor: s.escalonadoPara || "moderacao", opcoes: [["moderacao", "Moderação"], ["donos", "Donos do site"], ["", "Tirar o escalonamento"]] }], botao: "Escalar" });
       if (v) mexerFila({ escalonadoPara: v.para }, v.para ? `Escalado para ${v.para === "donos" ? "os donos" : "a moderação"}` : "Escalonamento retirado");
+    };
+    // Mandar o chamado (como cartão) para um canal ou para alguém da equipe.
+    const enviarParaEquipe = async () => {
+      const papelEu = D.admins.find((a) => a.id === C.eu.uid)?.papel || "dono";
+      const destinos = [["equipe", "# Geral (toda a equipe)"], ...CANAIS.filter((c) => !c.soDonos || papelEu === "dono").map((c) => [c.id, `# ${c.nome}`]),
+        ...D.admins.filter((a) => a.id !== C.eu.uid).map((a) => { const st = C.statusDe?.(a.id); return [idPar(C.eu.uid, a.id), `${a.nome || nomeEquipe(a.id)}${st ? " · " + STATUS[st].nome.toLowerCase() : ""}`]; })];
+      const v = await modal({ titulo: "Enviar para a equipe", texto: "O chamado vai como cartão no chat (quem tocar abre direto).", campos: [
+        { nome: "para", rotulo: "Para", tipo: "select", valor: canalDaFila(filaDe(s.categoria)), opcoes: destinos },
+        { nome: "nota", rotulo: "Mensagem (opcional)", tipo: "textarea", max: 500, dica: "Ex.: Pode olhar este? A pessoa mandou o comprovante." }], botao: "Enviar" });
+      if (!v) return;
+      const ok = await postarNaConversa(v.para, `${v.nota ? v.nota + " " : ""}${protocolo(s.id)} · ${String(s.assunto || "").slice(0, 80)}`);
+      toast(ok ? "Chamado enviado no chat da equipe" : "Não foi possível enviar. Os canais por setor precisam das regras novas; use o Geral ou uma conversa individual.");
     };
     const salvarPronta = async () => {
       const t = txt.value.trim(); if (t.length < 2) { toast("Escreva a resposta no campo e depois salve."); return; }
@@ -917,7 +949,7 @@ export function suporte(el) {
       s.status = "respondido"; await registrar("suporte_resposta", s.uid, s.assunto, `suporte:${s.id}`); toast("Resposta enviada"); fechar(); pintar();
     }));
     const linhaAnexo = h("div", "ad-anexo-linha"); linhaAnexo.append(btAnexo, inArq, btn("Salvar como resposta pronta", "", salvarPronta));
-    const fila = h("div", "ad-acoes ad-sup-fila-acoes"); fila.append(btn("Transferir / prioridade", "", transferir), btn("Escalar", "", escalar));
+    const fila = h("div", "ad-acoes ad-sup-fila-acoes"); fila.append(btn("Transferir / prioridade", "", transferir), btn("Escalar", "", escalar), btn("Enviar para a equipe", "", enviarParaEquipe));
     // Notas internas: só a equipe vê (a pessoa do chamado nunca vê).
     const notasBox = h("details", "ad-sup-notas"); notasBox.appendChild(h("summary", null, "Notas internas (só a equipe vê)"));
     const notasLista = h("div", "ad-sup-notas-l"), notaTxt = document.createElement("textarea"); notaTxt.maxLength = 1000; notaTxt.placeholder = "Ex.: Já pedi o comprovante; golpe parecido com a denúncia #ABC123...";
@@ -1869,7 +1901,7 @@ function todasAcoes(el) {
   pintar();
 }
 export function equipe(el) {
-  el.appendChild(cab("Equipe e chat", "Converse com todos ou com cada pessoa da equipe. Dá para mandar foto, arquivo e áudio."));
+  el.appendChild(cab("Equipe e chat", "Converse no Geral, nos canais de cada setor ou com cada pessoa da equipe. Escreva #PROTOCOLO para mostrar um chamado como cartão."));
   // "Como adicionar alguém à equipe" abre pelo ⓘ do chat (no celular o chat ocupa a tela toda).
   C.infoEquipe = () => {
     const fundo = h("div", "ad-modal-fundo"), cx = h("div", "ad-modal"); cx.setAttribute("role", "dialog"); cx.setAttribute("aria-modal", "true");

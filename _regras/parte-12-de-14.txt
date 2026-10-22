@@ -1,3 +1,31 @@
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['postId', 'uid', 'postAutorId', 'nota', 'criadoEm', 'origem'])
+                    && (!('origem' in request.resource.data) || request.resource.data.origem in ['principais', 'seguindo', 'amigos', 'perfil', 'link', 'tag', 'salvos'])
+                    && request.resource.data.uid == request.auth.uid
+                    && id == request.resource.data.postId + '_' + request.auth.uid
+                    && exists(/databases/$(database)/documents/diario/$(request.resource.data.postId))
+                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
+                    // pode dar estrelas na própria publicação ("se curtir")
+                    && notaOk(request.resource.data)
+                    && !bloqueioEntre(request.auth.uid, request.resource.data.postAutorId)
+                    && request.resource.data.criadoEm == request.time
+                    && resumoJunto(request.resource.data.postId);
+
+      allow update: if logado()
+                    && emailOk()
+                    && resource.data.uid == request.auth.uid
+                    && mudou().hasOnly(['nota', 'atualizadoEm'])
+                    && notaOk(request.resource.data)
+                    && request.resource.data.atualizadoEm == request.time
+                    && resumoJunto(resource.data.postId);
+
+      // Tirar a nota: tira junto do resumo. Publicação que já não existe: apaga sem resumo (limpeza de conta).
+      allow delete: if logado() && resource.data.uid == request.auth.uid
+                    && (resumoJunto(resource.data.postId)
+                        || !exists(/databases/$(database)/documents/diario/$(resource.data.postId)));
+    }
+
     // ===================================================
     // SALVAMENTOS: salvamentos/{postId}_{uid} — só para o autor contar quantos salvaram (não vê quem).
     // A lista de salvos de cada um continua em usuarios/{uid}.salvos (privada).
@@ -147,36 +175,4 @@
           ? /databases/$(database)/documents/diario/$(d.itemId)
           : /databases/$(database)/documents/stories/$(d.itemId)).data;
       }
-      function respostaOk() {
-        let d = request.resource.data;
-        let item = caixaDoItem(d);
-        let autoria = /databases/$(database)/documents/caixa_autoria/$(id);
-        return d.keys().hasOnly(['alvo', 'tipo', 'itemId', 'autorId', 'uid', 'nome', 'foto', 'texto', 'anonima', 'criadoEm'])
-            && d.tipo in ['d', 'f']
-            && d.itemId is string && d.itemId.matches('^[A-Za-z0-9]{1,64}$')
-            && d.alvo == d.tipo + '_' + d.itemId
-            && d.texto is string && d.texto.size() >= 1 && d.texto.size() <= 300
-            && d.criadoEm == request.time
-            && 'caixa' in item && d.autorId == item.autorId
-            && d.anonima == item.caixa.anonima
-            && (d.anonima
-                ? (!d.keys().hasAny(['uid', 'nome', 'foto']) && existsAfter(autoria) && getAfter(autoria).data.uid == request.auth.uid)
-                : (d.uid == request.auth.uid && textoAte('nome', 80) && textoAte('foto', 2000)));
-      }
-      allow create: if logado() && emailOk() && !sancionado(request.auth.uid) && respostaOk();
-      allow read, delete: if logado() && (resource.data.autorId == request.auth.uid
-                                       || resource.data.get('uid', '') == request.auth.uid
-                                       || podeModerar());
-      allow update: if false;
-    }
-    match /caixa_autoria/{id} {
-      allow read, delete: if podeModerar();
-      allow create: if logado()
-                    && request.resource.data.keys().hasOnly(['uid', 'criadoEm'])
-                    && request.resource.data.uid == request.auth.uid
-                    && request.resource.data.criadoEm == request.time
-                    && existsAfter(/databases/$(database)/documents/caixa_respostas/$(id));
-      allow update: if false;
-    }
-
 // ===== FIM DA PARTE 12 DE 14 =====

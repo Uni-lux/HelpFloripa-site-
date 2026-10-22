@@ -311,6 +311,48 @@ await t("equipe 10 min: depois de 10 minutos não apaga para todos", async () =>
 await t("equipe 10 min: reagir continua liberado", () => assertSucceeds(updateDoc(doc(ctx("mod"), "equipe_chat", "q3"), { "reacoes.mod": "👍" })));
 await t("equipe: ninguém apaga o conteúdo antes das 24 h", () => assertFails(deleteDoc(doc(ctx("adm"), "equipe_apagadas", "q1"))));
 
+// Canais da equipe por setor (equipe_canais) e situação no painel (equipe_presenca.status).
+const msgCanal = (quem, texto = "Golpe novo no Pix") => ({ autorId: quem, nome: quem, texto, em: serverTimestamp() });
+const resumoCanal = (quem) => ({ ultimaEm: serverTimestamp(), ultimaTexto: "Golpe novo", ultimoAutor: quem, ultimoNome: quem, mencoes: [] });
+await t("canais: suporte escreve no canal Segurança", () => assertSucceeds(setDoc(doc(ctx("mod2"), "equipe_canais", "seguranca", "mensagens", "c1"), msgCanal("mod2"))));
+await t("canais: resumo do canal (última mensagem)", () => assertSucceeds(setDoc(doc(ctx("mod2"), "equipe_canais", "seguranca"), resumoCanal("mod2"))));
+await t("canais: resumo em nome de outra pessoa é recusado", () => assertFails(setDoc(doc(ctx("mod2"), "equipe_canais", "seguranca"), resumoCanal("adm"))));
+await t("canais: resumo com campo a mais é recusado", () => assertFails(setDoc(doc(ctx("mod2"), "equipe_canais", "seguranca"), { ...resumoCanal("mod2"), lidoPor: [] })));
+await t("canais: toda a equipe lê o canal", () => assertSucceeds(getDoc(doc(ctx("mod"), "equipe_canais", "seguranca", "mensagens", "c1"))));
+await t("canais: quem não é da equipe não lê", () => assertFails(getDoc(doc(ctx("ana"), "equipe_canais", "seguranca", "mensagens", "c1"))));
+await t("canais: quem não é da equipe não escreve", () => assertFails(setDoc(doc(ctx("ana"), "equipe_canais", "seguranca", "mensagens", "c2"), msgCanal("ana"))));
+await t("canais: canal que não existe é recusado", () => assertFails(setDoc(doc(ctx("adm"), "equipe_canais", "festa", "mensagens", "c3"), msgCanal("adm"))));
+await t("canais: só os donos escrevem em Avisos", () => assertFails(setDoc(doc(ctx("mod"), "equipe_canais", "avisos", "mensagens", "c4"), msgCanal("mod", "Aviso"))));
+await t("canais: dono escreve em Avisos", () => assertSucceeds(setDoc(doc(ctx("adm"), "equipe_canais", "avisos", "mensagens", "c5"), msgCanal("adm", "Reunião sexta"))));
+await t("canais: moderação não muda o resumo de Avisos", () => assertFails(setDoc(doc(ctx("mod"), "equipe_canais", "avisos"), resumoCanal("mod"))));
+await t("canais: reagir em mensagem do canal", () => assertSucceeds(updateDoc(doc(ctx("mod"), "equipe_canais", "avisos", "mensagens", "c5"), { "reacoes.mod": "👍" })));
+await t("canais: anexo no canal (foto)", async () => {
+  const db = ctx("mod2"), b = writeBatch(db);
+  b.set(doc(db, "equipe_anexos", "axc1"), { autorId: "mod2", conversa: "canal-conta", dados: "data:image/png;base64,AAAA", em: serverTimestamp() });
+  b.set(doc(db, "equipe_canais", "conta", "mensagens", "c6"), { autorId: "mod2", nome: "mod2", texto: "", tipoArquivo: "imagem", anexo: "axc1", em: serverTimestamp() });
+  await assertSucceeds(b.commit());
+});
+await t("canais: toda a equipe abre o anexo do canal", () => assertSucceeds(getDoc(doc(ctx("mod"), "equipe_anexos", "axc1"))));
+await t("canais: anexo de outro canal é recusado", async () => {
+  const db = ctx("mod2"), b = writeBatch(db);
+  b.set(doc(db, "equipe_anexos", "axc2"), { autorId: "mod2", conversa: "canal-conta", dados: "data:image/png;base64,AAAA", em: serverTimestamp() });
+  b.set(doc(db, "equipe_canais", "negocios", "mensagens", "c7"), { autorId: "mod2", nome: "mod2", texto: "", tipoArquivo: "imagem", anexo: "axc2", em: serverTimestamp() });
+  await assertFails(b.commit());
+});
+await semRegras((db) => setDoc(doc(db, "equipe_canais", "negocios", "mensagens", "c8"), { autorId: "adm", nome: "Adm", texto: "Perfil duplicado", em: recente }));
+await t("canais: edita a própria mensagem (10 min)", () => assertSucceeds(updateDoc(doc(ctx("adm"), "equipe_canais", "negocios", "mensagens", "c8"), { texto: "Perfil duplicado: resolvido", editadaEm: serverTimestamp(), edicoes: [{ texto: "Perfil duplicado", em: recente }] })));
+await t("canais: apaga para todos (conteúdo por 24 h)", async () => {
+  const m = (await getDoc(doc(ctx("adm"), "equipe_canais", "negocios", "mensagens", "c8"))).data();
+  await assertSucceeds(apagarEq("adm", ["equipe_canais", "negocios", "mensagens", "c8"], "canal-negocios", { texto: m.texto, edicoes: m.edicoes }));
+});
+await t("canais: a equipe vê a apagada do canal", () => assertSucceeds(getDoc(doc(ctx("mod2"), "equipe_apagadas", "c8"))));
+await t("canais: apagada apontando outro canal é recusada", () => assertFails(apagarEq("adm", ["equipe_canais", "seguranca", "mensagens", "c1"], "canal-negocios", { texto: "Golpe novo no Pix" })));
+const pres = (quem, extra) => ({ nome: quem, em: serverTimestamp(), secao: "suporte", item: null, itemNome: null, ...extra });
+await t("presença: marca \"Em pausa\"", () => assertSucceeds(setDoc(doc(ctx("mod"), "equipe_presenca", "mod"), pres("mod", { status: "pausa" }))));
+await t("presença: \"Fora do turno\"", () => assertSucceeds(setDoc(doc(ctx("mod"), "equipe_presenca", "mod"), pres("mod", { status: "fora" }))));
+await t("presença: situação inventada é recusada", () => assertFails(setDoc(doc(ctx("mod"), "equipe_presenca", "mod"), pres("mod", { status: "ferias" }))));
+await t("presença: sem situação continua valendo (versão antiga)", () => assertSucceeds(setDoc(doc(ctx("mod"), "equipe_presenca", "mod"), pres("mod"))));
+
 // Suporte do usuário e avisos.
 await t("suporte: usuário abre chamado com a primeira mensagem", async () => {
   const db = ctx("bia"), b = writeBatch(db);

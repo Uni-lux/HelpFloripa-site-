@@ -3,9 +3,10 @@
 // Só entra quem tem o documento admins/{uid} (criado à mão no console do
 // Firebase). As regras do Firestore conferem isso em cada leitura e ação.
 // =====================================================
-import { C, D, $, h, ms, toast, PAPEIS, vendoAgora, pode, registrar, garantirNegocios, garantirTodasPessoas, carregarPessoas } from "./admin-base.js?v=20";
-import * as S from "./admin-secoes.js?v=43";
-import { previa, tocarSom } from "./admin-chat.js?v=21";
+import { C, D, $, h, ms, toast, PAPEIS, vendoAgora, pode, registrar, garantirNegocios, garantirTodasPessoas, carregarPessoas } from "./admin-base.js?v=21";
+import * as S from "./admin-secoes.js?v=44";
+import { previa, tocarSom } from "./admin-chat.js?v=22";
+import { meusCanais, silenciado, canalPorId, convCanal } from "./equipe-canais.js?v=1";
 
 const SECOES = {
   visao: S.visao, estatisticas: S.estatisticas, relatorios: S.relatorios, usuarios: S.usuarios, verificacoes: S.verificacoes,
@@ -68,9 +69,10 @@ function contadores() {
   set("sancoes", pend([...D.sancoes.values()].filter((s) => s.tipo === "banimento" || ms(s.ate) > Date.now()).length));
   set("parcerias", pend(D.parcerias.filter((p) => (p.status || "novo") === "novo").length));
   set("planos", pend((D.planosPedidos || []).filter((p) => p.status === "pendente").length + (D.planosNeg || []).filter((n) => n.status === "novo").length));
-  set("equipe", pend((C.chatNaoLidas || 0) + (C.dmNaoLidas || 0)));
+  set("equipe", pend((C.chatNaoLidas || 0) + (C.dmNaoLidas || 0) + (C.canaisNaoLidas || 0)));
   set("tarefas", pend(C.tarefas.filter((t) => t.status !== "feito" && t.responsavel === C.eu?.uid).length));
-  const on = D.admins.filter((a) => a.id !== C.eu?.uid && C.online(a.id)).length;
+  // Online = abriu o painel nos últimos minutos e não está "Fora do turno".
+  const on = D.admins.filter((a) => a.id !== C.eu?.uid && C.online(a.id) && C.statusDe?.(a.id) !== "fora").length;
   const e = $("equipeOnline"); if (e) { e.hidden = !on; e.textContent = `${on} da equipe online`; }
 }
 
@@ -84,9 +86,23 @@ function equipeAoVivo() {
   C.marcarChatVisto = () => { visto = Date.now(); try { localStorage.setItem(chaveVisto, String(visto)); } catch {} C.chatNaoLidas = 0; contadores(); };
   const avisar = () => { contadores(); C.pintarVendo?.(); if (atual === "equipe") C.aoMudarEquipe?.(); };
   let itemAtual = null, itemNome = null;
+  // Situação de quem está no painel: Disponível, Em pausa ou Fora do turno (guardada no aparelho e na presença).
+  const chaveStatus = "hf-status-" + C.eu.uid;
+  try { C.meuStatus = ["disponivel", "pausa", "fora"].includes(localStorage.getItem(chaveStatus)) ? localStorage.getItem(chaveStatus) : "disponivel"; } catch { C.meuStatus = "disponivel"; }
+  let semStatus = false; // regras antigas no servidor: a presença vai sem a situação
   C.marcarPresenca = (forcar) => {
     if (document.hidden && !forcar) return;
-    fb.setDoc(fb.doc(fb.db, "equipe_presenca", C.eu.uid), { nome: C.nome.slice(0, 80), secao: atual, item: itemAtual, itemNome, em: fb.serverTimestamp() }).catch((e) => console.warn("Presença:", e.code || e.message));
+    const dados = { nome: C.nome.slice(0, 80), secao: atual, item: itemAtual, itemNome, em: fb.serverTimestamp() };
+    const ref = fb.doc(fb.db, "equipe_presenca", C.eu.uid);
+    fb.setDoc(ref, semStatus ? dados : { ...dados, status: C.meuStatus }).catch((e) => {
+      if (e?.code === "permission-denied" && !semStatus) { semStatus = true; return fb.setDoc(ref, dados); }
+      throw e;
+    }).catch((e) => console.warn("Presença:", e.code || e.message));
+  };
+  C.statusDe = (uid) => (!C.online(uid) ? null : uid === C.eu.uid ? C.meuStatus : (["pausa", "fora"].includes(C.presenca.get(uid)?.status) ? C.presenca.get(uid).status : "disponivel"));
+  C.mudarStatus = (st) => {
+    C.meuStatus = st; try { localStorage.setItem(chaveStatus, st); } catch {}
+    C.marcarPresenca(true); avisar();
   };
   // Item aberto agora (ficha, denúncia, chamado, proposta): a equipe vê "fulano está vendo".
   C.marcarItem = (item, nome) => { if (item === itemAtual) return; itemAtual = item || null; itemNome = item ? String(nome || "").slice(0, 120) || null : null; C.marcarPresenca(true); };
@@ -121,11 +137,44 @@ function equipeAoVivo() {
     if (!primeira) s.docChanges().filter((c) => c.type === "added" && c.doc.data().autorId !== C.eu.uid && !c.doc.metadata.hasPendingWrites).slice(-1).forEach((c) => {
       const m = c.doc.data(), mencao = (m.mencoes || []).includes(C.eu.uid);
       if (vendoConversa("equipe") && !mencao) return;
-      toast(mencao ? `${m.nome || "Alguém"} mencionou você no chat da equipe: ${previa(m).slice(0, 60)}` : `Equipe · ${m.nome || "mensagem"}: ${previa(m).slice(0, 60)}`);
+      toast(mencao ? `${m.nome || "Alguém"} mencionou você no Geral: ${previa(m).slice(0, 60)}` : `Geral · ${m.nome || "mensagem"}: ${previa(m).slice(0, 60)}`);
       tocarSom();
     });
     primeira = false; avisar();
   }, (e) => console.warn("Chat da equipe:", e.code || e.message));
+  // Canais por setor: só o resumo de cada um (≤ 7 documentos); as mensagens são lidas quando o canal é aberto.
+  C.canais = new Map(); C.canaisNaoLidas = 0;
+  C.papelEu = D.admins.find((a) => a.id === C.eu.uid)?.papel || "dono";
+  C.prefCanais = {};
+  C.meusCanais = () => meusCanais(C.papelEu, C.prefCanais);
+  const chaveCanais = "hf-canais-visto-" + C.eu.uid;
+  let vistoCanais = {}; try { vistoCanais = JSON.parse(localStorage.getItem(chaveCanais) || "{}") || {}; } catch {}
+  C.canalVisto = (id) => Number(vistoCanais[id] || 0);
+  C.marcarCanalVisto = (id) => { vistoCanais[id] = Date.now(); try { localStorage.setItem(chaveCanais, JSON.stringify(vistoCanais)); } catch {} contarCanais(); contadores(); };
+  // Preferências da pessoa (entrar, sair e silenciar canais) ficam na conta dela.
+  C.salvarPrefCanais = async (pref) => {
+    C.prefCanais = pref; contarCanais(); avisar();
+    await fb.setDoc(fb.doc(fb.db, "usuarios", C.eu.uid), { equipeCanais: pref }, { merge: true });
+  };
+  const naoLidaCanal = (id, d) => C.meusCanais().includes(id) && d.ultimoAutor !== C.eu.uid && ms(d.ultimaEm) > C.canalVisto(id) && !vendoConversa(convCanal(id));
+  const mencionaMe = (d) => Array.isArray(d.mencoes) && d.mencoes.includes(C.eu.uid);
+  // Canal silenciado não conta (a não ser que tenham mencionado você).
+  const contarCanais = () => { C.canaisNaoLidas = [...C.canais.entries()].filter(([id, d]) => naoLidaCanal(id, d) && (!silenciado(id, C.prefCanais) || mencionaMe(d))).length; };
+  fb.getDoc(fb.doc(fb.db, "usuarios", C.eu.uid)).then((sn) => { const p = sn.data()?.equipeCanais; if (p && typeof p === "object") { C.prefCanais = p; contarCanais(); avisar(); } }).catch(() => {});
+  let primeiraC = true;
+  fb.onSnapshot(fb.collection(fb.db, "equipe_canais"), (s) => {
+    C.canais = new Map(s.docs.filter((d) => canalPorId(d.id)).map((d) => [d.id, d.data({ serverTimestamps: "estimate" })]));
+    contarCanais();
+    if (!primeiraC) s.docChanges().filter((c) => c.type !== "removed" && !c.doc.metadata.hasPendingWrites && canalPorId(c.doc.id)).forEach((c) => {
+      const d = c.doc.data({ serverTimestamps: "estimate" });
+      if (!naoLidaCanal(c.doc.id, d)) return;
+      const mencao = mencionaMe(d);
+      if (silenciado(c.doc.id, C.prefCanais) && !mencao) return;
+      toast(mencao ? `${d.ultimoNome || "Alguém"} mencionou você em ${canalPorId(c.doc.id).nome}: ${String(d.ultimaTexto || "").slice(0, 60)}` : `${canalPorId(c.doc.id).nome} · ${d.ultimoNome || "mensagem"}: ${String(d.ultimaTexto || "").slice(0, 60)}`);
+      tocarSom();
+    });
+    primeiraC = false; avisar();
+  }, (e) => console.warn("Canais da equipe:", e.code || e.message));
   // Conversas individuais: só o resumo de cada uma (quem falou por último, quando, e quando eu li).
   C.dms = new Map(); C.dmNaoLidas = 0;
   let primeiraDm = true;
@@ -263,6 +312,13 @@ async function carregar(mostrar = true) {
   // fecha ao tocar fora.
   $("btMenu").addEventListener("click", () => menuLateral(!$("lateral").classList.contains("aberta")));
   $("btAtualizar").addEventListener("click", async () => { await carregar(true); toast("Dados atualizados"); });
+  // Celular: a lupa abre o campo de busca por cima da barra; o × (ou Esc) fecha.
+  const topoBusca = document.querySelector(".ad-topo");
+  const fecharBusca = () => { topoBusca.classList.remove("buscando"); $("buscaGlobal").blur(); };
+  $("btBuscaCel").addEventListener("click", () => { topoBusca.classList.add("buscando"); $("buscaGlobal").placeholder = "Nome, @, e-mail, telefone ou ID"; $("buscaGlobal").focus(); });
+  $("btBuscaFechar").addEventListener("click", (e) => { e.preventDefault(); $("buscaGlobal").value = ""; fecharBusca(); });
+  $("buscaGlobal").addEventListener("keydown", (e) => { if (e.key === "Escape") fecharBusca(); });
+  $("buscaGlobal").addEventListener("blur", () => setTimeout(() => { if (!$("buscaGlobal").value.trim() && document.activeElement !== $("buscaGlobal")) topoBusca.classList.remove("buscando"); }, 150));
   let tempo; $("buscaGlobal").addEventListener("input", (e) => { clearTimeout(tempo); const t = e.target.value; tempo = setTimeout(() => { if (t.trim()) irPara("usuarios", t.trim()); }, 300); });
   atual = (location.hash.slice(1) || "visao");
   await carregar(true);

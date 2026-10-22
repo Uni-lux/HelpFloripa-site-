@@ -31,7 +31,7 @@ a { color: var(--accent); }
 /* ---------- topo ---------- */
 .ad-topo { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 12px; height: 60px; padding: 0 18px; background: color-mix(in srgb, var(--panel) 92%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
 .ad-marca { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text); white-space: nowrap; }
-.ad-logo { width: 36px; height: 36px; border-radius: 10px; flex: none; box-shadow: 0 2px 8px rgba(0, 0, 0, .25); }
+.ad-logo { width: 40px; height: 40px; border-radius: 10px; flex: none; box-shadow: 0 2px 8px rgba(0, 0, 0, .25); }
 /* Marca com o slogan (como no logo): HELP FLORIPA em cima, "Tudo em um só lugar" embaixo */
 .ad-marca-tx { display: grid; line-height: 1.05; }
 .ad-marca-tx em { font-style: normal; font-size: 9.5px; font-weight: 700; letter-spacing: .9px; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
@@ -40,6 +40,7 @@ a { color: var(--accent); }
 .ad-busca { flex: 1; max-width: 520px; margin-left: auto; position: relative; }
 .ad-busca input { width: 100%; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: var(--input); padding: 0 12px 0 38px; }
 .ad-busca .i { position: absolute; left: 11px; top: 10px; color: var(--muted); }
+.ad-icone.ad-busca-bt, .ad-busca-x { display: none; }
 .ad-icone { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); cursor: pointer; color: var(--text); text-decoration: none; flex: none; }
 .ad-icone:hover { background: var(--hover); }
 .ad-menu-bt { display: none; }
@@ -297,8 +298,12 @@ input.ad-sel { flex: 1 1 220px; padding: 0 12px; }
   .ad-grade > *, .ad-grade > .terco { grid-column: 1 / -1; }
   .ad-atualizado, .ad-marca small { display: none; }
   .ad-topo { gap: 8px; padding: 0 10px; }
-  .ad-busca { min-width: 0; flex: 1 1 0; }
-  .ad-busca input { padding-right: 6px; }
+  /* Busca no celular: só a lupa; tocar abre o campo em cima da barra, na largura toda (antes o campo ficava espremido). */
+  .ad-busca { display: none; }
+  .ad-icone.ad-busca-bt { display: grid; margin-left: auto; }
+  .ad-topo.buscando .ad-busca { display: block; position: absolute; left: 10px; right: 10px; top: 10px; max-width: none; margin: 0; z-index: 3; }
+  .ad-topo.buscando .ad-busca input { padding-right: 44px; font-size: 16px; box-shadow: var(--shadow); }
+  .ad-topo.buscando .ad-busca-x { display: grid; place-items: center; position: absolute; right: 5px; top: 5px; width: 30px; height: 30px; border: 0; border-radius: 9px; background: var(--hover); color: var(--text); font-size: 20px; line-height: 1; cursor: pointer; }
   .ad-marca strong { font-size: 15px; }
   .ad-icone { width: 38px; height: 38px; }
   .ad-dados { grid-template-columns: 1fr; }
@@ -311,7 +316,7 @@ input.ad-sel { flex: 1 1 220px; padding: 0 12px; }
   .ad-coluna { min-height: 0; }
 }
 @media (max-width: 400px) {
-  .ad-marca { gap: 7px; } .ad-logo { width: 32px; height: 32px; } .ad-marca-tx strong { font-size: 12.5px; } .ad-marca-tx em { font-size: 7px; letter-spacing: .5px; }
+  .ad-marca { gap: 7px; } .ad-logo { width: 34px; height: 34px; } .ad-marca-tx strong { font-size: 12.5px; } .ad-marca-tx em { font-size: 7px; letter-spacing: .5px; }
 }
 
 /* ---------- chat da equipe: visual de mensageiro (WhatsApp/Instagram) ---------- */
@@ -774,3 +779,40 @@ input.ad-sel { flex: 1 1 220px; padding: 0 12px; }
   .ad-anexo-linha { flex-wrap: wrap; }
   .ad-sup-fila-acoes > button { flex: 1 1 0; }
 }
+
+/* ---------- chat da equipe em nível nacional: canais por setor, situação de cada um, cartão de chamado ---------- */
+.ad-ponto.pausa { background: #f5a400; }
+.ad-ponto.fora { background: var(--panel); box-shadow: inset 0 0 0 2px var(--muted); }
+.eq-status-linha { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 12px 10px; padding: 6px 6px 6px 12px; border: 1px solid var(--line); border-radius: 14px; font-size: 12.5px; color: var(--muted); }
+.eq-status { display: inline-flex; align-items: center; gap: 7px; border: 0; background: var(--panel-2); color: var(--text); border-radius: 10px; padding: 6px 8px 6px 10px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.eq-status:hover { background: var(--hover); }
+.eq-status .ad-ponto, .eq-menu-item .ad-ponto, .ad-sup-disp .ad-ponto { position: static; display: inline-block; flex: none; border: 0; }
+.eq-status .eq-ic { color: var(--muted); }
+.eq-menu-item.atual { font-weight: 750; background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.eq-menu-item .ad-ponto { width: 11px; height: 11px; margin: 0 4px; }
+.eq-av-canal { display: grid; place-items: center; color: #fff; background: var(--cor-canal, var(--accent)); }
+.eq-av-canal .eq-ic { stroke-width: 2.3; }
+.eq-topo .eq-av-canal { width: 40px; height: 40px; }
+.eq-lista-sec { padding: 14px 16px 6px; font-size: 11.5px; font-weight: 800; letter-spacing: .7px; text-transform: uppercase; color: var(--muted); }
+.eq-item.fora-canal .ad-av { opacity: .55; }
+.eq-item.fora-canal .l1 strong { color: var(--muted); font-weight: 600; }
+.eq-item .l1 strong .eq-ic { vertical-align: -2px; margin-left: 5px; color: var(--muted); }
+.eq-nao.ponto { min-width: 10px; width: 10px; height: 10px; padding: 0; }
+.eq-nao.ponto.mudo { background: var(--muted); }
+.eq-bloqueio { position: relative; z-index: 1; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 14px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--panel); color: var(--muted); font-size: 13.5px; }
+.eq-bloqueio > span { flex: 1 1 200px; }
+.eq-bloqueio .eq-ic { color: var(--accent); flex: none; }
+.eq-chamados { display: grid; gap: 6px; margin-top: 6px; }
+.eq-chamado { display: grid; gap: 3px; width: 100%; min-width: 220px; text-align: left; padding: 9px 11px; border-radius: 12px; border: 1px solid var(--line); border-left: 4px solid var(--accent); background: var(--panel); color: var(--text); font: inherit; cursor: pointer; }
+.eq-chamado:hover { background: var(--hover); }
+.eq-chamado .l1 { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.eq-chamado .l1 b { color: var(--text); letter-spacing: .3px; }
+.eq-chamado > strong { font-size: 13.5px; line-height: 1.3; overflow-wrap: anywhere; }
+.eq-chamado .l3 { font-size: 12px; color: var(--muted); }
+.eq-chamado .l3.atrasado { color: var(--st-critico); font-weight: 700; }
+.eq-prio { margin-left: auto; padding: 1px 7px; border-radius: 999px; font-size: 10.5px; font-weight: 800; background: var(--panel-2); color: var(--muted); }
+.eq-prio.urgente { background: color-mix(in srgb, var(--st-critico) 15%, transparent); color: var(--st-critico); }
+.eq-prio.alta { background: color-mix(in srgb, #f5a400 20%, transparent); color: #b07800; }
+:root[data-theme="dark"] .eq-prio.alta { color: #f5b400; }
+.ad-sup-disp { flex-basis: 100%; display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12px; }
+.ad-sup-disp .ad-ponto { width: 9px; height: 9px; }

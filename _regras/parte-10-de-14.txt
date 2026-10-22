@@ -55,7 +55,8 @@
       allow read: if admin();
       allow create, update: if admin()
                     && request.auth.uid == uid
-                    && request.resource.data.keys().hasOnly(['nome', 'em', 'secao', 'item', 'itemNome'])
+                    && request.resource.data.keys().hasOnly(['nome', 'em', 'secao', 'item', 'itemNome', 'status'])
+                    && request.resource.data.get('status', 'disponivel') in ['disponivel', 'pausa', 'fora']
                     && valorTextoAte(request.resource.data.get('nome', ''), 80)
                     && valorTextoAte(request.resource.data.get('secao', ''), 40)
                     && valorTextoAte(request.resource.data.get('item', null), 160)
@@ -147,6 +148,31 @@
       allow update: if admin() && (edicaoEquipeOk() || apagarEquipeOk(id));
       allow delete: if false;
     }
+    // Canais da equipe por setor (equipe-canais.js): equipe_canais/{canal} guarda só o resumo da última
+    // mensagem; as mensagens ficam em equipe_canais/{canal}/mensagens. Toda a equipe lê; em "avisos" só
+    // os donos escrevem.
+    function canalEquipeOk(canal) {
+      return canal.matches('^(avisos|seguranca|moderacao|pagamentos|negocios|conta|comercial)$')
+          && (canal != 'avisos' || papel() == 'dono');
+    }
+    match /equipe_canais/{canal} {
+      allow read: if admin();
+      allow create, update: if admin() && canalEquipeOk(canal)
+                    && request.resource.data.keys().hasOnly(['ultimaEm', 'ultimaTexto', 'ultimoAutor', 'ultimoNome', 'mencoes'])
+                    && request.resource.data.ultimoAutor == request.auth.uid
+                    && request.resource.data.ultimaEm == request.time
+                    && valorTextoAte(request.resource.data.get('ultimaTexto', ''), 140)
+                    && valorTextoAte(request.resource.data.get('ultimoNome', ''), 80)
+                    && (!('mencoes' in request.resource.data) || (request.resource.data.mencoes is list && request.resource.data.mencoes.size() <= 10));
+      allow delete: if false;
+      match /mensagens/{id} {
+        allow read: if admin();
+        allow create: if admin() && canalEquipeOk(canal) && msgEquipeOk('canal-' + canal);
+        allow update: if admin() && reacaoValida();
+        allow update: if admin() && (edicaoEquipeOk() || apagarEquipeOk(id));
+        allow delete: if false;
+      }
+    }
     // Conversa individual entre duas pessoas da equipe: equipe_dm/{uidA_uidB} (ids em ordem).
     // O documento guarda só o resumo (última mensagem e quando cada um leu).
     match /equipe_dm/{par} {
@@ -154,29 +180,5 @@
         return admin() && par.split('_').size() == 2 && request.auth.uid in par.split('_')
             && exists(/databases/$(database)/documents/admins/$(par.split('_')[0]))
             && exists(/databases/$(database)/documents/admins/$(par.split('_')[1]));
-      }
-      allow read: if admin() && request.auth.uid in resource.data.participantes;
-      allow create, update: if membro()
-                    && request.resource.data.keys().hasOnly(['participantes', 'ultimaEm', 'ultimaTexto', 'ultimoAutor', 'lidoEm'])
-                    && request.resource.data.participantes == par.split('_')
-                    && valorTextoAte(request.resource.data.get('ultimaTexto', ''), 140)
-                    && (!('ultimoAutor' in request.resource.data) || request.resource.data.ultimoAutor in par.split('_'))
-                    && request.resource.data.get('lidoEm', {}) is map;
-      allow delete: if false;
-      match /mensagens/{id} {
-        allow read: if admin() && request.auth.uid in par.split('_');
-        allow create: if admin() && par.split('_').size() == 2 && request.auth.uid in par.split('_') && msgEquipeOk(par);
-        allow update: if admin() && request.auth.uid in par.split('_') && reacaoValida();
-        allow update: if admin() && request.auth.uid in par.split('_') && (edicaoEquipeOk() || apagarEquipeOk(id));
-        allow delete: if false;
-      }
-    }
-    // Conteúdo de mensagem do chat da equipe apagada para todos (abre por 24 horas, só quem participa;
-    // depois disso qualquer um da conversa apaga de vez).
-    match /equipe_apagadas/{id} {
-      function daConversaEq(c) { return c == 'equipe' || request.auth.uid in c.split('_'); }
-      function msgEq(c) {
-        return c == 'equipe' ? /databases/$(database)/documents/equipe_chat/$(id)
-                             : /databases/$(database)/documents/equipe_dm/$(c)/mensagens/$(id);
       }
 // ===== FIM DA PARTE 10 DE 14 =====

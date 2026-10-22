@@ -538,7 +538,12 @@ export function controlesResp(colecao, o, { permitido = true, aoMudar } = {}) {
   const outros = D.admins.filter((a) => a.id !== o.responsavel);
   if (outros.length) {
     const sel = document.createElement("select"); sel.className = "ad-sel-mini"; sel.setAttribute("aria-label", "Passar para alguém da equipe");
-    sel.append(new Option("Passar para…", ""), ...outros.map((a) => new Option(a.id === C.eu.uid ? "Mim" : (a.nome || nomeEquipe(a.id)), a.id)));
+    // Quem está "Fora do turno" não recebe item passado; "Em pausa" aparece marcado.
+    sel.append(new Option("Passar para…", ""), ...outros.map((a) => {
+      const st = a.id === C.eu.uid ? null : C.statusDe?.(a.id);
+      const op = new Option(a.id === C.eu.uid ? "Mim" : `${a.nome || nomeEquipe(a.id)}${st === "pausa" ? " · em pausa" : st === "fora" ? " · fora do turno" : ""}`, a.id);
+      op.disabled = st === "fora"; return op;
+    }));
     sel.addEventListener("click", (e) => e.stopPropagation());
     sel.addEventListener("change", async () => { const v = sel.value; sel.value = ""; if (v) { try { await salvar(v); } catch (err) { toast("Não foi possível: " + (err.code || err.message)); } } });
     w.appendChild(sel);

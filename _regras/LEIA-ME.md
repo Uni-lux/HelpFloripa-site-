@@ -34,17 +34,20 @@
 > contestação ou plano Pro/Premium; normal sempre), a equipe **transfere de setor, troca a prioridade e escala** para a moderação
 > ou os donos (`escalonadoPara`), grava a hora da **1ª resposta** (`primeiraRespostaEm`), escreve **notas internas**
 > (`suporte/{id}/notas`: só a equipe lê, ninguém edita) e salva **respostas prontas da equipe** (`suporte_respostas`).
+> **Chat da equipe por canais (22/10):** canais por setor (`equipe_canais`: Avisos, Segurança, Moderação, Pagamentos,
+> Negócios, Conta e Comercial; toda a equipe lê, em Avisos só os donos escrevem; anexos e apagar/editar como no Geral) e a
+> **situação de cada um** no painel (`equipe_presenca.status`: disponível, em pausa ou fora do turno).
 > Para publicar, o processo é o mesmo: apagar tudo no console e colar as 14 partes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
 `firestore.rules` divididas em **14 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
-- Arquivo de origem: `firestore.rules` (168.578 bytes, 2.853 linhas, sha256 começa com `afbbb0a928a15505`).
+- Arquivo de origem: `firestore.rules` (170.578 bytes, 2.882 linhas, sha256 começa com `cbe73f5129ae5fea`).
 - Cada parte termina com a linha `// ===== FIM DA PARTE X DE 14 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
 - Conferido: as 14 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **527 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
+- Testes de regras no arquivo remontado: **550 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.
