@@ -62,10 +62,14 @@ export function pedirLocalizacao() {
     }, (e) => reject(new Error(e?.code === 1 ? "Permissão de localização negada. Libere nas configurações do navegador." : "Não deu para pegar a sua localização agora.")), { enableHighAccuracy: false, timeout: 12000, maximumAge: 10 * 60000 });
   });
 }
-// Posição para usar agora: GPS guardado (até 12 h) ou o centro da cidade do perfil (dados da conta).
+// Posição para usar agora: GPS guardado (até 12 h), a cidade escolhida em "Você está em"
+// (`hf-busca-local`, local-escolhido.js) ou o centro da cidade do perfil (dados da conta).
 export async function minhaPosicao(perfil = {}) {
   const g = posicaoGuardada();
   if (g && g.origem === "gps" && Date.now() - (g.em || 0) < 12 * 3600e3) return g;
+  let escolhida = null;
+  try { escolhida = JSON.parse(localStorage.getItem("hf-busca-local") || "null"); } catch {}
+  if (escolhida?.cidadeIbge) { const c = await posicaoDe({ cidadeIbge: escolhida.cidadeIbge }); if (c) return { ...c, origem: "cidade", escolhida: true, cidadeIbge: Number(escolhida.cidadeIbge) }; }
   const p = await posicaoDe(perfil);
   return p ? { ...p, origem: "cidade", cidadeIbge: Number(perfil.cidadeIbge) || p.cidadeIbge || null } : g || null;
 }

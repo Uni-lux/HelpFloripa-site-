@@ -9,7 +9,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
   <meta name="description" content="Help Floripa: profissionais, delivery, lojas, imóveis e saúde da sua cidade em um só lugar, em todo o Brasil, com avaliações de clientes reais e conversa direta." />
   <meta name="theme-color" content="#0b1014" />
-  <title>Help Floripa | Tudo o que você precisa em Floripa</title>
+  <title>Help Floripa | Tudo o que você precisa perto de você, em todo o Brasil</title>
   <link rel="icon" href="favicon.ico" />
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
@@ -30,11 +30,11 @@
     })();
   </script>
   <link rel="stylesheet" href="categoria.css?v=8" />
-  <link rel="stylesheet" href="inicio.css?v=13" />
+  <link rel="stylesheet" href="inicio.css?v=14" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
   <script type="module" src="categoria.js?v=40"></script>
-  <script type="module" src="inicio.js?v=50"></script>
+  <script type="module" src="inicio.js?v=51"></script>
 </head>
 <body data-classe="inicio">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -75,8 +75,8 @@
   <main class="pagina">
     <section class="hero-home" aria-labelledby="tituloPagina">
       <figure class="hh-foto">
-        <img src="ponte-help.webp" srcset="ponte-help-800.webp 800w, ponte-help.webp 1536w" sizes="(max-width: 800px) 100vw, 1100px" alt="Ponte Hercílio Luz iluminada à noite, em Florianópolis" width="1536" height="1024" fetchpriority="high" />
-        <figcaption><svg class="i xs" aria-hidden="true"><use href="#i-pin"/></svg>Ponte Hercílio Luz · Florianópolis</figcaption>
+        <img src="ponte-help.webp" srcset="ponte-help-800.webp 800w, ponte-help.webp 1536w" sizes="(max-width: 800px) 100vw, 1100px" alt="Ponte Hercílio Luz iluminada à noite, em Florianópolis, onde o Help Floripa nasceu" width="1536" height="1024" fetchpriority="high" />
+        <figcaption><button type="button" class="local-chip" id="localBtn" aria-haspopup="dialog"><svg class="i xs" aria-hidden="true"><use href="#i-pin"/></svg><span class="lc-rot">Você está em</span><b id="localTexto">Todo o Brasil</b><svg class="i xs lc-seta" aria-hidden="true"><use href="#i-seta"/></svg></button></figcaption>
       </figure>
       <div class="hh-texto">
         <p class="ola"><svg class="i s" id="iconeHora" aria-hidden="true"><use href="#i-sol"/></svg><span id="saudacao">Olá</span></p>
@@ -103,6 +103,7 @@
             <button type="submit" aria-label="Buscar"><svg class="i s" aria-hidden="true"><use href="#i-lupa"/></svg></button>
           </div>
         </form>
+        <div class="buscas-pop" id="buscasPop" aria-label="Buscas populares"></div>
       </div>
     </section>
 
@@ -149,7 +150,7 @@
       <div class="banner-trilho" id="bannerTrilho">
         <a href="negocios.html" class="slide s1" aria-label="Crie seu perfil de serviços ou delivery">
           <img src="propaganda1.webp" srcset="propaganda1-800.webp 800w, propaganda1.webp 1537w" sizes="(max-width: 800px) 100vw, 1100px" alt="" width="1537" height="1023" loading="lazy" />
-          <span class="slide-txt"><strong>Os melhores <em>profissionais</em> e <em>lanchonetes</em> da sua cidade</strong><small>Mostre seu trabalho ou seu cardápio para a cidade inteira.</small><b class="slide-cta">Criar meu perfil<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></b></span>
+          <span class="slide-txt"><strong>Os melhores <em>profissionais</em> e <em>lanchonetes</em> perto de você</strong><small>Mostre seu trabalho ou seu cardápio para clientes de todo o Brasil.</small><b class="slide-cta">Criar meu perfil<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></b></span>
         </a>
         <a href="negocios.html" class="slide s2" aria-label="Abra sua lojinha ou anuncie seu imóvel: 30 dias grátis na primeira assinatura">
           <img src="propaganda2.webp" srcset="propaganda2-800.webp 800w, propaganda2.webp 1537w" sizes="(max-width: 800px) 100vw, 1100px" alt="" width="1537" height="1023" loading="lazy" />
@@ -166,7 +167,7 @@
 
     <section class="secao-home carrossel" id="secPerto" aria-labelledby="t-secPerto">
       <div class="secao-cab">
-        <div><h2 id="t-secPerto">Perto de você</h2><p id="pertoSub">Profissionais, delivery, lojas e imóveis da sua região.</p></div>
+        <div><h2 id="t-secPerto">Perto de você</h2><p id="pertoSub">Profissionais, delivery, lojas, imóveis e saúde da sua região.</p></div>
         <div class="setas"><button type="button" class="ant" aria-label="Anteriores"><svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></button><button type="button" class="prox" aria-label="Próximos"><svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></button></div>
       </div>
       <button type="button" class="perto-loc" id="pertoLoc" hidden><svg class="i xs" aria-hidden="true"><use href="#i-pin"/></svg><span>Usar minha localização</span></button>
@@ -183,10 +184,15 @@
 
     <section class="secao-home carrossel" id="secNovos" aria-labelledby="t-secNovos">
       <div class="secao-cab">
-        <div><h2 id="t-secNovos">Chegaram agora</h2><p>Negócios novos e atualizados na vizinhança.</p></div>
+        <div><h2 id="t-secNovos">Chegaram agora</h2><p>Negócios novos e atualizados, da sua cidade primeiro.</p></div>
         <div class="setas"><button type="button" class="ant" aria-label="Anteriores"><svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></button><button type="button" class="prox" aria-label="Próximos"><svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></button></div>
       </div>
       <div class="trilho" id="trilhoNovos"></div>
+    </section>
+
+    <section class="secao-home" id="secCidades" aria-labelledby="t-secCidades" hidden>
+      <div class="secao-cab"><div><h2 id="t-secCidades">Cidades em destaque</h2><p>Onde mais tem gente anunciando agora. Toque para ver a cidade.</p></div></div>
+      <div class="cidades-chips" id="cidadesChips"></div>
     </section>
 
     <section class="secao-home carrossel" id="secImoveis" aria-labelledby="t-secImoveis">
@@ -244,7 +250,7 @@
       <p class="secao-sub">Do primeiro contato à avaliação, tudo dentro do Help Floripa.</p>
       <ol class="passos">
         <li class="passo"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-lupa"/></svg></span><strong>Encontre</strong><p>Busque por classe, categoria ou nome e compare fotos, preços e notas.</p></li>
-        <li class="passo"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-chat"/></svg></span><strong>Converse</strong><p>Peça orçamento, envie o carrinho ou demonstre interesse pelo chat ou WhatsApp.</p></li>
+        <li class="passo"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-chat"/></svg></span><strong>Converse</strong><p>Peça orçamento, envie o carrinho ou agende pelo chat, com tudo registrado.</p></li>
         <li class="passo"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg></span><strong>Combine direto</strong><p>Valor, entrega, visita ou horário: você acerta direto com quem oferece.</p></li>
         <li class="passo"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-estrela"/></svg></span><strong>Avalie</strong><p>Uma nota por cliente em cada negócio. Sua avaliação ajuda toda a comunidade a escolher melhor.</p></li>
       </ol>
@@ -252,9 +258,15 @@
         <div><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-escudo"/></svg></span><span><strong>Contas confirmadas</strong><small>E-mail verificado para anunciar e conversar</small></span></div>
         <div><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-estrela"/></svg></span><span><strong>Notas de verdade</strong><small>Só avalia quem foi atendido</small></span></div>
         <div><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-chat"/></svg></span><span><strong>Conversa direta</strong><small>Sem intermediário e sem comissão</small></span></div>
-        <div><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-grupo"/></svg></span><span><strong>Nasceu em Floripa</strong><small>Negócios e pessoas da sua cidade, em todo o Brasil</small></span></div>
+        <div><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-grupo"/></svg></span><span><strong>Em todo o Brasil</strong><small>Nasceu em Floripa e chega a cada cidade do país</small></span></div>
       </div>
     </section>
+
+    <a class="faixa-seg" href="seguranca.html">
+      <span class="ic"><svg class="i" aria-hidden="true"><use href="#i-escudo"/></svg></span>
+      <span class="tx"><strong>Negocie com segurança</strong><small>Nunca pague adiantado para quem você não conhece e desconfie de preço bom demais. Veja as dicas da Central de Segurança.</small></span>
+      <svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg>
+    </a>
 
     <div class="cta-strip">
       <div>
