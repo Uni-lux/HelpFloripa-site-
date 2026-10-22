@@ -29,7 +29,7 @@ const p = await entrar(M.ctx, "dani", "admin.html#equipe");
 const erros = []; p.on("pageerror", (e) => erros.push(e.message));
 await p.waitForSelector(".eq-chat", { timeout: 30000 }); await p.waitForTimeout(2000);
 const logo = await p.evaluate(() => { const i = document.querySelector(".ad-logo"); return { src: i.getAttribute("src"), w: i.naturalWidth }; });
-ok(logo.src === "logo-app-96.png" && logo.w === 96, "topo do painel com a logo nova (" + logo.src + ")");
+ok(logo.src === "logo-app-96.webp" && logo.w === 96, "topo do painel com a logo nova (" + logo.src + ")");
 ok(!(await p.locator(".ad-busca").isVisible()) && await p.locator("#btBuscaCel").isVisible(), "celular: só a lupa no topo (sem o campo espremido)");
 await p.locator("#btBuscaCel").tap(); await p.waitForTimeout(300);
 const larg = (await p.locator("#buscaGlobal").boundingBox())?.width || 0;
