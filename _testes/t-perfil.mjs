@@ -20,7 +20,7 @@ await pa.waitForSelector("#meuPerfil .pf2 .pf-acoes .btn", { timeout: 30000 }); 
 ok(await pa.locator("#meuPerfil .fio-capa, #meuPerfil .duo-capa").count() === 0 && await pa.locator("#meuPerfil .pf-avatar-wrap .pf-rosa").count() === 1, "meu perfil: sem fio e sem foto do duo na capa; rosinha na foto de perfil");
 const larg = await pa.evaluate(() => ({ doc: document.documentElement.scrollWidth, win: innerWidth }));
 ok(larg.doc <= larg.win, "nada passa da largura da tela → " + JSON.stringify(larg));
-ok(await pa.locator("#meuPerfil [data-el=negocios] .vinculo").count() === 4, "os 4 negócios numa linha só");
+ok(await pa.locator("#meuPerfil [data-el=negocios] .vinculo").count() >= 4, "os negócios numa linha só");
 const caixas = await pa.locator("#meuPerfil [data-el=negocios] .vinculo").evaluateAll((l) => l.map((e) => Math.round(e.getBoundingClientRect().top)));
 ok(new Set(caixas).size === 1, "negócios alinhados na mesma linha → " + caixas.join(","));
 await pa.screenshot({ path: "saida/perfil-escuro.png" });

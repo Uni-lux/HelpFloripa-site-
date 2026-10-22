@@ -378,8 +378,9 @@ export function quandoVisivel(elemento, fn) {
 export async function salvarImagem(dataUrl, caminho) {
   if (storageFns && window.firebaseStorage) {
     try {
-      const r = storageFns.ref(window.firebaseStorage, caminho);
-      await storageFns.uploadBytes(r, dataUrlParaBlob(dataUrl), { contentType: "image/jpeg" });
+      // Nome único a cada envio: a foto trocada nunca aparece velha, e o aparelho guarda cada foto em cache por 1 ano.
+      const r = storageFns.ref(window.firebaseStorage, caminho.replace(/(\.[a-z0-9]+)$/i, `_${Date.now().toString(36)}$1`));
+      await storageFns.uploadBytes(r, dataUrlParaBlob(dataUrl), { contentType: "image/jpeg", cacheControl: "public, max-age=31536000, immutable" });
       return await storageFns.getDownloadURL(r);
     } catch (e) { console.warn("Storage indisponível, salvando no documento:", e); }
   }
@@ -1785,7 +1786,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=22").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=23").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);
@@ -2376,7 +2377,7 @@ function ligarCompositor() {
       } else if (pubMidia?.tipo === "video") {
         const ext = (pubMidia.arquivo.name.split(".").pop() || "mp4").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "mp4";
         const r = storageFns.ref(window.firebaseStorage, `diario/${eu.uid}/${Date.now()}.${ext}`);
-        await storageFns.uploadBytes(r, pubMidia.arquivo, { contentType: pubMidia.arquivo.type });
+        await storageFns.uploadBytes(r, pubMidia.arquivo, { contentType: pubMidia.arquivo.type, cacheControl: "public, max-age=31536000, immutable" });
         mediaUrl = await storageFns.getDownloadURL(r);
         mediaTipo = "video";
       }

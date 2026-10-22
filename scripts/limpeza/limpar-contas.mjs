@@ -11,6 +11,7 @@
 import { initializeApp, cert } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
+import { getStorage } from "firebase-admin/storage";
 
 const DIAS = 30;
 const emulador = !!process.env.FIRESTORE_EMULATOR_HOST;
@@ -32,6 +33,26 @@ async function apagarConsulta(q) {
     n += s.size;
     if (simular || s.size < 400) return n;
   }
+}
+
+// Pastas do Storage com arquivos da pessoa (as mesmas do storage.rules). Sem Storage ativo, não faz nada.
+const BUCKET = process.env.STORAGE_BUCKET || "helpfloripa-61e0d.firebasestorage.app";
+async function apagarArquivos(uid, conversas) {
+  if (emulador && !process.env.FIREBASE_STORAGE_EMULATOR_HOST) return 0;
+  let bucket;
+  try { bucket = getStorage().bucket(BUCKET); if (!(await bucket.exists())[0]) return 0; }
+  catch (e) { console.warn("Storage indisponível:", e.message); return 0; }
+  const prefixos = [`fotosPerfil/${uid}`, `fotosCapa/${uid}`, `negocios/${uid}_`, `anuncios/${uid}_`, `diario/${uid}/`, `stories/${uid}/`,
+    `comunidade/${uid}/`, `suporte/${uid}/`, `negociacoes/${uid}/`, ...conversas.map((c) => `mensagens/${c}/${uid}/`)];
+  let n = 0;
+  for (const prefix of prefixos) {
+    const [arquivos] = await bucket.getFiles({ prefix }).catch(() => [[]]);
+    // "fotosPerfil/UID" também pegaria "fotosPerfil/UIDxyz...": fica só o próprio uid seguido de "." ou "_".
+    const meus = arquivos.filter((f) => prefix.endsWith("/") || prefix.endsWith("_") || /^[._]/.test(f.name.slice(prefix.length)));
+    n += meus.length;
+    if (!simular) await Promise.all(meus.map((f) => f.delete().catch(() => {})));
+  }
+  return n;
 }
 
 async function limpar(uid) {
@@ -87,6 +108,8 @@ async function limpar(uid) {
   // mensagens que a pessoa enviou (a conversa continua para a outra pessoa)
   const convs = await col("conversas").where("participantes", "array-contains", uid).get();
   for (const c of convs.docs) await apagar("mensagens", c.ref.collection("mensagens").where("remetenteId", "==", uid));
+  // Arquivos no Firebase Storage (quando ligado): fotos, vídeos, áudios e anexos da pessoa.
+  r.arquivos = await apagarArquivos(uid, convs.docs.map((c) => c.id));
   // avaliações e reclamações ficam, sem nome e foto
   const anon = [];
   for (const [nome, campo] of [["avaliacoes", "autorId"], ["queixas", "autorId"]]) {

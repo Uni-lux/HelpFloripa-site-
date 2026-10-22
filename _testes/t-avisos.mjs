@@ -91,6 +91,7 @@ const D = await navegador({ mobile: true });
 const pa = await entrar(D.ctx, "admin", "admin.html");
 await pa.waitForSelector(".ad-kpis", { timeout: 30000 }); await pa.waitForTimeout(1500);
 await pa.evaluate(() => document.querySelector('.ad-nav[data-secao="registro"]').click()); await pa.waitForTimeout(1000);
+await pa.locator(".ad-chip", { hasText: "Todas as ações" }).click(); await pa.waitForTimeout(600); // abre em "Por pessoa (dia)"
 const reg = await pa.locator(".ad-registro").textContent();
 ok(reg.includes("Chamado #CHREG · Não consigo editar o cardápio") && !reg.includes("suporte:chReg") && reg.includes("Lista de usuários"), "registro: \"Chamado #CHREG · assunto\" no lugar de suporte:ID");
 const larg = await pa.locator(".ad-registro tr").nth(1).evaluate((e) => e.getBoundingClientRect().width);
@@ -105,7 +106,7 @@ await pa.locator(".ad-acao-det .ad-bt", { hasText: "Abrir o chamado" }).click();
 await pa.waitForSelector(".ad-modal .ad-chat", { timeout: 8000 }).catch(() => {});
 ok((await pa.locator(".ad-modal h3").first().textContent().catch(() => "")).includes("Não consigo editar o cardápio"), "Abrir o chamado mostra a conversa do chamado");
 await pa.screenshot({ path: "saida/registro-chamado.png" });
-await pa.goto(BASE + "admin.html#registro"); await pa.reload(); await pa.waitForSelector(".ad-registro", { timeout: 30000 }); await pa.waitForTimeout(800);
+await pa.goto(BASE + "admin.html#registro"); await pa.reload(); await pa.locator(".ad-chip", { hasText: "Todas as ações" }).click({ timeout: 30000 }); await pa.waitForSelector(".ad-registro", { timeout: 30000 }); await pa.waitForTimeout(800);
 await pa.locator(".ad-registro tr", { hasText: "Resolveu denúncia" }).first().click(); await pa.waitForSelector(".ad-acao-det", { timeout: 5000 });
 ok((await pa.locator(".ad-acao-det").textContent()).includes("Golpe") && await pa.locator(".ad-acao-det .ad-bt", { hasText: "Ver o conteúdo denunciado" }).count() === 1, "denúncia: detalhes com motivo, trecho e Ver o conteúdo denunciado");
 await pa.locator(".ad-acao-det .ad-bt", { hasText: "Fechar" }).click();

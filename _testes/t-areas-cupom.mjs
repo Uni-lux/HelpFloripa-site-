@@ -43,8 +43,8 @@ await p.click("#negPromo_ate"); await p.waitForTimeout(500);
 ok(await p.locator(".hfc .hfc-dias").count() === 1, "data da promoção abre o calendário do site");
 await p.screenshot({ path: "saida/cal-promo.png" });
 await p.locator(".hfc-atalhos button", { hasText: "Em 7 dias" }).click(); await p.locator(".hfc-rodape .pri").click(); await p.waitForTimeout(400);
-const d7 = new Date(); d7.setDate(d7.getDate() + 7);
-const iso7 = `${d7.getFullYear()}-${String(d7.getMonth() + 1).padStart(2, "0")}-${String(d7.getDate()).padStart(2, "0")}`;
+// "Em 7 dias" no relógio do navegador (horário de Brasília), não no do computador que roda o teste.
+const iso7 = await p.evaluate(() => { const d7 = new Date(); d7.setDate(d7.getDate() + 7); return `${d7.getFullYear()}-${String(d7.getMonth() + 1).padStart(2, "0")}-${String(d7.getDate()).padStart(2, "0")}`; });
 ok(await p.inputValue("#negPromo_ate") === iso7, "calendário preencheu a data: " + iso7);
 await p.click("#negSalvar"); await p.waitForTimeout(2500);
 const s = (await db.doc(`negocios/${NEG}`).get()).data();

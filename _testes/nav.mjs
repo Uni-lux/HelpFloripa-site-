@@ -18,6 +18,13 @@ function firebasePatch() {
   s = s.replace("const auth = getAuth(app);", 'const auth = getAuth(app); connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true }); window.__login = (e, p) => signInWithEmailAndPassword(auth, e, p);');
   s = s.replace("window.firebaseApp = app;", 'connectFirestoreEmulator(db, "127.0.0.1", 8085);\nwindow.firebaseApp = app;');
   if (!s.includes("connectFirestoreEmulator(db")) throw new Error("patch do firebase.js falhou");
+  // STORAGE=1: liga a chave USAR_STORAGE e aponta o Storage para o emulador (porta 9199; a CSP do servidor-csp.mjs libera).
+  if (process.env.STORAGE === "1") {
+    s = s.replace("const USAR_STORAGE = false;", "const USAR_STORAGE = true;");
+    s = s.replace('const { getStorage } = await import(', 'const { getStorage, connectStorageEmulator } = await import(');
+    s = s.replace("window.firebaseStorage = storage;", 'connectStorageEmulator(storage, "127.0.0.1", 9199); window.firebaseStorage = storage;');
+    if (!s.includes("connectStorageEmulator(storage")) throw new Error("patch do Storage falhou");
+  }
   return s;
 }
 
@@ -39,6 +46,14 @@ export async function navegador({ mobile = false, headless = true, csp = process
   await ctx.route(/\/manutencao\.js(\?.*)?$/, (r) => r.fulfill({ body: "export function avisoManutencao() {}", contentType: "text/javascript" }));
   await ctx.route(/\/firebase\.js(\?.*)?$/, (r) => r.fulfill({ body: firebasePatch(), contentType: "text/javascript" }));
   await ctx.route(/^https?:\/\/(?!hf\.local|127\.0\.0\.1|localhost|www\.gstatic\.com)/, (r) => r.abort());
+  // STORAGE=1: os filtros de foto do site aceitam só https://firebasestorage.googleapis.com/ (o site real); no teste,
+  // os .js saem com o endereço do emulador (http://127.0.0.1:9199/) aceito também. As páginas .html não são mexidas.
+  if (process.env.STORAGE === "1") await ctx.route(/127\.0\.0\.1:505[67]\/[^?]*\.js(\?.*)?$/, async (r) => {
+    if (/\/(firebase|manutencao)\.js/.test(r.request().url())) return r.fallback();
+    const resp = await r.fetch();
+    const corpo = (await resp.text()).replaceAll("https:\\/\\/firebasestorage\\.googleapis\\.com\\/", "(?:https:\\/\\/firebasestorage\\.googleapis\\.com|http:\\/\\/127\\.0\\.0\\.1:9199)\\/");
+    return r.fulfill({ response: resp, body: corpo });
+  });
   return { browser, ctx };
 }
 

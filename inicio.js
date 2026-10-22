@@ -11,14 +11,14 @@ import { fotoSegura } from "./seguranca.js?v=1";
 import { enfeitarSelect } from "./escolha.js?v=4";
 import { estrelas, lerResumos, media } from "./avaliacoes.js?v=14";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
-import { lerPlano, nivelPlano, seloPlano } from "./planos.js?v=6";
+import { lerPlano, nivelPlano, seloPlano } from "./planos-base.js?v=1";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao } from "./perto.js?v=1";
-import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=48";
+import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=51";
 
 const $ = (id) => document.getElementById(id);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
 const ms = (ts) => ts?.toMillis?.() ?? 0;
-const IMG_TIPO = { servicos: "servicos.webp", delivery: "lanchonetes.webp", lojinha: "shopping.webp", imoveis: "imoveis.webp", saude: "saude.svg" };
+const IMG_TIPO = { servicos: "servicos-480.webp", delivery: "lanchonetes-480.webp", lojinha: "shopping-480.webp", imoveis: "imoveis-480.webp", saude: "saude.svg" };
 const iniciais = (n) => { const p = String(n || "?").trim().split(/\s+/); return ((p[0]?.[0] || "?") + (p.length > 1 ? p[p.length - 1][0] : "")).toUpperCase(); };
 
 // ---------- saudação ----------
@@ -150,7 +150,7 @@ function cartaoImovel(an) {
   capa.appendChild(preco);
   const tx = el("div", "tx");
   tx.appendChild(el("strong", null, an.titulo || `${(CATEGORIAS.imoveis[an.categoria] && nomeCat(an, an.categoria)) || "Imóvel"} para ${(FINALIDADE[an.finalidade] || "negociar").toLowerCase()}`));
-  tx.appendChild(el("small", null, [an.bairro, an.cidade].filter(Boolean).join(", ") || "Florianópolis"));
+  tx.appendChild(el("small", null, [an.bairro, an.cidade].filter(Boolean).join(", ") || "Local não informado"));
   const specs = [an.quartos ? `${an.quartos} ${Number(an.quartos) === 1 ? "quarto" : "quartos"}` : "", an.vagas ? `${an.vagas} ${Number(an.vagas) === 1 ? "vaga" : "vagas"}` : "", an.area ? `${an.area} m²` : ""].filter(Boolean).join(" · ");
   if (specs) tx.appendChild(el("span", "specs", specs));
   a.append(capa, tx);

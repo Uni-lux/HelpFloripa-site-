@@ -8,6 +8,7 @@
 // =====================================================
 
 import { confirmarHF } from "./confirmar.js?v=4";
+import { relogioDe } from "./fuso.js?v=1";
 import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL } from "./seguranca.js?v=1";
 import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento, media, avaliarNegocio } from "./avaliacoes.js?v=14";
 import { abrirQueixa } from "./queixas.js?v=12";
@@ -15,7 +16,7 @@ import { docComValidade, docsComValidade } from "./leituras.js?v=1";
 import { anelNegocio } from "./flash-negocio.js?v=3";
 import { camposEndereco, textoCidade, cidadesDe, NOME_UF, semAcento } from "./endereco.js?v=1";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao } from "./perto.js?v=1";
-import { lerPlano, nivelPlano, seloPlano, nomePlano } from "./planos.js?v=6";
+import { lerPlano, nivelPlano, seloPlano, nomePlano } from "./planos-base.js?v=1";
 import { PROFISSOES_SAUDE, CATEGORIAS_SAUDE, SITE_CONSELHO, MODALIDADES_SAUDE, PUBLICO_SAUDE, PUBLICO_VET, nomeProfissao, conselhoDe, ehVet, textoRegistro, textoValor, AVISO_EMERGENCIA, AVISO_REGISTRO } from "./saude-dados.js?v=1";
 import { usarEstat, registrarVisita, registrarAcao, registrarItem, chaveItem as chaveEstat, chaveAnuncio } from "./estat-negocio.js?v=1";
 // Plano de quem anuncia: todo plano pago tem o selo; Pro e Premium aparecem antes na ordem padrão
@@ -100,7 +101,7 @@ export const CARACT_IMOVEL = { piscina: "Piscina", churrasqueira: "Churrasqueira
 export const CONDICOES_IMOVEL = { caucao: "Caução", fiador: "Fiador", seguro: "Seguro-fiança", semFiador: "Sem fiador", financiamento: "Aceita financiamento", fgts: "Aceita FGTS", permuta: "Aceita permuta", pets: "Aceita pets" };
 export const ANUNCIANTE = { proprietario: "Proprietário(a)", corretor: "Corretor(a)", imobiliaria: "Imobiliária" };
 const TEXTOS = {
-  servicos: { titulo: "Profissionais da <span>comunidade</span>", sub: "Autônomos que atendem em Florianópolis e região.", criar: "Criar meu perfil de freelancer", vazio: "Nenhum profissional por aqui ainda", img: "servicos.webp" },
+  servicos: { titulo: "Profissionais da <span>comunidade</span>", sub: "Autônomos que atendem na sua cidade e em todo o Brasil.", criar: "Criar meu perfil de freelancer", vazio: "Nenhum profissional por aqui ainda", img: "servicos.webp" },
   delivery: { titulo: "Cardápios da <span>vizinhança</span>", sub: "Peça direto com quem faz, sem intermediário.", criar: "Cadastrar meu delivery", vazio: "Nenhum delivery cadastrado ainda", img: "lanchonetes.webp" },
   lojinha: { titulo: "Lojinhas <span>locais</span>", sub: "Produtos de quem vende perto de você.", criar: "Abrir minha lojinha", vazio: "Nenhuma lojinha aberta ainda", img: "shopping.webp" },
   imoveis: { titulo: "Imóveis <span>anunciados</span>", sub: "Aluguel, venda e temporada direto com o anunciante.", criar: "Anunciar imóvel", vazio: "Nenhum imóvel anunciado ainda", img: "imoveis.webp" },
@@ -196,7 +197,7 @@ export const semanaDe = (n) => (Array.isArray(n?.semana) && n.semana.length === 
 const faixaMin = (s) => { const r = /^(\d\d):(\d\d)-(\d\d):(\d\d)$/.exec(s || ""); return r ? [Number(r[1]) * 60 + Number(r[2]), Number(r[3]) * 60 + Number(r[4])] : null; };
 const horaTxt = (s) => String(s || "").replace("-", " às ");
 // Aberto agora e a próxima mudança ("fecha às 23:00", "abre amanhã às 11:00").
-export function situacaoHorario(n, agora = new Date()) {
+export function situacaoHorario(n, agora = relogioDe(ufDe(n))) {
   const sem = semanaDe(n);
   if (!sem) return null;
   const d = agora.getDay(), m = agora.getHours() * 60 + agora.getMinutes();
@@ -216,7 +217,7 @@ function abertoAgora(n) {
   if (!n.horaAbre || !n.horaFecha) return null;
   const [ha, ma] = n.horaAbre.split(":").map(Number), [hf, mf] = n.horaFecha.split(":").map(Number);
   if ([ha, ma, hf, mf].some((x) => !Number.isFinite(x))) return null;
-  const agora = new Date(), m = agora.getHours() * 60 + agora.getMinutes(), a = ha * 60 + ma, f = hf * 60 + mf;
+  const agora = relogioDe(ufDe(n)), m = agora.getHours() * 60 + agora.getMinutes(), a = ha * 60 + ma, f = hf * 60 + mf;
   if (Array.isArray(n.dias) && n.dias.length && !n.dias.includes(["dom", "seg", "ter", "qua", "qui", "sex", "sab"][agora.getDay()])) return false;
   return f > a ? m >= a && m < f : m >= a || m < f; // atravessa a meia-noite
 }
@@ -1815,7 +1816,13 @@ function abrirFiltroLocal() {
     filtroLocal = f;
     try { localStorage.setItem(CHAVE_LOCAL, JSON.stringify(f)); } catch {}
     if (f.uf && !nomesSC) { try { nomesSC = new Set((await cidadesDe("SC")).map((c) => semAcento(c.nome))); } catch {} }
-    pintarBotaoLocal(); fechar(); renderizar();
+    pintarBotaoLocal(); fechar();
+    // Local novo: busca de novo no servidor (os perfis daquele Estado/cidade), depois desenha.
+    if (localNoServidor && fb) {
+      todos = []; negociosImoveis.clear(); cursorNeg = cursorAn = null; maisNeg = maisAn = false;
+      try { await carregarLote(true); chipsDinamicos(); } catch (e) { console.warn("Vitrine:", e); }
+    }
+    renderizar();
   };
   limpar.addEventListener("click", () => salvar({}));
   aplicar.addEventListener("click", () => {
@@ -2579,12 +2586,27 @@ function chipsDinamicos() {
 // mais quando a pessoa pede. Antes eram 300 perfis inteiros, com fotos, a cada visita.
 const LOTE = 48;
 let cursorNeg = null, cursorAn = null, maisNeg = false, maisAn = false, carregandoMais = false;
-async function lote(col, tipo, cursor) {
+// Site nacional: com Estado/Cidade escolhidos, a busca já vem filtrada do servidor (os 48 mais recentes DAQUELA cidade,
+// não os 48 do Brasil inteiro filtrados no aparelho). Precisa dos índices tipo+uf+atualizadoEm e tipo+cidadeIbge+atualizadoEm
+// (firestore.indexes.json); enquanto o índice não existe, cai na busca geral, como antes.
+let localNoServidor = true;
+const filtroServidor = () => (!localNoServidor ? [] : filtroLocal.cidadeIbge ? [fb.where("cidadeIbge", "==", filtroLocal.cidadeIbge)] : filtroLocal.uf ? [fb.where("uf", "==", filtroLocal.uf)] : []);
+const chaveLocal = () => filtroLocal.cidadeIbge || filtroLocal.uf || "";
+async function lote(col, tipo, cursor, { geral = false } = {}) {
   const c = fb.collection(fb.db, col);
+  const consulta = (onde) => fb.query(c, fb.where("tipo", "==", tipo), ...onde, fb.orderBy("atualizadoEm", "desc"), ...(cursor ? [fb.startAfter(cursor)] : []), fb.limit(LOTE));
+  // A primeira página vale por 10 min no aparelho; as seguintes ("Ver mais") vêm do servidor.
+  const buscar = (q, chave) => (cursor ? fb.getDocs(q) : docsComValidade(fb, chave, q, 10 * 60000));
   try {
-    const q = fb.query(c, fb.where("tipo", "==", tipo), fb.orderBy("atualizadoEm", "desc"), ...(cursor ? [fb.startAfter(cursor)] : []), fb.limit(LOTE));
-    // A primeira página vale por 10 min no aparelho; as seguintes ("Ver mais") vêm do servidor.
-    const snap = cursor ? await fb.getDocs(q) : await docsComValidade(fb, `vitrine-${col}-${tipo}`, q, 10 * 60000);
+    const onde = geral ? [] : filtroServidor();
+    let snap;
+    try { snap = await buscar(consulta(onde), `vitrine-${col}-${tipo}${onde.length ? "-" + chaveLocal() : ""}`); }
+    catch (e) {
+      if (!onde.length || e?.code !== "failed-precondition") throw e;
+      console.warn("Índice por local ainda não criado; filtrando no aparelho:", e.message);
+      localNoServidor = false;
+      snap = await buscar(consulta([]), `vitrine-${col}-${tipo}`);
+    }
     return { docs: snap.docs, mais: snap.size === LOTE, cursor: snap.docs.at(-1) || cursor };
   } catch (e) {
     // Sem o índice (tipo + atualizadoEm) ainda criado: busca simples, sem lotes.
@@ -2599,6 +2621,9 @@ async function carregarLote(primeira = false) {
   if (primeira || maisNeg) {
     const r = await lote("negocios", TIPO, cursorNeg);
     cursorNeg = r.cursor; maisNeg = r.mais;
+    // Com o local filtrado no servidor, a 1ª página também traz os mais recentes gerais (perfis antigos sem Estado
+    // gravado continuam aparecendo; o filtro do aparelho decide o que mostra).
+    if (primeira && filtroServidor().length) r.docs = [...r.docs, ...(await lote("negocios", TIPO, null, { geral: true }).catch(() => ({ docs: [] }))).docs];
     const negocios = r.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => n.nome && n.oculto !== true && !oculto(n));
     if (TIPO === "imoveis") {
       negocios.forEach((n) => negociosImoveis.set(n.donoId, n));
@@ -2608,10 +2633,12 @@ async function carregarLote(primeira = false) {
   if (TIPO === "imoveis" && (primeira || maisAn)) {
     const r = await lote("anuncios", "imovel", cursorAn);
     cursorAn = r.cursor; maisAn = r.mais;
+    if (primeira && filtroServidor().length) r.docs = [...r.docs, ...(await lote("anuncios", "imovel", null, { geral: true }).catch(() => ({ docs: [] }))).docs];
     novos.push(...r.docs.map((d) => ({ id: d.id, ...d.data() })).filter((a) => a.ativo !== false && !oculto(a)));
   }
+  // Sem repetidos (a busca por local e a geral podem trazer o mesmo perfil).
   const ja = new Set(todos.map((x) => x.id));
-  const add = novos.filter((x) => !ja.has(x.id));
+  const add = novos.filter((x) => !ja.has(x.id) && (ja.add(x.id), true));
   todos.push(...add);
   todos.sort((a, b) => (b.atualizadoEm?.toMillis?.() ?? 0) - (a.atualizadoEm?.toMillis?.() ?? 0));
   const idsNotas = [...new Set(add.map((n) => (TIPO === "imoveis" ? `${n.donoId}_imoveis` : idNegocio(n))))].filter((i) => !notasNeg.has(i));

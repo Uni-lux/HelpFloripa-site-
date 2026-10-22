@@ -256,7 +256,7 @@ svg.i.xs { width: 14px; height: 14px; }
 .neg-anuncios { display: grid; gap: 8px; margin-top: 8px; }
 .neg-anuncio { display: flex; align-items: center; gap: 12px; width: 100%; padding: 8px 12px 8px 8px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel-2); text-align: left; cursor: pointer; }
 .neg-anuncio:hover { border-color: #2fbf71; }
-.neg-anuncio .ft { width: 64px; height: 48px; border-radius: 10px; background: #07170f url("imoveis.webp") center / cover; flex-shrink: 0; }
+.neg-anuncio .ft { width: 64px; height: 48px; border-radius: 10px; background: #07170f url("imoveis-480.webp") center / cover; flex-shrink: 0; }
 .neg-anuncio .tx { flex: 1; min-width: 0; display: grid; }
 .neg-anuncio .tx strong { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .neg-anuncio .tx small { color: var(--muted); font-size: 12.5px; }
@@ -802,7 +802,7 @@ html, body { overflow-x: clip; }
 .atalho-classe.imoveis, .atalho-mini.imoveis { --c: #2fbf71; }
 .atalho-classe.saude, .atalho-mini.saude { --c: #0fb5a6; }
 .atalho-classe.comunidade, .atalho-mini.comunidade { --c: #e5487f; }
-@media (min-width: 700px) { .atalhos-classes { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (min-width: 700px) { .atalhos-classes { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* ---------- desativar / excluir conta (configuracoes.html) ---------- */

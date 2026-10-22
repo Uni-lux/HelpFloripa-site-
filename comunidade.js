@@ -7,11 +7,12 @@
 // Anúncio: comunidade/{id}. Link direto: comunidade.html?item=ID · ?novo=1 · ?meus=1
 // =====================================================
 import { confirmarHF } from "./confirmar.js?v=4";
+import { temStorage, subirFoto } from "./armazenamento.js?v=1";
 import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL } from "./seguranca.js?v=1";
 import { docComValidade } from "./leituras.js?v=1";
 import { camposEndereco, textoCidade, semAcento } from "./endereco.js?v=1";
 import { minhaPosicao, comDistancia, textoDistancia } from "./perto.js?v=1";
-import { prepararConversa } from "./vitrine.js?v=48";
+import { prepararConversa } from "./vitrine.js?v=51";
 
 export const CATEGORIAS_COM = {
   doacao: { nome: "Doação", plural: "Doações", cor: "#e5487f", ic: "presente", acao: "Quero receber", dica: "Dê de graça o que você não usa mais" },
@@ -454,6 +455,8 @@ function abrirForm(a = null, catInicial = "doacao") {
         dados.quarto = { vaga: q.vaga || "compartilhado", rateio: Number(q.rateio) > 0 ? Math.round(Number(q.rateio) * 100) / 100 : null, contasInclusas: !!q.contasInclusas, mobiliado: !!q.mobiliado, vagas: Number.isInteger(q.vagas) ? q.vagas : 1, para: PARA[q.para] ? q.para : "todos", disponivelEm: /^\d{4}-\d{2}-\d{2}$/.test(q.disponivelEm || "") ? q.disponivelEm : "", regras: String(q.regras || "").replace(/[\n\r]+/g, " ").trim().slice(0, 300) };
       }
       if (k === "achados") dados.achado = { tipo: d.achado.tipo === "encontrado" ? "encontrado" : "perdido", data: /^\d{4}-\d{2}-\d{2}$/.test(d.achado.data || "") ? d.achado.data : "", local: String(d.achado.local || "").replace(/[\n\r]+/g, " ").trim().slice(0, 80) };
+      // Com o Storage ligado, as fotos novas vão para lá e o anúncio guarda só os links.
+      if (temStorage()) dados.fotos = await Promise.all(dados.fotos.map((f, i) => subirFoto(f, `comunidade/${eu.uid}/${i}`)));
       if (JSON.stringify(dados).length > 950000) throw new Error("Fotos grandes demais. Tire uma e tente de novo.");
       // Distância: pelo centro da cidade (o anúncio não guarda endereço, só bairro e cidade).
       if (a) {
