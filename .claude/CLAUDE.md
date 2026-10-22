@@ -701,6 +701,14 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   (lista até 300). `limpar-contas.mjs` desconta o pedaço do voto (público e anônimo). Teste `t-enquete-escala.mjs`
   (FS_PORTA=8086, medidor conta `contagensPor` coleção). `t-caixa` (para em `.notif`) e `t-enquete2` (notificação do Bruno)
   falham igual no código de antes.
+- **Enquete no Flash (PR depois do #88, sem regra nova):** "Adicionar ao seu flash" de publicação com enquete:
+  `imagemDaPublicacao` (stories.js) desenha o cartão com selo ENQUETE, prazo ("Termina em"/"Encerrada"), pergunta e opções;
+  com resultado (barras, %, 🏆 na mais votada, "Resultado final · N votos") quando a enquete acabou, ou "Parcial" quando quem
+  compartilha é o autor (`resultadoParaCartao`); senão "Toque em “Ver publicação” para votar". Layout cabe entre y=250 e
+  1690 (`TOPO`/`MAXH`): com enquete a foto vai até 3:4 e a legenda encolhe para 1 linha se faltar espaço; texto sem foto em
+  letra grande. Imagens com limite de 4 s (`carregarImg(url, limite)`; antes uma foto lenta travava o "Preparando...") e
+  carregadas junto com o resultado (`Promise.all`); desfoque do fundo por miniatura 54×96 esticada (sem `ctx.filter`).
+  Selo do criador "Enquete de X". Teste `t-enquete-flash.mjs` (CPU 6× mais lenta: 0,9–1,8 s).
 - **As 5 etapas estão concluídas.** Próximos passos são as pendências abaixo (só ele pode fazer) e o que ficou
   para depois.
 

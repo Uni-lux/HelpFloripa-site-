@@ -13,9 +13,9 @@ import {
   meusSeguindo, escondido, silenciado, alternarSilenciar, obterPerfil, abrirOpcoes, abrirLista, linhaPessoa,
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura
-} from "./rede.js?v=59";
+} from "./rede.js?v=60";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
-import { seletorDuracao, fimEscolhido, linhaChave, MAX_FLASH_MIN } from "./enquetes.js?v=5";
+import { seletorDuracao, fimEscolhido, linhaChave, MAX_FLASH_MIN, fimDaEnquete, encerrada, faltaTexto, resultadoFinal, lerContasEnquete } from "./enquetes.js?v=5";
 
 const DIA = 24 * 3600e3;
 const TEMPO_FOTO = 6000;
@@ -158,14 +158,21 @@ export async function repostarFlash(id) {
 }
 
 // ---------- publicação do Diário no flash (como "Adicionar ao story" do Instagram) ----------
-// Monta a imagem 1080×1920 com o cartão da publicação (autor, foto ou texto e o começo da legenda) e abre o
-// criador com ela; o flash grava postDe {postId, autorId, nome}: o crédito e o link para a publicação.
+// Monta a imagem 1080×1920 com o cartão da publicação (autor, foto ou texto, legenda e a ENQUETE, se tiver) e abre o
+// criador com ela; o flash grava postDe {postId, autorId, nome}: o crédito e o link para a publicação (onde se vota).
 // O autor pode desligar em Configurações → Diário e Flash (pref_publicas.permiteFlash = false).
-function carregarImg(url) {
-  return new Promise((ok, erro) => { const i = new Image(); i.crossOrigin = "anonymous"; i.onload = () => ok(i); i.onerror = () => erro(new Error("imagem")); i.src = url; });
+// Cada imagem tem até 4 s para chegar (sem ela o cartão sai do mesmo jeito): antes, uma foto lenta deixava o
+// "Preparando..." parado.
+function carregarImg(url, limite = 4000) {
+  return new Promise((ok, erro) => {
+    const i = new Image(); i.crossOrigin = "anonymous"; i.decoding = "async";
+    const t = setTimeout(() => { i.src = ""; erro(new Error("demorou")); }, limite);
+    i.onload = () => { clearTimeout(t); ok(i); }; i.onerror = () => { clearTimeout(t); erro(new Error("imagem")); };
+    i.src = url;
+  });
 }
 function linhasDe(ctx, texto, larg, max) {
-  const palavras = String(texto || "").replace(/\s+/g, " ").trim().split(" ");
+  const palavras = String(texto || "").replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
   const linhas = []; let atual = "";
   for (const p of palavras) {
     const t = atual ? atual + " " + p : p;
@@ -175,43 +182,141 @@ function linhasDe(ctx, texto, larg, max) {
   if (linhas.length === max && palavras.join(" ").length > linhas.join(" ").length) linhas[max - 1] = linhas[max - 1].replace(/\s*\S*$/, "") + "…";
   return linhas;
 }
+// Resultado que pode aparecer no cartão: o final (enquete encerrada) ou o parcial quando quem compartilha é o autor
+// (ele já vê as porcentagens; ao pôr no flash, escolhe mostrá-las). Os outros veem só as opções, como no Diário.
+async function resultadoParaCartao(post) {
+  const e = post.enquete, alvo = `d_${post.id}`, n = e.opcoes.length;
+  const tempo = (p) => Promise.race([p, new Promise((ok) => setTimeout(() => ok(null), 3000))]);
+  try {
+    if (encerrada(e)) return { contas: await tempo(resultadoFinal(fb, fb.db, alvo, n)), final: true };
+    if (post.autorId === eu.uid) return { contas: await tempo(lerContasEnquete(fb, fb.db, alvo, n, { fresco: true })), final: false };
+  } catch {}
+  return { contas: null, final: false };
+}
+const FONTE = "system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
 async function imagemDaPublicacao(post) {
   const W = 1080, H = 1920, c = document.createElement("canvas"); c.width = W; c.height = H;
   const ctx = c.getContext("2d");
   // Navegador antigo sem roundRect: cantos retos.
   if (!ctx.roundRect) ctx.roundRect = function (x, y, w, h) { this.rect(x, y, w, h); };
+  const e = post.enquete?.pergunta && Array.isArray(post.enquete.opcoes) && post.enquete.opcoes.length >= 2 ? post.enquete : null;
   const foto = fotosDoPost(post)[0];
-  let im = null; if (foto) im = await carregarImg(foto).catch(() => null);
-  // Fundo: a própria foto desfocada e escurecida (ou um degradê).
-  if (im) { ctx.filter = "blur(40px) brightness(.55)"; const k = Math.max(W / im.width, H / im.height) * 1.15; ctx.drawImage(im, (W - im.width * k) / 2, (H - im.height * k) / 2, im.width * k, im.height * k); ctx.filter = "none"; }
-  else { const g = ctx.createLinearGradient(0, 0, W, H); g.addColorStop(0, "#0b3d5c"); g.addColorStop(1, "#6d28d9"); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
-  // Cartão branco no meio
-  const CW = 860, X = (W - CW) / 2, pad = 34;
-  const mW = CW, mH = im ? Math.round(Math.min(1.25, Math.max(0.8, im.height / im.width)) * mW) : 0;
-  ctx.font = "500 34px system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
-  const leg = linhasDe(ctx, post.texto || post.enquete?.pergunta || "", CW - pad * 2, im ? 2 : 8);
-  const altTexto = im ? (leg.length ? leg.length * 46 + pad : 0) : Math.max(200, leg.length * 64 + pad * 2);
-  const CH = 130 + mH + altTexto + pad;
-  const Y = Math.max(160, (H - CH) / 2 - 40);
+  // Tudo ao mesmo tempo: foto, rosto de quem publicou e o resultado da enquete.
+  const [im, av, res] = await Promise.all([
+    foto ? carregarImg(foto).catch(() => null) : null,
+    urlSegura(post.fotoPerfil) ? carregarImg(post.fotoPerfil, 3000).catch(() => null) : null,
+    e ? resultadoParaCartao(post) : null
+  ]);
+  // Fundo: a própria foto desfocada e escurecida (desenhada pequena e esticada: rápido até em celular simples) ou um degradê.
+  if (im) {
+    const m = document.createElement("canvas"); m.width = 54; m.height = 96;
+    const mc = m.getContext("2d"), k0 = Math.max(54 / im.width, 96 / im.height);
+    mc.drawImage(im, (54 - im.width * k0) / 2, (96 - im.height * k0) / 2, im.width * k0, im.height * k0);
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high"; ctx.drawImage(m, 0, 0, W, H);
+    ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.fillRect(0, 0, W, H);
+  } else { const g = ctx.createLinearGradient(0, 0, W, H); g.addColorStop(0, "#0b3d5c"); g.addColorStop(1, e ? "#0e7490" : "#6d28d9"); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
+
+  // ---- medidas: tudo cabe entre y=250 e y=1690 (em cima ficam os botões do flash; embaixo, a legenda e o nome) ----
+  const CW = 900, X = (W - CW) / 2, pad = 40, larg = CW - pad * 2, CAB = 136, TOPO = 250, MAXH = 1440;
+  const mostrar = !!res?.contas;
+  const total = mostrar ? res.contas.reduce((a, b) => a + b, 0) : 0;
+  // Enquete: selo, pergunta (até 2 linhas), opções e rodapé.
+  let enqH = 0, pergL = [];
+  if (e) {
+    ctx.font = `800 42px ${FONTE}`; pergL = linhasDe(ctx, e.pergunta, larg - 56, 2);
+    enqH = 28 + 40 + 16 + pergL.length * 54 + 14 + e.opcoes.length * 92 + 46 + 24;
+  }
+  // Texto: sem foto ele é o destaque (letra grande); com foto vira legenda (até 2 linhas).
+  const textoPost = String(post.texto || "").trim() === String(e?.pergunta || "").trim() ? "" : String(post.texto || "");
+  let tamTexto = im ? 34 : e ? 44 : 50, maxL = im ? 2 : e ? 4 : 8;
+  ctx.font = `${im ? 500 : 700} ${tamTexto}px ${FONTE}`;
+  let txtL = linhasDe(ctx, textoPost, larg, maxL);
+  const altTxt = () => (txtL.length ? txtL.length * Math.round(tamTexto * 1.36) + (im ? 22 : 30) : 0);
+  // Foto: a proporção dela (entre 4:5 e 1,91:1), encolhendo se precisar para a enquete caber.
+  let mH = 0;
+  if (im) {
+    const livre = MAXH - CAB - altTxt() - enqH - pad - (e ? 24 : 0);
+    if (livre < 340 && txtL.length > 1) { txtL = txtL.slice(0, 1); txtL[0] = txtL[0].replace(/…?$/, "…"); }
+    const livre2 = MAXH - CAB - altTxt() - enqH - pad - (e ? 24 : 0);
+    // Com enquete a foto fica mais baixa (até 3:4) para a votação aparecer inteira.
+    mH = Math.max(260, Math.min(Math.round(Math.min(e ? 0.75 : 1.25, Math.max(0.52, im.height / im.width)) * CW), livre2));
+  }
+  const CH = Math.min(MAXH, CAB + mH + (im && txtL.length ? 22 : 0) + altTxt() + (e ? enqH + 8 : 0) + pad - (im ? 0 : 6));
+  const Y = Math.round(Math.max(TOPO, TOPO + (MAXH - CH) / 2));
+
+  // ---- cartão ----
   ctx.save(); ctx.shadowColor = "rgba(0,0,0,.45)"; ctx.shadowBlur = 60; ctx.shadowOffsetY = 18;
   ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.roundRect(X, Y, CW, CH, 40); ctx.fill(); ctx.restore();
   ctx.save(); ctx.beginPath(); ctx.roundRect(X, Y, CW, CH, 40); ctx.clip();
   // Autor
-  const av = urlSegura(post.fotoPerfil) ? await carregarImg(post.fotoPerfil).catch(() => null) : null;
-  ctx.save(); ctx.beginPath(); ctx.arc(X + pad + 36, Y + 65, 36, 0, Math.PI * 2); ctx.clip();
-  if (av) ctx.drawImage(av, X + pad, Y + 29, 72, 72); else { ctx.fillStyle = "#00adee"; ctx.fillRect(X + pad, Y + 29, 72, 72); ctx.fillStyle = "#fff"; ctx.font = "800 30px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.fillText(String(post.nome || "?").trim().charAt(0).toUpperCase(), X + pad + 36, Y + 76); ctx.textAlign = "left"; }
+  ctx.save(); ctx.beginPath(); ctx.arc(X + pad + 36, Y + 66, 36, 0, Math.PI * 2); ctx.clip();
+  if (av) { const k = Math.max(72 / av.width, 72 / av.height); ctx.drawImage(av, X + pad + 36 - av.width * k / 2, Y + 66 - av.height * k / 2, av.width * k, av.height * k); }
+  else { ctx.fillStyle = "#00adee"; ctx.fillRect(X + pad, Y + 30, 72, 72); ctx.fillStyle = "#fff"; ctx.font = `800 32px ${FONTE}`; ctx.textAlign = "center"; ctx.fillText(String(post.nome || "?").trim().charAt(0).toUpperCase(), X + pad + 36, Y + 78); ctx.textAlign = "left"; }
   ctx.restore();
-  ctx.fillStyle = "#0f1b22"; ctx.font = "800 36px system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
+  ctx.fillStyle = "#0f1b22"; ctx.font = `800 36px ${FONTE}`;
   ctx.fillText(String(post.nome || "Usuário").slice(0, 28), X + pad + 92, Y + 60);
-  ctx.fillStyle = "#6b7c86"; ctx.font = "600 26px system-ui, sans-serif";
-  ctx.fillText(post.local?.nome ? String(post.local.nome).slice(0, 34) : "Diário · Help Floripa", X + pad + 92, Y + 96);
-  let y = Y + 130;
-  if (im) { const k = Math.max(mW / im.width, mH / im.height); ctx.drawImage(im, X + (mW - im.width * k) / 2, y + (mH - im.height * k) / 2, im.width * k, im.height * k); y += mH + pad; }
-  ctx.fillStyle = "#0f1b22";
-  if (im) { ctx.font = "500 34px system-ui, sans-serif"; leg.forEach((l, i) => ctx.fillText(l, X + pad, y + 18 + i * 46)); }
-  else { ctx.font = "700 46px system-ui, sans-serif"; const ll = linhasDe(ctx, post.texto || post.enquete?.pergunta || "", CW - pad * 2, 8); ll.forEach((l, i) => ctx.fillText(l, X + pad, y + pad + 30 + i * 64)); }
+  ctx.fillStyle = "#6b7c86"; ctx.font = `600 26px ${FONTE}`;
+  ctx.fillText(post.local?.nome ? String(post.local.nome).slice(0, 34) : "Diário · Help Floripa", X + pad + 92, Y + 98);
+  let y = Y + CAB;
+  // Foto
+  if (im) { const k = Math.max(CW / im.width, mH / im.height); ctx.save(); ctx.beginPath(); ctx.rect(X, y, CW, mH); ctx.clip(); ctx.drawImage(im, X + (CW - im.width * k) / 2, y + (mH - im.height * k) / 2, im.width * k, im.height * k); ctx.restore(); y += mH + 22; }
+  // Texto / legenda
+  if (txtL.length) {
+    const lh = Math.round(tamTexto * 1.36);
+    ctx.fillStyle = "#0f1b22"; ctx.font = `${im ? 500 : 700} ${tamTexto}px ${FONTE}`;
+    txtL.forEach((l, i) => ctx.fillText(l, X + pad, y + tamTexto + i * lh));
+    y += txtL.length * lh + (im ? 22 : 30);
+  }
+  // Enquete
+  if (e) {
+    const ex = X + pad - 6, ew = CW - (pad - 6) * 2, ey = y;
+    ctx.fillStyle = "#eef8fd"; ctx.strokeStyle = "#cdeaf8"; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.roundRect(ex, ey, ew, enqH - 8, 30); ctx.fill(); ctx.stroke();
+    let yy = ey + 28;
+    // selo ENQUETE (o mesmo ícone de barras do site)
+    ctx.fillStyle = "#00adee";
+    [26, 20, 14].forEach((w, i) => { ctx.beginPath(); ctx.roundRect(ex + 28, yy + 6 + i * 9, w, 5, 3); ctx.fill(); });
+    ctx.font = `900 27px ${FONTE}`; ctx.fillText("ENQUETE", ex + 66, yy + 30);
+    // prazo à direita
+    const fimE = fimDaEnquete(e), acabou = encerrada(e);
+    const prazo = acabou ? "Encerrada" : fimE ? faltaTexto(fimE).replace(/^termina/, "Termina") : "";
+    if (prazo) {
+      ctx.font = `800 24px ${FONTE}`; const tw = ctx.measureText(prazo).width;
+      ctx.fillStyle = acabou ? "#e6edf1" : "#d3effb"; ctx.beginPath(); ctx.roundRect(ex + ew - 28 - tw - 32, yy, tw + 32, 44, 22); ctx.fill();
+      ctx.fillStyle = acabou ? "#51636d" : "#0089bd"; ctx.fillText(prazo, ex + ew - 28 - tw - 16, yy + 31);
+    }
+    yy += 40 + 16;
+    ctx.fillStyle = "#0f1b22"; ctx.font = `800 42px ${FONTE}`;
+    pergL.forEach((l, i) => ctx.fillText(l, ex + 28, yy + 40 + i * 54));
+    yy += pergL.length * 54 + 14;
+    const maior = mostrar ? Math.max(...res.contas) : 0;
+    e.opcoes.forEach((o, i) => {
+      const oy = yy + i * 92, ow = ew - 56, ox = ex + 28;
+      const pct = mostrar && total ? Math.round(res.contas[i] / total * 100) : 0;
+      const lider = mostrar && total && res.contas[i] === maior;
+      ctx.fillStyle = "#ffffff"; ctx.strokeStyle = lider ? "#00adee" : "#d6e3ea"; ctx.lineWidth = lider ? 4 : 2;
+      ctx.beginPath(); ctx.roundRect(ox, oy, ow, 76, 22); ctx.fill(); ctx.stroke();
+      if (mostrar && pct) { ctx.save(); ctx.beginPath(); ctx.roundRect(ox, oy, ow, 76, 22); ctx.clip(); ctx.fillStyle = lider ? "rgba(0,173,238,.28)" : "rgba(15,27,34,.08)"; ctx.fillRect(ox, oy, ow * pct / 100, 76); ctx.restore(); }
+      let tx = ox + 26;
+      if (!mostrar) { ctx.strokeStyle = "#9fb1bb"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(ox + 40, oy + 38, 14, 0, Math.PI * 2); ctx.stroke(); tx = ox + 70; }
+      ctx.fillStyle = "#0f1b22"; ctx.font = `${lider ? 800 : 700} 34px ${FONTE}`;
+      const pctTxt = mostrar ? `${pct}%` : "";
+      ctx.font = `800 32px ${FONTE}`; const pw = pctTxt ? ctx.measureText(pctTxt).width : 0;
+      ctx.font = `${lider ? 800 : 700} 34px ${FONTE}`;
+      const rot = linhasDe(ctx, (lider && res?.final ? "🏆 " : "") + o, ow - (tx - ox) - pw - 40, 1)[0] || o;
+      ctx.fillText(rot, tx, oy + 50);
+      if (pctTxt) { ctx.font = `800 32px ${FONTE}`; ctx.fillStyle = lider ? "#0089bd" : "#51636d"; ctx.fillText(pctTxt, ox + ow - 24 - pw, oy + 50); }
+    });
+    yy += e.opcoes.length * 92;
+    // rodapé
+    ctx.fillStyle = "#51636d"; ctx.font = `600 26px ${FONTE}`;
+    const votos = `${total.toLocaleString("pt-BR")} ${total === 1 ? "voto" : "votos"}`;
+    const rodape = mostrar ? (res.final ? `Resultado final · ${votos}` : `Parcial · ${votos}`) + (e.anonima ? " · anônima" : "")
+      : acabou ? "Enquete encerrada" : `Toque em “Ver publicação” para votar${e.anonima ? " · anônima" : ""}`;
+    ctx.fillText(rodape, ex + 28, yy + 34);
+  }
   ctx.restore();
-  return c.toDataURL("image/jpeg", 0.88);
+  return c.toDataURL("image/jpeg", 0.9);
 }
 export async function compartilharNoFlash(post) {
   if (!post?.id) return;
@@ -219,11 +324,11 @@ export async function compartilharNoFlash(post) {
   if (post.autorId !== eu.uid) {
     try { const p = await fb.getDoc(fb.doc(fb.db, "pref_publicas", post.autorId)); if (p.exists() && p.data().permiteFlash === false) { toast(`${String(post.nome || "Quem publicou").split(" ")[0]} não permite compartilhar as publicações no Flash.`); return; } } catch {}
   }
-  toast("Preparando...");
+  toast(post.enquete?.pergunta ? "Preparando a enquete para o flash..." : "Preparando...");
   let imagem = null;
   try { imagem = await imagemDaPublicacao(post); } catch (e) { console.warn(e); }
   if (!imagem) { toast("Não foi possível preparar a publicação para o flash."); return; }
-  abrirCriador({ post: { id: post.id, autorId: post.autorId, nome: post.nome, imagem } });
+  abrirCriador({ post: { id: post.id, autorId: post.autorId, nome: post.nome, imagem, enquete: !!post.enquete?.pergunta } });
 }
 
 // Criar um flash de fora do Diário (o "+" na foto do seu perfil). aoPublicar roda depois de publicar.
@@ -1158,7 +1263,7 @@ function abrirCriador({ repost = null, post = null } = {}) {
   pintar();
   if (post) {
     // Publicação do Diário: o cartão dela já desenhado, com o selo de quem publicou.
-    const selo = el("div", "flash-repost-selo"); selo.append(icone("fotos", "i xs"), document.createTextNode(`Publicação de ${String(post.nome || "alguém").split(" ")[0]}`));
+    const selo = el("div", "flash-repost-selo"); selo.append(icone(post.enquete ? "enquete" : "fotos", "i xs"), document.createTextNode(`${post.enquete ? "Enquete" : "Publicação"} de ${String(post.nome || "alguém").split(" ")[0]}`));
     palco.appendChild(selo);
     usarFoto(post.imagem).catch((e) => toast(erroAmigavel(e)));
     return;
