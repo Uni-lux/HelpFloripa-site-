@@ -662,6 +662,15 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   planos para negócios, Comunidade grátis, dados não vendidos) e "Nada inventado". Hero manteve "para todo o Brasil" (área de
   atuação ainda em aberto). Nada privado na página (R$ 50 mil, Finep, cofundador, comissão). Foto do menu lateral com borda
   neutra (`.gaveta-avatar`; anel colorido só para quem tem flash).
+- **Análise de capacidade (22/10/2026, pedida por ele — ainda NÃO pronto para fluxo grande):** plano Spark (50 mil
+  leituras e 20 mil gravações/dia para o site todo); por abertura: Início ~175 leituras, Diário ~250–400 (120 posts + seguidos +
+  estado + resumos + comentários), Explorar ~560 → algumas centenas de pessoas ativas/dia esgotam a cota. Fotos em `data:`
+  dentro dos docs (até 900 KB; `USAR_STORAGE = false`) pesam em cada leitura. Cada post visto = 1 gravação (`marcarVista`) e
+  cada visita a negócio = 2 (`neg_visitas` + `neg_stats`). Contadores num doc só (`diario_notas`, `enquete_contas`, `neg_stats`)
+  aguentam ~1 gravação/s cada. `RECAPTCHA_V3_SITE_KEY` vazio (sem App Check), regras e 5 índices não publicados (sem índice a
+  vitrine cai em `limit(300)`), Nominatim/azulejos do OSM não aceitam uso pesado, GitHub Pages ~100 GB/mês. Ordem sugerida:
+  publicar regras+índices → Blaze com alerta de orçamento → Storage → App Check → enxugar leituras (Diário/Explorar/Início,
+  vistas em lote, contadores divididos) → mapa/endereços com provedor pago → Cloudflare Pages → teste de carga.
 - **As 5 etapas estão concluídas.** Próximos passos são as pendências abaixo (só ele pode fazer) e o que ficou
   para depois.
 
