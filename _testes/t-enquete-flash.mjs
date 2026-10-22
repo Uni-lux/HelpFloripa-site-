@@ -1,6 +1,6 @@
-// Publicação com enquete no Flash ("Adicionar ao seu flash"): abre rápido mesmo num celular lento (CPU 6× mais
-// devagar) e o cartão mostra que é ENQUETE, a pergunta e as opções; com o resultado (barras e %) quando a enquete
-// já terminou. Casos: enquete só com texto, enquete com foto + legenda, enquete encerrada.
+// Publicação no Flash ("Adicionar ao seu flash"): abre rápido mesmo num celular lento (CPU 6× mais devagar) e o
+// cartão segue o mesmo modelo para cada tipo: enquete (só texto, com foto, encerrada com resultado), citação (só
+// texto longo), várias fotos (1/N, bolinhas e estrelas) e caixa de perguntas. Capturas em saida/ef-*.png.
 // Uso: node t-enquete-flash.mjs   (emulador + servidor-csp + seed; regras do repositório)
 process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8085";
 import { initializeApp } from "firebase-admin/app"; import { getFirestore, Timestamp } from "firebase-admin/firestore";
@@ -14,10 +14,14 @@ await db.doc(`perfis_publicos/${U.ana}`).set({ fotoPerfil: "" }, { merge: true }
 const casos = [
   ["efTexto", { texto: "E aí quem ganha", enquete: { pergunta: "Funciona", opcoes: ["Sim", "Não"], fimEm: T(20) } }, "texto"],
   ["efFoto", { texto: "Reforma da cozinha pronta! Qual acabamento vocês preferem para a bancada nova?", mediaUrl: FOTO, mediaTipo: "image", enquete: { pergunta: "Qual bancada?", opcoes: ["Granito preto", "Quartzo branco", "Madeira"], fimEm: T(20) } }, "foto"],
-  ["efFim", { texto: "Resultado da votação", enquete: { pergunta: "Abre domingo?", opcoes: ["Sim", "Não", "Só de manhã"], fimEm: T(-1) } }, "encerrada"]
+  ["efFim", { texto: "Resultado da votação", enquete: { pergunta: "Abre domingo?", opcoes: ["Sim", "Não", "Só de manhã"], fimEm: T(-1) } }, "encerrada"],
+  ["efCitacao", { texto: "Hoje fechei o meu primeiro serviço pelo Help Floripa! Obrigado a todos que indicaram, foi uma reforma de banheiro completa em três dias, com acabamento novo e tudo limpinho no final. Sigo aceitando novos clientes na região." }, "citacao"],
+  ["efFotos", { texto: "Antes e depois da pintura da fachada", mediaUrl: FOTO, mediaTipo: "image", midias: [FOTO, FOTO, FOTO] }, "fotos"],
+  ["efCaixa", { texto: "Tirem suas dúvidas sobre reformas", caixa: { pergunta: "O que vocês querem saber?", anonima: true } }, "caixa"]
 ];
 for (const [id, d] of casos) await db.doc(`diario/${id}`).set({ autorId: U.ana, nome: "Ana Souza", fotoPerfil: "", criadoEm: T(-2 - casos.findIndex((c) => c[0] === id)), ...d });
 for (let f = 0; f < 10; f++) await db.doc(`enquete_contas/d_efFim_${f}`).set({ n0: 6, n1: 3, n2: 1 });
+await db.doc("diario_notas/efFotos").set({ total: 12, soma: 56, n1: 0, n2: 0, n3: 1, n4: 2, n5: 9 });
 // Na enquete encerrada, o resultado final pode estar guardado no aparelho: começa sem nada guardado.
 
 const { browser, ctx } = await navegador({ mobile: true });
@@ -41,6 +45,9 @@ for (const [id, , nome] of casos) {
   if (src?.startsWith("data:image/jpeg")) writeFileSync(`saida/ef-${nome}.jpg`, Buffer.from(src.split(",")[1], "base64"));
   ok(tempos[nome] < 4000, `${nome}: criador do flash aberto com o cartão em ${(tempos[nome] / 1000).toFixed(1)} s (celular 6× mais lento)`);
   await page.screenshot({ path: `saida/ef-criador-${nome}.png` });
+  const selo = await page.locator(".flash-repost-selo").textContent().catch(() => "");
+  const esperado = nome === "caixa" ? "Caixa de perguntas de" : ["texto", "foto", "encerrada"].includes(nome) ? "Enquete de" : "Publicação de";
+  ok(selo.includes(esperado), `${nome}: selo do criador "${selo.trim()}"`);
   await page.keyboard.press("Escape"); await page.waitForTimeout(600);
   await page.locator(".flash-criar [data-fechar], .flash-criar .flash-fechar").first().click({ timeout: 2000 }).catch(() => {});
 }

@@ -709,6 +709,19 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   letra grande. Imagens com limite de 4 s (`carregarImg(url, limite)`; antes uma foto lenta travava o "Preparando...") e
   carregadas junto com o resultado (`Promise.all`); desfoque do fundo por miniatura 54×96 esticada (sem `ctx.filter`).
   Selo do criador "Enquete de X". Teste `t-enquete-flash.mjs` (CPU 6× mais lenta: 0,9–1,8 s).
+- **Publicações no Flash + compositor (PR depois do #89, sem regra nova):** pedido dele: os outros tipos no Flash no mesmo
+  modelo da enquete (o Diário NÃO muda). `imagemDaPublicacao` em blocos: cabeçalho (foto, nome, "local ou Diário · data",
+  marca HELP FLORIPA), foto com "1/N" + bolinhas quando tem várias, só texto = cartão de citação (aspas, letra 56→40 até
+  caber), legenda, bloco ENQUETE ou CAIXA DE PERGUNTAS (`caixaBloco`, campo "Escreva sua resposta…", pílula "Anônima"),
+  estrelas embaixo quando há notas (`lerResumosEstrelas`), rodapé em 1 linha (letra encolhe). Selo do criador por tipo.
+  **Nova publicação:** a barra de 8 ícones + contador passava da largura no celular (a folha escorregava para o lado);
+  agora `.pub-campo` (contador dentro, campo cresce até 45% da tela), selo "Publicando no Diário" e grade 4 colunas
+  "Adicionar à publicação" (`.pub-ferr` com ícone + nome; `.ativo` em Enquete, Perguntas, Marcar, Local, Agendar).
+  Testes `t-enquete-flash.mjs` (6 tipos), `t-compositor.mjs` (360/390 px e computador, sem passar da largura).
+  **Diário no mesmo modelo (pedido dele depois):** só texto ≤500 sem foto/enquete/caixa = `.post-texto.citacao` (feed.js; caixa
+  com aspas, letra 18 px, "ver mais" com 7 linhas); enquete e caixa de perguntas no Diário com o MESMO bloco (fundo
+  accent 7% sobre `--panel-2`, borda accent 20%, opções/campo em pílula com borda); a caixa perdeu o degradê laranja/roxo
+  (o visor do Flash `.escura` continua branco). Cores pelas variáveis do tema: no escuro ficam os tons escuros do site.
 - **As 5 etapas estão concluídas.** Próximos passos são as pendências abaixo (só ele pode fazer) e o que ficou
   para depois.
 

@@ -13,12 +13,12 @@ import {
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, botaoSeguir, montarBarraRede, pintarBarraRede, ouvirAvisos, lerOrdenado,
   editarPublicacao, bloquear, comMencoes, fotosDoPost, carrosselFotos, contadorEstrelas, estaSalvo, alternarSalvo, escolherColecao, lerResumosEstrelas, contarComentarios,
   silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto, confirmarHF, blocoEnquete, blocoCaixa
-} from "./rede.js?v=60";
+} from "./rede.js?v=61";
 import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=1";
-import { montarStories, abrirFlashPorId, repostarFlash } from "./stories.js?v=32";
+import { montarStories, abrirFlashPorId, repostarFlash } from "./stories.js?v=33";
 import { abrirDenuncia } from "./denuncias.js?v=5";
 import { pessoasRecentes } from "./pessoas.js?v=3";
-import { abrirExplorar, definirCartao } from "./explorar.js?v=31";
+import { abrirExplorar, definirCartao } from "./explorar.js?v=32";
 import { docsComValidade } from "./leituras.js?v=1";
 import { distanciaKm } from "./perto.js?v=2";
 import { postsDoEstado, pesoRegiao, RECENTES_PAIS } from "./regiao.js?v=2";
@@ -276,7 +276,7 @@ function cartaoPost(post) {
       : { rotulo: "Salvar publicação", sub: "Para ver depois no seu Perfil → Salvos", icone: "salvo", fn: () => alternarSalvo(post) },
     { rotulo: "Salvar em uma coleção", sub: "Organize seus salvos em pastas", icone: "fotos", fn: () => escolherColecao(post) },
     { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(post.autorId, post.nome) },
-    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=27").then((m) => m.abrirEstatisticas(post)) },
+    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=28").then((m) => m.abrirEstatisticas(post)) },
     post.autorId === eu.uid && { rotulo: "Editar publicação", icone: "lapis", fn: () => editarPublicacao(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId !== eu.uid && { rotulo: silenciado(post.autorId) ? `Mostrar ${nome.textContent} de novo` : `Silenciar ${nome.textContent}`, sub: "Continua seguindo, mas as publicações e flashes somem do seu Diário", icone: "restringir",
       fn: async () => { await alternarSilenciar(post.autorId, nome.textContent); if (silenciado(post.autorId)) { posts = posts.filter((x) => x.autorId !== post.autorId); document.querySelectorAll(".post-card").forEach((x) => { if (x.dataset.autor === post.autorId) x.remove(); }); } } },
@@ -311,7 +311,9 @@ function cartaoPost(post) {
     c.appendChild(linhaM);
   }
   if (post.texto) {
-    const t = comMencoes(el("p", "post-texto" + (url ? "" : " so-texto")), post.texto);
+    // Só texto (sem foto, enquete ou caixa de perguntas) vira cartão de citação, como no Flash.
+    const citacao = !url && !post.enquete?.pergunta && !post.caixa?.pergunta && post.texto.length <= 500;
+    const t = comMencoes(el("p", "post-texto" + (url ? "" : " so-texto") + (citacao ? " citacao" : "")), post.texto);
     c.appendChild(t);
     if (!url) c._texto = t;
     // Texto longo: mostra o começo e "ver mais".
