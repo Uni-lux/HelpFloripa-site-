@@ -311,7 +311,9 @@ function cartaoPost(post) {
     c.appendChild(linhaM);
   }
   if (post.texto) {
-    const t = comMencoes(el("p", "post-texto" + (url ? "" : " so-texto")), post.texto);
+    // Só texto (sem foto, enquete ou caixa de perguntas) vira cartão de citação, como no Flash.
+    const citacao = !url && !post.enquete?.pergunta && !post.caixa?.pergunta && post.texto.length <= 500;
+    const t = comMencoes(el("p", "post-texto" + (url ? "" : " so-texto") + (citacao ? " citacao" : "")), post.texto);
     c.appendChild(t);
     if (!url) c._texto = t;
     // Texto longo: mostra o começo e "ver mais".

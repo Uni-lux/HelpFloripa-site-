@@ -2152,3 +2152,28 @@ div.cfg2-linha { cursor: default; }
 .pub-ferr[hidden] { display: none; }
 #folhaPublicar .pub-dica { display: flex; gap: 7px; align-items: flex-start; margin: 10px 4px 0; line-height: 1.45; }
 #folhaPublicar .pub-dica .i { flex-shrink: 0; width: 15px; height: 15px; margin-top: 1px; color: var(--muted); }
+
+/* Modelo das publicações igual ao cartão do Flash (cores do tema: no escuro, os tons escuros do site) */
+/* Só texto: cartão de citação com aspas grandes */
+.post-card .post-texto.citacao { margin: 2px 12px 12px; padding: 40px 18px 16px; border-radius: 18px; border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--line)); background: color-mix(in srgb, var(--accent) 7%, var(--panel-2)); font-size: 18px; font-weight: 700; line-height: 1.42; letter-spacing: -.005em; }
+.post-card .post-texto.citacao::before { content: "\201C"; position: absolute; left: 14px; top: 2px; font: 900 56px/1 Georgia, "Times New Roman", serif; color: var(--accent); pointer-events: none; }
+.post-card .post-texto.citacao.curto { -webkit-line-clamp: 7; }
+.post-card .post-texto.citacao + .ver-mais { margin-top: -6px; }
+/* Enquete: caixa azul-clara (no escuro, um azul bem escuro) com opções em pílula com borda */
+.post-card .enquete:not(.escura), .texto-item .enquete:not(.escura) { background: color-mix(in srgb, var(--accent) 7%, var(--panel-2)); border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--line)); }
+.post-card .enquete:not(.escura) .enq-op, .texto-item .enquete:not(.escura) .enq-op { background: var(--panel); border: 1.5px solid color-mix(in srgb, var(--text) 12%, transparent); }
+.post-card .enquete:not(.escura) .enq-op.minha, .texto-item .enquete:not(.escura) .enq-op.minha { border-color: var(--accent); }
+.post-card .enquete.resultado:not(.escura) .enq-op.lider { border-color: var(--accent); }
+.enq-rodape .enq-rod-tx:first-letter { text-transform: uppercase; }
+/* Caixa de perguntas: o mesmo bloco da enquete (antes um degradê laranja/roxo à parte) */
+.caixa-perg:not(.escura) { color: var(--text); background: color-mix(in srgb, var(--accent) 7%, var(--panel-2)); border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--line)); box-shadow: none; }
+.caixa-perg:not(.escura) .cx-tit { color: var(--accent); opacity: 1; }
+.caixa-perg:not(.escura) .enq-anon { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+.caixa-perg:not(.escura) .cx-form { background: var(--panel); border: 1.5px solid color-mix(in srgb, var(--text) 12%, transparent); }
+.caixa-perg:not(.escura) .cx-form:focus-within { border-color: var(--accent); }
+.caixa-perg:not(.escura) .cx-form textarea { color: var(--text); }
+.caixa-perg:not(.escura) .cx-form textarea::placeholder { color: var(--muted); }
+.caixa-perg:not(.escura) .cx-enviar { background: var(--accent); color: #fff; }
+.caixa-perg:not(.escura) .cx-nota { color: var(--muted); opacity: 1; }
+.caixa-perg:not(.escura) .cx-ver { background: var(--panel); border: 1px solid var(--line); color: var(--text); }
+.caixa-perg:not(.escura) .cx-ver:hover { background: color-mix(in srgb, var(--accent) 10%, var(--panel)); }

@@ -718,6 +718,10 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   agora `.pub-campo` (contador dentro, campo cresce até 45% da tela), selo "Publicando no Diário" e grade 4 colunas
   "Adicionar à publicação" (`.pub-ferr` com ícone + nome; `.ativo` em Enquete, Perguntas, Marcar, Local, Agendar).
   Testes `t-enquete-flash.mjs` (6 tipos), `t-compositor.mjs` (360/390 px e computador, sem passar da largura).
+  **Diário no mesmo modelo (pedido dele depois):** só texto ≤500 sem foto/enquete/caixa = `.post-texto.citacao` (feed.js; caixa
+  com aspas, letra 18 px, "ver mais" com 7 linhas); enquete e caixa de perguntas no Diário com o MESMO bloco (fundo
+  accent 7% sobre `--panel-2`, borda accent 20%, opções/campo em pílula com borda); a caixa perdeu o degradê laranja/roxo
+  (o visor do Flash `.escura` continua branco). Cores pelas variáveis do tema: no escuro ficam os tons escuros do site.
 - **As 5 etapas estão concluídas.** Próximos passos são as pendências abaixo (só ele pode fazer) e o que ficou
   para depois.
 
