@@ -27,7 +27,7 @@
   <link rel="stylesheet" href="categoria.css?v=8" />
   <link rel="stylesheet" href="info.css?v=7" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="categoria.js?v=43"></script>
+  <script type="module" src="categoria.js?v=44"></script>
 </head>
 <body data-classe="info">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -55,6 +55,7 @@
     <symbol id="i-seta" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
     <symbol id="i-cadeado" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8.5 10.5V7.5a3.5 3.5 0 017 0v3"/></symbol>
     <symbol id="i-pessoas" viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.6a3.5 3.5 0 0 1 0 7.8M18.5 20a6.5 6.5 0 0 0-2.8-5.3"/></symbol>
+    <symbol id="i-maleta" viewBox="0 0 24 24"><rect x="3.5" y="7" width="17" height="12.5" rx="2"/><path d="M9 7V5.5A1.5 1.5 0 0110.5 4h3A1.5 1.5 0 0115 5.5V7M3.5 12.5h17"/></symbol>
   </svg>
 
   <header class="topo">
@@ -71,20 +72,47 @@
       <div class="hero-corpo">
         <span class="selo-classe"><b><svg class="i xs" aria-hidden="true"><use href="#i-coracao"/></svg></b>Conheça o Help Floripa</span>
         <h1 id="tituloPagina">Feito em Floripa, <span>para todo o Brasil</span></h1>
-        <p class="lead">Uma plataforma local que reúne profissionais, restaurantes, lojas, imóveis e saúde de cada cidade do Brasil, com notas de clientes reais e conversa direta.</p>
+        <p class="lead">A Help Floripa conecta quem precisa de um serviço, de uma refeição, de um produto ou de um lugar para morar a quem oferece: profissionais autônomos e pequenos negócios. Tudo que você precisa em um só lugar, com notas de clientes reais e conversa direta.</p>
         <div class="hero-acoes"><a class="btn-hero pri" href="index.html"><svg class="i s" aria-hidden="true"><use href="#i-casa"/></svg>Explorar o Help Floripa</a><a class="btn-hero sec" href="negocios.html"><svg class="i s" aria-hidden="true"><use href="#i-mais"/></svg>Anunciar no Help Floripa</a></div>
       </div>
     </section>
     <div class="faixa-numeros"><div><b>6</b><span>áreas em um só lugar</span></div><div><b>27</b><span>estados atendidos</span></div><div><b>5.570</b><span>cidades no mapa</span></div><div><b>0%</b><span>de comissão nas vendas</span></div></div>
+    <section class="secao" aria-labelledby="sPorque">
+      <h2 class="secao-titulo" id="sPorque">Por que a Help Floripa existe</h2>
+      <p class="secao-sub">Dois lados que precisam um do outro, mas tinham dificuldade para se encontrar.</p>
+      <div class="duas-colunas">
+        <div class="bloco"><h3>Para quem procura</h3><ul class="lista-check">
+          <li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Encontrar um profissional dependia de indicação e de contatos soltos em vários lugares.</li>
+          <li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Era difícil comparar preços, fotos do trabalho e a opinião de quem já foi atendido.</li>
+          <li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Na hora de combinar, a conversa ficava espalhada e sem registro.</li>
+        </ul></div>
+        <div class="bloco"><h3>Para quem trabalha</h3><ul class="lista-check">
+          <li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Autônomos e pequenos negócios têm dificuldade para divulgar o próprio trabalho.</li>
+          <li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Publicidade custa caro e uma presença digital profissional dá trabalho para montar.</li>
+          <li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Bons profissionais ficavam conhecidos só no boca a boca.</li>
+        </ul></div>
+      </div>
+      <p style="margin:12px 2px 0;color:var(--muted)">A Help Floripa foi criada para aproximar esses dois lados: <strong style="color:var(--text)">quem precisa de alguma coisa e quem pode oferecer a solução</strong>, numa plataforma organizada, com perfis, avaliações e conversa direta.</p>
+    </section>
     <section class="secao" aria-labelledby="snossamissão">
       <h2 class="secao-titulo" id="snossamissão">Nossa missão</h2>
       <p class="secao-sub">Facilitar a vida de quem precisa contratar ou comprar e dar visibilidade para quem trabalha bem.</p>
       <div class="cards-info ">
         <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-lupa"/></svg></span><strong>Encontrar fica fácil</strong><p>Freelances, comida, produtos, imóveis e saúde perto de você, em um só lugar, com filtros por estado, cidade e distância.</p></div>
         <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-estrela"/></svg></span><strong>Confiança de verdade</strong><p>Só avalia quem foi atendido, uma vez por negócio. Reclamações ficam públicas, com direito de resposta.</p></div>
-        <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-chat"/></svg></span><strong>Conversa direta</strong><p>Orçamento, pedido e interesse pelo chat do site ou pelo WhatsApp, sem intermediário.</p></div>
+        <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-chat"/></svg></span><strong>Conversa direta</strong><p>Orçamento, pedido e agendamento pelo chat do site, com tudo registrado. O valor é combinado direto entre as partes.</p></div>
         <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-raio"/></svg></span><strong>Visibilidade para o pequeno</strong><p>Autônomos, MEIs e pequenas lojas ganham uma vitrine profissional, sem comissão sobre as vendas.</p></div>
       </div>
+    </section>
+    <section class="secao" aria-labelledby="sComoFunc">
+      <h2 class="secao-titulo" id="sComoFunc">Como funciona</h2>
+      <p class="secao-sub">A Help Floripa é uma intermediadora digital: conecta as pessoas e oferece as ferramentas. Quem anuncia é independente, sem vínculo de emprego com a plataforma.</p>
+      <ol class="passos">
+        <li class="passo"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-lupa"/></svg></span><strong>Encontre</strong><p>Busque por área, categoria ou nome e compare fotos, preços, notas e reclamações.</p></li>
+        <li class="passo"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-chat"/></svg></span><strong>Converse</strong><p>Peça orçamento, monte o carrinho ou peça um agendamento pelo chat.</p></li>
+        <li class="passo"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg></span><strong>Combine direto</strong><p>Valor, prazo, entrega e pagamento são acertados entre você e quem oferece. Nada de preço inventado.</p></li>
+        <li class="passo"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-estrela"/></svg></span><strong>Avalie</strong><p>Depois do atendimento, dê sua nota. Uma por cliente em cada negócio.</p></li>
+      </ol>
     </section>
     <section class="secao" aria-labelledby="studoemumsólu">
       <h2 class="secao-titulo" id="studoemumsólu">Tudo em um só lugar</h2>
@@ -100,14 +128,27 @@
     </section>
     <section class="secao" aria-labelledby="sHist">
       <h2 class="secao-titulo" id="sHist">Nossa história</h2>
-      <p class="secao-sub">De uma ideia na Ilha para o país inteiro.</p>
+      <p class="secao-sub">De uma ideia na Ilha a uma plataforma completa, construída etapa por etapa.</p>
       <div class="bloco">
         <ol class="linha-tempo">
-          <li><b>2025</b><strong>Nasce em Florianópolis</strong><p>A ideia era simples: reunir num só lugar quem oferece e quem procura, com notas de clientes reais e conversa direta, sem intermediário.</p></li>
-          <li><b>2026</b><strong>Uma rede social de verdade</strong><p>Chegam o Diário, o Flash, as enquetes, as mensagens com pedidos e orçamentos prontos e o perfil verificado.</p></li>
-          <li><b>2026</b><strong>Saúde e Comunidade</strong><p>Profissionais de saúde com registro no conselho e um mural para doar, trocar e ajudar, onde é proibido vender.</p></li>
-          <li><b>Hoje</b><strong>Todo o Brasil</strong><p>Busca por estado e cidade, "Perto de você", horário no fuso de cada estado e suporte nacional com prioridade por assunto.</p></li>
+          <li><b>2025 · A ideia</b><strong>Nasce em Florianópolis</strong><p>A Help Floripa começou com uma pergunta simples: por que é tão difícil encontrar um bom profissional na própria cidade, e tão difícil para ele ser encontrado? Desde o primeiro dia, a intenção foi construir uma empresa de verdade, não só uma página de anúncios.</p></li>
+          <li><b>2025 · O ecossistema</b><strong>De serviços para tudo em um só lugar</strong><p>A proposta cresceu de um catálogo de prestadores para um ecossistema local: serviços, lanches e delivery, compras e imóveis, todos com cadastro próprio. Daí veio o lema: “Tudo que você precisa em um só lugar”.</p></li>
+          <li><b>2025 · A marca</b><strong>Uma identidade própria</strong><p>Visual escuro e tecnológico com detalhes em ciano, e a Ponte Hercílio Luz iluminada como símbolo: a ligação entre quem procura e quem oferece, e entre a marca e a cidade onde ela nasceu.</p></li>
+          <li><b>2026 · A plataforma</b><strong>Perfis, conversa e confiança</strong><p>Conta com e-mail confirmado, perfis de negócio, chat com orçamento, carrinho e pedido prontos, avaliações de quem foi atendido e reclamações públicas com direito de resposta.</p></li>
+          <li><b>2026 · A comunidade</b><strong>Uma rede social de verdade</strong><p>Chegam o Diário, o Flash, as enquetes, os seguidores e o perfil verificado, para que profissionais mostrem o trabalho do dia a dia e construam reputação.</p></li>
+          <li><b>2026 · Novas áreas</b><strong>Saúde e Comunidade</strong><p>Profissionais de saúde com registro no conselho e agendamento pelo chat, e um mural para doar, trocar e ajudar, onde é proibido vender.</p></li>
+          <li><b>Hoje</b><strong>Pronta para crescer</strong><p>Suporte com protocolo e prioridade, Central de Segurança, planos para negócios, busca por estado e cidade e “Perto de você”. A base está pronta para receber profissionais, negócios e clientes reais.</p></li>
         </ol>
+      </div>
+    </section>
+    <section class="secao" aria-labelledby="sSustenta">
+      <h2 class="secao-titulo" id="sSustenta">Como a Help Floripa se sustenta</h2>
+      <p class="secao-sub">Um modelo simples e às claras.</p>
+      <div class="cards-info">
+        <div class="card-info"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-perfil"/></svg></span><strong>Grátis para quem procura</strong><p>Criar conta, buscar, conversar, pedir, avaliar e publicar no Diário não custa nada.</p></div>
+        <div class="card-info"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-maleta"/></svg></span><strong>Planos para negócios</strong><p>Perfis de negócio assinam um plano mensal (Plus, Pro ou Premium), com 30 dias grátis a mais na primeira assinatura.</p><a class="link" href="profissionais.html">Ver os planos<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></a></div>
+        <div class="card-info"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-comunidade"/></svg></span><strong>Comunidade sempre grátis</strong><p>Doações, trocas, pedidos de ajuda e vagas em quarto não pagam nada, e lá ninguém pode vender.</p></div>
+        <div class="card-info"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-cadeado"/></svg></span><strong>Seus dados não estão à venda</strong><p>Não vendemos dados pessoais nem usamos cookies de publicidade. Veja a <a href="privacidade.html">Política de Privacidade</a>.</p></div>
       </div>
     </section>
     <section class="secao" aria-labelledby="snoqueacredit">
@@ -118,6 +159,7 @@
         <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-grupo"/></svg></span><strong>Local em todo lugar</strong><p>Nascemos em Florianópolis e chegamos a todo o Brasil, cidade por cidade. Crescemos junto com quem anuncia e quem compra.</p></div>
         <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-cadeado"/></svg></span><strong>Privacidade e LGPD</strong><p>Seus dados são seus: baixe uma cópia ou exclua a conta quando quiser. A localização exata fica só no seu aparelho.</p></div>
         <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-pessoas"/></svg></span><strong>Gente de verdade</strong><p>Denúncias, chamados e verificações são analisados por pessoas da equipe, todos os dias.</p></div>
+        <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-estrela"/></svg></span><strong>Nada inventado</strong><p>Notas, contagens e selos vêm de dados reais. Sem avaliação ainda, aparece “Seja o primeiro”, nunca um número de enfeite.</p></div>
         <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-doc"/></svg></span><strong>Transparência</strong><p>Regras claras nos <a href="termos.html">Termos</a> e na <a href="privacidade.html">Política de Privacidade</a>.</p></div>
       </div>
     </section>
@@ -126,10 +168,11 @@
       
       <div class="bloco">
         <ul class="lista-check">
-          <li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Ser a referência em soluções locais em cada cidade do Brasil.</li>
+          <li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Ser a plataforma de referência em Florianópolis para encontrar profissionais e negócios, e levar o mesmo cuidado a cada cidade onde chegarmos.</li>
           <li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Criar uma rede confiável para contratar, comprar e anunciar.</li>
           <li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Fortalecer negócios, profissionais e parcerias de cada região do país.</li>
-          <li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Unir tecnologia e atendimento humano para gerar oportunidades.</li>
+          <li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Crescer sobre uma base sólida: tecnologia que funciona, segurança, transparência e profissionais reais.</li>
+          <li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Unir tecnologia e atendimento humano para gerar oportunidades e renda para quem trabalha.</li>
         </ul>
       </div>
     </section>

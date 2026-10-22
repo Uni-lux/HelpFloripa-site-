@@ -659,6 +659,12 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   3 linhas no `span` de dentro (antes a 3ª linha aparecia pela metade). Abas `.nav-inst` no estilo das centrais de ajuda: só
   texto, sublinhado na atual, nomes curtos (Ajuda, Clientes, Negócios), categoria.js põe as abas num `.nav-inst-trilho` (barra
   sólida, esmaece só as abas nas bordas: `.tem-esq/.tem-dir`) e centraliza a aba atual; no computador ficam centralizadas.
+- **Sobre com a história (mesmo PR #85):** sobre.html ganhou "Por que a Help Floripa existe" (os dois lados), "Como funciona"
+  (intermediadora, sem vínculo, preço combinado), "Nossa história" detalhada (2025 ideia/ecossistema/marca; 2026 plataforma,
+  rede social, Saúde e Comunidade; Hoje "Pronta para crescer"), "Como a Help Floripa se sustenta" (grátis para quem procura,
+  planos para negócios, Comunidade grátis, dados não vendidos) e "Nada inventado". Hero manteve "para todo o Brasil" (área de
+  atuação ainda em aberto). Nada privado na página (R$ 50 mil, Finep, cofundador, comissão). Foto do menu lateral com borda
+  neutra (`.gaveta-avatar`; anel colorido só para quem tem flash).
 - **As 5 etapas estão concluídas.** Próximos passos são as pendências abaixo (só ele pode fazer) e o que ficou
   para depois.
 
