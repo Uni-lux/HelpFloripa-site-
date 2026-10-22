@@ -637,6 +637,9 @@ chat da equipe).
 
 ## Pendências do dono e o que ficou para depois (vindas de sessões anteriores)
 Coisas que só ELE pode fazer (lembrar no momento certo, sem fazer por ele):
+- **E-mails do domínio (lista da semana de 26/10, lembrete trig_01Skdj622NFsQ7wGqJrbK4HC):** imprensa@, privacidade@ (LGPD),
+  juridico@ e contato@helpfloripa.com.br redirecionados para o Gmail (Cloudflare Email Routing recomendado, ou ImprovMX).
+  Depois trocar no site onde hoje está helpfloripa7@gmail.com (privacidade, contato, sócios, termos).
 - **Segredo `FIREBASE_SERVICE_ACCOUNT` no GitHub** (Settings → Secrets → Actions). Sem ele não rodam a limpeza
   automática de contas (`limpeza-contas.yml`), a conversão de cidades (`converter-cidades.yml`) nem relatório
   automático. **Configurar a limpeza automática ANTES de liberar o site ao público** (exclusões pedidas há 30 dias).
