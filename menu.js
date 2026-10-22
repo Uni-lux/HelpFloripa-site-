@@ -38,7 +38,7 @@ body.gaveta-aberta .gaveta { transform: none; visibility: visible; }
 .gaveta-perfil strong { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .gaveta-perfil small { color: var(--muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .gaveta-perfil > svg { color: var(--muted); }
-.gaveta-avatar { width: 46px; height: 46px; border-radius: 50%; overflow: hidden; flex-shrink: 0; display: grid; place-items: center; font-weight: 800; color: #fff; background: linear-gradient(135deg, #0a4a63, #00adee); box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--accent); }
+.gaveta-avatar { width: 46px; height: 46px; border-radius: 50%; overflow: hidden; flex-shrink: 0; display: grid; place-items: center; font-weight: 800; color: #fff; background: linear-gradient(135deg, #0a4a63, #00adee); box-shadow: 0 0 0 1px var(--line); } /* borda neutra: anel colorido fica só para quem tem flash */
 .gaveta-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .gaveta-anunciar { margin: 6px 0 2px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; border-radius: 14px; background: var(--accent); color: var(--accent-ink); font-weight: 800; text-decoration: none; }
 .gaveta-anunciar:hover { background: var(--accent-strong); }

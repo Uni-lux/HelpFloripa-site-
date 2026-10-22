@@ -11,6 +11,9 @@ await pôr("diario", POST, { autorId: U.ana, nome: "Ana Souza", texto: "Minha pr
 for (const [k, quem] of ["bruno", "edu", "fabi"].entries()) await pôr("curtidas", `${POST}_${U[quem]}`, { uid: U[quem], postId: POST, postAutorId: U.ana, nota: [5, 4, 5][k], criadoEm: ts(agora - (k + 1) * 60e3) });
 for (const quem of ["gui", "hele"]) await pôr("relacoes", `${U[quem]}_${U.ana}`, { tipo: "seguir", seguidorId: U[quem], alvoId: U.ana, criadoEm: ts(agora - 10 * 60e3) });
 await pôr("avaliacoes", "sinoAval1", { tipo: "negocio", autorId: U.dani, autorNome: "Dani", alvoId: U.ana, negocioId: `${U.ana}_servicos`, nota: 5, comentario: "Ótimo atendimento", criadoEm: ts(agora - 20 * 60e3) });
+await pôr("avaliacoes", "sinoRec1", { tipo: "negocio", autorId: U.edu, autorNome: "Edu Reclama", alvoId: U.ana, negocioId: `${U.ana}_servicos`, nota: 1, comentario: "Demorou muito para chegar", criadoEm: ts(agora - 30 * 60e3) });
+await pôr("reclamacoes", "sinoRec1", { texto: "Pedimos desculpas, já resolvemos.", criadoEm: ts(agora - 25 * 60e3), negocioDonoId: U.ana });
+await pôr("avaliacoes", "sinoRec2", { tipo: "negocio", autorId: U.fabi, autorNome: "Fabi Reclama", alvoId: U.ana, negocioId: `${U.ana}_servicos`, nota: 2, comentario: "Não gostei", criadoEm: ts(agora - 40 * 60e3) });
 const planoAntes = (await db.doc(`planos/${U.ana}`).get()).data() || null;
 await db.doc(`planos/${U.ana}`).set({ plano: "pro", meses: 1, ate: ts(agora + 2.5 * 864e5) });
 await db.doc(`usuarios/${U.ana}`).set({ notificacoesVistasEm: ts(agora - 3600e3) }, { merge: true });
@@ -38,6 +41,14 @@ const botoes = await p.evaluate(() => [...document.querySelectorAll(".pa .nt2-ac
 ok(botoes.includes("Renovar agora") && botoes.includes("Ver avaliação") && botoes.includes("Ver publicação") && botoes.includes("Responder"), "botões de ação: " + [...new Set(botoes)].join(", "));
 ok(await p.locator(".pa .nt2-tag").count() >= 4, "etiqueta do tipo em cada linha");
 await p.screenshot({ path: "saida/sino-painel.png" });
+// reclamação já respondida: sem "Responder publicamente", com "Respondida"; a outra continua pedindo resposta
+const rec1 = await p.locator(".pa .nt2-item", { hasText: "Edu Reclama" }).textContent();
+const rec2 = await p.locator(".pa .nt2-item", { hasText: "Fabi Reclama" }).textContent();
+ok(/Respondida/.test(rec1) && /Ver sua resposta/.test(rec1) && !/Responder publicamente/.test(rec1), "reclamação respondida: " + rec1.replace(/\s+/g, " ").slice(0, 120));
+ok(/Responder publicamente/.test(rec2) && !/Respondida/.test(rec2), "reclamação sem resposta continua pedindo resposta");
+// prévia: corte de 3 linhas no texto de dentro (nada pela metade)
+const corte = await p.evaluate(() => { const sp = document.querySelector(".pa .nt2-prev span"); const cs = getComputedStyle(sp); return { clamp: cs.webkitLineClamp, sobra: sp.parentElement.scrollHeight - sp.parentElement.clientHeight }; });
+ok(corte.clamp === "3" && corte.sobra === 0, "prévia corta em 3 linhas sem sobrar pedaço: " + JSON.stringify(corte));
 // Não lidas
 const naoLidasN = await p.textContent(".pa .nt2-seg em");
 ok(Number(naoLidasN) >= 4, "Não lidas: " + naoLidasN);
