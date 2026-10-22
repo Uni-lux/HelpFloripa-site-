@@ -25,7 +25,7 @@
     })();
   </script>
   <link rel="stylesheet" href="categoria.css?v=8" />
-  <link rel="stylesheet" href="info.css?v=5" />
+  <link rel="stylesheet" href="info.css?v=6" />
   <style>
     .canal.destaque { position: relative; border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent); }
     .canal .selo-rec { position: absolute; top: 14px; right: 14px; padding: 4px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 800; letter-spacing: .3px; background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
@@ -40,7 +40,7 @@
     .ct-prazos b.alta { background: color-mix(in srgb, #f5a524 18%, transparent); color: #d48806; }
   </style>
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="categoria.js?v=37"></script>
+  <script type="module" src="categoria.js?v=38"></script>
 </head>
 <body data-classe="info">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -53,6 +53,14 @@
     <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></symbol>
     <symbol id="i-perfil" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.3-3.6 4.2-5.3 7.5-5.3s6.2 1.7 7.5 5.3"/></symbol>
     <symbol id="i-whats" viewBox="0 0 24 24"><path d="M20.5 11.7a8.5 8.5 0 01-12.6 7.5L3.5 20.5l1.3-4.2A8.5 8.5 0 1120.5 11.7z"/><path d="M9 8.5c0 3.5 3 6.5 6.5 6.5l1-1.6-2-1-1 .8a4.5 4.5 0 01-2.4-2.4l.8-1-1-2z"/></symbol>
+    <symbol id="i-maleta" viewBox="0 0 24 24"><rect x="3.5" y="7" width="17" height="12.5" rx="2"/><path d="M9 7V5.5A1.5 1.5 0 0110.5 4h3A1.5 1.5 0 0115 5.5V7M3.5 12.5h17"/></symbol>
+    <symbol id="i-cartao" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h4"/></symbol>
+    <symbol id="i-alerta" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4.5M12 17.5h.01"/></symbol>
+    <symbol id="i-escudo" viewBox="0 0 24 24"><path d="M12 3l7.5 3v5.5c0 4.5-3.2 8-7.5 9.5-4.3-1.5-7.5-5-7.5-9.5V6z"/></symbol>
+    <symbol id="i-parceria" viewBox="0 0 24 24"><path d="M3 11l4-4 4 2 3-2 7 5-4 4M8 13l3 3M11 11l4 4M14 9l4 4"/></symbol>
+    <symbol id="i-megafone" viewBox="0 0 24 24"><path d="M3.5 10v4h3l8 4.5V5.5l-8 4.5zM17.5 9a4 4 0 0 1 0 6M6.5 14l1.5 5.5h2.5L9.5 14"/></symbol>
+    <symbol id="i-cadeado" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8.5 10.5V7.5a3.5 3.5 0 017 0v3"/></symbol>
+    <symbol id="i-doc" viewBox="0 0 24 24"><path d="M7 3.5h7l4 4V20.5H7z"/><path d="M14 3.5V8h4M9.5 12h6M9.5 15.5h6"/></symbol>
   </svg>
 
   <header class="topo">
@@ -64,12 +72,28 @@
   </header>
 
   <main class="pagina">
+    <nav class="nav-inst" aria-label="Páginas do Help Floripa"><a href="sobre.html">Sobre</a><a href="ajuda.html">Central de Ajuda</a><a href="seguranca.html">Segurança</a><a href="diretrizes.html">Diretrizes</a><a href="clientes.html">Para clientes</a><a href="profissionais.html">Para negócios</a><a href="socios-parcerias.html">Parcerias</a><a href="contato.html" aria-current="page">Contato</a><a href="termos.html">Termos</a><a href="privacidade.html">Privacidade</a></nav>
     <section class="hero hero-info sem-foto" aria-labelledby="tituloPagina">
       <div class="hero-corpo">
         <span class="selo-classe"><b><svg class="i xs" aria-hidden="true"><use href="#i-chat"/></svg></b>Atendimento</span>
         <h1 id="tituloPagina">Fale com o <span>Help Floripa</span></h1>
         <p class="lead">Clientes, profissionais, empresas e parceiros de todo o Brasil: escolha o canal mais rápido para você.</p>
 
+      </div>
+    </section>
+    <section class="secao" aria-labelledby="sCasos">
+      <h2 class="secao-titulo" id="sCasos">Qual é o seu caso?</h2>
+      <p class="secao-sub">Escolha e vá direto para quem resolve.</p>
+      <div class="casos">
+        <a class="caso" href="ajuda.html" style="--c:#00adee"><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-perfil"/></svg></span><strong>Sou cliente</strong><small>Dúvidas sobre conta, pedidos, orçamentos e avaliações.</small><em>Ver respostas →</em></a>
+        <a class="caso" href="suporte.html?categoria=negocio" style="--c:#2fbf71"><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-maleta"/></svg></span><strong>Tenho um negócio</strong><small>Perfil, cardápio, vitrine, anúncios e estatísticas.</small><em>Abrir chamado →</em></a>
+        <a class="caso" href="suporte.html?categoria=pagamento" style="--c:#f5a524"><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-cartao"/></svg></span><strong>Planos e pagamentos</strong><small>Pix, reembolso em 7 dias, condição especial.</small><em>Abrir chamado →</em></a>
+        <a class="caso" href="seguranca.html" style="--c:#e5484d"><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-alerta"/></svg></span><strong>Golpe ou risco</strong><small>Prioridade máxima: resposta em até 2 h no horário de atendimento.</small><em>Central de Segurança →</em></a>
+        <a class="caso" href="suporte.html?categoria=contestacao" style="--c:#ec835a"><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-escudo"/></svg></span><strong>Contestar uma decisão</strong><small>Suspensão, banimento ou conteúdo removido.</small><em>Pedir revisão →</em></a>
+        <a class="caso" href="socios-parcerias.html#sproposta" style="--c:#7c3aed"><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-parceria"/></svg></span><strong>Parcerias e investidores</strong><small>Representação na sua cidade, patrocínio e investimento.</small><em>Enviar proposta →</em></a>
+        <a class="caso" href="mailto:helpfloripa7@gmail.com?subject=Imprensa" style="--c:#0fb5a6"><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-megafone"/></svg></span><strong>Imprensa</strong><small>Entrevistas, dados e informações sobre o Help Floripa.</small><em>Escrever para a imprensa →</em></a>
+        <a class="caso" href="mailto:helpfloripa7@gmail.com?subject=Privacidade%20e%20LGPD" style="--c:#00adee"><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-cadeado"/></svg></span><strong>Privacidade e LGPD</strong><small>Pedidos sobre seus dados pessoais. Também em Configurações › Baixar meus dados.</small><em>Falar sobre dados →</em></a>
+        <a class="caso" href="mailto:helpfloripa7@gmail.com?subject=Autoridades%20e%20assuntos%20jurídicos" style="--c:#7f8c96"><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-doc"/></svg></span><strong>Autoridades e jurídico</strong><small>Ofícios, ordens judiciais e pedidos de órgãos públicos.</small><em>Enviar pelo e-mail oficial →</em></a>
       </div>
     </section>
     <section class="secao" aria-labelledby="scanaisoficia">
@@ -168,8 +192,8 @@
     </div>
     <div><h4>Explorar</h4><nav aria-label="Explorar"><a href="servicos.html">Freelances</a><a href="delivery.html">Delivery</a><a href="shopping.html">Shopping</a><a href="imoveis.html">Imóveis</a><a href="saude.html">Saúde</a><a href="comunidade.html">Comunidade</a></nav></div>
     <div><h4>Para você</h4><nav aria-label="Para você"><a href="usuarios.html">Meu perfil</a><a href="mensagens.html">Mensagens</a><a href="negocios.html">Anunciar</a><a href="profissionais.html">Para profissionais</a><a href="clientes.html">Para clientes</a><a href="reclamacoes.html">Reclamações</a></nav></div>
-    <div><h4>Help Floripa</h4><nav aria-label="Institucional"><a href="sobre.html">Sobre</a><a href="ajuda.html">Ajuda</a><a href="contato.html">Contato</a><a href="socios-parcerias.html">Sócios e parcerias</a><a href="termos.html">Termos de Uso</a><a href="privacidade.html">Privacidade</a></nav></div>
-    <div class="fim"><span>&copy; 2025 Help Floripa · Todos os direitos reservados</span><span>CNPJ 61.935.934/0001-00</span></div>
+    <div><h4>Help Floripa</h4><nav aria-label="Institucional"><a href="sobre.html">Sobre</a><a href="ajuda.html">Ajuda</a><a href="contato.html">Contato</a><a href="socios-parcerias.html">Sócios e parcerias</a><a href="seguranca.html">Central de Segurança</a><a href="diretrizes.html">Diretrizes da Comunidade</a><a href="termos.html">Termos de Uso</a><a href="privacidade.html">Privacidade</a></nav></div>
+    <div class="fim"><span>&copy; 2025–2026 Help Floripa · Todos os direitos reservados</span><span>CNPJ 61.935.934/0001-00</span></div>
   </footer>
 </body>
 </html>

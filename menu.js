@@ -136,13 +136,15 @@ const SECOES_MENU = [
   ["Ajuda e suporte", [
     ["ajuda.html", "ajuda", "Central de Ajuda"],
     ["suporte.html", "suporte", "Meus chamados", null, null, "Fale com a equipe de qualquer lugar"],
+    ["seguranca.html", "escudo", "Central de Segurança", "#e5484d", null, "Golpes, denúncias e emergência"],
     ["reclamacoes.html", "alerta", "Reclamações"],
     ["contato.html", "contato", "Contato"]
   ]],
   ["Help Floripa", [
     ["sobre.html", "sobre", "Sobre o Help Floripa"],
     ["clientes.html", "perfil", "Para clientes"],
-    ["socios-parcerias.html", "parceria", "Sócios e parcerias"]
+    ["diretrizes.html", "termos", "Diretrizes da Comunidade"],
+    ["socios-parcerias.html", "parceria", "Sócios, parcerias e imprensa"]
   ]]
 ];
 const perfilMenu = { nome: "", nick: "", foto: "", logado: null };

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Segurança: só carrega recursos de origens conhecidas e não deixa outro site embutir esta página -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://www.google.com https://www.recaptcha.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://firebasestorage.googleapis.com https://lh3.googleusercontent.com https://images.unsplash.com https://upload.wikimedia.org https://randomuser.me https://www.gstatic.com https://www.google.com; media-src 'self' data: blob: https://firebasestorage.googleapis.com; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com https://viacep.com.br https://www.google.com https://www.gstatic.com; frame-src 'self' https://helpfloripa-61e0d.firebaseapp.com https://accounts.google.com https://www.google.com https://www.recaptcha.net; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self' https://formsubmit.co; upgrade-insecure-requests" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <script>if (window.top !== window.self) { document.documentElement.style.display = "none"; try { window.top.location.replace(window.self.location.href); } catch (e) {} }</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+  <meta name="description" content="Central de Segurança do Help Floripa: como reconhecer golpes, proteger sua conta, comprar e anunciar com segurança e telefones de emergência em todo o Brasil." />
+  <meta name="theme-color" content="#0b1014" />
+  <title>Central de Segurança | Help Floripa</title>
+  <link rel="icon" href="favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
+  <script>
+    // Tema claro/escuro: o mesmo escolhido no perfil, nas mensagens e no menu.
+    (function () {
+      var c = {};
+      try { c = JSON.parse(localStorage.getItem("hf-chat-config") || "{}"); } catch (e) {}
+      var tema = c.tema || "sistema";
+      var escuro = tema === "escuro" || (tema === "sistema" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
+      document.documentElement.dataset.theme = escuro ? "dark" : "light";
+      document.querySelector('meta[name="theme-color"]').content = escuro ? "#0f161b" : "#ffffff";
+    })();
+  </script>
+  <link rel="stylesheet" href="categoria.css?v=8" />
+  <link rel="stylesheet" href="info.css?v=6" />
+  <script type="module" src="firebase.js"></script>
+  <script type="module" src="categoria.js?v=38"></script>
+</head>
+<body data-classe="info">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 01-1.5 1.5H15v-6h-6v6H5.5A1.5 1.5 0 014 19z"/></symbol>
+    <symbol id="i-sino" viewBox="0 0 24 24"><path d="M18 9.5a6 6 0 00-12 0c0 6.5-2.5 8-2.5 8h17S18 16 18 9.5z"/><path d="M10.2 20.5a2 2 0 003.6 0"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    <symbol id="i-perfil" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="4"/><path d="M4.5 20.5c1.2-3.6 4.1-5.5 7.5-5.5s6.3 1.9 7.5 5.5"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M20 11.5a8 8 0 01-11.6 7.1L4 20l1.4-4.2A8 8 0 1120 11.5z"/></symbol>
+    <symbol id="i-seta" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-lampada" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.5 10.9c.6.5 1 1.2 1 2V17h5v-1.1c0-.8.4-1.5 1-2A6 6 0 0012 3z"/></symbol>
+    <symbol id="i-doc" viewBox="0 0 24 24"><path d="M7 3.5h7l4 4V20.5H7z"/><path d="M14 3.5V8h4M9.5 12h6M9.5 15.5h6"/></symbol>
+    <symbol id="i-escudo" viewBox="0 0 24 24"><path d="M12 3l7.5 3v5.5c0 4.5-3.2 8-7.5 9.5-4.3-1.5-7.5-5-7.5-9.5V6z"/></symbol>
+    <symbol id="i-alerta" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4.5M12 17.5h.01"/></symbol>
+    <symbol id="i-carrinho" viewBox="0 0 24 24"><path d="M3 4h2.2l2.2 11h10.4l2-8H6.3"/><circle cx="9" cy="19.5" r="1.4"/><circle cx="17" cy="19.5" r="1.4"/></symbol>
+    <symbol id="i-maleta" viewBox="0 0 24 24"><rect x="3.5" y="7" width="17" height="12.5" rx="2"/><path d="M9 7V5.5A1.5 1.5 0 0110.5 4h3A1.5 1.5 0 0115 5.5V7M3.5 12.5h17"/></symbol>
+    <symbol id="i-cadeado" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8.5 10.5V7.5a3.5 3.5 0 017 0v3"/></symbol>
+    <symbol id="i-ajuda" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.5a2.5 2.5 0 014.8.9c0 1.7-2.4 2.1-2.4 3.6M12 17.2v.1"/></symbol>
+    <symbol id="i-cartao" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h4"/></symbol>
+    <symbol id="i-estrela" viewBox="0 0 24 24"><path d="M12 3.8l2.5 5.2 5.7.8-4.1 4 1 5.6L12 16.7l-5.1 2.7 1-5.6-4.1-4 5.7-.8z"/></symbol>
+    <symbol id="i-chave" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l8.5-8.5M16 7l2.5 2.5M14 9l2 2"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1"/></symbol>
+    <symbol id="i-selo" viewBox="0 0 24 24"><path d="M12 3l2.4 1.8 3-.2.9 2.9 2.4 1.8-1 2.8 1 2.8-2.4 1.8-.9 2.9-3-.2L12 21l-2.4-1.8-3 .2-.9-2.9-2.4-1.8 1-2.8-1-2.8 2.4-1.8.9-2.9 3 .2z"/><path d="M8.8 12l2.2 2.2 4.2-4.4"/></symbol>
+    <symbol id="i-bloquear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/></symbol>
+    <symbol id="i-restringir" viewBox="0 0 24 24"><path d="M12 3.5l7 3v5.2c0 4.2-2.9 7.6-7 8.8-4.1-1.2-7-4.6-7-8.8V6.5z"/><path d="M9 12h6"/></symbol>
+    <symbol id="i-bandeira" viewBox="0 0 24 24"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></symbol>
+    <symbol id="i-email" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="M4 7l8 6 8-6"/></symbol>
+  </svg>
+
+  <header class="topo">
+    <button type="button" class="icone-btn" id="btnMenu" aria-label="Abrir menu" aria-controls="gaveta" aria-expanded="false"><svg class="i" aria-hidden="true"><use href="#i-menu"/></svg></button>
+    <a href="index.html" class="icone-btn" aria-label="Página inicial" title="Início"><svg class="i" aria-hidden="true"><use href="#i-casa"/></svg></a>
+    <a href="index.html" class="marca" aria-label="Help Floripa - Início"><strong>HELP <span>FLORIPA</span></strong><small>TUDO EM UM SÓ LUGAR</small></a>
+    <a href="notificacoes.html" class="icone-btn" aria-label="Notificações" title="Notificações"><svg class="i" aria-hidden="true"><use href="#i-sino"/></svg><b class="ponto-badge" id="badgeAvisos" hidden></b></a>
+    <a href="usuarios.html" class="icone-btn" aria-label="Meu perfil"><span class="topo-avatar" id="topoAvatar"><svg class="i xs" aria-hidden="true"><use href="#i-perfil"/></svg></span></a>
+  </header>
+
+  <main class="pagina">
+    <nav class="nav-inst" aria-label="Páginas do Help Floripa"><a href="sobre.html">Sobre</a><a href="ajuda.html">Central de Ajuda</a><a href="seguranca.html" aria-current="page">Segurança</a><a href="diretrizes.html">Diretrizes</a><a href="clientes.html">Para clientes</a><a href="profissionais.html">Para negócios</a><a href="socios-parcerias.html">Parcerias</a><a href="contato.html">Contato</a><a href="termos.html">Termos</a><a href="privacidade.html">Privacidade</a></nav>
+    <section class="hero hero-info sem-foto" aria-labelledby="tituloPagina">
+      <div class="hero-corpo">
+        <span class="selo-classe"><b><svg class="i xs" aria-hidden="true"><use href="#i-escudo"/></svg></b>Central de Segurança</span>
+        <h1 id="tituloPagina">Sua segurança <span>em primeiro lugar</span></h1>
+        <p class="lead">Como reconhecer golpes, proteger sua conta, comprar e anunciar com tranquilidade e o que fazer se algo der errado, em qualquer lugar do Brasil.</p>
+        <div class="hero-acoes"><a class="btn-hero pri" href="suporte.html?categoria=golpe"><svg class="i s" aria-hidden="true"><use href="#i-alerta"/></svg>Denunciar um golpe</a><a class="btn-hero sec" href="diretrizes.html">Diretrizes da Comunidade</a></div>
+      </div>
+    </section>
+    <section class="secao" aria-labelledby="sTopicos">
+      <h2 class="secao-titulo" id="sTopicos">Do que você precisa?</h2>
+      <p class="secao-sub">Escolha um tema.</p>
+      <div class="topicos">
+        <a class="topico" href="#golpes" style="--c:#e5484d"><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-alerta"/></svg></span><strong>Evitar golpes</strong><small>Os sinais mais comuns</small></a>
+        <a class="topico" href="#ferramentas" style="--c:#00adee"><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-escudo"/></svg></span><strong>Ferramentas</strong><small>Bloquear, restringir, denunciar</small></a>
+        <a class="topico" href="#comprar" style="--c:#2fbf71"><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-carrinho"/></svg></span><strong>Comprar e contratar</strong><small>Antes de pagar</small></a>
+        <a class="topico" href="#anunciar" style="--c:#b066ff"><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-maleta"/></svg></span><strong>Para quem anuncia</strong><small>Proteja seu negócio</small></a>
+        <a class="topico" href="#conta" style="--c:#f5a524"><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-cadeado"/></svg></span><strong>Proteger a conta</strong><small>Senha e acesso</small></a>
+        <a class="topico" href="#vitima" style="--c:#ff7a1a"><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-ajuda"/></svg></span><strong>Fui vítima de golpe</strong><small>O que fazer agora</small></a>
+        <a class="topico" href="#emergencia" style="--c:#e5484d"><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-sino"/></svg></span><strong>Emergência</strong><small>Telefones oficiais</small></a>
+        <a class="topico" href="ajuda.html" style="--c:#7f8c96"><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-chat"/></svg></span><strong>Central de Ajuda</strong><small>Todas as dúvidas</small></a>
+      </div>
+    </section>
+    <section class="secao" id="golpes" aria-labelledby="sGolpes">
+      <h2 class="secao-titulo" id="sGolpes">Como reconhecer um golpe</h2>
+      <p class="secao-sub">Golpistas mudam de história, mas os sinais se repetem.</p>
+      <div class="cards-info">
+        <div class="card-info" style="--c:#e5484d"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-cartao"/></svg></span><strong>Pagamento adiantado</strong><p>Pede Pix antes de qualquer coisa, para uma pessoa diferente do anunciante, ou cria pressa (“só hoje”, “último”).</p></div>
+        <div class="card-info" style="--c:#e5484d"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-estrela"/></svg></span><strong>Bom demais para ser verdade</strong><p>Preço muito abaixo do normal, imóvel incrível sem visita, emprego que paga muito por pouco.</p></div>
+        <div class="card-info" style="--c:#e5484d"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-chave"/></svg></span><strong>Pede código ou senha</strong><p>Ninguém precisa do código que chegou por SMS, e-mail ou WhatsApp. Quem pede quer roubar a sua conta.</p></div>
+        <div class="card-info" style="--c:#e5484d"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-link"/></svg></span><strong>Links e sites parecidos</strong><p>O endereço oficial é <strong>helpfloripa.com.br</strong>. Desconfie de links encurtados e páginas que pedem login fora do site.</p></div>
+        <div class="card-info" style="--c:#e5484d"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-perfil"/></svg></span><strong>Falso “suporte”</strong><p>A equipe só fala com você pelo Suporte do site e pelos <a href='contato.html'>canais oficiais</a>. Nunca pedimos senha nem cobramos taxa para liberar nada.</p></div>
+        <div class="card-info" style="--c:#e5484d"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-doc"/></svg></span><strong>Comprovante falso</strong><p>Para quem vende: confira o Pix no app do seu banco antes de entregar. Print de comprovante não é dinheiro na conta.</p></div>
+      </div>
+    </section>
+    <section class="secao" id="ferramentas" aria-labelledby="sFerr">
+      <h2 class="secao-titulo" id="sFerr">Ferramentas que protegem você</h2>
+      <div class="cards-info">
+        <div class="card-info"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-selo"/></svg></span><strong>Perfil verificado</strong><p>O selo mostra que a equipe conferiu documento e identidade. Peça o seu em Configurações.</p><a class="link" href="configuracoes.html">Pedir verificação<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></a></div>
+        <div class="card-info"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-bloquear"/></svg></span><strong>Bloquear</strong><p>Quem foi bloqueado não vê seu perfil, não segue você e não manda mensagens. Não recebe aviso.</p></div>
+        <div class="card-info"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-restringir"/></svg></span><strong>Restringir e silenciar</strong><p>Receba as mensagens sem notificação e sem a pessoa saber se você leu. Silencie contas e conversas.</p></div>
+        <div class="card-info"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-bandeira"/></svg></span><strong>Denunciar</strong><p>Perfil, publicação, comentário, mensagem ou negócio: menu ⋮ › Denunciar. É anônimo para quem foi denunciado.</p></div>
+        <div class="card-info"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-estrela"/></svg></span><strong>Avaliações reais</strong><p>Só avalia quem conversou pelo chat, com conta de pelo menos 3 dias. Uma nota por cliente.</p><a class="link" href="reclamacoes.html">Ver reclamações<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></a></div>
+        <div class="card-info"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-email"/></svg></span><strong>E-mail confirmado</strong><p>Sem confirmar o e-mail ninguém manda mensagens, publica, avalia ou anuncia. Isso afasta robôs e contas falsas.</p></div>
+      </div>
+    </section>
+    <section class="secao" aria-labelledby="sDicas">
+      <h2 class="secao-titulo" id="sDicas">Dicas para cada lado</h2>
+      <div class="duas-colunas">
+        <div class="bloco" id="comprar"><h3>Quem compra e contrata</h3><ul class="lista-check"><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Compare notas, fotos e como o negócio responde às reclamações.</li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Prefira o chat do Help Floripa: tudo fica registrado e ajuda numa denúncia.</li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Confirme o nome de quem recebe o Pix: tem que ser o anunciante.</li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Imóveis: visite antes, peça documentos e nunca pague “reserva” sem contrato.</li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Saúde: confira o registro no conselho pelo botão “Conferir” do perfil.</li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Depois do atendimento, avalie. Sua nota protege a próxima pessoa.</li></ul></div>
+        <div class="bloco" id="anunciar"><h3>Quem anuncia</h3><ul class="lista-check"><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Confira cada Pix no app do banco antes de entregar ou começar o serviço.</li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Desconfie de quem paga a mais e pede o troco de volta.</li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Peça avaliação pelo chat: avaliações com pedido ganham o selo “Atendimento confirmado”.</li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Responda as reclamações em até 7 dias para não receber o selo “Sem resposta”.</li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Mantenha horários, preços e estoque atualizados para evitar desentendimentos.</li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Verifique o seu perfil: o selo passa confiança para quem não conhece você.</li></ul></div>
+      </div>
+    </section>
+    <section class="secao" id="conta" aria-labelledby="sConta">
+      <h2 class="secao-titulo" id="sConta">Proteja a sua conta</h2>
+      <div class="bloco"><ul class="lista-check"><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Use uma senha forte, só sua, que você não usa em nenhum outro site.</li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Nunca encaminhe o link de redefinição de senha nem códigos que chegaram para você.</li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Entrou num aparelho que não é seu? Saia da conta pelo menu quando terminar.</li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Mantenha seu e-mail atualizado em <a href='configuracoes.html' style='color:var(--classe);font-weight:700'>Configurações</a>: é por ele que você recupera o acesso.</li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Achou algo estranho na sua conta? Troque a senha e abra um chamado em 'Minha conta'.</li></ul></div>
+    </section>
+    <section class="secao" id="vitima" aria-labelledby="sVitima">
+      <h2 class="secao-titulo" id="sVitima">Fui vítima de golpe. E agora?</h2>
+      <ol class="passos">
+        <li class="passo"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-bloquear"/></svg></span><strong>Pare de pagar</strong><p>Não mande mais nenhum valor, mesmo que prometam devolver o que você já pagou.</p></li>
+        <li class="passo"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-doc"/></svg></span><strong>Guarde as provas</strong><p>Prints da conversa, do perfil e do anúncio, comprovantes e o nome de quem recebeu.</p></li>
+        <li class="passo"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-cartao"/></svg></span><strong>Fale com o seu banco</strong><p>Foi por Pix? Peça o Mecanismo Especial de Devolução (MED) o quanto antes: o prazo é de até 80 dias.</p></li>
+        <li class="passo"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-escudo"/></svg></span><strong>Registre a ocorrência</strong><p>Na delegacia online do seu estado. O boletim ajuda no banco e na investigação.</p></li>
+        <li class="passo"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-alerta"/></svg></span><strong>Avise a gente</strong><p>Denuncie o perfil e abra um chamado de Golpe ou fraude: prioridade máxima, resposta em até 2 h.</p></li>
+      </ol>
+      <div class="hero-acoes" style="margin-top:12px"><a class="botao" href="suporte.html?categoria=golpe"><svg class="i s" aria-hidden="true"><use href="#i-alerta"/></svg>Abrir chamado de golpe</a><a class="botao sec" href="https://new.safernet.org.br/denuncie" target="_blank" rel="noopener noreferrer">Denunciar crime na internet (SaferNet)</a></div>
+    </section>
+    <section class="secao" id="emergencia" aria-labelledby="sEmerg">
+      <h2 class="secao-titulo" id="sEmerg">Emergência</h2>
+      <div class="aviso-emergencia"><svg class="i s" aria-hidden="true"><use href="#i-alerta"/></svg><span>O Help Floripa não atende emergências. Se alguém corre perigo agora, ligue para um destes números, gratuitos em todo o Brasil.</span></div>
+      <div class="emergencia"><a href="tel:190"><b>190</b><span>Polícia Militar<small>Crime acontecendo agora</small></span></a><a href="tel:192"><b>192</b><span>SAMU<small>Emergência médica</small></span></a><a href="tel:193"><b>193</b><span>Bombeiros<small>Incêndio, resgate e acidentes</small></span></a><a href="tel:180"><b>180</b><span>Central da Mulher<small>Violência contra a mulher</small></span></a><a href="tel:100"><b>100</b><span>Direitos Humanos<small>Violência contra crianças, idosos e outros</small></span></a><a href="tel:188"><b>188</b><span>CVV<small>Apoio emocional, 24 h</small></span></a></div>
+    </section>
+    <div class="cta-strip">
+      <div>
+        <h3>Viu algo errado?</h3>
+        <p>Denuncie pelo menu ⋮ ou abra um chamado. A equipe analisa todos os casos, todos os dias, das 8h às 20h (horário de Brasília).</p>
+      </div>
+      <div class="cta">
+        <a href="suporte.html?categoria=golpe"><svg class="i s" aria-hidden="true"><use href="#i-alerta"/></svg>Denunciar golpe</a>
+        <a class="sec" href="diretrizes.html"><svg class="i s" aria-hidden="true"><use href="#i-escudo"/></svg>Diretrizes</a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="rodape-home">
+    <div>
+      <div class="marca-rodape">HELP <span>FLORIPA</span></div>
+      <p>Tudo o que você precisa perto de você, em um só lugar: freelances, delivery, compras, imóveis, saúde e Comunidade, em todo o Brasil.</p>
+    </div>
+    <div><h4>Explorar</h4><nav aria-label="Explorar"><a href="servicos.html">Freelances</a><a href="delivery.html">Delivery</a><a href="shopping.html">Shopping</a><a href="imoveis.html">Imóveis</a><a href="saude.html">Saúde</a><a href="comunidade.html">Comunidade</a></nav></div>
+    <div><h4>Para você</h4><nav aria-label="Para você"><a href="usuarios.html">Meu perfil</a><a href="mensagens.html">Mensagens</a><a href="negocios.html">Anunciar</a><a href="profissionais.html">Para profissionais</a><a href="clientes.html">Para clientes</a><a href="reclamacoes.html">Reclamações</a></nav></div>
+    <div><h4>Help Floripa</h4><nav aria-label="Institucional"><a href="sobre.html">Sobre</a><a href="ajuda.html">Ajuda</a><a href="contato.html">Contato</a><a href="socios-parcerias.html">Sócios e parcerias</a><a href="seguranca.html">Central de Segurança</a><a href="diretrizes.html">Diretrizes da Comunidade</a><a href="termos.html">Termos de Uso</a><a href="privacidade.html">Privacidade</a></nav></div>
+    <div class="fim"><span>&copy; 2025–2026 Help Floripa · Todos os direitos reservados</span><span>CNPJ 61.935.934/0001-00</span></div>
+  </footer>
+</body>
+</html>

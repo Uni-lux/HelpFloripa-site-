@@ -40,9 +40,9 @@
     })();
   </script>
   <link rel="stylesheet" href="categoria.css?v=8" />
-  <link rel="stylesheet" href="info.css?v=5" />
+  <link rel="stylesheet" href="info.css?v=6" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="categoria.js?v=37"></script>
+  <script type="module" src="categoria.js?v=38"></script>
 </head>
 <body data-classe="info">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -58,6 +58,9 @@
     <symbol id="i-perfil" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.3-3.6 4.2-5.3 7.5-5.3s6.2 1.7 7.5 5.3"/></symbol>
     <symbol id="i-brasil" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.3 2.4 3.4 5.2 3.4 8.5s-1.1 6.1-3.4 8.5c-2.3-2.4-3.4-5.2-3.4-8.5S9.7 5.9 12 3.5z"/></symbol>
     <symbol id="i-whats" viewBox="0 0 24 24"><path d="M20.5 11.7a8.5 8.5 0 01-12.6 7.5L3.5 20.5l1.3-4.2A8.5 8.5 0 1120.5 11.7z"/><path d="M9 8.5c0 3.5 3 6.5 6.5 6.5l1-1.6-2-1-1 .8a4.5 4.5 0 01-2.4-2.4l.8-1-1-2z"/></symbol>
+    <symbol id="i-diario" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="7" rx="1.5"/><rect x="4" y="13" width="16" height="7" rx="1.5"/></symbol>
+    <symbol id="i-cartao" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h4"/></symbol>
+    <symbol id="i-seta" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
   </svg>
 
   <header class="topo">
@@ -70,6 +73,7 @@
 
   <main class="pagina">
     <button type="button" class="volta-suporte" onclick="history.length > 1 ? history.back() : (location.href = 'suporte.html')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Voltar ao suporte</button>
+    <nav class="nav-inst" aria-label="Páginas do Help Floripa"><a href="sobre.html">Sobre</a><a href="ajuda.html" aria-current="page">Central de Ajuda</a><a href="seguranca.html">Segurança</a><a href="diretrizes.html">Diretrizes</a><a href="clientes.html">Para clientes</a><a href="profissionais.html">Para negócios</a><a href="socios-parcerias.html">Parcerias</a><a href="contato.html">Contato</a><a href="termos.html">Termos</a><a href="privacidade.html">Privacidade</a></nav>
     <section class="hero hero-info sem-foto" aria-labelledby="tituloPagina">
       <div class="hero-corpo">
         <span class="selo-classe"><b><svg class="i xs" aria-hidden="true"><use href="#i-ajuda"/></svg></b>Central de Ajuda</span>
@@ -82,21 +86,51 @@
         </form>
       </div>
     </section>
+    <section class="secao" aria-labelledby="sTopicosAj" id="topicosAjuda">
+      <h2 class="secao-titulo" id="sTopicosAj">Navegue por tema</h2>
+      <div class="topicos">
+        <a class="topico" href="#conta" style="--c:#00adee"><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-perfil"/></svg></span><strong>Conta e acesso</strong><small>Cadastro, senha, e-mail e exclusão</small></a>
+        <a class="topico" href="#diario" style="--c:#e5487f"><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-diario"/></svg></span><strong>Diário, Flash e perfil</strong><small>Publicações, enquetes e selo</small></a>
+        <a class="topico" href="#contratar" style="--c:#2fbf71"><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-lupa"/></svg></span><strong>Buscar e contratar</strong><small>Orçamento, pedido e Saúde</small></a>
+        <a class="topico" href="#anunciar" style="--c:#b066ff"><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-maleta"/></svg></span><strong>Anunciar e vender</strong><small>Perfil de negócio</small></a>
+        <a class="topico" href="#planos" style="--c:#f5a524"><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-cartao"/></svg></span><strong>Planos e pagamentos</strong><small>Preços, Pix e reembolso</small></a>
+        <a class="topico" href="#avaliacoes" style="--c:#ff7a1a"><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-estrela"/></svg></span><strong>Avaliações e reclamações</strong><small>Notas e respostas</small></a>
+        <a class="topico" href="#seguranca" style="--c:#e5484d"><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-escudo"/></svg></span><strong>Segurança e privacidade</strong><small>Golpes, bloqueio e dados</small></a>
+        <a class="topico" href="#brasil" style="--c:#0fb5a6"><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-brasil"/></svg></span><strong>Em todo o Brasil</strong><small>Cidade, distância e fuso</small></a>
+      </div>
+    </section>
+    <section class="secao" aria-labelledby="sPop" id="popularesAjuda">
+      <h2 class="secao-titulo" id="sPop">Mais procuradas</h2>
+      <div class="populares">
+        <a href="#p-senha">Esqueci minha senha<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></a><a href="#p-golpes">Como evito golpes?<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></a><a href="#p-planos">Quanto custa anunciar?<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></a><a href="#p-negocio">Como crio meu perfil de negócio?<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></a><a href="#p-perto">Como vejo o que está perto de mim?<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></a><a href="#p-avaliar">Por que não consigo avaliar?<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></a><a href="#p-suporte">Como falo com o suporte?<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></a><a href="#p-excluir">Como excluo minha conta?<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></a>
+      </div>
+    </section>
+    <h2 class="secao-titulo" style="margin-top:34px">Perguntas frequentes</h2>
     <div id="faqLista">
-    <section class="faq-grupo" aria-label="Conta e acesso">
+    <section class="faq-grupo" id="conta" aria-label="Conta e acesso">
       <h2><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-perfil"/></svg></span>Conta e acesso</h2>
       <div class="faq">
         <details><summary>Como crio minha conta?</summary><div class="resp"><p>Toque em <a href="cadastre-se.html">Cadastre-se</a> e use seu e-mail. Depois, confirme pelo link que enviamos (veja também a caixa de spam).</p></div></details>
         <details><summary>Por que preciso confirmar meu e-mail?</summary><div class="resp"><p>Para proteger todo mundo de contas falsas e robôs. Sem a confirmação você navega normalmente, mas não manda mensagens, não publica, não avalia e não anuncia. Se o link não chegou, use o botão <strong>Reenviar link</strong> no aviso amarelo do topo.</p></div></details>
-        <details><summary>Esqueci minha senha. E agora?</summary><div class="resp"><p>Na tela de <a href="login.html">login</a>, digite seu e-mail e toque em "Esqueci minha senha" para receber um link de redefinição.</p></div></details>
+        <details id="p-senha"><summary>Esqueci minha senha. E agora?</summary><div class="resp"><p>Na tela de <a href="login.html">login</a>, digite seu e-mail e toque em "Esqueci minha senha" para receber um link de redefinição.</p></div></details>
         <details><summary>Como troco minha senha?</summary><div class="resp"><p>Em <a href="configuracoes.html">Configurações</a> › <strong>Alterar senha</strong>, digite a senha atual e a nova (mínimo de 6 caracteres). Se não lembra da atual, toque em <strong>Esqueci minha senha atual</strong> para receber um link por e-mail.</p></div></details>
         <details><summary>Como troco meu e-mail?</summary><div class="resp"><p>Em <a href="configuracoes.html">Configurações</a> › <strong>Alterar e-mail</strong>, digite o novo e-mail e sua senha. Enviamos um link de confirmação para o <strong>novo</strong> e-mail, e a troca só acontece quando você abrir esse link. Até lá, continue entrando com o e-mail atual.</p></div></details>
         <details><summary>Como mudo o tema claro ou escuro?</summary><div class="resp"><p>Abra o menu (☰) e escolha em <strong>Aparência</strong>: Claro, Escuro ou Automático. A escolha vale para todas as páginas.</p></div></details>
         <details><summary>Como desativo minha conta por um tempo?</summary><div class="resp"><p>Em <a href="configuracoes.html">Configurações</a> › <strong>Desativar conta</strong>. Conte o motivo (opcional) e escolha como voltar:</p><ul><li><strong>Quando eu entrar de novo:</strong> a conta fica desativada até você entrar e tocar em <strong>Reativar</strong>;</li><li><strong>Automaticamente:</strong> em 7, 15 ou 30 dias, ou em 3 meses, tudo volta sozinho. Se entrar antes, dá para reativar na hora.</li></ul><p>Enquanto estiver desativada, seu perfil, publicações, negócios e anúncios não aparecem e ninguém consegue te mandar mensagem. <strong>Nada é apagado.</strong></p></div></details>
-        <details><summary>Como excluo minha conta?</summary><div class="resp"><p>Em <a href="configuracoes.html">Configurações</a> › <strong>Excluir minha conta</strong>. Por segurança, pedimos sua senha.</p><ul><li>A conta é desativada na hora e você tem <strong>30 dias para mudar de ideia</strong>: é só entrar de novo e tocar em <strong>Recuperar minha conta</strong>.</li><li>Depois de 30 dias, a exclusão é concluída e não pode ser desfeita. Apagamos perfil, @, publicações, comentários, estrelas, seguidores, conexões, negócios, anúncios, as mensagens que você enviou e sua conta de login.</li><li>Avaliações e reclamações continuam contando, mas sem seu nome ("Ex-usuário"), para manter as notas justas.</li></ul><p>Detalhes na <a href="privacidade.html">Política de Privacidade</a>.</p></div></details>
+        <details id="p-excluir"><summary>Como excluo minha conta?</summary><div class="resp"><p>Em <a href="configuracoes.html">Configurações</a> › <strong>Excluir minha conta</strong>. Por segurança, pedimos sua senha.</p><ul><li>A conta é desativada na hora e você tem <strong>30 dias para mudar de ideia</strong>: é só entrar de novo e tocar em <strong>Recuperar minha conta</strong>.</li><li>Depois de 30 dias, a exclusão é concluída e não pode ser desfeita. Apagamos perfil, @, publicações, comentários, estrelas, seguidores, conexões, negócios, anúncios, as mensagens que você enviou e sua conta de login.</li><li>Avaliações e reclamações continuam contando, mas sem seu nome ("Ex-usuário"), para manter as notas justas.</li></ul><p>Detalhes na <a href="privacidade.html">Política de Privacidade</a>.</p></div></details>
       </div>
     </section>
-    <section class="faq-grupo" aria-label="Buscar e contratar">
+    <section class="faq-grupo" id="diario" aria-label="Diário, Flash e perfil">
+      <h2><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-diario"/></svg></span>Diário, Flash e perfil</h2>
+      <div class="faq">
+        <details><summary>O que é o Diário?</summary><div class="resp"><p>É a parte social do Help Floripa: publique fotos, vídeos curtos, textos e enquetes, siga pessoas e negócios e dê de 1 a 5 estrelas nas publicações. O filtro <strong>Principais</strong> mistura o que é recente com o que é do seu interesse e da sua região; <strong>Amigos</strong> mostra só quem você conhece.</p></div></details>
+        <details><summary>O que é o Flash?</summary><div class="resp"><p>São publicações rápidas que somem depois de <strong>24 horas</strong>, com foto, vídeo ou texto, figurinhas, enquete, caixa de perguntas e link para o seu negócio. Em Configurações › Diário e Flash você escolhe quem vê e onde publicar por padrão.</p></div></details>
+        <details><summary>Como faço uma enquete ou caixa de perguntas?</summary><div class="resp"><p>Ao publicar no Diário ou no Flash, toque em <strong>Enquete</strong> (de 2 a 4 opções) ou <strong>Caixa de perguntas</strong>. Escolha a duração e se os votos ou as respostas serão anônimos. Quando a enquete termina, você e quem votou recebem o resultado nas notificações.</p></div></details>
+        <details><summary>Como salvo publicações?</summary><div class="resp"><p>Toque em <strong>Salvar</strong> embaixo da publicação. Para organizar, crie <strong>coleções</strong> (até 30). Tudo fica no seu perfil, na aba Salvos, e só você vê.</p></div></details>
+        <details><summary>Como consigo o selo de verificado?</summary><div class="resp"><p>Em <a href="configuracoes.html">Configurações</a> › <strong>Verificação do perfil</strong>. É preciso ter 18 anos ou mais, e-mail confirmado, foto, nome e sobrenome, bio e conta com pelo menos 7 dias, sem sanções. Você envia um documento com foto, que é apagado assim que a equipe decide.</p></div></details>
+      </div>
+    </section>
+    <section class="faq-grupo" id="contratar" aria-label="Buscar e contratar">
       <h2><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-lupa"/></svg></span>Buscar e contratar</h2>
       <div class="faq">
         <details><summary>Como encontro o que preciso?</summary><div class="resp"><p>Use a busca da página inicial escolhendo onde procurar (Freelances, Delivery, Shopping, Imóveis, Saúde ou Comunidade) ou entre direto na classe e filtre pelas categorias.</p></div></details>
@@ -107,21 +141,30 @@
         <details><summary>O que é a Comunidade?</summary><div class="resp"><p>O mural do bairro: <a href="comunidade.html">doar</a> o que não usa, trocar, pedir ajuda, oferecer ou procurar vaga em quarto compartilhado e achados e perdidos. Tudo é de graça. <strong>É proibido vender ou cobrar</strong> (só a divisão das despesas do quarto pode ter valor): o anúncio é removido e quem insistir é banido da Comunidade e pode ter a conta suspensa ou banida.</p></div></details>
       </div>
     </section>
-    <section class="faq-grupo" aria-label="Em todo o Brasil">
+    <section class="faq-grupo" id="brasil" aria-label="Em todo o Brasil">
       <h2><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-brasil"/></svg></span>Em todo o Brasil</h2>
       <div class="faq">
         <details><summary>O Help Floripa funciona na minha cidade?</summary><div class="resp"><p>Sim. O Help Floripa nasceu em Florianópolis e funciona em <strong>todas as cidades do Brasil</strong>. Qualquer pessoa pode criar conta, anunciar e contratar de onde estiver. O que aparece em cada cidade depende de quem já anuncia por lá, então convide os profissionais e negócios que você conhece.</p></div></details>
-        <details><summary>Como vejo o que está perto de mim?</summary><div class="resp"><p>Na página inicial, a seção <a href="index.html#secPerto">Perto de você</a> mostra do mais perto ao mais longe. Sem a localização ligada, usamos a cidade do seu perfil. Nas vitrines (Freelances, Delivery, Shopping, Imóveis e Saúde) dá para filtrar por <strong>Estado e Cidade</strong>, ordenar por <strong>Mais perto</strong> e escolher a distância em Filtros.</p><p>A sua localização exata fica só no seu aparelho: ela não é gravada na sua conta nem mostrada para ninguém.</p></div></details>
+        <details id="p-perto"><summary>Como vejo o que está perto de mim?</summary><div class="resp"><p>Na página inicial, a seção <a href="index.html#secPerto">Perto de você</a> mostra do mais perto ao mais longe. Sem a localização ligada, usamos a cidade do seu perfil. Nas vitrines (Freelances, Delivery, Shopping, Imóveis e Saúde) dá para filtrar por <strong>Estado e Cidade</strong>, ordenar por <strong>Mais perto</strong> e escolher a distância em Filtros.</p><p>A sua localização exata fica só no seu aparelho: ela não é gravada na sua conta nem mostrada para ninguém.</p></div></details>
         <details><summary>Posso atender ou vender para outras cidades?</summary><div class="resp"><p>Pode. Cadastre o endereço ou a cidade de onde você atende e conte na descrição se atende online, entrega ou viaja. Profissionais de saúde marcam se atendem online, em consultório ou em domicílio.</p></div></details>
         <details><summary>Qual horário vale para "Aberto agora"?</summary><div class="resp"><p>O horário de funcionamento segue o <strong>fuso do estado do negócio</strong> (inclusive Acre, Amazonas, Roraima, Rondônia, Mato Grosso e Mato Grosso do Sul). Assim o "Aberto agora" está certo para quem compra de qualquer lugar.</p></div></details>
         <details><summary>Qual é o horário do suporte?</summary><div class="resp"><p>Os chamados pelo site podem ser abertos 24 horas, de qualquer cidade. A equipe atende <strong>todos os dias, das 8h às 20h (horário de Brasília)</strong>. A primeira resposta sai em até 2 h para golpe ou fraude, em até 8 h para pagamentos, contestações e planos Pro e Premium, e em até 24 h nos demais assuntos, contando o horário de atendimento.</p></div></details>
       </div>
     </section>
-    <section class="faq-grupo" aria-label="Avaliações e reclamações">
+    <section class="faq-grupo" id="planos" aria-label="Planos e pagamentos">
+      <h2><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-cartao"/></svg></span>Planos e pagamentos</h2>
+      <div class="faq">
+        <details><summary>Preciso pagar para usar o Help Floripa?</summary><div class="resp"><p>Não. Criar conta, buscar, conversar, pedir, avaliar, publicar no Diário e usar a Comunidade é gratuito. Só os <strong>perfis de negócio</strong> têm planos.</p></div></details>
+        <details><summary>Como pago o plano?</summary><div class="resp"><p>Em <a href="negocios.html?planos=1">Meus negócios › Planos</a>, escolha o plano e o período e pague por <strong>Pix</strong>. O plano começa quando a equipe confirma o pagamento e vale até a data mostrada no seu perfil. <strong>Não há renovação automática</strong>.</p></div></details>
+        <details><summary>Posso desistir e ter o dinheiro de volta?</summary><div class="resp"><p>Sim, em até <strong>7 dias</strong> depois do pagamento (direito de arrependimento do Código de Defesa do Consumidor). Peça pelo <a href="suporte.html?categoria=pagamento">Suporte › Pagamento</a>.</p></div></details>
+        <details><summary>Não consigo pagar agora. Tem alguma opção?</summary><div class="resp"><p>Tem. Em Meus negócios › Planos, peça uma <strong>condição especial</strong> (baixa renda, com comprovante) ou proponha uma <strong>negociação ou parceria</strong>. A equipe avalia cada pedido.</p></div></details>
+      </div>
+    </section>
+    <section class="faq-grupo" id="avaliacoes" aria-label="Avaliações e reclamações">
       <h2><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-estrela"/></svg></span>Avaliações e reclamações</h2>
       <div class="faq">
         <details><summary>Como avalio um atendimento?</summary><div class="resp"><p>Abra o perfil do negócio e toque em <strong>Avaliar</strong>. Se o negócio te enviar um pedido de avaliação no chat, também dá para tocar em <strong>Avaliar agora</strong> na conversa. Dê de 1 a 5 estrelas e, se quiser, escreva um comentário.</p><p>Cada cliente avalia <strong>uma vez cada negócio</strong>. Se voltar a comprar, você pode atualizar a nota, que substitui a anterior sem contar duas vezes.</p></div></details>
-        <details><summary>Por que não consigo avaliar?</summary><div class="resp"><p>Para as notas serem justas, só avalia quem foi atendido de verdade:</p><ul><li>você e o negócio precisam ter <strong>conversado pelo chat do Help Floripa</strong> (os dois escreveram);</li><li>seu <strong>e-mail precisa estar confirmado</strong>;</li><li>sua conta precisa ter <strong>pelo menos 3 dias</strong>;</li><li>quem tem vínculo no Social com o dono (família, amigos, duo) não avalia, e ninguém avalia o próprio negócio.</li></ul><p>Quando o negócio envia um pedido de avaliação pelo chat, sua nota ganha o selo <strong>Atendimento confirmado</strong>.</p></div></details>
+        <details id="p-avaliar"><summary>Por que não consigo avaliar?</summary><div class="resp"><p>Para as notas serem justas, só avalia quem foi atendido de verdade:</p><ul><li>você e o negócio precisam ter <strong>conversado pelo chat do Help Floripa</strong> (os dois escreveram);</li><li>seu <strong>e-mail precisa estar confirmado</strong>;</li><li>sua conta precisa ter <strong>pelo menos 3 dias</strong>;</li><li>quem tem vínculo no Social com o dono (família, amigos, duo) não avalia, e ninguém avalia o próprio negócio.</li></ul><p>Quando o negócio envia um pedido de avaliação pelo chat, sua nota ganha o selo <strong>Atendimento confirmado</strong>.</p></div></details>
         <details><summary>Como abro uma reclamação?</summary><div class="resp"><p>No perfil do negócio, toque em <strong>Reclamar</strong>, ou vá em <a href="reclamacoes.html">Reclamações</a> › <strong>Abrir reclamação</strong>. Escolha o motivo, conte o que aconteceu (mínimo de 20 caracteres) e, se quiser, anexe uma foto.</p><ul><li>É preciso ter mandado ao menos uma mensagem para o negócio pelo chat, ter e-mail confirmado e conta com pelo menos 3 dias.</li><li>Uma reclamação aberta por negócio, e até <strong>3 reclamações a cada 30 dias</strong>.</li><li>Ninguém apaga uma reclamação, nem você nem o negócio.</li></ul></div></details>
         <details><summary>O que acontece depois da reclamação?</summary><div class="resp"><p>Ela fica pública na página <a href="reclamacoes.html">Reclamações</a> e o negócio pode responder publicamente. Se ele não responder em <strong>7 dias</strong>, a reclamação ganha o selo <strong>Sem resposta</strong>.</p><p>Só você marca como <strong>resolvida</strong>. Se o problema voltar, dá para reabrir com um relato novo (conta no limite de 3 a cada 30 dias).</p><p>Avaliações de negócio com 1 ou 2 estrelas também aparecem em Reclamações. Estrelas em publicações não entram.</p></div></details>
         <details><summary>Como é calculada a nota do perfil?</summary><div class="resp"><p>É a média de todas as avaliações dos perfis de negócio da pessoa. Quem ainda não tem avaliação de negócio fica com a média das publicações. Toque na nota para ver quantas são de 5, 4, 3, 2 e 1 estrela e de onde vêm.</p></div></details>
@@ -129,20 +172,20 @@
         <details><summary>Recebi uma reclamação. O que faço?</summary><div class="resp"><p>Abra <a href="reclamacoes.html?aba=recebidas">Reclamações › Recebidas</a>, toque em <strong>Responder publicamente</strong> e explique como vai resolver. Responda em até <strong>7 dias</strong> para não receber o selo "Sem resposta". Uma boa resposta mostra cuidado para todos os clientes. Só o cliente pode marcar como resolvida.</p></div></details>
       </div>
     </section>
-    <section class="faq-grupo" aria-label="Anunciar e vender">
+    <section class="faq-grupo" id="anunciar" aria-label="Anunciar e vender">
       <h2><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-maleta"/></svg></span>Anunciar e vender</h2>
       <div class="faq">
-        <details><summary>Como crio meu perfil de negócio?</summary><div class="resp"><p>No seu perfil, toque em <strong>Anunciar</strong> (ou no menu › Anunciar no Help Floripa) e escolha o tipo: Freelances, Delivery, Lojinha, Imóveis ou Saúde. Você pode ter um de cada tipo. Para doar, trocar ou oferecer vaga em quarto, use a <a href="comunidade.html">Comunidade</a>, que não precisa de perfil de negócio.</p></div></details>
-        <details><summary>Quanto custa anunciar?</summary><div class="resp"><p>Os perfis de negócio têm planos mensais: Plus (R$ 29,90), Pro (R$ 39,90) e Premium (R$ 59,90), com desconto em 3, 6 e 12 meses. <strong>Na primeira assinatura, você ganha 30 dias grátis a mais</strong>, somados ao período pago. O pagamento é por Pix e não há renovação automática. Se não puder pagar agora, peça uma condição especial ou proponha uma negociação em Meus negócios › Planos. O Help Floripa não cobra comissão sobre o que você vende ou o serviço que você presta, e a <a href="comunidade.html">Comunidade</a> é sempre gratuita.</p></div></details>
+        <details id="p-negocio"><summary>Como crio meu perfil de negócio?</summary><div class="resp"><p>No seu perfil, toque em <strong>Anunciar</strong> (ou no menu › Anunciar no Help Floripa) e escolha o tipo: Freelances, Delivery, Lojinha, Imóveis ou Saúde. Você pode ter um de cada tipo. Para doar, trocar ou oferecer vaga em quarto, use a <a href="comunidade.html">Comunidade</a>, que não precisa de perfil de negócio.</p></div></details>
+        <details id="p-planos"><summary>Quanto custa anunciar?</summary><div class="resp"><p>Os perfis de negócio têm planos mensais: Plus (R$ 29,90), Pro (R$ 39,90) e Premium (R$ 59,90), com desconto em 3, 6 e 12 meses. <strong>Na primeira assinatura, você ganha 30 dias grátis a mais</strong>, somados ao período pago. O pagamento é por Pix e não há renovação automática. Se não puder pagar agora, peça uma condição especial ou proponha uma negociação em Meus negócios › Planos. O Help Floripa não cobra comissão sobre o que você vende ou o serviço que você presta, e a <a href="comunidade.html">Comunidade</a> é sempre gratuita.</p></div></details>
         <details><summary>Vendi ou aluguei. Como tiro do ar?</summary><div class="resp"><p>Nos seus anúncios de imóvel, toque em <strong>Alugado</strong> ou <strong>Vendido</strong>. Na lojinha, produtos com estoque zerado aparecem como esgotados.</p></div></details>
         <details><summary>Como peço avaliação para um cliente?</summary><div class="resp"><p>Na conversa com o cliente, abra o menu ⋮ e toque em <strong>Pedir avaliação</strong>. A avaliação feita por esse pedido ganha o selo <strong>Atendimento confirmado</strong>.</p><p>Para avaliar, o cliente precisa ter conversado com você pelo chat do Help Floripa. Cada cliente conta uma vez por negócio, então pedir de novo não gera notas extras. Você também pode avaliar o cliente, uma vez por cliente.</p></div></details>
       </div>
     </section>
-    <section class="faq-grupo" aria-label="Segurança">
-      <h2><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-escudo"/></svg></span>Segurança</h2>
+    <section class="faq-grupo" id="seguranca" aria-label="Segurança">
+      <h2><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-escudo"/></svg></span>Segurança e privacidade</h2>
       <div class="faq">
-        <details><summary>Como evito golpes?</summary><div class="resp"><p>Nunca envie senhas, códigos de verificação ou dados de cartão pelo chat. Desconfie de preços bons demais e de pedidos de pagamento antecipado fora do combinado. Prefira conversar pelo chat do site.</p></div></details>
-        <details><summary>Como falo com o suporte?</summary><div class="resp"><p>Abra <a href="suporte.html">Ajuda e suporte</a> (também em Configurações › Falar com o suporte), toque em <strong>Novo chamado</strong>, escolha o assunto e conte o que aconteceu. A equipe responde no próprio chamado e você recebe um aviso. Funciona de qualquer cidade, e o atendimento é todos os dias, das 8h às 20h (horário de Brasília).</p></div></details>
+        <details id="p-golpes"><summary>Como evito golpes?</summary><div class="resp"><p>Nunca envie senhas, códigos de verificação ou dados de cartão pelo chat. Desconfie de preços bons demais e de pedidos de pagamento antecipado fora do combinado. Prefira conversar pelo chat do site.</p></div></details>
+        <details id="p-suporte"><summary>Como falo com o suporte?</summary><div class="resp"><p>Abra <a href="suporte.html">Ajuda e suporte</a> (também em Configurações › Falar com o suporte), toque em <strong>Novo chamado</strong>, escolha o assunto e conte o que aconteceu. A equipe responde no próprio chamado e você recebe um aviso. Funciona de qualquer cidade, e o atendimento é todos os dias, das 8h às 20h (horário de Brasília).</p></div></details>
         <details><summary>Recebi um aviso ou minha conta foi suspensa. E agora?</summary><div class="resp"><p>Avisos da equipe aparecem numa janela quando você abre o site. Se a conta for <strong>suspensa</strong>, você não consegue publicar, conversar, avaliar nem anunciar até a data informada, e tudo volta sozinho no fim do prazo. No caso de <strong>banimento</strong>, não há prazo. Nos dois casos o motivo é informado e você pode contestar em <a href="suporte.html?categoria=contestacao">Contestar no suporte</a>.</p></div></details>
         <details><summary>Como fixo ou silencio uma conversa?</summary><div class="resp"><p>Na lista de mensagens, segure a conversa (ou clique com o botão direito) e escolha <strong>Fixar no topo</strong> ou <strong>Silenciar avisos</strong>. Conversas silenciadas não tocam som nem mostram notificação. Só você vê essas marcações.</p></div></details>
         <details><summary>Como marco alguém numa publicação ou comentário?</summary><div class="resp"><p>Escreva @ seguido do nome de usuário, por exemplo <strong>@helpfloripa</strong>. O @ vira um link para o perfil da pessoa.</p></div></details>
@@ -156,6 +199,15 @@
     </section>
       <div class="faq-vazio" id="faqVazio" hidden>Nenhuma pergunta encontrada. Tente outra palavra ou <a href="contato.html">fale com a gente</a>.</div>
     </div>
+    <section class="secao" aria-labelledby="sMais">
+      <h2 class="secao-titulo" id="sMais">Outros recursos</h2>
+      <div class="mais-recursos">
+        <a href="seguranca.html"><strong>Central de Segurança<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></strong><small>Golpes, ferramentas e telefones de emergência.</small></a>
+        <a href="diretrizes.html"><strong>Diretrizes da Comunidade<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></strong><small>O que pode e o que não pode no Help Floripa.</small></a>
+        <a href="suporte.html"><strong>Meus chamados<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></strong><small>Acompanhe as respostas da equipe.</small></a>
+        <a href="termos.html"><strong>Termos e Privacidade<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></strong><small>As regras e como cuidamos dos seus dados.</small></a>
+      </div>
+    </section>
     <div class="cta-strip">
       <div>
         <h3>Não encontrou sua resposta?</h3>
@@ -178,7 +230,12 @@
           itens.forEach(function (d) { var ok = !q || norm(d.textContent).indexOf(q) >= 0; d.hidden = !ok; if (ok) achou++; if (q && ok) d.open = true; if (!q) d.open = false; });
           grupos.forEach(function (g) { g.hidden = !g.querySelector("details:not([hidden])"); });
           document.getElementById("faqVazio").hidden = achou > 0;
+          // Buscando: esconde os temas e as mais procuradas, para os resultados aparecerem logo.
+          ["topicosAjuda", "popularesAjuda"].forEach(function (id) { document.getElementById(id).hidden = !!q; });
         });
+        // Link para uma pergunta (#p-...): abre e rola até ela.
+        var abrirHash = function () { var d = location.hash && document.getElementById(location.hash.slice(1)); if (d && d.tagName === "DETAILS") { d.open = true; setTimeout(function () { d.scrollIntoView({ block: "center" }); }, 30); } };
+        window.addEventListener("hashchange", abrirHash); abrirHash();
         var p = new URLSearchParams(location.search).get("q");
         if (p) { campo.value = p; campo.dispatchEvent(new Event("input")); }
       })();
@@ -192,8 +249,8 @@
     </div>
     <div><h4>Explorar</h4><nav aria-label="Explorar"><a href="servicos.html">Freelances</a><a href="delivery.html">Delivery</a><a href="shopping.html">Shopping</a><a href="imoveis.html">Imóveis</a><a href="saude.html">Saúde</a><a href="comunidade.html">Comunidade</a></nav></div>
     <div><h4>Para você</h4><nav aria-label="Para você"><a href="usuarios.html">Meu perfil</a><a href="mensagens.html">Mensagens</a><a href="negocios.html">Anunciar</a><a href="profissionais.html">Para profissionais</a><a href="clientes.html">Para clientes</a><a href="reclamacoes.html">Reclamações</a></nav></div>
-    <div><h4>Help Floripa</h4><nav aria-label="Institucional"><a href="sobre.html">Sobre</a><a href="ajuda.html">Ajuda</a><a href="contato.html">Contato</a><a href="socios-parcerias.html">Sócios e parcerias</a><a href="termos.html">Termos de Uso</a><a href="privacidade.html">Privacidade</a></nav></div>
-    <div class="fim"><span>&copy; 2025 Help Floripa · Todos os direitos reservados</span><span>CNPJ 61.935.934/0001-00</span></div>
+    <div><h4>Help Floripa</h4><nav aria-label="Institucional"><a href="sobre.html">Sobre</a><a href="ajuda.html">Ajuda</a><a href="contato.html">Contato</a><a href="socios-parcerias.html">Sócios e parcerias</a><a href="seguranca.html">Central de Segurança</a><a href="diretrizes.html">Diretrizes da Comunidade</a><a href="termos.html">Termos de Uso</a><a href="privacidade.html">Privacidade</a></nav></div>
+    <div class="fim"><span>&copy; 2025–2026 Help Floripa · Todos os direitos reservados</span><span>CNPJ 61.935.934/0001-00</span></div>
   </footer>
 </body>
 </html>
