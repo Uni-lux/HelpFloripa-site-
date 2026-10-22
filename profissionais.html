@@ -25,9 +25,9 @@
     })();
   </script>
   <link rel="stylesheet" href="categoria.css?v=8" />
-  <link rel="stylesheet" href="info.css?v=5" />
+  <link rel="stylesheet" href="info.css?v=6" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="categoria.js?v=36"></script>
+  <script type="module" src="categoria.js?v=38"></script>
 </head>
 <body data-classe="info">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -35,6 +35,7 @@
     <symbol id="i-alerta" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4.5M12 17.5h.01"/></symbol>
     <symbol id="i-bloqueio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/></symbol>
     <symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 01-1.5 1.5H15v-6h-6v6H5.5A1.5 1.5 0 014 19z"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0113 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></symbol>
     <symbol id="i-sino" viewBox="0 0 24 24"><path d="M18 9.5a6 6 0 00-12 0c0 6.5-2.5 8-2.5 8h17S18 16 18 9.5z"/><path d="M10.2 20.5a2 2 0 003.6 0"/></symbol>
     <symbol id="i-chat" viewBox="0 0 24 24"><path d="M20.5 11.6c0 4.3-3.8 7.6-8.5 7.6-1.2 0-2.3-.2-3.3-.6L4 20l1.2-3.6c-1.1-1.3-1.7-3-1.7-4.8C3.5 7.4 7.3 4 12 4s8.5 3.4 8.5 7.6z"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
@@ -63,6 +64,7 @@
   </header>
 
   <main class="pagina">
+    <nav class="nav-inst" aria-label="Páginas do Help Floripa"><a href="sobre.html">Sobre</a><a href="ajuda.html">Central de Ajuda</a><a href="seguranca.html">Segurança</a><a href="diretrizes.html">Diretrizes</a><a href="clientes.html">Para clientes</a><a href="profissionais.html" aria-current="page">Para negócios</a><a href="socios-parcerias.html">Parcerias</a><a href="contato.html">Contato</a><a href="termos.html">Termos</a><a href="privacidade.html">Privacidade</a></nav>
     <section class="hero hero-info sem-foto" aria-labelledby="tituloPagina">
       <div class="hero-corpo">
         <span class="selo-classe"><b><svg class="i xs" aria-hidden="true"><use href="#i-maleta"/></svg></b>Para quem trabalha e vende</span>
@@ -71,6 +73,7 @@
         <div class="hero-acoes"><a class="btn-hero pri" href="negocios.html"><svg class="i s" aria-hidden="true"><use href="#i-mais"/></svg>Criar meu perfil de negócio</a><a class="btn-hero sec" href="ajuda.html">Tirar dúvidas</a></div>
       </div>
     </section>
+    <div class="faixa-numeros"><div><b>0%</b><span>de comissão</span></div><div><b>6</b><span>tipos de perfil</span></div><div><b>27</b><span>estados</span></div><div><b>+30</b><span>dias grátis na 1ª assinatura</span></div></div>
     <section class="secao" aria-labelledby="sescolhaoseut">
       <h2 class="secao-titulo" id="sescolhaoseut">Escolha o seu tipo de perfil</h2>
       <p class="secao-sub">Você pode ter um perfil de cada tipo, todos ligados à sua conta.</p>
@@ -91,9 +94,20 @@
         <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-whats"/></svg></span><strong>Botão de WhatsApp</strong><p>Clientes também podem chamar você direto no WhatsApp com uma mensagem pronta.</p></div>
         <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-estrela"/></svg></span><strong>Avaliações que vendem</strong><p>Peça avaliação no chat ou pelo WhatsApp. Suas estrelas aparecem em todos os cartões.</p></div>
         <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-alerta"/></svg></span><strong>Direito de resposta</strong><p>Recebeu uma nota baixa? Responda publicamente em Reclamações e mostre como resolveu.</p></div>
-        <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-grafico"/></svg></span><strong>Destaque na vitrine</strong><p>Perfis completos, com fotos e bem avaliados aparecem em "Mais bem avaliados" na página inicial.</p></div>
+        <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-grafico"/></svg></span><strong>Destaque na vitrine</strong><p>Perfis completos, com fotos e bem avaliados aparecem em "Mais bem avaliados" e em "Perto de você" na página inicial. Os planos Pro e Premium sobem na ordem das vitrines.</p></div>
+        <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-pin"/></svg></span><strong>Clientes de todo o Brasil</strong><p>Quem procura na sua cidade encontra você pela distância, e o horário de "Aberto agora" segue o fuso do seu estado. Atende online ou entrega longe? Conte na descrição.</p></div>
         <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-perfil"/></svg></span><strong>Perfil social</strong><p>Publique trabalhos no seu perfil, ganhe seguidores e conecte seus negócios ao seu nome.</p></div>
       </div>
+    </section>
+    <section class="secao" aria-labelledby="sPlanos">
+      <h2 class="secao-titulo" id="sPlanos">Planos para cada momento</h2>
+      <p class="secao-sub">Sem comissão sobre vendas. Na primeira assinatura, 30 dias grátis a mais.</p>
+      <div class="planos-mini">
+        <div class="plano-mini" style="--c:#0ea5e9"><h3>Plus</h3><div class="preco">R$ 29,90<small> /mês</small></div><p>Selo no perfil e estatísticas completas</p><ul><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Perfil de negócio e pedidos pelo chat</li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Avaliações, cupons e promoções</li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Selo do plano no perfil</li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Estatísticas de 90 dias e Excel</li></ul></div>
+        <div class="plano-mini rec" style="--c:#7c3aed"><span class="tag">Mais escolhido</span><h3>Pro</h3><div class="preco">R$ 39,90<small> /mês</small></div><p>Destaque nas vitrines e atendimento prioritário</p><ul><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Perfil de negócio e pedidos pelo chat</li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Avaliações, cupons e promoções</li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Selo do plano no perfil</li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Estatísticas de 90 dias e Excel</li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Aparece antes nas vitrines e no Perto de você</li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Atendimento prioritário no Suporte</li></ul></div>
+        <div class="plano-mini" style="--c:#f59e0b"><h3>Premium</h3><div class="preco">R$ 59,90<small> /mês</small></div><p>O topo das vitrines e o máximo de destaque</p><ul><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Perfil de negócio e pedidos pelo chat</li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Avaliações, cupons e promoções</li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Selo do plano no perfil</li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Estatísticas de 90 dias e Excel</li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Aparece antes nas vitrines e no Perto de você</li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Atendimento prioritário no Suporte</li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Topo das vitrines, antes de todos</li></ul></div>
+      </div>
+      <p class="nota-planos">Descontos de 10%, 15% e 20% pagando 3, 6 ou 12 meses. Pagamento por Pix, sem renovação automática e com 7 dias para desistir. <a href="negocios.html?planos=1" style="color:var(--classe);font-weight:800">Ver planos e assinar →</a></p>
     </section>
     <section class="secao" aria-labelledby="scomocomeçar">
       <h2 class="secao-titulo" id="scomocomeçar">Como começar</h2>
@@ -123,6 +137,17 @@
         </ul></div>
       </div>
     </section>
+    <section class="secao" aria-labelledby="sFaqNeg">
+      <h2 class="secao-titulo" id="sFaqNeg">Perguntas de quem anuncia</h2>
+      <div class="faq">
+        <details><summary>Preciso ter CNPJ?</summary><div class="resp"><p>Não. Autônomos e MEIs podem anunciar com a conta pessoal. Se tiver CNPJ, você pode informar no perfil do negócio.</p></div></details>
+        <details><summary>Vocês cobram comissão?</summary><div class="resp"><p>Não. O valor combinado com o cliente fica inteiro com você. O Help Floripa cobra só o plano do perfil de negócio.</p></div></details>
+        <details><summary>Atendo em outra cidade ou online. Posso anunciar?</summary><div class="resp"><p>Pode. Cadastre o endereço ou a cidade de onde atende e conte na descrição se atende online, entrega ou viaja. Quem procura vê a distância até você.</p></div></details>
+        <details><summary>Como apareço primeiro?</summary><div class="resp"><p>Perfis completos (foto, descrição, contato e itens), com boas avaliações e respostas às reclamações, aparecem melhor. Os planos Pro e Premium sobem na ordem das vitrines e do "Perto de você".</p></div></details>
+        <details><summary>Quem pode anunciar na Saúde?</summary><div class="resp"><p>Profissionais com registro ativo no conselho da profissão (CRM, COREN, CRP, CRO, CRMV e outros). O número aparece no perfil para o paciente conferir.</p></div></details>
+        <details><summary>Qual a idade mínima para anunciar?</summary><div class="resp"><p>18 anos. Contas a partir de 16 anos podem usar o resto do Help Floripa.</p></div></details>
+      </div>
+    </section>
     <div class="cta-strip">
       <div>
         <h3>Pronto para aparecer para mais clientes?</h3>
@@ -142,8 +167,8 @@
     </div>
     <div><h4>Explorar</h4><nav aria-label="Explorar"><a href="servicos.html">Freelances</a><a href="delivery.html">Delivery</a><a href="shopping.html">Shopping</a><a href="imoveis.html">Imóveis</a><a href="saude.html">Saúde</a><a href="comunidade.html">Comunidade</a></nav></div>
     <div><h4>Para você</h4><nav aria-label="Para você"><a href="usuarios.html">Meu perfil</a><a href="mensagens.html">Mensagens</a><a href="negocios.html">Anunciar</a><a href="profissionais.html">Para profissionais</a><a href="clientes.html">Para clientes</a><a href="reclamacoes.html">Reclamações</a></nav></div>
-    <div><h4>Help Floripa</h4><nav aria-label="Institucional"><a href="sobre.html">Sobre</a><a href="ajuda.html">Ajuda</a><a href="contato.html">Contato</a><a href="socios-parcerias.html">Sócios e parcerias</a><a href="termos.html">Termos de Uso</a><a href="privacidade.html">Privacidade</a></nav></div>
-    <div class="fim"><span>&copy; 2025 Help Floripa · Todos os direitos reservados</span><span>CNPJ 61.935.934/0001-00</span></div>
+    <div><h4>Help Floripa</h4><nav aria-label="Institucional"><a href="sobre.html">Sobre</a><a href="ajuda.html">Ajuda</a><a href="contato.html">Contato</a><a href="socios-parcerias.html">Sócios e parcerias</a><a href="seguranca.html">Central de Segurança</a><a href="diretrizes.html">Diretrizes da Comunidade</a><a href="termos.html">Termos de Uso</a><a href="privacidade.html">Privacidade</a></nav></div>
+    <div class="fim"><span>&copy; 2025–2026 Help Floripa · Todos os direitos reservados</span><span>CNPJ 61.935.934/0001-00</span></div>
   </footer>
 </body>
 </html>

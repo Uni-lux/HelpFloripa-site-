@@ -7,7 +7,7 @@
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <script>if (window.top !== window.self) { document.documentElement.style.display = "none"; try { window.top.location.replace(window.self.location.href); } catch (e) {} }</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
-  <meta name="description" content="Contrate profissionais, peça delivery, compre em lojas locais e encontre imóveis na sua cidade com avaliações reais." />
+  <meta name="description" content="Contrate profissionais, peça delivery, compre em lojas locais, encontre imóveis e profissionais de saúde em qualquer cidade do Brasil, com avaliações reais." />
   <meta name="theme-color" content="#0b1014" />
   <title>Para clientes | Help Floripa</title>
   <link rel="icon" href="favicon.ico" />
@@ -25,15 +25,16 @@
     })();
   </script>
   <link rel="stylesheet" href="categoria.css?v=8" />
-  <link rel="stylesheet" href="info.css?v=5" />
+  <link rel="stylesheet" href="info.css?v=6" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="categoria.js?v=36"></script>
+  <script type="module" src="categoria.js?v=38"></script>
 </head>
 <body data-classe="info">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
     <symbol id="i-ajuda" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.5a2.5 2.5 0 014.8.9c0 1.7-2.4 2-2.4 3.6M12 17h.01"/></symbol>
     <symbol id="i-alerta" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4.5M12 17.5h.01"/></symbol>
     <symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 01-1.5 1.5H15v-6h-6v6H5.5A1.5 1.5 0 014 19z"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0113 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></symbol>
     <symbol id="i-sino" viewBox="0 0 24 24"><path d="M18 9.5a6 6 0 00-12 0c0 6.5-2.5 8-2.5 8h17S18 16 18 9.5z"/><path d="M10.2 20.5a2 2 0 003.6 0"/></symbol>
     <symbol id="i-chat" viewBox="0 0 24 24"><path d="M20.5 11.6c0 4.3-3.8 7.6-8.5 7.6-1.2 0-2.3-.2-3.3-.6L4 20l1.2-3.6c-1.1-1.3-1.7-3-1.7-4.8C3.5 7.4 7.3 4 12 4s8.5 3.4 8.5 7.6z"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
@@ -61,14 +62,16 @@
   </header>
 
   <main class="pagina">
+    <nav class="nav-inst" aria-label="Páginas do Help Floripa"><a href="sobre.html">Sobre</a><a href="ajuda.html">Central de Ajuda</a><a href="seguranca.html">Segurança</a><a href="diretrizes.html">Diretrizes</a><a href="clientes.html" aria-current="page">Para clientes</a><a href="profissionais.html">Para negócios</a><a href="socios-parcerias.html">Parcerias</a><a href="contato.html">Contato</a><a href="termos.html">Termos</a><a href="privacidade.html">Privacidade</a></nav>
     <section class="hero hero-info sem-foto" aria-labelledby="tituloPagina">
       <div class="hero-corpo">
         <span class="selo-classe"><b><svg class="i xs" aria-hidden="true"><use href="#i-perfil"/></svg></b>Para clientes</span>
         <h1 id="tituloPagina">Contrate, peça e compre <span>com confiança</span></h1>
-        <p class="lead">Profissionais, delivery, lojas e imóveis da sua cidade, com avaliações de quem já foi atendido e conversa direta com quem oferece.</p>
+        <p class="lead">Profissionais, delivery, lojas, imóveis e saúde perto de você, em qualquer cidade do Brasil, com avaliações de quem já foi atendido e conversa direta com quem oferece.</p>
         <div class="hero-acoes"><a class="btn-hero pri" href="index.html"><svg class="i s" aria-hidden="true"><use href="#i-lupa"/></svg>Começar a explorar</a><a class="btn-hero sec" href="cadastre-se.html">Criar conta grátis</a></div>
       </div>
     </section>
+    <div class="faixa-numeros"><div><b>6</b><span>áreas em um só lugar</span></div><div><b>27</b><span>estados</span></div><div><b>1</b><span>nota por cliente: avaliações reais</span></div><div><b>2 h</b><span>resposta em casos de golpe</span></div></div>
     <section class="secao" aria-labelledby="soquevocêenco">
       <h2 class="secao-titulo" id="soquevocêenco">O que você encontra</h2>
       
@@ -88,7 +91,8 @@
         <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-estrela"/></svg></span><strong>Notas confiáveis</strong><p>Só avalia quem foi atendido. Toque na nota e veja quantas são de cada estrela.</p></div>
         <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-alerta"/></svg></span><strong>Reclamações públicas</strong><p>Reclamações abertas por clientes (e notas 1 e 2) ficam públicas, com resposta do negócio. Você sabe como cada um trata o cliente.</p></div>
         <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-chat"/></svg></span><strong>Tudo no chat</strong><p>Orçamento, carrinho e interesse chegam organizados para quem atende.</p></div>
-        <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-escudo"/></svg></span><strong>Mais segurança</strong><p>Contas com e-mail confirmado, bloqueio e restrição de contatos e canais oficiais de denúncia.</p></div>
+        <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-pin"/></svg></span><strong>Perto de você</strong><p>Filtre por estado e cidade, veja a distância de cada um e ordene do mais perto ao mais longe, onde quer que você esteja.</p><a class="link" href="index.html#secPerto">Ver perto de mim<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></a></div>
+        <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-escudo"/></svg></span><strong>Mais segurança</strong><p>Contas com e-mail confirmado, selo de perfil verificado, bloqueio e restrição de contatos e canais oficiais de denúncia.</p></div>
       </div>
     </section>
     <section class="secao" aria-labelledby="sdicasparacon">
@@ -102,10 +106,19 @@
           <li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Depois do atendimento, avalie. Sua nota ajuda a comunidade.</li>
         </ul></div>
     </section>
+    <section class="secao" aria-labelledby="sFaqCli">
+      <h2 class="secao-titulo" id="sFaqCli">Perguntas de quem contrata</h2>
+      <div class="faq">
+        <details><summary>Pago alguma coisa para usar?</summary><div class="resp"><p>Não. Para quem procura, contrata e compra, o Help Floripa é gratuito.</p></div></details>
+        <details><summary>O pagamento é feito pelo site?</summary><div class="resp"><p>Não. Valor, pagamento e entrega são combinados direto com quem anuncia. Confirme o nome de quem recebe o Pix e o valor total antes de pagar.</p></div></details>
+        <details><summary>Como sei se é confiável?</summary><div class="resp"><p>Veja as estrelas (só avalia quem foi atendido), as reclamações e as respostas, o selo de perfil verificado e, na Saúde, o registro no conselho. Dicas na <a href="seguranca.html">Central de Segurança</a>.</p></div></details>
+        <details><summary>Funciona na minha cidade?</summary><div class="resp"><p>Funciona em todo o Brasil. Filtre por estado e cidade ou use "Perto de você" para ver do mais perto ao mais longe.</p></div></details>
+      </div>
+    </section>
     <div class="cta-strip">
       <div>
         <h3>Também trabalha por conta própria?</h3>
-        <p>Com a mesma conta você pode criar perfis de freelances, delivery, lojinha, imóveis ou saúde, e anunciar de graça na Comunidade.</p>
+        <p>Com a mesma conta você pode criar perfis de freelances, delivery, lojinha, imóveis ou saúde para clientes de todo o Brasil, e anunciar de graça na Comunidade.</p>
       </div>
       <div class="cta">
         <a href="profissionais.html"><svg class="i s" aria-hidden="true"><use href="#i-maleta"/></svg>Quero anunciar</a>
@@ -121,8 +134,8 @@
     </div>
     <div><h4>Explorar</h4><nav aria-label="Explorar"><a href="servicos.html">Freelances</a><a href="delivery.html">Delivery</a><a href="shopping.html">Shopping</a><a href="imoveis.html">Imóveis</a><a href="saude.html">Saúde</a><a href="comunidade.html">Comunidade</a></nav></div>
     <div><h4>Para você</h4><nav aria-label="Para você"><a href="usuarios.html">Meu perfil</a><a href="mensagens.html">Mensagens</a><a href="negocios.html">Anunciar</a><a href="profissionais.html">Para profissionais</a><a href="clientes.html">Para clientes</a><a href="reclamacoes.html">Reclamações</a></nav></div>
-    <div><h4>Help Floripa</h4><nav aria-label="Institucional"><a href="sobre.html">Sobre</a><a href="ajuda.html">Ajuda</a><a href="contato.html">Contato</a><a href="socios-parcerias.html">Sócios e parcerias</a><a href="termos.html">Termos de Uso</a><a href="privacidade.html">Privacidade</a></nav></div>
-    <div class="fim"><span>&copy; 2025 Help Floripa · Todos os direitos reservados</span><span>CNPJ 61.935.934/0001-00</span></div>
+    <div><h4>Help Floripa</h4><nav aria-label="Institucional"><a href="sobre.html">Sobre</a><a href="ajuda.html">Ajuda</a><a href="contato.html">Contato</a><a href="socios-parcerias.html">Sócios e parcerias</a><a href="seguranca.html">Central de Segurança</a><a href="diretrizes.html">Diretrizes da Comunidade</a><a href="termos.html">Termos de Uso</a><a href="privacidade.html">Privacidade</a></nav></div>
+    <div class="fim"><span>&copy; 2025–2026 Help Floripa · Todos os direitos reservados</span><span>CNPJ 61.935.934/0001-00</span></div>
   </footer>
 </body>
 </html>

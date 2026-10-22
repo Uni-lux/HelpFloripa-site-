@@ -290,6 +290,8 @@ async function montarPerto(fs, db, u, negocios, imoveis, nota) {
   });
   await desenhar();
   sec.hidden = false;
+  // Veio do menu ("Perto de você"): a seção só aparece depois de carregar, então rola até ela agora.
+  if (location.hash === "#secPerto") scrollTo({ top: sec.getBoundingClientRect().top + scrollY - 76 });
 }
 
 async function carregar(fs, db, u) {

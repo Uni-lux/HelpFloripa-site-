@@ -307,3 +307,95 @@ button.mp-tile:hover { border-color: var(--classe); }
 .rec-escolher-item:hover { border-color: var(--c); }
 .rec-escolher-item .tx { display: grid; gap: 2px; min-width: 0; }
 .rec-escolher-item small { color: var(--muted); font-size: 12px; }
+
+/* =====================================================
+   Páginas institucionais em nível nacional (estilo das grandes redes)
+   ===================================================== */
+/* barra de navegação entre as páginas institucionais */
+.nav-inst { position: sticky; top: calc(var(--topo) + env(safe-area-inset-top)); z-index: 20; margin: -12px -16px 14px; padding: 9px 16px; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; background: color-mix(in srgb, var(--bg) 88%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+.nav-inst::-webkit-scrollbar { display: none; }
+.nav-inst a { flex-shrink: 0; padding: 8px 13px; border-radius: 999px; font-size: 13px; font-weight: 750; color: var(--muted); text-decoration: none; border: 1px solid var(--line); background: var(--panel); white-space: nowrap; }
+.nav-inst a:hover { color: var(--text); }
+.nav-inst a[aria-current="page"] { background: var(--text); color: var(--panel); border-color: var(--text); }
+html.embutido .nav-inst { display: none; }
+
+/* faixa de números */
+.faixa-numeros { display: grid; gap: 10px; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 16px; }
+.faixa-numeros div { padding: 16px; border-radius: 18px; background: var(--panel); border: 1px solid var(--line); display: grid; gap: 2px; }
+.faixa-numeros b { font-size: clamp(22px, 3.4vw, 30px); font-weight: 900; letter-spacing: -.8px; background: linear-gradient(90deg, var(--classe), color-mix(in srgb, var(--classe) 50%, #7c3aed)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.faixa-numeros span { font-size: 13px; color: var(--muted); font-weight: 600; }
+
+/* tópicos (central de ajuda e segurança) */
+.topicos { display: grid; gap: 10px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.topico { --c: var(--classe); display: grid; gap: 6px; align-content: start; padding: 16px; border-radius: 18px; background: var(--panel); border: 1px solid var(--line); text-decoration: none; color: inherit; transition: transform .15s, border-color .15s; }
+.topico:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--c) 50%, var(--line)); }
+.topico .ic { width: 40px; height: 40px; border-radius: 13px; display: grid; place-items: center; background: color-mix(in srgb, var(--c) 14%, transparent); color: var(--c); }
+.topico strong { font-size: 14.5px; }
+.topico small { color: var(--muted); font-size: 12.5px; line-height: 1.4; }
+
+/* artigos mais procurados */
+.populares { display: grid; gap: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 6px; border-radius: 20px; background: var(--panel); border: 1px solid var(--line); }
+.populares a { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 13px 12px; border-radius: 14px; text-decoration: none; color: inherit; font-weight: 650; font-size: 14px; }
+.populares a:hover { background: var(--hover); }
+.populares a svg { color: var(--muted); flex-shrink: 0; }
+
+/* linha do tempo */
+.linha-tempo { list-style: none; margin: 0; padding: 0 0 0 4px; display: grid; gap: 0; }
+.linha-tempo li { position: relative; padding: 0 0 22px 30px; }
+.linha-tempo li::before { content: ""; position: absolute; left: 6px; top: 6px; bottom: -6px; width: 2px; background: var(--line); }
+.linha-tempo li:last-child::before { display: none; }
+.linha-tempo li::after { content: ""; position: absolute; left: 0; top: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--classe); box-shadow: 0 0 0 4px color-mix(in srgb, var(--classe) 18%, transparent); }
+.linha-tempo b { display: block; font-size: 12px; letter-spacing: .8px; text-transform: uppercase; color: var(--classe); }
+.linha-tempo strong { display: block; font-size: 16px; margin: 2px 0 4px; }
+.linha-tempo p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+
+/* "qual é o seu caso?" (contato) */
+.casos { display: grid; gap: 10px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.caso { --c: var(--classe); display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; align-items: start; padding: 16px; border-radius: 18px; background: var(--panel); border: 1px solid var(--line); text-decoration: none; color: inherit; }
+.caso:hover { border-color: color-mix(in srgb, var(--c) 50%, var(--line)); }
+.caso .ic { grid-row: span 3; width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; background: color-mix(in srgb, var(--c) 14%, transparent); color: var(--c); }
+.caso strong { font-size: 15px; }
+.caso small { color: var(--muted); font-size: 13px; line-height: 1.45; }
+.caso em { font-style: normal; font-size: 13px; font-weight: 800; color: var(--c); }
+
+/* emergência (segurança) */
+.emergencia { display: grid; gap: 10px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.emergencia a { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); text-decoration: none; color: inherit; }
+.emergencia a:hover { border-color: #e5484d; }
+.emergencia b { flex-shrink: 0; min-width: 54px; height: 44px; padding: 0 8px; border-radius: 12px; display: grid; place-items: center; font-size: 19px; font-weight: 900; color: #fff; background: #e5484d; }
+.emergencia span { display: grid; font-size: 14px; font-weight: 750; }
+.emergencia small { color: var(--muted); font-size: 12.5px; font-weight: 600; }
+.aviso-emergencia { display: flex; gap: 10px; align-items: flex-start; padding: 14px 16px; margin-bottom: 12px; border-radius: 16px; background: color-mix(in srgb, #e5484d 10%, var(--panel)); border: 1px solid color-mix(in srgb, #e5484d 35%, var(--line)); font-size: 14px; }
+.aviso-emergencia svg { color: #e5484d; margin-top: 1px; }
+
+/* planos (para profissionais) */
+.planos-mini { display: grid; gap: 12px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.plano-mini { --c: var(--classe); position: relative; display: grid; gap: 10px; align-content: start; padding: 20px; border-radius: 22px; background: var(--panel); border: 1px solid var(--line); }
+.plano-mini.rec { border-color: var(--c); box-shadow: 0 0 0 1px var(--c); }
+.plano-mini .tag { position: absolute; top: -11px; left: 18px; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 900; letter-spacing: .4px; color: #fff; background: var(--c); }
+.plano-mini h3 { margin: 0; font-size: 18px; color: var(--c); }
+.plano-mini .preco { font-size: 28px; font-weight: 900; letter-spacing: -.8px; }
+.plano-mini .preco small { font-size: 13px; font-weight: 700; color: var(--muted); letter-spacing: 0; }
+.plano-mini p { margin: 0; color: var(--muted); font-size: 13.5px; }
+.plano-mini ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; font-size: 13.5px; }
+.plano-mini li { display: flex; gap: 8px; align-items: flex-start; }
+.plano-mini li svg { color: var(--ok); margin-top: 2px; flex-shrink: 0; }
+.nota-planos { margin: 10px 0 0; color: var(--muted); font-size: 13px; }
+
+/* links para outras páginas no fim (estilo "explore mais") */
+.mais-recursos { display: grid; gap: 10px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.mais-recursos a { display: grid; gap: 4px; padding: 16px; border-radius: 18px; background: var(--panel); border: 1px solid var(--line); text-decoration: none; color: inherit; }
+.mais-recursos a:hover { border-color: var(--classe); }
+.mais-recursos strong { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 14.5px; }
+.mais-recursos small { color: var(--muted); font-size: 12.5px; line-height: 1.4; }
+
+@media (max-width: 900px) {
+  .topicos, .mais-recursos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .casos, .emergencia { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .planos-mini { grid-template-columns: 1fr; }
+  .faixa-numeros { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  .populares, .casos, .emergencia { grid-template-columns: 1fr; }
+  .topico { padding: 14px 12px; }
+}

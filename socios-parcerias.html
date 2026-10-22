@@ -25,9 +25,9 @@
     })();
   </script>
   <link rel="stylesheet" href="categoria.css?v=8" />
-  <link rel="stylesheet" href="info.css?v=5" />
+  <link rel="stylesheet" href="info.css?v=6" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="categoria.js?v=36"></script>
+  <script type="module" src="categoria.js?v=38"></script>
 </head>
 <body data-classe="info">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -48,6 +48,8 @@
     <symbol id="i-raio" viewBox="0 0 24 24"><path d="M13 3L5 13.5h6L10 21l8-10.5h-6z"/></symbol>
     <symbol id="i-seta" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
     <symbol id="i-whats" viewBox="0 0 24 24"><path d="M20.5 11.7a8.5 8.5 0 01-12.6 7.5L3.5 20.5l1.3-4.2A8.5 8.5 0 1120.5 11.7z"/><path d="M9 8.5c0 3.5 3 6.5 6.5 6.5l1-1.6-2-1-1 .8a4.5 4.5 0 01-2.4-2.4l.8-1-1-2z"/></symbol>
+    <symbol id="i-megafone" viewBox="0 0 24 24"><path d="M3.5 10v4h3l8 4.5V5.5l-8 4.5zM17.5 9a4 4 0 0 1 0 6M6.5 14l1.5 5.5h2.5L9.5 14"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0113 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></symbol>
   </svg>
 
   <header class="topo">
@@ -59,31 +61,35 @@
   </header>
 
   <main class="pagina">
+    <nav class="nav-inst" aria-label="Páginas do Help Floripa"><a href="sobre.html">Sobre</a><a href="ajuda.html">Central de Ajuda</a><a href="seguranca.html">Segurança</a><a href="diretrizes.html">Diretrizes</a><a href="clientes.html">Para clientes</a><a href="profissionais.html">Para negócios</a><a href="socios-parcerias.html" aria-current="page">Parcerias</a><a href="contato.html">Contato</a><a href="termos.html">Termos</a><a href="privacidade.html">Privacidade</a></nav>
     <section class="hero hero-info sem-foto" aria-labelledby="tituloPagina">
       <div class="hero-corpo">
         <span class="selo-classe"><b><svg class="i xs" aria-hidden="true"><use href="#i-parceria"/></svg></b>Sócios e parcerias</span>
         <h1 id="tituloPagina">Cresça junto com o <span>Help Floripa</span></h1>
         <p class="lead">Seja parceiro de uma plataforma que conecta clientes, profissionais e empresas em todo o Brasil.</p>
-        <div class="hero-acoes"><a class="btn-hero whats" href="https://wa.me/5548996849431?text=Ol%C3%A1!%20Quero%20ser%20s%C3%B3cio%2Fparceiro%20do%20Help%20Floripa." target="_blank" rel="noopener noreferrer"><svg class="i s" aria-hidden="true"><use href="#i-whats"/></svg>Quero ser parceiro</a><a class="btn-hero sec" href="sobre.html">Conhecer o projeto</a></div>
+        <div class="hero-acoes"><a class="btn-hero pri" href="#sproposta"><svg class="i s" aria-hidden="true"><use href="#i-parceria"/></svg>Quero ser parceiro</a><a class="btn-hero whats" href="https://wa.me/5548996849431?text=Ol%C3%A1!%20Quero%20ser%20s%C3%B3cio%2Fparceiro%20do%20Help%20Floripa." target="_blank" rel="noopener noreferrer"><svg class="i s" aria-hidden="true"><use href="#i-whats"/></svg>WhatsApp</a><a class="btn-hero sec" href="sobre.html">Conhecer o projeto</a></div>
       </div>
     </section>
+    <div class="faixa-numeros"><div><b>27</b><span>estados</span></div><div><b>5.570</b><span>cidades</span></div><div><b>6</b><span>áreas de negócio</span></div><div><b>0%</b><span>de comissão nas vendas</span></div></div>
     <section class="secao" aria-labelledby="sporqueserpar">
       <h2 class="secao-titulo" id="sporqueserpar">Por que ser parceiro</h2>
       
       <div class="cards-info ">
         <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-grafico"/></svg></span><strong>Crescimento</strong><p>Participe de uma plataforma em expansão no mercado de tecnologia e serviços locais.</p></div>
-        <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-grupo"/></svg></span><strong>Networking</strong><p>Amplie sua rede de contatos com empresas, profissionais e investidores da região.</p></div>
+        <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-grupo"/></svg></span><strong>Networking</strong><p>Amplie sua rede de contatos com empresas, profissionais e investidores de todo o Brasil.</p></div>
         <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-raio"/></svg></span><strong>Retorno</strong><p>Acompanhe a evolução da plataforma e participe dos resultados, conforme o acordo firmado.</p></div>
-        <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-estrela"/></svg></span><strong>Visibilidade</strong><p>Fortaleça sua marca em uma vitrine que reúne freelances, delivery, compras e imóveis.</p></div>
+        <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-estrela"/></svg></span><strong>Visibilidade</strong><p>Fortaleça sua marca em uma vitrine nacional que reúne freelances, delivery, compras, imóveis, saúde e Comunidade.</p></div>
       </div>
     </section>
     <section class="secao" aria-labelledby="sformasdeparc">
       <h2 class="secao-titulo" id="sformasdeparc">Formas de parceria</h2>
       
       <div class="cards-info ">
-        <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-maleta"/></svg></span><strong>Negócios da região</strong><p>Crie sua conta e anuncie pelo perfil de negócio, com 30 dias grátis. Para parcerias, fale com a gente.</p><a class="link" href="negocios.html">Testar 30 dias grátis<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></a></div>
-        <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-parceria"/></svg></span><strong>Sócios e investidores</strong><p>Converse com a equipe sobre participação no projeto.</p><a class="link" href="https://wa.me/5548996849431?text=Ol%C3%A1!%20Quero%20ser%20s%C3%B3cio%2Fparceiro%20do%20Help%20Floripa.">Conversar no WhatsApp<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></a></div>
-        <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-lampada"/></svg></span><strong>Ideias e integrações</strong><p>Tem um serviço que combina com o Help Floripa? Vamos construir juntos.</p><a class="link" href="contato.html">Enviar proposta<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></a></div>
+        <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-maleta"/></svg></span><strong>Negócios de qualquer cidade</strong><p>Crie sua conta e anuncie pelo perfil de negócio. Na primeira assinatura de um plano você ganha 30 dias grátis a mais.</p><a class="link" href="negocios.html?planos=1">Ver os planos<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></a></div>
+        <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-parceria"/></svg></span><strong>Sócios e investidores</strong><p>Converse com a equipe sobre participação no projeto e na expansão para novas cidades.</p><a class="link" href="#sproposta">Enviar proposta<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></a></div>
+        <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-pin"/></svg></span><strong>Representante na sua cidade</strong><p>Conhece os negócios da sua região? Ajude a levar o Help Floripa para a sua cidade e cresça com a gente.</p><a class="link" href="#sproposta">Quero representar<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></a></div>
+        <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-megafone"/></svg></span><strong>Imprensa</strong><p>Entrevistas, dados e informações sobre o Help Floripa.</p><a class="link" href="mailto:helpfloripa7@gmail.com?subject=Imprensa">Falar com a gente<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></a></div>
+        <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-lampada"/></svg></span><strong>Ideias e integrações</strong><p>Tem um serviço que combina com o Help Floripa? Vamos construir juntos.</p><a class="link" href="#sproposta">Enviar proposta<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></a></div>
       </div>
     </section>
     <section class="secao" aria-labelledby="scomofunciona">
@@ -107,13 +113,13 @@
         </div>
         <div class="duas-colunas">
           <div class="campo"><label for="pcEmail">E-mail</label><input id="pcEmail" type="email" maxlength="120" autocomplete="email" required /></div>
-          <div class="campo"><label for="pcTelefone">WhatsApp (opcional)</label><input id="pcTelefone" maxlength="30" inputmode="tel" autocomplete="tel" placeholder="(48) 99999-9999" /></div>
+          <div class="campo"><label for="pcTelefone">WhatsApp (opcional)</label><input id="pcTelefone" maxlength="30" inputmode="tel" autocomplete="tel" placeholder="(DDD) 99999-9999" /></div>
         </div>
         <div class="duas-colunas">
           <div class="campo"><label for="pcTipo">Interesse</label>
-            <select id="pcTipo"><option value="parceiro">Parceria comercial</option><option value="anunciante">Anunciar / patrocinar</option><option value="socio">Ser sócio</option><option value="investidor">Investir</option><option value="imprensa">Imprensa</option><option value="outro">Outro</option></select>
+            <select id="pcTipo"><option value="parceiro">Parceria comercial ou representação na minha cidade</option><option value="anunciante">Anunciar / patrocinar</option><option value="socio">Ser sócio</option><option value="investidor">Investir</option><option value="imprensa">Imprensa</option><option value="outro">Outro</option></select>
           </div>
-          <div class="campo"><label for="pcCidade">Cidade (opcional)</label><input id="pcCidade" maxlength="80" /></div>
+          <div class="campo"><label for="pcCidade">Cidade e estado (opcional)</label><input id="pcCidade" maxlength="80" autocomplete="address-level2" placeholder="Ex.: Belo Horizonte, MG" /></div>
         </div>
         <div class="campo"><label for="pcSite">Site ou Instagram (opcional)</label><input id="pcSite" maxlength="200" /></div>
         <div class="campo"><label for="pcMsg">Sua proposta</label><textarea id="pcMsg" maxlength="2000" required placeholder="O que você propõe, para quem, e como imagina a parceria."></textarea></div>
@@ -166,7 +172,7 @@
     <div class="cta-strip">
       <div>
         <h3>Juntos vamos mais longe</h3>
-        <p>Grandes projetos são construídos por pessoas que compartilham a mesma visão. Seja um dos primeiros parceiros do Help Floripa.</p>
+        <p>Grandes projetos são construídos por pessoas que compartilham a mesma visão. Seja um dos primeiros parceiros do Help Floripa na sua cidade.</p>
       </div>
       <div class="cta">
         <a href="https://wa.me/5548996849431?text=Ol%C3%A1!%20Quero%20ser%20s%C3%B3cio%2Fparceiro%20do%20Help%20Floripa." target="_blank" rel="noopener noreferrer"><svg class="i s" aria-hidden="true"><use href="#i-whats"/></svg>Quero ser parceiro</a>
@@ -182,8 +188,8 @@
     </div>
     <div><h4>Explorar</h4><nav aria-label="Explorar"><a href="servicos.html">Freelances</a><a href="delivery.html">Delivery</a><a href="shopping.html">Shopping</a><a href="imoveis.html">Imóveis</a><a href="saude.html">Saúde</a><a href="comunidade.html">Comunidade</a></nav></div>
     <div><h4>Para você</h4><nav aria-label="Para você"><a href="usuarios.html">Meu perfil</a><a href="mensagens.html">Mensagens</a><a href="negocios.html">Anunciar</a><a href="profissionais.html">Para profissionais</a><a href="clientes.html">Para clientes</a><a href="reclamacoes.html">Reclamações</a></nav></div>
-    <div><h4>Help Floripa</h4><nav aria-label="Institucional"><a href="sobre.html">Sobre</a><a href="ajuda.html">Ajuda</a><a href="contato.html">Contato</a><a href="socios-parcerias.html">Sócios e parcerias</a><a href="termos.html">Termos de Uso</a><a href="privacidade.html">Privacidade</a></nav></div>
-    <div class="fim"><span>&copy; 2025 Help Floripa · Todos os direitos reservados</span><span>CNPJ 61.935.934/0001-00</span></div>
+    <div><h4>Help Floripa</h4><nav aria-label="Institucional"><a href="sobre.html">Sobre</a><a href="ajuda.html">Ajuda</a><a href="contato.html">Contato</a><a href="socios-parcerias.html">Sócios e parcerias</a><a href="seguranca.html">Central de Segurança</a><a href="diretrizes.html">Diretrizes da Comunidade</a><a href="termos.html">Termos de Uso</a><a href="privacidade.html">Privacidade</a></nav></div>
+    <div class="fim"><span>&copy; 2025–2026 Help Floripa · Todos os direitos reservados</span><span>CNPJ 61.935.934/0001-00</span></div>
   </footer>
 </body>
 </html>

@@ -560,6 +560,21 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   publicidade dos conselhos de saúde, roteiro de teste no celular). Storage: lembrete em 26/10 (trig_0125yEkm2exoQLsnzU4hmT8s).
   Em aberto com ele: negócio sem plano depois dos 30 dias grátis. Emulador: depois que o contêiner reinicia, subir de novo
   (`setsid nohup ./emulador.sh` e `setsid nohup node servidor-csp.mjs`) e rodar `node seed.mjs`.
+- **Menu lateral nacional (PR depois do #80, sem regra nova):** `menu.js` com seções Explorar (+ "Perto de você" →
+  `index.html#secPerto`, inicio.js rola até a seção depois de carregar), Minha conta ("Feed" virou "Diário"), Para quem
+  anuncia (Meus negócios, Planos `negocios.html?planos=1`, Como anunciar), Ajuda e suporte (Central, Meus chamados,
+  Reclamações, Contato), Help Floripa; itens aceitam texto pequeno (6º campo); faixa "Em todo o Brasil" + ano automático.
+  Contato: chamado em destaque, horário de Brasília, prazos da 1ª resposta, formulário com Cidade/UF e "Enviar como
+  chamado" → `suporte.html?categoria=&assunto=&texto=` (suporte.js preenche). Ajuda: grupo "Em todo o Brasil".
+  Textos nacionais em Clientes, Profissionais, Sócios (proposta pelo formulário `#sproposta`) e Sobre. Teste `t-menu-nacional.mjs`.
+  **Mesmo PR, parte 2 (estilo das grandes redes):** páginas novas `seguranca.html` (Central de Segurança: temas, sinais de
+  golpe, ferramentas, dicas, "fui vítima" com MED do Pix/B.O./SaferNet, telefones 190/192/193/180/100/188) e `diretrizes.html`
+  (Diretrizes da Comunidade no layout dos Termos, 9 seções). NÃO estão em `PAGINAS_LIVRES` (firebase.js): perguntar ao dono.
+  `.nav-inst` (barra fixa com as 10 páginas institucionais, gerada igual em todas) e componentes no info.css (v=6):
+  `.faixa-numeros`, `.topicos`, `.populares`, `.linha-tempo`, `.casos`, `.emergencia`, `.planos-mini`, `.mais-recursos`.
+  Ajuda: "Navegue por tema", "Mais procuradas" (`#p-...` abre a pergunta), grupos novos Diário/Flash e Planos. Sobre: números +
+  "Nossa história". Contato: "Qual é o seu caso?" (9 casos, imprensa/LGPD/jurídico pelo e-mail). Para negócios: planos + perguntas.
+  Rodapés com Central de Segurança e Diretrizes. Teste `t-paginas-inst.mjs`.
 - **As 5 etapas estão concluídas.** Próximos passos são as pendências abaixo (só ele pode fazer) e o que ficou
   para depois.
 

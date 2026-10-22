@@ -25,9 +25,9 @@
     })();
   </script>
   <link rel="stylesheet" href="categoria.css?v=8" />
-  <link rel="stylesheet" href="info.css?v=5" />
+  <link rel="stylesheet" href="info.css?v=6" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="categoria.js?v=36"></script>
+  <script type="module" src="categoria.js?v=38"></script>
 </head>
 <body data-classe="info">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -53,6 +53,8 @@
     <symbol id="i-raio" viewBox="0 0 24 24"><path d="M13 3L5 13.5h6L10 21l8-10.5h-6z"/></symbol>
     <symbol id="i-servicos" viewBox="0 0 24 24"><rect x="3.5" y="7" width="17" height="12.5" rx="2"/><path d="M9 7V5.5A1.5 1.5 0 0110.5 4h3A1.5 1.5 0 0115 5.5V7M3.5 12.5h17"/></symbol>
     <symbol id="i-seta" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+    <symbol id="i-cadeado" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8.5 10.5V7.5a3.5 3.5 0 017 0v3"/></symbol>
+    <symbol id="i-pessoas" viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.6a3.5 3.5 0 0 1 0 7.8M18.5 20a6.5 6.5 0 0 0-2.8-5.3"/></symbol>
   </svg>
 
   <header class="topo">
@@ -64,22 +66,24 @@
   </header>
 
   <main class="pagina">
+    <nav class="nav-inst" aria-label="Páginas do Help Floripa"><a href="sobre.html" aria-current="page">Sobre</a><a href="ajuda.html">Central de Ajuda</a><a href="seguranca.html">Segurança</a><a href="diretrizes.html">Diretrizes</a><a href="clientes.html">Para clientes</a><a href="profissionais.html">Para negócios</a><a href="socios-parcerias.html">Parcerias</a><a href="contato.html">Contato</a><a href="termos.html">Termos</a><a href="privacidade.html">Privacidade</a></nav>
     <section class="hero hero-info sem-foto" aria-labelledby="tituloPagina">
       <div class="hero-corpo">
         <span class="selo-classe"><b><svg class="i xs" aria-hidden="true"><use href="#i-coracao"/></svg></b>Conheça o Help Floripa</span>
         <h1 id="tituloPagina">Feito em Floripa, <span>para todo o Brasil</span></h1>
-        <p class="lead">Uma plataforma local que reúne profissionais, restaurantes, lojas e imóveis de cada cidade do Brasil, com notas de clientes reais e conversa direta.</p>
+        <p class="lead">Uma plataforma local que reúne profissionais, restaurantes, lojas, imóveis e saúde de cada cidade do Brasil, com notas de clientes reais e conversa direta.</p>
         <div class="hero-acoes"><a class="btn-hero pri" href="index.html"><svg class="i s" aria-hidden="true"><use href="#i-casa"/></svg>Explorar o Help Floripa</a><a class="btn-hero sec" href="negocios.html"><svg class="i s" aria-hidden="true"><use href="#i-mais"/></svg>Anunciar no Help Floripa</a></div>
       </div>
     </section>
+    <div class="faixa-numeros"><div><b>6</b><span>áreas em um só lugar</span></div><div><b>27</b><span>estados atendidos</span></div><div><b>5.570</b><span>cidades no mapa</span></div><div><b>0%</b><span>de comissão nas vendas</span></div></div>
     <section class="secao" aria-labelledby="snossamissão">
       <h2 class="secao-titulo" id="snossamissão">Nossa missão</h2>
       <p class="secao-sub">Facilitar a vida de quem precisa contratar ou comprar e dar visibilidade para quem trabalha bem.</p>
       <div class="cards-info ">
-        <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-lupa"/></svg></span><strong>Encontrar fica fácil</strong><p>Freelances, comida, produtos e imóveis da sua cidade em um só lugar, com filtros e busca.</p></div>
+        <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-lupa"/></svg></span><strong>Encontrar fica fácil</strong><p>Freelances, comida, produtos, imóveis e saúde perto de você, em um só lugar, com filtros por estado, cidade e distância.</p></div>
         <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-estrela"/></svg></span><strong>Confiança de verdade</strong><p>Só avalia quem foi atendido, uma vez por negócio. Reclamações ficam públicas, com direito de resposta.</p></div>
         <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-chat"/></svg></span><strong>Conversa direta</strong><p>Orçamento, pedido e interesse pelo chat do site ou pelo WhatsApp, sem intermediário.</p></div>
-        <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-raio"/></svg></span><strong>Visibilidade para o pequeno</strong><p>Autônomos, MEIs e pequenas lojas ganham uma vitrine profissional, de graça.</p></div>
+        <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-raio"/></svg></span><strong>Visibilidade para o pequeno</strong><p>Autônomos, MEIs e pequenas lojas ganham uma vitrine profissional, sem comissão sobre as vendas.</p></div>
       </div>
     </section>
     <section class="secao" aria-labelledby="studoemumsólu">
@@ -94,12 +98,26 @@
         <div class="card-info comunidade"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-comunidade"/></svg></span><strong>Comunidade</strong><p>O mural do bairro: doar, trocar, pedir ajuda, dividir moradia e devolver o que foi perdido. Aqui é proibido vender.</p><a class="link" href="comunidade.html">Ver a Comunidade<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></a></div>
       </div>
     </section>
+    <section class="secao" aria-labelledby="sHist">
+      <h2 class="secao-titulo" id="sHist">Nossa história</h2>
+      <p class="secao-sub">De uma ideia na Ilha para o país inteiro.</p>
+      <div class="bloco">
+        <ol class="linha-tempo">
+          <li><b>2025</b><strong>Nasce em Florianópolis</strong><p>A ideia era simples: reunir num só lugar quem oferece e quem procura, com notas de clientes reais e conversa direta, sem intermediário.</p></li>
+          <li><b>2026</b><strong>Uma rede social de verdade</strong><p>Chegam o Diário, o Flash, as enquetes, as mensagens com pedidos e orçamentos prontos e o perfil verificado.</p></li>
+          <li><b>2026</b><strong>Saúde e Comunidade</strong><p>Profissionais de saúde com registro no conselho e um mural para doar, trocar e ajudar, onde é proibido vender.</p></li>
+          <li><b>Hoje</b><strong>Todo o Brasil</strong><p>Busca por estado e cidade, "Perto de você", horário no fuso de cada estado e suporte nacional com prioridade por assunto.</p></li>
+        </ol>
+      </div>
+    </section>
     <section class="secao" aria-labelledby="snoqueacredit">
       <h2 class="secao-titulo" id="snoqueacredit">No que acreditamos</h2>
       
       <div class="cards-info ">
         <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-escudo"/></svg></span><strong>Segurança em primeiro lugar</strong><p>E-mail confirmado, regras de acesso por usuário e tolerância zero com golpes e perfis falsos.</p></div>
-        <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-grupo"/></svg></span><strong>Comunidade local</strong><p>Nascemos em Florianópolis e chegamos a todo o Brasil, cidade por cidade. Crescemos junto com quem anuncia e quem compra.</p></div>
+        <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-grupo"/></svg></span><strong>Local em todo lugar</strong><p>Nascemos em Florianópolis e chegamos a todo o Brasil, cidade por cidade. Crescemos junto com quem anuncia e quem compra.</p></div>
+        <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-cadeado"/></svg></span><strong>Privacidade e LGPD</strong><p>Seus dados são seus: baixe uma cópia ou exclua a conta quando quiser. A localização exata fica só no seu aparelho.</p></div>
+        <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-pessoas"/></svg></span><strong>Gente de verdade</strong><p>Denúncias, chamados e verificações são analisados por pessoas da equipe, todos os dias.</p></div>
         <div class="card-info "><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-doc"/></svg></span><strong>Transparência</strong><p>Regras claras nos <a href="termos.html">Termos</a> e na <a href="privacidade.html">Política de Privacidade</a>.</p></div>
       </div>
     </section>
@@ -110,9 +128,18 @@
         <ul class="lista-check">
           <li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Ser a referência em soluções locais em cada cidade do Brasil.</li>
           <li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Criar uma rede confiável para contratar, comprar e anunciar.</li>
-          <li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Fortalecer negócios, profissionais e parcerias da região.</li>
+          <li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Fortalecer negócios, profissionais e parcerias de cada região do país.</li>
           <li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Unir tecnologia e atendimento humano para gerar oportunidades.</li>
         </ul>
+      </div>
+    </section>
+    <section class="secao" aria-labelledby="sExplore">
+      <h2 class="secao-titulo" id="sExplore">Conheça mais</h2>
+      <div class="mais-recursos">
+        <a href="seguranca.html"><strong>Central de Segurança<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></strong><small>Como protegemos quem usa o Help Floripa.</small></a>
+        <a href="diretrizes.html"><strong>Diretrizes da Comunidade<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></strong><small>As regras de convivência para todo o Brasil.</small></a>
+        <a href="socios-parcerias.html"><strong>Parcerias e imprensa<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></strong><small>Leve o Help Floripa para a sua cidade.</small></a>
+        <a href="profissionais.html"><strong>Para negócios<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></strong><small>Planos, ferramentas e como anunciar.</small></a>
       </div>
     </section>
     <div class="cta-strip">
@@ -134,8 +161,8 @@
     </div>
     <div><h4>Explorar</h4><nav aria-label="Explorar"><a href="servicos.html">Freelances</a><a href="delivery.html">Delivery</a><a href="shopping.html">Shopping</a><a href="imoveis.html">Imóveis</a><a href="saude.html">Saúde</a><a href="comunidade.html">Comunidade</a></nav></div>
     <div><h4>Para você</h4><nav aria-label="Para você"><a href="usuarios.html">Meu perfil</a><a href="mensagens.html">Mensagens</a><a href="negocios.html">Anunciar</a><a href="profissionais.html">Para profissionais</a><a href="clientes.html">Para clientes</a><a href="reclamacoes.html">Reclamações</a></nav></div>
-    <div><h4>Help Floripa</h4><nav aria-label="Institucional"><a href="sobre.html">Sobre</a><a href="ajuda.html">Ajuda</a><a href="contato.html">Contato</a><a href="socios-parcerias.html">Sócios e parcerias</a><a href="termos.html">Termos de Uso</a><a href="privacidade.html">Privacidade</a></nav></div>
-    <div class="fim"><span>&copy; 2025 Help Floripa · Todos os direitos reservados</span><span>CNPJ 61.935.934/0001-00</span></div>
+    <div><h4>Help Floripa</h4><nav aria-label="Institucional"><a href="sobre.html">Sobre</a><a href="ajuda.html">Ajuda</a><a href="contato.html">Contato</a><a href="socios-parcerias.html">Sócios e parcerias</a><a href="seguranca.html">Central de Segurança</a><a href="diretrizes.html">Diretrizes da Comunidade</a><a href="termos.html">Termos de Uso</a><a href="privacidade.html">Privacidade</a></nav></div>
+    <div class="fim"><span>&copy; 2025–2026 Help Floripa · Todos os direitos reservados</span><span>CNPJ 61.935.934/0001-00</span></div>
   </footer>
 </body>
 </html>

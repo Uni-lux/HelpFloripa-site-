@@ -54,7 +54,9 @@ body.gaveta-aberta .gaveta { transform: none; visibility: visible; }
 .gaveta-tema button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; border: 0; border-radius: 10px; padding: 8px 4px; background: transparent; cursor: pointer; font-size: 12.5px; font-weight: 700; color: var(--muted); }
 .gaveta-tema button[aria-pressed="true"] { background: var(--panel); color: var(--text); box-shadow: 0 1px 4px rgba(0, 0, 0, .15); }
 .gaveta-rodape { margin-top: auto; padding: 14px 10px 0; display: grid; gap: 10px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
-.gaveta-rodape .links { display: flex; gap: 14px; }
+.gaveta-rodape .links { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.gaveta-brasil { display: flex; align-items: flex-start; gap: 8px; padding: 9px 10px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); line-height: 1.4; }
+.gaveta-brasil svg { margin-top: 1px; color: var(--accent); }
 .gaveta-rodape a { text-decoration: none; }
 .gaveta-rodape a:hover { color: var(--text); }
 .gaveta-sair { justify-self: start; display: inline-flex; align-items: center; gap: 8px; border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent); background: transparent; color: var(--danger); border-radius: 12px; padding: 9px 14px; font-weight: 700; cursor: pointer; }
@@ -78,6 +80,10 @@ const ICONES_MENU = {
   social: '<circle cx="9" cy="9" r="3.2"/><circle cx="17" cy="10" r="2.5"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5s4.7 1.5 5.5 4.5M15 15c2.6-.4 4.6.8 5.5 3.5"/>',
   maleta: '<rect x="3.5" y="7" width="17" height="12.5" rx="2"/><path d="M9 7V5.5A1.5 1.5 0 0110.5 4h3A1.5 1.5 0 0115 5.5V7M3.5 12.5h17"/>',
   mais: '<path d="M12 5v14M5 12h14"/>',
+  local: '<path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0113 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/>',
+  selo: '<path d="M12 3l2.4 1.8 3-.2.9 2.9 2.4 1.8-1 2.8 1 2.8-2.4 1.8-.9 2.9-3-.2L12 21l-2.4-1.8-3 .2-.9-2.9-2.4-1.8 1-2.8-1-2.8 2.4-1.8.9-2.9 3 .2z"/><path d="M9 12l2 2 4-4"/>',
+  suporte: '<path d="M4 13v-1a8 8 0 0116 0v1"/><rect x="3" y="13" width="4" height="6" rx="1.5"/><rect x="17" y="13" width="4" height="6" rx="1.5"/><path d="M19 19c0 1.5-2 2.5-5 2.5h-1"/>',
+  brasil: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.3 2.4 3.4 5.2 3.4 8.5s-1.1 6.1-3.4 8.5c-2.3-2.4-3.4-5.2-3.4-8.5S9.7 5.9 12 3.5z"/>',
   ajuda: '<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.5a2.5 2.5 0 014.8.9c0 1.7-2.4 2-2.4 3.6M12 17h.01"/>',
   contato: '<rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="M4 7l8 6 8-6"/>',
   sobre: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.5h.01"/>',
@@ -102,9 +108,11 @@ function iconeMenu(n, cls = "i s") {
   s.innerHTML = ICONES_MENU[n] || "";
   return s;
 }
+// Itens: [href, ícone, nome, cor, id do número, texto pequeno embaixo]
 const SECOES_MENU = [
   ["Explorar", [
     ["index.html", "casa", "Início"],
+    ["index.html#secPerto", "local", "Perto de você", "#00adee", null, "Pela sua localização, em todo o Brasil"],
     ["servicos.html", "servicos", "Freelances", "#00adee"],
     ["delivery.html", "delivery", "Delivery", "#ff7a1a"],
     ["shopping.html", "lojinha", "Shopping", "#b066ff"],
@@ -113,22 +121,30 @@ const SECOES_MENU = [
     ["comunidade.html", "comunidade", "Comunidade", "#e5487f"]
   ]],
   ["Minha conta", [
-    ["feed.html", "feed", "Feed"],
+    ["feed.html", "feed", "Diário"],
     ["usuarios.html", "perfil", "Meu perfil"],
     ["notificacoes.html", "sino", "Notificações"],
     ["mensagens.html", "chat", "Mensagens", null, "menuBadge"],
-    ["negocios.html", "maleta", "Meus negócios"],
     ["social.html", "social", "Social e conexões"],
     ["configuracoes.html", "config", "Configurações"]
   ]],
-  ["Help Floripa", [
-    ["profissionais.html", "servicos", "Para profissionais"],
-    ["clientes.html", "perfil", "Para clientes"],
-    ["socios-parcerias.html", "parceria", "Sócios e parcerias"],
+  ["Para quem anuncia", [
+    ["negocios.html", "maleta", "Meus negócios"],
+    ["negocios.html?planos=1", "selo", "Planos", "#fab219", null, "Plus, Pro e Premium · 30 dias grátis na 1ª assinatura"],
+    ["profissionais.html", "servicos", "Como anunciar"]
+  ]],
+  ["Ajuda e suporte", [
+    ["ajuda.html", "ajuda", "Central de Ajuda"],
+    ["suporte.html", "suporte", "Meus chamados", null, null, "Fale com a equipe de qualquer lugar"],
+    ["seguranca.html", "escudo", "Central de Segurança", "#e5484d", null, "Golpes, denúncias e emergência"],
     ["reclamacoes.html", "alerta", "Reclamações"],
-    ["ajuda.html", "ajuda", "Ajuda"],
-    ["contato.html", "contato", "Contato"],
-    ["sobre.html", "sobre", "Sobre"]
+    ["contato.html", "contato", "Contato"]
+  ]],
+  ["Help Floripa", [
+    ["sobre.html", "sobre", "Sobre o Help Floripa"],
+    ["clientes.html", "perfil", "Para clientes"],
+    ["diretrizes.html", "termos", "Diretrizes da Comunidade"],
+    ["socios-parcerias.html", "parceria", "Sócios, parcerias e imprensa"]
   ]]
 ];
 const perfilMenu = { nome: "", nick: "", foto: "", logado: null };
@@ -165,11 +181,14 @@ function montarGaveta() {
   SECOES_MENU.forEach(([titulo, itens]) => {
     const sec = el("nav", "gaveta-secao"); sec.setAttribute("aria-label", titulo);
     sec.appendChild(el("h3", null, titulo));
-    itens.forEach(([href, ic, rot, cor, badge]) => {
+    itens.forEach(([href, ic, rot, cor, badge, sub]) => {
       const a = el("a", "gaveta-item"); a.href = href;
-      if (href === aqui) a.setAttribute("aria-current", "page");
+      if (href === aqui || (href.startsWith(aqui + "?") && location.search && href.endsWith(location.search))) a.setAttribute("aria-current", "page");
       const i = el("span", "ic"); if (cor) i.style.setProperty("--c", cor); i.appendChild(iconeMenu(ic));
-      a.append(i, el("span", "rot", rot));
+      const r = el("span", "rot", rot); if (sub) r.appendChild(el("small", null, sub));
+      a.append(i, r);
+      // Link para a mesma página (ex.: "Perto de você" estando no início): fecha o menu.
+      a.addEventListener("click", fecharGaveta);
       if (badge) { const b = el("b", "gaveta-badge"); b.id = badge; b.hidden = true; a.appendChild(b); }
       sec.appendChild(a);
     });
@@ -188,11 +207,13 @@ function montarGaveta() {
   // Rodapé
   const rod = el("div", "gaveta-rodape");
   const links = el("div", "links");
-  [["termos.html", "Termos de Uso"], ["privacidade.html", "Privacidade"]].forEach(([h, r]) => { const a = el("a", null, r); a.href = h; links.appendChild(a); });
+  [["termos.html", "Termos de Uso"], ["privacidade.html", "Privacidade"], ["contato.html", "Contato"]].forEach(([h, r]) => { const a = el("a", null, r); a.href = h; links.appendChild(a); });
   const sair = el("button", "gaveta-sair"); sair.type = "button"; sair.id = "gavetaSair"; sair.append(iconeMenu("sair"), document.createTextNode("Sair da conta"));
   // A mesma janela "Sair da conta?" das configurações e das mensagens.
   sair.addEventListener("click", () => import("./confirmar.js?v=4").then((m) => m.sairDaConta()));
-  rod.append(sair, links, el("small", null, "© 2025 Help Floripa · CNPJ 61.935.934/0001-00"));
+  const brasil = el("div", "gaveta-brasil");
+  brasil.append(iconeMenu("brasil", "i xs"), el("span", null, "Em todo o Brasil · suporte pelo site 24 h, equipe das 8h às 20h (Brasília)"));
+  rod.append(sair, brasil, links, el("small", null, `© 2025–${new Date().getFullYear()} Help Floripa · CNPJ 61.935.934/0001-00`));
   g.appendChild(rod);
   document.body.append(fundo, g);
   fundo.addEventListener("click", fecharGaveta);
