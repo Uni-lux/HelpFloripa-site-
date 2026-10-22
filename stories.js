@@ -12,8 +12,8 @@ import {
   $, el, icone, ms, pintarAvatar, toast, erroAmigavel, tempoRelativo, fb, eu, dados, storageFns,
   meusSeguindo, escondido, silenciado, alternarSilenciar, obterPerfil, abrirOpcoes, abrirLista, linhaPessoa,
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
-  fotosDoPost, urlSegura
-} from "./rede.js?v=60";
+  fotosDoPost, urlSegura, lerResumosEstrelas
+} from "./rede.js?v=61";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { seletorDuracao, fimEscolhido, linhaChave, MAX_FLASH_MIN, fimDaEnquete, encerrada, faltaTexto, resultadoFinal, lerContasEnquete } from "./enquetes.js?v=5";
 
@@ -194,19 +194,49 @@ async function resultadoParaCartao(post) {
   return { contas: null, final: false };
 }
 const FONTE = "system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
+const AZUL = "#00adee", AZUL_ESC = "#0089bd", TINTA = "#0f1b22", CINZA = "#51636d", CINZA2 = "#6b7c86";
+const quando = (t) => { const d = new Date(ms(t) || Date.now()); return d.toLocaleDateString("pt-BR", { day: "numeric", month: "short" }).replace(".", "").replace(" de ", " de "); };
+// Ícones desenhados (os mesmos do site): barras da enquete, balão da caixa de perguntas, estrela.
+function iconeEnquete(ctx, x, y) { [26, 20, 14].forEach((w, i) => { ctx.beginPath(); ctx.roundRect(x, y + 6 + i * 9, w, 5, 3); ctx.fill(); }); }
+function iconeBalao(ctx, x, y) {
+  ctx.beginPath(); ctx.roundRect(x, y + 4, 28, 21, 7); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(x + 7, y + 23); ctx.lineTo(x + 5, y + 31); ctx.lineTo(x + 14, y + 24); ctx.fill();
+  ctx.save(); ctx.fillStyle = "#fff"; ctx.font = `900 17px ${FONTE}`; ctx.textAlign = "center"; ctx.fillText("?", x + 14, y + 21); ctx.restore();
+}
+function estrela(ctx, cx, cy, r, cor) {
+  ctx.fillStyle = cor; ctx.beginPath();
+  for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r; ctx[i ? "lineTo" : "moveTo"](cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); }
+  ctx.closePath(); ctx.fill();
+}
+// Caixa azul-clara com o selo (ENQUETE / CAIXA DE PERGUNTAS), o prazo à direita e a pergunta: cabeçalho comum dos blocos.
+function caixaBloco(ctx, x, y, w, h, selo, desenhaIcone, prazo, acabou) {
+  ctx.fillStyle = "#eef8fd"; ctx.strokeStyle = "#cdeaf8"; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.roundRect(x, y, w, h, 30); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = AZUL; desenhaIcone(ctx, x + 28, y + 28);
+  ctx.font = `900 27px ${FONTE}`; ctx.fillText(selo, x + 66, y + 58);
+  if (prazo) {
+    ctx.font = `800 24px ${FONTE}`; const tw = ctx.measureText(prazo).width;
+    ctx.fillStyle = acabou ? "#e6edf1" : "#d3effb"; ctx.beginPath(); ctx.roundRect(x + w - 28 - tw - 32, y + 28, tw + 32, 44, 22); ctx.fill();
+    ctx.fillStyle = acabou ? CINZA : AZUL_ESC; ctx.fillText(prazo, x + w - 28 - tw - 16, y + 59);
+  }
+}
 async function imagemDaPublicacao(post) {
   const W = 1080, H = 1920, c = document.createElement("canvas"); c.width = W; c.height = H;
   const ctx = c.getContext("2d");
   // Navegador antigo sem roundRect: cantos retos.
   if (!ctx.roundRect) ctx.roundRect = function (x, y, w, h) { this.rect(x, y, w, h); };
   const e = post.enquete?.pergunta && Array.isArray(post.enquete.opcoes) && post.enquete.opcoes.length >= 2 ? post.enquete : null;
-  const foto = fotosDoPost(post)[0];
-  // Tudo ao mesmo tempo: foto, rosto de quem publicou e o resultado da enquete.
-  const [im, av, res] = await Promise.all([
+  const cx = !e && post.caixa?.pergunta ? post.caixa : null;
+  const fotos = fotosDoPost(post).filter(Boolean), foto = fotos[0];
+  const tempo = (p, ms = 3000) => Promise.race([p, new Promise((ok) => setTimeout(() => ok(null), ms))]);
+  // Tudo ao mesmo tempo: foto, rosto de quem publicou, resultado da enquete e as estrelas.
+  const [im, av, res, notas] = await Promise.all([
     foto ? carregarImg(foto).catch(() => null) : null,
     urlSegura(post.fotoPerfil) ? carregarImg(post.fotoPerfil, 3000).catch(() => null) : null,
-    e ? resultadoParaCartao(post) : null
+    e ? resultadoParaCartao(post) : null,
+    tempo(lerResumosEstrelas([post.id]).then((m) => m.get(post.id)).catch(() => null))
   ]);
+  const soTexto = !im && !e && !cx;
   // Fundo: a própria foto desfocada e escurecida (desenhada pequena e esticada: rápido até em celular simples) ou um degradê.
   if (im) {
     const m = document.createElement("canvas"); m.width = 54; m.height = 96;
@@ -214,106 +244,143 @@ async function imagemDaPublicacao(post) {
     mc.drawImage(im, (54 - im.width * k0) / 2, (96 - im.height * k0) / 2, im.width * k0, im.height * k0);
     ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high"; ctx.drawImage(m, 0, 0, W, H);
     ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.fillRect(0, 0, W, H);
-  } else { const g = ctx.createLinearGradient(0, 0, W, H); g.addColorStop(0, "#0b3d5c"); g.addColorStop(1, e ? "#0e7490" : "#6d28d9"); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
+  } else {
+    const g = ctx.createLinearGradient(0, 0, W, H);
+    g.addColorStop(0, "#0b3d5c"); g.addColorStop(1, e ? "#0e7490" : cx ? "#7c3aed" : "#6d28d9"); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  }
 
   // ---- medidas: tudo cabe entre y=250 e y=1690 (em cima ficam os botões do flash; embaixo, a legenda e o nome) ----
   const CW = 900, X = (W - CW) / 2, pad = 40, larg = CW - pad * 2, CAB = 136, TOPO = 250, MAXH = 1440;
+  const temNotas = notas?.total > 0, NOTAS_H = temNotas ? 64 : 0;
   const mostrar = !!res?.contas;
   const total = mostrar ? res.contas.reduce((a, b) => a + b, 0) : 0;
-  // Enquete: selo, pergunta (até 2 linhas), opções e rodapé.
-  let enqH = 0, pergL = [];
-  if (e) {
-    ctx.font = `800 42px ${FONTE}`; pergL = linhasDe(ctx, e.pergunta, larg - 56, 2);
-    enqH = 28 + 40 + 16 + pergL.length * 54 + 14 + e.opcoes.length * 92 + 46 + 24;
+  // Bloco de baixo: enquete (selo, pergunta, opções, rodapé) ou caixa de perguntas (selo, pergunta, campo, rodapé).
+  const bloco = e || cx;
+  let blocoH = 0, pergL = [];
+  if (bloco) {
+    ctx.font = `800 42px ${FONTE}`; pergL = linhasDe(ctx, bloco.pergunta, larg - 56, 2);
+    blocoH = 28 + 40 + 16 + pergL.length * 54 + 14 + (e ? e.opcoes.length * 92 : 96) + 46 + 24;
   }
-  // Texto: sem foto ele é o destaque (letra grande); com foto vira legenda (até 2 linhas).
-  const textoPost = String(post.texto || "").trim() === String(e?.pergunta || "").trim() ? "" : String(post.texto || "");
-  let tamTexto = im ? 34 : e ? 44 : 50, maxL = im ? 2 : e ? 4 : 8;
-  ctx.font = `${im ? 500 : 700} ${tamTexto}px ${FONTE}`;
-  let txtL = linhasDe(ctx, textoPost, larg, maxL);
-  const altTxt = () => (txtL.length ? txtL.length * Math.round(tamTexto * 1.36) + (im ? 22 : 30) : 0);
-  // Foto: a proporção dela (entre 4:5 e 1,91:1), encolhendo se precisar para a enquete caber.
+  // Texto: só texto vira cartão de citação (letra grande, que diminui se for longo); com foto é legenda (até 2 linhas);
+  // com enquete/caixa e sem foto, até 4 linhas.
+  const textoPost = String(post.texto || "").trim() === String(bloco?.pergunta || "").trim() ? "" : String(post.texto || "").trim();
+  let tamTexto = im ? 34 : bloco ? 44 : 56, maxL = im ? 2 : bloco ? 4 : 9, txtL = [];
+  const pesoTexto = () => (im ? 500 : 700);
+  const medir = () => { ctx.font = `${pesoTexto()} ${tamTexto}px ${FONTE}`; txtL = linhasDe(ctx, textoPost, larg - (soTexto ? 40 : 0), maxL); };
+  medir();
+  // Citação longa: diminui a letra (56 → 40) até caber sem cortar.
+  while (soTexto && tamTexto > 40 && txtL.length && txtL[txtL.length - 1].endsWith("…")) { tamTexto -= 4; maxL = Math.min(12, maxL + 1); medir(); }
+  const lh = () => Math.round(tamTexto * (soTexto ? 1.3 : 1.36));
+  const altTxt = () => (!txtL.length ? 0 : soTexto ? txtL.length * lh() + 150 : txtL.length * lh() + (im ? 22 : 30));
+  // Foto: a proporção dela (entre 4:5 e 1,91:1), encolhendo se precisar para o resto caber.
   let mH = 0;
   if (im) {
-    const livre = MAXH - CAB - altTxt() - enqH - pad - (e ? 24 : 0);
-    if (livre < 340 && txtL.length > 1) { txtL = txtL.slice(0, 1); txtL[0] = txtL[0].replace(/…?$/, "…"); }
-    const livre2 = MAXH - CAB - altTxt() - enqH - pad - (e ? 24 : 0);
-    // Com enquete a foto fica mais baixa (até 3:4) para a votação aparecer inteira.
-    mH = Math.max(260, Math.min(Math.round(Math.min(e ? 0.75 : 1.25, Math.max(0.52, im.height / im.width)) * CW), livre2));
+    const resto = () => MAXH - CAB - altTxt() - (bloco ? blocoH + 24 : 0) - NOTAS_H - pad;
+    if (resto() < 340 && txtL.length > 1) { txtL = txtL.slice(0, 1); txtL[0] = txtL[0].replace(/…?$/, "…"); }
+    mH = Math.max(260, Math.min(Math.round(Math.min(bloco ? 0.75 : 1.25, Math.max(0.52, im.height / im.width)) * CW), resto()));
   }
-  const CH = Math.min(MAXH, CAB + mH + (im && txtL.length ? 22 : 0) + altTxt() + (e ? enqH + 8 : 0) + pad - (im ? 0 : 6));
+  const CH = Math.min(MAXH, CAB + mH + (im && txtL.length ? 22 : 0) + altTxt() + (bloco ? blocoH + 8 : 0) + NOTAS_H + pad - (im ? 0 : 6));
   const Y = Math.round(Math.max(TOPO, TOPO + (MAXH - CH) / 2));
 
   // ---- cartão ----
   ctx.save(); ctx.shadowColor = "rgba(0,0,0,.45)"; ctx.shadowBlur = 60; ctx.shadowOffsetY = 18;
   ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.roundRect(X, Y, CW, CH, 40); ctx.fill(); ctx.restore();
   ctx.save(); ctx.beginPath(); ctx.roundRect(X, Y, CW, CH, 40); ctx.clip();
-  // Autor
+  // Autor: foto, nome e "local ou Diário · data"
   ctx.save(); ctx.beginPath(); ctx.arc(X + pad + 36, Y + 66, 36, 0, Math.PI * 2); ctx.clip();
   if (av) { const k = Math.max(72 / av.width, 72 / av.height); ctx.drawImage(av, X + pad + 36 - av.width * k / 2, Y + 66 - av.height * k / 2, av.width * k, av.height * k); }
-  else { ctx.fillStyle = "#00adee"; ctx.fillRect(X + pad, Y + 30, 72, 72); ctx.fillStyle = "#fff"; ctx.font = `800 32px ${FONTE}`; ctx.textAlign = "center"; ctx.fillText(String(post.nome || "?").trim().charAt(0).toUpperCase(), X + pad + 36, Y + 78); ctx.textAlign = "left"; }
+  else { ctx.fillStyle = AZUL; ctx.fillRect(X + pad, Y + 30, 72, 72); ctx.fillStyle = "#fff"; ctx.font = `800 32px ${FONTE}`; ctx.textAlign = "center"; ctx.fillText(String(post.nome || "?").trim().charAt(0).toUpperCase(), X + pad + 36, Y + 78); ctx.textAlign = "left"; }
   ctx.restore();
-  ctx.fillStyle = "#0f1b22"; ctx.font = `800 36px ${FONTE}`;
+  ctx.fillStyle = TINTA; ctx.font = `800 36px ${FONTE}`;
   ctx.fillText(String(post.nome || "Usuário").slice(0, 28), X + pad + 92, Y + 60);
-  ctx.fillStyle = "#6b7c86"; ctx.font = `600 26px ${FONTE}`;
-  ctx.fillText(post.local?.nome ? String(post.local.nome).slice(0, 34) : "Diário · Help Floripa", X + pad + 92, Y + 98);
+  ctx.fillStyle = CINZA2; ctx.font = `600 26px ${FONTE}`;
+  const sub = `${post.local?.nome ? String(post.local.nome).slice(0, 26) : "Diário"} · ${quando(post.agendadoPara || post.criadoEm)}`;
+  ctx.fillText(sub, X + pad + 92, Y + 98);
+  // marca discreta à direita
+  ctx.fillStyle = AZUL; ctx.font = `900 22px ${FONTE}`; ctx.textAlign = "right"; ctx.fillText("HELP FLORIPA", X + CW - pad, Y + 60); ctx.textAlign = "left";
   let y = Y + CAB;
-  // Foto
-  if (im) { const k = Math.max(CW / im.width, mH / im.height); ctx.save(); ctx.beginPath(); ctx.rect(X, y, CW, mH); ctx.clip(); ctx.drawImage(im, X + (CW - im.width * k) / 2, y + (mH - im.height * k) / 2, im.width * k, im.height * k); ctx.restore(); y += mH + 22; }
-  // Texto / legenda
-  if (txtL.length) {
-    const lh = Math.round(tamTexto * 1.36);
-    ctx.fillStyle = "#0f1b22"; ctx.font = `${im ? 500 : 700} ${tamTexto}px ${FONTE}`;
-    txtL.forEach((l, i) => ctx.fillText(l, X + pad, y + tamTexto + i * lh));
-    y += txtL.length * lh + (im ? 22 : 30);
-  }
-  // Enquete
-  if (e) {
-    const ex = X + pad - 6, ew = CW - (pad - 6) * 2, ey = y;
-    ctx.fillStyle = "#eef8fd"; ctx.strokeStyle = "#cdeaf8"; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.roundRect(ex, ey, ew, enqH - 8, 30); ctx.fill(); ctx.stroke();
-    let yy = ey + 28;
-    // selo ENQUETE (o mesmo ícone de barras do site)
-    ctx.fillStyle = "#00adee";
-    [26, 20, 14].forEach((w, i) => { ctx.beginPath(); ctx.roundRect(ex + 28, yy + 6 + i * 9, w, 5, 3); ctx.fill(); });
-    ctx.font = `900 27px ${FONTE}`; ctx.fillText("ENQUETE", ex + 66, yy + 30);
-    // prazo à direita
-    const fimE = fimDaEnquete(e), acabou = encerrada(e);
-    const prazo = acabou ? "Encerrada" : fimE ? faltaTexto(fimE).replace(/^termina/, "Termina") : "";
-    if (prazo) {
-      ctx.font = `800 24px ${FONTE}`; const tw = ctx.measureText(prazo).width;
-      ctx.fillStyle = acabou ? "#e6edf1" : "#d3effb"; ctx.beginPath(); ctx.roundRect(ex + ew - 28 - tw - 32, yy, tw + 32, 44, 22); ctx.fill();
-      ctx.fillStyle = acabou ? "#51636d" : "#0089bd"; ctx.fillText(prazo, ex + ew - 28 - tw - 16, yy + 31);
+  // Foto (e "1/N" + bolinhas quando são várias)
+  if (im) {
+    const k = Math.max(CW / im.width, mH / im.height);
+    ctx.save(); ctx.beginPath(); ctx.rect(X, y, CW, mH); ctx.clip(); ctx.drawImage(im, X + (CW - im.width * k) / 2, y + (mH - im.height * k) / 2, im.width * k, im.height * k); ctx.restore();
+    if (fotos.length > 1) {
+      const t = `1/${fotos.length}`; ctx.font = `800 26px ${FONTE}`; const tw = ctx.measureText(t).width;
+      ctx.fillStyle = "rgba(0,0,0,.55)"; ctx.beginPath(); ctx.roundRect(X + CW - 30 - tw - 28, y + 26, tw + 28, 44, 22); ctx.fill();
+      ctx.fillStyle = "#fff"; ctx.fillText(t, X + CW - 30 - tw - 14, y + 57);
+      const n = Math.min(fotos.length, 6), x0 = X + CW / 2 - (n - 1) * 11;
+      for (let i = 0; i < n; i++) { ctx.fillStyle = i ? "rgba(255,255,255,.6)" : "#fff"; ctx.beginPath(); ctx.arc(x0 + i * 22, y + mH - 26, i ? 6 : 7, 0, Math.PI * 2); ctx.fill(); }
     }
-    yy += 40 + 16;
-    ctx.fillStyle = "#0f1b22"; ctx.font = `800 42px ${FONTE}`;
+    y += mH + 22;
+  }
+  // Texto / legenda / citação
+  if (txtL.length) {
+    if (soTexto) {
+      // Cartão de citação: fundo azul-claro, aspas grandes e o texto.
+      const qh = altTxt() - 40;
+      ctx.fillStyle = "#eef8fd"; ctx.beginPath(); ctx.roundRect(X + pad - 6, y, CW - (pad - 6) * 2, qh, 30); ctx.fill();
+      ctx.fillStyle = AZUL; ctx.font = `900 120px Georgia, serif`; ctx.fillText("“", X + pad + 18, y + 104);
+      ctx.fillStyle = TINTA; ctx.font = `700 ${tamTexto}px ${FONTE}`;
+      txtL.forEach((l, i) => ctx.fillText(l, X + pad + 26, y + 96 + tamTexto + i * lh()));
+      y += qh + 30;
+    } else {
+      ctx.fillStyle = TINTA; ctx.font = `${pesoTexto()} ${tamTexto}px ${FONTE}`;
+      txtL.forEach((l, i) => ctx.fillText(l, X + pad, y + tamTexto + i * lh()));
+      y += txtL.length * lh() + (im ? 22 : 30);
+    }
+  }
+  // Enquete ou caixa de perguntas
+  if (bloco) {
+    const ex = X + pad - 6, ew = CW - (pad - 6) * 2, ey = y;
+    const fimE = e ? fimDaEnquete(e) : 0, acabou = e ? encerrada(e) : false;
+    const prazo = e ? (acabou ? "Encerrada" : fimE ? faltaTexto(fimE).replace(/^termina/, "Termina") : "") : (cx.anonima ? "Anônima" : "");
+    caixaBloco(ctx, ex, ey, ew, blocoH - 8, e ? "ENQUETE" : "CAIXA DE PERGUNTAS", e ? iconeEnquete : iconeBalao, prazo, acabou || (!!cx && cx.anonima));
+    let yy = ey + 28 + 40 + 16;
+    ctx.fillStyle = TINTA; ctx.font = `800 42px ${FONTE}`;
     pergL.forEach((l, i) => ctx.fillText(l, ex + 28, yy + 40 + i * 54));
     yy += pergL.length * 54 + 14;
-    const maior = mostrar ? Math.max(...res.contas) : 0;
-    e.opcoes.forEach((o, i) => {
-      const oy = yy + i * 92, ow = ew - 56, ox = ex + 28;
-      const pct = mostrar && total ? Math.round(res.contas[i] / total * 100) : 0;
-      const lider = mostrar && total && res.contas[i] === maior;
-      ctx.fillStyle = "#ffffff"; ctx.strokeStyle = lider ? "#00adee" : "#d6e3ea"; ctx.lineWidth = lider ? 4 : 2;
-      ctx.beginPath(); ctx.roundRect(ox, oy, ow, 76, 22); ctx.fill(); ctx.stroke();
-      if (mostrar && pct) { ctx.save(); ctx.beginPath(); ctx.roundRect(ox, oy, ow, 76, 22); ctx.clip(); ctx.fillStyle = lider ? "rgba(0,173,238,.28)" : "rgba(15,27,34,.08)"; ctx.fillRect(ox, oy, ow * pct / 100, 76); ctx.restore(); }
-      let tx = ox + 26;
-      if (!mostrar) { ctx.strokeStyle = "#9fb1bb"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(ox + 40, oy + 38, 14, 0, Math.PI * 2); ctx.stroke(); tx = ox + 70; }
-      ctx.fillStyle = "#0f1b22"; ctx.font = `${lider ? 800 : 700} 34px ${FONTE}`;
-      const pctTxt = mostrar ? `${pct}%` : "";
-      ctx.font = `800 32px ${FONTE}`; const pw = pctTxt ? ctx.measureText(pctTxt).width : 0;
-      ctx.font = `${lider ? 800 : 700} 34px ${FONTE}`;
-      const rot = linhasDe(ctx, (lider && res?.final ? "🏆 " : "") + o, ow - (tx - ox) - pw - 40, 1)[0] || o;
-      ctx.fillText(rot, tx, oy + 50);
-      if (pctTxt) { ctx.font = `800 32px ${FONTE}`; ctx.fillStyle = lider ? "#0089bd" : "#51636d"; ctx.fillText(pctTxt, ox + ow - 24 - pw, oy + 50); }
-    });
-    yy += e.opcoes.length * 92;
-    // rodapé
-    ctx.fillStyle = "#51636d"; ctx.font = `600 26px ${FONTE}`;
+    if (e) {
+      const maior = mostrar ? Math.max(...res.contas) : 0;
+      e.opcoes.forEach((o, i) => {
+        const oy = yy + i * 92, ow = ew - 56, ox = ex + 28;
+        const pct = mostrar && total ? Math.round(res.contas[i] / total * 100) : 0;
+        const lider = mostrar && total && res.contas[i] === maior;
+        ctx.fillStyle = "#ffffff"; ctx.strokeStyle = lider ? AZUL : "#d6e3ea"; ctx.lineWidth = lider ? 4 : 2;
+        ctx.beginPath(); ctx.roundRect(ox, oy, ow, 76, 22); ctx.fill(); ctx.stroke();
+        if (mostrar && pct) { ctx.save(); ctx.beginPath(); ctx.roundRect(ox, oy, ow, 76, 22); ctx.clip(); ctx.fillStyle = lider ? "rgba(0,173,238,.28)" : "rgba(15,27,34,.08)"; ctx.fillRect(ox, oy, ow * pct / 100, 76); ctx.restore(); }
+        let tx = ox + 26;
+        if (!mostrar) { ctx.strokeStyle = "#9fb1bb"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(ox + 40, oy + 38, 14, 0, Math.PI * 2); ctx.stroke(); tx = ox + 70; }
+        const pctTxt = mostrar ? `${pct}%` : "";
+        ctx.font = `800 32px ${FONTE}`; const pw = pctTxt ? ctx.measureText(pctTxt).width : 0;
+        ctx.fillStyle = TINTA; ctx.font = `${lider ? 800 : 700} 34px ${FONTE}`;
+        const rot = linhasDe(ctx, (lider && res?.final ? "🏆 " : "") + o, ow - (tx - ox) - pw - 40, 1)[0] || o;
+        ctx.fillText(rot, tx, oy + 50);
+        if (pctTxt) { ctx.font = `800 32px ${FONTE}`; ctx.fillStyle = lider ? AZUL_ESC : CINZA; ctx.fillText(pctTxt, ox + ow - 24 - pw, oy + 50); }
+      });
+      yy += e.opcoes.length * 92;
+    } else {
+      // campo de resposta (só o desenho: responder é na publicação)
+      ctx.fillStyle = "#ffffff"; ctx.strokeStyle = "#d6e3ea"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.roundRect(ex + 28, yy, ew - 56, 80, 24); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "#9fb1bb"; ctx.font = `600 32px ${FONTE}`; ctx.fillText("Escreva sua resposta…", ex + 54, yy + 51);
+      yy += 96;
+    }
+    ctx.fillStyle = CINZA; ctx.font = `600 26px ${FONTE}`;
     const votos = `${total.toLocaleString("pt-BR")} ${total === 1 ? "voto" : "votos"}`;
-    const rodape = mostrar ? (res.final ? `Resultado final · ${votos}` : `Parcial · ${votos}`) + (e.anonima ? " · anônima" : "")
-      : acabou ? "Enquete encerrada" : `Toque em “Ver publicação” para votar${e.anonima ? " · anônima" : ""}`;
+    const rodape = e ? (mostrar ? (res.final ? `Resultado final · ${votos}` : `Parcial · ${votos}`) + (e.anonima ? " · anônima" : "")
+      : acabou ? "Enquete encerrada" : `Toque em “Ver publicação” para votar${e.anonima ? " · anônima" : ""}`)
+      : "Toque em “Ver publicação” para responder";
+    // Rodapé numa linha só: diminui a letra se não couber.
+    for (let t = 26; t >= 20; t -= 2) { ctx.font = `600 ${t}px ${FONTE}`; if (ctx.measureText(rodape).width <= ew - 56) break; }
     ctx.fillText(rodape, ex + 28, yy + 34);
+    y += blocoH + 8;
+  }
+  // Estrelas da publicação (só quando já tem notas)
+  if (temNotas) {
+    const media = notas.soma / notas.total;
+    for (let i = 0; i < 5; i++) estrela(ctx, X + pad + 18 + i * 42, y + 26, 17, i < Math.round(media) ? "#f5b301" : "#d6e3ea");
+    ctx.fillStyle = TINTA; ctx.font = `800 30px ${FONTE}`;
+    const txt = `${media.toFixed(1).replace(".", ",")} · ${notas.total} ${notas.total === 1 ? "nota" : "notas"}`;
+    ctx.fillText(txt, X + pad + 230, y + 37);
   }
   ctx.restore();
   return c.toDataURL("image/jpeg", 0.9);
@@ -324,11 +391,11 @@ export async function compartilharNoFlash(post) {
   if (post.autorId !== eu.uid) {
     try { const p = await fb.getDoc(fb.doc(fb.db, "pref_publicas", post.autorId)); if (p.exists() && p.data().permiteFlash === false) { toast(`${String(post.nome || "Quem publicou").split(" ")[0]} não permite compartilhar as publicações no Flash.`); return; } } catch {}
   }
-  toast(post.enquete?.pergunta ? "Preparando a enquete para o flash..." : "Preparando...");
+  toast(post.enquete?.pergunta ? "Preparando a enquete para o flash..." : "Preparando a publicação para o flash...");
   let imagem = null;
   try { imagem = await imagemDaPublicacao(post); } catch (e) { console.warn(e); }
   if (!imagem) { toast("Não foi possível preparar a publicação para o flash."); return; }
-  abrirCriador({ post: { id: post.id, autorId: post.autorId, nome: post.nome, imagem, enquete: !!post.enquete?.pergunta } });
+  abrirCriador({ post: { id: post.id, autorId: post.autorId, nome: post.nome, imagem, enquete: !!post.enquete?.pergunta, caixa: !post.enquete?.pergunta && !!post.caixa?.pergunta } });
 }
 
 // Criar um flash de fora do Diário (o "+" na foto do seu perfil). aoPublicar roda depois de publicar.
@@ -1263,7 +1330,8 @@ function abrirCriador({ repost = null, post = null } = {}) {
   pintar();
   if (post) {
     // Publicação do Diário: o cartão dela já desenhado, com o selo de quem publicou.
-    const selo = el("div", "flash-repost-selo"); selo.append(icone(post.enquete ? "enquete" : "fotos", "i xs"), document.createTextNode(`${post.enquete ? "Enquete" : "Publicação"} de ${String(post.nome || "alguém").split(" ")[0]}`));
+    const tipoPub = post.enquete ? ["enquete", "Enquete"] : post.caixa ? ["caixa", "Caixa de perguntas"] : ["fotos", "Publicação"];
+    const selo = el("div", "flash-repost-selo"); selo.append(icone(tipoPub[0], "i xs"), document.createTextNode(`${tipoPub[1]} de ${String(post.nome || "alguém").split(" ")[0]}`));
     palco.appendChild(selo);
     usarFoto(post.imagem).catch((e) => toast(erroAmigavel(e)));
     return;

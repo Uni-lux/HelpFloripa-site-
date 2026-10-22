@@ -1806,7 +1806,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=32").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=33").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);
@@ -1873,26 +1873,31 @@ export function abrirCompositor({ aoPublicar } = {}) {
   if (!$("folhaPublicar")) {
     const f = criarFolha("folhaPublicar", { titulo: "Nova publicação", corpoClasse: "folha-corpo pad", rodape: true });
     $("c_folhaPublicar").innerHTML = `
-      <div class="pub-autor"><div class="avatar" id="pubAvatar"></div><strong id="pubNome"></strong></div>
-      <textarea class="pub-texto" id="pubTexto" maxlength="1000" placeholder="Compartilhe um trabalho, uma novidade ou uma dica..." aria-label="Texto da publicação"></textarea>
+      <div class="pub-autor"><div class="avatar" id="pubAvatar"></div><div class="pub-quem"><strong id="pubNome"></strong><small><svg class="i"><use href="#i-feed"/></svg>Publicando no Diário</small></div></div>
+      <div class="pub-campo">
+        <textarea class="pub-texto" id="pubTexto" maxlength="1000" placeholder="Compartilhe um trabalho, uma novidade ou uma dica..." aria-label="Texto da publicação"></textarea>
+        <span class="cont" id="pubCont">0/1000</span>
+      </div>
       <div class="pub-previa" id="pubPrevia" hidden></div>
       <div class="pub-extras" id="pubMarcados" hidden></div>
       <div class="pub-extras" id="pubAgenda" hidden></div>
       <div class="pub-extras" id="pubLocalBox" hidden></div>
       <div class="pub-enquete" id="pubEnquete" hidden></div>
       <div class="pub-enquete pub-caixa" id="pubCaixa" hidden></div>
-      <div class="pub-ferramentas">
-        <button type="button" class="icone-btn" id="pubFoto" aria-label="Adicionar foto (até 4)" title="Foto (até 4)"><svg class="i"><use href="#i-imagem"/></svg></button>
-        <button type="button" class="icone-btn" id="pubVideo" aria-label="Adicionar vídeo curto (até 60 s)" title="Vídeo curto (até 60 s)"><svg class="i"><use href="#i-video"/></svg></button>
-        <button type="button" class="icone-btn" id="pubMarcar" aria-label="Marcar pessoas" title="Marcar pessoas"><svg class="i"><use href="#i-pessoa-mais"/></svg></button>
-        <button type="button" class="icone-btn" id="pubEnqueteBtn" aria-label="Criar enquete" title="Enquete"><svg class="i"><use href="#i-enquete"/></svg></button>
-        <button type="button" class="icone-btn" id="pubCaixaBtn" aria-label="Caixa de perguntas" title="Caixa de perguntas"><svg class="i"><use href="#i-caixa"/></svg></button>
-        <button type="button" class="icone-btn" id="pubLocal" aria-label="Adicionar local" title="Adicionar local"><svg class="i"><use href="#i-local"/></svg></button>
-        <button type="button" class="icone-btn" id="pubAgendar" aria-label="Agendar publicação" title="Agendar"><svg class="i"><use href="#i-relogio"/></svg></button>
-        <button type="button" class="icone-btn" id="pubRascunhos" aria-label="Rascunhos" title="Rascunhos"><svg class="i"><use href="#i-rascunho"/></svg></button>
-        <span class="cont" id="pubCont">0/1000</span>
+      <div class="pub-add">
+        <span class="pub-add-tit">Adicionar à publicação</span>
+        <div class="pub-ferr-grade">
+          <button type="button" class="pub-ferr" id="pubFoto" aria-label="Adicionar foto (até 4)" title="Foto (até 4)"><span class="ic"><svg class="i"><use href="#i-imagem"/></svg></span><span>Foto</span></button>
+          <button type="button" class="pub-ferr" id="pubVideo" aria-label="Adicionar vídeo curto (até 60 s)" title="Vídeo curto (até 60 s)"><span class="ic"><svg class="i"><use href="#i-video"/></svg></span><span>Vídeo</span></button>
+          <button type="button" class="pub-ferr" id="pubMarcar" aria-label="Marcar pessoas" title="Marcar pessoas"><span class="ic"><svg class="i"><use href="#i-pessoa-mais"/></svg></span><span>Marcar</span></button>
+          <button type="button" class="pub-ferr" id="pubEnqueteBtn" aria-label="Criar enquete" title="Enquete"><span class="ic"><svg class="i"><use href="#i-enquete"/></svg></span><span>Enquete</span></button>
+          <button type="button" class="pub-ferr" id="pubCaixaBtn" aria-label="Caixa de perguntas" title="Caixa de perguntas"><span class="ic"><svg class="i"><use href="#i-caixa"/></svg></span><span>Perguntas</span></button>
+          <button type="button" class="pub-ferr" id="pubLocal" aria-label="Adicionar local" title="Adicionar local"><span class="ic"><svg class="i"><use href="#i-local"/></svg></span><span>Local</span></button>
+          <button type="button" class="pub-ferr" id="pubAgendar" aria-label="Agendar publicação" title="Agendar"><span class="ic"><svg class="i"><use href="#i-relogio"/></svg></span><span>Agendar</span></button>
+          <button type="button" class="pub-ferr" id="pubRascunhos" aria-label="Rascunhos" title="Rascunhos"><span class="ic"><svg class="i"><use href="#i-rascunho"/></svg></span><span>Rascunhos</span></button>
+        </div>
       </div>
-      <p class="pub-dica">Use <b>#hashtags</b> para aparecer nas buscas e <b>@nome</b> para mencionar.</p>
+      <p class="pub-dica"><svg class="i"><use href="#i-ajuda"/></svg><span>Use <b>#hashtags</b> para aparecer nas buscas e <b>@nome</b> para mencionar.</span></p>
       <input type="file" id="pubArquivoFoto" accept="image/*" hidden />
       <input type="file" id="pubArquivoVideo" accept="video/*" hidden />`;
     $("r_folhaPublicar").innerHTML = `
@@ -2093,6 +2098,9 @@ export function registrarEnquete(alvo, enquete) {
   fb.setDoc(refUsuario, { enquetes: dados.enquetes }, { merge: true }).catch(() => {});
 }
 function pintarExtras() {
+  $("pubMarcar")?.classList.toggle("ativo", pubMarcados.length > 0);
+  $("pubLocal")?.classList.toggle("ativo", !!pubLocal);
+  $("pubAgendar")?.classList.toggle("ativo", !!pubAgenda);
   const m = $("pubMarcados");
   m.replaceChildren();
   m.hidden = !pubMarcados.length;
@@ -2331,7 +2339,9 @@ function mostrarPreviaPublicacao() {
   box.hidden = false;
 }
 function ligarCompositor() {
-  $("pubTexto").addEventListener("input", () => { $("pubCont").textContent = `${$("pubTexto").value.length}/1000`; });
+  // O campo cresce com o texto (até 45% da tela; depois rola por dentro).
+  const crescer = () => { const t = $("pubTexto"); t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight + 2, Math.round(innerHeight * 0.45)) + "px"; };
+  $("pubTexto").addEventListener("input", () => { $("pubCont").textContent = `${$("pubTexto").value.length}/1000`; crescer(); });
   $("pubFoto").addEventListener("click", () => $("pubArquivoFoto").click());
   $("pubVideo").addEventListener("click", () => $("pubArquivoVideo").click());
   $("pubMarcar").addEventListener("click", escolherMarcados);
