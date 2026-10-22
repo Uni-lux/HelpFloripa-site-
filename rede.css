@@ -627,6 +627,12 @@ body.com-barra { padding-bottom: calc(74px + env(safe-area-inset-bottom)); }
 .notif .av-wrap .avatar { width: 46px; height: 46px; }
 .notif .av-wrap .tipo { position: absolute; right: -3px; bottom: -3px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; color: #fff; border: 2px solid var(--panel); }
 .notif .av-wrap .tipo svg { width: 12px; height: 12px; }
+/* linha agrupada (estrelas na mesma publicação, seguidores): duas fotos sobrepostas */
+.notif .av-wrap.duplo { width: 46px; height: 46px; }
+.notif .av-wrap.duplo .avatar { position: absolute; width: 34px; height: 34px; font-size: 12px; border: 2px solid var(--panel); }
+.notif .av-wrap.duplo .avatar:first-child { top: 0; left: 0; }
+.notif .av-wrap.duplo .avatar + .avatar { right: 0; bottom: 0; }
+.notif .avatar.plano { display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, var(--pc, #7c3aed), color-mix(in srgb, var(--pc, #7c3aed) 55%, #000)); }
 .notif .tx { flex: 1; min-width: 0; font-size: 14px; line-height: 1.4; }
 .notif .tx b { font-weight: 800; }
 .notif .tx small { display: block; color: var(--muted); font-size: 12.5px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -2115,3 +2121,8 @@ div.cfg2-linha { cursor: default; }
 /* local na publicação */
 .post-cab .quem .local-post { display: inline-flex; align-items: center; gap: 3px; max-width: 100%; padding: 0; border: 0; background: none; color: var(--text); font: inherit; font-size: 12.5px; font-weight: 650; cursor: pointer; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .post-cab .quem .local-post svg { flex: none; width: 12px; height: 12px; color: #e5484d; }
+
+/* página de notificações: lista comum com o painel do sino (avisos-lista.js) */
+.nt-pagina { padding: 12px 12px 8px; }
+.nt-pagina .nt2-barra { position: sticky; top: calc(var(--topo, 60px) + env(safe-area-inset-top)); z-index: 3; margin: -12px -12px 4px; padding: 12px 12px 10px; background: var(--panel); border-bottom: 1px solid var(--line); border-radius: 20px 20px 0 0; }
+.nt-pagina .nt2-acoes .btn { padding: 7px 12px; font-size: 12.5px; border-radius: 10px; }

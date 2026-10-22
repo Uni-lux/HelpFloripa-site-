@@ -583,6 +583,30 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   Menu: abre na rolagem em que estava (`hf-gaveta-rolagem` no sessionStorage) e garante a página atual à vista; o foco no X
   usa `preventScroll` (era ele que puxava o menu para o topo). Segurança e Diretrizes entraram em `PAGINAS_LIVRES` (contas
   suspensas/desativadas leem); as páginas institucionais não usam auth-guard, já abriam sem login.
+- **Início nacional (PR depois do #83, sem regra nova):** `local-escolhido.js` (sem rede.js): "Você está em ..." no lugar
+  da legenda da ponte (`#localBtn`, estilo "Entregar em"), folha `escolherLocal` (GPS, cidade do perfil, Todo o Brasil,
+  Estado/Cidade; `.vt-local-fundo` para o voltar.js). Grava em `hf-busca-local` (MESMA chave do "Onde procurar" das vitrines)
+  e recarrega a página; escolha manual chama `esquecerPosicao()`. `perto.js` `minhaPosicao`: GPS → cidade escolhida → perfil
+  (`escolhida: true`). Início: buscas populares por área (`POPULARES`), destaques/novos/imóveis com a cidade escolhida
+  primeiro e títulos "em Florianópolis/SC", "Cidades em destaque" (`#secCidades`, ≥2 cidades), faixa "Negocie com
+  segurança", título da página e textos nacionais. Teste `t-inicio-nacional.mjs`.
+- **Sino atualizado (mesmo PR do início nacional, sem regra nova):** `avisos-agrupar.js` (sem deps): estrelas na mesma
+  publicação e seguidores viram uma linha ("Ana, Bruno e mais 3 deram estrelas · média 4,7"), seções Novas/Hoje/Ontem/
+  Últimos 7 dias/Últimos 30 dias/Anteriores — no painel do sino e em notificacoes.html. Tipos novos: `avaliacao` (nota 3–5 no
+  negócio ou "avaliou você como cliente", vem da mesma leitura de `buscarReclamacoes`/`ouvirReclamacoes`) e `plano`
+  (`avisoPlano` em planos-base.js: 7, 3 e 1 dia(s) antes e até 15 dias depois de vencer). Aba "Reclamações" virou "Negócios".
+  Painel: miniatura da publicação, "Seguir de volta" (cache `seguindo-<uid>` do leituras.js), estrelas/comentários/marcações
+  abrem `usuarios.html?post=`. Número do sino (categoria.js e rede.js) conta plano e avaliações. Teste `t-sino.mjs`
+  (`FIRESTORE_EMULATOR_HOST=127.0.0.1:8085`). `t-enquete2.mjs` falha também sem estas mudanças (ambiente).
+- **Notificações profissionais (mesmo PR #84, sem regra nova):** `avisos-lista.js` (sem rede.js) desenha a lista no painel do
+  sino E em notificacoes.html (`criarLista({raiz, uid, ganchos})`; ganchos: abrir, botaoSeguir, responderVinculo, salvarPrefs,
+  marcarTodasVistas, miniatura, extra). Barra "Todas | Não lidas" + ✓✓ + ⚙, filtros por categoria (`CATEGORIAS`: mensagens,
+  publicacoes, seguidores, enquetes, social, negocios, suporte), "Pedidos do social · N" no topo, linha com etiqueta do tipo,
+  prévia, botões de ação, miniatura e menu ⋯ (lida/não lida, remover, desativar a categoria). Lidas/removidas no aparelho
+  (`hf-notif-<uid>`; ids iguais no painel e na página: s_, c_, m_, r_, e_, k_, x_). Preferências `usuarios.prefNotif`
+  ({categoria:false}; suporte sempre ligado), evento `hf:prefs-notif`; categoria.js e rede.js (`contarNovos`) não contam o que
+  foi desligado. painel-avisos.js só carrega os dados e cuida da gaveta. Testes `t-sino.mjs` (24 verificações), `t-etapa4.mjs`
+  atualizado (`.nt2-item`).
 - **As 5 etapas estão concluídas.** Próximos passos são as pendências abaixo (só ele pode fazer) e o que ficou
   para depois.
 

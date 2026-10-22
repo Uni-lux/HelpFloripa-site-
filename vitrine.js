@@ -16,8 +16,8 @@ import { abrirQueixa } from "./queixas.js?v=12";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
 import { anelNegocio } from "./flash-negocio.js?v=3";
 import { camposEndereco, textoCidade, cidadesDe, NOME_UF, semAcento } from "./endereco.js?v=1";
-import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao } from "./perto.js?v=1";
-import { lerPlano, nivelPlano, seloPlano, nomePlano } from "./planos-base.js?v=2";
+import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao } from "./perto.js?v=2";
+import { lerPlano, nivelPlano, seloPlano, nomePlano } from "./planos-base.js?v=3";
 import { PROFISSOES_SAUDE, CATEGORIAS_SAUDE, SITE_CONSELHO, MODALIDADES_SAUDE, PUBLICO_SAUDE, PUBLICO_VET, nomeProfissao, conselhoDe, ehVet, textoRegistro, textoValor, AVISO_EMERGENCIA, AVISO_REGISTRO } from "./saude-dados.js?v=1";
 import { usarEstat, registrarVisita, registrarAcao, registrarItem, chaveItem as chaveEstat, chaveAnuncio } from "./estat-negocio.js?v=1";
 // Plano de quem anuncia: todo plano pago tem o selo; Pro e Premium aparecem antes na ordem padrão

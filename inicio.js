@@ -11,9 +11,10 @@ import { fotoSegura } from "./seguranca.js?v=1";
 import { enfeitarSelect } from "./escolha.js?v=4";
 import { estrelas, lerResumos, media } from "./avaliacoes.js?v=14";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
-import { lerPlano, nivelPlano, seloPlano } from "./planos-base.js?v=2";
-import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao } from "./perto.js?v=1";
-import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=53";
+import { lerPlano, nivelPlano, seloPlano } from "./planos-base.js?v=3";
+import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, esquecerPosicao } from "./perto.js?v=2";
+import { lerLocal, salvarLocal, rotuloLocal, noLocal, escolherLocal } from "./local-escolhido.js?v=1";
+import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=55";
 
 const $ = (id) => document.getElementById(id);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
@@ -37,15 +38,33 @@ const DICAS = {
   servicos: "Ex.: diarista, eletricista, manicure",
   delivery: "Ex.: pizza, hambúrguer, açaí",
   lojinha: "Ex.: tênis, fone, vestido",
-  imoveis: "Ex.: apartamento na Trindade",
+  imoveis: "Ex.: apartamento com 2 quartos",
   saude: "Ex.: pediatra, psicóloga, Unimed",
-  comunidade: "Ex.: berço, sofá, quarto na Trindade"
+  comunidade: "Ex.: berço, sofá, quarto para dividir"
 };
+// Buscas populares embaixo da busca (como nos apps de serviço e de classificados): mudam com a área.
+const POPULARES = {
+  servicos: ["Diarista", "Eletricista", "Encanador", "Manicure", "Pedreiro", "Fotógrafo", "Personal trainer"],
+  delivery: ["Pizza", "Hambúrguer", "Açaí", "Marmita", "Japonesa", "Doces", "Pastel"],
+  lojinha: ["Roupas", "Tênis", "Celular", "Maquiagem", "Móveis", "Artesanato", "Infantil"],
+  imoveis: ["Apartamento", "Casa", "Kitnet", "Temporada", "Sala comercial", "Terreno"],
+  saude: ["Psicólogo", "Nutricionista", "Fisioterapeuta", "Dentista", "Pediatra", "Veterinário"],
+  comunidade: ["Doação", "Móveis", "Roupas", "Quarto", "Brinquedos", "Achados e perdidos"]
+};
+function pintarPopulares(tipo) {
+  const box = $("buscasPop"); if (!box) return;
+  box.replaceChildren(el("span", "rot", "Populares:"), ...POPULARES[tipo].map((t) => {
+    const b = el("button", null, t); b.type = "button";
+    b.addEventListener("click", () => buscar(tipo, t));
+    return b;
+  }));
+}
 function escolherClasse(tipo) {
   classeBusca = tipo;
   $("classeBusca").value = tipo;
   $("buscaGeral").dataset.classe = tipo;
   $("campoBusca").placeholder = DICAS[tipo];
+  pintarPopulares(tipo);
   seletor?.atualizar();
 }
 $("classeBusca").addEventListener("change", () => { escolherClasse($("classeBusca").value); $("campoBusca").focus(); });
@@ -56,6 +75,23 @@ function buscar(tipo, termo) {
 $("buscaGeral").addEventListener("submit", (e) => { e.preventDefault(); buscar(classeBusca, $("campoBusca").value); });
 escolherClasse("servicos");
 seletor = enfeitarSelect($("classeBusca"), { titulo: "Onde você quer buscar?" });
+
+// ---------- "Você está em ..." ----------
+// A cidade escolhida vale para o início, as vitrines e o "Perto de você" (local-escolhido.js).
+let perfilEu = {};
+function pintarLocal() {
+  const f = lerLocal();
+  const t = $("localTexto"); if (t) t.textContent = rotuloLocal(f);
+  $("localBtn")?.setAttribute("aria-label", `Você está em: ${rotuloLocal(f)}. Tocar para mudar`);
+}
+async function trocarLocal() {
+  const f = await escolherLocal({ perfil: perfilEu, pedirLocalizacao, esquecerPosicao });
+  if (f === null) return;
+  pintarLocal();
+  location.reload(); // destaques, "Perto de você" e números refeitos para o lugar novo
+}
+$("localBtn")?.addEventListener("click", trocarLocal);
+pintarLocal();
 
 // ---------- banner ----------
 // Passa sozinho a cada 5 s. Arrastar com o dedo (ou usar as setas e os pontos)
@@ -268,7 +304,7 @@ async function montarPerto(fs, db, u, negocios, imoveis, nota) {
     bt.hidden = pos?.origem === "gps";
     if (!pos) { sub.textContent = "Ative a localização para ver quem atende perto de você."; preencher("trilhoPerto", []); bt.hidden = false; return; }
     const nome = await rotuloPosicao(pos);
-    sub.textContent = pos.origem === "gps" ? `Do mais perto ao mais longe de onde você está${nome ? ` · ${nome}` : ""}` : `Pela cidade do seu perfil${nome ? ` · ${nome}` : ""}. Use a localização para ver mais exato.`;
+    sub.textContent = pos.origem === "gps" ? `Do mais perto ao mais longe de onde você está${nome ? ` · ${nome}` : ""}` : `${pos.escolhida ? "Pela cidade escolhida" : "Pela cidade do seu perfil"}${nome ? ` · ${nome}` : ""}. Use a localização para ver mais exato.`;
     const itens = await comDistancia([...negocios.filter((n) => n.tipo !== "imoveis"), ...imoveis.map((a) => ({ ...a, tipo: "imoveis", _anuncio: true }))], pos);
     // Plano Pro: aparece antes (conta como se estivesse 40% mais perto) e com o selo.
     const comKm = itens.filter((x) => Number.isFinite(x._km));
@@ -330,11 +366,22 @@ async function carregar(fs, db, u) {
     const pesoNota = (n) => { const r = nota(n); if (!r?.total) return 1; const m = media(r); return 1 + (m * m * (1 + Math.log1p(r.total))) / 5; };
     const tempoNota = (n) => 4500 + 900 * (nota(n)?.total ? media(nota(n)) : 0); // 4,5 s a ~9 s na tela
     const comNota = lista.filter((n) => nota(n)?.total);
+    // Cidade/estado escolhido em "Você está em": os de lá vêm primeiro (os outros continuam, depois).
+    const loc = lerLocal(), aqui = (n) => noLocal(n, loc);
+    const localPrimeiro = (l) => (loc.uf ? [...l.filter(aqui), ...l.filter((n) => !aqui(n))] : l);
+    const nomeLocal = loc.uf ? rotuloLocal(loc) : "";
+    if (nomeLocal) {
+      const temTop = comNota.some(aqui), temNovo = lista.some(aqui);
+      $("t-secTop").textContent = temTop ? `Mais bem avaliados em ${nomeLocal}` : "Mais bem avaliados no Brasil";
+      if (!temTop && comNota.length) $("secTop").querySelector(".secao-cab p").textContent = `Ainda sem notas em ${nomeLocal}. Veja os mais bem avaliados de todo o Brasil.`;
+      $("t-secNovos").textContent = temNovo ? `Chegaram agora em ${nomeLocal}` : "Chegaram agora no Brasil";
+    }
+    cidadesEmDestaque(lista);
     // "Mais bem avaliados" sempre aparece: sem notas ainda, mostra todos e convida a avaliar.
     if (!comNota.length) $("secTop").querySelector(".secao-cab p").textContent = "Ainda sem notas por aqui. Depois do atendimento, avalie quem te atendeu.";
-    filtroTipos("secTop", (comNota.length ? comNota : lista).slice(0, 40), (l) => revezar("trilhoTop", l, { criar: (n) => cartaoNegocio(n, nota(n)), peso: pesoNota, tempo: tempoNota }));
+    filtroTipos("secTop", localPrimeiro(comNota.length ? comNota : lista).slice(0, 40), (l) => revezar("trilhoTop", l, { criar: (n) => cartaoNegocio(n, nota(n)), peso: pesoNota, tempo: tempoNota }));
     const agora = Date.now(), DIA = 86400000;
-    const novos = [...lista].filter((n) => n.tipo !== "imoveis").sort((a, b) => ms(b.atualizadoEm) - ms(a.atualizadoEm)).slice(0, 30);
+    const novos = localPrimeiro([...lista].filter((n) => n.tipo !== "imoveis").sort((a, b) => ms(b.atualizadoEm) - ms(a.atualizadoEm))).slice(0, 30);
     // Mais novos pesam mais; a nota também conta.
     const pesoNovo = (n) => { const dias = (agora - ms(n.atualizadoEm || n.criadoEm)) / DIA; return (dias < 3 ? 4 : dias < 14 ? 2.5 : 1) * (0.6 + pesoNota(n) / 5); };
     filtroTipos("secNovos", novos, (l) => revezar("trilhoNovos", l, { criar: (n) => cartaoNegocio(n, nota(n)), peso: pesoNovo, tempo: tempoNota }));
@@ -344,7 +391,10 @@ async function carregar(fs, db, u) {
     const an = fs.collection(db, "anuncios");
     const snap = await docsComValidade({ ...fs, db }, "inicio-imoveis", fs.query(an, fs.where("tipo", "==", "imovel"), fs.orderBy("atualizadoEm", "desc"), fs.limit(24)), 10 * 60000)
       .catch(() => fs.getDocs(fs.query(an, fs.where("tipo", "==", "imovel"), fs.limit(24))));
-    const ims = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((a) => a.ativo !== false && !oculto(a)).sort((a, b) => ms(b.atualizadoEm || b.criadoEm) - ms(a.atualizadoEm || a.criadoEm)).slice(0, 30);
+    const locIm = lerLocal();
+    const imsTodos = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((a) => a.ativo !== false && !oculto(a)).sort((a, b) => ms(b.atualizadoEm || b.criadoEm) - ms(a.atualizadoEm || a.criadoEm));
+    const ims = (locIm.uf ? [...imsTodos.filter((a) => noLocal(a, locIm)), ...imsTodos.filter((a) => !noLocal(a, locIm))] : imsTodos).slice(0, 30);
+    if (locIm.uf && imsTodos.some((a) => noLocal(a, locIm))) $("t-secImoveis").textContent = `Imóveis em ${rotuloLocal(locIm)}`;
     imoveisPerto = ims;
     const agora = Date.now();
     revezar("trilhoImoveis", ims, {
@@ -368,11 +418,36 @@ async function carregar(fs, db, u) {
   auth.onAuthStateChanged(window.firebaseAuth, async (u) => {
     if (!u || feito) return;
     feito = true;
-    try { const s = await docComValidade({ ...fs, db }, ["perfis_publicos", u.uid], 10 * 60000); saudacao((s.exists() && s.data().nome) || u.displayName || ""); } catch { saudacao(u.displayName || ""); }
+    try { const s = await docComValidade({ ...fs, db }, ["perfis_publicos", u.uid], 10 * 60000); perfilEu = s.exists() ? s.data() : {}; saudacao(perfilEu.nome || u.displayName || ""); } catch { saudacao(u.displayName || ""); }
     carregar(fs, db, u);
     comunicados(fs, db);
   });
 })();
+
+// ---------- cidades em destaque ----------
+// Cidades com mais negócios entre os carregados (como a lista de estados/cidades dos classificados).
+// Tocar escolhe a cidade em "Você está em" e refaz a página.
+function cidadesEmDestaque(lista) {
+  const sec = $("secCidades"), box = $("cidadesChips");
+  if (!sec || !box) return;
+  const cont = new Map();
+  lista.forEach((n) => {
+    if (!n.uf || !n.cidade) return;
+    const k = n.cidadeIbge ? String(n.cidadeIbge) : `${n.cidade}|${n.uf}`;
+    const c = cont.get(k) || { uf: n.uf, cidade: String(n.cidade).replace(/\s*[\/,-]\s*[A-Za-z]{2}\s*$/, ""), cidadeIbge: Number(n.cidadeIbge) || null, n: 0 };
+    c.n++; cont.set(k, c);
+  });
+  const top = [...cont.values()].sort((a, b) => b.n - a.n).slice(0, 10);
+  if (top.length < 2) return;
+  const atual = lerLocal();
+  box.replaceChildren(...top.map((c) => {
+    const b = el("button", "cid" + (atual.cidadeIbge && Number(atual.cidadeIbge) === c.cidadeIbge ? " on" : "")); b.type = "button";
+    b.append(el("strong", null, `${c.cidade}/${c.uf}`), el("small", null, `${c.n} ${c.n === 1 ? "negócio" : "negócios"}`));
+    b.addEventListener("click", () => { esquecerPosicao(); salvarLocal(c.cidadeIbge ? { uf: c.uf, cidade: c.cidade, cidadeIbge: c.cidadeIbge } : { uf: c.uf }); location.reload(); });
+    return b;
+  }), (() => { const b = el("button", "cid outra"); b.type = "button"; b.append(el("strong", null, "Outra cidade"), el("small", null, "Escolher")); b.addEventListener("click", trocarLocal); return b; })());
+  sec.hidden = false;
+}
 
 // ---------- comunicados da equipe (painel do administrador) ----------
 // Faixa no topo da página inicial. Quem fecha não vê de novo aquele comunicado.

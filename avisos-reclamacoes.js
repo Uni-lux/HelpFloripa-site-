@@ -4,9 +4,16 @@
 // - recebida: alguém reclamou de um negócio meu
 // - respondida: o negócio respondeu uma reclamação que eu fiz
 // - resolvida: o cliente marcou como resolvida uma reclamação que recebi
+// - avaliacao: avaliação boa (3 a 5 estrelas) no meu negócio, ou um negócio me avaliou como cliente
+//   (vem da mesma leitura das reclamações recebidas, sem custo a mais)
 // =====================================================
 const ms = (ts) => ts?.toMillis?.() ?? 0;
 const ehReclamacao = (a) => a && a.tipo === "negocio" && Number(a.nota) <= 2;
+// Avaliação que não é reclamação: nota boa no negócio ou avaliação de cliente.
+const ehAvaliacao = (a) => a && (a.tipo === "cliente" || (a.tipo === "negocio" && Number(a.nota) >= 3));
+function montarAvaliacoes(boas) {
+  return boas.map((a) => ({ tipo: "avaliacao", id: "av_" + a.id, avalId: a.id, uid: a.autorId, nome: a.autorNome || (a.tipo === "cliente" ? "Negócio" : "Cliente"), foto: a.autorFoto || "", nota: Number(a.nota) || 0, cliente: a.tipo === "cliente", negocioId: a.negocioId || "", detalhe: a.comentario || "", quando: ms(a.criadoEm) })).filter((i) => i.quando && i.nota);
+}
 const MAX = 40;
 
 // Reclamações abertas pelo cliente (queixas/): recebidas por mim e enviadas por mim.
@@ -60,6 +67,7 @@ export async function buscarReclamacoes(fs, db, uid) {
   const recebidasQ = qRec.docs.map((d) => ({ id: d.id, ...d.data() }));
   const minhasQ = qMin.docs.map((d) => ({ id: d.id, ...d.data() }));
   const recebidas = rec.docs.map((d) => ({ id: d.id, ...d.data() })).filter(ehReclamacao);
+  const boas = rec.docs.map((d) => ({ id: d.id, ...d.data() })).filter(ehAvaliacao);
   const minhas = min.docs.map((d) => ({ id: d.id, ...d.data() })).filter(ehReclamacao);
   const respostas = new Map();
   await Promise.all([...recebidas, ...minhas].map(async (a) => {
@@ -67,20 +75,20 @@ export async function buscarReclamacoes(fs, db, uid) {
   }));
   const perfis = new Map();
   await lerPerfis(fs, db, [...minhas.filter((a) => respostas.get(a.id)?.texto).map((a) => a.alvoId), ...minhasQ.filter((q) => q.resposta).map((q) => q.alvoId)], perfis);
-  return [...montar(recebidas, minhas, respostas, perfis), ...montarQueixas(recebidasQ, minhasQ, perfis)];
+  return [...montar(recebidas, minhas, respostas, perfis), ...montarQueixas(recebidasQ, minhasQ, perfis), ...montarAvaliacoes(boas)];
 }
 
 // Tempo real (página de notificações e páginas da rede social).
 export function ouvirReclamacoes(fs, db, uid, aoMudar) {
   const col = fs.collection(db, "avaliacoes");
-  let recebidas = [], minhas = [], recebidasQ = [], minhasQ = [];
+  let recebidas = [], minhas = [], recebidasQ = [], minhasQ = [], boas = [];
   const respostas = new Map(), perfis = new Map(), ouvindo = new Map();
   const paradas = [];
   let pronto = { rec: false, min: false, qrec: false, qmin: false };
   const avisar = async () => {
     if (!pronto.rec || !pronto.min || !pronto.qrec || !pronto.qmin) return;
     await lerPerfis(fs, db, [...minhas.filter((a) => respostas.get(a.id)?.texto).map((a) => a.alvoId), ...minhasQ.filter((q) => q.resposta).map((q) => q.alvoId)], perfis);
-    aoMudar([...montar(recebidas, minhas, respostas, perfis), ...montarQueixas(recebidasQ, minhasQ, perfis)]);
+    aoMudar([...montar(recebidas, minhas, respostas, perfis), ...montarQueixas(recebidasQ, minhasQ, perfis), ...montarAvaliacoes(boas)]);
   };
   const qcol = fs.collection(db, "queixas");
   paradas.push(fs.onSnapshot(fs.query(qcol, fs.where("alvoId", "==", uid), fs.limit(MAX)), (snap) => {
@@ -101,7 +109,8 @@ export function ouvirReclamacoes(fs, db, uid, aoMudar) {
     ouvindo.forEach((parar, id) => { if (!ids.has(id)) { parar(); ouvindo.delete(id); respostas.delete(id); } });
   };
   paradas.push(fs.onSnapshot(fs.query(col, fs.where("alvoId", "==", uid), fs.limit(MAX)), (snap) => {
-    recebidas = snap.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter(ehReclamacao);
+    const todas = snap.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) }));
+    recebidas = todas.filter(ehReclamacao); boas = todas.filter(ehAvaliacao);
     pronto.rec = true; ouvirRespostas(); avisar();
   }, () => { pronto.rec = true; avisar(); }));
   paradas.push(fs.onSnapshot(fs.query(col, fs.where("autorId", "==", uid), fs.limit(MAX)), (snap) => {
@@ -114,6 +123,16 @@ export function ouvirReclamacoes(fs, db, uid, aoMudar) {
 export const TEXTO_RECLAMACAO = {
   "reclamacao": (i) => (i.queixa ? `abriu uma reclamação sobre seu negócio (${MOTIVO_CURTO[i.motivo] || "reclamação"})` : `fez uma reclamação (${i.nota} ${i.nota === 1 ? "estrela" : "estrelas"}) sobre seu negócio`),
   "reclamacao-resp": () => "respondeu sua reclamação",
-  "reclamacao-ok": () => "marcou a reclamação como resolvida"
+  "reclamacao-ok": () => "marcou a reclamação como resolvida",
+  "avaliacao": (i) => (i.cliente ? `avaliou você como cliente com ${i.nota} ${i.nota === 1 ? "estrela" : "estrelas"}` : `avaliou seu negócio com ${i.nota} ${i.nota === 1 ? "estrela" : "estrelas"}`)
 };
-export const linkReclamacao = (i, uid) => (i.tipo === "reclamacao-resp" ? `reclamacoes.html?pessoa=${encodeURIComponent(uid)}&lado=enviadas` : `reclamacoes.html?pessoa=${encodeURIComponent(uid)}`);
+// Página da vitrine de cada tipo (o id do negócio é "uid_tipo").
+const PAGINA_NEG = { servicos: "servicos.html", delivery: "delivery.html", lojinha: "shopping.html", imoveis: "imoveis.html", saude: "saude.html" };
+export const linkReclamacao = (i, uid) => {
+  if (i.tipo === "avaliacao") {
+    if (i.cliente) return `usuarios.html?perfil=${encodeURIComponent(uid)}`;
+    const pg = PAGINA_NEG[String(i.negocioId).split("_").pop()];
+    return pg ? `${pg}?negocio=${encodeURIComponent(i.negocioId)}` : "negocios.html";
+  }
+  return i.tipo === "reclamacao-resp" ? `reclamacoes.html?pessoa=${encodeURIComponent(uid)}&lado=enviadas` : `reclamacoes.html?pessoa=${encodeURIComponent(uid)}`;
+};
