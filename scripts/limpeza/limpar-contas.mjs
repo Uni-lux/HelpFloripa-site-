@@ -78,16 +78,18 @@ async function limpar(uid) {
   }
   await apagar("curtidas", col("curtidas").where("uid", "==", uid));
   await apagar("curtidas_comentarios", col("curtidas_comentarios").where("uid", "==", uid));
-  await apagar("enquete_votos", col("enquete_votos").where("uid", "==", uid));
-  // Votos de enquetes anônimas: tira da contagem (enquete_contas) e apaga o voto.
-  const anonimos = await col("enquete_anon").where("uid", "==", uid).get();
-  for (const v of anonimos.docs) {
-    const { alvo, opcao } = v.data();
-    if (simular || !alvo || !Number.isInteger(opcao)) continue;
-    const c = col("enquete_contas").doc(alvo);
-    if ((await c.get()).exists) await c.update({ ["n" + opcao]: FieldValue.increment(-1) });
+  // Votos das enquetes (públicos e anônimos): tira da contagem (o pedaço enquete_contas/{alvo}_{fatia} do voto;
+  // votos antigos sem fatia: enquete_contas/{alvo}) e apaga o voto.
+  for (const nomeCol of ["enquete_votos", "enquete_anon"]) {
+    const votos = await col(nomeCol).where("uid", "==", uid).get();
+    for (const v of votos.docs) {
+      const { alvo, opcao, fatia } = v.data();
+      if (simular || !alvo || !Number.isInteger(opcao)) continue;
+      const c = col("enquete_contas").doc(Number.isInteger(fatia) ? `${alvo}_${fatia}` : alvo);
+      if ((await c.get()).exists) await c.update({ ["n" + opcao]: FieldValue.increment(-1) });
+    }
+    await apagar(nomeCol, col(nomeCol).where("uid", "==", uid));
   }
-  await apagar("enquete_anon", col("enquete_anon").where("uid", "==", uid));
   // Caixa de perguntas: respostas que a pessoa deu (com nome e anônimas) e as que recebeu.
   await apagar("caixa_respostas", col("caixa_respostas").where("uid", "==", uid));
   await apagar("caixa_respostas", col("caixa_respostas").where("autorId", "==", uid));

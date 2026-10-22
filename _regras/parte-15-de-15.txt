@@ -1,0 +1,26 @@
+      function statsMais() {
+        let d = request.resource.data;
+        let r = resource.data;
+        let k = d.diff(r).affectedKeys();
+        let vis = caminhoVisita(r.negocioId, r.dia);
+        return (k.hasOnly(['v', 'o', 'h'])
+                && !exists(vis) && getAfter(vis).data.dia == r.dia
+                && d.v == r.v + 1
+                && maisUmNoMapa(d, r, 'o', getAfter(vis).data.origem)
+                && maisUmNoMapa(d, r, 'h', string(getAfter(vis).data.hora)))
+            || (k.hasOnly(['a'])
+                && getAfter(vis).data.acoes.size() == get(vis).data.acoes.size() + 1
+                && maisUmNoMapa(d, r, 'a', getAfter(vis).data.acoes[getAfter(vis).data.acoes.size() - 1]))
+            || (k.hasOnly(['it'])
+                && getAfter(vis).data.itens.size() == get(vis).data.itens.size() + 1
+                && maisUmNoMapa(d, r, 'it', getAfter(vis).data.itens[getAfter(vis).data.itens.size() - 1]));
+      }
+      allow read: if logado() && (resource.data.donoId == request.auth.uid || podeModerar());
+      allow create: if logado() && statsNovo();
+      allow update: if logado() && statsMais();
+      allow delete: if false;
+    }
+
+  }
+}
+// ===== FIM DA PARTE 15 DE 15 =====

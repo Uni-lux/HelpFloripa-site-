@@ -109,13 +109,35 @@ export function guardarInfoEnquete(alvo, item) {
   const ks = Object.keys(m); if (ks.length > 120) ks.slice(0, ks.length - 120).forEach((k) => delete m[k]);
   gravarLocal(CH_INFO, m);
 }
-async function contarVotos(fs, db, alvo, n, anon = false) {
+// ---------- contagem em 10 pedaços ----------
+// Cada voto (público ou anônimo) sobe +1 num pedaço sorteado: enquete_contas/{alvo}_{fatia}, fatia 0–9 (as regras
+// conferem). Um documento só aguentava ~1 voto por segundo; em pedaços aguenta ~10× mais. O resultado é a soma dos
+// pedaços: no máximo 10 leituras, tenha a enquete 10 ou 1 milhão de votos (contar no servidor custava 1 leitura a
+// cada mil votos, a cada pessoa que abria).
+export const FATIAS = 10;
+export const sortearFatia = () => Math.floor(Math.random() * FATIAS);
+export const pedacoDaEnquete = (alvo, fatia) => `${alvo}_${fatia}`;
+// Guardado no aparelho por 90 s (hf-enq-contas): rolar o Diário para cima e para baixo não lê de novo.
+const CH_CONTAS = "hf-enq-contas", CONTAS_VALIDADE = 90000;
+export async function lerContasEnquete(fs, db, alvo, n, { fresco = false } = {}) {
+  const m = lerLocal(CH_CONTAS), g = m[alvo];
+  if (!fresco && g && Date.now() - g.em < CONTAS_VALIDADE && Array.isArray(g.c) && g.c.length === n) return g.c.slice();
+  const ids = Array.from({ length: FATIAS }, (_, f) => pedacoDaEnquete(alvo, f));
+  const s = await fs.getDocs(fs.query(fs.collection(db, "enquete_contas"), fs.where(fs.documentId(), "in", ids)));
+  const c = Array.from({ length: n }, () => 0);
+  s.docs.forEach((d) => { const x = d.data(); for (let i = 0; i < n; i++) c[i] += Math.max(0, Number(x["n" + i]) || 0); });
+  m[alvo] = { c, em: Date.now() };
+  const ks = Object.keys(m); if (ks.length > 150) ks.sort((a, b) => m[a].em - m[b].em).slice(0, ks.length - 150).forEach((k) => delete m[k]);
+  gravarLocal(CH_CONTAS, m);
+  return c.slice();
+}
+// Resultado final (enquete encerrada) fica guardado de vez (hf-enq-res): depois do fim não muda mais
+// (as regras não deixam votar), então abrir a enquete de novo não lê nada.
+export async function resultadoFinal(fs, db, alvo, n) { return (await contarVotos(fs, db, alvo, n)).slice(0, n); }
+async function contarVotos(fs, db, alvo, n) {
   const res = lerLocal(CH_RES);
   if (res[alvo]) return res[alvo].c;
-  const col = fs.collection(db, "enquete_votos");
-  const c = anon
-    ? await fs.getDoc(fs.doc(db, "enquete_contas", alvo)).then((d) => Array.from({ length: n }, (_, i) => Number(d.exists() ? d.data()["n" + i] || 0 : 0)))
-    : await Promise.all(Array.from({ length: n }, (_, i) => fs.getCountFromServer(fs.query(col, fs.where("alvo", "==", alvo), fs.where("opcao", "==", i))).then((x) => x.data().count)));
+  const c = await lerContasEnquete(fs, db, alvo, n, { fresco: true });
   res[alvo] = { c, em: Date.now() };
   const ks = Object.keys(res); if (ks.length > 200) ks.slice(0, ks.length - 200).forEach((k) => delete res[k]);
   gravarLocal(CH_RES, res);
@@ -158,7 +180,7 @@ export async function enquetesEncerradas(fs, db, uid, dadosUsuario = {}) {
       }
     }
     if (!pergunta || !Array.isArray(opcoes)) return null;
-    const contas = await contarVotos(fs, db, x.alvo, opcoes.length, x.anon).catch(() => null);
+    const contas = await contarVotos(fs, db, x.alvo, opcoes.length).catch(() => null);
     if (!contas) return null;
     return { tipo: "enquete", id: "q_" + x.alvo, alvo: x.alvo, itemTipo, itemId, uid: autor, souAutor: x.souAutor, nome, pergunta, opcoes, contas, minha: x.minha, anon: x.anon, quando: x.quando };
   }));

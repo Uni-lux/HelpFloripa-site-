@@ -198,4 +198,4 @@
                     && contextoOk()
                     && textoAte('ultimaMensagem', 200);
 
-// ===== FIM DA PARTE 4 DE 14 =====
+// ===== FIM DA PARTE 4 DE 15 =====

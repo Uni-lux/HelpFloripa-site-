@@ -1,3 +1,25 @@
+      function publicacaoOk() {
+        let d = request.resource.data;
+        return textoAte('texto', 1000)
+            && textoAte('nome', 80)
+            && campoFotoOk('fotoPerfil')
+            && (!('mediaTipo' in d) || d.mediaTipo in ['', 'image', 'video'])
+            && (!('mediaUrl' in d) || d.mediaUrl == ''
+                || (d.mediaUrl is string
+                    && d.mediaUrl.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*')))
+            // Várias fotos (2 a 4): a primeira é a mesma de mediaUrl; cada uma do próprio site.
+            && (!('midias' in d)
+                || (d.midias is list && d.midias.size() >= 2 && d.midias.size() <= 4
+                    && d.get('mediaTipo', '') == 'image' && d.midias[0] == d.get('mediaUrl', '')
+                    && fotoPubOk(d.midias[1])
+                    && (d.midias.size() < 3 || fotoPubOk(d.midias[2]))
+                    && (d.midias.size() < 4 || fotoPubOk(d.midias[3]))));
+      }
+      // Hashtags (até 10, minúsculas, sem #) e pessoas marcadas (até 10 uids): uma expressão cada (join).
+      function tagsOk(d) {
+        return !('tags' in d) || (d.tags is list && d.tags.size() <= 10
+            && (d.tags.size() == 0 || d.tags.join(' ').matches('^[\\p{Ll}\\p{N}_]{1,30}( [\\p{Ll}\\p{N}_]{1,30}){0,9}$')));
+      }
       function marcadosOk(d) {
         return !('marcados' in d) || (d.marcados is list && d.marcados.size() <= 10
             && (d.marcados.size() == 0 || d.marcados.join(' ').matches('^[A-Za-z0-9]{1,64}( [A-Za-z0-9]{1,64}){0,9}$')));
@@ -159,29 +181,4 @@
       function maisUmNoMapa(d, r, mapa, x) {
         return d[mapa].diff(r[mapa]).affectedKeys().hasOnly([x]) && d[mapa][x] == r[mapa].get(x, 0) + 1;
       }
-      function statsMais() {
-        let d = request.resource.data;
-        let r = resource.data;
-        let k = d.diff(r).affectedKeys();
-        let vis = caminhoVisita(r.negocioId, r.dia);
-        return (k.hasOnly(['v', 'o', 'h'])
-                && !exists(vis) && getAfter(vis).data.dia == r.dia
-                && d.v == r.v + 1
-                && maisUmNoMapa(d, r, 'o', getAfter(vis).data.origem)
-                && maisUmNoMapa(d, r, 'h', string(getAfter(vis).data.hora)))
-            || (k.hasOnly(['a'])
-                && getAfter(vis).data.acoes.size() == get(vis).data.acoes.size() + 1
-                && maisUmNoMapa(d, r, 'a', getAfter(vis).data.acoes[getAfter(vis).data.acoes.size() - 1]))
-            || (k.hasOnly(['it'])
-                && getAfter(vis).data.itens.size() == get(vis).data.itens.size() + 1
-                && maisUmNoMapa(d, r, 'it', getAfter(vis).data.itens[getAfter(vis).data.itens.size() - 1]));
-      }
-      allow read: if logado() && (resource.data.donoId == request.auth.uid || podeModerar());
-      allow create: if logado() && statsNovo();
-      allow update: if logado() && statsMais();
-      allow delete: if false;
-    }
-
-  }
-}
-// ===== FIM DA PARTE 14 DE 14 =====
+// ===== FIM DA PARTE 14 DE 15 =====

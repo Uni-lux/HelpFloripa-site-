@@ -7,7 +7,7 @@ import http from "node:http";
 
 const ALVO = { host: "127.0.0.1", port: 8085 };
 let c = zero();
-function zero() { return { leituras: 0, contagens: 0, gravacoes: 0, bytes: 0, colecoes: {} }; }
+function zero() { return { leituras: 0, contagens: 0, gravacoes: 0, bytes: 0, colecoes: {}, contagensPor: {} }; }
 
 const RE_DOC = /"(?:documentChange|found)"\s*:\s*\{\s*"document"\s*:\s*\{\s*"name"\s*:\s*"projects\/[^/]+\/databases\/[^/]+\/documents\/([^"]+)"/g;
 const RE_QUERY_DOC = /"document"\s*:\s*\{\s*"name"\s*:\s*"projects\/[^/]+\/databases\/[^/]+\/documents\/([^"]+)"/g;
@@ -31,7 +31,11 @@ http.createServer((req, res) => {
   req.on("end", () => {
     const corpo = Buffer.concat(corpoReq);
     const url = req.url;
-    if (/runAggregationQuery/.test(url)) c.contagens++;
+    if (/runAggregationQuery/.test(url)) {
+      c.contagens++;
+      const k = (corpo.toString().match(/"collectionId"\s*:\s*"([^"]+)"/) || [])[1] || "?";
+      c.contagensPor[k] = (c.contagensPor[k] || 0) + 1;
+    }
     if (/Firestore\/Write\/channel/.test(url) && corpo.length) {
       const t = decodeURIComponent(corpo.toString("utf8").replace(/\+/g, " "));
       c.gravacoes += (t.match(/"(update|delete|transform)"\s*:/g) || []).filter((x) => !x.includes("transform")).length;

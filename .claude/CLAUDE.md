@@ -681,6 +681,26 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   Contadores num doc só NÃO foram divididos: o SDK já repete gravação recusada por disputa; dividir exige reescrever
   `contaCerta`/`resumoJunto` nas regras (perto do limite de 1.000) — só se uma publicação/negócio passar de ~1 gravação/s.
   `t-busca-regiao` já falhava no main (2 itens), igual antes e depois.
+- **Estimativa de gasto (22/10/2026, dada a ele):** base 700 leituras + 30 gravações por pessoa ativa/dia (medido no
+  t-leituras), Firestore US$ 0,03–0,06/100 mil leituras (região simples × multirregião; região do projeto NÃO conferida),
+  Storage 100 GB/mês de download grátis e depois ~US$ 0,12/GB, App Check (reCAPTCHA) 10 mil avaliações grátis/mês, US$ 8 até
+  100 mil, depois US$ 1/mil — recomendar validade do token de 3–7 dias no console. Mapas: uso leve (geocodificar ao salvar/
+  marcar local, azulejos nos cartões do chat); Mapbox ou LocationIQ cabem no grátis até ~5 mil ativos/dia. Totais: 500
+  ativos/dia ≈ US$ 3–15/mês; 5 mil ≈ US$ 95–130; 50 mil ≈ US$ 1.200–2.500. Ele vai ligar Storage + App Check na semana de
+  26/10 e escolher o serviço de mapas.
+- **Enquetes para muita gente (PR depois do #87, MUDA REGRAS — não publicadas; 15 partes, 561 testes):** contagem em 10
+  pedaços `enquete_contas/{alvo}_{fatia}` {n0..n3} para enquete pública E anônima: o voto leva `fatia` (0–9, `sortearFatia`)
+  e o pedaço sobe +1 na MESMA gravação (writeBatch; regra `fatiaSobe(d)` nos dois votos; `enquete_contas/{cid}` só aceita id
+  `^[df]_id_[0-9]$` com o voto da pessoa sendo criado agora, na fatia dele). Documento único antigo (`enquete_contas/{alvo}`)
+  e voto sem fatia são recusados (nada disso estava no ar). `enquetes.js`: `FATIAS`, `lerContasEnquete` (consulta
+  `documentId in` os 10 ids, soma; guardado 90 s em `hf-enq-contas`; o autor sempre lê na hora), `contarVotos` usa os pedaços.
+  `blocoEnquete` (pedido dele, 22/10): as % só aparecem para o AUTOR (sempre, lido na hora) e para os outros quando a
+  enquete ACABA (`precisaContas` = autor || encerrada || votou numa enquete antiga sem fim); quem votou vê a escolha marcada
+  e "Voto registrado · resultado em <data>". Encerrada lê `resultadoFinal` (guardado de vez em `hf-enq-res`).
+  Votar ou passar pela enquete não lê a contagem. "Ver votos": números pela contagem + "Mostrando as N pessoas mais recentes"
+  (lista até 300). `limpar-contas.mjs` desconta o pedaço do voto (público e anônimo). Teste `t-enquete-escala.mjs`
+  (FS_PORTA=8086, medidor conta `contagensPor` coleção). `t-caixa` (para em `.notif`) e `t-enquete2` (notificação do Bruno)
+  falham igual no código de antes.
 - **As 5 etapas estão concluídas.** Próximos passos são as pendências abaixo (só ele pode fazer) e o que ficou
   para depois.
 
