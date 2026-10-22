@@ -42,7 +42,19 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   Google/Facebook na interface). Serviços: categorias Limpeza e Cuidados, Obras e Reformas, Saúde e Beleza, Transporte e
   Logística, Pet, Tosa, Assistência, Tecnologias e **"Outros" sempre por último**. Início: título "Bem-vindo à Help Floripa",
   Ponte Hercílio Luz à noite, carrossel com 3 imagens, cartões das categorias.
-- Área de atuação no documento: **"somente Florianópolis por enquanto"** (São José saiu).
+- Área de atuação no documento: **"somente Florianópolis por enquanto"**; São José só com **cobrança adicional** (regras
+  comerciais a definir). Prioridade: validar o mercado inicial antes de expandir.
+- Rede de profissionais: 27 → 29 colaboradores é referência histórica, NÃO contagem atual. Captação de **R$ 50.000** foi
+  estimativa de planejamento (não recebida); Finep como possível apoio, se atender aos critérios.
+- **Princípios (seção 20 do documento):** 1) preservar a identidade visual; 2) melhorar sem destruir (ver estrutura, links e
+  integrações antes); 3) mobile primeiro, sem esquecer o computador; 4) protótipo ≠ funcionalidade pronta; 5) nada inventado
+  (avaliações, pedidos, profissionais, pagamentos, resultados, funções); 6) intermediação, sem vínculo empregatício;
+  7) Florianópolis como prioridade inicial; 8) mudanças direcionadas, código completo quando ele pedir; 9) segurança desde o
+  início; 10) pensar como negócio (cada função com finalidade clara).
+- **Como trabalhar com ele (seção 22):** parceiro técnico e estratégico; analisar o código antes de propor; correção pontual não
+  reescreve tudo; arquivo completo quando pedido; explicar a causa e dar solução prática; decisão não definida = perguntar, não
+  inventar; separar o que está pronto, o que é possível, o que depende de serviço externo e o que precisa de validação jurídica
+  ou financeira. Construir por etapas, com visão de longo prazo.
 - **Diferenças entre o documento e o site atual (PERGUNTAR antes de mexer; ele pediu nível nacional nesta mesma conversa):**
   1) atuação só Florianópolis × site inteiro preparado para todo o Brasil (PRs #76–#85); 2) comissão 10–15% × site diz
   "sem comissão" (Termos, Ajuda, Sobre, Profissionais, início, cadastro, login, delivery); 3) cores #000/#111/#0087C2 ×
@@ -50,7 +62,8 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   você precisa perto de você, num só lugar."; 5) categorias de serviço do documento × as 7 grupos/~27 áreas atuais
   (`GRUPOS_SERV`, "Outra" já fica por último); 6) menu com subtítulo e seções novas × "sem subtítulo" e 4 opções; 7) "painel de
   parcerias" descartado: confirmar se é o painel do admin (Parcerias) ou a página Sócios e parcerias, que hoje existe.
-  Documento chegou cortado na seção 16 (pode haver mais partes).
+  Documento completo (seções 1–23) recebido em 22/10/2026; versão juntada com a história técnica: documento "Help Floripa —
+  História, evolução e diagnóstico" (https://claude.ai/artifact/QygAianAGKf94wMR7T99oW).
 
 ## Situação (13/10/2026)
 - **Regras do Firestore publicadas por ele em 13/10/2026** (as do `firestore.rules` do main, Etapas 1 a 4).
