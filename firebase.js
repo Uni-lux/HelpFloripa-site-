@@ -9,6 +9,12 @@ import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com
 // Enquanto estiver vazia, o site funciona normalmente, só que sem App Check.
 const RECAPTCHA_V3_SITE_KEY = "";
 
+// Firebase Storage: fotos, vídeos e arquivos guardados fora dos documentos (sem o limite de 1 MB por documento,
+// com vídeos no Diário, no Flash, no chat e no suporte). DESLIGADO até ativar o plano Blaze e o Storage no console.
+// Para ligar: siga _regras/STORAGE-LEIA-ME.md (publicar o storage.rules) e troque para true.
+// Desligado, o site guarda as fotos dentro dos documentos, como hoje. Ligado, tudo o que é novo vai para o Storage.
+const USAR_STORAGE = false;
+
 const statusElement = document.getElementById("firebase-status");
 
 function setStatus(message, type = "info") {
@@ -42,6 +48,16 @@ let db;
 const embutidaNoSite = window.top !== window.self;
 try { db = embutidaNoSite ? getFirestore(app) : initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) }); }
 catch (e) { console.warn("[Firebase] Cache local indisponível, seguindo sem ele:", e?.message); db = getFirestore(app); }
+
+// O Storage fica pronto ANTES de o site começar (as páginas conferem window.firebaseStorage ao iniciar).
+// Desligado, nem o código do Storage é baixado.
+if (USAR_STORAGE) {
+  try {
+    const { getStorage } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js");
+    const storage = getStorage(app);
+    window.firebaseStorage = storage;
+  } catch (e) { console.warn("[Firebase] Storage indisponível, seguindo sem ele:", e?.message || e); }
+}
 
 window.firebaseApp = app;
 window.firebaseAuth = auth;

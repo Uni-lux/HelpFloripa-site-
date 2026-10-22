@@ -478,6 +478,25 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   `--c-saude/--c-comunidade`), Ajuda (FAQ de Saúde, Comunidade e "Quanto custa anunciar?" com os planos), filtro Saúde
   em Reclamações, `acesso.js` (login volta para saude/comunidade), link "Ver" do painel para Saúde e textos que listavam
   só os 4 tipos. #75 (Saúde e Comunidade) mesclado e no ar; as regras ainda não publicadas (14 partes).
+- **Verificação geral, otimização nacional e Storage engatilhado (PR depois do #76, sem regra do Firestore nova):**
+  57 testes `t-*.mjs` rodados (falhas eram testes desatualizados: Registro abre em "Por pessoa", 6 atalhos, Saúde no
+  perfil; `t-negocio-sem-regras` precisa de `saida/antigas.rules` = `git show ebf49e8:firestore.rules`).
+  **Storage pronto para ligar:** `const USAR_STORAGE = false` no `firebase.js` (ligado: carrega o SDK do Storage com
+  top-level await ANTES de `window.firebaseAuth`, as páginas já conferem `window.firebaseStorage`); `storage.rules` (pastas
+  fotosPerfil, fotosCapa, negocios, anuncios, diario, stories, comunidade, mensagens [participantes via firestore.get],
+  suporte, negociacoes [só donos]); nomes únicos `_<ts36>` + `cacheControl` 1 ano (`salvarImagem` no rede.js);
+  `armazenamento.js` (`subirFoto`, usado pela Comunidade); foto do chat reduzida a 1600 px JPEG antes de subir;
+  `limpar-contas.mjs` apaga os arquivos da conta. Passo a passo: `_regras/STORAGE-LEIA-ME.md`. Testes: `testes-storage.mjs`
+  (47, emulador Storage 9199; o `emulador.sh` agora sobe firestore+auth+storage) e `STORAGE=1 node t-storage.mjs` (nav.mjs
+  liga a chave, aponta o emulador e, só no teste, aceita `http://127.0.0.1:9199` nos filtros de foto; regras do Firestore
+  trocadas por uma cópia que aceita o link do emulador e voltam no fim). Lembrete agendado para 26/10 (trig_0125yEkm2exoQLsnzU4hmT8s).
+  **Nacional:** textos sem "de Florianópolis" (marca continua Help Floripa, "Nasceu em Floripa"; Termos citam todo o
+  Brasil — avisar o dono); `fuso.js` (`relogioDe(uf)`, `ufDe`): "Aberto agora" e atendimento no relógio do estado do
+  negócio (AC/AM/RR/RO/MT/MS); vitrines com Estado/Cidade buscam no servidor (`filtroServidor`, índices tipo+uf/cidadeIbge+
+  atualizadoEm em `firestore.indexes.json` e `_regras/INDICES-LEIA-ME.md`; sem índice cai na busca geral) + a busca geral na
+  1ª página (perfis antigos sem uf), sem repetidos. Teste `t-nacional.mjs`.
+  **Leveza:** `planos-base.js` (preços/nível/selo/lerPlano) separado do `planos.js` (gaveta): vitrines e início não baixam a
+  gaveta (~45 KB); cartões das classes com `*-480.webp`; ponte e propagandas do início com `srcset` `*-800.webp`.
 - **As 5 etapas estão concluídas.** Próximos passos são as pendências abaixo (só ele pode fazer) e o que ficou
   para depois.
 

@@ -91,6 +91,7 @@ const D = await navegador({ mobile: true });
 const pa = await entrar(D.ctx, "admin", "admin.html");
 await pa.waitForSelector(".ad-kpis", { timeout: 30000 }); await pa.waitForTimeout(1500);
 await pa.evaluate(() => document.querySelector('.ad-nav[data-secao="registro"]').click()); await pa.waitForTimeout(1000);
+await pa.locator(".ad-chip", { hasText: "Todas as ações" }).click(); await pa.waitForTimeout(600); // abre em "Por pessoa (dia)"
 const reg = await pa.locator(".ad-registro").textContent();
 ok(reg.includes("Chamado #CHREG · Não consigo editar o cardápio") && !reg.includes("suporte:chReg") && reg.includes("Lista de usuários"), "registro: \"Chamado #CHREG · assunto\" no lugar de suporte:ID");
 const larg = await pa.locator(".ad-registro tr").nth(1).evaluate((e) => e.getBoundingClientRect().width);

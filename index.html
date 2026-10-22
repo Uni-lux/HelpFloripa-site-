@@ -7,7 +7,7 @@
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <script>if (window.top !== window.self) { document.documentElement.style.display = "none"; try { window.top.location.replace(window.self.location.href); } catch (e) {} }</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
-  <meta name="description" content="Help Floripa: profissionais, delivery, lojas e imóveis de Florianópolis em um só lugar, com avaliações de clientes reais e conversa direta." />
+  <meta name="description" content="Help Floripa: profissionais, delivery, lojas, imóveis e saúde da sua cidade em um só lugar, em todo o Brasil, com avaliações de clientes reais e conversa direta." />
   <meta name="theme-color" content="#0b1014" />
   <title>Help Floripa | Tudo o que você precisa em Floripa</title>
   <link rel="icon" href="favicon.ico" />
@@ -34,7 +34,7 @@
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
   <script type="module" src="categoria.js?v=36"></script>
-  <script type="module" src="inicio.js?v=45"></script>
+  <script type="module" src="inicio.js?v=47"></script>
 </head>
 <body data-classe="inicio">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -75,12 +75,12 @@
   <main class="pagina">
     <section class="hero-home" aria-labelledby="tituloPagina">
       <figure class="hh-foto">
-        <img src="ponte-help.webp" alt="Ponte Hercílio Luz iluminada à noite, em Florianópolis" width="1536" height="1024" fetchpriority="high" />
+        <img src="ponte-help.webp" srcset="ponte-help-800.webp 800w, ponte-help.webp 1536w" sizes="(max-width: 800px) 100vw, 1100px" alt="Ponte Hercílio Luz iluminada à noite, em Florianópolis" width="1536" height="1024" fetchpriority="high" />
         <figcaption><svg class="i xs" aria-hidden="true"><use href="#i-pin"/></svg>Ponte Hercílio Luz · Florianópolis</figcaption>
       </figure>
       <div class="hh-texto">
         <p class="ola"><svg class="i s" id="iconeHora" aria-hidden="true"><use href="#i-sol"/></svg><span id="saudacao">Olá</span></p>
-        <h1 id="tituloPagina">Tudo o que você precisa em Florianópolis, <span>num só lugar.</span></h1>
+        <h1 id="tituloPagina">Tudo o que você precisa perto de você, <span>num só lugar.</span></h1>
         <nav class="atalhos" aria-label="Atalhos">
           <a href="negocios.html" class="anunciar"><svg class="i s" aria-hidden="true"><use href="#i-mais"/></svg>Anunciar</a>
           <a href="mensagens.html" class="mensagens"><svg class="i s" aria-hidden="true"><use href="#i-chat"/></svg>Mensagens<b class="ponto-badge" id="atalhoBadgeMensagens" hidden></b></a>
@@ -107,28 +107,28 @@
     </section>
 
     <nav class="classes-grade" aria-label="Classes do Help Floripa">
-      <a class="classe-card servicos" href="servicos.html" style="--img: url('servicos.webp')">
+      <a class="classe-card servicos" href="servicos.html" style="--img: url('servicos-480.webp')">
         <span class="conta" id="conta-servicos">&nbsp;</span>
         <span class="ic"><svg class="i" aria-hidden="true"><use href="#i-maleta"/></svg></span>
         <span class="cc-tx"><strong>Freelances</strong><small>Profissionais avaliados.</small></span>
         <span class="cc-seta" aria-hidden="true"><svg class="i xs"><use href="#i-seta"/></svg></span>
       </a>
-      <a class="classe-card delivery" href="delivery.html" style="--img: url('lanchonetes.webp')">
+      <a class="classe-card delivery" href="delivery.html" style="--img: url('lanchonetes-480.webp')">
         <span class="conta" id="conta-delivery">&nbsp;</span>
         <span class="ic"><svg class="i" aria-hidden="true"><use href="#i-delivery"/></svg></span>
         <span class="cc-tx"><strong>Delivery</strong><small>Comida boa, perto de você.</small></span>
         <span class="cc-seta" aria-hidden="true"><svg class="i xs"><use href="#i-seta"/></svg></span>
       </a>
-      <a class="classe-card lojinha" href="shopping.html" style="--img: url('shopping.webp')">
+      <a class="classe-card lojinha" href="shopping.html" style="--img: url('shopping-480.webp')">
         <span class="conta" id="conta-lojinha">&nbsp;</span>
         <span class="ic"><svg class="i" aria-hidden="true"><use href="#i-lojinha"/></svg></span>
         <span class="cc-tx"><strong>Shopping</strong><small>Lojas sem sair de casa.</small></span>
         <span class="cc-seta" aria-hidden="true"><svg class="i xs"><use href="#i-seta"/></svg></span>
       </a>
-      <a class="classe-card imoveis" href="imoveis.html" style="--img: url('imoveis.webp')">
+      <a class="classe-card imoveis" href="imoveis.html" style="--img: url('imoveis-480.webp')">
         <span class="conta" id="conta-imoveis">&nbsp;</span>
         <span class="ic"><svg class="i" aria-hidden="true"><use href="#i-imoveis"/></svg></span>
-        <span class="cc-tx"><strong>Imóveis</strong><small>Seu próximo lar em Floripa.</small></span>
+        <span class="cc-tx"><strong>Imóveis</strong><small>Seu próximo lar.</small></span>
         <span class="cc-seta" aria-hidden="true"><svg class="i xs"><use href="#i-seta"/></svg></span>
       </a>
       <a class="classe-card saude" href="saude.html" style="--img: url('saude.svg')">
@@ -148,15 +148,15 @@
     <section class="banner" aria-label="Anúncios do Help Floripa" aria-roledescription="carrossel">
       <div class="banner-trilho" id="bannerTrilho">
         <a href="negocios.html" class="slide s1" aria-label="Crie seu perfil de serviços ou delivery grátis">
-          <img src="propaganda1.webp" alt="" width="1537" height="1023" loading="lazy" />
-          <span class="slide-txt"><strong>Os melhores <em>profissionais</em> e <em>lanchonetes</em> de Floripa</strong><small>Mostre seu trabalho ou seu cardápio para a cidade inteira.</small><b class="slide-cta">Criar meu perfil grátis<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></b></span>
+          <img src="propaganda1.webp" srcset="propaganda1-800.webp 800w, propaganda1.webp 1537w" sizes="(max-width: 800px) 100vw, 1100px" alt="" width="1537" height="1023" loading="lazy" />
+          <span class="slide-txt"><strong>Os melhores <em>profissionais</em> e <em>lanchonetes</em> da sua cidade</strong><small>Mostre seu trabalho ou seu cardápio para a cidade inteira.</small><b class="slide-cta">Criar meu perfil grátis<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></b></span>
         </a>
         <a href="negocios.html" class="slide s2" aria-label="Abra sua lojinha ou anuncie seu imóvel com 30 dias grátis">
-          <img src="propaganda2.webp" alt="" width="1537" height="1023" loading="lazy" />
+          <img src="propaganda2.webp" srcset="propaganda2-800.webp 800w, propaganda2.webp 1537w" sizes="(max-width: 800px) 100vw, 1100px" alt="" width="1537" height="1023" loading="lazy" />
           <span class="slide-txt"><strong>Produtos de qualidade e imóveis para <em>vender</em> ou <em>alugar</em></strong><small>Abra sua lojinha ou anuncie seu imóvel com 30 dias grátis.</small><b class="slide-cta">30 dias grátis<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></b></span>
         </a>
         <a href="negocios.html" class="slide s3" aria-label="Cadastre-se agora e crie seu perfil de negócio">
-          <img src="propaganda3.webp" alt="Cadastre-se agora! Lanchonetes, produtos, profissionais e imóveis da sua região." width="1536" height="1024" loading="lazy" />
+          <img src="propaganda3.webp" srcset="propaganda3-800.webp 800w, propaganda3.webp 1536w" sizes="(max-width: 800px) 100vw, 1100px" alt="Cadastre-se agora! Lanchonetes, produtos, profissionais e imóveis da sua região." width="1536" height="1024" loading="lazy" />
         </a>
       </div>
       <button type="button" class="seta ant" id="bannerAnt" aria-label="Anúncio anterior"><svg class="i s" aria-hidden="true"><use href="#i-seta"/></svg></button>
@@ -252,7 +252,7 @@
         <div><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-escudo"/></svg></span><span><strong>Contas confirmadas</strong><small>E-mail verificado para anunciar e conversar</small></span></div>
         <div><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-estrela"/></svg></span><span><strong>Notas de verdade</strong><small>Só avalia quem foi atendido</small></span></div>
         <div><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-chat"/></svg></span><span><strong>Conversa direta</strong><small>Sem intermediário e sem comissão</small></span></div>
-        <div><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-grupo"/></svg></span><span><strong>Feito em Floripa</strong><small>Negócios e pessoas da sua cidade</small></span></div>
+        <div><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-grupo"/></svg></span><span><strong>Nasceu em Floripa</strong><small>Negócios e pessoas da sua cidade, em todo o Brasil</small></span></div>
       </div>
     </section>
 
@@ -271,7 +271,7 @@
   <footer class="rodape-home">
     <div>
       <div class="marca-rodape">HELP <span>FLORIPA</span></div>
-      <p>Tudo o que você precisa em Florianópolis, em um só lugar: freelances, delivery, compras e imóveis.</p>
+      <p>Tudo o que você precisa perto de você, em um só lugar: freelances, delivery, compras, imóveis, saúde e Comunidade, em todo o Brasil.</p>
     </div>
     <div><h4>Explorar</h4><nav aria-label="Explorar"><a href="servicos.html">Freelances</a><a href="delivery.html">Delivery</a><a href="shopping.html">Shopping</a><a href="imoveis.html">Imóveis</a><a href="saude.html">Saúde</a><a href="comunidade.html">Comunidade</a></nav></div>
     <div><h4>Para você</h4><nav aria-label="Para você"><a href="usuarios.html">Meu perfil</a><a href="mensagens.html">Mensagens</a><a href="social.html">Social</a><a href="negocios.html">Anunciar</a><a href="profissionais.html">Para profissionais</a><a href="clientes.html">Para clientes</a><a href="reclamacoes.html">Reclamações</a></nav></div>

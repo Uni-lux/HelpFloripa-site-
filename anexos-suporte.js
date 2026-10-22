@@ -41,7 +41,7 @@ export async function prepararAnexo(arquivo, pasta) {
   const st = await storage();
   const subir = async (blob, ext) => {
     const r = st.ref(window.firebaseStorage, `${pasta}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`);
-    await st.uploadBytes(r, blob, { contentType: blob.type || undefined });
+    await st.uploadBytes(r, blob, { contentType: blob.type || undefined, cacheControl: "public, max-age=31536000, immutable" });
     return st.getDownloadURL(r);
   };
   if (arquivo.type.startsWith("image/")) {

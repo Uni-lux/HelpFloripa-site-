@@ -1281,6 +1281,7 @@
   <script type="module">
     import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura, mostrarAvisoEmail } from "./seguranca.js?v=1";
     import { confirmarHF } from "./confirmar.js?v=4";
+    import { relogioDe, ufDe } from "./fuso.js?v=1";
     import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO, lerResumos, media, notaTexto } from "./avaliacoes.js?v=14";
     import { buscarPessoas } from "./pessoas.js?v=3";
     import { docComValidade } from "./leituras.js?v=1";
@@ -3452,7 +3453,7 @@
       };
       const ausente = ausenteAgora(a), sem = semanaDe(a);
       if (ausente) add("ausente", ms(a.volta) ? `volta ${dataVoltaTxt(a.volta)}` : "", ms(a.volta) ? "Ausente ·" : "Ausente no momento");
-      else if (sem) { const st = situacaoHorario(sem, a.almoco); add(st.cls, resumoSemana(sem, a.almoco), st.txt + " ·"); }
+      else if (sem) { const st = situacaoHorario(sem, a.almoco, relogioDe(ufDe(perfilOutroAtual))); add(st.cls, resumoSemana(sem, a.almoco), st.txt + " ·"); }
       if (deNegocio && a.resposta?.n >= 3) add("", `Costuma responder em ${tempoTxt(a.resposta.media)}`);
       if (ausente && a.mensagem) add("aus", a.mensagem);
       // Ausente com horário: o horário continua aparecendo (quem escreve sabe quando você atende).
@@ -3500,7 +3501,7 @@
       const { corpo, fechar } = abrirGaveta("Atendimento");
       const ausente = ausenteAgora(a), sem = semanaDe(a);
       const st = ausente ? { cls: "ausente", txt: "Ausente no momento", sub: ms(a.volta) ? `Volta ${dataVoltaTxt(a.volta)}` : "Sem data de volta" }
-        : sem ? { ...situacaoHorario(sem, a.almoco) } : { cls: "fechado", txt: "Sem horário definido" };
+        : sem ? { ...situacaoHorario(sem, a.almoco, relogioDe(ufDe(perfilOutroAtual))) } : { cls: "fechado", txt: "Sem horário definido" };
       const box = elm("div", "pv-status " + st.cls);
       const pt = elm("span", "pt"); pt.appendChild(usar(st.cls === "aberto" ? "check" : st.cls === "fechado" ? "relogio" : "relogio", "i"));
       const tx = elm("div", "tx"); tx.append(elm("b", null, st.txt.split(" · ")[0]));
@@ -3537,7 +3538,7 @@
     let vitrineMod = null;
     function carregarVitrine() {
       if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=31"; l.dataset.vitrine = ""; document.head.appendChild(l); }
-      return (vitrineMod ||= import("./vitrine.js?v=49"));
+      return (vitrineMod ||= import("./vitrine.js?v=51"));
     }
     function usarCartaoNaConversa(uid, cartao) {
       document.querySelectorAll(".vt-modal").forEach((m) => m.remove());
@@ -4086,15 +4087,17 @@
       const { ref, uploadBytes, getDownloadURL } = storageFns;
       const caminho = `mensagens/${ativa.id}/${eu.uid}/${Date.now()}.${extensao}`;
       const destino = ref(window.firebaseStorage, caminho);
-      await uploadBytes(destino, arquivo, { contentType: arquivo.type || "application/octet-stream" });
+      await uploadBytes(destino, arquivo, { contentType: arquivo.type || "application/octet-stream", cacheControl: "public, max-age=31536000, immutable" });
       return getDownloadURL(destino);
     }
 
     async function prepararImagem(arquivo) {
       if (storageFns) {
         try {
-          const ext = (arquivo.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "jpg";
-          return await enviarParaStorage(arquivo, ext);
+          // Reduzida para até 1600 px em JPEG antes de subir: a foto de 10 MB do celular vira ~300 KB
+          // (abre rápido no 4G e gasta menos Storage). HEIC e outros formatos viram JPEG também.
+          const reduzida = dataUrlParaBlob(await comprimirImagem(arquivo, 1600, 0.82));
+          return await enviarParaStorage(reduzida, "jpg");
         } catch (e) {
           console.warn("Storage indisponível, enviando foto comprimida:", e);
         }
@@ -4956,8 +4959,8 @@
         let url = dataUrl;
         if (storageFns && window.firebaseStorage) {
           try {
-            const r = storageFns.ref(window.firebaseStorage, `fotosPerfil/${eu.uid}.jpg`);
-            await storageFns.uploadBytes(r, dataUrlParaBlob(dataUrl), { contentType: "image/jpeg" });
+            const r = storageFns.ref(window.firebaseStorage, `fotosPerfil/${eu.uid}_${Date.now().toString(36)}.jpg`);
+            await storageFns.uploadBytes(r, dataUrlParaBlob(dataUrl), { contentType: "image/jpeg", cacheControl: "public, max-age=31536000, immutable" });
             url = await storageFns.getDownloadURL(r);
           } catch (e) { console.warn("Storage indisponível, salvando no documento:", e); }
         }

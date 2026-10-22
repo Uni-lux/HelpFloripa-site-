@@ -2,3 +2,4 @@ node_modules/
 saida/
 *.log
 regras-emulador.rules
+regras-storage.rules

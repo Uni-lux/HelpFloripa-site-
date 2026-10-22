@@ -13,7 +13,7 @@ import {
   meusSeguindo, escondido, silenciado, alternarSilenciar, obterPerfil, abrirOpcoes, abrirLista, linhaPessoa,
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura
-} from "./rede.js?v=50";
+} from "./rede.js?v=51";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { seletorDuracao, fimEscolhido, linhaChave, MAX_FLASH_MIN } from "./enquetes.js?v=3";
 
@@ -284,7 +284,7 @@ function textoFigurinha(fig, local = "") {
   const d = new Date();
   if (fig === "hora") return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   if (fig === "data") return `${DIAS_SEM[d.getDay()]} · ${String(d.getDate()).padStart(2, "0")} ${MESES_C[d.getMonth()]}`;
-  return "📍 " + (local || "Florianópolis");
+  return "📍 " + (local || "Minha cidade");
 }
 
 function abrirCriador({ repost = null, post = null } = {}) {
@@ -1127,7 +1127,7 @@ function abrirCriador({ repost = null, post = null } = {}) {
         toast("Enviando o vídeo...");
         const ext = (video.arq.name.split(".").pop() || "mp4").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "mp4";
         const r = storageFns.ref(window.firebaseStorage, `stories/${eu.uid}/${Date.now()}.${ext}`);
-        await storageFns.uploadBytes(r, video.arq, { contentType: video.arq.type });
+        await storageFns.uploadBytes(r, video.arq, { contentType: video.arq.type, cacheControl: "public, max-age=31536000, immutable" });
         const texto = legenda.value.trim().slice(0, 150);
         await gravar({ tipo: "video", midia: await storageFns.getDownloadURL(r), duracao: Math.min(60, Math.round(video.dur)), ...(texto ? { texto } : {}), ...camposDestino() });
       } else {

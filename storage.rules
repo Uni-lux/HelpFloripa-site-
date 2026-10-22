@@ -1,0 +1,98 @@
+rules_version = '2';
+
+// =====================================================
+// Regras do Firebase Storage do Help Floripa (fotos, vídeos, áudios e arquivos).
+// Publicar no console: Storage → Regras (passo a passo em _regras/STORAGE-LEIA-ME.md).
+// Ninguém grava na pasta de outra pessoa; cada pasta só aceita o tipo e o tamanho que o site envia.
+// Os links salvos nos documentos (getDownloadURL) levam um código próprio e abrem para quem tem o link,
+// como hoje as fotos dentro dos documentos; estas regras valem para enviar, trocar e apagar.
+// As consultas ao Firestore (participante da conversa, equipe) usam firestore.get/exists:
+// o console pede para liberar o acesso do Storage ao Firestore na primeira publicação.
+// =====================================================
+service firebase.storage {
+  match /b/{bucket}/o {
+    function logado() { return request.auth != null; }
+    function eu() { return request.auth.uid; }
+    function doc(caminho) { return /databases/(default)/documents/$(caminho); }
+    function equipe() { return logado() && firestore.exists(doc('admins/' + eu())); }
+    function donoDoSite() { return equipe() && firestore.get(doc('admins/' + eu())).data.get('papel', 'dono') == 'dono'; }
+    // Tamanho e tipo do que chega.
+    function foto(mb) { return request.resource.size < mb * 1024 * 1024 && request.resource.contentType.matches('image/(jpeg|png|webp)'); }
+    function video(mb) { return request.resource.size < mb * 1024 * 1024 && request.resource.contentType.matches('video/.*'); }
+    function audio(mb) { return request.resource.size < mb * 1024 * 1024 && request.resource.contentType.matches('audio/.*'); }
+    function pdf(mb) { return request.resource.size < mb * 1024 * 1024 && request.resource.contentType == 'application/pdf'; }
+    // Arquivo que começa com o uid de quem envia ("UID.jpg", "UID_lz3k9.jpg", "UID_servicos_capa_lz3k9.jpg").
+    function meuArquivo(arq) { return logado() && arq.matches('^' + eu() + '([_.].*)?$'); }
+
+    // ---------- públicos (perfil, negócios, anúncios, Diário, Flash, Comunidade) ----------
+    match /fotosPerfil/{arq} {
+      allow read: if true;
+      allow create, update: if meuArquivo(arq) && foto(5);
+      allow delete: if meuArquivo(arq) || equipe();
+    }
+    match /fotosCapa/{arq} {
+      allow read: if true;
+      allow create, update: if meuArquivo(arq) && foto(5);
+      allow delete: if meuArquivo(arq) || equipe();
+    }
+    // negocios/UID_tipo.jpg, UID_tipo_capa_*.jpg, UID_tipo_f0_*.jpg (galeria), UID_tipo_i0_*.jpg (itens)
+    match /negocios/{arq} {
+      allow read: if true;
+      allow create, update: if meuArquivo(arq) && foto(5);
+      allow delete: if meuArquivo(arq) || equipe();
+    }
+    // anuncios/UID_ANUNCIO_f0_*.jpg (imóveis)
+    match /anuncios/{arq} {
+      allow read: if true;
+      allow create, update: if meuArquivo(arq) && foto(5);
+      allow delete: if meuArquivo(arq) || equipe();
+    }
+    // Diário: fotos (até 4) e vídeo curto (até 50 MB).
+    match /diario/{uid}/{arq} {
+      allow read: if true;
+      allow create, update: if logado() && uid == eu() && (foto(8) || video(50));
+      allow delete: if (logado() && uid == eu()) || equipe();
+    }
+    // Flash (24 h): foto desenhada pelo site ou vídeo (até 40 MB no site).
+    match /stories/{uid}/{arq} {
+      allow read: if true;
+      allow create, update: if logado() && uid == eu() && (foto(8) || video(50));
+      allow delete: if (logado() && uid == eu()) || equipe();
+    }
+    // Comunidade: fotos dos anúncios (doação, troca, quarto, achados).
+    match /comunidade/{uid}/{arq} {
+      allow read: if true;
+      allow create, update: if logado() && uid == eu() && foto(5);
+      allow delete: if (logado() && uid == eu()) || equipe();
+    }
+
+    // ---------- privados ----------
+    // Conversas: só quem participa envia e lê (foto, vídeo e áudio do chat).
+    match /mensagens/{conversa}/{uid}/{arq} {
+      function participa() {
+        return logado() && eu() in firestore.get(doc('conversas/' + conversa)).data.participantes;
+      }
+      allow read: if participa() || equipe();
+      allow create: if uid == eu() && participa() && (foto(10) || video(50) || audio(15));
+      allow delete: if (logado() && uid == eu()) || equipe();
+    }
+    // Suporte: a pessoa na pasta dela (suporte/UID), a equipe na pasta equipe_UID.
+    match /suporte/{pasta}/{arq} {
+      allow read: if (logado() && pasta == eu()) || equipe() || (logado() && pasta.matches('^equipe_.*'));
+      allow create: if ((logado() && pasta == eu()) || (equipe() && pasta == 'equipe_' + eu()))
+                    && (foto(10) || video(50) || pdf(20));
+      allow delete: if equipe();
+    }
+    // Comprovantes da condição especial dos planos: só a pessoa e os donos do site.
+    match /negociacoes/{uid}/{arq} {
+      allow read: if (logado() && uid == eu()) || donoDoSite();
+      allow create: if logado() && uid == eu() && (foto(10) || pdf(20));
+      allow delete: if (logado() && uid == eu()) || donoDoSite();
+    }
+
+    // Qualquer outra pasta: fechada.
+    match /{tudo=**} {
+      allow read, write: if false;
+    }
+  }
+}

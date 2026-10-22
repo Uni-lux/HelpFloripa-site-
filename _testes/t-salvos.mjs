@@ -77,6 +77,6 @@ await pa.screenshot({ path: "saida/s-salvos-colecao.png" });
 const pf = await entrar(A.ctx, "ana", "feed.html");
 await pf.locator("[data-aba=explorar]").first().tap(); await pf.waitForTimeout(1200);
 const sobre = await pf.locator(".atalho-classe").evaluateAll((l) => l.map((a) => { const i = a.querySelector(".ic").getBoundingClientRect(), s = a.querySelector("strong").getBoundingClientRect(); return i.bottom <= s.top + 1; }));
-ok(sobre.length === 4 && sobre.every(Boolean), "atalhos do Explorar: ícone acima do nome → " + sobre.join(","));
+ok(sobre.length === 6 && sobre.every(Boolean), "atalhos do Explorar: ícone acima do nome → " + sobre.join(","));
 await pf.locator(".atalhos-classes").first().screenshot({ path: "saida/s-atalhos.png" });
 await A.browser.close();
