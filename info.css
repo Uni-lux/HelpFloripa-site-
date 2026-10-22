@@ -312,11 +312,25 @@ button.mp-tile:hover { border-color: var(--classe); }
    Páginas institucionais em nível nacional (estilo das grandes redes)
    ===================================================== */
 /* barra de navegação entre as páginas institucionais */
-.nav-inst { position: sticky; top: calc(var(--topo) + env(safe-area-inset-top)); z-index: 20; margin: -12px -16px 14px; padding: 9px 16px; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; background: color-mix(in srgb, var(--bg) 88%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+/* Abas no estilo das centrais de ajuda das redes: só o texto, sublinhado na página atual,
+   esmaecido nas bordas quando há mais abas para rolar (classes .tem-esq/.tem-dir no categoria.js). */
+.nav-inst { position: sticky; top: calc(var(--topo) + env(safe-area-inset-top)); z-index: 20; margin: -12px -16px 16px; padding: 0 10px; display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; scroll-behavior: smooth; background: var(--bg); border-bottom: 1px solid var(--line); }
 .nav-inst::-webkit-scrollbar { display: none; }
-.nav-inst a { flex-shrink: 0; padding: 8px 13px; border-radius: 999px; font-size: 13px; font-weight: 750; color: var(--muted); text-decoration: none; border: 1px solid var(--line); background: var(--panel); white-space: nowrap; }
+.nav-inst-trilho.tem-dir { -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent); mask-image: linear-gradient(90deg, #000 85%, transparent); }
+.nav-inst-trilho.tem-esq { -webkit-mask-image: linear-gradient(90deg, transparent, #000 15%); mask-image: linear-gradient(90deg, transparent, #000 15%); }
+.nav-inst-trilho.tem-esq.tem-dir { -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }
+/* com o JS (categoria.js), as abas rolam dentro de .nav-inst-trilho e a barra fica com o fundo sólido */
+.nav-inst.pronto { display: block; overflow: visible; padding: 0; }
+.nav-inst-trilho { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; scroll-behavior: smooth; padding: 0 10px; }
+.nav-inst-trilho::-webkit-scrollbar { display: none; }
+.nav-inst a { position: relative; flex-shrink: 0; padding: 13px 10px 12px; font-size: 14px; font-weight: 700; color: var(--muted); text-decoration: none; white-space: nowrap; transition: color .15s; }
+.nav-inst a::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 3px; border-radius: 3px 3px 0 0; background: transparent; transition: background .15s; }
 .nav-inst a:hover { color: var(--text); }
-.nav-inst a[aria-current="page"] { background: var(--text); color: var(--panel); border-color: var(--text); }
+.nav-inst a:focus-visible { outline: 2px solid var(--classe); outline-offset: -4px; border-radius: 8px; }
+.nav-inst a[aria-current="page"] { color: var(--text); }
+.nav-inst a[aria-current="page"]::after { background: var(--classe); }
+/* centralizado quando cabe, sem cortar o começo quando não cabe */
+.nav-inst a:first-child { margin-left: auto; } .nav-inst a:last-child { margin-right: auto; }
 html.embutido .nav-inst { display: none; }
 
 /* faixa de números */

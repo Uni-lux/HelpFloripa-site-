@@ -21,7 +21,7 @@ const MOTIVO_CURTO = { atraso: "atraso", qualidade: "qualidade", cobranca: "cobr
 function montarQueixas(recebidasQ, minhasQ, perfis) {
   const itens = [];
   recebidasQ.forEach((q) => {
-    itens.push({ tipo: "reclamacao", id: "qx_" + q.id, queixa: true, uid: q.autorId, nome: q.autorNome || "Cliente", foto: "", motivo: q.motivo, detalhe: q.texto || "", quando: ms(q.abertaEm) });
+    itens.push({ tipo: "reclamacao", id: "qx_" + q.id, queixa: true, uid: q.autorId, nome: q.autorNome || "Cliente", foto: "", motivo: q.motivo, detalhe: q.texto || "", respondida: !!q.resposta, quando: ms(q.abertaEm) });
     if (q.status === "resolvida") itens.push({ tipo: "reclamacao-ok", id: "qok_" + q.id, queixa: true, uid: q.autorId, nome: q.autorNome || "Cliente", foto: "", quando: ms(q.resolvidaEm) });
   });
   minhasQ.filter((q) => q.resposta).forEach((q) => {
@@ -34,8 +34,9 @@ function montarQueixas(recebidasQ, minhasQ, perfis) {
 function montar(recebidas, minhas, respostas, perfis) {
   const itens = [];
   recebidas.forEach((a) => {
-    itens.push({ tipo: "reclamacao", id: "rec_" + a.id, avalId: a.id, uid: a.autorId, nome: a.autorNome || "Cliente", foto: a.autorFoto || "", nota: Number(a.nota), detalhe: a.comentario || "", quando: ms(a.criadoEm) });
     const r = respostas.get(a.id);
+    // respondida: o negócio (eu) já respondeu publicamente — a notificação deixa de pedir resposta.
+    itens.push({ tipo: "reclamacao", id: "rec_" + a.id, avalId: a.id, uid: a.autorId, nome: a.autorNome || "Cliente", foto: a.autorFoto || "", nota: Number(a.nota), detalhe: a.comentario || "", respondida: !!r?.texto, quando: ms(a.criadoEm) });
     if (r?.resolvido) itens.push({ tipo: "reclamacao-ok", id: "ok_" + a.id, avalId: a.id, uid: a.autorId, nome: a.autorNome || "Cliente", foto: a.autorFoto || "", quando: ms(r.resolvidoEm) });
   });
   minhas.forEach((a) => {

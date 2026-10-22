@@ -161,7 +161,11 @@ const CSS = `
 .nt2-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px; color: var(--muted, #8c9ca7); }
 .nt2-tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); }
 .nt2-nl { padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; color: #1fa855; background: color-mix(in srgb, #1fa855 14%, transparent); }
-.nt2-prev { margin: 0; padding: 7px 10px; border-radius: 10px; border-left: 3px solid var(--c, var(--line, #213038)); background: var(--panel-2, #151f25); font-size: 13px; color: var(--text, #eaf0f3); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.nt2-prev { margin: 0; padding: 7px 10px; border-radius: 10px; border-left: 3px solid var(--c, var(--line, #213038)); background: var(--panel-2, #151f25); font-size: 13px; line-height: 1.4; color: var(--text, #eaf0f3); overflow-wrap: anywhere; }
+/* o corte em 3 linhas fica no texto de dentro: com o espaçamento na caixa, a 3ª linha não aparece pela metade */
+.nt2-prev span { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.nt2-ok { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; color: #2fbf71; background: color-mix(in srgb, #2fbf71 14%, transparent); }
+.nt2-ok svg { width: 11px; height: 11px; }
 .nt2-acoes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
 .nt2-bt { border: 1px solid var(--line, #213038); border-radius: 10px; padding: 7px 12px; font: inherit; font-size: 12.5px; font-weight: 800; cursor: pointer; background: var(--panel-2, #151f25); color: var(--text, #eaf0f3); }
 .nt2-bt.pri { background: var(--nt-ac); border-color: var(--nt-ac); color: #fff; }
@@ -310,11 +314,12 @@ export function criarLista({ raiz, uid, ganchos = {} }) {
       case "enquete": bt("Ver resultado", true, abrir); break;
       case "caixa": bt("Ver respostas", true, abrir); break;
       case "avaliacao": bt(i.cliente ? "Ver perfil" : "Ver avaliação", false, abrir); break;
-      case "reclamacao": bt("Responder publicamente", true, abrir); break;
+      case "reclamacao": if (i.respondida) bt("Ver sua resposta", false, abrir); else bt("Responder publicamente", true, abrir); break;
       case "reclamacao-resp": case "reclamacao-ok": bt("Ver reclamação", false, abrir); break;
       case "plano": bt(i.venceu ? "Renovar plano" : "Renovar agora", true, abrir); break;
-      case "suporte": bt(i.abertoPelaEquipe && !i.respondeu ? "Abrir conversa" : "Ver resposta", true, abrir); break;
-      case "aviso": bt("Ler aviso", true, abrir); break;
+      // Botão azul só quando ainda falta ler; depois de lido fica discreto.
+      case "suporte": bt(i.abertoPelaEquipe && !i.respondeu ? "Abrir conversa" : "Ver resposta", !!i.naoLida, abrir); break;
+      case "aviso": bt(i.naoLida ? "Ler aviso" : "Ver aviso", !!i.naoLida, abrir); break;
     }
     return box.childElementCount ? box : null;
   }
@@ -336,8 +341,9 @@ export function criarLista({ raiz, uid, ganchos = {} }) {
     tag.querySelector("svg").style.cssText = "width:11px;height:11px";
     meta.append(tag, el("span", null, tempo(i.quando)));
     if (i.naoLida) meta.appendChild(el("span", "nt2-nl", i.oficial ? "nova" : "não lida"));
+    if (i.tipo === "reclamacao" && i.respondida) { const ok = el("span", "nt2-ok"); ok.append(svg("check"), document.createTextNode("Respondida")); meta.appendChild(ok); }
     tx.append(frase, meta);
-    if (i.detalhe) { const pv = el("p", "nt2-prev", i.detalhe); pv.style.setProperty("--c", tp.cor); tx.appendChild(pv); }
+    if (i.detalhe) { const pv = el("p", "nt2-prev"); pv.appendChild(el("span", null, i.detalhe)); pv.title = i.detalhe; pv.style.setProperty("--c", tp.cor); tx.appendChild(pv); }
     const ex = ganchos.extra?.(i); if (ex) tx.appendChild(ex);
     const ac = acoes(i, d); if (ac) tx.appendChild(ac);
     const lado = el("div", "nt2-lado");

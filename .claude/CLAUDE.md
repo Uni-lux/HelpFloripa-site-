@@ -608,6 +608,12 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   ({categoria:false}; suporte sempre ligado), evento `hf:prefs-notif`; categoria.js e rede.js (`contarNovos`) não contam o que
   foi desligado. painel-avisos.js só carrega os dados e cuida da gaveta. Testes `t-sino.mjs` (24 verificações), `t-etapa4.mjs`
   atualizado (`.nt2-item`).
+- **Ajustes do sino e das abas (PR depois do #84, sem regra nova):** reclamação já respondida (`respondida` em
+  avisos-reclamacoes.js: resposta em `reclamacoes/{id}.texto` ou `queixas.resposta`) mostra "Respondida" e "Ver sua resposta"
+  (sem o botão azul); suporte/aviso só ficam com botão azul enquanto não lidos ("Ler aviso" → "Ver aviso"); prévia corta em
+  3 linhas no `span` de dentro (antes a 3ª linha aparecia pela metade). Abas `.nav-inst` no estilo das centrais de ajuda: só
+  texto, sublinhado na atual, nomes curtos (Ajuda, Clientes, Negócios), categoria.js põe as abas num `.nav-inst-trilho` (barra
+  sólida, esmaece só as abas nas bordas: `.tem-esq/.tem-dir`) e centraliza a aba atual; no computador ficam centralizadas.
 - **As 5 etapas estão concluídas.** Próximos passos são as pendências abaixo (só ele pode fazer) e o que ficou
   para depois.
 

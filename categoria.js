@@ -7,11 +7,11 @@
 // =====================================================
 import { fotoSegura } from "./seguranca.js?v=1";
 import { definirPerfilMenu, definirBadgeMensagens } from "./menu.js?v=14";
-import { buscarReclamacoes } from "./avisos-reclamacoes.js?v=16";
+import { buscarReclamacoes } from "./avisos-reclamacoes.js?v=17";
 import { avisoPlano } from "./planos-base.js?v=3";
 import { ouvirItensEquipe } from "./avisos-equipe.js?v=1";
 import { enquetesEncerradas } from "./enquetes.js?v=3";
-import "./painel-avisos.js?v=20"; // o sino abre o painel de notificações na própria página
+import "./painel-avisos.js?v=21"; // o sino abre o painel de notificações na própria página
 import "./chat-gaveta.js?v=1";
 import { docComValidade } from "./leituras.js?v=1"; // "Mensagens" abre as conversas por cima da página, sem sair dela
 
@@ -157,3 +157,23 @@ async function iniciarTopo() {
   });
 }
 iniciarTopo();
+
+// ---------- abas das páginas institucionais (.nav-inst) ----------
+// A aba da página atual aparece na tela (no meio, se der) e as bordas esmaecem quando há mais abas para os lados.
+(function abasInstitucionais() {
+  const barra = document.querySelector(".nav-inst");
+  if (!barra) return;
+  // As abas rolam numa fileira por dentro; a barra fica parada, com o fundo sólido (o esmaecido não deixa a página aparecer).
+  const nav = document.createElement("div"); nav.className = "nav-inst-trilho";
+  nav.append(...barra.childNodes);
+  barra.appendChild(nav); barra.classList.add("pronto");
+  const bordas = () => {
+    nav.classList.toggle("tem-esq", nav.scrollLeft > 4);
+    nav.classList.toggle("tem-dir", nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 4);
+  };
+  const atual = nav.querySelector('[aria-current="page"]');
+  if (atual) { nav.style.scrollBehavior = "auto"; nav.scrollLeft = Math.max(0, atual.offsetLeft - (nav.clientWidth - atual.offsetWidth) / 2); nav.style.scrollBehavior = ""; }
+  bordas();
+  nav.addEventListener("scroll", bordas, { passive: true });
+  addEventListener("resize", bordas);
+})();
