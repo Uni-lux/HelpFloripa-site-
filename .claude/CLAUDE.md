@@ -511,6 +511,13 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   Comunidade idem. **Região:** `diario.autorUf/autorIbge` gravados ao publicar (sem as regras: publica sem, sem aviso);
   `regiao.js` (`postsDoEstado` = autorUf + criadoEm, índice novo; `pesoRegiao` cidade ×1,6, estado ×1,25) em Principais,
   Em alta e Destaques. 5 índices em `_regras/INDICES-LEIA-ME.md`. Teste `t-busca-regiao.mjs`.
+  **Mesmo PR: primeira assinatura +30 dias grátis (pedido dele, substitui o teste sem pagar):** `primeiraAssinatura` (planos/{uid} sem
+  pedidoId/negociacaoId; erro de leitura = mostra a oferta), `DIAS_BONUS`; gaveta com `.pl-bonus` no topo, "+30 dias grátis" em cada
+  período, resumo "3 meses + 30 dias grátis, até ...", lembrete na tela do Pix; painel `primeiraPaga` soma 30 dias ao "Confirmar
+  pagamento" (aviso e registro dizem); regra de a pessoa criar o próprio plano (teste) REMOVIDA. Textos "Começar/Anunciar grátis"
+  viraram "Criar perfil"/"Anunciar no Help Floripa"; Termos seção 6 reescrita (planos, preços, bônus, Pix sem renovação automática,
+  arrependimento de 7 dias do CDC — pedir revisão do advogado) e FAQ. Registro: fileira de pessoas em "Todas as ações" (foto, nome,
+  número; filtra), foto+nome em cada ação, "Ver tudo de Fulano" na linha do tempo do dia (`quemRegistro`).
 - **As 5 etapas estão concluídas.** Próximos passos são as pendências abaixo (só ele pode fazer) e o que ficou
   para depois.
 

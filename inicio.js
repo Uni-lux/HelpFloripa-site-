@@ -11,9 +11,9 @@ import { fotoSegura } from "./seguranca.js?v=1";
 import { enfeitarSelect } from "./escolha.js?v=4";
 import { estrelas, lerResumos, media } from "./avaliacoes.js?v=14";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
-import { lerPlano, nivelPlano, seloPlano } from "./planos-base.js?v=1";
+import { lerPlano, nivelPlano, seloPlano } from "./planos-base.js?v=2";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao } from "./perto.js?v=1";
-import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=52";
+import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=53";
 
 const $ = (id) => document.getElementById(id);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };

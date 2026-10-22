@@ -1820,16 +1820,8 @@ service cloud.firestore {
     // Primeiro acesso: a própria pessoa começa 30 dias grátis no plano que escolher (só se a conta nunca teve plano).
     match /planos/{uid} {
       allow read: if logado();
-      allow create: if logado() && emailOk() && uid == request.auth.uid
-                    && request.resource.data.keys().hasOnly(['plano', 'ate', 'ativadoEm', 'ativadoPor', 'teste', 'meses'])
-                    && request.resource.data.plano in ['plus', 'pro', 'premium']
-                    && request.resource.data.teste == true
-                    && request.resource.data.meses == 1
-                    && request.resource.data.ate is timestamp
-                    && request.resource.data.ate > request.time + duration.value(29, 'd')
-                    && request.resource.data.ate <= request.time + duration.value(31, 'd')
-                    && request.resource.data.ativadoPor == request.auth.uid
-                    && request.resource.data.ativadoEm == request.time;
+      // Os 30 dias grátis agora vêm junto com a primeira assinatura paga (o dono do site soma ao confirmar o Pix):
+      // ninguém grava o próprio plano.
       allow create, update: if donoDoSite()
                     && request.resource.data.keys().hasOnly(['plano', 'ate', 'ativadoEm', 'ativadoPor', 'pedidoId', 'negociacaoId', 'meses', 'teste'])
                     && request.resource.data.plano in ['plus', 'pro', 'premium', 'gratis']

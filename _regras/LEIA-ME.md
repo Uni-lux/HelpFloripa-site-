@@ -29,13 +29,14 @@
 > e a denúncia com o motivo **"Venda ou cobrança"**.
 > **Novo nesta versão (22/10):** a **busca nacional** (campo `busca` com as palavras de negócios, imóveis e anúncios da
 > Comunidade, até 100) e a **região de quem publica** no Diário (`autorUf`/`autorIbge`), para priorizar a sua cidade e o seu estado.
+> Os **30 dias grátis** agora vêm junto com a **primeira assinatura paga** (o dono do site soma ao confirmar o Pix): a pessoa não grava mais o próprio plano.
 > Para publicar, o processo é o mesmo: apagar tudo no console e colar as 14 partes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
 `firestore.rules` divididas em **14 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
-- Arquivo de origem: `firestore.rules` (165.692 bytes, 2.817 linhas, sha256 começa com `bbfa83c77f0cd2b5`).
+- Arquivo de origem: `firestore.rules` (165.070 bytes, 2.809 linhas, sha256 começa com `307b37082cc35f90`).
 - Cada parte termina com a linha `// ===== FIM DA PARTE X DE 14 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
 - Conferido: as 14 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.

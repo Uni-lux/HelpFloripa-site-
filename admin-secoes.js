@@ -10,7 +10,7 @@ import { montarChat } from "./admin-chat.js?v=21";
 import { verConteudoDenuncia } from "./admin-denuncia.js?v=13";
 import { prepararAnexo, blocoAnexo, previaAnexo, aceitos } from "./anexos-suporte.js?v=2";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
-import { PLANOS, ORDEM_PLANOS, nivelPlano, nomePlano, diasRestantes, creditoDias, descontoDe, nomeDocRenda, TIPOS_NEG as TIPOS_NEG_PL } from "./planos.js?v=8";
+import { PLANOS, ORDEM_PLANOS, DIAS_BONUS, nivelPlano, nomePlano, diasRestantes, creditoDias, descontoDe, nomeDocRenda, TIPOS_NEG as TIPOS_NEG_PL } from "./planos.js?v=9";
 import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha,
@@ -882,6 +882,7 @@ export function planos(el) {
     c.append(h("strong", null, `${nomePlano(p.plano || "pro")} · ${nMeses(p.meses)} · ${reaisPl(p.valor)}${descontoDe(p.meses) ? ` (${Math.round(descontoDe(p.meses) * 100)}% de desconto)` : ""}`),
       h("div", "meta", `Pedido #${String(p.id).slice(-6).toUpperCase()} · código no Pix: ${p.txid || "—"} · ${dataHora(p.criadoEm)}`));
     const atual = D.planos.get(p.uid);
+    if (p.status === "pendente" && primeiraPaga(p.uid, p.id)) c.appendChild(h("div", "meta", `Primeira assinatura: ao confirmar, ganha mais ${DIAS_BONUS} dias grátis.`));
     if (nivelPlano(atual)) {
       const cr = creditoDias(atual, p.plano || "pro");
       c.appendChild(h("div", "meta", atual.plano === (p.plano || "pro") ? `Já tem o ${nomePlano(atual.plano)} até ${data(atual.ate)} (${faltaTxt(atual)}): os meses somam a partir dessa data.` : `Troca do ${nomePlano(atual.plano)} (${faltaTxt(atual)}) pelo ${nomePlano(p.plano)}: começa hoje${cr ? ` + ${cr} dias de crédito` : ""}.`));
@@ -907,25 +908,28 @@ export function planos(el) {
     return c;
   }
   // Data final do plano novo: mesmo plano soma a partir do fim do atual; troca começa hoje com os dias de crédito.
-  function fimDoPlano(uid, plano, meses) {
+  function fimDoPlano(uid, plano, meses, bonus = 0) {
     const atual = D.planos.get(uid);
     const mesmo = nivelPlano(atual) && atual.plano === plano;
     const base = mesmo ? Math.max(agora(), ms(atual.ate)) : agora() + creditoDias(atual, plano) * DIA;
-    return C.fb.Timestamp.fromMillis(base + meses * 30 * DIA);
+    return C.fb.Timestamp.fromMillis(base + (meses * 30 + bonus) * DIA);
   }
+  // Primeira assinatura paga: +30 dias grátis (DIAS_BONUS). Vale para quem nunca teve um pedido pago nem uma negociação aprovada.
+  const primeiraPaga = (uid, idPedido) => !D.planosPedidos.some((x) => x.uid === uid && x.status === "pago" && x.id !== idPedido)
+    && !D.planosNeg.some((x) => x.uid === uid && x.status === "aprovado") && !D.planos.get(uid)?.pedidoId && !D.planos.get(uid)?.negociacaoId;
   async function ativar(p) {
-    const k = p.plano || "pro";
-    if (!(await confirmarHF({ titulo: "Confirmar o pagamento?", texto: `Ative só depois de ver ${reaisPl(p.valor)} no extrato (código ${p.txid}). O ${nomePlano(k)} fica ativo por ${nMeses(p.meses)}.`, ok: `Ativar o ${nomePlano(k)}`, cor: "normal", icone: "check" }))) return;
+    const k = p.plano || "pro", bonus = primeiraPaga(p.uid, p.id) ? DIAS_BONUS : 0;
+    if (!(await confirmarHF({ titulo: "Confirmar o pagamento?", texto: `Ative só depois de ver ${reaisPl(p.valor)} no extrato (código ${p.txid}). O ${nomePlano(k)} fica ativo por ${nMeses(p.meses)}${bonus ? ` + ${bonus} dias grátis (primeira assinatura)` : ""}.`, ok: `Ativar o ${nomePlano(k)}`, cor: "normal", icone: "check" }))) return;
     const { fb } = C;
-    const ate = fimDoPlano(p.uid, k, p.meses);
+    const ate = fimDoPlano(p.uid, k, p.meses, bonus);
     const lote = fb.writeBatch(fb.db);
     lote.update(fb.doc(fb.db, "planos_pedidos", p.id), { status: "pago", decididoPor: C.eu.uid, decididoEm: fb.serverTimestamp() });
     lote.set(fb.doc(fb.db, "planos", p.uid), { plano: k, ate, meses: p.meses, pedidoId: p.id, ativadoEm: fb.serverTimestamp(), ativadoPor: C.eu.uid });
     await lote.commit();
     Object.assign(p, { status: "pago", decididoPor: C.eu.uid, decididoEm: { toMillis: () => agora() } });
     D.planos.set(p.uid, { plano: k, ate, meses: p.meses, pedidoId: p.id, ativadoEm: { toMillis: () => agora() }, ativadoPor: C.eu.uid });
-    await registrar("plano_ativar", p.uid, `${nomePlano(k)} · ${nMeses(p.meses)} · ${reaisPl(p.valor)} · até ${new Date(ate.toMillis()).toLocaleDateString("pt-BR")}`, "planos_pedidos:" + p.id);
-    await enviarAviso(p.uid, { titulo: `Seu plano ${nomePlano(k)} está ativo`, texto: `Recebemos o seu Pix de ${reaisPl(p.valor)}. O plano ${nomePlano(k)} vale até ${new Date(ate.toMillis()).toLocaleDateString("pt-BR")} para todos os seus negócios. Obrigado!`, tipo: "info" }).catch(() => {});
+    await registrar("plano_ativar", p.uid, `${nomePlano(k)} · ${nMeses(p.meses)}${bonus ? ` + ${bonus} dias grátis` : ""} · ${reaisPl(p.valor)} · até ${new Date(ate.toMillis()).toLocaleDateString("pt-BR")}`, "planos_pedidos:" + p.id);
+    await enviarAviso(p.uid, { titulo: `Seu plano ${nomePlano(k)} está ativo`, texto: `Recebemos o seu Pix de ${reaisPl(p.valor)}.${bonus ? ` Como é a sua primeira assinatura, você ganhou mais ${bonus} dias grátis.` : ""} O plano ${nomePlano(k)} vale até ${new Date(ate.toMillis()).toLocaleDateString("pt-BR")} para todos os seus negócios. Obrigado!`, tipo: "info" }).catch(() => {});
     toast(`${nomePlano(k)} ativado`); C.irPara("planos");
   }
   async function recusar(p) {
@@ -1590,7 +1594,7 @@ function detalheAcao(x) {
   cx.tabIndex = -1; cx.focus();
 }
 // ======================================================= REGISTRO E HISTÓRICO (só donos)
-let abaRegistro = "pessoas", diaHistorico = "";
+let abaRegistro = "pessoas", diaHistorico = "", quemRegistro = "";
 export function registro(el) {
   if (!pode("dono")) { el.appendChild(h("div", "ad-vazio", "Só os donos do site veem o registro de ações.")); return; }
   el.appendChild(cab("Registro e histórico", "Tudo o que a equipe faz no painel fica registrado e não pode ser apagado. Em \"Por pessoa\", veja o que cada um fez em cada dia. Só os donos veem esta seção."));
@@ -1676,6 +1680,7 @@ function historicoPorPessoa(el) {
       const bt = h("div", "ad-bloco-topo"); const tt = h("div"); tt.append(h("h3", null, `${nomeEquipe(uid)} · ${rot.textContent.toLowerCase() === "hoje" ? "hoje" : rot.textContent}`), h("p", null, l.length ? `${l.length} ${l.length === 1 ? "ação" : "ações"}, da primeira à última. Toque para ver os detalhes.` : "Nenhuma ação neste dia."));
       bt.appendChild(tt);
       if (l.length) bt.appendChild(btn("Baixar Excel", "", () => baixarCSV(`historico-${nomeEquipe(uid).split(" ")[0].toLowerCase()}-${dia}`, ["Hora", "Ação", "Alvo", "Detalhe"], l.map((x) => [horaBR(x.em), NOMES_ACAO[x.acao] || x.acao, alvoLegivel(x).texto, detalheLegivel(x)]))));
+      bt.appendChild(btn(`Ver tudo de ${nomeEquipe(uid).split(" ")[0]}`, "", () => { quemRegistro = uid; abaRegistro = "todas"; C.irPara("registro"); }));
       box.appendChild(bt);
       const ol = h("ol", "ad-timeline");
       l.forEach((x) => {
@@ -1706,7 +1711,21 @@ function todasAcoes(el) {
   const selAcao = document.createElement("select"); selAcao.className = "ad-sel"; selAcao.setAttribute("aria-label", "Filtrar por ação");
   selAcao.append(new Option("Todas as ações", ""), ...[...new Set(D.log.map((x) => x.acao))].sort().map((a) => new Option(NOMES_ACAO[a] || a, a)));
   const busca = document.createElement("input"); busca.type = "search"; busca.className = "ad-sel"; busca.placeholder = "Buscar no detalhe ou alvo"; busca.setAttribute("aria-label", "Buscar no registro");
-  linhaF.append(selQuem, selAcao, busca); el.appendChild(linhaF);
+  linhaF.append(selAcao, busca); el.appendChild(linhaF);
+  // Quem é quem: uma fileira com cada pessoa da equipe (foto, nome e quantas ações); tocar filtra só ela.
+  selQuem.value = quemRegistro; selQuem.hidden = true;
+  const pessoasF = h("div", "ad-reg-pessoas"); pessoasF.setAttribute("role", "tablist"); pessoasF.setAttribute("aria-label", "Ações por pessoa da equipe");
+  const pintarPessoas = () => {
+    const quem = [...new Set([...D.admins.map((a) => a.id), ...D.log.map((x) => x.por)])].map((u) => [u, D.log.filter((x) => x.por === u).length]).sort((a, b) => b[1] - a[1]);
+    const chip = (uid, nome, n, av) => {
+      const b = h("button", "ad-reg-pessoa" + (selQuem.value === uid ? " on" : "")); b.type = "button"; b.setAttribute("role", "tab"); b.setAttribute("aria-selected", String(selQuem.value === uid));
+      if (av) b.appendChild(av); b.append(h("span", null, nome), h("b", null, num(n)));
+      b.addEventListener("click", () => { selQuem.value = quemRegistro = uid; pintarPessoas(); pintar(); });
+      return b;
+    };
+    pessoasF.replaceChildren(chip("", "Toda a equipe", D.log.length), ...quem.map(([u, n]) => chip(u, nomeEquipe(u).split(" ")[0], n, avatar({ ...pessoa(u), nome: nomeEquipe(u) }))));
+  };
+  el.appendChild(pessoasF); pintarPessoas();
   const info = h("p"); info.style.color = "var(--muted)"; const tab = h("div", "ad-tabela"); el.append(info, tab);
   function filtrar() {
     const t = busca.value.trim().toLowerCase();
@@ -1721,10 +1740,15 @@ function todasAcoes(el) {
       if (r.uid || r.ir) { const ln = h("a", null, r.texto); ln.href = "#"; ln.addEventListener("click", (e) => { e.preventDefault(); if (r.uid) abrirFicha(r.uid); else C.irPara(r.ir); }); alvo.appendChild(ln); }
       else alvo.appendChild(h("span", null, r.texto));
       if (r.sub) alvo.appendChild(h("small", "ad-alvo-sub", r.sub));
-      const c1 = h("td", "ad-reg-quando", dataHora(x.em)), c2 = h("td", "ad-reg-quem", x.porNome || nomeEquipe(x.por)), c3 = h("td", "ad-reg-acao", NOMES_ACAO[x.acao] || x.acao), c5 = h("td", "ad-reg-det", detalheLegivel(x));
+      const c1 = h("td", "ad-reg-quando", dataHora(x.em)), c2 = h("td", "ad-reg-quem"), c3 = h("td", "ad-reg-acao", NOMES_ACAO[x.acao] || x.acao), c5 = h("td", "ad-reg-det", detalheLegivel(x));
       tr.classList.add("clicavel"); tr.tabIndex = 0;
       tr.addEventListener("click", (e) => { if (!e.target.closest("a")) detalheAcao(x); });
       tr.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target === tr) detalheAcao(x); });
+      // Quem fez: foto e nome (tocar mostra só as ações dessa pessoa).
+      const quemNome = x.porNome || nomeEquipe(x.por), qb = h("a", "ad-reg-quem-lk"); qb.href = "#";
+      qb.append(avatar({ ...pessoa(x.por), nome: quemNome }), h("span", null, quemNome));
+      qb.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); selQuem.value = quemRegistro = x.por; pintarPessoas(); pintar(); el.scrollIntoView({ behavior: "smooth", block: "start" }); });
+      c2.appendChild(qb);
       c1.dataset.rot = "Quando"; c2.dataset.rot = "Quem"; c3.dataset.rot = "Ação"; c5.dataset.rot = "Detalhe";
       const c6 = h("td", "ad-reg-ver"); c6.appendChild(h("span", null, "Ver detalhes ›"));
       tr.append(c1, c2, c3, alvo, c5, c6); t.appendChild(tr);

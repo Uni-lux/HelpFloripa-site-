@@ -16,7 +16,7 @@ const { browser, ctx } = await navegador({ mobile: true });
 // ---------- 1) Meus negócios: Grátis ----------
 const p = await entrar(ctx, "bruno", "negocios.html");
 await p.waitForSelector("#planoBox:not([hidden])", { timeout: 20000 });
-ok((await p.textContent("#planoBox")).includes("Comece com 30 dias grátis"), "cartão do plano (primeiro acesso): " + (await p.textContent("#planoBox")).replace(/\s+/g, " "));
+ok((await p.textContent("#planoBox")).includes("Primeira assinatura: +30 dias grátis"), "cartão do plano (primeira assinatura): " + (await p.textContent("#planoBox")).replace(/\s+/g, " "));
 await p.screenshot({ path: "saida/pl-meus-negocios.png" });
 
 // Estatísticas no Grátis: 90 dias e Excel com "PRO" abrem os planos
@@ -38,7 +38,7 @@ ok(await p.locator(".pl-card").count() === 3 && precos[0].includes("29,90") && p
 ok(await p.locator(".pl-card.on[data-plano='pro']").count() === 1 && await p.locator(".pl-lin.cab span.sel").textContent() === "Pro", "Pro vem marcado e destacado na tabela");
 await p.locator(".pl-card[data-plano='premium']").click();
 ok(await p.locator(".pl-tabela .pl-lin.cab span").count() === 4 && !(await p.textContent(".pl-tabela")).includes("Grátis"), "sem o plano Grátis na tabela");
-ok((await p.textContent(".pl-teste")).includes("30 dias grátis no Premium") && (await p.locator(".pl-btn", { hasText: "Pagar" }).textContent()).includes("59,90") && (await p.locator(".pl-lin.cab span.sel").textContent()) === "Premium", "escolher o Premium troca o preço, o teste e a coluna: " + await p.textContent(".pl-teste"));
+ok((await p.textContent(".pl-hero .pl-bonus")).includes("+30 dias grátis") && await p.locator(".pl-teste").count() === 0 && await p.locator(".pl-per .bonus").count() === 4 && (await p.locator(".pl-btn", { hasText: "Pagar" }).textContent()).includes("59,90") && (await p.locator(".pl-lin.cab span.sel").textContent()) === "Premium", "primeira assinatura: +30 dias grátis à vista (sem teste sem pagar); Premium troca o preço e a coluna: " + await p.textContent(".pl-teste"));
 ok(await p.locator(".pl-ajuda .pl-btn", { hasText: "condição especial" }).count() === 1 && await p.locator(".pl-ajuda .pl-btn", { hasText: "Parceria ou negociação" }).count() === 1 && (await p.textContent(".pl-ajuda")).includes("A gente aceita negociar"), "botões de condição especial e de parceria ou negociação");
 await p.locator(".pl-ajuda .pl-btn", { hasText: "Parceria ou negociação" }).click(); await p.waitForSelector(".pl-form");
 ok((await p.textContent(".pl-form h3")) === "Parceria ou negociação" && (await p.textContent(".pl-form")).includes("aceita negociar") && await p.locator(".pl-prova").isHidden(), "formulário de negociação (sem pedir comprovante de renda)");
@@ -79,25 +79,25 @@ ok((await p.textContent("#planoBox")).includes("aguardando o Pix"), "cartão mos
 const ADM = await navegador({ mobile: true });
 const a = await entrar(ADM.ctx, "admin", "admin.html#planos");
 await a.waitForSelector(".ad-item[data-item^='plano:']", { timeout: 30000 });
-ok((await a.textContent(".ad-item[data-item^='plano:']")).includes("107,73 (10% de desconto)"), "painel → Planos: pedido esperando o Pix, com o desconto");
+ok((await a.textContent(".ad-item[data-item^='plano:']")).includes("107,73 (10% de desconto)") && (await a.textContent(".ad-item[data-item^='plano:']")).includes("ganha mais 30 dias grátis"), "painel → Planos: pedido esperando o Pix, com o desconto e o bônus da primeira assinatura");
 ok((await a.textContent('[data-cont="planos"]')) === "1", "número no menu do painel");
 await a.screenshot({ path: "saida/pl-painel.png" });
 await a.locator(".ad-item[data-item^='plano:'] .ad-bt", { hasText: "Confirmar pagamento" }).click();
 await a.waitForSelector(".hf-confirma .sim", { timeout: 5000 }); await a.locator(".hf-confirma .sim").click(); await a.waitForTimeout(2500);
 const pl = (await db.doc(`planos/${U.bruno}`).get()).data();
 const dias = pl ? Math.round((pl.ate.toMillis() - Date.now()) / 864e5) : 0;
-ok(pl?.plano === "pro" && dias >= 89 && dias <= 90 && (await db.doc(`planos_pedidos/${ped.id}`).get()).data().status === "pago", `Pro ativado por ${dias} dias e pedido pago`);
+ok(pl?.plano === "pro" && dias >= 119 && dias <= 120 && (await db.doc(`planos_pedidos/${ped.id}`).get()).data().status === "pago", `primeira assinatura: Pro por ${dias} dias (3 meses + 30 grátis) e pedido pago`);
 const aviso = (await db.collection("avisos").where("uid", "==", U.bruno).get()).docs.map((d) => d.data()).find((x) => x.titulo.includes("Pro"));
 ok(!!aviso, "a pessoa recebe o aviso 'Seu plano Pro está ativo'");
 await a.locator(".ad-chip", { hasText: "Ativos" }).click(); await a.waitForTimeout(300);
-ok((await a.textContent("#principal")).includes("Encerrar o plano agora") && /Faltam 90 dias/.test(await a.textContent("#principal")), "aba Ativos lista o negócio com os dias que faltam");
+ok((await a.textContent("#principal")).includes("Encerrar o plano agora") && /Faltam 120 dias/.test(await a.textContent("#principal")), "aba Ativos lista o negócio com os dias que faltam");
 await a.screenshot({ path: "saida/pl-painel-ativos.png" });
 
 // ---------- 4) depois de ativar ----------
 await p.goto(BASE + "negocios.html"); await p.waitForSelector("#planoBox.pro", { timeout: 20000 });
-ok((await p.textContent("#planoBox")).includes("Plano Pro ativo") && (await p.textContent("#planoBox .ng-plano-falta")) === "Faltam 90 dias" && await p.locator("#planoBox .ng-plano-barra i").count() === 1, "Meus negócios: " + (await p.textContent("#planoBox")).replace(/\s+/g, " "));
+ok((await p.textContent("#planoBox")).includes("Plano Pro ativo") && (await p.textContent("#planoBox .ng-plano-falta")) === "Faltam 120 dias" && await p.locator("#planoBox .ng-plano-barra i").count() === 1, "Meus negócios: " + (await p.textContent("#planoBox")).replace(/\s+/g, " "));
 await p.click("#planoBox"); await p.waitForSelector(".pl-status", { timeout: 10000 });
-ok((await p.textContent(".pl-status .dias")).replace(/\s+/g, "") === "90dias" && (await p.textContent(".pl-card.on .atual")).includes("faltam 90 dias"), "gaveta: seu plano com os dias que faltam");
+ok((await p.textContent(".pl-status .dias")).replace(/\s+/g, "") === "120dias" && (await p.textContent(".pl-card.on .atual")).includes("faltam 120 dias"), "gaveta: seu plano com os dias que faltam");
 await p.screenshot({ path: "saida/pl-gaveta-ativo.png" });
 await p.locator(".pl-x").click(); await p.waitForTimeout(400);
 await p.screenshot({ path: "saida/pl-meus-negocios-pro.png" });
@@ -190,24 +190,17 @@ ok(!m.url().includes("#registro") && await m.locator(".ad-hist-pessoa").count() 
 await m.screenshot({ path: "saida/pl-moderacao.png" });
 await MOD.browser.close();
 
-// ---------- 8) teste grátis de 30 dias no primeiro acesso (Edu escolhe o Plus) ----------
+// ---------- 8) primeira assinatura: +30 dias grátis à vista (Edu nunca assinou) ----------
 const EDU = await navegador({ mobile: true });
 const e = await entrar(EDU.ctx, "edu", "negocios.html");
 await e.waitForSelector("#planoBox:not([hidden])", { timeout: 20000 });
-ok((await e.textContent("#planoBox")).includes("Comece com 30 dias grátis"), "Edu: convite para os 30 dias grátis");
-await e.click("#planoBox"); await e.waitForSelector(".pl-teste", { timeout: 10000 });
-ok((await e.textContent(".pl-hero")).includes("30 dias grátis"), "gaveta: 30 dias grátis no topo");
-await e.screenshot({ path: "saida/pl-teste-oferta.png" });
-await e.locator(".pl-card[data-plano='plus']").click();
-await e.locator(".pl-teste").click(); await e.waitForSelector(".pl-status", { timeout: 10000 });
-const te = (await db.doc(`planos/${U.edu}`).get()).data();
-const dTe = te ? Math.round((te.ate.toMillis() - Date.now()) / 864e5) : 0;
-ok(te?.plano === "plus" && te.teste === true && dTe === 30, `teste grátis gravado: Plus por ${dTe} dias`);
-ok((await e.textContent(".pl-status")).includes("Teste grátis do Plus") && await e.locator(".pl-teste").isHidden(), "gaveta: teste em andamento e sem oferecer outro");
-await e.screenshot({ path: "saida/pl-teste-ativo.png" });
-await e.locator(".pl-x").click(); await e.waitForTimeout(800);
-await e.goto(BASE + "negocios.html"); await e.waitForSelector("#planoBox.pro", { timeout: 20000 });
-ok((await e.textContent("#planoBox")).includes("Teste grátis do Plus") && (await e.textContent("#planoBox .ng-plano-falta")) === "Faltam 30 dias", "Meus negócios: " + (await e.textContent("#planoBox")).replace(/\s+/g, " "));
-await e.screenshot({ path: "saida/pl-teste-meus-negocios.png" });
+ok((await e.textContent("#planoBox")).includes("Primeira assinatura: +30 dias grátis"), "Edu: convite da primeira assinatura com +30 dias grátis");
+await e.click("#planoBox"); await e.waitForSelector(".pl-card", { timeout: 10000 });
+ok((await e.textContent(".pl-hero")).includes("+30 dias grátis") && await e.locator(".pl-teste").count() === 0, "gaveta: +30 dias grátis no topo e nenhum teste sem pagar");
+await e.locator(".pl-card[data-plano='plus']").click(); await e.locator(".pl-per[data-m='3']").click();
+ok((await e.textContent(".pl-economia")).includes("3 meses + 30 dias grátis"), "resumo: " + (await e.textContent(".pl-economia")));
+await e.screenshot({ path: "saida/pl-bonus-oferta.png" });
+await e.locator(".pl-btn", { hasText: "Pagar" }).click(); await e.waitForSelector(".pl-bonus-pix", { timeout: 10000 });
+ok((await e.textContent(".pl-bonus-pix")).includes("30 dias grátis"), "tela do Pix lembra do bônus");
 await EDU.browser.close();
 process.exit(process.exitCode || 0);

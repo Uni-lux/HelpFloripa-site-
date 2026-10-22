@@ -697,9 +697,10 @@ await t("plano: pedido de plano inexistente é recusado", () => assertFails(setD
 await t("plano: dono ativa o Premium", () => assertSucceeds(setDoc(doc(ctx("adm"), "planos", "bia"), { plano: "premium", ate: Timestamp.fromMillis(Date.now() + 30 * 864e5), ativadoEm: serverTimestamp(), ativadoPor: "adm" })));
 await t("plano: ninguém apaga pedido", () => assertFails(deleteDoc(doc(ctx("adm"), "planos_pedidos", "pp4"))));
 
-// ---------- teste grátis de 30 dias no primeiro acesso ----------
+// ---------- 30 dias grátis: só junto com a primeira assinatura paga (a pessoa não grava o próprio plano) ----------
 const teste = (uid, x = {}) => ({ plano: "pro", teste: true, meses: 1, ate: Timestamp.fromMillis(Date.now() + 30 * 864e5), ativadoEm: serverTimestamp(), ativadoPor: uid, ...x });
-await t("teste grátis: a pessoa começa 30 dias no primeiro acesso", () => assertSucceeds(setDoc(doc(ctx("ana"), "planos", "ana"), teste("ana"))));
+await t("30 dias grátis: a pessoa NÃO se dá o plano sozinha (só junto com a primeira assinatura paga)", () => assertFails(setDoc(doc(ctx("ana"), "planos", "ana"), teste("ana"))));
+await semRegras((db) => setDoc(doc(db, "planos", "ana"), teste("ana", { ativadoEm: Timestamp.now() })));
 await t("teste grátis: não começa de novo (a conta já teve plano)", () => assertFails(setDoc(doc(ctx("ana"), "planos", "ana"), teste("ana", { plano: "premium" }))));
 await t("teste grátis: quem já pagou não ganha teste", () => assertFails(setDoc(doc(ctx("loja"), "planos", "loja"), teste("loja"))));
 await t("teste grátis: mais de 30 dias é recusado", () => assertFails(setDoc(doc(ctx("dono"), "planos", "dono"), teste("dono", { ate: Timestamp.fromMillis(Date.now() + 60 * 864e5) }))));
