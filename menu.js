@@ -187,8 +187,9 @@ function montarGaveta() {
       const i = el("span", "ic"); if (cor) i.style.setProperty("--c", cor); i.appendChild(iconeMenu(ic));
       const r = el("span", "rot", rot); if (sub) r.appendChild(el("small", null, sub));
       a.append(i, r);
-      // Link para a mesma página (ex.: "Perto de você" estando no início): fecha o menu.
-      a.addEventListener("click", fecharGaveta);
+      // Guarda onde o menu estava rolado (abre no mesmo lugar na página seguinte) e,
+      // se o link é da mesma página (ex.: "Perto de você" estando no início), fecha o menu.
+      a.addEventListener("click", () => { guardarRolagem(); fecharGaveta(); });
       if (badge) { const b = el("b", "gaveta-badge"); b.id = badge; b.hidden = true; a.appendChild(b); }
       sec.appendChild(a);
     });
@@ -207,7 +208,11 @@ function montarGaveta() {
   // Rodapé
   const rod = el("div", "gaveta-rodape");
   const links = el("div", "links");
-  [["termos.html", "Termos de Uso"], ["privacidade.html", "Privacidade"], ["contato.html", "Contato"]].forEach(([h, r]) => { const a = el("a", null, r); a.href = h; links.appendChild(a); });
+  [["termos.html", "Termos de Uso"], ["privacidade.html", "Privacidade"], ["contato.html", "Contato"], ["https://www.instagram.com/help_floripa", "Instagram"]].forEach(([h, r]) => {
+    const a = el("a", null, r); a.href = h;
+    if (h.startsWith("https:")) { a.target = "_blank"; a.rel = "noopener noreferrer"; }
+    links.appendChild(a);
+  });
   const sair = el("button", "gaveta-sair"); sair.type = "button"; sair.id = "gavetaSair"; sair.append(iconeMenu("sair"), document.createTextNode("Sair da conta"));
   // A mesma janela "Sair da conta?" das configurações e das mensagens.
   sair.addEventListener("click", () => import("./confirmar.js?v=4").then((m) => m.sairDaConta()));
@@ -284,13 +289,29 @@ async function pintarEquipe() {
     $("gavetaPainel").setAttribute("aria-label", `Painel da equipe${partes.length ? ": " + partes.join(", ") : ""}`);
   } catch (e) { equipeContadaEm = 0; console.warn("[Menu] Equipe:", e?.code || e?.message); }
 }
+// Rolagem do menu: abre onde a pessoa estava (vale entre as páginas, na mesma aba).
+const CHAVE_ROLAGEM = "hf-gaveta-rolagem";
+function guardarRolagem() { try { if (gaveta) sessionStorage.setItem(CHAVE_ROLAGEM, String(Math.round(gaveta.scrollTop))); } catch {} }
+function restaurarRolagem() {
+  let y = null;
+  try { const v = sessionStorage.getItem(CHAVE_ROLAGEM); if (v !== null) y = +v; } catch {}
+  if (Number.isFinite(y)) gaveta.scrollTop = y;
+  // A página atual tem que aparecer: se ficou fora da tela, rola só o necessário.
+  const atual = gaveta.querySelector('.gaveta-item[aria-current="page"]');
+  if (atual) {
+    const g = gaveta.getBoundingClientRect(), r = atual.getBoundingClientRect();
+    if (r.top < g.top + 60 || r.bottom > g.bottom - 20) gaveta.scrollTop += r.top - g.top - (g.height - r.height) / 2;
+  }
+}
 function abrirGaveta() {
-  if (!gaveta) montarGaveta();
+  if (!gaveta) { montarGaveta(); gaveta.addEventListener("scroll", () => { clearTimeout(gaveta._t); gaveta._t = setTimeout(guardarRolagem, 150); }, { passive: true }); }
   carregarPerfilSozinho();
   pintarEquipe();
   document.body.classList.add("gaveta-aberta");
+  restaurarRolagem();
   $("btnMenu")?.setAttribute("aria-expanded", "true");
-  setTimeout(() => gaveta.querySelector(".gaveta-x")?.focus(), 50);
+  // preventScroll: o foco no X não pode puxar o menu de volta para o topo.
+  setTimeout(() => gaveta.querySelector(".gaveta-x")?.focus({ preventScroll: true }), 50);
 }
 function fecharGaveta() {
   document.body.classList.remove("gaveta-aberta");

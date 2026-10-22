@@ -77,7 +77,7 @@ import("./manutencao.js?v=1").then((m) => m.avisoManutencao()).catch((e) => cons
 
 // Portão da conta: quem entra com a conta desativada ou com a exclusão pedida vai para
 // conta.html (reativar / recuperar). Confere uma vez por sessão do navegador.
-const PAGINAS_LIVRES = ["conta.html", "login.html", "cadastre-se.html", "verificar-email.html", "termos.html", "privacidade.html", "ajuda.html", "contato.html", "suporte.html"];
+const PAGINAS_LIVRES = ["conta.html", "login.html", "cadastre-se.html", "verificar-email.html", "termos.html", "privacidade.html", "ajuda.html", "contato.html", "suporte.html", "seguranca.html", "diretrizes.html"];
 onAuthStateChanged(auth, async (u) => {
   if (!u) return;
   const pagina = location.pathname.split("/").pop() || "index.html";

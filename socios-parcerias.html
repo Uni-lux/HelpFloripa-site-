@@ -27,7 +27,7 @@
   <link rel="stylesheet" href="categoria.css?v=8" />
   <link rel="stylesheet" href="info.css?v=6" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="categoria.js?v=38"></script>
+  <script type="module" src="categoria.js?v=40"></script>
 </head>
 <body data-classe="info">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -67,7 +67,7 @@
         <span class="selo-classe"><b><svg class="i xs" aria-hidden="true"><use href="#i-parceria"/></svg></b>Sócios e parcerias</span>
         <h1 id="tituloPagina">Cresça junto com o <span>Help Floripa</span></h1>
         <p class="lead">Seja parceiro de uma plataforma que conecta clientes, profissionais e empresas em todo o Brasil.</p>
-        <div class="hero-acoes"><a class="btn-hero pri" href="#sproposta"><svg class="i s" aria-hidden="true"><use href="#i-parceria"/></svg>Quero ser parceiro</a><a class="btn-hero whats" href="https://wa.me/5548996849431?text=Ol%C3%A1!%20Quero%20ser%20s%C3%B3cio%2Fparceiro%20do%20Help%20Floripa." target="_blank" rel="noopener noreferrer"><svg class="i s" aria-hidden="true"><use href="#i-whats"/></svg>WhatsApp</a><a class="btn-hero sec" href="sobre.html">Conhecer o projeto</a></div>
+        <div class="hero-acoes"><a class="btn-hero pri" href="#sproposta"><svg class="i s" aria-hidden="true"><use href="#i-parceria"/></svg>Quero ser parceiro</a><a class="btn-hero sec" href="sobre.html">Conhecer o projeto</a></div>
       </div>
     </section>
     <div class="faixa-numeros"><div><b>27</b><span>estados</span></div><div><b>5.570</b><span>cidades</span></div><div><b>6</b><span>áreas de negócio</span></div><div><b>0%</b><span>de comissão nas vendas</span></div></div>
@@ -96,7 +96,7 @@
       <h2 class="secao-titulo" id="scomofunciona">Como funciona</h2>
       
       <ol class="passos">
-        <li class="passo"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-chat"/></svg></span><strong>Entre em contato</strong><p>Envie sua proposta pelo formulário abaixo ou converse pelo WhatsApp.</p></li>
+        <li class="passo"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-chat"/></svg></span><strong>Entre em contato</strong><p>Envie sua proposta pelo formulário abaixo. Ela chega direto na equipe comercial.</p></li>
         <li class="passo"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-doc"/></svg></span><strong>Conheça a proposta</strong><p>Receba as informações sobre a parceria e as oportunidades.</p></li>
         <li class="passo"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg></span><strong>Formalize</strong><p>Assine o contrato e torne-se parceiro oficial.</p></li>
         <li class="passo"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-grafico"/></svg></span><strong>Cresça junto</strong><p>Acompanhe a evolução e participe da expansão.</p></li>
@@ -104,8 +104,8 @@
     </section>
     <section class="secao" aria-labelledby="sproposta">
       <h2 class="secao-titulo" id="sproposta">Envie sua proposta</h2>
-      <p class="secao-sub">Conte quem você é e o que tem em mente. A equipe responde por e-mail ou WhatsApp. Para enviar, entre na sua conta (evita spam).</p>
-      <div class="form-info" id="pcEntrar" hidden><p>Para enviar uma proposta pelo site, entre na sua conta ou crie uma. Se preferir, fale com a gente pelo WhatsApp.</p><a class="botao" id="pcEntrarLink" href="login.html?redirect=socios-parcerias.html%23sproposta">Entrar para enviar</a></div>
+      <p class="secao-sub">Conte quem você é e o que tem em mente. A equipe responde pelo e-mail ou telefone que você informar. Para enviar, entre na sua conta (evita spam).</p>
+      <div class="form-info" id="pcEntrar" hidden><p>Para enviar uma proposta, entre na sua conta ou crie uma (leva um minuto). Imprensa pode escrever direto para <a href="mailto:helpfloripa7@gmail.com?subject=Imprensa" style="color:var(--classe);font-weight:700">helpfloripa7@gmail.com</a>.</p><a class="botao" id="pcEntrarLink" href="login.html?redirect=socios-parcerias.html%23sproposta">Entrar para enviar</a></div>
       <form class="form-info" id="formParceria" novalidate>
         <div class="duas-colunas">
           <div class="campo"><label for="pcNome">Seu nome</label><input id="pcNome" maxlength="80" autocomplete="name" required /></div>
@@ -113,7 +113,7 @@
         </div>
         <div class="duas-colunas">
           <div class="campo"><label for="pcEmail">E-mail</label><input id="pcEmail" type="email" maxlength="120" autocomplete="email" required /></div>
-          <div class="campo"><label for="pcTelefone">WhatsApp (opcional)</label><input id="pcTelefone" maxlength="30" inputmode="tel" autocomplete="tel" placeholder="(DDD) 99999-9999" /></div>
+          <div class="campo"><label for="pcTelefone">Telefone ou WhatsApp (opcional)</label><input id="pcTelefone" maxlength="30" inputmode="tel" autocomplete="tel" placeholder="(DDD) 99999-9999" /></div>
         </div>
         <div class="duas-colunas">
           <div class="campo"><label for="pcTipo">Interesse</label>
@@ -165,7 +165,7 @@
           await comRitmo(fb, u.uid, "parc", (lote) => lote.set(F.doc(F.collection(window.firebaseDb, "parcerias")), dados));
           $("formParceria").reset();
           aviso("Proposta enviada! A equipe vai entrar em contato em breve.", "#2fbf71");
-        } catch (err) { if (err?.code !== "limite-diario") console.error(err); aviso(err?.code === "limite-diario" ? err.message : "Não foi possível enviar agora. Tente de novo ou fale pelo WhatsApp.", "#e5484d"); }
+        } catch (err) { if (err?.code !== "limite-diario") console.error(err); aviso(err?.code === "limite-diario" ? err.message : "Não foi possível enviar agora. Tente de novo em alguns minutos.", "#e5484d"); }
         finally { b.disabled = false; }
       });
     </script>
@@ -175,7 +175,7 @@
         <p>Grandes projetos são construídos por pessoas que compartilham a mesma visão. Seja um dos primeiros parceiros do Help Floripa na sua cidade.</p>
       </div>
       <div class="cta">
-        <a href="https://wa.me/5548996849431?text=Ol%C3%A1!%20Quero%20ser%20s%C3%B3cio%2Fparceiro%20do%20Help%20Floripa." target="_blank" rel="noopener noreferrer"><svg class="i s" aria-hidden="true"><use href="#i-whats"/></svg>Quero ser parceiro</a>
+        <a href="#sproposta"><svg class="i s" aria-hidden="true"><use href="#i-parceria"/></svg>Quero ser parceiro</a>
         <a class="sec" href="contato.html"><svg class="i s" aria-hidden="true"><use href="#i-email"/></svg>Outros contatos</a>
       </div>
     </div>
@@ -188,7 +188,7 @@
     </div>
     <div><h4>Explorar</h4><nav aria-label="Explorar"><a href="servicos.html">Freelances</a><a href="delivery.html">Delivery</a><a href="shopping.html">Shopping</a><a href="imoveis.html">Imóveis</a><a href="saude.html">Saúde</a><a href="comunidade.html">Comunidade</a></nav></div>
     <div><h4>Para você</h4><nav aria-label="Para você"><a href="usuarios.html">Meu perfil</a><a href="mensagens.html">Mensagens</a><a href="negocios.html">Anunciar</a><a href="profissionais.html">Para profissionais</a><a href="clientes.html">Para clientes</a><a href="reclamacoes.html">Reclamações</a></nav></div>
-    <div><h4>Help Floripa</h4><nav aria-label="Institucional"><a href="sobre.html">Sobre</a><a href="ajuda.html">Ajuda</a><a href="contato.html">Contato</a><a href="socios-parcerias.html">Sócios e parcerias</a><a href="seguranca.html">Central de Segurança</a><a href="diretrizes.html">Diretrizes da Comunidade</a><a href="termos.html">Termos de Uso</a><a href="privacidade.html">Privacidade</a></nav></div>
+    <div><h4>Help Floripa</h4><nav aria-label="Institucional"><a href="sobre.html">Sobre</a><a href="ajuda.html">Ajuda</a><a href="contato.html">Contato</a><a href="socios-parcerias.html">Sócios e parcerias</a><a href="seguranca.html">Central de Segurança</a><a href="diretrizes.html">Diretrizes da Comunidade</a><a href="termos.html">Termos de Uso</a><a href="privacidade.html">Privacidade</a><a href="https://www.instagram.com/help_floripa" target="_blank" rel="noopener noreferrer">Instagram</a></nav></div>
     <div class="fim"><span>&copy; 2025–2026 Help Floripa · Todos os direitos reservados</span><span>CNPJ 61.935.934/0001-00</span></div>
   </footer>
 </body>

@@ -19,7 +19,7 @@ await p.screenshot({ path: "saida/contato-1.png", fullPage: true });
 await p.selectOption("#ctAssunto", { label: "Parcerias, imprensa e anúncios" }).catch(() => p.evaluate(() => { const s = document.getElementById("ctAssunto"); s.selectedIndex = 7; s.dispatchEvent(new Event("change")); }));
 console.log("parceria:", await p.evaluate(() => ({ aviso: !document.getElementById("ctParceria").hidden, chamado: document.querySelector('[data-via="chamado"]').hidden })));
 await p.evaluate(() => { const s = document.getElementById("ctAssunto"); s.selectedIndex = 3; s.dispatchEvent(new Event("change")); });
-await p.fill("#ctNome", "Ana"); await p.fill("#ctLocal", "Recife, PE"); await p.fill("#ctMsg", "Quero saber como funciona o plano Pro para o meu delivery.");
+await p.fill("#ctLocal", "Recife, PE"); await p.fill("#ctMsg", "Quero saber como funciona o plano Pro para o meu delivery.");
 await p.locator('[data-via="chamado"]').scrollIntoViewIfNeeded();
 await p.tap('[data-via="chamado"]');
 await p.waitForURL(/suporte\.html/, { timeout: 15000 });
@@ -37,5 +37,15 @@ for (const pg of ["ajuda.html", "clientes.html", "profissionais.html", "socios-p
   await p.goto(BASE + pg); await p.waitForTimeout(1200);
   await p.screenshot({ path: `saida/nac-${pg.replace(".html", "")}.png`, fullPage: true });
 }
+// Menu abre onde a pessoa estava (e com a página atual à vista)
+await p.goto(BASE + "sobre.html"); await p.waitForTimeout(1500);
+await p.tap("#btnMenu"); await p.waitForTimeout(500);
+await p.locator('.gaveta-item[href="profissionais.html"]').scrollIntoViewIfNeeded(); await p.waitForTimeout(300);
+const antes = await p.evaluate(() => document.getElementById("gaveta").scrollTop);
+await p.tap('.gaveta-item[href="profissionais.html"]');
+await p.waitForURL(/profissionais/); await p.waitForTimeout(1500);
+await p.tap("#btnMenu"); await p.waitForTimeout(600);
+console.log("rolagem do menu:", await p.evaluate((antes) => { const g = document.getElementById("gaveta"), a = g.querySelector('[aria-current="page"]').getBoundingClientRect(), r = g.getBoundingClientRect(); return { antes, depois: Math.round(g.scrollTop), atualVisivel: a.top >= r.top && a.bottom <= r.bottom, atual: g.querySelector('[aria-current="page"]').textContent }; }, antes));
+await p.screenshot({ path: "saida/menu-rolagem.png" });
 console.log("erros:", erros.length ? erros : "nenhum");
 await browser.close();
