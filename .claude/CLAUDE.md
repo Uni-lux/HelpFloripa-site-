@@ -681,6 +681,13 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   Contadores num doc só NÃO foram divididos: o SDK já repete gravação recusada por disputa; dividir exige reescrever
   `contaCerta`/`resumoJunto` nas regras (perto do limite de 1.000) — só se uma publicação/negócio passar de ~1 gravação/s.
   `t-busca-regiao` já falhava no main (2 itens), igual antes e depois.
+- **Estimativa de gasto (22/10/2026, dada a ele):** base 700 leituras + 30 gravações por pessoa ativa/dia (medido no
+  t-leituras), Firestore US$ 0,03–0,06/100 mil leituras (região simples × multirregião; região do projeto NÃO conferida),
+  Storage 100 GB/mês de download grátis e depois ~US$ 0,12/GB, App Check (reCAPTCHA) 10 mil avaliações grátis/mês, US$ 8 até
+  100 mil, depois US$ 1/mil — recomendar validade do token de 3–7 dias no console. Mapas: uso leve (geocodificar ao salvar/
+  marcar local, azulejos nos cartões do chat); Mapbox ou LocationIQ cabem no grátis até ~5 mil ativos/dia. Totais: 500
+  ativos/dia ≈ US$ 3–15/mês; 5 mil ≈ US$ 95–130; 50 mil ≈ US$ 1.200–2.500. Ele vai ligar Storage + App Check na semana de
+  26/10 e escolher o serviço de mapas.
 - **Enquetes para muita gente (PR depois do #87, MUDA REGRAS — não publicadas; 15 partes, 561 testes):** contagem em 10
   pedaços `enquete_contas/{alvo}_{fatia}` {n0..n3} para enquete pública E anônima: o voto leva `fatia` (0–9, `sortearFatia`)
   e o pedaço sobe +1 na MESMA gravação (writeBatch; regra `fatiaSobe(d)` nos dois votos; `enquete_contas/{cid}` só aceita id
