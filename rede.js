@@ -642,15 +642,17 @@ export async function lerResumoEstrelas(postId) {
   return s?.exists() ? { ...resumoDe(s.data()), comResumo: true } : { ...(await contarNotas(postId).catch(() => resumoDe({}))), comResumo: false };
 }
 // Vários resumos de uma vez (Principais): 30 por consulta. Sem resumo (publicação antiga) = sem notas.
+// Os que estão guardados no aparelho há menos de 5 min (os mesmos de infoEstrelas, "r:") não vão ao servidor:
+// voltar ao Diário ou abrir o Explorar logo depois não lê tudo de novo.
 export async function lerResumosEstrelas(ids) {
-  const r = new Map();
-  for (let i = 0; i < ids.length; i += 30) {
-    const lote = ids.slice(i, i + 30);
+  const r = new Map(), falta = [];
+  for (const id of ids) { const g = contador("r:" + id); if (g?.comResumo) r.set(id, g); else falta.push(id); }
+  await Promise.all(Array.from({ length: Math.ceil(falta.length / 30) }, (_, k) => falta.slice(k * 30, k * 30 + 30)).map(async (lote) => {
     try {
       const s = await fb.getDocs(fb.query(fb.collection(fb.db, "diario_notas"), fb.where(fb.documentId(), "in", lote)));
-      s.docs.forEach((d) => r.set(d.id, resumoDe(d.data())));
+      s.docs.forEach((d) => { const x = { ...resumoDe(d.data()), comResumo: true }; r.set(d.id, x); guardarContador("r:" + d.id, x); });
     } catch {}
-  }
+  }));
   return r;
 }
 export async function infoEstrelas(postId, { recarregar = false } = {}) {
@@ -925,21 +927,31 @@ export async function abrirResumoEstrelas(post, { info = null, aoDar = null } = 
   listarQuem(0);
 }
 // Sua rede (2º grau): quem é seguido por quem você segue ou por seus seguidores → uid de quem liga vocês.
+// Custa caro (até 2 consultas de 150 relações): guardada no aparelho por 6 h (hf-rede-<uid>, só os uids).
 let redeCache = null;
+const REDE_VALIDADE = 6 * 3600e3;
 export async function minhaRede() {
   if (redeCache) return redeCache;
+  const chave = "hf-rede-" + eu.uid;
+  try {
+    const g = JSON.parse(localStorage.getItem(chave) || "null");
+    if (g && Date.now() - g.em < REDE_VALIDADE && Array.isArray(g.pares)) return (redeCache = new Map(g.pares));
+  } catch {}
   const r = new Map();
+  let falhou = false;
   try {
     const seguidores = await docsComValidade(fb, "seguidores-" + eu.uid, fb.query(fb.collection(fb.db, "relacoes"), fb.where("tipo", "==", "seguir"), fb.where("alvoId", "==", eu.uid), fb.limit(500)), 15 * 60000).then((s) => s.docs.map((d) => d.data().seguidorId)).catch(() => []);
     const ponte = [...new Set([...meusSeguindo].slice(0, 30).concat(seguidores.slice(0, 30)))].filter((u) => u !== eu.uid);
     for (let i = 0; i < ponte.length; i += 30) {
-      const s = await fb.getDocs(fb.query(fb.collection(fb.db, "relacoes"), fb.where("tipo", "==", "seguir"), fb.where("seguidorId", "in", ponte.slice(i, i + 30)), fb.limit(400))).catch(() => ({ docs: [] }));
+      const s = await fb.getDocs(fb.query(fb.collection(fb.db, "relacoes"), fb.where("tipo", "==", "seguir"), fb.where("seguidorId", "in", ponte.slice(i, i + 30)), fb.limit(150))).catch(() => ({ docs: [], falhou: true }));
+      if (s.falhou) falhou = true;
       for (const d of s.docs) {
         const { seguidorId, alvoId } = d.data();
         if (alvoId === eu.uid || r.has(alvoId)) continue;
         r.set(alvoId, seguidorId);
       }
     }
+    if (!falhou) try { localStorage.setItem(chave, JSON.stringify({ em: Date.now(), pares: [...r].slice(0, 300) })); } catch {}
   } catch {}
   redeCache = r;
   return r;
@@ -1787,7 +1799,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=28").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=29").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);

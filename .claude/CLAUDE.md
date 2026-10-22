@@ -671,6 +671,16 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   vitrine cai em `limit(300)`), Nominatim/azulejos do OSM não aceitam uso pesado, GitHub Pages ~100 GB/mês. Ordem sugerida:
   publicar regras+índices → Blaze com alerta de orçamento → Storage → App Check → enxugar leituras (Diário/Explorar/Início,
   vistas em lote, contadores divididos) → mapa/endereços com provedor pago → Cloudflare Pages → teste de carga.
+- **Leituras enxutas (passo 5 da análise, PR depois do #86, sem regra nova):** medidor `_testes/proxy-contador.mjs` +
+  `carga-seed.mjs` + `t-leituras.mjs`. `RECENTES_PAIS = 60` (regiao.js; eram 120) na MESMA consulta/chave do Diário e do
+  Explorar; `postsDoEstado` 30; seguidos 20 por lote; comentários contados nas 20 melhores; Principais com "Ver mais"
+  (`buscarPrincipais(true)`: próximas 60 mais antigas com `startAfter`, `ordenarPrincipais`). `lerResumosEstrelas` usa o
+  cache "r:" de 5 min (só `comResumo`). Explorar lê os negócios do início (`inicio-negocios`, 60; eram 200). `minhaRede`
+  guardada 6 h em `hf-rede-<uid>` (ponte 150 por consulta; não guarda se falhar). Resultado com a carga: sessão de 8
+  páginas 1.342 → 699 leituras, 7,65 → 4,21 MB; Diário 500 → 320 (2ª visita 178 → 39); Explorar 710 → 414 (198 → 36).
+  Contadores num doc só NÃO foram divididos: o SDK já repete gravação recusada por disputa; dividir exige reescrever
+  `contaCerta`/`resumoJunto` nas regras (perto do limite de 1.000) — só se uma publicação/negócio passar de ~1 gravação/s.
+  `t-busca-regiao` já falhava no main (2 itens), igual antes e depois.
 - **As 5 etapas estão concluídas.** Próximos passos são as pendências abaixo (só ele pode fazer) e o que ficou
   para depois.
 

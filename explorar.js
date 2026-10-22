@@ -11,10 +11,10 @@
 import {
   $, el, icone, ms, toast, pintarAvatar, urlSegura, nomeCidade, fb, eu, dados, meusSeguindo, escondido, silenciado, ganchos,
   obterPerfil, linhaPessoa, botaoSeguir, fotosDoPost, lerResumosEstrelas, minhaRede, jaVisto, definirOrigem, origemAtual, pilha
-} from "./rede.js?v=56";
+} from "./rede.js?v=57";
 import { afinidade } from "./gosto.js?v=1";
 import { buscarNoServidor } from "./busca.js?v=1";
-import { postsDoEstado, pesoRegiao } from "./regiao.js?v=1";
+import { postsDoEstado, pesoRegiao, RECENTES_PAIS } from "./regiao.js?v=2";
 import { buscarPessoas, pessoasRecentes, semAcento } from "./pessoas.js?v=3";
 import { docsComValidade } from "./leituras.js?v=1";
 import { lerResumos, media } from "./avaliacoes.js?v=14";
@@ -33,25 +33,26 @@ const linkNegocio = (n) => `${PAGINA_TIPO[n.tipo]}?negocio=${encodeURIComponent(
 const linkPost = (p) => `usuarios.html?post=${encodeURIComponent(p.id)}`;
 
 // ---------- dados (lidos uma vez e guardados) ----------
-// As mesmas 120 publicações recentes dos Principais (mesma chave no aparelho).
+// As mesmas publicações recentes dos Principais (mesma consulta e mesma chave no aparelho).
 let postsP = null, postsEm = 0, ultimoDoc = null, acabouAntigas = false;
 function postsRecentes() {
   if (postsP && Date.now() - postsEm < DIARIO_VALIDADE) return postsP;
   postsEm = Date.now();
-  const q = fb.query(fb.collection(fb.db, "diario"), fb.orderBy("criadoEm", "desc"), fb.limit(120));
+  const q = fb.query(fb.collection(fb.db, "diario"), fb.orderBy("criadoEm", "desc"), fb.limit(RECENTES_PAIS));
   // Junto com as recentes do país, as recentes do seu estado (regiao.js), sem repetir.
   return (postsP = Promise.all([docsComValidade(fb, "diario-principais", q, DIARIO_VALIDADE), postsDoEstado(fb, dados.uf)])
     .then(([s, doEstado]) => { const ja = new Set(s.docs.map((d) => d.id)); return { docs: s.docs, mais: doEstado.filter((p) => !ja.has(p.id)), size: s.size }; })
-    .then((s) => (ultimoDoc = s.docs.at(-1) || null, s.size < 120 && (acabouAntigas = true), [...s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })), ...s.mais]).filter((p) => !escondido(p.autorId) && !postOculto(p)))
+    .then((s) => (ultimoDoc = s.docs.at(-1) || null, s.size < RECENTES_PAIS && (acabouAntigas = true), [...s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })), ...s.mais]).filter((p) => !escondido(p.autorId) && !postOculto(p)))
     .catch((e) => { postsP = null; console.warn("Explorar:", e); return []; }));
 }
-// Negócios atualizados por último (os mesmos da página inicial, guardados por 10 min).
+// Negócios atualizados por último: a MESMA consulta e a mesma chave da página inicial (inicio.js), guardada
+// por 10 min — quem vem do início não lê de novo. Eram 200 só aqui; a busca vai ao servidor (busca.js).
 let negociosP = null;
 function negociosRecentes() {
   return (negociosP ||= (async () => {
     const col = fb.collection(fb.db, "negocios");
-    const s = await docsComValidade(fb, "explorar-negocios", fb.query(col, fb.orderBy("atualizadoEm", "desc"), fb.limit(200)), 10 * 60000)
-      .catch(() => fb.getDocs(fb.query(col, fb.limit(200))));
+    const s = await docsComValidade(fb, "inicio-negocios", fb.query(col, fb.orderBy("atualizadoEm", "desc"), fb.limit(60)), 10 * 60000)
+      .catch(() => fb.getDocs(fb.query(col, fb.limit(60))));
     return prepararNegocios(s.docs.map((d) => ({ id: d.id, ...d.data() })));
   })().catch((e) => { negociosP = null; console.warn("Explorar (negócios):", e); return []; }));
 }

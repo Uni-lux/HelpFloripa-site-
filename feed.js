@@ -13,15 +13,15 @@ import {
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, botaoSeguir, montarBarraRede, pintarBarraRede, ouvirAvisos, lerOrdenado,
   editarPublicacao, bloquear, comMencoes, fotosDoPost, carrosselFotos, contadorEstrelas, estaSalvo, alternarSalvo, escolherColecao, lerResumosEstrelas, contarComentarios,
   silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto, confirmarHF, blocoEnquete, blocoCaixa
-} from "./rede.js?v=56";
+} from "./rede.js?v=57";
 import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=1";
-import { montarStories, abrirFlashPorId, repostarFlash } from "./stories.js?v=28";
+import { montarStories, abrirFlashPorId, repostarFlash } from "./stories.js?v=29";
 import { abrirDenuncia } from "./denuncias.js?v=5";
 import { pessoasRecentes } from "./pessoas.js?v=3";
-import { abrirExplorar, definirCartao } from "./explorar.js?v=27";
+import { abrirExplorar, definirCartao } from "./explorar.js?v=28";
 import { docsComValidade } from "./leituras.js?v=1";
 import { distanciaKm } from "./perto.js?v=2";
-import { postsDoEstado, pesoRegiao } from "./regiao.js?v=1";
+import { postsDoEstado, pesoRegiao, RECENTES_PAIS } from "./regiao.js?v=2";
 
 const POR_VEZ = 10;
 // Publicação de conta desativada (conta.js): escondida até ocultoAte.
@@ -86,12 +86,12 @@ async function buscarSeguindo(lista = null, chave = "seguindo") {
   const autores = (lista || [eu.uid, ...meusSeguindo]).filter((u) => !escondido(u));
   const lotes = [];
   for (let i = 0; i < autores.length; i += 30) lotes.push(autores.slice(i, i + 30));
-  // As mais recentes de cada lote de autores (índice diario: autorId + criadoEm).
+  // As 20 mais recentes de cada lote de autores (índice diario: autorId + criadoEm).
   const col = fb.collection(fb.db, "diario");
   const res = await Promise.all(lotes.map((l, k) => docsComValidade(fb, `diario-${chave}-${eu.uid}-${k}`,
-    fb.query(col, fb.where("autorId", "in", l), fb.orderBy("criadoEm", "desc"), fb.limit(30)), DIARIO_VALIDADE).catch(() => lerOrdenado(
-    fb.query(col, fb.where("autorId", "in", l), fb.orderBy("criadoEm", "desc"), fb.limit(30)),
-    fb.query(col, fb.where("autorId", "in", l), fb.limit(30))
+    fb.query(col, fb.where("autorId", "in", l), fb.orderBy("criadoEm", "desc"), fb.limit(20)), DIARIO_VALIDADE).catch(() => lerOrdenado(
+    fb.query(col, fb.where("autorId", "in", l), fb.orderBy("criadoEm", "desc"), fb.limit(20)),
+    fb.query(col, fb.where("autorId", "in", l), fb.limit(20))
   )).catch(() => ({ docs: [] }))));
   return res.flatMap((s) => s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })));
 }
@@ -111,25 +111,37 @@ async function buscarAmigos() {
 //   engajamento (estrelas, média, comentários) × gosto (autores e hashtags com que você interage) ×
 //   quem você segue (empurrão) × já vista (desce) ÷ idade (as novas sobem).
 // Depois espalha os autores (nunca dois seguidos do mesmo) e mistura um pouco para o Diário não ficar parado.
-async function buscarPrincipais() {
-  const q = fb.query(fb.collection(fb.db, "diario"), fb.orderBy("criadoEm", "desc"), fb.limit(120));
+// Chegou ao fim: "Ver mais" busca as próximas do país (mais antigas), RECENTES_PAIS por vez, e dá nota igual.
+let cursorPrincipais = null, maisPrincipais = false;
+async function buscarPrincipais(continuar = false) {
+  const base = [fb.collection(fb.db, "diario"), fb.orderBy("criadoEm", "desc")];
+  if (continuar) {
+    if (!cursorPrincipais) return [];
+    const s = await fb.getDocs(fb.query(...base, fb.startAfter(cursorPrincipais), fb.limit(RECENTES_PAIS)));
+    cursorPrincipais = s.docs.at(-1) || null; maisPrincipais = s.size === RECENTES_PAIS;
+    return ordenarPrincipais(s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })));
+  }
+  const q = fb.query(...base, fb.limit(RECENTES_PAIS));
   const [s, deQuemSigo, doEstado] = await Promise.all([
     docsComValidade(fb, "diario-principais", q, DIARIO_VALIDADE),
     buscarSeguindo().catch(() => []),
     postsDoEstado(fb, dados.uf),
     sincronizarGosto(fb, eu.uid)
   ]);
+  cursorPrincipais = s.docs.at(-1) || null; maisPrincipais = s.size === RECENTES_PAIS;
+  return ordenarPrincipais([...s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })), ...deQuemSigo, ...doEstado]);
+}
+async function ordenarPrincipais(bruto) {
   const vistos = new Set();
-  const lista = [...s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })), ...deQuemSigo, ...doEstado]
-    .filter((p) => !vistos.has(p.id) && vistos.add(p.id) && !escondido(p.autorId) && !postOculto(p));
+  const lista = bruto.filter((p) => !vistos.has(p.id) && vistos.add(p.id) && !escondido(p.autorId) && !postOculto(p));
   const resumos = await lerResumosEstrelas(lista.map((p) => p.id));
   const agora = Date.now();
   const sigo = (p) => p.autorId === eu.uid || meusSeguindo.has(p.autorId);
   const gosto = new Map(lista.map((p) => [p.id, afinidade(p)]));
   const eng = (p) => { const r = resumos.get(p.id) || { total: 0, soma: 0 }; return r.total + Math.max(0, r.soma - 3 * r.total) * 0.4; };
   const pre = (p) => (1 + eng(p)) * (1 + gosto.get(p.id)) * (sigo(p) ? 1.8 : 1);
-  // Comentários: conta só para as 40 mais promissoras (contagem guardada no aparelho por alguns minutos).
-  const ordem1 = lista.slice().sort((a, b) => pre(b) - pre(a)).slice(0, 40);
+  // Comentários: conta só para as 20 mais promissoras (contagem guardada no aparelho por alguns minutos).
+  const ordem1 = lista.slice().sort((a, b) => pre(b) - pre(a)).slice(0, 20);
   const com = new Map(await Promise.all(ordem1.map(async (p) => [p.id, await contarComentarios(p.id).catch(() => 0)])));
   const pontos = (p) => {
     const horas = Math.max(0, (agora - (ms(p.criadoEm) || agora)) / 3600e3);
@@ -173,7 +185,7 @@ async function carregarFeed() {
   lista.replaceChildren(el("div", "esqueleto-post"), el("div", "esqueleto-post"));
   $("maisFeed").hidden = true;
   try {
-    maisTodos = false;
+    maisTodos = false; maisPrincipais = false;
     const bruto = localAtual ? await buscarLocal(localAtual) : tagAtual ? await buscarTag(tagAtual) : filtro === "amigos" ? await buscarAmigos() : await buscarPrincipais();
     posts = bruto.filter((p) => !escondido(p.autorId) && !postOculto(p));
     if (localAtual || tagAtual || filtro !== "principais") posts.sort((a, b) => ms(b.agendadoPara || b.criadoEm) - ms(a.agendadoPara || a.criadoEm)); // principais: pela pontuação
@@ -196,17 +208,19 @@ function mostrarMais() {
   const lista = $("listaFeed");
   posts.slice(mostrados, mostrados + POR_VEZ).forEach((p) => lista.appendChild(cartaoPost(p)));
   mostrados = Math.min(posts.length, mostrados + POR_VEZ);
-  $("maisFeed").hidden = mostrados >= posts.length;
+  $("maisFeed").hidden = mostrados >= posts.length && !temMaisPrincipais();
 }
+const temMaisPrincipais = () => maisPrincipais && filtro === "principais" && !localAtual && !tagAtual;
 let buscandoMais = false;
 $("maisFeed").addEventListener("click", async () => {
-  if (mostrados < posts.length || filtro !== "todos" || !maisTodos) { mostrarMais(); return; } // (filtro "todos" saiu; o resto fica para o caso de voltar)
+  const principais = temMaisPrincipais();
+  if (mostrados < posts.length || (!principais && (filtro !== "todos" || !maisTodos))) { mostrarMais(); return; } // (filtro "todos" saiu; o resto fica para o caso de voltar)
   if (buscandoMais) return;
   buscandoMais = true; $("maisFeed").disabled = true;
   try {
     const ja = new Set(posts.map((p) => p.id));
-    const novos = (await buscarTodos(true)).filter((p) => !ja.has(p.id) && !escondido(p.autorId) && !postOculto(p));
-    posts.push(...novos.sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm)));
+    const novos = (await (principais ? buscarPrincipais(true) : buscarTodos(true))).filter((p) => !ja.has(p.id) && !escondido(p.autorId) && !postOculto(p));
+    posts.push(...(principais ? novos : novos.sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm))));
     mostrarMais();
   } catch (e) { console.warn(e); toast("Não foi possível carregar mais."); }
   finally { buscandoMais = false; $("maisFeed").disabled = false; }
@@ -262,7 +276,7 @@ function cartaoPost(post) {
       : { rotulo: "Salvar publicação", sub: "Para ver depois no seu Perfil → Salvos", icone: "salvo", fn: () => alternarSalvo(post) },
     { rotulo: "Salvar em uma coleção", sub: "Organize seus salvos em pastas", icone: "fotos", fn: () => escolherColecao(post) },
     { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(post.autorId, post.nome) },
-    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=23").then((m) => m.abrirEstatisticas(post)) },
+    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=24").then((m) => m.abrirEstatisticas(post)) },
     post.autorId === eu.uid && { rotulo: "Editar publicação", icone: "lapis", fn: () => editarPublicacao(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId !== eu.uid && { rotulo: silenciado(post.autorId) ? `Mostrar ${nome.textContent} de novo` : `Silenciar ${nome.textContent}`, sub: "Continua seguindo, mas as publicações e flashes somem do seu Diário", icone: "restringir",
       fn: async () => { await alternarSilenciar(post.autorId, nome.textContent); if (silenciado(post.autorId)) { posts = posts.filter((x) => x.autorId !== post.autorId); document.querySelectorAll(".post-card").forEach((x) => { if (x.dataset.autor === post.autorId) x.remove(); }); } } },

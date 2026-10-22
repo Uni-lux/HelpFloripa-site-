@@ -6,6 +6,8 @@ import { extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 export const SITE = process.env.SITE || fileURLToPath(new URL("..", import.meta.url));
 export const BASE = process.env.CSP === "0" ? "http://127.0.0.1:5056/" : "http://127.0.0.1:5057/";
+// FS_PORTA: porta do Firestore (8085; o medidor de leituras usa 8086, o proxy-contador.mjs).
+const FS = process.env.FS_PORTA || "8085";
 const FB = fileURLToPath(new URL("node_modules/firebase/", import.meta.url));
 const TIPOS = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".png": "image/png", ".webp": "image/webp", ".ico": "image/x-icon", ".svg": "image/svg+xml", ".json": "application/json" };
 export const USUARIOS = JSON.parse(readFileSync(new URL("saida/seed.json", import.meta.url), "utf8"));
@@ -16,7 +18,7 @@ function firebasePatch() {
   s = s.replace("import { getAuth, onAuthStateChanged }", "import { getAuth, onAuthStateChanged, connectAuthEmulator, signInWithEmailAndPassword }");
   s = s.replace("import { getFirestore,", "import { connectFirestoreEmulator, getFirestore,");
   s = s.replace("const auth = getAuth(app);", 'const auth = getAuth(app); connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true }); window.__login = (e, p) => signInWithEmailAndPassword(auth, e, p);');
-  s = s.replace("window.firebaseApp = app;", 'connectFirestoreEmulator(db, "127.0.0.1", 8085);\nwindow.firebaseApp = app;');
+  s = s.replace("window.firebaseApp = app;", `connectFirestoreEmulator(db, "127.0.0.1", ${FS});\nwindow.firebaseApp = app;`);
   if (!s.includes("connectFirestoreEmulator(db")) throw new Error("patch do firebase.js falhou");
   // STORAGE=1: liga a chave USAR_STORAGE e aponta o Storage para o emulador (porta 9199; a CSP do servidor-csp.mjs libera).
   if (process.env.STORAGE === "1") {
@@ -30,7 +32,7 @@ function firebasePatch() {
 
 // CSP de verdade: só acrescenta o emulador (127.0.0.1) e tira o upgrade-insecure-requests.
 function cspDeTeste(html) {
-  return html.replace(/(<meta http-equiv="Content-Security-Policy" content=")([^"]*)"/, (_, a, c) => a + c.replace("connect-src", "connect-src http://127.0.0.1:8085 http://127.0.0.1:9099 ws://127.0.0.1:8085").replace(/;\s*upgrade-insecure-requests/, "") + '"');
+  return html.replace(/(<meta http-equiv="Content-Security-Policy" content=")([^"]*)"/, (_, a, c) => a + c.replace("connect-src", `connect-src http://127.0.0.1:${FS} http://127.0.0.1:9099 ws://127.0.0.1:${FS}`).replace(/;\s*upgrade-insecure-requests/, "") + '"');
 }
 // camera: true liga uma câmera de mentira (vídeo de teste do Chromium) já com permissão.
 export async function navegador({ mobile = false, headless = true, csp = process.env.CSP !== "0", camera = false } = {}) {

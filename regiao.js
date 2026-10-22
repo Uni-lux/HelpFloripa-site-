@@ -6,10 +6,14 @@
 // =====================================================
 import { docsComValidade } from "./leituras.js?v=1";
 
+// Quantas publicações recentes do país entram nos Principais e no Explorar (a mesma consulta e a mesma chave
+// no aparelho: abrir um depois do outro não lê de novo). Eram 120: metade já dá para escolher bem e custa metade.
+export const RECENTES_PAIS = 60;
+
 export const ufValida = (uf) => (/^[A-Z]{2}$/.test(uf || "") ? uf : "");
 
 // Recentes do estado (vale 3 min no aparelho, como o começo do Diário).
-export async function postsDoEstado(fb, uf, limite = 60) {
+export async function postsDoEstado(fb, uf, limite = 30) {
   if (!ufValida(uf)) return [];
   const q = fb.query(fb.collection(fb.db, "diario"), fb.where("autorUf", "==", uf), fb.orderBy("criadoEm", "desc"), fb.limit(limite));
   try { return (await docsComValidade(fb, `diario-uf-${uf}-${limite}`, q, 3 * 60000)).docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })); }
