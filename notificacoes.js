@@ -7,18 +7,20 @@ import {
   $, el, icone, pintarAvatar, urlSegura, tempoRelativo, toast, erroAmigavel,
   fb, eu, ganchos, iniciarRede, carregarMeusSeguindo, botaoSeguir, montarBarraRede, pintarBarraRede,
   ouvirAvisos, aoMudarAvisos, avisosVistosEm, marcarAvisosVistos, rotuloVinculo, abrirComentarios, abrirResultadoEnquete, verRespostasCaixa
-} from "./rede.js?v=53";
-import { TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=15";
+} from "./rede.js?v=54";
+import { TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=16";
 import { TEXTO_EQUIPE, linkEquipe, seloOficial, fotoSuporte } from "./avisos-equipe.js?v=1";
 import { textoEnqueteFim, resumoResultado } from "./enquetes.js?v=3";
+import { textoPlano, PLANOS } from "./planos-base.js?v=3";
+import { agrupar, secoes, nomesDoGrupo, textoDoGrupo } from "./avisos-agrupar.js?v=1";
 
 let filtro = "tudo";
 let vistoAntes = 0;
 const postsCache = new Map();
-const CORES = { caixa: "#ff7a1a", enquete: "#7c5cff", reacao: "#e0457b", marcacao: "#00adee", seguidor: "#00adee", curtida: "#f5b700", comentario: "#7c5cff", resposta: "#7c5cff", social: "#e0457b", mensagem: "#1fa855", reclamacao: "#ef4444", "reclamacao-resp": "#ff7a1a", "reclamacao-ok": "#2fbf71", suporte: "#00adee", aviso: "#7c5cff" };
-const ICONES = { caixa: "caixa", enquete: "enquete", reacao: "coracao", marcacao: "pessoa-mais", seguidor: "pessoa-mais", curtida: "estrela", comentario: "chat", resposta: "chat", social: "fio", mensagem: "envelope", reclamacao: "alerta", "reclamacao-resp": "chat", "reclamacao-ok": "check", suporte: "ajuda", aviso: "sino" };
+const CORES = { avaliacao: "#f5b700", plano: "#7c3aed", caixa: "#ff7a1a", enquete: "#7c5cff", reacao: "#e0457b", marcacao: "#00adee", seguidor: "#00adee", curtida: "#f5b700", comentario: "#7c5cff", resposta: "#7c5cff", social: "#e0457b", mensagem: "#1fa855", reclamacao: "#ef4444", "reclamacao-resp": "#ff7a1a", "reclamacao-ok": "#2fbf71", suporte: "#00adee", aviso: "#7c5cff" };
+const ICONES = { avaliacao: "estrela", plano: "selo", caixa: "caixa", enquete: "enquete", reacao: "coracao", marcacao: "pessoa-mais", seguidor: "pessoa-mais", curtida: "estrela", comentario: "chat", resposta: "chat", social: "fio", mensagem: "envelope", reclamacao: "alerta", "reclamacao-resp": "chat", "reclamacao-ok": "check", suporte: "ajuda", aviso: "sino" };
 // Filtro de cada tipo (as três de reclamação ficam juntas; avisos e respostas do suporte também)
-const grupo = (t) => (t === "resposta" || t === "reacao" ? "comentario" : t === "enquete" || t === "caixa" ? "enquete" : t === "marcacao" ? "curtida" : t.startsWith("reclamacao") ? "reclamacao" : t === "aviso" ? "suporte" : t);
+const grupo = (t) => (t === "resposta" || t === "reacao" ? "comentario" : t === "enquete" || t === "caixa" ? "enquete" : t === "marcacao" ? "curtida" : t.startsWith("reclamacao") || t === "avaliacao" || t === "plano" ? "reclamacao" : t === "aviso" ? "suporte" : t);
 
 function obterPost(id) {
   if (!postsCache.has(id)) postsCache.set(id, fb.getDoc(fb.doc(fb.db, "diario", id)).then((s) => (s.exists() ? { id, ...s.data() } : null)).catch(() => null));
@@ -53,7 +55,8 @@ function itens(a) {
     ...a.vinculos.map((x) => ({ tipo: "social", ...x, texto: x.pendente ? `quer adicionar você como ${rotuloVinculo(x.tipoParaMim).toLowerCase()}` : `aceitou seu pedido: ${rotuloVinculo(x.tipoParaMim)}` })),
     ...a.mensagens.map((x) => ({ tipo: "mensagem", ...x, texto: "enviou uma mensagem", detalhe: x.ultimaMensagem })),
     ...(a.reclamacoes || []).map((x) => ({ ...x, texto: TEXTO_RECLAMACAO[x.tipo](x) })),
-    ...(a.equipe || []).map((x) => ({ ...x, texto: TEXTO_EQUIPE(x), pendente: x.naoLida }))
+    ...(a.equipe || []).map((x) => ({ ...x, texto: TEXTO_EQUIPE(x), pendente: x.naoLida })),
+    ...(a.planos || []).map((x) => ({ ...x, texto: textoPlano(x) }))
   ].sort((x, y) => y.quando - x.quando);
 }
 
@@ -77,19 +80,22 @@ function miniResultado(i) {
 function linha(i) {
   const d = el("div", "notif" + (i.quando > vistoAntes || i.pendente ? " nova" : ""));
   d.tabIndex = 0; d.setAttribute("role", "button");
-  const w = el("div", "av-wrap");
+  const w = el("div", "av-wrap" + (i.grupo ? " duplo" : ""));
   const av = el("div", "avatar");
   if (i.oficial) av.replaceChildren(fotoSuporte());
   else if (i.tipo === "caixa" && i.anonima) { av.classList.add("anonimo"); av.replaceChildren(icone("mascara", "i s")); }
-  else pintarAvatar(av, i.foto, i.nome);
+  else if (i.tipo === "plano") { av.classList.add("plano"); av.style.setProperty("--pc", PLANOS[i.plano]?.cor || "#7c3aed"); av.replaceChildren(icone("selo", "i s")); }
+  else pintarAvatar(av, (i.grupo ? i.grupo[0] : i).foto, (i.grupo ? i.grupo[0] : i).nome);
+  // Linha agrupada: duas fotos sobrepostas, como nas redes sociais.
+  if (i.grupo) { const av2 = el("div", "avatar"); pintarAvatar(av2, i.grupo[1].foto, i.grupo[1].nome); w.appendChild(av2); }
   const t = el("span", "tipo"); t.style.background = CORES[i.tipo]; t.appendChild(icone(ICONES[i.tipo], "i"));
   w.append(av, t);
   const tx = el("div", "tx");
-  const nome = el("b", null, i.nome || "Usuário");
+  const nome = el("b", null, nomesDoGrupo(i));
   if (i.oficial) nome.appendChild(seloOficial());
-  tx.append(nome, document.createTextNode(" " + i.texto + " "));
+  tx.append(nome, document.createTextNode(" " + (i.grupo ? textoDoGrupo(i) : i.texto) + " "));
   tx.appendChild(el("span", "quando", tempoRelativo(i.quando ? new Date(i.quando) : null)));
-  if (i.detalhe) tx.appendChild(el("small", null, i.oficial ? i.detalhe : `"${i.detalhe}"`));
+  if (i.detalhe) tx.appendChild(el("small", null, i.oficial || i.tipo === "plano" ? i.detalhe : `"${i.detalhe}"`));
   if (i.tipo === "enquete") tx.appendChild(miniResultado(i));
   d.append(w, tx);
   // Miniatura da publicação curtida ou comentada
@@ -97,7 +103,7 @@ function linha(i) {
     const u = urlSegura(p?.mediaUrl);
     if (u && p.mediaTipo !== "video") { const img = document.createElement("img"); img.className = "mini-foto"; img.src = u; img.alt = ""; d.appendChild(img); }
   });
-  if (i.tipo === "seguidor") { const box = el("div", "acoes-linha"); box.appendChild(botaoSeguir(i.uid, { meSegue: true })); d.appendChild(box); }
+  if (i.tipo === "seguidor" && !i.grupo) { const box = el("div", "acoes-linha"); box.appendChild(botaoSeguir(i.uid, { meSegue: true })); d.appendChild(box); }
   if (i.tipo === "social" && i.pendente) {
     const box = el("div", "acoes-linha");
     [["Aceitar", "pri", true], ["Recusar", "sec", false]].forEach(([r, c, sim]) => {
@@ -117,7 +123,8 @@ function linha(i) {
     }
     if (i.tipo === "mensagem") { location.href = `mensagens.html?conversa=${encodeURIComponent(i.id)}`; return; }
     if (i.oficial) { location.href = linkEquipe(i); return; }
-    if (i.tipo.startsWith("reclamacao")) { location.href = linkReclamacao(i, eu.uid); return; }
+    if (i.tipo.startsWith("reclamacao") || i.tipo === "avaliacao") { location.href = linkReclamacao(i, eu.uid); return; }
+    if (i.tipo === "plano") { location.href = "negocios.html?planos=1"; return; }
     if (i.tipo === "reacao") {
       const c = await fb.getDoc(fb.doc(fb.db, "comentarios", i.comentarioId)).catch(() => null);
       const p = c?.exists() ? await obterPost(c.data().postId) : null;
@@ -147,13 +154,12 @@ function pintar(a) {
   corpo.replaceChildren();
   if (!lista.length) {
     const v = el("div", "feed-vazio");
-    v.append(el("strong", null, "Nada por aqui ainda"), el("span", null, "Quando alguém seguir você, der estrelas, comentar suas publicações, responder uma reclamação ou o suporte responder, aparece aqui."));
+    v.append(el("strong", null, "Nada por aqui ainda"), el("span", null, "Quando alguém seguir você, der estrelas, comentar, avaliar seu negócio, responder uma reclamação, o suporte responder ou o seu plano estiver perto de vencer, aparece aqui."));
     corpo.appendChild(v);
     return;
   }
-  const novas = lista.filter((i) => i.quando > vistoAntes || i.pendente), antigas = lista.filter((i) => !(i.quando > vistoAntes || i.pendente));
-  [["Novas", novas], ["Anteriores", antigas]].forEach(([t, l]) => {
-    if (!l.length) return;
+  const nova = (i) => i.quando > vistoAntes || !!i.pendente;
+  secoes(agrupar(lista, nova), nova).forEach(([t, l]) => {
     corpo.appendChild(el("div", "grupo-titulo", t));
     l.slice(0, 120).forEach((i) => corpo.appendChild(linha(i)));
   });

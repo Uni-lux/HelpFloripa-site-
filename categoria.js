@@ -7,10 +7,11 @@
 // =====================================================
 import { fotoSegura } from "./seguranca.js?v=1";
 import { definirPerfilMenu, definirBadgeMensagens } from "./menu.js?v=14";
-import { buscarReclamacoes } from "./avisos-reclamacoes.js?v=15";
+import { buscarReclamacoes } from "./avisos-reclamacoes.js?v=16";
+import { avisoPlano } from "./planos-base.js?v=3";
 import { ouvirItensEquipe } from "./avisos-equipe.js?v=1";
 import { enquetesEncerradas } from "./enquetes.js?v=3";
-import "./painel-avisos.js?v=18"; // o sino abre o painel de notificações na própria página
+import "./painel-avisos.js?v=19"; // o sino abre o painel de notificações na própria página
 import "./chat-gaveta.js?v=1";
 import { docComValidade } from "./leituras.js?v=1"; // "Mensagens" abre as conversas por cima da página, sem sair dela
 
@@ -73,6 +74,8 @@ async function contarAvisos(fs, db, uid) {
     n += marc.filter((x) => x.autorId !== uid && novo(ms(x.criadoEm)) && (x.agendadoPara?.toMillis?.() ?? 0) <= Date.now()).length;
     n += (await ler([col("caixa_respostas"), fs.where("autorId", "==", uid)])).filter((x) => novo(ms(x.criadoEm))).length;
     n += (await enquetesEncerradas(fs, db, uid, usuario.exists() ? usuario.data() : {}).catch(() => [])).filter((x) => novo(x.quando)).length;
+    const plano = await avisoPlano({ ...fs, db }, uid).catch(() => null);
+    if (plano && novo(plano.quando)) n++;
     const r = { n, visto, em: Date.now() };
     try { localStorage.setItem(chaveSino(uid), JSON.stringify(r)); } catch {}
     return r;

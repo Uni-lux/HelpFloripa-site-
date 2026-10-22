@@ -627,6 +627,12 @@ body.com-barra { padding-bottom: calc(74px + env(safe-area-inset-bottom)); }
 .notif .av-wrap .avatar { width: 46px; height: 46px; }
 .notif .av-wrap .tipo { position: absolute; right: -3px; bottom: -3px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; color: #fff; border: 2px solid var(--panel); }
 .notif .av-wrap .tipo svg { width: 12px; height: 12px; }
+/* linha agrupada (estrelas na mesma publicação, seguidores): duas fotos sobrepostas */
+.notif .av-wrap.duplo { width: 46px; height: 46px; }
+.notif .av-wrap.duplo .avatar { position: absolute; width: 34px; height: 34px; font-size: 12px; border: 2px solid var(--panel); }
+.notif .av-wrap.duplo .avatar:first-child { top: 0; left: 0; }
+.notif .av-wrap.duplo .avatar + .avatar { right: 0; bottom: 0; }
+.notif .avatar.plano { display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, var(--pc, #7c3aed), color-mix(in srgb, var(--pc, #7c3aed) 55%, #000)); }
 .notif .tx { flex: 1; min-width: 0; font-size: 14px; line-height: 1.4; }
 .notif .tx b { font-weight: 800; }
 .notif .tx small { display: block; color: var(--muted); font-size: 12.5px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

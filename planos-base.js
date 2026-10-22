@@ -64,6 +64,24 @@ export function lerPlano(fb, uid) {
 }
 export const esquecerPlano = (uid) => cache.delete(uid);
 
+// Aviso do sino quando o plano está perto de vencer (7 dias) ou venceu há pouco (15 dias).
+// O id muda a cada período (data de fim), então cada renovação gera um aviso novo.
+export async function avisoPlano(fb, uid) {
+  const p = await lerPlano(fb, uid);
+  const fim = ms(p?.ate);
+  if (!p || !PLANOS[p.plano] || !fim) return null;
+  const agora = Date.now(), dias = Math.ceil((fim - agora) / DIA), nome = (p.teste ? "Teste grátis do " : "Plano ") + PLANOS[p.plano].nome;
+  if (dias > 7 || agora - fim > 15 * DIA) return null;
+  const venceu = fim <= agora;
+  return {
+    // Volta a contar como nova com 7, 3 e 1 dia(s) para vencer e no dia em que vence.
+    tipo: "plano", id: `pl_${p.plano}_${Math.round(fim / 1000)}`, nome, plano: p.plano, venceu, dias,
+    quando: venceu ? fim : fim - (dias <= 1 ? 1 : dias <= 3 ? 3 : 7) * DIA,
+    detalhe: venceu ? "Renove para voltar a ter o selo, o destaque e as estatísticas completas." : "Renove para não perder o selo e o destaque nas vitrines."
+  };
+}
+export const textoPlano = (i) => (i.venceu ? "venceu" : i.dias <= 1 ? "vence amanhã" : `vence em ${i.dias} dias`);
+
 // Selo do plano (cartões e perfil do negócio): "PLUS", "PRO" ou "PREMIUM" na cor do plano.
 export function seloPlano(p, classe = "selo-pro") {
   cssSelo();

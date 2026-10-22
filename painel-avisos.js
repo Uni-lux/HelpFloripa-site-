@@ -2,16 +2,21 @@
 // Painel de notificações (gaveta lateral)
 // O sino do topo abre este painel na própria página, em vez de sair para
 // notificacoes.html. Mostra o mesmo que a página de notificações:
-// mensagens, seguidores, pedidos do social (com Aceitar/Recusar), estrelas,
-// comentários, respostas e reclamações. Ao abrir, os avisos contam como
-// vistos (continuam destacados até fechar).
+// mensagens, seguidores (com Seguir de volta), pedidos do social (com Aceitar/Recusar), estrelas,
+// comentários, respostas, avaliações, reclamações e o plano perto de vencer. Como nas redes
+// sociais: estrelas na mesma publicação e seguidores viram uma linha só, as linhas ficam em
+// Novas/Hoje/Ontem/Últimos 7 dias e a miniatura da publicação aparece à direita.
+// Ao abrir, os avisos contam como vistos (continuam destacados até fechar).
 // Funciona em qualquer página com o sino no topo (a[href="notificacoes.html"]
 // dentro de .topo), menos na própria página de notificações.
 // =====================================================
-import { buscarReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=15";
+import { buscarReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=16";
 import { fotoSegura } from "./seguranca.js?v=1";
 import { buscarItensEquipe, TEXTO_EQUIPE, linkEquipe, seloOficial, SUPORTE } from "./avisos-equipe.js?v=1";
 import { enquetesEncerradas, textoEnqueteFim } from "./enquetes.js?v=3";
+import { avisoPlano, textoPlano, PLANOS } from "./planos-base.js?v=3";
+import { docsComValidade, esquecer } from "./leituras.js?v=1";
+import { agrupar, secoes, nomesDoGrupo, textoDoGrupo } from "./avisos-agrupar.js?v=1";
 
 const ms = (ts) => ts?.toMillis?.() ?? (typeof ts === "number" ? ts : 0);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
@@ -32,7 +37,8 @@ const ICONES = {
   suporte: '<path d="M4.5 13v-1.5a7.5 7.5 0 0115 0V13"/><rect x="3.5" y="13" width="4" height="6" rx="1.5"/><rect x="16.5" y="13" width="4" height="6" rx="1.5"/><path d="M18.5 19c0 1.4-1.6 2-4 2h-1.5"/>',
   caixa: '<path d="M5 4.5h14a1.5 1.5 0 011.5 1.5v10a1.5 1.5 0 01-1.5 1.5h-6.5L8 21v-3.5H5A1.5 1.5 0 013.5 16V6A1.5 1.5 0 015 4.5z"/><path d="M10 9.2a2 2 0 113 1.7c-.6.4-1 .8-1 1.5M12 14.6h.01"/>',
   enquete: '<rect x="4" y="5" width="16" height="3.5" rx="1.75"/><rect x="4" y="10.25" width="11" height="3.5" rx="1.75"/><rect x="4" y="15.5" width="7" height="3.5" rx="1.75"/>',
-  megafone: '<path d="M4 10v4h3l6 4V6L7 10H4z"/><path d="M16.5 9a4 4 0 010 6M19 6.5a7.5 7.5 0 010 11"/>'
+  megafone: '<path d="M4 10v4h3l6 4V6L7 10H4z"/><path d="M16.5 9a4 4 0 010 6M19 6.5a7.5 7.5 0 010 11"/>',
+  selo: '<path d="M12 3l2.4 1.8 3-.2.9 2.9 2.4 1.8-1 2.8 1 2.8-2.4 1.8-.9 2.9-3-.2L12 21l-2.4-1.8-3 .2-.9-2.9-2.4-1.8 1-2.8-1-2.8 2.4-1.8.9-2.9 3 .2z"/><path d="M9 12l2 2 4-4"/>'
 };
 const svg = (nome, cls = "") => {
   const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -56,13 +62,15 @@ const TIPOS = {
   marcacao: { cor: "#00adee", ic: "pessoa", aba: "publicacoes" },
   enquete: { cor: "#7c5cff", ic: "enquete", aba: "publicacoes" },
   caixa: { cor: "#ff7a1a", ic: "caixa", aba: "publicacoes" },
-  reclamacao: { cor: "#ef4444", ic: "alerta", aba: "reclamacoes" },
-  "reclamacao-resp": { cor: "#ff7a1a", ic: "chat", aba: "reclamacoes" },
-  "reclamacao-ok": { cor: "#2fbf71", ic: "check", aba: "reclamacoes" },
+  reclamacao: { cor: "#ef4444", ic: "alerta", aba: "negocios" },
+  "reclamacao-resp": { cor: "#ff7a1a", ic: "chat", aba: "negocios" },
+  "reclamacao-ok": { cor: "#2fbf71", ic: "check", aba: "negocios" },
+  avaliacao: { cor: "#f5b700", ic: "estrela", aba: "negocios" },
+  plano: { cor: "#7c3aed", ic: "selo", aba: "negocios" },
   suporte: { cor: "#00adee", ic: "suporte", aba: "suporte" },
   aviso: { cor: "#7c5cff", ic: "megafone", aba: "suporte" }
 };
-const ABAS = [["tudo", "Tudo"], ["mensagens", "Mensagens"], ["suporte", "Suporte"], ["social", "Social"], ["publicacoes", "Publicações"], ["reclamacoes", "Reclamações"]];
+const ABAS = [["tudo", "Tudo"], ["mensagens", "Mensagens"], ["publicacoes", "Publicações"], ["social", "Social"], ["negocios", "Negócios"], ["suporte", "Suporte"]];
 const VINCULOS = { duo: "Duo", namoro: "Namorado(a)", casamento: "Cônjuge", melhor_amigo: "Melhor amigo(a)", amigo: "Amigo(a)", irmao: "Irmão(ã)", pai_mae: "Pai/Mãe", filho: "Filho(a)", primo: "Primo(a)", tio: "Tio(a)", sobrinho: "Sobrinho(a)", avo: "Avô/Avó", neto: "Neto(a)", parceiro: "Parceiro(a) de trabalho" };
 const TIPOS_DUO = ["duo", "namoro", "casamento"];
 
@@ -81,6 +89,7 @@ function texto(i) {
     case "caixa": return "respondeu sua caixa de perguntas";
     case "enquete": return i.souAutor ? "terminou. Veja o resultado." : textoEnqueteFim(i).titulo;
     case "aviso": case "suporte": return TEXTO_EQUIPE(i);
+    case "plano": return textoPlano(i);
     default: return TEXTO_RECLAMACAO[i.tipo] ? TEXTO_RECLAMACAO[i.tipo](i) : "";
   }
 }
@@ -151,6 +160,20 @@ async function carregar() {
   });
   recl.forEach((x) => itens.push({ ...x }));
   equipe.forEach((x) => itens.push({ ...x }));
+  const plano = await avisoPlano({ ...fs, db }, uid).catch(() => null);
+  if (plano) itens.push(plano);
+  // Miniatura da publicação (estrelas, comentários, respostas, marcações): até 20 publicações.
+  const posts = [...new Set(itens.filter((i) => i.postId).sort((a, b) => b.quando - a.quando).map((i) => i.postId))].slice(0, 20);
+  const minis = new Map();
+  await Promise.all(posts.map(async (id) => {
+    try { const s = await fs.getDoc(fs.doc(db, "diario", id)); const p = s.exists() ? s.data() : null; const u = p && p.mediaTipo !== "video" ? fotoSegura(p.mediaUrl || p.midias?.[0]) : ""; minis.set(id, p ? { foto: u, texto: p.texto || "" } : null); } catch {}
+  }));
+  itens.forEach((i) => { if (i.postId && minis.has(i.postId)) i.mini = minis.get(i.postId); });
+  // Quem eu já sigo (para o "Seguir de volta"): a mesma cópia de 15 min das páginas da rede.
+  try {
+    const snap = await docsComValidade({ ...fs, db }, "seguindo-" + uid, fs.query(fs.collection(db, "relacoes"), fs.where("tipo", "==", "seguir"), fs.where("seguidorId", "==", uid), fs.limit(500)), 15 * 60000);
+    sigo = new Set(snap.docs.map((d) => d.data().alvoId));
+  } catch { sigo = null; }
   // Nomes e fotos de quem ainda não veio junto
   const faltam = [...new Set(itens.filter((i) => i.uid && !i.nome).map((i) => i.uid))].slice(0, 40);
   const perfis = new Map();
@@ -226,33 +249,54 @@ const CSS = `
 .pa-rodape a svg { width: 16px; height: 16px; }
 .pa-toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 9600; padding: 11px 16px; border-radius: 12px; font-weight: 700; font-size: 13.5px; background: var(--text, #eaf0f3); color: var(--panel, #0f161b); max-width: 90vw; }
 html.pa-aberto { overflow: hidden; }
+.pa-av.duplo .f { position: absolute; width: 34px; height: 34px; font-size: 12px; border: 2px solid var(--panel, #0f161b); }
+.pa-av.duplo .f:first-child { top: 0; left: 0; }
+.pa-av.duplo .f + .f { right: 0; bottom: 0; }
+.pa-av .f.plano { background: linear-gradient(135deg, var(--pc, #7c3aed), color-mix(in srgb, var(--pc, #7c3aed) 55%, #000)); }
+.pa-av .f.plano svg { width: 22px; height: 22px; }
+.pa-mini { flex-shrink: 0; width: 46px; height: 46px; border-radius: 10px; object-fit: cover; background: var(--panel-2, #151f25); align-self: center; }
+.pa-mini.tx { display: grid; place-items: center; padding: 4px; font-size: 8.5px; line-height: 1.2; color: var(--muted, #8c9ca7); overflow: hidden; border: 1px solid var(--line, #213038); text-align: center; }
+.pa-seguir { flex-shrink: 0; align-self: center; border: 0; border-radius: 10px; padding: 8px 12px; font: inherit; font-size: 12.5px; font-weight: 800; cursor: pointer; background: #00adee; color: #fff; }
+.pa-seguir.on { background: var(--panel-2, #151f25); color: var(--text, #eaf0f3); border: 1px solid var(--line, #213038); }
+.pa-item.tem-lado .pa-tx { padding-right: 4px; }
+.pa-item.tem-lado.nova::after { right: 4px; top: 6px; }
 @media (prefers-reduced-motion: reduce) { .pa, .pa-fundo, .pa-item { transition: none !important; animation: none !important; } }
 `;
 let cssPronto = false;
 function css() { if (cssPronto) return; cssPronto = true; const s = document.createElement("style"); s.textContent = CSS; document.head.appendChild(s); }
 function toast(t) { const d = el("div", "pa-toast", t); document.body.appendChild(d); setTimeout(() => d.remove(), 3000); }
 
-let painel = null, fundo = null, aba = "tudo", estado = null, vistoAntes = 0, quemAbriu = null, carregadoEm = 0;
+let painel = null, fundo = null, aba = "tudo", estado = null, vistoAntes = 0, quemAbriu = null, carregadoEm = 0, sigo = null;
 // Nova = chegou depois da última vez que a pessoa viu as notificações (ou é um pedido esperando resposta).
 // Mensagem não lida continua com a etiqueta "não lida", mas não volta a contar como nova:
 // ela some quando a conversa é aberta, na página de mensagens.
 const ehNova = (i) => i.quando > vistoAntes || !!i.pendente;
 
-function avatar(i) {
-  const w = el("div", "pa-av");
+function foto(i) {
   const f = el("div", "f");
   const u = i.oficial ? SUPORTE.foto : fotoSegura(i.foto);
   if (u) { const img = document.createElement("img"); img.src = u; img.alt = ""; img.loading = "lazy"; img.onerror = () => { f.textContent = iniciais(i.nome); }; f.appendChild(img); } else f.textContent = iniciais(i.nome);
+  return f;
+}
+function avatar(i) {
+  const w = el("div", "pa-av" + (i.grupo ? " duplo" : ""));
+  if (i.grupo) w.append(foto(i.grupo[1]), foto(i.grupo[0]));
+  else if (i.tipo === "plano") { const f = el("div", "f plano"); f.style.setProperty("--pc", PLANOS[i.plano]?.cor || "#7c3aed"); f.appendChild(svg("selo")); w.appendChild(f); }
+  else w.appendChild(foto(i));
   const tp = TIPOS[i.tipo] || TIPOS.mensagem;
   const t = el("span", "t"); t.style.background = tp.cor; t.appendChild(svg(tp.ic));
-  w.append(f, t);
+  w.appendChild(t);
   return w;
 }
 function destino(i) {
   if (i.tipo === "mensagem") return `mensagens.html?conversa=${encodeURIComponent(i.conversaId)}`;
   if (i.oficial) return linkEquipe(i);
-  if (i.tipo.startsWith("reclamacao")) return linkReclamacao(i, eu.uid);
+  if (i.tipo.startsWith("reclamacao") || i.tipo === "avaliacao") return linkReclamacao(i, eu.uid);
+  if (i.tipo === "plano") return "negocios.html?planos=1";
+  if (i.grupo && i.tipo === "seguidor") return "notificacoes.html";
   if (i.tipo === "seguidor" || i.tipo === "social") return `usuarios.html?perfil=${encodeURIComponent(i.uid)}`;
+  // Estrelas, comentários, respostas e marcações: abre a própria publicação.
+  if (i.postId && ["curtida", "comentario", "resposta", "marcacao"].includes(i.tipo)) return `usuarios.html?post=${encodeURIComponent(i.postId)}`;
   if (i.tipo === "enquete") return `notificacoes.html?enquete=${encodeURIComponent(i.alvo)}`;
   return "notificacoes.html"; // estrelas e comentários abrem a publicação na página de notificações
 }
@@ -277,11 +321,12 @@ function linha(i) {
   const d = el("div", "pa-item" + (nova ? " nova" : ""));
   d.tabIndex = 0; d.setAttribute("role", "link");
   const tx = el("div", "pa-tx");
-  const nome = el("b", null, i.nome);
+  const nome = el("b", null, nomesDoGrupo(i));
   if (i.oficial) nome.appendChild(seloOficial());
-  tx.append(nome, document.createTextNode(" " + texto(i)), el("span", "q", tempo(i.quando)));
+  const frase = i.grupo ? textoDoGrupo(i) : texto(i);
+  tx.append(nome, document.createTextNode(" " + frase), el("span", "q", tempo(i.quando)));
   if (i.naoLida) tx.appendChild(el("span", "pa-nl", i.oficial ? "nova" : "não lida"));
-  if (i.detalhe) tx.appendChild(el("small", null, i.tipo === "mensagem" || i.tipo === "enquete" || i.oficial ? i.detalhe : `"${i.detalhe}"`));
+  if (i.detalhe) tx.appendChild(el("small", null, i.tipo === "mensagem" || i.tipo === "enquete" || i.tipo === "plano" || i.oficial ? i.detalhe : `"${i.detalhe}"`));
   if (i.tipo === "social" && i.pendente) {
     const box = el("div", "pa-acoes");
     const sim = el("button", "pa-acao pri", "Aceitar"), nao = el("button", "pa-acao sec", "Recusar");
@@ -292,11 +337,39 @@ function linha(i) {
     tx.appendChild(box);
   }
   d.append(avatar(i), tx);
-  d.setAttribute("aria-label", `${i.nome} ${texto(i)}, ${tempo(i.quando)}`);
+  // Do lado direito: miniatura da publicação ou "Seguir de volta"
+  if (i.mini) {
+    d.classList.add("tem-lado");
+    if (i.mini.foto) { const img = document.createElement("img"); img.className = "pa-mini"; img.src = i.mini.foto; img.alt = ""; img.loading = "lazy"; d.appendChild(img); }
+    else d.appendChild(el("span", "pa-mini tx", String(i.mini.texto || "").slice(0, 60)));
+  } else if (i.tipo === "seguidor" && !i.grupo && sigo) {
+    d.classList.add("tem-lado");
+    d.appendChild(botaoSeguir(i.uid));
+  }
+  d.setAttribute("aria-label", `${nomesDoGrupo(i)} ${frase}, ${tempo(i.quando)}`);
   const ir = () => { location.href = destino(i); };
   d.addEventListener("click", (e) => { if (!e.target.closest("button")) ir(); });
   d.addEventListener("keydown", (e) => { if (e.target === d && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); ir(); } });
   return d;
+}
+// "Seguir de volta" / "Seguindo" (mesmo documento que as páginas da rede: relacoes/{eu}_{alvo}).
+function botaoSeguir(alvo) {
+  const b = el("button", "pa-seguir"); b.type = "button";
+  const pintarB = () => { const on = sigo.has(alvo); b.classList.toggle("on", on); b.textContent = on ? "Seguindo" : "Seguir de volta"; };
+  pintarB();
+  b.addEventListener("click", async (e) => {
+    e.stopPropagation(); b.disabled = true;
+    const ref = fs.doc(db, "relacoes", `${eu.uid}_${alvo}`);
+    try {
+      if (sigo.has(alvo)) { await fs.deleteDoc(ref); sigo.delete(alvo); }
+      else { await fs.setDoc(ref, { tipo: "seguir", seguidorId: eu.uid, alvoId: alvo, criadoEm: fs.serverTimestamp() }); sigo.add(alvo); }
+      esquecer("seguindo-" + eu.uid);
+      painel.querySelectorAll(".pa-seguir").forEach((x) => x.pintar?.());
+    } catch { toast("Não foi possível seguir agora."); }
+    finally { b.disabled = false; pintarB(); }
+  });
+  b.pintar = pintarB;
+  return b;
 }
 function pintar() {
   const corpo = painel.querySelector(".pa-corpo");
@@ -315,12 +388,11 @@ function pintar() {
   if (!lista.length) {
     const v = el("div", "pa-vazio");
     const ic = el("div", "pa-ic"); ic.appendChild(svg("sino"));
-    v.append(ic, el("strong", null, "Nada por aqui ainda"), el("span", null, aba === "tudo" ? "Mensagens, avisos do suporte, seguidores, estrelas, comentários e reclamações aparecem aqui." : "Nenhuma notificação deste tipo."));
+    v.append(ic, el("strong", null, "Nada por aqui ainda"), el("span", null, aba === "tudo" ? "Mensagens, seguidores, estrelas, comentários, avaliações, avisos do suporte e do seu plano aparecem aqui." : "Nenhuma notificação deste tipo."));
     corpo.appendChild(v);
     return;
   }
-  [["Novas", lista.filter(ehNova)], ["Anteriores", lista.filter((i) => !ehNova(i))]].forEach(([t, l]) => {
-    if (!l.length) return;
+  secoes(agrupar(lista, ehNova), ehNova).forEach(([t, l]) => {
     corpo.appendChild(el("div", "pa-grupo", t));
     l.slice(0, 80).forEach((i) => corpo.appendChild(linha(i)));
   });
