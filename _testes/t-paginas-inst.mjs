@@ -21,5 +21,11 @@ console.log("busca:", await p.evaluate(() => ({ temas: document.getElementById("
 // Menu com os itens novos
 await p.tap("#btnMenu"); await p.waitForTimeout(500);
 console.log("menu:", await p.evaluate(() => [...document.querySelectorAll(".gaveta-item .rot")].map((r) => r.firstChild.textContent).join(" | ")));
+// WhatsApp só para recuperar o acesso
+await p.keyboard.press("Escape");
+const zaps = {};
+for (const pg of paginas) { await p.goto(BASE + pg); await p.waitForTimeout(600); zaps[pg] = await p.evaluate(() => [...document.querySelectorAll('a[href*="wa.me"]')].map((a) => a.id || a.textContent.trim().slice(0, 30))); }
+console.log("whatsapp:", JSON.stringify(Object.fromEntries(Object.entries(zaps).filter(([, v]) => v.length))));
+console.log("instagram no rodapé:", await p.evaluate(() => !!document.querySelector('.rodape-home a[href*="instagram"]')));
 console.log("erros:", erros.length ? erros : "nenhum");
 await browser.close();

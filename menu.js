@@ -207,7 +207,11 @@ function montarGaveta() {
   // Rodapé
   const rod = el("div", "gaveta-rodape");
   const links = el("div", "links");
-  [["termos.html", "Termos de Uso"], ["privacidade.html", "Privacidade"], ["contato.html", "Contato"]].forEach(([h, r]) => { const a = el("a", null, r); a.href = h; links.appendChild(a); });
+  [["termos.html", "Termos de Uso"], ["privacidade.html", "Privacidade"], ["contato.html", "Contato"], ["https://www.instagram.com/help_floripa", "Instagram"]].forEach(([h, r]) => {
+    const a = el("a", null, r); a.href = h;
+    if (h.startsWith("https:")) { a.target = "_blank"; a.rel = "noopener noreferrer"; }
+    links.appendChild(a);
+  });
   const sair = el("button", "gaveta-sair"); sair.type = "button"; sair.id = "gavetaSair"; sair.append(iconeMenu("sair"), document.createTextNode("Sair da conta"));
   // A mesma janela "Sair da conta?" das configurações e das mensagens.
   sair.addEventListener("click", () => import("./confirmar.js?v=4").then((m) => m.sairDaConta()));

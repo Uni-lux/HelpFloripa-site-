@@ -6,7 +6,7 @@
 // - Busca: o botão da lupa leva até o campo.
 // =====================================================
 import { fotoSegura } from "./seguranca.js?v=1";
-import { definirPerfilMenu, definirBadgeMensagens } from "./menu.js?v=12";
+import { definirPerfilMenu, definirBadgeMensagens } from "./menu.js?v=13";
 import { buscarReclamacoes } from "./avisos-reclamacoes.js?v=15";
 import { ouvirItensEquipe } from "./avisos-equipe.js?v=1";
 import { enquetesEncerradas } from "./enquetes.js?v=3";

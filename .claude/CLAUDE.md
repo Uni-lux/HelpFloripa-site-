@@ -575,6 +575,11 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   Ajuda: "Navegue por tema", "Mais procuradas" (`#p-...` abre a pergunta), grupos novos Diário/Flash e Planos. Sobre: números +
   "Nossa história". Contato: "Qual é o seu caso?" (9 casos, imprensa/LGPD/jurídico pelo e-mail). Para negócios: planos + perguntas.
   Rodapés com Central de Segurança e Diretrizes. Teste `t-paginas-inst.mjs`.
+  **Parte 3 (canais como as grandes redes):** atendimento só pelo chamado. WhatsApp (48 99684-9431) só no cartão
+  `contato.html#acesso` "Não consegue entrar na conta?" (mensagem pronta; link "Não consigo entrar" no rodapé do login e na
+  pergunta de senha da Ajuda). Formulário do Contato só "Enviar como chamado" (sem nome; Parcerias vai para Sócios). E-mail só
+  para imprensa, LGPD e jurídico (mesmo endereço, assuntos diferentes). Instagram no rodapé das páginas e do menu, "sem
+  atendimento por mensagem direta". WhatsApp saiu da Ajuda, Sócios e Termos.
 - **As 5 etapas estão concluídas.** Próximos passos são as pendências abaixo (só ele pode fazer) e o que ficou
   para depois.
 

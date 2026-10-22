@@ -19,7 +19,7 @@ await p.screenshot({ path: "saida/contato-1.png", fullPage: true });
 await p.selectOption("#ctAssunto", { label: "Parcerias, imprensa e anúncios" }).catch(() => p.evaluate(() => { const s = document.getElementById("ctAssunto"); s.selectedIndex = 7; s.dispatchEvent(new Event("change")); }));
 console.log("parceria:", await p.evaluate(() => ({ aviso: !document.getElementById("ctParceria").hidden, chamado: document.querySelector('[data-via="chamado"]').hidden })));
 await p.evaluate(() => { const s = document.getElementById("ctAssunto"); s.selectedIndex = 3; s.dispatchEvent(new Event("change")); });
-await p.fill("#ctNome", "Ana"); await p.fill("#ctLocal", "Recife, PE"); await p.fill("#ctMsg", "Quero saber como funciona o plano Pro para o meu delivery.");
+await p.fill("#ctLocal", "Recife, PE"); await p.fill("#ctMsg", "Quero saber como funciona o plano Pro para o meu delivery.");
 await p.locator('[data-via="chamado"]').scrollIntoViewIfNeeded();
 await p.tap('[data-via="chamado"]');
 await p.waitForURL(/suporte\.html/, { timeout: 15000 });
