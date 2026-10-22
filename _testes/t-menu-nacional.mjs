@@ -37,5 +37,15 @@ for (const pg of ["ajuda.html", "clientes.html", "profissionais.html", "socios-p
   await p.goto(BASE + pg); await p.waitForTimeout(1200);
   await p.screenshot({ path: `saida/nac-${pg.replace(".html", "")}.png`, fullPage: true });
 }
+// Menu abre onde a pessoa estava (e com a página atual à vista)
+await p.goto(BASE + "sobre.html"); await p.waitForTimeout(1500);
+await p.tap("#btnMenu"); await p.waitForTimeout(500);
+await p.locator('.gaveta-item[href="profissionais.html"]').scrollIntoViewIfNeeded(); await p.waitForTimeout(300);
+const antes = await p.evaluate(() => document.getElementById("gaveta").scrollTop);
+await p.tap('.gaveta-item[href="profissionais.html"]');
+await p.waitForURL(/profissionais/); await p.waitForTimeout(1500);
+await p.tap("#btnMenu"); await p.waitForTimeout(600);
+console.log("rolagem do menu:", await p.evaluate((antes) => { const g = document.getElementById("gaveta"), a = g.querySelector('[aria-current="page"]').getBoundingClientRect(), r = g.getBoundingClientRect(); return { antes, depois: Math.round(g.scrollTop), atualVisivel: a.top >= r.top && a.bottom <= r.bottom, atual: g.querySelector('[aria-current="page"]').textContent }; }, antes));
+await p.screenshot({ path: "saida/menu-rolagem.png" });
 console.log("erros:", erros.length ? erros : "nenhum");
 await browser.close();
