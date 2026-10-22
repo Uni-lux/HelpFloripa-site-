@@ -1,0 +1,34 @@
+# Busca nacional: preenche de uma vez o campo "busca" nos negócios, imóveis e anúncios da Comunidade antigos.
+# Roda só quando alguém manda (Actions > Preencher busca > Run workflow). Por padrão só simula.
+# Precisa do segredo FIREBASE_SERVICE_ACCOUNT (o mesmo das tarefas diárias).
+name: Preencher busca (busca nacional)
+on:
+  workflow_dispatch:
+    inputs:
+      aplicar:
+        description: "Gravar? (desmarcado = só simular)"
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  preencher:
+    runs-on: ubuntu-latest
+    env:
+      FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+    defaults:
+      run:
+        working-directory: scripts/limpeza
+    steps:
+      - name: Sem segredo configurado
+        if: ${{ env.FIREBASE_SERVICE_ACCOUNT == '' }}
+        working-directory: .
+        run: echo "::error::Configure o segredo FIREBASE_SERVICE_ACCOUNT." && exit 1
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Instalar
+        run: npm install --no-audit --no-fund
+      - name: Preencher
+        run: node preencher-busca.mjs ${{ inputs.aplicar && '--aplicar' || '' }}

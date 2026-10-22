@@ -113,6 +113,20 @@
           "order": "DESCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "diario",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "autorUf",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "criadoEm",
+          "order": "DESCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": []

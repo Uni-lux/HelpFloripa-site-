@@ -13,14 +13,15 @@ import {
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, botaoSeguir, montarBarraRede, pintarBarraRede, ouvirAvisos, lerOrdenado,
   editarPublicacao, bloquear, comMencoes, fotosDoPost, carrosselFotos, contadorEstrelas, estaSalvo, alternarSalvo, escolherColecao, lerResumosEstrelas, contarComentarios,
   silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto, confirmarHF, blocoEnquete, blocoCaixa
-} from "./rede.js?v=51";
+} from "./rede.js?v=52";
 import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=1";
-import { montarStories, abrirFlashPorId, repostarFlash } from "./stories.js?v=23";
+import { montarStories, abrirFlashPorId, repostarFlash } from "./stories.js?v=24";
 import { abrirDenuncia } from "./denuncias.js?v=5";
 import { pessoasRecentes } from "./pessoas.js?v=3";
-import { abrirExplorar, definirCartao } from "./explorar.js?v=21";
+import { abrirExplorar, definirCartao } from "./explorar.js?v=22";
 import { docsComValidade } from "./leituras.js?v=1";
 import { distanciaKm } from "./perto.js?v=1";
+import { postsDoEstado, pesoRegiao } from "./regiao.js?v=1";
 
 const POR_VEZ = 10;
 // Publicação de conta desativada (conta.js): escondida até ocultoAte.
@@ -112,13 +113,14 @@ async function buscarAmigos() {
 // Depois espalha os autores (nunca dois seguidos do mesmo) e mistura um pouco para o Diário não ficar parado.
 async function buscarPrincipais() {
   const q = fb.query(fb.collection(fb.db, "diario"), fb.orderBy("criadoEm", "desc"), fb.limit(120));
-  const [s, deQuemSigo] = await Promise.all([
+  const [s, deQuemSigo, doEstado] = await Promise.all([
     docsComValidade(fb, "diario-principais", q, DIARIO_VALIDADE),
     buscarSeguindo().catch(() => []),
+    postsDoEstado(fb, dados.uf),
     sincronizarGosto(fb, eu.uid)
   ]);
   const vistos = new Set();
-  const lista = [...s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })), ...deQuemSigo]
+  const lista = [...s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })), ...deQuemSigo, ...doEstado]
     .filter((p) => !vistos.has(p.id) && vistos.add(p.id) && !escondido(p.autorId) && !postOculto(p));
   const resumos = await lerResumosEstrelas(lista.map((p) => p.id));
   const agora = Date.now();
@@ -131,7 +133,8 @@ async function buscarPrincipais() {
   const com = new Map(await Promise.all(ordem1.map(async (p) => [p.id, await contarComentarios(p.id).catch(() => 0)])));
   const pontos = (p) => {
     const horas = Math.max(0, (agora - (ms(p.criadoEm) || agora)) / 3600e3);
-    const base = (1 + eng(p) + 2 * (com.get(p.id) || 0)) * (1 + gosto.get(p.id)) * (sigo(p) ? 1.8 : 1);
+    // Sua cidade e seu estado pesam mais (site nacional): regiao.js.
+    const base = (1 + eng(p) + 2 * (com.get(p.id) || 0)) * (1 + gosto.get(p.id)) * (sigo(p) ? 1.8 : 1) * pesoRegiao(p, dados);
     const visto = p.autorId !== eu.uid && jaVisto(p.id) ? 0.35 : 1;
     // Quem você segue envelhece mais devagar (você quer ver as novidades deles mesmo sem muito engajamento).
     return base * visto * (0.9 + Math.random() * 0.2) / Math.pow(horas + 2, sigo(p) ? 1.1 : 1.35);
@@ -259,7 +262,7 @@ function cartaoPost(post) {
       : { rotulo: "Salvar publicação", sub: "Para ver depois no seu Perfil → Salvos", icone: "salvo", fn: () => alternarSalvo(post) },
     { rotulo: "Salvar em uma coleção", sub: "Organize seus salvos em pastas", icone: "fotos", fn: () => escolherColecao(post) },
     { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(post.autorId, post.nome) },
-    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=18").then((m) => m.abrirEstatisticas(post)) },
+    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=19").then((m) => m.abrirEstatisticas(post)) },
     post.autorId === eu.uid && { rotulo: "Editar publicação", icone: "lapis", fn: () => editarPublicacao(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId !== eu.uid && { rotulo: silenciado(post.autorId) ? `Mostrar ${nome.textContent} de novo` : `Silenciar ${nome.textContent}`, sub: "Continua seguindo, mas as publicações e flashes somem do seu Diário", icone: "restringir",
       fn: async () => { await alternarSilenciar(post.autorId, nome.textContent); if (silenciado(post.autorId)) { posts = posts.filter((x) => x.autorId !== post.autorId); document.querySelectorAll(".post-card").forEach((x) => { if (x.dataset.autor === post.autorId) x.remove(); }); } } },

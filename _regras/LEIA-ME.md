@@ -1,6 +1,6 @@
 # Regras do Firestore — publicação
 
-> **Versão de 21/10/2026:** igual à publicada em 13/10, mais **várias fotos numa publicação do Diário**
+> **Versão de 22/10/2026:** igual à publicada em 13/10, mais **várias fotos numa publicação do Diário**
 > (campo `midias`, de 2 a 4 fotos), **dar estrelas na própria publicação** o **resumo das estrelas**
 > (`diario_notas`: média e quantas pessoas deram 5, 4, 3, 2 e 1 estrela) e os **comentários novos** (quem pode
 > comentar, comentário fixado e reações com emoji), **stories**, **hashtags e marcações**, **agendar**, **rascunhos**,
@@ -27,17 +27,19 @@
 > ajuda, dividir quarto e achados e perdidos — a regra **recusa "vendo/venda" e "R$"** fora da divisão das despesas do quarto),
 > o **banimento de um programa** (`programa_banidos`: quem é banido da Comunidade ou de um tipo de negócio não anuncia mais lá)
 > e a denúncia com o motivo **"Venda ou cobrança"**.
+> **Novo nesta versão (22/10):** a **busca nacional** (campo `busca` com as palavras de negócios, imóveis e anúncios da
+> Comunidade, até 100) e a **região de quem publica** no Diário (`autorUf`/`autorIbge`), para priorizar a sua cidade e o seu estado.
 > Para publicar, o processo é o mesmo: apagar tudo no console e colar as 14 partes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
 `firestore.rules` divididas em **14 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
-- Arquivo de origem: `firestore.rules` (164.784 bytes, 2.808 linhas, sha256 começa com `8e1cd188337bf607`).
+- Arquivo de origem: `firestore.rules` (165.692 bytes, 2.817 linhas, sha256 começa com `bbfa83c77f0cd2b5`).
 - Cada parte termina com a linha `// ===== FIM DA PARTE X DE 14 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
 - Conferido: as 14 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **500 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
+- Testes de regras no arquivo remontado: **509 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.
@@ -84,6 +86,9 @@ linha), para colar no console do Firebase.
   **dono** do site dá o selo direto, sem pedido. O perfil público só mostra o selo se a conta tiver o selo.
 - **Saúde e Comunidade:** criar o perfil de Saúde e publicar na Comunidade só funcionam depois de publicar (antes, o
   site avisa que falta publicar as regras). O painel ganha **"Banir de um programa"** na ficha e na denúncia.
+- **Busca nacional e Diário por região:** a busca do Explorar, das vitrines e da Comunidade passa a achar negócios e
+  anúncios do Brasil inteiro (não só os mais recentes), e as publicações novas guardam a região de quem publica.
+  Também crie os índices de `_regras/INDICES-LEIA-ME.md`.
 - O resto (toque duplo para dar estrelas, quem deu estrelas, Salvos, editar legenda) já funciona com as regras de hoje.
 
 ## Conferência no site depois de publicar

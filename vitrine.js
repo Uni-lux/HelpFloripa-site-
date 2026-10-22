@@ -9,6 +9,7 @@
 
 import { confirmarHF } from "./confirmar.js?v=4";
 import { relogioDe } from "./fuso.js?v=1";
+import { buscarNoServidor } from "./busca.js?v=1";
 import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL } from "./seguranca.js?v=1";
 import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento, media, avaliarNegocio } from "./avaliacoes.js?v=14";
 import { abrirQueixa } from "./queixas.js?v=12";
@@ -2555,8 +2556,9 @@ function ligarFiltros() {
     }
     chips.addEventListener("click", (e) => { if (e.target.closest(".chip")) setTimeout(renderizar, 0); });
   }
-  document.getElementById("searchInput")?.addEventListener("input", renderizar);
-  document.getElementById("searchForm")?.addEventListener("submit", () => setTimeout(() => { renderizar(); document.getElementById("vitrine")?.scrollIntoView({ behavior: "smooth", block: "start" }); }, 0));
+  let esperaBusca = null;
+  document.getElementById("searchInput")?.addEventListener("input", () => { renderizar(); clearTimeout(esperaBusca); esperaBusca = setTimeout(buscarNaVitrine, 400); });
+  document.getElementById("searchForm")?.addEventListener("submit", () => setTimeout(() => { renderizar(); buscarNaVitrine(); document.getElementById("vitrine")?.scrollIntoView({ behavior: "smooth", block: "start" }); }, 0));
 }
 
 // Cria filtros para as categorias personalizadas que existem ("Outro" escrito pela pessoa: Pianista, Chácara...).
@@ -2636,6 +2638,10 @@ async function carregarLote(primeira = false) {
     if (primeira && filtroServidor().length) r.docs = [...r.docs, ...(await lote("anuncios", "imovel", null, { geral: true }).catch(() => ({ docs: [] }))).docs];
     novos.push(...r.docs.map((d) => ({ id: d.id, ...d.data() })).filter((a) => a.ativo !== false && !oculto(a)));
   }
+  return incorporar(novos);
+}
+// Junta perfis/anúncios novos à lista (sem repetidos), com donos, notas e distância. Devolve quantos entraram.
+async function incorporar(novos) {
   // Sem repetidos (a busca por local e a geral podem trazer o mesmo perfil).
   const ja = new Set(todos.map((x) => x.id));
   const add = novos.filter((x) => !ja.has(x.id) && (ja.add(x.id), true));
@@ -2646,6 +2652,22 @@ async function carregarLote(primeira = false) {
   idsNotas.forEach((i) => notasNeg.set(i, r["neg_" + i]));
   if (posEu) await comDistancia(add, posEu);
   return add.length;
+}
+// Busca nacional (busca.js): o que foi digitado também é perguntado ao Firebase, além dos perfis já carregados.
+async function buscarNaVitrine() {
+  const termo = (document.getElementById("searchInput")?.value || "").trim();
+  if (termo.length < 3 || !fb) return;
+  const [negs, ans] = await Promise.all([
+    buscarNoServidor(fb, "negocios", termo, [fb.where("tipo", "==", TIPO)]),
+    TIPO === "imoveis" ? buscarNoServidor(fb, "anuncios", termo, [fb.where("tipo", "==", "imovel")]) : []
+  ]);
+  const novos = [], ok = negs.filter((n) => n.nome && n.oculto !== true && !oculto(n));
+  if (TIPO === "imoveis") {
+    ok.forEach((n) => negociosImoveis.set(n.donoId, n));
+    ok.filter((n) => n.preco || n.quartos).forEach((n) => novos.push(negocioComoAnuncio(n)));
+    novos.push(...ans.filter((a) => a.ativo !== false && !oculto(a)));
+  } else novos.push(...ok);
+  if (await incorporar(novos).catch(() => 0)) { chipsDinamicos(); renderizar(); }
 }
 const temMais = () => maisNeg || (TIPO === "imoveis" && maisAn);
 // Botão no fim da lista: "Ver mais" (sem filtro) ou "Procurar em mais perfis" (com filtro/busca).
@@ -2709,6 +2731,8 @@ async function iniciar() {
     }
     chipsDinamicos();
     renderizar();
+    // Chegou com uma busca (?q=): pergunta também ao Firebase.
+    if (termoInicial) buscarNaVitrine();
     // link direto vindo de uma mensagem
     const pg = new URLSearchParams(location.search);
     const idNeg = pg.get("negocio"), idAn = pg.get("anuncio");

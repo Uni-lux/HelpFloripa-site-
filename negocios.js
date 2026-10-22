@@ -10,14 +10,15 @@ import { confirmarHF } from "./confirmar.js?v=4";
 import {
   $, el, icone, pintarAvatar, urlSegura, nomeCidade, toast, erroAmigavel, abrirFolha, fecharFolha,
   fb, eu, dados, salvarImagem, editarImagem, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos, criarFolha
-} from "./rede.js?v=51";
+} from "./rede.js?v=52";
 import { lerResumos, estrelas, media, notaTexto } from "./avaliacoes.js?v=14";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade, semAcento } from "./endereco.js?v=1";
 import { lerStats, listaDias, somarPeriodo } from "./estat-negocio.js?v=1";
 import { geocodificar, geoOk } from "./perto.js?v=1";
 import { abrirPlanos, lerPlano, esquecerPlano, nivelPlano, pedidoAberto, lerNegociacao, testeDisponivel, seloPlano, nomePlano, diasRestantes, textoFalta, PRECO_MIN, DIAS_TESTE, reais } from "./planos.js?v=8";
+import { termosBusca } from "./busca.js?v=1";
 import { PROFISSOES_SAUDE, CATEGORIAS_SAUDE, MODALIDADES_SAUDE, PUBLICO_SAUDE, PUBLICO_VET, CONVENIOS, IDIOMAS, UFS, conselhoDe, ehVet, textoRegistro } from "./saude-dados.js?v=1";
-import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO, CATEGORIAS, GRUPOS_SERV, PALAVRAS_SERV, prazoPromo } from "./vitrine.js?v=51";
+import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO, CATEGORIAS, GRUPOS_SERV, PALAVRAS_SERV, prazoPromo } from "./vitrine.js?v=52";
 
 // Cada tipo com a cor da sua classe na página inicial (inicio.css: --c-servicos etc.) e uma chamada própria.
 const NEGOCIOS = {
@@ -71,6 +72,7 @@ async function carregarMeusNegocios() {
   try { meusNegocios = await buscarNegocios(eu.uid); } catch (e) { console.warn("Negócios indisponíveis:", e); meusNegocios = []; }
   pintarPainel();
   sincronizarExtras();
+  completarBusca();
   pintarPlano();
   if (meusComunidade === null) carregarComunidade();
 }
@@ -355,7 +357,7 @@ function maiorDeIdade() {
 // Estatísticas do negócio (insights-negocio.js, carregado só quando abre).
 async function abrirEstatisticas(n) {
   try {
-    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=10");
+    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=11");
     abrirInsightsNegocio(n, { aoEditar: (neg) => abrirFormNegocio(meusNegocios.find((x) => x.id === neg.id) || neg) });
   } catch (e) { toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)); }
 }
@@ -389,7 +391,24 @@ function novoNegocio(tipo) {
 let negEditando = null, negTipo = "servicos", negFoto = "", negCapa = "", negSemana = ["", "", "", "", "", "", ""], negPromo = null;
 // Campos novos (Instagram, site, CNPJ, capa, horário por dia e promoção): sem as regras novas publicadas,
 // ficam guardados na conta (usuarios.negociosExtras) e vão para o perfil sozinhos depois (sincronizarExtras).
-const NOVOS_NEG = ["instagram", "site", "cnpj", "capa", "semana", "promocao", "geo"];
+const NOVOS_NEG = ["instagram", "site", "cnpj", "capa", "semana", "promocao", "geo", "busca"];
+// Palavras da busca nacional (busca.js): nome, áreas/categorias, profissão de saúde, tipo, cidade, bairro e descrição.
+function buscaDoNegocio(d) {
+  const ks = Array.isArray(d.categorias) && d.categorias.length ? d.categorias : d.categoria ? [d.categoria] : [];
+  const cats = ks.map((k) => (k === "outros" ? d.categoriaPersonalizada : CATS_NEGOCIO[d.tipo]?.[k] || ""));
+  const sd = d.saude || {};
+  const saude = d.tipo === "saude" ? [sd.profissao === "outros" ? sd.profissaoOutra : PROFISSOES_SAUDE[sd.profissao]?.nome, ...(sd.especialidades || [])] : [];
+  const sinonimos = d.tipo === "servicos" ? ks.map((k) => PALAVRAS_SERV[k] || "") : [];
+  return termosBusca([d.nome, cats, saude, NEGOCIOS[d.tipo]?.rotulo, d.cidade, d.bairro, sinonimos, d.descricao]);
+}
+const buscaDoAnuncio = (a) => termosBusca([a.titulo, a.categoriaPersonalizada || CATS_NEGOCIO.imoveis[a.categoria], FINALIDADES[a.finalidade], "imóvel", a.bairro, a.cidade, a.descricao]);
+// Perfis e anúncios criados antes da busca nacional ganham as palavras sozinhos quando o dono abre Meus negócios.
+// Sem as regras novas publicadas a gravação é recusada em silêncio e tenta de novo na próxima visita.
+async function completarBusca() {
+  for (const n of meusNegocios) if (!Array.isArray(n.busca) && n.nome) fb.updateDoc(fb.doc(fb.db, "negocios", n.id), { busca: buscaDoNegocio(n) }).then(() => { n.busca = true; }).catch(() => {});
+  if (!meusNegocios.some((n) => n.tipo === "imoveis")) return;
+  for (const a of await buscarAnuncios(fb, eu.uid).catch(() => [])) if (!Array.isArray(a.busca)) fb.updateDoc(fb.doc(fb.db, "anuncios", a.id), { busca: buscaDoAnuncio(a) }).catch(() => {});
+}
 // Ponto do endereço para o "Perto de você": reaproveita o anterior se o endereço não mudou; senão procura
 // (OpenStreetMap). Sem rua nem CEP, fica sem ponto e vale o centro da cidade.
 const MESMO_END = ["rua", "numero", "bairro", "cidadeIbge", "cep"];
@@ -1176,7 +1195,8 @@ $("anSalvar").addEventListener("click", async () => {
         await fb.setDoc(ref, { ...resto, titulo: resto.titulo || (cp ? `${cp} para ${(FINALIDADES[resto.finalidade] || "negociar").toLowerCase()}` : "") }, { merge: true });
       }
     };
-    await gravarComLocal(gravarAn, dadosAn, [...NOVOS.anuncio, "geo"]);
+    dadosAn.busca = buscaDoAnuncio(dadosAn);
+    await gravarComLocal(gravarAn, dadosAn, [...NOVOS.anuncio, "geo", "busca"]);
     fecharFolha("folhaAnuncio");
     toast(anEditandoId ? "Imóvel atualizado" : "Imóvel anunciado");
     const lista = document.querySelector("#negExtras .neg-anuncios");
@@ -1564,6 +1584,7 @@ $("negSalvar").addEventListener("click", async () => {
       whatsapp: $("negWhats").value.trim(), foto, ...extras, atualizadoEm: fb.serverTimestamp(),
       instagram: insta, site, cnpj, capa, semana, promocao, geo
     };
+    dadosNeg.busca = buscaDoNegocio(dadosNeg);
     if (JSON.stringify(dadosNeg).length > 950000) throw new Error("Fotos demais para um perfil. Remova algumas fotos e tente de novo.");
     dadosNeg.criadoEm = negEditando?.criadoEm || fb.serverTimestamp();
     const gravar = (d) => gravarComLocal((dd) => fb.setDoc(fb.doc(fb.db, "negocios", id), dd), d, NOVOS.negocio);

@@ -47,6 +47,7 @@ await t("negócio: sem endereço detalhado continua valendo", () => assertSuccee
 
 const anuncio = (extra) => ({ donoId: "dono", tipo: "imovel", titulo: "Apto 2 quartos", finalidade: "aluguel", categoria: "apartamento", bairro: "Trindade", cidade: "Florianópolis", uf: "SC", cidadeIbge: 4205407, ...extra });
 await t("anúncio: cria com estado, cidade, bairro, rua e CEP", () => assertSucceeds(setDoc(doc(ctx("dono"), "anuncios", "a1"), anuncio({ rua: "Rua Lauro Linhares", cep: "88036001" }))));
+await t("busca: anúncio de imóvel com as palavras da busca", () => assertSucceeds(setDoc(doc(ctx("dono"), "anuncios", "a1"), anuncio({ busca: ["apartamento", "apa", "trindade"] }))));
 await t("anúncio: recusa UF errada", () => assertFails(setDoc(doc(ctx("dono"), "anuncios", "a2"), anuncio({ uf: "sc" }))));
 await t("anúncio: tipo escrito pela pessoa (Outro) até 30 letras", () => assertSucceeds(setDoc(doc(ctx("dono"), "anuncios", "a4"), anuncio({ categoria: "outros", categoriaPersonalizada: "Chácara" }))));
 await t("anúncio: recusa tipo escrito com mais de 30 letras", () => assertFails(setDoc(doc(ctx("dono"), "anuncios", "a5"), anuncio({ categoria: "outros", categoriaPersonalizada: "x".repeat(31) }))));
@@ -315,6 +316,9 @@ async function publicar(quem, dadosPub) {
 }
 const fP = (n) => "data:image/jpeg;base64,/9j/" + "A".repeat(n);
 await t("diário: publicação com local", () => assertSucceeds(publicar("bia", { texto: "Na praia", local: { nome: "Jurerê, Florianópolis", lat: -27.44, lng: -48.5 } })));
+await t("região: publicação com o estado e a cidade de quem publica", () => assertSucceeds(publicar("hele", { texto: "Oi, Floripa", autorUf: "SC", autorIbge: 4205407 })));
+await t("região: estado em minúsculas é recusado", () => assertFails(publicar("ana", { autorUf: "sc" })));
+await t("região: código de cidade inválido é recusado", () => assertFails(publicar("ana", { autorUf: "SC", autorIbge: "4205407" })));
 await t("diário: recusa local fora do Brasil", () => assertFails(publicar("ana", { local: { nome: "Paris", lat: 48.85, lng: 2.35 } })));
 await t("diário: recusa local com campo a mais", () => assertFails(publicar("ana", { local: { nome: "Centro", lat: -27.5, lng: -48.5, endereco: "Rua X, 10" } })));
 await semRegras(async (db) => { const { deleteDoc: dd } = await import("firebase/firestore"); for (const u of ["edu", "nova", "dono"]) await dd(doc(db, "ritmo", u)); });
@@ -597,8 +601,8 @@ await t("negócio: Instagram, site, CNPJ, capa, horário por dia e promoção", 
   instagram: "burger.da_ilha", site: "https://burgerdailha.com.br", cnpj: "11222333000181", capa: "data:image/jpeg;base64,AAAA",
   semana: ["", "11:00-23:00", "11:00-23:00", "11:00-23:00", "11:00-23:00", "11:00-23:59", "18:00-23:59"],
   promocao: { titulo: "10% no primeiro pedido", texto: "Use o cupom no chat.", codigo: "BEMVINDO10", ate: Timestamp.fromMillis(Date.now() + 10 * 864e5) } })));
-await t("negócio com TUDO junto (de vazio para completo: 12 itens, 5 fotos, todos os campos) cabe no limite", async () => { await grava({}); await assertSucceeds(grava({
-  descricao: "x".repeat(600), whatsapp: "48999998888", foto: "data:image/jpeg;base64,AAAA", fotos: Array(5).fill("data:image/jpeg;base64,AAAA"),
+await t("negócio com TUDO junto (de vazio para completo: 12 itens, 5 fotos, todos os campos, busca com 100 palavras) cabe no limite", async () => { await grava({}); await assertSucceeds(grava({
+  busca: Array.from({ length: 100 }, (_, i) => "palavra" + i), descricao: "x".repeat(600), whatsapp: "48999998888", foto: "data:image/jpeg;base64,AAAA", fotos: Array(5).fill("data:image/jpeg;base64,AAAA"),
   itens: Array.from({ length: 12 }, (_, i) => ({ nome: "Item " + i, preco: 10, foto: "data:image/jpeg;base64,AAAA", secao: "Lanches", descricao: "abc", precoAntigo: 12 })),
   categoria: "hamburguer", horaAbre: "11:00", horaFecha: "23:00", tempoMin: 30, tempoMax: 50, taxaEntrega: 5, pedidoMinimo: 20, dias: ["seg", "ter"], opcoesEntrega: ["entrega"], pagamentos: ["pix"],
   uf: "SC", cidadeIbge: 4205407, bairro: "Centro", rua: "Rua A", numero: "1", complemento: "", cep: "88010001",
@@ -771,7 +775,7 @@ await t("saúde: particular que não é sim/não é recusado", () => assertFails
 await t("saúde: duração absurda é recusada", () => assertFails(setDoc(doc(ctx("bia"), "negocios", "bia_saude"), sau("bia", {}, { duracao: 5000 }))));
 await t("saúde: valor da consulta absurdo é recusado", () => assertFails(setDoc(doc(ctx("bia"), "negocios", "bia_saude"), sau("bia", {}, { valorConsulta: 999999 }))));
 await t("saúde: veterinário com público de pets e sem registro de RQE", () => assertSucceeds(setDoc(doc(ctx("bia"), "negocios", "bia_saude"), sau("bia", { categoria: "veterinario" }, { profissao: "veterinario", publico: ["caes", "gatos"], registro: "1234", rqe: "" }))));
-await t("saúde: perfil de saúde com TUDO junto (máximo) cabe nas regras", () => assertSucceeds(setDoc(doc(ctx("dono"), "negocios", "dono_saude"), sau("dono", { instagram: "dra.ana", site: "https://ana.com.br", cnpj: "", semana: ["", "08:00-12:00", "08:00-18:00", "08:00-18:00", "08:00-18:00", "08:00-18:00", ""], promocao: { titulo: "Primeira consulta", texto: "10% na primeira", codigo: "BEMVINDO", ate: Timestamp.fromMillis(Date.now() + 10 * 864e5) }, geo: { lat: -27.6, lng: -48.5 }, capa: "data:image/jpeg;base64,AAA" },
+await t("saúde: perfil de saúde com TUDO junto (máximo, com busca) cabe nas regras", () => assertSucceeds(setDoc(doc(ctx("dono"), "negocios", "dono_saude"), sau("dono", { busca: Array.from({ length: 100 }, (_, i) => "palavra" + i), instagram: "dra.ana", site: "https://ana.com.br", cnpj: "", semana: ["", "08:00-12:00", "08:00-18:00", "08:00-18:00", "08:00-18:00", "08:00-18:00", ""], promocao: { titulo: "Primeira consulta", texto: "10% na primeira", codigo: "BEMVINDO", ate: Timestamp.fromMillis(Date.now() + 10 * 864e5) }, geo: { lat: -27.6, lng: -48.5 }, capa: "data:image/jpeg;base64,AAA" },
   { profissao: "medico", especialidades: ["Clínica geral", "Pediatria", "Geriatria", "Cardiologia", "Neurologia", "Dermatologia"], registro: "123456", rqe: "9876", modalidades: ["consultorio", "online", "domicilio"], convenios: ["Unimed", "Bradesco Saúde", "SulAmérica", "Amil", "Hapvida NotreDame", "Porto Saúde", "Cassi", "Geap", "Saúde Caixa", "Postal Saúde", "SC Saúde", "Petlove Saúde", "Outro 1", "Outro 2", "Outro 3"], publico: ["bebes", "criancas", "adolescentes", "adultos", "idosos", "gestantes"], idiomas: ["Português", "Inglês", "Espanhol", "Libras", "Italiano", "Francês", "Alemão"], formacao: "y".repeat(200) }))));
 
 // ---------- banimento de um programa ----------
@@ -797,6 +801,11 @@ await t("banimento: escondido pela equipe, o dono não mostra o perfil de novo",
 // ---------- Comunidade ----------
 const com = (uid, x = {}) => ({ donoId: uid, categoria: "doacao", tipoItem: "moveis", titulo: "Sofá de 3 lugares", descricao: "Em bom estado, retirar no Centro.", fotos: [], estado: "usado", entrega: "retirar", status: "disponivel", uf: "SC", cidade: "Florianópolis", cidadeIbge: 4205407, bairro: "Centro", aceiteRegras: true, criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...x });
 await t("comunidade: doação", () => assertSucceeds(setDoc(doc(ctx("ana"), "comunidade", "c1"), com("ana"))));
+await t("busca: anúncio da Comunidade com as palavras da busca", () => assertSucceeds(setDoc(doc(ctx("ana"), "comunidade", "cb1"), com("ana", { busca: ["berco", "ber", "berc", "madeira"] }))));
+await t("busca: mais de 100 palavras é recusado", () => assertFails(setDoc(doc(ctx("ana"), "comunidade", "cb2"), com("ana", { busca: Array.from({ length: 101 }, (_, i) => "p" + i) }))));
+await t("busca: o dono preenche só a busca num negócio antigo", () => assertSucceeds(updateDoc(doc(ctx("loja"), "negocios", "loja_delivery"), { busca: ["burger", "bur", "burg", "lanche"] })));
+await t("busca: outra pessoa não mexe na busca de um negócio", () => assertFails(updateDoc(doc(ctx("ana"), "negocios", "loja_delivery"), { busca: ["golpe"] })));
+await t("busca: negócio com mais de 100 palavras é recusado", () => assertFails(updateDoc(doc(ctx("loja"), "negocios", "loja_delivery"), { busca: Array.from({ length: 101 }, (_, i) => "p" + i) })));
 await t("comunidade: sem aceitar as regras é recusado", () => assertFails(setDoc(doc(ctx("ana"), "comunidade", "c2"), com("ana", { aceiteRegras: false }))));
 await t("comunidade: 'vendo' no texto é recusado", () => assertFails(setDoc(doc(ctx("ana"), "comunidade", "c2"), com("ana", { titulo: "Vendo sofá" }))));
 await t("comunidade: 'VENDA' na descrição é recusado", () => assertFails(setDoc(doc(ctx("ana"), "comunidade", "c2"), com("ana", { descricao: "Faço VENDA barato" }))));
