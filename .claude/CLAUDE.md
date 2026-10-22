@@ -518,6 +518,8 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   viraram "Criar perfil"/"Anunciar no Help Floripa"; Termos seção 6 reescrita (planos, preços, bônus, Pix sem renovação automática,
   arrependimento de 7 dias do CDC — pedir revisão do advogado) e FAQ. Registro: fileira de pessoas em "Todas as ações" (foto, nome,
   número; filtra), foto+nome em cada ação, "Ver tudo de Fulano" na linha do tempo do dia (`quemRegistro`).
+  Painel: `logo-icone.png` (ícone da ponte recortado do logo.png) no lugar do "HF". Topos de Profissionais, Clientes, Sócios e
+  Sobre no padrão da Ajuda (`hero-info sem-foto`, sem foto); "Sua vitrine profissional, de graça" virou "para todo o Brasil".
 - **As 5 etapas estão concluídas.** Próximos passos são as pendências abaixo (só ele pode fazer) e o que ficou
   para depois.
 
