@@ -197,9 +197,11 @@ async function pintarSugestoes() {
 const agendarSugestoes = () => { clearTimeout(esperaSug); esperaSug = setTimeout(pintarSugestoes, 450); };
 $("supAssunto").addEventListener("input", agendarSugestoes);
 $("supTexto").addEventListener("input", agendarSugestoes);
-function novoChamado({ categoria = catEscolhida, assunto = "" } = {}) {
+function novoChamado({ categoria = catEscolhida, assunto = "", texto = "" } = {}) {
   escolherCat(categoria);
-  if (assunto) $("supAssunto").value = assunto;
+  if (assunto) $("supAssunto").value = assunto.slice(0, 120);
+  // Texto pronto (ex.: formulário da página Contato): conta os caracteres e busca respostas da Central.
+  if (texto) { $("supTexto").value = texto.slice(0, 2000); $("supTexto").dispatchEvent(new Event("input")); }
   abrirFolha("folhaNovo");
 }
 $("btnNovo").addEventListener("click", () => novoChamado());
@@ -478,7 +480,8 @@ function abrirAviso(a) {
   lidos = dados.suporteLido || {};
   const q = new URLSearchParams(location.search);
   const cat = q.get("categoria");
-  if (cat && CAT[cat]) novoChamado({ categoria: cat, assunto: cat === "contestacao" ? "Contestar suspensão ou banimento" : "" });
+  const qAssunto = q.get("assunto") || "", qTexto = q.get("texto") || "";
+  if ((cat && CAT[cat]) || qAssunto || qTexto) novoChamado({ categoria: CAT[cat] ? cat : undefined, assunto: qAssunto || (cat === "contestacao" ? "Contestar suspensão ou banimento" : ""), texto: qTexto });
   await carregar();
   // Veio de uma notificação: abre direto o chamado ou o aviso.
   const idCh = q.get("chamado"), idAv = q.get("aviso");

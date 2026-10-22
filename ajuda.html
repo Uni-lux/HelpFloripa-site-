@@ -42,7 +42,7 @@
   <link rel="stylesheet" href="categoria.css?v=8" />
   <link rel="stylesheet" href="info.css?v=5" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="categoria.js?v=36"></script>
+  <script type="module" src="categoria.js?v=37"></script>
 </head>
 <body data-classe="info">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -56,6 +56,7 @@
     <symbol id="i-maleta" viewBox="0 0 24 24"><rect x="3.5" y="7" width="17" height="12.5" rx="2"/><path d="M9 7V5.5A1.5 1.5 0 0110.5 4h3A1.5 1.5 0 0115 5.5V7M3.5 12.5h17"/></symbol>
     <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></symbol>
     <symbol id="i-perfil" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.3-3.6 4.2-5.3 7.5-5.3s6.2 1.7 7.5 5.3"/></symbol>
+    <symbol id="i-brasil" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.3 2.4 3.4 5.2 3.4 8.5s-1.1 6.1-3.4 8.5c-2.3-2.4-3.4-5.2-3.4-8.5S9.7 5.9 12 3.5z"/></symbol>
     <symbol id="i-whats" viewBox="0 0 24 24"><path d="M20.5 11.7a8.5 8.5 0 01-12.6 7.5L3.5 20.5l1.3-4.2A8.5 8.5 0 1120.5 11.7z"/><path d="M9 8.5c0 3.5 3 6.5 6.5 6.5l1-1.6-2-1-1 .8a4.5 4.5 0 01-2.4-2.4l.8-1-1-2z"/></symbol>
   </svg>
 
@@ -73,7 +74,7 @@
       <div class="hero-corpo">
         <span class="selo-classe"><b><svg class="i xs" aria-hidden="true"><use href="#i-ajuda"/></svg></b>Central de Ajuda</span>
         <h1 id="tituloPagina">Como podemos <span>ajudar?</span></h1>
-        <p class="lead">Respostas rápidas sobre conta, pedidos, avaliações, anúncios e segurança.</p>
+        <p class="lead">Respostas rápidas sobre conta, pedidos, avaliações, anúncios e segurança, para quem usa o Help Floripa em qualquer lugar do Brasil.</p>
         <form class="busca faq-busca" role="search" onsubmit="return false">
           <svg class="i" aria-hidden="true"><use href="#i-lupa"/></svg>
           <label class="sr" for="buscaFaq">Buscar na ajuda</label>
@@ -106,6 +107,16 @@
         <details><summary>O que é a Comunidade?</summary><div class="resp"><p>O mural do bairro: <a href="comunidade.html">doar</a> o que não usa, trocar, pedir ajuda, oferecer ou procurar vaga em quarto compartilhado e achados e perdidos. Tudo é de graça. <strong>É proibido vender ou cobrar</strong> (só a divisão das despesas do quarto pode ter valor): o anúncio é removido e quem insistir é banido da Comunidade e pode ter a conta suspensa ou banida.</p></div></details>
       </div>
     </section>
+    <section class="faq-grupo" aria-label="Em todo o Brasil">
+      <h2><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-brasil"/></svg></span>Em todo o Brasil</h2>
+      <div class="faq">
+        <details><summary>O Help Floripa funciona na minha cidade?</summary><div class="resp"><p>Sim. O Help Floripa nasceu em Florianópolis e funciona em <strong>todas as cidades do Brasil</strong>. Qualquer pessoa pode criar conta, anunciar e contratar de onde estiver. O que aparece em cada cidade depende de quem já anuncia por lá, então convide os profissionais e negócios que você conhece.</p></div></details>
+        <details><summary>Como vejo o que está perto de mim?</summary><div class="resp"><p>Na página inicial, a seção <a href="index.html#secPerto">Perto de você</a> mostra do mais perto ao mais longe. Sem a localização ligada, usamos a cidade do seu perfil. Nas vitrines (Freelances, Delivery, Shopping, Imóveis e Saúde) dá para filtrar por <strong>Estado e Cidade</strong>, ordenar por <strong>Mais perto</strong> e escolher a distância em Filtros.</p><p>A sua localização exata fica só no seu aparelho: ela não é gravada na sua conta nem mostrada para ninguém.</p></div></details>
+        <details><summary>Posso atender ou vender para outras cidades?</summary><div class="resp"><p>Pode. Cadastre o endereço ou a cidade de onde você atende e conte na descrição se atende online, entrega ou viaja. Profissionais de saúde marcam se atendem online, em consultório ou em domicílio.</p></div></details>
+        <details><summary>Qual horário vale para "Aberto agora"?</summary><div class="resp"><p>O horário de funcionamento segue o <strong>fuso do estado do negócio</strong> (inclusive Acre, Amazonas, Roraima, Rondônia, Mato Grosso e Mato Grosso do Sul). Assim o "Aberto agora" está certo para quem compra de qualquer lugar.</p></div></details>
+        <details><summary>Qual é o horário do suporte?</summary><div class="resp"><p>Os chamados pelo site podem ser abertos 24 horas, de qualquer cidade. A equipe atende <strong>todos os dias, das 8h às 20h (horário de Brasília)</strong>. A primeira resposta sai em até 2 h para golpe ou fraude, em até 8 h para pagamentos, contestações e planos Pro e Premium, e em até 24 h nos demais assuntos, contando o horário de atendimento.</p></div></details>
+      </div>
+    </section>
     <section class="faq-grupo" aria-label="Avaliações e reclamações">
       <h2><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-estrela"/></svg></span>Avaliações e reclamações</h2>
       <div class="faq">
@@ -131,7 +142,7 @@
       <h2><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-escudo"/></svg></span>Segurança</h2>
       <div class="faq">
         <details><summary>Como evito golpes?</summary><div class="resp"><p>Nunca envie senhas, códigos de verificação ou dados de cartão pelo chat. Desconfie de preços bons demais e de pedidos de pagamento antecipado fora do combinado. Prefira conversar pelo chat do site.</p></div></details>
-        <details><summary>Como falo com o suporte?</summary><div class="resp"><p>Abra <a href="suporte.html">Ajuda e suporte</a> (também em Configurações › Falar com o suporte), toque em <strong>Novo chamado</strong>, escolha o assunto e conte o que aconteceu. A equipe responde no próprio chamado e você recebe um aviso.</p></div></details>
+        <details><summary>Como falo com o suporte?</summary><div class="resp"><p>Abra <a href="suporte.html">Ajuda e suporte</a> (também em Configurações › Falar com o suporte), toque em <strong>Novo chamado</strong>, escolha o assunto e conte o que aconteceu. A equipe responde no próprio chamado e você recebe um aviso. Funciona de qualquer cidade, e o atendimento é todos os dias, das 8h às 20h (horário de Brasília).</p></div></details>
         <details><summary>Recebi um aviso ou minha conta foi suspensa. E agora?</summary><div class="resp"><p>Avisos da equipe aparecem numa janela quando você abre o site. Se a conta for <strong>suspensa</strong>, você não consegue publicar, conversar, avaliar nem anunciar até a data informada, e tudo volta sozinho no fim do prazo. No caso de <strong>banimento</strong>, não há prazo. Nos dois casos o motivo é informado e você pode contestar em <a href="suporte.html?categoria=contestacao">Contestar no suporte</a>.</p></div></details>
         <details><summary>Como fixo ou silencio uma conversa?</summary><div class="resp"><p>Na lista de mensagens, segure a conversa (ou clique com o botão direito) e escolha <strong>Fixar no topo</strong> ou <strong>Silenciar avisos</strong>. Conversas silenciadas não tocam som nem mostram notificação. Só você vê essas marcações.</p></div></details>
         <details><summary>Como marco alguém numa publicação ou comentário?</summary><div class="resp"><p>Escreva @ seguido do nome de usuário, por exemplo <strong>@helpfloripa</strong>. O @ vira um link para o perfil da pessoa.</p></div></details>
@@ -148,7 +159,7 @@
     <div class="cta-strip">
       <div>
         <h3>Não encontrou sua resposta?</h3>
-        <p>Nossa equipe atende todos os dias, das 8h às 20h.</p>
+        <p>Abra um chamado de qualquer lugar do Brasil, 24 horas. A equipe responde todos os dias, das 8h às 20h (horário de Brasília).</p>
       </div>
       <div class="cta">
         <a href="suporte.html"><svg class="i s" aria-hidden="true"><use href="#i-chat"/></svg>Abrir chamado</a>

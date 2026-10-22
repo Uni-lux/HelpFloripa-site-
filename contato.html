@@ -7,7 +7,7 @@
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <script>if (window.top !== window.self) { document.documentElement.style.display = "none"; try { window.top.location.replace(window.self.location.href); } catch (e) {} }</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
-  <meta name="description" content="Fale com o Help Floripa pelo WhatsApp, Instagram ou e-mail. Suporte, denúncias, parcerias e privacidade." />
+  <meta name="description" content="Fale com o Help Floripa de qualquer lugar do Brasil: chamado pelo site, WhatsApp, Instagram ou e-mail. Suporte, denúncias, planos, parcerias e privacidade." />
   <meta name="theme-color" content="#0b1014" />
   <title>Contato | Help Floripa</title>
   <link rel="icon" href="favicon.ico" />
@@ -26,8 +26,21 @@
   </script>
   <link rel="stylesheet" href="categoria.css?v=8" />
   <link rel="stylesheet" href="info.css?v=5" />
+  <style>
+    .canal.destaque { position: relative; border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent); }
+    .canal .selo-rec { position: absolute; top: 14px; right: 14px; padding: 4px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 800; letter-spacing: .3px; background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
+    .ct-botoes { display: grid; gap: 10px; }
+    .ct-botoes [hidden] { display: none; }
+    .ct-parceria { padding: 10px 12px; border-radius: 12px; background: var(--panel-2, rgba(127,127,127,.08)); font-size: 13.5px; }
+    .ct-parceria a { color: var(--classe, var(--accent)); font-weight: 700; }
+    .ct-prazos { list-style: none; margin: 8px 0 6px; padding: 0; display: grid; gap: 8px; }
+    .ct-prazos li { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+    .ct-prazos b { flex-shrink: 0; min-width: 72px; text-align: center; padding: 4px 8px; border-radius: 999px; font-size: 12px; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+    .ct-prazos b.urg { background: color-mix(in srgb, #e5484d 16%, transparent); color: #e5484d; }
+    .ct-prazos b.alta { background: color-mix(in srgb, #f5a524 18%, transparent); color: #d48806; }
+  </style>
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="categoria.js?v=36"></script>
+  <script type="module" src="categoria.js?v=37"></script>
 </head>
 <body data-classe="info">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -55,16 +68,16 @@
       <div class="hero-corpo">
         <span class="selo-classe"><b><svg class="i xs" aria-hidden="true"><use href="#i-chat"/></svg></b>Atendimento</span>
         <h1 id="tituloPagina">Fale com o <span>Help Floripa</span></h1>
-        <p class="lead">Clientes, profissionais, empresas e parceiros: escolha o canal mais rápido para você.</p>
+        <p class="lead">Clientes, profissionais, empresas e parceiros de todo o Brasil: escolha o canal mais rápido para você.</p>
 
       </div>
     </section>
     <section class="secao" aria-labelledby="scanaisoficia">
       <h2 class="secao-titulo" id="scanaisoficia">Canais oficiais</h2>
-      <p class="secao-sub">Respondemos o mais rápido possível. Mensagens fora do horário são atendidas no próximo período.</p>
+      <p class="secao-sub">O chamado pelo site funciona 24 horas, de qualquer cidade. A equipe atende todos os dias, das 8h às 20h (horário de Brasília), e o que chega fora desse horário é respondido no período seguinte.</p>
       <div class="canais">
-        <a class="canal email" href="suporte.html"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-email"/></svg></span><strong>Chamado de suporte</strong><small>Para quem tem conta: acompanhe a resposta da equipe pelo site.</small><span class="valor">Abrir chamado</span></a>
-        <a class="canal whats" href="https://wa.me/5548996849431" target="_blank" rel="noopener noreferrer"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-whats"/></svg></span><strong>WhatsApp</strong><small>Atendimento todos os dias, das 8h às 20h.</small><span class="val">(48) 99684-9431</span></a>
+        <a class="canal email destaque" href="suporte.html"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-chat"/></svg></span><span class="selo-rec">Mais rápido</span><strong>Chamado de suporte</strong><small>Para quem tem conta: protocolo, prioridade por assunto e resposta no próprio site, com aviso no sino.</small><span class="val">Abrir chamado</span></a>
+        <a class="canal whats" href="https://wa.me/5548996849431" target="_blank" rel="noopener noreferrer"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-whats"/></svg></span><strong>WhatsApp</strong><small>Todos os dias, das 8h às 20h (horário de Brasília). Atende todo o Brasil.</small><span class="val">+55 (48) 99684-9431</span></a>
         <a class="canal insta" href="https://www.instagram.com/help_floripa" target="_blank" rel="noopener noreferrer"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-insta"/></svg></span><strong>Instagram</strong><small>Novidades, dicas e mensagens diretas.</small><span class="val">@help_floripa</span></a>
         <a class="canal email" href="mailto:helpfloripa7@gmail.com"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-email"/></svg></span><strong>E-mail</strong><small>Privacidade, parcerias e assuntos formais.</small><span class="val">helpfloripa7@gmail.com</span></a>
       </div>
@@ -75,22 +88,28 @@
       <div class="duas-colunas">
         <form class="form-info" id="formContato" novalidate>
           <h3>Monte sua mensagem</h3>
-          <p>Preencha e enviamos pelo WhatsApp já organizada, para agilizar o atendimento.</p>
+          <p>Preencha e escolha como enviar: como chamado pelo site (fica registrado, com protocolo) ou pelo WhatsApp, já organizada.</p>
           <div class="campo"><label for="ctNome">Seu nome</label><input id="ctNome" maxlength="80" autocomplete="name" required /></div>
+          <div class="campo"><label for="ctLocal">Cidade e estado (opcional)</label><input id="ctLocal" maxlength="60" autocomplete="address-level2" placeholder="Ex.: Recife, PE" /><span class="ajuda">Ajuda a equipe quando o assunto é de um negócio ou anúncio da sua região.</span></div>
           <div class="campo"><label for="ctAssunto">Assunto</label>
             <select id="ctAssunto">
-              <option>Dúvida sobre a plataforma</option>
-              <option>Problema com minha conta</option>
-              <option>Anunciar ou criar perfil de negócio</option>
-              <option>Denúncia de golpe ou perfil falso</option>
-              <option>Reclamação sem resposta</option>
-              <option>Privacidade e dados pessoais</option>
-              <option>Parcerias e anúncios</option>
-              <option>Sugestão</option>
+              <option data-cat="outro">Dúvida sobre a plataforma</option>
+              <option data-cat="conta">Problema com minha conta</option>
+              <option data-cat="negocio">Anunciar ou criar perfil de negócio</option>
+              <option data-cat="pagamento">Planos e pagamentos</option>
+              <option data-cat="golpe">Denúncia de golpe ou perfil falso</option>
+              <option data-cat="outro">Reclamação sem resposta</option>
+              <option data-cat="conta">Privacidade e dados pessoais</option>
+              <option data-cat="parceria">Parcerias, imprensa e anúncios</option>
+              <option data-cat="sugestao">Sugestão</option>
             </select>
           </div>
           <div class="campo"><label for="ctMsg">Mensagem</label><textarea id="ctMsg" maxlength="1000" required placeholder="Conte o que aconteceu. Se for sobre um perfil, diga o nome ou o @."></textarea><span class="ajuda">Nunca envie senhas ou códigos.</span></div>
-          <button type="submit" class="botao whats"><svg class="i s" aria-hidden="true"><use href="#i-whats"/></svg>Enviar pelo WhatsApp</button>
+          <p class="ct-parceria" id="ctParceria" hidden>Para parcerias, imprensa e anúncios, use o formulário de <a href="socios-parcerias.html#sproposta">Sócios e parcerias</a>: a proposta vai direto para a equipe comercial.</p>
+          <div class="ct-botoes">
+            <button type="submit" class="botao" data-via="chamado"><svg class="i s" aria-hidden="true"><use href="#i-chat"/></svg>Enviar como chamado</button>
+            <button type="submit" class="botao whats" data-via="whats"><svg class="i s" aria-hidden="true"><use href="#i-whats"/></svg>Enviar pelo WhatsApp</button>
+          </div>
         </form>
         <div class="bloco">
           <h3>Como podemos ajudar</h3>
@@ -99,22 +118,45 @@
             <li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Cadastro e ajustes no perfil de negócio.</li>
             <li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Denúncias de golpes, perfis falsos ou conteúdo impróprio.</li>
             <li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Reclamações que não foram respondidas pelo negócio.</li>
+            <li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Planos, pagamentos por Pix e condição especial.</li>
             <li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg>Pedidos sobre seus dados (LGPD) e exclusão de conta.</li>
           </ul>
+          <h3 style="margin-top:16px">Prazos da primeira resposta</h3>
+          <ul class="ct-prazos">
+            <li><b class="urg">Até 2 h</b><span>Golpe ou fraude</span></li>
+            <li><b class="alta">Até 8 h</b><span>Pagamentos, contestação de decisões e planos Pro e Premium</span></li>
+            <li><b>Até 24 h</b><span>Demais assuntos</span></li>
+          </ul>
+          <p style="font-size:12.5px">Prazos dos chamados pelo site, contados dentro do horário de atendimento.</p>
           <p style="margin-top:14px">Antes, veja se sua dúvida já está na <a href="ajuda.html" style="color:var(--classe);font-weight:700">Central de Ajuda</a>.</p>
           <h3 style="margin-top:16px">Canais oficiais</h3>
           <p>Só atendemos pelos canais desta página. Desconfie de perfis que cobram taxas em nome do Help Floripa.</p>
         </div>
       </div>
     <script>
-      document.getElementById("formContato").addEventListener("submit", function (e) {
-        e.preventDefault();
-        var nome = document.getElementById("ctNome"), msg = document.getElementById("ctMsg");
-        if (!nome.value.trim()) { nome.focus(); return; }
-        if (!msg.value.trim()) { msg.focus(); return; }
-        var texto = "Olá, Help Floripa!\n\n*Nome:* " + nome.value.trim() + "\n*Assunto:* " + document.getElementById("ctAssunto").value + "\n\n" + msg.value.trim();
-        window.open("https://wa.me/5548996849431?text=" + encodeURIComponent(texto), "_blank", "noopener");
-      });
+      (function () {
+        var $ = function (id) { return document.getElementById(id); };
+        var form = $("formContato"), via = "chamado";
+        var opcao = function () { return $("ctAssunto").selectedOptions[0]; };
+        // Parcerias têm formulário próprio (vai para a equipe comercial).
+        var ajustar = function () { var p = opcao().dataset.cat === "parceria"; $("ctParceria").hidden = !p; form.querySelector('[data-via="chamado"]').hidden = p; };
+        $("ctAssunto").addEventListener("change", ajustar); ajustar();
+        form.querySelectorAll("[data-via]").forEach(function (b) { b.addEventListener("click", function () { via = b.dataset.via; }); });
+        form.addEventListener("submit", function (e) {
+          e.preventDefault();
+          var nome = $("ctNome"), msg = $("ctMsg"), local = $("ctLocal").value.trim(), assunto = $("ctAssunto").value;
+          if (!nome.value.trim()) { nome.focus(); return; }
+          if (!msg.value.trim()) { msg.focus(); return; }
+          if (via === "chamado") {
+            // Vai para o Suporte com o chamado já preenchido (quem não entrou passa pelo login antes).
+            var texto = msg.value.trim() + (local ? "\n\nCidade: " + local : "");
+            location.href = "suporte.html?categoria=" + encodeURIComponent(opcao().dataset.cat) + "&assunto=" + encodeURIComponent(assunto) + "&texto=" + encodeURIComponent(texto);
+            return;
+          }
+          var t = "Olá, Help Floripa!\n\n*Nome:* " + nome.value.trim() + (local ? "\n*Cidade:* " + local : "") + "\n*Assunto:* " + assunto + "\n\n" + msg.value.trim();
+          window.open("https://wa.me/5548996849431?text=" + encodeURIComponent(t), "_blank", "noopener");
+        });
+      })();
     </script>
     </section>
   </main>
