@@ -497,6 +497,29 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   1ª página (perfis antigos sem uf), sem repetidos. Teste `t-nacional.mjs`.
   **Leveza:** `planos-base.js` (preços/nível/selo/lerPlano) separado do `planos.js` (gaveta): vitrines e início não baixam a
   gaveta (~45 KB); cartões das classes com `*-480.webp`; ponte e propagandas do início com `srcset` `*-800.webp`.
+- **Nacional etapa 1 – busca nacional, Diário por região e _config.yml (PR depois do #76, MUDA REGRAS — não publicadas;
+  14 partes, 509 testes):** pedido dele: fazer a lista "o que falta para o nível nacional" (etapas: 1 busca+região+_config,
+  2 otimização Diário/perfil/Mensagens, 3 mapa/endereços com mais capacidade que o Nominatim, 4 Pix automático, 5 material
+  para o que não é programação). `_config.yml` (Jekyll exclui firestore.rules, storage.rules, indexes, README, LICENSE,
+  scripts/; conferido com `jekyll build` 3.10: mesmas páginas, byte a byte). `busca.js` (sem deps): `termosBusca` (palavras
+  sem acento + começos a partir de 3 letras, ≤15 letras, ≤100 termos), `buscarNoServidor` (array-contains da palavra mais
+  longa + filtros, confere o resto na tela), `combina`. Campo `busca` em negocios/anuncios/comunidade (regras `listaAte('busca',
+  100)`; "negócio com TUDO junto" + busca cabe); gravado ao salvar (`buscaDoNegocio`/`buscaDoAnuncio` em negocios.js;
+  NOVOS_NEG inclui busca), preenchido sozinho quando o dono abre Meus negócios (`completarBusca`) e em lote pelo workflow
+  manual "Preencher busca" (`scripts/limpeza/preencher-busca.mjs`, simula por padrão). Explorar junta os 200 recentes + a
+  busca no servidor (+ publicações com a #palavra); vitrines `buscarNaVitrine` (debounce 400 ms, ?q= também) e `incorporar`;
+  Comunidade idem. **Região:** `diario.autorUf/autorIbge` gravados ao publicar (sem as regras: publica sem, sem aviso);
+  `regiao.js` (`postsDoEstado` = autorUf + criadoEm, índice novo; `pesoRegiao` cidade ×1,6, estado ×1,25) em Principais,
+  Em alta e Destaques. 5 índices em `_regras/INDICES-LEIA-ME.md`. Teste `t-busca-regiao.mjs`.
+  **Mesmo PR: primeira assinatura +30 dias grátis (pedido dele, substitui o teste sem pagar):** `primeiraAssinatura` (planos/{uid} sem
+  pedidoId/negociacaoId; erro de leitura = mostra a oferta), `DIAS_BONUS`; gaveta com `.pl-bonus` no topo, "+30 dias grátis" em cada
+  período, resumo "3 meses + 30 dias grátis, até ...", lembrete na tela do Pix; painel `primeiraPaga` soma 30 dias ao "Confirmar
+  pagamento" (aviso e registro dizem); regra de a pessoa criar o próprio plano (teste) REMOVIDA. Textos "Começar/Anunciar grátis"
+  viraram "Criar perfil"/"Anunciar no Help Floripa"; Termos seção 6 reescrita (planos, preços, bônus, Pix sem renovação automática,
+  arrependimento de 7 dias do CDC — pedir revisão do advogado) e FAQ. Registro: fileira de pessoas em "Todas as ações" (foto, nome,
+  número; filtra), foto+nome em cada ação, "Ver tudo de Fulano" na linha do tempo do dia (`quemRegistro`).
+  Painel: `logo-icone.png` (ícone da ponte recortado do logo.png) no lugar do "HF". Topos de Profissionais, Clientes, Sócios e
+  Sobre no padrão da Ajuda (`hero-info sem-foto`, sem foto); "Sua vitrine profissional, de graça" virou "para todo o Brasil".
 - **As 5 etapas estão concluídas.** Próximos passos são as pendências abaixo (só ele pode fazer) e o que ficou
   para depois.
 

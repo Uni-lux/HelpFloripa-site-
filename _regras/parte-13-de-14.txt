@@ -182,7 +182,11 @@
       allow create: if logado()
                     && emailOk()
                     && request.resource.data.autorId == request.auth.uid
-                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'fotoPerfil', 'texto', 'mediaUrl', 'mediaTipo', 'midias', 'tags', 'marcados', 'agendadoPara', 'enquete', 'caixa', 'local', 'criadoEm'])
+                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'fotoPerfil', 'texto', 'mediaUrl', 'mediaTipo', 'midias', 'tags', 'marcados', 'agendadoPara', 'enquete', 'caixa', 'local',
+                                                              'autorUf', 'autorIbge', 'criadoEm'])
+                    // Região de quem publica (Diário e Explorar priorizam a cidade e o estado de quem lê): UF e código IBGE.
+                    && (!('autorUf' in request.resource.data) || (request.resource.data.autorUf is string && request.resource.data.autorUf.matches('^[A-Z]{2}$')))
+                    && (!('autorIbge' in request.resource.data) || (request.resource.data.autorIbge is int && request.resource.data.autorIbge > 1000000 && request.resource.data.autorIbge < 6000000))
                     && localPubOk(request.resource.data)
                     && (!('caixa' in request.resource.data) || caixaOk(request.resource.data.caixa))
                     // enquete: até 7 dias a partir de quando aparece (agora ou a data agendada), com 10 min de folga

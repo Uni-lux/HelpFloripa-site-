@@ -11,12 +11,14 @@
 import {
   $, el, icone, ms, toast, pintarAvatar, urlSegura, nomeCidade, fb, eu, dados, meusSeguindo, escondido, silenciado, ganchos,
   obterPerfil, linhaPessoa, botaoSeguir, fotosDoPost, lerResumosEstrelas, minhaRede, jaVisto, definirOrigem, origemAtual, pilha
-} from "./rede.js?v=51";
+} from "./rede.js?v=52";
 import { afinidade } from "./gosto.js?v=1";
+import { buscarNoServidor } from "./busca.js?v=1";
+import { postsDoEstado, pesoRegiao } from "./regiao.js?v=1";
 import { buscarPessoas, pessoasRecentes, semAcento } from "./pessoas.js?v=3";
 import { docsComValidade } from "./leituras.js?v=1";
 import { lerResumos, media } from "./avaliacoes.js?v=14";
-import { CATEGORIAS, CORES_TIPO, NOMES_TIPO, PAGINA_TIPO, nomeCategoria, nomeCat, categoriasDe } from "./vitrine.js?v=51";
+import { CATEGORIAS, CORES_TIPO, NOMES_TIPO, PAGINA_TIPO, nomeCategoria, nomeCat, categoriasDe } from "./vitrine.js?v=53";
 import { fimDaEnquete, faltaTexto } from "./enquetes.js?v=3";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, distanciaKm } from "./perto.js?v=1";
 
@@ -37,8 +39,10 @@ function postsRecentes() {
   if (postsP && Date.now() - postsEm < DIARIO_VALIDADE) return postsP;
   postsEm = Date.now();
   const q = fb.query(fb.collection(fb.db, "diario"), fb.orderBy("criadoEm", "desc"), fb.limit(120));
-  return (postsP = docsComValidade(fb, "diario-principais", q, DIARIO_VALIDADE)
-    .then((s) => (ultimoDoc = s.docs.at(-1) || null, s.size < 120 && (acabouAntigas = true), s).docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter((p) => !escondido(p.autorId) && !postOculto(p)))
+  // Junto com as recentes do país, as recentes do seu estado (regiao.js), sem repetir.
+  return (postsP = Promise.all([docsComValidade(fb, "diario-principais", q, DIARIO_VALIDADE), postsDoEstado(fb, dados.uf)])
+    .then(([s, doEstado]) => { const ja = new Set(s.docs.map((d) => d.id)); return { docs: s.docs, mais: doEstado.filter((p) => !ja.has(p.id)), size: s.size }; })
+    .then((s) => (ultimoDoc = s.docs.at(-1) || null, s.size < 120 && (acabouAntigas = true), [...s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })), ...s.mais]).filter((p) => !escondido(p.autorId) && !postOculto(p)))
     .catch((e) => { postsP = null; console.warn("Explorar:", e); return []; }));
 }
 // Negócios atualizados por último (os mesmos da página inicial, guardados por 10 min).
@@ -48,11 +52,20 @@ function negociosRecentes() {
     const col = fb.collection(fb.db, "negocios");
     const s = await docsComValidade(fb, "explorar-negocios", fb.query(col, fb.orderBy("atualizadoEm", "desc"), fb.limit(200)), 10 * 60000)
       .catch(() => fb.getDocs(fb.query(col, fb.limit(200))));
-    return s.docs.map((d) => ({ id: d.id, ...d.data() }))
-      .filter((n) => n.nome && NOMES_TIPO[n.tipo] && (n.ocultoAte?.toMillis?.() ?? 0) <= Date.now() && !escondido(n.donoId))
-      .map((n) => ({ ...n, _txt: semAcento([n.nome, nomeCategoria(n), ...categoriasDe(n).map((c) => nomeCat(n, c)), n.bairro, nomeCidade(n.cidade), n.descricao].filter(Boolean).join(" ")) }));
+    return prepararNegocios(s.docs.map((d) => ({ id: d.id, ...d.data() })));
   })().catch((e) => { negociosP = null; console.warn("Explorar (negócios):", e); return []; }));
 }
+const prepararNegocios = (lista) => lista
+  .filter((n) => n.nome && NOMES_TIPO[n.tipo] && (n.ocultoAte?.toMillis?.() ?? 0) <= Date.now() && !escondido(n.donoId))
+  .map((n) => ({ ...n, _txt: semAcento([n.nome, nomeCategoria(n), ...categoriasDe(n).map((c) => nomeCat(n, c)), n.bairro, nomeCidade(n.cidade), n.descricao].filter(Boolean).join(" ")) }));
+// Busca nacional (busca.js): negócios do Brasil inteiro com a palavra digitada + publicações com a #palavra.
+async function negociosDoServidor(termo) { return prepararNegocios(await buscarNoServidor(fb, "negocios", termo)); }
+async function postsComTag(palavra) {
+  if (!/^[\p{L}\p{N}_]{2,30}$/u.test(palavra)) return [];
+  const s = await fb.getDocs(fb.query(fb.collection(fb.db, "diario"), fb.where("tags", "array-contains", palavra.toLowerCase()), fb.limit(40))).catch(() => null);
+  return s ? s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter((p) => !escondido(p.autorId) && !postOculto(p)) : [];
+}
+const juntar = (...listas) => { const m = new Map(); listas.flat().forEach((x) => { if (!m.has(x.id)) m.set(x.id, x); }); return [...m.values()]; };
 const notasNegocios = new Map();
 async function notasDe(lista) {
   const falta = lista.filter((n) => !notasNegocios.has(n.id));
@@ -123,11 +136,15 @@ async function buscar() {
   if (!corpo.querySelector(".res-sec, .linha")) corpo.replaceChildren(el("div", "lista-vazia", "Buscando..."));
   const limpo = termo.replace(/^[#@]/, "");
   const t = semAcento(limpo);
-  const [pessoas, negocios, posts] = await Promise.all([
+  const semNeg = termo.startsWith("#") || termo.startsWith("@");
+  const [pessoas, negRecentes, negServidor, recentes, comTag] = await Promise.all([
     termo.startsWith("#") ? [] : buscarPessoas(fb, termo, { limite: 30 }),
-    termo.startsWith("#") || termo.startsWith("@") ? [] : negociosRecentes(),
-    postsRecentes()
+    semNeg ? [] : negociosRecentes(),
+    semNeg || t.length < 3 ? [] : negociosDoServidor(limpo),
+    postsRecentes(),
+    termo.startsWith("@") || /\s/.test(limpo) ? [] : postsComTag(limpo)
   ]);
+  const negocios = juntar(negRecentes, negServidor), posts = juntar(recentes, comTag);
   if ($("buscaPessoas").value.trim() !== termo) return;
   // Hashtags: as das publicações recentes que começam com o que foi digitado (e a exata, contada no servidor).
   const tags = new Map();
@@ -260,7 +277,7 @@ function pintarAlta(lista) {
   lista.forEach((p) => (p.tags || []).forEach((t) => {
     const idade = Math.max(0, agora - ms(p.criadoEm));
     const x = conta.get(t) || { t, n: 0, p: 0, hoje: 0 };
-    x.n++; x.p += 1 / (1 + idade / (3 * DIA)); if (idade < DIA) x.hoje++;
+    x.n++; x.p += pesoRegiao(p, dados) / (1 + idade / (3 * DIA)); if (idade < DIA) x.hoje++; // a sua região pesa mais
     conta.set(t, x);
   }));
   const top = [...conta.values()].sort((a, b) => b.p - a.p).slice(0, 12);
@@ -419,7 +436,7 @@ function pintarDestaques() {
   const nota = (p) => {
     const r = resumosPosts.get(p.id) || { total: 0, soma: 0 };
     const horas = Math.max(0, (agora - (ms(p.criadoEm) || agora)) / HORA);
-    return (1 + r.total + Math.max(0, r.soma - 3 * r.total) * 0.4) * (1 + afinidade(p)) / Math.pow(horas + 6, 0.8);
+    return (1 + r.total + Math.max(0, r.soma - 3 * r.total) * 0.4) * (1 + afinidade(p)) * pesoRegiao(p, dados) / Math.pow(horas + 6, 0.8);
   };
   const base = postsDestaque.filter((p) => p.autorId !== eu.uid && (tipoPost(p) !== "textos" || String(p.texto || p.enquete?.pergunta || "").trim().length >= 8));
   const conta = Object.fromEntries(FILTROS_DEST.map(([id]) => [id, id === "tudo" ? base.length : base.filter((p) => tipoPost(p) === id).length]));

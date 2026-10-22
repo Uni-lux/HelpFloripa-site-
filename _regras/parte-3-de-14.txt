@@ -114,6 +114,7 @@
                 'entrega', 'tipoAnunciante', 'creci',
                 'instagram', 'site', 'capa', 'cnpj', 'promocao', 'semana', 'geo',
                 'saude',       // perfil de Saúde: profissão, registro no conselho, especialidades, convênios...
+                'busca',       // palavras e começos de palavras para a busca nacional (busca.js), até 100
                 'ocultoAte'];  // escondido enquanto a conta do dono estiver desativada
       }
 
@@ -168,6 +169,7 @@
             && textoAte('categoriaPersonalizada', 30)
             && listaAte('itens', 12)
             && listaAte('fotos', 5)
+            && listaAte('busca', 100)
             && dataOuNulo('ocultoAte')
             && ((resource != null && !mudou().hasAny(['foto'])) || campoFotoOk('foto'))
             && extrasNegocioOk();
@@ -218,6 +220,7 @@
                 'disponivel', 'hospedes', 'caracteristicas', 'condicoes', 'descricao', 'fotos', 'criadoEm', 'atualizadoEm',
                 'categoriaPersonalizada',  // tipo escrito pela pessoa quando escolhe "Outro" (Chácara, Galpão...)
                 'geo',                     // ponto do endereço (Perto de você)
+                'busca',                   // palavras para a busca nacional (busca.js), até 100
                 'ocultoAte'];
       }
 

@@ -8,11 +8,12 @@
 // =====================================================
 import { confirmarHF } from "./confirmar.js?v=4";
 import { temStorage, subirFoto } from "./armazenamento.js?v=1";
+import { termosBusca, buscarNoServidor, combina } from "./busca.js?v=1";
 import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL } from "./seguranca.js?v=1";
 import { docComValidade } from "./leituras.js?v=1";
 import { camposEndereco, textoCidade, semAcento } from "./endereco.js?v=1";
 import { minhaPosicao, comDistancia, textoDistancia } from "./perto.js?v=1";
-import { prepararConversa } from "./vitrine.js?v=51";
+import { prepararConversa } from "./vitrine.js?v=53";
 
 export const CATEGORIAS_COM = {
   doacao: { nome: "Doação", plural: "Doações", cor: "#e5487f", ic: "presente", acao: "Quero receber", dica: "Dê de graça o que você não usa mais" },
@@ -101,8 +102,8 @@ function passa(a) {
   if (a.status === "concluido" || oculto(a) || vencido(a)) return false;
   if (filtroCat !== "todos" && a.categoria !== filtroCat) return false;
   if (filtroItem && a.tipoItem !== filtroItem) return false;
-  const t = semAcento($("cmBusca")?.value || "");
-  if (t && !semAcento([a.titulo, a.descricao, a.bairro, a.cidade, TIPOS_ITEM[a.tipoItem], CATEGORIAS_COM[a.categoria]?.nome].join(" ")).includes(t)) return false;
+  const t = ($("cmBusca")?.value || "").trim();
+  if (t && !combina(t, [a.titulo, a.descricao, a.bairro, a.cidade, TIPOS_ITEM[a.tipoItem], CATEGORIAS_COM[a.categoria]?.nome].join(" "))) return false;
   return true;
 }
 function cartao(a) {
@@ -456,6 +457,7 @@ function abrirForm(a = null, catInicial = "doacao") {
       }
       if (k === "achados") dados.achado = { tipo: d.achado.tipo === "encontrado" ? "encontrado" : "perdido", data: /^\d{4}-\d{2}-\d{2}$/.test(d.achado.data || "") ? d.achado.data : "", local: String(d.achado.local || "").replace(/[\n\r]+/g, " ").trim().slice(0, 80) };
       // Com o Storage ligado, as fotos novas vão para lá e o anúncio guarda só os links.
+      dados.busca = termosBusca([dados.titulo, TIPOS_ITEM[dados.tipoItem], CATEGORIAS_COM[k]?.nome, dados.bairro, dados.cidade, dados.descricao]);
       if (temStorage()) dados.fotos = await Promise.all(dados.fotos.map((f, i) => subirFoto(f, `comunidade/${eu.uid}/${i}`)));
       if (JSON.stringify(dados).length > 950000) throw new Error("Fotos grandes demais. Tire uma e tente de novo.");
       // Distância: pelo centro da cidade (o anúncio não guarda endereço, só bairro e cidade).
@@ -511,8 +513,19 @@ function ligarTela() {
   const item = $("cmItem");
   if (item) { item.append(...Object.entries({ "": "Tudo", ...TIPOS_ITEM }).map(([v, t]) => { const o = document.createElement("option"); o.value = v; o.textContent = t; return o; })); item.addEventListener("change", () => { filtroItem = item.value; pintar(); }); }
   $("cmOrdem")?.addEventListener("change", (e) => { ordem = e.target.value; pintar(); });
-  $("cmBusca")?.addEventListener("input", pintar);
-  $("cmBuscaForm")?.addEventListener("submit", (e) => { e.preventDefault(); pintar(); $("cmLista")?.scrollIntoView({ behavior: "smooth", block: "start" }); });
+  // Busca nacional: além dos anúncios já carregados, pergunta ao Firebase pela palavra digitada (busca.js).
+  let espera = null;
+  const buscarMais = async () => {
+    const t = ($("cmBusca")?.value || "").trim();
+    if (t.length < 3 || !fb) return;
+    const achados = await buscarNoServidor(fb, "comunidade", t);
+    const ja = new Set(todos.map((x) => x.id)), novos = achados.filter((x) => !ja.has(x.id));
+    if (!novos.length) return;
+    if (posEu) await comDistancia(novos, posEu).catch(() => {});
+    todos.push(...novos); pintar();
+  };
+  $("cmBusca")?.addEventListener("input", () => { pintar(); clearTimeout(espera); espera = setTimeout(buscarMais, 400); });
+  $("cmBuscaForm")?.addEventListener("submit", (e) => { e.preventDefault(); pintar(); buscarMais(); $("cmLista")?.scrollIntoView({ behavior: "smooth", block: "start" }); });
   document.querySelectorAll("[data-anunciar]").forEach((b) => b.addEventListener("click", () => abrirForm(null, b.dataset.anunciar || "doacao")));
   $("cmVerRegras")?.addEventListener("click", mostrarRegras);
   $("cmVerMeus")?.addEventListener("click", () => { $("cmMeusBox").hidden = !$("cmMeusBox").hidden; if (!$("cmMeusBox").hidden) $("cmMeusBox").scrollIntoView({ behavior: "smooth", block: "start" }); });
@@ -547,6 +560,8 @@ async function iniciar() {
     if (posEu) await comDistancia(todos, posEu);
     if (posEu) { const o = $("cmOrdem"); if (o) o.querySelector('[value="perto"]').disabled = false; }
     pintar(); pintarMeus();
+    // Chegou com uma busca (?q=): pergunta também ao Firebase, além dos 150 mais recentes.
+    if (($("cmBusca")?.value || "").trim().length >= 3) $("cmBusca").dispatchEvent(new Event("input"));
     const p = new URLSearchParams(location.search);
     if (p.get("novo")) abrirForm(null, CATEGORIAS_COM[p.get("novo")] ? p.get("novo") : "doacao");
     else if (p.get("meus")) { $("cmMeusBox").hidden = false; $("cmMeusBox").scrollIntoView({ block: "start" }); }

@@ -19,7 +19,8 @@ export const PERIODOS = [[1, "1 mês", 0], [3, "3 meses", 0.1], [6, "6 meses", 0
 export const descontoDe = (meses) => PERIODOS.find(([m]) => m === Number(meses))?.[2] || 0;
 // Valor total do período com o desconto (centavos arredondados).
 export const valorPeriodo = (k, meses) => Math.round((PLANOS[k]?.preco || 0) * meses * (1 - descontoDe(meses)) * 100) / 100;
-export const DIAS_TESTE = 30; // teste grátis no primeiro acesso
+export const DIAS_TESTE = 30; // dias grátis a mais na primeira assinatura paga (bônus)
+export const DIAS_BONUS = DIAS_TESTE;
 // O que cada plano tem: [benefício, Plus, Pro, Premium] (tudo o que está marcado o site já faz).
 export const BENEFICIOS = [
   ["Perfil de negócio (Freelances, Delivery, Shopping, Imóveis e Saúde)", true, true, true],

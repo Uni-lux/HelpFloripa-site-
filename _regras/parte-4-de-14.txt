@@ -9,6 +9,7 @@
             && textoAte('categoriaPersonalizada', 30)
             && geoOk(request.resource.data.get('geo', null))
             && listaAte('fotos', 5)
+            && listaAte('busca', 100)
             && listaAte('caracteristicas', 20)
             && listaAte('condicoes', 12)
             && dataOuNulo('ocultoAte');
@@ -52,7 +53,7 @@
     match /comunidade/{id} {
       function camposComunidade() {
         return ['donoId', 'categoria', 'tipoItem', 'titulo', 'descricao', 'fotos', 'estado', 'entrega', 'status',
-                'bairro', 'cidade', 'uf', 'cidadeIbge', 'geo', 'quarto', 'achado', 'aceiteRegras',
+                'bairro', 'cidade', 'uf', 'cidadeIbge', 'geo', 'quarto', 'achado', 'aceiteRegras', 'busca',
                 'criadoEm', 'atualizadoEm', 'ocultoAte', 'ocultoPelaEquipe'];
       }
       // Vaga em quarto/moradia compartilhada: só a divisão das despesas entre moradores.
@@ -84,6 +85,7 @@
             && textoAte('bairro', 60)
             && geoOk(d.get('geo', null))
             && listaAte('fotos', 4)
+            && listaAte('busca', 100)
             && d.get('estado', 'usado') in ['novo', 'seminovo', 'usado', 'reparo']
             && d.get('entrega', 'combinar') in ['combinar', 'retirar', 'entrego']
             && d.status in ['disponivel', 'reservado', 'concluido']

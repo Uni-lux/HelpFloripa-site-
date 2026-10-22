@@ -1786,7 +1786,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=23").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=24").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);
@@ -2387,16 +2387,18 @@ function ligarCompositor() {
       const tags = tagsDoTexto(texto), marcados = [...new Set([...pubMarcados.map((p) => p.uid), ...mencionados])].filter((u) => u && u !== eu.uid).slice(0, 10);
       const agenda = pubAgenda && pubAgenda > new Date() ? fb.Timestamp.fromDate(pubAgenda) : null;
       const extras = { ...(tags.length ? { tags } : {}), ...(marcados.length ? { marcados } : {}), ...(agenda ? { agendadoPara: agenda } : {}), ...(enquete ? { enquete } : {}), ...(caixa ? { caixa } : {}), ...(pubLocal ? { local: { ...pubLocal } } : {}) };
+      // Região de quem publica (Diário e Explorar priorizam a sua cidade e o seu estado).
+      const regiao = /^[A-Z]{2}$/.test(dados.uf || "") ? { autorUf: dados.uf, ...(Number.isInteger(dados.cidadeIbge) ? { autorIbge: dados.cidadeIbge } : {}) } : {};
       const gravar = (novos) => comRitmo(fb, eu.uid, "pub", (lote) => {
         const r = fb.doc(fb.collection(fb.db, "diario"));
-        lote.set(r, { autorId: eu.uid, nome: dados.nome || "Usuário", fotoPerfil: foto, texto, mediaUrl, mediaTipo, ...(novos && midias ? { midias } : {}), ...(novos ? extras : {}), criadoEm: fb.serverTimestamp() });
+        lote.set(r, { autorId: eu.uid, nome: dados.nome || "Usuário", fotoPerfil: foto, texto, mediaUrl, mediaTipo, ...(novos && midias ? { midias } : {}), ...(novos ? { ...extras, ...regiao } : {}), criadoEm: fb.serverTimestamp() });
         return r;
       });
       let ref, semNovos = false;
       try { ref = await gravar(true); }
       catch (e) {
         // Regras antigas no servidor: publica sem os campos novos. Agendada não vai na hora: avisa e para.
-        if (e?.code !== "permission-denied" || (!midias && !Object.keys(extras).length)) throw e;
+        if (e?.code !== "permission-denied" || (!midias && !Object.keys(extras).length && !Object.keys(regiao).length)) throw e;
         if (agenda) { toast("Agendar começa a funcionar quando as regras novas forem publicadas. Publique agora ou salve como rascunho."); return; }
         if (enquete) { toast("Enquetes começam a funcionar quando as regras novas forem publicadas. Tire a enquete para publicar agora."); return; }
         if (caixa) { toast("A caixa de perguntas começa a funcionar quando as regras novas forem publicadas. Tire a caixa para publicar agora."); return; }
@@ -2411,7 +2413,7 @@ function ligarCompositor() {
       btn.disabled = false;
       limparPublicacao();
       fecharFolha("folhaPublicar");
-      toast(agenda ? `Agendada para ${agenda.toDate().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}. Até lá, só você vê.` : semNovos ? "Publicado. Várias fotos, hashtags, marcações e o local começam a funcionar quando as regras novas forem publicadas." : "Publicado!");
+      toast(agenda ? `Agendada para ${agenda.toDate().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}. Até lá, só você vê.` : semNovos && (midias || Object.keys(extras).length) ? "Publicado. Várias fotos, hashtags, marcações e o local começam a funcionar quando as regras novas forem publicadas." : "Publicado!");
       $("folhaPublicar").aoPublicar?.(post);
     } catch (e) {
       if (e?.code !== "limite-diario") console.error(e);

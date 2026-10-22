@@ -1,0 +1,10 @@
+# GitHub Pages (Jekyll): arquivos de trabalho que NÃO vão para o site publicado.
+# Pastas que começam com "_" ou "." (_testes, _regras, .claude) já ficam de fora sozinhas.
+# As páginas .html e .js não têm cabeçalho do Jekyll: são publicadas exatamente como estão.
+exclude:
+  - firestore.rules
+  - storage.rules
+  - firestore.indexes.json
+  - README.md
+  - LICENSE
+  - scripts/

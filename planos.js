@@ -1,7 +1,7 @@
 // =====================================================
 // Planos dos perfis profissionais: Plus, Pro e Premium (não existe plano Grátis).
-// - Primeiro acesso: 30 dias grátis no plano que a pessoa escolher (uma vez por conta; ela mesma grava
-//   planos/{uid} com teste: true, só se a conta nunca teve plano).
+// - Primeira assinatura: a pessoa paga o período e ganha mais 30 dias grátis (DIAS_BONUS), em qualquer plano; o dono do
+//   site soma os dias ao confirmar o Pix. Testes grátis antigos (planos/{uid} com teste: true) continuam valendo até o fim.
 // - Pagamento por Pix (manual): a pessoa escolhe o plano e o período, o pedido fica em planos_pedidos/{id}
 //   e aparece o Pix (copia e cola + QR Code). O dono do site confere o pagamento no painel e ativa: planos/{uid}
 //   { plano: "plus" | "pro" | "premium", ate } — vale para todos os negócios da conta e vence sozinho na data.
@@ -13,8 +13,8 @@
 // =====================================================
 
 // Preços, nível, selo e leitura do plano ficam no planos-base.js (as páginas que só mostram o selo não baixam este arquivo).
-import { PIX, PLANOS, ORDEM_PLANOS, PRECO_MIN, PERIODOS, descontoDe, valorPeriodo, DIAS_TESTE, BENEFICIOS, nivelPlano, ehPago, ehPro, nomePlano, emTeste, diasRestantes, textoFalta, reais, creditoDias, lerPlano, esquecerPlano, seloPlano, seloPro } from "./planos-base.js?v=1";
-export { PIX, PLANOS, ORDEM_PLANOS, PRECO_MIN, PERIODOS, descontoDe, valorPeriodo, DIAS_TESTE, BENEFICIOS, nivelPlano, ehPago, ehPro, nomePlano, emTeste, diasRestantes, textoFalta, reais, creditoDias, lerPlano, esquecerPlano, seloPlano, seloPro } from "./planos-base.js?v=1";
+import { PIX, PLANOS, ORDEM_PLANOS, PRECO_MIN, PERIODOS, descontoDe, valorPeriodo, DIAS_TESTE, DIAS_BONUS, BENEFICIOS, nivelPlano, ehPago, ehPro, nomePlano, emTeste, diasRestantes, textoFalta, reais, creditoDias, lerPlano, esquecerPlano, seloPlano, seloPro } from "./planos-base.js?v=2";
+export { PIX, PLANOS, ORDEM_PLANOS, PRECO_MIN, PERIODOS, descontoDe, valorPeriodo, DIAS_TESTE, DIAS_BONUS, BENEFICIOS, nivelPlano, ehPago, ehPro, nomePlano, emTeste, diasRestantes, textoFalta, reais, creditoDias, lerPlano, esquecerPlano, seloPlano, seloPro } from "./planos-base.js?v=2";
 const ms = (t) => t?.toMillis?.() ?? (t?.seconds ? t.seconds * 1000 : typeof t === "number" ? t : 0);
 const DIA = 864e5;
 const MAX_DESC = Math.round(Math.max(...PERIODOS.map((x) => x[2])) * 100);
@@ -109,7 +109,9 @@ const CSS = `
 .pl-card .atual { grid-column: 1 / -1; margin-top: 4px; font-size: 12px; font-weight: 800; color: #2fbf71; }
 .pl-tabela.c3 .pl-lin { grid-template-columns: 1fr repeat(3, 58px); gap: 4px; padding: 10px; font-size: 13px; }
 .pl-tabela.c3 .pl-lin.cab { font-size: 11px; letter-spacing: .02em; }
-.pl-btn.pl-teste { background: linear-gradient(135deg, #16a34a, #2fbf71); box-shadow: 0 12px 26px -12px #16a34a; }
+.pl-bonus { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding: 10px 12px; border-radius: 14px; background: rgba(255, 255, 255, .14); border: 1px solid rgba(255, 255, 255, .28); font-size: 13px; line-height: 1.35; }
+.pl-bonus b { flex: none; padding: 6px 10px; border-radius: 10px; background: linear-gradient(135deg, #16a34a, #2fbf71); color: #fff; font-size: 13px; font-weight: 900; white-space: nowrap; }
+.pl-per .bonus { display: block; margin-top: 4px; font-size: 10.5px; font-weight: 800; color: #16a34a; }
 .pl-lin.cab span:last-child { color: inherit; }
 .pl-lin span.sel { background: color-mix(in srgb, var(--c, #7c3aed) 14%, transparent); border-radius: 8px; }
 .pl-lin.cab span.sel { color: var(--c, #7c3aed); }
@@ -199,16 +201,13 @@ export function formatarTelefone(v) {
   return d.length <= 2 ? `(${d}` : d.length <= 6 ? `(${d.slice(0, 2)}) ${d.slice(2)}` : d.length <= 10 ? `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}` : `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
 }
 const negAberta = (n) => n && (n.status === "novo" || n.status === "em_conversa");
-// Teste grátis: só para quem nunca teve plano (planos/{uid} não existe). Erro de leitura = não oferece.
-export async function testeDisponivel(fb, uid) {
-  try { return !(await fb.getDoc(fb.doc(fb.db, "planos", uid))).exists(); } catch { return false; }
+// Primeira assinatura: quem nunca pagou um plano paga o período e ganha mais 30 dias grátis (o dono do site soma os
+// dias ao confirmar o Pix). Sem leitura possível (regras ainda não publicadas), mostra a oferta: quem decide é o painel.
+export async function primeiraAssinatura(fb, uid) {
+  try { const s = await fb.getDoc(fb.doc(fb.db, "planos", uid)); return !s.exists() || (!s.data().pedidoId && !s.data().negociacaoId); }
+  catch { return true; }
 }
-export async function comecarTeste(fb, uid, plano) {
-  const dados = { plano, teste: true, meses: 1, ate: fb.Timestamp.fromMillis(Date.now() + DIAS_TESTE * DIA), ativadoEm: fb.serverTimestamp(), ativadoPor: uid };
-  await fb.setDoc(fb.doc(fb.db, "planos", uid), dados);
-  esquecerPlano(uid);
-  return dados;
-}
+export const testeDisponivel = primeiraAssinatura; // nome antigo (Meus negócios)
 const dataLonga = (t) => new Date(ms(t)).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
 
 // Cartão "Seu plano X · faltam N dias" (barra do tempo que sobra; laranja na última semana).
@@ -252,7 +251,7 @@ export async function abrirPlanos(op) {
   fundo.addEventListener("click", (e) => { if (e.target === fundo) fechar(); });
   x.addEventListener("click", fechar);
   corpo.appendChild(el("p", "pl-nota", "Carregando..."));
-  let [plano, pedido, neg, teste] = await Promise.all([lerPlano(fb, eu.uid), pedidoAberto(fb, eu.uid), lerNegociacao(fb, eu.uid), testeDisponivel(fb, eu.uid)]);
+  let [plano, pedido, neg, primeira] = await Promise.all([lerPlano(fb, eu.uid), pedidoAberto(fb, eu.uid), lerNegociacao(fb, eu.uid), primeiraAssinatura(fb, eu.uid)]);
   if (pedido) { mostrarPix(pedido); return; }
   if (op.negociar) { mostrarNegociacao(op.negociar); return; }
   pintarEscolha();
@@ -260,12 +259,13 @@ export async function abrirPlanos(op) {
   function pintarEscolha() {
     corpo.replaceChildren(); cx.scrollTop = 0;
     const hero = el("div", "pl-hero");
-    hero.append(el("small", null, teste ? `${DIAS_TESTE} dias grátis no primeiro acesso` : "Planos Help Floripa"), el("h3", null, "Mais clientes para o seu negócio"),
+    hero.append(el("small", null, primeira ? `Primeira assinatura: +${DIAS_BONUS} dias grátis` : "Planos Help Floripa"), el("h3", null, "Mais clientes para o seu negócio"),
       el("p", null, "Selo no perfil, destaque nas vitrines e no Perto de você, estatísticas completas e atendimento prioritário."));
     const preco = el("div", "pl-preco");
-    if (teste) preco.append(el("span", "de", "Escolha qualquer plano e use"), el("b", null, `${DIAS_TESTE} dias grátis`), el("span", null, `depois a partir de ${reais(PRECO_MIN)} por mês · até ${MAX_DESC}% de desconto no plano anual`));
-    else preco.append(el("span", "de", "A partir de"), el("b", null, reais(PRECO_MIN)), el("span", null, `por mês · até ${MAX_DESC}% de desconto no plano anual · vale para todos os seus negócios`));
+    preco.append(el("span", "de", "A partir de"), el("b", null, reais(PRECO_MIN)), el("span", null, `por mês · até ${MAX_DESC}% de desconto no plano anual · vale para todos os seus negócios`));
     hero.appendChild(preco);
+    // Bônus da primeira assinatura, bem à vista.
+    if (primeira) { const bn = el("div", "pl-bonus"); bn.append(el("b", null, `+${DIAS_BONUS} dias grátis`), el("span", null, "na sua primeira assinatura: você paga o período escolhido e usa 30 dias a mais, em qualquer plano.")); hero.appendChild(bn); }
     corpo.appendChild(hero);
     const st = cartaoStatus(plano); if (st) corpo.appendChild(st);
     const atual = nivelPlano(plano) ? plano.plano : "";
@@ -295,27 +295,13 @@ export async function abrirPlanos(op) {
     });
     corpo.appendChild(tab);
 
-    // Primeiro acesso: começa o teste grátis no plano escolhido (sem pagar nada agora).
-    const btnTeste = el("button", "pl-btn pl-teste"); btnTeste.type = "button"; btnTeste.hidden = !teste;
-    btnTeste.addEventListener("click", async () => {
-      btnTeste.disabled = true;
-      try {
-        plano = await comecarTeste(fb, eu.uid, escolhido); teste = false;
-        plano = { ...plano, ativadoEm: { toMillis: () => Date.now() } };
-        toast(`Pronto! ${DIAS_TESTE} dias grátis no ${nomePlano(escolhido)}.`);
-        op.aoMudar?.(); pintarEscolha();
-      } catch (e) {
-        btnTeste.disabled = false;
-        toast(e?.code === "permission-denied" ? "O teste grátis começa a funcionar quando a atualização do sistema for publicada." : "Não foi possível começar o teste agora.");
-      }
-    });
-    if (teste) corpo.append(btnTeste, el("p", "pl-nota", `Sem pagar nada e sem compromisso. No fim dos ${DIAS_TESTE} dias você escolhe se quer assinar. O teste grátis vale uma vez por conta.`));
     const secPer = el("div", "pl-sec"); corpo.appendChild(secPer);
     const per = el("div", "pl-periodos");
     PERIODOS.forEach(([m, rot, d]) => {
       const b = el("button", "pl-per"); b.type = "button"; b.dataset.m = m;
       b.append(el("b", null, rot), el("small", "total"));
       if (d) b.append(el("s"), el("span", "mes"), el("span", "off", `-${Math.round(d * 100)}%`));
+      if (primeira) b.append(el("span", "bonus", `+${DIAS_BONUS} dias grátis`));
       b.addEventListener("click", () => { meses = m; pintarSel(); });
       per.appendChild(b);
     });
@@ -335,10 +321,13 @@ export async function abrirPlanos(op) {
         if (b.querySelector("s")) { b.querySelector("s").textContent = reais(P.preco * m); b.querySelector(".mes").textContent = `${reais(v / m)} por mês`; }
       });
       const eco = Math.round((P.preco * meses - valorPeriodo(escolhido, meses)) * 100) / 100;
-      economia.hidden = !eco; economia.textContent = eco ? `Você economiza ${reais(eco)} (${Math.round(descontoDe(meses) * 100)}% de desconto)` : "";
-      secPer.textContent = `${teste ? "Ou já assinar o" : escolhido === atual ? (plano?.teste ? "Assinar o" : "Renovar o") : "Assinar o"} ${P.nome} por`;
-      btnTeste.textContent = `Começar ${DIAS_TESTE} dias grátis no ${P.nome}`;
-      btn.classList.toggle("sec", teste);
+      secPer.textContent = `${escolhido === atual && !plano?.teste ? "Renovar o" : "Assinar o"} ${P.nome} por`;
+      // Primeira assinatura: mostra até quando vale com os 30 dias a mais.
+      const fim = new Date(Date.now() + (meses * 30 + (primeira ? DIAS_BONUS : 0)) * DIA);
+      economia.hidden = false;
+      economia.textContent = [eco ? `Você economiza ${reais(eco)} (${Math.round(descontoDe(meses) * 100)}% de desconto).` : "",
+        primeira ? `Primeira assinatura: ${meses === 1 ? "1 mês" : meses + " meses"} + ${DIAS_BONUS} dias grátis, até ${fim.toLocaleDateString("pt-BR")}.` : ""].filter(Boolean).join(" ");
+      if (!economia.textContent) economia.hidden = true;
       btn.textContent = `Pagar ${reais(valorPeriodo(escolhido, meses))} com Pix`;
       const cr = creditoDias(plano, escolhido);
       credito.hidden = !atual || escolhido === atual;
@@ -512,6 +501,7 @@ export async function abrirPlanos(op) {
     corpo.replaceChildren();
     const box = el("div", "pl-pix");
     box.append(el("small", null, `Pedido #${String(p.id).slice(-6).toUpperCase()} · Plano ${nomePlano(p.plano)} · ${p.meses} ${p.meses === 1 ? "mês" : "meses"}${descontoDe(p.meses) ? ` com ${Math.round(descontoDe(p.meses) * 100)}% de desconto` : ""}`), el("b", "valor", reais(p.valor)));
+    if (primeira) box.append(el("p", "pl-nota pl-bonus-pix", `Primeira assinatura: quando o pagamento for confirmado, você ganha mais ${DIAS_BONUS} dias grátis.`));
     const cod = codigoPix({ valor: p.valor, txid: p.txid });
     if (cod) {
       box.appendChild(await qrSvg(cod).catch(() => el("span")));
