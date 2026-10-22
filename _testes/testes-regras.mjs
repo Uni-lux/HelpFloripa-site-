@@ -131,6 +131,40 @@ await t("suporte: quem abre pode ficar como responsável", () => assertSucceeds(
 await t("suporte: não põe outra pessoa como responsável ao abrir", () => assertFails(abrirConversaSuporte("adm", "bia", { responsavel: "mod", responsavelNome: "Mod", assumidoEm: serverTimestamp() })));
 await t("suporte: abertoPor precisa ser quem abre", () => assertFails(abrirConversaSuporte("adm", "ana", { abertoPor: "mod" })));
 
+// ---------- suporte nacional: prioridade, fila, notas internas e respostas prontas ----------
+const abrirChamadoUsuario = async (uid, extra, id = "sn_" + Math.random().toString(36).slice(2, 8)) => {
+  const db = ctx(uid), b = writeBatch(db);
+  b.set(doc(db, "suporte", id), { uid, nome: uid, email: uid + "@t.com", assunto: "Preciso de ajuda", categoria: "conta", status: "aberto", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ultimaDe: "usuario", ...extra });
+  b.set(doc(db, "suporte", id, "mensagens", "inicio"), { autorId: uid, equipe: false, texto: "Detalhes do problema", em: serverTimestamp() });
+  await b.commit(); return id;
+};
+let idFila = null;
+await t("fila: chamado de golpe nasce urgente", async () => { idFila = await abrirChamadoUsuario("ana", { categoria: "golpe", prioridade: "urgente" }); });
+await t("fila: chamado de pagamento nasce com prioridade alta", () => abrirChamadoUsuario("ana", { categoria: "pagamento", prioridade: "alta" }));
+await t("fila: quem abre não se dá urgente num assunto comum", () => assertFails(abrirChamadoUsuario("ana", { categoria: "conta", prioridade: "urgente" })));
+await t("fila: alta sem plano Pro e sem assunto de alta é recusada", () => assertFails(abrirChamadoUsuario("ana", { categoria: "conta", prioridade: "alta" })));
+await t("fila: plano Pro ativo dá prioridade alta em qualquer assunto", async () => { await semRegras((db) => setDoc(doc(db, "planos", "bia"), { plano: "pro", ate: Timestamp.fromMillis(Date.now() + 30 * 864e5) })); await abrirChamadoUsuario("bia", { categoria: "conta", prioridade: "alta" }); });
+await t("fila: quem abre não se põe como escalonado", () => assertFails(abrirChamadoUsuario("ana", { escalonadoPara: "donos" })));
+await t("fila: a equipe pega o chamado (assume)", () => assertSucceeds(updateDoc(doc(ctx("adm"), "suporte", idFila), { responsavel: "adm", responsavelNome: "Adm", assumidoEm: serverTimestamp() })));
+await t("fila: a equipe transfere de setor e escala para os donos", () => assertSucceeds(updateDoc(doc(ctx("adm"), "suporte", idFila), { categoria: "denuncia", escalonadoPara: "donos", prioridade: "alta" })));
+await t("fila: escalar para um lugar que não existe é recusado", () => assertFails(updateDoc(doc(ctx("adm"), "suporte", idFila), { escalonadoPara: "estagiario" })));
+await t("fila: a equipe responde e marca a 1ª resposta", async () => {
+  const db = ctx("adm"), b = writeBatch(db);
+  b.set(doc(db, "suporte", idFila, "mensagens", "r1"), { autorId: "adm", equipe: true, texto: "Estamos verificando.", em: serverTimestamp() });
+  b.update(doc(db, "suporte", idFila), { status: "respondido", ultimaDe: "equipe", atendidoPor: "adm", atualizadoEm: serverTimestamp(), primeiraRespostaEm: serverTimestamp() });
+  await assertSucceeds(b.commit());
+});
+await t("fila: quem abriu não mexe na prioridade", () => assertFails(updateDoc(doc(ctx("ana"), "suporte", idFila), { prioridade: "urgente", atualizadoEm: serverTimestamp(), ultimaDe: "usuario", status: "aberto" })));
+const nota = (quem, extra) => setDoc(doc(ctx(quem), "suporte", idFila, "notas", "n" + Math.random().toString(36).slice(2, 7)), { autorId: quem, nome: quem, texto: "Golpe conhecido, ver denúncia #ABC", em: serverTimestamp(), ...extra });
+await t("notas internas: a equipe escreve", () => assertSucceeds(nota("adm")));
+await t("notas internas: a pessoa do chamado NÃO lê", () => assertFails(getDocs(collection(ctx("ana"), "suporte", idFila, "notas"))));
+await t("notas internas: a pessoa do chamado NÃO escreve", () => assertFails(nota("ana")));
+await t("notas internas: a equipe lê", () => assertSucceeds(getDocs(collection(ctx("adm"), "suporte", idFila, "notas"))));
+const resposta = (quem, extra) => setDoc(doc(ctx(quem), "suporte_respostas", "rp1"), { titulo: "Pix não caiu", texto: "Olá! O Pix pode levar até 30 minutos.", categoria: "pagamento", autorId: quem, autorNome: quem, em: serverTimestamp(), ...extra });
+await t("respostas prontas: a equipe cria", () => assertSucceeds(resposta("adm")));
+await t("respostas prontas: usuário comum não cria nem lê", async () => { await assertFails(resposta("ana")); await assertFails(getDoc(doc(ctx("ana"), "suporte_respostas", "rp1"))); });
+await t("respostas prontas: a equipe apaga", () => assertSucceeds(deleteDoc(doc(ctx("adm"), "suporte_respostas", "rp1"))));
+
 const atend = (a) => updateDoc(doc(ctx("bia"), "perfis_publicos", "bia"), { atendimento: a });
 await t("atendimento: horário por dia, almoço e volta", () => assertSucceeds(atend({ horario: { dias: [1, 2, 3, 4, 5, 6], inicio: "08:00", fim: "18:00" }, semana: ["", "08:00-18:00", "08:00-18:00", "08:00-18:00", "08:00-18:00", "08:00-17:00", "09:00-12:00"], almoco: "12:00-13:00", ausente: true, mensagem: "Férias", volta: Timestamp.fromMillis(Date.now() + 5 * 864e5) })));
 await t("atendimento: os 7 dias", () => assertSucceeds(atend({ semana: ["10:00-14:00", "08:00-18:00", "08:00-18:00", "08:00-18:00", "08:00-18:00", "08:00-18:00", "08:00-12:00"], almoco: null, volta: null, ausente: false })));

@@ -520,6 +520,23 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   número; filtra), foto+nome em cada ação, "Ver tudo de Fulano" na linha do tempo do dia (`quemRegistro`).
   Painel: `logo-icone.png` (ícone da ponte recortado do logo.png) no lugar do "HF". Topos de Profissionais, Clientes, Sócios e
   Sobre no padrão da Ajuda (`hero-info sem-foto`, sem foto); "Sua vitrine profissional, de graça" virou "para todo o Brasil".
+- **Suporte em nível nacional (PR depois do #77, MUDA REGRAS — não publicadas; 14 partes, 527 testes):** `suporte-fila.js`
+  (sem dependências): `FILAS` (setores pela categoria: Segurança golpe/denuncia, Moderação contestacao, Pagamentos, Negócios,
+  Conta, Geral), `PRIORIDADES` urgente 2 h (golpe) / alta 8 h (pagamento, contestação ou plano nível ≥2) / normal 24 h,
+  `prazoDe` (SLA da 1ª resposta a partir de `criadoEm`), `situacaoPrazo`, `ordemFila` (atrasados → prioridade → prazo),
+  `textoPrevisao`, `MAX_ABERTOS = 3`. Usuário (suporte.js): selo "Prioridade X · responde em até N h" antes de enviar
+  (`#supPrevisao`), **respostas da Central** pelo que escreve (`#supSugestoes`: lê `ajuda.html`, raízes de 5 letras, ≥2 iguais,
+  top 3; "Resolveu, não preciso do chamado" fecha e conta em `hf-sup-resolvidos`), máximo 3 chamados em andamento, chamado
+  grava `prioridade` (sem as regras: grava sem), previsão na conversa. Painel (admin-secoes.js `suporte`): KPIs Na fila/Prazo
+  estourado/Urgentes/1ª resposta média/Comigo/Nota, **"Pegar o próximo da fila"** (`pegarProximo`: lê os abertos do servidor e
+  trava com `runTransaction`, pula o que já tem responsável), chips das filas, filtros Sem responsável/Prazo estourado/Escalados
+  para mim, "Atendimento da equipe hoje" (`.ad-sup-ritmo`), selos de prioridade/fila/prazo. No chamado: **notas internas**
+  (`suporte/{id}/notas`, só a equipe), **Transferir / prioridade** e **Escalar** (`escalonadoPara` moderacao|donos; registro
+  `suporte_fila`), `primeiraRespostaEm` na 1ª resposta (`atualizarChamado`, com reserva sem as regras), **respostas prontas da
+  equipe** (`suporte_respostas`, grupo "Da equipe" no seletor; "Salvar como resposta pronta"). admin.js carrega também todos os
+  abertos (até 2000). Import do suporte-fila no admin-secoes: `PRIORIDADES as PRIO_SUP` (já existe `PRIORIDADES` das tarefas).
+  Teste `t-suporte-nacional.mjs` (fecha os chamados abertos de outros testes durante o teste e reabre no fim; `t-etapa4` precisa
+  do `seed.mjs` antes, sempre foi assim).
 - **As 5 etapas estão concluídas.** Próximos passos são as pendências abaixo (só ele pode fazer) e o que ficou
   para depois.
 

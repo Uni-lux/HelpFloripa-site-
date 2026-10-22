@@ -4,7 +4,7 @@
 // Firebase). As regras do Firestore conferem isso em cada leitura e ação.
 // =====================================================
 import { C, D, $, h, ms, toast, PAPEIS, vendoAgora, pode, registrar, garantirNegocios, garantirTodasPessoas, carregarPessoas } from "./admin-base.js?v=20";
-import * as S from "./admin-secoes.js?v=42";
+import * as S from "./admin-secoes.js?v=43";
 import { previa, tocarSom } from "./admin-chat.js?v=21";
 
 const SECOES = {
@@ -194,6 +194,11 @@ async function carregar(mostrar = true) {
   D.contNeg = negocios;
   D.negociosProntos = false; D.negocios = []; D.anuncios = []; D.posts = [];
   Object.assign(D, { posts, denuncias, queixas, suporte, parcerias, comunicados, log, admins, estatisticas });
+  // Suporte nacional: TODOS os chamados esperando a equipe (não só os 500 mexidos por último), para a fila e o "Pegar o próximo".
+  const esperando = await todos(fb.query(col("suporte"), fb.where("status", "==", "aberto"), fb.limit(2000)));
+  const jaSup = new Set(D.suporte.map((x) => x.id));
+  D.suporte.push(...esperando.filter((x) => !jaSup.has(x.id)));
+  D.respostasSup = await todos(fb.query(col("suporte_respostas"), fb.limit(300)));
   // Reportes do suporte (só moderação e donos leem) e notas do atendimento.
   let planosAtivos;
   [D.reportes, D.notasSuporte, D.verificacoes, D.planosPedidos, D.planosNeg, planosAtivos] = await Promise.all([

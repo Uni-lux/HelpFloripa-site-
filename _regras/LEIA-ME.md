@@ -30,17 +30,21 @@
 > **Novo nesta versão (22/10):** a **busca nacional** (campo `busca` com as palavras de negócios, imóveis e anúncios da
 > Comunidade, até 100) e a **região de quem publica** no Diário (`autorUf`/`autorIbge`), para priorizar a sua cidade e o seu estado.
 > Os **30 dias grátis** agora vêm junto com a **primeira assinatura paga** (o dono do site soma ao confirmar o Pix): a pessoa não grava mais o próprio plano.
+> **Suporte nacional (22/10):** chamado com **prioridade** (`prioridade`: urgente só para golpe; alta para pagamento,
+> contestação ou plano Pro/Premium; normal sempre), a equipe **transfere de setor, troca a prioridade e escala** para a moderação
+> ou os donos (`escalonadoPara`), grava a hora da **1ª resposta** (`primeiraRespostaEm`), escreve **notas internas**
+> (`suporte/{id}/notas`: só a equipe lê, ninguém edita) e salva **respostas prontas da equipe** (`suporte_respostas`).
 > Para publicar, o processo é o mesmo: apagar tudo no console e colar as 14 partes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
 `firestore.rules` divididas em **14 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
-- Arquivo de origem: `firestore.rules` (165.070 bytes, 2.809 linhas, sha256 começa com `307b37082cc35f90`).
+- Arquivo de origem: `firestore.rules` (168.578 bytes, 2.853 linhas, sha256 começa com `afbbb0a928a15505`).
 - Cada parte termina com a linha `// ===== FIM DA PARTE X DE 14 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
 - Conferido: as 14 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **509 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
+- Testes de regras no arquivo remontado: **527 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.

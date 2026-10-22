@@ -46,7 +46,7 @@ await pa.locator(".ad-item", { hasText: "Erro ao salvar o cardápio" }).locator(
 await pa.waitForSelector(".ad-modal .ad-chat .ad-msg", { timeout: 10000 }); await pa.waitForTimeout(800);
 ok(await pa.locator(".ad-modal .ad-msg .ax-anexo img").count() === 1 && await pa.locator(".ad-modal .ad-msg .ax-doc").count() === 1, "painel: a equipe vê a foto e o PDF");
 const esc3 = pa.waitForEvent("filechooser"); await pa.locator(".ad-modal .ad-bt", { hasText: "Anexar foto ou PDF" }).click(); await (await esc3).setFiles(foto); await pa.waitForTimeout(1500);
-await pa.locator(".ad-modal textarea").fill("Veja aqui onde fica o botão de salvar.");
+await pa.locator(".ad-modal textarea[placeholder^='Escreva a resposta']").fill("Veja aqui onde fica o botão de salvar.");
 await pa.screenshot({ path: "saida/sup-anexo-painel.png" });
 await pa.locator(".ad-modal .ad-bt.pri", { hasText: "Responder" }).click(); await pa.waitForTimeout(2500);
 const resp = (await db.collection(`suporte/${ch.id}/mensagens`).where("equipe", "==", true).get()).docs.map((d) => d.data());
