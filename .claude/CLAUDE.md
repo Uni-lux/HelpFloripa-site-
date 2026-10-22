@@ -537,6 +537,21 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   abertos (até 2000). Import do suporte-fila no admin-secoes: `PRIORIDADES as PRIO_SUP` (já existe `PRIORIDADES` das tarefas).
   Teste `t-suporte-nacional.mjs` (fecha os chamados abertos de outros testes durante o teste e reabre no fim; `t-etapa4` precisa
   do `seed.mjs` antes, sempre foi assim).
+- **Chat da equipe por canais + logo + busca do celular (PR depois do #78, MUDA REGRAS — não publicadas; 14 partes, 550 testes):**
+  `equipe-canais.js` (sem deps): `CANAIS` avisos (só donos escrevem) · seguranca · moderacao · pagamentos · negocios · conta ·
+  comercial (cor, desc, `fila` do suporte-fila, `papeis` padrão); Geral = o grupo antigo (`equipe_chat`, conv "equipe"). Conversa
+  de canal = `"canal-<id>"` (sem "_"); mensagens em `equipe_canais/{id}/mensagens` + resumo `equipe_canais/{id}` {ultimaEm,
+  ultimaTexto, ultimoAutor, ultimoNome, mencoes} (regra `canalEquipeOk`; anexos/apagadas aceitam `canal-`). Quem é de cada canal:
+  `meusCanais(papel, usuarios.equipeCanais {entrou, saiu, silenciados})` (dono = todos); "Outros canais" na lista com "Entrar";
+  ⋯ Silenciar/Sair; não lidas por canal no aparelho (`hf-canais-visto-<uid>`, admin.js escuta só os 7 resumos). Abas Individual |
+  Canais. **Situação** `equipe_presenca.status` disponivel|pausa|fora (`C.meuStatus`, `C.mudarStatus`, `C.statusDe`; sem a regra a
+  presença vai sem o campo): bolinha amarela/vazada, "Passar para…" desativa quem está fora, Suporte mostra quantos estão
+  disponíveis e "Pegar o próximo" volta para Disponível. **Encerrar meu turno** (`encerrarTurno` em admin-chat.js): devolve os
+  chamados (opcional), resumo no Geral com os protocolos, fica Fora. **#PROTOCOLO** no texto vira cartão (`cartoesChamado`, abre
+  por `C.abrirChamado`). Transferir/escalar postam no canal do setor (`postarNaConversa`; escalar para donos = Geral com @);
+  "Enviar para a equipe" no chamado (canal ou pessoa). Logo do painel = `logo-app-96.png` (imagem que ele mandou, recortada;
+  `logo-app.png` 192 px é o apple-touch-icon do painel; `logo-icone.png` saiu). Busca do topo no celular (≤900 px): só a lupa
+  `#btBuscaCel`, abre o campo por cima da barra (`.ad-topo.buscando`, × fecha). Teste `t-equipe-canais.mjs`.
 - **As 5 etapas estão concluídas.** Próximos passos são as pendências abaixo (só ele pode fazer) e o que ficou
   para depois.
 

@@ -1,3 +1,28 @@
+      allow read: if admin() && request.auth.uid in resource.data.participantes;
+      allow create, update: if membro()
+                    && request.resource.data.keys().hasOnly(['participantes', 'ultimaEm', 'ultimaTexto', 'ultimoAutor', 'lidoEm'])
+                    && request.resource.data.participantes == par.split('_')
+                    && valorTextoAte(request.resource.data.get('ultimaTexto', ''), 140)
+                    && (!('ultimoAutor' in request.resource.data) || request.resource.data.ultimoAutor in par.split('_'))
+                    && request.resource.data.get('lidoEm', {}) is map;
+      allow delete: if false;
+      match /mensagens/{id} {
+        allow read: if admin() && request.auth.uid in par.split('_');
+        allow create: if admin() && par.split('_').size() == 2 && request.auth.uid in par.split('_') && msgEquipeOk(par);
+        allow update: if admin() && request.auth.uid in par.split('_') && reacaoValida();
+        allow update: if admin() && request.auth.uid in par.split('_') && (edicaoEquipeOk() || apagarEquipeOk(id));
+        allow delete: if false;
+      }
+    }
+    // Conteúdo de mensagem do chat da equipe apagada para todos (abre por 24 horas, só quem participa;
+    // depois disso qualquer um da conversa apaga de vez).
+    match /equipe_apagadas/{id} {
+      function daConversaEq(c) { return c == 'equipe' || c.matches('^canal-[a-z]+$') || request.auth.uid in c.split('_'); }
+      function msgEq(c) {
+        return c == 'equipe' ? /databases/$(database)/documents/equipe_chat/$(id)
+             : c.matches('^canal-[a-z]+$') ? /databases/$(database)/documents/equipe_canais/$(c.split('-')[1])/mensagens/$(id)
+             : /databases/$(database)/documents/equipe_dm/$(c)/mensagens/$(id);
+      }
       allow get: if admin() && daConversaEq(resource.data.conversa) && request.time < resource.data.apagadaEm + duration.value(24, 'h');
       allow create: if admin()
                     && request.resource.data.keys().hasOnly(['autorId', 'conversa', 'conteudo', 'apagadaEm'])
@@ -19,13 +44,15 @@
     // Só quem participa da conversa lê; ninguém edita.
     match /equipe_anexos/{id} {
       allow read: if admin()
-                  && (resource.data.conversa == 'equipe' || request.auth.uid in resource.data.conversa.split('_'));
+                  && (resource.data.conversa == 'equipe' || resource.data.conversa.matches('^canal-[a-z]+$')
+                      || request.auth.uid in resource.data.conversa.split('_'));
       allow create: if admin()
                     && request.resource.data.keys().hasOnly(['autorId', 'conversa', 'dados', 'em'])
                     && request.resource.data.autorId == request.auth.uid
                     && request.resource.data.em == request.time
                     && request.resource.data.conversa is string
                     && (request.resource.data.conversa == 'equipe'
+                        || request.resource.data.conversa.matches('^canal-(avisos|seguranca|moderacao|pagamentos|negocios|conta|comercial)$')
                         || (request.resource.data.conversa.split('_').size() == 2 && request.auth.uid in request.resource.data.conversa.split('_')))
                     && request.resource.data.dados is string
                     && request.resource.data.dados.size() <= 950000
@@ -181,33 +208,5 @@
         return existsAfter(r)
             && getAfter(r).data.get('soma', 0) != (exists(r) ? get(r).data.get('soma', 0) : 0);
       }
-
-      allow create: if logado()
-                    && emailOk()
-                    && request.resource.data.keys().hasOnly(['postId', 'uid', 'postAutorId', 'nota', 'criadoEm', 'origem'])
-                    && (!('origem' in request.resource.data) || request.resource.data.origem in ['principais', 'seguindo', 'amigos', 'perfil', 'link', 'tag', 'salvos'])
-                    && request.resource.data.uid == request.auth.uid
-                    && id == request.resource.data.postId + '_' + request.auth.uid
-                    && exists(/databases/$(database)/documents/diario/$(request.resource.data.postId))
-                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
-                    // pode dar estrelas na própria publicação ("se curtir")
-                    && notaOk(request.resource.data)
-                    && !bloqueioEntre(request.auth.uid, request.resource.data.postAutorId)
-                    && request.resource.data.criadoEm == request.time
-                    && resumoJunto(request.resource.data.postId);
-
-      allow update: if logado()
-                    && emailOk()
-                    && resource.data.uid == request.auth.uid
-                    && mudou().hasOnly(['nota', 'atualizadoEm'])
-                    && notaOk(request.resource.data)
-                    && request.resource.data.atualizadoEm == request.time
-                    && resumoJunto(resource.data.postId);
-
-      // Tirar a nota: tira junto do resumo. Publicação que já não existe: apaga sem resumo (limpeza de conta).
-      allow delete: if logado() && resource.data.uid == request.auth.uid
-                    && (resumoJunto(resource.data.postId)
-                        || !exists(/databases/$(database)/documents/diario/$(resource.data.postId)));
-    }
 
 // ===== FIM DA PARTE 11 DE 14 =====

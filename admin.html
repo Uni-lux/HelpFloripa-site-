@@ -10,6 +10,7 @@
   <meta name="theme-color" content="#0b1014" />
   <title>Painel | Help Floripa</title>
   <link rel="icon" href="favicon.ico" />
+  <link rel="apple-touch-icon" href="logo-app.png" />
   <script>
     (function () {
       var c = {};
@@ -19,9 +20,9 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="admin.css?v=29" />
+  <link rel="stylesheet" href="admin.css?v=30" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="admin.js?v=44"></script>
+  <script type="module" src="admin.js?v=45"></script>
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -69,9 +70,10 @@
   <div id="app" hidden>
     <header class="ad-topo">
       <button type="button" class="ad-icone ad-menu-bt" id="btMenu" aria-label="Menu"><svg class="i"><use href="#i-menu"/></svg></button>
-      <a class="ad-marca" href="admin.html" aria-label="Help Floripa · Painel"><img class="ad-logo" src="logo-icone.png" alt="" width="36" height="36" /><span class="ad-marca-tx"><strong>HELP <span>FLORIPA</span></strong><em>Tudo em um só lugar</em></span><small>Painel</small></a>
+      <a class="ad-marca" href="admin.html" aria-label="Help Floripa · Painel"><img class="ad-logo" src="logo-app-96.png" alt="" width="40" height="40" /><span class="ad-marca-tx"><strong>HELP <span>FLORIPA</span></strong><em>Tudo em um só lugar</em></span><small>Painel</small></a>
       <span class="ad-papel" id="meuPapel" hidden title="Seu papel na equipe"></span>
-      <label class="ad-busca"><svg class="i s"><use href="#i-lupa"/></svg><input id="buscaGlobal" type="search" placeholder="Buscar usuário: nome, @, e-mail, telefone ou ID" autocomplete="off" /></label>
+      <label class="ad-busca"><svg class="i s"><use href="#i-lupa"/></svg><input id="buscaGlobal" type="search" placeholder="Buscar usuário: nome, @, e-mail, telefone ou ID" autocomplete="off" /><button type="button" class="ad-busca-x" id="btBuscaFechar" aria-label="Fechar busca">×</button></label>
+      <button type="button" class="ad-icone ad-busca-bt" id="btBuscaCel" aria-label="Buscar usuário" title="Buscar usuário"><svg class="i s"><use href="#i-lupa"/></svg></button>
       <button type="button" class="ad-online" id="equipeOnline" hidden title="Abrir equipe e chat"></button>
       <span class="ad-atualizado" id="atualizado"></span>
       <button type="button" class="ad-icone" id="btAtualizar" aria-label="Atualizar dados" title="Atualizar dados"><svg class="i s"><use href="#i-atualizar"/></svg></button>

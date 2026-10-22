@@ -1,3 +1,19 @@
+      function marcadosOk(d) {
+        return !('marcados' in d) || (d.marcados is list && d.marcados.size() <= 10
+            && (d.marcados.size() == 0 || d.marcados.join(' ').matches('^[A-Za-z0-9]{1,64}( [A-Za-z0-9]{1,64}){0,9}$')));
+      }
+      // Local da publicação ("Trindade, Florianópolis"): nome e o ponto arredondado, dentro do Brasil.
+      function localPubOk(d) {
+        return !('local' in d) || d.local == null
+            || (d.local is map && d.local.keys().hasOnly(['nome', 'lat', 'lng'])
+                && d.local.nome is string && d.local.nome.size() >= 2 && d.local.nome.size() <= 80
+                && d.local.lat is number && d.local.lat >= -34 && d.local.lat <= 6
+                && d.local.lng is number && d.local.lng >= -75 && d.local.lng <= -28);
+      }
+      function fotoPubOk(u) {
+        return u is string && u.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*');
+      }
+
       allow create: if logado()
                     && emailOk()
                     && request.resource.data.autorId == request.auth.uid

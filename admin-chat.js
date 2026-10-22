@@ -8,12 +8,19 @@
 // - visual de mensageiro: balões, botão redondo (microfone/enviar), menu da mensagem
 //   com reações e ações (toque longo no celular), áudio com ondas de voz
 // Grupo: equipe_chat/{id} · individual: equipe_dm/{uidA_uidB}/mensagens/{id}
+// Canais por setor (nível nacional): equipe_canais/{canal}/mensagens/{id} (conversa "canal-<id>"; equipe-canais.js)
 // =====================================================
-import { C, D, h, ms, toast, avatar, relativo, editarTarefa, nomeEquipe, PAPEIS } from "./admin-base.js?v=20";
+import { C, D, h, ms, toast, avatar, relativo, editarTarefa, nomeEquipe, PAPEIS, modal, registrar } from "./admin-base.js?v=21";
+import { CANAIS, GERAL, canalPorId, convCanal, ehCanal, idCanal, podeEscrever, silenciado, STATUS, protocolosDoTexto } from "./equipe-canais.js?v=1";
+import { PRIORIDADES as PRIO_SUP, prioridadeChamado, situacaoPrazo } from "./suporte-fila.js?v=1";
 import { criarPlayerAudio } from "./audio-ondas.js?v=1";
 import { escolherApagar, editarTextoHF, verEdicoesHF, janelaHF, horaCurta, noPrazo, tempoRestante, podeMexer } from "./msg-acoes.js?v=2";
 
 const pessoa = (uid) => D.pessoas.get(uid) || { uid, nome: "" };
+const ehDm = (conv) => String(conv || "").includes("_");
+const ehGrupo = (conv) => conv === "equipe" || ehCanal(conv);
+const nomeConv = (conv) => (conv === "equipe" ? "Geral" : ehCanal(conv) ? canalPorId(idCanal(conv)).nome : nomeDe(outroDoPar(conv)));
+const protocoloDe = (id) => "#" + String(id || "").replace(/[^A-Za-z0-9]/g, "").slice(0, 6).toUpperCase();
 export const idPar = (a, b) => [a, b].sort().join("_");
 const outroDoPar = (par) => par.split("_").find((u) => u !== C.eu.uid) || C.eu.uid;
 const nomeDe = (uid) => D.admins.find((a) => a.id === uid)?.nome || pessoa(uid).nome || nomeEquipe(uid);
@@ -111,11 +118,22 @@ async function enviarMensagem(conv, { texto = "", anexo = null, mencoes = [], re
     if (anexo.duracao) dados.duracao = Math.round(anexo.duracao);
   }
   if (conv === "equipe") lote.set(fb.doc(fb.collection(fb.db, "equipe_chat")), dados);
-  else {
+  else if (ehCanal(conv)) {
+    const canal = idCanal(conv);
+    lote.set(fb.doc(fb.collection(fb.db, "equipe_canais", canal, "mensagens")), dados);
+    lote.set(fb.doc(fb.db, "equipe_canais", canal), { ultimaEm: fb.serverTimestamp(), ultimaTexto: previa(dados).slice(0, 140), ultimoAutor: C.eu.uid, ultimoNome: String(C.nome || "").slice(0, 80), mencoes: dados.mencoes || [] });
+  } else {
     lote.set(fb.doc(fb.collection(fb.db, "equipe_dm", conv, "mensagens")), dados);
     lote.set(fb.doc(fb.db, "equipe_dm", conv), { participantes: conv.split("_"), ultimaEm: fb.serverTimestamp(), ultimaTexto: previa(dados).slice(0, 140), ultimoAutor: C.eu.uid, lidoEm: { [C.eu.uid]: fb.serverTimestamp() } }, { merge: true });
   }
   await lote.commit();
+}
+// Mensagem automática de outra parte do painel (transferir, escalar, encerrar turno, enviar chamado).
+// canal: "equipe" (Geral), id de um canal ou uma conversa individual (uidA_uidB). Sem as regras novas, falha calada.
+export async function postarNaConversa(destino, texto, mencoes = []) {
+  const conv = destino === "equipe" || ehDm(destino) || ehCanal(destino) ? destino : convCanal(destino);
+  try { await enviarMensagem(conv, { texto: String(texto).slice(0, 2000), mencoes: mencoes.filter((u) => u && u !== C.eu.uid) }); return true; }
+  catch (e) { console.warn("Mensagem automática no chat:", e.code || e.message); return false; }
 }
 function marcarLidaDm(par) {
   const { fb } = C;
@@ -125,7 +143,7 @@ export const EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 // Alterna a reação de quem está logado numa mensagem (uma reação por pessoa).
 async function alternarReacao(conv, m, emoji) {
   const { fb } = C;
-  const ref = conv === "equipe" ? fb.doc(fb.db, "equipe_chat", m.id) : fb.doc(fb.db, "equipe_dm", conv, "mensagens", m.id);
+  const ref = refMsgEq(conv, m.id);
   const atual = (m.reacoes || {})[C.eu.uid];
   const valor = atual === emoji ? fb.deleteField() : emoji;
   await fb.updateDoc(ref, { ["reacoes." + C.eu.uid]: valor });
@@ -134,7 +152,11 @@ async function alternarReacao(conv, m, emoji) {
 // ---------- editar e apagar ----------
 // Editar: texto novo + o de antes em "edicoes". Apagar para todos: fica "apagou esta mensagem" e o
 // conteúdo vai para equipe_apagadas/{id} (abre por 24 horas). Apagar para mim: usuarios/{uid}.ocultasMsg.
-const refMsgEq = (conv, id) => (conv === "equipe" ? C.fb.doc(C.fb.db, "equipe_chat", id) : C.fb.doc(C.fb.db, "equipe_dm", conv, "mensagens", id));
+function refMsgEq(conv, id) {
+  if (conv === "equipe") return C.fb.doc(C.fb.db, "equipe_chat", id);
+  if (ehCanal(conv)) return C.fb.doc(C.fb.db, "equipe_canais", idCanal(conv), "mensagens", id);
+  return C.fb.doc(C.fb.db, "equipe_dm", conv, "mensagens", id);
+}
 let ocultasEq = null; // { "eq_<conversa>": [ids] }
 async function carregarOcultasEq() {
   if (ocultasEq) return ocultasEq;
@@ -160,7 +182,7 @@ async function apagarEqParaTodos(conv, m, ultima) {
     lote.set(fb.doc(fb.db, "equipe_apagadas", m.id), { autorId: C.eu.uid, conversa: conv, conteudo, apagadaEm: fb.serverTimestamp() });
     await lote.commit();
     toast("Mensagem apagada para todos");
-    if (ultima && conv !== "equipe") fb.setDoc(fb.doc(fb.db, "equipe_dm", conv), { participantes: conv.split("_"), ultimaTexto: "Mensagem apagada" }, { merge: true }).catch(() => {});
+    if (ultima && ehDm(conv)) fb.setDoc(fb.doc(fb.db, "equipe_dm", conv), { participantes: conv.split("_"), ultimaTexto: "Mensagem apagada" }, { merge: true }).catch(() => {});
   } catch (e) {
     console.error(e);
     toast(e?.code !== "permission-denied" ? "Não foi possível apagar: " + (e.code || e.message)
@@ -176,7 +198,7 @@ async function editarEq(conv, m, ultima) {
   try {
     await fb.updateDoc(refMsgEq(conv, m.id), { texto: novo, editadaEm: fb.serverTimestamp(), edicoes: [...(m.edicoes || []), { texto: m.texto || "", em: m.editadaEm || m.em }] });
     toast("Mensagem editada");
-    if (ultima && conv !== "equipe") fb.setDoc(fb.doc(fb.db, "equipe_dm", conv), { participantes: conv.split("_"), ultimaTexto: previa({ ...m, texto: novo }).slice(0, 140) }, { merge: true }).catch(() => {});
+    if (ultima && ehDm(conv)) fb.setDoc(fb.doc(fb.db, "equipe_dm", conv), { participantes: conv.split("_"), ultimaTexto: previa({ ...m, texto: novo }).slice(0, 140) }, { merge: true }).catch(() => {});
   } catch (e) {
     console.error(e);
     toast(e?.code !== "permission-denied" ? "Não foi possível editar: " + (e.code || e.message)
@@ -270,7 +292,13 @@ const ICONES = {
   info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.8h.01"/>',
   lapis: '<path d="M4 20h4L19 9a2.8 2.8 0 00-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
   camera: '<path d="M4 8.5A2.5 2.5 0 016.5 6h1.8l1.5-2h4.4l1.5 2h1.8A2.5 2.5 0 0120 8.5v9a2.5 2.5 0 01-2.5 2.5h-11A2.5 2.5 0 014 17.5z"/><circle cx="12" cy="13" r="3.6"/>',
-  foto: '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 16l-5-5-8.5 8.5"/>'
+  foto: '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 16l-5-5-8.5 8.5"/>',
+  hash: '<path d="M9.5 4L7.5 20M16.5 4l-2 16M4.5 9h15M3.5 15h15"/>',
+  megafone: '<path d="M3.5 10v4a1.5 1.5 0 001.5 1.5h2l7 4.5V4L7 8.5H5A1.5 1.5 0 003.5 10z"/><path d="M17.5 9a4 4 0 010 6M8 15.5l1.3 4.5"/>',
+  sair: '<path d="M14 4.5h4.5v15H14M10 8l-4 4 4 4M6 12h10"/>',
+  entrar: '<path d="M14 4.5h4.5v15H14M9 8l4 4-4 4M3.5 12h9.5"/>',
+  lua: '<path d="M19.5 14.5A8 8 0 019.5 4.5a8 8 0 1010 10z"/>',
+  chamado: '<path d="M4.5 6.5h15v9h-8l-4.5 3.5v-3.5h-2.5z"/><path d="M8.5 10h7M8.5 12.8h4"/>'
 };
 function ic(nome, tam = 22) {
   const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -326,13 +354,65 @@ async function trocarFotoGrupo(tirar = false) {
   }
 }
 
+// ---------- cartão de chamado: "#P47ST8" no texto vira um cartão que abre o chamado ----------
+function cartoesChamado(texto) {
+  const achados = protocolosDoTexto(texto).map((p) => (D.suporte || []).find((s) => protocoloDe(s.id) === p)).filter(Boolean);
+  if (!achados.length) return null;
+  const w = h("div", "eq-chamados");
+  achados.forEach((s) => {
+    const pr = prioridadeChamado(s), pz = situacaoPrazo(s);
+    const b = h("button", "eq-chamado"); b.type = "button"; b.setAttribute("aria-label", `Abrir o chamado ${protocoloDe(s.id)}`);
+    const l1 = h("span", "l1"); l1.append(ic("chamado", 16), h("b", null, protocoloDe(s.id)), h("span", "eq-prio " + pr, PRIO_SUP[pr].nome));
+    const est = s.status === "fechado" ? "Encerrado" : s.status === "respondido" ? "Respondido" : pz ? pz.texto : "Esperando a equipe";
+    const l3 = h("span", "l3" + (pz?.atrasado ? " atrasado" : ""), `${s.responsavel ? "Com " + primeiro(s.responsavelNome || nomeDe(s.responsavel)) : "Sem responsável"} · ${est}`);
+    b.append(l1, h("strong", null, s.assunto || "Chamado"), l3);
+    b.addEventListener("click", (e) => { e.stopPropagation(); if (C.abrirChamado) C.abrirChamado(s); else toast("Abra a seção Suporte para ver o chamado."); });
+    w.appendChild(b);
+  });
+  return w;
+}
+// Bolinha do canal (cor do setor, # ou megafone nos Avisos).
+function avCanal(c) {
+  const a = h("div", "ad-av eq-av-canal"); a.style.setProperty("--cor-canal", c.cor);
+  a.appendChild(ic(c.soDonos ? "megafone" : "hash", 21));
+  return a;
+}
+
+// ---------- fim do turno: resumo no Geral, devolve os chamados (se quiser) e fica "Fora do turno" ----------
+export async function encerrarTurno() {
+  const eu = C.eu.uid, pl = (n, um, varios) => `${n} ${n > 1 ? varios : um}`;
+  const chs = (D.suporte || []).filter((s) => s.responsavel === eu && s.status !== "fechado");
+  const atras = chs.filter((s) => situacaoPrazo(s)?.atrasado).length;
+  const dens = (D.denuncias || []).filter((d) => d.responsavel === eu && ["nova", "em_analise"].includes(d.status));
+  const tars = (C.tarefas || []).filter((t) => t.responsavel === eu && t.status !== "feito");
+  const resumo = [chs.length && pl(chs.length, "chamado", "chamados") + (atras ? ` (${pl(atras, "atrasado", "atrasados")})` : ""), dens.length && pl(dens.length, "denúncia", "denúncias"), tars.length && pl(tars.length, "tarefa", "tarefas")].filter(Boolean);
+  const campos = chs.length ? [{ nome: "devolver", rotulo: "Seus chamados abertos", tipo: "select", valor: "sim", opcoes: [["sim", `Devolver para a fila (outra pessoa pega)`], ["nao", "Continuar com eles no próximo turno"]] }] : [];
+  const v = await modal({ titulo: "Encerrar meu turno", texto: `${resumo.length ? `Com você agora: ${resumo.join(", ")}.` : "Nada pendente com você."} A equipe recebe um resumo no Geral e você fica "Fora do turno" (não recebe chamados passados por outra pessoa).`, campos, botao: "Encerrar turno" });
+  if (!v) return false;
+  const { fb } = C;
+  let devolvidos = 0;
+  if (v.devolver === "sim") for (const s of chs) {
+    try {
+      await fb.updateDoc(fb.doc(fb.db, "suporte", s.id), { responsavel: null, responsavelNome: null, assumidoEm: fb.serverTimestamp() });
+      Object.assign(s, { responsavel: null, responsavelNome: null }); devolvidos++;
+      registrar("liberou", `suporte:${s.id}`, "fim do turno").catch(() => {});
+    } catch (e) { console.warn("Devolver chamado:", e.code || e.message); }
+  }
+  const prot = chs.slice(0, 3).map((s) => protocoloDe(s.id)).join(" ");
+  await postarNaConversa("equipe", `🌙 Encerrei meu turno.${resumo.length ? ` Comigo: ${resumo.join(", ")}.` : " Nada pendente comigo."}${devolvidos ? ` Devolvi ${pl(devolvidos, "chamado", "chamados")} para a fila.` : ""}${prot ? " " + prot : ""}`);
+  C.mudarStatus?.("fora");
+  toast("Turno encerrado. Bom descanso!");
+  C.aoMudarEquipe?.();
+  return true;
+}
+
 // =====================================================
 // Monta o chat dentro de "el" (visual de mensageiro: lista à esquerda, conversa à direita;
 // no celular, uma tela de cada vez)
 // =====================================================
 export function montarChat(el) {
   const { fb } = C;
-  let conv = C.conversaAberta && (C.conversaAberta === "equipe" || C.conversaAberta.includes(C.eu.uid)) ? C.conversaAberta : "equipe";
+  let conv = C.conversaAberta && (C.conversaAberta === "equipe" || ehCanal(C.conversaAberta) || C.conversaAberta.includes(C.eu.uid)) ? C.conversaAberta : "equipe";
   let msgsDm = [], pararDm = null, termo = "", respondendo = null;
   const raiz = h("div", "eq-chat");
   // ---------- lista de conversas ----------
@@ -348,15 +428,22 @@ export function montarChat(el) {
   pintarEu();
   bEu.addEventListener("click", () => trocarMinhaFoto(() => { pintarEu(); pintarLista(); pintarTopo(); nos.clear(); pintarChat(); }));
   ladoTopo.append(bEu, tit, bInfo);
-  let modoLista = C.modoChatEquipe || (conv === "equipe" ? "equipe" : "individual");
+  // Minha situação para a equipe (Disponível / Em pausa / Fora do turno) e "Encerrar meu turno".
+  const linhaStatus = h("div", "eq-status-linha");
+  const bStatus = h("button", "eq-status"); bStatus.type = "button"; bStatus.setAttribute("aria-haspopup", "menu");
+  const pintarStatus = () => { const st = STATUS[C.meuStatus] || STATUS.disponivel; bStatus.replaceChildren(h("i", "ad-ponto " + st.cls), h("span", null, st.nome), ic("seta", 15)); bStatus.title = "Sua situação para a equipe: " + st.nome; };
+  pintarStatus();
+  bStatus.addEventListener("click", (e) => { e.stopPropagation(); abrirMenuStatus(bStatus); });
+  linhaStatus.append(h("span", null, "Sua situação"), bStatus);
+  let modoLista = C.modoChatEquipe || (ehDm(conv) ? "individual" : "equipe");
   const modos = h("div", "eq-modos"); modos.setAttribute("role", "tablist"); modos.setAttribute("aria-label", "Tipo de conversa");
   const botaoModo = (k, icone, rotulo) => { const b = h("button"); b.type = "button"; b.setAttribute("role", "tab"); b.dataset.modo = k; b.append(ic(icone, 17), document.createTextNode(rotulo), h("b", "eq-modo-n")); b.addEventListener("click", () => { modoLista = C.modoChatEquipe = k; pintarLista(); }); return b; };
-  modos.append(botaoModo("individual", "perfil", "Individual"), botaoModo("equipe", "grupo", "Equipe"));
+  modos.append(botaoModo("individual", "perfil", "Individual"), botaoModo("equipe", "hash", "Canais"));
   const pesquisa = h("label", "eq-pesquisa"); const inPesq = h("input"); inPesq.type = "search"; inPesq.placeholder = "Pesquisar conversa"; inPesq.setAttribute("aria-label", "Pesquisar conversa"); inPesq.autocomplete = "off";
   pesquisa.append(ic("lupa", 16), inPesq);
   inPesq.addEventListener("input", () => pintarLista());
   const listaConv = h("div", "eq-lista-itens");
-  lado.append(ladoTopo, modos, pesquisa, listaConv);
+  lado.append(ladoTopo, linhaStatus, modos, pesquisa, listaConv);
   // ---------- conversa aberta ----------
   const painel = h("section", "eq-conversa"); painel.setAttribute("aria-label", "Conversa");
   const topo = h("header", "eq-topo");
@@ -397,7 +484,9 @@ export function montarChat(el) {
   const bPrincipal = h("button", "eq-principal"); bPrincipal.type = "button"; bPrincipal.appendChild(ic("enviar"));
   barra.append(caixa, gravando, bPrincipal, inArq);
   form.append(sugest, respBarra, barra);
-  painel.append(topo, barraBusca, chat, form);
+  // No lugar do campo: Avisos (só os donos escrevem) ou canal em que a pessoa não entrou.
+  const bloqueio = h("div", "eq-bloqueio"); bloqueio.hidden = true;
+  painel.append(topo, barraBusca, chat, form, bloqueio);
   // Menu de uma mensagem (reações + ações): um só para a conversa toda.
   const menu = h("div", "eq-menu"); menu.hidden = true; menu.setAttribute("role", "menu");
   raiz.append(lado, painel, menu);
@@ -417,32 +506,46 @@ export function montarChat(el) {
     C.fotoGrupo = typeof f === "string" && /^data:image\/(jpeg|png|webp);base64,/.test(f) ? f : null;
     if (el.isConnected) { pintarLista(); pintarTopo(); } else pararFotoGrupo();
   }, () => {});
+  function itemCanal(id) {
+    if (id === "equipe") {
+      const ultG = C.chat.at(-1);
+      return { id: "equipe", nome: "Geral", sub: ultG ? `${ultG.autorId === C.eu.uid ? "Você" : primeiro(ultG.nome || nomeDe(ultG.autorId))}: ${previa(ultG)}` : "Toda a equipe", quando: ultG?.em, nao: C.chatNaoLidas || 0, grupo: true, meu: true };
+    }
+    const c = canalPorId(id), d = C.canais?.get(id), meu = (C.meusCanais?.() || []).includes(id);
+    const nao = meu && !!d && d.ultimoAutor !== C.eu.uid && ms(d.ultimaEm) > (C.canalVisto?.(id) || 0) && conv !== convCanal(id);
+    return { id: convCanal(id), canal: c, nome: c.nome, sub: d?.ultimaTexto ? `${d.ultimoAutor === C.eu.uid ? "Você" : primeiro(d.ultimoNome || nomeDe(d.ultimoAutor))}: ${d.ultimaTexto}` : c.desc, quando: d?.ultimaEm,
+      nao: nao ? 1 : 0, ponto: nao, meu, mudo: silenciado(id, C.prefCanais), mencao: nao && (d.mencoes || []).includes(C.eu.uid) };
+  }
   function pintarLista() {
     const itens = [];
-    const ultG = C.chat.at(-1);
-    itens.push({ id: "equipe", nome: "Equipe", sub: ultG ? `${ultG.autorId === C.eu.uid ? "Você" : primeiro(ultG.nome || nomeDe(ultG.autorId))}: ${previa(ultG)}` : "Conversa com todos", quando: ultG?.em, nao: C.chatNaoLidas || 0, grupo: true });
     D.admins.filter((a) => a.id !== C.eu.uid).forEach((a) => {
       const par = idPar(C.eu.uid, a.id), d = dmDe(par);
-      itens.push({ id: par, uid: a.id, nome: a.nome || nomeDe(a.id), sub: d?.ultimaTexto ? `${d.ultimoAutor === C.eu.uid ? "Você: " : ""}${d.ultimaTexto}` : (PAPEIS[a.papel] || PAPEIS.dono), quando: d?.ultimaEm, nao: naoLidaDm(par) ? 1 : 0, on: C.online(a.id) });
+      itens.push({ id: par, uid: a.id, nome: a.nome || nomeDe(a.id), sub: d?.ultimaTexto ? `${d.ultimoAutor === C.eu.uid ? "Você: " : ""}${d.ultimaTexto}` : (PAPEIS[a.papel] || PAPEIS.dono), quando: d?.ultimaEm, nao: naoLidaDm(par) ? 1 : 0, st: C.statusDe ? C.statusDe(a.id) : (C.online(a.id) ? "disponivel" : null) });
     });
-    const grupo = itens.shift();
-    itens.sort((x, y) => ms(y.quando) - ms(x.quando) || (y.on - x.on) || x.nome.localeCompare(y.nome));
-    // Abas Individual | Equipe com o número de não lidas de cada uma.
-    const nInd = itens.filter((i) => i.nao).length, nEq = grupo.nao;
+    const ordemSt = { disponivel: 3, pausa: 2, fora: 1 };
+    itens.sort((x, y) => ms(y.quando) - ms(x.quando) || ((ordemSt[y.st] || 0) - (ordemSt[x.st] || 0)) || x.nome.localeCompare(y.nome));
+    // Canais: Geral, Avisos, os meus (mais recentes primeiro) e, separados, os outros.
+    const meus = (C.meusCanais?.() || CANAIS.map((c) => c.id)).filter((id) => id !== "avisos");
+    const canaisMeus = [itemCanal("equipe"), itemCanal("avisos"), ...meus.map(itemCanal).sort((x, y) => ms(y.quando) - ms(x.quando))];
+    const canaisOutros = CANAIS.filter((c) => c.id !== "avisos" && !meus.includes(c.id)).map((c) => itemCanal(c.id));
+    // Abas Individual | Canais com o número de não lidas de cada uma.
+    const nInd = itens.filter((i) => i.nao).length, nEq = (C.chatNaoLidas || 0) + (C.canaisNaoLidas || 0);
     modos.querySelectorAll("button").forEach((b) => {
       b.setAttribute("aria-selected", String(b.dataset.modo === modoLista));
       const n = b.dataset.modo === "equipe" ? nEq : nInd, bd = b.querySelector(".eq-modo-n");
       bd.hidden = !n; bd.textContent = n > 99 ? "99+" : String(n || "");
     });
     const termoL = inPesq.value.trim().toLowerCase();
-    const visiveis = (modoLista === "equipe" ? [grupo] : itens).filter((it) => !termoL || it.nome.toLowerCase().includes(termoL));
-    if (!visiveis.length) {
+    const filtra = (l) => l.filter((it) => !termoL || it.nome.toLowerCase().includes(termoL));
+    const visiveis = modoLista === "equipe" ? filtra(canaisMeus) : filtra(itens);
+    const outros = modoLista === "equipe" ? filtra(canaisOutros) : [];
+    if (!visiveis.length && !outros.length) {
       const v = h("div", "eq-lista-vazia");
       v.append(h("strong", null, termoL ? "Nada encontrado" : "Ninguém mais na equipe ainda"), h("span", null, termoL ? `Nenhuma conversa com "${inPesq.value.trim()}".` : "Quando alguém entrar na equipe, a conversa com essa pessoa aparece aqui."));
       listaConv.replaceChildren(v); return;
     }
-    listaConv.replaceChildren(...visiveis.map((it) => {
-      const b = h("button", "eq-item" + (it.id === conv ? " ativa" : "") + (it.nao ? " nao-lida" : "")); b.type = "button";
+    const desenhar = (it) => {
+      const b = h("button", "eq-item" + (it.id === conv ? " ativa" : "") + (it.nao ? " nao-lida" : "") + (it.canal && !it.meu ? " fora-canal" : "")); b.type = "button";
       b.setAttribute("aria-current", it.id === conv ? "true" : "false");
       let av;
       if (it.grupo) {
@@ -453,15 +556,19 @@ export function montarChat(el) {
         lp.addEventListener("click", trocar); lp.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") trocar(e); });
         av.appendChild(lp);
       }
-      else { av = avatar({ ...pessoa(it.uid), nome: it.nome }); av.classList.add("com-ponto"); const pt = h("i", "ad-ponto" + (it.on ? " on" : "")); pt.setAttribute("aria-hidden", "true"); av.appendChild(pt); }
+      else if (it.canal) av = avCanal(it.canal);
+      else { av = avatar({ ...pessoa(it.uid), nome: it.nome }); av.classList.add("com-ponto"); const pt = h("i", "ad-ponto " + (STATUS[it.st]?.cls || "")); pt.setAttribute("aria-hidden", "true"); pt.title = STATUS[it.st]?.nome || "Fora do painel"; av.appendChild(pt); }
       const tx = h("div", "tx");
-      const l1 = h("div", "l1"); l1.append(h("strong", null, it.nome), h("small", null, it.quando ? relativoCurto(it.quando) : ""));
-      const l2 = h("div", "l2"); l2.append(h("span", null, it.sub)); if (it.nao) l2.append(h("b", "eq-nao", it.grupo ? String(it.nao > 99 ? "99+" : it.nao) : "1"));
+      const l1 = h("div", "l1"); const nm = h("strong", null, it.nome); if (it.mudo) { const m = ic("semSom", 14); m.setAttribute("aria-label", "silenciado"); nm.appendChild(m); }
+      l1.append(nm, h("small", null, it.quando ? relativoCurto(it.quando) : ""));
+      const l2 = h("div", "l2"); l2.append(h("span", null, it.canal && !it.meu ? `${it.canal.desc} · toque para ver` : it.sub));
+      if (it.nao) l2.append(h("b", "eq-nao" + (it.ponto && !it.mencao ? " ponto" + (it.mudo ? " mudo" : "") : ""), it.mencao ? "@" : it.ponto ? "" : it.grupo ? String(it.nao > 99 ? "99+" : it.nao) : "1"));
       tx.append(l1, l2);
       b.append(av, tx);
       b.addEventListener("click", () => abrir(it.id));
       return b;
-    }));
+    };
+    listaConv.replaceChildren(...visiveis.map(desenhar), ...(outros.length ? [h("div", "eq-lista-sec", "Outros canais"), ...outros.map(desenhar)] : []));
   }
   const relativoCurto = (t) => { const d = Date.now() - ms(t); if (d < 60000) return "agora"; if (d < 3600000) return `${Math.floor(d / 60000)} min`; if (new Date(ms(t)).toDateString() === new Date().toDateString()) return hora(t); return new Date(ms(t)).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }); };
 
@@ -469,19 +576,23 @@ export function montarChat(el) {
   function pintarTopo() {
     quem.replaceChildren();
     quem.removeAttribute("title");
-    if (conv === "equipe") {
-      const nOn = D.admins.filter((a) => C.online(a.id)).length;
-      const tx = h("div", "tx"); tx.append(h("strong", null, "Equipe"), h("small", null, `${D.admins.length} pessoas · ${nOn} online`));
+    if (ehCanal(conv)) {
+      const c = canalPorId(idCanal(conv));
+      const tx = h("div", "tx"); tx.append(h("strong", null, c.nome), h("small", null, `${c.desc}${silenciado(c.id, C.prefCanais) ? " · silenciado" : ""}`));
+      quem.append(avCanal(c), tx);
+    } else if (conv === "equipe") {
+      const nOn = D.admins.filter((a) => C.online(a.id) && C.statusDe?.(a.id) !== "fora").length;
+      const tx = h("div", "tx"); tx.append(h("strong", null, "Geral"), h("small", null, `${D.admins.length} pessoas · ${nOn} online`));
       const bFoto = h("button", "eq-foto-grupo"); bFoto.type = "button"; bFoto.title = "Trocar foto da equipe"; bFoto.setAttribute("aria-label", "Trocar foto da equipe");
       const lpG = h("span", "eq-eu-lapis eq-lapis-p"); lpG.appendChild(ic("lapis", 11));
       bFoto.append(avGrupo(), lpG); bFoto.addEventListener("click", () => trocarFotoGrupo());
       quem.append(bFoto, tx);
     } else {
       const uid = outroDoPar(conv), a = D.admins.find((x) => x.id === uid) || {};
-      const on = C.online(uid), pr = C.presenca.get(uid);
-      const av = avatar({ ...pessoa(uid), nome: a.nome || nomeDe(uid) }); av.classList.add("com-ponto"); av.appendChild(h("i", "ad-ponto" + (on ? " on" : "")));
+      const on = C.online(uid), pr = C.presenca.get(uid), st = C.statusDe ? C.statusDe(uid) : (on ? "disponivel" : null);
+      const av = avatar({ ...pessoa(uid), nome: a.nome || nomeDe(uid) }); av.classList.add("com-ponto"); av.appendChild(h("i", "ad-ponto " + (STATUS[st]?.cls || "")));
       const carga = [D.denuncias.filter((d) => d.responsavel === uid && ["nova", "em_analise"].includes(d.status)).length, D.suporte.filter((x) => x.responsavel === uid && x.status !== "fechado").length, C.tarefas.filter((t) => t.responsavel === uid && t.status !== "feito").length];
-      const status = h("small", on ? "on" : null, `${on ? "online" : pr?.em ? "visto " + relativo(pr.em) : "ainda não abriu o painel"} · ${PAPEIS[a.papel] || PAPEIS.dono}`);
+      const status = h("small", st === "disponivel" ? "on" : null, `${st ? STATUS[st].nome.toLowerCase() : pr?.em ? "visto " + relativo(pr.em) : "ainda não abriu o painel"} · ${PAPEIS[a.papel] || PAPEIS.dono}`);
       const tx = h("div", "tx"); tx.append(h("strong", null, a.nome || nomeDe(uid)), status);
       quem.append(av, tx);
       quem.title = `Com ${primeiro(a.nome || nomeDe(uid))}: ${carga[0]} denúncia(s), ${carga[1]} chamado(s) e ${carga[2]} tarefa(s)`;
@@ -502,11 +613,11 @@ export function montarChat(el) {
     const meu = m.autorId === C.eu.uid;
     const p = pessoa(m.autorId);
     const linha = h("div", "eq-linha" + (meu ? " meu" : "") + (junto ? " junto" : "")); if (m.id) linha.dataset.id = m.id;
-    if (!meu && conv === "equipe") { const av = avatar({ ...p, nome: m.nome || p.nome }); av.classList.add("eq-av-msg"); if (junto) av.classList.add("oculto"); linha.appendChild(av); }
+    if (!meu && ehGrupo(conv)) { const av = avatar({ ...p, nome: m.nome || p.nome }); av.classList.add("eq-av-msg"); if (junto) av.classList.add("oculto"); linha.appendChild(av); }
     const mencionaMe = (m.mencoes || []).includes(C.eu.uid) && !meu;
     const bm = h("div", "eq-balao" + (meu ? " meu" : "") + (mencionaMe ? " mencao-eu" : "") + (m.tipoArquivo ? " tem-" + m.tipoArquivo : "") + (!m.texto && m.tipoArquivo ? " so-anexo" : ""));
     bm.tabIndex = 0;
-    if (!meu && !junto && conv === "equipe") bm.appendChild(h("b", "eq-autor", m.nome || p.nome || "Equipe"));
+    if (!meu && !junto && ehGrupo(conv)) bm.appendChild(h("b", "eq-autor", m.nome || p.nome || "Equipe"));
     if (m.apagada) {
       // "Fulano apagou esta mensagem · 14:32" (+ "Ver mensagem apagada" por 24 horas).
       bm.classList.add("apagada");
@@ -550,7 +661,7 @@ export function montarChat(el) {
       hr.appendChild(ed);
     }
     hr.appendChild(document.createTextNode(hora(m.em)));
-    if (m.texto) { const p2 = h("div", "eq-texto"); p2.appendChild(textoComMencoes(m.texto, m.mencoes)); if (t) marcar(p2, t); p2.appendChild(hr); bm.appendChild(p2); }
+    if (m.texto) { const p2 = h("div", "eq-texto"); p2.appendChild(textoComMencoes(m.texto, m.mencoes)); if (t) marcar(p2, t); p2.appendChild(hr); bm.appendChild(p2); const cc = cartoesChamado(m.texto); if (cc) bm.appendChild(cc); }
     else bm.appendChild(hr);
     // reações já dadas (agrupadas por emoji, com contagem)
     const reacoes = m.reacoes || {};
@@ -595,7 +706,8 @@ export function montarChat(el) {
     if (!lista.length) {
       const v = h("div", "eq-vazio");
       if (t) v.append(h("strong", null, "Nada encontrado"), h("span", null, `Nenhuma mensagem com "${termo.trim()}".`));
-      else v.append(h("strong", null, conv === "equipe" ? "Comece a conversa" : `Conversa com ${nomeDe(outroDoPar(conv))}`), h("span", null, conv === "equipe" ? "As mensagens aqui ficam só entre a equipe." : "Só vocês dois veem esta conversa."));
+      else if (ehCanal(conv)) v.append(h("strong", null, `Canal ${nomeConv(conv)}`), h("span", null, `${canalPorId(idCanal(conv)).desc}. Toda a equipe pode ler; escreva #PROTOCOLO para mostrar um chamado.`));
+      else v.append(h("strong", null, conv === "equipe" ? "Comece a conversa" : `Conversa com ${nomeDe(outroDoPar(conv))}`), h("span", null, conv === "equipe" ? "O Geral é de toda a equipe. Para assuntos de um setor, use o canal dele." : "Só vocês dois veem esta conversa."));
       nos.clear(); chat.replaceChildren(v); return;
     }
     let diaAnt = "", autorAnt = "", msAnt = 0;
@@ -640,6 +752,11 @@ export function montarChat(el) {
       item("camera", C.fotoGrupo ? "Trocar foto da equipe" : "Pôr foto na equipe", () => trocarFotoGrupo());
       if (C.fotoGrupo) item("lixo", "Tirar foto da equipe", () => trocarFotoGrupo(true));
     }
+    if (ehCanal(conv)) {
+      const id = idCanal(conv), meu = (C.meusCanais?.() || []).includes(id), mudo = silenciado(id, C.prefCanais);
+      if (meu) item(mudo ? "sino" : "semSom", mudo ? "Reativar avisos do canal" : "Silenciar canal", () => silenciarCanal(id, !mudo));
+      if (id !== "avisos") item(meu ? "sair" : "entrar", meu ? "Sair do canal" : "Entrar no canal", () => (meu ? sairCanal(id) : entrarCanal(id)));
+    }
     const on = somAtivo();
     item(on ? "semSom" : "sino", on ? "Desligar som de aviso" : "Ligar som de aviso", () => { try { localStorage.setItem("hf-equipe-som", on ? "0" : "1"); } catch {} toast(on ? "Som de aviso desligado" : "Som de aviso ligado"); });
     menu.hidden = false;
@@ -676,7 +793,7 @@ export function montarChat(el) {
     });
     menu.appendChild(linhaE);
     item("responder", "Responder", () => definirResposta(m));
-    item("tarefa", "Criar tarefa", () => editarTarefa({ titulo: (m.texto || m.nomeArquivo || "Mensagem do chat").slice(0, 140), descricao: `Do chat ${conv === "equipe" ? "da equipe" : "com " + nomeDe(outroDoPar(conv))} — ${m.nome || nomeDe(m.autorId)} (${hora(m.em)}): ${m.texto || previa(m)}`.slice(0, 2000) }));
+    item("tarefa", "Criar tarefa", () => editarTarefa({ titulo: (m.texto || m.nomeArquivo || "Mensagem do chat").slice(0, 140), descricao: `Do chat ${ehGrupo(conv) ? "· " + nomeConv(conv) : "com " + nomeConv(conv)} — ${m.nome || nomeDe(m.autorId)} (${hora(m.em)}): ${m.texto || previa(m)}`.slice(0, 2000) }));
     if (m.texto && navigator.clipboard) item("copiar", "Copiar texto", () => navigator.clipboard.writeText(m.texto).then(() => toast("Mensagem copiada")));
     if (m.anexo && m.tipoArquivo !== "audio") item("baixar", m.tipoArquivo === "imagem" ? "Baixar foto" : "Baixar arquivo", () => baixarAnexo(m));
     if (meu && ms(m.em) && podeMexer(m.em)) item("lapis", "Editar", () => editarEq(conv, m, ultima));
@@ -715,18 +832,24 @@ export function montarChat(el) {
 
   // ---------- abrir conversa ----------
   function abrir(id) {
-    conv = id; C.conversaAberta = id; modoLista = C.modoChatEquipe = id === "equipe" ? "equipe" : "individual"; termo = ""; inBusca.value = ""; barraBusca.hidden = true; respondendo = null; pintarResposta(); fecharMenu();
+    conv = id; C.conversaAberta = id; modoLista = C.modoChatEquipe = ehDm(id) ? "individual" : "equipe"; termo = ""; inBusca.value = ""; barraBusca.hidden = true; respondendo = null; pintarResposta(); fecharMenu();
     pararDm?.(); pararDm = null; msgsDm = []; pintarChat.feito = false; nos.clear();
     raiz.classList.add("aberta");
     if (id === "equipe") { C.marcarChatVisto?.(); }
     else {
       chat.replaceChildren(h("div", "eq-vazio", "Carregando…"));
-      pararDm = fb.onSnapshot(fb.query(fb.collection(fb.db, "equipe_dm", id, "mensagens"), fb.orderBy("em", "desc"), fb.limit(150)), (s) => {
+      const canal = idCanal(id);
+      const col = canal ? fb.collection(fb.db, "equipe_canais", canal, "mensagens") : fb.collection(fb.db, "equipe_dm", id, "mensagens");
+      pararDm = fb.onSnapshot(fb.query(col, fb.orderBy("em", "desc"), fb.limit(150)), (s) => {
         msgsDm = s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).reverse();
-        if (conv === id) { pintarChat(); if (naoLidaDm(id)) marcarLidaDm(id); }
-      }, (e) => { console.warn("Conversa:", e.code || e.message); nos.clear(); chat.replaceChildren(h("div", "eq-vazio", "Não foi possível abrir esta conversa.")); });
-      if (naoLidaDm(id)) marcarLidaDm(id);
+        if (conv === id) { pintarChat(); if (canal) C.marcarCanalVisto?.(canal); else if (naoLidaDm(id)) marcarLidaDm(id); }
+      }, (e) => {
+        console.warn("Conversa:", e.code || e.message); nos.clear();
+        chat.replaceChildren(h("div", "eq-vazio", canal && e?.code === "permission-denied" ? "Os canais por setor começam a funcionar quando as regras novas forem publicadas. Até lá, use o Geral." : "Não foi possível abrir esta conversa."));
+      });
+      if (canal) C.marcarCanalVisto?.(canal); else if (naoLidaDm(id)) marcarLidaDm(id);
     }
+    pintarCompor();
     pintarTopo(); pintarLista();
     if (id === "equipe") pintarChat();
     C.contadores?.();
@@ -786,7 +909,7 @@ export function montarChat(el) {
     // Limpa na hora (como num mensageiro); se falhar, o texto volta para o campo.
     txt.value = ""; mencoes.clear(); respondendo = null; pintarResposta(); atualizarCampo();
     try { await enviarMensagem(conv, { texto: t, mencoes: menc, resposta: resp }); chat.scrollTop = chat.scrollHeight; }
-    catch (e) { console.error(e); if (!txt.value) { txt.value = t; respondendo = resp; pintarResposta(); atualizarCampo(); } toast("Não foi possível enviar: " + (e.code || e.message)); }
+    catch (e) { console.error(e); if (!txt.value) { txt.value = t; respondendo = resp; pintarResposta(); atualizarCampo(); } toast(semRegrasCanal(e) ? "Os canais por setor começam a funcionar quando as regras novas forem publicadas. Até lá, use o Geral." : "Não foi possível enviar: " + (e.code || e.message)); }
     finally { enviando = false; }
   }
   form.addEventListener("submit", (e) => { e.preventDefault(); enviar(); });
@@ -817,7 +940,7 @@ export function montarChat(el) {
       if (legenda) { txt.value = ""; mencoes.clear(); atualizarCampo(); }
       chat.scrollTop = chat.scrollHeight;
       document.querySelector(".ad-toast")?.remove();
-    } catch (e) { console.error(e); toast(e.message && !e.code ? e.message : "Não foi possível enviar: " + (e.code || e.message)); }
+    } catch (e) { console.error(e); toast(semRegrasCanal(e) ? "Os canais por setor começam a funcionar quando as regras novas forem publicadas." : e.message && !e.code ? e.message : "Não foi possível enviar: " + (e.code || e.message)); }
     finally { bAnexo.disabled = false; inArq.value = ""; }
   }
   inArq.addEventListener("change", () => enviarArquivo(inArq.files?.[0]));
@@ -857,9 +980,51 @@ export function montarChat(el) {
   gCancelar.addEventListener("click", () => parar(true));
 
   // ---------- ao vivo ----------
+  // ---------- canais: entrar, sair, silenciar; campo bloqueado em Avisos ----------
+  const semRegrasCanal = (e) => e?.code === "permission-denied" && ehCanal(conv);
+  async function mudarPref(fn, msg) {
+    const a = C.prefCanais || {};
+    const p = { entrou: [...(a.entrou || [])], saiu: [...(a.saiu || [])], silenciados: [...(a.silenciados || [])] };
+    fn(p);
+    try { await C.salvarPrefCanais?.(p); toast(msg); } catch (e) { console.error(e); toast("Não foi possível salvar: " + (e.code || e.message)); }
+    pintarLista(); pintarTopo(); pintarCompor();
+  }
+  const entrarCanal = (id) => mudarPref((p) => { p.saiu = p.saiu.filter((x) => x !== id); if (!p.entrou.includes(id)) p.entrou.push(id); }, `Você entrou em ${canalPorId(id).nome}`);
+  const sairCanal = (id) => mudarPref((p) => { p.entrou = p.entrou.filter((x) => x !== id); if (!p.saiu.includes(id)) p.saiu.push(id); }, `Você saiu de ${canalPorId(id).nome}`);
+  const silenciarCanal = (id, sim) => mudarPref((p) => { p.silenciados = sim ? [...new Set([...p.silenciados, id])] : p.silenciados.filter((x) => x !== id); }, sim ? "Canal silenciado: só avisa quando mencionarem você" : "Avisos do canal ligados");
+  function pintarCompor() {
+    let msg = null, acao = null;
+    if (ehCanal(conv)) {
+      const id = idCanal(conv);
+      if (!podeEscrever(id, C.papelEu)) msg = "Só os donos escrevem em Avisos. Reaja às mensagens para mostrar que leu.";
+      else if (!(C.meusCanais?.() || []).includes(id)) { msg = "Você não está neste canal. Entre para receber os avisos e escrever."; acao = ["Entrar no canal", () => entrarCanal(id)]; }
+    }
+    form.hidden = !!msg; bloqueio.hidden = !msg;
+    if (!msg) return;
+    bloqueio.replaceChildren(ic(acao ? "hash" : "megafone", 18), h("span", null, msg));
+    if (acao) { const b = h("button", "ad-bt pri", acao[0]); b.type = "button"; b.addEventListener("click", acao[1]); bloqueio.appendChild(b); }
+  }
+  function abrirMenuStatus(ancora) {
+    menu.replaceChildren();
+    Object.entries(STATUS).forEach(([k, st]) => {
+      const b = h("button", "eq-menu-item" + (C.meuStatus === k ? " atual" : "")); b.type = "button"; b.setAttribute("role", "menuitemradio"); b.setAttribute("aria-checked", String(C.meuStatus === k));
+      b.append(h("i", "ad-ponto " + st.cls), h("span", null, st.nome));
+      b.addEventListener("click", () => { fecharMenu(); C.mudarStatus?.(k); pintarStatus(); toast(`Sua situação: ${st.nome}`); });
+      menu.appendChild(b);
+    });
+    const fim = h("button", "eq-menu-item"); fim.type = "button"; fim.setAttribute("role", "menuitem"); fim.append(ic("lua", 19), h("span", null, "Encerrar meu turno…"));
+    fim.addEventListener("click", () => { fecharMenu(); encerrarTurno().then(() => pintarStatus()); });
+    menu.appendChild(fim);
+    menu.hidden = false;
+    const r = ancora.getBoundingClientRect(), rm = menu.getBoundingClientRect();
+    menu.style.left = Math.max(8, Math.min(r.left, innerWidth - rm.width - 8)) + "px";
+    menu.style.top = Math.min(r.bottom + 4, innerHeight - rm.height - 8) + "px";
+    menu.querySelector("button")?.focus({ preventScroll: true });
+  }
+
   C.aoMudarEquipe = () => {
     if (!el.isConnected) { C.aoMudarEquipe = null; C.conversaAberta = null; pararDm?.(); return; }
-    pintarLista(); pintarTopo();
+    pintarLista(); pintarTopo(); pintarStatus();
     if (conv === "equipe") { pintarChat(); C.marcarChatVisto?.(); }
   };
   atualizarCampo();
