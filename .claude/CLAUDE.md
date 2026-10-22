@@ -552,6 +552,14 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   "Enviar para a equipe" no chamado (canal ou pessoa). Logo do painel = `logo-app-96.webp` (imagem que ele mandou, recortada;
   `logo-app.png` 192 px é o apple-touch-icon do painel; `logo-icone.png` saiu). Busca do topo no celular (≤900 px): só a lupa
   `#btBuscaCel`, abre o campo por cima da barra (`.ad-topo.buscando`, × fecha). Teste `t-equipe-canais.mjs`.
+- **Para o próximo chat (22/10/2026):** PRs #76 a #79 **mesclados** (otimização nacional, busca/região, suporte nacional,
+  canais da equipe + logo WebP + lupa do celular). Regras com tudo desde 13/10 **ainda não publicadas**: 14 partes em
+  `_regras/` (550 testes). Depois de publicar: "Recalcular estrelas" no painel e criar os 5 índices (`_regras/INDICES-LEIA-ME.md`).
+  Etapas que ainda faltam da lista nacional: 2) otimização do Diário, perfil e Mensagens; 3) mapa/endereços com mais capacidade
+  que o Nominatim; 4) Pix automático (Mercado Pago, precisa do Blaze); 5) material do que não é programação (advogado, regras de
+  publicidade dos conselhos de saúde, roteiro de teste no celular). Storage: lembrete em 26/10 (trig_0125yEkm2exoQLsnzU4hmT8s).
+  Em aberto com ele: negócio sem plano depois dos 30 dias grátis. Emulador: depois que o contêiner reinicia, subir de novo
+  (`setsid nohup ./emulador.sh` e `setsid nohup node servidor-csp.mjs`) e rodar `node seed.mjs`.
 - **As 5 etapas estão concluídas.** Próximos passos são as pendências abaixo (só ele pode fazer) e o que ficou
   para depois.
 
