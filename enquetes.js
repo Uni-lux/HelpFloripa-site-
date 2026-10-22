@@ -131,7 +131,9 @@ export async function lerContasEnquete(fs, db, alvo, n, { fresco = false } = {})
   gravarLocal(CH_CONTAS, m);
   return c.slice();
 }
-// Resultado final (enquete encerrada) fica guardado de vez (hf-enq-res).
+// Resultado final (enquete encerrada) fica guardado de vez (hf-enq-res): depois do fim não muda mais
+// (as regras não deixam votar), então abrir a enquete de novo não lê nada.
+export async function resultadoFinal(fs, db, alvo, n) { return (await contarVotos(fs, db, alvo, n)).slice(0, n); }
 async function contarVotos(fs, db, alvo, n) {
   const res = lerLocal(CH_RES);
   if (res[alvo]) return res[alvo].c;

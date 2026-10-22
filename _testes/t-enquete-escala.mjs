@@ -1,6 +1,6 @@
 // Enquete aguentando muita gente: contagem em 10 pedaços (enquete_contas/{alvo}_{fatia}) e leitura só quando o
-// resultado vai aparecer. Mede pelo proxy-contador.mjs (8086): quem passa sem votar não lê a contagem; depois de
-// votar lê no máximo 10 pedaços (nada de contar no servidor); o resultado bate com a soma; o autor vê os números.
+// resultado vai aparecer. Mede pelo proxy-contador.mjs (8086): quem passa ou vota não lê a contagem (o resultado sai
+// no fim); no fim lê no máximo 10 pedaços uma vez e guarda de vez; a autora vê os números o tempo todo.
 // Uso: FS_PORTA=8086 node t-enquete-escala.mjs   (emulador + servidor-csp + proxy-contador + seed)
 process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8085";
 import { initializeApp } from "firebase-admin/app"; import { getFirestore, Timestamp } from "firebase-admin/firestore";
@@ -35,16 +35,28 @@ const v = (await db.doc(`enquete_votos/${alvo}_${U.bruno}`).get()).data();
 let soma = [0, 0];
 for (let f = 0; f < 10; f++) { const x = (await db.doc(`enquete_contas/${alvo}_${f}`).get()).data() || {}; soma[0] += x.n0 || 0; soma[1] += x.n1 || 0; }
 ok(Number.isInteger(v?.fatia) && soma[1] === 311 && soma[0] === 930, `voto foi com a fatia ${v?.fatia} e o pedaço subiu (Não: 311)`);
-ok((c.colecoes.enquete_contas || 0) <= 10 && !contEnq(), `depois de votar: ${c.colecoes.enquete_contas || 0} pedaços lidos, ${contEnq()} contagens de votos no servidor`);
+ok(!c.colecoes.enquete_contas && !contEnq(), `depois de votar não lê a contagem (pedaços lidos: ${c.colecoes.enquete_contas || 0}, contagens de votos: ${contEnq()})`);
 const rod = await enq.locator(".enq-rodape").textContent();
-const pcts = await enq.locator(".enq-pct").allTextContents();
-ok(/1\.241 votos/.test(rod) && pcts.join(",") === "75%,25%", `resultado certo: "${rod.trim()}" · ${pcts.join(" / ")}`);
-await enq.screenshot({ path: "saida/enquete-escala.png" });
-// Voltar à mesma enquete em seguida não lê de novo (guardado 90 s no aparelho).
+ok(/Voto registrado · resultado em/.test(rod) && (await enq.locator(".enq-pct").count()) === 0 && (await enq.locator(".enq-op.minha", { hasText: "Não" }).count()) === 1, `depois de votar: escolha marcada, sem %: "${rod.trim()}"`);
+await enq.screenshot({ path: "saida/enquete-votou-espera.png" });
+// A enquete termina: quem votou abre e vê o resultado final (lido 1 vez, ≤10 pedaços) e depois guardado de vez.
+await db.doc(`diario/${id}`).update({ "enquete.fimEm": Timestamp.fromMillis(Date.now() - 60000) });
 await contador("zerar");
-await pb.goto(BASE + "sobre.html"); await pb.goto(BASE + `usuarios.html?post=${id}`); await pb.locator(".enquete", { hasText: "Abre domingo?" }).first().waitFor({ timeout: 30000 }); await pb.waitForTimeout(3000);
+await pb.goto(BASE + "sobre.html"); await pb.goto(BASE + `usuarios.html?post=${id}`);
+const fimE = pb.locator(".enquete", { hasText: "Abre domingo?" }).first();
+await fimE.waitFor({ timeout: 30000 }); await fimE.scrollIntoViewIfNeeded();
+await pb.waitForFunction(() => /Resultado final/.test(document.querySelector(".enquete .enq-rodape")?.textContent || ""), null, { timeout: 15000 }).catch(() => {});
 c = await contador("contagem");
-ok(!c.colecoes.enquete_contas, `reabrir logo depois usa o resultado guardado (pedaços lidos: ${c.colecoes.enquete_contas || 0})`);
+const rodF = await fimE.locator(".enq-rodape").textContent(), pcts = await fimE.locator(".enq-pct").allTextContents();
+ok(/Resultado final · 1\.241 votos/.test(rodF) && pcts.join(",") === "75%,25%" && (c.colecoes.enquete_contas || 0) <= 10 && !contEnq(), `no fim: "${rodF.trim()}" · ${pcts.join(" / ")} (${c.colecoes.enquete_contas || 0} pedaços lidos)`);
+await fimE.screenshot({ path: "saida/enquete-escala.png" });
+await contador("zerar");
+await pb.goto(BASE + "sobre.html"); await pb.goto(BASE + `usuarios.html?post=${id}`);
+await pb.locator(".enquete", { hasText: "Abre domingo?" }).first().waitFor({ timeout: 30000 }); await pb.waitForTimeout(3000);
+c = await contador("contagem");
+ok(!c.colecoes.enquete_contas, `reabrir a enquete encerrada usa o resultado guardado de vez (pedaços lidos: ${c.colecoes.enquete_contas || 0})`);
+// volta a ficar aberta para a parte da autora
+await db.doc(`diario/${id}`).update({ "enquete.fimEm": Timestamp.fromMillis(Date.now() + 5 * 3600e3) });
 await B.browser.close();
 
 // Autora: vê os números sem votar; "Ver votos" usa a contagem (mostra que a lista tem só os mais recentes).

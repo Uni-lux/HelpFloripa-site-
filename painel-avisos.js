@@ -11,7 +11,7 @@
 import { buscarReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=17";
 import { fotoSegura } from "./seguranca.js?v=1";
 import { buscarItensEquipe, TEXTO_EQUIPE, linkEquipe } from "./avisos-equipe.js?v=1";
-import { enquetesEncerradas, textoEnqueteFim } from "./enquetes.js?v=4";
+import { enquetesEncerradas, textoEnqueteFim } from "./enquetes.js?v=5";
 import { avisoPlano, textoPlano } from "./planos-base.js?v=3";
 import { docsComValidade, esquecer } from "./leituras.js?v=1";
 import { criarLista, svg, toastNt, categoriaLigada, categoriaDe } from "./avisos-lista.js?v=2";

@@ -15,13 +15,13 @@ import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
 import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=17";
 import { ouvirItensEquipe, TEXTO_EQUIPE, linkEquipe } from "./avisos-equipe.js?v=1";
-import "./painel-avisos.js?v=22";
+import "./painel-avisos.js?v=23";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
 import { avisoPlano } from "./planos-base.js?v=3";
 import { palavrasBusca } from "./pessoas.js?v=3"; // o sino abre o painel de notificações na própria página
 import { registrarGosto, PESO } from "./gosto.js?v=1";
 import { confirmarHF } from "./confirmar.js?v=4";
-import { seletorDuracao, fimEscolhido, fimDaEnquete, encerrada, faltaTexto, dataCurta, resumoResultado, guardarInfoEnquete, enquetesEncerradas, textoEnqueteFim, linhaChave, MAX_PUB_MIN, lerContasEnquete, sortearFatia, pedacoDaEnquete } from "./enquetes.js?v=4";
+import { seletorDuracao, fimEscolhido, fimDaEnquete, encerrada, faltaTexto, dataCurta, resumoResultado, guardarInfoEnquete, enquetesEncerradas, textoEnqueteFim, linhaChave, MAX_PUB_MIN, lerContasEnquete, resultadoFinal, sortearFatia, pedacoDaEnquete } from "./enquetes.js?v=5";
 
 // ---------- ícones ----------
 const SIMBOLOS = `<symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 01-1.5 1.5H15v-6h-6v6H5.5A1.5 1.5 0 014 19z"/></symbol>
@@ -1122,8 +1122,9 @@ export async function alternarSalvo(post) {
 // ---------- enquete (publicação ou flash) ----------
 // Votos em enquete_votos/{tipo}_{id}_{uid} (anônima: enquete_anon); a contagem fica em 10 pedaços
 // (enquete_contas/{alvo}_{fatia}, enquetes.js) que sobem +1 junto com o voto.
-// Antes de votar só aparecem as opções; depois do voto, para o autor ou quando acaba, as porcentagens.
-// A contagem só é lida quando vai aparecer (quem passa pela enquete sem votar não gasta leitura).
+// As porcentagens aparecem para o autor (sempre) e para os outros só quando a enquete acaba; quem votou vê a
+// opção dele marcada e quando sai o resultado (que também chega nas notificações). A contagem só é lida
+// quando vai aparecer: votar ou passar pela enquete não gasta leitura. Enquete antiga sem fim: mostra depois do voto.
 // Voto único (as regras não deixam trocar nem tirar) e só até o fim (enquete.fimEm; enquete antiga não tem fim).
 // O autor vê quem votou em cada opção. Quando acaba, o dono e quem votou recebem o resultado nas notificações.
 export function blocoEnquete(item, { tipo = "d", escura = false } = {}) {
@@ -1153,15 +1154,16 @@ export function blocoEnquete(item, { tipo = "d", escura = false } = {}) {
     rod.appendChild(ver);
   }
   let meu = null, contas = e.opcoes.map(() => 0), temContas = false, lendo = null, tentou = false, pronto = false, ocupado = false, relogio = null;
-  const precisaContas = () => meu !== null || souAutor || encerrada(e);
-  // Quem criou vê os votos chegando: sempre lido na hora (os outros usam o guardado de 90 s).
-  const lerContas = (fresco = false) => (tentou = true, lendo ||= lerContasEnquete(fb, fb.db, alvo, e.opcoes.length, { fresco: fresco || souAutor })
+  const precisaContas = () => souAutor || encerrada(e) || (meu !== null && !fim);
+  // Quem criou vê os votos chegando: sempre lido na hora. Encerrada: o resultado final, guardado de vez.
+  const lerContas = (fresco = false) => (tentou = true, lendo ||= (encerrada(e) ? resultadoFinal(fb, fb.db, alvo, e.opcoes.length)
+    : lerContasEnquete(fb, fb.db, alvo, e.opcoes.length, { fresco: fresco || souAutor }))
     .then((c) => { contas = c; temContas = true; }).catch(() => {}).finally(() => { lendo = null; if (box.isConnected) pintar(); }));
   const pintar = () => {
     const acabou = encerrada(e);
     // Terminou com a enquete na tela: busca o resultado final.
     if (acabou && pronto && !temContas && !lendo && !tentou) lerContas();
-    const total = contas.reduce((a, n) => a + n, 0), mostrar = pronto && temContas && (meu !== null || souAutor || acabou);
+    const total = contas.reduce((a, n) => a + n, 0), mostrar = pronto && temContas && precisaContas();
     const maior = Math.max(...contas);
     box.classList.toggle("votou", meu !== null);
     box.classList.toggle("acabou", acabou);
@@ -1177,8 +1179,8 @@ export function blocoEnquete(item, { tipo = "d", escura = false } = {}) {
       const pct = total ? Math.round((contas[i] / total) * 100) : 0;
       const barra = el("i", "enq-barra"); barra.style.width = mostrar ? `${pct}%` : "0%";
       const rot = el("span", "enq-rot");
-      if (!mostrar) rot.appendChild(el("span", "enq-radio"));
-      else if (meu === i) rot.appendChild(icone("check", "i xs"));
+      if (meu === i) rot.appendChild(icone("check", "i xs"));
+      else if (!mostrar && meu === null) rot.appendChild(el("span", "enq-radio"));
       rot.appendChild(el("span", "enq-txt", o));
       if (acabou && lider) { const t = el("span", "enq-venc"); t.append(icone("trofeu", "i xs")); t.title = "Mais votada"; rot.appendChild(t); }
       b.append(barra, rot);
@@ -1187,8 +1189,9 @@ export function blocoEnquete(item, { tipo = "d", escura = false } = {}) {
       return b;
     }));
     const votos = temContas ? `${numero(total)} ${total === 1 ? "voto" : "votos"} · ` : "";
-    rodTx.textContent = !pronto || (precisaContas() && !temContas && lendo) ? (meu !== null && !acabou ? "Voto registrado · carregando o resultado..." : "Carregando...")
+    rodTx.textContent = !pronto || (precisaContas() && !temContas && lendo) ? "Carregando..."
       : acabou ? `Resultado final${temContas ? " · " + votos.slice(0, -3) : ""}`
+      : meu !== null && !mostrar ? `Voto registrado${anon ? " (anônimo)" : ""} · resultado ${fim ? "em " + dataCurta(fim) : "no fim"}`
       : meu !== null ? `${votos}seu voto foi registrado${anon ? " (anônimo)" : ""}`
       : anon ? `${votos}voto anônimo: ninguém vê em quem você votou`
       : `${votos}toque para votar (um voto, sem troca)`;
@@ -1201,7 +1204,7 @@ export function blocoEnquete(item, { tipo = "d", escura = false } = {}) {
     const junto = souAutor || encerrada(e) ? lerContas() : null;
     meu = await fb.getDoc(ref).then((d) => (d.exists() ? Number(d.data().opcao) : null)).catch(() => null);
     pronto = true;
-    if (!junto && meu !== null) lerContas();
+    if (!junto && precisaContas()) lerContas();
     pintar();
   }
   async function votar(i) {
@@ -1220,7 +1223,7 @@ export function blocoEnquete(item, { tipo = "d", escura = false } = {}) {
       lote.set(ref, voto);
       lote.set(fb.doc(fb.db, "enquete_contas", pedacoDaEnquete(alvo, fatia)), { ["n" + i]: fb.increment(1) }, { merge: true });
       await lote.commit();
-      lerContas(true);
+      if (precisaContas()) lerContas(true);
       if (fim) guardarInfoEnquete(alvo, item);
       navigator.vibrate?.(8);
       if (fim) toast(`Voto registrado. Quando a enquete terminar, o resultado chega nas suas notificações.`);
@@ -1803,7 +1806,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=30").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=31").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);

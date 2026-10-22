@@ -694,8 +694,10 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   `^[df]_id_[0-9]$` com o voto da pessoa sendo criado agora, na fatia dele). Documento único antigo (`enquete_contas/{alvo}`)
   e voto sem fatia são recusados (nada disso estava no ar). `enquetes.js`: `FATIAS`, `lerContasEnquete` (consulta
   `documentId in` os 10 ids, soma; guardado 90 s em `hf-enq-contas`; o autor sempre lê na hora), `contarVotos` usa os pedaços.
-  `blocoEnquete`: só lê a contagem para o autor, depois de votar ou quando encerra (`precisaContas`, `temContas`, `tentou`);
-  antes de votar o rodapé não mostra número. "Ver votos": números pela contagem + "Mostrando as N pessoas mais recentes"
+  `blocoEnquete` (pedido dele, 22/10): as % só aparecem para o AUTOR (sempre, lido na hora) e para os outros quando a
+  enquete ACABA (`precisaContas` = autor || encerrada || votou numa enquete antiga sem fim); quem votou vê a escolha marcada
+  e "Voto registrado · resultado em <data>". Encerrada lê `resultadoFinal` (guardado de vez em `hf-enq-res`).
+  Votar ou passar pela enquete não lê a contagem. "Ver votos": números pela contagem + "Mostrando as N pessoas mais recentes"
   (lista até 300). `limpar-contas.mjs` desconta o pedaço do voto (público e anônimo). Teste `t-enquete-escala.mjs`
   (FS_PORTA=8086, medidor conta `contagensPor` coleção). `t-caixa` (para em `.notif`) e `t-enquete2` (notificação do Bruno)
   falham igual no código de antes.
