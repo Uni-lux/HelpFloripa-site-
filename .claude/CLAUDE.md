@@ -728,6 +728,9 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   citação (aspas azuis à direita, abaixo do marcador). Fundo accent 7% sobre `--panel-2` (cores do tema). Foto com
   enquete/caixa ganha o selo `.sv-tipo`. Capas das coleções: texto em `.col-cel.txt.mm-capa` (sem as cores sortidas do
   `tomDoTexto`). CSS `.mm*` no fim do rede.css.
+- **Regras publicadas por ele em 26/10/2026** (tudo desde 13/10: as 15 partes de `_regras/`, 561 testes). Os "não
+  publicadas" acima valem só como histórico. Conferir com ele: "Recalcular estrelas" no painel e os 5 índices
+  (`_regras/INDICES-LEIA-ME.md`). Daqui em diante, regra nova volta a precisar de publicação manual.
 - **As 5 etapas estão concluídas.** Próximos passos são as pendências abaixo (só ele pode fazer) e o que ficou
   para depois.
 
