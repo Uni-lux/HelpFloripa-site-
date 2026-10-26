@@ -2700,14 +2700,14 @@ async function incorporar(novos) {
     const s = await docComValidade(fb, ["negocios", `${id}_imoveis`], DONOS_VALIDADE).catch(() => null);
     principalImoveis.set(id, s?.exists() ? s.data().principal || null : null);
   }));
+  if (posEu) await comDistancia(add, posEu);
   if (add.some(pausadoNaVitrine)) todos = todos.filter((x) => !pausadoNaVitrine(x));
-  todos = todos.map(comLimites);
+  todos = todos.map(comLimites); // depois da distância: a versão grátis é uma cópia e leva o _km junto
   // Imóveis de quem está sem plano: só o anúncio mais antigo aparece.
   if (TIPO === "imoveis") {
     const livres = new Set(umAnuncioGratisPorDono(todos.filter((x) => x.tipo === "imovel" && !nivelPlano(planosDonos.get(x.donoId)))).map((x) => x.id));
     todos = todos.filter((x) => x.tipo !== "imovel" || nivelPlano(planosDonos.get(x.donoId)) || livres.has(x.id));
   }
-  if (posEu) await comDistancia(add, posEu);
   return add.length;
 }
 // Busca nacional (busca.js): o que foi digitado também é perguntado ao Firebase, além dos perfis já carregados.
