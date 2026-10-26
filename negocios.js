@@ -279,8 +279,11 @@ function pintarPainel() {
     const c = el("article", `neg-card ${tipo}`);
     c.id = "neg-" + tipo;
     const capa = el("div", "capa");
-    const f = urlSegura((n.fotos || [])[0]) || t.img;
+    // A capa escolhida pelo dono (ou a guardada na conta enquanto as regras não estavam no ar); sem capa, a 1ª foto.
+    const capaN = urlSegura(n.capa || extrasPendentes(n.id)?.capa);
+    const f = capaN || urlSegura((n.fotos || [])[0]) || t.img;
     capa.style.setProperty("--img", `url("${f}")`);
+    if (capaN && semPlano()) { const cp = el("span", "ng-capa-plus"); cp.append(el("b", null, "PLUS"), document.createTextNode("Capa visível com plano")); capa.appendChild(cp); }
     const tag = el("span", "tag"); tag.append(icone(tipo, "i xs"), document.createTextNode(t.rotulo));
     capa.appendChild(tag);
     const oculto = (n.ocultoAte?.toMillis?.() ?? 0) > Date.now(), pausado = !oculto && pausadoAqui(n);
