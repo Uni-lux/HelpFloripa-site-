@@ -52,7 +52,9 @@ await card.scrollIntoViewIfNeeded(); await a.screenshot({ path: "saida/pedido-cl
 await card.screenshot({ path: "saida/pedido-cartao-cliente.png" });
 
 // ---------- negócio ----------
-const b = await entrar(ctx, "bruno", `mensagens.html?conversa=${conv}`);
+// O negócio em outro navegador: duas contas no mesmo navegador travam o Firestore do teste.
+const NB = await navegador({ mobile: true });
+const b = await entrar(NB.ctx, "bruno", `mensagens.html?conversa=${conv}`);
 await b.waitForSelector(".pedido-pro", { timeout: 20000 }); await b.waitForTimeout(1500);
 const cb = b.locator(".pedido-pro").last();
 ok((await cb.textContent()).includes("Novo pedido") && await cb.locator(".pd-acoes .pri", { hasText: "Confirmar pedido" }).count() === 1, "negócio vê Novo pedido com Confirmar");
@@ -74,5 +76,5 @@ await ca.screenshot({ path: "saida/pedido-cartao-cliente-2.png" });
 for (let i = 0; i < 2; i++) { await b.locator(".pedido-pro").last().locator(".pd-acoes .pri").click(); await b.waitForTimeout(2500); }
 const avs = (await db.collection(`conversas/${conv}/mensagens`).where("tipoArquivo", "==", "avaliacao").get()).docs.map((d) => d.data()).filter((x) => x.criadoEm?.toMillis() > Date.now() - 120000);
 ok(avs.length === 1 && /^Pedido #[A-Z0-9]{6}/.test(avs[0].avaliacao.titulo), "Entregue: pedido de avaliação enviado sozinho (" + (avs[0]?.avaliacao?.titulo || "nenhum") + ")");
-await browser.close();
+await browser.close(); await NB.browser.close();
 process.exit(0);
