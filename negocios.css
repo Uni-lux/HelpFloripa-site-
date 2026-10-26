@@ -437,3 +437,14 @@ a.ng-tipo:hover { border-color: color-mix(in srgb, var(--c) 60%, var(--line)); }
 .ng-capa-plus { position: absolute; right: 12px; bottom: 10px; z-index: 1; display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 999px;
   font-size: 11.5px; font-weight: 700; color: #fff; background: rgba(0, 0, 0, .55); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
 .ng-capa-plus b { font-size: 9.5px; font-weight: 900; letter-spacing: .06em; padding: 2px 5px; border-radius: 5px; background: linear-gradient(135deg, #0ea5e9, #2563eb); }
+
+/* Link curto e QR Code do perfil */
+.lq-caixa { display: grid; gap: 12px; justify-items: center; text-align: center; }
+.lq-link { width: 100%; display: grid; gap: 2px; padding: 12px 14px; border-radius: 14px; background: var(--panel-2); border: 1px solid var(--line); }
+.lq-link small { font-size: 11.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.lq-link strong { font-size: 16px; color: var(--accent); overflow-wrap: anywhere; }
+.lq-acoes { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.lq-qr { width: min(240px, 70vw); aspect-ratio: 1; padding: 0; border-radius: 16px; overflow: hidden; background: #fff; box-shadow: 0 10px 30px -14px rgba(0, 0, 0, .5); }
+.lq-qr canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+.lq-dica { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.45; max-width: 36ch; }
+.lq-aviso { margin: 0; font-size: 12.5px; color: #f59e0b; }

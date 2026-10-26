@@ -70,5 +70,9 @@ const ca = fr.locator(".pedido-pro").last();
 ok((await ca.textContent()).includes("Preparando") && (await ca.textContent()).includes("Previsão: 30–45 min"), "cliente vê Preparando com a previsão");
 ok(await ca.locator(".pd-acoes .sec").count() === 0, "depois de confirmado o cliente não cancela mais pelo cartão");
 await ca.screenshot({ path: "saida/pedido-cartao-cliente-2.png" });
+// Até Entregue: o pedido de avaliação vai sozinho para o cliente (uma vez).
+for (let i = 0; i < 2; i++) { await b.locator(".pedido-pro").last().locator(".pd-acoes .pri").click(); await b.waitForTimeout(2500); }
+const avs = (await db.collection(`conversas/${conv}/mensagens`).where("tipoArquivo", "==", "avaliacao").get()).docs.map((d) => d.data()).filter((x) => x.criadoEm?.toMillis() > Date.now() - 120000);
+ok(avs.length === 1 && /^Pedido #[A-Z0-9]{6}/.test(avs[0].avaliacao.titulo), "Entregue: pedido de avaliação enviado sozinho (" + (avs[0]?.avaliacao?.titulo || "nenhum") + ")");
 await browser.close();
 process.exit(0);

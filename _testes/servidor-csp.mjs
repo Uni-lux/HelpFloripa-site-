@@ -10,9 +10,11 @@ http.createServer(async (req, res) => {
     let p = decodeURIComponent(new URL(req.url, "http://x").pathname).replace(/^\/+/, "") || "index.html";
     const f = normalize(join(SITE, p));
     if (!f.startsWith(SITE)) throw new Error("fora");
-    let corpo = await readFile(f);
-    if (extname(f) === ".html") corpo = corpo.toString("utf8").replace(/(<meta http-equiv="Content-Security-Policy" content=")([^"]*)"/, (_, a, c) => a + c.replace("connect-src", "connect-src http://127.0.0.1:8085 http://127.0.0.1:8086 http://127.0.0.1:9099 http://127.0.0.1:9199").replace("img-src", "img-src http://127.0.0.1:9199").replace("media-src", "media-src http://127.0.0.1:9199").replace(/;\s*upgrade-insecure-requests/, "") + '"');
-    res.writeHead(200, { "content-type": TIPOS[extname(f)] || "application/octet-stream", "cache-control": "no-store" });
+    // Como o GitHub Pages: endereço que não existe devolve o 404.html (com status 404). É ele que abre os links curtos /@nome.
+    let corpo, status = 200, arq = f;
+    try { corpo = await readFile(f); } catch { arq = join(SITE, "404.html"); corpo = await readFile(arq); status = 404; }
+    if (extname(arq) === ".html") corpo = corpo.toString("utf8").replace(/(<meta http-equiv="Content-Security-Policy" content=")([^"]*)"/, (_, a, c) => a + c.replace("connect-src", "connect-src http://127.0.0.1:8085 http://127.0.0.1:8086 http://127.0.0.1:9099 http://127.0.0.1:9199").replace("img-src", "img-src http://127.0.0.1:9199").replace("media-src", "media-src http://127.0.0.1:9199").replace(/;\s*upgrade-insecure-requests/, "") + '"');
+    res.writeHead(status, { "content-type": TIPOS[extname(arq)] || "application/octet-stream", "cache-control": "no-store" });
     res.end(corpo);
   } catch { res.writeHead(404); res.end("404"); }
 }).listen(5057, "127.0.0.1");

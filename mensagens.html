@@ -570,6 +570,12 @@
     .cm-pedido div.cupom, .cm-orc div.info.cupom { margin: 4px 0 2px; padding: 7px 10px; border: 1px dashed color-mix(in srgb, var(--assunto) 60%, transparent); }
     .cm-pedido div.cupom span:first-child { opacity: 1; }
     a.cm-ver { text-decoration: none; }
+    /* Orçamento/agendamento recebido: o negócio marca como concluído e o cliente recebe o pedido de avaliação */
+    .orc-concluir { margin: 8px 11px 4px; }
+    .orc-bt { display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%; min-height: 40px; padding: 8px 12px; border: 0; border-radius: 12px; cursor: pointer;
+      font: inherit; font-size: 13px; font-weight: 800; color: #001a24; background: linear-gradient(135deg, #ffd166, #f59e0b); }
+    .orc-bt:disabled { opacity: .6; cursor: default; }
+    .orc-ok { display: block; text-align: center; font-size: 12.5px; font-weight: 750; color: #2fbf71; padding: 6px 0; }
     .cm-pedido .obs { margin: 4px 0 0; padding: 6px 8px; border-radius: 8px; background: color-mix(in srgb, currentColor 8%, transparent); font-size: 12.5px; white-space: pre-wrap; }
     .extra.cartao-pend { border-left-color: var(--assunto); }
     .extra.cartao-pend .txt strong { color: var(--assunto); }
@@ -1596,6 +1602,8 @@
       try {
         await publicarMensagem(ativa.id, { remetenteId: eu.uid, texto: "", criadoEm: fb.serverTimestamp(), tipoArquivo: "cartao",
           cartao: { tipo, status: k, refMsg: m.id, titulo: String(m.cartao?.titulo || "").slice(0, 80) } });
+        // Entregue pelo negócio: o pedido de avaliação vai junto (uma vez por pedido).
+        if (k === "entregue" && m.remetenteId !== eu.uid) await avaliacaoAoConcluir(tipo, `Pedido #${String(m.id || "").slice(-6).toUpperCase()} · ${String(m.cartao?.titulo || "").replace(/^Pedido · /, "")}`.slice(0, 120), ms(m.criadoEm));
       } catch (erro) { console.error(erro); toast(erro?.code === "limite-diario" ? erro.message : "Não foi possível atualizar o pedido."); }
     }
     // Cartão do pedido (delivery e lojinha), como nos apps de pedido: número, negócio, andamento,
@@ -1842,10 +1850,10 @@
       } catch { meusNegociosChat = []; }
       return meusNegociosChat;
     }
-    async function pedirAvaliacao(n) {
+    async function pedirAvaliacao(n, tituloPedido = "", aviso = "Pedido de avaliação enviado") {
       if (!ativa) return;
       if (emailPendente(eu)) { mostrarAvisoEmail(eu); toast(MSG_EMAIL); return; }
-      const titulo = (ativa.dados?.contexto?.titulo || `Atendimento de ${new Date().toLocaleDateString("pt-BR")}`).slice(0, 120);
+      const titulo = (tituloPedido || ativa.dados?.contexto?.titulo || `Atendimento de ${new Date().toLocaleDateString("pt-BR")}`).slice(0, 120);
       try {
         const ref = await fb.addDoc(fb.collection(fb.db, "pedidos"), {
           vendedorId: eu.uid, clienteId: ativa.outroId, negocioId: n.id, tipo: n.tipo, titulo, conversaId: ativa.id, criadoEm: fb.serverTimestamp()
@@ -1854,8 +1862,16 @@
           remetenteId: eu.uid, texto: "", criadoEm: fb.serverTimestamp(), tipoArquivo: "avaliacao",
           avaliacao: { pedidoId: ref.id, titulo, tipo: n.tipo, negocioNome: String(n.nome || "").slice(0, 80) }
         });
-        toast("Pedido de avaliação enviado");
+        toast(aviso);
       } catch (e) { console.error(e); toast("Não foi possível pedir a avaliação."); }
+    }
+    // Avaliação pedida sozinha quando o negócio conclui: pedido marcado como Entregue (Delivery e Lojinha) ou
+    // "Serviço/Atendimento concluído" no cartão do orçamento ou do agendamento (Freelances e Saúde).
+    const avaliacaoJaPedida = (desde) => mensagens.some((x) => x.tipoArquivo === "avaliacao" && x.remetenteId === eu.uid && ms(x.criadoEm) >= desde);
+    async function avaliacaoAoConcluir(tipo, titulo, desde) {
+      if (avaliacaoJaPedida(desde)) return;
+      const n = (await negociosDoUsuario()).find((x) => x.tipo === tipo);
+      if (n) await pedirAvaliacao(n, titulo, "Concluído. Pedimos ao cliente que avalie o atendimento.");
     }
     async function escolherNegocioParaAvaliacao() {
       const lista = await negociosDoUsuario();
@@ -3141,6 +3157,26 @@
         ver.textContent = ehPedido ? (tipo === "delivery" ? "Ver cardápio" : "Ver loja") : ehOrc ? (tipo === "saude" ? "Ver perfil de saúde" : "Ver perfil de serviços") : tipo === "publicacao" ? "Ver publicação" : tipo === "comunidade" ? "Ver anúncio" : "Ver detalhes";
         link.append(tx, ver);
         bolha.appendChild(link);
+        // Quem recebeu o orçamento/agendamento (o negócio) marca como concluído: a conversa ganha o pedido de avaliação.
+        if (ehOrc && m.remetenteId !== eu.uid && (tipo === "servicos" || tipo === "saude")) {
+          const concl = document.createElement("div"); concl.className = "orc-concluir";
+          const pintarConcl = () => {
+            concl.replaceChildren();
+            if (avaliacaoJaPedida(ms(m.criadoEm))) { const ok = document.createElement("span"); ok.className = "orc-ok"; ok.textContent = "✓ Concluído · avaliação pedida ao cliente"; concl.appendChild(ok); return; }
+            const b = document.createElement("button"); b.type = "button"; b.className = "orc-bt";
+            b.append(icone("estrela", "i s"), document.createTextNode(tipo === "saude" ? "Atendimento concluído · pedir avaliação" : "Serviço concluído · pedir avaliação"));
+            b.addEventListener("click", async (e) => {
+              e.stopPropagation();
+              if (!(await confirmarHF({ titulo: tipo === "saude" ? "Atendimento concluído?" : "Serviço concluído?", texto: "O cliente recebe na conversa o pedido para avaliar. Avaliações reais ajudam o seu perfil a aparecer e a conquistar novos clientes.", ok: "Concluir e pedir avaliação", icone: "check", cor: "normal" }))) return;
+              b.disabled = true;
+              await avaliacaoAoConcluir(tipo, String(c.titulo || "").slice(0, 120), ms(m.criadoEm));
+              pintarConcl();
+            });
+            concl.appendChild(b);
+          };
+          pintarConcl();
+          bolha.appendChild(concl);
+        }
       }
 
       const url = m.tipoArquivo === "cartao" ? "" : urlSegura(m.arquivoUrl);
@@ -3538,8 +3574,8 @@
     // volta para esta conversa como cartão, sem sair do chat.
     let vitrineMod = null;
     function carregarVitrine() {
-      if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=31"; l.dataset.vitrine = ""; document.head.appendChild(l); }
-      return (vitrineMod ||= import("./vitrine.js?v=58"));
+      if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=32"; l.dataset.vitrine = ""; document.head.appendChild(l); }
+      return (vitrineMod ||= import("./vitrine.js?v=59"));
     }
     function usarCartaoNaConversa(uid, cartao) {
       document.querySelectorAll(".vt-modal").forEach((m) => m.remove());
