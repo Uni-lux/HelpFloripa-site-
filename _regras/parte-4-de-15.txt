@@ -34,6 +34,7 @@
                     && request.resource.data.tipo in ['imovel']
                     && request.resource.data.keys().hasOnly(camposAnuncio())
                     && naoTocaCamposProtegidosNoCreate()
+                    && contaVerificada()
                     && anuncioOk();
 
       allow update: if logado()

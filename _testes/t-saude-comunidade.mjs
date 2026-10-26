@@ -5,14 +5,15 @@
 // pessoa banida sem conseguir anunciar. Meus negócios com o lugar da Comunidade. Uso: node t-saude-comunidade.mjs
 // (precisa das regras do repositório: tipo saude, comunidade e programa_banidos)
 process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8085";
-import { initializeApp } from "firebase-admin/app"; import { getFirestore } from "firebase-admin/firestore";
+import { initializeApp } from "firebase-admin/app"; import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { navegador, entrar, garantirImagem, USUARIOS as U, BASE } from "./nav.mjs";
 const ok = (c, t) => { console.log(c ? "  ✔" : "  ✘", t); if (!c) process.exitCode = 1; };
 const db = getFirestore(initializeApp({ projectId: "demo-hf" }));
 for (const c of ["comunidade", "programa_banidos"]) for (const d of (await db.collection(c).get()).docs) await d.ref.delete();
 for (const d of (await db.collection("avisos").where("uid", "==", U.ana).get()).docs) await d.ref.delete();
 await db.doc(`negocios/${U.bruno}_saude`).delete().catch(() => {});
-await db.doc(`planos/${U.bruno}`).delete().catch(() => {});
+// Sem plano só um perfil de negócio fica no ar: o Bruno tem plano para manter Freelances e Saúde.
+await db.doc(`planos/${U.bruno}`).set({ plano: "plus", meses: 1, ate: Timestamp.fromMillis(Date.now() + 30 * 864e5) });
 
 // ---------- 1) Bruno cria o perfil de Saúde ----------
 const BR = await navegador({ mobile: true });

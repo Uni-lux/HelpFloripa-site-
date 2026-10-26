@@ -1,3 +1,18 @@
+    // Campos novos ou alterados (campos antigos removidos não contam).
+    function gravou() {
+      let d = request.resource.data.diff(resource.data);
+      return d.addedKeys().union(d.changedKeys());
+    }
+
+    // Bloqueio: bloqueios/{quemBloqueou}_{quemFoiBloqueado}
+    function bloqueou(a, b) {
+      return exists(/databases/$(database)/documents/bloqueios/$(a + '_' + b));
+    }
+
+    function bloqueioEntre(a, b) {
+      return bloqueou(a, b) || bloqueou(b, a);
+    }
+
     // ---------- avaliações e reclamações justas ----------
     // Id da conversa / do vínculo entre duas pessoas (ids em ordem).
     function par(a, b) {
@@ -241,13 +256,5 @@
                     && request.auth.uid == resource.data.uid;
     }
 
-
-    // =====================================================
-    // SEGUIDORES
-    // Documento: relacoes/{seguidorId}_{alvoId}
-    // =====================================================
-    match /relacoes/{id} {
-
-      allow read: if logado();
 
 // ===== FIM DA PARTE 2 DE 15 =====

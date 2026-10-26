@@ -352,6 +352,7 @@ export async function abrirFicha(uid) {
     lista("avisos", fb.where("uid", "==", uid)), lista("suporte", fb.where("uid", "==", uid))
   ]);
   const { negocios, anuncios } = await negociosDe(uid);
+  const ligadas = pode("moderar") ? await contasLigadas(uid, p, negocios) : new Map();
   const sancao = D.sancoes.get(uid);
   const st = estado(p);
   const mediaRec = avRecebidas.length ? avRecebidas.reduce((a, b) => a + (Number(b.nota) || 0), 0) / avRecebidas.length : 0;
@@ -378,6 +379,7 @@ export async function abrirFicha(uid) {
   if (mod && sancionado) bt("Remover sanção", "pri", async () => { if (!(await confirmarHF({ titulo: "Remover a sanção?", texto: "A suspensão ou o banimento desta conta deixa de valer.", ok: "Remover", icone: "escudo", cor: "normal" }))) return false; await tirarSancao(uid); toast("Sanção removida"); return true; });
   else if (mod) { bt("Suspender", "perigo", async () => { if (!(await confirmarItem(null, `usuario:${uid}`))) return false; return fluxoSancao(uid, "suspensao"); }); bt("Banir", "perigo", async () => { if (!(await confirmarItem(null, `usuario:${uid}`))) return false; return fluxoSancao(uid, "banimento"); }); }
   if (mod) bt("Banir de um programa", "perigo", () => banirPrograma(uid));
+  if (mod) bt("Punir má-fé (anunciar)", "perigo", () => punirMaFe(uid, ligadas));
   bt("Criar tarefa", "", () => editarTarefa({ ligacao: `usuario:${uid}`, ligacaoNome: p.nome || uid }).then(() => false));
   // Selo: tirar (moderação); dar direto só o dono; a moderação vai pelo pedido (Verificações).
   if (mod && p.verificado) bt("Tirar selo", "", async () => { if (!(await confirmarHF({ titulo: "Tirar o selo?", texto: "O perfil deixa de aparecer como verificado.", ok: "Tirar o selo", icone: "olhoOff" }))) return false; await definirSelo(uid, false); toast("Selo retirado"); return true; });
@@ -416,6 +418,19 @@ export async function abrirFicha(uid) {
     if (anuncios.length) l.appendChild(h("div", null, `${anuncios.length} anúncio(s) de imóvel`));
     b.appendChild(l); corpo.appendChild(b);
   }
+  // contas ligadas (mesmo WhatsApp, CNPJ, telefone ou nome do documento): ajuda a achar quem burla o limite do perfil grátis
+  if (ligadas.size) {
+    const b = h("div", "ad-bloco ad-ligadas"); b.append(h("h3", null, `Contas ligadas (${ligadas.size})`), h("p", null, "Outras contas com o mesmo WhatsApp, CNPJ, telefone ou nome no documento. Confira antes de punir: pode ser família ou sócio."));
+    const l = h("div", "ad-hist"); l.style.marginTop = "10px";
+    ligadas.forEach((motivos, outro) => {
+      const q = D.pessoas.get(outro) || {};
+      const d = h("button", "ad-ligada"); d.type = "button";
+      d.append(h("b", null, q.nome || outro), h("span", null, [...motivos].join(" · ")));
+      d.addEventListener("click", () => abrirFicha(outro));
+      l.appendChild(d);
+    });
+    b.appendChild(l); corpo.appendChild(b);
+  }
   // denúncias contra
   if (denContra.length) {
     const b = h("div", "ad-bloco"); b.append(h("h3", null, `Denúncias contra (${denContra.length})`));
@@ -452,6 +467,79 @@ export async function abrirFicha(uid) {
   if (!hist.length) lH.appendChild(h("div", null, "Nenhum aviso, sanção ou chamado."));
   hist.forEach((x) => lH.appendChild(h("div", null, `${x.quando ? new Date(x.quando).toLocaleDateString("pt-BR") : ""} · ${x.t}`)));
   bH.appendChild(lH); corpo.appendChild(bH);
+}
+
+// ---------- contas ligadas e punição por má-fé ----------
+// Contas ligadas: outras contas com o mesmo WhatsApp ou CNPJ nos negócios, o mesmo telefone no cadastro ou o mesmo
+// nome legal no pedido de verificação. Devolve Map(uid → Set de motivos).
+export async function contasLigadas(uid, p, negocios = []) {
+  const { fb } = C;
+  const res = new Map();
+  const marcar = (outro, motivo) => { if (!outro || outro === uid) return; if (!res.has(outro)) res.set(outro, new Set()); res.get(outro).add(motivo); };
+  const digitos = (v) => String(v || "").replace(/\D/g, "");
+  const consultas = [];
+  for (const w of new Set(negocios.map((n) => n.whatsapp).filter(Boolean))) consultas.push(fb.getDocs(fb.query(fb.collection(fb.db, "negocios"), fb.where("whatsapp", "==", w), fb.limit(20))).then((s) => s.docs.forEach((d) => marcar(d.data().donoId, `mesmo WhatsApp ${w}`))).catch(() => {}));
+  for (const c of new Set(negocios.map((n) => n.cnpj).filter(Boolean))) consultas.push(fb.getDocs(fb.query(fb.collection(fb.db, "negocios"), fb.where("cnpj", "==", c), fb.limit(20))).then((s) => s.docs.forEach((d) => marcar(d.data().donoId, "mesmo CNPJ"))).catch(() => {}));
+  consultas.push(fb.getDoc(fb.doc(fb.db, "verificacoes", uid)).then(async (v) => {
+    const nome = v.exists() ? String(v.data().nomeLegal || "").trim() : "";
+    if (!nome) return;
+    const s = await fb.getDocs(fb.query(fb.collection(fb.db, "verificacoes"), fb.where("nomeLegal", "==", nome), fb.limit(20)));
+    s.docs.forEach((d) => marcar(d.id, "mesmo nome no documento"));
+  }).catch(() => {}));
+  await Promise.all(consultas);
+  const tel = digitos(p?.telefone);
+  if (tel.length >= 10) D.pessoas.forEach((q, outro) => { if (digitos(q.telefone) === tel) marcar(outro, "mesmo telefone"); });
+  return res;
+}
+
+// Má-fé para anunciar (contas duplicadas para burlar o limite do perfil grátis, verificação com documento de outra pessoa,
+// perfil falso). Punição em níveis, aplicada também às contas ligadas escolhidas:
+//   1ª vez: todos os perfis de negócio saem do ar, fica 30 dias sem poder anunciar e perde o selo (verifica de novo depois);
+//   reincidência: proibido de anunciar sem prazo e conta suspensa por 30 dias;
+//   documento falso, golpe ou 3ª vez: conta banida.
+export const NIVEIS_MA_FE = {
+  1: "1ª vez: perfis fora do ar, 30 dias sem anunciar e sem o selo",
+  2: "Reincidência: proibido de anunciar sem prazo + conta suspensa 30 dias",
+  3: "Grave (documento falso, golpe ou 3ª vez): conta banida"
+};
+const TIPOS_ANUNCIO = ["servicos", "delivery", "lojinha", "imoveis", "saude"];
+const MARCA_MA_FE = "Má-fé ao anunciar";
+async function nivelSugerido(uid) {
+  const { fb } = C;
+  const s = D.sancoes.get(uid);
+  if ((s?.historico || []).some((x) => String(x.motivo || "").startsWith(MARCA_MA_FE))) return 3;
+  const bans = await Promise.all(TIPOS_ANUNCIO.map((t) => fb.getDoc(fb.doc(fb.db, "programa_banidos", `${uid}_${t}`)).then((d) => (d.exists() ? d.data() : null)).catch(() => null)));
+  return bans.some((b) => String(b?.motivo || "").startsWith(MARCA_MA_FE)) ? 2 : 1;
+}
+export async function punirMaFe(uid, ligadas = new Map()) {
+  const { fb } = C;
+  const p = D.pessoas.get(uid) || {};
+  const sug = await nivelSugerido(uid);
+  const campos = [
+    { nome: "nivel", rotulo: `Nível (sugerido: ${sug}, pelo histórico)`, tipo: "select", valor: String(sug), opcoes: Object.entries(NIVEIS_MA_FE) },
+    { nome: "motivo", rotulo: "O que aconteceu (a pessoa vê)", tipo: "textarea", max: 240, obrigatorio: true, valor: "Usou mais de uma conta para ter perfis grátis além do permitido." }
+  ];
+  if (ligadas.size) campos.push({ nome: "ligadas", rotulo: `Aplicar também às ${ligadas.size} conta(s) ligada(s)?`, tipo: "select", valor: "nao", opcoes: [["nao", "Não, só esta conta"], ["sim", "Sim, a todas as contas ligadas"]] });
+  const v = await modal({ titulo: "Punir má-fé ao anunciar", texto: `${p.nome || "A pessoa"} recebe um aviso grave com o motivo e pode contestar pelo Suporte. Use só com prova (contas ligadas, documento, denúncias).`, campos, botao: "Aplicar punição", perigo: true });
+  if (!v) return false;
+  if (v.motivo.trim().length < 5) { toast("Escreva o que aconteceu."); return false; }
+  const nivel = Number(v.nivel) || 1, motivo = `${MARCA_MA_FE}: ${v.motivo.trim()}`.slice(0, 300);
+  const alvos = [uid, ...(v.ligadas === "sim" ? [...ligadas.keys()] : [])];
+  const esconder = { ocultoAte: fb.Timestamp.fromDate(new Date("2999-12-31")), ocultoPelaEquipe: true };
+  for (const alvo of alvos) {
+    if (nivel === 3) { await sancionar(alvo, { tipo: "banimento", motivo }); continue; }
+    const ate = nivel === 1 ? fb.Timestamp.fromMillis(agora() + 30 * DIA) : null;
+    for (const t of TIPOS_ANUNCIO) await fb.setDoc(fb.doc(fb.db, "programa_banidos", `${alvo}_${t}`), { uid: alvo, tipo: t, motivo, ...(ate ? { ate } : {}), por: C.eu.uid, em: fb.serverTimestamp() });
+    const { negocios, anuncios } = await negociosDe(alvo);
+    for (const n of negocios) await fb.updateDoc(fb.doc(fb.db, "negocios", n.id), esconder).catch(() => {});
+    for (const a of anuncios) await fb.updateDoc(fb.doc(fb.db, "anuncios", a.id), esconder).catch(() => {});
+    if ((D.pessoas.get(alvo) || {}).verificado || alvo === uid) await definirSelo(alvo, false, motivo).catch(() => {});
+    if (nivel === 2) await sancionar(alvo, { tipo: "suspensao", dias: 30, motivo });
+    else await enviarAviso(alvo, { titulo: "Seus perfis de negócio saíram do ar", texto: `Por 30 dias você não pode anunciar no Help Floripa e o selo de verificado foi retirado.\n\nMotivo: ${v.motivo.trim()}\n\nSe repetir, a conta é suspensa. Se achar que foi um engano, fale com a gente pelo Suporte.`, tipo: "grave" }).catch(() => {});
+  }
+  await registrar("punir_ma_fe", uid, `${NIVEIS_MA_FE[nivel]} · ${alvos.length} conta(s) · ${v.motivo.trim()}`);
+  toast(`Punição aplicada a ${alvos.length} conta(s)`);
+  return true;
 }
 
 // ---------- banimento de um programa (um tipo de negócio ou a Comunidade) ----------

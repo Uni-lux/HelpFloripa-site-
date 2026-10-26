@@ -10,15 +10,16 @@ import { confirmarHF } from "./confirmar.js?v=4";
 import {
   $, el, icone, pintarAvatar, urlSegura, nomeCidade, toast, erroAmigavel, abrirFolha, fecharFolha,
   fb, eu, dados, salvarImagem, editarImagem, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos, criarFolha
-} from "./rede.js?v=62";
+} from "./rede.js?v=63";
 import { lerResumos, estrelas, media, notaTexto } from "./avaliacoes.js?v=14";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade, semAcento } from "./endereco.js?v=1";
 import { lerStats, listaDias, somarPeriodo } from "./estat-negocio.js?v=1";
 import { geocodificar, geoOk } from "./perto.js?v=2";
-import { abrirPlanos, lerPlano, esquecerPlano, nivelPlano, emTolerancia, pedidoAberto, lerNegociacao, testeDisponivel, seloPlano, nomePlano, diasRestantes, textoFalta, PRECO_MIN, DIAS_TESTE, reais } from "./planos.js?v=11";
+import { LIMITES_GRATIS } from "./planos-base.js?v=5";
+import { abrirPlanos, lerPlano, esquecerPlano, nivelPlano, emTolerancia, pedidoAberto, lerNegociacao, testeDisponivel, seloPlano, nomePlano, diasRestantes, textoFalta, PRECO_MIN, DIAS_TESTE, reais } from "./planos.js?v=12";
 import { termosBusca } from "./busca.js?v=1";
 import { PROFISSOES_SAUDE, CATEGORIAS_SAUDE, MODALIDADES_SAUDE, PUBLICO_SAUDE, PUBLICO_VET, CONVENIOS, IDIOMAS, UFS, conselhoDe, ehVet, textoRegistro } from "./saude-dados.js?v=1";
-import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO, CATEGORIAS, GRUPOS_SERV, PALAVRAS_SERV, prazoPromo } from "./vitrine.js?v=56";
+import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO, CATEGORIAS, GRUPOS_SERV, PALAVRAS_SERV, prazoPromo } from "./vitrine.js?v=58";
 
 // Cada tipo com a cor da sua classe na página inicial (inicio.css: --c-servicos etc.) e uma chamada própria.
 const NEGOCIOS = {
@@ -143,7 +144,26 @@ async function deixarNoAr(n) {
     toast(`"${n.nome || NEGOCIOS[n.tipo].rotulo}" está no ar`);
   } catch (e) { toast("Não foi possível trocar: " + erroAmigavel(e)); }
 }
-const verPlanos = () => abrirPlanos({ fb, eu, dados, toast, aoMudar: () => pintarPlano() });
+const verPlanos = (plano) => abrirPlanos({ fb, eu, dados, toast, plano: typeof plano === "string" ? plano : undefined, aoMudar: () => pintarPlano() });
+// Aviso "isso é do Plus" com o atalho para assinar (perfil grátis: o que passa do limite fica guardado e não aparece).
+function notaPlus(texto, classe = "") {
+  const d = el("div", "ng-plus-nota" + (classe ? " " + classe : ""));
+  const b = el("button", "ng-plus-bt"); b.type = "button"; b.append(el("b", null, "PLUS"), document.createTextNode("Ver o Plus"));
+  b.addEventListener("click", () => verPlanos("plus"));
+  d.append(icone("estrela", "i xs"), el("span", null, texto), b);
+  return d;
+}
+// Para anunciar é preciso ter a conta verificada (selo azul): documento conferido pela equipe.
+async function exigirVerificacao() {
+  if (dados.verificado) return true;
+  const ok = await confirmarHF({
+    titulo: "Verifique sua conta para anunciar",
+    texto: "Para criar perfis de negócio e anúncios, a conta precisa ser verificada: a equipe confere seu documento e você ganha o selo azul. Isso protege os clientes contra golpes e perfis falsos.",
+    ok: "Verificar agora", icone: "selo", cor: "normal"
+  });
+  if (ok) import("./verificacao.js?v=18").then((m) => m.abrirVerificacao({ aoMudar: () => { pintarPainel(); } })).catch((e) => toast(erroAmigavel(e)));
+  return false;
+}
 
 // Campos novos guardados na conta enquanto as regras não estavam publicadas: tenta levar para o perfil.
 async function sincronizarExtras() {
@@ -216,7 +236,20 @@ function btnIc(classe, ic, texto, tag = "button") {
   if (texto) b.append(document.createTextNode(texto));
   return b;
 }
+// Quem já anunciava sem conta verificada tem até esta data para verificar; depois a equipe tira os perfis do ar.
+const PRAZO_VERIFICACAO = new Date("2026-11-30T23:59:00-03:00");
+function avisoVerificacao() {
+  document.getElementById("ngVerif")?.remove();
+  if (dados.verificado || !meusNegocios.length) return;
+  const d = el("div", "ng-verif"); d.id = "ngVerif";
+  const b = btnIc("btn pri mini", "selo", "Verificar minha conta");
+  b.addEventListener("click", () => import("./verificacao.js?v=18").then((m) => m.abrirVerificacao({ aoMudar: () => pintarPainel() })));
+  d.append(el("strong", null, "Verifique sua conta para continuar anunciando"),
+    el("span", null, `Agora todo anunciante do Help Floripa tem a conta verificada (selo azul). Verifique até ${PRAZO_VERIFICACAO.toLocaleDateString("pt-BR")}: depois disso, perfis de contas não verificadas saem do ar. Nada é apagado.`), b);
+  $("painelNegocios").before(d);
+}
 function pintarPainel() {
+  avisoVerificacao();
   const grade = $("painelNegocios"), criar = $("criarNegocios"), slots = $("slotsNegocios");
   grade.replaceChildren(); criar.replaceChildren(); slots.replaceChildren();
   Object.entries(NEGOCIOS).forEach(([tipo, t]) => {
@@ -286,12 +319,16 @@ function pintarPainel() {
     const an = numeros.stats ? somarPeriodo(numeros.stats, n.id, listaDias(30, 1)) : null;
     const varTxt = (a, b) => (!b ? (a ? "novo" : "") : `${a >= b ? "▲" : "▼"} ${Math.round(Math.abs((a - b) / b) * 100)}%`);
     const blocoE = (valor, rot, v) => { const d = el("span", "ng-est-n"); d.append(el("b", null, valor), el("small", null, rot)); if (v) d.appendChild(el("i", v.startsWith("▼") ? "desce" : "sobe", v)); return d; };
-    if (at) est.append(blocoE(String(at.v), at.v === 1 ? "visita" : "visitas", varTxt(at.v, an.v)), blocoE(String(at.contatos), at.contatos === 1 ? "contato" : "contatos", varTxt(at.contatos, an.contatos)), blocoE(at.v ? `${Math.round((at.contatos / at.v) * 100)}%` : "–", "taxa de contato"));
+    if (semPlano()) {
+      // Perfil grátis: sem números (as visitas já são contadas e aparecem ao assinar).
+      est.classList.add("travado");
+      est.append(el("span", "ng-est-vazio", "Quantas pessoas viram, de onde vieram e os horários de pico. Suas visitas já estão sendo contadas."), el("span", "ng-so-plus", "PLUS"));
+    } else if (at) est.append(blocoE(String(at.v), at.v === 1 ? "visita" : "visitas", varTxt(at.v, an.v)), blocoE(String(at.contatos), at.contatos === 1 ? "contato" : "contatos", varTxt(at.contatos, an.contatos)), blocoE(at.v ? `${Math.round((at.contatos / at.v) * 100)}%` : "–", "taxa de contato"));
     else est.append(el("span", "ng-est-vazio", "Visitas, contatos, horários de pico e mais"));
     const estFim = el("span", "ng-est-ver"); estFim.append(icone("graf", "i xs"), document.createTextNode("Estatísticas"), icone("avancar", "i xs"));
     est.append(estFim);
     est.title = "Últimos 30 dias";
-    est.addEventListener("click", () => abrirEstatisticas(n));
+    est.addEventListener("click", () => (semPlano() ? verPlanos("plus") : abrirEstatisticas(n)));
     const acoes = el("div", "acoes");
     const bE = btnIc("btn mini ng-pri", "lapis", tipo === "imoveis" ? "Editar e anúncios" : "Editar");
     bE.addEventListener("click", () => abrirFormNegocio(n));
@@ -329,8 +366,11 @@ function pintarPainel() {
     if (oculto) {
       const av2 = el("div", "neg-aviso");
       const ln = el("a", null, "Falar com o suporte"); ln.href = "suporte.html";
-      av2.append(el("strong", null, n.ocultoPelaEquipe ? "Escondido pela equipe" : "Escondido da vitrine"),
-        el("span", null, n.ocultoPelaEquipe ? "Este perfil não aparece para os clientes por violar os Termos de Uso. " : "Este perfil não aparece para os clientes enquanto a conta estiver desativada. "), ln);
+      // Data-marca do painel (Verificações): fora do ar até a conta ser verificada; volta sozinho na aprovação.
+      const semVerif = msN(n.ocultoAte) === new Date("2999-11-30T00:00:00Z").getTime();
+      if (semVerif) { ln.textContent = "Verificar minha conta"; ln.href = "#ngVerif"; }
+      av2.append(el("strong", null, semVerif ? "Fora do ar: verifique sua conta" : n.ocultoPelaEquipe ? "Escondido pela equipe" : "Escondido da vitrine"),
+        el("span", null, semVerif ? "Para anunciar, a conta precisa ser verificada. Assim que a verificação for aprovada, o perfil volta sozinho. " : n.ocultoPelaEquipe ? "Este perfil não aparece para os clientes por violar os Termos de Uso. " : "Este perfil não aparece para os clientes enquanto a conta estiver desativada. "), ln);
       corpo.appendChild(av2);
     }
     const estTit = el("div", "ng-est-tit"); estTit.append(el("span", null, "Últimos 30 dias"));
@@ -347,7 +387,7 @@ function pintarPainel() {
   // Resumo dos 30 dias de todos os negócios, no topo.
   const resumo = $("resumoEstat");
   resumo.replaceChildren();
-  if (total && numeros.stats) {
+  if (total && numeros.stats && !semPlano()) {
     const soma = (desl) => meusNegocios.reduce((t, n) => { const r = somarPeriodo(numeros.stats, n.id, listaDias(30, desl)); return { v: t.v + r.v, c: t.c + r.contatos }; }, { v: 0, c: 0 });
     const a = soma(0), b = soma(1);
     const item = (valor, rot, antes) => { const d = el("div", "ng-res-item"); d.append(el("b", null, valor.toLocaleString("pt-BR")), el("span", null, rot)); if (antes || valor) d.appendChild(el("small", valor >= antes ? "sobe" : "desce", !antes ? "novo" : `${valor >= antes ? "▲" : "▼"} ${Math.round(Math.abs((valor - antes) / antes) * 100)}%`)); return d; };
@@ -410,12 +450,14 @@ function maiorDeIdade() {
 }
 // Estatísticas do negócio (insights-negocio.js, carregado só quando abre).
 async function abrirEstatisticas(n) {
+  if (semPlano()) { verPlanos("plus"); return; } // estatísticas fazem parte dos planos
   try {
-    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=22");
+    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=23");
     abrirInsightsNegocio(n, { aoEditar: (neg) => abrirFormNegocio(meusNegocios.find((x) => x.id === neg.id) || neg) });
   } catch (e) { toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)); }
 }
 function escolherEstatisticas() {
+  if (semPlano()) { verPlanos("plus"); return; }
   if (!meusNegocios.length) { toast("Crie um perfil de negócio para ver as estatísticas."); return; }
   if (meusNegocios.length === 1) { abrirEstatisticas(meusNegocios[0]); return; }
   criarFolha("folhaEscolherEst", { titulo: "Estatísticas de qual negócio?", corpoClasse: "folha-corpo pad" });
@@ -435,6 +477,7 @@ function escolherEstatisticas() {
 $("atalhoEstat").addEventListener("click", () => escolherEstatisticas());
 async function novoNegocio(tipo) {
   if (!maiorDeIdade()) { toast("Para criar um perfil de negócio é preciso ter 18 anos ou mais."); return; }
+  if (!(await exigirVerificacao())) return;
   if (semPlano() && meusNegocios.length) {
     const atual = meusNegocios.find((x) => x.tipo === principalEscolhido());
     const ok = await confirmarHF({
@@ -768,8 +811,9 @@ function montarExtras() {
     const add = document.createElement("button");
     add.type = "button"; add.className = "btn pri mini neg-add";
     add.append(icone("mais", "i xs"), document.createTextNode("Anunciar imóvel"));
-    add.addEventListener("click", () => abrirFormAnuncio(null));
+    add.addEventListener("click", async () => { if (await exigirVerificacao()) abrirFormAnuncio(null); });
     sec.append(lista, add);
+    if (semPlano()) sec.appendChild(notaPlus(`No perfil grátis, aparece ${LIMITES_GRATIS.anuncios} anúncio (o mais antigo). Com o Plus, todos.`));
     box.appendChild(sec);
     pintarMeusAnuncios(lista);
   }
@@ -789,8 +833,10 @@ function montarExtras() {
         x.appendChild(icone("fechar", "i xs"));
         x.addEventListener("click", () => { negExtra.fotos.splice(i, 1); pintar(); });
         d.appendChild(x);
+        if (semPlano() && i >= LIMITES_GRATIS.fotos) { d.classList.add("so-plano"); d.appendChild(el("span", "ng-so-plus", "PLUS")); }
         fotos.appendChild(d);
       });
+      if (semPlano()) fotos.appendChild(notaPlus(`No perfil grátis, os clientes veem ${LIMITES_GRATIS.fotos} foto. Com o Plus, até ${cfg.fotos.max}.`));
       if (negExtra.fotos.length < cfg.fotos.max) {
         const add = document.createElement("button");
         add.type = "button"; add.className = "neg-foto add"; add.setAttribute("aria-label", "Adicionar foto");
@@ -861,9 +907,11 @@ function montarExtras() {
           est.append(document.createTextNode("Estoque"), inp, document.createTextNode("unid."), um);
           linha.appendChild(est);
         }
+        if (semPlano() && i >= LIMITES_GRATIS.itens) { linha.classList.add("so-plano"); linha.appendChild(el("span", "ng-so-plus", "PLUS")); }
         lista.appendChild(linha);
       });
       addBtn.hidden = negExtra.itens.length >= c.max;
+      if (semPlano() && negExtra.itens.length >= LIMITES_GRATIS.itens) lista.appendChild(notaPlus(`No perfil grátis, os clientes veem os ${LIMITES_GRATIS.itens} primeiros e pedem pelo chat ou WhatsApp. Com o Plus, até ${c.max}, com pedidos pelo site.`));
     };
     addBtn.addEventListener("click", () => { negExtra.itens.push({ nome: "", preco: null, foto: "" }); pintar(); lista.lastChild?.querySelector("input")?.focus(); });
     pintar();
@@ -1509,6 +1557,12 @@ function aplicarTipoNoForm() {
   $("folhaNegocio").dataset.tipo = negTipo;
   // Delivery já tem a "Foto de capa" no cardápio; nos outros, a capa é separada.
   $("negCapaCampo").hidden = negTipo === "delivery";
+  $("negPromo").hidden = negTipo === "saude"; // Saúde não tem promoção nem cupom (como nas plataformas de saúde)
+  document.querySelectorAll(".ng-plus-campo").forEach((x) => x.remove());
+  if (semPlano()) {
+    $("negCapaCampo").appendChild(notaPlus("A capa aparece para os clientes com um plano.", "ng-plus-campo"));
+    $("negSite").closest(".campo").appendChild(notaPlus("Instagram e site aparecem no seu perfil com um plano.", "ng-plus-campo"));
+  }
   if ($("negHorario").children.length) montarHorario();
   $("negNome").placeholder = t.phNome;
   $("negDesc").placeholder = t.phDesc;
@@ -1574,6 +1628,7 @@ $("negSalvar").addEventListener("click", async () => {
     if (fim.getTime() > Date.now() + 61 * 864e5) { toast("A promoção pode durar no máximo 60 dias."); return; }
     promocao = { titulo: tt.slice(0, 60), texto: String(negPromo.texto || "").trim().slice(0, 200), codigo, ate: fb.Timestamp.fromDate(fim) };
   }
+  if (negTipo === "saude") promocao = null; // Saúde não tem promoção nem cupom
   const btn = $("negSalvar");
   btn.disabled = true; btn.textContent = "Salvando...";
   try {

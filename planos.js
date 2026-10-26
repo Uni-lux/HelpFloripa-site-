@@ -13,8 +13,8 @@
 // =====================================================
 
 // Preços, nível, selo e leitura do plano ficam no planos-base.js (as páginas que só mostram o selo não baixam este arquivo).
-import { PIX, PLANOS, ORDEM_PLANOS, PRECO_MIN, PERIODOS, descontoDe, valorPeriodo, DIAS_TESTE, DIAS_BONUS, BENEFICIOS, nivelPlano, ehPago, ehPro, nomePlano, emTeste, diasRestantes, textoFalta, reais, creditoDias, lerPlano, esquecerPlano, seloPlano, seloPro, emTolerancia, fimComTolerancia } from "./planos-base.js?v=4";
-export { PIX, PLANOS, ORDEM_PLANOS, PRECO_MIN, PERIODOS, descontoDe, valorPeriodo, DIAS_TESTE, DIAS_BONUS, BENEFICIOS, nivelPlano, ehPago, ehPro, nomePlano, emTeste, diasRestantes, textoFalta, reais, creditoDias, lerPlano, esquecerPlano, seloPlano, seloPro, emTolerancia, fimComTolerancia, negocioPausado } from "./planos-base.js?v=4";
+import { PIX, PLANOS, ORDEM_PLANOS, PRECO_MIN, PERIODOS, descontoDe, valorPeriodo, DIAS_TESTE, DIAS_BONUS, BENEFICIOS, DESTAQUES_PLANO, nivelPlano, ehPago, ehPro, nomePlano, emTeste, diasRestantes, textoFalta, reais, creditoDias, lerPlano, esquecerPlano, seloPlano, seloPro, emTolerancia, fimComTolerancia } from "./planos-base.js?v=5";
+export { PIX, PLANOS, ORDEM_PLANOS, PRECO_MIN, PERIODOS, descontoDe, valorPeriodo, DIAS_TESTE, DIAS_BONUS, BENEFICIOS, nivelPlano, ehPago, ehPro, nomePlano, emTeste, diasRestantes, textoFalta, reais, creditoDias, lerPlano, esquecerPlano, seloPlano, seloPro, emTolerancia, fimComTolerancia, negocioPausado } from "./planos-base.js?v=5";
 const ms = (t) => t?.toMillis?.() ?? (t?.seconds ? t.seconds * 1000 : typeof t === "number" ? t : 0);
 const DIA = 864e5;
 const MAX_DESC = Math.round(Math.max(...PERIODOS.map((x) => x[2])) * 100);
@@ -109,6 +109,20 @@ const CSS = `
 .pl-card .atual { grid-column: 1 / -1; margin-top: 4px; font-size: 12px; font-weight: 800; color: #2fbf71; }
 .pl-tabela.c3 .pl-lin { grid-template-columns: 1fr repeat(3, 58px); gap: 4px; padding: 10px; font-size: 13px; }
 .pl-tabela.c3 .pl-lin.cab { font-size: 11px; letter-spacing: .02em; }
+.pl-tabela.c4 .pl-lin { grid-template-columns: minmax(0, 1fr) repeat(4, 52px); gap: 3px; padding: 10px 8px 10px 10px; font-size: 12.5px; }
+.pl-tabela.c4 .pl-lin.cab { font-size: 10.5px; letter-spacing: .01em; }
+.pl-tabela.c4 .pl-lin > span:first-child { overflow-wrap: anywhere; }
+.pl-tabela .pl-txt { font-size: 11.5px; line-height: 1.2; }
+.pl-tabela .gr { color: var(--muted, #8fa0ab); }
+.pl-tabela .gr.pl-sim { color: #2fbf71; }
+@media (max-width: 380px) { .pl-tabela.c4 .pl-lin { grid-template-columns: minmax(0, 1fr) repeat(4, 46px); font-size: 12px; } }
+.pl-hero { transition: background .25s; }
+.pl-hero[data-plano="plus"] { background: radial-gradient(120% 140% at 100% 0%, #0ea5e9 0%, #2563eb 50%, #0b3d5c 100%); }
+.pl-hero[data-plano="premium"] { background: radial-gradient(120% 140% at 100% 0%, #f59e0b 0%, #c2410c 48%, #3b1d0b 100%); }
+.pl-libera { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 6px; font-size: 13.5px; font-weight: 600; }
+.pl-libera li { display: flex; gap: 8px; align-items: flex-start; line-height: 1.35; }
+.pl-libera li::before { content: "✓"; flex: none; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: rgba(255, 255, 255, .22); font-size: 11px; font-weight: 900; }
+.pl-preco .dia { padding: 2px 8px; border-radius: 999px; background: rgba(255, 255, 255, .18); font-size: 12.5px; font-weight: 800; opacity: 1; }
 .pl-bonus { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding: 10px 12px; border-radius: 14px; background: rgba(255, 255, 255, .14); border: 1px solid rgba(255, 255, 255, .28); font-size: 13px; line-height: 1.35; }
 .pl-bonus b { flex: none; padding: 6px 10px; border-radius: 10px; background: linear-gradient(135deg, #16a34a, #2fbf71); color: #fff; font-size: 13px; font-weight: 900; white-space: nowrap; }
 .pl-per .bonus { display: block; margin-top: 4px; font-size: 10.5px; font-weight: 800; color: #16a34a; }
@@ -262,14 +276,27 @@ export async function abrirPlanos(op) {
 
   function pintarEscolha() {
     corpo.replaceChildren(); cx.scrollTop = 0;
+    // Topo: muda com o plano tocado (nome, para quem é, o que libera, preço do mês e por dia).
     const hero = el("div", "pl-hero");
-    hero.append(el("small", null, primeira ? `Primeira assinatura: +${DIAS_BONUS} dias grátis` : "Planos Help Floripa"), el("h3", null, "Mais clientes para o seu negócio"),
-      el("p", null, "Selo no perfil, destaque nas vitrines e no Perto de você, estatísticas completas e atendimento prioritário."));
+    const heroTag = el("small"), heroTit = el("h3"), heroTx = el("p"), heroLista = el("ul", "pl-libera");
     const preco = el("div", "pl-preco");
-    preco.append(el("span", "de", "A partir de"), el("b", null, reais(PRECO_MIN)), el("span", null, `por mês · até ${MAX_DESC}% de desconto no plano anual · vale para todos os seus negócios`));
-    hero.appendChild(preco);
+    const precoB = el("b"), precoDia = el("span", "dia"), precoInfo = el("span");
+    preco.append(el("span", "de", "Por mês"), precoB, precoDia, precoInfo);
+    hero.append(heroTag, heroTit, heroTx, heroLista, preco);
     // Bônus da primeira assinatura, bem à vista.
     if (primeira) { const bn = el("div", "pl-bonus"); bn.append(el("b", null, `+${DIAS_BONUS} dias grátis`), el("span", null, "na sua primeira assinatura: você paga o período escolhido e usa 30 dias a mais, em qualquer plano.")); hero.appendChild(bn); }
+    function pintarHero(k) {
+      const P = PLANOS[k];
+      hero.style.setProperty("--c", P.cor);
+      hero.dataset.plano = k;
+      heroTag.textContent = `Plano ${P.nome}${primeira ? ` · primeira assinatura: +${DIAS_BONUS} dias grátis` : ""}`;
+      heroTit.textContent = P.titulo;
+      heroTx.textContent = P.pitch;
+      heroLista.replaceChildren(...DESTAQUES_PLANO[k].map((t) => el("li", null, t)));
+      precoB.textContent = reais(P.preco);
+      precoDia.textContent = `≈ ${reais(P.preco / 30)} por dia`;
+      precoInfo.textContent = `até ${MAX_DESC}% de desconto no plano anual · vale para todos os seus negócios`;
+    }
     corpo.appendChild(hero);
     const st = cartaoStatus(plano); if (st) corpo.appendChild(st);
     const atual = nivelPlano(plano) ? plano.plano : "";
@@ -290,11 +317,12 @@ export async function abrirPlanos(op) {
     corpo.appendChild(cards);
 
     corpo.appendChild(el("div", "pl-sec", "O que cada plano tem"));
-    const tab = el("div", "pl-tabela c3");
-    const cab = el("div", "pl-lin cab"); cab.append(el("span", null, "Recursos"), ...ORDEM_PLANOS.map((k) => { const c = el("span", null, PLANOS[k].nome); c.dataset.col = k; return c; })); tab.appendChild(cab);
+    const tab = el("div", "pl-tabela c4");
+    const COLS = ["gratis", ...ORDEM_PLANOS];
+    const cab = el("div", "pl-lin cab"); cab.append(el("span", null, "Recursos"), ...COLS.map((k) => { const c = el("span", k === "gratis" ? "gr" : null, PLANOS[k]?.nome || "Grátis"); c.dataset.col = k; return c; })); tab.appendChild(cab);
     BENEFICIOS.forEach(([nome, ...tem]) => {
       const l = el("div", "pl-lin"); l.appendChild(el("span", null, nome));
-      tem.forEach((v, i) => { const c = el("span", v ? "pl-sim" : "pl-nao", v ? "✓" : "—"); c.dataset.col = ORDEM_PLANOS[i]; l.appendChild(c); });
+      tem.forEach((v, i) => { const c = el("span", (typeof v === "string" ? "pl-txt" : v ? "pl-sim" : "pl-nao") + (i === 0 ? " gr" : ""), typeof v === "string" ? v : v ? "✓" : "—"); c.dataset.col = COLS[i]; l.appendChild(c); });
       tab.appendChild(l);
     });
     corpo.appendChild(tab);
@@ -315,6 +343,7 @@ export async function abrirPlanos(op) {
     const btn = el("button", "pl-btn"); btn.type = "button";
     function pintarSel() {
       const P = PLANOS[escolhido];
+      pintarHero(escolhido);
       cards.querySelectorAll(".pl-card").forEach((b) => { const on = b.dataset.plano === escolhido; b.classList.toggle("on", on); b.setAttribute("aria-pressed", String(on)); });
       tab.style.setProperty("--c", P.cor);
       tab.querySelectorAll("[data-col]").forEach((c) => c.classList.toggle("sel", c.dataset.col === escolhido));

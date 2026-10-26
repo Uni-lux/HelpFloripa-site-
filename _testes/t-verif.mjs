@@ -8,6 +8,9 @@ let falhas = 0;
 const ok = (c, t) => { if (!c) falhas++; console.log(c ? "  ✔" : "  ✘", t); };
 initializeApp({ projectId: "demo-hf" }); const db = getFirestore();
 const PX = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==";
+// O seed deixa o Bruno verificado (para anunciar); aqui ele começa sem o selo.
+await db.doc(`usuarios/${U.bruno}`).set({ verificado: false }, { merge: true });
+await db.doc(`perfis_publicos/${U.bruno}`).set({ verificado: false }, { merge: true });
 await db.doc(`usuarios/${U.ana}`).set({ fotoPerfil: PX, bio: "Confeiteira em Florianópolis há 8 anos." }, { merge: true });
 await db.doc(`perfis_publicos/${U.ana}`).set({ fotoPerfil: PX }, { merge: true });
 // Edu já tem um pedido esperando (para o teste de "não aprovado")

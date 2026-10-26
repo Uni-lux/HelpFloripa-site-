@@ -28,6 +28,9 @@ for (const [k, nome, nick, extra] of [["edu", "Eduardo Lima", "edulima", { cidad
 }
 await db.doc(`usuarios/${U.ana}`).set({ endereco: { cep: "88010001", uf: "SC", cidade: "Florianópolis", bairro: "Centro", rua: "Rua Felipe Schmidt", numero: "10" } }, { merge: true });
 await db.doc(`usuarios/${U.bruno}`).set({ endereco: { cidade: "Florianópolis", uf: "SC", bairro: "Trindade", rua: "Rua Lauro Linhares", numero: "500" } }, { merge: true });
+// Para anunciar a conta precisa ser verificada: o Bruno (negócios) é. O t-verif tira o selo dele no começo.
+await db.doc(`usuarios/${U.bruno}`).set({ verificado: true }, { merge: true });
+await db.doc(`perfis_publicos/${U.bruno}`).set({ verificado: true }, { merge: true });
 await db.doc(`admins/${U.admin}`).set({ nome: "Carla Equipe" });
 await db.doc(`admins/${U.dani}`).set({ nome: "Daniel Moderação", papel: "moderacao" });
 // Áudio de teste (WAV 8 kHz): "fala" com sílabas de volumes diferentes.

@@ -10,7 +10,7 @@
 // Grupo: equipe_chat/{id} · individual: equipe_dm/{uidA_uidB}/mensagens/{id}
 // Canais por setor (nível nacional): equipe_canais/{canal}/mensagens/{id} (conversa "canal-<id>"; equipe-canais.js)
 // =====================================================
-import { C, D, h, ms, toast, avatar, relativo, editarTarefa, nomeEquipe, PAPEIS, modal, registrar } from "./admin-base.js?v=21";
+import { C, D, h, ms, toast, avatar, relativo, editarTarefa, nomeEquipe, PAPEIS, modal, registrar } from "./admin-base.js?v=22";
 import { CANAIS, GERAL, canalPorId, convCanal, ehCanal, idCanal, podeEscrever, silenciado, STATUS, protocolosDoTexto } from "./equipe-canais.js?v=1";
 import { PRIORIDADES as PRIO_SUP, prioridadeChamado, situacaoPrazo } from "./suporte-fila.js?v=1";
 import { criarPlayerAudio } from "./audio-ondas.js?v=1";

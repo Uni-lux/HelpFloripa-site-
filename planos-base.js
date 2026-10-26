@@ -8,10 +8,21 @@
 export const PIX = { chave: "", nome: "HELP FLORIPA", cidade: "FLORIANOPOLIS" };
 // Planos pagos (nível: quanto maior, mais destaque). Preço por mês.
 export const PLANOS = {
-  plus: { nome: "Plus", nivel: 1, preco: 29.9, frase: "Selo no perfil e estatísticas completas", cor: "#0ea5e9" },
-  pro: { nome: "Pro", nivel: 2, preco: 39.9, frase: "Destaque nas vitrines e atendimento prioritário", cor: "#7c3aed" },
-  premium: { nome: "Premium", nivel: 3, preco: 59.9, frase: "O topo das vitrines e o máximo de destaque", cor: "#f59e0b" }
+  plus: { nome: "Plus", nivel: 1, preco: 29.9, frase: "Libera tudo no seu perfil e você aparece antes dos perfis grátis", cor: "#0ea5e9",
+    titulo: "Seu negócio completo", pitch: "Tudo liberado no perfil e você aparece antes de quem não tem plano." },
+  pro: { nome: "Pro", nivel: 2, preco: 39.9, frase: "Tudo do Plus, destaque nas vitrines e no Perto de você", cor: "#7c3aed",
+    titulo: "Mais clientes chegando", pitch: "Tudo do Plus e o seu negócio aparece antes, nas vitrines e no Perto de você." },
+  premium: { nome: "Premium", nivel: 3, preco: 59.9, frase: "O topo das vitrines e o máximo de destaque", cor: "#f59e0b",
+    titulo: "O primeiro que o cliente vê", pitch: "O topo das vitrines, antes de todos, e o maior destaque no Perto de você." }
 };
+// O que cada plano libera (aparece no topo da gaveta quando a pessoa toca no plano).
+export const DESTAQUES_PLANO = {
+  plus: ["Todos os seus perfis de negócio no ar", "Até 12 itens e 5 fotos, com capa", "Pedidos, orçamentos e agendamentos pelo site", "Cupons e promoções", "Estatísticas de 90 dias", "Aparece antes dos perfis grátis"],
+  pro: ["Tudo do Plus", "Aparece antes do Plus nas vitrines", "Mais perto no Perto de você", "Atendimento prioritário no Suporte"],
+  premium: ["Tudo do Pro", "Topo das vitrines, antes de todos", "O maior destaque no Perto de você", "Atendimento prioritário no Suporte"]
+};
+// Perfil grátis (sem plano): o básico para ser encontrado e conversar. O que passa disso continua guardado e volta com um plano.
+export const LIMITES_GRATIS = { itens: 3, fotos: 1, anuncios: 1 };
 export const ORDEM_PLANOS = ["plus", "pro", "premium"];
 export const PRECO_MIN = Math.min(...ORDEM_PLANOS.map((k) => PLANOS[k].preco));
 // [meses, nome, desconto] — quanto mais tempo, mais barato o mês.
@@ -21,17 +32,23 @@ export const descontoDe = (meses) => PERIODOS.find(([m]) => m === Number(meses))
 export const valorPeriodo = (k, meses) => Math.round((PLANOS[k]?.preco || 0) * meses * (1 - descontoDe(meses)) * 100) / 100;
 export const DIAS_TESTE = 30; // dias grátis a mais na primeira assinatura paga (bônus)
 export const DIAS_BONUS = DIAS_TESTE;
-// O que cada plano tem: [benefício, Plus, Pro, Premium] (tudo o que está marcado o site já faz).
+// O que cada plano tem: [benefício, Grátis, Plus, Pro, Premium] (true/false ou um texto curto).
 export const BENEFICIOS = [
-  ["Todos os seus perfis de negócio no ar (sem plano, só um fica no ar)", true, true, true],
-  ["Pedidos, orçamentos e conversas pelo chat", true, true, true],
-  ["Cupons e promoções no perfil", true, true, true],
-  ["Flash nos perfis de negócio", true, true, true],
-  ["Selo do plano no perfil e nos cartões", true, true, true],
-  ["Estatísticas de 90 dias e relatório em Excel", true, true, true],
-  ["Aparece antes nas vitrines e no Perto de você", false, true, true],
-  ["Atendimento prioritário no Suporte", false, true, true],
-  ["Topo das vitrines (antes de todos) e destaque máximo", false, false, true]
+  ["Perfis de negócio no ar", "1", "Todos", "Todos", "Todos"],
+  ["Itens (serviços, cardápio ou produtos)", "3", "12", "12", "12"],
+  ["Fotos do negócio", "1", "5", "5", "5"],
+  ["Anúncios de imóvel", "1", "Sem limite", "Sem limite", "Sem limite"],
+  ["Conversa pelo chat e WhatsApp", true, true, true, true],
+  ["Pedidos, orçamentos e agendamentos pelo site", false, true, true, true],
+  ["Capa e links (Instagram e site)", false, true, true, true],
+  ["Cupons e promoções (menos Saúde)", false, true, true, true],
+  ["Flash nos perfis de negócio", false, true, true, true],
+  ["Estatísticas de 90 dias e Excel", false, true, true, true],
+  ["Selo do plano no perfil e nos cartões", false, true, true, true],
+  ["Aparece antes dos perfis grátis", false, true, true, true],
+  ["Aparece antes do Plus e mais perto no Perto de você", false, false, true, true],
+  ["Atendimento prioritário no Suporte", false, false, true, true],
+  ["Topo das vitrines (antes de todos)", false, false, false, true]
 ];
 
 const ms = (t) => t?.toMillis?.() ?? (t?.seconds ? t.seconds * 1000 : typeof t === "number" ? t : 0);

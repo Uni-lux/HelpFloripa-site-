@@ -19,7 +19,9 @@ async function semRegras(fn) { await env.withSecurityRulesDisabled(async (c) => 
 // ---------- dados base ----------
 await env.clearFirestore();
 await semRegras(async (db) => {
-  for (const u of ["ana", "bia", "dono"]) await setDoc(doc(db, "usuarios", u), { uid: u, nome: u, criadoEm: antigo, aceiteTermos: true });
+  // Para anunciar a conta precisa ser verificada (usuarios.verificado): quem cria negócios nos testes já é.
+  for (const u of ["ana", "bia", "dono"]) await setDoc(doc(db, "usuarios", u), { uid: u, nome: u, criadoEm: antigo, aceiteTermos: true, verificado: true });
+  for (const u of ["loja", "med", "edu"]) await setDoc(doc(db, "usuarios", u), { uid: u, nome: u, criadoEm: antigo, aceiteTermos: true, verificado: true }, { merge: true });
   await setDoc(doc(db, "perfis_publicos", "bia"), { uid: "bia", nome: "Bia", cidade: "Florianópolis" });
   await setDoc(doc(db, "admins", "adm"), { nome: "Adm" });
 });
@@ -712,6 +714,16 @@ await t("negócio: principal (perfil que fica no ar sem plano) aceita um tipo de
 await t("negócio: principal vazio (null) vale", () => assertSucceeds(grava({ principal: null })));
 await t("negócio: principal que não é tipo de perfil é recusado", () => assertFails(grava({ principal: "comunidade" })));
 await t("negócio: principal que não é texto é recusado", () => assertFails(grava({ principal: true })));
+// Para anunciar, a conta precisa ser verificada (usuarios.verificado).
+await semRegras(async (db) => { await setDoc(doc(db, "usuarios", "semselo"), { uid: "semselo", nome: "Sem selo", criadoEm: antigo, aceiteTermos: true }); });
+const negSemSelo = { donoId: "semselo", tipo: "servicos", nome: "Reparos sem selo", cidade: "Florianópolis", atualizadoEm: serverTimestamp() };
+await t("negócio: conta NÃO verificada não cria perfil de negócio", () => assertFails(setDoc(doc(ctx("semselo"), "negocios", "semselo_servicos"), negSemSelo)));
+await t("anúncio: conta NÃO verificada não cria anúncio de imóvel", () => assertFails(setDoc(doc(ctx("semselo"), "anuncios", "aSemSelo"), { donoId: "semselo", tipo: "imovel", ativo: true, titulo: "Casa", cidade: "Florianópolis", atualizadoEm: serverTimestamp() })));
+await t("negócio: a pessoa não se dá o \"verificado\" para poder anunciar", () => assertFails(setDoc(doc(ctx("semselo"), "usuarios", "semselo"), { verificado: true }, { merge: true })));
+await semRegras(async (db) => { await setDoc(doc(db, "negocios", "semselo_servicos"), { ...negSemSelo, atualizadoEm: Timestamp.now() }); });
+await t("negócio: quem já tinha perfil (de antes da regra) ainda edita enquanto verifica", () => assertSucceeds(updateDoc(doc(ctx("semselo"), "negocios", "semselo_servicos"), { descricao: "Atualizado", atualizadoEm: serverTimestamp() })));
+await semRegras(async (db) => { await setDoc(doc(db, "usuarios", "semselo"), { verificado: true }, { merge: true }); });
+await t("negócio: depois de verificada, a conta cria o perfil", () => assertSucceeds(setDoc(doc(ctx("semselo"), "negocios", "semselo_delivery"), { ...negSemSelo, tipo: "delivery" })));
 await t("negócio: site com mais de 120 letras é recusado", () => assertFails(grava({ site: "https://" + "a".repeat(120) })));
 await t("negócio: Instagram com espaço/@ é recusado", () => assertFails(grava({ instagram: "@burger da ilha" })));
 await t("negócio: site que não é http(s) é recusado", () => assertFails(grava({ site: "javascript:alert(1)" })));
