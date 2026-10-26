@@ -411,7 +411,6 @@ a.ng-novo, a.ng-novo * { text-decoration: none; }
 /* Comunidade no seletor de tipo: atalho (não é perfil de negócio) */
 a.ng-tipo { color: inherit; text-decoration: none; cursor: pointer; }
 a.ng-tipo.comunidade { border-style: dashed; }
-a.ng-tipo .ir { position: absolute; right: 10px; top: 8px; font-size: 13px; font-weight: 800; color: var(--c); }
 a.ng-tipo:hover { border-color: color-mix(in srgb, var(--c) 60%, var(--line)); }
 
 /* Perfil grátis: o que é do Plus (fica guardado e não aparece para os clientes) */

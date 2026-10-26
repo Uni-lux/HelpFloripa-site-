@@ -247,6 +247,28 @@
     .lc-acoes { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid color-mix(in srgb, currentColor 14%, transparent); }
     .lc-acoes a, .lc-acoes button { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; border: 0; background: none; color: inherit; font: inherit; font-size: 13px; font-weight: 800; text-decoration: none; cursor: pointer; }
     .lc-acoes > * + * { border-left: 1px solid color-mix(in srgb, currentColor 14%, transparent); }
+    /* cartão de Pix */
+    .bolha.cartao-msg.pix-msg { width: min(310px, 86%); padding: 4px; overflow: hidden; }
+    .px { display: grid; gap: 8px; padding: 6px 6px 4px; }
+    .px-cab { display: flex; align-items: center; gap: 10px; }
+    .px-ic { flex: none; width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; background: #32bcad; color: #fff; }
+    .px-ic svg.i { width: 20px; height: 20px; }
+    .px-cab small { display: block; font-size: 11.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; opacity: .75; }
+    .px-cab b { font-size: 21px; letter-spacing: -.01em; }
+    .px-dados { display: grid; gap: 4px; padding: 8px 10px; border-radius: 12px; background: color-mix(in srgb, currentColor 7%, transparent); }
+    .px-dados div { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; }
+    .px-dados span { opacity: .7; flex: none; }
+    .px-dados strong { text-align: right; overflow-wrap: anywhere; }
+    .px-acoes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .px-acoes button { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 6px 8px; border: 1px solid color-mix(in srgb, currentColor 18%, transparent); border-radius: 12px; background: none; color: inherit; font: inherit; font-size: 13px; font-weight: 750; cursor: pointer; }
+    .px-acoes button.pri { grid-column: 1 / -1; border: 0; background: #32bcad; color: #fff; }
+    .px-qr { justify-self: center; width: min(220px, 70vw); padding: 8px; border-radius: 14px; background: #fff; }
+    .px-qr svg { display: block; width: 100%; height: auto; }
+    .px-aviso { margin: 0; font-size: 11.5px; line-height: 1.4; opacity: .7; }
+    .px-campo { display: grid; gap: 4px; margin-bottom: 10px; font-size: 13px; font-weight: 700; }
+    .px-campo input { min-height: 44px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel-2, var(--panel)); color: var(--text); font: inherit; font-weight: 500; font-size: 15px; }
+    .px-campo small { font-weight: 500; color: var(--muted); font-size: 12px; }
+    .px-vazio { margin: 8px; font-size: 13px; color: var(--muted); }
     .lc-previa { padding: 4px; border-radius: 16px; background: var(--bolha-minha, color-mix(in srgb, var(--accent) 30%, var(--panel))); color: var(--text); }
     .ax-grade { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 6px; }
     .ax-op { display: grid; justify-items: center; align-content: start; gap: 5px; padding: 6px 2px; border: 0; border-radius: 16px; background: none; color: inherit; font: inherit; cursor: pointer; text-align: center; }
@@ -884,6 +906,7 @@
     <symbol id="i-rota" viewBox="0 0 24 24"><path d="M12 3l8 8-8 8-8-8z"/><path d="M9.5 13v-1.5a1.5 1.5 0 011.5-1.5h3.5M13 8.5l1.8 1.5L13 11.5"/></symbol>
     <symbol id="i-loja" viewBox="0 0 24 24"><path d="M4 9.5l1.5-5h13l1.5 5M4 9.5h16M4 9.5a2.7 2.7 0 005.3 0 2.7 2.7 0 005.4 0 2.7 2.7 0 005.3 0M5.5 12v7.5h13V12M10 19.5v-4.5h4v4.5"/></symbol>
     <symbol id="i-cartao-neg" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="8.5" cy="11" r="2.2"/><path d="M5.8 16c.5-1.5 1.5-2.3 2.7-2.3s2.2.8 2.7 2.3M14 10h4M14 13.5h3"/></symbol>
+    <symbol id="i-pix" viewBox="0 0 24 24"><path d="M12 3.2l3.4 3.4-3.4 3.4-3.4-3.4z"/><path d="M12 14l3.4 3.4-3.4 3.4-3.4-3.4z"/><path d="M3.2 12l3.4-3.4 3.4 3.4-3.4 3.4z"/><path d="M14 12l3.4-3.4 3.4 3.4-3.4 3.4z"/></symbol>
     <symbol id="i-cartao" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h4"/></symbol>
     <symbol id="i-local" viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0113 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></symbol>
     <symbol id="i-pessoa" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.8 20c.8-3.6 3.6-5.8 7.2-5.8s6.4 2.2 7.2 5.8"/></symbol>
@@ -1288,14 +1311,15 @@
     import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura, mostrarAvisoEmail } from "./seguranca.js?v=1";
     import { confirmarHF } from "./confirmar.js?v=4";
     import { relogioDe, ufDe } from "./fuso.js?v=1";
-    import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO, lerResumos, media, notaTexto } from "./avaliacoes.js?v=14";
+    import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO, lerResumos, media, notaTexto } from "./avaliacoes.js?v=15";
     import { buscarPessoas } from "./pessoas.js?v=3";
     import { docComValidade } from "./leituras.js?v=1";
+    import { codigoPix, tipoChavePix } from "./pix.js?v=1";
     import { semPausados, lerPlano, nivelPlano } from "./planos-base.js?v=5";
     import { comRitmo } from "./ritmo.js?v=2";
     import { criarPlayerAudio } from "./audio-ondas.js?v=1";
     import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
-    import { abrirQueixa } from "./queixas.js?v=12";
+    import { abrirQueixa } from "./queixas.js?v=13";
     import { ouvirItensEquipe, linkEquipe, seloOficial, TEXTO_EQUIPE } from "./avisos-equipe.js?v=1";
     import { escolherApagar, editarTextoHF, verEdicoesHF, janelaHF, horaCurta, noPrazo, tempoRestante, podeMexer } from "./msg-acoes.js?v=2";
     // ======================================================
@@ -1928,6 +1952,7 @@
       }
       if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "local") return "📍 Localização";
       if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "endereco") return "🏠 Endereço";
+      if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "pix") return `Pix${Number(m.cartao.valor) > 0 ? ": " + reais(m.cartao.valor) : ""}`;
       if (m.tipoArquivo === "avaliacao") return "Pedido de avaliação";
       if (m.tipoArquivo === "cartao" && m.cartao?.status) return `Pedido: ${(infoStatus(m.cartao.tipo, m.cartao.status) || [0, "status atualizado"])[1]}`;
       if (m.tipoArquivo === "cartao" && m.cartao?.solicitacao) {
@@ -3113,6 +3138,9 @@
       } else if (m.tipoArquivo === "cartao" && (m.cartao?.tipo === "local" || m.cartao?.tipo === "endereco")) {
         bolha.classList.add("cartao-msg", "local-msg");
         bolha.appendChild(cartaoLocal(m.cartao, m.remetenteId === eu.uid));
+      } else if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "pix") {
+        bolha.classList.add("cartao-msg", "pix-msg");
+        bolha.appendChild(cartaoPix(m.cartao, m.remetenteId === eu.uid));
       } else if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "flash") {
         bolha.classList.add("cartao-msg", "flash-msg");
         bolha.appendChild(cartaoFlash(m.cartao, m));
@@ -3575,7 +3603,7 @@
     let vitrineMod = null;
     function carregarVitrine() {
       if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=32"; l.dataset.vitrine = ""; document.head.appendChild(l); }
-      return (vitrineMod ||= import("./vitrine.js?v=59"));
+      return (vitrineMod ||= import("./vitrine.js?v=60"));
     }
     function usarCartaoNaConversa(uid, cartao) {
       document.querySelectorAll(".vt-modal").forEach((m) => m.remove());
@@ -3975,6 +4003,7 @@
       op("camera", "Câmera", "#ec4899", () => $("inputCamera").click(), "Tirar foto");
       op("local", "Localização", "#22c55e", enviarLocalizacao, "Onde estou agora");
       op("casa", "Endereço", "#f59e0b", usarMeuEndereco, "O seu, salvo");
+      op("pix", "Pix", "#32bcad", abrirCartaoPix, "Cobrar ou receber");
       corpo.appendChild(grade);
       // Cartões de negócio: o meu (para mandar a quem conversa) e os da pessoa (para pedir sem sair daqui).
       const sec = elm("div", "pv-sec"); sec.appendChild(elm("h4", null, "Negócios"));
@@ -4056,6 +4085,77 @@
         const x = (await r.json())?.[0];
         return x ? { lat: Number(Number(x.lat).toFixed(6)), lng: Number(Number(x.lon).toFixed(6)) } : null;
       } catch { return null; }
+    }
+    // ---------- cartão de Pix ----------
+    // cartao { tipo: "pix", chave, tipoChave, nome, cidade, valor?, descricao? }: quem recebe manda a chave Pix na conversa;
+    // quem paga copia o código "copia e cola" (BR Code, pix.js) ou lê o QR Code no app do banco. O site não intermedia
+    // o pagamento. A chave fica guardada na conta (usuarios.pix) para a próxima vez.
+    const reaisPix = (v) => Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    function cartaoPix(c, minha) {
+      const box = elm("div", "px");
+      const cab = elm("div", "px-cab");
+      const ic = elm("span", "px-ic"); ic.appendChild(usar("pix", "i"));
+      const t = elm("div"); t.append(elm("small", null, minha ? "Você enviou um Pix para receber" : "Pix para pagamento"), elm("b", null, Number(c.valor) > 0 ? reaisPix(c.valor) : "Valor a combinar"));
+      cab.append(ic, t);
+      box.appendChild(cab);
+      const dados = elm("div", "px-dados");
+      const linha = (rot, val) => { if (!val) return; const d = elm("div"); d.append(elm("span", null, rot), elm("strong", null, String(val).slice(0, 120))); dados.appendChild(d); };
+      linha("Para", c.nome); linha(c.tipoChave || "Chave", c.chave); linha("Referente a", c.descricao);
+      box.appendChild(dados);
+      const codigo = codigoPix({ chave: c.chave, nome: c.nome, cidade: c.cidade, valor: Number(c.valor) > 0 ? c.valor : undefined, descricao: c.descricao });
+      const acoes = elm("div", "px-acoes");
+      const copiarTxt = (txt, aviso) => (e) => { e.stopPropagation(); navigator.clipboard?.writeText(txt).then(() => toast(aviso), () => toast(txt)); };
+      const b1 = elm("button", "pri"); b1.type = "button"; b1.append(usar("copiar", "i s"), document.createTextNode("Copiar código Pix")); b1.addEventListener("click", copiarTxt(codigo, "Código Pix copiado: cole no app do banco"));
+      const b2 = elm("button"); b2.type = "button"; b2.append(usar("copiar", "i s"), document.createTextNode("Copiar chave")); b2.addEventListener("click", copiarTxt(c.chave, "Chave Pix copiada"));
+      const b3 = elm("button"); b3.type = "button"; b3.append(usar("pix", "i s"), document.createTextNode("QR Code"));
+      const qrBox = elm("div", "px-qr"); qrBox.hidden = true;
+      b3.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        if (!qrBox.childElementCount) { try { const { qrSvg } = await import("./qr.js?v=1"); qrBox.appendChild(await qrSvg(codigo, "QR Code do Pix")); } catch { toast("Não foi possível mostrar o QR Code."); return; } }
+        qrBox.hidden = !qrBox.hidden;
+      });
+      acoes.append(b1, b2, b3);
+      box.append(acoes, qrBox, elm("p", "px-aviso", "Confira o nome de quem recebe no app do banco antes de pagar. O Help Floripa não intermedia pagamentos."));
+      return box;
+    }
+    async function abrirCartaoPix() {
+      if (!ativa) return;
+      const { corpo, fechar } = abrirGaveta("Cartão de Pix");
+      let salvo = {};
+      try { salvo = (await fb.getDoc(fb.doc(fb.db, "usuarios", eu.uid))).data()?.pix || {}; } catch {}
+      const campoPx = (rot, attrs, dica) => {
+        const l = elm("label", "px-campo"); l.appendChild(elm("span", null, rot));
+        const i = document.createElement("input"); Object.assign(i, attrs); l.appendChild(i);
+        if (dica) l.appendChild(elm("small", null, dica));
+        return [l, i];
+      };
+      const [lChave, iChave] = campoPx("Sua chave Pix", { value: salvo.chave || "", placeholder: "E-mail, celular, CPF, CNPJ ou chave aleatória", maxLength: 77, autocapitalize: "off", spellcheck: false });
+      const [lNome, iNome] = campoPx("Nome de quem recebe", { value: salvo.nome || meuPerfil.nome || eu.displayName || "", placeholder: "Como aparece no banco", maxLength: 60 });
+      const [lCid, iCid] = campoPx("Cidade", { value: salvo.cidade || String(meuPerfil.cidade || "").split("/")[0] || "", placeholder: "Florianópolis", maxLength: 40 });
+      const [lVal, iVal] = campoPx("Valor (opcional)", { inputMode: "decimal", placeholder: "Ex.: 50,00", maxLength: 12 }, "Sem valor, quem paga digita no banco.");
+      const [lDesc, iDesc] = campoPx("Referente a (opcional)", { placeholder: "Ex.: Pedido #A1B2C3, conserto do chuveiro", maxLength: 60 });
+      const prev = elm("div", "lc-previa");
+      const lerCartao = () => {
+        const tk = tipoChavePix(iChave.value);
+        const v = Number(String(iVal.value).replace(/\./g, "").replace(",", "."));
+        return tk ? { tipo: "pix", chave: tk.chave, tipoChave: tk.tipo, nome: iNome.value.trim().slice(0, 60), cidade: iCid.value.trim().slice(0, 40), valor: v > 0 && v < 1e6 ? Math.round(v * 100) / 100 : null, descricao: iDesc.value.trim().slice(0, 60) } : null;
+      };
+      const pintarPrevia = () => { const c = lerCartao(); prev.replaceChildren(c ? cartaoPix(c, true) : elm("p", "px-vazio", "Digite uma chave Pix válida para ver o cartão.")); };
+      [iChave, iNome, iCid, iVal, iDesc].forEach((i) => i.addEventListener("input", pintarPrevia));
+      const enviar = elm("button", "pv-btn pri"); enviar.type = "button"; enviar.append(usar("enviar", "i s"), document.createTextNode("Enviar cartão de Pix"));
+      enviar.addEventListener("click", async () => {
+        const c = lerCartao();
+        if (!c) { toast("Confira a chave Pix: e-mail, celular com DDD, CPF, CNPJ ou chave aleatória."); iChave.focus(); return; }
+        if (c.nome.length < 3) { toast("Escreva o nome de quem recebe, como aparece no banco."); iNome.focus(); return; }
+        enviar.disabled = true;
+        try {
+          await publicarMensagem(ativa.id, { remetenteId: eu.uid, texto: "", criadoEm: fb.serverTimestamp(), tipoArquivo: "cartao", cartao: c });
+          fb.setDoc(fb.doc(fb.db, "usuarios", eu.uid), { pix: { chave: c.chave, nome: c.nome, cidade: c.cidade } }, { merge: true }).catch(() => {});
+          fechar();
+        } catch (e) { console.error(e); enviar.disabled = false; toast(e?.code === "limite-diario" ? e.message : "Não foi possível enviar agora."); }
+      });
+      corpo.append(lChave, lNome, lCid, lVal, lDesc, prev, enviar);
+      pintarPrevia();
     }
     // Gaveta de confirmação: mostra o cartão como vai chegar e envia com um toque.
     function confirmarEnvioLocal(titulo, cartao, rotuloBotao) {

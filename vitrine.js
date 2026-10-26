@@ -11,8 +11,8 @@ import { confirmarHF } from "./confirmar.js?v=4";
 import { relogioDe } from "./fuso.js?v=1";
 import { buscarNoServidor } from "./busca.js?v=1";
 import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL } from "./seguranca.js?v=1";
-import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento, media, avaliarNegocio } from "./avaliacoes.js?v=14";
-import { abrirQueixa } from "./queixas.js?v=12";
+import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento, media, avaliarNegocio } from "./avaliacoes.js?v=15";
+import { abrirQueixa } from "./queixas.js?v=13";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
 import { anelNegocio } from "./flash-negocio.js?v=5";
 import { camposEndereco, textoCidade, cidadesDe, NOME_UF, semAcento } from "./endereco.js?v=1";
@@ -1205,12 +1205,18 @@ export function abrirDetalhe(n, opcoes = {}) {
     const b = el("button", "vd-link"); b.type = "button";
     b.append(icone("compartilhar"), el("span", null, "Compartilhar"));
     b.addEventListener("click", async () => {
-      const url = new URL(`${PAGINA_TIPO[tipo]}?negocio=${encodeURIComponent(neg.id)}`, location.href).href;
+      // Link curto (helpfloripa.com.br/@nome/tipo) quando o dono tem @; vai junto a arte com a foto, o QR e o link.
+      const nick = String(dono.nickname || "").toLowerCase();
+      const slug = { servicos: "servicos", delivery: "delivery", lojinha: "loja", imoveis: "imoveis", saude: "saude" }[tipo];
+      const url = /^[a-z0-9._]{3,30}$/.test(nick) && slug ? `${location.origin}/@${nick}/${slug}` : new URL(`${PAGINA_TIPO[tipo]}?negocio=${encodeURIComponent(neg.id)}`, location.href).href;
+      b.disabled = true;
       try {
-        if (navigator.share) await navigator.share({ title: n.nome, text: `${n.nome} no Help Floripa`, url });
-        else { await navigator.clipboard.writeText(url); toast("Link copiado"); }
-        contar("compartilhar");
-      } catch (e) { if (e?.name !== "AbortError") toast("Não foi possível compartilhar agora."); }
+        const { compartilharPerfil } = await import("./qr.js?v=1");
+        const r = await compartilharPerfil({ nome: n.nome || NOMES_TIPO[tipo], rotulo: NOMES_TIPO[tipo], cor: CORES_TIPO[tipo], url, foto: urlSegura(n.foto), arquivo: `${slug || "perfil"}-help-floripa.png` });
+        if (r === "copiado") toast("Link copiado");
+        if (r) contar("compartilhar");
+      } catch { toast("Não foi possível compartilhar agora."); }
+      finally { b.disabled = false; }
     });
     links.appendChild(b);
   }

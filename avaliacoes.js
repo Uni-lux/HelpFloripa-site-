@@ -457,7 +457,7 @@ export function avisar(texto, titulo = "Ainda não dá") {
   ok.focus();
 }
 
-// Detalhamento: nota geral, quantas de cada estrela, de onde vêm as notas e comentários recentes.
+// Detalhamento: nota geral, quantas de cada estrela e de onde vêm as notas (sem os comentários; as queixas ficam nas Reclamações).
 // fontes: [{ rotulo, resumo, principal }]
 export async function abrirDetalhamento({ fbx, titulo = "Avaliações", sub, geral, fontes = [], alvoId, filtroTipos = null, negocioId = null }) {
   const { caixa, fechar } = janela();
@@ -505,38 +505,8 @@ export async function abrirDetalhamento({ fbx, titulo = "Avaliações", sub, ger
     a.textContent = "Ver reclamações e respostas deste negócio";
     caixa.appendChild(a);
   }
-  if (fbx && alvoId) {
-    const h = document.createElement("h4"); h.textContent = "Comentários recentes";
-    const box = document.createElement("div");
-    box.appendChild(Object.assign(document.createElement("div"), { className: "vazio", textContent: "Carregando..." }));
-    caixa.append(h, box);
-    try {
-      const snap = await fbx.getDocs(fbx.query(fbx.collection(fbx.db, "avaliacoes"), fbx.where("alvoId", "==", alvoId), fbx.limit(60)));
-      let lista = snap.docs.map((d) => d.data());
-      if (filtroTipos) lista = lista.filter((a) => filtroTipos.includes(a.tipo));
-      if (negocioId) lista = lista.filter((a) => a.negocioId === negocioId);
-      lista.sort((a, b) => (b.criadoEm?.toMillis?.() ?? 0) - (a.criadoEm?.toMillis?.() ?? 0));
-      box.replaceChildren();
-      const rot = { negocio: "Atendimento", cliente: "Como cliente", publicacao: "Publicação" };
-      const comTexto = lista.slice(0, 20);
-      if (!comTexto.length) box.appendChild(Object.assign(document.createElement("div"), { className: "vazio", textContent: "Nenhum comentário ainda." }));
-      comTexto.forEach((a) => {
-        const c = document.createElement("div"); c.className = "coment";
-        const quem = document.createElement("div"); quem.className = "quem";
-        const nome = document.createElement("strong"); nome.textContent = a.autorNome || "Usuário";
-        // O nome gravado na avaliação é escrito por quem avaliou: mostra o nome real do perfil.
-        if (a.autorId) fbx.getDoc(fbx.doc(fbx.db, "perfis_publicos", a.autorId)).then((s) => { if (!s.exists()) { nome.textContent = "Ex-usuário"; return; } const n = s.data().nome; if (n) nome.textContent = n; }).catch(() => {});
-        const info = document.createElement("span");
-        const data = a.criadoEm?.toDate?.();
-        info.textContent = [a.pedidoId ? "✓ Atendimento confirmado" : rot[a.tipo], data ? data.toLocaleDateString("pt-BR") : "", a.atualizadoEm ? "editada" : ""].filter(Boolean).join(" · ");
-        quem.append(nome, info);
-        c.appendChild(quem);
-        c.appendChild(estrelas({ total: 1, soma: a.nota }, { soEstrelas: true }));
-        if (a.comentario) { const p = document.createElement("div"); p.textContent = a.comentario; c.appendChild(p); }
-        box.appendChild(c);
-      });
-    } catch { box.replaceChildren(Object.assign(document.createElement("div"), { className: "vazio", textContent: "Não foi possível carregar os comentários." })); }
-  }
+  // Comentários das avaliações não aparecem no perfil (pedido do dono): o que o cliente tem a dizer de um problema
+  // fica nas Reclamações (com a resposta do negócio), no link acima. Aqui ficam só a nota e as estrelas.
 }
 
 export { TIPOS_NEGOCIO };

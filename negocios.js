@@ -11,15 +11,16 @@ import {
   $, el, icone, pintarAvatar, urlSegura, nomeCidade, toast, erroAmigavel, abrirFolha, fecharFolha,
   fb, eu, dados, salvarImagem, editarImagem, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos, criarFolha
 } from "./rede.js?v=63";
-import { lerResumos, estrelas, media, notaTexto } from "./avaliacoes.js?v=14";
+import { lerResumos, estrelas, media, notaTexto } from "./avaliacoes.js?v=15";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade, semAcento } from "./endereco.js?v=1";
 import { lerStats, listaDias, somarPeriodo } from "./estat-negocio.js?v=1";
 import { geocodificar, geoOk } from "./perto.js?v=2";
 import { LIMITES_GRATIS } from "./planos-base.js?v=5";
-import { abrirPlanos, lerPlano, esquecerPlano, nivelPlano, emTolerancia, pedidoAberto, lerNegociacao, testeDisponivel, seloPlano, nomePlano, diasRestantes, textoFalta, PRECO_MIN, DIAS_TESTE, reais } from "./planos.js?v=12";
+import { compartilharPerfil, baixarArte, desenharQr } from "./qr.js?v=1";
+import { abrirPlanos, lerPlano, esquecerPlano, nivelPlano, emTolerancia, pedidoAberto, lerNegociacao, testeDisponivel, seloPlano, nomePlano, diasRestantes, textoFalta, PRECO_MIN, DIAS_TESTE, reais } from "./planos.js?v=13";
 import { termosBusca } from "./busca.js?v=1";
 import { PROFISSOES_SAUDE, CATEGORIAS_SAUDE, MODALIDADES_SAUDE, PUBLICO_SAUDE, PUBLICO_VET, CONVENIOS, IDIOMAS, UFS, conselhoDe, ehVet, textoRegistro } from "./saude-dados.js?v=1";
-import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO, CATEGORIAS, GRUPOS_SERV, PALAVRAS_SERV, prazoPromo } from "./vitrine.js?v=59";
+import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO, CATEGORIAS, GRUPOS_SERV, PALAVRAS_SERV, prazoPromo } from "./vitrine.js?v=60";
 
 // Cada tipo com a cor da sua classe na página inicial (inicio.css: --c-servicos etc.) e uma chamada própria.
 const NEGOCIOS = {
@@ -225,13 +226,14 @@ const linkNegocio = (n) => new URL(`${PAGINA_TIPO[n.tipo]}?negocio=${encodeURICo
 const SLUG_TIPO = { servicos: "servicos", delivery: "delivery", lojinha: "loja", imoveis: "imoveis", saude: "saude" };
 const meuNick = () => String(dados.nickname || "").toLowerCase();
 const linkCurto = (n) => (/^[a-z0-9._]{3,30}$/.test(meuNick()) ? `${location.origin}/@${meuNick()}/${SLUG_TIPO[n.tipo]}` : linkNegocio(n));
+// Compartilhar manda a arte (foto, nome, QR e link) junto com o texto: no WhatsApp chega a imagem com o link.
+const COR_TIPO = { servicos: "#00adee", delivery: "#ff7a1a", lojinha: "#b066ff", imoveis: "#2fbf71", saude: "#0fb5a6" };
+const dadosArte = (n) => ({ nome: n.nome || NEGOCIOS[n.tipo].rotulo, rotulo: NEGOCIOS[n.tipo].rotulo, cor: COR_TIPO[n.tipo] || "#00adee", url: linkCurto(n), foto: urlSegura(n.foto) });
 async function compartilharNegocio(n) {
-  const url = linkCurto(n);
   try {
-    if (navigator.share) { await navigator.share({ title: n.nome, text: `${n.nome} no Help Floripa`, url }); return; }
-    await navigator.clipboard.writeText(url);
-    toast("Link do perfil copiado");
-  } catch (e) { if (e?.name !== "AbortError") toast("Não foi possível compartilhar agora."); }
+    const r = await compartilharPerfil({ ...dadosArte(n), arquivo: `${SLUG_TIPO[n.tipo]}-${meuNick() || "perfil"}.png` });
+    if (r === "copiado") toast("Link do perfil copiado");
+  } catch { toast("Não foi possível compartilhar agora."); }
 }
 // Folha "Link e QR Code": link curto para copiar/compartilhar e o QR Code (para cartão de visita, adesivo, cardápio...)
 // com uma arte pronta para baixar e imprimir (PNG 1080×1350 nas cores do site).
@@ -245,7 +247,7 @@ async function abrirLinkQr(n) {
   const acoes = el("div", "lq-acoes");
   const bCop = btnIc("btn pri mini", "link", "Copiar link");
   bCop.addEventListener("click", async () => { try { await navigator.clipboard.writeText(url); toast("Link copiado"); } catch { toast(url); } });
-  const bComp = btnIc("btn sec mini", "compartilhar", "Compartilhar");
+  const bComp = btnIc("btn sec mini", "compartilhar", "Enviar com o QR");
   bComp.addEventListener("click", () => compartilharNegocio(n));
   acoes.append(bCop, bComp);
   const qrBox = el("div", "lq-qr"); qrBox.setAttribute("aria-label", "QR Code do perfil");
@@ -255,33 +257,12 @@ async function abrirLinkQr(n) {
   corpo.appendChild(caixa);
   abrirFolha("folhaLinkQr");
   try {
-    const { default: qrcode } = await import("./qrcode-gerador.js?v=1");
-    const q = qrcode(0, "M"); q.addData(url); q.make();
-    const desenharQr = (ctx, x, y, tam) => {
-      const k = q.getModuleCount(), m = tam / (k + 8);
-      ctx.fillStyle = "#fff"; ctx.fillRect(x, y, tam, tam);
-      ctx.fillStyle = "#000";
-      for (let r = 0; r < k; r++) for (let c = 0; c < k; c++) if (q.isDark(r, c)) ctx.fillRect(Math.floor(x + (c + 4) * m), Math.floor(y + (r + 4) * m), Math.ceil(m), Math.ceil(m));
-    };
     const cv = document.createElement("canvas"); cv.width = cv.height = 600;
-    desenharQr(cv.getContext("2d"), 0, 0, 600);
+    await desenharQr(cv.getContext("2d"), 0, 0, 600, url);
     qrBox.appendChild(cv);
-    bBaixar.addEventListener("click", () => {
-      const W = 1080, H = 1350, a = document.createElement("canvas"); a.width = W; a.height = H;
-      const g = a.getContext("2d");
-      g.fillStyle = "#000"; g.fillRect(0, 0, W, H);
-      g.fillStyle = "#111"; g.beginPath(); g.roundRect?.(60, 60, W - 120, H - 120, 48); g.fill();
-      g.textAlign = "center"; g.fillStyle = "#fff"; g.font = "800 64px Arial, sans-serif";
-      g.fillText("HELP ", W / 2 - 110, 190); g.fillStyle = "#00ADEE"; g.fillText("FLORIPA", W / 2 + 120, 190);
-      g.fillStyle = "#fff"; g.font = "700 50px Arial, sans-serif";
-      const nome = String(n.nome || t.rotulo); g.fillText(nome.length > 30 ? nome.slice(0, 29) + "…" : nome, W / 2, 290);
-      g.fillStyle = "#8c9ca7"; g.font = "500 36px Arial, sans-serif"; g.fillText(t.rotulo, W / 2, 345);
-      desenharQr(g, (W - 640) / 2, 400, 640);
-      g.fillStyle = "#00ADEE"; g.font = "700 40px Arial, sans-serif"; g.fillText(url.replace(/^https?:\/\//, ""), W / 2, 1120);
-      g.fillStyle = "#cfd8dd"; g.font = "500 34px Arial, sans-serif"; g.fillText("Aponte a câmera do celular", W / 2, 1190);
-      const l = document.createElement("a"); l.href = a.toDataURL("image/png"); l.download = `qr-${SLUG_TIPO[n.tipo]}-${meuNick() || "perfil"}.png`;
-      document.body.appendChild(l); l.click(); l.remove();
-      toast("QR Code baixado");
+    bBaixar.addEventListener("click", async () => {
+      try { await baixarArte(dadosArte(n), `qr-${SLUG_TIPO[n.tipo]}-${meuNick() || "perfil"}.png`); toast("Arte com o QR Code baixada"); }
+      catch { toast("Não foi possível baixar agora."); }
     });
   } catch (e) { qrBox.replaceChildren(el("p", "lq-aviso", "Não foi possível gerar o QR Code agora.")); console.warn(e); }
 }
@@ -511,7 +492,7 @@ function maiorDeIdade() {
 async function abrirEstatisticas(n) {
   if (semPlano()) { verPlanos("plus"); return; } // estatísticas fazem parte dos planos
   try {
-    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=23");
+    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=24");
     abrirInsightsNegocio(n, { aoEditar: (neg) => abrirFormNegocio(meusNegocios.find((x) => x.id === neg.id) || neg) });
   } catch (e) { toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)); }
 }
@@ -1602,7 +1583,7 @@ function pintarTipos(tipos, usados) {
     const c = el("a", "ng-tipo comunidade"); c.href = "comunidade.html?novo=doacao";
     const ic = el("span", "ic"); ic.appendChild(icone("comunidade", "i s"));
     const tx = el("span", "tx"); tx.append(el("strong", null, "Comunidade"), el("small", null, "Doe, troque ou peça ajuda"));
-    c.append(ic, tx, el("span", "ir", "↗"));
+    c.append(ic, tx);
     c.title = "Abre a Comunidade para anunciar de graça (doação, troca, pedido, quarto ou achados)";
     box.appendChild(c);
   }
