@@ -45,6 +45,8 @@ ok(larg[0] <= larg[1], `tabela de 5 colunas cabe no celular (${larg[0]} ≤ ${la
 // ---------- 2) editor: o que é do Plus ----------
 await b.goto(BASE + "negocios.html"); await b.waitForSelector("#neg-servicos", { timeout: 20000 }); await b.waitForTimeout(1500);
 ok((await b.textContent("#neg-servicos .ng-est")).includes("PLUS"), "estatísticas travadas no grátis (PLUS)");
+ok((await b.$eval("#neg-servicos .capa", (e) => getComputedStyle(e).getPropertyValue("--img"))).includes("Q0FQQURP") && (await b.textContent("#neg-servicos .ng-capa-plus")).includes("Capa visível com plano"), "cartão em Meus negócios mostra a capa escolhida (e avisa que é do plano)");
+await b.locator("#neg-servicos").scrollIntoViewIfNeeded(); await b.screenshot({ path: "saida/gp-cartao-capa.png" });
 await b.locator("#neg-servicos .ng-pri").click(); await b.waitForSelector("#folhaNegocio.aberta", { timeout: 8000 }); await b.waitForTimeout(600);
 ok(await b.locator("#folhaNegocio .neg-item.so-plano").count() === 3 && await b.locator("#folhaNegocio .neg-foto.so-plano").count() === 2, "itens 4–6 e fotos 2–3 marcados PLUS (guardados, não aparecem)");
 ok(await b.locator("#folhaNegocio .ng-plus-campo").count() === 2, "capa e links com o aviso do plano");

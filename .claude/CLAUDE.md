@@ -766,6 +766,18 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   documento falso/golpe/3ª vez = banimento; motivo começa com "Má-fé ao anunciar", que o nível sugerido procura; pode aplicar
   às contas ligadas). Termos (seção 6), Diretrizes (seções 4 e 8) e Ajuda atualizados. Seed: Bruno verificado (o `t-verif`
   tira no começo). Teste `t-gratis-plus.mjs`.
+- **Capa no cartão, avaliação automática, tempo de resposta e link curto + QR (26/10/2026, PRs #94 e seguinte, sem regra
+  nova):** Meus negócios: o cartão usa `n.capa` (antes ignorava; sem plano, etiqueta "PLUS · Capa visível com plano").
+  **Avaliação automática** (mensagens.html): pedido marcado "Entregue" pelo negócio manda o cartão de avaliação sozinho
+  (`avaliacaoAoConcluir` → `pedirAvaliacao(n, titulo, aviso)`); orçamento/agendamento recebido tem o botão "Serviço/Atendimento
+  concluído · pedir avaliação" (`.orc-concluir`, só para quem recebeu; uma vez: `avaliacaoJaPedida(desde)`). **Tempo de
+  resposta** (já calculado em `perfis_publicos.atendimento.resposta {media (min), n}` pelo `registrarTempoResposta`): vitrine
+  `respostaDe`/`tempoResposta`, selo `.vt-rapido` "Responde rápido" nos cartões (≤60 min, n≥3) e `.vd-selo-resp` no perfil.
+  **Link curto**: `helpfloripa.com.br/@nick` (perfil) e `/@nick/servicos|delivery|loja|imoveis|saude` → 404.html (script no
+  `<head>`) → `link.html` (lê `nicknames/{nick}`, que é público, e redireciona). Meus negócios: botão do cartão abre
+  "Link e QR Code" (`abrirLinkQr`: copiar, compartilhar, QR com qrcode-gerador.js e arte 1080×1350 para imprimir; sem @ usa o
+  link longo e avisa). `servidor-csp.mjs` agora devolve o 404.html (status 404) como o GitHub Pages. Teste
+  `t-perfil-negocio.mjs`; `t-pedido` confere a avaliação ao entregar.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

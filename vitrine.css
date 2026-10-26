@@ -761,3 +761,10 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
 .vt-saude .tx small.reg { display: inline-flex; align-items: center; gap: 4px; color: var(--vc); font-weight: 700; }
 .vt-saude .tx small.reg .vi { width: 13px; height: 13px; }
 .vt-saude .ft .st.saude-mod { background: var(--vc); color: #fff; }
+
+/* Tempo de resposta do negócio (média das conversas): selo nos cartões e no perfil */
+.vt-rapido { display: inline-flex; align-items: center; gap: 4px; margin-top: 2px; padding: 2px 8px 2px 6px; border-radius: 999px; font-size: 11px; font-weight: 750; color: #16a34a; background: color-mix(in srgb, #16a34a 12%, transparent); width: fit-content; }
+.vt-rapido svg { width: 13px; height: 13px; }
+.vd-selo-resp { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px 4px 7px; border-radius: 999px; font-size: 12px; font-weight: 750; color: var(--muted, #8c9ca7); background: color-mix(in srgb, var(--muted, #8c9ca7) 14%, transparent); }
+.vd-selo-resp.rapido { color: #16a34a; background: color-mix(in srgb, #16a34a 13%, transparent); }
+.vd-selo-resp svg { width: 15px; height: 15px; }

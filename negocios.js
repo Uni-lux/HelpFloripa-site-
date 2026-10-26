@@ -19,7 +19,7 @@ import { LIMITES_GRATIS } from "./planos-base.js?v=5";
 import { abrirPlanos, lerPlano, esquecerPlano, nivelPlano, emTolerancia, pedidoAberto, lerNegociacao, testeDisponivel, seloPlano, nomePlano, diasRestantes, textoFalta, PRECO_MIN, DIAS_TESTE, reais } from "./planos.js?v=12";
 import { termosBusca } from "./busca.js?v=1";
 import { PROFISSOES_SAUDE, CATEGORIAS_SAUDE, MODALIDADES_SAUDE, PUBLICO_SAUDE, PUBLICO_VET, CONVENIOS, IDIOMAS, UFS, conselhoDe, ehVet, textoRegistro } from "./saude-dados.js?v=1";
-import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO, CATEGORIAS, GRUPOS_SERV, PALAVRAS_SERV, prazoPromo } from "./vitrine.js?v=58";
+import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO, CATEGORIAS, GRUPOS_SERV, PALAVRAS_SERV, prazoPromo } from "./vitrine.js?v=59";
 
 // Cada tipo com a cor da sua classe na página inicial (inicio.css: --c-servicos etc.) e uma chamada própria.
 const NEGOCIOS = {
@@ -221,13 +221,69 @@ function completude(n) {
   return { pct: Math.round((feitos / lista.length) * 100), faltam: lista.filter((x) => !x[1]).map((x) => x[0]) };
 }
 const linkNegocio = (n) => new URL(`${PAGINA_TIPO[n.tipo]}?negocio=${encodeURIComponent(n.id)}`, location.href).href;
+// Link curto: helpfloripa.com.br/@seunome/tipo (404.html → link.html descobre de quem é o @). Sem @, o link longo.
+const SLUG_TIPO = { servicos: "servicos", delivery: "delivery", lojinha: "loja", imoveis: "imoveis", saude: "saude" };
+const meuNick = () => String(dados.nickname || "").toLowerCase();
+const linkCurto = (n) => (/^[a-z0-9._]{3,30}$/.test(meuNick()) ? `${location.origin}/@${meuNick()}/${SLUG_TIPO[n.tipo]}` : linkNegocio(n));
 async function compartilharNegocio(n) {
-  const url = linkNegocio(n);
+  const url = linkCurto(n);
   try {
     if (navigator.share) { await navigator.share({ title: n.nome, text: `${n.nome} no Help Floripa`, url }); return; }
     await navigator.clipboard.writeText(url);
     toast("Link do perfil copiado");
   } catch (e) { if (e?.name !== "AbortError") toast("Não foi possível compartilhar agora."); }
+}
+// Folha "Link e QR Code": link curto para copiar/compartilhar e o QR Code (para cartão de visita, adesivo, cardápio...)
+// com uma arte pronta para baixar e imprimir (PNG 1080×1350 nas cores do site).
+async function abrirLinkQr(n) {
+  const url = linkCurto(n), curto = url !== linkNegocio(n), t = NEGOCIOS[n.tipo];
+  criarFolha("folhaLinkQr", { titulo: "Link e QR Code do perfil", corpoClasse: "folha-corpo pad" });
+  const corpo = $("c_folhaLinkQr");
+  corpo.replaceChildren();
+  const caixa = el("div", "lq-caixa"); caixa.dataset.tipo = n.tipo;
+  const lk = el("div", "lq-link"); lk.append(el("small", null, curto ? "Seu link curto" : "Link do perfil"), el("strong", null, url.replace(/^https?:\/\//, "")));
+  const acoes = el("div", "lq-acoes");
+  const bCop = btnIc("btn pri mini", "link", "Copiar link");
+  bCop.addEventListener("click", async () => { try { await navigator.clipboard.writeText(url); toast("Link copiado"); } catch { toast(url); } });
+  const bComp = btnIc("btn sec mini", "compartilhar", "Compartilhar");
+  bComp.addEventListener("click", () => compartilharNegocio(n));
+  acoes.append(bCop, bComp);
+  const qrBox = el("div", "lq-qr"); qrBox.setAttribute("aria-label", "QR Code do perfil");
+  const bBaixar = btnIc("btn sec mini", "imagem", "Baixar para imprimir");
+  caixa.append(lk, acoes, qrBox, el("p", "lq-dica", "Use no cartão de visita, no balcão, no cardápio ou no Instagram: quem aponta a câmera do celular abre o seu perfil."), bBaixar);
+  if (!curto) caixa.appendChild(el("p", "lq-aviso", "Crie o seu @ em Editar perfil para ter um link curto, como helpfloripa.com.br/@seunome."));
+  corpo.appendChild(caixa);
+  abrirFolha("folhaLinkQr");
+  try {
+    const { default: qrcode } = await import("./qrcode-gerador.js?v=1");
+    const q = qrcode(0, "M"); q.addData(url); q.make();
+    const desenharQr = (ctx, x, y, tam) => {
+      const k = q.getModuleCount(), m = tam / (k + 8);
+      ctx.fillStyle = "#fff"; ctx.fillRect(x, y, tam, tam);
+      ctx.fillStyle = "#000";
+      for (let r = 0; r < k; r++) for (let c = 0; c < k; c++) if (q.isDark(r, c)) ctx.fillRect(Math.floor(x + (c + 4) * m), Math.floor(y + (r + 4) * m), Math.ceil(m), Math.ceil(m));
+    };
+    const cv = document.createElement("canvas"); cv.width = cv.height = 600;
+    desenharQr(cv.getContext("2d"), 0, 0, 600);
+    qrBox.appendChild(cv);
+    bBaixar.addEventListener("click", () => {
+      const W = 1080, H = 1350, a = document.createElement("canvas"); a.width = W; a.height = H;
+      const g = a.getContext("2d");
+      g.fillStyle = "#000"; g.fillRect(0, 0, W, H);
+      g.fillStyle = "#111"; g.beginPath(); g.roundRect?.(60, 60, W - 120, H - 120, 48); g.fill();
+      g.textAlign = "center"; g.fillStyle = "#fff"; g.font = "800 64px Arial, sans-serif";
+      g.fillText("HELP ", W / 2 - 110, 190); g.fillStyle = "#00ADEE"; g.fillText("FLORIPA", W / 2 + 120, 190);
+      g.fillStyle = "#fff"; g.font = "700 50px Arial, sans-serif";
+      const nome = String(n.nome || t.rotulo); g.fillText(nome.length > 30 ? nome.slice(0, 29) + "…" : nome, W / 2, 290);
+      g.fillStyle = "#8c9ca7"; g.font = "500 36px Arial, sans-serif"; g.fillText(t.rotulo, W / 2, 345);
+      desenharQr(g, (W - 640) / 2, 400, 640);
+      g.fillStyle = "#00ADEE"; g.font = "700 40px Arial, sans-serif"; g.fillText(url.replace(/^https?:\/\//, ""), W / 2, 1120);
+      g.fillStyle = "#cfd8dd"; g.font = "500 34px Arial, sans-serif"; g.fillText("Aponte a câmera do celular", W / 2, 1190);
+      const l = document.createElement("a"); l.href = a.toDataURL("image/png"); l.download = `qr-${SLUG_TIPO[n.tipo]}-${meuNick() || "perfil"}.png`;
+      document.body.appendChild(l); l.click(); l.remove();
+      toast("QR Code baixado");
+    });
+  } catch (e) { qrBox.replaceChildren(el("p", "lq-aviso", "Não foi possível gerar o QR Code agora.")); console.warn(e); }
 }
 function btnIc(classe, ic, texto, tag = "button") {
   const b = el(tag, classe);
@@ -279,8 +335,11 @@ function pintarPainel() {
     const c = el("article", `neg-card ${tipo}`);
     c.id = "neg-" + tipo;
     const capa = el("div", "capa");
-    const f = urlSegura((n.fotos || [])[0]) || t.img;
+    // A capa escolhida pelo dono (ou a guardada na conta enquanto as regras não estavam no ar); sem capa, a 1ª foto.
+    const capaN = urlSegura(n.capa || extrasPendentes(n.id)?.capa);
+    const f = capaN || urlSegura((n.fotos || [])[0]) || t.img;
     capa.style.setProperty("--img", `url("${f}")`);
+    if (capaN && semPlano()) { const cp = el("span", "ng-capa-plus"); cp.append(el("b", null, "PLUS"), document.createTextNode("Capa visível com plano")); capa.appendChild(cp); }
     const tag = el("span", "tag"); tag.append(icone(tipo, "i xs"), document.createTextNode(t.rotulo));
     capa.appendChild(tag);
     const oculto = (n.ocultoAte?.toMillis?.() ?? 0) > Date.now(), pausado = !oculto && pausadoAqui(n);
@@ -335,8 +394,8 @@ function pintarPainel() {
     const bV = btnIc("btn sec mini", "olho", "Vitrine", "a");
     bV.href = `${PAGINA_TIPO[tipo]}?negocio=${encodeURIComponent(n.id)}`;
     const bC = btnIc("btn sec mini ng-so-ic", "compartilhar", "");
-    bC.setAttribute("aria-label", "Compartilhar perfil"); bC.title = "Compartilhar perfil";
-    bC.addEventListener("click", () => compartilharNegocio(n));
+    bC.setAttribute("aria-label", "Link e QR Code do perfil"); bC.title = "Link e QR Code do perfil";
+    bC.addEventListener("click", () => abrirLinkQr(n));
     acoes.append(bE, bV, bC);
     if (rec.total) {
       const bR = btnIc("btn sec mini" + (rec.pendentes ? " ng-alerta" : ""), "alerta", rec.pendentes ? `Responder ${rec.pendentes} ${rec.pendentes === 1 ? "reclamação" : "reclamações"}` : "Reclamações", "a");
