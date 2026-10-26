@@ -11,10 +11,10 @@ import { fotoSegura } from "./seguranca.js?v=1";
 import { enfeitarSelect } from "./escolha.js?v=4";
 import { estrelas, lerResumos, media } from "./avaliacoes.js?v=14";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
-import { lerPlano, nivelPlano, seloPlano } from "./planos-base.js?v=3";
+import { lerPlano, nivelPlano, seloPlano, semPausados } from "./planos-base.js?v=4";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, esquecerPosicao } from "./perto.js?v=2";
 import { lerLocal, salvarLocal, rotuloLocal, noLocal, escolherLocal } from "./local-escolhido.js?v=1";
-import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=55";
+import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=56";
 
 const $ = (id) => document.getElementById(id);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
@@ -358,7 +358,8 @@ async function carregar(fs, db, u) {
     // Antes eram 150 perfis inteiros, com fotos, a cada visita; o resto está nas vitrines.
     // Vale por 10 min no aparelho: voltar à página inicial não lê tudo de novo.
     const snap = await docsComValidade({ ...fs, db }, "inicio-negocios", fs.query(neg, fs.orderBy("atualizadoEm", "desc"), fs.limit(60)), 10 * 60000).catch(() => fs.getDocs(fs.query(neg, fs.limit(60))));
-    const lista = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => n.nome && n.oculto !== true && !oculto(n) && NOMES_TIPO[n.tipo]);
+    // Sem plano, só o perfil principal de cada dono aparece (os outros estão pausados).
+    const lista = await semPausados({ ...fs, db }, snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => n.nome && n.oculto !== true && !oculto(n) && NOMES_TIPO[n.tipo]));
     const resumos = await lerResumos({ ...fs, db }, lista.map((n) => "neg_" + n.id));
     const nota = (n) => resumos["neg_" + n.id];
     negociosPerto = lista; notaPerto = nota;

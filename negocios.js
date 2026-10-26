@@ -10,15 +10,15 @@ import { confirmarHF } from "./confirmar.js?v=4";
 import {
   $, el, icone, pintarAvatar, urlSegura, nomeCidade, toast, erroAmigavel, abrirFolha, fecharFolha,
   fb, eu, dados, salvarImagem, editarImagem, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos, criarFolha
-} from "./rede.js?v=61";
+} from "./rede.js?v=62";
 import { lerResumos, estrelas, media, notaTexto } from "./avaliacoes.js?v=14";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade, semAcento } from "./endereco.js?v=1";
 import { lerStats, listaDias, somarPeriodo } from "./estat-negocio.js?v=1";
 import { geocodificar, geoOk } from "./perto.js?v=2";
-import { abrirPlanos, lerPlano, esquecerPlano, nivelPlano, pedidoAberto, lerNegociacao, testeDisponivel, seloPlano, nomePlano, diasRestantes, textoFalta, PRECO_MIN, DIAS_TESTE, reais } from "./planos.js?v=10";
+import { abrirPlanos, lerPlano, esquecerPlano, nivelPlano, emTolerancia, pedidoAberto, lerNegociacao, testeDisponivel, seloPlano, nomePlano, diasRestantes, textoFalta, PRECO_MIN, DIAS_TESTE, reais } from "./planos.js?v=11";
 import { termosBusca } from "./busca.js?v=1";
 import { PROFISSOES_SAUDE, CATEGORIAS_SAUDE, MODALIDADES_SAUDE, PUBLICO_SAUDE, PUBLICO_VET, CONVENIOS, IDIOMAS, UFS, conselhoDe, ehVet, textoRegistro } from "./saude-dados.js?v=1";
-import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO, CATEGORIAS, GRUPOS_SERV, PALAVRAS_SERV, prazoPromo } from "./vitrine.js?v=55";
+import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO, CATEGORIAS, GRUPOS_SERV, PALAVRAS_SERV, prazoPromo } from "./vitrine.js?v=56";
 
 // Cada tipo com a cor da sua classe na página inicial (inicio.css: --c-servicos etc.) e uma chamada própria.
 const NEGOCIOS = {
@@ -73,6 +73,7 @@ async function carregarMeusNegocios() {
   pintarPainel();
   sincronizarExtras();
   completarBusca();
+  sincronizarPrincipal();
   pintarPlano();
   if (meusComunidade === null) carregarComunidade();
 }
@@ -83,16 +84,19 @@ async function pintarPlano() {
   esquecerPlano(eu.uid);
   const [plano, pedido, neg, teste] = await Promise.all([lerPlano(fb, eu.uid), pedidoAberto(fb, eu.uid), lerNegociacao(fb, eu.uid), testeDisponivel(fb, eu.uid)]);
   const pago = nivelPlano(plano) > 0, nome = nomePlano(plano?.plano), dias = pago ? diasRestantes(plano) : 0;
+  const mudou = planoEu === undefined || !!nivelPlano(planoEu) !== pago;
+  planoEu = plano || null;
+  if (mudou) pintarPainel();
   const negAberta = neg && (neg.status === "novo" || neg.status === "em_conversa");
   const ic = el("span", "ng-plano-ic"); ic.appendChild(pago ? seloPlano(plano) : icone("estrela", "i"));
   const tx = el("span", "ng-plano-tx");
   const ate = pago ? new Date(plano.ate.toMillis()).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }) : "";
   tx.append(
-    el("strong", null, pago ? (plano.teste ? `Teste grátis do ${nome}` : `Plano ${nome} ativo`) : pedido ? `Pedido do ${nomePlano(pedido.plano)} aguardando o Pix` : negAberta ? "Pedido de condição especial enviado" : teste ? `Primeira assinatura: +${DIAS_TESTE} dias grátis` : plano?.teste ? "Seu teste grátis terminou" : "Sem plano ativo"),
-    el("small", null, pago ? `${plano.teste ? "Termina" : "Vence"} em ${ate}` : pedido ? `${reais(pedido.valor)} · toque para ver o código Pix` : negAberta ? "A equipe está avaliando · toque para ver" : teste ? `Assine o Plus, o Pro ou o Premium e ganhe ${DIAS_TESTE} dias a mais, grátis` : `Assine a partir de ${reais(PRECO_MIN)}/mês para ter o selo, o destaque e as estatísticas completas`)
+    el("strong", null, pago && emTolerancia(plano) ? `Plano ${nome} venceu` : pago ? (plano.teste ? `Teste grátis do ${nome}` : `Plano ${nome} ativo`) : pedido ? `Pedido do ${nomePlano(pedido.plano)} aguardando o Pix` : negAberta ? "Pedido de condição especial enviado" : teste ? `Primeira assinatura: +${DIAS_TESTE} dias grátis` : plano?.teste ? "Seu teste grátis terminou" : "Sem plano ativo"),
+    el("small", null, pago && emTolerancia(plano) ? "Renove em até 3 dias para não perder o selo, o destaque e os outros perfis no ar" : pago ? `${plano.teste ? "Termina" : "Vence"} em ${ate}` : pedido ? `${reais(pedido.valor)} · toque para ver o código Pix` : negAberta ? "A equipe está avaliando · toque para ver" : teste ? `${meusNegocios.length > 1 ? "Sem plano, só um perfil fica no ar. " : ""}Assine o Plus, o Pro ou o Premium e ganhe ${DIAS_TESTE} dias a mais, grátis` : `Sem plano, só um perfil de negócio fica no ar. Assine a partir de ${reais(PRECO_MIN)}/mês para ter todos, o selo e o destaque`)
   );
   if (pago) {
-    const f = el("span", "ng-plano-falta" + (dias <= 7 ? " perto" : ""), textoFalta(dias).replace(/^./, (c) => c.toUpperCase()));
+    const f = el("span", "ng-plano-falta" + (dias <= 7 ? " perto" : ""), emTolerancia(plano) ? "Venceu" : textoFalta(dias).replace(/^./, (c) => c.toUpperCase()));
     const barra = el("span", "ng-plano-barra"); const i = el("i"); i.style.width = Math.max(3, Math.min(100, (dias / Math.max(dias, (Number(plano.meses) || 1) * 30)) * 100)) + "%"; barra.appendChild(i);
     tx.append(f, barra);
   }
@@ -102,6 +106,45 @@ async function pintarPlano() {
   box.hidden = false;
   box.onclick = () => abrirPlanos({ fb, eu, dados, toast, aoMudar: () => pintarPlano(), negociar: !pago && !pedido && negAberta ? neg.tipo : undefined });
 }
+// ---------- um perfil no ar sem plano ----------
+// Sem plano ativo, só o perfil "principal" aparece para os clientes (os outros ficam pausados, nada é apagado).
+// O dono escolhe qual (usuarios.negocioPrincipal); sem escolha vale o mais antigo. Cada perfil guarda o tipo escolhido
+// em negocios.principal, que as vitrines leem: assim o plano pode vencer sem o dono abrir o site.
+let planoEu; // undefined = ainda não leu; null = sem plano
+const msN = (t) => t?.toMillis?.() ?? (t?.seconds || 0) * 1000;
+function principalEscolhido(lista = meusNegocios) {
+  const tipos = lista.map((n) => n.tipo);
+  if (tipos.includes(dados.negocioPrincipal)) return dados.negocioPrincipal;
+  const marcado = lista.find((n) => tipos.includes(n.principal))?.principal;
+  if (marcado) return marcado;
+  return [...lista].sort((a, b) => (msN(a.criadoEm) || Infinity) - (msN(b.criadoEm) || Infinity))[0]?.tipo || null;
+}
+const semPlano = () => planoEu !== undefined && !nivelPlano(planoEu);
+const pausadoAqui = (n) => semPlano() && meusNegocios.length > 1 && n.tipo !== principalEscolhido();
+// Leva a escolha para todos os perfis (sem as regras novas, a gravação é recusada e tenta de novo na próxima visita).
+function sincronizarPrincipal() {
+  const p = principalEscolhido();
+  if (!p) return;
+  for (const n of meusNegocios) if (n.principal !== p) fb.updateDoc(fb.doc(fb.db, "negocios", n.id), { principal: p }).then(() => { n.principal = p; }).catch(() => {});
+}
+async function deixarNoAr(n) {
+  const atual = meusNegocios.find((x) => x.tipo === principalEscolhido());
+  const ok = await confirmarHF({
+    titulo: `Deixar "${n.nome || NEGOCIOS[n.tipo].rotulo}" no ar?`,
+    texto: `Sem plano, só um perfil de negócio fica no ar.${atual ? ` "${atual.nome || NEGOCIOS[atual.tipo].rotulo}" fica pausado: sai das vitrines e da busca, mas nada é apagado.` : ""} Com um plano, todos voltam ao ar.`,
+    ok: "Deixar no ar", icone: "check", cor: "normal"
+  });
+  if (!ok) return;
+  try {
+    await fb.setDoc(fb.doc(fb.db, "usuarios", eu.uid), { negocioPrincipal: n.tipo }, { merge: true });
+    dados.negocioPrincipal = n.tipo;
+    sincronizarPrincipal();
+    pintarPainel();
+    toast(`"${n.nome || NEGOCIOS[n.tipo].rotulo}" está no ar`);
+  } catch (e) { toast("Não foi possível trocar: " + erroAmigavel(e)); }
+}
+const verPlanos = () => abrirPlanos({ fb, eu, dados, toast, aoMudar: () => pintarPlano() });
+
 // Campos novos guardados na conta enquanto as regras não estavam publicadas: tenta levar para o perfil.
 async function sincronizarExtras() {
   for (const n of meusNegocios) {
@@ -207,9 +250,9 @@ function pintarPainel() {
     capa.style.setProperty("--img", `url("${f}")`);
     const tag = el("span", "tag"); tag.append(icone(tipo, "i xs"), document.createTextNode(t.rotulo));
     capa.appendChild(tag);
-    const oculto = (n.ocultoAte?.toMillis?.() ?? 0) > Date.now();
-    const st = el("span", "ng-status" + (oculto ? " off" : ""));
-    st.append(el("i"), document.createTextNode(oculto ? "Fora do ar" : "No ar"));
+    const oculto = (n.ocultoAte?.toMillis?.() ?? 0) > Date.now(), pausado = !oculto && pausadoAqui(n);
+    const st = el("span", "ng-status" + (oculto ? " off" : pausado ? " pausa" : ""));
+    st.append(el("i"), document.createTextNode(oculto ? "Fora do ar" : pausado ? "Pausado" : "No ar"));
     capa.appendChild(st);
     const corpo = el("div", "corpo");
     const av = el("div", "avatar"); pintarAvatar(av, n.foto, n.nome);
@@ -271,6 +314,17 @@ function pintarPainel() {
     corpo.appendChild(cab);
     const stPromo = situacaoPromo(n);
     if (stPromo) corpo.appendChild(stPromo);
+    // Sem plano e com mais de um perfil: este está pausado (escolher deixar este no ar ou assinar).
+    if (pausado) {
+      const av3 = el("div", "neg-aviso pausa");
+      const bts = el("div", "neg-aviso-bts");
+      const bAr = btnIc("btn mini ng-pri", "check", "Deixar este no ar"); bAr.addEventListener("click", () => deixarNoAr(n));
+      const bPl = btnIc("btn sec mini", "estrela", "Ver planos"); bPl.addEventListener("click", verPlanos);
+      bts.append(bAr, bPl);
+      av3.append(el("strong", null, "Pausado: não aparece para os clientes"),
+        el("span", null, "Sem plano, só um perfil de negócio fica no ar. Nada foi apagado: assine um plano para ter todos no ar ou troque qual fica."), bts);
+      corpo.appendChild(av3);
+    }
     // Escondido da vitrine: pela equipe (moderação) ou porque a conta está desativada.
     if (oculto) {
       const av2 = el("div", "neg-aviso");
@@ -357,7 +411,7 @@ function maiorDeIdade() {
 // Estatísticas do negócio (insights-negocio.js, carregado só quando abre).
 async function abrirEstatisticas(n) {
   try {
-    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=21");
+    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=22");
     abrirInsightsNegocio(n, { aoEditar: (neg) => abrirFormNegocio(meusNegocios.find((x) => x.id === neg.id) || neg) });
   } catch (e) { toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)); }
 }
@@ -379,8 +433,17 @@ function escolherEstatisticas() {
   abrirFolha("folhaEscolherEst");
 }
 $("atalhoEstat").addEventListener("click", () => escolherEstatisticas());
-function novoNegocio(tipo) {
+async function novoNegocio(tipo) {
   if (!maiorDeIdade()) { toast("Para criar um perfil de negócio é preciso ter 18 anos ou mais."); return; }
+  if (semPlano() && meusNegocios.length) {
+    const atual = meusNegocios.find((x) => x.tipo === principalEscolhido());
+    const ok = await confirmarHF({
+      titulo: "Sem plano, só um perfil fica no ar",
+      texto: `"${atual?.nome || "Seu perfil atual"}" continua no ar. O novo perfil fica pausado (fora das vitrines e da busca) até você assinar um plano ou escolher deixá-lo no ar no lugar do outro.`,
+      ok: "Criar mesmo assim", icone: "info", cor: "normal"
+    });
+    if (!ok) return;
+  }
   abrirFormNegocio(null);
   if (tipo && NEGOCIOS[tipo]) escolherTipo(tipo);
 }
@@ -391,7 +454,7 @@ function novoNegocio(tipo) {
 let negEditando = null, negTipo = "servicos", negFoto = "", negCapa = "", negSemana = ["", "", "", "", "", "", ""], negPromo = null;
 // Campos novos (Instagram, site, CNPJ, capa, horário por dia e promoção): sem as regras novas publicadas,
 // ficam guardados na conta (usuarios.negociosExtras) e vão para o perfil sozinhos depois (sincronizarExtras).
-const NOVOS_NEG = ["instagram", "site", "cnpj", "capa", "semana", "promocao", "geo", "busca"];
+const NOVOS_NEG = ["instagram", "site", "cnpj", "capa", "semana", "promocao", "geo", "busca", "principal"];
 // Palavras da busca nacional (busca.js): nome, áreas/categorias, profissão de saúde, tipo, cidade, bairro e descrição.
 function buscaDoNegocio(d) {
   const ks = Array.isArray(d.categorias) && d.categorias.length ? d.categorias : d.categoria ? [d.categoria] : [];
@@ -425,7 +488,7 @@ function abrirFormNegocio(n, { promo = false } = {}) {
   negTipo = n ? n.tipo : Object.keys(NEGOCIOS).find((k) => !usados.has(k)) || "servicos";
   negFoto = n?.foto || "";
   pintarTipos(n ? [n.tipo] : Object.keys(NEGOCIOS), n ? new Set() : usados);
-  $("negTipoAjuda").textContent = n ? "O tipo não pode ser trocado depois de criado." : "Você pode ter um perfil de cada tipo.";
+  $("negTipoAjuda").textContent = n ? "O tipo não pode ser trocado depois de criado." : semPlano() && meusNegocios.length ? "Você pode ter um perfil de cada tipo. Sem plano, só um fica no ar." : "Você pode ter um perfil de cada tipo.";
   $("tNegocio").textContent = n ? "Editar perfil de negócio" : "Novo perfil de negócio";
   $("negNome").value = n?.nome || "";
   aplicarTipoNoForm();
@@ -1334,12 +1397,13 @@ function situacaoPromo(n) {
   const pend = extrasPendentes(n.id);
   const pr = pend && "promocao" in pend ? pend.promocao : n.promocao;
   if (!pr?.titulo) return null;
-  const fim = msPromo(pr.ate), noAr = fim > Date.now();
-  const d = el("button", "ng-promo-st " + (!noAr ? "fim" : pend && "promocao" in pend ? "espera" : "on"));
+  const fim = msPromo(pr.ate), noAr = fim > Date.now(), guardada = noAr && ((pend && "promocao" in pend) || semPlano());
+  const d = el("button", "ng-promo-st " + (!noAr ? "fim" : guardada ? "espera" : "on"));
   d.type = "button";
   const tx = el("span", "tx");
-  tx.append(el("strong", null, !noAr ? "Promoção encerrada" : pend && "promocao" in pend ? "Promoção salva" : "Promoção no ar"),
+  tx.append(el("strong", null, !noAr ? "Promoção encerrada" : guardada ? "Promoção salva" : "Promoção no ar"),
     el("small", null, !noAr ? `Terminou em ${new Date(fim).toLocaleDateString("pt-BR")} · toque para criar outra`
+      : semPlano() ? "Aparece para os clientes quando você tiver um plano ativo"
       : pend && "promocao" in pend ? "Aparece para os clientes assim que a atualização do sistema for publicada"
       : [pr.titulo, prazoPromo(pr.ate)].join(" · ")));
   d.append(icone("selo", "i s"), tx);
@@ -1354,6 +1418,7 @@ function montarPromo() {
   const tit = el("div", "ng-bloco-tit");
   const tx = el("div"); tx.append(el("strong", null, "Promoção ou cupom"), el("small", null, negPromo?.terminou && !negPromo.ativa
     ? `A última terminou em ${new Date(negPromo.terminou).toLocaleDateString("pt-BR")}. Ligue para criar outra.`
+    : semPlano() ? "Faz parte dos planos: sem plano ativo, a promoção fica guardada e não aparece para os clientes"
     : "Destaque no topo do perfil e selo nos cartões, com prazo para acabar"));
   const chave = el("label", "ng-chave ng-chave-dir");
   const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = !!negPromo?.ativa; cb.setAttribute("aria-label", "Promoção ativa");
@@ -1425,6 +1490,15 @@ function pintarTipos(tipos, usados) {
     b.disabled = usados.has(tipo);
     box.appendChild(b);
   });
+  // Comunidade não é perfil de negócio (é de graça e proibido vender): o cartão leva a criar um anúncio lá.
+  if (tipos.length > 1) {
+    const c = el("a", "ng-tipo comunidade"); c.href = "comunidade.html?novo=doacao";
+    const ic = el("span", "ic"); ic.appendChild(icone("comunidade", "i s"));
+    const tx = el("span", "tx"); tx.append(el("strong", null, "Comunidade"), el("small", null, "Doe, troque ou peça ajuda"));
+    c.append(ic, tx, el("span", "ir", "↗"));
+    c.title = "Abre a Comunidade para anunciar de graça (doação, troca, pedido, quarto ou achados)";
+    box.appendChild(c);
+  }
   marcarTipo();
 }
 function marcarTipo() {
@@ -1587,9 +1661,12 @@ $("negSalvar").addEventListener("click", async () => {
     dadosNeg.busca = buscaDoNegocio(dadosNeg);
     if (JSON.stringify(dadosNeg).length > 950000) throw new Error("Fotos demais para um perfil. Remova algumas fotos e tente de novo.");
     dadosNeg.criadoEm = negEditando?.criadoEm || fb.serverTimestamp();
+    dadosNeg.principal = principalEscolhido() || negTipo;
     const gravar = (d) => gravarComLocal((dd) => fb.setDoc(fb.doc(fb.db, "negocios", id), dd), d, NOVOS.negocio);
     let pendente = false;
-    try { await gravar(dadosNeg); }
+    // "principal" é o campo mais novo: se só ele for recusado (regras de antes), grava sem ele e tenta depois.
+    const gravarTudo = (d) => gravar(d).catch((e) => { if (e?.code !== "permission-denied") throw e; const sp = { ...d }; delete sp.principal; return gravar(sp); });
+    try { await gravarTudo(dadosNeg); }
     catch (e) {
       // Saúde só existe nas regras novas: sem elas, não há como guardar o perfil ainda.
       if (e?.code === "permission-denied" && negTipo === "saude") throw new Error("o perfil de Saúde começa a funcionar quando a atualização do sistema for publicada.");

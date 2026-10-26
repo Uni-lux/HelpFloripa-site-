@@ -11,10 +11,12 @@ await p.screenshot({ path: `saida/neg-${tema}-1.png` });
 await p.screenshot({ path: `saida/neg-${tema}-full.png`, fullPage: true });
 console.log("cards:", await p.locator(".neg-card").count(), "novos:", await p.locator(".ng-novo").count(), "comp:", await p.locator(".ng-comp-topo strong").allTextContents());
 await p.locator(".ng-novo").first().click(); await p.waitForTimeout(800);
+// Sem plano e já com perfil: pergunta antes (o novo fica pausado). Aceita para seguir.
+if (await p.locator(".hf-confirma .sim").count()) { await p.locator(".hf-confirma .sim").click(); await p.waitForTimeout(800); }
 console.log("titulo:", await p.textContent("#tNegocio"), "ph:", await p.getAttribute("#negNome", "placeholder"));
 await p.screenshot({ path: `saida/neg-${tema}-form.png` });
 await p.fill("#negWhats", "48999887766"); console.log("whats:", await p.inputValue("#negWhats"));
-await p.locator(".ng-tipo:not(:disabled)").last().click(); await p.waitForTimeout(400);
+await p.locator("button.ng-tipo:not(:disabled)").last().click(); await p.waitForTimeout(400);
 console.log("tipo:", await p.getAttribute("#folhaNegocio", "data-tipo"));
 await p.screenshot({ path: `saida/neg-${tema}-form2.png` });
 await browser.close();

@@ -4,6 +4,7 @@
 // Funciona nas vitrines (servicos/delivery/shopping/imoveis) e no perfil, sem depender do rede.js.
 // Quem vê: as mesmas escolhas do autor (Amigos próximos e "Ocultar de") e 24 h.
 // =====================================================
+import { lerPlano, nivelPlano } from "./planos-base.js?v=4";
 const DIA = 864e5, TEMPO_FOTO = 6000;
 const ms = (t) => (t?.toMillis ? t.toMillis() : t?.seconds ? t.seconds * 1000 : typeof t === "number" ? t : 0);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
@@ -56,10 +57,12 @@ function css() {
 const PAGINA = { servicos: "servicos.html", delivery: "delivery.html", lojinha: "shopping.html", imoveis: "imoveis.html", saude: "saude.html" };
 const cache = new Map();
 // Flashes ativos que o dono colocou neste perfil de negócio (o que a pessoa pode ver), do mais antigo ao mais novo.
+// Flash nos perfis de negócio faz parte dos planos: sem plano ativo do dono, o perfil do negócio não mostra flash.
 export function flashesDoNegocio(fbx, euX, negId) {
-  if (!cache.has(negId)) cache.set(negId, fbx.getDocs(fbx.query(fbx.collection(fbx.db, "stories"), fbx.where("negocios", "array-contains", negId), fbx.limit(30)))
+  const dono = String(negId).split("_")[0];
+  if (!cache.has(negId)) cache.set(negId, lerPlano(fbx, dono).then((pl) => (nivelPlano(pl) || dono === euX?.uid ? true : Promise.reject(new Error("sem plano")))).then(() => fbx.getDocs(fbx.query(fbx.collection(fbx.db, "stories"), fbx.where("negocios", "array-contains", negId), fbx.limit(30)))
     .then((s) => s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter((x) => ativo(x) && podeVer(x, euX?.uid)).sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm)))
-    .catch(() => []));
+    .catch(() => [])).catch(() => []));
   return cache.get(negId);
 }
 

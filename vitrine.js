@@ -14,16 +14,19 @@ import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL 
 import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento, media, avaliarNegocio } from "./avaliacoes.js?v=14";
 import { abrirQueixa } from "./queixas.js?v=12";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
-import { anelNegocio } from "./flash-negocio.js?v=3";
+import { anelNegocio } from "./flash-negocio.js?v=4";
 import { camposEndereco, textoCidade, cidadesDe, NOME_UF, semAcento } from "./endereco.js?v=1";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao } from "./perto.js?v=2";
-import { lerPlano, nivelPlano, seloPlano, nomePlano } from "./planos-base.js?v=3";
+import { lerPlano, nivelPlano, seloPlano, nomePlano, negocioPausado } from "./planos-base.js?v=4";
 import { PROFISSOES_SAUDE, CATEGORIAS_SAUDE, SITE_CONSELHO, MODALIDADES_SAUDE, PUBLICO_SAUDE, PUBLICO_VET, nomeProfissao, conselhoDe, ehVet, textoRegistro, textoValor, AVISO_EMERGENCIA, AVISO_REGISTRO } from "./saude-dados.js?v=1";
 import { usarEstat, registrarVisita, registrarAcao, registrarItem, chaveItem as chaveEstat, chaveAnuncio } from "./estat-negocio.js?v=1";
 // Plano de quem anuncia: todo plano pago tem o selo; Pro e Premium aparecem antes na ordem padrão
 // (Premium antes de todos).
 const planosDonos = new Map();
 const nivelDe = (n) => nivelPlano(planosDonos.get(n?.donoId));
+// Sem plano: só o perfil principal do dono aparece (planos-base.js). Anúncios seguem o perfil Imóveis do dono.
+const principalImoveis = new Map(); // donoId -> tipo principal (lido do perfil Imóveis)
+const pausadoNaVitrine = (x) => x?.donoId !== eu?.uid && negocioPausado(x?.tipo === "imovel" ? { tipo: "imovel", principal: principalImoveis.get(x.donoId) ?? negociosImoveis.get(x.donoId)?.principal } : x, planosDonos.get(x?.donoId));
 const destaqueDe = (n) => { const v = nivelDe(n); return v >= 2 ? v : 0; };
 const proPrimeiro = (f) => (a, b) => (destaqueDe(b.n || b) - destaqueDe(a.n || a)) || f(a, b);
 
@@ -809,7 +812,8 @@ const oculto = (x) => (x?.ocultoAte?.toMillis?.() ?? 0) > Date.now();
 const idNegocio = (n) => n.id || `${n.donoId}_${n.tipo}`;
 // Capa própria do perfil (campo novo) ou a primeira foto.
 const capaDe = (n) => urlSegura(n.capa) || urlSegura((n.fotos || []).find(urlSegura));
-export const promoAtiva = (n) => (n?.promocao?.titulo && (n.promocao.ate?.toMillis?.() ?? 0) > Date.now() ? n.promocao : null);
+// Promoção no ar faz parte dos planos: sem plano ativo do dono (ou enquanto o plano não foi lido) não aparece.
+export const promoAtiva = (n) => (n?.promocao?.titulo && (n.promocao.ate?.toMillis?.() ?? 0) > Date.now() && nivelPlano(planosDonos.get(n.donoId)) ? n.promocao : null);
 const cnpjTxt = (c) => (/^\d{14}$/.test(c || "") ? c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5") : "");
 // De onde a pessoa abriu o perfil (estatísticas do negócio).
 const origemPadrao = () => (TIPO_PAGINA ? (filtroAtual().termo ? "busca" : "vitrine") : "outro");
@@ -1108,6 +1112,9 @@ export function abrirDetalhe(n, opcoes = {}) {
   cab.appendChild(conf0); conf0.hidden = !conf0.children.length;
   // Selo do plano pago (lido do plano da conta, guardado 10 min).
   lerPlano(fbx || fb, n.donoId).then((pl) => {
+    const antes = planosDonos.has(n.donoId);
+    planosDonos.set(n.donoId, pl);
+    if (!antes) pintarPromo();
     if (!nivelPlano(pl)) return;
     const pr = el("span", "vd-selo-pro"); pr.append(seloPlano(pl), document.createTextNode(`Negócio ${nomePlano(pl.plano)}`));
     pr.title = `Este negócio assina o plano ${nomePlano(pl.plano)} do Help Floripa.`;
@@ -1117,8 +1124,12 @@ export function abrirDetalhe(n, opcoes = {}) {
   // Saúde: registro no conselho com o link para conferir, como atende e o aviso de emergência.
   if (tipo === "saude") ct.appendChild(blocoSaude(n));
 
-  // Promoção ou cupom com prazo.
+  // Promoção ou cupom com prazo (só com o plano do dono ativo: aparece quando o plano é lido).
+  const lugarPromo = el("div", "vd-promo-lugar"); lugarPromo.style.display = "contents";
+  ct.appendChild(lugarPromo);
+  const pintarPromo = () => {
   const promo = promoAtiva(n);
+  lugarPromo.replaceChildren();
   if (promo) {
     const p = el("div", "vd-promo");
     const ic = el("span", "ic"); ic.appendChild(icone("cupom", "vi"));
@@ -1139,8 +1150,10 @@ export function abrirDetalhe(n, opcoes = {}) {
       });
       p.appendChild(b);
     }
-    ct.appendChild(p);
+    lugarPromo.appendChild(p);
   }
+  };
+  pintarPromo();
 
   // Atalhos: Instagram, site, como chegar e compartilhar.
   const links = el("div", "vd-links");
@@ -2650,6 +2663,13 @@ async function incorporar(novos) {
   const idsNotas = [...new Set(add.map((n) => (TIPO === "imoveis" ? `${n.donoId}_imoveis` : idNegocio(n))))].filter((i) => !notasNeg.has(i));
   const [r] = await Promise.all([lerResumos(fb, idsNotas.map((i) => "neg_" + i)), carregarDonos(add.map((n) => n.donoId))]);
   idsNotas.forEach((i) => notasNeg.set(i, r["neg_" + i]));
+  // Anúncios de quem está sem plano: lê o perfil Imóveis do dono para saber se ele é o principal.
+  const semPerfil = [...new Set(add.filter((x) => x.tipo === "imovel" && !negociosImoveis.has(x.donoId) && !principalImoveis.has(x.donoId) && !nivelPlano(planosDonos.get(x.donoId))).map((x) => x.donoId))];
+  await Promise.all(semPerfil.map(async (id) => {
+    const s = await docComValidade(fb, ["negocios", `${id}_imoveis`], DONOS_VALIDADE).catch(() => null);
+    principalImoveis.set(id, s?.exists() ? s.data().principal || null : null);
+  }));
+  if (add.some(pausadoNaVitrine)) todos = todos.filter((x) => !pausadoNaVitrine(x));
   if (posEu) await comDistancia(add, posEu);
   return add.length;
 }
@@ -2745,7 +2765,8 @@ async function iniciar() {
     if (idAn) {
       let a = todos.find((x) => x.id === idAn);
       if (!a) { a = await buscarDireto("anuncios", idAn); if (a && (a.ativo === false || oculto(a))) a = null; if (a) await carregarDonos([a.donoId]).catch(() => {}); }
-      if (a) abrirAnuncio(a, { origem: origemLink }); else toast("Este imóvel não está mais disponível.");
+      if (a && pausadoNaVitrine(a)) toast("Este anúncio está pausado no momento.");
+      else if (a) abrirAnuncio(a, { origem: origemLink }); else toast("Este imóvel não está mais disponível.");
     } else if (idNeg) {
       let n = todos.find((x) => x.id === idNeg);
       if (!n) {
@@ -2753,7 +2774,8 @@ async function iniciar() {
         if (n && (n.tipo !== TIPO || !n.nome || n.oculto === true || oculto(n))) n = null;
         if (n) { await carregarDonos([n.donoId]).catch(() => {}); const r = await lerResumos(fb, ["neg_" + idNegocio(n)]).catch(() => ({})); notasNeg.set(idNegocio(n), r["neg_" + idNegocio(n)]); }
       }
-      if (n) abrirDetalhe(n, { origem: origemLink }); else toast("Este perfil não está mais disponível.");
+      if (n && pausadoNaVitrine(n)) toast("Este perfil está pausado no momento.");
+      else if (n) abrirDetalhe(n, { origem: origemLink }); else toast("Este perfil não está mais disponível.");
     }
   });
 }
