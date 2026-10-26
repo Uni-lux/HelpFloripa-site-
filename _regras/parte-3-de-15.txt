@@ -1,3 +1,11 @@
+    // =====================================================
+    // SEGUIDORES
+    // Documento: relacoes/{seguidorId}_{alvoId}
+    // =====================================================
+    match /relacoes/{id} {
+
+      allow read: if logado();
+
       allow create: if logado()
                     && emailOk()
                     && request.resource.data.keys().hasOnly(['tipo', 'seguidorId', 'alvoId', 'criadoEm'])
@@ -188,6 +196,7 @@
                     && request.resource.data.keys().hasOnly(camposNegocio())
                     && naoTocaCamposProtegidosNoCreate()
                     && !banidoDoPrograma(request.auth.uid, request.resource.data.tipo)
+                    && contaVerificada()
                     && (request.resource.data.tipo != 'saude' || request.resource.data.get('saude', null) is map)
                     && negocioOk();
 

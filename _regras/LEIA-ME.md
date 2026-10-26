@@ -1,10 +1,12 @@
 # Regras do Firestore — publicação
 
-> **Versão de 26/10/2026 — muda 1 regra (você publicou a anterior hoje):** os perfis de negócio aceitam o campo
-> **`principal`** (o tipo do perfil que fica no ar quando a conta está sem plano: Freelances, Delivery, Shopping, Imóveis
-> ou Saúde). É só isso de novo; o resto é igual ao que está no ar. Enquanto não publicar, **nenhum perfil fica pausado
-> para os clientes** (a escolha fica guardada na conta); depois de publicar, ela vai para os perfis sozinha quando o dono
-> abre Meus negócios.
+> **Versão de 26/10/2026 — muda 2 regras (você publicou a anterior hoje):**
+> 1. Os perfis de negócio aceitam o campo **`principal`** (o tipo do perfil que fica no ar quando a conta está sem plano).
+>    Enquanto não publicar, nenhum perfil fica pausado para os clientes (a escolha fica guardada na conta).
+> 2. **Para anunciar, a conta precisa ser verificada:** criar perfil de negócio ou anúncio de imóvel exige
+>    `usuarios/{uid}.verificado == true` (selo azul, que só a moderação dá com o pedido aprovado). Quem já anuncia continua
+>    editando o que tem; no painel (Verificações › Anunciantes sem verificação) dá para tirar do ar depois de 30/11/2026.
+> O resto é igual ao que está no ar.
 
 > **Versão de 22/10/2026:** igual à publicada em 13/10, mais **várias fotos numa publicação do Diário**
 > (campo `midias`, de 2 a 4 fotos), **dar estrelas na própria publicação** o **resumo das estrelas**
@@ -49,11 +51,11 @@ Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. S
 `firestore.rules` divididas em **15 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
-- Arquivo de origem: `firestore.rules` (172.140 bytes, 2.905 linhas, sha256 começa com `c9b7a285c566a03b`).
+- Arquivo de origem: `firestore.rules` (172.608 bytes, 2.913 linhas, sha256 começa com `6a3d66862c6e938e`).
 - Cada parte termina com a linha `// ===== FIM DA PARTE X DE 15 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
 - Conferido: as 15 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **565 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
+- Testes de regras no arquivo remontado: **570 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.

@@ -14,10 +14,10 @@ import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL 
 import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento, media, avaliarNegocio } from "./avaliacoes.js?v=14";
 import { abrirQueixa } from "./queixas.js?v=12";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
-import { anelNegocio } from "./flash-negocio.js?v=4";
+import { anelNegocio } from "./flash-negocio.js?v=5";
 import { camposEndereco, textoCidade, cidadesDe, NOME_UF, semAcento } from "./endereco.js?v=1";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao } from "./perto.js?v=2";
-import { lerPlano, nivelPlano, seloPlano, nomePlano, negocioPausado } from "./planos-base.js?v=4";
+import { lerPlano, nivelPlano, seloPlano, nomePlano, negocioPausado, LIMITES_GRATIS } from "./planos-base.js?v=5";
 import { PROFISSOES_SAUDE, CATEGORIAS_SAUDE, SITE_CONSELHO, MODALIDADES_SAUDE, PUBLICO_SAUDE, PUBLICO_VET, nomeProfissao, conselhoDe, ehVet, textoRegistro, textoValor, AVISO_EMERGENCIA, AVISO_REGISTRO } from "./saude-dados.js?v=1";
 import { usarEstat, registrarVisita, registrarAcao, registrarItem, chaveItem as chaveEstat, chaveAnuncio } from "./estat-negocio.js?v=1";
 // Plano de quem anuncia: todo plano pago tem o selo; Pro e Premium aparecem antes na ordem padrão
@@ -26,8 +26,15 @@ const planosDonos = new Map();
 const nivelDe = (n) => nivelPlano(planosDonos.get(n?.donoId));
 // Sem plano: só o perfil principal do dono aparece (planos-base.js). Anúncios seguem o perfil Imóveis do dono.
 const principalImoveis = new Map(); // donoId -> tipo principal (lido do perfil Imóveis)
+// Perfil grátis (dono sem plano ativo): até 3 itens, 1 foto, sem capa, sem links e sem promoção; pedidos,
+// orçamentos e agendamentos só pelo chat e WhatsApp. O resto continua guardado e volta quando a pessoa assina.
+function versaoGratis(n) {
+  return { ...n, itens: (n.itens || []).filter((i) => i?.nome).slice(0, LIMITES_GRATIS.itens), fotos: (n.fotos || []).slice(0, LIMITES_GRATIS.fotos), capa: "", instagram: "", site: "", promocao: null, _gratis: true };
+}
+const comLimites = (n) => (n && !n._gratis && n.tipo !== "imovel" && planosDonos.has(n.donoId) && !nivelPlano(planosDonos.get(n.donoId)) ? versaoGratis(n) : n);
 const pausadoNaVitrine = (x) => x?.donoId !== eu?.uid && negocioPausado(x?.tipo === "imovel" ? { tipo: "imovel", principal: principalImoveis.get(x.donoId) ?? negociosImoveis.get(x.donoId)?.principal } : x, planosDonos.get(x?.donoId));
-const destaqueDe = (n) => { const v = nivelDe(n); return v >= 2 ? v : 0; };
+// Ordem padrão: Premium > Pro > Plus > grátis (todo plano pago aparece antes de quem não tem plano).
+const destaqueDe = (n) => nivelDe(n);
 const proPrimeiro = (f) => (a, b) => (destaqueDe(b.n || b) - destaqueDe(a.n || a)) || f(a, b);
 
 const PARAMS = new URL(import.meta.url).searchParams;
@@ -656,6 +663,12 @@ export function abrirProduto(n, idx, opcoes = {}) {
   const pintarAcoes = () => {
     barra.replaceChildren();
     if (proprio) { barra.appendChild(el("p", "vd-dica", "Pré-visualização do seu produto.")); return; }
+    // Perfil grátis: sem carrinho; a pessoa fala com a loja.
+    if (opcoes.semPedido ?? n._gratis) {
+      const b = el("button", "vt-btn pri"); b.type = "button"; b.append(icone("chat"), document.createTextNode("Perguntar pelo chat"));
+      b.addEventListener("click", () => { sair(); (opcoes.aoMensagem || ((uid, c) => prepararConversa(opcoes.fb || fb, opcoes.eu || eu, uid, c)))(n.donoId, cartaoDeNegocio(n)); });
+      barra.appendChild(b); return;
+    }
     if (est === 0) { const b = el("button", "vt-btn sec", "Produto esgotado"); b.type = "button"; b.disabled = true; barra.appendChild(b); return; }
     const falta = (tams.length && !escolha.tam) || (cores.length && !escolha.cor);
     const chave = chaveItem(i, idx, escolha.tam, escolha.cor);
@@ -813,7 +826,8 @@ const idNegocio = (n) => n.id || `${n.donoId}_${n.tipo}`;
 // Capa própria do perfil (campo novo) ou a primeira foto.
 const capaDe = (n) => urlSegura(n.capa) || urlSegura((n.fotos || []).find(urlSegura));
 // Promoção no ar faz parte dos planos: sem plano ativo do dono (ou enquanto o plano não foi lido) não aparece.
-export const promoAtiva = (n) => (n?.promocao?.titulo && (n.promocao.ate?.toMillis?.() ?? 0) > Date.now() && nivelPlano(planosDonos.get(n.donoId)) ? n.promocao : null);
+// Saúde não tem promoção nem cupom (como nas plataformas de saúde: os conselhos limitam esse tipo de anúncio).
+export const promoAtiva = (n) => (n?.tipo !== "saude" && n?.promocao?.titulo && (n.promocao.ate?.toMillis?.() ?? 0) > Date.now() && nivelPlano(planosDonos.get(n.donoId)) ? n.promocao : null);
 const cnpjTxt = (c) => (/^\d{14}$/.test(c || "") ? c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5") : "");
 // De onde a pessoa abriu o perfil (estatísticas do negócio).
 const origemPadrao = () => (TIPO_PAGINA ? (filtroAtual().termo ? "busca" : "vitrine") : "outro");
@@ -842,6 +856,13 @@ export async function buscarAnuncios(fbx, donoId) {
     .sort((a, b) => (b.atualizadoEm?.toMillis?.() ?? 0) - (a.atualizadoEm?.toMillis?.() ?? 0));
 }
 // Cadastro antigo: o próprio perfil de imóveis tinha os dados de um imóvel.
+// Sem plano, o anunciante mostra 1 anúncio de imóvel: o mais antigo (o mesmo em todo lugar).
+const umAnuncioGratis = (lista) => [...lista].sort((a, b) => (a.criadoEm?.toMillis?.() ?? 0) - (b.criadoEm?.toMillis?.() ?? 0)).slice(0, LIMITES_GRATIS.anuncios);
+function umAnuncioGratisPorDono(lista) {
+  const porDono = new Map();
+  lista.forEach((a) => porDono.set(a.donoId, [...(porDono.get(a.donoId) || []), a]));
+  return [...porDono.values()].flatMap(umAnuncioGratis);
+}
 const negocioComoAnuncio = (n) => ({ ...n, id: "n_" + n.id, legado: true, titulo: n.titulo || "", categoria: n.categoria });
 
 // Nome do criador leva ao perfil dele.
@@ -877,8 +898,8 @@ function botoes(donoId, { texto, whats, textoWhats, cartao, editarHref, acao, ne
   return box;
 }
 const botoesNegocio = (n) => botoes(n.donoId, {
-  texto: n.tipo === "delivery" ? "Ver cardápio" : TEXTO_CONTATO[n.tipo], whats: n.whatsapp, cartao: cartaoDeNegocio(n),
-  acao: n.tipo === "servicos" ? () => abrirOrcamento(n) : n.tipo === "delivery" ? () => abrirDetalhe(n) : null,
+  texto: n.tipo === "delivery" ? "Ver cardápio" : n._gratis ? "Conversar" : TEXTO_CONTATO[n.tipo], whats: n.whatsapp, cartao: cartaoDeNegocio(n),
+  acao: n.tipo === "servicos" && !n._gratis ? () => abrirOrcamento(n) : n.tipo === "delivery" ? () => abrirDetalhe(n) : null,
   textoWhats: `Olá! Vi "${n.nome}" no Help Floripa.`, editarHref: `negocios.html?tipo=${n.tipo}`, neg: n
 });
 
@@ -1059,6 +1080,13 @@ function barraContato({ proprio, aoEditar, editarHref, sair, texto, whats, texto
 // ---------- perfil completo do negócio ----------
 // opcoes: { fb, eu, dono, proprio, aoMensagem(uid, cartao), aoEditar(n), aoPerfil(uid) }
 export function abrirDetalhe(n, opcoes = {}) {
+  // Precisa do plano do dono para saber o que mostrar (perfil grátis tem limites): lê antes, se ainda não sabe.
+  if (n?.donoId && !planosDonos.has(n.donoId) && !opcoes._comPlano) {
+    lerPlano(opcoes.fb || fb, n.donoId).catch(() => null).then((pl) => { planosDonos.set(n.donoId, pl); abrirDetalhe(n, { ...opcoes, _comPlano: true }); });
+    return;
+  }
+  n = comLimites(n);
+  const semPedido = !!n._gratis;
   const tipo = n.tipo || TIPO;
   const fbx = opcoes.fb || fb, euX = opcoes.eu || eu;
   const dono = opcoes.dono || donos.get(n.donoId) || {};
@@ -1087,6 +1115,7 @@ export function abrirDetalhe(n, opcoes = {}) {
   if (proprio) {
     const aviso = el("div", "vd-previa");
     aviso.append(el("span", null, "Pré-visualização: é assim que os outros veem seu perfil de negócio."));
+    if (semPedido) aviso.append(el("span", null, ` Perfil grátis: aparecem até ${LIMITES_GRATIS.itens} itens e ${LIMITES_GRATIS.fotos} foto, sem capa, links e pedidos pelo site. Com um plano, tudo volta.`));
     ct.appendChild(aviso);
   }
   const cab = el("div", "vd-cab");
@@ -1239,8 +1268,8 @@ export function abrirDetalhe(n, opcoes = {}) {
   }
 
   const itens = (n.itens || []).filter((i) => i?.nome);
-  const orcar = (idx = null) => (proprio ? null : abrirOrcamento(n, { ...opcoes, fb: fbx, eu: euX, aoMensagem, origem }, idx));
-  const agendar = (idx = null) => (proprio ? null : abrirAgendamento(n, { ...opcoes, fb: fbx, eu: euX, aoMensagem, origem }, idx));
+  const orcar = (idx = null) => (proprio || semPedido ? null : abrirOrcamento(n, { ...opcoes, fb: fbx, eu: euX, aoMensagem, origem }, idx));
+  const agendar = (idx = null) => (proprio || semPedido ? null : abrirAgendamento(n, { ...opcoes, fb: fbx, eu: euX, aoMensagem, origem }, idx));
   if (tipo === "saude" && itens.length) {
     // Consultas e procedimentos com preço e duração; "Agendar" já leva o escolhido.
     ct.appendChild(titulo4(ehVet(n.saude) ? "Consultas e serviços" : "Consultas e procedimentos"));
@@ -1254,7 +1283,7 @@ export function abrirDetalhe(n, opcoes = {}) {
       if (i.descricao) tx.appendChild(el("p", null, i.descricao));
       const pr = el("div", "pr");
       pr.append(el("strong", null, moeda(i.preco) || "Consultar"));
-      if (!proprio) {
+      if (!proprio && !semPedido) {
         const b = el("button", "vd-pedir", "Agendar"); b.type = "button";
         b.addEventListener("click", () => { registrarItem(neg, chaveEstat(i.nome), origem); agendar(idx); });
         pr.appendChild(b);
@@ -1283,7 +1312,7 @@ export function abrirDetalhe(n, opcoes = {}) {
         const unidade = i.unidade && i.unidade !== "fixo" && i.unidade !== "combinar" ? UNIDADES_SERV[i.unidade] : "";
         pr.append(el("strong", null, i.unidade === "combinar" ? "A combinar" : moeda(i.preco) || "A combinar"));
         if (unidade && moeda(i.preco)) pr.appendChild(el("small", null, unidade));
-        if (!proprio) {
+        if (!proprio && !semPedido) {
           const b = el("button", "vd-pedir", "Pedir");
           b.type = "button";
           b.addEventListener("click", () => { if (!proprio) registrarItem(neg, chaveEstat(i.nome), origem); orcar(idx); });
@@ -1297,7 +1326,8 @@ export function abrirDetalhe(n, opcoes = {}) {
   } else if ((tipo === "delivery" || tipo === "lojinha") && itens.length) {
     const comIdx = (n.itens || []).map((i, idx) => ({ i, idx })).filter(({ i }) => i?.nome);
     ct.appendChild(titulo4(tipo === "delivery" ? "Cardápio" : "Produtos"));
-    if (!proprio) ct.appendChild(el("p", "vd-dica", tipo === "delivery" ? "Toque em Adicionar para montar seu pedido. O total vai somando lá embaixo." : "Toque no produto para ver tamanhos, cores e detalhes."));
+    if (!proprio && semPedido) ct.appendChild(el("p", "vd-dica", "Para pedir, fale com o negócio pelo chat ou pelo WhatsApp aqui embaixo."));
+    else if (!proprio) ct.appendChild(el("p", "vd-dica", tipo === "delivery" ? "Toque em Adicionar para montar seu pedido. O total vai somando lá embaixo." : "Toque no produto para ver tamanhos, cores e detalhes."));
     const area = el("div", "vd-cardapio-area");
     ct.appendChild(area);
     const barraCarrinho = el("div", "vd-carrinho");
@@ -1319,7 +1349,7 @@ export function abrirDetalhe(n, opcoes = {}) {
       ver.addEventListener("click", () => abrirPedido(n, { ...opcoes, fb: fbx, eu: euX, aoMensagem, origem }, pintarItens));
       barraCarrinho.append(info, ver);
     };
-    const opcoesProduto = () => ({ ...opcoes, fb: fbx, eu: euX, aoMensagem, proprio, aoMudarCarrinho: pintarItens, origem });
+    const opcoesProduto = () => ({ ...opcoes, fb: fbx, eu: euX, aoMensagem, proprio, aoMudarCarrinho: pintarItens, origem, semPedido });
     const pintarItens = () => {
       const carrinho = lerCarrinho(n);
       area.replaceChildren();
@@ -1344,7 +1374,7 @@ export function abrirDetalhe(n, opcoes = {}) {
             const lado = el("div", "lado");
             if (urlSegura(i.foto)) { const f = el("div", "ft"); f.style.backgroundImage = `url("${i.foto}")`; lado.appendChild(f); }
             else lado.classList.add("sem-foto");
-            if (!proprio && est !== 0) {
+            if (!proprio && !semPedido && est !== 0) {
               const chave = chaveItem(i, idx);
               lado.appendChild(controleQtd(carrinho[chave] || 0, limiteItem(i), (q) => { if (q > 0) registrarItem(neg, chaveEstat(i.nome), origem); mudarCarrinho(n, chave, q); pintarItens(); }));
             } else if (est === 0) lado.appendChild(el("span", "vd-selo-inline", "Esgotado"));
@@ -1404,6 +1434,7 @@ export function abrirDetalhe(n, opcoes = {}) {
     ct.appendChild(grade);
     buscarAnuncios(fbx, n.donoId).then((lista) => {
       if (n.preco || n.quartos) lista.push(negocioComoAnuncio(n));
+      if (semPedido) lista = umAnuncioGratis(lista);
       grade.replaceChildren();
       if (!lista.length) { grade.appendChild(el("p", "vt-sub", proprio ? "Você ainda não anunciou imóveis. Use Editar para anunciar." : "Nenhum imóvel disponível no momento.")); return; }
       lista.forEach((a) => grade.appendChild(miniImovel(a, () => { sair(); abrirAnuncio({ ...a, donoId: n.donoId }, { ...opcoes, anunciante: n }); })));
@@ -1420,9 +1451,9 @@ export function abrirDetalhe(n, opcoes = {}) {
 
   ct.appendChild(barraContato({
     proprio, sair, aoEditar: opcoes.aoEditar ? () => opcoes.aoEditar(n) : null, editarHref: `negocios.html?tipo=${tipo}`,
-    texto: tipo === "imoveis" ? "Falar com o anunciante" : TEXTO_CONTATO[tipo], whats: n.whatsapp,
-    textoWhats: `Olá! Vi "${n.nome}" no Help Floripa.`, aoMensagem: tipo === "servicos" ? () => orcar() : tipo === "saude" ? () => agendar() : aoMensagem, donoId: n.donoId, cartao: cartaoDeNegocio(n),
-    aoContar: contar, contaMensagem: tipo !== "servicos" && tipo !== "saude"
+    texto: tipo === "imoveis" ? "Falar com o anunciante" : semPedido ? "Conversar pelo chat" : TEXTO_CONTATO[tipo], whats: n.whatsapp,
+    textoWhats: `Olá! Vi "${n.nome}" no Help Floripa.`, aoMensagem: semPedido ? aoMensagem : tipo === "servicos" ? () => orcar() : tipo === "saude" ? () => agendar() : aoMensagem, donoId: n.donoId, cartao: cartaoDeNegocio(n),
+    aoContar: contar, contaMensagem: semPedido || (tipo !== "servicos" && tipo !== "saude")
   }));
   // Avaliar e reclamar: abertos pelo cliente (uma nota por cliente; reclamação com limite justo).
   if (!proprio && euX && fbx) {
@@ -2670,6 +2701,12 @@ async function incorporar(novos) {
     principalImoveis.set(id, s?.exists() ? s.data().principal || null : null);
   }));
   if (add.some(pausadoNaVitrine)) todos = todos.filter((x) => !pausadoNaVitrine(x));
+  todos = todos.map(comLimites);
+  // Imóveis de quem está sem plano: só o anúncio mais antigo aparece.
+  if (TIPO === "imoveis") {
+    const livres = new Set(umAnuncioGratisPorDono(todos.filter((x) => x.tipo === "imovel" && !nivelPlano(planosDonos.get(x.donoId)))).map((x) => x.id));
+    todos = todos.filter((x) => x.tipo !== "imovel" || nivelPlano(planosDonos.get(x.donoId)) || livres.has(x.id));
+  }
   if (posEu) await comDistancia(add, posEu);
   return add.length;
 }

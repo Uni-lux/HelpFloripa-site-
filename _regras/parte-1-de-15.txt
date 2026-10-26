@@ -15,6 +15,12 @@ service cloud.firestore {
       return request.auth.token.email_verified == true && !sancionado(request.auth.uid);
     }
 
+    // Para anunciar (criar perfil de negócio ou anúncio de imóvel), a conta precisa ser verificada:
+    // usuarios/{uid}.verificado só vira true pela moderação com o pedido aprovado (seloLiberado) ou pelo dono do site.
+    function contaVerificada() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.get('verificado', false) == true;
+    }
+
     // Administrador: documento admins/{uid} criado à mão no console do Firebase.
     function admin() {
       return request.auth != null
@@ -232,21 +238,6 @@ service cloud.firestore {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ocultoAte', 'ocultoPelaEquipe'])
           && dataOuNulo('ocultoAte')
           && request.resource.data.get('ocultoPelaEquipe', false) is bool;
-    }
-
-    // Campos novos ou alterados (campos antigos removidos não contam).
-    function gravou() {
-      let d = request.resource.data.diff(resource.data);
-      return d.addedKeys().union(d.changedKeys());
-    }
-
-    // Bloqueio: bloqueios/{quemBloqueou}_{quemFoiBloqueado}
-    function bloqueou(a, b) {
-      return exists(/databases/$(database)/documents/bloqueios/$(a + '_' + b));
-    }
-
-    function bloqueioEntre(a, b) {
-      return bloqueou(a, b) || bloqueou(b, a);
     }
 
 // ===== FIM DA PARTE 1 DE 15 =====

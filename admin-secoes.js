@@ -6,19 +6,19 @@ import { cartaoComunicado } from "./comunicados.js?v=1";
 import { linha, linhaComparada, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=7";
 import { baixarPlanilhaMulti } from "./planilha.js?v=5";
 import { buscarPessoas } from "./pessoas.js?v=3";
-import { montarChat, postarNaConversa, idPar } from "./admin-chat.js?v=22";
+import { montarChat, postarNaConversa, idPar } from "./admin-chat.js?v=23";
 import { CANAIS, canalDaFila, STATUS } from "./equipe-canais.js?v=1";
-import { verConteudoDenuncia } from "./admin-denuncia.js?v=14";
+import { verConteudoDenuncia } from "./admin-denuncia.js?v=15";
 import { prepararAnexo, blocoAnexo, previaAnexo, aceitos } from "./anexos-suporte.js?v=2";
 import { FILAS, filaDe, PRIORIDADES as PRIO_SUP, prioridadeChamado, situacaoPrazo, ordemFila } from "./suporte-fila.js?v=1";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
-import { PLANOS, ORDEM_PLANOS, DIAS_BONUS, nivelPlano, nomePlano, diasRestantes, creditoDias, descontoDe, nomeDocRenda, TIPOS_NEG as TIPOS_NEG_PL } from "./planos.js?v=11";
+import { PLANOS, ORDEM_PLANOS, DIAS_BONUS, nivelPlano, nomePlano, diasRestantes, creditoDias, descontoDe, nomeDocRenda, TIPOS_NEG as TIPOS_NEG_PL } from "./planos.js?v=12";
 import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha,
   PAPEIS, DESC_PAPEIS, pode, semPermissao, nomeEquipe, vendoAgora, marcarItem, seloResp, confirmarItem, controlesResp, espera,
   PRIORIDADES, editarTarefa, moverTarefa, garantirNegocios, garantirTodasPessoas, carregarPessoas, guardarPessoas, abrirConversaSuporte, banirPrograma
-} from "./admin-base.js?v=21";
+} from "./admin-base.js?v=22";
 
 const cab = (titulo, sub, extra) => { const c = h("div", "ad-cab"); const t = h("div"); t.append(h("h1", null, titulo)); if (sub) t.append(h("p", null, sub)); c.appendChild(t); if (extra) c.appendChild(extra); return c; };
 const bloco = (titulo, sub) => { const b = h("section", "ad-bloco"); const t = h("div", "ad-bloco-topo"); const tt = h("div"); tt.append(h("h3", null, titulo)); if (sub) tt.append(h("p", null, sub)); t.appendChild(tt); b.appendChild(t); b.topo = t; return b; };
@@ -1300,8 +1300,45 @@ const MOTIVOS_RECUSA = [
 ];
 let filtroVerif = "pendente";
 const semAcentoV = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+// Para anunciar a conta precisa ser verificada. Quem já anunciava sem verificar tem até PRAZO_VERIF_NEG; depois a equipe
+// tira esses perfis do ar com a data-marca OCULTO_SEM_VERIF (ocultoAte), e eles voltam sozinhos quando o pedido é aprovado.
+const PRAZO_VERIF_NEG = new Date("2026-11-30T23:59:00-03:00");
+const OCULTO_SEM_VERIF = new Date("2999-11-30T00:00:00Z").getTime();
+async function voltarNegociosVerificados(uid) {
+  const { fb } = C;
+  for (const col of ["negocios", "anuncios"]) {
+    const s = await fb.getDocs(fb.query(fb.collection(fb.db, col), fb.where("donoId", "==", uid), fb.limit(50))).catch(() => ({ docs: [] }));
+    for (const d of s.docs) if (ms(d.data().ocultoAte) === OCULTO_SEM_VERIF) await fb.updateDoc(d.ref, { ocultoAte: null, ocultoPelaEquipe: false }).catch(() => {});
+  }
+}
+function blocoSemVerificacao(el) {
+  const b = h("div", "ad-bloco"); b.append(h("h3", null, "Anunciantes sem verificação"), h("p", null, "Carregando..."));
+  el.appendChild(b);
+  garantirTodasPessoas().then(() => {
+    const ocultoJa = (x) => ms(x.ocultoAte) > agora();
+    const sem = (x) => !pessoa(x.donoId).verificado && !ocultoJa(x);
+    const negs = D.negocios.filter(sem), ans = D.anuncios.filter(sem);
+    const donos = new Set([...negs, ...ans].map((x) => x.donoId));
+    b.replaceChildren(h("h3", null, "Anunciantes sem verificação"),
+      h("p", null, donos.size ? `${donos.size} conta(s) anunciando sem verificação: ${negs.length} perfil(is) de negócio e ${ans.length} anúncio(s). Prazo para verificarem: ${PRAZO_VERIF_NEG.toLocaleDateString("pt-BR")}. Depois do prazo, tire do ar: eles voltam sozinhos quando o pedido de verificação for aprovado.` : "Todos os anunciantes no ar têm a conta verificada."));
+    if (!donos.size || !pode("moderar")) return;
+    const bt = h("button", "ad-bt perigo", agora() < PRAZO_VERIF_NEG.getTime() ? "Tirar do ar agora (antes do prazo)" : "Tirar do ar os perfis sem verificação"); bt.type = "button";
+    bt.addEventListener("click", async () => {
+      if (!(await confirmarHF({ titulo: `Tirar do ar ${negs.length + ans.length} item(ns)?`, texto: `Perfis e anúncios de ${donos.size} conta(s) sem verificação saem das vitrines. Cada pessoa recebe um aviso para verificar a conta; ao ser aprovada, tudo volta sozinho.`, ok: "Tirar do ar", icone: "olhoOff" }))) return;
+      bt.disabled = true;
+      const { fb } = C, marca = { ocultoAte: fb.Timestamp.fromMillis(OCULTO_SEM_VERIF), ocultoPelaEquipe: true };
+      let feitos = 0;
+      for (const n of negs) { try { await fb.updateDoc(fb.doc(fb.db, "negocios", n.id), marca); feitos++; } catch {} }
+      for (const a of ans) { try { await fb.updateDoc(fb.doc(fb.db, "anuncios", a.id), marca); feitos++; } catch {} }
+      for (const uid of donos) await enviarAviso(uid, { titulo: "Seus anúncios saíram do ar: verifique sua conta", texto: "Para anunciar no Help Floripa, a conta precisa ser verificada (selo azul). Peça a verificação em Configurações › Verificação do perfil. Assim que for aprovada, seus perfis e anúncios voltam sozinhos. Nada foi apagado.", tipo: "alerta" }).catch(() => {});
+      await registrar("tirar_negocios_sem_verificacao", "", `${feitos} item(ns) de ${donos.size} conta(s)`);
+      toast(`${feitos} item(ns) fora do ar`); C.irPara("verificacoes");
+    });
+    b.appendChild(bt);
+  }).catch(() => { b.querySelector("p").textContent = "Não foi possível carregar os anunciantes."; });
+}
 export function verificacoes(el) {
-  el.appendChild(cab("Verificações", "Pedidos do selo de verificado. Confira o documento, o nome e o perfil antes de aprovar. A foto do documento é apagada na decisão."));
+  el.appendChild(cab("Verificações", "Pedidos do selo de verificado. Confira o documento, o nome e o perfil antes de aprovar. A foto do documento é apagada na decisão. Para anunciar, a conta precisa ser verificada."));
   const pedidoDe = (uid) => D.verificacoes.find((v) => v.id === uid) || (pessoa(uid).verificacaoPedido ? { id: uid, ...pessoa(uid).verificacaoPedido } : null);
   const pendentes = D.pendVerif.map((u) => ({ p: pessoa(u), v: pedidoDe(u) })).filter((x) => !x.p.verificado).sort((a, b) => ms(a.v?.criadoEm || a.p.solicitacaoVerificacaoEm) - ms(b.v?.criadoEm || b.p.solicitacaoVerificacaoEm));
   const decididas = (st) => D.verificacoes.filter((v) => v.status === st).sort((a, b) => ms(b.analisadaEm) - ms(a.analisadaEm));
@@ -1311,6 +1348,7 @@ export function verificacoes(el) {
     destaque({ rotulo: "Aprovadas", valor: aprov.length }), destaque({ rotulo: "Não aprovadas", valor: recus.length }),
     destaque({ rotulo: "Taxa de aprovação", valor: aprov.length + recus.length ? Math.round(100 * aprov.length / (aprov.length + recus.length)) : 0, formato: (v) => (aprov.length + recus.length ? v + "%" : "—") }));
   el.appendChild(kp);
+  blocoSemVerificacao(el);
   const fil = chips([["pendente", `Esperando (${pendentes.length})`], ["aprovada", `Aprovadas (${aprov.length})`], ["recusada", `Não aprovadas (${recus.length})`]], filtroVerif, (v) => { filtroVerif = v; pintar(); });
   fil.style.marginBottom = "12px";
   const lista = h("div", "ad-lista"); el.append(fil, lista);
@@ -1349,6 +1387,8 @@ export function verificacoes(el) {
     const den = D.denuncias.filter((d) => d.alvoId === p.uid);
     conf.append(linhaConf(!den.length, den.length ? `${den.length} denúncia(s) contra (${den.filter((d) => d.status === "resolvida").length} confirmadas)` : "Nenhuma denúncia contra"));
     const sanc = D.sancoes.get?.(p.uid); conf.append(linhaConf(!sanc, sanc ? `Já teve ${sanc.tipo === "banimento" ? "banimento" : "suspensão"}` : "Nunca foi suspensa"));
+    const outros = v?.nomeLegal ? D.verificacoes.filter((x) => x.id !== p.uid && semAcentoV(x.nomeLegal) === semAcentoV(v.nomeLegal)) : [];
+    if (v?.nomeLegal) conf.append(linhaConf(!outros.length, outros.length ? `Mesmo nome no documento em outra(s) conta(s): ${outros.map((x) => pessoa(x.id).nome || x.id).join(", ")} (possível conta duplicada)` : "Nome do documento não aparece em outra conta"));
     const negs = D.negocios.filter((n) => n.donoId === p.uid); if (negs.length) conf.append(linhaConf(null, `${negs.length} negócio(s): ${negs.map((n) => n.nome).slice(0, 3).join(", ")}`));
     conf.append(linhaConf(!!p.fotoPerfil, p.fotoPerfil ? "Tem foto de perfil" : "Sem foto de perfil"));
     if (v?.links?.length) { const ls = h("div", "ad-vf-links"); v.links.forEach((l) => { const a = h("a", null, l.replace(/^https?:\/\//, "").slice(0, 60)); a.href = l; a.target = "_blank"; a.rel = "noopener noreferrer"; ls.appendChild(a); }); conf.appendChild(ls); }
@@ -1399,6 +1439,7 @@ export function verificacoes(el) {
     if (!(await confirmItemV(p))) return;
     if (!(await decidir(p, v, "aprovada"))) return;
     await definirSelo(p.uid, true, `Pedido aprovado${v?.nomeLegal ? " · documento: " + v.nomeLegal : ""}`);
+    await voltarNegociosVerificados(p.uid);
     await enviarAviso(p.uid, { titulo: "Seu perfil foi verificado", texto: "Parabéns! O seu perfil agora tem o selo azul de verificado, ao lado do seu nome em todo o Help Floripa.\n\nPara manter o selo, mantenha o mesmo nome e siga os Termos de Uso.", tipo: "info" });
     toast("Perfil verificado"); C.irPara("verificacoes");
   }
@@ -1653,7 +1694,7 @@ export function relatorios(el) {
 }
 
 // ======================================================= REGISTRO E EQUIPE
-const NOMES_ACAO = { aviso: "Enviou aviso", suspender: "Suspendeu", banir: "Baniu", remover_sancao: "Removeu sanção", verificar: "Deu selo", tirar_selo: "Tirou/recusou selo", remover_conteudo: "Removeu conteúdo", esconder_negocio: "Escondeu negócio", mostrar_negocio: "Mostrou negócio", esconder_publicacao: "Escondeu publicação", mostrar_publicacao: "Mostrou publicação", exportar: "Exportou dados", relatorio_pdf: "Gerou relatório", parceria: "Atualizou parceria", parceria_apagar: "Apagou parceria", suporte_resposta: "Respondeu chamado", suporte_pegar: "Pegou chamado da fila", suporte_fila: "Transferiu/escalou chamado", suporte_conversa: "Abriu conversa de suporte", suporte_fechado: "Fechou chamado", suporte_aberto: "Reabriu chamado", reporte_novo: "Reportou pessoa do suporte", cobrar_reclamacao: "Cobrou resposta de reclamação", reporte_em_analise: "Pôs reporte em análise", reporte_resolvido: "Resolveu reporte", reporte_descartado: "Descartou reporte", comunicado_novo: "Criou comunicado", comunicado_editar: "Editou comunicado", comunicado_on: "Pôs comunicado no ar", comunicado_off: "Tirou comunicado do ar", comunicado_apagar: "Apagou comunicado", denuncia_resolvida: "Resolveu denúncia", denuncia_descartada: "Descartou denúncia", denuncia_em_analise: "Pôs denúncia em análise", assumiu: "Assumiu", passou: "Passou para outra pessoa", liberou: "Liberou", tarefa_nova: "Criou tarefa", tarefa_editar: "Editou tarefa", tarefa_a_fazer: "Voltou tarefa", tarefa_fazendo: "Começou tarefa", tarefa_feito: "Concluiu tarefa", tarefa_apagar: "Apagou tarefa", nota_interna: "Escreveu nota interna", entrou: "Entrou no painel", banir_programa: "Baniu de um programa", plano_ativar: "Ativou plano", plano_recusar: "Recusou pedido de plano", plano_encerrar: "Encerrou plano", negociacao_aprovar: "Aprovou negociação de plano", negociacao_recusar: "Não aprovou negociação de plano", negociacao_conversa: "Negociou plano", verificacao_aprovar: "Aprovou verificação", verificacao_recusar: "Recusou verificação" };
+const NOMES_ACAO = { aviso: "Enviou aviso", suspender: "Suspendeu", banir: "Baniu", remover_sancao: "Removeu sanção", verificar: "Deu selo", tirar_selo: "Tirou/recusou selo", remover_conteudo: "Removeu conteúdo", esconder_negocio: "Escondeu negócio", mostrar_negocio: "Mostrou negócio", esconder_publicacao: "Escondeu publicação", mostrar_publicacao: "Mostrou publicação", exportar: "Exportou dados", relatorio_pdf: "Gerou relatório", parceria: "Atualizou parceria", parceria_apagar: "Apagou parceria", suporte_resposta: "Respondeu chamado", suporte_pegar: "Pegou chamado da fila", suporte_fila: "Transferiu/escalou chamado", suporte_conversa: "Abriu conversa de suporte", suporte_fechado: "Fechou chamado", suporte_aberto: "Reabriu chamado", reporte_novo: "Reportou pessoa do suporte", cobrar_reclamacao: "Cobrou resposta de reclamação", reporte_em_analise: "Pôs reporte em análise", reporte_resolvido: "Resolveu reporte", reporte_descartado: "Descartou reporte", comunicado_novo: "Criou comunicado", comunicado_editar: "Editou comunicado", comunicado_on: "Pôs comunicado no ar", comunicado_off: "Tirou comunicado do ar", comunicado_apagar: "Apagou comunicado", denuncia_resolvida: "Resolveu denúncia", denuncia_descartada: "Descartou denúncia", denuncia_em_analise: "Pôs denúncia em análise", assumiu: "Assumiu", passou: "Passou para outra pessoa", liberou: "Liberou", tarefa_nova: "Criou tarefa", tarefa_editar: "Editou tarefa", tarefa_a_fazer: "Voltou tarefa", tarefa_fazendo: "Começou tarefa", tarefa_feito: "Concluiu tarefa", tarefa_apagar: "Apagou tarefa", nota_interna: "Escreveu nota interna", entrou: "Entrou no painel", banir_programa: "Baniu de um programa", punir_ma_fe: "Puniu má-fé ao anunciar", tirar_negocios_sem_verificacao: "Tirou do ar negócios sem verificação", plano_ativar: "Ativou plano", plano_recusar: "Recusou pedido de plano", plano_encerrar: "Encerrou plano", negociacao_aprovar: "Aprovou negociação de plano", negociacao_recusar: "Não aprovou negociação de plano", negociacao_conversa: "Negociou plano", verificacao_aprovar: "Aprovou verificação", verificacao_recusar: "Recusou verificação" };
 // Alvo do registro em texto de gente: a pessoa (link para a ficha), ou o item que a equipe assumiu/passou
 // ("suporte:ID" vira "Chamado #ABC123 · assunto", "denuncias:..." vira "Denúncia · motivo · pessoa"), ou a lista exportada.
 const LISTAS_EXPORT = { usuarios: "Lista de usuários", negocios: "Lista de negócios", denuncias: "Lista de denúncias", reclamacoes: "Lista de reclamações" };

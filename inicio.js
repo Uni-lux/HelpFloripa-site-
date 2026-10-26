@@ -11,10 +11,10 @@ import { fotoSegura } from "./seguranca.js?v=1";
 import { enfeitarSelect } from "./escolha.js?v=4";
 import { estrelas, lerResumos, media } from "./avaliacoes.js?v=14";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
-import { lerPlano, nivelPlano, seloPlano, semPausados } from "./planos-base.js?v=4";
+import { lerPlano, nivelPlano, seloPlano, semPausados } from "./planos-base.js?v=5";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, esquecerPosicao } from "./perto.js?v=2";
 import { lerLocal, salvarLocal, rotuloLocal, noLocal, escolherLocal } from "./local-escolhido.js?v=1";
-import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=56";
+import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=57";
 
 const $ = (id) => document.getElementById(id);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
@@ -310,8 +310,8 @@ async function montarPerto(fs, db, u, negocios, imoveis, nota) {
     const comKm = itens.filter((x) => Number.isFinite(x._km));
     const fsb = { ...fs, db };
     await Promise.all([...new Set(comKm.map((x) => x.donoId).filter(Boolean))].map(async (id) => { const pl = await lerPlano(fsb, id).catch(() => null); const nv = nivelPlano(pl); comKm.forEach((x) => { if (x.donoId === id) { x._nivel = nv; x._plano = nv ? pl : null; } }); }));
-    // Pro conta 40% mais perto e Premium 50% (o Plus só tem o selo).
-    const peso = (x) => (x._nivel >= 3 ? 0.5 : x._nivel === 2 ? 0.6 : 1);
+    // Plus conta 15% mais perto, Pro 40% e Premium 50% (todo plano pago aparece antes de quem não tem plano).
+    const peso = (x) => (x._nivel >= 3 ? 0.5 : x._nivel === 2 ? 0.6 : x._nivel === 1 ? 0.85 : 1);
     const perto = comKm.sort((a, b) => a._km * peso(a) - b._km * peso(b));
     const raio = perto.filter((x) => x._km <= 60);
     const lista = (raio.length >= 4 ? raio : perto).slice(0, 24);

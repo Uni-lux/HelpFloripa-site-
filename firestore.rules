@@ -15,6 +15,12 @@ service cloud.firestore {
       return request.auth.token.email_verified == true && !sancionado(request.auth.uid);
     }
 
+    // Para anunciar (criar perfil de negócio ou anúncio de imóvel), a conta precisa ser verificada:
+    // usuarios/{uid}.verificado só vira true pela moderação com o pedido aprovado (seloLiberado) ou pelo dono do site.
+    function contaVerificada() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.get('verificado', false) == true;
+    }
+
     // Administrador: documento admins/{uid} criado à mão no console do Firebase.
     function admin() {
       return request.auth != null
@@ -691,6 +697,7 @@ service cloud.firestore {
                     && request.resource.data.keys().hasOnly(camposNegocio())
                     && naoTocaCamposProtegidosNoCreate()
                     && !banidoDoPrograma(request.auth.uid, request.resource.data.tipo)
+                    && contaVerificada()
                     && (request.resource.data.tipo != 'saude' || request.resource.data.get('saude', null) is map)
                     && negocioOk();
 
@@ -755,6 +762,7 @@ service cloud.firestore {
                     && request.resource.data.tipo in ['imovel']
                     && request.resource.data.keys().hasOnly(camposAnuncio())
                     && naoTocaCamposProtegidosNoCreate()
+                    && contaVerificada()
                     && anuncioOk();
 
       allow update: if logado()

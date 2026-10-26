@@ -748,6 +748,24 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   "Tipo de perfil": cartão Comunidade (link `comunidade.html?novo=doacao`, tracejado, não é perfil). Textos: tabela de
   benefícios, Ajuda ("Quanto custa anunciar?"), Termos seção 6, aviso do sino do plano. Teste `t-pausado.mjs`; `t-areas-cupom`,
   `t-pedido`, `t-previa` dão plano ao Bruno; `t-negocios` aceita o aviso. Chromium aqui: `CHROMIUM=/opt/pw-browsers/chromium-1243/chrome-linux64/chrome`.
+- **Grátis "Forte", Plus atraente, verificação para anunciar e punição por má-fé (26/10/2026, mesmo PR #92, MUDA 1 REGRA a
+  mais — não publicada; 15 partes, 570 testes):** decidido por ele: perfil grátis (sem plano) = 1 perfil no ar, até 3 itens
+  (`LIMITES_GRATIS` em planos-base.js), 1 foto, 1 anúncio de imóvel (o mais antigo), sem capa, sem Instagram/site, sem pedidos/
+  orçamentos/agendamentos pelo site (só chat e WhatsApp), sem estatísticas, sem promoção, sem flash. Nada é apagado: a vitrine
+  mostra `versaoGratis(n)` (vitrine.js `comLimites`, lê o plano antes de abrir o detalhe) e o editor marca o excedente com "PLUS"
+  (`notaPlus`, `.so-plano`). Promoção só nos planos e NUNCA em Saúde (`promoAtiva`, editor esconde `#negPromo`). Ordem padrão:
+  Premium > Pro > Plus > grátis (`destaqueDe = nível`; Perto do início: Plus ×0,85). Gaveta dos planos: coluna Grátis
+  (`BENEFICIOS` = [nome, grátis, plus, pro, premium], valores true/false/texto, `.pl-tabela.c4`) e topo que muda com o plano
+  tocado (`pintarHero`: `PLANOS[k].titulo/pitch`, `DESTAQUES_PLANO`, preço do mês e "≈ R$ X por dia", cor do plano).
+  **Para anunciar a conta precisa ser verificada** (regra `contaVerificada()` no create de negocios e anuncios; `exigirVerificacao`
+  em negocios.js; aviso `#ngVerif` com prazo **30/11/2026** para quem já anuncia). Painel → Verificações: "Anunciantes sem
+  verificação" (tira do ar com `ocultoAte` = 2999-11-30, data-marca; `voltarNegociosVerificados` devolve ao aprovar) e
+  conferência "mesmo nome no documento em outra conta". Ficha: "Contas ligadas" (`contasLigadas`: mesmo WhatsApp/CNPJ nos
+  negócios, telefone, nomeLegal) e **"Punir má-fé (anunciar)"** (`punirMaFe`, `NIVEIS_MA_FE`: 1ª vez = 5 programas banidos
+  30 dias + negócios/anúncios escondidos + tira o selo + aviso grave; reincidência = banidos sem prazo + suspensão 30 dias;
+  documento falso/golpe/3ª vez = banimento; motivo começa com "Má-fé ao anunciar", que o nível sugerido procura; pode aplicar
+  às contas ligadas). Termos (seção 6), Diretrizes (seções 4 e 8) e Ajuda atualizados. Seed: Bruno verificado (o `t-verif`
+  tira no começo). Teste `t-gratis-plus.mjs`.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
