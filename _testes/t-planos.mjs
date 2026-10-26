@@ -30,7 +30,7 @@ await p.goto(BASE + "negocios.html"); await p.waitForSelector("#planoBox:not([hi
 // ---------- 2) pedido + Pix ----------
 await p.click("#planoBox"); await p.waitForSelector(".pl-per", { timeout: 10000 });
 const precos = await p.locator(".pl-card .pv").allTextContents();
-ok(await p.locator(".pl-card").count() === 3 && precos[0].includes("29,90") && precos[1].includes("39,90") && await p.locator(".pl-lin").count() >= 9 && (await p.textContent(".pl-hero")).includes("29,90"), "gaveta: 3 planos (" + precos.map((x) => x.replace(/\s+/g, " ")).join(" | ") + ") e tabela");
+ok(await p.locator(".pl-card").count() === 3 && precos[0].includes("29,90") && precos[1].includes("39,90") && await p.locator(".pl-lin").count() >= 9 && (await p.textContent(".pl-hero")).includes("Plano Pro") && (await p.textContent(".pl-hero")).includes("39,90"), "gaveta: 3 planos, topo do Pro (marcado) e tabela (" + precos.map((x) => x.replace(/\s+/g, " ")).join(" | ") + ") e tabela");
 ok(await p.locator(".pl-card.on[data-plano='pro']").count() === 1 && await p.locator(".pl-lin.cab span.sel").textContent() === "Pro", "Pro vem marcado e destacado na tabela");
 await p.locator(".pl-card[data-plano='premium']").click();
 ok(await p.locator(".pl-tabela .pl-lin.cab span").count() === 5 && (await p.locator(".pl-tabela .pl-lin.cab span").nth(1).textContent()) === "Grátis", "tabela com a coluna Grátis (para comparar) e os 3 planos");
