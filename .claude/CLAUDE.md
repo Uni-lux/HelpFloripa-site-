@@ -728,6 +728,26 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   citação (aspas azuis à direita, abaixo do marcador). Fundo accent 7% sobre `--panel-2` (cores do tema). Foto com
   enquete/caixa ganha o selo `.sv-tipo`. Capas das coleções: texto em `.col-cel.txt.mm-capa` (sem as cores sortidas do
   `tomDoTexto`). CSS `.mm*` no fim do rede.css.
+- **Regras publicadas por ele em 26/10/2026** (tudo desde 13/10: as 15 partes de `_regras/`, 561 testes). Os "não
+  publicadas" acima valem só como histórico. Conferir com ele: "Recalcular estrelas" no painel e os 5 índices
+  (`_regras/INDICES-LEIA-ME.md`). Daqui em diante, regra nova volta a precisar de publicação manual.
+- **Sem plano = 1 perfil no ar + Comunidade no "Tipo de perfil" (PR depois do #92, MUDA 1 REGRA — não publicada; 15 partes,
+  565 testes):** decidido por ele (26/10): sem plano ativo o negócio "aparece com tudo, menos extras" e só UM perfil fica no
+  ar; quando o plano vence, faz "como as outras plataformas" (3 dias de tolerância, depois perde os extras; nada é apagado).
+  `planos-base.js`: `TOLERANCIA_DIAS = 3` (`nivelPlano` vale até `ate` + 3 dias; `emTolerancia`, `fimComTolerancia`),
+  `negocioPausado(n, plano)` (= `n.principal` ≠ tipo do perfil e sem plano; anúncio `imovel` conta como `imoveis`),
+  `semPausados(fb, lista)` (lê o plano só de quem tem outro principal). Campo novo `negocios.principal` (tipo escolhido,
+  gravado em TODOS os perfis do dono; regra em `extrasNegocioOk`; sem a regra grava sem ele = nada pausa). Meus negócios:
+  `principalEscolhido()` (`usuarios.negocioPrincipal` → o marcado → o mais antigo), `sincronizarPrincipal()` ao abrir,
+  selo "Pausado" (laranja) + aviso "Deixar este no ar"/"Ver planos" (`deixarNoAr`), criar outro sem plano pergunta antes,
+  promoção sem plano = "Promoção salva" (não aparece). Extras só com plano: promoção/cupom (`promoAtiva` em vitrine.js
+  confere `planosDonos`; detalhe pinta a promoção depois de ler o plano, `.vd-promo-lugar`), flash nos negócios
+  (`flashesDoNegocio` e o "Publicar em" do stories.js), selo/destaque/90 dias (já eram). Pausado some de: vitrines (+ link
+  direto avisa "pausado no momento"), início, Explorar (recentes e busca), bolinhas de negócio do perfil, prévia do chat
+  (mensagens.html, que também tira a promoção sem plano). Cache de 10 min das listas: a troca demora até 10 min para quem visita.
+  "Tipo de perfil": cartão Comunidade (link `comunidade.html?novo=doacao`, tracejado, não é perfil). Textos: tabela de
+  benefícios, Ajuda ("Quanto custa anunciar?"), Termos seção 6, aviso do sino do plano. Teste `t-pausado.mjs`; `t-areas-cupom`,
+  `t-pedido`, `t-previa` dão plano ao Bruno; `t-negocios` aceita o aviso. Chromium aqui: `CHROMIUM=/opt/pw-browsers/chromium-1243/chrome-linux64/chrome`.
 - **As 5 etapas estão concluídas.** Próximos passos são as pendências abaixo (só ele pode fazer) e o que ficou
   para depois.
 

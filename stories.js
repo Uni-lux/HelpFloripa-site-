@@ -13,8 +13,9 @@ import {
   meusSeguindo, escondido, silenciado, alternarSilenciar, obterPerfil, abrirOpcoes, abrirLista, linhaPessoa,
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas
-} from "./rede.js?v=61";
+} from "./rede.js?v=62";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
+import { lerPlano, nivelPlano } from "./planos-base.js?v=4";
 import { seletorDuracao, fimEscolhido, linhaChave, MAX_FLASH_MIN, fimDaEnquete, encerrada, faltaTexto, resultadoFinal, lerContasEnquete } from "./enquetes.js?v=5";
 
 const DIA = 24 * 3600e3;
@@ -541,7 +542,9 @@ function abrirCriador({ repost = null, post = null } = {}) {
   }
   bOnde.addEventListener("click", escolherDestinos);
   dica.addEventListener("click", () => { if (meusNeg.length) escolherDestinos(); });
-  fb.getDocs(fb.query(fb.collection(fb.db, "negocios"), fb.where("donoId", "==", eu.uid), fb.limit(8))).then((x) => {
+  // Flash nos perfis de negócio faz parte dos planos: sem plano ativo, publica só no seu perfil.
+  Promise.all([fb.getDocs(fb.query(fb.collection(fb.db, "negocios"), fb.where("donoId", "==", eu.uid), fb.limit(8))), lerPlano(fb, eu.uid)]).then(([x, plano]) => {
+    if (!nivelPlano(plano)) return;
     meusNeg = x.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => PAGINA_NEGOCIO[n.tipo] && /^[A-Za-z0-9]+_(servicos|delivery|lojinha|imoveis|saude)$/.test(n.id));
     if (!meusNeg.length) return;
     // Onde publicar por padrão (Configurações do Flash)

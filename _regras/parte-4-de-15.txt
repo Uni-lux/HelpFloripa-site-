@@ -1,3 +1,14 @@
+      function camposAnuncio() {
+        return ['donoId', 'tipo', 'ativo', 'titulo', 'finalidade', 'categoria', 'preco', 'condominio', 'iptu',
+                'quartos', 'suites', 'banheiros', 'vagas', 'area', 'andar', 'bairro', 'cidade', 'mobiliado',
+                'uf', 'cidadeIbge', 'rua', 'numero', 'complemento', 'cep',
+                'disponivel', 'hospedes', 'caracteristicas', 'condicoes', 'descricao', 'fotos', 'criadoEm', 'atualizadoEm',
+                'categoriaPersonalizada',  // tipo escrito pela pessoa quando escolhe "Outro" (Chácara, Galpão...)
+                'geo',                     // ponto do endereço (Perto de você)
+                'busca',                   // palavras para a busca nacional (busca.js), até 100
+                'ocultoAte'];
+      }
+
       function anuncioOk() {
         return textoAte('titulo', 100)
             && textoAte('descricao', 1000)

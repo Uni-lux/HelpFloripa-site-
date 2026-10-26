@@ -707,7 +707,11 @@ await t("negócio com TUDO junto (de vazio para completo: 12 itens, 5 fotos, tod
   uf: "SC", cidadeIbge: 4205407, bairro: "Centro", rua: "Rua A", numero: "1", complemento: "", cep: "88010001",
   instagram: "burger", site: "https://burger.com", cnpj: "11222333000181", capa: "data:image/jpeg;base64,AAAA",
   semana: ["", "11:00-23:00", "11:00-23:00", "11:00-23:00", "11:00-23:00", "11:00-23:59", "18:00-23:59"],
-  promocao: { titulo: "Promo", texto: "x".repeat(200), codigo: "CUPOM10", ate: Timestamp.fromMillis(Date.now() + 864e5) } })); });
+  promocao: { titulo: "Promo", texto: "x".repeat(200), codigo: "CUPOM10", ate: Timestamp.fromMillis(Date.now() + 864e5) }, principal: "delivery" })); });
+await t("negócio: principal (perfil que fica no ar sem plano) aceita um tipo de perfil", () => assertSucceeds(grava({ principal: "servicos" })));
+await t("negócio: principal vazio (null) vale", () => assertSucceeds(grava({ principal: null })));
+await t("negócio: principal que não é tipo de perfil é recusado", () => assertFails(grava({ principal: "comunidade" })));
+await t("negócio: principal que não é texto é recusado", () => assertFails(grava({ principal: true })));
 await t("negócio: site com mais de 120 letras é recusado", () => assertFails(grava({ site: "https://" + "a".repeat(120) })));
 await t("negócio: Instagram com espaço/@ é recusado", () => assertFails(grava({ instagram: "@burger da ilha" })));
 await t("negócio: site que não é http(s) é recusado", () => assertFails(grava({ site: "javascript:alert(1)" })));

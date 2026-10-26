@@ -618,6 +618,7 @@ service cloud.firestore {
                 'instagram', 'site', 'capa', 'cnpj', 'promocao', 'semana', 'geo',
                 'saude',       // perfil de Saúde: profissão, registro no conselho, especialidades, convênios...
                 'busca',       // palavras e começos de palavras para a busca nacional (busca.js), até 100
+                'principal',   // sem plano, só o perfil deste tipo fica no ar (o dono escolhe; o site esconde os outros)
                 'ocultoAte'];  // escondido enquanto a conta do dono estiver desativada
       }
 
@@ -657,7 +658,9 @@ service cloud.firestore {
                     && d.semana.join(';').matches('^(([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9])?(;(([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9])?){6}$')))
             && (!m.hasAny(['promocao']) || d.get('promocao', null) == null || promocaoOk(d.promocao))
             && (!m.hasAny(['geo']) || geoOk(d.get('geo', null)))
-            && (!m.hasAny(['saude']) || saudeOk(d.get('saude', null)));
+            && (!m.hasAny(['saude']) || saudeOk(d.get('saude', null)))
+            && (!m.hasAny(['principal']) || d.get('principal', null) == null
+                || d.principal in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude']);
       }
 
       function negocioOk() {

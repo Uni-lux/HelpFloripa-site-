@@ -13,8 +13,8 @@
 // =====================================================
 
 // Preços, nível, selo e leitura do plano ficam no planos-base.js (as páginas que só mostram o selo não baixam este arquivo).
-import { PIX, PLANOS, ORDEM_PLANOS, PRECO_MIN, PERIODOS, descontoDe, valorPeriodo, DIAS_TESTE, DIAS_BONUS, BENEFICIOS, nivelPlano, ehPago, ehPro, nomePlano, emTeste, diasRestantes, textoFalta, reais, creditoDias, lerPlano, esquecerPlano, seloPlano, seloPro } from "./planos-base.js?v=3";
-export { PIX, PLANOS, ORDEM_PLANOS, PRECO_MIN, PERIODOS, descontoDe, valorPeriodo, DIAS_TESTE, DIAS_BONUS, BENEFICIOS, nivelPlano, ehPago, ehPro, nomePlano, emTeste, diasRestantes, textoFalta, reais, creditoDias, lerPlano, esquecerPlano, seloPlano, seloPro } from "./planos-base.js?v=3";
+import { PIX, PLANOS, ORDEM_PLANOS, PRECO_MIN, PERIODOS, descontoDe, valorPeriodo, DIAS_TESTE, DIAS_BONUS, BENEFICIOS, nivelPlano, ehPago, ehPro, nomePlano, emTeste, diasRestantes, textoFalta, reais, creditoDias, lerPlano, esquecerPlano, seloPlano, seloPro, emTolerancia, fimComTolerancia } from "./planos-base.js?v=4";
+export { PIX, PLANOS, ORDEM_PLANOS, PRECO_MIN, PERIODOS, descontoDe, valorPeriodo, DIAS_TESTE, DIAS_BONUS, BENEFICIOS, nivelPlano, ehPago, ehPro, nomePlano, emTeste, diasRestantes, textoFalta, reais, creditoDias, lerPlano, esquecerPlano, seloPlano, seloPro, emTolerancia, fimComTolerancia, negocioPausado } from "./planos-base.js?v=4";
 const ms = (t) => t?.toMillis?.() ?? (t?.seconds ? t.seconds * 1000 : typeof t === "number" ? t : 0);
 const DIA = 864e5;
 const MAX_DESC = Math.round(Math.max(...PERIODOS.map((x) => x[2])) * 100);
@@ -218,7 +218,11 @@ export function cartaoStatus(plano) {
   if (!nv && !(PLANOS[k] && ms(plano?.ate) && venceuHa <= 30)) return null;
   const c = el("div", "pl-status" + (!nv ? " vencido" : d <= 7 ? " perto" : ""));
   const lin = el("div", "lin"), t = el("div");
-  if (nv) {
+  if (nv && emTolerancia(plano)) {
+    c.classList.add("perto");
+    t.append(el("b", null, `Seu plano ${nomePlano(k)} venceu`), el("small", null, `Renove até ${dataLonga(fimComTolerancia(plano))} para não perder nada. Depois, só um perfil de negócio fica no ar e sem selo, destaque, promoção e flash.`));
+    lin.append(seloPlano(k), t); c.appendChild(lin);
+  } else if (nv) {
     if (plano.teste) t.append(el("b", null, `Teste grátis do ${nomePlano(k)}`), el("small", null, `Termina em ${dataLonga(plano.ate)}. ${d <= 7 ? "Assine agora para não perder o selo e o destaque." : "Assine quando quiser: os meses pagos começam depois do teste."}`));
     else t.append(el("b", null, `Seu plano ${nomePlano(k)} está ativo`), el("small", null, `Vence em ${dataLonga(plano.ate)}. ${d <= 7 ? "Renove agora para não perder o destaque." : "Renove antes para somar os dias."}`));
     const dd = el("div", "dias"); dd.append(el("strong", null, String(d)), el("span", null, d === 1 ? "dia" : "dias"));
@@ -228,7 +232,7 @@ export function cartaoStatus(plano) {
     b.setAttribute("role", "progressbar"); b.setAttribute("aria-label", `${textoFalta(d)} do plano`); b.setAttribute("aria-valuemin", "0"); b.setAttribute("aria-valuemax", String(total)); b.setAttribute("aria-valuenow", String(d));
     c.appendChild(b);
   } else {
-    t.append(el("b", null, plano.teste ? `Seu teste grátis do ${nomePlano(k)} terminou` : `Seu plano ${nomePlano(k)} venceu`), el("small", null, `${plano.teste ? "Terminou" : "Venceu"} em ${dataLonga(plano.ate)}. Escolha um plano abaixo para voltar a ter o selo e o destaque.`));
+    t.append(el("b", null, plano.teste ? `Seu teste grátis do ${nomePlano(k)} terminou` : `Seu plano ${nomePlano(k)} venceu`), el("small", null, `${plano.teste ? "Terminou" : "Venceu"} em ${dataLonga(plano.ate)}. Sem plano, só um perfil de negócio fica no ar. Escolha um plano abaixo para voltar a ter tudo.`));
     lin.append(seloPlano(k), t); c.appendChild(lin);
   }
   return c;

@@ -11,16 +11,17 @@
 import {
   $, el, icone, ms, toast, pintarAvatar, urlSegura, nomeCidade, fb, eu, dados, meusSeguindo, escondido, silenciado, ganchos,
   obterPerfil, linhaPessoa, botaoSeguir, fotosDoPost, lerResumosEstrelas, minhaRede, jaVisto, definirOrigem, origemAtual, pilha
-} from "./rede.js?v=61";
+} from "./rede.js?v=62";
 import { afinidade } from "./gosto.js?v=1";
 import { buscarNoServidor } from "./busca.js?v=1";
 import { postsDoEstado, pesoRegiao, RECENTES_PAIS } from "./regiao.js?v=2";
 import { buscarPessoas, pessoasRecentes, semAcento } from "./pessoas.js?v=3";
 import { docsComValidade } from "./leituras.js?v=1";
 import { lerResumos, media } from "./avaliacoes.js?v=14";
-import { CATEGORIAS, CORES_TIPO, NOMES_TIPO, PAGINA_TIPO, nomeCategoria, nomeCat, categoriasDe } from "./vitrine.js?v=55";
+import { CATEGORIAS, CORES_TIPO, NOMES_TIPO, PAGINA_TIPO, nomeCategoria, nomeCat, categoriasDe } from "./vitrine.js?v=56";
 import { fimDaEnquete, faltaTexto } from "./enquetes.js?v=5";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, distanciaKm } from "./perto.js?v=2";
+import { semPausados } from "./planos-base.js?v=4";
 
 const DIARIO_VALIDADE = 3 * 60000, DIA = 864e5, HORA = 3600e3;
 const postOculto = (p) => (p?.ocultoAte?.toMillis?.() ?? 0) > Date.now() || (p?.agendadoPara?.toMillis?.() ?? 0) > Date.now() || silenciado(p?.autorId);
@@ -53,14 +54,14 @@ function negociosRecentes() {
     const col = fb.collection(fb.db, "negocios");
     const s = await docsComValidade(fb, "inicio-negocios", fb.query(col, fb.orderBy("atualizadoEm", "desc"), fb.limit(60)), 10 * 60000)
       .catch(() => fb.getDocs(fb.query(col, fb.limit(60))));
-    return prepararNegocios(s.docs.map((d) => ({ id: d.id, ...d.data() })));
+    return semPausados(fb, prepararNegocios(s.docs.map((d) => ({ id: d.id, ...d.data() }))));
   })().catch((e) => { negociosP = null; console.warn("Explorar (negócios):", e); return []; }));
 }
 const prepararNegocios = (lista) => lista
   .filter((n) => n.nome && NOMES_TIPO[n.tipo] && (n.ocultoAte?.toMillis?.() ?? 0) <= Date.now() && !escondido(n.donoId))
   .map((n) => ({ ...n, _txt: semAcento([n.nome, nomeCategoria(n), ...categoriasDe(n).map((c) => nomeCat(n, c)), n.bairro, nomeCidade(n.cidade), n.descricao].filter(Boolean).join(" ")) }));
 // Busca nacional (busca.js): negócios do Brasil inteiro com a palavra digitada + publicações com a #palavra.
-async function negociosDoServidor(termo) { return prepararNegocios(await buscarNoServidor(fb, "negocios", termo)); }
+async function negociosDoServidor(termo) { return semPausados(fb, prepararNegocios(await buscarNoServidor(fb, "negocios", termo))); }
 async function postsComTag(palavra) {
   if (!/^[\p{L}\p{N}_]{2,30}$/u.test(palavra)) return [];
   const s = await fb.getDocs(fb.query(fb.collection(fb.db, "diario"), fb.where("tags", "array-contains", palavra.toLowerCase()), fb.limit(40))).catch(() => null);

@@ -6,6 +6,8 @@ import { initializeApp } from "firebase-admin/app";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
 process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8085";
 const db = getFirestore(initializeApp({ projectId: "demo-hf" }));
+// Promoção/cupom aparece só com plano ativo do dono (sem plano, só um perfil no ar e sem promoção).
+await db.doc(`planos/${U.bruno}`).set({ plano: "plus", meses: 1, ate: Timestamp.fromMillis(Date.now() + 30 * 864e5) });
 const ok = (c, m) => console.log(c ? "  ✔" : "  ✘", m);
 const NEG = `${U.bruno}_delivery`;
 await db.doc(`negocios/${NEG}`).set({

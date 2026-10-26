@@ -23,9 +23,10 @@ export const DIAS_TESTE = 30; // dias grátis a mais na primeira assinatura paga
 export const DIAS_BONUS = DIAS_TESTE;
 // O que cada plano tem: [benefício, Plus, Pro, Premium] (tudo o que está marcado o site já faz).
 export const BENEFICIOS = [
-  ["Perfil de negócio (Freelances, Delivery, Shopping, Imóveis e Saúde)", true, true, true],
+  ["Todos os seus perfis de negócio no ar (sem plano, só um fica no ar)", true, true, true],
   ["Pedidos, orçamentos e conversas pelo chat", true, true, true],
-  ["Avaliações, cupons e promoções", true, true, true],
+  ["Cupons e promoções no perfil", true, true, true],
+  ["Flash nos perfis de negócio", true, true, true],
   ["Selo do plano no perfil e nos cartões", true, true, true],
   ["Estatísticas de 90 dias e relatório em Excel", true, true, true],
   ["Aparece antes nas vitrines e no Perto de você", false, true, true],
@@ -35,8 +36,12 @@ export const BENEFICIOS = [
 
 const ms = (t) => t?.toMillis?.() ?? (t?.seconds ? t.seconds * 1000 : typeof t === "number" ? t : 0);
 const DIA = 864e5;
-// Nível do plano ativo (0 = sem plano ou vencido). Planos antigos "pro" continuam valendo.
-export const nivelPlano = (p) => (PLANOS[p?.plano] && ms(p.ate) > Date.now() ? PLANOS[p.plano].nivel : 0);
+// Depois de vencer, o plano continua valendo por mais 3 dias (tempo para renovar sem perder nada).
+export const TOLERANCIA_DIAS = 3;
+export const fimComTolerancia = (p) => (ms(p?.ate) ? ms(p.ate) + TOLERANCIA_DIAS * DIA : 0);
+// Nível do plano ativo (0 = sem plano ou vencido há mais de 3 dias). Planos antigos "pro" continuam valendo.
+export const nivelPlano = (p) => (PLANOS[p?.plano] && fimComTolerancia(p) > Date.now() ? PLANOS[p.plano].nivel : 0);
+export const emTolerancia = (p) => nivelPlano(p) > 0 && ms(p.ate) <= Date.now();
 export const ehPago = (p) => nivelPlano(p) >= 1;   // 90 dias, Excel e selo
 export const ehPro = (p) => nivelPlano(p) >= 2;    // destaque nas vitrines e suporte prioritário
 export const nomePlano = (k) => PLANOS[k]?.nome || "Sem plano";
@@ -50,6 +55,22 @@ export function creditoDias(atual, novoPlano) {
   if (!nivelPlano(atual) || atual.plano === novoPlano) return 0;
   if (atual.teste) return diasRestantes(atual); // no teste grátis, os meses pagos começam quando o teste acaba
   return Math.floor((diasRestantes(atual) * PLANOS[atual.plano].preco) / PLANOS[novoPlano].preco);
+}
+
+// Sem plano, só UM perfil de negócio fica no ar (o "principal", escolhido pelo dono; os outros ficam pausados) e
+// sem os extras (selo, destaque, promoção/cupom, flash nos negócios, estatísticas de 90 dias). Cada perfil guarda
+// em negocios.principal o tipo escolhido; com plano ativo o campo é ignorado. Anúncios de imóveis seguem o perfil Imóveis.
+const tipoPerfil = (n) => (n?.tipo === "imovel" ? "imoveis" : n?.tipo);
+export const podeEstarPausado = (n) => !!n?.principal && n.principal !== tipoPerfil(n);
+export const negocioPausado = (n, plano) => podeEstarPausado(n) && !nivelPlano(plano);
+// Tira os pausados de uma lista de perfis (lê o plano só de quem tem outro perfil como principal).
+// Anúncios de imóveis: `principalDe(donoId)` devolve o principal do dono (quando a página já conhece o perfil Imóveis).
+export async function semPausados(fb, lista, principalDe = null) {
+  const comP = (n) => (n?.tipo === "imovel" && principalDe ? { ...n, principal: principalDe(n.donoId) } : n);
+  const donos = [...new Set(lista.filter((n) => podeEstarPausado(comP(n))).map((n) => n.donoId).filter(Boolean))];
+  if (!donos.length) return lista;
+  const planos = new Map(await Promise.all(donos.map(async (id) => [id, await lerPlano(fb, id).catch(() => null)])));
+  return lista.filter((n) => !negocioPausado(comP(n), planos.get(n.donoId)));
 }
 
 // Plano de cada conta (planos/{uid}), guardado 10 min na página.
@@ -72,12 +93,14 @@ export async function avisoPlano(fb, uid) {
   if (!p || !PLANOS[p.plano] || !fim) return null;
   const agora = Date.now(), dias = Math.ceil((fim - agora) / DIA), nome = (p.teste ? "Teste grátis do " : "Plano ") + PLANOS[p.plano].nome;
   if (dias > 7 || agora - fim > 15 * DIA) return null;
-  const venceu = fim <= agora;
+  const venceu = fim <= agora, tolerancia = venceu && fimComTolerancia(p) > agora;
   return {
     // Volta a contar como nova com 7, 3 e 1 dia(s) para vencer e no dia em que vence.
     tipo: "plano", id: `pl_${p.plano}_${Math.round(fim / 1000)}`, nome, plano: p.plano, venceu, dias,
     quando: venceu ? fim : fim - (dias <= 1 ? 1 : dias <= 3 ? 3 : 7) * DIA,
-    detalhe: venceu ? "Renove para voltar a ter o selo, o destaque e as estatísticas completas." : "Renove para não perder o selo e o destaque nas vitrines."
+    detalhe: tolerancia ? `Renove até ${new Date(fimComTolerancia(p)).toLocaleDateString("pt-BR")} para não perder nada. Depois, só um perfil de negócio fica no ar e sem selo, destaque, promoção e flash.`
+      : venceu ? "Sem plano, só um perfil de negócio fica no ar, sem selo, destaque, promoção e flash. Renove para voltar a ter tudo."
+      : "Renove para não perder o selo, o destaque e os outros perfis de negócio no ar."
   };
 }
 export const textoPlano = (i) => (i.venceu ? "venceu" : i.dias <= 1 ? "vence amanhã" : `vence em ${i.dias} dias`);

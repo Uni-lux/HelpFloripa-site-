@@ -2,9 +2,11 @@
 // e o cupom indo junto no pedido de orçamento até o chat. Uso: node t-areas-cupom.mjs  (precisa das regras do main)
 import { navegador, entrar, BASE, USUARIOS as U } from "./nav.mjs";
 import { initializeApp } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore, Timestamp } from "firebase-admin/firestore";
 process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8085";
 const db = getFirestore(initializeApp({ projectId: "demo-hf" }));
+// Promoção/cupom aparece só com plano ativo do dono (sem plano, só um perfil no ar e sem promoção).
+await db.doc(`planos/${U.bruno}`).set({ plano: "plus", meses: 1, ate: Timestamp.fromMillis(Date.now() + 30 * 864e5) });
 const NEG = `${U.bruno}_servicos`;
 const ok = (c, m) => console.log(c ? "  ✔" : "  ✘", m);
 const { browser, ctx } = await navegador({ mobile: true });

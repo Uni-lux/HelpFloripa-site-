@@ -5,9 +5,11 @@ import { navegador, entrar, USUARIOS as U } from "./nav.mjs";
 const ok = (c, m) => console.log(c ? "  ✔" : "  ✘", m);
 const conv = [U.ana, U.bruno].sort().join("_");
 import { initializeApp } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore, Timestamp } from "firebase-admin/firestore";
 process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8085";
 const db = getFirestore(initializeApp({ projectId: "demo-hf" }));
+// Promoção/cupom aparece só com plano ativo do dono (sem plano, só um perfil no ar e sem promoção).
+await db.doc(`planos/${U.bruno}`).set({ plano: "plus", meses: 1, ate: Timestamp.fromMillis(Date.now() + 30 * 864e5) });
 await db.doc(`notas/neg_${U.bruno}_servicos`).set({ total: 4, soma: 18, n1: 0, n2: 0, n3: 0, n4: 2, n5: 2 });
 await db.doc(`perfis_publicos/${U.bruno}`).set({ verificado: true }, { merge: true });
 const { browser, ctx } = await navegador({ mobile: true });
