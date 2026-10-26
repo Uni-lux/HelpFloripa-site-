@@ -28,8 +28,8 @@ async function foto(tipo, caminho) {
   return `http://127.0.0.1:9199/v0/b/${BUCKET}/o/${encodeURIComponent(caminho)}?alt=media&token=${token}`;
 }
 let lote = db.batch(), n = 0;
-// Lotes de 20 (um lote com fotos dentro passa fácil dos 10 MB que o Firestore aceita por gravação).
-async function mexer(ref, dados) { const b = lote; b.set(ref, dados, { merge: true }); if (++n % 20 === 0) { lote = db.batch(); await b.commit(); } }
+// Lotes de 8 (com as fotos dentro, 20 perfis de negócio já passam dos 4 MB que o emulador aceita por envio).
+async function mexer(ref, dados) { const b = lote; b.set(ref, dados, { merge: true }); if (++n % 8 === 0) { lote = db.batch(); await b.commit(); } }
 async function emParalelo(itens, f, k = 16) { for (let i = 0; i < itens.length; i += k) await Promise.all(itens.slice(i, i + k).map(f)); }
 
 // Pessoas: foto de perfil (480 px). As publicações levam a foto do autor junto (campo fotoPerfil), como o site grava.
