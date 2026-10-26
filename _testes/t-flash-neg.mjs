@@ -5,6 +5,8 @@ import { initializeApp } from "firebase-admin/app"; import { getFirestore, Times
 import { navegador, entrar, USUARIOS as U, BASE } from "./nav.mjs";
 const ok = (c, t) => { console.log(c ? "  ✔" : "  ✘", t); if (!c) process.exitCode = 1; };
 initializeApp({ projectId: "demo-hf" }); const db = getFirestore();
+// Flash nos perfis de negócio faz parte dos planos.
+await db.doc(`planos/${U.bruno}`).set({ plano: "plus", meses: 1, ate: Timestamp.fromMillis(Date.now() + 30 * 864e5) });
 await db.doc(`relacoes/${U.ana}_${U.bruno}`).set({ tipo: "seguir", seguidorId: U.ana, alvoId: U.bruno, criadoEm: Timestamp.now() });
 const B = await navegador({ mobile: true, camera: true }), A = await navegador({ mobile: true });
 const pb = await entrar(B.ctx, "bruno", "usuarios.html");
