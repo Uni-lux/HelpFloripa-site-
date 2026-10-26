@@ -748,6 +748,13 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   "Tipo de perfil": cartão Comunidade (link `comunidade.html?novo=doacao`, tracejado, não é perfil). Textos: tabela de
   benefícios, Ajuda ("Quanto custa anunciar?"), Termos seção 6, aviso do sino do plano. Teste `t-pausado.mjs`; `t-areas-cupom`,
   `t-pedido`, `t-previa` dão plano ao Bruno; `t-negocios` aceita o aviso. Chromium aqui: `CHROMIUM=/opt/pw-browsers/chromium-1243/chrome-linux64/chrome`.
+- **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
+  perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
+  envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
+  Resultado: Início 32,5 MB do Firestore (≈26 s no 4G, memória 336 MB) → 0,18 MB + 2,5 MB de fotos (27 MB de memória);
+  Explorar 745 → 26 MB de memória; sessão de 8 páginas 164 MB → 13,4 MB (Firestore 1,1 MB). Sem Storage o cache do
+  aparelho não funciona (as listas não cabem no localStorage) e a 2ª visita baixa tudo de novo. No teste a 2ª visita
+  baixou as fotos de novo (o cache do navegador não segurou), mesmo com `Cache-Control: immutable` vindo do emulador.
 - **As 5 etapas estão concluídas.** Próximos passos são as pendências abaixo (só ele pode fazer) e o que ficou
   para depois.
 
