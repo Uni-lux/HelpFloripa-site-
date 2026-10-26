@@ -778,6 +778,17 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   "Link e QR Code" (`abrirLinkQr`: copiar, compartilhar, QR com qrcode-gerador.js e arte 1080×1350 para imprimir; sem @ usa o
   link longo e avisa). `servidor-csp.mjs` agora devolve o 404.html (status 404) como o GitHub Pages. Teste
   `t-perfil-negocio.mjs`; `t-pedido` confere a avaliação ao entregar.
+- **QR no WhatsApp, cartão de Pix no chat, avaliações sem comentários (26/10/2026, PR depois do #94, sem regra nova):**
+  `qr.js` (sem deps): `qrSvg`, `desenharQr`, `artePerfil` (PNG 1080×1350 preto/#111, brilho e anel na cor do tipo, foto ou
+  iniciais, nome, etiqueta, QR em cartão branco, link) e `compartilharPerfil` (manda a ARTE como arquivo + texto com o link
+  via `navigator.share({files})`, assim o WhatsApp recebe a imagem; sem suporte a arquivo manda só o texto; sem share copia).
+  Usado no Compartilhar do Meus negócios ("Enviar com o QR") e do detalhe da vitrine (link curto `/@nick/tipo`).
+  `pix.js` (sem deps): `codigoPix` (BR Code, `descricao` no campo 02) e `tipoChavePix` (e-mail/aleatória/celular +55/CPF/CNPJ);
+  planos.js usa ele. **Cartão de Pix no chat** (Anexar → Pix, `abrirCartaoPix`): `cartao {tipo:"pix", chave, tipoChave, nome,
+  cidade, valor|null, descricao}` (cartão é mapa livre nas regras); `cartaoPix`: valor ou "Valor a combinar", Copiar código
+  Pix / Copiar chave / QR Code e o aviso de conferir o nome no banco (o site não intermedia). Chave guardada em
+  `usuarios.pix`. Folha das avaliações (`abrirDetalhamento`) sem "Comentários recentes" (pedido dele: o que o cliente diz
+  fica só nas Reclamações). Cartão Comunidade do "Tipo de perfil" sem a setinha. Teste `t-pix-qr.mjs`.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

@@ -15,26 +15,13 @@
 // Preços, nível, selo e leitura do plano ficam no planos-base.js (as páginas que só mostram o selo não baixam este arquivo).
 import { PIX, PLANOS, ORDEM_PLANOS, PRECO_MIN, PERIODOS, descontoDe, valorPeriodo, DIAS_TESTE, DIAS_BONUS, BENEFICIOS, DESTAQUES_PLANO, nivelPlano, ehPago, ehPro, nomePlano, emTeste, diasRestantes, textoFalta, reais, creditoDias, lerPlano, esquecerPlano, seloPlano, seloPro, emTolerancia, fimComTolerancia } from "./planos-base.js?v=5";
 export { PIX, PLANOS, ORDEM_PLANOS, PRECO_MIN, PERIODOS, descontoDe, valorPeriodo, DIAS_TESTE, DIAS_BONUS, BENEFICIOS, nivelPlano, ehPago, ehPro, nomePlano, emTeste, diasRestantes, textoFalta, reais, creditoDias, lerPlano, esquecerPlano, seloPlano, seloPro, emTolerancia, fimComTolerancia, negocioPausado } from "./planos-base.js?v=5";
+import { codigoPix as codigoPixBase } from "./pix.js?v=1";
 const ms = (t) => t?.toMillis?.() ?? (t?.seconds ? t.seconds * 1000 : typeof t === "number" ? t : 0);
 const DIA = 864e5;
 const MAX_DESC = Math.round(Math.max(...PERIODOS.map((x) => x[2])) * 100);
 
-// ---------- Pix "copia e cola" (BR Code do Banco Central, EMV com CRC16) ----------
-const campo = (id, v) => id + String(v.length).padStart(2, "0") + v;
-const limpo = (t, n) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9 .-]/g, "").toUpperCase().slice(0, n);
-function crc16(t) {
-  let c = 0xffff;
-  for (let i = 0; i < t.length; i++) { c ^= t.charCodeAt(i) << 8; for (let k = 0; k < 8; k++) c = c & 0x8000 ? (c << 1) ^ 0x1021 : c << 1; c &= 0xffff; }
-  return c.toString(16).toUpperCase().padStart(4, "0");
-}
-export function codigoPix({ chave = PIX.chave, nome = PIX.nome, cidade = PIX.cidade, valor, txid = "***" } = {}) {
-  if (!chave) return "";
-  const conta = campo("00", "br.gov.bcb.pix") + campo("01", String(chave).trim());
-  const corpo = campo("00", "01") + campo("26", conta) + campo("52", "0000") + campo("53", "986") +
-    (valor ? campo("54", Number(valor).toFixed(2)) : "") + campo("58", "BR") + campo("59", limpo(nome, 25) || "HELP FLORIPA") +
-    campo("60", limpo(cidade, 15) || "FLORIANOPOLIS") + campo("62", campo("05", String(txid).replace(/[^A-Za-z0-9]/g, "").slice(0, 25) || "***")) + "6304";
-  return corpo + crc16(corpo);
-}
+// ---------- Pix "copia e cola" (BR Code do Banco Central, EMV com CRC16): pix.js, com a chave do Help Floripa ----------
+export const codigoPix = ({ chave = PIX.chave, nome = PIX.nome, cidade = PIX.cidade, valor, txid = "***" } = {}) => codigoPixBase({ chave, nome, cidade, valor, txid });
 // QR Code desenhado em SVG (gerador MIT carregado só aqui).
 async function qrSvg(texto) {
   const { default: qrcode } = await import("./qrcode-gerador.js?v=1");
