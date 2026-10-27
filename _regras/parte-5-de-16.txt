@@ -1,3 +1,91 @@
+    // Ligações de voz e vídeo (chamadas.js): só entre as duas pessoas de uma conversa que já existe e sem bloqueio.
+    // A chamada guarda a "campainha" (oferta/resposta do WebRTC) e o resultado; áudio e vídeo nunca passam por aqui.
+    match /chamadas/{id} {
+      function daChamada() { return logado() && (request.auth.uid == resource.data.de || request.auth.uid == resource.data.para); }
+      function sdpOk(x) { return x is map && x.keys().hasOnly(['type', 'sdp']) && x.type is string && x.sdp is string && x.sdp.size() <= 30000; }
+      allow get, list: if daChamada();
+      allow create: if logado()
+                    && request.resource.data.keys().hasOnly(['de', 'para', 'conv', 'tipo', 'status', 'oferta', 'criadoEm'])
+                    && request.resource.data.de == request.auth.uid
+                    && request.resource.data.para is string && request.resource.data.para != request.auth.uid
+                    && request.resource.data.conv == (request.auth.uid < request.resource.data.para
+                         ? request.auth.uid + '_' + request.resource.data.para : request.resource.data.para + '_' + request.auth.uid)
+                    && exists(/databases/$(database)/documents/conversas/$(request.resource.data.conv))
+                    && !bloqueioEntre(request.auth.uid, request.resource.data.para)
+                    && request.resource.data.tipo in ['audio', 'video']
+                    && request.resource.data.status == 'chamando'
+                    && sdpOk(request.resource.data.oferta)
+                    && request.resource.data.criadoEm == request.time;
+      // Quem recebe atende (com a resposta) enquanto toca.
+      allow update: if daChamada() && request.auth.uid == resource.data.para
+                    && resource.data.status == 'chamando'
+                    && mudou().hasOnly(['status', 'resposta', 'aceitaEm'])
+                    && request.resource.data.status == 'aceita'
+                    && sdpOk(request.resource.data.resposta)
+                    && request.resource.data.aceitaEm == request.time;
+      // Qualquer um dos dois termina: recusar, cancelar, perder (não atendeu) ou encerrar.
+      allow update: if daChamada()
+                    && resource.data.status in ['chamando', 'aceita']
+                    && mudou().hasOnly(['status', 'fimEm', 'encerradaPor'])
+                    && request.resource.data.status in ['recusada', 'cancelada', 'perdida', 'encerrada']
+                    && request.resource.data.encerradaPor == request.auth.uid
+                    && request.resource.data.fimEm == request.time;
+      allow delete: if false;
+      match /candidatos/{c} {
+        function chamada() { return get(/databases/$(database)/documents/chamadas/$(id)).data; }
+        allow read: if logado() && request.auth.uid in [chamada().de, chamada().para];
+        allow create: if logado() && request.auth.uid in [chamada().de, chamada().para]
+                      && chamada().status in ['chamando', 'aceita']
+                      && request.resource.data.keys().hasOnly(['de', 'c', 'em'])
+                      && request.resource.data.de == request.auth.uid
+                      && request.resource.data.c is map && request.resource.data.c.keys().hasOnly(['candidate', 'sdpMid', 'sdpMLineIndex'])
+                      && request.resource.data.c.candidate is string && request.resource.data.c.candidate.size() <= 1000
+                      && request.resource.data.em == request.time;
+        allow update, delete: if false;
+      }
+    }
+
+    match /conversas/{conversaId} {
+
+      // Cada pessoa só mexe na própria marca de leitura / "digitando".
+      function soMinhaChave(campo) {
+        return !mudou().hasAny([campo])
+            || (request.resource.data[campo] is map
+                && request.resource.data[campo].diff(resource.data.get(campo, {})).affectedKeys().hasOnly([request.auth.uid]));
+      }
+
+      function contextoOk() {
+        let c = request.resource.data.get('contexto', null);
+        return c == null
+            || (c is map && c.keys().hasOnly(['tipo', 'titulo'])
+                && c.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'comunidade']
+                && valorTextoAte(c.get('titulo', ''), 120));
+      }
+
+      // Conversa ainda não criada: só quem faz parte dela (o id tem os dois uids) pode consultar.
+      allow get: if logado()
+                 && ((resource == null && request.auth.uid in conversaId.split('_'))
+                     || (resource != null && request.auth.uid in resource.data.participantes));
+
+      allow list: if logado()
+                  && request.auth.uid in resource.data.participantes;
+      // A moderação vê quem conversa com quem (para a ficha e denúncias), mas não lista mensagens.
+      allow read: if podeModerar();
+
+      allow create: if logado()
+                    && request.resource.data.participantes is list
+                    && request.resource.data.participantes.size() == 2
+                    && request.auth.uid in request.resource.data.participantes
+                    && request.resource.data.participantes[0] < request.resource.data.participantes[1]
+                    && conversaId == request.resource.data.participantes[0]
+                                     + '_' + request.resource.data.participantes[1]
+                    && !bloqueioEntre(request.resource.data.participantes[0],
+                                      request.resource.data.participantes[1])
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['participantes', 'ultimaMensagem', 'atualizadoEm', 'contexto', 'criadoEm'])
+                    && contextoOk()
+                    && textoAte('ultimaMensagem', 200);
+
       // Com bloqueio entre os dois, ninguém mexe na conversa (evita "recado"
       // pelo resumo da última mensagem).
       allow update: if logado()
@@ -115,85 +203,4 @@
         // Editar e apagar só até 10 minutos depois de enviar.
         function noPrazoDeMexer() { return request.time < resource.data.criadoEm + duration.value(10, 'm'); }
 
-        allow update: if logado()
-                      && request.auth.uid == resource.data.remetenteId
-                      && noPrazoDeMexer()
-                      && !('apagada' in resource.data)
-                      && resource.data.get('tipoArquivo', '') in ['', 'imagem', 'video', 'audio']
-                      && mudou().hasOnly(['texto', 'editadaEm', 'edicoes'])
-                      && request.resource.data.texto is string && request.resource.data.texto.size() <= 4000
-                      && (request.resource.data.texto.size() > 0 || 'arquivoUrl' in resource.data)
-                      && request.resource.data.editadaEm == request.time
-                      && request.resource.data.edicoes is list
-                      && request.resource.data.edicoes.size() == resource.data.get('edicoes', []).size() + 1
-                      && request.resource.data.edicoes.size() <= 20
-                      // as versões antigas ficam como estavam; a nova é o texto de antes, com a hora dele
-                      && request.resource.data.edicoes == resource.data.get('edicoes', []).concat([request.resource.data.edicoes[resource.data.get('edicoes', []).size()]])
-                      && versaoOk(request.resource.data.edicoes[resource.data.get('edicoes', []).size()]);
-
-        // Apagar para todos (só quem enviou): no lugar fica "apagou esta mensagem"; o conteúdo vai,
-        // na mesma gravação, para apagadas/{id}, que os dois ainda podem abrir por 24 horas.
-        allow update: if logado()
-                      && request.auth.uid == resource.data.remetenteId
-                      && noPrazoDeMexer()
-                      && !('apagada' in resource.data)
-                      && request.resource.data.keys().hasOnly(['remetenteId', 'criadoEm', 'apagada'])
-                      && request.resource.data.remetenteId == resource.data.remetenteId
-                      && request.resource.data.criadoEm == resource.data.criadoEm
-                      && request.resource.data.apagada is map
-                      && request.resource.data.apagada.keys().hasOnly(['por', 'em'])
-                      && request.resource.data.apagada.por == request.auth.uid
-                      && request.resource.data.apagada.em == request.time
-                      && existsAfter(/databases/$(database)/documents/conversas/$(conversaId)/apagadas/$(mensagemId));
-
-        allow delete: if logado()
-                      && request.auth.uid == resource.data.remetenteId
-                      && noPrazoDeMexer();
-      }
-
-      // ===================================================
-      // CONTEÚDO DE MENSAGEM APAGADA PARA TODOS: conversas/{c}/apagadas/{idDaMensagem}
-      // Os dois da conversa abrem por 24 horas ("Ver mensagem apagada", e dá para denunciar);
-      // depois as regras não deixam mais ler e qualquer um dos dois apaga de vez.
-      // A moderação abre enquanto existir (denúncias).
-      // ===================================================
-      match /apagadas/{mensagemId} {
-        function daConversa() {
-          return request.auth.uid in get(/databases/$(database)/documents/conversas/$(conversaId)).data.participantes;
-        }
-        function original() {
-          return get(/databases/$(database)/documents/conversas/$(conversaId)/mensagens/$(mensagemId)).data;
-        }
-        function noPrazo() { return request.time < resource.data.apagadaEm + duration.value(24, 'h'); }
-        allow get: if logado() && daConversa() && noPrazo();
-        allow get: if podeModerar();
-        allow create: if logado()
-                      && request.resource.data.keys().hasOnly(['remetenteId', 'conteudo', 'apagadaEm'])
-                      && request.resource.data.remetenteId == request.auth.uid
-                      && original().remetenteId == request.auth.uid
-                      && getAfter(/databases/$(database)/documents/conversas/$(conversaId)/mensagens/$(mensagemId)).data.apagada.por == request.auth.uid
-                      && request.resource.data.apagadaEm == request.time
-                      && request.resource.data.conteudo is map
-                      && request.resource.data.conteudo.keys().hasOnly(['texto', 'tipoArquivo', 'arquivoUrl', 'nomeArquivo', 'cartao', 'avaliacao', 'resposta', 'edicoes'])
-                      // o conteúdo guardado é o da mensagem de verdade (não dá para inventar outro)
-                      && request.resource.data.conteudo.get('texto', '') == original().get('texto', '')
-                      && request.resource.data.conteudo.get('tipoArquivo', '') == original().get('tipoArquivo', '')
-                      && request.resource.data.conteudo.get('arquivoUrl', '') == original().get('arquivoUrl', '');
-        // Quem recebeu e denunciou (dentro das 24 horas) marca "denunciada": aí só a moderação apaga.
-        allow update: if logado() && daConversa() && noPrazo()
-                      && request.auth.uid != resource.data.remetenteId
-                      && mudou().hasOnly(['denunciada'])
-                      && request.resource.data.denunciada == true;
-        // Denunciada (pela marca ou porque existe a denúncia, mesmo feita antes de apagar): fica para a moderação.
-        function temDenuncia() {
-          let p = get(/databases/$(database)/documents/conversas/$(conversaId)).data.participantes;
-          let quemRecebeu = p[0] == resource.data.remetenteId ? p[1] : p[0];
-          return exists(/databases/$(database)/documents/denuncias/$('mensagem_' + mensagemId + '_' + quemRecebeu));
-        }
-        allow delete: if logado() && daConversa() && !noPrazo() && resource.data.get('denunciada', false) != true && !temDenuncia();
-        allow delete: if podeModerar();
-      }
-    }
-
-
-// ===== FIM DA PARTE 5 DE 15 =====
+// ===== FIM DA PARTE 5 DE 16 =====

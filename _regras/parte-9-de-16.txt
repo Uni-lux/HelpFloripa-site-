@@ -1,72 +1,3 @@
-    match /sancoes/{uid} {
-      allow get: if logado() && request.auth.uid == uid;
-      allow read: if admin();
-      allow create, update: if podeModerar()
-                    && request.resource.data.keys().hasOnly(['tipo', 'motivo', 'ate', 'por', 'em', 'historico'])
-                    && request.resource.data.tipo in ['suspensao', 'banimento']
-                    && valorTextoAte(request.resource.data.get('motivo', ''), 500)
-                    && (request.resource.data.tipo == 'banimento' || request.resource.data.ate is timestamp)
-                    && request.resource.data.por == request.auth.uid
-                    && request.resource.data.em == request.time
-                    && listaAte('historico', 50);
-      allow delete: if podeModerar();
-    }
-
-    match /avisos/{id} {
-      allow read: if logado() && resource.data.uid == request.auth.uid;
-      allow read: if admin();
-      allow create: if admin()
-                    && request.resource.data.keys().hasOnly(['uid', 'titulo', 'texto', 'tipo', 'por', 'em', 'lidoEm'])
-                    && request.resource.data.uid is string
-                    && valorTextoAte(request.resource.data.get('titulo', ''), 120)
-                    && request.resource.data.texto is string && request.resource.data.texto.size() <= 2000
-                    && request.resource.data.tipo in ['info', 'alerta', 'grave']
-                    && request.resource.data.por == request.auth.uid
-                    && request.resource.data.em == request.time
-                    && request.resource.data.lidoEm == null;
-      // quem recebeu marca como lido
-      allow update: if logado()
-                    && resource.data.uid == request.auth.uid
-                    && mudou().hasOnly(['lidoEm'])
-                    && request.resource.data.lidoEm == request.time;
-      allow delete: if false;
-    }
-
-    match /comunicados/{id} {
-      allow read: if logado();
-      allow create, update: if podeModerar()
-                    && request.resource.data.keys().hasOnly(['titulo', 'texto', 'tipo', 'ativo', 'link', 'por', 'em', 'ate'])
-                    && valorTextoAte(request.resource.data.get('titulo', ''), 120)
-                    && valorTextoAte(request.resource.data.get('texto', ''), 600)
-                    && request.resource.data.tipo in ['info', 'novidade', 'alerta']
-                    && request.resource.data.ativo is bool
-                    && request.resource.data.por == request.auth.uid;
-      allow delete: if podeModerar();
-    }
-
-    match /suporte/{id} {
-      function camposChamado() {
-        return ['uid', 'nome', 'email', 'assunto', 'categoria', 'status', 'criadoEm', 'atualizadoEm', 'ultimaDe', 'atendidoPor', 'responsavel', 'responsavelNome', 'assumidoEm',
-                'prioridade', 'escalonadoPara', 'primeiraRespostaEm'];
-      }
-      // Suporte nacional (suporte-fila.js): golpe = urgente; pagamento, contestação ou plano Pro/Premium = alta; o resto = normal.
-      // Quem abre não escolhe ser urgente: a prioridade tem que bater com o assunto (ou com o plano da conta).
-      function prioridadeOk(d) {
-        let p = d.get('prioridade', 'normal');
-        return p == 'normal'
-            || (p == 'urgente' && d.categoria == 'golpe')
-            || (p == 'alta' && (d.categoria in ['pagamento', 'contestacao']
-                || (exists(/databases/$(database)/documents/planos/$(request.auth.uid))
-                    && get(/databases/$(database)/documents/planos/$(request.auth.uid)).data.plano in ['pro', 'premium']
-                    && get(/databases/$(database)/documents/planos/$(request.auth.uid)).data.ate > request.time)));
-      }
-      // A equipe: prioridade, transferir de setor (categoria), escalar (moderação ou donos) e a hora da 1ª resposta.
-      function filaEquipeOk(d) {
-        return d.get('prioridade', 'normal') in ['urgente', 'alta', 'normal']
-            && d.categoria in ['conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro']
-            && d.get('escalonadoPara', '') in ['', 'moderacao', 'donos']
-            && (!mudou().hasAny(['primeiraRespostaEm']) || d.primeiraRespostaEm == request.time);
-      }
       allow read: if logado() && resource.data.uid == request.auth.uid;
       allow read: if admin();
       // Abrir chamado: não exige e-mail confirmado nem conta livre (quem foi suspenso pode contestar).
@@ -174,4 +105,44 @@
                     && request.resource.data.em == request.time;
       allow delete: if admin();
     }
-// ===== FIM DA PARTE 8 DE 15 =====
+    match /verificacoes/{uid} {
+      function pedidoOk(d) {
+        return d.keys().hasOnly(['uid', 'categoria', 'nomeLegal', 'conhecidoComo', 'documentoTipo', 'documento', 'selfie', 'links', 'motivo', 'status', 'criadoEm', 'atualizadoEm'])
+            && d.uid == uid
+            && d.categoria is string && d.categoria.matches('^(pessoa|profissional|negocio|publica|organizacao)$')
+            && d.nomeLegal is string && d.nomeLegal.size() >= 5 && d.nomeLegal.size() <= 120
+            && valorTextoAte(d.get('conhecidoComo', ''), 80)
+            && d.documentoTipo is string && d.documentoTipo.matches('^(rg|cnh|passaporte|rne|cnpj)$')
+            && d.documento is string && d.documento.size() <= 700000 && d.documento.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')
+            // Selfie segurando o documento: prova que quem pede é a pessoa do documento.
+            && d.selfie is string && d.selfie.size() <= 450000 && d.selfie.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')
+            && (!('links' in d) || (d.links is list && d.links.size() <= 3))
+            && valorTextoAte(d.get('motivo', ''), 500)
+            && d.status == 'pendente'
+            && d.criadoEm == request.time && d.atualizadoEm == request.time;
+      }
+      allow read: if (logado() && request.auth.uid == uid) || podeModerar();
+      // Pedir (ou pedir de novo depois de não aprovado ou cancelado).
+      allow create: if logado() && request.auth.uid == uid && pedidoOk(request.resource.data);
+      allow update: if logado() && request.auth.uid == uid
+                    && resource.data.status in ['recusada', 'cancelada']
+                    && pedidoOk(request.resource.data);
+      // Cancelar o próprio pedido (a foto do documento sai junto).
+      allow update: if logado() && request.auth.uid == uid
+                    && resource.data.status in ['pendente', 'em_analise']
+                    && request.resource.data.status == 'cancelada'
+                    && mudou().hasOnly(['status', 'atualizadoEm', 'documento', 'selfie'])
+                    && !('documento' in request.resource.data) && !('selfie' in request.resource.data)
+                    && request.resource.data.atualizadoEm == request.time;
+      // A moderação analisa e decide um pedido em aberto; ao aprovar ou recusar, a foto do documento é apagada.
+      allow update: if podeModerar()
+                    && resource.data.status in ['pendente', 'em_analise']
+                    && mudou().hasOnly(['status', 'motivoRecusa', 'analisadaPor', 'analisadaEm', 'documento', 'selfie', 'atualizadoEm'])
+                    && request.resource.data.status in ['em_analise', 'aprovada', 'recusada']
+                    && request.resource.data.analisadaPor == request.auth.uid
+                    && (request.resource.data.status == 'em_analise' || (!('documento' in request.resource.data) && !('selfie' in request.resource.data)))
+                    && valorTextoAte(request.resource.data.get('motivoRecusa', ''), 500);
+      allow delete: if (logado() && request.auth.uid == uid) || podeModerar();
+    }
+
+// ===== FIM DA PARTE 9 DE 16 =====

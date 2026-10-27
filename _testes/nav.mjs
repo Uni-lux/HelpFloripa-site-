@@ -38,7 +38,7 @@ function cspDeTeste(html) {
 export async function navegador({ mobile = false, headless = true, csp = process.env.CSP !== "0", camera = false } = {}) {
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || "/opt/pw-browsers/chromium-1194/chrome-linux/chrome", headless, args: ["--no-proxy-server", ...(camera ? ["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream"] : [])] });
   const ctx = await browser.newContext({ bypassCSP: !csp, serviceWorkers: "block", ...(mobile ? { viewport: { width: 390, height: 780 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : { viewport: { width: 1280, height: 860 } }), locale: "pt-BR", timezoneId: "America/Sao_Paulo" });
-  if (camera) await ctx.grantPermissions(["camera"], { origin: BASE.replace(/\/$/, "") });
+  if (camera) await ctx.grantPermissions(["camera", "microphone"], { origin: BASE.replace(/\/$/, "") });
   await ctx.route("https://www.gstatic.com/firebasejs/**", (r) => {
     const nome = new URL(r.request().url()).pathname.split("/").pop();
     const p = FB + nome;

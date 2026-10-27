@@ -1,0 +1,200 @@
+        allow update: if logado()
+                      && request.auth.uid == resource.data.remetenteId
+                      && noPrazoDeMexer()
+                      && !('apagada' in resource.data)
+                      && resource.data.get('tipoArquivo', '') in ['', 'imagem', 'video', 'audio']
+                      && mudou().hasOnly(['texto', 'editadaEm', 'edicoes'])
+                      && request.resource.data.texto is string && request.resource.data.texto.size() <= 4000
+                      && (request.resource.data.texto.size() > 0 || 'arquivoUrl' in resource.data)
+                      && request.resource.data.editadaEm == request.time
+                      && request.resource.data.edicoes is list
+                      && request.resource.data.edicoes.size() == resource.data.get('edicoes', []).size() + 1
+                      && request.resource.data.edicoes.size() <= 20
+                      // as versões antigas ficam como estavam; a nova é o texto de antes, com a hora dele
+                      && request.resource.data.edicoes == resource.data.get('edicoes', []).concat([request.resource.data.edicoes[resource.data.get('edicoes', []).size()]])
+                      && versaoOk(request.resource.data.edicoes[resource.data.get('edicoes', []).size()]);
+
+        // Apagar para todos (só quem enviou): no lugar fica "apagou esta mensagem"; o conteúdo vai,
+        // na mesma gravação, para apagadas/{id}, que os dois ainda podem abrir por 24 horas.
+        allow update: if logado()
+                      && request.auth.uid == resource.data.remetenteId
+                      && noPrazoDeMexer()
+                      && !('apagada' in resource.data)
+                      && request.resource.data.keys().hasOnly(['remetenteId', 'criadoEm', 'apagada'])
+                      && request.resource.data.remetenteId == resource.data.remetenteId
+                      && request.resource.data.criadoEm == resource.data.criadoEm
+                      && request.resource.data.apagada is map
+                      && request.resource.data.apagada.keys().hasOnly(['por', 'em'])
+                      && request.resource.data.apagada.por == request.auth.uid
+                      && request.resource.data.apagada.em == request.time
+                      && existsAfter(/databases/$(database)/documents/conversas/$(conversaId)/apagadas/$(mensagemId));
+
+        allow delete: if logado()
+                      && request.auth.uid == resource.data.remetenteId
+                      && noPrazoDeMexer();
+      }
+
+      // ===================================================
+      // CONTEÚDO DE MENSAGEM APAGADA PARA TODOS: conversas/{c}/apagadas/{idDaMensagem}
+      // Os dois da conversa abrem por 24 horas ("Ver mensagem apagada", e dá para denunciar);
+      // depois as regras não deixam mais ler e qualquer um dos dois apaga de vez.
+      // A moderação abre enquanto existir (denúncias).
+      // ===================================================
+      match /apagadas/{mensagemId} {
+        function daConversa() {
+          return request.auth.uid in get(/databases/$(database)/documents/conversas/$(conversaId)).data.participantes;
+        }
+        function original() {
+          return get(/databases/$(database)/documents/conversas/$(conversaId)/mensagens/$(mensagemId)).data;
+        }
+        function noPrazo() { return request.time < resource.data.apagadaEm + duration.value(24, 'h'); }
+        allow get: if logado() && daConversa() && noPrazo();
+        allow get: if podeModerar();
+        allow create: if logado()
+                      && request.resource.data.keys().hasOnly(['remetenteId', 'conteudo', 'apagadaEm'])
+                      && request.resource.data.remetenteId == request.auth.uid
+                      && original().remetenteId == request.auth.uid
+                      && getAfter(/databases/$(database)/documents/conversas/$(conversaId)/mensagens/$(mensagemId)).data.apagada.por == request.auth.uid
+                      && request.resource.data.apagadaEm == request.time
+                      && request.resource.data.conteudo is map
+                      && request.resource.data.conteudo.keys().hasOnly(['texto', 'tipoArquivo', 'arquivoUrl', 'nomeArquivo', 'cartao', 'avaliacao', 'resposta', 'edicoes'])
+                      // o conteúdo guardado é o da mensagem de verdade (não dá para inventar outro)
+                      && request.resource.data.conteudo.get('texto', '') == original().get('texto', '')
+                      && request.resource.data.conteudo.get('tipoArquivo', '') == original().get('tipoArquivo', '')
+                      && request.resource.data.conteudo.get('arquivoUrl', '') == original().get('arquivoUrl', '');
+        // Quem recebeu e denunciou (dentro das 24 horas) marca "denunciada": aí só a moderação apaga.
+        allow update: if logado() && daConversa() && noPrazo()
+                      && request.auth.uid != resource.data.remetenteId
+                      && mudou().hasOnly(['denunciada'])
+                      && request.resource.data.denunciada == true;
+        // Denunciada (pela marca ou porque existe a denúncia, mesmo feita antes de apagar): fica para a moderação.
+        function temDenuncia() {
+          let p = get(/databases/$(database)/documents/conversas/$(conversaId)).data.participantes;
+          let quemRecebeu = p[0] == resource.data.remetenteId ? p[1] : p[0];
+          return exists(/databases/$(database)/documents/denuncias/$('mensagem_' + mensagemId + '_' + quemRecebeu));
+        }
+        allow delete: if logado() && daConversa() && !noPrazo() && resource.data.get('denunciada', false) != true && !temDenuncia();
+        allow delete: if podeModerar();
+      }
+    }
+
+
+    // =====================================================
+    // PEDIDOS / ATENDIMENTOS
+    // O negócio registra o atendimento para pedir avaliação ao cliente.
+    // Só vale entre pessoas que já conversam no chat.
+    // =====================================================
+    match /pedidos/{id} {
+
+      allow read: if logado()
+                  && (resource.data.vendedorId == request.auth.uid
+                      || resource.data.clienteId == request.auth.uid);
+      allow read: if admin();
+
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['vendedorId', 'clienteId', 'negocioId', 'tipo', 'titulo', 'conversaId', 'criadoEm'])
+                    && request.resource.data.vendedorId == request.auth.uid
+                    && request.resource.data.clienteId is string
+                    && request.resource.data.clienteId != request.auth.uid
+                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude']
+                    && request.resource.data.negocioId == request.auth.uid + '_' + request.resource.data.tipo
+                    && exists(/databases/$(database)/documents/negocios/$(request.resource.data.negocioId))
+                    && request.auth.uid in get(/databases/$(database)/documents/conversas/$(request.resource.data.conversaId)).data.participantes
+                    && request.resource.data.clienteId in get(/databases/$(database)/documents/conversas/$(request.resource.data.conversaId)).data.participantes
+                    && valorTextoAte(request.resource.data.get('titulo', ''), 120)
+                    && request.resource.data.criadoEm == request.time
+                    && !bloqueioEntre(request.auth.uid, request.resource.data.clienteId);
+
+      allow update, delete: if false;
+    }
+
+
+    // =====================================================
+    // AVALIAÇÕES
+    //   n_{negocio}_{cliente}: cliente avalia o negócio — UMA por cliente em cada negócio
+    //   c_{negocio}_{cliente}: negócio avalia o cliente — UMA por cliente em cada negócio
+    //   d_{post}_{uid}       : alguém avalia uma publicação (1 vez por publicação)
+    //   p_{pedido}_c / _v    : modelo antigo (1 por pedido). Continuam valendo, mas não
+    //                          podem mais ser criados: pedir avaliação várias vezes para a
+    //                          mesma pessoa não gera notas extras.
+    // Para avaliar um negócio: e-mail confirmado, conta com 3 dias, os dois já escreveram
+    // na conversa, não é o dono e sem bloqueio. Quem tem vínculo aceito no Social (amigos,
+    // família...) também avalia: continua valendo uma avaliação por pessoa em cada negócio.
+    // n_ e c_ podem ser EDITADAS pelo autor (troca a nota no resumo, sem contar de novo).
+    // =====================================================
+    match /avaliacoes/{id} {
+
+      function base() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['tipo', 'autorId', 'autorNome', 'autorFoto', 'alvoId', 'negocioId', 'pedidoId', 'postId', 'nota', 'comentario', 'chaves', 'criadoEm'])
+            && d.autorId == request.auth.uid
+            && d.nota is int && d.nota >= 1 && d.nota <= 5
+            && valorTextoAte(d.get('comentario', ''), 500)
+            && valorTextoAte(d.get('autorNome', ''), 80)
+            && fotoOk(d.get('autorFoto', ''))
+            && d.criadoEm == request.time;
+      }
+
+      function resumoAtualizado(chave) {
+        return getAfter(/databases/$(database)/documents/notas/$(chave)).data.ultima == id;
+      }
+
+      // "Atendimento confirmado": pedido real entre os dois, do mesmo negócio.
+      function pedidoOk(d, cliente, negocioId) {
+        return !('pedidoId' in d)
+            || (get(/databases/$(database)/documents/pedidos/$(d.pedidoId)).data.clienteId == cliente
+                && get(/databases/$(database)/documents/pedidos/$(d.pedidoId)).data.negocioId == negocioId);
+      }
+
+      function doCliente() {
+        let d = request.resource.data;
+        let dono = donoDoNegocio(d.negocioId);
+        let eu = request.auth.uid;
+        return id == 'n_' + d.negocioId + '_' + eu
+            && d.alvoId == dono
+            && dono != eu
+            && d.chaves == ['neg_' + d.negocioId]
+            && contaAntiga(eu)
+            && falou(eu, dono, eu)
+            && falou(eu, dono, dono)
+            && !bloqueioEntre(eu, dono)
+            && pedidoOk(d, eu, d.negocioId)
+            && resumoAtualizado('neg_' + d.negocioId);
+      }
+
+      function doVendedor() {
+        let d = request.resource.data;
+        let eu = request.auth.uid;
+        return id == 'c_' + d.negocioId + '_' + d.alvoId
+            && donoDoNegocio(d.negocioId) == eu
+            && d.alvoId != eu
+            && d.chaves == ['cli_' + d.alvoId]
+            && falou(eu, d.alvoId, eu)
+            && falou(eu, d.alvoId, d.alvoId)
+            && !bloqueioEntre(eu, d.alvoId)
+            && pedidoOk(d, d.alvoId, d.negocioId)
+            && resumoAtualizado('cli_' + d.alvoId);
+      }
+
+      function daPublicacao() {
+        let d = request.resource.data;
+        let post = get(/databases/$(database)/documents/diario/$(d.postId)).data;
+        return id == 'd_' + d.postId + '_' + request.auth.uid
+            && post.autorId != request.auth.uid
+            && d.alvoId == post.autorId
+            && d.chaves == ['post_' + d.postId, 'pub_' + post.autorId]
+            && resumoAtualizado('post_' + d.postId)
+            && resumoAtualizado('pub_' + post.autorId);
+      }
+
+      allow read: if logado();
+
+      allow create: if logado()
+                    && emailOk()
+                    && base()
+                    && ((request.resource.data.tipo == 'negocio' && doCliente())
+                        || (request.resource.data.tipo == 'cliente' && doVendedor())
+                        || (request.resource.data.tipo == 'publicacao' && daPublicacao()));
+
+// ===== FIM DA PARTE 6 DE 16 =====

@@ -1,20 +1,3 @@
-    // CONTAGEM DAS ENQUETES em 10 pedaços: enquete_contas/{alvo}_{fatia} = { n0..n3 } (fatia 0–9). Cada voto sobe
-    // 1 pedaço sorteado: um documento só aguentava ~1 voto por segundo; assim a enquete aguenta ~10× mais, e ler o
-    // resultado custa no máximo 10 leituras, com quantos votos for. Só sobe junto com o voto de quem grava
-    // (público em enquete_votos ou anônimo em enquete_anon), na fatia do voto, +1 na opção dele.
-    match /enquete_contas/{cid} {
-      allow read: if logado();
-      function partes() { return cid.split('_'); }
-      function votoEm(colecao) { return /databases/$(database)/documents/$(colecao)/$(partes()[0] + '_' + partes()[1] + '_' + request.auth.uid); }
-      function votoDeAgora() {
-        return !exists(votoEm('enquete_anon')) && existsAfter(votoEm('enquete_anon')) ? votoEm('enquete_anon') : votoEm('enquete_votos');
-      }
-      function chaveDoVoto() { return 'n' + string(getAfter(votoDeAgora()).data.opcao); }
-      function pedacoDoVoto() {
-        return cid.matches('^[df]_[A-Za-z0-9]{1,64}_[0-9]$')
-            && !exists(votoDeAgora()) && existsAfter(votoDeAgora())
-            && string(getAfter(votoDeAgora()).data.fatia) == partes()[2];
-      }
       allow create: if logado() && pedacoDoVoto()
                     && request.resource.data.keys().hasOnly([chaveDoVoto()])
                     && request.resource.data[chaveDoVoto()] == 1;
@@ -204,4 +187,32 @@
       // Reação (emoji); sem o campo = curtida antiga (conta como ❤️).
       function reacaoOk(d) { return !('reacao' in d) || d.reacao in ['❤️', '👍', '😂', '😮', '😢', '👏']; }
 
-// ===== FIM DA PARTE 13 DE 15 =====
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['comentarioId', 'uid', 'criadoEm', 'reacao', 'comentarioAutorId'])
+                    // quem escreveu o comentário (para avisar da reação)
+                    && (!('comentarioAutorId' in request.resource.data)
+                        || request.resource.data.comentarioAutorId == get(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId)).data.autorId)
+                    && request.resource.data.uid == request.auth.uid
+                    && id == request.resource.data.comentarioId + '_' + request.auth.uid
+                    && exists(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId))
+                    && reacaoOk(request.resource.data)
+                    && request.resource.data.criadoEm == request.time;
+
+      // Trocar a reação (só o emoji).
+      allow update: if logado()
+                    && resource.data.uid == request.auth.uid
+                    && mudou().hasOnly(['reacao'])
+                    && reacaoOk(request.resource.data);
+      allow delete: if logado() && resource.data.uid == request.auth.uid;
+    }
+
+
+    // =====================================================
+    // DIÁRIO / PUBLICAÇÕES
+    // =====================================================
+    match /diario/{postId} {
+
+      allow read: if logado();
+
+// ===== FIM DA PARTE 14 DE 16 =====

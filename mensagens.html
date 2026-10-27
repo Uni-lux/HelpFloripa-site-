@@ -308,6 +308,13 @@
     .pv-vazio { padding: 6px 2px; color: var(--muted); font-size: 13.5px; }
     .pv-dica { margin: -2px 2px 0; font-size: 12.5px; color: var(--muted); text-align: center; }
     .chat-top, .faixa-fixada, .busca-chat { flex-shrink: 0; }
+    /* ligações: no celular a lupa sai do topo (fica no ⋯ → Pesquisar na conversa) para caber Vídeo e Ligar */
+    @media (max-width: 480px) { #btnBuscarNaConversa { display: none; } }
+    .lg { display: flex; align-items: center; gap: 10px; min-width: 220px; }
+    .lg-ic { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 50%; color: #fff; background: linear-gradient(135deg, #22c55e, #0fb5a6); }
+    .lg-ic.perdeu { background: linear-gradient(135deg, #f87171, #e5484d); }
+    .lg-tx { display: grid; flex: 1; min-width: 0; } .lg-tx b { font-size: 14px; } .lg-tx small { font-size: 12px; color: var(--muted); }
+    .lg-bt { display: inline-flex; align-items: center; gap: 5px; flex: none; padding: 7px 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
     .faixa-fixada { width: 100%; border: 0; border-bottom: 1px solid var(--line); text-align: left; cursor: pointer; }
     .faixa-fixada > svg { color: var(--accent); flex-shrink: 0; }
     .faixa-fixada .tx { flex: 1; min-width: 0; display: grid; }
@@ -905,6 +912,8 @@
     <symbol id="i-clipe" viewBox="0 0 24 24"><path d="M21 11.5l-8.6 8.6a5.5 5.5 0 01-7.8-7.8l8.6-8.6a3.7 3.7 0 015.2 5.2l-8.6 8.6a1.8 1.8 0 01-2.6-2.6l7.9-7.9"/></symbol>
     <symbol id="i-enviar" viewBox="0 0 24 24"><path d="M12 19.5V5M5.5 11.2L12 4.7l6.5 6.5" stroke-width="2.4"/></symbol>
     <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8.5A2.5 2.5 0 016.5 6h1.8l1.5-2h4.4l1.5 2h1.8A2.5 2.5 0 0120 8.5v9a2.5 2.5 0 01-2.5 2.5h-11A2.5 2.5 0 014 17.5z"/><circle cx="12" cy="13" r="3.6"/></symbol>
+    <symbol id="i-telefone" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2"/></symbol>
+    <symbol id="i-videochamada" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2.5"/><path d="M16 10.5l5-3v9l-5-3"/></symbol>
     <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0013 0M12 17.5V21"/></symbol>
     <symbol id="i-fechar" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
@@ -1032,6 +1041,8 @@
             <div class="avatar sm" id="topAvatar"></div>
             <div class="quem-txt"><strong id="topNome">Conversa</strong><small id="topStatus"></small></div>
           </button>
+          <button type="button" class="icon-btn" id="btnVideo" aria-label="Chamada de vídeo" title="Chamada de vídeo" hidden><svg class="i"><use href="#i-videochamada"/></svg></button>
+          <button type="button" class="icon-btn" id="btnLigar" aria-label="Ligar" title="Ligação de voz" hidden><svg class="i"><use href="#i-telefone"/></svg></button>
           <button type="button" class="icon-btn" id="btnBuscarNaConversa" aria-label="Pesquisar na conversa" title="Pesquisar"><svg class="i"><use href="#i-lupa"/></svg></button>
           <button type="button" class="icon-btn" id="btnMenuConversa" aria-label="Mais opções" title="Mais opções"><svg class="i"><use href="#i-mais"/></svg></button>
         </header>
@@ -1317,6 +1328,7 @@
     import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura, mostrarAvisoEmail } from "./seguranca.js?v=1";
     import { confirmarHF } from "./confirmar.js?v=4";
     import { relogioDe, ufDe } from "./fuso.js?v=1";
+    import { textoChamada } from "./chamadas.js?v=1";
     import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO, lerResumos, media, notaTexto } from "./avaliacoes.js?v=15";
     import { buscarPessoas } from "./pessoas.js?v=3";
     import { docComValidade } from "./leituras.js?v=1";
@@ -1958,6 +1970,7 @@
       }
       if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "local") return "📍 Localização";
       if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "endereco") return "🏠 Endereço";
+      if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "chamada") return (m.cartao.modo === "video" ? "🎥 " : "📞 ") + textoChamada(m.cartao);
       if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "pix") return `Pix${Number(m.cartao.valor) > 0 ? ": " + reais(m.cartao.valor) : ""}`;
       if (m.tipoArquivo === "avaliacao") return "Pedido de avaliação";
       if (m.tipoArquivo === "cartao" && m.cartao?.status) return `Pedido: ${(infoStatus(m.cartao.tipo, m.cartao.status) || [0, "status atualizado"])[1]}`;
@@ -2714,6 +2727,8 @@
       }
 
       ativa = { id, outroId: c.outroId, nome: c.nome, foto: c.foto, dados: c.dados };
+      // Ligar só numa conversa entre duas pessoas (não com você mesmo).
+      $("btnLigar").hidden = $("btnVideo").hidden = !c.outroId || c.outroId === eu.uid;
       // A lista acompanha a conversa aberta (ex.: link de uma conversa de negócio).
       if (!restritos.has(c.outroId) && !conversaArquivada(c)) trocarModo(modoDe(c));
       mensagens = [];
@@ -3144,6 +3159,9 @@
       } else if (m.tipoArquivo === "cartao" && (m.cartao?.tipo === "local" || m.cartao?.tipo === "endereco")) {
         bolha.classList.add("cartao-msg", "local-msg");
         bolha.appendChild(cartaoLocal(m.cartao, m.remetenteId === eu.uid));
+      } else if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "chamada") {
+        bolha.classList.add("cartao-msg", "chamada-msg");
+        bolha.appendChild(cartaoChamada(m.cartao, m.remetenteId === eu.uid));
       } else if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "pix") {
         bolha.classList.add("cartao-msg", "pix-msg");
         bolha.appendChild(cartaoPix(m.cartao, m.remetenteId === eu.uid));
@@ -4616,6 +4634,32 @@
     $("buscaProxima").addEventListener("click", () => passoBusca(1));
     $("buscaFechar").addEventListener("click", fecharBuscaChat);
     $("btnBuscarNaConversa").addEventListener("click", () => ($("buscaChat").hidden ? abrirBuscaChat() : fecharBuscaChat()));
+
+    // ---------- ligações de voz e vídeo (chamadas.js) ----------
+    // Liga para a pessoa da conversa aberta; quando acaba, fica um cartão na conversa ("Ligação de voz · 3 min",
+    // "Chamada de vídeo perdida"). Quem recebe vê a tela de chamada em qualquer página (firebase.js → ouvirChamadas).
+    async function fazerLigacao(modo) {
+      if (!ativa?.outroId) return;
+      if (bloqueios.meus.has(ativa.outroId) || bloqueios.deles?.has?.(ativa.outroId)) { toast("Não é possível ligar para esta pessoa."); return; }
+      const conv = ativa.id;
+      const { ligar } = await import("./chamadas.js?v=1");
+      const r = await ligar({ para: ativa.outroId, nome: ativa.nome, foto: ativa.foto, conv, tipo: modo });
+      if (r.status === "erro") { toast(r.erro); return; }
+      try { await publicarMensagem(conv, { remetenteId: eu.uid, texto: "", criadoEm: fb.serverTimestamp(), tipoArquivo: "cartao", cartao: { tipo: "chamada", modo, resultado: r.status, duracao: r.duracaoSeg || 0 } }); }
+      catch (e) { console.warn("[Chamada] cartão", e); }
+    }
+    $("btnLigar").addEventListener("click", () => fazerLigacao("audio"));
+    $("btnVideo").addEventListener("click", () => fazerLigacao("video"));
+    function cartaoChamada(c, minha) {
+      const box = elm("div", "lg");
+      const perdeu = ["perdida", "recusada", "cancelada"].includes(c.resultado);
+      const ic = elm("span", "lg-ic" + (perdeu ? " perdeu" : "")); ic.appendChild(usar(c.modo === "video" ? "videochamada" : "telefone", "i"));
+      const tx = elm("div", "lg-tx"); tx.append(elm("b", null, textoChamada(c)), elm("small", null, minha ? "Você ligou" : "Ligou para você"));
+      const de_novo = elm("button", "lg-bt"); de_novo.type = "button"; de_novo.append(usar(c.modo === "video" ? "videochamada" : "telefone", "i s"), document.createTextNode(minha ? "Ligar de novo" : "Retornar"));
+      de_novo.addEventListener("click", (e) => { e.stopPropagation(); fazerLigacao(c.modo === "video" ? "video" : "audio"); });
+      box.append(ic, tx, de_novo);
+      return box;
+    }
 
     // ======================================================
     // Visualizador de fotos

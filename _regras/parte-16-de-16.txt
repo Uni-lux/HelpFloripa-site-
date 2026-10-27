@@ -1,20 +1,3 @@
-    match /neg_stats/{id} {
-      function statsNovo() {
-        let d = request.resource.data;
-        let vis = caminhoVisita(d.negocioId, d.dia);
-        let va = getAfter(vis).data;
-        return d.keys().hasOnly(['negocioId', 'donoId', 'dia', 'v', 'o', 'h', 'a', 'it'])
-            && id == d.negocioId + '_' + d.dia
-            && d.donoId == get(/databases/$(database)/documents/negocios/$(d.negocioId)).data.donoId
-            && !exists(vis) && va.dia == d.dia
-            && d.v == 1
-            && d.o.keys().hasOnly([va.origem]) && d.o[va.origem] == 1
-            && d.h.keys().hasOnly([string(va.hora)]) && d.h[string(va.hora)] == 1
-            && d.a == {} && d.it == {};
-      }
-      function maisUmNoMapa(d, r, mapa, x) {
-        return d[mapa].diff(r[mapa]).affectedKeys().hasOnly([x]) && d[mapa][x] == r[mapa].get(x, 0) + 1;
-      }
       function statsMais() {
         let d = request.resource.data;
         let r = resource.data;
@@ -40,4 +23,4 @@
 
   }
 }
-// ===== FIM DA PARTE 15 DE 15 =====
+// ===== FIM DA PARTE 16 DE 16 =====

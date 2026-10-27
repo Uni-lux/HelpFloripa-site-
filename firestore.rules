@@ -897,6 +897,53 @@ service cloud.firestore {
       allow delete: if logado() && resource.data.donoId == request.auth.uid;
     }
 
+    // Ligações de voz e vídeo (chamadas.js): só entre as duas pessoas de uma conversa que já existe e sem bloqueio.
+    // A chamada guarda a "campainha" (oferta/resposta do WebRTC) e o resultado; áudio e vídeo nunca passam por aqui.
+    match /chamadas/{id} {
+      function daChamada() { return logado() && (request.auth.uid == resource.data.de || request.auth.uid == resource.data.para); }
+      function sdpOk(x) { return x is map && x.keys().hasOnly(['type', 'sdp']) && x.type is string && x.sdp is string && x.sdp.size() <= 30000; }
+      allow get, list: if daChamada();
+      allow create: if logado()
+                    && request.resource.data.keys().hasOnly(['de', 'para', 'conv', 'tipo', 'status', 'oferta', 'criadoEm'])
+                    && request.resource.data.de == request.auth.uid
+                    && request.resource.data.para is string && request.resource.data.para != request.auth.uid
+                    && request.resource.data.conv == (request.auth.uid < request.resource.data.para
+                         ? request.auth.uid + '_' + request.resource.data.para : request.resource.data.para + '_' + request.auth.uid)
+                    && exists(/databases/$(database)/documents/conversas/$(request.resource.data.conv))
+                    && !bloqueioEntre(request.auth.uid, request.resource.data.para)
+                    && request.resource.data.tipo in ['audio', 'video']
+                    && request.resource.data.status == 'chamando'
+                    && sdpOk(request.resource.data.oferta)
+                    && request.resource.data.criadoEm == request.time;
+      // Quem recebe atende (com a resposta) enquanto toca.
+      allow update: if daChamada() && request.auth.uid == resource.data.para
+                    && resource.data.status == 'chamando'
+                    && mudou().hasOnly(['status', 'resposta', 'aceitaEm'])
+                    && request.resource.data.status == 'aceita'
+                    && sdpOk(request.resource.data.resposta)
+                    && request.resource.data.aceitaEm == request.time;
+      // Qualquer um dos dois termina: recusar, cancelar, perder (não atendeu) ou encerrar.
+      allow update: if daChamada()
+                    && resource.data.status in ['chamando', 'aceita']
+                    && mudou().hasOnly(['status', 'fimEm', 'encerradaPor'])
+                    && request.resource.data.status in ['recusada', 'cancelada', 'perdida', 'encerrada']
+                    && request.resource.data.encerradaPor == request.auth.uid
+                    && request.resource.data.fimEm == request.time;
+      allow delete: if false;
+      match /candidatos/{c} {
+        function chamada() { return get(/databases/$(database)/documents/chamadas/$(id)).data; }
+        allow read: if logado() && request.auth.uid in [chamada().de, chamada().para];
+        allow create: if logado() && request.auth.uid in [chamada().de, chamada().para]
+                      && chamada().status in ['chamando', 'aceita']
+                      && request.resource.data.keys().hasOnly(['de', 'c', 'em'])
+                      && request.resource.data.de == request.auth.uid
+                      && request.resource.data.c is map && request.resource.data.c.keys().hasOnly(['candidate', 'sdpMid', 'sdpMLineIndex'])
+                      && request.resource.data.c.candidate is string && request.resource.data.c.candidate.size() <= 1000
+                      && request.resource.data.em == request.time;
+        allow update, delete: if false;
+      }
+    }
+
     match /conversas/{conversaId} {
 
       // Cada pessoa só mexe na própria marca de leitura / "digitando".
