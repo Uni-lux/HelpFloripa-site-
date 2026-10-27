@@ -20,7 +20,7 @@ const B = await navegador({ mobile: true });
 const p = await entrar(B.ctx, "bruno", "negocios.html?planos=1");
 await p.waitForSelector(".pl-ajuda", { timeout: 20000 });
 ok((await p.textContent(".pl-ajuda")).includes("continua no ar de graça"), "convite lembra que o negócio continua no ar de graça");
-await p.locator(".pl-ajuda .pl-btn", { hasText: "Baixa renda" }).click(); await p.waitForSelector(".pl-form");
+await p.locator(".pl-ajuda .pl-tipo", { hasText: "Baixa renda" }).click(); await p.waitForSelector(".pl-form");
 const gr = (await p.textContent(".pl-neg-gratis")).replace(/\s+/g, " ");
 ok(gr.includes("de graça") && gr.includes("1 perfil") && gr.includes("3 itens"), "aviso do grátis: " + gr.slice(0, 90));
 const visiveis = await p.locator(".pl-doc:visible").count();
@@ -34,6 +34,10 @@ await p.locator(".pl-mais-docs").click();
 ok(await p.locator(".pl-doc:visible").count() === 9, "\"Ver outros documentos\" mostra os 9");
 await p.locator(".pl-pn[data-p='pro']").click();
 ok(await p.locator(".pl-pn.on[data-p='pro']").count() === 1, "escolher o Pro marca o cartão");
+const pers = (await p.locator(".pl-per-neg .pl-per").allTextContents()).map((t) => t.replace(/\s+/g, " "));
+ok(pers.length === 4 && pers[1].includes("59,85") && pers[1].includes("19,95 por mês") && pers[3].includes("239,40"), "tempo na baixa renda: 1/3/6/12 meses com os 50% (3 meses do Pro = 59,85): " + pers[1]);
+await p.locator(".pl-per-neg .pl-per[data-m='3']").click();
+await p.locator(".pl-tempo").screenshot({ path: "saida/neg-tempo.png" });
 await p.locator(".pl-doc[data-doc='bolsa']").click();
 await p.setInputFiles("#plNegArquivo", garantirImagem("saida/doc-bolsa.png", 900, 1200));
 await p.waitForSelector(".pl-prova .ax-previa", { timeout: 10000 });
@@ -44,7 +48,7 @@ const larg = await p.evaluate(() => [document.documentElement.scrollWidth, inner
 ok(larg[0] <= larg[1], `formulário cabe no celular (${larg[0]} ≤ ${larg[1]})`);
 await p.locator(".pl-form button[type=submit]").click(); await p.waitForTimeout(2000);
 let ng = (await db.doc(`planos_negociacoes/${U.bruno}`).get()).data();
-ok(!ng?.perfisPedidos && !ng?.mesesPedidos && ng?.comprovanteTipo === "bolsa" && !!ng.comprovante && ng.plano === "pro" && ng.valorProposto === 19.95, "pedido gravado: Pro com 50% (19,95), comprovante anexado: " + JSON.stringify({ plano: ng?.plano, valor: ng?.valorProposto }));
+ok(!ng?.perfisPedidos && ng?.mesesPedidos === 3 && ng?.comprovanteTipo === "bolsa" && !!ng.comprovante && ng.plano === "pro" && ng.valorProposto === 19.95, "pedido gravado: Pro com 50% (19,95), comprovante anexado: " + JSON.stringify({ plano: ng?.plano, valor: ng?.valorProposto }));
 
 // ---------- 2) painel: responsável e aprovar ----------
 const ADM = await navegador({ mobile: true });
@@ -74,7 +78,7 @@ await a.selectOption(".ad-modal .ad-campo:has-text('Por quanto tempo') select", 
 await a.selectOption(".ad-modal .ad-campo:has-text('Plano') select", "plus");
 await a.locator(".ad-modal .ad-multi-op", { hasText: "Delivery" }).locator("input").uncheck();
 await a.selectOption(".ad-modal .ad-campo:has-text('Selo do plano') select", "esconder");
-ok(await a.inputValue(".ad-modal .ad-campo:has-text('Valor combinado') input") === "19,95", "valor sugerido: metade do Pro (19,95)");
+ok(await a.inputValue(".ad-modal .ad-campo:has-text('Valor combinado') input") === "59,85", "valor sugerido: metade do Pro × 3 meses (59,85)");
 await a.locator(".ad-modal .ad-campo", { hasText: "Valor combinado" }).locator("input").fill("0");
 await a.locator(".ad-modal").screenshot({ path: "saida/neg-aprovar.png" });
 await a.locator(".ad-modal .ad-bt.pri", { hasText: "Aprovar" }).click(); await a.waitForTimeout(2500);

@@ -845,6 +845,14 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   para ~470 KB e selfie ~360 KB para caber no limite de 1 MB do doc; `capture="user"`; dicas; apagada junto com o documento
   ao cancelar/aprovar/recusar). Painel mostra a selfie ao lado do documento. Ajuda e Termos citam a selfie. Testes
   `t-negociacao`, `t-planos`, `t-verif`.
+- **Painel do anunciante e atalhos da negociação (27/10/2026, PR depois do #100, sem regra nova):** 6 lugares sempre 3 + 3
+  (também no computador): cada um com ícone em degradê da cor da classe e pílula "+ Criar"/"No ar"/"Pausado" (laranja);
+  criado = cartão aceso no degradê. Cartão do plano no celular: ícone + texto em cima e botão inteiro embaixo.
+  "Não dá para pagar agora?": os 2 botões viraram os cartões coloridos `.pl-tipo.on.pl-atalho` com seta. Baixa renda ganhou
+  "Por quanto tempo" (1/3/6/12 meses, sempre 50%, sem somar o desconto do período; `mesesPedidos`; painel sugere preço × meses
+  e a duração). Aviso "Proibido vender" da Comunidade em amarelo (sumia no tema claro). **Estatísticas sem plano:**
+  `negocios.html?insights=ID` abria antes de ler o plano (`garantirPlano()` agora); estatísticas do perfil (`insights.js`)
+  mostram "Seus negócios" sem números e com PLUS (levam aos planos). Testes `t-estat-gratis.mjs`, `t-negociacao`.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

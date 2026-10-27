@@ -13,6 +13,7 @@ import {
 } from "./rede.js?v=66";
 import { secaoGrafico, secaoHoras } from "./estatisticas-post.js?v=33";
 import { lerStats, listaDias, somarPeriodo } from "./estat-negocio.js?v=1";
+import { lerPlano, nivelPlano } from "./planos-base.js?v=8";
 
 const DIA = 864e5;
 const PERIODOS = [[7, "7 dias"], [30, "30 dias"], [90, "90 dias"]];
@@ -195,13 +196,15 @@ const TIPOS_NEG = { servicos: ["Freelances", "#00adee"], delivery: ["Delivery", 
 async function secaoNegocios(corpo, dias) {
   const negs = await lerTodos(fb.query(fb.collection(fb.db, "negocios"), fb.where("donoId", "==", eu.uid), fb.limit(8)));
   if (!negs?.length) return;
-  const stats = await lerStats(fb, eu.uid).catch(() => null);
+  // Estatísticas dos negócios são dos planos: sem plano, os atalhos levam aos planos (sem os números).
+  const comPlano = !!nivelPlano(await lerPlano(fb, eu.uid).catch(() => null));
+  const stats = comPlano ? await lerStats(fb, eu.uid).catch(() => null) : null;
   const s = el("div", "estat-secao ins-negs");
-  const cab = el("div", "estat-graf-cab"); cab.append(el("h3", null, "Seus negócios"), el("small", null, `visitas e contatos nos últimos ${dias} dias`));
+  const cab = el("div", "estat-graf-cab"); cab.append(el("h3", null, "Seus negócios"), el("small", null, comPlano ? `visitas e contatos nos últimos ${dias} dias` : "as estatísticas dos negócios fazem parte dos planos"));
   s.appendChild(cab);
   negs.sort((a, b) => Object.keys(TIPOS_NEG).indexOf(a.tipo) - Object.keys(TIPOS_NEG).indexOf(b.tipo)).forEach((n) => {
     const [rot, cor] = TIPOS_NEG[n.tipo] || ["Negócio", "#00adee"];
-    const a = el("a", "ins-neg"); a.href = `negocios.html?insights=${encodeURIComponent(n.id)}`;
+    const a = el("a", "ins-neg"); a.href = comPlano ? `negocios.html?insights=${encodeURIComponent(n.id)}` : "negocios.html?planos=1";
     a.style.setProperty("--c", cor);
     const ic = el("span", "ic"); ic.appendChild(icone(n.tipo, "i s"));
     const tx = el("span", "tx"); tx.append(el("strong", null, n.nome || rot), el("small", null, rot));
@@ -211,6 +214,7 @@ async function secaoNegocios(corpo, dias) {
       const num = (v, rotN, antes) => { const b = el("span", "nums"); b.append(el("b", null, numero(v)), el("small", null, rotN)); if (antes || v) b.appendChild(el("i", v >= antes ? "sobe" : "desce", !antes ? "novo" : `${v >= antes ? "▲" : "▼"} ${fmtPct(Math.abs((v - antes) / antes))}`)); return b; };
       a.append(num(r.v, r.v === 1 ? "visita" : "visitas", ant.v), num(r.contatos, r.contatos === 1 ? "contato" : "contatos", ant.contatos));
     }
+    if (!comPlano) { const pl = el("span", "ins-plus", "PLUS"); pl.style.cssText = "margin-left:auto;padding:3px 8px;border-radius:7px;font-size:10.5px;font-weight:900;letter-spacing:.06em;color:#fff;background:linear-gradient(135deg,#0ea5e9,#2563eb)"; a.appendChild(pl); }
     a.appendChild(icone("avancar", "i xs"));
     s.appendChild(a);
   });
