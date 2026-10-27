@@ -885,6 +885,15 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   cidade escolhida primeiro) e `#secComunidade` (filtro por tipo, aviso amarelo "Proibido vender ou cobrar", "Ver tudo").
   Explorar: `#secComunidade` (cidade da pessoa primeiro) e aba "Comunidade" na busca (recentes + `buscarNoServidor`).
   Teste `t-comunidade-inicio.mjs`.
+- **Saúde e Comunidade nacionais e otimizadas (27/10/2026, PR depois do #103, sem regra nova; 2 índices novos):**
+  `por-local.js` (sem deps): `lerPorLocal(fb, docsComValidade, {colecao, filtros, loc, limite, minimo, noAr, chave})` lê a
+  cidade (`cidadeIbge` número), depois o estado e só então o Brasil, parando com `minimo` itens; cada nível no cache 10 min;
+  com índice (filtros + `atualizadoEm` desc) e, sem ele, lê sem ordem e ordena na tela. `quandoVisivel` (IntersectionObserver,
+  600 px): Início só lê Saúde/Comunidade quando a seção chega perto (seções sem `hidden`, `preencher` esconde se vier vazio).
+  Local: "Você está em" ou, sem escolha, a cidade do perfil (`localSecoes`). Títulos "em {cidade}"/"em {estado}"/"no Brasil".
+  Cartão da Comunidade mostra a distância (`a._dist`, `comDistancia`). Explorar: cidade do perfil (`dados.uf/cidadeIbge`).
+  Índices novos: `comunidade` uf+atualizadoEm e cidadeIbge+atualizadoEm (firestore.indexes.json + INDICES-LEIA-ME: agora 7).
+  Teste `t-comunidade-inicio.mjs` (35 anúncios mais novos em SP não escondem os 7 de Florianópolis; só carrega ao rolar).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

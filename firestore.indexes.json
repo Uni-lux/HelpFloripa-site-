@@ -127,6 +127,34 @@
           "order": "DESCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "comunidade",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "uf",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "atualizadoEm",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "comunidade",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "cidadeIbge",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "atualizadoEm",
+          "order": "DESCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": []
