@@ -877,6 +877,20 @@ chat da equipe).
 
 ## Pendências do dono e o que ficou para depois (vindas de sessões anteriores)
 Coisas que só ELE pode fazer (lembrar no momento certo, sem fazer por ele):
+- **Pagamento automático (Mercado Pago) — falta ele, na ordem** (passo a passo em `_regras/PAGAMENTO-LEIA-ME.md`; código
+  pronto no PR #96, desligado com `PAGAMENTO.automatico = false`):
+  1. Mesclar o PR #96 (já liga o Pix com QR na chave CNPJ, conferido à mão no painel).
+  2. Ligar o **plano Blaze** no Firebase com **alerta de orçamento** (ex.: R$ 50/mês).
+  3. **Webhook** no Mercado Pago (app Help Floripa → Webhooks → URL
+     `https://southamerica-east1-helpfloripa-61e0d.cloudfunctions.net/webhookMercadoPago`, evento Pagamentos) e copiar a
+     **assinatura secreta**.
+  4. **Cloud Shell**: `functions:secrets:set MP_ACCESS_TOKEN` (Access Token de TESTE) e `MP_WEBHOOK_SECRET`, depois
+     `deploy --only functions`. Nunca mandar os segredos no chat.
+  5. Avisar o Claude → ele muda `automatico: true` e testam juntos com cartões de teste (titular APRO/OTHE/FUND).
+  6. Produção: ativar credenciais no MP, trocar o segredo pelo token `APP_USR-` e publicar de novo, mandar a Public Key
+     `APP_USR-` (o Claude troca no `planos-base.js`) e fazer um pagamento real com Pix para conferir.
+  Depois: a fazer quando ele quiser — parcelamento no cartão, renovação automática (assinaturas) e, no futuro, SLU/LTDA
+  para o Pix mostrar "Help Floripa" (hoje mostra a razão social do MEI com o nome dele).
 - **E-mails do domínio (lista da semana de 26/10, lembrete trig_01Skdj622NFsQ7wGqJrbK4HC):** imprensa@, privacidade@ (LGPD),
   juridico@ e contato@helpfloripa.com.br redirecionados para o Gmail (Cloudflare Email Routing recomendado, ou ImprovMX).
   Depois trocar no site onde hoje está helpfloripa7@gmail.com (privacidade, contato, sócios, termos).
