@@ -15,7 +15,9 @@ import { lerPlano, nivelPlano, seloPlano, semPausados, mostraSelo } from "./plan
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, esquecerPosicao } from "./perto.js?v=2";
 import { lerLocal, salvarLocal, rotuloLocal, noLocal, escolherLocal } from "./local-escolhido.js?v=1";
 import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=63";
-import { lerComunidade, cartaoComunidade, filtrosComunidade } from "./comunidade-cartao.js?v=1";
+import { lerComunidade, cartaoComunidade, filtrosComunidade } from "./comunidade-cartao.js?v=2";
+import { lerPorLocal, quandoVisivel } from "./por-local.js?v=1";
+import { NOME_UF } from "./endereco.js?v=1";
 
 const $ = (id) => document.getElementById(id);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
@@ -297,6 +299,37 @@ function seloDistancia(card, x) {
   if (mostraSelo(x._plano)) card.querySelector(".capa")?.appendChild(seloPlano(x._plano, "selo-pro hm-pro"));
   return card;
 }
+// Onde procurar Saúde e Comunidade: a cidade escolhida; sem escolha, a cidade do perfil (as duas seções são "perto de você").
+let localSecoesP = null;
+function localSecoes(fs, db, u) {
+  return (localSecoesP ||= (async () => {
+    const loc = lerLocal();
+    if (loc.uf) return { loc, rotulo: rotuloLocal(loc) };
+    const p = await docComValidade({ ...fs, db }, ["perfis_publicos", u.uid], 10 * 60000).then((x) => (x.exists() ? x.data() : {})).catch(() => ({}));
+    const l = p.uf ? { uf: p.uf, cidadeIbge: Number(p.cidadeIbge) || null, cidade: String(p.cidade || "").replace(/\s*[\/,-]\s*[A-Za-z]{2}\s*$/, "") } : {};
+    return { loc: l, rotulo: l.uf ? rotuloLocal(l) : "" };
+  })());
+}
+const tituloNivel = (nivel, rotulo, uf) => (nivel === "cidade" && rotulo ? `em ${rotulo}` : nivel === "estado" && uf ? `em ${NOME_UF[uf] || uf}` : "no Brasil");
+async function secaoSaude(fs, db, u) {
+  const { loc, rotulo } = await localSecoes(fs, db, u);
+  const { lista, nivel } = await lerPorLocal({ ...fs, db }, docsComValidade, { colecao: "negocios", filtros: [["tipo", "saude"]], chave: "saude", loc, limite: 24, minimo: 8, noAr: (n) => n.nome && n.oculto !== true && !oculto(n) });
+  const final = await semPausados({ ...fs, db }, lista);
+  if (loc.uf) $("t-secSaude").textContent = `Saúde ${tituloNivel(nivel, rotulo, loc.uf)}`;
+  const resumos = await lerResumos({ ...fs, db }, final.slice(0, 20).map((n) => "neg_" + n.id));
+  preencher("trilhoSaude", final.slice(0, 20).map((n) => cartaoNegocio(n, resumos["neg_" + n.id])));
+}
+async function secaoComunidade(fs, db, u) {
+  const { loc, rotulo } = await localSecoes(fs, db, u);
+  const { lista, nivel } = await lerComunidade({ ...fs, db }, docsComValidade, loc);
+  // Distância pela posição da pessoa (GPS guardado ou a cidade): só aparece quando sabemos onde ela está.
+  const pos = await minhaPosicao({}).catch(() => null);
+  if (pos) { await comDistancia(lista, pos); lista.forEach((a) => { if (Number.isFinite(a._km)) a._dist = textoDistancia(a._km, a._aprox); }); }
+  if (loc.uf) $("t-secComunidade").textContent = `Na Comunidade ${tituloNivel(nivel, rotulo, loc.uf)}`;
+  const pintar = (l) => preencher("trilhoComunidade", l.slice(0, 20).map((a) => cartaoComunidade(a, "inicio")));
+  $("filtrosComunidade").replaceChildren(filtrosComunidade(lista, pintar));
+  pintar(lista);
+}
 async function montarPerto(fs, db, u, negocios, imoveis, nota) {
   const sec = $("secPerto"), sub = $("pertoSub"), bt = $("pertoLoc");
   const perfil = await docComValidade({ ...fs, db }, ["perfis_publicos", u.uid], 10 * 60000).then((s) => (s.exists() ? s.data() : {})).catch(() => ({}));
@@ -405,27 +438,10 @@ async function carregar(fs, db, u) {
       tempo: () => 6000
     });
   } catch { preencher("trilhoImoveis", []); }
-  // Saúde: carrossel próprio (não depende de estar entre os 60 negócios mais recentes); a cidade escolhida primeiro.
-  try {
-    const sn = await docsComValidade({ ...fs, db }, "inicio-saude", fs.query(neg, fs.where("tipo", "==", "saude"), fs.limit(30)), 10 * 60000);
-    const lista = (await semPausados({ ...fs, db }, sn.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => n.nome && n.oculto !== true && !oculto(n))))
-      .sort((a, b) => ms(b.atualizadoEm) - ms(a.atualizadoEm));
-    const loc = lerLocal(), aqui = (n) => noLocal(n, loc);
-    const final = loc.uf ? [...lista.filter(aqui), ...lista.filter((n) => !aqui(n))] : lista;
-    if (loc.uf && final.some(aqui)) $("t-secSaude").textContent = `Saúde em ${rotuloLocal(loc)}`;
-    const resumos = await lerResumos({ ...fs, db }, final.map((n) => "neg_" + n.id));
-    preencher("trilhoSaude", final.slice(0, 20).map((n) => cartaoNegocio(n, resumos["neg_" + n.id])));
-  } catch (e) { console.warn("Saúde no início:", e); preencher("trilhoSaude", []); }
-  // Comunidade: doações, trocas, pedidos, quartos e achados e perdidos (comunidade-cartao.js), com filtro por tipo.
-  try {
-    const itens = await lerComunidade({ ...fs, db }, docsComValidade);
-    const loc = lerLocal(), aqui = (a) => noLocal(a, loc);
-    const final = loc.uf ? [...itens.filter(aqui), ...itens.filter((a) => !aqui(a))] : itens;
-    if (loc.uf && final.some(aqui)) $("t-secComunidade").textContent = `Na Comunidade em ${rotuloLocal(loc)}`;
-    const pintar = (l) => preencher("trilhoComunidade", l.slice(0, 20).map((a) => cartaoComunidade(a, "inicio")));
-    $("filtrosComunidade").replaceChildren(filtrosComunidade(final, pintar));
-    pintar(final);
-  } catch (e) { console.warn("Comunidade no início:", e); preencher("trilhoComunidade", []); }
+  // Saúde e Comunidade em nível nacional (por-local.js): a cidade escolhida em "Você está em" (ou a do perfil), depois o
+  // estado e só então o Brasil. Só carregam quando a seção chega perto da tela, e com a distância quando dá para saber.
+  quandoVisivel($("secSaude"), () => secaoSaude(fs, db, u).catch((e) => { console.warn("Saúde no início:", e); preencher("trilhoSaude", []); }));
+  quandoVisivel($("secComunidade"), () => secaoComunidade(fs, db, u).catch((e) => { console.warn("Comunidade no início:", e); preencher("trilhoComunidade", []); }));
   montarPerto(fs, db, u, negociosPerto, imoveisPerto, notaPerto).catch((e) => { console.warn("Perto de você indisponível:", e); preencher("trilhoPerto", []); });
 }
 

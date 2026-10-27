@@ -22,7 +22,7 @@ import { CATEGORIAS, CORES_TIPO, NOMES_TIPO, PAGINA_TIPO, nomeCategoria, nomeCat
 import { fimDaEnquete, faltaTexto } from "./enquetes.js?v=5";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, distanciaKm } from "./perto.js?v=2";
 import { semPausados } from "./planos-base.js?v=8";
-import { lerComunidade, cartaoComunidade, filtrosComunidade, comunidadeNoAr } from "./comunidade-cartao.js?v=1";
+import { lerComunidade, cartaoComunidade, filtrosComunidade, comunidadeNoAr } from "./comunidade-cartao.js?v=2";
 
 const DIARIO_VALIDADE = 3 * 60000, DIA = 864e5, HORA = 3600e3;
 const postOculto = (p) => (p?.ocultoAte?.toMillis?.() ?? 0) > Date.now() || (p?.agendadoPara?.toMillis?.() ?? 0) > Date.now() || silenciado(p?.autorId);
@@ -338,16 +338,17 @@ function botaoLocal(alvo, aoMudar) {
 }
 // Negócios: os mais perto primeiro (pela distância e pela nota); sem localização, os da sua cidade.
 // Comunidade (doações, trocas, pedidos, quartos, achados e perdidos): os da cidade da pessoa primeiro, com filtro por tipo.
+// Nacional (por-local.js): a cidade do perfil, depois o estado e só então o Brasil; com a distância quando há posição.
 let comunidadeP = null;
-const comunidadeRecentes = () => (comunidadeP ||= lerComunidade(fb, docsComValidade).catch(() => []));
+const comunidadeLocal = () => (comunidadeP ||= lerComunidade(fb, docsComValidade, { uf: dados.uf, cidadeIbge: Number(dados.cidadeIbge) || null }).catch(() => ({ lista: [], nivel: "brasil" })));
+const comunidadeRecentes = () => comunidadeLocal().then((r) => r.lista);
 async function pintarComunidade() {
-  const itens = await comunidadeRecentes();
-  const minha = minhaCidade();
-  const daqui = minha ? itens.filter((a) => chaveCidade(a.cidade) === minha) : [];
-  const lista = [...daqui, ...itens.filter((a) => !daqui.includes(a))];
+  const { lista, nivel } = await comunidadeLocal();
   $("secComunidade").hidden = !lista.length;
   if (!lista.length) return;
-  if (daqui.length) $("titComunidade").textContent = `Na Comunidade em ${nomeCid(dados.cidade || dados.cidadeNome)}`;
+  const pos = await posicao();
+  if (pos) { await comDistancia(lista, pos); lista.forEach((a) => { if (Number.isFinite(a._km)) a._dist = textoDistancia(a._km, a._aprox); }); }
+  $("titComunidade").textContent = nivel === "cidade" ? `Na Comunidade em ${nomeCid(dados.cidade || dados.cidadeNome)}` : nivel === "estado" ? `Na Comunidade no seu estado` : "Na Comunidade";
   const pintar = (l) => $("exploraComunidade").replaceChildren(...l.slice(0, 16).map((a) => cartaoComunidade(a, "explorar")));
   $("filtrosComunidadeExp").replaceChildren(filtrosComunidade(lista, pintar));
   pintar(lista);

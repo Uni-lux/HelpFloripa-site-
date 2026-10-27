@@ -2,6 +2,8 @@
 // Cartões da Comunidade (doações, trocas, pedidos de ajuda, quartos compartilhados, achados e perdidos) para o Início
 // e o Explorar. Sem dependências: quem chama passa a leitura (docsComValidade). Toque abre comunidade.html?item=ID.
 // =====================================================
+import { lerPorLocal } from "./por-local.js?v=1";
+
 export const CAT_COM = {
   doacao: { nome: "Doação", plural: "Doações", cor: "#e5487f", emoji: "🎁" },
   troca: { nome: "Troca", plural: "Trocas", cor: "#8b5cf6", emoji: "🔄" },
@@ -19,11 +21,10 @@ const relativo = (t) => { const d = Math.floor((Date.now() - ms(t)) / 864e5); re
 // No ar: disponível, não escondido pela equipe e dentro dos 60 dias.
 export const comunidadeNoAr = (a) => a && a.status === "disponivel" && ms(a.ocultoAte) <= Date.now() && Date.now() - ms(a.atualizadoEm || a.criadoEm) <= VALIDADE_DIAS * 864e5;
 
-// Os 40 atualizados mais recentemente (uma consulta, guardada 10 min no aparelho por quem chama).
-export async function lerComunidade(fb, docsComValidade) {
-  const q = fb.query(fb.collection(fb.db, "comunidade"), fb.orderBy("atualizadoEm", "desc"), fb.limit(40));
-  const s = await (docsComValidade ? docsComValidade(fb, "inicio-comunidade", q, 10 * 60000) : fb.getDocs(q));
-  return s.docs.map((d) => ({ id: d.id, ...d.data() })).filter(comunidadeNoAr);
+// Nacional: a cidade escolhida primeiro, depois o estado e só então o Brasil (por-local.js; cada nível 10 min no aparelho).
+// loc = { uf, cidadeIbge } (vazio = Brasil). Devolve { lista, nivel }.
+export async function lerComunidade(fb, docsComValidade, loc = {}) {
+  return lerPorLocal(fb, docsComValidade, { colecao: "comunidade", chave: "com", loc, limite: 30, minimo: 10, noAr: comunidadeNoAr });
 }
 
 // Selo no canto da foto: o que mais importa em cada tipo.
@@ -45,7 +46,8 @@ export function cartaoComunidade(a, origem = "inicio") {
   if (foto) capa.style.backgroundImage = `url("${foto}")`; else { capa.classList.add("sem-foto"); capa.appendChild(el("span", "cm-mini-emoji", c.emoji)); }
   capa.append(el("span", "cm-mini-cat", c.nome), el("span", "cm-mini-selo", selo(a)));
   const tx = el("div", "cm-mini-tx");
-  tx.append(el("strong", null, a.titulo || c.nome), el("small", null, [a.bairro, a.cidade].filter(Boolean).join(" · ") || "Local não informado"), el("span", "cm-mini-quando", relativo(a.atualizadoEm || a.criadoEm)));
+  // a._dist: distância já em texto ("3,4 km", "Na sua cidade"), quando quem chama sabe onde a pessoa está.
+  tx.append(el("strong", null, a.titulo || c.nome), el("small", null, [a.bairro, a.cidade].filter(Boolean).join(" · ") || "Local não informado"), el("span", "cm-mini-quando", [a._dist, relativo(a.atualizadoEm || a.criadoEm)].filter(Boolean).join(" · ")));
   link.append(capa, tx);
   return link;
 }
