@@ -901,6 +901,20 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   Explorar 745 → 26 MB de memória; sessão de 8 páginas 164 MB → 13,4 MB (Firestore 1,1 MB). Sem Storage o cache do
   aparelho não funciona (as listas não cabem no localStorage) e a 2ª visita baixa tudo de novo. No teste a 2ª visita
   baixou as fotos de novo (o cache do navegador não segurou), mesmo com `Cache-Control: immutable` vindo do emulador.
+- **Para o próximo chat (27/10/2026, fim do dia):** PRs #96 a #104 **mesclados** (pagamento automático pronto e desligado,
+  negociação depois do grátis, baixa renda 50% com comprovante obrigatório, selfie na verificação, painel do anunciante 3+3,
+  estatísticas travadas sem plano, ligações de voz/vídeo, app PWA + ícones novos, Saúde e Comunidade no Início/Explorar em
+  nível nacional). Branch da sessão igual ao main. **Regras desde 26/10 ainda NÃO publicadas:** 16 partes em `_regras/`
+  (`parte-N-de-16.txt`, conferidas byte a byte com o `firestore.rules`; 615 testes) — incluem `negocios.principal`, conta
+  verificada para anunciar, campos da negociação (responsável, perfis/meses, comprovante obrigatório na baixa renda),
+  `planos.{dias,tipos,semSelo}`, selfie em `verificacoes` e `chamadas`. Índices: **7** em `_regras/INDICES-LEIA-ME.md` (2 novos
+  da Comunidade). Conferir com ele se já fez o "Recalcular estrelas".
+  Limites conhecidos: ligações sem TURN (parte das chamadas em 4G/rede de empresa não conecta; Cloudflare TURN precisa de Cloud
+  Function/Blaze); ligação não toca com o site fechado (precisa de push FCM + Blaze); música em publicações/Flash deixada de
+  lado (pedido dele; a rede daqui bloqueia os sites de música livre). Para virar app: PWABuilder (TWA) a partir de
+  https://helpfloripa.com.br (manifest e sw.js prontos). Decidido por ele (27/10): baixa renda 50% NÃO soma com o desconto do
+  período (sempre metade do preço, em 1, 3, 6 ou 12 meses). Hoje ninguém anuncia de verdade (só contas de teste dele):
+  o prazo de 30/11/2026 para verificar não afeta ninguém.
 - **As 5 etapas estão concluídas.** Próximos passos são as pendências abaixo (só ele pode fazer) e o que ficou
   para depois.
 
