@@ -83,7 +83,13 @@ export function creditoDias(atual, novoPlano) {
 // em negocios.principal o tipo escolhido; com plano ativo o campo é ignorado. Anúncios de imóveis seguem o perfil Imóveis.
 const tipoPerfil = (n) => (n?.tipo === "imovel" ? "imoveis" : n?.tipo);
 export const podeEstarPausado = (n) => !!n?.principal && n.principal !== tipoPerfil(n);
-export const negocioPausado = (n, plano) => podeEstarPausado(n) && !nivelPlano(plano);
+export const NOMES_PERFIL = { servicos: "Freelances", delivery: "Delivery", lojinha: "Lojinha", imoveis: "Imóveis", saude: "Saúde" };
+export const TIPOS_PERFIL = Object.keys(NOMES_PERFIL);
+// Plano dado numa negociação pode liberar só alguns perfis (planos.tipos = ["servicos", "delivery"...]); sem a lista = todos.
+export const perfisDoPlano = (plano) => (nivelPlano(plano) && Array.isArray(plano.tipos) && plano.tipos.length ? plano.tipos : null);
+export const negocioPausado = (n, plano) => podeEstarPausado(n) && (!nivelPlano(plano) || !!perfisDoPlano(plano) && !perfisDoPlano(plano).includes(tipoPerfil(n)));
+// Selo PLUS/PRO/PREMIUM à mostra (a equipe pode esconder o selo de um plano dado numa negociação: planos.semSelo).
+export const mostraSelo = (plano) => !!nivelPlano(plano) && !plano.semSelo;
 // Tira os pausados de uma lista de perfis (lê o plano só de quem tem outro perfil como principal).
 // Anúncios de imóveis: `principalDe(donoId)` devolve o principal do dono (quando a página já conhece o perfil Imóveis).
 export async function semPausados(fb, lista, principalDe = null) {

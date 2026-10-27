@@ -1,3 +1,10 @@
+      // Cada nota muda junto o resumo da publicação (diario_notas/{postId}); as regras do resumo conferem a conta.
+      function resumoJunto(postId) {
+        let r = /databases/$(database)/documents/diario_notas/$(postId);
+        return existsAfter(r)
+            && getAfter(r).data.get('soma', 0) != (exists(r) ? get(r).data.get('soma', 0) : 0);
+      }
+
       allow create: if logado()
                     && emailOk()
                     && request.resource.data.keys().hasOnly(['postId', 'uid', 'postAutorId', 'nota', 'criadoEm', 'origem'])
@@ -174,13 +181,4 @@
             && !exists(votoDeAgora()) && existsAfter(votoDeAgora())
             && string(getAfter(votoDeAgora()).data.fatia) == partes()[2];
       }
-      allow create: if logado() && pedacoDoVoto()
-                    && request.resource.data.keys().hasOnly([chaveDoVoto()])
-                    && request.resource.data[chaveDoVoto()] == 1;
-      allow update: if logado() && pedacoDoVoto()
-                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly([chaveDoVoto()])
-                    && request.resource.data[chaveDoVoto()] == resource.data.get(chaveDoVoto(), 0) + 1;
-      allow delete: if false;
-    }
-
 // ===== FIM DA PARTE 12 DE 15 =====

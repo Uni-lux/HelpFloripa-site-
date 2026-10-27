@@ -14,10 +14,10 @@ import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL 
 import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento, media, avaliarNegocio } from "./avaliacoes.js?v=15";
 import { abrirQueixa } from "./queixas.js?v=13";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
-import { anelNegocio } from "./flash-negocio.js?v=7";
+import { anelNegocio } from "./flash-negocio.js?v=8";
 import { camposEndereco, textoCidade, cidadesDe, NOME_UF, semAcento } from "./endereco.js?v=1";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao } from "./perto.js?v=2";
-import { lerPlano, nivelPlano, seloPlano, nomePlano, negocioPausado, LIMITES_GRATIS } from "./planos-base.js?v=7";
+import { lerPlano, nivelPlano, seloPlano, nomePlano, negocioPausado, mostraSelo, LIMITES_GRATIS } from "./planos-base.js?v=8";
 import { PROFISSOES_SAUDE, CATEGORIAS_SAUDE, SITE_CONSELHO, MODALIDADES_SAUDE, PUBLICO_SAUDE, PUBLICO_VET, nomeProfissao, conselhoDe, ehVet, textoRegistro, textoValor, AVISO_EMERGENCIA, AVISO_REGISTRO } from "./saude-dados.js?v=1";
 import { usarEstat, registrarVisita, registrarAcao, registrarItem, chaveItem as chaveEstat, chaveAnuncio } from "./estat-negocio.js?v=1";
 // Plano de quem anuncia: todo plano pago tem o selo; Pro e Premium aparecem antes na ordem padrão
@@ -1147,7 +1147,7 @@ export function abrirDetalhe(n, opcoes = {}) {
     const antes = planosDonos.has(n.donoId);
     planosDonos.set(n.donoId, pl);
     if (!antes) pintarPromo();
-    if (!nivelPlano(pl)) return;
+    if (!mostraSelo(pl)) return;
     const pr = el("span", "vd-selo-pro"); pr.append(seloPlano(pl), document.createTextNode(`Negócio ${nomePlano(pl.plano)}`));
     pr.title = `Este negócio assina o plano ${nomePlano(pl.plano)} do Help Floripa.`;
     conf0.prepend(pr); conf0.hidden = false;
@@ -2139,7 +2139,7 @@ function seloRapido(n) {
 }
 function nomeComSelo(n, padrao) {
   const s = el("strong", "nm", n.nome || padrao);
-  if (nivelDe(n)) { s.classList.add("com-pro"); s.append(" ", seloPlano(planosDonos.get(n.donoId))); }
+  if (mostraSelo(planosDonos.get(n.donoId))) { s.classList.add("com-pro"); s.append(" ", seloPlano(planosDonos.get(n.donoId))); }
   return s;
 }
 // Cartão dos Freelances: o mesmo modelo das páginas irmãs (foto do trabalho em cima, avatar,

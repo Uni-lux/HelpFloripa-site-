@@ -1874,12 +1874,20 @@ service cloud.firestore {
     // Plano ativo da conta: público (selo e destaque); só os donos do site mudam.
     // Primeiro acesso: a própria pessoa começa 30 dias grátis no plano que escolher (só se a conta nunca teve plano).
     match /planos/{uid} {
+      function tiposPerfisOk(l) {
+        return l is list && l.size() >= 1 && l.size() <= 5
+            && l.join(',').matches('^(servicos|delivery|lojinha|imoveis|saude)(,(servicos|delivery|lojinha|imoveis|saude)){0,4}$');
+      }
       allow read: if logado();
       // Os 30 dias grátis agora vêm junto com a primeira assinatura paga (o dono do site soma ao confirmar o Pix):
       // ninguém grava o próprio plano.
       allow create, update: if donoDoSite()
-                    && request.resource.data.keys().hasOnly(['plano', 'ate', 'ativadoEm', 'ativadoPor', 'pedidoId', 'negociacaoId', 'meses', 'teste'])
+                    && request.resource.data.keys().hasOnly(['plano', 'ate', 'ativadoEm', 'ativadoPor', 'pedidoId', 'negociacaoId', 'meses', 'teste', 'dias', 'tipos', 'semSelo'])
                     && request.resource.data.plano in ['plus', 'pro', 'premium', 'gratis']
+                    // Plano combinado pode liberar só alguns perfis (tipos) e esconder o selo (semSelo).
+                    && (!('tipos' in request.resource.data) || tiposPerfisOk(request.resource.data.tipos))
+                    && request.resource.data.get('semSelo', false) is bool
+                    && (!('dias' in request.resource.data) || (request.resource.data.dias is int && request.resource.data.dias >= 1 && request.resource.data.dias <= 800))
                     && request.resource.data.ate is timestamp
                     && request.resource.data.ativadoPor == request.auth.uid
                     && request.resource.data.ativadoEm == request.time;
@@ -1898,9 +1906,16 @@ service cloud.firestore {
             && x.url is string && x.url.size() <= 750000
             && x.url.matches('^(data:(image/jpeg|application/pdf);base64,|https://firebasestorage[.]googleapis[.]com/).*');
       }
+      function respNegOk(d) {
+        return (d.get('responsavel', null) == null || d.responsavel is string)
+            && valorTextoAte(d.get('responsavelNome', ''), 80)
+            && (!('assumidoEm' in d) || d.assumidoEm == request.time || d.assumidoEm == resource.data.get('assumidoEm', null));
+      }
       function pedidoNegOk() {
         let d = request.resource.data;
-        return d.keys().hasOnly(['uid', 'nome', 'email', 'tipo', 'plano', 'valorProposto', 'contato', 'mensagem', 'status', 'criadoEm', 'comprovanteTipo', 'comprovante', 'declaracao'])
+        return d.keys().hasOnly(['uid', 'nome', 'email', 'tipo', 'plano', 'valorProposto', 'contato', 'mensagem', 'status', 'criadoEm', 'comprovanteTipo', 'comprovante', 'declaracao', 'perfisPedidos', 'mesesPedidos'])
+          && (!('perfisPedidos' in d) || (d.perfisPedidos is int && d.perfisPedidos >= 1 && d.perfisPedidos <= 5))
+          && (!('mesesPedidos' in d) || (d.mesesPedidos is int && d.mesesPedidos >= 1 && d.mesesPedidos <= 12))
           && (d.tipo != 'apoio' || (d.get('declaracao', false) == true
               && d.get('comprovanteTipo', '') is string
               && d.get('comprovanteTipo', '').matches('^(cadunico|bolsa|bpc|cnis|renda|desemprego|tarifa|mei|isento|depois)$')))
@@ -1927,9 +1942,17 @@ service cloud.firestore {
                     && mudou().hasOnly(['status', 'comprovante'])
                     && !('comprovante' in request.resource.data)
                     && request.resource.data.status == 'cancelado';
+      // Responsável pelo pedido (só os donos do site): assumir, passar ou liberar.
+      allow update: if donoDoSite()
+                    && mudou().hasOnly(['responsavel', 'responsavelNome', 'assumidoEm'])
+                    && respNegOk(request.resource.data);
       allow update: if donoDoSite()
                     && resource.data.status in ['novo', 'em_conversa']
-                    && mudou().hasOnly(['status', 'resposta', 'decididoPor', 'decididoEm', 'planoConcedido', 'meses', 'valorAcordado', 'comprovante'])
+                    && mudou().hasOnly(['status', 'resposta', 'decididoPor', 'decididoEm', 'planoConcedido', 'meses', 'valorAcordado', 'comprovante', 'dias', 'tipos', 'semSelo', 'responsavel', 'responsavelNome'])
+                    && respNegOk(request.resource.data)
+                    && (!('tipos' in request.resource.data) || (request.resource.data.tipos is list && request.resource.data.tipos.size() <= 5 && request.resource.data.tipos.join(',').matches('^(servicos|delivery|lojinha|imoveis|saude)(,(servicos|delivery|lojinha|imoveis|saude)){0,4}$')))
+                    && request.resource.data.get('semSelo', false) is bool
+                    && (!('dias' in request.resource.data) || (request.resource.data.dias is int && request.resource.data.dias >= 1 && request.resource.data.dias <= 800))
                     && request.resource.data.status in ['em_conversa', 'aprovado', 'recusado']
                     && (request.resource.data.status == 'em_conversa' ? !mudou().hasAny(['comprovante']) : !('comprovante' in request.resource.data))
                     && request.resource.data.decididoPor == request.auth.uid

@@ -1,3 +1,11 @@
+    // Conversa individual entre duas pessoas da equipe: equipe_dm/{uidA_uidB} (ids em ordem).
+    // O documento guarda só o resumo (última mensagem e quando cada um leu).
+    match /equipe_dm/{par} {
+      function membro() {
+        return admin() && par.split('_').size() == 2 && request.auth.uid in par.split('_')
+            && exists(/databases/$(database)/documents/admins/$(par.split('_')[0]))
+            && exists(/databases/$(database)/documents/admins/$(par.split('_')[1]));
+      }
       allow read: if admin() && request.auth.uid in resource.data.participantes;
       allow create, update: if membro()
                     && request.resource.data.keys().hasOnly(['participantes', 'ultimaEm', 'ultimaTexto', 'ultimoAutor', 'lidoEm'])
@@ -202,11 +210,4 @@
       function notaOk(d) {
         return d.nota is int && d.nota >= 1 && d.nota <= 5;
       }
-      // Cada nota muda junto o resumo da publicação (diario_notas/{postId}); as regras do resumo conferem a conta.
-      function resumoJunto(postId) {
-        let r = /databases/$(database)/documents/diario_notas/$(postId);
-        return existsAfter(r)
-            && getAfter(r).data.get('soma', 0) != (exists(r) ? get(r).data.get('soma', 0) : 0);
-      }
-
 // ===== FIM DA PARTE 11 DE 15 =====

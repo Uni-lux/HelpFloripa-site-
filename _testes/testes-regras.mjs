@@ -864,6 +864,30 @@ await t("negociação: pedido com 'mando depois' e sem anexo", () => assertSucce
 await t("negociação: cancelar apaga o documento junto", async () => { await semRegras((db) => updateDoc(doc(db, "planos_negociacoes", "loja"), { comprovante: { tipo: "arquivo", url: "data:application/pdf;base64,JVBERi0=", nome: "x.pdf" } })); await assertSucceeds(updateDoc(doc(ctx("loja"), "planos_negociacoes", "loja"), { status: "cancelado", comprovante: deleteField() })); });
 await t("negociação: ninguém apaga", () => assertFails(deleteDoc(doc(ctx("adm"), "planos_negociacoes", "loja"))));
 
+// ---------- negociação: perfis/tempo pedidos, responsável, perfis liberados, tempo em dias e selo escondido ----------
+await semRegras((db) => deleteDoc(doc(db, "planos_negociacoes", "bia")));
+await t("negociação: pede 2 perfis por 3 meses", () => assertSucceeds(setDoc(doc(ctx("bia"), "planos_negociacoes", "bia"), negPlano("bia", { perfisPedidos: 2, mesesPedidos: 3 }))));
+await t("negociação: 9 perfis pedidos é recusado", () => assertFails(setDoc(doc(ctx("dono"), "planos_negociacoes", "dono"), negPlano("dono", { perfisPedidos: 9 }))));
+await t("negociação: 24 meses pedidos é recusado", () => assertFails(setDoc(doc(ctx("dono"), "planos_negociacoes", "dono"), negPlano("dono", { mesesPedidos: 24 }))));
+await t("negociação: dono assume o pedido", () => assertSucceeds(updateDoc(doc(ctx("adm"), "planos_negociacoes", "bia"), { responsavel: "adm", responsavelNome: "Admin", assumidoEm: serverTimestamp() })));
+await t("negociação: dono libera o pedido", () => assertSucceeds(updateDoc(doc(ctx("adm"), "planos_negociacoes", "bia"), { responsavel: null, responsavelNome: null, assumidoEm: serverTimestamp() })));
+await t("negociação: comercial não assume", () => assertFails(updateDoc(doc(ctx("com"), "planos_negociacoes", "bia"), { responsavel: "com", responsavelNome: "Com", assumidoEm: serverTimestamp() })));
+await t("negociação: a pessoa não escolhe o responsável", () => assertFails(updateDoc(doc(ctx("bia"), "planos_negociacoes", "bia"), { responsavel: "bia", responsavelNome: "Bia", assumidoEm: serverTimestamp() })));
+await t("negociação: assumir não muda a decisão junto", () => assertFails(updateDoc(doc(ctx("adm"), "planos_negociacoes", "bia"), { responsavel: "adm", responsavelNome: "Admin", assumidoEm: serverTimestamp(), status: "aprovado" })));
+await t("negociação: perfil que não existe na aprovação é recusado", () => assertFails(updateDoc(doc(ctx("adm"), "planos_negociacoes", "bia"), { status: "aprovado", planoConcedido: "plus", meses: 1, dias: 15, tipos: ["servicos", "cassino"], valorAcordado: 0, comprovante: deleteField(), decididoPor: "adm", decididoEm: serverTimestamp() })));
+await t("negociação: dono aprova com 15 dias, 2 perfis, sem selo e responsável", async () => {
+  const db = ctx("adm"); const b = writeBatch(db);
+  b.update(doc(db, "planos_negociacoes", "bia"), { status: "aprovado", planoConcedido: "plus", meses: 1, dias: 15, tipos: ["servicos", "delivery"], semSelo: true, responsavel: "adm", responsavelNome: "Admin", valorAcordado: 0, resposta: "Liberado", comprovante: deleteField(), decididoPor: "adm", decididoEm: serverTimestamp() });
+  b.set(doc(db, "planos", "bia"), { plano: "plus", ate: Timestamp.fromMillis(Date.now() + 15 * 864e5), meses: 1, dias: 15, tipos: ["servicos", "delivery"], semSelo: true, negociacaoId: "bia", ativadoEm: serverTimestamp(), ativadoPor: "adm" });
+  await assertSucceeds(b.commit());
+});
+await t("plano: lista de perfis vazia é recusada", () => assertFails(setDoc(doc(ctx("adm"), "planos", "bia"), { plano: "plus", ate: Timestamp.fromMillis(Date.now() + 9e8), tipos: [], ativadoEm: serverTimestamp(), ativadoPor: "adm" })));
+await t("plano: perfil repetido demais (6) é recusado", () => assertFails(setDoc(doc(ctx("adm"), "planos", "bia"), { plano: "plus", ate: Timestamp.fromMillis(Date.now() + 9e8), tipos: ["servicos", "servicos", "servicos", "servicos", "servicos", "servicos"], ativadoEm: serverTimestamp(), ativadoPor: "adm" })));
+await t("plano: semSelo que não é sim/não é recusado", () => assertFails(setDoc(doc(ctx("adm"), "planos", "bia"), { plano: "plus", ate: Timestamp.fromMillis(Date.now() + 9e8), semSelo: "sim", ativadoEm: serverTimestamp(), ativadoPor: "adm" })));
+await t("plano: 1000 dias é recusado", () => assertFails(setDoc(doc(ctx("adm"), "planos", "bia"), { plano: "plus", ate: Timestamp.fromMillis(Date.now() + 9e8), dias: 1000, ativadoEm: serverTimestamp(), ativadoPor: "adm" })));
+await t("plano: dono ajusta o plano (mais tempo, 3 perfis, selo de volta)", () => assertSucceeds(setDoc(doc(ctx("adm"), "planos", "bia"), { plano: "plus", ate: Timestamp.fromMillis(Date.now() + 45 * 864e5), meses: 1, dias: 15, tipos: ["servicos", "delivery", "saude"], negociacaoId: "bia", ativadoEm: serverTimestamp(), ativadoPor: "adm" })));
+await t("plano: a pessoa não muda os próprios perfis liberados", () => assertFails(updateDoc(doc(ctx("bia"), "planos", "bia"), { tipos: ["servicos", "delivery", "lojinha", "imoveis", "saude"] })));
+
 // ---------- registro de ações: só os donos leem (o resto vê só as cobranças) ----------
 await semRegras((db) => Promise.all([setDoc(doc(db, "admin_log", "l1"), { acao: "aviso", alvo: "bia", por: "mod", em: Timestamp.now() }), setDoc(doc(db, "admin_log", "l2"), { acao: "cobrar_reclamacao", alvo: "loja", detalhe: "queixa:q1", por: "mod", em: Timestamp.now() })]));
 await t("registro: dono lê tudo", () => assertSucceeds(getDocs(query(collection(ctx("adm"), "admin_log"), orderBy("em", "desc"), limit(50)))));

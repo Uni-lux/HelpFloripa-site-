@@ -35,7 +35,7 @@ ok(await p.locator(".pl-card.on[data-plano='pro']").count() === 1 && await p.loc
 await p.locator(".pl-card[data-plano='premium']").click();
 ok(await p.locator(".pl-tabela .pl-lin.cab span").count() === 5 && (await p.locator(".pl-tabela .pl-lin.cab span").nth(1).textContent()) === "Grátis", "tabela com a coluna Grátis (para comparar) e os 3 planos");
 ok((await p.textContent(".pl-hero .pl-bonus")).includes("+30 dias grátis") && await p.locator(".pl-teste").count() === 0 && await p.locator(".pl-per .bonus").count() === 4 && (await p.locator(".pl-btn", { hasText: "Pagar" }).textContent()).includes("59,90") && (await p.locator(".pl-lin.cab span.sel").textContent()) === "Premium", "primeira assinatura: +30 dias grátis à vista (sem teste sem pagar); Premium troca o preço e a coluna: " + (await p.textContent(".pl-hero .pl-bonus")).replace(/\s+/g, " "));
-ok(await p.locator(".pl-ajuda .pl-btn", { hasText: "condição especial" }).count() === 1 && await p.locator(".pl-ajuda .pl-btn", { hasText: "Parceria ou negociação" }).count() === 1 && (await p.textContent(".pl-ajuda")).includes("A gente aceita negociar"), "botões de condição especial e de parceria ou negociação");
+ok(await p.locator(".pl-ajuda .pl-btn", { hasText: "condição especial" }).count() === 1 && await p.locator(".pl-ajuda .pl-btn", { hasText: "Parceria ou negociação" }).count() === 1 && /a gente aceita negociar/i.test(await p.textContent(".pl-ajuda")), "botões de condição especial e de parceria ou negociação");
 await p.locator(".pl-ajuda .pl-btn", { hasText: "Parceria ou negociação" }).click(); await p.waitForSelector(".pl-form");
 ok((await p.textContent(".pl-form h3")) === "Parceria ou negociação" && (await p.textContent(".pl-form")).includes("aceita negociar") && await p.locator(".pl-prova").isHidden(), "formulário de negociação (sem pedir comprovante de renda)");
 await p.screenshot({ path: "saida/pl-negociacao.png" });
@@ -151,8 +151,8 @@ ok((await a.textContent(".ad-neg")).includes("renda caiu") && (await a.textConte
 ok((await a.textContent(".ad-neg-prova")).includes("Folha resumo do CadÚnico") && await a.locator(".ad-neg-prova img").count() === 1, "painel: o dono vê o documento do CadÚnico");
 await a.screenshot({ path: "saida/pl-painel-negociacao.png" });
 await a.locator(".ad-neg .ad-bt", { hasText: "Aprovar e dar o plano" }).click();
-await a.waitForSelector(".ad-modal input");
-await a.locator(".ad-modal input").first().fill("15");
+await a.waitForSelector(".ad-modal");
+await a.locator(".ad-modal .ad-campo", { hasText: "Valor combinado" }).locator("input").fill("15");
 await a.locator(".ad-modal .ad-bt.pri", { hasText: "Aprovar" }).click(); await a.waitForTimeout(2500);
 const plAna = (await db.doc(`planos/${U.ana}`).get()).data(), ngA = (await db.doc(`planos_negociacoes/${U.ana}`).get()).data();
 ok(!("comprovante" in ngA) && ngA.comprovanteTipo === "cadunico", "o documento é apagado depois da decisão");

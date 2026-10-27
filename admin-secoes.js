@@ -6,19 +6,19 @@ import { cartaoComunicado } from "./comunicados.js?v=1";
 import { linha, linhaComparada, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=7";
 import { baixarPlanilhaMulti } from "./planilha.js?v=5";
 import { buscarPessoas } from "./pessoas.js?v=3";
-import { montarChat, postarNaConversa, idPar } from "./admin-chat.js?v=24";
+import { montarChat, postarNaConversa, idPar } from "./admin-chat.js?v=25";
 import { CANAIS, canalDaFila, STATUS } from "./equipe-canais.js?v=1";
-import { verConteudoDenuncia } from "./admin-denuncia.js?v=16";
+import { verConteudoDenuncia } from "./admin-denuncia.js?v=17";
 import { prepararAnexo, blocoAnexo, previaAnexo, aceitos } from "./anexos-suporte.js?v=2";
 import { FILAS, filaDe, PRIORIDADES as PRIO_SUP, prioridadeChamado, situacaoPrazo, ordemFila } from "./suporte-fila.js?v=1";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
-import { PLANOS, ORDEM_PLANOS, DIAS_BONUS, nivelPlano, nomePlano, diasRestantes, creditoDias, descontoDe, nomeDocRenda, TIPOS_NEG as TIPOS_NEG_PL } from "./planos.js?v=15";
+import { PLANOS, ORDEM_PLANOS, DIAS_BONUS, nivelPlano, nomePlano, diasRestantes, creditoDias, descontoDe, nomeDocRenda, TIPOS_NEG as TIPOS_NEG_PL, NOMES_PERFIL, TIPOS_PERFIL, perfisDoPlano, mostraSelo } from "./planos.js?v=17";
 import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha,
   PAPEIS, DESC_PAPEIS, pode, semPermissao, nomeEquipe, vendoAgora, marcarItem, seloResp, confirmarItem, controlesResp, espera,
   PRIORIDADES, editarTarefa, moverTarefa, garantirNegocios, garantirTodasPessoas, carregarPessoas, guardarPessoas, abrirConversaSuporte, banirPrograma
-} from "./admin-base.js?v=23";
+} from "./admin-base.js?v=24";
 
 const cab = (titulo, sub, extra) => { const c = h("div", "ad-cab"); const t = h("div"); t.append(h("h1", null, titulo)); if (sub) t.append(h("p", null, sub)); c.appendChild(t); if (extra) c.appendChild(extra); return c; };
 const bloco = (titulo, sub) => { const b = h("section", "ad-bloco"); const t = h("div", "ad-bloco-topo"); const tt = h("div"); tt.append(h("h3", null, titulo)); if (sub) tt.append(h("p", null, sub)); t.appendChild(tt); b.appendChild(t); b.topo = t; return b; };
@@ -173,6 +173,7 @@ function minhaFila() {
     C.tarefas.filter((t) => t.status !== "feito" && t.responsavel === eu).sort((a, b2) => (ms(a.prazo) || 9e15) - (ms(b2.prazo) || 9e15)).forEach((t) => itens.push({ tipo: "Tarefa", t: t.titulo, sub: `${PRIORIDADES[t.prioridade] || ""}${ms(t.prazo) ? " · prazo " + data(t.prazo) : ""}`, alerta: ms(t.prazo) && ms(t.prazo) < agora(), ir: "tarefas" }));
     if (pode("moderar")) D.denuncias.filter((d) => d.responsavel === eu && ["nova", "em_analise"].includes(d.status)).forEach((d) => itens.push({ tipo: "Denúncia", t: `${MOTIVOS_DEN[d.motivo] || d.motivo} · ${pessoa(d.alvoId).nome || ""}`, sub: relativo(d.criadoEm), ir: "denuncias:minhas" }));
     D.suporte.filter((x) => x.responsavel === eu && x.status === "aberto").forEach((x) => itens.push({ tipo: "Chamado", t: x.assunto, sub: relativo(x.atualizadoEm), alerta: ms(x.atualizadoEm) < agora() - DIA, ir: "suporte:minhas" }));
+    if (pode("dono")) (D.planosNeg || []).filter((x) => x.responsavel === eu && ["novo", "em_conversa"].includes(x.status)).forEach((x) => itens.push({ tipo: "Negociação", t: `${TIPOS_NEG_PL[x.tipo] || "Pedido"} · ${pessoa(x.uid || x.id).nome || x.nome || ""}`, sub: relativo(x.criadoEm), ir: "planos" }));
     if (pode("comercial")) D.parcerias.filter((x) => x.responsavel === eu && !["fechado", "recusado"].includes(x.status || "novo")).forEach((x) => itens.push({ tipo: "Proposta", t: x.empresa || x.nome, sub: x.status || "novo", ir: "parcerias" }));
     const livres = [pode("moderar") && [D.denuncias.filter((d) => d.status === "nova" && !d.responsavel).length, "denúncias sem responsável", "denuncias:livres"],
       [D.suporte.filter((x) => x.status === "aberto" && !x.responsavel).length, "chamados sem responsável", "suporte:livres"],
@@ -1041,19 +1042,22 @@ export function planos(el) {
     if (p.teste) top.append(selo("TESTE GRÁTIS", "atencao"));
     const falta = diasRestantes(p);
     top.append(h("span", "quando", falta <= 7 ? faltaTxt(p) : `até ${data(p.ate)}`));
-    c.append(top, h("div", "meta", `${faltaTxt(p).replace(/^./, (l) => l.toUpperCase())} · vence em ${data(p.ate)}${p.negociacaoId ? " · por negociação" : ""}${p.teste ? " · teste grátis de 30 dias" : ""}`),
+    c.append(top, h("div", "meta", `${faltaTxt(p).replace(/^./, (l) => l.toUpperCase())} · vence em ${data(p.ate)}${p.negociacaoId ? " · por negociação" : ""}${p.teste ? " · teste grátis de 30 dias" : ""}${perfisDoPlano(p) ? ` · no ar: ${perfisDoPlano(p).map((t) => NOMES_PERFIL[t] || t).join(", ")}` : ""}${p.semSelo ? " · selo escondido" : ""}`),
       h("div", "meta", `Ativado ${p.ativadoEm ? dataHora(p.ativadoEm) : ""}${p.ativadoPor ? " · " + nomeEquipe(p.ativadoPor) : ""}`));
     const ac = h("div", "ad-acoes");
-    ac.append(btn("Encerrar o plano agora", "perigo", () => encerrar(p)), btn("Ver ficha", "", () => abrirFicha(p.uid)));
+    ac.append(btn("Ajustar tempo, perfis e selo", "", () => ajustarPlano(p)), btn("Encerrar o plano agora", "perigo", () => encerrar(p)), btn("Ver ficha", "", () => abrirFicha(p.uid)));
     c.appendChild(ac);
     return c;
   }
   // Data final do plano novo: mesmo plano soma a partir do fim do atual; troca começa hoje com os dias de crédito.
-  function fimDoPlano(uid, plano, meses, bonus = 0) {
+  // De onde o tempo novo começa a contar: do fim do plano atual (mesmo plano) ou de hoje + o crédito da troca.
+  function inicioDoPlano(uid, plano) {
     const atual = D.planos.get(uid);
     const mesmo = nivelPlano(atual) && atual.plano === plano;
-    const base = mesmo ? Math.max(agora(), ms(atual.ate)) : agora() + creditoDias(atual, plano) * DIA;
-    return C.fb.Timestamp.fromMillis(base + (meses * 30 + bonus) * DIA);
+    return mesmo ? Math.max(agora(), ms(atual.ate)) : agora() + creditoDias(atual, plano) * DIA;
+  }
+  function fimDoPlano(uid, plano, meses, bonus = 0) {
+    return C.fb.Timestamp.fromMillis(inicioDoPlano(uid, plano) + (meses * 30 + bonus) * DIA);
   }
   // Primeira assinatura paga: +30 dias grátis (DIAS_BONUS). Vale para quem nunca teve um pedido pago nem uma negociação aprovada.
   const primeiraPaga = (uid, idPedido) => !D.planosPedidos.some((x) => x.uid === uid && x.status === "pago" && x.id !== idPedido)
@@ -1095,14 +1099,28 @@ export function planos(el) {
 
   // ---------- condição especial (baixa renda) e parcerias pelos planos ----------
   const ST_NEG = { novo: ["Novo", "atencao"], em_conversa: ["Em conversa", "info"], aprovado: ["Aprovado", "bom"], recusado: ["Não aprovado", "serio"], cancelado: ["Cancelado pela pessoa", "neutro"] };
+  const negAbertaAd = (n) => n.status === "novo" || n.status === "em_conversa";
+  // Só os donos do site cuidam dos planos: é para eles que a negociação pode ser passada.
+  const donosSite = () => { const l = D.admins.filter((a) => a.papel === "dono"); return l.length ? l : D.admins; };
+  const nPerfis = (k) => (k >= TIPOS_PERFIL.length ? "todos os perfis" : `${k} ${k === 1 ? "perfil" : "perfis"}`);
+  const duracaoNeg = (n) => (n.dias && n.dias % 30 ? `${n.dias} dias` : nMeses(n.meses || Math.round((n.dias || 30) / 30) || 1));
   function cartaoNeg(n) {
     const uid = n.uid || n.id;
     const c = h("article", "ad-item ad-neg"); c.dataset.item = `negociacao:${n.id}`;
     const top = h("div", "cab"); top.append(pessoaCel({ ...pessoa(uid), nome: pessoa(uid).nome || n.nome }, n.email || ""));
-    top.append(selo(...(ST_NEG[n.status] || [n.status, ""])), h("span", "quando", relativo(n.criadoEm)));
+    top.append(selo(...(ST_NEG[n.status] || [n.status, ""])));
+    if (negAbertaAd(n)) top.append(seloResp(n));
+    top.append(h("span", "quando", relativo(n.criadoEm)));
     c.appendChild(top);
     c.append(h("strong", null, `${TIPOS_NEG_PL[n.tipo] || "Pedido"} · quer o ${nomePlano(n.plano)} (${reaisPl(PLANOS[n.plano]?.preco)}/mês)`),
       h("div", "meta", [n.valorProposto ? `Propõe ${reaisPl(n.valorProposto)} por mês` : "Sem valor proposto", n.contato ? `Contato: ${n.contato}` : "", dataHora(n.criadoEm)].filter(Boolean).join(" · ")));
+    // O que a pessoa precisa: perfis no ar, tempo e os perfis que ela já tem.
+    const tem = D.negocios.filter((x) => x.donoId === uid).map((x) => NOMES_PERFIL[x.tipo] || x.tipo);
+    const pede = h("div", "ad-neg-pede");
+    if (n.perfisPedidos) pede.appendChild(h("span", null, `Precisa de ${nPerfis(n.perfisPedidos)} no ar`));
+    if (n.mesesPedidos) pede.appendChild(h("span", null, `Por ${nMeses(n.mesesPedidos)}`));
+    if (tem.length) pede.appendChild(h("span", null, `Tem: ${tem.join(", ")}`));
+    if (pede.childNodes.length) c.appendChild(pede);
     const q = h("q", "ad-neg-msg", n.mensagem || ""); c.appendChild(q);
     // Prova de baixa renda: qual documento, a declaração e o anexo (apagado quando a decisão é tomada).
     if (n.tipo === "apoio") {
@@ -1114,10 +1132,12 @@ export function planos(el) {
       c.appendChild(pv);
     }
     const atual = D.planos.get(uid); if (nivelPlano(atual)) c.appendChild(h("div", "meta", `Hoje tem o ${nomePlano(atual.plano)} (${faltaTxt(atual)}).`));
-    if (n.status === "aprovado") c.appendChild(h("div", "meta", `Aprovado: ${nomePlano(n.planoConcedido)} por ${nMeses(n.meses)} · ${n.valorAcordado ? reaisPl(n.valorAcordado) + " combinado" : "sem custo"}${n.decididoPor ? " · " + nomeEquipe(n.decididoPor) : ""} · ${dataHora(n.decididoEm)}`));
+    if (n.status === "aprovado") c.appendChild(h("div", "meta", `Aprovado: ${nomePlano(n.planoConcedido)} por ${duracaoNeg(n)} · ${n.valorAcordado ? reaisPl(n.valorAcordado) + " combinado" : "sem custo"}${Array.isArray(n.tipos) && n.tipos.length ? ` · no ar: ${n.tipos.map((t) => NOMES_PERFIL[t] || t).join(", ")}` : " · todos os perfis"}${n.semSelo ? " · selo escondido" : ""}${n.decididoPor ? " · " + nomeEquipe(n.decididoPor) : ""} · ${dataHora(n.decididoEm)}`));
+    if (!negAbertaAd(n) && n.responsavel) c.appendChild(h("div", "meta", `Responsável: ${n.responsavelNome || nomeEquipe(n.responsavel)}`));
     if (n.resposta) c.appendChild(h("div", "meta", `Resposta: ${n.resposta}`));
+    if (negAbertaAd(n)) c.appendChild(controlesResp("planos_negociacoes", n, { permitido: pode("dono"), membros: donosSite(), aoMudar: () => C.irPara("planos") }));
     const ac = h("div", "ad-acoes");
-    if (n.status === "novo" || n.status === "em_conversa") {
+    if (negAbertaAd(n)) {
       ac.append(btn("Aprovar e dar o plano", "pri", () => aprovarNeg(n)));
       if (n.status === "novo") ac.append(btn("Marcar em conversa", "", () => mudarNeg(n, { status: "em_conversa" }, "negociacao_conversa", "Em conversa")));
       ac.append(btn("Não aprovar", "perigo", () => recusarNeg(n)));
@@ -1135,30 +1155,98 @@ export function planos(el) {
     await registrar(acao, n.uid || n.id, detalhe, "planos_negociacoes:" + n.id);
     toast("Pedido atualizado"); C.irPara("planos");
   }
+  // Tempo do plano: dias prontos ou uma data escolhida (fim do dia, horário de Brasília).
+  const DURACOES = [["7", "7 dias"], ["15", "15 dias"], ["30", "1 mês"], ["60", "2 meses"], ["90", "3 meses"], ["180", "6 meses"], ["365", "12 meses"], ["data", "Até uma data…"]];
+  const fimDaData = (iso) => Date.parse(`${iso}T23:59:59-03:00`);
+  const isoDe = (t) => new Date(t - 3 * 3600e3).toISOString().slice(0, 10);
+  // Campos comuns da aprovação e do ajuste: perfis no ar e selo.
+  async function camposPerfisSelo(uid, tiposAtuais, semSelo) {
+    await garantirNegocios().catch(() => {});
+    const tem = new Set(D.negocios.filter((x) => x.donoId === uid).map((x) => x.tipo));
+    return [
+      { nome: "tipos", rotulo: "Perfis que ficam no ar", tipo: "multi", valor: tiposAtuais || TIPOS_PERFIL, opcoes: TIPOS_PERFIL.map((t) => [t, `${NOMES_PERFIL[t]}${tem.has(t) ? " ✓" : ""}`]), ajuda: "✓ = a pessoa já tem esse perfil. Todos marcados = todos no ar. O perfil principal dela fica sempre no ar; os desmarcados ficam pausados (nada é apagado)." },
+      { nome: "selo", rotulo: "Selo do plano", tipo: "select", valor: semSelo ? "esconder" : "mostrar", opcoes: [["mostrar", "Mostrar o selo (PLUS, PRO, PREMIUM)"], ["esconder", "Esconder o selo (só os benefícios)"]] }
+    ];
+  }
+  // Lista de perfis para gravar: todos marcados = sem lista (vale para todos, até os que a pessoa criar depois).
+  const tiposEscolhidos = (l) => (Array.isArray(l) && l.length && l.length < TIPOS_PERFIL.length ? TIPOS_PERFIL.filter((t) => l.includes(t)) : null);
   async function aprovarNeg(n) {
     const uid = n.uid || n.id;
+    const doms = donosSite();
+    const sugestao = String(Math.min(365, (n.mesesPedidos || 1) * 30));
     const v = await modal({ titulo: "Aprovar e dar o plano", texto: `${pessoa(uid).nome || n.nome || "A pessoa"} recebe o plano na hora e um aviso com a sua mensagem. Valor 0 = sem custo (cortesia ou parceria).`, campos: [
       { nome: "plano", rotulo: "Plano", tipo: "select", valor: n.plano, opcoes: ORDEM_PLANOS.map((k) => [k, `${PLANOS[k].nome} (${reaisPl(PLANOS[k].preco)}/mês)`]) },
-      { nome: "meses", rotulo: "Por quantos meses", tipo: "select", valor: "1", opcoes: [["1", "1 mês"], ["2", "2 meses"], ["3", "3 meses"], ["6", "6 meses"], ["12", "12 meses"]] },
+      { nome: "duracao", rotulo: "Por quanto tempo", tipo: "select", valor: DURACOES.some(([k]) => k === sugestao) ? sugestao : "30", opcoes: DURACOES, ajuda: n.mesesPedidos ? `A pessoa pediu ${nMeses(n.mesesPedidos)}.` : "" },
+      { nome: "data", rotulo: "Vale até", tipo: "date", valor: isoDe(agora() + 30 * DIA), seCampo: ["duracao", "data"] },
+      ...(await camposPerfisSelo(uid, null, false)),
       { nome: "valor", rotulo: "Valor combinado no total (R$)", valor: n.valorProposto ? String(n.valorProposto).replace(".", ",") : "0", max: 10, dica: "0 = sem custo" },
+      { nome: "responsavel", rotulo: "Responsável por esta pessoa", tipo: "select", valor: n.responsavel || C.eu.uid, opcoes: doms.map((a) => [a.id, a.id === C.eu.uid ? `Eu (${a.nome || "você"})` : a.nome || nomeEquipe(a.id)]), ajuda: "Quem acompanha o plano e responde a pessoa." },
       { nome: "resposta", rotulo: "Mensagem para a pessoa", tipo: "textarea", max: 600, valor: n.tipo === "parceria" ? "Topamos a sua proposta. Que bom ter você com o Help Floripa!" : "Entendemos a sua situação e liberamos uma condição especial para você." }
     ], botao: "Aprovar" });
     if (!v) return;
-    const meses = Number(v.meses) || 1, valor = Math.round((Number(String(v.valor).replace(/[^\d,.]/g, "").replace(",", ".")) || 0) * 100) / 100;
+    const valor = Math.round((Number(String(v.valor).replace(/[^\d,.]/g, "").replace(",", ".")) || 0) * 100) / 100;
     if (!PLANOS[v.plano] || valor < 0 || valor > 5000) { toast("Confira o plano e o valor."); return; }
+    if (!v.tipos.length) { toast("Marque pelo menos um perfil."); return; }
+    let ateMs;
+    if (v.duracao === "data") {
+      ateMs = fimDaData(v.data);
+      if (!(ateMs > agora() + 3600e3) || ateMs > agora() + 730 * DIA) { toast("Escolha uma data entre amanhã e daqui a 2 anos."); return; }
+    } else ateMs = inicioDoPlano(uid, v.plano) + Number(v.duracao) * DIA;
+    const dias = Math.max(1, Math.ceil((ateMs - agora()) / DIA));
+    const meses = Math.max(1, Math.min(24, Math.round(dias / 30) || 1));
+    const tipos = tiposEscolhidos(v.tipos), semSelo = v.selo === "esconder";
     const { fb } = C;
-    const ate = fimDoPlano(uid, v.plano, meses);
-    const lote = fb.writeBatch(fb.db);
-    const campos = { status: "aprovado", planoConcedido: v.plano, meses, valorAcordado: valor, resposta: v.resposta.slice(0, 600) };
-    lote.update(fb.doc(fb.db, "planos_negociacoes", n.id), { ...campos, comprovante: fb.deleteField(), decididoPor: C.eu.uid, decididoEm: fb.serverTimestamp() });
-    lote.set(fb.doc(fb.db, "planos", uid), { plano: v.plano, ate, meses, negociacaoId: n.id, ativadoEm: fb.serverTimestamp(), ativadoPor: C.eu.uid });
-    await lote.commit();
-    Object.assign(n, campos, { decididoPor: C.eu.uid, decididoEm: { toMillis: () => agora() } }); delete n.comprovante;
-    D.planos.set(uid, { plano: v.plano, ate, meses, negociacaoId: n.id, ativadoEm: { toMillis: () => agora() }, ativadoPor: C.eu.uid });
-    const fim = new Date(ate.toMillis()).toLocaleDateString("pt-BR");
-    await registrar("negociacao_aprovar", uid, `${TIPOS_NEG_PL[n.tipo] || "Pedido"} · ${nomePlano(v.plano)} · ${nMeses(meses)} · ${valor ? reaisPl(valor) : "sem custo"} · até ${fim}`, "planos_negociacoes:" + n.id);
-    await enviarAviso(uid, { titulo: `Seu pedido foi aprovado: plano ${nomePlano(v.plano)}`, texto: `${v.resposta ? v.resposta + "\n\n" : ""}O plano ${nomePlano(v.plano)} vale até ${fim} para todos os seus negócios${valor ? ` (valor combinado: ${reaisPl(valor)})` : ""}.`, tipo: "info" }).catch(() => {});
-    toast("Plano liberado"); C.irPara("planos");
+    const ate = fb.Timestamp.fromMillis(ateMs);
+    const resp = doms.find((a) => a.id === v.responsavel) ? v.responsavel : C.eu.uid;
+    const base = { status: "aprovado", planoConcedido: v.plano, meses, valorAcordado: valor, resposta: v.resposta.slice(0, 600) };
+    const extrasNeg = { dias, ...(tipos ? { tipos } : {}), semSelo, responsavel: resp, responsavelNome: nomeEquipe(resp) };
+    const planoBase = { plano: v.plano, ate, meses, negociacaoId: n.id, ativadoEm: fb.serverTimestamp(), ativadoPor: C.eu.uid };
+    const planoExtras = { dias, ...(tipos ? { tipos } : {}), ...(semSelo ? { semSelo: true } : {}) };
+    const gravar = async (comExtras) => {
+      const lote = fb.writeBatch(fb.db);
+      lote.update(fb.doc(fb.db, "planos_negociacoes", n.id), { ...base, ...(comExtras ? extrasNeg : {}), comprovante: fb.deleteField(), decididoPor: C.eu.uid, decididoEm: fb.serverTimestamp() });
+      lote.set(fb.doc(fb.db, "planos", uid), { ...planoBase, ...(comExtras ? planoExtras : {}) });
+      await lote.commit();
+    };
+    // Tempo em dias, perfis, selo e responsável são campos novos: com as regras antigas grava o plano sem eles e avisa.
+    let semExtras = false;
+    try { await gravar(true); }
+    catch (e) { if (e?.code !== "permission-denied") throw e; await gravar(false); semExtras = true; }
+    Object.assign(n, base, semExtras ? {} : extrasNeg, { decididoPor: C.eu.uid, decididoEm: { toMillis: () => agora() } }); delete n.comprovante;
+    D.planos.set(uid, { ...planoBase, ...(semExtras ? {} : planoExtras), ativadoEm: { toMillis: () => agora() } });
+    const fim = new Date(ateMs).toLocaleDateString("pt-BR");
+    const txtPerfis = tipos ? tipos.map((t) => NOMES_PERFIL[t]).join(", ") : "todos os perfis";
+    await registrar("negociacao_aprovar", uid, `${TIPOS_NEG_PL[n.tipo] || "Pedido"} · ${nomePlano(v.plano)} · ${dias} dias · ${valor ? reaisPl(valor) : "sem custo"} · até ${fim} · ${txtPerfis}${semSelo ? " · sem selo" : ""} · responsável ${nomeEquipe(resp)}`, "planos_negociacoes:" + n.id);
+    await enviarAviso(uid, { titulo: `Seu pedido foi aprovado: plano ${nomePlano(v.plano)}`, texto: `${v.resposta ? v.resposta + "\n\n" : ""}O plano ${nomePlano(v.plano)} vale até ${fim} para ${tipos ? `estes perfis: ${txtPerfis}` : "todos os seus negócios"}${valor ? ` (valor combinado: ${reaisPl(valor)})` : ""}.`, tipo: "info" }).catch(() => {});
+    toast(semExtras ? "Plano liberado. Perfis, selo e responsável valem depois que as regras novas forem publicadas." : "Plano liberado"); C.irPara("planos");
+  }
+  // Plano ativo: mudar o prazo, os perfis no ar e o selo (sem apagar de onde ele veio).
+  async function ajustarPlano(p) {
+    const fimAtual = ms(p.ate);
+    const v = await modal({ titulo: `Ajustar o ${nomePlano(p.plano)}`, texto: `${pessoa(p.uid).nome || "A pessoa"} · vale até ${data(p.ate)}.`, campos: [
+      { nome: "prazo", rotulo: "Prazo", tipo: "select", valor: "manter", opcoes: [["manter", `Manter até ${data(p.ate)}`], ["7", "+7 dias"], ["15", "+15 dias"], ["30", "+1 mês"], ["90", "+3 meses"], ["data", "Até uma data…"]] },
+      { nome: "data", rotulo: "Vale até", tipo: "date", valor: isoDe(Math.max(fimAtual, agora() + DIA)), seCampo: ["prazo", "data"] },
+      ...(await camposPerfisSelo(p.uid, perfisDoPlano(p), !!p.semSelo))
+    ], botao: "Salvar" });
+    if (!v) return;
+    if (!v.tipos.length) { toast("Marque pelo menos um perfil."); return; }
+    let ateMs = fimAtual;
+    if (v.prazo === "data") { ateMs = fimDaData(v.data); if (!(ateMs > agora() + 3600e3) || ateMs > agora() + 730 * DIA) { toast("Escolha uma data entre amanhã e daqui a 2 anos."); return; } }
+    else if (v.prazo !== "manter") ateMs = Math.max(fimAtual, agora()) + Number(v.prazo) * DIA;
+    const tipos = tiposEscolhidos(v.tipos), semSelo = v.selo === "esconder";
+    const { fb } = C;
+    const novo = { plano: p.plano, ate: fb.Timestamp.fromMillis(ateMs), ativadoEm: fb.serverTimestamp(), ativadoPor: C.eu.uid };
+    ["pedidoId", "negociacaoId", "meses", "teste", "dias"].forEach((k) => { if (p[k] != null) novo[k] = p[k]; });
+    if (tipos) novo.tipos = tipos;
+    if (semSelo) novo.semSelo = true;
+    try { await fb.setDoc(fb.doc(fb.db, "planos", p.uid), novo); }
+    catch (e) { toast(e?.code === "permission-denied" ? "Perfis e selo valem depois que as regras novas forem publicadas." : "Não foi possível salvar: " + (e.code || e.message)); return; }
+    D.planos.set(p.uid, { ...novo, ativadoEm: { toMillis: () => agora() } });
+    const mudouPrazo = ateMs !== fimAtual, mudouPerfis = String(tipos) !== String(perfisDoPlano(p));
+    const txtPerfis = tipos ? tipos.map((t) => NOMES_PERFIL[t]).join(", ") : "todos os perfis";
+    await registrar("plano_ajustar", p.uid, `${nomePlano(p.plano)} · até ${new Date(ateMs).toLocaleDateString("pt-BR")} · ${txtPerfis}${semSelo ? " · sem selo" : ""}`);
+    if (mudouPrazo || mudouPerfis) await enviarAviso(p.uid, { titulo: `Seu plano ${nomePlano(p.plano)} foi ajustado`, texto: `O plano ${nomePlano(p.plano)} agora vale até ${new Date(ateMs).toLocaleDateString("pt-BR")} para ${tipos ? `estes perfis: ${txtPerfis}` : "todos os seus negócios"}.`, tipo: "info" }).catch(() => {});
+    toast("Plano ajustado"); C.irPara("planos");
   }
   async function recusarNeg(n) {
     const v = await modal({ titulo: "Não aprovar o pedido?", texto: "A pessoa recebe um aviso com a sua resposta e pode pedir de novo depois.", campos: [{ nome: "resposta", rotulo: "Resposta", tipo: "textarea", max: 600, obrigatorio: true, valor: "Agora não conseguimos oferecer essa condição, mas você pode assinar um dos planos quando puder e pedir de novo mais para frente." }], botao: "Não aprovar", perigo: true });
@@ -1694,7 +1782,7 @@ export function relatorios(el) {
 }
 
 // ======================================================= REGISTRO E EQUIPE
-const NOMES_ACAO = { aviso: "Enviou aviso", suspender: "Suspendeu", banir: "Baniu", remover_sancao: "Removeu sanção", verificar: "Deu selo", tirar_selo: "Tirou/recusou selo", remover_conteudo: "Removeu conteúdo", esconder_negocio: "Escondeu negócio", mostrar_negocio: "Mostrou negócio", esconder_publicacao: "Escondeu publicação", mostrar_publicacao: "Mostrou publicação", exportar: "Exportou dados", relatorio_pdf: "Gerou relatório", parceria: "Atualizou parceria", parceria_apagar: "Apagou parceria", suporte_resposta: "Respondeu chamado", suporte_pegar: "Pegou chamado da fila", suporte_fila: "Transferiu/escalou chamado", suporte_conversa: "Abriu conversa de suporte", suporte_fechado: "Fechou chamado", suporte_aberto: "Reabriu chamado", reporte_novo: "Reportou pessoa do suporte", cobrar_reclamacao: "Cobrou resposta de reclamação", reporte_em_analise: "Pôs reporte em análise", reporte_resolvido: "Resolveu reporte", reporte_descartado: "Descartou reporte", comunicado_novo: "Criou comunicado", comunicado_editar: "Editou comunicado", comunicado_on: "Pôs comunicado no ar", comunicado_off: "Tirou comunicado do ar", comunicado_apagar: "Apagou comunicado", denuncia_resolvida: "Resolveu denúncia", denuncia_descartada: "Descartou denúncia", denuncia_em_analise: "Pôs denúncia em análise", assumiu: "Assumiu", passou: "Passou para outra pessoa", liberou: "Liberou", tarefa_nova: "Criou tarefa", tarefa_editar: "Editou tarefa", tarefa_a_fazer: "Voltou tarefa", tarefa_fazendo: "Começou tarefa", tarefa_feito: "Concluiu tarefa", tarefa_apagar: "Apagou tarefa", nota_interna: "Escreveu nota interna", entrou: "Entrou no painel", banir_programa: "Baniu de um programa", punir_ma_fe: "Puniu má-fé ao anunciar", tirar_negocios_sem_verificacao: "Tirou do ar negócios sem verificação", plano_ativar: "Ativou plano", plano_recusar: "Recusou pedido de plano", plano_encerrar: "Encerrou plano", negociacao_aprovar: "Aprovou negociação de plano", negociacao_recusar: "Não aprovou negociação de plano", negociacao_conversa: "Negociou plano", verificacao_aprovar: "Aprovou verificação", verificacao_recusar: "Recusou verificação" };
+const NOMES_ACAO = { aviso: "Enviou aviso", suspender: "Suspendeu", banir: "Baniu", remover_sancao: "Removeu sanção", verificar: "Deu selo", tirar_selo: "Tirou/recusou selo", remover_conteudo: "Removeu conteúdo", esconder_negocio: "Escondeu negócio", mostrar_negocio: "Mostrou negócio", esconder_publicacao: "Escondeu publicação", mostrar_publicacao: "Mostrou publicação", exportar: "Exportou dados", relatorio_pdf: "Gerou relatório", parceria: "Atualizou parceria", parceria_apagar: "Apagou parceria", suporte_resposta: "Respondeu chamado", suporte_pegar: "Pegou chamado da fila", suporte_fila: "Transferiu/escalou chamado", suporte_conversa: "Abriu conversa de suporte", suporte_fechado: "Fechou chamado", suporte_aberto: "Reabriu chamado", reporte_novo: "Reportou pessoa do suporte", cobrar_reclamacao: "Cobrou resposta de reclamação", reporte_em_analise: "Pôs reporte em análise", reporte_resolvido: "Resolveu reporte", reporte_descartado: "Descartou reporte", comunicado_novo: "Criou comunicado", comunicado_editar: "Editou comunicado", comunicado_on: "Pôs comunicado no ar", comunicado_off: "Tirou comunicado do ar", comunicado_apagar: "Apagou comunicado", denuncia_resolvida: "Resolveu denúncia", denuncia_descartada: "Descartou denúncia", denuncia_em_analise: "Pôs denúncia em análise", assumiu: "Assumiu", passou: "Passou para outra pessoa", liberou: "Liberou", tarefa_nova: "Criou tarefa", tarefa_editar: "Editou tarefa", tarefa_a_fazer: "Voltou tarefa", tarefa_fazendo: "Começou tarefa", tarefa_feito: "Concluiu tarefa", tarefa_apagar: "Apagou tarefa", nota_interna: "Escreveu nota interna", entrou: "Entrou no painel", banir_programa: "Baniu de um programa", punir_ma_fe: "Puniu má-fé ao anunciar", tirar_negocios_sem_verificacao: "Tirou do ar negócios sem verificação", plano_ativar: "Ativou plano", plano_recusar: "Recusou pedido de plano", plano_encerrar: "Encerrou plano", negociacao_aprovar: "Aprovou negociação de plano", negociacao_recusar: "Não aprovou negociação de plano", negociacao_conversa: "Negociou plano", plano_ajustar: "Ajustou plano", verificacao_aprovar: "Aprovou verificação", verificacao_recusar: "Recusou verificação" };
 // Alvo do registro em texto de gente: a pessoa (link para a ficha), ou o item que a equipe assumiu/passou
 // ("suporte:ID" vira "Chamado #ABC123 · assunto", "denuncias:..." vira "Denúncia · motivo · pessoa"), ou a lista exportada.
 const LISTAS_EXPORT = { usuarios: "Lista de usuários", negocios: "Lista de negócios", denuncias: "Lista de denúncias", reclamacoes: "Lista de reclamações" };
