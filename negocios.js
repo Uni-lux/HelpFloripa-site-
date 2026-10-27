@@ -17,7 +17,7 @@ import { lerStats, listaDias, somarPeriodo } from "./estat-negocio.js?v=1";
 import { geocodificar, geoOk } from "./perto.js?v=2";
 import { LIMITES_GRATIS } from "./planos-base.js?v=7";
 import { compartilharPerfil, baixarArte, desenharQr } from "./qr.js?v=1";
-import { abrirPlanos, lerPlano, esquecerPlano, nivelPlano, emTolerancia, pedidoAberto, lerNegociacao, testeDisponivel, seloPlano, nomePlano, diasRestantes, textoFalta, PRECO_MIN, DIAS_TESTE, reais } from "./planos.js?v=15";
+import { abrirPlanos, lerPlano, esquecerPlano, nivelPlano, emTolerancia, pedidoAberto, lerNegociacao, testeDisponivel, seloPlano, nomePlano, diasRestantes, textoFalta, PRECO_MIN, DIAS_TESTE, reais } from "./planos.js?v=16";
 import { termosBusca } from "./busca.js?v=1";
 import { PROFISSOES_SAUDE, CATEGORIAS_SAUDE, MODALIDADES_SAUDE, PUBLICO_SAUDE, PUBLICO_VET, CONVENIOS, IDIOMAS, UFS, conselhoDe, ehVet, textoRegistro } from "./saude-dados.js?v=1";
 import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO, CATEGORIAS, GRUPOS_SERV, PALAVRAS_SERV, prazoPromo } from "./vitrine.js?v=62";
@@ -492,7 +492,7 @@ function maiorDeIdade() {
 async function abrirEstatisticas(n) {
   if (semPlano()) { verPlanos("plus"); return; } // estatísticas fazem parte dos planos
   try {
-    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=26");
+    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=27");
     abrirInsightsNegocio(n, { aoEditar: (neg) => abrirFormNegocio(meusNegocios.find((x) => x.id === neg.id) || neg) });
   } catch (e) { toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)); }
 }

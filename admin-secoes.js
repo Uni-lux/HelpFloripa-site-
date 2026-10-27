@@ -12,7 +12,7 @@ import { verConteudoDenuncia } from "./admin-denuncia.js?v=16";
 import { prepararAnexo, blocoAnexo, previaAnexo, aceitos } from "./anexos-suporte.js?v=2";
 import { FILAS, filaDe, PRIORIDADES as PRIO_SUP, prioridadeChamado, situacaoPrazo, ordemFila } from "./suporte-fila.js?v=1";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
-import { PLANOS, ORDEM_PLANOS, DIAS_BONUS, nivelPlano, nomePlano, diasRestantes, creditoDias, descontoDe, nomeDocRenda, TIPOS_NEG as TIPOS_NEG_PL } from "./planos.js?v=15";
+import { PLANOS, ORDEM_PLANOS, DIAS_BONUS, nivelPlano, nomePlano, diasRestantes, creditoDias, descontoDe, nomeDocRenda, TIPOS_NEG as TIPOS_NEG_PL } from "./planos.js?v=16";
 import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha,

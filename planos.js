@@ -675,7 +675,7 @@ export async function abrirPlanos(op) {
       const bc = el("button", "pl-btn"); bc.type = "button"; bc.textContent = "Copiar código Pix"; bc.addEventListener("click", () => copiar(cod, toast));
       box.appendChild(bc);
       const ol = el("ol", "pl-passos");
-      ["Abra o app do seu banco e escolha Pix → Pix Copia e Cola (ou leia o QR Code).", "Confira o valor e o CNPJ do recebedor (61.935.934/0001-00, Help Floripa) e pague.", `Pronto: a equipe confirma o pagamento e ativa o ${nomePlano(p.plano)} (normalmente em até 1 dia útil). O selo aparece em Meus negócios.`].forEach((t) => ol.appendChild(el("li", null, t)));
+      ["Abra o app do seu banco e escolha Pix → Pix Copia e Cola (ou leia o QR Code).", "Confira o valor e o CNPJ do recebedor (61.935.934/0001-00) e pague. Como a Help Floripa está registrada como MEI, o banco mostra o nome do responsável pela empresa: é normal.", `Pronto: a equipe confirma o pagamento e ativa o ${nomePlano(p.plano)} (normalmente em até 1 dia útil). O selo aparece em Meus negócios.`].forEach((t) => ol.appendChild(el("li", null, t)));
       box.appendChild(ol);
     } else {
       box.appendChild(el("p", "pl-nota", `Recebemos o seu pedido. A equipe vai mandar a chave Pix pelo Suporte (aparece nas suas Mensagens) e ativa o ${nomePlano(p.plano)} assim que o pagamento chegar.`));
