@@ -39,7 +39,7 @@
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
   <script type="module" src="categoria.js?v=51"></script>
-  <script type="module" src="inicio.js?v=60"></script>
+  <script type="module" src="inicio.js?v=61"></script>
 </head>
 <body data-classe="inicio">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -195,6 +195,14 @@
       <div class="trilho" id="trilhoNovos"></div>
     </section>
 
+    <section class="secao-home carrossel" id="secSaude" aria-labelledby="t-secSaude" hidden>
+      <div class="secao-cab">
+        <div><h2 id="t-secSaude">Saúde perto de você</h2><p>Profissionais de saúde com registro no conselho. Em emergência, ligue 192.</p></div>
+        <div class="setas"><button type="button" class="ant" aria-label="Anteriores"><svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></button><button type="button" class="prox" aria-label="Próximos"><svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></button></div>
+      </div>
+      <div class="trilho" id="trilhoSaude"></div>
+    </section>
+
     <section class="secao-home" id="secCidades" aria-labelledby="t-secCidades" hidden>
       <div class="secao-cab"><div><h2 id="t-secCidades">Cidades em destaque</h2><p>Onde mais tem gente anunciando agora. Toque para ver a cidade.</p></div></div>
       <div class="cidades-chips" id="cidadesChips"></div>
@@ -206,6 +214,16 @@
         <div class="setas"><button type="button" class="ant" aria-label="Anteriores"><svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></button><button type="button" class="prox" aria-label="Próximos"><svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></button></div>
       </div>
       <div class="trilho" id="trilhoImoveis"></div>
+    </section>
+
+    <section class="secao-home carrossel" id="secComunidade" aria-labelledby="t-secComunidade" hidden>
+      <div class="secao-cab">
+        <div><h2 id="t-secComunidade">Na Comunidade</h2><p>Doações, trocas, achados e perdidos e quartos para dividir, de graça entre vizinhos.</p><span class="cm-aviso-venda">⚠️ Proibido vender ou cobrar</span></div>
+        <div class="setas"><button type="button" class="ant" aria-label="Anteriores"><svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></button><button type="button" class="prox" aria-label="Próximos"><svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></button></div>
+      </div>
+      <div id="filtrosComunidade"></div>
+      <div class="trilho" id="trilhoComunidade"></div>
+      <a class="cm-ver-tudo" href="comunidade.html">Ver tudo na Comunidade ›</a>
     </section>
 
     <section class="secao-home" aria-labelledby="tAnuncie">
