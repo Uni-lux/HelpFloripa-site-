@@ -657,7 +657,7 @@ await t("perfil: rosinha com valor estranho é recusada", () => assertFails(upda
 
 // ---------- verificação do perfil ----------
 const docJ = "data:image/jpeg;base64," + "A".repeat(4000);
-const pedidoV = (extra) => ({ uid: "bia", categoria: "profissional", nomeLegal: "Beatriz Souza", conhecidoComo: "Bia", documentoTipo: "rg", documento: docJ, links: ["https://instagram.com/bia"], motivo: "Tenho perfis falsos com meu nome.", status: "pendente", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
+const pedidoV = (extra) => ({ uid: "bia", categoria: "profissional", nomeLegal: "Beatriz Souza", conhecidoComo: "Bia", documentoTipo: "rg", selfie: "data:image/jpeg;base64,/9j/U0VMRklF", documento: docJ, links: ["https://instagram.com/bia"], motivo: "Tenho perfis falsos com meu nome.", status: "pendente", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
 await t("verificação: a pessoa envia o pedido com a foto do documento", () => assertSucceeds(setDoc(doc(ctx("bia"), "verificacoes", "bia"), pedidoV())));
 await t("verificação: não envia em nome de outra pessoa", () => assertFails(setDoc(doc(ctx("ana"), "verificacoes", "bia2"), pedidoV({ uid: "bia2" }))));
 await t("verificação: documento que não é foto JPEG é recusado", () => assertFails(setDoc(doc(ctx("edu"), "verificacoes", "edu"), pedidoV({ uid: "edu", documento: "data:text/html;base64,PHNjcmlwdD4=" }))));
@@ -667,14 +667,20 @@ await t("verificação: o suporte não lê (só a moderação)", () => assertFai
 await t("verificação: a moderação lê", () => assertSucceeds(getDoc(doc(ctx("mod"), "verificacoes", "bia"))));
 await t("verificação: aprovar sem apagar a foto do documento é recusado", () => assertFails(updateDoc(doc(ctx("mod"), "verificacoes", "bia"), { status: "aprovada", analisadaPor: "mod", analisadaEm: serverTimestamp() })));
 await t("verificação: a pessoa não muda o pedido em análise (só cancela)", () => assertFails(updateDoc(doc(ctx("bia"), "verificacoes", "bia"), { nomeLegal: "Outro Nome" })));
-await t("verificação: a moderação recusa com motivo e apaga a foto", () => assertSucceeds(updateDoc(doc(ctx("mod"), "verificacoes", "bia"), { status: "recusada", motivoRecusa: "Documento ilegível.", analisadaPor: "mod", analisadaEm: serverTimestamp(), documento: deleteField() })));
+await t("verificação: a moderação recusa com motivo e apaga a foto", () => assertSucceeds(updateDoc(doc(ctx("mod"), "verificacoes", "bia"), { status: "recusada", motivoRecusa: "Documento ilegível.", analisadaPor: "mod", analisadaEm: serverTimestamp(), documento: deleteField(), selfie: deleteField() })));
 await t("verificação: depois de recusada, pede de novo", () => assertSucceeds(setDoc(doc(ctx("bia"), "verificacoes", "bia"), pedidoV())));
-await t("verificação: a pessoa cancela (a foto sai junto)", () => assertSucceeds(updateDoc(doc(ctx("bia"), "verificacoes", "bia"), { status: "cancelada", atualizadoEm: serverTimestamp(), documento: deleteField() })));
+await t("verificação: cancelar sem apagar a selfie é recusado", () => assertFails(updateDoc(doc(ctx("bia"), "verificacoes", "bia"), { status: "cancelada", atualizadoEm: serverTimestamp(), documento: deleteField() })));
+await t("verificação: a pessoa cancela (as fotos saem junto)", () => assertSucceeds(updateDoc(doc(ctx("bia"), "verificacoes", "bia"), { status: "cancelada", atualizadoEm: serverTimestamp(), documento: deleteField(), selfie: deleteField() })));
 await t("verificação: a moderação não aprova em nome de outro", async () => { await setDoc(doc(ctx("bia"), "verificacoes", "bia"), pedidoV()); await assertFails(updateDoc(doc(ctx("mod"), "verificacoes", "bia"), { status: "aprovada", analisadaPor: "adm", analisadaEm: serverTimestamp(), documento: deleteField() })); });
-await t("verificação: a moderação aprova e apaga a foto", () => assertSucceeds(updateDoc(doc(ctx("mod"), "verificacoes", "bia"), { status: "aprovada", analisadaPor: "mod", analisadaEm: serverTimestamp(), documento: deleteField() })));
+await t("verificação: aprovar apagando o documento mas não a selfie é recusado", () => assertFails(updateDoc(doc(ctx("mod"), "verificacoes", "bia"), { status: "aprovada", analisadaPor: "mod", analisadaEm: serverTimestamp(), documento: deleteField() })));
+await t("verificação: a moderação aprova e apaga as fotos", () => assertSucceeds(updateDoc(doc(ctx("mod"), "verificacoes", "bia"), { status: "aprovada", analisadaPor: "mod", analisadaEm: serverTimestamp(), documento: deleteField(), selfie: deleteField() })));
 
 await t("verificação: documento de tamanho real (~600 KB) passa", () => assertSucceeds(setDoc(doc(ctx("edu"), "verificacoes", "edu"), pedidoV({ uid: "edu", documento: "data:image/jpeg;base64," + "Q".repeat(598000) }))));
+await t("verificação: sem a selfie com o documento é recusado", () => assertFails(setDoc(doc(ctx("gui"), "verificacoes", "gui"), (() => { const o = pedidoV({ uid: "gui" }); delete o.selfie; return o; })())));
+await t("verificação: selfie que não é JPEG é recusada", () => assertFails(setDoc(doc(ctx("gui"), "verificacoes", "gui"), pedidoV({ uid: "gui", selfie: "data:image/png;base64,iVBORw0K" }))));
+await t("verificação: selfie grande demais (> 450 KB) é recusada", () => assertFails(setDoc(doc(ctx("gui"), "verificacoes", "gui"), pedidoV({ uid: "gui", selfie: "data:image/jpeg;base64," + "Q".repeat(460000) }))));
 await t("verificação: documento grande demais (> 700 KB) é recusado", () => assertFails(setDoc(doc(ctx("gui"), "verificacoes", "gui"), pedidoV({ uid: "gui", documento: "data:image/jpeg;base64," + "Q".repeat(710000) }))));
+await t("verificação: documento (470 KB) + selfie (360 KB) de tamanho real passam", () => assertSucceeds(setDoc(doc(ctx("gui"), "verificacoes", "gui"), pedidoV({ uid: "gui", documento: "data:image/jpeg;base64," + "Q".repeat(469000), selfie: "data:image/jpeg;base64," + "Q".repeat(359000) }))));
 // selo: a moderação só dá com o pedido aprovado; o dono dá direto; tirar é livre
 await semRegras(async (db) => { for (const u of ["bia", "edu", "hele"]) { await setDoc(doc(db, "usuarios", u), { uid: u, nome: u }, { merge: true }); await setDoc(doc(db, "perfis_publicos", u), { uid: u, nome: u }, { merge: true }); } });
 await t("selo: a moderação dá o selo com o pedido aprovado", () => assertSucceeds(updateDoc(doc(ctx("mod"), "usuarios", "bia"), { verificado: true, solicitacaoVerificacao: false, verificacaoRespondidaEm: serverTimestamp() })));

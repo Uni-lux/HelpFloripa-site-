@@ -1,4 +1,4 @@
-// Condição especial / negociação depois do plano grátis: formulário com o aviso do grátis, perfis e tempo pedidos e
+// Condição especial / negociação depois do plano grátis: formulário com o aviso do grátis, plano com 50% na baixa renda e
 // documentos recolhidos no celular; painel: responsável (assumir), aprovar escolhendo o tempo (dias), os perfis no ar e
 // esconder o selo; a pessoa vê quem cuida do pedido; vitrine sem o selo e com o perfil desmarcado pausado; "Ajustar".
 // Uso: node seed.mjs && node t-negociacao.mjs  (precisa das regras do repositório)
@@ -20,17 +20,20 @@ const B = await navegador({ mobile: true });
 const p = await entrar(B.ctx, "bruno", "negocios.html?planos=1");
 await p.waitForSelector(".pl-ajuda", { timeout: 20000 });
 ok((await p.textContent(".pl-ajuda")).includes("continua no ar de graça"), "convite lembra que o negócio continua no ar de graça");
-await p.locator(".pl-ajuda .pl-btn", { hasText: "condição especial" }).click(); await p.waitForSelector(".pl-form");
+await p.locator(".pl-ajuda .pl-btn", { hasText: "Baixa renda" }).click(); await p.waitForSelector(".pl-form");
 const gr = (await p.textContent(".pl-neg-gratis")).replace(/\s+/g, " ");
-ok(gr.includes("de graça") && gr.includes("1 perfil no ar") && gr.includes("3 itens"), "aviso do grátis: " + gr.slice(0, 90));
+ok(gr.includes("de graça") && gr.includes("1 perfil") && gr.includes("3 itens"), "aviso do grátis: " + gr.slice(0, 90));
 const visiveis = await p.locator(".pl-doc:visible").count();
 ok(visiveis === 4 && await p.locator(".pl-doc[data-doc='depois']").count() === 0, `4 documentos mais usados à vista, sem "mando depois" (${visiveis})`);
-ok((await p.textContent(".pl-fixo")).replace(/\s+/g, " ").includes("Plano Plus por R$ 15,00/mês"), "baixa renda: Plus por R$ 15,00/mês fixo");
+const cartoes = (await p.locator(".pl-pn").allTextContents()).map((t) => t.replace(/\s+/g, " "));
+ok(cartoes.length === 3 && cartoes[0].includes("-50%") && cartoes[0].includes("14,95") && cartoes[1].includes("19,95") && cartoes[2].includes("29,95") && cartoes[2].includes("59,90"), "baixa renda: os 3 planos com 50% (Plus 14,95 · Pro 19,95 · Premium 29,95)");
+ok(await p.locator(".pl-chip").count() === 0 && await p.locator("#plNegValor").isHidden(), "sem perguntas de perfis, meses ou valor");
+ok(await p.locator(".pl-passo-tit .n").count() === 3, "formulário em 3 passos numerados");
 await p.locator(".pl-prova").scrollIntoViewIfNeeded(); await p.screenshot({ path: "saida/neg-form-docs.png" });
 await p.locator(".pl-mais-docs").click();
 ok(await p.locator(".pl-doc:visible").count() === 9, "\"Ver outros documentos\" mostra os 9");
-await p.locator(".pl-chip", { hasText: /^2$/ }).click();
-await p.locator(".pl-chip", { hasText: "6 meses" }).click();
+await p.locator(".pl-pn[data-p='pro']").click();
+ok(await p.locator(".pl-pn.on[data-p='pro']").count() === 1, "escolher o Pro marca o cartão");
 await p.locator(".pl-doc[data-doc='bolsa']").click();
 await p.setInputFiles("#plNegArquivo", garantirImagem("saida/doc-bolsa.png", 900, 1200));
 await p.waitForSelector(".pl-prova .ax-previa", { timeout: 10000 });
@@ -41,8 +44,7 @@ const larg = await p.evaluate(() => [document.documentElement.scrollWidth, inner
 ok(larg[0] <= larg[1], `formulário cabe no celular (${larg[0]} ≤ ${larg[1]})`);
 await p.locator(".pl-form button[type=submit]").click(); await p.waitForTimeout(2000);
 let ng = (await db.doc(`planos_negociacoes/${U.bruno}`).get()).data();
-ok(ng?.perfisPedidos === 2 && ng.mesesPedidos === 6 && ng.comprovanteTipo === "bolsa" && !!ng.comprovante && ng.plano === "plus" && ng.valorProposto === 15, "pedido gravado com 2 perfis e 6 meses: " + JSON.stringify({ p: ng?.perfisPedidos, m: ng?.mesesPedidos }));
-ok((await p.textContent(".pl-neg")).includes("2 perfis no ar por 6 meses"), "situação do pedido mostra os perfis e o tempo");
+ok(!ng?.perfisPedidos && !ng?.mesesPedidos && ng?.comprovanteTipo === "bolsa" && !!ng.comprovante && ng.plano === "pro" && ng.valorProposto === 19.95, "pedido gravado: Pro com 50% (19,95), comprovante anexado: " + JSON.stringify({ plano: ng?.plano, valor: ng?.valorProposto }));
 
 // ---------- 2) painel: responsável e aprovar ----------
 const ADM = await navegador({ mobile: true });
@@ -51,7 +53,7 @@ await a.waitForSelector(".ad-chip", { timeout: 30000 });
 await a.locator(".ad-chip", { hasText: "Negociações" }).click();
 await a.waitForSelector(".ad-neg", { timeout: 10000 });
 const card = (await a.textContent(".ad-neg")).replace(/\s+/g, " ");
-ok(card.includes("Precisa de 2 perfis no ar") && card.includes("Por 6 meses") && card.includes("Sem responsável"), "cartão: o que a pessoa precisa e \"Sem responsável\"");
+ok(card.includes("Baixa renda (50% off)") && card.includes("19,95") && card.includes("Sem responsável"), "cartão: baixa renda 50% no Pro e \"Sem responsável\"");
 await a.locator(".ad-neg .ad-bt", { hasText: "Assumir" }).click(); await a.waitForTimeout(1500);
 ng = (await db.doc(`planos_negociacoes/${U.bruno}`).get()).data();
 ok(ng.responsavel === U.admin && !!ng.responsavelNome, "Assumir grava o responsável: " + ng.responsavelNome);
@@ -72,7 +74,7 @@ await a.selectOption(".ad-modal .ad-campo:has-text('Por quanto tempo') select", 
 await a.selectOption(".ad-modal .ad-campo:has-text('Plano') select", "plus");
 await a.locator(".ad-modal .ad-multi-op", { hasText: "Delivery" }).locator("input").uncheck();
 await a.selectOption(".ad-modal .ad-campo:has-text('Selo do plano') select", "esconder");
-ok(await a.inputValue(".ad-modal .ad-campo:has-text('Valor combinado') input") === "90", "valor sugerido: R$ 15 × 6 meses = 90");
+ok(await a.inputValue(".ad-modal .ad-campo:has-text('Valor combinado') input") === "19,95", "valor sugerido: metade do Pro (19,95)");
 await a.locator(".ad-modal .ad-campo", { hasText: "Valor combinado" }).locator("input").fill("0");
 await a.locator(".ad-modal").screenshot({ path: "saida/neg-aprovar.png" });
 await a.locator(".ad-modal .ad-bt.pri", { hasText: "Aprovar" }).click(); await a.waitForTimeout(2500);

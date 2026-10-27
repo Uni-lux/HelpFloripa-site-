@@ -829,3 +829,5 @@ input.ad-sel { flex: 1 1 220px; padding: 0 12px; }
 .ad-campo[hidden] { display: none; }
 .ad-neg-pede { display: flex; flex-wrap: wrap; gap: 6px; }
 .ad-neg-pede span { padding: 3px 9px; border-radius: 999px; background: var(--panel-2, var(--input)); font-size: 12px; font-weight: 700; color: var(--muted); }
+.ad-vf-doc img.ad-vf-selfie { margin-top: 6px; max-height: 200px; }
+.ad-vf-semselfie { color: var(--warn, #f5a524) !important; }

@@ -12,7 +12,7 @@ import { verConteudoDenuncia } from "./admin-denuncia.js?v=17";
 import { prepararAnexo, blocoAnexo, previaAnexo, aceitos } from "./anexos-suporte.js?v=2";
 import { FILAS, filaDe, PRIORIDADES as PRIO_SUP, prioridadeChamado, situacaoPrazo, ordemFila } from "./suporte-fila.js?v=1";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
-import { PLANOS, ORDEM_PLANOS, DIAS_BONUS, nivelPlano, nomePlano, diasRestantes, creditoDias, descontoDe, nomeDocRenda, TIPOS_NEG as TIPOS_NEG_PL, NOMES_PERFIL, TIPOS_PERFIL, perfisDoPlano, mostraSelo, BAIXA_RENDA } from "./planos.js?v=18";
+import { PLANOS, ORDEM_PLANOS, DIAS_BONUS, nivelPlano, nomePlano, diasRestantes, creditoDias, descontoDe, nomeDocRenda, TIPOS_NEG as TIPOS_NEG_PL, NOMES_PERFIL, TIPOS_PERFIL, perfisDoPlano, mostraSelo, BAIXA_RENDA, precoBaixaRenda } from "./planos.js?v=19";
 import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha,
@@ -1112,7 +1112,7 @@ export function planos(el) {
     if (negAbertaAd(n)) top.append(seloResp(n));
     top.append(h("span", "quando", relativo(n.criadoEm)));
     c.appendChild(top);
-    c.append(h("strong", null, n.tipo === "apoio" ? `Baixa renda · ${nomePlano(BAIXA_RENDA.plano)} por ${reaisPl(BAIXA_RENDA.preco)}/mês (valor fixo)` : `${TIPOS_NEG_PL[n.tipo] || "Pedido"} · quer o ${nomePlano(n.plano)} (${reaisPl(PLANOS[n.plano]?.preco)}/mês)`),
+    c.append(h("strong", null, n.tipo === "apoio" ? `Baixa renda (${Math.round(BAIXA_RENDA.desconto * 100)}% off) · ${nomePlano(n.plano)} por ${reaisPl(precoBaixaRenda(n.plano))}/mês, em vez de ${reaisPl(PLANOS[n.plano]?.preco)}` : `${TIPOS_NEG_PL[n.tipo] || "Pedido"} · quer o ${nomePlano(n.plano)} (${reaisPl(PLANOS[n.plano]?.preco)}/mês)`),
       h("div", "meta", [n.tipo === "apoio" ? "" : n.valorProposto ? `Propõe ${reaisPl(n.valorProposto)} por mês` : "Sem valor proposto", n.contato ? `Contato: ${n.contato}` : "", dataHora(n.criadoEm)].filter(Boolean).join(" · ")));
     // O que a pessoa precisa: perfis no ar, tempo e os perfis que ela já tem.
     const tem = D.negocios.filter((x) => x.donoId === uid).map((x) => NOMES_PERFIL[x.tipo] || x.tipo);
@@ -1176,11 +1176,11 @@ export function planos(el) {
     const sugestao = String(Math.min(365, (n.mesesPedidos || 1) * 30));
     const ap = n.tipo === "apoio";
     const v = await modal({ titulo: "Aprovar e dar o plano", texto: `${pessoa(uid).nome || n.nome || "A pessoa"} recebe o plano na hora e um aviso com a sua mensagem. Valor 0 = sem custo (cortesia ou parceria).`, campos: [
-      { nome: "plano", rotulo: "Plano", tipo: "select", valor: ap ? BAIXA_RENDA.plano : n.plano, opcoes: ORDEM_PLANOS.map((k) => [k, `${PLANOS[k].nome} (${reaisPl(PLANOS[k].preco)}/mês)`]) },
+      { nome: "plano", rotulo: "Plano", tipo: "select", valor: n.plano, opcoes: ORDEM_PLANOS.map((k) => [k, `${PLANOS[k].nome} (${reaisPl(PLANOS[k].preco)}/mês)`]) },
       { nome: "duracao", rotulo: "Por quanto tempo", tipo: "select", valor: DURACOES.some(([k]) => k === sugestao) ? sugestao : "30", opcoes: DURACOES, ajuda: n.mesesPedidos ? `A pessoa pediu ${nMeses(n.mesesPedidos)}.` : "" },
       { nome: "data", rotulo: "Vale até", tipo: "date", valor: isoDe(agora() + 30 * DIA), seCampo: ["duracao", "data"] },
       ...(await camposPerfisSelo(uid, null, false)),
-      { nome: "valor", rotulo: "Valor combinado no total (R$)", valor: ap ? String(BAIXA_RENDA.preco * (n.mesesPedidos || 1)).replace(".", ",") : n.valorProposto ? String(n.valorProposto).replace(".", ",") : "0", max: 10, dica: "0 = sem custo", ajuda: ap ? `Baixa renda: valor fixo de ${reaisPl(BAIXA_RENDA.preco)} por mês (${nMeses(n.mesesPedidos || 1)} = ${reaisPl(BAIXA_RENDA.preco * (n.mesesPedidos || 1))}). Confira o comprovante antes.` : "" },
+      { nome: "valor", rotulo: "Valor combinado no total (R$)", valor: ap ? String(Math.round(precoBaixaRenda(n.plano) * (n.mesesPedidos || 1) * 100) / 100).replace(".", ",") : n.valorProposto ? String(n.valorProposto).replace(".", ",") : "0", max: 10, dica: "0 = sem custo", ajuda: ap ? `Baixa renda: ${Math.round(BAIXA_RENDA.desconto * 100)}% de desconto, ${reaisPl(precoBaixaRenda(n.plano))} por mês no ${nomePlano(n.plano)} (Plus ${reaisPl(precoBaixaRenda("plus"))} · Pro ${reaisPl(precoBaixaRenda("pro"))} · Premium ${reaisPl(precoBaixaRenda("premium"))}). Valor do total = preço do mês × meses. Confira o comprovante antes.` : "" },
       { nome: "responsavel", rotulo: "Responsável por esta pessoa", tipo: "select", valor: n.responsavel || C.eu.uid, opcoes: doms.map((a) => [a.id, a.id === C.eu.uid ? `Eu (${a.nome || "você"})` : a.nome || nomeEquipe(a.id)]), ajuda: "Quem acompanha o plano e responde a pessoa." },
       { nome: "resposta", rotulo: "Mensagem para a pessoa", tipo: "textarea", max: 600, valor: n.tipo === "parceria" ? "Topamos a sua proposta. Que bom ter você com o Help Floripa!" : "Entendemos a sua situação e liberamos uma condição especial para você." }
     ], botao: "Aprovar" });
@@ -1459,6 +1459,12 @@ export function verificacoes(el) {
       const im = document.createElement("img"); im.src = v.documento; im.alt = "Documento enviado"; im.loading = "lazy";
       im.addEventListener("click", () => { const f = h("div", "ad-modal-fundo ad-vf-zoom"); const g = document.createElement("img"); g.src = v.documento; g.alt = "Documento"; f.appendChild(g); f.addEventListener("click", () => f.remove()); document.body.appendChild(f); });
       doc.append(im, h("small", null, `${DOCS_VERIF[v.documentoTipo] || "Documento"} · toque para ampliar`));
+      // Selfie segurando o documento: o rosto tem que ser o mesmo da foto do documento.
+      if (v.selfie) {
+        const sf = document.createElement("img"); sf.src = v.selfie; sf.alt = "Selfie com o documento"; sf.loading = "lazy"; sf.className = "ad-vf-selfie";
+        sf.addEventListener("click", () => { const f = h("div", "ad-modal-fundo ad-vf-zoom"); const g = document.createElement("img"); g.src = v.selfie; g.alt = "Selfie"; f.appendChild(g); f.addEventListener("click", () => f.remove()); document.body.appendChild(f); });
+        doc.append(sf, h("small", null, "Selfie com o documento · o rosto é o mesmo do documento?"));
+      } else doc.append(h("small", "ad-vf-semselfie", "Sem selfie (pedido feito antes da selfie ser pedida)"));
     } else doc.append(h("div", "ad-vf-semdoc", v ? "Sem foto do documento (pedido feito antes das regras novas)" : "Pedido antigo, sem formulário"), h("small", null, "Peça o documento pelo suporte, se precisar"));
     // conferências
     const conf = h("div", "ad-vf-confs");
@@ -1518,10 +1524,10 @@ export function verificacoes(el) {
   async function decidir(p, v, status, motivo = "") {
     const { fb } = C;
     if (!(v && D.verificacoes.includes(v))) return true;
-    const mud = { status, analisadaPor: C.eu.uid, analisadaEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp(), documento: fb.deleteField(), ...(motivo ? { motivoRecusa: motivo.slice(0, 500) } : {}) };
+    const mud = { status, analisadaPor: C.eu.uid, analisadaEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp(), documento: fb.deleteField(), selfie: fb.deleteField(), ...(motivo ? { motivoRecusa: motivo.slice(0, 500) } : {}) };
     try { await fb.updateDoc(fb.doc(fb.db, "verificacoes", p.uid), mud); }
     catch (e) { console.warn("Verificação:", e.code || e); toast("Não foi possível gravar a decisão: " + (e.code || e.message)); return false; }
-    Object.assign(v, { status, analisadaPor: C.eu.uid, analisadaEm: { toMillis: () => Date.now() }, motivoRecusa: motivo || v.motivoRecusa }); delete v.documento;
+    Object.assign(v, { status, analisadaPor: C.eu.uid, analisadaEm: { toMillis: () => Date.now() }, motivoRecusa: motivo || v.motivoRecusa }); delete v.documento; delete v.selfie;
     return true;
   }
   async function aprovar(p, v) {
