@@ -854,6 +854,9 @@
     /* Dentro da gaveta de mensagens de outra página: sem "início" e sem a barra da rede */
     html.embutido .side-top > a.icon-btn:first-child, html.embutido #barraRede { display: none; }
     .menu hr { border: 0; height: 1px; margin: 5px 8px; background: var(--line); }
+    #menuMsg { min-width: 250px; overflow-y: auto; overscroll-behavior: contain; }
+    #menuMsg .menu-sec { padding: 8px 12px 2px; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+    #menuMsg hr { margin: 4px 8px; }
     .visualizador { position: fixed; inset: 0; z-index: 70; background: rgba(0, 0, 0, .92); display: grid; place-items: center; padding: 50px 16px 16px; }
     .visualizador[hidden] { display: none; }
     .visualizador img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; }
@@ -3774,34 +3777,38 @@
     function abrirMenuConversa() {
       const menu = $("menuMsg");
       menu.replaceChildren();
-      // Agrupado: conversa · responder e organizar · ajustes · segurança (ações perigosas por último).
+      // Seções com título: conversa · atendimento · organizar · configurações · privacidade (ações perigosas por último).
       const c = () => conversas.find((x) => x.id === ativa?.id);
       const grupos = [
-        [
+        ["Conversa", [
           { rotulo: "Ver perfil", icone: "perfil", acao: verPerfil },
-          { rotulo: "Pesquisar na conversa", icone: "lupa", acao: abrirBuscaChat }
-        ],
-        [
+          { rotulo: "Pesquisar na conversa", icone: "lupa", acao: abrirBuscaChat },
+          window.innerWidth > 820 && { rotulo: "Fechar conversa", icone: "fechar", acao: () => fecharConversa() }
+        ]],
+        ["Atendimento", [
           { rotulo: "Respostas rápidas", icone: "responder", acao: () => setTimeout(abrirRespostasRapidas, 0) },
           meusNegociosChat?.length && assuntoDe(ativa?.dados) !== "pessoal" && { rotulo: "Notas do cliente", icone: "nota", acao: abrirNotas },
           { rotulo: "Pedir avaliação", icone: "estrela", acao: () => setTimeout(escolherNegocioParaAvaliacao, 0) },
+          { rotulo: "Mandar cartão de Pix", icone: "pix", acao: () => setTimeout(abrirCartaoPix, 0) }
+        ]],
+        ["Organizar", [
           { rotulo: "Classificar conversa", icone: "etiqueta", acao: () => setTimeout(() => abrirMenuAssunto(), 0) },
           { rotulo: ativa && conversaArquivada({ dados: ativa.dados }) ? "Desarquivar" : "Arquivar conversa", icone: "arquivo", acao: () => { const x = c(); if (x) arquivarConversa(x, !conversaArquivada(x)); } }
-        ],
-        [
+        ]],
+        ["Configurações", [
           { rotulo: "Configurações do chat", icone: "config", acao: () => abrirPainel("painelConfig") },
-          { rotulo: "Configurações de pagamento", icone: "pix", acao: () => setTimeout(abrirConfigPagamento, 0) },
-          window.innerWidth > 820 && { rotulo: "Fechar conversa", icone: "fechar", acao: () => fecharConversa() }
-        ],
-        [
+          { rotulo: "Configurações de pagamento", icone: "pix", acao: () => setTimeout(abrirConfigPagamento, 0) }
+        ]],
+        ["Privacidade e segurança", [
           { rotulo: restritos.has(ativa?.outroId) ? "Remover restrição" : "Restringir", icone: "restringir", acao: alternarRestricao },
           { rotulo: bloqueios.meus.has(ativa?.outroId) ? "Desbloquear" : "Bloquear", icone: "bloquear", perigo: !bloqueios.meus.has(ativa?.outroId), acao: alternarBloqueio },
           { rotulo: "Apagar conversa", icone: "lixo", perigo: true, acao: () => { const x = c(); if (x) apagarConversaParaMim(x); } }
-        ]
+        ]]
       ];
-      grupos.forEach((grupo, gi) => {
+      grupos.forEach(([titulo, itens], gi) => {
         if (gi) { const hr = document.createElement("hr"); hr.setAttribute("role", "separator"); menu.appendChild(hr); }
-        grupo.filter(Boolean).forEach((op) => {
+        const t = document.createElement("div"); t.className = "menu-sec"; t.setAttribute("role", "presentation"); t.textContent = titulo; menu.appendChild(t);
+        itens.filter(Boolean).forEach((op) => {
           const b = document.createElement("button");
           b.type = "button";
           b.setAttribute("role", "menuitem");
@@ -3813,6 +3820,8 @@
       });
       menu.hidden = false;
       const r = $("btnMenuConversa").getBoundingClientRect();
+      // Menu maior que a tela: rola por dentro.
+      menu.style.maxHeight = Math.max(220, innerHeight - r.bottom - 14) + "px";
       const mr = menu.getBoundingClientRect();
       menu.style.left = Math.max(8, r.right - mr.width) + "px";
       menu.style.top = (r.bottom + 4) + "px";
