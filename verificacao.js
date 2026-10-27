@@ -81,6 +81,10 @@ const CSS = `
 .vf-doc-area .i { width: 30px; height: 30px; color: #1d9bf0; }
 .vf-doc-area img { width: 100%; max-height: 220px; object-fit: contain; border-radius: 10px; }
 .vf-doc-area.com-foto { border-style: solid; border-color: #1d9bf0; padding: 8px; }
+.vf-sub { margin: 4px 0 0; font-size: 13px; line-height: 1.45; color: var(--muted); }
+.vf-dicas { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.vf-dicas li { position: relative; padding-left: 22px; font-size: 12.5px; line-height: 1.4; color: var(--muted); }
+.vf-dicas li::before { content: "✓"; position: absolute; left: 0; top: 0; color: #12a150; font-weight: 900; }
 .vf-privado { display: flex; gap: 8px; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, #12a150 9%, transparent); color: var(--text); font-size: 12.5px; line-height: 1.45; }
 .vf-privado .i { flex: none; width: 16px; height: 16px; color: #12a150; margin-top: 1px; }
 .vf-idade { background: color-mix(in srgb, #1d9bf0 7%, var(--panel)); border-color: color-mix(in srgb, #1d9bf0 30%, var(--line)); }
@@ -103,15 +107,16 @@ const CSS = `
 let cssOk = false;
 function css() { if (cssOk) return; cssOk = true; const s = document.createElement("style"); s.textContent = CSS; document.head.appendChild(s); }
 
-// Foto do documento: até 1400 px, JPEG, cabendo em ~600 KB.
-async function reduzirDocumento(arquivo) {
+// Foto do documento (até 1400 px, ~470 KB) e selfie com o documento (até 1000 px, ~360 KB): JPEG. As duas juntas
+// cabem no limite de 1 MB do documento do pedido.
+async function reduzirDocumento(arquivo, lado = 1400, limite = 470000) {
   const url = URL.createObjectURL(arquivo);
   try {
     const img = await new Promise((ok, erro) => { const i = new Image(); i.onload = () => ok(i); i.onerror = erro; i.src = url; });
-    const esc = Math.min(1, 1400 / Math.max(img.naturalWidth, img.naturalHeight));
+    const esc = Math.min(1, lado / Math.max(img.naturalWidth, img.naturalHeight));
     const c = document.createElement("canvas"); c.width = Math.round(img.naturalWidth * esc); c.height = Math.round(img.naturalHeight * esc);
     c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-    for (const q of [0.82, 0.72, 0.6, 0.5, 0.4]) { const d = c.toDataURL("image/jpeg", q); if (d.length < 600000) return d; }
+    for (const q of [0.82, 0.72, 0.6, 0.5, 0.4]) { const d = c.toDataURL("image/jpeg", q); if (d.length < limite) return d; }
     const c2 = document.createElement("canvas"); c2.width = Math.round(c.width * 0.7); c2.height = Math.round(c.height * 0.7);
     c2.getContext("2d").drawImage(c, 0, 0, c2.width, c2.height);
     return c2.toDataURL("image/jpeg", 0.6);
@@ -196,7 +201,7 @@ export async function abrirVerificacao({ aoMudar } = {}) {
     cancelar.addEventListener("click", async () => {
       if (!(await confirmarHF({ titulo: "Cancelar o pedido?", texto: "A equipe para de analisar. Você pode pedir de novo quando quiser.", ok: "Cancelar pedido", cancelar: "Voltar", icone: "alerta" }))) return;
       try {
-        await fb.updateDoc(fb.doc(fb.db, "verificacoes", eu.uid), { status: "cancelada", atualizadoEm: fb.serverTimestamp(), documento: fb.deleteField() }).catch(() => {});
+        await fb.updateDoc(fb.doc(fb.db, "verificacoes", eu.uid), { status: "cancelada", atualizadoEm: fb.serverTimestamp(), documento: fb.deleteField(), selfie: fb.deleteField() }).catch(() => {});
         await fb.setDoc(refUsuario, { solicitacaoVerificacao: false }, { merge: true });
         dados.solicitacaoVerificacao = false;
         toast("Pedido cancelado"); aoMudar?.(); abrirVerificacao({ aoMudar });
@@ -261,7 +266,7 @@ function secBeneficios() {
 
 function formulario(aoMudar) {
   const f = el("div", "vf");
-  const est = { categoria: "", documentoTipo: "rg", documento: "" };
+  const est = { categoria: "", documentoTipo: "rg", documento: "", selfie: "" };
   // 1) tipo
   const s1 = el("div", "vf-sec");
   const t1 = el("h4"); t1.append(el("b", null, "1"), document.createTextNode("Que tipo de perfil é?"));
@@ -282,7 +287,7 @@ function formulario(aoMudar) {
   s2.append(t2, campo("Nome completo (ou razão social)", nomeLegal, "Só a equipe vê. Precisa ser igual ao do documento."), campo("Nome como você é conhecido", conhecido, "Como aparece no perfil."));
   // 3) documento
   const s3 = el("div", "vf-sec vf-doc");
-  const t3 = el("h4"); t3.append(el("b", null, "3"), document.createTextNode("Documento com foto"));
+  const t3 = el("h4"); t3.append(el("b", null, "3"), document.createTextNode("Documento com foto e selfie"));
   const selDoc = el("select"); DOCUMENTOS.forEach(([v, n]) => selDoc.appendChild(new Option(n, v))); selDoc.setAttribute("aria-label", "Tipo de documento");
   selDoc.addEventListener("change", () => { est.documentoTipo = selDoc.value; });
   const area = el("button", "vf-doc-area"); area.type = "button";
@@ -299,8 +304,25 @@ function formulario(aoMudar) {
     pintarArea(); conferir();
   });
   pintarArea();
-  const priv = el("div", "vf-privado"); priv.append(icone("cadeado", "i"), el("span", null, "A foto do documento só é vista pela moderação do Help Floripa e é apagada assim que o pedido é analisado."));
-  s3.append(t3, campo("Tipo de documento", selDoc), area, inp, priv);
+  // Selfie segurando o documento: prova que quem pede é a pessoa do documento (como fazem bancos, apps de entrega e marketplaces).
+  const areaS = el("button", "vf-doc-area vf-selfie"); areaS.type = "button";
+  const pintarSelfie = () => {
+    areaS.replaceChildren(); areaS.classList.toggle("com-foto", !!est.selfie);
+    if (est.selfie) { const im = el("img"); im.src = est.selfie; im.alt = "Selfie com o documento"; areaS.append(im, el("span", null, "Toque para tirar outra")); }
+    else areaS.append(icone("camera", "i"), el("b", null, "Tirar selfie segurando o documento"), el("span", null, "O seu rosto e o documento aparecendo inteiros na mesma foto."));
+  };
+  const inpS = el("input"); inpS.type = "file"; inpS.accept = "image/*"; inpS.setAttribute("capture", "user"); inpS.hidden = true;
+  areaS.addEventListener("click", () => inpS.click());
+  inpS.addEventListener("change", async () => {
+    const a = inpS.files?.[0]; inpS.value = ""; if (!a) return;
+    try { areaS.replaceChildren(el("span", null, "Preparando a foto...")); est.selfie = await reduzirDocumento(a, 1000, 360000); } catch { toast("Não foi possível usar essa foto. Tente outra."); }
+    pintarSelfie(); conferir();
+  });
+  pintarSelfie();
+  const dicas = el("ul", "vf-dicas");
+  ["Rosto inteiro, de frente, sem óculos escuros, boné ou máscara", "Segure o documento ao lado do rosto, com a foto dele à mostra", "Lugar claro, sem filtro e sem editar a foto"].forEach((t) => dicas.appendChild(el("li", null, t)));
+  const priv = el("div", "vf-privado"); priv.append(icone("cadeado", "i"), el("span", null, "A foto do documento e a selfie só são vistas pela moderação do Help Floripa e são apagadas assim que o pedido é analisado."));
+  s3.append(t3, campo("Tipo de documento", selDoc), area, inp, el("p", "vf-sub", "Agora uma selfie segurando o mesmo documento. É ela que mostra que o perfil é seu de verdade."), areaS, inpS, dicas, priv);
   // 4) links e motivo
   const s4 = el("div", "vf-sec");
   const t4 = el("h4"); t4.append(el("b", null, "4"), document.createTextNode("Mostre que é você (opcional)"));
@@ -312,7 +334,7 @@ function formulario(aoMudar) {
   const decl = el("label", "vf-decl"); const ckb = el("input"); ckb.type = "checkbox";
   decl.append(ckb, el("span", null, "Declaro que as informações são verdadeiras e que o documento é meu (ou da empresa que eu represento). Informação falsa leva à recusa e pode levar à suspensão da conta."));
   const enviar = el("button", "vf-enviar", "Enviar pedido de verificação"); enviar.type = "button";
-  function conferir() { enviar.disabled = !(est.categoria && nomeLegal.value.trim().length >= 5 && est.documento && ckb.checked); }
+  function conferir() { enviar.disabled = !(est.categoria && nomeLegal.value.trim().length >= 5 && est.documento && est.selfie && ckb.checked); }
   [nomeLegal, ckb].forEach((x) => x.addEventListener("input", conferir)); ckb.addEventListener("change", conferir);
   conferir();
   enviar.addEventListener("click", async () => {
@@ -324,10 +346,10 @@ function formulario(aoMudar) {
     };
     try {
       try {
-        await fb.setDoc(fb.doc(fb.db, "verificacoes", eu.uid), { ...pedido, documento: est.documento });
+        await fb.setDoc(fb.doc(fb.db, "verificacoes", eu.uid), { ...pedido, documento: est.documento, selfie: est.selfie });
       } catch (e) {
         if (e?.code !== "permission-denied") throw e;
-        // Regras antigas: o pedido vai sem a foto do documento (a equipe pede depois, se precisar).
+        // Regras antigas: o pedido vai sem as fotos (a equipe pede depois, se precisar).
         await fb.setDoc(refUsuario, { verificacaoPedido: { ...pedido, criadoEm: new Date(), atualizadoEm: new Date(), semDocumento: true } }, { merge: true });
       }
       await fb.setDoc(refUsuario, { solicitacaoVerificacao: true, solicitacaoVerificacaoEm: fb.serverTimestamp() }, { merge: true });

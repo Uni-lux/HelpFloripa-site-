@@ -1760,13 +1760,15 @@ service cloud.firestore {
     }
     match /verificacoes/{uid} {
       function pedidoOk(d) {
-        return d.keys().hasOnly(['uid', 'categoria', 'nomeLegal', 'conhecidoComo', 'documentoTipo', 'documento', 'links', 'motivo', 'status', 'criadoEm', 'atualizadoEm'])
+        return d.keys().hasOnly(['uid', 'categoria', 'nomeLegal', 'conhecidoComo', 'documentoTipo', 'documento', 'selfie', 'links', 'motivo', 'status', 'criadoEm', 'atualizadoEm'])
             && d.uid == uid
             && d.categoria is string && d.categoria.matches('^(pessoa|profissional|negocio|publica|organizacao)$')
             && d.nomeLegal is string && d.nomeLegal.size() >= 5 && d.nomeLegal.size() <= 120
             && valorTextoAte(d.get('conhecidoComo', ''), 80)
             && d.documentoTipo is string && d.documentoTipo.matches('^(rg|cnh|passaporte|rne|cnpj)$')
             && d.documento is string && d.documento.size() <= 700000 && d.documento.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')
+            // Selfie segurando o documento: prova que quem pede é a pessoa do documento.
+            && d.selfie is string && d.selfie.size() <= 450000 && d.selfie.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')
             && (!('links' in d) || (d.links is list && d.links.size() <= 3))
             && valorTextoAte(d.get('motivo', ''), 500)
             && d.status == 'pendente'
@@ -1782,16 +1784,16 @@ service cloud.firestore {
       allow update: if logado() && request.auth.uid == uid
                     && resource.data.status in ['pendente', 'em_analise']
                     && request.resource.data.status == 'cancelada'
-                    && mudou().hasOnly(['status', 'atualizadoEm', 'documento'])
-                    && !('documento' in request.resource.data)
+                    && mudou().hasOnly(['status', 'atualizadoEm', 'documento', 'selfie'])
+                    && !('documento' in request.resource.data) && !('selfie' in request.resource.data)
                     && request.resource.data.atualizadoEm == request.time;
       // A moderação analisa e decide um pedido em aberto; ao aprovar ou recusar, a foto do documento é apagada.
       allow update: if podeModerar()
                     && resource.data.status in ['pendente', 'em_analise']
-                    && mudou().hasOnly(['status', 'motivoRecusa', 'analisadaPor', 'analisadaEm', 'documento', 'atualizadoEm'])
+                    && mudou().hasOnly(['status', 'motivoRecusa', 'analisadaPor', 'analisadaEm', 'documento', 'selfie', 'atualizadoEm'])
                     && request.resource.data.status in ['em_analise', 'aprovada', 'recusada']
                     && request.resource.data.analisadaPor == request.auth.uid
-                    && (request.resource.data.status == 'em_analise' || !('documento' in request.resource.data))
+                    && (request.resource.data.status == 'em_analise' || (!('documento' in request.resource.data) && !('selfie' in request.resource.data)))
                     && valorTextoAte(request.resource.data.get('motivoRecusa', ''), 500);
       allow delete: if (logado() && request.auth.uid == uid) || podeModerar();
     }
