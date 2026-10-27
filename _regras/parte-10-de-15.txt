@@ -1,3 +1,25 @@
+      function pedidoNegOk() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['uid', 'nome', 'email', 'tipo', 'plano', 'valorProposto', 'contato', 'mensagem', 'status', 'criadoEm', 'comprovanteTipo', 'comprovante', 'declaracao', 'perfisPedidos', 'mesesPedidos'])
+          && (!('perfisPedidos' in d) || (d.perfisPedidos is int && d.perfisPedidos >= 1 && d.perfisPedidos <= 5))
+          && (!('mesesPedidos' in d) || (d.mesesPedidos is int && d.mesesPedidos >= 1 && d.mesesPedidos <= 12))
+          // Baixa renda: declaração + qual documento + o documento anexado (não dá mais para "mandar depois").
+          && (d.tipo != 'apoio' || (d.get('declaracao', false) == true
+              && d.get('comprovanteTipo', '') is string
+              && d.get('comprovanteTipo', '').matches('^(cadunico|bolsa|bpc|cnis|renda|desemprego|tarifa|mei|isento)$')
+              && 'comprovante' in d))
+          && (!('comprovante' in d) || (d.tipo == 'apoio' && comprovanteOk(d.comprovante)))
+          && d.uid == request.auth.uid && uid == request.auth.uid
+          && d.tipo in ['apoio', 'parceria']
+          && d.plano in ['plus', 'pro', 'premium']
+          && d.valorProposto is number && d.valorProposto >= 0 && d.valorProposto <= 1000
+          && d.mensagem is string && d.mensagem.size() >= 20 && d.mensagem.size() <= 1500
+          && valorTextoAte(d.get('contato', ''), 40)
+          && valorTextoAte(d.get('nome', ''), 80)
+          && valorTextoAte(d.get('email', ''), 120)
+          && d.status == 'novo'
+          && d.criadoEm == request.time;
+      }
       allow read: if (logado() && uid == request.auth.uid) || donoDoSite();
       allow create: if logado() && emailOk() && pedidoNegOk();
       // Pedir de novo: só depois que o anterior foi decidido ou cancelado (substitui o documento inteiro).
@@ -155,30 +177,5 @@
       allow update: if admin() && reacaoValida();
       allow update: if admin() && (edicaoEquipeOk() || apagarEquipeOk(id));
       allow delete: if false;
-    }
-    // Canais da equipe por setor (equipe-canais.js): equipe_canais/{canal} guarda só o resumo da última
-    // mensagem; as mensagens ficam em equipe_canais/{canal}/mensagens. Toda a equipe lê; em "avisos" só
-    // os donos escrevem.
-    function canalEquipeOk(canal) {
-      return canal.matches('^(avisos|seguranca|moderacao|pagamentos|negocios|conta|comercial)$')
-          && (canal != 'avisos' || papel() == 'dono');
-    }
-    match /equipe_canais/{canal} {
-      allow read: if admin();
-      allow create, update: if admin() && canalEquipeOk(canal)
-                    && request.resource.data.keys().hasOnly(['ultimaEm', 'ultimaTexto', 'ultimoAutor', 'ultimoNome', 'mencoes'])
-                    && request.resource.data.ultimoAutor == request.auth.uid
-                    && request.resource.data.ultimaEm == request.time
-                    && valorTextoAte(request.resource.data.get('ultimaTexto', ''), 140)
-                    && valorTextoAte(request.resource.data.get('ultimoNome', ''), 80)
-                    && (!('mencoes' in request.resource.data) || (request.resource.data.mencoes is list && request.resource.data.mencoes.size() <= 10));
-      allow delete: if false;
-      match /mensagens/{id} {
-        allow read: if admin();
-        allow create: if admin() && canalEquipeOk(canal) && msgEquipeOk('canal-' + canal);
-        allow update: if admin() && reacaoValida();
-        allow update: if admin() && (edicaoEquipeOk() || apagarEquipeOk(id));
-        allow delete: if false;
-      }
     }
 // ===== FIM DA PARTE 10 DE 15 =====

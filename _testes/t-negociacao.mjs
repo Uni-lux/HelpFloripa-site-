@@ -4,7 +4,7 @@
 // Uso: node seed.mjs && node t-negociacao.mjs  (precisa das regras do repositório)
 process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8085";
 import { initializeApp } from "firebase-admin/app"; import { getFirestore, Timestamp } from "firebase-admin/firestore";
-import { navegador, entrar, USUARIOS as U, BASE } from "./nav.mjs";
+import { navegador, entrar, garantirImagem, USUARIOS as U, BASE } from "./nav.mjs";
 const ok = (c, t) => { console.log(c ? "  ✔" : "  ✘", t); if (!c) process.exitCode = 1; };
 initializeApp({ projectId: "demo-hf" }); const db = getFirestore();
 for (const c of ["planos_pedidos", "planos_negociacoes"]) for (const d of (await db.collection(c).get()).docs) await d.ref.delete();
@@ -24,13 +24,16 @@ await p.locator(".pl-ajuda .pl-btn", { hasText: "condição especial" }).click()
 const gr = (await p.textContent(".pl-neg-gratis")).replace(/\s+/g, " ");
 ok(gr.includes("de graça") && gr.includes("1 perfil no ar") && gr.includes("3 itens"), "aviso do grátis: " + gr.slice(0, 90));
 const visiveis = await p.locator(".pl-doc:visible").count();
-ok(visiveis === 5, `celular: 4 documentos mais usados + "mando depois" (${visiveis} à vista)`);
+ok(visiveis === 4 && await p.locator(".pl-doc[data-doc='depois']").count() === 0, `4 documentos mais usados à vista, sem "mando depois" (${visiveis})`);
+ok((await p.textContent(".pl-fixo")).replace(/\s+/g, " ").includes("Plano Plus por R$ 15,00/mês"), "baixa renda: Plus por R$ 15,00/mês fixo");
 await p.locator(".pl-prova").scrollIntoViewIfNeeded(); await p.screenshot({ path: "saida/neg-form-docs.png" });
 await p.locator(".pl-mais-docs").click();
-ok(await p.locator(".pl-doc:visible").count() === 10, "\"Ver outros documentos\" mostra os 10");
+ok(await p.locator(".pl-doc:visible").count() === 9, "\"Ver outros documentos\" mostra os 9");
 await p.locator(".pl-chip", { hasText: /^2$/ }).click();
 await p.locator(".pl-chip", { hasText: "6 meses" }).click();
-await p.locator(".pl-doc[data-doc='depois']").click();
+await p.locator(".pl-doc[data-doc='bolsa']").click();
+await p.setInputFiles("#plNegArquivo", garantirImagem("saida/doc-bolsa.png", 900, 1200));
+await p.waitForSelector(".pl-prova .ax-previa", { timeout: 10000 });
 await p.fill("#plNegMsg", "Sou autônomo, a renda caiu e preciso do delivery e dos freelances no ar.");
 await p.check("#plNegDecl");
 await p.locator(".pl-form").screenshot({ path: "saida/neg-form.png" });
@@ -38,7 +41,7 @@ const larg = await p.evaluate(() => [document.documentElement.scrollWidth, inner
 ok(larg[0] <= larg[1], `formulário cabe no celular (${larg[0]} ≤ ${larg[1]})`);
 await p.locator(".pl-form button[type=submit]").click(); await p.waitForTimeout(2000);
 let ng = (await db.doc(`planos_negociacoes/${U.bruno}`).get()).data();
-ok(ng?.perfisPedidos === 2 && ng.mesesPedidos === 6 && ng.comprovanteTipo === "depois", "pedido gravado com 2 perfis e 6 meses: " + JSON.stringify({ p: ng?.perfisPedidos, m: ng?.mesesPedidos }));
+ok(ng?.perfisPedidos === 2 && ng.mesesPedidos === 6 && ng.comprovanteTipo === "bolsa" && !!ng.comprovante && ng.plano === "plus" && ng.valorProposto === 15, "pedido gravado com 2 perfis e 6 meses: " + JSON.stringify({ p: ng?.perfisPedidos, m: ng?.mesesPedidos }));
 ok((await p.textContent(".pl-neg")).includes("2 perfis no ar por 6 meses"), "situação do pedido mostra os perfis e o tempo");
 
 // ---------- 2) painel: responsável e aprovar ----------
@@ -69,6 +72,7 @@ await a.selectOption(".ad-modal .ad-campo:has-text('Por quanto tempo') select", 
 await a.selectOption(".ad-modal .ad-campo:has-text('Plano') select", "plus");
 await a.locator(".ad-modal .ad-multi-op", { hasText: "Delivery" }).locator("input").uncheck();
 await a.selectOption(".ad-modal .ad-campo:has-text('Selo do plano') select", "esconder");
+ok(await a.inputValue(".ad-modal .ad-campo:has-text('Valor combinado') input") === "90", "valor sugerido: R$ 15 × 6 meses = 90");
 await a.locator(".ad-modal .ad-campo", { hasText: "Valor combinado" }).locator("input").fill("0");
 await a.locator(".ad-modal").screenshot({ path: "saida/neg-aprovar.png" });
 await a.locator(".ad-modal .ad-bt.pri", { hasText: "Aprovar" }).click(); await a.waitForTimeout(2500);
