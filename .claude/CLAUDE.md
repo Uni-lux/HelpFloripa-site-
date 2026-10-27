@@ -878,6 +878,13 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   logo deitada com a frase → `logo-horizontal.png` (tela offline, `mix-blend-mode: lighten` some com o retângulo preto).
   Bolinha do Google (busca): `favicon-48x48`/`favicon-96x96`/`favicon-192x192.png` feitos do maskable (cabem no círculo),
   `<link rel="icon" sizes="96x96">` em todas as páginas; o Google só troca quando passar de novo pelo site.
+- **Saúde e Comunidade no Início e no Explorar (27/10/2026, PR depois do #102, sem regra nova):** `comunidade-cartao.js`
+  (sem deps: `CAT_COM`, `comunidadeNoAr` = disponível + não oculto + ≤60 dias, `lerComunidade` 40 por `atualizadoEm` com cache
+  "inicio-comunidade" 10 min, `cartaoComunidade` `.cm-mini` com foto ou emoji na cor do tipo + selo De graça/rateio/Perdido/
+  Encontrado, `filtrosComunidade`). Início: `#secSaude` (consulta própria `tipo == saude`, cache "inicio-saude", sem pausados,
+  cidade escolhida primeiro) e `#secComunidade` (filtro por tipo, aviso amarelo "Proibido vender ou cobrar", "Ver tudo").
+  Explorar: `#secComunidade` (cidade da pessoa primeiro) e aba "Comunidade" na busca (recentes + `buscarNoServidor`).
+  Teste `t-comunidade-inicio.mjs`.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

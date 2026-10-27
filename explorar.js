@@ -22,6 +22,7 @@ import { CATEGORIAS, CORES_TIPO, NOMES_TIPO, PAGINA_TIPO, nomeCategoria, nomeCat
 import { fimDaEnquete, faltaTexto } from "./enquetes.js?v=5";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, distanciaKm } from "./perto.js?v=2";
 import { semPausados } from "./planos-base.js?v=8";
+import { lerComunidade, cartaoComunidade, filtrosComunidade, comunidadeNoAr } from "./comunidade-cartao.js?v=1";
 
 const DIARIO_VALIDADE = 3 * 60000, DIA = 864e5, HORA = 3600e3;
 const postOculto = (p) => (p?.ocultoAte?.toMillis?.() ?? 0) > Date.now() || (p?.agendadoPara?.toMillis?.() ?? 0) > Date.now() || silenciado(p?.autorId);
@@ -121,9 +122,9 @@ function pintarRecentes() {
 }
 
 // ---------- busca ----------
-const ABAS_BUSCA = [["tudo", "Tudo"], ["pessoas", "Pessoas"], ["negocios", "Negócios"], ["tags", "Hashtags"], ["posts", "Publicações"]];
+const ABAS_BUSCA = [["tudo", "Tudo"], ["pessoas", "Pessoas"], ["negocios", "Negócios"], ["comunidade", "Comunidade"], ["tags", "Hashtags"], ["posts", "Publicações"]];
 let abaBusca = "tudo", tempoBusca = null, ultimoTermo = "";
-let achados = { pessoas: [], negocios: [], tags: [], posts: [] };
+let achados = { pessoas: [], negocios: [], comunidade: [], tags: [], posts: [] };
 
 async function buscar() {
   const termo = $("buscaPessoas").value.trim();
@@ -139,12 +140,14 @@ async function buscar() {
   const limpo = termo.replace(/^[#@]/, "");
   const t = semAcento(limpo);
   const semNeg = termo.startsWith("#") || termo.startsWith("@");
-  const [pessoas, negRecentes, negServidor, recentes, comTag] = await Promise.all([
+  const [pessoas, negRecentes, negServidor, recentes, comTag, comRecentes, comServidor] = await Promise.all([
     termo.startsWith("#") ? [] : buscarPessoas(fb, termo, { limite: 30 }),
     semNeg ? [] : negociosRecentes(),
     semNeg || t.length < 3 ? [] : negociosDoServidor(limpo),
     postsRecentes(),
-    termo.startsWith("@") || /\s/.test(limpo) ? [] : postsComTag(limpo)
+    termo.startsWith("@") || /\s/.test(limpo) ? [] : postsComTag(limpo),
+    semNeg ? [] : comunidadeRecentes(),
+    semNeg || t.length < 3 ? [] : comunidadeDoServidor(limpo)
   ]);
   const negocios = juntar(negRecentes, negServidor), posts = juntar(recentes, comTag);
   if ($("buscaPessoas").value.trim() !== termo) return;
@@ -157,6 +160,7 @@ async function buscar() {
     pessoas: pessoas.filter((p) => p.uid !== eu.uid && !escondido(p.uid)),
     negocios: t.length < 2 ? [] : negocios.filter((n) => t.split(/\s+/).every((x) => n._txt.includes(x)))
       .sort((a, b) => peso(b) - peso(a)).slice(0, 40),
+    comunidade: t.length < 2 ? [] : juntar(comRecentes, comServidor).filter((a) => { const x = semAcento(`${a.titulo || ""} ${a.descricao || ""} ${a.bairro || ""} ${a.cidade || ""}`); return t.split(/\s+/).every((p) => x.includes(p)); }).slice(0, 40),
     tags: [...tags].map(([tag, n]) => ({ tag, n })).sort((a, b) => b.n - a.n || (b.tag === exata) - (a.tag === exata)).slice(0, 20),
     posts: t.length < 2 || termo.startsWith("@") ? [] : posts.filter((p) => semAcento(`${p.texto || ""} ${(p.tags || []).join(" ")} ${p.enquete?.pergunta || ""}`).includes(t)).slice(0, 30)
   };
@@ -186,7 +190,7 @@ function pintarAbasBusca() {
 }
 function pintarResultados() {
   const corpo = $("listaPessoas");
-  const total = achados.pessoas.length + achados.negocios.length + achados.tags.length + achados.posts.length;
+  const total = achados.pessoas.length + achados.negocios.length + achados.comunidade.length + achados.tags.length + achados.posts.length;
   if (!total) { corpo.replaceChildren(el("div", "lista-vazia", "Nada encontrado. Tente o @usuário, uma #hashtag ou outra palavra.")); return; }
   const secoes = [];
   const tudo = abaBusca === "tudo";
@@ -205,6 +209,7 @@ function pintarResultados() {
   };
   secao("pessoas", plural(achados.pessoas.length, "pessoa", "pessoas"), achados.pessoas, 4);
   secao("negocios", plural(achados.negocios.length, "negócio", "negócios"), achados.negocios, 3);
+  secao("comunidade", achados.comunidade.length === 1 ? "1 anúncio na Comunidade" : `${achados.comunidade.length} anúncios na Comunidade`, achados.comunidade, 4);
   secao("tags", "Hashtags", achados.tags, 3);
   secao("posts", plural(achados.posts.length, "publicação", "publicações"), achados.posts, 6);
   corpo.replaceChildren(...(secoes.length ? secoes : [el("div", "lista-vazia", "Nada nesta aba. Veja em Tudo.")]));
@@ -216,6 +221,7 @@ function desenhar(id, itens) {
     sub: [p.nickname ? "@" + p.nickname : "", nomeCidade(p.cidade || p.cidadeNome)].filter(Boolean).join(" · ")
   }));
   if (id === "negocios") return itens.map(linhaNegocio);
+  if (id === "comunidade") { const g = el("div", "exp-trilho res-com"); g.append(...itens.map((a) => cartaoComunidade(a, "explorar"))); return [g]; }
   if (id === "tags") return itens.map((x) => {
     const b = el("a", "linha-tag"); b.href = `feed.html?tag=${encodeURIComponent(x.tag)}`;
     b.append(el("span", "ic-tag", "#"), el("strong", null, "#" + x.tag), el("small", null, x.n ? `${plural(x.n, "publicação", "publicações")}${x.contada ? "" : " recentes"}` : "Ver publicações"));
@@ -269,6 +275,7 @@ export async function abrirExplorar() {
   pintarEnquetes(lista);
   lerResumosEstrelas(lista.map((p) => p.id)).then((r) => { resumosPosts = r; postsDestaque = lista; pintarDestaques(); }).catch(() => {});
   pintarNegocios().catch((e) => console.warn("Explorar (negócios):", e));
+  pintarComunidade().catch((e) => console.warn("Explorar (comunidade):", e));
   pintarPostsPerto(lista).catch((e) => console.warn("Explorar (perto):", e));
   pintarSugestoes().catch((e) => console.warn("Explorar (sugestões):", e));
 }
@@ -330,6 +337,25 @@ function botaoLocal(alvo, aoMudar) {
   alvo.appendChild(b);
 }
 // Negócios: os mais perto primeiro (pela distância e pela nota); sem localização, os da sua cidade.
+// Comunidade (doações, trocas, pedidos, quartos, achados e perdidos): os da cidade da pessoa primeiro, com filtro por tipo.
+let comunidadeP = null;
+const comunidadeRecentes = () => (comunidadeP ||= lerComunidade(fb, docsComValidade).catch(() => []));
+async function pintarComunidade() {
+  const itens = await comunidadeRecentes();
+  const minha = minhaCidade();
+  const daqui = minha ? itens.filter((a) => chaveCidade(a.cidade) === minha) : [];
+  const lista = [...daqui, ...itens.filter((a) => !daqui.includes(a))];
+  $("secComunidade").hidden = !lista.length;
+  if (!lista.length) return;
+  if (daqui.length) $("titComunidade").textContent = `Na Comunidade em ${nomeCid(dados.cidade || dados.cidadeNome)}`;
+  const pintar = (l) => $("exploraComunidade").replaceChildren(...l.slice(0, 16).map((a) => cartaoComunidade(a, "explorar")));
+  $("filtrosComunidadeExp").replaceChildren(filtrosComunidade(lista, pintar));
+  pintar(lista);
+}
+async function comunidadeDoServidor(termo) {
+  return (await buscarNoServidor(fb, "comunidade", termo).catch(() => [])).filter(comunidadeNoAr);
+}
+
 async function pintarNegocios() {
   const todos = (await negociosRecentes()).filter((n) => n.donoId !== eu.uid);
   const pos = await posicao();

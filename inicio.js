@@ -15,6 +15,7 @@ import { lerPlano, nivelPlano, seloPlano, semPausados, mostraSelo } from "./plan
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, esquecerPosicao } from "./perto.js?v=2";
 import { lerLocal, salvarLocal, rotuloLocal, noLocal, escolherLocal } from "./local-escolhido.js?v=1";
 import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=63";
+import { lerComunidade, cartaoComunidade, filtrosComunidade } from "./comunidade-cartao.js?v=1";
 
 const $ = (id) => document.getElementById(id);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
@@ -147,7 +148,7 @@ document.querySelectorAll(".carrossel").forEach((c) => {
   c.querySelector(".prox")?.addEventListener("click", () => t.scrollBy({ left: t.clientWidth * 0.85, behavior: "smooth" }));
 });
 function esqueletos(id, n = 4) { const t = $(id); t.replaceChildren(...Array.from({ length: n }, () => el("div", "mini esqueleto"))); }
-["trilhoPerto", "trilhoTop", "trilhoNovos", "trilhoImoveis"].forEach((id) => esqueletos(id));
+["trilhoPerto", "trilhoTop", "trilhoNovos", "trilhoImoveis", "trilhoSaude", "trilhoComunidade"].forEach((id) => esqueletos(id));
 
 function fundo(div, url) { if (url) div.style.backgroundImage = `url("${url}")`; }
 
@@ -404,6 +405,27 @@ async function carregar(fs, db, u) {
       tempo: () => 6000
     });
   } catch { preencher("trilhoImoveis", []); }
+  // Saúde: carrossel próprio (não depende de estar entre os 60 negócios mais recentes); a cidade escolhida primeiro.
+  try {
+    const sn = await docsComValidade({ ...fs, db }, "inicio-saude", fs.query(neg, fs.where("tipo", "==", "saude"), fs.limit(30)), 10 * 60000);
+    const lista = (await semPausados({ ...fs, db }, sn.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => n.nome && n.oculto !== true && !oculto(n))))
+      .sort((a, b) => ms(b.atualizadoEm) - ms(a.atualizadoEm));
+    const loc = lerLocal(), aqui = (n) => noLocal(n, loc);
+    const final = loc.uf ? [...lista.filter(aqui), ...lista.filter((n) => !aqui(n))] : lista;
+    if (loc.uf && final.some(aqui)) $("t-secSaude").textContent = `Saúde em ${rotuloLocal(loc)}`;
+    const resumos = await lerResumos({ ...fs, db }, final.map((n) => "neg_" + n.id));
+    preencher("trilhoSaude", final.slice(0, 20).map((n) => cartaoNegocio(n, resumos["neg_" + n.id])));
+  } catch (e) { console.warn("Saúde no início:", e); preencher("trilhoSaude", []); }
+  // Comunidade: doações, trocas, pedidos, quartos e achados e perdidos (comunidade-cartao.js), com filtro por tipo.
+  try {
+    const itens = await lerComunidade({ ...fs, db }, docsComValidade);
+    const loc = lerLocal(), aqui = (a) => noLocal(a, loc);
+    const final = loc.uf ? [...itens.filter(aqui), ...itens.filter((a) => !aqui(a))] : itens;
+    if (loc.uf && final.some(aqui)) $("t-secComunidade").textContent = `Na Comunidade em ${rotuloLocal(loc)}`;
+    const pintar = (l) => preencher("trilhoComunidade", l.slice(0, 20).map((a) => cartaoComunidade(a, "inicio")));
+    $("filtrosComunidade").replaceChildren(filtrosComunidade(final, pintar));
+    pintar(final);
+  } catch (e) { console.warn("Comunidade no início:", e); preencher("trilhoComunidade", []); }
   montarPerto(fs, db, u, negociosPerto, imoveisPerto, notaPerto).catch((e) => { console.warn("Perto de você indisponível:", e); preencher("trilhoPerto", []); });
 }
 
