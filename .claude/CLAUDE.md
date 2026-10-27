@@ -816,6 +816,18 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   `node mp-falso.mjs` (Mercado Pago de mentira, porta 5099) → `t-pagamento.mjs` (24). Passo a passo dele:
   `_regras/PAGAMENTO-LEIA-ME.md` (Blaze, webhook no MP, Cloud Shell: secrets + deploy). Depois do deploy: virar `automatico: true`;
   na produção trocar `publicKey` pela APP_USR-.
+- **Negociação depois do grátis (27/10/2026, PR #98, MUDA REGRAS — não publicadas; 15 partes, 586 testes):** Pix: passo 2
+  explica que o banco mostra o nome do responsável (MEI). Formulário da condição especial/parceria: aviso "já pode ficar no ar
+  de graça" (`.pl-neg-gratis`), "Quantos perfis no ar?" e "Por quanto tempo?" (`planos_negociacoes.perfisPedidos` 1–5,
+  `mesesPedidos` 1–12; sem as regras vai sem eles), documentos de renda recolhidos no celular (4 + "mando depois" +
+  "Ver outros documentos"), "Fulano, da equipe, está cuidando do seu pedido" (`responsavelNome`, só o 1º nome).
+  Painel → Negociações: `seloResp`/`controlesResp` (só donos, `membros`), "Precisa de N perfis · Por N meses · Tem: ...".
+  Aprovar: tempo em dias (7/15 dias, 1–12 meses ou "Até uma data", `seCampo` no `modal`), **perfis no ar** (`tipo: "multi"`
+  no `modal`; todos = sem lista), **esconder o selo** e **responsável**. Grava `planos.{dias, tipos, semSelo}` e
+  `planos_negociacoes.{dias, tipos, semSelo, responsavel, responsavelNome}` (sem as regras grava sem eles e avisa).
+  `planos-base.js`: `perfisDoPlano`, `mostraSelo`, `NOMES_PERFIL`/`TIPOS_PERFIL`; `negocioPausado` também pausa perfil fora de
+  `planos.tipos` (principal nunca pausa); vitrine/início escondem o selo com `semSelo`. Ativos: "Ajustar tempo, perfis e selo"
+  (`ajustarPlano`, registro `plano_ajustar`, aviso se mudou prazo/perfis). Teste `t-negociacao.mjs`.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

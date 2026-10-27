@@ -1,3 +1,12 @@
+      allow create: if logado() && pedacoDoVoto()
+                    && request.resource.data.keys().hasOnly([chaveDoVoto()])
+                    && request.resource.data[chaveDoVoto()] == 1;
+      allow update: if logado() && pedacoDoVoto()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly([chaveDoVoto()])
+                    && request.resource.data[chaveDoVoto()] == resource.data.get(chaveDoVoto(), 0) + 1;
+      allow delete: if false;
+    }
+
     // ===================================================
     // CAIXA DE PERGUNTAS: caixa_respostas/{id} = { alvo, tipo, itemId, autorId (dono da publicação/flash),
     //   uid, nome, foto (só se NÃO for anônima), texto (até 300), anonima, criadoEm }.

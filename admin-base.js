@@ -156,13 +156,22 @@ export function modal({ titulo, texto = "", campos = [], botao = "Confirmar", pe
     campos.forEach((c) => {
       const w = h("div", "ad-campo"); const l = h("label", null, c.rotulo); w.appendChild(l);
       let inp;
-      if (c.tipo === "select") { inp = document.createElement("select"); c.opcoes.forEach(([v, t]) => { const o = document.createElement("option"); o.value = v; o.textContent = t; inp.appendChild(o); }); }
+      // multi: caixinhas (opcoes [valor, texto]); devolve a lista dos marcados.
+      if (c.tipo === "multi") {
+        inp = h("div", "ad-multi"); inp.setAttribute("role", "group"); inp.setAttribute("aria-label", c.rotulo);
+        c.opcoes.forEach(([v, t]) => { const lb = h("label", "ad-multi-op"); const ck = document.createElement("input"); ck.type = "checkbox"; ck.value = v; ck.checked = (c.valor || []).includes(v); lb.append(ck, h("span", null, t)); inp.appendChild(lb); });
+      } else if (c.tipo === "select") { inp = document.createElement("select"); c.opcoes.forEach(([v, t]) => { const o = document.createElement("option"); o.value = v; o.textContent = t; inp.appendChild(o); }); }
       else if (c.tipo === "textarea") { inp = document.createElement("textarea"); inp.maxLength = c.max || 2000; }
       else { inp = document.createElement("input"); inp.type = c.tipo || "text"; if (c.max) inp.maxLength = c.max; }
-      if (c.valor != null) inp.value = c.valor;
+      if (c.valor != null && c.tipo !== "multi") inp.value = c.valor;
       if (c.dica) inp.placeholder = c.dica;
-      w.appendChild(inp); cx.appendChild(w); els[c.nome] = inp;
+      if (c.ajuda) w.appendChild(h("small", "ad-campo-ajuda", c.ajuda));
+      w.appendChild(inp); cx.appendChild(w); els[c.nome] = inp; c._w = w;
     });
+    // seCampo: [nome, valor] = o campo só aparece quando o outro campo tem esse valor.
+    const condicionais = () => campos.forEach((c) => { if (c.seCampo) c._w.hidden = els[c.seCampo[0]]?.value !== c.seCampo[1]; });
+    campos.forEach((c) => { if (c.seCampo) els[c.seCampo[0]]?.addEventListener("change", condicionais); });
+    condicionais();
     const ac = h("div", "ad-acoes");
     const no = h("button", "ad-bt", "Cancelar"); no.type = "button";
     const ok = h("button", "ad-bt " + (perigo ? "perigo cheio" : "pri"), botao); ok.type = "submit";
@@ -173,8 +182,8 @@ export function modal({ titulo, texto = "", campos = [], botao = "Confirmar", pe
     fundo.addEventListener("keydown", (e) => { if (e.key === "Escape") fim(null); });
     cx.addEventListener("submit", (e) => {
       e.preventDefault();
-      const v = {}; for (const [k, el] of Object.entries(els)) v[k] = el.value.trim();
-      const falta = campos.find((c) => c.obrigatorio && !v[c.nome]);
+      const v = {}; for (const [k, el] of Object.entries(els)) v[k] = el.classList.contains("ad-multi") ? [...el.querySelectorAll("input:checked")].map((x) => x.value) : el.value.trim();
+      const falta = campos.find((c) => c.obrigatorio && !c._w.hidden && !(Array.isArray(v[c.nome]) ? v[c.nome].length : v[c.nome]));
       if (falta) { toast(`Preencha: ${falta.rotulo}`); els[falta.nome].focus(); return; }
       fim(v);
     });
@@ -607,7 +616,8 @@ export async function confirmarItem(o, item) {
   return confirmarHF({ titulo: "Continuar mesmo assim?", texto: `${msg}\n\nPara não fazerem o mesmo trabalho, combine no chat da equipe.`, ok: "Continuar", icone: "pessoa", cor: "normal" });
 }
 // Botões Assumir / Liberar / Passar para...
-export function controlesResp(colecao, o, { permitido = true, aoMudar } = {}) {
+// membros (opcional): só essas pessoas da equipe podem receber o item (ex.: só os donos nos planos).
+export function controlesResp(colecao, o, { permitido = true, aoMudar, membros = null } = {}) {
   const w = h("div", "ad-resp");
   if (!permitido) return w; // quem não pode agir vê só o selo "Com fulano"
   const salvar = async (uid) => {
@@ -623,7 +633,7 @@ export function controlesResp(colecao, o, { permitido = true, aoMudar } = {}) {
   if (!o.responsavel) w.appendChild(bt("Assumir", "pri", () => salvar(C.eu.uid)));
   else if (o.responsavel === C.eu.uid) w.appendChild(bt("Liberar", "", () => salvar(null)));
   else w.appendChild(bt("Assumir no lugar", "", async () => { if (await confirmarHF({ titulo: "Assumir no lugar?", texto: `${o.responsavelNome || nomeEquipe(o.responsavel)} está com este item. Se você assumir, ele passa para você.`, ok: "Assumir", icone: "pessoa", cor: "normal" })) await salvar(C.eu.uid); }));
-  const outros = D.admins.filter((a) => a.id !== o.responsavel);
+  const outros = (membros || D.admins).filter((a) => a.id !== o.responsavel);
   if (outros.length) {
     const sel = document.createElement("select"); sel.className = "ad-sel-mini"; sel.setAttribute("aria-label", "Passar para alguém da equipe");
     // Quem está "Fora do turno" não recebe item passado; "Em pausa" aparece marcado.

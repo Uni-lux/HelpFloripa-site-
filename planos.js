@@ -13,8 +13,8 @@
 // =====================================================
 
 // Preços, nível, selo e leitura do plano ficam no planos-base.js (as páginas que só mostram o selo não baixam este arquivo).
-import { PIX, PAGAMENTO, PLANOS, ORDEM_PLANOS, PRECO_MIN, PERIODOS, descontoDe, valorPeriodo, DIAS_TESTE, DIAS_BONUS, BENEFICIOS, DESTAQUES_PLANO, nivelPlano, ehPago, ehPro, nomePlano, emTeste, diasRestantes, textoFalta, reais, creditoDias, lerPlano, esquecerPlano, seloPlano, seloPro, emTolerancia, fimComTolerancia } from "./planos-base.js?v=7";
-export { PIX, PAGAMENTO, PLANOS, ORDEM_PLANOS, PRECO_MIN, PERIODOS, descontoDe, valorPeriodo, DIAS_TESTE, DIAS_BONUS, BENEFICIOS, nivelPlano, ehPago, ehPro, nomePlano, emTeste, diasRestantes, textoFalta, reais, creditoDias, lerPlano, esquecerPlano, seloPlano, seloPro, emTolerancia, fimComTolerancia, negocioPausado } from "./planos-base.js?v=7";
+import { PIX, PAGAMENTO, PLANOS, ORDEM_PLANOS, PRECO_MIN, PERIODOS, descontoDe, valorPeriodo, DIAS_TESTE, DIAS_BONUS, BENEFICIOS, DESTAQUES_PLANO, nivelPlano, ehPago, ehPro, nomePlano, emTeste, diasRestantes, textoFalta, reais, creditoDias, lerPlano, esquecerPlano, seloPlano, seloPro, emTolerancia, fimComTolerancia, NOMES_PERFIL, TIPOS_PERFIL, LIMITES_GRATIS } from "./planos-base.js?v=8";
+export { PIX, PAGAMENTO, PLANOS, ORDEM_PLANOS, PRECO_MIN, PERIODOS, descontoDe, valorPeriodo, DIAS_TESTE, DIAS_BONUS, BENEFICIOS, nivelPlano, ehPago, ehPro, nomePlano, emTeste, diasRestantes, textoFalta, reais, creditoDias, lerPlano, esquecerPlano, seloPlano, seloPro, emTolerancia, fimComTolerancia, negocioPausado, NOMES_PERFIL, TIPOS_PERFIL, perfisDoPlano, mostraSelo } from "./planos-base.js?v=8";
 import { codigoPix as codigoPixBase } from "./pix.js?v=1";
 const ms = (t) => t?.toMillis?.() ?? (t?.seconds ? t.seconds * 1000 : typeof t === "number" ? t : 0);
 const DIA = 864e5;
@@ -197,7 +197,14 @@ const CSS = `
 .pl-prova { display: grid; gap: 8px; padding: 14px; border-radius: 18px; border: 1px solid color-mix(in srgb, #2fbf71 45%, var(--line, #22313a)); background: color-mix(in srgb, #2fbf71 6%, transparent); }
 .pl-prova-tit { font-size: 14px; font-weight: 800; } .pl-prova-sub { font-size: 12.5px; color: var(--muted, #8fa0ab); line-height: 1.4; }
 .pl-docs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-@media (max-width: 380px) { .pl-docs { grid-template-columns: 1fr; } }
+.pl-doc.extra { display: none; } .pl-docs.todos .pl-doc.extra { display: grid; }
+@media (max-width: 520px) { .pl-doc small { display: none; } .pl-doc.on small, .pl-doc[data-doc="depois"] small { display: block; } }
+.pl-mais-docs { justify-self: start; padding: 4px 2px; border: 0; background: none; color: var(--accent, #00adee); font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
+.pl-neg-gratis { display: grid; gap: 4px; padding: 12px 14px; border-radius: 16px; border: 1px solid var(--line, #22313a); background: var(--panel-2, #162128); }
+.pl-neg-gratis b { font-size: 14px; } .pl-neg-gratis small { font-size: 12.5px; line-height: 1.45; color: var(--muted, #8fa0ab); }
+.pl-neg-gratis b::before { content: "✓"; display: inline-grid; place-items: center; width: 18px; height: 18px; margin-right: 6px; border-radius: 50%; background: #2fbf71; color: #fff; font-size: 11px; vertical-align: 1px; }
+.pl-resp-neg { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 14px; background: var(--panel-2, #162128); font-size: 13px; }
+.pl-resp-neg i { display: grid; place-items: center; flex: none; width: 28px; height: 28px; border-radius: 50%; background: color-mix(in srgb, var(--accent, #00adee) 18%, transparent); color: var(--accent, #00adee); font-style: normal; font-weight: 900; }
 .pl-doc { display: grid; gap: 2px; align-content: start; padding: 10px 12px; border-radius: 14px; border: 1.5px solid var(--line, #22313a); background: var(--panel-2, #162128); color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .pl-doc b { font-size: 13.5px; } .pl-doc small { font-size: 11.5px; line-height: 1.35; color: var(--muted, #8fa0ab); }
 .pl-doc.on { border-color: #2fbf71; background: color-mix(in srgb, #2fbf71 14%, var(--panel-2, #162128)); }
@@ -424,7 +431,7 @@ export async function abrirPlanos(op) {
       const v = el("button", "pl-btn sec"); v.type = "button"; v.textContent = "Ver o meu pedido"; v.addEventListener("click", () => mostrarNegociacao(neg.tipo));
       aj.appendChild(v);
     } else {
-      aj.append(el("b", null, "Não dá para pagar agora?"), el("p", null, "A gente aceita negociar. Se você tem baixa renda ou está num momento difícil, peça uma condição especial. Quer propor outro valor, outro prazo, uma troca ou uma parceria? Mande a sua proposta."));
+      aj.append(el("b", null, "Não dá para pagar agora?"), el("p", null, "Seu negócio continua no ar de graça, com 1 perfil. Para ter os extras de um plano, a gente aceita negociar. Se você tem baixa renda ou está num momento difícil, peça uma condição especial. Quer propor outro valor, outro prazo, uma troca ou uma parceria? Mande a sua proposta."));
       const bts = el("div", "bts");
       const a1 = el("button", "pl-btn verde"); a1.type = "button"; a1.textContent = "Pedir condição especial"; a1.addEventListener("click", () => mostrarNegociacao("apoio"));
       const a2 = el("button", "pl-btn sec"); a2.type = "button"; a2.textContent = "Parceria ou negociação"; a2.addEventListener("click", () => mostrarNegociacao("parceria"));
@@ -438,6 +445,17 @@ export async function abrirPlanos(op) {
     return v;
   }
 
+  // Grupo de chips de escolha única (perfis, tempo).
+  function chipsEscolha(opcoes, valor, aoMudar) {
+    const w = el("div", "pl-chips"); w.setAttribute("role", "radiogroup");
+    const pintar = () => w.querySelectorAll(".pl-chip").forEach((b) => { const on = b.dataset.v === String(valor); b.classList.toggle("on", on); b.setAttribute("aria-checked", String(on)); });
+    opcoes.forEach(([v, rot]) => { const b = el("button", "pl-chip", rot); b.type = "button"; b.dataset.v = String(v); b.setAttribute("role", "radio"); b.addEventListener("click", () => { valor = v; pintar(); aoMudar(v); }); w.appendChild(b); });
+    pintar();
+    return w;
+  }
+  const nMesesTxt = (m) => `${m} ${m === 1 ? "mês" : "meses"}`;
+  const duracaoTxt = (n) => (n.dias && n.dias % 30 ? `${n.dias} dias` : nMesesTxt(n.meses || Math.round((n.dias || 30) / 30) || 1));
+
   // Formulário (ou situação do pedido já enviado) de condição especial / parceria.
   function mostrarNegociacao(tipoIni) {
     corpo.replaceChildren(botaoVoltar()); cx.scrollTop = 0;
@@ -445,9 +463,13 @@ export async function abrirPlanos(op) {
       const c = el("div", "pl-neg");
       const stc = neg.status === "aprovado" ? "st ok" : neg.status === "recusado" ? "st nao" : "st";
       c.append(el("span", stc, STATUS_NEG[neg.status] || neg.status), el("b", null, `${TIPOS_NEG[neg.tipo] || "Pedido"} · plano ${nomePlano(neg.plano)}`),
-        el("small", "pl-nota", `Enviado em ${ms(neg.criadoEm) ? dataLonga(neg.criadoEm) : "agora"}${neg.valorProposto ? ` · você propôs ${reais(neg.valorProposto)} por mês` : ""}`), el("q", null, neg.mensagem || ""));
+        el("small", "pl-nota", `Enviado em ${ms(neg.criadoEm) ? dataLonga(neg.criadoEm) : "agora"}${neg.valorProposto ? ` · você propôs ${reais(neg.valorProposto)} por mês` : ""}`));
+      if (neg.perfisPedidos || neg.mesesPedidos) c.appendChild(el("small", "pl-nota", [neg.perfisPedidos && (neg.perfisPedidos >= TIPOS_PERFIL.length ? "Todos os perfis no ar" : `${neg.perfisPedidos} ${neg.perfisPedidos === 1 ? "perfil" : "perfis"} no ar`), neg.mesesPedidos && `por ${nMesesTxt(neg.mesesPedidos)}`].filter(Boolean).join(" ")));
+      c.appendChild(el("q", null, neg.mensagem || ""));
+      // Quem da equipe cuida do pedido (só o primeiro nome).
+      if (neg.responsavelNome && negAberta(neg)) { const r = el("div", "pl-resp-neg"); const pn = String(neg.responsavelNome).trim().split(/\s+/)[0]; r.append(el("i", null, pn.charAt(0).toUpperCase()), el("span", null, `${pn}, da equipe Help Floripa, está cuidando do seu pedido.`)); c.appendChild(r); }
       if (neg.tipo === "apoio" && neg.comprovanteTipo) c.appendChild(el("small", "pl-nota", `Comprovante: ${nomeDocRenda(neg.comprovanteTipo)}${neg.comprovante ? " · documento anexado" : neg.comprovanteTipo === "depois" ? " · mande pelo Suporte" : ""}`));
-      if (neg.status === "aprovado") c.appendChild(el("div", "resp", `Plano ${nomePlano(neg.planoConcedido || neg.plano)} por ${neg.meses || 1} ${neg.meses === 1 ? "mês" : "meses"}${neg.valorAcordado ? ` · ${reais(neg.valorAcordado)} combinado` : " · sem custo"}.${neg.resposta ? "\n" + neg.resposta : ""}`));
+      if (neg.status === "aprovado") c.appendChild(el("div", "resp", `Plano ${nomePlano(neg.planoConcedido || neg.plano)} por ${duracaoTxt(neg)}${neg.valorAcordado ? ` · ${reais(neg.valorAcordado)} combinado` : " · sem custo"}${Array.isArray(neg.tipos) && neg.tipos.length ? ` · no ar: ${neg.tipos.map((t) => NOMES_PERFIL[t] || t).join(", ")}` : ""}.${neg.resposta ? "\n" + neg.resposta : ""}`));
       else if (neg.resposta) c.appendChild(el("div", "resp", neg.resposta));
       corpo.appendChild(c);
       const sup = el("a", "pl-btn sec"); sup.href = "suporte.html"; sup.textContent = "Falar com a equipe pelo Suporte"; corpo.appendChild(sup);
@@ -475,6 +497,15 @@ export async function abrirPlanos(op) {
     const chipsP = el("div", "pl-chips");
     ORDEM_PLANOS.forEach((k) => { const b = el("button", "pl-chip", `${PLANOS[k].nome} · ${reais(PLANOS[k].preco)}`); b.type = "button"; b.dataset.p = k; b.addEventListener("click", () => { planoQ = k; chipsP.querySelectorAll(".pl-chip").forEach((z) => z.classList.toggle("on", z.dataset.p === planoQ)); }); chipsP.appendChild(b); });
     lp.appendChild(chipsP);
+    // Sem plano o negócio já fica no ar (grátis): o pedido é pelos extras de um plano.
+    const gratis = el("div", "pl-neg-gratis");
+    gratis.append(el("b", null, "Seu negócio já pode ficar no ar de graça"), el("small", null, `Sem plano: 1 perfil no ar, até ${LIMITES_GRATIS.itens} itens e ${LIMITES_GRATIS.fotos} foto. Aqui você pede os extras de um plano (mais perfis no ar, selo, destaque, promoção e estatísticas) por um valor menor ou sem custo.`));
+    // Do que a pessoa precisa: quantos perfis no ar e por quanto tempo (quem decide é a equipe).
+    let perfisQ = 1, mesesQ = 3;
+    const lpf = el("label"); lpf.append(document.createTextNode("Quantos perfis de negócio você precisa no ar?"),
+      chipsEscolha(TIPOS_PERFIL.map((_, i) => [i + 1, i + 1 === TIPOS_PERFIL.length ? `Todos (${i + 1})` : String(i + 1)]), perfisQ, (v) => { perfisQ = v; }));
+    const ltp = el("label"); ltp.append(document.createTextNode("Por quanto tempo?"),
+      chipsEscolha([[1, "1 mês"], [3, "3 meses"], [6, "6 meses"], [12, "12 meses"]], mesesQ, (v) => { mesesQ = v; }));
     const lv = el("label"); const lvTxt = el("span"); const valor = el("input"); valor.type = "text"; valor.inputMode = "decimal"; valor.placeholder = "Ex.: 15,00"; valor.maxLength = 8; valor.id = "plNegValor";
     lv.append(lvTxt, valor);
     const lm = el("label"); const lmTxt = el("span"); const msg = el("textarea"); msg.maxLength = 1500; msg.id = "plNegMsg";
@@ -490,12 +521,16 @@ export async function abrirPlanos(op) {
     const prova = el("div", "pl-prova");
     let docEscolhido = "", anexo = null;
     const docs = el("div", "pl-docs"); docs.setAttribute("role", "radiogroup"); docs.setAttribute("aria-label", "Documento que comprova a baixa renda");
-    DOCS_RENDA.forEach(([k, rot, dica]) => {
-      const b = el("button", "pl-doc"); b.type = "button"; b.dataset.doc = k; b.setAttribute("role", "radio"); b.setAttribute("aria-checked", "false");
+    // No celular mostra os 4 mais usados + "mando depois"; o resto abre em "Ver outros documentos".
+    DOCS_RENDA.forEach(([k, rot, dica], i) => {
+      const b = el("button", "pl-doc" + (i >= 4 && k !== "depois" ? " extra" : "")); b.type = "button"; b.dataset.doc = k; b.setAttribute("role", "radio"); b.setAttribute("aria-checked", "false");
       b.append(el("b", null, rot), el("small", null, dica));
       b.addEventListener("click", () => { docEscolhido = k; pintarDoc(); });
       docs.appendChild(b);
     });
+    const extras = DOCS_RENDA.filter(([k], i) => i >= 4 && k !== "depois").length;
+    const maisDocs = el("button", "pl-mais-docs", `Ver outros documentos (${extras})`); maisDocs.type = "button";
+    maisDocs.addEventListener("click", () => { docs.classList.add("todos"); maisDocs.hidden = true; });
     const arq = el("input"); arq.type = "file"; arq.accept = "image/*,application/pdf"; arq.hidden = true; arq.id = "plNegArquivo";
     const btArq = el("button", "pl-btn sec pl-anexar"); btArq.type = "button"; btArq.textContent = "Anexar foto ou PDF do documento";
     const previa = el("div");
@@ -513,15 +548,15 @@ export async function abrirPlanos(op) {
     });
     const decl = el("label", "pl-decl"); const ck = el("input"); ck.type = "checkbox"; ck.id = "plNegDecl";
     decl.append(ck, el("span", null, "Declaro que as informações são verdadeiras e sei que a equipe pode pedir outro documento para confirmar."));
-    prova.append(el("span", "pl-prova-tit", "Como você comprova a baixa renda?"), el("small", "pl-prova-sub", "Escolha um dos documentos mais usados. O documento só é visto pelos responsáveis do Help Floripa e é apagado depois da análise."), docs, btArq, previa, arq, decl);
+    prova.append(el("span", "pl-prova-tit", "Como você comprova a baixa renda?"), el("small", "pl-prova-sub", "Escolha um dos documentos mais usados. O documento só é visto pelos responsáveis do Help Floripa e é apagado depois da análise."), docs, maisDocs, btArq, previa, arq, decl);
     function pintarDoc() {
-      docs.querySelectorAll(".pl-doc").forEach((b) => { const on = b.dataset.doc === docEscolhido; b.classList.toggle("on", on); b.setAttribute("aria-checked", String(on)); });
+      docs.querySelectorAll(".pl-doc").forEach((b) => { const on = b.dataset.doc === docEscolhido; b.classList.toggle("on", on); b.setAttribute("aria-checked", String(on)); if (on && b.classList.contains("extra")) { docs.classList.add("todos"); maisDocs.hidden = true; } });
       const depois = docEscolhido === "depois";
       btArq.hidden = !docEscolhido || depois || !!anexo; previa.hidden = depois;
       btArq.textContent = `Anexar foto ou PDF: ${nomeDocRenda(docEscolhido) || "documento"}`;
     }
     pintarDoc();
-    f.append(tit, intro, tipos, lp, lv, prova, lm, lc, enviar, nota);
+    f.append(tit, intro, gratis, tipos, lp, lpf, ltp, lv, prova, lm, lc, enviar, nota);
     corpo.appendChild(f);
     function pintarTipo() {
       tipos.querySelectorAll(".pl-per").forEach((b) => b.classList.toggle("on", b.dataset.t === tipo));
@@ -551,8 +586,11 @@ export async function abrirPlanos(op) {
       enviar.disabled = true;
       const dados = { uid: eu.uid, nome: String(op.dados?.nome || "").slice(0, 80), email: String(eu.email || "").slice(0, 120), tipo, plano: planoQ, valorProposto: Math.round(v * 100) / 100, contato: contato.value.trim().slice(0, 40), mensagem: texto.slice(0, 1500), status: "novo", criadoEm: fb.serverTimestamp(),
         ...(tipo === "apoio" ? { comprovanteTipo: docEscolhido, declaracao: true, ...(anexo && docEscolhido !== "depois" ? { comprovante: { tipo: anexo.tipo, url: anexo.url, nome: String(anexo.nome || "").slice(0, 120) } } : {}) } : {}) };
+      const extrasNeg = { perfisPedidos: perfisQ, mesesPedidos: mesesQ };
       try {
-        await fb.setDoc(fb.doc(fb.db, "planos_negociacoes", eu.uid), dados);
+        // Perfis e tempo pedidos são campos novos: com as regras antigas o pedido vai sem eles (e o texto continua).
+        try { await fb.setDoc(fb.doc(fb.db, "planos_negociacoes", eu.uid), { ...dados, ...extrasNeg }); Object.assign(dados, extrasNeg); }
+        catch (e1) { if (e1?.code !== "permission-denied") throw e1; await fb.setDoc(fb.doc(fb.db, "planos_negociacoes", eu.uid), dados); }
         neg = { id: eu.uid, ...dados, criadoEm: { toMillis: () => Date.now() } }; op._novoPedido = false;
         toast("Pedido enviado. A equipe vai responder pelas notificações e pelo Suporte.");
         op.aoMudar?.();

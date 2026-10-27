@@ -3,9 +3,9 @@
 // Só entra quem tem o documento admins/{uid} (criado à mão no console do
 // Firebase). As regras do Firestore conferem isso em cada leitura e ação.
 // =====================================================
-import { C, D, $, h, ms, toast, PAPEIS, vendoAgora, pode, registrar, garantirNegocios, garantirTodasPessoas, carregarPessoas } from "./admin-base.js?v=23";
-import * as S from "./admin-secoes.js?v=51";
-import { previa, tocarSom } from "./admin-chat.js?v=24";
+import { C, D, $, h, ms, toast, PAPEIS, vendoAgora, pode, registrar, garantirNegocios, garantirTodasPessoas, carregarPessoas } from "./admin-base.js?v=24";
+import * as S from "./admin-secoes.js?v=52";
+import { previa, tocarSom } from "./admin-chat.js?v=25";
 import { meusCanais, silenciado, canalPorId, convCanal } from "./equipe-canais.js?v=1";
 
 const SECOES = {

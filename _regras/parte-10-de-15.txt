@@ -9,9 +9,17 @@
                     && mudou().hasOnly(['status', 'comprovante'])
                     && !('comprovante' in request.resource.data)
                     && request.resource.data.status == 'cancelado';
+      // Responsável pelo pedido (só os donos do site): assumir, passar ou liberar.
+      allow update: if donoDoSite()
+                    && mudou().hasOnly(['responsavel', 'responsavelNome', 'assumidoEm'])
+                    && respNegOk(request.resource.data);
       allow update: if donoDoSite()
                     && resource.data.status in ['novo', 'em_conversa']
-                    && mudou().hasOnly(['status', 'resposta', 'decididoPor', 'decididoEm', 'planoConcedido', 'meses', 'valorAcordado', 'comprovante'])
+                    && mudou().hasOnly(['status', 'resposta', 'decididoPor', 'decididoEm', 'planoConcedido', 'meses', 'valorAcordado', 'comprovante', 'dias', 'tipos', 'semSelo', 'responsavel', 'responsavelNome'])
+                    && respNegOk(request.resource.data)
+                    && (!('tipos' in request.resource.data) || (request.resource.data.tipos is list && request.resource.data.tipos.size() <= 5 && request.resource.data.tipos.join(',').matches('^(servicos|delivery|lojinha|imoveis|saude)(,(servicos|delivery|lojinha|imoveis|saude)){0,4}$')))
+                    && request.resource.data.get('semSelo', false) is bool
+                    && (!('dias' in request.resource.data) || (request.resource.data.dias is int && request.resource.data.dias >= 1 && request.resource.data.dias <= 800))
                     && request.resource.data.status in ['em_conversa', 'aprovado', 'recusado']
                     && (request.resource.data.status == 'em_conversa' ? !mudou().hasAny(['comprovante']) : !('comprovante' in request.resource.data))
                     && request.resource.data.decididoPor == request.auth.uid
@@ -173,12 +181,4 @@
         allow delete: if false;
       }
     }
-    // Conversa individual entre duas pessoas da equipe: equipe_dm/{uidA_uidB} (ids em ordem).
-    // O documento guarda só o resumo (última mensagem e quando cada um leu).
-    match /equipe_dm/{par} {
-      function membro() {
-        return admin() && par.split('_').size() == 2 && request.auth.uid in par.split('_')
-            && exists(/databases/$(database)/documents/admins/$(par.split('_')[0]))
-            && exists(/databases/$(database)/documents/admins/$(par.split('_')[1]));
-      }
 // ===== FIM DA PARTE 10 DE 15 =====
