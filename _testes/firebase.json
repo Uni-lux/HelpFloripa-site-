@@ -1,11 +1,37 @@
 {
-  "firestore": { "rules": "regras-emulador.rules" },
-  "storage": { "rules": "regras-storage.rules" },
+  "firestore": {
+    "rules": "regras-emulador.rules"
+  },
+  "storage": {
+    "rules": "regras-storage.rules"
+  },
   "emulators": {
-    "firestore": { "port": 8085, "host": "127.0.0.1" },
-    "auth": { "port": 9099, "host": "127.0.0.1" },
-    "storage": { "port": 9199, "host": "127.0.0.1" },
-    "ui": { "enabled": false },
-    "singleProjectMode": false
-  }
+    "firestore": {
+      "port": 8085,
+      "host": "127.0.0.1"
+    },
+    "auth": {
+      "port": 9099,
+      "host": "127.0.0.1"
+    },
+    "storage": {
+      "port": 9199,
+      "host": "127.0.0.1"
+    },
+    "ui": {
+      "enabled": false
+    },
+    "singleProjectMode": false,
+    "functions": {
+      "port": 5001,
+      "host": "127.0.0.1"
+    }
+  },
+  "functions": [
+    {
+      "source": "funcoes",
+      "codebase": "default",
+      "runtime": "nodejs22"
+    }
+  ]
 }

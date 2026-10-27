@@ -1,0 +1,7 @@
+node_modules/
+# Cópia do ../planos-base.js feita na hora de publicar (predeploy do firebase.json) e nos testes.
+planos-base.js
+# Segredos e variáveis só do emulador (os de verdade ficam no Secret Manager do Firebase).
+.secret.local
+.env.local
+*.log

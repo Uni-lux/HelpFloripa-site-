@@ -8,3 +8,5 @@ exclude:
   - README.md
   - LICENSE
   - scripts/
+  - functions/
+  - firebase.json

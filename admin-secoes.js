@@ -6,19 +6,19 @@ import { cartaoComunicado } from "./comunicados.js?v=1";
 import { linha, linhaComparada, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=7";
 import { baixarPlanilhaMulti } from "./planilha.js?v=5";
 import { buscarPessoas } from "./pessoas.js?v=3";
-import { montarChat, postarNaConversa, idPar } from "./admin-chat.js?v=23";
+import { montarChat, postarNaConversa, idPar } from "./admin-chat.js?v=24";
 import { CANAIS, canalDaFila, STATUS } from "./equipe-canais.js?v=1";
-import { verConteudoDenuncia } from "./admin-denuncia.js?v=15";
+import { verConteudoDenuncia } from "./admin-denuncia.js?v=16";
 import { prepararAnexo, blocoAnexo, previaAnexo, aceitos } from "./anexos-suporte.js?v=2";
 import { FILAS, filaDe, PRIORIDADES as PRIO_SUP, prioridadeChamado, situacaoPrazo, ordemFila } from "./suporte-fila.js?v=1";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
-import { PLANOS, ORDEM_PLANOS, DIAS_BONUS, nivelPlano, nomePlano, diasRestantes, creditoDias, descontoDe, nomeDocRenda, TIPOS_NEG as TIPOS_NEG_PL } from "./planos.js?v=14";
+import { PLANOS, ORDEM_PLANOS, DIAS_BONUS, nivelPlano, nomePlano, diasRestantes, creditoDias, descontoDe, nomeDocRenda, TIPOS_NEG as TIPOS_NEG_PL } from "./planos.js?v=15";
 import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha,
   PAPEIS, DESC_PAPEIS, pode, semPermissao, nomeEquipe, vendoAgora, marcarItem, seloResp, confirmarItem, controlesResp, espera,
   PRIORIDADES, editarTarefa, moverTarefa, garantirNegocios, garantirTodasPessoas, carregarPessoas, guardarPessoas, abrirConversaSuporte, banirPrograma
-} from "./admin-base.js?v=22";
+} from "./admin-base.js?v=23";
 
 const cab = (titulo, sub, extra) => { const c = h("div", "ad-cab"); const t = h("div"); t.append(h("h1", null, titulo)); if (sub) t.append(h("p", null, sub)); c.appendChild(t); if (extra) c.appendChild(extra); return c; };
 const bloco = (titulo, sub) => { const b = h("section", "ad-bloco"); const t = h("div", "ad-bloco-topo"); const tt = h("div"); tt.append(h("h3", null, titulo)); if (sub) tt.append(h("p", null, sub)); t.appendChild(tt); b.appendChild(t); b.topo = t; return b; };
@@ -1028,7 +1028,7 @@ export function planos(el) {
       const cr = creditoDias(atual, p.plano || "pro");
       c.appendChild(h("div", "meta", atual.plano === (p.plano || "pro") ? `Já tem o ${nomePlano(atual.plano)} até ${data(atual.ate)} (${faltaTxt(atual)}): os meses somam a partir dessa data.` : `Troca do ${nomePlano(atual.plano)} (${faltaTxt(atual)}) pelo ${nomePlano(p.plano)}: começa hoje${cr ? ` + ${cr} dias de crédito` : ""}.`));
     }
-    if (p.status !== "pendente") c.appendChild(h("div", "meta", `${ST[p.status]?.[0] || p.status}${p.decididoEm ? " · " + dataHora(p.decididoEm) : ""}${p.decididoPor ? " · " + nomeEquipe(p.decididoPor) : ""}${p.motivo ? " · " + p.motivo : ""}`));
+    if (p.status !== "pendente") c.appendChild(h("div", "meta", `${ST[p.status]?.[0] || p.status}${p.decididoEm ? " · " + dataHora(p.decididoEm) : ""}${p.decididoPor ? " · " + nomeEquipe(p.decididoPor) : ""}${p.metodo ? ` · ${p.metodo === "pix" ? "Pix" : "cartão"}` : ""}${p.motivo ? " · " + p.motivo : ""}`));
     const ac = h("div", "ad-acoes");
     if (p.status === "pendente") ac.append(btn("Confirmar pagamento e ativar", "pri", () => ativar(p)), btn("Recusar", "perigo", () => recusar(p)));
     ac.appendChild(btn("Ver ficha", "", () => abrirFicha(p.uid)));

@@ -10,8 +10,8 @@
 import {
   $, el, icone, fb, eu, dados, numero, toast, erroAmigavel, criarFolha, abrirFolha, fotosDoPost, ms, paraData,
   tempoRelativo, obterPerfil, nomeCidade, ganchos
-} from "./rede.js?v=64";
-import { secaoGrafico, secaoHoras } from "./estatisticas-post.js?v=31";
+} from "./rede.js?v=65";
+import { secaoGrafico, secaoHoras } from "./estatisticas-post.js?v=32";
 import { lerStats, listaDias, somarPeriodo } from "./estat-negocio.js?v=1";
 
 const DIA = 864e5;
