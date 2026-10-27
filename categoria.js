@@ -8,10 +8,10 @@
 import { fotoSegura } from "./seguranca.js?v=1";
 import { definirPerfilMenu, definirBadgeMensagens } from "./menu.js?v=15";
 import { buscarReclamacoes } from "./avisos-reclamacoes.js?v=17";
-import { avisoPlano } from "./planos-base.js?v=5";
+import { avisoPlano } from "./planos-base.js?v=6";
 import { ouvirItensEquipe } from "./avisos-equipe.js?v=1";
 import { enquetesEncerradas } from "./enquetes.js?v=5";
-import "./painel-avisos.js?v=25"; // o sino abre o painel de notificações na própria página
+import "./painel-avisos.js?v=26"; // o sino abre o painel de notificações na própria página
 import "./chat-gaveta.js?v=1";
 import { docComValidade } from "./leituras.js?v=1"; // "Mensagens" abre as conversas por cima da página, sem sair dela
 

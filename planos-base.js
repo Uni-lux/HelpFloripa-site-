@@ -5,7 +5,7 @@
 // =====================================================
 // Chave Pix que recebe os pagamentos (e-mail, telefone com +55, CPF/CNPJ só números ou chave aleatória).
 // Vazia: o pedido é criado e a equipe manda a chave pelo Suporte.
-export const PIX = { chave: "", nome: "HELP FLORIPA", cidade: "FLORIANOPOLIS" };
+export const PIX = { chave: "61935934000100", nome: "HELP FLORIPA", cidade: "FLORIANOPOLIS" };
 // Planos pagos (nível: quanto maior, mais destaque). Preço por mês.
 export const PLANOS = {
   plus: { nome: "Plus", nivel: 1, preco: 29.9, frase: "Libera tudo no seu perfil e você aparece antes dos perfis grátis", cor: "#0ea5e9",

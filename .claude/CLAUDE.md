@@ -789,6 +789,10 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   Pix / Copiar chave / QR Code e o aviso de conferir o nome no banco (o site não intermedia). Chave guardada em
   `usuarios.pix`. Folha das avaliações (`abrirDetalhamento`) sem "Comentários recentes" (pedido dele: o que o cliente diz
   fica só nas Reclamações). Cartão Comunidade do "Tipo de perfil" sem a setinha. Teste `t-pix-qr.mjs`.
+- **Chave Pix do Help Floripa (27/10/2026):** conta PJ no Mercado Pago no CNPJ (atividade "marketing e publicidade", CNAE do
+  MEI = promotor de vendas). `PIX.chave = "61935934000100"` (planos-base.js): o pedido do plano mostra QR + copia e cola;
+  a confirmação continua MANUAL no painel. Próximo: Pix automático + cartão (Mercado Pago Checkout Bricks + Cloud Functions
+  com webhook) — espera o Blaze; Access Token só como segredo do Firebase, nunca no site/repositório.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
