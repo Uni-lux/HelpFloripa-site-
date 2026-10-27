@@ -793,6 +793,12 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   MEI = promotor de vendas). `PIX.chave = "61935934000100"` (planos-base.js): o pedido do plano mostra QR + copia e cola;
   a confirmação continua MANUAL no painel. Próximo: Pix automático + cartão (Mercado Pago Checkout Bricks + Cloud Functions
   com webhook) — espera o Blaze; Access Token só como segredo do Firebase, nunca no site/repositório.
+  27/10: aplicação "Help Floripa" criada no Mercado Pago Developers (Pagamentos online, desenvolvimento próprio, URL
+  https://helpfloripa.com.br, **Checkout Bricks**). **Public Key de TESTE: `TEST-1855e5db-1f54-4020-a318-98f3f6187f73`**
+  (pública, pode ir no site). Credenciais de produção ainda NÃO ativadas (ativar só depois dos testes). Combinado: fazer o
+  pagamento automático em 28/10 (Pix + cartão crédito/débito pelo Payment Brick, Cloud Functions criar pagamento + webhook
+  que ativa `planos/{uid}`). Falta ele: ligar o Blaze com alerta de orçamento. Guardado no stash: texto do passo 2 do Pix
+  ("Como o Help Floripa é MEI, o banco mostra o nome do responsável") — ele não respondeu se quer.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
