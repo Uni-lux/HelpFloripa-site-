@@ -1,0 +1,11 @@
+{
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "runtime": "nodejs22",
+      "ignore": ["node_modules", ".git", "*.local", "*.log"],
+      "predeploy": ["cp planos-base.js functions/planos-base.js"]
+    }
+  ]
+}

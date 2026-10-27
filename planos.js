@@ -13,8 +13,8 @@
 // =====================================================
 
 // Preços, nível, selo e leitura do plano ficam no planos-base.js (as páginas que só mostram o selo não baixam este arquivo).
-import { PIX, PLANOS, ORDEM_PLANOS, PRECO_MIN, PERIODOS, descontoDe, valorPeriodo, DIAS_TESTE, DIAS_BONUS, BENEFICIOS, DESTAQUES_PLANO, nivelPlano, ehPago, ehPro, nomePlano, emTeste, diasRestantes, textoFalta, reais, creditoDias, lerPlano, esquecerPlano, seloPlano, seloPro, emTolerancia, fimComTolerancia } from "./planos-base.js?v=5";
-export { PIX, PLANOS, ORDEM_PLANOS, PRECO_MIN, PERIODOS, descontoDe, valorPeriodo, DIAS_TESTE, DIAS_BONUS, BENEFICIOS, nivelPlano, ehPago, ehPro, nomePlano, emTeste, diasRestantes, textoFalta, reais, creditoDias, lerPlano, esquecerPlano, seloPlano, seloPro, emTolerancia, fimComTolerancia, negocioPausado } from "./planos-base.js?v=5";
+import { PIX, PAGAMENTO, PLANOS, ORDEM_PLANOS, PRECO_MIN, PERIODOS, descontoDe, valorPeriodo, DIAS_TESTE, DIAS_BONUS, BENEFICIOS, DESTAQUES_PLANO, nivelPlano, ehPago, ehPro, nomePlano, emTeste, diasRestantes, textoFalta, reais, creditoDias, lerPlano, esquecerPlano, seloPlano, seloPro, emTolerancia, fimComTolerancia } from "./planos-base.js?v=7";
+export { PIX, PAGAMENTO, PLANOS, ORDEM_PLANOS, PRECO_MIN, PERIODOS, descontoDe, valorPeriodo, DIAS_TESTE, DIAS_BONUS, BENEFICIOS, nivelPlano, ehPago, ehPro, nomePlano, emTeste, diasRestantes, textoFalta, reais, creditoDias, lerPlano, esquecerPlano, seloPlano, seloPro, emTolerancia, fimComTolerancia, negocioPausado } from "./planos-base.js?v=7";
 import { codigoPix as codigoPixBase } from "./pix.js?v=1";
 const ms = (t) => t?.toMillis?.() ?? (t?.seconds ? t.seconds * 1000 : typeof t === "number" ? t : 0);
 const DIA = 864e5;
@@ -36,6 +36,37 @@ async function qrSvg(texto) {
   svg.append(fundo, p);
   return svg;
 }
+
+// ---------- pagamento automático (Mercado Pago, pelas Cloud Functions) ----------
+// pagarPlano({ pedidoId, metodo: "pix" | "cartao", cartao?, tentativa? }) → { status, qr?, expira?, motivo? }.
+let funcoes = null;
+async function chamarPagamento(dados) {
+  funcoes ||= import("https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js").then((m) => {
+    const f = m.getFunctions(window.firebaseApp, PAGAMENTO.regiao);
+    if (window.__hfFuncoesEmulador) m.connectFunctionsEmulator(f, "127.0.0.1", window.__hfFuncoesEmulador); // só nos testes
+    return { m, f };
+  });
+  const { m, f } = await funcoes;
+  return (await m.httpsCallable(f, "pagarPlano", { timeout: 70000 })(dados)).data;
+}
+// Formulário de cartão do próprio Mercado Pago (o número do cartão vai direto para eles; o site só recebe um token).
+let sdkMp = null;
+function carregarSdkMp() {
+  sdkMp ||= new Promise((ok, falha) => {
+    if (window.MercadoPago) { ok(window.MercadoPago); return; }
+    const sc = document.createElement("script"); sc.src = "https://sdk.mercadopago.com/js/v2"; sc.async = true;
+    const t = setTimeout(() => falha(new Error("tempo")), 20000);
+    sc.onload = () => { clearTimeout(t); window.MercadoPago ? ok(window.MercadoPago) : falha(new Error("sem SDK")); };
+    sc.onerror = () => { clearTimeout(t); falha(new Error("SDK bloqueado")); };
+    document.head.appendChild(sc);
+  }).catch((e) => { sdkMp = null; throw e; });
+  return sdkMp;
+}
+async function ouvirPedido(fb, id, aoMudar) {
+  const { onSnapshot } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+  return onSnapshot(fb.doc(fb.db, "planos_pedidos", id), (s) => s.exists() && aoMudar(s.data()), () => {});
+}
+const horaData = (t) => new Date(t).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 
 // ---------- tela dos planos (gaveta) ----------
 const CSS = `
@@ -79,6 +110,20 @@ const CSS = `
 .pl-qr { width: 220px; height: 220px; border-radius: 12px; }
 .pl-codigo { width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 12px; border: 1px dashed var(--line, #22313a); background: var(--bg, #0b1115); color: inherit; font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; word-break: break-all; text-align: left; max-height: 84px; overflow: auto; }
 .pl-pix b.valor { font-size: 24px; }
+.pl-abas { display: grid; grid-template-columns: 1fr 1.6fr; gap: 6px; width: 100%; padding: 4px; box-sizing: border-box; border-radius: 14px; background: var(--bg, #0b1115); border: 1px solid var(--line, #22313a); }
+.pl-aba { min-height: 42px; border: 0; border-radius: 10px; background: none; color: var(--muted, #8fa0ab); font: inherit; font-size: 13.5px; font-weight: 800; cursor: pointer; }
+.pl-aba.on { background: #00adee; color: #001a24; }
+.pl-area { display: grid; justify-items: center; gap: 10px; width: 100%; }
+.pl-cartao { width: 100%; text-align: left; }
+.pl-espera { display: flex; align-items: center; gap: 10px; width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, #00adee 10%, transparent); border: 1px solid color-mix(in srgb, #00adee 30%, transparent); font-size: 13px; font-weight: 700; text-align: left; }
+.pl-gira { flex: none; width: 16px; height: 16px; border-radius: 50%; border: 2px solid color-mix(in srgb, #00adee 30%, transparent); border-top-color: #00adee; animation: pl-gira .8s linear infinite; }
+@keyframes pl-gira { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .pl-gira { animation: none; } }
+.pl-erro { color: #f59e0b; font-weight: 700; }
+.pl-seguro { text-align: center; font-size: 12px; }
+.pl-aprovado { gap: 8px; }
+.pl-aprovado p { margin: 0; font-size: 14px; line-height: 1.5; }
+.pl-ok-ic { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: #2fbf71; color: #fff; font-size: 30px; font-weight: 900; }
 .pl-passos { margin: 6px 0 0; padding-left: 18px; text-align: left; font-size: 13px; line-height: 1.6; color: var(--muted, #8fa0ab); }
 .selo-pro { display: inline-flex; align-items: center; height: 18px; padding: 0 6px; border-radius: 6px; font-size: 10px; font-weight: 900; letter-spacing: .06em; color: #fff; background: linear-gradient(135deg, #7c3aed, #2563eb); vertical-align: middle; }
 .pl-hero h3 + p { max-width: 36ch; }
@@ -250,7 +295,9 @@ export async function abrirPlanos(op) {
   topo.append(el("strong", null, "Planos para negócios"), x);
   const corpo = el("div");
   cx.append(topo, corpo); fundo.appendChild(cx); document.body.appendChild(fundo);
-  const fechar = () => { fundo.remove(); document.removeEventListener("keydown", tecla); };
+  let pararEscuta = null, brick = null;
+  const limparPagamento = () => { try { pararEscuta?.(); } catch {} pararEscuta = null; try { brick?.unmount?.(); } catch {} brick = null; };
+  const fechar = () => { limparPagamento(); fundo.remove(); document.removeEventListener("keydown", tecla); };
   const tecla = (e) => { if (e.key === "Escape") fechar(); };
   document.addEventListener("keydown", tecla);
   fundo.addEventListener("click", (e) => { if (e.target === fundo) fechar(); });
@@ -348,7 +395,7 @@ export async function abrirPlanos(op) {
       economia.textContent = [eco ? `Você economiza ${reais(eco)} (${Math.round(descontoDe(meses) * 100)}% de desconto).` : "",
         primeira ? `Primeira assinatura: ${meses === 1 ? "1 mês" : meses + " meses"} + ${DIAS_BONUS} dias grátis, até ${fim.toLocaleDateString("pt-BR")}.` : ""].filter(Boolean).join(" ");
       if (!economia.textContent) economia.hidden = true;
-      btn.textContent = `Pagar ${reais(valorPeriodo(escolhido, meses))} com Pix`;
+      btn.textContent = PAGAMENTO.automatico ? `Pagar ${reais(valorPeriodo(escolhido, meses))} · Pix ou cartão` : `Pagar ${reais(valorPeriodo(escolhido, meses))} com Pix`;
       const cr = creditoDias(plano, escolhido);
       credito.hidden = !atual || escolhido === atual;
       credito.textContent = cr > 0 && plano?.teste ? `Você ainda tem ${cr} ${cr === 1 ? "dia" : "dias"} de teste grátis: o ${P.nome} já começa agora e os meses que você pagar contam depois disso.` : cr > 0 ? `Trocar de plano: os ${diasRestantes(plano)} dias que sobram do ${nomePlano(atual)} viram ${cr} ${cr === 1 ? "dia" : "dias"} a mais no ${P.nome}, somados aos meses que você pagar.` : "";
@@ -517,7 +564,106 @@ export async function abrirPlanos(op) {
     });
   }
 
-  async function mostrarPix(p) {
+  // Com o pagamento automático ligado: abas Pix | Cartão; o plano liga sozinho quando o Mercado Pago aprova.
+  function mostrarPix(p) {
+    limparPagamento();
+    if (!PAGAMENTO.automatico) return mostrarPixManual(p);
+    corpo.replaceChildren();
+    const box = el("div", "pl-pix pl-pagar");
+    box.append(el("small", null, `Pedido #${String(p.id).slice(-6).toUpperCase()} · Plano ${nomePlano(p.plano)} · ${p.meses} ${p.meses === 1 ? "mês" : "meses"}${descontoDe(p.meses) ? ` com ${Math.round(descontoDe(p.meses) * 100)}% de desconto` : ""}`), el("b", "valor", reais(valorPeriodo(p.plano, p.meses))));
+    if (primeira) box.append(el("p", "pl-nota pl-bonus-pix", `Primeira assinatura: assim que o pagamento for aprovado, você ganha mais ${DIAS_BONUS} dias grátis.`));
+    const abas = el("div", "pl-abas"); abas.setAttribute("role", "tablist");
+    const area = el("div", "pl-area");
+    const aba = (k, nome) => { const b = el("button", "pl-aba", nome); b.type = "button"; b.dataset.k = k; b.setAttribute("role", "tab"); b.addEventListener("click", () => escolher(k)); abas.appendChild(b); return b; };
+    aba("pix", "Pix"); aba("cartao", "Cartão de crédito ou débito");
+    box.append(abas, area);
+    corpo.appendChild(box);
+    const seguro = el("p", "pl-nota pl-seguro", "Pagamento processado pelo Mercado Pago. O Help Floripa não vê nem guarda os dados do seu cartão.");
+    const cancelar = el("button", "pl-btn sec"); cancelar.type = "button"; cancelar.textContent = "Cancelar este pedido";
+    cancelar.addEventListener("click", async () => {
+      cancelar.disabled = true;
+      try { limparPagamento(); await fb.updateDoc(fb.doc(fb.db, "planos_pedidos", p.id), { status: "cancelado" }); op.aoMudar?.(); plano = await lerPlano(fb, eu.uid); pintarEscolha(); toast("Pedido cancelado"); }
+      catch { cancelar.disabled = false; toast("Não foi possível cancelar agora."); }
+    });
+    corpo.append(seguro, cancelar);
+    let ativo = "", acabou = false;
+    ouvirPedido(fb, p.id, (d) => { if (d.status === "pago" && !acabou) aprovado(d.metodo); }).then((u) => { if (acabou || !box.isConnected) u(); else pararEscuta = u; });
+    async function aprovado(metodo) {
+      if (acabou) return; acabou = true;
+      limparPagamento();
+      esquecerPlano(eu.uid);
+      plano = await lerPlano(fb, eu.uid).catch(() => null);
+      op.aoMudar?.();
+      corpo.replaceChildren();
+      const ok = el("div", "pl-pix pl-aprovado");
+      const ic = el("div", "pl-ok-ic", "✓");
+      ok.append(ic, el("b", "valor", "Pagamento aprovado!"), el("p", null, `Seu plano ${nomePlano(p.plano)} está ativo${plano?.ate ? ` até ${new Date(ms(plano.ate)).toLocaleDateString("pt-BR")}` : ""}, para todos os seus negócios.${metodo === "cartao" ? " O valor aparece na fatura como HELPFLORIPA." : ""}`));
+      const fim = el("button", "pl-btn"); fim.type = "button"; fim.textContent = "Concluir"; fim.addEventListener("click", fechar);
+      corpo.append(ok, fim);
+    }
+    function escolher(k) {
+      if (ativo === k || acabou) return; ativo = k;
+      abas.querySelectorAll(".pl-aba").forEach((b) => { const on = b.dataset.k === k; b.classList.toggle("on", on); b.setAttribute("aria-selected", String(on)); });
+      try { brick?.unmount?.(); } catch {} brick = null;
+      area.replaceChildren(el("p", "pl-nota", k === "pix" ? "Gerando o QR Code..." : "Carregando o pagamento com cartão..."));
+      (k === "pix" ? abaPix : abaCartao)().catch((e) => console.warn("[Pagamento]", e));
+    }
+    async function abaPix() {
+      let r;
+      try { r = await chamarPagamento({ pedidoId: p.id, metodo: "pix" }); }
+      catch (e) {
+        if (ativo !== "pix") return;
+        if (e?.code === "functions/failed-precondition") { area.replaceChildren(el("p", "pl-nota pl-erro", e.message)); return; }
+        // Servidor fora do ar: fica o Pix conferido pela equipe.
+        area.replaceChildren(el("p", "pl-nota pl-erro", "O Pix automático está indisponível agora. Pague pelo Pix abaixo: a equipe confirma e ativa o plano."));
+        const cod = codigoPix({ valor: valorPeriodo(p.plano, p.meses), txid: p.txid });
+        if (cod) { area.appendChild(await qrSvg(cod).catch(() => el("span"))); area.appendChild(el("div", "pl-codigo", cod)); const bc = el("button", "pl-btn"); bc.type = "button"; bc.textContent = "Copiar código Pix"; bc.addEventListener("click", () => copiar(cod, toast)); area.appendChild(bc); }
+        return;
+      }
+      if (ativo !== "pix" || acabou) return;
+      if (r.status === "approved") { aprovado("pix"); return; }
+      area.replaceChildren();
+      area.appendChild(await qrSvg(r.qr).catch(() => el("span")));
+      const bc = el("button", "pl-btn"); bc.type = "button"; bc.textContent = "Copiar código Pix"; bc.addEventListener("click", () => copiar(r.qr, toast));
+      const espera = el("div", "pl-espera"); espera.append(el("span", "pl-gira"), el("span", null, "Esperando o pagamento. O plano liga sozinho assim que o Pix cair."));
+      const ol = el("ol", "pl-passos");
+      ["Abra o app do seu banco e escolha Pix → Pix Copia e Cola (ou leia o QR Code).", "Confira o valor e pague. Como o Help Floripa é MEI, o banco mostra o nome do responsável pela empresa.", "Pronto: em poucos segundos esta tela muda e o selo aparece em Meus negócios."].forEach((t) => ol.appendChild(el("li", null, t)));
+      area.append(el("div", "pl-codigo", r.qr), bc, espera, ol, el("p", "pl-nota", `Este QR Code vale até ${horaData(r.expira)}.`));
+    }
+    async function abaCartao() {
+      let MP;
+      try { MP = await carregarSdkMp(); }
+      catch { if (ativo === "cartao") area.replaceChildren(el("p", "pl-nota pl-erro", "Não foi possível carregar o pagamento com cartão (confira a internet ou desligue o bloqueador de anúncios). Você pode pagar com Pix.")); return; }
+      if (ativo !== "cartao" || acabou) return;
+      const id = "plCartao" + Date.now().toString(36);
+      const caixa = el("div", "pl-cartao"); caixa.id = id;
+      const msg = el("p", "pl-nota pl-erro"); msg.hidden = true;
+      area.replaceChildren(caixa, msg);
+      const valor = valorPeriodo(p.plano, p.meses);
+      const escuro = (() => { const m = getComputedStyle(cx).backgroundColor.match(/\d+/g); return !m || (Number(m[0]) + Number(m[1]) + Number(m[2])) / 3 < 128; })();
+      const mp = new MP(PAGAMENTO.publicKey, { locale: "pt-BR" });
+      brick = await mp.bricks().create("cardPayment", id, {
+        initialization: { amount: valor, payer: { email: eu.email || "" } },
+        customization: { visual: { style: { theme: escuro ? "dark" : "default", customVariables: { baseColor: "#00ADEE" } }, texts: { formSubmit: `Pagar ${reais(valor)}` } }, paymentMethods: { maxInstallments: 1 } },
+        callbacks: {
+          onReady: () => {},
+          onError: (e) => console.warn("[Cartão]", e),
+          onSubmit: (dados) => new Promise((ok, falha) => {
+            msg.hidden = true;
+            const tentativa = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+            chamarPagamento({ pedidoId: p.id, metodo: "cartao", cartao: dados, tentativa }).then((r) => {
+              if (r.status === "approved") { ok(); aprovado("cartao"); return; }
+              if (r.status === "in_process" || r.status === "pending") { ok(); area.replaceChildren(el("p", "pl-nota", "Pagamento em análise pelo Mercado Pago. Assim que for aprovado, o plano liga sozinho e você recebe um aviso.")); return; }
+              falha(); msg.textContent = r.motivo || "O pagamento não foi aprovado."; msg.hidden = false;
+            }, (e) => { falha(); msg.textContent = e?.code === "functions/failed-precondition" || e?.code === "functions/invalid-argument" ? e.message : "Não foi possível pagar agora. Tente de novo ou use o Pix."; msg.hidden = false; });
+          })
+        }
+      });
+    }
+    escolher("pix");
+  }
+
+  async function mostrarPixManual(p) {
     corpo.replaceChildren();
     const box = el("div", "pl-pix");
     box.append(el("small", null, `Pedido #${String(p.id).slice(-6).toUpperCase()} · Plano ${nomePlano(p.plano)} · ${p.meses} ${p.meses === 1 ? "mês" : "meses"}${descontoDe(p.meses) ? ` com ${Math.round(descontoDe(p.meses) * 100)}% de desconto` : ""}`), el("b", "valor", reais(p.valor)));
@@ -529,7 +675,7 @@ export async function abrirPlanos(op) {
       const bc = el("button", "pl-btn"); bc.type = "button"; bc.textContent = "Copiar código Pix"; bc.addEventListener("click", () => copiar(cod, toast));
       box.appendChild(bc);
       const ol = el("ol", "pl-passos");
-      ["Abra o app do seu banco e escolha Pix → Pix Copia e Cola (ou leia o QR Code).", "Confira o valor e o recebedor (Help Floripa) e pague.", `Pronto: a equipe confirma o pagamento e ativa o ${nomePlano(p.plano)} (normalmente em até 1 dia útil). O selo aparece em Meus negócios.`].forEach((t) => ol.appendChild(el("li", null, t)));
+      ["Abra o app do seu banco e escolha Pix → Pix Copia e Cola (ou leia o QR Code).", "Confira o valor e o CNPJ do recebedor (61.935.934/0001-00, Help Floripa) e pague.", `Pronto: a equipe confirma o pagamento e ativa o ${nomePlano(p.plano)} (normalmente em até 1 dia útil). O selo aparece em Meus negócios.`].forEach((t) => ol.appendChild(el("li", null, t)));
       box.appendChild(ol);
     } else {
       box.appendChild(el("p", "pl-nota", `Recebemos o seu pedido. A equipe vai mandar a chave Pix pelo Suporte (aparece nas suas Mensagens) e ativa o ${nomePlano(p.plano)} assim que o pagamento chegar.`));

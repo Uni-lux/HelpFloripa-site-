@@ -56,6 +56,7 @@ await p.locator(".pl-btn", { hasText: "Pagar" }).click(); await p.waitForSelecto
 const ped = (await db.collection("planos_pedidos").where("uid", "==", U.bruno).get()).docs.map((d) => ({ id: d.id, ...d.data() }))[0];
 ok(ped?.status === "pendente" && ped.meses === 3 && ped.valor === 107.73 && /^[A-Z0-9]+$/.test(ped.txid), "pedido gravado: " + JSON.stringify({ meses: ped?.meses, valor: ped?.valor, txid: ped?.txid }));
 await p.screenshot({ path: "saida/pl-pix.png" });
+ok(await p.locator(".pl-pix svg").count() === 1 && /0114619359340001005204.*5406107\.73/.test(await p.textContent(".pl-pix .pl-codigo")), "pedido com QR Code e copia e cola na chave CNPJ do Help Floripa e o valor certo");
 // Código Pix (BR Code): com uma chave de exemplo, o CRC16 confere e o QR Code sai.
 const pix = await p.evaluate(async () => {
   const m = await import("./planos.js?v=1");

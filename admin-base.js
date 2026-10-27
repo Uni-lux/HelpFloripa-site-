@@ -588,7 +588,7 @@ export function pode(acao) {
   return true;
 }
 export const semPermissao = () => toast(`Seu papel (${PAPEIS[C.papel] || C.papel}) não permite esta ação.`);
-export const nomeEquipe = (uid) => D.admins.find((a) => a.id === uid)?.nome || D.pessoas.get(uid)?.nome || "Equipe";
+export const nomeEquipe = (uid) => uid === "mercadopago" ? "Mercado Pago (automático)" : D.admins.find((a) => a.id === uid)?.nome || D.pessoas.get(uid)?.nome || "Equipe";
 export const vendoAgora = (item) => [...C.presenca.entries()].filter(([uid, p]) => uid !== C.eu.uid && item && p.item === item && C.online(uid)).map(([uid, p]) => p.nome || nomeEquipe(uid));
 export const marcarItem = (item, nome) => C.marcarItem?.(item, nome);
 

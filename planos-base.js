@@ -5,7 +5,11 @@
 // =====================================================
 // Chave Pix que recebe os pagamentos (e-mail, telefone com +55, CPF/CNPJ só números ou chave aleatória).
 // Vazia: o pedido é criado e a equipe manda a chave pelo Suporte.
-export const PIX = { chave: "", nome: "HELP FLORIPA", cidade: "FLORIANOPOLIS" };
+export const PIX = { chave: "61935934000100", nome: "HELP FLORIPA", cidade: "FLORIANOPOLIS" };
+// Pagamento automático pelo Mercado Pago (Pix com QR que confirma sozinho + cartão de crédito/débito), feito pelas
+// Cloud Functions (functions/). automatico: false = o Pix acima, conferido à mão no painel. Ligar só depois de publicar
+// as funções e os segredos (_regras/PAGAMENTO-LEIA-ME.md). publicKey: a do Mercado Pago (TEST- = testes; APP_USR- = de verdade).
+export const PAGAMENTO = { automatico: false, publicKey: "TEST-1855e5db-1f54-4020-a318-98f3f6187f73", regiao: "southamerica-east1" };
 // Planos pagos (nível: quanto maior, mais destaque). Preço por mês.
 export const PLANOS = {
   plus: { nome: "Plus", nivel: 1, preco: 29.9, frase: "Libera tudo no seu perfil e você aparece antes dos perfis grátis", cor: "#0ea5e9",
