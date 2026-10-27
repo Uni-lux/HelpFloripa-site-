@@ -268,6 +268,8 @@ function textoComMencoes(texto, mencoes = []) {
 const ICONES = {
   // Os mesmos ícones da página de Mensagens (mensagens.html), para o chat da equipe ter a mesma cara.
   voltar: '<path d="M15 5l-7 7 7 7"/>',
+  telefone: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2"/>',
+  videochamada: '<rect x="3" y="6" width="13" height="12" rx="2.5"/><path d="M16 10.5l5-3v9l-5-3"/>',
   lupa: '<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/>',
   mais: '<circle cx="12" cy="5.5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="18.5" r="1.2" fill="currentColor"/>',
   sino: '<path d="M18 9.5a6 6 0 00-12 0c0 6.5-2.5 8-2.5 8h17S18 16 18 9.5z"/><path d="M10.2 20.5a2 2 0 003.6 0"/>',
@@ -451,7 +453,21 @@ export function montarChat(el) {
   const quem = h("div", "eq-quem");
   const bBusca = botaoIcone("lupa", "Buscar na conversa");
   const bMais = botaoIcone("mais", "Mais opções");
-  topo.append(voltar, quem, bBusca, bMais);
+  // Ligações de voz e vídeo nas conversas individuais da equipe (chamadas.js, as mesmas do site).
+  const bVideo = botaoIcone("videochamada", "Chamada de vídeo"), bLigar = botaoIcone("telefone", "Ligação de voz");
+  bVideo.hidden = bLigar.hidden = true;
+  topo.append(voltar, quem, bVideo, bLigar, bBusca, bMais);
+  async function ligarEquipe(modo) {
+    if (!ehDm(conv)) return;
+    const para = conv.split("_").find((u) => u !== C.eu.uid); if (!para) return;
+    const daConv = conv;
+    const { ligar, textoChamada } = await import("./chamadas.js?v=1");
+    const r = await ligar({ para, nome: nomeEquipe(para), foto: D.admins.find((a) => a.id === para)?.foto || "", conv: daConv, tipo: modo });
+    if (r.status === "erro") { toast(r.erro); return; }
+    postarNaConversa(daConv, `${modo === "video" ? "🎥" : "📞"} ${textoChamada({ modo, resultado: r.status, duracao: r.duracaoSeg })}`);
+  }
+  bVideo.addEventListener("click", () => ligarEquipe("video"));
+  bLigar.addEventListener("click", () => ligarEquipe("audio"));
   const barraBusca = h("div", "eq-busca"); barraBusca.hidden = true;
   const inBusca = h("input"); inBusca.type = "search"; inBusca.placeholder = "Buscar nesta conversa"; inBusca.setAttribute("aria-label", "Buscar nesta conversa");
   const resBusca = h("span", "eq-busca-res");
@@ -575,6 +591,7 @@ export function montarChat(el) {
   // ---------- cabeçalho compacto ----------
   function pintarTopo() {
     quem.replaceChildren();
+    bVideo.hidden = bLigar.hidden = !ehDm(conv);
     quem.removeAttribute("title");
     if (ehCanal(conv)) {
       const c = canalPorId(idCanal(conv));

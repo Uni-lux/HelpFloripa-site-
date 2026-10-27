@@ -853,6 +853,31 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   e a duração). Aviso "Proibido vender" da Comunidade em amarelo (sumia no tema claro). **Estatísticas sem plano:**
   `negocios.html?insights=ID` abria antes de ler o plano (`garantirPlano()` agora); estatísticas do perfil (`insights.js`)
   mostram "Seus negócios" sem números e com PLUS (levam aos planos). Testes `t-estat-gratis.mjs`, `t-negociacao`.
+- **Ligações de voz e vídeo (27/10/2026, PR depois do #101, MUDA REGRAS — não publicadas; 15 partes, 614 testes):**
+  `chamadas.js` (sem rede.js; WebRTC 1 a 1): sinalização em `chamadas/{id}` {de, para, conv, tipo audio|video, status
+  chamando|aceita|recusada|cancelada|perdida|encerrada, oferta, resposta, criadoEm, aceitaEm, fimEm, encerradaPor} +
+  `candidatos/{auto}` {de, c, em}. Regras: só entre os 2 de uma conversa que existe (`conv` = ids em ordem), sem bloqueio;
+  quem recebe atende com a resposta; qualquer um encerra; nada se apaga. `ICE.stun` Google/Cloudflare (grátis);
+  **`ICE.turn` vazio**: sem TURN, parte das ligações em 4G/rede de empresa não conecta ("A rede não deixou conectar") —
+  contratar Cloudflare TURN (credencial gerada por Cloud Function, precisa do Blaze). `ouvirChamadas(uid)` ligado no
+  firebase.js (tela de chamada em qualquer página, campainha WebAudio + vibração, 45 s = perdida, ocupado = recusa).
+  Chat: botões Vídeo e Ligar no topo (no celular a lupa sai do topo, fica no ⋯), cartão `cartao {tipo:"chamada", modo,
+  resultado, duracao}` (NÃO usar `status` no cartão: colide com o cartão de status de pedido) com "Ligar de novo/Retornar".
+  Tocar com o site fechado (notificação) ainda NÃO: precisa de push (FCM + Cloud Function, Blaze). Teste `t-ligacao.mjs`.
+  Site ainda sem `manifest.webmanifest`/service worker (para virar app: PWABuilder/TWA ou Capacitor — perguntar a ele).
+- **App (PWA) + ligações no chat da equipe (27/10/2026, mesmo PR das ligações):** `manifest.webmanifest` (nome, start_url
+  `index.html?origem=app`, standalone, fundo #000, atalhos Mensagens/Diário/Meus negócios/Notificações), ícones novos sem os
+  cantos brancos `icone-192/512.png` e `icone-maskable-192/512.png` (feitos do android-chrome-512, fundo #011a38 com brilho
+  ciano), `<link rel="manifest">` em todas as páginas, `sw.js` (páginas sempre da rede, `offline.html` estilizada sem
+  internet; só guarda ícones/offline — nunca JS, para não prender versão velha; registrado no firebase.js só em https).
+  Chat da equipe: Vídeo e Ligar nas conversas individuais (`equipe_dm`; regra aceita conversas OU equipe_dm), registro
+  "📞 Ligação de voz · N s" como mensagem. Música livre: a rede daqui bloqueia FreePD/Incompetech, não deu para baixar e
+  conferir licenças — deixado de lado (combinado com ele).
+  **Imagens novas dele (27/10):** ícone só da ponte com neon azul → `icone-192/512`, `icone-maskable-*` (arte em ~72%),
+  `apple-touch-icon.png`, `android-chrome-*`, `favicon*` (fundo preto); ícone com o nome → `icone-nome-512.png` (reserva);
+  logo deitada com a frase → `logo-horizontal.png` (tela offline, `mix-blend-mode: lighten` some com o retângulo preto).
+  Bolinha do Google (busca): `favicon-48x48`/`favicon-96x96`/`favicon-192x192.png` feitos do maskable (cabem no círculo),
+  `<link rel="icon" sizes="96x96">` em todas as páginas; o Google só troca quando passar de novo pelo site.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

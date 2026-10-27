@@ -169,45 +169,4 @@
       allow delete: if logado() && resource.data.donoId == request.auth.uid;
     }
 
-    match /conversas/{conversaId} {
-
-      // Cada pessoa só mexe na própria marca de leitura / "digitando".
-      function soMinhaChave(campo) {
-        return !mudou().hasAny([campo])
-            || (request.resource.data[campo] is map
-                && request.resource.data[campo].diff(resource.data.get(campo, {})).affectedKeys().hasOnly([request.auth.uid]));
-      }
-
-      function contextoOk() {
-        let c = request.resource.data.get('contexto', null);
-        return c == null
-            || (c is map && c.keys().hasOnly(['tipo', 'titulo'])
-                && c.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'comunidade']
-                && valorTextoAte(c.get('titulo', ''), 120));
-      }
-
-      // Conversa ainda não criada: só quem faz parte dela (o id tem os dois uids) pode consultar.
-      allow get: if logado()
-                 && ((resource == null && request.auth.uid in conversaId.split('_'))
-                     || (resource != null && request.auth.uid in resource.data.participantes));
-
-      allow list: if logado()
-                  && request.auth.uid in resource.data.participantes;
-      // A moderação vê quem conversa com quem (para a ficha e denúncias), mas não lista mensagens.
-      allow read: if podeModerar();
-
-      allow create: if logado()
-                    && request.resource.data.participantes is list
-                    && request.resource.data.participantes.size() == 2
-                    && request.auth.uid in request.resource.data.participantes
-                    && request.resource.data.participantes[0] < request.resource.data.participantes[1]
-                    && conversaId == request.resource.data.participantes[0]
-                                     + '_' + request.resource.data.participantes[1]
-                    && !bloqueioEntre(request.resource.data.participantes[0],
-                                      request.resource.data.participantes[1])
-                    && emailOk()
-                    && request.resource.data.keys().hasOnly(['participantes', 'ultimaMensagem', 'atualizadoEm', 'contexto', 'criadoEm'])
-                    && contextoOk()
-                    && textoAte('ultimaMensagem', 200);
-
-// ===== FIM DA PARTE 4 DE 15 =====
+// ===== FIM DA PARTE 4 DE 16 =====

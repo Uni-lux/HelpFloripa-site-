@@ -1,28 +1,3 @@
-    // Canais da equipe por setor (equipe-canais.js): equipe_canais/{canal} guarda só o resumo da última
-    // mensagem; as mensagens ficam em equipe_canais/{canal}/mensagens. Toda a equipe lê; em "avisos" só
-    // os donos escrevem.
-    function canalEquipeOk(canal) {
-      return canal.matches('^(avisos|seguranca|moderacao|pagamentos|negocios|conta|comercial)$')
-          && (canal != 'avisos' || papel() == 'dono');
-    }
-    match /equipe_canais/{canal} {
-      allow read: if admin();
-      allow create, update: if admin() && canalEquipeOk(canal)
-                    && request.resource.data.keys().hasOnly(['ultimaEm', 'ultimaTexto', 'ultimoAutor', 'ultimoNome', 'mencoes'])
-                    && request.resource.data.ultimoAutor == request.auth.uid
-                    && request.resource.data.ultimaEm == request.time
-                    && valorTextoAte(request.resource.data.get('ultimaTexto', ''), 140)
-                    && valorTextoAte(request.resource.data.get('ultimoNome', ''), 80)
-                    && (!('mencoes' in request.resource.data) || (request.resource.data.mencoes is list && request.resource.data.mencoes.size() <= 10));
-      allow delete: if false;
-      match /mensagens/{id} {
-        allow read: if admin();
-        allow create: if admin() && canalEquipeOk(canal) && msgEquipeOk('canal-' + canal);
-        allow update: if admin() && reacaoValida();
-        allow update: if admin() && (edicaoEquipeOk() || apagarEquipeOk(id));
-        allow delete: if false;
-      }
-    }
     // Conversa individual entre duas pessoas da equipe: equipe_dm/{uidA_uidB} (ids em ordem).
     // O documento guarda só o resumo (última mensagem e quando cada um leu).
     match /equipe_dm/{par} {
@@ -204,4 +179,35 @@
     }
 
 
-// ===== FIM DA PARTE 11 DE 15 =====
+    // =====================================================
+    // PEDIDOS DE EXCLUSÃO DE CONTA: exclusoes/{uid}
+    // A pessoa pede a exclusão; durante 30 dias pode recuperar a conta (apaga este
+    // documento). Depois disso a limpeza automática (Admin SDK, fora das regras)
+    // apaga a conta e os dados e anonimiza avaliações e reclamações.
+    // =====================================================
+    match /exclusoes/{uid} {
+      allow get: if logado() && request.auth.uid == uid;
+      allow read: if admin();
+      allow create: if logado()
+                    && request.auth.uid == uid
+                    && request.resource.data.keys().hasOnly(['pedidaEm', 'motivo'])
+                    && request.resource.data.pedidaEm == request.time
+                    && valorTextoAte(request.resource.data.get('motivo', ''), 300);
+      allow update: if false;
+      allow delete: if logado() && request.auth.uid == uid;
+    }
+
+
+    // =====================================================
+    // ESTRELAS NAS PUBLICAÇÕES: curtidas/{postId}_{uid}
+    // Nota de 1 a 5, uma por pessoa em cada publicação. A pessoa pode
+    // trocar a nota ou tirar. Ninguém dá estrelas na própria publicação.
+    // =====================================================
+    match /curtidas/{id} {
+
+      allow read: if logado();
+
+      function notaOk(d) {
+        return d.nota is int && d.nota >= 1 && d.nota <= 5;
+      }
+// ===== FIM DA PARTE 12 DE 16 =====

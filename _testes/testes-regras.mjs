@@ -977,6 +977,33 @@ await t("comunidade: denúncia de venda no anúncio", () => assertSucceeds(setDo
 await t("comunidade: denúncia contra quem não é o dono é recusada", () => assertFails(setDoc(doc(ctx("dono"), "denuncias", "comunidade_c3_dono2"), { tipo: "comunidade", alvoId: "bia", itemId: "c3", autorId: "dono", motivo: "venda", status: "nova", criadoEm: serverTimestamp() })));
 await t("conversa: assunto Saúde e Comunidade", () => assertSucceeds(setDoc(doc(ctx("ana"), "conversas", "ana_zeca"), { participantes: ["ana", "zeca"], ultimaMensagem: "", atualizadoEm: serverTimestamp(), contexto: { tipo: "comunidade", titulo: "Sofá" } })));
 
+// ---------- ligações de voz e vídeo (chamadas) ----------
+await semRegras((db) => Promise.all([setDoc(doc(db, "conversas", "lg1_lg2"), { participantes: ["lg1", "lg2"] }), setDoc(doc(db, "conversas", "lg1_lg3"), { participantes: ["lg1", "lg3"] }), setDoc(doc(db, "bloqueios", "lg3_lg1"), { em: Timestamp.now() })]));
+const OF = { type: "offer", sdp: "v=0\r\no=- 1 2 IN IP4 127.0.0.1\r\n" };
+const chamadaNova = (x = {}) => ({ de: "lg1", para: "lg2", conv: "lg1_lg2", tipo: "video", status: "chamando", oferta: OF, criadoEm: serverTimestamp(), ...x });
+await t("ligação: quem já conversa liga", () => assertSucceeds(setDoc(doc(ctx("lg1"), "chamadas", "c1"), chamadaNova())));
+await t("ligação: sem conversa antes é recusada", () => assertFails(setDoc(doc(ctx("lg1"), "chamadas", "c2"), chamadaNova({ para: "lg9", conv: "lg1_lg9" }))));
+await t("ligação: com bloqueio é recusada", () => assertFails(setDoc(doc(ctx("lg1"), "chamadas", "c3"), chamadaNova({ para: "lg3", conv: "lg1_lg3" }))));
+await t("ligação: em nome de outra pessoa é recusada", () => assertFails(setDoc(doc(ctx("lg2"), "chamadas", "c4"), chamadaNova())));
+await t("ligação: conversa que não é dos dois é recusada", () => assertFails(setDoc(doc(ctx("lg1"), "chamadas", "c5"), chamadaNova({ conv: "lg1_lg3" }))));
+await t("ligação: tipo estranho é recusado", () => assertFails(setDoc(doc(ctx("lg1"), "chamadas", "c6"), chamadaNova({ tipo: "tela" }))));
+await t("ligação: oferta grande demais é recusada", () => assertFails(setDoc(doc(ctx("lg1"), "chamadas", "c7"), chamadaNova({ oferta: { type: "offer", sdp: "x".repeat(31000) } }))));
+await t("ligação: quem recebe ouve a campainha (lista as que tocam)", () => assertSucceeds(getDocs(query(collection(ctx("lg2"), "chamadas"), where("para", "==", "lg2"), where("status", "==", "chamando")))));
+await t("ligação: outra pessoa não lê", () => assertFails(getDoc(doc(ctx("lg3"), "chamadas", "c1"))));
+await t("ligação: quem liga não atende a própria chamada", () => assertFails(updateDoc(doc(ctx("lg1"), "chamadas", "c1"), { status: "aceita", resposta: { type: "answer", sdp: "v=0" }, aceitaEm: serverTimestamp() })));
+await t("ligação: candidato de quem liga", () => assertSucceeds(addDoc(collection(ctx("lg1"), "chamadas", "c1", "candidatos"), { de: "lg1", c: { candidate: "candidate:1 1 udp 1 127.0.0.1 5000 typ host", sdpMid: "0", sdpMLineIndex: 0 }, em: serverTimestamp() })));
+await t("ligação: candidato de outra pessoa é recusado", () => assertFails(addDoc(collection(ctx("lg3"), "chamadas", "c1", "candidatos"), { de: "lg3", c: { candidate: "x", sdpMid: "0", sdpMLineIndex: 0 }, em: serverTimestamp() })));
+await t("ligação: quem recebe atende com a resposta", () => assertSucceeds(updateDoc(doc(ctx("lg2"), "chamadas", "c1"), { status: "aceita", resposta: { type: "answer", sdp: "v=0" }, aceitaEm: serverTimestamp() })));
+await t("ligação: quem recebe lê os candidatos", () => assertSucceeds(getDocs(collection(ctx("lg2"), "chamadas", "c1", "candidatos"))));
+await t("ligação: não troca a oferta depois", () => assertFails(updateDoc(doc(ctx("lg2"), "chamadas", "c1"), { oferta: { type: "offer", sdp: "outra" }, status: "encerrada", fimEm: serverTimestamp(), encerradaPor: "lg2" })));
+await t("ligação: encerrar em nome do outro é recusado", () => assertFails(updateDoc(doc(ctx("lg2"), "chamadas", "c1"), { status: "encerrada", fimEm: serverTimestamp(), encerradaPor: "lg1" })));
+await t("ligação: qualquer um encerra", () => assertSucceeds(updateDoc(doc(ctx("lg2"), "chamadas", "c1"), { status: "encerrada", fimEm: serverTimestamp(), encerradaPor: "lg2" })));
+await t("ligação: encerrada não volta a tocar", () => assertFails(updateDoc(doc(ctx("lg1"), "chamadas", "c1"), { status: "perdida", fimEm: serverTimestamp(), encerradaPor: "lg1" })));
+await t("ligação: candidato depois de encerrada é recusado", () => assertFails(addDoc(collection(ctx("lg1"), "chamadas", "c1", "candidatos"), { de: "lg1", c: { candidate: "x", sdpMid: "0", sdpMLineIndex: 0 }, em: serverTimestamp() })));
+await semRegras((db) => setDoc(doc(db, "equipe_dm", "lg5_lg6"), { participantes: ["lg5", "lg6"] }));
+await t("ligação: conversa individual da equipe também liga", () => assertSucceeds(setDoc(doc(ctx("lg5"), "chamadas", "c8"), chamadaNova({ de: "lg5", para: "lg6", conv: "lg5_lg6", tipo: "audio" }))));
+await t("ligação: ninguém apaga", () => assertFails(deleteDoc(doc(ctx("lg1"), "chamadas", "c1"))));
+
 // ---------- resultado ----------
 for (const r of resultados) console.log(r[0] === "ok" ? "  ✔" : "  ✘", r[1], r[2] ? "→ " + r[2] : "");
 console.log(`\n${ok} passaram, ${falhou} falharam (${arquivo})`);

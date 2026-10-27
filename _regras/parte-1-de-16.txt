@@ -240,4 +240,4 @@ service cloud.firestore {
           && request.resource.data.get('ocultoPelaEquipe', false) is bool;
     }
 
-// ===== FIM DA PARTE 1 DE 15 =====
+// ===== FIM DA PARTE 1 DE 16 =====
