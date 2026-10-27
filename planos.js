@@ -173,7 +173,7 @@ const CSS = `
 .pl-status.perto .dias { background: color-mix(in srgb, #f5a524 22%, transparent); } .pl-status.perto .pl-barra i { background: #f5a524; }
 .pl-status.vencido { border-color: color-mix(in srgb, #ef4444 50%, transparent); background: color-mix(in srgb, #ef4444 9%, transparent); }
 .pl-credito { margin: 10px 2px 0; padding: 10px 12px; border-radius: 14px; font-size: 12.5px; line-height: 1.45; background: color-mix(in srgb, #2563eb 12%, transparent); }
-.pl-ajuda { display: grid; gap: 10px; margin-top: 18px; padding: 16px; border-radius: 20px; border: 1px dashed color-mix(in srgb, #2fbf71 55%, var(--line, #22313a)); background: color-mix(in srgb, #2fbf71 6%, transparent); }
+.pl-ajuda { display: grid; gap: 10px; margin-top: 18px; padding: 16px; border-radius: 20px; border: 1px solid var(--line, #22313a); background: var(--panel-2, #162128); }
 .pl-ajuda b { font-size: 15.5px; } .pl-ajuda p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--muted, #8fa0ab); }
 .pl-ajuda .bts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .pl-ajuda .pl-btn { margin-top: 0; min-height: 46px; font-size: 14px; }
@@ -209,6 +209,14 @@ const CSS = `
 .pl-tipo.on { border-color: transparent; background: var(--g); color: #fff; box-shadow: 0 12px 26px -12px var(--c); }
 .pl-tipo.on i { background: rgba(255, 255, 255, .22); } .pl-tipo.on small { color: rgba(255, 255, 255, .92); }
 .pl-tipo:active { transform: scale(.98); }
+.pl-tempo { display: grid; gap: 8px; margin-top: 4px; }
+.pl-tempo-tit { font-size: 12px; font-weight: 850; letter-spacing: .06em; text-transform: uppercase; color: var(--muted, #8fa0ab); }
+.pl-per-neg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pl-per-neg .pl-per { text-align: left; }
+.pl-per-neg .pl-per .tot { font-size: 16px; font-weight: 900; }
+.pl-per-neg .pl-per.on { border-color: var(--tom); background: color-mix(in srgb, var(--tom) 14%, var(--panel-2, #162128)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--tom) 18%, transparent); }
+.pl-tipo.pl-atalho { padding: 14px 14px 44px; min-height: 128px; }
+.pl-tipo .pl-seta { position: absolute; right: 12px; bottom: 10px; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: rgba(255, 255, 255, .22); font-size: 18px; font-weight: 900; line-height: 1; }
 .pl-passo { display: grid; gap: 10px; padding: 16px; border-radius: 20px; border: 1px solid var(--line, #22313a); background: var(--panel-2, #162128); }
 .pl-passo-tit { display: flex; align-items: center; gap: 10px; }
 .pl-passo-tit .n { display: grid; place-items: center; flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--grad); color: #fff; font-size: 13px; font-weight: 900; }
@@ -462,10 +470,14 @@ export async function abrirPlanos(op) {
       aj.appendChild(v);
     } else {
       aj.append(el("b", null, "Não dá para pagar agora?"), el("p", null, `Seu negócio continua no ar de graça, com 1 perfil. Tem baixa renda? Com um documento que comprove, você paga ${Math.round(BAIXA_RENDA.desconto * 100)}% menos em qualquer plano (o Plus sai por ${reais(precoBaixaRenda("plus"))}). Quer propor outro valor, um prazo, uma troca ou uma parceria? Mande a sua proposta.`));
-      const bts = el("div", "bts");
-      const a1 = el("button", "pl-btn verde"); a1.type = "button"; a1.textContent = "Baixa renda: 50% off"; a1.addEventListener("click", () => mostrarNegociacao("apoio"));
-      const a2 = el("button", "pl-btn sec"); a2.type = "button"; a2.textContent = "Parceria ou negociação"; a2.addEventListener("click", () => mostrarNegociacao("parceria"));
-      bts.append(a1, a2); aj.appendChild(bts);
+      // Os dois caminhos nos mesmos cartões coloridos do formulário (já "acesos").
+      const bts = el("div", "pl-tipos");
+      [["apoio", "%", "Baixa renda", `50% off · Plus por ${reais(precoBaixaRenda("plus"))}`], ["parceria", "⇄", "Parceria ou negociação", "Valor, prazo, troca ou parceria"]].forEach(([k, ic, t, sub]) => {
+        const b = el("button", `pl-tipo ${k} on pl-atalho`); b.type = "button"; b.dataset.t = k;
+        b.append(el("i", null, ic), el("b", null, t), el("small", null, sub), el("span", "pl-seta", "›"));
+        b.addEventListener("click", () => mostrarNegociacao(k)); bts.appendChild(b);
+      });
+      aj.appendChild(bts);
     }
     corpo.appendChild(aj);
   }
@@ -541,9 +553,24 @@ export async function abrirPlanos(op) {
         b.addEventListener("click", () => { planoQ = k; pintarCards(); });
         return b;
       }));
+      pintarPeriodos();
     };
+    // Baixa renda: por quanto tempo (o preço do mês já tem os 50%; não soma com o desconto dos períodos).
+    let mesesQ = 1;
+    const periodos = el("div", "pl-periodos pl-per-neg"); periodos.setAttribute("role", "radiogroup"); periodos.setAttribute("aria-label", "Por quanto tempo");
+    const pintarPeriodos = () => {
+      periodos.replaceChildren(...PERIODOS.map(([m, nome]) => {
+        const on = m === mesesQ, total = Math.round(precoBaixaRenda(planoQ) * m * 100) / 100;
+        const b = el("button", "pl-per" + (on ? " on" : "")); b.type = "button"; b.dataset.m = String(m); b.setAttribute("role", "radio"); b.setAttribute("aria-checked", String(on));
+        b.append(el("b", null, nome), el("span", "tot", reais(total)), el("s", null, reais(PLANOS[planoQ].preco * m)), el("span", "mes", `${reais(precoBaixaRenda(planoQ))} por mês`));
+        b.addEventListener("click", () => { mesesQ = m; pintarPeriodos(); });
+        return b;
+      }));
+    };
+    const tempoBox = el("div", "pl-tempo");
+    tempoBox.append(el("span", "pl-tempo-tit", "Por quanto tempo"), periodos, el("small", "pl-passo-sub", "Na baixa renda o desconto é sempre de 50%, em qualquer período. A equipe confere o comprovante e libera pelo tempo escolhido."));
     const pPlano = passo(1, "Escolha o plano");
-    pPlano.appendChild(cards);
+    pPlano.append(cards, tempoBox);
     const lv = el("label"); const lvTxt = el("span"); const valor = el("input"); valor.type = "text"; valor.inputMode = "decimal"; valor.placeholder = "Ex.: 25,00"; valor.maxLength = 8; valor.id = "plNegValor";
     lv.append(lvTxt, valor);
     const lm = el("label"); const lmTxt = el("span"); const msg = el("textarea"); msg.maxLength = 1500; msg.id = "plNegMsg";
@@ -602,7 +629,7 @@ export async function abrirPlanos(op) {
       tipos.querySelectorAll(".pl-tipo").forEach((b) => { const on = b.dataset.t === tipo; b.classList.toggle("on", on); b.setAttribute("aria-checked", String(on)); });
       const ap = tipo === "apoio";
       f.dataset.tipo = tipo;
-      prova.hidden = !ap; lv.hidden = ap;
+      prova.hidden = !ap; lv.hidden = ap; tempoBox.hidden = !ap;
       tit.textContent = ap ? "Condição especial para baixa renda" : "Parceria ou negociação";
       intro.textContent = ap ? `Quem comprova baixa renda paga a metade: ${Math.round(BAIXA_RENDA.desconto * 100)}% de desconto em qualquer plano, com tudo o que o plano oferece.` : "A gente aceita negociar: proponha um valor, um prazo de pagamento, uma troca (divulgação, serviços) ou uma parceria. A equipe responde com uma proposta.";
       pContaTit.replaceChildren(el("span", "n", ap ? "3" : "2"), el("b", null, ap ? "Conte a sua situação" : "Sua proposta"));
@@ -628,7 +655,7 @@ export async function abrirPlanos(op) {
       if (v < 0 || v > 1000) { toast("Confira o valor."); valor.focus(); return; }
       enviar.disabled = true;
       const dados = { uid: eu.uid, nome: String(op.dados?.nome || "").slice(0, 80), email: String(eu.email || "").slice(0, 120), tipo, plano: planoQ, valorProposto: tipo === "apoio" ? precoBaixaRenda(planoQ) : Math.round(v * 100) / 100, contato: contato.value.trim().slice(0, 40), mensagem: texto.slice(0, 1500), status: "novo", criadoEm: fb.serverTimestamp(),
-        ...(tipo === "apoio" ? { comprovanteTipo: docEscolhido, declaracao: true, ...(anexo ? { comprovante: { tipo: anexo.tipo, url: anexo.url, nome: String(anexo.nome || "").slice(0, 120) } } : {}) } : {}) };
+        ...(tipo === "apoio" ? { mesesPedidos: mesesQ, comprovanteTipo: docEscolhido, declaracao: true, ...(anexo ? { comprovante: { tipo: anexo.tipo, url: anexo.url, nome: String(anexo.nome || "").slice(0, 120) } } : {}) } : {}) };
       try {
         await fb.setDoc(fb.doc(fb.db, "planos_negociacoes", eu.uid), dados);
         neg = { id: eu.uid, ...dados, criadoEm: { toMillis: () => Date.now() } }; op._novoPedido = false;

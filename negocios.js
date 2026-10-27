@@ -17,7 +17,7 @@ import { lerStats, listaDias, somarPeriodo } from "./estat-negocio.js?v=1";
 import { geocodificar, geoOk } from "./perto.js?v=2";
 import { LIMITES_GRATIS, perfisDoPlano } from "./planos-base.js?v=8";
 import { compartilharPerfil, baixarArte, desenharQr } from "./qr.js?v=1";
-import { abrirPlanos, lerPlano, esquecerPlano, nivelPlano, emTolerancia, pedidoAberto, lerNegociacao, testeDisponivel, seloPlano, nomePlano, diasRestantes, textoFalta, PRECO_MIN, DIAS_TESTE, reais } from "./planos.js?v=19";
+import { abrirPlanos, lerPlano, esquecerPlano, nivelPlano, emTolerancia, pedidoAberto, lerNegociacao, testeDisponivel, seloPlano, nomePlano, diasRestantes, textoFalta, PRECO_MIN, DIAS_TESTE, reais } from "./planos.js?v=20";
 import { termosBusca } from "./busca.js?v=1";
 import { PROFISSOES_SAUDE, CATEGORIAS_SAUDE, MODALIDADES_SAUDE, PUBLICO_SAUDE, PUBLICO_VET, CONVENIOS, IDIOMAS, UFS, conselhoDe, ehVet, textoRegistro } from "./saude-dados.js?v=1";
 import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO, CATEGORIAS, GRUPOS_SERV, PALAVRAS_SERV, prazoPromo } from "./vitrine.js?v=63";
@@ -295,8 +295,8 @@ function pintarPainel() {
     const n = meusNegocios.find((x) => x.tipo === tipo);
     // Faixa do topo: um lugar por tipo, aceso quando criado.
     const sl = el(n ? "a" : "button", `ng-slot ${tipo}${n ? " feito" : ""}`);
-    const slIc = el("span", "ic"); slIc.appendChild(icone(n ? "check" : tipo, "i xs"));
-    sl.append(slIc, el("span", null, t.rotulo));
+    const slIc = el("span", "ic"); slIc.appendChild(icone(tipo, "i xs"));
+    sl.append(slIc, el("span", null, t.rotulo), el("small", "st" + (n && pausadoAqui(n) ? " pausa" : ""), n ? (pausadoAqui(n) ? "Pausado" : "No ar") : "+ Criar"));
     if (n) { sl.href = "#neg-" + tipo; sl.title = `${t.rotulo}: criado`; }
     else { sl.type = "button"; sl.title = `Criar ${t.rotulo}`; sl.addEventListener("click", () => novoNegocio(tipo)); }
     slots.appendChild(sl);
@@ -446,8 +446,8 @@ function pintarPainel() {
 function cartaoComunidade(grade, criar, slots) {
   const n = (meusComunidade || []).length;
   const sl = el("a", `ng-slot comunidade${n ? " feito" : ""}`);
-  const slIc = el("span", "ic"); slIc.appendChild(icone(n ? "check" : "comunidade", "i xs"));
-  sl.append(slIc, el("span", null, "Comunidade"));
+  const slIc = el("span", "ic"); slIc.appendChild(icone("comunidade", "i xs"));
+  sl.append(slIc, el("span", null, "Comunidade"), el("small", "st", n ? `${n} ${n === 1 ? "anúncio" : "anúncios"}` : "+ Anunciar"));
   sl.href = n ? "comunidade.html?meus=1" : "comunidade.html?novo=doacao"; sl.title = n ? "Comunidade: seus anúncios" : "Anunciar na Comunidade";
   slots.appendChild(sl);
   const aviso = () => { const a = el("div", "ng-com-aviso"); a.append(icone("alerta", "i xs"), el("span", null, "Proibido vender ou cobrar. Quem descumpre é banido da Comunidade.")); return a; };
@@ -491,14 +491,18 @@ function maiorDeIdade() {
   return i >= 18;
 }
 // Estatísticas do negócio (insights-negocio.js, carregado só quando abre).
+// Quem chega pelo link (negocios.html?insights=ID) pode chegar antes do plano ser lido: lê antes de decidir.
+async function garantirPlano() { if (planoEu === undefined) planoEu = (await lerPlano(fb, eu.uid).catch(() => null)) || null; }
 async function abrirEstatisticas(n) {
+  await garantirPlano();
   if (semPlano()) { verPlanos("plus"); return; } // estatísticas fazem parte dos planos
   try {
-    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=30");
+    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=31");
     abrirInsightsNegocio(n, { aoEditar: (neg) => abrirFormNegocio(meusNegocios.find((x) => x.id === neg.id) || neg) });
   } catch (e) { toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)); }
 }
-function escolherEstatisticas() {
+async function escolherEstatisticas() {
+  await garantirPlano();
   if (semPlano()) { verPlanos("plus"); return; }
   if (!meusNegocios.length) { toast("Crie um perfil de negócio para ver as estatísticas."); return; }
   if (meusNegocios.length === 1) { abrirEstatisticas(meusNegocios[0]); return; }

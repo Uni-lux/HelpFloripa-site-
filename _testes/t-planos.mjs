@@ -35,8 +35,8 @@ ok(await p.locator(".pl-card.on[data-plano='pro']").count() === 1 && await p.loc
 await p.locator(".pl-card[data-plano='premium']").click();
 ok(await p.locator(".pl-tabela .pl-lin.cab span").count() === 5 && (await p.locator(".pl-tabela .pl-lin.cab span").nth(1).textContent()) === "Grátis", "tabela com a coluna Grátis (para comparar) e os 3 planos");
 ok((await p.textContent(".pl-hero .pl-bonus")).includes("+30 dias grátis") && await p.locator(".pl-teste").count() === 0 && await p.locator(".pl-per .bonus").count() === 4 && (await p.locator(".pl-btn", { hasText: "Pagar" }).textContent()).includes("59,90") && (await p.locator(".pl-lin.cab span.sel").textContent()) === "Premium", "primeira assinatura: +30 dias grátis à vista (sem teste sem pagar); Premium troca o preço e a coluna: " + (await p.textContent(".pl-hero .pl-bonus")).replace(/\s+/g, " "));
-ok(await p.locator(".pl-ajuda .pl-btn", { hasText: "Baixa renda" }).count() === 1 && await p.locator(".pl-ajuda .pl-btn", { hasText: "Parceria ou negociação" }).count() === 1 && (await p.textContent(".pl-ajuda")).includes("14,95"), "botões de condição especial e de parceria ou negociação");
-await p.locator(".pl-ajuda .pl-btn", { hasText: "Parceria ou negociação" }).click(); await p.waitForSelector(".pl-form");
+ok(await p.locator(".pl-ajuda .pl-tipo", { hasText: "Baixa renda" }).count() === 1 && await p.locator(".pl-ajuda .pl-tipo", { hasText: "Parceria ou negociação" }).count() === 1 && (await p.textContent(".pl-ajuda")).includes("14,95"), "botões de condição especial e de parceria ou negociação");
+await p.locator(".pl-ajuda .pl-tipo", { hasText: "Parceria ou negociação" }).click(); await p.waitForSelector(".pl-form");
 ok((await p.textContent(".pl-form h3")) === "Parceria ou negociação" && (await p.textContent(".pl-form")).includes("aceita negociar") && await p.locator(".pl-prova").isHidden(), "formulário de negociação (sem pedir comprovante de renda)");
 await p.screenshot({ path: "saida/pl-negociacao.png" });
 await p.locator(".pl-volta").click(); await p.waitForSelector(".pl-card");
@@ -117,7 +117,7 @@ await browser.close(); // duas abas do mesmo navegador travam o Firestore do tes
 const ANA = await navegador({ mobile: true });
 const an = await entrar(ANA.ctx, "ana", "negocios.html?planos=1");
 await an.waitForSelector(".pl-ajuda", { timeout: 20000 });
-await an.locator(".pl-ajuda .pl-btn", { hasText: "Baixa renda" }).click();
+await an.locator(".pl-ajuda .pl-tipo", { hasText: "Baixa renda" }).click();
 await an.waitForSelector("#plNegMsg");
 ok(await an.locator("#plNegValor").isHidden() && (await an.locator(".pl-pn[data-p='plus']").textContent()).includes("14,95"), "baixa renda: 50% em cada plano (Plus 14,95), sem propor valor");
 await an.locator(".pl-pn[data-p='plus']").click();

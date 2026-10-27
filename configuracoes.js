@@ -79,7 +79,7 @@ $("cfgFlash").addEventListener("click", () => import("./stories.js?v=38").then((
   m.abrirConfigFlash();
   const f = $("folhaLista"); const volta = () => { f?.removeEventListener("fechada", volta); setTimeout(pintarConfig, 60); }; f?.addEventListener("fechada", volta);
 }));
-$("cfgInsights").addEventListener("click", () => import("./insights.js?v=29").then((m) => m.abrirInsights()));
+$("cfgInsights").addEventListener("click", () => import("./insights.js?v=30").then((m) => m.abrirInsights()));
 $("cfgGosto").addEventListener("click", async () => {
   if (!await confirmarHF({ titulo: "Recomeçar o seu Principais?", texto: "O Diário esquece o que aprendeu sobre o seu gosto neste aparelho e volta a mostrar o que está em alta.", ok: "Recomeçar", icone: "alerta", cor: "normal" })) return;
   try { localStorage.removeItem("hf-gosto"); } catch {}
