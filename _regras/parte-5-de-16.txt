@@ -1,4 +1,5 @@
-    // Ligações de voz e vídeo (chamadas.js): só entre as duas pessoas de uma conversa que já existe e sem bloqueio.
+    // Ligações de voz e vídeo (chamadas.js): só entre as duas pessoas de uma conversa que já existe (do site ou do chat
+    // da equipe) e sem bloqueio.
     // A chamada guarda a "campainha" (oferta/resposta do WebRTC) e o resultado; áudio e vídeo nunca passam por aqui.
     match /chamadas/{id} {
       function daChamada() { return logado() && (request.auth.uid == resource.data.de || request.auth.uid == resource.data.para); }
@@ -10,7 +11,9 @@
                     && request.resource.data.para is string && request.resource.data.para != request.auth.uid
                     && request.resource.data.conv == (request.auth.uid < request.resource.data.para
                          ? request.auth.uid + '_' + request.resource.data.para : request.resource.data.para + '_' + request.auth.uid)
-                    && exists(/databases/$(database)/documents/conversas/$(request.resource.data.conv))
+                    // conversa do site ou conversa individual do chat da equipe (equipe_dm)
+                    && (exists(/databases/$(database)/documents/conversas/$(request.resource.data.conv))
+                        || exists(/databases/$(database)/documents/equipe_dm/$(request.resource.data.conv)))
                     && !bloqueioEntre(request.auth.uid, request.resource.data.para)
                     && request.resource.data.tipo in ['audio', 'video']
                     && request.resource.data.status == 'chamando'
@@ -197,10 +200,5 @@
                       && request.resource.data.criadoEm == request.time
                       && textoAte('texto', 4000)
                       && mensagemOk();
-
-        // Editar (só quem enviou): o texto novo e, na lista "edicoes", a versão anterior (quem
-        // conversa pode ver o original). Cartões de pedido/avaliação e mensagens apagadas não se editam.
-        // Editar e apagar só até 10 minutos depois de enviar.
-        function noPrazoDeMexer() { return request.time < resource.data.criadoEm + duration.value(10, 'm'); }
 
 // ===== FIM DA PARTE 5 DE 16 =====

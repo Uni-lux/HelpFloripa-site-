@@ -73,6 +73,8 @@ import("./voltar.js?v=6").then((m) => m.ligarVoltar()).catch((e) => console.warn
 import("./confirmar.js?v=4").then((m) => m.guardarSaida()).catch((e) => console.warn("[Saída]", e?.message || e));
 
 // Aviso temporário de manutenção (liga e desliga no próprio manutencao.js).
+// App instalado (PWA): service worker simples (sw.js) — páginas sempre da rede, offline.html sem internet.
+if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch((e) => console.warn("[App]", e?.message || e));
 import("./manutencao.js?v=1").then((m) => m.avisoManutencao()).catch((e) => console.warn("[Manutenção]", e?.message || e));
 
 // Portão da conta: quem entra com a conta desativada ou com a exclusão pedida vai para

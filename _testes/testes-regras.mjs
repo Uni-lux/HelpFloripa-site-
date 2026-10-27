@@ -1000,6 +1000,8 @@ await t("ligação: encerrar em nome do outro é recusado", () => assertFails(up
 await t("ligação: qualquer um encerra", () => assertSucceeds(updateDoc(doc(ctx("lg2"), "chamadas", "c1"), { status: "encerrada", fimEm: serverTimestamp(), encerradaPor: "lg2" })));
 await t("ligação: encerrada não volta a tocar", () => assertFails(updateDoc(doc(ctx("lg1"), "chamadas", "c1"), { status: "perdida", fimEm: serverTimestamp(), encerradaPor: "lg1" })));
 await t("ligação: candidato depois de encerrada é recusado", () => assertFails(addDoc(collection(ctx("lg1"), "chamadas", "c1", "candidatos"), { de: "lg1", c: { candidate: "x", sdpMid: "0", sdpMLineIndex: 0 }, em: serverTimestamp() })));
+await semRegras((db) => setDoc(doc(db, "equipe_dm", "lg5_lg6"), { participantes: ["lg5", "lg6"] }));
+await t("ligação: conversa individual da equipe também liga", () => assertSucceeds(setDoc(doc(ctx("lg5"), "chamadas", "c8"), chamadaNova({ de: "lg5", para: "lg6", conv: "lg5_lg6", tipo: "audio" }))));
 await t("ligação: ninguém apaga", () => assertFails(deleteDoc(doc(ctx("lg1"), "chamadas", "c1"))));
 
 // ---------- resultado ----------

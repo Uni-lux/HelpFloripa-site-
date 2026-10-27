@@ -897,7 +897,8 @@ service cloud.firestore {
       allow delete: if logado() && resource.data.donoId == request.auth.uid;
     }
 
-    // Ligações de voz e vídeo (chamadas.js): só entre as duas pessoas de uma conversa que já existe e sem bloqueio.
+    // Ligações de voz e vídeo (chamadas.js): só entre as duas pessoas de uma conversa que já existe (do site ou do chat
+    // da equipe) e sem bloqueio.
     // A chamada guarda a "campainha" (oferta/resposta do WebRTC) e o resultado; áudio e vídeo nunca passam por aqui.
     match /chamadas/{id} {
       function daChamada() { return logado() && (request.auth.uid == resource.data.de || request.auth.uid == resource.data.para); }
@@ -909,7 +910,9 @@ service cloud.firestore {
                     && request.resource.data.para is string && request.resource.data.para != request.auth.uid
                     && request.resource.data.conv == (request.auth.uid < request.resource.data.para
                          ? request.auth.uid + '_' + request.resource.data.para : request.resource.data.para + '_' + request.auth.uid)
-                    && exists(/databases/$(database)/documents/conversas/$(request.resource.data.conv))
+                    // conversa do site ou conversa individual do chat da equipe (equipe_dm)
+                    && (exists(/databases/$(database)/documents/conversas/$(request.resource.data.conv))
+                        || exists(/databases/$(database)/documents/equipe_dm/$(request.resource.data.conv)))
                     && !bloqueioEntre(request.auth.uid, request.resource.data.para)
                     && request.resource.data.tipo in ['audio', 'video']
                     && request.resource.data.status == 'chamando'

@@ -1,3 +1,8 @@
+        // Editar (só quem enviou): o texto novo e, na lista "edicoes", a versão anterior (quem
+        // conversa pode ver o original). Cartões de pedido/avaliação e mensagens apagadas não se editam.
+        // Editar e apagar só até 10 minutos depois de enviar.
+        function noPrazoDeMexer() { return request.time < resource.data.criadoEm + duration.value(10, 'm'); }
+
         allow update: if logado()
                       && request.auth.uid == resource.data.remetenteId
                       && noPrazoDeMexer()

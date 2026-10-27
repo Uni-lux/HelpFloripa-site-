@@ -865,6 +865,14 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   resultado, duracao}` (NÃO usar `status` no cartão: colide com o cartão de status de pedido) com "Ligar de novo/Retornar".
   Tocar com o site fechado (notificação) ainda NÃO: precisa de push (FCM + Cloud Function, Blaze). Teste `t-ligacao.mjs`.
   Site ainda sem `manifest.webmanifest`/service worker (para virar app: PWABuilder/TWA ou Capacitor — perguntar a ele).
+- **App (PWA) + ligações no chat da equipe (27/10/2026, mesmo PR das ligações):** `manifest.webmanifest` (nome, start_url
+  `index.html?origem=app`, standalone, fundo #000, atalhos Mensagens/Diário/Meus negócios/Notificações), ícones novos sem os
+  cantos brancos `icone-192/512.png` e `icone-maskable-192/512.png` (feitos do android-chrome-512, fundo #011a38 com brilho
+  ciano), `<link rel="manifest">` em todas as páginas, `sw.js` (páginas sempre da rede, `offline.html` estilizada sem
+  internet; só guarda ícones/offline — nunca JS, para não prender versão velha; registrado no firebase.js só em https).
+  Chat da equipe: Vídeo e Ligar nas conversas individuais (`equipe_dm`; regra aceita conversas OU equipe_dm), registro
+  "📞 Ligação de voz · N s" como mensagem. Música livre: a rede daqui bloqueia FreePD/Incompetech, não deu para baixar e
+  conferir licenças — deixado de lado (combinado com ele).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

@@ -1,0 +1,28 @@
+{
+  "name": "Help Floripa",
+  "short_name": "Help Floripa",
+  "description": "Tudo que você precisa em um só lugar: serviços, delivery, lojinhas, imóveis, saúde e comunidade.",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "id": "./",
+  "start_url": "./index.html?origem=app",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#000000",
+  "theme_color": "#0b1014",
+  "categories": ["business", "social", "lifestyle", "shopping"],
+  "icons": [
+    { "src": "icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icone-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icone-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Mensagens", "url": "./mensagens.html?origem=app", "icons": [{ "src": "icone-192.png", "sizes": "192x192" }] },
+    { "name": "Diário", "url": "./feed.html?origem=app", "icons": [{ "src": "icone-192.png", "sizes": "192x192" }] },
+    { "name": "Meus negócios", "url": "./negocios.html?origem=app", "icons": [{ "src": "icone-192.png", "sizes": "192x192" }] },
+    { "name": "Notificações", "url": "./notificacoes.html?origem=app", "icons": [{ "src": "icone-192.png", "sizes": "192x192" }] }
+  ]
+}
