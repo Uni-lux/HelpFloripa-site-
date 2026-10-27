@@ -912,8 +912,9 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   Limites conhecidos: ligações sem TURN (parte das chamadas em 4G/rede de empresa não conecta; Cloudflare TURN precisa de Cloud
   Function/Blaze); ligação não toca com o site fechado (precisa de push FCM + Blaze); música em publicações/Flash deixada de
   lado (pedido dele; a rede daqui bloqueia os sites de música livre). Para virar app: PWABuilder (TWA) a partir de
-  https://helpfloripa.com.br (manifest e sw.js prontos). Decisões a confirmar com ele: baixa renda 50% NÃO soma com o desconto
-  do período (escolhido por mim); prazo de 30/11/2026 para quem já anuncia se verificar.
+  https://helpfloripa.com.br (manifest e sw.js prontos). Decidido por ele (27/10): baixa renda 50% NÃO soma com o desconto do
+  período (sempre metade do preço, em 1, 3, 6 ou 12 meses). Hoje ninguém anuncia de verdade (só contas de teste dele):
+  o prazo de 30/11/2026 para verificar não afeta ninguém.
 - **As 5 etapas estão concluídas.** Próximos passos são as pendências abaixo (só ele pode fazer) e o que ficou
   para depois.
 
