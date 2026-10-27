@@ -873,6 +873,9 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   Chat da equipe: Vídeo e Ligar nas conversas individuais (`equipe_dm`; regra aceita conversas OU equipe_dm), registro
   "📞 Ligação de voz · N s" como mensagem. Música livre: a rede daqui bloqueia FreePD/Incompetech, não deu para baixar e
   conferir licenças — deixado de lado (combinado com ele).
+  **Imagens novas dele (27/10):** ícone só da ponte com neon azul → `icone-192/512`, `icone-maskable-*` (arte em ~72%),
+  `apple-touch-icon.png`, `android-chrome-*`, `favicon*` (fundo preto); ícone com o nome → `icone-nome-512.png` (reserva);
+  logo deitada com a frase → `logo-horizontal.png` (tela offline, `mix-blend-mode: lighten` some com o retângulo preto).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

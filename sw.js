@@ -2,8 +2,8 @@
 // - páginas (.html): sempre da rede; sem internet, mostra a página offline.html (estilizada);
 // - ícones e a página offline ficam guardados; o resto (JS com ?v=, Firebase, fotos) não passa por aqui,
 //   para nunca prender uma versão velha do site.
-const VERSAO = "hf-app-1";
-const GUARDAR = ["offline.html", "icone-192.png", "icone-512.png", "logo.png"];
+const VERSAO = "hf-app-2";
+const GUARDAR = ["offline.html", "icone-192.png", "icone-512.png", "logo-horizontal.png"];
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(VERSAO).then((c) => c.addAll(GUARDAR)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", (e) => {
   e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== VERSAO).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
