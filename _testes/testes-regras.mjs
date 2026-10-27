@@ -860,7 +860,9 @@ await t("negociação: decidida não muda mais pela equipe", () => assertFails(u
 await t("negociação: depois de decidida, a pessoa pede de novo", () => assertSucceeds(setDoc(doc(ctx("loja"), "planos_negociacoes", "loja"), semCampos(negPlano("loja", { tipo: "parceria", valorProposto: 0 }), "comprovanteTipo", "declaracao", "comprovante"))));
 await t("negociação: pedido novo não leva a decisão antiga", () => assertFails(setDoc(doc(ctx("bia"), "planos_negociacoes", "bia"), negPlano("bia", { valorAcordado: 0 }))));
 await t("negociação: a pessoa cancela o pedido aberto", () => assertSucceeds(updateDoc(doc(ctx("loja"), "planos_negociacoes", "loja"), { status: "cancelado" })));
-await t("negociação: pedido com 'mando depois' e sem anexo", () => assertSucceeds(setDoc(doc(ctx("loja"), "planos_negociacoes", "loja"), semCampos(negPlano("loja", { comprovanteTipo: "depois" }), "comprovante"))));
+await t("negociação: baixa renda com 'mando depois' é recusada (tem que comprovar)", () => assertFails(setDoc(doc(ctx("loja"), "planos_negociacoes", "loja"), semCampos(negPlano("loja", { comprovanteTipo: "depois" }), "comprovante"))));
+await t("negociação: baixa renda sem o documento anexado é recusada", () => assertFails(setDoc(doc(ctx("loja"), "planos_negociacoes", "loja"), semCampos(negPlano("loja"), "comprovante"))));
+await t("negociação: baixa renda com o documento anexado", () => assertSucceeds(setDoc(doc(ctx("loja"), "planos_negociacoes", "loja"), negPlano("loja", { comprovanteTipo: "bolsa", valorProposto: 15, plano: "plus" }))));
 await t("negociação: cancelar apaga o documento junto", async () => { await semRegras((db) => updateDoc(doc(db, "planos_negociacoes", "loja"), { comprovante: { tipo: "arquivo", url: "data:application/pdf;base64,JVBERi0=", nome: "x.pdf" } })); await assertSucceeds(updateDoc(doc(ctx("loja"), "planos_negociacoes", "loja"), { status: "cancelado", comprovante: deleteField() })); });
 await t("negociação: ninguém apaga", () => assertFails(deleteDoc(doc(ctx("adm"), "planos_negociacoes", "loja"))));
 

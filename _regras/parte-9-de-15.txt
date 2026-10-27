@@ -151,24 +151,4 @@
             && valorTextoAte(d.get('responsavelNome', ''), 80)
             && (!('assumidoEm' in d) || d.assumidoEm == request.time || d.assumidoEm == resource.data.get('assumidoEm', null));
       }
-      function pedidoNegOk() {
-        let d = request.resource.data;
-        return d.keys().hasOnly(['uid', 'nome', 'email', 'tipo', 'plano', 'valorProposto', 'contato', 'mensagem', 'status', 'criadoEm', 'comprovanteTipo', 'comprovante', 'declaracao', 'perfisPedidos', 'mesesPedidos'])
-          && (!('perfisPedidos' in d) || (d.perfisPedidos is int && d.perfisPedidos >= 1 && d.perfisPedidos <= 5))
-          && (!('mesesPedidos' in d) || (d.mesesPedidos is int && d.mesesPedidos >= 1 && d.mesesPedidos <= 12))
-          && (d.tipo != 'apoio' || (d.get('declaracao', false) == true
-              && d.get('comprovanteTipo', '') is string
-              && d.get('comprovanteTipo', '').matches('^(cadunico|bolsa|bpc|cnis|renda|desemprego|tarifa|mei|isento|depois)$')))
-          && (!('comprovante' in d) || (d.tipo == 'apoio' && comprovanteOk(d.comprovante)))
-          && d.uid == request.auth.uid && uid == request.auth.uid
-          && d.tipo in ['apoio', 'parceria']
-          && d.plano in ['plus', 'pro', 'premium']
-          && d.valorProposto is number && d.valorProposto >= 0 && d.valorProposto <= 1000
-          && d.mensagem is string && d.mensagem.size() >= 20 && d.mensagem.size() <= 1500
-          && valorTextoAte(d.get('contato', ''), 40)
-          && valorTextoAte(d.get('nome', ''), 80)
-          && valorTextoAte(d.get('email', ''), 120)
-          && d.status == 'novo'
-          && d.criadoEm == request.time;
-      }
 // ===== FIM DA PARTE 9 DE 15 =====

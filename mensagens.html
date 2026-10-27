@@ -268,6 +268,9 @@
     .px-campo { display: grid; gap: 4px; margin-bottom: 10px; font-size: 13px; font-weight: 700; }
     .px-campo input { min-height: 44px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel-2, var(--panel)); color: var(--text); font: inherit; font-weight: 500; font-size: 15px; }
     .px-campo small { font-weight: 500; color: var(--muted); font-size: 12px; }
+    .px-campo .px-tipo.erro { color: #e5484d; }
+    .pv-corpo > .pv-btn + .pv-btn { margin-top: 8px; }
+    .pv-btn.perigo { color: #e5484d; border-color: color-mix(in srgb, #e5484d 40%, var(--line)); }
     .px-vazio { margin: 8px; font-size: 13px; color: var(--muted); }
     .lc-previa { padding: 4px; border-radius: 16px; background: var(--bolha-minha, color-mix(in srgb, var(--accent) 30%, var(--panel))); color: var(--text); }
     .ax-grade { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 6px; }
@@ -851,6 +854,9 @@
     /* Dentro da gaveta de mensagens de outra página: sem "início" e sem a barra da rede */
     html.embutido .side-top > a.icon-btn:first-child, html.embutido #barraRede { display: none; }
     .menu hr { border: 0; height: 1px; margin: 5px 8px; background: var(--line); }
+    #menuMsg { min-width: 250px; overflow-y: auto; overscroll-behavior: contain; }
+    #menuMsg .menu-sec { padding: 8px 12px 2px; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+    #menuMsg hr { margin: 4px 8px; }
     .visualizador { position: fixed; inset: 0; z-index: 70; background: rgba(0, 0, 0, .92); display: grid; place-items: center; padding: 50px 16px 16px; }
     .visualizador[hidden] { display: none; }
     .visualizador img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; }
@@ -3771,33 +3777,38 @@
     function abrirMenuConversa() {
       const menu = $("menuMsg");
       menu.replaceChildren();
-      // Agrupado: conversa · responder e organizar · ajustes · segurança (ações perigosas por último).
+      // Seções com título: conversa · atendimento · organizar · configurações · privacidade (ações perigosas por último).
       const c = () => conversas.find((x) => x.id === ativa?.id);
       const grupos = [
-        [
+        ["Conversa", [
           { rotulo: "Ver perfil", icone: "perfil", acao: verPerfil },
-          { rotulo: "Pesquisar na conversa", icone: "lupa", acao: abrirBuscaChat }
-        ],
-        [
+          { rotulo: "Pesquisar na conversa", icone: "lupa", acao: abrirBuscaChat },
+          window.innerWidth > 820 && { rotulo: "Fechar conversa", icone: "fechar", acao: () => fecharConversa() }
+        ]],
+        ["Atendimento", [
           { rotulo: "Respostas rápidas", icone: "responder", acao: () => setTimeout(abrirRespostasRapidas, 0) },
           meusNegociosChat?.length && assuntoDe(ativa?.dados) !== "pessoal" && { rotulo: "Notas do cliente", icone: "nota", acao: abrirNotas },
           { rotulo: "Pedir avaliação", icone: "estrela", acao: () => setTimeout(escolherNegocioParaAvaliacao, 0) },
+          { rotulo: "Mandar cartão de Pix", icone: "pix", acao: () => setTimeout(abrirCartaoPix, 0) }
+        ]],
+        ["Organizar", [
           { rotulo: "Classificar conversa", icone: "etiqueta", acao: () => setTimeout(() => abrirMenuAssunto(), 0) },
           { rotulo: ativa && conversaArquivada({ dados: ativa.dados }) ? "Desarquivar" : "Arquivar conversa", icone: "arquivo", acao: () => { const x = c(); if (x) arquivarConversa(x, !conversaArquivada(x)); } }
-        ],
-        [
+        ]],
+        ["Configurações", [
           { rotulo: "Configurações do chat", icone: "config", acao: () => abrirPainel("painelConfig") },
-          window.innerWidth > 820 && { rotulo: "Fechar conversa", icone: "fechar", acao: () => fecharConversa() }
-        ],
-        [
+          { rotulo: "Configurações de pagamento", icone: "pix", acao: () => setTimeout(abrirConfigPagamento, 0) }
+        ]],
+        ["Privacidade e segurança", [
           { rotulo: restritos.has(ativa?.outroId) ? "Remover restrição" : "Restringir", icone: "restringir", acao: alternarRestricao },
           { rotulo: bloqueios.meus.has(ativa?.outroId) ? "Desbloquear" : "Bloquear", icone: "bloquear", perigo: !bloqueios.meus.has(ativa?.outroId), acao: alternarBloqueio },
           { rotulo: "Apagar conversa", icone: "lixo", perigo: true, acao: () => { const x = c(); if (x) apagarConversaParaMim(x); } }
-        ]
+        ]]
       ];
-      grupos.forEach((grupo, gi) => {
+      grupos.forEach(([titulo, itens], gi) => {
         if (gi) { const hr = document.createElement("hr"); hr.setAttribute("role", "separator"); menu.appendChild(hr); }
-        grupo.filter(Boolean).forEach((op) => {
+        const t = document.createElement("div"); t.className = "menu-sec"; t.setAttribute("role", "presentation"); t.textContent = titulo; menu.appendChild(t);
+        itens.filter(Boolean).forEach((op) => {
           const b = document.createElement("button");
           b.type = "button";
           b.setAttribute("role", "menuitem");
@@ -3809,6 +3820,8 @@
       });
       menu.hidden = false;
       const r = $("btnMenuConversa").getBoundingClientRect();
+      // Menu maior que a tela: rola por dentro.
+      menu.style.maxHeight = Math.max(220, innerHeight - r.bottom - 14) + "px";
       const mr = menu.getBoundingClientRect();
       menu.style.left = Math.max(8, r.right - mr.width) + "px";
       menu.style.top = (r.bottom + 4) + "px";
@@ -4156,6 +4169,42 @@
       });
       corpo.append(lChave, lNome, lCid, lVal, lDesc, prev, enviar);
       pintarPrevia();
+    }
+    // Configurações de pagamento (⋯ da conversa): a chave Pix guardada na conta (usuarios.pix), usada no cartão de Pix.
+    async function abrirConfigPagamento() {
+      const { corpo, fechar } = abrirGaveta("Configurações de pagamento");
+      let salvo = {};
+      try { salvo = (await fb.getDoc(fb.doc(fb.db, "usuarios", eu.uid))).data()?.pix || {}; } catch {}
+      const campo = (rot, attrs, dica) => {
+        const l = elm("label", "px-campo"); l.appendChild(elm("span", null, rot));
+        const i = document.createElement("input"); Object.assign(i, attrs); l.appendChild(i);
+        if (dica) l.appendChild(elm("small", null, dica));
+        return [l, i];
+      };
+      const intro = elm("p", "px-aviso", "Sua chave Pix fica guardada na sua conta e já vem preenchida quando você manda um cartão de Pix (clipe → Pix). Só aparece para quem recebe o cartão.");
+      const [lChave, iChave] = campo("Sua chave Pix", { value: salvo.chave || "", placeholder: "E-mail, celular, CPF, CNPJ ou chave aleatória", maxLength: 77, autocapitalize: "off", spellcheck: false });
+      const [lNome, iNome] = campo("Nome de quem recebe", { value: salvo.nome || meuPerfil.nome || eu.displayName || "", placeholder: "Como aparece no banco", maxLength: 60 }, "Use o mesmo nome que o banco mostra, para o cliente conferir antes de pagar.");
+      const [lCid, iCid] = campo("Cidade", { value: salvo.cidade || String(meuPerfil.cidade || "").split("/")[0] || "", placeholder: "Florianópolis", maxLength: 40 });
+      const tipo = elm("small", "px-tipo");
+      const mostrarTipo = () => { const tk = tipoChavePix(iChave.value); tipo.textContent = !iChave.value.trim() ? "" : tk ? `Tipo da chave: ${tk.tipo}` : "Chave inválida: confira e-mail, celular com DDD, CPF, CNPJ ou chave aleatória."; tipo.classList.toggle("erro", !!iChave.value.trim() && !tk); };
+      iChave.addEventListener("input", mostrarTipo); lChave.appendChild(tipo); mostrarTipo();
+      const salvar = elm("button", "pv-btn pri"); salvar.type = "button"; salvar.append(usar("check", "i s"), document.createTextNode("Salvar"));
+      salvar.addEventListener("click", async () => {
+        const tk = tipoChavePix(iChave.value);
+        if (!tk) { toast("Confira a chave Pix: e-mail, celular com DDD, CPF, CNPJ ou chave aleatória."); iChave.focus(); return; }
+        if (iNome.value.trim().length < 3) { toast("Escreva o nome de quem recebe, como aparece no banco."); iNome.focus(); return; }
+        salvar.disabled = true;
+        try { await fb.setDoc(fb.doc(fb.db, "usuarios", eu.uid), { pix: { chave: tk.chave, nome: iNome.value.trim().slice(0, 60), cidade: iCid.value.trim().slice(0, 40) } }, { merge: true }); toast("Chave Pix salva"); fechar(); }
+        catch { salvar.disabled = false; toast("Não foi possível salvar agora."); }
+      });
+      const btns = [salvar];
+      if (ativa) { const env = elm("button", "pv-btn"); env.type = "button"; env.append(usar("pix", "i s"), document.createTextNode("Mandar um cartão de Pix nesta conversa")); env.addEventListener("click", () => { fechar(); setTimeout(abrirCartaoPix, 0); }); btns.push(env); }
+      if (salvo.chave) {
+        const rem = elm("button", "pv-btn perigo"); rem.type = "button"; rem.append(usar("lixo", "i s"), document.createTextNode("Remover a chave salva"));
+        rem.addEventListener("click", async () => { try { await fb.setDoc(fb.doc(fb.db, "usuarios", eu.uid), { pix: fb.deleteField() }, { merge: true }); toast("Chave removida"); fechar(); } catch { toast("Não foi possível remover agora."); } });
+        btns.push(rem);
+      }
+      corpo.append(intro, lChave, lNome, lCid, ...btns, elm("p", "px-aviso", "O Help Floripa não intermedia pagamentos entre clientes e negócios: o dinheiro vai direto para a sua conta."));
     }
     // Gaveta de confirmação: mostra o cartão como vai chegar e envia com um toque.
     function confirmarEnvioLocal(titulo, cartao, rotuloBotao) {

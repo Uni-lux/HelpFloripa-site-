@@ -1916,9 +1916,11 @@ service cloud.firestore {
         return d.keys().hasOnly(['uid', 'nome', 'email', 'tipo', 'plano', 'valorProposto', 'contato', 'mensagem', 'status', 'criadoEm', 'comprovanteTipo', 'comprovante', 'declaracao', 'perfisPedidos', 'mesesPedidos'])
           && (!('perfisPedidos' in d) || (d.perfisPedidos is int && d.perfisPedidos >= 1 && d.perfisPedidos <= 5))
           && (!('mesesPedidos' in d) || (d.mesesPedidos is int && d.mesesPedidos >= 1 && d.mesesPedidos <= 12))
+          // Baixa renda: declaração + qual documento + o documento anexado (não dá mais para "mandar depois").
           && (d.tipo != 'apoio' || (d.get('declaracao', false) == true
               && d.get('comprovanteTipo', '') is string
-              && d.get('comprovanteTipo', '').matches('^(cadunico|bolsa|bpc|cnis|renda|desemprego|tarifa|mei|isento|depois)$')))
+              && d.get('comprovanteTipo', '').matches('^(cadunico|bolsa|bpc|cnis|renda|desemprego|tarifa|mei|isento)$')
+              && 'comprovante' in d))
           && (!('comprovante' in d) || (d.tipo == 'apoio' && comprovanteOk(d.comprovante)))
           && d.uid == request.auth.uid && uid == request.auth.uid
           && d.tipo in ['apoio', 'parceria']

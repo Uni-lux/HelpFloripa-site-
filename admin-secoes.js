@@ -12,7 +12,7 @@ import { verConteudoDenuncia } from "./admin-denuncia.js?v=17";
 import { prepararAnexo, blocoAnexo, previaAnexo, aceitos } from "./anexos-suporte.js?v=2";
 import { FILAS, filaDe, PRIORIDADES as PRIO_SUP, prioridadeChamado, situacaoPrazo, ordemFila } from "./suporte-fila.js?v=1";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
-import { PLANOS, ORDEM_PLANOS, DIAS_BONUS, nivelPlano, nomePlano, diasRestantes, creditoDias, descontoDe, nomeDocRenda, TIPOS_NEG as TIPOS_NEG_PL, NOMES_PERFIL, TIPOS_PERFIL, perfisDoPlano, mostraSelo } from "./planos.js?v=17";
+import { PLANOS, ORDEM_PLANOS, DIAS_BONUS, nivelPlano, nomePlano, diasRestantes, creditoDias, descontoDe, nomeDocRenda, TIPOS_NEG as TIPOS_NEG_PL, NOMES_PERFIL, TIPOS_PERFIL, perfisDoPlano, mostraSelo, BAIXA_RENDA } from "./planos.js?v=18";
 import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha,
@@ -1112,8 +1112,8 @@ export function planos(el) {
     if (negAbertaAd(n)) top.append(seloResp(n));
     top.append(h("span", "quando", relativo(n.criadoEm)));
     c.appendChild(top);
-    c.append(h("strong", null, `${TIPOS_NEG_PL[n.tipo] || "Pedido"} · quer o ${nomePlano(n.plano)} (${reaisPl(PLANOS[n.plano]?.preco)}/mês)`),
-      h("div", "meta", [n.valorProposto ? `Propõe ${reaisPl(n.valorProposto)} por mês` : "Sem valor proposto", n.contato ? `Contato: ${n.contato}` : "", dataHora(n.criadoEm)].filter(Boolean).join(" · ")));
+    c.append(h("strong", null, n.tipo === "apoio" ? `Baixa renda · ${nomePlano(BAIXA_RENDA.plano)} por ${reaisPl(BAIXA_RENDA.preco)}/mês (valor fixo)` : `${TIPOS_NEG_PL[n.tipo] || "Pedido"} · quer o ${nomePlano(n.plano)} (${reaisPl(PLANOS[n.plano]?.preco)}/mês)`),
+      h("div", "meta", [n.tipo === "apoio" ? "" : n.valorProposto ? `Propõe ${reaisPl(n.valorProposto)} por mês` : "Sem valor proposto", n.contato ? `Contato: ${n.contato}` : "", dataHora(n.criadoEm)].filter(Boolean).join(" · ")));
     // O que a pessoa precisa: perfis no ar, tempo e os perfis que ela já tem.
     const tem = D.negocios.filter((x) => x.donoId === uid).map((x) => NOMES_PERFIL[x.tipo] || x.tipo);
     const pede = h("div", "ad-neg-pede");
@@ -1174,12 +1174,13 @@ export function planos(el) {
     const uid = n.uid || n.id;
     const doms = donosSite();
     const sugestao = String(Math.min(365, (n.mesesPedidos || 1) * 30));
+    const ap = n.tipo === "apoio";
     const v = await modal({ titulo: "Aprovar e dar o plano", texto: `${pessoa(uid).nome || n.nome || "A pessoa"} recebe o plano na hora e um aviso com a sua mensagem. Valor 0 = sem custo (cortesia ou parceria).`, campos: [
-      { nome: "plano", rotulo: "Plano", tipo: "select", valor: n.plano, opcoes: ORDEM_PLANOS.map((k) => [k, `${PLANOS[k].nome} (${reaisPl(PLANOS[k].preco)}/mês)`]) },
+      { nome: "plano", rotulo: "Plano", tipo: "select", valor: ap ? BAIXA_RENDA.plano : n.plano, opcoes: ORDEM_PLANOS.map((k) => [k, `${PLANOS[k].nome} (${reaisPl(PLANOS[k].preco)}/mês)`]) },
       { nome: "duracao", rotulo: "Por quanto tempo", tipo: "select", valor: DURACOES.some(([k]) => k === sugestao) ? sugestao : "30", opcoes: DURACOES, ajuda: n.mesesPedidos ? `A pessoa pediu ${nMeses(n.mesesPedidos)}.` : "" },
       { nome: "data", rotulo: "Vale até", tipo: "date", valor: isoDe(agora() + 30 * DIA), seCampo: ["duracao", "data"] },
       ...(await camposPerfisSelo(uid, null, false)),
-      { nome: "valor", rotulo: "Valor combinado no total (R$)", valor: n.valorProposto ? String(n.valorProposto).replace(".", ",") : "0", max: 10, dica: "0 = sem custo" },
+      { nome: "valor", rotulo: "Valor combinado no total (R$)", valor: ap ? String(BAIXA_RENDA.preco * (n.mesesPedidos || 1)).replace(".", ",") : n.valorProposto ? String(n.valorProposto).replace(".", ",") : "0", max: 10, dica: "0 = sem custo", ajuda: ap ? `Baixa renda: valor fixo de ${reaisPl(BAIXA_RENDA.preco)} por mês (${nMeses(n.mesesPedidos || 1)} = ${reaisPl(BAIXA_RENDA.preco * (n.mesesPedidos || 1))}). Confira o comprovante antes.` : "" },
       { nome: "responsavel", rotulo: "Responsável por esta pessoa", tipo: "select", valor: n.responsavel || C.eu.uid, opcoes: doms.map((a) => [a.id, a.id === C.eu.uid ? `Eu (${a.nome || "você"})` : a.nome || nomeEquipe(a.id)]), ajuda: "Quem acompanha o plano e responde a pessoa." },
       { nome: "resposta", rotulo: "Mensagem para a pessoa", tipo: "textarea", max: 600, valor: n.tipo === "parceria" ? "Topamos a sua proposta. Que bom ter você com o Help Floripa!" : "Entendemos a sua situação e liberamos uma condição especial para você." }
     ], botao: "Aprovar" });

@@ -828,6 +828,14 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   `planos-base.js`: `perfisDoPlano`, `mostraSelo`, `NOMES_PERFIL`/`TIPOS_PERFIL`; `negocioPausado` também pausa perfil fora de
   `planos.tipos` (principal nunca pausa); vitrine/início escondem o selo com `semSelo`. Ativos: "Ajustar tempo, perfis e selo"
   (`ajustarPlano`, registro `plano_ajustar`, aviso se mudou prazo/perfis). Teste `t-negociacao.mjs`.
+- **Baixa renda R$ 15 fixo + comprovante obrigatório + pagamento no chat (27/10/2026, PR depois do #98, MUDA REGRA — não
+  publicada; 15 partes, 588 testes):** pedido dele: condição especial = valor fixo `BAIXA_RENDA` {plano "plus", preco 15}
+  (planos.js; escolhido por mim o Plus — confirmar com ele). Formulário de baixa renda sem escolher plano/valor (`.pl-fixo`).
+  "Mando o documento depois" SAIU: regra exige `comprovante` na baixa renda e tira "depois" do regex (`nomeDocRenda("depois")`
+  = "Ia mandar depois (pedido antigo)"). Painel: "Baixa renda · Plus por R$ 15/mês", valor sugerido 15 × meses. Meus negócios:
+  "Criar mesmo assim" virou "Criar pausado". Mensagens: ⋯ → "Configurações de pagamento" (`abrirConfigPagamento`: chave Pix
+  em `usuarios.pix`, tipo da chave na hora, remover). Testes `t-config-pix.mjs`, `t-negociacao.mjs`, `t-planos.mjs`.
+  Em aberto: selfie na verificação (proposta dada a ele).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

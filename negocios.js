@@ -17,7 +17,7 @@ import { lerStats, listaDias, somarPeriodo } from "./estat-negocio.js?v=1";
 import { geocodificar, geoOk } from "./perto.js?v=2";
 import { LIMITES_GRATIS, perfisDoPlano } from "./planos-base.js?v=8";
 import { compartilharPerfil, baixarArte, desenharQr } from "./qr.js?v=1";
-import { abrirPlanos, lerPlano, esquecerPlano, nivelPlano, emTolerancia, pedidoAberto, lerNegociacao, testeDisponivel, seloPlano, nomePlano, diasRestantes, textoFalta, PRECO_MIN, DIAS_TESTE, reais } from "./planos.js?v=17";
+import { abrirPlanos, lerPlano, esquecerPlano, nivelPlano, emTolerancia, pedidoAberto, lerNegociacao, testeDisponivel, seloPlano, nomePlano, diasRestantes, textoFalta, PRECO_MIN, DIAS_TESTE, reais } from "./planos.js?v=18";
 import { termosBusca } from "./busca.js?v=1";
 import { PROFISSOES_SAUDE, CATEGORIAS_SAUDE, MODALIDADES_SAUDE, PUBLICO_SAUDE, PUBLICO_VET, CONVENIOS, IDIOMAS, UFS, conselhoDe, ehVet, textoRegistro } from "./saude-dados.js?v=1";
 import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO, CATEGORIAS, GRUPOS_SERV, PALAVRAS_SERV, prazoPromo } from "./vitrine.js?v=63";
@@ -494,7 +494,7 @@ function maiorDeIdade() {
 async function abrirEstatisticas(n) {
   if (semPlano()) { verPlanos("plus"); return; } // estatísticas fazem parte dos planos
   try {
-    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=28");
+    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=29");
     abrirInsightsNegocio(n, { aoEditar: (neg) => abrirFormNegocio(meusNegocios.find((x) => x.id === neg.id) || neg) });
   } catch (e) { toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)); }
 }
@@ -524,8 +524,8 @@ async function novoNegocio(tipo) {
     const atual = meusNegocios.find((x) => x.tipo === principalEscolhido());
     const ok = await confirmarHF({
       titulo: "Sem plano, só um perfil fica no ar",
-      texto: `"${atual?.nome || "Seu perfil atual"}" continua no ar. O novo perfil fica pausado (fora das vitrines e da busca) até você assinar um plano ou escolher deixá-lo no ar no lugar do outro.`,
-      ok: "Criar mesmo assim", icone: "info", cor: "normal"
+      texto: `"${atual?.nome || "Seu perfil atual"}" continua no ar. O novo perfil fica pausado (fora das vitrines e da busca) até você assinar um plano ou escolher deixá-lo no ar no lugar do outro. Nada é apagado.`,
+      ok: "Criar pausado", icone: "info", cor: "normal"
     });
     if (!ok) return;
   }
