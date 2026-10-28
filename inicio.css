@@ -289,3 +289,5 @@ body[data-classe="inicio"] { --classe: #00adee; --classe-2: #7de3ff; --classe-in
 .faixa-seg small { color: var(--muted); font-size: 13px; line-height: 1.45; }
 .faixa-seg > svg { color: var(--muted); flex-shrink: 0; }
 /* Anel da foto pela cor do plano (borda do cartão: planos-base.js) */
+.mini.hf-pl-gratis .av { box-shadow: 0 0 0 2px #00adee; }
+.mini.hf-pl-plus .av, .mini.hf-pl-pro .av, .mini.hf-pl-premium .av { box-shadow: 0 0 0 2.5px var(--hf-pl); }

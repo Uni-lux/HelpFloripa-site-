@@ -161,6 +161,11 @@ function cssSelo() {
 .selo-pro { display: inline-flex; align-items: center; height: 18px; padding: 0 6px; border-radius: 6px; font-size: 10px; font-weight: 900; letter-spacing: .06em; color: #fff; background: linear-gradient(135deg, #7c3aed, #2563eb); vertical-align: middle; }
 .selo-pro.pl-plus { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
 .selo-pro.pl-premium { background: linear-gradient(135deg, #f59e0b, #d97706); }
-/* Cor do plano só no selo: os cartões (Início, Explorar, vitrines) ficam na cor do tipo de perfil. */`;
+/* Cartões pela cor do plano de quem anuncia (Início, Explorar): borda em degradê e brilho; grátis = azul claro. */
+.hf-pl-plus, .hf-pl-pro, .hf-pl-premium { border: 1.5px solid transparent !important; background: linear-gradient(var(--hf-pl-bg, var(--panel, #10181d)), var(--hf-pl-bg, var(--panel, #10181d))) padding-box, var(--hf-pl-borda) border-box !important; }
+.hf-pl-plus { --hf-pl: #2563ff; --hf-pl-borda: linear-gradient(135deg, #7cb4ff, #2563ff 45%, #1e3a8a); box-shadow: 0 12px 28px -18px #2563ff; }
+.hf-pl-pro { --hf-pl: #7c3aed; --hf-pl-borda: linear-gradient(135deg, #a855f7, #7c3aed 45%, #2f6bff); box-shadow: 0 12px 28px -16px #7c3aed; }
+.hf-pl-premium { --hf-pl: #f59e0b; --hf-pl-borda: linear-gradient(135deg, #fde68a, #f59e0b 35%, #b45309 60%, #fcd34d); box-shadow: 0 14px 30px -14px rgba(245, 158, 11, .6); }
+.hf-pl-gratis { --hf-pl: #00adee; }`;
   document.head.appendChild(s);
 }

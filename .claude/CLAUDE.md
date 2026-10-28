@@ -966,6 +966,16 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   Estado/Cidade), Minha cidade, Todo o Brasil e os campos Estado/Cidade; cada mudança salva na hora (`salvarLocal` +
   `marcarManual`) e vale no botão do topo, no início e nas outras vitrines. A folha do botão do topo (`escolherLocal`) abre
   na cor da página (`cores` → `--accent`; `coresDaPagina()` em vitrine.js).
+  **Organização das vitrines (28/10, PR depois do #110, pedido dele com prints do Spotify "adaptado à Help Floripa"):**
+  bordas/anéis na COR DO PLANO de volta (vt-cv pl-*, hf-pl-*, bolinhas, Início/Explorar como antes do #110; grátis = cor da
+  página). **O lugar escolhido NÃO conta como filtro** (`filtrando` sem `filtroLocal.uf`): antes, com a localização lida
+  sozinha, as vitrines escondiam destaques e fileiras por categoria. Fileiras no estilo dos apps de música: `carrossel(titulo,
+  itens, classe, {sub, mais, foto, pre})` (título 20 px, frase, "›" `.vt-car-mais`, cabeçalho "Parecido com" + foto; setas só
+  no computador). `fileirasDaPagina` (Vistos por você — `lembrarVisto`/`hf-vistos-{tipo}` gravado em abrirDetalhe/abrirAnuncio
+  ("anuncios") —, Parecido com o último visto, Em promoção, Perto de você (› ordena por "Mais perto", `mudarOrdemPagina`),
+  Chegaram agora) em Freelances, Saúde, Delivery e Imóveis; Shopping: Em promoção (preço riscado) e Perto de você.
+  Categorias: cada uma uma fileira com "N profissionais/imóveis..." e "›" (abre o filtro). Distância do cartão de imóvel acima
+  do preço (`.vt-imo .vt-dist` bottom 34px).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
