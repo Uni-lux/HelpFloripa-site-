@@ -934,6 +934,10 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   agora · Destaques · Novos · Perto de você; anel pela cor do plano, bolinha verde). `corDoPlano(fb, cartao, donoId)` em
   planos-base.js (classes `hf-pl-plus/pro/premium/gratis`, 1 leitura de `planos/{dono}` por dono, cache 10 min) nos cartões do
   Início (`.mini`, selo do plano foi para o canto de cima) e do Explorar (`.exp-neg`).
+  **Topos das 6 classes no modelo de Freelances (pedido dele, 28/10):** `body.pg-compacta` (topo compacto, classes 3 por linha
+  com ícone ao lado) em servicos/delivery/shopping/imoveis/saude/comunidade; `.hero.hero-arte` com a arte `{tipo}-arte.svg`
+  (delivery, shopping, imoveis, saude, comunidade geradas por `scripts/arte/gerar-artes.py`; sombra por `--arte-sombra`).
+  As fotos antigas (lanchonetes/shopping/imoveis.webp) continuam no Início/Explorar. Link Freelances agora #2563ff em todo lugar.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

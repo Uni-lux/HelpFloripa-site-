@@ -33,14 +33,14 @@
       document.querySelector('meta[name="theme-color"]').content = escuro ? "#0f161b" : "#ffffff";
     })();
   </script>
-  <link rel="stylesheet" href="categoria.css?v=9" />
+  <link rel="stylesheet" href="categoria.css?v=10" />
   <link rel="stylesheet" href="vitrine.css?v=36" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
   <script type="module" src="categoria.js?v=54"></script>
   <script type="module" src="vitrine.js?tipo=delivery&v=41"></script>
 </head>
-<body data-classe="delivery">
+<body data-classe="delivery" class="pg-compacta">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
     <symbol id="i-bebidas" viewBox="0 0 24 24"><path d="M6 4h12l-1.5 16h-9zM6.5 9h11"/><path d="M14 4l2-2"/></symbol>
     <symbol id="i-carrinho" viewBox="0 0 24 24"><path d="M3 4h2.2l2.2 11h10.4l2-8H6.3"/><circle cx="9" cy="19.5" r="1.4"/><circle cx="17" cy="19.5" r="1.4"/></symbol>
@@ -81,7 +81,7 @@
 
 
   <main class="pagina">
-    <section class="hero" style="--capa: url('lanchonetes.webp')" aria-labelledby="tituloPagina">
+    <section class="hero hero-arte" style="--capa: url('delivery-arte.svg')" aria-labelledby="tituloPagina">
       <div class="hero-corpo">
         <span class="selo-classe"><b><svg class="i xs" aria-hidden="true"><use href="#i-delivery"/></svg></b>Delivery</span>
         <h1 id="tituloPagina">Sabores da vizinhança, <span>direto de quem faz</span></h1>

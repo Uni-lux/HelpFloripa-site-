@@ -99,7 +99,7 @@ svg.i.xs { width: 14px; height: 14px; }
 .classe-link:active { transform: scale(.98); }
 .classe-link[aria-current="page"] { background: var(--c); border-color: var(--c); color: #fff; }
 .classe-link[aria-current="page"] svg { color: currentColor; }
-.classe-link.servicos { --c: #00adee; }
+.classe-link.servicos { --c: #2563ff; }
 .classe-link.delivery { --c: #ff7a1a; }
 .classe-link.lojinha { --c: #b066ff; }
 .classe-link.imoveis { --c: #2fbf71; }
@@ -261,26 +261,32 @@ svg.i.xs { width: 14px; height: 14px; }
   background: color-mix(in srgb, #ef4444 9%, var(--panel)); border: 1px solid color-mix(in srgb, #ef4444 32%, var(--line)); }
 .aviso-saude svg { flex: none; color: #ef4444; margin-top: 2px; }
 
-/* ---------- Freelances: azul escuro vivo, arte no lugar da foto e topo mais compacto ---------- */
-body.pg-freelances { --classe: #2563ff; --classe-2: #7cc8ff; --classe-ink: #ffffff; }
-.hero.hero-arte { background-position: 72% center; border-color: color-mix(in srgb, #2563ff 45%, var(--line)); box-shadow: 0 22px 50px -30px #1d4ed8; }
+/* ---------- Topo das classes no modelo de Freelances: arte em SVG no lugar da foto, topo compacto ---------- */
+body.pg-freelances { --classe: #2563ff; --classe-2: #7cc8ff; --classe-ink: #ffffff; --arte-sombra: 2 8 32; }
+body[data-classe="delivery"] { --arte-sombra: 26 8 0; }
+body[data-classe="lojinha"] { --arte-sombra: 18 4 36; }
+body[data-classe="imoveis"] { --arte-sombra: 1 20 10; }
+body[data-classe="saude"] { --arte-sombra: 0 20 18; }
+body[data-classe="comunidade"] { --arte-sombra: 28 0 12; }
+.hero.hero-arte { background-position: 72% center; border-color: color-mix(in srgb, var(--classe) 45%, var(--line));
+  box-shadow: 0 22px 50px -30px color-mix(in srgb, var(--classe) 80%, #000); }
 .hero.hero-arte::before {
   background:
-    linear-gradient(90deg, rgba(2, 8, 32, .82) 0%, rgba(2, 8, 32, .45) 55%, rgba(2, 8, 32, 0) 100%),
-    linear-gradient(180deg, rgba(2, 8, 32, 0) 50%, rgba(2, 8, 32, .55));
+    linear-gradient(90deg, rgb(var(--arte-sombra, 2 8 32) / .82) 0%, rgb(var(--arte-sombra, 2 8 32) / .45) 55%, rgb(var(--arte-sombra, 2 8 32) / 0) 100%),
+    linear-gradient(180deg, rgb(var(--arte-sombra, 2 8 32) / 0) 50%, rgb(var(--arte-sombra, 2 8 32) / .55));
 }
-body.pg-freelances .hero-corpo { padding: 20px 18px 18px; gap: 11px; }
-body.pg-freelances .hero h1 { font-size: clamp(25px, 6.4vw, 40px); letter-spacing: -.6px; }
-body.pg-freelances .hero .lead { font-size: 14px; line-height: 1.45; color: rgba(225, 236, 255, .85); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-body.pg-freelances .selo-classe { padding: 5px 11px 5px 6px; font-size: 11px; }
-body.pg-freelances .selo-classe b { width: 20px; height: 20px; }
-body.pg-freelances .hero .busca { margin-top: 2px; padding: 4px 4px 4px 14px; }
+body.pg-compacta .hero-corpo { padding: 20px 18px 18px; gap: 11px; }
+body.pg-compacta .hero h1 { font-size: clamp(25px, 6.4vw, 40px); letter-spacing: -.6px; }
+body.pg-compacta .hero .lead { font-size: 14px; line-height: 1.45; color: rgba(255, 255, 255, .85); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+body.pg-compacta .selo-classe { padding: 5px 11px 5px 6px; font-size: 11px; }
+body.pg-compacta .selo-classe b { width: 20px; height: 20px; }
+body.pg-compacta .hero .busca { margin-top: 2px; padding: 4px 4px 4px 14px; }
 /* Classes: 3 por linha, mais baixas, ícone ao lado do nome. */
-body.pg-freelances .classes.classes-painel { gap: 6px; margin-top: 2px; }
-body.pg-freelances .classes-painel .classe-link { flex-direction: row; gap: 6px; padding: 9px 6px; min-height: 0; font-size: 12.5px; border-radius: 12px; justify-content: center; }
-body.pg-freelances .classes-painel .classe-link svg { width: 15px; height: 15px; }
-body.pg-freelances .classes-painel .classe-link.servicos { --c: #2563ff; }
+body.pg-compacta .classes.classes-painel { gap: 6px; margin-top: 2px; }
+body.pg-compacta .classes-painel .classe-link { flex-direction: row; gap: 6px; padding: 9px 6px; min-height: 0; font-size: 12.5px; border-radius: 12px; justify-content: center; }
+body.pg-compacta .classes-painel .classe-link svg { width: 15px; height: 15px; }
 @media (min-width: 700px) {
-  body.pg-freelances .hero-corpo { padding: 30px 36px 28px; }
-  body.pg-freelances .hero .lead { font-size: 16px; }
+  body.pg-compacta .hero-corpo { padding: 30px 36px 28px; }
+  body.pg-compacta .hero .lead { font-size: 16px; }
+}
 }

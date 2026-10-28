@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
+  <!-- Arte do topo de Delivery (mesmo modelo da servicos-arte.svg). Gerada por scripts/arte/gerar-artes.py -->
+  <defs>
+    <linearGradient id="fundo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1f0800"/>
+      <stop offset=".45" stop-color="#8a2c00"/>
+      <stop offset="1" stop-color="#ff6a00"/>
+    </linearGradient>
+    <radialGradient id="brilho" cx=".78" cy=".35" r=".55">
+      <stop offset="0" stop-color="#ffb15e" stop-opacity=".5"/>
+      <stop offset=".55" stop-color="#ff6a00" stop-opacity=".12"/>
+      <stop offset="1" stop-color="#ff6a00" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="brilho2" cx=".1" cy="1" r=".6">
+      <stop offset="0" stop-color="#ffd166" stop-opacity=".3"/>
+      <stop offset="1" stop-color="#ffd166" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="traco" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffe6c2"/>
+      <stop offset="1" stop-color="#ff8a3d"/>
+    </linearGradient>
+    <pattern id="pontos" width="28" height="28" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.3" fill="#ffd0a0" opacity=".18"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="800" fill="url(#fundo)"/>
+  <rect width="1200" height="800" fill="url(#pontos)"/>
+  <rect width="1200" height="800" fill="url(#brilho)"/>
+  <rect width="1200" height="800" fill="url(#brilho2)"/>
+
+  <g fill="none" stroke="#ffb27a" stroke-opacity=".16">
+    <circle cx="930" cy="280" r="170" stroke-width="2"/>
+    <circle cx="930" cy="280" r="250" stroke-width="1.5"/>
+    <circle cx="930" cy="280" r="340" stroke-width="1"/>
+  </g>
+  <circle cx="930" cy="280" r="128" fill="#ffffff" fill-opacity=".04"/>
+  <g transform="translate(930 280) scale(5) translate(-12 -12)" fill="none" stroke="url(#traco)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5V14l-3-3 4-3 2 3h2"/></g>
+
+  <g fill="none" stroke="#ffe6c2" stroke-opacity=".35" stroke-width="2" stroke-dasharray="3 9" stroke-linecap="round">
+    <path d="M930 280 Q 780 140 700 120"/>
+    <path d="M930 280 Q 1080 120 1120 110"/>
+    <path d="M930 280 Q 1110 380 1130 470"/>
+    <path d="M930 280 Q 820 470 760 520"/>
+    <path d="M930 280 Q 960 520 980 600"/>
+  </g>
+
+  <g transform="translate(700 120)">
+    <circle r="44" fill="#4a1700" fill-opacity=".6" stroke="#ffb27a" stroke-opacity=".35" stroke-width="2"/>
+    <g transform="translate(-24 -24) scale(2)" fill="none" stroke="url(#traco)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 11h.01M11 15h.01M16 16h.01M2 16l20 6-6-20A20 20 0 0 0 2 16"/><path d="M5.71 17.11a17.04 17.04 0 0 1 11.4-11.4"/></g>
+  </g>
+  <g transform="translate(1120 110)">
+    <circle r="44" fill="#4a1700" fill-opacity=".6" stroke="#ffb27a" stroke-opacity=".35" stroke-width="2"/>
+    <g transform="translate(-24 -24) scale(2)" fill="none" stroke="url(#traco)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v2M14 2v2M6 2v2M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1"/></g>
+  </g>
+  <g transform="translate(1130 470)">
+    <circle r="44" fill="#4a1700" fill-opacity=".6" stroke="#ffb27a" stroke-opacity=".35" stroke-width="2"/>
+    <g transform="translate(-24 -24) scale(2)" fill="none" stroke="url(#traco)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11a2 2 0 0 1-2-2 9 7 0 0 1 18 0 2 2 0 0 1-2 2Z"/><path d="M3 14h18"/><path d="M5 17h14a2 2 0 0 1-2 3H7a2 2 0 0 1-2-3Z"/></g>
+  </g>
+  <g transform="translate(760 520)">
+    <circle r="44" fill="#4a1700" fill-opacity=".6" stroke="#ffb27a" stroke-opacity=".35" stroke-width="2"/>
+    <g transform="translate(-24 -24) scale(2)" fill="none" stroke="url(#traco)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 11l4.08 10.35a1 1 0 0 0 1.84 0L17 11"/><path d="M17 7A5 5 0 0 0 7 7"/><path d="M17 7a2 2 0 0 1 0 4H7a2 2 0 0 1 0-4"/></g>
+  </g>
+  <g transform="translate(980 600)">
+    <circle r="44" fill="#4a1700" fill-opacity=".6" stroke="#ffb27a" stroke-opacity=".35" stroke-width="2"/>
+    <g transform="translate(-24 -24) scale(2)" fill="none" stroke="url(#traco)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></g>
+  </g>
+
+  <g>
+    <path d="M590 640 c0 -22 18 -38 38 -38 s38 16 38 38 c0 28 -38 62 -38 62 s-38 -34 -38 -62z" fill="#ffc15e" fill-opacity=".9"/>
+    <circle cx="628" cy="640" r="13" fill="#1f0800"/>
+  </g>
+  <g fill="#ffd9a8" fill-opacity=".55">
+    <path d="M1080 700 c0 -13 10 -22 22 -22 s22 9 22 22 c0 16 -22 36 -22 36 s-22 -20 -22 -36z"/>
+    <path d="M520 260 c0 -10 8 -18 18 -18 s18 8 18 18 c0 13 -18 29 -18 29 s-18 -16 -18 -29z"/>
+  </g>
+  <g fill="#fff1a8">
+    <path d="M820 470 l7 15 16 2 -12 11 3 16 -14 -8 -14 8 3 -16 -12 -11 16 -2z" fill-opacity=".95"/>
+    <path d="M1060 330 l5 10 11 1.5 -8 7.5 2 11 -10 -5.5 -10 5.5 2 -11 -8 -7.5 11 -1.5z" fill-opacity=".8"/>
+  </g>
+  <g fill="#ffffff">
+    <circle cx="640" cy="200" r="3" fill-opacity=".7"/>
+    <circle cx="1170" cy="300" r="2.5" fill-opacity=".6"/>
+    <circle cx="860" cy="660" r="2.5" fill-opacity=".6"/>
+    <circle cx="560" cy="420" r="2" fill-opacity=".5"/>
+    <path d="M1040 520 v14 M1033 527 h14" stroke="#ffffff" stroke-opacity=".7" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M600 110 v12 M594 116 h12" stroke="#ffffff" stroke-opacity=".6" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+</svg>

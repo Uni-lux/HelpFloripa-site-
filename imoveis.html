@@ -33,14 +33,14 @@
       document.querySelector('meta[name="theme-color"]').content = escuro ? "#0f161b" : "#ffffff";
     })();
   </script>
-  <link rel="stylesheet" href="categoria.css?v=9" />
+  <link rel="stylesheet" href="categoria.css?v=10" />
   <link rel="stylesheet" href="vitrine.css?v=36" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
   <script type="module" src="categoria.js?v=54"></script>
   <script type="module" src="vitrine.js?tipo=imoveis&v=41"></script>
 </head>
-<body data-classe="imoveis">
+<body data-classe="imoveis" class="pg-compacta">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
     <symbol id="i-aluguel" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l8.5-8.5M16 7l2.5 2.5M14 9l2 2"/></symbol>
     <symbol id="i-apartamento" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2M11 21v-3h2v3"/></symbol>
@@ -81,7 +81,7 @@
 
 
   <main class="pagina">
-    <section class="hero" style="--capa: url('imoveis.webp')" aria-labelledby="tituloPagina">
+    <section class="hero hero-arte" style="--capa: url('imoveis-arte.svg')" aria-labelledby="tituloPagina">
       <div class="hero-corpo">
         <span class="selo-classe"><b><svg class="i xs" aria-hidden="true"><use href="#i-imoveis"/></svg></b>Imóveis</span>
         <h1 id="tituloPagina">O lugar certo para você, <span>direto com quem anuncia</span></h1>
