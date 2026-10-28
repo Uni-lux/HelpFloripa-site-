@@ -12,7 +12,7 @@
 import {
   $, el, icone, fb, eu, numero, toast, erroAmigavel, criarFolha, abrirFolha, infoEstrelas, contarComentarios,
   lerResumosEstrelas, fotosDoPost, ms, paraData, dataCompleta, tempoRelativo
-} from "./rede.js?v=69";
+} from "./rede.js?v=70";
 
 const ORIGENS = [["principais", "Principais"], ["seguindo", "Quem segue você"], ["amigos", "Amigos"], ["perfil", "Seu perfil"], ["link", "Link compartilhado"], ["tag", "Hashtags"], ["salvos", "Salvos"]];
 const contar = (q) => fb.getCountFromServer(q).then((s) => s.data().count).catch(() => null);

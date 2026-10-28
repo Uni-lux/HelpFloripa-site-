@@ -957,6 +957,15 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   Imóveis), quartos e bairro (Imóveis); `filtrosX.bairro`, `FILTROS_VAZIO()`. Bolinhas com abas (`bolhasProfissionais`) também
   em Delivery, Saúde, Shopping (no lugar de "Lojas") e Imóveis (anunciantes, `anunciantesDe`); carrossel de destaques
   (`secaoDestaques`) em Delivery e Saúde e "Destaques das lojas" no Shopping. Testes: `.vf-chip`, `.vf-aplicar`, `.hm-local-*`.
+  **Ajustes pedidos por ele (28/10, PR depois do #109):** os cartões de Saúde, Delivery, Imóveis, Shopping e Comunidade
+  VOLTARAM ao modelo de cada página (não mexer na organização dos cartões sem ele pedir); só Freelances ficou com o cartão de
+  visita (`.vt-cv`). **Cor do plano só no selo** (PLUS/PRO/PREMIUM): bordas, anéis da foto, bolinhas e seta na cor da página
+  (`--vc`); os estilos `hf-pl-*` de borda saíram do planos-base.js, inicio.css e rede.css. **Freelances voltou ao azul da
+  Help Floripa #00adee** (vitrine, topo `servicos-arte.svg` recolorida, `--c-servicos` do Início, `.classe-link.servicos`).
+  **Local dentro dos Filtros** (`.vf-local`, sem abrir outra janela): onde você está, Usar minha localização (preenche
+  Estado/Cidade), Minha cidade, Todo o Brasil e os campos Estado/Cidade; cada mudança salva na hora (`salvarLocal` +
+  `marcarManual`) e vale no botão do topo, no início e nas outras vitrines. A folha do botão do topo (`escolherLocal`) abre
+  na cor da página (`cores` → `--accent`; `coresDaPagina()` em vitrine.js).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
