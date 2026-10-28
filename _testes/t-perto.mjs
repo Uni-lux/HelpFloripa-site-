@@ -33,7 +33,7 @@ await p.locator("#secPerto").scrollIntoViewIfNeeded(); await p.screenshot({ path
 await p.goto(BASE + "servicos.html"); await p.waitForTimeout(4000);
 await p.evaluate(() => document.querySelector(".hfman-x")?.click());
 ok(await p.locator(".vt-dist").count() > 0, "vitrine: distância nos cartões");
-await p.locator(".vt-ordem button, .vt-ordem [role=tab]", { hasText: "Mais perto" }).first().click(); await p.waitForTimeout(800);
+await p.locator(".vt-ordem select").first().selectOption({ label: "Mais perto" }); await p.waitForTimeout(800);
 const ordem = await p.locator("#vtGrade .vt-free .nm, #vtGrade .vt-del .nm").allTextContents();
 ok(ordem.length && ordem[ordem.length - 1] === "Edu Pinturas", "Mais perto: São Paulo por último: " + ordem.join(", "));
 await p.click("#vtFiltrosBtn"); await p.waitForTimeout(400);

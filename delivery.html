@@ -33,12 +33,12 @@
       document.querySelector('meta[name="theme-color"]').content = escuro ? "#0f161b" : "#ffffff";
     })();
   </script>
-  <link rel="stylesheet" href="categoria.css?v=8" />
-  <link rel="stylesheet" href="vitrine.css?v=32" />
+  <link rel="stylesheet" href="categoria.css?v=10" />
+  <link rel="stylesheet" href="vitrine.css?v=33" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
-  <script type="module" src="categoria.js?v=52"></script>
-  <script type="module" src="vitrine.js?tipo=delivery&v=36"></script>
+  <script type="module" src="categoria.js?v=53"></script>
+  <script type="module" src="vitrine.js?tipo=delivery&v=37"></script>
 </head>
 <body data-classe="delivery">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -81,26 +81,29 @@
 
 
   <main class="pagina">
-    <section class="hero" style="--capa: url('lanchonetes.webp')" aria-labelledby="tituloPagina">
-      <div class="hero-corpo">
-        <span class="selo-classe"><b><svg class="i xs" aria-hidden="true"><use href="#i-delivery"/></svg></b>Delivery</span>
-        <h1 id="tituloPagina">Sabores da vizinhança, <span>direto de quem faz</span></h1>
-        <p class="lead">Hambúrguer, pizza, sushi ou doce. Veja quem está aberto agora, monte o carrinho e envie o pedido pelo chat ou pelo WhatsApp.</p>
-        <form class="busca" id="searchForm" role="search">
+    <!-- Painel da classe: abas das classes, título com o ícone da cor da classe e a busca (sem foto). -->
+    <section class="vp" aria-labelledby="tituloPagina">
+        <nav class="vp-classes" aria-label="Classes do Help Floripa">
+          <a class="vp-classe servicos" href="servicos.html"><svg class="i s" aria-hidden="true"><use href="#i-servicos"/></svg>Freelances</a>
+          <a class="vp-classe delivery" href="delivery.html" aria-current="page"><svg class="i s" aria-hidden="true"><use href="#i-delivery"/></svg>Delivery</a>
+          <a class="vp-classe lojinha" href="shopping.html"><svg class="i s" aria-hidden="true"><use href="#i-lojinha"/></svg>Shopping</a>
+          <a class="vp-classe imoveis" href="imoveis.html"><svg class="i s" aria-hidden="true"><use href="#i-imoveis"/></svg>Imóveis</a>
+          <a class="vp-classe saude" href="saude.html"><svg class="i s" aria-hidden="true"><use href="#i-saude"/></svg>Saúde</a>
+          <a class="vp-classe comunidade" href="comunidade.html"><svg class="i s" aria-hidden="true"><use href="#i-comunidade"/></svg>Comunidade</a>
+        </nav>
+        <div class="vp-cab">
+          <span class="vp-ic" aria-hidden="true"><svg class="i"><use href="#i-delivery"/></svg></span>
+          <div class="vp-tit">
+            <h1 id="tituloPagina">Delivery</h1>
+            <p>Sabores da vizinhança, direto de quem faz</p>
+          </div>
+        </div>
+        <form class="vp-busca" id="searchForm" role="search">
           <svg class="i" aria-hidden="true"><use href="#i-lupa"/></svg>
           <label class="sr" for="searchInput">Buscar</label>
           <input type="search" id="searchInput" placeholder="Buscar restaurante ou prato (ex.: pizza, açaí)" autocomplete="off" enterkeyhint="search" />
-          <button type="submit" aria-label="Buscar"><svg class="i s" aria-hidden="true"><use href="#i-lupa"/></svg><span>Buscar</span></button>
+          <button type="submit" aria-label="Buscar"><svg class="i s" aria-hidden="true"><use href="#i-lupa"/></svg></button>
         </form>
-        <nav class="classes classes-painel" aria-label="Classes do Help Floripa">
-          <a class="classe-link servicos" href="servicos.html"><svg class="i s" aria-hidden="true"><use href="#i-servicos"/></svg>Freelances</a>
-          <a class="classe-link delivery" href="delivery.html" aria-current="page"><svg class="i s" aria-hidden="true"><use href="#i-delivery"/></svg>Delivery</a>
-          <a class="classe-link lojinha" href="shopping.html"><svg class="i s" aria-hidden="true"><use href="#i-lojinha"/></svg>Shopping</a>
-          <a class="classe-link imoveis" href="imoveis.html"><svg class="i s" aria-hidden="true"><use href="#i-imoveis"/></svg>Imóveis</a>
-          <a class="classe-link saude" href="saude.html"><svg class="i s" aria-hidden="true"><use href="#i-saude"/></svg>Saúde</a>
-          <a class="classe-link comunidade" href="comunidade.html"><svg class="i s" aria-hidden="true"><use href="#i-comunidade"/></svg>Comunidade</a>
-        </nav>
-      </div>
     </section>
 
     <div class="filtros">

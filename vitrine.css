@@ -768,3 +768,12 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
 .vd-selo-resp { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px 4px 7px; border-radius: 999px; font-size: 12px; font-weight: 750; color: var(--muted, #8c9ca7); background: color-mix(in srgb, var(--muted, #8c9ca7) 14%, transparent); }
 .vd-selo-resp.rapido { color: #16a34a; background: color-mix(in srgb, #16a34a 13%, transparent); }
 .vd-selo-resp svg { width: 15px; height: 15px; }
+
+/* ---------- barra da lista: "Ordenar:" compacto + 3 modos de exibição ---------- */
+.vt-ordem { display: inline-flex; align-items: center; gap: 6px; padding: 0 4px 0 12px; height: 38px; border-radius: 12px; background: var(--vt-card-2); border: 1px solid var(--vt-line); color: var(--vt-muted); font-size: 13px; font-weight: 700; overflow: visible; max-width: 100%; }
+.vt-ordem svg { width: 16px; height: 16px; flex: none; }
+.vt-ordem select { border: 0; background: transparent; color: var(--vt-text, inherit); font: inherit; font-size: 13.5px; font-weight: 800; padding: 0 22px 0 2px; height: 100%; cursor: pointer; appearance: none; -webkit-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 11px) 52%, calc(100% - 6px) 52%; background-size: 5px 5px; background-repeat: no-repeat; }
+.vt-ordem:focus-within { border-color: var(--vc); }
+.vt-ferramentas .vt-ordem { overflow: visible; }
