@@ -58,6 +58,7 @@ const b = await entrar(NB.ctx, "bruno", `mensagens.html?conversa=${conv}`);
 await b.waitForSelector(".pedido-pro", { timeout: 20000 }); await b.waitForTimeout(1500);
 const cb = b.locator(".pedido-pro").last();
 ok((await cb.textContent()).includes("Novo pedido") && await cb.locator(".pd-acoes .pri", { hasText: "Confirmar pedido" }).count() === 1, "negócio vê Novo pedido com Confirmar");
+ok(await cb.locator(".pd-alerta:visible").count() === 0, "pedido certo: sem alerta de valores para o negócio");
 await cb.screenshot({ path: "saida/pedido-cartao-negocio.png" });
 await cb.locator(".pd-acoes .pri").click(); await b.waitForTimeout(2500);
 ok((await b.locator(".pedido-pro").last().locator(".pd-acoes .pri").textContent()).includes("Preparando"), "confirmado: próximo botão é Preparando");
@@ -76,5 +77,21 @@ await ca.screenshot({ path: "saida/pedido-cartao-cliente-2.png" });
 for (let i = 0; i < 2; i++) { await b.locator(".pedido-pro").last().locator(".pd-acoes .pri").click(); await b.waitForTimeout(2500); }
 const avs = (await db.collection(`conversas/${conv}/mensagens`).where("tipoArquivo", "==", "avaliacao").get()).docs.map((d) => d.data()).filter((x) => x.criadoEm?.toMillis() > Date.now() - 120000);
 ok(avs.length === 1 && /^Pedido #[A-Z0-9]{6}/.test(avs[0].avaliacao.titulo), "Entregue: pedido de avaliação enviado sozinho (" + (avs[0]?.avaliacao?.titulo || "nenhum") + ")");
+// Pedido com valores mexidos (gravado direto, sem passar pela vitrine): o negócio vê o alerta.
+{
+  const orig = ms.docs[0].data();
+  const ped = JSON.parse(JSON.stringify(orig.cartao.pedido));
+  ped.itens = ped.itens.map((i) => ({ ...i, preco: 0.5 })); ped.subtotal = ped.itens.reduce((t, i) => t + i.preco * i.qtd, 0); ped.total = ped.subtotal + (ped.taxa || 0); ped.cupom = { codigo: "FALSO10", titulo: "10% off" };
+  await db.collection(`conversas/${conv}/mensagens`).add({ ...orig, cartao: { ...orig.cartao, pedido: ped }, criadoEm: Timestamp.now() });
+  const ped2 = { ...ped, total: 1 };
+  await db.collection(`conversas/${conv}/mensagens`).add({ ...orig, cartao: { ...orig.cartao, pedido: ped2 }, criadoEm: Timestamp.fromMillis(Date.now() + 1000) });
+  await b.reload(); await b.waitForSelector(".pedido-pro", { timeout: 20000 }); await b.waitForTimeout(3000);
+  const cs = b.locator(".pedido-pro");
+  const n = await cs.count();
+  const a1 = await cs.nth(n - 2).locator(".pd-alerta").textContent(), a2 = await cs.nth(n - 1).locator(".pd-alerta").textContent();
+  ok(a1.includes("cardápio") && a1.includes("FALSO10"), "preço e cupom diferentes do cardápio: alerta para o negócio");
+  ok(a2.includes("não batem"), "total que não bate com os itens: alerta");
+  await cs.nth(n - 2).screenshot({ path: "saida/pedido-alerta.png" });
+}
 await browser.close(); await NB.browser.close();
 process.exit(0);

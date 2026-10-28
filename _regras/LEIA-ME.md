@@ -1,5 +1,11 @@
 # Regras do Firestore — publicação
 
+> **Versão de 28/10/2026 — cobrança da condição especial:** a negociação aprovada **com valor** fica
+> `aguardando_pagamento` (sem plano); a pessoa gera o pedido de pagamento (`planos_pedidos` com `negociacaoId`, só com o
+> plano, a duração e o valor iguais aos combinados) e o plano só liga quando os donos confirmam o pagamento (ou o
+> Mercado Pago, no automático); a pessoa pode desistir e os donos podem cancelar a cobrança. Enquanto não publicar, o
+> painel avisa e deixa liberar o plano na hora, como antes. Junto vai tudo o que ainda não estava publicado desde 26/10.
+
 > **Versão de 26/10/2026 — muda 2 regras (você publicou a anterior hoje):**
 > 1. Os perfis de negócio aceitam o campo **`principal`** (o tipo do perfil que fica no ar quando a conta está sem plano).
 >    Enquanto não publicar, nenhum perfil fica pausado para os clientes (a escolha fica guardada na conta).
@@ -45,28 +51,28 @@
 > **Chat da equipe por canais (22/10):** canais por setor (`equipe_canais`: Avisos, Segurança, Moderação, Pagamentos,
 > Negócios, Conta e Comercial; toda a equipe lê, em Avisos só os donos escrevem; anexos e apagar/editar como no Geral) e a
 > **situação de cada um** no painel (`equipe_presenca.status`: disponível, em pausa ou fora do turno).
-> Para publicar, o processo é o mesmo: apagar tudo no console e colar as 15 partes.
+> Para publicar, o processo é o mesmo: apagar tudo no console e colar as 16 partes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
-`firestore.rules` divididas em **15 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
+`firestore.rules` divididas em **16 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
-- Arquivo de origem: `firestore.rules` (172.608 bytes, 2.913 linhas, sha256 começa com `6a3d66862c6e938e`).
-- Cada parte termina com a linha `// ===== FIM DA PARTE X DE 15 =====`. É um comentário: **pode colar junto**,
+- Arquivo de origem: `firestore.rules` (180.841 bytes, 3.013 linhas, sha256 começa com `9658a10c74d9ce34`).
+- Cada parte termina com a linha `// ===== FIM DA PARTE X DE 16 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
-- Conferido: as 15 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **570 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
+- Conferido: as 16 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
+- Testes de regras no arquivo remontado: **632 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.
 2. Clique dentro do editor, selecione tudo (Ctrl+A, ou "Selecionar tudo" no celular) e **apague**.
-3. Abra `parte-1-de-15.txt`, copie **tudo** e cole no editor.
-4. Vá até o fim do que colou (depois da linha `// ===== FIM DA PARTE 1 DE 15 =====`), abra a parte 2,
-   copie tudo e cole logo abaixo. Repita até a parte 15, **em ordem**.
+3. Abra `parte-1-de-16.txt`, copie **tudo** e cole no editor.
+4. Vá até o fim do que colou (depois da linha `// ===== FIM DA PARTE 1 DE 16 =====`), abra a parte 2,
+   copie tudo e cole logo abaixo. Repita até a parte 16, **em ordem**.
 5. Confira: a primeira linha do editor é `rules_version = '2';` e a última é
-   `// ===== FIM DA PARTE 15 DE 15 =====`, logo depois de uma linha só com `}`.
+   `// ===== FIM DA PARTE 16 DE 16 =====`, logo depois de uma linha só com `}`.
 6. Clique em **Publicar**. Se o console mostrar um erro (linha vermelha), **não publique**: provavelmente
-   uma parte ficou faltando ou repetida. Confira se as 15 linhas `FIM DA PARTE` aparecem, de 1 a 15, uma vez cada.
+   uma parte ficou faltando ou repetida. Confira se as 16 linhas `FIM DA PARTE` aparecem, de 1 a 16, uma vez cada.
 
 > As regras do ar continuam valendo até o clique em Publicar. A troca leva até 1 minuto para valer.
 

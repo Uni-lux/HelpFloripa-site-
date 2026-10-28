@@ -3,7 +3,7 @@
 // das avaliações sem comentários (só nota e estrelas; o que o cliente diz fica nas Reclamações) e o cartão Comunidade
 // sem a setinha. Uso: node seed.mjs && node t-pix-qr.mjs
 process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8085";
-import { initializeApp } from "firebase-admin/app"; import { getFirestore } from "firebase-admin/firestore";
+import { initializeApp } from "firebase-admin/app"; import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { navegador, entrar, USUARIOS as U, BASE } from "./nav.mjs";
 const ok = (c, t) => { console.log(c ? "  ✔" : "  ✘", t); if (!c) process.exitCode = 1; };
 initializeApp({ projectId: "demo-hf" }); const db = getFirestore();
@@ -50,6 +50,12 @@ ok(/^000201.*br\.gov\.bcb\.pix.*5406150\.50.*6304[0-9A-F]{4}$/.test(cod), "códi
 await ult.locator("button", { hasText: "QR Code" }).click(); await a.waitForSelector(".pix-msg .px-qr svg", { timeout: 8000 });
 ok(true, "QR Code do Pix aparece no cartão");
 await ult.scrollIntoViewIfNeeded(); await a.screenshot({ path: "saida/pix-recebido.png" });
+ok(await ult.locator(".px-golpe").count() === 0, "Pix normal: sem alerta de golpe");
+// Pix "do Help Floripa" mandado pelo chat (gravado direto): quem recebe vê o alerta de golpe.
+await db.collection(`conversas/${conv}/mensagens`).add({ ...pix, cartao: { ...pix.cartao, nome: "HELP FLORIPA PLANOS", descricao: "Renovação do plano" }, criadoEm: Timestamp.now() });
+await a.waitForTimeout(2500);
+ok((await a.locator(".pix-msg").last().locator(".px-golpe").textContent().catch(() => "")).includes("nunca cobra pelo chat"), "Pix em nome do Help Floripa: alerta de golpe");
+await a.locator(".pix-msg").last().screenshot({ path: "saida/pix-golpe.png" });
 
 // ---------- 2) compartilhar o perfil com a arte ----------
 await a.goto(BASE + `servicos.html?negocio=${NEG}`); await a.waitForSelector(".vd-link", { timeout: 20000 }); await a.waitForTimeout(800);

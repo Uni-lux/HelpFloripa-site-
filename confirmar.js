@@ -47,6 +47,17 @@ function css() {
   .hf-confirma-acoes button:focus-visible { outline: 2px solid var(--accent, #00adee); outline-offset: 2px; }
   @keyframes hfConfFundo { from { opacity: 0; } }
   @keyframes hfConfCaixa { from { opacity: 0; transform: translateY(10px) scale(.97); } }
+  .hf-confirma-troca { display: grid; gap: 6px; margin: 0 0 18px; text-align: left; }
+  .hf-confirma-troca div { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line, #22313a); background: var(--panel-2, #162128); }
+  .hf-confirma-troca small { flex: none; width: 52px; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--muted, #8b9ba6); }
+  .hf-confirma-troca b { min-width: 0; font-size: 14px; line-height: 1.3; overflow-wrap: anywhere; }
+  .hf-confirma-troca .de b { color: var(--muted, #8b9ba6); text-decoration: line-through; }
+  .hf-confirma-troca .para { border-color: color-mix(in srgb, var(--accent, #00adee) 55%, transparent); background: color-mix(in srgb, var(--accent, #00adee) 10%, var(--panel-2, #162128)); }
+  .hf-confirma-troca i { justify-self: center; font-style: normal; font-size: 16px; line-height: 1; color: var(--muted, #8b9ba6); }
+  :root[data-theme="light"] .hf-confirma-troca div:not(.para) { background: #f4f7f9; border-color: #e2e8ec; }
+  :root[data-theme="light"] .hf-confirma-troca .para { background: color-mix(in srgb, var(--accent, #00adee) 10%, #fff); }
+  .hf-confirma-acoes.empilhar { grid-template-columns: 1fr; }
+  .hf-confirma-acoes.empilhar .sim { order: -1; }
   @media (prefers-reduced-motion: reduce) { .hf-confirma-fundo, .hf-confirma { animation: none; } }`;
   document.head.appendChild(st);
 }
@@ -54,7 +65,8 @@ function css() {
 // Abre a janela. aoConfirmar (opcional) roda com o botão em "aguarde"; se der erro, a janela continua.
 // cor: "perigo" (vermelho, padrão) ou "normal" (azul do site), para o que não apaga nada.
 // soOk: um botão só (aviso no lugar do alert() do navegador; use avisoHF).
-export function confirmarHF({ titulo, texto = "", ok = "Confirmar", cancelar = "Cancelar", icone = "sair", aoConfirmar = null, textoAguarde = "Aguarde...", cor = "perigo", soOk = false, semVoltar = false } = {}) {
+// troca: { de, para, rotDe?, rotPara? } mostra o que sai e o que entra (riscado → destacado) e empilha os botões.
+export function confirmarHF({ titulo, texto = "", ok = "Confirmar", cancelar = "Cancelar", icone = "sair", aoConfirmar = null, textoAguarde = "Aguarde...", cor = "perigo", soOk = false, semVoltar = false, troca = null } = {}) {
   css();
   return new Promise((resolver) => {
     const anterior = document.activeElement;
@@ -71,7 +83,15 @@ export function confirmarHF({ titulo, texto = "", ok = "Confirmar", cancelar = "
     const nao = document.createElement("button"); nao.type = "button"; nao.className = "nao"; nao.textContent = cancelar;
     const sim = document.createElement("button"); sim.type = "button"; sim.className = "sim"; sim.textContent = ok;
     if (soOk) { ac.classList.add("um"); ac.append(sim); } else ac.append(nao, sim);
-    cx.append(ic, h); if (texto) cx.appendChild(p); cx.appendChild(ac);
+    cx.append(ic, h); if (texto) cx.appendChild(p);
+    if (troca) {
+      const t = document.createElement("div"); t.className = "hf-confirma-troca";
+      const linha = (cls, rot, val) => { const d = document.createElement("div"); d.className = cls; const s = document.createElement("small"); s.textContent = rot; const b = document.createElement("b"); b.textContent = val; d.append(s, b); return d; };
+      const seta = document.createElement("i"); seta.setAttribute("aria-hidden", "true"); seta.textContent = "↓";
+      t.append(linha("de", troca.rotDe || "Sai", troca.de), seta, linha("para", troca.rotPara || "Entra", troca.para));
+      cx.appendChild(t); ac.classList.add("empilhar");
+    }
+    cx.appendChild(ac);
     fundo.appendChild(cx); document.body.appendChild(fundo);
     const fechar = (v) => { fundo.remove(); document.removeEventListener("keydown", tecla, true); try { anterior?.focus?.({ preventScroll: true }); } catch {} resolver(v); };
     const tecla = (e) => {

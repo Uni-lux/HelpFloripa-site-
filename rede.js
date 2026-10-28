@@ -20,7 +20,7 @@ import { docComValidade, docsComValidade } from "./leituras.js?v=1";
 import { avisoPlano } from "./planos-base.js?v=8";
 import { palavrasBusca } from "./pessoas.js?v=3"; // o sino abre o painel de notificações na própria página
 import { registrarGosto, PESO } from "./gosto.js?v=1";
-import { confirmarHF } from "./confirmar.js?v=4";
+import { confirmarHF } from "./confirmar.js?v=5";
 import { seletorDuracao, fimEscolhido, fimDaEnquete, encerrada, faltaTexto, dataCurta, resumoResultado, guardarInfoEnquete, enquetesEncerradas, textoEnqueteFim, linhaChave, MAX_PUB_MIN, lerContasEnquete, resultadoFinal, sortearFatia, pedacoDaEnquete } from "./enquetes.js?v=5";
 
 // ---------- ícones ----------
@@ -1806,7 +1806,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=38").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=39").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);
@@ -1974,7 +1974,7 @@ export function comMencoes(alvo, texto) {
 
 // Denunciar um comentário (denuncias.js, carregado só quando precisa).
 async function abrirDenunciaComentario(c) {
-  const { abrirDenuncia } = await import("./denuncias.js?v=5");
+  const { abrirDenuncia } = await import("./denuncias.js?v=6");
   const p = await obterPerfil(c.autorId);
   abrirDenuncia({ fb, eu, tipo: "comentario", alvoId: c.autorId, itemId: c.id, trecho: c.texto || "", nomeAlvo: p.nome || c.nome || "",
     aoBloquear: () => bloquear(c.autorId, p.nome || c.nome) });

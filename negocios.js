@@ -6,21 +6,21 @@
 //   e os anúncios de imóveis.
 // Links: negocios.html?tipo=servicos (abre o formulário) · ?novo=1
 // =====================================================
-import { confirmarHF } from "./confirmar.js?v=4";
+import { confirmarHF } from "./confirmar.js?v=5";
 import {
   $, el, icone, pintarAvatar, urlSegura, nomeCidade, toast, erroAmigavel, abrirFolha, fecharFolha,
   fb, eu, dados, salvarImagem, editarImagem, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos, criarFolha
-} from "./rede.js?v=66";
+} from "./rede.js?v=67";
 import { lerResumos, estrelas, media, notaTexto } from "./avaliacoes.js?v=15";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade, semAcento } from "./endereco.js?v=1";
 import { lerStats, listaDias, somarPeriodo } from "./estat-negocio.js?v=1";
 import { geocodificar, geoOk } from "./perto.js?v=2";
 import { LIMITES_GRATIS, perfisDoPlano } from "./planos-base.js?v=8";
 import { compartilharPerfil, baixarArte, desenharQr } from "./qr.js?v=1";
-import { abrirPlanos, lerPlano, esquecerPlano, nivelPlano, emTolerancia, pedidoAberto, lerNegociacao, testeDisponivel, seloPlano, nomePlano, diasRestantes, textoFalta, PRECO_MIN, DIAS_TESTE, reais } from "./planos.js?v=20";
+import { abrirPlanos, lerPlano, esquecerPlano, nivelPlano, emTolerancia, pedidoAberto, lerNegociacao, testeDisponivel, seloPlano, nomePlano, diasRestantes, textoFalta, PRECO_MIN, DIAS_TESTE, reais } from "./planos.js?v=23";
 import { termosBusca } from "./busca.js?v=1";
 import { PROFISSOES_SAUDE, CATEGORIAS_SAUDE, MODALIDADES_SAUDE, PUBLICO_SAUDE, PUBLICO_VET, CONVENIOS, IDIOMAS, UFS, conselhoDe, ehVet, textoRegistro } from "./saude-dados.js?v=1";
-import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO, CATEGORIAS, GRUPOS_SERV, PALAVRAS_SERV, prazoPromo } from "./vitrine.js?v=63";
+import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO, CATEGORIAS, GRUPOS_SERV, PALAVRAS_SERV, prazoPromo } from "./vitrine.js?v=64";
 
 // Cada tipo com a cor da sua classe na página inicial (inicio.css: --c-servicos etc.) e uma chamada própria.
 const NEGOCIOS = {
@@ -90,6 +90,19 @@ async function pintarPlano() {
   planoEu = plano || null;
   if (mudou) pintarPainel();
   const negAberta = neg && (neg.status === "novo" || neg.status === "em_conversa");
+  // Condição aprovada com valor: falta pagar para o plano ligar (vem antes de tudo, menos de um Pix já gerado).
+  const pagarNeg = !pedido && neg?.status === "aguardando_pagamento" && Number(neg.valorAcordado) > 0;
+  if (pagarNeg) {
+    const ic = el("span", "ng-plano-ic"); ic.appendChild(icone("estrela", "i"));
+    const tx = el("span", "ng-plano-tx");
+    tx.append(el("strong", null, `Condição aprovada: plano ${nomePlano(neg.planoConcedido)}`), el("small", null, `Falta pagar ${reais(neg.valorAcordado)} para ativar · toque para pagar`));
+    const cta = el("span", "ng-plano-cta"); cta.append(document.createTextNode("Pagar"), icone("avancar", "i xs"));
+    box.className = "ng-plano espera";
+    box.replaceChildren(ic, tx, cta);
+    box.hidden = false;
+    box.onclick = () => abrirPlanos({ fb, eu, dados, toast, aoMudar: () => pintarPlano(), negociar: neg.tipo });
+    return;
+  }
   const ic = el("span", "ng-plano-ic"); ic.appendChild(pago ? seloPlano(plano) : icone("estrela", "i"));
   const tx = el("span", "ng-plano-tx");
   const ate = pago ? new Date(plano.ate.toMillis()).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }) : "";
@@ -164,7 +177,7 @@ async function exigirVerificacao() {
     texto: "Para criar perfis de negócio e anúncios, a conta precisa ser verificada: a equipe confere seu documento e você ganha o selo azul. Isso protege os clientes contra golpes e perfis falsos.",
     ok: "Verificar agora", icone: "selo", cor: "normal"
   });
-  if (ok) import("./verificacao.js?v=22").then((m) => m.abrirVerificacao({ aoMudar: () => { pintarPainel(); } })).catch((e) => toast(erroAmigavel(e)));
+  if (ok) import("./verificacao.js?v=24").then((m) => m.abrirVerificacao({ aoMudar: () => { pintarPainel(); } })).catch((e) => toast(erroAmigavel(e)));
   return false;
 }
 
@@ -282,7 +295,7 @@ function avisoVerificacao() {
   if (dados.verificado || !meusNegocios.length) return;
   const d = el("div", "ng-verif"); d.id = "ngVerif";
   const b = btnIc("btn pri mini", "selo", "Verificar minha conta");
-  b.addEventListener("click", () => import("./verificacao.js?v=22").then((m) => m.abrirVerificacao({ aoMudar: () => pintarPainel() })));
+  b.addEventListener("click", () => import("./verificacao.js?v=24").then((m) => m.abrirVerificacao({ aoMudar: () => pintarPainel() })));
   d.append(el("strong", null, "Verifique sua conta para continuar anunciando"),
     el("span", null, `Agora todo anunciante do Help Floripa tem a conta verificada (selo azul). Verifique até ${PRAZO_VERIFICACAO.toLocaleDateString("pt-BR")}: depois disso, perfis de contas não verificadas saem do ar. Nada é apagado.`), b);
   $("painelNegocios").before(d);
@@ -497,7 +510,7 @@ async function abrirEstatisticas(n) {
   await garantirPlano();
   if (semPlano()) { verPlanos("plus"); return; } // estatísticas fazem parte dos planos
   try {
-    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=31");
+    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=34");
     abrirInsightsNegocio(n, { aoEditar: (neg) => abrirFormNegocio(meusNegocios.find((x) => x.id === neg.id) || neg) });
   } catch (e) { toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)); }
 }

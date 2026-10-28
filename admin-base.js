@@ -3,7 +3,7 @@
 // Estado (D), utilitários, janelas, ações de moderação (todas registradas
 // em admin_log) e a ficha completa do usuário.
 // =====================================================
-import { confirmarHF, avisoHF } from "./confirmar.js?v=4";
+import { confirmarHF, avisoHF } from "./confirmar.js?v=5";
 export const C = { fb: null, A: null, eu: null, nome: "", irPara: () => {}, recarregar: async () => {}, contadores: () => {}, presenca: new Map(), chat: [], online: () => false, marcarChatVisto: () => {}, aoMudarEquipe: null, papel: "dono", tarefas: [], marcarItem: null, pintarVendo: null, aoMudarTarefas: null };
 export const D = {
   pessoas: new Map(), negocios: [], anuncios: [], posts: [], denuncias: [], queixas: [], suporte: [], parcerias: [], planosPedidos: [], planosNeg: [], planos: new Map(), reportes: [], notasSuporte: [], verificacoes: [],

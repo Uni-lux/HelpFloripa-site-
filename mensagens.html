@@ -270,6 +270,7 @@
     .px-qr { justify-self: center; width: min(220px, 70vw); padding: 8px; border-radius: 14px; background: #fff; }
     .px-qr svg { display: block; width: 100%; height: auto; }
     .px-aviso { margin: 0; font-size: 11.5px; line-height: 1.4; opacity: .7; }
+    .px-golpe { margin: 0 0 8px; padding: 8px 10px; border-radius: 10px; font-size: 12.5px; line-height: 1.4; font-weight: 800; color: #b91c1c; background: color-mix(in srgb, #ef4444 14%, transparent); border: 1px solid color-mix(in srgb, #ef4444 45%, transparent); }
     .px-campo { display: grid; gap: 4px; margin-bottom: 10px; font-size: 13px; font-weight: 700; }
     .px-campo input { min-height: 44px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel-2, var(--panel)); color: var(--text); font: inherit; font-weight: 500; font-size: 15px; }
     .px-campo small { font-weight: 500; color: var(--muted); font-size: 12px; }
@@ -374,6 +375,7 @@
     .pd-itens .v { flex: none; font-weight: 700; white-space: nowrap; }
     .pd-mais { margin: 4px 0 0; padding: 6px 0; border: 0; background: none; color: var(--assunto); font: inherit; font-size: 12.5px; font-weight: 800; cursor: pointer; text-align: left; }
     .pd-valores { margin: 8px 12px 0; display: grid; gap: 4px; font-size: 13px; }
+    .pd-alerta { margin: 8px 12px 0; padding: 8px 10px; border-radius: 10px; font-size: 12.5px; line-height: 1.4; font-weight: 700; color: #b45309; background: color-mix(in srgb, #f59e0b 16%, transparent); border: 1px solid color-mix(in srgb, #f59e0b 45%, transparent); }
     .pd-valores div { display: flex; justify-content: space-between; gap: 10px; }
     .pd-valores div span:first-child { opacity: .75; }
     .pd-valores .gratis span:last-child { color: #2fbf71; font-weight: 800; }
@@ -1331,7 +1333,7 @@
 
   <script type="module">
     import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura, mostrarAvisoEmail } from "./seguranca.js?v=1";
-    import { confirmarHF } from "./confirmar.js?v=4";
+    import { confirmarHF } from "./confirmar.js?v=5";
     import { relogioDe, ufDe } from "./fuso.js?v=1";
     import { textoChamada } from "./chamadas.js?v=1";
     import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO, lerResumos, media, notaTexto } from "./avaliacoes.js?v=15";
@@ -1342,7 +1344,7 @@
     import { comRitmo } from "./ritmo.js?v=2";
     import { criarPlayerAudio } from "./audio-ondas.js?v=1";
     import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
-    import { abrirQueixa } from "./queixas.js?v=13";
+    import { abrirQueixa } from "./queixas.js?v=14";
     import { ouvirItensEquipe, linkEquipe, seloOficial, TEXTO_EQUIPE } from "./avisos-equipe.js?v=1";
     import { escolherApagar, editarTextoHF, verEdicoesHF, janelaHF, horaCurta, noPrazo, tempoRestante, podeMexer } from "./msg-acoes.js?v=2";
     // ======================================================
@@ -1710,6 +1712,18 @@
       if (p.cupom && typeof p.cupom === "object") linha(p.cupom.codigo ? `Cupom ${String(p.cupom.codigo).slice(0, 20)}` : "Promoção", String(p.cupom.titulo || "a combinar").slice(0, 60), "cupom");
       linha("Total", reais(p.total) + (itens.some((i) => !(Number(i?.preco) > 0)) ? " + a combinar" : ""), "tot");
       box.appendChild(val);
+      // Conferência: o cartão é montado no aparelho de quem pede. Total tem que ser itens + entrega e, para o negócio,
+      // os preços e o cupom iguais aos de agora (alguém pode mandar um pedido com valores mexidos).
+      const alerta = document.createElement("div"); alerta.className = "pd-alerta"; alerta.setAttribute("role", "status"); alerta.hidden = true;
+      box.appendChild(alerta);
+      const somaItens = Math.round(itens.reduce((t, i) => t + (Number(i?.preco) > 0 ? Number(i.preco) : 0) * Math.max(0, parseInt(i?.qtd, 10) || 0), 0) * 100) / 100;
+      const totalCerto = Math.round((somaItens + (Number(p.taxa) > 0 ? Number(p.taxa) : 0)) * 100) / 100;
+      if (Math.abs(totalCerto - (Number(p.total) || 0)) > 0.009 || Math.abs(subtotal - somaItens) > 0.009) {
+        alerta.textContent = `Atenção: os valores deste pedido não batem com os itens (itens + entrega = ${reais(totalCerto)}). Confira antes de confirmar.`;
+        alerta.hidden = false;
+      } else if (m.remetenteId !== eu.uid) {
+        conferirCardapio(c, p, itens).then((avisos) => { if (avisos.length) { alerta.textContent = `Confira antes de confirmar. ${avisos.join(" ")}`; alerta.hidden = false; } }).catch(() => {});
+      }
 
       // Entrega, pagamento e observação
       const info = document.createElement("div"); info.className = "pd-info";
@@ -1729,6 +1743,28 @@
       ver.textContent = tipo === "delivery" ? (m.remetenteId === eu.uid ? "Pedir mais · ver cardápio" : "Ver cardápio") : (m.remetenteId === eu.uid ? "Ver mais produtos" : "Ver loja");
       box.appendChild(ver);
       return box;
+    }
+    // Preços do pedido × cardápio de agora (só para o dono do negócio; um documento lido por negócio, guardado).
+    const cardapios = new Map();
+    async function conferirCardapio(c, p, itens) {
+      const id = (String(c.link || "").match(/[?&]negocio=([^&]+)/) || [])[1];
+      if (!id) return [];
+      const neg = decodeURIComponent(id);
+      if (!cardapios.has(neg)) cardapios.set(neg, fb.getDoc(fb.doc(fb.db, "negocios", neg)).then((d) => (d.exists() ? d.data() : null)).catch(() => null));
+      const n = await cardapios.get(neg);
+      if (!n || n.donoId !== eu.uid) return [];
+      const lista = (n.itens || []).filter((i) => i?.nome);
+      const diferentes = [];
+      itens.forEach((it) => {
+        const nome = String(it?.nome || ""), preco = Number(it?.preco) || 0;
+        const x = lista.find((i) => nome === String(i.nome).slice(0, 60) || nome.startsWith(String(i.nome).slice(0, 60) + " ("));
+        if (x && Number(x.preco) > 0 && Math.abs(Number(x.preco) - preco) > 0.009) diferentes.push(`${nome.slice(0, 40)} (${reais(preco)}, no cardápio ${reais(Number(x.preco))})`);
+      });
+      const avisos = [];
+      if (diferentes.length) avisos.push(`Preço diferente do seu cardápio de agora: ${diferentes.slice(0, 3).join(", ")}${diferentes.length > 3 ? "…" : ""}.`);
+      const cod = p.cupom && typeof p.cupom === "object" ? String(p.cupom.codigo || "") : "";
+      if (cod && String(n.promocao?.codigo || "") !== cod) avisos.push(`O cupom ${cod.slice(0, 20)} não é o da sua promoção atual.`);
+      return avisos;
     }
     function atualizarStatusNaTela(refId) {
       const m = mensagens.find((x) => x.id === refId);
@@ -3441,7 +3477,7 @@
     // Denunciar uma mensagem recebida (a pessoa não é avisada).
     async function denunciarMensagem(m) {
       if (!ativa) return;
-      const { abrirDenuncia } = await import("./denuncias.js?v=5");
+      const { abrirDenuncia } = await import("./denuncias.js?v=6");
       const outro = ativa.outroId;
       // Contexto para a equipe: até 5 mensagens antes e 5 depois (só os ids; o painel lê do servidor).
       const salvas = mensagens.filter((x) => !x.pendente);
@@ -3632,7 +3668,7 @@
     let vitrineMod = null;
     function carregarVitrine() {
       if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=32"; l.dataset.vitrine = ""; document.head.appendChild(l); }
-      return (vitrineMod ||= import("./vitrine.js?v=63"));
+      return (vitrineMod ||= import("./vitrine.js?v=64"));
     }
     function usarCartaoNaConversa(uid, cartao) {
       document.querySelectorAll(".vt-modal").forEach((m) => m.remove());
@@ -4127,8 +4163,11 @@
     // quem paga copia o código "copia e cola" (BR Code, pix.js) ou lê o QR Code no app do banco. O site não intermedia
     // o pagamento. A chave fica guardada na conta (usuarios.pix) para a próxima vez.
     const reaisPix = (v) => Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    // Golpe comum: cobrar "em nome do Help Floripa" pelo chat. Os planos se pagam só na tela de Planos.
+    const fingeHelpFloripa = (c) => /help\s*floripa/i.test(`${c?.nome || ""} ${c?.descricao || ""}`) || String(c?.chave || "").replace(/\D/g, "") === "61935934000100";
     function cartaoPix(c, minha) {
       const box = elm("div", "px");
+      if (fingeHelpFloripa(c)) box.appendChild(elm("p", "px-golpe", "Cuidado: o Help Floripa nunca cobra pelo chat. Planos só se pagam em Meus negócios → Planos. Não pague este Pix e denuncie a conversa."));
       const cab = elm("div", "px-cab");
       const ic = elm("span", "px-ic"); ic.appendChild(usar("pix", "i"));
       const t = elm("div"); t.append(elm("small", null, minha ? "Você enviou um Pix para receber" : "Pix para pagamento"), elm("b", null, Number(c.valor) > 0 ? reaisPix(c.valor) : "Valor a combinar"));
@@ -4183,6 +4222,7 @@
         const c = lerCartao();
         if (!c) { toast("Confira a chave Pix: e-mail, celular com DDD, CPF, CNPJ ou chave aleatória."); iChave.focus(); return; }
         if (c.nome.length < 3) { toast("Escreva o nome de quem recebe, como aparece no banco."); iNome.focus(); return; }
+        if (fingeHelpFloripa(c)) { toast("Cartão de Pix é para receber em seu nome. Cobranças do Help Floripa não passam pelo chat."); iNome.focus(); return; }
         enviar.disabled = true;
         try {
           await publicarMensagem(ativa.id, { remetenteId: eu.uid, texto: "", criadoEm: fb.serverTimestamp(), tipoArquivo: "cartao", cartao: c });
@@ -4874,7 +4914,7 @@
     // Sair da conta (fim das configurações), com confirmação
     // ======================================================
     // A mesma janela "Sair da conta?" do menu e das configurações do perfil (confirmar.js).
-    $("btnSairConta").addEventListener("click", () => import("./confirmar.js?v=4").then((m) => m.sairDaConta({ antes: () => { try { sessionStorage.removeItem(CHAVE_AVAL); } catch {} } })));
+    $("btnSairConta").addEventListener("click", () => import("./confirmar.js?v=5").then((m) => m.sairDaConta({ antes: () => { try { sessionStorage.removeItem(CHAVE_AVAL); } catch {} } })));
 
     // ======================================================
     // Atendimento do negócio (configurações)

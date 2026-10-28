@@ -158,11 +158,11 @@ await a.locator(".ad-modal .ad-campo", { hasText: "Valor combinado" }).locator("
 await a.locator(".ad-modal .ad-bt.pri", { hasText: "Aprovar" }).click(); await a.waitForTimeout(2500);
 const plAna = (await db.doc(`planos/${U.ana}`).get()).data(), ngA = (await db.doc(`planos_negociacoes/${U.ana}`).get()).data();
 ok(!("comprovante" in ngA) && ngA.comprovanteTipo === "cadunico", "o documento é apagado depois da decisão");
-ok(plAna?.plano === "plus" && plAna.negociacaoId === U.ana && ngA.status === "aprovado" && ngA.valorAcordado === 15, "aprovado: Ana ganha o Plus (" + JSON.stringify({ plano: plAna?.plano, status: ngA?.status, valor: ngA?.valorAcordado }) + ")");
+ok(!plAna && ngA.status === "aguardando_pagamento" && ngA.planoConcedido === "plus" && ngA.valorAcordado === 15, "aprovado com valor: Plus esperando o pagamento, sem plano antes de pagar (" + JSON.stringify({ plano: plAna?.plano, status: ngA?.status, valor: ngA?.valorAcordado }) + ")");
 ok((await db.collection("avisos").where("uid", "==", U.ana).get()).docs.some((d) => d.data().titulo.includes("aprovado")), "Ana recebe o aviso da aprovação");
 await a.locator(".ad-chip", { hasText: "Receita" }).click(); await a.waitForTimeout(600);
 const rec = await a.textContent(".ad-receita");
-ok(rec.includes("122,73") && rec.includes("Receita por mês"), "receita: Pix (107,73) + negociado (15,00) = 122,73");
+ok(rec.includes("107,73") && !rec.includes("122,73") && rec.includes("Receita por mês"), "receita: só o Pix pago (107,73); o negociado entra quando for pago");
 await a.screenshot({ path: "saida/pl-painel-receita.png", fullPage: true });
 
 // ---------- 6) registro e histórico do dia (só donos) ----------
@@ -197,7 +197,7 @@ ok((await e.textContent("#planoBox")).includes("Primeira assinatura: +30 dias gr
 await e.click("#planoBox"); await e.waitForSelector(".pl-card", { timeout: 10000 });
 ok((await e.textContent(".pl-hero")).includes("+30 dias grátis") && await e.locator(".pl-teste").count() === 0, "gaveta: +30 dias grátis no topo e nenhum teste sem pagar");
 await e.locator(".pl-card[data-plano='plus']").click(); await e.locator(".pl-per[data-m='3']").click();
-ok((await e.textContent(".pl-economia")).includes("3 meses + 30 dias grátis"), "resumo: " + (await e.textContent(".pl-economia")));
+ok((await e.textContent(".pl-validade")).replace(/\s+/g, " ").includes("3 meses pagos + 30 dias grátis"), "resumo: " + (await e.textContent(".pl-validade")));
 await e.screenshot({ path: "saida/pl-bonus-oferta.png" });
 await e.locator(".pl-btn", { hasText: "Pagar" }).click(); await e.waitForSelector(".pl-bonus-pix", { timeout: 10000 });
 ok((await e.textContent(".pl-bonus-pix")).includes("30 dias grátis"), "tela do Pix lembra do bônus");
