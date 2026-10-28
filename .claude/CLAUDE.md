@@ -1029,7 +1029,11 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   Diretrizes, 8 seções), link no rodapé das 13 páginas institucionais, no menu (seção Help Floripa), Termos seção 6, Ajuda,
   Profissionais (FAQ) e na nota da gaveta dos planos. Teste `t-diario-justo.mjs` (Diário mostra 10 por vez: clicar `#maisFeed`).
   Em aberto: com perfis iguais, o bônus pode pôr 4 pagantes nos 5 primeiros (sugerido a ele: no máximo 1 pagante nos 4
-  depois de cada espaço pago; ainda sem resposta). As 3 partes estão feitas. Etapa B (com Blaze): exibições somadas no servidor e ranking pré-calculado por cidade/categoria.
+  depois de cada espaço pago; ainda sem resposta). As 3 partes estão feitas.
+- **Abas e listas das páginas institucionais (PR depois do #114, sem regra nova):** `.nav-inst` em ordem alfabética nas 11
+  páginas (Ajuda, Clientes, Contato, Diretrizes, Negócios, Parcerias, Privacidade, Segurança, Sobre, Termos). Listas com ícone
+  (`.lista-check`, `.plano-mini`, `.confianca`, `.dicas`) deixaram de ser `display: flex`: o ícone fica `position: absolute` e o
+  texto corre (com flex, `<strong>`/`<a>` no meio da frase viravam colunas, ex.: Diretrizes seções 1 e 4, Segurança). Etapa B (com Blaze): exibições somadas no servidor e ranking pré-calculado por cidade/categoria.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

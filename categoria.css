@@ -187,8 +187,8 @@ svg.i.xs { width: 14px; height: 14px; }
 .confianca h3 { margin: 0 0 6px; font-size: 18px; }
 .confianca p { margin: 0; color: var(--muted); font-size: 14px; }
 .confianca ul { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 8px; }
-.confianca li { display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; }
-.confianca li svg { color: var(--ok); margin-top: 1px; }
+.confianca li { position: relative; padding-left: 22px; font-size: 13.5px; }
+.confianca li > svg:first-child { position: absolute; left: 0; top: .22em; color: var(--ok); }
 .exemplo-nota { padding: 16px; border-radius: 18px; background: var(--panel-2); border: 1px solid var(--line); display: grid; gap: 7px; }
 .exemplo-nota .topo-nota { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
 .exemplo-nota .num { font-size: 38px; font-weight: 900; line-height: 1; }
