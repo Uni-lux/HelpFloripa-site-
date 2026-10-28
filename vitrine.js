@@ -14,10 +14,10 @@ import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL 
 import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento, media, avaliarNegocio } from "./avaliacoes.js?v=15";
 import { abrirQueixa } from "./queixas.js?v=14";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
-import { anelNegocio } from "./flash-negocio.js?v=9";
+import { anelNegocio } from "./flash-negocio.js?v=10";
 import { camposEndereco, textoCidade, cidadesDe, NOME_UF, semAcento } from "./endereco.js?v=1";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao } from "./perto.js?v=2";
-import { lerPlano, nivelPlano, seloPlano, nomePlano, negocioPausado, mostraSelo, LIMITES_GRATIS } from "./planos-base.js?v=9";
+import { lerPlano, nivelPlano, seloPlano, nomePlano, negocioPausado, mostraSelo, classePlano, LIMITES_GRATIS } from "./planos-base.js?v=10";
 import { estaOnline } from "./presenca.js?v=1";
 import { PROFISSOES_SAUDE, CATEGORIAS_SAUDE, SITE_CONSELHO, MODALIDADES_SAUDE, PUBLICO_SAUDE, PUBLICO_VET, nomeProfissao, conselhoDe, ehVet, textoRegistro, textoValor, AVISO_EMERGENCIA, AVISO_REGISTRO } from "./saude-dados.js?v=1";
 import { usarEstat, registrarVisita, registrarAcao, registrarItem, chaveItem as chaveEstat, chaveAnuncio } from "./estat-negocio.js?v=1";
@@ -2232,7 +2232,7 @@ const cartaoTop = (n, cat) => cartaoPro(n, cat);
 // Saúde: foto do local (ou a capa da classe), avatar, nome com selo, nota, profissão + registro e a consulta.
 function cartaoSaude(n) {
   const sd = n.saude || {};
-  const c = el("article", "vt-del vt-free vt-saude");
+  const c = comCorPlano(el("article", "vt-del vt-free vt-saude"), n.donoId);
   const f = el("div", "ft");
   f.style.backgroundImage = `url("${capaDe(n) || TEXTOS.saude.img}")`;
   const mods = (sd.modalidades || []).filter((k) => k === "online" || k === "domicilio");
@@ -2253,7 +2253,7 @@ function cartaoSaude(n) {
 function linhaSaude(n) {
   const sd = n.saude || {};
   return linhaCompacta({
-    classe: "pro", midia: avatar(n.foto, n.nome), titulo: n.nome || "Profissional de saúde",
+    donoId: n.donoId, classe: "pro", midia: avatar(n.foto, n.nome), titulo: n.nome || "Profissional de saúde",
     sub: [estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }), [distDe(n), nomeProfissao(sd), (sd.especialidades || [])[0], textoCidade(n)].filter(Boolean).join(" · ")],
     direita: el("span", "pr", Number(sd.valorConsulta) > 0 ? moeda(sd.valorConsulta) : (sd.convenios || []).length ? "Convênios" : "Agendar"),
     abrir: () => abrirDetalhe(n), rotulo: `Ver ${n.nome}`
@@ -2330,7 +2330,7 @@ const ORDENS_IMOVEL = {
 };
 let ordemImovel = "recentes";
 function cartaoImovelMini(a) {
-  const c = el("article", "vt-imo");
+  const c = comCorPlano(el("article", "vt-imo"), a.donoId);
   const f = el("div", "ft");
   f.style.backgroundImage = `url("${urlSegura((a.fotos || []).find(urlSegura)) || TEXTOS.imoveis.img}")`;
   f.appendChild(el("span", "tag", FINALIDADE[a.finalidade] || "Imóvel"));
@@ -2428,8 +2428,10 @@ function barraLista(titulo, total, ordens, atual, aoMudar) {
 
 // ---------- cartões que faltavam: versões em linha e delivery compacto ----------
 const precoMin = (n) => { const v = (n.itens || []).map((i) => Number(i?.preco)).filter((x) => x > 0); return v.length ? Math.min(...v) : NaN; };
-function linhaCompacta({ classe = "", midia, titulo, sub = [], direita, abrir, rotulo }) {
-  const c = el("article", "vt-row " + classe);
+// Cor do plano de quem anuncia (borda do cartão/linha; nas bolinhas, o anel): igual em todas as vitrines.
+function comCorPlano(c, donoId) { if (donoId) c.classList.add(classePlano(planosDonos.get(donoId))); return c; }
+function linhaCompacta({ classe = "", midia, titulo, sub = [], direita, abrir, rotulo, donoId }) {
+  const c = comCorPlano(el("article", "vt-row " + classe), donoId);
   c.appendChild(midia);
   const tx = el("div", "tx");
   tx.appendChild(el("strong", "nm", titulo));
@@ -2441,7 +2443,7 @@ function linhaCompacta({ classe = "", midia, titulo, sub = [], direita, abrir, r
 function linhaPro(n) {
   const cats = categoriasDe(n).map((k) => CATEGORIAS.servicos[k] && nomeCat(n, k)).filter(Boolean);
   return linhaCompacta({
-    classe: "pro", midia: avatar(n.foto, n.nome), titulo: n.nome || "Freelancer",
+    classe: "pro", donoId: n.donoId, midia: avatar(n.foto, n.nome), titulo: n.nome || "Freelancer",
     sub: [estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }), [distDe(n), cats.slice(0, 2).join(" · "), textoCidade(n)].filter(Boolean).join(" · ")],
     direita: el("span", "pr", moeda(n.precoDesde) ? `desde ${moeda(n.precoDesde)}` : "a combinar"),
     abrir: () => abrirDetalhe(n), rotulo: `Ver ${n.nome}`
@@ -2455,7 +2457,7 @@ function linhaImovel(a) {
   const pr = el("span", "pr", moeda(a.preco) || "Consultar");
   if (moeda(a.preco) && a.finalidade === "aluguel") pr.appendChild(el("small", null, "/mês"));
   return linhaCompacta({
-    classe: "imo", midia: f, titulo: tituloImovel(a), sub: [[distDe(a), [a.bairro, textoCidade(a)].filter(Boolean).join(", ")].filter(Boolean).join(" · "), specs], direita: pr,
+    classe: "imo", donoId: a.donoId, midia: f, titulo: tituloImovel(a), sub: [[distDe(a), [a.bairro, textoCidade(a)].filter(Boolean).join(", ")].filter(Boolean).join(" · "), specs], direita: pr,
     abrir: () => abrirAnuncio(a), rotulo: `Ver ${tituloImovel(a)}`
   });
 }
@@ -2463,13 +2465,13 @@ function linhaProduto({ n, i, idx }) {
   const f = el("div", "th");
   if (urlSegura(i.foto)) f.style.backgroundImage = `url("${i.foto}")`; else f.appendChild(icone("foto", "vi"));
   return linhaCompacta({
-    classe: "prod" + (estoqueDe(i) === 0 ? " esgotado" : ""), midia: f, titulo: i.nome,
+    classe: "prod" + (estoqueDe(i) === 0 ? " esgotado" : ""), donoId: n.donoId, midia: f, titulo: i.nome,
     sub: [estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }), n.nome || "Loja"],
     direita: precoComDesconto(i), abrir: () => abrirProduto(n, idx), rotulo: `Ver ${i.nome}`
   });
 }
 function tileDelivery(n) {
-  const c = el("article", "vt-del");
+  const c = comCorPlano(el("article", "vt-del"), n.donoId);
   const ab = abertoAgora(n);
   if (ab === false) c.classList.add("fechado");
   const f = el("div", "ft");
@@ -2519,7 +2521,7 @@ function secaoDestaquesImoveis(lista) {
 
 // Delivery: linha estilo app de comida (logo, nome, categoria, tempo e taxa)
 function linhaDelivery(n) {
-  const c = el("article", "vt-linha-loja");
+  const c = comCorPlano(el("article", "vt-linha-loja"), n.donoId);
   const ab = abertoAgora(n);
   if (ab === false) c.classList.add("fechado");
   c.appendChild(avatar(n.foto, n.nome, "vt-avatar logo"));
@@ -2554,6 +2556,7 @@ function seloPromo(f, n) {
 }
 function bolhaLoja(n) {
   const c = el("button", "vt-bolha-loja");
+  c.dataset.plano = classePlano(planosDonos.get(n.donoId)).slice(6);
   c.type = "button";
   c.append(avatar(n.foto, n.nome), el("span", null, n.nome || "Loja"), estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }));
   if (promoAtiva(n)) { c.classList.add("com-promo"); c.appendChild(el("em", "vt-bolha-promo", promoAtiva(n).codigo ? "Cupom" : "Promoção")); }
@@ -2562,7 +2565,7 @@ function bolhaLoja(n) {
 }
 // Shopping: cartão de produto (estilo marketplace)
 function cartaoProduto(n, i, idx, { mostrarLoja = true } = {}) {
-  const c = el("article", "vt-prod");
+  const c = comCorPlano(el("article", "vt-prod"), n.donoId);
   const est = estoqueDe(i);
   if (est === 0) c.classList.add("esgotado");
   const f = el("div", "ft");

@@ -4,7 +4,7 @@
 // Funciona nas vitrines (servicos/delivery/shopping/imoveis) e no perfil, sem depender do rede.js.
 // Quem vê: as mesmas escolhas do autor (Amigos próximos e "Ocultar de") e 24 h.
 // =====================================================
-import { lerPlano, nivelPlano } from "./planos-base.js?v=9";
+import { lerPlano, nivelPlano } from "./planos-base.js?v=10";
 const DIA = 864e5, TEMPO_FOTO = 6000;
 const ms = (t) => (t?.toMillis ? t.toMillis() : t?.seconds ? t.seconds * 1000 : typeof t === "number" ? t : 0);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };

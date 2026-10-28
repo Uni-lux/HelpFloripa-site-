@@ -10,10 +10,10 @@
 import {
   $, el, icone, fb, eu, dados, numero, toast, erroAmigavel, criarFolha, abrirFolha, fotosDoPost, ms, paraData,
   tempoRelativo, obterPerfil, nomeCidade, ganchos
-} from "./rede.js?v=68";
-import { secaoGrafico, secaoHoras } from "./estatisticas-post.js?v=35";
+} from "./rede.js?v=69";
+import { secaoGrafico, secaoHoras } from "./estatisticas-post.js?v=36";
 import { lerStats, listaDias, somarPeriodo } from "./estat-negocio.js?v=1";
-import { lerPlano, nivelPlano } from "./planos-base.js?v=9";
+import { lerPlano, nivelPlano } from "./planos-base.js?v=10";
 
 const DIA = 864e5;
 const PERIODOS = [[7, "7 dias"], [30, "30 dias"], [90, "90 dias"]];

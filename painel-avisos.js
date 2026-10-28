@@ -12,9 +12,9 @@ import { buscarReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-re
 import { fotoSegura } from "./seguranca.js?v=1";
 import { buscarItensEquipe, TEXTO_EQUIPE, linkEquipe } from "./avisos-equipe.js?v=1";
 import { enquetesEncerradas, textoEnqueteFim } from "./enquetes.js?v=5";
-import { avisoPlano, textoPlano } from "./planos-base.js?v=9";
+import { avisoPlano, textoPlano } from "./planos-base.js?v=10";
 import { docsComValidade, esquecer } from "./leituras.js?v=1";
-import { criarLista, svg, toastNt, categoriaLigada, categoriaDe } from "./avisos-lista.js?v=8";
+import { criarLista, svg, toastNt, categoriaLigada, categoriaDe } from "./avisos-lista.js?v=9";
 
 const ms = (ts) => ts?.toMillis?.() ?? (typeof ts === "number" ? ts : 0);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };

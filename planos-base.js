@@ -111,6 +111,8 @@ export function lerPlano(fb, uid) {
   return p;
 }
 export const esquecerPlano = (uid) => cache.delete(uid);
+// Classe da cor do plano (hf-pl-plus/pro/premium; sem plano ou com o selo escondido: hf-pl-gratis).
+export function classePlano(pl) { cssSelo(); const k = mostraSelo(pl) ? pl.plano : "gratis"; return "hf-pl-" + (PLANOS[k] ? k : "gratis"); }
 // Pinta o cartão pela cor do plano de quem anuncia (classe hf-pl-plus/pro/premium; sem plano: hf-pl-gratis).
 // Lê o plano uma vez por dono (lerPlano guarda 10 min). Devolve o plano (ou null).
 export async function corDoPlano(fb, cartao, donoId) {

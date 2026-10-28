@@ -858,3 +858,11 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
 .fl-anel { transition: transform .2s; }
 .fl-bolha:focus-visible { outline: 2px solid var(--vc); outline-offset: 3px; border-radius: 12px; }
 @media (prefers-reduced-motion: reduce) { .fl-bolha-on { animation: none; } }
+
+/* ---------- Cor do plano em todas as vitrines (classes hf-pl-* do planos-base.js) ---------- */
+.vitrine .hf-pl-plus, .vitrine .hf-pl-pro, .vitrine .hf-pl-premium { --hf-pl-bg: var(--vt-card); }
+.vitrine :is(.hf-pl-plus, .hf-pl-pro, .hf-pl-premium, .hf-pl-gratis) .vt-avatar { box-shadow: 0 0 0 2px var(--vt-card), 0 0 0 4px var(--hf-pl); }
+.vt-bolha-loja[data-plano="gratis"] .vt-avatar { box-shadow: 0 0 0 2px var(--vt-bg), 0 0 0 4px #00adee; }
+.vt-bolha-loja[data-plano="plus"] .vt-avatar { box-shadow: 0 0 0 2px var(--vt-bg), 0 0 0 4.5px #2563ff, 0 6px 18px -6px #2563ff; }
+.vt-bolha-loja[data-plano="pro"] .vt-avatar { box-shadow: 0 0 0 2px var(--vt-bg), 0 0 0 4.5px #7c3aed, 0 6px 18px -6px #7c3aed; }
+.vt-bolha-loja[data-plano="premium"] .vt-avatar { box-shadow: 0 0 0 2px var(--vt-bg), 0 0 0 4.5px #f59e0b, 0 6px 18px -6px #f59e0b; }
