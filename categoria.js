@@ -177,19 +177,3 @@ iniciarTopo();
   nav.addEventListener("scroll", bordas, { passive: true });
   addEventListener("resize", bordas);
 })();
-
-// ---------- abas das classes no painel das vitrines (.vp-classes) ----------
-// A classe atual fica à vista (no meio, se der) e as bordas esmaecem só do lado em que há mais classes.
-(function abasDasClasses() {
-  const nav = document.querySelector(".vp-classes");
-  if (!nav) return;
-  const bordas = () => {
-    nav.classList.toggle("tem-esq", nav.scrollLeft > 4);
-    nav.classList.toggle("tem-dir", nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 4);
-  };
-  const atual = nav.querySelector('[aria-current="page"]');
-  if (atual) nav.scrollLeft = Math.max(0, atual.offsetLeft - (nav.clientWidth - atual.offsetWidth) / 2);
-  bordas();
-  nav.addEventListener("scroll", bordas, { passive: true });
-  addEventListener("resize", bordas);
-})();

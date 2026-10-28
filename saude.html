@@ -33,12 +33,12 @@
       document.querySelector('meta[name="theme-color"]').content = escuro ? "#0f161b" : "#ffffff";
     })();
   </script>
-  <link rel="stylesheet" href="categoria.css?v=10" />
-  <link rel="stylesheet" href="vitrine.css?v=33" />
+  <link rel="stylesheet" href="categoria.css?v=8" />
+  <link rel="stylesheet" href="vitrine.css?v=32" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
-  <script type="module" src="categoria.js?v=53"></script>
-  <script type="module" src="vitrine.js?tipo=saude&v=37"></script>
+  <script type="module" src="categoria.js?v=52"></script>
+  <script type="module" src="vitrine.js?tipo=saude&v=36"></script>
 </head>
 <body data-classe="saude">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -84,29 +84,26 @@
 
 
   <main class="pagina">
-    <!-- Painel da classe: abas das classes, título com o ícone da cor da classe e a busca (sem foto). -->
-    <section class="vp" aria-labelledby="tituloPagina">
-        <nav class="vp-classes" aria-label="Classes do Help Floripa">
-          <a class="vp-classe servicos" href="servicos.html"><svg class="i s" aria-hidden="true"><use href="#i-servicos"/></svg>Freelances</a>
-          <a class="vp-classe delivery" href="delivery.html"><svg class="i s" aria-hidden="true"><use href="#i-delivery"/></svg>Delivery</a>
-          <a class="vp-classe lojinha" href="shopping.html"><svg class="i s" aria-hidden="true"><use href="#i-lojinha"/></svg>Shopping</a>
-          <a class="vp-classe imoveis" href="imoveis.html"><svg class="i s" aria-hidden="true"><use href="#i-imoveis"/></svg>Imóveis</a>
-          <a class="vp-classe saude" href="saude.html" aria-current="page"><svg class="i s" aria-hidden="true"><use href="#i-saude"/></svg>Saúde</a>
-          <a class="vp-classe comunidade" href="comunidade.html"><svg class="i s" aria-hidden="true"><use href="#i-comunidade"/></svg>Comunidade</a>
-        </nav>
-        <div class="vp-cab">
-          <span class="vp-ic" aria-hidden="true"><svg class="i"><use href="#i-saude"/></svg></span>
-          <div class="vp-tit">
-            <h1 id="tituloPagina">Saúde</h1>
-            <p>Cuidado de verdade, perto de você</p>
-          </div>
-        </div>
-        <form class="vp-busca" id="searchForm" role="search">
+    <section class="hero" style="--capa: url('saude.svg')" aria-labelledby="tituloPagina">
+      <div class="hero-corpo">
+        <span class="selo-classe"><b><svg class="i xs" aria-hidden="true"><use href="#i-saude"/></svg></b>Saúde</span>
+        <h1 id="tituloPagina">Cuidado de verdade, <span>perto de você</span></h1>
+        <p class="lead">Médicos, enfermagem, psicólogos, veterinários, dentistas, fisioterapeutas e mais. Veja o registro no conselho, o valor da consulta e os convênios, e agende pelo chat.</p>
+        <form class="busca" id="searchForm" role="search">
           <svg class="i" aria-hidden="true"><use href="#i-lupa"/></svg>
           <label class="sr" for="searchInput">Buscar</label>
           <input type="search" id="searchInput" placeholder="Buscar profissional, especialidade ou convênio (ex.: pediatra, Unimed)" autocomplete="off" enterkeyhint="search" />
-          <button type="submit" aria-label="Buscar"><svg class="i s" aria-hidden="true"><use href="#i-lupa"/></svg></button>
+          <button type="submit" aria-label="Buscar"><svg class="i s" aria-hidden="true"><use href="#i-lupa"/></svg><span>Buscar</span></button>
         </form>
+        <nav class="classes classes-painel" aria-label="Classes do Help Floripa">
+          <a class="classe-link servicos" href="servicos.html"><svg class="i s" aria-hidden="true"><use href="#i-servicos"/></svg>Freelances</a>
+          <a class="classe-link delivery" href="delivery.html"><svg class="i s" aria-hidden="true"><use href="#i-delivery"/></svg>Delivery</a>
+          <a class="classe-link lojinha" href="shopping.html"><svg class="i s" aria-hidden="true"><use href="#i-lojinha"/></svg>Shopping</a>
+          <a class="classe-link imoveis" href="imoveis.html"><svg class="i s" aria-hidden="true"><use href="#i-imoveis"/></svg>Imóveis</a>
+          <a class="classe-link saude" href="saude.html" aria-current="page"><svg class="i s" aria-hidden="true"><use href="#i-saude"/></svg>Saúde</a>
+          <a class="classe-link comunidade" href="comunidade.html"><svg class="i s" aria-hidden="true"><use href="#i-comunidade"/></svg>Comunidade</a>
+        </nav>
+      </div>
     </section>
 
     <div class="filtros">

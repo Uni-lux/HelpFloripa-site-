@@ -1766,8 +1766,15 @@ function montarSecao() {
   const sec = el("section", "vitrine");
   sec.dataset.tipo = TIPO;
   sec.id = "vitrine";
-  // O título da página e o convite para criar o perfil já estão no painel do topo e no fim da página
-  // (antes repetiam aqui: "Profissionais da comunidade" + "Criar meu perfil").
+  const cab = el("div", "vt-cabeca");
+  const t = el("div");
+  const h = el("h2");
+  h.innerHTML = TEXTOS[TIPO].titulo;
+  t.append(h, el("p", null, TEXTOS[TIPO].sub));
+  const criar = el("a", "vt-criar");
+  criar.href = `negocios.html?tipo=${TIPO}`;
+  criar.append(icone("mais"), document.createTextNode(TEXTOS[TIPO].criar));
+  cab.append(t, criar);
   const cont = el("div", "vt-contagem");
   cont.id = "vtContagem";
   const grade = el("div", "vt-grade");
@@ -1775,7 +1782,7 @@ function montarSecao() {
   for (let i = 0; i < 3; i++) grade.appendChild(el("div", "vt-esqueleto"));
   const dest = el("div", "vt-destaques");
   dest.id = "vtDestaques";
-  sec.append(dest, cont, grade);
+  sec.append(cab, dest, cont, grade);
   const cta = main.querySelector(".cta-strip");
   const lugar = document.getElementById("vitrineAqui");
   if (lugar) lugar.replaceWith(sec);
@@ -2290,21 +2297,20 @@ function topoLista(titulo, total, ordens, atual, aoMudar) {
   const cab = el("div", "vt-lista-topo");
   const tit = el("h3", "vt-titulo-lista", titulo);
   tit.appendChild(el("span", "vt-conta", String(total)));
-  // Ordenar: uma lista compacta (antes eram 5 botões que passavam da largura no celular).
-  const ord = el("label", "vt-ordem");
-  ord.append(icone("filtro"), el("span", null, "Ordenar:"));
-  const sel = el("select"); sel.setAttribute("aria-label", "Ordenar");
-  Object.entries(ordens).forEach(([k, [rot]]) => sel.appendChild(new Option(rot, k)));
-  sel.value = atual;
-  sel.addEventListener("change", () => aoMudar(sel.value));
-  ord.appendChild(sel);
+  const ord = el("div", "vt-ordem");
+  ord.setAttribute("role", "group"); ord.setAttribute("aria-label", "Ordenar");
+  Object.entries(ordens).forEach(([k, [rot]]) => {
+    const b = el("button", null, rot); b.type = "button";
+    b.setAttribute("aria-pressed", k === atual ? "true" : "false");
+    b.addEventListener("click", () => aoMudar(k));
+    ord.appendChild(b);
+  });
   cab.append(tit, ord);
   return cab;
 }
 
 // ---------- modos de exibição (a pessoa escolhe; fica salvo neste aparelho, por página) ----------
-// 3 jeitos de ver (o "3 por linha" saiu: no celular ficava pequeno demais; no computador a grade já usa mais colunas).
-const MODOS_VER = [["linhas", "Por categoria"], ["1", "Lista"], ["2", "Grade"]];
+const MODOS_VER = [["linhas", "Por categoria"], ["1", "1 por linha"], ["2", "2 por linha"], ["3", "3 por linha"]];
 const chaveModo = "hf-vt-modo-" + TIPO;
 let modoVer = (() => { try { const m = localStorage.getItem(chaveModo); return MODOS_VER.some(([k]) => k === m) ? m : "linhas"; } catch { return "linhas"; } })();
 function botoesModo() {
@@ -2327,7 +2333,7 @@ function botoesModo() {
 // Monta os itens no modo escolhido. "Por categoria": uma fileira por categoria, rolando para o lado.
 // Filtrando por uma categoria ou buscando, "por categoria" vira grade de 3.
 function mostrarItens(grade, itens, { tile, linha, grupos, nomeGrupo, filtrando }) {
-  const modo = modoVer === "linhas" && filtrando ? "2" : modoVer;
+  const modo = modoVer === "linhas" && filtrando ? "3" : modoVer;
   if (modo === "linhas") {
     grade.classList.add("vt-linhas");
     const mapa = new Map();
