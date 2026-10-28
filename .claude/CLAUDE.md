@@ -979,9 +979,12 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   **Leitura em lote (28/10, PR depois do #111):** `docsPorIds(fbx, colecao, ids, validade)` em leituras.js (de 30 em 30 com
   `documentId in`, guarda no aparelho com a validade e anota os que não existem `{nada:1}`; falhou = um por um). Usado em
   `carregarDonos` (planos + perfis_publicos; `guardarPlano` enche o cache do lerPlano) e em `lerResumos` (notas). Saúde com 50
-  perfis: 11,2 s → 1,5 s no emulador, ~150 leituras → 6. **Comunidade ainda NÃO nacional:** lê os 150 mais recentes do Brasil a
-  cada visita (sem cache, sem o lugar escolhido, sem "Ver mais") e mostra uma grade única — proposto a ele: fileiras por tipo +
-  lugar + lotes.
+  perfis: 11,2 s → 1,5 s no emulador, ~150 leituras → 6. **Comunidade organizada (mesmo PR):** botão do lugar `#cmLocalBtn` (o MESMO do início/vitrines,
+  `escolherLocal` em rosa, `aoMudarLocal`, `atualizarPeloGps`); carrega por `lerPorLocal` (cidade → estado → Brasil, 60 por
+  nível, mínimo 30, cache 10 min, chave "cm") + "Ver mais anúncios" (`verMais`: próximos 60 do Brasil com `startAfter`);
+  o lugar escolhido vem primeiro (`doLugar`). Sem filtro/busca: fileiras `.cm-fila` (Perto de você — › ordena por perto —,
+  Chegaram agora (7 dias) e uma por tipo com a cor dele e "›" que liga o filtro); com filtro: a grade `.cm-grade` de antes.
+  Cartões da Comunidade NÃO mudaram.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

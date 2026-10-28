@@ -34,11 +34,11 @@
     })();
   </script>
   <link rel="stylesheet" href="categoria.css?v=11" />
-  <link rel="stylesheet" href="comunidade.css?v=3" />
+  <link rel="stylesheet" href="comunidade.css?v=4" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
   <script type="module" src="categoria.js?v=57"></script>
-  <script type="module" src="comunidade.js?v=26"></script>
+  <script type="module" src="comunidade.js?v=27"></script>
 </head>
 <body data-classe="comunidade" class="pg-compacta">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -130,6 +130,7 @@
       </div>
       <div class="cm-meus-box" id="cmMeusBox" hidden><h3>Meus anúncios</h3><div id="cmMeus" class="cm-meus"></div></div>
       <div class="cm-filtros">
+        <button type="button" class="cm-local" id="cmLocalBtn" aria-haspopup="dialog" aria-label="Onde você está. Tocar para mudar"><span>Todo o Brasil</span></button>
         <div class="cm-chips" id="cmChips" role="group" aria-label="Filtrar por tipo">
           <button type="button" class="cm-chip active" data-cat="todos" aria-pressed="true">Tudo</button>
           <button type="button" class="cm-chip" data-cat="doacao" aria-pressed="false">Doações</button>
@@ -144,6 +145,7 @@
         </div>
       </div>
       <div class="cm-grade" id="cmGrade"><div class="cm-esq"></div><div class="cm-esq"></div><div class="cm-esq"></div></div>
+      <button type="button" class="cm-btn cm-vermais" id="cmVerMais" hidden>Ver mais anúncios</button>
     </section>
 
     <section class="secao" aria-labelledby="tituloComo">

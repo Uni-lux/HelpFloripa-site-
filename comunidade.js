@@ -10,9 +10,11 @@ import { confirmarHF } from "./confirmar.js?v=5";
 import { temStorage, subirFoto } from "./armazenamento.js?v=1";
 import { termosBusca, buscarNoServidor, combina } from "./busca.js?v=1";
 import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL } from "./seguranca.js?v=1";
-import { docComValidade } from "./leituras.js?v=2";
+import { docComValidade, docsComValidade } from "./leituras.js?v=2";
 import { camposEndereco, textoCidade, semAcento } from "./endereco.js?v=1";
-import { minhaPosicao, comDistancia, textoDistancia } from "./perto.js?v=2";
+import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, esquecerPosicao, posicaoGuardada } from "./perto.js?v=2";
+import { lerLocal, rotuloLocal, escolherLocal, aoMudarLocal, atualizarPeloGps } from "./local-escolhido.js?v=3";
+import { lerPorLocal } from "./por-local.js?v=1";
 import { prepararConversa } from "./vitrine.js?v=73";
 
 export const CATEGORIAS_COM = {
@@ -47,6 +49,8 @@ const el = (t, c, x) => { const e = document.createElement(t); if (c) e.classNam
 const ms = (t) => t?.toMillis?.() ?? (t?.seconds ? t.seconds * 1000 : 0);
 const moeda = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: Number(v) % 1 ? 2 : 0 });
 const ICONES = {
+  seta: '<path d="M9 6l6 6-6 6"/>',
+  baixo: '<path d="M6 9l6 6 6-6"/>',
   presente: '<rect x="4" y="9" width="16" height="11" rx="1.5"/><path d="M3 9h18v-1.5A1.5 1.5 0 0019.5 6h-15A1.5 1.5 0 003 7.5zM12 6v14M12 6c-1.5-3-5-3-5-.8C7 6 9.5 6 12 6zm0 0c1.5-3 5-3 5-.8C17 6 14.5 6 12 6z"/>',
   troca: '<path d="M4 8h13l-3-3M20 16H7l3 3"/>',
   maos: '<path d="M12 20s-7-4.4-7-10a4 4 0 017-2.6A4 4 0 0119 10c0 5.6-7 10-7 10z"/>',
@@ -133,14 +137,59 @@ function cartao(a) {
   c.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrir(); } });
   return c;
 }
+// O lugar escolhido (o mesmo do início e das vitrines) vem primeiro; depois o resto, do mais novo ao mais antigo.
+const doLugar = (a) => { const l = lerLocal(); return !l.uf ? 0 : l.cidadeIbge ? (Number(a.cidadeIbge) === Number(l.cidadeIbge) ? 2 : a.uf === l.uf ? 1 : 0) : a.uf === l.uf ? 1 : 0; };
+const recentes = (a, b) => doLugar(b) - doLugar(a) || ms(b.atualizadoEm || b.criadoEm) - ms(a.atualizadoEm || a.criadoEm);
+const plural = (n) => `${n} ${n === 1 ? "anúncio" : "anúncios"}`;
+// Fileira no estilo das vitrines: título, frase, "›" e os cartões deslizando para o lado.
+function fileira(titulo, sub, itens, mais, cor = "") {
+  const sec = el("section", "cm-fila");
+  if (cor) sec.style.setProperty("--cc", cor);
+  const topo = el("div", "cm-fila-topo");
+  const tx = el("div", "cm-fila-tx"); tx.append(el("h3", null, titulo), el("p", null, sub));
+  topo.appendChild(tx);
+  if (mais) { const b = el("button", "cm-fila-mais"); b.type = "button"; b.setAttribute("aria-label", `Ver tudo: ${titulo}`); b.appendChild(icone("seta")); b.addEventListener("click", mais); topo.appendChild(b); }
+  const trilho = el("div", "cm-trilho");
+  trilho.append(...itens.map(cartao));
+  sec.append(topo, trilho);
+  return sec;
+}
+function escolherCat(cat) {
+  const b = document.querySelector(`#cmChips [data-cat="${cat}"]`);
+  if (b) b.click();
+  $("cmLista")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
 function pintar() {
   const grade = $("cmGrade"), info = $("cmInfo");
   if (!grade) return;
   let lista = todos.filter(passa);
   if (ordem === "perto") lista = [...lista].sort((a, b) => (a._km ?? Infinity) - (b._km ?? Infinity));
-  else lista = [...lista].sort((a, b) => ms(b.atualizadoEm || b.criadoEm) - ms(a.atualizadoEm || a.criadoEm));
-  info.textContent = lista.length ? `${lista.length} ${lista.length === 1 ? "anúncio" : "anúncios"}` : "";
-  grade.replaceChildren(...(lista.length ? lista.map(cartao) : [vazio()]));
+  else lista = [...lista].sort(recentes);
+  const l = lerLocal();
+  info.textContent = lista.length ? `${plural(lista.length)} · ${l.uf ? "começando por " + rotuloLocal(l) : "em todo o Brasil"}` : "";
+  pintarBotaoLocal();
+  const busca = ($("cmBusca")?.value || "").trim();
+  // Sem filtro: fileiras (Perto de você, Chegaram agora e uma por tipo), como nas vitrines. Com filtro ou busca: grade.
+  if (filtroCat === "todos" && !filtroItem && !busca && ordem !== "perto" && lista.length) {
+    grade.className = "cm-fileiras";
+    const filas = [];
+    if (posEu) {
+      const perto = lista.filter((a) => Number.isFinite(a._km)).sort((a, b) => a._km - b._km).slice(0, 12);
+      if (perto.length >= 2) filas.push(fileira("Perto de você", "Os anúncios mais perto de onde você está.", perto, () => { ordem = "perto"; const o = $("cmOrdem"); if (o) o.value = "perto"; pintar(); $("cmLista")?.scrollIntoView({ behavior: "smooth", block: "start" }); }));
+    }
+    const semana = Date.now() - 7 * 864e5;
+    const novos = lista.filter((a) => ms(a.criadoEm || a.atualizadoEm) > semana).slice(0, 12);
+    if (novos.length >= 2) filas.push(fileira("Chegaram agora", "Publicados nos últimos 7 dias.", novos));
+    ["doacao", "pedido", "troca", "quarto", "achados"].forEach((k) => {
+      const C = CATEGORIAS_COM[k], itens = lista.filter((a) => a.categoria === k);
+      if (itens.length) filas.push(fileira(C.plural, `${plural(itens.length)} · ${C.dica}`, itens.slice(0, 20), () => escolherCat(k), C.cor));
+    });
+    grade.replaceChildren(...filas);
+  } else {
+    grade.className = "cm-grade";
+    grade.replaceChildren(...(lista.length ? lista.map(cartao) : [vazio()]));
+  }
+  $("cmVerMais").hidden = !maisNoServidor;
 }
 function vazio() {
   const v = el("div", "cm-vazio");
@@ -528,8 +577,56 @@ function ligarTela() {
   $("cmBuscaForm")?.addEventListener("submit", (e) => { e.preventDefault(); pintar(); buscarMais(); $("cmLista")?.scrollIntoView({ behavior: "smooth", block: "start" }); });
   document.querySelectorAll("[data-anunciar]").forEach((b) => b.addEventListener("click", () => abrirForm(null, b.dataset.anunciar || "doacao")));
   $("cmVerRegras")?.addEventListener("click", mostrarRegras);
+  $("cmLocalBtn")?.addEventListener("click", async () => {
+    const f = await escolherLocal({ perfil: meuPerfil, pedirLocalizacao, esquecerPosicao, cores: { accent: "#e5487f", ink: "#ffffff" } });
+    if (f !== null) trocarLugar();
+  });
+  $("cmVerMais")?.addEventListener("click", verMais);
+  const bl = $("cmLocalBtn"); if (bl) { bl.prepend(icone("pin")); bl.appendChild(icone("baixo", "ci seta")); }
+  pintarBotaoLocal();
   $("cmVerMeus")?.addEventListener("click", () => { $("cmMeusBox").hidden = !$("cmMeusBox").hidden; if (!$("cmMeusBox").hidden) $("cmMeusBox").scrollIntoView({ behavior: "smooth", block: "start" }); });
 }
+// ---------- lugar e carregamento (nacional) ----------
+// Lê pelo lugar escolhido: a cidade, depois o estado e só então o Brasil (por-local.js, guardado 10 min no aparelho).
+// "Ver mais anúncios" busca os próximos 60 do Brasil, dos mais novos para os mais antigos.
+const noAr = (a) => a.status !== "concluido" && !oculto(a) && !vencido(a);
+let maisNoServidor = false, maisAntigo = null;
+function pintarBotaoLocal() {
+  const b = $("cmLocalBtn"); if (!b) return;
+  b.querySelector("span").textContent = rotuloLocal(lerLocal());
+}
+async function carregar() {
+  const loc = lerLocal();
+  const { lista } = await lerPorLocal(fb, docsComValidade, { colecao: "comunidade", loc, limite: 60, minimo: 30, noAr, chave: "cm" }).catch(() => ({ lista: [] }));
+  const meus = todos.filter((a) => a.donoId === eu?.uid);
+  const ja = new Set(lista.map((x) => x.id));
+  todos = [...lista, ...meus.filter((x) => !ja.has(x.id))];
+  maisAntigo = todos.reduce((m, a) => { const t = ms(a.atualizadoEm); return t && (!m || t < m) ? t : m; }, 0) || null;
+  maisNoServidor = lista.length >= 30;
+  if (posEu) await comDistancia(todos, posEu).catch(() => {});
+}
+async function verMais() {
+  const b = $("cmVerMais"); if (!b || !fb) return;
+  b.disabled = true; b.textContent = "Carregando...";
+  try {
+    const q = fb.query(fb.collection(fb.db, "comunidade"), fb.orderBy("atualizadoEm", "desc"), ...(maisAntigo ? [fb.startAfter(fb.Timestamp.fromMillis(maisAntigo))] : []), fb.limit(60));
+    const s = await fb.getDocs(q);
+    const ja = new Set(todos.map((x) => x.id));
+    const novos = s.docs.map((d) => ({ id: d.id, ...d.data() })).filter((a) => !ja.has(a.id));
+    if (posEu) await comDistancia(novos, posEu).catch(() => {});
+    todos.push(...novos);
+    maisAntigo = s.docs.length ? ms(s.docs[s.docs.length - 1].data().atualizadoEm) || maisAntigo : maisAntigo;
+    maisNoServidor = s.docs.length === 60;
+  } catch (e) { console.warn("Comunidade:", e.code || e.message); toast("Não deu para carregar mais agora."); }
+  b.disabled = false; b.textContent = "Ver mais anúncios";
+  pintar();
+}
+async function trocarLugar() {
+  if (!fb) return;
+  posEu = await minhaPosicao(meuPerfil).catch(() => null);
+  await carregar(); pintar();
+}
+
 async function iniciar() {
   ligarTela();
   for (let i = 0; i < 100 && (!window.firebaseAuth || !window.firebaseDb); i++) await new Promise((r) => setTimeout(r, 50));
@@ -541,17 +638,16 @@ async function iniciar() {
     eu = u;
     conferirEmail(u);
     meuPerfil = await docComValidade(fb, ["perfis_publicos", u.uid], 30 * 60000).then((s) => (s.exists() ? s.data() : {})).catch(() => ({}));
-    const [pos, ban, snap] = await Promise.all([
+    const [pos, ban] = await Promise.all([
       minhaPosicao(meuPerfil).catch(() => null),
-      fb.getDoc(fb.doc(fb.db, "programa_banidos", `${u.uid}_comunidade`)).then((s) => (s.exists() ? s.data() : null)).catch(() => null),
-      fb.getDocs(fb.query(fb.collection(fb.db, "comunidade"), fb.orderBy("atualizadoEm", "desc"), fb.limit(150))).catch((e) => { console.warn("Comunidade:", e.code || e.message); return { docs: [] }; })
+      fb.getDoc(fb.doc(fb.db, "programa_banidos", `${u.uid}_comunidade`)).then((s) => (s.exists() ? s.data() : null)).catch(() => null)
     ]);
     posEu = pos;
     banimento = ban && (!ms(ban.ate) || ms(ban.ate) > Date.now()) ? ban : null;
     $("cmBanido").hidden = !banimento;
     if (banimento) $("cmBanido").querySelector("span").textContent = `Você está banido(a) da Comunidade${ms(banimento.ate) ? " até " + new Date(ms(banimento.ate)).toLocaleDateString("pt-BR") : ""}. Motivo: ${banimento.motivo || "venda ou cobrança"}.`;
-    todos = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    // Meus anúncios mais antigos (fora dos 150 recentes) também aparecem em "Meus anúncios".
+    await carregar();
+    // Meus anúncios mais antigos (fora dos carregados) também aparecem em "Meus anúncios".
     try {
       const meus = await fb.getDocs(fb.query(fb.collection(fb.db, "comunidade"), fb.where("donoId", "==", u.uid), fb.limit(50)));
       const ja = new Set(todos.map((x) => x.id));
@@ -560,6 +656,9 @@ async function iniciar() {
     if (posEu) await comDistancia(todos, posEu);
     if (posEu) { const o = $("cmOrdem"); if (o) o.querySelector('[value="perto"]').disabled = false; }
     pintar(); pintarMeus();
+    // O mesmo lugar do início e das vitrines: muda em outra página = muda aqui; sem escolha à mão, lê o GPS.
+    aoMudarLocal(() => trocarLugar());
+    atualizarPeloGps({ pedirLocalizacao, posicaoGuardada }).then((novo) => { if (novo) trocarLugar(); });
     // Chegou com uma busca (?q=): pergunta também ao Firebase, além dos 150 mais recentes.
     if (($("cmBusca")?.value || "").trim().length >= 3) $("cmBusca").dispatchEvent(new Event("input"));
     const p = new URLSearchParams(location.search);
