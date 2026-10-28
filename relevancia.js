@@ -4,8 +4,9 @@
 //   perfil completo, atualizado, verificado) × novidade (até 14 dias) × perto (km ou mesma cidade) ×
 //   bônus do plano (Plus +10%, Pro +20%, Premium +30%) × exposição (quem você já viu muito no topo perde um pouco) ×
 //   giro (mistura fixa por pessoa e por janela de 3 h: não pula a cada recarga, mas muda ao longo do dia).
-// - Na lista, 1 espaço a cada 5 é de quem tem plano (com o selo do plano no cartão), revezando entre os pagantes;
-//   o resto é a ordem acima. O mesmo dono não aparece duas vezes seguidas.
+// - Na lista, 1 espaço a cada 5 é de quem tem plano (com o selo do plano no cartão): Premium primeiro (o 1º cartão de cada
+//   lista e fileira é de um Premium, revezando entre eles), depois Pro e depois Plus; o resto é a ordem acima.
+//   O mesmo dono não aparece duas vezes seguidas.
 // - Tudo no aparelho, com os dados que a página já leu: nenhuma leitura ou gravação a mais no Firebase.
 // =====================================================
 export const BONUS_PLANO = [1, 1.1, 1.2, 1.3];
@@ -84,13 +85,26 @@ export function relevancia(d, { semente = "", agora = Date.now() } = {}) {
   return s * (0.85 + 0.3 * sorteioFixo(semente + ":" + janela(agora) + ":" + d.id));
 }
 
+// Dados de um perfil de negócio/anúncio para o relevancia(), com o que Início e Explorar já têm na mão.
+// nota = resumo {total, soma} (ou null); nivel = nível do plano; km/mesmaCidade/fator opcionais.
+export function dadosNegocio(n, { nota = null, nivel = 0, km, mesmaCidade = false, fator, verificado = false } = {}) {
+  const ms = (t) => t?.toMillis?.() ?? (typeof t === "number" ? t : 0);
+  const tem = [n.foto || (n.fotos || []).length, String(n.descricao || "").length >= 40, n.bairro, n.capa || (n.fotos || []).length > 1, (n.itens || []).length || n.precoDesde || n.preco || n.saude?.profissao];
+  return {
+    id: n.id, media: nota?.total ? (Number(nota.soma) || 0) / nota.total : 0, total: nota?.total || 0,
+    resposta: undefined, completo: tem.filter(Boolean).length / tem.length,
+    atualizadoEm: ms(n.atualizadoEm), criadoEm: ms(n.criadoEm || n.atualizadoEm),
+    km: Number.isFinite(km) ? km : Number.isFinite(n._km) ? n._km : undefined, mesmaCidade, nivel, verificado, fator
+  };
+}
+
 // ---------- ordem da lista ----------
 // itens: a lista; dados(item) → objeto do relevancia(); dono(item) → id do dono (para não repetir em seguida).
 // Devolve a lista na ordem justa. marcar: quantos do começo contam como "vistos no topo" (0 = nenhum).
 export function ordenarJusto(itens, dados, { dono = () => "", semente = "", agora = Date.now(), marcar = 0, aCada = A_CADA } = {}) {
   const info = itens.map((x) => { const d = dados(x); return { x, d, s: relevancia(d, { semente, agora }), dono: dono(x) }; });
-  // Pagantes revezam nos espaços pagos: peso pelo plano e pela qualidade, girando pela mesma mistura.
-  const pagos = info.filter((i) => i.d.nivel > 0).sort((a, b) => b.s - a.s);
+  // Espaços pagos: Premium > Pro > Plus (o que os planos prometem); dentro do mesmo plano, revezam pela mesma mistura.
+  const pagos = info.filter((i) => i.d.nivel > 0).sort((a, b) => b.d.nivel - a.d.nivel || b.s - a.s);
   const organico = [...info].sort((a, b) => b.s - a.s);
   const usados = new Set(), saida = [];
   let ultimoDono = null;

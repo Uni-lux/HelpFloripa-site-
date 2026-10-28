@@ -14,17 +14,16 @@ import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL 
 import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento, media, avaliarNegocio } from "./avaliacoes.js?v=17";
 import { abrirQueixa } from "./queixas.js?v=16";
 import { docComValidade, docsComValidade, docsPorIds } from "./leituras.js?v=3";
-import { anelNegocio } from "./flash-negocio.js?v=13";
+import { anelNegocio } from "./flash-negocio.js?v=15";
 import { camposEndereco, textoCidade, cidadesDe, NOME_UF, semAcento, cidadePorCodigo } from "./endereco.js?v=1";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, esquecerPosicao, posicaoGuardada } from "./perto.js?v=2";
 import { lerLocal, salvarLocal, marcarManual, escolherLocal, atualizarPeloGps, aoMudarLocal, escolhaManual } from "./local-escolhido.js?v=3";
-import { lerPlano, nivelPlano, seloPlano, nomePlano, negocioPausado, mostraSelo, classePlano, LIMITES_GRATIS, guardarPlano } from "./planos-base.js?v=13";
+import { lerPlano, nivelPlano, seloPlano, nomePlano, negocioPausado, mostraSelo, classePlano, LIMITES_GRATIS, guardarPlano } from "./planos-base.js?v=15";
 import { estaOnline } from "./presenca.js?v=1";
-import { ordenarJusto, relevancia } from "./relevancia.js?v=1";
+import { ordenarJusto, relevancia } from "./relevancia.js?v=3";
 import { PROFISSOES_SAUDE, CATEGORIAS_SAUDE, SITE_CONSELHO, MODALIDADES_SAUDE, PUBLICO_SAUDE, PUBLICO_VET, nomeProfissao, conselhoDe, ehVet, textoRegistro, textoValor, AVISO_EMERGENCIA, AVISO_REGISTRO } from "./saude-dados.js?v=1";
 import { usarEstat, registrarVisita, registrarAcao, registrarItem, chaveItem as chaveEstat, chaveAnuncio } from "./estat-negocio.js?v=1";
-// Plano de quem anuncia: todo plano pago tem o selo; Pro e Premium aparecem antes na ordem padrão
-// (Premium antes de todos).
+// Plano de quem anuncia: todo plano pago tem o selo e os espaços de destaque (1 a cada 5: Premium, depois Pro e Plus).
 const planosDonos = new Map();
 const nivelDe = (n) => nivelPlano(planosDonos.get(n?.donoId));
 // Sem plano: só o perfil principal do dono aparece (planos-base.js). Anúncios seguem o perfil Imóveis do dono.
@@ -36,7 +35,7 @@ function versaoGratis(n) {
 }
 const comLimites = (n) => (n && !n._gratis && n.tipo !== "imovel" && planosDonos.has(n.donoId) && !nivelPlano(planosDonos.get(n.donoId)) ? versaoGratis(n) : n);
 const pausadoNaVitrine = (x) => x?.donoId !== eu?.uid && negocioPausado(x?.tipo === "imovel" ? { tipo: "imovel", principal: principalImoveis.get(x.donoId) ?? negociosImoveis.get(x.donoId)?.principal } : x, planosDonos.get(x?.donoId));
-// Ordem padrão: Premium > Pro > Plus > grátis (todo plano pago aparece antes de quem não tem plano).
+// Nível do plano (Premium 3 > Pro 2 > Plus 1). A ordem padrão é a justa (relevancia.js); proPrimeiro fica para os empates.
 const destaqueDe = (n) => nivelDe(n);
 const proPrimeiro = (f) => (a, b) => (destaqueDe(b.n || b) - destaqueDe(a.n || a)) || f(a, b);
 

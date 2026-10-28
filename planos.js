@@ -13,8 +13,8 @@
 // =====================================================
 
 // Preços, nível, selo e leitura do plano ficam no planos-base.js (as páginas que só mostram o selo não baixam este arquivo).
-import { PIX, PAGAMENTO, PLANOS, ORDEM_PLANOS, PRECO_MIN, PERIODOS, descontoDe, valorPeriodo, DIAS_TESTE, DIAS_BONUS, BENEFICIOS, DESTAQUES_PLANO, nivelPlano, ehPago, ehPro, nomePlano, emTeste, diasRestantes, textoFalta, reais, creditoDias, lerPlano, esquecerPlano, seloPlano, seloPro, emTolerancia, fimComTolerancia, NOMES_PERFIL, TIPOS_PERFIL, LIMITES_GRATIS } from "./planos-base.js?v=13";
-export { PIX, PAGAMENTO, PLANOS, ORDEM_PLANOS, PRECO_MIN, PERIODOS, descontoDe, valorPeriodo, DIAS_TESTE, DIAS_BONUS, BENEFICIOS, nivelPlano, ehPago, ehPro, nomePlano, emTeste, diasRestantes, textoFalta, reais, creditoDias, lerPlano, esquecerPlano, seloPlano, seloPro, emTolerancia, fimComTolerancia, negocioPausado, NOMES_PERFIL, TIPOS_PERFIL, perfisDoPlano, mostraSelo } from "./planos-base.js?v=13";
+import { PIX, PAGAMENTO, PLANOS, ORDEM_PLANOS, PRECO_MIN, PERIODOS, descontoDe, valorPeriodo, DIAS_TESTE, DIAS_BONUS, BENEFICIOS, DESTAQUES_PLANO, nivelPlano, ehPago, ehPro, nomePlano, emTeste, diasRestantes, textoFalta, reais, creditoDias, lerPlano, esquecerPlano, seloPlano, seloPro, emTolerancia, fimComTolerancia, NOMES_PERFIL, TIPOS_PERFIL, LIMITES_GRATIS } from "./planos-base.js?v=15";
+export { PIX, PAGAMENTO, PLANOS, ORDEM_PLANOS, PRECO_MIN, PERIODOS, descontoDe, valorPeriodo, DIAS_TESTE, DIAS_BONUS, BENEFICIOS, nivelPlano, ehPago, ehPro, nomePlano, emTeste, diasRestantes, textoFalta, reais, creditoDias, lerPlano, esquecerPlano, seloPlano, seloPro, emTolerancia, fimComTolerancia, negocioPausado, NOMES_PERFIL, TIPOS_PERFIL, perfisDoPlano, mostraSelo } from "./planos-base.js?v=15";
 import { codigoPix as codigoPixBase } from "./pix.js?v=1";
 const ms = (t) => t?.toMillis?.() ?? (t?.seconds ? t.seconds * 1000 : typeof t === "number" ? t : 0);
 const DIA = 864e5;
@@ -429,6 +429,7 @@ export async function abrirPlanos(op) {
       tab.appendChild(l);
     });
     corpo.appendChild(tab);
+    corpo.appendChild(el("p", "pl-nota", "Como funciona a ordem das vitrines: 1 a cada 5 cartões é um espaço de destaque de quem tem plano (o Premium fica com o 1º lugar, depois vêm Pro e Plus). Os outros seguem a relevância, igual para todos (avaliações, atendimento, perfil completo, novidade e distância), com o bônus do plano. A ordem gira ao longo do dia, para que todos apareçam."));
 
     const secPer = el("div", "pl-sec"); corpo.appendChild(secPer);
     const per = el("div", "pl-periodos");
