@@ -10,11 +10,12 @@
 import { fotoSegura } from "./seguranca.js?v=1";
 import { enfeitarSelect } from "./escolha.js?v=4";
 import { estrelas, lerResumos, media } from "./avaliacoes.js?v=17";
-import { docComValidade, docsComValidade } from "./leituras.js?v=3";
-import { lerPlano, nivelPlano, seloPlano, semPausados, mostraSelo, corDoPlano } from "./planos-base.js?v=14";
+import { docComValidade, docsComValidade, docsPorIds } from "./leituras.js?v=3";
+import { ordenarJusto, relevancia, dadosNegocio } from "./relevancia.js?v=3";
+import { lerPlano, nivelPlano, seloPlano, semPausados, mostraSelo, corDoPlano, planosDosDonos } from "./planos-base.js?v=15";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, esquecerPosicao, posicaoGuardada } from "./perto.js?v=2";
 import { lerLocal, salvarLocal, rotuloLocal, noLocal, escolherLocal, atualizarPeloGps, aoMudarLocal } from "./local-escolhido.js?v=3";
-import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=76";
+import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=77";
 import { lerComunidade, cartaoComunidade, filtrosComunidade } from "./comunidade-cartao.js?v=2";
 import { lerPorLocal, quandoVisivel } from "./por-local.js?v=1";
 import { NOME_UF } from "./endereco.js?v=1";
@@ -214,16 +215,19 @@ function preencher(id, cartoes) {
 // = mais chances e mais tempo na tela. Quem ainda não apareceu ganha prioridade,
 // então todos têm sua vez. Pausa quando a pessoa mexe no trilho, quando a seção
 // sai da tela ou quando a aba fica em segundo plano.
+// Ordem justa (relevancia.js), igual às vitrines: `ordem` = a lista já na ordem justa (1 espaço pago a cada 5) e
+// `nivel(x)` = nível do plano; no revezamento, os lugares 1, 6, 11... só trocam entre pagantes (o 1º, entre os do maior
+// plano que houver: Premium, depois Pro, depois Plus) e os outros entre todos, pelo peso da relevância.
 const SEM_MOVIMENTO = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const revezamentos = [];
-function revezar(id, itens, { criar, peso, tempo, chave = (x) => x.id, lugares = 8 }) {
+function revezar(id, itens, { criar, peso, tempo, chave = (x) => x.id, lugares = 8, ordem = null, nivel = null }) {
   const trilho = $(id);
   // Trocar o filtro monta o trilho de novo: o revezamento antigo para sozinho.
   const geracao = (trilho._geracao = (trilho._geracao || 0) + 1);
   const total = Math.min(itens.length, lugares);
   // Começa pelos de maior peso (os melhores aparecem primeiro).
-  const ordem = [...itens].sort((a, b) => peso(b) - peso(a));
-  const slots = ordem.slice(0, total).map((item) => {
+  const inicio = ordem || [...itens].sort((a, b) => peso(b) - peso(a));
+  const slots = inicio.slice(0, total).map((item) => {
     const s = el("div", "slot");
     s.appendChild(criar(item));
     return { el: s, item, desde: Date.now() };
@@ -242,8 +246,14 @@ function revezar(id, itens, { criar, peso, tempo, chave = (x) => x.id, lugares =
     const r = trilho.getBoundingClientRect();
     return slots.filter((s) => { const b = s.el.getBoundingClientRect(); return b.right > r.left + 24 && b.left < r.right - 24; });
   };
-  function sortear(excluir) {
-    const cand = itens.filter((x) => !excluir.has(chave(x)));
+  function sortear(excluir, slot) {
+    let cand = itens.filter((x) => !excluir.has(chave(x)));
+    const k = slots.indexOf(slot);
+    if (nivel && k % 5 === 0 && itens.some((x) => nivel(x) > 0)) {
+      // Espaço pago: só entre pagantes; o 1º lugar, só entre os do maior plano (sem outro deles, fica como está).
+      const maior = Math.max(...itens.map(nivel));
+      cand = cand.filter((x) => (k === 0 ? nivel(x) === maior : nivel(x) > 0));
+    }
     if (!cand.length) return null;
     // Peso da nota dividido por quantas vezes já apareceu: os melhores voltam mais, mas ninguém fica de fora.
     const p = cand.map((x) => peso(x) / (1 + (vezes.get(chave(x)) || 0)));
@@ -270,7 +280,7 @@ function revezar(id, itens, { criar, peso, tempo, chave = (x) => x.id, lugares =
     // Troca o cartão visível que já cumpriu seu tempo (o mais antigo primeiro).
     const vencido = vis.filter((s) => Date.now() - s.desde >= tempo(s.item)).sort((a, b) => a.desde - b.desde)[0];
     if (!vencido) return;
-    const novo = sortear(new Set(vis.map((s) => chave(s.item))));
+    const novo = sortear(new Set(vis.map((s) => chave(s.item))), vencido);
     if (novo) trocar(vencido, novo);
   });
 }
@@ -323,8 +333,11 @@ async function secaoSaude(fs, db, u) {
   const { lista, nivel } = await lerPorLocal({ ...fs, db }, docsComValidade, { colecao: "negocios", filtros: [["tipo", "saude"]], chave: "saude", loc, limite: 24, minimo: 8, noAr: (n) => n.nome && n.oculto !== true && !oculto(n) });
   const final = await semPausados({ ...fs, db }, lista);
   if (loc.uf) $("t-secSaude").textContent = `Saúde ${tituloNivel(nivel, rotulo, loc.uf)}`;
-  const resumos = await lerResumos({ ...fs, db }, final.slice(0, 20).map((n) => "neg_" + n.id));
-  preencher("trilhoSaude", final.slice(0, 20).map((n) => cartaoNegocio(n, resumos["neg_" + n.id])));
+  const resumos = await lerResumos({ ...fs, db }, final.slice(0, 24).map((n) => "neg_" + n.id));
+  // Ordem justa (mesma regra das vitrines): 1 espaço pago a cada 5, o 1º de um Premium quando houver.
+  const planos = await planosDosDonos({ ...fs, db }, final.map((n) => n.donoId), docsPorIds);
+  const ordem = ordenarJusto(final.slice(0, 24), (n) => dadosNegocio(n, { nota: resumos["neg_" + n.id], nivel: nivelPlano(planos.get(n.donoId)) }), { dono: (n) => n.donoId, semente: u.uid, marcar: 6 });
+  preencher("trilhoSaude", ordem.slice(0, 20).map((n) => cartaoNegocio(n, resumos["neg_" + n.id])));
 }
 async function secaoComunidade(fs, db, u) {
   const { loc, rotulo } = await localSecoes(fs, db, u);
@@ -351,9 +364,9 @@ async function montarPerto(fs, db, u, negocios, imoveis, nota) {
     const comKm = itens.filter((x) => Number.isFinite(x._km));
     const fsb = { ...fs, db };
     await Promise.all([...new Set(comKm.map((x) => x.donoId).filter(Boolean))].map(async (id) => { const pl = await lerPlano(fsb, id).catch(() => null); const nv = nivelPlano(pl); comKm.forEach((x) => { if (x.donoId === id) { x._nivel = nv; x._plano = nv ? pl : null; } }); }));
-    // Plus conta 15% mais perto, Pro 40% e Premium 50% (o maior destaque no Perto de você).
-    const peso = (x) => (x._nivel >= 3 ? 0.5 : x._nivel === 2 ? 0.6 : x._nivel === 1 ? 0.85 : 1);
-    const perto = comKm.sort((a, b) => a._km * peso(a) - b._km * peso(b));
+    // Plus conta 10% mais perto (o mesmo bônus das vitrines), Pro 40% e Premium 50% (o maior destaque no Perto de você).
+    const peso = (x) => (x._nivel >= 3 ? 0.5 : x._nivel === 2 ? 0.6 : x._nivel === 1 ? 0.9 : 1);
+    const perto = comKm.sort((a, b) => (a._km + 0.5) * peso(a) - (b._km + 0.5) * peso(b)); // +0,5 km: na mesma cidade (0 km) o plano também conta
     const raio = perto.filter((x) => x._km <= 60);
     const lista = (raio.length >= 4 ? raio : perto).slice(0, 24);
     if (!lista.length) { sub.textContent = "Ainda não tem ninguém cadastrado perto de você."; }
@@ -404,13 +417,20 @@ async function carregar(fs, db, u) {
     const resumos = await lerResumos({ ...fs, db }, lista.map((n) => "neg_" + n.id));
     const nota = (n) => resumos["neg_" + n.id];
     negociosPerto = lista; notaPerto = nota;
+    // Planos dos donos (em lote, 10 min no aparelho) para a ordem justa: a mesma regra das vitrines.
+    const planos = await planosDosDonos({ ...fs, db }, lista.map((n) => n.donoId), docsPorIds);
+    const nivelN = (n) => nivelPlano(planos.get(n.donoId));
     // Peso pela nota: média alta e mais avaliações pesam mais; sem nota ainda entra, com peso pequeno.
-    const pesoNota = (n) => { const r = nota(n); if (!r?.total) return 1; const m = media(r); return 1 + (m * m * (1 + Math.log1p(r.total))) / 5; };
     const tempoNota = (n) => 4500 + 900 * (nota(n)?.total ? media(nota(n)) : 0); // 4,5 s a ~9 s na tela
     const comNota = lista.filter((n) => nota(n)?.total);
     // Cidade/estado escolhido em "Você está em": os de lá vêm primeiro (os outros continuam, depois).
     const loc = lerLocal(), aqui = (n) => noLocal(n, loc);
     const localPrimeiro = (l) => (loc.uf ? [...l.filter(aqui), ...l.filter((n) => !aqui(n))] : l);
+    // Ordem justa (relevancia.js) dentro de cada parte: primeiro os da cidade escolhida, depois os outros.
+    const dadosN = (n, fator) => dadosNegocio(n, { nota: nota(n), nivel: nivelN(n), mesmaCidade: loc.uf ? aqui(n) : false, fator });
+    const semente = u.uid;
+    const justoLocal = (l, fator) => { const j = (x) => ordenarJusto(x, (n) => dadosN(n, fator?.(n)), { dono: (n) => n.donoId, semente, marcar: 6 }); return loc.uf ? [...j(l.filter(aqui)), ...j(l.filter((n) => !aqui(n)))] : j(l); };
+    const pesoRel = (fator) => (n) => relevancia(dadosN(n, fator?.(n)), { semente });
     const nomeLocal = loc.uf ? rotuloLocal(loc) : "";
     if (nomeLocal) {
       const temTop = comNota.some(aqui), temNovo = lista.some(aqui);
@@ -421,12 +441,12 @@ async function carregar(fs, db, u) {
     cidadesEmDestaque(lista);
     // "Mais bem avaliados" sempre aparece: sem notas ainda, mostra todos e convida a avaliar.
     if (!comNota.length) $("secTop").querySelector(".secao-cab p").textContent = "Ainda sem notas por aqui. Depois do atendimento, avalie quem te atendeu.";
-    filtroTipos("secTop", localPrimeiro(comNota.length ? comNota : lista).slice(0, 40), (l) => revezar("trilhoTop", l, { criar: (n) => cartaoNegocio(n, nota(n)), peso: pesoNota, tempo: tempoNota }));
+    filtroTipos("secTop", localPrimeiro(comNota.length ? comNota : lista).slice(0, 40), (l) => revezar("trilhoTop", l, { criar: (n) => cartaoNegocio(n, nota(n)), peso: pesoRel(), tempo: tempoNota, ordem: justoLocal(l), nivel: nivelN }));
     const agora = Date.now(), DIA = 86400000;
     const novos = localPrimeiro([...lista].filter((n) => n.tipo !== "imoveis").sort((a, b) => ms(b.atualizadoEm) - ms(a.atualizadoEm))).slice(0, 30);
-    // Mais novos pesam mais; a nota também conta.
-    const pesoNovo = (n) => { const dias = (agora - ms(n.atualizadoEm || n.criadoEm)) / DIA; return (dias < 3 ? 4 : dias < 14 ? 2.5 : 1) * (0.6 + pesoNota(n) / 5); };
-    filtroTipos("secNovos", novos, (l) => revezar("trilhoNovos", l, { criar: (n) => cartaoNegocio(n, nota(n)), peso: pesoNovo, tempo: tempoNota }));
+    // Mais novos pesam mais (fator da relevância); a nota e o plano também contam, como nas vitrines.
+    const fatorNovo = (n) => { const dias = (agora - ms(n.atualizadoEm || n.criadoEm)) / DIA; return dias < 3 ? 1.6 : dias < 14 ? 1.25 : 1; };
+    filtroTipos("secNovos", novos, (l) => revezar("trilhoNovos", l, { criar: (n) => cartaoNegocio(n, nota(n)), peso: pesoRel(fatorNovo), tempo: tempoNota, ordem: justoLocal(l, fatorNovo), nivel: nivelN }));
   } catch (e) { console.warn("Vitrine da página inicial indisponível:", e); preencher("trilhoTop", []); preencher("trilhoNovos", []); }
 
   try {
@@ -439,10 +459,18 @@ async function carregar(fs, db, u) {
     if (locIm.uf && imsTodos.some((a) => noLocal(a, locIm))) $("t-secImoveis").textContent = `Imóveis em ${rotuloLocal(locIm)}`;
     imoveisPerto = ims;
     const agora = Date.now();
+    // Ordem justa (mesma regra): plano do anunciante, novidade e fotos; os da cidade escolhida primeiro.
+    const planosIm = await planosDosDonos({ ...fs, db }, ims.map((a) => a.donoId), docsPorIds);
+    const nivelIm = (a) => nivelPlano(planosIm.get(a.donoId));
+    const fatorIm = (a) => ((agora - ms(a.atualizadoEm || a.criadoEm)) / 86400000 < 7 ? 1.4 : 1) * ((a.fotos || []).length ? 1.15 : 0.9);
+    const dadosIm = (a) => dadosNegocio(a, { nivel: nivelIm(a), mesmaCidade: locIm.uf ? noLocal(a, locIm) : false, fator: fatorIm(a) });
+    const jIm = (l) => ordenarJusto(l, dadosIm, { dono: (a) => a.donoId, semente: u.uid, marcar: 6 });
     revezar("trilhoImoveis", ims, {
       criar: cartaoImovel,
-      peso: (a) => { const dias = (agora - ms(a.atualizadoEm || a.criadoEm)) / 86400000; return (dias < 7 ? 3 : 1) + ((a.fotos || []).length ? 1 : 0); },
-      tempo: () => 6000
+      peso: (a) => relevancia(dadosIm(a), { semente: u.uid }),
+      tempo: () => 6000,
+      ordem: locIm.uf ? [...jIm(ims.filter((a) => noLocal(a, locIm))), ...jIm(ims.filter((a) => !noLocal(a, locIm)))] : jIm(ims),
+      nivel: nivelIm
     });
   } catch { preencher("trilhoImoveis", []); }
   // Saúde e Comunidade em nível nacional (por-local.js): a cidade escolhida em "Você está em" (ou a do perfil), depois o

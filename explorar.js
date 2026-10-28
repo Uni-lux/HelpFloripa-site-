@@ -11,17 +11,18 @@
 import {
   $, el, icone, ms, toast, pintarAvatar, urlSegura, nomeCidade, fb, eu, dados, meusSeguindo, escondido, silenciado, ganchos,
   obterPerfil, linhaPessoa, botaoSeguir, fotosDoPost, lerResumosEstrelas, minhaRede, jaVisto, definirOrigem, origemAtual, pilha
-} from "./rede.js?v=74";
+} from "./rede.js?v=75";
 import { afinidade } from "./gosto.js?v=1";
 import { buscarNoServidor } from "./busca.js?v=1";
 import { postsDoEstado, pesoRegiao, RECENTES_PAIS } from "./regiao.js?v=4";
 import { buscarPessoas, pessoasRecentes, semAcento } from "./pessoas.js?v=5";
-import { docsComValidade } from "./leituras.js?v=3";
+import { docsComValidade, docsPorIds } from "./leituras.js?v=3";
+import { ordenarJusto, dadosNegocio } from "./relevancia.js?v=3";
 import { lerResumos, media } from "./avaliacoes.js?v=17";
-import { CATEGORIAS, CORES_TIPO, NOMES_TIPO, PAGINA_TIPO, nomeCategoria, nomeCat, categoriasDe } from "./vitrine.js?v=76";
+import { CATEGORIAS, CORES_TIPO, NOMES_TIPO, PAGINA_TIPO, nomeCategoria, nomeCat, categoriasDe } from "./vitrine.js?v=77";
 import { fimDaEnquete, faltaTexto } from "./enquetes.js?v=5";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, distanciaKm } from "./perto.js?v=2";
-import { semPausados, corDoPlano, lerPlano, classePlano } from "./planos-base.js?v=14";
+import { semPausados, corDoPlano, lerPlano, classePlano, planosDosDonos, nivelPlano } from "./planos-base.js?v=15";
 import { lerComunidade, cartaoComunidade, filtrosComunidade, comunidadeNoAr } from "./comunidade-cartao.js?v=2";
 
 const DIARIO_VALIDADE = 3 * 60000, DIA = 864e5, HORA = 3600e3;
@@ -156,10 +157,14 @@ async function buscar() {
   if (!termo.startsWith("@")) posts.forEach((p) => (p.tags || []).forEach((tg) => { if (semAcento(tg).startsWith(t)) tags.set(tg, (tags.get(tg) || 0) + 1); }));
   const exata = /^[\p{L}\p{N}_]{1,30}$/u.test(limpo) && !termo.startsWith("@") ? limpo.toLowerCase() : "";
   if (exata && !tags.has(exata) && termo.startsWith("#")) tags.set(exata, 0);
+  // Negócios achados: a mesma ordem justa das vitrines (1 espaço pago a cada 5), com o quanto o nome bate com o que
+  // foi digitado pesando junto (nome que começa com a palavra vem antes).
+  const negAchados = t.length < 2 ? [] : negocios.filter((n) => t.split(/\s+/).every((x) => n._txt.includes(x)));
+  const planosAch = await planosDosDonos(fb, negAchados.map((n) => n.donoId), docsPorIds);
+  if ($("buscaPessoas").value.trim() !== termo) return;
   achados = {
     pessoas: pessoas.filter((p) => p.uid !== eu.uid && !escondido(p.uid)),
-    negocios: t.length < 2 ? [] : negocios.filter((n) => t.split(/\s+/).every((x) => n._txt.includes(x)))
-      .sort((a, b) => peso(b) - peso(a)).slice(0, 40),
+    negocios: ordenarJusto(negAchados, (n) => dadosNegocio(n, { nivel: nivelPlano(planosAch.get(n.donoId)), fator: 0.6 + 0.2 * peso(n) }), { dono: (n) => n.donoId, semente: eu.uid }).slice(0, 40),
     comunidade: t.length < 2 ? [] : juntar(comRecentes, comServidor).filter((a) => { const x = semAcento(`${a.titulo || ""} ${a.descricao || ""} ${a.bairro || ""} ${a.cidade || ""}`); return t.split(/\s+/).every((p) => x.includes(p)); }).slice(0, 40),
     tags: [...tags].map(([tag, n]) => ({ tag, n })).sort((a, b) => b.n - a.n || (b.tag === exata) - (a.tag === exata)).slice(0, 20),
     posts: t.length < 2 || termo.startsWith("@") ? [] : posts.filter((p) => semAcento(`${p.texto || ""} ${(p.tags || []).join(" ")} ${p.enquete?.pergunta || ""}`).includes(t)).slice(0, 30)
@@ -373,7 +378,15 @@ async function pintarNegocios() {
   const peso = (n) => { const r = nota(n); const m = r?.total ? media(r) : 0; return (r?.total ? m * m * (1 + Math.log1p(r.total)) / 5 : 0.8) * (novo(n) ? 1.6 : 1) / (1 + (agora - ms(n.atualizadoEm)) / (30 * DIA)); };
   // Perto pesa mais: 1 km vale quase o dobro de 10 km.
   const pesoPerto = (n) => peso(n) / (pos && Number.isFinite(n._km) ? 1 + n._km / 8 : 1);
-  const top = base.sort((a, b) => pesoPerto(b) - pesoPerto(a)).slice(0, 12);
+  // Mesma regra das vitrines (relevancia.js): no "Perto de você" manda a distância (Pro/Premium contam mais perto, como no
+  // Início); nas outras, a ordem justa (1 espaço pago a cada 5, o 1º de um Premium quando houver) pela nota e novidade.
+  const planos = await planosDosDonos(fb, base.map((n) => n.donoId), docsPorIds);
+  const nivelN = (n) => nivelPlano(planos.get(n.donoId));
+  const porPertoJa = pos && perto.length >= 3;
+  const bonusPerto = (n) => [1, 0.9, 0.6, 0.5][nivelN(n)] || 1;
+  const top = (porPertoJa
+    ? base.sort((a, b) => ((a._km ?? 9e9) + 0.5) * bonusPerto(a) - ((b._km ?? 9e9) + 0.5) * bonusPerto(b))
+    : ordenarJusto(base, (n) => dadosNegocio(n, { nota: nota(n), nivel: nivelN(n), fator: novo(n) ? 1.2 : 1 }), { dono: (n) => n.donoId, semente: eu.uid, marcar: 6 })).slice(0, 12);
   $("secNegocios").hidden = !top.length;
   if (!top.length) return;
   const porPerto = perto.length >= 3;

@@ -14,7 +14,7 @@
 // =====================================================
 import { fotoSegura } from "./seguranca.js?v=1";
 import { seloOficial, SUPORTE } from "./avisos-equipe.js?v=1";
-import { PLANOS } from "./planos-base.js?v=14";
+import { PLANOS } from "./planos-base.js?v=15";
 import { agrupar, secoes, nomesDoGrupo, textoDoGrupo } from "./avisos-agrupar.js?v=1";
 
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };

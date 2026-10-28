@@ -114,6 +114,14 @@ export function lerPlano(fb, uid) {
 export const esquecerPlano = (uid) => cache.delete(uid);
 // Plano já lido em lote (vitrines): guarda no mesmo lugar do lerPlano.
 export const guardarPlano = (uid, p) => { if (uid) cache.set(uid, { em: Date.now(), p: Promise.resolve(p ?? null) }); };
+// Planos de vários donos de uma vez (Início, Explorar): de 30 em 30 pelo docsPorIds do leituras.js (passado aqui para
+// não criar dependência), 10 min no aparelho, e já guardados para o lerPlano/corDoPlano. Devolve Map uid -> plano.
+export async function planosDosDonos(fb, ids, docsPorIds) {
+  const unicos = [...new Set(ids.filter(Boolean))];
+  const lidos = unicos.length ? await docsPorIds(fb, "planos", unicos, 10 * 60000).catch(() => new Map()) : new Map();
+  unicos.forEach((u) => guardarPlano(u, lidos.get(u) ?? null));
+  return new Map(unicos.map((u) => [u, lidos.get(u) ?? null]));
+}
 // Classe da cor do plano (hf-pl-plus/pro/premium; sem plano ou com o selo escondido: hf-pl-gratis).
 export function classePlano(pl) { cssSelo(); const k = mostraSelo(pl) ? pl.plano : "gratis"; return "hf-pl-" + (PLANOS[k] ? k : "gratis"); }
 // Pinta o cartão pela cor do plano de quem anuncia (classe hf-pl-plus/pro/premium; sem plano: hf-pl-gratis).

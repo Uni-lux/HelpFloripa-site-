@@ -85,6 +85,19 @@ export function relevancia(d, { semente = "", agora = Date.now() } = {}) {
   return s * (0.85 + 0.3 * sorteioFixo(semente + ":" + janela(agora) + ":" + d.id));
 }
 
+// Dados de um perfil de negócio/anúncio para o relevancia(), com o que Início e Explorar já têm na mão.
+// nota = resumo {total, soma} (ou null); nivel = nível do plano; km/mesmaCidade/fator opcionais.
+export function dadosNegocio(n, { nota = null, nivel = 0, km, mesmaCidade = false, fator, verificado = false } = {}) {
+  const ms = (t) => t?.toMillis?.() ?? (typeof t === "number" ? t : 0);
+  const tem = [n.foto || (n.fotos || []).length, String(n.descricao || "").length >= 40, n.bairro, n.capa || (n.fotos || []).length > 1, (n.itens || []).length || n.precoDesde || n.preco || n.saude?.profissao];
+  return {
+    id: n.id, media: nota?.total ? (Number(nota.soma) || 0) / nota.total : 0, total: nota?.total || 0,
+    resposta: undefined, completo: tem.filter(Boolean).length / tem.length,
+    atualizadoEm: ms(n.atualizadoEm), criadoEm: ms(n.criadoEm || n.atualizadoEm),
+    km: Number.isFinite(km) ? km : Number.isFinite(n._km) ? n._km : undefined, mesmaCidade, nivel, verificado, fator
+  };
+}
+
 // ---------- ordem da lista ----------
 // itens: a lista; dados(item) → objeto do relevancia(); dono(item) → id do dono (para não repetir em seguida).
 // Devolve a lista na ordem justa. marcar: quantos do começo contam como "vistos no topo" (0 = nenhum).

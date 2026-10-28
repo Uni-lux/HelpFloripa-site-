@@ -1359,7 +1359,7 @@
     import { buscarPessoas } from "./pessoas.js?v=5";
     import { docComValidade } from "./leituras.js?v=3";
     import { codigoPix, tipoChavePix } from "./pix.js?v=1";
-    import { semPausados, lerPlano, nivelPlano } from "./planos-base.js?v=14";
+    import { semPausados, lerPlano, nivelPlano } from "./planos-base.js?v=15";
     import { comRitmo } from "./ritmo.js?v=2";
     import { criarPlayerAudio } from "./audio-ondas.js?v=1";
     import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
@@ -3690,7 +3690,7 @@
     let vitrineMod = null;
     function carregarVitrine() {
       if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=41"; l.dataset.vitrine = ""; document.head.appendChild(l); }
-      return (vitrineMod ||= import("./vitrine.js?v=76"));
+      return (vitrineMod ||= import("./vitrine.js?v=77"));
     }
     function usarCartaoNaConversa(uid, cartao) {
       document.querySelectorAll(".vt-modal").forEach((m) => m.remove());
