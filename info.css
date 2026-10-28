@@ -413,3 +413,7 @@ html.embutido .nav-inst { display: none; }
   .populares, .casos, .emergencia { grid-template-columns: 1fr; }
   .topico { padding: 14px 12px; }
 }
+
+/* Reclamações: nota dos números e "Onde" (Todo o Brasil · estado · cidade) */
+.numeros-nota { margin: 8px 2px 0; font-size: 12px; color: var(--muted); }
+.filter-chips.onde-rec { margin-bottom: 8px; }

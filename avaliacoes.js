@@ -17,7 +17,7 @@
 //   de cada cliente (cli_), das publicações de alguém (pub_) e de cada publicação (post_).
 // As regras do Firestore conferem que o resumo soma exatamente a avaliação nova.
 // =====================================================
-import { docComValidade, esquecer } from "./leituras.js?v=1";
+import { docComValidade, docsPorIds, esquecer } from "./leituras.js?v=3";
 
 const TIPOS_NEGOCIO = { servicos: "Freelances", delivery: "Delivery", lojinha: "Loja", imoveis: "Imóveis", saude: "Saúde" };
 export const CHAVES_NEGOCIO = (uid) => Object.keys(TIPOS_NEGOCIO).map((t) => `neg_${uid}_${t}`);
@@ -48,6 +48,12 @@ export function lerResumo(fbx, chave, { recarregar = false } = {}) {
   return cache.get(chave);
 }
 export async function lerResumos(fbx, chaves, opcoes) {
+  // Os que ainda não estão na memória vêm de 30 em 30 numa consulta só (uma vitrine com 50 perfis = 2 leituras, não 50).
+  const faltam = opcoes?.recarregar ? [] : [...new Set(chaves)].filter((c) => c && !cache.has(c));
+  if (fbx?.db && faltam.length > 1 && fbx.documentId) {
+    const lidos = docsPorIds(fbx, "notas", faltam, NOTAS_VALIDADE).catch(() => new Map());
+    faltam.forEach((c) => cache.set(c, lidos.then((m) => m.get(c) ?? null)));
+  }
   const valores = await Promise.all(chaves.map((c) => lerResumo(fbx, c, opcoes)));
   return Object.fromEntries(chaves.map((c, i) => [c, valores[i]]));
 }

@@ -10,7 +10,7 @@
 // receber reclamação). As regras do Firestore conferem tudo isso.
 // =====================================================
 import { avisoHF } from "./confirmar.js?v=5";
-import { podeAvaliarNegocio, avisar, DIAS_CONTA } from "./avaliacoes.js?v=15";
+import { podeAvaliarNegocio, avisar, DIAS_CONTA } from "./avaliacoes.js?v=17";
 
 export const MOTIVOS = {
   atraso: "Atraso ou prazo não cumprido",

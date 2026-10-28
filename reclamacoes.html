@@ -32,11 +32,11 @@
     })();
   </script>
   <link rel="stylesheet" href="categoria.css?v=11" />
-  <link rel="stylesheet" href="info.css?v=7" />
+  <link rel="stylesheet" href="info.css?v=8" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
-  <script type="module" src="categoria.js?v=56"></script>
-  <script type="module" src="reclamacoes.js?v=61"></script>
+  <script type="module" src="categoria.js?v=58"></script>
+  <script type="module" src="reclamacoes.js?v=64"></script>
 </head>
 <body data-classe="alerta">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -116,11 +116,12 @@
     </section>
 
     <div class="numeros" id="visaoGeral" aria-live="polite">
-      <div class="numero"><b id="nTotal">–</b><span>reclamações no site</span></div>
+      <div class="numero"><b id="nTotal">–</b><span id="nTotalTx">reclamações no Brasil</span></div>
       <div class="numero res"><b id="nResp">–</b><span>foram respondidas</span></div>
       <div class="numero pend"><b id="nPend">–</b><span>aguardando resposta</span></div>
       <div class="numero ok"><b id="nResolv">–</b><span>resolvidas</span></div>
     </div>
+    <p class="numeros-nota" id="nNota" hidden></p>
 
     <div class="abas-rec" id="abasRec" role="tablist" aria-label="Filtrar por situação">
       <button type="button" role="tab" data-aba="todas" aria-selected="true">Todas <em>0</em></button>
@@ -136,6 +137,7 @@
       </form>
     </div>
     <div class="filtros" style="position:static;margin:8px 0 0;padding:0;background:none">
+      <div class="filter-chips onde-rec" id="ondeRec" role="group" aria-label="Onde" hidden></div>
       <div class="filter-chips" id="filterChips" role="group" aria-label="Filtrar por classe">
         <button type="button" class="chip active" data-filter="todas" aria-pressed="true"><svg class="i s" aria-hidden="true"><use href="#i-todos"/></svg>Todas</button>
         <button type="button" class="chip" data-filter="servicos" aria-pressed="false"><svg class="i s" aria-hidden="true"><use href="#i-servicos"/></svg>Freelances</button>

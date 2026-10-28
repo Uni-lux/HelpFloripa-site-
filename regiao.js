@@ -4,7 +4,7 @@
 // recentes do SEU estado e dão mais peso à sua cidade e ao seu estado. Publicações antigas (sem região) valem 1.
 // Precisa do índice diario: autorUf + criadoEm (firestore.indexes.json); sem ele, fica só a lista do país.
 // =====================================================
-import { docsComValidade } from "./leituras.js?v=1";
+import { docsComValidade } from "./leituras.js?v=3";
 
 // Quantas publicações recentes do país entram nos Principais e no Explorar (a mesma consulta e a mesma chave
 // no aparelho: abrir um depois do outro não lê de novo). Eram 120: metade já dá para escolher bem e custa metade.

@@ -111,6 +111,8 @@ export function lerPlano(fb, uid) {
   return p;
 }
 export const esquecerPlano = (uid) => cache.delete(uid);
+// Plano já lido em lote (vitrines): guarda no mesmo lugar do lerPlano.
+export const guardarPlano = (uid, p) => { if (uid) cache.set(uid, { em: Date.now(), p: Promise.resolve(p ?? null) }); };
 // Classe da cor do plano (hf-pl-plus/pro/premium; sem plano ou com o selo escondido: hf-pl-gratis).
 export function classePlano(pl) { cssSelo(); const k = mostraSelo(pl) ? pl.plano : "gratis"; return "hf-pl-" + (PLANOS[k] ? k : "gratis"); }
 // Pinta o cartão pela cor do plano de quem anuncia (classe hf-pl-plus/pro/premium; sem plano: hf-pl-gratis).

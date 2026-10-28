@@ -7,7 +7,8 @@ import { navegador, entrar, BASE } from "./nav.mjs";
 import { writeFileSync } from "node:fs";
 if (process.env.FS_PORTA !== "8086") { console.error("Rode com FS_PORTA=8086 (medidor de leituras)."); process.exit(1); }
 
-const PAGINAS = [["Início", "index.html"], ["Diário", "feed.html"], ["Explorar", "feed.html?aba=explorar"], ["Serviços", "servicos.html"], ["Imóveis", "imoveis.html"], ["Perfil", "usuarios.html"], ["Mensagens", "mensagens.html"], ["Notificações", "notificacoes.html"]];
+const TODAS = [["Início", "index.html"], ["Diário", "feed.html"], ["Explorar", "feed.html?aba=explorar"], ["Serviços", "servicos.html"], ["Imóveis", "imoveis.html"], ["Delivery", "delivery.html"], ["Shopping", "shopping.html"], ["Saúde", "saude.html"], ["Comunidade", "comunidade.html"], ["Reclamações", "reclamacoes.html"], ["Perfil", "usuarios.html"], ["Mensagens", "mensagens.html"], ["Notificações", "notificacoes.html"]];
+const PAGINAS = process.env.SO ? TODAS.filter(([n]) => process.env.SO.split(",").includes(n)) : TODAS;
 const contador = (c) => fetch("http://127.0.0.1:8086/__" + c).then((r) => (c === "contagem" ? r.json() : r.text()));
 const ESPERA = Number(process.env.ESPERA || 9000);
 

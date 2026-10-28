@@ -11,10 +11,11 @@
 // - Sempre com o nome da pessoa, nunca "o negócio".
 // =====================================================
 import { fotoSegura, conferirEmail, emailPendente, MSG_EMAIL } from "./seguranca.js?v=1";
-import { estrelas } from "./avaliacoes.js?v=15";
-import { abrirQueixa, responderQueixa, resolverQueixa, semResposta, MOTIVOS, PRAZO_DIAS } from "./queixas.js?v=14";
-import { NOMES_TIPO, PAGINA_TIPO } from "./vitrine.js?v=72";
-import { docComValidade, docsComValidade } from "./leituras.js?v=1";
+import { estrelas } from "./avaliacoes.js?v=17";
+import { abrirQueixa, responderQueixa, resolverQueixa, semResposta, MOTIVOS, PRAZO_DIAS } from "./queixas.js?v=16";
+import { NOMES_TIPO, PAGINA_TIPO } from "./vitrine.js?v=75";
+import { docsComValidade, docsPorIds } from "./leituras.js?v=3";
+import { lerLocal, noLocal, aoMudarLocal } from "./local-escolhido.js?v=3";
 
 const $ = (id) => document.getElementById(id);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
@@ -84,51 +85,139 @@ function linkVitrine(r) {
 }
 
 // ---------- carregar ----------
+// Nacional: as 100 mais recentes do Brasil (avaliações 1–2 e reclamações abertas), com "Carregar mais" buscando
+// as próximas no servidor, e SEMPRE as suas (e as da pessoa do painel) por consulta própria — antes o seu
+// painel só via o que estivesse entre as 450 carregadas do país inteiro. Cada lista vale 5 min no aparelho.
+const V = 5 * 60000, LIM = 100;
+const carregadas = new Map();   // id -> reclamação (sem repetir)
+const pessoasLidas = new Set(); // uids com as recebidas/enviadas já lidas
+let fimAval = null, fimQx = null, temMais = false, ordenado = true;
+
+function deQueixa(d) {
+  const q = d.data(), id = "q_" + d.id;
+  if (q.resposta || q.status === "resolvida") respostas.set(id, { texto: q.resposta || "", criadoEm: q.respondidaEm, resolvido: q.status === "resolvida", resolvidoEm: q.resolvidaEm, autorId: q.alvoId });
+  return { id, qid: d.id, origem: "queixa", dados: q, negocioId: q.negocioId, alvoId: q.alvoId, autorId: q.autorId, autorNome: q.autorNome, nota: 0, comentario: q.texto, motivo: q.motivo, foto: q.foto, criadoEm: q.abertaEm || q.criadoEm };
+}
+const deAval = (d) => ({ id: d.id, ...d.data() });
+const baixa = (r) => r.tipo === "negocio" && (r.nota === 1 || r.nota === 2);
+
+// Respostas, negócios e perfis só do que ainda não foi lido, em lote (30 por consulta).
+async function completar(novas) {
+  const idsAval = novas.filter((r) => r.origem !== "queixa" && !respostas.has(r.id)).map((r) => r.id);
+  const ids = [...new Set(novas.map((r) => r.negocioId).filter((id) => id && !negocios.has(id)))];
+  const uids = [...new Set([...novas.flatMap((r) => [r.alvoId, r.autorId]), pessoa, eu.uid].filter((u) => u && !pessoas.has(u)))];
+  const [resp, negs, perfs] = await Promise.all([
+    docsPorIds(fb, "reclamacoes", idsAval, 60000).catch(() => new Map()),
+    docsPorIds(fb, "negocios", ids, 30 * 60000).catch(() => new Map()),
+    docsPorIds(fb, "perfis_publicos", uids, 10 * 60000).catch(() => new Map())
+  ]);
+  resp.forEach((d, id) => { if (d) respostas.set(id, d); });
+  ids.forEach((id) => { const n = negs.get(id); negocios.set(id, n ? { id, ...n } : { id, tipo: id.split("_").pop() }); });
+  uids.forEach((u) => pessoas.set(u, perfs.get(u) || { excluido: true })); // sem perfil público = conta excluída
+}
+function juntar(lista) {
+  const novas = lista.filter((r) => r && !carregadas.has(r.id));
+  novas.forEach((r) => carregadas.set(r.id, r));
+  todas = [...carregadas.values()].sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
+  return novas;
+}
+
+// Página do Brasil (a 1ª ou as seguintes, a partir de onde parou).
+async function paginaBrasil() {
+  const col = fb.collection(fb.db, "avaliacoes"), qcol = fb.collection(fb.db, "queixas");
+  const seguinte = !!(fimAval || fimQx);
+  const qAval = [fb.where("tipo", "==", "negocio"), fb.where("nota", "in", [1, 2]), fb.orderBy("criadoEm", "desc")];
+  const qQx = [fb.orderBy("abertaEm", "desc")];
+  let av, qx;
+  try {
+    [av, qx] = await Promise.all([
+      seguinte ? (fimAval ? fb.getDocs(fb.query(col, ...qAval, fb.startAfter(fimAval), fb.limit(LIM))) : { docs: [] })
+        : docsComValidade(fb, "recl-av", fb.query(col, ...qAval, fb.limit(LIM)), V),
+      seguinte ? (fimQx ? fb.getDocs(fb.query(qcol, ...qQx, fb.startAfter(fimQx), fb.limit(LIM))) : { docs: [] })
+        : docsComValidade(fb, "recl-qx", fb.query(qcol, ...qQx, fb.limit(LIM)), V).catch(() => fb.getDocs(fb.query(qcol, fb.limit(LIM)))).catch(() => ({ docs: [] }))
+    ]);
+  } catch (e) {
+    // Sem o índice (tipo + nota + criadoEm) ainda criado: as de antes, sem ordem e sem "carregar mais".
+    if (seguinte) throw e;
+    console.warn("[Reclamações] sem o índice, lendo sem ordem:", e?.code || e);
+    ordenado = false;
+    const [n1, n2, q] = await Promise.all([
+      docsComValidade(fb, "recl-n1", fb.query(col, fb.where("tipo", "==", "negocio"), fb.where("nota", "==", 1), fb.limit(LIM)), V),
+      docsComValidade(fb, "recl-n2", fb.query(col, fb.where("tipo", "==", "negocio"), fb.where("nota", "==", 2), fb.limit(LIM)), V),
+      docsComValidade(fb, "recl-qx", fb.query(qcol, ...qQx, fb.limit(LIM)), V).catch(() => ({ docs: [] }))
+    ]);
+    av = { docs: [...n1.docs, ...n2.docs] }; qx = q;
+  }
+  if (ordenado) {
+    fimAval = av.docs.length === LIM ? av.docs[av.docs.length - 1] : null;
+    fimQx = qx.docs.length === LIM ? qx.docs[qx.docs.length - 1] : null;
+    temMais = !!(fimAval || fimQx);
+  }
+  return [...av.docs.map(deAval), ...qx.docs.map(deQueixa)];
+}
+
+// Recebidas e enviadas de uma pessoa (com igualdade e "in", sem índice composto).
+async function daPessoa(uid) {
+  if (!uid || pessoasLidas.has(uid)) return [];
+  pessoasLidas.add(uid);
+  const col = fb.collection(fb.db, "avaliacoes"), qcol = fb.collection(fb.db, "queixas");
+  const ler = (k, q) => docsComValidade(fb, `recl-${k}-${uid}`, q, V).catch(() => ({ docs: [] }));
+  const [ar, ae, qr, qe] = await Promise.all([
+    ler("ar", fb.query(col, fb.where("alvoId", "==", uid), fb.where("nota", "in", [1, 2]), fb.limit(200))),
+    ler("ae", fb.query(col, fb.where("autorId", "==", uid), fb.where("nota", "in", [1, 2]), fb.limit(200))),
+    ler("qr", fb.query(qcol, fb.where("alvoId", "==", uid), fb.limit(200))),
+    ler("qe", fb.query(qcol, fb.where("autorId", "==", uid), fb.limit(200)))
+  ]);
+  return [...[...ar.docs, ...ae.docs].map(deAval).filter(baixa), ...[...qr.docs, ...qe.docs].map(deQueixa)];
+}
+
 async function carregar() {
-  const col = fb.collection(fb.db, "avaliacoes");
-  const qcol = fb.collection(fb.db, "queixas");
-  // As 150 mais recentes de cada tipo; a lista vale por 5 min no aparelho (o que você mesmo
-  // responde ou abre aparece na hora). Antes eram até 900 documentos a cada visita.
-  const V = 5 * 60000, LIM = 150;
-  const [n1, n2, qx] = await Promise.all([
-    docsComValidade(fb, "recl-n1", fb.query(col, fb.where("tipo", "==", "negocio"), fb.where("nota", "==", 1), fb.limit(LIM)), V),
-    docsComValidade(fb, "recl-n2", fb.query(col, fb.where("tipo", "==", "negocio"), fb.where("nota", "==", 2), fb.limit(LIM)), V),
-    docsComValidade(fb, "recl-qx", fb.query(qcol, fb.orderBy("abertaEm", "desc"), fb.limit(LIM)), V).catch(() => fb.getDocs(fb.query(qcol, fb.limit(LIM)))).catch(() => ({ docs: [] }))
-  ]);
-  // Respostas só das avaliações carregadas (antes lia até 600 documentos a cada visita).
-  const idsAval = [...n1.docs, ...n2.docs].map((d) => d.id);
-  const lotes = [];
-  for (let i = 0; i < idsAval.length; i += 30) lotes.push(idsAval.slice(i, i + 30));
-  const resp = await Promise.all(lotes.map((l) => fb.getDocs(fb.query(fb.collection(fb.db, "reclamacoes"), fb.where(fb.documentId(), "in", l))).catch(() => ({ docs: [] }))));
-  resp.forEach((r) => r.docs.forEach((d) => respostas.set(d.id, d.data())));
-  // Reclamações abertas pelo cliente: mesmo formato das outras para a lista e os painéis.
-  const queixas = qx.docs.map((d) => {
-    const q = d.data(), id = "q_" + d.id;
-    if (q.resposta || q.status === "resolvida") respostas.set(id, { texto: q.resposta || "", criadoEm: q.respondidaEm, resolvido: q.status === "resolvida", resolvidoEm: q.resolvidaEm, autorId: q.alvoId });
-    return { id, qid: d.id, origem: "queixa", dados: q, negocioId: q.negocioId, alvoId: q.alvoId, autorId: q.autorId, autorNome: q.autorNome, nota: 0, comentario: q.texto, motivo: q.motivo, foto: q.foto, criadoEm: q.abertaEm || q.criadoEm };
-  });
-  todas = [...n1.docs.map((d) => ({ id: d.id, ...d.data() })), ...n2.docs.map((d) => ({ id: d.id, ...d.data() })), ...queixas].sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
-  const ids = [...new Set(todas.map((r) => r.negocioId).filter(Boolean))];
-  const uids = [...new Set([...todas.flatMap((r) => [r.alvoId, r.autorId]), pessoa, eu.uid].filter(Boolean))];
-  await Promise.all([
-    ...ids.map(async (id) => {
-      try { const s = await docComValidade(fb, ["negocios", id], 30 * 60000); negocios.set(id, s.exists() ? { id, ...s.data() } : { id, tipo: id.split("_").pop() }); }
-      catch { negocios.set(id, { id, tipo: id.split("_").pop() }); }
-    }),
-    ...Array.from({ length: Math.ceil(uids.length / 30) }, (_, k) => uids.slice(k * 30, k * 30 + 30)).map(async (lote) => {
-      try {
-        const s = await fb.getDocs(fb.query(fb.collection(fb.db, "perfis_publicos"), fb.where(fb.documentId(), "in", lote)));
-        s.docs.forEach((d) => pessoas.set(d.id, d.data()));
-        lote.forEach((u) => { if (!pessoas.has(u)) pessoas.set(u, { excluido: true }); }); // conta excluída
-      } catch (e) { console.warn("[Reclamações] perfis:", e); }
-    })
-  ]);
+  carregadas.clear(); pessoasLidas.clear(); fimAval = fimQx = null; temMais = false;
+  const [brasil, minhas, dele] = await Promise.all([paginaBrasil(), daPessoa(eu.uid), daPessoa(pessoa)]);
+  await completar(juntar([...brasil, ...minhas, ...dele]));
+  contarNoSite();
+}
+async function carregarMais() {
+  const novas = juntar(await paginaBrasil());
+  await completar(novas);
+}
+async function garantirPessoa(uid) {
+  const novas = juntar(await daPessoa(uid));
+  if (novas.length || !pessoas.has(uid)) await completar(novas);
+}
+
+// Total do site contado no servidor (a lista mostra só as mais recentes). Guardado 10 min no aparelho.
+let totalSite = null;
+async function contarNoSite() {
+  try {
+    const g = JSON.parse(localStorage.getItem("hf-recl-total") || "null");
+    if (g && Date.now() - g.em < 10 * 60000) { totalSite = g.n; pintarNumeros(); return; }
+  } catch {}
+  try {
+    const [a, q] = await Promise.all([
+      fb.getCountFromServer(fb.query(fb.collection(fb.db, "avaliacoes"), fb.where("tipo", "==", "negocio"), fb.where("nota", "in", [1, 2]))),
+      fb.getCountFromServer(fb.collection(fb.db, "queixas"))
+    ]);
+    totalSite = a.data().count + q.data().count;
+    try { localStorage.setItem("hf-recl-total", JSON.stringify({ em: Date.now(), n: totalSite })); } catch {}
+    pintarNumeros();
+  } catch {}
 }
 
 // ---------- recortes ----------
 const recebidasDe = (uid) => todas.filter((r) => r.alvoId === uid);
 const enviadasDe = (uid) => todas.filter((r) => r.autorId === uid);
-function base() { return pessoa ? (lado === "enviadas" ? enviadasDe(pessoa) : recebidasDe(pessoa)) : todas; }
+// Onde: Todo o Brasil, o estado ou a cidade escolhida no site (mesmo lugar do Início e das vitrines),
+// pelo endereço do negócio que recebeu a reclamação.
+let onde = "brasil";
+const localDoSite = () => lerLocal() || {};
+function noOnde(r) {
+  if (onde === "brasil" || pessoa) return true;
+  const f = localDoSite(), n = negocios.get(r.negocioId) || {}, p = pessoas.get(r.alvoId) || {};
+  const item = n.uf || n.cidade ? n : p;
+  return noLocal(item, onde === "estado" ? { uf: f.uf } : f);
+}
+function base() { return pessoa ? (lado === "enviadas" ? enviadasDe(pessoa) : recebidasDe(pessoa)) : todas.filter(noOnde); }
 function filtradas() {
   return base().filter((r) => {
     if (aba !== "todas" && estado(r) !== aba) return false;
@@ -188,8 +277,11 @@ function pintarPainelPessoa() {
   $("ppAbas").querySelectorAll("[data-lado]").forEach((b) => b.setAttribute("aria-selected", b.dataset.lado === lado ? "true" : "false"));
 }
 function pintarNumeros() {
-  const g = numeros(todas);
-  $("nTotal").textContent = g.total;
+  const g = numeros(todas.filter(noOnde));
+  $("nTotal").textContent = onde === "brasil" && totalSite != null ? Math.max(totalSite, g.total) : g.total;
+  $("nTotalTx").textContent = onde === "brasil" ? "reclamações no Brasil" : `reclamações em ${onde === "estado" ? (localDoSite().uf || "") : rotuloOnde()}`;
+  $("nNota").hidden = !(onde === "brasil" && totalSite > g.total);
+  $("nNota").textContent = `Respondidas, aguardando e resolvidas contam as ${g.total} mais recentes.`;
   $("nResp").textContent = g.pct;
   $("nPend").textContent = g.pend;
   $("nResolv").textContent = g.resolv;
@@ -467,12 +559,15 @@ function pintar() {
     lista.appendChild(v);
   }
   itens.slice(0, limite).forEach((r) => lista.appendChild(cartao(r)));
-  $("maisRec").hidden = itens.length <= limite;
+  // Acabou o que está na tela: o botão busca as próximas no servidor (lista do Brasil).
+  $("maisRec").hidden = itens.length <= limite && !(temMais && !pessoa);
+  pintarOnde();
 }
 
 // ---------- navegação entre painéis ----------
-function abrirPessoa(uid, l = "recebidas", empilhar = true) {
+async function abrirPessoa(uid, l = "recebidas", empilhar = true) {
   pessoa = uid || ""; lado = l; limite = POR_PAGINA;
+  if (pessoa && !pessoasLidas.has(pessoa)) { $("listaRec").replaceChildren(Object.assign(el("div", "lista-vazia"), { textContent: "Carregando reclamações..." })); try { await garantirPessoa(pessoa); } catch (e) { console.warn(e); } }
   if (empilhar) {
     const u = new URL(location.href);
     ["negocio", "aba", "pessoa", "lado"].forEach((k) => u.searchParams.delete(k));
@@ -486,7 +581,7 @@ window.addEventListener("popstate", () => {
   const q = new URLSearchParams(location.search);
   pessoa = q.get("pessoa") || ""; lado = q.get("lado") === "enviadas" ? "enviadas" : "recebidas";
   fecharDetalhe();
-  if (eu) pintar();
+  if (eu) (pessoa && !pessoasLidas.has(pessoa) ? garantirPessoa(pessoa).catch(() => {}) : Promise.resolve()).then(pintar);
 });
 
 // ---------- filtros ----------
@@ -497,7 +592,32 @@ document.querySelectorAll("#abasRec [data-aba]").forEach((b) => b.addEventListen
 }));
 $("filterChips").addEventListener("click", (e) => { const c = e.target.closest(".chip"); if (!c) return; classe = c.dataset.filter; limite = POR_PAGINA; setTimeout(pintar, 0); });
 $("searchInput").addEventListener("input", (e) => { termo = e.target.value.trim().toLowerCase(); limite = POR_PAGINA; pintar(); });
-$("maisRec").addEventListener("click", () => { limite += POR_PAGINA; pintar(); });
+$("maisRec").addEventListener("click", async () => {
+  const bt = $("maisRec");
+  if (filtradas().length <= limite && temMais && !pessoa) {
+    bt.disabled = true; bt.textContent = "Carregando...";
+    try { await carregarMais(); } catch (e) { console.warn(e); toast("Não foi possível carregar mais agora."); }
+    bt.disabled = false; bt.textContent = "Carregar mais";
+  }
+  limite += POR_PAGINA; pintar();
+});
+function rotuloOnde() { const f = localDoSite(); return f.cidade ? `${f.cidade}${f.uf ? "/" + f.uf : ""}` : f.uf || ""; }
+// Chips "Todo o Brasil · Estado · Cidade" (só aparecem com um lugar escolhido no site).
+function pintarOnde() {
+  const box = $("ondeRec"), f = localDoSite();
+  box.hidden = !!pessoa || !f.uf;
+  if (box.hidden) return;
+  const ops = [["brasil", "Todo o Brasil"], ["estado", f.uf]];
+  if (f.cidadeIbge || f.cidade) ops.push(["cidade", rotuloOnde()]);
+  if (!ops.some(([k]) => k === onde)) onde = "brasil";
+  box.replaceChildren(...ops.map(([k, t]) => {
+    const b = el("button", "chip" + (k === onde ? " active" : ""), t); b.type = "button";
+    b.setAttribute("aria-pressed", k === onde ? "true" : "false");
+    b.addEventListener("click", () => { onde = k; limite = POR_PAGINA; pintar(); });
+    return b;
+  }));
+}
+aoMudarLocal(() => { onde = "brasil"; if (eu) pintar(); });
 $("ppAbas").querySelectorAll("[data-lado]").forEach((b) => b.addEventListener("click", () => abrirPessoa(pessoa, b.dataset.lado)));
 $("ppVoltar").addEventListener("click", () => abrirPessoa("", "recebidas"));
 $("mpAbrir").addEventListener("click", () => abrirPessoa(eu.uid, "recebidas"));

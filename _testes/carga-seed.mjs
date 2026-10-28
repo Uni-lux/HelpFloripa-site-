@@ -1,6 +1,6 @@
 // Volume de site grande no emulador (por cima do seed.mjs, sem apagar): 60 pessoas, 400 publicações
 // (1 em 3 com foto de ~80 KB dentro do documento, como hoje sem o Storage), comentários, estrelas,
-// quem segue quem, 400 negócios dos 5 tipos e 120 imóveis. Usado pelo t-leituras.mjs.
+// quem segue quem, 400 negócios dos 5 tipos, 120 imóveis, 300 anúncios da Comunidade e 300 reclamações. Usado pelo t-leituras.mjs.
 process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8085";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
@@ -51,6 +51,20 @@ for (let i = 0; i < 400; i++) {
 for (let i = 0; i < 120; i++) {
   const [cidade, uf, ibge] = CIDADES[i % 5];
   await por(db.doc(`anuncios/cg_a${i}`), { donoId: `cg_n${i}`, tipo: "imovel", ativo: true, titulo: `Imóvel ${i}`, finalidade: "aluguel", categoria: "apartamento", preco: 1500 + i * 10, bairro: "Centro", cidade, uf, cidadeIbge: ibge, fotos: [], criadoEm: T(i * 3), atualizadoEm: T(i * 3) });
+}
+// Comunidade (300 anúncios em 5 cidades) e reclamações (200 avaliações baixas + 100 queixas).
+const CATS = ["doacao", "troca", "pedido", "quarto", "achados"];
+for (let i = 0; i < 300; i++) {
+  const [cidade, uf, ibge] = CIDADES[i % 5];
+  await por(db.doc(`comunidade/cg_c${i}`), { autorId: `cg_u${i % 60}`, categoria: CATS[i % 5], titulo: `Anúncio ${i}`, descricao: "Doação de carga.", status: "disponivel", fotos: [], cidade, uf, cidadeIbge: ibge, bairro: "Centro", busca: ["anuncio", String(i)], criadoEm: T(i), atualizadoEm: T(i) });
+}
+for (let i = 0; i < 200; i++) {
+  const tipo = TIPOS[i % 5], n = `cg_n${i}_${tipo}`;
+  await por(db.doc(`avaliacoes/cg_av${i}`), { tipo: "negocio", nota: 1 + (i % 2), negocioId: n, alvoId: `cg_n${i}`, autorId: `cg_u${i % 60}`, autorNome: `Pessoa ${i % 60}`, comentario: "Não gostei do atendimento.", criadoEm: T(i) });
+}
+for (let i = 0; i < 100; i++) {
+  const tipo = TIPOS[i % 5];
+  await por(db.doc(`queixas/cg_q${i}`), { negocioId: `cg_n${i}_${tipo}`, alvoId: `cg_n${i}`, autorId: `cg_u${i % 60}`, autorNome: `Pessoa ${i % 60}`, motivo: "atraso", texto: "Atrasou muito.", status: "aberta", abertaEm: T(i), criadoEm: T(i) });
 }
 await lote.commit();
 console.log(`Carga gravada: ${n} documentos.`);

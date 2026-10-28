@@ -15,10 +15,10 @@ import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
 import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=17";
 import { ouvirItensEquipe, TEXTO_EQUIPE, linkEquipe } from "./avisos-equipe.js?v=1";
-import "./painel-avisos.js?v=32";
-import { docComValidade, docsComValidade } from "./leituras.js?v=1";
-import { avisoPlano } from "./planos-base.js?v=12";
-import { palavrasBusca } from "./pessoas.js?v=3"; // o sino abre o painel de notificações na própria página
+import "./painel-avisos.js?v=34";
+import { docComValidade, docsComValidade } from "./leituras.js?v=3";
+import { avisoPlano } from "./planos-base.js?v=13";
+import { palavrasBusca } from "./pessoas.js?v=5"; // o sino abre o painel de notificações na própria página
 import { registrarGosto, PESO } from "./gosto.js?v=1";
 import { confirmarHF } from "./confirmar.js?v=5";
 import { seletorDuracao, fimEscolhido, fimDaEnquete, encerrada, faltaTexto, dataCurta, resumoResultado, guardarInfoEnquete, enquetesEncerradas, textoEnqueteFim, linhaChave, MAX_PUB_MIN, lerContasEnquete, resultadoFinal, sortearFatia, pedacoDaEnquete } from "./enquetes.js?v=5";
@@ -1806,7 +1806,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=43").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=45").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);
@@ -2239,7 +2239,7 @@ async function escolherMarcados() {
     const t = busca.value.trim();
     if (!t) { pintar(seguindo); return; }
     tempo = setTimeout(async () => {
-      const { buscarPessoas } = await import("./pessoas.js?v=3");
+      const { buscarPessoas } = await import("./pessoas.js?v=5");
       const achados = await buscarPessoas(fb, t, { limite: 20 }).catch(() => []);
       pintar(achados.map((p) => ({ uid: p.uid, nome: p.nome, fotoPerfil: p.fotoPerfil, nickname: p.nickname })));
     }, 250);
