@@ -921,6 +921,13 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   no aparelho (`hf-chamadas-<uid>`). Teste `t-registro-chamadas.mjs`.
   **Painel das vitrines (topo com foto, classes, busca): o dono testou 2 versões novas e mandou voltar e ESQUECER (28/10).**
   Não propor de novo redesenho do topo das vitrines sem ele pedir.
+  **Depois (pedido dele, 28/10): melhorias SÓ na página de Freelances** (`body.pg-freelances`; a index também usa
+  data-classe servicos): arte `servicos-arte.svg` no lugar da foto (`.hero.hero-arte`; se não gostar, volta `obras.webp`),
+  azul escuro vivo (#2563ff; `.vitrine[data-tipo=servicos] --vc #2f6bff`), topo mais compacto (lead em 2 linhas, classes
+  baixas com ícone ao lado). Cartões `cartaoPro` (`.vt-fl`): borda e anel do avatar pela cor do plano (Plus #0ea5e9, Pro
+  degradê violeta→azul, Premium dourado com brilho), etiquetas de atendimento, rodapé preço + seta. **Online agora:**
+  `presenca.js` (ligado no firebase.js) grava `perfis_publicos.ultimoAcesso` a cada 4 min com a página à vista (respeita
+  `ultimoAcesso: null` = escondeu); bolinha verde `.fl-online` quando < 10 min (`estaOnline`); donos lidos com cache de 5 min.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

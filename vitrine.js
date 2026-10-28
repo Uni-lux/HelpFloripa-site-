@@ -18,6 +18,7 @@ import { anelNegocio } from "./flash-negocio.js?v=8";
 import { camposEndereco, textoCidade, cidadesDe, NOME_UF, semAcento } from "./endereco.js?v=1";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao } from "./perto.js?v=2";
 import { lerPlano, nivelPlano, seloPlano, nomePlano, negocioPausado, mostraSelo, LIMITES_GRATIS } from "./planos-base.js?v=8";
+import { estaOnline } from "./presenca.js?v=1";
 import { PROFISSOES_SAUDE, CATEGORIAS_SAUDE, SITE_CONSELHO, MODALIDADES_SAUDE, PUBLICO_SAUDE, PUBLICO_VET, nomeProfissao, conselhoDe, ehVet, textoRegistro, textoValor, AVISO_EMERGENCIA, AVISO_REGISTRO } from "./saude-dados.js?v=1";
 import { usarEstat, registrarVisita, registrarAcao, registrarItem, chaveItem as chaveEstat, chaveAnuncio } from "./estat-negocio.js?v=1";
 // Plano de quem anuncia: todo plano pago tem o selo; Pro e Premium aparecem antes na ordem padrão
@@ -2145,7 +2146,11 @@ function nomeComSelo(n, padrao) {
 // Cartão dos Freelances: o mesmo modelo das páginas irmãs (foto do trabalho em cima, avatar,
 // nome, nota, categoria e preço). Nos destaques leva a etiqueta "Destaque em <categoria>".
 function cartaoPro(n, destaqueEm = "") {
-  const c = el("article", "vt-del vt-free");
+  const c = el("article", "vt-del vt-free vt-fl");
+  // Plano de quem anuncia: borda e anel do avatar na cor do plano (Plus, Pro, Premium); grátis fica no padrão.
+  const plano = planosDonos.get(n.donoId);
+  const kPlano = mostraSelo(plano) ? plano.plano : "";
+  if (kPlano) c.classList.add("pl-" + kPlano);
   const f = el("div", "ft");
   f.style.backgroundImage = `url("${capaDe(n) || TEXTOS.servicos.img}")`;
   if (destaqueEm) {
@@ -2155,13 +2160,22 @@ function cartaoPro(n, destaqueEm = "") {
   }
   if ((n.diferenciais || []).includes("urgencia")) f.appendChild(el("span", "st urg", "Urgência"));
   seloPromo(f, n);
-  f.appendChild(avatar(n.foto, n.nome, "vt-avatar logo"));
+  const av = avatar(n.foto, n.nome, "vt-avatar logo");
+  // Bolinha verde: quem anuncia está online agora (perfis_publicos.ultimoAcesso, presenca.js).
+  if (estaOnline(donos.get(n.donoId)?.ultimoAcesso)) { const o = el("span", "fl-online"); o.title = "Online agora"; o.setAttribute("aria-label", "Online agora"); f.append(av, o); c.classList.add("online"); }
+  else f.appendChild(av);
   const tx = el("div", "tx");
   tx.append(nomeComSelo(n, "Freelancer"), estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }), seloRapido(n));
   const cats = categoriasDe(n).map((k) => CATEGORIAS.servicos[k] && nomeCat(n, k)).filter(Boolean);
   const info = [cats[0] ? (cats.length > 1 ? `${cats[0]} +${cats.length - 1}` : cats[0]) : nomeCategoria(n), textoCidade(n)].filter(Boolean).join(" · ");
   if (info) tx.appendChild(el("small", null, info));
-  tx.appendChild(el("span", "tx-taxa", moeda(n.precoDesde) ? `desde ${moeda(n.precoDesde)}` : "Orçamento grátis"));
+  // Como atende (Vai até você, No local, Online): até 2 etiquetas.
+  const modos = (n.atendimento || []).filter((k) => MODOS[k]).slice(0, 2);
+  if (modos.length) { const m = el("div", "fl-modos"); modos.forEach((k) => m.appendChild(el("span", null, k === "online" ? "Atende online" : MODOS[k]))); tx.appendChild(m); }
+  // Rodapé: preço e o convite para o orçamento (o cartão todo abre o perfil).
+  const rod = el("div", "fl-rodape");
+  rod.append(el("span", "tx-taxa", moeda(n.precoDesde) ? `desde ${moeda(n.precoDesde)}` : "Orçamento grátis"), (() => { const x = el("span", "fl-cta"); x.setAttribute("aria-hidden", "true"); x.appendChild(icone("avancar", "vi s")); return x; })());
+  tx.appendChild(rod);
   seloDist(f, n);
   c.append(f, tx);
   return tornarClicavel(c, () => abrirDetalhe(n), `Ver ${n.nome}`);
@@ -2769,7 +2783,7 @@ function pintarVerMais(filtrando) {
   if (b && !carregandoMais) b.textContent = filtrando ? "Procurar em mais perfis" : "Ver mais";
 }
 
-const DONOS_VALIDADE = 30 * 60000; // nome e foto de quem anuncia: cópia do aparelho por 30 min
+const DONOS_VALIDADE = 5 * 60000; // nome, foto e "online agora" de quem anuncia: cópia do aparelho por 5 min
 async function carregarDonos(ids) {
   await Promise.all([...new Set(ids)].map(async (id) => {
     if (!planosDonos.has(id)) planosDonos.set(id, await lerPlano(fb, id).catch(() => null));
