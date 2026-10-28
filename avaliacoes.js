@@ -17,7 +17,7 @@
 //   de cada cliente (cli_), das publicações de alguém (pub_) e de cada publicação (post_).
 // As regras do Firestore conferem que o resumo soma exatamente a avaliação nova.
 // =====================================================
-import { docComValidade, docsPorIds, esquecer } from "./leituras.js?v=2";
+import { docComValidade, docsPorIds, esquecer } from "./leituras.js?v=3";
 
 const TIPOS_NEGOCIO = { servicos: "Freelances", delivery: "Delivery", lojinha: "Loja", imoveis: "Imóveis", saude: "Saúde" };
 export const CHAVES_NEGOCIO = (uid) => Object.keys(TIPOS_NEGOCIO).map((t) => `neg_${uid}_${t}`);

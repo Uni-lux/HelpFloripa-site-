@@ -17,9 +17,9 @@
 // Avisos da equipe (avisos/{id}); ?aviso=ID abre um aviso e ?chamado=ID um chamado
 // (links das notificações). Abrir marca como lido (avisos.lidoEm / usuarios.suporteLido).
 // =====================================================
-import { $, el, icone, toast, erroAmigavel, abrirFolha, fecharFolha, abrirOpcoes, linhaPessoa, fb, eu, dados, iniciarRede, montarBarraRede, pintarBarraRede } from "./rede.js?v=72";
+import { $, el, icone, toast, erroAmigavel, abrirFolha, fecharFolha, abrirOpcoes, linhaPessoa, fb, eu, dados, iniciarRede, montarBarraRede, pintarBarraRede } from "./rede.js?v=73";
 import { SUPORTE, seloOficial, fotoSuporte, marcarChamadoLido } from "./avisos-equipe.js?v=1";
-import { buscarPessoas } from "./pessoas.js?v=4";
+import { buscarPessoas } from "./pessoas.js?v=5";
 import { abrirDenuncia } from "./denuncias.js?v=6";
 import { ligarVoltar } from "./voltar.js?v=6";
 import { prepararAnexo, blocoAnexo, previaAnexo, aceitos } from "./anexos-suporte.js?v=2";

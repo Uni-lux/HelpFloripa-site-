@@ -13,7 +13,7 @@ import { fotoSegura } from "./seguranca.js?v=1";
 import { buscarItensEquipe, TEXTO_EQUIPE, linkEquipe } from "./avisos-equipe.js?v=1";
 import { enquetesEncerradas, textoEnqueteFim } from "./enquetes.js?v=5";
 import { avisoPlano, textoPlano } from "./planos-base.js?v=13";
-import { docsComValidade, esquecer } from "./leituras.js?v=2";
+import { docsComValidade, esquecer } from "./leituras.js?v=3";
 import { criarLista, svg, toastNt, categoriaLigada, categoriaDe } from "./avisos-lista.js?v=12";
 
 const ms = (ts) => ts?.toMillis?.() ?? (typeof ts === "number" ? ts : 0);

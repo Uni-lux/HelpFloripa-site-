@@ -985,6 +985,15 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   o lugar escolhido vem primeiro (`doLugar`). Sem filtro/busca: fileiras `.cm-fila` (Perto de você — › ordena por perto —,
   Chegaram agora (7 dias) e uma por tipo com a cor dele e "›" que liga o filtro); com filtro: a grade `.cm-grade` de antes.
   Cartões da Comunidade NÃO mudaram.
+- **Verificação nacional das 10 páginas (28/10/2026, mesmo PR #112, sem regra nova; 1 índice novo):** medido com
+  `t-leituras.mjs` (carga agora tem 300 da Comunidade e 300 reclamações; `SO="Saúde,..."` mede só algumas). Vitrines 52–55
+  leituras (2ª visita 4), Início 118, Comunidade 64, Diário 320, Explorar 444. **Reclamações** refeita: 100 mais recentes do
+  Brasil (`nota in [1,2]` + `criadoEm` desc, índice `avaliacoes` tipo+nota+criadoEm; sem ele lê como antes) com "Carregar
+  mais" no servidor (`startAfter`), as suas e as da pessoa do painel por consulta própria (`daPessoa`: alvoId/autorId), total
+  do Brasil por contagem (`hf-recl-total` 10 min), "Onde" (Todo o Brasil · UF · cidade do lugar escolhido, pelo negócio) e
+  negócios/perfis/respostas em lote (`docsPorIds`). 565 → 364 leituras (2ª visita 65 → 4). **Bug corrigido no `docsPorIds`:**
+  guardava o objeto das marcas do começo e outra gravação no meio trocava o objeto (as marcas sumiam, a 2ª visita relia
+  tudo). Teste `t-reclamacoes-nacional.mjs`. `saida/fotos-previa.json` (t-comunidade-inicio) pode ser gerado com fotos lisas.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

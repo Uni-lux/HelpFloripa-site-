@@ -59,9 +59,10 @@ export async function docsPorIds(fbx, colecao, ids, validade) {
   await Promise.all(lotes.map(async (lote) => {
     try {
       const s = await fbx.getDocs(fbx.query(fbx.collection(fbx.db, colecao), fbx.where(fbx.documentId(), "in", lote)));
-      const achou = new Set();
-      s.docs.forEach((d) => { achou.add(d.id); r.set(d.id, d.data()); m["d:" + colecao + "/" + d.id] = Date.now(); });
-      lote.filter((id) => !achou.has(id)).forEach((id) => { r.set(id, null); m["d:" + colecao + "/" + id] = { em: Date.now(), nada: 1 }; });
+      // lerMarcas() de novo: outra gravação pode ter trocado o objeto enquanto a consulta ia ao servidor.
+      const achou = new Set(), mm = lerMarcas();
+      s.docs.forEach((d) => { achou.add(d.id); r.set(d.id, d.data()); mm["d:" + colecao + "/" + d.id] = Date.now(); });
+      lote.filter((id) => !achou.has(id)).forEach((id) => { r.set(id, null); mm["d:" + colecao + "/" + id] = { em: Date.now(), nada: 1 }; });
     } catch {
       await Promise.all(lote.map(async (id) => { try { const s = await docComValidade(fbx, [colecao, id], validade); r.set(id, s.exists() ? s.data() : null); } catch { r.set(id, null); } }));
     }

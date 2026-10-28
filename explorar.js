@@ -11,14 +11,14 @@
 import {
   $, el, icone, ms, toast, pintarAvatar, urlSegura, nomeCidade, fb, eu, dados, meusSeguindo, escondido, silenciado, ganchos,
   obterPerfil, linhaPessoa, botaoSeguir, fotosDoPost, lerResumosEstrelas, minhaRede, jaVisto, definirOrigem, origemAtual, pilha
-} from "./rede.js?v=72";
+} from "./rede.js?v=73";
 import { afinidade } from "./gosto.js?v=1";
 import { buscarNoServidor } from "./busca.js?v=1";
-import { postsDoEstado, pesoRegiao, RECENTES_PAIS } from "./regiao.js?v=3";
-import { buscarPessoas, pessoasRecentes, semAcento } from "./pessoas.js?v=4";
-import { docsComValidade } from "./leituras.js?v=2";
-import { lerResumos, media } from "./avaliacoes.js?v=16";
-import { CATEGORIAS, CORES_TIPO, NOMES_TIPO, PAGINA_TIPO, nomeCategoria, nomeCat, categoriasDe } from "./vitrine.js?v=73";
+import { postsDoEstado, pesoRegiao, RECENTES_PAIS } from "./regiao.js?v=4";
+import { buscarPessoas, pessoasRecentes, semAcento } from "./pessoas.js?v=5";
+import { docsComValidade } from "./leituras.js?v=3";
+import { lerResumos, media } from "./avaliacoes.js?v=17";
+import { CATEGORIAS, CORES_TIPO, NOMES_TIPO, PAGINA_TIPO, nomeCategoria, nomeCat, categoriasDe } from "./vitrine.js?v=74";
 import { fimDaEnquete, faltaTexto } from "./enquetes.js?v=5";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, distanciaKm } from "./perto.js?v=2";
 import { semPausados, corDoPlano, lerPlano, classePlano } from "./planos-base.js?v=13";

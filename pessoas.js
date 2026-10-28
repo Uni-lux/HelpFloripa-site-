@@ -8,7 +8,7 @@
 //   - qualquer palavra     ("silva" acha "Ana Silva") — perfis_publicos.busca
 // Sem nada digitado: pessoas ativas recentemente.
 // =====================================================
-import { docsComValidade } from "./leituras.js?v=2";
+import { docsComValidade } from "./leituras.js?v=3";
 
 // Palavras do nome e do @, minúsculas e sem acento (gravadas em perfis_publicos.busca).
 export const semAcento = (v) => String(v || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
