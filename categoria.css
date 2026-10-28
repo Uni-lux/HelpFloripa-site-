@@ -99,7 +99,7 @@ svg.i.xs { width: 14px; height: 14px; }
 .classe-link:active { transform: scale(.98); }
 .classe-link[aria-current="page"] { background: var(--c); border-color: var(--c); color: #fff; }
 .classe-link[aria-current="page"] svg { color: currentColor; }
-.classe-link.servicos { --c: #2563ff; }
+.classe-link.servicos { --c: #00adee; }
 .classe-link.delivery { --c: #ff7a1a; }
 .classe-link.lojinha { --c: #b066ff; }
 .classe-link.imoveis { --c: #2fbf71; }
@@ -262,7 +262,7 @@ svg.i.xs { width: 14px; height: 14px; }
 .aviso-saude svg { flex: none; color: #ef4444; margin-top: 2px; }
 
 /* ---------- Topo das classes no modelo de Freelances: arte em SVG no lugar da foto, topo compacto ---------- */
-body.pg-freelances { --classe: #2563ff; --classe-2: #7cc8ff; --classe-ink: #ffffff; --arte-sombra: 2 8 32; }
+body.pg-freelances { --arte-sombra: 0 18 26; }
 body[data-classe="delivery"] { --arte-sombra: 26 8 0; }
 body[data-classe="lojinha"] { --arte-sombra: 18 4 36; }
 body[data-classe="imoveis"] { --arte-sombra: 1 20 10; }

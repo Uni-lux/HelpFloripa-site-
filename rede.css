@@ -2208,7 +2208,3 @@ div.cfg2-linha { cursor: default; }
 .col-cel.txt.mm-capa .i { width: 13px; height: 13px; color: var(--accent); flex: none; }
 .col-cel.txt.mm-capa span { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 /* Explorar (busca): anel da foto do negócio pela cor do plano */
-.linha-neg .avatar.neg[data-plano="gratis"] { box-shadow: 0 0 0 2px #00adee; }
-.linha-neg .avatar.neg[data-plano="plus"] { box-shadow: 0 0 0 2.5px #2563ff; }
-.linha-neg .avatar.neg[data-plano="pro"] { box-shadow: 0 0 0 2.5px #7c3aed; }
-.linha-neg .avatar.neg[data-plano="premium"] { box-shadow: 0 0 0 2.5px #f59e0b; }

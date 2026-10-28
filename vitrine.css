@@ -769,11 +769,9 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
 .vd-selo-resp.rapido { color: #16a34a; background: color-mix(in srgb, #16a34a 13%, transparent); }
 .vd-selo-resp svg { width: 15px; height: 15px; }
 
-/* ---------- Freelances: azul escuro vivo e cartões com a cor do plano ---------- */
-.vitrine[data-tipo="servicos"] { --vc: #2f6bff; --vc-ink: #ffffff; }
-:root[data-theme="light"] .vitrine[data-tipo="servicos"] { --vc: #1d4ed8; }
+/* ---------- Freelances (azul da Help Floripa) ---------- */
 /* ---------- Cartão de visita dos Freelances (.vt-cv): capa curta, foto no centro, nome, área, nota, onde e preço ---------- */
-.vt-cv { --pl: #00adee; --pl-cta: #00adee; --pl-cta-ink: #001a24; position: relative; min-width: 0; display: flex; flex-direction: column;
+.vt-cv { --pl: var(--vc); --pl-cta: var(--vc); --pl-cta-ink: var(--vc-ink); position: relative; min-width: 0; display: flex; flex-direction: column;
   border-radius: 18px; overflow: hidden; cursor: pointer; background: var(--vt-card); border: 1px solid var(--vt-line);
   transition: transform .2s, box-shadow .2s; animation: vt-pro-entra .45s ease both; container-type: inline-size; }
 .vt-cv:hover { transform: translateY(-3px); }
@@ -814,20 +812,13 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
 .vt-cv .fl-cta { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--pl-cta); color: var(--pl-cta-ink); }
 .vt-cv .fl-cta svg { width: 15px; height: 15px; }
 /* Cor do plano: borda em degradê, anel da foto, selo e seta. Grátis = azul claro do site. */
-.vt-cv.pl-plus { --pl: #2563ff; --pl-cta: linear-gradient(135deg, #3b82f6, #1d4ed8); --pl-cta-ink: #fff; --pl-selo: linear-gradient(135deg, #3b82f6, #1d4ed8);
-  --pl-borda: linear-gradient(135deg, #7cb4ff, #2563ff 45%, #1e3a8a); box-shadow: 0 12px 30px -16px #2563ff; }
-.vt-cv.pl-pro { --pl: #7c3aed; --pl-cta: linear-gradient(135deg, #7c3aed, #2f6bff); --pl-cta-ink: #fff; --pl-selo: linear-gradient(135deg, #a855f7, #2f6bff);
-  --pl-borda: linear-gradient(135deg, #a855f7, #7c3aed 45%, #2f6bff); box-shadow: 0 12px 30px -16px #7c3aed; }
-.vt-cv.pl-premium { --pl: #f59e0b; --pl-cta: linear-gradient(135deg, #f59e0b, #fbbf24); --pl-cta-ink: #2a1600; --pl-selo: linear-gradient(135deg, #fbbf24, #b45309);
-  --pl-borda: linear-gradient(135deg, #fde68a, #f59e0b 35%, #b45309 60%, #fcd34d); box-shadow: 0 14px 34px -14px rgba(245, 158, 11, .65); }
-.vt-cv.pl-plus, .vt-cv.pl-pro, .vt-cv.pl-premium { border: 1.5px solid transparent; background: linear-gradient(var(--vt-card), var(--vt-card)) padding-box, var(--pl-borda) border-box; }
-.vt-cv.pl-plus .cv-foto .vt-avatar, .vt-cv.pl-pro .cv-foto .vt-avatar { box-shadow: 0 0 0 3px var(--vt-card), 0 0 0 5.5px transparent, 0 8px 20px -6px rgba(0, 0, 0, .6); }
-.vt-cv.pl-plus .cv-foto::before, .vt-cv.pl-pro .cv-foto::before, .vt-cv.pl-premium .cv-foto::before { content: ""; position: absolute; inset: -5.5px; border-radius: 50%; background: var(--pl-borda); z-index: -1; }
-.vt-cv.pl-premium .cv-foto .vt-avatar { box-shadow: 0 0 0 3px var(--vt-card), 0 8px 20px -6px rgba(0, 0, 0, .6); }
-.vt-cv .cv-foto { isolation: isolate; }
-.vt-cv.pl-premium .cv-capa::before { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(115deg, transparent 35%, rgba(255, 236, 170, .25) 50%, transparent 65%); background-size: 250% 100%; animation: fl-brilho 4.5s ease-in-out infinite; }
 @keyframes fl-brilho { 0%, 30% { background-position: 120% 0; } 70%, 100% { background-position: -20% 0; } }
-@media (prefers-reduced-motion: reduce) { .vt-cv, .vt-cv .fl-online, .vt-cv.pl-premium .cv-capa::before { animation: none; } }
+/* Cores do plano só no selo (a borda, o anel da foto e a seta ficam na cor da página) */
+.vt-cv { border-color: color-mix(in srgb, var(--vc) 30%, var(--vt-line)); }
+.vt-cv.pl-plus { --pl-selo: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+.vt-cv.pl-pro { --pl-selo: linear-gradient(135deg, #a855f7, #2f6bff); }
+.vt-cv.pl-premium { --pl-selo: linear-gradient(135deg, #fbbf24, #b45309); }
+@media (prefers-reduced-motion: reduce) { .vt-cv, .vt-cv .fl-online { animation: none; } }
 /* Variações do cartão base: Saúde (registro), Delivery (aberto/fechado, entrega grátis), itens (Imóveis, produtos) */
 .vt-cv .cv-tag.aberto { background: #16a34a; }
 .vt-cv .cv-tag.fechado { background: rgba(60, 66, 76, .85); }
@@ -925,10 +916,7 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
 .fl-aba-on { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 3px color-mix(in srgb, #22c55e 25%, transparent); }
 .fl-bolhas-trilho { display: flex; gap: 14px; overflow-x: auto; scrollbar-width: none; padding: 6px 2px 4px; scroll-snap-type: x proximity; }
 .fl-bolhas-trilho::-webkit-scrollbar { display: none; }
-.fl-bolha { --anel: #00adee; flex: none; width: 74px; display: grid; justify-items: center; gap: 4px; padding: 0; border: 0; background: none; cursor: pointer; scroll-snap-align: start; color: var(--vt-text); }
-.fl-bolha.pl-plus { --anel: linear-gradient(135deg, #7cb4ff, #2563ff 50%, #1e3a8a); }
-.fl-bolha.pl-pro { --anel: linear-gradient(135deg, #a855f7, #7c3aed 45%, #2f6bff); }
-.fl-bolha.pl-premium { --anel: linear-gradient(135deg, #fde68a, #f59e0b 40%, #b45309 65%, #fcd34d); }
+.fl-bolha { --anel: var(--vc); flex: none; width: 74px; display: grid; justify-items: center; gap: 4px; padding: 0; border: 0; background: none; cursor: pointer; scroll-snap-align: start; color: var(--vt-text); }
 .fl-anel { position: relative; width: 66px; height: 66px; padding: 3px; border-radius: 50%; background: var(--anel); }
 .fl-anel .vt-avatar { width: 100%; height: 100%; font-size: 18px; border: 2.5px solid var(--vt-bg); box-shadow: none; }
 .fl-bolha-on { position: absolute; right: 1px; bottom: 3px; width: 15px; height: 15px; border-radius: 50%; background: #22c55e; border: 2.5px solid var(--vt-bg); animation: fl-pulso 2.2s ease-out infinite; }
@@ -939,13 +927,6 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
 .fl-bolha:focus-visible { outline: 2px solid var(--vc); outline-offset: 3px; border-radius: 12px; }
 @media (prefers-reduced-motion: reduce) { .fl-bolha-on { animation: none; } }
 
-/* ---------- Cor do plano em todas as vitrines (classes hf-pl-* do planos-base.js) ---------- */
-.vitrine .hf-pl-plus, .vitrine .hf-pl-pro, .vitrine .hf-pl-premium { --hf-pl-bg: var(--vt-card); }
-.vitrine :is(.hf-pl-plus, .hf-pl-pro, .hf-pl-premium, .hf-pl-gratis) .vt-avatar { box-shadow: 0 0 0 2px var(--vt-card), 0 0 0 4px var(--hf-pl); }
-.vt-bolha-loja[data-plano="gratis"] .vt-avatar { box-shadow: 0 0 0 2px var(--vt-bg), 0 0 0 4px #00adee; }
-.vt-bolha-loja[data-plano="plus"] .vt-avatar { box-shadow: 0 0 0 2px var(--vt-bg), 0 0 0 4.5px #2563ff, 0 6px 18px -6px #2563ff; }
-.vt-bolha-loja[data-plano="pro"] .vt-avatar { box-shadow: 0 0 0 2px var(--vt-bg), 0 0 0 4.5px #7c3aed, 0 6px 18px -6px #7c3aed; }
-.vt-bolha-loja[data-plano="premium"] .vt-avatar { box-shadow: 0 0 0 2px var(--vt-bg), 0 0 0 4.5px #f59e0b, 0 6px 18px -6px #f59e0b; }
 /* Shopping: folga para o anel das bolinhas das lojas (com a cor do plano ficava cortado em cima e nos lados) */
 .vt-carrossel.lojas .vt-trilho { padding: 9px 16px 10px; gap: 14px; scroll-padding-left: 16px; }
 
@@ -997,6 +978,19 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
 .vf-aplicar:disabled { opacity: .5; cursor: default; box-shadow: none; }
 @media (prefers-reduced-motion: reduce) { .vf-pop { animation: none; } }
 /* Destaques de Delivery, Saúde e Shopping: cartões direto no trilho (sem o "slot" que reveza dos Freelances) */
-.vt-carrossel.top-cat .vt-trilho > .vt-cv { flex: none; width: 46vw; max-width: 220px; scroll-snap-align: start; }
+.vt-carrossel.top-cat .vt-trilho > article { flex: none; width: 46vw; max-width: 220px; scroll-snap-align: start; }
 /* A gaveta fica fora da .vitrine: os ícones precisam do traço aqui também */
 .vf svg { fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+/* Local dentro dos Filtros (sem abrir outra janela): onde você está, atalhos e Estado/Cidade */
+.vf-local .vf-onde { cursor: default; margin-bottom: 10px; }
+.vf-local-ops { margin-bottom: 10px; }
+.vf-local-ops .vf-chip svg { color: var(--vc); }
+.vf-campos .hf-end { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.vf-campos .campo { display: grid; gap: 5px; min-width: 0; position: relative; }
+.vf-campos .campo label { font-size: 12.5px; font-weight: 700; color: var(--vt-muted); }
+.vf-campos .campo select, .vf-campos .campo input { width: 100%; box-sizing: border-box; min-height: 44px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--vt-line); background: var(--vt-card-2); color: inherit; font: inherit; font-size: 15px; }
+.vf-campos .campo select:focus, .vf-campos .campo input:focus { outline: 2px solid color-mix(in srgb, var(--vc) 55%, transparent); border-color: var(--vc); }
+.vf-campos .campo .ajuda { font-size: 11.5px; color: var(--vt-muted); }
+.vf-campos .campo .ajuda:empty { display: none; }
+.vf-aviso { display: block; margin-top: 8px; font-size: 12.5px; color: #ef4444; }
+.vt-local-fundo.vf { --accent: var(--vc); }

@@ -2,7 +2,7 @@
    Página inicial (index.html). Base em categoria.css.
    ===================================================== */
 body[data-classe="inicio"] { --classe: #00adee; --classe-2: #7de3ff; --classe-ink: #001a24; }
-:root { --c-servicos: #2563ff; --c-delivery: #ff7a1a; --c-lojinha: #b066ff; --c-imoveis: #2fbf71; --c-saude: #0fb5a6; --c-comunidade: #e5487f; }
+:root { --c-servicos: #00adee; --c-delivery: #ff7a1a; --c-lojinha: #b066ff; --c-imoveis: #2fbf71; --c-saude: #0fb5a6; --c-comunidade: #e5487f; }
 
 /* ---------- painel do topo: foto da ponte, saudação, atalhos e busca ---------- */
 .topo-espaco { width: 42px; flex-shrink: 0; }
@@ -248,7 +248,7 @@ body[data-classe="inicio"] { --classe: #00adee; --classe-2: #7de3ff; --classe-in
 .hm-filtro::-webkit-scrollbar { display: none; }
 .hm-filtro button { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font: inherit; font-size: 13px; font-weight: 750; cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
 .hm-filtro button[class^="t-"]::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--cor-f); }
-.hm-filtro .t-servicos { --cor-f: #2563ff; } .hm-filtro .t-delivery { --cor-f: #ff7a1a; } .hm-filtro .t-lojinha { --cor-f: #b066ff; } .hm-filtro .t-imoveis { --cor-f: #2fbf71; } .hm-filtro .t-saude { --cor-f: #0fb5a6; }
+.hm-filtro .t-servicos { --cor-f: #00adee; } .hm-filtro .t-delivery { --cor-f: #ff7a1a; } .hm-filtro .t-lojinha { --cor-f: #b066ff; } .hm-filtro .t-imoveis { --cor-f: #2fbf71; } .hm-filtro .t-saude { --cor-f: #0fb5a6; }
 .hm-filtro button.on { background: var(--text); border-color: var(--text); color: var(--bg); }
 .hm-filtro button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
@@ -289,5 +289,3 @@ body[data-classe="inicio"] { --classe: #00adee; --classe-2: #7de3ff; --classe-in
 .faixa-seg small { color: var(--muted); font-size: 13px; line-height: 1.45; }
 .faixa-seg > svg { color: var(--muted); flex-shrink: 0; }
 /* Anel da foto pela cor do plano (borda do cartão: planos-base.js) */
-.mini.hf-pl-gratis .av { box-shadow: 0 0 0 2px #00adee; }
-.mini.hf-pl-plus .av, .mini.hf-pl-pro .av, .mini.hf-pl-premium .av { box-shadow: 0 0 0 2.5px var(--hf-pl); }

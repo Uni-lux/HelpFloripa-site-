@@ -14,11 +14,11 @@ import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL 
 import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento, media, avaliarNegocio } from "./avaliacoes.js?v=15";
 import { abrirQueixa } from "./queixas.js?v=14";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
-import { anelNegocio } from "./flash-negocio.js?v=10";
-import { camposEndereco, textoCidade, cidadesDe, NOME_UF, semAcento } from "./endereco.js?v=1";
+import { anelNegocio } from "./flash-negocio.js?v=11";
+import { camposEndereco, textoCidade, cidadesDe, NOME_UF, semAcento, cidadePorCodigo } from "./endereco.js?v=1";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, esquecerPosicao, posicaoGuardada } from "./perto.js?v=2";
-import { lerLocal, escolherLocal, atualizarPeloGps, aoMudarLocal, escolhaManual } from "./local-escolhido.js?v=2";
-import { lerPlano, nivelPlano, seloPlano, nomePlano, negocioPausado, mostraSelo, classePlano, LIMITES_GRATIS } from "./planos-base.js?v=10";
+import { lerLocal, salvarLocal, marcarManual, escolherLocal, atualizarPeloGps, aoMudarLocal, escolhaManual } from "./local-escolhido.js?v=3";
+import { lerPlano, nivelPlano, seloPlano, nomePlano, negocioPausado, mostraSelo, classePlano, LIMITES_GRATIS } from "./planos-base.js?v=11";
 import { estaOnline } from "./presenca.js?v=1";
 import { PROFISSOES_SAUDE, CATEGORIAS_SAUDE, SITE_CONSELHO, MODALIDADES_SAUDE, PUBLICO_SAUDE, PUBLICO_VET, nomeProfissao, conselhoDe, ehVet, textoRegistro, textoValor, AVISO_EMERGENCIA, AVISO_REGISTRO } from "./saude-dados.js?v=1";
 import { usarEstat, registrarVisita, registrarAcao, registrarItem, chaveItem as chaveEstat, chaveAnuncio } from "./estat-negocio.js?v=1";
@@ -1847,8 +1847,13 @@ function montarFiltroLocal() {
   if (filtroLocal.uf) cidadesDe("SC").then((l) => { nomesSC = new Set(l.map((c) => semAcento(c.nome))); renderizar(); }).catch(() => {});
 }
 // A mesma folha "Onde você está?" do início: localização atual, cidade do perfil, todo o Brasil ou Estado/Cidade.
+// Cor da página (a vitrine fica dentro da .vitrine; folhas abertas no body levam a cor junto).
+function coresDaPagina() {
+  const cs = getComputedStyle(document.getElementById("vitrine") || document.querySelector(".vitrine") || document.body);
+  return { accent: cs.getPropertyValue("--vc").trim(), ink: cs.getPropertyValue("--vc-ink").trim() };
+}
 async function abrirFiltroLocal() {
-  const f = await escolherLocal({ perfil: perfilEu, pedirLocalizacao, esquecerPosicao });
+  const f = await escolherLocal({ perfil: perfilEu, pedirLocalizacao, esquecerPosicao, cores: coresDaPagina() });
   if (f === null) return;
   await aplicarLocal();
 }
@@ -2019,8 +2024,9 @@ function abrirFiltros() {
   let ordemRasc = ordemAtual();
   const fundo = el("div", "vt-local-fundo vt-filtros-fundo vf"); fundo.id = "vtFiltrosPop";
   // A gaveta fica fora da .vitrine: leva junto a cor da página.
-  const cs = getComputedStyle(document.getElementById("vitrine") || document.querySelector(".vitrine") || document.body);
-  ["--vc", "--vc-ink"].forEach((v) => { const c = cs.getPropertyValue(v).trim(); if (c) fundo.style.setProperty(v, c); });
+  const cor = coresDaPagina();
+  if (cor.accent) fundo.style.setProperty("--vc", cor.accent);
+  if (cor.ink) fundo.style.setProperty("--vc-ink", cor.ink);
   const cx = el("div", "vf-pop"); cx.setAttribute("role", "dialog"); cx.setAttribute("aria-modal", "true"); cx.setAttribute("aria-label", "Filtros");
   const topo = el("div", "vf-topo");
   const tt = el("div", "vf-tit"); const sub = el("small");
@@ -2036,8 +2042,71 @@ function abrirFiltros() {
     const d = el("section", "vf-sec");
     const h = el("h4"); const i = el("span", "vf-ic"); i.appendChild(icone(ic, "vi s")); h.append(i, el("span", null, titulo));
     if (extra) h.appendChild(extra);
-    d.appendChild(h); corpo.appendChild(d); return d;
+    d.appendChild(h); resto.appendChild(d); return d;
   };
+  // 1) Onde você está: escolhido AQUI MESMO (sem abrir outra janela). Montado uma vez para não perder o que a pessoa
+  // digita; o resto da gaveta é redesenhado embaixo. Cada mudança vale na hora para o início e todas as vitrines.
+  const secLocal = el("section", "vf-sec vf-local");
+  const resto = el("div");
+  corpo.append(secLocal, resto);
+  {
+    const h = el("h4"); const i = el("span", "vf-ic"); i.appendChild(icone("pin", "vi s")); h.append(i, el("span", null, "Onde você está"));
+    const onde = el("div", "vf-onde");
+    const ondeTx = el("span", "vf-onde-tx"); const ondeNome = el("strong"), ondeSub = el("small");
+    ondeTx.append(ondeNome, ondeSub); onde.append(icone("pin", "vi"), ondeTx);
+    const pintarOnde = (sub) => {
+      ondeNome.textContent = rotuloLocal();
+      ondeSub.textContent = sub || (!filtroLocal.uf ? "Mostrando de todas as cidades" : !escolhaManual() && posEu?.origem === "gps" ? "Pela sua localização" : "Escolhido por você");
+    };
+    const ops = el("div", "vf-chips vf-local-ops");
+    const op = (rot, ic) => { const b = el("button", "vf-chip"); b.type = "button"; b.append(icone(ic, "vi s"), el("span", null, rot)); ops.appendChild(b); return b; };
+    const bGps = op("Usar minha localização", "rota");
+    const cidPerfil = perfilEu?.uf && perfilEu?.cidade ? perfilEu : null;
+    const bPerfil = cidPerfil ? op("Minha cidade", "casa") : null;
+    const bBrasil = op("Todo o Brasil", "pin");
+    const campos = el("div", "vf-campos");
+    const aviso = el("small", "vf-aviso"); aviso.hidden = true;
+    let salvando = 0;
+    const salvarAqui = async (f, { gps = false } = {}) => {
+      aviso.hidden = true;
+      if (!gps && f.uf) esquecerPosicao();
+      marcarManual(!gps); salvarLocal(f);
+      const meu = ++salvando;
+      pintarOnde("Atualizando...");
+      await aplicarLocal();
+      if (meu !== salvando) return;
+      pintarOnde(); pintar();
+    };
+    let local = null;
+    local = camposEndereco(campos, {
+      campos: ["uf", "cidade"], obrigatorios: [], valor: filtroLocal, rotuloCidade: "Cidade (opcional)",
+      aoMudar: () => {
+        const v = local?.ler(); if (!v) return;
+        if (v.cidadeIbge && Number(v.cidadeIbge) !== Number(filtroLocal.cidadeIbge)) salvarAqui({ uf: v.uf, cidade: v.cidade, cidadeIbge: v.cidadeIbge });
+        else if (!v.cidadeIbge && v.uf !== (filtroLocal.uf || "")) salvarAqui(v.uf ? { uf: v.uf } : {});
+      }
+    });
+    campos.querySelectorAll(".opcional").forEach((o) => o.remove());
+    // Atualizar: mostra onde a pessoa está e preenche Estado/Cidade; ela pode trocar se quiser.
+    bGps.addEventListener("click", async () => {
+      const t = bGps.querySelector("span"); t.textContent = "Localizando..."; bGps.disabled = true;
+      try {
+        const p = await pedirLocalizacao();
+        const c = p?.cidadeIbge ? await cidadePorCodigo(p.cidadeIbge) : null;
+        if (!c) throw new Error("Não achamos a sua cidade. Escolha abaixo.");
+        await local.definir({ uf: c.uf, cidade: c.cidade, cidadeIbge: c.cidadeIbge });
+        await salvarAqui({ uf: c.uf, cidade: c.cidade, cidadeIbge: c.cidadeIbge }, { gps: true });
+      } catch (e) { aviso.textContent = e?.message || "Não deu para pegar a sua localização."; aviso.hidden = false; }
+      t.textContent = "Usar minha localização"; bGps.disabled = false;
+    });
+    bPerfil?.addEventListener("click", async () => {
+      const f = cidPerfil.cidadeIbge ? { uf: cidPerfil.uf, cidade: cidPerfil.cidade, cidadeIbge: Number(cidPerfil.cidadeIbge) } : { uf: cidPerfil.uf };
+      await local.definir(f); salvarAqui(f);
+    });
+    bBrasil.addEventListener("click", async () => { await local.definir({}); salvarAqui({}); });
+    secLocal.append(h, onde, ops, campos, aviso);
+    pintarOnde();
+  }
   const chip = (rot, on, mudar, n = null) => {
     const c = el("button", "vf-chip" + (on ? " on" : "")); c.type = "button"; c.setAttribute("aria-pressed", String(on));
     if (on) c.appendChild(icone("check", "vi s"));
@@ -2052,22 +2121,9 @@ function abrirFiltros() {
   const base = () => todos.filter((n) => passaCategoria(n, cat) && passaLocal(n) && (!termo || textoBusca(n).includes(termo)));
   const pintar = () => {
     const rolagem = corpo.scrollTop;
-    corpo.replaceChildren();
+    resto.replaceChildren();
     const lista = base();
     const com = (f) => lista.filter((n) => passaExtras(n, f)).length;
-    // 1) Onde você está: a mesma escolha do início
-    const s0 = sec("Onde você está", "pin");
-    const card = el("button", "vf-onde"); card.type = "button";
-    const txt = el("span", "vf-onde-tx");
-    const origem = posEu?.origem === "gps" && !escolhaManual() ? "Pela sua localização" : filtroLocal.uf ? "Escolhido por você" : "Mostrando de todas as cidades";
-    txt.append(el("strong", null, rotuloLocal()), el("small", null, origem));
-    card.append(icone("pin", "vi"), txt, el("span", "vf-mudar", "Mudar"));
-    card.addEventListener("click", async () => {
-      const f = await escolherLocal({ perfil: perfilEu, pedirLocalizacao, esquecerPosicao });
-      if (f === null) return;
-      await aplicarLocal(); pintar();
-    });
-    s0.appendChild(card);
     // 2) Distância (com GPS é exata; com a cidade, aproximada)
     if (posEu) {
       const s1 = sec("Distância", "rota", el("small", "vf-dica", posEu.origem === "gps" ? `de ${rotuloEu || "você"}` : "aproximada, pelo centro da cidade"));
@@ -2083,8 +2139,8 @@ function abrirFiltros() {
     // 4) Opções em grupos, com quantos resultados cada uma deixaria
     const usadas = new Set();
     const grupos = [...(GRUPOS_FILTRO[TIPO] || [])];
-    const resto = opcoesFiltro().map((o) => o[0]).filter((k) => !grupos.some((g) => g[2].includes(k)));
-    if (resto.length) grupos.push(["Mais opções", "mais", resto]);
+    const sobra = opcoesFiltro().map((o) => o[0]).filter((k) => !grupos.some((g) => g[2].includes(k)));
+    if (sobra.length) grupos.push(["Mais opções", "mais", sobra]);
     grupos.forEach(([titulo, ic, chaves]) => {
       const ops = chaves.map((k) => opcoesFiltro().find((o) => o[0] === k)).filter(Boolean).filter((o) => !usadas.has(o[0]));
       if (!ops.length) return;
@@ -2144,7 +2200,7 @@ function abrirFiltros() {
     renderizar(); document.getElementById("vitrine")?.scrollIntoView({ behavior: "smooth", block: "start" });
   });
   pintar();
-  setTimeout(() => cx.querySelector(".vf-onde")?.focus({ preventScroll: true }), 60);
+  setTimeout(() => cx.querySelector(".vf-local-ops .vf-chip")?.focus({ preventScroll: true }), 60);
 }
 
 function textoBusca(n) {
@@ -2356,19 +2412,22 @@ const cartaoTop = (n, cat) => cartaoPro(n, cat);
 // Saúde: foto do local (ou a capa da classe), avatar, nome com selo, nota, profissão + registro e a consulta.
 function cartaoSaude(n) {
   const sd = n.saude || {};
+  const c = comCorPlano(el("article", "vt-del vt-free vt-saude"), n.donoId);
+  const f = el("div", "ft");
+  f.style.backgroundImage = `url("${capaDe(n) || TEXTOS.saude.img}")`;
   const mods = (sd.modalidades || []).filter((k) => k === "online" || k === "domicilio");
-  const promo = promoAtiva(n);
-  const tag = mods.length ? tagCartao("saude-mod", mods.includes("online") ? "online" : "casa", mods.map((k) => (k === "online" ? "Online" : "Em casa")).join(" · "))
-    : promo ? tagCartao("promo", "cupom", promo.codigo ? "Cupom" : "Promoção") : null;
+  if (mods.length) f.appendChild(el("span", "st saude-mod", mods.map((k) => (k === "online" ? "Online" : "Em casa")).join(" · ")));
+  seloPromo(f, n);
+  f.appendChild(avatar(n.foto, n.nome, "vt-avatar logo"));
+  const tx = el("div", "tx");
+  tx.append(nomeComSelo(n, "Profissional de saúde"), estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }), seloRapido(n));
+  const esp = (sd.especialidades || [])[0];
+  tx.appendChild(el("small", null, [nomeProfissao(sd), esp].filter(Boolean).join(" · ")));
   const reg = textoRegistro(sd);
-  const valor = Number(sd.valorConsulta) > 0 ? moeda(sd.valorConsulta) : "";
-  const c = cartaoVisita({
-    donoId: n.donoId, capa: capaDe(n), tag, foto: avatar(n.foto, n.nome, "vt-avatar"), online: estaOnlineDono(n), classes: "vt-saude",
-    nome: n.nome || "Profissional de saúde",
-    linhas: [linhaCv("cv-area", [nomeProfissao(sd), (sd.especialidades || [])[0]].filter(Boolean).join(" · ")), linhaCv("cv-reg", reg ? reg.split(" · ")[0] : "", "escudo"), estrelasCv(n), ondeCv(n)],
-    extras: [seloRapido(n)],
-    preco: valor ? { rot: "Consulta", valor } : (sd.convenios || []).length ? { rot: "Atende", valor: "Convênios" } : { rot: "Consulta", valor: "Agende pelo chat" }
-  });
+  if (reg) { const r = el("small", "reg"); r.append(icone("escudo"), document.createTextNode(reg.split(" · ")[0])); tx.appendChild(r); }
+  tx.appendChild(el("span", "tx-taxa", textoValor(sd, moeda) || textoCidade(n) || "Agende pelo chat"));
+  seloDist(f, n);
+  c.append(f, tx);
   return tornarClicavel(c, () => abrirDetalhe(n), `Ver ${n.nome}`);
 }
 function linhaSaude(n) {
@@ -2451,24 +2510,28 @@ const ORDENS_IMOVEL = {
 };
 let ordemImovel = "recentes";
 function cartaoImovelMini(a) {
+  const c = comCorPlano(el("article", "vt-imo"), a.donoId);
+  const f = el("div", "ft");
+  f.style.backgroundImage = `url("${urlSegura((a.fotos || []).find(urlSegura)) || TEXTOS.imoveis.img}")`;
+  f.appendChild(el("span", "tag", FINALIDADE[a.finalidade] || "Imóvel"));
   const nFotos = (a.fotos || []).filter(urlSegura).length;
-  let canto = null;
-  if (nFotos > 1) { canto = el("span", "cv-nf"); canto.append(icone("foto", "vi s"), document.createTextNode(String(nFotos))); }
-  const sp = el("div", "cv-specs");
+  if (nFotos > 1) { const s = el("span", "nf"); s.append(icone("foto", "vi s"), document.createTextNode(String(nFotos))); f.appendChild(s); }
+  const p = el("span", "pr", moeda(a.preco) || "Consultar");
+  if (moeda(a.preco) && a.finalidade === "aluguel") p.appendChild(el("small", null, "/mês"));
+  if (moeda(a.preco) && a.finalidade === "temporada") p.appendChild(el("small", null, "/dia"));
+  f.appendChild(p);
+  const tx = el("div", "tx");
+  tx.appendChild(el("strong", "nm", tituloImovel(a)));
+  const local = a.bairro || a.cidade;
+  if (local) { const s = el("span", "loc"); s.append(icone("pin", "vi s"), document.createTextNode(local)); tx.appendChild(s); }
+  const sp = el("div", "sp");
   [["cama", a.quartos], ["carro", a.vagas], ["area", a.area ? `${a.area}m²` : ""]].forEach(([ic, v]) => {
     if (!v) return;
-    const s2 = el("span"); s2.append(icone(ic, "vi s"), document.createTextNode(String(v))); sp.appendChild(s2);
+    const s = el("span"); s.append(icone(ic, "vi s"), document.createTextNode(String(v))); sp.appendChild(s);
   });
-  const valor = moeda(a.preco);
-  const por = a.finalidade === "aluguel" ? "/mês" : a.finalidade === "temporada" ? "/dia" : "";
-  const pEl = el("span", "cv-preco-in");
-  pEl.append(el("small", null, FINALIDADE[a.finalidade] || "Imóvel"), (() => { const b = el("b", null, valor || "Consultar"); if (valor && por) b.appendChild(el("em", null, por)); return b; })());
-  const c = cartaoVisita({
-    donoId: a.donoId, capa: (a.fotos || []).find(urlSegura), capaPadrao: TEXTOS.imoveis.img, item: true, canto,
-    tag: tagCartao("fin", null, FINALIDADE[a.finalidade] || "Imóvel"),
-    nome: tituloImovel(a), linhas: [ondeCv(a, a.bairro || ""), sp.children.length ? sp : null],
-    preco: { el: pEl }
-  });
+  if (sp.children.length) tx.appendChild(sp);
+  seloDist(f, a);
+  c.append(f, tx);
   return tornarClicavel(c, () => abrirAnuncio(a), `Ver ${tituloImovel(a)}`);
 }
 // Título e ordenação da lista (Freelances e Imóveis usam o mesmo modelo).
@@ -2588,20 +2651,22 @@ function linhaProduto({ n, i, idx }) {
   });
 }
 function tileDelivery(n) {
+  const c = comCorPlano(el("article", "vt-del"), n.donoId);
   const ab = abertoAgora(n);
-  const promo = promoAtiva(n);
-  const tag = ab !== null ? tagCartao(ab ? "aberto" : "fechado", null, ab ? "Aberto" : "Fechado")
-    : promo ? tagCartao("promo", "cupom", promo.codigo ? "Cupom" : "Promoção") : null;
+  if (ab === false) c.classList.add("fechado");
+  const f = el("div", "ft");
   const prato = (n.itens || []).find((i) => urlSegura(i?.foto));
-  const tempo = n.tempoMin || n.tempoMax ? `${n.tempoMin || "?"}–${n.tempoMax || "?"} min` : "";
-  const gratis = !(Number(n.taxaEntrega) > 0);
-  const c = cartaoVisita({
-    donoId: n.donoId, capa: prato?.foto, capaPadrao: TEXTOS.delivery.img, tag, foto: avatar(n.foto, n.nome, "vt-avatar"),
-    nome: n.nome || "Delivery", classes: ab === false ? "fechado" : "",
-    linhas: [linhaCv("cv-area", nomeCategoria(n)), estrelasCv(n), linhaCv("cv-onde", [tempo, distDe(n)].filter(Boolean).join(" · ") || (textoCidade(n) || "").split("/")[0], tempo ? "relogio" : "pin")],
-    extras: [seloRapido(n), ab === true && promo ? tagCartao("promo mini", "cupom", promo.codigo ? "Cupom" : "Promoção") : null],
-    preco: { rot: "Entrega", valor: gratis ? "Grátis" : moeda(n.taxaEntrega), cls: gratis ? "gratis" : "" }
-  });
+  f.style.backgroundImage = `url("${urlSegura(prato?.foto) || TEXTOS.delivery.img}")`;
+  if (ab !== null) f.appendChild(el("span", "st " + (ab ? "on" : "off"), ab ? "Aberto" : "Fechado"));
+  seloPromo(f, n);
+  f.appendChild(avatar(n.foto, n.nome, "vt-avatar logo"));
+  const tx = el("div", "tx");
+  tx.append(nomeComSelo(n, "Delivery"), estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }), seloRapido(n));
+  const info = [nomeCategoria(n), n.tempoMin || n.tempoMax ? `${n.tempoMin || "?"}–${n.tempoMax || "?"} min` : ""].filter(Boolean).join(" · ");
+  if (info) tx.appendChild(el("small", null, info));
+  tx.appendChild(el("span", "tx-taxa" + (Number(n.taxaEntrega) > 0 ? "" : " gratis"), Number(n.taxaEntrega) > 0 ? `Entrega ${moeda(n.taxaEntrega)}` : "Entrega grátis"));
+  seloDist(f, n);
+  c.append(f, tx);
   return tornarClicavel(c, () => abrirDetalhe(n), `Ver ${n.nome}`);
 }
 const ORDENS_PRECO = (preco, nota, km = kmDe) => ({
@@ -2680,29 +2745,30 @@ function bolhaLoja(n) {
 }
 // Shopping: cartão de produto (estilo marketplace)
 function cartaoProduto(n, i, idx, { mostrarLoja = true } = {}) {
+  const c = comCorPlano(el("article", "vt-prod"), n.donoId);
   const est = estoqueDe(i);
+  if (est === 0) c.classList.add("esgotado");
+  const f = el("div", "ft");
+  if (urlSegura(i.foto)) f.style.backgroundImage = `url("${i.foto}")`; else f.appendChild(icone("foto", "vi"));
   const p = Number(i.preco), a = Number(i.precoAntigo);
-  const tag = est === 0 ? tagCartao("esgot", null, "Esgotado")
-    : a > p && p > 0 ? tagCartao("promo", null, `-${Math.round((1 - p / a) * 100)}%`)
-    : est === 1 ? tagCartao("ultima", null, "Última unidade") : null;
-  const canto = i.condicao && i.condicao !== "novo" && CONDICAO[i.condicao] ? el("span", "cv-nf", CONDICAO[i.condicao]) : null;
+  if (est === 0) f.appendChild(el("span", "selo", "Esgotado"));
+  else if (a > p && p > 0) f.appendChild(el("span", "selo desc", `-${Math.round((1 - p / a) * 100)}%`));
+  else if (est === 1) f.appendChild(el("span", "selo", "Última unidade"));
+  if (i.condicao && i.condicao !== "novo" && CONDICAO[i.condicao]) f.appendChild(el("span", "selo cond", CONDICAO[i.condicao]));
+  const tx = el("div", "tx");
+  tx.appendChild(el("strong", "nome", i.nome));
+  tx.appendChild(precoComDesconto(i));
+  tx.appendChild(estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }));
   const nt = Array.isArray(i.tamanhos) ? i.tamanhos.length : 0, nc = Array.isArray(i.cores) ? i.cores.length : 0;
   const extras = [nt ? (nt === 1 ? `Tam. ${i.tamanhos[0]}` : `${nt} tamanhos`) : "", nc ? (nc === 1 ? i.cores[0] : `${nc} cores`) : ""].filter(Boolean).join(" · ");
-  let loja = null;
+  if (extras) tx.appendChild(el("small", null, extras));
   if (mostrarLoja) {
-    loja = el("span", "cv-loja");
+    const loja = el("span", "loja");
     loja.append(icone("sacola", "vi s"), el("span", "ln", n.nome || "Loja"));
     if ((n.entrega || []).includes("entrega")) loja.appendChild(el("em", null, "entrega"));
+    tx.appendChild(loja);
   }
-  const pEl = el("span", "cv-preco-in");
-  if (a > p && p > 0) pEl.append(el("s", null, moeda(a)), el("b", null, moeda(p)));
-  else pEl.append(el("b", null, moeda(p) || "Consultar"));
-  const c = cartaoVisita({
-    donoId: mostrarLoja ? n.donoId : null, capa: i.foto, item: true, canto, tag, classes: "cv-prod" + (est === 0 ? " esgotado" : ""),
-    nome: i.nome, linhas: [linhaCv("cv-area cv-var", extras), mostrarLoja ? estrelasCv(n) : null, loja],
-    preco: { el: pEl }
-  });
-  if (!urlSegura(i.foto)) c.querySelector(".cv-capa").appendChild(icone("foto", "vi cv-sem-foto"));
+  c.append(f, tx);
   return c;
 }
 

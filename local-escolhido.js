@@ -14,7 +14,7 @@ export function lerLocal() {
 export function salvarLocal(f) { try { localStorage.setItem(CHAVE_LOCAL, JSON.stringify(f || {})); } catch {} }
 // Escolha feita à mão (cidade, estado, perfil ou todo o Brasil): a localização do aparelho não troca mais sozinha.
 const CHAVE_MANUAL = "hf-local-manual";
-const marcarManual = (sim) => { try { sim ? localStorage.setItem(CHAVE_MANUAL, "1") : localStorage.removeItem(CHAVE_MANUAL); } catch {} };
+export const marcarManual = (sim) => { try { sim ? localStorage.setItem(CHAVE_MANUAL, "1") : localStorage.removeItem(CHAVE_MANUAL); } catch {} };
 export const escolhaManual = () => { try { return localStorage.getItem(CHAVE_MANUAL) === "1"; } catch { return false; } };
 // Lê a localização da pessoa e põe a cidade dela como "Você está em" (início e vitrines usam a mesma chave).
 // Só quando ela não escolheu à mão. Pede a permissão uma vez por aparelho; negada, fica com o que já tinha.
@@ -98,12 +98,14 @@ function css() {
 }
 
 // Abre a folha "Onde você está?". Devolve o local escolhido ({} = todo o Brasil) ou null se fechou.
-export function escolherLocal({ perfil = {}, pedirLocalizacao, esquecerPosicao } = {}) {
+// `cores` {accent, ink}: a folha na cor da página que abriu (vitrines); sem ela, o azul do site (início).
+export function escolherLocal({ perfil = {}, pedirLocalizacao, esquecerPosicao, cores = null } = {}) {
   css();
   return new Promise((resolve) => {
     const atual = lerLocal();
     // .vt-local-fundo: o botão "voltar" do celular fecha a folha (voltar.js).
     const fundo = el("div", "vt-local-fundo hm-local");
+    if (cores?.accent) { fundo.style.setProperty("--accent", cores.accent); if (cores.ink) fundo.style.setProperty("--accent-ink", cores.ink); }
     const cx = el("div", "hm-local-pop"); cx.setAttribute("role", "dialog"); cx.setAttribute("aria-modal", "true"); cx.setAttribute("aria-label", "Onde você está?");
     const topo = el("div", "hm-local-topo"); topo.append(el("strong", null, "Onde você está?"));
     const x = el("button", "hm-local-x", "×"); x.type = "button"; x.setAttribute("aria-label", "Fechar"); x.dataset.fechar = ""; topo.appendChild(x);
