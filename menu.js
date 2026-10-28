@@ -215,7 +215,7 @@ function montarGaveta() {
   });
   const sair = el("button", "gaveta-sair"); sair.type = "button"; sair.id = "gavetaSair"; sair.append(iconeMenu("sair"), document.createTextNode("Sair da conta"));
   // A mesma janela "Sair da conta?" das configurações e das mensagens.
-  sair.addEventListener("click", () => import("./confirmar.js?v=4").then((m) => m.sairDaConta()));
+  sair.addEventListener("click", () => import("./confirmar.js?v=5").then((m) => m.sairDaConta()));
   const brasil = el("div", "gaveta-brasil");
   brasil.append(iconeMenu("brasil", "i xs"), el("span", null, "Em todo o Brasil · suporte pelo site 24 h, equipe das 8h às 20h (Brasília)"));
   rod.append(sair, brasil, links, el("small", null, `© 2025–${new Date().getFullYear()} Help Floripa · CNPJ 61.935.934/0001-00`));

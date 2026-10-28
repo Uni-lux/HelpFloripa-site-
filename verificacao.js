@@ -8,7 +8,7 @@
 // quando a moderação decide. Com as regras antigas, o pedido vai sem a foto em usuarios/{uid}.verificacaoPedido.
 // usuarios.solicitacaoVerificacao continua marcando o pedido (o painel lista por ele).
 // =====================================================
-import { $, el, icone, toast, erroAmigavel, criarFolha, abrirFolha, fecharFolha, fb, eu, dados, refUsuario, confirmarHF } from "./rede.js?v=66";
+import { $, el, icone, toast, erroAmigavel, criarFolha, abrirFolha, fecharFolha, fb, eu, dados, refUsuario, confirmarHF } from "./rede.js?v=67";
 
 export const TIPOS_VERIF = [
   ["pessoa", "Pessoa", "Seu perfil pessoal", "pessoa-mais"],
@@ -297,7 +297,7 @@ function formulario(aoMudar) {
     if (est.documento || est.selfie) {
       const nome = (k) => (DOCUMENTOS.find((d) => d[0] === k) || [])[1] || k;
       selDoc.value = est.documentoTipo;
-      const ok = await confirmarHF({ titulo: "Trocar o documento?", texto: `As fotos enviadas são de ${nome(est.documentoTipo)}. Para usar ${nome(novo)}, elas saem e você envia a foto e a selfie do novo documento.`, ok: "Trocar", cor: "normal", icone: "alerta" });
+      const ok = await confirmarHF({ titulo: "Trocar o documento?", texto: "A foto do documento e a selfie saem. Depois é só enviar as do novo.", troca: { de: nome(est.documentoTipo), para: nome(novo), rotDe: "Atual", rotPara: "Novo" }, ok: "Trocar documento", cancelar: `Manter ${nome(est.documentoTipo).replace(/ \(.*\)$/, "")}`, cor: "normal", icone: "alerta" });
       if (!ok) return;
       est.documento = ""; est.selfie = ""; pintarArea(); pintarSelfie();
       selDoc.value = novo;

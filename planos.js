@@ -633,8 +633,9 @@ export async function abrirPlanos(op) {
         // O arquivo anexado é do documento escolhido antes: trocar o tipo tira o arquivo (senão o painel mostraria
         // um nome de documento e um arquivo de outro).
         if (anexo) {
-          const { confirmarHF } = await import("./confirmar.js?v=4");
-          const ok = await confirmarHF({ titulo: "Trocar o documento?", texto: `O arquivo anexado é de "${nomeDocRenda(anexo.doc || docEscolhido)}". Para escolher "${rot}", ele sai e você anexa o novo documento.`, ok: "Trocar", cor: "normal", icone: "alerta" });
+          const { confirmarHF } = await import("./confirmar.js?v=5");
+          const atual = nomeDocRenda(anexo.doc || docEscolhido);
+          const ok = await confirmarHF({ titulo: "Trocar o documento?", texto: "O arquivo que você anexou sai. Depois é só anexar o novo.", troca: { de: atual, para: rot, rotDe: "Atual", rotPara: "Novo" }, ok: "Trocar documento", cancelar: `Manter ${atual}`, cor: "normal", icone: "alerta" });
           if (!ok) return;
           anexo = null; previa.replaceChildren();
         }

@@ -6,14 +6,14 @@
 // banido do programa (programa_banidos/{uid}_comunidade) e pode ter a conta suspensa.
 // Anúncio: comunidade/{id}. Link direto: comunidade.html?item=ID · ?novo=1 · ?meus=1
 // =====================================================
-import { confirmarHF } from "./confirmar.js?v=4";
+import { confirmarHF } from "./confirmar.js?v=5";
 import { temStorage, subirFoto } from "./armazenamento.js?v=1";
 import { termosBusca, buscarNoServidor, combina } from "./busca.js?v=1";
 import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL } from "./seguranca.js?v=1";
 import { docComValidade } from "./leituras.js?v=1";
 import { camposEndereco, textoCidade, semAcento } from "./endereco.js?v=1";
 import { minhaPosicao, comDistancia, textoDistancia } from "./perto.js?v=2";
-import { prepararConversa } from "./vitrine.js?v=63";
+import { prepararConversa } from "./vitrine.js?v=64";
 
 export const CATEGORIAS_COM = {
   doacao: { nome: "Doação", plural: "Doações", cor: "#e5487f", ic: "presente", acao: "Quero receber", dica: "Dê de graça o que você não usa mais" },
@@ -255,7 +255,7 @@ async function abrirItem(a) {
     den.append(icone("alerta"), document.createTextNode("Denunciar venda, golpe ou anúncio proibido"));
     den.addEventListener("click", async () => {
       if (!eu) { location.href = "login.html"; return; }
-      const { abrirDenuncia } = await import("./denuncias.js?v=5");
+      const { abrirDenuncia } = await import("./denuncias.js?v=6");
       abrirDenuncia({ fb, eu, tipo: "comunidade", alvoId: a.donoId, itemId: a.id, trecho: [a.titulo, a.descricao].filter(Boolean).join(" · "), nomeAlvo: a.titulo, podeBloquear: false });
     });
     acoes.appendChild(den);
