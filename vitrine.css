@@ -791,10 +791,14 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
 .vt-fl .fl-online { position: absolute; left: 44px; bottom: -19px; z-index: 3; width: 14px; height: 14px; border-radius: 50%; background: #22c55e; border: 2.5px solid var(--vt-card); box-shadow: 0 0 0 0 rgba(34, 197, 94, .6); animation: fl-pulso 2.2s ease-out infinite; }
 @keyframes fl-pulso { 0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, .55); } 70%, 100% { box-shadow: 0 0 0 7px rgba(34, 197, 94, 0); } }
 @media (prefers-reduced-motion: reduce) { .vt-fl .fl-online { animation: none; } }
-/* Plus: borda azul-céu */
-.vt-fl.pl-plus { --pl: #0ea5e9; border: 1.5px solid #0ea5e9; box-shadow: 0 10px 26px -18px #0ea5e9; }
+/* Grátis: azul claro (o ciano do site) no anel e na seta */
+.vt-fl:not([class*="pl-"]) .ft .vt-avatar.logo { box-shadow: 0 0 0 2.5px var(--vt-card), 0 0 0 4.5px #00adee; }
+.vt-fl:not([class*="pl-"]) .fl-cta { background: #00adee; color: #001a24; }
+/* Plus: azul escuro vivo, borda em degradê com brilho */
+.vt-fl.pl-plus { --pl: #2563ff; --pl-borda: linear-gradient(135deg, #7cb4ff, #2563ff 45%, #1e3a8a); box-shadow: 0 12px 30px -16px #2563ff; }
+.vt-fl.pl-plus .fl-cta { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: #fff; }
 /* Pro: borda em degradê violeta → azul, com brilho */
-.vt-fl.pl-pro, .vt-fl.pl-premium { border: 1.5px solid transparent; background: linear-gradient(var(--vt-card), var(--vt-card)) padding-box, var(--pl-borda) border-box; }
+.vt-fl.pl-plus, .vt-fl.pl-pro, .vt-fl.pl-premium { border: 1.5px solid transparent; background: linear-gradient(var(--vt-card), var(--vt-card)) padding-box, var(--pl-borda) border-box; }
 .vt-fl.pl-pro { --pl: #7c3aed; --pl-borda: linear-gradient(135deg, #a855f7, #7c3aed 45%, #2f6bff); box-shadow: 0 12px 30px -16px #7c3aed; }
 /* Premium: borda dourada com brilho */
 .vt-fl.pl-premium { --pl: #f59e0b; --pl-borda: linear-gradient(135deg, #fde68a, #f59e0b 35%, #b45309 60%, #fcd34d); box-shadow: 0 14px 34px -14px rgba(245, 158, 11, .65); }
@@ -810,3 +814,57 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
 .vitrine[data-tipo="servicos"] .vt-cabeca h2 { font-size: 19px; }
 .vitrine[data-tipo="servicos"] .vt-cabeca p { font-size: 13px; }
 .vitrine[data-tipo="servicos"] .vt-cabeca .vt-criar { padding: 8px 14px; font-size: 13px; border-radius: 999px; }
+
+/* Cartão estreito (3 por linha no celular): só o essencial, sem cortar o preço. */
+.vt-fl { container-type: inline-size; }
+@container (max-width: 190px) {
+  .vt-fl .tx { padding: 22px 8px 9px; gap: 2px; }
+  .vt-fl .nm { font-size: 12.5px; -webkit-line-clamp: 2; }
+  .vt-fl .nm .selo-pro { font-size: 8.5px; padding: 1px 4px; }
+  .vt-fl small { font-size: 10.5px; }
+  .vt-fl .hf-estrelas { font-size: 10.5px; }
+  .vt-fl .vt-rapido { display: none; }
+  .vt-fl .fl-modos { display: none; }
+  .vt-fl .fl-rodape { margin-top: 4px; padding-top: 6px; gap: 4px; }
+  .vt-fl .fl-rodape .tx-taxa { font-size: 11px; white-space: normal; line-height: 1.2; overflow: visible; }
+  .vt-fl .fl-cta { width: 22px; height: 22px; }
+  .vt-fl .fl-cta svg { width: 12px; height: 12px; }
+  .vt-fl .ft .vt-avatar.logo { width: 36px; height: 36px; bottom: -16px; left: 8px; font-size: 12px; }
+  .vt-fl .fl-online { left: 34px; bottom: -15px; width: 12px; height: 12px; }
+  .vt-fl .tag-dest { font-size: 9.5px; }
+}
+
+/* ---------- Freelances: bolinhas dos profissionais em abas (Online agora · Destaques · Novos · Perto) ---------- */
+.fl-bolhas { margin: 2px 0 22px; }
+.fl-bolhas-abas { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin-bottom: 12px; }
+.fl-bolhas-abas::-webkit-scrollbar { display: none; }
+.fl-aba { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 13px; border-radius: 999px; border: 1px solid var(--vt-line); background: var(--vt-card); color: var(--vt-text-2); font-size: 13px; font-weight: 750; cursor: pointer; transition: background .2s, color .2s, border-color .2s; }
+.fl-aba.on { background: var(--vc); border-color: var(--vc); color: var(--vc-ink); }
+.fl-aba b { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; display: grid; place-items: center; font-size: 11px; background: color-mix(in srgb, #22c55e 18%, transparent); color: #16a34a; }
+.fl-aba.on b { background: rgba(255, 255, 255, .22); color: inherit; }
+.fl-aba-on { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 3px color-mix(in srgb, #22c55e 25%, transparent); }
+.fl-bolhas-trilho { display: flex; gap: 14px; overflow-x: auto; scrollbar-width: none; padding: 6px 2px 4px; scroll-snap-type: x proximity; }
+.fl-bolhas-trilho::-webkit-scrollbar { display: none; }
+.fl-bolha { --anel: #00adee; flex: none; width: 74px; display: grid; justify-items: center; gap: 4px; padding: 0; border: 0; background: none; cursor: pointer; scroll-snap-align: start; color: var(--vt-text); }
+.fl-bolha.pl-plus { --anel: linear-gradient(135deg, #7cb4ff, #2563ff 50%, #1e3a8a); }
+.fl-bolha.pl-pro { --anel: linear-gradient(135deg, #a855f7, #7c3aed 45%, #2f6bff); }
+.fl-bolha.pl-premium { --anel: linear-gradient(135deg, #fde68a, #f59e0b 40%, #b45309 65%, #fcd34d); }
+.fl-anel { position: relative; width: 66px; height: 66px; padding: 3px; border-radius: 50%; background: var(--anel); }
+.fl-anel .vt-avatar { width: 100%; height: 100%; font-size: 18px; border: 2.5px solid var(--vt-bg); box-shadow: none; }
+.fl-bolha-on { position: absolute; right: 1px; bottom: 3px; width: 15px; height: 15px; border-radius: 50%; background: #22c55e; border: 2.5px solid var(--vt-bg); animation: fl-pulso 2.2s ease-out infinite; }
+.fl-bolha-nome { max-width: 74px; font-size: 12px; font-weight: 700; line-height: 1.2; text-align: center; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.fl-bolha small { font-size: 11px; font-weight: 700; color: var(--vt-muted); }
+.fl-bolha:hover .fl-anel { transform: scale(1.04); }
+.fl-anel { transition: transform .2s; }
+.fl-bolha:focus-visible { outline: 2px solid var(--vc); outline-offset: 3px; border-radius: 12px; }
+@media (prefers-reduced-motion: reduce) { .fl-bolha-on { animation: none; } }
+
+/* ---------- Cor do plano em todas as vitrines (classes hf-pl-* do planos-base.js) ---------- */
+.vitrine .hf-pl-plus, .vitrine .hf-pl-pro, .vitrine .hf-pl-premium { --hf-pl-bg: var(--vt-card); }
+.vitrine :is(.hf-pl-plus, .hf-pl-pro, .hf-pl-premium, .hf-pl-gratis) .vt-avatar { box-shadow: 0 0 0 2px var(--vt-card), 0 0 0 4px var(--hf-pl); }
+.vt-bolha-loja[data-plano="gratis"] .vt-avatar { box-shadow: 0 0 0 2px var(--vt-bg), 0 0 0 4px #00adee; }
+.vt-bolha-loja[data-plano="plus"] .vt-avatar { box-shadow: 0 0 0 2px var(--vt-bg), 0 0 0 4.5px #2563ff, 0 6px 18px -6px #2563ff; }
+.vt-bolha-loja[data-plano="pro"] .vt-avatar { box-shadow: 0 0 0 2px var(--vt-bg), 0 0 0 4.5px #7c3aed, 0 6px 18px -6px #7c3aed; }
+.vt-bolha-loja[data-plano="premium"] .vt-avatar { box-shadow: 0 0 0 2px var(--vt-bg), 0 0 0 4.5px #f59e0b, 0 6px 18px -6px #f59e0b; }
+/* Shopping: folga para o anel das bolinhas das lojas (com a cor do plano ficava cortado em cima e nos lados) */
+.vt-carrossel.lojas .vt-trilho { padding: 9px 16px 10px; gap: 14px; scroll-padding-left: 16px; }

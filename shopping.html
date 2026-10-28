@@ -33,14 +33,14 @@
       document.querySelector('meta[name="theme-color"]').content = escuro ? "#0f161b" : "#ffffff";
     })();
   </script>
-  <link rel="stylesheet" href="categoria.css?v=9" />
-  <link rel="stylesheet" href="vitrine.css?v=33" />
+  <link rel="stylesheet" href="categoria.css?v=10" />
+  <link rel="stylesheet" href="vitrine.css?v=36" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
-  <script type="module" src="categoria.js?v=52"></script>
-  <script type="module" src="vitrine.js?tipo=lojinha&v=37"></script>
+  <script type="module" src="categoria.js?v=54"></script>
+  <script type="module" src="vitrine.js?tipo=lojinha&v=41"></script>
 </head>
-<body data-classe="lojinha">
+<body data-classe="lojinha" class="pg-compacta">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
     <symbol id="i-beleza" viewBox="0 0 24 24"><circle cx="6.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/><path d="M8.3 15.8L17 4M15.7 15.8L7 4"/></symbol>
     <symbol id="i-caixa" viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/></symbol>
@@ -79,7 +79,7 @@
 
 
   <main class="pagina">
-    <section class="hero" style="--capa: url('shopping.webp')" aria-labelledby="tituloPagina">
+    <section class="hero hero-arte" style="--capa: url('shopping-arte.svg')" aria-labelledby="tituloPagina">
       <div class="hero-corpo">
         <span class="selo-classe"><b><svg class="i xs" aria-hidden="true"><use href="#i-lojinha"/></svg></b>Shopping</span>
         <h1 id="tituloPagina">Produtos de verdade, <span>de lojas daqui</span></h1>

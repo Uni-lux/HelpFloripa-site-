@@ -33,14 +33,14 @@
       document.querySelector('meta[name="theme-color"]').content = escuro ? "#0f161b" : "#ffffff";
     })();
   </script>
-  <link rel="stylesheet" href="categoria.css?v=9" />
-  <link rel="stylesheet" href="vitrine.css?v=33" />
+  <link rel="stylesheet" href="categoria.css?v=10" />
+  <link rel="stylesheet" href="vitrine.css?v=36" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
-  <script type="module" src="categoria.js?v=52"></script>
-  <script type="module" src="vitrine.js?tipo=saude&v=37"></script>
+  <script type="module" src="categoria.js?v=54"></script>
+  <script type="module" src="vitrine.js?tipo=saude&v=41"></script>
 </head>
-<body data-classe="saude">
+<body data-classe="saude" class="pg-compacta">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
     <symbol id="i-beleza" viewBox="0 0 24 24"><circle cx="6.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/><path d="M8.3 15.8L17 4M15.7 15.8L7 4"/></symbol>
     <symbol id="i-calendario" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></symbol>
@@ -84,7 +84,7 @@
 
 
   <main class="pagina">
-    <section class="hero" style="--capa: url('saude.svg')" aria-labelledby="tituloPagina">
+    <section class="hero hero-arte" style="--capa: url('saude-arte.svg')" aria-labelledby="tituloPagina">
       <div class="hero-corpo">
         <span class="selo-classe"><b><svg class="i xs" aria-hidden="true"><use href="#i-saude"/></svg></b>Saúde</span>
         <h1 id="tituloPagina">Cuidado de verdade, <span>perto de você</span></h1>

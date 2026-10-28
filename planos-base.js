@@ -12,7 +12,7 @@ export const PIX = { chave: "61935934000100", nome: "HELP FLORIPA", cidade: "FLO
 export const PAGAMENTO = { automatico: false, publicKey: "TEST-1855e5db-1f54-4020-a318-98f3f6187f73", regiao: "southamerica-east1" };
 // Planos pagos (nível: quanto maior, mais destaque). Preço por mês.
 export const PLANOS = {
-  plus: { nome: "Plus", nivel: 1, preco: 29.9, frase: "Libera tudo no seu perfil e você aparece antes dos perfis grátis", cor: "#0ea5e9",
+  plus: { nome: "Plus", nivel: 1, preco: 29.9, frase: "Libera tudo no seu perfil e você aparece antes dos perfis grátis", cor: "#2563ff",
     titulo: "Seu negócio completo", pitch: "Tudo liberado no perfil e você aparece antes de quem não tem plano." },
   pro: { nome: "Pro", nivel: 2, preco: 39.9, frase: "Tudo do Plus, destaque nas vitrines e no Perto de você", cor: "#7c3aed",
     titulo: "Mais clientes chegando", pitch: "Tudo do Plus e o seu negócio aparece antes, nas vitrines e no Perto de você." },
@@ -111,6 +111,17 @@ export function lerPlano(fb, uid) {
   return p;
 }
 export const esquecerPlano = (uid) => cache.delete(uid);
+// Classe da cor do plano (hf-pl-plus/pro/premium; sem plano ou com o selo escondido: hf-pl-gratis).
+export function classePlano(pl) { cssSelo(); const k = mostraSelo(pl) ? pl.plano : "gratis"; return "hf-pl-" + (PLANOS[k] ? k : "gratis"); }
+// Pinta o cartão pela cor do plano de quem anuncia (classe hf-pl-plus/pro/premium; sem plano: hf-pl-gratis).
+// Lê o plano uma vez por dono (lerPlano guarda 10 min). Devolve o plano (ou null).
+export async function corDoPlano(fb, cartao, donoId) {
+  cssSelo();
+  const pl = await lerPlano(fb, donoId).catch(() => null);
+  const k = mostraSelo(pl) ? pl.plano : "gratis";
+  cartao?.classList.add("hf-pl-" + (PLANOS[k] ? k : "gratis"));
+  return pl;
+}
 
 // Aviso do sino quando o plano está perto de vencer (7 dias) ou venceu há pouco (15 dias).
 // O id muda a cada período (data de fim), então cada renovação gera um aviso novo.
@@ -148,7 +159,13 @@ function cssSelo() {
   const s = document.createElement("style");
   s.textContent = `
 .selo-pro { display: inline-flex; align-items: center; height: 18px; padding: 0 6px; border-radius: 6px; font-size: 10px; font-weight: 900; letter-spacing: .06em; color: #fff; background: linear-gradient(135deg, #7c3aed, #2563eb); vertical-align: middle; }
-.selo-pro.pl-plus { background: linear-gradient(135deg, #0ea5e9, #2563eb); }
-.selo-pro.pl-premium { background: linear-gradient(135deg, #f59e0b, #d97706); }`;
+.selo-pro.pl-plus { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+.selo-pro.pl-premium { background: linear-gradient(135deg, #f59e0b, #d97706); }
+/* Cartões pela cor do plano de quem anuncia (Início, Explorar): borda em degradê e brilho; grátis = azul claro. */
+.hf-pl-plus, .hf-pl-pro, .hf-pl-premium { border: 1.5px solid transparent !important; background: linear-gradient(var(--hf-pl-bg, var(--panel, #10181d)), var(--hf-pl-bg, var(--panel, #10181d))) padding-box, var(--hf-pl-borda) border-box !important; }
+.hf-pl-plus { --hf-pl: #2563ff; --hf-pl-borda: linear-gradient(135deg, #7cb4ff, #2563ff 45%, #1e3a8a); box-shadow: 0 12px 28px -18px #2563ff; }
+.hf-pl-pro { --hf-pl: #7c3aed; --hf-pl-borda: linear-gradient(135deg, #a855f7, #7c3aed 45%, #2f6bff); box-shadow: 0 12px 28px -16px #7c3aed; }
+.hf-pl-premium { --hf-pl: #f59e0b; --hf-pl-borda: linear-gradient(135deg, #fde68a, #f59e0b 35%, #b45309 60%, #fcd34d); box-shadow: 0 14px 30px -14px rgba(245, 158, 11, .6); }
+.hf-pl-gratis { --hf-pl: #00adee; }`;
   document.head.appendChild(s);
 }
