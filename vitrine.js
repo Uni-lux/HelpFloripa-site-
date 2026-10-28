@@ -1833,7 +1833,9 @@ function montarFiltroLocal() {
   if (!chips || document.getElementById("vtLocalBtn")) return;
   const b = el("button", "vt-local-btn"); b.type = "button"; b.id = "vtLocalBtn"; b.setAttribute("aria-haspopup", "dialog");
   b.append(icone("pin"), el("span"), icone("avancar"));
-  chips.parentNode.insertBefore(b, chips);
+  // No topo da vitrine ("Procurando em ..."); páginas sem esse lugar ficam com o botão ao lado das categorias.
+  const lugarLocal = document.getElementById("vbLocal");
+  if (lugarLocal) lugarLocal.appendChild(b); else chips.parentNode.insertBefore(b, chips);
   b.addEventListener("click", abrirFiltroLocal);
   pintarBotaoLocal();
   if (filtroLocal.uf) cidadesDe("SC").then((l) => { nomesSC = new Set(l.map((c) => semAcento(c.nome))); renderizar(); }).catch(() => {});
@@ -1976,7 +1978,9 @@ function montarBotaoFiltros() {
   if (!chips || document.getElementById("vtFiltrosBtn") || !opcoesFiltro().length) return;
   const b = el("button", "vt-filtros-btn"); b.type = "button"; b.id = "vtFiltrosBtn"; b.setAttribute("aria-haspopup", "dialog");
   b.append(icone("filtro"), el("span", null, "Filtros"), el("b"));
-  chips.parentNode.insertBefore(b, chips);
+  // Dentro da busca (topo da vitrine); sem esse lugar, ao lado das categorias.
+  const lugarFiltros = document.getElementById("vbFiltros");
+  if (lugarFiltros) lugarFiltros.appendChild(b); else chips.parentNode.insertBefore(b, chips);
   b.addEventListener("click", abrirFiltros);
   const ativos = el("div", "vt-ativos"); ativos.id = "vtAtivos"; ativos.hidden = true;
   chips.parentNode.insertAdjacentElement("afterend", ativos);

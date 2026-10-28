@@ -47,7 +47,7 @@ const a = await entrar(AN.ctx, "ana", "saude.html");
 await a.waitForSelector(".vt-saude", { timeout: 20000 }); await a.waitForTimeout(800);
 await a.evaluate(() => document.querySelector(".hfman-x")?.click());
 ok((await a.textContent(".vt-saude")).includes("CRP-SC 12/34567") && (await a.textContent(".vt-saude")).includes("180"), "cartão da vitrine: registro e valor da consulta");
-ok(await a.locator(".aviso-saude").count() === 1 && await a.locator(".vp-classe.saude[aria-current=page]").count() === 1, "página com aviso de emergência e a classe Saúde marcada");
+ok(await a.locator(".aviso-saude").count() === 1 && await a.locator(".vb-classe.saude[aria-current=page]").count() === 1, "página com aviso de emergência e a classe Saúde marcada");
 await a.screenshot({ path: "saida/sc-vitrine-saude.png" });
 await a.locator(".chip[data-filter=psicologo]").click(); await a.waitForTimeout(400);
 ok(await a.locator("#vtGrade .vt-saude").count() >= 1, "filtro Psicólogos mostra o perfil");
