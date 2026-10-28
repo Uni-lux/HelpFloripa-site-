@@ -1033,7 +1033,17 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
 - **Abas e listas das páginas institucionais (PR depois do #114, sem regra nova):** `.nav-inst` em ordem alfabética nas 11
   páginas (Ajuda, Clientes, Contato, Diretrizes, Negócios, Parcerias, Privacidade, Segurança, Sobre, Termos). Listas com ícone
   (`.lista-check`, `.plano-mini`, `.confianca`, `.dicas`) deixaram de ser `display: flex`: o ícone fica `position: absolute` e o
-  texto corre (com flex, `<strong>`/`<a>` no meio da frase viravam colunas, ex.: Diretrizes seções 1 e 4, Segurança). Etapa B (com Blaze): exibições somadas no servidor e ranking pré-calculado por cidade/categoria.
+  texto corre (com flex, `<strong>`/`<a>` no meio da frase viravam colunas, ex.: Diretrizes seções 1 e 4, Segurança).
+- **Barra de baixo + Diário | Registros (PR depois do #115, sem regra nova):** pedido dele: Explorar e Comunidade na barra de
+  baixo; no topo, no lugar do Explorar, **Registros** (textos e enquetes). `barra-rede.js` (sem deps): 5 itens Diário ·
+  Explorar (`feed.html?aba=explorar`) · Comunidade · Mensagens · Perfil, `montarBarra/marcarBarra/pintarAvatarBarra`, CSS
+  próprio só sem o rede.css; `rede.js` `montarBarraRede` usa ele; mensagens.html tem a barra fixa no HTML (5 itens) e a
+  comunidade.html monta a barra (Comunidade marcada). feed.js: `ABAS` diario|registros|explorar, `urlAba`, `abaDaUrl`;
+  **Diário = com foto/vídeo (`temMidia`), Registros = sem mídia (texto, enquete, caixa)**, `daAba` (com #hashtag ou local
+  mostra tudo); Registros sem a fileira do Flash e com outro texto no campo de publicar; publicar leva à aba certa; Explorar
+  sem as abas do topo; na barra, Diário/Explorar trocam sem recarregar (clique interceptado). Testes: os que criam texto/
+  enquete abrem `feed.html?aba=registros`; Explorar = `#barraRede [data-barra=explorar]`; duas abas no mesmo navegador
+  travam o Firestore do teste (t-salvos usa a mesma aba). Teste `t-barra-registros.mjs`. Etapa B (com Blaze): exibições somadas no servidor e ranking pré-calculado por cidade/categoria.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

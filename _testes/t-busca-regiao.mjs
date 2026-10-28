@@ -42,7 +42,7 @@ ok((await p.locator("#listaPessoas").innerText()).includes("Rita Eletricista"), 
 await p.screenshot({ path: "saida/busca-explorar.png" });
 
 // Publicar no Diário grava a região de quem publica
-await p.locator("[data-aba=diario]").first().tap().catch(() => {}); await p.waitForTimeout(800);
+await p.locator("#barraRede [data-barra=diario]").tap(); await p.waitForTimeout(800);
 await p.locator("#btnComporFeed").tap(); await p.locator("#pubTexto").fill("Publicação com região"); await p.locator("#pubEnviar").click(); await p.waitForTimeout(2500);
 const minha = (await db.collection("diario").where("autorId", "==", U.ana).get()).docs.map((d) => d.data()).find((x) => x.texto === "Publicação com região");
 ok(minha?.autorUf === "SC" && minha?.autorIbge === 4205407, "publicação guarda o estado e a cidade de quem publica: " + JSON.stringify({ uf: minha?.autorUf, ibge: minha?.autorIbge }));

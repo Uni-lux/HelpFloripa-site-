@@ -24,7 +24,7 @@ for (const [u, n] of notas) await db.doc(`curtidas/pc_${u}`).set({ postId: "pc",
 await db.doc("diario_notas/pc").set({ total: 4, soma: 17, n1: 0, n2: 0, n3: 1, n4: 1, n5: 2 });
 
 const A = await navegador({ mobile: true }), B = await navegador({ mobile: true });
-const pa = await entrar(A.ctx, "ana", "feed.html?aba=registros");
+const pa = await entrar(A.ctx, "ana", "feed.html");
 const card = pa.locator(".post-card", { hasText: "Reforma do banheiro" }).first();
 await card.waitFor({ timeout: 30000 }); await card.scrollIntoViewIfNeeded(); await pa.waitForTimeout(1000);
 await card.locator(".acoes-post .acao").first().tap();
