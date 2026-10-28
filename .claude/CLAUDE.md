@@ -1013,8 +1013,23 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   seção 6 ("Ordem das vitrines"; nenhum plano garante vendas ou posição fixa além do descrito).
   Também: Profissionais (cartão "Destaque na vitrine", listas dos 3 planos e FAQ "Como apareço primeiro?"), nota "Como
   funciona a ordem das vitrines" embaixo da tabela da gaveta (planos.js) e comentários do Perto de você (inicio.js).
-  Teste `t-relevancia.mjs`. Próximas partes: 2) Início e Explorar; 3) Diário (espaço para autores novos) + página "Como
-  ordenamos os resultados". Etapa B (com Blaze): exibições somadas no servidor e ranking pré-calculado por cidade/categoria.
+  Teste `t-relevancia.mjs`.
+  **Parte 2 – Início e Explorar (PR #113, mesclado; o #112 tinha sido mesclado sem os 2 commits dos textos dos planos, que
+  foram no #113):** `relevancia.js` `dadosNegocio(n, {nota, nivel, km, mesmaCidade, fator})`; `planos-base.js`
+  `planosDosDonos(fb, ids, docsPorIds)` (lote, 10 min, enche o cache do lerPlano). Início: `revezar(..., {ordem, nivel})`
+  começa na ordem justa e, no revezamento, os lugares 1, 6, 11 só trocam entre pagantes (o 1º, entre os do maior plano);
+  Mais bem avaliados, Chegaram agora (`fatorNovo`) e Imóveis (`fatorIm`) com `justoLocal` (cidade escolhida primeiro); Saúde
+  do início com `ordenarJusto`; Perto de você: Plus ×0,9 (era 0,85), Pro ×0,6, Premium ×0,5 sobre km+0,5. Explorar:
+  "Negócios em…/em destaque" com `ordenarJusto` (Perto = distância × bônus) e busca de negócios com `ordenarJusto` + quanto o
+  nome bate (`fator`). Teste `t-relevancia-inicio.mjs`.
+  **Parte 3 – Diário + página (PR depois do #113, sem regra nova):** feed.js `ordenarPrincipais`: mistura fixa
+  (`sorteioFixo(uid:janela:id)` no lugar do `Math.random`) e `comDescoberta` (relevancia.js): 1 a cada 5 a partir da 3ª =
+  publicação de quem a pessoa não segue, não vista, com ≤3 notas e ≤1 comentário; no máximo 2 do mesmo autor nas 10
+  primeiras; depois `espalharAutores`. O que já foi visto continua descendo (×0,35). Página `como-ordenamos.html` (modelo das
+  Diretrizes, 8 seções), link no rodapé das 13 páginas institucionais, no menu (seção Help Floripa), Termos seção 6, Ajuda,
+  Profissionais (FAQ) e na nota da gaveta dos planos. Teste `t-diario-justo.mjs` (Diário mostra 10 por vez: clicar `#maisFeed`).
+  Em aberto: com perfis iguais, o bônus pode pôr 4 pagantes nos 5 primeiros (sugerido a ele: no máximo 1 pagante nos 4
+  depois de cada espaço pago; ainda sem resposta). As 3 partes estão feitas. Etapa B (com Blaze): exibições somadas no servidor e ranking pré-calculado por cidade/categoria.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
