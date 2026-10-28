@@ -10,10 +10,10 @@ import { confirmarHF } from "./confirmar.js?v=5";
 import { temStorage, subirFoto } from "./armazenamento.js?v=1";
 import { termosBusca, buscarNoServidor, combina } from "./busca.js?v=1";
 import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL } from "./seguranca.js?v=1";
-import { docComValidade } from "./leituras.js?v=1";
+import { docComValidade } from "./leituras.js?v=2";
 import { camposEndereco, textoCidade, semAcento } from "./endereco.js?v=1";
 import { minhaPosicao, comDistancia, textoDistancia } from "./perto.js?v=2";
-import { prepararConversa } from "./vitrine.js?v=72";
+import { prepararConversa } from "./vitrine.js?v=73";
 
 export const CATEGORIAS_COM = {
   doacao: { nome: "Doação", plural: "Doações", cor: "#e5487f", ic: "presente", acao: "Quero receber", dica: "Dê de graça o que você não usa mais" },

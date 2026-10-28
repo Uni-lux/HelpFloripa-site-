@@ -11,14 +11,14 @@ import { confirmarHF } from "./confirmar.js?v=5";
 import { relogioDe } from "./fuso.js?v=1";
 import { buscarNoServidor } from "./busca.js?v=1";
 import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL } from "./seguranca.js?v=1";
-import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento, media, avaliarNegocio } from "./avaliacoes.js?v=15";
-import { abrirQueixa } from "./queixas.js?v=14";
-import { docComValidade, docsComValidade } from "./leituras.js?v=1";
-import { anelNegocio } from "./flash-negocio.js?v=12";
+import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento, media, avaliarNegocio } from "./avaliacoes.js?v=16";
+import { abrirQueixa } from "./queixas.js?v=15";
+import { docComValidade, docsComValidade, docsPorIds } from "./leituras.js?v=2";
+import { anelNegocio } from "./flash-negocio.js?v=13";
 import { camposEndereco, textoCidade, cidadesDe, NOME_UF, semAcento, cidadePorCodigo } from "./endereco.js?v=1";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, esquecerPosicao, posicaoGuardada } from "./perto.js?v=2";
 import { lerLocal, salvarLocal, marcarManual, escolherLocal, atualizarPeloGps, aoMudarLocal, escolhaManual } from "./local-escolhido.js?v=3";
-import { lerPlano, nivelPlano, seloPlano, nomePlano, negocioPausado, mostraSelo, classePlano, LIMITES_GRATIS } from "./planos-base.js?v=12";
+import { lerPlano, nivelPlano, seloPlano, nomePlano, negocioPausado, mostraSelo, classePlano, LIMITES_GRATIS, guardarPlano } from "./planos-base.js?v=13";
 import { estaOnline } from "./presenca.js?v=1";
 import { PROFISSOES_SAUDE, CATEGORIAS_SAUDE, SITE_CONSELHO, MODALIDADES_SAUDE, PUBLICO_SAUDE, PUBLICO_VET, nomeProfissao, conselhoDe, ehVet, textoRegistro, textoValor, AVISO_EMERGENCIA, AVISO_REGISTRO } from "./saude-dados.js?v=1";
 import { usarEstat, registrarVisita, registrarAcao, registrarItem, chaveItem as chaveEstat, chaveAnuncio } from "./estat-negocio.js?v=1";
@@ -3107,12 +3107,16 @@ function pintarVerMais(filtrando) {
 }
 
 const DONOS_VALIDADE = 5 * 60000; // nome, foto e "online agora" de quem anuncia: cópia do aparelho por 5 min
+// Plano e perfil público dos donos em lote (de 30 em 30 numa consulta só): com 50 perfis eram 100 leituras soltas.
 async function carregarDonos(ids) {
-  await Promise.all([...new Set(ids)].map(async (id) => {
-    if (!planosDonos.has(id)) planosDonos.set(id, await lerPlano(fb, id).catch(() => null));
-    if (donos.has(id)) return;
-    try { const s = await docComValidade(fb, ["perfis_publicos", id], DONOS_VALIDADE); donos.set(id, s.exists() ? s.data() : {}); } catch { donos.set(id, {}); }
-  }));
+  const u = [...new Set(ids)].filter(Boolean);
+  const semPlano = u.filter((id) => !planosDonos.has(id)), semPerfil = u.filter((id) => !donos.has(id));
+  const [pl, pf] = await Promise.all([
+    semPlano.length ? docsPorIds(fb, "planos", semPlano, 10 * 60000).catch(() => new Map()) : new Map(),
+    semPerfil.length ? docsPorIds(fb, "perfis_publicos", semPerfil, DONOS_VALIDADE).catch(() => new Map()) : new Map()
+  ]);
+  semPlano.forEach((id) => { const p = pl.get(id) ?? null; planosDonos.set(id, p); guardarPlano(id, p); });
+  semPerfil.forEach((id) => donos.set(id, pf.get(id) || {}));
 }
 
 async function iniciar() {

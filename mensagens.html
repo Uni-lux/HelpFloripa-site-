@@ -1355,15 +1355,15 @@
     import { confirmarHF } from "./confirmar.js?v=5";
     import { relogioDe, ufDe } from "./fuso.js?v=1";
     import { textoChamada } from "./chamadas.js?v=1";
-    import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO, lerResumos, media, notaTexto } from "./avaliacoes.js?v=15";
-    import { buscarPessoas } from "./pessoas.js?v=3";
-    import { docComValidade } from "./leituras.js?v=1";
+    import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO, lerResumos, media, notaTexto } from "./avaliacoes.js?v=16";
+    import { buscarPessoas } from "./pessoas.js?v=4";
+    import { docComValidade } from "./leituras.js?v=2";
     import { codigoPix, tipoChavePix } from "./pix.js?v=1";
-    import { semPausados, lerPlano, nivelPlano } from "./planos-base.js?v=12";
+    import { semPausados, lerPlano, nivelPlano } from "./planos-base.js?v=13";
     import { comRitmo } from "./ritmo.js?v=2";
     import { criarPlayerAudio } from "./audio-ondas.js?v=1";
     import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
-    import { abrirQueixa } from "./queixas.js?v=14";
+    import { abrirQueixa } from "./queixas.js?v=15";
     import { ouvirItensEquipe, linkEquipe, seloOficial, TEXTO_EQUIPE } from "./avisos-equipe.js?v=1";
     import { escolherApagar, editarTextoHF, verEdicoesHF, janelaHF, horaCurta, noPrazo, tempoRestante, podeMexer } from "./msg-acoes.js?v=2";
     // ======================================================
@@ -3690,7 +3690,7 @@
     let vitrineMod = null;
     function carregarVitrine() {
       if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=41"; l.dataset.vitrine = ""; document.head.appendChild(l); }
-      return (vitrineMod ||= import("./vitrine.js?v=72"));
+      return (vitrineMod ||= import("./vitrine.js?v=73"));
     }
     function usarCartaoNaConversa(uid, cartao) {
       document.querySelectorAll(".vt-modal").forEach((m) => m.remove());

@@ -976,6 +976,12 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   Chegaram agora) em Freelances, Saúde, Delivery e Imóveis; Shopping: Em promoção (preço riscado) e Perto de você.
   Categorias: cada uma uma fileira com "N profissionais/imóveis..." e "›" (abre o filtro). Distância do cartão de imóvel acima
   do preço (`.vt-imo .vt-dist` bottom 34px).
+  **Leitura em lote (28/10, PR depois do #111):** `docsPorIds(fbx, colecao, ids, validade)` em leituras.js (de 30 em 30 com
+  `documentId in`, guarda no aparelho com a validade e anota os que não existem `{nada:1}`; falhou = um por um). Usado em
+  `carregarDonos` (planos + perfis_publicos; `guardarPlano` enche o cache do lerPlano) e em `lerResumos` (notas). Saúde com 50
+  perfis: 11,2 s → 1,5 s no emulador, ~150 leituras → 6. **Comunidade ainda NÃO nacional:** lê os 150 mais recentes do Brasil a
+  cada visita (sem cache, sem o lugar escolhido, sem "Ver mais") e mostra uma grade única — proposto a ele: fileiras por tipo +
+  lugar + lotes.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

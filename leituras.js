@@ -42,6 +42,34 @@ export async function docComValidade(fbx, caminho, validade) {
   return s;
 }
 
+// Vários documentos da mesma coleção pelo id, de 30 em 30 numa consulta só (em vez de 1 leitura solta por id).
+// Dentro da validade usa a cópia do aparelho; o que não existe fica anotado (não busca de novo na validade).
+// Devolve Map id -> dados (ou null). Se a consulta falhar, cai na leitura de um por um.
+export async function docsPorIds(fbx, colecao, ids, validade) {
+  const r = new Map(), m = lerMarcas(), falta = [];
+  await Promise.all([...new Set(ids)].filter(Boolean).map(async (id) => {
+    const marca = m["d:" + colecao + "/" + id];
+    if (valido(marca, validade)) {
+      if (marca.nada) { r.set(id, null); return; }
+      if (fbx.getDocFromCache) { try { const s = await fbx.getDocFromCache(fbx.doc(fbx.db, colecao, id)); r.set(id, s.exists() ? s.data() : null); return; } catch {} }
+    }
+    falta.push(id);
+  }));
+  const lotes = Array.from({ length: Math.ceil(falta.length / 30) }, (_, k) => falta.slice(k * 30, k * 30 + 30));
+  await Promise.all(lotes.map(async (lote) => {
+    try {
+      const s = await fbx.getDocs(fbx.query(fbx.collection(fbx.db, colecao), fbx.where(fbx.documentId(), "in", lote)));
+      const achou = new Set();
+      s.docs.forEach((d) => { achou.add(d.id); r.set(d.id, d.data()); m["d:" + colecao + "/" + d.id] = Date.now(); });
+      lote.filter((id) => !achou.has(id)).forEach((id) => { r.set(id, null); m["d:" + colecao + "/" + id] = { em: Date.now(), nada: 1 }; });
+    } catch {
+      await Promise.all(lote.map(async (id) => { try { const s = await docComValidade(fbx, [colecao, id], validade); r.set(id, s.exists() ? s.data() : null); } catch { r.set(id, null); } }));
+    }
+  }));
+  gravar();
+  return r;
+}
+
 // Uma consulta. chave: nome curto e único para ela.
 export async function docsComValidade(fbx, chave, q, validade) {
   const k = "q:" + chave, m = lerMarcas()[k];
