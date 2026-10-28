@@ -98,6 +98,22 @@ export function dadosNegocio(n, { nota = null, nivel = 0, km, mesmaCidade = fals
   };
 }
 
+// ---------- Diário: descoberta e limite por autor ----------
+// Coloca uma publicação "de descoberta" (ehDescoberta) a cada `aCada`, começando na posição `primeira` (0 = 1ª), na
+// ordem em que já estavam; o resto segue a ordem. Nenhum autor passa de `porAutor` publicações nas `janelaAutor` primeiras.
+export function comDescoberta(lista, ehDescoberta, { aCada = 5, primeira = 2, porAutor = 2, janelaAutor = 10, autor = (p) => p.autorId } = {}) {
+  const desc = lista.filter(ehDescoberta), usados = new Set(), saida = [], conta = new Map();
+  const cabe = (p) => saida.length >= janelaAutor || (conta.get(autor(p)) || 0) < porAutor;
+  const pegar = (fila) => { const k = fila.findIndex((p) => !usados.has(p) && cabe(p)); return k < 0 ? fila.find((p) => !usados.has(p)) || null : fila[k]; };
+  while (saida.length < lista.length) {
+    const vez = saida.length >= primeira && (saida.length - primeira) % aCada === 0;
+    const p = (vez && pegar(desc)) || pegar(lista);
+    if (!p) break;
+    usados.add(p); saida.push(p); conta.set(autor(p), (conta.get(autor(p)) || 0) + 1);
+  }
+  return saida;
+}
+
 // ---------- ordem da lista ----------
 // itens: a lista; dados(item) → objeto do relevancia(); dono(item) → id do dono (para não repetir em seguida).
 // Devolve a lista na ordem justa. marcar: quantos do começo contam como "vistos no topo" (0 = nenhum).

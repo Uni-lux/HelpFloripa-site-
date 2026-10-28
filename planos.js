@@ -429,7 +429,10 @@ export async function abrirPlanos(op) {
       tab.appendChild(l);
     });
     corpo.appendChild(tab);
-    corpo.appendChild(el("p", "pl-nota", "Como funciona a ordem das vitrines: 1 a cada 5 cartões é um espaço de destaque de quem tem plano (o Premium fica com o 1º lugar, depois vêm Pro e Plus). Os outros seguem a relevância, igual para todos (avaliações, atendimento, perfil completo, novidade e distância), com o bônus do plano. A ordem gira ao longo do dia, para que todos apareçam."));
+    const notaOrdem = el("p", "pl-nota", "Como funciona a ordem das vitrines: 1 a cada 5 cartões é um espaço de destaque de quem tem plano (o Premium fica com o 1º lugar, depois vêm Pro e Plus). Os outros seguem a relevância, igual para todos (avaliações, atendimento, perfil completo, novidade e distância), com o bônus do plano. A ordem gira ao longo do dia, para que todos apareçam. ");
+    const lkOrdem = el("a", null, "Como ordenamos os resultados"); lkOrdem.href = "como-ordenamos.html"; lkOrdem.target = "_blank"; lkOrdem.rel = "noopener";
+    lkOrdem.style.cssText = "color:var(--accent,#00adee);font-weight:700"; notaOrdem.appendChild(lkOrdem);
+    corpo.appendChild(notaOrdem);
 
     const secPer = el("div", "pl-sec"); corpo.appendChild(secPer);
     const per = el("div", "pl-periodos");

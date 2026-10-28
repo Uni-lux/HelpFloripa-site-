@@ -18,10 +18,11 @@ import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=
 import { montarStories, abrirFlashPorId, repostarFlash } from "./stories.js?v=47";
 import { abrirDenuncia } from "./denuncias.js?v=6";
 import { pessoasRecentes } from "./pessoas.js?v=5";
-import { abrirExplorar, definirCartao } from "./explorar.js?v=56";
+import { abrirExplorar, definirCartao } from "./explorar.js?v=57";
 import { docsComValidade } from "./leituras.js?v=3";
 import { distanciaKm } from "./perto.js?v=2";
 import { postsDoEstado, pesoRegiao, RECENTES_PAIS } from "./regiao.js?v=4";
+import { comDescoberta, sorteioFixo, janela } from "./relevancia.js?v=4";
 
 const POR_VEZ = 10;
 // Publicação de conta desativada (conta.js): escondida até ocultoAte.
@@ -111,6 +112,9 @@ async function buscarAmigos() {
 //   engajamento (estrelas, média, comentários) × gosto (autores e hashtags com que você interage) ×
 //   quem você segue (empurrão) × já vista (desce) ÷ idade (as novas sobem).
 // Depois espalha os autores (nunca dois seguidos do mesmo) e mistura um pouco para o Diário não ficar parado.
+// Justo para todos (relevancia.js): a mistura é fixa por pessoa e muda a cada 3 h (recarregar não embaralha); 1 a cada
+// 5 publicações é de descoberta (alguém que você não segue e que ainda tem pouco alcance); no máximo 2 do mesmo autor
+// nas 10 primeiras.
 // Chegou ao fim: "Ver mais" busca as próximas do país (mais antigas), RECENTES_PAIS por vez, e dá nota igual.
 let cursorPrincipais = null, maisPrincipais = false;
 async function buscarPrincipais(continuar = false) {
@@ -149,9 +153,12 @@ async function ordenarPrincipais(bruto) {
     const base = (1 + eng(p) + 2 * (com.get(p.id) || 0)) * (1 + gosto.get(p.id)) * (sigo(p) ? 1.8 : 1) * pesoRegiao(p, dados);
     const visto = p.autorId !== eu.uid && jaVisto(p.id) ? 0.35 : 1;
     // Quem você segue envelhece mais devagar (você quer ver as novidades deles mesmo sem muito engajamento).
-    return base * visto * (0.9 + Math.random() * 0.2) / Math.pow(horas + 2, sigo(p) ? 1.1 : 1.35);
+    return base * visto * (0.9 + 0.2 * sorteioFixo(eu.uid + ":" + janela() + ":" + p.id)) / Math.pow(horas + 2, sigo(p) ? 1.1 : 1.35);
   };
-  return espalharAutores(lista.map((p) => ({ ...p, _pontos: pontos(p) })).sort((a, b) => b._pontos - a._pontos));
+  // Descoberta: de quem você não segue, com pouco alcance ainda (até 3 notas e até 1 comentário) e que você não viu.
+  const descoberta = (p) => !sigo(p) && !jaVisto(p.id) && (resumos.get(p.id)?.total || 0) <= 3 && (com.get(p.id) || 0) <= 1;
+  const ordenada = lista.map((p) => ({ ...p, _pontos: pontos(p) })).sort((a, b) => b._pontos - a._pontos);
+  return espalharAutores(comDescoberta(ordenada, descoberta));
 }
 // Nunca duas publicações seguidas do mesmo autor (puxa a próxima de outra pessoa, se houver).
 function espalharAutores(lista) {

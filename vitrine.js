@@ -20,7 +20,7 @@ import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPos
 import { lerLocal, salvarLocal, marcarManual, escolherLocal, atualizarPeloGps, aoMudarLocal, escolhaManual } from "./local-escolhido.js?v=3";
 import { lerPlano, nivelPlano, seloPlano, nomePlano, negocioPausado, mostraSelo, classePlano, LIMITES_GRATIS, guardarPlano } from "./planos-base.js?v=15";
 import { estaOnline } from "./presenca.js?v=1";
-import { ordenarJusto, relevancia } from "./relevancia.js?v=3";
+import { ordenarJusto, relevancia } from "./relevancia.js?v=4";
 import { PROFISSOES_SAUDE, CATEGORIAS_SAUDE, SITE_CONSELHO, MODALIDADES_SAUDE, PUBLICO_SAUDE, PUBLICO_VET, nomeProfissao, conselhoDe, ehVet, textoRegistro, textoValor, AVISO_EMERGENCIA, AVISO_REGISTRO } from "./saude-dados.js?v=1";
 import { usarEstat, registrarVisita, registrarAcao, registrarItem, chaveItem as chaveEstat, chaveAnuncio } from "./estat-negocio.js?v=1";
 // Plano de quem anuncia: todo plano pago tem o selo e os espaços de destaque (1 a cada 5: Premium, depois Pro e Plus).

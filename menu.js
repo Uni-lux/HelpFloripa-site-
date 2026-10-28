@@ -144,6 +144,7 @@ const SECOES_MENU = [
     ["sobre.html", "sobre", "Sobre o Help Floripa"],
     ["clientes.html", "perfil", "Para clientes"],
     ["diretrizes.html", "termos", "Diretrizes da Comunidade"],
+    ["como-ordenamos.html", "termos", "Como ordenamos os resultados"],
     ["socios-parcerias.html", "parceria", "Sócios, parcerias e imprensa"]
   ]]
 ];
