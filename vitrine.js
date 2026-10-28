@@ -2191,41 +2191,53 @@ function nomeComSelo(n, padrao) {
   if (mostraSelo(planosDonos.get(n.donoId))) { s.classList.add("com-pro"); s.append(" ", seloPlano(planosDonos.get(n.donoId))); }
   return s;
 }
-// Cartão dos Freelances: o mesmo modelo das páginas irmãs (foto do trabalho em cima, avatar,
-// nome, nota, categoria e preço). Nos destaques leva a etiqueta "Destaque em <categoria>".
+// Cartão dos Freelances no formato de cartão de visita: faixa da capa em cima, foto no centro (anel na cor
+// do plano + bolinha de online), nome, área, nota, onde está e o preço. Só UMA etiqueta na capa (destaque >
+// urgência > cupom) e o selo do plano no canto oposto: nada fica por cima de outra coisa.
 function cartaoPro(n, destaqueEm = "") {
-  const c = el("article", "vt-del vt-free vt-fl");
-  // Plano de quem anuncia: borda e anel do avatar na cor do plano (Plus, Pro, Premium); grátis fica no padrão.
+  const c = el("article", "vt-fl vt-cv");
   const plano = planosDonos.get(n.donoId);
   const kPlano = mostraSelo(plano) ? plano.plano : "";
   if (kPlano) c.classList.add("pl-" + kPlano);
-  const f = el("div", "ft");
-  f.style.backgroundImage = `url("${capaDe(n) || TEXTOS.servicos.img}")`;
-  if (destaqueEm) {
-    const t = el("span", "tag-dest");
-    t.append(icone("selo", "vi s"), document.createTextNode(`Destaque em ${CATEGORIAS.servicos[destaqueEm] || "Freelances"}`));
-    f.appendChild(t);
-  }
-  if ((n.diferenciais || []).includes("urgencia")) f.appendChild(el("span", "st urg", "Urgência"));
-  seloPromo(f, n);
-  const av = avatar(n.foto, n.nome, "vt-avatar logo");
+  const capa = el("div", "cv-capa");
+  const urlCapa = capaDe(n);
+  if (urlCapa) capa.style.backgroundImage = `url("${urlCapa}")`; else capa.classList.add("sem-capa");
+  const promo = promoAtiva(n);
+  let tag = null;
+  if (destaqueEm) { tag = el("span", "cv-tag dest"); tag.append(icone("selo", "vi s"), el("span", null, `Destaque em ${CATEGORIAS.servicos[destaqueEm] || "Freelances"}`)); }
+  else if ((n.diferenciais || []).includes("urgencia")) { tag = el("span", "cv-tag urg"); tag.append(icone("relogio", "vi s"), el("span", null, "Urgência")); }
+  else if (promo) { tag = el("span", "cv-tag promo"); tag.append(icone("cupom", "vi s"), el("span", null, promo.codigo ? "Cupom" : "Promoção")); }
+  if (tag) capa.appendChild(tag);
+  if (kPlano) capa.appendChild(el("span", "cv-plano", kPlano.toUpperCase()));
+  const foto = el("div", "cv-foto");
+  foto.appendChild(avatar(n.foto, n.nome, "vt-avatar"));
   // Bolinha verde: quem anuncia está online agora (perfis_publicos.ultimoAcesso, presenca.js).
-  if (estaOnline(donos.get(n.donoId)?.ultimoAcesso)) { const o = el("span", "fl-online"); o.title = "Online agora"; o.setAttribute("aria-label", "Online agora"); f.append(av, o); c.classList.add("online"); }
-  else f.appendChild(av);
-  const tx = el("div", "tx");
-  tx.append(nomeComSelo(n, "Freelancer"), estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }), seloRapido(n));
+  if (estaOnline(donos.get(n.donoId)?.ultimoAcesso)) {
+    const o = el("span", "fl-online"); o.title = "Online agora"; o.setAttribute("aria-label", "Online agora");
+    foto.appendChild(o); c.classList.add("online");
+  }
+  const corpo = el("div", "cv-corpo");
+  corpo.append(foto, el("strong", "nm", n.nome || "Freelancer"));
   const cats = categoriasDe(n).map((k) => CATEGORIAS.servicos[k] && nomeCat(n, k)).filter(Boolean);
-  const info = [cats[0] ? (cats.length > 1 ? `${cats[0]} +${cats.length - 1}` : cats[0]) : nomeCategoria(n), textoCidade(n)].filter(Boolean).join(" · ");
-  if (info) tx.appendChild(el("small", null, info));
-  // Como atende (Vai até você, No local, Online): até 2 etiquetas.
-  const modos = (n.atendimento || []).filter((k) => MODOS[k]).slice(0, 2);
-  if (modos.length) { const m = el("div", "fl-modos"); modos.forEach((k) => m.appendChild(el("span", null, k === "online" ? "Atende online" : MODOS[k]))); tx.appendChild(m); }
-  // Rodapé: preço e o convite para o orçamento (o cartão todo abre o perfil).
-  const rod = el("div", "fl-rodape");
-  rod.append(el("span", "tx-taxa", moeda(n.precoDesde) ? `desde ${moeda(n.precoDesde)}` : "Orçamento grátis"), (() => { const x = el("span", "fl-cta"); x.setAttribute("aria-hidden", "true"); x.appendChild(icone("avancar", "vi s")); return x; })());
-  tx.appendChild(rod);
-  seloDist(f, n);
-  c.append(f, tx);
+  const area = cats[0] ? (cats.length > 1 ? `${cats[0]} +${cats.length - 1}` : cats[0]) : nomeCategoria(n);
+  if (area) corpo.appendChild(el("span", "cv-area", area));
+  corpo.appendChild(estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }));
+  // Onde: distância em km (quando há) + cidade; "Na sua cidade" sozinho não repete a cidade.
+  const dist = distDe(n), cidade = (textoCidade(n) || "").split("/")[0];
+  const onde = /\d/.test(dist) ? [dist, cidade].filter(Boolean).join(" · ") : cidade || dist;
+  if (onde) { const l = el("span", "cv-onde"); l.append(icone("pin", "vi s"), el("span", null, onde)); corpo.appendChild(l); }
+  // Etiquetas extras (some no cartão estreito): responde rápido e como atende.
+  const extras = el("div", "cv-extras");
+  const rap = seloRapido(n); if (rap.nodeType === 1) extras.appendChild(rap);
+  (n.atendimento || []).filter((k) => MODOS[k]).slice(0, 2).forEach((k) => extras.appendChild(el("span", "cv-modo", k === "online" ? "Atende online" : MODOS[k])));
+  if (extras.childElementCount) corpo.appendChild(extras);
+  const rod = el("div", "cv-rodape");
+  const preco = el("span", "cv-preco");
+  if (moeda(n.precoDesde)) preco.append(el("small", null, "a partir de"), el("b", null, moeda(n.precoDesde)));
+  else preco.append(el("small", null, "Preço"), el("b", null, "a combinar"));
+  const cta = el("span", "fl-cta"); cta.setAttribute("aria-hidden", "true"); cta.appendChild(icone("avancar", "vi s"));
+  rod.append(preco, cta);
+  c.append(capa, corpo, rod);
   return tornarClicavel(c, () => abrirDetalhe(n), `Ver ${n.nome}`);
 }
 const cartaoTop = (n, cat) => cartaoPro(n, cat);
