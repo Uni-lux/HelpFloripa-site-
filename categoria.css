@@ -261,65 +261,64 @@ svg.i.xs { width: 14px; height: 14px; }
   background: color-mix(in srgb, #ef4444 9%, var(--panel)); border: 1px solid color-mix(in srgb, #ef4444 32%, var(--line)); }
 .aviso-saude svg { flex: none; color: #ef4444; margin-top: 2px; }
 
-/* ---------- topo da vitrine, sem cartão: onde procurar, busca (Filtros dentro) e as classes em ícones ---------- */
-.vb { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin: 4px 0 6px; }
-.vb svg.vi { fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
-.vb-local:empty { display: none; }
-.vb-local .vt-local-btn {
-  display: inline-flex; align-items: center; gap: 6px; max-width: 100%; height: auto; padding: 2px 0; border: 0; border-radius: 0;
-  background: none; box-shadow: none; color: var(--text); font: inherit; font-size: 14.5px; font-weight: 800; cursor: pointer;
+/* ---------- painel da classe (sem foto): abas das classes, título com o ícone e a busca ---------- */
+.vp {
+  position: relative; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 0 18px 18px; border-radius: 24px;
+  border: 1px solid var(--line); isolation: isolate;
+  background:
+    radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--classe) 16%, transparent), transparent 55%),
+    radial-gradient(80% 120% at 100% 100%, color-mix(in srgb, var(--classe-2) 7%, transparent), transparent 60%),
+    var(--panel);
 }
-.vb-local .vt-local-btn::before { content: "Procurando em"; font-weight: 600; color: var(--muted); margin-right: 1px; }
-.vb-local .vt-local-btn svg { width: 16px; height: 16px; color: var(--classe); flex: none; }
-.vb-local .vt-local-btn svg:first-child { order: -1; }
-.vb-local .vt-local-btn svg:last-child { color: var(--muted); transform: rotate(90deg); width: 14px; height: 14px; }
-.vb-local .vt-local-btn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.vb-busca {
-  display: flex; align-items: center; gap: 8px; height: 54px; padding: 0 6px 0 16px; border-radius: 999px;
-  border: 1px solid var(--line); background: var(--panel); box-shadow: 0 6px 22px -14px rgba(0, 0, 0, .55);
-  transition: border-color .15s, box-shadow .15s;
+.vp::after { content: ""; position: absolute; inset: 0 0 auto; height: 3px; background: linear-gradient(90deg, var(--classe), var(--classe-2)); z-index: -1; }
+.vp-classes {
+  display: flex; gap: 4px; margin: 0 -18px; padding: 6px 12px 0; overflow-x: auto; scrollbar-width: none;
+  border-bottom: 1px solid var(--line);
 }
-.vb-busca > svg { flex: none; color: var(--muted); }
-.vb-busca:focus-within { border-color: var(--classe); box-shadow: 0 0 0 3px color-mix(in srgb, var(--classe) 20%, transparent); }
-.vb-busca input { flex: 1; min-width: 0; height: 100%; border: 0; background: none; color: var(--text); font: inherit; font-size: 15.5px; outline: none; }
-.vb-busca input::placeholder { color: var(--muted); }
-.vb-busca > button { flex: none; width: 42px; height: 42px; border: 0; border-radius: 50%; display: grid; place-items: center; cursor: pointer; background: var(--classe); color: var(--classe-ink); }
-.vb-busca > button:focus-visible { outline: 2px solid var(--classe); outline-offset: 2px; }
-.vb-filtros:empty { display: none; }
-.vb-filtros { flex: none; display: flex; padding-left: 8px; border-left: 1px solid var(--line); height: 28px; align-items: center; }
-.vb-filtros .vt-filtros-btn {
-  position: relative; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 8px; border: 0; border-radius: 999px;
-  background: none; box-shadow: none; color: var(--text); font: inherit; font-size: 13.5px; font-weight: 800; cursor: pointer;
+.vp-classes.tem-dir { -webkit-mask-image: linear-gradient(90deg, #000 82%, transparent); mask-image: linear-gradient(90deg, #000 82%, transparent); }
+.vp-classes.tem-esq { -webkit-mask-image: linear-gradient(90deg, transparent, #000 18%); mask-image: linear-gradient(90deg, transparent, #000 18%); }
+.vp-classes.tem-esq.tem-dir { -webkit-mask-image: linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent); mask-image: linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent); }
+.vp-classes::-webkit-scrollbar { display: none; }
+.vp-classe {
+  flex: none; display: inline-flex; align-items: center; gap: 7px; padding: 12px 10px 11px; margin-bottom: -1px;
+  border-bottom: 2.5px solid transparent; color: var(--muted); font-size: 14px; font-weight: 700; text-decoration: none; white-space: nowrap;
+  transition: color .15s, border-color .15s;
 }
-.vb-filtros .vt-filtros-btn svg { width: 18px; height: 18px; color: var(--classe); }
-.vb-filtros .vt-filtros-btn b:empty { display: none; }
-.vb-filtros .vt-filtros-btn b { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; display: grid; place-items: center; font-size: 11px; background: var(--classe); color: var(--classe-ink); }
-@media (max-width: 420px) { .vb-filtros .vt-filtros-btn span { display: none; } }
-.vb-classes {
-  display: flex; gap: 2px; margin: 2px -16px 0; padding: 0 10px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--line);
+.vp-classe svg { color: var(--c); opacity: .85; }
+.vp-classe:hover { color: var(--text); }
+.vp-classe[aria-current="page"] { color: var(--text); border-bottom-color: var(--c); }
+.vp-classe[aria-current="page"] svg { opacity: 1; }
+.vp-classe:focus-visible { outline: 2px solid var(--c); outline-offset: -2px; border-radius: 8px; }
+.vp-classe.servicos { --c: #00adee; } .vp-classe.delivery { --c: #ff7a1a; } .vp-classe.lojinha { --c: #b066ff; }
+.vp-classe.imoveis { --c: #2fbf71; } .vp-classe.saude { --c: #0fb5a6; } .vp-classe.comunidade { --c: #e5487f; }
+.vp-cab { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.vp-ic {
+  flex: none; width: 54px; height: 54px; border-radius: 17px; display: grid; place-items: center; color: #fff;
+  background: linear-gradient(140deg, var(--classe), color-mix(in srgb, var(--classe) 55%, #000));
+  box-shadow: 0 12px 26px -12px var(--classe), inset 0 1px 0 rgba(255, 255, 255, .25);
 }
-.vb-classes::-webkit-scrollbar { display: none; }
-.vb-classes.tem-dir { -webkit-mask-image: linear-gradient(90deg, #000 84%, transparent); mask-image: linear-gradient(90deg, #000 84%, transparent); }
-.vb-classes.tem-esq { -webkit-mask-image: linear-gradient(90deg, transparent, #000 16%); mask-image: linear-gradient(90deg, transparent, #000 16%); }
-.vb-classes.tem-esq.tem-dir { -webkit-mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent); mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent); }
-.vb-classe {
-  flex: 1 0 auto; min-width: 72px; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 8px 10px;
-  border-bottom: 3px solid transparent; margin-bottom: -1px; color: var(--muted); font-size: 12.5px; font-weight: 700; text-decoration: none;
-  white-space: nowrap; transition: color .15s, border-color .15s;
+.vp-ic svg { width: 26px; height: 26px; }
+.vp-tit { min-width: 0; }
+.vp h1 { margin: 0; font-size: clamp(25px, 4.6vw, 36px); line-height: 1.1; font-weight: 850; letter-spacing: -.6px; }
+.vp-tit p { margin: 3px 0 0; color: var(--muted); font-size: 14.5px; line-height: 1.35; }
+.vp-busca {
+  display: flex; align-items: center; gap: 10px; height: 54px; padding: 0 6px 0 16px; border-radius: 16px;
+  border: 1px solid var(--line); background: var(--input); transition: border-color .15s, box-shadow .15s;
 }
-.vb-ic { width: 26px; height: 26px; display: grid; place-items: center; color: var(--c); opacity: .75; transition: opacity .15s, transform .15s; }
-.vb-ic svg { width: 24px; height: 24px; }
-.vb-classe:hover { color: var(--text); }
-.vb-classe:hover .vb-ic { opacity: 1; }
-.vb-classe[aria-current="page"] { color: var(--text); border-bottom-color: var(--c); }
-.vb-classe[aria-current="page"] .vb-ic { opacity: 1; transform: scale(1.08); }
-.vb-classe:focus-visible { outline: 2px solid var(--c); outline-offset: -3px; border-radius: 10px; }
-.vb-classe.servicos { --c: #00adee; } .vb-classe.delivery { --c: #ff7a1a; } .vb-classe.lojinha { --c: #b066ff; }
-.vb-classe.imoveis { --c: #2fbf71; } .vb-classe.saude { --c: #0fb5a6; } .vb-classe.comunidade { --c: #e5487f; }
+.vp-busca > svg { flex: none; color: var(--muted); }
+.vp-busca:focus-within { border-color: var(--classe); box-shadow: 0 0 0 3px color-mix(in srgb, var(--classe) 22%, transparent); }
+.vp-busca input { flex: 1; min-width: 0; height: 100%; border: 0; background: none; color: var(--text); font: inherit; font-size: 15.5px; outline: none; }
+.vp-busca input::placeholder { color: var(--muted); }
+.vp-busca input::-webkit-search-cancel-button { filter: grayscale(1); }
+.vp-busca button {
+  flex: none; width: 44px; height: 44px; border: 0; border-radius: 12px; display: grid; place-items: center; cursor: pointer;
+  background: var(--classe); color: var(--classe-ink);
+}
+.vp-busca button:focus-visible { outline: 2px solid var(--classe); outline-offset: 2px; }
 @media (min-width: 760px) {
-  .vb { gap: 14px; margin-top: 10px; }
-  .vb-busca { height: 58px; }
-  .vb-classes { margin: 4px 0 0; padding: 0; justify-content: flex-start; gap: 18px; }
-  .vb-classes.tem-esq, .vb-classes.tem-dir { -webkit-mask-image: none; mask-image: none; }
-  .vb-classe { flex: 0 0 auto; }
+  .vp { padding: 0 28px 24px; gap: 20px; }
+  .vp-classes, .vp-classes.tem-esq, .vp-classes.tem-dir { margin: 0 -28px; padding: 8px 20px 0; -webkit-mask-image: none; mask-image: none; }
+  .vp-ic { width: 62px; height: 62px; border-radius: 19px; }
+  .vp-tit p { font-size: 16px; }
+  .vp-busca { height: 58px; max-width: 760px; }
 }

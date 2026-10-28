@@ -178,10 +178,10 @@ iniciarTopo();
   addEventListener("resize", bordas);
 })();
 
-// ---------- classes em ícones no topo das vitrines (.vb-classes) ----------
+// ---------- abas das classes no painel das vitrines (.vp-classes) ----------
 // A classe atual fica à vista (no meio, se der) e as bordas esmaecem só do lado em que há mais classes.
 (function abasDasClasses() {
-  const nav = document.querySelector(".vb-classes");
+  const nav = document.querySelector(".vp-classes");
   if (!nav) return;
   const bordas = () => {
     nav.classList.toggle("tem-esq", nav.scrollLeft > 4);
