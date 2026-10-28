@@ -866,3 +866,5 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
 .vt-bolha-loja[data-plano="plus"] .vt-avatar { box-shadow: 0 0 0 2px var(--vt-bg), 0 0 0 4.5px #2563ff, 0 6px 18px -6px #2563ff; }
 .vt-bolha-loja[data-plano="pro"] .vt-avatar { box-shadow: 0 0 0 2px var(--vt-bg), 0 0 0 4.5px #7c3aed, 0 6px 18px -6px #7c3aed; }
 .vt-bolha-loja[data-plano="premium"] .vt-avatar { box-shadow: 0 0 0 2px var(--vt-bg), 0 0 0 4.5px #f59e0b, 0 6px 18px -6px #f59e0b; }
+/* Shopping: folga para o anel das bolinhas das lojas (com a cor do plano ficava cortado em cima e nos lados) */
+.vt-carrossel.lojas .vt-trilho { padding: 9px 16px 10px; gap: 14px; scroll-padding-left: 16px; }
