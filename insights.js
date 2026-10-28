@@ -10,10 +10,10 @@
 import {
   $, el, icone, fb, eu, dados, numero, toast, erroAmigavel, criarFolha, abrirFolha, fotosDoPost, ms, paraData,
   tempoRelativo, obterPerfil, nomeCidade, ganchos
-} from "./rede.js?v=67";
-import { secaoGrafico, secaoHoras } from "./estatisticas-post.js?v=34";
+} from "./rede.js?v=68";
+import { secaoGrafico, secaoHoras } from "./estatisticas-post.js?v=35";
 import { lerStats, listaDias, somarPeriodo } from "./estat-negocio.js?v=1";
-import { lerPlano, nivelPlano } from "./planos-base.js?v=8";
+import { lerPlano, nivelPlano } from "./planos-base.js?v=9";
 
 const DIA = 864e5;
 const PERIODOS = [[7, "7 dias"], [30, "30 dias"], [90, "90 dias"]];
@@ -214,7 +214,7 @@ async function secaoNegocios(corpo, dias) {
       const num = (v, rotN, antes) => { const b = el("span", "nums"); b.append(el("b", null, numero(v)), el("small", null, rotN)); if (antes || v) b.appendChild(el("i", v >= antes ? "sobe" : "desce", !antes ? "novo" : `${v >= antes ? "▲" : "▼"} ${fmtPct(Math.abs((v - antes) / antes))}`)); return b; };
       a.append(num(r.v, r.v === 1 ? "visita" : "visitas", ant.v), num(r.contatos, r.contatos === 1 ? "contato" : "contatos", ant.contatos));
     }
-    if (!comPlano) { const pl = el("span", "ins-plus", "PLUS"); pl.style.cssText = "margin-left:auto;padding:3px 8px;border-radius:7px;font-size:10.5px;font-weight:900;letter-spacing:.06em;color:#fff;background:linear-gradient(135deg,#0ea5e9,#2563eb)"; a.appendChild(pl); }
+    if (!comPlano) { const pl = el("span", "ins-plus", "PLUS"); pl.style.cssText = "margin-left:auto;padding:3px 8px;border-radius:7px;font-size:10.5px;font-weight:900;letter-spacing:.06em;color:#fff;background:linear-gradient(135deg,#3b82f6,#1d4ed8)"; a.appendChild(pl); }
     a.appendChild(icone("avancar", "i xs"));
     s.appendChild(a);
   });

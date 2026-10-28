@@ -8,12 +8,12 @@ import {
   $, el, icone, pintarAvatar, urlSegura, tempoRelativo, toast, erroAmigavel,
   fb, eu, dados, refUsuario, ganchos, iniciarRede, carregarMeusSeguindo, botaoSeguir, montarBarraRede, pintarBarraRede,
   ouvirAvisos, aoMudarAvisos, avisosVistosEm, marcarAvisosVistos, rotuloVinculo, abrirComentarios, abrirResultadoEnquete, verRespostasCaixa
-} from "./rede.js?v=67";
+} from "./rede.js?v=68";
 import { TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=17";
 import { TEXTO_EQUIPE, linkEquipe, seloOficial, fotoSuporte } from "./avisos-equipe.js?v=1";
 import { textoEnqueteFim, resumoResultado } from "./enquetes.js?v=5";
-import { textoPlano } from "./planos-base.js?v=8";
-import { criarLista } from "./avisos-lista.js?v=7";
+import { textoPlano } from "./planos-base.js?v=9";
+import { criarLista } from "./avisos-lista.js?v=8";
 
 let vistoAntes = 0, ultimo = null, abriuPedida = false;
 const postsCache = new Map();

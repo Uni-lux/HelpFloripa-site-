@@ -14,10 +14,10 @@ import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL 
 import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento, media, avaliarNegocio } from "./avaliacoes.js?v=15";
 import { abrirQueixa } from "./queixas.js?v=14";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
-import { anelNegocio } from "./flash-negocio.js?v=8";
+import { anelNegocio } from "./flash-negocio.js?v=9";
 import { camposEndereco, textoCidade, cidadesDe, NOME_UF, semAcento } from "./endereco.js?v=1";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao } from "./perto.js?v=2";
-import { lerPlano, nivelPlano, seloPlano, nomePlano, negocioPausado, mostraSelo, LIMITES_GRATIS } from "./planos-base.js?v=8";
+import { lerPlano, nivelPlano, seloPlano, nomePlano, negocioPausado, mostraSelo, LIMITES_GRATIS } from "./planos-base.js?v=9";
 import { estaOnline } from "./presenca.js?v=1";
 import { PROFISSOES_SAUDE, CATEGORIAS_SAUDE, SITE_CONSELHO, MODALIDADES_SAUDE, PUBLICO_SAUDE, PUBLICO_VET, nomeProfissao, conselhoDe, ehVet, textoRegistro, textoValor, AVISO_EMERGENCIA, AVISO_REGISTRO } from "./saude-dados.js?v=1";
 import { usarEstat, registrarVisita, registrarAcao, registrarItem, chaveItem as chaveEstat, chaveAnuncio } from "./estat-negocio.js?v=1";
@@ -2124,6 +2124,54 @@ const ORDENS_SERV = {
 };
 let ordemServ = "melhores";
 let pararGiro = null;
+// ---------- Freelances: bolinhas dos profissionais (como as Lojas do Shopping), em abas como o Início ----------
+// Online agora (bolinha verde) · Destaques (plano e nota) · Novos · Perto de você. O anel tem a cor do plano.
+let abaBolhas = "";
+const onlineAgora = (n) => estaOnline(donos.get(n.donoId)?.ultimoAcesso);
+function bolhaPro(n) {
+  const c = el("button", "fl-bolha");
+  c.type = "button";
+  const k = mostraSelo(planosDonos.get(n.donoId)) ? planosDonos.get(n.donoId).plano : "";
+  if (k) c.classList.add("pl-" + k);
+  const anel = el("span", "fl-anel");
+  anel.appendChild(avatar(n.foto, n.nome));
+  if (onlineAgora(n)) { const o = el("i", "fl-bolha-on"); o.title = "Online agora"; anel.appendChild(o); }
+  const r = notaDe(n);
+  const sub = el("small", null, r?.total ? `★ ${media(r).toFixed(1).replace(".", ",")}` : "Novo");
+  c.append(anel, el("span", "fl-bolha-nome", String(n.nome || "Freelancer").split(/\s+/).slice(0, 2).join(" ")), sub);
+  c.setAttribute("aria-label", `${n.nome}${onlineAgora(n) ? ", online agora" : ""}`);
+  c.addEventListener("click", () => abrirDetalhe(n));
+  return c;
+}
+function bolhasProfissionais(lista) {
+  const abas = [
+    ["online", "Online agora", lista.filter(onlineAgora).sort((a, b) => nivelDe(b) - nivelDe(a) || pontuacao(b) - pontuacao(a))],
+    ["destaques", "Destaques", [...lista].sort((a, b) => nivelDe(b) - nivelDe(a) || pontuacao(b) - pontuacao(a))],
+    ["novos", "Novos", [...lista].sort(ORDENS_SERV.novos[1])],
+    ["perto", "Perto de você", lista.filter((n) => Number.isFinite(kmDe(n))).sort(ORDENS_SERV.perto[1])]
+  ].filter(([, , l]) => l.length);
+  if (!abas.length) return null;
+  if (!abas.some(([k]) => k === abaBolhas)) abaBolhas = abas[0][0];
+  const sec = el("section", "fl-bolhas");
+  const topo = el("div", "fl-bolhas-abas"); topo.setAttribute("role", "tablist");
+  const trilho = el("div", "fl-bolhas-trilho");
+  const pintar = () => {
+    topo.querySelectorAll("button").forEach((b) => { const on = b.dataset.k === abaBolhas; b.classList.toggle("on", on); b.setAttribute("aria-selected", String(on)); });
+    trilho.replaceChildren(...abas.find(([k]) => k === abaBolhas)[2].slice(0, 20).map(bolhaPro));
+    trilho.scrollLeft = 0;
+  };
+  abas.forEach(([k, rot, l]) => {
+    const b = el("button", "fl-aba" + (k === "online" ? " online" : "")); b.type = "button"; b.dataset.k = k; b.setAttribute("role", "tab");
+    if (k === "online") b.appendChild(el("i", "fl-aba-on"));
+    b.append(document.createTextNode(rot));
+    if (k === "online") b.appendChild(el("b", null, String(l.length)));
+    b.addEventListener("click", () => { abaBolhas = k; pintar(); });
+    topo.appendChild(b);
+  });
+  sec.append(topo, trilho);
+  pintar();
+  return sec;
+}
 const SEM_MOVIMENTO = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // Nome do cartão com o selo Pro ao lado (quando a conta tem o plano).
@@ -2589,6 +2637,8 @@ function renderizar() {
 
   if (TIPO === "servicos") {
     // 1) Destaques de cada categoria (revezando)  2) Todos, no modo escolhido
+    const bolhas = !filtrando && bolhasProfissionais(lista);
+    if (bolhas) dest.appendChild(bolhas);
     const top = !filtrando && secaoDestaquesServ(lista);
     if (top) dest.appendChild(top);
     grade.appendChild(barraLista(titulo("Todos os profissionais"), lista.length, ORDENS_SERV, ordemServ, (k) => { ordemServ = k; garantirPosicao(k).then(renderizar); }));

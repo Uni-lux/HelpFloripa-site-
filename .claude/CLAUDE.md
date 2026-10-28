@@ -928,6 +928,12 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   degradê violeta→azul, Premium dourado com brilho), etiquetas de atendimento, rodapé preço + seta. **Online agora:**
   `presenca.js` (ligado no firebase.js) grava `perfis_publicos.ultimoAcesso` a cada 4 min com a página à vista (respeita
   `ultimoAcesso: null` = escondeu); bolinha verde `.fl-online` quando < 10 min (`estaOnline`); donos lidos com cache de 5 min.
+  **Mesmo PR #107, parte 2:** Plus = azul escuro vivo (#2563ff, degradê #3b82f6→#1d4ed8 nos selos/gaveta/negocios.css) e grátis =
+  azul claro #00adee (anel e seta); `--c-servicos` do Início = #2563ff. Cartões estreitos (3 por linha) por container query
+  (`.vt-fl` ≤190 px: sem etiquetas, avatar menor, preço sem corte). Freelances: bolinhas `bolhasProfissionais` (abas Online
+  agora · Destaques · Novos · Perto de você; anel pela cor do plano, bolinha verde). `corDoPlano(fb, cartao, donoId)` em
+  planos-base.js (classes `hf-pl-plus/pro/premium/gratis`, 1 leitura de `planos/{dono}` por dono, cache 10 min) nos cartões do
+  Início (`.mini`, selo do plano foi para o canto de cima) e do Explorar (`.exp-neg`).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

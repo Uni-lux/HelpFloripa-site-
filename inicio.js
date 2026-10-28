@@ -11,10 +11,10 @@ import { fotoSegura } from "./seguranca.js?v=1";
 import { enfeitarSelect } from "./escolha.js?v=4";
 import { estrelas, lerResumos, media } from "./avaliacoes.js?v=15";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
-import { lerPlano, nivelPlano, seloPlano, semPausados, mostraSelo } from "./planos-base.js?v=8";
+import { lerPlano, nivelPlano, seloPlano, semPausados, mostraSelo, corDoPlano } from "./planos-base.js?v=9";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, esquecerPosicao } from "./perto.js?v=2";
 import { lerLocal, salvarLocal, rotuloLocal, noLocal, escolherLocal } from "./local-escolhido.js?v=1";
-import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=65";
+import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=66";
 import { lerComunidade, cartaoComunidade, filtrosComunidade } from "./comunidade-cartao.js?v=2";
 import { lerPorLocal, quandoVisivel } from "./por-local.js?v=1";
 import { NOME_UF } from "./endereco.js?v=1";
@@ -157,8 +157,11 @@ function fundo(div, url) { if (url) div.style.backgroundImage = `url("${url}")`;
 // Conta do dono desativada: o conteúdo fica escondido até ocultoAte (conta.js).
 const oculto = (x) => (x?.ocultoAte?.toMillis?.() ?? 0) > Date.now();
 
+// Cor do plano de quem anuncia na borda dos cartões (planos-base.js corDoPlano).
+let fbPlanos = null;
 function cartaoNegocio(n, resumo) {
   const a = el("a", "mini");
+  if (fbPlanos && n.donoId) corDoPlano(fbPlanos, a, n.donoId);
   a.href = `${PAGINA_TIPO[n.tipo]}?negocio=${encodeURIComponent(n.id)}&de=inicio`;
   a.style.setProperty("--c", `var(--c-${n.tipo})`);
   const capa = el("div", "capa");
@@ -453,6 +456,7 @@ async function carregar(fs, db, u) {
     import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js")
   ]);
   const db = window.firebaseDb;
+  fbPlanos = { ...fs, db };
   let feito = false;
   auth.onAuthStateChanged(window.firebaseAuth, async (u) => {
     if (!u || feito) return;

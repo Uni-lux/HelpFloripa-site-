@@ -11,17 +11,17 @@
 import {
   $, el, icone, ms, toast, pintarAvatar, urlSegura, nomeCidade, fb, eu, dados, meusSeguindo, escondido, silenciado, ganchos,
   obterPerfil, linhaPessoa, botaoSeguir, fotosDoPost, lerResumosEstrelas, minhaRede, jaVisto, definirOrigem, origemAtual, pilha
-} from "./rede.js?v=67";
+} from "./rede.js?v=68";
 import { afinidade } from "./gosto.js?v=1";
 import { buscarNoServidor } from "./busca.js?v=1";
 import { postsDoEstado, pesoRegiao, RECENTES_PAIS } from "./regiao.js?v=2";
 import { buscarPessoas, pessoasRecentes, semAcento } from "./pessoas.js?v=3";
 import { docsComValidade } from "./leituras.js?v=1";
 import { lerResumos, media } from "./avaliacoes.js?v=15";
-import { CATEGORIAS, CORES_TIPO, NOMES_TIPO, PAGINA_TIPO, nomeCategoria, nomeCat, categoriasDe } from "./vitrine.js?v=65";
+import { CATEGORIAS, CORES_TIPO, NOMES_TIPO, PAGINA_TIPO, nomeCategoria, nomeCat, categoriasDe } from "./vitrine.js?v=66";
 import { fimDaEnquete, faltaTexto } from "./enquetes.js?v=5";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, distanciaKm } from "./perto.js?v=2";
-import { semPausados } from "./planos-base.js?v=8";
+import { semPausados, corDoPlano } from "./planos-base.js?v=9";
 import { lerComunidade, cartaoComunidade, filtrosComunidade, comunidadeNoAr } from "./comunidade-cartao.js?v=2";
 
 const DIARIO_VALIDADE = 3 * 60000, DIA = 864e5, HORA = 3600e3;
@@ -382,6 +382,7 @@ async function pintarNegocios() {
   botaoLocal($("titNegocios").parentElement, () => { pintarNegocios(); if (postsDestaque.length) pintarPostsPerto(postsDestaque); });
   $("exploraNegocios").replaceChildren(...top.map((n) => {
     const a = el("a", "exp-neg"); a.href = linkNegocio(n);
+    if (n.donoId) corDoPlano(fb, a, n.donoId);
     a.style.setProperty("--c", CORES_TIPO[n.tipo] || "var(--accent)");
     const capa = el("div", "capa");
     const f = urlSegura((n.fotos || []).find((x) => urlSegura(x))) || urlSegura(n.foto);

@@ -13,8 +13,8 @@
 // =====================================================
 
 // Preços, nível, selo e leitura do plano ficam no planos-base.js (as páginas que só mostram o selo não baixam este arquivo).
-import { PIX, PAGAMENTO, PLANOS, ORDEM_PLANOS, PRECO_MIN, PERIODOS, descontoDe, valorPeriodo, DIAS_TESTE, DIAS_BONUS, BENEFICIOS, DESTAQUES_PLANO, nivelPlano, ehPago, ehPro, nomePlano, emTeste, diasRestantes, textoFalta, reais, creditoDias, lerPlano, esquecerPlano, seloPlano, seloPro, emTolerancia, fimComTolerancia, NOMES_PERFIL, TIPOS_PERFIL, LIMITES_GRATIS } from "./planos-base.js?v=8";
-export { PIX, PAGAMENTO, PLANOS, ORDEM_PLANOS, PRECO_MIN, PERIODOS, descontoDe, valorPeriodo, DIAS_TESTE, DIAS_BONUS, BENEFICIOS, nivelPlano, ehPago, ehPro, nomePlano, emTeste, diasRestantes, textoFalta, reais, creditoDias, lerPlano, esquecerPlano, seloPlano, seloPro, emTolerancia, fimComTolerancia, negocioPausado, NOMES_PERFIL, TIPOS_PERFIL, perfisDoPlano, mostraSelo } from "./planos-base.js?v=8";
+import { PIX, PAGAMENTO, PLANOS, ORDEM_PLANOS, PRECO_MIN, PERIODOS, descontoDe, valorPeriodo, DIAS_TESTE, DIAS_BONUS, BENEFICIOS, DESTAQUES_PLANO, nivelPlano, ehPago, ehPro, nomePlano, emTeste, diasRestantes, textoFalta, reais, creditoDias, lerPlano, esquecerPlano, seloPlano, seloPro, emTolerancia, fimComTolerancia, NOMES_PERFIL, TIPOS_PERFIL, LIMITES_GRATIS } from "./planos-base.js?v=9";
+export { PIX, PAGAMENTO, PLANOS, ORDEM_PLANOS, PRECO_MIN, PERIODOS, descontoDe, valorPeriodo, DIAS_TESTE, DIAS_BONUS, BENEFICIOS, nivelPlano, ehPago, ehPro, nomePlano, emTeste, diasRestantes, textoFalta, reais, creditoDias, lerPlano, esquecerPlano, seloPlano, seloPro, emTolerancia, fimComTolerancia, negocioPausado, NOMES_PERFIL, TIPOS_PERFIL, perfisDoPlano, mostraSelo } from "./planos-base.js?v=9";
 import { codigoPix as codigoPixBase } from "./pix.js?v=1";
 const ms = (t) => t?.toMillis?.() ?? (t?.seconds ? t.seconds * 1000 : typeof t === "number" ? t : 0);
 const DIA = 864e5;
@@ -156,7 +156,7 @@ const CSS = `
 .pl-tabela .gr.pl-sim { color: #2fbf71; }
 @media (max-width: 380px) { .pl-tabela.c4 .pl-lin { grid-template-columns: minmax(0, 1fr) repeat(4, 46px); font-size: 12px; } }
 .pl-hero { transition: background .25s; }
-.pl-hero[data-plano="plus"] { background: radial-gradient(120% 140% at 100% 0%, #0ea5e9 0%, #2563eb 50%, #0b3d5c 100%); }
+.pl-hero[data-plano="plus"] { background: radial-gradient(120% 140% at 100% 0%, #3b82f6 0%, #1d4ed8 50%, #0b1f5c 100%); }
 .pl-hero[data-plano="premium"] { background: radial-gradient(120% 140% at 100% 0%, #f59e0b 0%, #c2410c 48%, #3b1d0b 100%); }
 .pl-libera { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 6px; font-size: 13.5px; font-weight: 600; }
 .pl-libera li { display: flex; gap: 8px; align-items: flex-start; line-height: 1.35; }
@@ -255,7 +255,7 @@ const CSS = `
 .pl-btn.pl-anexar { margin-top: 2px; min-height: 46px; font-size: 14px; }
 .pl-decl { display: flex !important; grid-template-columns: none; align-items: flex-start; gap: 10px !important; font-weight: 500 !important; font-size: 13px !important; line-height: 1.45; cursor: pointer; }
 .pl-decl input { width: 20px !important; height: 20px; flex: none; margin: 1px 0 0; padding: 0 !important; accent-color: #2fbf71; }
-.selo-pro.pl-plus { background: linear-gradient(135deg, #0ea5e9, #2563eb); }
+.selo-pro.pl-plus { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
 .selo-pro.pl-premium { background: linear-gradient(135deg, #f59e0b, #d97706); }
 `;
 let cssPronto = false;

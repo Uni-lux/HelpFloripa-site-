@@ -4,7 +4,7 @@
 // Firebase). As regras do Firestore conferem isso em cada leitura e ação.
 // =====================================================
 import { C, D, $, h, ms, toast, PAPEIS, vendoAgora, pode, registrar, garantirNegocios, garantirTodasPessoas, carregarPessoas } from "./admin-base.js?v=25";
-import * as S from "./admin-secoes.js?v=60";
+import * as S from "./admin-secoes.js?v=61";
 import { previa, tocarSom } from "./admin-chat.js?v=27";
 import { meusCanais, silenciado, canalPorId, convCanal } from "./equipe-canais.js?v=1";
 
