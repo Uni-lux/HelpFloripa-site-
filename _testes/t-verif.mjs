@@ -63,6 +63,17 @@ await p.locator(".vf-decl input").check();
 ok(await p.locator(".vf-enviar").isDisabled(), "sem a selfie, Enviar continua travado");
 await p.locator(".vf-doc input[type=file]").nth(1).setInputFiles("saida/capa-teste.jpg"); await p.waitForSelector(".vf-selfie.com-foto img", { timeout: 8000 });
 ok(!(await p.locator(".vf-enviar").isDisabled()), "com tudo preenchido (documento + selfie), Enviar libera");
+// Trocar o tipo de documento com as fotos enviadas pergunta; trocar tira as fotos (eram do outro documento).
+await p.locator(".vf-doc select").selectOption("cnh"); await p.waitForSelector(".hf-confirma", { timeout: 5000 });
+ok((await p.textContent(".hf-confirma")).includes("Trocar o documento"), "trocar o tipo com fotos enviadas pergunta antes");
+await p.locator(".hf-confirma .nao").click(); await p.waitForTimeout(400);
+ok(await p.locator(".vf-doc select").inputValue() === "rg" && await p.locator(".vf-doc-area.com-foto").count() === 2, "Cancelar mantém RG e as duas fotos");
+await p.locator(".vf-doc select").selectOption("cnh"); await p.waitForSelector(".hf-confirma");
+await p.locator(".hf-confirma .sim").click(); await p.waitForTimeout(400);
+ok(await p.locator(".vf-doc select").inputValue() === "cnh" && await p.locator(".vf-doc-area.com-foto").count() === 0 && await p.locator(".vf-enviar").isDisabled(), "trocar para CNH tira as fotos e trava o Enviar");
+await p.locator(".vf-doc select").selectOption("rg");
+await p.locator(".vf-doc input[type=file]").first().setInputFiles("saida/capa-teste.jpg"); await p.waitForSelector(".vf-doc-area:not(.vf-selfie).com-foto img", { timeout: 8000 });
+await p.locator(".vf-doc input[type=file]").nth(1).setInputFiles("saida/capa-teste.jpg"); await p.waitForSelector(".vf-selfie.com-foto img", { timeout: 8000 });
 await p.locator(".vf-selfie").scrollIntoViewIfNeeded(); await p.screenshot({ path: "saida/verif-form.png" });
 await p.locator(".vf-enviar").tap();
 await p.waitForSelector(".vf-hero.espera", { timeout: 10000 }).catch(() => {});

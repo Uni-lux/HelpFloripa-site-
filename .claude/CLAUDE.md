@@ -894,6 +894,27 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   Cartão da Comunidade mostra a distância (`a._dist`, `comDistancia`). Explorar: cidade do perfil (`dados.uf/cidadeIbge`).
   Índices novos: `comunidade` uf+atualizadoEm e cidadeIbge+atualizadoEm (firestore.indexes.json + INDICES-LEIA-ME: agora 7).
   Teste `t-comunidade-inicio.mjs` (35 anúncios mais novos em SP não escondem os 7 de Florianópolis; só carrega ao rolar).
+- **Cobrança da condição especial + varredura de falhas (28/10/2026, PR depois do #105, MUDA REGRAS — não publicadas;
+  16 partes, 632 testes):** baixa renda: trocar o documento com arquivo anexado pergunta e TIRA o arquivo (`anexo.doc`
+  guarda o tipo; enviar exige `anexo.doc === docEscolhido`). Aprovar negociação com valor > 0 = `planos_negociacoes.status
+  "aguardando_pagamento"` SEM `planos/{uid}` (valor 0 continua ligando na hora); aviso "Pedido aprovado: pague R$ X";
+  Meus negócios mostra "Condição aprovada · Pagar" e a gaveta abre nela (`negPagar`); "Pagar" cria `planos_pedidos` com
+  `negociacaoId: uid` (regra `negociacaoPagavel`: plano/meses/valor iguais aos da negociação esperando o pagamento) e a
+  tela do Pix usa o valor combinado (`valorDoPedido`, sem bônus). Painel: Esperando mostra "Condição especial aprovada",
+  `ativarNegociada` (writeBatch pedido pago + planos com dias/tipos/semSelo a partir do pagamento + negociação "aprovado"
+  com `pedidoId`/`pagoEm`), "Cancelar a cobrança"; receita não conta duas vezes (negociação com `pedidoId` sai);
+  `valorErrado` alerta pedido normal com valor fora da tabela. Sem as regras novas o painel pergunta e libera na hora.
+  Functions: `valorDoPedido`, `conferirPedido` aceita negociação (1–24 meses), `confirmarPagamento` confere a negociação
+  ("negociacao-mudou") e liga o combinado. Também: `primeiraAssinatura` olha pedidos pagos e negociação aprovada (antes
+  um plano encerrado voltava a prometer o bônus) e "Encerrar o plano" guarda `pedidoId/negociacaoId`; verificação: trocar
+  o tipo de documento com fotos pergunta e tira documento + selfie; categoria Negócio não troca para CNPJ se já tem foto;
+  cartão de pedido no chat: alerta `.pd-alerta` se total ≠ itens + entrega, e para o dono do negócio se preço/cupom ≠
+  cardápio/promoção de agora (`conferirCardapio`); cartão de Pix "em nome do Help Floripa" (nome/descrição ou a chave CNPJ)
+  não envia e mostra `.px-golpe`. Testes `t-cobranca.mjs`, `t-pagamento-neg.mjs` (usa o firebase-admin de functions/:
+  `cd functions && npm install && cp ../planos-base.js .`), `t-pedido`, `t-pix-qr`, `t-verif`, `t-planos` atualizados.
+  Ficou anotado (precisa de servidor/Blaze): "Responde rápido" vem de `perfis_publicos.atendimento.resposta`, que o dono
+  grava (dá para forjar); pedidos do chat são montados no aparelho do cliente (o alerta ajuda, a correção de verdade é
+  gravar o pedido por Cloud Function).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

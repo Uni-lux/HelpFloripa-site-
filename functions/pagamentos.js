@@ -35,14 +35,18 @@ export function criarApi({ token, base = "https://api.mercadopago.com", buscar =
 }
 
 // ---------- pedido válido para pagar ----------
+// Pedido normal: preço da tabela (planos-base.js). Pedido de negociação aprovada (negociacaoId): o valor combinado pelo dono
+// do site; as regras do Firestore só deixam criar com o valor igual ao da negociação, e a confirmação confere de novo.
+export const valorDoPedido = (p) => (p?.negociacaoId ? Math.round(Number(p.valor) * 100) / 100 : valorPeriodo(p.plano, p.meses));
 export function conferirPedido(p, uid) {
   if (!p) return "Pedido não encontrado.";
   if (p.uid !== uid) return "Este pedido é de outra conta.";
-  if (!PLANOS[p.plano] || ![1, 3, 6, 12].includes(p.meses)) return "Pedido com plano ou período inválido.";
+  if (!PLANOS[p.plano]) return "Pedido com plano ou período inválido.";
+  if (p.negociacaoId ? !(Number.isInteger(p.meses) && p.meses >= 1 && p.meses <= 24 && valorDoPedido(p) > 0 && valorDoPedido(p) <= 5000) : ![1, 3, 6, 12].includes(p.meses)) return "Pedido com plano ou período inválido.";
   if (p.status !== "pendente") return p.status === "pago" ? "" : "Este pedido foi cancelado. Escolha o plano de novo.";
   return "";
 }
-const descricao = (p) => `Help Floripa - Plano ${nomePlano(p.plano)} (${nMeses(p.meses)})`;
+const descricao = (p) => `Help Floripa - Plano ${nomePlano(p.plano)} (${p.negociacaoId ? "condição combinada" : nMeses(p.meses)})`;
 const extras = (pedidoId, p, notificacao) => ({
   external_reference: pedidoId,
   metadata: { pedido_id: pedidoId, uid: p.uid, plano: p.plano, meses: p.meses },
@@ -52,7 +56,7 @@ const extras = (pedidoId, p, notificacao) => ({
 // Pix: QR Code e "copia e cola" do próprio Mercado Pago (vale 24 h). Reaproveita o do pedido se ainda vale por 10 min.
 export function corpoPix(pedidoId, p, email, notificacao, agora = Date.now()) {
   return {
-    transaction_amount: valorPeriodo(p.plano, p.meses),
+    transaction_amount: valorDoPedido(p),
     description: descricao(p),
     payment_method_id: "pix",
     payer: { email },
@@ -68,7 +72,7 @@ export function corpoCartao(pedidoId, p, f, email, notificacao) {
   if (!token || !meio) return null;
   const id = f?.payer?.identification;
   return {
-    transaction_amount: valorPeriodo(p.plano, p.meses),
+    transaction_amount: valorDoPedido(p),
     token,
     description: descricao(p),
     installments: 1,
@@ -130,7 +134,7 @@ export async function confirmarPagamento(db, pg) {
     if (p.status === "pago") return "ja-pago";
     const situacao = { id: String(pg.id), status: String(pg.status || ""), detalhe: String(pg.status_detail || ""), meio: String(pg.payment_method_id || ""), em: FieldValue.serverTimestamp() };
     if (pg.status !== "approved") { tx.update(refPed, { mp: situacao }); return String(pg.status || "desconhecido"); }
-    const esperado = valorPeriodo(p.plano, p.meses);
+    const esperado = valorDoPedido(p);
     if (pg.currency_id !== "BRL" || Math.abs(Number(pg.transaction_amount) - esperado) > 0.009) {
       tx.update(refPed, { mp: { ...situacao, alerta: `Valor pago ${pg.transaction_amount} ${pg.currency_id}, esperado ${esperado}` } });
       return "valor-diferente";
@@ -143,20 +147,32 @@ export async function confirmarPagamento(db, pg) {
       tx.get(db.collection("planos_negociacoes").doc(uid))
     ]);
     const atual = spl.exists ? spl.data() : null;
-    const primeira = pagos.empty && neg.data()?.status !== "aprovado" && !atual?.pedidoId && !atual?.negociacaoId;
-    const bonus = primeira ? DIAS_BONUS : 0;
-    const ate = fimDoPlano(atual, k, p.meses, bonus);
     const pix = pg.payment_method_id === "pix";
+    // Negociação: confere que ela ainda espera este pagamento e liga o plano com o que foi combinado (sem bônus).
+    let n = null;
+    if (p.negociacaoId) {
+      n = neg.exists ? neg.data() : null;
+      if (p.negociacaoId !== uid || n?.status !== "aguardando_pagamento" || n.planoConcedido !== k || Math.abs(Number(n.valorAcordado) - esperado) > 0.009) {
+        tx.update(refPed, { mp: { ...situacao, alerta: "Pago, mas a negociação não espera mais este pagamento: confira no painel." } });
+        return "negociacao-mudou";
+      }
+    }
+    const primeira = !n && pagos.empty && neg.data()?.status !== "aprovado" && !atual?.pedidoId && !atual?.negociacaoId;
+    const bonus = primeira ? DIAS_BONUS : 0;
+    const diasNeg = n ? Number(n.dias) || (Number(n.meses) || 1) * 30 : 0;
+    const ate = n ? fimDoPlano(atual, k, 0, diasNeg) : fimDoPlano(atual, k, p.meses, bonus);
     tx.update(refPed, { status: "pago", decididoPor: QUEM, decididoEm: FieldValue.serverTimestamp(), mp: situacao, metodo: pix ? "pix" : "cartao" });
-    tx.set(refPlano, { plano: k, ate: Timestamp.fromMillis(ate), meses: p.meses, pedidoId, ativadoEm: FieldValue.serverTimestamp(), ativadoPor: QUEM });
+    tx.set(refPlano, { plano: k, ate: Timestamp.fromMillis(ate), meses: n ? Number(n.meses) || p.meses : p.meses, pedidoId, ativadoEm: FieldValue.serverTimestamp(), ativadoPor: QUEM,
+      ...(n ? { negociacaoId: uid, dias: diasNeg, ...(Array.isArray(n.tipos) && n.tipos.length ? { tipos: n.tipos } : {}), ...(n.semSelo ? { semSelo: true } : {}) } : {}) });
+    if (n) tx.update(neg.ref, { status: "aprovado", pedidoId, pagoEm: FieldValue.serverTimestamp(), decididoPor: QUEM, decididoEm: FieldValue.serverTimestamp() });
     tx.create(db.collection("avisos").doc(), {
       uid, tipo: "info", por: QUEM, em: FieldValue.serverTimestamp(), lidoEm: null,
       titulo: `Seu plano ${nomePlano(k)} está ativo`,
-      texto: `Recebemos o seu pagamento de ${reais(esperado)} (${pix ? "Pix" : "cartão"}).${bonus ? ` Como é a sua primeira assinatura, você ganhou mais ${bonus} dias grátis.` : ""} O plano ${nomePlano(k)} vale até ${dataBR(ate)} para todos os seus negócios. Obrigado!`
+      texto: `Recebemos o seu pagamento de ${reais(esperado)} (${pix ? "Pix" : "cartão"}).${bonus ? ` Como é a sua primeira assinatura, você ganhou mais ${bonus} dias grátis.` : ""} O plano ${nomePlano(k)} vale até ${dataBR(ate)} para ${n && Array.isArray(n.tipos) && n.tipos.length ? "os perfis combinados" : "todos os seus negócios"}. Obrigado!`
     });
     tx.create(db.collection("admin_log").doc(), {
       acao: "plano_ativar", alvo: uid, ref: "planos_pedidos:" + pedidoId, por: QUEM, porNome: NOME_QUEM, em: FieldValue.serverTimestamp(),
-      detalhe: `${nomePlano(k)} · ${nMeses(p.meses)}${bonus ? ` + ${bonus} dias grátis` : ""} · ${reais(esperado)} · ${pix ? "Pix" : "cartão"} automático (Mercado Pago ${pg.id}) · até ${dataBR(ate)}`
+      detalhe: `${nomePlano(k)} · ${n ? `${diasNeg} dias (negociação paga)` : nMeses(p.meses)}${bonus ? ` + ${bonus} dias grátis` : ""} · ${reais(esperado)} · ${pix ? "Pix" : "cartão"} automático (Mercado Pago ${pg.id}) · até ${dataBR(ate)}`
     });
     return "ativado";
   });

@@ -281,7 +281,7 @@ export const nomeDocRenda = (k) => DOCS_RENDA.find((d) => d[0] === k)?.[1] || (k
 // Condição especial (baixa renda comprovada): 50% de desconto em qualquer plano, com tudo o que o plano oferece.
 export const BAIXA_RENDA = { desconto: 0.5 };
 export const precoBaixaRenda = (k) => Math.round((PLANOS[k]?.preco || 0) * (1 - BAIXA_RENDA.desconto) * 100) / 100;
-export const STATUS_NEG = { novo: "Recebido · em análise", em_conversa: "Em conversa com a equipe", aprovado: "Aprovado", recusado: "Não aprovado", cancelado: "Cancelado" };
+export const STATUS_NEG = { novo: "Recebido · em análise", em_conversa: "Em conversa com a equipe", aguardando_pagamento: "Aprovado · falta pagar", aprovado: "Aprovado", recusado: "Não aprovado", cancelado: "Cancelado" };
 export async function lerNegociacao(fb, uid) {
   try { const s = await fb.getDoc(fb.doc(fb.db, "planos_negociacoes", uid)); return s.exists() ? { id: s.id, ...s.data() } : null; } catch { return null; }
 }
@@ -292,13 +292,29 @@ export function formatarTelefone(v) {
   return d.length <= 2 ? `(${d}` : d.length <= 6 ? `(${d.slice(0, 2)}) ${d.slice(2)}` : d.length <= 10 ? `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}` : `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
 }
 const negAberta = (n) => n && (n.status === "novo" || n.status === "em_conversa");
+// Negociação aprovada com valor: o plano só liga depois que a pessoa paga o valor combinado.
+export const negPagar = (n) => !!n && n.status === "aguardando_pagamento" && Number(n.valorAcordado) > 0;
+// Código que vai no Pix (txid) para achar o pagamento no extrato.
+const novoTxid = (uid) => ("HF" + uid.slice(0, 6) + Date.now().toString(36)).toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 25);
 // Primeira assinatura: quem nunca pagou um plano paga o período e ganha mais 30 dias grátis (o dono do site soma os
 // dias ao confirmar o Pix). Sem leitura possível (regras ainda não publicadas), mostra a oferta: quem decide é o painel.
+// Mesma conta do painel e do pagamento automático: já teve pedido pago ou negociação aprovada = não é a primeira (antes,
+// um plano encerrado pela equipe voltava a mostrar o bônus que depois não era dado).
 export async function primeiraAssinatura(fb, uid) {
-  try { const s = await fb.getDoc(fb.doc(fb.db, "planos", uid)); return !s.exists() || (!s.data().pedidoId && !s.data().negociacaoId); }
-  catch { return true; }
+  try {
+    const [s, pagos, n] = await Promise.all([
+      fb.getDoc(fb.doc(fb.db, "planos", uid)),
+      fb.getDocs(fb.query(fb.collection(fb.db, "planos_pedidos"), fb.where("uid", "==", uid), fb.where("status", "==", "pago"), fb.limit(1))),
+      fb.getDoc(fb.doc(fb.db, "planos_negociacoes", uid)).catch(() => null)
+    ]);
+    if (s.exists() && (s.data().pedidoId || s.data().negociacaoId)) return false;
+    if (!pagos.empty) return false;
+    return !(n?.exists?.() && n.data().status === "aprovado");
+  } catch { return true; }
 }
 export const testeDisponivel = primeiraAssinatura; // nome antigo (Meus negócios)
+const nMesesTxt = (m) => `${m} ${m === 1 ? "mês" : "meses"}`;
+const duracaoTxt = (n) => (n.dias && n.dias % 30 ? `${n.dias} dias` : nMesesTxt(n.meses || Math.round((n.dias || 30) / 30) || 1));
 const dataLonga = (t) => new Date(ms(t)).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
 
 // Cartão "Seu plano X · faltam N dias" (barra do tempo que sobra; laranja na última semana).
@@ -350,7 +366,7 @@ export async function abrirPlanos(op) {
   corpo.appendChild(el("p", "pl-nota", "Carregando..."));
   let [plano, pedido, neg, primeira] = await Promise.all([lerPlano(fb, eu.uid), pedidoAberto(fb, eu.uid), lerNegociacao(fb, eu.uid), primeiraAssinatura(fb, eu.uid)]);
   if (pedido) { mostrarPix(pedido); return; }
-  if (op.negociar) { mostrarNegociacao(op.negociar); return; }
+  if (op.negociar || (negPagar(neg) && !op.plano)) { mostrarNegociacao(op.negociar || neg.tipo); return; }
   pintarEscolha();
 
   function pintarEscolha() {
@@ -450,7 +466,7 @@ export async function abrirPlanos(op) {
     btn.addEventListener("click", async () => {
       btn.disabled = true;
       try {
-        const txid = ("HF" + eu.uid.slice(0, 6) + Date.now().toString(36)).toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 25);
+        const txid = novoTxid(eu.uid);
         const dados = { uid: eu.uid, nome: String(op.dados?.nome || "").slice(0, 80), email: String(eu.email || "").slice(0, 120), plano: escolhido, meses, valor: valorPeriodo(escolhido, meses), txid, status: "pendente", criadoEm: fb.serverTimestamp() };
         const ref = await fb.addDoc(fb.collection(fb.db, "planos_pedidos"), dados);
         op.aoMudar?.();
@@ -464,7 +480,11 @@ export async function abrirPlanos(op) {
 
     // Quem não consegue pagar agora (baixa renda) ou quer fazer parceria: pedido para negociar.
     const aj = el("div", "pl-ajuda");
-    if (negAberta(neg)) {
+    if (negPagar(neg)) {
+      aj.append(el("b", null, `Seu pedido de ${TIPOS_NEG[neg.tipo]?.toLowerCase() || "negociação"} foi aprovado`), el("p", null, `Plano ${nomePlano(neg.planoConcedido)} por ${reais(neg.valorAcordado)} no total. Pague para ativar.`));
+      const v = el("button", "pl-btn"); v.type = "button"; v.textContent = `Pagar ${reais(neg.valorAcordado)} e ativar`; v.addEventListener("click", () => mostrarNegociacao(neg.tipo));
+      aj.appendChild(v);
+    } else if (negAberta(neg)) {
       aj.append(el("b", null, `Seu pedido de ${TIPOS_NEG[neg.tipo]?.toLowerCase() || "negociação"} está com a equipe`), el("p", null, `${STATUS_NEG[neg.status]}. A resposta chega nas suas notificações e pelo Suporte.`));
       const v = el("button", "pl-btn sec"); v.type = "button"; v.textContent = "Ver o meu pedido"; v.addEventListener("click", () => mostrarNegociacao(neg.tipo));
       aj.appendChild(v);
@@ -487,15 +507,13 @@ export async function abrirPlanos(op) {
     return v;
   }
 
-  const nMesesTxt = (m) => `${m} ${m === 1 ? "mês" : "meses"}`;
-  const duracaoTxt = (n) => (n.dias && n.dias % 30 ? `${n.dias} dias` : nMesesTxt(n.meses || Math.round((n.dias || 30) / 30) || 1));
 
   // Formulário (ou situação do pedido já enviado) de condição especial / parceria.
   function mostrarNegociacao(tipoIni) {
     corpo.replaceChildren(botaoVoltar()); cx.scrollTop = 0;
-    if (neg && (negAberta(neg) || ((neg.status === "aprovado" || neg.status === "recusado") && Date.now() - ms(neg.decididoEm) < 30 * DIA && !op._novoPedido))) {
+    if (neg && (negAberta(neg) || negPagar(neg) || ((neg.status === "aprovado" || neg.status === "recusado") && Date.now() - ms(neg.decididoEm) < 30 * DIA && !op._novoPedido))) {
       const c = el("div", "pl-neg");
-      const stc = neg.status === "aprovado" ? "st ok" : neg.status === "recusado" ? "st nao" : "st";
+      const stc = neg.status === "aprovado" || negPagar(neg) ? "st ok" : neg.status === "recusado" ? "st nao" : "st";
       c.append(el("span", stc, STATUS_NEG[neg.status] || neg.status), el("b", null, `${TIPOS_NEG[neg.tipo] || "Pedido"} · plano ${nomePlano(neg.plano)}`),
         el("small", "pl-nota", `Enviado em ${ms(neg.criadoEm) ? dataLonga(neg.criadoEm) : "agora"}${neg.valorProposto ? ` · você propôs ${reais(neg.valorProposto)} por mês` : ""}`));
       if (neg.perfisPedidos || neg.mesesPedidos) c.appendChild(el("small", "pl-nota", [neg.perfisPedidos && (neg.perfisPedidos >= TIPOS_PERFIL.length ? "Todos os perfis no ar" : `${neg.perfisPedidos} ${neg.perfisPedidos === 1 ? "perfil" : "perfis"} no ar`), neg.mesesPedidos && `por ${nMesesTxt(neg.mesesPedidos)}`].filter(Boolean).join(" ")));
@@ -504,11 +522,28 @@ export async function abrirPlanos(op) {
       if (neg.responsavelNome && negAberta(neg)) { const r = el("div", "pl-resp-neg"); const pn = String(neg.responsavelNome).trim().split(/\s+/)[0]; r.append(el("i", null, pn.charAt(0).toUpperCase()), el("span", null, `${pn}, da equipe Help Floripa, está cuidando do seu pedido.`)); c.appendChild(r); }
       if (neg.tipo === "apoio" && neg.comprovanteTipo) c.appendChild(el("small", "pl-nota", `Comprovante: ${nomeDocRenda(neg.comprovanteTipo)}${neg.comprovante ? " · documento anexado" : ""}`));
       if (neg.status === "aprovado") c.appendChild(el("div", "resp", `Plano ${nomePlano(neg.planoConcedido || neg.plano)} por ${duracaoTxt(neg)}${neg.valorAcordado ? ` · ${reais(neg.valorAcordado)} combinado` : " · sem custo"}${Array.isArray(neg.tipos) && neg.tipos.length ? ` · no ar: ${neg.tipos.map((t) => NOMES_PERFIL[t] || t).join(", ")}` : ""}.${neg.resposta ? "\n" + neg.resposta : ""}`));
+      else if (negPagar(neg)) c.appendChild(el("div", "resp", `Aprovado: plano ${nomePlano(neg.planoConcedido)} por ${duracaoTxt(neg)}, ${reais(neg.valorAcordado)} no total${Array.isArray(neg.tipos) && neg.tipos.length ? ` · no ar: ${neg.tipos.map((t) => NOMES_PERFIL[t] || t).join(", ")}` : ""}. O plano liga assim que o pagamento for confirmado, e o tempo começa a contar a partir daí.${neg.resposta ? "\n" + neg.resposta : ""}`));
       else if (neg.resposta) c.appendChild(el("div", "resp", neg.resposta));
       corpo.appendChild(c);
+      if (negPagar(neg)) {
+        const pagar = el("button", "pl-btn"); pagar.type = "button"; pagar.textContent = PAGAMENTO.automatico ? `Pagar ${reais(neg.valorAcordado)} · Pix ou cartão` : `Pagar ${reais(neg.valorAcordado)} com Pix`;
+        pagar.addEventListener("click", async () => {
+          pagar.disabled = true;
+          try {
+            const dados = { uid: eu.uid, nome: String(op.dados?.nome || "").slice(0, 80), email: String(eu.email || "").slice(0, 120), plano: neg.planoConcedido, meses: neg.meses, valor: neg.valorAcordado, txid: novoTxid(eu.uid), status: "pendente", criadoEm: fb.serverTimestamp(), negociacaoId: eu.uid };
+            const ref = await fb.addDoc(fb.collection(fb.db, "planos_pedidos"), dados);
+            op.aoMudar?.();
+            mostrarPix({ id: ref.id, ...dados, criadoEm: null });
+          } catch (e) {
+            pagar.disabled = false;
+            toast(e?.code === "permission-denied" ? "Não foi possível criar a cobrança. Fale com a equipe pelo Suporte." : "Não foi possível criar a cobrança agora.");
+          }
+        });
+        corpo.appendChild(pagar);
+      }
       const sup = el("a", "pl-btn sec"); sup.href = "suporte.html"; sup.textContent = "Falar com a equipe pelo Suporte"; corpo.appendChild(sup);
-      if (negAberta(neg)) {
-        const can = el("button", "pl-btn sec"); can.type = "button"; can.textContent = "Cancelar o pedido";
+      if (negAberta(neg) || negPagar(neg)) {
+        const can = el("button", "pl-btn sec"); can.type = "button"; can.textContent = negPagar(neg) ? "Não quero mais esta condição" : "Cancelar o pedido";
         can.addEventListener("click", async () => {
           can.disabled = true;
           try { await fb.updateDoc(fb.doc(fb.db, "planos_negociacoes", eu.uid), { status: "cancelado", comprovante: fb.deleteField() }); neg = { ...neg, status: "cancelado", comprovante: null }; toast("Pedido cancelado"); pintarEscolha(); }
@@ -593,7 +628,18 @@ export async function abrirPlanos(op) {
     DOCS_RENDA.forEach(([k, rot, dica], i) => {
       const b = el("button", "pl-doc" + (i >= 4 ? " extra" : "")); b.type = "button"; b.dataset.doc = k; b.setAttribute("role", "radio"); b.setAttribute("aria-checked", "false");
       b.append(el("b", null, rot), el("small", null, dica));
-      b.addEventListener("click", () => { docEscolhido = k; pintarDoc(); });
+      b.addEventListener("click", async () => {
+        if (k === docEscolhido) return;
+        // O arquivo anexado é do documento escolhido antes: trocar o tipo tira o arquivo (senão o painel mostraria
+        // um nome de documento e um arquivo de outro).
+        if (anexo) {
+          const { confirmarHF } = await import("./confirmar.js?v=4");
+          const ok = await confirmarHF({ titulo: "Trocar o documento?", texto: `O arquivo anexado é de "${nomeDocRenda(anexo.doc || docEscolhido)}". Para escolher "${rot}", ele sai e você anexa o novo documento.`, ok: "Trocar", cor: "normal", icone: "alerta" });
+          if (!ok) return;
+          anexo = null; previa.replaceChildren();
+        }
+        docEscolhido = k; pintarDoc();
+      });
       docs.appendChild(b);
     });
     const extras = DOCS_RENDA.length - 4;
@@ -610,7 +656,7 @@ export async function abrirPlanos(op) {
         const { prepararAnexo, previaAnexo } = await import("./anexos-suporte.js?v=2");
         const x = await prepararAnexo(a, `negociacoes/${eu.uid}`);
         if (x.tipo === "video") throw new Error("Envie uma foto ou um PDF do documento.");
-        anexo = x; previa.replaceChildren(previaAnexo(x, () => { anexo = null; previa.replaceChildren(); pintarDoc(); }));
+        anexo = { ...x, doc: docEscolhido }; previa.replaceChildren(previaAnexo(x, () => { anexo = null; previa.replaceChildren(); pintarDoc(); }));
       } catch (e) { toast(e?.message || "Não foi possível usar esse arquivo."); }
       btArq.disabled = false; pintarDoc();
     });
@@ -645,7 +691,7 @@ export async function abrirPlanos(op) {
       const texto = msg.value.trim();
       if (tipo === "apoio") {
         if (!docEscolhido) { toast("Escolha o documento que comprova a baixa renda."); docs.scrollIntoView({ behavior: "smooth", block: "center" }); return; }
-        if (!anexo) { toast("Anexe a foto ou o PDF do documento que comprova a renda."); btArq.focus(); return; }
+        if (!anexo || anexo.doc !== docEscolhido) { toast("Anexe a foto ou o PDF do documento que comprova a renda."); btArq.focus(); return; }
         if (!ck.checked) { toast("Confirme a declaração para enviar."); ck.focus(); return; }
       }
       if (texto.length < 20) { toast("Conte um pouco mais (pelo menos 20 letras)."); msg.focus(); return; }
@@ -669,14 +715,21 @@ export async function abrirPlanos(op) {
     });
   }
 
+  // Pedido normal: preço da tabela. Pedido de negociação: o valor combinado (as regras conferem com a negociação).
+  function valorDoPedido(p) { return p.negociacaoId ? Number(p.valor) || 0 : valorPeriodo(p.plano, p.meses); }
+  function cabecalhoPedido(p) {
+    const ped = `Pedido #${String(p.id).slice(-6).toUpperCase()} · Plano ${nomePlano(p.plano)}`;
+    if (p.negociacaoId) return `${ped} · ${TIPOS_NEG[neg?.tipo] || "Condição combinada"} · ${neg?.status === "aguardando_pagamento" ? duracaoTxt(neg) : nMesesTxt(p.meses)}`;
+    return `${ped} · ${p.meses} ${p.meses === 1 ? "mês" : "meses"}${descontoDe(p.meses) ? ` com ${Math.round(descontoDe(p.meses) * 100)}% de desconto` : ""}`;
+  }
   // Com o pagamento automático ligado: abas Pix | Cartão; o plano liga sozinho quando o Mercado Pago aprova.
   function mostrarPix(p) {
     limparPagamento();
     if (!PAGAMENTO.automatico) return mostrarPixManual(p);
     corpo.replaceChildren();
     const box = el("div", "pl-pix pl-pagar");
-    box.append(el("small", null, `Pedido #${String(p.id).slice(-6).toUpperCase()} · Plano ${nomePlano(p.plano)} · ${p.meses} ${p.meses === 1 ? "mês" : "meses"}${descontoDe(p.meses) ? ` com ${Math.round(descontoDe(p.meses) * 100)}% de desconto` : ""}`), el("b", "valor", reais(valorPeriodo(p.plano, p.meses))));
-    if (primeira) box.append(el("p", "pl-nota pl-bonus-pix", `Primeira assinatura: assim que o pagamento for aprovado, você ganha mais ${DIAS_BONUS} dias grátis.`));
+    box.append(el("small", null, cabecalhoPedido(p)), el("b", "valor", reais(valorDoPedido(p))));
+    if (primeira && !p.negociacaoId) box.append(el("p", "pl-nota pl-bonus-pix", `Primeira assinatura: assim que o pagamento for aprovado, você ganha mais ${DIAS_BONUS} dias grátis.`));
     const abas = el("div", "pl-abas"); abas.setAttribute("role", "tablist");
     const area = el("div", "pl-area");
     const aba = (k, nome) => { const b = el("button", "pl-aba", nome); b.type = "button"; b.dataset.k = k; b.setAttribute("role", "tab"); b.addEventListener("click", () => escolher(k)); abas.appendChild(b); return b; };
@@ -702,7 +755,7 @@ export async function abrirPlanos(op) {
       corpo.replaceChildren();
       const ok = el("div", "pl-pix pl-aprovado");
       const ic = el("div", "pl-ok-ic", "✓");
-      ok.append(ic, el("b", "valor", "Pagamento aprovado!"), el("p", null, `Seu plano ${nomePlano(p.plano)} está ativo${plano?.ate ? ` até ${new Date(ms(plano.ate)).toLocaleDateString("pt-BR")}` : ""}, para todos os seus negócios.${metodo === "cartao" ? " O valor aparece na fatura como HELPFLORIPA." : ""}`));
+      ok.append(ic, el("b", "valor", "Pagamento aprovado!"), el("p", null, `Seu plano ${nomePlano(p.plano)} está ativo${plano?.ate ? ` até ${new Date(ms(plano.ate)).toLocaleDateString("pt-BR")}` : ""}${Array.isArray(plano?.tipos) && plano.tipos.length ? ` para: ${plano.tipos.map((t) => NOMES_PERFIL[t] || t).join(", ")}` : ", para todos os seus negócios"}.${metodo === "cartao" ? " O valor aparece na fatura como HELPFLORIPA." : ""}`));
       const fim = el("button", "pl-btn"); fim.type = "button"; fim.textContent = "Concluir"; fim.addEventListener("click", fechar);
       corpo.append(ok, fim);
     }
@@ -771,9 +824,9 @@ export async function abrirPlanos(op) {
   async function mostrarPixManual(p) {
     corpo.replaceChildren();
     const box = el("div", "pl-pix");
-    box.append(el("small", null, `Pedido #${String(p.id).slice(-6).toUpperCase()} · Plano ${nomePlano(p.plano)} · ${p.meses} ${p.meses === 1 ? "mês" : "meses"}${descontoDe(p.meses) ? ` com ${Math.round(descontoDe(p.meses) * 100)}% de desconto` : ""}`), el("b", "valor", reais(p.valor)));
-    if (primeira) box.append(el("p", "pl-nota pl-bonus-pix", `Primeira assinatura: quando o pagamento for confirmado, você ganha mais ${DIAS_BONUS} dias grátis.`));
-    const cod = codigoPix({ valor: p.valor, txid: p.txid });
+    box.append(el("small", null, cabecalhoPedido(p)), el("b", "valor", reais(valorDoPedido(p))));
+    if (primeira && !p.negociacaoId) box.append(el("p", "pl-nota pl-bonus-pix", `Primeira assinatura: quando o pagamento for confirmado, você ganha mais ${DIAS_BONUS} dias grátis.`));
+    const cod = codigoPix({ valor: valorDoPedido(p), txid: p.txid });
     if (cod) {
       box.appendChild(await qrSvg(cod).catch(() => el("span")));
       const c = el("div", "pl-codigo", cod); box.appendChild(c);

@@ -5,7 +5,7 @@
                     && resource.data.status in ['aprovado', 'recusado', 'cancelado']
                     && pedidoNegOk();
       allow update: if logado() && uid == request.auth.uid
-                    && resource.data.status in ['novo', 'em_conversa']
+                    && resource.data.status in ['novo', 'em_conversa', 'aguardando_pagamento']
                     && mudou().hasOnly(['status', 'comprovante'])
                     && !('comprovante' in request.resource.data)
                     && request.resource.data.status == 'cancelado';
@@ -20,15 +20,26 @@
                     && (!('tipos' in request.resource.data) || (request.resource.data.tipos is list && request.resource.data.tipos.size() <= 5 && request.resource.data.tipos.join(',').matches('^(servicos|delivery|lojinha|imoveis|saude)(,(servicos|delivery|lojinha|imoveis|saude)){0,4}$')))
                     && request.resource.data.get('semSelo', false) is bool
                     && (!('dias' in request.resource.data) || (request.resource.data.dias is int && request.resource.data.dias >= 1 && request.resource.data.dias <= 800))
-                    && request.resource.data.status in ['em_conversa', 'aprovado', 'recusado']
+                    && request.resource.data.status in ['em_conversa', 'aprovado', 'aguardando_pagamento', 'recusado']
                     && (request.resource.data.status == 'em_conversa' ? !mudou().hasAny(['comprovante']) : !('comprovante' in request.resource.data))
                     && request.resource.data.decididoPor == request.auth.uid
                     && request.resource.data.decididoEm == request.time
                     && valorTextoAte(request.resource.data.get('resposta', ''), 600)
-                    && (request.resource.data.status != 'aprovado'
+                    // Aprovado com valor: fica esperando o pagamento (o plano só liga quando o Pix/cartão é confirmado).
+                    && (!(request.resource.data.status in ['aprovado', 'aguardando_pagamento'])
                         || (request.resource.data.planoConcedido in ['plus', 'pro', 'premium']
                             && request.resource.data.meses is int && request.resource.data.meses >= 1 && request.resource.data.meses <= 24
-                            && request.resource.data.valorAcordado is number && request.resource.data.valorAcordado >= 0 && request.resource.data.valorAcordado <= 5000));
+                            && request.resource.data.valorAcordado is number && request.resource.data.valorAcordado >= 0 && request.resource.data.valorAcordado <= 5000
+                            && (request.resource.data.status == 'aprovado' || request.resource.data.valorAcordado > 0)));
+      // Esperando o pagamento: o dono do site confirma (pago, com o pedido) ou cancela a cobrança.
+      allow update: if donoDoSite()
+                    && resource.data.status == 'aguardando_pagamento'
+                    && mudou().hasOnly(['status', 'pedidoId', 'pagoEm', 'resposta', 'decididoPor', 'decididoEm'])
+                    && request.resource.data.status in ['aprovado', 'recusado']
+                    && (!('pedidoId' in request.resource.data) || request.resource.data.pedidoId is string)
+                    && request.resource.data.decididoPor == request.auth.uid
+                    && request.resource.data.decididoEm == request.time
+                    && valorTextoAte(request.resource.data.get('resposta', ''), 600);
       allow delete: if false;
     }
 
@@ -162,23 +173,5 @@
     function canalEquipeOk(canal) {
       return canal.matches('^(avisos|seguranca|moderacao|pagamentos|negocios|conta|comercial)$')
           && (canal != 'avisos' || papel() == 'dono');
-    }
-    match /equipe_canais/{canal} {
-      allow read: if admin();
-      allow create, update: if admin() && canalEquipeOk(canal)
-                    && request.resource.data.keys().hasOnly(['ultimaEm', 'ultimaTexto', 'ultimoAutor', 'ultimoNome', 'mencoes'])
-                    && request.resource.data.ultimoAutor == request.auth.uid
-                    && request.resource.data.ultimaEm == request.time
-                    && valorTextoAte(request.resource.data.get('ultimaTexto', ''), 140)
-                    && valorTextoAte(request.resource.data.get('ultimoNome', ''), 80)
-                    && (!('mencoes' in request.resource.data) || (request.resource.data.mencoes is list && request.resource.data.mencoes.size() <= 10));
-      allow delete: if false;
-      match /mensagens/{id} {
-        allow read: if admin();
-        allow create: if admin() && canalEquipeOk(canal) && msgEquipeOk('canal-' + canal);
-        allow update: if admin() && reacaoValida();
-        allow update: if admin() && (edicaoEquipeOk() || apagarEquipeOk(id));
-        allow delete: if false;
-      }
     }
 // ===== FIM DA PARTE 11 DE 16 =====

@@ -274,7 +274,7 @@ function formulario(aoMudar) {
   TIPOS_VERIF.forEach(([v, n, d, ic]) => {
     const b = el("button", "vf-tipo"); b.type = "button"; b.setAttribute("role", "radio"); b.setAttribute("aria-checked", "false");
     b.append(icone(ic, "i"), el("b", null, n), el("small", null, d));
-    b.addEventListener("click", () => { est.categoria = v; tipos.querySelectorAll(".vf-tipo").forEach((x) => x.setAttribute("aria-checked", String(x === b))); if (v === "negocio" || v === "organizacao") { selDoc.value = "cnpj"; est.documentoTipo = "cnpj"; } conferir(); });
+    b.addEventListener("click", () => { est.categoria = v; tipos.querySelectorAll(".vf-tipo").forEach((x) => x.setAttribute("aria-checked", String(x === b))); if ((v === "negocio" || v === "organizacao") && est.documentoTipo !== "cnpj" && !est.documento) { selDoc.value = "cnpj"; est.documentoTipo = "cnpj"; } conferir(); });
     tipos.appendChild(b);
   });
   s1.append(t1, tipos);
@@ -289,7 +289,21 @@ function formulario(aoMudar) {
   const s3 = el("div", "vf-sec vf-doc");
   const t3 = el("h4"); t3.append(el("b", null, "3"), document.createTextNode("Documento com foto e selfie"));
   const selDoc = el("select"); DOCUMENTOS.forEach(([v, n]) => selDoc.appendChild(new Option(n, v))); selDoc.setAttribute("aria-label", "Tipo de documento");
-  selDoc.addEventListener("change", () => { est.documentoTipo = selDoc.value; });
+  // A foto (e a selfie, que mostra o mesmo documento) são do tipo escolhido antes: trocar o tipo tira as duas, senão a
+  // equipe veria "CNH" com a foto de um RG.
+  selDoc.addEventListener("change", async () => {
+    const novo = selDoc.value;
+    if (novo === est.documentoTipo) return;
+    if (est.documento || est.selfie) {
+      const nome = (k) => (DOCUMENTOS.find((d) => d[0] === k) || [])[1] || k;
+      selDoc.value = est.documentoTipo;
+      const ok = await confirmarHF({ titulo: "Trocar o documento?", texto: `As fotos enviadas são de ${nome(est.documentoTipo)}. Para usar ${nome(novo)}, elas saem e você envia a foto e a selfie do novo documento.`, ok: "Trocar", cor: "normal", icone: "alerta" });
+      if (!ok) return;
+      est.documento = ""; est.selfie = ""; pintarArea(); pintarSelfie();
+      selDoc.value = novo;
+    }
+    est.documentoTipo = novo; conferir();
+  });
   const area = el("button", "vf-doc-area"); area.type = "button";
   const pintarArea = () => {
     area.replaceChildren(); area.classList.toggle("com-foto", !!est.documento);

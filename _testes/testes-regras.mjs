@@ -896,6 +896,35 @@ await t("plano: 1000 dias é recusado", () => assertFails(setDoc(doc(ctx("adm"),
 await t("plano: dono ajusta o plano (mais tempo, 3 perfis, selo de volta)", () => assertSucceeds(setDoc(doc(ctx("adm"), "planos", "bia"), { plano: "plus", ate: Timestamp.fromMillis(Date.now() + 45 * 864e5), meses: 1, dias: 15, tipos: ["servicos", "delivery", "saude"], negociacaoId: "bia", ativadoEm: serverTimestamp(), ativadoPor: "adm" })));
 await t("plano: a pessoa não muda os próprios perfis liberados", () => assertFails(updateDoc(doc(ctx("bia"), "planos", "bia"), { tipos: ["servicos", "delivery", "lojinha", "imoveis", "saude"] })));
 
+// ---------- negociação aprovada com valor: espera o pagamento, a pessoa paga o valor combinado e só então o plano liga ----------
+await semRegras((db) => setDoc(doc(db, "planos_negociacoes", "dono"), { ...negPlano("dono", { plano: "plus", mesesPedidos: 3 }), criadoEm: Timestamp.now() }));
+const pedNeg = (x = {}) => ({ ...pedidoPlano("dono", { plano: "plus", meses: 3, valor: 44.85 }), negociacaoId: "dono", ...x });
+await t("cobrança: sem a negociação aprovada, pedido com negociacaoId é recusado", () => assertFails(setDoc(doc(ctx("dono"), "planos_pedidos", "pn0"), pedNeg())));
+await t("cobrança: esperando pagamento com valor 0 é recusado", () => assertFails(updateDoc(doc(ctx("adm"), "planos_negociacoes", "dono"), { status: "aguardando_pagamento", planoConcedido: "plus", meses: 3, dias: 90, valorAcordado: 0, comprovante: deleteField(), decididoPor: "adm", decididoEm: serverTimestamp() })));
+await t("cobrança: esperando pagamento com o documento guardado é recusado", () => assertFails(updateDoc(doc(ctx("adm"), "planos_negociacoes", "dono"), { status: "aguardando_pagamento", planoConcedido: "plus", meses: 3, dias: 90, valorAcordado: 44.85, decididoPor: "adm", decididoEm: serverTimestamp() })));
+await t("cobrança: dono aprova com valor (fica esperando o pagamento, sem plano)", () => assertSucceeds(updateDoc(doc(ctx("adm"), "planos_negociacoes", "dono"), { status: "aguardando_pagamento", planoConcedido: "plus", meses: 3, dias: 90, valorAcordado: 44.85, resposta: "Aprovado", comprovante: deleteField(), decididoPor: "adm", decididoEm: serverTimestamp() })));
+await t("cobrança: a pessoa não se marca como aprovada", () => assertFails(updateDoc(doc(ctx("dono"), "planos_negociacoes", "dono"), { status: "aprovado" })));
+await t("cobrança: pedido com valor menor que o combinado é recusado", () => assertFails(setDoc(doc(ctx("dono"), "planos_pedidos", "pn1"), pedNeg({ valor: 1 }))));
+await t("cobrança: pedido com outro plano é recusado", () => assertFails(setDoc(doc(ctx("dono"), "planos_pedidos", "pn1"), pedNeg({ plano: "premium" }))));
+await t("cobrança: pedido com outra duração é recusado", () => assertFails(setDoc(doc(ctx("dono"), "planos_pedidos", "pn1"), pedNeg({ meses: 12 }))));
+await t("cobrança: pedido apontando a negociação de outra pessoa é recusado", () => assertFails(setDoc(doc(ctx("bia"), "planos_pedidos", "pn1"), { ...pedidoPlano("bia", { plano: "plus", meses: 3, valor: 44.85 }), negociacaoId: "dono" })));
+await t("cobrança: a pessoa gera o pedido com o valor combinado", () => assertSucceeds(setDoc(doc(ctx("dono"), "planos_pedidos", "pn1"), pedNeg())));
+await t("cobrança: pedido normal continua só com os períodos da tabela", () => assertFails(setDoc(doc(ctx("dono"), "planos_pedidos", "pn2"), pedidoPlano("dono", { meses: 3, valor: 2000 }))));
+await t("cobrança: comercial não confirma o pagamento da negociação", () => assertFails(updateDoc(doc(ctx("com"), "planos_negociacoes", "dono"), { status: "aprovado", pedidoId: "pn1", pagoEm: serverTimestamp(), decididoPor: "com", decididoEm: serverTimestamp() })));
+await t("cobrança: confirmar mudando o valor junto é recusado", () => assertFails(updateDoc(doc(ctx("adm"), "planos_negociacoes", "dono"), { status: "aprovado", valorAcordado: 1, pedidoId: "pn1", pagoEm: serverTimestamp(), decididoPor: "adm", decididoEm: serverTimestamp() })));
+await t("cobrança: dono confirma o pagamento (pedido pago + plano + negociação juntos)", async () => {
+  const db = ctx("adm"); const b = writeBatch(db);
+  b.update(doc(db, "planos_pedidos", "pn1"), { status: "pago", decididoPor: "adm", decididoEm: serverTimestamp() });
+  b.set(doc(db, "planos", "dono"), { plano: "plus", ate: Timestamp.fromMillis(Date.now() + 90 * 864e5), meses: 3, dias: 90, pedidoId: "pn1", negociacaoId: "dono", ativadoEm: serverTimestamp(), ativadoPor: "adm" });
+  b.update(doc(db, "planos_negociacoes", "dono"), { status: "aprovado", pedidoId: "pn1", pagoEm: serverTimestamp(), decididoPor: "adm", decididoEm: serverTimestamp() });
+  await assertSucceeds(b.commit());
+});
+await t("cobrança: negociação já paga não gera outro pedido", () => assertFails(setDoc(doc(ctx("dono"), "planos_pedidos", "pn3"), pedNeg())));
+await semRegras((db) => updateDoc(doc(db, "planos_negociacoes", "dono"), { status: "aguardando_pagamento" }));
+await t("cobrança: a pessoa desiste da condição aprovada", () => assertSucceeds(updateDoc(doc(ctx("dono"), "planos_negociacoes", "dono"), { status: "cancelado" })));
+await semRegras((db) => updateDoc(doc(db, "planos_negociacoes", "dono"), { status: "aguardando_pagamento" }));
+await t("cobrança: dono cancela a cobrança", () => assertSucceeds(updateDoc(doc(ctx("adm"), "planos_negociacoes", "dono"), { status: "recusado", resposta: "O pagamento não chegou.", decididoPor: "adm", decididoEm: serverTimestamp() })));
+
 // ---------- registro de ações: só os donos leem (o resto vê só as cobranças) ----------
 await semRegras((db) => Promise.all([setDoc(doc(db, "admin_log", "l1"), { acao: "aviso", alvo: "bia", por: "mod", em: Timestamp.now() }), setDoc(doc(db, "admin_log", "l2"), { acao: "cobrar_reclamacao", alvo: "loja", detalhe: "queixa:q1", por: "mod", em: Timestamp.now() })]));
 await t("registro: dono lê tudo", () => assertSucceeds(getDocs(query(collection(ctx("adm"), "admin_log"), orderBy("em", "desc"), limit(50)))));

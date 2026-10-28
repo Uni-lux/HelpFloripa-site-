@@ -158,11 +158,11 @@ await a.locator(".ad-modal .ad-campo", { hasText: "Valor combinado" }).locator("
 await a.locator(".ad-modal .ad-bt.pri", { hasText: "Aprovar" }).click(); await a.waitForTimeout(2500);
 const plAna = (await db.doc(`planos/${U.ana}`).get()).data(), ngA = (await db.doc(`planos_negociacoes/${U.ana}`).get()).data();
 ok(!("comprovante" in ngA) && ngA.comprovanteTipo === "cadunico", "o documento é apagado depois da decisão");
-ok(plAna?.plano === "plus" && plAna.negociacaoId === U.ana && ngA.status === "aprovado" && ngA.valorAcordado === 15, "aprovado: Ana ganha o Plus (" + JSON.stringify({ plano: plAna?.plano, status: ngA?.status, valor: ngA?.valorAcordado }) + ")");
+ok(!plAna && ngA.status === "aguardando_pagamento" && ngA.planoConcedido === "plus" && ngA.valorAcordado === 15, "aprovado com valor: Plus esperando o pagamento, sem plano antes de pagar (" + JSON.stringify({ plano: plAna?.plano, status: ngA?.status, valor: ngA?.valorAcordado }) + ")");
 ok((await db.collection("avisos").where("uid", "==", U.ana).get()).docs.some((d) => d.data().titulo.includes("aprovado")), "Ana recebe o aviso da aprovação");
 await a.locator(".ad-chip", { hasText: "Receita" }).click(); await a.waitForTimeout(600);
 const rec = await a.textContent(".ad-receita");
-ok(rec.includes("122,73") && rec.includes("Receita por mês"), "receita: Pix (107,73) + negociado (15,00) = 122,73");
+ok(rec.includes("107,73") && !rec.includes("122,73") && rec.includes("Receita por mês"), "receita: só o Pix pago (107,73); o negociado entra quando for pago");
 await a.screenshot({ path: "saida/pl-painel-receita.png", fullPage: true });
 
 // ---------- 6) registro e histórico do dia (só donos) ----------

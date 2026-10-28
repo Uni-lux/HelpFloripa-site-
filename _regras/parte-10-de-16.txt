@@ -49,12 +49,24 @@
     // cancelar; só os donos do site conferem o pagamento, marcam pago/recusado e ativam planos/{uid}.
     match /planos_pedidos/{id} {
       allow read: if (logado() && resource.data.uid == request.auth.uid) || donoDoSite();
+      // Pagamento de uma negociação aprovada (negociacaoId = uid): plano, meses e valor iguais aos que o dono do site
+      // combinou, e só enquanto ela está esperando o pagamento.
+      function negociacaoPagavel(d) {
+        let n = get(/databases/$(database)/documents/planos_negociacoes/$(request.auth.uid)).data;
+        return d.negociacaoId == request.auth.uid
+            && n.status == 'aguardando_pagamento'
+            && d.plano == n.planoConcedido
+            && d.meses == n.meses
+            && d.valor == n.valorAcordado;
+      }
       allow create: if logado() && emailOk()
-                    && request.resource.data.keys().hasOnly(['uid', 'nome', 'email', 'plano', 'meses', 'valor', 'txid', 'status', 'criadoEm'])
+                    && request.resource.data.keys().hasOnly(['uid', 'nome', 'email', 'plano', 'meses', 'valor', 'txid', 'status', 'criadoEm', 'negociacaoId'])
                     && request.resource.data.uid == request.auth.uid
                     && request.resource.data.plano in ['plus', 'pro', 'premium']
-                    && request.resource.data.meses in [1, 3, 6, 12]
-                    && request.resource.data.valor is number && request.resource.data.valor > 0 && request.resource.data.valor <= 1000
+                    && request.resource.data.valor is number && request.resource.data.valor > 0
+                    && ('negociacaoId' in request.resource.data
+                        ? negociacaoPagavel(request.resource.data)
+                        : (request.resource.data.meses in [1, 3, 6, 12] && request.resource.data.valor <= 1000))
                     && request.resource.data.txid is string && request.resource.data.txid.matches('^[A-Z0-9]{4,25}$')
                     && valorTextoAte(request.resource.data.get('nome', ''), 80)
                     && valorTextoAte(request.resource.data.get('email', ''), 120)

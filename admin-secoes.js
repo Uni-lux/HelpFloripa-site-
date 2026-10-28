@@ -12,7 +12,7 @@ import { verConteudoDenuncia } from "./admin-denuncia.js?v=17";
 import { prepararAnexo, blocoAnexo, previaAnexo, aceitos } from "./anexos-suporte.js?v=2";
 import { FILAS, filaDe, PRIORIDADES as PRIO_SUP, prioridadeChamado, situacaoPrazo, ordemFila } from "./suporte-fila.js?v=1";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
-import { PLANOS, ORDEM_PLANOS, DIAS_BONUS, nivelPlano, nomePlano, diasRestantes, creditoDias, descontoDe, nomeDocRenda, TIPOS_NEG as TIPOS_NEG_PL, NOMES_PERFIL, TIPOS_PERFIL, perfisDoPlano, mostraSelo, BAIXA_RENDA, precoBaixaRenda } from "./planos.js?v=20";
+import { PLANOS, ORDEM_PLANOS, DIAS_BONUS, nivelPlano, nomePlano, diasRestantes, creditoDias, descontoDe, valorPeriodo, nomeDocRenda, TIPOS_NEG as TIPOS_NEG_PL, NOMES_PERFIL, TIPOS_PERFIL, perfisDoPlano, mostraSelo, BAIXA_RENDA, precoBaixaRenda } from "./planos.js?v=21";
 import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha,
@@ -983,8 +983,9 @@ const nomeMes = (k) => { const [a, m] = k.split("-").map(Number); return new Dat
 // Tudo o que entrou de dinheiro: Pix confirmados + valores combinados nas negociações aprovadas.
 function entradas() {
   return [
-    ...D.planosPedidos.filter((p) => p.status === "pago").map((p) => ({ em: p.decididoEm, valor: Number(p.valor) || 0, plano: p.plano || "pro", uid: p.uid, origem: "Pix" })),
-    ...D.planosNeg.filter((n) => n.status === "aprovado" && Number(n.valorAcordado) > 0).map((n) => ({ em: n.decididoEm, valor: Number(n.valorAcordado) || 0, plano: n.planoConcedido || n.plano, uid: n.uid || n.id, origem: "Negociação" }))
+    ...D.planosPedidos.filter((p) => p.status === "pago").map((p) => ({ em: p.decididoEm, valor: Number(p.valor) || 0, plano: p.plano || "pro", uid: p.uid, origem: p.negociacaoId ? "Negociação" : "Pix" })),
+    // Negociações antigas (aprovadas antes da cobrança pelo site): o valor combinado conta na data da aprovação.
+    ...D.planosNeg.filter((n) => n.status === "aprovado" && Number(n.valorAcordado) > 0 && !n.pedidoId).map((n) => ({ em: n.decididoEm, valor: Number(n.valorAcordado) || 0, plano: n.planoConcedido || n.plano, uid: n.uid || n.id, origem: "Negociação" }))
   ].filter((e) => ms(e.em));
 }
 export function planos(el) {
@@ -993,7 +994,7 @@ export function planos(el) {
   const pedidos = [...D.planosPedidos].sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
   const pend = pedidos.filter((p) => p.status === "pendente").sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm));
   const negs = [...D.planosNeg].sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
-  const negAbertas = negs.filter((n) => n.status === "novo" || n.status === "em_conversa");
+  const negAbertas = negs.filter((n) => n.status === "novo" || n.status === "em_conversa" || n.status === "aguardando_pagamento");
   const ativos = [...D.planos.entries()].filter(([, p]) => nivelPlano(p) > 0).map(([uid, p]) => ({ uid, ...p })).sort((a, b) => ms(a.ate) - ms(b.ate));
   const mes = agora() - 30 * DIA;
   const recebido = entradas().filter((e) => ms(e.em) >= mes).reduce((t, e) => t + e.valor, 0);
@@ -1021,10 +1022,13 @@ export function planos(el) {
     const top = h("div", "cab"); top.append(pessoaCel({ ...pessoa(p.uid), nome: pessoa(p.uid).nome || p.nome }, p.email || ""));
     top.append(selo(...(ST[p.status] || [p.status, ""])), h("span", "quando", relativo(p.criadoEm)));
     c.appendChild(top);
-    c.append(h("strong", null, `${nomePlano(p.plano || "pro")} · ${nMeses(p.meses)} · ${reaisPl(p.valor)}${descontoDe(p.meses) ? ` (${Math.round(descontoDe(p.meses) * 100)}% de desconto)` : ""}`),
+    const negP = negDoPedido(p);
+    c.append(h("strong", null, p.negociacaoId ? `${nomePlano(p.plano || "pro")} · ${negP ? duracaoNeg(negP) : nMeses(p.meses)} · ${reaisPl(p.valor)} · ${TIPOS_NEG_PL[negP?.tipo] || "negociação"} aprovada` : `${nomePlano(p.plano || "pro")} · ${nMeses(p.meses)} · ${reaisPl(p.valor)}${descontoDe(p.meses) ? ` (${Math.round(descontoDe(p.meses) * 100)}% de desconto)` : ""}`),
       h("div", "meta", `Pedido #${String(p.id).slice(-6).toUpperCase()} · código no Pix: ${p.txid || "—"} · ${dataHora(p.criadoEm)}`));
     const atual = D.planos.get(p.uid);
-    if (p.status === "pendente" && primeiraPaga(p.uid, p.id)) c.appendChild(h("div", "meta", `Primeira assinatura: ao confirmar, ganha mais ${DIAS_BONUS} dias grátis.`));
+    const erroValor = p.status === "pendente" ? valorErrado(p) : "";
+    if (erroValor) c.appendChild(h("div", "ad-vf-alerta", erroValor));
+    if (p.status === "pendente" && !p.negociacaoId && primeiraPaga(p.uid, p.id)) c.appendChild(h("div", "meta", `Primeira assinatura: ao confirmar, ganha mais ${DIAS_BONUS} dias grátis.`));
     if (nivelPlano(atual)) {
       const cr = creditoDias(atual, p.plano || "pro");
       c.appendChild(h("div", "meta", atual.plano === (p.plano || "pro") ? `Já tem o ${nomePlano(atual.plano)} até ${data(atual.ate)} (${faltaTxt(atual)}): os meses somam a partir dessa data.` : `Troca do ${nomePlano(atual.plano)} (${faltaTxt(atual)}) pelo ${nomePlano(p.plano)}: começa hoje${cr ? ` + ${cr} dias de crédito` : ""}.`));
@@ -1062,9 +1066,25 @@ export function planos(el) {
   // Primeira assinatura paga: +30 dias grátis (DIAS_BONUS). Vale para quem nunca teve um pedido pago nem uma negociação aprovada.
   const primeiraPaga = (uid, idPedido) => !D.planosPedidos.some((x) => x.uid === uid && x.status === "pago" && x.id !== idPedido)
     && !D.planosNeg.some((x) => x.uid === uid && x.status === "aprovado") && !D.planos.get(uid)?.pedidoId && !D.planos.get(uid)?.negociacaoId;
+  // Pedido da negociação aprovada (o pagamento do valor combinado).
+  const negDoPedido = (p) => (p.negociacaoId ? D.planosNeg.find((n) => n.id === p.negociacaoId) || null : null);
+  // Valor do pedido diferente do esperado (tabela de preços ou valor combinado): avisa antes de ativar.
+  function valorErrado(p) {
+    if (p.negociacaoId) {
+      const n = negDoPedido(p);
+      if (!n) return "Negociação deste pedido não encontrada: confira antes de ativar.";
+      if (n.status !== "aguardando_pagamento") return `A negociação não está mais esperando o pagamento (${ST_NEG[n.status]?.[0] || n.status}).`;
+      if (Math.abs(Number(n.valorAcordado) - Number(p.valor)) > 0.009 || n.planoConcedido !== p.plano) return `Valor ou plano diferente do combinado (${nomePlano(n.planoConcedido)} por ${reaisPl(n.valorAcordado)}).`;
+      return "";
+    }
+    const certo = valorPeriodo(p.plano || "pro", p.meses);
+    return Math.abs(certo - Number(p.valor)) > 0.009 ? `Atenção: o valor do pedido (${reaisPl(p.valor)}) é diferente da tabela (${reaisPl(certo)} no ${nomePlano(p.plano)} por ${nMeses(p.meses)}). Só ative se recebeu o valor da tabela.` : "";
+  }
   async function ativar(p) {
+    if (p.negociacaoId) return ativarNegociada(p);
     const k = p.plano || "pro", bonus = primeiraPaga(p.uid, p.id) ? DIAS_BONUS : 0;
-    if (!(await confirmarHF({ titulo: "Confirmar o pagamento?", texto: `Ative só depois de ver ${reaisPl(p.valor)} no extrato (código ${p.txid}). O ${nomePlano(k)} fica ativo por ${nMeses(p.meses)}${bonus ? ` + ${bonus} dias grátis (primeira assinatura)` : ""}.`, ok: `Ativar o ${nomePlano(k)}`, cor: "normal", icone: "check" }))) return;
+    const erroValor = valorErrado(p);
+    if (!(await confirmarHF({ titulo: "Confirmar o pagamento?", texto: `${erroValor ? erroValor + "\n\n" : ""}Ative só depois de ver ${reaisPl(p.valor)} no extrato (código ${p.txid}). O ${nomePlano(k)} fica ativo por ${nMeses(p.meses)}${bonus ? ` + ${bonus} dias grátis (primeira assinatura)` : ""}.`, ok: `Ativar o ${nomePlano(k)}`, cor: erroValor ? undefined : "normal", icone: erroValor ? "alerta" : "check" }))) return;
     const { fb } = C;
     const ate = fimDoPlano(p.uid, k, p.meses, bonus);
     const lote = fb.writeBatch(fb.db);
@@ -1075,6 +1095,30 @@ export function planos(el) {
     D.planos.set(p.uid, { plano: k, ate, meses: p.meses, pedidoId: p.id, ativadoEm: { toMillis: () => agora() }, ativadoPor: C.eu.uid });
     await registrar("plano_ativar", p.uid, `${nomePlano(k)} · ${nMeses(p.meses)}${bonus ? ` + ${bonus} dias grátis` : ""} · ${reaisPl(p.valor)} · até ${new Date(ate.toMillis()).toLocaleDateString("pt-BR")}`, "planos_pedidos:" + p.id);
     await enviarAviso(p.uid, { titulo: `Seu plano ${nomePlano(k)} está ativo`, texto: `Recebemos o seu Pix de ${reaisPl(p.valor)}.${bonus ? ` Como é a sua primeira assinatura, você ganhou mais ${bonus} dias grátis.` : ""} O plano ${nomePlano(k)} vale até ${new Date(ate.toMillis()).toLocaleDateString("pt-BR")} para todos os seus negócios. Obrigado!`, tipo: "info" }).catch(() => {});
+    toast(`${nomePlano(k)} ativado`); C.irPara("planos");
+  }
+  // Pagamento da negociação: liga o plano com o que foi combinado (plano, dias, perfis, selo); o tempo conta de agora.
+  async function ativarNegociada(p) {
+    const n = negDoPedido(p), erro = valorErrado(p);
+    if (erro) { await confirmarHF({ titulo: "Não dá para ativar este pedido", texto: `${erro} Recuse o pedido ou confira a negociação.`, soOk: true, icone: "alerta" }); return; }
+    const k = p.plano, dias = Number(n.dias) || (Number(n.meses) || 1) * 30;
+    if (!(await confirmarHF({ titulo: "Confirmar o pagamento?", texto: `Ative só depois de ver ${reaisPl(p.valor)} no extrato (código ${p.txid}). O ${nomePlano(k)} fica ativo por ${duracaoNeg(n)}, como combinado.`, ok: `Ativar o ${nomePlano(k)}`, cor: "normal", icone: "check" }))) return;
+    const { fb } = C;
+    const ate = fb.Timestamp.fromMillis(inicioDoPlano(p.uid, k) + dias * DIA);
+    const tipos = Array.isArray(n.tipos) && n.tipos.length ? n.tipos : null;
+    const novo = { plano: k, ate, meses: Number(n.meses) || p.meses, pedidoId: p.id, negociacaoId: n.id, dias, ...(tipos ? { tipos } : {}), ...(n.semSelo ? { semSelo: true } : {}), ativadoEm: fb.serverTimestamp(), ativadoPor: C.eu.uid };
+    const lote = fb.writeBatch(fb.db);
+    lote.update(fb.doc(fb.db, "planos_pedidos", p.id), { status: "pago", decididoPor: C.eu.uid, decididoEm: fb.serverTimestamp() });
+    lote.set(fb.doc(fb.db, "planos", p.uid), novo);
+    lote.update(fb.doc(fb.db, "planos_negociacoes", n.id), { status: "aprovado", pedidoId: p.id, pagoEm: fb.serverTimestamp(), decididoPor: C.eu.uid, decididoEm: fb.serverTimestamp() });
+    await lote.commit();
+    Object.assign(p, { status: "pago", decididoPor: C.eu.uid, decididoEm: { toMillis: () => agora() } });
+    Object.assign(n, { status: "aprovado", pedidoId: p.id, decididoPor: C.eu.uid, decididoEm: { toMillis: () => agora() } });
+    D.planos.set(p.uid, { ...novo, ativadoEm: { toMillis: () => agora() } });
+    const fim = new Date(ate.toMillis()).toLocaleDateString("pt-BR");
+    const txtPerfis = tipos ? tipos.map((t) => NOMES_PERFIL[t] || t).join(", ") : "todos os seus negócios";
+    await registrar("plano_ativar", p.uid, `${nomePlano(k)} · ${duracaoNeg(n)} · ${reaisPl(p.valor)} · negociação paga · até ${fim}`, "planos_pedidos:" + p.id);
+    await enviarAviso(p.uid, { titulo: `Seu plano ${nomePlano(k)} está ativo`, texto: `Recebemos o seu Pix de ${reaisPl(p.valor)}. O plano ${nomePlano(k)} vale até ${fim} para ${txtPerfis}. Obrigado!`, tipo: "info" }).catch(() => {});
     toast(`${nomePlano(k)} ativado`); C.irPara("planos");
   }
   async function recusar(p) {
@@ -1091,14 +1135,16 @@ export function planos(el) {
   async function encerrar(p) {
     if (!(await confirmarHF({ titulo: `Encerrar o ${nomePlano(p.plano)} agora?`, texto: "O selo e o destaque saem na hora. Use em caso de estorno ou erro.", ok: "Encerrar", icone: "alerta" }))) return;
     const { fb } = C;
-    await fb.setDoc(fb.doc(fb.db, "planos", p.uid), { plano: "gratis", ate: fb.Timestamp.fromMillis(agora()), ativadoEm: fb.serverTimestamp(), ativadoPor: C.eu.uid });
-    D.planos.set(p.uid, { plano: "gratis", ate: { toMillis: () => agora() } });
+    // Guarda de onde o plano veio (pedido/negociação): sem isso o site oferecia de novo o bônus da primeira assinatura.
+    const origem = {}; ["pedidoId", "negociacaoId"].forEach((k) => { if (p[k]) origem[k] = p[k]; });
+    await fb.setDoc(fb.doc(fb.db, "planos", p.uid), { plano: "gratis", ate: fb.Timestamp.fromMillis(agora()), ...origem, ativadoEm: fb.serverTimestamp(), ativadoPor: C.eu.uid });
+    D.planos.set(p.uid, { plano: "gratis", ate: { toMillis: () => agora() }, ...origem });
     await registrar("plano_encerrar", p.uid, `${nomePlano(p.plano)} encerrado pela equipe`);
     toast("Plano encerrado"); C.irPara("planos");
   }
 
   // ---------- condição especial (baixa renda) e parcerias pelos planos ----------
-  const ST_NEG = { novo: ["Novo", "atencao"], em_conversa: ["Em conversa", "info"], aprovado: ["Aprovado", "bom"], recusado: ["Não aprovado", "serio"], cancelado: ["Cancelado pela pessoa", "neutro"] };
+  const ST_NEG = { novo: ["Novo", "atencao"], em_conversa: ["Em conversa", "info"], aguardando_pagamento: ["Aprovado · esperando o pagamento", "atencao"], aprovado: ["Aprovado", "bom"], recusado: ["Não aprovado", "serio"], cancelado: ["Cancelado pela pessoa", "neutro"] };
   const negAbertaAd = (n) => n.status === "novo" || n.status === "em_conversa";
   // Só os donos do site cuidam dos planos: é para eles que a negociação pode ser passada.
   const donosSite = () => { const l = D.admins.filter((a) => a.papel === "dono"); return l.length ? l : D.admins; };
@@ -1132,7 +1178,7 @@ export function planos(el) {
       c.appendChild(pv);
     }
     const atual = D.planos.get(uid); if (nivelPlano(atual)) c.appendChild(h("div", "meta", `Hoje tem o ${nomePlano(atual.plano)} (${faltaTxt(atual)}).`));
-    if (n.status === "aprovado") c.appendChild(h("div", "meta", `Aprovado: ${nomePlano(n.planoConcedido)} por ${duracaoNeg(n)} · ${n.valorAcordado ? reaisPl(n.valorAcordado) + " combinado" : "sem custo"}${Array.isArray(n.tipos) && n.tipos.length ? ` · no ar: ${n.tipos.map((t) => NOMES_PERFIL[t] || t).join(", ")}` : " · todos os perfis"}${n.semSelo ? " · selo escondido" : ""}${n.decididoPor ? " · " + nomeEquipe(n.decididoPor) : ""} · ${dataHora(n.decididoEm)}`));
+    if (n.status === "aprovado" || n.status === "aguardando_pagamento") c.appendChild(h("div", "meta", `${n.status === "aprovado" ? `Aprovado${n.pedidoId ? " e pago" : ""}` : "Aprovado, esperando o pagamento"}: ${nomePlano(n.planoConcedido)} por ${duracaoNeg(n)} · ${n.valorAcordado ? reaisPl(n.valorAcordado) + " combinado" : "sem custo"}${Array.isArray(n.tipos) && n.tipos.length ? ` · no ar: ${n.tipos.map((t) => NOMES_PERFIL[t] || t).join(", ")}` : " · todos os perfis"}${n.semSelo ? " · selo escondido" : ""}${n.decididoPor ? " · " + nomeEquipe(n.decididoPor) : ""} · ${dataHora(n.decididoEm)}`));
     if (!negAbertaAd(n) && n.responsavel) c.appendChild(h("div", "meta", `Responsável: ${n.responsavelNome || nomeEquipe(n.responsavel)}`));
     if (n.resposta) c.appendChild(h("div", "meta", `Resposta: ${n.resposta}`));
     if (negAbertaAd(n)) c.appendChild(controlesResp("planos_negociacoes", n, { permitido: pode("dono"), membros: donosSite(), aoMudar: () => C.irPara("planos") }));
@@ -1141,6 +1187,12 @@ export function planos(el) {
       ac.append(btn("Aprovar e dar o plano", "pri", () => aprovarNeg(n)));
       if (n.status === "novo") ac.append(btn("Marcar em conversa", "", () => mudarNeg(n, { status: "em_conversa" }, "negociacao_conversa", "Em conversa")));
       ac.append(btn("Não aprovar", "perigo", () => recusarNeg(n)));
+    }
+    if (n.status === "aguardando_pagamento") {
+      const ped = D.planosPedidos.find((p) => p.negociacaoId === n.id && p.status === "pendente");
+      if (ped) ac.append(btn("Ver o pedido de pagamento", "pri", () => { filtroPlanos = "pendente"; C.irPara("planos"); }));
+      else c.appendChild(h("div", "meta", "A pessoa ainda não gerou o Pix (aparece em Esperando quando ela tocar em Pagar)."));
+      ac.append(btn("Cancelar a cobrança", "perigo", () => cancelarCobranca(n)));
     }
     ac.append(btn("Conversar pelo suporte", "", async () => { if (await abrirConversaSuporte(uid) && n.status === "novo") await mudarNeg(n, { status: "em_conversa" }, "negociacao_conversa", "Conversa aberta pelo suporte"); }), btn("Ver ficha", "", () => abrirFicha(uid)));
     c.appendChild(ac);
@@ -1175,7 +1227,7 @@ export function planos(el) {
     const doms = donosSite();
     const sugestao = String(Math.min(365, (n.mesesPedidos || 1) * 30));
     const ap = n.tipo === "apoio";
-    const v = await modal({ titulo: "Aprovar e dar o plano", texto: `${pessoa(uid).nome || n.nome || "A pessoa"} recebe o plano na hora e um aviso com a sua mensagem. Valor 0 = sem custo (cortesia ou parceria).`, campos: [
+    const v = await modal({ titulo: "Aprovar o pedido", texto: `Com valor: ${pessoa(uid).nome || n.nome || "a pessoa"} recebe um aviso para pagar pelo Pix, e o plano só liga quando você confirmar o pagamento (o tempo conta a partir daí). Valor 0 = sem custo (cortesia ou parceria): o plano liga na hora.`, campos: [
       { nome: "plano", rotulo: "Plano", tipo: "select", valor: n.plano, opcoes: ORDEM_PLANOS.map((k) => [k, `${PLANOS[k].nome} (${reaisPl(PLANOS[k].preco)}/mês)`]) },
       { nome: "duracao", rotulo: "Por quanto tempo", tipo: "select", valor: DURACOES.some(([k]) => k === sugestao) ? sugestao : "30", opcoes: DURACOES, ajuda: n.mesesPedidos ? `A pessoa pediu ${nMeses(n.mesesPedidos)}.` : "" },
       { nome: "data", rotulo: "Vale até", tipo: "date", valor: isoDe(agora() + 30 * DIA), seCampo: ["duracao", "data"] },
@@ -1199,27 +1251,40 @@ export function planos(el) {
     const { fb } = C;
     const ate = fb.Timestamp.fromMillis(ateMs);
     const resp = doms.find((a) => a.id === v.responsavel) ? v.responsavel : C.eu.uid;
-    const base = { status: "aprovado", planoConcedido: v.plano, meses, valorAcordado: valor, resposta: v.resposta.slice(0, 600) };
+    // Com valor, o plano espera o pagamento; sem custo, liga agora.
+    let cobrar = valor > 0;
+    const base = { status: cobrar ? "aguardando_pagamento" : "aprovado", planoConcedido: v.plano, meses, valorAcordado: valor, resposta: v.resposta.slice(0, 600) };
     const extrasNeg = { dias, ...(tipos ? { tipos } : {}), semSelo, responsavel: resp, responsavelNome: nomeEquipe(resp) };
     const planoBase = { plano: v.plano, ate, meses, negociacaoId: n.id, ativadoEm: fb.serverTimestamp(), ativadoPor: C.eu.uid };
     const planoExtras = { dias, ...(tipos ? { tipos } : {}), ...(semSelo ? { semSelo: true } : {}) };
     const gravar = async (comExtras) => {
       const lote = fb.writeBatch(fb.db);
       lote.update(fb.doc(fb.db, "planos_negociacoes", n.id), { ...base, ...(comExtras ? extrasNeg : {}), comprovante: fb.deleteField(), decididoPor: C.eu.uid, decididoEm: fb.serverTimestamp() });
-      lote.set(fb.doc(fb.db, "planos", uid), { ...planoBase, ...(comExtras ? planoExtras : {}) });
+      if (!cobrar) lote.set(fb.doc(fb.db, "planos", uid), { ...planoBase, ...(comExtras ? planoExtras : {}) });
       await lote.commit();
     };
     // Tempo em dias, perfis, selo e responsável são campos novos: com as regras antigas grava o plano sem eles e avisa.
     let semExtras = false;
     try { await gravar(true); }
-    catch (e) { if (e?.code !== "permission-denied") throw e; await gravar(false); semExtras = true; }
+    catch (e) {
+      if (e?.code !== "permission-denied") throw e;
+      // Regras sem a cobrança (publicadas antes): não dá para deixar esperando o pagamento. Pergunta se libera já.
+      if (cobrar) {
+        const ja = await confirmarHF({ titulo: "Cobrar antes de ativar ainda não funciona", texto: `As regras do ar ainda não têm a etapa "esperando o pagamento" (falta publicar as novas). Quer liberar o plano agora e combinar o pagamento de ${reaisPl(valor)} pelo Suporte?`, ok: "Liberar agora", icone: "alerta" });
+        if (!ja) return;
+        cobrar = false; base.status = "aprovado";
+      }
+      try { await gravar(true); } catch (e2) { if (e2?.code !== "permission-denied") throw e2; await gravar(false); semExtras = true; }
+    }
     Object.assign(n, base, semExtras ? {} : extrasNeg, { decididoPor: C.eu.uid, decididoEm: { toMillis: () => agora() } }); delete n.comprovante;
-    D.planos.set(uid, { ...planoBase, ...(semExtras ? {} : planoExtras), ativadoEm: { toMillis: () => agora() } });
+    if (!cobrar) D.planos.set(uid, { ...planoBase, ...(semExtras ? {} : planoExtras), ativadoEm: { toMillis: () => agora() } });
     const fim = new Date(ateMs).toLocaleDateString("pt-BR");
     const txtPerfis = tipos ? tipos.map((t) => NOMES_PERFIL[t]).join(", ") : "todos os perfis";
-    await registrar("negociacao_aprovar", uid, `${TIPOS_NEG_PL[n.tipo] || "Pedido"} · ${nomePlano(v.plano)} · ${dias} dias · ${valor ? reaisPl(valor) : "sem custo"} · até ${fim} · ${txtPerfis}${semSelo ? " · sem selo" : ""} · responsável ${nomeEquipe(resp)}`, "planos_negociacoes:" + n.id);
-    await enviarAviso(uid, { titulo: `Seu pedido foi aprovado: plano ${nomePlano(v.plano)}`, texto: `${v.resposta ? v.resposta + "\n\n" : ""}O plano ${nomePlano(v.plano)} vale até ${fim} para ${tipos ? `estes perfis: ${txtPerfis}` : "todos os seus negócios"}${valor ? ` (valor combinado: ${reaisPl(valor)})` : ""}.`, tipo: "info" }).catch(() => {});
-    toast(semExtras ? "Plano liberado. Perfis, selo e responsável valem depois que as regras novas forem publicadas." : "Plano liberado"); C.irPara("planos");
+    const duracao = dias % 30 ? `${dias} dias` : nMeses(dias / 30);
+    await registrar("negociacao_aprovar", uid, `${TIPOS_NEG_PL[n.tipo] || "Pedido"} · ${nomePlano(v.plano)} · ${dias} dias · ${valor ? reaisPl(valor) : "sem custo"} · ${cobrar ? "esperando o pagamento" : "até " + fim} · ${txtPerfis}${semSelo ? " · sem selo" : ""} · responsável ${nomeEquipe(resp)}`, "planos_negociacoes:" + n.id);
+    if (cobrar) await enviarAviso(uid, { titulo: `Pedido aprovado: pague ${reaisPl(valor)} para ativar o ${nomePlano(v.plano)}`, texto: `${v.resposta ? v.resposta + "\n\n" : ""}Condição aprovada: plano ${nomePlano(v.plano)} por ${duracao}, ${reaisPl(valor)} no total, para ${tipos ? `estes perfis: ${txtPerfis}` : "todos os seus negócios"}.\n\nPara pagar: abra Meus negócios e toque em "Condição aprovada" (ou Planos). O Pix sai com o valor certo. O plano liga quando o pagamento for confirmado, e o tempo começa a contar a partir daí.`, tipo: "info" }).catch(() => {});
+    else await enviarAviso(uid, { titulo: `Seu pedido foi aprovado: plano ${nomePlano(v.plano)}`, texto: `${v.resposta ? v.resposta + "\n\n" : ""}O plano ${nomePlano(v.plano)} vale até ${fim} para ${tipos ? `estes perfis: ${txtPerfis}` : "todos os seus negócios"}${valor ? ` (valor combinado: ${reaisPl(valor)})` : ""}.`, tipo: "info" }).catch(() => {});
+    toast(cobrar ? "Aprovado. O plano liga quando você confirmar o pagamento." : semExtras ? "Plano liberado. Perfis, selo e responsável valem depois que as regras novas forem publicadas." : "Plano liberado"); C.irPara("planos");
   }
   // Plano ativo: mudar o prazo, os perfis no ar e o selo (sem apagar de onde ele veio).
   async function ajustarPlano(p) {
@@ -1248,6 +1313,12 @@ export function planos(el) {
     await registrar("plano_ajustar", p.uid, `${nomePlano(p.plano)} · até ${new Date(ateMs).toLocaleDateString("pt-BR")} · ${txtPerfis}${semSelo ? " · sem selo" : ""}`);
     if (mudouPrazo || mudouPerfis) await enviarAviso(p.uid, { titulo: `Seu plano ${nomePlano(p.plano)} foi ajustado`, texto: `O plano ${nomePlano(p.plano)} agora vale até ${new Date(ateMs).toLocaleDateString("pt-BR")} para ${tipos ? `estes perfis: ${txtPerfis}` : "todos os seus negócios"}.`, tipo: "info" }).catch(() => {});
     toast("Plano ajustado"); C.irPara("planos");
+  }
+  async function cancelarCobranca(n) {
+    const v = await modal({ titulo: "Cancelar a cobrança?", texto: "A condição aprovada deixa de valer e a pessoa recebe um aviso. Se ela já gerou o Pix, recuse também o pedido em Esperando.", campos: [{ nome: "resposta", rotulo: "Mensagem para a pessoa", tipo: "textarea", max: 600, obrigatorio: true, valor: "Como o pagamento não chegou, a condição especial foi cancelada. Você pode pedir de novo quando quiser." }], botao: "Cancelar a cobrança", perigo: true });
+    if (!v) return;
+    await mudarNeg(n, { status: "recusado", resposta: v.resposta.slice(0, 600) }, "negociacao_recusar", `Cobrança cancelada: ${v.resposta}`);
+    await enviarAviso(n.uid || n.id, { titulo: "Sua condição especial foi cancelada", texto: v.resposta, tipo: "info" }).catch(() => {});
   }
   async function recusarNeg(n) {
     const v = await modal({ titulo: "Não aprovar o pedido?", texto: "A pessoa recebe um aviso com a sua resposta e pode pedir de novo depois.", campos: [{ nome: "resposta", rotulo: "Resposta", tipo: "textarea", max: 600, obrigatorio: true, valor: "Agora não conseguimos oferecer essa condição, mas você pode assinar um dos planos quando puder e pedir de novo mais para frente." }], botao: "Não aprovar", perigo: true });
