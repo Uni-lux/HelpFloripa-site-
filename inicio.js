@@ -347,11 +347,11 @@ async function montarPerto(fs, db, u, negocios, imoveis, nota) {
     const nome = await rotuloPosicao(pos);
     sub.textContent = pos.origem === "gps" ? `Do mais perto ao mais longe de onde você está${nome ? ` · ${nome}` : ""}` : `${pos.escolhida ? "Pela cidade escolhida" : "Pela cidade do seu perfil"}${nome ? ` · ${nome}` : ""}. Use a localização para ver mais exato.`;
     const itens = await comDistancia([...negocios.filter((n) => n.tipo !== "imoveis"), ...imoveis.map((a) => ({ ...a, tipo: "imoveis", _anuncio: true }))], pos);
-    // Plano Pro: aparece antes (conta como se estivesse 40% mais perto) e com o selo.
+    // Planos: o "mais perto no Perto de você" que o Pro e o Premium prometem (e um pouco para o Plus), com o selo.
     const comKm = itens.filter((x) => Number.isFinite(x._km));
     const fsb = { ...fs, db };
     await Promise.all([...new Set(comKm.map((x) => x.donoId).filter(Boolean))].map(async (id) => { const pl = await lerPlano(fsb, id).catch(() => null); const nv = nivelPlano(pl); comKm.forEach((x) => { if (x.donoId === id) { x._nivel = nv; x._plano = nv ? pl : null; } }); }));
-    // Plus conta 15% mais perto, Pro 40% e Premium 50% (todo plano pago aparece antes de quem não tem plano).
+    // Plus conta 15% mais perto, Pro 40% e Premium 50% (o maior destaque no Perto de você).
     const peso = (x) => (x._nivel >= 3 ? 0.5 : x._nivel === 2 ? 0.6 : x._nivel === 1 ? 0.85 : 1);
     const perto = comKm.sort((a, b) => a._km * peso(a) - b._km * peso(b));
     const raio = perto.filter((x) => x._km <= 60);

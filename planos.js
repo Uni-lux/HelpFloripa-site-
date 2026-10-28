@@ -429,6 +429,7 @@ export async function abrirPlanos(op) {
       tab.appendChild(l);
     });
     corpo.appendChild(tab);
+    corpo.appendChild(el("p", "pl-nota", "Como funciona a ordem das vitrines: 1 a cada 5 cartões é um espaço de destaque de quem tem plano (o Premium fica com o 1º lugar, depois vêm Pro e Plus). Os outros seguem a relevância, igual para todos (avaliações, atendimento, perfil completo, novidade e distância), com o bônus do plano. A ordem gira ao longo do dia, para que todos apareçam."));
 
     const secPer = el("div", "pl-sec"); corpo.appendChild(secPer);
     const per = el("div", "pl-periodos");
