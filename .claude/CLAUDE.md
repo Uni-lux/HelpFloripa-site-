@@ -1011,6 +1011,8 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   Premium = "1º lugar de cada vitrine e categoria (revezando entre os Premium), +30%". Textos em planos-base.js (PLANOS,
   DESTAQUES_PLANO, BENEFICIOS com linha "Bônus na ordem das vitrines" +10/20/30%), profissionais.html, ajuda.html e Termos
   seção 6 ("Ordem das vitrines"; nenhum plano garante vendas ou posição fixa além do descrito).
+  Também: Profissionais (cartão "Destaque na vitrine", listas dos 3 planos e FAQ "Como apareço primeiro?"), nota "Como
+  funciona a ordem das vitrines" embaixo da tabela da gaveta (planos.js) e comentários do Perto de você (inicio.js).
   Teste `t-relevancia.mjs`. Próximas partes: 2) Início e Explorar; 3) Diário (espaço para autores novos) + página "Como
   ordenamos os resultados". Etapa B (com Blaze): exibições somadas no servidor e ranking pré-calculado por cidade/categoria.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
