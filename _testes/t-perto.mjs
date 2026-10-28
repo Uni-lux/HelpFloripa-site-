@@ -25,23 +25,26 @@ console.log("  sub:", await p.textContent("#pertoSub"));
 const nomes = await p.locator("#trilhoPerto .mini strong").allTextContents();
 ok(nomes.length > 0 && !nomes.slice(0, 2).includes("Edu Pinturas"), "pela cidade do perfil: os de Florianópolis antes do de São Paulo: " + nomes.join(", "));
 ok((await p.locator("#trilhoPerto .dist").first().textContent()).length > 0, "distância no cartão: " + await p.locator("#trilhoPerto .dist").first().textContent());
-await p.click("#pertoLoc"); await p.waitForTimeout(2500);
+// Com a permissão já dada, o início lê a localização sozinho (local-escolhido.js) e o botão nem aparece.
+await p.waitForTimeout(2500); if (await p.locator("#pertoLoc").isVisible()) { await p.click("#pertoLoc"); await p.waitForTimeout(2500); }
 ok((await p.textContent("#pertoSub")).startsWith("Do mais perto") && await p.locator("#pertoLoc").isHidden(), "Usar minha localização (GPS): " + await p.textContent("#pertoSub"));
 await p.locator("#secPerto").scrollIntoViewIfNeeded(); await p.screenshot({ path: "saida/perto-inicio.png" });
 
 // ---------- vitrine ----------
+// "Todo o Brasil" escolhido à mão (senão a localização lida sozinha deixa só Florianópolis na lista).
+await p.evaluate(() => { localStorage.setItem("hf-busca-local", "{}"); localStorage.setItem("hf-local-manual", "1"); });
 await p.goto(BASE + "servicos.html"); await p.waitForTimeout(4000);
 await p.evaluate(() => document.querySelector(".hfman-x")?.click());
-ok((await p.locator(".cv-onde").allTextContents()).some((x) => /km|cidade/.test(x)), "vitrine: distância nos cartões");
+ok((await p.locator(".cv-onde").allTextContents()).some((x) => /\d|cidade/.test(x)), "vitrine: distância nos cartões");
 await p.locator(".vt-ordem button, .vt-ordem [role=tab]", { hasText: "Mais perto" }).first().click(); await p.waitForTimeout(800);
 const ordem = await p.locator("#vtGrade .vt-cv .nm").allTextContents();
 ok(ordem.length && ordem[ordem.length - 1] === "Edu Pinturas", "Mais perto: São Paulo por último: " + ordem.join(", "));
 await p.click("#vtFiltrosBtn"); await p.waitForTimeout(400);
-ok((await p.locator(".vt-filtros-pop").textContent()).includes("Distância"), "Filtros: seção Distância");
-await p.locator(".vt-f-chip", { hasText: "25 km" }).click(); await p.waitForTimeout(200);
-const btTx = await p.textContent(".vt-filtros-pop .vt-local-aplicar");
+ok((await p.locator(".vf-pop").textContent()).includes("Distância"), "Filtros: seção Distância");
+await p.locator(".vf-chip", { hasText: "25 km" }).click(); await p.waitForTimeout(200);
+const btTx = await p.textContent(".vf-aplicar");
 await p.screenshot({ path: "saida/perto-filtro.png" });
-await p.locator(".vt-filtros-pop .vt-local-aplicar").click(); await p.waitForTimeout(800);
+await p.locator(".vf-aplicar").click(); await p.waitForTimeout(800);
 const vis = await p.locator("#vitrine").textContent();
 ok(!vis.includes("Edu Pinturas") && vis.includes("Fabi Faxina") && (await p.locator(".vt-ativo").textContent()).includes("25 km"), `até 25 km: sem o de São Paulo (${btTx})`);
 await p.screenshot({ path: "saida/perto-vitrine.png" });

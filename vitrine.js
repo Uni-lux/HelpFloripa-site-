@@ -16,7 +16,8 @@ import { abrirQueixa } from "./queixas.js?v=14";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
 import { anelNegocio } from "./flash-negocio.js?v=10";
 import { camposEndereco, textoCidade, cidadesDe, NOME_UF, semAcento } from "./endereco.js?v=1";
-import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao } from "./perto.js?v=2";
+import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, esquecerPosicao, posicaoGuardada } from "./perto.js?v=2";
+import { lerLocal, escolherLocal, atualizarPeloGps, aoMudarLocal, escolhaManual } from "./local-escolhido.js?v=2";
 import { lerPlano, nivelPlano, seloPlano, nomePlano, negocioPausado, mostraSelo, classePlano, LIMITES_GRATIS } from "./planos-base.js?v=10";
 import { estaOnline } from "./presenca.js?v=1";
 import { PROFISSOES_SAUDE, CATEGORIAS_SAUDE, SITE_CONSELHO, MODALIDADES_SAUDE, PUBLICO_SAUDE, PUBLICO_VET, nomeProfissao, conselhoDe, ehVet, textoRegistro, textoValor, AVISO_EMERGENCIA, AVISO_REGISTRO } from "./saude-dados.js?v=1";
@@ -1810,9 +1811,9 @@ function passaCategoria(n, cat) {
 // ---------- filtro de local: Estado → Cidade (→ Bairro nos imóveis) ----------
 // Guardado no aparelho. Perfis antigos sem estado: a cidade em texto é comparada pelo nome
 // (as contas antigas são todas de SC, então "Florianópolis" sem estado conta como SC).
-const CHAVE_LOCAL = "hf-busca-local";
-let filtroLocal = {};
-try { filtroLocal = JSON.parse(localStorage.getItem(CHAVE_LOCAL) || "{}") || {}; } catch {}
+// Lugar escolhido: o MESMO do início ("Você está em", local-escolhido.js, chave hf-busca-local). Mudar aqui muda lá.
+let filtroLocal = lerLocal();
+let perfilEu = {};
 let nomesSC = null;
 const nomeSemUf = (c) => semAcento(String(c || "").replace(/\s*[\/,-]\s*[A-Za-z]{2}\s*$/, ""));
 function ufDe(n) {
@@ -1825,16 +1826,15 @@ function passaLocal(n) {
   const f = filtroLocal;
   if (!f.uf) return true;
   if (ufDe(n) !== f.uf) return false;
-  if (f.cidadeIbge && !(n.cidadeIbge ? n.cidadeIbge === f.cidadeIbge : nomeSemUf(n.cidade) === semAcento(f.cidade))) return false;
-  if (f.bairro && !semAcento(n.bairro).includes(semAcento(f.bairro))) return false;
+  if (f.cidadeIbge && !(n.cidadeIbge ? Number(n.cidadeIbge) === Number(f.cidadeIbge) : nomeSemUf(n.cidade) === semAcento(f.cidade))) return false;
   return true;
 }
-const rotuloLocal = () => (!filtroLocal.uf ? "Todo o Brasil" : filtroLocal.cidadeIbge ? textoCidade(filtroLocal) + (filtroLocal.bairro ? ` · ${filtroLocal.bairro}` : "") : NOME_UF[filtroLocal.uf]);
+const rotuloLocal = () => (!filtroLocal.uf ? "Todo o Brasil" : filtroLocal.cidadeIbge ? textoCidade(filtroLocal) : NOME_UF[filtroLocal.uf]);
 function pintarBotaoLocal() {
   const b = document.getElementById("vtLocalBtn"); if (!b) return;
   b.querySelector("span").textContent = rotuloLocal();
   b.classList.toggle("on", !!filtroLocal.uf);
-  b.setAttribute("aria-label", `Onde procurar: ${rotuloLocal()}. Tocar para mudar`);
+  b.setAttribute("aria-label", `Você está em: ${rotuloLocal()}. Tocar para mudar`);
 }
 function montarFiltroLocal() {
   const chips = document.getElementById("filterChips");
@@ -1846,46 +1846,26 @@ function montarFiltroLocal() {
   pintarBotaoLocal();
   if (filtroLocal.uf) cidadesDe("SC").then((l) => { nomesSC = new Set(l.map((c) => semAcento(c.nome))); renderizar(); }).catch(() => {});
 }
-function abrirFiltroLocal() {
-  if (document.getElementById("vtLocalPop")) return;
-  const fundo = el("div", "vt-local-fundo"); fundo.id = "vtLocalPop";
-  const cx = el("div", "vt-local-pop"); cx.setAttribute("role", "dialog"); cx.setAttribute("aria-modal", "true"); cx.setAttribute("aria-label", "Onde procurar");
-  const topo = el("div", "vt-local-topo"); topo.append(el("strong", null, "Onde procurar"));
-  const x = el("button", "vt-local-x"); x.type = "button"; x.setAttribute("aria-label", "Fechar"); x.textContent = "×"; topo.appendChild(x);
-  const campos = el("div", "vt-local-campos");
-  const local = camposEndereco(campos, { campos: TIPO === "imoveis" ? ["uf", "cidade", "bairro"] : ["uf", "cidade"], obrigatorios: [], valor: filtroLocal, rotuloCidade: "Cidade (opcional)" });
-  campos.querySelectorAll(".opcional").forEach((o) => o.remove());
-  const dica = el("small", "vt-local-dica", "Escolha só o estado para ver tudo dele, ou a cidade para ver só ela.");
-  const acoes = el("div", "vt-local-acoes");
-  const limpar = el("button", "vt-local-limpar", "Todo o Brasil"); limpar.type = "button";
-  const aplicar = el("button", "vt-local-aplicar", "Aplicar"); aplicar.type = "button";
-  acoes.append(limpar, aplicar);
-  cx.append(topo, campos, dica, acoes); fundo.appendChild(cx); document.body.appendChild(fundo);
-  setTimeout(() => campos.querySelector("select")?.focus(), 50);
-  const fechar = () => { fundo.remove(); document.removeEventListener("keydown", tecla); document.getElementById("vtLocalBtn")?.focus(); };
-  const tecla = (e) => { if (e.key === "Escape") fechar(); };
-  document.addEventListener("keydown", tecla);
-  fundo.addEventListener("click", (e) => { if (e.target === fundo) fechar(); });
-  x.addEventListener("click", fechar);
-  const salvar = async (f) => {
-    filtroLocal = f;
-    try { localStorage.setItem(CHAVE_LOCAL, JSON.stringify(f)); } catch {}
-    if (f.uf && !nomesSC) { try { nomesSC = new Set((await cidadesDe("SC")).map((c) => semAcento(c.nome))); } catch {} }
-    pintarBotaoLocal(); fechar();
-    // Local novo: busca de novo no servidor (os perfis daquele Estado/cidade), depois desenha.
-    if (localNoServidor && fb) {
-      todos = []; negociosImoveis.clear(); cursorNeg = cursorAn = null; maisNeg = maisAn = false;
-      try { await carregarLote(true); chipsDinamicos(); } catch (e) { console.warn("Vitrine:", e); }
-    }
-    renderizar();
-  };
-  limpar.addEventListener("click", () => salvar({}));
-  aplicar.addEventListener("click", () => {
-    const v = local.ler();
-    if (!v.uf) return salvar({});
-    salvar({ uf: v.uf, ...(v.cidadeIbge ? { cidade: v.cidade, cidadeIbge: v.cidadeIbge } : {}), ...(v.bairro && v.cidadeIbge ? { bairro: v.bairro } : {}) });
-  });
+// A mesma folha "Onde você está?" do início: localização atual, cidade do perfil, todo o Brasil ou Estado/Cidade.
+async function abrirFiltroLocal() {
+  const f = await escolherLocal({ perfil: perfilEu, pedirLocalizacao, esquecerPosicao });
+  if (f === null) return;
+  await aplicarLocal();
 }
+// Lugar novo (escolhido aqui, lido do GPS ou mudado em outra página): posição, busca no servidor e lista refeitas.
+async function aplicarLocal() {
+  filtroLocal = lerLocal();
+  if (filtroLocal.uf && !nomesSC) { try { nomesSC = new Set((await cidadesDe("SC")).map((c) => semAcento(c.nome))); } catch {} }
+  pintarBotaoLocal();
+  if (!fb) return renderizar();
+  await definirPosicao(await minhaPosicao(perfilEu).catch(() => null));
+  if (localNoServidor) {
+    todos = []; negociosImoveis.clear(); cursorNeg = cursorAn = null; maisNeg = maisAn = false;
+    try { await carregarLote(true); chipsDinamicos(); } catch (e) { console.warn("Vitrine:", e); }
+  }
+  renderizar();
+}
+aoMudarLocal(() => aplicarLocal());
 
 // ---------- Perto de você ----------
 // Posição da pessoa (GPS guardado no aparelho ou o centro da cidade do perfil) e a distância de cada item.
@@ -1964,18 +1944,33 @@ const FILTROS = {
     ["semFiador", "Sem fiador", (a) => (a.condicoes || []).includes("semFiador")]
   ]
 };
+// Grupos da gaveta (título, ícone, chaves de FILTROS). O que não estiver num grupo vai para "Mais opções".
+const GRUPOS_FILTRO = {
+  servicos: [["Disponibilidade", "relogio", ["agora", "online", "domicilio", "urgencia"]], ["Confiança", "escudo", ["nota4", "garantia"]], ["Preço e ofertas", "cupom", ["orcamento", "promo"]]],
+  delivery: [["Agora", "relogio", ["aberto", "rapido"]], ["Entrega e pagamento", "moto", ["gratis", "retirada", "pix"]], ["Ofertas e avaliação", "cupom", ["promo", "nota4"]]],
+  lojinha: [["Ofertas", "cupom", ["promo", "desconto"]], ["Entrega e pagamento", "sacola", ["entrega", "retirada", "pix"]], ["Avaliação", "estrela", ["nota4"]]],
+  saude: [["Como atende", "estetoscopio", ["online", "domicilio", "consultorio", "agora"]], ["Pagamento", "cartao", ["convenio", "particular", "promo"]], ["Confiança", "escudo", ["registro", "nota4"]], ["Acessibilidade", "casa", ["acessivel", "criancas"]]],
+  imoveis: [["Comodidades", "casa", ["mobiliado", "pets", "vaga", "piscina", "vistaMar"]], ["Condições", "escudo", ["semFiador", "fotos"]]]
+};
+// Faixas de preço por página: [valor, rótulo]. Freelances = "a partir de"; Saúde = consulta; Imóveis = preço do anúncio.
+const PRECOS_FILTRO = {
+  servicos: ["Preço a partir de, até", [[0, "Qualquer"], [50, "R$ 50"], [100, "R$ 100"], [200, "R$ 200"], [500, "R$ 500"]]],
+  saude: ["Consulta até", [[0, "Qualquer"], [100, "R$ 100"], [200, "R$ 200"], [300, "R$ 300"], [500, "R$ 500"]]],
+  imoveis: ["Preço até", [[0, "Qualquer"], [1500, "R$ 1.500"], [2500, "R$ 2.500"], [4000, "R$ 4.000"], [500000, "R$ 500 mil"], [1000000, "R$ 1 milhão"]]]
+};
+const precoFiltro = (n) => (TIPO === "servicos" ? Number(n.precoDesde) : TIPO === "saude" ? Number(n.saude?.valorConsulta) : Number(n.preco));
 const CHAVE_FILTROS = `hf-filtros-${TIPO}`;
-let filtrosX = { liga: [], quartos: 0, precoMax: 0, raio: 0 };
-try { const f = JSON.parse(localStorage.getItem(CHAVE_FILTROS) || "null"); if (f) filtrosX = { liga: Array.isArray(f.liga) ? f.liga : [], quartos: Number(f.quartos) || 0, precoMax: Number(f.precoMax) || 0, raio: Number(f.raio) || 0 }; } catch {}
+const FILTROS_VAZIO = () => ({ liga: [], quartos: 0, precoMax: 0, raio: 0, bairro: "" });
+let filtrosX = FILTROS_VAZIO();
+try { const f = JSON.parse(localStorage.getItem(CHAVE_FILTROS) || "null"); if (f) filtrosX = { liga: Array.isArray(f.liga) ? f.liga : [], quartos: Number(f.quartos) || 0, precoMax: Number(f.precoMax) || 0, raio: Number(f.raio) || 0, bairro: typeof f.bairro === "string" ? f.bairro : "" }; } catch {}
 const opcoesFiltro = () => FILTROS[TIPO] || [];
-const filtrosLigados = () => filtrosX.liga.filter((k) => opcoesFiltro().some((o) => o[0] === k)).length + (filtrosX.quartos ? 1 : 0) + (filtrosX.precoMax ? 1 : 0) + (filtrosX.raio ? 1 : 0);
+const filtrosLigados = (f = filtrosX) => f.liga.filter((k) => opcoesFiltro().some((o) => o[0] === k)).length + (f.quartos ? 1 : 0) + (f.precoMax ? 1 : 0) + (f.raio ? 1 : 0) + (f.bairro ? 1 : 0);
 function passaExtras(n, f = filtrosX) {
   for (const k of f.liga) { const o = opcoesFiltro().find((x) => x[0] === k); if (o && !o[2](n)) return false; }
   if (f.raio && posEu && !(kmDe(n) <= f.raio)) return false;
-  if (TIPO === "imoveis") {
-    if (f.quartos && !(Number(n.quartos) >= f.quartos)) return false;
-    if (f.precoMax && !(Number(n.preco) > 0 && Number(n.preco) <= f.precoMax)) return false;
-  }
+  if (f.precoMax && PRECOS_FILTRO[TIPO] && !(precoFiltro(n) > 0 && precoFiltro(n) <= f.precoMax)) return false;
+  if (f.bairro && semAcento(n.bairro || "") !== semAcento(f.bairro)) return false;
+  if (TIPO === "imoveis" && f.quartos && !(Number(n.quartos) >= f.quartos)) return false;
   return true;
 }
 function guardarFiltros() { try { localStorage.setItem(CHAVE_FILTROS, JSON.stringify(filtrosX)); } catch {} }
@@ -2003,72 +1998,153 @@ function pintarFiltrosAtivos() {
   if (filtrosX.quartos) pilula(`${filtrosX.quartos}+ quartos`, () => { filtrosX.quartos = 0; });
   if (filtrosX.precoMax) pilula(`Até ${moeda(filtrosX.precoMax)}`, () => { filtrosX.precoMax = 0; });
   if (filtrosX.raio) pilula(`Até ${filtrosX.raio} km`, () => { filtrosX.raio = 0; });
-  if (n > 1) { const l = el("button", "vt-ativo limpar", "Limpar tudo"); l.type = "button"; l.addEventListener("click", () => { filtrosX = { liga: [], quartos: 0, precoMax: 0, raio: 0 }; guardarFiltros(); pintarFiltrosAtivos(); renderizar(); }); box.appendChild(l); }
+  if (filtrosX.bairro) pilula(filtrosX.bairro, () => { filtrosX.bairro = ""; });
+  if (n > 1) { const l = el("button", "vt-ativo limpar", "Limpar tudo"); l.type = "button"; l.addEventListener("click", () => { filtrosX = FILTROS_VAZIO(); guardarFiltros(); pintarFiltrosAtivos(); renderizar(); }); box.appendChild(l); }
   box.hidden = !n;
 }
+// Ordenação da página (a mesma das abas em cima da lista), para escolher também dentro dos filtros.
+function ordemDaPagina() {
+  if (TIPO === "servicos") return [ORDENS_SERV, () => ordemServ, (k) => { ordemServ = k; }];
+  if (TIPO === "saude") return [ORDENS_SAUDE, () => ordemSaude, (k) => { ordemSaude = k; }];
+  if (TIPO === "delivery") return [ORDENS_DELIVERY, () => ordemDelivery, (k) => { ordemDelivery = k; }];
+  if (TIPO === "lojinha") return [ORDENS_PRODUTO, () => ordemProduto, (k) => { ordemProduto = k; }];
+  return [ORDENS_IMOVEL, () => ordemImovel, (k) => { ordemImovel = k; }];
+}
+// Gaveta de filtros: onde você está, distância, ordenar, opções em grupos (com quantos têm cada uma), preço,
+// quartos e bairro (Imóveis). O botão de baixo mostra quantos resultados ficam, ao vivo.
 function abrirFiltros() {
   if (document.getElementById("vtFiltrosPop")) return;
-  const rasc = { liga: [...filtrosX.liga], quartos: filtrosX.quartos, precoMax: filtrosX.precoMax, raio: filtrosX.raio };
-  const fundo = el("div", "vt-local-fundo vt-filtros-fundo"); fundo.id = "vtFiltrosPop";
-  const cx = el("div", "vt-local-pop vt-filtros-pop"); cx.setAttribute("role", "dialog"); cx.setAttribute("aria-modal", "true"); cx.setAttribute("aria-label", "Filtros");
-  const topo = el("div", "vt-local-topo"); topo.append(el("strong", null, "Filtros"));
-  const x = el("button", "vt-local-x"); x.type = "button"; x.setAttribute("aria-label", "Fechar"); x.textContent = "×"; topo.appendChild(x);
-  const corpo = el("div", "vt-filtros-corpo");
-  const sec = (t) => { const d = el("div", "vt-f-sec"); d.appendChild(el("h4", null, t)); corpo.appendChild(d); return d; };
-  const chipF = (rot, on, mudar) => { const c = el("button", "vt-f-chip" + (on ? " on" : ""), rot); c.type = "button"; c.setAttribute("aria-pressed", String(on)); c.addEventListener("click", () => { mudar(); pintar(); }); return c; };
-  const aplicar = el("button", "vt-local-aplicar"); aplicar.type = "button";
-  const pintar = () => {
-    corpo.replaceChildren();
-    // Distância: com GPS é exata; com a cidade do perfil, aproximada.
-    const s0 = sec("Distância");
-    const onde = el("div", "vt-f-onde");
-    const usar = el("button", "vt-f-loc"); usar.type = "button";
-    usar.append(icone("pin", "vi s"), document.createTextNode(posEu?.origem === "gps" ? "Atualizar minha localização" : "Usar minha localização"));
-    usar.addEventListener("click", async () => {
-      usar.disabled = true; usar.lastChild.textContent = "Localizando...";
-      try { await definirPosicao(await pedirLocalizacao()); } catch (e) { toast(e?.message || "Não foi possível pegar a localização."); }
-      pintar();
-    });
-    onde.append(el("span", null, posEu ? `${posEu.origem === "gps" ? "Você está perto de" : "Pela cidade do seu perfil:"} ${rotuloEu || "sua região"}` : "Ative a localização para filtrar pela distância."), usar);
-    s0.appendChild(onde);
-    if (posEu) {
-      const g0 = el("div", "vt-f-seg seis");
-      [[0, "Qualquer"], [2, "2 km"], [5, "5 km"], [10, "10 km"], [25, "25 km"], [50, "50 km"]].forEach(([v, rot]) => g0.appendChild(chipF(rot, rasc.raio === v, () => { rasc.raio = v; })));
-      s0.appendChild(g0);
-    }
-    const s1 = sec(TIPO === "imoveis" ? "Comodidades" : "Mostrar só");
-    const g1 = el("div", "vt-f-chips");
-    opcoesFiltro().forEach(([k, rot]) => g1.appendChild(chipF(rot, rasc.liga.includes(k), () => { rasc.liga = rasc.liga.includes(k) ? rasc.liga.filter((y) => y !== k) : [...rasc.liga, k]; })));
-    s1.appendChild(g1);
-    if (TIPO === "imoveis") {
-      const s2 = sec("Quartos");
-      const g2 = el("div", "vt-f-seg");
-      [[0, "Todos"], [1, "1+"], [2, "2+"], [3, "3+"], [4, "4+"]].forEach(([v, rot]) => g2.appendChild(chipF(rot, rasc.quartos === v, () => { rasc.quartos = v; })));
-      s2.appendChild(g2);
-      const s3 = sec("Preço até");
-      const g3 = el("div", "vt-f-chips");
-      [[0, "Qualquer"], [1500, "R$ 1.500"], [2500, "R$ 2.500"], [4000, "R$ 4.000"], [500000, "R$ 500 mil"], [1000000, "R$ 1 milhão"]].forEach(([v, rot]) => g3.appendChild(chipF(rot, rasc.precoMax === v, () => { rasc.precoMax = v; })));
-      s3.appendChild(g3);
-    }
-    const { cat, termo } = filtroAtual();
-    const total = todos.filter((n) => passaCategoria(n, cat) && passaLocal(n) && (!termo || textoBusca(n).includes(termo)) && passaExtras(n, rasc)).length;
-    const algum = !!(rasc.liga.length || rasc.quartos || rasc.precoMax || rasc.raio);
-    aplicar.textContent = !algum ? "Mostrar todos" : total ? `Ver ${total} ${total === 1 ? "resultado" : "resultados"}` : "Nenhum resultado";
-    aplicar.disabled = algum && !total;
+  const rasc = { ...filtrosX, liga: [...filtrosX.liga] };
+  const [ordens, ordemAtual, mudarOrdem] = ordemDaPagina();
+  let ordemRasc = ordemAtual();
+  const fundo = el("div", "vt-local-fundo vt-filtros-fundo vf"); fundo.id = "vtFiltrosPop";
+  // A gaveta fica fora da .vitrine: leva junto a cor da página.
+  const cs = getComputedStyle(document.getElementById("vitrine") || document.querySelector(".vitrine") || document.body);
+  ["--vc", "--vc-ink"].forEach((v) => { const c = cs.getPropertyValue(v).trim(); if (c) fundo.style.setProperty(v, c); });
+  const cx = el("div", "vf-pop"); cx.setAttribute("role", "dialog"); cx.setAttribute("aria-modal", "true"); cx.setAttribute("aria-label", "Filtros");
+  const topo = el("div", "vf-topo");
+  const tt = el("div", "vf-tit"); const sub = el("small");
+  tt.append(el("strong", null, "Filtros"), sub);
+  const x = el("button", "vf-x"); x.type = "button"; x.setAttribute("aria-label", "Fechar"); x.dataset.fechar = ""; x.appendChild(icone("fechar"));
+  topo.append(el("span", "vf-alca"), tt, x);
+  const corpo = el("div", "vf-corpo");
+  const rod = el("div", "vf-rod");
+  const limpar = el("button", "vf-limpar", "Limpar tudo"); limpar.type = "button";
+  const aplicar = el("button", "vf-aplicar"); aplicar.type = "button";
+  rod.append(limpar, aplicar);
+  const sec = (titulo, ic, extra) => {
+    const d = el("section", "vf-sec");
+    const h = el("h4"); const i = el("span", "vf-ic"); i.appendChild(icone(ic, "vi s")); h.append(i, el("span", null, titulo));
+    if (extra) h.appendChild(extra);
+    d.appendChild(h); corpo.appendChild(d); return d;
   };
-  const acoes = el("div", "vt-local-acoes");
-  const limpar = el("button", "vt-local-limpar", "Limpar"); limpar.type = "button";
-  acoes.append(limpar, aplicar);
-  cx.append(topo, corpo, acoes); fundo.appendChild(cx); document.body.appendChild(fundo);
+  const chip = (rot, on, mudar, n = null) => {
+    const c = el("button", "vf-chip" + (on ? " on" : "")); c.type = "button"; c.setAttribute("aria-pressed", String(on));
+    if (on) c.appendChild(icone("check", "vi s"));
+    c.appendChild(el("span", null, rot));
+    if (n !== null) c.appendChild(el("em", null, String(n)));
+    if (n === 0 && !on) c.classList.add("zero");
+    c.addEventListener("click", () => { mudar(); pintar(); });
+    return c;
+  };
+  // Lista da página sem os filtros da gaveta (categoria, lugar e busca já valem): base das contagens.
+  const { cat, termo } = filtroAtual();
+  const base = () => todos.filter((n) => passaCategoria(n, cat) && passaLocal(n) && (!termo || textoBusca(n).includes(termo)));
+  const pintar = () => {
+    const rolagem = corpo.scrollTop;
+    corpo.replaceChildren();
+    const lista = base();
+    const com = (f) => lista.filter((n) => passaExtras(n, f)).length;
+    // 1) Onde você está: a mesma escolha do início
+    const s0 = sec("Onde você está", "pin");
+    const card = el("button", "vf-onde"); card.type = "button";
+    const txt = el("span", "vf-onde-tx");
+    const origem = posEu?.origem === "gps" && !escolhaManual() ? "Pela sua localização" : filtroLocal.uf ? "Escolhido por você" : "Mostrando de todas as cidades";
+    txt.append(el("strong", null, rotuloLocal()), el("small", null, origem));
+    card.append(icone("pin", "vi"), txt, el("span", "vf-mudar", "Mudar"));
+    card.addEventListener("click", async () => {
+      const f = await escolherLocal({ perfil: perfilEu, pedirLocalizacao, esquecerPosicao });
+      if (f === null) return;
+      await aplicarLocal(); pintar();
+    });
+    s0.appendChild(card);
+    // 2) Distância (com GPS é exata; com a cidade, aproximada)
+    if (posEu) {
+      const s1 = sec("Distância", "rota", el("small", "vf-dica", posEu.origem === "gps" ? `de ${rotuloEu || "você"}` : "aproximada, pelo centro da cidade"));
+      const g = el("div", "vf-seg");
+      [[0, "Qualquer"], [2, "2 km"], [5, "5 km"], [10, "10 km"], [25, "25 km"], [50, "50 km"]].forEach(([v, rot]) => g.appendChild(chip(rot, rasc.raio === v, () => { rasc.raio = v; })));
+      s1.appendChild(g);
+    }
+    // 3) Ordenar por
+    const s2 = sec("Ordenar por", "filtro");
+    const go = el("div", "vf-chips");
+    Object.entries(ordens).forEach(([k, [rot]]) => go.appendChild(chip(rot, ordemRasc === k, () => { ordemRasc = k; })));
+    s2.appendChild(go);
+    // 4) Opções em grupos, com quantos resultados cada uma deixaria
+    const usadas = new Set();
+    const grupos = [...(GRUPOS_FILTRO[TIPO] || [])];
+    const resto = opcoesFiltro().map((o) => o[0]).filter((k) => !grupos.some((g) => g[2].includes(k)));
+    if (resto.length) grupos.push(["Mais opções", "mais", resto]);
+    grupos.forEach(([titulo, ic, chaves]) => {
+      const ops = chaves.map((k) => opcoesFiltro().find((o) => o[0] === k)).filter(Boolean).filter((o) => !usadas.has(o[0]));
+      if (!ops.length) return;
+      const sx = sec(titulo, ic);
+      const g = el("div", "vf-chips");
+      ops.forEach(([k, rot]) => {
+        usadas.add(k);
+        const on = rasc.liga.includes(k);
+        const n = com({ ...rasc, liga: on ? rasc.liga : [...rasc.liga, k] });
+        g.appendChild(chip(rot, on, () => { rasc.liga = on ? rasc.liga.filter((y) => y !== k) : [...rasc.liga, k]; }, n));
+      });
+      sx.appendChild(g);
+    });
+    // 5) Preço
+    if (PRECOS_FILTRO[TIPO]) {
+      const [tit, faixas] = PRECOS_FILTRO[TIPO];
+      const sp = sec(tit, "cupom");
+      const g = el("div", "vf-chips");
+      faixas.forEach(([v, rot]) => g.appendChild(chip(rot, rasc.precoMax === v, () => { rasc.precoMax = v; })));
+      sp.appendChild(g);
+    }
+    // 6) Imóveis: quartos e bairro (os bairros que têm anúncio no lugar escolhido)
+    if (TIPO === "imoveis") {
+      const sq = sec("Quartos", "cama");
+      const g = el("div", "vf-seg");
+      [[0, "Todos"], [1, "1+"], [2, "2+"], [3, "3+"], [4, "4+"]].forEach(([v, rot]) => g.appendChild(chip(rot, rasc.quartos === v, () => { rasc.quartos = v; })));
+      sq.appendChild(g);
+      const bairros = new Map();
+      lista.forEach((a) => { const b = String(a.bairro || "").trim(); if (b) bairros.set(semAcento(b), [b, (bairros.get(semAcento(b))?.[1] || 0) + 1]); });
+      if (bairros.size > 1 || rasc.bairro) {
+        const sb = sec("Bairro", "casa");
+        const gb = el("div", "vf-chips");
+        gb.appendChild(chip("Todos", !rasc.bairro, () => { rasc.bairro = ""; }));
+        [...bairros.values()].sort((a, b) => b[1] - a[1]).slice(0, 14).forEach(([b, q]) => gb.appendChild(chip(b, semAcento(rasc.bairro) === semAcento(b), () => { rasc.bairro = semAcento(rasc.bairro) === semAcento(b) ? "" : b; }, q)));
+        sb.appendChild(gb);
+      }
+    }
+    const total = com(rasc), n = filtrosLigados(rasc);
+    sub.textContent = n ? `${n} ${n === 1 ? "filtro ligado" : "filtros ligados"}` : `${lista.length} ${lista.length === 1 ? "resultado" : "resultados"} em ${rotuloLocal()}`;
+    aplicar.textContent = total ? `Ver ${total} ${total === 1 ? "resultado" : "resultados"}` : "Nenhum resultado";
+    aplicar.disabled = !total && n > 0;
+    limpar.disabled = !n;
+    corpo.scrollTop = rolagem;
+  };
+  cx.append(topo, corpo, rod); fundo.appendChild(cx); document.body.appendChild(fundo);
   const fechar = () => { fundo.remove(); document.removeEventListener("keydown", tecla); document.getElementById("vtFiltrosBtn")?.focus(); };
   const tecla = (e) => { if (e.key === "Escape") fechar(); };
   document.addEventListener("keydown", tecla);
   fundo.addEventListener("click", (e) => { if (e.target === fundo) fechar(); });
   x.addEventListener("click", fechar);
-  limpar.addEventListener("click", () => { rasc.liga = []; rasc.quartos = 0; rasc.precoMax = 0; rasc.raio = 0; pintar(); });
-  aplicar.addEventListener("click", () => { filtrosX = rasc; guardarFiltros(); pintarFiltrosAtivos(); fechar(); renderizar(); document.getElementById("vitrine")?.scrollIntoView({ behavior: "smooth", block: "start" }); });
+  limpar.addEventListener("click", () => { Object.assign(rasc, FILTROS_VAZIO()); pintar(); });
+  aplicar.addEventListener("click", async () => {
+    filtrosX = rasc; guardarFiltros(); pintarFiltrosAtivos();
+    const mudouOrdem = ordemRasc !== ordemAtual();
+    mudarOrdem(ordemRasc); fechar();
+    if (mudouOrdem) await garantirPosicao(ordemRasc);
+    renderizar(); document.getElementById("vitrine")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
   pintar();
-  setTimeout(() => cx.querySelector(".vt-f-chip")?.focus({ preventScroll: true }), 50);
+  setTimeout(() => cx.querySelector(".vf-onde")?.focus({ preventScroll: true }), 60);
 }
 
 function textoBusca(n) {
@@ -2131,6 +2207,7 @@ const onlineAgora = (n) => estaOnline(donos.get(n.donoId)?.ultimoAcesso);
 function bolhaPro(n) {
   const c = el("button", "fl-bolha");
   c.type = "button";
+  const padrao = { servicos: "Freelancer", delivery: "Delivery", lojinha: "Loja", saude: "Profissional", imoveis: "Anunciante" }[TIPO] || "Perfil";
   const k = mostraSelo(planosDonos.get(n.donoId)) ? planosDonos.get(n.donoId).plano : "";
   if (k) c.classList.add("pl-" + k);
   const anel = el("span", "fl-anel");
@@ -2138,7 +2215,7 @@ function bolhaPro(n) {
   if (onlineAgora(n)) { const o = el("i", "fl-bolha-on"); o.title = "Online agora"; anel.appendChild(o); }
   const r = notaDe(n);
   const sub = el("small", null, r?.total ? `★ ${media(r).toFixed(1).replace(".", ",")}` : "Novo");
-  c.append(anel, el("span", "fl-bolha-nome", String(n.nome || "Freelancer").split(/\s+/).slice(0, 2).join(" ")), sub);
+  c.append(anel, el("span", "fl-bolha-nome", String(n.nome || padrao).split(/\s+/).slice(0, 2).join(" ")), sub);
   c.setAttribute("aria-label", `${n.nome}${onlineAgora(n) ? ", online agora" : ""}`);
   c.addEventListener("click", () => abrirDetalhe(n));
   return c;
@@ -2172,6 +2249,17 @@ function bolhasProfissionais(lista) {
   pintar();
   return sec;
 }
+// Destaques das páginas sem um próprio (Delivery, Saúde, Shopping): plano (Premium > Pro > Plus) e nota, revezando
+// os 12 melhores a cada visita para não mostrar sempre os mesmos.
+function secaoDestaques(lista, titulo, tile) {
+  if (lista.length < 3) return null;
+  const melhores = [...lista].sort((a, b) => nivelDe(b) - nivelDe(a) || pontuacao(b) - pontuacao(a) || tsMs(b.atualizadoEm) - tsMs(a.atualizadoEm)).slice(0, 12);
+  const pagos = melhores.filter((n) => nivelDe(n) > 0), resto = melhores.filter((n) => !(nivelDe(n) > 0));
+  for (let i = resto.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [resto[i], resto[j]] = [resto[j], resto[i]]; }
+  return carrossel(titulo, [...pagos, ...resto].slice(0, 10).map(tile), "top-cat");
+}
+// Imóveis: as bolinhas são dos anunciantes (perfil Imóveis de quem tem anúncio na lista).
+const anunciantesDe = (anuncios) => [...new Map(anuncios.map((a) => [a.donoId, negociosImoveis.get(a.donoId)]).filter(([, n]) => n)).values()];
 const SEM_MOVIMENTO = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // Nome do cartão com o selo Pro ao lado (quando a conta tem o plano).
@@ -2634,7 +2722,7 @@ function renderizar() {
   const vazio = () => {
     const v = el("div", "vt-vazio");
     v.append(el("strong", null, todos.length ? "Nada encontrado com esse filtro" : TEXTOS[TIPO].vazio), todos.length ? (filtrosLigados() ? "Tire algum filtro ou tente outra categoria." : "Tente outra categoria ou palavra.") : "Seja o primeiro: crie seu perfil de negócio pelo seu perfil.");
-    if (todos.length && filtrosLigados()) { const l = el("button", "vt-criar"); l.type = "button"; l.textContent = "Limpar filtros"; l.addEventListener("click", () => { filtrosX = { liga: [], quartos: 0, precoMax: 0, raio: 0 }; guardarFiltros(); pintarFiltrosAtivos(); renderizar(); }); v.append(document.createElement("br"), l); }
+    if (todos.length && filtrosLigados()) { const l = el("button", "vt-criar"); l.type = "button"; l.textContent = "Limpar filtros"; l.addEventListener("click", () => { filtrosX = FILTROS_VAZIO(); guardarFiltros(); pintarFiltrosAtivos(); renderizar(); }); v.append(document.createElement("br"), l); }
     if (!todos.length) { const a = el("a", "vt-criar"); a.href = `negocios.html?tipo=${TIPO}`; a.append(icone("mais"), document.createTextNode(TEXTOS[TIPO].criar)); v.append(document.createElement("br"), a); }
     grade.appendChild(v);
   };
@@ -2642,7 +2730,9 @@ function renderizar() {
 
   if (TIPO === "lojinha") {
     // Lojas no topo (bolinhas) e os produtos de todas as lojas.
-    if (lista.length) dest.appendChild(carrossel("Lojas", lista.map(bolhaLoja), "lojas"));
+    const bolhasLojas = !filtrando && bolhasProfissionais(lista);
+    if (bolhasLojas) dest.appendChild(bolhasLojas);
+    else if (lista.length) dest.appendChild(carrossel("Lojas", lista.map(bolhaLoja), "lojas"));
     const produtos = [];
     lista.forEach((n) => (n.itens || []).forEach((i, idx) => {
       if (!i?.nome) return;
@@ -2651,6 +2741,12 @@ function renderizar() {
       produtos.push({ n, i, idx });
     }));
     if (!produtos.length) return vazio();
+    // Destaques: 1 produto (com foto e em estoque) de cada loja em destaque.
+    if (!filtrando && lista.length >= 2) {
+      const lojas = [...lista].sort((a, b) => nivelDe(b) - nivelDe(a) || pontuacao(b) - pontuacao(a)).slice(0, 10);
+      const escolhidos = lojas.map((n) => produtos.find((p) => p.n === n && urlSegura(p.i.foto) && estoqueDe(p.i) !== 0) || produtos.find((p) => p.n === n && estoqueDe(p.i) !== 0)).filter(Boolean);
+      if (escolhidos.length >= 2) dest.appendChild(carrossel("Destaques das lojas", escolhidos.map(({ n, i, idx }) => tornarClicavel(cartaoProduto(n, i, idx), () => abrirProduto(n, idx), `Ver ${i.nome}`)), "top-cat"));
+    }
     produtos.sort((a, b) => ORDENS_PRODUTO[ordemProduto][1](a, b) || (estoqueDe(a.i) === 0) - (estoqueDe(b.i) === 0));
     grade.appendChild(barraLista(titulo("Todos os produtos"), produtos.length, ORDENS_PRODUTO, ordemProduto, (k) => { ordemProduto = k; garantirPosicao(k).then(renderizar); }));
     mostrarItens(grade, produtos, {
@@ -2676,6 +2772,10 @@ function renderizar() {
     });
   } else if (TIPO === "saude") {
     // Online agora / atendendo agora em cima; depois todos, agrupados pela profissão.
+    const bolhas = !filtrando && bolhasProfissionais(lista);
+    if (bolhas) dest.appendChild(bolhas);
+    const top = !filtrando && secaoDestaques(lista, "Profissionais em destaque", cartaoSaude);
+    if (top) dest.appendChild(top);
     const online = lista.filter((n) => (n.saude?.modalidades || []).includes("online"));
     if (!filtrando && online.length >= 2) dest.appendChild(carrossel("Atendem online", online.sort(ORDENS_SAUDE.melhores[1]).slice(0, 10).map(cartaoSaude), "online"));
     grade.appendChild(barraLista(titulo("Todos os profissionais de saúde"), lista.length, ORDENS_SAUDE, ordemSaude, (k) => { ordemSaude = k; garantirPosicao(k).then(renderizar); }));
@@ -2684,6 +2784,10 @@ function renderizar() {
       grupos: (n) => chaveCat(n, n.categoria || n.saude?.profissao || "outros"), nomeGrupo: (g) => (g.startsWith("c:") ? g.slice(2) : CATEGORIAS.saude[g] || "Outros")
     });
   } else if (TIPO === "delivery") {
+    const bolhas = !filtrando && bolhasProfissionais(lista);
+    if (bolhas) dest.appendChild(bolhas);
+    const top = !filtrando && secaoDestaques(lista, "Destaques do delivery", tileDelivery);
+    if (top) dest.appendChild(top);
     const abertos = lista.filter((n) => abertoAgora(n) === true);
     if (!filtrando && abertos.length) dest.appendChild(carrossel("Abertos agora", abertos.slice(0, 10).map((n) => tornarClicavel(cartaoDelivery(n), () => abrirDetalhe(n), `Ver ${n.nome}`)), "abertos"));
     const ordem = [...lista].sort((a, b) => ORDENS_DELIVERY[ordemDelivery][1](a, b) || (abertoAgora(b) === true) - (abertoAgora(a) === true));
@@ -2693,6 +2797,8 @@ function renderizar() {
       grupos: (n) => chaveCat(n, n.categoria || "outros"), nomeGrupo: (g) => (g.startsWith("c:") ? g.slice(2) : CATEGORIAS.delivery[g] || "Outros")
     });
   } else {
+    const bolhas = !filtrando && bolhasProfissionais(anunciantesDe(lista));
+    if (bolhas) dest.appendChild(bolhas);
     const top = !filtrando && secaoDestaquesImoveis(lista);
     if (top) dest.appendChild(top);
     grade.appendChild(barraLista(titulo("Todos os imóveis"), lista.length, ORDENS_IMOVEL, ordemImovel, (k) => { ordemImovel = k; garantirPosicao(k).then(renderizar); }));
@@ -2893,6 +2999,7 @@ async function iniciar() {
     try {
       // Onde a pessoa está: GPS guardado no aparelho ou a cidade do perfil público.
       const perfil = await docComValidade(fb, ["perfis_publicos", u.uid], DONOS_VALIDADE).then((s2) => (s2.exists() ? s2.data() : {})).catch(() => ({}));
+      perfilEu = perfil;
       await definirPosicao(await minhaPosicao(perfil).catch(() => null));
       await carregarLote(true);
     } catch (e) {
@@ -2901,6 +3008,8 @@ async function iniciar() {
     }
     chipsDinamicos();
     renderizar();
+    // Lê a localização do aparelho: a cidade mudou (e a pessoa não escolheu à mão)? Atualiza o lugar aqui e no início.
+    atualizarPeloGps({ pedirLocalizacao, posicaoGuardada }).then((novo) => { if (novo) aplicarLocal(); });
     // Chegou com uma busca (?q=): pergunta também ao Firebase.
     if (termoInicial) buscarNaVitrine();
     // link direto vindo de uma mensagem
