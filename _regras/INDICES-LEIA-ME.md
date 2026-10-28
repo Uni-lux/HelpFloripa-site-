@@ -4,7 +4,7 @@ Com o filtro de **Estado/Cidade** escolhido, as vitrines (Freelances, Delivery, 
 **no servidor** os perfis daquela cidade. Antes vinham os 48 mais recentes do Brasil inteiro e o filtro era feito no
 celular: com muitos negócios no país, quem está em Recife podia ver a vitrine vazia mesmo havendo negócios em Recife.
 
-Para isso o Firestore precisa de **7 índices compostos** (4 das vitrines, 1 do Diário por região e 2 da Comunidade). Enquanto eles não existem, o site continua funcionando
+Para isso o Firestore precisa de **9 índices compostos** (4 das vitrines, 1 do Diário por região, 2 da Comunidade e 2 do registro de chamadas). Enquanto eles não existem, o site continua funcionando
 como antes (busca geral + filtro no celular), sem erro para ninguém.
 
 ## Como criar (uns 5 minutos, uma vez só)
@@ -20,9 +20,12 @@ Crie um por vez, com **Escopo da consulta: Coleção**:
 | `diario`   | `autorUf` Crescente | `criadoEm` Decrescente | — |
 | `comunidade` | `uf` Crescente | `atualizadoEm` Decrescente | — |
 | `comunidade` | `cidadeIbge` Crescente | `atualizadoEm` Decrescente | — |
+| `chamadas` | `de` Crescente | `criadoEm` Decrescente | — |
+| `chamadas` | `para` Crescente | `criadoEm` Decrescente | — |
 
 O 5º índice faz o Diário e o Explorar trazerem também as publicações recentes do seu estado. Os 2 da Comunidade fazem o
 Início e o Explorar mostrarem as doações, trocas, quartos e achados mais recentes da sua cidade (e do seu estado). A seção
+Os 2 de `chamadas` fazem a aba **Chamadas** (Mensagens) mostrar as 50 ligações mais recentes de cada lado. A seção
 "Saúde" do Início usa os índices de `negocios` que já estão na lista. Sem os índices, tudo funciona do mesmo jeito,
 só que lê sem a ordem de data (e ordena no celular).
 Cada um leva alguns minutos para ficar **Ativado**. Não precisa mexer em mais nada: o site começa a usar sozinho.

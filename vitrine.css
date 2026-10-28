@@ -768,3 +768,45 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
 .vd-selo-resp { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px 4px 7px; border-radius: 999px; font-size: 12px; font-weight: 750; color: var(--muted, #8c9ca7); background: color-mix(in srgb, var(--muted, #8c9ca7) 14%, transparent); }
 .vd-selo-resp.rapido { color: #16a34a; background: color-mix(in srgb, #16a34a 13%, transparent); }
 .vd-selo-resp svg { width: 15px; height: 15px; }
+
+/* ---------- Freelances: azul escuro vivo e cartões com a cor do plano ---------- */
+.vitrine[data-tipo="servicos"] { --vc: #2f6bff; --vc-ink: #ffffff; }
+:root[data-theme="light"] .vitrine[data-tipo="servicos"] { --vc: #1d4ed8; }
+.vt-fl { --pl: transparent; position: relative; border-radius: 18px; }
+.vt-fl .ft .vt-avatar.logo { width: 46px; height: 46px; bottom: -20px; left: 10px; font-size: 14px; border: 0; box-shadow: 0 0 0 2.5px var(--vt-card), 0 0 0 4.5px color-mix(in srgb, var(--vc) 55%, var(--vt-line)); }
+.vt-fl .tx { padding: 26px 11px 11px; gap: 3px; }
+.vt-fl .nm { font-size: 14px; }
+.vt-fl .fl-modos { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+.vt-fl .fl-modos span { padding: 2px 7px; border-radius: 999px; font-size: 10.5px; font-weight: 700; color: var(--vt-text-2); background: var(--vt-card-2); border: 1px solid var(--vt-line); white-space: nowrap; }
+.vt-fl .fl-rodape { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 6px; padding-top: 8px; border-top: 1px dashed var(--vt-line); }
+.vt-fl .fl-rodape .tx-taxa { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vt-fl .fl-cta { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; color: var(--vc-ink); background: var(--vc); }
+.vt-fl .fl-cta svg { width: 15px; height: 15px; }
+/* Nada passa da borda do cartão (nome com o selo quebra em 2 linhas; preço com reticências). */
+.vt-fl, .vt-fl .tx, .vt-fl .tx > * { min-width: 0; }
+.vt-fl .nm { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.25; }
+.vt-fl .nm .selo-pro { vertical-align: 1px; }
+.vt-fl .fl-rodape .tx-taxa { flex: 1; min-width: 0; }
+/* Online agora: bolinha verde no canto do avatar */
+.vt-fl .fl-online { position: absolute; left: 44px; bottom: -19px; z-index: 3; width: 14px; height: 14px; border-radius: 50%; background: #22c55e; border: 2.5px solid var(--vt-card); box-shadow: 0 0 0 0 rgba(34, 197, 94, .6); animation: fl-pulso 2.2s ease-out infinite; }
+@keyframes fl-pulso { 0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, .55); } 70%, 100% { box-shadow: 0 0 0 7px rgba(34, 197, 94, 0); } }
+@media (prefers-reduced-motion: reduce) { .vt-fl .fl-online { animation: none; } }
+/* Plus: borda azul-céu */
+.vt-fl.pl-plus { --pl: #0ea5e9; border: 1.5px solid #0ea5e9; box-shadow: 0 10px 26px -18px #0ea5e9; }
+/* Pro: borda em degradê violeta → azul, com brilho */
+.vt-fl.pl-pro, .vt-fl.pl-premium { border: 1.5px solid transparent; background: linear-gradient(var(--vt-card), var(--vt-card)) padding-box, var(--pl-borda) border-box; }
+.vt-fl.pl-pro { --pl: #7c3aed; --pl-borda: linear-gradient(135deg, #a855f7, #7c3aed 45%, #2f6bff); box-shadow: 0 12px 30px -16px #7c3aed; }
+/* Premium: borda dourada com brilho */
+.vt-fl.pl-premium { --pl: #f59e0b; --pl-borda: linear-gradient(135deg, #fde68a, #f59e0b 35%, #b45309 60%, #fcd34d); box-shadow: 0 14px 34px -14px rgba(245, 158, 11, .65); }
+.vt-fl.pl-plus .ft .vt-avatar.logo, .vt-fl.pl-pro .ft .vt-avatar.logo, .vt-fl.pl-premium .ft .vt-avatar.logo { box-shadow: 0 0 0 2.5px var(--vt-card), 0 0 0 5px var(--pl); }
+.vt-fl.pl-premium .ft::before { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(115deg, transparent 35%, rgba(255, 236, 170, .22) 50%, transparent 65%); background-size: 250% 100%; animation: fl-brilho 4.5s ease-in-out infinite; }
+@keyframes fl-brilho { 0%, 30% { background-position: 120% 0; } 70%, 100% { background-position: -20% 0; } }
+.vt-fl.pl-pro .fl-cta { background: linear-gradient(135deg, #7c3aed, #2f6bff); color: #fff; }
+.vt-fl.pl-premium .fl-cta { background: linear-gradient(135deg, #f59e0b, #fbbf24); color: #2a1600; }
+.vt-fl:hover { transform: translateY(-3px); }
+@media (prefers-reduced-motion: reduce) { .vt-fl.pl-premium .ft::before { animation: none; } }
+/* Freelances: título da lista e "Criar meu perfil" mais compactos */
+.vitrine[data-tipo="servicos"] .vt-cabeca { align-items: center; gap: 10px; margin-bottom: 12px; }
+.vitrine[data-tipo="servicos"] .vt-cabeca h2 { font-size: 19px; }
+.vitrine[data-tipo="servicos"] .vt-cabeca p { font-size: 13px; }
+.vitrine[data-tipo="servicos"] .vt-cabeca .vt-criar { padding: 8px 14px; font-size: 13px; border-radius: 999px; }

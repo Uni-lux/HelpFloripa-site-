@@ -87,6 +87,8 @@ onAuthStateChanged(auth, async (u) => {
   avisosDaEquipe(u);
   // Ligações de voz e vídeo: a tela de chamada aparece em qualquer página quando alguém liga (chamadas.js).
   import("./chamadas.js?v=1").then((m) => m.ouvirChamadas(u.uid)).catch((e) => console.warn("[Chamadas]", e?.message || e));
+  // Presença ("online agora"): a cada 4 min com a página à vista (presenca.js; respeita quem escondeu).
+  import("./presenca.js?v=1").then((m) => m.ligarPresenca(db, u.uid)).catch((e) => console.warn("[Presença]", e?.message || e));
   const chave = "hf-conta-ok-" + u.uid;
   try { if (sessionStorage.getItem(chave) === "1") return; } catch {}
   try {

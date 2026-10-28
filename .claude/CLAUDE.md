@@ -915,6 +915,19 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   Ficou anotado (precisa de servidor/Blaze): "Responde rápido" vem de `perfis_publicos.atendimento.resposta`, que o dono
   grava (dá para forjar); pedidos do chat são montados no aparelho do cliente (o alerta ajuda, a correção de verdade é
   gravar o pedido por Cloud Function).
+- **Aba Chamadas em Mensagens (28/10/2026, mesmo PR #106, sem regra nova; 2 índices novos `chamadas` de/para + criadoEm):**
+  terceira aba em `.modos` (Pessoal | Negócios | Chamadas), `renderizarChamadas`/`lerChamadas` em mensagens.html (50 de cada
+  lado; sem índice lê 150 sem ordem), feitas/recebidas/perdidas por dia, filtro Perdidas, ligar de volta, "Limpar registro"
+  no aparelho (`hf-chamadas-<uid>`). Teste `t-registro-chamadas.mjs`.
+  **Painel das vitrines (topo com foto, classes, busca): o dono testou 2 versões novas e mandou voltar e ESQUECER (28/10).**
+  Não propor de novo redesenho do topo das vitrines sem ele pedir.
+  **Depois (pedido dele, 28/10): melhorias SÓ na página de Freelances** (`body.pg-freelances`; a index também usa
+  data-classe servicos): arte `servicos-arte.svg` no lugar da foto (`.hero.hero-arte`; se não gostar, volta `obras.webp`),
+  azul escuro vivo (#2563ff; `.vitrine[data-tipo=servicos] --vc #2f6bff`), topo mais compacto (lead em 2 linhas, classes
+  baixas com ícone ao lado). Cartões `cartaoPro` (`.vt-fl`): borda e anel do avatar pela cor do plano (Plus #0ea5e9, Pro
+  degradê violeta→azul, Premium dourado com brilho), etiquetas de atendimento, rodapé preço + seta. **Online agora:**
+  `presenca.js` (ligado no firebase.js) grava `perfis_publicos.ultimoAcesso` a cada 4 min com a página à vista (respeita
+  `ultimoAcesso: null` = escondeu); bolinha verde `.fl-online` quando < 10 min (`estaOnline`); donos lidos com cache de 5 min.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
@@ -988,6 +1001,11 @@ Coisas que só ELE pode fazer (lembrar no momento certo, sem fazer por ele):
   5. Avisar o Claude → ele muda `automatico: true` e testam juntos com cartões de teste (titular APRO/OTHE/FUND).
   6. Produção: ativar credenciais no MP, trocar o segredo pelo token `APP_USR-` e publicar de novo, mandar a Public Key
      `APP_USR-` (o Claude troca no `planos-base.js`) e fazer um pagamento real com Pix para conferir.
+  **Junto com o deploy das Functions (decidido por ele em 28/10/2026, "anota"):** 2 Cloud Functions de segurança —
+  (a) "Responde rápido": trigger em mensagens calcula `perfis_publicos.atendimento.resposta` e a regra deixa de aceitar
+  o dono gravando esse campo (hoje dá para forjar); (b) pedido do chat montado no servidor a partir de `negocios.itens`
+  (o cliente manda só itens/quantidades/cupom; hoje o cartão vem pronto do aparelho, só com o alerta `.pd-alerta`).
+  Não fazer paliativo nas regras nem esconder o selo antes disso (ele preferiu esperar o Blaze).
   Depois: a fazer quando ele quiser — parcelamento no cartão, renovação automática (assinaturas) e, no futuro, SLU/LTDA
   para o Pix mostrar "Help Floripa" (hoje mostra a razão social do MEI com o nome dele).
 - **E-mails do domínio (lista da semana de 26/10, lembrete trig_01Skdj622NFsQ7wGqJrbK4HC):** imprensa@, privacidade@ (LGPD),

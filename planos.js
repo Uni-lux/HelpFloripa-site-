@@ -97,7 +97,7 @@ const CSS = `
 .pl-per.on { border-color: #7c3aed; background: color-mix(in srgb, #7c3aed 14%, var(--panel-2, #162128)); }
 .pl-per { position: relative; }
 .pl-per .off { position: absolute; top: -9px; right: 10px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 900; color: #fff; background: #16a34a; }
-.pl-per s { font-size: 12px; color: var(--muted, #8fa0ab); opacity: .8; }
+.pl-per s, .pl-per .sem { font-size: 12px; color: var(--muted, #8fa0ab); opacity: .8; }
 .pl-per .mes { font-size: 12px; font-weight: 700; color: #2fbf71; }
 .pl-economia { margin: 10px 2px 0; text-align: center; font-size: 13px; font-weight: 700; color: #2fbf71; }
 .pl-validade { display: flex; align-items: center; gap: 12px; margin: 12px 0 0; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line, #22313a); background: var(--panel-2, #162128); }
@@ -166,7 +166,8 @@ const CSS = `
 .pl-bonus b { flex: none; padding: 6px 10px; border-radius: 10px; background: linear-gradient(135deg, #16a34a, #2fbf71); color: #fff; font-size: 13px; font-weight: 900; white-space: nowrap; }
 .pl-per .bonus { display: block; margin-top: 4px; font-size: 10.5px; font-weight: 800; color: #16a34a; }
 .pl-lin.cab span:last-child { color: inherit; }
-.pl-lin span.sel { background: color-mix(in srgb, var(--c, #7c3aed) 14%, transparent); border-radius: 8px; }
+/* Coluna do plano escolhido: uma faixa contínua de cima a baixo (antes eram pílulas soltas em cada linha). */
+.pl-lin span.sel { align-self: stretch; display: grid; place-items: center; margin: -10px 0; padding: 10px 0; background: color-mix(in srgb, var(--c, #7c3aed) 14%, transparent); }
 .pl-lin.cab span.sel { color: var(--c, #7c3aed); }
 .pl-status { display: grid; gap: 8px; padding: 14px 16px; border-radius: 18px; margin-top: 12px; border: 1px solid color-mix(in srgb, #2fbf71 45%, transparent); background: color-mix(in srgb, #2fbf71 9%, transparent); }
 .pl-status .lin { display: flex; align-items: center; gap: 10px; }
@@ -434,7 +435,9 @@ export async function abrirPlanos(op) {
     PERIODOS.forEach(([m, rot, d]) => {
       const b = el("button", "pl-per"); b.type = "button"; b.dataset.m = m;
       b.append(el("b", null, rot), el("small", "total"));
-      if (d) b.append(el("s"), el("span", "mes"), el("span", "off", `-${Math.round(d * 100)}%`));
+      // Todos os cartões com as mesmas linhas (o de 1 mês ficava desalinhado dos outros).
+      b.append(d ? el("s") : el("span", "sem", "Sem desconto"), el("span", "mes"));
+      if (d) b.append(el("span", "off", `-${Math.round(d * 100)}%`));
       if (primeira) b.append(el("span", "bonus", `+${DIAS_BONUS} dias grátis`));
       b.addEventListener("click", () => { meses = m; pintarSel(); });
       per.appendChild(b);
@@ -457,7 +460,8 @@ export async function abrirPlanos(op) {
         const m = Number(b.dataset.m), v = valorPeriodo(escolhido, m);
         b.classList.toggle("on", m === meses);
         b.querySelector(".total").textContent = reais(v);
-        if (b.querySelector("s")) { b.querySelector("s").textContent = reais(P.preco * m); b.querySelector(".mes").textContent = `${reais(v / m)} por mês`; }
+        if (b.querySelector("s")) b.querySelector("s").textContent = reais(P.preco * m);
+        b.querySelector(".mes").textContent = `${reais(v / m)} por mês`;
       });
       const eco = Math.round((P.preco * meses - valorPeriodo(escolhido, meses)) * 100) / 100;
       secPer.textContent = `${escolhido === atual && !plano?.teste ? "Renovar o" : "Assinar o"} ${P.nome} por`;
