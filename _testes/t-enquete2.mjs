@@ -9,7 +9,7 @@ await db.doc(`relacoes/${U.bruno}_${U.ana}`).set({ tipo: "seguir", seguidorId: U
 await db.doc(`relacoes/${U.dani}_${U.ana}`).set({ tipo: "seguir", seguidorId: U.dani, alvoId: U.ana, criadoEm: Timestamp.now() });
 
 const A = await navegador({ mobile: true }), B = await navegador({ mobile: true }), D = await navegador({ mobile: true });
-const pa = await entrar(A.ctx, "ana", "feed.html");
+const pa = await entrar(A.ctx, "ana", "feed.html?aba=registros");
 await pa.waitForSelector("#btnComporFeed", { timeout: 30000 }); await pa.waitForTimeout(1500);
 await pa.locator("#btnComporFeed").tap();
 await pa.locator("#pubTexto").fill("Votem na fachada!");
@@ -40,7 +40,7 @@ ok(Math.abs(fim - (t0 + 6 * 3600e3)) < 120000, "publicou com fim em 6 h → " + 
 const ua = (await db.doc(`usuarios/${U.ana}`).get()).data();
 ok(ua.enquetes?.some((x) => x.a === "d_" + post.id && x.f === fim), "a enquete fica registrada na conta da Ana (para o resultado)");
 // Bruno vê o prazo e vota
-const pb = await entrar(B.ctx, "bruno", "feed.html");
+const pb = await entrar(B.ctx, "bruno", "feed.html?aba=registros");
 const card = pb.locator(".post-card", { hasText: "Votem na fachada" }).first();
 await card.waitFor({ timeout: 30000 }); await card.scrollIntoViewIfNeeded(); await pb.waitForTimeout(1500);
 ok(/Termina em 6 h/.test(await card.locator(".enq-prazo").textContent()) && await card.locator(".enq-radio").count() === 2, "Bruno vê 'Termina em 6 h' e as opções para marcar");
@@ -55,7 +55,7 @@ await db.doc(`diario/${post.id}`).update({ "enquete.fimEm": passado });
 await db.doc(`enquete_votos/d_${post.id}_${U.bruno}`).update({ fimEm: passado });
 await db.doc(`usuarios/${U.ana}`).update({ enquetes: ua.enquetes.map((x) => (x.a === "d_" + post.id ? { ...x, f: passado.toMillis() } : x)) });
 // Dani chega depois do fim: vê o resultado final e não consegue votar
-const pd = await entrar(D.ctx, "dani", "feed.html");
+const pd = await entrar(D.ctx, "dani", "feed.html?aba=registros");
 const cd = pd.locator(".post-card", { hasText: "Votem na fachada" }).first();
 await cd.waitFor({ timeout: 30000 }); await cd.scrollIntoViewIfNeeded(); await pd.waitForTimeout(1800);
 ok((await cd.locator(".enq-prazo").textContent()).includes("Encerrada") && /Resultado final/.test(await cd.locator(".enq-rodape").textContent()) && await cd.locator(".enq-venc").count() === 1, "depois do fim: Encerrada, resultado final e a vencedora com troféu");

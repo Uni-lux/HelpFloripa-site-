@@ -23,7 +23,7 @@ await p.locator(".post-card .acao.comentar").first().tap(); await p.waitForSelec
 await p.locator("#folhaComentarios [data-fechar]").tap(); await p.waitForTimeout(500);
 ok((await p.evaluate(() => history.state?.hfCamadas || 0)) === 0, "fechar pelo X desfaz o passo do histórico");
 // 3) Abas: Explorar → voltar → Diário
-await p.locator("#abasFeed [data-aba=explorar]").tap(); await p.waitForTimeout(800);
+await p.locator("#barraRede [data-barra=explorar]").tap(); await p.waitForTimeout(800);
 ok(await p.locator("#painelExplorar").isVisible(), "abriu o Explorar");
 await p.goBack(); await p.waitForTimeout(800);
 ok(p.url().includes("feed.html") && await p.locator("#painelFeed").isVisible() && await p.locator("#painelExplorar").isHidden(), "voltar do Explorar volta para o Diário");

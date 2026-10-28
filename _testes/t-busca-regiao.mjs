@@ -28,7 +28,7 @@ await db.doc(`negocios/${U.bruno}_servicos`).update({ busca: (await import("fire
 
 // ---------- (1) busca ----------
 const A = await navegador({ mobile: true });
-const p = await entrar(A.ctx, "ana", "feed.html");
+const p = await entrar(A.ctx, "ana", "feed.html?aba=registros");
 await p.waitForSelector("#btnComporFeed", { timeout: 30000 }); await p.waitForTimeout(1500);
 // (3) região: a publicação de SC (mais antiga que as 130 de SP) aparece nos Principais de quem é de SC
 await p.waitForFunction(() => document.querySelectorAll(".post-card").length > 3, null, { timeout: 30000 }).catch(() => {});
@@ -36,13 +36,13 @@ await p.waitForFunction(() => document.querySelectorAll(".post-card").length > 3
 for (let i = 0; i < 20 && !(await p.locator("#listaFeed").innerText()).includes("Santa Catarina") && await p.locator("#maisFeed:not([hidden])").count(); i++) { await p.locator("#maisFeed").click(); await p.waitForTimeout(400); }
 const feedTxt = await p.locator("#listaFeed").innerText();
 ok(feedTxt.includes("Notícia boa de Santa Catarina"), "Diário (Principais): quem é de SC vê a publicação de SC, mesmo com 130 mais novas de SP");
-await p.locator("[data-aba=explorar]").first().tap(); await p.waitForTimeout(1200);
+await p.locator("#barraRede [data-barra=explorar]").tap(); await p.waitForTimeout(1200);
 await p.fill("#buscaPessoas", "eletric"); await p.waitForTimeout(2500);
 ok((await p.locator("#listaPessoas").innerText()).includes("Rita Eletricista"), "Explorar: \"eletric\" acha a eletricista de Recife (fora dos 200 mais recentes)");
 await p.screenshot({ path: "saida/busca-explorar.png" });
 
 // Publicar no Diário grava a região de quem publica
-await p.locator("[data-aba=diario]").first().tap().catch(() => {}); await p.waitForTimeout(800);
+await p.locator("#barraRede [data-barra=diario]").tap(); await p.waitForTimeout(800);
 await p.locator("#btnComporFeed").tap(); await p.locator("#pubTexto").fill("Publicação com região"); await p.locator("#pubEnviar").click(); await p.waitForTimeout(2500);
 const minha = (await db.collection("diario").where("autorId", "==", U.ana).get()).docs.map((d) => d.data()).find((x) => x.texto === "Publicação com região");
 ok(minha?.autorUf === "SC" && minha?.autorIbge === 4205407, "publicação guarda o estado e a cidade de quem publica: " + JSON.stringify({ uf: minha?.autorUf, ibge: minha?.autorIbge }));

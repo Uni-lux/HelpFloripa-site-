@@ -61,7 +61,7 @@ await pa.locator(".foto-grande .fg-fechar").click(); await pa.waitForTimeout(400
 await pa.locator("#ppCabecalho .pf-acoes > .btn.icone").tap(); await pa.waitForTimeout(500);
 ok((await pa.locator("#opcoesCorpo").textContent()).includes("Ver o social"), "⋯: tem \"Ver o social\"");
 // Toque duplo no texto: só as estrelas da barra (sem estrelas por cima do texto)
-const pb = await entrar(B.ctx, "bruno", "feed.html");
+const pb = await entrar(B.ctx, "bruno", "feed.html?aba=registros");
 await pb.waitForSelector(".post-card", { timeout: 30000 });
 const card = pb.locator(".post-card", { hasText: "Qual vocês preferem" }).first();
 await card.waitFor({ timeout: 20000 }); await card.scrollIntoViewIfNeeded(); await pb.waitForTimeout(1500);

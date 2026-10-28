@@ -2,7 +2,7 @@
 // ícone dos atalhos do Explorar sem cobrir o nome.
 process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8085";
 import { initializeApp } from "firebase-admin/app"; import { getFirestore, Timestamp } from "firebase-admin/firestore";
-import { navegador, entrar, USUARIOS as U } from "./nav.mjs";
+import { navegador, entrar, USUARIOS as U, BASE } from "./nav.mjs";
 const ok = (c, t) => { console.log(c ? "  ✔" : "  ✘", t); if (!c) process.exitCode = 1; };
 initializeApp({ projectId: "demo-hf" }); const db = getFirestore();
 const agora = Date.now();
@@ -74,8 +74,8 @@ ok(salvo.data().colecoes?.[0]?.nome === "Ideias" && salvo.data().colecoes[0].ids
 ok((await pa.locator("#gradeSalvos .col-cartao").nth(1).locator("small").textContent()) === "1 item", "cartão da coleção mostra 1 item");
 await pa.screenshot({ path: "saida/s-salvos-colecao.png" });
 // Explorar: ícone do atalho não cobre o nome
-const pf = await entrar(A.ctx, "ana", "feed.html");
-await pf.locator("[data-aba=explorar]").first().tap(); await pf.waitForTimeout(1200);
+const pf = pa; await pf.goto(BASE + "feed.html"); await pf.waitForSelector("#barraRede a", { timeout: 30000 });
+await pf.locator("#barraRede [data-barra=explorar]").tap(); await pf.waitForTimeout(1200);
 const sobre = await pf.locator(".atalho-classe").evaluateAll((l) => l.map((a) => { const i = a.querySelector(".ic").getBoundingClientRect(), s = a.querySelector("strong").getBoundingClientRect(); return i.bottom <= s.top + 1; }));
 ok(sobre.length === 6 && sobre.every(Boolean), "atalhos do Explorar: ícone acima do nome → " + sobre.join(","));
 await pf.locator(".atalhos-classes").first().screenshot({ path: "saida/s-atalhos.png" });

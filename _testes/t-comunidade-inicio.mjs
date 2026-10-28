@@ -46,7 +46,7 @@ ok(titulos.slice(0, 7).every((t) => !t.includes("São Paulo")) && titulos.length
 await p.locator("#filtrosComunidade button", { hasText: "Achados e perdidos" }).click();
 ok(await p.locator("#trilhoComunidade .cm-mini").count() === 2, "filtro Achados e perdidos: 2");
 await p.goto(BASE + "feed.html"); await p.waitForTimeout(2500);
-await p.locator("[data-aba=explorar]").first().click();
+await p.locator("#barraRede [data-barra=explorar]").click();
 await p.waitForSelector("#secComunidade:not([hidden]) .cm-mini", { timeout: 30000 }); await p.waitForTimeout(1500);
 await p.locator("#secComunidade").scrollIntoViewIfNeeded(); await p.evaluate(() => window.scrollBy(0, -60)); await p.waitForTimeout(500);
 await p.screenshot({ path: "saida/previa-explorar-comunidade.png" });

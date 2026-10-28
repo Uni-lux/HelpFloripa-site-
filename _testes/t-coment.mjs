@@ -95,7 +95,7 @@ ok(await pc.count() === 1 && (await pc.getAttribute("href")) === "usuarios.html?
   "Mensagens: publicação enviada com foto, autor e legenda → " + (await pc.textContent().catch(() => "")).replace(/\s+/g, " ").slice(0, 80));
 await pb.screenshot({ path: "saida/coment-cartao.png" });
 // Muitos comentários: a lista rola até o último.
-await pa.goto(new URL("feed.html", pa.url()).href);
+await pa.goto(new URL("feed.html?aba=registros", pa.url()).href);
 const cardM = pa.locator(".post-card", { hasText: "Muitos comentários aqui" }).first();
 await cardM.waitFor({ timeout: 30000 }); await cardM.scrollIntoViewIfNeeded(); await pa.waitForTimeout(1200);
 await cardM.locator(".acao.comentar").tap();
