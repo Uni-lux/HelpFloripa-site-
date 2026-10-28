@@ -994,6 +994,19 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   negócios/perfis/respostas em lote (`docsPorIds`). 565 → 364 leituras (2ª visita 65 → 4). **Bug corrigido no `docsPorIds`:**
   guardava o objeto das marcas do começo e outra gravação no meio trocava o objeto (as marcas sumiam, a 2ª visita relia
   tudo). Teste `t-reclamacoes-nacional.mjs`. `saida/fotos-previa.json` (t-comunidade-inicio) pode ser gerado com fotos lisas.
+- **Visibilidade justa — Parte 1: vitrines (28/10/2026, mesmo PR #112, sem regra nova):** decidido por ele: 1 espaço pago a
+  cada 5, bônus do plano Plus +10% · Pro +20% · Premium +30% na lista orgânica, e os topos de categoria seguem a mesma regra.
+  `relevancia.js` (sem deps): `relevancia(d)` = média ajustada (3,8 com peso 3) × responde rápido/devagar × completude ×
+  atualizado × novidade (até 14 dias, +25%) × perto (km ou mesma cidade) × verificado × `fator` × `BONUS_PLANO` ÷ exposição
+  (`hf-expo` no aparelho, meia-vida 3 dias; a vez da janela atual NÃO conta, senão a recarga mudaria a ordem) × giro fixo
+  (`sorteioFixo(uid:janela de 3 h:id)`). `ordenarJusto(itens, dados, {dono, semente, marcar})`: posições 1, 6, 11... = melhor
+  pagante ainda não usado; resto pela nota; mesmo dono não seguido; `marcar` = quantos do começo contam como vistos no topo.
+  vitrine.js: `dadosRel`/`completoDe`/`justo`/`justoProd`/`pesoJusto`, ordem padrão "Relevância" (3º item da ordem =
+  `ordenarPor`) + "Mais bem avaliados"; Imóveis padrão `relevancia`. Vale na lista, em cada fileira de categoria
+  (`mostrarItens` `reordenar`), destaques (`secaoDestaques` sem sorteio, `secaoDestaquesServ`/`girar` com `pesoJusto`, imóveis),
+  bolinhas (Online/Destaques), lojas em destaque, promoções, "Parecido com", Atendem online. Delivery fechado ×0,75.
+  Teste `t-relevancia.mjs`. Próximas partes: 2) Início e Explorar; 3) Diário (espaço para autores novos) + página "Como
+  ordenamos os resultados". Etapa B (com Blaze): exibições somadas no servidor e ranking pré-calculado por cidade/categoria.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
