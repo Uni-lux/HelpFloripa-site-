@@ -60,7 +60,7 @@ await p.close();
 // ---------- 2) cliente: selo, filtro da área, cupom no orçamento ----------
 let a = await entrar(ctx, "ana", "servicos.html");
 await a.waitForTimeout(4000);
-ok(await a.locator(".vt-promo-tag").count() >= 1, "selo de cupom no cartão da vitrine");
+ok(await a.locator(".vt-cv .cv-tag.promo").count() >= 1, "selo de cupom no cartão da vitrine");
 const chips = (await a.locator("#filterChips .chip").allTextContents()).map((t) => t.trim());
 ok(chips.includes("Música") && chips.includes("Eletricista"), "filtros das áreas novas: " + chips.join(" | "));
 await a.fill("#searchInput", "pianista"); await a.waitForTimeout(600);

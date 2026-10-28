@@ -596,7 +596,7 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
 .vt-free .tx-taxa { color: var(--vc); font-weight: 800; }
 /* destaques dos Freelances: mesmo tamanho dos destaques de Imóveis */
 .vt-carrossel.top-cat .vt-slot { width: 46vw; max-width: 220px; }
-.vt-carrossel.top-cat .vt-del { height: 100%; }
+.vt-carrossel.top-cat .vt-del, .vt-carrossel.top-cat .vt-cv { height: 100%; }
 /* com a etiqueta de destaque no alto, "Urgência" desce para o canto de baixo da foto */
 .vt-del .tag-dest ~ .st.urg { top: auto; bottom: 6px; }
 
@@ -772,67 +772,147 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
 /* ---------- Freelances: azul escuro vivo e cartões com a cor do plano ---------- */
 .vitrine[data-tipo="servicos"] { --vc: #2f6bff; --vc-ink: #ffffff; }
 :root[data-theme="light"] .vitrine[data-tipo="servicos"] { --vc: #1d4ed8; }
-.vt-fl { --pl: transparent; position: relative; border-radius: 18px; }
-.vt-fl .ft .vt-avatar.logo { width: 46px; height: 46px; bottom: -20px; left: 10px; font-size: 14px; border: 0; box-shadow: 0 0 0 2.5px var(--vt-card), 0 0 0 4.5px color-mix(in srgb, var(--vc) 55%, var(--vt-line)); }
-.vt-fl .tx { padding: 26px 11px 11px; gap: 3px; }
-.vt-fl .nm { font-size: 14px; }
-.vt-fl .fl-modos { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
-.vt-fl .fl-modos span { padding: 2px 7px; border-radius: 999px; font-size: 10.5px; font-weight: 700; color: var(--vt-text-2); background: var(--vt-card-2); border: 1px solid var(--vt-line); white-space: nowrap; }
-.vt-fl .fl-rodape { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 6px; padding-top: 8px; border-top: 1px dashed var(--vt-line); }
-.vt-fl .fl-rodape .tx-taxa { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.vt-fl .fl-cta { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; color: var(--vc-ink); background: var(--vc); }
-.vt-fl .fl-cta svg { width: 15px; height: 15px; }
-/* Nada passa da borda do cartão (nome com o selo quebra em 2 linhas; preço com reticências). */
-.vt-fl, .vt-fl .tx, .vt-fl .tx > * { min-width: 0; }
-.vt-fl .nm { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.25; }
-.vt-fl .nm .selo-pro { vertical-align: 1px; }
-.vt-fl .fl-rodape .tx-taxa { flex: 1; min-width: 0; }
-/* Online agora: bolinha verde no canto do avatar */
-.vt-fl .fl-online { position: absolute; left: 44px; bottom: -19px; z-index: 3; width: 14px; height: 14px; border-radius: 50%; background: #22c55e; border: 2.5px solid var(--vt-card); box-shadow: 0 0 0 0 rgba(34, 197, 94, .6); animation: fl-pulso 2.2s ease-out infinite; }
+/* ---------- Cartão de visita dos Freelances (.vt-cv): capa curta, foto no centro, nome, área, nota, onde e preço ---------- */
+.vt-cv { --pl: #00adee; --pl-cta: #00adee; --pl-cta-ink: #001a24; position: relative; min-width: 0; display: flex; flex-direction: column;
+  border-radius: 18px; overflow: hidden; cursor: pointer; background: var(--vt-card); border: 1px solid var(--vt-line);
+  transition: transform .2s, box-shadow .2s; animation: vt-pro-entra .45s ease both; container-type: inline-size; }
+.vt-cv:hover { transform: translateY(-3px); }
+.vt-cv:focus-visible { outline: 3px solid var(--vc); outline-offset: 2px; }
+.vt-cv .cv-capa { position: relative; aspect-ratio: 16 / 7; background: #0b1a3a center / cover no-repeat; }
+.vt-cv .cv-capa::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 0, 0, .28), transparent 40%, color-mix(in srgb, var(--vt-card) 75%, transparent)); }
+.vt-cv .cv-capa.sem-capa { background-image: radial-gradient(120% 140% at 85% 0%, color-mix(in srgb, var(--pl) 70%, transparent), transparent 60%), linear-gradient(135deg, #061235, #0b2a80); }
+.vt-cv .cv-tag, .vt-cv .cv-plano { position: absolute; top: 7px; z-index: 2; display: inline-flex; align-items: center; gap: 4px; max-width: calc(62% - 8px);
+  padding: 3px 8px 3px 6px; border-radius: 999px; font-size: 10.5px; font-weight: 800; color: #fff; white-space: nowrap;
+  background: rgba(4, 12, 28, .66); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.vt-cv .cv-tag { left: 7px; }
+.vt-cv .cv-tag span { overflow: hidden; text-overflow: ellipsis; }
+.vt-cv .cv-tag svg { width: 12px; height: 12px; flex: none; }
+.vt-cv .cv-tag.dest svg { color: #f5c542; }
+.vt-cv .cv-tag.urg { background: #ef4444; }
+.vt-cv .cv-tag.promo { background: #16a34a; }
+.vt-cv .cv-plano { right: 7px; left: auto; max-width: none; padding: 3px 8px; font-size: 9.5px; letter-spacing: .6px; background: var(--pl-selo, var(--pl)); }
+.vt-cv .cv-corpo { position: relative; z-index: 3; display: grid; justify-items: center; text-align: center; gap: 3px; padding: 0 10px 10px; margin-top: -32px; min-width: 0; }
+.vt-cv .cv-corpo > * { min-width: 0; max-width: 100%; }
+.vt-cv .cv-foto { position: relative; margin-bottom: 4px; }
+.vt-cv .cv-foto .vt-avatar { width: 62px; height: 62px; font-size: 18px; box-shadow: 0 0 0 3px var(--vt-card), 0 0 0 5.5px var(--pl), 0 8px 20px -6px rgba(0, 0, 0, .6); }
+.vt-cv .fl-online { position: absolute; right: 1px; bottom: 2px; width: 15px; height: 15px; border-radius: 50%; background: #22c55e; border: 2.5px solid var(--vt-card); animation: fl-pulso 2.2s ease-out infinite; }
 @keyframes fl-pulso { 0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, .55); } 70%, 100% { box-shadow: 0 0 0 7px rgba(34, 197, 94, 0); } }
-@media (prefers-reduced-motion: reduce) { .vt-fl .fl-online { animation: none; } }
-/* Grátis: azul claro (o ciano do site) no anel e na seta */
-.vt-fl:not([class*="pl-"]) .ft .vt-avatar.logo { box-shadow: 0 0 0 2.5px var(--vt-card), 0 0 0 4.5px #00adee; }
-.vt-fl:not([class*="pl-"]) .fl-cta { background: #00adee; color: #001a24; }
-/* Plus: azul escuro vivo, borda em degradê com brilho */
-.vt-fl.pl-plus { --pl: #2563ff; --pl-borda: linear-gradient(135deg, #7cb4ff, #2563ff 45%, #1e3a8a); box-shadow: 0 12px 30px -16px #2563ff; }
-.vt-fl.pl-plus .fl-cta { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: #fff; }
-/* Pro: borda em degradê violeta → azul, com brilho */
-.vt-fl.pl-plus, .vt-fl.pl-pro, .vt-fl.pl-premium { border: 1.5px solid transparent; background: linear-gradient(var(--vt-card), var(--vt-card)) padding-box, var(--pl-borda) border-box; }
-.vt-fl.pl-pro { --pl: #7c3aed; --pl-borda: linear-gradient(135deg, #a855f7, #7c3aed 45%, #2f6bff); box-shadow: 0 12px 30px -16px #7c3aed; }
-/* Premium: borda dourada com brilho */
-.vt-fl.pl-premium { --pl: #f59e0b; --pl-borda: linear-gradient(135deg, #fde68a, #f59e0b 35%, #b45309 60%, #fcd34d); box-shadow: 0 14px 34px -14px rgba(245, 158, 11, .65); }
-.vt-fl.pl-plus .ft .vt-avatar.logo, .vt-fl.pl-pro .ft .vt-avatar.logo, .vt-fl.pl-premium .ft .vt-avatar.logo { box-shadow: 0 0 0 2.5px var(--vt-card), 0 0 0 5px var(--pl); }
-.vt-fl.pl-premium .ft::before { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(115deg, transparent 35%, rgba(255, 236, 170, .22) 50%, transparent 65%); background-size: 250% 100%; animation: fl-brilho 4.5s ease-in-out infinite; }
+.vt-cv .nm { font-size: 14.5px; font-weight: 850; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.vt-cv .cv-area { font-size: 12px; font-weight: 700; color: var(--vc); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vt-cv .hf-estrelas { font-size: 11.5px; justify-content: center; }
+.vt-cv .cv-onde { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; color: var(--vt-muted); }
+.vt-cv .cv-onde svg { width: 12px; height: 12px; flex: none; }
+.vt-cv .cv-onde span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vt-cv .cv-extras { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; margin-top: 3px; }
+.vt-cv .cv-extras .vt-rapido { margin: 0; font-size: 10.5px; }
+.vt-cv .cv-modo { padding: 2px 7px; border-radius: 999px; font-size: 10.5px; font-weight: 700; color: var(--vt-text-2); background: var(--vt-card-2); border: 1px solid var(--vt-line); white-space: nowrap; }
+.vt-cv .cv-rodape { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 10px 10px 12px; border-top: 1px solid var(--vt-line);
+  background: color-mix(in srgb, var(--pl) 7%, transparent); }
+.vt-cv .cv-preco { display: grid; min-width: 0; line-height: 1.15; text-align: left; }
+.vt-cv .cv-preco small { font-size: 10px; font-weight: 700; color: var(--vt-muted); }
+.vt-cv .cv-preco b { font-size: 14px; font-weight: 850; color: var(--vt-text, inherit); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vt-cv .fl-cta { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--pl-cta); color: var(--pl-cta-ink); }
+.vt-cv .fl-cta svg { width: 15px; height: 15px; }
+/* Cor do plano: borda em degradê, anel da foto, selo e seta. Grátis = azul claro do site. */
+.vt-cv.pl-plus { --pl: #2563ff; --pl-cta: linear-gradient(135deg, #3b82f6, #1d4ed8); --pl-cta-ink: #fff; --pl-selo: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  --pl-borda: linear-gradient(135deg, #7cb4ff, #2563ff 45%, #1e3a8a); box-shadow: 0 12px 30px -16px #2563ff; }
+.vt-cv.pl-pro { --pl: #7c3aed; --pl-cta: linear-gradient(135deg, #7c3aed, #2f6bff); --pl-cta-ink: #fff; --pl-selo: linear-gradient(135deg, #a855f7, #2f6bff);
+  --pl-borda: linear-gradient(135deg, #a855f7, #7c3aed 45%, #2f6bff); box-shadow: 0 12px 30px -16px #7c3aed; }
+.vt-cv.pl-premium { --pl: #f59e0b; --pl-cta: linear-gradient(135deg, #f59e0b, #fbbf24); --pl-cta-ink: #2a1600; --pl-selo: linear-gradient(135deg, #fbbf24, #b45309);
+  --pl-borda: linear-gradient(135deg, #fde68a, #f59e0b 35%, #b45309 60%, #fcd34d); box-shadow: 0 14px 34px -14px rgba(245, 158, 11, .65); }
+.vt-cv.pl-plus, .vt-cv.pl-pro, .vt-cv.pl-premium { border: 1.5px solid transparent; background: linear-gradient(var(--vt-card), var(--vt-card)) padding-box, var(--pl-borda) border-box; }
+.vt-cv.pl-plus .cv-foto .vt-avatar, .vt-cv.pl-pro .cv-foto .vt-avatar { box-shadow: 0 0 0 3px var(--vt-card), 0 0 0 5.5px transparent, 0 8px 20px -6px rgba(0, 0, 0, .6); }
+.vt-cv.pl-plus .cv-foto::before, .vt-cv.pl-pro .cv-foto::before, .vt-cv.pl-premium .cv-foto::before { content: ""; position: absolute; inset: -5.5px; border-radius: 50%; background: var(--pl-borda); z-index: -1; }
+.vt-cv.pl-premium .cv-foto .vt-avatar { box-shadow: 0 0 0 3px var(--vt-card), 0 8px 20px -6px rgba(0, 0, 0, .6); }
+.vt-cv .cv-foto { isolation: isolate; }
+.vt-cv.pl-premium .cv-capa::before { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(115deg, transparent 35%, rgba(255, 236, 170, .25) 50%, transparent 65%); background-size: 250% 100%; animation: fl-brilho 4.5s ease-in-out infinite; }
 @keyframes fl-brilho { 0%, 30% { background-position: 120% 0; } 70%, 100% { background-position: -20% 0; } }
-.vt-fl.pl-pro .fl-cta { background: linear-gradient(135deg, #7c3aed, #2f6bff); color: #fff; }
-.vt-fl.pl-premium .fl-cta { background: linear-gradient(135deg, #f59e0b, #fbbf24); color: #2a1600; }
-.vt-fl:hover { transform: translateY(-3px); }
-@media (prefers-reduced-motion: reduce) { .vt-fl.pl-premium .ft::before { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .vt-cv, .vt-cv .fl-online, .vt-cv.pl-premium .cv-capa::before { animation: none; } }
+/* Variações do cartão base: Saúde (registro), Delivery (aberto/fechado, entrega grátis), itens (Imóveis, produtos) */
+.vt-cv .cv-tag.aberto { background: #16a34a; }
+.vt-cv .cv-tag.fechado { background: rgba(60, 66, 76, .85); }
+.vt-cv .cv-tag.saude-mod { background: #0f9488; }
+.vt-cv .cv-tag.fin { background: var(--vc); color: var(--vc-ink); }
+.vt-cv .cv-tag.esgot { background: rgba(20, 20, 24, .85); }
+.vt-cv .cv-tag.ultima { background: #ea580c; }
+.vt-cv .cv-extras .cv-tag.mini { position: static; max-width: 100%; padding: 2px 7px 2px 5px; font-size: 10.5px; }
+.vt-cv.fechado .cv-capa, .vt-cv.fechado .cv-foto { filter: grayscale(.6); opacity: .85; }
+.vt-cv .cv-reg { display: inline-flex; align-items: center; gap: 3px; font-size: 10.5px; font-weight: 750; color: #0f9488; }
+.vt-cv .cv-reg { color: color-mix(in srgb, #14d3c0 80%, var(--vt-text, #fff)); }
+.vt-cv .cv-reg svg { width: 12px; height: 12px; flex: none; }
+.vt-cv .cv-reg span, .vt-cv .cv-area { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vt-cv .cv-preco b.gratis { color: var(--vt-ok, #16a34a); }
+.vt-cv .cv-preco-in { display: grid; min-width: 0; line-height: 1.15; }
+.vt-cv .cv-preco-in small { font-size: 10px; font-weight: 700; color: var(--vt-muted); }
+.vt-cv .cv-preco-in s { font-size: 10.5px; color: var(--vt-muted); }
+.vt-cv .cv-preco-in b { font-size: 14px; font-weight: 850; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vt-cv .cv-preco-in b em { font-style: normal; font-size: 10.5px; font-weight: 700; color: var(--vt-muted); margin-left: 1px; }
+/* Itens: a foto do item é a estrela do cartão, texto alinhado à esquerda */
+.vt-cv.cv-item .cv-capa { aspect-ratio: 4 / 3; }
+.vt-cv.cv-prod .cv-capa { aspect-ratio: 1; background-color: var(--vt-card-2); display: grid; place-items: center; }
+.vt-cv.cv-item .cv-capa::after { background: linear-gradient(180deg, rgba(0, 0, 0, .25), transparent 35%); }
+.vt-cv .cv-sem-foto { width: 34px; height: 34px; color: var(--vt-muted); }
+.vt-cv.cv-item .cv-corpo { margin-top: 0; padding: 9px 11px 10px; justify-items: start; text-align: left; gap: 3px; }
+.vt-cv.cv-item .nm { font-size: 13.5px; font-weight: 800; }
+.vt-cv.cv-item .hf-estrelas { justify-content: flex-start; }
+.vt-cv .cv-nf { position: absolute; right: 7px; bottom: 7px; z-index: 2; display: inline-flex; align-items: center; gap: 3px; padding: 3px 7px; border-radius: 999px; font-size: 10.5px; font-weight: 750; color: #fff; background: rgba(4, 12, 28, .66); }
+.vt-cv .cv-nf svg { width: 11px; height: 11px; }
+.vt-cv .cv-specs { display: flex; flex-wrap: wrap; gap: 4px 9px; font-size: 11px; font-weight: 750; color: var(--vt-text-2); }
+.vt-cv .cv-specs span { display: inline-flex; align-items: center; gap: 3px; }
+.vt-cv .cv-specs svg { width: 12px; height: 12px; }
+.vt-cv .cv-loja { display: flex; align-items: center; gap: 4px; width: 100%; font-size: 11px; color: var(--vt-muted); }
+.vt-cv .cv-loja svg { width: 12px; height: 12px; flex: none; }
+.vt-cv .cv-loja .ln { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vt-cv .cv-loja em { flex: none; margin-left: auto; font-style: normal; font-weight: 750; color: var(--vt-ok, #16a34a); }
+.vt-cv.esgotado { opacity: .6; }
+.vt-cv .vd-vendi { margin: 0 10px 10px; }
+/* Cartão médio (2 por linha no celular) */
+@container (max-width: 210px) {
+  .vt-cv .cv-corpo { padding: 0 8px 9px; margin-top: -28px; gap: 2px; }
+  .vt-cv .cv-foto .vt-avatar { width: 54px; height: 54px; font-size: 16px; }
+  .vt-cv .nm { font-size: 13.5px; }
+  .vt-cv .cv-area { font-size: 11.5px; }
+  .vt-cv .cv-tag svg + span { display: none; }
+  .vt-cv .cv-tag:has(svg) { padding: 4px; }
+  .vt-cv .cv-extras .cv-modo:nth-child(n+2) { display: none; }
+}
+/* Cartão estreito (3 por linha no celular): só o essencial, sem cortar nada */
+@container (max-width: 140px) {
+  .vt-cv .cv-capa { aspect-ratio: 16 / 9; }
+  .vt-cv .cv-tag, .vt-cv .cv-plano { top: 5px; }
+  .vt-cv .cv-tag { left: 5px; }
+  .vt-cv .cv-plano { right: 5px; padding: 2px 5px; font-size: 8px; letter-spacing: .3px; }
+  .vt-cv .cv-corpo { padding: 0 6px 8px; margin-top: -24px; }
+  .vt-cv .cv-foto { margin-bottom: 2px; }
+  .vt-cv .cv-foto .vt-avatar { width: 44px; height: 44px; font-size: 14px; }
+  .vt-cv .fl-online { width: 12px; height: 12px; border-width: 2px; right: 0; bottom: 1px; }
+  .vt-cv .nm { font-size: 12px; }
+  .vt-cv .cv-area { font-size: 10.5px; }
+  .vt-cv .hf-estrelas { font-size: 10.5px; }
+  .vt-cv .cv-onde { font-size: 10px; }
+  .vt-cv .cv-extras { display: none; }
+  .vt-cv .cv-rodape { padding: 7px 6px 8px 8px; gap: 4px; }
+  .vt-cv .cv-preco small { font-size: 9px; }
+  .vt-cv .cv-preco b { font-size: 12px; }
+  .vt-cv .fl-cta { width: 22px; height: 22px; }
+  .vt-cv .fl-cta svg { width: 12px; height: 12px; }
+  .vt-cv.cv-item .cv-corpo { padding: 7px 7px 8px; }
+  .vt-cv.cv-item .nm { font-size: 12px; }
+  .vt-cv .cv-specs { font-size: 10px; gap: 2px 6px; }
+  .vt-cv .cv-loja em { display: none; }
+  .vt-cv .cv-preco-in b { font-size: 12px; letter-spacing: -.2px; }
+  .vt-cv.cv-item .fl-cta { display: none; }
+  .vt-cv .cv-tag.fin { display: none; }
+  .vt-cv.cv-item .cv-rodape { padding: 7px 8px 8px; }
+  .vt-cv .cv-tag { max-width: calc(100% - 64px); }
+  .vt-cv .cv-nf { right: 5px; bottom: 5px; padding: 2px 5px; font-size: 9.5px; }
+  .vt-cv .cv-reg { font-size: 9.5px; }
+}
 /* Freelances: título da lista e "Criar meu perfil" mais compactos */
 .vitrine[data-tipo="servicos"] .vt-cabeca { align-items: center; gap: 10px; margin-bottom: 12px; }
 .vitrine[data-tipo="servicos"] .vt-cabeca h2 { font-size: 19px; }
 .vitrine[data-tipo="servicos"] .vt-cabeca p { font-size: 13px; }
 .vitrine[data-tipo="servicos"] .vt-cabeca .vt-criar { padding: 8px 14px; font-size: 13px; border-radius: 999px; }
-
-/* Cartão estreito (3 por linha no celular): só o essencial, sem cortar o preço. */
-.vt-fl { container-type: inline-size; }
-@container (max-width: 190px) {
-  .vt-fl .tx { padding: 22px 8px 9px; gap: 2px; }
-  .vt-fl .nm { font-size: 12.5px; -webkit-line-clamp: 2; }
-  .vt-fl .nm .selo-pro { font-size: 8.5px; padding: 1px 4px; }
-  .vt-fl small { font-size: 10.5px; }
-  .vt-fl .hf-estrelas { font-size: 10.5px; }
-  .vt-fl .vt-rapido { display: none; }
-  .vt-fl .fl-modos { display: none; }
-  .vt-fl .fl-rodape { margin-top: 4px; padding-top: 6px; gap: 4px; }
-  .vt-fl .fl-rodape .tx-taxa { font-size: 11px; white-space: normal; line-height: 1.2; overflow: visible; }
-  .vt-fl .fl-cta { width: 22px; height: 22px; }
-  .vt-fl .fl-cta svg { width: 12px; height: 12px; }
-  .vt-fl .ft .vt-avatar.logo { width: 36px; height: 36px; bottom: -16px; left: 8px; font-size: 12px; }
-  .vt-fl .fl-online { left: 34px; bottom: -15px; width: 12px; height: 12px; }
-  .vt-fl .tag-dest { font-size: 9.5px; }
-}
 
 /* ---------- Freelances: bolinhas dos profissionais em abas (Online agora · Destaques · Novos · Perto) ---------- */
 .fl-bolhas { margin: 2px 0 22px; }
@@ -868,3 +948,55 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
 .vt-bolha-loja[data-plano="premium"] .vt-avatar { box-shadow: 0 0 0 2px var(--vt-bg), 0 0 0 4.5px #f59e0b, 0 6px 18px -6px #f59e0b; }
 /* Shopping: folga para o anel das bolinhas das lojas (com a cor do plano ficava cortado em cima e nos lados) */
 .vt-carrossel.lojas .vt-trilho { padding: 9px 16px 10px; gap: 14px; scroll-padding-left: 16px; }
+
+/* ---------- Gaveta de filtros (.vf): cabeçalho fixo, seções com ícone, opções com contagem, rodapé fixo ---------- */
+.vt-local-fundo.vf { display: grid; place-items: end center; padding: 0;
+  --vt-card: var(--panel, #10181d); --vt-card-2: var(--panel-2, #162128); --vt-line: var(--line, #22313a); --vt-muted: var(--muted, #8c9ca7); color: var(--text); }
+.vf-pop { width: min(560px, 100%); max-height: min(88vh, 860px); display: flex; flex-direction: column; overflow: hidden; border-radius: 24px 24px 0 0;
+  background: var(--vt-card); border: 1px solid var(--vt-line); border-bottom: 0; box-shadow: 0 -24px 60px rgba(0, 0, 0, .45); animation: vfSobe .24s ease-out; }
+@keyframes vfSobe { from { transform: translateY(40px); opacity: .5; } to { transform: none; opacity: 1; } }
+@media (min-width: 700px) { .vt-local-fundo.vf { place-items: center; padding: 16px; } .vf-pop { border-radius: 24px; border-bottom: 1px solid var(--vt-line); } }
+.vf-topo { position: relative; display: flex; align-items: center; gap: 12px; padding: 18px 16px 12px; border-bottom: 1px solid var(--vt-line);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--vc) 10%, transparent), transparent); }
+.vf-alca { position: absolute; top: 7px; left: 50%; width: 40px; height: 4px; margin-left: -20px; border-radius: 4px; background: var(--vt-line); }
+.vf-tit { flex: 1; display: grid; gap: 1px; min-width: 0; }
+.vf-tit strong { font-size: 19px; font-weight: 850; letter-spacing: -.2px; }
+.vf-tit small { font-size: 12.5px; color: var(--vt-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vf-x { flex: none; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--vt-line); background: var(--vt-card-2); color: inherit; cursor: pointer; }
+.vf-x svg { width: 18px; height: 18px; }
+.vf-corpo { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 4px 16px 12px; }
+.vf-sec { padding: 14px 0; border-bottom: 1px solid color-mix(in srgb, var(--vt-line) 70%, transparent); }
+.vf-sec:last-child { border-bottom: 0; }
+.vf-sec h4 { display: flex; align-items: center; gap: 9px; margin: 0 0 10px; font-size: 14.5px; font-weight: 800; }
+.vf-ic { width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center; flex: none; color: var(--vc); background: color-mix(in srgb, var(--vc) 14%, transparent); }
+.vf-ic svg { width: 15px; height: 15px; }
+.vf-dica { margin-left: auto; font-size: 11.5px; font-weight: 600; color: var(--vt-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.vf-onde { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; border-radius: 16px; cursor: pointer; text-align: left; font: inherit; color: inherit;
+  border: 1px solid color-mix(in srgb, var(--vc) 45%, var(--vt-line)); background: color-mix(in srgb, var(--vc) 8%, var(--vt-card-2)); }
+.vf-onde > svg { width: 22px; height: 22px; flex: none; color: var(--vc); }
+.vf-onde-tx { flex: 1; display: grid; gap: 1px; min-width: 0; }
+.vf-onde-tx strong { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vf-onde-tx small { font-size: 12px; color: var(--vt-muted); }
+.vf-mudar { flex: none; padding: 6px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 800; color: var(--vc-ink); background: var(--vc); }
+.vf-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.vf-seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.vf-seg:has(> :nth-child(5):last-child) { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.vf-chip { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 8px 13px; border-radius: 12px; cursor: pointer; font: inherit;
+  font-size: 13.5px; font-weight: 700; color: inherit; background: var(--vt-card-2); border: 1px solid var(--vt-line); transition: background .15s, border-color .15s, transform .1s; }
+.vf-chip:active { transform: scale(.97); }
+.vf-chip em { font-style: normal; font-size: 11px; font-weight: 800; min-width: 20px; padding: 1px 6px; border-radius: 999px; color: var(--vt-muted); background: color-mix(in srgb, var(--vt-line) 60%, transparent); }
+.vf-chip svg { width: 15px; height: 15px; }
+.vf-chip.on { color: var(--vc-ink); background: var(--vc); border-color: var(--vc); box-shadow: 0 6px 16px -8px var(--vc); }
+.vf-chip.on em { color: inherit; background: rgba(255, 255, 255, .22); }
+.vf-chip.zero { opacity: .5; }
+.vf-seg .vf-chip { padding: 8px 4px; }
+.vf-rod { display: grid; grid-template-columns: auto 1fr; gap: 10px; padding: 12px 16px calc(14px + env(safe-area-inset-bottom)); border-top: 1px solid var(--vt-line); background: var(--vt-card); }
+.vf-limpar { padding: 13px 16px; border-radius: 14px; border: 1px solid var(--vt-line); background: transparent; color: inherit; font: inherit; font-weight: 750; cursor: pointer; }
+.vf-limpar:disabled { opacity: .45; cursor: default; }
+.vf-aplicar { padding: 13px 16px; border-radius: 14px; border: 0; font: inherit; font-weight: 850; font-size: 15px; cursor: pointer; color: var(--vc-ink); background: var(--vc); box-shadow: 0 10px 24px -12px var(--vc); }
+.vf-aplicar:disabled { opacity: .5; cursor: default; box-shadow: none; }
+@media (prefers-reduced-motion: reduce) { .vf-pop { animation: none; } }
+/* Destaques de Delivery, Saúde e Shopping: cartões direto no trilho (sem o "slot" que reveza dos Freelances) */
+.vt-carrossel.top-cat .vt-trilho > .vt-cv { flex: none; width: 46vw; max-width: 220px; scroll-snap-align: start; }
+/* A gaveta fica fora da .vitrine: os ícones precisam do traço aqui também */
+.vf svg { fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }

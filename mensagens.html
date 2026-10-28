@@ -3689,8 +3689,8 @@
     // volta para esta conversa como cartão, sem sair do chat.
     let vitrineMod = null;
     function carregarVitrine() {
-      if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=36"; l.dataset.vitrine = ""; document.head.appendChild(l); }
-      return (vitrineMod ||= import("./vitrine.js?v=67"));
+      if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=39"; l.dataset.vitrine = ""; document.head.appendChild(l); }
+      return (vitrineMod ||= import("./vitrine.js?v=70"));
     }
     function usarCartaoNaConversa(uid, cartao) {
       document.querySelectorAll(".vt-modal").forEach((m) => m.remove());

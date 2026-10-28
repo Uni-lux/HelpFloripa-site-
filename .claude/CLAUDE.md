@@ -938,6 +938,25 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   com ícone ao lado) em servicos/delivery/shopping/imoveis/saude/comunidade; `.hero.hero-arte` com a arte `{tipo}-arte.svg`
   (delivery, shopping, imoveis, saude, comunidade geradas por `scripts/arte/gerar-artes.py`; sombra por `--arte-sombra`).
   As fotos antigas (lanchonetes/shopping/imoveis.webp) continuam no Início/Explorar. Link Freelances agora #2563ff em todo lugar.
+  **Cartão de visita dos Freelances (`.vt-cv`, `cartaoPro`, 28/10):** capa curta 16:7 (sem capa = degradê azul), UMA
+  etiqueta na capa (destaque > urgência > cupom; só ícone em cartão estreito) e selo do plano no canto oposto, foto no centro
+  com anel da cor do plano + bolinha de online, nome (2 linhas), área, nota, onde ("~3 km · Cidade" ou só a cidade), extras
+  (responde rápido/modos) e rodapé "a partir de R$ X"/"Preço a combinar" + seta. Container queries ≤210 px e ≤140 px.
+  **Mesmo modelo em todas as vitrines (28/10):** `cartaoVisita({...})` em vitrine.js monta o cartão base (`.vt-cv`; `tagCartao`,
+  `linhaCv`, `ondeCv`); Saúde (`cartaoSaude`, classe `vt-saude`, linha do registro `.cv-reg`, rodapé Consulta/Convênios),
+  Delivery (`tileDelivery`: Aberto/Fechado na capa, tempo de entrega, rodapé Entrega Grátis/R$), Imóveis (`cartaoImovelMini`,
+  `cv-item`: foto 4:3, quartos/vagas/m², rodapé finalidade + preço) e produtos (`cartaoProduto`, `cv-prod` 1:1, preço riscado,
+  loja). Comunidade (comunidade.js/css) ganhou o rodapé `.cm-rod` (tipo · há X + "De graça"/"Divisão R$"/"Ajude a devolver" + seta).
+  Testes usam `.vt-cv`, `.cv-tag.promo` (antes `.vt-free`, `.vt-del`, `.vt-promo-tag`).
+  **Local único, filtros e destaques (28/10, pedido dele):** o botão de local das vitrines (`#vtLocalBtn`) abre a MESMA folha
+  do Início (`escolherLocal` de local-escolhido.js, `.hm-local-pop`); "Onde procurar" (e o bairro nele) saiu — bairro virou
+  opção nos Filtros dos Imóveis. `atualizarPeloGps` (início e vitrines): sem escolha manual (`hf-local-manual`), lê o GPS
+  (pede a permissão 1× por aparelho, `hf-gps-perguntado`) e grava a cidade em `hf-busca-local`; `aoMudarLocal` (evento
+  storage) refaz as outras páginas abertas. Gaveta de Filtros nova (`.vf`, `abrirFiltros`): Onde você está (Mudar), Distância,
+  Ordenar por (`ordemDaPagina`), opções em grupos (`GRUPOS_FILTRO`) com contagem, preço (`PRECOS_FILTRO`: Freelances, Saúde,
+  Imóveis), quartos e bairro (Imóveis); `filtrosX.bairro`, `FILTROS_VAZIO()`. Bolinhas com abas (`bolhasProfissionais`) também
+  em Delivery, Saúde, Shopping (no lugar de "Lojas") e Imóveis (anunciantes, `anunciantesDe`); carrossel de destaques
+  (`secaoDestaques`) em Delivery e Saúde e "Destaques das lojas" no Shopping. Testes: `.vf-chip`, `.vf-aplicar`, `.hm-local-*`.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

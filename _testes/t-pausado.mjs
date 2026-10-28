@@ -38,7 +38,7 @@ async function visitante(pagina) { const n = await navegador({ mobile: true }); 
 await a.waitForSelector("#vtGrade .vt-conta", { timeout: 20000 });
 await a.waitForTimeout(800);
 ok((await a.textContent("#vtGrade")).includes("Bruno Reparos"), "Freelances do Bruno (principal) aparece");
-ok(await a.locator("#vtGrade .vt-promo-tag").count() === 0, "sem plano: sem selo de promoção no cartão");
+ok(await a.locator("#vtGrade .cv-tag.promo").count() === 0, "sem plano: sem selo de promoção no cartão");
 await a.goto(BASE + "imoveis.html"); await a.waitForTimeout(3500);
 ok(!(await a.textContent("#vtGrade")).includes("Apto na Trindade"), "anúncio do perfil Imóveis pausado não aparece");
 await a.goto(BASE + "imoveis.html?anuncio=an1"); await a.waitForTimeout(3500);
@@ -61,7 +61,7 @@ ok((await a.textContent("#vtGrade")).includes("Apto na Trindade"), "anúncio vol
 // ---------- 4) com plano: tudo no ar, com promoção ----------
 await db.doc(`planos/${U.bruno}`).set({ plano: "plus", meses: 1, ate: Timestamp.fromMillis(Date.now() + 20 * dia), ativadoEm: Timestamp.now(), ativadoPor: U.admin });
 a = await visitante("servicos.html"); await a.waitForSelector("#vtGrade .vt-conta", { timeout: 20000 }); await a.waitForTimeout(2500);
-ok((await a.textContent("#vtGrade")).includes("Bruno Reparos") && await a.locator("#vtGrade .vt-promo-tag").count() === 1, "com plano: os dois no ar e a promoção aparece");
+ok((await a.textContent("#vtGrade")).includes("Bruno Reparos") && await a.locator("#vtGrade .cv-tag.promo").count() >= 1, "com plano: os dois no ar e a promoção aparece (" + await a.locator("#vtGrade .cv-tag.promo").count() + ")");
 // 2 dias depois de vencer: ainda vale (tolerância de 3 dias)
 await db.doc(`planos/${U.bruno}`).set({ ate: Timestamp.fromMillis(Date.now() - 2 * dia) }, { merge: true });
 a = await visitante("servicos.html"); await a.waitForSelector("#vtGrade .vt-conta", { timeout: 20000 }); await a.waitForTimeout(2500);

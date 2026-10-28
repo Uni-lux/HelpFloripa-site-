@@ -12,6 +12,39 @@ export function lerLocal() {
   try { const f = JSON.parse(localStorage.getItem(CHAVE_LOCAL) || "{}"); return f && NOME_UF[f.uf] ? f : {}; } catch { return {}; }
 }
 export function salvarLocal(f) { try { localStorage.setItem(CHAVE_LOCAL, JSON.stringify(f || {})); } catch {} }
+// Escolha feita à mão (cidade, estado, perfil ou todo o Brasil): a localização do aparelho não troca mais sozinha.
+const CHAVE_MANUAL = "hf-local-manual";
+const marcarManual = (sim) => { try { sim ? localStorage.setItem(CHAVE_MANUAL, "1") : localStorage.removeItem(CHAVE_MANUAL); } catch {} };
+export const escolhaManual = () => { try { return localStorage.getItem(CHAVE_MANUAL) === "1"; } catch { return false; } };
+// Lê a localização da pessoa e põe a cidade dela como "Você está em" (início e vitrines usam a mesma chave).
+// Só quando ela não escolheu à mão. Pede a permissão uma vez por aparelho; negada, fica com o que já tinha.
+// Devolve o local novo quando mudou, ou null.
+export async function atualizarPeloGps({ pedirLocalizacao, posicaoGuardada } = {}) {
+  if (escolhaManual() || !pedirLocalizacao || !navigator.geolocation) return null;
+  let estado = "prompt";
+  try { estado = (await navigator.permissions.query({ name: "geolocation" })).state; } catch {}
+  if (estado === "denied") return null;
+  if (estado === "prompt") {
+    try { if (localStorage.getItem("hf-gps-perguntado")) return null; localStorage.setItem("hf-gps-perguntado", "1"); } catch { return null; }
+  }
+  try {
+    const g = posicaoGuardada?.();
+    const p = g && g.origem === "gps" && Date.now() - (g.em || 0) < 30 * 60000 ? g : await pedirLocalizacao();
+    const c = p?.cidadeIbge ? await cidadePorCodigo(p.cidadeIbge) : null;
+    if (!c) return null;
+    const atual = lerLocal();
+    if (Number(atual.cidadeIbge) === Number(c.cidadeIbge)) return null;
+    const novo = { uf: c.uf, cidade: c.cidade, cidadeIbge: c.cidadeIbge };
+    salvarLocal(novo);
+    return novo;
+  } catch { return null; }
+}
+// Outra aba (ou página aberta) mudou o lugar: avisa para refazer a lista.
+export function aoMudarLocal(fn) {
+  const f = (e) => { if (e.key === CHAVE_LOCAL) fn(lerLocal()); };
+  window.addEventListener("storage", f);
+  return () => window.removeEventListener("storage", f);
+}
 // "Florianópolis/SC", "Santa Catarina" ou "Todo o Brasil".
 export const rotuloLocal = (f = lerLocal()) => (!f.uf ? "Todo o Brasil" : f.cidadeIbge ? textoCidade(f) : NOME_UF[f.uf]);
 // O item (negócio, anúncio) é do local escolhido? Sem estado no item, compara o nome da cidade.
@@ -83,7 +116,7 @@ export function escolherLocal({ perfil = {}, pedirLocalizacao, esquecerPosicao }
     const local = camposEndereco(campos, { campos: ["uf", "cidade"], obrigatorios: [], valor: atual, rotuloCidade: "Cidade" });
     campos.querySelectorAll(".opcional").forEach((o) => o.remove());
     const aplicar = el("button", "hm-local-aplicar", "Ver esta cidade"); aplicar.type = "button";
-    cx.append(topo, el("p", null, "Mostramos primeiro o que está na sua cidade. Vale também para as vitrines."), gps, ...(doPerfil ? [doPerfil] : []), brasil, el("div", "hm-local-sep", "ou escolha"), campos, aplicar, aviso);
+    cx.append(topo, el("p", null, "Mostramos primeiro o que está perto. Vale para o início e todas as vitrines."), gps, ...(doPerfil ? [doPerfil] : []), brasil, el("div", "hm-local-sep", "ou escolha"), campos, aplicar, aviso);
     fundo.appendChild(cx); document.body.appendChild(fundo);
     setTimeout(() => gps.focus({ preventScroll: true }), 60);
     let feito = false;
@@ -93,7 +126,7 @@ export function escolherLocal({ perfil = {}, pedirLocalizacao, esquecerPosicao }
     fundo.addEventListener("click", (e) => { if (e.target === fundo) fechar(); });
     x.addEventListener("click", () => fechar());
     // Escolha manual de cidade: o GPS guardado deixa de valer (senão a distância seria de outro lugar).
-    const escolher = (f, { manter = false } = {}) => { if (!manter && f.uf) esquecerPosicao?.(); salvarLocal(f); fechar(f); };
+    const escolher = (f, { manter = false } = {}) => { if (!manter && f.uf) esquecerPosicao?.(); marcarManual(!manter); salvarLocal(f); fechar(f); };
     gps.addEventListener("click", async () => {
       aviso.hidden = true; gps.disabled = true; gps.querySelector("strong").textContent = "Localizando...";
       try {

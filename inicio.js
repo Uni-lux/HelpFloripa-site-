@@ -12,9 +12,9 @@ import { enfeitarSelect } from "./escolha.js?v=4";
 import { estrelas, lerResumos, media } from "./avaliacoes.js?v=15";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
 import { lerPlano, nivelPlano, seloPlano, semPausados, mostraSelo, corDoPlano } from "./planos-base.js?v=10";
-import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, esquecerPosicao } from "./perto.js?v=2";
-import { lerLocal, salvarLocal, rotuloLocal, noLocal, escolherLocal } from "./local-escolhido.js?v=1";
-import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=67";
+import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, esquecerPosicao, posicaoGuardada } from "./perto.js?v=2";
+import { lerLocal, salvarLocal, rotuloLocal, noLocal, escolherLocal, atualizarPeloGps, aoMudarLocal } from "./local-escolhido.js?v=2";
+import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=70";
 import { lerComunidade, cartaoComunidade, filtrosComunidade } from "./comunidade-cartao.js?v=2";
 import { lerPorLocal, quandoVisivel } from "./por-local.js?v=1";
 import { NOME_UF } from "./endereco.js?v=1";
@@ -95,6 +95,10 @@ async function trocarLocal() {
 }
 $("localBtn")?.addEventListener("click", trocarLocal);
 pintarLocal();
+// Lê a localização do aparelho (sem escolha feita à mão) e, se a cidade mudou, refaz a página com o lugar novo.
+// Mudou em outra aba (vitrine, outra página do início): refaz também, para tudo ficar no mesmo lugar.
+atualizarPeloGps({ pedirLocalizacao, posicaoGuardada }).then((novo) => { if (novo) { pintarLocal(); location.reload(); } });
+aoMudarLocal(() => { pintarLocal(); location.reload(); });
 
 // ---------- banner ----------
 // Passa sozinho a cada 5 s. Arrastar com o dedo (ou usar as setas e os pontos)
