@@ -60,7 +60,8 @@ const urlAba = (a) => (a === "diario" ? "feed.html" : `feed.html?aba=${a}`);
 const abaDaUrl = () => { const a = new URLSearchParams(location.search).get("aba"); return a === "pessoas" ? "explorar" : ABAS.includes(a) ? a : "diario"; };
 // Publicação de "registro": sem foto nem vídeo (texto, enquete ou caixa de perguntas).
 const temMidia = (p) => !!(p.mediaUrl || (p.midias || []).length);
-const daAba = (p) => (aba === "registros" ? !temMidia(p) : temMidia(p));
+// Com #hashtag ou local escolhido aparece tudo junto (foto e texto), como uma página daquele assunto.
+const daAba = (p) => !!(tagAtual || localAtual) || (aba === "registros" ? !temMidia(p) : temMidia(p));
 function trocarAba(nova, { passo = false } = {}) {
   // Tocar na aba é um passo no histórico: o "voltar" volta para a aba anterior.
   if (passo && nova !== aba) { const st = { ...(history.state || {}), hfAbaFeed: nova }; delete st.hfBase; delete st.hfGuarda; delete st.hfCamadas; history.pushState(st, "", urlAba(nova)); }

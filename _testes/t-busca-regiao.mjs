@@ -28,7 +28,7 @@ await db.doc(`negocios/${U.bruno}_servicos`).update({ busca: (await import("fire
 
 // ---------- (1) busca ----------
 const A = await navegador({ mobile: true });
-const p = await entrar(A.ctx, "ana", "feed.html");
+const p = await entrar(A.ctx, "ana", "feed.html?aba=registros");
 await p.waitForSelector("#btnComporFeed", { timeout: 30000 }); await p.waitForTimeout(1500);
 // (3) região: a publicação de SC (mais antiga que as 130 de SP) aparece nos Principais de quem é de SC
 await p.waitForFunction(() => document.querySelectorAll(".post-card").length > 3, null, { timeout: 30000 }).catch(() => {});

@@ -25,12 +25,12 @@ await db.doc("diario_notas/efFotos").set({ total: 12, soma: 56, n1: 0, n2: 0, n3
 // Na enquete encerrada, o resultado final pode estar guardado no aparelho: começa sem nada guardado.
 
 const { browser, ctx } = await navegador({ mobile: true });
-const page = await entrar(ctx, "bruno", "feed.html");
+const page = await entrar(ctx, "bruno", "feed.html?aba=registros");
 const cdp = await ctx.newCDPSession(page);
 await page.waitForSelector(".post-card", { timeout: 30000 });
 const tempos = {};
 for (const [id, , nome] of casos) {
-  await page.goto(BASE + "feed.html"); await page.waitForTimeout(3000);
+  await page.goto(BASE + "feed.html?aba=registros"); await page.waitForTimeout(3000);
   const texto = casos.find((c) => c[0] === id)[1].texto.slice(0, 18);
   const card = page.locator("article.post-card", { hasText: texto }).first();
   await card.waitFor({ timeout: 30000 }); await card.scrollIntoViewIfNeeded(); await page.waitForTimeout(1000);

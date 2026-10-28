@@ -74,7 +74,7 @@ ok(salvo.data().colecoes?.[0]?.nome === "Ideias" && salvo.data().colecoes[0].ids
 ok((await pa.locator("#gradeSalvos .col-cartao").nth(1).locator("small").textContent()) === "1 item", "cartão da coleção mostra 1 item");
 await pa.screenshot({ path: "saida/s-salvos-colecao.png" });
 // Explorar: ícone do atalho não cobre o nome
-const pf = await entrar(A.ctx, "ana", "feed.html");
+const pf = await entrar(A.ctx, "ana", "feed.html?aba=registros");
 await pf.locator("#barraRede [data-barra=explorar]").tap(); await pf.waitForTimeout(1200);
 const sobre = await pf.locator(".atalho-classe").evaluateAll((l) => l.map((a) => { const i = a.querySelector(".ic").getBoundingClientRect(), s = a.querySelector("strong").getBoundingClientRect(); return i.bottom <= s.top + 1; }));
 ok(sobre.length === 6 && sobre.every(Boolean), "atalhos do Explorar: ícone acima do nome → " + sobre.join(","));

@@ -24,7 +24,7 @@ for (const [u, n] of notas) await db.doc(`curtidas/pc_${u}`).set({ postId: "pc",
 await db.doc("diario_notas/pc").set({ total: 4, soma: 17, n1: 0, n2: 0, n3: 1, n4: 1, n5: 2 });
 
 const A = await navegador({ mobile: true }), B = await navegador({ mobile: true });
-const pa = await entrar(A.ctx, "ana", "feed.html");
+const pa = await entrar(A.ctx, "ana", "feed.html?aba=registros");
 const card = pa.locator(".post-card", { hasText: "Reforma do banheiro" }).first();
 await card.waitFor({ timeout: 30000 }); await card.scrollIntoViewIfNeeded(); await pa.waitForTimeout(1000);
 await card.locator(".acoes-post .acao").first().tap();
@@ -95,7 +95,7 @@ ok(await pc.count() === 1 && (await pc.getAttribute("href")) === "usuarios.html?
   "Mensagens: publicação enviada com foto, autor e legenda → " + (await pc.textContent().catch(() => "")).replace(/\s+/g, " ").slice(0, 80));
 await pb.screenshot({ path: "saida/coment-cartao.png" });
 // Muitos comentários: a lista rola até o último.
-await pa.goto(new URL("feed.html", pa.url()).href);
+await pa.goto(new URL("feed.html?aba=registros", pa.url()).href);
 const cardM = pa.locator(".post-card", { hasText: "Muitos comentários aqui" }).first();
 await cardM.waitFor({ timeout: 30000 }); await cardM.scrollIntoViewIfNeeded(); await pa.waitForTimeout(1200);
 await cardM.locator(".acao.comentar").tap();

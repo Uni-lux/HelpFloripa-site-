@@ -10,7 +10,7 @@ const arq = new URL("saida/foto1.png", import.meta.url).pathname;
 await db.doc(`relacoes/${U.bruno}_${U.ana}`).set({ tipo: "seguir", seguidorId: U.bruno, alvoId: U.ana });
 await db.doc(`relacoes/${U.ana}_${U.bruno}`).set({ tipo: "seguir", seguidorId: U.ana, alvoId: U.bruno });
 const A = await navegador({ mobile: true, camera: true }), B = await navegador({ mobile: true });
-const pa = await entrar(A.ctx, "ana", "feed.html");
+const pa = await entrar(A.ctx, "ana", "feed.html?aba=registros");
 await pa.waitForSelector("#btnComporFeed", { timeout: 30000 }); await pa.waitForTimeout(1500);
 // 1) Publicação com hashtag e pessoa marcada
 await pa.locator("#btnComporFeed").tap();
@@ -103,7 +103,7 @@ await pa.locator(".flash-publicar").tap(); await pa.waitForTimeout(2500);
 const flashes = (await db.collection("stories").where("autorId", "==", U.ana).get()).docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => a.criadoEm.toMillis() - b.criadoEm.toMillis());
 ok(flashes.length === 2 && flashes[1].tipo === "imagem" && flashes[1].midia.startsWith("data:image/jpeg") && !flashes[1].texto, "flash de texto publicado como foto 1080×1920 (" + Math.round((flashes[1]?.midia.length || 0) / 1024) + " KB)");
 // 5) Bruno: vê o post (alcance), não vê a agendada, tem aviso de marcação, vê o story
-const pb = await entrar(B.ctx, "bruno", "feed.html");
+const pb = await entrar(B.ctx, "bruno", "feed.html?aba=registros");
 await pb.waitForSelector(".post-card", { timeout: 30000 }); await pb.waitForTimeout(2500);
 ok(!(await pb.locator("#listaFeed").textContent()).includes("Promoção de amanhã"), "agendada não aparece para os outros");
 const cardB = pb.locator(".post-card", { hasText: "Banheiro novinho" }).first();
@@ -137,7 +137,7 @@ ok(await pb.locator(".story-circ.novo").count() === 0, "depois de ver os dois, o
 await pb.goto(new URL("feed.html?tag=reforma", pb.url()).href); await pb.waitForTimeout(3500);
 ok((await pb.locator("#filtroAtual").textContent()) === "#reforma" && await pb.locator(".post-card", { hasText: "Banheiro novinho" }).count() === 1, "feed.html?tag=reforma mostra a publicação");
 // silenciar a Ana
-await pb.goto(new URL("feed.html", pb.url()).href); await pb.waitForSelector(".post-card", { timeout: 30000 }); await pb.waitForTimeout(1500);
+await pb.goto(new URL("feed.html?aba=registros", pb.url()).href); await pb.waitForSelector(".post-card", { timeout: 30000 }); await pb.waitForTimeout(1500);
 await pb.locator(".post-card", { hasText: "Banheiro novinho" }).first().locator(".post-cab .icone-btn").dispatchEvent("click");
 await pb.locator("#opcoesCorpo button", { hasText: "Silenciar" }).tap(); await pb.waitForTimeout(1200);
 ok(await pb.locator(".post-card", { hasText: "Banheiro novinho" }).count() === 0, "silenciou: as publicações da Ana somem do Diário");

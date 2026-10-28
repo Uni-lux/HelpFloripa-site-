@@ -13,7 +13,7 @@ await db.doc(`curtidas/pInsAna_${U.bruno}`).set({ postId: "pInsAna", uid: U.brun
 await db.doc(`relacoes/${U.bruno}_${U.ana}`).set({ tipo: "seguir", seguidorId: U.bruno, alvoId: U.ana, criadoEm: Timestamp.fromMillis(agora - 864e5) });
 
 const A = await navegador({ mobile: true }), B = await navegador({ mobile: true });
-const pa = await entrar(A.ctx, "ana", "feed.html");
+const pa = await entrar(A.ctx, "ana", "feed.html?aba=registros");
 await pa.waitForSelector("#btnComporFeed", { timeout: 30000 }); await pa.waitForTimeout(1500);
 // 1) Ana cria a enquete
 await pa.locator("#btnComporFeed").tap();
@@ -32,7 +32,7 @@ const snap = await db.collection("diario").where("autorId", "==", U.ana).get();
 const post = snap.docs.map((d) => ({ id: d.id, ...d.data() })).find((p) => p.texto === "Ajudem a escolher!");
 ok(post?.enquete?.pergunta === "Qual cor para a fachada?" && post.enquete.opcoes.join("|") === "Azul|Verde|Branco", "publicou com enquete de 3 opções → " + JSON.stringify(post?.enquete));
 // 2) Bruno vota e troca
-const pb = await entrar(B.ctx, "bruno", "feed.html");
+const pb = await entrar(B.ctx, "bruno", "feed.html?aba=registros");
 await pb.waitForSelector(".post-card", { timeout: 30000 });
 const card = pb.locator(".post-card", { hasText: "Ajudem a escolher" }).first();
 await card.waitFor({ timeout: 20000 }); await card.scrollIntoViewIfNeeded(); await pb.waitForTimeout(1500);

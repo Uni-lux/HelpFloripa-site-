@@ -8,7 +8,7 @@ for (const q of ["bruno", "dani"]) await db.doc(`relacoes/${U[q]}_${U.ana}`).set
 await db.doc("diario/pCxNome").set({ autorId: U.ana, nome: "Ana Souza", texto: "Tirem dúvidas sobre reformas", caixa: { pergunta: "O que querem saber?", anonima: false }, criadoEm: Timestamp.fromMillis(Date.now() - 3600e3) });
 
 const A = await navegador({ mobile: true, camera: true }), B = await navegador({ mobile: true }), D = await navegador({ mobile: true });
-const pa = await entrar(A.ctx, "ana", "feed.html");
+const pa = await entrar(A.ctx, "ana", "feed.html?aba=registros");
 await pa.waitForSelector("#btnComporFeed", { timeout: 30000 }); await pa.waitForTimeout(1500);
 // 1) Enquete anônima + caixa anônima numa publicação
 await pa.locator("#btnComporFeed").tap();
@@ -28,7 +28,7 @@ await pa.waitForTimeout(1200);
 const post = (await db.collection("diario").where("autorId", "==", U.ana).get()).docs.map((d) => ({ id: d.id, ...d.data() })).find((p) => p.texto === "Opinem sem medo!");
 ok(post?.enquete?.anonima === true && post?.caixa?.anonima === true && post.caixa.pergunta === "Mande uma sugestão", "publicou com enquete anônima e caixa anônima");
 // 2) Bruno vota (anônimo) e responde (anônimo); Dani responde a caixa com nome
-const pb = await entrar(B.ctx, "bruno", "feed.html");
+const pb = await entrar(B.ctx, "bruno", "feed.html?aba=registros");
 const cb = pb.locator(".post-card", { hasText: "Opinem sem medo" }).first();
 await cb.waitFor({ timeout: 30000 }); await cb.scrollIntoViewIfNeeded(); await pb.waitForTimeout(1500);
 ok(await cb.locator(".enquete .enq-anon").count() === 1 && /voto anônimo/.test(await cb.locator(".enq-rodape").textContent()), "Bruno vê a enquete marcada como Anônima");
@@ -42,7 +42,7 @@ const rs = (await db.collection("caixa_respostas").where("alvo", "==", "d_" + po
 ok(rs.length === 1 && !("uid" in rs[0].data()) && (await db.doc(`caixa_autoria/${rs[0].id}`).get()).data()?.uid === U.bruno, "resposta anônima: sem nome na resposta; autoria só para a moderação");
 ok(/sem o seu nome/.test(await cb.locator(".caixa-perg .cx-nota").textContent()), "Bruno vê 'Resposta enviada sem o seu nome'");
 await cb.locator(".caixa-perg").screenshot({ path: "saida/cx-bruno.png" });
-const pd = await entrar(D.ctx, "dani", "feed.html");
+const pd = await entrar(D.ctx, "dani", "feed.html?aba=registros");
 const cdn = pd.locator(".post-card", { hasText: "Tirem dúvidas" }).first();
 await cdn.waitFor({ timeout: 30000 }); await cdn.scrollIntoViewIfNeeded(); await pd.waitForTimeout(1200);
 ok(/Seu nome aparece/.test(await cdn.locator(".caixa-perg .cx-nota").textContent()), "caixa com nome avisa que o nome aparece");
