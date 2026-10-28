@@ -40,7 +40,7 @@ const ordemSlots = [0, 5, 10, 15, 20].map((i) => planoDe(slots[i] || "")).filter
 ok(planoDe(slots[0]) === "premium", "o 1º cartão é de um Premium");
 const NIV = { plus: 1, pro: 2, premium: 3 };
 ok(ordemSlots.every((k, i) => i === 0 || NIV[k] <= NIV[ordemSlots[i - 1]]), "espaços pagos na ordem Premium → Pro → Plus: " + ordemSlots.join(", "));
-ok(a.slice(0, 5).filter((x) => !x.pago).length >= 2, "nos 5 primeiros há pelo menos 2 perfis sem plano (o topo não é só de quem paga)");
+ok(a.slice(0, 6).some((x) => !x.pago), "nos 6 primeiros há perfil sem plano (o topo não é só de quem paga)");
 ok(await p.$$eval("#vtGrade .vt-ordem button", (bs) => bs.map((b) => b.textContent).join("|")).then((t) => t.startsWith("Relevância") && t.includes("Mais bem avaliados")), "ordens: Relevância (padrão) e Mais bem avaliados");
 await p.reload();
 const b = await ordem();

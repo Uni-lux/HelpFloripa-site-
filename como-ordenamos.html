@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Segurança: só carrega recursos de origens conhecidas e não deixa outro site embutir esta página -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://www.google.com https://www.recaptcha.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://firebasestorage.googleapis.com https://lh3.googleusercontent.com https://images.unsplash.com https://upload.wikimedia.org https://randomuser.me https://www.gstatic.com https://www.google.com; media-src 'self' data: blob: https://firebasestorage.googleapis.com; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com https://viacep.com.br https://www.google.com https://www.gstatic.com; frame-src 'self' https://helpfloripa-61e0d.firebaseapp.com https://accounts.google.com https://www.google.com https://www.recaptcha.net; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self' https://formsubmit.co; upgrade-insecure-requests" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <script>if (window.top !== window.self) { document.documentElement.style.display = "none"; try { window.top.location.replace(window.self.location.href); } catch (e) {} }</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+  <meta name="description" content="Como o Help Floripa ordena as vitrines, o Início, o Explorar e o Diário: relevância igual para todos, espaços de destaque identificados dos planos e ordem que gira para todos terem vez." />
+  <meta name="theme-color" content="#0b1014" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Help Floripa" />
+  <title>Como ordenamos os resultados | Help Floripa</title>
+  <link rel="icon" type="image/png" sizes="96x96" href="favicon-96x96.png" />
+  <link rel="icon" type="image/png" sizes="48x48" href="favicon-48x48.png" />
+  <link rel="icon" href="favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
+  <script>
+    // Tema claro/escuro: o mesmo escolhido no perfil, nas mensagens e no menu.
+    (function () {
+      var c = {};
+      try { c = JSON.parse(localStorage.getItem("hf-chat-config") || "{}"); } catch (e) {}
+      var tema = c.tema || "sistema";
+      var escuro = tema === "escuro" || (tema === "sistema" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
+      document.documentElement.dataset.theme = escuro ? "dark" : "light";
+      document.querySelector('meta[name="theme-color"]').content = escuro ? "#0f161b" : "#ffffff";
+    })();
+  </script>
+  <link rel="stylesheet" href="categoria.css?v=11" />
+  <link rel="stylesheet" href="info.css?v=8" />
+  <script type="module" src="firebase.js"></script>
+  <script type="module" src="categoria.js?v=61"></script>
+</head>
+<body data-classe="info">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 01-1.5 1.5H15v-6h-6v6H5.5A1.5 1.5 0 014 19z"/></symbol>
+    <symbol id="i-sino" viewBox="0 0 24 24"><path d="M18 9.5a6 6 0 00-12 0c0 6.5-2.5 8-2.5 8h17S18 16 18 9.5z"/><path d="M10.2 20.5a2 2 0 003.6 0"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    <symbol id="i-perfil" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="4"/><path d="M4.5 20.5c1.2-3.6 4.1-5.5 7.5-5.5s6.3 1.9 7.5 5.5"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M20 11.5a8 8 0 01-11.6 7.1L4 20l1.4-4.2A8 8 0 1120 11.5z"/></symbol>
+    <symbol id="i-seta" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-lampada" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.5 10.9c.6.5 1 1.2 1 2V17h5v-1.1c0-.8.4-1.5 1-2A6 6 0 0012 3z"/></symbol>
+    <symbol id="i-doc" viewBox="0 0 24 24"><path d="M7 3.5h7l4 4V20.5H7z"/><path d="M14 3.5V8h4M9.5 12h6M9.5 15.5h6"/></symbol>
+    <symbol id="i-escudo" viewBox="0 0 24 24"><path d="M12 3l7.5 3v5.5c0 4.5-3.2 8-7.5 9.5-4.3-1.5-7.5-5-7.5-9.5V6z"/></symbol>
+    <symbol id="i-bloquear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/></symbol>
+  </svg>
+
+  <header class="topo">
+    <button type="button" class="icone-btn" id="btnMenu" aria-label="Abrir menu" aria-controls="gaveta" aria-expanded="false"><svg class="i" aria-hidden="true"><use href="#i-menu"/></svg></button>
+    <a href="index.html" class="icone-btn" aria-label="Página inicial" title="Início"><svg class="i" aria-hidden="true"><use href="#i-casa"/></svg></a>
+    <a href="index.html" class="marca" aria-label="Help Floripa - Início"><strong>HELP <span>FLORIPA</span></strong><small>TUDO EM UM SÓ LUGAR</small></a>
+    <a href="notificacoes.html" class="icone-btn" aria-label="Notificações" title="Notificações"><svg class="i" aria-hidden="true"><use href="#i-sino"/></svg><b class="ponto-badge" id="badgeAvisos" hidden></b></a>
+    <a href="usuarios.html" class="icone-btn" aria-label="Meu perfil"><span class="topo-avatar" id="topoAvatar"><svg class="i xs" aria-hidden="true"><use href="#i-perfil"/></svg></span></a>
+  </header>
+
+  <main class="pagina">
+    <nav class="nav-inst" aria-label="Páginas do Help Floripa"><a href="sobre.html">Sobre</a><a href="ajuda.html">Ajuda</a><a href="seguranca.html">Segurança</a><a href="diretrizes.html">Diretrizes</a><a href="clientes.html">Clientes</a><a href="profissionais.html">Negócios</a><a href="socios-parcerias.html">Parcerias</a><a href="contato.html">Contato</a><a href="termos.html">Termos</a><a href="privacidade.html">Privacidade</a></nav>
+    <section class="hero hero-info sem-foto" aria-labelledby="tituloPagina">
+      <div class="hero-corpo">
+        <span class="selo-classe"><b><svg class="i xs" aria-hidden="true"><use href="#i-doc"/></svg></b>Transparência</span>
+        <h1 id="tituloPagina">Como ordenamos <span>os resultados</span></h1>
+        <p class="lead">Por que um perfil aparece antes de outro nas vitrines, no Início, no Explorar e no Diário, e o que os planos mudam. Sem segredo: a mesma regra para todo o Brasil.</p>
+        <span class="atualizado">Última atualização: 28 de outubro de 2026</span>
+      </div>
+    </section>
+    <div class="doc">
+      <nav class="doc-indice" aria-label="Índice">
+        <h2>Nesta página</h2>
+        <ol><li><a href="#o1">1. Vitrines: a ordem “Relevância”</a></li><li><a href="#o2">2. Espaços de destaque dos planos</a></li><li><a href="#o3">3. A ordem gira, para todos terem vez</a></li><li><a href="#o4">4. Início e Explorar</a></li><li><a href="#o5">5. Diário</a></li><li><a href="#o6">6. Comunidade e Reclamações</a></li><li><a href="#o7">7. Como aparecer melhor</a></li><li><a href="#o8">8. O que nunca fazemos</a></li></ol>
+      </nav>
+      <div class="doc-texto">
+        <div class="resumo">
+          <h2><svg class="i s" aria-hidden="true"><use href="#i-lampada"/></svg>Em poucas palavras</h2>
+          <ul>
+            <li><strong>Igual para todos:</strong> avaliações, atendimento, perfil completo, novidade e distância.</li>
+            <li><strong>Destaque identificado:</strong> 1 a cada 5 cartões é de quem tem plano, sempre com o selo do plano.</li>
+            <li><strong>Todos têm vez:</strong> a ordem gira ao longo do dia e quem você já viu muito desce.</li>
+            <li><strong>Diário sem anúncio:</strong> 1 a cada 5 publicações é de alguém novo para você.</li>
+          </ul>
+        </div>
+        <section class="clausula" id="o1" aria-labelledby="ho1">
+          <h2 id="ho1"><span class="n">1.</span>Vitrines: a ordem “Relevância”</h2>
+          <p>Em Freelances, Delivery, Shopping, Imóveis e Saúde, a ordem padrão é a <strong>Relevância</strong>. Ela é calculada do mesmo jeito para todos os perfis, com o que ajuda você a escolher bem:</p><ul class="lista-check"><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg><span><strong>Avaliações:</strong> a nota média, ajustada pela quantidade. Um perfil com uma avaliação 5,0 não passa na frente de quem tem dezenas de avaliações 4,8.</span></li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg><span><strong>Atendimento:</strong> quem costuma responder rápido sobe um pouco; quem demora mais de um dia desce um pouco.</span></li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg><span><strong>Perfil completo e atualizado:</strong> foto, descrição, bairro, fotos do trabalho, itens ou preços, e o perfil mexido nos últimos 30 dias.</span></li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg><span><strong>Novidade:</strong> perfis novos ganham um empurrão nos primeiros 14 dias, para começar a ser vistos.</span></li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg><span><strong>Perto de você:</strong> a distância (ou a mesma cidade) conta.</span></li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg><span><strong>Conta verificada:</strong> um pequeno bônus.</span></li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg><span><strong>Delivery fechado agora:</strong> desce um pouco enquanto está fechado.</span></li></ul><p>Você também pode escolher outra ordem: <strong>Mais bem avaliados</strong>, <strong>Mais perto</strong>, <strong>Menor preço</strong> ou <strong>Novos</strong>. Nelas, vale só o que o nome diz.</p>
+        </section>
+        <section class="clausula" id="o2" aria-labelledby="ho2">
+          <h2 id="ho2"><span class="n">2.</span>Espaços de destaque dos planos</h2>
+          <p>Quem tem plano ganha <strong>espaços de destaque</strong>: 1 a cada 5 cartões (o 1º, o 6º, o 11º...) é de um perfil com plano, sempre com o <strong>selo do plano</strong> no cartão, para você saber que é um espaço de destaque.</p><ul class="lista-check"><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg><span><strong>Premium:</strong> fica com o 1º lugar de cada vitrine e de cada categoria, revezando entre os Premium, e +30% na relevância.</span></li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg><span><strong>Pro:</strong> vem à frente do Plus nos espaços de destaque, +20% na relevância e conta mais perto no “Perto de você”.</span></li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg><span><strong>Plus:</strong> entra nos espaços de destaque depois do Premium e do Pro, e +10% na relevância.</span></li></ul><p>Nos outros 4 de cada 5 cartões vale a relevância, igual para todos; o plano soma só o bônus acima. Nenhum plano garante vendas, contatos ou uma posição fixa.</p>
+        </section>
+        <section class="clausula" id="o3" aria-labelledby="ho3">
+          <h2 id="ho3"><span class="n">3.</span>A ordem gira, para todos terem vez</h2>
+          <ul class="lista-check"><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg><span>A mistura muda a cada 3 horas e é diferente para cada pessoa. Recarregar a página não embaralha tudo, mas ao longo do dia outros perfis passam pelo topo.</span></li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg><span>Quem você já viu muitas vezes no topo desce um pouco para você (isso vai passando em poucos dias).</span></li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg><span>O mesmo negócio não aparece duas vezes seguidas.</span></li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg><span>Esse cálculo é feito no seu próprio aparelho, com o que a página já carregou. Não usamos dados pessoais sensíveis e não vendemos seus dados.</span></li></ul>
+        </section>
+        <section class="clausula" id="o4" aria-labelledby="ho4">
+          <h2 id="ho4"><span class="n">4.</span>Início e Explorar</h2>
+          <p>As fileiras do Início (Mais bem avaliados, Chegaram agora, Imóveis e Saúde) e os negócios do Explorar, inclusive na busca, seguem a mesma regra das vitrines. Os cartões do Início revezam sozinhos: os espaços de destaque trocam só entre perfis com plano, e os outros, entre todos.</p><p>No <strong>Perto de você</strong> manda a distância. Com plano, o perfil conta como se estivesse mais perto: 10% (Plus), 40% (Pro) ou 50% (Premium). Na busca, o nome que começa com o que você digitou vem antes.</p>
+        </section>
+        <section class="clausula" id="o5" aria-labelledby="ho5">
+          <h2 id="ho5"><span class="n">5.</span>Diário</h2>
+          <p>Em <strong>Principais</strong>, cada publicação ganha uma nota pelo engajamento (estrelas e comentários), pelo que você costuma curtir, por ser de quem você segue, pela sua cidade e pelo seu estado e por ser recente. O que você já viu desce.</p><ul class="lista-check"><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg><span><strong>Descoberta:</strong> 1 a cada 5 publicações é de alguém que você ainda não segue e que tem pouco alcance, para pessoas novas também serem vistas.</span></li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg><span>No máximo 2 publicações da mesma pessoa entre as 10 primeiras, e nunca duas seguidas.</span></li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg><span>Em <strong>Amigos</strong> aparecem só as publicações dos seus amigos.</span></li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg><span>Ninguém paga para aparecer no Diário: os planos valem só para os perfis de negócio.</span></li></ul>
+        </section>
+        <section class="clausula" id="o6" aria-labelledby="ho6">
+          <h2 id="ho6"><span class="n">6.</span>Comunidade e Reclamações</h2>
+          <p>Na <strong>Comunidade</strong> (doações, trocas, pedidos de ajuda, quartos e achados) não há planos nem espaços pagos: aparecem primeiro os anúncios do lugar escolhido e os mais recentes. Nas <strong>Reclamações</strong>, as mais recentes vêm primeiro, com filtro por lugar e por classe.</p>
+        </section>
+        <section class="clausula" id="o7" aria-labelledby="ho7">
+          <h2 id="ho7"><span class="n">7.</span>Como aparecer melhor</h2>
+          <ul class="lista-check"><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg><span>Complete o perfil: foto, descrição, bairro, fotos reais do trabalho e preços ou itens.</span></li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg><span>Responda rápido às mensagens.</span></li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg><span>Peça avaliação depois de cada atendimento e responda às reclamações com educação.</span></li><li><svg class="i xs" aria-hidden="true"><use href="#i-check"/></svg><span>Mantenha horários, preços e estoque atualizados.</span></li></ul>
+        </section>
+        <section class="clausula" id="o8" aria-labelledby="ho8">
+          <h2 id="ho8"><span class="n">8.</span>O que nunca fazemos</h2>
+          <ul class="lista-check alerta"><li><svg class="i xs" aria-hidden="true"><use href="#i-bloquear"/></svg><span>Vender posição fora dos planos descritos aqui ou esconder que um espaço é de destaque.</span></li><li><svg class="i xs" aria-hidden="true"><use href="#i-bloquear"/></svg><span>Aceitar avaliações compradas, trocadas ou falsas: elas são removidas e a conta pode ser punida (veja as <a href="diretrizes.html#d8">Diretrizes</a>).</span></li><li><svg class="i xs" aria-hidden="true"><use href="#i-bloquear"/></svg><span>Mudar estas regras sem avisar. Mudanças nos planos são avisadas antes e não alteram um período já pago.</span></li></ul>
+        </section>
+        <p style="margin:4px 2px 0;color:var(--muted);font-size:13px">Esta página completa os <a href="termos.html#c6" style="color:var(--classe);font-weight:700">Termos de Uso</a> (seção 6, Planos e valores) e as <a href="diretrizes.html" style="color:var(--classe);font-weight:700">Diretrizes da Comunidade</a>.</p>
+      </div>
+    </div>
+    <script>
+      // Índice: marca a seção que está na tela.
+      (function () {
+        var links = document.querySelectorAll(".doc-indice a");
+        if (!("IntersectionObserver" in window)) return;
+        var obs = new IntersectionObserver(function (es) {
+          es.forEach(function (e) { if (e.isIntersecting) links.forEach(function (a) { a.classList.toggle("on", a.getAttribute("href") === "#" + e.target.id); }); });
+        }, { rootMargin: "-30% 0px -60% 0px" });
+        document.querySelectorAll(".clausula").forEach(function (c) { obs.observe(c); });
+      })();
+    </script>
+  </main>
+
+  <footer class="rodape-home">
+    <div>
+      <div class="marca-rodape">HELP <span>FLORIPA</span></div>
+      <p>Tudo o que você precisa perto de você, em um só lugar: freelances, delivery, compras, imóveis, saúde e Comunidade, em todo o Brasil.</p>
+    </div>
+    <div><h4>Explorar</h4><nav aria-label="Explorar"><a href="servicos.html">Freelances</a><a href="delivery.html">Delivery</a><a href="shopping.html">Shopping</a><a href="imoveis.html">Imóveis</a><a href="saude.html">Saúde</a><a href="comunidade.html">Comunidade</a></nav></div>
+    <div><h4>Para você</h4><nav aria-label="Para você"><a href="usuarios.html">Meu perfil</a><a href="mensagens.html">Mensagens</a><a href="negocios.html">Anunciar</a><a href="profissionais.html">Para profissionais</a><a href="clientes.html">Para clientes</a><a href="reclamacoes.html">Reclamações</a></nav></div>
+    <div><h4>Help Floripa</h4><nav aria-label="Institucional"><a href="sobre.html">Sobre</a><a href="ajuda.html">Ajuda</a><a href="contato.html">Contato</a><a href="socios-parcerias.html">Sócios e parcerias</a><a href="seguranca.html">Central de Segurança</a><a href="diretrizes.html">Diretrizes da Comunidade</a><a href="como-ordenamos.html">Como ordenamos os resultados</a><a href="termos.html">Termos de Uso</a><a href="privacidade.html">Privacidade</a><a href="https://www.instagram.com/help_floripa" target="_blank" rel="noopener noreferrer">Instagram</a></nav></div>
+    <div class="fim"><span>&copy; 2025–2026 Help Floripa · Todos os direitos reservados</span><span>CNPJ 61.935.934/0001-00</span></div>
+  </footer>
+</body>
+</html>

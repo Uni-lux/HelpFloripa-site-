@@ -7,7 +7,7 @@
 // Abrir: abrirInsightsNegocio(negocio, { aoEditar }) · negocios.html?insights=ID
 // =====================================================
 import { $, el, icone, fb, eu, dados, toast, numero, criarFolha, abrirFolha, urlSegura, pintarAvatar } from "./rede.js?v=75";
-import { lerPlano, ehPago, abrirPlanos } from "./planos.js?v=32";
+import { lerPlano, ehPago, abrirPlanos } from "./planos.js?v=33";
 import { lerStats, listaDias, somarPeriodo, dataDoDia, chaveItem, chaveAnuncio, ORIGENS, ACOES, CONTATOS } from "./estat-negocio.js?v=1";
 import { baixarPlanilhaMulti } from "./planilha.js?v=5";
 
