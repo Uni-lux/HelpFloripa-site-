@@ -29,7 +29,7 @@ for (let a = 0; a < 10; a++) {
 }
 
 const { browser, ctx } = await navegador({ mobile: true });
-const p = await entrar(ctx, "ana", "feed.html");
+const p = await entrar(ctx, "ana", "feed.html?aba=registros");
 const ordem = async () => {
   await p.waitForSelector(".post-card", { timeout: 25000 }); await p.waitForTimeout(2000);
   for (let i = 0; i < 3 && (await p.locator(".post-card").count()) < 16; i++) { if (await p.isVisible("#maisFeed")) await p.click("#maisFeed"); await p.waitForTimeout(1200); }
@@ -45,7 +45,7 @@ ok(Math.max(...Object.values(conta)) <= 2, "no máximo 2 do mesmo autor nas 10 p
 ok(a.every((x, i) => i === 0 || x !== a[i - 1]), "nunca duas seguidas do mesmo autor");
 // A mesma pessoa em outro aparelho (sem nada visto ainda) vê a mesma mistura: sem sorteio a cada abertura.
 const outro = await (await navegador({ mobile: true })).ctx;
-const p2 = await entrar(outro, "ana", "feed.html");
+const p2 = await entrar(outro, "ana", "feed.html?aba=registros");
 await p2.waitForSelector(".post-card", { timeout: 25000 }); await p2.waitForTimeout(2000);
 const b = await p2.$$eval(".post-card", (cs) => cs.slice(0, 3).map((c) => c.dataset.autor));
 ok(a.slice(0, 3).join() === b.join(), "a mesma mistura em outra abertura (sem sorteio a cada vez): " + b.join(", "));
