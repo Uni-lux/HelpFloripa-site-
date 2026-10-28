@@ -4,8 +4,9 @@
 //   perfil completo, atualizado, verificado) × novidade (até 14 dias) × perto (km ou mesma cidade) ×
 //   bônus do plano (Plus +10%, Pro +20%, Premium +30%) × exposição (quem você já viu muito no topo perde um pouco) ×
 //   giro (mistura fixa por pessoa e por janela de 3 h: não pula a cada recarga, mas muda ao longo do dia).
-// - Na lista, 1 espaço a cada 5 é de quem tem plano (com o selo do plano no cartão), revezando entre os pagantes;
-//   o resto é a ordem acima. O mesmo dono não aparece duas vezes seguidas.
+// - Na lista, 1 espaço a cada 5 é de quem tem plano (com o selo do plano no cartão): Premium primeiro (o 1º cartão de cada
+//   lista e fileira é de um Premium, revezando entre eles), depois Pro e depois Plus; o resto é a ordem acima.
+//   O mesmo dono não aparece duas vezes seguidas.
 // - Tudo no aparelho, com os dados que a página já leu: nenhuma leitura ou gravação a mais no Firebase.
 // =====================================================
 export const BONUS_PLANO = [1, 1.1, 1.2, 1.3];
@@ -89,8 +90,8 @@ export function relevancia(d, { semente = "", agora = Date.now() } = {}) {
 // Devolve a lista na ordem justa. marcar: quantos do começo contam como "vistos no topo" (0 = nenhum).
 export function ordenarJusto(itens, dados, { dono = () => "", semente = "", agora = Date.now(), marcar = 0, aCada = A_CADA } = {}) {
   const info = itens.map((x) => { const d = dados(x); return { x, d, s: relevancia(d, { semente, agora }), dono: dono(x) }; });
-  // Pagantes revezam nos espaços pagos: peso pelo plano e pela qualidade, girando pela mesma mistura.
-  const pagos = info.filter((i) => i.d.nivel > 0).sort((a, b) => b.s - a.s);
+  // Espaços pagos: Premium > Pro > Plus (o que os planos prometem); dentro do mesmo plano, revezam pela mesma mistura.
+  const pagos = info.filter((i) => i.d.nivel > 0).sort((a, b) => b.d.nivel - a.d.nivel || b.s - a.s);
   const organico = [...info].sort((a, b) => b.s - a.s);
   const usados = new Set(), saida = [];
   let ultimoDono = null;

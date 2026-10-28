@@ -12,18 +12,18 @@ export const PIX = { chave: "61935934000100", nome: "HELP FLORIPA", cidade: "FLO
 export const PAGAMENTO = { automatico: false, publicKey: "TEST-1855e5db-1f54-4020-a318-98f3f6187f73", regiao: "southamerica-east1" };
 // Planos pagos (nível: quanto maior, mais destaque). Preço por mês.
 export const PLANOS = {
-  plus: { nome: "Plus", nivel: 1, preco: 29.9, frase: "Libera tudo no seu perfil e você aparece antes dos perfis grátis", cor: "#2563ff",
-    titulo: "Seu negócio completo", pitch: "Tudo liberado no perfil e você aparece antes de quem não tem plano." },
-  pro: { nome: "Pro", nivel: 2, preco: 39.9, frase: "Tudo do Plus, destaque nas vitrines e no Perto de você", cor: "#7c3aed",
-    titulo: "Mais clientes chegando", pitch: "Tudo do Plus e o seu negócio aparece antes, nas vitrines e no Perto de você." },
-  premium: { nome: "Premium", nivel: 3, preco: 59.9, frase: "O topo das vitrines e o máximo de destaque", cor: "#f59e0b",
-    titulo: "O primeiro que o cliente vê", pitch: "O topo das vitrines, antes de todos, e o maior destaque no Perto de você." }
+  plus: { nome: "Plus", nivel: 1, preco: 29.9, frase: "Libera tudo no seu perfil e você entra nos espaços de destaque das vitrines", cor: "#2563ff",
+    titulo: "Seu negócio completo", pitch: "Tudo liberado no perfil, lugar nos espaços de destaque das vitrines e +10% na ordem." },
+  pro: { nome: "Pro", nivel: 2, preco: 39.9, frase: "Tudo do Plus, prioridade nos destaques e mais perto no Perto de você", cor: "#7c3aed",
+    titulo: "Mais clientes chegando", pitch: "Tudo do Plus, à frente do Plus nos espaços de destaque, +20% na ordem e mais perto no Perto de você." },
+  premium: { nome: "Premium", nivel: 3, preco: 59.9, frase: "O 1º lugar das vitrines e o máximo de destaque", cor: "#f59e0b",
+    titulo: "O primeiro que o cliente vê", pitch: "O 1º cartão de cada vitrine e de cada categoria (revezando entre os Premium), +30% na ordem e o maior destaque no Perto de você." }
 };
 // O que cada plano libera (aparece no topo da gaveta quando a pessoa toca no plano).
 export const DESTAQUES_PLANO = {
-  plus: ["Todos os seus perfis de negócio no ar", "Até 12 itens e 5 fotos, com capa", "Pedidos, orçamentos e agendamentos pelo site", "Cupons e promoções", "Estatísticas de 90 dias", "Aparece antes dos perfis grátis"],
-  pro: ["Tudo do Plus", "Aparece antes do Plus nas vitrines", "Mais perto no Perto de você", "Atendimento prioritário no Suporte"],
-  premium: ["Tudo do Pro", "Topo das vitrines, antes de todos", "O maior destaque no Perto de você", "Atendimento prioritário no Suporte"]
+  plus: ["Todos os seus perfis de negócio no ar", "Até 12 itens e 5 fotos, com capa", "Pedidos, orçamentos e agendamentos pelo site", "Cupons e promoções", "Estatísticas de 90 dias", "Espaços de destaque nas vitrines (1 a cada 5) e +10% na ordem"],
+  pro: ["Tudo do Plus", "À frente do Plus nos espaços de destaque e +20% na ordem", "Mais perto no Perto de você", "Atendimento prioritário no Suporte"],
+  premium: ["Tudo do Pro", "1º lugar de cada vitrine e categoria (revezando entre os Premium) e +30% na ordem", "O maior destaque no Perto de você", "Atendimento prioritário no Suporte"]
 };
 // Perfil grátis (sem plano): o básico para ser encontrado e conversar. O que passa disso continua guardado e volta com um plano.
 export const LIMITES_GRATIS = { itens: 3, fotos: 1, anuncios: 1 };
@@ -49,10 +49,11 @@ export const BENEFICIOS = [
   ["Flash nos perfis de negócio", false, true, true, true],
   ["Estatísticas de 90 dias e Excel", false, true, true, true],
   ["Selo do plano no perfil e nos cartões", false, true, true, true],
-  ["Aparece antes dos perfis grátis", false, true, true, true],
-  ["Aparece antes do Plus e mais perto no Perto de você", false, false, true, true],
+  ["Espaços de destaque nas vitrines (1 a cada 5)", false, true, true, true],
+  ["Bônus na ordem das vitrines", false, "+10%", "+20%", "+30%"],
+  ["À frente do Plus nos destaques e mais perto no Perto de você", false, false, true, true],
   ["Atendimento prioritário no Suporte", false, false, true, true],
-  ["Topo das vitrines (antes de todos)", false, false, false, true]
+  ["1º lugar de cada vitrine e categoria", false, false, false, true]
 ];
 
 const ms = (t) => t?.toMillis?.() ?? (t?.seconds ? t.seconds * 1000 : typeof t === "number" ? t : 0);

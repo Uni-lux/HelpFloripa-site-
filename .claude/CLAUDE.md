@@ -1005,6 +1005,12 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   `ordenarPor`) + "Mais bem avaliados"; Imóveis padrão `relevancia`. Vale na lista, em cada fileira de categoria
   (`mostrarItens` `reordenar`), destaques (`secaoDestaques` sem sorteio, `secaoDestaquesServ`/`girar` com `pesoJusto`, imóveis),
   bolinhas (Online/Destaques), lojas em destaque, promoções, "Parecido com", Atendem online. Delivery fechado ×0,75.
+  **Promessas dos planos trocadas (decidido por ele, opção B; ainda sem assinantes, só bots de teste):** espaços pagos na ordem
+  Premium → Pro → Plus (`ordenarJusto` ordena `pagos` por nível; o 1º cartão de cada lista/fileira é de um Premium). Plus =
+  "espaços de destaque (1 a cada 5) e +10%", Pro = "à frente do Plus nos destaques, +20% e mais perto no Perto de você",
+  Premium = "1º lugar de cada vitrine e categoria (revezando entre os Premium), +30%". Textos em planos-base.js (PLANOS,
+  DESTAQUES_PLANO, BENEFICIOS com linha "Bônus na ordem das vitrines" +10/20/30%), profissionais.html, ajuda.html e Termos
+  seção 6 ("Ordem das vitrines"; nenhum plano garante vendas ou posição fixa além do descrito).
   Teste `t-relevancia.mjs`. Próximas partes: 2) Início e Explorar; 3) Diário (espaço para autores novos) + página "Como
   ordenamos os resultados". Etapa B (com Blaze): exibições somadas no servidor e ranking pré-calculado por cidade/categoria.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,

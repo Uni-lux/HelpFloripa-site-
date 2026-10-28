@@ -33,6 +33,13 @@ ok(a.length >= 25, `${a.length} profissionais na lista`);
 // do plano algum pode aparecer antes, pela relevância).
 const aCada5 = (l) => l.every((x, i) => i % 5 !== 0 || x.pago || l.slice(0, i).filter((y) => y.pago).length >= l.filter((y) => y.pago).length);
 ok(aCada5(a) && pagos.length === 5, "1 espaço pago a cada 5 enquanto há pagante: pagos em " + pagos.map((i) => i + 1).join(", "));
+// O que os planos prometem: espaços pagos na ordem Premium → Pro → Plus; o 1º cartão é de um Premium.
+const planoDe = (c) => (c.match(/\bpl-(plus|pro|premium)\b/) || [])[1] || "";
+const slots = await p.$$eval("#vtGrade article.vt-cv", (cs) => cs.map((c) => c.className));
+const ordemSlots = [0, 5, 10, 15, 20].map((i) => planoDe(slots[i] || "")).filter(Boolean);
+ok(planoDe(slots[0]) === "premium", "o 1º cartão é de um Premium");
+const NIV = { plus: 1, pro: 2, premium: 3 };
+ok(ordemSlots.every((k, i) => i === 0 || NIV[k] <= NIV[ordemSlots[i - 1]]), "espaços pagos na ordem Premium → Pro → Plus: " + ordemSlots.join(", "));
 ok(a.slice(0, 5).filter((x) => !x.pago).length >= 2, "nos 5 primeiros há pelo menos 2 perfis sem plano (o topo não é só de quem paga)");
 ok(await p.$$eval("#vtGrade .vt-ordem button", (bs) => bs.map((b) => b.textContent).join("|")).then((t) => t.startsWith("Relevância") && t.includes("Mais bem avaliados")), "ordens: Relevância (padrão) e Mais bem avaliados");
 await p.reload();
