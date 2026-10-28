@@ -915,6 +915,12 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   Ficou anotado (precisa de servidor/Blaze): "Responde rápido" vem de `perfis_publicos.atendimento.resposta`, que o dono
   grava (dá para forjar); pedidos do chat são montados no aparelho do cliente (o alerta ajuda, a correção de verdade é
   gravar o pedido por Cloud Function).
+- **Aba Chamadas em Mensagens (28/10/2026, mesmo PR #106, sem regra nova; 2 índices novos `chamadas` de/para + criadoEm):**
+  terceira aba em `.modos` (Pessoal | Negócios | Chamadas), `renderizarChamadas`/`lerChamadas` em mensagens.html (50 de cada
+  lado; sem índice lê 150 sem ordem), feitas/recebidas/perdidas por dia, filtro Perdidas, ligar de volta, "Limpar registro"
+  no aparelho (`hf-chamadas-<uid>`). Teste `t-registro-chamadas.mjs`.
+  **Painel das vitrines (topo com foto, classes, busca): o dono testou 2 versões novas e mandou voltar e ESQUECER (28/10).**
+  Não propor de novo redesenho do topo das vitrines sem ele pedir.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
