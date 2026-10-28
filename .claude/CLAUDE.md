@@ -988,6 +988,11 @@ Coisas que só ELE pode fazer (lembrar no momento certo, sem fazer por ele):
   5. Avisar o Claude → ele muda `automatico: true` e testam juntos com cartões de teste (titular APRO/OTHE/FUND).
   6. Produção: ativar credenciais no MP, trocar o segredo pelo token `APP_USR-` e publicar de novo, mandar a Public Key
      `APP_USR-` (o Claude troca no `planos-base.js`) e fazer um pagamento real com Pix para conferir.
+  **Junto com o deploy das Functions (decidido por ele em 28/10/2026, "anota"):** 2 Cloud Functions de segurança —
+  (a) "Responde rápido": trigger em mensagens calcula `perfis_publicos.atendimento.resposta` e a regra deixa de aceitar
+  o dono gravando esse campo (hoje dá para forjar); (b) pedido do chat montado no servidor a partir de `negocios.itens`
+  (o cliente manda só itens/quantidades/cupom; hoje o cartão vem pronto do aparelho, só com o alerta `.pd-alerta`).
+  Não fazer paliativo nas regras nem esconder o selo antes disso (ele preferiu esperar o Blaze).
   Depois: a fazer quando ele quiser — parcelamento no cartão, renovação automática (assinaturas) e, no futuro, SLU/LTDA
   para o Pix mostrar "Help Floripa" (hoje mostra a razão social do MEI com o nome dele).
 - **E-mails do domínio (lista da semana de 26/10, lembrete trig_01Skdj622NFsQ7wGqJrbK4HC):** imprensa@, privacidade@ (LGPD),
