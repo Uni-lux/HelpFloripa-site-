@@ -54,7 +54,8 @@ function css() {
   .hf-confirma-troca .de b { color: var(--muted, #8b9ba6); text-decoration: line-through; }
   .hf-confirma-troca .para { border-color: color-mix(in srgb, var(--accent, #00adee) 55%, transparent); background: color-mix(in srgb, var(--accent, #00adee) 10%, var(--panel-2, #162128)); }
   .hf-confirma-troca i { justify-self: center; font-style: normal; font-size: 16px; line-height: 1; color: var(--muted, #8b9ba6); }
-  :root[data-theme="light"] .hf-confirma-troca div { background: #f4f7f9; border-color: #e2e8ec; }
+  :root[data-theme="light"] .hf-confirma-troca div:not(.para) { background: #f4f7f9; border-color: #e2e8ec; }
+  :root[data-theme="light"] .hf-confirma-troca .para { background: color-mix(in srgb, var(--accent, #00adee) 10%, #fff); }
   .hf-confirma-acoes.empilhar { grid-template-columns: 1fr; }
   .hf-confirma-acoes.empilhar .sim { order: -1; }
   @media (prefers-reduced-motion: reduce) { .hf-confirma-fundo, .hf-confirma { animation: none; } }`;
