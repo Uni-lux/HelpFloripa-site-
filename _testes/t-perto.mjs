@@ -32,9 +32,9 @@ await p.locator("#secPerto").scrollIntoViewIfNeeded(); await p.screenshot({ path
 // ---------- vitrine ----------
 await p.goto(BASE + "servicos.html"); await p.waitForTimeout(4000);
 await p.evaluate(() => document.querySelector(".hfman-x")?.click());
-ok(await p.locator(".vt-dist").count() > 0, "vitrine: distância nos cartões");
+ok((await p.locator(".cv-onde").allTextContents()).some((x) => /km|cidade/.test(x)), "vitrine: distância nos cartões");
 await p.locator(".vt-ordem button, .vt-ordem [role=tab]", { hasText: "Mais perto" }).first().click(); await p.waitForTimeout(800);
-const ordem = await p.locator("#vtGrade .vt-free .nm, #vtGrade .vt-del .nm").allTextContents();
+const ordem = await p.locator("#vtGrade .vt-cv .nm").allTextContents();
 ok(ordem.length && ordem[ordem.length - 1] === "Edu Pinturas", "Mais perto: São Paulo por último: " + ordem.join(", "));
 await p.click("#vtFiltrosBtn"); await p.waitForTimeout(400);
 ok((await p.locator(".vt-filtros-pop").textContent()).includes("Distância"), "Filtros: seção Distância");

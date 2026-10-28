@@ -103,12 +103,12 @@ if (await p.locator("#folhaEscolherEst.aberta").count()) await p.locator("#folha
 await p.waitForSelector(".ni-periodo button", { timeout: 15000 });
 ok(await p.locator(".ni-periodo button.travado").count() === 0 && await p.locator(".ni-baixar.travado").count() === 0, "Pro: 90 dias e Excel liberados");
 const pv = await entrar(ctx, "ana", "servicos.html");
-await pv.waitForSelector("#vtGrade .vt-free", { timeout: 20000 }).catch(() => {}); await pv.waitForTimeout(2500);
+await pv.waitForSelector("#vtGrade .vt-cv", { timeout: 20000 }).catch(() => {}); await pv.waitForTimeout(2500);
 await pv.evaluate(() => document.querySelector(".hfman-x")?.click());
-const nomes = await pv.locator("#vtGrade .vt-free .nm").allTextContents();
+const nomes = await pv.locator("#vtGrade .vt-cv").evaluateAll((cs) => cs.map((c) => c.querySelector(".nm").textContent + " " + (c.querySelector(".cv-plano")?.textContent || "")));
 ok(nomes[0]?.includes("Bruno") && nomes[0].includes("PRO"), "vitrine: Pro primeiro e com o selo: " + nomes.join(" | "));
-await pv.locator("#vtGrade .vt-free").first().scrollIntoViewIfNeeded(); await pv.screenshot({ path: "saida/pl-vitrine.png" });
-await pv.locator("#vtGrade .vt-free").first().click(); await pv.waitForTimeout(1500);
+await pv.locator("#vtGrade .vt-cv").first().scrollIntoViewIfNeeded(); await pv.screenshot({ path: "saida/pl-vitrine.png" });
+await pv.locator("#vtGrade .vt-cv").first().click(); await pv.waitForTimeout(1500);
 ok(await pv.locator(".vd-selo-pro").count() === 1, "perfil do negócio: selo 'Negócio Pro'");
 await pv.screenshot({ path: "saida/pl-detalhe.png" });
 

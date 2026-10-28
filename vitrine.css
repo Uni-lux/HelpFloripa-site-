@@ -828,14 +828,52 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
 .vt-cv.pl-premium .cv-capa::before { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(115deg, transparent 35%, rgba(255, 236, 170, .25) 50%, transparent 65%); background-size: 250% 100%; animation: fl-brilho 4.5s ease-in-out infinite; }
 @keyframes fl-brilho { 0%, 30% { background-position: 120% 0; } 70%, 100% { background-position: -20% 0; } }
 @media (prefers-reduced-motion: reduce) { .vt-cv, .vt-cv .fl-online, .vt-cv.pl-premium .cv-capa::before { animation: none; } }
+/* Variações do cartão base: Saúde (registro), Delivery (aberto/fechado, entrega grátis), itens (Imóveis, produtos) */
+.vt-cv .cv-tag.aberto { background: #16a34a; }
+.vt-cv .cv-tag.fechado { background: rgba(60, 66, 76, .85); }
+.vt-cv .cv-tag.saude-mod { background: #0f9488; }
+.vt-cv .cv-tag.fin { background: var(--vc); color: var(--vc-ink); }
+.vt-cv .cv-tag.esgot { background: rgba(20, 20, 24, .85); }
+.vt-cv .cv-tag.ultima { background: #ea580c; }
+.vt-cv .cv-extras .cv-tag.mini { position: static; max-width: 100%; padding: 2px 7px 2px 5px; font-size: 10.5px; }
+.vt-cv.fechado .cv-capa, .vt-cv.fechado .cv-foto { filter: grayscale(.6); opacity: .85; }
+.vt-cv .cv-reg { display: inline-flex; align-items: center; gap: 3px; font-size: 10.5px; font-weight: 750; color: #0f9488; }
+.vt-cv .cv-reg { color: color-mix(in srgb, #14d3c0 80%, var(--vt-text, #fff)); }
+.vt-cv .cv-reg svg { width: 12px; height: 12px; flex: none; }
+.vt-cv .cv-reg span, .vt-cv .cv-area { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vt-cv .cv-preco b.gratis { color: var(--vt-ok, #16a34a); }
+.vt-cv .cv-preco-in { display: grid; min-width: 0; line-height: 1.15; }
+.vt-cv .cv-preco-in small { font-size: 10px; font-weight: 700; color: var(--vt-muted); }
+.vt-cv .cv-preco-in s { font-size: 10.5px; color: var(--vt-muted); }
+.vt-cv .cv-preco-in b { font-size: 14px; font-weight: 850; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vt-cv .cv-preco-in b em { font-style: normal; font-size: 10.5px; font-weight: 700; color: var(--vt-muted); margin-left: 1px; }
+/* Itens: a foto do item é a estrela do cartão, texto alinhado à esquerda */
+.vt-cv.cv-item .cv-capa { aspect-ratio: 4 / 3; }
+.vt-cv.cv-prod .cv-capa { aspect-ratio: 1; background-color: var(--vt-card-2); display: grid; place-items: center; }
+.vt-cv.cv-item .cv-capa::after { background: linear-gradient(180deg, rgba(0, 0, 0, .25), transparent 35%); }
+.vt-cv .cv-sem-foto { width: 34px; height: 34px; color: var(--vt-muted); }
+.vt-cv.cv-item .cv-corpo { margin-top: 0; padding: 9px 11px 10px; justify-items: start; text-align: left; gap: 3px; }
+.vt-cv.cv-item .nm { font-size: 13.5px; font-weight: 800; }
+.vt-cv.cv-item .hf-estrelas { justify-content: flex-start; }
+.vt-cv .cv-nf { position: absolute; right: 7px; bottom: 7px; z-index: 2; display: inline-flex; align-items: center; gap: 3px; padding: 3px 7px; border-radius: 999px; font-size: 10.5px; font-weight: 750; color: #fff; background: rgba(4, 12, 28, .66); }
+.vt-cv .cv-nf svg { width: 11px; height: 11px; }
+.vt-cv .cv-specs { display: flex; flex-wrap: wrap; gap: 4px 9px; font-size: 11px; font-weight: 750; color: var(--vt-text-2); }
+.vt-cv .cv-specs span { display: inline-flex; align-items: center; gap: 3px; }
+.vt-cv .cv-specs svg { width: 12px; height: 12px; }
+.vt-cv .cv-loja { display: flex; align-items: center; gap: 4px; width: 100%; font-size: 11px; color: var(--vt-muted); }
+.vt-cv .cv-loja svg { width: 12px; height: 12px; flex: none; }
+.vt-cv .cv-loja .ln { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vt-cv .cv-loja em { flex: none; margin-left: auto; font-style: normal; font-weight: 750; color: var(--vt-ok, #16a34a); }
+.vt-cv.esgotado { opacity: .6; }
+.vt-cv .vd-vendi { margin: 0 10px 10px; }
 /* Cartão médio (2 por linha no celular) */
 @container (max-width: 210px) {
   .vt-cv .cv-corpo { padding: 0 8px 9px; margin-top: -28px; gap: 2px; }
   .vt-cv .cv-foto .vt-avatar { width: 54px; height: 54px; font-size: 16px; }
   .vt-cv .nm { font-size: 13.5px; }
   .vt-cv .cv-area { font-size: 11.5px; }
-  .vt-cv .cv-tag span { display: none; }
-  .vt-cv .cv-tag { padding: 4px; }
+  .vt-cv .cv-tag svg + span { display: none; }
+  .vt-cv .cv-tag:has(svg) { padding: 4px; }
   .vt-cv .cv-extras .cv-modo:nth-child(n+2) { display: none; }
 }
 /* Cartão estreito (3 por linha no celular): só o essencial, sem cortar nada */
@@ -858,6 +896,17 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
   .vt-cv .cv-preco b { font-size: 12px; }
   .vt-cv .fl-cta { width: 22px; height: 22px; }
   .vt-cv .fl-cta svg { width: 12px; height: 12px; }
+  .vt-cv.cv-item .cv-corpo { padding: 7px 7px 8px; }
+  .vt-cv.cv-item .nm { font-size: 12px; }
+  .vt-cv .cv-specs { font-size: 10px; gap: 2px 6px; }
+  .vt-cv .cv-loja em { display: none; }
+  .vt-cv .cv-preco-in b { font-size: 12px; letter-spacing: -.2px; }
+  .vt-cv.cv-item .fl-cta { display: none; }
+  .vt-cv .cv-tag.fin { display: none; }
+  .vt-cv.cv-item .cv-rodape { padding: 7px 8px 8px; }
+  .vt-cv .cv-tag { max-width: calc(100% - 64px); }
+  .vt-cv .cv-nf { right: 5px; bottom: 5px; padding: 2px 5px; font-size: 9.5px; }
+  .vt-cv .cv-reg { font-size: 9.5px; }
 }
 /* Freelances: título da lista e "Criar meu perfil" mais compactos */
 .vitrine[data-tipo="servicos"] .vt-cabeca { align-items: center; gap: 10px; margin-bottom: 12px; }

@@ -13,7 +13,7 @@ import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL 
 import { docComValidade } from "./leituras.js?v=1";
 import { camposEndereco, textoCidade, semAcento } from "./endereco.js?v=1";
 import { minhaPosicao, comDistancia, textoDistancia } from "./perto.js?v=2";
-import { prepararConversa } from "./vitrine.js?v=68";
+import { prepararConversa } from "./vitrine.js?v=69";
 
 export const CATEGORIAS_COM = {
   doacao: { nome: "Doação", plural: "Doações", cor: "#e5487f", ic: "presente", acao: "Quero receber", dica: "Dê de graça o que você não usa mais" },
@@ -47,6 +47,7 @@ const el = (t, c, x) => { const e = document.createElement(t); if (c) e.classNam
 const ms = (t) => t?.toMillis?.() ?? (t?.seconds ? t.seconds * 1000 : 0);
 const moeda = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: Number(v) % 1 ? 2 : 0 });
 const ICONES = {
+  seta: '<path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>',
   presente: '<rect x="4" y="9" width="16" height="11" rx="1.5"/><path d="M3 9h18v-1.5A1.5 1.5 0 0019.5 6h-15A1.5 1.5 0 003 7.5zM12 6v14M12 6c-1.5-3-5-3-5-.8C7 6 9.5 6 12 6zm0 0c1.5-3 5-3 5-.8C17 6 14.5 6 12 6z"/>',
   troca: '<path d="M4 8h13l-3-3M20 16H7l3 3"/>',
   maos: '<path d="M12 20s-7-4.4-7-10a4 4 0 017-2.6A4 4 0 0119 10c0 5.6-7 10-7 10z"/>',
@@ -125,9 +126,19 @@ function cartao(a) {
   else if (a.tipoItem && TIPOS_ITEM[a.tipoItem]) sub.push(TIPOS_ITEM[a.tipoItem]);
   tx.appendChild(el("small", null, sub.filter(Boolean).join(" · ") || C.dica));
   const pe = el("small", "cm-onde");
-  pe.append(icone("pin"), document.createTextNode([Number.isFinite(a._km) && posEu ? textoDistancia(a._km, a._aprox) : "", a.bairro || textoCidade(a)].filter(Boolean).join(" · ") || "Local a combinar"));
-  tx.append(pe, el("small", "cm-quando", ha(a.atualizadoEm || a.criadoEm)));
-  c.append(ft, tx);
+  pe.append(icone("pin"), el("span", null, [Number.isFinite(a._km) && posEu ? textoDistancia(a._km, a._aprox) : "", a.bairro || textoCidade(a)].filter(Boolean).join(" · ") || "Local a combinar"));
+  tx.append(pe);
+  // Rodapé no modelo dos cartões das vitrines: o que é (sempre sem cobrar) e a seta.
+  const rod = el("div", "cm-rod");
+  const rotulo = a.categoria === "quarto" ? (Number(a.quarto?.rateio) > 0 ? ["Divisão", `${moeda(a.quarto.rateio)}/mês`] : ["Vaga", "Sem custo"])
+    : a.categoria === "pedido" ? ["Pedido", "Pode ajudar?"]
+    : a.categoria === "troca" ? ["Troca", "Sem dinheiro"]
+    : a.categoria === "achados" ? [a.achado?.tipo === "perdido" ? "Perdido" : "Encontrado", "Ajude a devolver"]
+    : ["Doação", "De graça"];
+  const r = el("span", "cm-rot"); r.append(el("small", null, `${rotulo[0]} · ${ha(a.atualizadoEm || a.criadoEm)}`), el("b", null, rotulo[1]));
+  const seta = el("span", "cm-seta"); seta.setAttribute("aria-hidden", "true"); seta.appendChild(icone("seta"));
+  rod.append(r, seta);
+  c.append(ft, tx, rod);
   const abrir = () => abrirItem(a);
   c.addEventListener("click", abrir);
   c.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrir(); } });

@@ -2191,75 +2191,96 @@ function nomeComSelo(n, padrao) {
   if (mostraSelo(planosDonos.get(n.donoId))) { s.classList.add("com-pro"); s.append(" ", seloPlano(planosDonos.get(n.donoId))); }
   return s;
 }
-// Cartão dos Freelances no formato de cartão de visita: faixa da capa em cima, foto no centro (anel na cor
-// do plano + bolinha de online), nome, área, nota, onde está e o preço. Só UMA etiqueta na capa (destaque >
-// urgência > cupom) e o selo do plano no canto oposto: nada fica por cima de outra coisa.
-function cartaoPro(n, destaqueEm = "") {
-  const c = el("article", "vt-fl vt-cv");
-  const plano = planosDonos.get(n.donoId);
+// Cartão base de todas as vitrines (mesmo modelo dos Freelances). Perfis (Freelances, Saúde, Delivery) viram
+// "cartão de visita": capa curta, foto no centro com o anel da cor do plano e a bolinha de online. Itens (Imóveis,
+// produtos) usam a foto grande do item (`item: true`). Na capa só UMA etiqueta à esquerda e o selo do plano à direita;
+// rodapé com o preço e a seta. Nada fica por cima de outra coisa.
+function tagCartao(cls, ic, texto) {
+  const t = el("span", "cv-tag " + cls);
+  if (ic) t.appendChild(icone(ic, "vi s"));
+  t.appendChild(el("span", null, texto));
+  return t;
+}
+function cartaoVisita({ donoId, capa, capaPadrao = "", tag = null, foto = null, online = false, nome, linhas = [], extras = [], preco, item = false, classes = "", canto = null }) {
+  const c = el("article", "vt-fl vt-cv" + (item ? " cv-item" : "") + (classes ? " " + classes : ""));
+  const plano = donoId ? planosDonos.get(donoId) : null;
   const kPlano = mostraSelo(plano) ? plano.plano : "";
   if (kPlano) c.classList.add("pl-" + kPlano);
-  const capa = el("div", "cv-capa");
-  const urlCapa = capaDe(n);
-  if (urlCapa) capa.style.backgroundImage = `url("${urlCapa}")`; else capa.classList.add("sem-capa");
-  const promo = promoAtiva(n);
-  let tag = null;
-  if (destaqueEm) { tag = el("span", "cv-tag dest"); tag.append(icone("selo", "vi s"), el("span", null, `Destaque em ${CATEGORIAS.servicos[destaqueEm] || "Freelances"}`)); }
-  else if ((n.diferenciais || []).includes("urgencia")) { tag = el("span", "cv-tag urg"); tag.append(icone("relogio", "vi s"), el("span", null, "Urgência")); }
-  else if (promo) { tag = el("span", "cv-tag promo"); tag.append(icone("cupom", "vi s"), el("span", null, promo.codigo ? "Cupom" : "Promoção")); }
-  if (tag) capa.appendChild(tag);
-  if (kPlano) capa.appendChild(el("span", "cv-plano", kPlano.toUpperCase()));
-  const foto = el("div", "cv-foto");
-  foto.appendChild(avatar(n.foto, n.nome, "vt-avatar"));
-  // Bolinha verde: quem anuncia está online agora (perfis_publicos.ultimoAcesso, presenca.js).
-  if (estaOnline(donos.get(n.donoId)?.ultimoAcesso)) {
-    const o = el("span", "fl-online"); o.title = "Online agora"; o.setAttribute("aria-label", "Online agora");
-    foto.appendChild(o); c.classList.add("online");
-  }
+  const cp = el("div", "cv-capa");
+  const url = urlSegura(capa) || capaPadrao;
+  if (url) cp.style.backgroundImage = `url("${url}")`; else cp.classList.add("sem-capa");
+  if (tag) cp.appendChild(tag);
+  if (kPlano) cp.appendChild(el("span", "cv-plano", kPlano.toUpperCase()));
+  if (canto) cp.appendChild(canto);
   const corpo = el("div", "cv-corpo");
-  corpo.append(foto, el("strong", "nm", n.nome || "Freelancer"));
+  if (foto) {
+    const f = el("div", "cv-foto");
+    f.appendChild(foto);
+    if (online) { const o = el("span", "fl-online"); o.title = "Online agora"; o.setAttribute("aria-label", "Online agora"); f.appendChild(o); c.classList.add("online"); }
+    corpo.appendChild(f);
+  } else c.classList.add("sem-foto");
+  corpo.appendChild(el("strong", "nm", nome));
+  linhas.filter(Boolean).forEach((x) => corpo.appendChild(x));
+  const ex = extras.filter((x) => x && x.nodeType === 1);
+  if (ex.length) { const d = el("div", "cv-extras"); d.append(...ex); corpo.appendChild(d); }
+  const rod = el("div", "cv-rodape");
+  const pr = el("span", "cv-preco");
+  if (preco?.el) pr.appendChild(preco.el);
+  else { if (preco?.rot) pr.appendChild(el("small", null, preco.rot)); pr.appendChild(el("b", preco?.cls || null, preco?.valor || "")); }
+  const cta = el("span", "fl-cta"); cta.setAttribute("aria-hidden", "true"); cta.appendChild(icone("avancar", "vi s"));
+  rod.append(pr, cta);
+  c.append(cp, corpo, rod);
+  return c;
+}
+const linhaCv = (cls, texto, ic = "") => {
+  if (!texto) return null;
+  const l = el("span", cls);
+  if (ic) l.appendChild(icone(ic, "vi s"));
+  l.appendChild(el("span", null, texto));
+  return l;
+};
+// Onde: distância em km (quando há) + cidade; "Na sua cidade" sozinho não repete a cidade.
+function ondeCv(n, local = "") {
+  const dist = distDe(n), cidade = local || (textoCidade(n) || "").split("/")[0];
+  const t = /\d/.test(dist) ? [dist, cidade].filter(Boolean).join(" · ") : cidade || dist;
+  return linhaCv("cv-onde", t, "pin");
+}
+const estrelasCv = (n) => estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId });
+const estaOnlineDono = (n) => estaOnline(donos.get(n.donoId)?.ultimoAcesso);
+
+// Freelances: cartão de visita.
+function cartaoPro(n, destaqueEm = "") {
+  const promo = promoAtiva(n);
+  const tag = destaqueEm ? tagCartao("dest", "selo", `Destaque em ${CATEGORIAS.servicos[destaqueEm] || "Freelances"}`)
+    : (n.diferenciais || []).includes("urgencia") ? tagCartao("urg", "relogio", "Urgência")
+    : promo ? tagCartao("promo", "cupom", promo.codigo ? "Cupom" : "Promoção") : null;
   const cats = categoriasDe(n).map((k) => CATEGORIAS.servicos[k] && nomeCat(n, k)).filter(Boolean);
   const area = cats[0] ? (cats.length > 1 ? `${cats[0]} +${cats.length - 1}` : cats[0]) : nomeCategoria(n);
-  if (area) corpo.appendChild(el("span", "cv-area", area));
-  corpo.appendChild(estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }));
-  // Onde: distância em km (quando há) + cidade; "Na sua cidade" sozinho não repete a cidade.
-  const dist = distDe(n), cidade = (textoCidade(n) || "").split("/")[0];
-  const onde = /\d/.test(dist) ? [dist, cidade].filter(Boolean).join(" · ") : cidade || dist;
-  if (onde) { const l = el("span", "cv-onde"); l.append(icone("pin", "vi s"), el("span", null, onde)); corpo.appendChild(l); }
-  // Etiquetas extras (some no cartão estreito): responde rápido e como atende.
-  const extras = el("div", "cv-extras");
-  const rap = seloRapido(n); if (rap.nodeType === 1) extras.appendChild(rap);
-  (n.atendimento || []).filter((k) => MODOS[k]).slice(0, 2).forEach((k) => extras.appendChild(el("span", "cv-modo", k === "online" ? "Atende online" : MODOS[k])));
-  if (extras.childElementCount) corpo.appendChild(extras);
-  const rod = el("div", "cv-rodape");
-  const preco = el("span", "cv-preco");
-  if (moeda(n.precoDesde)) preco.append(el("small", null, "a partir de"), el("b", null, moeda(n.precoDesde)));
-  else preco.append(el("small", null, "Preço"), el("b", null, "a combinar"));
-  const cta = el("span", "fl-cta"); cta.setAttribute("aria-hidden", "true"); cta.appendChild(icone("avancar", "vi s"));
-  rod.append(preco, cta);
-  c.append(capa, corpo, rod);
+  const c = cartaoVisita({
+    donoId: n.donoId, capa: capaDe(n), tag, foto: avatar(n.foto, n.nome, "vt-avatar"), online: estaOnlineDono(n),
+    nome: n.nome || "Freelancer", linhas: [linhaCv("cv-area", area), estrelasCv(n), ondeCv(n)],
+    extras: [seloRapido(n), ...(n.atendimento || []).filter((k) => MODOS[k]).slice(0, 2).map((k) => el("span", "cv-modo", k === "online" ? "Atende online" : MODOS[k]))],
+    preco: moeda(n.precoDesde) ? { rot: "a partir de", valor: moeda(n.precoDesde) } : { rot: "Preço", valor: "a combinar" }
+  });
   return tornarClicavel(c, () => abrirDetalhe(n), `Ver ${n.nome}`);
 }
 const cartaoTop = (n, cat) => cartaoPro(n, cat);
 // Saúde: foto do local (ou a capa da classe), avatar, nome com selo, nota, profissão + registro e a consulta.
 function cartaoSaude(n) {
   const sd = n.saude || {};
-  const c = comCorPlano(el("article", "vt-del vt-free vt-saude"), n.donoId);
-  const f = el("div", "ft");
-  f.style.backgroundImage = `url("${capaDe(n) || TEXTOS.saude.img}")`;
   const mods = (sd.modalidades || []).filter((k) => k === "online" || k === "domicilio");
-  if (mods.length) f.appendChild(el("span", "st saude-mod", mods.map((k) => (k === "online" ? "Online" : "Em casa")).join(" · ")));
-  seloPromo(f, n);
-  f.appendChild(avatar(n.foto, n.nome, "vt-avatar logo"));
-  const tx = el("div", "tx");
-  tx.append(nomeComSelo(n, "Profissional de saúde"), estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }), seloRapido(n));
-  const esp = (sd.especialidades || [])[0];
-  tx.appendChild(el("small", null, [nomeProfissao(sd), esp].filter(Boolean).join(" · ")));
+  const promo = promoAtiva(n);
+  const tag = mods.length ? tagCartao("saude-mod", mods.includes("online") ? "online" : "casa", mods.map((k) => (k === "online" ? "Online" : "Em casa")).join(" · "))
+    : promo ? tagCartao("promo", "cupom", promo.codigo ? "Cupom" : "Promoção") : null;
   const reg = textoRegistro(sd);
-  if (reg) { const r = el("small", "reg"); r.append(icone("escudo"), document.createTextNode(reg.split(" · ")[0])); tx.appendChild(r); }
-  tx.appendChild(el("span", "tx-taxa", textoValor(sd, moeda) || textoCidade(n) || "Agende pelo chat"));
-  seloDist(f, n);
-  c.append(f, tx);
+  const valor = Number(sd.valorConsulta) > 0 ? moeda(sd.valorConsulta) : "";
+  const c = cartaoVisita({
+    donoId: n.donoId, capa: capaDe(n), tag, foto: avatar(n.foto, n.nome, "vt-avatar"), online: estaOnlineDono(n), classes: "vt-saude",
+    nome: n.nome || "Profissional de saúde",
+    linhas: [linhaCv("cv-area", [nomeProfissao(sd), (sd.especialidades || [])[0]].filter(Boolean).join(" · ")), linhaCv("cv-reg", reg ? reg.split(" · ")[0] : "", "escudo"), estrelasCv(n), ondeCv(n)],
+    extras: [seloRapido(n)],
+    preco: valor ? { rot: "Consulta", valor } : (sd.convenios || []).length ? { rot: "Atende", valor: "Convênios" } : { rot: "Consulta", valor: "Agende pelo chat" }
+  });
   return tornarClicavel(c, () => abrirDetalhe(n), `Ver ${n.nome}`);
 }
 function linhaSaude(n) {
@@ -2342,28 +2363,24 @@ const ORDENS_IMOVEL = {
 };
 let ordemImovel = "recentes";
 function cartaoImovelMini(a) {
-  const c = comCorPlano(el("article", "vt-imo"), a.donoId);
-  const f = el("div", "ft");
-  f.style.backgroundImage = `url("${urlSegura((a.fotos || []).find(urlSegura)) || TEXTOS.imoveis.img}")`;
-  f.appendChild(el("span", "tag", FINALIDADE[a.finalidade] || "Imóvel"));
   const nFotos = (a.fotos || []).filter(urlSegura).length;
-  if (nFotos > 1) { const s = el("span", "nf"); s.append(icone("foto", "vi s"), document.createTextNode(String(nFotos))); f.appendChild(s); }
-  const p = el("span", "pr", moeda(a.preco) || "Consultar");
-  if (moeda(a.preco) && a.finalidade === "aluguel") p.appendChild(el("small", null, "/mês"));
-  if (moeda(a.preco) && a.finalidade === "temporada") p.appendChild(el("small", null, "/dia"));
-  f.appendChild(p);
-  const tx = el("div", "tx");
-  tx.appendChild(el("strong", "nm", tituloImovel(a)));
-  const local = a.bairro || a.cidade;
-  if (local) { const s = el("span", "loc"); s.append(icone("pin", "vi s"), document.createTextNode(local)); tx.appendChild(s); }
-  const sp = el("div", "sp");
+  let canto = null;
+  if (nFotos > 1) { canto = el("span", "cv-nf"); canto.append(icone("foto", "vi s"), document.createTextNode(String(nFotos))); }
+  const sp = el("div", "cv-specs");
   [["cama", a.quartos], ["carro", a.vagas], ["area", a.area ? `${a.area}m²` : ""]].forEach(([ic, v]) => {
     if (!v) return;
-    const s = el("span"); s.append(icone(ic, "vi s"), document.createTextNode(String(v))); sp.appendChild(s);
+    const s2 = el("span"); s2.append(icone(ic, "vi s"), document.createTextNode(String(v))); sp.appendChild(s2);
   });
-  if (sp.children.length) tx.appendChild(sp);
-  seloDist(f, a);
-  c.append(f, tx);
+  const valor = moeda(a.preco);
+  const por = a.finalidade === "aluguel" ? "/mês" : a.finalidade === "temporada" ? "/dia" : "";
+  const pEl = el("span", "cv-preco-in");
+  pEl.append(el("small", null, FINALIDADE[a.finalidade] || "Imóvel"), (() => { const b = el("b", null, valor || "Consultar"); if (valor && por) b.appendChild(el("em", null, por)); return b; })());
+  const c = cartaoVisita({
+    donoId: a.donoId, capa: (a.fotos || []).find(urlSegura), capaPadrao: TEXTOS.imoveis.img, item: true, canto,
+    tag: tagCartao("fin", null, FINALIDADE[a.finalidade] || "Imóvel"),
+    nome: tituloImovel(a), linhas: [ondeCv(a, a.bairro || ""), sp.children.length ? sp : null],
+    preco: { el: pEl }
+  });
   return tornarClicavel(c, () => abrirAnuncio(a), `Ver ${tituloImovel(a)}`);
 }
 // Título e ordenação da lista (Freelances e Imóveis usam o mesmo modelo).
@@ -2483,22 +2500,20 @@ function linhaProduto({ n, i, idx }) {
   });
 }
 function tileDelivery(n) {
-  const c = comCorPlano(el("article", "vt-del"), n.donoId);
   const ab = abertoAgora(n);
-  if (ab === false) c.classList.add("fechado");
-  const f = el("div", "ft");
+  const promo = promoAtiva(n);
+  const tag = ab !== null ? tagCartao(ab ? "aberto" : "fechado", null, ab ? "Aberto" : "Fechado")
+    : promo ? tagCartao("promo", "cupom", promo.codigo ? "Cupom" : "Promoção") : null;
   const prato = (n.itens || []).find((i) => urlSegura(i?.foto));
-  f.style.backgroundImage = `url("${urlSegura(prato?.foto) || TEXTOS.delivery.img}")`;
-  if (ab !== null) f.appendChild(el("span", "st " + (ab ? "on" : "off"), ab ? "Aberto" : "Fechado"));
-  seloPromo(f, n);
-  f.appendChild(avatar(n.foto, n.nome, "vt-avatar logo"));
-  const tx = el("div", "tx");
-  tx.append(nomeComSelo(n, "Delivery"), estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }), seloRapido(n));
-  const info = [nomeCategoria(n), n.tempoMin || n.tempoMax ? `${n.tempoMin || "?"}–${n.tempoMax || "?"} min` : ""].filter(Boolean).join(" · ");
-  if (info) tx.appendChild(el("small", null, info));
-  tx.appendChild(el("span", "tx-taxa" + (Number(n.taxaEntrega) > 0 ? "" : " gratis"), Number(n.taxaEntrega) > 0 ? `Entrega ${moeda(n.taxaEntrega)}` : "Entrega grátis"));
-  seloDist(f, n);
-  c.append(f, tx);
+  const tempo = n.tempoMin || n.tempoMax ? `${n.tempoMin || "?"}–${n.tempoMax || "?"} min` : "";
+  const gratis = !(Number(n.taxaEntrega) > 0);
+  const c = cartaoVisita({
+    donoId: n.donoId, capa: prato?.foto, capaPadrao: TEXTOS.delivery.img, tag, foto: avatar(n.foto, n.nome, "vt-avatar"),
+    nome: n.nome || "Delivery", classes: ab === false ? "fechado" : "",
+    linhas: [linhaCv("cv-area", nomeCategoria(n)), estrelasCv(n), linhaCv("cv-onde", [tempo, distDe(n)].filter(Boolean).join(" · ") || (textoCidade(n) || "").split("/")[0], tempo ? "relogio" : "pin")],
+    extras: [seloRapido(n), ab === true && promo ? tagCartao("promo mini", "cupom", promo.codigo ? "Cupom" : "Promoção") : null],
+    preco: { rot: "Entrega", valor: gratis ? "Grátis" : moeda(n.taxaEntrega), cls: gratis ? "gratis" : "" }
+  });
   return tornarClicavel(c, () => abrirDetalhe(n), `Ver ${n.nome}`);
 }
 const ORDENS_PRECO = (preco, nota, km = kmDe) => ({
@@ -2577,30 +2592,29 @@ function bolhaLoja(n) {
 }
 // Shopping: cartão de produto (estilo marketplace)
 function cartaoProduto(n, i, idx, { mostrarLoja = true } = {}) {
-  const c = comCorPlano(el("article", "vt-prod"), n.donoId);
   const est = estoqueDe(i);
-  if (est === 0) c.classList.add("esgotado");
-  const f = el("div", "ft");
-  if (urlSegura(i.foto)) f.style.backgroundImage = `url("${i.foto}")`; else f.appendChild(icone("foto", "vi"));
   const p = Number(i.preco), a = Number(i.precoAntigo);
-  if (est === 0) f.appendChild(el("span", "selo", "Esgotado"));
-  else if (a > p && p > 0) f.appendChild(el("span", "selo desc", `-${Math.round((1 - p / a) * 100)}%`));
-  else if (est === 1) f.appendChild(el("span", "selo", "Última unidade"));
-  if (i.condicao && i.condicao !== "novo" && CONDICAO[i.condicao]) f.appendChild(el("span", "selo cond", CONDICAO[i.condicao]));
-  const tx = el("div", "tx");
-  tx.appendChild(el("strong", "nome", i.nome));
-  tx.appendChild(precoComDesconto(i));
-  tx.appendChild(estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }));
+  const tag = est === 0 ? tagCartao("esgot", null, "Esgotado")
+    : a > p && p > 0 ? tagCartao("promo", null, `-${Math.round((1 - p / a) * 100)}%`)
+    : est === 1 ? tagCartao("ultima", null, "Última unidade") : null;
+  const canto = i.condicao && i.condicao !== "novo" && CONDICAO[i.condicao] ? el("span", "cv-nf", CONDICAO[i.condicao]) : null;
   const nt = Array.isArray(i.tamanhos) ? i.tamanhos.length : 0, nc = Array.isArray(i.cores) ? i.cores.length : 0;
   const extras = [nt ? (nt === 1 ? `Tam. ${i.tamanhos[0]}` : `${nt} tamanhos`) : "", nc ? (nc === 1 ? i.cores[0] : `${nc} cores`) : ""].filter(Boolean).join(" · ");
-  if (extras) tx.appendChild(el("small", null, extras));
+  let loja = null;
   if (mostrarLoja) {
-    const loja = el("span", "loja");
+    loja = el("span", "cv-loja");
     loja.append(icone("sacola", "vi s"), el("span", "ln", n.nome || "Loja"));
     if ((n.entrega || []).includes("entrega")) loja.appendChild(el("em", null, "entrega"));
-    tx.appendChild(loja);
   }
-  c.append(f, tx);
+  const pEl = el("span", "cv-preco-in");
+  if (a > p && p > 0) pEl.append(el("s", null, moeda(a)), el("b", null, moeda(p)));
+  else pEl.append(el("b", null, moeda(p) || "Consultar"));
+  const c = cartaoVisita({
+    donoId: mostrarLoja ? n.donoId : null, capa: i.foto, item: true, canto, tag, classes: "cv-prod" + (est === 0 ? " esgotado" : ""),
+    nome: i.nome, linhas: [linhaCv("cv-area cv-var", extras), mostrarLoja ? estrelasCv(n) : null, loja],
+    preco: { el: pEl }
+  });
+  if (!urlSegura(i.foto)) c.querySelector(".cv-capa").appendChild(icone("foto", "vi cv-sem-foto"));
   return c;
 }
 

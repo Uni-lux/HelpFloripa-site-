@@ -942,6 +942,12 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   etiqueta na capa (destaque > urgência > cupom; só ícone em cartão estreito) e selo do plano no canto oposto, foto no centro
   com anel da cor do plano + bolinha de online, nome (2 linhas), área, nota, onde ("~3 km · Cidade" ou só a cidade), extras
   (responde rápido/modos) e rodapé "a partir de R$ X"/"Preço a combinar" + seta. Container queries ≤210 px e ≤140 px.
+  **Mesmo modelo em todas as vitrines (28/10):** `cartaoVisita({...})` em vitrine.js monta o cartão base (`.vt-cv`; `tagCartao`,
+  `linhaCv`, `ondeCv`); Saúde (`cartaoSaude`, classe `vt-saude`, linha do registro `.cv-reg`, rodapé Consulta/Convênios),
+  Delivery (`tileDelivery`: Aberto/Fechado na capa, tempo de entrega, rodapé Entrega Grátis/R$), Imóveis (`cartaoImovelMini`,
+  `cv-item`: foto 4:3, quartos/vagas/m², rodapé finalidade + preço) e produtos (`cartaoProduto`, `cv-prod` 1:1, preço riscado,
+  loja). Comunidade (comunidade.js/css) ganhou o rodapé `.cm-rod` (tipo · há X + "De graça"/"Divisão R$"/"Ajude a devolver" + seta).
+  Testes usam `.vt-cv`, `.cv-tag.promo` (antes `.vt-free`, `.vt-del`, `.vt-promo-tag`).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
