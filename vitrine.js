@@ -14,11 +14,11 @@ import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL 
 import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento, media, avaliarNegocio } from "./avaliacoes.js?v=15";
 import { abrirQueixa } from "./queixas.js?v=14";
 import { docComValidade, docsComValidade } from "./leituras.js?v=1";
-import { anelNegocio } from "./flash-negocio.js?v=11";
+import { anelNegocio } from "./flash-negocio.js?v=12";
 import { camposEndereco, textoCidade, cidadesDe, NOME_UF, semAcento, cidadePorCodigo } from "./endereco.js?v=1";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, esquecerPosicao, posicaoGuardada } from "./perto.js?v=2";
 import { lerLocal, salvarLocal, marcarManual, escolherLocal, atualizarPeloGps, aoMudarLocal, escolhaManual } from "./local-escolhido.js?v=3";
-import { lerPlano, nivelPlano, seloPlano, nomePlano, negocioPausado, mostraSelo, classePlano, LIMITES_GRATIS } from "./planos-base.js?v=11";
+import { lerPlano, nivelPlano, seloPlano, nomePlano, negocioPausado, mostraSelo, classePlano, LIMITES_GRATIS } from "./planos-base.js?v=12";
 import { estaOnline } from "./presenca.js?v=1";
 import { PROFISSOES_SAUDE, CATEGORIAS_SAUDE, SITE_CONSELHO, MODALIDADES_SAUDE, PUBLICO_SAUDE, PUBLICO_VET, nomeProfissao, conselhoDe, ehVet, textoRegistro, textoValor, AVISO_EMERGENCIA, AVISO_REGISTRO } from "./saude-dados.js?v=1";
 import { usarEstat, registrarVisita, registrarAcao, registrarItem, chaveItem as chaveEstat, chaveAnuncio } from "./estat-negocio.js?v=1";
@@ -1082,6 +1082,7 @@ function barraContato({ proprio, aoEditar, editarHref, sair, texto, whats, texto
 // ---------- perfil completo do negócio ----------
 // opcoes: { fb, eu, dono, proprio, aoMensagem(uid, cartao), aoEditar(n), aoPerfil(uid) }
 export function abrirDetalhe(n, opcoes = {}) {
+  if (!opcoes._comPlano && n?.tipo) lembrarVisto(n.tipo, idNegocio(n));
   // Precisa do plano do dono para saber o que mostrar (perfil grátis tem limites): lê antes, se ainda não sabe.
   if (n?.donoId && !planosDonos.has(n.donoId) && !opcoes._comPlano) {
     lerPlano(opcoes.fb || fb, n.donoId).catch(() => null).then((pl) => { planosDonos.set(n.donoId, pl); abrirDetalhe(n, { ...opcoes, _comPlano: true }); });
@@ -1663,6 +1664,7 @@ function miniImovel(a, aoClicar) {
 // ---------- detalhe de um imóvel ----------
 // opcoes: { fb, eu, dono, anunciante, aoMensagem, aoPerfil, aoEditar }
 export function abrirAnuncio(a, opcoes = {}) {
+  lembrarVisto("anuncios", a?.id);
   const fbx = opcoes.fb || fb, euX = opcoes.eu || eu;
   const dono = opcoes.dono || donos.get(a.donoId) || {};
   const anunciante = opcoes.anunciante || negociosImoveis.get(a.donoId) || {};
@@ -2211,10 +2213,19 @@ function textoBusca(n) {
 }
 
 // Carrossel horizontal com título (arrasta com o dedo; setas no computador).
-function carrossel(titulo, itens, classe = "") {
+// Fileira no estilo dos apps de música: título grande, frase embaixo (`sub`), "›" para ver tudo (`mais`) e, quando
+// é uma fileira personalizada, a foto de quem originou ("Parecido com" + nome: `foto` + `pre`).
+function carrossel(titulo, itens, classe = "", { sub = "", mais = null, foto = null, pre = "" } = {}) {
   const sec = el("div", "vt-carrossel " + classe);
   const topo = el("div", "vt-car-topo");
-  topo.appendChild(el("h3", null, titulo));
+  const tit = el("div", "vt-car-tit");
+  if (foto) { tit.classList.add("com-foto"); tit.appendChild(foto); }
+  const tx = el("div", "vt-car-tx");
+  if (pre) tx.appendChild(el("small", "vt-car-pre", pre));
+  tx.appendChild(el("h3", null, titulo));
+  if (sub) tx.appendChild(el("p", "vt-car-sub", sub));
+  tit.appendChild(tx);
+  topo.appendChild(tit);
   const setas = el("div", "vt-setas");
   const trilho = el("div", "vt-trilho");
   [["voltar", -1], ["avancar", 1]].forEach(([ic, dir]) => {
@@ -2227,9 +2238,61 @@ function carrossel(titulo, itens, classe = "") {
     setas.appendChild(b);
   });
   topo.appendChild(setas);
+  if (mais) {
+    const m = el("button", "vt-car-mais"); m.type = "button"; m.setAttribute("aria-label", `Ver tudo: ${titulo}`);
+    m.appendChild(icone("avancar")); m.addEventListener("click", mais); topo.appendChild(m);
+  }
   itens.forEach((x) => trilho.appendChild(x));
   sec.append(topo, trilho);
   return sec;
+}
+
+// ---------- Fileiras personalizadas (como o início dos apps de música, com a cara da Help Floripa) ----------
+// Vistos por você: guardado só no aparelho, por tipo de página.
+const chaveVistos = (tipo) => `hf-vistos-${tipo}`;
+function lembrarVisto(tipo, id) {
+  if (!id) return;
+  try {
+    const l = JSON.parse(localStorage.getItem(chaveVistos(tipo)) || "[]").filter((x) => x !== id);
+    localStorage.setItem(chaveVistos(tipo), JSON.stringify([id, ...l].slice(0, 12)));
+  } catch {}
+}
+const vistosDe = (tipo) => { try { return JSON.parse(localStorage.getItem(chaveVistos(tipo)) || "[]"); } catch { return []; } };
+const NOME_LISTA = { servicos: ["profissional", "profissionais"], delivery: ["restaurante", "restaurantes"], lojinha: ["produto", "produtos"], saude: ["profissional", "profissionais"], imoveis: ["imóvel", "imóveis"] };
+const quantos = (n) => `${n} ${NOME_LISTA[TIPO]?.[n === 1 ? 0 : 1] || (n === 1 ? "item" : "itens")}`;
+const recenteMs = (x) => tsMs(x.criadoEm || x.atualizadoEm);
+// Fileiras que toda vitrine ganha antes das categorias: Vistos por você, Parecido com (o último visto), Em promoção,
+// Perto de você e Chegaram agora. `idDe`/`catsDe` dizem como achar o item e a categoria dele.
+function fileirasDaPagina(lista, { tile, tipoVistos, idDe, catsDe, nomeDe, fotoDe, promo = true }) {
+  const out = [];
+  const porId = new Map(lista.map((x) => [idDe(x), x]));
+  const vistos = vistosDe(tipoVistos).map((id) => porId.get(id)).filter(Boolean);
+  if (vistos.length) out.push(carrossel("Vistos por você", vistos.slice(0, 10).map(tile), "top-cat", { sub: "Para voltar rápido em quem você já olhou." }));
+  const base = vistos[0];
+  if (base) {
+    const cats = new Set(catsDe(base));
+    const parecidos = lista.filter((x) => x !== base && catsDe(x).some((c) => cats.has(c))).sort((a, b) => nivelDe(b) - nivelDe(a) || pontuacao(b) - pontuacao(a)).slice(0, 10);
+    if (parecidos.length >= 2) out.push(carrossel(nomeDe(base), parecidos.map(tile), "top-cat", { pre: "Parecido com", foto: fotoDe(base) }));
+  }
+  if (promo) {
+    const comPromo = lista.filter((x) => promoAtiva(x)).sort((a, b) => nivelDe(b) - nivelDe(a));
+    if (comPromo.length) out.push(carrossel("Em promoção", comPromo.slice(0, 10).map(tile), "top-cat", { sub: "Cupons e ofertas de quem anuncia aqui." }));
+  }
+  if (posEu) {
+    const perto = lista.filter((x) => Number.isFinite(kmDe(x))).sort((a, b) => kmDe(a) - kmDe(b)).slice(0, 10);
+    if (perto.length >= 2) out.push(carrossel("Perto de você", perto.map(tile), "top-cat", { sub: posEu.origem === "gps" ? `Os mais perto de ${rotuloEu || "você"}.` : `Pela sua cidade: ${rotuloEu || rotuloLocal()}.`, mais: async () => { await mudarOrdemPagina("perto"); } }));
+  }
+  const mes = Date.now() - 30 * 864e5;
+  const novos = lista.filter((x) => recenteMs(x) > mes).sort((a, b) => recenteMs(b) - recenteMs(a)).slice(0, 10);
+  if (novos.length >= 2) out.push(carrossel("Chegaram agora", novos.map(tile), "top-cat", { sub: "Novos no Help Floripa nos últimos 30 dias." }));
+  return out;
+}
+// "›" do Perto de você: ordena a lista toda pelo mais perto e desce até ela.
+async function mudarOrdemPagina(k) {
+  const [ordens, , mudar] = ordemDaPagina();
+  if (!ordens[k]) return;
+  mudar(k); await garantirPosicao(k); renderizar();
+  document.getElementById("vtGrade")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 function tornarClicavel(c, abrir, rotulo) {
   c.tabIndex = 0;
@@ -2581,16 +2644,9 @@ function mostrarItens(grade, itens, { tile, linha, grupos, nomeGrupo, filtrando 
     const mapa = new Map();
     itens.forEach((x) => [].concat(grupos(x)).filter(Boolean).forEach((g) => { if (!mapa.has(g)) mapa.set(g, []); mapa.get(g).push(x); }));
     [...mapa].sort((a, b) => b[1].length - a[1].length).forEach(([g, lista]) => {
-      const fila = carrossel(nomeGrupo(g), lista.slice(0, 30).map(tile), "linha-cat");
-      const topo = fila.querySelector(".vt-car-topo h3");
-      topo.appendChild(el("span", "vt-conta", String(lista.length)));
       const chip = document.querySelector(`#filterChips [data-filter="${CSS.escape(g)}"]`);
-      if (chip && lista.length > 2) {
-        const ver = el("button", "vt-ver-todos", "Ver todos"); ver.type = "button";
-        ver.addEventListener("click", () => { chip.click(); document.getElementById("vitrine")?.scrollIntoView({ behavior: "smooth", block: "start" }); });
-        fila.querySelector(".vt-car-topo").insertBefore(ver, fila.querySelector(".vt-setas"));
-      }
-      grade.appendChild(fila);
+      const mais = chip && lista.length > 2 ? () => { chip.click(); document.getElementById("vitrine")?.scrollIntoView({ behavior: "smooth", block: "start" }); } : null;
+      grade.appendChild(carrossel(nomeGrupo(g), lista.slice(0, 30).map(tile), "linha-cat", { sub: quantos(lista.length), mais }));
     });
     return;
   }
@@ -2777,7 +2833,8 @@ function renderizar() {
   const dest = document.getElementById("vtDestaques");
   const cont = document.getElementById("vtContagem");
   const { cat, termo } = filtroAtual();
-  const filtrando = cat !== "todos" || !!termo || !!filtroLocal.uf || filtrosLigados() > 0;
+  // O lugar escolhido não conta como filtro: as fileiras (destaques, categorias...) continuam, só que daquele lugar.
+  const filtrando = cat !== "todos" || !!termo || filtrosLigados() > 0;
   pararGiro?.();
   grade.replaceChildren();
   dest.replaceChildren();
@@ -2813,6 +2870,17 @@ function renderizar() {
       const escolhidos = lojas.map((n) => produtos.find((p) => p.n === n && urlSegura(p.i.foto) && estoqueDe(p.i) !== 0) || produtos.find((p) => p.n === n && estoqueDe(p.i) !== 0)).filter(Boolean);
       if (escolhidos.length >= 2) dest.appendChild(carrossel("Destaques das lojas", escolhidos.map(({ n, i, idx }) => tornarClicavel(cartaoProduto(n, i, idx), () => abrirProduto(n, idx), `Ver ${i.nome}`)), "top-cat"));
     }
+    // Em promoção (produtos com preço riscado) e Perto de você (produtos das lojas mais perto), como no início.
+    if (!filtrando) {
+      const tileP = ({ n, i, idx }) => tornarClicavel(cartaoProduto(n, i, idx), () => abrirProduto(n, idx), `Ver ${i.nome}`);
+      const emEstoque = produtos.filter((p) => estoqueDe(p.i) !== 0);
+      const promo = emEstoque.filter((p) => Number(p.i.precoAntigo) > Number(p.i.preco) && Number(p.i.preco) > 0).slice(0, 10);
+      if (promo.length) dest.appendChild(carrossel("Em promoção", promo.map(tileP), "top-cat", { sub: "Produtos com preço baixado pelas lojas." }));
+      if (posEu) {
+        const perto = emEstoque.filter((p) => Number.isFinite(kmDe(p.n))).sort((a, b) => kmDe(a.n) - kmDe(b.n)).slice(0, 10);
+        if (perto.length >= 2) dest.appendChild(carrossel("Perto de você", perto.map(tileP), "top-cat", { sub: "Das lojas mais perto de você.", mais: () => mudarOrdemPagina("perto") }));
+      }
+    }
     produtos.sort((a, b) => ORDENS_PRODUTO[ordemProduto][1](a, b) || (estoqueDe(a.i) === 0) - (estoqueDe(b.i) === 0));
     grade.appendChild(barraLista(titulo("Todos os produtos"), produtos.length, ORDENS_PRODUTO, ordemProduto, (k) => { ordemProduto = k; garantirPosicao(k).then(renderizar); }));
     mostrarItens(grade, produtos, {
@@ -2832,6 +2900,7 @@ function renderizar() {
     if (bolhas) dest.appendChild(bolhas);
     const top = !filtrando && secaoDestaquesServ(lista);
     if (top) dest.appendChild(top);
+    if (!filtrando) dest.append(...fileirasDaPagina(lista, { tile: (n) => cartaoPro(n), tipoVistos: "servicos", idDe: idNegocio, catsDe: (n) => categoriasDe(n), nomeDe: (n) => n.nome || "Freelancer", fotoDe: (x) => avatar(x.foto, x.nome, "vt-avatar") }));
     grade.appendChild(barraLista(titulo("Todos os profissionais"), lista.length, ORDENS_SERV, ordemServ, (k) => { ordemServ = k; garantirPosicao(k).then(renderizar); }));
     mostrarItens(grade, [...lista].sort(ORDENS_SERV[ordemServ][1]), {
       filtrando, tile: (n) => cartaoPro(n), linha: linhaPro, grupos: (n) => categoriasDe(n).map((k) => chaveCat(n, k)), nomeGrupo: (g) => (g.startsWith("c:") ? g.slice(2) : CATEGORIAS.servicos[g] || "Outros")
@@ -2842,6 +2911,7 @@ function renderizar() {
     if (bolhas) dest.appendChild(bolhas);
     const top = !filtrando && secaoDestaques(lista, "Profissionais em destaque", cartaoSaude);
     if (top) dest.appendChild(top);
+    if (!filtrando) dest.append(...fileirasDaPagina(lista, { tile: cartaoSaude, tipoVistos: "saude", idDe: idNegocio, catsDe: (n) => [n.saude?.profissao || n.categoria], nomeDe: (n) => n.nome || "Profissional", fotoDe: (x) => avatar(x.foto, x.nome, "vt-avatar"), promo: false }));
     const online = lista.filter((n) => (n.saude?.modalidades || []).includes("online"));
     if (!filtrando && online.length >= 2) dest.appendChild(carrossel("Atendem online", online.sort(ORDENS_SAUDE.melhores[1]).slice(0, 10).map(cartaoSaude), "online"));
     grade.appendChild(barraLista(titulo("Todos os profissionais de saúde"), lista.length, ORDENS_SAUDE, ordemSaude, (k) => { ordemSaude = k; garantirPosicao(k).then(renderizar); }));
@@ -2854,6 +2924,7 @@ function renderizar() {
     if (bolhas) dest.appendChild(bolhas);
     const top = !filtrando && secaoDestaques(lista, "Destaques do delivery", tileDelivery);
     if (top) dest.appendChild(top);
+    if (!filtrando) dest.append(...fileirasDaPagina(lista, { tile: tileDelivery, tipoVistos: "delivery", idDe: idNegocio, catsDe: (n) => [n.categoria], nomeDe: (n) => n.nome || "Delivery", fotoDe: (x) => avatar(x.foto, x.nome, "vt-avatar") }));
     const abertos = lista.filter((n) => abertoAgora(n) === true);
     if (!filtrando && abertos.length) dest.appendChild(carrossel("Abertos agora", abertos.slice(0, 10).map((n) => tornarClicavel(cartaoDelivery(n), () => abrirDetalhe(n), `Ver ${n.nome}`)), "abertos"));
     const ordem = [...lista].sort((a, b) => ORDENS_DELIVERY[ordemDelivery][1](a, b) || (abertoAgora(b) === true) - (abertoAgora(a) === true));
@@ -2867,6 +2938,7 @@ function renderizar() {
     if (bolhas) dest.appendChild(bolhas);
     const top = !filtrando && secaoDestaquesImoveis(lista);
     if (top) dest.appendChild(top);
+    if (!filtrando) dest.append(...fileirasDaPagina(lista, { tile: cartaoImovelMini, tipoVistos: "anuncios", idDe: (a) => a.id, catsDe: (a) => [a.categoria], nomeDe: tituloImovel, fotoDe: (a) => avatar((a.fotos || []).find(urlSegura), tituloImovel(a), "vt-avatar"), promo: false }));
     grade.appendChild(barraLista(titulo("Todos os imóveis"), lista.length, ORDENS_IMOVEL, ordemImovel, (k) => { ordemImovel = k; garantirPosicao(k).then(renderizar); }));
     mostrarItens(grade, [...lista].sort(ORDENS_IMOVEL[ordemImovel][1]), {
       filtrando, tile: cartaoImovelMini, linha: linhaImovel, grupos: (a) => chaveCat(a, a.categoria || "outros"), nomeGrupo: (g) => (g.startsWith("c:") ? g.slice(2) : CATEGORIAS.imoveis[g] || "Outros")
