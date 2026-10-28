@@ -15,6 +15,7 @@ import { camposEndereco, textoCidade, semAcento } from "./endereco.js?v=1";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, esquecerPosicao, posicaoGuardada } from "./perto.js?v=2";
 import { lerLocal, rotuloLocal, escolherLocal, aoMudarLocal, atualizarPeloGps } from "./local-escolhido.js?v=3";
 import { lerPorLocal } from "./por-local.js?v=1";
+import { montarBarra, pintarAvatarBarra } from "./barra-rede.js?v=1";
 import { prepararConversa } from "./vitrine.js?v=78";
 
 export const CATEGORIAS_COM = {
@@ -638,6 +639,8 @@ async function iniciar() {
     eu = u;
     conferirEmail(u);
     meuPerfil = await docComValidade(fb, ["perfis_publicos", u.uid], 30 * 60000).then((s) => (s.exists() ? s.data() : {})).catch(() => ({}));
+    // A barra de baixo da rede (a mesma do Diário), com a Comunidade marcada.
+    montarBarra("comunidade"); pintarAvatarBarra(meuPerfil.fotoPerfil, meuPerfil.nome || u.displayName);
     const [pos, ban] = await Promise.all([
       minhaPosicao(meuPerfil).catch(() => null),
       fb.getDoc(fb.doc(fb.db, "programa_banidos", `${u.uid}_comunidade`)).then((s) => (s.exists() ? s.data() : null)).catch(() => null)

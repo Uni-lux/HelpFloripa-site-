@@ -526,7 +526,7 @@ svg.i.xs { width: 14px; height: 14px; }
 body.com-barra { padding-bottom: calc(74px + env(safe-area-inset-bottom)); }
 .barra-rede {
   position: fixed; left: 50%; bottom: calc(10px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 1100;
-  width: min(380px, calc(100% - 20px)); display: grid; grid-template-columns: repeat(3, 1fr); align-items: center; padding: 6px;
+  width: min(460px, calc(100% - 20px)); display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; padding: 6px;
   border-radius: 22px; background: color-mix(in srgb, var(--panel) 90%, transparent); border: 1px solid var(--line); box-shadow: var(--shadow);
   -webkit-backdrop-filter: saturate(1.4) blur(16px); backdrop-filter: saturate(1.4) blur(16px);
 }

@@ -36,7 +36,7 @@ await p.waitForFunction(() => document.querySelectorAll(".post-card").length > 3
 for (let i = 0; i < 20 && !(await p.locator("#listaFeed").innerText()).includes("Santa Catarina") && await p.locator("#maisFeed:not([hidden])").count(); i++) { await p.locator("#maisFeed").click(); await p.waitForTimeout(400); }
 const feedTxt = await p.locator("#listaFeed").innerText();
 ok(feedTxt.includes("Notícia boa de Santa Catarina"), "Diário (Principais): quem é de SC vê a publicação de SC, mesmo com 130 mais novas de SP");
-await p.locator("[data-aba=explorar]").first().tap(); await p.waitForTimeout(1200);
+await p.locator("#barraRede [data-barra=explorar]").tap(); await p.waitForTimeout(1200);
 await p.fill("#buscaPessoas", "eletric"); await p.waitForTimeout(2500);
 ok((await p.locator("#listaPessoas").innerText()).includes("Rita Eletricista"), "Explorar: \"eletric\" acha a eletricista de Recife (fora dos 200 mais recentes)");
 await p.screenshot({ path: "saida/busca-explorar.png" });

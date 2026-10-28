@@ -4,21 +4,23 @@
 //   estrelas, comentários, enviar, compartilhar e salvar.
 // - Aba Explorar (explorar.js): busca completa, em alta, enquetes abertas,
 //   sugestões, negócios e destaques.
-// Links: feed.html?aba=explorar · ?publicar=1
+// Links: feed.html?aba=explorar · ?aba=registros · ?publicar=1
+// Abas do topo: Diário (publicações com foto ou vídeo) | Registros (textos, enquetes e caixas de perguntas). O Explorar e a
+// Comunidade ficam na barra de baixo (barra-rede.js); o Explorar abre aqui mesmo, sem recarregar.
 // =====================================================
 import { textoCidade } from "./endereco.js?v=1";
 import {
   $, el, icone, ms, paraData, pintarAvatar, urlSegura, nomeCidade, tempoRelativo, toast, erroAmigavel,
   fb, eu, dados, meusSeguindo, escondido, ganchos, obterPerfil, iniciarRede, carregarMeusSeguindo, linhaPessoa,
-  barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, botaoSeguir, montarBarraRede, pintarBarraRede, ouvirAvisos, lerOrdenado,
+  barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, botaoSeguir, montarBarraRede, marcarBarra, pintarBarraRede, ouvirAvisos, lerOrdenado,
   editarPublicacao, bloquear, comMencoes, fotosDoPost, carrosselFotos, contadorEstrelas, estaSalvo, alternarSalvo, escolherColecao, lerResumosEstrelas, contarComentarios,
   silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto, confirmarHF, blocoEnquete, blocoCaixa
-} from "./rede.js?v=75";
+} from "./rede.js?v=76";
 import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=1";
-import { montarStories, abrirFlashPorId, repostarFlash } from "./stories.js?v=47";
+import { montarStories, abrirFlashPorId, repostarFlash } from "./stories.js?v=48";
 import { abrirDenuncia } from "./denuncias.js?v=6";
 import { pessoasRecentes } from "./pessoas.js?v=5";
-import { abrirExplorar, definirCartao } from "./explorar.js?v=57";
+import { abrirExplorar, definirCartao } from "./explorar.js?v=58";
 import { docsComValidade } from "./leituras.js?v=3";
 import { distanciaKm } from "./perto.js?v=2";
 import { postsDoEstado, pesoRegiao, RECENTES_PAIS } from "./regiao.js?v=4";
@@ -53,19 +55,38 @@ let aba = "diario", filtro = "principais";
 let posts = [], mostrados = 0;
 
 // ---------- abas ----------
+const ABAS = ["diario", "registros", "explorar"];
+const urlAba = (a) => (a === "diario" ? "feed.html" : `feed.html?aba=${a}`);
+const abaDaUrl = () => { const a = new URLSearchParams(location.search).get("aba"); return a === "pessoas" ? "explorar" : ABAS.includes(a) ? a : "diario"; };
+// Publicação de "registro": sem foto nem vídeo (texto, enquete ou caixa de perguntas).
+const temMidia = (p) => !!(p.mediaUrl || (p.midias || []).length);
+const daAba = (p) => (aba === "registros" ? !temMidia(p) : temMidia(p));
 function trocarAba(nova, { passo = false } = {}) {
   // Tocar na aba é um passo no histórico: o "voltar" volta para a aba anterior.
-  if (passo && nova !== aba) { const st = { ...(history.state || {}), hfAbaFeed: nova }; delete st.hfBase; delete st.hfGuarda; delete st.hfCamadas; history.pushState(st, "", nova === "explorar" ? "feed.html?aba=explorar" : "feed.html"); }
+  if (passo && nova !== aba) { const st = { ...(history.state || {}), hfAbaFeed: nova }; delete st.hfBase; delete st.hfGuarda; delete st.hfCamadas; history.pushState(st, "", urlAba(nova)); }
   aba = nova;
   document.querySelectorAll("#abasFeed [data-aba]").forEach((b) => b.setAttribute("aria-selected", b.dataset.aba === aba ? "true" : "false"));
-  $("painelFeed").hidden = aba !== "diario";
+  $("abasFeed").hidden = aba === "explorar";
+  $("painelFeed").hidden = aba === "explorar";
   $("painelExplorar").hidden = aba !== "explorar";
-  if (!passo) history.replaceState({ ...(history.state || {}), hfAbaFeed: aba }, "", aba === "explorar" ? "feed.html?aba=explorar" : "feed.html");
+  // Registros: sem a fileira do Flash; o campo de publicar convida a escrever.
+  $("storiesFeed").hidden = aba === "registros";
+  $("btnComporFeed").querySelector(".txt").textContent = aba === "registros" ? "Escreva um registro, faça uma enquete ou uma pergunta..." : "Compartilhe um trabalho, uma novidade ou uma dica...";
+  marcarBarra(aba === "explorar" ? "explorar" : "diario");
+  if (!passo) history.replaceState({ ...(history.state || {}), hfAbaFeed: aba }, "", urlAba(aba));
   if (aba === "explorar") abrirExplorar();
   else carregarFeed();
 }
 document.querySelectorAll("#abasFeed [data-aba]").forEach((b) => b.addEventListener("click", () => trocarAba(b.dataset.aba, { passo: true })));
-addEventListener("popstate", () => { const a = history.state?.hfAbaFeed || (new URLSearchParams(location.search).get("aba") === "explorar" ? "explorar" : "diario"); if (a !== aba && eu) trocarAba(a); });
+addEventListener("popstate", () => { const a = history.state?.hfAbaFeed || abaDaUrl(); if (a !== aba && eu) trocarAba(a); });
+// Barra de baixo: Diário e Explorar trocam aqui mesmo (sem recarregar a página).
+document.addEventListener("click", (e) => {
+  const a = e.target.closest?.("#barraRede [data-barra]");
+  if (!a || !eu || !["diario", "explorar"].includes(a.dataset.barra)) return;
+  e.preventDefault();
+  const alvo = a.dataset.barra === "explorar" ? "explorar" : (aba === "explorar" ? "diario" : aba);
+  if (alvo !== aba) trocarAba(alvo, { passo: true }); else scrollTo({ top: 0, behavior: "smooth" });
+});
 function pintarFiltro() {
   $("filtroAtual").textContent = localAtual ? "📍 " + localAtual.nome : tagAtual ? "#" + tagAtual : FILTROS[filtro];
   $("filtroFeedBtn").classList.toggle("com-tag", !!(tagAtual || localAtual));
@@ -194,7 +215,7 @@ async function carregarFeed() {
   try {
     maisTodos = false; maisPrincipais = false;
     const bruto = localAtual ? await buscarLocal(localAtual) : tagAtual ? await buscarTag(tagAtual) : filtro === "amigos" ? await buscarAmigos() : await buscarPrincipais();
-    posts = bruto.filter((p) => !escondido(p.autorId) && !postOculto(p));
+    posts = bruto.filter((p) => !escondido(p.autorId) && !postOculto(p) && daAba(p));
     if (localAtual || tagAtual || filtro !== "principais") posts.sort((a, b) => ms(b.agendadoPara || b.criadoEm) - ms(a.agendadoPara || a.criadoEm)); // principais: pela pontuação
   } catch (e) {
     console.warn(e);
@@ -205,7 +226,9 @@ async function carregarFeed() {
   lista.replaceChildren();
   if (!posts.length) {
     lista.appendChild(localAtual ? vazio(`Nada publicado em ${localAtual.nome} ainda`, "Adicione o local na sua publicação para começar.", "Publicar agora", () => abrirCompositor({ aoPublicar: ganchos.aoPublicar })) : tagAtual ? vazio(`Nada com #${tagAtual} ainda`, "Use a hashtag na sua publicação para começar.", "Publicar agora", () => abrirCompositor({ aoPublicar: ganchos.aoPublicar })) : filtro === "principais"
-      ? vazio("Nada publicado ainda", "Seja o primeiro a compartilhar um trabalho ou uma novidade.", "Publicar agora", () => abrirCompositor({ aoPublicar: ganchos.aoPublicar }))
+      ? (aba === "registros"
+        ? vazio("Nenhum registro por aqui ainda", "Escreva um texto, faça uma enquete ou abra uma caixa de perguntas.", "Escrever um registro", () => abrirCompositor({ aoPublicar: ganchos.aoPublicar }))
+        : vazio("Nenhuma foto ou vídeo por aqui ainda", "Compartilhe um trabalho ou veja os textos e enquetes em Registros.", "Ver os registros", () => trocarAba("registros", { passo: true })))
       : vazio("Seus amigos ainda não publicaram", "Amigos são seus vínculos do Social e quem vocês se seguem.", "Ver as principais", () => mudarFiltro("principais")));
     return;
   }
@@ -226,7 +249,7 @@ $("maisFeed").addEventListener("click", async () => {
   buscandoMais = true; $("maisFeed").disabled = true;
   try {
     const ja = new Set(posts.map((p) => p.id));
-    const novos = (await (principais ? buscarPrincipais(true) : buscarTodos(true))).filter((p) => !ja.has(p.id) && !escondido(p.autorId) && !postOculto(p));
+    const novos = (await (principais ? buscarPrincipais(true) : buscarTodos(true))).filter((p) => !ja.has(p.id) && !escondido(p.autorId) && !postOculto(p) && daAba(p));
     posts.push(...(principais ? novos : novos.sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm))));
     mostrarMais();
   } catch (e) { console.warn(e); toast("Não foi possível carregar mais."); }
@@ -283,7 +306,7 @@ function cartaoPost(post) {
       : { rotulo: "Salvar publicação", sub: "Para ver depois no seu Perfil → Salvos", icone: "salvo", fn: () => alternarSalvo(post) },
     { rotulo: "Salvar em uma coleção", sub: "Organize seus salvos em pastas", icone: "fotos", fn: () => escolherColecao(post) },
     { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(post.autorId, post.nome) },
-    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=42").then((m) => m.abrirEstatisticas(post)) },
+    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=43").then((m) => m.abrirEstatisticas(post)) },
     post.autorId === eu.uid && { rotulo: "Editar publicação", icone: "lapis", fn: () => editarPublicacao(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId !== eu.uid && { rotulo: silenciado(post.autorId) ? `Mostrar ${nome.textContent} de novo` : `Silenciar ${nome.textContent}`, sub: "Continua seguindo, mas as publicações e flashes somem do seu Diário", icone: "restringir",
       fn: async () => { await alternarSilenciar(post.autorId, nome.textContent); if (silenciado(post.autorId)) { posts = posts.filter((x) => x.autorId !== post.autorId); document.querySelectorAll(".post-card").forEach((x) => { if (x.dataset.autor === post.autorId) x.remove(); }); } } },
@@ -402,8 +425,9 @@ async function pintarLateral() {
   try { await iniciarRede(); }
   catch (e) { $("listaFeed").replaceChildren(vazio("Não foi possível carregar", e.message || "")); return; }
   definirCartao(cartaoPost);
-  ganchos.aoPublicar = () => { if (aba !== "diario") trocarAba("diario"); else carregarFeed(); };
-  montarBarraRede("diario");
+  // Depois de publicar: vai para a aba onde a publicação aparece (com foto = Diário; texto/enquete/pergunta = Registros).
+  ganchos.aoPublicar = (post) => { const alvo = post && !temMidia(post) ? "registros" : "diario"; if (aba !== alvo) trocarAba(alvo); else carregarFeed(); };
+  montarBarraRede(abaDaUrl() === "explorar" ? "explorar" : "diario");
   pintarBarraRede();
   ouvirAvisos();
   $("btnComporFeed").addEventListener("click", () => abrirCompositor({ aoPublicar: ganchos.aoPublicar }));
@@ -412,7 +436,7 @@ async function pintarLateral() {
   montarStories($("storiesFeed")).catch((e) => console.warn("Flash:", e));
   pintarLateral();
   const p = new URLSearchParams(location.search);
-  trocarAba(p.get("aba") === "explorar" || p.get("aba") === "pessoas" ? "explorar" : "diario");
+  trocarAba(abaDaUrl());
   if (p.get("publicar")) abrirCompositor({ aoPublicar: ganchos.aoPublicar });
   // Links das mensagens do Flash: feed.html?flash=ID abre o flash; ?repostar=ID abre o criador para repostar.
   if (/^[A-Za-z0-9]{1,64}$/.test(p.get("flash") || "")) abrirFlashPorId(p.get("flash"));

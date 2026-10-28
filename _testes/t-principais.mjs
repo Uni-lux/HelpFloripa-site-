@@ -48,7 +48,7 @@ await pb.locator(".post-card", { hasText: "Pintura da sala" }).locator(".acao.sa
 const g = await pb.evaluate(() => JSON.parse(localStorage.getItem("hf-gosto") || "{}"));
 ok((g.a?.[U.fabi]?.v || 0) >= 3, "salvar soma no gosto do autor → " + JSON.stringify(g.a?.[U.fabi]));
 // Explorar: busca no topo, Em alta, Destaques (mosaico) e Sugestões
-await pb.locator("#abasFeed [data-aba=explorar]").tap(); await pb.waitForTimeout(3000);
+await pb.locator("#barraRede [data-barra=explorar]").tap(); await pb.waitForTimeout(3000);
 ok((await pb.locator("#exploraTags").textContent()).includes("#confeitaria"), "Explorar → Em alta: #confeitaria");
 ok(await pb.locator("#exploraGrade .exp-tile").count() >= 3 && await pb.locator("#exploraGrade .exp-tile.grande").count() === 1, "Explorar → Destaques em mosaico (" + await pb.locator("#exploraGrade .exp-tile").count() + " fotos, a 1ª grande)");
 const sug = await pb.locator("#exploraSugestoes .exp-pessoa strong").allTextContents();
