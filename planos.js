@@ -100,6 +100,13 @@ const CSS = `
 .pl-per s { font-size: 12px; color: var(--muted, #8fa0ab); opacity: .8; }
 .pl-per .mes { font-size: 12px; font-weight: 700; color: #2fbf71; }
 .pl-economia { margin: 10px 2px 0; text-align: center; font-size: 13px; font-weight: 700; color: #2fbf71; }
+.pl-validade { display: flex; align-items: center; gap: 12px; margin: 12px 0 0; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line, #22313a); background: var(--panel-2, #162128); }
+.pl-validade .ic { flex: none; width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; color: #a78bfa; background: color-mix(in srgb, #7c3aed 18%, transparent); }
+.pl-validade div { display: grid; gap: 2px; min-width: 0; }
+.pl-validade small { font-size: 11.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--muted, #8fa0ab); }
+.pl-validade b { font-size: 15.5px; }
+.pl-validade span { font-size: 12.5px; line-height: 1.4; color: var(--muted, #8fa0ab); }
+.pl-validade span em { font-style: normal; font-weight: 800; color: #2fbf71; }
 .pl-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; box-sizing: border-box; text-decoration: none; min-height: 50px; margin-top: 14px; border: 0; border-radius: 16px; background: linear-gradient(135deg, #7c3aed, #2563eb); color: #fff; font: inherit; font-size: 15.5px; font-weight: 800; cursor: pointer; box-shadow: 0 12px 26px -12px #7c3aed; }
 .pl-btn.sec { background: none; border: 1px solid var(--line, #22313a); color: inherit; box-shadow: none; }
 .pl-btn:disabled { opacity: .6; cursor: default; }
@@ -434,6 +441,10 @@ export async function abrirPlanos(op) {
     });
     corpo.appendChild(per);
     const economia = el("p", "pl-economia"); economia.hidden = true; corpo.appendChild(economia);
+    // Até quando o plano vai valer (a mesma conta do painel: renovar soma ao que falta; trocar usa os dias de crédito).
+    const validade = el("div", "pl-validade"); const valTx = el("div");
+    const icCal = el("span", "ic"); icCal.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18M8 14h3"/></svg>';
+    validade.append(icCal, valTx); corpo.appendChild(validade);
     const credito = el("p", "pl-credito"); credito.hidden = true; corpo.appendChild(credito);
     const btn = el("button", "pl-btn"); btn.type = "button";
     function pintarSel() {
@@ -450,12 +461,17 @@ export async function abrirPlanos(op) {
       });
       const eco = Math.round((P.preco * meses - valorPeriodo(escolhido, meses)) * 100) / 100;
       secPer.textContent = `${escolhido === atual && !plano?.teste ? "Renovar o" : "Assinar o"} ${P.nome} por`;
-      // Primeira assinatura: mostra até quando vale com os 30 dias a mais.
-      const fim = new Date(Date.now() + (meses * 30 + (primeira ? DIAS_BONUS : 0)) * DIA);
-      economia.hidden = false;
-      economia.textContent = [eco ? `Você economiza ${reais(eco)} (${Math.round(descontoDe(meses) * 100)}% de desconto).` : "",
-        primeira ? `Primeira assinatura: ${meses === 1 ? "1 mês" : meses + " meses"} + ${DIAS_BONUS} dias grátis, até ${fim.toLocaleDateString("pt-BR")}.` : ""].filter(Boolean).join(" ");
-      if (!economia.textContent) economia.hidden = true;
+      economia.textContent = eco ? `Você economiza ${reais(eco)} (${Math.round(descontoDe(meses) * 100)}% de desconto).` : "";
+      economia.hidden = !eco;
+      const mesmo = !!nivelPlano(plano) && plano.plano === escolhido && !plano.teste;
+      const inicio = mesmo ? Math.max(Date.now(), ms(plano.ate)) : Date.now() + creditoDias(plano, escolhido) * DIA;
+      const fim = new Date(inicio + (meses * 30 + (primeira ? DIAS_BONUS : 0)) * DIA);
+      const pago = meses === 1 ? "1 mês pago" : `${meses} meses pagos`;
+      const det = el("span");
+      if (primeira) det.append(document.createTextNode(`${pago} `), el("em", null, `+ ${DIAS_BONUS} dias grátis`), document.createTextNode(" (presente só da primeira assinatura)."));
+      else if (mesmo) det.textContent = `${pago}, somados ao que ainda falta do seu ${P.nome} (até ${new Date(ms(plano.ate)).toLocaleDateString("pt-BR")}).`;
+      else det.textContent = `${pago}, contando a partir da confirmação do pagamento.`;
+      valTx.replaceChildren(el("small", null, `Seu ${P.nome} vai valer até`), el("b", null, fim.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })), det);
       btn.textContent = PAGAMENTO.automatico ? `Pagar ${reais(valorPeriodo(escolhido, meses))} · Pix ou cartão` : `Pagar ${reais(valorPeriodo(escolhido, meses))} com Pix`;
       const cr = creditoDias(plano, escolhido);
       credito.hidden = !atual || escolhido === atual;

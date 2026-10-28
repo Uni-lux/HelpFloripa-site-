@@ -197,7 +197,7 @@ ok((await e.textContent("#planoBox")).includes("Primeira assinatura: +30 dias gr
 await e.click("#planoBox"); await e.waitForSelector(".pl-card", { timeout: 10000 });
 ok((await e.textContent(".pl-hero")).includes("+30 dias grátis") && await e.locator(".pl-teste").count() === 0, "gaveta: +30 dias grátis no topo e nenhum teste sem pagar");
 await e.locator(".pl-card[data-plano='plus']").click(); await e.locator(".pl-per[data-m='3']").click();
-ok((await e.textContent(".pl-economia")).includes("3 meses + 30 dias grátis"), "resumo: " + (await e.textContent(".pl-economia")));
+ok((await e.textContent(".pl-validade")).replace(/\s+/g, " ").includes("3 meses pagos + 30 dias grátis"), "resumo: " + (await e.textContent(".pl-validade")));
 await e.screenshot({ path: "saida/pl-bonus-oferta.png" });
 await e.locator(".pl-btn", { hasText: "Pagar" }).click(); await e.waitForSelector(".pl-bonus-pix", { timeout: 10000 });
 ok((await e.textContent(".pl-bonus-pix")).includes("30 dias grátis"), "tela do Pix lembra do bônus");
