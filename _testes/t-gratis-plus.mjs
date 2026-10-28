@@ -33,11 +33,11 @@ const linhaItens = (await b.locator(".pl-tabela .pl-lin", { hasText: "Itens" }).
 ok(linhaItens.includes("3") && linhaItens.includes("12"), "linha dos itens: grátis 3, planos 12 → " + linhaItens);
 await b.locator(".pl-card[data-plano='plus']").click(); await b.waitForTimeout(300);
 const heroPlus = (await b.textContent(".pl-hero")).replace(/\s+/g, " ");
-ok(heroPlus.includes("Plano Plus") && heroPlus.includes("29,90") && heroPlus.includes("por dia") && heroPlus.includes("Aparece antes dos perfis grátis"), "tocar no Plus: o topo fala do Plus (R$ 29,90, por dia, o que libera)");
+ok(heroPlus.includes("Plano Plus") && heroPlus.includes("29,90") && heroPlus.includes("por dia") && heroPlus.includes("Espaços de destaque nas vitrines"), "tocar no Plus: o topo fala do Plus (R$ 29,90, por dia, o que libera)");
 await b.screenshot({ path: "saida/gp-plus.png" });
 await b.locator(".pl-card[data-plano='premium']").click(); await b.waitForTimeout(300);
 const heroPrem = (await b.textContent(".pl-hero")).replace(/\s+/g, " ");
-ok(heroPrem.includes("Plano Premium") && heroPrem.includes("59,90") && heroPrem.includes("Topo das vitrines") && await b.locator(".pl-hero[data-plano='premium']").count() === 1, "tocar no Premium: o topo muda para o Premium (R$ 59,90)");
+ok(heroPrem.includes("Plano Premium") && heroPrem.includes("59,90") && heroPrem.includes("1º lugar de cada vitrine") && await b.locator(".pl-hero[data-plano='premium']").count() === 1, "tocar no Premium: o topo muda para o Premium (R$ 59,90)");
 await b.locator(".pl-tabela").scrollIntoViewIfNeeded(); await b.screenshot({ path: "saida/gp-tabela.png" });
 const larg = await b.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
 ok(larg[0] <= larg[1], `tabela de 5 colunas cabe no celular (${larg[0]} ≤ ${larg[1]})`);
