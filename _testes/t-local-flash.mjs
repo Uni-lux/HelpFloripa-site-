@@ -59,7 +59,7 @@ const st = (await db.collection("stories").where("autorId", "==", U.ana).get()).
 ok(st?.postDe?.postId === "lfBruno" && st.postDe.autorId === U.bruno, "flash gravado com postDe (crédito): " + JSON.stringify(st?.postDe));
 await pa.goto(BASE + `feed.html?flash=${st?.id}`); await pa.waitForTimeout(4000);
 const link = pa.locator(".story-visor .story-post");
-ok(await link.count() === 1 && (await link.textContent()).includes("Bruno"), "visor mostra 'Ver publicação de Bruno': " + (await link.textContent().catch(() => "")));
+ok(await link.count() === 1 && (await link.textContent()).trim() === "Ver publicação" && (await link.getAttribute("aria-label")).includes("Bruno"), "visor mostra 'Ver publicação' (como no Instagram): " + (await link.textContent().catch(() => "")));
 await pa.screenshot({ path: "saida/lf-visor.png" });
 
 // ---------- 4) autor desliga: não dá para compartilhar ----------

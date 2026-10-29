@@ -13,7 +13,7 @@ import {
   meusSeguindo, escondido, silenciado, alternarSilenciar, obterPerfil, abrirOpcoes, abrirLista, linhaPessoa,
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas
-} from "./rede.js?v=79";
+} from "./rede.js?v=80";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { seletorDuracao, fimEscolhido, linhaChave, MAX_FLASH_MIN, fimDaEnquete, encerrada, faltaTexto, resultadoFinal, lerContasEnquete } from "./enquetes.js?v=5";
@@ -21,6 +21,12 @@ import { seletorDuracao, fimEscolhido, linhaChave, MAX_FLASH_MIN, fimDaEnquete, 
 const DIA = 24 * 3600e3;
 const TEMPO_FOTO = 6000;
 const REACOES = ["🔥", "😍", "😂", "😮", "👏", "💯"];
+// Estrela (curtir o flash, como o coração do Instagram): stories/{id}/reacoes/{uid} {curtiu, emoji, em}. O autor vê
+// quem deu a estrela e quem reagiu na lista de visualizações. Guardada também no aparelho (não lê de novo a cada flash).
+const CURTIDOS = "hf-flash-curtidos";
+const curtidos = (() => { try { return new Set(JSON.parse(localStorage.getItem(CURTIDOS) || "[]")); } catch { return new Set(); } })();
+const guardarCurtidos = () => { try { localStorage.setItem(CURTIDOS, JSON.stringify([...curtidos].slice(-300))); } catch {} };
+const gravarReacao = (s, campos) => fb.setDoc(fb.doc(fb.db, "stories", s.id, "reacoes", eu.uid), { ...campos, em: fb.serverTimestamp() }, { merge: true });
 let porAutor = new Map();   // uid -> [flashes em ordem de criação]
 let barra = null;
 const vistosLocal = new Set((() => { try { return JSON.parse(localStorage.getItem("hf-stories-vistos") || "[]"); } catch { return []; } })());
@@ -465,7 +471,7 @@ function textoFigurinha(fig, local = "") {
   return "📍 " + (local || "Minha cidade");
 }
 
-function abrirCriador({ repost = null, post = null } = {}) {
+function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTexto = "" } = {}) {
   const fundo = el("div", "flash-criar"); fundo.setAttribute("role", "dialog"); fundo.setAttribute("aria-modal", "true"); fundo.setAttribute("aria-label", "Novo flash");
   const caixa = el("div", "flash-caixa");
   const palco = el("div", "flash-palco");
@@ -1347,6 +1353,13 @@ function abrirCriador({ repost = null, post = null } = {}) {
     usarFoto(post.imagem).catch((e) => toast(erroAmigavel(e)));
     return;
   }
+  if (imagem) {
+    // Imagem já desenhada (resposta da caixa de perguntas): abre no cartão com o selo.
+    const selo = el("div", "flash-repost-selo"); selo.append(icone("caixa", "i xs"), document.createTextNode(seloTexto || "Resposta"));
+    palco.appendChild(selo);
+    usarFoto(imagem).catch((e) => toast(erroAmigavel(e)));
+    return;
+  }
   if (repost) {
     // Repostar: a foto do flash original, com o selo de quem fez (o original fica creditado).
     const selo = el("div", "flash-repost-selo"); selo.append(icone("raio", "i xs"), document.createTextNode(`Repostando o flash de ${String(repost.nome || "alguém").split(" ")[0]}`));
@@ -1644,8 +1657,10 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null 
   const form = el("form", "story-responder");
   const campo = el("input"); campo.type = "text"; campo.maxLength = 300; campo.setAttribute("aria-label", "Responder");
   const bEnviar = el("button", "story-env"); bEnviar.type = "submit"; bEnviar.setAttribute("aria-label", "Enviar"); bEnviar.appendChild(icone("enviar", "i s"));
-  const bRaio = el("button", "story-raio", "⚡"); bRaio.type = "button"; bRaio.setAttribute("aria-label", "Reagir com um raio");
-  form.append(campo, bEnviar, bRaio);
+  // Estrela: curtir o flash (antes era um raio que mandava uma reação pelo Mensagens).
+  const bEstrela = el("button", "story-raio story-estrela"); bEstrela.type = "button"; bEstrela.setAttribute("aria-label", "Dar uma estrela");
+  bEstrela.appendChild(icone("estrela", "i"));
+  form.append(campo, bEnviar, bEstrela);
   const bandeja = el("div", "story-bandeja"); bandeja.setAttribute("aria-label", "Reações rápidas");
   REACOES.forEach((r) => { const b = el("button", null, r); b.type = "button"; b.setAttribute("aria-label", "Reagir com " + r); b.addEventListener("pointerdown", (e) => e.preventDefault()); b.addEventListener("click", () => reagir(r, b)); bandeja.appendChild(b); });
 
@@ -1658,7 +1673,33 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null 
   async function reagir(r, origem) {
     voarEmoji(r, origem);
     navigator.vibrate?.(8);
+    const s = atual();
+    // A reação vai pelo Mensagens (como no Instagram) e fica na lista de visualizações do autor.
+    if (s) gravarReacao(s, { emoji: r }).catch(() => {});
     if (await enviarResposta("reacao", { emoji: r }, `Reagiu ao seu flash: ${r}`)) toast("Reação enviada");
+  }
+  const pintarEstrela = () => {
+    const s = atual(), on = !!s && curtidos.has(s.id);
+    bEstrela.classList.toggle("on", on); bEstrela.setAttribute("aria-pressed", String(on));
+    bEstrela.setAttribute("aria-label", on ? "Tirar a estrela" : "Dar uma estrela");
+  };
+  function estrelaVoa() {
+    const e = el("span", "story-estrela-voa"); e.appendChild(icone("estrela", "i"));
+    caixa.appendChild(e); setTimeout(() => e.remove(), 900);
+  }
+  async function curtir() {
+    const s = atual(); if (!s || s.autorId === eu.uid) return;
+    const vai = !curtidos.has(s.id);
+    if (vai) curtidos.add(s.id); else curtidos.delete(s.id);
+    guardarCurtidos(); pintarEstrela();
+    if (vai) { estrelaVoa(); navigator.vibrate?.(10); }
+    try { await gravarReacao(s, { curtiu: vai }); }
+    catch (e) {
+      // Regras antigas (sem reacoes): a estrela vai como reação pelo Mensagens, para o autor saber.
+      if (e?.code === "permission-denied") { if (vai) enviarResposta("reacao", { emoji: "⭐" }, "Deu uma estrela no seu flash ⭐"); return; }
+      if (vai) curtidos.delete(s.id); else curtidos.add(s.id);
+      guardarCurtidos(); pintarEstrela(); toast("Não foi possível: " + erroAmigavel(e));
+    }
   }
   function voarEmoji(r, origem) {
     const box = caixa.getBoundingClientRect(), o = origem?.getBoundingClientRect?.() || { left: box.left + box.width / 2, top: box.bottom - 80, width: 0 };
@@ -1672,7 +1713,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null 
       setTimeout(() => e.remove(), 1700 + k * 70);
     }
   }
-  bRaio.addEventListener("click", () => reagir("⚡", bRaio));
+  bEstrela.addEventListener("click", (e) => { e.stopPropagation(); curtir(); });
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const t = campo.value.trim(); if (!t) return;
@@ -1701,6 +1742,9 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null 
     palco.replaceChildren();
     legenda.textContent = s.texto || ""; legenda.hidden = !s.texto;
     rodape.replaceChildren();
+    form.appendChild(bEstrela); pintarEstrela();
+    // Sem o campo de responder (respostas desligadas), a estrela fica sozinha no rodapé.
+    const estrelaSozinha = () => { const w = el("div", "story-so-estrela"); w.appendChild(bEstrela); rodape.appendChild(w); };
     // Enquete por cima do flash, no lugar escolhido (quem vê vota; o autor vê o resultado).
     caixa.querySelector(".story-enq")?.remove();
     const enq = blocoEnquete(s, { tipo: "f", escura: true });
@@ -1746,7 +1790,8 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null 
     if (s.postDe?.postId) {
       // Abre a própria publicação (como no Instagram), não o perfil de quem publicou.
       const a = el("a", "story-link story-post"); a.href = `feed.html?post=${encodeURIComponent(s.postDe.postId)}`;
-      a.append(icone("fotos", "i s"), el("span", null, s.postDe.autorId === s.autorId ? "Ver publicação" : `Ver publicação de ${String(s.postDe.nome || "").split(" ")[0] || "quem publicou"}`), icone("avancar", "i xs"));
+      a.append(icone("fotos", "i s"), el("span", null, "Ver publicação"), icone("avancar", "i xs"));
+      a.setAttribute("aria-label", s.postDe.autorId === s.autorId ? "Ver publicação" : `Ver a publicação de ${String(s.postDe.nome || "quem publicou")}`);
       ["pointerdown", "pointerup"].forEach((ev) => a.addEventListener(ev, (e) => e.stopPropagation()));
       a.addEventListener("click", (e) => {
         e.stopPropagation(); pausar(true);
@@ -1802,6 +1847,11 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null 
       v.addEventListener("click", (e) => { e.stopPropagation(); pausar(true); verQuemViu(s, () => pausar(false)); });
       rodape.appendChild(v);
       // Quantas pessoas viram e as 3 últimas fotos.
+      // Estrelas que o flash recebeu (só o autor lê).
+      const est = el("span", "story-vistos-est"); est.hidden = true; v.insertBefore(est, rostos);
+      fb.getDocs(fb.query(fb.collection(fb.db, "stories", s.id, "reacoes"), fb.where("curtiu", "==", true), fb.limit(300))).then((x) => {
+        if (!x.size) return; est.replaceChildren(icone("estrela", "i xs"), document.createTextNode(String(x.size))); est.hidden = false;
+      }).catch(() => {});
       fb.getDocs(fb.query(fb.collection(fb.db, "stories", s.id, "vistos"), fb.limit(300))).then((x) => {
         v.children[1].textContent = x.size ? `Visto por ${x.size}` : "Ninguém viu ainda";
         x.docs.sort((a, b) => ms(b.data().criadoEm) - ms(a.data().criadoEm)).slice(0, 3).forEach((d) => {
@@ -1811,10 +1861,10 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null 
       }).catch(() => {});
     } else {
       // Respostas: conforme a escolha do autor (todos, só quem ele segue, ninguém).
-      if (s.respostas === "ninguem") rodape.appendChild(el("p", "story-sem-resposta", "Respostas desativadas"));
+      if (s.respostas === "ninguem") { rodape.appendChild(el("p", "story-sem-resposta", "Respostas desativadas")); estrelaSozinha(); }
       else if (s.respostas === "seguindo") {
         rodape.append(bandeja, form); form.hidden = true; bandeja.hidden = true;
-        autorMeSegue(s.autorId).then((ok) => { if (atual() !== s) return; form.hidden = !ok; bandeja.hidden = !ok; if (!ok) rodape.appendChild(el("p", "story-sem-resposta", "Só quem essa pessoa segue pode responder")); });
+        autorMeSegue(s.autorId).then((ok) => { if (atual() !== s) return; form.hidden = !ok; bandeja.hidden = !ok; if (!ok) { rodape.appendChild(el("p", "story-sem-resposta", "Só quem essa pessoa segue pode responder")); estrelaSozinha(); } });
       } else { rodape.append(bandeja, form); form.hidden = false; bandeja.hidden = false; }
     }
     bSom.hidden = s.tipo !== "video";
@@ -1935,19 +1985,110 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null 
   }, { passive: true });
   mostrar();
 }
+// Visualizações (só o autor): quem viu, quem deu a estrela e quem reagiu (o emoji no canto da foto), com filtros e
+// "Mensagem" em cada pessoa (vai pelo Mensagens). Primeiro quem deu a estrela ou reagiu, depois os mais recentes.
 async function verQuemViu(s, aoFechar) {
-  const corpo = abrirLista("Quem viu");
+  const corpo = abrirLista("Visualizações");
   const f = $("folhaLista");
   const volta = () => { f?.removeEventListener("fechada", volta); if (document.querySelector(".story-visor")) document.body.classList.add("travado"); aoFechar?.(); };
   f?.addEventListener("fechada", volta);
   corpo.appendChild(el("div", "lista-vazia", "Carregando..."));
   try {
-    const v = await fb.getDocs(fb.query(fb.collection(fb.db, "stories", s.id, "vistos"), fb.limit(300)));
+    const [v, r] = await Promise.all([
+      fb.getDocs(fb.query(fb.collection(fb.db, "stories", s.id, "vistos"), fb.limit(300))),
+      fb.getDocs(fb.query(fb.collection(fb.db, "stories", s.id, "reacoes"), fb.limit(300))).catch(() => ({ docs: [] }))
+    ]);
+    const reac = new Map(r.docs.map((d) => [d.id, d.data()]));
+    const pessoas = new Map(v.docs.map((d) => [d.id, { uid: d.id, quando: ms(d.data().criadoEm) }]));
+    reac.forEach((x, uid) => { if (!pessoas.has(uid)) pessoas.set(uid, { uid, quando: ms(x.em) }); });
+    const lista = [...pessoas.values()].filter((x) => !escondido(x.uid)).map((x) => ({ ...x, curtiu: !!reac.get(x.uid)?.curtiu, emoji: reac.get(x.uid)?.emoji || "" }));
     corpo.replaceChildren();
-    if (!v.size) { corpo.appendChild(el("div", "lista-vazia", "Ninguém viu ainda.")); return; }
-    corpo.appendChild(el("div", "grupo-titulo", `${v.size} ${v.size === 1 ? "pessoa viu" : "pessoas viram"} · respostas e reações chegam no Mensagens`));
-    const l = v.docs.map((d) => ({ uid: d.id, quando: ms(d.data().criadoEm) })).sort((a, b) => b.quando - a.quando);
-    const perfis = await Promise.all(l.map((x) => obterPerfil(x.uid).catch(() => ({}))));
-    l.forEach((x, i) => corpo.appendChild(linhaPessoa({ uid: x.uid, nome: perfis[i].nome || "Usuário", foto: perfis[i].fotoPerfil, sub: tempoRelativo(new Date(x.quando || Date.now())) })));
+    if (!lista.length) { corpo.appendChild(el("div", "lista-vazia", "Ninguém viu ainda. Quem vir aparece aqui, com a estrela e as reações.")); return; }
+    const nEst = lista.filter((x) => x.curtiu).length, nReac = lista.filter((x) => x.emoji).length;
+    const peso = (x) => (x.curtiu ? 2 : 0) + (x.emoji ? 1 : 0);
+    lista.sort((a, b) => peso(b) - peso(a) || b.quando - a.quando);
+    // Resumo e filtros: Todos · Estrelas · Reações
+    const resumo = el("div", "vv-resumo");
+    const num = (ic, n, rot) => { const b = el("span", "vv-num"); b.append(icone(ic, "i s"), el("strong", null, String(n)), el("small", null, rot)); return b; };
+    resumo.append(num("olho", lista.length, lista.length === 1 ? "visualização" : "visualizações"), num("estrela", nEst, nEst === 1 ? "estrela" : "estrelas"), num("coracao", nReac, nReac === 1 ? "reação" : "reações"));
+    const filtros = el("div", "vv-filtros"); filtros.setAttribute("role", "tablist");
+    const box = el("div", "vv-lista");
+    let filtro = "todos";
+    const FILT = [["todos", "Todos", lista.length], ["estrelas", "Estrelas", nEst], ["reacoes", "Reações", nReac]];
+    const pintarFiltros = () => filtros.replaceChildren(...FILT.filter(([k, , n]) => k === "todos" || n).map(([k, nome, n]) => {
+      const b = el("button", null, `${nome} · ${n}`); b.type = "button"; b.setAttribute("role", "tab"); b.setAttribute("aria-selected", String(k === filtro));
+      b.addEventListener("click", () => { filtro = k; pintarFiltros(); desenhar(); });
+      return b;
+    }));
+    const perfis = await Promise.all(lista.map((x) => obterPerfil(x.uid).catch(() => ({}))));
+    const desenhar = () => {
+      box.replaceChildren();
+      lista.forEach((x, i) => {
+        if (filtro === "estrelas" && !x.curtiu) return;
+        if (filtro === "reacoes" && !x.emoji) return;
+        const p = perfis[i], nome = p.nome || "Usuário";
+        const l = el("div", "vv-pessoa");
+        const av = el("div", "avatar"); pintarAvatar(av, p.fotoPerfil, nome);
+        const fotoBox = el("div", "vv-foto"); fotoBox.appendChild(av);
+        if (x.emoji) fotoBox.appendChild(el("span", "vv-emoji", x.emoji));
+        const tx = el("div", "vv-tx");
+        tx.append(el("strong", null, nome), el("small", null, [p.nickname ? "@" + p.nickname : "", x.quando ? tempoRelativo(new Date(x.quando)) : ""].filter(Boolean).join(" · ")));
+        l.append(fotoBox, tx);
+        if (x.curtiu) { const e = el("span", "vv-est"); e.appendChild(icone("estrela", "i s")); e.title = "Deu uma estrela"; l.appendChild(e); }
+        const msg = el("button", "icone-btn vv-msg"); msg.type = "button"; msg.setAttribute("aria-label", `Mandar mensagem para ${nome}`); msg.appendChild(icone("chat", "i s"));
+        msg.addEventListener("click", () => {
+          if (l.nextElementSibling?.classList.contains("vv-escrever")) { l.nextElementSibling.querySelector("input").focus(); return; }
+          const form = el("form", "vv-escrever");
+          const campo = el("input"); campo.type = "text"; campo.maxLength = 900; campo.placeholder = `Mensagem para ${nome.split(" ")[0]}...`;
+          const env = el("button", "cx-enviar"); env.type = "submit"; env.setAttribute("aria-label", "Enviar"); env.appendChild(icone("enviar", "i s"));
+          form.append(campo, env); l.after(form); campo.focus();
+          form.addEventListener("submit", async (e) => {
+            e.preventDefault(); const t = campo.value.trim(); if (!t) return;
+            env.disabled = true;
+            try { await mandarMensagem(x.uid, { texto: t.slice(0, 900) }, t); form.replaceWith(el("small", "cx-nota vv-enviado", "Enviado no Mensagens ✓")); }
+            catch (err) { env.disabled = false; if (err?.message !== "e-mail") toast("Não foi possível enviar: " + erroAmigavel(err)); }
+          });
+        });
+        l.appendChild(msg);
+        [fotoBox, tx].forEach((a) => a.addEventListener("click", () => ganchos.abrirPerfil(x.uid)));
+        box.appendChild(l);
+      });
+      if (!box.children.length) box.appendChild(el("div", "lista-vazia", "Ninguém por aqui ainda."));
+    };
+    pintarFiltros(); desenhar();
+    corpo.append(resumo, filtros, box, el("small", "vv-nota", "Respostas e reações também chegam no Mensagens. Só você vê esta lista."));
   } catch (e) { corpo.replaceChildren(el("div", "lista-vazia", "Não foi possível carregar: " + erroAmigavel(e))); }
+}
+
+// Resposta da caixa de perguntas no seu flash (como no Instagram): a pergunta em cima e a resposta embaixo, sem o nome
+// de quem respondeu. Abre o criador com a imagem pronta (dá para escrever por cima e pôr figurinhas).
+export async function compartilharRespostaNoFlash({ pergunta, texto }) {
+  const W = 1080, H = 1920, c = document.createElement("canvas"); c.width = W; c.height = H;
+  const g = c.getContext("2d");
+  if (!g.roundRect) g.roundRect = function (x, y, w, h) { this.rect(x, y, w, h); };
+  const fundo = g.createLinearGradient(0, 0, W, H); fundo.addColorStop(0, "#0b3a53"); fundo.addColorStop(1, "#00adee");
+  g.fillStyle = fundo; g.fillRect(0, 0, W, H);
+  const CW = 860, X = (W - CW) / 2;
+  g.font = `800 50px ${FONTE}`; const lp = linhasDe(g, pergunta, CW - 120, 4);
+  g.font = `600 54px ${FONTE}`; const lr = linhasDe(g, texto, CW - 120, 8);
+  const hP = 110 + lp.length * 64, hR = 70 + lr.length * 70, CH = hP + hR;
+  const Y = Math.max(260, (H - CH) / 2 - 60);
+  g.save(); g.shadowColor = "rgba(0,0,0,.28)"; g.shadowBlur = 60; g.shadowOffsetY = 18;
+  g.fillStyle = "#fff"; g.beginPath(); g.roundRect(X, Y, CW, CH, 44); g.fill(); g.restore();
+  // faixa da pergunta (cor do site) e a resposta embaixo
+  g.save(); g.beginPath(); g.roundRect(X, Y, CW, CH, 44); g.clip();
+  g.fillStyle = AZUL; g.fillRect(X, Y, CW, hP);
+  g.restore();
+  g.textAlign = "center"; g.fillStyle = "rgba(255,255,255,.85)"; g.font = `800 30px ${FONTE}`;
+  g.fillText("CAIXA DE PERGUNTAS", W / 2, Y + 62);
+  g.fillStyle = "#fff"; g.font = `800 50px ${FONTE}`;
+  lp.forEach((t, i) => g.fillText(t, W / 2, Y + 122 + i * 64));
+  g.fillStyle = TINTA; g.font = `600 54px ${FONTE}`;
+  lr.forEach((t, i) => g.fillText(t, W / 2, Y + hP + 80 + i * 70));
+  g.fillStyle = "rgba(255,255,255,.8)"; g.font = `800 34px ${FONTE}`; g.fillText("HELP FLORIPA", W / 2, H - 110);
+  const imagem = c.toDataURL("image/jpeg", 0.9);
+  // Fecha as janelas por cima (respostas e o visor do flash) antes de abrir o criador.
+  document.querySelector("#folhaLista.aberta [data-fechar]")?.click();
+  document.querySelector(".story-visor .story-btn[aria-label='Fechar']")?.click();
+  setTimeout(() => abrirCriador({ imagem, selo: "Resposta da caixa de perguntas" }), 250);
 }

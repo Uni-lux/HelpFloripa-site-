@@ -500,6 +500,18 @@ const fotoS = "data:image/jpeg;base64,/9j/AAAA";
 await t("stories: publica foto", () => assertSucceeds(setDoc(doc(ctx("ana"), "stories", "s1"), { autorId: "ana", nome: "Ana", tipo: "imagem", midia: fotoS, texto: "bom dia", criadoEm: serverTimestamp() })));
 await t("stories: vídeo dentro do documento é recusado (só Storage)", () => assertFails(setDoc(doc(ctx("ana"), "stories", "s2"), { autorId: "ana", nome: "Ana", tipo: "video", midia: fotoS, criadoEm: serverTimestamp() })));
 await t("stories: quem vê marca; só a autora lista quem viu", async () => { await assertSucceeds(setDoc(doc(ctx("bia"), "stories", "s1", "vistos", "bia"), { criadoEm: serverTimestamp() })); await assertSucceeds(getDocs(collection(ctx("ana"), "stories", "s1", "vistos"))); await assertFails(getDocs(collection(ctx("edu"), "stories", "s1", "vistos"))); });
+// Estrela (curtir) e reação no flash: stories/{id}/reacoes/{uid}
+const reac = (u, x) => doc(ctx(u), "stories", "s1", "reacoes", u);
+await t("flash: quem vê dá a estrela", () => assertSucceeds(setDoc(reac("bia"), { curtiu: true, em: serverTimestamp() })));
+await t("flash: tira a estrela e reage com emoji (mesmo documento)", () => assertSucceeds(setDoc(reac("bia"), { curtiu: false, emoji: "🔥", em: serverTimestamp() }, { merge: true })));
+await t("flash: recusa emoji fora da lista", () => assertFails(setDoc(reac("bia"), { emoji: "💩", em: serverTimestamp() }, { merge: true })));
+await t("flash: recusa campo a mais", () => assertFails(setDoc(reac("bia"), { curtiu: true, em: serverTimestamp(), texto: "oi" })));
+await t("flash: recusa curtiu que não é sim/não", () => assertFails(setDoc(reac("bia"), { curtiu: "sim", em: serverTimestamp() })));
+await t("flash: recusa data falsa", () => assertFails(setDoc(reac("bia"), { curtiu: true, em: Timestamp.fromMillis(Date.now() - 3600e3) })));
+await t("flash: não grava no lugar de outra pessoa", () => assertFails(setDoc(doc(ctx("edu"), "stories", "s1", "reacoes", "bia"), { curtiu: true, em: serverTimestamp() })));
+await t("flash: a autora não curte o próprio flash", () => assertFails(setDoc(doc(ctx("ana"), "stories", "s1", "reacoes", "ana"), { curtiu: true, em: serverTimestamp() })));
+await t("flash: a autora lê as reações; outra pessoa não", async () => { await assertSucceeds(getDocs(collection(ctx("ana"), "stories", "s1", "reacoes"))); await assertFails(getDocs(collection(ctx("edu"), "stories", "s1", "reacoes"))); await assertSucceeds(getDoc(reac("bia"))); });
+await t("flash: quem reagiu apaga a própria reação", () => assertSucceeds(deleteDoc(reac("bia"))));
 await t("stories: outra pessoa não apaga", () => assertFails(deleteDoc(doc(ctx("bia"), "stories", "s1"))));
 await t("rascunhos: só a própria pessoa", async () => { await assertSucceeds(setDoc(doc(ctx("ana"), "rascunhos", "ana", "itens", "r1"), { texto: "ideia", fotos: [], atualizadoEm: serverTimestamp() })); await assertFails(getDoc(doc(ctx("bia"), "rascunhos", "ana", "itens", "r1"))); });
 await t("reação com o autor do comentário certo (para o aviso)", () => assertSucceeds(setDoc(doc(ctx("edu"), "curtidas_comentarios", "c3_edu"), { comentarioId: "c3", uid: "edu", reacao: "👏", comentarioAutorId: "bia", criadoEm: serverTimestamp() })));

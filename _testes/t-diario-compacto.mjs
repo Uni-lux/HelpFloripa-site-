@@ -78,6 +78,28 @@ await p.waitForSelector(".flash-criar .flash-repost-selo", { timeout: 15000 }); 
 ok(await p.locator(".toast", { hasText: "Preparando" }).count() === 0, "o aviso 'Preparando...' não fica por cima do criador");
 await p.screenshot({ path: "saida/dc-criador.png" });
 
+// ---------- 6) caixa de perguntas no flash: a resposta vai para o seu flash ----------
+const fCaixa = await db.collection("stories").add({ autorId: U.ana, nome: "Ana", tipo: "imagem", midia: PX, caixa: { pergunta: "Qual serviço vocês querem ver?", anonima: true }, criadoEm: Timestamp.now() });
+await db.collection("caixa_respostas").add({ alvo: `f_${fCaixa.id}`, tipo: "f", itemId: fCaixa.id, autorId: U.ana, texto: "Pintura de fachada!", anonima: true, criadoEm: Timestamp.now() });
+await p.goto(BASE + `feed.html?flash=${fCaixa.id}`); await p.waitForSelector(".story-cx .cx-ver", { timeout: 15000 }); await p.waitForTimeout(1500);
+await p.locator(".story-cx .cx-ver").click(); await p.waitForSelector(".cx-resp", { timeout: 10000 });
+ok((await p.locator(".cx-resp").first().textContent()).includes("Pintura de fachada"), "autora vê a resposta da caixa no flash");
+await p.locator(".cx-resp button", { hasText: "No flash" }).first().click();
+await p.waitForSelector(".flash-criar .flash-repost-selo", { timeout: 10000 }); await p.waitForSelector(".flash-fotobox .flash-foto", { timeout: 10000 }); await p.waitForTimeout(600);
+ok((await p.locator(".flash-repost-selo").textContent()).includes("Resposta da caixa") && await p.locator(".story-visor").count() === 0, "'No flash' abre o criador com a pergunta e a resposta");
+await p.screenshot({ path: "saida/dc-resposta-flash.png" });
+await p.locator(".flash-publicar").tap(); await p.waitForTimeout(3500);
+ok((await db.collection("stories").where("autorId", "==", U.ana).get()).size >= 2, "resposta publicada no flash");
+
+// ---------- 7) respostas desligadas: a estrela fica sozinha ----------
+const fSem = await db.collection("stories").add({ autorId: U.bruno, nome: "Bruno", tipo: "imagem", midia: PX, respostas: "ninguem", criadoEm: Timestamp.now() });
+await db.doc(`relacoes/${U.ana}_${U.bruno}`).set({ tipo: "seguir", seguidorId: U.ana, alvoId: U.bruno, criadoEm: Timestamp.now() });
+await p.goto(BASE + `feed.html?flash=${fSem.id}`); await p.waitForTimeout(4000);
+ok(await p.locator(".story-so-estrela .story-estrela").count() === 1 && await p.locator(".story-responder:not([hidden])").count() === 0, "respostas desligadas: estrela sem o campo de responder");
+await p.locator(".story-so-estrela .story-estrela").click(); await p.waitForTimeout(1500);
+ok((await db.doc(`stories/${fSem.id}/reacoes/${U.ana}`).get()).data()?.curtiu === true, "estrela gravada");
+await fSem.delete(); await fCaixa.delete();
+
 ok(!erros.length, "sem erros na página: " + erros.join(" | ").slice(0, 300));
 await db.doc("diario/dcBruno").delete(); await db.doc("diario/dcTexto").delete(); await flash.delete();
 await browser.close();

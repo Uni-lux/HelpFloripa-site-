@@ -1094,6 +1094,19 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   "Preparando..." some quando o criador abre, foto do criador medida com `offsetWidth` (durante a animação de abrir
   `getBoundingClientRect` pegava o cartão encolhido e sobrava uma faixa escura) + ResizeObserver. Teste `t-diario-compacto.mjs`.
   Testes do Flash/Diário falham com dados que sobraram de outros testes (flashes da Ana, 60 recentes cheios): rodar `seed.mjs` antes.
+- **Estrela no Flash + Visualizações + resposta da caixa no flash (29/10/2026, mesmo PR #120, MUDA 1 REGRA — não publicada;
+  16 partes, 650 testes):** pedido dele: trocar o raio por uma estrela para curtir o flash e deixar perguntas, visualizações
+  e quem reagiu como no Instagram. Visor: `.story-estrela` (no lugar do `⚡`, `curtir()`; dourada quando dada, estrela grande
+  `.story-estrela-voa`; com respostas desligadas fica sozinha `.story-so-estrela`). Grava `stories/{id}/reacoes/{uid}`
+  {curtiu, emoji, em} (merge; regra: só o próprio uid, não no próprio flash, emoji da lista REACOES + ⭐, `em == request.time`;
+  lê só ele e o autor); o que eu curti fica no aparelho (`hf-flash-curtidos`, sem leitura por flash). Reações rápidas
+  continuam indo como cartão no Mensagens e também gravam `emoji`. Sem a regra: a estrela vai como reação "⭐" pelo Mensagens.
+  Autor: "Visto por N" + estrela com o número (`.story-vistos-est`); `verQuemViu` = folha "Visualizações" (números de
+  visualizações/estrelas/reações, filtros Todos · Estrelas · Reações, estrela e emoji na foto de cada pessoa, quem curtiu
+  primeiro, botão de mensagem que escreve ali e manda pelo Mensagens). "Ver publicação" sem o nome (como no Instagram; o nome
+  fica no aria-label). Caixa de perguntas: "No flash" em cada resposta (`compartilharRespostaNoFlash` em stories.js: cartão
+  1080×1920 com a pergunta e a resposta, sem o nome de quem respondeu → `abrirCriador({ imagem, selo })`). Testes
+  `t-social2` (estrela, reação gravada, Visualizações, mensagem) e `t-diario-compacto` (caixa → flash, estrela sozinha).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

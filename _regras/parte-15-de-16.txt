@@ -1,3 +1,27 @@
+      function respostaOk(d) {
+        return (!('respostaA' in d) && !('respostaAutorId' in d))
+            || (d.respostaA is string
+                && exists(/databases/$(database)/documents/comentarios/$(d.respostaA))
+                && get(/databases/$(database)/documents/comentarios/$(d.respostaA)).data.postId == d.postId
+                && d.respostaAutorId == get(/databases/$(database)/documents/comentarios/$(d.respostaA)).data.autorId);
+      }
+
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['postId', 'postAutorId', 'autorId', 'nome', 'foto', 'texto', 'respostaA', 'respostaAutorId', 'criadoEm'])
+                    && request.resource.data.autorId == request.auth.uid
+                    && textoComentarioOk(request.resource.data)
+                    && valorTextoAte(request.resource.data.get('nome', ''), 80)
+                    && fotoOk(request.resource.data.get('foto', ''))
+                    && exists(/databases/$(database)/documents/diario/$(request.resource.data.postId))
+                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
+                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.get('comentariosOcultos', false) != true
+                    && podeComentar(get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data)
+                    && respostaOk(request.resource.data)
+                    && !bloqueioEntre(request.auth.uid, request.resource.data.postAutorId)
+                    && ritmoOk('com')
+                    && request.resource.data.criadoEm == request.time;
+
       allow update: if logado()
                     && emailOk()
                     && (
@@ -159,40 +183,4 @@
                     && moderacaoOk();
       allow delete: if podeModerar();
     }
-    // =====================================================
-    // ESTATÍSTICAS DOS NEGÓCIOS (como o Google Meu Negócio e o painel profissional do Instagram)
-    // neg_visitas/{negocio}_{uid}_{dia}: uma por pessoa, por negócio, por dia (horário de Brasília).
-    //   Só a própria pessoa lê. Guarda a origem, a hora e o que ela fez (WhatsApp, rota, site...).
-    // neg_stats/{negocio}_{dia}: os números do dia, que só o dono do negócio lê.
-    //   Cada número só sobe +1 na MESMA gravação em que a visita nasce ou ganha uma ação nova:
-    //   ninguém infla as contas, e o dono não vê QUEM visitou (só quantos).
-    // =====================================================
-    function diaBR() {
-      let t = request.time - duration.value(3, 'h');
-      return string(t.year()) + (t.month() < 10 ? '0' : '') + string(t.month()) + (t.day() < 10 ? '0' : '') + string(t.day());
-    }
-    function horaBR() {
-      return (request.time.hours() + 21) % 24;
-    }
-    function caminhoStats(negocioId, dia) {
-      return /databases/$(database)/documents/neg_stats/$(negocioId + '_' + dia);
-    }
-    function caminhoVisita(negocioId, dia) {
-      return /databases/$(database)/documents/neg_visitas/$(negocioId + '_' + request.auth.uid + '_' + dia);
-    }
-
-    match /neg_visitas/{id} {
-      function visitaNova() {
-        let d = request.resource.data;
-        let st = caminhoStats(d.negocioId, d.dia);
-        return d.keys().hasOnly(['negocioId', 'uid', 'dia', 'hora', 'origem', 'acoes', 'itens'])
-            && d.uid == request.auth.uid
-            && d.negocioId is string && d.negocioId.size() <= 60
-            && d.dia == diaBR() && d.hora == horaBR()
-            && id == d.negocioId + '_' + request.auth.uid + '_' + d.dia
-            && d.origem in ['vitrine', 'busca', 'explorar', 'inicio', 'perfil', 'link', 'flash', 'mensagens', 'outro']
-            && d.acoes == [] && d.itens == []
-            && get(/databases/$(database)/documents/negocios/$(d.negocioId)).data.donoId != request.auth.uid
-            && getAfter(st).data.v == (exists(st) ? get(st).data.v : 0) + 1;
-      }
 // ===== FIM DA PARTE 15 DE 16 =====
