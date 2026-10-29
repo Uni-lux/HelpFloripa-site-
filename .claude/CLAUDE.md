@@ -1107,6 +1107,29 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   fica no aria-label). Caixa de perguntas: "No flash" em cada resposta (`compartilharRespostaNoFlash` em stories.js: cartão
   1080×1920 com a pergunta e a resposta, sem o nome de quem respondeu → `abrirCriador({ imagem, selo })`). Testes
   `t-social2` (estrela, reação gravada, Visualizações, mensagem) e `t-diario-compacto` (caixa → flash, estrela sozinha).
+- **Reels + público da publicação + auditoria do Diário (29/10/2026, mesmo PR #120, MUDA 1 REGRA — não publicada; 16 partes,
+  663 testes; 1 índice novo, agora 12):** pedido dele: "no lugar de fotos, os vídeos (tipo reels)" → no filtro do Diário o
+  ícone de foto virou **Reels** (`TIPOS_FEED` tudo/reels/textos/enquetes; "reels" não filtra, abre `reels.js`
+  `abrirReels({lista, oculto, comecarEm, aoNovo})`: tela cheia `.reels` z 4000, um vídeo por vez com scroll-snap, toca com 70%
+  na tela, som 🔇/🔊, toque = pausa, toque duplo = 5 estrelas, `barraInteracao` na coluna da direita `.reel-lado` e as
+  estrelas + autor + Seguir + legenda embaixo `.reel-info`; vídeos = já lidos + `diario mediaTipo == video` (índice
+  mediaTipo + criadoEm; sem ele 60 sem ordem); `feed.html?reels=1|ID`; voltar fecha). **Vídeo novo só com Storage**
+  (`USAR_STORAGE`): sem ele o botão Vídeo do formulário fica escondido e os Reels ficam vazios.
+  **Público da publicação** (`publico-alvo.js` sem deps + `publico-tela.js`, que recebe as funções do rede.js por parâmetro):
+  `diario.publico` {idadeMin/idadeMax 16–100, genero f|m, local brasil|estados(ufs ≤27)|cidades(códigos IBGE em texto, ≤10)|
+  perto({lat,lng,km 5–300,nome}), seguidores todos|seguidores|novos}; regra `publicoOk` (create e update; "TUDO junto" cabe).
+  Formulário: botão "Público: Todos ▾" (`#pubPublicoBtn`) ao lado de "Publicando no Diário" → folha (Quem vê, Idade com faixas
+  e De/até, Gênero, Lugar com UFs/cidades por estado/perto da minha cidade ou localização + raio, resumo e nota). Sem a regra:
+  não publica e avisa. ⋯ da sua publicação → "Público da publicação" (`editarPublicoDoPost`) e aviso `.post-publico` só para o
+  autor. **Quem lê** (`leitorDe`/`combinaPublico`, tudo no aparelho): idade de `usuarios.dataNascimento`, `usuarios.genero`
+  (novo, privado: Configurações → Gênero `#cfgGenero` e campo opcional no cadastro), lugar escolhido ou cidade do perfil,
+  posição (`minhaPosicao`, espera 1,5 s), segue ou não. Vale no Diário (`postOculto` do feed.js), Explorar e Reels; no perfil
+  e pelo link continua aparecendo (direcionamento, não privacidade — dito na tela e na Política de Privacidade). Sem idade/gênero
+  informado = não vê publicação com esse filtro.
+  **Auditoria** (`t-auditoria-diario.mjs`, 86 verificações celular+computador): achou e corrigiu o voto perdido na enquete
+  (tocar antes de carregar não fazia nada: `votar` espera `carregar()`; `recarregar` zera o cache) e o Explorar usando o
+  estado do perfil em vez do lugar escolhido (`regiaoEu`). Medido (carga): Diário 318 leituras/3,7 MB na 1ª visita (fotos em
+  `data:`), 38 na 2ª; Explorar 444/36. Os ouvintes do sino (rede.js `ouvir`, até 100 docs cada) releem a cada página.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

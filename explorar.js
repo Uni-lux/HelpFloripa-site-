@@ -11,7 +11,7 @@
 import {
   $, el, icone, ms, toast, pintarAvatar, urlSegura, nomeCidade, fb, eu, dados, meusSeguindo, escondido, silenciado, ganchos,
   obterPerfil, linhaPessoa, botaoSeguir, fotosDoPost, lerResumosEstrelas, minhaRede, jaVisto, definirOrigem, origemAtual, pilha
-} from "./rede.js?v=81";
+} from "./rede.js?v=82";
 import { afinidade } from "./gosto.js?v=2";
 import { buscarNoServidor } from "./busca.js?v=1";
 import { postsDoEstado, pesoRegiao, RECENTES_PAIS } from "./regiao.js?v=4";
@@ -24,9 +24,16 @@ import { fimDaEnquete, faltaTexto } from "./enquetes.js?v=5";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, distanciaKm } from "./perto.js?v=2";
 import { semPausados, corDoPlano, lerPlano, classePlano, planosDosDonos, nivelPlano } from "./planos-base.js?v=15";
 import { lerComunidade, cartaoComunidade, filtrosComunidade, comunidadeNoAr } from "./comunidade-cartao.js?v=2";
+import { combinaPublico, leitorDe } from "./publico-alvo.js?v=1";
+import { lerLocal as lugarEscolhido } from "./local-escolhido.js?v=3";
 
 const DIARIO_VALIDADE = 3 * 60000, DIA = 864e5, HORA = 3600e3;
-const postOculto = (p) => (p?.ocultoAte?.toMillis?.() ?? 0) > Date.now() || (p?.agendadoPara?.toMillis?.() ?? 0) > Date.now() || silenciado(p?.autorId);
+// Público da publicação: quem não está no público não vê no Explorar (publico-alvo.js). A posição entra quando chega.
+let leitorExp = null;
+const leitor = () => (leitorExp ||= leitorDe({ uid: eu.uid, dados, local: lugarEscolhido(), pos: posEu, segue: (u) => meusSeguindo.has(u) }));
+// Região de quem lê: o lugar escolhido ("Você está em", o mesmo do Diário, do Início e das vitrines) ou a cidade do perfil.
+const regiaoEu = () => { const l = lugarEscolhido(); return l.uf ? { uf: l.uf, cidadeIbge: Number(l.cidadeIbge) || 0 } : { uf: dados.uf || "", cidadeIbge: Number(dados.cidadeIbge) || 0 }; };
+const postOculto = (p) => (p?.ocultoAte?.toMillis?.() ?? 0) > Date.now() || (p?.agendadoPara?.toMillis?.() ?? 0) > Date.now() || silenciado(p?.autorId) || !combinaPublico(p, leitor());
 const lerLocal = (k, padrao) => { try { const v = JSON.parse(localStorage.getItem(k) || "null"); return v ?? padrao; } catch { return padrao; } };
 const gravarLocal = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
 const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
@@ -44,7 +51,7 @@ function postsRecentes() {
   postsEm = Date.now();
   const q = fb.query(fb.collection(fb.db, "diario"), fb.orderBy("criadoEm", "desc"), fb.limit(RECENTES_PAIS));
   // Junto com as recentes do país, as recentes do seu estado (regiao.js), sem repetir.
-  return (postsP = Promise.all([docsComValidade(fb, "diario-principais", q, DIARIO_VALIDADE), postsDoEstado(fb, dados.uf)])
+  return (postsP = Promise.all([docsComValidade(fb, "diario-principais", q, DIARIO_VALIDADE), postsDoEstado(fb, regiaoEu().uf)])
     .then(([s, doEstado]) => { const ja = new Set(s.docs.map((d) => d.id)); return { docs: s.docs, mais: doEstado.filter((p) => !ja.has(p.id)), size: s.size }; })
     .then((s) => (ultimoDoc = s.docs.at(-1) || null, s.size < RECENTES_PAIS && (acabouAntigas = true), [...s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })), ...s.mais]).filter((p) => !escondido(p.autorId) && !postOculto(p)))
     .catch((e) => { postsP = null; console.warn("Explorar:", e); return []; }));
@@ -294,7 +301,7 @@ function pintarAlta(lista) {
   lista.forEach((p) => (p.tags || []).forEach((t) => {
     const idade = Math.max(0, agora - ms(p.criadoEm));
     const x = conta.get(t) || { t, n: 0, p: 0, hoje: 0 };
-    x.n++; x.p += pesoRegiao(p, dados) / (1 + idade / (3 * DIA)); if (idade < DIA) x.hoje++; // a sua região pesa mais
+    x.n++; x.p += pesoRegiao(p, regiaoEu()) / (1 + idade / (3 * DIA)); if (idade < DIA) x.hoje++; // a sua região pesa mais
     conta.set(t, x);
   }));
   const top = [...conta.values()].sort((a, b) => b.p - a.p).slice(0, 12);
@@ -331,7 +338,7 @@ function pintarEnquetes(lista) {
 
 // "Perto de você": posição da pessoa (GPS guardado no aparelho ou a cidade do perfil).
 let posEu = null, posPronta = null;
-const posicao = () => (posPronta ||= minhaPosicao(dados).then((p) => (posEu = p)).catch(() => null));
+const posicao = () => (posPronta ||= minhaPosicao(dados).then((p) => { posEu = p; leitorExp = null; return p; }).catch(() => null));
 // Botão "Usar minha localização" dentro do título da seção (some quando já tem GPS).
 function botaoLocal(alvo, aoMudar) {
   alvo.querySelector(".exp-loc")?.remove();
@@ -339,7 +346,7 @@ function botaoLocal(alvo, aoMudar) {
   const b = el("button", "exp-loc"); b.type = "button"; b.append(icone("local", "i xs"), document.createTextNode("Usar minha localização"));
   b.addEventListener("click", async () => {
     b.disabled = true; b.lastChild.textContent = "Localizando...";
-    try { posEu = await pedirLocalizacao(); posPronta = Promise.resolve(posEu); aoMudar(); }
+    try { posEu = await pedirLocalizacao(); posPronta = Promise.resolve(posEu); leitorExp = null; aoMudar(); }
     catch (e) { b.disabled = false; b.lastChild.textContent = "Usar minha localização"; toast(e?.message || "Não deu para pegar a sua localização."); }
   });
   alvo.appendChild(b);
@@ -482,7 +489,7 @@ function pintarDestaques() {
   const nota = (p) => {
     const r = resumosPosts.get(p.id) || { total: 0, soma: 0 };
     const horas = Math.max(0, (agora - (ms(p.criadoEm) || agora)) / HORA);
-    return (1 + r.total + Math.max(0, r.soma - 3 * r.total) * 0.4) * (1 + afinidade(p)) * pesoRegiao(p, dados) / Math.pow(horas + 6, 0.8);
+    return (1 + r.total + Math.max(0, r.soma - 3 * r.total) * 0.4) * (1 + afinidade(p)) * pesoRegiao(p, regiaoEu()) / Math.pow(horas + 6, 0.8);
   };
   const base = postsDestaque.filter((p) => p.autorId !== eu.uid && (tipoPost(p) !== "textos" || String(p.texto || p.enquete?.pergunta || "").trim().length >= 8));
   const conta = Object.fromEntries(FILTROS_DEST.map(([id]) => [id, id === "tudo" ? base.length : base.filter((p) => tipoPost(p) === id).length]));

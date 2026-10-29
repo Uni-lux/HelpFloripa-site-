@@ -57,6 +57,11 @@
 > **Estrela no Flash (29/10):** `stories/{id}/reacoes/{uid}` {curtiu, emoji, em} — quem vê dá a estrela (curtir) e o
 > último emoji de reação fica guardado para o autor ver na lista de Visualizações. Só a própria pessoa grava (não no
 > próprio flash); só ela e o autor leem. Sem a regra publicada, a estrela vai como reação "⭐" pelo Mensagens.
+> **Público da publicação (29/10):** `diario.publico` {idadeMin, idadeMax, genero f|m, local brasil|estados|cidades|perto,
+> ufs, cidades (código IBGE), perto {lat, lng, km, nome}, seguidores todos|seguidores|novos} — quem publica escolhe para quem
+> a publicação aparece no Diário, no Explorar e nos Reels (só confere o formato; quem está no público é decidido no aparelho
+> de quem lê). Sem a regra publicada, publicar com público avisa e não publica. Junto: criar o índice `diario` (`mediaTipo` +
+> `criadoEm`) dos Reels, na lista do `INDICES-LEIA-ME.md`.
 > Para publicar, o processo é o mesmo: apagar tudo no console e colar as 16 partes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
@@ -67,7 +72,7 @@ linha), para colar no console do Firebase.
 - Cada parte termina com a linha `// ===== FIM DA PARTE X DE 16 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
 - Conferido: as 16 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **650 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
+- Testes de regras no arquivo remontado: **663 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.

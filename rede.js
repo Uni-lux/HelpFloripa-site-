@@ -18,6 +18,8 @@ import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-rec
 import { ouvirItensEquipe, TEXTO_EQUIPE, linkEquipe } from "./avisos-equipe.js?v=1";
 import "./painel-avisos.js?v=38";
 import { docComValidade, docsComValidade, esquecer } from "./leituras.js?v=3";
+import { resumoPublico, temPublico } from "./publico-alvo.js?v=1";
+import { escolherPublico } from "./publico-tela.js?v=1";
 import { avisoPlano } from "./planos-base.js?v=15";
 import { palavrasBusca } from "./pessoas.js?v=5"; // o sino abre o painel de notificações na própria página
 import { registrarGosto, PESO } from "./gosto.js?v=2";
@@ -1225,7 +1227,9 @@ export function blocoEnquete(item, { tipo = "d", escura = false } = {}) {
     clearTimeout(relogio);
     if (fim && !acabou) relogio = setTimeout(() => { if (box.isConnected) pintar(); }, Math.min(30000, Math.max(1000, fim - Date.now() + 200)));
   };
-  async function carregar() {
+  let carregando = null;
+  function carregar() { return (carregando ||= carregarJa()); }
+  async function carregarJa() {
     // O autor e a enquete encerrada já leem a contagem junto; os outros, só depois de votar.
     const junto = souAutor || encerrada(e) ? lerContas() : null;
     meu = await fb.getDoc(ref).then((d) => (d.exists() ? Number(d.data().opcao) : null)).catch(() => null);
@@ -1234,6 +1238,8 @@ export function blocoEnquete(item, { tipo = "d", escura = false } = {}) {
     pintar();
   }
   async function votar(i) {
+    // Tocou antes de terminar de carregar (a enquete acabou de aparecer): espera e vota (antes o toque era perdido).
+    if (!pronto) { if (ocupado) return; ocupado = true; await carregar().catch(() => {}); ocupado = false; }
     if (ocupado || !pronto) return;
     if (encerrada(e)) { toast("Esta enquete já terminou. Veja o resultado final."); return; }
     if (meu !== null) { toast("Você já votou nesta enquete. O voto não pode ser trocado."); return; }
@@ -1260,7 +1266,7 @@ export function blocoEnquete(item, { tipo = "d", escura = false } = {}) {
   }
   pintar();
   quandoVisivel(box, carregar);
-  box.recarregar = carregar;
+  box.recarregar = () => { carregando = null; return carregar(); };
   return box;
 }
 // ---------- caixa de perguntas (publicação ou flash) ----------
@@ -1370,7 +1376,7 @@ export async function verRespostasCaixa(item, alvo, aoMudar) {
       // Pôr a resposta no seu flash (como no Instagram): pergunta + resposta, sem o nome de quem respondeu.
       const noFlash = el("button", "btn mini sec"); noFlash.type = "button"; noFlash.append(icone("raio", "i xs"), document.createTextNode("No flash"));
       noFlash.title = "Compartilhar esta resposta no seu flash";
-      noFlash.addEventListener("click", () => import("./stories.js?v=53").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto })));
+      noFlash.addEventListener("click", () => import("./stories.js?v=54").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto })));
       acoes.appendChild(noFlash);
       const apagar = el("button", "btn mini sec"); apagar.type = "button"; apagar.append(icone("lixo", "i xs"), document.createTextNode("Apagar"));
       apagar.addEventListener("click", async () => {
@@ -1915,7 +1921,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=53").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=54").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);
@@ -1988,7 +1994,7 @@ export function abrirCompositor({ aoPublicar, inicio = "" } = {}) {
   if (!$("folhaPublicar")) {
     const f = criarFolha("folhaPublicar", { titulo: "Nova publicação", corpoClasse: "folha-corpo pad", rodape: true });
     $("c_folhaPublicar").innerHTML = `
-      <div class="pub-autor"><div class="avatar" id="pubAvatar"></div><div class="pub-quem"><strong id="pubNome"></strong><small><svg class="i"><use href="#i-feed"/></svg>Publicando no Diário</small></div></div>
+      <div class="pub-autor"><div class="avatar" id="pubAvatar"></div><div class="pub-quem"><strong id="pubNome"></strong><div class="pub-quem-linha"><small><svg class="i"><use href="#i-feed"/></svg>Publicando no Diário</small><button type="button" class="pub-publico" id="pubPublicoBtn" aria-label="Escolher o público da publicação"><svg class="i"><use href="#i-pessoa-mais"/></svg><span id="pubPublicoTxt">Público: Todos</span><svg class="i seta"><use href="#i-avancar"/></svg></button></div></div></div>
       <div class="pub-campo">
         <textarea class="pub-texto" id="pubTexto" maxlength="1000" placeholder="No que você está pensando? Escreva, adicione uma foto ou faça uma enquete..." aria-label="Texto da publicação"></textarea>
         <span class="cont" id="pubCont">0/1000</span>
@@ -2149,6 +2155,19 @@ async function caberNoDocumento(fotos, limite = 860000) {
 }
 // Extras da publicação: pessoas marcadas, data agendada e rascunho aberto.
 let pubLocal = null;
+// Público da publicação (idade, gênero, lugar, seguidores): diario.publico. null = todos.
+let pubPublico = null;
+const ajudaPublico = () => ({ abrirLista, fecharFolha, el, icone, toast, posicaoDe, pedirLocalizacao, rotuloPosicao, dados });
+// ⋯ da sua publicação → "Público da publicação": muda depois de publicar.
+export async function editarPublicoDoPost(post, aoMudar) {
+  const v = await escolherPublico(post.publico || null, ajudaPublico());
+  if (v === undefined) return;
+  try {
+    await fb.updateDoc(fb.doc(fb.db, "diario", post.id), { publico: v });
+    post.publico = v || null; aoMudar?.(post);
+    toast(v ? `Público: ${resumoPublico(v)}` : "Agora a publicação é para todos");
+  } catch (e) { toast(e?.code === "permission-denied" ? "O público da publicação começa a funcionar quando as regras novas forem publicadas." : "Não foi possível mudar: " + erroAmigavel(e)); }
+}
 let pubMarcados = [], pubAgenda = null, pubRascunhoId = null, pubEnquete = null, pubCaixa = null;
 // Enquete no compositor: pergunta e de 2 a 4 opções.
 function pintarEnqueteCompositor() {
@@ -2252,6 +2271,8 @@ function pintarExtras() {
     c.appendChild(x); lb.appendChild(c);
   }
   $("pubEnviar").textContent = pubAgenda ? "Agendar" : "Publicar";
+  const bp = $("pubPublicoBtn");
+  if (bp) { const t = resumoPublico(pubPublico); $("pubPublicoTxt").textContent = `Público: ${t}`; bp.classList.toggle("ativo", !!pubPublico); bp.title = t; }
   pintarDestino();
 }
 // ---------- Adicionar local (como no Instagram) ----------
@@ -2321,7 +2342,7 @@ function limparPublicacao() {
   $("pubCont").textContent = "0/1000";
   if (pubMidia?.previa?.startsWith("blob:")) URL.revokeObjectURL(pubMidia.previa);
   pubMidia = null;
-  pubMarcados = []; pubAgenda = null; pubLocal = null; pubRascunhoId = null; pubEnquete = null; pintarEnqueteCompositor(); pubCaixa = null; pintarCaixaCompositor();
+  pubMarcados = []; pubAgenda = null; pubLocal = null; pubPublico = null; pubRascunhoId = null; pubEnquete = null; pintarEnqueteCompositor(); pubCaixa = null; pintarCaixaCompositor();
   $("pubPrevia").hidden = true;
   $("pubPrevia").replaceChildren();
   pintarExtras();
@@ -2462,6 +2483,10 @@ function mostrarPreviaPublicacao() {
   box.hidden = false;
 }
 function ligarCompositor() {
+  $("pubPublicoBtn").addEventListener("click", async () => {
+    const v = await escolherPublico(pubPublico, ajudaPublico());
+    if (v !== undefined) { pubPublico = v; pintarExtras(); }
+  });
   // O campo cresce com o texto (até 45% da tela; depois rola por dentro).
   const crescer = () => { const t = $("pubTexto"); t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight + 2, Math.round(innerHeight * 0.45)) + "px"; };
   $("pubTexto").addEventListener("input", () => { $("pubCont").textContent = `${$("pubTexto").value.length}/1000`; crescer(); });
@@ -2539,7 +2564,7 @@ function ligarCompositor() {
       const mencionados = await uidsMencionados(texto);
       const tags = tagsDoTexto(texto), marcados = [...new Set([...pubMarcados.map((p) => p.uid), ...mencionados])].filter((u) => u && u !== eu.uid).slice(0, 10);
       const agenda = pubAgenda && pubAgenda > new Date() ? fb.Timestamp.fromDate(pubAgenda) : null;
-      const extras = { ...(tags.length ? { tags } : {}), ...(marcados.length ? { marcados } : {}), ...(agenda ? { agendadoPara: agenda } : {}), ...(enquete ? { enquete } : {}), ...(caixa ? { caixa } : {}), ...(pubLocal ? { local: { ...pubLocal } } : {}) };
+      const extras = { ...(tags.length ? { tags } : {}), ...(marcados.length ? { marcados } : {}), ...(agenda ? { agendadoPara: agenda } : {}), ...(enquete ? { enquete } : {}), ...(caixa ? { caixa } : {}), ...(pubLocal ? { local: { ...pubLocal } } : {}), ...(pubPublico ? { publico: { ...pubPublico } } : {}) };
       // Região de quem publica (Diário e Explorar priorizam a sua cidade e o seu estado).
       const regiao = /^[A-Z]{2}$/.test(dados.uf || "") ? { autorUf: dados.uf, ...(Number.isInteger(dados.cidadeIbge) ? { autorIbge: dados.cidadeIbge } : {}) } : {};
       const gravar = (novos) => comRitmo(fb, eu.uid, "pub", (lote) => {
@@ -2555,6 +2580,8 @@ function ligarCompositor() {
         if (agenda) { toast("Agendar começa a funcionar quando as regras novas forem publicadas. Publique agora ou salve como rascunho."); return; }
         if (enquete) { toast("Enquetes começam a funcionar quando as regras novas forem publicadas. Tire a enquete para publicar agora."); return; }
         if (caixa) { toast("A caixa de perguntas começa a funcionar quando as regras novas forem publicadas. Tire a caixa para publicar agora."); return; }
+        // Sem a regra o público iria para todos: não publica (a pessoa escolheu quem vê).
+        if (pubPublico) { toast("O público da publicação começa a funcionar quando as regras novas forem publicadas. Volte para \"Todos\" para publicar agora."); return; }
         ref = await gravar(false); semNovos = true;
       }
       if (enquete && !semNovos) registrarEnquete("d_" + ref.id, enquete);

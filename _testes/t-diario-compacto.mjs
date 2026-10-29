@@ -40,10 +40,11 @@ await p.waitForTimeout(400);
 await p.locator('#tiposFeed [data-tipo="textos"]').click(); await p.waitForTimeout(400);
 const txt = await p.locator(".post-card").allTextContents();
 ok(txt.some((t) => t.includes("limpe as calhas")) && !txt.some((t) => t.includes("Telhado novo")), "ícone Textos mostra só textos");
-await p.locator('#tiposFeed [data-tipo="fotos"]').click(); await p.waitForTimeout(400);
-const fot = await p.locator(".post-card").allTextContents();
-ok(fot.some((t) => t.includes("Telhado novo")) && !fot.some((t) => t.includes("limpe as calhas")), "ícone Fotos mostra só fotos");
 await p.screenshot({ path: "saida/dc-filtro.png" });
+// O ícone de vídeo (no lugar do de fotos) abre os Reels; voltar fecha.
+await p.locator('#tiposFeed [data-tipo="reels"]').click(); await p.waitForSelector(".reels", { timeout: 8000 }).catch(() => {});
+ok(await p.locator(".reels").count() === 1, "ícone Reels abre os vídeos em tela cheia");
+await p.locator(".reels-btn[aria-label^='Voltar']").click(); await p.waitForTimeout(500);
 await p.locator('#tiposFeed [data-tipo="tudo"]').click(); await p.waitForTimeout(300);
 await p.locator("#filtroFeedBtn").tap(); await p.waitForTimeout(400);
 ok(await p.locator("#opcoesCorpo button", { hasText: "Amigos" }).count() === 1, "'Principais ▾' abre Principais/Amigos");

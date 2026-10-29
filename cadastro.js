@@ -119,7 +119,7 @@ window.addEventListener("beforeunload", (e) => { if (comecou() && !podeSair) { e
       const criar = (perfil) => F.runTransaction(db, async (tx) => {
         if ((await tx.get(refNick)).exists()) throw new Error("nickname-em-uso");
         tx.set(F.doc(db, "usuarios", user.uid), {
-          uid: user.uid, nome, nickname: nick, dataNascimento: nasc, telefone, email, cidade, uf, cidadeIbge,
+          uid: user.uid, nome, nickname: nick, dataNascimento: nasc, ...(["f", "m", "o"].includes(document.getElementById("genero")?.value) ? { genero: document.getElementById("genero").value } : {}), telefone, email, cidade, uf, cidadeIbge,
           fotoPerfil: "", fotoCapa: "", tipoUsuario: "usuario", aceiteTermos: true, criadoEm: F.serverTimestamp()
         });
         tx.set(refNick, { uid: user.uid, criadoEm: F.serverTimestamp() });
