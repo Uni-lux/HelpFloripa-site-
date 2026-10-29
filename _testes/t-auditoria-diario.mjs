@@ -38,7 +38,7 @@ async function rodar(mobile) {
   await p.locator("#btnComporFeed").click(); await p.waitForTimeout(500);
   A("topo: + abre a nova publicação", await p.locator("#folhaPublicar.aberta").count() === 1);
   const ferr = await p.locator("#folhaPublicar .pub-ferr:visible").allTextContents();
-  A("formulário: Foto, Marcar, Enquete, Perguntas, Local, Agendar, Rascunhos → " + ferr.map((x) => x.trim()).join(", "), ["Foto", "Marcar", "Enquete", "Perguntas", "Local", "Agendar", "Rascunhos"].every((n) => ferr.some((x) => x.includes(n))));
+  A("formulário: Imagem, Marcar, Hashtag, Local, Agendar, Público, Ajustes, Rascunhos → " + ferr.map((x) => x.trim()).join(", "), ["Imagem", "Marcar", "Hashtag", "Local", "Agendar", "Público", "Ajustes", "Rascunhos"].every((n) => ferr.some((x) => x.includes(n))));
   A("formulário: botão Público", await p.locator("#pubPublicoBtn").isVisible());
   await fecharFolhas();
   // ---- flash ----

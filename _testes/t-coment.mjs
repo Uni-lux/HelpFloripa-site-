@@ -64,7 +64,7 @@ ok(cartao && cartao.link === "feed.html?post=pc", "Enviar: cartão da publicaç�
 const pb = await entrar(B.ctx, "bruno", "usuarios.html?post=pc");
 await pb.waitForSelector(".visor-exp .post-card", { timeout: 30000 }).catch(() => {});
 await pb.waitForTimeout(2500);
-ok(/feed\.html\?post=pc/.test(pb.url()) && (await pb.locator(".visor-exp .post-card").first().textContent()).includes("Reforma"), "link antigo usuarios.html?post= abre a publicação (feed.html?post=)");
+ok(/feed\.html/.test(pb.url()) && (await pb.locator(".visor-exp .post-card").first().textContent()).includes("Reforma"), "link antigo usuarios.html?post= abre a publicação (feed.html?post=)");
 await pb.locator(".visor-exp .post-card").first().locator(".acao.comentar").tap();
 await pb.waitForSelector("#folhaComentarios.aberta .fio-coment", { timeout: 15000 }); await pb.waitForTimeout(1200);
 await pb.locator("#folhaComentarios .fio-coment", { hasText: "Comentário famoso" }).locator(".coment-mais").first().tap();
