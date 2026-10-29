@@ -42,7 +42,7 @@ ok(true, "tocar na ação abre o anúncio na comunidade.html");
 // Mensagens da barra: abre a página inteira (não a gaveta por cima).
 await p.goto(BASE + "feed.html?aba=registros"); await p.waitForSelector("#barraRede a", { timeout: 20000 });
 await p.waitForSelector(".post-card", { timeout: 25000 }); await p.waitForTimeout(1500);
-ok(await p.locator('#comporAtalhos [data-inicio="enquete"]').isVisible() && await p.locator('#comporAtalhos [data-inicio="foto"]').isVisible(), "Diário: atalhos Foto, Enquete, Flash e Local");
+ok(await p.locator("#comporAtalhos").count() === 0 && await p.locator("#btnComporFeed").isVisible(), "Diário compacto: '+' no topo no lugar da caixa de publicar");
 await p.locator("#btnComporFeed").click(); await p.waitForTimeout(600);
 ok(await p.locator("#pubModo").count() === 0 && await p.locator("#pubFoto").isVisible(), "formulário único: foto, texto e enquete no mesmo lugar");
 await p.keyboard.press("Escape"); await p.waitForTimeout(400);

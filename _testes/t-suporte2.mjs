@@ -113,7 +113,7 @@ for (const [i, id] of [[1, "pcFoto"], [2, "pcTexto"], [3, "pcSumiu"]]) {
 const M = await navegador({ mobile: true });
 const pm = await entrar(M.ctx, "ana", `mensagens.html?conversa=${U.conv}`);
 await pm.waitForSelector(".pub-msg .pc-cab", { timeout: 20000 }); await pm.waitForTimeout(2500);
-const card = pm.locator(".pub-msg", { has: pm.locator('a[href="usuarios.html?post=pcFoto"]') });
+const card = pm.locator(".pub-msg", { has: pm.locator('a[href="feed.html?post=pcFoto"]') });
 ok((await card.locator(".pc-quem strong").textContent()).includes("Ana Souza") && (await card.locator(".pc-selo").textContent()).includes("Diário"), "cartão: autor e selo Diário");
 ok((await card.locator(".pc-n").textContent()) === "1/3" && await card.locator(".pc-pontos i").count() === 3, "carrossel: 1/3 e bolinhas");
 ok((await card.locator(".pc-info").textContent()).includes("4,7") && (await card.locator(".pc-leg b").textContent()).includes("Ana"), "estrelas (4,7 · 3 notas) e legenda com o nome em negrito");

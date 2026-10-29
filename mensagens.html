@@ -2172,7 +2172,7 @@
     const refConversa = (id) => fb.doc(fb.db, "conversas", id);
 
     // ---------- publicação enviada (cartão com a foto) ----------
-    // O cartão guarda só o link (usuarios.html?post=ID); a foto, o autor e a legenda vêm da publicação
+    // O cartão guarda só o link (feed.html?post=ID; os antigos, usuarios.html?post=ID); a foto, o autor e a legenda vêm da publicação
     // (cópia do aparelho por 10 min). Publicação apagada: "Publicação indisponível".
     const postsLidos = new Map();
     function lerPublicacao(id) {
@@ -2196,7 +2196,7 @@
     const tomDe = (id) => { let h = 0; for (const ch of String(id || "")) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h % 5; };
     function cartaoPublicacao(c) {
       const id = (String(c.link || "").match(/[?&]post=([\w-]+)/) || [])[1] || "";
-      const a = document.createElement("a"); a.className = "pc"; a.href = id ? `usuarios.html?post=${encodeURIComponent(id)}` : "#";
+      const a = document.createElement("a"); a.className = "pc"; a.href = id ? `feed.html?post=${encodeURIComponent(id)}` : "#";
       a.setAttribute("aria-label", "Abrir a publicação");
       const cab = document.createElement("div"); cab.className = "pc-cab";
       const av = document.createElement("span"); av.className = "avatar pc-av";

@@ -137,6 +137,19 @@
                       || get(/databases/$(database)/documents/stories/$(id)).data.autorId == request.auth.uid);
         allow update, delete: if false;
       }
+      // reacoes/{uid}: a estrela (curtir o flash) e o último emoji de quem viu, para o autor ver na lista de
+      // visualizações (como o coração e as reações do Instagram). Só a própria pessoa grava; só ela e o autor leem.
+      match /reacoes/{uid} {
+        allow create, update: if logado() && uid == request.auth.uid
+                      && request.resource.data.keys().hasOnly(['curtiu', 'emoji', 'em'])
+                      && request.resource.data.em == request.time
+                      && (!('curtiu' in request.resource.data) || request.resource.data.curtiu is bool)
+                      && (!('emoji' in request.resource.data) || request.resource.data.emoji in ['🔥', '😍', '😂', '😮', '👏', '💯', '⭐'])
+                      && get(/databases/$(database)/documents/stories/$(id)).data.autorId != request.auth.uid;
+        allow read: if logado() && (uid == request.auth.uid
+                      || get(/databases/$(database)/documents/stories/$(id)).data.autorId == request.auth.uid);
+        allow delete: if logado() && uid == request.auth.uid;
+      }
     }
 
     // ===================================================
@@ -155,31 +168,4 @@
       return d.fatia is int && d.fatia >= 0 && d.fatia < 10
           && getAfter(pedaco).data.get(k, 0) == (exists(pedaco) ? get(pedaco).data.get(k, 0) : 0) + 1;
     }
-    match /enquete_votos/{id} {
-      allow read: if logado();
-      function votoOk() {
-        let d = request.resource.data;
-        let doc = d.tipo == 'd'
-          ? /databases/$(database)/documents/diario/$(d.itemId)
-          : /databases/$(database)/documents/stories/$(d.itemId);
-        let e = get(doc).data.enquete;
-        return d.keys().hasOnly(['alvo', 'tipo', 'itemId', 'uid', 'opcao', 'fatia', 'fimEm', 'criadoEm'])
-            && d.uid == request.auth.uid
-            && d.tipo in ['d', 'f']
-            && d.itemId is string && d.itemId.matches('^[A-Za-z0-9]{1,64}$')
-            && d.alvo == d.tipo + '_' + d.itemId
-            && id == d.alvo + '_' + request.auth.uid
-            && d.opcao is int && d.opcao >= 0
-            && exists(doc) && d.opcao < e.opcoes.size()
-            && e.get('anonima', false) == false
-            // depois do fim não dá mais para votar; o voto leva o fim junto (as notificações do resultado usam)
-            && (!('fimEm' in e) || request.time < e.fimEm)
-            && (!('fimEm' in d) || ('fimEm' in e && d.fimEm == e.fimEm))
-            && fatiaSobe(d);
-      }
-      // Voto único: depois de votar não dá para trocar nem tirar (a limpeza de contas apaga pelo servidor).
-      allow create: if logado() && votoOk() && request.resource.data.criadoEm == request.time && !sancionado(request.auth.uid);
-      allow update, delete: if false;
-    }
-
 // ===== FIM DA PARTE 13 DE 16 =====

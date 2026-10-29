@@ -58,7 +58,7 @@ await linhaB.locator("button", { hasText: "Enviar" }).tap(); await pa.waitForTim
 const conv = [U.ana, U.bruno].sort().join("_");
 const msgs = await db.collection(`conversas/${conv}/mensagens`).where("tipoArquivo", "==", "cartao").get();
 const cartao = msgs.docs.map((d) => d.data().cartao).find((c) => c?.tipo === "publicacao");
-ok(cartao && cartao.link === "usuarios.html?post=pc", "Enviar: cartão da publicação no Mensagens → " + JSON.stringify(cartao || {}).slice(0, 90));
+ok(cartao && cartao.link === "feed.html?post=pc", "Enviar: cartão da publicação no Mensagens → " + JSON.stringify(cartao || {}).slice(0, 90));
 // dono: fixa outro, muda quem comenta
 const pb = await entrar(B.ctx, "bruno", "usuarios.html?post=pc");
 await pb.waitForSelector("#folhaPost.aberta", { timeout: 30000 }).catch(() => {});
@@ -91,7 +91,7 @@ await pb.goto(new URL(`mensagens.html?conversa=${conv}`, pb.url()).href);
 await pb.waitForSelector(".pub-msg .pc-midia img", { timeout: 30000 }).catch(() => {});
 await pb.waitForTimeout(1500);
 const pc = pb.locator(".pub-msg .pc").last();
-ok(await pc.count() === 1 && (await pc.getAttribute("href")) === "usuarios.html?post=pc" && await pc.locator(".pc-midia img").count() === 1 && (await pc.locator(".pc-leg").textContent()).includes("Reforma") && (await pc.locator(".pc-cab strong").textContent()).includes("Bruno"),
+ok(await pc.count() === 1 && (await pc.getAttribute("href")) === "feed.html?post=pc" && await pc.locator(".pc-midia img").count() === 1 && (await pc.locator(".pc-leg").textContent()).includes("Reforma") && (await pc.locator(".pc-cab strong").textContent()).includes("Bruno"),
   "Mensagens: publicação enviada com foto, autor e legenda → " + (await pc.textContent().catch(() => "")).replace(/\s+/g, " ").slice(0, 80));
 await pb.screenshot({ path: "saida/coment-cartao.png" });
 // Muitos comentários: a lista rola até o último.

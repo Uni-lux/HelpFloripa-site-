@@ -1,10 +1,12 @@
 // Configurações do Flash em cartões (quem vê, onde publicar por padrão, respostas, câmera e vídeo, salvar, menções),
 // "+" do Flash com a mesma cor no perfil e no Diário, e foto sem borda colorida quando não tem flash.
 process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8085";
-import { initializeApp } from "firebase-admin/app"; import { getFirestore } from "firebase-admin/firestore";
+import { initializeApp } from "firebase-admin/app"; import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { navegador, entrar, USUARIOS as U, BASE } from "./nav.mjs";
 const ok = (c, t) => { console.log(c ? "  ✔" : "  ✘", t); if (!c) process.exitCode = 1; };
 initializeApp({ projectId: "demo-hf" }); const db = getFirestore();
+// Flash nos perfis de negócio só com plano (desde o PR #92): o Bruno precisa de um plano para o "Publicar em".
+await db.doc(`planos/${U.bruno}`).set({ plano: "plus", meses: 1, ate: Timestamp.fromMillis(Date.now() + 30 * 864e5) });
 const B = await navegador({ mobile: true, camera: true });
 const p = await entrar(B.ctx, "bruno", "configuracoes.html");
 await p.evaluate(() => localStorage.setItem("hf-chat-config", JSON.stringify({ tema: "escuro" }))); await p.reload();

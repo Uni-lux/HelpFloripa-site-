@@ -75,7 +75,7 @@ await pb.touchscreen.tap(...meio); await pb.waitForTimeout(90); await pb.touchsc
 await pb.waitForTimeout(2200);
 ok((await card.locator(".estrelas-txt").textContent()).includes("5,0"), "toque duplo de novo volta para 5");
 // Barra da publicação (estilo Instagram): comentar, enviar, compartilhar e salvar.
-ok(await card.locator(".interacoes .acoes-post .acao").count() === 4 && (await card.locator(".interacoes .acoes-post .rot").allTextContents()).join("|") === "Comentar|Enviar|Compartilhar|Salvar", "publicação: Comentar · Enviar · Compartilhar · Salvar (ícone com o nome), embaixo da foto");
+ok(await card.locator(".interacoes .acoes-post .acao").count() === 5 && (await card.locator(".interacoes .acoes-post .rot").allTextContents()).join("|") === "Comentar|Salvar|Republicar|Compartilhar|Enviar", "publicação: Comentar · Salvar · Republicar · Compartilhar · Enviar (ícone com o nome), embaixo da foto");
 await card.locator(".interacoes .acao.salvar").tap(); await pb.waitForTimeout(800);
 ok(await card.locator(".interacoes .acao.salvar.on[aria-pressed=true]").count() === 1, "salvar: o ícone fica preenchido");
 await card.screenshot({ path: "saida/diario-barra.png" });
@@ -115,6 +115,6 @@ await pa.goto(new URL("usuarios.html", pa.url()).href); await pa.waitForSelector
 ok(await pa.locator("#gradePosts .tile[data-fotos='3'] .marca-fotos").count() === 1, "perfil: miniatura com a marca de várias fotos");
 await pa.locator("#gradePosts .tile[data-fotos='3']").tap(); await pa.waitForTimeout(1200);
 ok(await pa.locator("#postMidia .carrossel.varias img").count() === 3, "perfil: publicação abre com as 3 fotos");
-ok(await pa.locator("#postSocial .interacoes .acao").count() === 4, "perfil: publicação aberta tem comentar, enviar, compartilhar e salvar");
+ok(await pa.locator("#postSocial .interacoes .acao").count() === 5, "perfil: publicação aberta tem comentar, salvar, republicar, compartilhar e enviar");
 await pa.screenshot({ path: "saida/diario-perfil.png" });
 await A.browser.close(); await B.browser.close();

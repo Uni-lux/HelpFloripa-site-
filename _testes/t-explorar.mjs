@@ -29,7 +29,7 @@ ok(await p.locator("#exploraTags .exp-tag.subindo", { hasText: "#confeitaria" })
 // Enquetes abertas: só a que ainda não terminou
 const enqs = await p.locator("#exploraEnquetes .exp-enq").allTextContents();
 ok(enqs.length === 1 && enqs[0].includes("Qual o melhor doce?") && /Termina em 5 h/.test(enqs[0]) && enqs[0].includes("Brigadeiro"), "Enquetes abertas: só a que está aberta, com prazo e opções → " + enqs.join(" | ").slice(0, 90));
-ok((await p.locator("#exploraEnquetes .exp-enq").getAttribute("href")) === "usuarios.html?post=xEnq1", "enquete leva à publicação");
+ok((await p.locator("#exploraEnquetes .exp-enq").getAttribute("href")) === "feed.html?post=xEnq1", "enquete leva à publicação");
 // Negócios da cidade
 ok((await p.locator("#titNegocios").textContent()) === "Perto de você" && (await p.locator("#subNegocios").textContent()).includes("Florianópolis"), "negócios: Perto de você pela cidade dela → " + await p.locator("#subNegocios").textContent());
 const negs = await p.locator("#exploraNegocios .exp-neg strong").allTextContents();

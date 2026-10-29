@@ -1,3 +1,30 @@
+    match /enquete_votos/{id} {
+      allow read: if logado();
+      function votoOk() {
+        let d = request.resource.data;
+        let doc = d.tipo == 'd'
+          ? /databases/$(database)/documents/diario/$(d.itemId)
+          : /databases/$(database)/documents/stories/$(d.itemId);
+        let e = get(doc).data.enquete;
+        return d.keys().hasOnly(['alvo', 'tipo', 'itemId', 'uid', 'opcao', 'fatia', 'fimEm', 'criadoEm'])
+            && d.uid == request.auth.uid
+            && d.tipo in ['d', 'f']
+            && d.itemId is string && d.itemId.matches('^[A-Za-z0-9]{1,64}$')
+            && d.alvo == d.tipo + '_' + d.itemId
+            && id == d.alvo + '_' + request.auth.uid
+            && d.opcao is int && d.opcao >= 0
+            && exists(doc) && d.opcao < e.opcoes.size()
+            && e.get('anonima', false) == false
+            // depois do fim não dá mais para votar; o voto leva o fim junto (as notificações do resultado usam)
+            && (!('fimEm' in e) || request.time < e.fimEm)
+            && (!('fimEm' in d) || ('fimEm' in e && d.fimEm == e.fimEm))
+            && fatiaSobe(d);
+      }
+      // Voto único: depois de votar não dá para trocar nem tirar (a limpeza de contas apaga pelo servidor).
+      allow create: if logado() && votoOk() && request.resource.data.criadoEm == request.time && !sancionado(request.auth.uid);
+      allow update, delete: if false;
+    }
+
     // ===================================================
     // ENQUETE ANÔNIMA: o voto fica em enquete_anon/{alvo}_{uid} (ninguém lista; só a própria pessoa lê o dela)
     // e a contagem nos mesmos pedaços enquete_contas/{alvo}_{fatia}, que sobem +1 na MESMA gravação do voto.
@@ -180,29 +207,5 @@
             || (q == 'seguidores' && segue(request.auth.uid, p.autorId))
             || (q == 'mutuos' && segue(request.auth.uid, p.autorId) && segue(p.autorId, request.auth.uid));
       }
-
-      function respostaOk(d) {
-        return (!('respostaA' in d) && !('respostaAutorId' in d))
-            || (d.respostaA is string
-                && exists(/databases/$(database)/documents/comentarios/$(d.respostaA))
-                && get(/databases/$(database)/documents/comentarios/$(d.respostaA)).data.postId == d.postId
-                && d.respostaAutorId == get(/databases/$(database)/documents/comentarios/$(d.respostaA)).data.autorId);
-      }
-
-      allow create: if logado()
-                    && emailOk()
-                    && request.resource.data.keys().hasOnly(['postId', 'postAutorId', 'autorId', 'nome', 'foto', 'texto', 'respostaA', 'respostaAutorId', 'criadoEm'])
-                    && request.resource.data.autorId == request.auth.uid
-                    && textoComentarioOk(request.resource.data)
-                    && valorTextoAte(request.resource.data.get('nome', ''), 80)
-                    && fotoOk(request.resource.data.get('foto', ''))
-                    && exists(/databases/$(database)/documents/diario/$(request.resource.data.postId))
-                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
-                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.get('comentariosOcultos', false) != true
-                    && podeComentar(get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data)
-                    && respostaOk(request.resource.data)
-                    && !bloqueioEntre(request.auth.uid, request.resource.data.postAutorId)
-                    && ritmoOk('com')
-                    && request.resource.data.criadoEm == request.time;
 
 // ===== FIM DA PARTE 14 DE 16 =====

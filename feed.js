@@ -15,12 +15,12 @@ import {
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, botaoSeguir, montarBarraRede, marcarBarra, pintarBarraRede, ouvirAvisos, lerOrdenado,
   editarPublicacao, bloquear, comMencoes, fotosDoPost, carrosselFotos, contadorEstrelas, estaSalvo, alternarSalvo, escolherColecao, lerResumosEstrelas, contarComentarios,
   silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto, confirmarHF, blocoEnquete, blocoCaixa
-} from "./rede.js?v=78";
+} from "./rede.js?v=81";
 import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=2";
-import { montarStories, abrirFlashPorId, repostarFlash, novoFlash } from "./stories.js?v=50";
+import { montarStories, abrirFlashPorId, repostarFlash } from "./stories.js?v=53";
 import { abrirDenuncia } from "./denuncias.js?v=6";
 import { pessoasRecentes } from "./pessoas.js?v=5";
-import { abrirExplorar, definirCartao } from "./explorar.js?v=60";
+import { abrirExplorar, definirCartao, abrirPublicacao } from "./explorar.js?v=63";
 import { docsComValidade, docsPorIds } from "./leituras.js?v=3";
 import { lerLocal } from "./local-escolhido.js?v=3";
 import { distanciaKm } from "./perto.js?v=2";
@@ -62,15 +62,17 @@ const urlAba = (a) => (a === "diario" ? "feed.html" : `feed.html?aba=${a}`);
 const abaDaUrl = () => { const a = new URLSearchParams(location.search).get("aba"); return a === "pessoas" ? "explorar" : a === "explorar" ? "explorar" : "diario"; };
 const temMidia = (p) => !!(p.mediaUrl || (p.midias || []).length);
 // Tipo de publicação (filtro do topo): tudo, fotos e vídeos, textos, enquetes e perguntas. Filtra o que já foi lido.
-const TIPOS_FEED = [["tudo", "Tudo"], ["fotos", "Fotos e vídeos"], ["textos", "Textos"], ["enquetes", "Enquetes e perguntas"]];
+// Botões só com ícone numa linha fina (como a grade do perfil das redes sociais), com o nome no title/aria-label.
+const TIPOS_FEED = [["tudo", "Tudo", "grade"], ["fotos", "Fotos e vídeos", "imagem"], ["textos", "Textos", "registros"], ["enquetes", "Enquetes e perguntas", "enquete"]];
 let tipoFeed = "tudo"; // links antigos ?aba=registros abrem o Diário normal (textos e enquetes estão nele)
 const doTipo = (p) => tipoFeed === "tudo" || (tipoFeed === "fotos" ? temMidia(p) : tipoFeed === "enquetes" ? !!(p.enquete?.pergunta || p.caixa?.pergunta) : !temMidia(p) && !p.enquete?.pergunta && !p.caixa?.pergunta);
 const daAba = (p) => !!(tagAtual || localAtual) || doTipo(p);
 const compor = (inicio = "") => abrirCompositor({ aoPublicar: ganchos.aoPublicar, inicio });
 function pintarTipos() {
   const w = $("tiposFeed"); if (!w) return;
-  w.replaceChildren(...TIPOS_FEED.map(([k, nome]) => {
-    const b = el("button", null, nome); b.type = "button"; b.setAttribute("role", "tab"); b.dataset.tipo = k;
+  w.replaceChildren(...TIPOS_FEED.map(([k, nome, ic]) => {
+    const b = el("button"); b.type = "button"; b.setAttribute("role", "tab"); b.dataset.tipo = k;
+    b.title = nome; b.setAttribute("aria-label", nome); b.appendChild(icone(ic, "i s"));
     b.setAttribute("aria-selected", String(k === tipoFeed));
     b.addEventListener("click", () => { if (tipoFeed === k) return; tipoFeed = k; pintarTipos(); mostrarFiltrados(); });
     return b;
@@ -370,7 +372,7 @@ function cartaoPost(post) {
       : { rotulo: "Salvar publicação", sub: "Para ver depois no seu Perfil → Salvos", icone: "salvo", fn: () => alternarSalvo(post) },
     { rotulo: "Salvar em uma coleção", sub: "Organize seus salvos em pastas", icone: "fotos", fn: () => escolherColecao(post) },
     { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(post.autorId, post.nome) },
-    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=45").then((m) => m.abrirEstatisticas(post)) },
+    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=48").then((m) => m.abrirEstatisticas(post)) },
     post.autorId === eu.uid && { rotulo: "Editar publicação", icone: "lapis", fn: () => editarPublicacao(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId !== eu.uid && { rotulo: silenciado(post.autorId) ? `Mostrar ${nome.textContent} de novo` : `Silenciar ${nome.textContent}`, sub: "Continua seguindo, mas as publicações e flashes somem do seu Diário", icone: "restringir",
       fn: async () => { await alternarSilenciar(post.autorId, nome.textContent); if (silenciado(post.autorId)) { posts = posts.filter((x) => x.autorId !== post.autorId); document.querySelectorAll(".post-card").forEach((x) => { if (x.dataset.autor === post.autorId) x.remove(); }); } } },
@@ -471,7 +473,6 @@ async function pintarLateral() {
   pintarAvatar($("euAvatar"), dados.fotoPerfil, dados.nome);
   $("euNome").textContent = dados.nome || "Você";
   $("euNick").textContent = dados.nickname ? "@" + dados.nickname : "Ver meu perfil";
-  pintarAvatar($("comporAvatar"), dados.fotoPerfil, dados.nome);
   // Sugestões só aparecem na lateral do computador: no celular nem busca.
   if (!$("sugestoes")?.offsetParent) return;
   try {
@@ -489,6 +490,8 @@ async function pintarLateral() {
   try { await iniciarRede(); }
   catch (e) { $("listaFeed").replaceChildren(vazio("Não foi possível carregar", e.message || "")); return; }
   definirCartao(cartaoPost);
+  // "Ver publicação" (Flash) e links feed.html?post=ID abrem a própria publicação aqui.
+  ganchos.abrirPublicacao = (id) => abrirPublicacao(id);
   // Depois de publicar: vai para a aba onde a publicação aparece (com foto = Diário; texto/enquete/pergunta = Registros).
   // Depois de publicar: volta para o Diário (no filtro em que a publicação aparece).
   ganchos.aoPublicar = (post) => { if (post && !doTipo(post)) { tipoFeed = "tudo"; pintarTipos(); } if (aba !== "diario") trocarAba("diario"); else carregarFeed(); };
@@ -496,11 +499,6 @@ async function pintarLateral() {
   pintarBarraRede();
   ouvirAvisos();
   $("btnComporFeed").addEventListener("click", () => compor());
-  $("comporAtalhos").addEventListener("click", (e) => {
-    const b = e.target.closest("[data-inicio]"); if (!b) return;
-    if (b.dataset.inicio === "flash") novoFlash(() => montarStories($("storiesFeed")).catch(() => {}));
-    else compor(b.dataset.inicio === "texto" ? "" : b.dataset.inicio);
-  });
   await carregarMeusSeguindo();
   pintarFiltro();
   montarStories($("storiesFeed")).catch((e) => console.warn("Flash:", e));
@@ -508,6 +506,11 @@ async function pintarLateral() {
   const p = new URLSearchParams(location.search);
   trocarAba(abaDaUrl());
   if (p.get("publicar")) compor();
+  if (/^[A-Za-z0-9_-]{1,64}$/.test(p.get("post") || "")) {
+    const id = p.get("post");
+    history.replaceState(history.state, "", urlAba(aba));
+    abrirPublicacao(id);
+  }
   // Links das mensagens do Flash: feed.html?flash=ID abre o flash; ?repostar=ID abre o criador para repostar.
   if (/^[A-Za-z0-9]{1,64}$/.test(p.get("flash") || "")) abrirFlashPorId(p.get("flash"));
   if (/^[A-Za-z0-9]{1,64}$/.test(p.get("repostar") || "")) repostarFlash(p.get("repostar"));

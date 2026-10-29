@@ -10,8 +10,8 @@
 import {
   $, el, icone, fb, eu, dados, numero, toast, erroAmigavel, criarFolha, abrirFolha, fotosDoPost, ms, paraData,
   tempoRelativo, obterPerfil, nomeCidade, ganchos
-} from "./rede.js?v=78";
-import { secaoGrafico, secaoHoras } from "./estatisticas-post.js?v=45";
+} from "./rede.js?v=81";
+import { secaoGrafico, secaoHoras } from "./estatisticas-post.js?v=48";
 import { lerStats, listaDias, somarPeriodo } from "./estat-negocio.js?v=1";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 
@@ -135,7 +135,7 @@ function montar(corpo, D, dias, trocarPeriodo) {
       const n2 = el("span", "nums"); n2.append(el("b", null, numero(pont.get(p.id) || 0)), el("small", null, "pontos"));
       l.append(el("span", "pos", String(i + 1)), th, tx, nums, n2);
       l.title = "Pontos: estrela 1, comentário 2, salvo 2";
-      l.addEventListener("click", () => { location.href = `usuarios.html?post=${encodeURIComponent(p.id)}`; });
+      l.addEventListener("click", () => { location.href = `feed.html?post=${encodeURIComponent(p.id)}`; });
       s.appendChild(l);
     });
     corpo.appendChild(s);

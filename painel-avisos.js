@@ -171,7 +171,7 @@ function destino(i) {
   if (i.grupo && i.tipo === "seguidor") return "notificacoes.html";
   if (i.tipo === "seguidor" || i.tipo === "social") return `usuarios.html?perfil=${encodeURIComponent(i.uid)}`;
   // Estrelas, comentários, respostas e marcações: abre a própria publicação.
-  if (i.postId && ["curtida", "comentario", "resposta", "marcacao", "republicacao"].includes(i.tipo)) return `usuarios.html?post=${encodeURIComponent(i.postId)}`;
+  if (i.postId && ["curtida", "comentario", "resposta", "marcacao", "republicacao"].includes(i.tipo)) return `feed.html?post=${encodeURIComponent(i.postId)}`;
   if (i.tipo === "enquete") return `notificacoes.html?enquete=${encodeURIComponent(i.alvo)}`;
   return "notificacoes.html"; // reações e caixa de perguntas abrem na página de notificações
 }

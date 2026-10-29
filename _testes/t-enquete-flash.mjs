@@ -31,9 +31,10 @@ await page.waitForSelector(".post-card", { timeout: 30000 });
 const tempos = {};
 for (const [id, dadosPost, nome] of casos) {
   // Com foto, a publicação fica no Diário; texto, enquete e pergunta ficam em Registros.
-  await page.goto(BASE + (dadosPost.mediaUrl ? "feed.html" : "feed.html?aba=registros")); await page.waitForTimeout(3000);
+  // Abre a própria publicação pelo link (feed.html?post=ID): não depende de onde ela cai na ordem do Diário.
+  await page.goto(BASE + `feed.html?post=${id}`); await page.waitForTimeout(3000);
   const texto = casos.find((c) => c[0] === id)[1].texto.slice(0, 18);
-  const card = page.locator("article.post-card", { hasText: texto }).first();
+  const card = page.locator(".visor-exp article.post-card", { hasText: texto }).first();
   await card.waitFor({ timeout: 30000 }); await card.scrollIntoViewIfNeeded(); await page.waitForTimeout(1000);
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: 6 });
   await card.locator(".acoes-post button", { hasText: "Compartilhar" }).click();

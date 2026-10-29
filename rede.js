@@ -16,7 +16,7 @@ import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
 import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=17";
 import { ouvirItensEquipe, TEXTO_EQUIPE, linkEquipe } from "./avisos-equipe.js?v=1";
-import "./painel-avisos.js?v=37";
+import "./painel-avisos.js?v=38";
 import { docComValidade, docsComValidade, esquecer } from "./leituras.js?v=3";
 import { avisoPlano } from "./planos-base.js?v=15";
 import { palavrasBusca } from "./pessoas.js?v=5"; // o sino abre o painel de notificações na própria página
@@ -1367,6 +1367,11 @@ export async function verRespostasCaixa(item, alvo, aoMudar) {
         });
         acoes.appendChild(resp);
       }
+      // Pôr a resposta no seu flash (como no Instagram): pergunta + resposta, sem o nome de quem respondeu.
+      const noFlash = el("button", "btn mini sec"); noFlash.type = "button"; noFlash.append(icone("raio", "i xs"), document.createTextNode("No flash"));
+      noFlash.title = "Compartilhar esta resposta no seu flash";
+      noFlash.addEventListener("click", () => import("./stories.js?v=53").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto })));
+      acoes.appendChild(noFlash);
       const apagar = el("button", "btn mini sec"); apagar.type = "button"; apagar.append(icone("lixo", "i xs"), document.createTextNode("Apagar"));
       apagar.addEventListener("click", async () => {
         if (!(await confirmarHF({ titulo: "Apagar esta resposta?", texto: "Ela some da sua caixa de perguntas.", ok: "Apagar", icone: "lixo" }))) return;
@@ -1409,7 +1414,7 @@ export function abrirResultadoEnquete(x) {
   const acoes = el("div", "er-acoes");
   if (x.itemTipo === "d") {
     const ver = el("button", "btn pri"); ver.type = "button"; ver.textContent = "Ver publicação";
-    ver.addEventListener("click", () => { location.href = `usuarios.html?post=${encodeURIComponent(x.itemId)}`; });
+    ver.addEventListener("click", () => { location.href = `feed.html?post=${encodeURIComponent(x.itemId)}`; });
     acoes.appendChild(ver);
   } else acoes.appendChild(el("small", "er-nota", "Era uma enquete de flash, que já saiu do ar."));
   if (!x.souAutor && x.uid) { const pf = el("button", "btn sec"); pf.type = "button"; pf.textContent = "Ver perfil"; pf.addEventListener("click", () => ganchos.abrirPerfil(x.uid)); acoes.appendChild(pf); }
@@ -1906,11 +1911,11 @@ export function abrirComentarios(post, { aoMudar } = {}) {
   return f;
 }
 
-export const linkPublicacao = (post) => `${location.origin}${location.pathname.replace(/[^/]*$/, "")}usuarios.html?post=${encodeURIComponent(post.id)}`;
+export const linkPublicacao = (post) => `${location.origin}${location.pathname.replace(/[^/]*$/, "")}feed.html?post=${encodeURIComponent(post.id)}`;
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=50").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=53").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);
@@ -1962,7 +1967,7 @@ export async function mandarMensagem(uid, msg, resumo) {
 async function mandarPublicacao(post, uid) {
   try {
     const foto = fotosDoPost(post)[0] || "";
-    const cartao = { tipo: "publicacao", titulo: String(post.texto || `Publicação de ${post.nome || "alguém"}`).slice(0, 120), sub: post.nome ? `Publicação de ${String(post.nome).slice(0, 60)}` : "", link: `usuarios.html?post=${post.id}`, ...(foto.startsWith("https://") ? { foto } : {}) };
+    const cartao = { tipo: "publicacao", titulo: String(post.texto || `Publicação de ${post.nome || "alguém"}`).slice(0, 120), sub: post.nome ? `Publicação de ${String(post.nome).slice(0, 60)}` : "", link: `feed.html?post=${post.id}`, ...(foto.startsWith("https://") ? { foto } : {}) };
     await mandarMensagem(uid, { tipoArquivo: "cartao", cartao }, "Publicação");
     registrarGosto(post, PESO.enviar, eu.uid);
     toast("Publicação enviada");

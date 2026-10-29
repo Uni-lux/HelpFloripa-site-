@@ -1,3 +1,39 @@
+    // =====================================================
+    // ESTATÍSTICAS DOS NEGÓCIOS (como o Google Meu Negócio e o painel profissional do Instagram)
+    // neg_visitas/{negocio}_{uid}_{dia}: uma por pessoa, por negócio, por dia (horário de Brasília).
+    //   Só a própria pessoa lê. Guarda a origem, a hora e o que ela fez (WhatsApp, rota, site...).
+    // neg_stats/{negocio}_{dia}: os números do dia, que só o dono do negócio lê.
+    //   Cada número só sobe +1 na MESMA gravação em que a visita nasce ou ganha uma ação nova:
+    //   ninguém infla as contas, e o dono não vê QUEM visitou (só quantos).
+    // =====================================================
+    function diaBR() {
+      let t = request.time - duration.value(3, 'h');
+      return string(t.year()) + (t.month() < 10 ? '0' : '') + string(t.month()) + (t.day() < 10 ? '0' : '') + string(t.day());
+    }
+    function horaBR() {
+      return (request.time.hours() + 21) % 24;
+    }
+    function caminhoStats(negocioId, dia) {
+      return /databases/$(database)/documents/neg_stats/$(negocioId + '_' + dia);
+    }
+    function caminhoVisita(negocioId, dia) {
+      return /databases/$(database)/documents/neg_visitas/$(negocioId + '_' + request.auth.uid + '_' + dia);
+    }
+
+    match /neg_visitas/{id} {
+      function visitaNova() {
+        let d = request.resource.data;
+        let st = caminhoStats(d.negocioId, d.dia);
+        return d.keys().hasOnly(['negocioId', 'uid', 'dia', 'hora', 'origem', 'acoes', 'itens'])
+            && d.uid == request.auth.uid
+            && d.negocioId is string && d.negocioId.size() <= 60
+            && d.dia == diaBR() && d.hora == horaBR()
+            && id == d.negocioId + '_' + request.auth.uid + '_' + d.dia
+            && d.origem in ['vitrine', 'busca', 'explorar', 'inicio', 'perfil', 'link', 'flash', 'mensagens', 'outro']
+            && d.acoes == [] && d.itens == []
+            && get(/databases/$(database)/documents/negocios/$(d.negocioId)).data.donoId != request.auth.uid
+            && getAfter(st).data.v == (exists(st) ? get(st).data.v : 0) + 1;
+      }
       // Uma ação nova (cada uma conta uma vez por pessoa no dia) ou um item visto (prato, produto, imóvel).
       function novoNaLista(campo, max) {
         let d = request.resource.data;
