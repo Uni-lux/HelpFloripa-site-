@@ -1189,6 +1189,44 @@ chat da equipe).
 - `versoes.py` agora falha se o mesmo módulo for importado com `?v=` diferentes (arquivo novo fica fora da troca).
 - `scripts/limpeza/converter-cidades.mjs` + workflow manual "Converter cidades" (simula por padrão).
 
+## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
+Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
+**Só ele pode fazer:**
+1. **Publicar as regras** (16 partes em `_regras/`, 663 testes): tudo desde 26/10, incluindo `republicacoes`,
+   `stories/{id}/reacoes` (estrela do Flash) e `diario.publico` (público da publicação). Depois: "Recalcular estrelas" no
+   painel e criar os **12 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`
+   mediaTipo + criadoEm dos Reels). Sem as regras: publicar com público avisa e não publica; a estrela do Flash vai como "⭐"
+   pelo Mensagens.
+2. **Ligar o Storage** (Blaze): sem ele não há vídeo novo (os Reels ficam vazios e o botão Vídeo fica escondido) e o Diário
+   pesa 3,7 MB na 1ª visita (fotos em `data:` dentro dos documentos).
+3. **Responder (Parte 1 da visibilidade justa):** no máximo 1 pagante nos 4 cartões depois de cada espaço pago?
+4. **Ideias que ele adiou ("depois eu vejo", 29/10):** o 6º cartão do Início no lugar da Comunidade (sugerido: **Ofertas** =
+   promoções/cupons dos assinantes, sem regra nova; outras: Aulas e cursos, Eventos) e **Fretes e Entregas** com mapa em tempo
+   real (etapas: pedido + propostas → acompanhar ao vivo com Realtime Database → distribuição automática com Cloud Functions →
+   passageiros só depois do advogado e de app instalado; ele precisa escolher preço por proposta/estimativa e Mapbox/MapTiler).
+**Programação (dá para fazer):**
+5. **Quem posta muito toma o espaço dos outros que você segue:** `buscarSeguindo` lê 20 publicações por lote de 30 autores
+   (no total). Limite por autor (ex.: até 3 de cada); o jeito certo é um "feed por pessoa" montado no servidor (Cloud Function,
+   Blaze); sem Blaze, ler em lotes menores, com custo maior de leituras.
+6. **"Já vi" só no aparelho (`jaVisto`):** no computador e no celular a mesma publicação reaparece. Guardar as vistas recentes
+   na conta (resumo compacto) ou ler `diario/{id}/vistas/{uid}` em lote.
+7. **Engajamento sem contar o alcance:** a nota usa estrelas e comentários absolutos; deveria pesar pela taxa (interações ÷ quem
+   viu). Precisa das exibições somadas no servidor (Blaze). Junto: ranking pré-calculado por cidade/estado — hoje os Principais
+   escolhem entre só 60 recentes do país + 30 do estado + quem você segue (com muito movimento, só os últimos minutos).
+8. **Aba "Republicados" no perfil** (como o Instagram): lista das `republicacoes` da pessoa (`uid ==`) — perguntar se ele quer.
+9. **Sino relê tudo a cada página:** os ouvintes do rede.js (`ouvir`, até 100 documentos cada: seguidores, curtidas, comentários...)
+   releem em toda página aberta (medido: 30 `relacoes` na 2ª visita do Diário). Ordenar por data e baixar o limite, ou ler só o
+   que é novo desde a última visita.
+10. **Estrela do Flash no sino:** hoje o autor só vê quem deu a estrela na lista de Visualizações (sem aviso).
+11. **Reels:** a aba Reels do perfil e os vídeos do Explorar ainda abrem na folha/visor antigos, não no visor de Reels.
+12. **Público da publicação:** estimativa de alcance para o autor antes de publicar; público também no Flash (hoje só no
+    Diário); pedir gênero/data de nascimento a quem não tem (contas antigas sem gênero não entram em público por gênero).
+13. **Conta apagada:** `limpar-contas.mjs`/`conta.js` não apagam `stories/{id}/vistos/{uid}` nem `stories/{id}/reacoes/{uid}`
+    da pessoa (o flash some em 24 h, mas os documentos ficam).
+14. **Revisar a ferramenta de texto "Aa" do criador do Flash** (não foi revisada à parte em 29/10).
+15. **Testes que falham desde antes:** `t-enquete2` (notificação do Bruno) e `t-caixa` (para em `.notif`); `t-busca-regiao`
+    (2 itens). Atualizar os testes. Os testes do Diário/Flash precisam do `seed.mjs` antes (dados que sobram atrapalham).
+
 ## Pendências do dono e o que ficou para depois (vindas de sessões anteriores)
 Coisas que só ELE pode fazer (lembrar no momento certo, sem fazer por ele):
 - **Pagamento automático (Mercado Pago) — falta ele, na ordem** (passo a passo em `_regras/PAGAMENTO-LEIA-ME.md`; código
