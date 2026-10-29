@@ -476,6 +476,27 @@ await t("diário: hashtags e pessoas marcadas", () => assertSucceeds(publicar2("
 await t("diário: hashtag com maiúscula ou espaço é recusada", () => assertFails(publicar2("edu", { tags: ["Reforma"] })));
 await t("diário: mais de 10 marcados é recusado", () => assertFails(publicar2("edu", { marcados: Array.from({ length: 11 }, (_, i) => "usuario" + i) })));
 await t("diário: agendar para daqui a 2 dias", () => assertSucceeds(publicar2("edu", { agendadoPara: Timestamp.fromMillis(Date.now() + 2 * 864e5) })));
+// Público da publicação (direcionamento): idade, gênero, lugar e seguidores.
+const pubAlvo = { idadeMin: 18, idadeMax: 35, genero: "f", local: "estados", ufs: ["SC", "PR", "RS"], seguidores: "novos" };
+await t("público: idade, gênero, estados e quem não segue", () => assertSucceeds(publicar2("bia", { publico: pubAlvo })));
+await t("público: cidades (código IBGE)", () => assertSucceeds(publicar2("bia", { publico: { local: "cidades", cidades: ["4205407", "4211900"] } })));
+await t("público: perto de um ponto (km)", () => assertSucceeds(publicar2("bia", { publico: { local: "perto", perto: { lat: -27.6, lng: -48.5, km: 25, nome: "Florianópolis" } } })));
+await t("público: idade abaixo de 16 é recusada", () => assertFails(publicar2("bia", { publico: { idadeMin: 12 } })));
+await t("público: gênero fora da lista é recusado", () => assertFails(publicar2("bia", { publico: { genero: "x" } })));
+await t("público: estado inválido é recusado", () => assertFails(publicar2("bia", { publico: { local: "estados", ufs: ["sc"] } })));
+await t("público: mais de 10 cidades é recusado", () => assertFails(publicar2("bia", { publico: { local: "cidades", cidades: Array.from({ length: 11 }, (_, i) => String(4205400 + i)) } })));
+await t("público: raio fora do Brasil é recusado", () => assertFails(publicar2("bia", { publico: { local: "perto", perto: { lat: 48.8, lng: 2.3, km: 25 } } })));
+await t("público: campo estranho é recusado", () => assertFails(publicar2("bia", { publico: { idadeMin: 18, renda: "alta" } })));
+await semRegras((db) => setDoc(doc(db, "diario", "pPub"), { autorId: "bia", nome: "Bia", texto: "x", criadoEm: antigo }));
+await t("público: o autor muda o público depois", () => assertSucceeds(updateDoc(doc(ctx("bia"), "diario", "pPub"), { publico: { local: "cidades", cidades: ["4205407"], seguidores: "seguidores" } })));
+await t("público: o autor tira o público (volta para todos)", () => assertSucceeds(updateDoc(doc(ctx("bia"), "diario", "pPub"), { publico: null })));
+await t("público: outra pessoa não muda", () => assertFails(updateDoc(doc(ctx("edu"), "diario", "pPub"), { publico: { genero: "m" } })));
+await t("público: publicação com TUDO junto (fotos, enquete, local, marcados, hashtags, região e público) cabe", () => assertSucceeds(publicar2("edu", {
+  texto: "x".repeat(900), mediaUrl: fP(10), mediaTipo: "image", midias: [fP(10), fP(10), fP(10), fP(10)],
+  tags: Array.from({ length: 10 }, (_, i) => "tag" + i), marcados: Array.from({ length: 10 }, (_, i) => "usuario" + i),
+  local: { nome: "Jurerê, Florianópolis", lat: -27.44, lng: -48.5 }, autorUf: "SC", autorIbge: 4205407,
+  enquete: { pergunta: "Qual?", opcoes: ["A", "B", "C", "D"], fimEm: Timestamp.fromMillis(Date.now() + 864e5) },
+  publico: { idadeMin: 18, idadeMax: 65, genero: "m", local: "cidades", cidades: Array.from({ length: 10 }, (_, i) => String(4205400 + i)), seguidores: "todos" } })));
 await t("diário: agendar no passado é recusado", () => assertFails(publicar2("edu", { agendadoPara: Timestamp.fromMillis(Date.now() - 3600e3) })));
 await t("diário: agendar para mais de 60 dias é recusado", () => assertFails(publicar2("edu", { agendadoPara: Timestamp.fromMillis(Date.now() + 61 * 864e5) })));
 await semRegras((db) => setDoc(doc(db, "diario", "pAlc"), { autorId: "dono", nome: "Dono", texto: "x", criadoEm: antigo }));

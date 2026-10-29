@@ -14,23 +14,32 @@ import {
   fb, eu, dados, meusSeguindo, escondido, ganchos, obterPerfil, iniciarRede, carregarMeusSeguindo, linhaPessoa,
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, botaoSeguir, montarBarraRede, marcarBarra, pintarBarraRede, ouvirAvisos, lerOrdenado,
   editarPublicacao, bloquear, comMencoes, fotosDoPost, carrosselFotos, contadorEstrelas, estaSalvo, alternarSalvo, escolherColecao, lerResumosEstrelas, contarComentarios,
-  silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto, confirmarHF, blocoEnquete, blocoCaixa
-} from "./rede.js?v=81";
+  silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto, confirmarHF, blocoEnquete, blocoCaixa, editarPublicoDoPost
+} from "./rede.js?v=82";
 import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=2";
-import { montarStories, abrirFlashPorId, repostarFlash } from "./stories.js?v=53";
+import { montarStories, abrirFlashPorId, repostarFlash } from "./stories.js?v=54";
 import { abrirDenuncia } from "./denuncias.js?v=6";
 import { pessoasRecentes } from "./pessoas.js?v=5";
-import { abrirExplorar, definirCartao, abrirPublicacao } from "./explorar.js?v=63";
+import { abrirExplorar, definirCartao, abrirPublicacao } from "./explorar.js?v=64";
 import { docsComValidade, docsPorIds } from "./leituras.js?v=3";
 import { lerLocal } from "./local-escolhido.js?v=3";
-import { distanciaKm } from "./perto.js?v=2";
+import { distanciaKm, minhaPosicao } from "./perto.js?v=2";
+import { combinaPublico, leitorDe, temPublico, resumoPublico } from "./publico-alvo.js?v=1";
 import { postsDoEstado, pesoRegiao, RECENTES_PAIS } from "./regiao.js?v=4";
 import { comDescoberta, sorteioFixo, janela } from "./relevancia.js?v=4";
 
 const POR_VEZ = 10;
 // Publicação de conta desativada (conta.js): escondida até ocultoAte.
 // Agendada: só aparece na hora marcada. Silenciado: some do seu Diário (você continua seguindo).
-const postOculto = (p) => (p?.ocultoAte?.toMillis?.() ?? 0) > Date.now() || (p?.agendadoPara?.toMillis?.() ?? 0) > Date.now() || silenciado(p?.autorId);
+// Público da publicação (idade, gênero, lugar, seguidores): quem não está no público não vê no Diário (publico-alvo.js).
+let leitor = null;
+const foraDoPublico = (p) => !!leitor && !combinaPublico(p, leitor);
+const postOculto = (p) => (p?.ocultoAte?.toMillis?.() ?? 0) > Date.now() || (p?.agendadoPara?.toMillis?.() ?? 0) > Date.now() || silenciado(p?.autorId) || foraDoPublico(p);
+// Quem lê: os dados da própria conta + o lugar escolhido + a posição (espera no máximo 1,5 s pela posição).
+async function prepararLeitor() {
+  const pos = await Promise.race([minhaPosicao(dados).catch(() => null), new Promise((ok) => setTimeout(() => ok(null), 1500))]);
+  leitor = leitorDe({ uid: eu.uid, dados, local: lerLocal(), pos, segue: (u) => meusSeguindo.has(u) });
+}
 // Busca por hashtag: feed.html?tag=reforma
 let tagAtual = (new URLSearchParams(location.search).get("tag") || "").toLowerCase().replace(/^#/, "").slice(0, 30);
 // Publicações de um lugar: feed.html?local=-27.44,-48.50&n=Jurerê (o que foi publicado a até 3 km dali).
@@ -63,10 +72,13 @@ const abaDaUrl = () => { const a = new URLSearchParams(location.search).get("aba
 const temMidia = (p) => !!(p.mediaUrl || (p.midias || []).length);
 // Tipo de publicação (filtro do topo): tudo, fotos e vídeos, textos, enquetes e perguntas. Filtra o que já foi lido.
 // Botões só com ícone numa linha fina (como a grade do perfil das redes sociais), com o nome no title/aria-label.
-const TIPOS_FEED = [["tudo", "Tudo", "grade"], ["fotos", "Fotos e vídeos", "imagem"], ["textos", "Textos", "registros"], ["enquetes", "Enquetes e perguntas", "enquete"]];
-let tipoFeed = "tudo"; // links antigos ?aba=registros abrem o Diário normal (textos e enquetes estão nele)
+// "Reels" não filtra a lista: abre os vídeos em tela cheia (reels.js).
+const TIPOS_FEED = [["tudo", "Tudo", "grade"], ["reels", "Reels (vídeos)", "video"], ["textos", "Textos", "registros"], ["enquetes", "Enquetes e perguntas", "enquete"]];
+let tipoFeed = "tudo"; // "fotos" (antigo) virou Reels // links antigos ?aba=registros abrem o Diário normal (textos e enquetes estão nele)
 const doTipo = (p) => tipoFeed === "tudo" || (tipoFeed === "fotos" ? temMidia(p) : tipoFeed === "enquetes" ? !!(p.enquete?.pergunta || p.caixa?.pergunta) : !temMidia(p) && !p.enquete?.pergunta && !p.caixa?.pergunta);
 const daAba = (p) => !!(tagAtual || localAtual) || doTipo(p);
+// Reels: os vídeos já lidos + os mais novos do servidor, com as mesmas regras do Diário (silenciados, público...).
+const verReels = (comecarEm = null) => import("./reels.js?v=1").then((m) => m.abrirReels({ lista: todosPosts, oculto: postOculto, comecarEm, aoNovo: () => compor("video") }));
 const compor = (inicio = "") => abrirCompositor({ aoPublicar: ganchos.aoPublicar, inicio });
 function pintarTipos() {
   const w = $("tiposFeed"); if (!w) return;
@@ -74,7 +86,10 @@ function pintarTipos() {
     const b = el("button"); b.type = "button"; b.setAttribute("role", "tab"); b.dataset.tipo = k;
     b.title = nome; b.setAttribute("aria-label", nome); b.appendChild(icone(ic, "i s"));
     b.setAttribute("aria-selected", String(k === tipoFeed));
-    b.addEventListener("click", () => { if (tipoFeed === k) return; tipoFeed = k; pintarTipos(); mostrarFiltrados(); });
+    b.addEventListener("click", () => {
+      if (k === "reels") { verReels(); return; }
+      if (tipoFeed === k) return; tipoFeed = k; pintarTipos(); mostrarFiltrados();
+    });
     return b;
   }));
 }
@@ -372,8 +387,9 @@ function cartaoPost(post) {
       : { rotulo: "Salvar publicação", sub: "Para ver depois no seu Perfil → Salvos", icone: "salvo", fn: () => alternarSalvo(post) },
     { rotulo: "Salvar em uma coleção", sub: "Organize seus salvos em pastas", icone: "fotos", fn: () => escolherColecao(post) },
     { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(post.autorId, post.nome) },
-    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=48").then((m) => m.abrirEstatisticas(post)) },
+    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=49").then((m) => m.abrirEstatisticas(post)) },
     post.autorId === eu.uid && { rotulo: "Editar publicação", icone: "lapis", fn: () => editarPublicacao(post, () => c.replaceWith(cartaoPost(post))) },
+    post.autorId === eu.uid && { rotulo: "Público da publicação", sub: temPublico(post) ? resumoPublico(post.publico) : "Para todos · escolha idade, gênero, lugar e seguidores", icone: "pessoa-mais", fn: () => editarPublicoDoPost(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId !== eu.uid && { rotulo: silenciado(post.autorId) ? `Mostrar ${nome.textContent} de novo` : `Silenciar ${nome.textContent}`, sub: "Continua seguindo, mas as publicações e flashes somem do seu Diário", icone: "restringir",
       fn: async () => { await alternarSilenciar(post.autorId, nome.textContent); if (silenciado(post.autorId)) { posts = posts.filter((x) => x.autorId !== post.autorId); document.querySelectorAll(".post-card").forEach((x) => { if (x.dataset.autor === post.autorId) x.remove(); }); } } },
     post.autorId !== eu.uid && { rotulo: "Denunciar publicação", sub: "Golpe, ofensa, conteúdo impróprio...", icone: "alerta", perigo: true,
@@ -387,6 +403,13 @@ function cartaoPost(post) {
   ]));
   cab.append(av, quem, mais);
   c.appendChild(cab);
+  // Sua publicação com público escolhido: só você vê este aviso (toque para mudar).
+  if (post.autorId === eu.uid && temPublico(post)) {
+    const pp = el("button", "post-publico"); pp.type = "button"; pp.title = "Mudar o público";
+    pp.append(icone("pessoa-mais", "i xs"), document.createTextNode("Público: " + resumoPublico(post.publico)));
+    pp.addEventListener("click", () => editarPublicoDoPost(post, () => c.replaceWith(cartaoPost(post))));
+    c.appendChild(pp);
+  }
   // Nome e foto atualizados do perfil (a publicação guarda os de quando foi feita).
   obterPerfil(post.autorId).then((p) => {
     if (p.nome) nome.textContent = p.nome;
@@ -500,12 +523,14 @@ async function pintarLateral() {
   ouvirAvisos();
   $("btnComporFeed").addEventListener("click", () => compor());
   await carregarMeusSeguindo();
+  await prepararLeitor();
   pintarFiltro();
   montarStories($("storiesFeed")).catch((e) => console.warn("Flash:", e));
   pintarLateral();
   const p = new URLSearchParams(location.search);
   trocarAba(abaDaUrl());
   if (p.get("publicar")) compor();
+  if (p.get("reels")) verReels(/^[A-Za-z0-9_-]{1,64}$/.test(p.get("reels")) ? p.get("reels") : null);
   if (/^[A-Za-z0-9_-]{1,64}$/.test(p.get("post") || "")) {
     const id = p.get("post");
     history.replaceState(history.state, "", urlAba(aba));

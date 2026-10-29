@@ -28,9 +28,9 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="rede.css?v=52" />
+  <link rel="stylesheet" href="rede.css?v=53" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="configuracoes.js?v=95"></script>
+  <script type="module" src="configuracoes.js?v=96"></script>
 </head>
 <body>
   <header class="topo">
@@ -52,6 +52,13 @@
           <button type="button" class="cfg-item" id="cfgEditar"><svg class="i"><use href="#i-lapis"/></svg><span class="txt">Editar perfil<small>Nome, @usuário, bio, cidade, fotos</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
           <button type="button" class="cfg-item" id="cfgVerificacao"><svg class="i"><use href="#i-selo"/></svg><span class="txt">Verificação do perfil<small id="cfgVerificacaoTxt">Solicite o selo de perfil verificado</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
           <button type="button" class="cfg-item" id="cfgEndereco"><svg class="i"><use href="#i-pin"/></svg><span class="txt">Endereço<small id="cfgEnderecoTxt">Privado: não aparece para outros usuários</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
+          <div class="cfg-item" style="cursor:default"><svg class="i"><use href="#i-pessoa-mais"/></svg><span class="txt">Gênero<small id="cfgGeneroTxt">Privado e opcional: só serve para o público das publicações</small></span></div>
+          <div class="segmentado" id="cfgGenero">
+            <button type="button" data-valor="f">Feminino</button>
+            <button type="button" data-valor="m">Masculino</button>
+            <button type="button" data-valor="o">Outro</button>
+            <button type="button" data-valor="">Prefiro não dizer</button>
+          </div>
           <button type="button" class="cfg-item" id="cfgSenha"><svg class="i"><use href="#i-chave"/></svg><span class="txt">Alterar senha<small id="cfgSenhaTxt">Troque a senha da sua conta</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
           <button type="button" class="cfg-item" id="cfgBaixarDados"><svg class="i"><use href="#i-doc"/></svg><span class="txt">Baixar meus dados<small>Uma cópia de tudo o que está na sua conta (LGPD)</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
           <button type="button" class="cfg-item" id="cfgEmailTrocar"><svg class="i"><use href="#i-envelope"/></svg><span class="txt">Alterar e-mail<small id="cfgEmailTxt">Confirmação pelo novo e-mail</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>

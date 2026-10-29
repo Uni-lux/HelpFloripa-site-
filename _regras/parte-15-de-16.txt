@@ -114,6 +114,24 @@
                 && d.local.lat is number && d.local.lat >= -34 && d.local.lat <= 6
                 && d.local.lng is number && d.local.lng >= -75 && d.local.lng <= -28);
       }
+      // Público da publicação (direcionamento no Diário, Explorar e Reels): idade, gênero, lugar e seguidores.
+      function publicoOk(d) {
+        let p = d.get('publico', null);
+        return p == null
+            || (p is map && p.keys().hasOnly(['idadeMin', 'idadeMax', 'genero', 'local', 'ufs', 'cidades', 'perto', 'seguidores'])
+                && (!('idadeMin' in p) || (p.idadeMin is int && p.idadeMin >= 16 && p.idadeMin <= 100))
+                && (!('idadeMax' in p) || (p.idadeMax is int && p.idadeMax >= 16 && p.idadeMax <= 100))
+                && (!('genero' in p) || p.genero in ['f', 'm'])
+                && (!('local' in p) || p.local in ['brasil', 'estados', 'cidades', 'perto'])
+                && (!('ufs' in p) || (p.ufs is list && p.ufs.size() >= 1 && p.ufs.size() <= 27 && p.ufs.join(' ').matches('^[A-Z]{2}( [A-Z]{2}){0,26}$')))
+                && (!('cidades' in p) || (p.cidades is list && p.cidades.size() >= 1 && p.cidades.size() <= 10 && p.cidades.join(' ').matches('^[0-9]{7}( [0-9]{7}){0,9}$')))
+                && (!('perto' in p) || (p.perto is map && p.perto.keys().hasOnly(['lat', 'lng', 'km', 'nome'])
+                    && p.perto.lat is number && p.perto.lat >= -34 && p.perto.lat <= 6
+                    && p.perto.lng is number && p.perto.lng >= -75 && p.perto.lng <= -28
+                    && p.perto.km is int && p.perto.km >= 5 && p.perto.km <= 300
+                    && (!('nome' in p.perto) || (p.perto.nome is string && p.perto.nome.size() <= 60))))
+                && (!('seguidores' in p) || p.seguidores in ['todos', 'seguidores', 'novos']));
+      }
       function fotoPubOk(u) {
         return u is string && u.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*');
       }
@@ -122,11 +140,11 @@
                     && emailOk()
                     && request.resource.data.autorId == request.auth.uid
                     && request.resource.data.keys().hasOnly(['autorId', 'nome', 'fotoPerfil', 'texto', 'mediaUrl', 'mediaTipo', 'midias', 'tags', 'marcados', 'agendadoPara', 'enquete', 'caixa', 'local',
-                                                              'autorUf', 'autorIbge', 'criadoEm'])
+                                                              'autorUf', 'autorIbge', 'publico', 'criadoEm'])
                     // Região de quem publica (Diário e Explorar priorizam a cidade e o estado de quem lê): UF e código IBGE.
                     && (!('autorUf' in request.resource.data) || (request.resource.data.autorUf is string && request.resource.data.autorUf.matches('^[A-Z]{2}$')))
                     && (!('autorIbge' in request.resource.data) || (request.resource.data.autorIbge is int && request.resource.data.autorIbge > 1000000 && request.resource.data.autorIbge < 6000000))
-                    && localPubOk(request.resource.data)
+                    && localPubOk(request.resource.data) && publicoOk(request.resource.data)
                     && (!('caixa' in request.resource.data) || caixaOk(request.resource.data.caixa))
                     // enquete: até 7 dias a partir de quando aparece (agora ou a data agendada), com 10 min de folga
                     && (!('enquete' in request.resource.data) || enqueteOk(request.resource.data.enquete,
@@ -144,8 +162,8 @@
                     && emailOk()
                     && resource.data.autorId == request.auth.uid
                     && request.resource.data.autorId == resource.data.autorId
-                    && gravou().hasOnly(['texto', 'nome', 'fotoPerfil', 'comentariosOcultos', 'ocultoAte', 'editadoEm', 'quemComenta', 'comentarioFixo', 'tags', 'marcados', 'agendadoPara', 'local'])
-                    && localPubOk(request.resource.data)
+                    && gravou().hasOnly(['texto', 'nome', 'fotoPerfil', 'comentariosOcultos', 'ocultoAte', 'editadoEm', 'quemComenta', 'comentarioFixo', 'tags', 'marcados', 'agendadoPara', 'local', 'publico'])
+                    && localPubOk(request.resource.data) && publicoOk(request.resource.data)
                     && tagsOk(request.resource.data) && marcadosOk(request.resource.data)
                     // agendada: publicar agora (agendadoPara = agora) ou mudar a data (até 60 dias)
                     && (!mudou().hasAny(['agendadoPara'])
@@ -165,22 +183,4 @@
                     && (!('comentariosOcultos' in request.resource.data) || request.resource.data.comentariosOcultos is bool)
                     && publicacaoOk();
 
-      allow delete: if logado()
-                    && resource.data.autorId == request.auth.uid;
-
-      // Alcance: cada conta que viu a publicação (uma vez). Só o autor lista/conta.
-      match /vistas/{uid} {
-        allow create: if logado() && uid == request.auth.uid
-                      && request.resource.data.keys().hasOnly(['criadoEm', 'origem'])
-                      && request.resource.data.criadoEm == request.time
-                      && (!('origem' in request.resource.data) || request.resource.data.origem in ['principais', 'seguindo', 'amigos', 'perfil', 'link', 'tag', 'salvos']);
-        allow read: if logado() && get(/databases/$(database)/documents/diario/$(postId)).data.autorId == request.auth.uid;
-        allow update, delete: if false;
-      }
-
-      // A equipe esconde ou remove publicações que violam os Termos.
-      allow update: if podeModerar()
-                    && moderacaoOk();
-      allow delete: if podeModerar();
-    }
 // ===== FIM DA PARTE 15 DE 16 =====

@@ -215,6 +215,20 @@
           "order": "DESCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "diario",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "mediaTipo",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "criadoEm",
+          "order": "DESCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": []

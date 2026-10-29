@@ -1107,6 +1107,29 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   fica no aria-label). Caixa de perguntas: "No flash" em cada resposta (`compartilharRespostaNoFlash` em stories.js: cartão
   1080×1920 com a pergunta e a resposta, sem o nome de quem respondeu → `abrirCriador({ imagem, selo })`). Testes
   `t-social2` (estrela, reação gravada, Visualizações, mensagem) e `t-diario-compacto` (caixa → flash, estrela sozinha).
+- **Reels + público da publicação + auditoria do Diário (29/10/2026, mesmo PR #120, MUDA 1 REGRA — não publicada; 16 partes,
+  663 testes; 1 índice novo, agora 12):** pedido dele: "no lugar de fotos, os vídeos (tipo reels)" → no filtro do Diário o
+  ícone de foto virou **Reels** (`TIPOS_FEED` tudo/reels/textos/enquetes; "reels" não filtra, abre `reels.js`
+  `abrirReels({lista, oculto, comecarEm, aoNovo})`: tela cheia `.reels` z 4000, um vídeo por vez com scroll-snap, toca com 70%
+  na tela, som 🔇/🔊, toque = pausa, toque duplo = 5 estrelas, `barraInteracao` na coluna da direita `.reel-lado` e as
+  estrelas + autor + Seguir + legenda embaixo `.reel-info`; vídeos = já lidos + `diario mediaTipo == video` (índice
+  mediaTipo + criadoEm; sem ele 60 sem ordem); `feed.html?reels=1|ID`; voltar fecha). **Vídeo novo só com Storage**
+  (`USAR_STORAGE`): sem ele o botão Vídeo do formulário fica escondido e os Reels ficam vazios.
+  **Público da publicação** (`publico-alvo.js` sem deps + `publico-tela.js`, que recebe as funções do rede.js por parâmetro):
+  `diario.publico` {idadeMin/idadeMax 16–100, genero f|m, local brasil|estados(ufs ≤27)|cidades(códigos IBGE em texto, ≤10)|
+  perto({lat,lng,km 5–300,nome}), seguidores todos|seguidores|novos}; regra `publicoOk` (create e update; "TUDO junto" cabe).
+  Formulário: botão "Público: Todos ▾" (`#pubPublicoBtn`) ao lado de "Publicando no Diário" → folha (Quem vê, Idade com faixas
+  e De/até, Gênero, Lugar com UFs/cidades por estado/perto da minha cidade ou localização + raio, resumo e nota). Sem a regra:
+  não publica e avisa. ⋯ da sua publicação → "Público da publicação" (`editarPublicoDoPost`) e aviso `.post-publico` só para o
+  autor. **Quem lê** (`leitorDe`/`combinaPublico`, tudo no aparelho): idade de `usuarios.dataNascimento`, `usuarios.genero`
+  (novo, privado: Configurações → Gênero `#cfgGenero` e campo opcional no cadastro), lugar escolhido ou cidade do perfil,
+  posição (`minhaPosicao`, espera 1,5 s), segue ou não. Vale no Diário (`postOculto` do feed.js), Explorar e Reels; no perfil
+  e pelo link continua aparecendo (direcionamento, não privacidade — dito na tela e na Política de Privacidade). Sem idade/gênero
+  informado = não vê publicação com esse filtro.
+  **Auditoria** (`t-auditoria-diario.mjs`, 86 verificações celular+computador): achou e corrigiu o voto perdido na enquete
+  (tocar antes de carregar não fazia nada: `votar` espera `carregar()`; `recarregar` zera o cache) e o Explorar usando o
+  estado do perfil em vez do lugar escolhido (`regiaoEu`). Medido (carga): Diário 318 leituras/3,7 MB na 1ª visita (fotos em
+  `data:`), 38 na 2ª; Explorar 444/36. Os ouvintes do sino (rede.js `ouvir`, até 100 docs cada) releem a cada página.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
@@ -1165,6 +1188,44 @@ chat da equipe).
   completo em `usuarios/{uid}.atendimento`, `completarAtendimento()` completa depois.
 - `versoes.py` agora falha se o mesmo módulo for importado com `?v=` diferentes (arquivo novo fica fora da troca).
 - `scripts/limpeza/converter-cidades.mjs` + workflow manual "Converter cidades" (simula por padrão).
+
+## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
+Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
+**Só ele pode fazer:**
+1. **Publicar as regras** (16 partes em `_regras/`, 663 testes): tudo desde 26/10, incluindo `republicacoes`,
+   `stories/{id}/reacoes` (estrela do Flash) e `diario.publico` (público da publicação). Depois: "Recalcular estrelas" no
+   painel e criar os **12 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`
+   mediaTipo + criadoEm dos Reels). Sem as regras: publicar com público avisa e não publica; a estrela do Flash vai como "⭐"
+   pelo Mensagens.
+2. **Ligar o Storage** (Blaze): sem ele não há vídeo novo (os Reels ficam vazios e o botão Vídeo fica escondido) e o Diário
+   pesa 3,7 MB na 1ª visita (fotos em `data:` dentro dos documentos).
+3. **Responder (Parte 1 da visibilidade justa):** no máximo 1 pagante nos 4 cartões depois de cada espaço pago?
+4. **Ideias que ele adiou ("depois eu vejo", 29/10):** o 6º cartão do Início no lugar da Comunidade (sugerido: **Ofertas** =
+   promoções/cupons dos assinantes, sem regra nova; outras: Aulas e cursos, Eventos) e **Fretes e Entregas** com mapa em tempo
+   real (etapas: pedido + propostas → acompanhar ao vivo com Realtime Database → distribuição automática com Cloud Functions →
+   passageiros só depois do advogado e de app instalado; ele precisa escolher preço por proposta/estimativa e Mapbox/MapTiler).
+**Programação (dá para fazer):**
+5. **Quem posta muito toma o espaço dos outros que você segue:** `buscarSeguindo` lê 20 publicações por lote de 30 autores
+   (no total). Limite por autor (ex.: até 3 de cada); o jeito certo é um "feed por pessoa" montado no servidor (Cloud Function,
+   Blaze); sem Blaze, ler em lotes menores, com custo maior de leituras.
+6. **"Já vi" só no aparelho (`jaVisto`):** no computador e no celular a mesma publicação reaparece. Guardar as vistas recentes
+   na conta (resumo compacto) ou ler `diario/{id}/vistas/{uid}` em lote.
+7. **Engajamento sem contar o alcance:** a nota usa estrelas e comentários absolutos; deveria pesar pela taxa (interações ÷ quem
+   viu). Precisa das exibições somadas no servidor (Blaze). Junto: ranking pré-calculado por cidade/estado — hoje os Principais
+   escolhem entre só 60 recentes do país + 30 do estado + quem você segue (com muito movimento, só os últimos minutos).
+8. **Aba "Republicados" no perfil** (como o Instagram): lista das `republicacoes` da pessoa (`uid ==`) — perguntar se ele quer.
+9. **Sino relê tudo a cada página:** os ouvintes do rede.js (`ouvir`, até 100 documentos cada: seguidores, curtidas, comentários...)
+   releem em toda página aberta (medido: 30 `relacoes` na 2ª visita do Diário). Ordenar por data e baixar o limite, ou ler só o
+   que é novo desde a última visita.
+10. **Estrela do Flash no sino:** hoje o autor só vê quem deu a estrela na lista de Visualizações (sem aviso).
+11. **Reels:** a aba Reels do perfil e os vídeos do Explorar ainda abrem na folha/visor antigos, não no visor de Reels.
+12. **Público da publicação:** estimativa de alcance para o autor antes de publicar; público também no Flash (hoje só no
+    Diário); pedir gênero/data de nascimento a quem não tem (contas antigas sem gênero não entram em público por gênero).
+13. **Conta apagada:** `limpar-contas.mjs`/`conta.js` não apagam `stories/{id}/vistos/{uid}` nem `stories/{id}/reacoes/{uid}`
+    da pessoa (o flash some em 24 h, mas os documentos ficam).
+14. **Revisar a ferramenta de texto "Aa" do criador do Flash** (não foi revisada à parte em 29/10).
+15. **Testes que falham desde antes:** `t-enquete2` (notificação do Bruno) e `t-caixa` (para em `.notif`); `t-busca-regiao`
+    (2 itens). Atualizar os testes. Os testes do Diário/Flash precisam do `seed.mjs` antes (dados que sobram atrapalham).
 
 ## Pendências do dono e o que ficou para depois (vindas de sessões anteriores)
 Coisas que só ELE pode fazer (lembrar no momento certo, sem fazer por ele):
