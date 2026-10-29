@@ -484,6 +484,18 @@ await t("alcance: não marca em nome de outra pessoa", () => assertFails(setDoc(
 await t("alcance: o autor conta quem viu; outra pessoa não", async () => { await assertSucceeds(getDocs(collection(ctx("dono"), "diario", "pAlc", "vistas"))); await assertFails(getDocs(collection(ctx("ana"), "diario", "pAlc", "vistas"))); });
 await t("salvamentos: salvar deixa um registro para a contagem do autor", () => assertSucceeds(setDoc(doc(ctx("ana"), "salvamentos", "pAlc_ana"), { postId: "pAlc", uid: "ana", postAutorId: "dono", criadoEm: serverTimestamp() })));
 await t("salvamentos: o autor conta; outra pessoa não lista", async () => { await assertSucceeds(getDocs(query(collection(ctx("dono"), "salvamentos"), where("postAutorId", "==", "dono")))); await assertFails(getDocs(query(collection(ctx("bia"), "salvamentos"), where("postAutorId", "==", "dono")))); });
+// Republicar
+const repub = (quem, extra = {}) => ({ postId: "pAlc", uid: quem, postAutorId: "dono", nome: quem, criadoEm: serverTimestamp(), ...extra });
+await t("republicar: republica a publicação de outra pessoa", () => assertSucceeds(setDoc(doc(ctx("ana"), "republicacoes", "pAlc_ana"), repub("ana"))));
+await t("republicar: todos leem (aparece para quem segue)", () => assertSucceeds(getDocs(query(collection(ctx("bia"), "republicacoes"), where("uid", "in", ["ana"])))));
+await t("republicar: não republica em nome de outra pessoa", () => assertFails(setDoc(doc(ctx("ana"), "republicacoes", "pAlc_bia"), repub("bia"))));
+await t("republicar: não republica a própria publicação", () => assertFails(setDoc(doc(ctx("dono"), "republicacoes", "pAlc_dono"), repub("dono"))));
+await t("republicar: autor errado é recusado", () => assertFails(setDoc(doc(ctx("edu"), "republicacoes", "pAlc_edu"), repub("edu", { postAutorId: "bia" }))));
+await t("republicar: campo a mais é recusado", () => assertFails(setDoc(doc(ctx("edu"), "republicacoes", "pAlc_edu"), repub("edu", { texto: "oi" }))));
+await semRegras((db) => setDoc(doc(db, "bloqueios", "dono_bia"), { bloqueadorId: "dono", bloqueadoId: "bia" }));
+await t("republicar: com bloqueio entre os dois é recusado", () => assertFails(setDoc(doc(ctx("bia"), "republicacoes", "pAlc_bia"), repub("bia"))));
+await semRegras(async (db) => { const { deleteDoc } = await import("firebase/firestore"); await deleteDoc(doc(db, "bloqueios", "dono_bia")); });
+await t("republicar: desfazer (apagar) só quem republicou", async () => { await assertFails(deleteDoc(doc(ctx("bia"), "republicacoes", "pAlc_ana"))); await assertSucceeds(deleteDoc(doc(ctx("ana"), "republicacoes", "pAlc_ana"))); });
 const fotoS = "data:image/jpeg;base64,/9j/AAAA";
 await t("stories: publica foto", () => assertSucceeds(setDoc(doc(ctx("ana"), "stories", "s1"), { autorId: "ana", nome: "Ana", tipo: "imagem", midia: fotoS, texto: "bom dia", criadoEm: serverTimestamp() })));
 await t("stories: vídeo dentro do documento é recusado (só Storage)", () => assertFails(setDoc(doc(ctx("ana"), "stories", "s2"), { autorId: "ana", nome: "Ana", tipo: "video", midia: fotoS, criadoEm: serverTimestamp() })));

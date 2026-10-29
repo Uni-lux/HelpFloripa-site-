@@ -15,6 +15,7 @@ export const PESO = {
   estrela: (n) => [0.6 * n, 0.4 * n],
   comentar: [3, 2],
   salvar: [3, 2.5],
+  republicar: [3.5, 2.5], // republicou para os seguidores: o sinal mais forte de que gostou
   enviar: [2.5, 2],
   compartilhar: [2.5, 2],
   olhar: [0.6, 0.4],      // ficou alguns segundos na publicação

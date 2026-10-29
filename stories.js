@@ -13,7 +13,7 @@ import {
   meusSeguindo, escondido, silenciado, alternarSilenciar, obterPerfil, abrirOpcoes, abrirLista, linhaPessoa,
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas
-} from "./rede.js?v=77";
+} from "./rede.js?v=78";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { seletorDuracao, fimEscolhido, linhaChave, MAX_FLASH_MIN, fimDaEnquete, encerrada, faltaTexto, resultadoFinal, lerContasEnquete } from "./enquetes.js?v=5";
@@ -388,6 +388,9 @@ async function imagemDaPublicacao(post) {
 }
 export async function compartilharNoFlash(post) {
   if (!post?.id) return;
+  // A publicação guarda o nome e a foto de quando foi feita: o cartão do flash usa os de AGORA.
+  const atual = post.autorId === eu.uid ? dados : await obterPerfil(post.autorId).catch(() => ({}));
+  post = { ...post, nome: atual?.nome || post.nome, fotoPerfil: atual?.fotoPerfil || post.fotoPerfil };
   if (post.mediaTipo === "video") { toast("Vídeos ainda não vão para o flash. Compartilhe uma publicação com foto ou texto."); return; }
   if (post.autorId !== eu.uid) {
     try { const p = await fb.getDoc(fb.doc(fb.db, "pref_publicas", post.autorId)); if (p.exists() && p.data().permiteFlash === false) { toast(`${String(post.nome || "Quem publicou").split(" ")[0]} não permite compartilhar as publicações no Flash.`); return; } } catch {}

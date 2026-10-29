@@ -64,6 +64,7 @@ async function limpar(uid) {
   for (const p of posts.docs) {
     await apagar("comentarios", col("comentarios").where("postId", "==", p.id));
     await apagar("curtidas", col("curtidas").where("postId", "==", p.id));
+    await apagar("republicacoes", col("republicacoes").where("postId", "==", p.id));
     if (!simular) await col("diario_notas").doc(p.id).delete();
   }
   await apagar("diario", col("diario").where("autorId", "==", uid));
@@ -78,6 +79,7 @@ async function limpar(uid) {
   }
   await apagar("curtidas", col("curtidas").where("uid", "==", uid));
   await apagar("curtidas_comentarios", col("curtidas_comentarios").where("uid", "==", uid));
+  await apagar("republicacoes", col("republicacoes").where("uid", "==", uid));
   // Votos das enquetes (públicos e anônimos): tira da contagem (o pedaço enquete_contas/{alvo}_{fatia} do voto;
   // votos antigos sem fatia: enquete_contas/{alvo}) e apaga o voto.
   for (const nomeCol of ["enquete_votos", "enquete_anon"]) {

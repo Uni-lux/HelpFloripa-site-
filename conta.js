@@ -105,7 +105,7 @@ export async function apagarTudo(fb, authFns, usuario, aoProgresso = () => {}) {
   aoProgresso("Apagando publicações, comentários e estrelas...");
   const lotes = await Promise.all([
     pegar("diario", "autorId"), pegar("comentarios", "autorId"), pegar("comentarios", "postAutorId"),
-    pegar("curtidas", "uid"), pegar("curtidas_comentarios", "uid"),
+    pegar("curtidas", "uid"), pegar("curtidas_comentarios", "uid"), pegar("republicacoes", "uid"),
     pegar("relacoes", "seguidorId"), pegar("relacoes", "alvoId"), pegar("bloqueios", "bloqueadorId"),
     pegar("vinculos", "participantes", "array-contains"), pegar("negocios", "donoId"), pegar("anuncios", "donoId"), pegar("comunidade", "donoId")
   ]);

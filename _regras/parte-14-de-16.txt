@@ -1,3 +1,34 @@
+    // ===================================================
+    // ENQUETE ANÔNIMA: o voto fica em enquete_anon/{alvo}_{uid} (ninguém lista; só a própria pessoa lê o dela)
+    // e a contagem nos mesmos pedaços enquete_contas/{alvo}_{fatia}, que sobem +1 na MESMA gravação do voto.
+    // Assim nem o autor da enquete sabe quem votou em quê.
+    // ===================================================
+    match /enquete_anon/{id} {
+      function votoAnonOk() {
+        let d = request.resource.data;
+        let doc = d.tipo == 'd'
+          ? /databases/$(database)/documents/diario/$(d.itemId)
+          : /databases/$(database)/documents/stories/$(d.itemId);
+        let e = get(doc).data.enquete;
+        return d.keys().hasOnly(['alvo', 'tipo', 'itemId', 'uid', 'opcao', 'fatia', 'fimEm', 'criadoEm'])
+            && d.uid == request.auth.uid && d.criadoEm == request.time
+            && d.tipo in ['d', 'f']
+            && d.itemId is string && d.itemId.matches('^[A-Za-z0-9]{1,64}$')
+            && d.alvo == d.tipo + '_' + d.itemId
+            && id == d.alvo + '_' + request.auth.uid
+            && d.opcao is int && d.opcao >= 0 && d.opcao < e.opcoes.size()
+            && e.get('anonima', false) == true
+            && (!('fimEm' in e) || request.time < e.fimEm)
+            && (!('fimEm' in d) || ('fimEm' in e && d.fimEm == e.fimEm))
+            // a contagem da opção sobe exatamente 1 junto com o voto
+            && fatiaSobe(d);
+      }
+      allow get: if logado() && id.matches('.*_' + request.auth.uid);
+      // listar só os próprios votos (o resultado chega nas notificações de quem votou)
+      allow list: if logado() && resource.data.uid == request.auth.uid;
+      allow create: if logado() && !sancionado(request.auth.uid) && votoAnonOk();
+      allow update, delete: if false;
+    }
     // CONTAGEM DAS ENQUETES em 10 pedaços: enquete_contas/{alvo}_{fatia} = { n0..n3 } (fatia 0–9). Cada voto sobe
     // 1 pedaço sorteado: um documento só aguentava ~1 voto por segundo; assim a enquete aguenta ~10× mais, e ler o
     // resultado custa no máximo 10 leituras, com quantos votos for. Só sobe junto com o voto de quem grava
@@ -173,35 +204,5 @@
                     && !bloqueioEntre(request.auth.uid, request.resource.data.postAutorId)
                     && ritmoOk('com')
                     && request.resource.data.criadoEm == request.time;
-
-      allow update: if logado()
-                    && emailOk()
-                    && (
-                      // quem comentou corrige o texto
-                      (resource.data.autorId == request.auth.uid
-                        && mudou().hasOnly(['texto', 'editadoEm'])
-                        && textoComentarioOk(request.resource.data)
-                        && request.resource.data.editadoEm == request.time)
-                      ||
-                      // o dono da publicação oculta ou mostra o comentário
-                      (resource.data.postAutorId == request.auth.uid
-                        && mudou().hasOnly(['oculto'])
-                        && request.resource.data.oculto is bool)
-                    );
-
-      allow delete: if logado()
-                    && (resource.data.autorId == request.auth.uid || resource.data.postAutorId == request.auth.uid);
-      allow delete: if podeModerar();
-    }
-
-    // =====================================================
-    // CURTIDAS EM COMENTÁRIOS: curtidas_comentarios/{comentarioId}_{uid}
-    // =====================================================
-    match /curtidas_comentarios/{id} {
-
-      allow read: if logado();
-
-      // Reação (emoji); sem o campo = curtida antiga (conta como ❤️).
-      function reacaoOk(d) { return !('reacao' in d) || d.reacao in ['❤️', '👍', '😂', '😮', '😢', '👏']; }
 
 // ===== FIM DA PARTE 14 DE 16 =====

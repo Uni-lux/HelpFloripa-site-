@@ -13,8 +13,8 @@ import { fotoSegura } from "./seguranca.js?v=1";
 import { buscarItensEquipe, TEXTO_EQUIPE, linkEquipe } from "./avisos-equipe.js?v=1";
 import { enquetesEncerradas, textoEnqueteFim } from "./enquetes.js?v=5";
 import { avisoPlano, textoPlano } from "./planos-base.js?v=15";
-import { docsComValidade, esquecer } from "./leituras.js?v=3";
-import { criarLista, svg, toastNt, categoriaLigada, categoriaDe } from "./avisos-lista.js?v=14";
+import { docsComValidade, docsPorIds, esquecer } from "./leituras.js?v=3";
+import { criarLista, svg, toastNt, categoriaLigada, categoriaDe } from "./avisos-lista.js?v=15";
 
 const ms = (ts) => ts?.toMillis?.() ?? (typeof ts === "number" ? ts : 0);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
@@ -34,6 +34,7 @@ function texto(i) {
     case "resposta": return "respondeu seu comentário";
     case "reacao": return `reagiu com ${i.reacao || "❤️"} ao seu comentário`;
     case "marcacao": return "marcou você numa publicação";
+    case "republicacao": return "republicou sua publicação";
     case "caixa": return "respondeu sua caixa de perguntas";
     case "enquete": return i.souAutor ? "terminou. Veja o resultado." : textoEnqueteFim(i).titulo;
     case "aviso": case "suporte": return TEXTO_EQUIPE(i);
@@ -61,7 +62,7 @@ async function carregar() {
   const uid = eu.uid;
   const ler = (col, ...f) => fs.getDocs(fs.query(fs.collection(db, col), ...f, fs.limit(60))).then((s) => s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) }))).catch(() => []);
   const usuario = await fs.getDoc(fs.doc(db, "usuarios", uid)).catch(() => null);
-  const [seg, curt, com, resp, vin, conv, recl, equipe, reac, marc, caixas] = await Promise.all([
+  const [seg, curt, com, resp, vin, conv, recl, equipe, reac, marc, caixas, repub] = await Promise.all([
     ler("relacoes", fs.where("tipo", "==", "seguir"), fs.where("alvoId", "==", uid)),
     ler("curtidas", fs.where("postAutorId", "==", uid)),
     ler("comentarios", fs.where("postAutorId", "==", uid)),
@@ -72,7 +73,8 @@ async function carregar() {
     buscarItensEquipe(fs, db, uid, (usuario?.exists() ? usuario.data().suporteLido : null) || {}).catch(() => []),
     ler("curtidas_comentarios", fs.where("comentarioAutorId", "==", uid)),
     ler("diario", fs.where("marcados", "array-contains", uid)),
-    ler("caixa_respostas", fs.where("autorId", "==", uid))
+    ler("caixa_respostas", fs.where("autorId", "==", uid)),
+    ler("republicacoes", fs.where("postAutorId", "==", uid))
   ]);
   const dados = usuario?.exists() ? usuario.data() : {};
   const restritos = new Set(dados.restritos || []);
@@ -85,6 +87,7 @@ async function carregar() {
   com.filter((c) => c.autorId !== uid).forEach((c) => itens.push({ tipo: "comentario", id: "m_" + c.id, uid: c.autorId, nome: c.nome, foto: c.foto, detalhe: c.texto, postId: c.postId, quando: ms(c.criadoEm) }));
   reac.filter((r) => r.uid !== uid).forEach((r) => itens.push({ tipo: "reacao", id: "e_" + r.id, uid: r.uid, reacao: r.reacao || "❤️", quando: ms(r.criadoEm) }));
   marc.filter((p) => p.autorId !== uid && (p.agendadoPara?.toMillis?.() ?? 0) <= Date.now()).forEach((p) => itens.push({ tipo: "marcacao", id: "k_" + p.id, uid: p.autorId, postId: p.id, quando: ms(p.criadoEm) }));
+  repub.filter((r) => r.uid !== uid).forEach((r) => itens.push({ tipo: "republicacao", id: "p_" + r.id, uid: r.uid, nome: r.nome, postId: r.postId, quando: ms(r.criadoEm) }));
   resp.filter((c) => c.autorId !== uid && c.postAutorId !== uid).forEach((c) => itens.push({ tipo: "resposta", id: "r_" + c.id, uid: c.autorId, nome: c.nome, foto: c.foto, detalhe: c.texto, postId: c.postId, quando: ms(c.criadoEm) }));
   vin.forEach((v) => {
     const outro = (v.participantes || []).find((x) => x !== uid);
@@ -168,7 +171,7 @@ function destino(i) {
   if (i.grupo && i.tipo === "seguidor") return "notificacoes.html";
   if (i.tipo === "seguidor" || i.tipo === "social") return `usuarios.html?perfil=${encodeURIComponent(i.uid)}`;
   // Estrelas, comentários, respostas e marcações: abre a própria publicação.
-  if (i.postId && ["curtida", "comentario", "resposta", "marcacao"].includes(i.tipo)) return `usuarios.html?post=${encodeURIComponent(i.postId)}`;
+  if (i.postId && ["curtida", "comentario", "resposta", "marcacao", "republicacao"].includes(i.tipo)) return `usuarios.html?post=${encodeURIComponent(i.postId)}`;
   if (i.tipo === "enquete") return `notificacoes.html?enquete=${encodeURIComponent(i.alvo)}`;
   return "notificacoes.html"; // reações e caixa de perguntas abrem na página de notificações
 }
@@ -268,7 +271,7 @@ function montar() {
 }
 function desenhar() {
   const corpo = painel.querySelector(".pa-corpo");
-  lista = criarLista({ raiz: corpo, uid: eu.uid, ganchos: { abrir: (i) => { location.href = destino(i); }, botaoSeguir, responderVinculo, salvarPrefs, marcarTodasVistas: () => { estado.visto = Date.now(); marcarVistos(); pintarCab(); } } });
+  lista = criarLista({ raiz: corpo, uid: eu.uid, ganchos: { perfis: (ids) => docsPorIds({ ...fs, db }, "perfis_publicos", ids, 30 * 60000), abrir: (i) => { location.href = destino(i); }, botaoSeguir, responderVinculo, salvarPrefs, marcarTodasVistas: () => { estado.visto = Date.now(); marcarVistos(); pintarCab(); } } });
   lista.pintar(estado.itens, { vistoAntes: estado.visto, prefs: estado.prefs });
   pintarCab();
 }

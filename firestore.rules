@@ -2454,6 +2454,24 @@ service cloud.firestore {
       allow update: if false;
     }
 
+    // Republicar (como o repost do Instagram): republicacoes/{postId}_{uid}. A publicação original aparece para quem
+    // segue quem republicou, com "Fulano republicou". Não dá para republicar a própria nem com bloqueio entre os dois.
+    match /republicacoes/{id} {
+      allow read: if logado();
+      allow create: if logado() && emailOk()
+                    && request.resource.data.keys().hasOnly(['postId', 'uid', 'postAutorId', 'nome', 'criadoEm'])
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.postId is string && request.resource.data.postId.size() <= 64
+                    && id == request.resource.data.postId + '_' + request.auth.uid
+                    && request.resource.data.postAutorId != request.auth.uid
+                    && (!('nome' in request.resource.data) || (request.resource.data.nome is string && request.resource.data.nome.size() <= 80))
+                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
+                    && !bloqueioEntre(request.auth.uid, request.resource.data.postAutorId)
+                    && request.resource.data.criadoEm == request.time;
+      allow delete: if logado() && (resource.data.uid == request.auth.uid || podeModerar());
+      allow update: if false;
+    }
+
     // ===================================================
     // STORIES (24 horas): stories/{id} — foto (no documento ou no Storage) ou vídeo (Storage).
     // Somem para todos depois de 24 h (o site filtra; o autor apaga os vencidos). vistos/{uid}: quem viu.

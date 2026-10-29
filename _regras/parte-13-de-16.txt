@@ -80,6 +80,24 @@
       allow update: if false;
     }
 
+    // Republicar (como o repost do Instagram): republicacoes/{postId}_{uid}. A publicação original aparece para quem
+    // segue quem republicou, com "Fulano republicou". Não dá para republicar a própria nem com bloqueio entre os dois.
+    match /republicacoes/{id} {
+      allow read: if logado();
+      allow create: if logado() && emailOk()
+                    && request.resource.data.keys().hasOnly(['postId', 'uid', 'postAutorId', 'nome', 'criadoEm'])
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.postId is string && request.resource.data.postId.size() <= 64
+                    && id == request.resource.data.postId + '_' + request.auth.uid
+                    && request.resource.data.postAutorId != request.auth.uid
+                    && (!('nome' in request.resource.data) || (request.resource.data.nome is string && request.resource.data.nome.size() <= 80))
+                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
+                    && !bloqueioEntre(request.auth.uid, request.resource.data.postAutorId)
+                    && request.resource.data.criadoEm == request.time;
+      allow delete: if logado() && (resource.data.uid == request.auth.uid || podeModerar());
+      allow update: if false;
+    }
+
     // ===================================================
     // STORIES (24 horas): stories/{id} — foto (no documento ou no Storage) ou vídeo (Storage).
     // Somem para todos depois de 24 h (o site filtra; o autor apaga os vencidos). vistos/{uid}: quem viu.
@@ -164,35 +182,4 @@
       allow update, delete: if false;
     }
 
-    // ===================================================
-    // ENQUETE ANÔNIMA: o voto fica em enquete_anon/{alvo}_{uid} (ninguém lista; só a própria pessoa lê o dela)
-    // e a contagem nos mesmos pedaços enquete_contas/{alvo}_{fatia}, que sobem +1 na MESMA gravação do voto.
-    // Assim nem o autor da enquete sabe quem votou em quê.
-    // ===================================================
-    match /enquete_anon/{id} {
-      function votoAnonOk() {
-        let d = request.resource.data;
-        let doc = d.tipo == 'd'
-          ? /databases/$(database)/documents/diario/$(d.itemId)
-          : /databases/$(database)/documents/stories/$(d.itemId);
-        let e = get(doc).data.enquete;
-        return d.keys().hasOnly(['alvo', 'tipo', 'itemId', 'uid', 'opcao', 'fatia', 'fimEm', 'criadoEm'])
-            && d.uid == request.auth.uid && d.criadoEm == request.time
-            && d.tipo in ['d', 'f']
-            && d.itemId is string && d.itemId.matches('^[A-Za-z0-9]{1,64}$')
-            && d.alvo == d.tipo + '_' + d.itemId
-            && id == d.alvo + '_' + request.auth.uid
-            && d.opcao is int && d.opcao >= 0 && d.opcao < e.opcoes.size()
-            && e.get('anonima', false) == true
-            && (!('fimEm' in e) || request.time < e.fimEm)
-            && (!('fimEm' in d) || ('fimEm' in e && d.fimEm == e.fimEm))
-            // a contagem da opção sobe exatamente 1 junto com o voto
-            && fatiaSobe(d);
-      }
-      allow get: if logado() && id.matches('.*_' + request.auth.uid);
-      // listar só os próprios votos (o resultado chega nas notificações de quem votou)
-      allow list: if logado() && resource.data.uid == request.auth.uid;
-      allow create: if logado() && !sancionado(request.auth.uid) && votoAnonOk();
-      allow update, delete: if false;
-    }
 // ===== FIM DA PARTE 13 DE 16 =====
