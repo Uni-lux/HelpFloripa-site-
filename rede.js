@@ -16,11 +16,11 @@ import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
 import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=17";
 import { ouvirItensEquipe, TEXTO_EQUIPE, linkEquipe } from "./avisos-equipe.js?v=1";
-import "./painel-avisos.js?v=36";
-import { docComValidade, docsComValidade } from "./leituras.js?v=3";
+import "./painel-avisos.js?v=37";
+import { docComValidade, docsComValidade, esquecer } from "./leituras.js?v=3";
 import { avisoPlano } from "./planos-base.js?v=15";
 import { palavrasBusca } from "./pessoas.js?v=5"; // o sino abre o painel de notificações na própria página
-import { registrarGosto, PESO } from "./gosto.js?v=1";
+import { registrarGosto, PESO } from "./gosto.js?v=2";
 import { confirmarHF } from "./confirmar.js?v=5";
 import { seletorDuracao, fimEscolhido, fimDaEnquete, encerrada, faltaTexto, dataCurta, resumoResultado, guardarInfoEnquete, enquetesEncerradas, textoEnqueteFim, linhaChave, MAX_PUB_MIN, lerContasEnquete, resultadoFinal, sortearFatia, pedacoDaEnquete } from "./enquetes.js?v=5";
 
@@ -55,6 +55,7 @@ const SIMBOLOS = `<symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l
 <symbol id="i-avancar" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
 <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8.5A2.5 2.5 0 016.5 6h1.8l1.5-2h4.4l1.5 2h1.8A2.5 2.5 0 0120 8.5v9a2.5 2.5 0 01-2.5 2.5h-11A2.5 2.5 0 014 17.5z"/><circle cx="12" cy="13" r="3.6"/></symbol>
 <symbol id="i-config" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></symbol>
+<symbol id="i-republicar" viewBox="0 0 24 24"><path d="M17 3.5l3 3-3 3"/><path d="M4 11.5v-1a4 4 0 014-4h12"/><path d="M7 20.5l-3-3 3-3"/><path d="M20 12.5v1a4 4 0 01-4 4H4"/></symbol>
 <symbol id="i-compartilhar" viewBox="0 0 24 24"><path d="M12 15V4M7.5 8.5L12 4l4.5 4.5M5 13v5.5A1.5 1.5 0 006.5 20h11a1.5 1.5 0 001.5-1.5V13"/></symbol>
 <symbol id="i-lapis" viewBox="0 0 24 24"><path d="M4 20h4L19 9a2.8 2.8 0 00-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></symbol>
 <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0113 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></symbol>
@@ -447,7 +448,30 @@ export async function iniciarRede({ sincronizar = false } = {}) {
   conferirEmail(eu);
   await carregarPrivacidade().catch((e) => console.warn("Bloqueios:", e));
   marcarPresenca();
+  // Nome ou foto mudaram desde a última vez: as publicações antigas passam a mostrar os de agora.
+  setTimeout(() => atualizarMinhasPublicacoes().catch((e) => console.warn("Publicações com o nome novo:", e)), 2500);
   return { eu, dados };
+}
+
+// Cada publicação guarda o nome e a foto de quando foi feita (o Flash, os cartões enviados no Mensagens, a grade e a
+// lista de quem comentou usam essa cópia). Quando a pessoa muda o nome ou a foto, as publicações dela recebem os novos.
+// Roda uma vez por mudança (marca no aparelho) e só grava nas que estão diferentes.
+const assinaturaPerfil = () => `${dados.nome || ""}|${String(dados.fotoPerfil || "").length}:${String(dados.fotoPerfil || "").slice(-24)}`;
+export async function atualizarMinhasPublicacoes({ forcar = false } = {}) {
+  if (!eu || !dados.nome) return 0;
+  const chave = "hf-pub-perfil-" + eu.uid, assin = assinaturaPerfil();
+  try { if (!forcar && localStorage.getItem(chave) === assin) return 0; } catch {}
+  const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "diario"), fb.where("autorId", "==", eu.uid), fb.limit(300)));
+  const foto = dados.fotoPerfil || "";
+  const velhas = snap.docs.filter((d) => { const p = d.data(); return (p.nome || "") !== dados.nome || (p.fotoPerfil || "") !== foto; });
+  let ok = 0, falhou = 0;
+  // Uma por uma (não em lote): uma publicação perto do limite de 1 MB não pode impedir as outras.
+  for (let i = 0; i < velhas.length; i += 10) {
+    const r = await Promise.allSettled(velhas.slice(i, i + 10).map((d) => fb.updateDoc(d.ref, { nome: dados.nome, fotoPerfil: foto })));
+    r.forEach((x) => (x.status === "fulfilled" ? ok++ : falhou++));
+  }
+  if (!falhou) { try { localStorage.setItem(chave, assin); } catch {} }
+  return ok;
 }
 
 // ---------- bloqueios e restrições ----------
@@ -1428,6 +1452,62 @@ async function verVotosEnquete(item, alvo, contas) {
 // Barra da publicação, logo abaixo da foto (organizada em duas faixas):
 //   1) ★★★★★ (a sua nota) à esquerda · média e quantas notas à direita (abre o resumo)
 //   2) quatro ações do mesmo tamanho, ícone com o nome embaixo: Comentar · Enviar · Compartilhar · Salvar
+// ---------- republicar (como o repost do Instagram) ----------
+// republicacoes/{postId}_{uid}: a publicação aparece para quem segue quem republicou, com "Fulano republicou".
+let meusRepublicados = null, lendoRepub = null;
+const contasRepub = new Map();
+export const republicou = (postId) => !!meusRepublicados?.has(postId);
+export function carregarMeusRepublicados() {
+  if (meusRepublicados) return Promise.resolve(meusRepublicados);
+  if (!eu) return Promise.resolve(new Set());
+  return (lendoRepub ||= docsComValidade(fb, "repub-" + eu.uid, fb.query(fb.collection(fb.db, "republicacoes"), fb.where("uid", "==", eu.uid), fb.limit(300)), 10 * 60000)
+    .then((s) => (meusRepublicados = new Set(s.docs.map((d) => d.data().postId))))
+    .catch(() => (meusRepublicados = new Set())));
+}
+export async function contarRepublicacoes(postId) {
+  const c = contasRepub.get(postId);
+  if (c && Date.now() - c.em < 5 * 60000) return c.n;
+  const s = await fb.getCountFromServer(fb.query(fb.collection(fb.db, "republicacoes"), fb.where("postId", "==", postId)));
+  const n = s.data().count;
+  contasRepub.set(postId, { n, em: Date.now() });
+  return n;
+}
+export async function alternarRepublicar(post) {
+  if (!post?.id || post.autorId === eu.uid) return false;
+  await carregarMeusRepublicados();
+  const ref = fb.doc(fb.db, "republicacoes", `${post.id}_${eu.uid}`);
+  const tinha = meusRepublicados.has(post.id);
+  try {
+    if (tinha) { await fb.deleteDoc(ref); meusRepublicados.delete(post.id); toast("Republicação desfeita"); }
+    else {
+      await fb.setDoc(ref, { postId: post.id, uid: eu.uid, postAutorId: post.autorId, nome: String(dados.nome || "").slice(0, 80), criadoEm: fb.serverTimestamp() });
+      meusRepublicados.add(post.id);
+      registrarGosto(post, PESO.republicar, eu.uid);
+      toast("Republicado: aparece para quem segue você");
+    }
+    esquecer("q:repub-" + eu.uid); esquecer("repub-" + eu.uid);
+    contasRepub.delete(post.id);
+    return true;
+  } catch (e) {
+    toast(e?.code === "permission-denied" ? "Republicar começa a funcionar quando a atualização do sistema for publicada." : "Não foi possível republicar: " + erroAmigavel(e));
+    return false;
+  }
+}
+export async function verQuemRepublicou(post) {
+  const corpo = abrirLista("Quem republicou");
+  corpo.appendChild(el("div", "lista-vazia", "Carregando..."));
+  try {
+    const s = await fb.getDocs(fb.query(fb.collection(fb.db, "republicacoes"), fb.where("postId", "==", post.id), fb.limit(100)));
+    const quem = s.docs.map((d) => d.data()).filter((r) => !escondido(r.uid)).sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
+    corpo.replaceChildren();
+    if (!quem.length) { corpo.appendChild(el("div", "lista-vazia", "Ninguém republicou ainda.")); return; }
+    for (const r of quem) {
+      const p = await obterPerfil(r.uid);
+      corpo.appendChild(linhaPessoa({ uid: r.uid, nome: p.nome || r.nome || "Usuário", foto: p.fotoPerfil, sub: tempoRelativo(paraData(r.criadoEm)) }));
+    }
+  } catch (e) { corpo.replaceChildren(el("div", "lista-vazia", "Não foi possível carregar: " + erroAmigavel(e))); }
+}
+
 export function barraInteracao(post, { aoComentar } = {}) {
   const barra = el("div", "interacoes");
   const est = seletorEstrelas(post);
@@ -1436,12 +1516,26 @@ export function barraInteracao(post, { aoComentar } = {}) {
     const b = el("button", classe); b.type = "button"; b.setAttribute("aria-label", rotulo);
     const ic = el("span", "ic"); ic.appendChild(icone(nome, "i s"));
     b.append(ic, el("span", "rot", texto));
+    // Número pequeno no canto do ícone (comentários, republicações): o nome cabe com 5 ações lado a lado.
+    b.contar = (n) => { let c = ic.querySelector(".n"); if (!n) { c?.remove(); return; } if (!c) { c = el("b", "n"); ic.appendChild(c); } c.textContent = numero(n); };
     return b;
   };
   const bM = botao("chat", "Comentar", "Comentar", "acao comentar");
   const bE = botao("enviar", "Enviar para alguém", "Enviar", "acao enviar");
   const bS = botao("compartilhar", "Compartilhar", "Compartilhar", "acao compartilhar");
   const bG = botao("salvo", "Salvar", "Salvar", "acao salvar");
+  const bR = botao("republicar", "Republicar", "Republicar", "acao republicar");
+  const meu = post.autorId === eu?.uid;
+  const pintarRepub = (n = bR._n) => {
+    bR._n = n;
+    const on = !meu && republicou(post.id);
+    bR.classList.toggle("on", on); bR.setAttribute("aria-pressed", String(on));
+    bR.lastChild.textContent = on ? "Republicado" : "Republicar";
+    bR.contar(n);
+    bR.setAttribute("aria-label", meu ? "Quem republicou" : on ? "Desfazer republicação" : "Republicar para os seus seguidores");
+  };
+  pintarRepub(0);
+  carregarMeusRepublicados().then(() => pintarRepub()).catch(() => {});
   const pintarSalvo = () => {
     const sv = estaSalvo(post.id);
     bG.classList.toggle("on", sv); bG.setAttribute("aria-pressed", String(sv));
@@ -1452,13 +1546,21 @@ export function barraInteracao(post, { aoComentar } = {}) {
   const topo = el("div", "int-topo");
   topo.append(est);
   if (resumo) topo.appendChild(resumo);
-  const acoes = el("div", "acoes-post"); acoes.append(bM, bE, bS, bG);
+  // Ordem: comentar, salvar, republicar no meio, compartilhar e enviar por último.
+  const acoes = el("div", "acoes-post"); acoes.append(bM, bG, bR, bS, bE);
   barra.append(topo, acoes);
   const pintarN = (n) => {
-    bM.lastChild.textContent = n ? `${numero(n)} ${n === 1 ? "comentário" : "comentários"}` : "Comentar";
+    bM.lastChild.textContent = "Comentar"; bM.contar(n);
     bM.setAttribute("aria-label", n ? `Comentários (${n})` : "Comentar");
   };
-  quandoVisivel(barra, () => contarComentarios(post.id).then(pintarN));
+  quandoVisivel(barra, () => { contarComentarios(post.id).then(pintarN); contarRepublicacoes(post.id).then((n) => pintarRepub(n)).catch(() => {}); });
+  bR.addEventListener("click", async () => {
+    if (meu) { verQuemRepublicou(post); return; }
+    bR.classList.add("pulo"); setTimeout(() => bR.classList.remove("pulo"), 400);
+    const antes = republicou(post.id);
+    const ok = await alternarRepublicar(post);
+    if (ok) pintarRepub(Math.max(0, (bR._n || 0) + (antes ? -1 : 1)));
+  });
   const comentar = () => { registrarGosto(post, PESO.abrir, eu.uid); return aoComentar ? aoComentar() : abrirComentarios(post, { aoMudar: pintarN }); };
   bM.addEventListener("click", comentar);
   bE.addEventListener("click", () => enviarParaAmigos(post));
@@ -1808,7 +1910,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=49").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=50").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);
@@ -1871,37 +1973,19 @@ async function mandarPublicacao(post, uid) {
 // Nova publicação
 // =====================================================
 let pubMidia = null;
-// Onde a publicação vai: Diário = com foto ou vídeo; Registros = texto, enquete ou caixa de perguntas (sem mídia).
-// O modo escolhido muda o formulário (Registros não tem Foto/Vídeo) e o botão diz para onde vai.
-let pubModo = "diario";
-const DESTINOS_PUB = {
-  diario: { rotulo: "Diário", icone: "feed", dica: "Fotos e vídeos", ph: "Escreva uma legenda para a sua foto ou vídeo..." },
-  registros: { rotulo: "Registros", icone: "registros", dica: "Textos, enquetes e perguntas", ph: "No que você está pensando? Escreva um registro..." }
-};
+// Tudo vai para o Diário (foto, vídeo, texto, enquete ou caixa de perguntas). Vídeo só com o Storage ligado.
 function pintarDestino() {
-  if (!$("pubModo")) return;
-  const vaiPara = pubModo === "registros" || !pubMidia ? "registros" : "diario";
-  $("pubModo").querySelectorAll("[data-modo]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.modo === pubModo)));
-  $("pubTexto").placeholder = DESTINOS_PUB[pubModo].ph;
-  $("pubFoto").hidden = pubModo === "registros";
-  $("pubVideo").hidden = pubModo === "registros" || !storageFns;
-  const aviso = $("pubDestino");
-  aviso.hidden = !(pubModo === "diario" && !pubMidia);
-  aviso.lastChild.textContent = "No Diário vão fotos e vídeos. Sem foto, a publicação vai para Registros.";
-  if (!pubAgenda) $("pubEnviar").textContent = vaiPara === "diario" ? "Publicar no Diário" : "Publicar em Registros";
-  $("t_folhaPublicar") && ($("t_folhaPublicar").textContent = pubModo === "registros" ? "Novo registro" : "Nova publicação");
+  if (!$("pubVideo")) return;
+  $("pubVideo").hidden = !storageFns;
+  if (!pubAgenda) $("pubEnviar").textContent = "Publicar";
 }
-export function abrirCompositor({ aoPublicar, modo = "diario", inicio = "" } = {}) {
+export function abrirCompositor({ aoPublicar, inicio = "" } = {}) {
   if (!$("folhaPublicar")) {
     const f = criarFolha("folhaPublicar", { titulo: "Nova publicação", corpoClasse: "folha-corpo pad", rodape: true });
     $("c_folhaPublicar").innerHTML = `
-      <div class="pub-autor"><div class="avatar" id="pubAvatar"></div><div class="pub-quem"><strong id="pubNome"></strong><span class="pub-modo" id="pubModo" role="group" aria-label="Onde publicar">
-        <button type="button" data-modo="diario" aria-pressed="true"><svg class="i"><use href="#i-feed"/></svg><span>Diário</span><small>Fotos e vídeos</small></button>
-        <button type="button" data-modo="registros" aria-pressed="false"><svg class="i"><use href="#i-registros"/></svg><span>Registros</span><small>Textos e enquetes</small></button>
-      </span></div></div>
-      <p class="pub-destino" id="pubDestino" hidden><svg class="i"><use href="#i-ajuda"/></svg><span></span></p>
+      <div class="pub-autor"><div class="avatar" id="pubAvatar"></div><div class="pub-quem"><strong id="pubNome"></strong><small><svg class="i"><use href="#i-feed"/></svg>Publicando no Diário</small></div></div>
       <div class="pub-campo">
-        <textarea class="pub-texto" id="pubTexto" maxlength="1000" placeholder="Compartilhe um trabalho, uma novidade ou uma dica..." aria-label="Texto da publicação"></textarea>
+        <textarea class="pub-texto" id="pubTexto" maxlength="1000" placeholder="No que você está pensando? Escreva, adicione uma foto ou faça uma enquete..." aria-label="Texto da publicação"></textarea>
         <span class="cont" id="pubCont">0/1000</span>
       </div>
       <div class="pub-previa" id="pubPrevia" hidden></div>
@@ -1935,7 +2019,6 @@ export function abrirCompositor({ aoPublicar, modo = "diario", inicio = "" } = {
   pintarAvatar($("pubAvatar"), dados.fotoPerfil, dados.nome);
   $("pubNome").textContent = dados.nome || "Você";
   $("folhaPublicar").aoPublicar = aoPublicar;
-  pubModo = modo === "registros" ? "registros" : "diario";
   pintarExtras();
   abrirFolha("folhaPublicar");
   // Atalhos do campo de publicar: já abre com a foto, o vídeo, a enquete ou a caixa de perguntas.
@@ -2338,7 +2421,6 @@ async function abrirRascunhos() {
 export const MAX_FOTOS = 4;
 function mostrarPreviaPublicacao() {
   // Foto ou vídeo escolhido: a publicação passa a ser do Diário.
-  if (pubMidia) pubModo = "diario";
   pintarDestino();
   const box = $("pubPrevia");
   box.replaceChildren();
@@ -2378,11 +2460,6 @@ function ligarCompositor() {
   // O campo cresce com o texto (até 45% da tela; depois rola por dentro).
   const crescer = () => { const t = $("pubTexto"); t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight + 2, Math.round(innerHeight * 0.45)) + "px"; };
   $("pubTexto").addEventListener("input", () => { $("pubCont").textContent = `${$("pubTexto").value.length}/1000`; crescer(); });
-  $("pubModo").addEventListener("click", (e) => {
-    const b = e.target.closest("[data-modo]"); if (!b) return;
-    if (b.dataset.modo === "registros" && pubMidia) { toast("Fotos e vídeos ficam no Diário. Tire a foto para publicar em Registros."); return; }
-    pubModo = b.dataset.modo; pintarDestino();
-  });
   $("pubFoto").addEventListener("click", () => $("pubArquivoFoto").click());
   $("pubVideo").addEventListener("click", () => $("pubArquivoVideo").click());
   $("pubMarcar").addEventListener("click", escolherMarcados);
@@ -2508,7 +2585,7 @@ export function pintarBarraRede() {
 // Avisos (notificações): seguidores, pedidos do social, curtidas,
 // comentários e mensagens. Alimenta o contador e a página de avisos.
 // =====================================================
-export const avisos = { seguidores: [], vinculos: [], curtidas: [], comentarios: [], respostas: [], reacoes: [], marcacoes: [], enquetes: [], caixas: [], mensagens: [], reclamacoes: [], equipe: [], planos: [] };
+export const avisos = { seguidores: [], vinculos: [], curtidas: [], comentarios: [], respostas: [], reacoes: [], marcacoes: [], republicacoes: [], enquetes: [], caixas: [], mensagens: [], reclamacoes: [], equipe: [], planos: [] };
 export let avisosVistosEm = 0;
 const ouvintesAvisos = new Set();
 export function aoMudarAvisos(fn) { ouvintesAvisos.add(fn); fn(avisos); }
@@ -2528,7 +2605,7 @@ export function contarNovos() {
   const on = (c) => (dados.prefNotif || {})[c] !== false;
   const n = (c, l) => (on(c) ? l : 0);
   return n("seguidores", avisos.seguidores.filter(t).length) + n("social", avisos.vinculos.filter((v) => v.pendente || t(v)).length)
-    + n("publicacoes", avisos.curtidas.filter(t).length + avisos.comentarios.filter(t).length + avisos.respostas.filter(t).length + avisos.reacoes.filter(t).length + avisos.marcacoes.filter(t).length)
+    + n("publicacoes", avisos.curtidas.filter(t).length + avisos.comentarios.filter(t).length + avisos.respostas.filter(t).length + avisos.reacoes.filter(t).length + avisos.marcacoes.filter(t).length + avisos.republicacoes.filter(t).length)
     + n("enquetes", avisos.enquetes.filter(t).length + avisos.caixas.filter(t).length)
     + n("negocios", avisos.reclamacoes.filter(t).length + avisos.planos.filter(t).length)
     + avisos.equipe.filter((x) => x.naoLida && t(x)).length;
@@ -2590,6 +2667,12 @@ export function ouvirAvisos({ notificarNovos = true } = {}) {
     const l = snap.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter((p) => (p.agendadoPara?.toMillis?.() ?? 0) <= Date.now());
     avisos.marcacoes = (await Promise.all(l.map(async (p) => ({ id: p.id, uid: p.autorId, postId: p.id, quando: ms(p.criadoEm), ...(await perfilDe(p.autorId)) })))).filter((x) => ok(x.uid));
     if (novos && notificarNovos) avisos.marcacoes.filter((x) => novos.has(x.id)).forEach((x) => notificar("Marcaram você", `${x.nome} marcou você numa publicação`, () => { location.href = "notificacoes.html"; }));
+  });
+  // Quem republicou as minhas publicações
+  ouvir(fb.query(fb.collection(fb.db, "republicacoes"), fb.where("postAutorId", "==", eu.uid), fb.limit(60)), async (snap, novos) => {
+    const l = await Promise.all(snap.docs.map(async (d) => { const r = d.data({ serverTimestamps: "estimate" }); return { id: d.id, uid: r.uid, postId: r.postId, quando: ms(r.criadoEm), ...(await perfilDe(r.uid)) }; }));
+    avisos.republicacoes = l.filter((x) => ok(x.uid));
+    if (novos && notificarNovos) avisos.republicacoes.filter((x) => novos.has(x.id)).forEach((x) => notificar("Republicaram você", `${x.nome} republicou sua publicação`, () => { location.href = "notificacoes.html"; }));
   });
   // Respostas aos meus comentários (em qualquer publicação)
   ouvir(fb.query(fb.collection(fb.db, "comentarios"), fb.where("respostaAutorId", "==", eu.uid), fb.limit(100)), async (snap, novos) => {

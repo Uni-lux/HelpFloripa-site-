@@ -743,7 +743,7 @@ html, body { overflow-x: clip; }
 .int-topo { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; padding: 8px 12px 8px 10px; }
 .int-topo .estrelas-post { flex: none; }
 .int-topo .estrelas-txt { margin: 0 -6px 0 0; white-space: nowrap; }
-.interacoes .acoes-post { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; margin: 0; padding: 4px 6px 6px; border-top: 1px solid var(--line); }
+.interacoes .acoes-post { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 2px; margin: 0; padding: 4px 6px 6px; border-top: 1px solid var(--line); }
 .interacoes .acao { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-width: 0; height: auto; padding: 7px 2px 6px; border: 0; border-radius: 12px; background: none; color: var(--text); font: inherit; cursor: pointer; transition: background .15s, color .15s; -webkit-tap-highlight-color: transparent; }
 .interacoes .acao .ic { display: grid; place-items: center; height: 24px; transition: transform .12s; }
 .interacoes .acao svg { width: 23px; height: 23px; stroke-width: 1.8; }
@@ -754,7 +754,14 @@ html, body { overflow-x: clip; }
 @media (hover: none) { .interacoes .acao:hover { background: none; } }
 .interacoes .acao.salvar.on, .interacoes .acao.salvar.on .rot { color: var(--accent); }
 .interacoes .acao.salvar.on svg { fill: currentColor; }
-.interacoes .acao.salvar.pulo .ic { animation: contPulso .4s ease-out; }
+.interacoes .acao.salvar.pulo .ic, .interacoes .acao.republicar.pulo .ic { animation: contPulso .4s ease-out; }
+.interacoes .acao .ic { position: relative; }
+.interacoes .acao .ic .n { position: absolute; top: -5px; left: calc(50% + 7px); min-width: 17px; padding: 1px 5px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); color: var(--text); font-size: 10px; font-weight: 800; line-height: 1.3; text-align: center; }
+.interacoes .acao.republicar.on, .interacoes .acao.republicar.on .rot { color: #1fbf75; }
+.interacoes .acao.republicar.on svg { stroke-width: 2.4; }
+.post-repost { display: flex; align-items: center; gap: 6px; padding: 10px 14px 0 18px; color: var(--muted); font-size: 12.5px; font-weight: 700; }
+.post-repost svg { width: 15px; height: 15px; color: #1fbf75; }
+.post-repost button { border: 0; background: none; padding: 0; font: inherit; color: var(--text); cursor: pointer; }
 @media (max-width: 370px) {
   .interacoes .estrela { font-size: 21px; padding: 2px 0; }
   .interacoes .acao .rot { font-size: 10.5px; }
@@ -2212,19 +2219,9 @@ div.cfg2-linha { cursor: default; }
 .linha-neg .avatar.neg[data-plano="plus"] { box-shadow: 0 0 0 2.5px #2563ff; }
 .linha-neg .avatar.neg[data-plano="pro"] { box-shadow: 0 0 0 2.5px #7c3aed; }
 .linha-neg .avatar.neg[data-plano="premium"] { box-shadow: 0 0 0 2.5px #f59e0b; }
-
-/* Nova publicação: onde vai (Diário = fotos e vídeos · Registros = textos, enquetes e perguntas) */
+/* Nova publicação */
 .pub-autor .pub-quem { flex: 1; }
-.pub-modo { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 3px; border-radius: 14px; background: var(--panel-2, rgba(127,127,127,.08)); border: 1px solid var(--line); width: min(100%, 340px); }
-.pub-modo button { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 7px; align-items: center; text-align: left; border: 0; border-radius: 11px; padding: 6px 9px; background: transparent; color: var(--muted); cursor: pointer; min-width: 0; }
-.pub-modo button .i { grid-row: span 2; width: 18px; height: 18px; }
-.pub-modo button span { font-weight: 800; font-size: 13px; line-height: 1.15; color: inherit; }
-.pub-autor .pub-quem .pub-modo button small { display: block; padding: 0; background: none; border-radius: 0; color: inherit; font-size: 10.5px; font-weight: 600; opacity: .8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pub-modo button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink, #fff); box-shadow: 0 6px 16px -8px color-mix(in srgb, var(--accent) 70%, transparent); }
-.pub-destino { display: flex; align-items: flex-start; gap: 7px; margin: 10px 2px 0; font-size: 12.5px; color: var(--muted); line-height: 1.4; }
-.pub-destino .i { width: 15px; height: 15px; flex-shrink: 0; margin-top: 1px; color: var(--accent); }
-
-/* ---------- Diário | Registros: topo de cada aba, campo de publicar com atalhos e Registros em lista ---------- */
+/* ---------- Diário: topo, campo de publicar com atalhos ---------- */
 .feed-intro { display: flex; align-items: center; gap: 12px; padding: 14px 16px; margin-bottom: 12px; border-radius: 20px; border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--line));
   background: radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 60%), var(--panel); }
 .feed-intro .fi-ic { width: 42px; height: 42px; flex: none; border-radius: 14px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 55%, #001018)); box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 30%, transparent); }
@@ -2234,28 +2231,21 @@ div.cfg2-linha { cursor: default; }
 .compor-box { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; margin-bottom: 14px; overflow: hidden; }
 .compor-box .compor-card { margin: 0; border: 0; border-radius: 0; background: transparent; }
 .compor-box .compor-card:hover { background: var(--hover); }
-.compor-atalhos { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); }
+.compor-atalhos { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); }
 .compor-atalhos button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; border: 0; background: none; color: var(--text); font-weight: 750; font-size: 13.5px; cursor: pointer; }
 .compor-atalhos button[hidden] { display: none; }
 .compor-atalhos button + button:not([hidden]) { border-left: 1px solid var(--line); }
 .compor-atalhos button svg { color: var(--accent); }
 .compor-atalhos button:hover { background: var(--hover); }
-/* Registros: um painel só, publicações separadas por linhas, foto à esquerda e uma linha ligando (estilo conversa). */
-#listaFeed.registros { background: var(--panel); border: 1px solid var(--line); border-radius: 22px; overflow: hidden; }
-#listaFeed.registros:empty, #listaFeed.registros:has(> .vazio:only-child) { background: none; border: 0; }
-#listaFeed.registros > .post-card { position: relative; margin: 0; border: 0; border-radius: 0; background: none; padding-left: 58px; border-bottom: 1px solid var(--line); overflow: visible; }
-#listaFeed.registros > .post-card:last-child { border-bottom: 0; }
-#listaFeed.registros > .post-card::before { content: ""; position: absolute; left: 29px; top: 58px; bottom: 16px; width: 2px; border-radius: 2px; background: var(--line); }
-#listaFeed.registros .post-cab { padding: 12px 10px 2px 0; }
-#listaFeed.registros .post-cab .avatar { position: absolute; left: 10px; top: 12px; }
-#listaFeed.registros .post-card .post-texto { padding: 2px 14px 10px 0; font-size: 15.5px; font-weight: 500; }
-#listaFeed.registros .post-card .post-texto.citacao { margin: 0; padding: 2px 14px 10px 0; border: 0; border-radius: 0; background: none; font-size: 16px; font-weight: 550; letter-spacing: 0; }
-#listaFeed.registros .post-card .post-texto.citacao::before { content: none; }
-#listaFeed.registros .post-card .post-texto.citacao + .ver-mais { margin-top: -4px; }
-#listaFeed.registros .post-card > :is(.bloco-enquete, .bloco-caixa, .enq-bloco, .cx-bloco) { margin-left: 0; }
-#listaFeed.registros .int-topo { padding: 4px 12px 2px 0; }
-#listaFeed.registros .acoes-post { margin-left: -8px; }
-#listaFeed.registros .post-com { padding-left: 0; }
-#listaFeed.registros .post-coment-previa { padding-left: 0; }
-#listaFeed.registros > .post-card:hover { background: color-mix(in srgb, var(--hover) 50%, transparent); }
-.aba-registros #storiesFeed { display: none; }
+
+/* Diário: filtro de tipo ao lado do Principais, numa fileira só que rola para o lado */
+.filtro-feed { flex-wrap: nowrap; align-items: center; overflow-x: auto; scrollbar-width: none; padding: 1px; }
+.filtro-feed::-webkit-scrollbar { display: none; }
+#filtroFeedBtn { order: -1; flex: none; }
+.tipos-feed { display: contents; }
+.tipos-feed button { flex: none; white-space: nowrap; }
+.tipos-feed button[aria-selected="true"] { background: var(--text); border-color: var(--text); color: var(--bg); }
+/* 5 ações lado a lado: o nome encolhe um pouco no celular para caber inteiro (Republicar, Compartilhar) */
+.interacoes .acoes-post { gap: 0; padding: 4px 2px 6px; }
+.interacoes .acao { padding-left: 0; padding-right: 0; }
+.interacoes .acao .rot { font-size: clamp(9.5px, 2.75vw, 11.5px); letter-spacing: -.01em; text-overflow: clip; }

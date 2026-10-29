@@ -1060,6 +1060,26 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   lista corrida estilo conversa (`#listaFeed.registros`, foto à esquerda e linha ligando, sem a caixa de citação) e sem a
   fileira do Flash (`body.aba-registros`; o stories.js mostrava a fileira ao terminar de carregar). **Mensagens da barra**
   abre a página inteira (chat-gaveta.js ignora links em `#barraRede`). Teste `t-mural.mjs`.
+- **Diário único + Republicar + nome atual (29/10/2026, PR depois do #117, MUDA 1 REGRA — não publicada; 16 partes, 640
+  testes):** pedido dele: Diário e Registros viram UM Diário (fotos, vídeos, textos, enquetes). feed.js: `ABAS` diario|explorar
+  (`?aba=registros` antigo abre o Diário), sem `#abasFeed`, filtro de tipo `#tiposFeed` (`TIPOS_FEED` Tudo/Fotos e vídeos/Textos/
+  Enquetes e perguntas, `doTipo`, filtra o já lido: `todosPosts` → `posts`, `mostrarFiltrados`), atalhos Foto/Enquete/Flash/Local;
+  formulário sem o seletor `#pubModo` ("Publicando no Diário"). **Republicar** (rede.js): `republicacoes/{postId}_{uid}` {postId,
+  uid, postAutorId, nome, criadoEm} (regra: não a própria, autor confere, sem bloqueio; delete quem republicou/moderação);
+  `carregarMeusRepublicados` (cache "repub-uid" 10 min), `contarRepublicacoes` (count 5 min), `alternarRepublicar`,
+  `verQuemRepublicou` (no próprio post o botão abre a lista). Barra: Comentar · Salvar · **Republicar (meio)** · Compartilhar ·
+  **Enviar (último)**, números num selo no ícone (`b.contar`), nomes com `clamp` para caber em 360 px. Diário: `buscarRepublicados`
+  (de quem você segue, 7 dias, índice `republicacoes` uid+criadoEm — agora 11 índices) → "Fulano republicou" (`.post-repost`),
+  idade conta da republicação, empurrão social. Aviso para o autor (tipo `republicacao`, id `p_`) em rede.js/notificacoes/
+  painel-avisos/avisos-lista/categoria.js. `gosto.js` PESO.republicar. Conta apagada: conta.js e limpar-contas apagam.
+  **Nome antigo no Flash:** cada `diario` guarda o nome/foto de quando foi publicado; `compartilharNoFlash` usa o perfil de
+  agora, `atualizarMinhasPublicacoes()` (rede.js, roda ao entrar se nome/foto mudaram — marca `hf-pub-perfil-<uid>` — e ao
+  salvar o perfil/foto) grava o nome/foto atuais nas até 300 publicações da pessoa (uma por uma); sino/notificações trocam
+  nome/foto pelos do perfil (`ganchos.perfis` em avisos-lista.js, `docsPorIds`). **Entrega revisada (ordenarPrincipais):** as
+  suas publicações só sobem nas 3 primeiras horas (antes ficavam sempre em cima com o empurrão de "sigo"), agendada conta a
+  idade de quando apareceu, região = lugar escolhido (`regiaoLeitor`, antes só o perfil), já vista ×0,3, filtro por tipo depois
+  da ordem (antes o Diário de fotos filtrava as 60 lidas e quebrava o 1 a cada 5 da descoberta). Teste `t-republicar.mjs`;
+  `t-sino` espera os nomes atuais do perfil.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

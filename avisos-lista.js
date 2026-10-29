@@ -29,6 +29,7 @@ const ICONES = {
   fechar: '<path d="M6 6l12 12M18 6L6 18"/>',
   tudo: '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
   pessoa: '<circle cx="10" cy="8.5" r="3.8"/><path d="M3.5 20c1-3.4 3.6-5.3 6.5-5.3s5.5 1.9 6.5 5.3M18.5 8v6M15.5 11h6"/>',
+  republicar: '<path d="M17 3.5l3 3-3 3"/><path d="M4 11.5v-1a4 4 0 014-4h12"/><path d="M7 20.5l-3-3 3-3"/><path d="M20 12.5v1a4 4 0 01-4 4H4"/>',
   estrela: '<path d="M12 3.8l2.5 5.2 5.7.8-4.1 4 1 5.6L12 16.7l-5.1 2.7 1-5.6-4.1-4 5.7-.8z"/>',
   chat: '<path d="M20.5 11.6c0 4.3-3.8 7.6-8.5 7.6-1.2 0-2.3-.2-3.3-.6L4 20l1.2-3.6c-1.1-1.3-1.7-3-1.7-4.8C3.5 7.4 7.3 4 12 4s8.5 3.4 8.5 7.6z"/>',
   fio: '<path d="M3 15c3-6 6 4 9-2s6 4 9-2"/><circle cx="12" cy="13" r="1.6" fill="currentColor"/>',
@@ -67,6 +68,7 @@ export const TIPOS = {
   resposta: { cor: "#7c5cff", ic: "chat", cat: "publicacoes", rot: "Resposta" },
   reacao: { cor: "#e0457b", ic: "coracao", cat: "publicacoes", rot: "Reação" },
   marcacao: { cor: "#00adee", ic: "pessoa", cat: "publicacoes", rot: "Marcação" },
+  republicacao: { cor: "#1fbf75", ic: "republicar", cat: "publicacoes", rot: "Republicação" },
   enquete: { cor: "#7c5cff", ic: "enquete", cat: "enquetes", rot: "Enquete" },
   caixa: { cor: "#ff7a1a", ic: "caixa", cat: "enquetes", rot: "Perguntas" },
   avaliacao: { cor: "#f5b700", ic: "estrela", cat: "negocios", rot: "Avaliação" },
@@ -232,6 +234,18 @@ function estadoLocal(uid) {
 export function criarLista({ raiz, uid, ganchos = {} }) {
   css();
   const loc = estadoLocal(uid);
+  const perfisAtuais = new Map();
+  // Troca nome/foto guardados no aviso pelos atuais do perfil; devolve true se mudou alguma coisa.
+  const atuais = (lista) => {
+    let mudou = false;
+    lista.forEach((i) => {
+      const p = i.uid && !i.oficial ? perfisAtuais.get(i.uid) : null;
+      if (!p) return;
+      if (p.nome && p.nome !== i.nome) { i.nome = p.nome; mudou = true; }
+      if (p.fotoPerfil && p.fotoPerfil !== i.foto) { i.foto = p.fotoPerfil; mudou = true; }
+    });
+    return mudou;
+  };
   let itens = [], vistoAntes = 0, prefs = {}, cat = "tudo", soNaoLidas = false, limite = 60, pedidosAbertos = false;
   const wrap = el("div", "nt2");
   const barra = el("div", "nt2-barra");
@@ -310,7 +324,7 @@ export function criarLista({ raiz, uid, ganchos = {} }) {
         bt(i.grupo ? "Ver todos" : "Ver perfil", false, abrir);
         break;
       case "comentario": case "resposta": bt("Responder", true, abrir); break;
-      case "curtida": case "marcacao": case "reacao": bt("Ver publicação", false, abrir); break;
+      case "curtida": case "marcacao": case "reacao": case "republicacao": bt("Ver publicação", false, abrir); break;
       case "enquete": bt("Ver resultado", true, abrir); break;
       case "caixa": bt("Ver respostas", true, abrir); break;
       case "avaliacao": bt(i.cliente ? "Ver perfil" : "Ver avaliação", false, abrir); break;
@@ -498,7 +512,16 @@ export function criarLista({ raiz, uid, ganchos = {} }) {
       itens = novos || [];
       if ("vistoAntes" in opcoes) vistoAntes = opcoes.vistoAntes || 0;
       if ("prefs" in opcoes) prefs = opcoes.prefs || {};
+      atuais(itens);
       pintar();
+      // Nome e foto de AGORA de quem aparece (o aviso guarda os de quando aconteceu): busca em lote e redesenha.
+      if (ganchos.perfis) {
+        const falta = [...new Set(itens.filter((i) => i.uid && !i.oficial && !perfisAtuais.has(i.uid)).map((i) => i.uid))];
+        if (falta.length) ganchos.perfis(falta).then((m) => {
+          falta.forEach((u) => perfisAtuais.set(u, m?.get?.(u) || null));
+          if (atuais(itens)) pintar();
+        }).catch(() => {});
+      }
     },
     contarNaoLidas: () => itens.filter(visivel).filter(ehNova).length,
     redesenhar: pintar

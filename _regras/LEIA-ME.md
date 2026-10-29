@@ -51,6 +51,9 @@
 > **Chat da equipe por canais (22/10):** canais por setor (`equipe_canais`: Avisos, Segurança, Moderação, Pagamentos,
 > Negócios, Conta e Comercial; toda a equipe lê, em Avisos só os donos escrevem; anexos e apagar/editar como no Geral) e a
 > **situação de cada um** no painel (`equipe_presenca.status`: disponível, em pausa ou fora do turno).
+> **Republicar (29/10):** `republicacoes/{postId}_{uid}` — republicar a publicação de outra pessoa no Diário (não a própria,
+> nem com bloqueio entre os dois); todos leem, só quem republicou desfaz. Junto: criar o índice `republicacoes`
+> (`uid` + `criadoEm`), na lista do `INDICES-LEIA-ME.md`.
 > Para publicar, o processo é o mesmo: apagar tudo no console e colar as 16 partes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
@@ -61,7 +64,7 @@ linha), para colar no console do Firebase.
 - Cada parte termina com a linha `// ===== FIM DA PARTE X DE 16 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
 - Conferido: as 16 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **632 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
+- Testes de regras no arquivo remontado: **640 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.

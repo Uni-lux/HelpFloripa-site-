@@ -8,12 +8,13 @@ import {
   $, el, icone, pintarAvatar, urlSegura, tempoRelativo, toast, erroAmigavel,
   fb, eu, dados, refUsuario, ganchos, iniciarRede, carregarMeusSeguindo, botaoSeguir, montarBarraRede, pintarBarraRede,
   ouvirAvisos, aoMudarAvisos, avisosVistosEm, marcarAvisosVistos, rotuloVinculo, abrirComentarios, abrirResultadoEnquete, verRespostasCaixa
-} from "./rede.js?v=77";
+} from "./rede.js?v=78";
 import { TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=17";
 import { TEXTO_EQUIPE, linkEquipe, seloOficial, fotoSuporte } from "./avisos-equipe.js?v=1";
 import { textoEnqueteFim, resumoResultado } from "./enquetes.js?v=5";
 import { textoPlano } from "./planos-base.js?v=15";
-import { criarLista } from "./avisos-lista.js?v=14";
+import { criarLista } from "./avisos-lista.js?v=15";
+import { docsPorIds } from "./leituras.js?v=3";
 
 let vistoAntes = 0, ultimo = null, abriuPedida = false;
 const postsCache = new Map();
@@ -47,6 +48,7 @@ function itens(a) {
     ...a.respostas.filter((x) => !a.comentarios.some((c) => c.id === x.id)).map((x) => ({ tipo: "resposta", ...x, docId: x.id, id: "r_" + x.id, texto: "respondeu seu comentário", detalhe: x.texto })),
     ...(a.reacoes || []).map((x) => ({ tipo: "reacao", ...x, docId: x.id, id: "e_" + x.id, texto: `reagiu com ${x.reacao} ao seu comentário` })),
     ...(a.marcacoes || []).map((x) => ({ tipo: "marcacao", ...x, docId: x.id, id: "k_" + x.id, texto: "marcou você numa publicação" })),
+    ...(a.republicacoes || []).map((x) => ({ tipo: "republicacao", ...x, docId: x.id, id: "p_" + x.id, texto: "republicou sua publicação" })),
     ...(a.caixas || []).map((x) => ({ tipo: "caixa", ...x, docId: x.id, id: "x_" + x.id, texto: "respondeu sua caixa de perguntas", detalhe: x.texto })),
     ...(a.enquetes || []).map((x) => ({ ...x, texto: x.souAutor ? "terminou. Veja o resultado." : textoEnqueteFim(x).titulo, detalhe: "" })),
     ...a.vinculos.map((x) => ({ tipo: "social", ...x, texto: x.pendente ? `quer adicionar você como ${rotuloVinculo(x.tipoParaMim).toLowerCase()}` : `aceitou seu pedido: ${rotuloVinculo(x.tipoParaMim)}` })),
@@ -93,7 +95,7 @@ async function abrirItem(i) {
       if (!p) { toast("Esse comentário foi apagado."); return; }
       abrirComentarios(p); return;
     }
-    if (i.tipo === "comentario" || i.tipo === "curtida" || i.tipo === "resposta" || i.tipo === "marcacao") {
+    if (i.tipo === "comentario" || i.tipo === "curtida" || i.tipo === "resposta" || i.tipo === "marcacao" || i.tipo === "republicacao") {
       const p = await obterPost(i.postId);
       if (!p) { toast("Essa publicação foi apagada."); return; }
       abrirComentarios(p);
@@ -121,6 +123,7 @@ const miniatura = (i) => obterPost(i.postId).then((p) => (p ? { foto: p.mediaTip
   vistoAntes = avisosVistosEm;
   lista = criarLista({ raiz: $("listaAvisos"), uid: eu.uid, ganchos: {
     abrir: abrirItem, miniatura, salvarPrefs,
+    perfis: (ids) => docsPorIds(fb, "perfis_publicos", ids, 30 * 60000),
     botaoSeguir: (uid) => botaoSeguir(uid, { meSegue: true }),
     responderVinculo: (i, sim) => responderVinculo(i, sim),
     extra: (i) => (i.tipo === "enquete" ? miniResultado(i) : null),

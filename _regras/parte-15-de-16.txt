@@ -1,3 +1,33 @@
+      allow update: if logado()
+                    && emailOk()
+                    && (
+                      // quem comentou corrige o texto
+                      (resource.data.autorId == request.auth.uid
+                        && mudou().hasOnly(['texto', 'editadoEm'])
+                        && textoComentarioOk(request.resource.data)
+                        && request.resource.data.editadoEm == request.time)
+                      ||
+                      // o dono da publicação oculta ou mostra o comentário
+                      (resource.data.postAutorId == request.auth.uid
+                        && mudou().hasOnly(['oculto'])
+                        && request.resource.data.oculto is bool)
+                    );
+
+      allow delete: if logado()
+                    && (resource.data.autorId == request.auth.uid || resource.data.postAutorId == request.auth.uid);
+      allow delete: if podeModerar();
+    }
+
+    // =====================================================
+    // CURTIDAS EM COMENTÁRIOS: curtidas_comentarios/{comentarioId}_{uid}
+    // =====================================================
+    match /curtidas_comentarios/{id} {
+
+      allow read: if logado();
+
+      // Reação (emoji); sem o campo = curtida antiga (conta como ❤️).
+      function reacaoOk(d) { return !('reacao' in d) || d.reacao in ['❤️', '👍', '😂', '😮', '😢', '👏']; }
+
       allow create: if logado()
                     && emailOk()
                     && request.resource.data.keys().hasOnly(['comentarioId', 'uid', 'criadoEm', 'reacao', 'comentarioAutorId'])
@@ -165,31 +195,4 @@
             && get(/databases/$(database)/documents/negocios/$(d.negocioId)).data.donoId != request.auth.uid
             && getAfter(st).data.v == (exists(st) ? get(st).data.v : 0) + 1;
       }
-      // Uma ação nova (cada uma conta uma vez por pessoa no dia) ou um item visto (prato, produto, imóvel).
-      function novoNaLista(campo, max) {
-        let d = request.resource.data;
-        let x = d[campo][d[campo].size() - 1];
-        let st = caminhoStats(resource.data.negocioId, resource.data.dia);
-        let mapa = campo == 'acoes' ? 'a' : 'it';
-        return d.diff(resource.data).affectedKeys().hasOnly([campo])
-            && d[campo].size() <= max
-            && d[campo] == resource.data[campo].concat([x])
-            && !(x in resource.data[campo])
-            && (campo == 'acoes' ? acaoValida(x) : itemValido(x))
-            && getAfter(st).data[mapa].get(x, 0) == get(st).data[mapa].get(x, 0) + 1;
-      }
-      function acaoValida(x) {
-        return x in ['whats', 'mensagem', 'orcamento', 'pedido', 'rota', 'site', 'instagram', 'compartilhar', 'cupom', 'avaliar'];
-      }
-      function itemValido(x) {
-        return x is string && x.matches('^(p_[a-z0-9_]{1,30}|an_[A-Za-z0-9]{1,30})$');
-      }
-      // A própria pessoa confere a visita do dia (inclusive se ela ainda não existe).
-      allow read: if logado() && (resource == null || resource.data.uid == request.auth.uid);
-      allow create: if logado() && visitaNova();
-      allow update: if logado() && resource.data.uid == request.auth.uid
-                    && (novoNaLista('acoes', 12) || novoNaLista('itens', 40));
-      allow delete: if false;
-    }
-
 // ===== FIM DA PARTE 15 DE 16 =====
