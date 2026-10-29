@@ -11,16 +11,16 @@
 import { textoCidade } from "./endereco.js?v=1";
 import {
   $, el, icone, ms, paraData, pintarAvatar, urlSegura, nomeCidade, tempoRelativo, toast, erroAmigavel,
-  fb, eu, dados, meusSeguindo, escondido, ganchos, obterPerfil, iniciarRede, carregarMeusSeguindo, linhaPessoa,
+  fb, eu, dados, meusSeguindo, escondido, ganchos, obterPerfil, iniciarRede, carregarMeusSeguindo, linhaPessoa, pessoasEmPilha, blocoCasado,
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, botaoSeguir, montarBarraRede, marcarBarra, pintarBarraRede, ouvirAvisos, lerOrdenado,
   editarPublicacao, bloquear, comMencoes, fotosDoPost, carrosselFotos, contadorEstrelas, estaSalvo, alternarSalvo, escolherColecao, lerResumosEstrelas, contarComentarios,
   silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto, confirmarHF, blocoEnquete, blocoCaixa, editarPublicoDoPost
-} from "./rede.js?v=82";
+} from "./rede.js?v=85";
 import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=2";
-import { montarStories, abrirFlashPorId, repostarFlash } from "./stories.js?v=54";
+import { montarStories, abrirFlashPorId, repostarFlash } from "./stories.js?v=57";
 import { abrirDenuncia } from "./denuncias.js?v=6";
 import { pessoasRecentes } from "./pessoas.js?v=5";
-import { abrirExplorar, definirCartao, abrirPublicacao } from "./explorar.js?v=64";
+import { abrirExplorar, definirCartao, abrirPublicacao } from "./explorar.js?v=67";
 import { docsComValidade, docsPorIds } from "./leituras.js?v=3";
 import { lerLocal } from "./local-escolhido.js?v=3";
 import { distanciaKm, minhaPosicao } from "./perto.js?v=2";
@@ -73,12 +73,14 @@ const temMidia = (p) => !!(p.mediaUrl || (p.midias || []).length);
 // Tipo de publicação (filtro do topo): tudo, fotos e vídeos, textos, enquetes e perguntas. Filtra o que já foi lido.
 // Botões só com ícone numa linha fina (como a grade do perfil das redes sociais), com o nome no title/aria-label.
 // "Reels" não filtra a lista: abre os vídeos em tela cheia (reels.js).
-const TIPOS_FEED = [["tudo", "Tudo", "grade"], ["reels", "Reels (vídeos)", "video"], ["textos", "Textos", "registros"], ["enquetes", "Enquetes e perguntas", "enquete"]];
+const TIPOS_FEED = [["tudo", "Tudo", "grade"], ["reels", "Reels (vídeos)", "reels"], ["textos", "Textos", "registros"], ["enquetes", "Enquetes e perguntas", "enquete"]];
 let tipoFeed = "tudo"; // "fotos" (antigo) virou Reels // links antigos ?aba=registros abrem o Diário normal (textos e enquetes estão nele)
-const doTipo = (p) => tipoFeed === "tudo" || (tipoFeed === "fotos" ? temMidia(p) : tipoFeed === "enquetes" ? !!(p.enquete?.pergunta || p.caixa?.pergunta) : !temMidia(p) && !p.enquete?.pergunta && !p.caixa?.pergunta);
+// Tipo da publicação (diario.tipo; nas antigas, pelo conteúdo).
+const tipoDe = (p) => p.tipo || (p.enquete?.pergunta ? "enquete" : p.caixa?.pergunta ? "caixa" : p.mediaTipo === "video" && temMidia(p) ? "video" : temMidia(p) ? "foto" : "texto");
+const doTipo = (p) => tipoFeed === "tudo" || (tipoFeed === "fotos" ? ["foto", "video"].includes(tipoDe(p)) : tipoFeed === "enquetes" ? ["enquete", "caixa"].includes(tipoDe(p)) : tipoDe(p) === "texto");
 const daAba = (p) => !!(tagAtual || localAtual) || doTipo(p);
 // Reels: os vídeos já lidos + os mais novos do servidor, com as mesmas regras do Diário (silenciados, público...).
-const verReels = (comecarEm = null) => import("./reels.js?v=1").then((m) => m.abrirReels({ lista: todosPosts, oculto: postOculto, comecarEm, aoNovo: () => compor("video") }));
+const verReels = (comecarEm = null) => import("./reels.js?v=4").then((m) => m.abrirReels({ lista: todosPosts, oculto: postOculto, comecarEm, aoNovo: () => compor("video") }));
 const compor = (inicio = "") => abrirCompositor({ aoPublicar: ganchos.aoPublicar, inicio });
 function pintarTipos() {
   const w = $("tiposFeed"); if (!w) return;
@@ -387,7 +389,7 @@ function cartaoPost(post) {
       : { rotulo: "Salvar publicação", sub: "Para ver depois no seu Perfil → Salvos", icone: "salvo", fn: () => alternarSalvo(post) },
     { rotulo: "Salvar em uma coleção", sub: "Organize seus salvos em pastas", icone: "fotos", fn: () => escolherColecao(post) },
     { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(post.autorId, post.nome) },
-    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=49").then((m) => m.abrirEstatisticas(post)) },
+    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=52").then((m) => m.abrirEstatisticas(post)) },
     post.autorId === eu.uid && { rotulo: "Editar publicação", icone: "lapis", fn: () => editarPublicacao(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId === eu.uid && { rotulo: "Público da publicação", sub: temPublico(post) ? resumoPublico(post.publico) : "Para todos · escolha idade, gênero, lugar e seguidores", icone: "pessoa-mais", fn: () => editarPublicoDoPost(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId !== eu.uid && { rotulo: silenciado(post.autorId) ? `Mostrar ${nome.textContent} de novo` : `Silenciar ${nome.textContent}`, sub: "Continua seguindo, mas as publicações e flashes somem do seu Diário", icone: "restringir",
@@ -417,19 +419,12 @@ function cartaoPost(post) {
     sub.textContent = [p.nickname ? "@" + p.nickname : "", tempoRelativo(paraData(post.criadoEm)), post.editadoEm ? "editada" : ""].filter(Boolean).join(" · ");
   });
   const url = urlSegura(post.mediaUrl);
-  // Pessoas marcadas: "com Ana e Bruno".
-  if (Array.isArray(post.marcados) && post.marcados.length) {
-    const linhaM = el("div", "post-com");
-    linhaM.append(icone("pessoa-mais", "i xs"), document.createTextNode("com "));
-    post.marcados.slice(0, 10).forEach((u, i) => {
-      const b = el("button", null, "..."); b.type = "button"; b.addEventListener("click", () => ganchos.abrirPerfil(u));
-      obterPerfil(u).then((p) => { b.textContent = String(p.nome || "Usuário").split(" ")[0]; }).catch(() => { b.textContent = "Usuário"; });
-      if (i) linhaM.appendChild(document.createTextNode(i === post.marcados.length - 1 ? " e " : ", "));
-      linhaM.appendChild(b);
-    });
-    c.appendChild(linhaM);
-  }
-  if (post.texto) {
+  // Pessoas marcadas: fotinhas empilhadas + "com Ana e mais 2" (vale para todos os tipos de publicação).
+  if (Array.isArray(post.marcados) && post.marcados.length) c.appendChild(pessoasEmPilha(post.marcados, { classe: "post-com" }));
+  // Texto com imagem casada: um cartão só (imagem em cima se fundindo, texto grande embaixo).
+  const casada = post.estilo === "casada" && url && post.mediaTipo !== "video";
+  if (casada) { c._casada = blocoCasado(post.texto, url); c.appendChild(c._casada); }
+  if (post.texto && !casada) {
     // Só texto (sem foto, enquete ou caixa de perguntas) vira cartão de citação, como no Flash.
     const citacao = !url && !post.enquete?.pergunta && !post.caixa?.pergunta && post.texto.length <= 500;
     const t = comMencoes(el("p", "post-texto" + (url ? "" : " so-texto") + (citacao ? " citacao" : "")), post.texto);
@@ -446,8 +441,10 @@ function cartaoPost(post) {
   const barra = barraInteracao(post);
   // Publicação só de texto: toque duplo no texto dá as 5 estrelas (como na foto).
   if (c._texto) toqueDuploEm(c._texto, () => toqueDuplo(c._texto, barra, true));
-  const fotos = fotosDoPost(post);
-  if (fotos.length && post.mediaTipo !== "video") {
+  if (c._casada) toqueDuploEm(c._casada, () => toqueDuplo(c._casada, barra));
+  const fotos = casada ? [] : fotosDoPost(post);
+  if (casada) { /* já desenhado acima */ }
+  else if (fotos.length && post.mediaTipo !== "video") {
     // A foto aparece no recorte escolhido ao publicar (4:5, 1:1 ou 16:9), sem cortar de novo. Fotos antigas
     // fora dessas medidas ficam entre 4:5 e 1,91:1. Toque duplo: contagem de estrelas.
     const m = el("div", "post-midia-f" + (fotos.length > 1 ? " varias" : ""));
@@ -460,8 +457,12 @@ function cartaoPost(post) {
   } else if (url) {
     const m = el("div", "post-midia-f");
     const v = document.createElement("video"); v.src = url; v.muted = true; v.loop = true; v.playsInline = true; v.preload = "metadata";
-    const som = el("button", "video-som"); som.type = "button"; som.setAttribute("aria-label", "Ligar o som"); som.textContent = "🔇";
-    som.addEventListener("click", (e) => { e.stopPropagation(); v.muted = !v.muted; som.textContent = v.muted ? "🔇" : "🔊"; som.setAttribute("aria-label", v.muted ? "Ligar o som" : "Desligar o som"); if (v.paused) v.play().catch(() => {}); });
+    const som = el("button", "video-som"); som.type = "button"; som.setAttribute("aria-label", "Ligar o som"); som.appendChild(icone("mudo", "i s"));
+    som.addEventListener("click", (e) => { e.stopPropagation(); v.muted = !v.muted; som.replaceChildren(icone(v.muted ? "mudo" : "som", "i s")); som.setAttribute("aria-label", v.muted ? "Ligar o som" : "Desligar o som"); if (v.paused) v.play().catch(() => {}); });
+    // Abrir nos Reels (tela cheia), como no Instagram.
+    const ir = el("button", "video-reels"); ir.type = "button"; ir.setAttribute("aria-label", "Abrir nos Reels"); ir.appendChild(icone("reels", "i s"));
+    ir.addEventListener("click", (e) => { e.stopPropagation(); v.pause(); verReels(post.id); });
+    m.appendChild(ir);
     v.addEventListener("click", () => (v.paused ? v.play() : v.pause()));
     m.classList.add("video"); m.append(v, som); vigiaVideo?.observe(v);
     c.appendChild(m);
@@ -534,7 +535,10 @@ async function pintarLateral() {
   if (/^[A-Za-z0-9_-]{1,64}$/.test(p.get("post") || "")) {
     const id = p.get("post");
     history.replaceState(history.state, "", urlAba(aba));
-    abrirPublicacao(id);
+    // Veio de outra página do site: o "voltar" da publicação volta para lá.
+    let daOrigem = false;
+    try { daOrigem = !!document.referrer && new URL(document.referrer).origin === location.origin && !/\/feed\.html/.test(new URL(document.referrer).pathname) && history.length > 1; } catch {}
+    abrirPublicacao(id, { daOrigem });
   }
   // Links das mensagens do Flash: feed.html?flash=ID abre o flash; ?repostar=ID abre o criador para repostar.
   if (/^[A-Za-z0-9]{1,64}$/.test(p.get("flash") || "")) abrirFlashPorId(p.get("flash"));

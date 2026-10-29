@@ -11,7 +11,7 @@
 import {
   $, el, icone, ms, toast, pintarAvatar, urlSegura, nomeCidade, fb, eu, dados, meusSeguindo, escondido, silenciado, ganchos,
   obterPerfil, linhaPessoa, botaoSeguir, fotosDoPost, lerResumosEstrelas, minhaRede, jaVisto, definirOrigem, origemAtual, pilha
-} from "./rede.js?v=82";
+} from "./rede.js?v=85";
 import { afinidade } from "./gosto.js?v=2";
 import { buscarNoServidor } from "./busca.js?v=1";
 import { postsDoEstado, pesoRegiao, RECENTES_PAIS } from "./regiao.js?v=4";
@@ -463,7 +463,8 @@ async function pintarSugestoes() {
 
 // Destaques: mosaico pelo engajamento e pelo seu gosto, com filtros e "Ver mais".
 const FILTROS_DEST = [["tudo", "Tudo"], ["fotos", "Fotos"], ["videos", "Vídeos"], ["textos", "Textos"]];
-const tipoPost = (p) => (p.mediaTipo === "video" && urlSegura(p.mediaUrl) ? "videos" : fotosDoPost(p).length ? "fotos" : "textos");
+// Texto com imagem casada conta como texto (o quadrinho mostra a imagem atrás do texto).
+const tipoPost = (p) => (p.mediaTipo === "video" && urlSegura(p.mediaUrl) ? "videos" : p.estilo === "casada" ? "textos" : fotosDoPost(p).length ? "fotos" : "textos");
 let filtroDest = lerLocal("hf-explorar-filtro", "tudo"), mostrarDest = 12, resumosPosts = new Map(), postsDestaque = [];
 if (!FILTROS_DEST.some(([id]) => id === filtroDest)) filtroDest = "tudo";
 // Publicações de pessoas da sua região (pela cidade do perfil de quem publicou, até 50 km).
@@ -507,7 +508,12 @@ function tilePost(p, r, grande) {
   const tipo = tipoPost(p);
   const a = el("a", "exp-tile" + (grande ? " grande" : "") + (tipo === "textos" ? " texto" : "")); a.href = linkPost(p);
   // Toque: abre a publicação na tela do Explorar (como no Instagram), com as parecidas embaixo.
-  a.addEventListener("click", (e) => { if (!cartaoPost || e.ctrlKey || e.metaKey || e.shiftKey) return; e.preventDefault(); abrirVisor(p); });
+  a.addEventListener("click", (e) => {
+    if (!cartaoPost || e.ctrlKey || e.metaKey || e.shiftKey) return; e.preventDefault();
+    // Vídeo abre nos Reels (tela cheia, deslizando para os próximos), como no Instagram.
+    if (tipo === "videos") { import("./reels.js?v=4").then((m) => m.abrirReels({ lista: postsDestaque, oculto: postOculto, comecarEm: p.id })).catch(() => abrirVisor(p)); return; }
+    abrirVisor(p);
+  });
   a.setAttribute("aria-label", `Publicação de ${p.nome || "alguém"}`);
   if (tipo === "fotos") {
     const im = document.createElement("img"); im.src = fotosDoPost(p)[0]; im.alt = ""; im.loading = "lazy"; im.decoding = "async";
@@ -519,6 +525,7 @@ function tilePost(p, r, grande) {
   } else {
     let h = 0; for (const c of String(p.id)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
     a.dataset.tom = String(h % 5);
+    if (p.estilo === "casada" && urlSegura(p.mediaUrl)) { const im = document.createElement("img"); im.className = "exp-casada"; im.src = urlSegura(p.mediaUrl); im.alt = ""; im.loading = "lazy"; a.classList.add("casada-tile"); a.appendChild(im); }
     if (p.enquete?.pergunta) a.appendChild(icone("enquete", "i xs marca"));
     a.append(el("p", null, String(p.enquete?.pergunta || p.texto || "").slice(0, 160)), el("span", "exp-autor", p.nome || ""));
   }
@@ -576,13 +583,17 @@ function parecida(origem) {
 function fecharVisor({ doHistorico = false } = {}) {
   if (!visor) return;
   const v = visor; visor = null;
+  // Aberta por um link vindo de outra página do site (Mensagens, notificações, Flash de outra página): voltar leva de
+  // volta para lá, num toque só (como no Instagram), em vez de parar no Diário.
+  const voltarOrigem = v.daOrigem;
   v.io?.disconnect();
   v.el.querySelectorAll("video").forEach((x) => x.pause());
   v.el.classList.add("saindo");
   setTimeout(() => v.el.remove(), 180);
   if (!pilha.length) document.body.classList.remove("travado");
   definirOrigem(v.origemAntes);
-  if (!doHistorico && history.state?.hfVisorExp) history.back();
+  if (!doHistorico && history.state?.hfVisorExp) { if (voltarOrigem) history.go(-2); else history.back(); return; }
+  if (doHistorico && voltarOrigem) history.back();
 }
 addEventListener("popstate", () => { if (visor && !history.state?.hfVisorExp) fecharVisor({ doHistorico: true }); });
 
@@ -610,7 +621,7 @@ async function abrirVisor(origem, opc = {}) {
   document.body.appendChild(caixa);
   document.body.classList.add("travado");
   history.pushState({ ...(history.state || {}), hfVisorExp: true, hfBase: false, hfGuarda: false }, "", location.href);
-  const v = visor = { el: caixa, usados: new Set([origem.id]), ultimoAutor: origem.autorId, carregando: false, acabou: false, origemAntes: origemAtual, nota: parecida(origem) };
+  const v = visor = { el: caixa, daOrigem: !!opc.daOrigem, usados: new Set([origem.id]), ultimoAutor: origem.autorId, carregando: false, acabou: false, origemAntes: origemAtual, nota: parecida(origem) };
   // Vistas dali: "link" quando veio de um link (as regras aceitam), senão "principais".
   definirOrigem(opc.link ? "link" : "principais");
   voltar.addEventListener("click", () => fecharVisor());
@@ -657,7 +668,7 @@ async function abrirVisor(origem, opc = {}) {
 }
 
 // Abrir uma publicação pelo id (feed.html?post=ID, "Ver publicação" do Flash, cartão do Mensagens, notificações).
-export async function abrirPublicacao(id) {
+export async function abrirPublicacao(id, { daOrigem = false } = {}) {
   if (!cartaoPost || !/^[A-Za-z0-9_-]{1,64}$/.test(String(id || ""))) return false;
   try {
     const s = await fb.getDoc(fb.doc(fb.db, "diario", id));
@@ -665,7 +676,7 @@ export async function abrirPublicacao(id) {
     const post = { id: s.id, ...s.data({ serverTimestamps: "estimate" }) };
     const oculta = (post.ocultoAte?.toMillis?.() ?? 0) > Date.now() || (post.agendadoPara?.toMillis?.() ?? 0) > Date.now();
     if (escondido(post.autorId) || (oculta && post.autorId !== eu.uid)) { toast("Essa publicação não está disponível."); return false; }
-    await abrirVisor(post, { link: true });
+    await abrirVisor(post, { link: true, daOrigem });
     return true;
   } catch (e) { console.warn(e); toast("Não foi possível abrir a publicação."); return false; }
 }

@@ -241,7 +241,8 @@ export function criarLista({ raiz, uid, ganchos = {} }) {
     lista.forEach((i) => {
       const p = i.uid && !i.oficial ? perfisAtuais.get(i.uid) : null;
       if (!p) return;
-      if (p.nome && p.nome !== i.nome) { i.nome = p.nome; mudou = true; }
+      // "Sua enquete terminou": o nome fica "Sua enquete" (só a foto vem do perfil).
+      if (p.nome && p.nome !== i.nome && !i.souAutor) { i.nome = p.nome; mudou = true; }
       if (p.fotoPerfil && p.fotoPerfil !== i.foto) { i.foto = p.fotoPerfil; mudou = true; }
     });
     return mudou;

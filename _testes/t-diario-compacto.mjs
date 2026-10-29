@@ -66,6 +66,16 @@ ok(await p.locator(".visor-exp").count() === 0 && await p.locator(".post-card").
 // ---------- 4) link direto ----------
 await p.goto(BASE + "feed.html?post=dcTexto"); await p.waitForTimeout(4500);
 ok(await p.locator(".visor-exp .post-card").count() >= 1 && (await p.locator(".visor-exp .post-card").first().textContent()).includes("limpe as calhas"), "feed.html?post=ID abre a publicação");
+// aberta por link de fora (sem página anterior do site): tocar e voltar fecha a publicação e mostra o Diário (sem "Sair?")
+await p.locator(".visor-exp .post-card").first().click({ position: { x: 20, y: 20 } }).catch(() => {}); await p.waitForTimeout(300);
+await p.goBack(); await p.waitForTimeout(900);
+ok(await p.locator(".visor-exp").count() === 0 && await p.locator(".hf-confirma-fundo").count() === 0 && /feed\.html/.test(p.url()), "link de fora: voltar fecha a publicação e fica no Diário");
+// vinda de outra página do site (Mensagens): um "voltar" volta para lá
+await p.goto(BASE + "mensagens.html"); await p.waitForTimeout(2500);
+await p.evaluate(() => { const a = document.createElement("a"); a.href = "feed.html?post=dcTexto"; a.id = "lk"; a.textContent = "x"; document.body.appendChild(a); });
+await p.locator("#lk").click(); await p.waitForSelector(".visor-exp .post-card", { timeout: 15000 }); await p.waitForTimeout(800);
+await p.goBack(); await p.waitForTimeout(1500);
+ok(/mensagens\.html/.test(p.url()), "vinda do Mensagens: um voltar volta para lá (" + p.url().replace(BASE, "") + ")");
 await p.goto(BASE + "feed.html?post=naoExiste"); await p.waitForTimeout(4000);
 ok(await p.locator(".visor-exp").count() === 0 && (await p.locator(".toast").allTextContents()).join(" ").includes("não existe"), "publicação apagada avisa");
 

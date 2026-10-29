@@ -7,9 +7,9 @@
 // - Publicação de vídeo precisa do Storage (firebase.js USAR_STORAGE): sem ele não existem vídeos novos.
 // =====================================================
 import {
-  el, icone, ms, pintarAvatar, obterPerfil, barraInteracao, botaoSeguir, comMencoes, marcarVista, definirOrigem, origemAtual,
+  el, icone, ms, pintarAvatar, obterPerfil, barraInteracao, botaoSeguir, comMencoes, marcarVista, definirOrigem, origemAtual, pessoasEmPilha,
   contadorEstrelas, ganchos, eu, fb, toast, urlSegura, escondido, tempoRelativo, paraData, meusSeguindo, storageFns
-} from "./rede.js?v=82";
+} from "./rede.js?v=85";
 
 let aberto = null;
 let somLigado = false;
@@ -29,9 +29,9 @@ export async function abrirReels({ lista = [], oculto = () => false, comecarEm =
   const caixa = el("div", "reels"); caixa.setAttribute("role", "dialog"); caixa.setAttribute("aria-label", "Reels");
   const topo = el("div", "reels-topo");
   const voltar = el("button", "reels-btn"); voltar.type = "button"; voltar.setAttribute("aria-label", "Voltar ao Diário"); voltar.appendChild(icone("voltar", "i"));
-  const tit = el("strong", null, "Reels");
+  const tit = el("strong", "reels-tit"); tit.append(icone("reels", "i"), document.createTextNode("Reels"));
   const som = el("button", "reels-btn"); som.type = "button";
-  const pintarSom = () => { som.textContent = somLigado ? "🔊" : "🔇"; som.setAttribute("aria-label", somLigado ? "Desligar o som" : "Ligar o som"); };
+  const pintarSom = () => { som.replaceChildren(icone(somLigado ? "som" : "mudo", "i")); som.setAttribute("aria-label", somLigado ? "Desligar o som" : "Ligar o som"); };
   pintarSom();
   topo.append(voltar, tit, som);
   const trilho = el("div", "reels-lista");
@@ -69,7 +69,7 @@ export async function abrirReels({ lista = [], oculto = () => false, comecarEm =
   trilho.replaceChildren();
   if (!videos.length) {
     const v = el("div", "reels-vazio");
-    v.append(icone("video", "i"), el("strong", null, "Nenhum vídeo por aqui ainda"), el("span", null, "Os vídeos curtos publicados no Diário aparecem aqui, em tela cheia."));
+    v.append(icone("reels", "i"), el("strong", null, "Nenhum vídeo por aqui ainda"), el("span", null, "Os vídeos curtos publicados no Diário aparecem aqui, em tela cheia."));
     if (storageFns && aoNovo) { const b = el("button", "btn pri", "Publicar um vídeo"); b.type = "button"; b.addEventListener("click", () => { fechar(); aoNovo(); }); v.appendChild(b); }
     trilho.appendChild(v);
     return;
@@ -117,13 +117,25 @@ function reel(post) {
   if (post.autorId !== eu.uid && !meusSeguindo.has(post.autorId)) quem.appendChild(botaoSeguir(post.autorId));
   obterPerfil(post.autorId).then((pp) => { if (pp.nome) nome.textContent = pp.nome; if (pp.fotoPerfil) pintarAvatar(av, pp.fotoPerfil, pp.nome); }).catch(() => {});
   info.appendChild(quem);
+  // Legenda em 2 linhas com "mais" (como no Instagram): tocar abre tudo, com as #hashtags e @menções como links.
   if (post.texto) {
     const t = comMencoes(el("p", "reel-legenda"), post.texto);
-    t.addEventListener("click", (e) => { if (!e.target.closest("a")) t.classList.toggle("aberta"); });
-    info.appendChild(t);
+    const mais = el("button", "reel-mais", "mais"); mais.type = "button"; mais.hidden = true;
+    const alternar = (e) => { if (e?.target?.closest?.("a")) return; const ab = t.classList.toggle("aberta"); r.classList.toggle("lendo", ab); mais.textContent = ab ? "menos" : "mais"; };
+    t.addEventListener("click", alternar); mais.addEventListener("click", (e) => { e.stopPropagation(); alternar(); });
+    requestAnimationFrame(() => { mais.hidden = t.scrollHeight <= t.clientHeight + 2; });
+    info.append(t, mais);
   }
-  const quando = el("small", "reel-quando", [post.local?.nome ? "📍 " + post.local.nome : "", tempoRelativo(paraData(post.criadoEm))].filter(Boolean).join(" · "));
-  info.appendChild(quando);
+  // Pessoas marcadas: fotinhas empilhadas (até 3 e +N).
+  if (Array.isArray(post.marcados) && post.marcados.length) info.appendChild(pessoasEmPilha(post.marcados, { classe: "reel-marcados escuro", aoAbrir: () => v.pause(), aoFechar: () => { if (!r.classList.contains("parado") && aberto) v.play().catch(() => {}); } }));
+  const meta = el("div", "reel-meta");
+  if (post.local?.nome) { const l = el("span", "reel-local"); l.append(icone("pin", "i xs"), document.createTextNode(post.local.nome)); meta.appendChild(l); }
+  meta.appendChild(el("span", null, tempoRelativo(paraData(post.criadoEm))));
+  info.appendChild(meta);
+  // Barra de progresso do vídeo (fina, embaixo).
+  const prog = el("div", "reel-prog"); const enche = el("i"); prog.appendChild(enche);
+  v.addEventListener("timeupdate", () => { if (v.duration) enche.style.width = (v.currentTime / v.duration) * 100 + "%"; });
+  r.appendChild(prog);
   const topoEst = barra.querySelector(".int-topo"); if (topoEst) info.appendChild(topoEst);
   barra.classList.add("reel-lado");
   r.append(info, barra);

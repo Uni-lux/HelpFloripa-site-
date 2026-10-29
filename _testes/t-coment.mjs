@@ -60,17 +60,20 @@ const msgs = await db.collection(`conversas/${conv}/mensagens`).where("tipoArqui
 const cartao = msgs.docs.map((d) => d.data().cartao).find((c) => c?.tipo === "publicacao");
 ok(cartao && cartao.link === "feed.html?post=pc", "Enviar: cartão da publicação no Mensagens → " + JSON.stringify(cartao || {}).slice(0, 90));
 // dono: fixa outro, muda quem comenta
+// O link antigo (usuarios.html?post=) leva ao novo (feed.html?post=), que abre a própria publicação.
 const pb = await entrar(B.ctx, "bruno", "usuarios.html?post=pc");
-await pb.waitForSelector("#folhaPost.aberta", { timeout: 30000 }).catch(() => {});
+await pb.waitForSelector(".visor-exp .post-card", { timeout: 30000 }).catch(() => {});
 await pb.waitForTimeout(2500);
-ok(await pb.locator("#folhaPost.aberta").count() === 1 && (await pb.locator("#postTexto").textContent()).includes("Reforma"), "link direto usuarios.html?post= abre a publicação");
-await pb.locator("#postSocial .fio-coment", { hasText: "Comentário famoso" }).locator(".coment-mais").first().tap();
+ok(/feed\.html/.test(pb.url()) && (await pb.locator(".visor-exp .post-card").first().textContent()).includes("Reforma"), "link antigo usuarios.html?post= abre a publicação (feed.html?post=)");
+await pb.locator(".visor-exp .post-card").first().locator(".acao.comentar").tap();
+await pb.waitForSelector("#folhaComentarios.aberta .fio-coment", { timeout: 15000 }); await pb.waitForTimeout(1200);
+await pb.locator("#folhaComentarios .fio-coment", { hasText: "Comentário famoso" }).locator(".coment-mais").first().tap();
 await pb.locator("#opcoesCorpo button", { hasText: "Fixar no topo" }).tap(); await pb.waitForTimeout(1500);
-ok((await pb.locator("#postSocial .fio-coment.fixado .coment-texto").first().textContent()) === "Comentário famoso" && (await pb.locator("#postSocial .coment-fixo").textContent()).includes("Fixado por você"), "dono fixa outro comentário no topo");
-await pb.locator("#postSocial .coment-quem").tap();
+ok((await pb.locator("#folhaComentarios .fio-coment.fixado .coment-texto").first().textContent()) === "Comentário famoso" && (await pb.locator("#folhaComentarios .coment-fixo").textContent()).includes("Fixado por você"), "dono fixa outro comentário no topo");
+await pb.locator("#folhaComentarios .coment-quem").tap();
 await pb.locator("#opcoesCorpo button", { hasText: "Só seguidores" }).tap(); await pb.waitForTimeout(1200);
 ok((await db.doc("diario/pc").get()).data().quemComenta === "seguidores", "dono: só seguidores comentam");
-await pb.locator("#postSocial .fio-coment", { hasText: "sem engajamento" }).locator(".coment-mais").first().tap();
+await pb.locator("#folhaComentarios .fio-coment", { hasText: "sem engajamento" }).locator(".coment-mais").first().tap();
 await pb.locator("#opcoesCorpo button", { hasText: "Ocultar comentário" }).tap(); await pb.waitForTimeout(1200);
 ok((await db.doc("comentarios/k2").get()).data().oculto === true, "dono oculta comentário");
 await pb.screenshot({ path: "saida/coment-dono.png" });
@@ -81,7 +84,8 @@ await card2.locator(".acoes-post .acao").first().tap(); await pa.waitForTimeout(
 ok(await pa.locator("#folhaComentarios .novo-comentario").isHidden() && (await pa.locator("#folhaComentarios .coment-aviso").textContent()).includes("seguidores"), "quem não segue vê \"Só seguidores podem comentar\"");
 ok(!(await pa.locator("#folhaComentarios").textContent()).includes("sem engajamento"), "comentário oculto some para os outros");
 // quem deu estrelas: primeiro quem o dono segue (Fabi), depois a rede (Hele, seguida pela Fabi), depois o resto
-await pb.locator("#postSocial .estrelas-txt").tap();
+await pb.keyboard.press("Escape"); await pb.waitForTimeout(500);
+await pb.locator(".visor-exp .post-card .estrelas-txt").first().tap();
 await pb.waitForSelector("#folhaEstrelas.aberta .est-quem .linha", { timeout: 10000 }); await pb.waitForTimeout(2500);
 const quem = await pb.locator("#folhaEstrelas .est-quem .linha").allTextContents();
 ok(quem.length === 4 && quem[0].includes("Fabi") && quem[0].includes("Você segue") && quem[1].includes("Hele") && quem[1].includes("Seguido por"), "quem deu: 1º quem você segue, 2º sua rede → " + quem.map((t) => t.replace(/\s+/g, " ").slice(0, 40)).join(" | "));

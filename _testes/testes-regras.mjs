@@ -497,6 +497,46 @@ await t("público: publicação com TUDO junto (fotos, enquete, local, marcados,
   local: { nome: "Jurerê, Florianópolis", lat: -27.44, lng: -48.5 }, autorUf: "SC", autorIbge: 4205407,
   enquete: { pergunta: "Qual?", opcoes: ["A", "B", "C", "D"], fimEm: Timestamp.fromMillis(Date.now() + 864e5) },
   publico: { idadeMin: 18, idadeMax: 65, genero: "m", local: "cidades", cidades: Array.from({ length: 10 }, (_, i) => String(4205400 + i)), seguidores: "todos" } })));
+// Tipos de publicação e o que cada um aceita.
+const enqT = { pergunta: "Qual?", opcoes: ["A", "B"], fimEm: Timestamp.fromMillis(Date.now() + 864e5) };
+await t("tipo texto: só texto", () => assertSucceeds(publicar2("edu", { tipo: "texto", texto: "Bom dia" })));
+await t("tipo texto: com imagem casada (até 500 letras)", () => assertSucceeds(publicar2("edu", { tipo: "texto", texto: "y".repeat(500), mediaUrl: fP(10), mediaTipo: "image", estilo: "casada" })));
+await t("tipo texto: imagem sem o estilo casada é recusada", () => assertFails(publicar2("edu", { tipo: "texto", texto: "oi", mediaUrl: fP(10), mediaTipo: "image" })));
+await t("tipo texto: casada com mais de 500 letras é recusada", () => assertFails(publicar2("edu", { tipo: "texto", texto: "y".repeat(501), mediaUrl: fP(10), mediaTipo: "image", estilo: "casada" })));
+await t("tipo texto: várias fotos são recusadas", () => assertFails(publicar2("edu", { tipo: "texto", texto: "oi", mediaUrl: fP(10), mediaTipo: "image", estilo: "casada", midias: [fP(10), fP(10)] })));
+await t("tipo texto: vazio é recusado", () => assertFails(publicar2("edu", { tipo: "texto", texto: "" })));
+await t("tipo texto: com enquete é recusado", () => assertFails(publicar2("edu", { tipo: "texto", texto: "oi", enquete: enqT })));
+await t("tipo foto: 4 fotos e legenda", () => assertSucceeds(publicar2("edu", { tipo: "foto", texto: "Obra", mediaUrl: fP(10), mediaTipo: "image", midias: [fP(10), fP(10), fP(10), fP(10)] })));
+await t("tipo foto: sem foto é recusado", () => assertFails(publicar2("edu", { tipo: "foto", texto: "Obra" })));
+await t("tipo foto: com enquete é recusado", () => assertFails(publicar2("edu", { tipo: "foto", mediaUrl: fP(10), mediaTipo: "image", enquete: enqT })));
+await t("tipo foto: estilo casada é recusado", () => assertFails(publicar2("edu", { tipo: "foto", mediaUrl: fP(10), mediaTipo: "image", estilo: "casada" })));
+await t("tipo vídeo: um vídeo", () => assertSucceeds(publicar2("edu", { tipo: "video", mediaUrl: "https://firebasestorage.googleapis.com/v/x.mp4", mediaTipo: "video" })));
+await t("tipo vídeo: com foto (image) é recusado", () => assertFails(publicar2("edu", { tipo: "video", mediaUrl: fP(10), mediaTipo: "image" })));
+await t("tipo enquete: enquete com uma imagem", () => assertSucceeds(publicar2("edu", { tipo: "enquete", texto: "", enquete: enqT, mediaUrl: fP(10), mediaTipo: "image" })));
+await t("tipo enquete: sem a enquete é recusado", () => assertFails(publicar2("edu", { tipo: "enquete", texto: "oi" })));
+await t("tipo enquete: com caixa junto é recusado", () => assertFails(publicar2("edu", { tipo: "enquete", enquete: enqT, caixa: { pergunta: "Pergunte", anonima: false } })));
+await t("tipo enquete: várias fotos são recusadas", () => assertFails(publicar2("edu", { tipo: "enquete", enquete: enqT, mediaUrl: fP(10), mediaTipo: "image", midias: [fP(10), fP(10)] })));
+await t("tipo caixa: caixa de perguntas", () => assertSucceeds(publicar2("edu", { tipo: "caixa", caixa: { pergunta: "Me pergunte", anonima: true } })));
+await t("tipo caixa: sem a caixa é recusado", () => assertFails(publicar2("edu", { tipo: "caixa", texto: "oi" })));
+await t("tipo estranho é recusado", () => assertFails(publicar2("edu", { tipo: "reels", texto: "oi" })));
+await t("estilo sem tipo é recusado", () => assertFails(publicar2("edu", { texto: "oi", estilo: "casada" })));
+await t("configurações: quem comenta e ocultar estrelas na hora de publicar", () => assertSucceeds(publicar2("edu", { tipo: "texto", texto: "oi", quemComenta: "seguidores", ocultarNotas: true })));
+await t("configurações: quem comenta estranho é recusado", () => assertFails(publicar2("edu", { tipo: "texto", texto: "oi", quemComenta: "amigos" })));
+await t("configurações: ocultar estrelas não-bool é recusado", () => assertFails(publicar2("edu", { tipo: "texto", texto: "oi", ocultarNotas: "sim" })));
+await semRegras((db) => setDoc(doc(db, "diario", "pCas"), { autorId: "edu", nome: "Edu", tipo: "texto", estilo: "casada", texto: "curto", mediaUrl: fP(10), mediaTipo: "image", criadoEm: antigo }));
+await t("configurações: o autor oculta as estrelas depois", () => assertSucceeds(updateDoc(doc(ctx("edu"), "diario", "pCas"), { ocultarNotas: true })));
+await t("casada: editar o texto para mais de 500 letras é recusado", () => assertFails(updateDoc(doc(ctx("edu"), "diario", "pCas"), { texto: "z".repeat(501), editadoEm: serverTimestamp() })));
+await t("tipo: não dá para trocar o tipo depois", () => assertFails(updateDoc(doc(ctx("edu"), "diario", "pCas"), { tipo: "foto" })));
+await t("tipo: publicação com TUDO junto (texto casado, local, marcados, hashtags, região, público e configurações) cabe", () => assertSucceeds(publicar2("edu", {
+  tipo: "texto", estilo: "casada", texto: "x".repeat(500), mediaUrl: fP(10), mediaTipo: "image", quemComenta: "mutuos", ocultarNotas: true,
+  tags: Array.from({ length: 10 }, (_, i) => "tag" + i), marcados: Array.from({ length: 10 }, (_, i) => "usuario" + i),
+  local: { nome: "Jurerê, Florianópolis", lat: -27.44, lng: -48.5 }, autorUf: "SC", autorIbge: 4205407, agendadoPara: Timestamp.fromMillis(Date.now() + 864e5),
+  publico: { idadeMin: 18, idadeMax: 65, genero: "m", local: "cidades", cidades: Array.from({ length: 10 }, (_, i) => String(4205400 + i)), seguidores: "todos" } })));
+await t("tipo: enquete com TUDO junto cabe", () => assertSucceeds(publicar2("edu", {
+  tipo: "enquete", texto: "x".repeat(900), mediaUrl: fP(10), mediaTipo: "image", enquete: { pergunta: "Qual?", opcoes: ["A", "B", "C", "D"], fimEm: Timestamp.fromMillis(Date.now() + 864e5), anonima: true },
+  tags: Array.from({ length: 10 }, (_, i) => "tag" + i), marcados: Array.from({ length: 10 }, (_, i) => "usuario" + i), quemComenta: "todos", ocultarNotas: false,
+  local: { nome: "Jurerê, Florianópolis", lat: -27.44, lng: -48.5 }, autorUf: "SC", autorIbge: 4205407,
+  publico: { idadeMin: 18, idadeMax: 65, genero: "m", local: "cidades", cidades: Array.from({ length: 10 }, (_, i) => String(4205400 + i)), seguidores: "todos" } })));
 await t("diário: agendar no passado é recusado", () => assertFails(publicar2("edu", { agendadoPara: Timestamp.fromMillis(Date.now() - 3600e3) })));
 await t("diário: agendar para mais de 60 dias é recusado", () => assertFails(publicar2("edu", { agendadoPara: Timestamp.fromMillis(Date.now() + 61 * 864e5) })));
 await semRegras((db) => setDoc(doc(db, "diario", "pAlc"), { autorId: "dono", nome: "Dono", texto: "x", criadoEm: antigo }));

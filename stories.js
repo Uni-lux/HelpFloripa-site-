@@ -10,10 +10,10 @@
 // =====================================================
 import {
   $, el, icone, ms, pintarAvatar, toast, erroAmigavel, tempoRelativo, fb, eu, dados, storageFns,
-  meusSeguindo, escondido, silenciado, alternarSilenciar, obterPerfil, abrirOpcoes, abrirLista, linhaPessoa,
+  meusSeguindo, escondido, silenciado, alternarSilenciar, obterPerfil, abrirOpcoes, abrirLista, linhaPessoa, pessoasEmPilha,
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas
-} from "./rede.js?v=82";
+} from "./rede.js?v=85";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { seletorDuracao, fimEscolhido, linhaChave, MAX_FLASH_MIN, fimDaEnquete, encerrada, faltaTexto, resultadoFinal, lerContasEnquete } from "./enquetes.js?v=5";
@@ -1830,15 +1830,8 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null 
     }
     // Pessoas mencionadas: chip que abre a lista (tocar leva ao perfil).
     if (Array.isArray(s.mencoes) && s.mencoes.length) {
-      const bm = el("button", "story-mencoes"); bm.type = "button";
-      bm.append(icone("pessoa-mais", "i xs"), document.createTextNode(s.mencoes.length === 1 ? "1 pessoa mencionada" : `${s.mencoes.length} pessoas mencionadas`));
-      bm.addEventListener("click", async (e) => {
-        e.stopPropagation(); pausar(true);
-        const corpoL = abrirLista("Mencionados");
-        const f = $("folhaLista"); const volta = () => { f?.removeEventListener("fechada", volta); if (document.querySelector(".story-visor")) document.body.classList.add("travado"); pausar(false); }; f?.addEventListener("fechada", volta);
-        const ps = await Promise.all(s.mencoes.map((u) => obterPerfil(u).then((p) => ({ uid: u, ...p })).catch(() => ({ uid: u }))));
-        ps.forEach((p) => corpoL.appendChild(linhaPessoa({ uid: p.uid, nome: p.nome || "Usuário", foto: p.fotoPerfil, sub: p.nickname ? "@" + p.nickname : "" })));
-      });
+      const bm = pessoasEmPilha(s.mencoes, { classe: "story-mencoes escuro", prefixo: "", titulo: s.mencoes.length === 1 ? "Mencionado" : "Mencionados",
+        aoAbrir: () => pausar(true), aoFechar: () => { if (document.querySelector(".story-visor")) document.body.classList.add("travado"); pausar(false); } });
       linhaAcoes().prepend(bm);
     }
     if (meu) {

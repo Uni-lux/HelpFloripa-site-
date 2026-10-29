@@ -1,7 +1,7 @@
 // Enquete anônima (ninguém vê quem votou) e caixa de perguntas (com nome ou anônima) na publicação e no Flash.
 process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8085";
 import { initializeApp } from "firebase-admin/app"; import { getFirestore, Timestamp } from "firebase-admin/firestore";
-import { navegador, entrar, USUARIOS as U } from "./nav.mjs";
+import { navegador, entrar, USUARIOS as U, BASE } from "./nav.mjs";
 const ok = (c, t) => { console.log(c ? "  ✔" : "  ✘", t); if (!c) process.exitCode = 1; };
 initializeApp({ projectId: "demo-hf" }); const db = getFirestore();
 for (const q of ["bruno", "dani"]) await db.doc(`relacoes/${U[q]}_${U.ana}`).set({ tipo: "seguir", seguidorId: U[q], alvoId: U.ana, criadoEm: Timestamp.now() });
@@ -18,14 +18,24 @@ await pa.locator("#pubEnquete .pe-pergunta").fill("Gostam do novo logo?");
 await pa.locator("#pubEnquete .pe-opcao input").nth(0).fill("Sim");
 await pa.locator("#pubEnquete .pe-opcao input").nth(1).fill("Não");
 await pa.locator("#pubEnquete .enq-chave").click();
-await pa.locator("#pubCaixaBtn").tap();
-await pa.locator("#pubCaixa .pe-pergunta").fill("Mande uma sugestão");
-await pa.locator("#pubCaixa .enq-chave").click();
 await pa.locator(".folha#folhaPublicar .folha-corpo, #folhaPublicar").first().screenshot({ path: "saida/cx-compor.png" });
 await pa.locator("#pubEnviar").click();
 await pa.waitForFunction(() => !document.getElementById("folhaPublicar")?.classList.contains("aberta"), null, { timeout: 30000 }).catch(() => {});
 await pa.waitForTimeout(1200);
 const post = (await db.collection("diario").where("autorId", "==", U.ana).get()).docs.map((d) => ({ id: d.id, ...d.data() })).find((p) => p.texto === "Opinem sem medo!");
+// Um tipo por publicação (Enquete OU Perguntas): a caixa anônima é testada na mesma publicação, posta pelo servidor
+// (publicações antigas podem ter as duas).
+if (post) { await db.doc(`diario/${post.id}`).update({ caixa: { pergunta: "Mande uma sugestão", anonima: true } }); post.caixa = { pergunta: "Mande uma sugestão", anonima: true }; }
+// Pelo formulário, a caixa anônima: tipo Perguntas com a chave "Respostas anônimas".
+await pa.locator("#btnComporFeed").tap(); await pa.waitForTimeout(500);
+await pa.locator("#pubCaixaBtn").tap();
+await pa.locator("#pubCaixa .pe-pergunta").fill("Caixa anônima pelo formulário");
+await pa.locator("#pubCaixa .enq-chave").click();
+await pa.locator("#pubEnviar").click();
+await pa.waitForFunction(() => !document.getElementById("folhaPublicar")?.classList.contains("aberta"), null, { timeout: 30000 }).catch(() => {});
+await pa.waitForTimeout(1200);
+const pcx = (await db.collection("diario").where("autorId", "==", U.ana).get()).docs.map((d) => d.data()).find((p) => p.caixa?.pergunta === "Caixa anônima pelo formulário");
+ok(pcx?.tipo === "caixa" && pcx.caixa.anonima === true, "formulário: Perguntas com respostas anônimas");
 ok(post?.enquete?.anonima === true && post?.caixa?.anonima === true && post.caixa.pergunta === "Mande uma sugestão", "publicou com enquete anônima e caixa anônima");
 // 2) Bruno vota (anônimo) e responde (anônimo); Dani responde a caixa com nome
 const pb = await entrar(B.ctx, "bruno", "feed.html?aba=registros");
@@ -50,8 +60,8 @@ await cdn.locator(".caixa-perg textarea").fill("Quanto custa trocar o piso?");
 await cdn.locator(".caixa-perg textarea").press("Enter"); await pd.waitForTimeout(1500);
 ok((await db.collection("caixa_respostas").where("alvo", "==", "d_pCxNome").get()).docs[0]?.data().uid === U.dani, "Dani respondeu com o nome");
 // 3) Ana: sem "Ver votos" na anônima; respostas
-await pa.reload();
-const ca = pa.locator(".post-card", { hasText: "Opinem sem medo" }).first();
+await pa.goto(BASE + `feed.html?post=${post.id}`);
+const ca = pa.locator(".visor-exp .post-card", { hasText: "Opinem sem medo" }).first();
 await ca.waitFor({ timeout: 30000 }); await ca.scrollIntoViewIfNeeded(); await pa.waitForTimeout(2000);
 ok(await ca.locator(".enq-ver").count() === 0 && (await ca.locator(".enquete .enq-pct").first().textContent()) === "100%", "Ana vê o resultado da anônima, sem 'Ver votos'");
 ok((await ca.locator(".cx-ver strong").textContent()) === "1", "Ana vê '1 resposta' na caixa");
@@ -61,8 +71,9 @@ await pa.waitForSelector("#listaCorpo .cx-resp", { timeout: 8000 });
 ok((await pa.locator("#listaCorpo .cx-resp .quem strong").textContent()) === "Anônimo" && await pa.locator("#listaCorpo .cx-resp .avatar.anonimo").count() === 1 && await pa.locator("#listaCorpo .cx-resp button", { hasText: "Responder" }).count() === 0, "resposta anônima aparece como Anônimo, sem Responder");
 await pa.screenshot({ path: "saida/cx-respostas-anon.png" });
 await pa.locator("#folhaLista [data-fechar]").click(); await pa.waitForTimeout(300);
-const cn = pa.locator(".post-card", { hasText: "Tirem dúvidas" }).first();
-await cn.scrollIntoViewIfNeeded(); await pa.waitForTimeout(1500);
+await pa.goto(BASE + "feed.html?post=pCxNome");
+const cn = pa.locator(".visor-exp .post-card", { hasText: "Tirem dúvidas" }).first();
+await cn.waitFor({ timeout: 30000 }); await pa.waitForTimeout(1500);
 await cn.locator(".cx-ver").tap();
 await pa.waitForSelector("#listaCorpo .cx-resp", { timeout: 8000 });
 ok((await pa.locator("#listaCorpo .cx-resp .quem strong").textContent()).startsWith("Dani"), "resposta com nome mostra a Dani");
@@ -76,7 +87,7 @@ await pa.screenshot({ path: "saida/cx-respostas-nome.png" });
 await pa.locator("#folhaLista [data-fechar]").click(); await pa.waitForTimeout(300);
 // 4) Notificações da Ana
 await pa.goto(pa.url().replace(/feed\.html.*/, "notificacoes.html"));
-await pa.waitForSelector(".notif", { timeout: 30000 }); await pa.waitForTimeout(2500);
+await pa.waitForSelector(".nt2-item", { timeout: 30000 }); await pa.waitForTimeout(2500);
 const txt = await pa.locator("#listaAvisos").textContent();
 ok(/Anônimo respondeu sua caixa de perguntas/.test(txt) && /Dani.*respondeu sua caixa de perguntas/.test(txt), "notificações: resposta anônima e com nome");
 await pa.screenshot({ path: "saida/cx-notif.png" });

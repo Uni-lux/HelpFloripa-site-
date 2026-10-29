@@ -72,19 +72,19 @@ ok(await pa.locator("#listaCorpo .vv-grupo.lider .linha").count() === 1 && (awai
 await pa.screenshot({ path: "saida/enq2-votos.png" });
 // Notificações: quem votou e a dona
 await pb.goto(pb.url().replace(/feed\.html.*/, "notificacoes.html"));
-await pb.waitForSelector(".notif .nt-enq", { timeout: 30000 }).catch(() => {});
-const nb = await pb.locator(".notif", { has: pb.locator(".nt-enq") }).first().textContent().catch(() => "");
+await pb.waitForSelector(".nt2-item", { timeout: 30000 }).catch(() => {});
+const nb = await pb.locator(".nt2-item", { hasText: "enquete" }).first().textContent().catch(() => "");
 ok(/a enquete em que você votou terminou/.test(nb) && /Verde/.test(nb), "Bruno: notificação com o resultado → " + nb.replace(/\s+/g, " ").slice(0, 120));
 await pb.screenshot({ path: "saida/enq2-notif-bruno.png" });
-await pb.locator(".notif", { has: pb.locator(".nt-enq") }).first().click();
+await pb.locator(".nt2-item", { hasText: "enquete" }).first().click();
 await pb.waitForSelector("#listaCorpo .er-folha", { timeout: 6000 }).catch(() => {});
 ok(/Você votou na vencedora/.test(await pb.locator("#listaCorpo").textContent()), "tocar abre o resultado: 'Você votou na vencedora!'");
 await pb.screenshot({ path: "saida/enq2-resultado.png" });
 await pa.goto(pa.url().replace(/feed\.html.*/, "notificacoes.html"));
-await pa.waitForSelector(".notif .nt-enq", { timeout: 30000 }).catch(() => {});
-const na = await pa.locator(".notif", { has: pa.locator(".nt-enq") }).first().textContent().catch(() => "");
+await pa.waitForSelector(".nt2-item", { timeout: 30000 }).catch(() => {});
+const na = await pa.locator(".nt2-item", { hasText: "enquete" }).first().textContent().catch(() => "");
 ok(/Sua enquete terminou/.test(na), "Ana: 'Sua enquete terminou' nas notificações → " + na.replace(/\s+/g, " ").slice(0, 100));
-ok(await pa.locator("#abasAvisos [data-filtro=enquete] em").textContent() === "1", "aba Enquetes com 1");
+ok(await pa.locator(".nt2-chip", { hasText: "Enquetes" }).count() === 1, "filtro Enquetes e perguntas na lista");
 // Sino do painel (outra página)
 await pa.close(); // o painel não carrega com outra aba do mesmo navegador aberta (já era assim): fecha antes
 const pp = await entrar(A.ctx, "ana", "servicos.html");
