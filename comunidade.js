@@ -15,7 +15,7 @@ import { camposEndereco, textoCidade, semAcento } from "./endereco.js?v=1";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, esquecerPosicao, posicaoGuardada } from "./perto.js?v=2";
 import { lerLocal, rotuloLocal, escolherLocal, aoMudarLocal, atualizarPeloGps } from "./local-escolhido.js?v=3";
 import { lerPorLocal } from "./por-local.js?v=1";
-import { montarBarra, pintarAvatarBarra } from "./barra-rede.js?v=1";
+import { montarBarra, pintarAvatarBarra } from "./barra-rede.js?v=2";
 import { prepararConversa } from "./vitrine.js?v=78";
 
 export const CATEGORIAS_COM = {
@@ -45,6 +45,8 @@ export const REGRAS = [
 const DICAS_SEGURANCA = ["Combine a entrega em lugar público e movimentado.", "Desconfie de quem pede \"taxa\", Pix ou frete adiantado: é golpe.", "Não passe documentos nem dados do cartão.", "Na dúvida, toque em Denunciar."];
 
 let fb = null, eu = null, posEu = null, todos = [], banimento = null, meuPerfil = {};
+// Veio do mural (mural.html, item Comunidade da barra): depois de publicar, volta para lá.
+const voltarMural = new URLSearchParams(location.search).get("volta") === "mural";
 const $ = (id) => document.getElementById(id);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
 const ms = (t) => t?.toMillis?.() ?? (t?.seconds ? t.seconds * 1000 : 0);
@@ -521,6 +523,7 @@ function abrirForm(a = null, catInicial = "doacao") {
         if (posEu) await comDistancia([novo], posEu);
         todos.unshift(novo);
       }
+      if (!a && voltarMural) { location.href = "mural.html?publicado=1"; return; }
       sair(); pintar(); pintarMeus();
       toast(a ? "Anúncio atualizado" : "Publicado! Quem tiver interesse chama você no chat.");
     } catch (err) {

@@ -28,9 +28,9 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="rede.css?v=47" />
+  <link rel="stylesheet" href="rede.css?v=48" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="feed.js?v=107"></script>
+  <script type="module" src="feed.js?v=108"></script>
 </head>
 <body>
   <header class="topo">
@@ -50,11 +50,25 @@
         </div>
         <section id="painelFeed" aria-label="Publicações">
           <div class="stories" id="storiesFeed" aria-label="Flash"></div>
-          <button type="button" class="compor-card" id="btnComporFeed">
-            <div class="avatar" id="comporAvatar"></div>
-            <span class="txt">Compartilhe um trabalho, uma novidade ou uma dica...</span>
-            <span class="acs"><svg class="i s"><use href="#i-imagem"/></svg></span>
-          </button>
+          <div class="feed-intro" id="feedIntro">
+            <span class="fi-ic"><svg class="i"><use href="#i-feed"/></svg></span>
+            <div><strong id="feedIntroTit">Diário</strong><small id="feedIntroTxt">Fotos e vídeos de quem faz acontecer</small></div>
+          </div>
+          <div class="compor-box">
+            <button type="button" class="compor-card" id="btnComporFeed">
+              <div class="avatar" id="comporAvatar"></div>
+              <span class="txt">Compartilhe um trabalho, uma novidade ou uma dica...</span>
+              <span class="acs"><svg class="i s"><use href="#i-imagem"/></svg></span>
+            </button>
+            <div class="compor-atalhos" id="comporAtalhos">
+              <button type="button" data-inicio="foto" data-aba-de="diario"><svg class="i s"><use href="#i-imagem"/></svg>Foto</button>
+              <button type="button" data-inicio="flash" data-aba-de="diario"><svg class="i s"><use href="#i-raio"/></svg>Flash</button>
+              <button type="button" data-inicio="local" data-aba-de="diario"><svg class="i s"><use href="#i-local"/></svg>Local</button>
+              <button type="button" data-inicio="texto" data-aba-de="registros" hidden><svg class="i s"><use href="#i-lapis"/></svg>Texto</button>
+              <button type="button" data-inicio="enquete" data-aba-de="registros" hidden><svg class="i s"><use href="#i-enquete"/></svg>Enquete</button>
+              <button type="button" data-inicio="caixa" data-aba-de="registros" hidden><svg class="i s"><use href="#i-caixa"/></svg>Perguntas</button>
+            </div>
+          </div>
           <div class="filtro-feed" id="filtroFeed">
             <button type="button" id="filtroFeedBtn" class="filtro-escolha" aria-haspopup="dialog" title="Escolher o que mostrar no Diário"><svg class="i xs" aria-hidden="true"><use href="#i-estrela"/></svg><span id="filtroAtual">Principais</span><svg class="i xs seta" aria-hidden="true"><use href="#i-avancar"/></svg></button>
           </div>

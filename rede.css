@@ -2212,3 +2212,50 @@ div.cfg2-linha { cursor: default; }
 .linha-neg .avatar.neg[data-plano="plus"] { box-shadow: 0 0 0 2.5px #2563ff; }
 .linha-neg .avatar.neg[data-plano="pro"] { box-shadow: 0 0 0 2.5px #7c3aed; }
 .linha-neg .avatar.neg[data-plano="premium"] { box-shadow: 0 0 0 2.5px #f59e0b; }
+
+/* Nova publicação: onde vai (Diário = fotos e vídeos · Registros = textos, enquetes e perguntas) */
+.pub-autor .pub-quem { flex: 1; }
+.pub-modo { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 3px; border-radius: 14px; background: var(--panel-2, rgba(127,127,127,.08)); border: 1px solid var(--line); width: min(100%, 340px); }
+.pub-modo button { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 7px; align-items: center; text-align: left; border: 0; border-radius: 11px; padding: 6px 9px; background: transparent; color: var(--muted); cursor: pointer; min-width: 0; }
+.pub-modo button .i { grid-row: span 2; width: 18px; height: 18px; }
+.pub-modo button span { font-weight: 800; font-size: 13px; line-height: 1.15; color: inherit; }
+.pub-autor .pub-quem .pub-modo button small { display: block; padding: 0; background: none; border-radius: 0; color: inherit; font-size: 10.5px; font-weight: 600; opacity: .8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pub-modo button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink, #fff); box-shadow: 0 6px 16px -8px color-mix(in srgb, var(--accent) 70%, transparent); }
+.pub-destino { display: flex; align-items: flex-start; gap: 7px; margin: 10px 2px 0; font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+.pub-destino .i { width: 15px; height: 15px; flex-shrink: 0; margin-top: 1px; color: var(--accent); }
+
+/* ---------- Diário | Registros: topo de cada aba, campo de publicar com atalhos e Registros em lista ---------- */
+.feed-intro { display: flex; align-items: center; gap: 12px; padding: 14px 16px; margin-bottom: 12px; border-radius: 20px; border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--line));
+  background: radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 60%), var(--panel); }
+.feed-intro .fi-ic { width: 42px; height: 42px; flex: none; border-radius: 14px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 55%, #001018)); box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 30%, transparent); }
+.feed-intro div { display: grid; gap: 2px; min-width: 0; }
+.feed-intro strong { font-size: 17px; letter-spacing: -.01em; }
+.feed-intro small { color: var(--muted); font-size: 13px; }
+.compor-box { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; margin-bottom: 14px; overflow: hidden; }
+.compor-box .compor-card { margin: 0; border: 0; border-radius: 0; background: transparent; }
+.compor-box .compor-card:hover { background: var(--hover); }
+.compor-atalhos { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); }
+.compor-atalhos button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; border: 0; background: none; color: var(--text); font-weight: 750; font-size: 13.5px; cursor: pointer; }
+.compor-atalhos button[hidden] { display: none; }
+.compor-atalhos button + button:not([hidden]) { border-left: 1px solid var(--line); }
+.compor-atalhos button svg { color: var(--accent); }
+.compor-atalhos button:hover { background: var(--hover); }
+/* Registros: um painel só, publicações separadas por linhas, foto à esquerda e uma linha ligando (estilo conversa). */
+#listaFeed.registros { background: var(--panel); border: 1px solid var(--line); border-radius: 22px; overflow: hidden; }
+#listaFeed.registros:empty, #listaFeed.registros:has(> .vazio:only-child) { background: none; border: 0; }
+#listaFeed.registros > .post-card { position: relative; margin: 0; border: 0; border-radius: 0; background: none; padding-left: 58px; border-bottom: 1px solid var(--line); overflow: visible; }
+#listaFeed.registros > .post-card:last-child { border-bottom: 0; }
+#listaFeed.registros > .post-card::before { content: ""; position: absolute; left: 29px; top: 58px; bottom: 16px; width: 2px; border-radius: 2px; background: var(--line); }
+#listaFeed.registros .post-cab { padding: 12px 10px 2px 0; }
+#listaFeed.registros .post-cab .avatar { position: absolute; left: 10px; top: 12px; }
+#listaFeed.registros .post-card .post-texto { padding: 2px 14px 10px 0; font-size: 15.5px; font-weight: 500; }
+#listaFeed.registros .post-card .post-texto.citacao { margin: 0; padding: 2px 14px 10px 0; border: 0; border-radius: 0; background: none; font-size: 16px; font-weight: 550; letter-spacing: 0; }
+#listaFeed.registros .post-card .post-texto.citacao::before { content: none; }
+#listaFeed.registros .post-card .post-texto.citacao + .ver-mais { margin-top: -4px; }
+#listaFeed.registros .post-card > :is(.bloco-enquete, .bloco-caixa, .enq-bloco, .cx-bloco) { margin-left: 0; }
+#listaFeed.registros .int-topo { padding: 4px 12px 2px 0; }
+#listaFeed.registros .acoes-post { margin-left: -8px; }
+#listaFeed.registros .post-com { padding-left: 0; }
+#listaFeed.registros .post-coment-previa { padding-left: 0; }
+#listaFeed.registros > .post-card:hover { background: color-mix(in srgb, var(--hover) 50%, transparent); }
+.aba-registros #storiesFeed { display: none; }
