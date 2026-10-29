@@ -64,10 +64,10 @@ function fechar(voltarHistorico = true) {
   if (voltarHistorico && history.state?.hfChat) history.back();
 }
 
-// Liga os links "Mensagens" da página (menu, atalhos, rodapé).
+// Liga os links "Mensagens" da página (menu, atalhos, rodapé). O item da barra de baixo abre a página inteira.
 document.addEventListener("click", (e) => {
   const a = e.target.closest?.('a[href^="mensagens.html"]');
-  if (!a || e.defaultPrevented || e.ctrlKey || e.metaKey || e.shiftKey || e.button > 0 || a.target === "_blank") return;
+  if (!a || a.closest("#barraRede, [data-chat-pagina]") || e.defaultPrevented || e.ctrlKey || e.metaKey || e.shiftKey || e.button > 0 || a.target === "_blank") return;
   e.preventDefault();
   abrirChat(a.getAttribute("href"));
 });

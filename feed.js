@@ -15,12 +15,12 @@ import {
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, botaoSeguir, montarBarraRede, marcarBarra, pintarBarraRede, ouvirAvisos, lerOrdenado,
   editarPublicacao, bloquear, comMencoes, fotosDoPost, carrosselFotos, contadorEstrelas, estaSalvo, alternarSalvo, escolherColecao, lerResumosEstrelas, contarComentarios,
   silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto, confirmarHF, blocoEnquete, blocoCaixa
-} from "./rede.js?v=76";
+} from "./rede.js?v=77";
 import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=1";
-import { montarStories, abrirFlashPorId, repostarFlash } from "./stories.js?v=48";
+import { montarStories, abrirFlashPorId, repostarFlash, novoFlash } from "./stories.js?v=49";
 import { abrirDenuncia } from "./denuncias.js?v=6";
 import { pessoasRecentes } from "./pessoas.js?v=5";
-import { abrirExplorar, definirCartao } from "./explorar.js?v=58";
+import { abrirExplorar, definirCartao } from "./explorar.js?v=59";
 import { docsComValidade } from "./leituras.js?v=3";
 import { distanciaKm } from "./perto.js?v=2";
 import { postsDoEstado, pesoRegiao, RECENTES_PAIS } from "./regiao.js?v=4";
@@ -62,6 +62,12 @@ const abaDaUrl = () => { const a = new URLSearchParams(location.search).get("aba
 const temMidia = (p) => !!(p.mediaUrl || (p.midias || []).length);
 // Com #hashtag ou local escolhido aparece tudo junto (foto e texto), como uma página daquele assunto.
 const daAba = (p) => !!(tagAtual || localAtual) || (aba === "registros" ? !temMidia(p) : temMidia(p));
+const INTRO = {
+  diario: ["Diário", "Fotos e vídeos de quem faz acontecer", "#i-feed"],
+  registros: ["Registros", "Textos, enquetes e perguntas da comunidade", "#i-registros"]
+};
+// Abre o formulário já no modo da aba (Diário = fotos e vídeos; Registros = textos, enquetes e perguntas).
+const compor = (inicio = "") => abrirCompositor({ aoPublicar: ganchos.aoPublicar, modo: aba === "registros" ? "registros" : "diario", inicio });
 function trocarAba(nova, { passo = false } = {}) {
   // Tocar na aba é um passo no histórico: o "voltar" volta para a aba anterior.
   if (passo && nova !== aba) { const st = { ...(history.state || {}), hfAbaFeed: nova }; delete st.hfBase; delete st.hfGuarda; delete st.hfCamadas; history.pushState(st, "", urlAba(nova)); }
@@ -72,7 +78,16 @@ function trocarAba(nova, { passo = false } = {}) {
   $("painelExplorar").hidden = aba !== "explorar";
   // Registros: sem a fileira do Flash; o campo de publicar convida a escrever.
   $("storiesFeed").hidden = aba === "registros";
-  $("btnComporFeed").querySelector(".txt").textContent = aba === "registros" ? "Escreva um registro, faça uma enquete ou uma pergunta..." : "Compartilhe um trabalho, uma novidade ou uma dica...";
+  document.body.classList.toggle("aba-registros", aba === "registros"); // o Flash mostra a fileira quando termina de carregar
+  $("btnComporFeed").querySelector(".txt").textContent = aba === "registros" ? "No que você está pensando?" : "Compartilhe uma foto do seu trabalho, uma novidade...";
+  $("btnComporFeed").querySelector(".acs use").setAttribute("href", aba === "registros" ? "#i-lapis" : "#i-imagem");
+  const intro = INTRO[aba] || INTRO.diario;
+  $("feedIntroTit").textContent = intro[0]; $("feedIntroTxt").textContent = intro[1];
+  $("feedIntro").querySelector("use").setAttribute("href", intro[2]);
+  $("feedIntro").dataset.aba = aba;
+  document.querySelectorAll("#comporAtalhos [data-aba-de]").forEach((b) => (b.hidden = b.dataset.abaDe !== (aba === "registros" ? "registros" : "diario")));
+  // Registros em lista corrida (estilo conversa); o Diário continua em cartões.
+  $("listaFeed").classList.toggle("registros", aba === "registros");
   marcarBarra(aba === "explorar" ? "explorar" : "diario");
   if (!passo) history.replaceState({ ...(history.state || {}), hfAbaFeed: aba }, "", urlAba(aba));
   if (aba === "explorar") abrirExplorar();
@@ -226,9 +241,9 @@ async function carregarFeed() {
   mostrados = 0;
   lista.replaceChildren();
   if (!posts.length) {
-    lista.appendChild(localAtual ? vazio(`Nada publicado em ${localAtual.nome} ainda`, "Adicione o local na sua publicação para começar.", "Publicar agora", () => abrirCompositor({ aoPublicar: ganchos.aoPublicar })) : tagAtual ? vazio(`Nada com #${tagAtual} ainda`, "Use a hashtag na sua publicação para começar.", "Publicar agora", () => abrirCompositor({ aoPublicar: ganchos.aoPublicar })) : filtro === "principais"
+    lista.appendChild(localAtual ? vazio(`Nada publicado em ${localAtual.nome} ainda`, "Adicione o local na sua publicação para começar.", "Publicar agora", () => compor()) : tagAtual ? vazio(`Nada com #${tagAtual} ainda`, "Use a hashtag na sua publicação para começar.", "Publicar agora", () => compor()) : filtro === "principais"
       ? (aba === "registros"
-        ? vazio("Nenhum registro por aqui ainda", "Escreva um texto, faça uma enquete ou abra uma caixa de perguntas.", "Escrever um registro", () => abrirCompositor({ aoPublicar: ganchos.aoPublicar }))
+        ? vazio("Nenhum registro por aqui ainda", "Escreva um texto, faça uma enquete ou abra uma caixa de perguntas.", "Escrever um registro", () => compor())
         : vazio("Nenhuma foto ou vídeo por aqui ainda", "Compartilhe um trabalho ou veja os textos e enquetes em Registros.", "Ver os registros", () => trocarAba("registros", { passo: true })))
       : vazio("Seus amigos ainda não publicaram", "Amigos são seus vínculos do Social e quem vocês se seguem.", "Ver as principais", () => mudarFiltro("principais")));
     return;
@@ -307,7 +322,7 @@ function cartaoPost(post) {
       : { rotulo: "Salvar publicação", sub: "Para ver depois no seu Perfil → Salvos", icone: "salvo", fn: () => alternarSalvo(post) },
     { rotulo: "Salvar em uma coleção", sub: "Organize seus salvos em pastas", icone: "fotos", fn: () => escolherColecao(post) },
     { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(post.autorId, post.nome) },
-    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=43").then((m) => m.abrirEstatisticas(post)) },
+    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=44").then((m) => m.abrirEstatisticas(post)) },
     post.autorId === eu.uid && { rotulo: "Editar publicação", icone: "lapis", fn: () => editarPublicacao(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId !== eu.uid && { rotulo: silenciado(post.autorId) ? `Mostrar ${nome.textContent} de novo` : `Silenciar ${nome.textContent}`, sub: "Continua seguindo, mas as publicações e flashes somem do seu Diário", icone: "restringir",
       fn: async () => { await alternarSilenciar(post.autorId, nome.textContent); if (silenciado(post.autorId)) { posts = posts.filter((x) => x.autorId !== post.autorId); document.querySelectorAll(".post-card").forEach((x) => { if (x.dataset.autor === post.autorId) x.remove(); }); } } },
@@ -431,14 +446,19 @@ async function pintarLateral() {
   montarBarraRede(abaDaUrl() === "explorar" ? "explorar" : "diario");
   pintarBarraRede();
   ouvirAvisos();
-  $("btnComporFeed").addEventListener("click", () => abrirCompositor({ aoPublicar: ganchos.aoPublicar }));
+  $("btnComporFeed").addEventListener("click", () => compor());
+  $("comporAtalhos").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-inicio]"); if (!b) return;
+    if (b.dataset.inicio === "flash") novoFlash(() => montarStories($("storiesFeed")).catch(() => {}));
+    else compor(b.dataset.inicio === "texto" ? "" : b.dataset.inicio);
+  });
   await carregarMeusSeguindo();
   pintarFiltro();
   montarStories($("storiesFeed")).catch((e) => console.warn("Flash:", e));
   pintarLateral();
   const p = new URLSearchParams(location.search);
   trocarAba(abaDaUrl());
-  if (p.get("publicar")) abrirCompositor({ aoPublicar: ganchos.aoPublicar });
+  if (p.get("publicar")) compor();
   // Links das mensagens do Flash: feed.html?flash=ID abre o flash; ?repostar=ID abre o criador para repostar.
   if (/^[A-Za-z0-9]{1,64}$/.test(p.get("flash") || "")) abrirFlashPorId(p.get("flash"));
   if (/^[A-Za-z0-9]{1,64}$/.test(p.get("repostar") || "")) repostarFlash(p.get("repostar"));

@@ -6,7 +6,7 @@
 export const ITENS_BARRA = [
   ["diario", "feed.html", "feed", "Diário"],
   ["explorar", "feed.html?aba=explorar", "bussola", "Explorar"],
-  ["comunidade", "comunidade.html", "comunidade", "Comunidade"],
+  ["comunidade", "mural.html", "comunidade", "Comunidade"],
   ["mensagens", "mensagens.html", "chat", "Mensagens"],
   ["perfil", "usuarios.html", null, "Perfil"]
 ];

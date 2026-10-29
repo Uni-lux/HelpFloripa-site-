@@ -8,7 +8,7 @@
 // - Nova publicação (foto ou texto).
 // - Barra inferior, avisos (notificações) e presença online.
 // =====================================================
-import { montarBarra, marcarBarra } from "./barra-rede.js?v=1";
+import { montarBarra, marcarBarra } from "./barra-rede.js?v=2";
 import { gravarComLocal, NOVOS } from "./endereco.js?v=1";
 import { pedirLocalizacao, posicaoDe, rotuloPosicao } from "./perto.js?v=2";
 import { comRitmo } from "./ritmo.js?v=2";
@@ -1808,7 +1808,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=48").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=49").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);
@@ -1871,11 +1871,35 @@ async function mandarPublicacao(post, uid) {
 // Nova publicação
 // =====================================================
 let pubMidia = null;
-export function abrirCompositor({ aoPublicar } = {}) {
+// Onde a publicação vai: Diário = com foto ou vídeo; Registros = texto, enquete ou caixa de perguntas (sem mídia).
+// O modo escolhido muda o formulário (Registros não tem Foto/Vídeo) e o botão diz para onde vai.
+let pubModo = "diario";
+const DESTINOS_PUB = {
+  diario: { rotulo: "Diário", icone: "feed", dica: "Fotos e vídeos", ph: "Escreva uma legenda para a sua foto ou vídeo..." },
+  registros: { rotulo: "Registros", icone: "registros", dica: "Textos, enquetes e perguntas", ph: "No que você está pensando? Escreva um registro..." }
+};
+function pintarDestino() {
+  if (!$("pubModo")) return;
+  const vaiPara = pubModo === "registros" || !pubMidia ? "registros" : "diario";
+  $("pubModo").querySelectorAll("[data-modo]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.modo === pubModo)));
+  $("pubTexto").placeholder = DESTINOS_PUB[pubModo].ph;
+  $("pubFoto").hidden = pubModo === "registros";
+  $("pubVideo").hidden = pubModo === "registros" || !storageFns;
+  const aviso = $("pubDestino");
+  aviso.hidden = !(pubModo === "diario" && !pubMidia);
+  aviso.lastChild.textContent = "No Diário vão fotos e vídeos. Sem foto, a publicação vai para Registros.";
+  if (!pubAgenda) $("pubEnviar").textContent = vaiPara === "diario" ? "Publicar no Diário" : "Publicar em Registros";
+  $("t_folhaPublicar") && ($("t_folhaPublicar").textContent = pubModo === "registros" ? "Novo registro" : "Nova publicação");
+}
+export function abrirCompositor({ aoPublicar, modo = "diario", inicio = "" } = {}) {
   if (!$("folhaPublicar")) {
     const f = criarFolha("folhaPublicar", { titulo: "Nova publicação", corpoClasse: "folha-corpo pad", rodape: true });
     $("c_folhaPublicar").innerHTML = `
-      <div class="pub-autor"><div class="avatar" id="pubAvatar"></div><div class="pub-quem"><strong id="pubNome"></strong><small><svg class="i"><use href="#i-feed"/></svg>Publicando no Diário</small></div></div>
+      <div class="pub-autor"><div class="avatar" id="pubAvatar"></div><div class="pub-quem"><strong id="pubNome"></strong><span class="pub-modo" id="pubModo" role="group" aria-label="Onde publicar">
+        <button type="button" data-modo="diario" aria-pressed="true"><svg class="i"><use href="#i-feed"/></svg><span>Diário</span><small>Fotos e vídeos</small></button>
+        <button type="button" data-modo="registros" aria-pressed="false"><svg class="i"><use href="#i-registros"/></svg><span>Registros</span><small>Textos e enquetes</small></button>
+      </span></div></div>
+      <p class="pub-destino" id="pubDestino" hidden><svg class="i"><use href="#i-ajuda"/></svg><span></span></p>
       <div class="pub-campo">
         <textarea class="pub-texto" id="pubTexto" maxlength="1000" placeholder="Compartilhe um trabalho, uma novidade ou uma dica..." aria-label="Texto da publicação"></textarea>
         <span class="cont" id="pubCont">0/1000</span>
@@ -1910,10 +1934,16 @@ export function abrirCompositor({ aoPublicar } = {}) {
   }
   pintarAvatar($("pubAvatar"), dados.fotoPerfil, dados.nome);
   $("pubNome").textContent = dados.nome || "Você";
-  $("pubVideo").hidden = !storageFns;
   $("folhaPublicar").aoPublicar = aoPublicar;
+  pubModo = modo === "registros" ? "registros" : "diario";
   pintarExtras();
   abrirFolha("folhaPublicar");
+  // Atalhos do campo de publicar: já abre com a foto, o vídeo, a enquete ou a caixa de perguntas.
+  if (inicio === "foto") $("pubArquivoFoto").click();
+  else if (inicio === "video" && storageFns) $("pubArquivoVideo").click();
+  else if (inicio === "enquete" && !pubEnquete) $("pubEnqueteBtn").click();
+  else if (inicio === "caixa" && !pubCaixa) $("pubCaixaBtn").click();
+  else if (inicio === "local" && !pubLocal) $("pubLocal").click();
 }
 // @usuário vira link para o perfil (o @ é procurado em nicknames/ ao clicar).
 // #hashtag: minúsculas, letras/números/_, até 30 (as mesmas das regras). Guardadas sem o # em diario.tags.
@@ -2134,6 +2164,7 @@ function pintarExtras() {
     c.appendChild(x); lb.appendChild(c);
   }
   $("pubEnviar").textContent = pubAgenda ? "Agendar" : "Publicar";
+  pintarDestino();
 }
 // ---------- Adicionar local (como no Instagram) ----------
 // O local vai na publicação como { nome, lat, lng }. Da localização atual o ponto é arredondado para ~1 km
@@ -2306,6 +2337,9 @@ async function abrirRascunhos() {
 }
 export const MAX_FOTOS = 4;
 function mostrarPreviaPublicacao() {
+  // Foto ou vídeo escolhido: a publicação passa a ser do Diário.
+  if (pubMidia) pubModo = "diario";
+  pintarDestino();
   const box = $("pubPrevia");
   box.replaceChildren();
   box.classList.toggle("varias", pubMidia?.tipo === "image" && pubMidia.fotos.length > 1);
@@ -2344,6 +2378,11 @@ function ligarCompositor() {
   // O campo cresce com o texto (até 45% da tela; depois rola por dentro).
   const crescer = () => { const t = $("pubTexto"); t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight + 2, Math.round(innerHeight * 0.45)) + "px"; };
   $("pubTexto").addEventListener("input", () => { $("pubCont").textContent = `${$("pubTexto").value.length}/1000`; crescer(); });
+  $("pubModo").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-modo]"); if (!b) return;
+    if (b.dataset.modo === "registros" && pubMidia) { toast("Fotos e vídeos ficam no Diário. Tire a foto para publicar em Registros."); return; }
+    pubModo = b.dataset.modo; pintarDestino();
+  });
   $("pubFoto").addEventListener("click", () => $("pubArquivoFoto").click());
   $("pubVideo").addEventListener("click", () => $("pubArquivoVideo").click());
   $("pubMarcar").addEventListener("click", escolherMarcados);

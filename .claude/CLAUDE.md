@@ -1044,6 +1044,22 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   sem as abas do topo; na barra, Diário/Explorar trocam sem recarregar (clique interceptado). Testes: os que criam texto/
   enquete abrem `feed.html?aba=registros`; Explorar = `#barraRede [data-barra=explorar]`; duas abas no mesmo navegador
   travam o Firestore do teste (t-salvos usa a mesma aba). Teste `t-barra-registros.mjs`. Etapa B (com Blaze): exibições somadas no servidor e ranking pré-calculado por cidade/categoria.
+- **Mural da Comunidade + Diário | Registros organizados (PR depois do #116, sem regra nova):** `mural.html/js/css` (item
+  Comunidade da barra de baixo, `barra-rede.js` e mensagens.html apontam para ele): publicações da coleção `comunidade` no
+  jeito de rede social (rosa #e5487f, cor de cada tipo em `--cc`): "Ana está doando/quer trocar/está precisando de/
+  encontrou", bairro · cidade · há X, etiqueta do tipo, título, descrição (3 linhas), foto ou emoji, selo (De graça...),
+  Disponível/Reservado, compartilhar e a ação do tipo → `comunidade.html?item=ID&de=mural`. Sem hero; topo com o botão do
+  lugar (`escolherLocal`), campo "O que você quer doar, trocar ou pedir?" + 5 atalhos → `comunidade.html?novo=TIPO&volta=mural`
+  (comunidade.js `voltarMural`: depois de publicar vai para `mural.html?publicado=1`), aviso amarelo "Proibido vender",
+  números reais do carregado, filtros com contagem e "Ver mais" (12 por vez, depois 60 do servidor com `startAfter`).
+  Leitura = `lerPorLocal` chave "cm" (mesmo cache da comunidade.html) + perfis em lote (`docsPorIds`). comunidade.html
+  ganhou "Ver o mural". **Formulário de publicar:** seletor `#pubModo` Diário (fotos e vídeos) | Registros (textos, enquetes,
+  perguntas) em `abrirCompositor({ modo, inicio })`; Registros esconde Foto/Vídeo; Diário sem foto avisa (`#pubDestino`) que
+  vai para Registros; botão "Publicar no Diário/em Registros"; com mídia o modo vira Diário. Feed: topo de cada aba
+  (`#feedIntro`), atalhos embaixo do campo (`#comporAtalhos`: Foto/Flash/Local ou Texto/Enquete/Perguntas), Registros em
+  lista corrida estilo conversa (`#listaFeed.registros`, foto à esquerda e linha ligando, sem a caixa de citação) e sem a
+  fileira do Flash (`body.aba-registros`; o stories.js mostrava a fileira ao terminar de carregar). **Mensagens da barra**
+  abre a página inteira (chat-gaveta.js ignora links em `#barraRede`). Teste `t-mural.mjs`.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

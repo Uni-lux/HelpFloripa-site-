@@ -28,7 +28,7 @@ ok(d.some((t) => t.includes("Trabalho de hoje com foto")) && !d.some((t) => t.in
 await p.locator("#abasFeed [data-aba=registros]").click();
 const r = await textos();
 ok(r.some((t) => t.includes("Dica rápida")) && r.some((t) => t.includes("Melhor horário")) && !r.some((t) => t.includes("Trabalho de hoje")), `Registros: texto e enquete, sem a foto (${r.length})`);
-ok(p.url().includes("aba=registros") && await p.locator("#storiesFeed").isHidden(), "Registros: endereço próprio e sem a fileira do Flash");
+ok(p.url().includes("aba=registros") && await p.waitForTimeout(1500).then(() => p.locator("#storiesFeed").isHidden()), "Registros: endereço próprio e sem a fileira do Flash");
 await p.evaluate(() => { window.__semRecarregar = 1; });
 await p.locator("#barraRede [data-barra=explorar]").click(); await p.waitForTimeout(1200);
 ok(await p.locator("#painelExplorar").isVisible() && await p.evaluate(() => window.__semRecarregar === 1), "Explorar da barra abre no próprio Diário (sem recarregar)");

@@ -8,7 +8,7 @@
 // quando a moderação decide. Com as regras antigas, o pedido vai sem a foto em usuarios/{uid}.verificacaoPedido.
 // usuarios.solicitacaoVerificacao continua marcando o pedido (o painel lista por ele).
 // =====================================================
-import { $, el, icone, toast, erroAmigavel, criarFolha, abrirFolha, fecharFolha, fb, eu, dados, refUsuario, confirmarHF } from "./rede.js?v=76";
+import { $, el, icone, toast, erroAmigavel, criarFolha, abrirFolha, fecharFolha, fb, eu, dados, refUsuario, confirmarHF } from "./rede.js?v=77";
 
 export const TIPOS_VERIF = [
   ["pessoa", "Pessoa", "Seu perfil pessoal", "pessoa-mais"],

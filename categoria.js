@@ -12,7 +12,7 @@ import { avisoPlano } from "./planos-base.js?v=15";
 import { ouvirItensEquipe } from "./avisos-equipe.js?v=1";
 import { enquetesEncerradas } from "./enquetes.js?v=5";
 import "./painel-avisos.js?v=36"; // o sino abre o painel de notificações na própria página
-import "./chat-gaveta.js?v=1";
+import "./chat-gaveta.js?v=2";
 import { docComValidade } from "./leituras.js?v=3"; // "Mensagens" abre as conversas por cima da página, sem sair dela
 
 const $ = (id) => document.getElementById(id);
