@@ -13,24 +13,36 @@ import {
   meusSeguindo, escondido, silenciado, alternarSilenciar, obterPerfil, abrirOpcoes, abrirLista, linhaPessoa, pessoasEmPilha,
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas
-} from "./rede.js?v=85";
+} from "./rede.js?v=86";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
-import { seletorDuracao, fimEscolhido, linhaChave, MAX_FLASH_MIN, fimDaEnquete, encerrada, faltaTexto, resultadoFinal, lerContasEnquete } from "./enquetes.js?v=5";
+import { seletorDuracao, fimEscolhido, linhaChave, MAX_FLASH_MIN, fimDaEnquete, encerrada, faltaTexto, resultadoFinal, lerContasEnquete } from "./enquetes.js?v=6";
 
 const DIA = 24 * 3600e3;
 const TEMPO_FOTO = 6000;
 const REACOES = ["🔥", "😍", "😂", "😮", "👏", "💯"];
 // Estrela (curtir o flash, como o coração do Instagram): stories/{id}/reacoes/{uid} {curtiu, emoji, em}. O autor vê
 // quem deu a estrela e quem reagiu na lista de visualizações. Guardada também no aparelho (não lê de novo a cada flash).
-const CURTIDOS = "hf-flash-curtidos";
-const curtidos = (() => { try { return new Set(JSON.parse(localStorage.getItem(CURTIDOS) || "[]")); } catch { return new Set(); } })();
-const guardarCurtidos = () => { try { localStorage.setItem(CURTIDOS, JSON.stringify([...curtidos].slice(-300))); } catch {} };
+// Guardados no aparelho POR CONTA (antes era um só para o aparelho: entrar com outra conta mostrava os flashes
+// como já vistos e as estrelas como já dadas).
+function conjuntoDaConta(base, max) {
+  let dono, set = new Set();
+  const atual = () => {
+    if (dono !== eu?.uid) { dono = eu?.uid; try { set = new Set(dono ? JSON.parse(localStorage.getItem(`${base}-${dono}`) || "[]") : []); } catch { set = new Set(); } }
+    return set;
+  };
+  return {
+    has: (x) => atual().has(x), add: (x) => atual().add(x), delete: (x) => atual().delete(x),
+    salvar: () => { if (!dono) return; try { localStorage.setItem(`${base}-${dono}`, JSON.stringify([...atual()].slice(-max))); } catch {} }
+  };
+}
+const curtidos = conjuntoDaConta("hf-flash-curtidos", 300);
+const guardarCurtidos = () => curtidos.salvar();
 const gravarReacao = (s, campos) => fb.setDoc(fb.doc(fb.db, "stories", s.id, "reacoes", eu.uid), { ...campos, em: fb.serverTimestamp() }, { merge: true });
 let porAutor = new Map();   // uid -> [flashes em ordem de criação]
 let barra = null;
-const vistosLocal = new Set((() => { try { return JSON.parse(localStorage.getItem("hf-stories-vistos") || "[]"); } catch { return []; } })());
-const guardarVistos = () => { try { localStorage.setItem("hf-stories-vistos", JSON.stringify([...vistosLocal].slice(-600))); } catch {} };
+const vistosLocal = conjuntoDaConta("hf-stories-vistos", 600);
+const guardarVistos = () => vistosLocal.salvar();
 const ativo = (s) => Date.now() - (ms(s.criadoEm) || Date.now()) < DIA;
 const comStorage = () => !!(storageFns && window.firebaseStorage);
 const erroPublicar = (e) => (e?.code === "permission-denied" ? "O Flash começa a funcionar quando as regras novas forem publicadas." : "Não foi possível publicar: " + erroAmigavel(e));
@@ -191,8 +203,14 @@ function linhasDe(ctx, texto, larg, max) {
 }
 // Resultado que pode aparecer no cartão: o final (enquete encerrada) ou o parcial quando quem compartilha é o autor
 // (ele já vê as porcentagens; ao pôr no flash, escolhe mostrá-las). Os outros veem só as opções, como no Diário.
+// Enquete antiga sem prazo: termina 7 dias depois de publicada (como no Diário, blocoEnquete).
+function comFimImplicito(post) {
+  const e = post.enquete;
+  if (e && !e.fimEm) { const c = ms(post.agendadoPara || post.criadoEm); if (c) e.fimEm = { toMillis: () => c + 7 * 864e5 }; }
+  return e;
+}
 async function resultadoParaCartao(post) {
-  const e = post.enquete, alvo = `d_${post.id}`, n = e.opcoes.length;
+  const e = comFimImplicito(post), alvo = `d_${post.id}`, n = e.opcoes.length;
   const tempo = (p) => Promise.race([p, new Promise((ok) => setTimeout(() => ok(null), 3000))]);
   try {
     if (encerrada(e)) return { contas: await tempo(resultadoFinal(fb, fb.db, alvo, n)), final: true };
@@ -232,16 +250,19 @@ async function imagemDaPublicacao(post) {
   const ctx = c.getContext("2d");
   // Navegador antigo sem roundRect: cantos retos.
   if (!ctx.roundRect) ctx.roundRect = function (x, y, w, h) { this.rect(x, y, w, h); };
-  const e = post.enquete?.pergunta && Array.isArray(post.enquete.opcoes) && post.enquete.opcoes.length >= 2 ? post.enquete : null;
+  const e = post.enquete?.pergunta && Array.isArray(post.enquete.opcoes) && post.enquete.opcoes.length >= 2 ? comFimImplicito(post) : null;
   const cx = !e && post.caixa?.pergunta ? post.caixa : null;
   const fotos = fotosDoPost(post).filter(Boolean), foto = fotos[0];
   const tempo = (p, ms = 3000) => Promise.race([p, new Promise((ok) => setTimeout(() => ok(null), ms))]);
   // Tudo ao mesmo tempo: foto, rosto de quem publicou, resultado da enquete e as estrelas.
-  const [im, av, res, notas] = await Promise.all([
+  // Pessoas marcadas: até 3 fotinhas empilhadas e "com Ana e mais 2 pessoas" (como no Diário).
+  const marcados = [...new Set((post.marcados || []).filter(Boolean))].slice(0, 10);
+  const [im, av, res, notas, marc] = await Promise.all([
     foto ? carregarImg(foto).catch(() => null) : null,
     urlSegura(post.fotoPerfil) ? carregarImg(post.fotoPerfil, 3000).catch(() => null) : null,
     e ? resultadoParaCartao(post) : null,
-    tempo(lerResumosEstrelas([post.id]).then((m) => m.get(post.id)).catch(() => null))
+    tempo(lerResumosEstrelas([post.id]).then((m) => m.get(post.id)).catch(() => null)),
+    marcados.length ? tempo(Promise.all(marcados.slice(0, 3).map((u) => obterPerfil(u).then(async (p) => ({ nome: p.nome || "", im: urlSegura(p.fotoPerfil) ? await carregarImg(p.fotoPerfil, 2500).catch(() => null) : null })).catch(() => ({ nome: "" })))), 3500) : null
   ]);
   const soTexto = !im && !e && !cx;
   // Fundo: a própria foto desfocada e escurecida (desenhada pequena e esticada: rápido até em celular simples) ou um degradê.
@@ -258,7 +279,7 @@ async function imagemDaPublicacao(post) {
 
   // ---- medidas: tudo cabe entre y=250 e y=1690 (em cima ficam os botões do flash; embaixo, a legenda e o nome) ----
   const CW = 900, X = (W - CW) / 2, pad = 40, larg = CW - pad * 2, CAB = 136, TOPO = 250, MAXH = 1440;
-  const temNotas = notas?.total > 0, NOTAS_H = temNotas ? 64 : 0;
+  const temNotas = notas?.total > 0, NOTAS_H = temNotas ? 64 : 0, MARC_H = marcados.length ? 70 : 0;
   const mostrar = !!res?.contas;
   const total = mostrar ? res.contas.reduce((a, b) => a + b, 0) : 0;
   // Bloco de baixo: enquete (selo, pergunta, opções, rodapé) ou caixa de perguntas (selo, pergunta, campo, rodapé).
@@ -282,11 +303,11 @@ async function imagemDaPublicacao(post) {
   // Foto: a proporção dela (entre 4:5 e 1,91:1), encolhendo se precisar para o resto caber.
   let mH = 0;
   if (im) {
-    const resto = () => MAXH - CAB - altTxt() - (bloco ? blocoH + 24 : 0) - NOTAS_H - pad;
+    const resto = () => MAXH - CAB - MARC_H - altTxt() - (bloco ? blocoH + 24 : 0) - NOTAS_H - pad;
     if (resto() < 340 && txtL.length > 1) { txtL = txtL.slice(0, 1); txtL[0] = txtL[0].replace(/…?$/, "…"); }
     mH = Math.max(260, Math.min(Math.round(Math.min(bloco ? 0.75 : 1.25, Math.max(0.52, im.height / im.width)) * CW), resto()));
   }
-  const CH = Math.min(MAXH, CAB + mH + (im && txtL.length ? 22 : 0) + altTxt() + (bloco ? blocoH + 8 : 0) + NOTAS_H + pad - (im ? 0 : 6));
+  const CH = Math.min(MAXH, CAB + MARC_H + mH + (im && txtL.length ? 22 : 0) + altTxt() + (bloco ? blocoH + 8 : 0) + NOTAS_H + pad - (im ? 0 : 6));
   const Y = Math.round(Math.max(TOPO, TOPO + (MAXH - CH) / 2));
 
   // ---- cartão ----
@@ -301,11 +322,39 @@ async function imagemDaPublicacao(post) {
   ctx.fillStyle = TINTA; ctx.font = `800 36px ${FONTE}`;
   ctx.fillText(String(post.nome || "Usuário").slice(0, 28), X + pad + 92, Y + 60);
   ctx.fillStyle = CINZA2; ctx.font = `600 26px ${FONTE}`;
-  const sub = `${post.local?.nome ? String(post.local.nome).slice(0, 26) : "Diário"} · ${quando(post.agendadoPara || post.criadoEm)}`;
+  const nomeLocal = String(post.local?.nome || "");
+  const sub = `${nomeLocal ? (nomeLocal.length > 26 ? nomeLocal.slice(0, 25).trimEnd() + "…" : nomeLocal) : "Diário"} · ${quando(post.agendadoPara || post.criadoEm)}`;
   ctx.fillText(sub, X + pad + 92, Y + 98);
   // marca discreta à direita
   ctx.fillStyle = AZUL; ctx.font = `900 22px ${FONTE}`; ctx.textAlign = "right"; ctx.fillText("HELP FLORIPA", X + CW - pad, Y + 60); ctx.textAlign = "left";
   let y = Y + CAB;
+  if (MARC_H) {
+    const R = 24, ax = X + pad;
+    const rostos = (marc || []).slice(0, 3);
+    rostos.forEach((p, i) => {
+      const cx0 = ax + R + i * (R * 2 - 14);
+      ctx.save(); ctx.beginPath(); ctx.arc(cx0, y + 26, R + 4, 0, Math.PI * 2); ctx.fillStyle = "#fff"; ctx.fill();
+      ctx.beginPath(); ctx.arc(cx0, y + 26, R, 0, Math.PI * 2); ctx.clip();
+      if (p?.im) { const k = Math.max(R * 2 / p.im.width, R * 2 / p.im.height); ctx.drawImage(p.im, cx0 - p.im.width * k / 2, y + 26 - p.im.height * k / 2, p.im.width * k, p.im.height * k); }
+      else { ctx.fillStyle = AZUL; ctx.fillRect(cx0 - R, y + 26 - R, R * 2, R * 2); ctx.fillStyle = "#fff"; ctx.font = `800 22px ${FONTE}`; ctx.textAlign = "center"; ctx.fillText(String(p?.nome || "?").trim().charAt(0).toUpperCase() || "?", cx0, y + 34); ctx.textAlign = "left"; }
+      ctx.restore();
+    });
+    let tx = ax + R * 2 + Math.max(0, rostos.length - 1) * (R * 2 - 14) + 10;
+    if (marcados.length > 3) {
+      const cx0 = tx + R - 4;
+      ctx.beginPath(); ctx.arc(cx0, y + 26, R + 4, 0, Math.PI * 2); ctx.fillStyle = "#fff"; ctx.fill();
+      ctx.beginPath(); ctx.arc(cx0, y + 26, R, 0, Math.PI * 2); ctx.fillStyle = "#e6eef2"; ctx.fill();
+      ctx.fillStyle = TINTA; ctx.font = `800 20px ${FONTE}`; ctx.textAlign = "center"; ctx.fillText(`+${marcados.length - 3}`, cx0, y + 33); ctx.textAlign = "left";
+      tx += R * 2 + 6;
+    }
+    const primeiro = String(rostos[0]?.nome || "alguém").split(" ")[0];
+    const resto2 = marcados.length - 1;
+    const partes = [["com ", CINZA2, 600], [primeiro, TINTA, 800]];
+    if (resto2 === 1 && rostos[1]?.nome) partes.push([" e ", CINZA2, 600], [String(rostos[1].nome).split(" ")[0], TINTA, 800]);
+    else if (resto2 > 0) partes.push([" e ", CINZA2, 600], [resto2 === 1 ? "mais 1 pessoa" : `mais ${resto2} pessoas`, TINTA, 800]);
+    partes.forEach(([t, cor, peso]) => { ctx.font = `${peso} 28px ${FONTE}`; ctx.fillStyle = cor; ctx.fillText(t, tx, y + 36); tx += ctx.measureText(t).width; });
+    y += MARC_H;
+  }
   // Foto (e "1/N" + bolinhas quando são várias)
   if (im) {
     const k = Math.max(CW / im.width, mH / im.height);
@@ -1786,29 +1835,38 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null 
       const o = el("span", "story-repost story-onde"); o.append(icone("loja", "i xs"), document.createTextNode(`${s.perfil === false ? "Só no" : "Também no"} perfil ${s.negocios.length === 1 ? "do negócio" : `de ${s.negocios.length} negócios`}`));
       txtQuem.appendChild(o);
     }
-    // Publicação do Diário compartilhada: botão para abrir a publicação original (crédito ao autor).
-    caixa.querySelector(".story-post")?.remove();
+    // Publicação do Diário compartilhada (como no Instagram): tocar na publicação mostra o balão "Ver publicação";
+    // tocar no balão abre a publicação POR CIMA do flash, e o "voltar" retorna ao flash de onde parou.
+    caixa.querySelectorAll(".story-post, .story-post-area").forEach((x) => x.remove());
     if (s.postDe?.postId) {
-      // Abre a própria publicação (como no Instagram), não o perfil de quem publicou.
-      const a = el("a", "story-link story-post"); a.href = `feed.html?post=${encodeURIComponent(s.postDe.postId)}`;
-      a.append(icone("fotos", "i s"), el("span", null, "Ver publicação"), icone("avancar", "i xs"));
+      const area = el("button", "story-post-area"); area.type = "button";
+      area.setAttribute("aria-label", s.postDe.autorId === s.autorId ? "Publicação: toque para ver" : `Publicação de ${String(s.postDe.nome || "alguém")}: toque para ver`);
+      const a = el("a", "story-link story-post balao"); a.href = `feed.html?post=${encodeURIComponent(s.postDe.postId)}`; a.hidden = true;
+      a.append(el("span", null, "Ver publicação"), icone("avancar", "i xs"));
       a.setAttribute("aria-label", s.postDe.autorId === s.autorId ? "Ver publicação" : `Ver a publicação de ${String(s.postDe.nome || "quem publicou")}`);
+      const esconder = () => { if (a.hidden) return; a.hidden = true; pausar(false); };
+      let tSeg = null, segurou = false;
+      area.addEventListener("pointerdown", (e) => { e.stopPropagation(); segurou = false; tSeg = setTimeout(() => { segurou = true; esconder(); pausar(true); caixa.classList.add("limpo"); }, 260); });
+      area.addEventListener("pointerup", (e) => {
+        e.stopPropagation(); clearTimeout(tSeg); caixa.classList.remove("limpo");
+        if (segurou) { segurou = false; pausar(false); return; }
+        if (!a.hidden) { esconder(); return; }
+        // O balão aparece em cima de onde tocou (sem sair da tela).
+        const r = caixa.getBoundingClientRect();
+        a.style.left = `${Math.min(80, Math.max(20, ((e.clientX - r.left) / r.width) * 100))}%`;
+        a.style.top = `${Math.max(14, ((e.clientY - r.top) / r.height) * 100 - 6)}%`;
+        a.hidden = false; pausar(true);
+      });
+      area.addEventListener("pointercancel", () => { clearTimeout(tSeg); caixa.classList.remove("limpo"); if (segurou) { segurou = false; pausar(false); } });
+      area.addEventListener("click", (e) => { e.stopPropagation(); if (e.detail === 0) { a.hidden = false; pausar(true); a.focus(); } });
       ["pointerdown", "pointerup"].forEach((ev) => a.addEventListener(ev, (e) => e.stopPropagation()));
       a.addEventListener("click", (e) => {
         e.stopPropagation(); pausar(true);
-        // No Diário a publicação abre aqui mesmo: fecha o visor e, quando o "voltar" dele terminar, abre a publicação.
-        if (!ganchos.abrirPublicacao) return;
-        e.preventDefault();
-        const id = s.postDe.postId;
-        let feito = false;
-        const abrir = () => { if (feito) return; feito = true; removeEventListener("popstate", abrir); ganchos.abrirPublicacao(id); };
-        addEventListener("popstate", abrir);
-        fechar();
-        setTimeout(abrir, 450);
+        if (!ganchos.abrirPublicacao) return; // fora do Diário: segue o link
+        e.preventDefault(); a.hidden = true;
+        ganchos.abrirPublicacao(s.postDe.postId, { sobreFlash: true, aoFechar: () => { if (!fechado && document.querySelector(".story-visor")) { document.body.classList.add("travado"); pausar(false); } } });
       });
-      // No rodapé, em cima do "Responder" (solto por cima do flash, cobria a legenda do cartão ou o campo de responder).
-      const linha = el("div", "story-post-linha"); linha.appendChild(a);
-      rodape.appendChild(linha);
+      caixa.append(area, a);
     }
     // Link para o perfil de um negócio (figurinha): tocar vai para o perfil.
     caixa.querySelector(".story-link:not(.story-post)")?.remove();

@@ -339,7 +339,7 @@ function atualizarBadgeMenu() {
   [$("menuBadge"), $("atalhoBadgeMensagens")].forEach((b) => {
     if (!b) return;
     b.hidden = !naoLidas;
-    b.textContent = naoLidas > 9 ? "9+" : String(naoLidas);
+    b.textContent = naoLidas > 99 ? "99+" : String(naoLidas);
   });
 }
 export function definirBadgeMensagens(n) { naoLidas = n; atualizarBadgeMenu(); }

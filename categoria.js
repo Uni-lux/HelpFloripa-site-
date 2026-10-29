@@ -6,13 +6,14 @@
 // - Busca: o botão da lupa leva até o campo.
 // =====================================================
 import { fotoSegura } from "./seguranca.js?v=1";
-import { definirPerfilMenu, definirBadgeMensagens } from "./menu.js?v=17";
+import { contarNovas } from "./mensagens-novas.js?v=1";
+import { definirPerfilMenu, definirBadgeMensagens } from "./menu.js?v=18";
 import { buscarReclamacoes } from "./avisos-reclamacoes.js?v=17";
 import { avisoPlano } from "./planos-base.js?v=15";
 import { ouvirItensEquipe } from "./avisos-equipe.js?v=1";
-import { enquetesEncerradas } from "./enquetes.js?v=5";
-import "./painel-avisos.js?v=40"; // o sino abre o painel de notificações na própria página
-import "./chat-gaveta.js?v=2";
+import { enquetesEncerradas } from "./enquetes.js?v=6";
+import "./painel-avisos.js?v=41"; // o sino abre o painel de notificações na própria página
+import "./chat-gaveta.js?v=3";
 import { docComValidade } from "./leituras.js?v=3"; // "Mensagens" abre as conversas por cima da página, sem sair dela
 
 const $ = (id) => document.getElementById(id);
@@ -135,9 +136,10 @@ async function iniciarTopo() {
     let avisosNovos = 0, visto = Infinity, naoLidas = [], equipe = [], msgsNoSino = true;
     const pintarSino = () => {
       const eqNaoLidas = equipe.filter((i) => i.naoLida);
-      const n = avisosNovos + (msgsNoSino ? naoLidas.filter((t) => t > visto).length : 0) + eqNaoLidas.filter((i) => i.quando > visto).length, b = $("badgeAvisos");
+      const n = avisosNovos + (msgsNoSino ? naoLidas.filter((c) => c.quando > visto).length : 0) + eqNaoLidas.filter((i) => i.quando > visto).length, b = $("badgeAvisos");
       if (b) { b.hidden = !n; b.textContent = n > 9 ? "9+" : String(n); }
-      definirBadgeMensagens(naoLidas.length + eqNaoLidas.length);
+      // Mensagens: o total de mensagens não lidas (não só as conversas).
+      definirBadgeMensagens(naoLidas.reduce((t, c) => t + (c.n || 1), 0) + eqNaoLidas.length);
     };
     pararEquipe?.(); pararEquipe = ouvirItensEquipe(fs, db, u.uid, (itens) => { equipe = itens; pintarSino(); });
     const recontar = () => contarAvisos(fs, db, u.uid).then((r) => { avisosNovos = r.n; visto = r.visto || 0; msgsNoSino = r.msgs !== false; pintarSino(); });
@@ -148,12 +150,17 @@ async function iniciarTopo() {
     // Outra aba viu as notificações: zera aqui também.
     addEventListener("storage", (e) => { if (e.key === chaveSino(u.uid)) { const r = sinoGuardado(u.uid); if (r) { avisosNovos = r.n; visto = r.visto || 0; pintarSino(); } } });
     const q = fs.query(fs.collection(db, "conversas"), fs.where("participantes", "array-contains", u.uid), fs.limit(60));
-    parar = fs.onSnapshot(q, (snap) => {
-      naoLidas = snap.docs.map((d) => {
+    let vez = 0;
+    parar = fs.onSnapshot(q, async (snap) => {
+      const minha = ++vez;
+      const lista = await Promise.all(snap.docs.map(async (d) => {
         const c = d.data({ serverTimestamps: "estimate" });
         const lido = Math.max(ms(c.lidoEm?.[u.uid]), ms(c.vistoEm?.[u.uid]), ms(c.ocultaPara?.[u.uid]));
-        return c.ultimaMensagemRemetenteId && c.ultimaMensagemRemetenteId !== u.uid && ms(c.atualizadoEm) > lido ? ms(c.atualizadoEm) : 0;
-      }).filter(Boolean);
+        if (!(c.ultimaMensagemRemetenteId && c.ultimaMensagemRemetenteId !== u.uid && ms(c.atualizadoEm) > lido)) return null;
+        return { quando: ms(c.atualizadoEm), n: await contarNovas(fs, db, u.uid, { id: d.id, ...c }) };
+      }));
+      if (minha !== vez) return;
+      naoLidas = lista.filter(Boolean);
       pintarSino();
     }, () => {});
   });
