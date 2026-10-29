@@ -2310,3 +2310,6 @@ div.cfg2-linha { cursor: default; }
 .vv-resumo, .vv-filtros, .vv-lista, .vv-nota { margin-left: 16px; margin-right: 16px; }
 .vv-resumo { margin-top: 12px; }
 .vv-nota { margin-bottom: 14px; }
+/* Estrela do Flash: apagada = contorno branco (como o coração do Instagram); dada = cheia e dourada */
+.story-raio.story-estrela .est-curtir { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
+.story-raio.story-estrela.on .est-curtir { fill: #ffc81a; stroke: #ffc81a; }

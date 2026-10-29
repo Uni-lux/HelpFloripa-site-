@@ -13,7 +13,7 @@ import {
   meusSeguindo, escondido, silenciado, alternarSilenciar, obterPerfil, abrirOpcoes, abrirLista, linhaPessoa,
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas
-} from "./rede.js?v=80";
+} from "./rede.js?v=81";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { seletorDuracao, fimEscolhido, linhaChave, MAX_FLASH_MIN, fimDaEnquete, encerrada, faltaTexto, resultadoFinal, lerContasEnquete } from "./enquetes.js?v=5";
@@ -1659,7 +1659,8 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null 
   const bEnviar = el("button", "story-env"); bEnviar.type = "submit"; bEnviar.setAttribute("aria-label", "Enviar"); bEnviar.appendChild(icone("enviar", "i s"));
   // Estrela: curtir o flash (antes era um raio que mandava uma reação pelo Mensagens).
   const bEstrela = el("button", "story-raio story-estrela"); bEstrela.type = "button"; bEstrela.setAttribute("aria-label", "Dar uma estrela");
-  bEstrela.appendChild(icone("estrela", "i"));
+  // Estrela própria (o ícone do site é sempre cheio): só o contorno quando apagada, cheia e dourada quando dada.
+  bEstrela.innerHTML = '<svg class="i est-curtir" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.8l2.5 5.2 5.7.8-4.1 4 1 5.6L12 16.7l-5.1 2.7 1-5.6-4.1-4 5.7-.8z"/></svg>';
   form.append(campo, bEnviar, bEstrela);
   const bandeja = el("div", "story-bandeja"); bandeja.setAttribute("aria-label", "Reações rápidas");
   REACOES.forEach((r) => { const b = el("button", null, r); b.type = "button"; b.setAttribute("aria-label", "Reagir com " + r); b.addEventListener("pointerdown", (e) => e.preventDefault()); b.addEventListener("click", () => reagir(r, b)); bandeja.appendChild(b); });
