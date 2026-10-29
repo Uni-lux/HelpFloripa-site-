@@ -9,7 +9,7 @@
 import {
   el, icone, ms, pintarAvatar, obterPerfil, barraInteracao, botaoSeguir, comMencoes, marcarVista, definirOrigem, origemAtual, pessoasEmPilha,
   contadorEstrelas, ganchos, eu, fb, toast, urlSegura, escondido, tempoRelativo, paraData, meusSeguindo, storageFns
-} from "./rede.js?v=85";
+} from "./rede.js?v=87";
 
 let aberto = null;
 let somLigado = false;

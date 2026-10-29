@@ -11,7 +11,7 @@
 import {
   $, el, icone, ms, toast, pintarAvatar, urlSegura, nomeCidade, fb, eu, dados, meusSeguindo, escondido, silenciado, ganchos,
   obterPerfil, linhaPessoa, botaoSeguir, fotosDoPost, lerResumosEstrelas, minhaRede, jaVisto, definirOrigem, origemAtual, pilha
-} from "./rede.js?v=85";
+} from "./rede.js?v=87";
 import { afinidade } from "./gosto.js?v=2";
 import { buscarNoServidor } from "./busca.js?v=1";
 import { postsDoEstado, pesoRegiao, RECENTES_PAIS } from "./regiao.js?v=4";
@@ -19,8 +19,8 @@ import { buscarPessoas, pessoasRecentes, semAcento } from "./pessoas.js?v=5";
 import { docsComValidade, docsPorIds } from "./leituras.js?v=3";
 import { ordenarJusto, dadosNegocio } from "./relevancia.js?v=4";
 import { lerResumos, media } from "./avaliacoes.js?v=17";
-import { CATEGORIAS, CORES_TIPO, NOMES_TIPO, PAGINA_TIPO, nomeCategoria, nomeCat, categoriasDe } from "./vitrine.js?v=78";
-import { fimDaEnquete, faltaTexto } from "./enquetes.js?v=5";
+import { CATEGORIAS, CORES_TIPO, NOMES_TIPO, PAGINA_TIPO, nomeCategoria, nomeCat, categoriasDe } from "./vitrine.js?v=79";
+import { fimDaEnquete, faltaTexto } from "./enquetes.js?v=6";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, distanciaKm } from "./perto.js?v=2";
 import { semPausados, corDoPlano, lerPlano, classePlano, planosDosDonos, nivelPlano } from "./planos-base.js?v=15";
 import { lerComunidade, cartaoComunidade, filtrosComunidade, comunidadeNoAr } from "./comunidade-cartao.js?v=2";
@@ -511,7 +511,7 @@ function tilePost(p, r, grande) {
   a.addEventListener("click", (e) => {
     if (!cartaoPost || e.ctrlKey || e.metaKey || e.shiftKey) return; e.preventDefault();
     // Vídeo abre nos Reels (tela cheia, deslizando para os próximos), como no Instagram.
-    if (tipo === "videos") { import("./reels.js?v=4").then((m) => m.abrirReels({ lista: postsDestaque, oculto: postOculto, comecarEm: p.id })).catch(() => abrirVisor(p)); return; }
+    if (tipo === "videos") { import("./reels.js?v=6").then((m) => m.abrirReels({ lista: postsDestaque, oculto: postOculto, comecarEm: p.id })).catch(() => abrirVisor(p)); return; }
     abrirVisor(p);
   });
   a.setAttribute("aria-label", `Publicação de ${p.nome || "alguém"}`);
@@ -590,8 +590,10 @@ function fecharVisor({ doHistorico = false } = {}) {
   v.el.querySelectorAll("video").forEach((x) => x.pause());
   v.el.classList.add("saindo");
   setTimeout(() => v.el.remove(), 180);
-  if (!pilha.length) document.body.classList.remove("travado");
+  if (!pilha.length && !document.querySelector(".story-visor")) document.body.classList.remove("travado");
   definirOrigem(v.origemAntes);
+  // Aberta por cima do Flash: o flash continua de onde parou.
+  setTimeout(() => v.aoFechar?.(), 0);
   if (!doHistorico && history.state?.hfVisorExp) { if (voltarOrigem) history.go(-2); else history.back(); return; }
   if (doHistorico && voltarOrigem) history.back();
 }
@@ -600,7 +602,7 @@ addEventListener("popstate", () => { if (visor && !history.state?.hfVisorExp) fe
 // opc.link: aberta por um link (Flash, Mensagens, notificações): o topo diz "Publicação" e as outras vêm em "Mais para você".
 async function abrirVisor(origem, opc = {}) {
   if (visor) fecharVisor({ doHistorico: true });
-  const caixa = el("div", "visor-exp");
+  const caixa = el("div", "visor-exp" + (opc.sobreFlash ? " sobre-flash" : ""));
   caixa.setAttribute("role", "dialog"); caixa.setAttribute("aria-label", opc.link ? "Publicação" : "Publicações do Explorar");
   const topo = el("div", "ve-topo");
   const voltar = el("button", "icone-btn"); voltar.type = "button"; voltar.setAttribute("aria-label", opc.link ? "Voltar" : "Voltar ao Explorar"); voltar.appendChild(icone("voltar", "i"));
@@ -621,7 +623,7 @@ async function abrirVisor(origem, opc = {}) {
   document.body.appendChild(caixa);
   document.body.classList.add("travado");
   history.pushState({ ...(history.state || {}), hfVisorExp: true, hfBase: false, hfGuarda: false }, "", location.href);
-  const v = visor = { el: caixa, daOrigem: !!opc.daOrigem, usados: new Set([origem.id]), ultimoAutor: origem.autorId, carregando: false, acabou: false, origemAntes: origemAtual, nota: parecida(origem) };
+  const v = visor = { el: caixa, daOrigem: !!opc.daOrigem, aoFechar: opc.aoFechar, usados: new Set([origem.id]), ultimoAutor: origem.autorId, carregando: false, acabou: false, origemAntes: origemAtual, nota: parecida(origem) };
   // Vistas dali: "link" quando veio de um link (as regras aceitam), senão "principais".
   definirOrigem(opc.link ? "link" : "principais");
   voltar.addEventListener("click", () => fecharVisor());
@@ -668,15 +670,16 @@ async function abrirVisor(origem, opc = {}) {
 }
 
 // Abrir uma publicação pelo id (feed.html?post=ID, "Ver publicação" do Flash, cartão do Mensagens, notificações).
-export async function abrirPublicacao(id, { daOrigem = false } = {}) {
+// sobreFlash/aoFechar: aberta pelo "Ver publicação" do Flash, por cima do visor (voltar retorna ao flash).
+export async function abrirPublicacao(id, { daOrigem = false, sobreFlash = false, aoFechar = null } = {}) {
   if (!cartaoPost || !/^[A-Za-z0-9_-]{1,64}$/.test(String(id || ""))) return false;
   try {
     const s = await fb.getDoc(fb.doc(fb.db, "diario", id));
-    if (!s.exists()) { toast("Essa publicação não existe mais."); return false; }
+    if (!s.exists()) { toast("Essa publicação não existe mais."); aoFechar?.(); return false; }
     const post = { id: s.id, ...s.data({ serverTimestamps: "estimate" }) };
     const oculta = (post.ocultoAte?.toMillis?.() ?? 0) > Date.now() || (post.agendadoPara?.toMillis?.() ?? 0) > Date.now();
-    if (escondido(post.autorId) || (oculta && post.autorId !== eu.uid)) { toast("Essa publicação não está disponível."); return false; }
-    await abrirVisor(post, { link: true, daOrigem });
+    if (escondido(post.autorId) || (oculta && post.autorId !== eu.uid)) { toast("Essa publicação não está disponível."); aoFechar?.(); return false; }
+    await abrirVisor(post, { link: true, daOrigem, sobreFlash, aoFechar });
     return true;
   } catch (e) { console.warn(e); toast("Não foi possível abrir a publicação."); return false; }
 }

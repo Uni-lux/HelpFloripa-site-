@@ -2082,6 +2082,8 @@
     }
 
     function notificar(titulo, corpo, aoClicar) {
+      // Gaveta fechada: quem avisa é a página de fora (sino e número das Mensagens).
+      if (window.top !== window.self && window.__hfGavetaAberta === false) return;
       tocarSom();
       if (config.vibrar !== false) { try { navigator.vibrate?.([60, 40, 60]); } catch {} }
       if (config.previaNotificacao === false) corpo = "Nova mensagem";
@@ -2364,6 +2366,8 @@
     const estaDigitando = (dados, uid) => Date.now() - ms(dados?.digitando?.[uid]) < 6000;
 
     // "lidoEm" é visto pelo outro (confirmação de leitura); "vistoEm" é só para o contador.
+    // Página fora da vista: aba escondida OU a gaveta do chat fechada (o iframe continua carregado por trás).
+    const escondida = () => document.hidden || (window.top !== window.self && window.__hfGavetaAberta === false);
     const minhaLeitura = (dados) => Math.max(ms(dados?.lidoEm?.[eu.uid]), ms(dados?.vistoEm?.[eu.uid]));
     const campoLeitura = (outroId) => (config.confirmacaoLeitura !== false && !restritos.has(outroId) ? "lidoEm" : "vistoEm");
     const verLeituraDosOutros = () => config.confirmacaoLeitura !== false;
@@ -2722,7 +2726,7 @@
           const dados = d.data({ serverTimestamps: "estimate" });
           const outroId = (dados.participantes || []).find((p) => p !== eu.uid) || eu.uid;
           const perfil = await obterPerfil(outroId);
-          const naoLida = calcularNaoLida(dados) && !(ativa?.id === d.id && !document.hidden);
+          const naoLida = calcularNaoLida(dados) && !(ativa?.id === d.id && !escondida());
           return { id: d.id, dados, outroId, nome: perfil.nome || "Usuário", nick: perfil.nickname || "", foto: perfil.fotoPerfil || "", naoLida };
         }));
         // Fixadas primeiro; depois a mais recente.
@@ -2732,7 +2736,7 @@
           const agora = ms(c.dados.atualizadoEm);
           const antes = ultimaAtualizacaoVista.get(c.id);
           const nova = !primeiraCarga && (antes === undefined || agora > antes) && calcularNaoLida(c.dados);
-          if (nova && !restritos.has(c.outroId) && !bloqueado(c.outroId) && !c.dados.silenciadaPara?.[eu.uid] && (ativa?.id !== c.id || document.hidden)) {
+          if (nova && !restritos.has(c.outroId) && !bloqueado(c.outroId) && !c.dados.silenciadaPara?.[eu.uid] && (ativa?.id !== c.id || escondida())) {
             notificar(c.nome, c.dados.ultimaMensagem || "Nova mensagem", () => abrirConversa(c.id));
           }
           ultimaAtualizacaoVista.set(c.id, agora);
@@ -2937,11 +2941,13 @@
     }
 
     function marcarComoLida() {
-      if (!ativa || document.hidden || !calcularNaoLida(ativa.dados || {})) return;
+      if (!ativa || escondida() || !calcularNaoLida(ativa.dados || {})) return;
       fb.setDoc(refConversa(ativa.id), { [campoLeitura(ativa.outroId)]: { [eu.uid]: fb.serverTimestamp() } }, { merge: true })
         .catch((e) => console.warn("Não foi possível marcar como lida:", e));
     }
-    document.addEventListener("visibilitychange", () => { if (!document.hidden) marcarComoLida(); });
+    document.addEventListener("visibilitychange", () => { if (!escondida()) marcarComoLida(); });
+    // Dentro da gaveta: abrir a gaveta conta como "à vista"; fechada, nada é marcado como lido.
+    addEventListener("hf:gaveta", () => { if (!escondida()) marcarComoLida(); renderizarLista(); });
 
     function ouvirConversaAtiva() {
       const id = ativa.id;
@@ -3022,7 +3028,7 @@
         limparApagadasVencidas(id);
         const chegouDoOutro = !primeiraRender && mensagens.length > antes && mensagens[mensagens.length - 1]?.remetenteId !== eu.uid;
         renderizarMensagens(chegouDoOutro);
-        if (chegouDoOutro && !document.hidden && !restritos.has(ativa.outroId) && !ativa.dados?.silenciadaPara?.[eu.uid]) tocarSom();
+        if (chegouDoOutro && !escondida() && !restritos.has(ativa.outroId) && !ativa.dados?.silenciadaPara?.[eu.uid]) tocarSom();
         marcarComoLida();
       }, (erro) => {
         console.error("Erro no chat:", erro);
@@ -3694,7 +3700,7 @@
     let vitrineMod = null;
     function carregarVitrine() {
       if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=41"; l.dataset.vitrine = ""; document.head.appendChild(l); }
-      return (vitrineMod ||= import("./vitrine.js?v=78"));
+      return (vitrineMod ||= import("./vitrine.js?v=79"));
     }
     function usarCartaoNaConversa(uid, cartao) {
       document.querySelectorAll(".vt-modal").forEach((m) => m.remove());

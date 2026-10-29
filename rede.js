@@ -16,15 +16,16 @@ import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
 import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=17";
 import { ouvirItensEquipe, TEXTO_EQUIPE, linkEquipe } from "./avisos-equipe.js?v=1";
-import "./painel-avisos.js?v=40";
+import "./painel-avisos.js?v=41";
 import { docComValidade, docsComValidade, esquecer } from "./leituras.js?v=3";
 import { resumoPublico, temPublico } from "./publico-alvo.js?v=1";
+import { contarNovas } from "./mensagens-novas.js?v=1";
 import { escolherPublico } from "./publico-tela.js?v=2";
 import { avisoPlano } from "./planos-base.js?v=15";
 import { palavrasBusca } from "./pessoas.js?v=5"; // o sino abre o painel de notificações na própria página
 import { registrarGosto, PESO } from "./gosto.js?v=2";
 import { confirmarHF } from "./confirmar.js?v=5";
-import { seletorDuracao, fimEscolhido, fimDaEnquete, encerrada, faltaTexto, dataCurta, resumoResultado, guardarInfoEnquete, enquetesEncerradas, textoEnqueteFim, linhaChave, MAX_PUB_MIN, lerContasEnquete, resultadoFinal, sortearFatia, pedacoDaEnquete } from "./enquetes.js?v=5";
+import { seletorDuracao, fimEscolhido, fimDaEnquete, encerrada, faltaTexto, dataCurta, resumoResultado, guardarInfoEnquete, enquetesEncerradas, textoEnqueteFim, linhaChave, MAX_PUB_MIN, lerContasEnquete, resultadoFinal, sortearFatia, pedacoDaEnquete } from "./enquetes.js?v=6";
 
 // ---------- ícones ----------
 const SIMBOLOS = `<symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 01-1.5 1.5H15v-6h-6v6H5.5A1.5 1.5 0 014 19z"/></symbol>
@@ -1195,9 +1196,15 @@ export async function alternarSalvo(post) {
 // quando vai aparecer: votar ou passar pela enquete não gasta leitura. Enquete antiga sem fim: mostra depois do voto.
 // Voto único (as regras não deixam trocar nem tirar) e só até o fim (enquete.fimEm; enquete antiga não tem fim).
 // O autor vê quem votou em cada opção. Quando acaba, o dono e quem votou recebem o resultado nas notificações.
+// Enquete antiga (sem prazo): termina 7 dias depois de publicada (o maior prazo de hoje). Assim o resultado só aparece
+// no fim para quem votou, como nas novas, em vez de mostrar números parciais.
+export const DIAS_ENQUETE_ANTIGA = 7;
 export function blocoEnquete(item, { tipo = "d", escura = false } = {}) {
-  const e = item?.enquete;
+  let e = item?.enquete;
   if (!e?.pergunta || !Array.isArray(e.opcoes) || e.opcoes.length < 2) return null;
+  // Cópia com o prazo implícito (não mexe na publicação: o voto continua indo SEM fimEm, como a regra pede).
+  let implicito = false;
+  if (!e.fimEm) { const c = ms(item.agendadoPara || item.criadoEm); if (c) { e = { ...e, fimEm: { toMillis: () => c + DIAS_ENQUETE_ANTIGA * 864e5 } }; implicito = true; } }
   const box = el("div", "enquete" + (escura ? " escura" : ""));
   const cab = el("div", "enq-cab");
   const tit = el("span", "enq-tit"); tit.append(icone("enquete", "i xs"), el("span", null, "Enquete"));
@@ -1259,7 +1266,8 @@ export function blocoEnquete(item, { tipo = "d", escura = false } = {}) {
     const votos = temContas ? `${numero(total)} ${total === 1 ? "voto" : "votos"} · ` : "";
     rodTx.textContent = !pronto || (precisaContas() && !temContas && lendo) ? "Carregando..."
       : acabou ? `Resultado final${temContas ? " · " + votos.slice(0, -3) : ""}`
-      : meu !== null && !mostrar ? `Voto registrado${anon ? " (anônimo)" : ""} · resultado ${fim ? "em " + dataCurta(fim) : "no fim"}`
+      : meu !== null && !mostrar ? `Voto registrado${anon ? " (anônimo)" : ""} · o resultado sai ${fim ? "em " + dataCurta(fim) : "no fim"} e você recebe uma notificação`
+      : souAutor && temContas && !total ? "Nenhum voto ainda · você vê os votos chegando"
       : meu !== null ? `${votos}seu voto foi registrado${anon ? " (anônimo)" : ""}`
       : anon ? `${votos}voto anônimo: ninguém vê em quem você votou`
       : `${votos}toque para votar (um voto, sem troca)`;
@@ -1290,7 +1298,7 @@ export function blocoEnquete(item, { tipo = "d", escura = false } = {}) {
     try {
       // Voto e contagem juntos, num pedaço sorteado (as regras conferem que a opção sobe exatamente 1 nele).
       const fatia = sortearFatia();
-      const voto = { alvo, tipo, itemId: item.id, uid: eu.uid, opcao: i, fatia, ...(e.fimEm ? { fimEm: e.fimEm } : {}), criadoEm: fb.serverTimestamp() };
+      const voto = { alvo, tipo, itemId: item.id, uid: eu.uid, opcao: i, fatia, ...(e.fimEm && !implicito ? { fimEm: e.fimEm } : {}), criadoEm: fb.serverTimestamp() };
       const lote = fb.writeBatch(fb.db);
       lote.set(ref, voto);
       lote.set(fb.doc(fb.db, "enquete_contas", pedacoDaEnquete(alvo, fatia)), { ["n" + i]: fb.increment(1) }, { merge: true });
@@ -1416,7 +1424,7 @@ export async function verRespostasCaixa(item, alvo, aoMudar) {
       // Pôr a resposta no seu flash (como no Instagram): pergunta + resposta, sem o nome de quem respondeu.
       const noFlash = el("button", "btn mini sec"); noFlash.type = "button"; noFlash.append(icone("raio", "i xs"), document.createTextNode("No flash"));
       noFlash.title = "Compartilhar esta resposta no seu flash";
-      noFlash.addEventListener("click", () => import("./stories.js?v=57").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto })));
+      noFlash.addEventListener("click", () => import("./stories.js?v=59").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto })));
       acoes.appendChild(noFlash);
       const apagar = el("button", "btn mini sec"); apagar.type = "button"; apagar.append(icone("lixo", "i xs"), document.createTextNode("Apagar"));
       apagar.addEventListener("click", async () => {
@@ -1963,7 +1971,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=57").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=59").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);
@@ -2010,7 +2018,8 @@ export async function mandarMensagem(uid, msg, resumo) {
   if (!existe) await fb.setDoc(ref, { participantes: ids, ultimaMensagem: "", atualizadoEm: fb.serverTimestamp() }, { merge: true });
   await comRitmo(fb, eu.uid, "msg", (lote) => lote.set(fb.doc(fb.collection(fb.db, "conversas", id, "mensagens")), { remetenteId: eu.uid, texto: "", ...msg, criadoEm: fb.serverTimestamp() }));
   // Resumo da conversa (como o Mensagens faz depois de enviar).
-  fb.setDoc(ref, { ultimaMensagem: String(resumo || msg.texto || "").slice(0, 120), ultimaMensagemRemetenteId: eu.uid, atualizadoEm: fb.serverTimestamp(), falaram: { [eu.uid]: true } }, { merge: true }).catch(() => {});
+  // vistoEm: quem envia já "leu" até aqui (senão a próxima resposta contaria as suas mensagens como não lidas).
+  fb.setDoc(ref, { ultimaMensagem: String(resumo || msg.texto || "").slice(0, 120), ultimaMensagemRemetenteId: eu.uid, atualizadoEm: fb.serverTimestamp(), vistoEm: { [eu.uid]: fb.serverTimestamp() }, falaram: { [eu.uid]: true } }, { merge: true }).catch(() => {});
 }
 async function mandarPublicacao(post, uid) {
   try {
@@ -2821,7 +2830,7 @@ function avisar() {
   if (b) { b.hidden = !novos; b.textContent = novos > 99 ? "99+" : String(novos); }
   const bm = $("badgeMensagens");
   // Mensagens não lidas + respostas do suporte e avisos da equipe ainda não abertos.
-  const nm = avisos.mensagens.length + avisos.equipe.filter((x) => x.naoLida).length;
+  const nm = avisos.mensagens.reduce((t, c) => t + (c.n || 1), 0) + avisos.equipe.filter((x) => x.naoLida).length;
   if (bm) { bm.hidden = !nm; bm.textContent = nm > 99 ? "99+" : String(nm); }
   ouvintesAvisos.forEach((fn) => fn(avisos));
 }
@@ -2979,7 +2988,9 @@ export function ouvirAvisos({ notificarNovos = true } = {}) {
       const outro = (c.participantes || []).find((x) => x !== eu.uid);
       const lido = Math.max(ms(c.lidoEm?.[eu.uid]), ms(c.vistoEm?.[eu.uid]), ms(c.ocultaPara?.[eu.uid]));
       const naoLida = ok(outro) && !!c.ultimaMensagemRemetenteId && c.ultimaMensagemRemetenteId !== eu.uid && ms(c.atualizadoEm) > lido;
-      return { id: d.id, uid: outro, ultimaMensagem: c.ultimaMensagem || "", quando: ms(c.atualizadoEm), naoLida, silenciada: !!c.silenciadaPara?.[eu.uid], ...(naoLida ? await perfilDe(outro) : {}) };
+      // Quantas mensagens novas (o número das Mensagens e "enviou 26 mensagens" no sino).
+      const n = naoLida ? await contarNovas(fb, fb.db, eu.uid, { id: d.id, ...c }) : 0;
+      return { id: d.id, uid: outro, ultimaMensagem: c.ultimaMensagem || "", quando: ms(c.atualizadoEm), naoLida, n, silenciada: !!c.silenciadaPara?.[eu.uid], ...(naoLida ? await perfilDe(outro) : {}) };
     }));
     lista.forEach((c) => {
       const antes = vistas.get(c.id);

@@ -52,16 +52,24 @@ await p.locator("#opcoesCorpo button", { hasText: "Principais" }).tap(); await p
 
 // ---------- 3) Flash → Ver publicação ----------
 await p.goto(BASE + `feed.html?flash=${flash.id}`); await p.waitForTimeout(4000);
-const link = p.locator(".story-visor .story-post");
-ok(await link.count() === 1, "visor do flash com 'Ver publicação'");
+// Como no Instagram: tocar na publicação mostra o balão "Ver publicação"; o balão abre a publicação POR CIMA do flash.
+ok(await p.locator(".story-visor .story-post-area").count() === 1 && await p.locator(".story-visor .story-post:visible").count() === 0, "flash com publicação: área de toque, sem botão fixo");
+await p.locator(".story-visor .story-post-area").click({ position: { x: 150, y: 200 } }); await p.waitForTimeout(400);
+const link = p.locator(".story-visor .story-post.balao:visible");
+ok(await link.count() === 1 && await p.locator(".story-visor .pausado, .story-caixa.pausado").count() >= 1, "tocar na publicação mostra o balão 'Ver publicação' e pausa o flash");
+await p.screenshot({ path: "saida/dc-balao.png" });
 await link.click(); await p.waitForTimeout(2500);
-ok(await p.locator(".story-visor").count() === 0, "o visor do flash fecha");
-ok(await p.locator(".visor-exp").count() === 1 && (await p.locator(".visor-exp .post-card").first().textContent()).includes("Telhado novo"), "abre a PUBLICAÇÃO (não o perfil)");
+ok(await p.locator(".story-visor").count() === 1, "o flash continua aberto por baixo");
+ok(await p.locator(".visor-exp.sobre-flash").count() === 1 && (await p.locator(".visor-exp .post-card").first().textContent()).includes("Telhado novo"), "abre a PUBLICAÇÃO (não o perfil), por cima do flash");
 ok(/feed\.html/.test(p.url()) && !/usuarios/.test(p.url()), "continua no Diário: " + p.url().replace(BASE, ""));
 ok((await p.locator(".visor-exp .ve-tit strong").textContent()) === "Publicação", "topo 'Publicação'");
 await p.screenshot({ path: "saida/dc-publicacao.png" });
+await p.goBack(); await p.waitForTimeout(900);
+ok(await p.locator(".visor-exp").count() === 0 && await p.locator(".story-visor").count() === 1, "voltar fecha a publicação e VOLTA AO FLASH");
+await p.waitForTimeout(300);
+ok(await p.locator(".story-caixa.pausado").count() === 0, "o flash continua tocando");
 await p.goBack(); await p.waitForTimeout(800);
-ok(await p.locator(".visor-exp").count() === 0 && await p.locator(".post-card").count() > 0, "voltar fecha a publicação e mostra o Diário");
+ok(await p.locator(".story-visor").count() === 0 && await p.locator(".post-card").count() > 0, "mais um voltar fecha o flash e mostra o Diário");
 
 // ---------- 4) link direto ----------
 await p.goto(BASE + "feed.html?post=dcTexto"); await p.waitForTimeout(4500);

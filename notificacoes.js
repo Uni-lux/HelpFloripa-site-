@@ -8,11 +8,12 @@ import {
   $, el, icone, pintarAvatar, urlSegura, tempoRelativo, toast, erroAmigavel,
   fb, eu, dados, refUsuario, ganchos, iniciarRede, carregarMeusSeguindo, botaoSeguir, montarBarraRede, pintarBarraRede,
   ouvirAvisos, aoMudarAvisos, avisosVistosEm, marcarAvisosVistos, rotuloVinculo, abrirComentarios, abrirResultadoEnquete, verRespostasCaixa
-} from "./rede.js?v=85";
+} from "./rede.js?v=87";
 import { TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=17";
 import { TEXTO_EQUIPE, linkEquipe, seloOficial, fotoSuporte } from "./avisos-equipe.js?v=1";
-import { textoEnqueteFim, resumoResultado } from "./enquetes.js?v=5";
+import { textoEnqueteFim, resumoResultado } from "./enquetes.js?v=6";
 import { textoPlano } from "./planos-base.js?v=15";
+import { textoMensagens } from "./mensagens-novas.js?v=1";
 import { criarLista } from "./avisos-lista.js?v=16";
 import { docsPorIds } from "./leituras.js?v=3";
 
@@ -52,7 +53,7 @@ function itens(a) {
     ...(a.caixas || []).map((x) => ({ tipo: "caixa", ...x, docId: x.id, id: "x_" + x.id, texto: "respondeu sua caixa de perguntas", detalhe: x.texto })),
     ...(a.enquetes || []).map((x) => ({ ...x, ...(x.souAutor ? { nome: "Sua enquete" } : {}), texto: x.souAutor ? "terminou. Veja o resultado." : textoEnqueteFim(x).titulo, detalhe: "" })),
     ...a.vinculos.map((x) => ({ tipo: "social", ...x, texto: x.pendente ? `quer adicionar você como ${rotuloVinculo(x.tipoParaMim).toLowerCase()}` : `aceitou seu pedido: ${rotuloVinculo(x.tipoParaMim)}` })),
-    ...a.mensagens.map((x) => ({ tipo: "mensagem", ...x, naoLida: true, texto: "enviou uma mensagem", detalhe: x.ultimaMensagem })),
+    ...a.mensagens.map((x) => ({ tipo: "mensagem", ...x, naoLida: true, texto: textoMensagens(x.n), detalhe: x.ultimaMensagem })),
     ...(a.reclamacoes || []).map((x) => ({ ...x, texto: TEXTO_RECLAMACAO[x.tipo](x) })),
     ...(a.equipe || []).map((x) => ({ ...x, texto: TEXTO_EQUIPE(x), pendente: x.naoLida })),
     ...(a.planos || []).map((x) => ({ ...x, texto: textoPlano(x) }))

@@ -10,8 +10,9 @@
 // =====================================================
 import { buscarReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=17";
 import { fotoSegura } from "./seguranca.js?v=1";
+import { contarNovas, textoMensagens } from "./mensagens-novas.js?v=1";
 import { buscarItensEquipe, TEXTO_EQUIPE, linkEquipe } from "./avisos-equipe.js?v=1";
-import { enquetesEncerradas, textoEnqueteFim } from "./enquetes.js?v=5";
+import { enquetesEncerradas, textoEnqueteFim } from "./enquetes.js?v=6";
 import { avisoPlano, textoPlano } from "./planos-base.js?v=15";
 import { docsComValidade, docsPorIds, esquecer } from "./leituras.js?v=3";
 import { criarLista, svg, toastNt, categoriaLigada, categoriaDe } from "./avisos-lista.js?v=16";
@@ -24,7 +25,7 @@ const TIPOS_DUO = ["duo", "namoro", "casamento"];
 
 function texto(i) {
   switch (i.tipo) {
-    case "mensagem": return "enviou uma mensagem";
+    case "mensagem": return textoMensagens(i.n);
     case "seguidor": return "começou a seguir você";
     case "social":
       if (i.pendente) return `quer adicionar você como ${(VINCULOS[i.tipoParaMim] || "vínculo").toLowerCase()}`;
@@ -95,11 +96,14 @@ async function carregar() {
     if (pendente && v.para === uid) itens.push({ tipo: "social", id: v.id, vinculoId: v.id, uid: outro, pendente: true, tipoParaMim: v.tipoPara, quando: ms(v.criadoEm) });
     else if (!pendente && v.de === uid) itens.push({ tipo: "social", id: v.id, vinculoId: v.id, uid: outro, pendente: false, tipoParaMim: v.tipoDe, quando: ms(v.aceitoEm) });
   });
-  conv.forEach((c) => {
+  await Promise.all(conv.map(async (c) => {
     const outro = (c.participantes || []).find((x) => x !== uid) || uid;
     const lido = Math.max(ms(c.lidoEm?.[uid]), ms(c.vistoEm?.[uid]), ms(c.ocultaPara?.[uid]));
-    if (c.ultimaMensagemRemetenteId && c.ultimaMensagemRemetenteId !== uid && ms(c.atualizadoEm) > lido) itens.push({ tipo: "mensagem", id: c.id, conversaId: c.id, uid: outro, detalhe: c.ultimaMensagem || "", quando: ms(c.atualizadoEm), naoLida: true });
-  });
+    if (c.ultimaMensagemRemetenteId && c.ultimaMensagemRemetenteId !== uid && ms(c.atualizadoEm) > lido) {
+      const n = await contarNovas(fs, db, uid, c);
+      itens.push({ tipo: "mensagem", id: c.id, conversaId: c.id, uid: outro, n, detalhe: c.ultimaMensagem || "", quando: ms(c.atualizadoEm), naoLida: true });
+    }
+  }));
   recl.forEach((x) => itens.push({ ...x }));
   equipe.forEach((x) => itens.push({ ...x }));
   const plano = await avisoPlano({ ...fs, db }, uid).catch(() => null);

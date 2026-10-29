@@ -11,9 +11,10 @@ const el = (t, c, x) => { const e = document.createElement(t); if (c) e.classNam
 const seguro = (u) => (typeof u === "string" && /^(data:image\/(jpeg|png|webp);base64,|https:\/\/firebasestorage\.googleapis\.com\/)/.test(u) ? u : "");
 const ativo = (s) => Date.now() - (ms(s.criadoEm) || Date.now()) < DIA;
 const podeVer = (s, uid) => s.autorId === uid || (!(Array.isArray(s.ocultoPara) && s.ocultoPara.includes(uid)) && (s.publico !== "amigos" || (Array.isArray(s.lista) && s.lista.includes(uid))));
-const vistosChave = "hf-stories-vistos";
-const vistos = () => { try { return new Set(JSON.parse(localStorage.getItem(vistosChave) || "[]")); } catch { return new Set(); } };
-const marcarVisto = (id) => { try { const v = vistos(); v.add(id); localStorage.setItem(vistosChave, JSON.stringify([...v].slice(-600))); } catch {} };
+// Os mesmos "já vi" do stories.js, guardados por conta no aparelho.
+const vistosChave = () => `hf-stories-vistos-${window.firebaseAuth?.currentUser?.uid || "anon"}`;
+const vistos = () => { try { return new Set(JSON.parse(localStorage.getItem(vistosChave()) || "[]")); } catch { return new Set(); } };
+const marcarVisto = (id) => { try { const v = vistos(); v.add(id); localStorage.setItem(vistosChave(), JSON.stringify([...v].slice(-600))); } catch {} };
 
 let cssPronto = false;
 function css() {

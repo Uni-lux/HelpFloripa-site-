@@ -15,12 +15,12 @@ import {
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, botaoSeguir, montarBarraRede, marcarBarra, pintarBarraRede, ouvirAvisos, lerOrdenado,
   editarPublicacao, bloquear, comMencoes, fotosDoPost, carrosselFotos, contadorEstrelas, estaSalvo, alternarSalvo, escolherColecao, lerResumosEstrelas, contarComentarios,
   silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto, confirmarHF, blocoEnquete, blocoCaixa, editarPublicoDoPost
-} from "./rede.js?v=85";
+} from "./rede.js?v=87";
 import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=2";
-import { montarStories, abrirFlashPorId, repostarFlash } from "./stories.js?v=57";
+import { montarStories, abrirFlashPorId, repostarFlash } from "./stories.js?v=59";
 import { abrirDenuncia } from "./denuncias.js?v=6";
 import { pessoasRecentes } from "./pessoas.js?v=5";
-import { abrirExplorar, definirCartao, abrirPublicacao } from "./explorar.js?v=67";
+import { abrirExplorar, definirCartao, abrirPublicacao } from "./explorar.js?v=69";
 import { docsComValidade, docsPorIds } from "./leituras.js?v=3";
 import { lerLocal } from "./local-escolhido.js?v=3";
 import { distanciaKm, minhaPosicao } from "./perto.js?v=2";
@@ -80,7 +80,7 @@ const tipoDe = (p) => p.tipo || (p.enquete?.pergunta ? "enquete" : p.caixa?.perg
 const doTipo = (p) => tipoFeed === "tudo" || (tipoFeed === "fotos" ? ["foto", "video"].includes(tipoDe(p)) : tipoFeed === "enquetes" ? ["enquete", "caixa"].includes(tipoDe(p)) : tipoDe(p) === "texto");
 const daAba = (p) => !!(tagAtual || localAtual) || doTipo(p);
 // Reels: os vídeos já lidos + os mais novos do servidor, com as mesmas regras do Diário (silenciados, público...).
-const verReels = (comecarEm = null) => import("./reels.js?v=4").then((m) => m.abrirReels({ lista: todosPosts, oculto: postOculto, comecarEm, aoNovo: () => compor("video") }));
+const verReels = (comecarEm = null) => import("./reels.js?v=6").then((m) => m.abrirReels({ lista: todosPosts, oculto: postOculto, comecarEm, aoNovo: () => compor("video") }));
 const compor = (inicio = "") => abrirCompositor({ aoPublicar: ganchos.aoPublicar, inicio });
 function pintarTipos() {
   const w = $("tiposFeed"); if (!w) return;
@@ -372,14 +372,19 @@ function cartaoPost(post) {
   nome.addEventListener("click", verAutor);
   const sub = el("small", null, tempoRelativo(paraData(post.criadoEm)));
   quem.append(nome);
+  if (post.local?.nome && Number.isFinite(post.local.lat)) sub.textContent = "· " + sub.textContent;
   // Local da publicação: tocar mostra o que foi publicado ali.
-  if (post.local?.nome && Number.isFinite(post.local.lat)) {
-    const lb = el("button", "local-post"); lb.type = "button"; lb.setAttribute("aria-label", `Publicações em ${post.local.nome}`);
-    lb.append(icone("local", "i xs"), document.createTextNode(post.local.nome));
+  // Com local (como no Instagram): o nome em cima e, numa linha só embaixo, "📍 Local · 3 h" (o local encurta com
+  // "…" e nunca quebra o nome). Sem local: "@nick · 3 h".
+  const temLocal = post.local?.nome && Number.isFinite(post.local.lat);
+  if (temLocal) {
+    const linhaSub = el("div", "sub-linha");
+    const lb = el("button", "local-post"); lb.type = "button"; lb.setAttribute("aria-label", `Publicações em ${post.local.nome}`); lb.title = post.local.nome;
+    lb.append(icone("local", "i xs"), el("span", null, post.local.nome));
     lb.addEventListener("click", (e) => { e.stopPropagation(); abrirLocal(post.local); });
-    quem.appendChild(lb);
-  }
-  quem.appendChild(sub);
+    linhaSub.append(lb, sub);
+    quem.appendChild(linhaSub);
+  } else quem.appendChild(sub);
   const mais = el("button", "icone-btn"); mais.type = "button"; mais.setAttribute("aria-label", "Opções da publicação");
   mais.appendChild(icone("pontos", "i s"));
   mais.addEventListener("click", () => abrirOpcoes("Publicação", [
@@ -389,7 +394,7 @@ function cartaoPost(post) {
       : { rotulo: "Salvar publicação", sub: "Para ver depois no seu Perfil → Salvos", icone: "salvo", fn: () => alternarSalvo(post) },
     { rotulo: "Salvar em uma coleção", sub: "Organize seus salvos em pastas", icone: "fotos", fn: () => escolherColecao(post) },
     { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(post.autorId, post.nome) },
-    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=52").then((m) => m.abrirEstatisticas(post)) },
+    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=54").then((m) => m.abrirEstatisticas(post)) },
     post.autorId === eu.uid && { rotulo: "Editar publicação", icone: "lapis", fn: () => editarPublicacao(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId === eu.uid && { rotulo: "Público da publicação", sub: temPublico(post) ? resumoPublico(post.publico) : "Para todos · escolha idade, gênero, lugar e seguidores", icone: "pessoa-mais", fn: () => editarPublicoDoPost(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId !== eu.uid && { rotulo: silenciado(post.autorId) ? `Mostrar ${nome.textContent} de novo` : `Silenciar ${nome.textContent}`, sub: "Continua seguindo, mas as publicações e flashes somem do seu Diário", icone: "restringir",
@@ -416,7 +421,7 @@ function cartaoPost(post) {
   obterPerfil(post.autorId).then((p) => {
     if (p.nome) nome.textContent = p.nome;
     if (p.fotoPerfil) pintarAvatar(av, p.fotoPerfil, p.nome);
-    sub.textContent = [p.nickname ? "@" + p.nickname : "", tempoRelativo(paraData(post.criadoEm)), post.editadoEm ? "editada" : ""].filter(Boolean).join(" · ");
+    sub.textContent = (temLocal ? "· " : "") + [temLocal ? "" : p.nickname ? "@" + p.nickname : "", tempoRelativo(paraData(post.criadoEm)), post.editadoEm ? "editada" : ""].filter(Boolean).join(" · ");
   });
   const url = urlSegura(post.mediaUrl);
   // Pessoas marcadas: fotinhas empilhadas + "com Ana e mais 2" (vale para todos os tipos de publicação).
@@ -515,7 +520,7 @@ async function pintarLateral() {
   catch (e) { $("listaFeed").replaceChildren(vazio("Não foi possível carregar", e.message || "")); return; }
   definirCartao(cartaoPost);
   // "Ver publicação" (Flash) e links feed.html?post=ID abrem a própria publicação aqui.
-  ganchos.abrirPublicacao = (id) => abrirPublicacao(id);
+  ganchos.abrirPublicacao = (id, opc) => abrirPublicacao(id, opc);
   // Depois de publicar: vai para a aba onde a publicação aparece (com foto = Diário; texto/enquete/pergunta = Registros).
   // Depois de publicar: volta para o Diário (no filtro em que a publicação aparece).
   ganchos.aoPublicar = (post) => { if (post && !doTipo(post)) { tipoFeed = "tudo"; pintarTipos(); } if (aba !== "diario") trocarAba("diario"); else carregarFeed(); };

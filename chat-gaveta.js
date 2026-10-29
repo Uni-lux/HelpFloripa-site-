@@ -38,6 +38,7 @@ function montar() {
   x.addEventListener("click", () => fechar());
   topo.append(rot, cheia, x);
   quadro = document.createElement("iframe"); quadro.title = "Mensagens";
+  quadro.addEventListener("load", avisarQuadro);
   gaveta.append(topo, quadro);
   fundo.addEventListener("click", () => fechar());
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && aberta && document.activeElement !== quadro) fechar(); });
@@ -45,6 +46,11 @@ function montar() {
   document.body.append(fundo, gaveta);
 }
 
+// A gaveta fechada continua carregada (escondida): o Mensagens de dentro precisa saber, senão a conversa que
+// estava aberta marca como lidas as mensagens que chegam e não avisa (mensagens.html → escondida()).
+function avisarQuadro() {
+  try { const w = quadro?.contentWindow; if (!w) return; w.__hfGavetaAberta = aberta; w.dispatchEvent(new Event("hf:gaveta")); } catch {}
+}
 export function abrirChat(url = "mensagens.html") {
   if (!gaveta) montar();
   if (quadro.dataset.url !== url) { quadro.src = url; quadro.dataset.url = url; }
@@ -53,6 +59,7 @@ export function abrirChat(url = "mensagens.html") {
     history.pushState({ ...(history.state || {}), hfChat: true }, "", location.href); // o "voltar" fecha a gaveta
     document.documentElement.classList.add("hfc-aberto");
     requestAnimationFrame(() => { fundo.classList.add("on"); gaveta.classList.add("on"); gaveta.focus({ preventScroll: true }); });
+    avisarQuadro();
   }
 }
 function fechar(voltarHistorico = true) {
@@ -60,6 +67,7 @@ function fechar(voltarHistorico = true) {
   aberta = false;
   fundo.classList.remove("on"); gaveta.classList.remove("on");
   document.documentElement.classList.remove("hfc-aberto");
+  avisarQuadro();
   // Desfaz a entrada criada ao abrir (as conversas abertas dentro da gaveta também ficam no histórico).
   if (voltarHistorico && history.state?.hfChat) history.back();
 }

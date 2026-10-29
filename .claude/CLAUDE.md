@@ -1152,6 +1152,26 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   do site, um "voltar" volta para ela (`daOrigem`); aberta de fora, a proteção "Sair?" (confirmar.js) só arma depois que a
   tela da publicação/Reels fecha. Testes `t-tipos-pub.mjs`, `t-video.mjs` (Storage ligado: vídeo sobe e toca no Diário/Reels,
   Flash e Mensagens), `t-publico-reels.mjs` (alcance nacional: SC+PR, Salvador+Manaus), `t-compositor.mjs`, `t-coment.mjs`.
+- **Correções do celular (29/10/2026, PR depois do #122, sem regra nova):** prints dele. (1) **"Já vi" do Flash por conta**:
+  `hf-stories-vistos-<uid>` e `hf-flash-curtidos-<uid>` (`conjuntoDaConta` em stories.js; flash-negocio.js idem) — antes uma
+  chave só por aparelho: a outra conta via os flashes como vistos. (2) **Gaveta do chat fechada** (chat-gaveta.js, o iframe fica
+  carregado escondido) marcava como lidas as mensagens da conversa aberta e não avisava: `avisarQuadro` põe
+  `__hfGavetaAberta` no iframe + evento `hf:gaveta`; mensagens.html `escondida()` (aba escondida OU gaveta fechada) em
+  marcarComoLida/notificar/som. (3) **Número das Mensagens conta mensagens** (não conversas): `mensagens-novas.js`
+  (`contarNovas`: 1 contagem por conversa com novidade, `criadoEm > última leitura`, guardada por `atualizadoEm` em
+  sessionStorage; `textoMensagens` → "enviou 26 mensagens") em rede.js (`avisos.mensagens[].n`), categoria.js, painel-avisos.js
+  e notificacoes.js; menu até "99+". `mandarMensagem` (rede.js) grava `vistoEm` de quem envia. (4) **"Ver publicação" no Flash
+  como no Instagram**: área de toque `.story-post-area` sobre o cartão → balão `.story-post.balao` onde tocou (pausa o flash);
+  o balão abre a publicação POR CIMA do flash (`abrirPublicacao(id, {sobreFlash, aoFechar})`, `.visor-exp.sobre-flash` z 4950)
+  e o "voltar" retorna ao flash, que continua. (5) **Enquetes antigas zeradas**: votos de antes da contagem em pedaços —
+  `lerContasEnquete` cai para o documento único antigo + `enquete_votos` contados por opção quando os pedaços somam 0
+  (`resultadoFinal` não guarda zero de vez); enquete sem `fimEm` termina 7 dias depois de publicada (`DIAS_ENQUETE_ANTIGA`
+  em blocoEnquete, `comFimImplicito` no cartão do Flash). Quem votou vê "Voto registrado · o resultado sai em <data> e você
+  recebe uma notificação"; autor sem votos vê "Nenhum voto ainda". (6) **Local no topo da publicação**: nome numa linha e
+  `.sub-linha` "📍 Local · 3 h" numa linha só (o local encurta com "…"; sem local, "@nick · 3 h"). (7) **Marcados no cartão
+  da publicação no Flash**: até 3 fotinhas + "+N" e "com Ana e mais 2 pessoas" (`imagemDaPublicacao`, `MARC_H`).
+  O "com Douglas e Edilson" sem fotinhas do print era a versão antiga em cache (não era por causa das regras).
+  Teste `t-correcoes-social.mjs`; `t-diario-compacto` (balão e voltar ao flash).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

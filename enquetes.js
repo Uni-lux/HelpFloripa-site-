@@ -126,6 +126,16 @@ export async function lerContasEnquete(fs, db, alvo, n, { fresco = false } = {})
   const s = await fs.getDocs(fs.query(fs.collection(db, "enquete_contas"), fs.where(fs.documentId(), "in", ids)));
   const c = Array.from({ length: n }, () => 0);
   s.docs.forEach((d) => { const x = d.data(); for (let i = 0; i < n; i++) c[i] += Math.max(0, Number(x["n" + i]) || 0); });
+  // Enquetes de antes da contagem em pedaços (até 26/10): os votos não estão nos pedaços. Conta como era antes:
+  // o documento único (anônimas) e os votos públicos por opção (enquete_votos). Vale o maior de cada opção.
+  if (!c.some(Boolean)) {
+    const [velho, ...porOpcao] = await Promise.all([
+      fs.getDoc(fs.doc(db, "enquete_contas", alvo)).catch(() => null),
+      ...c.map((_, i) => fs.getCountFromServer(fs.query(fs.collection(db, "enquete_votos"), fs.where("alvo", "==", alvo), fs.where("opcao", "==", i))).then((r) => r.data().count).catch(() => 0))
+    ]);
+    const v = velho?.exists?.() ? velho.data() : {};
+    for (let i = 0; i < n; i++) c[i] = Math.max(Math.max(0, Number(v["n" + i]) || 0), porOpcao[i] || 0);
+  }
   m[alvo] = { c, em: Date.now() };
   const ks = Object.keys(m); if (ks.length > 150) ks.sort((a, b) => m[a].em - m[b].em).slice(0, ks.length - 150).forEach((k) => delete m[k]);
   gravarLocal(CH_CONTAS, m);
@@ -138,6 +148,7 @@ async function contarVotos(fs, db, alvo, n) {
   const res = lerLocal(CH_RES);
   if (res[alvo]) return res[alvo].c;
   const c = await lerContasEnquete(fs, db, alvo, n, { fresco: true });
+  if (!c.some(Boolean)) return c; // nenhum voto encontrado: não guarda de vez (pode ter sido falha de leitura)
   res[alvo] = { c, em: Date.now() };
   const ks = Object.keys(res); if (ks.length > 200) ks.slice(0, ks.length - 200).forEach((k) => delete res[k]);
   gravarLocal(CH_RES, res);

@@ -59,7 +59,8 @@ async function rodar(mobile) {
   // ---- publicação com fotos ----
   const card = p.locator(".post-card", { hasText: "Reforma completa" }).first();
   await card.scrollIntoViewIfNeeded();
-  A("publicação: nome e @ do autor", (await card.locator(".post-cab").textContent()).includes("@brunoreparos"));
+  // Com local (como no Instagram): o nome e, embaixo, "📍 Local · tempo" numa linha (o @ fica para quando não há local).
+  A("publicação: nome do autor e a linha do local com o tempo", (await card.locator(".post-cab").textContent()).includes("Bruno") && await card.locator(".post-cab .sub-linha small").count() === 1);
   A("publicação: local clicável", await card.locator(".local-post").count() === 1);
   A("publicação: 'com Ana' (marcados)", (await card.locator(".post-com").textContent().catch(() => "")).includes("Ana"));
   A("publicação: #hashtag vira link", await card.locator('.post-texto a[href*="tag=reforma"]').count() >= 1);
