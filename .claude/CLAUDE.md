@@ -1139,6 +1139,19 @@ chat da equipe).
 - `versoes.py` agora falha se o mesmo módulo for importado com `?v=` diferentes (arquivo novo fica fora da troca).
 - `scripts/limpeza/converter-cidades.mjs` + workflow manual "Converter cidades" (simula por padrão).
 
+## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
+Melhorias do Diário/rede social que ficaram de fora da revisão da entrega (PR #118):
+1. **Quem posta muito toma o espaço dos outros que você segue:** `buscarSeguindo` lê 20 publicações por lote de 30 autores
+   (no total). Fazer um limite por autor (ex.: até 3 de cada nas recentes) — o jeito certo é um "feed por pessoa" montado no
+   servidor (Cloud Function, precisa do Blaze); sem Blaze, dá para ler em lotes menores, com custo maior de leituras.
+2. **"Já vi" só no aparelho (`jaVisto`):** no computador e no celular a mesma publicação reaparece. Guardar as vistas
+   recentes na conta (resumo compacto, sem uma gravação por publicação) ou ler `diario/{id}/vistas/{uid}` em lote.
+3. **Engajamento sem contar o alcance:** a nota usa estrelas e comentários absolutos; deveria pesar pela taxa
+   (interações ÷ quem viu). Precisa das exibições somadas no servidor (contador por publicação via Cloud Function — Blaze).
+4. **Aba "Republicados" no perfil** (como o Instagram): lista das `republicacoes` da pessoa (`uid ==`), perguntar se ele quer.
+5. **Pendente de resposta dele (Parte 1 da visibilidade justa):** no máximo 1 pagante nos 4 cartões depois de cada espaço pago.
+6. **Publicar a regra `republicacoes` + o índice `republicacoes` (uid + criadoEm)** — só ele (16 partes em `_regras/`).
+
 ## Pendências do dono e o que ficou para depois (vindas de sessões anteriores)
 Coisas que só ELE pode fazer (lembrar no momento certo, sem fazer por ele):
 - **Pagamento automático (Mercado Pago) — falta ele, na ordem** (passo a passo em `_regras/PAGAMENTO-LEIA-ME.md`; código
