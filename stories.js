@@ -13,7 +13,7 @@ import {
   meusSeguindo, escondido, silenciado, alternarSilenciar, obterPerfil, abrirOpcoes, abrirLista, linhaPessoa,
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas
-} from "./rede.js?v=78";
+} from "./rede.js?v=79";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { seletorDuracao, fimEscolhido, linhaChave, MAX_FLASH_MIN, fimDaEnquete, encerrada, faltaTexto, resultadoFinal, lerContasEnquete } from "./enquetes.js?v=5";
@@ -399,6 +399,8 @@ export async function compartilharNoFlash(post) {
   let imagem = null;
   try { imagem = await imagemDaPublicacao(post); } catch (e) { console.warn(e); }
   if (!imagem) { toast("Não foi possível preparar a publicação para o flash."); return; }
+  // O "Preparando..." some quando o criador abre (antes ficava por cima dos botões do topo).
+  document.querySelectorAll(".toast").forEach((t) => t.remove());
   abrirCriador({ post: { id: post.id, autorId: post.autorId, nome: post.nome, imagem, enquete: !!post.enquete?.pergunta, caixa: !post.enquete?.pergunta && !!post.caixa?.pergunta } });
 }
 
@@ -693,7 +695,10 @@ function abrirCriador({ repost = null, post = null } = {}) {
   bFig.addEventListener("click", () => abrirFigurinhas());
 
   // ---------- foto: arrastar e pinça direto no cartão ----------
-  const medidas = () => { const r = palco.getBoundingClientRect(); return { W: r.width, H: r.height }; };
+  // Tamanho de verdade do cartão (offsetWidth não muda com a animação de abrir; getBoundingClientRect pegava o
+  // cartão ainda encolhido e a foto ficava menor, com uma faixa escura à direita e embaixo).
+  const medidas = () => ({ W: palco.offsetWidth, H: palco.offsetHeight });
+  if ("ResizeObserver" in window) new ResizeObserver(() => { if (foto && fotoBox.isConnected) posicionar(); }).observe(palco);
   const base = () => { const { W, H } = medidas(); return Math.max(W / img.naturalWidth, H / img.naturalHeight); };
   function limitarFoto() {
     const { W, H } = medidas(), s = base() * z;
@@ -1739,12 +1744,25 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null 
     // Publicação do Diário compartilhada: botão para abrir a publicação original (crédito ao autor).
     caixa.querySelector(".story-post")?.remove();
     if (s.postDe?.postId) {
-      const a = el("a", "story-link story-post"); a.href = `usuarios.html?post=${encodeURIComponent(s.postDe.postId)}`;
-      a.style.left = "50%"; a.style.top = "86%";
+      // Abre a própria publicação (como no Instagram), não o perfil de quem publicou.
+      const a = el("a", "story-link story-post"); a.href = `feed.html?post=${encodeURIComponent(s.postDe.postId)}`;
       a.append(icone("fotos", "i s"), el("span", null, s.postDe.autorId === s.autorId ? "Ver publicação" : `Ver publicação de ${String(s.postDe.nome || "").split(" ")[0] || "quem publicou"}`), icone("avancar", "i xs"));
       ["pointerdown", "pointerup"].forEach((ev) => a.addEventListener(ev, (e) => e.stopPropagation()));
-      a.addEventListener("click", (e) => { e.stopPropagation(); pausar(true); });
-      caixa.appendChild(a);
+      a.addEventListener("click", (e) => {
+        e.stopPropagation(); pausar(true);
+        // No Diário a publicação abre aqui mesmo: fecha o visor e, quando o "voltar" dele terminar, abre a publicação.
+        if (!ganchos.abrirPublicacao) return;
+        e.preventDefault();
+        const id = s.postDe.postId;
+        let feito = false;
+        const abrir = () => { if (feito) return; feito = true; removeEventListener("popstate", abrir); ganchos.abrirPublicacao(id); };
+        addEventListener("popstate", abrir);
+        fechar();
+        setTimeout(abrir, 450);
+      });
+      // No rodapé, em cima do "Responder" (solto por cima do flash, cobria a legenda do cartão ou o campo de responder).
+      const linha = el("div", "story-post-linha"); linha.appendChild(a);
+      rodape.appendChild(linha);
     }
     // Link para o perfil de um negócio (figurinha): tocar vai para o perfil.
     caixa.querySelector(".story-link:not(.story-post)")?.remove();

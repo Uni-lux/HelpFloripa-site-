@@ -1080,6 +1080,20 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   idade de quando apareceu, região = lugar escolhido (`regiaoLeitor`, antes só o perfil), já vista ×0,3, filtro por tipo depois
   da ordem (antes o Diário de fotos filtrava as 60 lidas e quebrava o 1 a cada 5 da descoberta). Teste `t-republicar.mjs`;
   `t-sino` espera os nomes atuais do perfil.
+- **Diário compacto + link da publicação (29/10/2026, PR depois do #118, sem regra nova):** pedido dele: tirar do topo o
+  cartão "Diário", a caixa de publicar (com os atalhos Foto/Enquete/Flash/Local) e a fileira de filtros. Agora: "+" no topo
+  (`#btnComporFeed.topo-criar`, no lugar do `.topo-espaco`, abre o formulário direto), flash pelo "Seu flash", e uma linha fina
+  `.filtro-feed.compacto`: "Principais ▾" (texto, sem pílula) + `#tiposFeed` só com ícones (grade/imagem/registros/enquete,
+  nome no title). **Link de uma publicação = `feed.html?post=ID`** (`abrirPublicacao` em explorar.js: a tela `.visor-exp` com
+  topo "Publicação · Nome · @nick", a publicação e "Mais para você" embaixo; vistas com origem "link"); `ganchos.abrirPublicacao`
+  no feed: o "Ver publicação" do Flash fecha o visor e abre a publicação ali (antes ia para `usuarios.html?post=`, que abria o
+  perfil com uma folha por cima). Cartão do Mensagens, notificações, Explorar, estatísticas e "Copiar link" usam o link novo;
+  `usuarios.html?post=` continua funcionando (links antigos). Flash: "Ver publicação" menor e no rodapé, logo acima do "Responder" (`.story-post-linha`; solto por cima cobria a
+  legenda do cartão), reações rápidas (`.story-bandeja`) flutuando em cima do rodapé (escondidas ocupavam espaço), t-flash-cfg dá
+  plano ao Bruno (flash no negócio só com plano),
+  "Preparando..." some quando o criador abre, foto do criador medida com `offsetWidth` (durante a animação de abrir
+  `getBoundingClientRect` pegava o cartão encolhido e sobrava uma faixa escura) + ResizeObserver. Teste `t-diario-compacto.mjs`.
+  Testes do Flash/Diário falham com dados que sobraram de outros testes (flashes da Ana, 60 recentes cheios): rodar `seed.mjs` antes.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

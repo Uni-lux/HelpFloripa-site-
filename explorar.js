@@ -11,7 +11,7 @@
 import {
   $, el, icone, ms, toast, pintarAvatar, urlSegura, nomeCidade, fb, eu, dados, meusSeguindo, escondido, silenciado, ganchos,
   obterPerfil, linhaPessoa, botaoSeguir, fotosDoPost, lerResumosEstrelas, minhaRede, jaVisto, definirOrigem, origemAtual, pilha
-} from "./rede.js?v=78";
+} from "./rede.js?v=79";
 import { afinidade } from "./gosto.js?v=2";
 import { buscarNoServidor } from "./busca.js?v=1";
 import { postsDoEstado, pesoRegiao, RECENTES_PAIS } from "./regiao.js?v=4";
@@ -33,7 +33,8 @@ const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
 const NOME_TIPO = (t) => (t === "lojinha" ? "Shopping" : NOMES_TIPO[t] || "Negócio");
 const IMG_TIPO = { servicos: "servicos-480.webp", delivery: "lanchonetes-480.webp", lojinha: "shopping-480.webp", imoveis: "imoveis-480.webp", saude: "saude.svg" };
 const linkNegocio = (n) => `${PAGINA_TIPO[n.tipo]}?negocio=${encodeURIComponent(n.id)}&de=explorar`;
-const linkPost = (p) => `usuarios.html?post=${encodeURIComponent(p.id)}`;
+// Link de uma publicação: abre a própria publicação (tela cheia, com as parecidas embaixo), como no Instagram.
+const linkPost = (p) => `feed.html?post=${encodeURIComponent(p.id)}`;
 
 // ---------- dados (lidos uma vez e guardados) ----------
 // As mesmas publicações recentes dos Principais (mesma consulta e mesma chave no aparelho).
@@ -578,14 +579,19 @@ function fecharVisor({ doHistorico = false } = {}) {
 }
 addEventListener("popstate", () => { if (visor && !history.state?.hfVisorExp) fecharVisor({ doHistorico: true }); });
 
-async function abrirVisor(origem) {
+// opc.link: aberta por um link (Flash, Mensagens, notificações): o topo diz "Publicação" e as outras vêm em "Mais para você".
+async function abrirVisor(origem, opc = {}) {
   if (visor) fecharVisor({ doHistorico: true });
   const caixa = el("div", "visor-exp");
-  caixa.setAttribute("role", "dialog"); caixa.setAttribute("aria-label", "Publicações do Explorar");
+  caixa.setAttribute("role", "dialog"); caixa.setAttribute("aria-label", opc.link ? "Publicação" : "Publicações do Explorar");
   const topo = el("div", "ve-topo");
-  const voltar = el("button", "icone-btn"); voltar.type = "button"; voltar.setAttribute("aria-label", "Voltar ao Explorar"); voltar.appendChild(icone("voltar", "i"));
+  const voltar = el("button", "icone-btn"); voltar.type = "button"; voltar.setAttribute("aria-label", opc.link ? "Voltar" : "Voltar ao Explorar"); voltar.appendChild(icone("voltar", "i"));
   const tit = el("div", "ve-tit");
-  tit.append(el("strong", null, "Explorar"), el("small", null, (origem.tags || []).length ? `#${origem.tags[0]} e parecidas` : "Publicações para você"));
+  if (opc.link) {
+    const sub = el("small", null, origem.nome || "");
+    tit.append(el("strong", null, "Publicação"), sub);
+    obterPerfil(origem.autorId).then((pp) => { if (pp.nome) sub.textContent = pp.nome + (pp.nickname ? " · @" + pp.nickname : ""); }).catch(() => {});
+  } else tit.append(el("strong", null, "Explorar"), el("small", null, (origem.tags || []).length ? `#${origem.tags[0]} e parecidas` : "Publicações para você"));
   topo.append(voltar, tit);
   const lista = el("div", "ve-lista");
   const fim = el("div", "ve-fim");
@@ -598,9 +604,11 @@ async function abrirVisor(origem) {
   document.body.classList.add("travado");
   history.pushState({ ...(history.state || {}), hfVisorExp: true, hfBase: false, hfGuarda: false }, "", location.href);
   const v = visor = { el: caixa, usados: new Set([origem.id]), ultimoAutor: origem.autorId, carregando: false, acabou: false, origemAntes: origemAtual, nota: parecida(origem) };
-  definirOrigem("principais");
+  // Vistas dali: "link" quando veio de um link (as regras aceitam), senão "principais".
+  definirOrigem(opc.link ? "link" : "principais");
   voltar.addEventListener("click", () => fecharVisor());
   lista.appendChild(cartaoPost(origem));
+  if (opc.link) lista.appendChild(el("h2", "ve-mais-tit", "Mais para você"));
 
   const pool = (await postsRecentes()).slice();
   async function adicionar() {
@@ -627,7 +635,7 @@ async function abrirVisor(origem) {
       }
       if (!candidatas.length && acabouAntigas) {
         v.acabou = true;
-        const b = el("button", "btn sec", "Voltar ao Explorar"); b.type = "button"; b.addEventListener("click", () => fecharVisor());
+        const b = el("button", "btn sec", opc.link ? "Voltar" : "Voltar ao Explorar"); b.type = "button"; b.addEventListener("click", () => fecharVisor());
         fim.replaceChildren(el("p", "ve-acabou", "Você viu tudo por aqui. Volte mais tarde para ver novidades."), b);
       }
     } finally { v.carregando = false; mais.disabled = false; mais.textContent = "Ver mais"; }
@@ -639,4 +647,18 @@ async function abrirVisor(origem) {
     v.io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) adicionar(); }, { root: rolagem, rootMargin: "0px 0px 900px 0px" });
     v.io.observe(fim);
   }
+}
+
+// Abrir uma publicação pelo id (feed.html?post=ID, "Ver publicação" do Flash, cartão do Mensagens, notificações).
+export async function abrirPublicacao(id) {
+  if (!cartaoPost || !/^[A-Za-z0-9_-]{1,64}$/.test(String(id || ""))) return false;
+  try {
+    const s = await fb.getDoc(fb.doc(fb.db, "diario", id));
+    if (!s.exists()) { toast("Essa publicação não existe mais."); return false; }
+    const post = { id: s.id, ...s.data({ serverTimestamps: "estimate" }) };
+    const oculta = (post.ocultoAte?.toMillis?.() ?? 0) > Date.now() || (post.agendadoPara?.toMillis?.() ?? 0) > Date.now();
+    if (escondido(post.autorId) || (oculta && post.autorId !== eu.uid)) { toast("Essa publicação não está disponível."); return false; }
+    await abrirVisor(post, { link: true });
+    return true;
+  } catch (e) { console.warn(e); toast("Não foi possível abrir a publicação."); return false; }
 }

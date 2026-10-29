@@ -28,14 +28,14 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="rede.css?v=49" />
+  <link rel="stylesheet" href="rede.css?v=50" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="feed.js?v=109"></script>
+  <script type="module" src="feed.js?v=110"></script>
 </head>
 <body>
   <header class="topo">
     <a href="index.html" class="icone-btn" aria-label="Início do Help Floripa" title="Início"><svg class="i"><use href="#i-casa"/></svg></a>
-    <span class="topo-espaco" aria-hidden="true"></span>
+    <button type="button" class="icone-btn topo-criar" id="btnComporFeed" aria-label="Nova publicação" title="Nova publicação"><svg class="i"><use href="#i-mais"/></svg></button>
     <a href="index.html" class="marca" aria-label="Help Floripa - Início"><strong>HELP <span>FLORIPA</span></strong><small>TUDO EM UM SÓ LUGAR</small></a>
     <a href="notificacoes.html" class="icone-btn" aria-label="Notificações" title="Notificações"><svg class="i"><use href="#i-sino"/></svg><b class="ponto-badge" id="badgeAvisos" hidden></b></a>
     <a href="configuracoes.html" class="icone-btn" aria-label="Configurações" title="Configurações"><svg class="i"><use href="#i-config"/></svg></a>
@@ -46,26 +46,9 @@
       <div>
         <section id="painelFeed" aria-label="Publicações">
           <div class="stories" id="storiesFeed" aria-label="Flash"></div>
-          <div class="feed-intro" id="feedIntro">
-            <span class="fi-ic"><svg class="i"><use href="#i-feed"/></svg></span>
-            <div><strong>Diário</strong><small>Fotos, vídeos, textos e enquetes de todo o Brasil</small></div>
-          </div>
-          <div class="compor-box">
-            <button type="button" class="compor-card" id="btnComporFeed">
-              <div class="avatar" id="comporAvatar"></div>
-              <span class="txt">No que você está pensando? Compartilhe uma foto, um texto ou uma enquete...</span>
-              <span class="acs"><svg class="i s"><use href="#i-lapis"/></svg></span>
-            </button>
-            <div class="compor-atalhos" id="comporAtalhos">
-              <button type="button" data-inicio="foto"><svg class="i s"><use href="#i-imagem"/></svg>Foto</button>
-              <button type="button" data-inicio="enquete"><svg class="i s"><use href="#i-enquete"/></svg>Enquete</button>
-              <button type="button" data-inicio="flash"><svg class="i s"><use href="#i-raio"/></svg>Flash</button>
-              <button type="button" data-inicio="local"><svg class="i s"><use href="#i-local"/></svg>Local</button>
-            </div>
-          </div>
-          <div class="filtro-feed" id="filtroFeed">
+          <div class="filtro-feed compacto" id="filtroFeed">
+            <button type="button" id="filtroFeedBtn" class="filtro-escolha" aria-haspopup="dialog" title="Escolher o que mostrar no Diário"><span id="filtroAtual">Principais</span><svg class="i xs seta" aria-hidden="true"><use href="#i-avancar"/></svg></button>
             <div class="tipos-feed" id="tiposFeed" role="tablist" aria-label="Tipo de publicação"></div>
-            <button type="button" id="filtroFeedBtn" class="filtro-escolha" aria-haspopup="dialog" title="Escolher o que mostrar no Diário"><svg class="i xs" aria-hidden="true"><use href="#i-estrela"/></svg><span id="filtroAtual">Principais</span><svg class="i xs seta" aria-hidden="true"><use href="#i-avancar"/></svg></button>
           </div>
           <div id="listaFeed"></div>
           <div style="text-align:center"><button type="button" class="btn sec" id="maisFeed" hidden>Ver mais publicações</button></div>
