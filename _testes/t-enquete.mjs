@@ -39,7 +39,7 @@ await card.waitFor({ timeout: 20000 }); await card.scrollIntoViewIfNeeded(); awa
 ok(await card.locator(".enquete .enq-op").count() === 3 && await card.locator(".enquete .enq-pct").count() === 0, "Bruno vê a enquete sem as porcentagens antes de votar");
 await card.locator(".enquete .enq-op", { hasText: "Verde" }).tap(); await pb.waitForTimeout(1500);
 const voto = (await db.doc(`enquete_votos/d_${post.id}_${U.bruno}`).get()).data();
-ok(voto?.opcao === 1 && await card.locator(".enquete .enq-op.minha", { hasText: "Verde" }).count() === 1 && await card.locator(".enquete .enq-pct").count() === 0 && /resultado em/.test(await card.locator(".enquete .enq-rodape").textContent()), "votou em Verde: grava o voto, marca a escolha e o resultado só sai no fim → " + (await card.locator(".enquete").textContent()).replace(/\s+/g, " ").slice(0, 90));
+ok(voto?.opcao === 1 && await card.locator(".enquete .enq-op.minha", { hasText: "Verde" }).count() === 1 && await card.locator(".enquete .enq-pct").count() === 0 && /resultado sai em/.test(await card.locator(".enquete .enq-rodape").textContent()), "votou em Verde: grava o voto, marca a escolha e o resultado só sai no fim → " + (await card.locator(".enquete").textContent()).replace(/\s+/g, " ").slice(0, 90));
 await card.screenshot({ path: "saida/enquete-votou.png" });
 await card.locator(".enquete .enq-op", { hasText: "Azul" }).tap({ force: true }); await pb.waitForTimeout(1500);
 ok((await db.doc(`enquete_votos/d_${post.id}_${U.bruno}`).get()).data()?.opcao === 1, "voto único: tocar em Azul depois não troca o voto");

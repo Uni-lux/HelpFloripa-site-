@@ -13,7 +13,7 @@ import {
   meusSeguindo, escondido, silenciado, alternarSilenciar, obterPerfil, abrirOpcoes, abrirLista, linhaPessoa, pessoasEmPilha,
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas
-} from "./rede.js?v=86";
+} from "./rede.js?v=87";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { seletorDuracao, fimEscolhido, linhaChave, MAX_FLASH_MIN, fimDaEnquete, encerrada, faltaTexto, resultadoFinal, lerContasEnquete } from "./enquetes.js?v=6";
@@ -206,7 +206,7 @@ function linhasDe(ctx, texto, larg, max) {
 // Enquete antiga sem prazo: termina 7 dias depois de publicada (como no Diário, blocoEnquete).
 function comFimImplicito(post) {
   const e = post.enquete;
-  if (e && !e.fimEm) { const c = ms(post.agendadoPara || post.criadoEm); if (c) e.fimEm = { toMillis: () => c + 7 * 864e5 }; }
+  if (e && !e.fimEm) { const c = ms(post.agendadoPara || post.criadoEm); if (c) return { ...e, fimEm: { toMillis: () => c + 7 * 864e5 } }; }
   return e;
 }
 async function resultadoParaCartao(post) {
