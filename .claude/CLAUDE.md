@@ -1130,6 +1130,28 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   (tocar antes de carregar não fazia nada: `votar` espera `carregar()`; `recarregar` zera o cache) e o Explorar usando o
   estado do perfil em vez do lugar escolhido (`regiaoEu`). Medido (carga): Diário 318 leituras/3,7 MB na 1ª visita (fotos em
   `data:`), 38 na 2ª; Explorar 444/36. Os ouvintes do sino (rede.js `ouvir`, até 100 docs cada) releem a cada página.
+- **Promover, tipos de publicação, Reels e marcações (29/10/2026, PR depois do #121, MUDA REGRA — não publicada; 16 partes,
+  692 testes):** Público virou PÁGINA em tela cheia no estilo "Promover" (`publico-tela.js` `escolherPublico(atual, ajuda)`,
+  `.pa-pagina` z 5300, Esc/voltar fecham só ela): Automático | Personalizado, Quem vê, Localização em abas (Todo o Brasil,
+  Estados com atalhos Sul/Sudeste, Cidades por UF, Raio 5–300 km), Idade (faixas + controle duplo), Gênero, **alcance estimado
+  real** (`estimarAlcance`: `getCountFromServer` em `perfis_publicos` por `uf in`/`cidadeIbge in` em lotes de 30, raio = cidades
+  do `geo-cidades.json` dentro do círculo, até 300; seguidores pela contagem de `relacoes`; barra = fração do Brasil; idade e
+  gênero só dizem "até") e **públicos salvos** (`usuarios.publicosSalvos` ≤10). No formulário: tile "Público" na grade e no topo
+  só o rótulo (`#pubPublicoBtn` é um span). **Tipos de publicação** (`TIPOS_PUB` em rede.js, seletor `#pubTipos`: Texto · Foto ·
+  Vídeo (só com Storage) · Enquete (`#pubEnqueteBtn`) · Perguntas (`#pubCaixaBtn`), um por vez, `mudarTipo` tira o que não cabe
+  e avisa): `diario.tipo` + regra `tipoOk` (ver `_regras/LEIA-ME.md`); **texto com UMA imagem = cartão casado**
+  (`blocoCasado` em rede.js, `estilo: "casada"`, até 500 letras; Diário, tela da publicação, perfil → aba Textos, Explorar
+  `.casada-tile`); no Texto, a 2ª imagem muda para Foto. Grade com 8 botões: Imagem/Fotos ou Vídeo, Marcar, Hashtag (põe "#"),
+  Local, Agendar, Público, **Ajustes** (`abrirAjustesPub`: quem pode comentar desta publicação, ocultar o número de estrelas
+  `diario.ocultarNotas` → `.sem-notas` para os outros, anônima da enquete/caixa e as regras do tipo), Rascunhos. **Marcações**
+  `pessoasEmPilha(uids, opc)` em rede.js: até 3 fotinhas + "+N" e "com Ana e mais 2 pessoas", toque = lista; no Diário (todos
+  os tipos), tela da publicação, perfil, Reels e menções do Flash (`.story-mencoes escuro`). **Reels:** ícone novo `i-reels`
+  (filtro, aba do perfil, vazio), som com ícones `i-som`/`i-mudo` (sem emoji), legenda em 2 linhas com "mais", marcados, local,
+  barra de progresso, no computador coluna 9:16 no centro; vídeo do Diário tem botão "Abrir nos Reels" (`.video-reels`) e o do
+  Explorar abre direto nos Reels. **Links:** `usuarios.html?post=` redireciona para `feed.html?post=`; aberta de outra página
+  do site, um "voltar" volta para ela (`daOrigem`); aberta de fora, a proteção "Sair?" (confirmar.js) só arma depois que a
+  tela da publicação/Reels fecha. Testes `t-tipos-pub.mjs`, `t-video.mjs` (Storage ligado: vídeo sobe e toca no Diário/Reels,
+  Flash e Mensagens), `t-publico-reels.mjs` (alcance nacional: SC+PR, Salvador+Manaus), `t-compositor.mjs`, `t-coment.mjs`.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
@@ -1192,8 +1214,9 @@ chat da equipe).
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
-1. **Publicar as regras** (16 partes em `_regras/`, 663 testes): tudo desde 26/10, incluindo `republicacoes`,
-   `stories/{id}/reacoes` (estrela do Flash) e `diario.publico` (público da publicação). Depois: "Recalcular estrelas" no
+1. **Publicar as regras** (16 partes em `_regras/`, 692 testes): tudo desde 26/10, incluindo `republicacoes`,
+   `stories/{id}/reacoes` (estrela do Flash), `diario.publico` (público da publicação) e os tipos de publicação
+   (`diario.tipo/estilo/quemComenta/ocultarNotas`). Depois: "Recalcular estrelas" no
    painel e criar os **12 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`
    mediaTipo + criadoEm dos Reels). Sem as regras: publicar com público avisa e não publica; a estrela do Flash vai como "⭐"
    pelo Mensagens.
@@ -1218,8 +1241,8 @@ Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) c
    releem em toda página aberta (medido: 30 `relacoes` na 2ª visita do Diário). Ordenar por data e baixar o limite, ou ler só o
    que é novo desde a última visita.
 10. **Estrela do Flash no sino:** hoje o autor só vê quem deu a estrela na lista de Visualizações (sem aviso).
-11. **Reels:** a aba Reels do perfil e os vídeos do Explorar ainda abrem na folha/visor antigos, não no visor de Reels.
-12. **Público da publicação:** estimativa de alcance para o autor antes de publicar; público também no Flash (hoje só no
+11. **Reels:** a aba Reels do perfil ainda abre na folha antiga (os vídeos do Explorar e do Diário já abrem nos Reels).
+12. **Público da publicação:** (estimativa de alcance FEITA em 29/10) público também no Flash (hoje só no
     Diário); pedir gênero/data de nascimento a quem não tem (contas antigas sem gênero não entram em público por gênero).
 13. **Conta apagada:** `limpar-contas.mjs`/`conta.js` não apagam `stories/{id}/vistos/{uid}` nem `stories/{id}/reacoes/{uid}`
     da pessoa (o flash some em 24 h, mas os documentos ficam).

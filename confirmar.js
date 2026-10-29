@@ -154,7 +154,8 @@ export function guardarSaida() {
     history.pushState({ hfGuarda: true }, "", location.href);
   };
   // Com uma janela aberta por cima (voltar.js), espera ela fechar para marcar a página.
-  const primeiraInteracao = () => { if (history.state?.hfCamadas) return; removeEventListener("pointerdown", primeiraInteracao, true); removeEventListener("keydown", primeiraInteracao, true); armar(); };
+  // Também espera a tela da publicação (Explorar/link) e os Reels, que têm o próprio passo no histórico.
+  const primeiraInteracao = () => { if (history.state?.hfCamadas || history.state?.hfVisorExp || history.state?.hfReels) return; removeEventListener("pointerdown", primeiraInteracao, true); removeEventListener("keydown", primeiraInteracao, true); armar(); };
   if (!jaProtegida) { addEventListener("pointerdown", primeiraInteracao, true); addEventListener("keydown", primeiraInteracao, true); }
   addEventListener("popstate", async (e) => {
     if (saindo || aberta || !e.state?.hfBase) return;

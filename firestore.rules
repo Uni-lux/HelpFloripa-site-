@@ -2889,12 +2889,33 @@ service cloud.firestore {
       function fotoPubOk(u) {
         return u is string && u.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*');
       }
+      // Tipo da publicação e o que cada um aceita (sem 'tipo' = publicação antiga, vale como antes):
+      //   texto: texto obrigatório; pode ter UMA imagem "casada" (estilo 'casada', texto até 500); sem enquete/caixa/vídeo
+      //   foto: 1 a 4 fotos (mediaUrl + midias), legenda opcional; sem enquete/caixa/vídeo
+      //   video: um vídeo (mediaTipo 'video'), legenda opcional
+      //   enquete / caixa: a enquete ou a caixa de perguntas, com no máximo uma imagem (sem midias e sem vídeo)
+      function tipoOk(d) {
+        let t = d.get('tipo', '');
+        let midia = d.get('mediaUrl', '') != '';
+        let video = d.get('mediaTipo', '') == 'video';
+        let extra = ('enquete' in d) || ('caixa' in d);
+        return (t == '' && !('estilo' in d))
+            || (t == 'texto' && d.get('texto', '').size() >= 1 && !extra && !video && !('midias' in d)
+                && (midia ? (d.get('estilo', '') == 'casada' && d.texto.size() <= 500) : !('estilo' in d)))
+            || (t == 'foto' && midia && !video && !extra && !('estilo' in d))
+            || (t == 'video' && midia && video && !extra && !('midias' in d) && !('estilo' in d))
+            || (t in ['enquete', 'caixa'] && (t == 'enquete') == ('enquete' in d) && (t == 'caixa') == ('caixa' in d)
+                && !video && !('midias' in d) && !('estilo' in d));
+      }
 
       allow create: if logado()
                     && emailOk()
                     && request.resource.data.autorId == request.auth.uid
                     && request.resource.data.keys().hasOnly(['autorId', 'nome', 'fotoPerfil', 'texto', 'mediaUrl', 'mediaTipo', 'midias', 'tags', 'marcados', 'agendadoPara', 'enquete', 'caixa', 'local',
-                                                              'autorUf', 'autorIbge', 'publico', 'criadoEm'])
+                                                              'autorUf', 'autorIbge', 'publico', 'tipo', 'estilo', 'quemComenta', 'ocultarNotas', 'criadoEm'])
+                    && tipoOk(request.resource.data)
+                    && (!('quemComenta' in request.resource.data) || request.resource.data.quemComenta in ['todos', 'seguidores', 'mutuos', 'ninguem'])
+                    && (!('ocultarNotas' in request.resource.data) || request.resource.data.ocultarNotas is bool)
                     // Região de quem publica (Diário e Explorar priorizam a cidade e o estado de quem lê): UF e código IBGE.
                     && (!('autorUf' in request.resource.data) || (request.resource.data.autorUf is string && request.resource.data.autorUf.matches('^[A-Z]{2}$')))
                     && (!('autorIbge' in request.resource.data) || (request.resource.data.autorIbge is int && request.resource.data.autorIbge > 1000000 && request.resource.data.autorIbge < 6000000))
@@ -2916,7 +2937,10 @@ service cloud.firestore {
                     && emailOk()
                     && resource.data.autorId == request.auth.uid
                     && request.resource.data.autorId == resource.data.autorId
-                    && gravou().hasOnly(['texto', 'nome', 'fotoPerfil', 'comentariosOcultos', 'ocultoAte', 'editadoEm', 'quemComenta', 'comentarioFixo', 'tags', 'marcados', 'agendadoPara', 'local', 'publico'])
+                    && gravou().hasOnly(['texto', 'nome', 'fotoPerfil', 'comentariosOcultos', 'ocultoAte', 'editadoEm', 'quemComenta', 'comentarioFixo', 'tags', 'marcados', 'agendadoPara', 'local', 'publico', 'ocultarNotas'])
+                    && (!('ocultarNotas' in request.resource.data) || request.resource.data.ocultarNotas is bool)
+                    // texto com imagem casada continua até 500 letras ao editar
+                    && (request.resource.data.get('estilo', '') != 'casada' || request.resource.data.texto.size() <= 500)
                     && localPubOk(request.resource.data) && publicoOk(request.resource.data)
                     && tagsOk(request.resource.data) && marcadosOk(request.resource.data)
                     // agendada: publicar agora (agendadoPara = agora) ou mudar a data (até 60 dias)

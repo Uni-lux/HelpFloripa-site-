@@ -1,3 +1,31 @@
+      allow update: if logado()
+                    && emailOk()
+                    && resource.data.autorId == request.auth.uid
+                    && request.resource.data.autorId == resource.data.autorId
+                    && gravou().hasOnly(['texto', 'nome', 'fotoPerfil', 'comentariosOcultos', 'ocultoAte', 'editadoEm', 'quemComenta', 'comentarioFixo', 'tags', 'marcados', 'agendadoPara', 'local', 'publico', 'ocultarNotas'])
+                    && (!('ocultarNotas' in request.resource.data) || request.resource.data.ocultarNotas is bool)
+                    // texto com imagem casada continua até 500 letras ao editar
+                    && (request.resource.data.get('estilo', '') != 'casada' || request.resource.data.texto.size() <= 500)
+                    && localPubOk(request.resource.data) && publicoOk(request.resource.data)
+                    && tagsOk(request.resource.data) && marcadosOk(request.resource.data)
+                    // agendada: publicar agora (agendadoPara = agora) ou mudar a data (até 60 dias)
+                    && (!mudou().hasAny(['agendadoPara'])
+                        || (request.resource.data.agendadoPara is timestamp
+                            && request.resource.data.agendadoPara >= request.time
+                            && request.resource.data.agendadoPara < request.time + duration.value(60, 'd')))
+                    // quem pode comentar: todos, seguidores, seguidores que o autor segue de volta, ninguém
+                    && (!('quemComenta' in request.resource.data) || request.resource.data.quemComenta in ['todos', 'seguidores', 'mutuos', 'ninguem'])
+                    // comentário fixado no topo (id) ou nulo
+                    && (!('comentarioFixo' in request.resource.data) || request.resource.data.comentarioFixo == null
+                        || (request.resource.data.comentarioFixo is string && request.resource.data.comentarioFixo.size() <= 40))
+                    && dataOuNulo('ocultoAte')
+                    && travaModeracao()
+                    // texto editado: marca a data da edição
+                    && (!mudou().hasAny(['texto']) || request.resource.data.get('editadoEm', null) == request.time)
+                    && (!mudou().hasAny(['editadoEm']) || request.resource.data.editadoEm == request.time)
+                    && (!('comentariosOcultos' in request.resource.data) || request.resource.data.comentariosOcultos is bool)
+                    && publicacaoOk();
+
       allow delete: if logado()
                     && resource.data.autorId == request.auth.uid;
 
