@@ -67,17 +67,21 @@
 > 500 letras), foto com 1 a 4 fotos, vídeo com um vídeo, enquete/caixa com a sua enquete/caixa e no máximo uma imagem. O tipo
 > não muda depois. Ajustes na hora de publicar: `quemComenta` e `ocultarNotas` (ocultar o número de estrelas; muda depois
 > também). Sem a regra publicada, a publicação vai sem esses campos (como antes) e o texto com imagem aparece como foto.
+> **Destaques do Flash (30/10):** `destaques/{id}` {uid, nome até 30, ids (1 a 100 flashes), capa (um dos ids), capaMini
+> (miniatura JPEG até 30 mil letras), criadoEm, atualizadoEm} — os destaques do perfil, como no Instagram. Quem está logado
+> lê; só o dono cria, muda e apaga (a moderação também apaga). Sem a regra publicada, criar um destaque avisa que falta
+> publicar. Junto: criar o índice `stories` (`autorId` + `criadoEm`) do Arquivo do Flash, na lista do `INDICES-LEIA-ME.md`.
 > Para publicar, o processo é o mesmo: apagar tudo no console e colar as 16 partes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
 `firestore.rules` divididas em **16 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
-- Arquivo de origem: `firestore.rules` (187.094 bytes, 3.086 linhas, sha256 começa com `6d33920ff3ff564b`).
+- Arquivo de origem: `firestore.rules` (188.761 bytes, 3.108 linhas, sha256 começa com `27eaa3a32f19e1ae`).
 - Cada parte termina com a linha `// ===== FIM DA PARTE X DE 16 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
 - Conferido: as 16 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **692 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
+- Testes de regras no arquivo remontado: **707 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.

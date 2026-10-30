@@ -59,11 +59,19 @@ const PAGINA = { servicos: "servicos.html", delivery: "delivery.html", lojinha: 
 const cache = new Map();
 // Flashes ativos que o dono colocou neste perfil de negócio (o que a pessoa pode ver), do mais antigo ao mais novo.
 // Flash nos perfis de negócio faz parte dos planos: sem plano ativo do dono, o perfil do negócio não mostra flash.
+// Só os das últimas 24 h (a regra não deixa listar o arquivo de ninguém): com o índice (negocios + criadoEm) lê só os do
+// negócio; sem ele, os das últimas 24 h de todo mundo filtrados; com as regras antigas, a consulta antiga.
+async function noAr(fbx, negId) {
+  const desde = fbx.Timestamp.fromMillis(Date.now() - 864e5), col = fbx.collection(fbx.db, "stories");
+  try { return (await fbx.getDocs(fbx.query(col, fbx.where("negocios", "array-contains", negId), fbx.where("criadoEm", ">=", desde), fbx.orderBy("criadoEm", "desc"), fbx.limit(30)))).docs; } catch {}
+  try { return (await fbx.getDocs(fbx.query(col, fbx.where("criadoEm", ">=", desde), fbx.orderBy("criadoEm", "asc"), fbx.limit(400)))).docs.filter((d) => (d.data().negocios || []).includes(negId)); } catch {}
+  return (await fbx.getDocs(fbx.query(col, fbx.where("negocios", "array-contains", negId), fbx.limit(30)))).docs;
+}
 export function flashesDoNegocio(fbx, euX, negId) {
   const dono = String(negId).split("_")[0];
-  if (!cache.has(negId)) cache.set(negId, lerPlano(fbx, dono).then((pl) => (nivelPlano(pl) || dono === euX?.uid ? true : Promise.reject(new Error("sem plano")))).then(() => fbx.getDocs(fbx.query(fbx.collection(fbx.db, "stories"), fbx.where("negocios", "array-contains", negId), fbx.limit(30)))
-    .then((s) => s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter((x) => ativo(x) && podeVer(x, euX?.uid)).sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm)))
-    .catch(() => [])).catch(() => []));
+  if (!cache.has(negId)) cache.set(negId, lerPlano(fbx, dono).then((pl) => (nivelPlano(pl) || dono === euX?.uid ? true : Promise.reject(new Error("sem plano")))).then(() => noAr(fbx, negId))
+    .then((docs) => docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter((x) => ativo(x) && podeVer(x, euX?.uid)).sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm)))
+    .catch(() => []));
   return cache.get(negId);
 }
 

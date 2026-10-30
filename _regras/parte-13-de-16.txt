@@ -153,19 +153,25 @@
     }
 
     // ===================================================
-    // RASCUNHOS: rascunhos/{uid}/itens/{id} — só a própria pessoa (texto e fotos ainda não publicados).
+    // DESTAQUES do Flash: destaques/{id} {uid, nome, ids, capa, capaMini, criadoEm, atualizadoEm} — ficam no perfil,
+    // como os destaques do Instagram. Quem está logado lê (os flashes em si já são lidos assim); só o dono cria,
+    // muda e apaga (a moderação também apaga). capaMini = miniatura JPEG da capa (para o perfil não baixar os flashes).
     // ===================================================
-    // ===================================================
-    // VOTOS DAS ENQUETES: enquete_votos/{alvo}_{uid} — alvo = tipo + "_" + itemId (tipo d = publicação, f = flash).
-    // fimEm (opcional) = o mesmo fim da enquete; votar só até o fim.
-    // Um voto por pessoa, sem trocar. A contagem fica dividida em 10 pedaços (enquete_contas/{alvo}_{fatia},
-    // ver abaixo): o voto leva a fatia (0–9) e o pedaço dela sobe +1 na MESMA gravação.
-    // ===================================================
-    // A contagem da opção do voto sobe exatamente 1 no pedaço escolhido (votos públicos e anônimos).
-    function fatiaSobe(d) {
-      let pedaco = /databases/$(database)/documents/enquete_contas/$(d.alvo + '_' + string(d.fatia));
-      let k = 'n' + string(d.opcao);
-      return d.fatia is int && d.fatia >= 0 && d.fatia < 10
-          && getAfter(pedaco).data.get(k, 0) == (exists(pedaco) ? get(pedaco).data.get(k, 0) : 0) + 1;
+    match /destaques/{id} {
+      function destaqueOk(d) {
+        return d.keys().hasOnly(['uid', 'nome', 'ids', 'capa', 'capaMini', 'criadoEm', 'atualizadoEm'])
+          && d.nome is string && d.nome.size() >= 1 && d.nome.size() <= 30
+          && d.ids is list && d.ids.size() >= 1 && d.ids.size() <= 100
+          && d.atualizadoEm == request.time
+          && (!('capa' in d) || (d.capa is string && d.capa.size() <= 64 && d.capa in d.ids))
+          && (!('capaMini' in d) || (d.capaMini is string && d.capaMini.size() <= 30000 && d.capaMini.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')));
+      }
+      allow read: if logado();
+      allow create: if logado() && emailOk() && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.criadoEm == request.time && destaqueOk(request.resource.data);
+      allow update: if logado() && resource.data.uid == request.auth.uid && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.criadoEm == resource.data.criadoEm && destaqueOk(request.resource.data);
+      allow delete: if logado() && (resource.data.uid == request.auth.uid || podeModerar());
     }
+
 // ===== FIM DA PARTE 13 DE 16 =====

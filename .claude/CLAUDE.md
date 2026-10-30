@@ -1187,6 +1187,47 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   `.vv-acoes` (Mensagem, Ver perfil, Ocultar/Mostrar flashes → `flashConfig.ocultarDe`). Ícones novos `i-olho-off`, `i-pessoa`.
   (5) Configurações do Flash: `.cfg2-ic` sem cor (pedido dele). Teste `t-flash-teclado.mjs` (teclado simulado encolhendo a
   tela com o campo focado; toques/arrastos pelo CDP).
+- **Flash igual ao que foi feito (30/10/2026, PR depois do #124, sem regra nova):** 20 prints dele comparando com o Instagram.
+  **Visor:** `.story-quadro` 9:16 (palco, sombra, legenda e as figurinhas interativas dentro; `object-fit: contain`) — antes no
+  celular a foto era `cover` em 100vw×100dvh, cortava as laterais e as figurinhas não ficavam onde foram postas. Celular
+  comprido (`max-aspect-ratio: 9/17.4`): `--reserva` 68 px e o campo de responder fica embaixo do quadro. Enquete/perguntas:
+  `encaixar(w, fx, fy)` desenha em 300 px e escala (`--k`) para 74% do quadro (= criador), centro preso entre 11% e o rodapé;
+  `.story-quadro` tem `pointer-events: none` (só figurinhas/links/área da publicação recebem toque). Tempo ao lado do nome;
+  `tempoDoFlash`: 5 s por foto, +2,5 s com enquete/perguntas/publicação/link, +1,5 s com legenda > 80. ⋯ do seu flash:
+  Visualizações, Salvar foto (`salvarFotoFlash`), Compartilhar (`compartilharLinkFlash`, feed.html?flash=ID), Configurações
+  do Flash. Fita das Visualizações troca o flash de trás (`irPara`, 4º parâmetro de `verQuemViu`). Estrela sem as regras: a
+  reação "⭐" pelo Mensagens vai uma vez por flash (`estrelaAvisada`); o cartão diz "Deu uma estrela no seu flash".
+  **Criador:** ferramentas em coluna à direita (`.flash-ferr` column); "Amigos próximos" virou a estrela `.flash-amigos` por
+  flash (`paraAmigos`, `_publico` em `camposDestino`, o `gravar` tira o "_"; botão verde "Amigos próximos"; sem lista abre
+  `escolherPessoas`); texto na foto `width: max-content` (perto da borda quebrava letra a letra) e o canvas quebra igual
+  (`quebrarLinhas`, 88% da largura); `.flash-palco { overflow: clip }` (com texto passando da borda o cartão rolava para o lado
+  e cortava os painéis); figurinhas em pílulas `.fig-pilula` (ícone colorido, `i-calendario` novo). **Mensagens:** cartão do
+  flash `.fc-mini > img` (a foto do perfil no topo ficava esticada como faixa), emoji da reação no canto. Respostas da caixa:
+  `.cx-acoes` quebra linha. **Bug antigo:** o X da `#folhaPerfil` FECHADA continuava tocável no canto de cima (só com
+  `.aberta` agora). Teste `t-flash-visor.mjs`; `t-caixa` e `t-enquete2` passam de novo.
+- **Flash parte 2 – Arquivo, Destaques, pincel e sino (30/10/2026, mesmo PR #125, MUDA REGRAS — não publicadas; 16 partes,
+  718 testes; 2 índices novos, agora 14):** pedido dele "completo como no Instagram, com o estilo da Help Floripa".
+  **Arquivo:** o site APAGAVA os flashes vencidos (`limparVencidos`); agora ficam guardados (`flashConfig.arquivo`, padrão
+  ligado; desligado apaga os vencidos menos os destacados). Regra de `stories` nova: lê o autor, o que tem < 26 h
+  (`request.time - duration.value(26,'h')`) ou `destacado == true` (e moderação); o autor só atualiza `destacado`. Por isso
+  consultas de flashes de OUTRA pessoa precisam do prazo: `flashesNoArDe(uid)` (autorId + criadoEm >= 24 h, índice novo;
+  sem ele, as últimas 24 h de todos filtradas; com as regras antigas, a consulta antiga) em anelNoPerfil, abrirFlashPorId e
+  config; `flash-negocio.js` `noAr` igual (índice negocios array-contains + criadoEm). Mensagens: cartão de flash com
+  permission-denied = "Flash indisponível". `abrirArquivo({selecionar, marcados, titulo, botao})` (12 por vez, índice
+  autorId + criadoEm desc; sem ele 60 de uma vez; abrir um flash fecha a folha e volta para ela ao fechar o visor).
+  **Destaques:** `destaques/{id}` {uid, nome ≤30, ids 1–100, capa (∈ ids), capaMini JPEG 132 px ≤30000, criadoEm,
+  atualizadoEm} (regra `destaqueOk`); `destaquesNoPerfil(corpo, uid)` (usuarios.html, no fim do `.pf-corpo`: Novo · destaques ·
+  Arquivo no seu; só os destaques nos outros; segurar = `editarDestaque`), `abrirDestaque` (visor com `lista` + `destaque`:
+  nome no topo, data do flash), `adicionarAoDestaque` (botão "Destacar" no rodapé do seu flash e no ⋯), `novoDestaque`
+  (arquivo → nome), `gravarDestaque`/`tirarDoDestaque`/`marcarDestacados` (põe/tira `stories.destacado`). `abrirVisor`
+  usa `mapa` (lista própria) no lugar de `porAutor`. Sem as regras: criar destaque avisa que falta publicar.
+  **Criador:** pincel `abrirPincel` (caneta, marca-texto, neon, borracha, espessura, desfazer; traços 0–1 em `tracos`,
+  `pintarTracos` no canvas `.flash-desenho` e na foto final), figurinhas Emoji (`EMOJIS_FIG`, `t.emoji`, toque troca o
+  tamanho) e Hashtag (`fig-hashtag`), fundo do texto em 3 estilos (sem → cor cheia → escuro transparente `t.vidro`,
+  `FUNDO_VIDRO`). **Sino:** `flash-avisos.js` (`lerReacoesFlash`: seus flashes de 48 h + reacoes; tipo `flash`, id
+  `f_<flash>_<uid>`, "deu uma estrela e reagiu com 🔥 ao seu flash", abre `feed.html?flash=`) em rede.js/painel-avisos/
+  notificacoes/avisos-lista. Conta apagada: conta.js e limpar-contas.mjs apagam `stories` (com vistos/reacoes) e `destaques`.
+  `vitrine.js?tipo=X&v=53` aumentado à mão. Teste `t-flash-destaques.mjs` (23).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
@@ -1249,10 +1290,10 @@ chat da equipe).
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
-1. **Publicar as regras** (16 partes em `_regras/`, 692 testes): tudo desde 26/10, incluindo `republicacoes`,
+1. **Publicar as regras** (16 partes em `_regras/`, 718 testes): tudo desde 26/10, incluindo `republicacoes`, destaques e arquivo do Flash,
    `stories/{id}/reacoes` (estrela do Flash), `diario.publico` (público da publicação) e os tipos de publicação
    (`diario.tipo/estilo/quemComenta/ocultarNotas`). Depois: "Recalcular estrelas" no
-   painel e criar os **12 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`
+   painel e criar os **14 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`
    mediaTipo + criadoEm dos Reels). Sem as regras: publicar com público avisa e não publica; a estrela do Flash vai como "⭐"
    pelo Mensagens.
 2. **Ligar o Storage** (Blaze): sem ele não há vídeo novo (os Reels ficam vazios e o botão Vídeo fica escondido) e o Diário
@@ -1275,15 +1316,13 @@ Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) c
 9. **Sino relê tudo a cada página:** os ouvintes do rede.js (`ouvir`, até 100 documentos cada: seguidores, curtidas, comentários...)
    releem em toda página aberta (medido: 30 `relacoes` na 2ª visita do Diário). Ordenar por data e baixar o limite, ou ler só o
    que é novo desde a última visita.
-10. **Estrela do Flash no sino:** hoje o autor só vê quem deu a estrela na lista de Visualizações (sem aviso).
+10. ~~Estrela do Flash no sino~~ (feito em 30/10, `flash-avisos.js`).
 11. **Reels:** a aba Reels do perfil ainda abre na folha antiga (os vídeos do Explorar e do Diário já abrem nos Reels).
 12. **Público da publicação:** (estimativa de alcance FEITA em 29/10) público também no Flash (hoje só no
     Diário); pedir gênero/data de nascimento a quem não tem (contas antigas sem gênero não entram em público por gênero).
-13. **Conta apagada:** `limpar-contas.mjs`/`conta.js` não apagam `stories/{id}/vistos/{uid}` nem `stories/{id}/reacoes/{uid}`
-    da pessoa (o flash some em 24 h, mas os documentos ficam).
-14. **Revisar a ferramenta de texto "Aa" do criador do Flash** (não foi revisada à parte em 29/10).
-15. **Testes que falham desde antes:** `t-enquete2` (notificação do Bruno) e `t-caixa` (para em `.notif`); `t-busca-regiao`
-    (2 itens). Atualizar os testes. Os testes do Diário/Flash precisam do `seed.mjs` antes (dados que sobram atrapalham).
+13. **Conta apagada:** os flashes e destaques da pessoa já saem (30/10); faltam os `vistos`/`reacoes` que ELA deixou nos flashes dos outros.
+14. ~~Revisar a ferramenta "Aa"~~ (feita em 30/10: letras, alinhamento, régua, teclado).
+15. **Testes que falham desde antes:** `t-busca-regiao` (2 itens; `t-enquete2` e `t-caixa` passaram em 30/10). Atualizar os testes. Os testes do Diário/Flash precisam do `seed.mjs` antes (dados que sobram atrapalham).
 
 ## Pendências do dono e o que ficou para depois (vindas de sessões anteriores)
 Coisas que só ELE pode fazer (lembrar no momento certo, sem fazer por ele):

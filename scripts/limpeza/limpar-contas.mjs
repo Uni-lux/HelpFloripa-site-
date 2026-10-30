@@ -80,6 +80,11 @@ async function limpar(uid) {
   await apagar("curtidas", col("curtidas").where("uid", "==", uid));
   await apagar("curtidas_comentarios", col("curtidas_comentarios").where("uid", "==", uid));
   await apagar("republicacoes", col("republicacoes").where("uid", "==", uid));
+  // Flashes (no ar e do arquivo), com quem viu e as reações, e os destaques do perfil.
+  const flashes = await col("stories").where("autorId", "==", uid).get();
+  for (const f of flashes.docs) { await apagar("stories_vistos", f.ref.collection("vistos")); await apagar("stories_reacoes", f.ref.collection("reacoes")); }
+  await apagar("stories", col("stories").where("autorId", "==", uid));
+  await apagar("destaques", col("destaques").where("uid", "==", uid));
   // Votos das enquetes (públicos e anônimos): tira da contagem (o pedaço enquete_contas/{alvo}_{fatia} do voto;
   // votos antigos sem fatia: enquete_contas/{alvo}) e apaga o voto.
   for (const nomeCol of ["enquete_votos", "enquete_anon"]) {

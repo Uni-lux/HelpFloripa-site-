@@ -14,7 +14,7 @@ await p.waitForSelector("#cfgFlash", { timeout: 30000 }); await p.waitForTimeout
 await p.locator("#cfgFlash").click();
 await p.waitForSelector("#listaCorpo .cfg2-card", { timeout: 10000 }); await p.waitForTimeout(1500);
 const tits = await p.locator("#listaCorpo .cfg2-card h3").allTextContents();
-ok(tits.join("|") === "Seus flashes agora|Quem vê os seus flashes|Onde publicar por padrão|Respostas e reações|Câmera e vídeo|Salvar no aparelho|Menções", "cartões das configurações → " + tits.join(" / "));
+ok(tits.join("|") === "Seus flashes agora|Quem vê os seus flashes|Onde publicar por padrão|Respostas e reações|Câmera e vídeo|Arquivo e destaques|Menções", "cartões das configurações → " + tits.join(" / "));
 await p.screenshot({ path: "saida/cfg-flash-1.png" });
 // Onde publicar por padrão: Bruno Reparos ligado
 await p.locator("#listaCorpo .cfg2-linha", { hasText: "Bruno Reparos" }).locator(".switch").click(); await p.waitForTimeout(800);

@@ -13,13 +13,15 @@ import {
   meusSeguindo, escondido, silenciado, alternarSilenciar, obterPerfil, abrirOpcoes, abrirLista, linhaPessoa, pessoasEmPilha,
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas
-} from "./rede.js?v=88";
+} from "./rede.js?v=90";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { seletorDuracao, fimEscolhido, linhaChave, MAX_FLASH_MIN, fimDaEnquete, encerrada, faltaTexto, resultadoFinal, lerContasEnquete } from "./enquetes.js?v=6";
 
 const DIA = 24 * 3600e3;
-const TEMPO_FOTO = 6000;
+const TEMPO_FOTO = 5000;
+// Mais tempo quando tem o que ler ou responder (enquete, perguntas, publicação, link ou legenda longa).
+const tempoDoFlash = (s) => TEMPO_FOTO + (s.enquete || s.caixa || s.postDe || s.link ? 2500 : 0) + (String(s.texto || "").length > 80 ? 1500 : 0);
 const REACOES = ["🔥", "😍", "😂", "😮", "👏", "💯"];
 // Estrela (curtir o flash, como o coração do Instagram): stories/{id}/reacoes/{uid} {curtiu, emoji, em}. O autor vê
 // quem deu a estrela e quem reagiu na lista de visualizações. Guardada também no aparelho (não lê de novo a cada flash).
@@ -73,12 +75,23 @@ function autorMeSegue(autor) {
 }
 // Escolhas do autor: "Amigos próximos" (só a lista vê) e "Ocultar de" (essas pessoas não veem).
 const podeVer = (x) => !(Array.isArray(x.ocultoPara) && x.ocultoPara.includes(eu.uid)) && (x.publico !== "amigos" || (Array.isArray(x.lista) && x.lista.includes(eu.uid)));
-// A própria pessoa apaga os flashes que já passaram de 24 h.
+// Depois das 24 h o flash vai para o ARQUIVO (só você vê), como no Instagram. Quem desligou "Guardar no arquivo" nas
+// Configurações do Flash tem os vencidos apagados (menos os que estão num destaque).
 async function limparVencidos() {
+  if (configFlash().arquivo !== false) return;
   try {
     const s = await fb.getDocs(fb.query(fb.collection(fb.db, "stories"), fb.where("autorId", "==", eu.uid), fb.limit(50)));
-    s.docs.filter((d) => !ativo(d.data({ serverTimestamps: "estimate" }))).forEach((d) => fb.deleteDoc(d.ref).catch(() => {}));
+    s.docs.filter((d) => { const x = d.data({ serverTimestamps: "estimate" }); return !ativo(x) && !x.destacado; }).forEach((d) => fb.deleteDoc(d.ref).catch(() => {}));
   } catch {}
+}
+// Flashes no ar de uma pessoa (24 h). Com o índice (stories: autorId + criadoEm) lê só os dela; sem ele, os das últimas
+// 24 h de todo mundo filtrados por ela (a regra nova não deixa listar o arquivo dos outros); com as regras antigas, a
+// consulta antiga.
+async function flashesNoArDe(uid) {
+  const desde = fb.Timestamp.fromMillis(Date.now() - DIA);
+  try { return (await fb.getDocs(fb.query(fb.collection(fb.db, "stories"), fb.where("autorId", "==", uid), fb.where("criadoEm", ">=", desde), fb.orderBy("criadoEm", "desc"), fb.limit(30)))).docs; } catch {}
+  try { return (await fb.getDocs(fb.query(fb.collection(fb.db, "stories"), fb.where("criadoEm", ">=", desde), fb.orderBy("criadoEm", "asc"), fb.limit(400)))).docs.filter((d) => d.data().autorId === uid); } catch {}
+  return (await fb.getDocs(fb.query(fb.collection(fb.db, "stories"), fb.where("autorId", "==", uid), fb.limit(30)))).docs;
 }
 const todosVistos = (uid) => (porAutor.get(uid) || []).every((x) => vistosLocal.has(x.id));
 function ordemAutores() {
@@ -158,8 +171,8 @@ export async function abrirFlashPorId(id) {
     if (!d.exists() || !ativo(d.data({ serverTimestamps: "estimate" }))) { toast("Esse flash não está mais disponível (passou de 24 horas)."); return; }
     const x = { id: d.id, ...d.data({ serverTimestamps: "estimate" }) };
     if (x.autorId !== eu.uid && (escondido(x.autorId) || !podeVer(x))) { toast("Esse flash não está disponível."); return; }
-    const s = await fb.getDocs(fb.query(fb.collection(fb.db, "stories"), fb.where("autorId", "==", x.autorId), fb.limit(30))).catch(() => null);
-    const lista = (s?.docs || [d]).map((k) => ({ id: k.id, ...k.data({ serverTimestamps: "estimate" }) })).filter((k) => ativo(k) && (k.autorId === eu.uid || podeVer(k))).sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm));
+    const docs = await flashesNoArDe(x.autorId).catch(() => null);
+    const lista = (docs || [d]).map((k) => ({ id: k.id, ...k.data({ serverTimestamps: "estimate" }) })).filter((k) => ativo(k) && (k.autorId === eu.uid || podeVer(k))).sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm));
     porAutor.set(x.autorId, lista.length ? lista : [x]);
     abrirVisor(x.autorId, { so: true, comecarEm: id });
   } catch (e) { toast("Não foi possível abrir o flash: " + erroAmigavel(e)); }
@@ -467,8 +480,7 @@ export function novoFlash(aoPublicar) { depoisDePublicar = aoPublicar || null; a
 export async function anelNoPerfil(avatar, uid) {
   if (!avatar || !uid || escondido(uid)) return;
   try {
-    const s = await fb.getDocs(fb.query(fb.collection(fb.db, "stories"), fb.where("autorId", "==", uid), fb.limit(30)));
-    const lista = s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter((x) => ativo(x) && (uid === eu.uid || (x.perfil !== false && podeVer(x)))).sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm));
+    const lista = (await flashesNoArDe(uid)).map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter((x) => ativo(x) && (uid === eu.uid || (x.perfil !== false && podeVer(x)))).sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm));
     const wrap = avatar.parentElement;
     if (!lista.length) { wrap?.classList.remove("com-flash"); return; }
     if (!avatar.isConnected) return;
@@ -500,6 +512,52 @@ const LETRAS = [
   { nome: "Forte", css: "900 1em Impact, 'Arial Black', 'Roboto Condensed', sans-serif-condensed, sans-serif", sombra: false },
   { nome: "Manuscrita", css: "700 1em 'Segoe Script', 'Brush Script MT', 'Dancing Script', cursive", sombra: false }
 ];
+// Pincel: desenha os traços (pontos de 0 a 1) num canvas W×H. Caneta = cheia; marca-texto = larga e transparente;
+// neon = brilho da cor com o miolo branco; borracha = apaga o que já foi desenhado.
+function pintarTracos(g, W, H, lista) {
+  g.clearRect(0, 0, W, H);
+  const caminho = (t) => {
+    const p = t.pts.map(([x, y]) => [x * W, y * H]);
+    g.beginPath(); g.moveTo(p[0][0], p[0][1]);
+    if (p.length === 1) g.lineTo(p[0][0] + 0.1, p[0][1] + 0.1);
+    for (let i = 1; i < p.length - 1; i++) { const mx = (p[i][0] + p[i + 1][0]) / 2, my = (p[i][1] + p[i + 1][1]) / 2; g.quadraticCurveTo(p[i][0], p[i][1], mx, my); }
+    if (p.length > 1) g.lineTo(p[p.length - 1][0], p[p.length - 1][1]);
+  };
+  lista.forEach((t) => {
+    if (!t.pts?.length) return;
+    const lw = Math.max(1, t.larg * W);
+    g.save(); g.lineCap = "round"; g.lineJoin = "round";
+    if (t.modo === "borracha") { g.globalCompositeOperation = "destination-out"; g.lineWidth = lw * 2; g.strokeStyle = "#000"; caminho(t); g.stroke(); }
+    else if (t.modo === "marcador") { g.globalAlpha = 0.42; g.lineCap = "butt"; g.lineWidth = lw * 2.2; g.strokeStyle = t.cor; caminho(t); g.stroke(); }
+    else if (t.modo === "neon") {
+      g.shadowColor = t.cor; g.shadowBlur = lw * 2.4; g.lineWidth = lw * 1.3; g.strokeStyle = t.cor; caminho(t); g.stroke();
+      g.shadowBlur = lw * 0.8; g.lineWidth = lw * 0.55; g.strokeStyle = "#fff"; caminho(t); g.stroke();
+    } else { g.lineWidth = lw; g.strokeStyle = t.cor; caminho(t); g.stroke(); }
+    g.restore();
+  });
+}
+// Quebra o texto em linhas que cabem em "max" (palavras inteiras; palavra maior que a linha quebra no meio, como o
+// overflow-wrap: anywhere do cartão).
+function quebrarLinhas(g, texto, max) {
+  const linhas = [];
+  String(texto).split("\n").forEach((par) => {
+    let atual = "";
+    par.split(/(\s+)/).filter((x) => x !== "").forEach((p) => {
+      if (/^\s+$/.test(p)) { if (atual) atual += " "; return; }
+      let resto = p;
+      while (resto) {
+        const t = atual + resto;
+        if (g.measureText(t).width <= max) { atual = t; resto = ""; break; }
+        if (atual.trim()) { linhas.push(atual.trimEnd()); atual = ""; continue; }
+        // palavra sozinha maior que a linha: corta letra a letra
+        let k = 1; while (k < resto.length && g.measureText(resto.slice(0, k + 1)).width <= max) k++;
+        linhas.push(resto.slice(0, k)); resto = resto.slice(k);
+      }
+    });
+    linhas.push(atual.trimEnd());
+  });
+  return linhas;
+}
 // Alinhamento do texto por cima da foto (o padrão é no meio).
 const ALINHAS = ["center", "left", "right"];
 const iconeAlinha = (a) => {
@@ -511,6 +569,9 @@ const corTexto = (f) => (f === 3 || f === 7 ? "#1a1a1a" : "#ffffff");
 // Cores do texto por cima da foto (como no Instagram) e quem fica com letra escura no destaque.
 const CORES = ["#ffffff", "#111111", "#ffd60a", "#ff8a00", "#ff3d7f", "#00adee", "#38ef7d", "#8e2de2"];
 const clara = (c) => ["#ffffff", "#ffd60a", "#38ef7d"].includes(c);
+const FUNDO_VIDRO = "rgba(8,12,16,.55)"; // fundo escuro transparente atrás do texto
+// Figurinhas de emoji (desenhadas na foto, como os outros textos).
+const EMOJIS_FIG = ["😍", "😂", "🥰", "😎", "🤩", "🥳", "😮", "😢", "😡", "🙏", "👏", "💪", "🔥", "✨", "💯", "❤️", "💙", "💚", "💛", "💜", "⭐", "🌟", "🎉", "🎂", "☀️", "🌙", "🌊", "🌴", "🏖️", "🍕", "🍔", "☕", "🍺", "⚽", "🎵", "📍", "📸", "🏠", "🐶", "🐱", "🚗", "✈️", "💼", "🛠️", "💡", "✅", "👀", "🤝"];
 
 // Figurinhas (horário, data e localização): 4 estilos, um toque troca.
 const EST_FIG = [
@@ -541,11 +602,35 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   const ferramentas = el("div", "flash-ferr");
   // Configurações do Flash (engrenagem) ao lado do X; o selo mostra quando vai só para os Amigos próximos.
   const bCfg = el("button", "flash-ferr-btn"); bCfg.type = "button"; bCfg.setAttribute("aria-label", "Configurações do Flash"); bCfg.title = "Configurações"; bCfg.appendChild(icone("config", "i s"));
-  const seloAmigos = el("span", "flash-selo-amigos", "Amigos próximos");
-  const esq = el("div", "flash-esq"); esq.append(bX, bCfg, seloAmigos);
+  // Amigos próximos (como no Instagram, escolhido em cada flash): estrela verde acesa = só para a sua lista.
+  // Começa como está nas Configurações do Flash.
+  let paraAmigos = configFlash().publico === "amigos";
+  const bAmigos = el("button", "flash-ferr-btn flash-amigos"); bAmigos.type = "button";
+  bAmigos.innerHTML = '<svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.8l2.5 5.2 5.7.8-4.1 4 1 5.6L12 16.7l-5.1 2.7 1-5.6-4.1-4 5.7-.8z" fill="currentColor"/></svg>';
+  const pintarAmigos = () => {
+    bAmigos.classList.toggle("on", paraAmigos); bAmigos.setAttribute("aria-pressed", String(paraAmigos));
+    bAmigos.setAttribute("aria-label", paraAmigos ? "Só para os Amigos próximos (toque para todos)" : "Para todos que seguem você (toque para os Amigos próximos)");
+    bAmigos.title = paraAmigos ? "Amigos próximos" : "Todos";
+    publicar.classList.toggle("amigos", paraAmigos);
+    publicar.firstChild.textContent = paraAmigos ? "Amigos próximos" : "Compartilhar";
+    if (!meusNeg.length) dica.textContent = dicaPadrao();
+  };
+  bAmigos.addEventListener("click", async () => {
+    if (!paraAmigos && !configFlash().amigos.length) {
+      const l = await escolherPessoas("Amigos próximos", []);
+      if (!l?.length) return;
+      await salvarConfigFlash({ ...configFlash(), amigos: l }).catch(() => {});
+    }
+    paraAmigos = !paraAmigos; pintarAmigos();
+    const n = configFlash().amigos.length;
+    toast(paraAmigos ? `Este flash vai só para os Amigos próximos (${n} ${n === 1 ? "pessoa" : "pessoas"})` : "Este flash vai para todos que seguem você");
+  });
+  const esq = el("div", "flash-esq"); esq.append(bX, bCfg, bAmigos);
   topo.append(esq, ferramentas);
   const lixo = el("div", "flash-lixo"); lixo.appendChild(icone("lixo", "i s")); lixo.setAttribute("aria-hidden", "true");
-  palco.append(midiaBox, guias, camada, topo, lixo);
+  // Desenho do pincel: fica entre a foto e os textos (e sai igual na foto publicada).
+  const desenho = document.createElement("canvas"); desenho.className = "flash-desenho"; desenho.setAttribute("aria-hidden", "true");
+  palco.append(midiaBox, guias, desenho, camada, topo, lixo);
   const baixo = el("div", "flash-baixo");
   const modos = el("div", "flash-modos"); modos.setAttribute("role", "tablist");
   const mFoto = el("button"); mFoto.type = "button"; mFoto.setAttribute("role", "tab"); mFoto.append(icone("camera", "i xs"), document.createTextNode(comStorage() ? "Foto ou vídeo" : "Foto"));
@@ -556,6 +641,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   publicar.append(el("span", null, "Compartilhar"), raioPub);
   const linhaBaixo = el("div", "flash-linha"); linhaBaixo.append(modos, publicar);
   const dica = el("small", "flash-dica", "Fica 24 horas para quem segue você · você vê quem viu");
+  const dicaPadrao = () => (paraAmigos ? "Fica 24 horas só para os seus Amigos próximos · você vê quem viu" : "Fica 24 horas para quem segue você · você vê quem viu");
   // "Publicar em": seu perfil e/ou os seus perfis de negócio (um, alguns ou todos). Só aparece se você tem negócio.
   // Fica num botão da barra de cima (e nas figurinhas), para não ocupar o espaço embaixo do cartão.
   const dest = { perfil: true, negocios: new Set() };
@@ -570,7 +656,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     contaOnde.textContent = String(total); contaOnde.hidden = total < 2 && dest.perfil;
     bOnde.classList.toggle("on", !!dest.negocios.size);
     bOnde.setAttribute("aria-label", `Onde publicar: ${onde.join(", ")}`);
-    dica.textContent = !meusNeg.length ? "Fica 24 horas para quem segue você · você vê quem viu"
+    dica.textContent = !meusNeg.length ? dicaPadrao()
       : `Fica 24 h ${total > 1 ? "em " + onde.slice(0, -1).join(", ") + " e " + onde.slice(-1) : onde[0] === "no seu perfil" ? "no seu perfil" : "no perfil de " + onde[0]} · toque para mudar`;
     dica.classList.toggle("clicavel", !!meusNeg.length);
   };
@@ -622,8 +708,10 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     resumoDestino(); pintar();
   }).catch(() => {});
   // Campos do lugar escolhido (vão em todo flash publicado por este criador).
-  const camposDestino = () => (dest.negocios.size ? { negocios: [...dest.negocios].slice(0, 4), ...(dest.perfil ? {} : { perfil: false }) } : {});
+  // _publico: a escolha deste flash (todos ou Amigos próximos); o gravar() tira o "_" antes de salvar.
+  const camposDestino = () => ({ _publico: paraAmigos ? "amigos" : "todos", ...(dest.negocios.size ? { negocios: [...dest.negocios].slice(0, 4), ...(dest.perfil ? {} : { perfil: false }) } : {}) });
   baixo.append(linhaBaixo, dica);
+  pintarAmigos();
   // Moldura com o degradê do Flash em volta do cartão (que ocupa quase a tela toda).
   const moldura = el("div", "flash-moldura"); moldura.appendChild(palco);
   caixa.append(moldura, baixo);
@@ -640,6 +728,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   let cam = null;                      // { stream, frente } enquanto a câmera do app está aberta
   let virada = false;                  // câmera da frente (selfie)
   const textos = []; // { texto, x, y (0..1), tam (fração da largura), letra, cor, destaque, el }
+  const tracos = []; // pincel: { modo caneta|marcador|neon|borracha, cor, larg (fração da largura), pts [[x, y] 0..1] }
 
   // ---------- modo Texto ----------
   const area = el("textarea", "flash-texto"); area.maxLength = 220; area.rows = 3; area.placeholder = "Escreva algo..."; area.setAttribute("aria-label", "Texto do flash");
@@ -657,6 +746,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   const bAa = el("button", "flash-ferr-btn letra", "Aa"); bAa.type = "button"; bAa.title = "Escrever na foto"; bAa.setAttribute("aria-label", "Escrever na foto");
   const bTrocar = el("button", "flash-ferr-btn"); bTrocar.type = "button"; bTrocar.setAttribute("aria-label", "Trocar a foto"); bTrocar.title = "Trocar"; bTrocar.appendChild(icone("imagem", "i s"));
   const bFig = el("button", "flash-ferr-btn"); bFig.type = "button"; bFig.setAttribute("aria-label", "Figurinhas: horário, data e localização"); bFig.title = "Figurinhas"; bFig.appendChild(icone("figurinha", "i s"));
+  const bPincel = el("button", "flash-ferr-btn"); bPincel.type = "button"; bPincel.setAttribute("aria-label", "Desenhar"); bPincel.title = "Desenhar"; bPincel.appendChild(icone("pincel", "i s"));
   const bFiltros = el("button", "flash-ferr-btn", "✨"); bFiltros.type = "button"; bFiltros.setAttribute("aria-label", "Filtros"); bFiltros.title = "Filtros";
   // Foto (ou câmera) dentro de uma caixa: o filtro de cor vai na caixa e a "pele suave" é uma cópia desfocada por cima.
   const fotoBox = el("div", "flash-fotobox");
@@ -689,7 +779,6 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   const prontoParaPublicar = () => (modo === "texto" ? !!area.value.trim() : !!(foto || video));
   function pintar() {
     mTexto.setAttribute("aria-selected", String(modo === "texto")); mFoto.setAttribute("aria-selected", String(modo === "foto"));
-    seloAmigos.hidden = configFlash().publico !== "amigos";
     ferramentas.replaceChildren();
     midiaBox.replaceChildren();
     palco.style.background = "";
@@ -723,7 +812,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     } else if (foto || video) {
       if (foto) {
         midiaBox.appendChild(fotoBox); posicionar(); pintarFiltroNaTela();
-        ferramentas.append(bAa, bFig, bFiltros, bTrocar);
+        ferramentas.append(bAa, bFig, bPincel, bFiltros, bTrocar);
         if (meusNeg.length) ferramentas.prepend(bOnde);
         bFiltros.classList.toggle("on", filtrosAbertos);
         if (filtrosAbertos) { pintarTira(); palco.appendChild(tiraFiltros); }
@@ -754,7 +843,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   bGal.addEventListener("click", () => escolherArquivo(false));
   bTrocar.addEventListener("click", () => escolherArquivo(false));
   bAa.addEventListener("click", () => editarTexto(null));
-  bCfg.addEventListener("click", () => { abrirConfigFlash(); const f = $("folhaLista"); const volta = () => { f?.removeEventListener("fechada", volta); setTimeout(() => { if (fundo.isConnected && !document.querySelector(".folha.aberta")) seloAmigos.hidden = configFlash().publico !== "amigos"; }, 50); }; f?.addEventListener("fechada", volta); });
+  bCfg.addEventListener("click", () => { abrirConfigFlash(); const f = $("folhaLista"); const volta = () => { f?.removeEventListener("fechada", volta); setTimeout(() => { if (fundo.isConnected && paraAmigos && !configFlash().amigos.length) { paraAmigos = false; pintarAmigos(); } }, 50); }; f?.addEventListener("fechada", volta); });
   bFig.addEventListener("click", () => abrirFigurinhas());
 
   // ---------- foto: arrastar e pinça direto no cartão ----------
@@ -879,9 +968,9 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     e.style.font = LETRAS[t.letra].css.replace("1em", Math.round(t.tam * W) + "px");
     e.style.textAlign = t.alinha || "center";
     e.style.color = t.destaque ? (clara(t.cor) ? "#111" : "#fff") : t.cor;
-    e.style.background = t.destaque ? t.cor : "transparent";
-    e.classList.toggle("destaque", t.destaque);
-    e.classList.toggle("neon", LETRAS[t.letra].sombra && !t.destaque);
+    e.style.background = t.destaque ? t.cor : t.vidro ? FUNDO_VIDRO : "transparent";
+    e.classList.toggle("destaque", !!(t.destaque || t.vidro));
+    e.classList.toggle("neon", LETRAS[t.letra].sombra && !t.destaque && !t.vidro);
   }
   function criarTexto(t) {
     const e = el("div", "flash-txt"); e.setAttribute("role", "button"); e.tabIndex = 0; e.setAttribute("aria-label", "Texto na foto: toque para editar, arraste para mover");
@@ -905,7 +994,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       if (!p0) return;
       p0 = null; palco.classList.remove("arrastando-txt"); guias.querySelector(".v").classList.remove("on");
       if (lixo.classList.contains("sobre")) { lixo.classList.remove("sobre"); e.remove(); textos.splice(textos.indexOf(t), 1); navigator.vibrate?.(12); return; }
-      if (!mexeu && ev.type === "pointerup") { if (t.enq) editarEnquete(t); else if (t.cx) editarCaixa(t); else if (t.lk) escolherNegocio(t); else if (t.fig) { t.estilo = (t.estilo + 1) % EST_FIG.length; pintarTexto(t); } else editarTexto(t); }
+      if (!mexeu && ev.type === "pointerup") { if (t.enq) editarEnquete(t); else if (t.cx) editarCaixa(t); else if (t.lk) escolherNegocio(t); else if (t.fig) { t.estilo = (t.estilo + 1) % EST_FIG.length; pintarTexto(t); } else if (t.emoji) { t.tam = t.tam >= 0.26 ? 0.1 : +(t.tam + 0.06).toFixed(3); pintarTexto(t); } else editarTexto(t); }
     };
     e.addEventListener("pointerup", fim);
     e.addEventListener("pointercancel", fim);
@@ -919,36 +1008,42 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     cab.append(el("strong", "figs-tit", "Figurinhas"), el("span", "esp"), ok);
     const grade = el("div", "figs-grade");
     const localPerfil = [dados.bairro, nomeCidade(dados.cidade || dados.cidadeNome)].filter(Boolean).join(", ");
-    // Enquete e menção (interativas) primeiro
-    // Onde publicar (seu perfil e/ou os perfis dos seus negócios): o primeiro da lista, quando você tem negócio.
-    if (meusNeg.length) {
-      const b = el("button", "fig-op"); b.type = "button";
-      const amostra = el("span", "flash-fig amostra-fig fig-enq"); amostra.append(icone("loja", "i s"), document.createTextNode("PUBLICAR EM"));
-      b.append(amostra, el("small", null, dest.negocios.size ? `${dest.negocios.size + (dest.perfil ? 1 : 0)} lugares` : "Seus negócios"));
-      b.addEventListener("click", () => { pn.remove(); escolherDestinos(); });
-      grade.appendChild(b);
-    }
-    [["enq", "Enquete", "enquete"], ["cx", "Perguntas", "caixa"], ["mencao", "Menção", "pessoa-mais"], ["lk", "Link", "loja"]].forEach(([k, rot, ic]) => {
-      const b = el("button", "fig-op"); b.type = "button";
-      const amostra = el("span", `flash-fig amostra-fig fig-${k === "cx" || k === "lk" ? "enq" : k}`); amostra.append(icone(ic, "i s"), document.createTextNode(k === "enq" ? "ENQUETE" : k === "cx" ? "PERGUNTAS" : k === "lk" ? "NEGÓCIO" : "@MENÇÃO"));
-      b.append(amostra, el("small", null, k === "lk" ? "Link do negócio" : rot));
-      b.addEventListener("click", () => { pn.remove(); if (k === "enq") editarEnquete(textos.find((t) => t.enq) || null); else if (k === "cx") editarCaixa(textos.find((t) => t.cx) || null); else if (k === "lk") escolherNegocio(textos.find((t) => t.lk) || null); else escolherMencao(); });
-      grade.appendChild(b);
-    });
-    const opcoes = [["hora", "Horário"], ["data", "Data"], ["local", "Localização"]];
-    opcoes.forEach(([fig, rot]) => {
-      const b = el("button", "fig-op"); b.type = "button";
-      const amostra = el("span", `flash-fig fig-${fig} amostra-fig`, textoFigurinha(fig, localPerfil));
-      b.append(amostra, el("small", null, rot));
-      b.addEventListener("click", () => {
-        if (fig === "local") { escolherLocal(localPerfil); return; }
-        pn.remove(); colocarFig(fig, textoFigurinha(fig));
-      });
-      grade.appendChild(b);
-    });
+    // Pílulas (ícone colorido + nome), as interativas primeiro. "Publicar em" só aparece para quem tem negócio.
+    const pilula = (ic, rot, cor, fn, extra = "") => {
+      const b = el("button", "fig-op fig-pilula"); b.type = "button"; b.style.setProperty("--fc", cor);
+      b.append(icone(ic, "i s"), el("span", null, rot)); if (extra) b.appendChild(el("small", null, extra));
+      b.addEventListener("click", fn); grade.appendChild(b); return b;
+    };
+    if (meusNeg.length) pilula("loja", "Publicar em", "#f5a400", () => { pn.remove(); escolherDestinos(); }, dest.negocios.size ? `${dest.negocios.size + (dest.perfil ? 1 : 0)} lugares` : "");
+    pilula("enquete", "Enquete", "#ff3d7f", () => { pn.remove(); editarEnquete(textos.find((t) => t.enq) || null); });
+    pilula("caixa", "Perguntas", "#e5487f", () => { pn.remove(); editarCaixa(textos.find((t) => t.cx) || null); });
+    pilula("pessoa-mais", "Menção", "#ff8a00", () => { pn.remove(); escolherMencao(); });
+    pilula("loja", "Link do negócio", "#00adee", () => { pn.remove(); escolherNegocio(textos.find((t) => t.lk) || null); });
+    pilula("local", "Localização", "#7c5cff", () => escolherLocal(localPerfil));
+    pilula("hashtag", "Hashtag", "#ff3d7f", () => escolherHashtag());
+    pilula("figurinha", "Emoji", "#f5a400", () => escolherEmoji());
+    pilula("relogio", "Horário", "#2fbf71", () => { pn.remove(); colocarFig("hora", textoFigurinha("hora")); }, textoFigurinha("hora"));
+    pilula("calendario", "Data", "#0fb5a6", () => { pn.remove(); colocarFig("data", textoFigurinha("data")); }, textoFigurinha("data"));
     ok.addEventListener("click", () => pn.remove());
-    pn.append(cab, grade, el("p", "figs-dica", "Toque na figurinha para trocar o estilo · arraste até a lixeira para tirar"));
+    pn.append(cab, grade, el("p", "figs-dica", "Toque na figurinha para trocar o estilo (no emoji, o tamanho) · arraste até a lixeira para tirar"));
     palco.appendChild(pn);
+    function escolherHashtag() {
+      grade.replaceChildren();
+      const inp = el("input", "fe-local"); inp.type = "text"; inp.maxLength = 30; inp.placeholder = "#hashtag"; inp.value = "#"; inp.setAttribute("aria-label", "Hashtag");
+      const usar = el("button", "fe-pronto", "Colocar"); usar.type = "button";
+      const linha = el("div", "fe-linha-local"); linha.append(inp, usar);
+      grade.appendChild(linha);
+      const colocar = () => { const v = inp.value.replace(/[^\p{L}\p{N}_]/gu, "").slice(0, 28); if (!v) { inp.focus(); return; } pn.remove(); colocarFig("hashtag", "#" + v); };
+      usar.addEventListener("click", colocar);
+      inp.addEventListener("keydown", (e) => { if (e.key === "Enter") colocar(); });
+      setTimeout(() => { inp.focus(); inp.setSelectionRange(1, 1); }, 50);
+    }
+    function escolherEmoji() {
+      grade.replaceChildren();
+      const g2 = el("div", "fig-emojis");
+      EMOJIS_FIG.forEach((em) => { const b = el("button", null, em); b.type = "button"; b.setAttribute("aria-label", "Emoji " + em); b.addEventListener("click", () => { pn.remove(); criarTexto({ texto: em, emoji: true, x: 0.5, y: 0.42, tam: 0.16, letra: 0, cor: "#ffffff", destaque: false }); }); g2.appendChild(b); });
+      grade.appendChild(g2);
+    }
     function escolherLocal(sugestao) {
       grade.replaceChildren();
       const inp = el("input", "fe-local"); inp.type = "text"; inp.maxLength = 40; inp.value = sugestao || ""; inp.placeholder = "Bairro, cidade ou lugar"; inp.setAttribute("aria-label", "Localização");
@@ -1139,16 +1234,18 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       campo.style.font = LETRAS[tmp.letra].css.replace("1em", Math.round(tmp.tam * W) + "px");
       campo.style.textAlign = tmp.alinha;
       campo.style.color = tmp.destaque ? (clara(tmp.cor) ? "#111" : "#fff") : tmp.cor;
-      campo.style.background = tmp.destaque ? tmp.cor : "transparent";
-      campo.classList.toggle("neon", LETRAS[tmp.letra].sombra && !tmp.destaque);
-      bDe.classList.toggle("on", tmp.destaque); bDe.setAttribute("aria-pressed", String(tmp.destaque));
+      campo.style.background = tmp.destaque ? tmp.cor : tmp.vidro ? FUNDO_VIDRO : "transparent";
+      campo.classList.toggle("neon", LETRAS[tmp.letra].sombra && !tmp.destaque && !tmp.vidro);
+      bDe.classList.toggle("on", !!tmp.destaque); bDe.classList.toggle("vidro", !!tmp.vidro); bDe.setAttribute("aria-pressed", String(!!(tmp.destaque || tmp.vidro)));
+      bDe.setAttribute("aria-label", tmp.destaque ? "Fundo: cor cheia (toque para fundo escuro)" : tmp.vidro ? "Fundo: escuro transparente (toque para tirar)" : "Fundo atrás do texto");
       bAl.innerHTML = iconeAlinha(tmp.alinha);
       bAl.setAttribute("aria-label", `Alinhamento: ${{ center: "no meio", left: "à esquerda", right: "à direita" }[tmp.alinha]}`);
       [...letras.children].forEach((b, k) => { b.classList.toggle("on", k === tmp.letra); b.setAttribute("aria-checked", String(k === tmp.letra)); });
       [...cores.children].forEach((b, k) => b.classList.toggle("on", CORES[k] === tmp.cor));
     }
     bAl.addEventListener("click", () => { tmp.alinha = ALINHAS[(ALINHAS.indexOf(tmp.alinha) + 1) % ALINHAS.length]; pintarEd(); });
-    bDe.addEventListener("click", () => { tmp.destaque = !tmp.destaque; pintarEd(); });
+    // Fundo: sem → cor cheia → escuro transparente → sem.
+    bDe.addEventListener("click", () => { if (tmp.destaque) { tmp.destaque = false; tmp.vidro = true; } else if (tmp.vidro) tmp.vidro = false; else tmp.destaque = true; pintarEd(); });
     tam.addEventListener("input", () => { tmp.tam = Number(tam.value); pintarEd(); });
     const concluir = () => {
       const texto = campo.value.trim();
@@ -1165,6 +1262,75 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     pintarEd();
     setTimeout(() => campo.focus(), 50);
   }
+
+  // ---------- pincel (desenhar na foto) ----------
+  const pintarDesenho = () => {
+    const W = palco.offsetWidth, H = palco.offsetHeight, k = Math.min(2, devicePixelRatio || 1);
+    if (desenho.width !== Math.round(W * k)) { desenho.width = Math.round(W * k); desenho.height = Math.round(H * k); }
+    const g = desenho.getContext("2d"); g.setTransform(1, 0, 0, 1, 0, 0);
+    pintarTracos(g, desenho.width, desenho.height, tracos);
+  };
+  if ("ResizeObserver" in window) new ResizeObserver(() => { if (tracos.length) pintarDesenho(); }).observe(palco);
+  function abrirPincel() {
+    palco.querySelector(".flash-figs, .flash-edtxt, .flash-pincel")?.remove();
+    const est = { modo: "caneta", cor: "#ffffff", larg: 0.016 };
+    const ed = el("div", "flash-pincel");
+    const cab = el("div", "fe-cab");
+    const desfazer = el("button", "flash-ferr-btn"); desfazer.type = "button"; desfazer.setAttribute("aria-label", "Desfazer"); desfazer.appendChild(icone("voltar", "i s"));
+    const MODOS = [["caneta", "Caneta", '<path d="M4 20l3.5-1 11-11-2.5-2.5-11 11z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/>'],
+      ["marcador", "Marca-texto", '<path d="M6 15l7-7 4 4-7 7H6zM13 8l2.5-2.5 4 4L17 12" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M4 21h9" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>'],
+      ["neon", "Neon", '<path d="M5 19c4-1 5-6 8-9s6-3 6-3" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="19" cy="7" r="2.2" fill="currentColor"/>'],
+      ["borracha", "Borracha", '<path d="M8 20h11M5.5 15.5l8-8 5 5-6.5 6.5H9z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/>']];
+    const modos = el("div", "fp-modos"); modos.setAttribute("role", "radiogroup"); modos.setAttribute("aria-label", "Pincel");
+    MODOS.forEach(([k, rot, svg]) => {
+      const b = el("button", "flash-ferr-btn fp-modo"); b.type = "button"; b.dataset.modo = k; b.setAttribute("role", "radio"); b.setAttribute("aria-label", rot); b.title = rot;
+      b.innerHTML = `<svg class="i s" viewBox="0 0 24 24" aria-hidden="true">${svg}</svg>`;
+      b.addEventListener("click", () => { est.modo = k; pintarEd(); });
+      modos.appendChild(b);
+    });
+    const ok = el("button", "fe-pronto", "Pronto"); ok.type = "button";
+    cab.append(desfazer, el("span", "esp"), modos, el("span", "esp"), ok);
+    const regua = el("div", "fe-regua");
+    const tam = el("input", "fe-tam"); tam.type = "range"; tam.min = "0.006"; tam.max = "0.06"; tam.step = "0.001"; tam.value = String(est.larg); tam.setAttribute("aria-label", "Espessura");
+    regua.appendChild(tam);
+    const amostra = el("span", "fp-amostra"); regua.appendChild(amostra);
+    const cores = el("div", "fe-cores fp-cores");
+    CORES.forEach((c) => { const b = el("button"); b.type = "button"; b.style.background = c; b.setAttribute("aria-label", "Cor " + c); b.addEventListener("click", () => { est.cor = c; if (est.modo === "borracha") est.modo = "caneta"; pintarEd(); }); cores.appendChild(b); });
+    const area = el("div", "fp-area");
+    ed.append(area, cab, regua, cores);
+    palco.appendChild(ed);
+    palco.classList.add("pincel-aberto");
+    function pintarEd() {
+      [...modos.children].forEach((b) => { const on = b.dataset.modo === est.modo; b.classList.toggle("on", on); b.setAttribute("aria-checked", String(on)); });
+      [...cores.children].forEach((b, k) => b.classList.toggle("on", CORES[k] === est.cor && est.modo !== "borracha"));
+      const W = palco.offsetWidth, px = Math.max(3, est.larg * W * (est.modo === "marcador" ? 2.2 : 1));
+      amostra.style.width = amostra.style.height = px + "px";
+      amostra.style.background = est.modo === "borracha" ? "transparent" : est.cor;
+      amostra.style.boxShadow = est.modo === "neon" ? `0 0 ${px}px ${est.cor}` : "";
+      desfazer.disabled = !tracos.length;
+    }
+    tam.addEventListener("input", () => { est.larg = Number(tam.value); pintarEd(); });
+    desfazer.addEventListener("click", () => { tracos.pop(); pintarDesenho(); pintarEd(); });
+    let atual = null;
+    area.addEventListener("pointerdown", (e) => {
+      const r = palco.getBoundingClientRect();
+      area.setPointerCapture(e.pointerId);
+      atual = { modo: est.modo, cor: est.cor, larg: est.larg, pts: [[(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height]] };
+      tracos.push(atual); ed.classList.add("desenhando"); pintarDesenho();
+    });
+    area.addEventListener("pointermove", (e) => {
+      if (!atual) return;
+      const r = palco.getBoundingClientRect();
+      atual.pts.push([(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height]);
+      if (atual.pts.length > 900) atual.pts.splice(1, 1); // traço muito longo: não pesa no aparelho
+      pintarDesenho();
+    });
+    const soltar = () => { if (!atual) return; atual = null; ed.classList.remove("desenhando"); pintarEd(); };
+    area.addEventListener("pointerup", soltar); area.addEventListener("pointercancel", soltar);
+    ok.addEventListener("click", () => { ed.remove(); palco.classList.remove("pincel-aberto"); });
+    pintarEd();
+  }
+  bPincel.addEventListener("click", abrirPincel);
 
   // ---------- filtros ----------
   // Foto: processada uma vez por filtro (tamanho de tela) e guardada; a câmera é processada ao vivo.
@@ -1369,6 +1535,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     // A foto vai com o filtro em tamanho cheio (a prévia usa uma cópia menor, processada do mesmo jeito).
     const fonte = semFiltro(filtro) ? img : imagemFiltrada(img, filtro, { max: 2200 });
     g.drawImage(fonte, OW / 2 + ox * k - w / 2, OH / 2 + oy * k - h / 2, w, h);
+    if (tracos.length) { const cd = document.createElement("canvas"); cd.width = OW; cd.height = OH; pintarTracos(cd.getContext("2d"), OW, OH, tracos); g.drawImage(cd, 0, 0); }
     textos.forEach((t) => {
       if (t.enq || t.cx || t.lk) return; // enquete, caixa de perguntas e link ficam por cima, interativos (não vão desenhados)
       const px = Math.round(t.tam * OW);
@@ -1389,19 +1556,20 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       g.font = LETRAS[t.letra].css.replace("1em", px + "px");
       const al = t.alinha || "center";
       g.textAlign = al; g.textBaseline = "middle";
-      const linhas = t.texto.split("\n");
-      const alt = px * 1.25, y0 = t.y * OH - ((linhas.length - 1) * alt) / 2;
+      // Quebra as linhas como o cartão quebrou (no máximo 88% da largura): o que se vê no criador é o que sai.
+      const linhas = quebrarLinhas(g, t.texto, OW * 0.88);
+      const alt = px * 1.22, y0 = t.y * OH - ((linhas.length - 1) * alt) / 2;
       // Alinhado à esquerda/direita: as linhas encostam na borda do bloco (o bloco continua centrado no ponto).
       const larg = Math.max(...linhas.map((l) => g.measureText(l).width));
       const xa = t.x * OW + (al === "left" ? -larg / 2 : al === "right" ? larg / 2 : 0);
       linhas.forEach((l, i) => {
         const y = y0 + i * alt, x = xa;
-        if (t.destaque) {
+        if (t.destaque || t.vidro) {
           const lw = g.measureText(l).width + px * 0.7, lh = alt + px * 0.1;
           const rx = al === "left" ? x - px * 0.35 : al === "right" ? x - lw + px * 0.35 : x - lw / 2;
-          g.fillStyle = t.cor;
+          g.fillStyle = t.destaque ? t.cor : FUNDO_VIDRO;
           g.beginPath(); (g.roundRect ? g.roundRect(rx, y - lh / 2, lw, lh, px * 0.25) : g.rect(rx, y - lh / 2, lw, lh)); g.fill();
-          g.fillStyle = clara(t.cor) ? "#111" : "#fff"; g.shadowBlur = 0;
+          g.fillStyle = t.destaque ? (clara(t.cor) ? "#111" : "#fff") : t.cor; g.shadowBlur = 0;
         } else {
           g.fillStyle = t.cor;
           if (LETRAS[t.letra].sombra) { g.shadowColor = "rgba(255,255,255,.95)"; g.shadowBlur = px * 0.35; } else { g.shadowColor = "rgba(0,0,0,.35)"; g.shadowBlur = px * 0.12; }
@@ -1451,7 +1619,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       fechar();
     } catch (e) {
       toast(erroPublicar(e));
-      enviando = false; publicar.disabled = false; publicar.classList.remove("enviando"); publicar.firstChild.textContent = "Compartilhar";
+      enviando = false; publicar.disabled = false; publicar.classList.remove("enviando"); pintarAmigos();
     }
   });
   pintar();
@@ -1520,16 +1688,18 @@ function desenharTexto(texto, [a, b], letra, cor) {
   return url;
 }
 
-async function gravar(extra, { imagem = null } = {}) {
+async function gravar(extraCom, { imagem = null } = {}) {
   const cfg = configFlash();
+  const { _publico, ...extra } = extraCom;
+  const amigos = (_publico ? _publico === "amigos" : cfg.publico === "amigos") && cfg.amigos.length > 0;
   // Escolhas das configurações do Flash vão junto (só o que foge do padrão).
   const escolhas = {
     ...(cfg.respostas !== "todos" ? { respostas: cfg.respostas } : {}),
-    ...(cfg.publico === "amigos" ? { publico: "amigos", lista: cfg.amigos.slice(0, 150) } : {}),
+    ...(amigos ? { publico: "amigos", lista: cfg.amigos.slice(0, 150) } : {}),
     ...(cfg.ocultarDe.length ? { ocultoPara: cfg.ocultarDe.slice(0, 100) } : {})
   };
   const ref = await fb.addDoc(fb.collection(fb.db, "stories"), { autorId: eu.uid, nome: String(dados.nome || "Usuário").slice(0, 80), ...extra, ...escolhas, criadoEm: fb.serverTimestamp() });
-  toast(cfg.publico === "amigos" ? "⚡ Flash publicado para os Amigos próximos." : extra.negocios?.length ? `⚡ Flash publicado${extra.perfil === false ? " só" : ""} ${extra.negocios.length === 1 ? "no perfil do negócio" : `em ${extra.negocios.length} perfis de negócio`}${extra.perfil === false ? "" : " e no seu perfil"}! Fica 24 horas.` : "⚡ Flash publicado! Fica 24 horas.");
+  toast(amigos ? "⚡ Flash publicado para os Amigos próximos." : extra.negocios?.length ? `⚡ Flash publicado${extra.perfil === false ? " só" : ""} ${extra.negocios.length === 1 ? "no perfil do negócio" : `em ${extra.negocios.length} perfis de negócio`}${extra.perfil === false ? "" : " e no seu perfil"}! Fica 24 horas.` : "⚡ Flash publicado! Fica 24 horas.");
   // Quem foi mencionado recebe uma mensagem (como no Instagram).
   (extra.mencoes || []).forEach((u) => mandarMensagem(u, msgFlash({ id: ref.id, autorId: eu.uid, nome: dados.nome }, "mencao"), "Mencionou você no flash").catch(() => {}));
   // Salvar no aparelho (Configurações do Flash).
@@ -1551,6 +1721,7 @@ export function configFlash() {
     amigos: Array.isArray(c.amigos) ? c.amigos : [],
     ocultarDe: Array.isArray(c.ocultarDe) ? c.ocultarDe : [],
     salvarAparelho: !!c.salvarAparelho,
+    arquivo: c.arquivo !== false,                     // guardar os flashes no arquivo depois das 24 h (só você vê)
     cameraDireto: c.cameraDireto !== false,           // abre a câmera do app direto (quando já tem permissão)
     somVideo: c.somVideo === true,                    // vídeos dos flashes começam com som
     ondePerfil: c.ondePerfil !== false,               // onde publicar por padrão: seu perfil...
@@ -1639,9 +1810,14 @@ export function abrirConfigFlash() {
       linha("Vídeos com som", "Os vídeos dos flashes começam com o som ligado", chave(c.somVideo, (on) => salvar({ somVideo: on })))
     );
 
-    // 6) Salvar no aparelho
-    const k5 = cartao("imagem", "#f5b301", "Salvar no aparelho");
-    k5.appendChild(linha("Salvar automaticamente", "Guarda uma cópia de cada flash de foto ou texto que você publicar", chave(c.salvarAparelho, (on) => salvar({ salvarAparelho: on }))));
+    // 6) Arquivo, destaques e salvar no aparelho
+    const k5 = cartao("relogio", "", "Arquivo e destaques", "Depois de 24 horas o flash sai do Diário e fica guardado no seu arquivo. Só você vê o arquivo.");
+    k5.append(
+      linha("Guardar no arquivo", "Desligado, os flashes são apagados depois de 24 horas (menos os que estão num destaque)", chave(c.arquivo, (on) => salvar({ arquivo: on }))),
+      linha("Ver o arquivo", "Seus flashes antigos, para ver de novo ou pôr num destaque", seta(), () => { fecharLista(); setTimeout(() => abrirArquivo(), 280); }),
+      linha("Novo destaque", "Junte flashes num destaque do seu perfil (fica para sempre)", seta(), () => { fecharLista(); setTimeout(() => novoDestaque(), 280); }),
+      linha("Salvar no aparelho", "Guarda uma cópia de cada flash de foto ou texto que você publicar", chave(c.salvarAparelho, (on) => salvar({ salvarAparelho: on })))
+    );
 
     // 7) Menções
     const k6 = cartao("pessoa-mais", "#00adee", "Menções", "Quem pode mencionar você nos flashes e publicações.");
@@ -1654,8 +1830,8 @@ export function abrirConfigFlash() {
   const fecharLista = () => $("folhaLista")?.querySelector("[data-fechar]")?.click();
   pintar();
   // Dados que precisam de leitura: seus flashes no ar e os seus negócios.
-  fb.getDocs(fb.query(fb.collection(fb.db, "stories"), fb.where("autorId", "==", eu.uid), fb.limit(30))).then((x) => {
-    ativos = x.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter(ativo).sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm));
+  flashesNoArDe(eu.uid).then((docs) => {
+    ativos = docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter(ativo).sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm));
     if (corpo.isConnected) pintar();
   }).catch(() => { ativos = []; if (corpo.isConnected) pintar(); });
   fb.getDocs(fb.query(fb.collection(fb.db, "negocios"), fb.where("donoId", "==", eu.uid), fb.limit(8))).then((x) => {
@@ -1723,13 +1899,15 @@ async function enviarFlash(s, aoFechar) {
 // =====================================================
 // Ver (tela cheia)
 // =====================================================
-function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null } = {}) {
-  const ordem = so ? [uidInicial] : [eu.uid, ...ordemAutores()].filter((u) => porAutor.get(u)?.length);
+// lista: flashes dados à parte (um destaque, o arquivo); destaque: {id, nome, uid} mostra o nome dele no topo.
+function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null, lista = null, destaque = null } = {}) {
+  const mapa = lista ? new Map([[uidInicial, lista]]) : porAutor;
+  const ordem = so || lista ? [uidInicial] : [eu.uid, ...ordemAutores()].filter((u) => mapa.get(u)?.length);
   let ai = Math.max(0, ordem.indexOf(uidInicial)), si = 0;
   // Começa no primeiro flash ainda não visto desse autor.
-  const inicioDo = (u) => { const l = porAutor.get(u) || []; const k = l.findIndex((x) => !vistosLocal.has(x.id)); return k < 0 ? 0 : k; };
+  const inicioDo = (u) => { if (lista) return 0; const l = mapa.get(u) || []; const k = l.findIndex((x) => !vistosLocal.has(x.id)); return k < 0 ? 0 : k; };
   si = inicioDo(ordem[ai]);
-  if (comecarEm) { const k = (porAutor.get(ordem[ai]) || []).findIndex((x) => x.id === comecarEm); if (k >= 0) si = k; }
+  if (comecarEm) { const k = (mapa.get(ordem[ai]) || []).findIndex((x) => x.id === comecarEm); if (k >= 0) si = k; }
   const fundo = el("div", "story-visor"); fundo.setAttribute("role", "dialog"); fundo.setAttribute("aria-modal", "true"); fundo.setAttribute("aria-label", "Flash");
   const caixa = el("div", "story-caixa");
   const barras = el("div", "story-barras");
@@ -1740,8 +1918,9 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null 
   const bX = el("button", "story-btn"); bX.type = "button"; bX.setAttribute("aria-label", "Fechar"); bX.appendChild(icone("fechar", "i s"));
   const quem = el("div", "story-quem"); const txtQuem = el("div");
   const chip = el("span", "story-chip"); chip.append(icone("raio", "i xs"), document.createTextNode("Flash"));
-  const linhaNome = el("div", "story-nome"); linhaNome.append(nome, chip);
-  txtQuem.append(linhaNome, quando); quem.append(av, txtQuem);
+  // Como no Instagram: o tempo fica na mesma linha do nome ("Ana  3 h").
+  const linhaNome = el("div", "story-nome"); linhaNome.append(nome, quando, chip);
+  txtQuem.append(linhaNome); quem.append(av, txtQuem);
   // Enviar o flash para alguém (vai como cartão no Mensagens)
   const bEnv = el("button", "story-btn"); bEnv.type = "button"; bEnv.setAttribute("aria-label", "Enviar este flash"); bEnv.title = "Enviar"; bEnv.appendChild(icone("enviar", "i s"));
   topo.append(quem, bSom, bEnv, bMais, bX);
@@ -1750,7 +1929,12 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null 
   const rodape = el("div", "story-rodape");
   const esq = el("button", "story-toque esq"); esq.type = "button"; esq.setAttribute("aria-label", "Anterior");
   const dir = el("button", "story-toque dir"); dir.type = "button"; dir.setAttribute("aria-label", "Próximo");
-  caixa.append(palco, el("div", "story-sombra"), legenda, esq, dir, barras, topo, rodape);
+  // O flash fica num quadro 9:16 (a imagem inteira, sem cortar as laterais, como foi feita no criador); as figurinhas
+  // interativas vão dentro do quadro, no mesmo lugar e no mesmo tamanho do criador. No celular comprido, o campo de
+  // responder fica embaixo do quadro (como no Instagram), e não por cima da foto.
+  const quadro = el("div", "story-quadro");
+  quadro.append(palco, el("div", "story-sombra"), legenda);
+  caixa.append(quadro, esq, dir, barras, topo, rodape);
   fundo.appendChild(caixa);
   document.body.appendChild(fundo);
   document.body.classList.add("travado");
@@ -1759,9 +1943,10 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null 
     if (fechado) return; fechado = true;
     clearTimeout(timer); video?.pause(); fundo.remove(); document.body.classList.remove("travado");
     document.removeEventListener("keydown", tecla, true); document.removeEventListener("visibilitychange", aoEsconder);
+    window.removeEventListener("resize", reencaixar);
     pintarBarra(); aoFechar?.();
   };
-  const atual = () => porAutor.get(ordem[ai])?.[si];
+  const atual = () => mapa.get(ordem[ai])?.[si];
 
   // Rodapé de quem vê: responder (vai para o Mensagens) e reações rápidas.
   const form = el("form", "story-responder");
@@ -1798,6 +1983,8 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null 
     const e = el("span", "story-estrela-voa"); e.appendChild(icone("estrela", "i"));
     caixa.appendChild(e); setTimeout(() => e.remove(), 900);
   }
+  // Sem as regras novas a estrela vai pelo Mensagens: uma vez por flash (tirar e dar de novo não manda outra).
+  const estrelaAvisada = new Set();
   async function curtir() {
     const s = atual(); if (!s || s.autorId === eu.uid) return;
     const vai = !curtidos.has(s.id);
@@ -1807,7 +1994,10 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null 
     try { await gravarReacao(s, { curtiu: vai }); }
     catch (e) {
       // Regras antigas (sem reacoes): a estrela vai como reação pelo Mensagens, para o autor saber.
-      if (e?.code === "permission-denied") { if (vai) enviarResposta("reacao", { emoji: "⭐" }, "Deu uma estrela no seu flash ⭐"); return; }
+      if (e?.code === "permission-denied") {
+        if (vai && !estrelaAvisada.has(s.id)) { estrelaAvisada.add(s.id); enviarResposta("reacao", { emoji: "⭐" }, "Deu uma estrela no seu flash ⭐"); }
+        return;
+      }
       if (vai) curtidos.delete(s.id); else curtidos.add(s.id);
       guardarCurtidos(); pintarEstrela(); toast("Não foi possível: " + erroAmigavel(e));
     }
@@ -1835,21 +2025,38 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null 
   campo.addEventListener("focus", () => { digitando = true; caixa.classList.add("digitando"); pausar(true); });
   campo.addEventListener("blur", () => { digitando = false; setTimeout(() => { if (!digitando) { caixa.classList.remove("digitando"); pausar(false); } }, 150); });
 
+  // Figurinha interativa (enquete, perguntas): desenhada numa largura fixa e escalada para ocupar a mesma fração do
+  // quadro que ocupava no criador (74%); o centro fica onde a pessoa pôs, sem cobrir o nome em cima nem o rodapé.
+  const LARG_FIG = 300, FRAC_FIG = 0.74;
+  function encaixar(w, fx, fy) {
+    w.dataset.fx = fx; w.dataset.fy = fy;
+    const W = quadro.offsetWidth, H = quadro.offsetHeight; if (!W || !H) return;
+    const k = (W * FRAC_FIG) / LARG_FIG;
+    w.style.width = LARG_FIG + "px"; w.style.setProperty("--k", k.toFixed(4));
+    const h = w.offsetHeight * k, lw = W * FRAC_FIG;
+    const cima = H * 0.11 + h / 2, baixo = H - Math.max(H * 0.1, 70) - h / 2;
+    const cy = Math.min(Math.max(fy * H, cima), Math.max(cima, baixo));
+    const cx = Math.min(Math.max(fx * W, lw / 2 + 6), W - lw / 2 - 6);
+    w.style.left = cx + "px"; w.style.top = cy + "px";
+  }
+  const reencaixar = () => quadro.querySelectorAll(".story-enq").forEach((w) => encaixar(w, Number(w.dataset.fx), Number(w.dataset.fy)));
+  window.addEventListener("resize", reencaixar);
   function mostrar(dirAnim = 0) {
     if (fechado) return;
     clearTimeout(timer); video?.pause(); video = null;
-    const lista = porAutor.get(ordem[ai]) || [];
+    const lista = mapa.get(ordem[ai]) || [];
     const s = lista[si]; if (!s) { fechar(); return; }
     const meu = s.autorId === eu.uid;
     pausado = false; caixa.classList.remove("pausado");
     if (dirAnim) { caixa.classList.remove("vai-dir", "vai-esq"); void caixa.offsetWidth; caixa.classList.add(dirAnim > 0 ? "vai-dir" : "vai-esq"); }
     barras.replaceChildren(...lista.map((_, k) => { const b = el("span", "story-barra"); const i = el("i"); if (k < si) i.style.width = "100%"; b.appendChild(i); return b; }));
     obterPerfil(s.autorId).then((p) => {
-      nome.textContent = meu ? "Seu flash" : (p.nome || s.nome || "Usuário");
+      nome.textContent = destaque ? destaque.nome : meu ? "Seu flash" : (p.nome || s.nome || "Usuário");
       campo.placeholder = `Responder a ${String(p.nome || s.nome || "").split(" ")[0] || "esta pessoa"}...`;
       pintarAvatar(av, p.fotoPerfil, p.nome || s.nome);
     }).catch(() => { nome.textContent = s.nome || "Usuário"; });
-    quando.textContent = tempoRelativo(new Date(ms(s.criadoEm) || Date.now()));
+    // Destaque e arquivo: a data do flash ("12 out"); no ar: há quanto tempo ("3 h").
+    quando.textContent = destaque || !ativo(s) ? dataCurta(ms(s.criadoEm)) : tempoRelativo(new Date(ms(s.criadoEm) || Date.now()));
     palco.replaceChildren();
     legenda.textContent = s.texto || ""; legenda.hidden = !s.texto;
     rodape.replaceChildren();
@@ -1860,16 +2067,16 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null 
     caixa.querySelector(".story-enq")?.remove();
     const enq = blocoEnquete(s, { tipo: "f", escura: true });
     if (enq) {
-      const w = el("div", "story-enq"); w.style.left = `${(s.enquete.x ?? 0.5) * 100}%`; w.style.top = `${(s.enquete.y ?? 0.6) * 100}%`;
-      w.appendChild(enq); caixa.appendChild(w);
+      const w = el("div", "story-enq");
+      w.appendChild(enq); quadro.appendChild(w); encaixar(w, s.enquete.x ?? 0.5, s.enquete.y ?? 0.6);
       ["pointerdown", "pointerup", "click"].forEach((ev) => w.addEventListener(ev, (e) => e.stopPropagation()));
     }
     // Caixa de perguntas por cima do flash (quem vê responde; o autor vê as respostas).
     caixa.querySelector(".story-cx")?.remove();
     const cx = blocoCaixa(s, { tipo: "f", escura: true });
     if (cx) {
-      const w = el("div", "story-enq story-cx"); w.style.left = `${(s.caixa.x ?? 0.5) * 100}%`; w.style.top = `${(s.caixa.y ?? 0.42) * 100}%`;
-      w.appendChild(cx); caixa.appendChild(w);
+      const w = el("div", "story-enq story-cx");
+      w.appendChild(cx); quadro.appendChild(w); encaixar(w, s.caixa.x ?? 0.5, s.caixa.y ?? 0.42);
       ["pointerdown", "pointerup", "click", "keydown"].forEach((ev) => w.addEventListener(ev, (e) => e.stopPropagation()));
       // escrever a resposta (ou abrir as respostas) pausa o flash
       const t = cx.querySelector("textarea");
@@ -1918,7 +2125,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null 
         if (mexeu) return;
         if (!a.hidden) { esconder(); return; }
         // O balão aparece em cima de onde tocou (sem sair da tela).
-        const r = caixa.getBoundingClientRect();
+        const r = quadro.getBoundingClientRect();
         a.style.left = `${Math.min(80, Math.max(20, ((e.clientX - r.left) / r.width) * 100))}%`;
         a.style.top = `${Math.max(14, ((e.clientY - r.top) / r.height) * 100 - 6)}%`;
         a.hidden = false; pausar(true);
@@ -1932,7 +2139,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null 
         e.preventDefault(); a.hidden = true;
         ganchos.abrirPublicacao(s.postDe.postId, { sobreFlash: true, aoFechar: () => { if (!fechado && document.querySelector(".story-visor")) { document.body.classList.add("travado"); pausar(false); } } });
       });
-      caixa.append(area, a);
+      quadro.append(area, a);
     }
     // Link para o perfil de um negócio (figurinha): tocar vai para o perfil.
     caixa.querySelector(".story-link:not(.story-post)")?.remove();
@@ -1943,7 +2150,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null 
       a.setAttribute("aria-label", `Abrir o perfil de ${s.link.nome || "negócio"}`);
       ["pointerdown", "pointerup"].forEach((ev) => a.addEventListener(ev, (e) => e.stopPropagation()));
       a.addEventListener("click", (e) => { e.stopPropagation(); pausar(true); });
-      caixa.appendChild(a);
+      quadro.appendChild(a);
     }
     // Fui mencionado: posso repostar no meu flash.
     if (!meu && Array.isArray(s.mencoes) && s.mencoes.includes(eu.uid) && s.tipo !== "video") {
@@ -1962,8 +2169,13 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null 
       const v = el("button", "story-vistos"); v.type = "button";
       const rostos = el("span", "rostos");
       v.append(icone("olho", "i xs"), el("span", null, "Visualizações"), rostos);
-      v.addEventListener("click", (e) => { e.stopPropagation(); pausar(true); verQuemViu(s, () => pausar(false), porAutor.get(eu.uid)); });
-      rodape.appendChild(v);
+      v.addEventListener("click", (e) => { e.stopPropagation(); pausar(true); verQuemViu(s, () => pausar(false), mapa.get(eu.uid), irPara); });
+      // Destacar (como no Instagram): guarda o flash num destaque do perfil, que fica para sempre.
+      const bd = el("button", "story-destacar"); bd.type = "button"; bd.setAttribute("aria-label", "Destacar no perfil");
+      bd.append(icone("destaque", "i s"), el("span", null, "Destacar"));
+      bd.addEventListener("click", (e) => { e.stopPropagation(); pausar(true); adicionarAoDestaque(s, () => { if (document.querySelector(".story-visor")) document.body.classList.add("travado"); pausar(false); }); });
+      const linhaMeu = el("div", "story-meu-rodape"); linhaMeu.append(v, bd);
+      rodape.appendChild(linhaMeu);
       // Quantas pessoas viram e as 3 últimas fotos.
       // Estrelas que o flash recebeu (só o autor lê).
       const est = el("span", "story-vistos-est"); est.hidden = true; v.insertBefore(est, rostos);
@@ -1996,16 +2208,17 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null 
     } else {
       const img = document.createElement("img"); img.src = s.midia; img.alt = s.texto || `Flash de ${nome.textContent || "alguém"}`; img.decoding = "async";
       palco.appendChild(img);
-      animarBarra(TEMPO_FOTO);
-      timer = setTimeout(proximo, TEMPO_FOTO);
-      inicio = Date.now(); restante = TEMPO_FOTO;
+      const dur = tempoDoFlash(s);
+      animarBarra(dur);
+      timer = setTimeout(proximo, dur);
+      inicio = Date.now(); restante = dur;
     }
     // Já carrega o próximo (troca sem piscar).
-    const prox = lista[si + 1] || porAutor.get(ordem[ai + 1])?.[0];
+    const prox = lista[si + 1] || mapa.get(ordem[ai + 1])?.[0];
     if (prox && prox.tipo !== "video") { const pre = new Image(); pre.src = prox.midia; }
     // Visto (no aparelho e para o autor contar)
     if (!vistosLocal.has(s.id)) { vistosLocal.add(s.id); guardarVistos(); }
-    if (!meu) fb.setDoc(fb.doc(fb.db, "stories", s.id, "vistos", eu.uid), { criadoEm: fb.serverTimestamp() }).catch(() => {});
+    if (!meu && ativo(s)) fb.setDoc(fb.doc(fb.db, "stories", s.id, "vistos", eu.uid), { criadoEm: fb.serverTimestamp() }).catch(() => {});
   }
   let somDesligado = !configFlash().somVideo;
   const pintarSom = () => { bSom.textContent = somDesligado ? "🔇" : "🔊"; bSom.setAttribute("aria-label", somDesligado ? "Ligar o som" : "Desligar o som"); };
@@ -2015,8 +2228,14 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null 
     i.style.transition = "none"; i.style.width = "0%";
     requestAnimationFrame(() => requestAnimationFrame(() => { if (pausado) return; i.style.transition = `width ${dur}ms linear`; i.style.width = "100%"; }));
   }
+  // Ir para um dos seus flashes (a fita das Visualizações troca o flash que está por trás, como no Instagram).
+  function irPara(x) {
+    const k = ordem.indexOf(eu.uid), l = mapa.get(eu.uid) || [], j = l.findIndex((y) => y.id === x.id);
+    if (k < 0 || j < 0) return;
+    ai = k; si = j; mostrar(); pausar(true);
+  }
   function proximo() {
-    const lista = porAutor.get(ordem[ai]) || [];
+    const lista = mapa.get(ordem[ai]) || [];
     if (si < lista.length - 1) { si++; mostrar(); return; }
     proximoAutor();
   }
@@ -2070,9 +2289,23 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null 
     abrirOpcoes("Flash", [
       meu && { rotulo: "Apagar este flash", icone: "lixo", perigo: true, fn: async () => {
         if (!await confirmarHF({ titulo: "Apagar este flash?", texto: "Ele some para todo mundo.", ok: "Apagar", icone: "lixo" })) return;
-        try { await fb.deleteDoc(fb.doc(fb.db, "stories", s.id)); const l = porAutor.get(s.autorId); l.splice(si, 1); if (!l.length) porAutor.delete(s.autorId); toast("Flash apagado"); if (!porAutor.get(s.autorId)) fechar(); else { si = Math.min(si, l.length - 1); mostrar(); } }
+        try { await fb.deleteDoc(fb.doc(fb.db, "stories", s.id)); const l = mapa.get(s.autorId); l.splice(si, 1); if (!l.length) mapa.delete(s.autorId); toast("Flash apagado"); if (!mapa.get(s.autorId)) fechar(); else { si = Math.min(si, l.length - 1); mostrar(); } }
         catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
       } },
+      meu && destaque && { rotulo: "Tirar deste destaque", sub: destaque.nome, icone: "destaque", perigo: true, fn: async () => {
+        if (!await confirmarHF({ titulo: "Tirar do destaque?", texto: `O flash sai de "${destaque.nome}". Ele continua no seu arquivo.`, ok: "Tirar", icone: "lixo" })) return;
+        try {
+          const ficou = await tirarDoDestaque(destaque, s.id);
+          const l = mapa.get(s.autorId); l.splice(si, 1);
+          toast(ficou ? "Tirado do destaque" : "Destaque apagado (estava vazio)");
+          if (!l.length) fechar(); else { si = Math.min(si, l.length - 1); mostrar(); }
+        } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); }
+      } },
+      meu && { rotulo: destaque ? "Pôr em outro destaque" : "Destacar no perfil", sub: "O destaque fica no seu perfil para sempre", icone: "destaque", fn: () => setTimeout(() => { pausar(true); adicionarAoDestaque(s, () => { if (document.querySelector(".story-visor")) document.body.classList.add("travado"); pausar(false); }); }, 260) },
+      meu && ativo(s) && { rotulo: "Visualizações", sub: "Quem viu, deu estrela ou reagiu", icone: "olho", fn: () => setTimeout(() => { pausar(true); verQuemViu(s, () => pausar(false), mapa.get(eu.uid), irPara); }, 260) },
+      meu && s.tipo !== "video" && { rotulo: "Salvar foto", sub: "Guarda o flash no aparelho", icone: "imagem", fn: () => salvarFotoFlash(s) },
+      { rotulo: "Compartilhar", sub: meu ? "Manda o link do flash (fica 24 h)" : "Manda o link do flash", icone: "compartilhar", fn: () => compartilharLinkFlash(s) },
+      meu && { rotulo: "Configurações do Flash", sub: "Quem vê, respostas, amigos próximos", icone: "config", fn: () => setTimeout(() => { pausar(true); abrirConfigFlash(); const f = $("folhaLista"); const v = () => { f?.removeEventListener("fechada", v); if (document.querySelector(".story-visor")) document.body.classList.add("travado"); pausar(false); }; f?.addEventListener("fechada", v); }, 260) },
       meu && { rotulo: "Novo flash", icone: "camera", fn: () => { fechar(); abrirCriador(); } },
       !meu && { rotulo: "Ver perfil", icone: "olho", fn: () => { fechar(); ganchos.abrirPerfil(s.autorId); } },
       !meu && { rotulo: silenciado(s.autorId) ? "Mostrar os flashes de novo" : "Silenciar esta pessoa", sub: "Continua seguindo, mas não vê os flashes e as publicações dela", icone: "restringir", fn: async () => { await alternarSilenciar(s.autorId, nome.textContent); fechar(); carregar(); } }
@@ -2135,7 +2368,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null 
       return;
     }
     voltarLugar(!!ex);
-    if (ex === "y" && dy < -90 && atual()?.autorId === eu.uid) { verQuemViu(atual(), () => pausar(false), porAutor.get(eu.uid)); return; }
+    if (ex === "y" && dy < -90 && atual()?.autorId === eu.uid) { verQuemViu(atual(), () => pausar(false), mapa.get(eu.uid), irPara); return; }
     if (pausouArrasto) { pausouArrasto = false; pausar(false); }
   };
   caixa.addEventListener("touchend", fimArrasto, { passive: true });
@@ -2145,7 +2378,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null 
 // Visualizações (só o autor): quem viu, quem deu a estrela e quem reagiu (o emoji no canto da foto), com filtros.
 // Em cima, a fita dos seus flashes no ar (miniatura + quantas pessoas viram) para trocar de flash sem sair da folha.
 // Em cada pessoa, o "⋯" abre as ações ali mesmo: mandar mensagem, ver o perfil e ocultar os seus flashes dela.
-async function verQuemViu(sInicial, aoFechar, flashes) {
+async function verQuemViu(sInicial, aoFechar, flashes, aoTrocar) {
   const corpo = abrirLista("Visualizações");
   const f = $("folhaLista");
   const volta = () => { f?.removeEventListener("fechada", volta); if (document.querySelector(".story-visor")) document.body.classList.add("travado"); aoFechar?.(); };
@@ -2165,7 +2398,7 @@ async function verQuemViu(sInicial, aoFechar, flashes) {
       b.append(capa, n);
       b.setAttribute("aria-label", `Flash ${k + 1} de ${meus.length}, ${tempoRelativo(new Date(ms(x.criadoEm) || Date.now()))}`);
       fb.getCountFromServer(fb.query(fb.collection(fb.db, "stories", x.id, "vistos"))).then((c) => { n.lastChild.textContent = String(c.data().count); }).catch(() => { n.lastChild.textContent = "–"; });
-      b.addEventListener("click", () => { if (s.id === x.id) return; s = x; pintarFita(); carregar(); });
+      b.addEventListener("click", () => { if (s.id === x.id) return; s = x; pintarFita(); carregar(); aoTrocar?.(x); });
       fita.appendChild(b);
     });
     const pintarFita = () => [...fita.children].forEach((b, k) => { const on = meus[k].id === s.id; b.classList.toggle("on", on); b.setAttribute("aria-selected", String(on)); if (on) b.scrollIntoView({ inline: "center", block: "nearest" }); });
@@ -2274,6 +2507,322 @@ async function verQuemViu(sInicial, aoFechar, flashes) {
     } catch (e) { if (minha === vez) conteudo.replaceChildren(el("div", "lista-vazia", "Não foi possível carregar: " + erroAmigavel(e))); }
   }
   carregar();
+}
+// =====================================================
+// Destaques e arquivo (como no Instagram). Os flashes continuam guardados depois das 24 h: o ARQUIVO mostra os seus
+// (só você vê). Um DESTAQUE junta flashes e fica no perfil para sempre:
+// destaques/{id} {uid, nome ≤30, ids [flashes, ≤100], capa (id do flash da capa), capaMini (miniatura JPEG), criadoEm, atualizadoEm}.
+// =====================================================
+const MAX_DESTAQUES = 30, MAX_NO_DESTAQUE = 100;
+const MESES_CURTO = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+function dataCurta(t) {
+  const d = new Date(t || Date.now());
+  return `${d.getDate()} ${MESES_CURTO[d.getMonth()]}${d.getFullYear() !== new Date().getFullYear() ? " " + d.getFullYear() : ""}`;
+}
+const erroDestaque = (e) => (e?.code === "permission-denied" ? "os destaques passam a funcionar depois da publicação das regras novas" : erroAmigavel(e));
+const cacheDestaques = new Map();
+function lerDestaques(uid, novo = false) {
+  if (novo) cacheDestaques.delete(uid);
+  if (!cacheDestaques.has(uid)) cacheDestaques.set(uid, fb.getDocs(fb.query(fb.collection(fb.db, "destaques"), fb.where("uid", "==", uid), fb.limit(MAX_DESTAQUES)))
+    .then((x) => x.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).sort((a, b) => ms(b.atualizadoEm || b.criadoEm) - ms(a.atualizadoEm || a.criadoEm)))
+    .catch(() => []));
+  return cacheDestaques.get(uid);
+}
+const avisarDestaques = () => { cacheDestaques.delete(eu.uid); dispatchEvent(new CustomEvent("hf:destaques")); };
+// Os flashes de um destaque, na ordem em que foram publicados (os apagados e os que você não pode ver ficam de fora).
+async function flashesDoDestaque(d) {
+  const docs = await Promise.all((d.ids || []).slice(0, MAX_NO_DESTAQUE).map((id) => fb.getDoc(fb.doc(fb.db, "stories", id)).catch(() => null)));
+  return docs.filter((x) => x?.exists()).map((x) => ({ id: x.id, ...x.data({ serverTimestamps: "estimate" }) }))
+    .filter((x) => x.autorId === d.uid && (d.uid === eu.uid || podeVer(x))).sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm));
+}
+// Miniatura redonda da capa (132 px, ~5 KB): o perfil mostra os destaques sem baixar os flashes.
+function miniaturaFlash(midia) {
+  return new Promise((ok) => {
+    if (!midia || !/^(data:image|https:)/.test(midia)) { ok(""); return; }
+    const im = new Image(); im.crossOrigin = "anonymous";
+    im.onload = () => {
+      try {
+        const c = document.createElement("canvas"); c.width = c.height = 132; const g = c.getContext("2d");
+        const k = Math.max(132 / im.naturalWidth, 132 / im.naturalHeight), w = im.naturalWidth * k, h = im.naturalHeight * k;
+        g.drawImage(im, (132 - w) / 2, (132 - h) / 2, w, h); ok(c.toDataURL("image/jpeg", 0.72));
+      } catch { ok(""); }
+    };
+    im.onerror = () => ok(""); im.src = midia;
+  });
+}
+// Marca "destacado" nos flashes que entraram num destaque e tira dos que não estão em mais nenhum (os de fora das
+// 24 h só continuam visíveis para os outros com essa marca).
+async function marcarDestacados(antes, depois) {
+  const todos = await lerDestaques(eu.uid, true);
+  const emAlgum = new Set(todos.flatMap((d) => d.ids || []));
+  const mudar = [...depois.filter((id) => !antes.includes(id)).map((id) => [id, true]), ...antes.filter((id) => !emAlgum.has(id)).map((id) => [id, false])];
+  await Promise.all(mudar.map(([id, v]) => fb.updateDoc(fb.doc(fb.db, "stories", id), { destacado: v }).catch(() => {})));
+}
+async function gravarDestaque(d) {
+  const antes = d.id ? ((await lerDestaques(eu.uid)).find((x) => x.id === d.id)?.ids || []) : [];
+  const campos = { uid: eu.uid, nome: String(d.nome || "").trim().slice(0, 30) || "Destaque", ids: [...new Set(d.ids)].slice(0, MAX_NO_DESTAQUE), atualizadoEm: fb.serverTimestamp() };
+  if (d.capa) campos.capa = String(d.capa).slice(0, 64);
+  if (d.capaMini) campos.capaMini = d.capaMini; else if (d.id) campos.capaMini = fb.deleteField(); // capa de vídeo: sem miniatura
+  if (d.id) await fb.updateDoc(fb.doc(fb.db, "destaques", d.id), campos);
+  else d.id = (await fb.addDoc(fb.collection(fb.db, "destaques"), { ...campos, criadoEm: fb.serverTimestamp() })).id;
+  await marcarDestacados(antes, campos.ids);
+  avisarDestaques();
+  return d;
+}
+// Tira um flash do destaque; se ficar vazio, o destaque é apagado. Devolve false quando apagou.
+async function tirarDoDestaque(d, id) {
+  const ids = (d.ids || []).filter((x) => x !== id);
+  if (!ids.length) { await fb.deleteDoc(fb.doc(fb.db, "destaques", d.id)); await marcarDestacados(d.ids || [], []); avisarDestaques(); return false; }
+  const novo = { ...d, ids };
+  if (d.capa === id) { novo.capa = ids[ids.length - 1]; const f = await fb.getDoc(fb.doc(fb.db, "stories", novo.capa)).catch(() => null); novo.capaMini = f?.exists() ? await miniaturaFlash(f.data().tipo === "video" ? "" : f.data().midia) : ""; }
+  Object.assign(d, await gravarDestaque(novo)); d.ids = ids;
+  return true;
+}
+// Bolinha de um destaque (capa + nome).
+function bolinhaDestaque(rot, capaMini, ic) {
+  const b = el("button", "pf-dq"); b.type = "button";
+  const c = el("span", "pf-dq-capa");
+  if (capaMini && /^data:image\/jpeg;base64,/.test(capaMini)) { const im = document.createElement("img"); im.src = capaMini; im.alt = ""; c.appendChild(im); }
+  else c.appendChild(icone(ic || "destaque", "i s"));
+  b.append(c, el("span", "pf-dq-nome", rot));
+  return b;
+}
+// Fileira de destaques no perfil (embaixo dos números, como no Instagram). No seu: "Novo" e "Arquivo".
+export async function destaquesNoPerfil(corpo, uid) {
+  if (!corpo || !uid) return;
+  let fila = corpo.querySelector(".pf-destaques");
+  if (!fila) { fila = el("div", "pf-destaques"); fila.setAttribute("aria-label", "Destaques"); corpo.appendChild(fila); }
+  if (!fila._ouvindo) { fila._ouvindo = true; addEventListener("hf:destaques", () => { if (fila.isConnected) destaquesNoPerfil(corpo, uid); }); }
+  const meu = uid === eu.uid;
+  const ds = escondido(uid) ? [] : await lerDestaques(uid);
+  if (!fila.isConnected) return;
+  fila.replaceChildren();
+  fila.hidden = !meu && !ds.length;
+  if (meu) {
+    const novo = bolinhaDestaque("Novo", "", "mais"); novo.classList.add("novo"); novo.setAttribute("aria-label", "Novo destaque");
+    novo.addEventListener("click", () => novoDestaque());
+    fila.appendChild(novo);
+  }
+  ds.forEach((d) => {
+    const b = bolinhaDestaque(d.nome, d.capaMini);
+    b.setAttribute("aria-label", `Destaque ${d.nome}`);
+    b.addEventListener("click", () => abrirDestaque(d));
+    if (meu) {
+      // Segurar (ou botão direito) abre a edição, como no Instagram.
+      let t = null;
+      b.addEventListener("pointerdown", () => { t = setTimeout(() => { t = "foi"; navigator.vibrate?.(10); editarDestaque(d); }, 520); });
+      ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => b.addEventListener(ev, () => { if (t !== "foi") clearTimeout(t); }));
+      b.addEventListener("click", (e) => { if (t === "foi") { e.stopImmediatePropagation(); t = null; } }, true);
+      b.addEventListener("contextmenu", (e) => { e.preventDefault(); editarDestaque(d); });
+    }
+    fila.appendChild(b);
+  });
+  if (meu) {
+    const arq = bolinhaDestaque("Arquivo", "", "relogio"); arq.classList.add("arquivo"); arq.setAttribute("aria-label", "Arquivo dos seus flashes");
+    arq.addEventListener("click", () => abrirArquivo());
+    fila.appendChild(arq);
+  }
+}
+async function abrirDestaque(d) {
+  toast("Abrindo o destaque...");
+  const lista = await flashesDoDestaque(d);
+  if (!lista.length) { toast(d.uid === eu.uid ? "Esse destaque não tem mais flashes." : "Esse destaque não está disponível."); return; }
+  abrirVisor(d.uid, { lista, destaque: d });
+}
+// Adicionar um flash a um destaque (ou criar um novo com ele).
+function adicionarAoDestaque(s, aoFechar) {
+  const corpo = abrirLista("Destacar no perfil");
+  const f = $("folhaLista"); const volta = () => { f?.removeEventListener("fechada", volta); aoFechar?.(); }; f?.addEventListener("fechada", volta);
+  const fila = el("div", "dq-fila"); const form = el("div", "dq-form"); form.hidden = true;
+  corpo.append(fila, form, el("p", "dq-nota", "Os destaques ficam no seu perfil, embaixo dos números, mesmo depois das 24 horas. Toque de novo para tirar."));
+  fila.appendChild(el("div", "lista-vazia", "Carregando..."));
+  const mini = miniaturaFlash(s.tipo === "video" ? "" : s.midia);
+  const pintar = async () => {
+    const ds = await lerDestaques(eu.uid);
+    if (!corpo.isConnected) return;
+    fila.replaceChildren();
+    const novo = bolinhaDestaque("Novo", "", "mais"); novo.classList.add("novo");
+    novo.addEventListener("click", async () => {
+      if (ds.length >= MAX_DESTAQUES) { toast(`Você chegou ao máximo de ${MAX_DESTAQUES} destaques.`); return; }
+      form.hidden = false; form.replaceChildren();
+      const capa = el("span", "pf-dq-capa grande"); mini.then((m) => { if (m) { const im = document.createElement("img"); im.src = m; im.alt = ""; capa.replaceChildren(im); } });
+      const campo = el("input", "dq-campo"); campo.type = "text"; campo.maxLength = 30; campo.placeholder = "Nome do destaque"; campo.setAttribute("aria-label", "Nome do destaque");
+      const criar = el("button", "btn pri", "Criar"); criar.type = "button";
+      form.append(capa, campo, criar); campo.focus();
+      const ir = async () => {
+        const nome = campo.value.trim(); if (!nome) { campo.focus(); return; }
+        criar.disabled = true;
+        try { await gravarDestaque({ nome, ids: [s.id], capa: s.id, capaMini: await mini }); toast(`Destacado em "${nome}"`); f?.querySelector("[data-fechar]")?.click(); }
+        catch (e) { criar.disabled = false; toast("Não foi possível: " + erroDestaque(e)); }
+      };
+      criar.addEventListener("click", ir); campo.addEventListener("keydown", (e) => { if (e.key === "Enter") ir(); });
+    });
+    fila.appendChild(novo);
+    ds.forEach((d) => {
+      const tem = (d.ids || []).includes(s.id);
+      const b = bolinhaDestaque(d.nome, d.capaMini); b.classList.toggle("on", tem); b.setAttribute("aria-pressed", String(tem));
+      b.addEventListener("click", async () => {
+        b.disabled = true;
+        try {
+          if (tem) { await tirarDoDestaque(d, s.id); toast(`Tirado de "${d.nome}"`); }
+          else {
+            if ((d.ids || []).length >= MAX_NO_DESTAQUE) { toast(`Esse destaque já tem ${MAX_NO_DESTAQUE} flashes.`); b.disabled = false; return; }
+            await gravarDestaque({ ...d, ids: [...(d.ids || []), s.id] }); toast(`Destacado em "${d.nome}"`);
+          }
+          pintar();
+        } catch (e) { b.disabled = false; toast("Não foi possível: " + erroDestaque(e)); }
+      });
+      fila.appendChild(b);
+    });
+  };
+  pintar();
+}
+// Arquivo: os seus flashes (os de agora e os que já saíram do ar), 12 por vez. Com "selecionar", devolve os escolhidos.
+function abrirArquivo({ selecionar = false, marcados = [], titulo = "Arquivo do Flash", botao = "Próximo" } = {}) {
+  return new Promise((resolver) => {
+    const corpo = abrirLista(titulo);
+    const sel = new Map(); let concluiu = false;
+    const f = $("folhaLista"); const fim = () => { f?.removeEventListener("fechada", fim); if (!concluiu) resolver(null); }; f?.addEventListener("fechada", fim);
+    const grade = el("div", "dq-grade");
+    const mais = el("button", "btn sec dq-mais", "Ver mais"); mais.type = "button"; mais.hidden = true;
+    const ok = el("button", "btn pri dq-ok", botao); ok.type = "button"; ok.hidden = !selecionar; ok.disabled = true;
+    corpo.append(el("p", "dq-nota", selecionar ? "Escolha os flashes. Eles aparecem no destaque na ordem em que foram publicados." : "Só você vê o arquivo. Os flashes saem do Diário depois de 24 horas, mas ficam guardados aqui para você ver de novo ou pôr num destaque."), grade, mais, ok);
+    let ultimo = null; const todos = [];
+    const pintarOk = () => { ok.disabled = !sel.size; ok.textContent = sel.size ? `${botao} (${sel.size})` : botao; };
+    const tile = (x) => {
+      const b = el("button", "dq-tile"); b.type = "button";
+      if (x.tipo === "video") b.appendChild(icone("play", "i"));
+      else { const im = document.createElement("img"); im.src = x.midia; im.alt = ""; im.loading = "lazy"; im.decoding = "async"; b.appendChild(im); }
+      b.appendChild(el("span", "dq-data", dataCurta(ms(x.criadoEm))));
+      if (ativo(x)) b.appendChild(el("span", "dq-ar", "No ar"));
+      if (selecionar) {
+        const marca = el("span", "dq-marca"); b.appendChild(marca);
+        const pintarM = () => { const k = [...sel.keys()].indexOf(x.id); b.classList.toggle("on", k >= 0); marca.textContent = k >= 0 ? String(k + 1) : ""; };
+        b.addEventListener("click", () => { if (sel.has(x.id)) sel.delete(x.id); else if (sel.size >= MAX_NO_DESTAQUE) toast(`No máximo ${MAX_NO_DESTAQUE} flashes por destaque.`); else sel.set(x.id, x); grade.querySelectorAll(".dq-tile").forEach((t) => t._pintar?.()); pintarOk(); });
+        b._pintar = pintarM; pintarM();
+      } else b.addEventListener("click", () => {
+        // O visor fica por baixo das folhas: fecha o arquivo e volta para ele quando o flash fechar.
+        const l = todos.slice().sort((a, c) => ms(a.criadoEm) - ms(c.criadoEm));
+        f?.querySelector("[data-fechar]")?.click();
+        setTimeout(() => abrirVisor(eu.uid, { lista: l, comecarEm: x.id, aoFechar: () => setTimeout(() => abrirArquivo(), 200) }), 260);
+      });
+      return b;
+    };
+    const pagina = async () => {
+      mais.disabled = true;
+      let docs = [], acabou = false;
+      try {
+        const x = await fb.getDocs(fb.query(fb.collection(fb.db, "stories"), fb.where("autorId", "==", eu.uid), fb.orderBy("criadoEm", "desc"), ...(ultimo ? [fb.startAfter(ultimo)] : []), fb.limit(12)));
+        docs = x.docs; ultimo = x.docs[x.docs.length - 1] || ultimo; acabou = x.docs.length < 12;
+      } catch {
+        // Sem o índice (stories: autorId + criadoEm), lê os 60 mais recentes de uma vez.
+        if (!ultimo) { const x = await fb.getDocs(fb.query(fb.collection(fb.db, "stories"), fb.where("autorId", "==", eu.uid), fb.limit(60))).catch(() => ({ docs: [] })); docs = x.docs.slice().sort((a, b) => ms(b.data().criadoEm) - ms(a.data().criadoEm)); }
+        acabou = true;
+      }
+      const novos = docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter((x) => !todos.some((y) => y.id === x.id));
+      todos.push(...novos);
+      novos.forEach((x) => { if (marcados.includes(x.id)) sel.set(x.id, x); });
+      if (!todos.length) grade.replaceChildren(el("div", "lista-vazia", "Você ainda não publicou flashes."));
+      else { grade.querySelector(".lista-vazia")?.remove(); novos.forEach((x) => grade.appendChild(tile(x))); grade.querySelectorAll(".dq-tile").forEach((t) => t._pintar?.()); }
+      mais.hidden = acabou; mais.disabled = false; pintarOk();
+    };
+    grade.appendChild(el("div", "lista-vazia", "Carregando..."));
+    mais.addEventListener("click", pagina);
+    ok.addEventListener("click", () => { concluiu = true; resolver([...sel.values()]); f?.querySelector("[data-fechar]")?.click(); });
+    pagina();
+  });
+}
+// Novo destaque: escolhe os flashes no arquivo, depois o nome (a capa é o último escolhido; dá para trocar na edição).
+async function novoDestaque() {
+  const ds = await lerDestaques(eu.uid);
+  if (ds.length >= MAX_DESTAQUES) { toast(`Você chegou ao máximo de ${MAX_DESTAQUES} destaques.`); return; }
+  const escolhidos = await abrirArquivo({ selecionar: true, titulo: "Novo destaque" });
+  if (!escolhidos?.length) return;
+  await new Promise((r) => setTimeout(r, 280));
+  const capaF = escolhidos[escolhidos.length - 1];
+  const corpo = abrirLista("Novo destaque");
+  const capa = el("span", "pf-dq-capa grande"); const mini = miniaturaFlash(capaF.tipo === "video" ? "" : capaF.midia);
+  mini.then((m) => { if (m) { const im = document.createElement("img"); im.src = m; im.alt = ""; capa.replaceChildren(im); } });
+  const campo = el("input", "dq-campo"); campo.type = "text"; campo.maxLength = 30; campo.placeholder = "Nome do destaque"; campo.setAttribute("aria-label", "Nome do destaque");
+  const salvar = el("button", "btn pri dq-ok", "Salvar destaque"); salvar.type = "button";
+  const form = el("div", "dq-form dq-form-col"); form.append(capa, campo);
+  corpo.append(form, el("p", "dq-nota", `${escolhidos.length} ${escolhidos.length === 1 ? "flash" : "flashes"} · fica no seu perfil para sempre`), salvar);
+  setTimeout(() => campo.focus(), 60);
+  const ir = async () => {
+    const nome = campo.value.trim(); if (!nome) { campo.focus(); toast("Dê um nome ao destaque."); return; }
+    salvar.disabled = true;
+    try {
+      const ids = escolhidos.slice().sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm)).map((x) => x.id);
+      await gravarDestaque({ nome, ids, capa: capaF.id, capaMini: await mini });
+      toast(`Destaque "${nome}" criado`); $("folhaLista")?.querySelector("[data-fechar]")?.click();
+    } catch (e) { salvar.disabled = false; toast("Não foi possível: " + erroDestaque(e)); }
+  };
+  salvar.addEventListener("click", ir); campo.addEventListener("keydown", (e) => { if (e.key === "Enter") ir(); });
+}
+// Editar: nome, capa (um dos flashes), tirar flashes, pôr mais do arquivo e apagar o destaque.
+async function editarDestaque(d) {
+  const corpo = abrirLista("Editar destaque");
+  corpo.appendChild(el("div", "lista-vazia", "Carregando..."));
+  let lista = await flashesDoDestaque(d);
+  if (!corpo.isConnected) return;
+  let capa = d.capa, capaMini = d.capaMini || "";
+  const capaEl = el("span", "pf-dq-capa grande");
+  const pintarCapa = () => { capaEl.replaceChildren(); if (capaMini) { const im = document.createElement("img"); im.src = capaMini; im.alt = ""; capaEl.appendChild(im); } else capaEl.appendChild(icone("destaque", "i s")); };
+  const campo = el("input", "dq-campo"); campo.type = "text"; campo.maxLength = 30; campo.value = d.nome || ""; campo.setAttribute("aria-label", "Nome do destaque");
+  const form = el("div", "dq-form dq-form-col"); form.append(capaEl, campo);
+  const grade = el("div", "dq-grade");
+  const pintarGrade = () => {
+    grade.replaceChildren(...lista.map((x) => {
+      const b = el("div", "dq-tile" + (x.id === capa ? " capa" : ""));
+      if (x.tipo === "video") b.appendChild(icone("play", "i")); else { const im = document.createElement("img"); im.src = x.midia; im.alt = ""; im.loading = "lazy"; b.appendChild(im); }
+      const bCapa = el("button", "dq-bt-capa", x.id === capa ? "Capa" : "Usar como capa"); bCapa.type = "button";
+      bCapa.addEventListener("click", async () => { capa = x.id; capaMini = await miniaturaFlash(x.tipo === "video" ? "" : x.midia); pintarCapa(); pintarGrade(); });
+      const bTirar = el("button", "dq-bt-tirar"); bTirar.type = "button"; bTirar.setAttribute("aria-label", "Tirar do destaque"); bTirar.appendChild(icone("fechar", "i xs"));
+      bTirar.addEventListener("click", () => { if (lista.length === 1) { toast("Um destaque precisa de pelo menos 1 flash. Para tirar tudo, apague o destaque."); return; } lista = lista.filter((y) => y.id !== x.id); if (capa === x.id) { const c = lista[lista.length - 1]; capa = c.id; miniaturaFlash(c.tipo === "video" ? "" : c.midia).then((m) => { capaMini = m; pintarCapa(); }); } pintarGrade(); });
+      b.append(bTirar, bCapa);
+      return b;
+    }));
+  };
+  const add = el("button", "btn sec", "Pôr mais flashes"); add.type = "button";
+  const salvar = el("button", "btn pri dq-ok", "Salvar"); salvar.type = "button";
+  const apagar = el("button", "btn perigo dq-apagar", "Apagar destaque"); apagar.type = "button";
+  corpo.replaceChildren(form, el("p", "dq-sec", "Flashes"), grade, add, salvar, apagar);
+  pintarCapa(); pintarGrade();
+  add.addEventListener("click", async () => {
+    const dados0 = { nome: campo.value, lista, capa, capaMini };
+    const esc = await abrirArquivo({ selecionar: true, marcados: lista.map((x) => x.id), titulo: "Pôr mais flashes", botao: "Pronto" });
+    await new Promise((r) => setTimeout(r, 280));
+    if (esc) { lista = esc.slice().sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm)); if (!lista.some((x) => x.id === capa) && lista.length) { capa = lista[lista.length - 1].id; capaMini = await miniaturaFlash(lista[lista.length - 1].midia); } }
+    editarDestaque({ ...d, nome: dados0.nome, ids: lista.map((x) => x.id), capa: capa || dados0.capa, capaMini: capaMini || dados0.capaMini });
+  });
+  salvar.addEventListener("click", async () => {
+    salvar.disabled = true;
+    try { await gravarDestaque({ ...d, nome: campo.value, ids: lista.map((x) => x.id), capa, capaMini }); toast("Destaque salvo"); $("folhaLista")?.querySelector("[data-fechar]")?.click(); }
+    catch (e) { salvar.disabled = false; toast("Não foi possível: " + erroDestaque(e)); }
+  });
+  apagar.addEventListener("click", async () => {
+    if (!await confirmarHF({ titulo: `Apagar "${d.nome}"?`, texto: "O destaque sai do seu perfil. Os flashes continuam no seu arquivo.", ok: "Apagar", icone: "lixo" })) return;
+    try { await fb.deleteDoc(fb.doc(fb.db, "destaques", d.id)); await marcarDestacados(d.ids || [], []); avisarDestaques(); toast("Destaque apagado"); $("folhaLista")?.querySelector("[data-fechar]")?.click(); }
+    catch (e) { toast("Não foi possível: " + erroDestaque(e)); }
+  });
+}
+
+// Salvar a foto do flash no aparelho.
+function salvarFotoFlash(s) {
+  try {
+    const a = document.createElement("a"); a.href = s.midia; a.download = `flash-${new Date(ms(s.criadoEm) || Date.now()).toISOString().slice(0, 16).replace(/[:T]/g, "-")}.jpg`;
+    a.target = "_blank"; a.rel = "noopener"; document.body.appendChild(a); a.click(); a.remove();
+    toast("Foto do flash salva");
+  } catch { toast("Não foi possível salvar a foto."); }
+}
+// Link do flash (feed.html?flash=ID): compartilha pelo celular ou copia.
+async function compartilharLinkFlash(s) {
+  const url = new URL(`feed.html?flash=${encodeURIComponent(s.id)}`, location.href).href;
+  const nome = String(s.nome || "").split(" ")[0];
+  try {
+    if (navigator.share) { await navigator.share({ title: "Flash no Help Floripa", text: nome ? `Flash de ${nome} no Help Floripa` : "Flash no Help Floripa", url }); return; }
+  } catch (e) { if (e?.name === "AbortError") return; }
+  try { await navigator.clipboard.writeText(url); toast("Link do flash copiado"); } catch { toast(url); }
 }
 // "some em 5 h": quanto falta para o flash sair do ar (24 h depois de publicado).
 function restaTexto(s) {

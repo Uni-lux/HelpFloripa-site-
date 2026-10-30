@@ -1,3 +1,29 @@
+    // =====================================================
+    // COMENTÁRIOS: comentarios/{id}
+    // - Resposta: respostaA = id do comentário respondido (mesma publicação)
+    //   e respostaAutorId = autor dele (para o aviso).
+    // - Quem comentou edita o texto. O dono da publicação oculta um comentário.
+    // - Quem comentou ou o dono da publicação apaga.
+    // - Publicação com comentários ocultos não recebe comentários novos.
+    // =====================================================
+    match /comentarios/{id} {
+
+      allow read: if logado();
+
+      function textoComentarioOk(d) {
+        return d.texto is string && d.texto.size() >= 1 && d.texto.size() <= 500;
+      }
+
+      // Quem pode comentar (escolha do autor): o autor sempre pode.
+      function segue(a, b) { return exists(/databases/$(database)/documents/relacoes/$(a + '_' + b)); }
+      function podeComentar(p) {
+        let q = p.get('quemComenta', 'todos');
+        return p.autorId == request.auth.uid
+            || q == 'todos'
+            || (q == 'seguidores' && segue(request.auth.uid, p.autorId))
+            || (q == 'mutuos' && segue(request.auth.uid, p.autorId) && segue(p.autorId, request.auth.uid));
+      }
+
       function respostaOk(d) {
         return (!('respostaA' in d) && !('respostaAutorId' in d))
             || (d.respostaA is string
@@ -153,30 +179,5 @@
             || (t in ['enquete', 'caixa'] && (t == 'enquete') == ('enquete' in d) && (t == 'caixa') == ('caixa' in d)
                 && !video && !('midias' in d) && !('estilo' in d));
       }
-
-      allow create: if logado()
-                    && emailOk()
-                    && request.resource.data.autorId == request.auth.uid
-                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'fotoPerfil', 'texto', 'mediaUrl', 'mediaTipo', 'midias', 'tags', 'marcados', 'agendadoPara', 'enquete', 'caixa', 'local',
-                                                              'autorUf', 'autorIbge', 'publico', 'tipo', 'estilo', 'quemComenta', 'ocultarNotas', 'criadoEm'])
-                    && tipoOk(request.resource.data)
-                    && (!('quemComenta' in request.resource.data) || request.resource.data.quemComenta in ['todos', 'seguidores', 'mutuos', 'ninguem'])
-                    && (!('ocultarNotas' in request.resource.data) || request.resource.data.ocultarNotas is bool)
-                    // Região de quem publica (Diário e Explorar priorizam a cidade e o estado de quem lê): UF e código IBGE.
-                    && (!('autorUf' in request.resource.data) || (request.resource.data.autorUf is string && request.resource.data.autorUf.matches('^[A-Z]{2}$')))
-                    && (!('autorIbge' in request.resource.data) || (request.resource.data.autorIbge is int && request.resource.data.autorIbge > 1000000 && request.resource.data.autorIbge < 6000000))
-                    && localPubOk(request.resource.data) && publicoOk(request.resource.data)
-                    && (!('caixa' in request.resource.data) || caixaOk(request.resource.data.caixa))
-                    // enquete: até 7 dias a partir de quando aparece (agora ou a data agendada), com 10 min de folga
-                    && (!('enquete' in request.resource.data) || enqueteOk(request.resource.data.enquete,
-                          'agendadoPara' in request.resource.data ? request.resource.data.agendadoPara : request.time, 10090))
-                    && ritmoOk('pub')
-                    && publicacaoOk()
-                    && tagsOk(request.resource.data) && marcadosOk(request.resource.data)
-                    // agendada: aparece para os outros a partir de agendadoPara (até 60 dias)
-                    && (!('agendadoPara' in request.resource.data)
-                        || (request.resource.data.agendadoPara is timestamp
-                            && request.resource.data.agendadoPara > request.time
-                            && request.resource.data.agendadoPara < request.time + duration.value(60, 'd')));
 
 // ===== FIM DA PARTE 15 DE 16 =====

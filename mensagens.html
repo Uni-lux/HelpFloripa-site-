@@ -524,7 +524,8 @@
     .flash-msg .fc-raio svg { width: 13px; height: 13px; fill: #fff; }
     .flash-msg .fc-mini { position: relative; display: block; margin: 0 10px; aspect-ratio: 9 / 14; border-radius: 16px; overflow: hidden; background: linear-gradient(160deg, #1c2a33, #0b1014); color: rgba(255,255,255,.75); text-decoration: none; isolation: isolate; }
     .flash-msg .fc-mini::after { content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 2.5px; background: linear-gradient(135deg, #ffd60a, #ff8a00 45%, #ff3d77); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; z-index: 3; }
-    .flash-msg .fc-mini img, .flash-msg .fc-mini video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+    /* só a foto do flash (a foto do perfil, dentro do topo, ficava esticada por cima) */
+    .flash-msg .fc-mini > img, .flash-msg .fc-mini > video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
     .flash-msg .fc-mini.carregando { animation: fc-pisca 1.2s ease-in-out infinite; }
     @keyframes fc-pisca { 50% { opacity: .55; } }
     .flash-msg .fc-topo { position: absolute; z-index: 2; left: 0; right: 0; top: 0; display: flex; align-items: center; gap: 7px; padding: 10px 10px 26px; background: linear-gradient(rgba(0,0,0,.6), transparent); color: #fff; }
@@ -541,7 +542,7 @@
     .flash-msg .fc-mini.sumiu small { font-weight: 600; opacity: .7; font-size: 11.5px; }
     .flash-msg .fc-lado { display: grid; gap: 8px; padding: 10px 12px 4px; }
     .flash-msg .fc-lado:empty { display: none; }
-    .flash-msg .fc-emoji { justify-self: center; font-size: 46px; line-height: 1; margin: -32px 0 0; position: relative; z-index: 4; filter: drop-shadow(0 4px 8px rgba(0,0,0,.35)); }
+    .flash-msg .fc-emoji { justify-self: end; font-size: 40px; line-height: 1; margin: -34px 6px 0 0; position: relative; z-index: 4; filter: drop-shadow(0 4px 8px rgba(0,0,0,.35)); }
     .flash-msg .fc-texto { margin: 0; padding: 9px 12px; border-radius: 16px; background: var(--panel-2, rgba(127,127,127,.12)); font-size: 14.5px; line-height: 1.4; overflow-wrap: anywhere; }
     .flash-msg .fc-btn { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 10px 12px; border-radius: 14px; background: linear-gradient(135deg, #ff8a00, #ff3d77); color: #fff; font-size: 13.5px; font-weight: 800; text-decoration: none; box-shadow: 0 6px 16px rgba(255, 61, 119, .3); }
     .flash-msg .fc-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
@@ -2291,14 +2292,16 @@
         if (!s.exists()) return null;
         const d = s.data({ serverTimestamps: "estimate" });
         return Date.now() - (ms(d.criadoEm) || Date.now()) < 864e5 ? { id, ...d } : null;
-      }).catch(() => undefined));
+      }).catch((e) => (e?.code === "permission-denied" ? null : undefined))); // depois das 24 h o flash vai para o arquivo (só o autor lê)
       return flashesLidos.get(id);
     }
     function rotuloFlash(c, meu) {
       const quem = String(c.nome || "alguém").split(" ")[0];
       switch (c.acao) {
         case "resposta": return meu ? `Você respondeu ao flash de ${quem}` : "Respondeu ao seu flash";
-        case "reacao": return meu ? `Você reagiu ao flash de ${quem}` : "Reagiu ao seu flash";
+        case "reacao":
+          if (c.emoji === "⭐") return meu ? `Você deu uma estrela no flash de ${quem}` : "Deu uma estrela no seu flash";
+          return meu ? `Você reagiu ao flash de ${quem}` : "Reagiu ao seu flash";
         case "mencao": return meu ? "Você mencionou no seu flash" : "Mencionou você no flash";
         case "repost": return meu ? "Você repostou o flash" : "Repostou o seu flash";
         default: return meu ? `Você enviou o flash de ${quem}` : `Enviou o flash de ${quem}`;
@@ -3700,7 +3703,7 @@
     let vitrineMod = null;
     function carregarVitrine() {
       if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=41"; l.dataset.vitrine = ""; document.head.appendChild(l); }
-      return (vitrineMod ||= import("./vitrine.js?v=79"));
+      return (vitrineMod ||= import("./vitrine.js?v=80"));
     }
     function usarCartaoNaConversa(uid, cartao) {
       document.querySelectorAll(".vt-modal").forEach((m) => m.remove());

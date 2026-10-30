@@ -45,6 +45,7 @@ const ICONES = {
   coracao: '<path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0112 7.3a4.3 4.3 0 017.5 2.5C19.5 15.4 12 20 12 20z"/>',
   mascara: '<path d="M3.5 8.5c3-1.5 14-1.5 17 0 0 5-2.5 8-5 8-1.6 0-2.4-1.6-3.5-1.6s-1.9 1.6-3.5 1.6c-2.5 0-5-3-5-8z"/><circle cx="8.5" cy="11" r="1.3" fill="currentColor"/><circle cx="15.5" cy="11" r="1.3" fill="currentColor"/>',
   olhoOff: '<path d="M3 3l18 18M10.6 6.2A9.6 9.6 0 0112 6c5.5 0 9 6 9 6a15.4 15.4 0 01-2.7 3.4M6.5 7.6A15.4 15.4 0 003 12s3.5 6 9 6a8.6 8.6 0 004.3-1.2"/><path d="M9.9 9.9a3 3 0 004.2 4.2"/>',
+  raio: '<path d="M13 2.5L4.5 13.5H11l-1 8 8.5-11H12z"/>',
   lixo: '<path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13"/>',
   lida: '<circle cx="12" cy="12" r="8.5"/><path d="M8 12.5l2.7 2.7L16 10"/>'
 };
@@ -69,6 +70,7 @@ export const TIPOS = {
   reacao: { cor: "#e0457b", ic: "coracao", cat: "publicacoes", rot: "Reação" },
   marcacao: { cor: "#00adee", ic: "pessoa", cat: "publicacoes", rot: "Marcação" },
   republicacao: { cor: "#1fbf75", ic: "republicar", cat: "publicacoes", rot: "Republicação" },
+  flash: { cor: "#ff8a00", ic: "raio", cat: "publicacoes", rot: "Flash" },
   enquete: { cor: "#7c5cff", ic: "enquete", cat: "enquetes", rot: "Enquete" },
   caixa: { cor: "#ff7a1a", ic: "caixa", cat: "enquetes", rot: "Perguntas" },
   avaliacao: { cor: "#f5b700", ic: "estrela", cat: "negocios", rot: "Avaliação" },
@@ -326,6 +328,7 @@ export function criarLista({ raiz, uid, ganchos = {} }) {
         break;
       case "comentario": case "resposta": bt("Responder", true, abrir); break;
       case "curtida": case "marcacao": case "reacao": case "republicacao": bt("Ver publicação", false, abrir); break;
+      case "flash": bt("Ver flash", false, abrir); break;
       case "enquete": bt("Ver resultado", true, abrir); break;
       case "caixa": bt("Ver respostas", true, abrir); break;
       case "avaliacao": bt(i.cliente ? "Ver perfil" : "Ver avaliação", false, abrir); break;
