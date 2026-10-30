@@ -1172,6 +1172,21 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   da publicação no Flash**: até 3 fotinhas + "+N" e "com Ana e mais 2 pessoas" (`imagemDaPublicacao`, `MARC_H`).
   O "com Douglas e Edilson" sem fotinhas do print era a versão antiga em cache (não era por causa das regras).
   Teste `t-correcoes-social.mjs`; `t-diario-compacto` (balão e voltar ao flash).
+- **Flash: teclado, Aa, visor e Visualizações (30/10/2026, PR depois do #123, sem regra nova):** prints dele comparando com o
+  Instagram ("não faça igual, seja original"). (1) **Teclado espremia o criador** (`resizes-content` + `.flash-caixa 100dvh`):
+  `medirCartao` em stories.js prende a altura do `.flash-palco` em px no celular (`pointer: coarse`) enquanto um campo do
+  criador está focado; `--tecl` (quanto o teclado cobre) e `.flash-criar.teclado` fazem `.flash-figs`/`.flash-edtxt` terminarem
+  acima do teclado, o modo Texto centralizar na parte à vista e a legenda subir; `.flash-criar { overflow: clip }`.
+  (2) **Aa refeito:** alinhamento (`t.alinha` center/left/right, `ALINHAS`, `iconeAlinha`; vale no DOM e no canvas), fundo atrás
+  do texto, régua em cunha na lateral (`.fe-regua`), letras em pílulas com o nome (`.fe-letra`; LETRAS + "Forte" e
+  "Manuscrita"), cores numa fileira; tocar fora conclui. (3) **Visor:** `.story-post-area` só no miolo (22% de cada lado
+  ficam para voltar/passar) e o balão só com toque rápido e parado (≤10 px, ≤350 ms); deslizar acompanha o dedo
+  (`translateX` + `rotateY`, `perspective` no `.story-visor`), toque rápido para o lado também troca, gesto curto volta.
+  (4) **Visualizações** (`verQuemViu(s, aoFechar, flashes)`): fita dos seus flashes no ar com a contagem (`getCountFromServer`
+  em `vistos`), "Publicado há X · some em N h" (`restaTexto`), estrela e emoji como selos na foto, ⋯ de cada pessoa abre
+  `.vv-acoes` (Mensagem, Ver perfil, Ocultar/Mostrar flashes → `flashConfig.ocultarDe`). Ícones novos `i-olho-off`, `i-pessoa`.
+  (5) Configurações do Flash: `.cfg2-ic` sem cor (pedido dele). Teste `t-flash-teclado.mjs` (teclado simulado encolhendo a
+  tela com o campo focado; toques/arrastos pelo CDP).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
