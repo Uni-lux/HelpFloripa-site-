@@ -15,7 +15,8 @@ import { buscarItensEquipe, TEXTO_EQUIPE, linkEquipe } from "./avisos-equipe.js?
 import { enquetesEncerradas, textoEnqueteFim } from "./enquetes.js?v=6";
 import { avisoPlano, textoPlano } from "./planos-base.js?v=15";
 import { docsComValidade, docsPorIds, esquecer } from "./leituras.js?v=3";
-import { criarLista, svg, toastNt, categoriaLigada, categoriaDe } from "./avisos-lista.js?v=16";
+import { lerReacoesFlash, textoFlash } from "./flash-avisos.js?v=1";
+import { criarLista, svg, toastNt, categoriaLigada, categoriaDe } from "./avisos-lista.js?v=17";
 
 const ms = (ts) => ts?.toMillis?.() ?? (typeof ts === "number" ? ts : 0);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
@@ -36,6 +37,7 @@ function texto(i) {
     case "reacao": return `reagiu com ${i.reacao || "❤️"} ao seu comentário`;
     case "marcacao": return "marcou você numa publicação";
     case "republicacao": return "republicou sua publicação";
+    case "flash": return textoFlash(i);
     case "caixa": return "respondeu sua caixa de perguntas";
     case "enquete": return i.souAutor ? "terminou. Veja o resultado." : textoEnqueteFim(i).titulo;
     case "aviso": case "suporte": return TEXTO_EQUIPE(i);
@@ -108,6 +110,7 @@ async function carregar() {
   equipe.forEach((x) => itens.push({ ...x }));
   const plano = await avisoPlano({ ...fs, db }, uid).catch(() => null);
   if (plano) itens.push(plano);
+  (await lerReacoesFlash(fs, db, uid).catch(() => [])).forEach((x) => itens.push({ ...x }));
   // Miniatura da publicação (estrelas, comentários, respostas, marcações): até 20 publicações.
   const posts = [...new Set(itens.filter((i) => i.postId).sort((a, b) => b.quando - a.quando).map((i) => i.postId))].slice(0, 20);
   const minis = new Map();
@@ -172,6 +175,7 @@ function destino(i) {
   if (i.oficial) return linkEquipe(i);
   if (i.tipo.startsWith("reclamacao") || i.tipo === "avaliacao") return linkReclamacao(i, eu.uid);
   if (i.tipo === "plano") return "negocios.html?planos=1";
+  if (i.tipo === "flash") return `feed.html?flash=${encodeURIComponent(i.flashId)}`;
   if (i.grupo && i.tipo === "seguidor") return "notificacoes.html";
   if (i.tipo === "seguidor" || i.tipo === "social") return `usuarios.html?perfil=${encodeURIComponent(i.uid)}`;
   // Estrelas, comentários, respostas e marcações: abre a própria publicação.

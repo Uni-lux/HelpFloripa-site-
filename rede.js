@@ -16,12 +16,13 @@ import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
 import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=17";
 import { ouvirItensEquipe, TEXTO_EQUIPE, linkEquipe } from "./avisos-equipe.js?v=1";
-import "./painel-avisos.js?v=41";
+import "./painel-avisos.js?v=42";
 import { docComValidade, docsComValidade, esquecer } from "./leituras.js?v=3";
 import { resumoPublico, temPublico } from "./publico-alvo.js?v=1";
 import { contarNovas } from "./mensagens-novas.js?v=1";
 import { escolherPublico } from "./publico-tela.js?v=2";
 import { avisoPlano } from "./planos-base.js?v=15";
+import { lerReacoesFlash } from "./flash-avisos.js?v=1";
 import { palavrasBusca } from "./pessoas.js?v=5"; // o sino abre o painel de notificações na própria página
 import { registrarGosto, PESO } from "./gosto.js?v=2";
 import { confirmarHF } from "./confirmar.js?v=5";
@@ -86,6 +87,8 @@ const SIMBOLOS = `<symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l
 <symbol id="i-cadeado" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8.5 10.5V7.5a3.5 3.5 0 017 0v3"/></symbol>
 <symbol id="i-lua" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></symbol>
 <symbol id="i-olho" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-destaque" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><path d="M12 7.4l1.25 3.35 3.35 1.25-3.35 1.25L12 16.6l-1.25-3.35L7.4 12l3.35-1.25z" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-pincel" viewBox="0 0 24 24"><path d="M14.5 4.5l5 5L10 19c-1.2 1.2-3.6 1.6-6 1 .6-2.4-.2-4.8 1-6z"/><path d="M13 6l5 5"/></symbol>
 <symbol id="i-calendario" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></symbol>
 <symbol id="i-olho-off" viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 6.1A9.7 9.7 0 0112 5.5c6 0 9.5 6.5 9.5 6.5a17 17 0 01-3.2 3.8M6.4 7.6C4 9.3 2.5 12 2.5 12S6 18.5 12 18.5c1.5 0 2.9-.4 4.1-1M9.9 9.9a3 3 0 004.2 4.2"/></symbol>
 <symbol id="i-pessoa" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8"/><path d="M5 20c1-3.4 3.8-5.3 7-5.3s6 1.9 7 5.3"/></symbol>
@@ -1427,7 +1430,7 @@ export async function verRespostasCaixa(item, alvo, aoMudar) {
       // Pôr a resposta no seu flash (como no Instagram): pergunta + resposta, sem o nome de quem respondeu.
       const noFlash = el("button", "btn mini sec"); noFlash.type = "button"; noFlash.append(icone("raio", "i xs"), document.createTextNode("No flash"));
       noFlash.title = "Compartilhar esta resposta no seu flash";
-      noFlash.addEventListener("click", () => import("./stories.js?v=61").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto })));
+      noFlash.addEventListener("click", () => import("./stories.js?v=62").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto })));
       acoes.appendChild(noFlash);
       const apagar = el("button", "btn mini sec"); apagar.type = "button"; apagar.append(icone("lixo", "i xs"), document.createTextNode("Apagar"));
       apagar.addEventListener("click", async () => {
@@ -1974,7 +1977,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=61").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=62").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);
@@ -2823,7 +2826,7 @@ export function pintarBarraRede() {
 // Avisos (notificações): seguidores, pedidos do social, curtidas,
 // comentários e mensagens. Alimenta o contador e a página de avisos.
 // =====================================================
-export const avisos = { seguidores: [], vinculos: [], curtidas: [], comentarios: [], respostas: [], reacoes: [], marcacoes: [], republicacoes: [], enquetes: [], caixas: [], mensagens: [], reclamacoes: [], equipe: [], planos: [] };
+export const avisos = { seguidores: [], vinculos: [], curtidas: [], comentarios: [], respostas: [], reacoes: [], marcacoes: [], republicacoes: [], flash: [], enquetes: [], caixas: [], mensagens: [], reclamacoes: [], equipe: [], planos: [] };
 export let avisosVistosEm = 0;
 const ouvintesAvisos = new Set();
 export function aoMudarAvisos(fn) { ouvintesAvisos.add(fn); fn(avisos); }
@@ -2843,7 +2846,7 @@ export function contarNovos() {
   const on = (c) => (dados.prefNotif || {})[c] !== false;
   const n = (c, l) => (on(c) ? l : 0);
   return n("seguidores", avisos.seguidores.filter(t).length) + n("social", avisos.vinculos.filter((v) => v.pendente || t(v)).length)
-    + n("publicacoes", avisos.curtidas.filter(t).length + avisos.comentarios.filter(t).length + avisos.respostas.filter(t).length + avisos.reacoes.filter(t).length + avisos.marcacoes.filter(t).length + avisos.republicacoes.filter(t).length)
+    + n("publicacoes", avisos.curtidas.filter(t).length + avisos.comentarios.filter(t).length + avisos.respostas.filter(t).length + avisos.reacoes.filter(t).length + avisos.marcacoes.filter(t).length + avisos.republicacoes.filter(t).length + avisos.flash.filter(t).length)
     + n("enquetes", avisos.enquetes.filter(t).length + avisos.caixas.filter(t).length)
     + n("negocios", avisos.reclamacoes.filter(t).length + avisos.planos.filter(t).length)
     + avisos.equipe.filter((x) => x.naoLida && t(x)).length;
@@ -2948,6 +2951,8 @@ export function ouvirAvisos({ notificarNovos = true } = {}) {
   });
   // Plano do negócio perto de vencer ou vencido há pouco (uma leitura, guardada 10 min).
   avisoPlano(fb, eu.uid).then((x) => { avisos.planos = x ? [x] : []; avisar(); }).catch(() => {});
+  // Estrelas e reações nos meus flashes (das últimas 48 h)
+  lerReacoesFlash(fb, fb.db, eu.uid).then(async (l) => { avisos.flash = (await Promise.all(l.map(async (x) => ({ ...x, ...(await perfilDe(x.uid)) })))).filter((x) => ok(x.uid)); avisar(); }).catch(() => {});
   // Avisos da equipe e respostas do suporte (Suporte Help Floripa)
   let primeiraEquipe = true;
   const equipeAvisadas = new Set();

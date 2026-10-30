@@ -1118,6 +1118,44 @@ await semRegras((db) => setDoc(doc(db, "equipe_dm", "lg5_lg6"), { participantes:
 await t("ligação: conversa individual da equipe também liga", () => assertSucceeds(setDoc(doc(ctx("lg5"), "chamadas", "c8"), chamadaNova({ de: "lg5", para: "lg6", conv: "lg5_lg6", tipo: "audio" }))));
 await t("ligação: ninguém apaga", () => assertFails(deleteDoc(doc(ctx("lg1"), "chamadas", "c1"))));
 
+// Arquivo do Flash: depois de 24 h só o autor lê (como no Instagram); o que está num destaque continua visível.
+const velho = Timestamp.fromMillis(Date.now() - 30 * 3600e3);
+await semRegras(async (db) => {
+  await setDoc(doc(db, "stories", "arq1"), { autorId: "ana", nome: "Ana", tipo: "imagem", midia: fotoS, criadoEm: velho });
+  await setDoc(doc(db, "stories", "arq2"), { autorId: "ana", nome: "Ana", tipo: "imagem", midia: fotoS, criadoEm: velho, destacado: true });
+  await setDoc(doc(db, "stories", "noar1"), { autorId: "ana", nome: "Ana", tipo: "imagem", midia: fotoS, criadoEm: Timestamp.fromMillis(Date.now() - 3600e3) });
+});
+await t("arquivo: flash de mais de 24 h só o autor lê", async () => { await assertSucceeds(getDoc(doc(ctx("ana"), "stories", "arq1"))); await assertFails(getDoc(doc(ctx("bia"), "stories", "arq1"))); });
+await t("arquivo: flash no ar todos leem", () => assertSucceeds(getDoc(doc(ctx("bia"), "stories", "noar1"))));
+await t("arquivo: flash num destaque todos leem", () => assertSucceeds(getDoc(doc(ctx("bia"), "stories", "arq2"))));
+await t("arquivo: lista dos flashes no ar de alguém (com o prazo) é aceita", () => assertSucceeds(getDocs(query(collection(ctx("bia"), "stories"), where("autorId", "==", "ana"), where("criadoEm", ">=", Timestamp.fromMillis(Date.now() - 24 * 3600e3)), orderBy("criadoEm", "desc"), limit(30)))));
+await t("arquivo: lista de TODOS os flashes de outra pessoa é recusada", () => assertFails(getDocs(query(collection(ctx("bia"), "stories"), where("autorId", "==", "ana"), limit(30)))));
+await t("arquivo: a autora lista o próprio arquivo", () => assertSucceeds(getDocs(query(collection(ctx("ana"), "stories"), where("autorId", "==", "ana"), orderBy("criadoEm", "desc"), limit(12)))));
+await t("arquivo: Diário lista os flashes das últimas 24 h", () => assertSucceeds(getDocs(query(collection(ctx("bia"), "stories"), where("criadoEm", ">=", Timestamp.fromMillis(Date.now() - 24 * 3600e3)), orderBy("criadoEm", "asc"), limit(400)))));
+await t("arquivo: a autora marca o flash como destacado", () => assertSucceeds(updateDoc(doc(ctx("ana"), "stories", "arq1"), { destacado: true })));
+await t("arquivo: outra pessoa não marca", () => assertFails(updateDoc(doc(ctx("bia"), "stories", "noar1"), { destacado: true })));
+await t("arquivo: a autora não muda a foto depois de publicado", () => assertFails(updateDoc(doc(ctx("ana"), "stories", "noar1"), { texto: "mudou", destacado: true })));
+await t("arquivo: destacado tem que ser sim/não", () => assertFails(updateDoc(doc(ctx("ana"), "stories", "noar1"), { destacado: "sim" })));
+
+// Destaques do Flash (destaques/{id}): ficam no perfil; só o dono mexe.
+const dqMini = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==";
+const dqNovo = (extra = {}) => ({ uid: "ana", nome: "Viagem", ids: ["s1", "s2"], capa: "s2", capaMini: dqMini, criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
+await t("destaque: a dona cria", () => assertSucceeds(setDoc(doc(ctx("ana"), "destaques", "dq1"), dqNovo())));
+await t("destaque: em nome de outra pessoa é recusado", () => assertFails(setDoc(doc(ctx("bia"), "destaques", "dq2"), dqNovo())));
+await t("destaque: nome com mais de 30 letras é recusado", () => assertFails(setDoc(doc(ctx("ana"), "destaques", "dq3"), dqNovo({ nome: "x".repeat(31) }))));
+await t("destaque: sem flash é recusado", () => assertFails(setDoc(doc(ctx("ana"), "destaques", "dq3"), dqNovo({ ids: [] }))));
+await t("destaque: mais de 100 flashes é recusado", () => assertFails(setDoc(doc(ctx("ana"), "destaques", "dq3"), dqNovo({ ids: Array.from({ length: 101 }, (_, i) => "s" + i), capa: "s1" }))));
+await t("destaque: capa que não está no destaque é recusada", () => assertFails(setDoc(doc(ctx("ana"), "destaques", "dq3"), dqNovo({ capa: "s9" }))));
+await t("destaque: miniatura que não é JPEG é recusada", () => assertFails(setDoc(doc(ctx("ana"), "destaques", "dq3"), dqNovo({ capaMini: "data:image/svg+xml;base64,PHN2Zz4=" }))));
+await t("destaque: campo a mais é recusado", () => assertFails(setDoc(doc(ctx("ana"), "destaques", "dq3"), dqNovo({ publico: "todos" }))));
+await t("destaque: quem está logado lê", () => assertSucceeds(getDoc(doc(ctx("edu"), "destaques", "dq1"))));
+await t("destaque: a dona põe mais flashes e troca o nome", () => assertSucceeds(updateDoc(doc(ctx("ana"), "destaques", "dq1"), { nome: "Férias", ids: ["s1", "s2", "s3"], atualizadoEm: serverTimestamp() })));
+await t("destaque: outra pessoa não mexe", () => assertFails(updateDoc(doc(ctx("bia"), "destaques", "dq1"), { nome: "Meu", atualizadoEm: serverTimestamp() })));
+await t("destaque: não passa para outra pessoa", () => assertFails(updateDoc(doc(ctx("ana"), "destaques", "dq1"), { uid: "bia", atualizadoEm: serverTimestamp() })));
+await t("destaque: tirar a miniatura (capa de vídeo)", () => assertSucceeds(updateDoc(doc(ctx("ana"), "destaques", "dq1"), { capaMini: deleteField(), atualizadoEm: serverTimestamp() })));
+await t("destaque: outra pessoa não apaga", () => assertFails(deleteDoc(doc(ctx("bia"), "destaques", "dq1"))));
+await t("destaque: a dona apaga", () => assertSucceeds(deleteDoc(doc(ctx("ana"), "destaques", "dq1"))));
+
 // ---------- resultado ----------
 for (const r of resultados) console.log(r[0] === "ok" ? "  ✔" : "  ✘", r[1], r[2] ? "→ " + r[2] : "");
 console.log(`\n${ok} passaram, ${falhou} falharam (${arquivo})`);

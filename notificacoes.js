@@ -8,14 +8,15 @@ import {
   $, el, icone, pintarAvatar, urlSegura, tempoRelativo, toast, erroAmigavel,
   fb, eu, dados, refUsuario, ganchos, iniciarRede, carregarMeusSeguindo, botaoSeguir, montarBarraRede, pintarBarraRede,
   ouvirAvisos, aoMudarAvisos, avisosVistosEm, marcarAvisosVistos, rotuloVinculo, abrirComentarios, abrirResultadoEnquete, verRespostasCaixa
-} from "./rede.js?v=89";
+} from "./rede.js?v=90";
 import { TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=17";
 import { TEXTO_EQUIPE, linkEquipe, seloOficial, fotoSuporte } from "./avisos-equipe.js?v=1";
 import { textoEnqueteFim, resumoResultado } from "./enquetes.js?v=6";
 import { textoPlano } from "./planos-base.js?v=15";
 import { textoMensagens } from "./mensagens-novas.js?v=1";
-import { criarLista } from "./avisos-lista.js?v=16";
+import { criarLista } from "./avisos-lista.js?v=17";
 import { docsPorIds } from "./leituras.js?v=3";
+import { textoFlash } from "./flash-avisos.js?v=1";
 
 let vistoAntes = 0, ultimo = null, abriuPedida = false;
 const postsCache = new Map();
@@ -50,6 +51,7 @@ function itens(a) {
     ...(a.reacoes || []).map((x) => ({ tipo: "reacao", ...x, docId: x.id, id: "e_" + x.id, texto: `reagiu com ${x.reacao} ao seu comentário` })),
     ...(a.marcacoes || []).map((x) => ({ tipo: "marcacao", ...x, docId: x.id, id: "k_" + x.id, texto: "marcou você numa publicação" })),
     ...(a.republicacoes || []).map((x) => ({ tipo: "republicacao", ...x, docId: x.id, id: "p_" + x.id, texto: "republicou sua publicação" })),
+    ...(a.flash || []).map((x) => ({ ...x, texto: textoFlash(x) })),
     ...(a.caixas || []).map((x) => ({ tipo: "caixa", ...x, docId: x.id, id: "x_" + x.id, texto: "respondeu sua caixa de perguntas", detalhe: x.texto })),
     ...(a.enquetes || []).map((x) => ({ ...x, ...(x.souAutor ? { nome: "Sua enquete" } : {}), texto: x.souAutor ? "terminou. Veja o resultado." : textoEnqueteFim(x).titulo, detalhe: "" })),
     ...a.vinculos.map((x) => ({ tipo: "social", ...x, texto: x.pendente ? `quer adicionar você como ${rotuloVinculo(x.tipoParaMim).toLowerCase()}` : `aceitou seu pedido: ${rotuloVinculo(x.tipoParaMim)}` })),
@@ -90,6 +92,7 @@ async function abrirItem(i) {
     if (i.oficial) { location.href = linkEquipe(i); return; }
     if (i.tipo.startsWith("reclamacao") || i.tipo === "avaliacao") { location.href = linkReclamacao(i, eu.uid); return; }
     if (i.tipo === "plano") { location.href = "negocios.html?planos=1"; return; }
+    if (i.tipo === "flash") { location.href = `feed.html?flash=${encodeURIComponent(i.flashId)}`; return; }
     if (i.tipo === "reacao") {
       const c = await fb.getDoc(fb.doc(fb.db, "comentarios", i.comentarioId)).catch(() => null);
       const p = c?.exists() ? await obterPost(c.data().postId) : null;

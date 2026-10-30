@@ -2292,7 +2292,7 @@
         if (!s.exists()) return null;
         const d = s.data({ serverTimestamps: "estimate" });
         return Date.now() - (ms(d.criadoEm) || Date.now()) < 864e5 ? { id, ...d } : null;
-      }).catch(() => undefined));
+      }).catch((e) => (e?.code === "permission-denied" ? null : undefined))); // depois das 24 h o flash vai para o arquivo (só o autor lê)
       return flashesLidos.get(id);
     }
     function rotuloFlash(c, meu) {
@@ -3703,7 +3703,7 @@
     let vitrineMod = null;
     function carregarVitrine() {
       if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=41"; l.dataset.vitrine = ""; document.head.appendChild(l); }
-      return (vitrineMod ||= import("./vitrine.js?v=79"));
+      return (vitrineMod ||= import("./vitrine.js?v=80"));
     }
     function usarCartaoNaConversa(uid, cartao) {
       document.querySelectorAll(".vt-modal").forEach((m) => m.remove());

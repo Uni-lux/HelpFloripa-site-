@@ -2477,7 +2477,12 @@ service cloud.firestore {
     // Somem para todos depois de 24 h (o site filtra; o autor apaga os vencidos). vistos/{uid}: quem viu.
     // ===================================================
     match /stories/{id} {
-      allow read: if logado();
+      // Depois das 24 h o flash fica no ARQUIVO do autor (só ele vê, como no Instagram). Os outros leem o que está no ar
+      // (26 h, com folga para relógio atrasado) e o que o autor pôs num destaque (destacado: true).
+      allow read: if logado() && (resource.data.autorId == request.auth.uid
+                    || resource.data.criadoEm > request.time - duration.value(26, 'h')
+                    || resource.data.get('destacado', false) == true
+                    || podeModerar());
       allow create: if logado() && emailOk()
                     && request.resource.data.keys().hasOnly(['autorId', 'nome', 'tipo', 'midia', 'texto', 'duracao', 'enquete', 'caixa', 'link', 'repostDe', 'postDe', 'negocios', 'perfil', 'mencoes', 'respostas', 'publico', 'lista', 'ocultoPara', 'criadoEm'])
                     // caixa de perguntas, link para negócio, repost e perfis de negócio (só confere o que veio)
@@ -2502,7 +2507,10 @@ service cloud.firestore {
                     && (!('duracao' in request.resource.data) || (request.resource.data.duracao is number && request.resource.data.duracao <= 60))
                     && !sancionado(request.auth.uid);
       allow delete: if logado() && (resource.data.autorId == request.auth.uid || podeModerar());
-      allow update: if false;
+      // O autor só marca/desmarca "destacado" (o flash está num destaque do perfil); o resto não muda depois de publicado.
+      allow update: if logado() && resource.data.autorId == request.auth.uid
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['destacado'])
+                    && request.resource.data.destacado is bool;
       match /vistos/{uid} {
         allow create: if logado() && uid == request.auth.uid
                       && request.resource.data.keys().hasOnly(['criadoEm'])
@@ -2524,6 +2532,28 @@ service cloud.firestore {
                       || get(/databases/$(database)/documents/stories/$(id)).data.autorId == request.auth.uid);
         allow delete: if logado() && uid == request.auth.uid;
       }
+    }
+
+    // ===================================================
+    // DESTAQUES do Flash: destaques/{id} {uid, nome, ids, capa, capaMini, criadoEm, atualizadoEm} — ficam no perfil,
+    // como os destaques do Instagram. Quem está logado lê (os flashes em si já são lidos assim); só o dono cria,
+    // muda e apaga (a moderação também apaga). capaMini = miniatura JPEG da capa (para o perfil não baixar os flashes).
+    // ===================================================
+    match /destaques/{id} {
+      function destaqueOk(d) {
+        return d.keys().hasOnly(['uid', 'nome', 'ids', 'capa', 'capaMini', 'criadoEm', 'atualizadoEm'])
+          && d.nome is string && d.nome.size() >= 1 && d.nome.size() <= 30
+          && d.ids is list && d.ids.size() >= 1 && d.ids.size() <= 100
+          && d.atualizadoEm == request.time
+          && (!('capa' in d) || (d.capa is string && d.capa.size() <= 64 && d.capa in d.ids))
+          && (!('capaMini' in d) || (d.capaMini is string && d.capaMini.size() <= 30000 && d.capaMini.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')));
+      }
+      allow read: if logado();
+      allow create: if logado() && emailOk() && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.criadoEm == request.time && destaqueOk(request.resource.data);
+      allow update: if logado() && resource.data.uid == request.auth.uid && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.criadoEm == resource.data.criadoEm && destaqueOk(request.resource.data);
+      allow delete: if logado() && (resource.data.uid == request.auth.uid || podeModerar());
     }
 
     // ===================================================
