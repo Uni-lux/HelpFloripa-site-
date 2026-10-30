@@ -1021,7 +1021,7 @@ html, body { overflow-x: clip; }
 .pf-anel.com-flash { background: var(--anel-flash); }
 .com-flash > .avatar { cursor: pointer; }
 
-.story-visor { position: fixed; inset: 0; z-index: 4900; background: #000; display: grid; place-items: center; animation: flashAbre .22s cubic-bezier(.2,.9,.3,1); }
+.story-visor { position: fixed; inset: 0; z-index: 4900; background: #000; display: grid; place-items: center; perspective: 1400px; animation: flashAbre .22s cubic-bezier(.2,.9,.3,1); }
 @keyframes flashAbre { from { opacity: 0; transform: scale(.96); } }
 .story-caixa { position: relative; width: min(100vw, calc(100dvh * 9 / 16)); height: min(100dvh, calc(100vw * 16 / 9)); background: #111; overflow: hidden; border-radius: 0; }
 @media (min-width: 700px) { .story-visor { background: radial-gradient(circle at 50% 30%, #1d2730, #000 70%); } .story-caixa { border-radius: 16px; height: min(92vh, 860px); width: calc(min(92vh, 860px) * 9 / 16); box-shadow: 0 20px 60px rgba(0,0,0,.6); } }
@@ -1077,12 +1077,19 @@ html, body { overflow-x: clip; }
 .story-previa img { max-height: 46vh; width: auto; max-width: 100%; }
 
 /* criador: cartão 9:16 de bordas arredondadas; embaixo, Foto|Texto e Compartilhar */
-.flash-criar { position: fixed; inset: 0; z-index: 4900; background: #000; animation: flashAbre .22s cubic-bezier(.2,.9,.3,1); }
+.flash-criar { position: fixed; inset: 0; z-index: 4900; background: #000; overflow: clip; animation: flashAbre .22s cubic-bezier(.2,.9,.3,1); }
+/* Teclado aberto: o cartão fica do tamanho de antes (stories.js medirCartao) e o que se escreve sobe para a parte que
+   continua à vista; --tecl = quanto do cartão o teclado cobre. */
+.flash-criar { --tecl: 0px; }
+.flash-criar.teclado .flash-figs, .flash-criar.teclado .flash-edtxt { bottom: var(--tecl); }
+.flash-criar.teclado .flash-palco.modo-texto { padding-bottom: var(--tecl); }
+.flash-criar.teclado .flash-legenda { bottom: calc(var(--tecl) + 10px); }
+.flash-criar.teclado .flash-cam-ui, .flash-criar.teclado .flash-palco > .flash-filtros { display: none; }
 @media (min-width: 700px) { .flash-criar { background: radial-gradient(circle at 50% 30%, #1d2730, #000 70%); } }
 .flash-caixa { height: 100dvh; display: flex; flex-direction: column; align-items: center; padding: calc(4px + env(safe-area-inset-top)) 4px 0; box-sizing: border-box; }
 /* moldura: anel fino com o degradê do Flash e um brilho leve, em volta do cartão quase do tamanho da tela */
 .flash-moldura { flex: none; padding: 2px; border-radius: 24px; background: linear-gradient(140deg, #ffd60a, #ff8a00 35%, #ff3d7f 65%, #00adee); box-shadow: 0 0 28px -6px rgba(255,138,0,.45), 0 0 40px -10px rgba(0,173,238,.35); }
-.flash-palco { position: relative; flex: none; height: min(calc((100vw - 12px) * 16 / 9), calc(100dvh - 82px - env(safe-area-inset-top) - env(safe-area-inset-bottom))); aspect-ratio: 9 / 16; border-radius: 22px; overflow: hidden; background: #14191e; transition: background .35s; display: grid; place-items: center; isolation: isolate; box-shadow: 0 0 0 1px rgba(255,255,255,.06); }
+.flash-palco { position: relative; box-sizing: border-box; flex: none; height: min(calc((100vw - 12px) * 16 / 9), calc(100dvh - 82px - env(safe-area-inset-top) - env(safe-area-inset-bottom))); aspect-ratio: 9 / 16; border-radius: 22px; overflow: hidden; background: #14191e; transition: background .35s; display: grid; place-items: center; isolation: isolate; box-shadow: 0 0 0 1px rgba(255,255,255,.06); }
 @media (min-width: 700px) { .flash-palco { height: min(calc(100dvh - 120px), 860px); } }
 .flash-midia { position: absolute; inset: 0; overflow: hidden; touch-action: none; }
 .flash-fotobox { position: absolute; pointer-events: none; }
@@ -1174,9 +1181,24 @@ html, body { overflow-x: clip; }
 .fe-campo { align-self: center; justify-self: center; width: auto; min-width: 60%; max-width: 88%; max-height: 70%; border: 0; border-radius: .25em; padding: .12em .35em; background: transparent; color: #fff; text-align: center; resize: none; outline: none; line-height: 1.22; field-sizing: content; caret-color: currentColor; }
 .fe-campo.neon { text-shadow: 0 0 8px rgba(255,255,255,.9), 0 0 22px rgba(255,255,255,.6); }
 .fe-campo::placeholder { color: currentColor; opacity: .6; }
-.fe-tam { position: absolute; left: -62px; top: 50%; width: 160px; transform: rotate(-90deg); accent-color: #fff; }
-.fe-cores { display: flex; justify-content: center; gap: 10px; padding: 12px 10px 16px; }
-.fe-cores button { width: 28px; height: 28px; border-radius: 50%; border: 2.5px solid #fff; cursor: pointer; padding: 0; transition: transform .12s; }
+/* régua do tamanho: em pé na lateral, em forma de cunha (fina embaixo, grossa em cima) */
+.fe-regua { position: absolute; left: 6px; top: 50%; z-index: 1; width: 30px; height: 160px; transform: translateY(-50%); display: grid; place-items: center; }
+.fe-regua::before { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 10px; transform: translateX(-50%); background: rgba(255,255,255,.5); clip-path: polygon(0 0, 100% 0, 60% 100%, 40% 100%); border-radius: 4px; pointer-events: none; }
+.fe-tam { position: absolute; left: 50%; top: 50%; width: 160px; height: 30px; margin: 0; transform: translate(-50%, -50%) rotate(-90deg); -webkit-appearance: none; appearance: none; background: transparent; cursor: pointer; }
+.fe-tam::-webkit-slider-runnable-track { height: 30px; background: transparent; }
+.fe-tam::-moz-range-track { height: 30px; background: transparent; }
+.fe-tam::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: 4px; border-radius: 50%; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.45); }
+.fe-tam::-moz-range-thumb { width: 22px; height: 22px; border: 0; border-radius: 50%; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.45); }
+/* embaixo (logo acima do teclado): letras com o nome e as cores, cada uma numa fileira que desliza */
+.fe-baixo { display: grid; gap: 10px; padding: 8px 0 12px; min-width: 0; }
+.fe-letras { display: flex; gap: 8px; overflow-x: auto; padding: 2px 12px; scrollbar-width: none; scroll-snap-type: x proximity; }
+.fe-letras::-webkit-scrollbar { display: none; }
+.fe-letra { flex: none; height: 36px; padding: 0 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,.35); background: rgba(0,0,0,.35); color: #fff; cursor: pointer; scroll-snap-align: center; white-space: nowrap; transition: background .15s, color .15s, border-color .15s; }
+.fe-letra.neon { text-shadow: 0 0 6px rgba(255,255,255,.85); }
+.fe-letra.on { background: #fff; color: #0b1014; border-color: #fff; text-shadow: none; }
+.fe-cores { display: flex; gap: 12px; overflow-x: auto; padding: 6px 18px; scrollbar-width: none; }
+.fe-cores::-webkit-scrollbar { display: none; }
+.fe-cores button { flex: none; width: 28px; height: 28px; border-radius: 50%; border: 2.5px solid #fff; cursor: pointer; padding: 0; transition: transform .12s; }
 .fe-cores button.on { transform: scale(1.25); box-shadow: 0 0 0 2px rgba(0,0,0,.4); }
 /* embaixo do cartão */
 .flash-baixo { width: 100%; max-width: 520px; display: grid; justify-items: center; gap: 6px; padding: 10px 6px calc(8px + env(safe-area-inset-bottom)); box-sizing: border-box; }
@@ -2089,7 +2111,8 @@ body:has(.story-visor, .flash-criar) .toast { bottom: auto; top: calc(74px + env
 .cfg2 { display: grid; gap: 12px; padding: 4px 14px 16px; }
 .cfg2-card { border-radius: 18px; background: var(--panel-2); border: 1px solid var(--line); padding: 14px; display: grid; gap: 10px; }
 .cfg2-cab { display: flex; gap: 12px; align-items: center; }
-.cfg2-ic { --c: var(--accent); flex: none; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, var(--c), color-mix(in srgb, var(--c) 60%, #000)); box-shadow: 0 6px 16px color-mix(in srgb, var(--c) 35%, transparent); }
+/* ícones neutros (sem as cores de antes), na cor do texto */
+.cfg2-ic { flex: none; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; color: var(--text); background: var(--panel); border: 1px solid var(--line); }
 .cfg2-ic .i { width: 20px; height: 20px; }
 .cfg2-tx { min-width: 0; }
 .cfg2-tx h3 { margin: 0; font-size: 15.5px; letter-spacing: -.01em; }
@@ -2285,7 +2308,8 @@ div.cfg2-linha { cursor: default; }
 .ve-mais-tit { margin: 18px 4px 10px; font-size: 15px; font-weight: 850; color: var(--muted); letter-spacing: -.01em; }
 /* "Ver publicação" no visor do Flash: menor e no rodapé, em cima do campo de responder (não cobre a legenda) */
 /* Publicação dentro do flash: a área tocável cobre o cartão; o balão aparece onde tocou (como no Instagram) */
-.story-post-area { position: absolute; z-index: 3; left: 6%; right: 6%; top: 24%; bottom: 28%; border: 0; background: transparent; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: pan-y; }
+/* só o miolo da publicação: as beiradas (22% de cada lado) continuam voltando e passando o flash */
+.story-post-area { position: absolute; z-index: 3; left: 22%; right: 22%; top: 26%; bottom: 30%; border: 0; background: transparent; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: pan-y; }
 .story-link.story-post.balao { position: absolute; z-index: 5; transform: translate(-50%, -100%); padding: 10px 14px; gap: 6px; font-size: 14.5px; border-radius: 12px; animation: balaoSobe .16s ease-out; }
 .story-link.story-post.balao::after { content: ""; position: absolute; left: 50%; bottom: -6px; width: 12px; height: 12px; background: inherit; transform: translateX(-50%) rotate(45deg); border-radius: 2px; }
 .story-link.story-post.balao[hidden] { display: none; }
@@ -2337,6 +2361,26 @@ div.cfg2-linha { cursor: default; }
 .vv-resumo, .vv-filtros, .vv-lista, .vv-nota { margin-left: 16px; margin-right: 16px; }
 .vv-resumo { margin-top: 12px; }
 .vv-nota { margin-bottom: 14px; }
+/* fita dos seus flashes no ar (troca de flash sem sair da folha) */
+.vv-fita { display: flex; gap: 10px; overflow-x: auto; padding: 12px 16px 14px; margin-bottom: 2px; border-bottom: 1px solid var(--line); scrollbar-width: none; scroll-snap-type: x proximity; }
+.vv-fita::-webkit-scrollbar { display: none; }
+.vv-mini { flex: none; display: grid; gap: 6px; justify-items: center; padding: 0; border: 0; background: none; color: var(--muted); font: inherit; cursor: pointer; scroll-snap-align: center; }
+.vv-mini-capa { width: 62px; aspect-ratio: 9 / 16; border-radius: 12px; overflow: hidden; display: grid; place-items: center; background: var(--panel-2); border: 2px solid transparent; opacity: .55; transition: opacity .15s, border-color .15s, transform .15s; }
+.vv-mini-capa img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.vv-mini-n { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 800; }
+.vv-mini.on { color: var(--text); }
+.vv-mini.on .vv-mini-capa { opacity: 1; border-color: var(--text); transform: translateY(-2px); }
+.vv-quando { margin: 12px 16px 0; color: var(--muted); font-size: 12.5px; }
+/* estrela como selo na foto de quem deu */
+.vv-foto .vv-est { position: absolute; left: -4px; bottom: -4px; width: 22px; height: 22px; border-radius: 50%; background: var(--panel); box-shadow: 0 1px 4px rgba(0,0,0,.25); }
+.vv-foto .vv-est .i { width: 13px; height: 13px; }
+.vv-oculto { color: var(--muted); font-size: 11.5px; font-style: italic; }
+.vv-opcoes { flex: none; color: var(--muted); }
+.vv-acoes { display: flex; gap: 6px; flex-wrap: wrap; margin: -2px 0 10px 58px; animation: contEntra .15s ease-out; }
+.vv-acao { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font: inherit; font-size: 13px; font-weight: 750; cursor: pointer; }
+.vv-acao .i { width: 16px; height: 16px; color: var(--muted); }
+.vv-acao.perigo { color: #e5484d; }
+.vv-acao.perigo .i { color: currentColor; }
 /* Estrela do Flash: apagada = contorno branco (como o coração do Instagram); dada = cheia e dourada */
 .story-raio.story-estrela .est-curtir { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
 .story-raio.story-estrela.on .est-curtir { fill: #ffc81a; stroke: #ffc81a; }

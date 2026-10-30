@@ -167,7 +167,7 @@ const vv = pa.locator(".vv-pessoa", { hasText: "Bruno" }).first();
 ok(await vv.locator(".vv-est").count() === 1 && (await vv.locator(".vv-emoji").textContent()) === "🔥", "Visualizações: Bruno com a estrela e o 🔥 na foto");
 ok((await pa.locator(".vv-filtros").textContent()).includes("Estrelas · 1") && (await pa.locator(".vv-filtros").textContent()).includes("Reações · 1"), "Visualizações: filtros Estrelas e Reações");
 await pa.screenshot({ path: "saida/flash-visualizacoes.png" });
-await vv.locator(".vv-msg").tap(); await pa.locator(".vv-escrever input").fill("Obrigada pela estrela!"); await pa.locator(".vv-escrever button").tap(); await pa.waitForTimeout(2000);
+await vv.locator(".vv-opcoes").tap(); await pa.locator(".vv-acao", { hasText: "Mensagem" }).tap(); await pa.locator(".vv-escrever input").fill("Obrigada pela estrela!"); await pa.locator(".vv-escrever button").tap(); await pa.waitForTimeout(2000);
 ok(await pa.locator(".vv-enviado").count() === 1, "Visualizações: mandar mensagem a quem viu");
 await pa.locator("#folhaLista.aberta [data-fechar]").first().click(); await pa.waitForTimeout(400);
 await pa.locator(".story-visor .story-btn[aria-label=Fechar]").tap(); await pa.waitForTimeout(300);

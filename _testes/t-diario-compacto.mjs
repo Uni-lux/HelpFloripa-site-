@@ -54,7 +54,7 @@ await p.locator("#opcoesCorpo button", { hasText: "Principais" }).tap(); await p
 await p.goto(BASE + `feed.html?flash=${flash.id}`); await p.waitForTimeout(4000);
 // Como no Instagram: tocar na publicação mostra o balão "Ver publicação"; o balão abre a publicação POR CIMA do flash.
 ok(await p.locator(".story-visor .story-post-area").count() === 1 && await p.locator(".story-visor .story-post:visible").count() === 0, "flash com publicação: área de toque, sem botão fixo");
-await p.locator(".story-visor .story-post-area").click({ position: { x: 150, y: 200 } }); await p.waitForTimeout(400);
+await p.locator(".story-visor .story-post-area").click(); await p.waitForTimeout(400);
 const link = p.locator(".story-visor .story-post.balao:visible");
 ok(await link.count() === 1 && await p.locator(".story-visor .pausado, .story-caixa.pausado").count() >= 1, "tocar na publicação mostra o balão 'Ver publicação' e pausa o flash");
 await p.screenshot({ path: "saida/dc-balao.png" });
