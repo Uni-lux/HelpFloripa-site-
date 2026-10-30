@@ -491,7 +491,9 @@ svg.i.xs { width: 14px; height: 14px; }
 /* perfil público dentro da folha */
 .folha-perfil .pf { border: 0; border-radius: 0; }
 .folha-perfil .folha-topo { position: absolute; z-index: 5; top: 0; left: 0; right: 0; border: 0; background: transparent; pointer-events: none; }
-.folha-perfil .folha-topo .icone-btn { pointer-events: auto; background: rgba(0, 0, 0, .5); color: #fff; }
+.folha-perfil .folha-topo .icone-btn { background: rgba(0, 0, 0, .5); color: #fff; }
+/* só com a folha aberta (fechada e invisível, o X continuava tocável por cima da página e do Flash) */
+.folha-perfil.aberta .folha-topo .icone-btn { pointer-events: auto; }
 .folha-perfil .folha-topo h2 { visibility: hidden; }
 .folha-perfil .folha-caixa { position: relative; }
 .pp-conteudo { padding: 0 16px 20px; }
@@ -1030,9 +1032,18 @@ html, body { overflow-x: clip; }
 .story-caixa.vai-esq { animation: flashEsq .3s cubic-bezier(.2,.9,.3,1); }
 @keyframes flashDir { from { opacity: .4; transform: translateX(14%) scale(.96); } }
 @keyframes flashEsq { from { opacity: .4; transform: translateX(-14%) scale(.96); } }
+/* quadro 9:16 do flash: a imagem inteira (sem cortar as laterais) e as figurinhas no lugar em que foram postas.
+   No celular comprido sobra espaço embaixo para o campo de responder (--reserva), como no Instagram. */
+.story-caixa { --reserva: 0px; }
+.story-quadro { position: absolute; inset: 0; z-index: 3; pointer-events: none; overflow: hidden; background: #000; }
+.story-quadro > * { pointer-events: none; }
+.story-quadro > .story-enq, .story-quadro > .story-link, .story-quadro > .story-post-area { pointer-events: auto; }
+@media (max-width: 699px) {
+  .story-quadro { inset: env(safe-area-inset-top) 0 auto; margin-inline: auto; width: min(100%, calc((100dvh - env(safe-area-inset-top) - var(--reserva)) * 9 / 16)); height: auto; aspect-ratio: 9 / 16; }
+}
+@media (max-width: 699px) and (max-aspect-ratio: 9 / 17.4) { .story-caixa { --reserva: 68px; } .story-quadro { border-radius: 14px; } }
 .story-palco { position: absolute; inset: 0; display: grid; place-items: center; background: #000; }
 .story-palco img, .story-palco video { width: 100%; height: 100%; object-fit: contain; }
-@media (max-width: 699px) { .story-palco img, .story-palco video { object-fit: cover; } }
 .story-sombra { position: absolute; inset: 0; pointer-events: none; z-index: 1; background: linear-gradient(to bottom, rgba(0,0,0,.5), transparent 18%, transparent 72%, rgba(0,0,0,.55)); transition: opacity .2s; }
 .story-barras { position: absolute; top: calc(8px + env(safe-area-inset-top)); left: 8px; right: 8px; display: flex; gap: 4px; z-index: 3; transition: opacity .2s; }
 .story-barra { flex: 1; height: 2.5px; border-radius: 3px; background: rgba(255,255,255,.32); overflow: hidden; }
@@ -1043,12 +1054,12 @@ html, body { overflow-x: clip; }
 .story-nome { display: flex; align-items: center; gap: 7px; min-width: 0; }
 .story-quem strong { font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .story-chip { flex: none; padding: 2px 7px; border-radius: 999px; background: rgba(255,255,255,.16); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); font-size: 10.5px; font-weight: 800; letter-spacing: .02em; text-shadow: none; }
-.story-quem small { font-size: 12px; opacity: .85; }
+.story-quem small { flex: none; font-size: 13px; font-weight: 650; opacity: .8; }
 .story-btn { width: 40px; height: 40px; border: 0; background: none; color: #fff; display: grid; place-items: center; cursor: pointer; filter: drop-shadow(0 1px 3px rgba(0,0,0,.6)); font-size: 18px; }
 .story-btn[hidden] { display: none; }
 .story-toque { position: absolute; top: 76px; bottom: 120px; width: 35%; border: 0; background: transparent; z-index: 2; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: pan-y; }
 .story-toque.esq { left: 0; } .story-toque.dir { right: 0; width: 65%; }
-.story-legenda { position: absolute; left: 16px; right: 16px; bottom: 128px; z-index: 2; text-align: center; color: #fff; font-size: 18px; font-weight: 750; line-height: 1.35; text-shadow: 0 2px 10px rgba(0,0,0,.85); transition: opacity .2s; pointer-events: none; }
+.story-legenda { position: absolute; left: 16px; right: 16px; bottom: calc(128px - var(--reserva)); z-index: 2; text-align: center; color: #fff; font-size: 18px; font-weight: 750; line-height: 1.35; text-shadow: 0 2px 10px rgba(0,0,0,.85); transition: opacity .2s; pointer-events: none; }
 .story-legenda[hidden] { display: none; }
 .story-rodape { position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 12px calc(14px + env(safe-area-inset-bottom)); display: grid; justify-items: center; gap: 10px; z-index: 3; transition: opacity .2s; }
 .story-caixa.limpo .story-topo, .story-caixa.limpo .story-barras, .story-caixa.limpo .story-rodape, .story-caixa.limpo .story-legenda, .story-caixa.limpo .story-sombra { opacity: 0; }
@@ -1089,7 +1100,7 @@ html, body { overflow-x: clip; }
 .flash-caixa { height: 100dvh; display: flex; flex-direction: column; align-items: center; padding: calc(4px + env(safe-area-inset-top)) 4px 0; box-sizing: border-box; }
 /* moldura: anel fino com o degradê do Flash e um brilho leve, em volta do cartão quase do tamanho da tela */
 .flash-moldura { flex: none; padding: 2px; border-radius: 24px; background: linear-gradient(140deg, #ffd60a, #ff8a00 35%, #ff3d7f 65%, #00adee); box-shadow: 0 0 28px -6px rgba(255,138,0,.45), 0 0 40px -10px rgba(0,173,238,.35); }
-.flash-palco { position: relative; box-sizing: border-box; flex: none; height: min(calc((100vw - 12px) * 16 / 9), calc(100dvh - 82px - env(safe-area-inset-top) - env(safe-area-inset-bottom))); aspect-ratio: 9 / 16; border-radius: 22px; overflow: hidden; background: #14191e; transition: background .35s; display: grid; place-items: center; isolation: isolate; box-shadow: 0 0 0 1px rgba(255,255,255,.06); }
+.flash-palco { position: relative; box-sizing: border-box; flex: none; height: min(calc((100vw - 12px) * 16 / 9), calc(100dvh - 82px - env(safe-area-inset-top) - env(safe-area-inset-bottom))); aspect-ratio: 9 / 16; border-radius: 22px; overflow: hidden; overflow: clip; /* clip: não rola para o lado quando um texto passa da borda (cortava os painéis) */ background: #14191e; transition: background .35s; display: grid; place-items: center; isolation: isolate; box-shadow: 0 0 0 1px rgba(255,255,255,.06); }
 @media (min-width: 700px) { .flash-palco { height: min(calc(100dvh - 120px), 860px); } }
 .flash-midia { position: absolute; inset: 0; overflow: hidden; touch-action: none; }
 .flash-fotobox { position: absolute; pointer-events: none; }
@@ -1143,17 +1154,17 @@ html, body { overflow-x: clip; }
 .fx-guia.on { opacity: 1; }
 .flash-camada { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
 .flash-camada[hidden] { display: none; }
-.flash-txt { position: absolute; transform: translate(-50%, -50%); max-width: 88%; padding: .12em .35em; border-radius: .25em; line-height: 1.22; text-align: center; white-space: pre-wrap; overflow-wrap: anywhere; pointer-events: auto; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; text-shadow: 0 1px 6px rgba(0,0,0,.35); }
+.flash-txt { position: absolute; transform: translate(-50%, -50%); width: max-content; max-width: 88%; padding: .12em .35em; border-radius: .25em; line-height: 1.22; text-align: center; white-space: pre-wrap; overflow-wrap: anywhere; pointer-events: auto; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; text-shadow: 0 1px 6px rgba(0,0,0,.35); }
 .flash-txt.destaque { text-shadow: none; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
 .flash-txt.neon { text-shadow: 0 0 8px rgba(255,255,255,.9), 0 0 22px rgba(255,255,255,.6); }
 .flash-palco.arrastando-txt .flash-txt { cursor: grabbing; }
 .flash-lixo { position: absolute; left: 50%; bottom: 22px; z-index: 5; width: 52px; height: 52px; margin-left: -26px; border-radius: 50%; display: grid; place-items: center; color: #fff; background: rgba(0,0,0,.5); border: 2px solid rgba(255,255,255,.8); opacity: 0; transform: scale(.7); transition: opacity .15s, transform .15s, background .15s; pointer-events: none; }
 .flash-palco.arrastando-txt .flash-lixo { opacity: 1; transform: none; }
 .flash-lixo.sobre { background: #e5484d; transform: scale(1.15) !important; }
-.flash-topo { position: absolute; top: 10px; left: 10px; right: 10px; z-index: 4; display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #fff; pointer-events: none; }
+.flash-topo { position: absolute; top: 10px; left: 10px; right: 10px; z-index: 4; display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; color: #fff; pointer-events: none; }
 .flash-topo > * { pointer-events: auto; }
 .flash-palco.movendo .flash-topo, .flash-palco.arrastando-txt .flash-topo, .flash-palco.movendo .flash-legenda, .flash-palco.arrastando-txt .flash-legenda { opacity: 0; transition: opacity .15s; }
-.flash-ferr { display: flex; gap: 8px; }
+.flash-ferr { display: flex; flex-direction: column; gap: 10px; }
 .flash-ferr-btn { width: 42px; height: 42px; border-radius: 50%; border: 0; background: rgba(0,0,0,.42); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); color: #fff; display: grid; place-items: center; cursor: pointer; font-size: 15px; font-weight: 800; transition: transform .12s, background .15s; }
 .flash-ferr-btn:active { transform: scale(.9); }
 .flash-ferr-btn.cor { border: 2.5px solid #fff; }
@@ -1174,7 +1185,7 @@ html, body { overflow-x: clip; }
 .flash-legenda { position: absolute; left: 14px; right: 14px; bottom: 14px; z-index: 4; height: 44px; padding: 0 16px; border-radius: 999px; border: 0; background: rgba(0,0,0,.45); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); color: #fff; font: inherit; font-size: 15px; font-weight: 650; text-align: center; outline: none; box-sizing: border-box; }
 .flash-legenda::placeholder { color: rgba(255,255,255,.8); }
 /* escrever na foto */
-.flash-edtxt { position: absolute; inset: 0; z-index: 6; display: grid; grid-template-rows: auto 1fr auto; background: rgba(0,0,0,.55); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); animation: contEntra .15s ease-out; }
+.flash-edtxt { position: absolute; inset: 0; z-index: 6; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr auto; background: rgba(0,0,0,.55); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); animation: contEntra .15s ease-out; }
 .fe-cab { display: flex; align-items: center; gap: 8px; padding: 10px; }
 .fe-cab .esp { flex: 1; }
 .fe-pronto { height: 40px; padding: 0 18px; border-radius: 999px; border: 0; background: #fff; color: #0b1014; font: inherit; font-size: 14px; font-weight: 850; cursor: pointer; }
@@ -1412,15 +1423,18 @@ body:has(.story-visor, .flash-criar) .toast { bottom: auto; top: calc(74px + env
 .flash-fig { display: inline-block; padding: .22em .45em; border-radius: .32em; line-height: 1.1; white-space: nowrap; text-shadow: none; letter-spacing: .01em; }
 .flash-txt.flash-fig { max-width: none; }
 .flash-fig.fig-hora { font-variant-numeric: tabular-nums; letter-spacing: .02em; }
-.flash-figs { position: absolute; inset: 0; z-index: 6; display: grid; grid-template-rows: auto 1fr auto; background: rgba(0,0,0,.6); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); animation: contEntra .15s ease-out; }
+.flash-figs { position: absolute; inset: 0; z-index: 6; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr auto; background: rgba(0,0,0,.6); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); animation: contEntra .15s ease-out; }
 .figs-tit { color: #fff; font-size: 16px; padding-left: 6px; }
-.figs-grade { display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 18px 14px; padding: 18px; }
+.figs-grade { display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 12px 10px; padding: 18px; }
 .fig-op { display: grid; justify-items: center; gap: 8px; border: 0; background: none; color: #fff; font: inherit; cursor: pointer; padding: 6px; border-radius: 14px; }
 .fig-op:active { transform: scale(.96); }
 .fig-op small { font-size: 12px; font-weight: 750; color: rgba(255,255,255,.75); }
+.fig-pilula { --fc: #00adee; display: inline-flex; align-items: center; gap: 7px; padding: 9px 14px; border-radius: 14px; background: #fff; color: #111; font-size: 14px; font-weight: 850; letter-spacing: .03em; text-transform: uppercase; box-shadow: 0 6px 18px rgba(0,0,0,.25); }
+.fig-pilula .i { color: var(--fc); width: 19px; height: 19px; }
+.fig-pilula small { color: #5d6b75; font-size: 11.5px; letter-spacing: 0; text-transform: none; }
 .amostra-fig { background: #fff; color: #111; font-size: 18px; font-weight: 800; box-shadow: 0 4px 14px rgba(0,0,0,.25); }
 .amostra-fig.fig-hora { font-size: 30px; }
-.fe-linha-local { display: flex; gap: 8px; width: min(100%, 320px); }
+.fe-linha-local { display: flex; gap: 8px; width: 100%; max-width: 320px; box-sizing: border-box; }
 .fe-local { flex: 1; min-width: 0; height: 44px; padding: 0 14px; border-radius: 999px; border: 0; background: rgba(255,255,255,.95); color: #111; font: inherit; font-size: 15px; font-weight: 650; outline: none; }
 .figs-dica { margin: 0; padding: 0 16px 18px; text-align: center; color: rgba(255,255,255,.7); font-size: 12px; }
 
@@ -1649,8 +1663,13 @@ body:has(.story-visor, .flash-criar) .toast { bottom: auto; top: calc(74px + env
 
 /* ---------- Flash: enquete, menção e configurações ---------- */
 .flash-esq { display: flex; align-items: center; gap: 8px; }
-.flash-selo-amigos { padding: 5px 10px; border-radius: 999px; background: #2fbf71; color: #062b17; font-size: 12px; font-weight: 850; }
-.flash-selo-amigos[hidden] { display: none; }
+/* Amigos próximos (por flash): estrela apagada = todos; verde = só a sua lista */
+.flash-ferr-btn.flash-amigos { color: rgba(255,255,255,.85); }
+.flash-ferr-btn.flash-amigos.on { background: #2fbf71; color: #fff; box-shadow: 0 0 0 2px rgba(255,255,255,.85); }
+.flash-ferr-btn.flash-amigos.on .i { color: #fff; }
+/* botão de publicar: o nome numa linha só */
+.flash-publicar span { white-space: nowrap; }
+.flash-publicar.amigos { font-size: 14px; padding: 0 16px;  background: linear-gradient(135deg, #36d07f, #1f9d5b); color: #fff; box-shadow: 0 10px 30px -10px rgba(47,191,113,.85); }
 .flash-txt.flash-enq { width: 74%; max-width: none; padding: 0; text-shadow: none; }
 .fe-enq { display: grid; gap: .45em; padding: .9em; border-radius: .9em; background: rgba(255,255,255,.95); color: #111; box-shadow: 0 10px 30px rgba(0,0,0,.3); }
 .fe-enq strong { font-size: 1.15em; line-height: 1.25; }
@@ -1673,7 +1692,8 @@ body:has(.story-visor, .flash-criar) .toast { bottom: auto; top: calc(74px + env
 .mencao-item .tx { display: grid; }
 .mencao-item small { color: rgba(255,255,255,.7); }
 /* visor */
-.story-enq { position: absolute; z-index: 4; width: 76%; transform: translate(-50%, -50%); }
+/* enquete/perguntas: desenhadas em 300 px e escaladas (--k) para ocupar a mesma parte do quadro que no criador */
+.story-enq { position: absolute; z-index: 4; width: 300px; transform: translate(-50%, -50%) scale(var(--k, 1)); transform-origin: center; }
 .story-enq .enquete { margin: 0; }
 .story-mencoes { display: inline-flex; align-items: center; gap: 6px; justify-self: start; padding: 6px 12px; border-radius: 999px; border: 0; background: rgba(0,0,0,.45); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); color: #fff; font: inherit; font-size: 12.5px; font-weight: 750; cursor: pointer; }
 .story-sem-resposta { margin: 0; padding: 10px 14px; border-radius: 999px; background: rgba(0,0,0,.4); color: rgba(255,255,255,.8); font-size: 13px; font-weight: 650; }
@@ -2039,7 +2059,6 @@ body:has(.story-visor, .flash-criar) .toast { bottom: auto; top: calc(74px + env
 .caixa-perg.escura .cx-form { background: #f1f3f5; }
 .caixa-perg.escura .cx-ver { background: #f1f3f5; color: #111; }
 .caixa-perg.escura .cx-nota { color: #5d6b75; }
-.story-cx { width: 80%; }
 .story-cx .caixa-perg { margin: 0; }
 /* Respostas (folha do autor) */
 .cx-resp { display: flex; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
@@ -2051,7 +2070,7 @@ body:has(.story-visor, .flash-criar) .toast { bottom: auto; top: calc(74px + env
 .cx-resp .quem strong { font-size: 14px; }
 .cx-resp .quem span { font-size: 12px; color: var(--muted); }
 .cx-resp p { margin: 0; font-size: 15px; line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere; }
-.cx-acoes { display: flex; gap: 6px; margin-top: 2px; }
+.cx-acoes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
 .cx-acoes .btn { display: inline-flex; align-items: center; gap: 5px; }
 .cx-responder { background: var(--panel-2); border: 1px solid var(--line); margin-top: 6px; }
 .cx-responder textarea { color: var(--text); }

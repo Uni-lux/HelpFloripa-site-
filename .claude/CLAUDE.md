@@ -1187,6 +1187,24 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   `.vv-acoes` (Mensagem, Ver perfil, Ocultar/Mostrar flashes → `flashConfig.ocultarDe`). Ícones novos `i-olho-off`, `i-pessoa`.
   (5) Configurações do Flash: `.cfg2-ic` sem cor (pedido dele). Teste `t-flash-teclado.mjs` (teclado simulado encolhendo a
   tela com o campo focado; toques/arrastos pelo CDP).
+- **Flash igual ao que foi feito (30/10/2026, PR depois do #124, sem regra nova):** 20 prints dele comparando com o Instagram.
+  **Visor:** `.story-quadro` 9:16 (palco, sombra, legenda e as figurinhas interativas dentro; `object-fit: contain`) — antes no
+  celular a foto era `cover` em 100vw×100dvh, cortava as laterais e as figurinhas não ficavam onde foram postas. Celular
+  comprido (`max-aspect-ratio: 9/17.4`): `--reserva` 68 px e o campo de responder fica embaixo do quadro. Enquete/perguntas:
+  `encaixar(w, fx, fy)` desenha em 300 px e escala (`--k`) para 74% do quadro (= criador), centro preso entre 11% e o rodapé;
+  `.story-quadro` tem `pointer-events: none` (só figurinhas/links/área da publicação recebem toque). Tempo ao lado do nome;
+  `tempoDoFlash`: 5 s por foto, +2,5 s com enquete/perguntas/publicação/link, +1,5 s com legenda > 80. ⋯ do seu flash:
+  Visualizações, Salvar foto (`salvarFotoFlash`), Compartilhar (`compartilharLinkFlash`, feed.html?flash=ID), Configurações
+  do Flash. Fita das Visualizações troca o flash de trás (`irPara`, 4º parâmetro de `verQuemViu`). Estrela sem as regras: a
+  reação "⭐" pelo Mensagens vai uma vez por flash (`estrelaAvisada`); o cartão diz "Deu uma estrela no seu flash".
+  **Criador:** ferramentas em coluna à direita (`.flash-ferr` column); "Amigos próximos" virou a estrela `.flash-amigos` por
+  flash (`paraAmigos`, `_publico` em `camposDestino`, o `gravar` tira o "_"; botão verde "Amigos próximos"; sem lista abre
+  `escolherPessoas`); texto na foto `width: max-content` (perto da borda quebrava letra a letra) e o canvas quebra igual
+  (`quebrarLinhas`, 88% da largura); `.flash-palco { overflow: clip }` (com texto passando da borda o cartão rolava para o lado
+  e cortava os painéis); figurinhas em pílulas `.fig-pilula` (ícone colorido, `i-calendario` novo). **Mensagens:** cartão do
+  flash `.fc-mini > img` (a foto do perfil no topo ficava esticada como faixa), emoji da reação no canto. Respostas da caixa:
+  `.cx-acoes` quebra linha. **Bug antigo:** o X da `#folhaPerfil` FECHADA continuava tocável no canto de cima (só com
+  `.aberta` agora). Teste `t-flash-visor.mjs`; `t-caixa` e `t-enquete2` passam de novo.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
@@ -1281,9 +1299,8 @@ Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) c
     Diário); pedir gênero/data de nascimento a quem não tem (contas antigas sem gênero não entram em público por gênero).
 13. **Conta apagada:** `limpar-contas.mjs`/`conta.js` não apagam `stories/{id}/vistos/{uid}` nem `stories/{id}/reacoes/{uid}`
     da pessoa (o flash some em 24 h, mas os documentos ficam).
-14. **Revisar a ferramenta de texto "Aa" do criador do Flash** (não foi revisada à parte em 29/10).
-15. **Testes que falham desde antes:** `t-enquete2` (notificação do Bruno) e `t-caixa` (para em `.notif`); `t-busca-regiao`
-    (2 itens). Atualizar os testes. Os testes do Diário/Flash precisam do `seed.mjs` antes (dados que sobram atrapalham).
+14. ~~Revisar a ferramenta "Aa"~~ (feita em 30/10: letras, alinhamento, régua, teclado).
+15. **Testes que falham desde antes:** `t-busca-regiao` (2 itens; `t-enquete2` e `t-caixa` passaram em 30/10). Atualizar os testes. Os testes do Diário/Flash precisam do `seed.mjs` antes (dados que sobram atrapalham).
 
 ## Pendências do dono e o que ficou para depois (vindas de sessões anteriores)
 Coisas que só ELE pode fazer (lembrar no momento certo, sem fazer por ele):
