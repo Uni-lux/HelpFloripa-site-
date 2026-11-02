@@ -2717,6 +2717,12 @@ div.cfg2-linha { cursor: default; }
 .story-quadro > .story-fig-toque, .story-quadro > .story-fig-balao { pointer-events: auto; }
 .story-fig-toque { position: absolute; z-index: 3; min-height: 36px; padding: 0; border: 0; border-radius: 12px; background: transparent; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .story-fig-toque:focus-visible { outline: 2px solid #fff; }
+/* balão das figurinhas: mesmo visual do "Ver publicação", mas sem a classe .story-link (que é do link do negócio) */
+.story-fig-balao { position: absolute; z-index: 5; transform: translate(-50%, -100%); display: inline-flex; align-items: center; gap: 6px; max-width: 82%; padding: 10px 14px; border-radius: 12px; background: rgba(255,255,255,.96); color: #111; text-decoration: none; font-weight: 850; font-size: 14.5px; box-shadow: 0 8px 24px rgba(0,0,0,.3); animation: balaoSobe .16s ease-out; }
+.story-fig-balao::after { content: ""; position: absolute; left: 50%; bottom: -6px; width: 12px; height: 12px; background: inherit; transform: translateX(-50%) rotate(45deg); border-radius: 2px; }
+.story-fig-balao > .i:first-child { flex: none; width: 24px; height: 24px; padding: 5px; box-sizing: border-box; border-radius: 50%; background: linear-gradient(135deg, #00adee, #0052d4); color: #fff; }
+.story-fig-balao span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.story-fig-balao > .i:last-child { flex: none; width: 14px; height: 14px; color: #5d6b75; }
 .story-fig-balao[hidden] { display: none; }
 .story-legenda a { pointer-events: auto; color: #fff; font-weight: 850; text-decoration: none; }
 .flash-texto { overflow-wrap: break-word; word-break: normal; }

@@ -13,7 +13,7 @@ import {
   meusSeguindo, escondido, silenciado, alternarSilenciar, obterPerfil, abrirOpcoes, abrirLista, linhaPessoa, pessoasEmPilha,
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados
-} from "./rede.js?v=91";
+} from "./rede.js?v=92";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { seletorDuracao, fimEscolhido, linhaChave, MAX_FLASH_MIN, fimDaEnquete, encerrada, faltaTexto, resultadoFinal, lerContasEnquete } from "./enquetes.js?v=6";
@@ -2461,7 +2461,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
       const area = el("button", "story-fig-toque"); area.type = "button"; area.setAttribute("aria-label", f.rot);
       const w = Math.max(f.w, 0.12), h = Math.max(f.h, 0.045);
       area.style.left = `${(f.x - w / 2) * 100}%`; area.style.top = `${(f.y - h / 2) * 100}%`; area.style.width = `${w * 100}%`; area.style.height = `${h * 100}%`;
-      const balao = el("a", "story-link story-post balao story-fig-balao"); balao.hidden = true; balao.href = f.href || "#";
+      const balao = el("a", "story-fig-balao"); balao.hidden = true; balao.href = f.href || "#";
       const rot = el("span", null, f.rot);
       balao.append(icone(f.ic, "i xs"), rot, icone("avancar", "i xs"));
       balao.style.left = `${Math.min(80, Math.max(20, f.x * 100))}%`; balao.style.top = `${Math.max(12, (f.y - h / 2) * 100 - 5)}%`;
