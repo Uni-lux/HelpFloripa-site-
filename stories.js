@@ -14,7 +14,7 @@ import {
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados,
   responderNoChat, cartaoRespostaCaixa, fecharFolha, ajudaPublico
-} from "./rede.js?v=104";
+} from "./rede.js?v=105";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { combinaPublico, leitorDe, temPublico, resumoPublico, publicoParaGravar } from "./publico-alvo.js?v=1";
@@ -3475,14 +3475,8 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
     }
     // Uma linha só para "1 pessoa mencionada" e "Adicionar ao seu flash" (não empilham por cima da foto).
     const linhaAcoes = () => rodape.querySelector(".story-linha-acoes") || rodape.appendChild(el("div", "story-linha-acoes"));
-    // Repost: crédito de quem fez o flash original (tocar abre o perfil).
+    // Repost: sem o selo "⚡ Flash de X" no topo (pedido dele, 02/11/2026).
     topo.querySelector(".story-repost")?.remove();
-    if (s.repostDe?.autorId) {
-      const r = el("button", "story-repost"); r.type = "button";
-      r.append(icone("raio", "i xs"), document.createTextNode(`Flash de ${String(s.repostDe.nome || "alguém").split(" ")[0]}`));
-      r.addEventListener("click", (e) => { e.stopPropagation(); irParaPerfil(s.repostDe.autorId); });
-      subQuem.appendChild(r);
-    }
     // Também nos perfis de negócio (o dono escolheu ao publicar)
     topo.querySelector(".story-onde")?.remove();
     if (Array.isArray(s.negocios) && s.negocios.length) {

@@ -1390,7 +1390,7 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   ESQUERDA = próxima aba, para a DIREITA = anterior; no Diário (1ª aba) para a direita = Flash (`window.__hfAbrirFlash`,
   feed.js). Aba atual = link `aria-current="page"` da `#barraRede`, troca clicando nele. Carrossel só bloqueia se ainda rola
   para o lado do gesto (`examinar`/`podeRolar`, folga 8 px: o trilho do Explorar para em 2 px). Início e Notificações sem gesto.
-  Selo "⚡ Flash" saiu do topo do visor. **Service worker** (sw.js `hf-app-3`/`hf-arq-1`): `?v=` e o SDK do gstatic vêm do
+  Selos "⚡ Flash" e "⚡ Flash de X" (repost) saíram do topo do visor. **Service worker** (sw.js `hf-app-3`/`hf-arq-1`): `?v=` e o SDK do gstatic vêm do
   aparelho (cache-first; versão nova apaga a velha, até 500), imagens/json do site stale-while-revalidate, páginas da rede com
   navigation preload; registrado também em 127.0.0.1 (testes: `navegador({ sw: true })` +
   `PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS=1`). Medido com 4G lento simulado: perfil 9,7 s → 0,9 s, mural 5,1 → 0,4,
