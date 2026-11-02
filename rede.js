@@ -1205,13 +1205,17 @@ export async function alternarSalvo(post) {
 // Enquete antiga (sem prazo): termina 7 dias depois de publicada (o maior prazo de hoje). Assim o resultado só aparece
 // no fim para quem votou, como nas novas, em vez de mostrar números parciais.
 export const DIAS_ENQUETE_ANTIGA = 7;
+// Cores da enquete e da caixa de perguntas no Flash (quem cria escolhe; "branco" é o padrão e não vai gravado).
+export const CORES_FIG = [["branco", "Branco", "#ffffff"], ["escuro", "Escuro", "#151b21"], ["azul", "Azul", "#00adee"], ["rosa", "Rosa", "#ff3d7f"],
+  ["laranja", "Laranja", "#ff8a00"], ["verde", "Verde", "#22b573"], ["roxo", "Roxo", "#8e2de2"]];
+export const temaFig = (cor) => (CORES_FIG.some(([k]) => k === cor) && cor !== "branco" ? " tema-" + cor : "");
 export function blocoEnquete(item, { tipo = "d", escura = false } = {}) {
   let e = item?.enquete;
   if (!e?.pergunta || !Array.isArray(e.opcoes) || e.opcoes.length < 2) return null;
   // Cópia com o prazo implícito (não mexe na publicação: o voto continua indo SEM fimEm, como a regra pede).
   let implicito = false;
   if (!e.fimEm) { const c = ms(item.agendadoPara || item.criadoEm); if (c) { e = { ...e, fimEm: { toMillis: () => c + DIAS_ENQUETE_ANTIGA * 864e5 } }; implicito = true; } }
-  const box = el("div", "enquete" + (escura ? " escura" : ""));
+  const box = el("div", "enquete" + (escura ? " escura" + temaFig(e.cor) : ""));
   const cab = el("div", "enq-cab");
   const tit = el("span", "enq-tit"); tit.append(icone("enquete", "i xs"), el("span", null, "Enquete"));
   const prazo = el("span", "enq-prazo");
@@ -1332,7 +1336,7 @@ export function blocoCaixa(item, { tipo = "d", escura = false } = {}) {
   if (!c?.pergunta) return null;
   const alvo = `${tipo}_${item.id}`;
   const souAutor = item.autorId === eu.uid;
-  const box = el("div", "caixa-perg" + (escura ? " escura" : "") + (c.anonima ? " anonima" : ""));
+  const box = el("div", "caixa-perg" + (escura ? " escura" + temaFig(c.cor) : "") + (c.anonima ? " anonima" : ""));
   const cab = el("div", "cx-cab");
   const tit = el("span", "cx-tit"); tit.append(icone("caixa", "i xs"), el("span", null, "Caixa de perguntas"));
   cab.appendChild(tit);
@@ -1388,63 +1392,106 @@ export function blocoCaixa(item, { tipo = "d", escura = false } = {}) {
   box.append(form, nota);
   return box;
 }
-// Respostas da caixa (só o autor): anônimas aparecem como "Anônimo".
+// Respostas da caixa (só o autor), organizadas: cartão com a pergunta e os números, filtro Todas | Novas, busca
+// (com muitas respostas) e as respostas por dia (Hoje, Ontem, data), cada uma num balão com as ações embaixo.
+// "Nova" = chegou depois da última vez que você abriu esta caixa (guardado no aparelho, hf-cx-visto-<uid>).
 export async function verRespostasCaixa(item, alvo, aoMudar) {
   const corpo = abrirLista("Respostas");
-  const topo = el("div", "vv-topo"); topo.append(el("strong", null, item.caixa.pergunta), el("small", null, item.caixa.anonima ? "Caixa anônima · você não vê quem respondeu" : "Caixa de perguntas"));
+  const chave = "hf-cx-visto-" + eu.uid;
+  let vistos = {}; try { vistos = JSON.parse(localStorage.getItem(chave) || "{}") || {}; } catch {}
+  const desde = Number(vistos[alvo] || 0);
+  try {
+    vistos[alvo] = Date.now();
+    const ks = Object.keys(vistos); if (ks.length > 200) ks.sort((x, y) => vistos[x] - vistos[y]).slice(0, ks.length - 200).forEach((k) => delete vistos[k]);
+    localStorage.setItem(chave, JSON.stringify(vistos));
+  } catch {}
+  const anon = !!item.caixa.anonima;
+  const topo = el("div", "cxr-topo" + (anon ? " anonima" : ""));
+  const selo = el("span", "cxr-selo"); selo.append(icone(anon ? "mascara" : "caixa", "i xs"), document.createTextNode(anon ? "Caixa de perguntas · anônima" : "Caixa de perguntas"));
+  const nums = el("div", "cxr-nums");
+  topo.append(selo, el("strong", "cxr-perg", item.caixa.pergunta), nums);
+  const filtros = el("div", "cxr-filtros"); filtros.setAttribute("role", "tablist");
+  const busca = el("input", "cxr-busca"); busca.type = "search"; busca.placeholder = "Procurar nas respostas"; busca.setAttribute("aria-label", "Procurar nas respostas"); busca.hidden = true;
+  const lista = el("div", "cxr-lista");
   corpo.replaceChildren(topo, el("div", "lista-vazia", "Carregando..."));
+  let todas = [], filtro = "todas";
+  const nova = (r) => !!desde && ms(r.criadoEm) > desde;
+  const dia = (t) => {
+    const d = new Date(ms(t) || Date.now()), h = new Date(); h.setHours(0, 0, 0, 0);
+    const k = Math.round((h - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 864e5);
+    return k <= 0 ? "Hoje" : k === 1 ? "Ontem" : d.toLocaleDateString("pt-BR", { day: "numeric", month: "long", ...(d.getFullYear() !== h.getFullYear() ? { year: "numeric" } : {}) });
+  };
+  const pintarNums = () => {
+    const n = todas.length, nn = todas.filter(nova).length;
+    nums.replaceChildren(el("span", "cxr-num", `${numero(n)} ${n === 1 ? "resposta" : "respostas"}`));
+    if (nn) nums.appendChild(el("span", "cxr-num novas", `${numero(nn)} ${nn === 1 ? "nova" : "novas"}`));
+    nums.appendChild(el("span", "cxr-num sutil", anon ? "Você não vê quem respondeu" : "Você vê o nome de quem respondeu"));
+    filtros.replaceChildren(...[["todas", `Todas · ${numero(n)}`], ["novas", `Novas · ${numero(nn)}`]].map(([k, rot]) => {
+      const b = el("button", "cxr-filtro" + (filtro === k ? " on" : ""), rot); b.type = "button"; b.setAttribute("role", "tab"); b.setAttribute("aria-selected", String(filtro === k));
+      b.addEventListener("click", () => { filtro = k; pintarNums(); pintarLista(); });
+      return b;
+    }));
+    busca.hidden = n < 8;
+  };
+  function itemResposta(r) {
+    const l = el("article", "cxr-item" + (nova(r) ? " nova" : ""));
+    const av = el("div", "avatar");
+    if (r.anonima) { av.classList.add("anonimo"); av.appendChild(icone("mascara", "i s")); } else pintarAvatar(av, r.foto, r.nome);
+    const tx = el("div", "cxr-corpo");
+    const quem = el("div", "cxr-quem");
+    quem.append(el("strong", null, r.anonima ? "Anônimo" : r.nome || "Usuário"), el("span", null, new Date(ms(r.criadoEm) || Date.now()).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })));
+    if (nova(r)) quem.appendChild(el("b", "cxr-nova", "Nova"));
+    const balao = el("p", "cxr-texto", r.texto);
+    const acoes = el("div", "cxr-acoes");
+    const acao = (ic, rot, fn, extra = "") => { const b = el("button", "cxr-acao" + extra); b.type = "button"; b.append(icone(ic, "i xs"), el("span", null, rot)); b.addEventListener("click", fn); acoes.appendChild(b); return b; };
+    if (!r.anonima && r.uid) {
+      // Responder ali mesmo: um campo abre embaixo e a resposta vai pelo Mensagens.
+      acao("chat", "Responder", () => {
+        if (l.querySelector(".cx-responder")) { l.querySelector(".cx-responder textarea").focus(); return; }
+        const f = el("form", "cx-form cx-responder");
+        const t = document.createElement("textarea"); t.rows = 1; t.maxLength = 900; t.placeholder = `Responder a ${String(r.nome || "essa pessoa").split(" ")[0]} no Mensagens...`;
+        const b = el("button", "cx-enviar"); b.type = "submit"; b.setAttribute("aria-label", "Enviar"); b.appendChild(icone("enviar", "i s"));
+        f.append(t, b); tx.appendChild(f); t.focus();
+        f.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          if (!t.value.trim()) return;
+          b.disabled = true;
+          try {
+            await mandarMensagem(r.uid, { texto: `💬 Sobre a sua resposta “${r.texto.slice(0, 80)}”: ${t.value.trim()}`.slice(0, 1000) }, "Respondeu na caixa de perguntas");
+            f.replaceWith(el("small", "cx-nota", "Enviado no Mensagens ✓"));
+          } catch (err) { b.disabled = false; if (err?.message !== "e-mail") toast("Não foi possível enviar: " + erroAmigavel(err)); }
+        });
+      });
+    }
+    // Pôr a resposta no seu flash (como no Instagram): pergunta + resposta, sem o nome de quem respondeu.
+    acao("raio", "No flash", () => import("./stories.js?v=63").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto }))).title = "Compartilhar esta resposta no seu flash";
+    acao("lixo", "Apagar", async () => {
+      if (!(await confirmarHF({ titulo: "Apagar esta resposta?", texto: "Ela some da sua caixa de perguntas.", ok: "Apagar", icone: "lixo" }))) return;
+      try { await fb.deleteDoc(fb.doc(fb.db, "caixa_respostas", r.id)); todas = todas.filter((x) => x.id !== r.id); pintarNums(); pintarLista(); aoMudar?.(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
+    }, " perigo");
+    tx.append(quem, balao, acoes);
+    l.append(av, tx);
+    if (!r.anonima && r.uid) av.addEventListener("click", () => ganchos.abrirPerfil(r.uid));
+    return l;
+  }
+  function pintarLista() {
+    const q = semAcentoCx(busca.value.trim());
+    const l = todas.filter((r) => (filtro !== "novas" || nova(r)) && (!q || semAcentoCx(`${r.texto} ${r.nome || ""}`).includes(q)));
+    if (!l.length) { lista.replaceChildren(el("div", "lista-vazia", q ? "Nenhuma resposta com esse texto." : filtro === "novas" ? "Nenhuma resposta nova desde a última vez que você abriu." : "Ainda sem respostas.")); return; }
+    const blocos = []; let ult = "";
+    l.forEach((r) => { const d = dia(r.criadoEm); if (d !== ult) { blocos.push(el("p", "cxr-dia", d)); ult = d; } blocos.push(itemResposta(r)); });
+    lista.replaceChildren(...blocos);
+  }
+  busca.addEventListener("input", pintarLista);
   try {
     const s = await fb.getDocs(fb.query(fb.collection(fb.db, "caixa_respostas"), fb.where("autorId", "==", eu.uid), fb.where("alvo", "==", alvo), fb.limit(200)));
-    const lista = s.docs.map((d) => ({ id: d.id, ...d.data() })).filter((r) => !r.uid || !escondido(r.uid)).sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
-    corpo.replaceChildren(topo);
-    if (!lista.length) { corpo.appendChild(el("div", "lista-vazia", "Ainda sem respostas. Quando alguém responder, aparece aqui e nas suas notificações.")); return; }
-    lista.forEach((r) => {
-      const l = el("div", "cx-resp");
-      const av = el("div", "avatar");
-      if (r.anonima) { av.classList.add("anonimo"); av.appendChild(icone("mascara", "i s")); } else pintarAvatar(av, r.foto, r.nome);
-      const tx = el("div", "tx");
-      const quem = el("div", "quem"); quem.append(el("strong", null, r.anonima ? "Anônimo" : r.nome || "Usuário"), el("span", null, tempoRelativo(paraData(r.criadoEm))));
-      tx.append(quem, el("p", null, r.texto));
-      const acoes = el("div", "cx-acoes");
-      if (!r.anonima && r.uid) {
-        const resp = el("button", "btn mini sec"); resp.type = "button"; resp.append(icone("chat", "i xs"), document.createTextNode("Responder"));
-        // Responder ali mesmo: um campo abre embaixo e a resposta vai pelo Mensagens.
-        resp.addEventListener("click", () => {
-          if (l.querySelector(".cx-responder")) { l.querySelector(".cx-responder textarea").focus(); return; }
-          const f = el("form", "cx-form cx-responder");
-          const t = document.createElement("textarea"); t.rows = 1; t.maxLength = 900; t.placeholder = `Responder a ${String(r.nome || "essa pessoa").split(" ")[0]} no Mensagens...`;
-          const b = el("button", "cx-enviar"); b.type = "submit"; b.setAttribute("aria-label", "Enviar"); b.appendChild(icone("enviar", "i s"));
-          f.append(t, b); tx.appendChild(f); t.focus();
-          f.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            if (!t.value.trim()) return;
-            b.disabled = true;
-            try {
-              await mandarMensagem(r.uid, { texto: `💬 Sobre a sua resposta “${r.texto.slice(0, 80)}”: ${t.value.trim()}`.slice(0, 1000) }, "Respondeu na caixa de perguntas");
-              f.replaceWith(el("small", "cx-nota", "Enviado no Mensagens ✓"));
-            } catch (err) { b.disabled = false; if (err?.message !== "e-mail") toast("Não foi possível enviar: " + erroAmigavel(err)); }
-          });
-        });
-        acoes.appendChild(resp);
-      }
-      // Pôr a resposta no seu flash (como no Instagram): pergunta + resposta, sem o nome de quem respondeu.
-      const noFlash = el("button", "btn mini sec"); noFlash.type = "button"; noFlash.append(icone("raio", "i xs"), document.createTextNode("No flash"));
-      noFlash.title = "Compartilhar esta resposta no seu flash";
-      noFlash.addEventListener("click", () => import("./stories.js?v=62").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto })));
-      acoes.appendChild(noFlash);
-      const apagar = el("button", "btn mini sec"); apagar.type = "button"; apagar.append(icone("lixo", "i xs"), document.createTextNode("Apagar"));
-      apagar.addEventListener("click", async () => {
-        if (!(await confirmarHF({ titulo: "Apagar esta resposta?", texto: "Ela some da sua caixa de perguntas.", ok: "Apagar", icone: "lixo" }))) return;
-        try { await fb.deleteDoc(fb.doc(fb.db, "caixa_respostas", r.id)); l.remove(); aoMudar?.(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
-      });
-      acoes.appendChild(apagar);
-      tx.appendChild(acoes);
-      l.append(av, tx);
-      if (!r.anonima && r.uid) av.addEventListener("click", () => ganchos.abrirPerfil(r.uid));
-      corpo.appendChild(l);
-    });
+    todas = s.docs.map((d) => ({ id: d.id, ...d.data() })).filter((r) => !r.uid || !escondido(r.uid)).sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
+    if (!todas.length) { pintarNums(); corpo.replaceChildren(topo, el("div", "lista-vazia", "Ainda sem respostas. Quando alguém responder, aparece aqui e nas suas notificações.")); return; }
+    pintarNums(); pintarLista();
+    corpo.replaceChildren(topo, filtros, busca, lista);
   } catch (err) { corpo.replaceChildren(topo, el("div", "lista-vazia", "Não foi possível carregar: " + erroAmigavel(err))); }
 }
+const semAcentoCx = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
 // Resultado de uma enquete que terminou (vem das notificações): barras, a mais votada e o seu voto.
 export function abrirResultadoEnquete(x) {
@@ -1977,7 +2024,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=62").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=63").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);
@@ -2120,6 +2167,15 @@ export async function podeMarcar(uid) {
     if (v === "seguindo") return (await fb.getDoc(fb.doc(fb.db, "relacoes", `${uid}_${eu.uid}`))).exists();
     return true;
   } catch { return true; }
+}
+// Publicação apagada: os SEUS flashes que compartilhavam ela saem junto (os de outras pessoas o visor pula,
+// porque a publicação não existe mais). Duas igualdades: não precisa de índice composto.
+export async function apagarFlashesDaPublicacao(postId) {
+  try {
+    const x = await fb.getDocs(fb.query(fb.collection(fb.db, "stories"), fb.where("autorId", "==", eu.uid), fb.where("postDe.postId", "==", postId), fb.limit(50)));
+    await Promise.all(x.docs.map((d) => fb.deleteDoc(d.ref).catch(() => {})));
+    return x.size;
+  } catch { return 0; }
 }
 // @usuário do texto -> uid (nicknames/{nick}); no máximo 10. Quem não aceita ser marcado por você fica de fora.
 export async function uidsMencionados(texto) {
@@ -2458,9 +2514,16 @@ async function nominatim(caminho) {
 }
 function locaisRecentes() { try { return JSON.parse(localStorage.getItem(LOCAIS_RECENTES) || "[]").slice(0, 6); } catch { return []; } }
 function guardarLocal(l) { try { localStorage.setItem(LOCAIS_RECENTES, JSON.stringify([l, ...locaisRecentes().filter((x) => x.nome !== l.nome)].slice(0, 6))); } catch {} }
-function escolherLocal() {
+// Escolher um lugar (busca, localização atual, cidade do perfil, recentes). Sem "aoEscolher": vai para a publicação
+// que está sendo escrita; com ele (figurinha de localização do Flash), o lugar escolhido vai para quem chamou.
+export function escolherLocal(aoEscolher) {
   const corpo = abrirLista("Adicionar local");
-  const usar = (l) => { pubLocal = { nome: String(l.nome).slice(0, 80), lat: Number(l.lat), lng: Number(l.lng) }; guardarLocal(pubLocal); pintarExtras(); fecharFolha("folhaLista"); };
+  const usar = (l) => {
+    const v = { nome: String(l.nome).slice(0, 80), lat: Number(l.lat), lng: Number(l.lng) };
+    guardarLocal(v); fecharFolha("folhaLista");
+    if (aoEscolher) { aoEscolher(v); return; }
+    pubLocal = v; pintarExtras();
+  };
   const linha = (ic, titulo, sub, fn) => {
     const b = el("button", "linha-local"); b.type = "button";
     const i = el("span", "ll-ic"); i.appendChild(icone(ic, "i s"));
@@ -2690,7 +2753,7 @@ function ligarCompositor() {
     t.setRangeText(ins, i, t.selectionEnd ?? i, "end"); t.focus(); t.dispatchEvent(new Event("input"));
   });
   $("pubAgendar").addEventListener("click", escolherAgenda);
-  $("pubLocal").addEventListener("click", escolherLocal);
+  $("pubLocal").addEventListener("click", () => escolherLocal());
   $("pubRascunhos").addEventListener("click", abrirRascunhos);
   $("pubSalvarRascunho").addEventListener("click", salvarRascunho);
   $("pubArquivoFoto").addEventListener("change", async () => {

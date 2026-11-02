@@ -1,3 +1,41 @@
+    // Banimento de um programa (um tipo de perfil de negócio ou a Comunidade). Só a moderação cria/apaga;
+    // a pessoa lê o próprio (para ver o motivo e até quando).
+    match /programa_banidos/{id} {
+      allow get: if logado() && (id.split('_')[0] == request.auth.uid || admin());
+      allow list: if admin();
+      allow create, update: if podeModerar()
+                    && request.resource.data.keys().hasOnly(['uid', 'tipo', 'motivo', 'ate', 'por', 'em'])
+                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'comunidade']
+                    && id == request.resource.data.uid + '_' + request.resource.data.tipo
+                    && request.resource.data.motivo is string && request.resource.data.motivo.size() >= 3 && request.resource.data.motivo.size() <= 300
+                    && (request.resource.data.get('ate', null) == null || request.resource.data.ate is timestamp)
+                    && request.resource.data.por == request.auth.uid
+                    && request.resource.data.em == request.time;
+      allow delete: if podeModerar();
+    }
+
+    // =====================================================
+    // CONVERSAS
+    // Documento: conversas/{uidMenor}_{uidMaior}
+    // =====================================================
+    // =====================================================
+    // NOTAS DO NEGÓCIO SOBRE O CLIENTE: notas_clientes/{donoId}_{clienteId}
+    // Etiquetas e anotação particular. Só quem escreveu lê; o cliente não vê.
+    // =====================================================
+    match /notas_clientes/{id} {
+      allow get: if logado() && id.split('_')[0] == request.auth.uid;
+      allow list: if logado() && resource.data.donoId == request.auth.uid;
+      allow create, update: if logado()
+                    && request.resource.data.keys().hasOnly(['donoId', 'clienteId', 'etiquetas', 'nota', 'atualizadoEm'])
+                    && request.resource.data.donoId == request.auth.uid
+                    && request.resource.data.clienteId is string
+                    && id == request.auth.uid + '_' + request.resource.data.clienteId
+                    && request.resource.data.etiquetas is list && request.resource.data.etiquetas.size() <= 8
+                    && valorTextoAte(request.resource.data.get('nota', ''), 1000)
+                    && request.resource.data.atualizadoEm == request.time;
+      allow delete: if logado() && resource.data.donoId == request.auth.uid;
+    }
+
     // Ligações de voz e vídeo (chamadas.js): só entre as duas pessoas de uma conversa que já existe (do site ou do chat
     // da equipe) e sem bloqueio.
     // A chamada guarda a "campainha" (oferta/resposta do WebRTC) e o resultado; áudio e vídeo nunca passam por aqui.
@@ -158,47 +196,5 @@
               && exists(caminho)
               && get(caminho).data.remetenteId == r.remetenteId;
         }
-
-        function mensagemOk() {
-          let d = request.resource.data;
-          return d.keys().hasOnly(['remetenteId', 'texto', 'criadoEm', 'resposta', 'tipoArquivo', 'arquivoUrl', 'nomeArquivo', 'cartao', 'avaliacao'])
-              && (!('tipoArquivo' in d) || d.tipoArquivo in ['imagem', 'video', 'audio', 'cartao', 'avaliacao'])
-              // pedido de avaliação: aponta para um atendimento criado por quem envia
-              && (!('avaliacao' in d)
-                  || (d.avaliacao is map && d.get('tipoArquivo', '') == 'avaliacao'
-                      && d.avaliacao.keys().hasOnly(['pedidoId', 'titulo', 'tipo', 'negocioNome'])
-                      && get(/databases/$(database)/documents/pedidos/$(d.avaliacao.pedidoId)).data.vendedorId == request.auth.uid
-                      && valorTextoAte(d.avaliacao.get('titulo', ''), 120)
-                      && valorTextoAte(d.avaliacao.get('negocioNome', ''), 80)))
-              // anexo: só do próprio site (dentro da mensagem ou Firebase Storage)
-              && (!('arquivoUrl' in d)
-                  || (d.arquivoUrl is string
-                      && d.arquivoUrl.matches('^(data:(image|video|audio)/[^,]{1,80},|https://firebasestorage[.]googleapis[.]com/).*')))
-              && (!('nomeArquivo' in d) || valorTextoAte(d.nomeArquivo, 120))
-              && (!('cartao' in d) || (d.cartao is map && d.get('tipoArquivo', '') == 'cartao'))
-              && (!('resposta' in d) || respostaOk(d.resposta));
-        }
-
-        // Versão anterior guardada ao editar: o texto e a hora que ele tinha (envio ou última edição).
-        function versaoOk(v) {
-          return v is map && v.keys().hasOnly(['texto', 'em'])
-              && v.texto == resource.data.get('texto', '')
-              && v.em == resource.data.get('editadaEm', resource.data.criadoEm);
-        }
-
-        allow read: if logado() && participante();
-        // A moderação abre só a mensagem denunciada (uma por vez, sem listar a conversa).
-        allow get: if podeModerar();
-
-        allow create: if logado()
-                      && emailOk()
-                      && participante()
-                      && semBloqueio()
-                      && outroAtivo()
-                      && ritmoOk('msg')
-                      && request.resource.data.remetenteId == request.auth.uid
-                      && request.resource.data.criadoEm == request.time
-                      && textoAte('texto', 4000)
-                      && mensagemOk();
 
 // ===== FIM DA PARTE 5 DE 16 =====

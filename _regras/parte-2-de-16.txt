@@ -1,3 +1,72 @@
+    // Local para o Brasil todo: estado (UF) e código IBGE da cidade (7 dígitos; os dois
+    // primeiros são o código do estado, então cidade e estado precisam combinar).
+    // Feito com expressões regulares (uma tabela de 27 estados estourava o limite de
+    // 1.000 expressões por gravação do Firestore).
+    function localOk() {
+      let d = request.resource.data;
+      let uf = d.get('uf', null);
+      let ibge = d.get('cidadeIbge', null);
+      return (uf == null || uf == ''
+              || (uf is string && uf.matches('^(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)$')))
+          && (ibge == null
+              || (ibge is int && uf is string
+                  && (uf + string(ibge)).matches('^(RO11|AC12|AM13|RR14|PA15|AP16|TO17|MA21|PI22|CE23|RN24|PB25|PE26|AL27|SE28|BA29|MG31|ES32|RJ33|SP35|PR41|SC42|RS43|MS50|MT51|GO52|DF53)[0-9]{5}$')));
+    }
+    // Endereço detalhado opcional (negócios e anúncios): CEP com 8 números e textos curtos.
+    function enderecoOk() {
+      let cep = request.resource.data.get('cep', null);
+      return (cep == null || cep == '' || (cep is string && cep.matches('^[0-9]{8}$')))
+          && textoAte('bairro', 60)
+          && textoAte('rua', 100)
+          && textoAte('numero', 10)
+          && textoAte('complemento', 60);
+    }
+
+    // Lista opcional com no máximo N itens.
+    function listaAte(campo, max) {
+      return listaValorAte(request.resource.data.get(campo, null), max);
+    }
+    function listaValorAte(v, max) {
+      return v == null || (v is list && v.size() <= max);
+    }
+
+    // Foto só pode vir do próprio site: imagem dentro do documento (sem Storage),
+    // Firebase Storage do projeto ou foto da conta Google. Bloqueia imagens de
+    // sites de terceiros (rastreamento por IP, conteúdo impróprio).
+    // Ponto do endereço (negócio ou anúncio) para "Perto de você": só lat/lng dentro do Brasil.
+    function geoOk(g) {
+      return g == null
+          || (g is map && g.keys().hasOnly(['lat', 'lng'])
+              && g.lat is number && g.lat >= -34 && g.lat <= 6
+              && g.lng is number && g.lng >= -75 && g.lng <= -28);
+    }
+    function fotoOk(v) {
+      return v == null || v == ''
+          || (v is string && v.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/|https://lh3[.]googleusercontent[.]com/).*'));
+    }
+
+    function campoFotoOk(campo) {
+      return !(campo in request.resource.data) || fotoOk(request.resource.data[campo]);
+    }
+
+    // Só os campos que mudaram (para não travar documentos antigos com campos a mais).
+    function mudou() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    // Escondido pela equipe (moderação): o dono não pode mostrar de novo nem tirar a marca.
+    function travaModeracao() {
+      return !mudou().hasAny(['ocultoPelaEquipe'])
+          && !(resource.data.get('ocultoPelaEquipe', false) == true && mudou().hasAny(['ocultoAte']));
+    }
+
+    // A equipe esconde/mostra: só ocultoAte e a marca ocultoPelaEquipe.
+    function moderacaoOk() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ocultoAte', 'ocultoPelaEquipe'])
+          && dataOuNulo('ocultoAte')
+          && request.resource.data.get('ocultoPelaEquipe', false) is bool;
+    }
+
     // Campos novos ou alterados (campos antigos removidos não contam).
     function gravou() {
       let d = request.resource.data.diff(resource.data);
@@ -167,94 +236,5 @@
             || (s is list && s.size() == 7
                 && s.join(';').matches('^(([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9])?(;(([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9])?){6}$'));
       }
-
-      // Atendimento (negócios): horário (resumo e por dia), pausa de almoço, aviso de
-      // ausência com data de volta e tempo médio de resposta.
-      function atendimentoOk() {
-        let a = request.resource.data.get('atendimento', null);
-        return a == null
-            || (a is map
-                && a.keys().hasOnly(['horario', 'semana', 'almoco', 'ausente', 'mensagem', 'volta', 'resposta'])
-                && (!('semana' in a) || semanaOk(a.semana))
-                && (!('almoco' in a) || a.almoco == null || faixaOk(a.almoco))
-                && (!('volta' in a) || a.volta == null || a.volta is timestamp)
-                && (!('ausente' in a) || a.ausente is bool)
-                && (!('mensagem' in a) || (a.mensagem is string && a.mensagem.size() <= 200))
-                && (!('horario' in a) || a.horario == null
-                    || (a.horario is map && a.horario.keys().hasOnly(['dias', 'inicio', 'fim'])
-                        && a.horario.dias is list && a.horario.dias.size() <= 7
-                        && a.horario.inicio is string && a.horario.inicio.size() == 5
-                        && a.horario.fim is string && a.horario.fim.size() == 5))
-                && (!('resposta' in a)
-                    || (a.resposta is map && a.resposta.keys().hasOnly(['media', 'n'])
-                        && a.resposta.media is number && a.resposta.media >= 0 && a.resposta.media <= 1440
-                        && a.resposta.n is int && a.resposta.n >= 0 && a.resposta.n <= 1000)));
-      }
-
-      // Foto nova precisa vir do próprio site (fotos antigas não travam a edição).
-      function fotosOk() {
-        return ((resource != null && !mudou().hasAny(['fotoPerfil'])) || campoFotoOk('fotoPerfil'))
-            && ((resource != null && !mudou().hasAny(['fotoCapa'])) || campoFotoOk('fotoCapa'));
-      }
-
-      // Quem foi bloqueado não abre o perfil de quem bloqueou (a busca em lista continua
-      // aberta a quem está logado, mas o perfil em si não carrega).
-      allow get: if logado()
-                 && (request.auth.uid == userId || !bloqueou(userId, request.auth.uid) || admin());
-      allow list: if logado();
-      // A equipe marca o selo e esconde contas suspensas/banidas.
-      allow update: if podeModerar()
-                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verificado', 'desativadaAte'])
-                    && dataOuNulo('desativadaAte')
-                    // o selo público só acende se a conta já tem o selo (dado pelas regras de usuarios)
-                    && (request.resource.data.get('verificado', false) != true
-                        || get(/databases/$(database)/documents/usuarios/$(userId)).data.get('verificado', false) == true);
-
-      allow create: if logado()
-                    && request.auth.uid == userId
-                    && request.resource.data.uid == userId
-                    && naoTocaCamposProtegidosNoCreate()
-                    && request.resource.data.keys().hasOnly(camposPerfil())
-                    && nickDoDono()
-                    && tamanhosOk()
-                    && opcoesOk()
-                    && fotosOk();
-
-      allow update: if logado()
-                    && request.auth.uid == userId
-                    && request.resource.data.uid == resource.data.uid
-                    && naoTocaCamposProtegidosNoUpdate()
-                    && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['nickname'])
-                        || (nickDoDono() && liberouNickAntigo()))
-                    && gravou().hasOnly(camposPerfil())
-                    && (!mudou().hasAny(['desativadaAte']) || !sancionado(request.auth.uid))
-                    && tamanhosOk()
-                    && opcoesOk()
-                    && fotosOk();
-
-      allow delete: if logado()
-                    && request.auth.uid == userId;
-    }
-
-
-    // =====================================================
-    // RESERVA DE NICKNAMES
-    // =====================================================
-    match /nicknames/{nickname} {
-
-      allow read: if true;
-
-      // Só reserva o @ que o próprio perfil passa a usar na mesma gravação (sem guardar @ sobrando).
-      allow create: if logado()
-                    && request.auth.uid == request.resource.data.uid
-                    && nickname.matches('^[a-z0-9._]{3,20}$')
-                    && getAfter(/databases/$(database)/documents/perfis_publicos/$(request.auth.uid)).data.get('nickname', '') == nickname;
-
-      allow update: if false;
-
-      allow delete: if logado()
-                    && request.auth.uid == resource.data.uid;
-    }
-
 
 // ===== FIM DA PARTE 2 DE 16 =====

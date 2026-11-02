@@ -1,3 +1,90 @@
+      // Promoção/cupom com prazo (até 62 dias): título, texto, código opcional (A-Z e 0-9).
+      function promocaoOk(p) {
+        return p is map
+            && p.keys().hasOnly(['titulo', 'texto', 'codigo', 'ate'])
+            && p.titulo is string && p.titulo.size() >= 3 && p.titulo.size() <= 60
+            && valorTextoAte(p.get('texto', ''), 200)
+            && (p.get('codigo', '') == '' || (p.codigo is string && p.codigo.matches('^[A-Z0-9]{3,20}$')))
+            && p.ate is timestamp && p.ate < request.time + duration.value(62, 'd');
+      }
+
+      // Instagram (só o @, sem link), site (http/https, até 120) e CNPJ (14 números) num regex só;
+      // capa (foto do site); horário de cada dia (7 textos "HH:MM-HH:MM" ou "", domingo a sábado) e promoção.
+      // Só confere o que mudou: a gravação completa ficava perto do limite de 1.000 expressões.
+      function extrasNegocioOk() {
+        let d = request.resource.data;
+        let m = resource == null ? d.keys() : mudou();
+        return (!m.hasAny(['instagram', 'site', 'cnpj'])
+                || [d.get('instagram', ''), d.get('site', ''), d.get('cnpj', '')].join('\n')
+                     .matches('^[A-Za-z0-9._]{0,30}\n(https?://[^ \n]{3,112})?\n([0-9]{14})?$'))
+            && (!m.hasAny(['capa']) || fotoOk(d.get('capa', null)))
+            && (!m.hasAny(['semana']) || d.get('semana', null) == null
+                || (d.semana is list && d.semana.size() == 7
+                    && d.semana.join(';').matches('^(([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9])?(;(([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9])?){6}$')))
+            && (!m.hasAny(['promocao']) || d.get('promocao', null) == null || promocaoOk(d.promocao))
+            && (!m.hasAny(['geo']) || geoOk(d.get('geo', null)))
+            && (!m.hasAny(['saude']) || saudeOk(d.get('saude', null)))
+            && (!m.hasAny(['principal']) || d.get('principal', null) == null
+                || d.principal in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude']);
+      }
+
+      function negocioOk() {
+        return textoAte('nome', 80)
+            && textoAte('descricao', 600)
+            && textoAte('cidade', 60)
+            && localOk()
+            && enderecoOk()
+            && textoAte('whatsapp', 20)
+            && textoAte('regiao', 100)
+            && textoAte('horario', 60)
+            && textoAte('categoriaPersonalizada', 30)
+            && listaAte('itens', 12)
+            && listaAte('fotos', 5)
+            && listaAte('busca', 100)
+            && dataOuNulo('ocultoAte')
+            && ((resource != null && !mudou().hasAny(['foto'])) || campoFotoOk('foto'))
+            && extrasNegocioOk();
+      }
+
+      allow read: if logado();
+
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.donoId == request.auth.uid
+                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude']
+                    && id == request.auth.uid + '_' + request.resource.data.tipo
+                    && request.resource.data.keys().hasOnly(camposNegocio())
+                    && naoTocaCamposProtegidosNoCreate()
+                    && !banidoDoPrograma(request.auth.uid, request.resource.data.tipo)
+                    && contaVerificada()
+                    && (request.resource.data.tipo != 'saude' || request.resource.data.get('saude', null) is map)
+                    && negocioOk();
+
+      allow update: if logado()
+                    && emailOk()
+                    && resource.data.donoId == request.auth.uid
+                    && request.resource.data.donoId == resource.data.donoId
+                    && request.resource.data.tipo == resource.data.tipo
+                    && gravou().hasOnly(camposNegocio())
+                    && naoTocaCamposProtegidosNoUpdate()
+                    && travaModeracao()
+                    && negocioOk();
+
+      allow delete: if logado()
+                    && resource.data.donoId == request.auth.uid;
+
+      // A equipe esconde (ocultoAte) o conteúdo de contas suspensas/banidas.
+      allow update: if podeModerar()
+                    && moderacaoOk();
+    }
+
+
+    // =====================================================
+    // ANÚNCIOS (vários imóveis por pessoa)
+    // Documento: anuncios/{id}
+    // =====================================================
+    match /anuncios/{id} {
+
       function camposAnuncio() {
         return ['donoId', 'tipo', 'ativo', 'titulo', 'finalidade', 'categoria', 'preco', 'condominio', 'iptu',
                 'quartos', 'suites', 'banheiros', 'vagas', 'area', 'andar', 'bairro', 'cidade', 'mobiliado',
@@ -129,44 +216,6 @@
       allow delete: if logado() && (resource.data.donoId == request.auth.uid || podeModerar());
       // A equipe esconde (anúncio com venda, golpe, conta suspensa).
       allow update: if podeModerar() && moderacaoOk();
-    }
-
-    // Banimento de um programa (um tipo de perfil de negócio ou a Comunidade). Só a moderação cria/apaga;
-    // a pessoa lê o próprio (para ver o motivo e até quando).
-    match /programa_banidos/{id} {
-      allow get: if logado() && (id.split('_')[0] == request.auth.uid || admin());
-      allow list: if admin();
-      allow create, update: if podeModerar()
-                    && request.resource.data.keys().hasOnly(['uid', 'tipo', 'motivo', 'ate', 'por', 'em'])
-                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'comunidade']
-                    && id == request.resource.data.uid + '_' + request.resource.data.tipo
-                    && request.resource.data.motivo is string && request.resource.data.motivo.size() >= 3 && request.resource.data.motivo.size() <= 300
-                    && (request.resource.data.get('ate', null) == null || request.resource.data.ate is timestamp)
-                    && request.resource.data.por == request.auth.uid
-                    && request.resource.data.em == request.time;
-      allow delete: if podeModerar();
-    }
-
-    // =====================================================
-    // CONVERSAS
-    // Documento: conversas/{uidMenor}_{uidMaior}
-    // =====================================================
-    // =====================================================
-    // NOTAS DO NEGÓCIO SOBRE O CLIENTE: notas_clientes/{donoId}_{clienteId}
-    // Etiquetas e anotação particular. Só quem escreveu lê; o cliente não vê.
-    // =====================================================
-    match /notas_clientes/{id} {
-      allow get: if logado() && id.split('_')[0] == request.auth.uid;
-      allow list: if logado() && resource.data.donoId == request.auth.uid;
-      allow create, update: if logado()
-                    && request.resource.data.keys().hasOnly(['donoId', 'clienteId', 'etiquetas', 'nota', 'atualizadoEm'])
-                    && request.resource.data.donoId == request.auth.uid
-                    && request.resource.data.clienteId is string
-                    && id == request.auth.uid + '_' + request.resource.data.clienteId
-                    && request.resource.data.etiquetas is list && request.resource.data.etiquetas.size() <= 8
-                    && valorTextoAte(request.resource.data.get('nota', ''), 1000)
-                    && request.resource.data.atualizadoEm == request.time;
-      allow delete: if logado() && resource.data.donoId == request.auth.uid;
     }
 
 // ===== FIM DA PARTE 4 DE 16 =====

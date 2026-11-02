@@ -12,8 +12,8 @@ import {
   $, el, icone, ms, pintarAvatar, toast, erroAmigavel, tempoRelativo, fb, eu, dados, storageFns,
   meusSeguindo, escondido, silenciado, alternarSilenciar, obterPerfil, abrirOpcoes, abrirLista, linhaPessoa, pessoasEmPilha,
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
-  fotosDoPost, urlSegura, lerResumosEstrelas
-} from "./rede.js?v=90";
+  fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados
+} from "./rede.js?v=91";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { seletorDuracao, fimEscolhido, linhaChave, MAX_FLASH_MIN, fimDaEnquete, encerrada, faltaTexto, resultadoFinal, lerContasEnquete } from "./enquetes.js?v=6";
@@ -497,6 +497,35 @@ export async function anelNoPerfil(avatar, uid) {
   } catch {}
 }
 
+// A publicação que um flash compartilhou ainda existe? (guardado na sessão; na dúvida, existe)
+const postsConferidos = new Map();
+function publicacaoExiste(id) {
+  if (!postsConferidos.has(id)) postsConferidos.set(id, fb.getDoc(fb.doc(fb.db, "diario", id)).then((d) => d.exists()).catch(() => true));
+  return postsConferidos.get(id);
+}
+// Figurinhas que quem vê pode tocar (posição em fração do quadro 9:16).
+function figurinhasTocaveis(s) {
+  const l = [], num = (v) => { const n = Number(v); return Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : null; };
+  const ocultas = Array.isArray(s.mencoesOcultas) ? s.mencoesOcultas : [];
+  (Array.isArray(s.toques) ? s.toques : []).slice(0, 8).forEach((t) => {
+    const p = String(t).split("|");
+    if (p[0] === "l") {
+      // localização: "l|nome|lat|lng|x|y|w|h" → as publicações de lá (mesma página do local das publicações)
+      const [, nomeL, lat, lng, x, y, w, h] = p;
+      if (!nomeL || !Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng)) || num(x) == null) return;
+      l.push({ x: num(x), y: num(y), w: num(w) || 0.3, h: num(h) || 0.05, ic: "local", rot: `Publicações em ${nomeL.split(",")[0]}`,
+        href: `feed.html?local=${Number(lat)},${Number(lng)}&n=${encodeURIComponent(nomeL)}` });
+      return;
+    }
+    const [k, v, x, y, w, h] = p;
+    if (!v || num(x) == null || num(y) == null) return;
+    const pos = { x: num(x), y: num(y), w: num(w) || 0.25, h: num(h) || 0.05 };
+    if (k === "h") l.push({ ...pos, ic: "hashtag", rot: `Ver #${v}`, href: `feed.html?tag=${encodeURIComponent(v.toLowerCase())}` });
+    else if (k === "m" && /^[A-Za-z0-9]{1,64}$/.test(v) && !ocultas.includes(v)) l.push({ ...pos, ic: "pessoa", rot: "Ver perfil", uid: v });
+  });
+  return l;
+}
+
 // =====================================================
 // Criar um flash (tela cheia): Texto ou Foto/Vídeo
 // =====================================================
@@ -746,6 +775,11 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   const bAa = el("button", "flash-ferr-btn letra", "Aa"); bAa.type = "button"; bAa.title = "Escrever na foto"; bAa.setAttribute("aria-label", "Escrever na foto");
   const bTrocar = el("button", "flash-ferr-btn"); bTrocar.type = "button"; bTrocar.setAttribute("aria-label", "Trocar a foto"); bTrocar.title = "Trocar"; bTrocar.appendChild(icone("imagem", "i s"));
   const bFig = el("button", "flash-ferr-btn"); bFig.type = "button"; bFig.setAttribute("aria-label", "Figurinhas: horário, data e localização"); bFig.title = "Figurinhas"; bFig.appendChild(icone("figurinha", "i s"));
+  // Menções (@): o número mostra quantas pessoas estão mencionadas (figurinha, texto ou só aviso).
+  const bArroba = el("button", "flash-ferr-btn flash-arroba"); bArroba.type = "button"; bArroba.title = "Menções"; bArroba.setAttribute("aria-label", "Menções");
+  const contaArroba = el("b", "flash-onde-n"); contaArroba.hidden = true;
+  bArroba.append(el("span", "arr", "@"), contaArroba);
+  bArroba.addEventListener("pointerdown", (e) => e.preventDefault());
   const bPincel = el("button", "flash-ferr-btn"); bPincel.type = "button"; bPincel.setAttribute("aria-label", "Desenhar"); bPincel.title = "Desenhar"; bPincel.appendChild(icone("pincel", "i s"));
   const bFiltros = el("button", "flash-ferr-btn", "✨"); bFiltros.type = "button"; bFiltros.setAttribute("aria-label", "Filtros"); bFiltros.title = "Filtros";
   // Foto (ou câmera) dentro de uma caixa: o filtro de cor vai na caixa e a "pele suave" é uma cópia desfocada por cima.
@@ -784,7 +818,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     palco.style.background = "";
     palco.classList.toggle("modo-texto", modo === "texto");
     camada.hidden = modo !== "foto";
-    legenda.remove(); area.remove(); escolher.remove(); camUI.remove(); contagemCam.remove(); tiraFiltros.remove();
+    legenda.remove(); if (modo !== "texto") area.remove(); escolher.remove(); camUI.remove(); contagemCam.remove(); tiraFiltros.remove();
     if (modo === "texto" && cam) pararCamera();
     if (modo === "texto") {
       const [a, b] = FUNDOS[fundoI];
@@ -795,10 +829,10 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       area.style.color = corTexto(fundoI);
       area.classList.toggle("neon", L.sombra);
       bLetra.style.font = L.css.replace("1em", "15px");
-      palco.appendChild(area);
-      ferramentas.append(bLetra, bFundo);
+      if (!area.isConnected) palco.appendChild(area);
+      ferramentas.append(bLetra, bFundo, bArroba);
       if (meusNeg.length) ferramentas.append(bOnde);
-      setTimeout(() => area.focus(), 60);
+      if (document.activeElement !== area) setTimeout(() => area.focus(), 60);
     } else if (cam) {
       midiaBox.appendChild(camBox);
       pintarFiltroNaTela();
@@ -812,11 +846,11 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     } else if (foto || video) {
       if (foto) {
         midiaBox.appendChild(fotoBox); posicionar(); pintarFiltroNaTela();
-        ferramentas.append(bAa, bFig, bPincel, bFiltros, bTrocar);
+        ferramentas.append(bAa, bFig, bArroba, bPincel, bFiltros, bTrocar);
         if (meusNeg.length) ferramentas.prepend(bOnde);
         bFiltros.classList.toggle("on", filtrosAbertos);
         if (filtrosAbertos) { pintarTira(); palco.appendChild(tiraFiltros); }
-      } else { midiaBox.appendChild(video.el); ferramentas.append(bTrocar); if (meusNeg.length) ferramentas.prepend(bOnde); }
+      } else { midiaBox.appendChild(video.el); ferramentas.append(bArroba, bTrocar); if (meusNeg.length) ferramentas.prepend(bOnde); }
       palco.appendChild(legenda);
     } else {
       palco.appendChild(escolher);
@@ -826,6 +860,8 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     publicar.disabled = !prontoParaPublicar();
   }
   area.addEventListener("input", () => { ajustarLetra(); publicar.disabled = !area.value.trim(); });
+  // Trocar letra/fundo NÃO tira o foco do texto (antes o teclado piscava e o cartão era medido de novo, espremido).
+  [bFundo, bLetra].forEach((b) => b.addEventListener("pointerdown", (e) => e.preventDefault()));
   bFundo.addEventListener("click", () => { fundoI = (fundoI + 1) % FUNDOS.length; pintar(); });
   bLetra.addEventListener("click", () => { letraI = (letraI + 1) % LETRAS.length; toast(`Letra: ${LETRAS[letraI].nome}`); pintar(); });
   mTexto.addEventListener("click", () => { modo = "texto"; pintar(); });
@@ -896,11 +932,15 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   // parte do cartão que continua à vista (--tecl = quanto o teclado cobre).
   const toqueTela = matchMedia("(pointer: coarse)").matches;
   const digitandoAqui = () => { const a = document.activeElement; return !!a && fundo.contains(a) && (a.tagName === "TEXTAREA" || (a.tagName === "INPUT" && !/^(range|checkbox|radio|button|submit)$/.test(a.type))); };
-  let alturaFixa = 0, larguraFixa = 0;
+  let alturaFixa = 0, larguraFixa = 0, vhMax = 0;
   function medirCartao() {
     if (!fundo.isConnected) return;
     const vh = window.visualViewport?.height || innerHeight;
-    if (toqueTela && alturaFixa && innerWidth === larguraFixa && digitandoAqui()) {
+    if (innerWidth !== larguraFixa) vhMax = 0;
+    // Tela bem mais baixa que a maior já vista nesta largura = teclado aberto (mesmo no instante em que o foco
+    // trocou de campo): o cartão não é medido de novo.
+    const tecladoAberto = toqueTela && vhMax > 0 && vh < vhMax - 120;
+    if (toqueTela && alturaFixa && innerWidth === larguraFixa && (digitandoAqui() || tecladoAberto)) {
       const visivel = Math.max(180, Math.min(alturaFixa, vh - palco.getBoundingClientRect().top - 6));
       const coberto = Math.round(alturaFixa - visivel);
       fundo.style.setProperty("--tecl", coberto + "px");
@@ -909,7 +949,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     }
     fundo.classList.remove("teclado"); fundo.style.setProperty("--tecl", "0px");
     palco.style.height = "";
-    alturaFixa = palco.offsetHeight; larguraFixa = innerWidth;
+    alturaFixa = palco.offsetHeight; larguraFixa = innerWidth; vhMax = Math.max(vhMax, vh);
     if (toqueTela && alturaFixa) palco.style.height = alturaFixa + "px";
   }
   medirCartao();
@@ -939,7 +979,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       // Prévia da caixa de perguntas (quem vê escreve a resposta; aqui só arrasta ou toca para editar).
       e.className = "flash-txt flash-enq";
       e.style.fontSize = Math.round(W * 0.042) + "px";
-      const card = el("div", "fe-enq fe-cx");
+      const card = el("div", "fe-enq fe-cx" + temaFig(t.tema));
       const cab = el("small", "fe-cx-cab"); cab.append(icone(t.anonima ? "mascara" : "caixa", "i xs"), document.createTextNode(t.anonima ? "PERGUNTAS · ANÔNIMA" : "PERGUNTAS"));
       card.append(cab, el("strong", null, t.pergunta), el("span", "fe-cx-campo", "Escreva aqui..."));
       e.replaceChildren(card);
@@ -949,7 +989,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       // Prévia da enquete (quem vê vota no flash; aqui só arrasta ou toca para editar).
       e.className = "flash-txt flash-enq";
       e.style.fontSize = Math.round(W * 0.042) + "px";
-      const card = el("div", "fe-enq"); card.appendChild(el("strong", null, t.pergunta));
+      const card = el("div", "fe-enq" + temaFig(t.tema)); card.appendChild(el("strong", null, t.pergunta));
       t.opcoes.forEach((o) => card.appendChild(el("span", null, o)));
       const d = t.duracao || { dur: 1440 };
       card.appendChild(el("small", "fe-enq-dur", d.fim ? `Termina às ${new Date(d.fim).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : `Dura ${d.dur >= 1440 ? "24 h" : d.dur / 60 + " h"}`));
@@ -963,6 +1003,9 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       e.style.color = es.cor;
       e.style.background = Array.isArray(es.fundo) ? `linear-gradient(135deg, ${es.fundo[0]}, ${es.fundo[1]})` : es.fundo;
       e.style.boxShadow = es.borda ? `inset 0 0 0 1.5px ${es.borda}` : "0 4px 14px rgba(0,0,0,.25)";
+      // Menção oculta: fica apagadinha aqui e NÃO vai desenhada no flash (a pessoa só recebe o aviso).
+      e.classList.toggle("oculta", !!t.oculta);
+      if (t.oculta) e.title = "Menção oculta: não aparece no flash";
       return;
     }
     e.style.font = LETRAS[t.letra].css.replace("1em", Math.round(t.tam * W) + "px");
@@ -993,7 +1036,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     const fim = (ev) => {
       if (!p0) return;
       p0 = null; palco.classList.remove("arrastando-txt"); guias.querySelector(".v").classList.remove("on");
-      if (lixo.classList.contains("sobre")) { lixo.classList.remove("sobre"); e.remove(); textos.splice(textos.indexOf(t), 1); navigator.vibrate?.(12); return; }
+      if (lixo.classList.contains("sobre")) { lixo.classList.remove("sobre"); e.remove(); textos.splice(textos.indexOf(t), 1); navigator.vibrate?.(12); pintarArroba(); return; }
       if (!mexeu && ev.type === "pointerup") { if (t.enq) editarEnquete(t); else if (t.cx) editarCaixa(t); else if (t.lk) escolherNegocio(t); else if (t.fig) { t.estilo = (t.estilo + 1) % EST_FIG.length; pintarTexto(t); } else if (t.emoji) { t.tam = t.tam >= 0.26 ? 0.1 : +(t.tam + 0.06).toFixed(3); pintarTexto(t); } else editarTexto(t); }
     };
     e.addEventListener("pointerup", fim);
@@ -1019,7 +1062,8 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     pilula("caixa", "Perguntas", "#e5487f", () => { pn.remove(); editarCaixa(textos.find((t) => t.cx) || null); });
     pilula("pessoa-mais", "Menção", "#ff8a00", () => { pn.remove(); escolherMencao(); });
     pilula("loja", "Link do negócio", "#00adee", () => { pn.remove(); escolherNegocio(textos.find((t) => t.lk) || null); });
-    pilula("local", "Localização", "#7c5cff", () => escolherLocal(localPerfil));
+    // Localização de verdade (como no Instagram): busca o lugar e quem vê toca na figurinha e vê as publicações de lá.
+    pilula("local", "Localização", "#7c5cff", () => { pn.remove(); escolherLugarFig(); });
     pilula("hashtag", "Hashtag", "#ff3d7f", () => escolherHashtag());
     pilula("figurinha", "Emoji", "#f5a400", () => escolherEmoji());
     pilula("relogio", "Horário", "#2fbf71", () => { pn.remove(); colocarFig("hora", textoFigurinha("hora")); }, textoFigurinha("hora"));
@@ -1059,6 +1103,18 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   function colocarFig(fig, texto, extra = {}) {
     const y = 0.22 + (textos.filter((t) => t.fig).length % 4) * 0.1;
     criarTexto({ fig, texto, estilo: 0, x: 0.5, y, tam: fig === "hora" ? 0.11 : 0.055, letra: 0, cor: "#fff", destaque: false, ...extra });
+    pintarArroba();
+  }
+  // A folha de escolher o lugar fica por cima do criador; ao fechar, o criador continua travando a página.
+  function escolherLugarFig() {
+    const f = $("folhaLista");
+    const volta = () => { f?.removeEventListener("fechada", volta); if (fundo.isConnected) document.body.classList.add("travado"); };
+    f?.addEventListener("fechada", volta);
+    escolherLugar((l) => {
+      textos.filter((x) => x.fig === "local").forEach((x) => { x.el.remove(); textos.splice(textos.indexOf(x), 1); });
+      colocarFig("local", "📍 " + String(l.nome).slice(0, 40), { lugar: l });
+      document.body.classList.add("travado");
+    });
   }
   // Enquete no flash: pergunta e 2 a 4 opções; quem vê vota na hora (não vai desenhada na foto).
   function editarEnquete(t) {
@@ -1084,8 +1140,8 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     pintarOps();
     // Duração: no flash vai até 24 h (acaba junto com ele).
     const duracao = { ...(t?.duracao || { dur: 1440 }) };
-    const extras = { anonima: !!t?.anonima };
-    box.append(perg, lista, linhaChave(extras, "anonima", { titulo: "Votação anônima", sub: "Ninguém vê quem votou, nem você", escuro: true }), seletorDuracao(duracao, { maxMin: MAX_FLASH_MIN, escuro: true }));
+    const extras = { anonima: !!t?.anonima, cor: t?.cor || "branco" };
+    box.append(perg, lista, seletorCor(extras), linhaChave(extras, "anonima", { titulo: "Votação anônima", sub: "Ninguém vê quem votou, nem você", escuro: true }), seletorDuracao(duracao, { maxMin: MAX_FLASH_MIN, escuro: true }));
     pn.append(cab, box);
     palco.appendChild(pn);
     setTimeout(() => perg.focus(), 50);
@@ -1094,9 +1150,24 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       if (!pergunta) { toast("Escreva a pergunta."); perg.focus(); return; }
       if (opcoes.length < 2) { toast("Coloque pelo menos 2 opções."); return; }
       pn.remove();
-      if (t) { t.pergunta = pergunta; t.opcoes = opcoes; t.duracao = duracao; t.anonima = extras.anonima; pintarTexto(t); }
-      else criarTexto({ enq: true, pergunta, opcoes, duracao, anonima: extras.anonima, texto: "", x: 0.5, y: 0.6, tam: 0.05, letra: 0, cor: "#111", destaque: false });
+      if (t) { t.pergunta = pergunta; t.opcoes = opcoes; t.duracao = duracao; t.anonima = extras.anonima; t.tema = extras.cor; pintarTexto(t); }
+      else criarTexto({ enq: true, pergunta, opcoes, duracao, anonima: extras.anonima, tema: extras.cor, texto: "", x: 0.5, y: 0.6, tam: 0.05, letra: 0, cor: "#111", destaque: false });
     });
+  }
+  // Cor da enquete / caixa de perguntas (bolinhas; a escolhida fica com o anel).
+  function seletorCor(estado) {
+    const w = el("div", "fe-cor-fig"); w.setAttribute("role", "radiogroup"); w.setAttribute("aria-label", "Cor");
+    const rot = el("span", "fe-cor-rot", "Cor");
+    const bolas = el("div", "fe-cor-bolas");
+    const pintarB = () => [...bolas.children].forEach((b) => { const on = b.dataset.cor === estado.cor; b.classList.toggle("on", on); b.setAttribute("aria-checked", String(on)); });
+    CORES_FIG.forEach(([k, nome]) => {
+      const b = el("button", "fe-cor-bola tema-" + k); b.type = "button"; b.dataset.cor = k; b.setAttribute("role", "radio"); b.setAttribute("aria-label", nome); b.title = nome;
+      b.addEventListener("click", () => { estado.cor = k; pintarB(); });
+      bolas.appendChild(b);
+    });
+    pintarB();
+    w.append(rot, bolas);
+    return w;
   }
   // Caixa de perguntas no flash: o texto e se as respostas são anônimas (quem vê responde por cima do flash).
   function editarCaixa(t) {
@@ -1106,8 +1177,8 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     cab.append(el("strong", "figs-tit", "Caixa de perguntas"), el("span", "esp"), ok);
     const box = el("div", "enq-ed");
     const perg = el("input", "enq-ed-perg"); perg.type = "text"; perg.maxLength = 120; perg.placeholder = "Me faça uma pergunta"; perg.value = t?.pergunta || "Me faça uma pergunta";
-    const estado = { anonima: !!t?.anonima };
-    box.append(perg, el("small", "enq-ed-dica", "Quem vê o flash escreve a resposta numa caixa de texto. As respostas chegam só para você."),
+    const estado = { anonima: !!t?.anonima, cor: t?.tema || "branco" };
+    box.append(perg, el("small", "enq-ed-dica", "Quem vê o flash escreve a resposta numa caixa de texto. As respostas chegam só para você."), seletorCor(estado),
       linhaChave(estado, "anonima", { titulo: "Respostas anônimas", sub: "Você não vê quem respondeu", escuro: true }));
     pn.append(cab, box);
     palco.appendChild(pn);
@@ -1116,8 +1187,8 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       const pergunta = perg.value.trim().slice(0, 120);
       if (!pergunta) { toast("Escreva o texto da caixa."); perg.focus(); return; }
       pn.remove();
-      if (t) { t.pergunta = pergunta; t.anonima = estado.anonima; pintarTexto(t); }
-      else criarTexto({ cx: true, pergunta, anonima: estado.anonima, texto: "", x: 0.5, y: 0.42, tam: 0.05, letra: 0, cor: "#111", destaque: false });
+      if (t) { t.pergunta = pergunta; t.anonima = estado.anonima; t.tema = estado.cor; pintarTexto(t); }
+      else criarTexto({ cx: true, pergunta, anonima: estado.anonima, tema: estado.cor, texto: "", x: 0.5, y: 0.42, tam: 0.05, letra: 0, cor: "#111", destaque: false });
     });
   }
   // Link para o perfil de um negócio: os seus primeiro, e a busca entre todos os negócios do site.
@@ -1163,39 +1234,222 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     busca.addEventListener("input", pintarL);
     pintarL();
   }
-  // Menção: escolher a pessoa (quem você segue e com quem conversou); vira "@usuário" na foto e ela é avisada.
+  // ---------- menções (@) ----------
+  // Três jeitos de mencionar: a figurinha "@usuário" (dá para ocultar), o "@" escrito no texto ou na legenda (as
+  // sugestões aparecem enquanto digita, como nos apps) e a menção OCULTA (a pessoa é avisada e pode pôr o flash no dela,
+  // mas o nome não aparece para quem vê). Até 10 pessoas. O botão "@" organiza tudo numa lista.
+  const avisos = new Map();  // uid -> perfil (menção oculta, sem figurinha nem texto)
+  const nickUid = new Map(); // nick -> uid (escolhidos nas sugestões)
+  let pessoasMenc = null;
+  const RECENTES_M = "hf-mencoes-rec-" + eu.uid;
+  const recentesM = () => { try { return JSON.parse(localStorage.getItem(RECENTES_M) || "[]"); } catch { return []; } };
+  const lembrarM = (uid) => { try { localStorage.setItem(RECENTES_M, JSON.stringify([uid, ...recentesM().filter((u) => u !== uid)].slice(0, 20))); } catch {} };
+  const semAc = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  async function pessoasParaMencionar() {
+    if (pessoasMenc) return pessoasMenc;
+    const uids = [...new Set([...recentesM(), ...meusSeguindo])].filter((u) => u !== eu.uid && !escondido(u)).slice(0, 120);
+    pessoasMenc = (await Promise.all(uids.map(async (u) => ({ uid: u, ...(await obterPerfil(u).catch(() => ({}))) })))).filter((p) => p.nickname);
+    return pessoasMenc;
+  }
+  // Ordem "inteligente": @ que começa com o que foi digitado > nome que começa > contém; quem você mencionou há pouco
+  // sobe. Com 2 letras ou mais e poucas pessoas, procura também entre todos os @ do site.
+  async function sugerirPessoas(q) {
+    const base = await pessoasParaMencionar(), rec = recentesM();
+    const nota = (p) => {
+      const n = String(p.nickname), nm = semAc(p.nome);
+      let v = !q ? 1 : n.startsWith(q) ? 4 : nm.split(/\s+/).some((w) => w.startsWith(q)) ? 3 : n.includes(q) || nm.includes(q) ? 2 : 0;
+      if (v && rec.includes(p.uid)) v += 1.5 - rec.indexOf(p.uid) * 0.05;
+      return v;
+    };
+    let l = base.map((p) => [nota(p), p]).filter(([v]) => v > 0).sort((x, y) => y[0] - x[0]).map(([, p]) => p).slice(0, 8);
+    if (q.length >= 2 && l.length < 8) {
+      try {
+        const x = await fb.getDocs(fb.query(fb.collection(fb.db, "nicknames"), fb.where(fb.documentId(), ">=", q), fb.where(fb.documentId(), "<=", q + "\uf8ff"), fb.limit(8)));
+        const novos = x.docs.map((d) => d.data()?.uid).filter((u) => typeof u === "string" && u !== eu.uid && !escondido(u) && !l.some((p) => p.uid === u));
+        const mais = await Promise.all(novos.map(async (u) => ({ uid: u, ...(await obterPerfil(u).catch(() => ({}))) })));
+        l = [...l, ...mais.filter((p) => p.nickname)].slice(0, 8);
+      } catch {}
+    }
+    return l;
+  }
+  const textosComArroba = () => [modo === "texto" ? area.value : "", legenda.value, ...textos.filter((t) => !t.fig && !t.enq && !t.cx && !t.lk && !t.emoji).map((t) => t.texto)].join("\n");
+  const nicksNoTexto = () => [...new Set([...textosComArroba().matchAll(/(^|[^\w@#])@([a-z0-9._]{3,20})/gi)].map((m) => m[2].toLowerCase().replace(/\.+$/, "")))];
+  const figMencoes = () => textos.filter((t) => t.fig === "mencao" && t.uid);
+  const totalMencoes = () => new Set([...figMencoes().map((t) => t.uid), ...nicksNoTexto().map((n) => nickUid.get(n) || "@" + n), ...avisos.keys()]).size;
+  function pintarArroba() {
+    const n = totalMencoes();
+    contaArroba.textContent = String(n); contaArroba.hidden = !n;
+    bArroba.classList.toggle("on", n > 0);
+    bArroba.setAttribute("aria-label", n ? `Menções: ${n} ${n === 1 ? "pessoa" : "pessoas"}` : "Menções");
+  }
+  async function podeEsta(p, contar = true) {
+    if (!(await podeMarcar(p.uid))) { toast(`${String(p.nome || "Essa pessoa").split(" ")[0]} não aceita ser mencionada por você.`); return false; }
+    if (contar && totalMencoes() >= 10) { toast("Dá para mencionar até 10 pessoas em cada flash."); return false; }
+    return true;
+  }
+  async function mencionarOculta(p) {
+    if (avisos.has(p.uid)) return true;
+    if (!(await podeEsta(p))) return false;
+    avisos.set(p.uid, p); lembrarM(p.uid); pintarArroba();
+    toast(`@${p.nickname} recebe o aviso, mas o nome não aparece no flash`);
+    return true;
+  }
+  // Sugestões enquanto digita "@": uma fileira por cima do teclado. Tocar põe o "@usuário"; o olho cortado menciona
+  // sem aparecer.
+  const tiraArroba = el("div", "fe-arroba"); tiraArroba.setAttribute("role", "listbox"); tiraArroba.setAttribute("aria-label", "Pessoas para mencionar");
+  let buscaArroba = 0;
+  const esconderArroba = () => { buscaArroba++; tiraArroba.remove(); };
+  function ligarArroba(campo) {
+    const ver = async () => {
+      const ant = campo.value.slice(0, campo.selectionStart ?? campo.value.length);
+      const m = ant.match(/(^|[\s(])@([a-z0-9._]{0,20})$/i);
+      if (!m) { esconderArroba(); return; }
+      const q = m[2].toLowerCase(), id = ++buscaArroba;
+      const l = await sugerirPessoas(q);
+      if (id !== buscaArroba || document.activeElement !== campo) return;
+      tiraArroba.replaceChildren(...(l.length ? l.map((p) => itemArroba(p, campo, m[2].length)) : [el("span", "fa-vazio", q ? `Ninguém com @${q}` : "Siga pessoas para mencioná-las")]));
+      if (!tiraArroba.isConnected) palco.appendChild(tiraArroba);
+    };
+    campo.addEventListener("input", () => { ver(); pintarArroba(); });
+    campo.addEventListener("click", ver);
+    campo.addEventListener("keyup", (e) => { if (e.key.startsWith("Arrow")) ver(); });
+    campo.addEventListener("blur", () => setTimeout(() => { if (document.activeElement !== campo) esconderArroba(); }, 150));
+  }
+  function itemArroba(p, campo, nq) {
+    const b = el("div", "fa-item"); b.setAttribute("role", "option");
+    const usar = el("button", "fa-usar"); usar.type = "button";
+    const av = el("span", "avatar"); pintarAvatar(av, p.fotoPerfil, p.nome);
+    const tx = el("span", "tx"); tx.append(el("strong", null, "@" + p.nickname), el("small", null, p.nome || ""));
+    usar.append(av, tx);
+    const oc = el("button", "fa-oculta"); oc.type = "button"; oc.title = "Mencionar sem aparecer";
+    oc.setAttribute("aria-label", `Mencionar @${p.nickname} sem aparecer no flash`); oc.appendChild(icone("olho-off", "i xs"));
+    [usar, oc].forEach((x) => x.addEventListener("pointerdown", (e) => e.preventDefault())); // o teclado continua aberto
+    const trocarToken = (por) => {
+      const pos = campo.selectionStart ?? campo.value.length, ini = Math.max(0, pos - nq - 1);
+      campo.value = (campo.value.slice(0, ini) + por + campo.value.slice(pos)).slice(0, campo.maxLength > 0 ? campo.maxLength : 9999);
+      const c = Math.min(campo.value.length, ini + por.length); campo.setSelectionRange(c, c);
+      campo.dispatchEvent(new Event("input", { bubbles: true }));
+    };
+    usar.addEventListener("click", async () => {
+      if (!nickUid.has(p.nickname) && !(await podeEsta(p))) return;
+      nickUid.set(p.nickname, p.uid); lembrarM(p.uid); trocarToken("@" + p.nickname + " "); esconderArroba(); pintarArroba();
+    });
+    oc.addEventListener("click", async () => { if (await mencionarOculta(p)) { trocarToken(""); esconderArroba(); } });
+    b.append(usar, oc);
+    return b;
+  }
+  // Escolher alguém para mencionar (figurinha no modo foto; no modo texto, "@usuário" no texto). Cada pessoa tem
+  // também o botão de menção oculta.
   async function escolherMencao() {
     palco.querySelector(".flash-figs")?.remove();
     const pn = el("div", "flash-figs");
     const cab = el("div", "fe-cab"); const ok = el("button", "fe-pronto", "Fechar"); ok.type = "button";
     cab.append(el("strong", "figs-tit", "Mencionar"), el("span", "esp"), ok);
-    const busca = el("input", "fe-local"); busca.type = "search"; busca.placeholder = "Buscar pessoas"; busca.setAttribute("aria-label", "Buscar pessoas");
+    const busca = el("input", "fe-local"); busca.type = "search"; busca.placeholder = "Buscar pelo nome ou @"; busca.setAttribute("aria-label", "Buscar pessoas"); busca.autocomplete = "off";
     const lista = el("div", "mencao-lista");
-    const corpo = el("div", "mencao-corpo"); corpo.append(busca, lista);
+    const corpo = el("div", "mencao-corpo");
+    corpo.append(busca, el("p", "figs-dica", modo === "texto" ? "Toque para pôr o @ no texto · olho cortado: a pessoa é avisada sem o nome aparecer" : "Toque para pôr a figurinha · olho cortado: a pessoa é avisada sem o nome aparecer"), lista);
     pn.append(cab, corpo);
     palco.appendChild(pn);
     ok.addEventListener("click", () => pn.remove());
     lista.appendChild(el("p", "figs-dica", "Carregando..."));
-    const uids = [...meusSeguindo].filter((u) => !escondido(u)).slice(0, 80);
-    const pessoas = (await Promise.all(uids.map(async (u) => ({ uid: u, ...(await obterPerfil(u).catch(() => ({}))) })))).filter((p) => p.nickname);
-    const pintarL = () => {
-      const q = busca.value.trim().toLowerCase().replace(/^@/, "");
-      const l = pessoas.filter((p) => !q || String(p.nome || "").toLowerCase().includes(q) || String(p.nickname).includes(q)).slice(0, 30);
+    let id = 0;
+    const pintarL = async () => {
+      const q = semAc(busca.value.trim()).replace(/^@/, ""), meu = ++id;
+      const l = await sugerirPessoas(q);
+      if (meu !== id) return;
       lista.replaceChildren(...(l.length ? l.map((p) => {
-        const b = el("button", "mencao-item"); b.type = "button";
+        const linha = el("div", "mencao-item fm-linha");
+        const b = el("button", "fm-usar"); b.type = "button";
         const av = el("span", "avatar"); pintarAvatar(av, p.fotoPerfil, p.nome);
         const tx = el("span", "tx"); tx.append(el("strong", null, p.nome || "Usuário"), el("small", null, "@" + p.nickname));
         b.append(av, tx);
+        const oc = el("button", "fa-oculta"); oc.type = "button"; oc.title = "Mencionar sem aparecer"; oc.setAttribute("aria-label", `Mencionar @${p.nickname} sem aparecer`);
+        oc.append(icone("olho-off", "i xs"));
+        if (avisos.has(p.uid)) oc.classList.add("on");
         b.addEventListener("click", async () => {
-          if (!(await podeMarcar(p.uid))) { toast(`${String(p.nome || "Essa pessoa").split(" ")[0]} não aceita ser mencionada por você.`); return; }
-          pn.remove(); colocarFig("mencao", "@" + p.nickname, { uid: p.uid });
+          if (!(await podeEsta(p))) return;
+          pn.remove(); lembrarM(p.uid); nickUid.set(p.nickname, p.uid);
+          if (modo === "texto") {
+            area.value = (area.value.trimEnd() + " @" + p.nickname + " ").replace(/^ /, "").slice(0, area.maxLength);
+            area.dispatchEvent(new Event("input")); area.focus(); pintarArroba(); return;
+          }
+          colocarFig("mencao", "@" + p.nickname, { uid: p.uid });
         });
-        return b;
-      }) : [el("p", "figs-dica", pessoas.length ? "Ninguém com esse nome." : "Siga pessoas para mencionar no flash.")]));
+        oc.addEventListener("click", async () => { if (await mencionarOculta(p)) pn.remove(); });
+        linha.append(b, oc);
+        return linha;
+      }) : [el("p", "figs-dica", q ? "Ninguém com esse nome ou @." : "Siga pessoas para mencionar no flash.")]));
     };
     busca.addEventListener("input", pintarL);
     pintarL();
     setTimeout(() => busca.focus(), 50);
+  }
+  // Lista de quem está mencionado: figurinhas (mostrar/ocultar, tirar), escritos no texto e os ocultos.
+  async function abrirMencoes() {
+    palco.querySelector(".flash-figs")?.remove();
+    esconderArroba();
+    const pn = el("div", "flash-figs flash-mencoes");
+    const cab = el("div", "fe-cab"); const ok = el("button", "fe-pronto", "Pronto"); ok.type = "button";
+    cab.append(el("strong", "figs-tit", "Menções"), el("span", "esp"), ok);
+    const corpo = el("div", "mencao-corpo");
+    const add = el("button", "fm-add"); add.type = "button"; add.append(icone("pessoa-mais", "i s"), el("span", null, "Mencionar alguém"));
+    const lista = el("div", "mencao-lista");
+    corpo.append(add, el("p", "figs-dica", "Quem você menciona recebe um aviso e pode pôr o seu flash no dele. Oculta: a pessoa é avisada, mas o nome não aparece para quem vê. Dica: escreva @ no texto ou na legenda."), lista);
+    pn.append(cab, corpo); palco.appendChild(pn);
+    ok.addEventListener("click", () => pn.remove());
+    add.addEventListener("click", () => { if (totalMencoes() >= 10) { toast("Dá para mencionar até 10 pessoas em cada flash."); return; } escolherMencao(); });
+    const linha = (p, sub, botoes) => {
+      const l = el("div", "mencao-item fm-linha");
+      const av = el("span", "avatar"); pintarAvatar(av, p?.fotoPerfil, p?.nome);
+      const tx = el("span", "tx"); tx.append(el("strong", null, p?.nickname ? "@" + p.nickname : p?.nome || "Pessoa"), el("small", null, sub));
+      const info = el("div", "fm-usar"); info.append(av, tx);
+      l.append(info, ...botoes); return l;
+    };
+    const botao = (ic, rot, fn, extra = "") => { const b = el("button", "fa-oculta" + extra); b.type = "button"; b.title = rot; b.setAttribute("aria-label", rot); b.appendChild(icone(ic, "i xs")); b.addEventListener("click", fn); return b; };
+    async function pintarL() {
+      const blocos = [];
+      const figs = figMencoes(), nicks = nicksNoTexto();
+      if (figs.length) {
+        blocos.push(el("p", "figs-sec", "Figurinhas"));
+        for (const t of figs) {
+          const p = await obterPerfil(t.uid).catch(() => ({}));
+          blocos.push(linha({ ...p, nickname: p.nickname || t.texto.slice(1) }, t.oculta ? "Oculta: só recebe o aviso" : "Aparece no flash (quem vê toca e abre o perfil)", [
+            botao(t.oculta ? "olho" : "olho-off", t.oculta ? "Mostrar no flash" : "Ocultar do flash", () => { t.oculta = !t.oculta; pintarTexto(t); pintarL(); }, t.oculta ? " on" : ""),
+            botao("lixo", "Tirar a menção", () => { t.el.remove(); textos.splice(textos.indexOf(t), 1); pintarArroba(); pintarL(); })
+          ]));
+        }
+      }
+      if (nicks.length) {
+        blocos.push(el("p", "figs-sec", "Escritos no texto"));
+        for (const n of nicks) {
+          const u = nickUid.get(n); const p = u ? await obterPerfil(u).catch(() => ({})) : {};
+          blocos.push(linha({ ...p, nickname: n }, "Aparece onde você escreveu · para tirar, apague do texto", []));
+        }
+      }
+      if (avisos.size) {
+        blocos.push(el("p", "figs-sec", "Ocultas (só o aviso)"));
+        [...avisos.values()].forEach((p) => blocos.push(linha(p, "Não aparece para quem vê", [
+          ...(modo === "foto" && img ? [botao("olho", "Mostrar como figurinha", () => { avisos.delete(p.uid); colocarFig("mencao", "@" + p.nickname, { uid: p.uid }); pintarL(); })] : []),
+          botao("lixo", "Tirar a menção", () => { avisos.delete(p.uid); pintarArroba(); pintarL(); })
+        ])));
+      }
+      lista.replaceChildren(...(blocos.length ? blocos : [el("p", "figs-dica fm-vazio", "Ninguém mencionado ainda.")]));
+      pintarArroba();
+    }
+    pintarL();
+  }
+  bArroba.addEventListener("click", abrirMencoes);
+  ligarArroba(area); ligarArroba(legenda);
+  // Menções que vão gravadas: visíveis (figurinhas à vista e @ do texto) e ocultas (figurinhas ocultas e só aviso).
+  async function mencoesParaGravar() {
+    const nicks = nicksNoTexto();
+    const doTexto = nicks.length ? await uidsMencionados(nicks.map((n) => "@" + n).join(" ")).catch(() => []) : [];
+    const vis = [...new Set([...figMencoes().filter((t) => !t.oculta).map((t) => t.uid), ...doTexto])];
+    const oc = [...new Set([...figMencoes().filter((t) => t.oculta).map((t) => t.uid), ...avisos.keys()])].filter((u) => !vis.includes(u));
+    const todas = [...vis, ...oc].slice(0, 10);
+    const ocultas = oc.filter((u) => todas.includes(u));
+    return { ...(todas.length ? { mencoes: todas } : {}), ...(ocultas.length ? { mencoesOcultas: ocultas } : {}) };
   }
 
   // Janela de escrever (por cima do cartão). Em cima: alinhamento, fundo atrás do texto e Pronto; na lateral, a régua
@@ -1254,12 +1508,14 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       if (!texto) return;
       tmp.texto = texto;
       if (novo) criarTexto(tmp); else { Object.assign(t, tmp); pintarTexto(t); }
+      pintarArroba();
     };
     ok.addEventListener("click", concluir);
     // Tocar fora do texto (na parte escura) também conclui, como nos outros apps.
     ed.addEventListener("click", (e) => { if (e.target === ed) concluir(); });
     ed.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.stopPropagation(); concluir(); } });
     pintarEd();
+    ligarArroba(campo);
     setTimeout(() => campo.focus(), 50);
   }
 
@@ -1540,10 +1796,13 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       if (t.enq || t.cx || t.lk) return; // enquete, caixa de perguntas e link ficam por cima, interativos (não vão desenhados)
       const px = Math.round(t.tam * OW);
       if (t.fig) {
+        if (t.oculta) return; // menção oculta: só o aviso, não aparece na foto
         const es = EST_FIG[t.estilo];
         g.font = `${t.fig === "hora" ? 800 : 750} ${px}px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
         g.textAlign = "center"; g.textBaseline = "middle";
         const x = t.x * OW, y = t.y * OH, lw = g.measureText(t.texto).width + px * 0.9, lh = px * 1.5;
+        // Onde a figurinha ficou (fração da foto): quem vê toca ali (localização, hashtag e menção).
+        t._area = { x: x / OW, y: y / OH, w: lw / OW, h: lh / OH };
         if (Array.isArray(es.fundo)) { const gr = g.createLinearGradient(x - lw / 2, y - lh / 2, x + lw / 2, y + lh / 2); gr.addColorStop(0, es.fundo[0]); gr.addColorStop(1, es.fundo[1]); g.fillStyle = gr; }
         else g.fillStyle = es.fundo;
         g.shadowColor = es.borda ? "transparent" : "rgba(0,0,0,.25)"; g.shadowBlur = es.borda ? 0 : px * 0.4; g.shadowOffsetY = es.borda ? 0 : px * 0.1;
@@ -1589,30 +1848,41 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       if (modo === "texto") {
         const midia = desenharTexto(area.value.trim(), FUNDOS[fundoI], LETRAS[letraI], corTexto(fundoI));
         const url = await salvarImagem(midia, `stories/${eu.uid}/${Date.now()}.jpg`);
-        await gravar({ tipo: "imagem", midia: url, ...camposDestino() }, { imagem: midia });
+        await gravar({ tipo: "imagem", midia: url, ...camposDestino(), ...(await mencoesParaGravar()) }, { imagem: midia });
       } else if (video) {
         toast("Enviando o vídeo...");
         const ext = (video.arq.name.split(".").pop() || "mp4").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "mp4";
         const r = storageFns.ref(window.firebaseStorage, `stories/${eu.uid}/${Date.now()}.${ext}`);
         await storageFns.uploadBytes(r, video.arq, { contentType: video.arq.type, cacheControl: "public, max-age=31536000, immutable" });
         const texto = legenda.value.trim().slice(0, 150);
-        await gravar({ tipo: "video", midia: await storageFns.getDownloadURL(r), duracao: Math.min(60, Math.round(video.dur)), ...(texto ? { texto } : {}), ...camposDestino() });
+        await gravar({ tipo: "video", midia: await storageFns.getDownloadURL(r), duracao: Math.min(60, Math.round(video.dur)), ...(texto ? { texto } : {}), ...camposDestino(), ...(await mencoesParaGravar()) });
       } else {
         const imagem = desenharFoto();
         const url = await salvarImagem(imagem, `stories/${eu.uid}/${Date.now()}.jpg`);
         const texto = legenda.value.trim().slice(0, 150);
         const enq = textos.find((t) => t.enq);
-        const mencoes = [...new Set(textos.filter((t) => t.fig === "mencao" && t.uid).map((t) => t.uid))].slice(0, 10);
+        const mencoes = await mencoesParaGravar();
+        const comCor = (t) => (t.tema && t.tema !== "branco" && CORES_FIG.some(([k]) => k === t.tema) ? { cor: t.tema } : {});
         const enquete = enq ? { pergunta: enq.pergunta, opcoes: enq.opcoes, x: Math.round(enq.x * 1000) / 1000, y: Math.round(enq.y * 1000) / 1000,
-          fimEm: fb.Timestamp.fromMillis(fimEscolhido(enq.duracao || { dur: 1440 }, { maxMin: MAX_FLASH_MIN })), ...(enq.anonima ? { anonima: true } : {}) } : null;
+          fimEm: fb.Timestamp.fromMillis(fimEscolhido(enq.duracao || { dur: 1440 }, { maxMin: MAX_FLASH_MIN })), ...(enq.anonima ? { anonima: true } : {}), ...comCor(enq) } : null;
         const cx = textos.find((t) => t.cx);
-        const caixa = cx ? { pergunta: cx.pergunta, anonima: !!cx.anonima, x: Math.round(cx.x * 1000) / 1000, y: Math.round(cx.y * 1000) / 1000 } : null;
+        const caixa = cx ? { pergunta: cx.pergunta, anonima: !!cx.anonima, x: Math.round(cx.x * 1000) / 1000, y: Math.round(cx.y * 1000) / 1000, ...comCor(cx) } : null;
+        // Figurinhas que quem vê pode tocar: localização (vai para as publicações de lá), hashtags e menções à vista.
+        const r3 = (n) => Math.round(Math.min(1, Math.max(0, n)) * 1000) / 1000;
+        const pos = (a) => [r3(a.x), r3(a.y), r3(a.w), r3(a.h)];
+        const lg = textos.find((t) => t.fig === "local" && t.lugar && t._area && Number.isFinite(t.lugar.lat) && Number.isFinite(t.lugar.lng));
+        const nomeLg = lg ? String(lg.lugar.nome).replace(/[|\n]+/g, " ").trim().slice(0, 60) : "";
+        const local = lg && lg.lugar.lat > -34 && lg.lugar.lat < 6 && lg.lugar.lng > -75 && lg.lugar.lng < -28 && nomeLg.length >= 2
+          ? ["l", nomeLg, Number(lg.lugar.lat.toFixed(5)), Number(lg.lugar.lng.toFixed(5)), ...pos(lg._area)].join("|") : null;
+        const toques = textos.filter((t) => t._area && ((t.fig === "hashtag" && /^#[\p{L}\p{N}_]{1,28}$/u.test(t.texto)) || (t.fig === "mencao" && t.uid && !t.oculta && (mencoes.mencoes || []).includes(t.uid))))
+          .slice(0, local ? 7 : 8).map((t) => [t.fig === "hashtag" ? "h" : "m", t.fig === "hashtag" ? t.texto.slice(1) : t.uid, ...pos(t._area)].join("|"));
+        if (local) toques.unshift(local);
         const lk = textos.find((t) => t.lk);
         const link = lk ? { negocioId: lk.negocio.id, nome: String(lk.negocio.nome || "").slice(0, 80), tipo: lk.negocio.tipo, x: Math.round(lk.x * 1000) / 1000, y: Math.round(lk.y * 1000) / 1000 } : null;
         const repostDe = repost ? { storyId: repost.id, autorId: repost.autorId, nome: String(repost.nome || "").slice(0, 80) } : null;
         const postDe = post ? { postId: post.id, autorId: post.autorId, nome: String(post.nome || "").slice(0, 80) } : null;
         const ref = await gravar({ tipo: "imagem", midia: url, ...(texto ? { texto } : {}), ...camposDestino(), ...(enquete ? { enquete } : {}), ...(caixa ? { caixa } : {}), ...(link ? { link } : {}), ...(repostDe ? { repostDe } : {}), ...(postDe ? { postDe } : {}),
-          ...(mencoes.length ? { mencoes } : {}) }, { imagem });
+          ...mencoes, ...(toques.length ? { toques } : {}) }, { imagem });
         if (enquete) registrarEnquete("f_" + ref.id, enquete);
         if (repost && repost.autorId !== eu.uid) mandarMensagem(repost.autorId, msgFlash({ id: ref.id, autorId: eu.uid, nome: dados.nome }, "repost", { original: repost.id }), "Repostou seu flash").catch(() => {});
       }
@@ -1698,7 +1968,17 @@ async function gravar(extraCom, { imagem = null } = {}) {
     ...(amigos ? { publico: "amigos", lista: cfg.amigos.slice(0, 150) } : {}),
     ...(cfg.ocultarDe.length ? { ocultoPara: cfg.ocultarDe.slice(0, 100) } : {})
   };
-  const ref = await fb.addDoc(fb.collection(fb.db, "stories"), { autorId: eu.uid, nome: String(dados.nome || "Usuário").slice(0, 80), ...extra, ...escolhas, criadoEm: fb.serverTimestamp() });
+  const docFlash = { autorId: eu.uid, nome: String(dados.nome || "Usuário").slice(0, 80), ...extra, ...escolhas, criadoEm: fb.serverTimestamp() };
+  let ref;
+  try { ref = await fb.addDoc(fb.collection(fb.db, "stories"), docFlash); }
+  catch (e) {
+    // Regras ainda sem localização/hashtag tocáveis, menção oculta e cor da enquete: publica sem esses campos (a
+    // figurinha continua desenhada na foto; a pessoa oculta sai da lista, mas recebe o aviso do mesmo jeito).
+    const antigo = semCamposNovos(docFlash);
+    if (e?.code !== "permission-denied" || !antigo) throw e;
+    ref = await fb.addDoc(fb.collection(fb.db, "stories"), antigo);
+    setTimeout(() => toast("Algumas figurinhas ficam tocáveis depois da publicação das regras novas."), 2600);
+  }
   toast(amigos ? "⚡ Flash publicado para os Amigos próximos." : extra.negocios?.length ? `⚡ Flash publicado${extra.perfil === false ? " só" : ""} ${extra.negocios.length === 1 ? "no perfil do negócio" : `em ${extra.negocios.length} perfis de negócio`}${extra.perfil === false ? "" : " e no seu perfil"}! Fica 24 horas.` : "⚡ Flash publicado! Fica 24 horas.");
   // Quem foi mencionado recebe uma mensagem (como no Instagram).
   (extra.mencoes || []).forEach((u) => mandarMensagem(u, msgFlash({ id: ref.id, autorId: eu.uid, nome: dados.nome }, "mencao"), "Mencionou você no flash").catch(() => {}));
@@ -1708,6 +1988,19 @@ async function gravar(extraCom, { imagem = null } = {}) {
   const depois = depoisDePublicar; depoisDePublicar = null;
   try { depois?.(); } catch {}
   return ref;
+}
+
+// Cópia do flash sem os campos que as regras antigas recusam (null = não tinha nenhum).
+function semCamposNovos(d) {
+  const c = { ...d }; let mudou = false;
+  if ("toques" in c) { delete c.toques; mudou = true; }
+  if (c.mencoesOcultas) {
+    const oc = c.mencoesOcultas; delete c.mencoesOcultas; mudou = true;
+    const vis = (c.mencoes || []).filter((u) => !oc.includes(u));
+    if (vis.length) c.mencoes = vis; else delete c.mencoes;
+  }
+  ["enquete", "caixa"].forEach((k) => { if (c[k]?.cor) { const { cor, ...resto } = c[k]; c[k] = resto; mudou = true; } });
+  return mudou ? c : null;
 }
 
 // =====================================================
@@ -2047,6 +2340,13 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
     const lista = mapa.get(ordem[ai]) || [];
     const s = lista[si]; if (!s) { fechar(); return; }
     const meu = s.autorId === eu.uid;
+    // Flash de uma publicação que foi apagada: o seu sai junto; o de outra pessoa é pulado (confere uma vez).
+    if (s.postDe?.postId && s._postOk === undefined) {
+      clearTimeout(timer); palco.replaceChildren();
+      publicacaoExiste(s.postDe.postId).then((ok) => { s._postOk = ok; if (!fechado && atual() === s) mostrar(dirAnim); });
+      return;
+    }
+    if (s._postOk === false) { pularFlash(s, meu); return; }
     pausado = false; caixa.classList.remove("pausado");
     if (dirAnim) { caixa.classList.remove("vai-dir", "vai-esq"); void caixa.offsetWidth; caixa.classList.add(dirAnim > 0 ? "vai-dir" : "vai-esq"); }
     barras.replaceChildren(...lista.map((_, k) => { const b = el("span", "story-barra"); const i = el("i"); if (k < si) i.style.width = "100%"; b.appendChild(i); return b; }));
@@ -2058,7 +2358,9 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
     // Destaque e arquivo: a data do flash ("12 out"); no ar: há quanto tempo ("3 h").
     quando.textContent = destaque || !ativo(s) ? dataCurta(ms(s.criadoEm)) : tempoRelativo(new Date(ms(s.criadoEm) || Date.now()));
     palco.replaceChildren();
-    legenda.textContent = s.texto || ""; legenda.hidden = !s.texto;
+    // Legenda com @ e # tocáveis (abrem o perfil e a hashtag).
+    comMencoes(legenda, s.texto || ""); legenda.hidden = !s.texto;
+    legenda.querySelectorAll("a").forEach((a) => { ["pointerdown", "pointerup"].forEach((ev) => a.addEventListener(ev, (e) => e.stopPropagation())); a.addEventListener("click", () => pausar(true)); });
     rodape.replaceChildren();
     form.appendChild(bEstrela); pintarEstrela();
     // Sem o campo de responder (respostas desligadas), a estrela fica sozinha no rodapé.
@@ -2152,6 +2454,33 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
       a.addEventListener("click", (e) => { e.stopPropagation(); pausar(true); });
       quadro.appendChild(a);
     }
+    // Figurinhas tocáveis: localização (publicações de lá), hashtag e menção (perfil). Um toque mostra o balão
+    // (como no Instagram); tocar no balão abre.
+    caixa.querySelectorAll(".story-fig-toque, .story-fig-balao").forEach((x) => x.remove());
+    figurinhasTocaveis(s).forEach((f) => {
+      const area = el("button", "story-fig-toque"); area.type = "button"; area.setAttribute("aria-label", f.rot);
+      const w = Math.max(f.w, 0.12), h = Math.max(f.h, 0.045);
+      area.style.left = `${(f.x - w / 2) * 100}%`; area.style.top = `${(f.y - h / 2) * 100}%`; area.style.width = `${w * 100}%`; area.style.height = `${h * 100}%`;
+      const balao = el("a", "story-link story-post balao story-fig-balao"); balao.hidden = true; balao.href = f.href || "#";
+      const rot = el("span", null, f.rot);
+      balao.append(icone(f.ic, "i xs"), rot, icone("avancar", "i xs"));
+      balao.style.left = `${Math.min(80, Math.max(20, f.x * 100))}%`; balao.style.top = `${Math.max(12, (f.y - h / 2) * 100 - 5)}%`;
+      if (f.uid) obterPerfil(f.uid).then((p) => { rot.textContent = `Ver o perfil de ${String(p.nome || "@" + (p.nickname || "")).split(" ")[0]}`; }).catch(() => {});
+      let tEsc = null;
+      const esconder = () => { clearTimeout(tEsc); if (balao.hidden) return; balao.hidden = true; pausar(false); };
+      ["pointerdown", "pointerup"].forEach((ev) => { area.addEventListener(ev, (e) => e.stopPropagation()); balao.addEventListener(ev, (e) => e.stopPropagation()); });
+      area.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (!balao.hidden) { esconder(); return; }
+        quadro.querySelectorAll(".story-fig-balao:not([hidden])").forEach((b) => { b.hidden = true; });
+        balao.hidden = false; pausar(true); clearTimeout(tEsc); tEsc = setTimeout(esconder, 4000);
+      });
+      balao.addEventListener("click", (e) => {
+        e.stopPropagation(); clearTimeout(tEsc);
+        if (f.uid) { e.preventDefault(); fechar(); ganchos.abrirPerfil(f.uid); }
+      });
+      quadro.append(area, balao);
+    });
     // Fui mencionado: posso repostar no meu flash.
     if (!meu && Array.isArray(s.mencoes) && s.mencoes.includes(eu.uid) && s.tipo !== "video") {
       const rp = el("button", "story-repostar"); rp.type = "button";
@@ -2160,8 +2489,11 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
       linhaAcoes().appendChild(rp);
     }
     // Pessoas mencionadas: chip que abre a lista (tocar leva ao perfil).
-    if (Array.isArray(s.mencoes) && s.mencoes.length) {
-      const bm = pessoasEmPilha(s.mencoes, { classe: "story-mencoes escuro", prefixo: "", titulo: s.mencoes.length === 1 ? "Mencionado" : "Mencionados",
+    // Menção oculta: a pessoa foi avisada, mas não aparece para quem vê (o autor vê todas).
+    const ocultas = Array.isArray(s.mencoesOcultas) ? s.mencoesOcultas : [];
+    const visiveis = (Array.isArray(s.mencoes) ? s.mencoes : []).filter((u) => meu || !ocultas.includes(u));
+    if (visiveis.length) {
+      const bm = pessoasEmPilha(visiveis, { classe: "story-mencoes escuro", prefixo: "", titulo: visiveis.length === 1 ? "Mencionado" : "Mencionados",
         aoAbrir: () => pausar(true), aoFechar: () => { if (document.querySelector(".story-visor")) document.body.classList.add("travado"); pausar(false); } });
       linhaAcoes().prepend(bm);
     }
@@ -2237,6 +2569,15 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
   function proximo() {
     const lista = mapa.get(ordem[ai]) || [];
     if (si < lista.length - 1) { si++; mostrar(); return; }
+    proximoAutor();
+  }
+  // Tira o flash da lista (publicação apagada) e segue para o próximo; o seu é apagado de vez.
+  function pularFlash(s, meu) {
+    const l = mapa.get(ordem[ai]) || [];
+    const k = l.indexOf(s); if (k >= 0) l.splice(k, 1);
+    if (meu) fb.deleteDoc(fb.doc(fb.db, "stories", s.id)).catch(() => {});
+    if (si < l.length) { mostrar(); return; }
+    si = Math.max(0, l.length - 1);
     proximoAutor();
   }
   function proximoAutor() {

@@ -73,15 +73,23 @@
 > publicar. Junto: criar o índice `stories` (`autorId` + `criadoEm`) do Arquivo do Flash, na lista do `INDICES-LEIA-ME.md`.
 > Para publicar, o processo é o mesmo: apagar tudo no console e colar as 16 partes.
 
+> **Flash: figurinhas tocáveis, menção oculta e cores (02/11):** `stories.toques` (até 8 textos, conferidos numa expressão
+> só: `h|hashtag|x|y|w|h`, `m|uid|x|y|w|h` e a localização `l|nome|lat|lng|x|y|w|h` com lat/lng no Brasil),
+> `stories.mencoesOcultas` (até 10 uids: mencionados que não aparecem para quem vê) e `cor` na enquete/caixa de perguntas
+> (`escuro|azul|rosa|laranja|verde|roxo`). A criação do flash virou a função `flashNovoOk(d)` (o flash "com TUDO junto" estava
+> no limite de 1.000 expressões; com `d` no lugar de `request.resource.data` sobra espaço). Sem a regra publicada, o flash
+> é publicado sem esses campos (a figurinha continua desenhada na foto, só não fica tocável; a pessoa da menção oculta
+> recebe o aviso, mas não pode repostar).
+
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
 `firestore.rules` divididas em **16 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
-- Arquivo de origem: `firestore.rules` (188.761 bytes, 3.108 linhas, sha256 começa com `27eaa3a32f19e1ae`).
+- Arquivo de origem: `firestore.rules` (190.347 bytes, 3.136 linhas, sha256 começa com `2d009a3d9f29c57f`).
 - Cada parte termina com a linha `// ===== FIM DA PARTE X DE 16 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
 - Conferido: as 16 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **707 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
+- Testes de regras no arquivo remontado: **732 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.
