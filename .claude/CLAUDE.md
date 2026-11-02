@@ -1346,6 +1346,17 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   que, se `hf-flash-volta` bate e a navegação é "voltar", põe `html.hf-volta-flash` (tela preta, z 4890) até o visor
   abrir (`tirarCapa` em stories.js, 7 s no máximo); feed.js chama `voltarAoFlash()` logo depois do `iniciarRede`
   (antes esperava o Diário carregar). Teste `t-flash-topo-volta.mjs` (11).
+- **Flash: Teste (quiz), nome fixo e configurações (02/11/2026, PR depois do #133, MUDA 1 REGRA — não publicada; 16
+  partes, 741 testes):** figurinha **Teste** (como o "Teste" do Instagram) = enquete com `enquete.certa` (índice da opção,
+  sem `fimEm`; regra `enqueteOk`: `certa` int < opções; x/y agora num regex só para caber no limite de 1.000). Criador:
+  pílula "Teste" (verde), `editorVivo("teste")` com letras A–D (tocar marca a certa, `.fv-letra`), uma enquete OU um teste
+  por flash; prévia `.fe-teste`. Visor (`blocoEnquete` em rede.js, `teste`): letras, a certa só aparece depois de
+  responder (verde ✓, a errada vermelha ✗), % na hora, "Você acertou!"/"a certa era a C", animação `acertou`/`errou`; o
+  autor vê "N respostas · X% acertaram"; sem notificação de resultado (`registrarEnquete` pula). Sem as regras:
+  `semCamposNovos` tira `certa` e grava como enquete de 24 h (avisa). Topo do visor: linhas extras em `.story-quem-sub`
+  (absolutas) — o nome fica na altura da foto. **Configurações do Flash:** cartão "Criar flash" (`flashConfig.modoInicial`
+  foto|texto, `perguntarRascunho`, Rascunhos N + "Apagar todos") e textos de Respostas/Atividade atualizados. Teste
+  `t-flash-quiz.mjs` (14). Pergunta aberta: o que falha no teclado do app instalado (PWA).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
@@ -1408,7 +1419,7 @@ chat da equipe).
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
-1. **Publicar as regras** (16 partes em `_regras/`, 732 testes): tudo desde 26/10, incluindo `republicacoes`, destaques e arquivo do Flash,
+1. **Publicar as regras** (16 partes em `_regras/`, 741 testes): tudo desde 26/10, incluindo o Teste do Flash (`enquete.certa`), `republicacoes`, destaques e arquivo do Flash,
    `stories/{id}/reacoes` (estrela do Flash), `diario.publico` (público da publicação) e os tipos de publicação
    (`diario.tipo/estilo/quemComenta/ocultarNotas`). Depois: "Recalcular estrelas" no
    painel e criar os **14 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`

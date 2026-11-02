@@ -3045,3 +3045,37 @@ body:has(.story-visor, .flash-criar) .toast { width: auto; max-width: min(calc(1
 .flash-palco.abrindo-cam::after { content: "Abrindo a câmera…"; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 2; padding: 8px 14px; border-radius: 999px;
   background: rgba(255,255,255,.08); color: rgba(255,255,255,.75); font-size: 13px; font-weight: 750; pointer-events: none; animation: fc-pisca2 1.2s ease-in-out infinite; }
 @keyframes fc-pisca2 { 50% { opacity: .45; } }
+
+/* ===== Teste (quiz) no Flash (02/11) — enquete com a resposta certa ===== */
+.enquete.teste .enq-letra { flex: none; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid #c9d1d8; font-size: 12.5px; font-weight: 900; color: #5d6b75; background: #fff; }
+.enquete.teste .enq-letra .i { width: 14px; height: 14px; }
+.enquete.teste .enq-rot { gap: 10px; }
+.enquete.teste .enq-op.certa { border-color: #22b573 !important; background: rgba(34,181,115,.1) !important; }
+.enquete.teste .enq-op.certa .enq-letra { background: #22b573; border-color: #22b573; color: #fff; }
+.enquete.teste .enq-op.errada { border-color: #ef4444 !important; background: rgba(239,68,68,.08) !important; }
+.enquete.teste .enq-op.errada .enq-letra { background: #ef4444; border-color: #ef4444; color: #fff; }
+.enquete.teste.revelado .enq-op.certa .enq-barra { background: #22b573 !important; opacity: .22 !important; }
+.enquete.teste.revelado .enq-op.errada .enq-barra { background: #ef4444 !important; opacity: .18 !important; }
+.enquete.teste.escura.tema-escuro .enq-letra { background: transparent; border-color: rgba(255,255,255,.3); color: #fff; }
+.enquete.teste.acertou { animation: testeAcertou .6s ease-out; }
+.enquete.teste.errou { animation: testeErrou .45s ease-in-out; }
+@keyframes testeAcertou { 0% { transform: scale(1); } 35% { transform: scale(1.04); box-shadow: 0 0 0 6px rgba(34,181,115,.35), 0 16px 40px rgba(0,0,0,.35); } 100% { transform: scale(1); } }
+@keyframes testeErrou { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-7px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(3px); } }
+.story-enq .enquete.teste.escura .enq-tit { color: #22b573; }
+/* criador: prévia e editor do teste */
+.flash-palco .fe-enq.fe-teste > span { display: flex; align-items: center; gap: .5em; }
+.flash-palco .fe-enq.fe-teste > span b { flex: none; display: grid; place-items: center; width: 1.6em; height: 1.6em; border-radius: 50%; border: 1.5px solid #c9d1d8; font-size: .8em; }
+.flash-palco .fe-enq.fe-teste > span.certa { border-color: #22b573; }
+.flash-palco .fe-enq.fe-teste > span.certa b { background: #22b573; border-color: #22b573; color: #fff; }
+.flash-fig-viva .fv-op.com-letra input { padding-left: 52px; }
+.flash-fig-viva .fv-letra { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); z-index: 1; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; border: 1.5px solid #c9d1d8; background: #fff; color: #5d6b75; font: inherit; font-size: 13px; font-weight: 900; cursor: pointer; padding: 0; }
+.flash-fig-viva .fv-letra.certa { background: #22b573; border-color: #22b573; color: #fff; }
+.flash-fig-viva .fv-letra .i { width: 16px; height: 16px; }
+.flash-fig-viva .fv-op.certa input { border-color: #22b573; }
+.flash-palco .flash-fig-viva .fv-card.tema-escuro .fv-letra:not(.certa) { background: transparent; border-color: rgba(255,255,255,.3); color: #fff; }
+/* topo do flash: o nome fica fixo na altura da foto; as linhas extras penduradas embaixo */
+.story-quem-tx { position: relative; align-self: center; }
+.story-quem-sub { position: absolute; left: 0; top: calc(100% + 5px); display: flex; flex-direction: column; align-items: flex-start; gap: 4px; max-width: 100%; }
+.story-quem-sub:empty { display: none; }
+.story-quem-sub .story-repost { margin: 0; max-width: 100%; }
+.enquete.teste :is(.enq-op.certa, .enq-op.errada) .enq-letra .i { color: #fff; stroke: #fff; }

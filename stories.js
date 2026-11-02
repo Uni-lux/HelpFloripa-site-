@@ -14,7 +14,7 @@ import {
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados,
   responderNoChat, cartaoRespostaCaixa, fecharFolha
-} from "./rede.js?v=100";
+} from "./rede.js?v=101";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { fimEscolhido, MAX_FLASH_MIN, fimDaEnquete, encerrada, faltaTexto, resultadoFinal, lerContasEnquete } from "./enquetes.js?v=6";
@@ -916,7 +916,8 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   document.body.appendChild(fundo);
   document.body.classList.add("travado");
 
-  let modo = "foto", fundoI = Math.floor(Math.random() * FUNDOS.length), letraI = 0;
+  // Começa em Foto ou em Texto (Configurações do Flash → Criar flash).
+  let modo = !repost && !post && !imagem && !rascunho && configFlash().modoInicial === "texto" ? "texto" : "foto", fundoI = Math.floor(Math.random() * FUNDOS.length), letraI = 0;
   let foto = null, video = null, enviando = false;
   // Foto no cartão: zoom (1 a 5) e deslocamento a partir do centro (em px do cartão).
   let img = null, z = 1, ox = 0, oy = 0;
@@ -1177,7 +1178,14 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       // Prévia da enquete (quem vê vota no flash; aqui só arrasta ou toca para editar).
       e.className = "flash-txt flash-enq";
       e.style.fontSize = Math.round(W * 0.042) + "px";
-      const card = el("div", "fe-enq" + temaFig(t.tema)); card.appendChild(el("strong", null, t.pergunta));
+      const ehTeste = Number.isInteger(t.certa);
+      const card = el("div", "fe-enq" + (ehTeste ? " fe-teste" : "") + temaFig(t.tema)); card.appendChild(el("strong", null, t.pergunta));
+      if (ehTeste) {
+        t.opcoes.forEach((o, i) => { const sp = el("span", i === t.certa ? "certa" : null); sp.append(el("b", null, "ABCD"[i]), document.createTextNode(o)); card.appendChild(sp); });
+        card.appendChild(el("small", "fe-enq-dur", "TESTE · a certa fica escondida para quem vê"));
+        e.replaceChildren(card);
+        return;
+      }
       t.opcoes.forEach((o) => card.appendChild(el("span", null, o)));
       const d = t.duracao || { dur: 1440 };
       card.appendChild(el("small", "fe-enq-dur", d.fim ? `Termina às ${new Date(d.fim).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : `Dura ${d.dur >= 1440 ? "24 h" : d.dur / 60 + " h"}`));
@@ -1444,7 +1452,10 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       b.addEventListener("click", fn); grade.appendChild(b); return b;
     };
     if (meusNeg.length) pilula("loja", "Publicar em", "#f5a400", () => { pn.remove(); escolherDestinos(); }, dest.negocios.size ? `${dest.negocios.size + (dest.perfil ? 1 : 0)} lugares` : "");
-    pilula("enquete", "Enquete", "#ff3d7f", () => { pn.remove(); editarEnquete(textos.find((t) => t.enq) || null); });
+    // Enquete e Teste usam o mesmo lugar (um por flash): tocar no outro avisa.
+    const enqAqui = () => textos.find((t) => t.enq) || null;
+    pilula("enquete", "Enquete", "#ff3d7f", () => { const t = enqAqui(); if (t && Number.isInteger(t.certa)) { toast("Este flash já tem um teste. Um flash tem uma enquete OU um teste."); return; } pn.remove(); editarEnquete(t); });
+    pilula("check", "Teste", "#22b573", () => { const t = enqAqui(); if (t && !Number.isInteger(t.certa)) { toast("Este flash já tem uma enquete. Um flash tem uma enquete OU um teste."); return; } pn.remove(); editarTeste(t); }, "quiz");
     pilula("caixa", "Perguntas", "#e5487f", () => { pn.remove(); editarCaixa(textos.find((t) => t.cx) || null); });
     pilula("pessoa-mais", "Menção", "#ff8a00", () => { pn.remove(); escolherMencao(); });
     pilula("loja", "Link do negócio", "#00adee", () => { pn.remove(); escolherNegocio(textos.find((t) => t.lk) || null); });
@@ -1513,11 +1524,13 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   // prévia lá embaixo, que o teclado escondia.
   function editorVivo(tipo, t) {
     palco.querySelector(".flash-figs")?.remove();
-    const enq = tipo === "enq";
-    const pn = el("div", "flash-figs flash-fig-viva");
-    const estado = { cor: t?.tema || t?.cor || "branco", anonima: !!t?.anonima };
+    // Teste (quiz, como a figurinha "Teste" do Instagram): é uma enquete com a resposta certa marcada (`certa`).
+    const teste = tipo === "teste";
+    const enq = tipo === "enq" || teste;
+    const pn = el("div", "flash-figs flash-fig-viva" + (teste ? " fv-eh-teste" : ""));
+    const estado = { cor: t?.tema || t?.cor || "branco", anonima: !!t?.anonima, certa: Number.isInteger(t?.certa) ? t.certa : 0 };
     const duracao = { ...(t?.duracao || { dur: 1440 }) };
-    const ops = enq ? (t?.opcoes || ["Sim", "Não"]).slice() : [];
+    const ops = enq ? (t?.opcoes || (teste ? ["", ""] : ["Sim", "Não"])).slice() : [];
     // topo: cor (troca a cada toque) e Pronto
     const topo = el("div", "fv-topo");
     const bCor = el("button", "fv-cor"); bCor.type = "button";
@@ -1552,19 +1565,30 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       }
       const filhos = ops.map((o, i) => {
         const l = el("div", "fv-op");
-        const inp = el("input"); inp.type = "text"; inp.maxLength = 40; inp.value = o; inp.placeholder = i === 0 ? "Sim" : i === 1 ? "Não" : `Opção ${i + 1}`;
+        const inp = el("input"); inp.type = "text"; inp.maxLength = 40; inp.value = o; inp.placeholder = teste ? `Resposta ${"ABCD"[i]}` : i === 0 ? "Sim" : i === 1 ? "Não" : `Opção ${i + 1}`;
+        if (teste) {
+          // A letra marca a resposta certa (fica verde com ✓).
+          const certa = i === estado.certa;
+          const lt = el("button", "fv-letra" + (certa ? " certa" : "")); lt.type = "button";
+          lt.setAttribute("aria-label", certa ? `Resposta ${"ABCD"[i]}: é a certa` : `Marcar a resposta ${"ABCD"[i]} como certa`); lt.setAttribute("aria-pressed", String(certa));
+          if (certa) lt.appendChild(icone("check", "i xs")); else lt.textContent = "ABCD"[i];
+          lt.addEventListener("pointerdown", (e) => e.preventDefault());
+          lt.addEventListener("click", () => { estado.certa = i; pintarOps(); navigator.vibrate?.(8); });
+          l.classList.add("com-letra"); if (certa) l.classList.add("certa");
+          l.appendChild(lt);
+        }
         inp.setAttribute("aria-label", `Opção ${i + 1}`);
         inp.addEventListener("input", () => { ops[i] = inp.value; });
         inp.addEventListener("keydown", (e) => {
           if (e.key === "Enter") { e.preventDefault(); (l.nextElementSibling?.querySelector("input") || corpo.querySelector(".fv-nova"))?.focus(); }
           // apagar tudo de uma opção vazia (a partir da 3ª) tira ela
-          if (e.key === "Backspace" && !inp.value && ops.length > 2 && i >= 2) { e.preventDefault(); ops.splice(i, 1); pintarOps(i - 1); }
+          if (e.key === "Backspace" && !inp.value && ops.length > 2 && i >= 2) { e.preventDefault(); tirarOp(i); pintarOps(i - 1); }
         });
         l.appendChild(inp);
         if (ops.length > 2 && i >= 2) {
           const x = el("button", "fv-op-x"); x.type = "button"; x.setAttribute("aria-label", "Tirar opção"); x.appendChild(icone("fechar", "i xs"));
           x.addEventListener("pointerdown", (e) => e.preventDefault());
-          x.addEventListener("click", () => { ops.splice(i, 1); pintarOps(); });
+          x.addEventListener("click", () => { tirarOp(i); pintarOps(); });
           l.appendChild(x);
         }
         return l;
@@ -1577,6 +1601,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       corpo.replaceChildren(...filhos);
       if (focar >= 0) { const f = corpo.querySelectorAll(".fv-op input")[focar]; if (f) { f.focus(); const n = f.value.length; f.setSelectionRange(n, n); } }
     };
+    function tirarOp(i) { ops.splice(i, 1); if (estado.certa === i) estado.certa = 0; else if (estado.certa > i) estado.certa--; }
     perg.addEventListener("input", crescer);
     perg.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); corpo.querySelector("input")?.focus(); } });
     // pílulas de baixo: anônima e (na enquete) duração
@@ -1591,8 +1616,8 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       estado.anonima = !estado.anonima; pintarAnon();
       toast(estado.anonima ? (enq ? "Votação anônima: ninguém vê quem votou, nem você" : "Respostas anônimas: você não vê quem respondeu") : (enq ? "Você vai ver quem votou em cada opção" : "Você vai ver quem respondeu"));
     });
-    extras.appendChild(bAnon);
-    if (enq) {
+    if (!teste) extras.appendChild(bAnon);
+    if (enq && !teste) {
       const bDur = el("button", "fv-chip"); bDur.type = "button";
       const rotDur = () => duracao.fim ? "Personalizada" : (DURACOES_FLASH.find(([m]) => m === (duracao.dur || 1440)) || [0, "24 h"])[1];
       const pintarDur = () => bDur.replaceChildren(icone("relogio", "i xs"), document.createTextNode("Termina em " + rotDur() + " ▾"));
@@ -1604,7 +1629,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       pintarDur();
       extras.appendChild(bDur);
     }
-    extras.appendChild(el("small", "fv-dica", enq ? "Uma pessoa, um voto" : "As respostas chegam só para você"));
+    extras.appendChild(el("small", "fv-dica", teste ? "Toque na letra para marcar a resposta certa. Quem vê descobre na hora se acertou." : enq ? "Uma pessoa, um voto" : "As respostas chegam só para você"));
     pn.append(topo, meio, extras);
     palco.appendChild(pn);
     pintarCor(); pintarOps(); pintarAnon();
@@ -1613,7 +1638,16 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     ok.addEventListener("click", () => {
       const pergunta = perg.value.trim().slice(0, 120);
       if (!pergunta) { toast(enq ? "Escreva a pergunta." : "Escreva o texto da caixa."); perg.focus(); return; }
-      if (enq) {
+      if (teste) {
+        if (!ops[estado.certa]?.trim()) { toast("Escreva a resposta certa (a marcada com ✓)."); corpo.querySelectorAll(".fv-op input")[estado.certa]?.focus(); return; }
+        const usadas = ops.map((o, i) => [o.trim().slice(0, 40), i]).filter(([o]) => o);
+        if (usadas.length < 2) { toast("Coloque pelo menos 2 respostas."); return; }
+        if (new Set(usadas.map(([o]) => o.toLowerCase())).size < usadas.length) { toast("As respostas precisam ser diferentes."); return; }
+        const opcoes = usadas.map(([o]) => o), certa = usadas.findIndex(([, i]) => i === estado.certa);
+        pn.remove();
+        if (t) { marcar("Editar teste"); t.pergunta = pergunta; t.opcoes = opcoes; t.certa = certa; delete t.duracao; t.anonima = false; t.tema = estado.cor; pintarTexto(t); }
+        else criarTexto({ enq: true, pergunta, opcoes, certa, anonima: false, tema: estado.cor, texto: "", x: 0.5, y: 0.6, tam: 0.05, letra: 0, cor: "#111", destaque: false });
+      } else if (enq) {
         // opção vazia usa o que aparece escrito de leve (Sim / Não)
         const opcoes = ops.map((o, i) => (o.trim() || (i === 0 ? "Sim" : i === 1 ? "Não" : "")).slice(0, 40)).filter(Boolean);
         if (opcoes.length < 2) { toast("Coloque pelo menos 2 opções."); return; }
@@ -1628,7 +1662,8 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     });
   }
   const DURACOES_FLASH = [[60, "1 h"], [360, "6 h"], [720, "12 h"], [1440, "24 h"]];
-  const editarEnquete = (t) => editorVivo("enq", t);
+  const editarEnquete = (t) => editorVivo(Number.isInteger(t?.certa) ? "teste" : "enq", t);
+  const editarTeste = (t) => editorVivo("teste", t);
   const editarCaixa = (t) => editorVivo("cx", t);
   // Link para o perfil de um negócio: os seus primeiro, e a busca entre todos os negócios do site.
   let negociosP = null;
@@ -2246,7 +2281,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     return false;
   }
   function perguntarSair() {
-    if (!temConteudo()) { fechar(); return; }
+    if (!temConteudo() || !configFlash().perguntarRascunho) { fechar(); return; }
     abrirOpcoes("Sair do flash?", [
       { rotulo: "Salvar como rascunho", sub: "Fica guardado neste aparelho para terminar depois", icone: "rascunho", fn: async () => { if (await salvarRascunho()) fechar(); } },
       { rotulo: "Descartar", sub: "A foto e o que você fez serão perdidos", icone: "lixo", perigo: true, fn: () => fechar() },
@@ -2303,7 +2338,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   palco.appendChild(hist);
   [bDesfazer, bRefazer].forEach((b) => b.addEventListener("pointerdown", (e) => { e.stopPropagation(); e.preventDefault(); }));
   function nomeFig(t, maiuscula = false) {
-    const n = t.enq ? "enquete" : t.cx ? "caixa de perguntas" : t.lk ? "link do negócio" : t.ft ? "foto" : t.emoji ? "emoji"
+    const n = t.enq ? (Number.isInteger(t.certa) ? "teste" : "enquete") : t.cx ? "caixa de perguntas" : t.lk ? "link do negócio" : t.ft ? "foto" : t.emoji ? "emoji"
       : t.fig === "mencao" ? "menção" : t.fig === "local" ? "localização" : t.fig === "hashtag" ? "hashtag" : t.fig ? "figurinha" : "texto";
     return maiuscula ? n[0].toUpperCase() + n.slice(1) : n;
   }
@@ -2510,8 +2545,10 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
         const enq = textos.find((t) => t.enq);
         const mencoes = await mencoesParaGravar();
         const comCor = (t) => (t.tema && t.tema !== "branco" && CORES_FIG.some(([k]) => k === t.tema) ? { cor: t.tema } : {});
+        const ehTeste = enq && Number.isInteger(enq.certa);
         const enquete = enq ? { pergunta: enq.pergunta, opcoes: enq.opcoes, x: Math.round(enq.x * 1000) / 1000, y: Math.round(enq.y * 1000) / 1000,
-          fimEm: fb.Timestamp.fromMillis(fimEscolhido(enq.duracao || { dur: 1440 }, { maxMin: MAX_FLASH_MIN })), ...(enq.anonima ? { anonima: true } : {}), ...comCor(enq) } : null;
+          ...(ehTeste ? { certa: enq.certa } : { fimEm: fb.Timestamp.fromMillis(fimEscolhido(enq.duracao || { dur: 1440 }, { maxMin: MAX_FLASH_MIN })) }),
+          ...(enq.anonima && !ehTeste ? { anonima: true } : {}), ...comCor(enq) } : null;
         const cx = textos.find((t) => t.cx);
         const caixa = cx ? { pergunta: cx.pergunta, anonima: !!cx.anonima, x: Math.round(cx.x * 1000) / 1000, y: Math.round(cx.y * 1000) / 1000, ...comCor(cx) } : null;
         // Figurinhas que quem vê pode tocar: localização (vai para as publicações de lá), hashtags e menções à vista.
@@ -2539,7 +2576,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
         const postDe = post ? { postId: post.id, autorId: post.autorId, nome: String(post.nome || "").slice(0, 80) } : null;
         const ref = await gravar({ tipo: "imagem", midia: url, ...(texto ? { texto } : {}), ...camposDestino(), ...(enquete ? { enquete } : {}), ...(caixa ? { caixa } : {}), ...(link ? { link } : {}), ...(repostDe ? { repostDe } : {}), ...(postDe ? { postDe } : {}),
           ...mencoes, ...(toques.length ? { toques } : {}) }, { imagem });
-        if (enquete) registrarEnquete("f_" + ref.id, enquete);
+        if (enquete && !Number.isInteger(enquete.certa)) registrarEnquete("f_" + ref.id, enquete);
         if (repost && repost.autorId !== eu.uid) mandarMensagem(repost.autorId, msgFlash({ id: ref.id, autorId: eu.uid, nome: dados.nome }, "repost", { original: repost.id }), "Repostou seu flash").catch(() => {});
       }
       if (rascId) apagarRascunho(rascId).catch(() => {});
@@ -2677,8 +2714,9 @@ async function gravar(extraCom, { imagem = null } = {}) {
     // figurinha continua desenhada na foto; a pessoa oculta sai da lista, mas recebe o aviso do mesmo jeito).
     const antigo = semCamposNovos(docFlash);
     if (e?.code !== "permission-denied" || !antigo) throw e;
+    const eraTeste = antigo._eraTeste; delete antigo._eraTeste;
     ref = await fb.addDoc(fb.collection(fb.db, "stories"), antigo);
-    setTimeout(() => toast("Algumas figurinhas ficam tocáveis depois da publicação das regras novas."), 2600);
+    setTimeout(() => toast(eraTeste ? "O teste foi como enquete: ele passa a funcionar depois da publicação das regras novas." : "Algumas figurinhas ficam tocáveis depois da publicação das regras novas."), 2600);
   }
   toast(amigos ? "⚡ Flash publicado para os Amigos próximos." : extra.negocios?.length ? `⚡ Flash publicado${extra.perfil === false ? " só" : ""} ${extra.negocios.length === 1 ? "no perfil do negócio" : `em ${extra.negocios.length} perfis de negócio`}${extra.perfil === false ? "" : " e no seu perfil"}! Fica 24 horas.` : "⚡ Flash publicado! Fica 24 horas.");
   // Quem foi mencionado recebe uma mensagem (como no Instagram).
@@ -2701,6 +2739,8 @@ function semCamposNovos(d) {
     if (vis.length) c.mencoes = vis; else delete c.mencoes;
   }
   ["enquete", "caixa"].forEach((k) => { if (c[k]?.cor) { const { cor, ...resto } = c[k]; c[k] = resto; mudou = true; } });
+  // Teste (quiz) sem as regras novas: vai como enquete comum, com prazo de 24 h.
+  if (c.enquete && "certa" in c.enquete) { const { certa, ...resto } = c.enquete; c.enquete = { ...resto, fimEm: c.enquete.fimEm || fb.Timestamp.fromMillis(Date.now() + 864e5) }; c._eraTeste = true; mudou = true; }
   return mudou ? c : null;
 }
 
@@ -2718,6 +2758,8 @@ export function configFlash() {
     arquivo: c.arquivo !== false,                     // guardar os flashes no arquivo depois das 24 h (só você vê)
     cameraDireto: c.cameraDireto !== false,           // abre a câmera do app direto (quando já tem permissão)
     somVideo: c.somVideo === true,                    // vídeos dos flashes começam com som
+    modoInicial: c.modoInicial === "texto" ? "texto" : "foto", // o criador abre em Foto ou em Texto
+    perguntarRascunho: c.perguntarRascunho !== false, // ao sair com algo feito, pergunta se guarda como rascunho
     ondePerfil: c.ondePerfil !== false,               // onde publicar por padrão: seu perfil...
     ondeNegocios: Array.isArray(c.ondeNegocios) ? c.ondeNegocios.slice(0, 4) : [] // ...e estes negócios
   };
@@ -2732,7 +2774,8 @@ export function abrirConfigFlash() {
   const raiz = el("div", "cfg2");
   abrirLista("Configurações do Flash").appendChild(raiz);
   const corpo = raiz;
-  let meusNeg = null, ativos = null;
+  let meusNeg = null, ativos = null, nRasc = null;
+  lerRascunhos().then((l) => { nRasc = l.length; if (corpo.isConnected) pintar(); });
   const pintar = () => {
     const c = configFlash();
     const salvar = async (mud) => { await salvarConfigFlash({ ...configFlash(), ...mud }); pintar(); };
@@ -2792,8 +2835,27 @@ export function abrirConfigFlash() {
       }))));
     }
 
-    // 4) Respostas e reações
-    const k3 = cartao("chat", "#7c5cff", "Respostas e reações", "Chegam no Mensagens como cartão do flash.");
+    // 4) Criar flash: como o criador abre, figurinhas e rascunhos
+    const kc = cartao("lapis", "", "Criar flash", "Figurinhas: Enquete, Teste (quiz com a resposta certa), Perguntas, Menção, Link do negócio, Localização, Hashtag, Emoji, Horário e Data. Desfazer e refazer guardam até 40 passos.");
+    opcoes(kc, [["foto", "Começar em Foto", "Câmera ou galeria"], ["texto", "Começar em Texto", "Fundo colorido para escrever"]], c.modoInicial, (v) => salvar({ modoInicial: v }));
+    kc.append(
+      linha("Perguntar antes de sair", "Ao fechar com algo feito: salvar como rascunho, descartar ou continuar. Desligado, fecha e descarta direto", chave(c.perguntarRascunho, (on) => salvar({ perguntarRascunho: on }))),
+      linha("Rascunhos", nRasc == null ? "Carregando..." : nRasc ? `${nRasc} ${nRasc === 1 ? "rascunho guardado" : "rascunhos guardados"} neste aparelho (até 10)` : "Nenhum rascunho neste aparelho", seta(), () => {
+        fecharLista(); setTimeout(() => abrirRascunhos((rr) => abrirCriador({ rascunho: rr })), 280);
+      })
+    );
+    if (nRasc) {
+      const ap = el("button", "btn sec mini", "Apagar todos os rascunhos"); ap.type = "button";
+      ap.addEventListener("click", async () => {
+        if (!await confirmarHF({ titulo: "Apagar todos os rascunhos?", texto: `Os ${nRasc} rascunhos deste aparelho somem. Não dá para desfazer.`, ok: "Apagar", icone: "lixo" })) return;
+        for (const x of await lerRascunhos()) await apagarRascunho(x.id).catch(() => {});
+        nRasc = 0; toast("Rascunhos apagados"); pintar();
+      });
+      const w = el("div", "cfg2-acoes"); w.appendChild(ap); kc.appendChild(w);
+    }
+
+    // 5) Respostas e reações
+    const k3 = cartao("chat", "#7c5cff", "Respostas e reações", "Respostas e reações chegam no Mensagens como cartão do flash. Votos da enquete, respostas do teste e da caixa de perguntas ficam na Atividade do flash (toque em Visualizações).");
     opcoes(k3, [["todos", "Todos que veem"], ["seguindo", "Só quem você segue"], ["ninguem", "Ninguém", "Desliga respostas e reações"]], c.respostas, (v) => salvar({ respostas: v }));
 
     // 5) Câmera e vídeo
@@ -2926,7 +2988,10 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
   // Como no Instagram: o tempo fica na mesma linha do nome ("Ana  3 h").
   const linhaNome = el("div", "story-nome"); linhaNome.append(nome, quando, chip);
   txtQuem.className = "story-quem-tx";
-  txtQuem.append(linhaNome); quem.append(av, txtQuem);
+  // As linhas extras ("Flash de X", "Também em 1 negócio") ficam penduradas embaixo do nome, sem empurrar o nome para
+  // cima: ele fica sempre na altura da foto (pedido de 02/11).
+  const subQuem = el("div", "story-quem-sub");
+  txtQuem.append(linhaNome, subQuem); quem.append(av, txtQuem);
   // Foto e nome abrem o perfil de quem publicou (como no Instagram).
   [av, nome].forEach((x) => {
     x.classList.add("story-vai-perfil"); x.setAttribute("role", "link"); x.tabIndex = 0;
@@ -3206,7 +3271,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
       const r = el("button", "story-repost"); r.type = "button";
       r.append(icone("raio", "i xs"), document.createTextNode(`Flash de ${String(s.repostDe.nome || "alguém").split(" ")[0]}`));
       r.addEventListener("click", (e) => { e.stopPropagation(); irParaPerfil(s.repostDe.autorId); });
-      txtQuem.appendChild(r);
+      subQuem.appendChild(r);
     }
     // Também nos perfis de negócio (o dono escolheu ao publicar)
     topo.querySelector(".story-onde")?.remove();
@@ -3235,7 +3300,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
           return a;
         }) : [el("div", "lista-vazia", "Esses negócios não estão mais no ar.")]));
       });
-      txtQuem.appendChild(o);
+      subQuem.appendChild(o);
     }
     // Publicação do Diário compartilhada (como no Instagram): tocar na publicação mostra o balão "Ver publicação";
     // tocar no balão abre a publicação POR CIMA do flash, e o "voltar" retorna ao flash de onde parou.
