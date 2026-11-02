@@ -1410,6 +1410,17 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   depois de 0/120/400 ms; mesmo texto na mesma conversa em 2 s não sai de novo. Enquete do autor: "1 voto · só você vê até
   acabar" numa linha com "Ver votos"; "Visto por N | ★ N" com divisória e rostos 24 px. Testes `t-deslizar-flash.mjs` (deslize
   rápido com toques sintéticos: o CDP manda devagar demais), `t-chat-eco.mjs`.
+- **Páginas mais rápidas: cópia do aparelho primeiro + código fora do HTML (02/11/2026, PR depois do #137, sem regra nova):**
+  medido com `_testes/medir-rapido.mjs` (2ª visita, 4G simulado 150 ms/1,6 Mbit/s, service worker ligado): Mensagens
+  3,4 → 0,9 s, Perfil 1,75 → 0,7 s, Diário 1,5 → 1,0 s. Causas: (1) o HTML do Mensagens tinha 388 KB (código e estilo
+  dentro da página, e página sempre vem da rede) → `mensagens-app.js` + `mensagens.css` e `usuarios-app.js` (saíram do
+  HTML; o service worker guarda pelo `?v=`; páginas agora 40 KB e 14 KB); (2) leituras em fila no servidor antes de
+  mostrar algo → `rapido.js` (sem deps): `docRapido(fb, ref, aoAtualizar)` = `getDocFromCache` na hora + servidor por trás;
+  `docsRapido(fb, consulta, chave, aoAtualizar)` só usa a cópia se a consulta já trouxe algo antes (marca `hf-rapido-*`).
+  `iniciarRede` (rede.js): conta e perfil público em paralelo pela cópia; as gravações (sincronizar o público, busca,
+  e-mail novo) só com a versão do servidor; quando ela chega, `dados` é atualizado no mesmo objeto e dispara `hf:dados-conta`.
+  Mensagens: perfil, conta e bloqueios juntos pela cópia (antes 3 esperas seguidas). **Ao mexer no código do Mensagens ou
+  do perfil: os arquivos agora são `mensagens-app.js`/`mensagens.css`/`usuarios-app.js`** (o HTML só tem a marcação).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
