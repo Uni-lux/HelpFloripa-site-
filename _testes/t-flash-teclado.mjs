@@ -162,9 +162,9 @@ ok((await p.locator(".vv-mini-n span").allTextContents()).every((t) => /^\d+$/.t
 await p.locator(".vv-mini").nth(1).tap(); await p.waitForTimeout(1200);
 ok(await p.locator(".vv-pessoa .vv-foto .vv-est").count() === 1 && await p.locator(".vv-pessoa .vv-emoji").count() === 1, "trocar de flash na fita: estrela e 🔥 do Bruno como selos na foto");
 await p.locator(".vv-opcoes").first().tap(); await p.waitForTimeout(200);
-ok(await p.locator(".vv-acao").count() === 3, "⋯ da pessoa: Mensagem, Ver perfil e Ocultar flashes");
+ok(await p.locator("#opcoesCorpo button").count() === 3, "⋯ da pessoa: Mensagem, Ver perfil e Ocultar flashes (menu)");
 await p.screenshot({ path: "saida/ft-visualizacoes.png" });
-await p.locator(".vv-acao", { hasText: "Ocultar" }).tap();
+await p.locator("#folhaOpcoes.aberta button", { hasText: "Ocultar" }).tap();
 await p.locator(".hf-confirma .sim").tap(); await p.waitForTimeout(1200);
 const cfg = (await db.doc(`usuarios/${U.ana}`).get()).data()?.flashConfig;
 ok(cfg?.ocultarDe?.includes(U.bruno) && await p.locator(".vv-oculto").count() === 1, "Ocultar flashes grava e mostra 'Não vê mais os seus flashes'");

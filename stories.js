@@ -13,7 +13,7 @@ import {
   meusSeguindo, escondido, silenciado, alternarSilenciar, obterPerfil, abrirOpcoes, abrirLista, linhaPessoa, pessoasEmPilha,
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados
-} from "./rede.js?v=95";
+} from "./rede.js?v=96";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { seletorDuracao, fimEscolhido, linhaChave, MAX_FLASH_MIN, fimDaEnquete, encerrada, faltaTexto, resultadoFinal, lerContasEnquete } from "./enquetes.js?v=6";
@@ -21,7 +21,9 @@ import { seletorDuracao, fimEscolhido, linhaChave, MAX_FLASH_MIN, fimDaEnquete, 
 const DIA = 24 * 3600e3;
 const TEMPO_FOTO = 5000;
 // Mais tempo quando tem o que ler ou responder (enquete, perguntas, publicação, link ou legenda longa).
-const tempoDoFlash = (s) => TEMPO_FOTO + (s.enquete || s.caixa || s.postDe || s.link ? 2500 : 0) + (String(s.texto || "").length > 80 ? 1500 : 0);
+// Tempo na tela (como no Instagram): foto 5 s; com enquete, perguntas, publicação ou link 10 s; legenda longa +3 s
+// (no máximo 15 s). Vídeo: o tempo dele (até 1 min).
+const tempoDoFlash = (s) => Math.min(15000, TEMPO_FOTO + (s.enquete || s.caixa || s.postDe || s.link ? 5000 : 0) + (String(s.texto || "").length > 80 ? 3000 : 0));
 const REACOES = ["🔥", "😍", "😂", "😮", "👏", "💯"];
 // Estrela (curtir o flash, como o coração do Instagram): stories/{id}/reacoes/{uid} {curtiu, emoji, em}. O autor vê
 // quem deu a estrela e quem reagiu na lista de visualizações. Guardada também no aparelho (não lê de novo a cada flash).
@@ -695,7 +697,54 @@ function textoFigurinha(fig, local = "") {
   return "📍 " + (local || "Minha cidade");
 }
 
-function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTexto = "" } = {}) {
+// ---------- rascunhos do Flash: ficam neste aparelho (IndexedDB, por conta), até 10 ----------
+function bdRasc() {
+  return new Promise((ok, erro) => {
+    const r = indexedDB.open("hf-flash-" + (eu?.uid || "x"), 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("rascunhos", { keyPath: "id" });
+    r.onsuccess = () => ok(r.result); r.onerror = () => erro(r.error);
+  });
+}
+async function lerRascunhos() {
+  try {
+    const db = await bdRasc();
+    return await new Promise((ok, erro) => { const q = db.transaction("rascunhos").objectStore("rascunhos").getAll(); q.onsuccess = () => ok(q.result.sort((a, b) => b.quando - a.quando)); q.onerror = () => erro(q.error); });
+  } catch { return []; }
+}
+async function apagarRascunho(id) {
+  const db = await bdRasc();
+  await new Promise((ok, erro) => { const tx = db.transaction("rascunhos", "readwrite"); tx.objectStore("rascunhos").delete(id); tx.oncomplete = ok; tx.onerror = () => erro(tx.error); });
+}
+async function guardarRascunho(r) {
+  const db = await bdRasc();
+  await new Promise((ok, erro) => { const tx = db.transaction("rascunhos", "readwrite"); tx.objectStore("rascunhos").put(r); tx.oncomplete = ok; tx.onerror = () => erro(tx.error); });
+  for (const x of (await lerRascunhos()).slice(10)) await apagarRascunho(x.id).catch(() => {});
+}
+// Lista dos rascunhos (folha): miniatura, quando e apagar; tocar reabre no criador.
+async function abrirRascunhos(aoAbrir) {
+  const corpo = abrirLista("Rascunhos do Flash");
+  corpo.replaceChildren(el("div", "lista-vazia", "Carregando..."));
+  const pintarL = async () => {
+    const l = await lerRascunhos();
+    if (!l.length) { corpo.replaceChildren(el("div", "lista-vazia", "Nenhum rascunho. Ao sair de um flash pela metade, escolha “Salvar como rascunho”.")); return; }
+    const g = el("div", "rasc-grade");
+    l.forEach((r) => {
+      const c = el("div", "rasc-cel");
+      const b = el("button", "rasc-abrir"); b.type = "button"; b.setAttribute("aria-label", "Abrir rascunho");
+      if (r.foto) { const im = document.createElement("img"); im.src = r.foto; im.alt = ""; b.appendChild(im); }
+      else { const [a, z2] = FUNDOS[r.fundoI] || FUNDOS[0]; b.style.background = `linear-gradient(160deg, ${a}, ${z2})`; b.appendChild(el("span", "rasc-txt", String(r.texto || "").slice(0, 60))); }
+      b.appendChild(el("small", "rasc-quando", tempoRelativo(new Date(r.quando))));
+      b.addEventListener("click", () => { document.querySelector("#folhaLista.aberta [data-fechar]")?.click(); setTimeout(() => aoAbrir(r), 200); });
+      const x = el("button", "rasc-apagar"); x.type = "button"; x.setAttribute("aria-label", "Apagar rascunho"); x.appendChild(icone("lixo", "i xs"));
+      x.addEventListener("click", async () => { if (!await confirmarHF({ titulo: "Apagar este rascunho?", texto: "Não dá para desfazer.", ok: "Apagar", icone: "lixo" })) return; await apagarRascunho(r.id).catch(() => {}); pintarL(); });
+      c.append(b, x); g.appendChild(c);
+    });
+    corpo.replaceChildren(el("p", "rasc-nota", "Ficam guardados só neste aparelho (até 10)."), g);
+  };
+  pintarL();
+}
+
+function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTexto = "", figuras = [], rascunho = null } = {}) {
   const fundo = el("div", "flash-criar"); fundo.addEventListener("contextmenu", (e) => { if (!e.target.closest("input, textarea")) e.preventDefault(); }); fundo.setAttribute("role", "dialog"); fundo.setAttribute("aria-modal", "true"); fundo.setAttribute("aria-label", "Novo flash");
   const caixa = el("div", "flash-caixa");
   const palco = el("div", "flash-palco");
@@ -1224,11 +1273,11 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     const t = gesto.t, mexeu = gesto.mexeu, foiDois = gesto.dois;
     gesto.t = null; gesto.base = null; gesto.mexeu = false; gesto.dois = false;
     palco.classList.remove("arrastando-txt"); guias.querySelectorAll(".on").forEach((g) => g.classList.remove("on"));
-    if (lixo.classList.contains("sobre")) { lixo.classList.remove("sobre"); t.el.remove(); textos.splice(textos.indexOf(t), 1); navigator.vibrate?.(12); pintarArroba(); return; }
+    if (lixo.classList.contains("sobre")) { lixo.classList.remove("sobre"); t.el.remove(); textos.splice(textos.indexOf(t), 1); navigator.vibrate?.(12); pintarArroba(); toast("Removido · toque aqui para desfazer", desfazer); return; }
     if (mexeu || foiDois || ev.type !== "pointerup") return;
     // toque parado
     if (t.enq) editarEnquete(t); else if (t.cx) editarCaixa(t); else if (t.lk) escolherNegocio(t);
-    else if (t.ft) { t.estilo = ((t.estilo || 0) + 1) % 3; camada.appendChild(t.el); textos.push(textos.splice(textos.indexOf(t), 1)[0]); t.el.replaceChildren(); pintarTexto(t); }
+    else if (t.ft) { if (t.estilo !== 3) t.estilo = ((t.estilo || 0) + 1) % 3; /* 3 = figurinha pronta (resposta): só vem para a frente */ camada.appendChild(t.el); textos.push(textos.splice(textos.indexOf(t), 1)[0]); t.el.replaceChildren(); pintarTexto(t); }
     else if (t.fig) { t.estilo = (t.estilo + 1) % EST_FIG.length; pintarTexto(t); }
     else if (t.emoji) { t.tam = t.tam >= 0.26 ? 0.1 : +(t.tam + 0.06).toFixed(3); pintarTexto(t); }
     else editarTexto(t);
@@ -1253,6 +1302,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       r = ((r + 540) % 360) - 180;
       if (Math.abs(r) < 4) r = 0; // encaixa reto
       t.rot = Math.round(r * 10) / 10;
+      if (!gesto.mexeu) marcar();
       t.x = Math.min(0.98, Math.max(0.02, b.tx + ((p1.x + p2.x) / 2 - b.mx) / W));
       t.y = Math.min(0.98, Math.max(0.02, b.ty + ((p1.y + p2.y) / 2 - b.my) / H));
       gesto.mexeu = true; palco.classList.add("arrastando-txt");
@@ -1262,7 +1312,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     if (b.dois) return;
     const dx = ev.clientX - b.x, dy = ev.clientY - b.y;
     if (!gesto.mexeu && Math.hypot(dx, dy) < 5) return;
-    if (!gesto.mexeu) { gesto.mexeu = true; palco.classList.add("arrastando-txt"); }
+    if (!gesto.mexeu) { marcar(); gesto.mexeu = true; palco.classList.add("arrastando-txt"); }
     t.x = Math.min(0.98, Math.max(0.02, b.tx + dx / W)); t.y = Math.min(0.98, Math.max(0.02, b.ty + dy / H));
     const nx = Math.abs(t.x - 0.5) < 0.015; if (nx) t.x = 0.5;
     guias.querySelector(".v").classList.toggle("on", nx);
@@ -1276,6 +1326,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   function criarTexto(t) {
     const e = el("div", "flash-txt"); e.setAttribute("role", "button"); e.tabIndex = 0;
     e.setAttribute("aria-label", t.ft ? "Foto por cima: arraste para mover, dois dedos para aumentar ou girar, toque para trocar a moldura" : "Texto na foto: toque para editar, arraste para mover, dois dedos para aumentar ou girar");
+    marcar();
     t.el = e; textos.push(t); camada.appendChild(e); pintarTexto(t);
     publicar.disabled = !prontoParaPublicar() || enviando;
     e.addEventListener("pointerdown", (ev) => {
@@ -1401,7 +1452,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       if (!pergunta) { toast("Escreva a pergunta."); perg.focus(); return; }
       if (opcoes.length < 2) { toast("Coloque pelo menos 2 opções."); return; }
       pn.remove();
-      if (t) { t.pergunta = pergunta; t.opcoes = opcoes; t.duracao = duracao; t.anonima = extras.anonima; t.tema = extras.cor; pintarTexto(t); }
+      if (t) { marcar(); t.pergunta = pergunta; t.opcoes = opcoes; t.duracao = duracao; t.anonima = extras.anonima; t.tema = extras.cor; pintarTexto(t); }
       else criarTexto({ enq: true, pergunta, opcoes, duracao, anonima: extras.anonima, tema: extras.cor, texto: "", x: 0.5, y: 0.6, tam: 0.05, letra: 0, cor: "#111", destaque: false });
     });
   }
@@ -1458,7 +1509,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       const pergunta = perg.value.trim().slice(0, 120);
       if (!pergunta) { toast("Escreva o texto da caixa."); perg.focus(); return; }
       pn.remove();
-      if (t) { t.pergunta = pergunta; t.anonima = estado.anonima; t.tema = estado.cor; pintarTexto(t); }
+      if (t) { marcar(); t.pergunta = pergunta; t.anonima = estado.anonima; t.tema = estado.cor; pintarTexto(t); }
       else criarTexto({ cx: true, pergunta, anonima: estado.anonima, tema: estado.cor, texto: "", x: 0.5, y: 0.42, tam: 0.05, letra: 0, cor: "#111", destaque: false });
     });
   }
@@ -1701,7 +1752,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
           const seg = el("div", "fm-seg"); seg.setAttribute("role", "radiogroup"); seg.setAttribute("aria-label", "Como a menção aparece");
           [["tela", "Na tela"], ["lista", "Só na lista"], ["oculta", "Oculta"]].forEach(([k, rot]) => {
             const b = el("button", "fm-seg-op" + (k === modoM ? " on" : ""), rot); b.type = "button"; b.setAttribute("role", "radio"); b.setAttribute("aria-checked", String(k === modoM));
-            b.addEventListener("click", () => { t.oculta = k === "oculta"; t.soLista = k === "lista"; pintarTexto(t); pintarL(); });
+            b.addEventListener("click", () => { marcar(); t.oculta = k === "oculta"; t.soLista = k === "lista"; pintarTexto(t); pintarL(); });
             seg.appendChild(b);
           });
           const w = el("div", "fm-bloco"); w.append(l, seg);
@@ -1792,10 +1843,10 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     const concluir = () => {
       const texto = campo.value.trim();
       ed.remove();
-      if (t && !texto) { t.el.remove(); textos.splice(textos.indexOf(t), 1); return; }
+      if (t && !texto) { marcar(); t.el.remove(); textos.splice(textos.indexOf(t), 1); return; }
       if (!texto) return;
       tmp.texto = texto;
-      if (novo) criarTexto(tmp); else { Object.assign(t, tmp); pintarTexto(t); }
+      if (novo) criarTexto(tmp); else { marcar(); Object.assign(t, tmp); pintarTexto(t); }
       pintarArroba();
     };
     ok.addEventListener("click", concluir);
@@ -1859,6 +1910,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     area.addEventListener("pointerdown", (e) => {
       const r = palco.getBoundingClientRect();
       area.setPointerCapture(e.pointerId);
+      marcar();
       atual = { modo: est.modo, cor: est.cor, larg: est.larg, pts: [[(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height]] };
       tracos.push(atual); ed.classList.add("desenhando"); pintarDesenho();
     });
@@ -2062,12 +2114,83 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     fundo.remove(); document.body.classList.remove("travado"); document.removeEventListener("keydown", tecla); window.removeEventListener("resize", aoRedimensionar); window.visualViewport?.removeEventListener("resize", aoRedimensionar); clearTimeout(tMedir);
     if (foto) URL.revokeObjectURL(foto);
   };
-  const tecla = (e) => { if (e.key === "Escape" && !document.querySelector(".hfe-fundo, .flash-edtxt")) fechar(); };
+  // Voltar do celular, Esc e o X (como no Instagram): com um painel aberto fecha só o painel; com algo feito pergunta se
+  // guarda como rascunho, descarta ou continua editando. Nada se perde sem querer.
+  const temConteudo = () => !!(foto || video || area.value.trim() || textos.length || tracos.length);
+  function fecharPainel() {
+    const ed = palco.querySelector(".flash-edtxt, .flash-pincel");
+    if (ed) { ed.querySelector(".fe-cab .fe-pronto")?.click(); return true; }
+    const pn = palco.querySelector(".flash-figs, .fe-arroba");
+    if (pn) { pn.remove(); return true; }
+    return false;
+  }
+  function perguntarSair() {
+    if (!temConteudo()) { fechar(); return; }
+    abrirOpcoes("Sair do flash?", [
+      { rotulo: "Salvar como rascunho", sub: "Fica guardado neste aparelho para terminar depois", icone: "rascunho", fn: async () => { if (await salvarRascunho()) fechar(); } },
+      { rotulo: "Descartar", sub: "A foto e o que você fez serão perdidos", icone: "lixo", perigo: true, fn: () => fechar() },
+      { rotulo: "Continuar editando", icone: "lapis", fn: () => {} }
+    ]);
+  }
+  const tecla = (e) => {
+    if (e.key !== "Escape" || document.querySelector(".hfe-fundo")) return;
+    // uma folha aberta por cima (ex.: "Sair do flash?") fecha primeiro = continuar editando
+    const fo = document.querySelector(".folha.aberta"); if (fo) { fo.querySelector("[data-fechar]")?.click(); return; }
+    if (document.activeElement && fundo.contains(document.activeElement) && /^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName) && document.activeElement !== area) document.activeElement.blur();
+    if (fecharPainel()) return;
+    perguntarSair();
+  };
   document.addEventListener("keydown", tecla);
-  bX.addEventListener("click", async () => {
-    if ((area.value.trim() || foto || video) && !await confirmarHF({ titulo: "Descartar este flash?", texto: "A foto e o que você escreveu serão perdidos.", ok: "Descartar", cancelar: "Continuar editando", icone: "lixo" })) return;
-    fechar();
-  });
+  bX.addEventListener("click", () => { if (!fecharPainel()) perguntarSair(); });
+
+  // ---------- rascunhos (no aparelho, IndexedDB) ----------
+  async function salvarRascunho() {
+    try {
+      let fotoUrl = "";
+      if (img) {
+        const k = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight)), c = document.createElement("canvas");
+        c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); fotoUrl = c.toDataURL("image/jpeg", 0.88);
+      }
+      const { W } = medidas();
+      const r = {
+        id: rascId || "r" + Date.now().toString(36), quando: Date.now(), modo: video ? "foto" : modo, fundoI, letraI, texto: area.value, legenda: legenda.value,
+        foto: fotoUrl, filtro: filtro.id, z, ox: ox / (W || 1), oy: oy / (W || 1), tracos: tracos.map((t) => ({ ...t, pts: t.pts.slice() })), paraAmigos,
+        textos: textos.map(({ el: _e, _area, _arrobas, img: im, ...t }) => ({ ...t, ...(im ? { imgSrc: im.src } : {}) })), avisos: [...avisos.values()]
+      };
+      await guardarRascunho(r);
+      rascId = r.id;
+      toast("Rascunho salvo neste aparelho");
+      return true;
+    } catch (e) { toast("Não foi possível salvar o rascunho: " + erroAmigavel(e)); return false; }
+  }
+  let rascId = rascunho?.id || null;
+
+  // ---------- desfazer ----------
+  // Guarda como estavam as figurinhas e o pincel antes de cada mudança; o botão ↶ volta um passo.
+  const historico = [];
+  let restaurando = false;
+  const bDesfazer = el("button", "flash-ferr-btn flash-desfazer"); bDesfazer.type = "button"; bDesfazer.title = "Desfazer"; bDesfazer.setAttribute("aria-label", "Desfazer a última mudança");
+  bDesfazer.innerHTML = '<svg class="i s" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 010 11H11"/></svg>';
+  bDesfazer.hidden = true;
+  esq.appendChild(bDesfazer);
+  function marcar() {
+    if (restaurando) return;
+    historico.push({ textos: textos.map(({ el: _e, ...t }) => ({ ...t })), tracos: tracos.map((t) => ({ ...t, pts: t.pts.slice() })) });
+    if (historico.length > 40) historico.shift();
+    bDesfazer.hidden = false;
+  }
+  function desfazer() {
+    const h = historico.pop(); if (!h) return;
+    restaurando = true;
+    textos.splice(0).forEach((t) => t.el?.remove());
+    h.textos.forEach((t) => criarTexto({ ...t }));
+    tracos.splice(0, tracos.length, ...h.tracos); pintarDesenho();
+    restaurando = false;
+    bDesfazer.hidden = !historico.length;
+    pintarArroba();
+  }
+  bDesfazer.addEventListener("click", desfazer);
   // Foto com os textos: desenha o cartão inteiro em 1080×1920 (o que a pessoa vê é o que vai).
   function desenharCamada(g, OW, OH) {
     if (tracos.length) { const cd = document.createElement("canvas"); cd.width = OW; cd.height = OH; pintarTracos(cd.getContext("2d"), OW, OH, tracos); g.drawImage(cd, 0, 0); }
@@ -2086,6 +2209,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       if (t.ft) {
         // Foto por cima: sem moldura, moldura branca ou redonda
         const w = t.tam * OW, h = w * (t.img.naturalHeight / t.img.naturalWidth), x = t.x * OW, y = t.y * OH, est = t.estilo || 0;
+        if (est === 3) { g.drawImage(t.img, x - w / 2, y - h / 2, w, h); return; } // figurinha pronta (já tem sombra e cantos)
         g.shadowColor = "rgba(0,0,0,.35)"; g.shadowBlur = w * 0.05; g.shadowOffsetY = w * 0.015;
         if (est === 2) {
           const r = w / 2; // redonda: o círculo tem a largura toda (igual à prévia)
@@ -2230,6 +2354,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
         if (enquete) registrarEnquete("f_" + ref.id, enquete);
         if (repost && repost.autorId !== eu.uid) mandarMensagem(repost.autorId, msgFlash({ id: ref.id, autorId: eu.uid, nome: dados.nome }, "repost", { original: repost.id }), "Repostou seu flash").catch(() => {});
       }
+      if (rascId) apagarRascunho(rascId).catch(() => {});
       fechar();
     } catch (e) {
       toast(erroPublicar(e));
@@ -2237,6 +2362,35 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     }
   });
   pintar();
+  // Pílula "Rascunhos" no alto do cartão enquanto ele está vazio.
+  const bRasc = el("button", "flash-rasc"); bRasc.type = "button"; bRasc.hidden = true;
+  palco.appendChild(bRasc);
+  const pintarRasc = () => { bRasc.hidden = temConteudo() || !nRasc; bRasc.replaceChildren(icone("rascunho", "i xs"), el("span", null, `Rascunhos · ${nRasc}`)); };
+  let nRasc = 0;
+  lerRascunhos().then((l) => { nRasc = l.length; pintarRasc(); });
+  new MutationObserver(pintarRasc).observe(camada, { childList: true });
+  [area, legenda].forEach((c) => c.addEventListener("input", pintarRasc));
+  bRasc.addEventListener("click", () => abrirRascunhos((r) => { fechar(); abrirCriador({ rascunho: r }); }));
+  if (rascunho) {
+    // Reabre o rascunho como ele estava (fundo, foto e posição, filtro, figurinhas, pincel e menções ocultas).
+    fundoI = rascunho.fundoI ?? fundoI; letraI = rascunho.letraI ?? 0;
+    area.value = rascunho.texto || ""; legenda.value = rascunho.legenda || "";
+    paraAmigos = !!rascunho.paraAmigos; pintarAmigos();
+    filtro = FILTROS.find((f) => f.id === rascunho.filtro) || FILTROS[0];
+    (rascunho.avisos || []).forEach((p2) => p2?.uid && avisos.set(p2.uid, p2));
+    tracos.splice(0, tracos.length, ...(rascunho.tracos || []));
+    const carregarImg2 = (src) => new Promise((ok) => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => ok(null); im.src = src; });
+    const pore = async () => {
+      const lista = await Promise.all((rascunho.textos || []).map(async (t) => (t.imgSrc ? { ...t, img: await carregarImg2(t.imgSrc) } : t)));
+      restaurando = true;
+      lista.filter((t) => !t.ft || t.img).forEach(({ imgSrc: _s, ...t }) => criarTexto(t));
+      restaurando = false;
+      pintarDesenho(); pintarArroba(); pintarRasc();
+    };
+    if (rascunho.foto) usarFoto(rascunho.foto).then(() => { const { W } = medidas(); z = rascunho.z || 1; ox = (rascunho.ox || 0) * W; oy = (rascunho.oy || 0) * W; posicionar(); pintarFiltroNaTela(); return pore(); }).catch((e) => toast(erroAmigavel(e)));
+    else { modo = "texto"; pintar(); pore(); }
+    return;
+  }
   if (post) {
     // Publicação do Diário: o cartão dela já desenhado, com o selo de quem publicou.
     const tipoPub = post.enquete ? ["enquete", "Enquete"] : post.caixa ? ["caixa", "Caixa de perguntas"] : ["fotos", "Publicação"];
@@ -2249,7 +2403,9 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     // Imagem já desenhada (resposta da caixa de perguntas): abre no cartão com o selo.
     const selo = el("div", "flash-repost-selo"); selo.append(icone("caixa", "i xs"), document.createTextNode(seloTexto || "Resposta"));
     palco.appendChild(selo);
-    usarFoto(imagem).catch((e) => toast(erroAmigavel(e)));
+    usarFoto(imagem).then(() => figuras.forEach((f) => criarTexto({ ft: true, img: f.img, texto: "", x: 0.5, y: 0.45, tam: f.tam, estilo: 3, rot: 0, letra: 0, cor: "#fff", destaque: false })))
+      .catch((e) => toast(erroAmigavel(e)));
+    if (figuras.length) setTimeout(() => toast("Troque o fundo em Fotos; a resposta continua por cima"), 900);
     return;
   }
   if (repost) {
@@ -2595,7 +2751,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
   let timer = null, inicio = 0, restante = 0, pausado = false, video = null, digitando = false, fechado = false;
   const fechar = () => {
     if (fechado) return; fechado = true;
-    clearTimeout(timer); video?.pause(); fundo.remove(); document.body.classList.remove("travado");
+    clearTimeout(timer); cancelAnimationFrame(rafBarra); video?.pause(); fundo.remove(); document.body.classList.remove("travado");
     document.removeEventListener("keydown", tecla, true); document.removeEventListener("visibilitychange", aoEsconder);
     window.removeEventListener("resize", reencaixar);
     pintarBarra(); aoFechar?.();
@@ -2937,9 +3093,9 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
       const img = document.createElement("img"); img.src = s.midia; img.alt = s.texto || `Flash de ${nome.textContent || "alguém"}`; img.decoding = "async";
       palco.appendChild(img);
       const dur = tempoDoFlash(s);
+      inicio = Date.now(); restante = dur;
       animarBarra(dur);
       timer = setTimeout(proximo, dur);
-      inicio = Date.now(); restante = dur;
     }
     // Já carrega o próximo (troca sem piscar).
     const prox = lista[si + 1] || mapa.get(ordem[ai + 1])?.[0];
@@ -2951,10 +3107,22 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
   let somDesligado = !configFlash().somVideo;
   const pintarSom = () => { bSom.textContent = somDesligado ? "🔇" : "🔊"; bSom.setAttribute("aria-label", somDesligado ? "Ligar o som" : "Desligar o som"); };
   bSom.addEventListener("click", (e) => { e.stopPropagation(); somDesligado = !somDesligado; if (video) video.muted = somDesligado; pintarSom(); });
+  // A barra do tempo anda quadro a quadro (requestAnimationFrame), e não por animação do CSS: assim ela aparece mesmo
+  // com "remover animações" ligado no celular (o site desliga as transições nesse caso).
+  let rafBarra = 0, durAtual = 1;
   function animarBarra(dur) {
+    cancelAnimationFrame(rafBarra);
+    durAtual = Math.max(1, dur);
     const i = barras.children[si]?.firstChild; if (!i) return;
-    i.style.transition = "none"; i.style.width = "0%";
-    requestAnimationFrame(() => requestAnimationFrame(() => { if (pausado) return; i.style.transition = `width ${dur}ms linear`; i.style.width = "100%"; }));
+    i.style.transition = "none";
+    const passo = () => {
+      if (fechado || !i.isConnected) return;
+      const f = video ? (video.duration ? video.currentTime / video.duration : 0)
+        : 1 - Math.max(0, pausado ? restante : restante - (Date.now() - inicio)) / durAtual;
+      i.style.width = Math.min(100, Math.max(0, f * 100)) + "%";
+      rafBarra = requestAnimationFrame(passo);
+    };
+    passo();
   }
   // Flash apagado pela lixeira das Visualizações: sai da lista do visor.
   function tirarDaLista(x) {
@@ -3004,11 +3172,10 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
     const i = barras.children[si]?.firstChild;
     if (sim) {
       clearTimeout(timer); video?.pause();
-      if (i) { const w = getComputedStyle(i).width; i.style.transition = "none"; i.style.width = w; }
       if (!video) restante = Math.max(300, restante - (Date.now() - inicio));
     } else {
-      if (video) { video.play().catch(() => {}); if (i) { i.style.transition = `width ${Math.max(200, ((video.duration || 15) - video.currentTime) * 1000)}ms linear`; i.style.width = "100%"; } }
-      else { inicio = Date.now(); timer = setTimeout(proximo, restante); if (i) { i.style.transition = `width ${restante}ms linear`; i.style.width = "100%"; } }
+      if (video) video.play().catch(() => {});
+      else { inicio = Date.now(); timer = setTimeout(proximo, restante); }
     }
   }
   // Toques: direita = próximo, esquerda = anterior; segurar = pausa e esconde o que está por cima da foto.
@@ -3242,22 +3409,16 @@ async function verQuemViu(sInicial, aoFechar, flashes, aoTrocar, { aoApagar = nu
           const mais = el("button", "icone-btn vv-opcoes"); mais.type = "button"; mais.setAttribute("aria-label", `Opções para ${nome}`); mais.setAttribute("aria-expanded", "false"); mais.appendChild(icone("pontos", "i s"));
           l.append(fotoBox, tx, mais);
           [fotoBox, tx].forEach((a) => a.addEventListener("click", () => ganchos.abrirPerfil(x.uid)));
+          // ⋯ = menu organizado (o mesmo das outras telas do site), por cima das Visualizações.
           mais.addEventListener("click", () => {
-            const aberto = l.nextElementSibling?.classList.contains("vv-acoes");
-            box.querySelectorAll(".vv-acoes, .vv-escrever").forEach((z) => z.remove());
-            box.querySelectorAll(".vv-opcoes[aria-expanded='true']").forEach((z) => z.setAttribute("aria-expanded", "false"));
-            if (aberto) return;
-            mais.setAttribute("aria-expanded", "true");
-            const ac = el("div", "vv-acoes");
-            const acao = (ic, rot, fn, perigo) => { const b = el("button", "vv-acao" + (perigo ? " perigo" : "")); b.type = "button"; b.append(icone(ic, "i s"), el("span", null, rot)); b.addEventListener("click", fn); return b; };
-            ac.append(
-              acao("chat", "Mensagem", () => escrever()),
-              acao("pessoa", "Ver perfil", () => ganchos.abrirPerfil(x.uid)),
+            box.querySelectorAll(".vv-escrever").forEach((z) => z.remove());
+            abrirOpcoes(nome, [
+              { rotulo: "Enviar mensagem", sub: `Escreva para ${primeiro} aqui mesmo`, icone: "chat", fn: () => escrever() },
+              { rotulo: "Ver perfil", sub: p.nickname ? "@" + p.nickname : "", icone: "pessoa", fn: () => ganchos.abrirPerfil(x.uid) },
               ocultos.has(x.uid)
-                ? acao("olho", "Mostrar flashes", () => mudarOculto(false))
-                : acao("olho-off", "Ocultar flashes", () => mudarOculto(true), true)
-            );
-            l.after(ac);
+                ? { rotulo: "Mostrar os seus flashes", sub: `${primeiro} volta a ver os próximos flashes`, icone: "olho", fn: () => mudarOculto(false) }
+                : { rotulo: "Ocultar os seus flashes", sub: "A pessoa não vê os próximos e não fica sabendo", icone: "olho-off", perigo: true, fn: () => mudarOculto(true) }
+            ]);
             async function mudarOculto(ocultar) {
               const c = configFlash(), set = new Set(c.ocultarDe);
               if (ocultar) {
@@ -3268,11 +3429,10 @@ async function verQuemViu(sInicial, aoFechar, flashes, aoTrocar, { aoApagar = nu
               catch (e) { toast("Não foi possível: " + erroAmigavel(e)); }
             }
             function escrever() {
-              ac.remove();
               const form = el("form", "vv-escrever");
               const campo = el("input"); campo.type = "text"; campo.maxLength = 900; campo.placeholder = `Mensagem para ${primeiro}...`;
               const env = el("button", "cx-enviar"); env.type = "submit"; env.setAttribute("aria-label", "Enviar"); env.appendChild(icone("enviar", "i s"));
-              form.append(campo, env); l.after(form); campo.focus();
+              form.append(campo, env); l.after(form); setTimeout(() => campo.focus(), 200);
               form.addEventListener("submit", async (e) => {
                 e.preventDefault(); const t = campo.value.trim(); if (!t) return;
                 env.disabled = true;
@@ -3349,7 +3509,7 @@ async function verQuemViu(sInicial, aoFechar, flashes, aoTrocar, { aoApagar = nu
           if (aberto) return;
           const ac = el("div", "vv-resp-acoes");
           const acao = (ic, rot, fn, perigo) => { const b = el("button", "vv-acao" + (perigo ? " perigo" : "")); b.type = "button"; b.append(icone(ic, "i s"), el("span", null, rot)); b.addEventListener("click", fn); return b; };
-          ac.append(acao("raio", "Pôr no flash", () => { f?.querySelector("[data-fechar]")?.click(); document.querySelector(".story-visor [aria-label='Fechar']")?.click(); setTimeout(() => compartilharRespostaNoFlash({ pergunta: c.pergunta, texto: r.texto }), 300); }));
+          ac.append(acao("raio", "Pôr no flash", () => { f?.querySelector("[data-fechar]")?.click(); document.querySelector(".story-visor [aria-label='Fechar']")?.click(); setTimeout(() => compartilharRespostaNoFlash({ pergunta: c.pergunta, texto: r.texto, cor: c.cor || "" }), 300); }));
           if (!r.anonima && r.uid) ac.append(acao("pessoa", "Ver perfil", () => ganchos.abrirPerfil(r.uid)));
           ac.append(acao("lixo", "Apagar", async () => {
             if (!await confirmarHF({ titulo: "Apagar esta resposta?", texto: "Ela some das suas respostas.", ok: "Apagar", icone: "lixo" })) return;
@@ -3690,33 +3850,37 @@ function restaTexto(s) {
 
 // Resposta da caixa de perguntas no seu flash (como no Instagram): a pergunta em cima e a resposta embaixo, sem o nome
 // de quem respondeu. Abre o criador com a imagem pronta (dá para escrever por cima e pôr figurinhas).
-export async function compartilharRespostaNoFlash({ pergunta, texto }) {
-  const W = 1080, H = 1920, c = document.createElement("canvas"); c.width = W; c.height = H;
+export async function compartilharRespostaNoFlash({ pergunta, texto, cor = "" }) {
+  // A resposta vira uma FIGURINHA por cima do fundo (como no Instagram): dá para trocar o fundo, mover, aumentar e girar.
+  const W = 1080, H = 1920, CW = 860;
+  const medir = document.createElement("canvas").getContext("2d");
+  medir.font = `800 50px ${FONTE}`; const lp = linhasDe(medir, pergunta, CW - 120, 4);
+  medir.font = `600 54px ${FONTE}`; const lr = linhasDe(medir, texto, CW - 120, 8);
+  const hP = 110 + lp.length * 64, hR = 70 + lr.length * 70, CH = hP + hR, M = 40;
+  const c = document.createElement("canvas"); c.width = CW + M * 2; c.height = CH + M * 2;
   const g = c.getContext("2d");
   if (!g.roundRect) g.roundRect = function (x, y, w, h) { this.rect(x, y, w, h); };
-  const fundo = g.createLinearGradient(0, 0, W, H); fundo.addColorStop(0, "#0b3a53"); fundo.addColorStop(1, "#00adee");
-  g.fillStyle = fundo; g.fillRect(0, 0, W, H);
-  const CW = 860, X = (W - CW) / 2;
-  g.font = `800 50px ${FONTE}`; const lp = linhasDe(g, pergunta, CW - 120, 4);
-  g.font = `600 54px ${FONTE}`; const lr = linhasDe(g, texto, CW - 120, 8);
-  const hP = 110 + lp.length * 64, hR = 70 + lr.length * 70, CH = hP + hR;
-  const Y = Math.max(260, (H - CH) / 2 - 60);
-  g.save(); g.shadowColor = "rgba(0,0,0,.28)"; g.shadowBlur = 60; g.shadowOffsetY = 18;
-  g.fillStyle = "#fff"; g.beginPath(); g.roundRect(X, Y, CW, CH, 44); g.fill(); g.restore();
-  // faixa da pergunta (cor do site) e a resposta embaixo
-  g.save(); g.beginPath(); g.roundRect(X, Y, CW, CH, 44); g.clip();
-  g.fillStyle = AZUL; g.fillRect(X, Y, CW, hP);
-  g.restore();
+  const COR = { escuro: ["#2a3540", "#151b21"], azul: ["#19b8f2", "#0052d4"], rosa: ["#ff5f95", "#c2185b"], laranja: ["#ffb347", "#ff6a00"], verde: ["#34d399", "#0f8a5f"], roxo: ["#a855f7", "#5b21b6"] }[cor] || ["#00c2ff", "#0066d6"];
+  g.save(); g.shadowColor = "rgba(0,0,0,.28)"; g.shadowBlur = 36; g.shadowOffsetY = 12;
+  g.fillStyle = "#fff"; g.beginPath(); g.roundRect(M, M, CW, CH, 44); g.fill(); g.restore();
+  g.save(); g.beginPath(); g.roundRect(M, M, CW, CH, 44); g.clip();
+  const faixa = g.createLinearGradient(M, M, M + CW, M + hP); faixa.addColorStop(0, COR[0]); faixa.addColorStop(1, COR[1]);
+  g.fillStyle = faixa; g.fillRect(M, M, CW, hP); g.restore();
   g.textAlign = "center"; g.fillStyle = "rgba(255,255,255,.85)"; g.font = `800 30px ${FONTE}`;
-  g.fillText("CAIXA DE PERGUNTAS", W / 2, Y + 62);
+  g.fillText("CAIXA DE PERGUNTAS", M + CW / 2, M + 62);
   g.fillStyle = "#fff"; g.font = `800 50px ${FONTE}`;
-  lp.forEach((t, i) => g.fillText(t, W / 2, Y + 122 + i * 64));
+  lp.forEach((t, i) => g.fillText(t, M + CW / 2, M + 122 + i * 64));
   g.fillStyle = TINTA; g.font = `600 54px ${FONTE}`;
-  lr.forEach((t, i) => g.fillText(t, W / 2, Y + hP + 80 + i * 70));
-  g.fillStyle = "rgba(255,255,255,.8)"; g.font = `800 34px ${FONTE}`; g.fillText("HELP FLORIPA", W / 2, H - 110);
-  const imagem = c.toDataURL("image/jpeg", 0.9);
+  lr.forEach((t, i) => g.fillText(t, M + CW / 2, M + hP + 80 + i * 70));
+  const cartao = await new Promise((ok) => { const im = new Image(); im.onload = () => ok(im); im.src = c.toDataURL("image/png"); });
+  // Fundo inicial (degradê na cor da caixa); "Fotos → Trocar o fundo" troca só ele.
+  const f = document.createElement("canvas"); f.width = W; f.height = H;
+  const gf = f.getContext("2d"), gr = gf.createLinearGradient(0, 0, W, H);
+  gr.addColorStop(0, "#0b1620"); gr.addColorStop(1, COR[1]);
+  gf.fillStyle = gr; gf.fillRect(0, 0, W, H);
+  const imagem = f.toDataURL("image/jpeg", 0.9);
   // Fecha as janelas por cima (respostas e o visor do flash) antes de abrir o criador.
   document.querySelector("#folhaLista.aberta [data-fechar]")?.click();
   document.querySelector(".story-visor .story-btn[aria-label='Fechar']")?.click();
-  setTimeout(() => abrirCriador({ imagem, selo: "Resposta da caixa de perguntas" }), 250);
+  setTimeout(() => abrirCriador({ imagem, selo: "Resposta da caixa de perguntas", figuras: [{ img: cartao, tam: (CW + M * 2) / W }] }), 250);
 }
