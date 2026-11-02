@@ -1,45 +1,74 @@
-// Deslizar o dedo para o lado nas páginas da barra de baixo (Diário, Explorar, Comunidade, Mensagens, Perfil):
-// - para a ESQUERDA vai para a próxima aba (Diário → Explorar → Comunidade → Mensagens → Perfil);
-// - para a DIREITA volta para a aba anterior; no Diário (a primeira) abre o criador do Flash, como a câmera dos stories.
+// Deslizar entre as abas da barra de baixo (Diário, Explorar, Comunidade, Mensagens, Perfil), como no Instagram:
+// - a página acompanha o dedo e a próxima aba aparece ao lado (ícone e nome);
+// - dedo para a ESQUERDA = próxima aba, para a DIREITA = anterior; no Diário (a 1ª) para a direita abre o Flash;
+// - solta depois de 1/3 da tela OU com um deslize rápido (velocidade), senão a página volta para o lugar;
+// - sem aba para aquele lado, a página só "estica" um pouco e volta (como fim de lista);
+// - enquanto o dedo arrasta, a página de destino já é preparada pelo navegador (prerender, Chrome), então ela
+//   aparece na hora; tocar num item da barra também prepara a página no toque.
 // Sem dependências. Ligado pela barra de baixo (barra-rede.js) e pelo Mensagens (barra no HTML).
-// A aba atual é o link com aria-current="page" na #barraRede; trocar de aba = clicar nele (o Diário troca para o
+// A aba atual é o link com aria-current="page" na #barraRede; trocar = clicar nele (o Diário troca para o
 // Explorar sem recarregar). O Flash abre por window.__hfAbrirFlash (feed.js).
-// Não atrapalha: começa a 28 px das bordas (o "voltar" do celular usa as bordas), ignora campos, vídeos, listas que
-// rolam para o lado e qualquer janela aberta; só segue quando o gesto é claramente para o lado.
+// Não atrapalha: começa a 24 px das bordas (o "voltar" do celular usa as bordas), ignora campos, vídeos e
+// janelas abertas; carrossel só fica com o gesto se ainda pode rolar para aquele lado.
 
 const CAMADAS = [
   ".folha.aberta", ".story-visor", ".flash-criar", ".visor-exp", ".reels", "div.hfc", ".hf-confirma-fundo",
   ".pa-pagina", ".foto-grande", ".hfe-fundo", ".esc-lista", ".pv-fundo", ".pl-fundo", ".vt-local-fundo",
   ".vt-modal", ".hf-den", ".hf-aval", ".gaveta.aberta", ".chat-gaveta.aberta", ".painel.aberto", "dialog[open]", "[aria-modal='true']",
 ].join(",");
-const BORDA = 28, ABRE = 110, TRAVA = 16;
+const BORDA = 24, TRAVA = 12;
 
 const CSS = `
-.df-puxar { position: fixed; top: 50%; z-index: 9400; display: grid; justify-items: center; gap: 8px;
-  pointer-events: none; opacity: 0; will-change: transform, opacity; }
-.df-puxar.esq { left: 0; transform: translate(-100%, -50%); }
-.df-puxar.dir { right: 0; transform: translate(100%, -50%); }
-.df-puxar .df-bola { position: relative; width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; color: #fff;
-  background: linear-gradient(135deg, #5ad8ff, #00adee 45%, #0062d6); box-shadow: 0 8px 26px rgba(0, 140, 238, .55);
-  border: 3px solid rgba(255,255,255,.9); transition: transform .15s ease; }
-.df-puxar.aba .df-bola { width: 50px; height: 50px; background: rgba(14,19,24,.92); border-color: rgba(255,255,255,.22); box-shadow: 0 8px 22px rgba(0,0,0,.4); }
-.df-puxar .df-bola > svg:not(.df-anel) { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
-.df-puxar .df-txt { padding: 5px 11px; border-radius: 999px; background: rgba(10,14,18,.9); color: #fff; font: 800 12.5px/1.2 system-ui, sans-serif;
-  white-space: nowrap; box-shadow: 0 4px 14px rgba(0,0,0,.35); }
-.df-puxar.pronto .df-bola { transform: scale(1.12); }
-.df-puxar.aba.pronto .df-bola { background: #00adee; border-color: #fff; }
-.df-puxar.solta { transition: transform .22s ease, opacity .22s ease; }
-.df-anel { position: absolute; inset: -7px; width: calc(100% + 14px); height: calc(100% + 14px); }
-.df-anel circle { fill: none; stroke: #fff; stroke-width: 3; stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%; }
+.df-painel { position: fixed; top: 0; bottom: 0; z-index: 70; width: 0; overflow: hidden; pointer-events: none;
+  display: grid; place-items: center; background: var(--bg, #070b0e); color: var(--text, #fff); }
+.df-painel.esq { left: 0; box-shadow: inset -1px 0 0 var(--line, rgba(255,255,255,.08)); }
+.df-painel.dir { right: 0; box-shadow: inset 1px 0 0 var(--line, rgba(255,255,255,.08)); }
+.df-painel .df-miolo { display: grid; justify-items: center; align-content: center; gap: 10px; width: 42vw; min-width: 140px; height: 100%; text-align: center;
+  opacity: 0; transform: scale(.86); will-change: transform, opacity; }
+.df-painel.esq .df-miolo { margin-left: auto; }
+.df-painel .df-ic { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--panel-2, #18212a); border: 1px solid var(--line, rgba(255,255,255,.12)); transition: background .15s, border-color .15s; }
+.df-painel .df-ic svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.df-painel .df-nome { font: 800 15px/1.2 system-ui, sans-serif; letter-spacing: .01em; }
+.df-painel .df-dica { font: 600 12px/1.3 system-ui, sans-serif; opacity: .6; }
+.df-painel .df-dica:empty { display: none; }
+.df-painel.pronto .df-ic { background: #00adee; border-color: #00adee; color: #fff; }
+.df-painel.flash { background: radial-gradient(circle at 50% 45%, #10324a, #05090c 70%); color: #fff; }
+.df-painel.flash .df-ic { background: linear-gradient(135deg, #5ad8ff, #00adee 45%, #0062d6); border: 3px solid rgba(255,255,255,.9); box-shadow: 0 8px 26px rgba(0,140,238,.5); }
+.df-movendo { will-change: transform; }
+.df-anima { transition: transform .22s cubic-bezier(.2,.8,.2,1), opacity .22s ease !important; }
+.df-painel.df-anima { transition: width .22s cubic-bezier(.2,.8,.2,1) !important; }
 html.df-puxando, html.df-puxando body { overscroll-behavior-x: none; }
-@media (prefers-reduced-motion: reduce) { .df-puxar.solta { transition: none; } }
+html.df-puxando body { overflow-x: hidden; }
+/* resposta ao toque na barra de baixo */
+#barraRede a { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+#barraRede a:active > :first-child { transform: scale(.86); transition: transform .08s; }
+@media (prefers-reduced-motion: reduce) { .df-anima, .df-painel.df-anima { transition: none !important; } }
 `;
-const SETA_ESQ = '<path d="M15 5 8 12l7 7"/>', SETA_DIR = '<path d="m9 5 7 7-7 7"/>', RAIO = '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>';
+const ICONES = {
+  "Diário": '<rect x="3" y="3" width="18" height="8" rx="2"/><rect x="3" y="13" width="18" height="8" rx="2"/>',
+  "Explorar": '<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/>',
+  "Comunidade": '<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>',
+  "Mensagens": '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/>',
+  "Perfil": '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  flash: '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
+};
 
 let ligado = false;
 
-// Campos, vídeos etc. bloqueiam; listas que rolam para o lado ficam guardadas para decidir depois (só bloqueiam se
-// ainda puderem rolar para o lado do gesto: no começo de um carrossel, deslizar para a direita troca de aba).
+// Prepara a página de destino (prerender do Chrome; nos outros navegadores não faz nada).
+const preparadas = new Set();
+const podePreparar = (() => { try { return !!HTMLScriptElement.supports?.("speculationrules"); } catch { return false; } })();
+export function preparar(href) {
+  if (!podePreparar || !href) return;
+  let u; try { u = new URL(href, location.href); } catch { return; }
+  if (u.origin !== location.origin || u.pathname === location.pathname || preparadas.has(u.href) || preparadas.size >= 4) return;
+  preparadas.add(u.href);
+  const s = document.createElement("script"); s.type = "speculationrules";
+  s.textContent = JSON.stringify({ prerender: [{ source: "list", urls: [u.href], eagerness: "immediate" }] });
+  document.head.appendChild(s);
+}
+
 function examinar(n) {
   const rolam = [];
   for (let x = n; x && x !== document.body && x.nodeType === 1; x = x.parentElement) {
@@ -54,62 +83,113 @@ function examinar(n) {
 }
 const podeRolar = (els, lado) => els.some((x) => (lado === "dir" ? x.scrollLeft > 8 : x.scrollLeft < x.scrollWidth - x.clientWidth - 8));
 
-// Abas da barra de baixo e a atual.
 function abas() {
   const links = [...document.querySelectorAll("#barraRede a")];
   const i = links.findIndex((a) => a.getAttribute("aria-current") === "page");
   return { links, i };
 }
-const nomeDe = (a) => (a?.querySelector("span:last-child")?.textContent || a?.textContent || "").trim();
+const nomeDe = (a) => (a?.querySelector("span:last-child")?.textContent || a?.textContent || "").replace(/\d+$/, "").trim();
+const mesmaPagina = (a) => { try { return new URL(a.href, location.href).pathname === location.pathname; } catch { return false; } };
 
-// O que o gesto faz para cada lado (ou null).
 function destino(lado) {
   const { links, i } = abas();
   if (i < 0) return null;
-  if (lado === "dir") { // dedo indo para a direita
-    if (i === 0) return typeof window.__hfAbrirFlash === "function" ? { flash: true, nome: "Novo flash", ir: () => window.__hfAbrirFlash() } : null;
-    return { nome: nomeDe(links[i - 1]), ir: () => links[i - 1].click() };
+  if (lado === "dir") {
+    if (i === 0) return typeof window.__hfAbrirFlash === "function" ? { flash: true, nome: "Novo flash", dica: "Solte para criar", ir: () => window.__hfAbrirFlash() } : null;
+    const a = links[i - 1];
+    return { nome: nomeDe(a), a, aqui: mesmaPagina(a), ir: () => a.click() };
   }
   if (i >= links.length - 1) return null;
-  return { nome: nomeDe(links[i + 1]), ir: () => links[i + 1].click() };
+  const a = links[i + 1];
+  return { nome: nomeDe(a), a, aqui: mesmaPagina(a), ir: () => a.click() };
 }
+const conteudo = () => document.querySelector("main.pagina") || document.querySelector(".app") || document.querySelector("main");
 
 export function ligarDeslizarFlash() {
   if (ligado || window.top !== window) return;
   if (!matchMedia("(pointer: coarse)").matches) return; // só no toque
   ligado = true;
   const st = document.createElement("style"); st.textContent = CSS; document.head.appendChild(st);
-  let ini = null, ind = null, alvo = null, lado = "", pronto = false;
 
-  const indicador = () => {
-    if (ind) return ind;
-    ind = document.createElement("div");
-    ind.className = `df-puxar ${lado === "dir" ? "esq" : "dir"}${alvo.flash ? "" : " aba"}`;
-    ind.setAttribute("aria-hidden", "true");
-    const ic = alvo.flash ? RAIO : lado === "dir" ? SETA_ESQ : SETA_DIR;
-    ind.innerHTML = `<span class="df-bola"><svg class="df-anel" viewBox="0 0 70 70"><circle cx="35" cy="35" r="32" stroke-dasharray="201" stroke-dashoffset="201"/></svg>`
-      + `<svg viewBox="0 0 24 24">${ic}</svg></span><span class="df-txt"></span>`;
-    ind.querySelector(".df-txt").textContent = alvo.nome;
-    document.body.appendChild(ind);
-    return ind;
-  };
-  const zerar = () => { ini = null; alvo = null; lado = ""; pronto = false; };
-  const soltar = (foi) => {
-    document.documentElement.classList.remove("df-puxando");
-    const i = ind; ind = null;
-    if (!i) return;
-    const esq = i.classList.contains("esq");
-    i.classList.add("solta");
-    i.style.transform = foi ? `translate(${esq ? "40vw" : "-40vw"}, -50%) scale(.6)` : `translate(${esq ? "-100%" : "100%"}, -50%)`;
-    i.style.opacity = "0";
-    setTimeout(() => i.remove(), 260);
-  };
+  // Tocar num item da barra já prepara a página dele.
+  document.addEventListener("touchstart", (e) => { const a = e.target.closest?.("#barraRede a"); if (a) preparar(a.href); }, { passive: true, capture: true });
+
+  let ini = null, lado = "", alvo = null, mover = null, painel = null, pronto = false, pontos = [];
+  const W = () => innerWidth;
+
+  const zerar = () => { ini = null; lado = ""; alvo = null; pronto = false; pontos = []; };
+  const limparEstilo = (m) => { if (!m) return; m.classList.remove("df-anima", "df-movendo"); m.style.transform = ""; m.style.opacity = ""; };
+  const tirarPainel = () => { painel?.remove(); painel = null; };
+
+  function montarPainel() {
+    painel = document.createElement("div");
+    painel.className = `df-painel ${lado === "dir" ? "esq" : "dir"}${alvo?.flash ? " flash" : ""}`;
+    painel.setAttribute("aria-hidden", "true");
+    const ic = ICONES[alvo?.flash ? "flash" : alvo?.nome] || ICONES.Perfil;
+    painel.innerHTML = `<div class="df-miolo"><span class="df-ic"><svg viewBox="0 0 24 24">${ic}</svg></span><span class="df-nome"></span><span class="df-dica"></span></div>`;
+    painel.querySelector(".df-nome").textContent = alvo?.nome || "";
+    painel.querySelector(".df-dica").textContent = alvo?.dica || "";
+    document.body.appendChild(painel);
+  }
+
+  function seguir(dx) {
+    if (!mover) return;
+    if (!alvo) { // sem aba para esse lado: estica um pouco
+      const d = Math.sign(dx) * Math.min(44, Math.abs(dx) * 0.22);
+      mover.style.transform = `translate3d(${d}px,0,0)`;
+      return;
+    }
+    const d = lado === "dir" ? Math.max(0, dx) : Math.min(0, dx);
+    mover.style.transform = `translate3d(${d}px,0,0)`;
+    const largura = Math.abs(d);
+    painel.style.width = largura + "px";
+    const p = Math.min(1, largura / (W() * 0.33));
+    const miolo = painel.firstChild;
+    miolo.style.opacity = String(Math.min(1, p * 1.4));
+    miolo.style.transform = `scale(${0.86 + 0.14 * p})`;
+    const agora = p >= 1;
+    if (agora !== pronto) { pronto = agora; painel.classList.toggle("pronto", agora); if (agora && navigator.userActivation?.hasBeenActive) navigator.vibrate?.(10); }
+  }
+
+  function voltarAoLugar() {
+    const m = mover, pn = painel;
+    painel = null;
+    if (!m) { pn?.remove(); return; }
+    m.classList.add("df-anima"); m.style.transform = "translate3d(0,0,0)";
+    if (pn) { pn.classList.add("df-anima"); pn.style.width = "0px"; }
+    setTimeout(() => { limparEstilo(m); pn?.remove(); }, 240);
+  }
+
+  function concluir() {
+    const m = mover, pn = painel, a = alvo, l = lado;
+    painel = null;
+    if (a.flash) { painel = pn; voltarAoLugar(); setTimeout(() => a.ir(), 60); return; }
+    const fim = l === "dir" ? W() : -W();
+    m.classList.add("df-anima"); m.style.transform = `translate3d(${fim}px,0,0)`;
+    pn.classList.add("df-anima"); pn.style.width = W() + "px";
+    pn.firstChild.style.opacity = "1"; pn.firstChild.style.transform = "scale(1)";
+    setTimeout(() => {
+      a.ir();
+      if (!a.aqui) return; // outra página: fica coberto até ela abrir
+      // mesma página (Diário ↔ Explorar): o conteúdo novo entra pelo outro lado
+      m.classList.remove("df-anima");
+      m.style.transform = `translate3d(${l === "dir" ? -W() * 0.35 : W() * 0.35}px,0,0)`; m.style.opacity = "0.4";
+      pn.remove();
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        m.classList.add("df-anima"); m.style.transform = "translate3d(0,0,0)"; m.style.opacity = "1";
+        setTimeout(() => limparEstilo(m), 240);
+      }));
+    }, 200);
+  }
+
+  // Voltou para esta página pela memória do navegador: tudo no lugar.
+  addEventListener("pageshow", () => { document.documentElement.classList.remove("df-puxando"); limparEstilo(conteudo()); document.querySelectorAll(".df-painel").forEach((x) => x.remove()); painel = null; });
 
   document.addEventListener("touchstart", (e) => {
     zerar();
     if (e.touches.length !== 1) return;
     const t = e.touches[0];
-    if (t.clientX < BORDA || t.clientX > innerWidth - BORDA) return;
+    if (t.clientX < BORDA || t.clientX > W() - BORDA) return;
     if (!window.firebaseAuth?.currentUser) return;
     if (abas().i < 0) return;
     if (document.querySelector(CAMADAS) || document.documentElement.classList.contains("hf-volta-flash")) return;
@@ -118,46 +198,45 @@ export function ligarDeslizarFlash() {
     if (!rolam) return;
     if ((getSelection?.() || "").toString()) return;
     ini = { x: t.clientX, y: t.clientY, rolam, esq0: rolam.map((x) => x.scrollLeft) };
+    pontos = [[t.clientX, performance.now()]];
   }, { passive: true, capture: true });
 
   document.addEventListener("touchmove", (e) => {
     if (!ini || e.touches.length !== 1) return;
     const t = e.touches[0], dx = t.clientX - ini.x, dy = t.clientY - ini.y;
     if (!lado) {
-      if (Math.abs(dy) > 12 && Math.abs(dy) >= Math.abs(dx)) { zerar(); return; } // está rolando a página
-      if (Math.abs(dx) <= TRAVA || Math.abs(dx) <= Math.abs(dy) * 1.6) return;
+      if (Math.abs(dy) > 10 && Math.abs(dy) >= Math.abs(dx)) { zerar(); return; } // está rolando a página
+      if (Math.abs(dx) <= TRAVA || Math.abs(dx) <= Math.abs(dy) * 1.4) return;
       lado = dx > 0 ? "dir" : "esq";
-      // carrossel que ainda rola para esse lado (ou que já começou a rolar) fica com o gesto
       if (podeRolar(ini.rolam, lado) || ini.rolam.some((x, k) => Math.abs(x.scrollLeft - ini.esq0[k]) > 2)) { zerar(); return; }
-      // o gesto precisa ter espaço: para a direita começando já no canto direito (ou o contrário) não conta
-      if ((lado === "dir" && ini.x > innerWidth * 0.75) || (lado === "esq" && ini.x < innerWidth * 0.25)) { zerar(); return; }
+      mover = conteudo();
+      if (!mover) { zerar(); return; }
       alvo = destino(lado);
-      if (!alvo) { zerar(); return; }
+      ini.x = t.clientX - Math.sign(dx) * 2; // começa a seguir daqui (sem pulo)
       document.documentElement.classList.add("df-puxando");
+      mover.classList.remove("df-anima"); mover.classList.add("df-movendo");
+      document.querySelectorAll(".df-painel").forEach((x) => x.remove()); painel = null;
+      if (alvo) { montarPainel(); if (alvo.a && !alvo.aqui) preparar(alvo.a.href); }
     }
-    if ((lado === "dir" && dx < 0) || (lado === "esq" && dx > 0)) { soltar(false); zerar(); return; }
     if (e.cancelable) e.preventDefault();
-    const d = Math.abs(dx) - TRAVA;
-    const p = Math.max(0, Math.min(1, d / ABRE));
-    const i = indicador();
-    const passo = Math.min(d, ABRE + 40) * 0.95 + 14;
-    i.style.opacity = String(Math.min(1, p * 2.2));
-    i.style.transform = lado === "dir" ? `translate(calc(-100% + ${passo}px), -50%)` : `translate(calc(100% - ${passo}px), -50%)`;
-    i.querySelector("circle").style.strokeDashoffset = String(201 * (1 - p));
-    const agora = p >= 1;
-    if (agora !== pronto) {
-      pronto = agora; i.classList.toggle("pronto", agora);
-      if (agora && navigator.userActivation?.hasBeenActive) navigator.vibrate?.(12);
-    }
+    pontos.push([t.clientX, performance.now()]); if (pontos.length > 6) pontos.shift();
+    seguir(t.clientX - ini.x);
   }, { passive: false, capture: true });
 
-  const fim = () => {
+  const fim = (cancelou) => {
     if (!ini) return;
-    const vai = lado && pronto ? alvo : null;
+    const tinha = !!lado, a = alvo;
+    // velocidade dos últimos ~120 ms (px/ms)
+    let v = 0;
+    if (pontos.length > 1) { const [x1, t1] = pontos[pontos.length - 1]; const [x0, t0] = pontos.find(([, tt]) => t1 - tt < 120) || pontos[0]; v = t1 > t0 ? (x1 - x0) / (t1 - t0) : 0; }
+    const dx = pontos.length ? pontos[pontos.length - 1][0] - ini.x : 0;
+    const certoLado = (lado === "dir" && dx > 0) || (lado === "esq" && dx < 0);
+    const rapido = Math.abs(v) > 0.45 && Math.sign(v) === Math.sign(dx) && Math.abs(dx) > 30;
+    const vai = !cancelou && tinha && a && certoLado && (pronto || rapido);
+    document.documentElement.classList.remove("df-puxando");
+    if (tinha) { if (vai) concluir(); else voltarAoLugar(); }
     zerar();
-    soltar(!!vai);
-    vai?.ir();
   };
-  document.addEventListener("touchend", fim, { capture: true });
-  document.addEventListener("touchcancel", () => { zerar(); soltar(false); }, { capture: true });
+  document.addEventListener("touchend", () => fim(false), { capture: true });
+  document.addEventListener("touchcancel", () => fim(true), { capture: true });
 }

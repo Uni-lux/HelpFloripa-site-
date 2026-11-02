@@ -1364,7 +1364,7 @@
 
   <script type="module">
     import "./sem-menu-imagem.js?v=1";
-    import { ligarDeslizarFlash } from "./deslizar-flash.js?v=2";
+    import { ligarDeslizarFlash } from "./deslizar-flash.js?v=3";
     ligarDeslizarFlash(); // deslizar para o lado na lista de conversas troca de aba da barra de baixo
     import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura, mostrarAvisoEmail } from "./seguranca.js?v=1";
     import { confirmarHF } from "./confirmar.js?v=5";
@@ -4473,12 +4473,26 @@
     }
     $("cancelarCartao").addEventListener("click", descartarCartao);
 
+    // No celular (teclado Android), o texto que ainda está "sendo escrito" pelo teclado volta para o campo logo
+    // depois de limpar, e um segundo toque em enviar mandava a mesma mensagem duas vezes. Guardamos o que acabou
+    // de ir: se o teclado devolver o mesmo texto em até 2 s, o campo é limpo de novo, e o mesmo texto na mesma
+    // conversa não sai duas vezes seguidas.
+    let ultimoEnviado = null;
+    const acabouDeIr = (conv, texto) => !!ultimoEnviado && ultimoEnviado.conv === conv && ultimoEnviado.texto === texto && Date.now() < ultimoEnviado.ate;
+    function limparEco() {
+      const c = $("texto");
+      if (c.value && ultimoEnviado && Date.now() < ultimoEnviado.ate && c.value.trim() === ultimoEnviado.texto) { c.value = ""; ajustarAltura(); }
+    }
+    ["input", "compositionend", "keyup"].forEach((ev) => $("texto").addEventListener(ev, () => setTimeout(limparEco, 0)));
+
     async function enviar() {
       if (emailPendente(eu)) { mostrarAvisoEmail(eu); toast(MSG_EMAIL); return; }
       if (gravador) { pararGravacao(true); return; }
       const campo = $("texto");
       const texto = campo.value.trim();
       if ((!texto && !anexo && !cartaoPendente) || !ativa || enviando) return;
+      if (texto && !anexo && !cartaoPendente && acabouDeIr(ativa.id, texto)) { campo.value = ""; ajustarAltura(); return; }
+      if (texto) ultimoEnviado = { conv: ativa.id, texto, ate: Date.now() + 2000 };
 
       const conversaId = ativa.id;
       // Cartão do portfólio vai antes do texto, como assunto da conversa.
@@ -4500,6 +4514,8 @@
 
       campo.value = "";
       ajustarAltura();
+      // limpa de novo logo depois (o teclado pode devolver a palavra que estava escrevendo)
+      requestAnimationFrame(limparEco); setTimeout(limparEco, 120); setTimeout(limparEco, 400);
       cancelarResposta();
       if (anexoAtual) { enviando = true; $("btnEnviar").disabled = true; }
 
@@ -4520,6 +4536,7 @@
         await publicarMensagem(conversaId, dados);
       } catch (erro) {
         console.error("Erro ao enviar:", erro);
+        ultimoEnviado = null;
         if (!campo.value) campo.value = texto;
         ajustarAltura();
         toast(erro.message && (!erro.code || erro.code === "limite-diario") ? erro.message : "Não foi possível enviar a mensagem. Tente novamente.");

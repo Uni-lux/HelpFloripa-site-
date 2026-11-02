@@ -27,11 +27,11 @@ await arrastar(200, 600, 210, 300); ok(await criador() === 0, "rolar para cima n
 // 2) indicador segue o dedo e abre
 await toque("touchStart", [[60, 520]]);
 for (let k = 1; k <= 6; k++) { await toque("touchMove", [[60 + k * 14, 521]]); await p.waitForTimeout(16); }
-const meio = await p.evaluate(() => { const i = document.querySelector(".df-puxar"); return i ? { op: Number(getComputedStyle(i).opacity), txt: i.textContent } : null; });
-ok(meio && meio.op > 0 && meio.txt.includes("Novo flash"), "indicador “Novo flash” aparece seguindo o dedo");
+const meio = await p.evaluate(() => { const i = document.querySelector(".df-painel"); const m = document.querySelector("main.pagina"); return i ? { w: i.getBoundingClientRect().width, txt: i.textContent, tr: getComputedStyle(m).transform } : null; });
+ok(meio && meio.w > 40 && meio.txt.includes("Novo flash") && /matrix\(1, 0, 0, 1, [1-9]/.test(meio.tr), `a página acompanha o dedo e “Novo flash” aparece ao lado (${meio && Math.round(meio.w)} px)`);
 ok(await p.locator(".story-chip").count() === 0, "visor/criador sem o selo “Flash”");
 await toque("touchMove", [[260, 524]]); await p.waitForTimeout(40);
-ok(await p.locator(".df-puxar.pronto").count() === 1, "indicador fica “pronto” quando passou do ponto");
+ok(await p.locator(".df-painel.pronto").count() === 1, "painel fica “pronto” quando passou de 1/3 da tela");
 await toque("touchEnd", []); await p.waitForTimeout(900);
 ok(await criador() === 1, "deslizar para a direita no Diário abre o criador do Flash");
 await p.screenshot({ path: "saida/deslizar-criador.png" });
@@ -80,7 +80,7 @@ ok(await p.locator(".pa-ufs .pa-chip[aria-pressed=true]").count() === 7, "tocar 
 await p.keyboard.press("Escape"); await p.waitForTimeout(500); await p.keyboard.press("Escape"); await p.waitForTimeout(600);
 const temCriador = await criador();
 await arrastar(8, 520, 260, 522);
-ok(await criador() === temCriador && !(await p.locator(".df-puxar").count()), "começando na borda (voltar do celular) não puxa o Flash");
+ok(await criador() === temCriador && !(await p.locator(".df-painel").count()), "começando na borda (voltar do celular) não puxa o Flash");
 await A.browser.close();
 
 // 6) abas: Diário ← → Explorar (sem recarregar), Comunidade, Mensagens, Perfil; Início não tem gesto
@@ -92,21 +92,39 @@ const c2 = await B.ctx.newCDPSession(q);
 const t2 = (type, pts) => c2.send("Input.dispatchTouchEvent", { type, touchPoints: pts.map(([x, y], i) => ({ x, y, id: i })) });
 async function lado(para) { // "esq" = dedo para a esquerda (próxima aba), "dir" = volta
   const [x0, x1] = para === "esq" ? [330, 60] : [60, 330];
-  // altura fora de carrossel (carrossel que ainda rola fica com o gesto)
-  const y = await q.evaluate(([a, b]) => {
+  const y = await yLivre(x0, x1);
+  await t2("touchStart", [[x0, y]]);
+  for (let k = 1; k <= 12; k++) { await t2("touchMove", [[x0 + ((x1 - x0) * k) / 12, y + 2]]); await q.waitForTimeout(16); }
+  await t2("touchEnd", []); await q.waitForTimeout(400);
+}
+// altura fora de carrossel (carrossel que ainda rola fica com o gesto)
+async function yLivre(x0, x1) {
+  return q.evaluate(([a, b]) => {
     for (let y = 560; y > 140; y -= 20) {
       const ok = [a, b].every((x) => { for (let n = document.elementFromPoint(x, y); n && n !== document.body; n = n.parentElement) { const o = getComputedStyle(n).overflowX; if (n.scrollWidth > n.clientWidth + 4 && (o === "auto" || o === "scroll")) return false; } return true; });
       if (ok) return y;
     }
     return 560;
   }, [x0, (x0 + x1) / 2]);
-  await t2("touchStart", [[x0, y]]);
-  for (let k = 1; k <= 12; k++) { await t2("touchMove", [[x0 + ((x1 - x0) * k) / 12, y + 2]]); await q.waitForTimeout(16); }
-  await t2("touchEnd", []); await q.waitForTimeout(400);
 }
 const atual = () => q.evaluate(() => { const a = [...document.querySelectorAll("#barraRede a")].find((x) => x.getAttribute("aria-current") === "page"); return a?.textContent.trim() || ""; });
 const esperar = async (nome) => { for (let k = 0; k < 40; k++) { if ((await atual()).includes(nome)) return true; await q.waitForTimeout(300); } return false; };
-await lado("esq"); ok(await esperar("Explorar") && /aba=explorar/.test(q.url()), "Diário → para a esquerda abre o Explorar");
+// arrasto curto e lento volta para o lugar
+const yl = await yLivre(300, 230);
+await t2("touchStart", [[300, yl]]);
+for (let k = 1; k <= 10; k++) { await t2("touchMove", [[300 - k * 7, yl + 1]]); await q.waitForTimeout(40); }
+await q.waitForTimeout(200); await t2("touchEnd", []); await q.waitForTimeout(500);
+ok((await atual()).includes("Diário") && (await q.evaluate(() => getComputedStyle(document.querySelector("main.pagina")).transform)) === "none", "arrasto curto e lento: a página volta para o lugar");
+// deslize rápido e curto (70 px em ~50 ms) já troca
+await q.evaluate(async (y) => { // toques sintéticos na velocidade de um deslize de verdade (~1,4 px/ms)
+  const alvo = document.elementFromPoint(300, y);
+  const toque = (x) => new Touch({ identifier: 7, target: alvo, clientX: x, clientY: y });
+  const ev = (tipo, x) => { const t = x == null ? [] : [toque(x)]; alvo.dispatchEvent(new TouchEvent(tipo, { bubbles: true, cancelable: true, touches: t, targetTouches: t, changedTouches: [toque(x ?? 230)] })); };
+  ev("touchstart", 300);
+  for (let k = 1; k <= 5; k++) { await new Promise((r) => setTimeout(r, 10)); ev("touchmove", 300 - k * 14); }
+  ev("touchend", null);
+}, yl);
+ok(await esperar("Explorar") && /aba=explorar/.test(q.url()), "deslize rápido para a esquerda: Diário → Explorar");
 await q.waitForTimeout(1500);
 await lado("dir"); ok(await esperar("Diário") && (await q.locator(".flash-criar").count()) === 0, "Explorar → para a direita volta ao Diário (sem abrir o Flash)");
 await q.waitForTimeout(1000);
@@ -135,7 +153,7 @@ if (await conv.count()) {
 await q.goto("http://127.0.0.1:5057/index.html"); await q.waitForTimeout(3000);
 await t2("touchStart", [[60, 560]]);
 for (let k = 1; k <= 12; k++) { await t2("touchMove", [[60 + k * 22, 562]]); await q.waitForTimeout(16); }
-const semInd = (await q.locator(".df-puxar").count()) === 0;
+const semInd = (await q.locator(".df-painel").count()) === 0;
 await t2("touchEnd", []); await q.waitForTimeout(800);
 ok(semInd && (await q.locator(".flash-criar").count()) === 0, "Início: sem gesto");
 await B.browser.close();

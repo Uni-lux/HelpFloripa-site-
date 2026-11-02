@@ -1398,6 +1398,18 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   sempre a altura visível (`min(innerHeight, vv.height)`) e, se o rodapé ainda sair da tela, encolhe o que falta
   (`__hfMedirTela`, também ao abrir a conversa) — causa no aparelho dele não reproduzida aqui (provável 100dvh errado no app).
   `nav.mjs` acha sozinho o Chromium 1243. Testes `t-deslizar-flash.mjs`, `t-sw-rapido.mjs`.
+- **Gestos estilo Instagram, prerender, envio duplo e enquete (02/11/2026, PR depois do #136, sem regra nova):**
+  `deslizar-flash.js` refeito: a página (`main.pagina` ou `.app`) acompanha o dedo e a aba vizinha aparece ao lado
+  (`.df-painel` com ícone e nome; no Diário para a direita = painel azul "Novo flash"); solta depois de 1/3 da tela ou com
+  deslize rápido (> 0,45 px/ms e > 30 px); sem aba para o lado, "estica" 44 px e volta; Diário ↔ Explorar entra pelo outro
+  lado (mesma página). **Prerender** (`preparar`, speculation rules `immediate`, só Chrome; até 4 por página): a página de
+  destino é preparada quando o gesto trava e no toque num item da barra. No teste o prerender não liga (o roteamento do
+  Playwright desativa), então não foi medido. `marcarVista` espera `prerenderingchange` (página preparada não conta vista).
+  Barra: `:active` com escala e `touch-action: manipulation`. **Chat:** o teclado Android devolvia a palavra para o campo
+  depois de enviar e o 2º toque mandava duas vezes: `ultimoEnviado` (2 s), `limparEco` em input/compositionend/keyup e
+  depois de 0/120/400 ms; mesmo texto na mesma conversa em 2 s não sai de novo. Enquete do autor: "1 voto · só você vê até
+  acabar" numa linha com "Ver votos"; "Visto por N | ★ N" com divisória e rostos 24 px. Testes `t-deslizar-flash.mjs` (deslize
+  rápido com toques sintéticos: o CDP manda devagar demais), `t-chat-eco.mjs`.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
