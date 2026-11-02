@@ -1263,6 +1263,19 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   "baixar imagem" (`contextmenu` + `-webkit-touch-callout`). **Visor com teclado** (responder/caixa): o `.story-quadro` fica
   com o tamanho preso em px enquanto um campo está em uso (`teclado-preso`). Uma enquete e uma caixa por flash (como o
   Instagram). Teste `t-flash-gestos.mjs` (pinça via CDP com dois toques).
+- **Flash parte 3 dos prints de 02/11 (PR depois do #127, sem regra nova):** os prints dele mostravam localização, # e @ sem
+  abrir nada porque as **regras não estão publicadas** (sem elas o `semCamposNovos` grava sem `toques`) — avisado a ele.
+  **Atividade do flash** (`verQuemViu`, opções `{aoApagar, aba}`): barra `.vv-barra` com o número de quem viu + Destacar +
+  lixeira (apaga e tira da lista do visor, `tirarDaLista`), abas Visualizações | Enquete (opções com %, barra e quem votou;
+  anônima só números) | Respostas (cartões `.vv-resp` na cor da caixa, tocar = Pôr no flash/Ver perfil/Apagar); no seu flash,
+  "Ver votos" e "N respostas · ver" abrem a atividade na aba certa (`paraAtividade`). Segurar miniatura/imagem não abre o menu
+  do navegador (`contextmenu`). **Lugar e # como no Instagram:** o balão abre folha (`abrirLugarFlash`: mapa de azulejos do
+  OSM `mapaDoLugar` — CSP img-src `tile.openstreetmap.org` em feed.html/usuarios.html —, Como chegar, Ver no Diário e grade
+  das publicações ≤3 km entre as 80 recentes; `abrirHashtagFlash`: contagem + grade `tags array-contains`). **@ escrito no
+  Aa** vira área tocável (`t._arrobas` medidos no canvas, girados junto; entram em `toques` como `m|uid`). **"Também em N
+  negócios"** numa linha, tocável → lista com o link de cada negócio. Temporizador: desligado → 3 s → 10 s. Aviso (toast) no
+  criador/visor: pílula escura embaixo (não cobre a coluna). Menções: "N de 10" e botão "Tirar os @ da foto e mostrar só em
+  Mencionados" (3+ figurinhas). Teste `t-flash-atividade.mjs`.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
