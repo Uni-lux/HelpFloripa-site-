@@ -1289,6 +1289,22 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   "Rascunhos · N" no cartão vazio, reabre foto/posição/filtro/figurinhas/pincel/menções ocultas; publicar apaga o rascunho);
   **desfazer** (↶ `.flash-desfazer`, `marcar()` antes de cada mudança, até 40 passos; lixeira mostra "toque para desfazer").
   Testes `t-flash-figurinhas.mjs`, `t-flash-rascunho.mjs`.
+- **Flash: responder no chat, voltar ao flash e fotos sem menu (02/11/2026, PR depois do #129, sem regra nova):**
+  Responder uma resposta da caixa de perguntas (atividade do flash e `verRespostasCaixa`) = `responderNoChat(uid, cartao)`
+  (rede.js): garante a conversa, guarda o cartão em `hf-cartao-pendente` e abre a GAVETA do chat (`chat-gaveta.js`) por cima,
+  com o cartão `{tipo:"caixa", pergunta, resposta, cor, itemTipo f|d, itemId, autorId}` (`cartaoRespostaCaixa`) pronto; a
+  pessoa escreve e envia lá (cartão + texto). mensagens.html: `cartaoCaixa` (faixa da cor + resposta + "Ver flash/publicação"),
+  barra pendente "Respondendo: …", resumo "💬 Caixa de perguntas: …"; na gaveta, `?conversa=` abre sem passo no histórico
+  (um voltar fecha e volta ao flash). **voltar.js:** `.hfc` virou `div.hfc` (a gaveta do chat também é `.hfc` e ficava
+  como camada sempre aberta: 2 voltar para fechar). chat-gaveta tira o foco do iframe ao fechar. **Voltar ao flash:** ao
+  sair da página com um flash aberto (`pagehide`, `_flashAtual`) ou por `irParaPerfil`, guarda `hf-flash-volta` {id, pagina};
+  `voltarAoFlash()` (feed.js e usuarios.html; também no `pageshow` da memória do navegador) reabre o mesmo flash se a
+  navegação é "voltar". Atalho **Salvar rascunho** no criador (`.flash-salvar-rasc`, aparece com algo feito). Bolinhas
+  de cor com espaço para o anel. **`sem-menu-imagem.js`** (firebase.js, rede.js, categoria.js, mensagens.html): segurar
+  foto/vídeo/canvas não abre "Copiar/Baixar/Compartilhar imagem" em nenhuma página (pedido dele; campos de texto normais).
+  **Barra de flashes nacional:** `carregar()` lia os 400 MAIS ANTIGOS do país (24 h); agora só de quem você segue
+  (`autorId in` 30 por consulta + criadoEm, índice existente autorId + criadoEm desc; sem ele, os 300 mais novos).
+  Teste `t-flash-respostas.mjs`.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

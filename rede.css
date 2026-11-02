@@ -2785,7 +2785,7 @@ div.cfg2-linha { cursor: default; }
 .fm-prev i { position: absolute; box-sizing: border-box; border: 1.5px solid #0b1014; border-radius: 4px; background: linear-gradient(150deg, #00adee, #8e2de2); }
 /* cor da enquete/perguntas: rótulo em cima e bolinhas numa fileira só; prévia ao vivo */
 .fe-cor-fig { display: grid; gap: 8px; }
-.fe-cor-bolas { flex-wrap: nowrap; overflow-x: auto; gap: 9px; padding: 4px 4px 6px; scrollbar-width: none; }
+.fe-cor-bolas { flex-wrap: nowrap; overflow-x: auto; gap: 11px; padding: 8px 9px 9px; margin: -4px -5px -3px; scrollbar-width: none; } /* espaço para o anel da escolhida (antes saía cortado) */
 .fe-cor-bolas::-webkit-scrollbar { display: none; }
 .fe-cor-bola { flex: none; width: 34px; height: 34px; }
 .fe-previa { display: flex; justify-content: center; padding: 6px 0 2px; font-size: 13px; pointer-events: none; }
@@ -2949,3 +2949,6 @@ body:has(.story-visor, .flash-criar) .toast { width: auto; max-width: min(calc(1
 .rasc-txt { padding: 8px; font-size: 12px; font-weight: 800; text-align: center; overflow-wrap: anywhere; }
 .rasc-quando { position: absolute; left: 6px; bottom: 6px; padding: 2px 7px; border-radius: 999px; background: rgba(0,0,0,.55); font-size: 11px; font-weight: 700; }
 .rasc-apagar { position: absolute; top: 6px; right: 6px; width: 30px; height: 30px; display: grid; place-items: center; border: 0; border-radius: 50%; background: rgba(0,0,0,.6); color: #fff; cursor: pointer; }
+/* atalho "Salvar rascunho" no criador do Flash (02/11) */
+.flash-salvar-rasc[hidden] { display: none; }
+.flash-salvar-rasc.salvo { background: #22b573 !important; color: #fff; }

@@ -547,6 +547,20 @@
     .flash-msg .fc-btn { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 10px 12px; border-radius: 14px; background: linear-gradient(135deg, #ff8a00, #ff3d77); color: #fff; font-size: 13.5px; font-weight: 800; text-decoration: none; box-shadow: 0 6px 16px rgba(255, 61, 119, .3); }
     .flash-msg .fc-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
     .flash-msg .fc-nota { font-size: 11.5px; color: var(--muted); }
+    /* Resposta da caixa de perguntas (como no Instagram): a pergunta na faixa colorida e a resposta embaixo */
+    .bolha.cartao-msg.caixa-msg, .minha .bolha.cartao-msg.caixa-msg { width: min(260px, 76vw); max-width: 84%; padding: 0; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 22px; overflow: hidden; box-shadow: 0 6px 22px rgba(0,0,0,.16); }
+    .bolha.cartao-msg.caixa-msg .meta { margin: 0 12px 8px; color: var(--muted); }
+    .caixa-msg .cxm-cab { display: flex; align-items: center; gap: 8px; padding: 10px 12px 8px; font-size: 12.5px; font-weight: 750; color: var(--muted); line-height: 1.25; }
+    .caixa-msg .cxm-ic { flex: none; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--cxm, linear-gradient(135deg, #00c2ff, #0066d6)); }
+    .caixa-msg .cxm-ic svg { width: 13px; height: 13px; fill: none; stroke: #fff; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+    .caixa-msg .cxm-card { margin: 0 10px 10px; border-radius: 18px; overflow: hidden; background: #fff; color: #111; box-shadow: 0 6px 18px rgba(0,0,0,.18); text-align: center; }
+    .caixa-msg .cxm-perg { display: block; padding: 12px 14px 11px; background: var(--cxm, linear-gradient(135deg, #00c2ff, #0066d6)); color: #fff; font-size: 14px; font-weight: 800; line-height: 1.3; overflow-wrap: anywhere; }
+    .caixa-msg .cxm-resp { display: block; padding: 12px 14px 14px; font-size: 15px; font-weight: 650; line-height: 1.4; overflow-wrap: anywhere; }
+    .caixa-msg .cxm-card.escuro { background: #151b21; color: #fff; }
+    .caixa-msg .cxm-ver { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0 10px 10px; padding: 9px 12px; border-radius: 14px; background: var(--panel-2); color: var(--text); font-size: 13px; font-weight: 800; text-decoration: none; }
+    .caixa-msg .cxm-ver svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+    .cartao-pend.caixa .thumb { display: grid; place-items: center; background: var(--cxm, linear-gradient(135deg, #00c2ff, #0066d6)) !important; }
+    .cartao-pend.caixa .thumb svg { width: 18px; height: 18px; fill: none; stroke: #fff; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
     /* Publicação enviada do Diário: cartão próprio (não pega a cor do balão), estilo Instagram */
     .bolha.cartao-msg.pub-msg, .minha .bolha.cartao-msg.pub-msg { width: min(286px, 80vw); max-width: 86%; padding: 0; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 6px 22px rgba(0,0,0,.16); }
     .pub-msg .pc { display: block; color: inherit; text-decoration: none; -webkit-tap-highlight-color: transparent; }
@@ -1356,6 +1370,7 @@
   </div>
 
   <script type="module">
+    import "./sem-menu-imagem.js?v=1";
     import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura, mostrarAvisoEmail } from "./seguranca.js?v=1";
     import { confirmarHF } from "./confirmar.js?v=5";
     import { relogioDe, ufDe } from "./fuso.js?v=1";
@@ -2044,6 +2059,7 @@
         return `${so.saude ? "Agendamento" : "Orçamento"}: ${(Array.isArray(so.servicos) && so.servicos.length ? so.servicos.join(", ") : so.saude ? "consulta" : "serviço")}${so.quando?.tipo === "urgente" ? " · Urgente" : ""}`;
       }
       if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "flash") return `⚡ ${rotuloFlash(m.cartao, m.remetenteId === eu.uid)}${m.cartao.emoji ? " " + m.cartao.emoji : m.cartao.texto ? ": " + m.cartao.texto : ""}`;
+      if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "caixa") return `💬 Caixa de perguntas: ${m.cartao.resposta || ""}`.trim();
       if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "publicacao") return `Publicação: ${m.cartao?.titulo || ""}`.trim();
       if (m.tipoArquivo === "cartao") return `Interesse: ${m.cartao?.titulo || "portfólio"}`;
       return m.arquivoUrl ? "Arquivo" : "";
@@ -2313,6 +2329,32 @@
       mais: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
       sumiu: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>'
     };
+    // Resposta da caixa de perguntas (o dono da caixa respondeu a quem escreveu, como no Instagram):
+    // cartao {tipo:"caixa", pergunta, resposta, cor, itemTipo f|d, itemId, autorId (dono da caixa)}.
+    const FAIXA_CX = { branco: "linear-gradient(135deg, #00c2ff, #0066d6)", escuro: "linear-gradient(135deg, #2a3540, #151b21)", azul: "linear-gradient(135deg, #19b8f2, #0052d4)",
+      rosa: "linear-gradient(135deg, #ff5f95, #c2185b)", laranja: "linear-gradient(135deg, #ffb347, #ff6a00)", verde: "linear-gradient(135deg, #34d399, #0f8a5f)", roxo: "linear-gradient(135deg, #a855f7, #5b21b6)" };
+    const SVG_CX = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M9.6 9.6a2.4 2.4 0 1 1 3.4 2.2c-.6.3-1 .8-1 1.5M12 16h.01"/></svg>';
+    function cartaoCaixa(c, m) {
+      const meu = m.remetenteId === eu.uid;
+      const box = document.createElement("div"); box.className = "cxm";
+      box.style.setProperty("--cxm", FAIXA_CX[c.cor] || FAIXA_CX.branco);
+      const cab = document.createElement("div"); cab.className = "cxm-cab";
+      const ic = document.createElement("span"); ic.className = "cxm-ic"; ic.innerHTML = SVG_CX;
+      cab.append(ic, document.createTextNode(meu ? "Você respondeu a uma resposta da sua caixa" : "Respondeu à sua resposta"));
+      const card = document.createElement("div"); card.className = "cxm-card" + (c.cor === "escuro" ? " escuro" : "");
+      const perg = document.createElement("strong"); perg.className = "cxm-perg"; perg.textContent = String(c.pergunta || "Caixa de perguntas").slice(0, 120);
+      const resp = document.createElement("span"); resp.className = "cxm-resp"; resp.textContent = String(c.resposta || "").slice(0, 300);
+      card.append(perg, resp);
+      box.append(cab, card);
+      const id = /^[A-Za-z0-9]{1,64}$/.test(String(c.itemId || "")) ? c.itemId : "";
+      if (id) {
+        const a = document.createElement("a"); a.className = "cxm-ver"; a.target = "_top";
+        a.href = c.itemTipo === "f" ? `feed.html?flash=${encodeURIComponent(id)}` : `feed.html?post=${encodeURIComponent(id)}`;
+        a.innerHTML = SVG_FC.olho; a.append(c.itemTipo === "f" ? "Ver flash" : "Ver publicação");
+        box.appendChild(a);
+      }
+      return box;
+    }
     function cartaoFlash(c, m) {
       const meu = m.remetenteId === eu.uid;
       const id = /^[A-Za-z0-9]{1,64}$/.test(String(c.flashId || "")) ? c.flashId : "";
@@ -3241,6 +3283,9 @@
       } else if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "pix") {
         bolha.classList.add("cartao-msg", "pix-msg");
         bolha.appendChild(cartaoPix(m.cartao, m.remetenteId === eu.uid));
+      } else if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "caixa") {
+        bolha.classList.add("cartao-msg", "caixa-msg");
+        bolha.appendChild(cartaoCaixa(m.cartao, m));
       } else if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "flash") {
         bolha.classList.add("cartao-msg", "flash-msg");
         bolha.appendChild(cartaoFlash(m.cartao, m));
@@ -4417,6 +4462,16 @@
       barra.hidden = !cartaoPendente;
       if (!cartaoPendente) return;
       const c = cartaoPendente;
+      barra.classList.toggle("caixa", c.tipo === "caixa");
+      if (c.tipo === "caixa") {
+        // Resposta da caixa de perguntas: a pergunta e a resposta vão junto, e a pessoa escreve a mensagem.
+        barra.style.setProperty("--cxm", FAIXA_CX[c.cor] || FAIXA_CX.branco);
+        const th = $("cartaoThumb"); th.style.background = ""; th.innerHTML = SVG_CX;
+        $("cartaoTipo").textContent = `Respondendo: “${String(c.pergunta || "").slice(0, 60)}”`;
+        $("cartaoTitulo").textContent = String(c.resposta || "");
+        atualizarBotaoEnviar();
+        return;
+      }
       const cor = (ASSUNTOS[c.tipo] || ASSUNTOS.servicos).cor;
       barra.style.setProperty("--assunto", cor);
       const th = $("cartaoThumb");
@@ -5595,8 +5650,11 @@
         // A lista fica no histórico, então "voltar" na conversa retorna para ela.
         const inicial = new URLSearchParams(location.search).get("conversa");
         if (inicial) {
-          history.replaceState({}, "", "mensagens.html");
-          abrirConversa(inicial);
+          // Na gaveta (por cima de outra página, ex.: "Responder" de dentro de um flash), a conversa abre sem passo
+          // novo no histórico: um "voltar" fecha a gaveta e a pessoa volta para onde estava.
+          let naGaveta = false; try { naGaveta = window.top !== window.self && window.top.location.origin === location.origin; } catch {}
+          if (naGaveta) abrirConversa(inicial, { historico: false });
+          else { history.replaceState({}, "", "mensagens.html"); abrirConversa(inicial); }
         }
       });
     }

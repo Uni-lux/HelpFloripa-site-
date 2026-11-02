@@ -46,7 +46,7 @@ await p.screenshot({ path: "saida/fa-enquete.png" });
 await p.locator("#folhaLista .vv-aba", { hasText: "Respostas" }).click(); await p.waitForTimeout(1500);
 ok(await p.locator("#folhaLista .vv-resp").count() === 1, "aba Respostas: a resposta em cartão");
 await p.locator("#folhaLista .vv-resp").click(); await p.waitForTimeout(200);
-ok(await p.locator("#folhaLista .vv-resp-acoes .vv-acao").count() === 3, "tocar na resposta: Pôr no flash, Ver perfil, Apagar");
+ok(await p.locator("#folhaLista .vv-resp-acoes .vv-acao").count() === 4, "tocar na resposta: Pôr no flash, Responder, Ver perfil, Apagar");
 await p.screenshot({ path: "saida/fa-respostas.png" });
 await p.locator("#folhaLista [data-fechar]").first().click(); await p.waitForTimeout(600);
 // "respostas · ver" no próprio flash abre a atividade na aba Respostas

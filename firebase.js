@@ -68,13 +68,14 @@ setStatus(`Firebase conectado (${firebaseConfig.projectId})`, "ok");
 // Listas (<select>) e horários no visual do site, no lugar das janelas do celular (campos.js).
 import("./campos.js?v=3").then((m) => m.ligarCampos()).catch((e) => console.warn("[Campos]", e?.message || e));
 // "Voltar" fecha a janela que está aberta por cima, em vez de sair da página (voltar.js).
-import("./voltar.js?v=7").then((m) => m.ligarVoltar()).catch((e) => console.warn("[Voltar]", e?.message || e));
+import("./voltar.js?v=8").then((m) => m.ligarVoltar()).catch((e) => console.warn("[Voltar]", e?.message || e));
 // "Voltar" que tiraria a pessoa do site pergunta antes ("Sair do Help Floripa?").
 import("./confirmar.js?v=5").then((m) => m.guardarSaida()).catch((e) => console.warn("[Saída]", e?.message || e));
 
 // Aviso temporário de manutenção (liga e desliga no próprio manutencao.js).
 // App instalado (PWA): service worker simples (sw.js) — páginas sempre da rede, offline.html sem internet.
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch((e) => console.warn("[App]", e?.message || e));
+import("./sem-menu-imagem.js?v=1").catch(() => {});
 import("./manutencao.js?v=1").then((m) => m.avisoManutencao()).catch((e) => console.warn("[Manutenção]", e?.message || e));
 
 // Portão da conta: quem entra com a conta desativada ou com a exclusão pedida vai para
