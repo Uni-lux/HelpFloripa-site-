@@ -35,7 +35,9 @@ function fechou(c) {
 let tempo = 0;
 function desfazer() {
   clearTimeout(tempo);
-  tempo = setTimeout(() => { if (!saindo && nivel() > pilha.length) history.go(pilha.length - nivel()); }, 0);
+  // window.__hfNavegando: o código já mandou trocar de página (ex.: abrir um perfil de dentro do flash); desfazer o passo
+  // agora disputaria com a troca e o "voltar" depois não acharia a página como estava.
+  tempo = setTimeout(() => { if (!saindo && !window.__hfNavegando && nivel() > pilha.length) history.go(pilha.length - nivel()); }, 0);
 }
 // Fecha uma camada como se a pessoa tivesse tocado no X (ou apertado Esc).
 function fechar(c) {
@@ -85,6 +87,6 @@ export function ligarVoltar() {
   });
   addEventListener("beforeunload", () => { saindo = true; });
   addEventListener("pagehide", () => { saindo = true; });
-  addEventListener("pageshow", () => { saindo = false; });
+  addEventListener("pageshow", () => { saindo = false; window.__hfNavegando = false; });
   conferir();
 }

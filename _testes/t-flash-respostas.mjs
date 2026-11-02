@@ -94,16 +94,16 @@ ok(await p.locator(".flash-salvar-rasc").isHidden(), "sem nada feito, o atalho d
 await p.keyboard.type("Rascunho rápido");
 await p.waitForTimeout(200);
 ok(!(await p.locator(".flash-salvar-rasc").isHidden()), "com algo escrito, aparece o atalho “Salvar rascunho”");
-await p.locator(".flash-salvar-rasc").tap(); await p.waitForTimeout(1200);
+await p.locator(".flash-salvar-rasc").tap(); await p.waitForTimeout(500);
+await p.locator("#folhaOpcoes.aberta button", { hasText: "Salvar e continuar" }).tap(); await p.waitForTimeout(1200);
 await p.screenshot({ path: "saida/fresp-criador.png" });
 const n = await p.evaluate(() => new Promise((ok2) => { const r = indexedDB.open("hf-flash-" + window.firebaseAuth?.currentUser?.uid, 1); r.onsuccess = () => { try { const t = r.result.transaction("rascunhos").objectStore("rascunhos").count(); t.onsuccess = () => ok2(t.result); t.onerror = () => ok2(-1); } catch { ok2(-2); } }; r.onerror = () => ok2(-3); }));
 ok(await p.locator(".flash-criar").count() === 1 && n >= 1, `salvou sem sair do criador (rascunhos: ${n})`);
 await p.locator(".flash-texto").blur();
 await p.locator(".flash-ferr-btn[aria-label^='Figurinhas']").tap(); await p.waitForTimeout(300);
 await p.locator(".fig-pilula", { hasText: "Enquete" }).tap(); await p.waitForTimeout(300);
-await p.locator(".fe-cor-bola[data-cor=verde]").tap(); await p.waitForTimeout(200);
-const corte = await p.evaluate(() => { const b2 = document.querySelector(".fe-cor-bola.on"), box = document.querySelector(".fe-cor-bolas"); const r = b2.getBoundingClientRect(), c = box.getBoundingClientRect(); return { cima: r.top - 5 - c.top, baixo: c.bottom - (r.bottom + 5) }; });
-ok(corte.cima >= -0.5 && corte.baixo >= -0.5, `o anel da cor escolhida cabe inteiro (folga ${corte.cima.toFixed(1)} / ${corte.baixo.toFixed(1)} px)`);
+await p.evaluate((c) => { for (let i = 0; i < 8 && !document.querySelector(".fv-card").classList.contains("tema-" + c); i++) document.querySelector(".fv-cor").click(); }, "verde"); await p.waitForTimeout(200);
+ok(await p.locator(".fv-card.tema-verde").count() === 1, "botão de cor troca a cor do cartão");
 await p.screenshot({ path: "saida/fresp-cores.png" });
 
 ok(!erros.length, "sem erros na página" + (erros.length ? ": " + erros.slice(0, 3).join(" | ") : ""));

@@ -60,13 +60,11 @@ ok(b2.width < b1.width * 0.8, `pinça diminui (${Math.round(b1.width)} → ${Mat
 // enquete no flash de texto, com a prévia da cor ao vivo
 await p.locator(".flash-ferr-btn[aria-label^='Figurinhas']").tap(); await p.waitForTimeout(300);
 await p.locator(".fig-pilula", { hasText: "Enquete" }).tap(); await p.waitForTimeout(300);
-await p.locator(".enq-ed-perg").fill("Café ou chá?");
-await p.locator(".fe-cor-bola[data-cor=verde]").tap(); await p.waitForTimeout(150);
-ok(await p.locator(".fe-previa .fe-enq.tema-verde").count() === 1 && (await p.locator(".fe-previa strong").textContent()) === "Café ou chá?", "prévia muda de cor na hora (com a pergunta)");
-const cores = await p.evaluate(() => { const b = [...document.querySelectorAll(".fe-cor-bola")].map((x) => x.getBoundingClientRect().top); return Math.max(...b) - Math.min(...b); });
-ok(cores < 2, "as 7 cores numa fileira só");
+await p.locator(".fv-perg").fill("Café ou chá?");
+await p.evaluate((c) => { for (let i = 0; i < 8 && !document.querySelector(".fv-card").classList.contains("tema-" + c); i++) document.querySelector(".fv-cor").click(); }, "verde"); await p.waitForTimeout(150);
+ok(await p.locator(".fv-card.tema-verde").count() === 1 && (await p.locator(".fv-perg").inputValue()) === "Café ou chá?", "o cartão muda de cor na hora (com a pergunta)");
 await p.screenshot({ path: "saida/fg-enquete-previa.png" });
-await p.locator(".flash-enq-ed .fe-pronto").tap(); await p.waitForTimeout(300);
+await p.locator(".flash-fig-viva .fe-pronto").tap(); await p.waitForTimeout(300);
 await p.screenshot({ path: "saida/fg-texto.png" });
 await p.locator(".flash-publicar").tap();
 await p.waitForSelector(".flash-criar", { state: "detached", timeout: 15000 }).catch(() => {});

@@ -98,7 +98,7 @@ await comTeclado(".flash-figs", "Mencionar");
 await p.locator(".flash-figs .fe-pronto").tap();
 await p.locator(".flash-ferr-btn[aria-label^='Figurinhas']").tap(); await p.waitForTimeout(300);
 await p.locator(".fig-op", { hasText: "Perguntas" }).tap(); await p.waitForTimeout(400);
-await p.locator(".flash-figs .enq-ed-perg").focus();
+await p.locator(".flash-figs .fv-perg").focus();
 await comTeclado(".flash-figs", "Caixa de perguntas");
 await p.locator(".flash-figs .fe-pronto").tap(); await p.waitForTimeout(300);
 // configurações: ícones sem cor

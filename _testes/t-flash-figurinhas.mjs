@@ -61,11 +61,11 @@ const [fc] = await Promise.all([p.waitForEvent("filechooser"), p.locator(".flash
 await fc.setFiles("saida/foto-ff.png"); await p.waitForTimeout(1200);
 await p.locator(".flash-ferr-btn[aria-label^='Figurinhas']").tap(); await p.waitForTimeout(300);
 await p.locator(".fig-pilula", { hasText: "Enquete" }).tap(); await p.waitForTimeout(300);
-await p.locator(".enq-ed-perg").fill("Praia ou piscina?");
-await p.locator(".fe-cor-bola[data-cor=verde]").tap(); await p.waitForTimeout(200);
-ok(await p.evaluate(() => getComputedStyle(document.querySelector(".fe-previa .fe-enq > strong")).backgroundImage.includes("gradient")), "editor: prévia com a faixa colorida");
+await p.locator(".fv-perg").fill("Praia ou piscina?");
+await p.evaluate((c) => { for (let i = 0; i < 8 && !document.querySelector(".fv-card").classList.contains("tema-" + c); i++) document.querySelector(".fv-cor").click(); }, "verde"); await p.waitForTimeout(200);
+ok(await p.evaluate(() => getComputedStyle(document.querySelector(".fv-card .fv-faixa")).backgroundImage.includes("gradient")), "editor: o próprio cartão com a faixa colorida");
 await p.screenshot({ path: "saida/ff-editor.png" });
-await p.locator(".flash-enq-ed .fe-pronto").tap(); await p.waitForTimeout(300);
+await p.locator(".flash-fig-viva .fe-pronto").tap(); await p.waitForTimeout(300);
 await p.locator(".flash-ferr-btn[aria-label^='Figurinhas']").tap(); await p.waitForTimeout(300);
 await p.locator(".fig-pilula", { hasText: "Hashtag" }).tap(); await p.waitForTimeout(200);
 await p.locator(".fe-local").fill("#reforma"); await p.locator(".fe-linha-local .fe-pronto").tap(); await p.waitForTimeout(300);
