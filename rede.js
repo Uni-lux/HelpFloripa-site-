@@ -18,6 +18,7 @@ import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-rec
 import { ouvirItensEquipe, TEXTO_EQUIPE, linkEquipe } from "./avisos-equipe.js?v=1";
 import "./painel-avisos.js?v=43";
 import { docComValidade, docsComValidade, esquecer } from "./leituras.js?v=3";
+import { docRapido } from "./rapido.js?v=1";
 import { resumoPublico, temPublico } from "./publico-alvo.js?v=1";
 import { contarNovas } from "./mensagens-novas.js?v=1";
 import { escolherPublico } from "./publico-tela.js?v=4";
@@ -425,41 +426,72 @@ export async function iniciarRede({ sincronizar = false } = {}) {
   if (!usuario) { location.href = "login.html?redirect=" + encodeURIComponent(location.pathname.split("/").pop() + location.search); throw new Error("Entre na sua conta."); }
   eu = usuario;
   refUsuario = fb.doc(fb.db, "usuarios", eu.uid);
-  const snap = await fb.getDoc(refUsuario);
-  dados = snap.exists() ? snap.data() : {};
-  dados.nome = dados.nome || eu.displayName || "Usuário";
-  // E-mail trocado pelo link de confirmação: atualiza a cópia guardada na conta.
-  if (eu.email && snap.exists() && dados.email && dados.email !== eu.email) fb.setDoc(refUsuario, { email: eu.email }, { merge: true }).catch(() => {});
-  dados.email = eu.email || dados.email || "";
-  dados.cidade = dados.cidade || dados.cidadeNome || "";
-  if (dados.privacidade) {
-    config.mostrarOnline = dados.privacidade.mostrarOnline !== false;
-    config.confirmacaoLeitura = dados.privacidade.confirmacaoLeitura !== false;
-    salvarConfig();
-  }
-  // Privacidade do social e do duo ficam no perfil público: lê ANTES de sincronizar,
-  // senão a leitura pega só os campos da gravação pendente e volta tudo para o padrão.
-  const pubSnap = await fb.getDoc(fb.doc(fb.db, "perfis_publicos", eu.uid)).catch(() => null);
-  const pub = pubSnap?.exists() ? pubSnap.data() : {};
-  if (pub.socialVisibilidade) dados.socialVisibilidade = pub.socialVisibilidade;
-  // "Só a rosinha" (rosa) fica na conta; no público pode estar "foto" enquanto as regras novas não forem publicadas.
-  if (pub.duoCapa && !(dados.duoCapa === "rosa" && pub.duoCapa === "foto")) dados.duoCapa = pub.duoCapa;
-  if (!dados.nickname && pub.nickname) dados.nickname = pub.nickname;
-  if (sincronizar) {
-    const publico = {
-      uid: eu.uid, nome: dados.nome, nickname: pub.nickname || dados.nickname || "", cidade: dados.cidade,
-      fotoPerfil: dados.fotoPerfil || "", fotoCapa: dados.fotoCapa || "", bio: dados.bio || ""
-    };
-    // Estado e cidade do IBGE (padrão novo do endereço) vão junto quando a conta já tem.
-    if (dados.uf && dados.cidadeIbge) Object.assign(publico, { uf: dados.uf, cidadeIbge: dados.cidadeIbge });
-    gravarComLocal((d) => fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), d, { merge: true }), publico, NOVOS.perfil)
-      .catch((e) => console.warn("Perfil público não sincronizado:", e));
-  }
-  // Palavras do nome e do @ para a busca de pessoas (gravação separada: se falhar, nada mais quebra).
-  const busca = palavrasBusca(pub.nome || dados.nome, pub.nickname || dados.nickname);
-  if (pubSnap?.exists() && JSON.stringify(pub.busca || []) !== JSON.stringify(busca)) {
-    fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), { uid: eu.uid, busca }, { merge: true }).catch(() => {});
-  }
+  const refPub = fb.doc(fb.db, "perfis_publicos", eu.uid);
+  // Conta e perfil público: da cópia do aparelho na hora (rapido.js) e do servidor por trás. As gravações que dependem
+  // dos dados (sincronizar o público, palavras de busca, e-mail novo) só rodam com a versão do servidor.
+  const montar = (snap, pubSnap) => {
+    const novo = snap?.exists() ? snap.data() : {};
+    for (const k of Object.keys(dados || {})) if (!(k in novo)) delete dados[k];
+    Object.assign(dados, novo);
+    dados.nome = dados.nome || eu.displayName || "Usuário";
+    dados.email = eu.email || dados.email || "";
+    dados.cidade = dados.cidade || dados.cidadeNome || "";
+    if (dados.privacidade) {
+      config.mostrarOnline = dados.privacidade.mostrarOnline !== false;
+      config.confirmacaoLeitura = dados.privacidade.confirmacaoLeitura !== false;
+      salvarConfig();
+    }
+    // Privacidade do social e do duo ficam no perfil público: lê ANTES de sincronizar,
+    // senão a leitura pega só os campos da gravação pendente e volta tudo para o padrão.
+    const pub = pubSnap?.exists() ? pubSnap.data() : {};
+    if (pub.socialVisibilidade) dados.socialVisibilidade = pub.socialVisibilidade;
+    // "Só a rosinha" (rosa) fica na conta; no público pode estar "foto" enquanto as regras novas não forem publicadas.
+    if (pub.duoCapa && !(dados.duoCapa === "rosa" && pub.duoCapa === "foto")) dados.duoCapa = pub.duoCapa;
+    if (!dados.nickname && pub.nickname) dados.nickname = pub.nickname;
+    return pub;
+  };
+  const gravacoes = (snap, pubSnap, pub) => {
+    // E-mail trocado pelo link de confirmação: atualiza a cópia guardada na conta.
+    const salvo = snap?.exists() ? snap.data().email : "";
+    if (eu.email && snap?.exists() && salvo && salvo !== eu.email) fb.setDoc(refUsuario, { email: eu.email }, { merge: true }).catch(() => {});
+    if (sincronizar) {
+      const publico = {
+        uid: eu.uid, nome: dados.nome, nickname: pub.nickname || dados.nickname || "", cidade: dados.cidade,
+        fotoPerfil: dados.fotoPerfil || "", fotoCapa: dados.fotoCapa || "", bio: dados.bio || ""
+      };
+      // Estado e cidade do IBGE (padrão novo do endereço) vão junto quando a conta já tem.
+      if (dados.uf && dados.cidadeIbge) Object.assign(publico, { uf: dados.uf, cidadeIbge: dados.cidadeIbge });
+      gravarComLocal((d) => fb.setDoc(refPub, d, { merge: true }), publico, NOVOS.perfil)
+        .catch((e) => console.warn("Perfil público não sincronizado:", e));
+    }
+    // Palavras do nome e do @ para a busca de pessoas (gravação separada: se falhar, nada mais quebra).
+    const busca = palavrasBusca(pub.nome || dados.nome, pub.nickname || dados.nickname);
+    if (pubSnap?.exists() && JSON.stringify(pub.busca || []) !== JSON.stringify(busca)) {
+      fb.setDoc(refPub, { uid: eu.uid, busca }, { merge: true }).catch(() => {});
+    }
+  };
+  // undefined = a versão do servidor ainda não chegou; null = o perfil público não pôde ser lido.
+  let fU, fP, feito = false, inicial = true;
+  const talvez = () => {
+    if (feito || fU === undefined || fP === undefined) return;
+    feito = true;
+    if (inicial) return; // tudo já veio do servidor na primeira leitura: as gravações rodam lá embaixo
+    const pubF = montar(fU, fP);
+    gravacoes(fU, fP, pubF);
+    restritos = new Set(Array.isArray(dados.restritos) ? dados.restritos : []);
+    silenciados = new Set(Array.isArray(dados.silenciados) ? dados.silenciados : []);
+    try { window.dispatchEvent(new CustomEvent("hf:dados-conta")); } catch {}
+  };
+  const [snap, pubSnap] = await Promise.all([
+    docRapido(fb, refUsuario, (s) => { fU = s; talvez(); }),
+    docRapido(fb, refPub, (s) => { fP = s; talvez(); }).catch(() => null),
+  ]);
+  if (!snap.metadata?.fromCache) fU = snap;
+  if (!pubSnap?.metadata?.fromCache) fP = pubSnap;
+  const pub = montar(snap, pubSnap);
+  if (fU !== undefined && fP !== undefined) { feito = true; gravacoes(snap, pubSnap, pub); }
+  inicial = false;
+  talvez();
   conferirEmail(eu);
   await carregarPrivacidade().catch((e) => console.warn("Bloqueios:", e));
   marcarPresenca();
@@ -1476,7 +1508,7 @@ export async function verRespostasCaixa(item, alvo, aoMudar) {
       acao("chat", "Responder", () => responderNoChat(r.uid, cartaoRespostaCaixa(item.caixa, r, alvo)));
     }
     // Pôr a resposta no seu flash (como no Instagram): pergunta + resposta, sem o nome de quem respondeu.
-    acao("raio", "No flash", () => import("./stories.js?v=78").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
+    acao("raio", "No flash", () => import("./stories.js?v=79").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
     acao("lixo", "Apagar", async () => {
       if (!(await confirmarHF({ titulo: "Apagar esta resposta?", texto: "Ela some da sua caixa de perguntas.", ok: "Apagar", icone: "lixo" }))) return;
       try { await fb.deleteDoc(fb.doc(fb.db, "caixa_respostas", r.id)); todas = todas.filter((x) => x.id !== r.id); pintarNums(); pintarLista(); aoMudar?.(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
@@ -2036,7 +2068,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=78").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=79").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);
