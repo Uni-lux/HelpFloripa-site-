@@ -13,10 +13,14 @@ import {
   meusSeguindo, meusSeguindoPronto, escondido, silenciado, alternarSilenciar, obterPerfil, abrirOpcoes, abrirLista, linhaPessoa, pessoasEmPilha,
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados,
-  responderNoChat, cartaoRespostaCaixa, fecharFolha
-} from "./rede.js?v=100";
+  responderNoChat, cartaoRespostaCaixa, fecharFolha, ajudaPublico
+} from "./rede.js?v=102";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
+import { combinaPublico, leitorDe, temPublico, resumoPublico, publicoParaGravar } from "./publico-alvo.js?v=1";
+import { escolherPublico } from "./publico-tela.js?v=3";
+import { lerLocal } from "./local-escolhido.js?v=3";
+import { minhaPosicao } from "./perto.js?v=2";
 import { fimEscolhido, MAX_FLASH_MIN, fimDaEnquete, encerrada, faltaTexto, resultadoFinal, lerContasEnquete } from "./enquetes.js?v=6";
 
 const DIA = 24 * 3600e3;
@@ -24,7 +28,7 @@ const TEMPO_FOTO = 5000;
 // Mais tempo quando tem o que ler ou responder (enquete, perguntas, publicação, link ou legenda longa).
 // Tempo na tela (como no Instagram): foto 5 s; com enquete, perguntas, publicação ou link 10 s; legenda longa +3 s
 // (no máximo 15 s). Vídeo: o tempo dele (até 1 min).
-const tempoDoFlash = (s) => Math.min(15000, TEMPO_FOTO + (s.enquete || s.caixa || s.postDe || s.link ? 5000 : 0) + (String(s.texto || "").length > 80 ? 3000 : 0));
+const tempoDoFlash = (s) => Math.min(15000, TEMPO_FOTO + (s.enquete || s.caixa || s.contagem || s.postDe || s.link ? 5000 : 0) + (String(s.texto || "").length > 80 ? 3000 : 0));
 const REACOES = ["🔥", "😍", "😂", "😮", "👏", "💯"];
 // Estrela (curtir o flash, como o coração do Instagram): stories/{id}/reacoes/{uid} {curtiu, emoji, em}. O autor vê
 // quem deu a estrela e quem reagiu na lista de visualizações. Guardada também no aparelho (não lê de novo a cada flash).
@@ -50,7 +54,7 @@ const vistosLocal = conjuntoDaConta("hf-stories-vistos", 600);
 const guardarVistos = () => vistosLocal.salvar();
 const ativo = (s) => Date.now() - (ms(s.criadoEm) || Date.now()) < DIA;
 const comStorage = () => !!(storageFns && window.firebaseStorage);
-const erroPublicar = (e) => (e?.code === "permission-denied" ? "O Flash começa a funcionar quando as regras novas forem publicadas." : "Não foi possível publicar: " + erroAmigavel(e));
+const erroPublicar = (e) => (e?.amigavel ? e.message : e?.code === "permission-denied" ? "O Flash começa a funcionar quando as regras novas forem publicadas." : "Não foi possível publicar: " + erroAmigavel(e));
 
 export async function montarStories(alvo) {
   if (!alvo) return;
@@ -90,7 +94,16 @@ function autorMeSegue(autor) {
   return segueCache.get(autor);
 }
 // Escolhas do autor: "Amigos próximos" (só a lista vê) e "Ocultar de" (essas pessoas não veem).
-const podeVer = (x) => !(Array.isArray(x.ocultoPara) && x.ocultoPara.includes(eu.uid)) && (x.publico !== "amigos" || (Array.isArray(x.lista) && x.lista.includes(eu.uid)));
+// Público do flash (alvo: idade, gênero, lugar, seguidores — o mesmo do público da publicação): quem não está no
+// público não vê o flash (filtrado no aparelho, como no Diário). A posição é lida uma vez, sem esperar.
+let leitorFlash = null, posFlash = null, pedindoPos = false;
+function leitorAgora() {
+  if (!eu?.uid) return null;
+  if (!pedindoPos) { pedindoPos = true; minhaPosicao(dados).then((p) => { posFlash = p || null; leitorFlash = null; }).catch(() => {}); }
+  return (leitorFlash ||= leitorDe({ uid: eu.uid, dados, local: lerLocal(), pos: posFlash, segue: (u) => meusSeguindo.has(u) }));
+}
+const noPublico = (x) => !x.alvo || x.autorId === eu?.uid || combinaPublico({ autorId: x.autorId, publico: x.alvo }, leitorAgora());
+const podeVer = (x) => !(Array.isArray(x.ocultoPara) && x.ocultoPara.includes(eu.uid)) && (x.publico !== "amigos" || (Array.isArray(x.lista) && x.lista.includes(eu.uid))) && noPublico(x);
 // Depois das 24 h o flash vai para o ARQUIVO (só você vê), como no Instagram. Quem desligou "Guardar no arquivo" nas
 // Configurações do Flash tem os vencidos apagados (menos os que estão num destaque).
 async function limparVencidos() {
@@ -173,6 +186,43 @@ function circulo({ uid, nome, foto, nomeReal, meu = false, lista = [] }) {
 
 // Mensagem com o cartão do flash (o Mensagens mostra a miniatura enquanto o flash existe, 24 h):
 // acao = resposta | reacao | mencao | enviar | repost. O cartão guarda só o id; a foto vem do flash.
+// ---------- contagem regressiva (figurinha, como a do Instagram) ----------
+// stories.contagem = { titulo, fim (Timestamp), cor?, x, y }. Quem vê acompanha os números andando e pode tocar em
+// "Lembrar-me" (contagem_lembretes/{flash}_{uid}): quando a contagem acaba, chega o aviso no sino.
+const pad2 = (n) => String(n).padStart(2, "0");
+function faltaPara(fimMs) {
+  let r = Math.max(0, fimMs - Date.now());
+  const d = Math.floor(r / 864e5); r -= d * 864e5;
+  const h = Math.floor(r / 36e5); r -= h * 36e5;
+  const m = Math.floor(r / 6e4); r -= m * 6e4;
+  return { d, h, m, s: Math.floor(r / 1e3), acabou: fimMs <= Date.now() };
+}
+const quandoTermina = (fimMs) => new Date(fimMs).toLocaleString("pt-BR", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).replace(",", "");
+// Cartão da contagem (criador e visor): faixa com o título, os números (dias · h · min · s) e quando termina.
+function cartaoContagem(c, { vivo = true } = {}) {
+  const card = el("div", "ctg" + temaFig(c.cor));
+  const tit = el("div", "ctg-tit", c.titulo || "Nome da contagem");
+  const cab = el("small", "ctg-cab"); cab.append(icone("relogio", "i xs"), document.createTextNode("CONTAGEM REGRESSIVA"));
+  const num = el("div", "ctg-num"); num.setAttribute("role", "timer");
+  const quando = el("small", "ctg-quando");
+  const acoes = el("div", "ctg-acoes");
+  card.append(tit, cab, num, quando, acoes);
+  card._acoes = acoes;
+  let relogio = 0;
+  const pintarN = () => {
+    const fimMs = Number(card._fim ?? c.fim) || 0;
+    const f = faltaPara(fimMs);
+    card.classList.toggle("acabou", f.acabou);
+    const casas = f.d > 0 ? [[f.d, f.d === 1 ? "dia" : "dias"], [f.h, "h"], [f.m, "min"], [f.s, "s"]] : [[f.h, "h"], [f.m, "min"], [f.s, "s"]];
+    num.replaceChildren(...casas.map(([v, rot], i) => { const w = el("span", "ctg-casa"); w.append(el("b", null, i === 0 && f.d > 0 ? String(v) : pad2(v)), el("small", null, rot)); return w; }));
+    num.setAttribute("aria-label", f.acabou ? "A contagem terminou" : `Faltam ${f.d ? f.d + " dias, " : ""}${f.h} horas, ${f.m} minutos e ${f.s} segundos`);
+    quando.textContent = f.acabou ? "Terminou! 🎉" : `Termina ${quandoTermina(fimMs)}`;
+  };
+  card._pintar = pintarN;
+  pintarN();
+  if (vivo) relogio = setInterval(() => { if (!card.isConnected) { if (card._jaNaTela) clearInterval(relogio); return; } card._jaNaTela = true; pintarN(); }, 1000);
+  return card;
+}
 function msgFlash(s, acao, extra = {}) {
   return { tipoArquivo: "cartao", cartao: { tipo: "flash", acao, flashId: s.id, autorId: s.autorId, nome: String(s.nome || "").slice(0, 80), ...extra } };
 }
@@ -822,7 +872,24 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     const n = configFlash().amigos.length;
     toast(paraAmigos ? `Este flash vai só para os Amigos próximos (${n} ${n === 1 ? "pessoa" : "pessoas"})` : "Este flash vai para todos que seguem você");
   });
-  const esq = el("div", "flash-esq"); esq.append(bX, bCfg, bAmigos);
+  // Público deste flash (idade, gênero, lugar, seguidores), como no Diário: a página "Público" em tela cheia.
+  let alvo = null;
+  const bAlvo = el("button", "flash-ferr-btn flash-alvo"); bAlvo.type = "button"; bAlvo.appendChild(icone("alvo", "i s"));
+  const pintarAlvo = () => {
+    const tem = !!alvo; bAlvo.classList.toggle("on", tem);
+    bAlvo.title = tem ? "Público: " + resumoPublico(alvo) : "Público: todos";
+    bAlvo.setAttribute("aria-label", tem ? `Público deste flash: ${resumoPublico(alvo)} (toque para mudar)` : "Público deste flash: todos (toque para escolher)");
+  };
+  bAlvo.addEventListener("click", async () => {
+    const v = await escolherPublico(alvo, { ...ajudaPublico(), sub: "Quem vê este flash" });
+    if (v === undefined) return; // voltou sem mudar
+    alvo = v ? (publicoParaGravar(v) || null) : null; pintarAlvo();
+    if (!meusNeg.length) dica.textContent = dicaPadrao();
+    document.body.classList.add("travado");
+    toast(alvo ? `Este flash vai para: ${resumoPublico(alvo)}` : "Este flash vai para todos que seguem você");
+  });
+  pintarAlvo();
+  const esq = el("div", "flash-esq"); esq.append(bX, bCfg, bAmigos, bAlvo);
   topo.append(esq, ferramentas);
   const lixo = el("div", "flash-lixo"); lixo.appendChild(icone("lixo", "i s")); lixo.setAttribute("aria-hidden", "true");
   // Desenho do pincel: fica entre a foto e os textos (e sai igual na foto publicada).
@@ -838,7 +905,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   publicar.append(el("span", null, "Compartilhar"), raioPub);
   const linhaBaixo = el("div", "flash-linha"); linhaBaixo.append(modos, publicar);
   const dica = el("small", "flash-dica", "Fica 24 horas para quem segue você · você vê quem viu");
-  const dicaPadrao = () => (paraAmigos ? "Fica 24 horas só para os seus Amigos próximos · você vê quem viu" : "Fica 24 horas para quem segue você · você vê quem viu");
+  const dicaPadrao = () => (paraAmigos ? "Fica 24 horas só para os seus Amigos próximos" : "Fica 24 horas para quem segue você") + (alvo ? ` · público: ${resumoPublico(alvo)}` : " · você vê quem viu");
   // "Publicar em": seu perfil e/ou os seus perfis de negócio (um, alguns ou todos). Só aparece se você tem negócio.
   // Fica num botão da barra de cima (e nas figurinhas), para não ocupar o espaço embaixo do cartão.
   const dest = { perfil: true, negocios: new Set() };
@@ -906,7 +973,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   }).catch(() => {});
   // Campos do lugar escolhido (vão em todo flash publicado por este criador).
   // _publico: a escolha deste flash (todos ou Amigos próximos); o gravar() tira o "_" antes de salvar.
-  const camposDestino = () => ({ _publico: paraAmigos ? "amigos" : "todos", ...(dest.negocios.size ? { negocios: [...dest.negocios].slice(0, 4), ...(dest.perfil ? {} : { perfil: false }) } : {}) });
+  const camposDestino = () => ({ _publico: paraAmigos ? "amigos" : "todos", ...(alvo ? { alvo } : {}), ...(dest.negocios.size ? { negocios: [...dest.negocios].slice(0, 4), ...(dest.perfil ? {} : { perfil: false }) } : {}) });
   baixo.append(linhaBaixo, dica);
   pintarAmigos();
   // Moldura com o degradê do Flash em volta do cartão (que ocupa quase a tela toda).
@@ -916,7 +983,8 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   document.body.appendChild(fundo);
   document.body.classList.add("travado");
 
-  let modo = "foto", fundoI = Math.floor(Math.random() * FUNDOS.length), letraI = 0;
+  // Começa em Foto ou em Texto (Configurações do Flash → Criar flash).
+  let modo = !repost && !post && !imagem && !rascunho && configFlash().modoInicial === "texto" ? "texto" : "foto", fundoI = Math.floor(Math.random() * FUNDOS.length), letraI = 0;
   let foto = null, video = null, enviando = false;
   // Foto no cartão: zoom (1 a 5) e deslocamento a partir do centro (em px do cartão).
   let img = null, z = 1, ox = 0, oy = 0;
@@ -1163,6 +1231,16 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       e.replaceChildren(pill);
       return;
     }
+    if (t.ct) {
+      // Prévia da contagem (quem vê acompanha os números andando e pode pedir lembrete)
+      e.className = "flash-txt flash-enq flash-ct";
+      e.style.fontSize = Math.round(W * 0.042) + "px";
+      const card = cartaoContagem({ titulo: t.titulo, fim: t.fim, cor: t.tema });
+      const fake = el("span", "ctg-lembrar falso"); fake.append(icone("sino", "i xs"), document.createTextNode("Lembrar-me"));
+      card._acoes.appendChild(fake);
+      e.replaceChildren(card);
+      return;
+    }
     if (t.cx) {
       // Prévia da caixa de perguntas (quem vê escreve a resposta; aqui só arrasta ou toca para editar).
       e.className = "flash-txt flash-enq";
@@ -1177,7 +1255,14 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       // Prévia da enquete (quem vê vota no flash; aqui só arrasta ou toca para editar).
       e.className = "flash-txt flash-enq";
       e.style.fontSize = Math.round(W * 0.042) + "px";
-      const card = el("div", "fe-enq" + temaFig(t.tema)); card.appendChild(el("strong", null, t.pergunta));
+      const ehTeste = Number.isInteger(t.certa);
+      const card = el("div", "fe-enq" + (ehTeste ? " fe-teste" : "") + temaFig(t.tema)); card.appendChild(el("strong", null, t.pergunta));
+      if (ehTeste) {
+        t.opcoes.forEach((o, i) => { const sp = el("span", i === t.certa ? "certa" : null); sp.append(el("b", null, "ABCD"[i]), document.createTextNode(o)); card.appendChild(sp); });
+        card.appendChild(el("small", "fe-enq-dur", "TESTE · a certa fica escondida para quem vê"));
+        e.replaceChildren(card);
+        return;
+      }
       t.opcoes.forEach((o) => card.appendChild(el("span", null, o)));
       const d = t.duracao || { dur: 1440 };
       card.appendChild(el("small", "fe-enq-dur", d.fim ? `Termina às ${new Date(d.fim).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : `Dura ${d.dur >= 1440 ? "24 h" : d.dur / 60 + " h"}`));
@@ -1348,7 +1433,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   // Um dedo arrasta (e leva até a lixeira); dois dedos (o 2º pode cair fora da figurinha) aumentam, diminuem e giram,
   // como no Instagram. Enquete, perguntas e link do negócio só arrastam (no visor eles têm tamanho fixo).
   const LIMITE_TAM = (t) => (t.ft ? [0.15, 1.3] : t.emoji ? [0.05, 0.5] : t.fig ? [0.03, 0.22] : [0.03, 0.3]);
-  const giraEsse = (t) => !(t.enq || t.cx || t.lk);
+  const giraEsse = (t) => !(t.enq || t.cx || t.lk || t.ct);
   const gesto = { t: null, pts: new Map(), base: null, mexeu: false, dois: false };
   const ptsArr = () => [...gesto.pts.values()];
   function baseGesto() {
@@ -1366,10 +1451,10 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     const t = gesto.t, mexeu = gesto.mexeu, foiDois = gesto.dois;
     gesto.t = null; gesto.base = null; gesto.mexeu = false; gesto.dois = false;
     palco.classList.remove("arrastando-txt"); guias.querySelectorAll(".on").forEach((g) => g.classList.remove("on"));
-    if (lixo.classList.contains("sobre")) { lixo.classList.remove("sobre"); t.el.remove(); textos.splice(textos.indexOf(t), 1); navigator.vibrate?.(12); pintarArroba(); renomearUltimo(`Apagar ${nomeFig(t)}`); avisarHist(`${nomeFig(t, true)} ${/^(foto|enquete|caixa|menção|localização|hashtag|figurinha)/.test(nomeFig(t)) ? "apagada" : "apagado"} · toque em ↶ para desfazer`, true); return; }
+    if (lixo.classList.contains("sobre")) { lixo.classList.remove("sobre"); t.el.remove(); textos.splice(textos.indexOf(t), 1); navigator.vibrate?.(12); pintarArroba(); renomearUltimo(`Apagar ${nomeFig(t)}`); avisarHist(`${nomeFig(t, true)} ${/^(foto|enquete|caixa|menção|localização|hashtag|figurinha|contagem)/.test(nomeFig(t)) ? "apagada" : "apagado"} · toque em ↶ para desfazer`, true); return; }
     if (mexeu || foiDois || ev.type !== "pointerup") return;
     // toque parado
-    if (t.enq) editarEnquete(t); else if (t.cx) editarCaixa(t); else if (t.lk) escolherNegocio(t);
+    if (t.enq) editarEnquete(t); else if (t.cx) editarCaixa(t); else if (t.ct) editarContagem(t); else if (t.lk) escolherNegocio(t);
     else if (t.ft) { if (t.estilo !== 3) t.estilo = ((t.estilo || 0) + 1) % 3; /* 3 = figurinha pronta (resposta): só vem para a frente */ camada.appendChild(t.el); textos.push(textos.splice(textos.indexOf(t), 1)[0]); t.el.replaceChildren(); pintarTexto(t); }
     else if (t.fig) { t.estilo = (t.estilo + 1) % EST_FIG.length; pintarTexto(t); }
     else if (t.emoji) { t.tam = t.tam >= 0.26 ? 0.1 : +(t.tam + 0.06).toFixed(3); pintarTexto(t); }
@@ -1444,8 +1529,12 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       b.addEventListener("click", fn); grade.appendChild(b); return b;
     };
     if (meusNeg.length) pilula("loja", "Publicar em", "#f5a400", () => { pn.remove(); escolherDestinos(); }, dest.negocios.size ? `${dest.negocios.size + (dest.perfil ? 1 : 0)} lugares` : "");
-    pilula("enquete", "Enquete", "#ff3d7f", () => { pn.remove(); editarEnquete(textos.find((t) => t.enq) || null); });
+    // Enquete e Teste usam o mesmo lugar (um por flash): tocar no outro avisa.
+    const enqAqui = () => textos.find((t) => t.enq) || null;
+    pilula("enquete", "Enquete", "#ff3d7f", () => { const t = enqAqui(); if (t && Number.isInteger(t.certa)) { toast("Este flash já tem um teste. Um flash tem uma enquete OU um teste."); return; } pn.remove(); editarEnquete(t); });
+    pilula("check", "Teste", "#22b573", () => { const t = enqAqui(); if (t && !Number.isInteger(t.certa)) { toast("Este flash já tem uma enquete. Um flash tem uma enquete OU um teste."); return; } pn.remove(); editarTeste(t); }, "quiz");
     pilula("caixa", "Perguntas", "#e5487f", () => { pn.remove(); editarCaixa(textos.find((t) => t.cx) || null); });
+    pilula("relogio", "Contagem", "#7c5cff", () => { pn.remove(); editarContagem(textos.find((t) => t.ct) || null); }, "regressiva");
     pilula("pessoa-mais", "Menção", "#ff8a00", () => { pn.remove(); escolherMencao(); });
     pilula("loja", "Link do negócio", "#00adee", () => { pn.remove(); escolherNegocio(textos.find((t) => t.lk) || null); });
     // Localização de verdade (como no Instagram): busca o lugar e quem vê toca na figurinha e vê as publicações de lá.
@@ -1513,11 +1602,13 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   // prévia lá embaixo, que o teclado escondia.
   function editorVivo(tipo, t) {
     palco.querySelector(".flash-figs")?.remove();
-    const enq = tipo === "enq";
-    const pn = el("div", "flash-figs flash-fig-viva");
-    const estado = { cor: t?.tema || t?.cor || "branco", anonima: !!t?.anonima };
+    // Teste (quiz, como a figurinha "Teste" do Instagram): é uma enquete com a resposta certa marcada (`certa`).
+    const teste = tipo === "teste";
+    const enq = tipo === "enq" || teste;
+    const pn = el("div", "flash-figs flash-fig-viva" + (teste ? " fv-eh-teste" : ""));
+    const estado = { cor: t?.tema || t?.cor || "branco", anonima: !!t?.anonima, certa: Number.isInteger(t?.certa) ? t.certa : 0 };
     const duracao = { ...(t?.duracao || { dur: 1440 }) };
-    const ops = enq ? (t?.opcoes || ["Sim", "Não"]).slice() : [];
+    const ops = enq ? (t?.opcoes || (teste ? ["", ""] : ["Sim", "Não"])).slice() : [];
     // topo: cor (troca a cada toque) e Pronto
     const topo = el("div", "fv-topo");
     const bCor = el("button", "fv-cor"); bCor.type = "button";
@@ -1552,19 +1643,30 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       }
       const filhos = ops.map((o, i) => {
         const l = el("div", "fv-op");
-        const inp = el("input"); inp.type = "text"; inp.maxLength = 40; inp.value = o; inp.placeholder = i === 0 ? "Sim" : i === 1 ? "Não" : `Opção ${i + 1}`;
+        const inp = el("input"); inp.type = "text"; inp.maxLength = 40; inp.value = o; inp.placeholder = teste ? `Resposta ${"ABCD"[i]}` : i === 0 ? "Sim" : i === 1 ? "Não" : `Opção ${i + 1}`;
+        if (teste) {
+          // A letra marca a resposta certa (fica verde com ✓).
+          const certa = i === estado.certa;
+          const lt = el("button", "fv-letra" + (certa ? " certa" : "")); lt.type = "button";
+          lt.setAttribute("aria-label", certa ? `Resposta ${"ABCD"[i]}: é a certa` : `Marcar a resposta ${"ABCD"[i]} como certa`); lt.setAttribute("aria-pressed", String(certa));
+          if (certa) lt.appendChild(icone("check", "i xs")); else lt.textContent = "ABCD"[i];
+          lt.addEventListener("pointerdown", (e) => e.preventDefault());
+          lt.addEventListener("click", () => { estado.certa = i; pintarOps(); navigator.vibrate?.(8); });
+          l.classList.add("com-letra"); if (certa) l.classList.add("certa");
+          l.appendChild(lt);
+        }
         inp.setAttribute("aria-label", `Opção ${i + 1}`);
         inp.addEventListener("input", () => { ops[i] = inp.value; });
         inp.addEventListener("keydown", (e) => {
           if (e.key === "Enter") { e.preventDefault(); (l.nextElementSibling?.querySelector("input") || corpo.querySelector(".fv-nova"))?.focus(); }
           // apagar tudo de uma opção vazia (a partir da 3ª) tira ela
-          if (e.key === "Backspace" && !inp.value && ops.length > 2 && i >= 2) { e.preventDefault(); ops.splice(i, 1); pintarOps(i - 1); }
+          if (e.key === "Backspace" && !inp.value && ops.length > 2 && i >= 2) { e.preventDefault(); tirarOp(i); pintarOps(i - 1); }
         });
         l.appendChild(inp);
         if (ops.length > 2 && i >= 2) {
           const x = el("button", "fv-op-x"); x.type = "button"; x.setAttribute("aria-label", "Tirar opção"); x.appendChild(icone("fechar", "i xs"));
           x.addEventListener("pointerdown", (e) => e.preventDefault());
-          x.addEventListener("click", () => { ops.splice(i, 1); pintarOps(); });
+          x.addEventListener("click", () => { tirarOp(i); pintarOps(); });
           l.appendChild(x);
         }
         return l;
@@ -1577,6 +1679,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       corpo.replaceChildren(...filhos);
       if (focar >= 0) { const f = corpo.querySelectorAll(".fv-op input")[focar]; if (f) { f.focus(); const n = f.value.length; f.setSelectionRange(n, n); } }
     };
+    function tirarOp(i) { ops.splice(i, 1); if (estado.certa === i) estado.certa = 0; else if (estado.certa > i) estado.certa--; }
     perg.addEventListener("input", crescer);
     perg.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); corpo.querySelector("input")?.focus(); } });
     // pílulas de baixo: anônima e (na enquete) duração
@@ -1591,8 +1694,8 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       estado.anonima = !estado.anonima; pintarAnon();
       toast(estado.anonima ? (enq ? "Votação anônima: ninguém vê quem votou, nem você" : "Respostas anônimas: você não vê quem respondeu") : (enq ? "Você vai ver quem votou em cada opção" : "Você vai ver quem respondeu"));
     });
-    extras.appendChild(bAnon);
-    if (enq) {
+    if (!teste) extras.appendChild(bAnon);
+    if (enq && !teste) {
       const bDur = el("button", "fv-chip"); bDur.type = "button";
       const rotDur = () => duracao.fim ? "Personalizada" : (DURACOES_FLASH.find(([m]) => m === (duracao.dur || 1440)) || [0, "24 h"])[1];
       const pintarDur = () => bDur.replaceChildren(icone("relogio", "i xs"), document.createTextNode("Termina em " + rotDur() + " ▾"));
@@ -1604,7 +1707,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       pintarDur();
       extras.appendChild(bDur);
     }
-    extras.appendChild(el("small", "fv-dica", enq ? "Uma pessoa, um voto" : "As respostas chegam só para você"));
+    extras.appendChild(el("small", "fv-dica", teste ? "Toque na letra para marcar a resposta certa. Quem vê descobre na hora se acertou." : enq ? "Uma pessoa, um voto" : "As respostas chegam só para você"));
     pn.append(topo, meio, extras);
     palco.appendChild(pn);
     pintarCor(); pintarOps(); pintarAnon();
@@ -1613,7 +1716,16 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     ok.addEventListener("click", () => {
       const pergunta = perg.value.trim().slice(0, 120);
       if (!pergunta) { toast(enq ? "Escreva a pergunta." : "Escreva o texto da caixa."); perg.focus(); return; }
-      if (enq) {
+      if (teste) {
+        if (!ops[estado.certa]?.trim()) { toast("Escreva a resposta certa (a marcada com ✓)."); corpo.querySelectorAll(".fv-op input")[estado.certa]?.focus(); return; }
+        const usadas = ops.map((o, i) => [o.trim().slice(0, 40), i]).filter(([o]) => o);
+        if (usadas.length < 2) { toast("Coloque pelo menos 2 respostas."); return; }
+        if (new Set(usadas.map(([o]) => o.toLowerCase())).size < usadas.length) { toast("As respostas precisam ser diferentes."); return; }
+        const opcoes = usadas.map(([o]) => o), certa = usadas.findIndex(([, i]) => i === estado.certa);
+        pn.remove();
+        if (t) { marcar("Editar teste"); t.pergunta = pergunta; t.opcoes = opcoes; t.certa = certa; delete t.duracao; t.anonima = false; t.tema = estado.cor; pintarTexto(t); }
+        else criarTexto({ enq: true, pergunta, opcoes, certa, anonima: false, tema: estado.cor, texto: "", x: 0.5, y: 0.6, tam: 0.05, letra: 0, cor: "#111", destaque: false });
+      } else if (enq) {
         // opção vazia usa o que aparece escrito de leve (Sim / Não)
         const opcoes = ops.map((o, i) => (o.trim() || (i === 0 ? "Sim" : i === 1 ? "Não" : "")).slice(0, 40)).filter(Boolean);
         if (opcoes.length < 2) { toast("Coloque pelo menos 2 opções."); return; }
@@ -1628,7 +1740,87 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     });
   }
   const DURACOES_FLASH = [[60, "1 h"], [360, "6 h"], [720, "12 h"], [1440, "24 h"]];
-  const editarEnquete = (t) => editorVivo("enq", t);
+  const editarEnquete = (t) => editorVivo(Number.isInteger(t?.certa) ? "teste" : "enq", t);
+  const editarTeste = (t) => editorVivo("teste", t);
+  // Contagem regressiva: o nome na faixa colorida, a data e a hora embaixo (calendário e relógio do site) e os números
+  // andando no próprio cartão, como vai aparecer para quem vê.
+  function editarContagem(t) {
+    palco.querySelector(".flash-figs")?.remove();
+    const pn = el("div", "flash-figs flash-fig-viva fv-eh-ct");
+    const estado = { cor: t?.tema || "branco" };
+    const amanha = new Date(Date.now() + 864e5); amanha.setHours(20, 0, 0, 0);
+    let fimMs = Number(t?.fim) || amanha.getTime();
+    const topo = el("div", "fv-topo");
+    const bCor = el("button", "fv-cor"); bCor.type = "button";
+    const ok = el("button", "fe-pronto", "Pronto"); ok.type = "button";
+    topo.append(el("span"), bCor, ok);
+    const meio = el("div", "fv-meio");
+    const card = cartaoContagem({ titulo: t?.titulo || "", fim: fimMs, cor: estado.cor });
+    card.classList.add("fv-ctg");
+    const tit = card.querySelector(".ctg-tit");
+    const campo = document.createElement("textarea"); campo.className = "fv-perg"; campo.rows = 1; campo.maxLength = 40;
+    campo.placeholder = "Nome da contagem"; campo.setAttribute("aria-label", "Nome da contagem"); campo.value = t?.titulo || "";
+    tit.replaceChildren(campo);
+    const crescer = () => { campo.style.height = "auto"; campo.style.height = campo.scrollHeight + "px"; };
+    campo.addEventListener("input", crescer);
+    campo.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); campo.blur(); } });
+    // data e hora (o campos.js abre o calendário e o relógio do site)
+    const linhaQuando = el("div", "ctg-escolher");
+    const loc = (ms) => { const d = new Date(ms); return [`${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`, `${pad2(d.getHours())}:${pad2(d.getMinutes())}`]; };
+    const dia = el("input", "fv-dia"); dia.type = "date"; dia.setAttribute("aria-label", "Dia em que termina");
+    const hora = el("input", "fv-hora"); hora.type = "time"; hora.setAttribute("aria-label", "Hora em que termina");
+    const hoje = loc(Date.now())[0], limite = loc(Date.now() + 365 * 864e5)[0];
+    dia.min = hoje; dia.max = limite;
+    [dia.value, hora.value] = loc(fimMs);
+    const ler = () => {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dia.value), h = /^(\d{2}):(\d{2})$/.exec(hora.value);
+      if (!m || !h) return;
+      fimMs = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(h[1]), Number(h[2])).getTime();
+      card._fim = fimMs; card._pintar();
+    };
+    ["input", "change"].forEach((ev) => { dia.addEventListener(ev, ler); hora.addEventListener(ev, ler); });
+    const rDia = el("label", "ctg-campo"); rDia.append(el("small", null, "Dia"), dia);
+    const rHora = el("label", "ctg-campo"); rHora.append(el("small", null, "Hora"), hora);
+    linhaQuando.append(rDia, rHora);
+    card._acoes.appendChild(linhaQuando);
+    // atalhos de prazo
+    const atalhos = el("div", "fv-extras");
+    [["Em 1 hora", 36e5], ["Hoje às 20h", "hoje20"], ["Amanhã às 20h", "amanha20"], ["Em 7 dias", 7 * 864e5]].forEach(([rot, v]) => {
+      const b = el("button", "fv-chip", rot); b.type = "button";
+      b.addEventListener("pointerdown", (e) => e.preventDefault());
+      b.addEventListener("click", () => {
+        let ms;
+        if (typeof v === "number") ms = Math.ceil((Date.now() + v) / 6e4) * 6e4;
+        else { const d = new Date(); if (v === "amanha20") d.setDate(d.getDate() + 1); d.setHours(20, 0, 0, 0); ms = d.getTime(); }
+        if (ms < Date.now() + 5 * 6e4) { toast("Hoje às 20h já passou: escolha outro horário."); return; }
+        fimMs = ms; [dia.value, hora.value] = loc(ms); card._fim = ms; card._pintar();
+      });
+      atalhos.appendChild(b);
+    });
+    atalhos.appendChild(el("small", "fv-dica", "Quem vê pode tocar em “Lembrar-me” e recebe um aviso quando a contagem acabar."));
+    const pintarCor = () => {
+      card.className = "ctg fv-ctg" + temaFig(estado.cor) + (card.classList.contains("acabou") ? " acabou" : "");
+      bCor.setAttribute("aria-label", `Cor: ${(CORES_FIG.find(([c]) => c === estado.cor) || CORES_FIG[0])[1]} (toque para trocar)`);
+    };
+    bCor.addEventListener("pointerdown", (e) => e.preventDefault());
+    bCor.addEventListener("click", () => { const i = CORES_FIG.findIndex(([c]) => c === estado.cor); estado.cor = CORES_FIG[(i + 1) % CORES_FIG.length][0]; pintarCor(); });
+    meio.appendChild(card);
+    pn.append(topo, meio, atalhos);
+    palco.appendChild(pn);
+    pintarCor();
+    requestAnimationFrame(crescer);
+    setTimeout(() => campo.focus(), 50);
+    ok.addEventListener("click", () => {
+      const titulo = campo.value.trim().slice(0, 40);
+      if (!titulo) { toast("Dê um nome para a contagem."); campo.focus(); return; }
+      ler();
+      if (!(fimMs > Date.now() + 5 * 6e4)) { toast("Escolha um horário pelo menos 5 minutos à frente."); return; }
+      if (fimMs > Date.now() + 365 * 864e5) { toast("A contagem pode ir até 1 ano."); return; }
+      pn.remove();
+      if (t) { marcar("Editar contagem regressiva"); t.titulo = titulo; t.fim = fimMs; t.tema = estado.cor; pintarTexto(t); }
+      else criarTexto({ ct: true, titulo, fim: fimMs, tema: estado.cor, texto: "", x: 0.5, y: 0.32, tam: 0.05, letra: 0, cor: "#111", destaque: false });
+    });
+  }
   const editarCaixa = (t) => editorVivo("cx", t);
   // Link para o perfil de um negócio: os seus primeiro, e a busca entre todos os negócios do site.
   let negociosP = null;
@@ -1711,7 +1903,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     }
     return l;
   }
-  const textosComArroba = () => [modo === "texto" ? area.value : "", legenda.value, ...textos.filter((t) => !t.fig && !t.enq && !t.cx && !t.lk && !t.emoji).map((t) => t.texto)].join("\n");
+  const textosComArroba = () => [modo === "texto" ? area.value : "", legenda.value, ...textos.filter((t) => !t.fig && !t.enq && !t.cx && !t.lk && !t.ct && !t.emoji).map((t) => t.texto)].join("\n");
   const nicksNoTexto = () => [...new Set([...textosComArroba().matchAll(/(^|[^\w@#])@([a-z0-9._]{3,20})/gi)].map((m) => m[2].toLowerCase().replace(/\.+$/, "")))];
   const figMencoes = () => textos.filter((t) => t.fig === "mencao" && t.uid);
   const totalMencoes = () => new Set([...figMencoes().map((t) => t.uid), ...nicksNoTexto().map((n) => nickUid.get(n) || "@" + n), ...avisos.keys()]).size;
@@ -2246,7 +2438,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     return false;
   }
   function perguntarSair() {
-    if (!temConteudo()) { fechar(); return; }
+    if (!temConteudo() || !configFlash().perguntarRascunho) { fechar(); return; }
     abrirOpcoes("Sair do flash?", [
       { rotulo: "Salvar como rascunho", sub: "Fica guardado neste aparelho para terminar depois", icone: "rascunho", fn: async () => { if (await salvarRascunho()) fechar(); } },
       { rotulo: "Descartar", sub: "A foto e o que você fez serão perdidos", icone: "lixo", perigo: true, fn: () => fechar() },
@@ -2276,7 +2468,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       const { W } = medidas();
       const r = {
         id: rascId || "r" + Date.now().toString(36), quando: Date.now(), modo: video ? "foto" : modo, fundoI, letraI, texto: area.value, legenda: legenda.value,
-        foto: fotoUrl, filtro: filtro.id, z, ox: ox / (W || 1), oy: oy / (W || 1), tracos: tracos.map((t) => ({ ...t, pts: t.pts.slice() })), paraAmigos,
+        foto: fotoUrl, filtro: filtro.id, z, ox: ox / (W || 1), oy: oy / (W || 1), tracos: tracos.map((t) => ({ ...t, pts: t.pts.slice() })), paraAmigos, alvo,
         textos: textos.map(({ el: _e, _area, _arrobas, img: im, ...t }) => ({ ...t, ...(im ? { imgSrc: im.src } : {}) })), avisos: [...avisos.values()]
       };
       await guardarRascunho(r);
@@ -2303,7 +2495,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   palco.appendChild(hist);
   [bDesfazer, bRefazer].forEach((b) => b.addEventListener("pointerdown", (e) => { e.stopPropagation(); e.preventDefault(); }));
   function nomeFig(t, maiuscula = false) {
-    const n = t.enq ? "enquete" : t.cx ? "caixa de perguntas" : t.lk ? "link do negócio" : t.ft ? "foto" : t.emoji ? "emoji"
+    const n = t.enq ? (Number.isInteger(t.certa) ? "teste" : "enquete") : t.ct ? "contagem regressiva" : t.cx ? "caixa de perguntas" : t.lk ? "link do negócio" : t.ft ? "foto" : t.emoji ? "emoji"
       : t.fig === "mencao" ? "menção" : t.fig === "local" ? "localização" : t.fig === "hashtag" ? "hashtag" : t.fig ? "figurinha" : "texto";
     return maiuscula ? n[0].toUpperCase() + n.slice(1) : n;
   }
@@ -2383,7 +2575,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   function desenharCamada(g, OW, OH) {
     if (tracos.length) { const cd = document.createElement("canvas"); cd.width = OW; cd.height = OH; pintarTracos(cd.getContext("2d"), OW, OH, tracos); g.drawImage(cd, 0, 0); }
     textos.forEach((t) => {
-      if (t.enq || t.cx || t.lk) return; // enquete, caixa de perguntas e link ficam por cima, interativos (não vão desenhados)
+      if (t.enq || t.cx || t.lk || t.ct) return; // enquete, contagem, caixa de perguntas e link ficam por cima, interativos (não vão desenhados)
       if (t.fig && (t.oculta || t.soLista)) return; // menção oculta / só na lista: não aparece na foto
       // Girada com dois dedos: desenha em volta do centro dela.
       g.save();
@@ -2510,8 +2702,13 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
         const enq = textos.find((t) => t.enq);
         const mencoes = await mencoesParaGravar();
         const comCor = (t) => (t.tema && t.tema !== "branco" && CORES_FIG.some(([k]) => k === t.tema) ? { cor: t.tema } : {});
+        const ehTeste = enq && Number.isInteger(enq.certa);
         const enquete = enq ? { pergunta: enq.pergunta, opcoes: enq.opcoes, x: Math.round(enq.x * 1000) / 1000, y: Math.round(enq.y * 1000) / 1000,
-          fimEm: fb.Timestamp.fromMillis(fimEscolhido(enq.duracao || { dur: 1440 }, { maxMin: MAX_FLASH_MIN })), ...(enq.anonima ? { anonima: true } : {}), ...comCor(enq) } : null;
+          ...(ehTeste ? { certa: enq.certa } : { fimEm: fb.Timestamp.fromMillis(fimEscolhido(enq.duracao || { dur: 1440 }, { maxMin: MAX_FLASH_MIN })) }),
+          ...(enq.anonima && !ehTeste ? { anonima: true } : {}), ...comCor(enq) } : null;
+        const ctt = textos.find((t) => t.ct);
+        if (ctt && ctt.fim < Date.now() + 4 * 6e4) throw Object.assign(new Error("A contagem regressiva já está quase no fim: escolha outro horário."), { amigavel: true });
+        const contagem = ctt ? { titulo: String(ctt.titulo).slice(0, 40), fim: fb.Timestamp.fromMillis(ctt.fim), x: Math.round(ctt.x * 1000) / 1000, y: Math.round(ctt.y * 1000) / 1000, ...comCor(ctt) } : null;
         const cx = textos.find((t) => t.cx);
         const caixa = cx ? { pergunta: cx.pergunta, anonima: !!cx.anonima, x: Math.round(cx.x * 1000) / 1000, y: Math.round(cx.y * 1000) / 1000, ...comCor(cx) } : null;
         // Figurinhas que quem vê pode tocar: localização (vai para as publicações de lá), hashtags e menções à vista.
@@ -2537,9 +2734,9 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
         const link = lk ? { negocioId: lk.negocio.id, nome: String(lk.negocio.nome || "").slice(0, 80), tipo: lk.negocio.tipo, x: Math.round(lk.x * 1000) / 1000, y: Math.round(lk.y * 1000) / 1000 } : null;
         const repostDe = repost ? { storyId: repost.id, autorId: repost.autorId, nome: String(repost.nome || "").slice(0, 80) } : null;
         const postDe = post ? { postId: post.id, autorId: post.autorId, nome: String(post.nome || "").slice(0, 80) } : null;
-        const ref = await gravar({ tipo: "imagem", midia: url, ...(texto ? { texto } : {}), ...camposDestino(), ...(enquete ? { enquete } : {}), ...(caixa ? { caixa } : {}), ...(link ? { link } : {}), ...(repostDe ? { repostDe } : {}), ...(postDe ? { postDe } : {}),
+        const ref = await gravar({ tipo: "imagem", midia: url, ...(texto ? { texto } : {}), ...camposDestino(), ...(enquete ? { enquete } : {}), ...(caixa ? { caixa } : {}), ...(contagem ? { contagem } : {}), ...(link ? { link } : {}), ...(repostDe ? { repostDe } : {}), ...(postDe ? { postDe } : {}),
           ...mencoes, ...(toques.length ? { toques } : {}) }, { imagem });
-        if (enquete) registrarEnquete("f_" + ref.id, enquete);
+        if (enquete && !Number.isInteger(enquete.certa)) registrarEnquete("f_" + ref.id, enquete);
         if (repost && repost.autorId !== eu.uid) mandarMensagem(repost.autorId, msgFlash({ id: ref.id, autorId: eu.uid, nome: dados.nome }, "repost", { original: repost.id }), "Repostou seu flash").catch(() => {});
       }
       if (rascId) apagarRascunho(rascId).catch(() => {});
@@ -2564,6 +2761,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     fundoI = rascunho.fundoI ?? fundoI; letraI = rascunho.letraI ?? 0;
     area.value = rascunho.texto || ""; legenda.value = rascunho.legenda || "";
     paraAmigos = !!rascunho.paraAmigos; pintarAmigos();
+    alvo = rascunho.alvo || null; pintarAlvo();
     filtro = FILTROS.find((f) => f.id === rascunho.filtro) || FILTROS[0];
     (rascunho.avisos || []).forEach((p2) => p2?.uid && avisos.set(p2.uid, p2));
     tracos.splice(0, tracos.length, ...(rascunho.tracos || []));
@@ -2677,8 +2875,12 @@ async function gravar(extraCom, { imagem = null } = {}) {
     // figurinha continua desenhada na foto; a pessoa oculta sai da lista, mas recebe o aviso do mesmo jeito).
     const antigo = semCamposNovos(docFlash);
     if (e?.code !== "permission-denied" || !antigo) throw e;
+    const eraTeste = antigo._eraTeste, semAlvo = antigo._semAlvo, semCt = antigo._semContagem;
+    delete antigo._eraTeste; delete antigo._semAlvo; delete antigo._semContagem;
     ref = await fb.addDoc(fb.collection(fb.db, "stories"), antigo);
-    setTimeout(() => toast("Algumas figurinhas ficam tocáveis depois da publicação das regras novas."), 2600);
+    setTimeout(() => toast(semCt ? "A contagem regressiva aparece depois da publicação das regras novas (o flash foi sem ela)."
+      : semAlvo ? "O público do flash vale depois da publicação das regras novas: este foi para todos."
+      : eraTeste ? "O teste foi como enquete: ele passa a funcionar depois da publicação das regras novas." : "Algumas figurinhas ficam tocáveis depois da publicação das regras novas."), 2600);
   }
   toast(amigos ? "⚡ Flash publicado para os Amigos próximos." : extra.negocios?.length ? `⚡ Flash publicado${extra.perfil === false ? " só" : ""} ${extra.negocios.length === 1 ? "no perfil do negócio" : `em ${extra.negocios.length} perfis de negócio`}${extra.perfil === false ? "" : " e no seu perfil"}! Fica 24 horas.` : "⚡ Flash publicado! Fica 24 horas.");
   // Quem foi mencionado recebe uma mensagem (como no Instagram).
@@ -2700,7 +2902,11 @@ function semCamposNovos(d) {
     const vis = (c.mencoes || []).filter((u) => !oc.includes(u));
     if (vis.length) c.mencoes = vis; else delete c.mencoes;
   }
+  if ("alvo" in c) { delete c.alvo; c._semAlvo = true; mudou = true; }
+  if ("contagem" in c) { delete c.contagem; c._semContagem = true; mudou = true; }
   ["enquete", "caixa"].forEach((k) => { if (c[k]?.cor) { const { cor, ...resto } = c[k]; c[k] = resto; mudou = true; } });
+  // Teste (quiz) sem as regras novas: vai como enquete comum, com prazo de 24 h.
+  if (c.enquete && "certa" in c.enquete) { const { certa, ...resto } = c.enquete; c.enquete = { ...resto, fimEm: c.enquete.fimEm || fb.Timestamp.fromMillis(Date.now() + 864e5) }; c._eraTeste = true; mudou = true; }
   return mudou ? c : null;
 }
 
@@ -2718,6 +2924,8 @@ export function configFlash() {
     arquivo: c.arquivo !== false,                     // guardar os flashes no arquivo depois das 24 h (só você vê)
     cameraDireto: c.cameraDireto !== false,           // abre a câmera do app direto (quando já tem permissão)
     somVideo: c.somVideo === true,                    // vídeos dos flashes começam com som
+    modoInicial: c.modoInicial === "texto" ? "texto" : "foto", // o criador abre em Foto ou em Texto
+    perguntarRascunho: c.perguntarRascunho !== false, // ao sair com algo feito, pergunta se guarda como rascunho
     ondePerfil: c.ondePerfil !== false,               // onde publicar por padrão: seu perfil...
     ondeNegocios: Array.isArray(c.ondeNegocios) ? c.ondeNegocios.slice(0, 4) : [] // ...e estes negócios
   };
@@ -2732,7 +2940,8 @@ export function abrirConfigFlash() {
   const raiz = el("div", "cfg2");
   abrirLista("Configurações do Flash").appendChild(raiz);
   const corpo = raiz;
-  let meusNeg = null, ativos = null;
+  let meusNeg = null, ativos = null, nRasc = null;
+  lerRascunhos().then((l) => { nRasc = l.length; if (corpo.isConnected) pintar(); });
   const pintar = () => {
     const c = configFlash();
     const salvar = async (mud) => { await salvarConfigFlash({ ...configFlash(), ...mud }); pintar(); };
@@ -2792,8 +3001,27 @@ export function abrirConfigFlash() {
       }))));
     }
 
-    // 4) Respostas e reações
-    const k3 = cartao("chat", "#7c5cff", "Respostas e reações", "Chegam no Mensagens como cartão do flash.");
+    // 4) Criar flash: como o criador abre, figurinhas e rascunhos
+    const kc = cartao("lapis", "", "Criar flash", "Figurinhas: Enquete, Teste (quiz com a resposta certa), Perguntas, Menção, Link do negócio, Localização, Hashtag, Emoji, Horário e Data. Desfazer e refazer guardam até 40 passos.");
+    opcoes(kc, [["foto", "Começar em Foto", "Câmera ou galeria"], ["texto", "Começar em Texto", "Fundo colorido para escrever"]], c.modoInicial, (v) => salvar({ modoInicial: v }));
+    kc.append(
+      linha("Perguntar antes de sair", "Ao fechar com algo feito: salvar como rascunho, descartar ou continuar. Desligado, fecha e descarta direto", chave(c.perguntarRascunho, (on) => salvar({ perguntarRascunho: on }))),
+      linha("Rascunhos", nRasc == null ? "Carregando..." : nRasc ? `${nRasc} ${nRasc === 1 ? "rascunho guardado" : "rascunhos guardados"} neste aparelho (até 10)` : "Nenhum rascunho neste aparelho", seta(), () => {
+        fecharLista(); setTimeout(() => abrirRascunhos((rr) => abrirCriador({ rascunho: rr })), 280);
+      })
+    );
+    if (nRasc) {
+      const ap = el("button", "btn sec mini", "Apagar todos os rascunhos"); ap.type = "button";
+      ap.addEventListener("click", async () => {
+        if (!await confirmarHF({ titulo: "Apagar todos os rascunhos?", texto: `Os ${nRasc} rascunhos deste aparelho somem. Não dá para desfazer.`, ok: "Apagar", icone: "lixo" })) return;
+        for (const x of await lerRascunhos()) await apagarRascunho(x.id).catch(() => {});
+        nRasc = 0; toast("Rascunhos apagados"); pintar();
+      });
+      const w = el("div", "cfg2-acoes"); w.appendChild(ap); kc.appendChild(w);
+    }
+
+    // 5) Respostas e reações
+    const k3 = cartao("chat", "#7c5cff", "Respostas e reações", "Respostas e reações chegam no Mensagens como cartão do flash. Votos da enquete, respostas do teste e da caixa de perguntas ficam na Atividade do flash (toque em Visualizações).");
     opcoes(k3, [["todos", "Todos que veem"], ["seguindo", "Só quem você segue"], ["ninguem", "Ninguém", "Desliga respostas e reações"]], c.respostas, (v) => salvar({ respostas: v }));
 
     // 5) Câmera e vídeo
@@ -2926,7 +3154,10 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
   // Como no Instagram: o tempo fica na mesma linha do nome ("Ana  3 h").
   const linhaNome = el("div", "story-nome"); linhaNome.append(nome, quando, chip);
   txtQuem.className = "story-quem-tx";
-  txtQuem.append(linhaNome); quem.append(av, txtQuem);
+  // As linhas extras ("Flash de X", "Também em 1 negócio") ficam penduradas embaixo do nome, sem empurrar o nome para
+  // cima: ele fica sempre na altura da foto (pedido de 02/11).
+  const subQuem = el("div", "story-quem-sub");
+  txtQuem.append(linhaNome, subQuem); quem.append(av, txtQuem);
   // Foto e nome abrem o perfil de quem publicou (como no Instagram).
   [av, nome].forEach((x) => {
     x.classList.add("story-vai-perfil"); x.setAttribute("role", "link"); x.tabIndex = 0;
@@ -3180,6 +3411,51 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
       ["pointerdown", "pointerup", "click"].forEach((ev) => w.addEventListener(ev, (e) => e.stopPropagation()));
     }
     // Caixa de perguntas por cima do flash (quem vê responde; o autor vê as respostas).
+    // Contagem regressiva: números andando; quem vê toca em "Lembrar-me"; o autor vê quem pediu lembrete.
+    caixa.querySelector(".story-ct")?.remove();
+    if (s.contagem?.titulo && s.contagem.fim) {
+      const fimMs = ms(s.contagem.fim);
+      const card = cartaoContagem({ titulo: s.contagem.titulo, fim: fimMs, cor: s.contagem.cor });
+      const w = el("div", "story-enq story-ct");
+      w.appendChild(card); quadro.appendChild(w); encaixar(w, s.contagem.x ?? 0.5, s.contagem.y ?? 0.32);
+      ["pointerdown", "pointerup", "click"].forEach((ev) => w.addEventListener(ev, (e) => e.stopPropagation()));
+      if (meu) {
+        const q = el("button", "ctg-lembrar quem"); q.type = "button"; q.append(icone("sino", "i xs"), el("span", null, "Lembretes…"));
+        card._acoes.appendChild(q);
+        const consulta = fb.query(fb.collection(fb.db, "contagem_lembretes"), fb.where("flashId", "==", s.id), fb.where("autorId", "==", eu.uid));
+        fb.getCountFromServer(consulta).then((c) => { const n = c.data().count; q.lastChild.textContent = n ? `${n} ${n === 1 ? "pessoa pediu" : "pessoas pediram"} lembrete` : "Ninguém pediu lembrete ainda"; q.disabled = !n; }).catch(() => { q.lastChild.textContent = "Lembretes depois das regras novas"; q.disabled = true; });
+        q.addEventListener("click", async () => {
+          pausar(true);
+          const corpo = abrirLista("Pediram lembrete");
+          const f = $("folhaLista"); const volta = () => { f?.removeEventListener("fechada", volta); if (document.querySelector(".story-visor")) document.body.classList.add("travado"); pausar(false); }; f?.addEventListener("fechada", volta);
+          corpo.replaceChildren(el("div", "lista-vazia", "Carregando..."));
+          const l = await fb.getDocs(fb.query(consulta, fb.limit(200))).catch(() => ({ docs: [] }));
+          const ps = await Promise.all(l.docs.map((d) => obterPerfil(d.data().uid).then((p) => ({ uid: d.data().uid, ...p })).catch(() => ({ uid: d.data().uid }))));
+          corpo.replaceChildren(...(ps.length ? ps.map((p) => linhaPessoa({ uid: p.uid, nome: p.nome || "Usuário", foto: p.fotoPerfil, sub: p.nickname ? "@" + p.nickname : "", semSeguir: true, aoClicar: () => perfilDoFlash(p.uid) })) : [el("div", "lista-vazia", "Ninguém pediu lembrete ainda.")]));
+        });
+      } else if (fimMs > Date.now()) {
+        const lref = fb.doc(fb.db, "contagem_lembretes", `${s.id}_${eu.uid}`);
+        const b = el("button", "ctg-lembrar"); b.type = "button";
+        let on = false, ocupado = false;
+        const pintarB = () => { b.classList.toggle("on", on); b.setAttribute("aria-pressed", String(on)); b.replaceChildren(icone(on ? "check" : "sino", "i xs"), document.createTextNode(on ? "Vou lembrar você" : "Lembrar-me")); };
+        pintarB();
+        card._acoes.appendChild(b);
+        fb.getDoc(lref).then((d) => { on = d.exists(); pintarB(); }).catch(() => {});
+        b.addEventListener("click", async () => {
+          if (ocupado) return; ocupado = true;
+          try {
+            if (on) { await fb.deleteDoc(lref); on = false; toast("Lembrete desligado"); }
+            else {
+              await fb.setDoc(lref, { flashId: s.id, autorId: s.autorId, uid: eu.uid, titulo: s.contagem.titulo, fim: s.contagem.fim, criadoEm: fb.serverTimestamp() });
+              on = true; navigator.vibrate?.(10);
+              toast(`Pronto! Avisamos você quando “${s.contagem.titulo}” acabar.`);
+            }
+            pintarB();
+          } catch (e) { toast(e?.code === "permission-denied" ? "O lembrete começa a funcionar quando as regras novas forem publicadas." : "Não foi possível: " + erroAmigavel(e)); }
+          finally { ocupado = false; }
+        });
+      }
+    }
     caixa.querySelector(".story-cx")?.remove();
     const cx = blocoCaixa(s, { tipo: "f", escura: true });
     if (cx) {
@@ -3206,7 +3482,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
       const r = el("button", "story-repost"); r.type = "button";
       r.append(icone("raio", "i xs"), document.createTextNode(`Flash de ${String(s.repostDe.nome || "alguém").split(" ")[0]}`));
       r.addEventListener("click", (e) => { e.stopPropagation(); irParaPerfil(s.repostDe.autorId); });
-      txtQuem.appendChild(r);
+      subQuem.appendChild(r);
     }
     // Também nos perfis de negócio (o dono escolheu ao publicar)
     topo.querySelector(".story-onde")?.remove();
@@ -3235,7 +3511,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
           return a;
         }) : [el("div", "lista-vazia", "Esses negócios não estão mais no ar.")]));
       });
-      txtQuem.appendChild(o);
+      subQuem.appendChild(o);
     }
     // Publicação do Diário compartilhada (como no Instagram): tocar na publicação mostra o balão "Ver publicação";
     // tocar no balão abre a publicação POR CIMA do flash, e o "voltar" retorna ao flash de onde parou.

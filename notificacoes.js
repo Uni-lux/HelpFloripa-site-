@@ -8,7 +8,7 @@ import {
   $, el, icone, pintarAvatar, urlSegura, tempoRelativo, toast, erroAmigavel,
   fb, eu, dados, refUsuario, ganchos, iniciarRede, carregarMeusSeguindo, botaoSeguir, montarBarraRede, pintarBarraRede,
   ouvirAvisos, aoMudarAvisos, avisosVistosEm, marcarAvisosVistos, rotuloVinculo, abrirComentarios, abrirResultadoEnquete, verRespostasCaixa
-} from "./rede.js?v=100";
+} from "./rede.js?v=102";
 import { TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=17";
 import { TEXTO_EQUIPE, linkEquipe, seloOficial, fotoSuporte } from "./avisos-equipe.js?v=1";
 import { textoEnqueteFim, resumoResultado } from "./enquetes.js?v=6";
@@ -16,7 +16,7 @@ import { textoPlano } from "./planos-base.js?v=15";
 import { textoMensagens } from "./mensagens-novas.js?v=1";
 import { criarLista } from "./avisos-lista.js?v=17";
 import { docsPorIds } from "./leituras.js?v=3";
-import { textoFlash } from "./flash-avisos.js?v=1";
+import { textoFlash } from "./flash-avisos.js?v=2";
 
 let vistoAntes = 0, ultimo = null, abriuPedida = false;
 const postsCache = new Map();

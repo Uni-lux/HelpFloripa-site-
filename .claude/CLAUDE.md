@@ -1346,6 +1346,34 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   que, se `hf-flash-volta` bate e a navegação é "voltar", põe `html.hf-volta-flash` (tela preta, z 4890) até o visor
   abrir (`tirarCapa` em stories.js, 7 s no máximo); feed.js chama `voltarAoFlash()` logo depois do `iniciarRede`
   (antes esperava o Diário carregar). Teste `t-flash-topo-volta.mjs` (11).
+- **Flash: Teste (quiz), nome fixo e configurações (02/11/2026, PR depois do #133, MUDA 1 REGRA — não publicada; 16
+  partes, 741 testes):** figurinha **Teste** (como o "Teste" do Instagram) = enquete com `enquete.certa` (índice da opção,
+  sem `fimEm`; regra `enqueteOk`: `certa` int < opções; x/y agora num regex só para caber no limite de 1.000). Criador:
+  pílula "Teste" (verde), `editorVivo("teste")` com letras A–D (tocar marca a certa, `.fv-letra`), uma enquete OU um teste
+  por flash; prévia `.fe-teste`. Visor (`blocoEnquete` em rede.js, `teste`): letras, a certa só aparece depois de
+  responder (verde ✓, a errada vermelha ✗), % na hora, "Você acertou!"/"a certa era a C", animação `acertou`/`errou`; o
+  autor vê "N respostas · X% acertaram"; sem notificação de resultado (`registrarEnquete` pula). Sem as regras:
+  `semCamposNovos` tira `certa` e grava como enquete de 24 h (avisa). Topo do visor: linhas extras em `.story-quem-sub`
+  (absolutas) — o nome fica na altura da foto. **Configurações do Flash:** cartão "Criar flash" (`flashConfig.modoInicial`
+  foto|texto, `perguntarRascunho`, Rascunhos N + "Apagar todos") e textos de Respostas/Atividade atualizados. Teste
+  `t-flash-quiz.mjs` (14). Pergunta aberta: o que falha no teclado do app instalado (PWA).
+- **Flash: Contagem regressiva + Público do flash (02/11/2026, PR depois do #134, MUDA REGRAS — não publicadas; 16 partes,
+  758 testes):** pedido dele "completo e profissional". **Contagem** `stories.contagem {titulo ≤40, fim (5 min a 1 ano),
+  cor?, x, y}`: `cartaoContagem(c)` (module-level em stories.js: faixa com o título, "CONTAGEM REGRESSIVA", casas dias/h/min/s
+  andando a cada 1 s, "Termina seg. 9 de nov., 14:50", "Terminou! 🎉"), pílula "Contagem" nas figurinhas, `editarContagem(t)`
+  (nome na faixa, Dia/Hora com o calendário e relógio do campos.js, atalhos Em 1 hora/Hoje 20h/Amanhã 20h/Em 7 dias, cor),
+  `t.ct` no criador (não vai desenhada, não gira). Visor: `.story-enq.story-ct` (encaixar), quem vê toca "Lembrar-me" →
+  `contagem_lembretes/{flash}_{uid}` {flashId, autorId, uid, titulo, fim, criadoEm} (regra: confere título/fim/autor no
+  flash com get; lê a pessoa e o autor; apaga a pessoa); o autor vê "N pessoas pediram lembrete" (count + lista). Aviso no
+  sino: `lerReacoesFlash` (flash-avisos.js) junta os lembretes que acabaram (até 7 dias) como tipo `flash` com `contagem`
+  (`textoFlash` → "· a contagem “X” terminou ⏰"). Conta apagada: conta.js e limpar-contas apagam os lembretes.
+  **Público do flash** `stories.alvo` (mesmo formato de `diario.publico`): botão `.flash-alvo` (ícone alvo) na barra de cima
+  do criador abre `escolherPublico` (publico-tela.js, `ajuda.sub` "Quem vê este flash"; `ajudaPublico` exportado do rede.js),
+  dica embaixo mostra o público, rascunho guarda. Quem vê: `podeVer` → `noPublico` (`combinaPublico` com `leitorAgora()`:
+  dados da conta + lugar escolhido + posição). Regras: `flashNovos2Ok` dentro de `extrasFlashOk` (contagem: chaves, título,
+  fim; alvo: só as chaves) — para caber no limite de 1.000, x/y da enquete e da caixa viraram um regex só e saíram
+  conferências repetidas (tamanho das opções, tipo da pergunta). Sem as regras: `semCamposNovos` tira contagem/alvo e avisa.
+  Teste `t-flash-contagem.mjs` (16); `t-flash-cfg` atualizado ("Criar flash").
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
@@ -1408,7 +1436,7 @@ chat da equipe).
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
-1. **Publicar as regras** (16 partes em `_regras/`, 732 testes): tudo desde 26/10, incluindo `republicacoes`, destaques e arquivo do Flash,
+1. **Publicar as regras** (16 partes em `_regras/`, 758 testes): tudo desde 26/10, incluindo o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
    `stories/{id}/reacoes` (estrela do Flash), `diario.publico` (público da publicação) e os tipos de publicação
    (`diario.tipo/estilo/quemComenta/ocultarNotas`). Depois: "Recalcular estrelas" no
    painel e criar os **14 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`
@@ -1436,8 +1464,7 @@ Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) c
    que é novo desde a última visita.
 10. ~~Estrela do Flash no sino~~ (feito em 30/10, `flash-avisos.js`).
 11. **Reels:** a aba Reels do perfil ainda abre na folha antiga (os vídeos do Explorar e do Diário já abrem nos Reels).
-12. **Público da publicação:** (estimativa de alcance FEITA em 29/10) público também no Flash (hoje só no
-    Diário); pedir gênero/data de nascimento a quem não tem (contas antigas sem gênero não entram em público por gênero).
+12. **Público da publicação:** (estimativa de alcance FEITA em 29/10; público no Flash FEITO em 02/11); pedir gênero/data de nascimento a quem não tem (contas antigas sem gênero não entram em público por gênero).
 13. **Conta apagada:** os flashes e destaques da pessoa já saem (30/10); faltam os `vistos`/`reacoes` que ELA deixou nos flashes dos outros.
 14. ~~Revisar a ferramenta "Aa"~~ (feita em 30/10: letras, alinhamento, régua, teclado).
 15. **Testes que falham desde antes:** `t-busca-regiao` (2 itens; `t-enquete2` e `t-caixa` passaram em 30/10). Atualizar os testes. Os testes do Diário/Flash precisam do `seed.mjs` antes (dados que sobram atrapalham).

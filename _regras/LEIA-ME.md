@@ -89,7 +89,7 @@ linha), para colar no console do Firebase.
 - Cada parte termina com a linha `// ===== FIM DA PARTE X DE 16 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
 - Conferido: as 16 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **732 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
+- Testes de regras no arquivo remontado: **758 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.
@@ -139,6 +139,11 @@ linha), para colar no console do Firebase.
 - **Busca nacional e Diário por região:** a busca do Explorar, das vitrines e da Comunidade passa a achar negócios e
   anúncios do Brasil inteiro (não só os mais recentes), e as publicações novas guardam a região de quem publica.
   Também crie os índices de `_regras/INDICES-LEIA-ME.md`.
+- **Teste no Flash (quiz):** a figurinha Teste grava a resposta certa (`enquete.certa`). Antes de publicar as regras, o
+  teste vai como enquete comum (o site avisa).
+- **Contagem regressiva e público do Flash:** a figurinha Contagem (`stories.contagem`), o "Lembrar-me"
+  (`contagem_lembretes`) com o aviso no sino quando acaba e o público do flash (`stories.alvo`: idade, gênero, lugar,
+  seguidores). Antes de publicar, o flash vai sem a contagem/sem o público (o site avisa).
 - O resto (toque duplo para dar estrelas, quem deu estrelas, Salvos, editar legenda) já funciona com as regras de hoje.
 
 ## Conferência no site depois de publicar

@@ -102,6 +102,22 @@
     // STORIES (24 horas): stories/{id} — foto (no documento ou no Storage) ou vídeo (Storage).
     // Somem para todos depois de 24 h (o site filtra; o autor apaga os vencidos). vistos/{uid}: quem viu.
     // ===================================================
+    // Lembrete da contagem regressiva de um flash (como o "Lembrar-me" do Instagram): a pessoa pede para ser avisada
+    // quando a contagem acabar. id = {flash}_{uid}. Guarda título e fim (o flash sai do ar em 24 h, a contagem não).
+    // A pessoa cria e apaga o dela; ela e o autor do flash leem (o autor vê quem pediu).
+    match /contagem_lembretes/{lid} {
+      allow create: if logado() && request.resource.data.uid == request.auth.uid
+                    && lid == request.resource.data.flashId + '_' + request.auth.uid
+                    && request.resource.data.keys().hasOnly(['flashId', 'autorId', 'uid', 'titulo', 'fim', 'criadoEm'])
+                    && request.resource.data.criadoEm == request.time
+                    && get(/databases/$(database)/documents/stories/$(request.resource.data.flashId)).data.autorId == request.resource.data.autorId
+                    && get(/databases/$(database)/documents/stories/$(request.resource.data.flashId)).data.contagem.fim == request.resource.data.fim
+                    && get(/databases/$(database)/documents/stories/$(request.resource.data.flashId)).data.contagem.titulo == request.resource.data.titulo
+                    && request.resource.data.autorId != request.auth.uid;
+      allow read: if logado() && (resource.data.uid == request.auth.uid || resource.data.autorId == request.auth.uid);
+      allow delete: if logado() && resource.data.uid == request.auth.uid;
+      allow update: if false;
+    }
     match /stories/{id} {
       // Depois das 24 h o flash fica no ARQUIVO do autor (só ele vê, como no Instagram). Os outros leem o que está no ar
       // (26 h, com folga para relógio atrasado) e o que o autor pôs num destaque (destacado: true).
@@ -160,20 +176,4 @@
       allow delete: if logado() && (resource.data.uid == request.auth.uid || podeModerar());
     }
 
-    // ===================================================
-    // RASCUNHOS: rascunhos/{uid}/itens/{id} — só a própria pessoa (texto e fotos ainda não publicados).
-    // ===================================================
-    // ===================================================
-    // VOTOS DAS ENQUETES: enquete_votos/{alvo}_{uid} — alvo = tipo + "_" + itemId (tipo d = publicação, f = flash).
-    // fimEm (opcional) = o mesmo fim da enquete; votar só até o fim.
-    // Um voto por pessoa, sem trocar. A contagem fica dividida em 10 pedaços (enquete_contas/{alvo}_{fatia},
-    // ver abaixo): o voto leva a fatia (0–9) e o pedaço dela sobe +1 na MESMA gravação.
-    // ===================================================
-    // A contagem da opção do voto sobe exatamente 1 no pedaço escolhido (votos públicos e anônimos).
-    function fatiaSobe(d) {
-      let pedaco = /databases/$(database)/documents/enquete_contas/$(d.alvo + '_' + string(d.fatia));
-      let k = 'n' + string(d.opcao);
-      return d.fatia is int && d.fatia >= 0 && d.fatia < 10
-          && getAfter(pedaco).data.get(k, 0) == (exists(pedaco) ? get(pedaco).data.get(k, 0) : 0) + 1;
-    }
 // ===== FIM DA PARTE 13 DE 16 =====

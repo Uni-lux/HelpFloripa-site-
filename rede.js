@@ -16,13 +16,13 @@ import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
 import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=17";
 import { ouvirItensEquipe, TEXTO_EQUIPE, linkEquipe } from "./avisos-equipe.js?v=1";
-import "./painel-avisos.js?v=42";
+import "./painel-avisos.js?v=43";
 import { docComValidade, docsComValidade, esquecer } from "./leituras.js?v=3";
 import { resumoPublico, temPublico } from "./publico-alvo.js?v=1";
 import { contarNovas } from "./mensagens-novas.js?v=1";
-import { escolherPublico } from "./publico-tela.js?v=2";
+import { escolherPublico } from "./publico-tela.js?v=3";
 import { avisoPlano } from "./planos-base.js?v=15";
-import { lerReacoesFlash } from "./flash-avisos.js?v=1";
+import { lerReacoesFlash } from "./flash-avisos.js?v=2";
 import { palavrasBusca } from "./pessoas.js?v=5"; // o sino abre o painel de notificações na própria página
 import { registrarGosto, PESO } from "./gosto.js?v=2";
 import { confirmarHF } from "./confirmar.js?v=5";
@@ -1216,9 +1216,11 @@ export function blocoEnquete(item, { tipo = "d", escura = false } = {}) {
   // Cópia com o prazo implícito (não mexe na publicação: o voto continua indo SEM fimEm, como a regra pede).
   let implicito = false;
   if (!e.fimEm) { const c = ms(item.agendadoPara || item.criadoEm); if (c) { e = { ...e, fimEm: { toMillis: () => c + DIAS_ENQUETE_ANTIGA * 864e5 } }; implicito = true; } }
-  const box = el("div", "enquete" + (escura ? " escura" + temaFig(e.cor) : ""));
+  // Teste (quiz): a enquete com a resposta certa marcada (`certa`). Quem responde descobre na hora se acertou.
+  const teste = Number.isInteger(e.certa) && e.certa >= 0 && e.certa < e.opcoes.length;
+  const box = el("div", "enquete" + (teste ? " teste" : "") + (escura ? " escura" + temaFig(e.cor) : ""));
   const cab = el("div", "enq-cab");
-  const tit = el("span", "enq-tit"); tit.append(icone("enquete", "i xs"), el("span", null, "Enquete"));
+  const tit = el("span", "enq-tit"); tit.append(icone(teste ? "trofeu" : "enquete", "i xs"), el("span", null, teste ? "Teste" : "Enquete"));
   const prazo = el("span", "enq-prazo");
   cab.append(tit, prazo);
   const perg = el("strong", "enq-perg", e.pergunta);
@@ -1240,7 +1242,7 @@ export function blocoEnquete(item, { tipo = "d", escura = false } = {}) {
     rod.appendChild(ver);
   }
   let meu = null, contas = e.opcoes.map(() => 0), temContas = false, lendo = null, tentou = false, pronto = false, ocupado = false, relogio = null;
-  const precisaContas = () => souAutor || encerrada(e) || (meu !== null && !fim);
+  const precisaContas = () => souAutor || encerrada(e) || (meu !== null && (!fim || teste));
   // Quem criou vê os votos chegando: sempre lido na hora. Encerrada: o resultado final, guardado de vez.
   const lerContas = (fresco = false) => (tentou = true, lendo ||= (encerrada(e) ? resultadoFinal(fb, fb.db, alvo, e.opcoes.length)
     : lerContasEnquete(fb, fb.db, alvo, e.opcoes.length, { fresco: fresco || souAutor }))
@@ -1256,16 +1258,23 @@ export function blocoEnquete(item, { tipo = "d", escura = false } = {}) {
     box.classList.toggle("resultado", mostrar);
     prazo.replaceChildren();
     if (fim) { prazo.append(icone(acabou ? "check" : "relogio", "i xs"), document.createTextNode(acabou ? "Encerrada" : faltaTexto(fim).replace(/^termina/, "Termina"))); prazo.title = (acabou ? "Terminou " : "Termina ") + dataCurta(fim); }
-    prazo.hidden = !fim;
+    prazo.hidden = !fim || teste;
+    const revela = teste && (meu !== null || souAutor || acabou);
+    box.classList.toggle("revelado", revela);
     lista.replaceChildren(...e.opcoes.map((o, i) => {
-      const lider = mostrar && total && contas[i] === maior;
+      const lider = !teste && mostrar && total && contas[i] === maior;
       const b = el("button", "enq-op" + (meu === i ? " minha" : "") + (lider ? " lider" : "")); b.type = "button";
       b.setAttribute("aria-pressed", String(meu === i));
       if (meu !== null || acabou) b.setAttribute("aria-disabled", "true");
       const pct = total ? Math.round((contas[i] / total) * 100) : 0;
       const barra = el("i", "enq-barra"); barra.style.width = mostrar ? `${pct}%` : "0%";
       const rot = el("span", "enq-rot");
-      if (meu === i) rot.appendChild(icone("check", "i xs"));
+      if (teste) {
+        const certa = revela && i === e.certa, errada = revela && meu === i && i !== e.certa;
+        if (certa) b.classList.add("certa"); if (errada) b.classList.add("errada");
+        const lt = el("span", "enq-letra"); if (certa) lt.appendChild(icone("check", "i xs")); else if (errada) lt.appendChild(icone("fechar", "i xs")); else lt.textContent = "ABCD"[i];
+        rot.appendChild(lt);
+      } else if (meu === i) rot.appendChild(icone("check", "i xs"));
       else if (!mostrar && meu === null) rot.appendChild(el("span", "enq-radio"));
       rot.appendChild(el("span", "enq-txt", o));
       if (acabou && lider) { const t = el("span", "enq-venc"); t.append(icone("trofeu", "i xs")); t.title = "Mais votada"; rot.appendChild(t); }
@@ -1275,7 +1284,14 @@ export function blocoEnquete(item, { tipo = "d", escura = false } = {}) {
       return b;
     }));
     const votos = temContas ? `${numero(total)} ${total === 1 ? "voto" : "votos"} · ` : "";
-    rodTx.textContent = !pronto || (precisaContas() && !temContas && lendo) ? "Carregando..."
+    const acertos = total ? Math.round((contas[e.certa] / total) * 100) : 0;
+    const resps = `${numero(total)} ${total === 1 ? "resposta" : "respostas"}`;
+    if (teste) rodTx.textContent = !pronto ? "Carregando..."
+      : souAutor ? (temContas ? (total ? `${resps} · ${acertos}% acertaram` : "Ninguém respondeu ainda · você vê as respostas chegando") : "Carregando...")
+      : meu === null ? (acabou ? `Resposta certa: ${"ABCD"[e.certa]}` : "Toque na resposta que você acha certa (uma chance)")
+      : meu === e.certa ? `Você acertou!${temContas && total ? ` · ${acertos}% acertaram` : ""}`
+      : `Não foi dessa vez · a certa era a ${"ABCD"[e.certa]}${temContas && total ? ` · ${acertos}% acertaram` : ""}`;
+    else rodTx.textContent = !pronto || (precisaContas() && !temContas && lendo) ? "Carregando..."
       : acabou ? `Resultado final${temContas ? " · " + votos.slice(0, -3) : ""}`
       : meu !== null && !mostrar ? `Voto registrado${anon ? " (anônimo)" : ""} · o resultado sai ${fim ? "em " + dataCurta(fim) : "no fim"} e você recebe uma notificação`
       : souAutor && temContas && !total ? "Nenhum voto ainda · você vê os votos chegando"
@@ -1301,8 +1317,8 @@ export function blocoEnquete(item, { tipo = "d", escura = false } = {}) {
     // Tocou antes de terminar de carregar (a enquete acabou de aparecer): espera e vota (antes o toque era perdido).
     if (!pronto) { if (ocupado) return; ocupado = true; await carregar().catch(() => {}); ocupado = false; }
     if (ocupado || !pronto) return;
-    if (encerrada(e)) { toast("Esta enquete já terminou. Veja o resultado final."); return; }
-    if (meu !== null) { toast("Você já votou nesta enquete. O voto não pode ser trocado."); return; }
+    if (encerrada(e)) { toast(teste ? "Este teste já terminou." : "Esta enquete já terminou. Veja o resultado final."); return; }
+    if (meu !== null) { toast(teste ? "Você já respondeu este teste." : "Você já votou nesta enquete. O voto não pode ser trocado."); return; }
     if (await precisaEmail()) return;
     ocupado = true;
     meu = i;
@@ -1316,9 +1332,15 @@ export function blocoEnquete(item, { tipo = "d", escura = false } = {}) {
       lote.set(fb.doc(fb.db, "enquete_contas", pedacoDaEnquete(alvo, fatia)), { ["n" + i]: fb.increment(1) }, { merge: true });
       await lote.commit();
       if (precisaContas()) lerContas(true);
-      if (fim) guardarInfoEnquete(alvo, item);
-      navigator.vibrate?.(8);
-      if (fim) toast(`Voto registrado. Quando a enquete terminar, o resultado chega nas suas notificações.`);
+      if (teste) {
+        const acertou = i === e.certa;
+        box.classList.remove("acertou", "errou"); void box.offsetWidth; box.classList.add(acertou ? "acertou" : "errou");
+        navigator.vibrate?.(acertou ? [12, 60, 12] : 30);
+      } else {
+        if (fim) guardarInfoEnquete(alvo, item);
+        navigator.vibrate?.(8);
+        if (fim) toast(`Voto registrado. Quando a enquete terminar, o resultado chega nas suas notificações.`);
+      }
     } catch (err) {
       meu = null; pintar();
       toast(err?.code === "permission-denied" ? (encerrada(e) ? "Esta enquete já terminou." : "Enquetes começam a funcionar quando as regras novas forem publicadas.") : "Não foi possível votar: " + erroAmigavel(err));
@@ -1452,7 +1474,7 @@ export async function verRespostasCaixa(item, alvo, aoMudar) {
       acao("chat", "Responder", () => responderNoChat(r.uid, cartaoRespostaCaixa(item.caixa, r, alvo)));
     }
     // Pôr a resposta no seu flash (como no Instagram): pergunta + resposta, sem o nome de quem respondeu.
-    acao("raio", "No flash", () => import("./stories.js?v=72").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
+    acao("raio", "No flash", () => import("./stories.js?v=74").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
     acao("lixo", "Apagar", async () => {
       if (!(await confirmarHF({ titulo: "Apagar esta resposta?", texto: "Ela some da sua caixa de perguntas.", ok: "Apagar", icone: "lixo" }))) return;
       try { await fb.deleteDoc(fb.doc(fb.db, "caixa_respostas", r.id)); todas = todas.filter((x) => x.id !== r.id); pintarNums(); pintarLista(); aoMudar?.(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
@@ -2012,7 +2034,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=72").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=74").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);
@@ -2297,7 +2319,7 @@ async function caberNoDocumento(fotos, limite = 860000) {
 let pubLocal = null;
 // Público da publicação (idade, gênero, lugar, seguidores): diario.publico. null = todos.
 let pubPublico = null;
-const ajudaPublico = () => ({ el, icone, toast, fb, uid: eu?.uid, dados, salvarConta: (c) => fb.setDoc(refUsuario, c, { merge: true }), posicaoDe, pedirLocalizacao, rotuloPosicao });
+export const ajudaPublico = () => ({ el, icone, toast, fb, uid: eu?.uid, dados, salvarConta: (c) => fb.setDoc(refUsuario, c, { merge: true }), posicaoDe, pedirLocalizacao, rotuloPosicao });
 // ⋯ da sua publicação → "Público da publicação": muda depois de publicar.
 export async function editarPublicoDoPost(post, aoMudar) {
   const v = await escolherPublico(post.publico || null, ajudaPublico());

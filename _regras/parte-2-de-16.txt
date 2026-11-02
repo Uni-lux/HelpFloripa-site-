@@ -1,3 +1,18 @@
+    // Contagem regressiva (título e quando termina: de 5 min a 1 ano) e público do flash (direcionamento, conferido de
+    // leve: quem vê filtra no aparelho; a forma completa é a mesma do público da publicação).
+    function flashNovos2Ok(d) {
+      // (cor e posição não são conferidas: o site só usa as cores da lista e prende a posição no cartão ao desenhar)
+      return (!('contagem' in d) || (d.contagem.keys().hasOnly(['titulo', 'fim', 'cor', 'x', 'y'])
+                && d.contagem.titulo.size() >= 1 && d.contagem.titulo.size() <= 40
+                && d.contagem.fim > request.time + duration.value(4, 'm') && d.contagem.fim <= request.time + duration.value(366, 'd')))
+          && (!('alvo' in d) || d.alvo.keys().hasOnly(['idadeMin', 'idadeMax', 'genero', 'local', 'ufs', 'cidades', 'perto', 'seguidores']));
+    }
+    // Lista de uids (até max), conferida com uma expressão só.
+    function uidsOk(l, max) {
+      return l is list && l.size() <= max
+          && (l.size() == 0 || l.join(' ').matches('^[A-Za-z0-9]{1,64}( [A-Za-z0-9]{1,64})*$'));
+    }
+
     // Local para o Brasil todo: estado (UF) e código IBGE da cidade (7 dígitos; os dois
     // primeiros são o código do estado, então cidade e estado precisam combinar).
     // Feito com expressões regulares (uma tabela de 27 estados estourava o limite de

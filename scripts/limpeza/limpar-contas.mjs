@@ -85,6 +85,9 @@ async function limpar(uid) {
   for (const f of flashes.docs) { await apagar("stories_vistos", f.ref.collection("vistos")); await apagar("stories_reacoes", f.ref.collection("reacoes")); }
   await apagar("stories", col("stories").where("autorId", "==", uid));
   await apagar("destaques", col("destaques").where("uid", "==", uid));
+  // Lembretes de contagem regressiva (os que a pessoa pediu e os pedidos nos flashes dela).
+  await apagar("contagem_lembretes", col("contagem_lembretes").where("uid", "==", uid));
+  await apagar("contagem_lembretes", col("contagem_lembretes").where("autorId", "==", uid));
   // Votos das enquetes (públicos e anônimos): tira da contagem (o pedaço enquete_contas/{alvo}_{fatia} do voto;
   // votos antigos sem fatia: enquete_contas/{alvo}) e apaga o voto.
   for (const nomeCol of ["enquete_votos", "enquete_anon"]) {

@@ -3045,3 +3045,84 @@ body:has(.story-visor, .flash-criar) .toast { width: auto; max-width: min(calc(1
 .flash-palco.abrindo-cam::after { content: "Abrindo a câmera…"; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 2; padding: 8px 14px; border-radius: 999px;
   background: rgba(255,255,255,.08); color: rgba(255,255,255,.75); font-size: 13px; font-weight: 750; pointer-events: none; animation: fc-pisca2 1.2s ease-in-out infinite; }
 @keyframes fc-pisca2 { 50% { opacity: .45; } }
+
+/* ===== Teste (quiz) no Flash (02/11) — enquete com a resposta certa ===== */
+.enquete.teste .enq-letra { flex: none; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid #c9d1d8; font-size: 12.5px; font-weight: 900; color: #5d6b75; background: #fff; }
+.enquete.teste .enq-letra .i { width: 14px; height: 14px; }
+.enquete.teste .enq-rot { gap: 10px; }
+.enquete.teste .enq-op.certa { border-color: #22b573 !important; background: rgba(34,181,115,.1) !important; }
+.enquete.teste .enq-op.certa .enq-letra { background: #22b573; border-color: #22b573; color: #fff; }
+.enquete.teste .enq-op.errada { border-color: #ef4444 !important; background: rgba(239,68,68,.08) !important; }
+.enquete.teste .enq-op.errada .enq-letra { background: #ef4444; border-color: #ef4444; color: #fff; }
+.enquete.teste.revelado .enq-op.certa .enq-barra { background: #22b573 !important; opacity: .22 !important; }
+.enquete.teste.revelado .enq-op.errada .enq-barra { background: #ef4444 !important; opacity: .18 !important; }
+.enquete.teste.escura.tema-escuro .enq-letra { background: transparent; border-color: rgba(255,255,255,.3); color: #fff; }
+.enquete.teste.acertou { animation: testeAcertou .6s ease-out; }
+.enquete.teste.errou { animation: testeErrou .45s ease-in-out; }
+@keyframes testeAcertou { 0% { transform: scale(1); } 35% { transform: scale(1.04); box-shadow: 0 0 0 6px rgba(34,181,115,.35), 0 16px 40px rgba(0,0,0,.35); } 100% { transform: scale(1); } }
+@keyframes testeErrou { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-7px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(3px); } }
+.story-enq .enquete.teste.escura .enq-tit { color: #22b573; }
+/* criador: prévia e editor do teste */
+.flash-palco .fe-enq.fe-teste > span { display: flex; align-items: center; gap: .5em; }
+.flash-palco .fe-enq.fe-teste > span b { flex: none; display: grid; place-items: center; width: 1.6em; height: 1.6em; border-radius: 50%; border: 1.5px solid #c9d1d8; font-size: .8em; }
+.flash-palco .fe-enq.fe-teste > span.certa { border-color: #22b573; }
+.flash-palco .fe-enq.fe-teste > span.certa b { background: #22b573; border-color: #22b573; color: #fff; }
+.flash-fig-viva .fv-op.com-letra input { padding-left: 52px; }
+.flash-fig-viva .fv-letra { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); z-index: 1; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; border: 1.5px solid #c9d1d8; background: #fff; color: #5d6b75; font: inherit; font-size: 13px; font-weight: 900; cursor: pointer; padding: 0; }
+.flash-fig-viva .fv-letra.certa { background: #22b573; border-color: #22b573; color: #fff; }
+.flash-fig-viva .fv-letra .i { width: 16px; height: 16px; }
+.flash-fig-viva .fv-op.certa input { border-color: #22b573; }
+.flash-palco .flash-fig-viva .fv-card.tema-escuro .fv-letra:not(.certa) { background: transparent; border-color: rgba(255,255,255,.3); color: #fff; }
+/* topo do flash: o nome fica fixo na altura da foto; as linhas extras penduradas embaixo */
+.story-quem-tx { position: relative; align-self: center; }
+.story-quem-sub { position: absolute; left: 0; top: calc(100% + 5px); display: flex; flex-direction: column; align-items: flex-start; gap: 4px; max-width: 100%; }
+.story-quem-sub:empty { display: none; }
+.story-quem-sub .story-repost { margin: 0; max-width: 100%; }
+.enquete.teste :is(.enq-op.certa, .enq-op.errada) .enq-letra .i { color: #fff; stroke: #fff; }
+
+/* ===== Contagem regressiva no Flash (02/11) — cartão no padrão da enquete/perguntas ===== */
+.ctg { --band: linear-gradient(135deg, #00c2ff, #0066d6); --band-sol: #00adee; display: flex; flex-direction: column; overflow: hidden; border-radius: 1.4em; background: #fff; color: #111;
+  box-shadow: 0 16px 40px rgba(0,0,0,.35), 0 0 0 1px rgba(0,0,0,.04); text-align: center; font-family: inherit; }
+.ctg.tema-escuro { --band: linear-gradient(135deg, #2a3540, #151b21); background: #151b21; color: #fff; }
+.ctg.tema-azul { --band: linear-gradient(135deg, #19b8f2, #0052d4); --band-sol: #0a84e0; }
+.ctg.tema-rosa { --band: linear-gradient(135deg, #ff5f95, #c2185b); --band-sol: #e83e7a; }
+.ctg.tema-laranja { --band: linear-gradient(135deg, #ffb347, #ff6a00); --band-sol: #ff7a1a; }
+.ctg.tema-verde { --band: linear-gradient(135deg, #34d399, #0f8a5f); --band-sol: #19a874; }
+.ctg.tema-roxo { --band: linear-gradient(135deg, #a855f7, #5b21b6); --band-sol: #8b3ff0; }
+.ctg-tit { padding: 1.1em 1.1em 1em; background: var(--band); color: #fff; font-size: 1.2em; font-weight: 850; line-height: 1.25; text-shadow: 0 1px 2px rgba(0,0,0,.18); overflow-wrap: anywhere; }
+.ctg-cab { display: inline-flex; align-items: center; justify-content: center; gap: .35em; padding: .8em 1em 0; color: var(--band-sol); font-size: .72em; font-weight: 850; letter-spacing: .08em; }
+.ctg.tema-escuro .ctg-cab { color: #7fd8ff; }
+.ctg-cab .i { width: 1.1em; height: 1.1em; }
+.ctg-num { display: flex; justify-content: center; gap: .45em; padding: .7em .9em .3em; }
+.ctg-casa { flex: 1; max-width: 4.2em; display: grid; gap: .1em; padding: .55em .2em .45em; border-radius: .85em; background: #f1f4f6; }
+.ctg.tema-escuro .ctg-casa { background: rgba(255,255,255,.08); }
+.ctg-casa b { font-size: 1.75em; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.ctg-casa small { font-size: .68em; font-weight: 750; color: #6b7780; text-transform: uppercase; letter-spacing: .04em; }
+.ctg.tema-escuro .ctg-casa small, .ctg.tema-escuro .ctg-quando { color: rgba(255,255,255,.65); }
+.ctg.acabou .ctg-casa { opacity: .45; }
+.ctg.acabou .ctg-quando { color: var(--band-sol); font-weight: 850; font-size: .95em; }
+.ctg-quando { padding: .45em 1em .2em; font-size: .8em; font-weight: 650; color: #66737d; }
+.ctg-acoes { display: grid; gap: .5em; padding: .55em .9em .95em; }
+.ctg-acoes:empty { display: none; }
+.ctg-lembrar { display: inline-flex; align-items: center; justify-content: center; gap: .45em; min-height: 2.8em; padding: 0 1em; border: 0; border-radius: 999px; background: var(--band); color: #fff;
+  font: inherit; font-size: .92em; font-weight: 850; cursor: pointer; }
+.ctg-lembrar .i { width: 1.15em; height: 1.15em; }
+.ctg-lembrar.on { background: transparent; color: var(--band-sol); box-shadow: inset 0 0 0 1.5px var(--band-sol); }
+.ctg-lembrar.quem { background: #f1f4f6; color: #111; }
+.ctg.tema-escuro .ctg-lembrar.quem { background: rgba(255,255,255,.08); color: #fff; }
+.ctg-lembrar:disabled { opacity: .7; cursor: default; }
+.ctg-lembrar.falso { pointer-events: none; }
+/* no visor (300 px, escalado como a enquete) e no criador */
+.story-ct .ctg { font-size: 15px; width: 100%; }
+.flash-txt.flash-ct .ctg { width: 18em; }
+/* editor da contagem */
+.flash-fig-viva .fv-ctg { width: min(100%, 330px); font-size: 15px; animation: contEntra .15s ease-out; }
+.flash-fig-viva .fv-ctg .ctg-tit { padding: 14px 16px 12px; }
+.ctg-escolher { display: grid; grid-template-columns: 1.4fr 1fr; gap: 8px; text-align: left; }
+.ctg-campo { display: grid; gap: 4px; }
+.ctg-campo small { font-size: 11px; font-weight: 800; color: #6b7780; text-transform: uppercase; letter-spacing: .05em; padding-left: 4px; }
+.ctg-campo input { height: 44px; padding: 0 12px; border-radius: 14px; border: 1.5px solid #dfe5ea; background: #fff; color: #111; font: inherit; font-size: 15px; font-weight: 800; min-width: 0; }
+.ctg.tema-escuro .ctg-campo input { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.2); color: #fff; }
+/* criador: botão do público */
+.flash-alvo.on { background: #00adee !important; color: #fff !important; }
+.flash-alvo.on .i { color: #fff !important; stroke: #fff; }

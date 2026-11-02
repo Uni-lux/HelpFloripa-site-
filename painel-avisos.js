@@ -15,7 +15,7 @@ import { buscarItensEquipe, TEXTO_EQUIPE, linkEquipe } from "./avisos-equipe.js?
 import { enquetesEncerradas, textoEnqueteFim } from "./enquetes.js?v=6";
 import { avisoPlano, textoPlano } from "./planos-base.js?v=15";
 import { docsComValidade, docsPorIds, esquecer } from "./leituras.js?v=3";
-import { lerReacoesFlash, textoFlash } from "./flash-avisos.js?v=1";
+import { lerReacoesFlash, textoFlash } from "./flash-avisos.js?v=2";
 import { criarLista, svg, toastNt, categoriaLigada, categoriaDe } from "./avisos-lista.js?v=17";
 
 const ms = (ts) => ts?.toMillis?.() ?? (typeof ts === "number" ? ts : 0);
