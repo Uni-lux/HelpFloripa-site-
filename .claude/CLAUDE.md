@@ -1532,6 +1532,18 @@ Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) c
 14. ~~Revisar a ferramenta "Aa"~~ (feita em 30/10: letras, alinhamento, régua, teclado).
 15. **Testes que falham desde antes:** `t-busca-regiao` (2 itens; `t-enquete2` e `t-caixa` passaram em 30/10). Atualizar os testes. Os testes do Diário/Flash precisam do `seed.mjs` antes (dados que sobram atrapalham).
 
+## Escala nacional da parte social (diagnóstico de 02/11/2026, pedido dele: "anote na listinha pra depois")
+Hoje aguenta dezenas a poucas centenas de pessoas ativas/dia; NÃO está pronto para escala nacional.
+**Só ele (console):** publicar regras (16 partes) + 14 índices; plano Blaze com alerta de orçamento (Spark = 50 mil
+leituras/dia ≈ 70 ativos/dia a ~700 leituras por pessoa); Storage (fotos fora dos documentos, vídeo/Reels); App Check.
+**Eu, sem Blaze (combinado para começar em 02/11/2026, nesta ordem):** 1) sino lendo só o que é novo + decidir com ele o
+que fica no sino e o que fica só na página de origem (lista em andamento); 2) vistas (`marcarVista`) gravadas em lote;
+3) limite de publicações por pessoa no Diário (quem posta muito não toma o espaço); 4) "já vi" guardado na conta.
+**Eu, depois do Blaze:** ranking do Diário no servidor (Cloud Function por cidade/estado, taxa de engajamento por alcance);
+notificações com o app fechado (FCM); TURN para as ligações; contadores no servidor; mapas/endereços com provedor pago
+(Mapbox/LocationIQ) e hospedagem com mais banda (Cloudflare Pages). Também pesa: a rede numa página só abre 4 conexões do
+Firebase (uma por aba) e cada uma liga os ouvintes do sino.
+
 ## Pendências do dono e o que ficou para depois (vindas de sessões anteriores)
 Coisas que só ELE pode fazer (lembrar no momento certo, sem fazer por ele):
 - **Pagamento automático (Mercado Pago) — falta ele, na ordem** (passo a passo em `_regras/PAGAMENTO-LEIA-ME.md`; código
