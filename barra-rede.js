@@ -3,7 +3,8 @@
 // módulo e a página da Comunidade também (sem carregar o rede.js). Estilo próprio, injetado só quando a página não
 // tem o rede.css (que já traz o mesmo estilo).
 // =====================================================
-import { ligarDeslizarFlash } from "./deslizar-flash.js?v=3";
+import { ligarQuadro, casca } from "./quadro-rede.js?v=1";
+import { ligarDeslizarFlash } from "./deslizar-flash.js?v=4";
 export const ITENS_BARRA = [
   ["diario", "feed.html", "feed", "Diário"],
   ["explorar", "feed.html?aba=explorar", "bussola", "Explorar"],
@@ -41,6 +42,7 @@ const svg = (k) => `<svg class="i bi" viewBox="0 0 24 24" aria-hidden="true">${I
 // Monta a barra (uma vez por página). ativo = "diario" | "explorar" | "comunidade" | "mensagens" | "perfil" | "".
 export function montarBarra(ativo) {
   // Deslizar o dedo para o lado troca de aba (no Diário, para a direita abre o Flash).
+  ligarQuadro(); // na rede (rede.html), os itens da barra trocam de aba; fora dela, levam para a rede
   if (ITENS_BARRA.some(([k]) => k === ativo)) ligarDeslizarFlash();
   if (document.getElementById("barraRede")) return document.getElementById("barraRede");
   estilo();
@@ -60,6 +62,7 @@ export function montarBarra(ativo) {
 }
 // Marca o item da página atual (o Diário troca entre Diário e Explorar sem recarregar).
 export function marcarBarra(ativo) {
+  casca()?.marcou(ativo, window); // dentro da rede (rede.html): a casca acompanha a troca Diário ↔ Explorar
   document.querySelectorAll("#barraRede [data-barra]").forEach((a) => (a.dataset.barra === ativo ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")));
 }
 // Foto (ou iniciais) do perfil no item Perfil, para páginas sem o rede.js.

@@ -15,12 +15,12 @@ import {
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, botaoSeguir, montarBarraRede, marcarBarra, pintarBarraRede, ouvirAvisos, lerOrdenado,
   editarPublicacao, bloquear, comMencoes, fotosDoPost, carrosselFotos, contadorEstrelas, estaSalvo, alternarSalvo, escolherColecao, lerResumosEstrelas, contarComentarios,
   silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto, confirmarHF, blocoEnquete, blocoCaixa, editarPublicoDoPost, apagarFlashesDaPublicacao
-} from "./rede.js?v=107";
+} from "./rede.js?v=108";
 import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=2";
-import { montarStories, abrirFlashPorId, repostarFlash, voltarAoFlash, novoFlash } from "./stories.js?v=79";
+import { montarStories, abrirFlashPorId, repostarFlash, voltarAoFlash, novoFlash } from "./stories.js?v=80";
 import { abrirDenuncia } from "./denuncias.js?v=6";
 import { pessoasRecentes } from "./pessoas.js?v=5";
-import { abrirExplorar, definirCartao, abrirPublicacao } from "./explorar.js?v=89";
+import { abrirExplorar, definirCartao, abrirPublicacao } from "./explorar.js?v=90";
 import { docsComValidade, docsPorIds } from "./leituras.js?v=3";
 import { lerLocal } from "./local-escolhido.js?v=3";
 import { distanciaKm, minhaPosicao } from "./perto.js?v=2";
@@ -80,7 +80,7 @@ const tipoDe = (p) => p.tipo || (p.enquete?.pergunta ? "enquete" : p.caixa?.perg
 const doTipo = (p) => tipoFeed === "tudo" || (tipoFeed === "fotos" ? ["foto", "video"].includes(tipoDe(p)) : tipoFeed === "enquetes" ? ["enquete", "caixa"].includes(tipoDe(p)) : tipoDe(p) === "texto");
 const daAba = (p) => !!(tagAtual || localAtual) || doTipo(p);
 // Reels: os vídeos já lidos + os mais novos do servidor, com as mesmas regras do Diário (silenciados, público...).
-const verReels = (comecarEm = null) => import("./reels.js?v=26").then((m) => m.abrirReels({ lista: todosPosts, oculto: postOculto, comecarEm, aoNovo: () => compor("video") }));
+const verReels = (comecarEm = null) => import("./reels.js?v=27").then((m) => m.abrirReels({ lista: todosPosts, oculto: postOculto, comecarEm, aoNovo: () => compor("video") }));
 const compor = (inicio = "") => abrirCompositor({ aoPublicar: ganchos.aoPublicar, inicio });
 function pintarTipos() {
   const w = $("tiposFeed"); if (!w) return;
@@ -108,13 +108,21 @@ function trocarAba(nova, { passo = false } = {}) {
 }
 pintarTipos();
 addEventListener("popstate", () => { const a = history.state?.hfAbaFeed || abaDaUrl(); if (a !== aba && eu) trocarAba(a); });
+// Dentro da rede (rede.html): a casca troca entre Diário e Explorar sem recarregar (antes de terminar de abrir, guarda o pedido).
+let abaPedida = null;
+window.__hfTrocarAba = (k) => {
+  if (!["diario", "explorar"].includes(k)) return;
+  if (!eu) { abaPedida = k; return; }
+  if (k !== aba) trocarAba(k);
+};
 // Barra de baixo: Diário e Explorar trocam aqui mesmo (sem recarregar a página).
 document.addEventListener("click", (e) => {
   const a = e.target.closest?.("#barraRede [data-barra]");
   if (!a || !eu || !["diario", "explorar"].includes(a.dataset.barra)) return;
   e.preventDefault();
   const alvo = a.dataset.barra;
-  if (alvo !== aba) trocarAba(alvo, { passo: true }); else scrollTo({ top: 0, behavior: "smooth" });
+  // Dentro da rede (rede.html) o passo do "voltar" entre abas é da casca: aqui só troca.
+  if (alvo !== aba) trocarAba(alvo, { passo: !document.documentElement.classList.contains("na-rede") }); else scrollTo({ top: 0, behavior: "smooth" });
 });
 function pintarFiltro() {
   $("filtroAtual").textContent = localAtual ? "📍 " + localAtual.nome : tagAtual ? "#" + tagAtual : FILTROS[filtro];
@@ -394,7 +402,7 @@ function cartaoPost(post) {
       : { rotulo: "Salvar publicação", sub: "Para ver depois no seu Perfil → Salvos", icone: "salvo", fn: () => alternarSalvo(post) },
     { rotulo: "Salvar em uma coleção", sub: "Organize seus salvos em pastas", icone: "fotos", fn: () => escolherColecao(post) },
     { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(post.autorId, post.nome) },
-    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=74").then((m) => m.abrirEstatisticas(post)) },
+    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=75").then((m) => m.abrirEstatisticas(post)) },
     post.autorId === eu.uid && { rotulo: "Editar publicação", icone: "lapis", fn: () => editarPublicacao(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId === eu.uid && { rotulo: "Público da publicação", sub: temPublico(post) ? resumoPublico(post.publico) : "Para todos · escolha idade, gênero, lugar e seguidores", icone: "pessoa-mais", fn: () => editarPublicoDoPost(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId !== eu.uid && { rotulo: silenciado(post.autorId) ? `Mostrar ${nome.textContent} de novo` : `Silenciar ${nome.textContent}`, sub: "Continua seguindo, mas as publicações e flashes somem do seu Diário", icone: "restringir",
@@ -540,7 +548,8 @@ async function pintarLateral() {
   montarStories($("storiesFeed")).catch((e) => console.warn("Flash:", e));
   pintarLateral();
   const p = new URLSearchParams(location.search);
-  trocarAba(abaDaUrl());
+  trocarAba(abaPedida || abaDaUrl());
+  abaPedida = null;
   if (p.get("publicar")) compor();
   if (p.get("reels")) verReels(/^[A-Za-z0-9_-]{1,64}$/.test(p.get("reels")) ? p.get("reels") : null);
   if (/^[A-Za-z0-9_-]{1,64}$/.test(p.get("post") || "")) {

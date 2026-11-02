@@ -1421,6 +1421,22 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   e-mail novo) só com a versão do servidor; quando ela chega, `dados` é atualizado no mesmo objeto e dispara `hf:dados-conta`.
   Mensagens: perfil, conta e bloqueios juntos pela cópia (antes 3 esperas seguidas). **Ao mexer no código do Mensagens ou
   do perfil: os arquivos agora são `mensagens-app.js`/`mensagens.css`/`usuarios-app.js`** (o HTML só tem a marcação).
+- **Rede social numa página só (02/11/2026, PR depois do #138, sem regra nova):** decidido com ele: página única SÓ na parte
+  social; vitrines/institucionais continuam páginas separadas (Google, links). `rede.html` + `rede-app.js` (casca): 4 quadros
+  (iframes) que carregam UMA vez — feed (Diário + Explorar, trocam por dentro com `window.__hfTrocarAba`), mural, mensagens,
+  usuarios; trocar de aba = mostrar outro quadro (rolagem e estado ficam), os que faltam carregam sozinhos com a tela parada
+  (`carregarOutros`, 1 a cada 2,5 s). API `window.__hfShell` (definido no `<head>` do rede.html): `ir(k)`, `atual` (getter
+  com defineProperty), `marcou(k, w)` (barra-rede `marcarBarra`), `destinoDe(href, w)` ("aqui" | aba | null), `vizinho`,
+  `comecar/mover/terminar` (deslize: as DUAS abas andam juntas, a vizinha aparece de verdade; no quadro o gesto usa `screenX`).
+  Histórico: sair da aba inicial = 1 passo (`hfPasso`), entre as outras só troca; dentro da rede o feed não cria passo ao
+  trocar Diário/Explorar. Quadro escondido recebe `__hfGavetaAberta = false` + `hf:gaveta` (o Mensagens não marca lido).
+  `quadro-rede.js` (sem deps): `casca()` (parent === top com `__hfShell`), `ligarQuadro()` (barra-rede `montarBarra` e
+  mensagens-app.js): na rede, link para outra aba troca de aba, o resto (vitrine, perfil de outra pessoa, notificações)
+  abre no próprio quadro (`_top` das gavetas vira o quadro); fora da rede, os itens da barra levam a `rede.html?aba=`.
+  feed/mural/mensagens/usuarios.html abertos SOZINHOS e SEM parâmetros vão para a rede (script no `<head>`; com parâmetros
+  — post, perfil, conversa, flash — ficam sozinhos). Proteção anti-embutir das 31 páginas aceita a casca (`hfRede`);
+  mensagens/ajuda/suporte: na rede = `na-rede`, não `embutido`. Login/conta dentro do quadro → a página inteira. **Testes:**
+  `nav.mjs` grava `hf-sem-rede` (páginas sozinhas, como antes); `navegador({ rede: true })` liga a rede. Teste `t-rede.mjs`.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
