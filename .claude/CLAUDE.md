@@ -1322,6 +1322,20 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   outra pessoa no perfil) abria POR BAIXO dela; folhas agora sobem de 2 em 2 (`5000 + pilha.length * 2`) e o visor fica
   em cima da folha aberta. Teste `t-flash-editor-vivo.mjs` (22). `t-caixa` (linha 81), `t-diario-compacto` (104) e
   `t-social2` (102) já falhavam antes, iguais.
+- **Flash: limitador, desfazer/refazer, respostas no chat e Responder direto no Mensagens (02/11/2026, PR depois do #131,
+  sem regra nova):** prints dele. **Limitador de fotos:** o seletor do celular não limita quantas a pessoa marca; se vierem
+  mais do que cabe, `escolherDentre(arqs, max)` abre "Escolha até N fotos" (`.fe-escolha`, as primeiras já marcadas com o
+  número da ordem, "N de N", a 5ª não entra, "Usar N"); "Foto por cima" conta as que já estão (`vagas`, botão "mais 2"/
+  "4 de 4"). **Desfazer/refazer** (`.flash-hist` no alto do cartão: ↶ · "Desfeito: Mover texto" · ↷; `marcar(rotulo)`,
+  `nomeFig(t)`, `renomearUltimo`, `avisarHist`, pilhas `historico`/`refeitos` até 40, Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y; some
+  ao arrastar e com painel aberto; apagar na lixeira avisa "Foto apagada · toque em ↶ para desfazer"). **Chat no modelo
+  único (como o Instagram):** `cartaoFlash`/`cartaoCaixa` em mensagens.html = `.rsp`: linha pequena ("Você respondeu ao
+  flash de Ana"), miniatura compacta 132 px 9:16 (`.rsp-mini`, toque abre; "Flash indisponível" cinza) ou cartão da caixa
+  compacto (`a.rsp-cx`), emoji da reação no canto (`.rsp-emoji`) e o texto num balão igual aos outros (`.rsp-txt`, cores
+  `--bubble-me/other`); a bolha não tem mais fundo/borda. **Responder (caixa) abre a página de Mensagens de vez**:
+  `responderNoChat` → `irParaPagina(url)` (rede.js: fecha as folhas, espera o passo sair do histórico e navega) com
+  `mensagens.html?conversa=ID&volta=1` (abre a conversa sem passo próprio: um voltar volta ao flash, que reabre). Teste
+  `t-flash-limite-desfazer.mjs` (18); `t-flash-respostas`, `t-flash3`, `t-voltar` atualizados.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

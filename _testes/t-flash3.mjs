@@ -38,12 +38,12 @@ const cm = await cartoes("ana", "bruno");
 ok(cm.some((m) => m.cartao.acao === "mencao" && m.cartao.flashId === sa.id), "menção vai como cartão do flash para o Bruno");
 // 2) Bruno: cartão no Mensagens com a miniatura e "Adicionar ao seu flash"
 const pbm = await entrar(B.ctx, "bruno", `mensagens.html?conversa=${par("ana", "bruno")}`);
-await pbm.waitForSelector(".flash-msg .fc-mini img", { timeout: 20000 }).catch(() => {});
-ok(await pbm.locator(".flash-msg .fc-mini img").count() >= 1 && (await pbm.locator(".flash-msg .fc-cab").first().textContent()).includes("Mencionou você no flash"), "Bruno vê o cartão 'Mencionou você no flash' com a miniatura");
-ok(await pbm.locator(".flash-msg .fc-btn", { hasText: "Adicionar ao seu flash" }).count() === 1, "cartão da menção tem 'Adicionar ao seu flash'");
+await pbm.waitForSelector(".flash-msg .rsp-mini img", { timeout: 20000 }).catch(() => {});
+ok(await pbm.locator(".flash-msg .rsp-mini img").count() >= 1 && (await pbm.locator(".flash-msg .rsp-rot").first().textContent()).includes("Mencionou você no flash"), "Bruno vê o cartão 'Mencionou você no flash' com a miniatura");
+ok(await pbm.locator(".flash-msg .rsp-btn", { hasText: "Adicionar ao seu flash" }).count() === 1, "cartão da menção tem 'Adicionar ao seu flash'");
 await pbm.screenshot({ path: "saida/f3-msg-mencao.png" });
 // 3) Repostar
-await pbm.locator(".flash-msg .fc-btn").click();
+await pbm.locator(".flash-msg .rsp-btn").click();
 await pbm.waitForURL(/feed\.html\?repostar=/, { timeout: 15000 });
 await pbm.waitForSelector(".flash-criar .flash-repost-selo", { timeout: 15000 });
 await pbm.waitForSelector(".flash-fotobox .flash-foto", { timeout: 10000 }); await pbm.waitForTimeout(600);
@@ -73,14 +73,14 @@ ok((await cartoes("bruno", "dani")).some((m) => m.cartao.acao === "enviar" && m.
 // 5) Ana vê no Mensagens os cartões com a reação e a resposta
 await pa.close(); // uma aba por navegador (o Firestore do teste trava com duas)
 const pam = await entrar(A.ctx, "ana", `mensagens.html?conversa=${par("ana", "bruno")}`);
-await pam.waitForSelector(".flash-msg .fc-emoji", { timeout: 20000 }).catch(() => {});
-ok((await pam.locator(".flash-msg .fc-emoji").first().textContent()) === "🔥" && (await pam.locator(".flash-msg .fc-texto").first().textContent()) === "Que legal!", "Ana vê o cartão com o 🔥 e o cartão com a resposta");
-ok((await pam.locator(".flash-msg .fc-cab", { hasText: "Repostou o seu flash" }).count()) === 1, "Ana vê 'Repostou o seu flash'");
+await pam.waitForSelector(".flash-msg .rsp-emoji", { timeout: 20000 }).catch(() => {});
+ok((await pam.locator(".flash-msg .rsp-emoji").first().textContent()) === "🔥" && (await pam.locator(".flash-msg .rsp-txt").first().textContent()) === "Que legal!", "Ana vê o cartão com o 🔥 e o cartão com a resposta");
+ok((await pam.locator(".flash-msg .rsp-rot", { hasText: "Repostou o seu flash" }).count()) === 1, "Ana vê 'Repostou o seu flash'");
 await pam.screenshot({ path: "saida/f3-msg-ana.png" });
 // 6) Dani abre o cartão: feed.html?flash=ID abre o flash da Ana direto; Ana vê o repost do Bruno com o crédito
 const pdm = await entrar(D.ctx, "dani", `mensagens.html?conversa=${par("bruno", "dani")}`);
-await pdm.waitForSelector(".flash-msg .fc-mini[href]", { timeout: 20000 });
-await pdm.locator(".flash-msg .fc-mini").click();
+await pdm.waitForSelector(".flash-msg .rsp-mini[href]", { timeout: 20000 });
+await pdm.locator(".flash-msg .rsp-mini").click();
 await pdm.waitForSelector(".story-visor", { timeout: 15000 }).catch(() => {});
 ok(await pdm.locator(".story-visor").count() === 1, "Dani abre o flash enviado direto pelo cartão");
 await pdm.screenshot({ path: "saida/f3-dani-abre.png" });

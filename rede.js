@@ -1452,7 +1452,7 @@ export async function verRespostasCaixa(item, alvo, aoMudar) {
       acao("chat", "Responder", () => responderNoChat(r.uid, cartaoRespostaCaixa(item.caixa, r, alvo)));
     }
     // Pôr a resposta no seu flash (como no Instagram): pergunta + resposta, sem o nome de quem respondeu.
-    acao("raio", "No flash", () => import("./stories.js?v=70").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
+    acao("raio", "No flash", () => import("./stories.js?v=71").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
     acao("lixo", "Apagar", async () => {
       if (!(await confirmarHF({ titulo: "Apagar esta resposta?", texto: "Ela some da sua caixa de perguntas.", ok: "Apagar", icone: "lixo" }))) return;
       try { await fb.deleteDoc(fb.doc(fb.db, "caixa_respostas", r.id)); todas = todas.filter((x) => x.id !== r.id); pintarNums(); pintarLista(); aoMudar?.(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
@@ -2012,7 +2012,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=70").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=71").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);
@@ -2069,8 +2069,19 @@ export async function responderNoChat(uid, cartao) {
     if (!existe) await fb.setDoc(ref, { participantes: ids, ultimaMensagem: "", atualizadoEm: fb.serverTimestamp() }, { merge: true });
   } catch (e) { toast("Não foi possível abrir a conversa: " + erroAmigavel(e)); return; }
   try { sessionStorage.setItem("hf-cartao-pendente", JSON.stringify({ conversaId: id, cartao })); } catch {}
-  const url = `mensagens.html?conversa=${encodeURIComponent(id)}`;
-  try { (await import("./chat-gaveta.js?v=4")).abrirChat(url); } catch { location.href = url; }
+  // Abre a página de Mensagens de vez (antes abria a gaveta por cima). As janelas abertas por cima (ex.: Atividade do
+  // flash) fecham antes, esperando o passo delas sair do histórico; o flash fica aberto e o "voltar" traz ele de novo.
+  irParaPagina(`mensagens.html?conversa=${encodeURIComponent(id)}&volta=1`);
+}
+export function irParaPagina(url) {
+  const abertas = pilha.slice();
+  const antes = history.state?.hfCamadas || 0;
+  abertas.forEach((f) => fecharFolha(f));
+  const ir = () => { window.__hfNavegando = true; location.href = url; };
+  if (!abertas.length || antes <= 1) { ir(); return; }
+  let feito = false;
+  const seguir = () => { if (feito) return; feito = true; removeEventListener("popstate", seguir); setTimeout(ir, 0); };
+  addEventListener("popstate", seguir); setTimeout(seguir, 500);
 }
 // Manda uma mensagem na conversa com a pessoa (cria a conversa se ainda não existe), como o Mensagens faz.
 export async function mandarMensagem(uid, msg, resumo) {
