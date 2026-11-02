@@ -13,7 +13,7 @@ import {
   meusSeguindo, escondido, silenciado, alternarSilenciar, obterPerfil, abrirOpcoes, abrirLista, linhaPessoa, pessoasEmPilha,
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados
-} from "./rede.js?v=93";
+} from "./rede.js?v=94";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { seletorDuracao, fimEscolhido, linhaChave, MAX_FLASH_MIN, fimDaEnquete, encerrada, faltaTexto, resultadoFinal, lerContasEnquete } from "./enquetes.js?v=6";
@@ -503,6 +503,81 @@ function publicacaoExiste(id) {
   if (!postsConferidos.has(id)) postsConferidos.set(id, fb.getDoc(fb.doc(fb.db, "diario", id)).then((d) => d.exists()).catch(() => true));
   return postsConferidos.get(id);
 }
+// Folha do lugar marcado no flash: mapa, "Como chegar" e as publicações feitas por perto.
+function mapaDoLugar(la, lo, z = 15) {
+  const box = el("div", "lg-mapa");
+  const n = 2 ** z, rad = (la * Math.PI) / 180;
+  const px = ((lo + 180) / 360) * n * 256, py = ((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * n * 256;
+  const meio = el("div", "lg-meio");
+  for (let tx = Math.floor((px - 400) / 256); tx <= Math.floor((px + 400) / 256); tx++) {
+    for (let ty = Math.floor((py - 140) / 256); ty <= Math.floor((py + 140) / 256); ty++) {
+      const img = document.createElement("img"); img.alt = ""; img.loading = "lazy"; img.decoding = "async"; img.draggable = false;
+      img.onerror = () => img.remove();
+      img.src = `https://tile.openstreetmap.org/${z}/${((tx % n) + n) % n}/${ty}.png`;
+      img.style.left = `${tx * 256 - px}px`; img.style.top = `${ty * 256 - py}px`;
+      meio.appendChild(img);
+    }
+  }
+  const pino = el("span", "lg-pino"); pino.appendChild(icone("local", "i"));
+  box.append(meio, pino, el("span", "lg-cred", "© OpenStreetMap"));
+  return box;
+}
+const kmEntre = (a, b) => { const R = 6371, r = Math.PI / 180, dLa = (b.lat - a.lat) * r, dLo = (b.lng - a.lng) * r; const h = Math.sin(dLa / 2) ** 2 + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(dLo / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(h)); };
+function gradePublicacoes(posts, vazio) {
+  const g = el("div", "lg-grade");
+  if (!posts.length) { g.appendChild(el("p", "lista-vazia", vazio)); return g; }
+  posts.slice(0, 12).forEach((p) => {
+    const a = el("a", "lg-cel"); a.href = `feed.html?post=${encodeURIComponent(p.id)}`;
+    const foto = (fotosDoPost(p) || [])[0] || (p.mediaTipo !== "video" ? p.mediaUrl : "");
+    if (foto && /^(data:image|https:)/.test(foto)) { const im = document.createElement("img"); im.src = foto; im.alt = ""; im.loading = "lazy"; im.decoding = "async"; im.draggable = false; a.appendChild(im); }
+    else a.appendChild(el("span", "lg-txt", String(p.texto || p.enquete?.pergunta || p.caixa?.pergunta || "").slice(0, 90)));
+    a.addEventListener("click", (e) => { if (!ganchos.abrirPublicacao) return; e.preventDefault(); ganchos.abrirPublicacao(p.id); });
+    g.appendChild(a);
+  });
+  return g;
+}
+async function abrirLugarFlash(l, aoFechar) {
+  const corpo = abrirLista(String(l.nome).split(",")[0]);
+  const f = $("folhaLista"); const volta = () => { f?.removeEventListener("fechada", volta); aoFechar?.(); }; f?.addEventListener("fechada", volta);
+  corpo.addEventListener("contextmenu", (e) => { if (e.target.closest("img")) e.preventDefault(); });
+  const cab = el("div", "lg-cab");
+  const ic = el("span", "lg-ic"); ic.appendChild(icone("local", "i s"));
+  const tx = el("div", "lg-tx"); tx.append(el("strong", null, String(l.nome).split(",")[0]), el("small", null, String(l.nome).split(",").slice(1).join(",").trim() || "Lugar marcado no flash"));
+  cab.append(ic, tx);
+  const acoes = el("div", "lg-acoes");
+  const rota = el("a", "btn sec", "Como chegar"); rota.href = `https://www.google.com/maps/dir/?api=1&destination=${l.lat},${l.lng}`; rota.target = "_blank"; rota.rel = "noopener";
+  const todas = el("a", "btn pri", "Ver no Diário"); todas.href = `feed.html?local=${l.lat},${l.lng}&n=${encodeURIComponent(l.nome)}`;
+  acoes.append(rota, todas);
+  const tit = el("p", "lg-sec", "Publicado por perto");
+  const lugarGrade = el("div"); lugarGrade.appendChild(el("p", "lista-vazia", "Carregando..."));
+  corpo.replaceChildren(mapaDoLugar(l.lat, l.lng), cab, acoes, tit, lugarGrade);
+  try {
+    const x = await fb.getDocs(fb.query(fb.collection(fb.db, "diario"), fb.orderBy("criadoEm", "desc"), fb.limit(80)));
+    const perto = x.docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => !p.agendadoPara && p.local && Number.isFinite(p.local.lat) && (p.local.nome === l.nome || kmEntre(l, p.local) <= 3));
+    lugarGrade.replaceWith(gradePublicacoes(perto, "Ninguém publicou deste lugar ainda. Marque o local na sua próxima publicação."));
+  } catch { lugarGrade.replaceChildren(el("p", "lista-vazia", "Não foi possível carregar as publicações.")); }
+}
+async function abrirHashtagFlash(tag, aoFechar) {
+  const corpo = abrirLista("#" + tag);
+  const f = $("folhaLista"); const volta = () => { f?.removeEventListener("fechada", volta); aoFechar?.(); }; f?.addEventListener("fechada", volta);
+  const cab = el("div", "lg-cab");
+  const ic = el("span", "lg-ic hashtag"); ic.appendChild(icone("hashtag", "i s"));
+  const n = el("small", null, "…");
+  const tx = el("div", "lg-tx"); tx.append(el("strong", null, "#" + tag), n);
+  cab.append(ic, tx);
+  const acoes = el("div", "lg-acoes");
+  const todas = el("a", "btn pri", "Ver no Diário"); todas.href = `feed.html?tag=${encodeURIComponent(tag)}`;
+  acoes.appendChild(todas);
+  const grade = el("div"); grade.appendChild(el("p", "lista-vazia", "Carregando..."));
+  corpo.replaceChildren(cab, acoes, el("p", "lg-sec", "Publicações recentes"), grade);
+  const q = fb.query(fb.collection(fb.db, "diario"), fb.where("tags", "array-contains", tag), fb.limit(30));
+  fb.getCountFromServer(q).then((c) => { const k = c.data().count; n.textContent = `${k} ${k === 1 ? "publicação" : "publicações"}`; }).catch(() => { n.textContent = "Hashtag"; });
+  try {
+    const x = await fb.getDocs(q);
+    const l = x.docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => !p.agendadoPara).sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
+    grade.replaceWith(gradePublicacoes(l, "Ainda não há publicações com esta hashtag."));
+  } catch { grade.replaceChildren(el("p", "lista-vazia", "Não foi possível carregar as publicações.")); }
+}
 // Figurinhas que quem vê pode tocar (posição em fração do quadro 9:16).
 function figurinhasTocaveis(s) {
   const l = [], num = (v) => { const n = Number(v); return Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : null; };
@@ -513,14 +588,14 @@ function figurinhasTocaveis(s) {
       // localização: "l|nome|lat|lng|x|y|w|h" → as publicações de lá (mesma página do local das publicações)
       const [, nomeL, lat, lng, x, y, w, h] = p;
       if (!nomeL || !Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng)) || num(x) == null) return;
-      l.push({ x: num(x), y: num(y), w: num(w) || 0.3, h: num(h) || 0.05, ic: "local", rot: `Publicações em ${nomeL.split(",")[0]}`,
-        href: `feed.html?local=${Number(lat)},${Number(lng)}&n=${encodeURIComponent(nomeL)}` });
+      l.push({ x: num(x), y: num(y), w: num(w) || 0.3, h: num(h) || 0.05, ic: "local", rot: nomeL.split(",")[0],
+        lugar: { nome: nomeL, lat: Number(lat), lng: Number(lng) }, href: `feed.html?local=${Number(lat)},${Number(lng)}&n=${encodeURIComponent(nomeL)}` });
       return;
     }
     const [k, v, x, y, w, h] = p;
     if (!v || num(x) == null || num(y) == null) return;
     const pos = { x: num(x), y: num(y), w: num(w) || 0.25, h: num(h) || 0.05 };
-    if (k === "h") l.push({ ...pos, ic: "hashtag", rot: `Ver #${v}`, href: `feed.html?tag=${encodeURIComponent(v.toLowerCase())}` });
+    if (k === "h") l.push({ ...pos, ic: "hashtag", rot: `#${v}`, tag: v.toLowerCase(), href: `feed.html?tag=${encodeURIComponent(v.toLowerCase())}` });
     else if (k === "m" && /^[A-Za-z0-9]{1,64}$/.test(v) && !ocultas.includes(v)) l.push({ ...pos, ic: "pessoa", rot: "Ver perfil", uid: v });
   });
   return l;
@@ -805,9 +880,17 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   camLinha.append(bCamGal, bDisparo, bVirar);
   camUI.append(tiraFiltros, camLinha);
   const bLanterna = el("button", "flash-ferr-btn"); bLanterna.appendChild(icone("raio-off", "i s")); bLanterna.type = "button"; bLanterna.setAttribute("aria-label", "Lanterna"); bLanterna.title = "Lanterna";
-  const bTempo = el("button", "flash-ferr-btn tempo", "3s"); bTempo.type = "button"; bTempo.setAttribute("aria-label", "Esperar 3 segundos"); bTempo.title = "Temporizador";
+  // Temporizador: desligado → 3 s → 10 s (cada toque troca).
+  const bTempo = el("button", "flash-ferr-btn tempo"); bTempo.type = "button"; bTempo.title = "Temporizador";
+  bTempo.innerHTML = '<svg class="i s" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="13" r="7.5"/><path d="M12 9.5V13l2.2 1.6M9.5 3h5"/></svg><b class="tempo-n"></b>';
   const contagemCam = el("div", "flash-contagem"); contagemCam.setAttribute("aria-live", "assertive");
-  let comTempo = false, lanterna = false, filtrosAbertos = false;
+  let comTempo = 0, lanterna = false, filtrosAbertos = false;
+  const pintarTempo = () => {
+    bTempo.classList.toggle("on", !!comTempo);
+    bTempo.querySelector(".tempo-n").textContent = comTempo ? comTempo + "s" : "";
+    bTempo.setAttribute("aria-label", comTempo ? `Temporizador: ${comTempo} segundos (toque para trocar)` : "Temporizador desligado (toque para ligar)");
+  };
+  pintarTempo();
 
   const ajustarLetra = () => {
     const n = area.value.length;
@@ -845,7 +928,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       const temLanterna = !virada && !!cam.stream.getVideoTracks()[0]?.getCapabilities?.().torch;
       if (temLanterna) ferramentas.append(bLanterna);
       ferramentas.append(bTempo);
-      bTempo.classList.toggle("on", comTempo); bLanterna.classList.toggle("on", lanterna);
+      pintarTempo(); bLanterna.classList.toggle("on", lanterna);
     } else if (foto || video) {
       if (foto) {
         midiaBox.appendChild(fotoBox); posicionar(); pintarFiltroNaTela();
@@ -872,7 +955,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   bCam.addEventListener("click", () => abrirCamera());
   bCamGal.addEventListener("click", () => escolherArquivo(false));
   bVirar.addEventListener("click", () => { virada = !virada; lanterna = false; abrirCamera(); });
-  bTempo.addEventListener("click", () => { comTempo = !comTempo; bTempo.classList.toggle("on", comTempo); toast(comTempo ? "Temporizador: 3 segundos" : "Temporizador desligado"); });
+  bTempo.addEventListener("click", () => { comTempo = comTempo === 0 ? 3 : comTempo === 3 ? 10 : 0; pintarTempo(); toast(comTempo ? `Temporizador: ${comTempo} segundos` : "Temporizador desligado"); });
   bLanterna.addEventListener("click", async () => {
     try { lanterna = !lanterna; await cam.stream.getVideoTracks()[0].applyConstraints({ advanced: [{ torch: lanterna }] }); bLanterna.classList.toggle("on", lanterna); bLanterna.replaceChildren(icone(lanterna ? "raio" : "raio-off", "i s")); }
     catch { lanterna = false; toast("Este aparelho não deixa ligar a lanterna pelo site."); }
@@ -1592,6 +1675,13 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     async function pintarL() {
       const blocos = [];
       const figs = figMencoes(), nicks = nicksNoTexto();
+      // Muitas menções: um toque junta todas na lista "Mencionados" (sem encher a foto de @).
+      blocos.push(el("p", "fm-total", `${totalMencoes()} de 10 pessoas mencionadas`));
+      if (figs.filter((t) => !t.soLista && !t.oculta).length >= 3) {
+        const j = el("button", "fm-add fm-juntar"); j.type = "button"; j.append(icone("pessoa-mais", "i s"), el("span", null, "Tirar os @ da foto e mostrar só em “Mencionados”"));
+        j.addEventListener("click", () => { figs.forEach((t) => { if (!t.oculta) { t.soLista = true; pintarTexto(t); } }); pintarL(); toast("Os @ saíram da foto: quem vê encontra todos em “Mencionados”"); });
+        blocos.push(j);
+      }
       if (figs.length) {
         blocos.push(el("p", "figs-sec", "Figurinhas"));
         for (const t of figs) {
@@ -1901,7 +1991,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   async function disparar() {
     if (!cam || bDisparo.disabled) return;
     bDisparo.disabled = true;
-    if (comTempo) for (let n = 3; n > 0; n--) { contagemCam.textContent = String(n); contagemCam.classList.add("on"); await new Promise((r) => setTimeout(r, 1000)); }
+    if (comTempo) for (let n = comTempo; n > 0; n--) { contagemCam.textContent = String(n); contagemCam.classList.add("on"); await new Promise((r) => setTimeout(r, 1000)); }
     contagemCam.classList.remove("on"); contagemCam.textContent = "";
     if (!cam) { bDisparo.disabled = false; return; }
     // Quadro do vídeo recortado como aparece no cartão (preenche o 9:16).
@@ -2034,6 +2124,17 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       // Alinhado à esquerda/direita: as linhas encostam na borda do bloco (o bloco continua centrado no ponto).
       const larg = Math.max(...linhas.map((l) => g.measureText(l).width));
       const xa = t.x * OW + (al === "left" ? -larg / 2 : al === "right" ? larg / 2 : 0);
+      // @usuário escrito no texto: guarda onde ficou cada um (o visor deixa tocar e abrir o perfil).
+      t._arrobas = [];
+      const ra = ((t.rot || 0) * Math.PI) / 180, cx0 = t.x * OW, cy0 = t.y * OH;
+      linhas.forEach((l, i) => {
+        const y = y0 + i * alt, wl = g.measureText(l).width, esq = al === "left" ? xa : al === "right" ? xa - wl : xa - wl / 2;
+        for (const m of l.matchAll(/(^|[^\w@#])@([a-z0-9._]{3,20})/gi)) {
+          const ini = m.index + m[1].length, w = g.measureText("@" + m[2]).width, mx = esq + g.measureText(l.slice(0, ini)).width + w / 2;
+          const dx = mx - cx0, dy = y - cy0; // gira o centro junto com o texto
+          t._arrobas.push({ nick: m[2].toLowerCase().replace(/\.+$/, ""), x: (cx0 + dx * Math.cos(ra) - dy * Math.sin(ra)) / OW, y: (cy0 + dx * Math.sin(ra) + dy * Math.cos(ra)) / OH, w: (w + px * 0.3) / OW, h: alt / OH });
+        }
+      });
       linhas.forEach((l, i) => {
         const y = y0 + i * alt, x = xa;
         if (t.destaque || t.vidro) {
@@ -2099,6 +2200,15 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
         const toques = textos.filter((t) => t._area && ((t.fig === "hashtag" && /^#[\p{L}\p{N}_]{1,28}$/u.test(t.texto)) || (t.fig === "mencao" && t.uid && !t.oculta && !t.soLista && (mencoes.mencoes || []).includes(t.uid))))
           .slice(0, local ? 7 : 8).map((t) => [t.fig === "hashtag" ? "h" : "m", t.fig === "hashtag" ? t.texto.slice(1) : t.uid, ...pos(t._area)].join("|"));
         if (local) toques.unshift(local);
+        // @ escrito nos textos: vira área tocável também (só quem está mesmo nas menções)
+        const visiveis = new Set((mencoes.mencoes || []).filter((u) => !(mencoes.mencoesOcultas || []).includes(u)));
+        for (const t of textos) {
+          for (const a of t._arrobas || []) {
+            if (toques.length >= 8) break;
+            const uid = nickUid.get(a.nick) || (await fb.getDoc(fb.doc(fb.db, "nicknames", a.nick)).then((d) => (d.exists() ? d.data().uid : null)).catch(() => null));
+            if (uid && visiveis.has(uid) && !toques.some((z) => z.startsWith(`m|${uid}|`))) toques.push(["m", uid, ...pos(a)].join("|"));
+          }
+        }
         const lk = textos.find((t) => t.lk);
         const link = lk ? { negocioId: lk.negocio.id, nome: String(lk.negocio.nome || "").slice(0, 80), tipo: lk.negocio.tipo, x: Math.round(lk.x * 1000) / 1000, y: Math.round(lk.y * 1000) / 1000 } : null;
         const repostDe = repost ? { storyId: repost.id, autorId: repost.autorId, nome: String(repost.nome || "").slice(0, 80) } : null;
@@ -2607,8 +2717,14 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
     // Enquete por cima do flash, no lugar escolhido (quem vê vota; o autor vê o resultado).
     caixa.querySelector(".story-enq")?.remove();
     const enq = blocoEnquete(s, { tipo: "f", escura: true });
+    // No seu flash, "Ver votos" e "N respostas · ver" abrem a atividade do flash na aba certa (como no Instagram).
+    const paraAtividade = (w) => w.addEventListener("click", (e) => {
+      const b = e.target.closest(".cx-ver, .enq-ver"); if (!b || !meu) return;
+      e.stopPropagation(); e.preventDefault(); pausar(true);
+      verQuemViu(s, () => pausar(false), mapa.get(eu.uid), irPara, { aoApagar: tirarDaLista, aba: b.matches(".cx-ver") ? "respostas" : "enquete" });
+    }, true);
     if (enq) {
-      const w = el("div", "story-enq");
+      const w = el("div", "story-enq"); paraAtividade(w);
       w.appendChild(enq); quadro.appendChild(w); encaixar(w, s.enquete.x ?? 0.5, s.enquete.y ?? 0.6);
       ["pointerdown", "pointerup", "click"].forEach((ev) => w.addEventListener(ev, (e) => e.stopPropagation()));
     }
@@ -2616,7 +2732,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
     caixa.querySelector(".story-cx")?.remove();
     const cx = blocoCaixa(s, { tipo: "f", escura: true });
     if (cx) {
-      const w = el("div", "story-enq story-cx");
+      const w = el("div", "story-enq story-cx"); paraAtividade(w);
       w.appendChild(cx); quadro.appendChild(w); encaixar(w, s.caixa.x ?? 0.5, s.caixa.y ?? 0.42);
       ["pointerdown", "pointerup", "click", "keydown"].forEach((ev) => w.addEventListener(ev, (e) => e.stopPropagation()));
       // escrever a resposta (ou abrir as respostas) pausa o flash
@@ -2641,7 +2757,30 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
     // Também nos perfis de negócio (o dono escolheu ao publicar)
     topo.querySelector(".story-onde")?.remove();
     if (Array.isArray(s.negocios) && s.negocios.length) {
-      const o = el("span", "story-repost story-onde"); o.append(icone("loja", "i xs"), document.createTextNode(`${s.perfil === false ? "Só no" : "Também no"} perfil ${s.negocios.length === 1 ? "do negócio" : `de ${s.negocios.length} negócios`}`));
+      // Uma linha curta; tocar abre a lista dos negócios (cada um leva ao perfil dele).
+      const n = s.negocios.length;
+      const o = el("button", "story-repost story-onde"); o.type = "button";
+      o.append(icone("loja", "i xs"), el("span", null, `${s.perfil === false ? "Só em" : "Também em"} ${n === 1 ? "1 negócio" : `${n} negócios`}`), icone("avancar", "i xs"));
+      o.setAttribute("aria-label", `Publicado também em ${n} ${n === 1 ? "perfil de negócio" : "perfis de negócio"}: ver quais`);
+      ["pointerdown", "pointerup"].forEach((ev) => o.addEventListener(ev, (e) => e.stopPropagation()));
+      o.addEventListener("click", async (e) => {
+        e.stopPropagation(); pausar(true);
+        const corpo = abrirLista(n === 1 ? "Também neste negócio" : "Também nestes negócios");
+        const f = $("folhaLista");
+        const volta = () => { f?.removeEventListener("fechada", volta); if (document.querySelector(".story-visor")) document.body.classList.add("travado"); pausar(false); };
+        f?.addEventListener("fechada", volta);
+        corpo.replaceChildren(el("div", "lista-vazia", "Carregando..."));
+        const docs = await Promise.all(s.negocios.map((id) => fb.getDoc(fb.doc(fb.db, "negocios", id)).then((d) => (d.exists() ? { id, ...d.data() } : null)).catch(() => null)));
+        const l = docs.filter(Boolean);
+        corpo.replaceChildren(...(l.length ? l.map((ng) => {
+          const a = el("a", "linha-neg-flash"); a.href = `${PAGINA_NEGOCIO[ng.tipo] || "servicos.html"}?negocio=${encodeURIComponent(ng.id)}&de=flash`;
+          const av = el("span", "avatar neg-av " + ng.tipo);
+          if (ng.foto && /^(data:image|https:)/.test(ng.foto)) pintarAvatar(av, ng.foto, ng.nome); else av.appendChild(icone(ICONE_NEGOCIO[ng.tipo] || "loja", "i xs"));
+          const tx = el("span", "tx"); tx.append(el("strong", null, ng.nome || "Negócio"), el("small", null, { servicos: "Freelances", delivery: "Delivery", lojinha: "Shopping", imoveis: "Imóveis", saude: "Saúde" }[ng.tipo] || "Negócio"));
+          a.append(av, tx, icone("avancar", "i xs"));
+          return a;
+        }) : [el("div", "lista-vazia", "Esses negócios não estão mais no ar.")]));
+      });
       txtQuem.appendChild(o);
     }
     // Publicação do Diário compartilhada (como no Instagram): tocar na publicação mostra o balão "Ver publicação";
@@ -2716,7 +2855,13 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
       });
       balao.addEventListener("click", (e) => {
         e.stopPropagation(); clearTimeout(tEsc);
-        if (f.uid) { e.preventDefault(); fechar(); ganchos.abrirPerfil(f.uid); }
+        if (f.uid) { e.preventDefault(); fechar(); ganchos.abrirPerfil(f.uid); return; }
+        // Lugar e hashtag abrem uma folha por cima do flash (como no Instagram); fechar volta ao flash.
+        if (f.lugar || f.tag) {
+          e.preventDefault(); balao.hidden = true; pausar(true);
+          const volta = () => { if (document.querySelector(".story-visor")) document.body.classList.add("travado"); pausar(false); };
+          if (f.lugar) abrirLugarFlash(f.lugar, volta); else abrirHashtagFlash(f.tag, volta);
+        }
       });
       quadro.append(area, balao);
     });
@@ -2740,7 +2885,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
       const v = el("button", "story-vistos"); v.type = "button";
       const rostos = el("span", "rostos");
       v.append(icone("olho", "i xs"), el("span", null, "Visualizações"), rostos);
-      v.addEventListener("click", (e) => { e.stopPropagation(); pausar(true); verQuemViu(s, () => pausar(false), mapa.get(eu.uid), irPara); });
+      v.addEventListener("click", (e) => { e.stopPropagation(); pausar(true); verQuemViu(s, () => pausar(false), mapa.get(eu.uid), irPara, { aoApagar: tirarDaLista }); });
       // Destacar (como no Instagram): guarda o flash num destaque do perfil, que fica para sempre.
       const bd = el("button", "story-destacar"); bd.type = "button"; bd.setAttribute("aria-label", "Destacar no perfil");
       bd.append(icone("destaque", "i s"), el("span", null, "Destacar"));
@@ -2798,6 +2943,14 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
     const i = barras.children[si]?.firstChild; if (!i) return;
     i.style.transition = "none"; i.style.width = "0%";
     requestAnimationFrame(() => requestAnimationFrame(() => { if (pausado) return; i.style.transition = `width ${dur}ms linear`; i.style.width = "100%"; }));
+  }
+  // Flash apagado pela lixeira das Visualizações: sai da lista do visor.
+  function tirarDaLista(x) {
+    const l = mapa.get(eu.uid) || [], j = l.findIndex((y) => y.id === x.id);
+    if (j < 0) return;
+    l.splice(j, 1);
+    if (!l.length) { mapa.delete(eu.uid); fechar(); return; }
+    if (ordem[ai] === eu.uid) { si = Math.min(si, l.length - 1); mostrar(); pausar(true); }
   }
   // Ir para um dos seus flashes (a fita das Visualizações troca o flash que está por trás, como no Instagram).
   function irPara(x) {
@@ -2882,7 +3035,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
         } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); }
       } },
       meu && { rotulo: destaque ? "Pôr em outro destaque" : "Destacar no perfil", sub: "O destaque fica no seu perfil para sempre", icone: "destaque", fn: () => setTimeout(() => { pausar(true); adicionarAoDestaque(s, () => { if (document.querySelector(".story-visor")) document.body.classList.add("travado"); pausar(false); }); }, 260) },
-      meu && ativo(s) && { rotulo: "Visualizações", sub: "Quem viu, deu estrela ou reagiu", icone: "olho", fn: () => setTimeout(() => { pausar(true); verQuemViu(s, () => pausar(false), mapa.get(eu.uid), irPara); }, 260) },
+      meu && ativo(s) && { rotulo: "Visualizações", sub: "Quem viu, deu estrela ou reagiu", icone: "olho", fn: () => setTimeout(() => { pausar(true); verQuemViu(s, () => pausar(false), mapa.get(eu.uid), irPara, { aoApagar: tirarDaLista }); }, 260) },
       meu && s.tipo !== "video" && { rotulo: "Salvar foto", sub: "Guarda o flash no aparelho", icone: "imagem", fn: () => salvarFotoFlash(s) },
       { rotulo: "Compartilhar", sub: meu ? "Manda o link do flash (fica 24 h)" : "Manda o link do flash", icone: "compartilhar", fn: () => compartilharLinkFlash(s) },
       meu && { rotulo: "Configurações do Flash", sub: "Quem vê, respostas, amigos próximos", icone: "config", fn: () => setTimeout(() => { pausar(true); abrirConfigFlash(); const f = $("folhaLista"); const v = () => { f?.removeEventListener("fechada", v); if (document.querySelector(".story-visor")) document.body.classList.add("travado"); pausar(false); }; f?.addEventListener("fechada", v); }, 260) },
@@ -2948,7 +3101,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
       return;
     }
     voltarLugar(!!ex);
-    if (ex === "y" && dy < -90 && atual()?.autorId === eu.uid) { verQuemViu(atual(), () => pausar(false), mapa.get(eu.uid), irPara); return; }
+    if (ex === "y" && dy < -90 && atual()?.autorId === eu.uid) { verQuemViu(atual(), () => pausar(false), mapa.get(eu.uid), irPara, { aoApagar: tirarDaLista }); return; }
     if (pausouArrasto) { pausouArrasto = false; pausar(false); }
   };
   caixa.addEventListener("touchend", fimArrasto, { passive: true });
@@ -2958,9 +3111,11 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
 // Visualizações (só o autor): quem viu, quem deu a estrela e quem reagiu (o emoji no canto da foto), com filtros.
 // Em cima, a fita dos seus flashes no ar (miniatura + quantas pessoas viram) para trocar de flash sem sair da folha.
 // Em cada pessoa, o "⋯" abre as ações ali mesmo: mandar mensagem, ver o perfil e ocultar os seus flashes dela.
-async function verQuemViu(sInicial, aoFechar, flashes, aoTrocar) {
+async function verQuemViu(sInicial, aoFechar, flashes, aoTrocar, { aoApagar = null, aba: abaInicial = "vistos" } = {}) {
   const corpo = abrirLista("Visualizações");
   const f = $("folhaLista");
+  // Segurar a miniatura não abre o menu do navegador ("baixar imagem").
+  corpo.addEventListener("contextmenu", (e) => { if (e.target.closest("img, .vv-mini")) e.preventDefault(); });
   const volta = () => { f?.removeEventListener("fechada", volta); if (document.querySelector(".story-visor")) document.body.classList.add("travado"); aoFechar?.(); };
   f?.addEventListener("fechada", volta);
   const meus = (Array.isArray(flashes) && flashes.length ? flashes : [sInicial]).filter(Boolean);
@@ -2978,15 +3133,51 @@ async function verQuemViu(sInicial, aoFechar, flashes, aoTrocar) {
       b.append(capa, n);
       b.setAttribute("aria-label", `Flash ${k + 1} de ${meus.length}, ${tempoRelativo(new Date(ms(x.criadoEm) || Date.now()))}`);
       fb.getCountFromServer(fb.query(fb.collection(fb.db, "stories", x.id, "vistos"))).then((c) => { n.lastChild.textContent = String(c.data().count); }).catch(() => { n.lastChild.textContent = "–"; });
-      b.addEventListener("click", () => { if (s.id === x.id) return; s = x; pintarFita(); carregar(); aoTrocar?.(x); });
+      b.addEventListener("click", () => { if (s.id === x.id) return; s = x; aba = "vistos"; pintarFita(); carregar(); aoTrocar?.(x); });
       fita.appendChild(b);
     });
     const pintarFita = () => [...fita.children].forEach((b, k) => { const on = meus[k].id === s.id; b.classList.toggle("on", on); b.setAttribute("aria-selected", String(on)); if (on) b.scrollIntoView({ inline: "center", block: "nearest" }); });
     corpo.appendChild(fita);
     requestAnimationFrame(pintarFita);
   }
-  corpo.appendChild(conteudo);
+  // Barra do flash (como no Instagram): quantos viram + Destacar + Apagar; abas quando tem enquete ou perguntas.
+  const barra = el("div", "vv-barra");
+  const nVistos = el("span", "vv-barra-n"); nVistos.append(icone("olho", "i s"), el("strong", null, "…"));
+  const bDest = el("button", "vv-barra-btn"); bDest.type = "button"; bDest.title = "Destacar no perfil"; bDest.setAttribute("aria-label", "Destacar no perfil"); bDest.appendChild(icone("destaque", "i s"));
+  const bLixo = el("button", "vv-barra-btn perigo"); bLixo.type = "button"; bLixo.title = "Apagar este flash"; bLixo.setAttribute("aria-label", "Apagar este flash"); bLixo.appendChild(icone("lixo", "i s"));
+  barra.append(nVistos, el("span", "esp"), bDest, bLixo);
+  bDest.addEventListener("click", () => adicionarAoDestaque(s, () => {}));
+  bLixo.addEventListener("click", async () => {
+    if (!await confirmarHF({ titulo: "Apagar este flash?", texto: "Ele some para todo mundo, também das visualizações.", ok: "Apagar", icone: "lixo" })) return;
+    try {
+      await fb.deleteDoc(fb.doc(fb.db, "stories", s.id));
+      toast("Flash apagado");
+      const x = s; const k = meus.findIndex((y) => y.id === x.id); if (k >= 0) meus.splice(k, 1);
+      aoApagar?.(x);
+      if (!meus.length) { f?.querySelector("[data-fechar]")?.click(); return; }
+      s = meus[Math.min(k, meus.length - 1)];
+      corpo.querySelector(".vv-fita")?.children[k]?.remove();
+      aoTrocar?.(s); carregar();
+    } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
+  });
+  const abas = el("div", "vv-abas"); abas.setAttribute("role", "tablist");
+  let aba = abaInicial;
+  corpo.append(barra, abas, conteudo);
+  function pintarAbas() {
+    const l = [["vistos", "Visualizações"], ...(s.enquete ? [["enquete", "Enquete"]] : []), ...(s.caixa ? [["respostas", "Respostas"]] : [])];
+    if (!l.some(([k]) => k === aba)) aba = "vistos";
+    abas.hidden = l.length < 2;
+    abas.replaceChildren(...l.map(([k, rot]) => {
+      const b = el("button", "vv-aba" + (k === aba ? " on" : ""), rot); b.type = "button"; b.setAttribute("role", "tab"); b.setAttribute("aria-selected", String(k === aba));
+      b.addEventListener("click", () => { if (aba === k) return; aba = k; carregar(); });
+      return b;
+    }));
+  }
   async function carregar() {
+    pintarAbas();
+    fb.getCountFromServer(fb.query(fb.collection(fb.db, "stories", s.id, "vistos"))).then((c) => { nVistos.lastChild.textContent = String(c.data().count); }).catch(() => { nVistos.lastChild.textContent = "–"; });
+    if (aba === "enquete") return carregarEnquete();
+    if (aba === "respostas") return carregarRespostas();
     const minha = ++vez;
     conteudo.replaceChildren(el("div", "lista-vazia", "Carregando..."));
     try {
@@ -3085,6 +3276,79 @@ async function verQuemViu(sInicial, aoFechar, flashes, aoTrocar) {
       pintarFiltros(); desenhar();
       conteudo.replaceChildren(quando, resumo, filtros, box, el("small", "vv-nota", "Respostas e reações também chegam no Mensagens. Só você vê esta lista."));
     } catch (e) { if (minha === vez) conteudo.replaceChildren(el("div", "lista-vazia", "Não foi possível carregar: " + erroAmigavel(e))); }
+  }
+  // Resultado da enquete: cada opção com a barra, a porcentagem e quem votou nela (anônima: só os números).
+  async function carregarEnquete() {
+    const minha = ++vez, e = s.enquete, alvo = "f_" + s.id;
+    conteudo.replaceChildren(el("div", "lista-vazia", "Carregando..."));
+    try {
+      const [contas, votos] = await Promise.all([
+        lerContasEnquete(fb, fb.db, alvo, e.opcoes.length, { fresco: true }).catch(() => e.opcoes.map(() => 0)),
+        e.anonima ? Promise.resolve([]) : fb.getDocs(fb.query(fb.collection(fb.db, "enquete_votos"), fb.where("alvo", "==", alvo), fb.limit(300))).then((x) => x.docs.map((d) => d.data())).catch(() => [])
+      ]);
+      if (minha !== vez) return;
+      const porOp = contas.some((n) => n > 0) ? contas : e.opcoes.map((_, i) => votos.filter((v) => Number(v.opcao) === i).length);
+      const total = porOp.reduce((a, n) => a + n, 0), maior = Math.max(...porOp);
+      const topo = el("div", "vv-enq-topo" + temaFig(e.cor));
+      const fim = fimDaEnquete(e);
+      topo.append(el("small", null, e.anonima ? "ENQUETE · ANÔNIMA" : "ENQUETE"), el("strong", null, e.pergunta),
+        el("span", null, `${total} ${total === 1 ? "voto" : "votos"}${fim ? " · " + (encerrada(e) ? "encerrada" : faltaTexto(fim)) : ""}`));
+      const lista = el("div", "vv-enq");
+      const perfis = new Map();
+      await Promise.all([...new Set(votos.map((v) => v.uid))].filter((u) => !escondido(u)).map(async (u) => perfis.set(u, await obterPerfil(u).catch(() => ({})))));
+      if (minha !== vez) return;
+      e.opcoes.forEach((o, i) => {
+        const pct = total ? Math.round((porOp[i] / total) * 100) : 0;
+        const bl = el("div", "vv-enq-op" + (total && porOp[i] === maior ? " lider" : ""));
+        const cab = el("div", "vv-enq-cab"); cab.append(el("strong", null, o), el("span", null, `${pct}% · ${porOp[i]}`));
+        const br = el("div", "vv-enq-barra"); const i2 = el("i"); i2.style.width = pct + "%"; br.appendChild(i2);
+        bl.append(cab, br);
+        const quem = votos.filter((v) => Number(v.opcao) === i && perfis.has(v.uid)).sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
+        quem.forEach((v) => {
+          const p = perfis.get(v.uid), l = el("button", "vv-enq-pessoa"); l.type = "button";
+          const av = el("span", "avatar"); pintarAvatar(av, p.fotoPerfil, p.nome);
+          l.append(av, el("span", null, p.nome || "Usuário"), el("small", null, tempoRelativo(new Date(ms(v.criadoEm) || Date.now()))));
+          l.addEventListener("click", () => ganchos.abrirPerfil(v.uid));
+          bl.appendChild(l);
+        });
+        lista.appendChild(bl);
+      });
+      conteudo.replaceChildren(topo, lista, el("small", "vv-nota", e.anonima ? "Votação anônima: ninguém vê quem votou, nem você." : "Só você vê quem votou em cada opção."));
+    } catch (err) { if (minha === vez) conteudo.replaceChildren(el("div", "lista-vazia", "Não foi possível carregar: " + erroAmigavel(err))); }
+  }
+  // Respostas da caixa de perguntas em cartões (como no Instagram): tocar mostra Pôr no flash, Responder e Apagar.
+  async function carregarRespostas() {
+    const minha = ++vez, c = s.caixa, alvo = "f_" + s.id;
+    conteudo.replaceChildren(el("div", "lista-vazia", "Carregando..."));
+    try {
+      const x = await fb.getDocs(fb.query(fb.collection(fb.db, "caixa_respostas"), fb.where("autorId", "==", eu.uid), fb.where("alvo", "==", alvo), fb.limit(200)));
+      if (minha !== vez) return;
+      const lista = x.docs.map((d) => ({ id: d.id, ...d.data() })).filter((r) => !r.uid || !escondido(r.uid)).sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
+      const topo = el("div", "vv-enq-topo" + temaFig(c.cor));
+      topo.append(el("small", null, c.anonima ? "PERGUNTAS · ANÔNIMAS" : "CAIXA DE PERGUNTAS"), el("strong", null, c.pergunta), el("span", null, `${lista.length} ${lista.length === 1 ? "resposta" : "respostas"}`));
+      if (!lista.length) { conteudo.replaceChildren(topo, el("div", "lista-vazia", "Ainda sem respostas. Quando alguém responder, aparece aqui.")); return; }
+      const grade = el("div", "vv-resp-grade");
+      lista.forEach((r) => {
+        const card = el("button", "vv-resp" + temaFig(c.cor)); card.type = "button";
+        card.append(el("small", "vv-resp-p", c.pergunta), el("p", null, r.texto), el("span", "vv-resp-quem", r.anonima ? "Anônimo" : (r.nome || "Usuário").split(" ")[0] + " · " + tempoRelativo(new Date(ms(r.criadoEm) || Date.now()))));
+        card.addEventListener("click", () => {
+          const aberto = card.nextElementSibling?.classList.contains("vv-resp-acoes");
+          grade.querySelectorAll(".vv-resp-acoes").forEach((z) => z.remove());
+          if (aberto) return;
+          const ac = el("div", "vv-resp-acoes");
+          const acao = (ic, rot, fn, perigo) => { const b = el("button", "vv-acao" + (perigo ? " perigo" : "")); b.type = "button"; b.append(icone(ic, "i s"), el("span", null, rot)); b.addEventListener("click", fn); return b; };
+          ac.append(acao("raio", "Pôr no flash", () => { f?.querySelector("[data-fechar]")?.click(); document.querySelector(".story-visor [aria-label='Fechar']")?.click(); setTimeout(() => compartilharRespostaNoFlash({ pergunta: c.pergunta, texto: r.texto }), 300); }));
+          if (!r.anonima && r.uid) ac.append(acao("pessoa", "Ver perfil", () => ganchos.abrirPerfil(r.uid)));
+          ac.append(acao("lixo", "Apagar", async () => {
+            if (!await confirmarHF({ titulo: "Apagar esta resposta?", texto: "Ela some das suas respostas.", ok: "Apagar", icone: "lixo" })) return;
+            try { await fb.deleteDoc(fb.doc(fb.db, "caixa_respostas", r.id)); carregar(); } catch (e2) { toast("Não foi possível apagar: " + erroAmigavel(e2)); }
+          }, true));
+          card.after(ac);
+        });
+        grade.appendChild(card);
+      });
+      conteudo.replaceChildren(topo, grade, el("small", "vv-nota", c.anonima ? "Respostas anônimas: você não vê quem respondeu." : "Toque numa resposta para pôr no seu flash, ver o perfil ou apagar."));
+    } catch (err) { if (minha === vez) conteudo.replaceChildren(el("div", "lista-vazia", "Não foi possível carregar: " + erroAmigavel(err))); }
   }
   carregar();
 }

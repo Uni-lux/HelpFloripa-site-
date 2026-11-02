@@ -132,12 +132,12 @@ ok(areas === 3, `quem vê tem 3 figurinhas tocáveis (local, hashtag, menção):
 const mencoesVis = await b.locator(".story-mencoes").count();
 ok(mencoesVis === 1, "lista de mencionados aparece (só o Bruno)");
 ok(await b.locator(".story-enq .enquete.tema-roxo").count() === 1, "enquete roxa no visor");
-await b.locator(".story-fig-toque[aria-label^='Publicações em']").click();
+await b.locator(".story-fig-toque[aria-label='Florianópolis']").click();
 await b.waitForTimeout(300);
 const href = await b.locator(".story-fig-balao:not([hidden])").getAttribute("href").catch(() => "");
 ok(/^feed\.html\?local=-?\d/.test(href || ""), `localização abre as publicações de lá (${href})`);
 await b.screenshot({ path: "saida/fm-visor-local.png" });
-await b.locator(".story-fig-toque[aria-label^='Ver #praia']").click(); await b.waitForTimeout(300);
+await b.locator(".story-fig-toque[aria-label='#praia']").click(); await b.waitForTimeout(300);
 ok(((await b.locator(".story-fig-balao:not([hidden])").getAttribute("href")) || "").includes("tag=praia"), "hashtag abre #praia");
 await nb.browser.close();
 
