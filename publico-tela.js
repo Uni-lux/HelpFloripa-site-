@@ -246,10 +246,29 @@ export function escolherPublico(atual, ajuda) {
       };
       busca.addEventListener("input", desenhar); desenhar();
       const todos = el("div", "pa-linha-acoes");
-      const sul = el("button", "pa-link", "Sul"); sul.type = "button"; sul.addEventListener("click", () => { x.ufs = [...new Set([...x.ufs, "PR", "SC", "RS"])]; pintar(); });
-      const sud = el("button", "pa-link", "Sudeste"); sud.type = "button"; sud.addEventListener("click", () => { x.ufs = [...new Set([...x.ufs, "SP", "RJ", "MG", "ES"])]; pintar(); });
-      const limpar = el("button", "pa-link", "Limpar"); limpar.type = "button"; limpar.addEventListener("click", () => { x.ufs = []; pintar(); });
-      todos.append(sul, sud, limpar);
+      const REGIOES = [
+        ["Norte", ["AC", "AP", "AM", "PA", "RO", "RR", "TO"]],
+        ["Nordeste", ["AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE"]],
+        ["Centro-Oeste", ["DF", "GO", "MT", "MS"]],
+        ["Sudeste", ["ES", "MG", "RJ", "SP"]],
+        ["Sul", ["PR", "RS", "SC"]],
+      ];
+      // Toque na região: põe todos os estados dela; se já estão todos, tira.
+      REGIOES.forEach(([nome, ufs]) => {
+        const cheia = ufs.every((u) => x.ufs.includes(u));
+        const b = el("button", "pa-chip pa-regiao", nome); b.type = "button";
+        b.setAttribute("aria-pressed", String(cheia));
+        b.title = ufs.map((u) => NOME_UF[u]).join(", ");
+        b.addEventListener("click", () => {
+          x.ufs = cheia ? x.ufs.filter((u) => !ufs.includes(u)) : [...new Set([...x.ufs, ...ufs])];
+          pintar();
+        });
+        todos.appendChild(b);
+      });
+      if (x.ufs.length) {
+        const limpar = el("button", "pa-link", "Limpar"); limpar.type = "button"; limpar.addEventListener("click", () => { x.ufs = []; pintar(); });
+        todos.appendChild(limpar);
+      }
       w.append(busca, todos, grade, el("small", "pa-sub", x.ufs.length ? x.ufs.map((u) => NOME_UF[u]).join(", ") : "Toque nos estados (um ou vários)."));
       return w;
     }

@@ -831,3 +831,8 @@ input.ad-sel { flex: 1 1 220px; padding: 0 12px; }
 .ad-neg-pede span { padding: 3px 9px; border-radius: 999px; background: var(--panel-2, var(--input)); font-size: 12px; font-weight: 700; color: var(--muted); }
 .ad-vf-doc img.ad-vf-selfie { margin-top: 6px; max-height: 200px; }
 .ad-vf-semselfie { color: var(--warn, #f5a524) !important; }
+
+/* avisos (toasts) organizados: largura certa, quebra equilibrada, sem palavra solta (02/11/2026) */
+.ad-toast { width: max-content; max-width: min(calc(100% - 32px), 440px); box-sizing: border-box; text-align: center; line-height: 1.35; text-wrap: balance; overflow-wrap: break-word; animation: hfToastEntra .22s ease-out; }
+@keyframes hfToastEntra { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@media (prefers-reduced-motion: reduce) { .toast, .vt-toast, .cm-toast, .ad-toast { animation: none !important; } }

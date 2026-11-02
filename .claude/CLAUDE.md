@@ -1374,6 +1374,17 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   fim; alvo: só as chaves) — para caber no limite de 1.000, x/y da enquete e da caixa viraram um regex só e saíram
   conferências repetidas (tamanho das opções, tipo da pergunta). Sem as regras: `semCamposNovos` tira contagem/alvo e avisa.
   Teste `t-flash-contagem.mjs` (16); `t-flash-cfg` atualizado ("Criar flash").
+- **Deslizar para o Flash, avisos e regiões (02/11/2026, PR depois do #134, sem regra nova):** `deslizar-flash.js` (sem deps):
+  deslizar o dedo para a direita abre o criador do Flash (indicador "Novo flash" com anel que enche; abre ao passar de
+  ~110 px). Só no toque, com a conta entrada, começando a 28 px da borda (a borda é do "voltar" do celular) e até 70% da
+  tela, ignorando campos/vídeo/canvas, listas que rolam para o lado (`overflow-x` auto/scroll), `[data-sem-deslizar]`,
+  qualquer janela aberta (`CAMADAS`) e conversa aberta (`body.chat-aberto`). Ligado pelo `montarBarra` (barra-rede.js: Diário,
+  Explorar, Mural, Mensagens, Perfil, Notificações), mensagens.html e inicio.js. Abre na hora com `window.__hfAbrirFlash`
+  (feed.js e usuarios.html); nas outras vai para `feed.html?novoFlash=1`. **Avisos (toasts)** iguais em todas as páginas
+  (`.toast`, `.vt-toast`, `.cm-toast`, `.ad-toast`, mensagens/social): `width: max-content`, até 440 px, centralizados,
+  `text-wrap: balance`, entrada suave; número fica junto da palavra seguinte (`(R\$|\d)\s+` → espaço fixo); no Flash
+  ficam embaixo, acima do rodapé (`bottom: 92px`). Contagem: dia e hora com `minmax(0, …)` (cortava a hora). Público →
+  Estados: atalhos das 5 regiões (`REGIOES`, toque põe/tira, acesa quando completa). Teste `t-deslizar-flash.mjs`.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

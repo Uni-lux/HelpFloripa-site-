@@ -131,7 +131,7 @@ export const MOTIVOS_QX = { atraso: "Atraso", qualidade: "Qualidade", cobranca: 
 let tempoToast = null;
 export function toast(t) {
   document.querySelector(".ad-toast")?.remove();
-  const e = h("div", "ad-toast", t); e.setAttribute("role", "status"); document.body.appendChild(e);
+  const e = h("div", "ad-toast", String(t ?? "").replace(/(R\$|\d)\s+(?=\S)/g, "$1\u00a0")); e.setAttribute("role", "status"); document.body.appendChild(e);
   clearTimeout(tempoToast); tempoToast = setTimeout(() => e.remove(), 3500);
 }
 

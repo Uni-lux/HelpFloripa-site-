@@ -8,6 +8,8 @@
 // - Banner de anúncios: passa sozinho e aceita arrastar com o dedo.
 // =====================================================
 import { fotoSegura } from "./seguranca.js?v=1";
+import { ligarDeslizarFlash } from "./deslizar-flash.js?v=1";
+ligarDeslizarFlash(); // deslizar para a direita abre o Flash (só com a conta entrada)
 import { enfeitarSelect } from "./escolha.js?v=4";
 import { estrelas, lerResumos, media } from "./avaliacoes.js?v=17";
 import { docComValidade, docsComValidade, docsPorIds } from "./leituras.js?v=3";
@@ -15,7 +17,7 @@ import { ordenarJusto, relevancia, dadosNegocio } from "./relevancia.js?v=4";
 import { lerPlano, nivelPlano, seloPlano, semPausados, mostraSelo, corDoPlano, planosDosDonos } from "./planos-base.js?v=15";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, esquecerPosicao, posicaoGuardada } from "./perto.js?v=2";
 import { lerLocal, salvarLocal, rotuloLocal, noLocal, escolherLocal, atualizarPeloGps, aoMudarLocal } from "./local-escolhido.js?v=3";
-import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=80";
+import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=81";
 import { lerComunidade, cartaoComunidade, filtrosComunidade } from "./comunidade-cartao.js?v=2";
 import { lerPorLocal, quandoVisivel } from "./por-local.js?v=1";
 import { NOME_UF } from "./endereco.js?v=1";

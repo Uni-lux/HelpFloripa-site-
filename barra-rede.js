@@ -3,6 +3,7 @@
 // módulo e a página da Comunidade também (sem carregar o rede.js). Estilo próprio, injetado só quando a página não
 // tem o rede.css (que já traz o mesmo estilo).
 // =====================================================
+import { ligarDeslizarFlash } from "./deslizar-flash.js?v=1";
 export const ITENS_BARRA = [
   ["diario", "feed.html", "feed", "Diário"],
   ["explorar", "feed.html?aba=explorar", "bussola", "Explorar"],
@@ -39,6 +40,8 @@ const svg = (k) => `<svg class="i bi" viewBox="0 0 24 24" aria-hidden="true">${I
 
 // Monta a barra (uma vez por página). ativo = "diario" | "explorar" | "comunidade" | "mensagens" | "perfil" | "".
 export function montarBarra(ativo) {
+  // Páginas da rede: deslizar o dedo para a direita abre o Flash.
+  if (["diario", "explorar", "comunidade", "mensagens", "perfil", "avisos"].includes(ativo)) ligarDeslizarFlash();
   if (document.getElementById("barraRede")) return document.getElementById("barraRede");
   estilo();
   const nav = document.createElement("nav"); nav.className = "barra-rede"; nav.id = "barraRede"; nav.setAttribute("aria-label", "Rede social");
