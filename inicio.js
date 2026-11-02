@@ -8,8 +8,6 @@
 // - Banner de anúncios: passa sozinho e aceita arrastar com o dedo.
 // =====================================================
 import { fotoSegura } from "./seguranca.js?v=1";
-import { ligarDeslizarFlash } from "./deslizar-flash.js?v=1";
-ligarDeslizarFlash(); // deslizar para a direita abre o Flash (só com a conta entrada)
 import { enfeitarSelect } from "./escolha.js?v=4";
 import { estrelas, lerResumos, media } from "./avaliacoes.js?v=17";
 import { docComValidade, docsComValidade, docsPorIds } from "./leituras.js?v=3";

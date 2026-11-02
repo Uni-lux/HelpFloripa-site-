@@ -119,7 +119,7 @@ ok(await pb.locator(".story-circ.novo").count() === 1, "flash da Ana aparece com
 await pb.locator("#storiesFeed").screenshot({ path: "saida/flash-barra.png" });
 await pb.locator(".story-circ.novo").first().tap();
 await pb.waitForSelector(".story-visor img", { timeout: 8000 }); await pb.waitForTimeout(500);
-ok((await pb.locator(".story-legenda").textContent()) === "Bom dia!" && (await pb.locator(".story-chip").textContent()).includes("Flash"), "flash abre em tela cheia com a legenda e o selo ⚡ Flash");
+ok((await pb.locator(".story-legenda").textContent()) === "Bom dia!" && (await pb.locator(".story-chip").count()) === 0, "flash abre em tela cheia com a legenda (sem o selo Flash)");
 await pb.screenshot({ path: "saida/flash-visor.png" });
 // responder e reagir: vão para o Mensagens
 await pb.locator(".story-responder input").tap(); await pb.waitForTimeout(400);

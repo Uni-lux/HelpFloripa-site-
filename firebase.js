@@ -74,7 +74,9 @@ import("./confirmar.js?v=5").then((m) => m.guardarSaida()).catch((e) => console.
 
 // Aviso temporário de manutenção (liga e desliga no próprio manutencao.js).
 // App instalado (PWA): service worker simples (sw.js) — páginas sempre da rede, offline.html sem internet.
-if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch((e) => console.warn("[App]", e?.message || e));
+// Service worker (sw.js): guarda no aparelho os arquivos com ?v= (não mudam) e deixa as páginas mais rápidas.
+if ("serviceWorker" in navigator && (location.protocol === "https:" || /^(127\.0\.0\.1|localhost)$/.test(location.hostname)))
+  navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).catch((e) => console.warn("[App]", e?.message || e));
 import("./sem-menu-imagem.js?v=1").catch(() => {});
 import("./manutencao.js?v=1").then((m) => m.avisoManutencao()).catch((e) => console.warn("[Manutenção]", e?.message || e));
 

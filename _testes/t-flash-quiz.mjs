@@ -58,8 +58,8 @@ await db.collection("stories").add({ autorId: U.ana, nome: "Ana Souza", tipo: "i
 await b.keyboard.press("Escape"); await b.waitForTimeout(500);
 const id2 = (await db.collection("stories").where("autorId", "==", U.ana).get()).docs.find((d) => d.data().repostDe)?.id;
 await b.goto(b.url().split("?")[0] + `?flash=${id2}`); await b.waitForSelector(".story-visor", { timeout: 15000 }); await b.waitForTimeout(1200);
-const alt = await b.evaluate(() => { const a = document.querySelector(".story-quem .avatar").getBoundingClientRect(), n = document.querySelector(".story-nome").getBoundingClientRect(); return [a.top + a.height / 2, n.top + n.height / 2, document.querySelectorAll(".story-quem-sub .story-repost").length]; });
-ok(alt[2] >= 1 && Math.abs(alt[0] - alt[1]) <= 3, `com ${alt[2]} linha(s) extra(s), o nome continua na altura da foto (diferença ${Math.abs(alt[0] - alt[1]).toFixed(1)} px)`);
+const alt = await b.evaluate(() => { const a = document.querySelector(".story-quem .avatar").getBoundingClientRect(), n = document.querySelector(".story-nome").getBoundingClientRect(); return [a.top + a.height / 2, n.top + n.height / 2, document.querySelectorAll(".story-quem-sub .story-repost:not(.story-onde)").length]; });
+ok(alt[2] === 0 && Math.abs(alt[0] - alt[1]) <= 3, `repost sem o selo “Flash de X” e o nome na altura da foto (diferença ${Math.abs(alt[0] - alt[1]).toFixed(1)} px)`);
 await b.screenshot({ path: "saida/qz-topo.png" });
 await B.browser.close();
 

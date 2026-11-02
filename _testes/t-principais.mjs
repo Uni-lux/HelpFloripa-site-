@@ -63,6 +63,6 @@ ok(await pb.locator("#ppCabecalho .pf-anel.com-flash").count() === 1, "perfil da
 await pb.screenshot({ path: "saida/perfil-anel-flash.png" });
 await pb.locator("#ppCabecalho .pf-anel.com-flash .avatar").tap();
 await pb.waitForSelector(".story-visor", { timeout: 5000 }).catch(() => {});
-ok(await pb.locator(".story-visor .story-chip").count() === 1, "tocar na foto abre o flash");
+ok(await pb.locator(".story-visor .story-nome").count() === 1, "tocar na foto abre o flash");
 await B.browser.close();
 process.exit(0);

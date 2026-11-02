@@ -1,7 +1,8 @@
-// Deslizar o dedo para a direita abre o Flash (Diário, Mural, Mensagens, Início), avisos (toasts) sem quebra ruim,
+// Deslizar o dedo: no Diário, para a direita abre o Flash; nas abas da barra, para o lado troca de aba. Avisos (toasts) sem quebra ruim,
 // regiões no Público e o cartão da contagem sem corte (02/11/2026).
 // Uso: node t-deslizar-flash.mjs (rodar seed.mjs antes)
-import { navegador, entrar } from "./nav.mjs";
+import { navegador, entrar, USUARIOS as U } from "./nav.mjs";
+const CONV = [U.ana, U.bruno].sort().join("_");
 const ok = (c, t) => { console.log(c ? "  ✔" : "  ✘", t); if (!c) process.exitCode = 1; };
 const erros = [];
 const A = await navegador({ mobile: true });
@@ -22,13 +23,13 @@ ok(await p.evaluate(() => matchMedia("(pointer: coarse)").matches), "celular (to
 // 1) gestos que NÃO abrem
 await arrastar(60, 520, 120, 522); ok(await criador() === 0, "arrasto curto não abre");
 await arrastar(200, 600, 210, 300); ok(await criador() === 0, "rolar para cima não abre");
-await arrastar(300, 520, 60, 522); ok(await criador() === 0, "para a esquerda não abre");
 
 // 2) indicador segue o dedo e abre
 await toque("touchStart", [[60, 520]]);
 for (let k = 1; k <= 6; k++) { await toque("touchMove", [[60 + k * 14, 521]]); await p.waitForTimeout(16); }
 const meio = await p.evaluate(() => { const i = document.querySelector(".df-puxar"); return i ? { op: Number(getComputedStyle(i).opacity), txt: i.textContent } : null; });
 ok(meio && meio.op > 0 && meio.txt.includes("Novo flash"), "indicador “Novo flash” aparece seguindo o dedo");
+ok(await p.locator(".story-chip").count() === 0, "visor/criador sem o selo “Flash”");
 await toque("touchMove", [[260, 524]]); await p.waitForTimeout(40);
 ok(await p.locator(".df-puxar.pronto").count() === 1, "indicador fica “pronto” quando passou do ponto");
 await toque("touchEnd", []); await p.waitForTimeout(900);
@@ -82,19 +83,60 @@ await arrastar(8, 520, 260, 522);
 ok(await criador() === temCriador && !(await p.locator(".df-puxar").count()), "começando na borda (voltar do celular) não puxa o Flash");
 await A.browser.close();
 
-// 6) outras páginas: Mural, Mensagens e Início levam ao criador no Diário
-for (const pg of ["mural.html", "mensagens.html", "index.html"]) {
-  const B = await navegador({ mobile: true });
-  const q = await entrar(B.ctx, "ana", pg);
-  q.on("pageerror", (e) => erros.push(`${pg}: ${e.message}`));
-  await q.waitForTimeout(3500);
-  const c2 = await B.ctx.newCDPSession(q);
-  const t2 = (type, pts) => c2.send("Input.dispatchTouchEvent", { type, touchPoints: pts.map(([x, y], i) => ({ x, y, id: i })) });
-  await t2("touchStart", [[60, 560]]);
-  for (let k = 1; k <= 12; k++) { await t2("touchMove", [[60 + k * 18, 562]]); await q.waitForTimeout(16); }
-  await t2("touchEnd", []);
-  await q.waitForSelector(".flash-criar", { timeout: 15000 }).catch(() => {});
-  ok(await q.locator(".flash-criar").count() === 1 && /feed\.html/.test(q.url()) && !/novoFlash/.test(q.url()), `${pg}: deslizar abre o Flash (${q.url().split("/").pop()})`);
-  await B.browser.close();
+// 6) abas: Diário ← → Explorar (sem recarregar), Comunidade, Mensagens, Perfil; Início não tem gesto
+const B = await navegador({ mobile: true });
+const q = await entrar(B.ctx, "ana", "feed.html");
+q.on("pageerror", (e) => erros.push(`abas: ${e.message}`));
+await q.waitForTimeout(3500);
+const c2 = await B.ctx.newCDPSession(q);
+const t2 = (type, pts) => c2.send("Input.dispatchTouchEvent", { type, touchPoints: pts.map(([x, y], i) => ({ x, y, id: i })) });
+async function lado(para) { // "esq" = dedo para a esquerda (próxima aba), "dir" = volta
+  const [x0, x1] = para === "esq" ? [330, 60] : [60, 330];
+  // altura fora de carrossel (carrossel que ainda rola fica com o gesto)
+  const y = await q.evaluate(([a, b]) => {
+    for (let y = 560; y > 140; y -= 20) {
+      const ok = [a, b].every((x) => { for (let n = document.elementFromPoint(x, y); n && n !== document.body; n = n.parentElement) { const o = getComputedStyle(n).overflowX; if (n.scrollWidth > n.clientWidth + 4 && (o === "auto" || o === "scroll")) return false; } return true; });
+      if (ok) return y;
+    }
+    return 560;
+  }, [x0, (x0 + x1) / 2]);
+  await t2("touchStart", [[x0, y]]);
+  for (let k = 1; k <= 12; k++) { await t2("touchMove", [[x0 + ((x1 - x0) * k) / 12, y + 2]]); await q.waitForTimeout(16); }
+  await t2("touchEnd", []); await q.waitForTimeout(400);
 }
+const atual = () => q.evaluate(() => { const a = [...document.querySelectorAll("#barraRede a")].find((x) => x.getAttribute("aria-current") === "page"); return a?.textContent.trim() || ""; });
+const esperar = async (nome) => { for (let k = 0; k < 40; k++) { if ((await atual()).includes(nome)) return true; await q.waitForTimeout(300); } return false; };
+await lado("esq"); ok(await esperar("Explorar") && /aba=explorar/.test(q.url()), "Diário → para a esquerda abre o Explorar");
+await q.waitForTimeout(1500);
+await lado("dir"); ok(await esperar("Diário") && (await q.locator(".flash-criar").count()) === 0, "Explorar → para a direita volta ao Diário (sem abrir o Flash)");
+await q.waitForTimeout(1000);
+await lado("esq"); await esperar("Explorar"); await q.waitForTimeout(1500);
+await lado("esq"); ok(await esperar("Comunidade") && /mural\.html/.test(q.url()), "Explorar → Comunidade (mural)");
+await q.waitForTimeout(2500);
+await lado("esq"); ok(await esperar("Mensagens") && /mensagens\.html/.test(q.url()), "Comunidade → Mensagens");
+await q.waitForTimeout(2500);
+await lado("esq"); ok(await esperar("Perfil") && /usuarios\.html/.test(q.url()), "Mensagens → Perfil");
+await q.waitForTimeout(3000);
+await lado("esq"); await q.waitForTimeout(1200); ok(/usuarios\.html/.test(q.url()), "Perfil é a última: para a esquerda não faz nada");
+await lado("dir"); ok(await esperar("Mensagens") && /mensagens\.html/.test(q.url()), "Perfil → para a direita volta para Mensagens");
+await q.waitForTimeout(2500);
+// conversa aberta: sem gesto, e o campo de mensagem aparece inteiro na tela
+// conversa aberta pelo link (o mesmo caminho do "Responder" da caixa de perguntas)
+await q.goto(`http://127.0.0.1:5057/mensagens.html?conversa=${CONV}&volta=1`);
+await q.waitForSelector("body.chat-aberto", { timeout: 12000 }).catch(() => {});
+const conv = q.locator("body.chat-aberto");
+if (await conv.count()) {
+  await q.waitForTimeout(1500);
+  const r = await q.evaluate(() => { const b = document.getElementById("rodapeConversa").getBoundingClientRect(); return { b: b.bottom, h: innerHeight, vis: !document.getElementById("rodapeConversa").hidden }; });
+  ok(r.vis && r.b <= r.h + 1, `campo de mensagem dentro da tela (${Math.round(r.b)} de ${r.h})`);
+  const u0 = q.url(); await lado("esq"); await q.waitForTimeout(1000);
+  ok(q.url() === u0, "com a conversa aberta, deslizar não troca de aba");
+} else ok(false, "abrir a conversa");
+await q.goto("http://127.0.0.1:5057/index.html"); await q.waitForTimeout(3000);
+await t2("touchStart", [[60, 560]]);
+for (let k = 1; k <= 12; k++) { await t2("touchMove", [[60 + k * 22, 562]]); await q.waitForTimeout(16); }
+const semInd = (await q.locator(".df-puxar").count()) === 0;
+await t2("touchEnd", []); await q.waitForTimeout(800);
+ok(semInd && (await q.locator(".flash-criar").count()) === 0, "Início: sem gesto");
+await B.browser.close();
 ok(!erros.length, "sem erros na página" + (erros.length ? `: ${erros.join(" | ")}` : ""));
