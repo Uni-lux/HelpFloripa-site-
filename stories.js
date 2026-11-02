@@ -13,7 +13,7 @@ import {
   meusSeguindo, escondido, silenciado, alternarSilenciar, obterPerfil, abrirOpcoes, abrirLista, linhaPessoa, pessoasEmPilha,
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados
-} from "./rede.js?v=94";
+} from "./rede.js?v=95";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { seletorDuracao, fimEscolhido, linhaChave, MAX_FLASH_MIN, fimDaEnquete, encerrada, faltaTexto, resultadoFinal, lerContasEnquete } from "./enquetes.js?v=6";
@@ -684,6 +684,8 @@ const EST_FIG = [
   { fundo: "rgba(10,14,18,.72)", cor: "#ffffff" },
   { fundo: ["#ff8a00", "#ff3d7f"], cor: "#ffffff" }
 ];
+// No 1º estilo (pílula branca), lugar, # e @ têm o texto em degradê (como no Instagram), na tela e na foto.
+const GRAD_FIG = { local: ["#7c5cff", "#00adee"], hashtag: ["#8e2de2", "#ff3d7f"], mencao: ["#ff8a00", "#ff3d7f"] };
 const DIAS_SEM = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
 const MESES_C = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
 function textoFigurinha(fig, local = "") {
@@ -1099,6 +1101,13 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       e.style.color = es.cor;
       e.style.background = Array.isArray(es.fundo) ? `linear-gradient(135deg, ${es.fundo[0]}, ${es.fundo[1]})` : es.fundo;
       e.style.boxShadow = es.borda ? `inset 0 0 0 1.5px ${es.borda}` : "0 4px 14px rgba(0,0,0,.25)";
+      const gr = (t.estilo || 0) === 0 && GRAD_FIG[t.fig];
+      if (gr) {
+        // o 📍 fica com a cor dele (fora do degradê); o resto do texto em degradê
+        const pin = t.texto.startsWith("📍") ? "📍" : "";
+        const sp = el("span", "fig-grad", t.texto.slice(pin.length).trimStart()); sp.style.backgroundImage = `linear-gradient(90deg, ${gr[0]}, ${gr[1]})`;
+        e.replaceChildren(...(pin ? [document.createTextNode(pin + " "), sp] : [sp]));
+      }
       // Menção oculta ou "só na lista": fica apagadinha aqui e NÃO vai desenhada no flash.
       e.classList.toggle("oculta", !!(t.oculta || t.soLista));
       e.title = t.oculta ? "Menção oculta: só o aviso, não aparece no flash" : t.soLista ? "Só na lista de mencionados (não vai desenhada)" : "";
@@ -2112,7 +2121,10 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
         g.beginPath(); (g.roundRect ? g.roundRect(x - lw / 2, y - lh / 2, lw, lh, px * 0.32) : g.rect(x - lw / 2, y - lh / 2, lw, lh)); g.fill();
         g.shadowBlur = 0; g.shadowOffsetY = 0;
         if (es.borda) { g.strokeStyle = es.borda; g.lineWidth = Math.max(2, px * 0.05); g.stroke(); }
-        g.fillStyle = es.cor; g.fillText(t.texto, x, y + px * 0.04);
+        const gr = (t.estilo || 0) === 0 && GRAD_FIG[t.fig];
+        if (gr) { const gg = g.createLinearGradient(x - lw / 2 + px * 0.45, 0, x + lw / 2 - px * 0.45, 0); gg.addColorStop(0, gr[0]); gg.addColorStop(1, gr[1]); g.fillStyle = gg; }
+        else g.fillStyle = es.cor;
+        g.fillText(t.texto, x, y + px * 0.04);
         return;
       }
       g.font = LETRAS[t.letra].css.replace("1em", px + "px");
