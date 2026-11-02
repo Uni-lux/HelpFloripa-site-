@@ -87,9 +87,9 @@ await pa.screenshot({ path: "saida/cx-respostas-nome.png" });
 await pa.locator("#folhaLista [data-fechar]").click(); await pa.waitForTimeout(300);
 // 4) Notificações da Ana
 await pa.goto(pa.url().replace(/feed\.html.*/, "notificacoes.html"));
-await pa.waitForSelector(".nt2-item", { timeout: 30000 }); await pa.waitForTimeout(2500);
+await pa.waitForTimeout(5000);
 const txt = await pa.locator("#listaAvisos").textContent();
-ok(/Anônimo respondeu sua caixa de perguntas/.test(txt) && /Dani.*respondeu sua caixa de perguntas/.test(txt), "notificações: resposta anônima e com nome");
+ok(!/respondeu sua caixa de perguntas/.test(txt), "respostas da caixa NÃO vêm para as notificações (ficam na própria caixa)");
 await pa.screenshot({ path: "saida/cx-notif.png" });
 // 5) Flash com caixa anônima: Bruno responde por cima do flash
 await pa.close();

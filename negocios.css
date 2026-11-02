@@ -464,3 +464,6 @@ a.ng-tipo:hover { border-color: color-mix(in srgb, var(--c) 60%, var(--line)); }
 .lq-qr canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
 .lq-dica { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.45; max-width: 36ch; }
 .lq-aviso { margin: 0; font-size: 12.5px; color: #f59e0b; }
+
+/* avaliações boas novas desde a última visita (saíram do sino) */
+.ng-novas { display: inline-block; margin-top: 3px; padding: 1px 7px; border-radius: 999px; background: #16a34a; color: #fff; font-style: normal; font-size: 10.5px; font-weight: 800; letter-spacing: .02em; }

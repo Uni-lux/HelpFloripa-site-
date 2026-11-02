@@ -8,15 +8,15 @@ import {
   $, el, icone, pintarAvatar, urlSegura, tempoRelativo, toast, erroAmigavel,
   fb, eu, dados, refUsuario, ganchos, iniciarRede, carregarMeusSeguindo, botaoSeguir, montarBarraRede, pintarBarraRede,
   ouvirAvisos, aoMudarAvisos, avisosVistosEm, marcarAvisosVistos, rotuloVinculo, abrirComentarios, abrirResultadoEnquete, verRespostasCaixa
-} from "./rede.js?v=108";
+} from "./rede.js?v=109";
 import { TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=17";
 import { TEXTO_EQUIPE, linkEquipe, seloOficial, fotoSuporte } from "./avisos-equipe.js?v=1";
 import { textoEnqueteFim, resumoResultado } from "./enquetes.js?v=6";
 import { textoPlano } from "./planos-base.js?v=15";
 import { textoMensagens } from "./mensagens-novas.js?v=1";
-import { criarLista } from "./avisos-lista.js?v=17";
+import { criarLista } from "./avisos-lista.js?v=18";
 import { docsPorIds } from "./leituras.js?v=3";
-import { textoFlash } from "./flash-avisos.js?v=2";
+import { textoFlash } from "./flash-avisos.js?v=3";
 
 let vistoAntes = 0, ultimo = null, abriuPedida = false;
 const postsCache = new Map();
@@ -42,20 +42,18 @@ async function responderVinculo(v, aceitar) {
 }
 
 // Os ids seguem os do painel do sino (painel-avisos.js), para "lida" e "removida" valerem nos dois.
+// Mensagens, respostas da caixa e reações em comentários saíram (ficam na página de origem; decidido em 02/11/2026).
 function itens(a) {
   return [
     ...a.seguidores.map((x) => ({ tipo: "seguidor", ...x, docId: x.id, id: "s_" + x.id, texto: "começou a seguir você" })),
     ...a.curtidas.map((x) => ({ tipo: "curtida", ...x, docId: x.id, id: "c_" + x.id, texto: `deu ${x.nota} ${x.nota === 1 ? "estrela" : "estrelas"} na sua publicação` })),
     ...a.comentarios.map((x) => ({ tipo: "comentario", ...x, docId: x.id, id: "m_" + x.id, texto: "comentou na sua publicação", detalhe: x.texto })),
     ...a.respostas.filter((x) => !a.comentarios.some((c) => c.id === x.id)).map((x) => ({ tipo: "resposta", ...x, docId: x.id, id: "r_" + x.id, texto: "respondeu seu comentário", detalhe: x.texto })),
-    ...(a.reacoes || []).map((x) => ({ tipo: "reacao", ...x, docId: x.id, id: "e_" + x.id, texto: `reagiu com ${x.reacao} ao seu comentário` })),
     ...(a.marcacoes || []).map((x) => ({ tipo: "marcacao", ...x, docId: x.id, id: "k_" + x.id, texto: "marcou você numa publicação" })),
     ...(a.republicacoes || []).map((x) => ({ tipo: "republicacao", ...x, docId: x.id, id: "p_" + x.id, texto: "republicou sua publicação" })),
     ...(a.flash || []).map((x) => ({ ...x, texto: textoFlash(x) })),
-    ...(a.caixas || []).map((x) => ({ tipo: "caixa", ...x, docId: x.id, id: "x_" + x.id, texto: "respondeu sua caixa de perguntas", detalhe: x.texto })),
     ...(a.enquetes || []).map((x) => ({ ...x, ...(x.souAutor ? { nome: "Sua enquete" } : {}), texto: x.souAutor ? "terminou. Veja o resultado." : textoEnqueteFim(x).titulo, detalhe: "" })),
     ...a.vinculos.map((x) => ({ tipo: "social", ...x, texto: x.pendente ? `quer adicionar você como ${rotuloVinculo(x.tipoParaMim).toLowerCase()}` : `aceitou seu pedido: ${rotuloVinculo(x.tipoParaMim)}` })),
-    ...a.mensagens.map((x) => ({ tipo: "mensagem", ...x, naoLida: true, texto: textoMensagens(x.n), detalhe: x.ultimaMensagem })),
     ...(a.reclamacoes || []).map((x) => ({ ...x, texto: TEXTO_RECLAMACAO[x.tipo](x) })),
     ...(a.equipe || []).map((x) => ({ ...x, texto: TEXTO_EQUIPE(x), pendente: x.naoLida })),
     ...(a.planos || []).map((x) => ({ ...x, texto: textoPlano(x) }))

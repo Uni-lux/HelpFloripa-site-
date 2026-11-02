@@ -91,7 +91,7 @@ const A2 = await navegador({ mobile: true });
 const pn = await entrar(A2.ctx, "ana", "notificacoes.html");
 await pn.waitForTimeout(4000);
 const txt = await pn.locator("body").innerText();
-ok(/estrela e reagiu com 🔥 ao seu flash|deu uma estrela no seu flash/.test(txt), "Notificações: 'deu uma estrela e reagiu com 🔥 ao seu flash'");
+ok(!/ao seu flash/.test(txt), "estrelas e reações do flash NÃO vêm para as Notificações (ficam na Atividade do flash)");
 await pn.screenshot({ path: "saida/fd-sino.png" });
 
 // ---------- 7) criador: pincel, emoji, hashtag, fundo do texto ----------

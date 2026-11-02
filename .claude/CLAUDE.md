@@ -1437,6 +1437,21 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   — post, perfil, conversa, flash — ficam sozinhos). Proteção anti-embutir das 31 páginas aceita a casca (`hfRede`);
   mensagens/ajuda/suporte: na rede = `na-rede`, não `embutido`. Login/conta dentro do quadro → a página inteira. **Testes:**
   `nav.mjs` grava `hf-sem-rede` (páginas sozinhas, como antes); `navegador({ rede: true })` liga a rede. Teste `t-rede.mjs`.
+- **Sino enxuto (02/11/2026, PR depois do #140, sem regra nova; 6 índices novos, agora 20 na tabela do LEIA-ME):**
+  decidido com ele: FICA no sino = seguidores, estrelas, comentários/respostas, marcações, republicações, resultado de
+  enquete, contagem regressiva que terminou, Social, reclamações, avaliação de você como cliente, plano e suporte/avisos.
+  SAIU (fica só na página de origem) = mensagens (número no ícone do Mensagens continua; categoria "Mensagens" saiu de
+  `CATEGORIAS`), pedidos/orçamentos (cartões no Mensagens), estrelas/reações do Flash (Atividade do flash; `lerReacoesFlash`
+  agora só lê os lembretes de contagem), respostas da caixa (aba "Novas" da caixa), reações em comentários e avaliação boa do
+  negócio (bolinha "N novas" no cartão do Meus negócios: `novasBoas`, `hf-aval-visto-<uid>`, marcado no `pagehide`).
+  `sino-fontes.js` (sem deps): `fontesDoSino`, `lerFonte`/`ouvirFonte` = só as 30 mais novas por fonte (`orderBy criadoEm desc`),
+  e sem o índice (`failed-precondition`) cai na consulta antiga (60 sem ordem); usado em rede.js (ao vivo), painel-avisos.js e
+  categoria.js. **Na rede (rede.html) só UMA aba ouve o sino:** `S.sino` em rede-app.js (`virarDono`, `assinar`, `publicar`,
+  `marcarVistos`, `largar`; a dona sai no `pagehide` e outra assume); rede.js `ouvirAvisos` → dona (`ligarAvisos`,
+  `window.__hfSinoDono`) ou assinante (`__hfSinoRecebido`). Antes: até ~860 documentos por página × 4 abas; agora até ~240 uma
+  vez. Emulador é HTTP/1.1 (6 conexões por endereço, cada aba do Firebase segura 2): a 4ª aba da rede às vezes não conecta no
+  teste — no Firebase de verdade é HTTP/2. Testes `t-sino-enxuto.mjs`, `t-sino` (atualizado), `t-flash-destaques`,
+  `t-correcoes-social` e `t-caixa` (este já parava antes na linha 81, no "Responder" antigo).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
@@ -1536,8 +1551,8 @@ Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) c
 Hoje aguenta dezenas a poucas centenas de pessoas ativas/dia; NÃO está pronto para escala nacional.
 **Só ele (console):** publicar regras (16 partes) + 14 índices; plano Blaze com alerta de orçamento (Spark = 50 mil
 leituras/dia ≈ 70 ativos/dia a ~700 leituras por pessoa); Storage (fotos fora dos documentos, vídeo/Reels); App Check.
-**Eu, sem Blaze (combinado para começar em 02/11/2026, nesta ordem):** 1) sino lendo só o que é novo + decidir com ele o
-que fica no sino e o que fica só na página de origem (lista em andamento); 2) vistas (`marcarVista`) gravadas em lote;
+**Eu, sem Blaze (combinado para começar em 02/11/2026, nesta ordem):** 1) ~~sino lendo só o que é novo + o que fica no sino~~
+(FEITO: "Sino enxuto"); 2) vistas (`marcarVista`) gravadas em lote;
 3) limite de publicações por pessoa no Diário (quem posta muito não toma o espaço); 4) "já vi" guardado na conta.
 **Eu, depois do Blaze:** ranking do Diário no servidor (Cloud Function por cidade/estado, taxa de engajamento por alcance);
 notificações com o app fechado (FCM); TURN para as ligações; contadores no servidor; mapas/endereços com provedor pago

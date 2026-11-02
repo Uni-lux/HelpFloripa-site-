@@ -5,6 +5,7 @@
 // - Categorias: marca a escolhida (a vitrine.js filtra a lista).
 // - Busca: o botão da lupa leva até o campo.
 // =====================================================
+import { fontesDoSino, lerFonte } from "./sino-fontes.js?v=1";
 import { fotoSegura } from "./seguranca.js?v=1";
 import { contarNovas } from "./mensagens-novas.js?v=1";
 import { definirPerfilMenu, definirBadgeMensagens } from "./menu.js?v=18";
@@ -12,7 +13,7 @@ import { buscarReclamacoes } from "./avisos-reclamacoes.js?v=17";
 import { avisoPlano } from "./planos-base.js?v=15";
 import { ouvirItensEquipe } from "./avisos-equipe.js?v=1";
 import { enquetesEncerradas } from "./enquetes.js?v=6";
-import "./painel-avisos.js?v=43"; // o sino abre o painel de notificações na própria página
+import "./painel-avisos.js?v=44"; // o sino abre o painel de notificações na própria página
 import "./chat-gaveta.js?v=4";
 import "./sem-menu-imagem.js?v=1"; // segurar a foto não abre o menu de baixar/compartilhar
 import { docComValidade } from "./leituras.js?v=3"; // "Mensagens" abre as conversas por cima da página, sem sair dela
@@ -56,16 +57,14 @@ async function contarAvisos(fs, db, uid) {
     const visto = ms(usuario.exists() ? usuario.data().notificacoesVistasEm : null);
     const ler = (q) => fs.getDocs(fs.query(...q, fs.limit(60))).then((s) => s.docs.map((d) => d.data())).catch(() => []);
     const col = (n) => fs.collection(db, n);
-    const [seg, curt, com, resp, vin, recl, reac, marc, repub] = await Promise.all([
-      ler([col("relacoes"), fs.where("tipo", "==", "seguir"), fs.where("alvoId", "==", uid)]),
-      ler([col("curtidas"), fs.where("postAutorId", "==", uid)]),
-      ler([col("comentarios"), fs.where("postAutorId", "==", uid)]),
-      ler([col("comentarios"), fs.where("respostaAutorId", "==", uid)]),
+    // Só as 30 mais novas de cada fonte (sino-fontes.js); o que saiu do sino não é mais lido aqui.
+    const F = fontesDoSino(fs, uid);
+    const fonte = (k) => lerFonte(fs, db, F[k]).then((s) => s.docs.map((d) => d.data())).catch(() => []);
+    const [seg, curt, com, resp, vin, recl, marc, repub] = await Promise.all([
+      fonte("seguidores"), fonte("curtidas"), fonte("comentarios"), fonte("respostas"),
       ler([col("vinculos"), fs.where("participantes", "array-contains", uid)]),
-      buscarReclamacoes(fs, db, uid).catch(() => []),
-      ler([col("curtidas_comentarios"), fs.where("comentarioAutorId", "==", uid)]),
-      ler([col("diario"), fs.where("marcados", "array-contains", uid)]),
-      ler([col("republicacoes"), fs.where("postAutorId", "==", uid)])
+      buscarReclamacoes(fs, db, uid).then((l) => l.filter((x) => !(x.tipo === "avaliacao" && !x.cliente))).catch(() => []),
+      fonte("marcacoes"), fonte("republicacoes")
     ]);
     const novo = (t) => t > visto;
     // Preferências de notificação (usuarios.prefNotif): categoria desligada não conta.
@@ -76,7 +75,6 @@ async function contarAvisos(fs, db, uid) {
     if (on("publicacoes")) {
       n += curt.filter((x) => x.uid !== uid && Number(x.nota) > 0 && novo(Math.max(ms(x.criadoEm), ms(x.atualizadoEm)))).length;
       n += [...com, ...resp.filter((r) => r.postAutorId !== uid)].filter((x) => x.autorId !== uid && novo(ms(x.criadoEm))).length;
-      n += reac.filter((x) => x.uid !== uid && novo(ms(x.criadoEm))).length;
       n += marc.filter((x) => x.autorId !== uid && novo(ms(x.criadoEm)) && (x.agendadoPara?.toMillis?.() ?? 0) <= Date.now()).length;
       n += repub.filter((x) => x.uid !== uid && novo(ms(x.criadoEm))).length;
     }
@@ -87,7 +85,6 @@ async function contarAvisos(fs, db, uid) {
       if (plano && novo(plano.quando)) n++;
     }
     if (on("enquetes")) {
-      n += (await ler([col("caixa_respostas"), fs.where("autorId", "==", uid)])).filter((x) => novo(ms(x.criadoEm))).length;
       n += (await enquetesEncerradas(fs, db, uid, usuario.exists() ? usuario.data() : {}).catch(() => [])).filter((x) => novo(x.quando)).length;
     }
     const r = { n, visto, msgs: on("mensagens"), em: Date.now() };

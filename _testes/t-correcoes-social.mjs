@@ -45,8 +45,8 @@ ok(await pb.locator(".story-circ.novo").count() >= 1, "outra conta no mesmo apar
 // ---------- 2) número das Mensagens e sino ----------
 await pb.waitForFunction(() => document.getElementById("badgeMensagens") && !document.getElementById("badgeMensagens").hidden, null, { timeout: 15000 }).catch(() => {});
 ok((await pb.locator("#badgeMensagens").textContent()) === "3", "número das Mensagens = 3 mensagens (não 1 conversa): " + await pb.locator("#badgeMensagens").textContent());
-await pb.goto(BASE + "notificacoes.html"); await pb.waitForSelector(".nt2-item", { timeout: 30000 }); await pb.waitForTimeout(1500);
-ok((await pb.locator("#listaAvisos").textContent()).includes("enviou 3 mensagens"), "notificações: 'enviou 3 mensagens'");
+await pb.goto(BASE + "notificacoes.html"); await pb.waitForTimeout(5000);
+ok(!(await pb.locator("#listaAvisos").textContent()).includes("enviou 3 mensagens"), "mensagens NÃO vêm para as notificações (ficam no número do Mensagens)");
 
 // ---------- 3) gaveta fechada não marca como lida ----------
 await pb.goto(BASE + "index.html"); await pb.waitForFunction(() => typeof window.hfAbrirChat === "function", null, { timeout: 30000 }); await pb.waitForTimeout(1500);

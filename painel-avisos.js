@@ -15,8 +15,9 @@ import { buscarItensEquipe, TEXTO_EQUIPE, linkEquipe } from "./avisos-equipe.js?
 import { enquetesEncerradas, textoEnqueteFim } from "./enquetes.js?v=6";
 import { avisoPlano, textoPlano } from "./planos-base.js?v=15";
 import { docsComValidade, docsPorIds, esquecer } from "./leituras.js?v=3";
-import { lerReacoesFlash, textoFlash } from "./flash-avisos.js?v=2";
-import { criarLista, svg, toastNt, categoriaLigada, categoriaDe } from "./avisos-lista.js?v=17";
+import { lerReacoesFlash, textoFlash } from "./flash-avisos.js?v=3";
+import { fontesDoSino, lerFonte } from "./sino-fontes.js?v=1";
+import { criarLista, svg, toastNt, categoriaLigada, categoriaDe } from "./avisos-lista.js?v=18";
 
 const ms = (ts) => ts?.toMillis?.() ?? (typeof ts === "number" ? ts : 0);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
@@ -65,30 +66,25 @@ async function carregar() {
   const uid = eu.uid;
   const ler = (col, ...f) => fs.getDocs(fs.query(fs.collection(db, col), ...f, fs.limit(60))).then((s) => s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) }))).catch(() => []);
   const usuario = await fs.getDoc(fs.doc(db, "usuarios", uid)).catch(() => null);
-  const [seg, curt, com, resp, vin, conv, recl, equipe, reac, marc, caixas, repub] = await Promise.all([
-    ler("relacoes", fs.where("tipo", "==", "seguir"), fs.where("alvoId", "==", uid)),
-    ler("curtidas", fs.where("postAutorId", "==", uid)),
-    ler("comentarios", fs.where("postAutorId", "==", uid)),
-    ler("comentarios", fs.where("respostaAutorId", "==", uid)),
+  // Só as 30 mais novas de cada fonte (sino-fontes.js). Mensagens, respostas da caixa, reações em comentários e no
+  // Flash e avaliação boa do negócio saíram do sino (ficam na página de origem).
+  const F = fontesDoSino(fs, uid);
+  const fonte = (k) => lerFonte(fs, db, F[k]).then((s) => s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) }))).catch(() => []);
+  const [seg, curt, com, resp, vin, recl, equipe, marc, repub] = await Promise.all([
+    fonte("seguidores"), fonte("curtidas"), fonte("comentarios"), fonte("respostas"),
     ler("vinculos", fs.where("participantes", "array-contains", uid)),
-    ler("conversas", fs.where("participantes", "array-contains", uid)),
-    buscarReclamacoes(fs, db, uid).catch(() => []),
+    buscarReclamacoes(fs, db, uid).then((l) => l.filter((x) => !(x.tipo === "avaliacao" && !x.cliente))).catch(() => []),
     buscarItensEquipe(fs, db, uid, (usuario?.exists() ? usuario.data().suporteLido : null) || {}).catch(() => []),
-    ler("curtidas_comentarios", fs.where("comentarioAutorId", "==", uid)),
-    ler("diario", fs.where("marcados", "array-contains", uid)),
-    ler("caixa_respostas", fs.where("autorId", "==", uid)),
-    ler("republicacoes", fs.where("postAutorId", "==", uid))
+    fonte("marcacoes"), fonte("republicacoes")
   ]);
   const dados = usuario?.exists() ? usuario.data() : {};
   const restritos = new Set(dados.restritos || []);
   const itens = [];
-  caixas.forEach((r) => itens.push({ tipo: "caixa", id: "x_" + r.id, anonima: !!r.anonima, uid: r.anonima ? "" : r.uid, nome: r.anonima ? "Anônimo" : r.nome, foto: r.anonima ? "" : r.foto, detalhe: r.texto, quando: ms(r.criadoEm) }));
   // Enquetes que terminaram (minhas e em que votei)
   (await enquetesEncerradas(fs, db, uid, dados).catch(() => [])).forEach((x) => itens.push({ ...x, ...(x.souAutor ? { nome: "Sua enquete", foto: dados.fotoPerfil || "" } : {}), detalhe: textoEnqueteFim(x).detalhe }));
   seg.forEach((r) => itens.push({ tipo: "seguidor", id: "s_" + r.id, uid: r.seguidorId, quando: ms(r.criadoEm) }));
   curt.filter((c) => c.uid !== uid && Number(c.nota) > 0).forEach((c) => itens.push({ tipo: "curtida", id: "c_" + c.id, uid: c.uid, nota: Number(c.nota), postId: c.postId, quando: Math.max(ms(c.criadoEm), ms(c.atualizadoEm)) }));
   com.filter((c) => c.autorId !== uid).forEach((c) => itens.push({ tipo: "comentario", id: "m_" + c.id, uid: c.autorId, nome: c.nome, foto: c.foto, detalhe: c.texto, postId: c.postId, quando: ms(c.criadoEm) }));
-  reac.filter((r) => r.uid !== uid).forEach((r) => itens.push({ tipo: "reacao", id: "e_" + r.id, uid: r.uid, reacao: r.reacao || "❤️", quando: ms(r.criadoEm) }));
   marc.filter((p) => p.autorId !== uid && (p.agendadoPara?.toMillis?.() ?? 0) <= Date.now()).forEach((p) => itens.push({ tipo: "marcacao", id: "k_" + p.id, uid: p.autorId, postId: p.id, quando: ms(p.criadoEm) }));
   repub.filter((r) => r.uid !== uid).forEach((r) => itens.push({ tipo: "republicacao", id: "p_" + r.id, uid: r.uid, nome: r.nome, postId: r.postId, quando: ms(r.criadoEm) }));
   resp.filter((c) => c.autorId !== uid && c.postAutorId !== uid).forEach((c) => itens.push({ tipo: "resposta", id: "r_" + c.id, uid: c.autorId, nome: c.nome, foto: c.foto, detalhe: c.texto, postId: c.postId, quando: ms(c.criadoEm) }));
@@ -98,14 +94,6 @@ async function carregar() {
     if (pendente && v.para === uid) itens.push({ tipo: "social", id: v.id, vinculoId: v.id, uid: outro, pendente: true, tipoParaMim: v.tipoPara, quando: ms(v.criadoEm) });
     else if (!pendente && v.de === uid) itens.push({ tipo: "social", id: v.id, vinculoId: v.id, uid: outro, pendente: false, tipoParaMim: v.tipoDe, quando: ms(v.aceitoEm) });
   });
-  await Promise.all(conv.map(async (c) => {
-    const outro = (c.participantes || []).find((x) => x !== uid) || uid;
-    const lido = Math.max(ms(c.lidoEm?.[uid]), ms(c.vistoEm?.[uid]), ms(c.ocultaPara?.[uid]));
-    if (c.ultimaMensagemRemetenteId && c.ultimaMensagemRemetenteId !== uid && ms(c.atualizadoEm) > lido) {
-      const n = await contarNovas(fs, db, uid, c);
-      itens.push({ tipo: "mensagem", id: c.id, conversaId: c.id, uid: outro, n, detalhe: c.ultimaMensagem || "", quando: ms(c.atualizadoEm), naoLida: true });
-    }
-  }));
   recl.forEach((x) => itens.push({ ...x }));
   equipe.forEach((x) => itens.push({ ...x }));
   const plano = await avisoPlano({ ...fs, db }, uid).catch(() => null);
