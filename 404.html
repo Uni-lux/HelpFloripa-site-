@@ -13,7 +13,7 @@
       if (m) location.replace("/link.html?n=" + encodeURIComponent(m[1].toLowerCase()) + (m[2] ? "&t=" + m[2].toLowerCase() : ""));
     })();
   </script>
-  <script>if (window.top !== window.self) { document.documentElement.style.display = "none"; try { window.top.location.replace(window.self.location.href); } catch (e) {} }</script>
+  <script>if (window.top !== window.self) { var hfRede = false; try { hfRede = window.top.location.origin === window.location.origin && window.parent === window.top && !!window.top.__hfShell; } catch (e) {} if (!hfRede) { document.documentElement.style.display = "none"; try { window.top.location.replace(window.self.location.href); } catch (e) {} } }</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
   <meta name="robots" content="noindex" />
   <meta name="description" content="A página que você procurou não existe no Help Floripa. Encontre serviços, delivery, lojas e imóveis perto de você." />

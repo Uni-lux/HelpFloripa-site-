@@ -9,8 +9,11 @@
     // Outro site não pode embutir esta página. Dentro do próprio Help Floripa (Ajuda e suporte nas Mensagens) pode.
     if (window.top !== window.self) {
       var mesmoSite = false;
-      try { mesmoSite = window.top.location.origin === window.location.origin; } catch (e) {}
-      if (mesmoSite) document.documentElement.classList.add("embutido");
+      var naRede = false;
+      try { mesmoSite = window.top.location.origin === window.location.origin; naRede = mesmoSite && window.parent === window.top && !!window.top.__hfShell; } catch (e) {}
+      // Aberta dentro da rede numa página só (rede.html): é a página normal, não a versão embutida das Mensagens.
+      if (naRede) {}
+      else if (mesmoSite) document.documentElement.classList.add("embutido");
       else { document.documentElement.style.display = "none"; try { window.top.location.replace(window.self.location.href); } catch (e) {} }
     }
   </script>

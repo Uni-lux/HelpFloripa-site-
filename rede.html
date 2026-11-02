@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <!-- A rede social do Help Floripa numa página só (como os apps grandes): Diário, Explorar, Comunidade, Mensagens e
+       Perfil ficam abertos lado a lado e trocar de aba não recarrega nada. Cada aba é a própria página de sempre
+       (feed.html, mural.html, mensagens.html, usuarios.html) carregada uma vez dentro desta. Código: rede-app.js. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-src 'self'; connect-src 'self' https://www.gstatic.com; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+  <meta name="theme-color" content="#0b1014" />
+  <meta name="robots" content="noindex" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" type="image/png" sizes="96x96" href="favicon-96x96.png" />
+  <link rel="icon" href="favicon.ico" />
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
+  <title>Help Floripa</title>
+  <!-- As páginas das abas conferem isto para saber que estão dentro da rede (e não numa gaveta). -->
+  <script>window.__hfShell = { pronto: false };</script>
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #070b0e; overscroll-behavior: none; }
+    @media (prefers-color-scheme: light) { html, body { background: #f4f6f8; } }
+    .hf-quadro { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; display: block; visibility: hidden; background: transparent; }
+    .hf-quadro.ativo, .hf-quadro.movendo { visibility: visible; }
+    .hf-quadro.movendo { will-change: transform; z-index: 2; }
+    .hf-quadro.ativo { z-index: 1; }
+    .hf-quadro.anima { transition: transform .24s cubic-bezier(.2, .8, .2, 1); }
+    @media (prefers-reduced-motion: reduce) { .hf-quadro.anima { transition: none; } }
+    .hf-carregando { position: fixed; inset: 0; display: grid; place-items: center; color: #8a98a3; font: 600 14px/1.4 system-ui, sans-serif; z-index: 0; }
+  </style>
+</head>
+<body>
+  <div class="hf-carregando" id="carregandoRede">Carregando...</div>
+  <script type="module" src="rede-app.js?v=1"></script>
+</body>
+</html>

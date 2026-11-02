@@ -9,8 +9,11 @@
     // Outro site não pode embutir esta página. Dentro do próprio Help Floripa (painel das mensagens) pode.
     if (window.top !== window.self) {
       var mesmoSite = false;
-      try { mesmoSite = window.top.location.origin === window.location.origin; } catch (e) {}
-      if (mesmoSite) {
+      var naRede = false;
+      try { mesmoSite = window.top.location.origin === window.location.origin; naRede = mesmoSite && window.parent === window.top && !!window.top.__hfShell; } catch (e) {}
+      // Aberta dentro da rede numa página só (rede.html): é a página normal, não a versão embutida das Mensagens.
+      if (naRede) {}
+      else if (mesmoSite) {
         document.documentElement.classList.add("embutido");
         // Dentro das Mensagens a Central de ajuda abre aqui mesmo: o "voltar" volta para o suporte.
         document.addEventListener("DOMContentLoaded", function () { var l = document.getElementById("lnkAjuda"); if (l) l.removeAttribute("target"); });
@@ -47,7 +50,7 @@
   </script>
   <link rel="stylesheet" href="rede.css?v=72" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="suporte.js?v=99"></script>
+  <script type="module" src="suporte.js?v=100"></script>
 </head>
 <body>
   <header class="topo">

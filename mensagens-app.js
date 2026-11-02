@@ -1,7 +1,9 @@
 // Código da página (saiu de dentro do HTML para ficar guardado no aparelho pelo service worker: a página abre mais rápido).
 import "./sem-menu-imagem.js?v=1";
 import { docRapido, docsRapido } from "./rapido.js?v=1";
-import { ligarDeslizarFlash } from "./deslizar-flash.js?v=3";
+import { ligarDeslizarFlash } from "./deslizar-flash.js?v=4";
+import { ligarQuadro } from "./quadro-rede.js?v=1";
+ligarQuadro(); // dentro da rede (rede.html): os itens da barra trocam de aba sem recarregar
 ligarDeslizarFlash(); // deslizar para o lado na lista de conversas troca de aba da barra de baixo
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura, mostrarAvisoEmail } from "./seguranca.js?v=1";
 import { confirmarHF } from "./confirmar.js?v=5";
@@ -4312,7 +4314,7 @@ async function iniciar() {
     if (inicial) {
       // Na gaveta (por cima de outra página, ex.: "Responder" de dentro de um flash), a conversa abre sem passo
       // novo no histórico: um "voltar" fecha a gaveta e a pessoa volta para onde estava.
-      let naGaveta = false; try { naGaveta = window.top !== window.self && window.top.location.origin === location.origin; } catch {}
+      let naGaveta = false; try { naGaveta = window.top !== window.self && window.top.location.origin === location.origin && !document.documentElement.classList.contains("na-rede"); } catch {}
       // Vindo de outra página do site para responder (ex.: caixa de perguntas do flash, &volta=1): também sem passo
       // novo, então UM "voltar" (ou a seta do topo) volta para lá — e o flash reabre.
       const volta = new URLSearchParams(location.search).get("volta") === "1";

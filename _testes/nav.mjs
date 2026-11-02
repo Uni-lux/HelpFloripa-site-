@@ -35,9 +35,12 @@ function cspDeTeste(html) {
   return html.replace(/(<meta http-equiv="Content-Security-Policy" content=")([^"]*)"/, (_, a, c) => a + c.replace("connect-src", `connect-src http://127.0.0.1:${FS} http://127.0.0.1:9099 ws://127.0.0.1:${FS}`).replace(/;\s*upgrade-insecure-requests/, "") + '"');
 }
 // camera: true liga uma câmera de mentira (vídeo de teste do Chromium) já com permissão.
-export async function navegador({ mobile = false, headless = true, csp = process.env.CSP !== "0", camera = false, sw = false } = {}) {
+export async function navegador({ mobile = false, headless = true, csp = process.env.CSP !== "0", camera = false, sw = false, rede = false } = {}) {
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || ["/opt/pw-browsers/chromium-1243/chrome-linux64/chrome", "/opt/pw-browsers/chromium-1194/chrome-linux/chrome"].find((c) => existsSync(c)), headless, args: ["--no-proxy-server", ...(camera ? ["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream"] : [])] });
   const ctx = await browser.newContext({ bypassCSP: !csp, serviceWorkers: sw ? "allow" : "block", ...(mobile ? { viewport: { width: 390, height: 780 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : { viewport: { width: 1280, height: 860 } }), locale: "pt-BR", timezoneId: "America/Sao_Paulo" });
+  // Os testes antigos abrem as páginas sozinhas; a rede numa página só (rede.html) só com { rede: true }.
+  if (!rede) await ctx.addInitScript(() => { try { localStorage.setItem("hf-sem-rede", "1"); } catch {} });
+  else await ctx.addInitScript(() => { try { localStorage.removeItem("hf-sem-rede"); } catch {} });
   if (camera) await ctx.grantPermissions(["camera", "microphone"], { origin: BASE.replace(/\/$/, "") });
   await ctx.route("https://www.gstatic.com/firebasejs/**", (r) => {
     const nome = new URL(r.request().url()).pathname.split("/").pop();
