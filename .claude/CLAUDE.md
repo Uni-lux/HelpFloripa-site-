@@ -1248,6 +1248,21 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   `local` como mapa separado estourava, por isso foi para dentro de `toques`); sem as regras grava sem os campos novos
   (`semCamposNovos`). Galeria: o site abre o seletor do sistema (Android "Fotos"); grade própria só como app instalado.
   Teste `t-flash-mencoes.mjs`.
+- **Flash parte 2 dos prints de 02/11 (mesmo PR #126, sem regra nova):** celular: cartão do criador de ponta a ponta (sem a
+  moldura em degradê, `@media (max-width: 699px)`). **Todo flash começa para todos** (`paraAmigos = false`; a escolha "Quem vê"
+  saiu das Configurações do Flash — ele reclamou que sempre abria em Amigos próximos; a estrela verde vale só para aquele flash).
+  **Pinça e giro** com dois dedos em textos, figurinhas, emojis e fotos por cima (`gesto` + `baseGesto/moverGesto/soltarGesto`;
+  o 2º dedo pode cair fora da figurinha: `pointerdown` em captura no palco; `t.rot` em graus, desenhado com `g.rotate`;
+  `LIMITE_TAM`); enquete/perguntas/link só arrastam. **Figurinhas no modo Texto** (camada à mostra, `desenharCamada` usada por
+  `desenharFoto` e pelo `extra` do `desenharTexto`; publicar texto e foto pelo mesmo caminho, com enquete/caixa/toques).
+  **Fotos** (`bImagens`, `abrirImagens`): trocar o fundo, **foto por cima** (`t.ft`, `lerImagem` reduz, até 4; toque troca a
+  moldura sem/branca/redonda e traz para a frente; lixeira tira) e **modelos com várias fotos** (`MODELOS` 2/2/1+2/3/4/6,
+  `montarModelo` monta 1080×1920 e vira o fundo). **@:** a mesma pessoa não entra duas vezes; cada figurinha de menção tem
+  Na tela | Só na lista (`t.soLista`: não é desenhada, aparece em "Mencionados") | Oculta. Cor da enquete/caixa com **prévia ao
+  vivo** (`previaFig`) e as 7 cores numa fileira. Painel aberto esconde a coluna de botões. Segurar o flash não abre o menu
+  "baixar imagem" (`contextmenu` + `-webkit-touch-callout`). **Visor com teclado** (responder/caixa): o `.story-quadro` fica
+  com o tamanho preso em px enquanto um campo está em uso (`teclado-preso`). Uma enquete e uma caixa por flash (como o
+  Instagram). Teste `t-flash-gestos.mjs` (pinça via CDP com dois toques).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
