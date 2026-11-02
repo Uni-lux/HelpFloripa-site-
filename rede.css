@@ -2758,3 +2758,40 @@ div.cfg2-linha { cursor: default; }
 .cxr-acao:hover { background: color-mix(in srgb, var(--text) 7%, transparent); color: var(--text); }
 .cxr-acao.perigo:hover { color: #ff5a5f; }
 .cxr-lista .cx-responder { margin-top: 2px; }
+
+/* ===== Flash (02/11, parte 2): tela cheia, fotos por cima, modelos, prévia das cores e menções ===== */
+/* Celular: o cartão vai de ponta a ponta (sem a moldura em degradê nem margens), como nos apps de stories. */
+@media (max-width: 699px) {
+  .flash-caixa { padding: 0; }
+  .flash-moldura { padding: 0; border-radius: 0 0 20px 20px; background: none; box-shadow: none; }
+  .flash-palco { height: min(calc(100vw * 16 / 9), calc(100dvh - 76px - env(safe-area-inset-bottom))); border-radius: 0 0 20px 20px; box-shadow: none; }
+}
+/* painel aberto (figurinhas, menções, fotos, enquete...): a coluna de botões e o selo saem de cima */
+.flash-palco:has(> .flash-figs, > .flash-edtxt) > :is(.flash-topo, .flash-repost-selo, .flash-legenda) { visibility: hidden; }
+/* sem o menu "baixar imagem" ao segurar */
+.story-visor img, .flash-criar img, .vv-fita img { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; -webkit-user-drag: none; }
+/* foto por cima */
+.flash-txt.flash-ft { padding: 0; max-width: none; background: none; text-shadow: none; line-height: 0; }
+.flash-ft img { display: block; width: 100%; height: auto; pointer-events: none; border-radius: 3%; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+.flash-ft.ft-1 { padding: 4%; background: #fff; border-radius: 2%; box-shadow: 0 6px 18px rgba(0,0,0,.35); box-sizing: border-box; }
+.flash-ft.ft-1 img { box-shadow: none; }
+.flash-ft.ft-2 { aspect-ratio: 1; border-radius: 50%; overflow: hidden; border: 3px solid #fff; box-shadow: 0 6px 18px rgba(0,0,0,.35); box-sizing: border-box; }
+.flash-ft.ft-2 img { width: 100%; height: 100%; object-fit: cover; border-radius: 0; box-shadow: none; }
+/* modelos com várias fotos */
+.fm-modelos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.fm-modelo { display: grid; justify-items: center; gap: 6px; padding: 10px 6px; border: 1px solid rgba(255,255,255,.18); border-radius: 14px; background: rgba(255,255,255,.06); color: #fff; font: inherit; cursor: pointer; }
+.fm-modelo small { font-size: 11.5px; font-weight: 700; color: rgba(255,255,255,.8); }
+.fm-prev { position: relative; width: 36px; height: 64px; border-radius: 6px; background: rgba(255,255,255,.12); }
+.fm-prev i { position: absolute; box-sizing: border-box; border: 1.5px solid #0b1014; border-radius: 4px; background: linear-gradient(150deg, #00adee, #8e2de2); }
+/* cor da enquete/perguntas: rótulo em cima e bolinhas numa fileira só; prévia ao vivo */
+.fe-cor-fig { display: grid; gap: 8px; }
+.fe-cor-bolas { flex-wrap: nowrap; overflow-x: auto; gap: 9px; padding: 4px 4px 6px; scrollbar-width: none; }
+.fe-cor-bolas::-webkit-scrollbar { display: none; }
+.fe-cor-bola { flex: none; width: 34px; height: 34px; }
+.fe-previa { display: flex; justify-content: center; padding: 6px 0 2px; font-size: 13px; pointer-events: none; }
+.fe-previa .fe-enq { width: min(86%, 300px); }
+/* menção: na tela | só na lista | oculta */
+.fm-bloco { display: grid; gap: 6px; padding-bottom: 6px; }
+.fm-seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 12px; background: rgba(255,255,255,.08); }
+.fm-seg-op { min-height: 36px; border: 0; border-radius: 9px; background: transparent; color: rgba(255,255,255,.75); font: inherit; font-size: 12.5px; font-weight: 800; cursor: pointer; }
+.fm-seg-op.on { background: #fff; color: #0b1014; }

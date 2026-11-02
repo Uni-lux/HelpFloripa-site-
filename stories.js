@@ -13,7 +13,7 @@ import {
   meusSeguindo, escondido, silenciado, alternarSilenciar, obterPerfil, abrirOpcoes, abrirLista, linhaPessoa, pessoasEmPilha,
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados
-} from "./rede.js?v=92";
+} from "./rede.js?v=93";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { seletorDuracao, fimEscolhido, linhaChave, MAX_FLASH_MIN, fimDaEnquete, encerrada, faltaTexto, resultadoFinal, lerContasEnquete } from "./enquetes.js?v=6";
@@ -619,7 +619,7 @@ function textoFigurinha(fig, local = "") {
 }
 
 function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTexto = "" } = {}) {
-  const fundo = el("div", "flash-criar"); fundo.setAttribute("role", "dialog"); fundo.setAttribute("aria-modal", "true"); fundo.setAttribute("aria-label", "Novo flash");
+  const fundo = el("div", "flash-criar"); fundo.addEventListener("contextmenu", (e) => { if (!e.target.closest("input, textarea")) e.preventDefault(); }); fundo.setAttribute("role", "dialog"); fundo.setAttribute("aria-modal", "true"); fundo.setAttribute("aria-label", "Novo flash");
   const caixa = el("div", "flash-caixa");
   const palco = el("div", "flash-palco");
   const midiaBox = el("div", "flash-midia");
@@ -633,7 +633,8 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   const bCfg = el("button", "flash-ferr-btn"); bCfg.type = "button"; bCfg.setAttribute("aria-label", "Configurações do Flash"); bCfg.title = "Configurações"; bCfg.appendChild(icone("config", "i s"));
   // Amigos próximos (como no Instagram, escolhido em cada flash): estrela verde acesa = só para a sua lista.
   // Começa como está nas Configurações do Flash.
-  let paraAmigos = configFlash().publico === "amigos";
+  // Todo flash começa para todos (como no Instagram); a estrela verde escolhe os Amigos próximos só para este.
+  let paraAmigos = false;
   const bAmigos = el("button", "flash-ferr-btn flash-amigos"); bAmigos.type = "button";
   bAmigos.innerHTML = '<svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.8l2.5 5.2 5.7.8-4.1 4 1 5.6L12 16.7l-5.1 2.7 1-5.6-4.1-4 5.7-.8z" fill="currentColor"/></svg>';
   const pintarAmigos = () => {
@@ -775,6 +776,8 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   const bAa = el("button", "flash-ferr-btn letra", "Aa"); bAa.type = "button"; bAa.title = "Escrever na foto"; bAa.setAttribute("aria-label", "Escrever na foto");
   const bTrocar = el("button", "flash-ferr-btn"); bTrocar.type = "button"; bTrocar.setAttribute("aria-label", "Trocar a foto"); bTrocar.title = "Trocar"; bTrocar.appendChild(icone("imagem", "i s"));
   const bFig = el("button", "flash-ferr-btn"); bFig.type = "button"; bFig.setAttribute("aria-label", "Figurinhas: horário, data e localização"); bFig.title = "Figurinhas"; bFig.appendChild(icone("figurinha", "i s"));
+  // Fotos: trocar o fundo, foto por cima (mexe com os dedos, moldura e ordem) e modelos com várias fotos.
+  const bImagens = el("button", "flash-ferr-btn"); bImagens.type = "button"; bImagens.setAttribute("aria-label", "Fotos: trocar o fundo, foto por cima ou modelo com várias fotos"); bImagens.title = "Fotos"; bImagens.appendChild(icone("imagem", "i s"));
   // Menções (@): o número mostra quantas pessoas estão mencionadas (figurinha, texto ou só aviso).
   const bArroba = el("button", "flash-ferr-btn flash-arroba"); bArroba.type = "button"; bArroba.title = "Menções"; bArroba.setAttribute("aria-label", "Menções");
   const contaArroba = el("b", "flash-onde-n"); contaArroba.hidden = true;
@@ -810,14 +813,14 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     const n = area.value.length;
     area.style.fontSize = (n < 40 ? 34 : n < 90 ? 27 : n < 150 ? 22 : 19) + "px";
   };
-  const prontoParaPublicar = () => (modo === "texto" ? !!area.value.trim() : !!(foto || video));
+  const prontoParaPublicar = () => (modo === "texto" ? !!area.value.trim() || textos.length > 0 : !!(foto || video));
   function pintar() {
     mTexto.setAttribute("aria-selected", String(modo === "texto")); mFoto.setAttribute("aria-selected", String(modo === "foto"));
     ferramentas.replaceChildren();
     midiaBox.replaceChildren();
     palco.style.background = "";
     palco.classList.toggle("modo-texto", modo === "texto");
-    camada.hidden = modo !== "foto";
+    camada.hidden = !(modo === "texto" || foto);
     legenda.remove(); if (modo !== "texto") area.remove(); escolher.remove(); camUI.remove(); contagemCam.remove(); tiraFiltros.remove();
     if (modo === "texto" && cam) pararCamera();
     if (modo === "texto") {
@@ -830,7 +833,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       area.classList.toggle("neon", L.sombra);
       bLetra.style.font = L.css.replace("1em", "15px");
       if (!area.isConnected) palco.appendChild(area);
-      ferramentas.append(bLetra, bFundo, bArroba);
+      ferramentas.append(bLetra, bFundo, bFig, bArroba, bPincel, bImagens);
       if (meusNeg.length) ferramentas.append(bOnde);
       if (document.activeElement !== area) setTimeout(() => area.focus(), 60);
     } else if (cam) {
@@ -846,7 +849,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     } else if (foto || video) {
       if (foto) {
         midiaBox.appendChild(fotoBox); posicionar(); pintarFiltroNaTela();
-        ferramentas.append(bAa, bFig, bArroba, bPincel, bFiltros, bTrocar);
+        ferramentas.append(bAa, bFig, bArroba, bPincel, bFiltros, bImagens);
         if (meusNeg.length) ferramentas.prepend(bOnde);
         bFiltros.classList.toggle("on", filtrosAbertos);
         if (filtrosAbertos) { pintarTira(); palco.appendChild(tiraFiltros); }
@@ -878,6 +881,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   bFiltros.addEventListener("click", () => { filtrosAbertos = !filtrosAbertos; pintar(); });
   bGal.addEventListener("click", () => escolherArquivo(false));
   bTrocar.addEventListener("click", () => escolherArquivo(false));
+  bImagens.addEventListener("click", () => abrirImagens());
   bAa.addEventListener("click", () => editarTexto(null));
   bCfg.addEventListener("click", () => { abrirConfigFlash(); const f = $("folhaLista"); const volta = () => { f?.removeEventListener("fechada", volta); setTimeout(() => { if (fundo.isConnected && paraAmigos && !configFlash().amigos.length) { paraAmigos = false; pintarAmigos(); } }, 50); }; f?.addEventListener("fechada", volta); });
   bFig.addEventListener("click", () => abrirFigurinhas());
@@ -965,8 +969,17 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   function pintarTexto(t) {
     const { W } = medidas();
     const e = t.el;
-    e.textContent = t.texto;
     e.style.left = t.x * 100 + "%"; e.style.top = t.y * 100 + "%";
+    // Giro (dois dedos, como no Instagram): só nos textos, figurinhas, emojis e fotos por cima.
+    e.style.transform = `translate(-50%, -50%)${t.rot ? ` rotate(${t.rot}deg)` : ""}`;
+    if (t.ft) {
+      // Foto por cima: largura = tam × cartão; toque troca a moldura (sem, branca, redonda) e traz para a frente.
+      e.className = `flash-txt flash-ft ft-${t.estilo || 0}`;
+      e.style.width = Math.round(t.tam * W) + "px";
+      if (!e.firstChild) { const im = t.img.cloneNode(); im.draggable = false; im.alt = ""; e.appendChild(im); }
+      return;
+    }
+    e.textContent = t.texto;
     if (t.lk) {
       // Prévia do link para o perfil de negócio (quem vê toca e vai para o perfil).
       e.className = "flash-txt flash-link";
@@ -1003,9 +1016,9 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       e.style.color = es.cor;
       e.style.background = Array.isArray(es.fundo) ? `linear-gradient(135deg, ${es.fundo[0]}, ${es.fundo[1]})` : es.fundo;
       e.style.boxShadow = es.borda ? `inset 0 0 0 1.5px ${es.borda}` : "0 4px 14px rgba(0,0,0,.25)";
-      // Menção oculta: fica apagadinha aqui e NÃO vai desenhada no flash (a pessoa só recebe o aviso).
-      e.classList.toggle("oculta", !!t.oculta);
-      if (t.oculta) e.title = "Menção oculta: não aparece no flash";
+      // Menção oculta ou "só na lista": fica apagadinha aqui e NÃO vai desenhada no flash.
+      e.classList.toggle("oculta", !!(t.oculta || t.soLista));
+      e.title = t.oculta ? "Menção oculta: só o aviso, não aparece no flash" : t.soLista ? "Só na lista de mencionados (não vai desenhada)" : "";
       return;
     }
     e.style.font = LETRAS[t.letra].css.replace("1em", Math.round(t.tam * W) + "px");
@@ -1015,32 +1028,169 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     e.classList.toggle("destaque", !!(t.destaque || t.vidro));
     e.classList.toggle("neon", LETRAS[t.letra].sombra && !t.destaque && !t.vidro);
   }
-  function criarTexto(t) {
-    const e = el("div", "flash-txt"); e.setAttribute("role", "button"); e.tabIndex = 0; e.setAttribute("aria-label", "Texto na foto: toque para editar, arraste para mover");
-    t.el = e; textos.push(t); camada.appendChild(e); pintarTexto(t);
-    let p0 = null, mexeu = false;
-    e.addEventListener("pointerdown", (ev) => { ev.stopPropagation(); e.setPointerCapture(ev.pointerId); p0 = { x: ev.clientX, y: ev.clientY, tx: t.x, ty: t.y }; mexeu = false; });
-    e.addEventListener("pointermove", (ev) => {
-      if (!p0) return;
-      const { W, H } = medidas();
-      const dx = ev.clientX - p0.x, dy = ev.clientY - p0.y;
-      if (!mexeu && Math.hypot(dx, dy) < 5) return;
-      if (!mexeu) { mexeu = true; palco.classList.add("arrastando-txt"); }
-      t.x = Math.min(0.98, Math.max(0.02, p0.tx + dx / W)); t.y = Math.min(0.98, Math.max(0.02, p0.ty + dy / H));
-      const nx = Math.abs(t.x - 0.5) < 0.015; if (nx) t.x = 0.5;
-      guias.querySelector(".v").classList.toggle("on", nx);
-      const rl = lixo.getBoundingClientRect();
-      lixo.classList.toggle("sobre", ev.clientY > rl.top - 20 && Math.abs(ev.clientX - (rl.left + rl.width / 2)) < 70);
-      pintarTexto(t);
-    });
-    const fim = (ev) => {
-      if (!p0) return;
-      p0 = null; palco.classList.remove("arrastando-txt"); guias.querySelector(".v").classList.remove("on");
-      if (lixo.classList.contains("sobre")) { lixo.classList.remove("sobre"); e.remove(); textos.splice(textos.indexOf(t), 1); navigator.vibrate?.(12); pintarArroba(); return; }
-      if (!mexeu && ev.type === "pointerup") { if (t.enq) editarEnquete(t); else if (t.cx) editarCaixa(t); else if (t.lk) escolherNegocio(t); else if (t.fig) { t.estilo = (t.estilo + 1) % EST_FIG.length; pintarTexto(t); } else if (t.emoji) { t.tam = t.tam >= 0.26 ? 0.1 : +(t.tam + 0.06).toFixed(3); pintarTexto(t); } else editarTexto(t); }
+  // ---------- fotos: fundo, por cima e modelos ----------
+  // Modelos (colagem): células em fração do cartão 9:16; a montagem vira a foto de fundo (dá para pôr figurinhas depois).
+  const MODELOS = [
+    ["duas-v", "2 empilhadas", [[0, 0, 1, 0.5], [0, 0.5, 1, 0.5]]],
+    ["duas-h", "2 lado a lado", [[0, 0, 0.5, 1], [0.5, 0, 0.5, 1]]],
+    ["tres", "1 + 2", [[0, 0, 1, 0.5], [0, 0.5, 0.5, 0.5], [0.5, 0.5, 0.5, 0.5]]],
+    ["tres-v", "3 faixas", [[0, 0, 1, 1 / 3], [0, 1 / 3, 1, 1 / 3], [0, 2 / 3, 1, 1 / 3]]],
+    ["quatro", "4 (2 × 2)", [[0, 0, 0.5, 0.5], [0.5, 0, 0.5, 0.5], [0, 0.5, 0.5, 0.5], [0.5, 0.5, 0.5, 0.5]]],
+    ["seis", "6 (2 × 3)", [0, 1, 2].flatMap((r) => [[0, r / 3, 0.5, 1 / 3], [0.5, r / 3, 0.5, 1 / 3]])]
+  ];
+  const lerImagem = (arq, max = 1600) => new Promise((ok, erro) => {
+    const u = URL.createObjectURL(arq), im = new Image();
+    im.onload = () => {
+      const k = Math.min(1, max / Math.max(im.naturalWidth, im.naturalHeight));
+      const c = document.createElement("canvas"); c.width = Math.round(im.naturalWidth * k); c.height = Math.round(im.naturalHeight * k);
+      c.getContext("2d").drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(u);
+      const r = new Image(); r.onload = () => ok(r); r.onerror = erro; r.src = c.toDataURL("image/jpeg", 0.88);
     };
-    e.addEventListener("pointerup", fim);
-    e.addEventListener("pointercancel", fim);
+    im.onerror = () => { URL.revokeObjectURL(u); erro(new Error("Não foi possível abrir esta foto.")); };
+    im.src = u;
+  });
+  function pedirFotos(max, aoEscolher) {
+    const inp = document.createElement("input"); inp.type = "file"; inp.accept = "image/*"; inp.multiple = max > 1;
+    inp.addEventListener("change", async () => {
+      const arqs = [...(inp.files || [])].filter((f) => f.type.startsWith("image/"));
+      if (!arqs.length) return;
+      if (arqs.length > max) toast(`Usei as ${max} primeiras fotos.`);
+      try { aoEscolher(await Promise.all(arqs.slice(0, max).map((f) => lerImagem(f, max > 1 ? 1400 : 1000)))); }
+      catch (e) { toast(erroAmigavel(e)); }
+    });
+    inp.click();
+  }
+  function abrirImagens() {
+    palco.querySelector(".flash-figs")?.remove();
+    const pn = el("div", "flash-figs flash-imagens");
+    const cab = el("div", "fe-cab"); const ok = el("button", "fe-pronto", "Fechar"); ok.type = "button";
+    cab.append(el("strong", "figs-tit", "Fotos"), el("span", "esp"), ok);
+    ok.addEventListener("click", () => pn.remove());
+    const corpo = el("div", "mencao-corpo");
+    const grade = el("div", "figs-grade");
+    const pilula = (ic, rot, cor, fn, extra = "") => {
+      const b = el("button", "fig-op fig-pilula"); b.type = "button"; b.style.setProperty("--fc", cor);
+      b.append(icone(ic, "i s"), el("span", null, rot)); if (extra) b.appendChild(el("small", null, extra));
+      b.addEventListener("click", fn); grade.appendChild(b); return b;
+    };
+    if (modo === "foto" && (foto || video)) pilula("imagem", "Trocar o fundo", "#00adee", () => { pn.remove(); escolherArquivo(false); });
+    pilula("fotos", "Foto por cima", "#ff3d7f", () => { pn.remove(); pedirFotos(4, (l) => l.forEach((im, i) => criarTexto({ ft: true, img: im, texto: "", x: 0.5 + i * 0.05, y: 0.42 + i * 0.05, tam: 0.55, estilo: 1, rot: i ? (i % 2 ? 4 : -4) : 0, letra: 0, cor: "#fff", destaque: false }))); }, "até 4");
+    const mods = el("div", "fm-modelos");
+    MODELOS.forEach(([k, nome, cels]) => {
+      const b = el("button", "fm-modelo"); b.type = "button"; b.setAttribute("aria-label", `Modelo ${nome}`);
+      const pv = el("span", "fm-prev");
+      cels.forEach(([x, y, w, h]) => { const c = el("i"); c.style.left = x * 100 + "%"; c.style.top = y * 100 + "%"; c.style.width = w * 100 + "%"; c.style.height = h * 100 + "%"; pv.appendChild(c); });
+      b.append(pv, el("small", null, nome));
+      b.addEventListener("click", () => { pn.remove(); pedirFotos(cels.length, (l) => montarModelo(cels, l)); });
+      mods.appendChild(b);
+    });
+    corpo.append(grade, el("p", "figs-sec", "Modelo com várias fotos"), mods,
+      el("p", "figs-dica", "Foto por cima: arraste, use dois dedos para aumentar e girar, toque para trocar a moldura (e trazer para a frente) e arraste até a lixeira para tirar."));
+    pn.append(cab, corpo);
+    palco.appendChild(pn);
+  }
+  async function montarModelo(cels, fotos) {
+    const OW = 1080, OH = 1920, gap = 10;
+    const c = document.createElement("canvas"); c.width = OW; c.height = OH;
+    const g = c.getContext("2d");
+    g.fillStyle = "#0b0f13"; g.fillRect(0, 0, OW, OH);
+    cels.forEach(([x, y, w, h], i) => {
+      const cx = x * OW + gap / 2, cy = y * OH + gap / 2, cw = w * OW - gap, ch = h * OH - gap;
+      const im = fotos[i % fotos.length];
+      if (!im) return;
+      const k = Math.max(cw / im.naturalWidth, ch / im.naturalHeight), iw = im.naturalWidth * k, ih = im.naturalHeight * k;
+      g.save(); g.beginPath(); (g.roundRect ? g.roundRect(cx, cy, cw, ch, 14) : g.rect(cx, cy, cw, ch)); g.clip();
+      g.drawImage(im, cx + (cw - iw) / 2, cy + (ch - ih) / 2, iw, ih);
+      g.restore();
+    });
+    if (fotos.length < cels.length) toast(`O modelo tem ${cels.length} lugares: repeti as fotos para completar.`);
+    const blob = await new Promise((ok) => c.toBlob(ok, "image/jpeg", 0.9));
+    if (!blob) return;
+    pararCamera();
+    await usarFoto(URL.createObjectURL(blob));
+  }
+
+  // ---------- figurinhas: arrastar, pinça (aumentar/diminuir) e girar ----------
+  // Um dedo arrasta (e leva até a lixeira); dois dedos (o 2º pode cair fora da figurinha) aumentam, diminuem e giram,
+  // como no Instagram. Enquete, perguntas e link do negócio só arrastam (no visor eles têm tamanho fixo).
+  const LIMITE_TAM = (t) => (t.ft ? [0.15, 1.3] : t.emoji ? [0.05, 0.5] : t.fig ? [0.03, 0.22] : [0.03, 0.3]);
+  const giraEsse = (t) => !(t.enq || t.cx || t.lk);
+  const gesto = { t: null, pts: new Map(), base: null, mexeu: false, dois: false };
+  const ptsArr = () => [...gesto.pts.values()];
+  function baseGesto() {
+    const t = gesto.t, l = ptsArr();
+    if (l.length >= 2 && giraEsse(t)) {
+      const [a, b] = l;
+      gesto.base = { dois: true, d: Math.hypot(a.x - b.x, a.y - b.y) || 1, ang: Math.atan2(b.y - a.y, b.x - a.x), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2, tam: t.tam, rot: t.rot || 0, tx: t.x, ty: t.y };
+      gesto.dois = true;
+    } else if (l.length) gesto.base = { dois: false, x: l[0].x, y: l[0].y, tx: t.x, ty: t.y };
+  }
+  function soltarGesto(ev) {
+    if (!gesto.t || !gesto.pts.has(ev.pointerId)) return;
+    gesto.pts.delete(ev.pointerId);
+    if (gesto.pts.size) { baseGesto(); return; }
+    const t = gesto.t, mexeu = gesto.mexeu, foiDois = gesto.dois;
+    gesto.t = null; gesto.base = null; gesto.mexeu = false; gesto.dois = false;
+    palco.classList.remove("arrastando-txt"); guias.querySelectorAll(".on").forEach((g) => g.classList.remove("on"));
+    if (lixo.classList.contains("sobre")) { lixo.classList.remove("sobre"); t.el.remove(); textos.splice(textos.indexOf(t), 1); navigator.vibrate?.(12); pintarArroba(); return; }
+    if (mexeu || foiDois || ev.type !== "pointerup") return;
+    // toque parado
+    if (t.enq) editarEnquete(t); else if (t.cx) editarCaixa(t); else if (t.lk) escolherNegocio(t);
+    else if (t.ft) { t.estilo = ((t.estilo || 0) + 1) % 3; camada.appendChild(t.el); textos.push(textos.splice(textos.indexOf(t), 1)[0]); t.el.replaceChildren(); pintarTexto(t); }
+    else if (t.fig) { t.estilo = (t.estilo + 1) % EST_FIG.length; pintarTexto(t); }
+    else if (t.emoji) { t.tam = t.tam >= 0.26 ? 0.1 : +(t.tam + 0.06).toFixed(3); pintarTexto(t); }
+    else editarTexto(t);
+  }
+  // 2º dedo em qualquer lugar do cartão enquanto uma figurinha está segura: entra no gesto (não mexe na foto de fundo).
+  palco.addEventListener("pointerdown", (ev) => {
+    if (!gesto.t || gesto.pts.has(ev.pointerId) || gesto.pts.size >= 2) return;
+    ev.stopPropagation(); ev.preventDefault();
+    gesto.pts.set(ev.pointerId, { x: ev.clientX, y: ev.clientY }); baseGesto();
+  }, true);
+  const moverGesto = (ev) => {
+    if (!gesto.t || !gesto.pts.has(ev.pointerId)) return;
+    gesto.pts.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    const t = gesto.t, b = gesto.base; if (!b) return;
+    const { W, H } = medidas();
+    if (b.dois && gesto.pts.size >= 2) {
+      const [p1, p2] = ptsArr();
+      const d = Math.hypot(p1.x - p2.x, p1.y - p2.y), ang = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+      const [mn, mx] = LIMITE_TAM(t);
+      t.tam = Math.min(mx, Math.max(mn, b.tam * (d / b.d)));
+      let r = b.rot + ((ang - b.ang) * 180) / Math.PI;
+      r = ((r + 540) % 360) - 180;
+      if (Math.abs(r) < 4) r = 0; // encaixa reto
+      t.rot = Math.round(r * 10) / 10;
+      t.x = Math.min(0.98, Math.max(0.02, b.tx + ((p1.x + p2.x) / 2 - b.mx) / W));
+      t.y = Math.min(0.98, Math.max(0.02, b.ty + ((p1.y + p2.y) / 2 - b.my) / H));
+      gesto.mexeu = true; palco.classList.add("arrastando-txt");
+      pintarTexto(t);
+      return;
+    }
+    if (b.dois) return;
+    const dx = ev.clientX - b.x, dy = ev.clientY - b.y;
+    if (!gesto.mexeu && Math.hypot(dx, dy) < 5) return;
+    if (!gesto.mexeu) { gesto.mexeu = true; palco.classList.add("arrastando-txt"); }
+    t.x = Math.min(0.98, Math.max(0.02, b.tx + dx / W)); t.y = Math.min(0.98, Math.max(0.02, b.ty + dy / H));
+    const nx = Math.abs(t.x - 0.5) < 0.015; if (nx) t.x = 0.5;
+    guias.querySelector(".v").classList.toggle("on", nx);
+    const rl = lixo.getBoundingClientRect();
+    lixo.classList.toggle("sobre", ev.clientY > rl.top - 20 && Math.abs(ev.clientX - (rl.left + rl.width / 2)) < 70);
+    pintarTexto(t);
+  };
+  window.addEventListener("pointermove", moverGesto);
+  window.addEventListener("pointerup", soltarGesto);
+  window.addEventListener("pointercancel", soltarGesto);
+  function criarTexto(t) {
+    const e = el("div", "flash-txt"); e.setAttribute("role", "button"); e.tabIndex = 0;
+    e.setAttribute("aria-label", t.ft ? "Foto por cima: arraste para mover, dois dedos para aumentar ou girar, toque para trocar a moldura" : "Texto na foto: toque para editar, arraste para mover, dois dedos para aumentar ou girar");
+    t.el = e; textos.push(t); camada.appendChild(e); pintarTexto(t);
+    publicar.disabled = !prontoParaPublicar() || enviando;
+    e.addEventListener("pointerdown", (ev) => {
+      ev.stopPropagation(); ev.preventDefault();
+      if (gesto.t && gesto.t !== t) return;
+      gesto.t = t; gesto.pts.set(ev.pointerId, { x: ev.clientX, y: ev.clientY }); baseGesto();
+    });
     e.addEventListener("keydown", (ev) => { if (ev.key === "Enter") editarTexto(t); });
   }
   // Painel de figurinhas: Horário, Data e Localização (a do perfil; dá para mudar).
@@ -1101,6 +1251,11 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     }
   }
   function colocarFig(fig, texto, extra = {}) {
+    // A mesma pessoa não é mencionada duas vezes (se estava oculta, vira figurinha).
+    if (fig === "mencao" && extra.uid) {
+      if (figMencoes().some((t) => t.uid === extra.uid)) { toast(`${texto} já está mencionado neste flash.`); return; }
+      avisos.delete(extra.uid);
+    }
     const y = 0.22 + (textos.filter((t) => t.fig).length % 4) * 0.1;
     criarTexto({ fig, texto, estilo: 0, x: 0.5, y, tam: fig === "hora" ? 0.11 : 0.055, letra: 0, cor: "#fff", destaque: false, ...extra });
     pintarArroba();
@@ -1141,7 +1296,11 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     // Duração: no flash vai até 24 h (acaba junto com ele).
     const duracao = { ...(t?.duracao || { dur: 1440 }) };
     const extras = { anonima: !!t?.anonima, cor: t?.cor || "branco" };
-    box.append(perg, lista, seletorCor(extras), linhaChave(extras, "anonima", { titulo: "Votação anônima", sub: "Ninguém vê quem votou, nem você", escuro: true }), seletorDuracao(duracao, { maxMin: MAX_FLASH_MIN, escuro: true }));
+    const previa = previaFig("enq", () => ({ cor: extras.cor, pergunta: perg.value.trim(), opcoes: ops }));
+    perg.addEventListener("input", () => previa.pintar());
+    lista.addEventListener("input", () => previa.pintar());
+    lista.addEventListener("click", () => setTimeout(() => previa.pintar(), 0)); // tirar/pôr opção
+    box.append(perg, lista, seletorCor(extras, () => previa.pintar()), previa, linhaChave(extras, "anonima", { titulo: "Votação anônima", sub: "Ninguém vê quem votou, nem você", escuro: true }), seletorDuracao(duracao, { maxMin: MAX_FLASH_MIN, escuro: true }));
     pn.append(cab, box);
     palco.appendChild(pn);
     setTimeout(() => perg.focus(), 50);
@@ -1155,18 +1314,36 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     });
   }
   // Cor da enquete / caixa de perguntas (bolinhas; a escolhida fica com o anel).
-  function seletorCor(estado) {
+  function seletorCor(estado, aoMudar) {
     const w = el("div", "fe-cor-fig"); w.setAttribute("role", "radiogroup"); w.setAttribute("aria-label", "Cor");
     const rot = el("span", "fe-cor-rot", "Cor");
     const bolas = el("div", "fe-cor-bolas");
     const pintarB = () => [...bolas.children].forEach((b) => { const on = b.dataset.cor === estado.cor; b.classList.toggle("on", on); b.setAttribute("aria-checked", String(on)); });
     CORES_FIG.forEach(([k, nome]) => {
       const b = el("button", "fe-cor-bola tema-" + k); b.type = "button"; b.dataset.cor = k; b.setAttribute("role", "radio"); b.setAttribute("aria-label", nome); b.title = nome;
-      b.addEventListener("click", () => { estado.cor = k; pintarB(); });
+      b.addEventListener("click", () => { estado.cor = k; pintarB(); aoMudar?.(); });
       bolas.appendChild(b);
     });
     pintarB();
     w.append(rot, bolas);
+    return w;
+  }
+  // Prévia ao vivo (cor, pergunta e opções) dentro do editor: muda na hora em que toca na cor.
+  function previaFig(tipo, ler) {
+    const w = el("div", "fe-previa"); w.setAttribute("aria-hidden", "true");
+    const pintarP = () => {
+      const d = ler();
+      const card = el("div", "fe-enq" + (tipo === "cx" ? " fe-cx" : "") + temaFig(d.cor));
+      if (tipo === "cx") {
+        const cab = el("small", "fe-cx-cab"); cab.append(icone(d.anonima ? "mascara" : "caixa", "i xs"), document.createTextNode(d.anonima ? "PERGUNTAS · ANÔNIMA" : "PERGUNTAS"));
+        card.append(cab, el("strong", null, d.pergunta || "Me faça uma pergunta"), el("span", "fe-cx-campo", "Escreva aqui..."));
+      } else {
+        card.appendChild(el("strong", null, d.pergunta || "Sua pergunta"));
+        (d.opcoes.filter((o) => o.trim()).length ? d.opcoes.filter((o) => o.trim()) : ["Opção 1", "Opção 2"]).forEach((o) => card.appendChild(el("span", null, o)));
+      }
+      w.replaceChildren(card);
+    };
+    w.pintar = pintarP; pintarP();
     return w;
   }
   // Caixa de perguntas no flash: o texto e se as respostas são anônimas (quem vê responde por cima do flash).
@@ -1178,8 +1355,10 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     const box = el("div", "enq-ed");
     const perg = el("input", "enq-ed-perg"); perg.type = "text"; perg.maxLength = 120; perg.placeholder = "Me faça uma pergunta"; perg.value = t?.pergunta || "Me faça uma pergunta";
     const estado = { anonima: !!t?.anonima, cor: t?.tema || "branco" };
-    box.append(perg, el("small", "enq-ed-dica", "Quem vê o flash escreve a resposta numa caixa de texto. As respostas chegam só para você."), seletorCor(estado),
-      linhaChave(estado, "anonima", { titulo: "Respostas anônimas", sub: "Você não vê quem respondeu", escuro: true }));
+    const previa = previaFig("cx", () => ({ cor: estado.cor, pergunta: perg.value.trim(), anonima: estado.anonima }));
+    perg.addEventListener("input", () => previa.pintar());
+    box.append(perg, el("small", "enq-ed-dica", "Quem vê o flash escreve a resposta numa caixa de texto. As respostas chegam só para você."), seletorCor(estado, () => previa.pintar()), previa,
+      linhaChave(estado, "anonima", { titulo: "Respostas anônimas", sub: "Você não vê quem respondeu", escuro: true, aoMudar: () => previa.pintar() }));
     pn.append(cab, box);
     palco.appendChild(pn);
     setTimeout(() => perg.select(), 50);
@@ -1277,6 +1456,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   const figMencoes = () => textos.filter((t) => t.fig === "mencao" && t.uid);
   const totalMencoes = () => new Set([...figMencoes().map((t) => t.uid), ...nicksNoTexto().map((n) => nickUid.get(n) || "@" + n), ...avisos.keys()]).size;
   function pintarArroba() {
+    publicar.disabled = !prontoParaPublicar() || enviando;
     const n = totalMencoes();
     contaArroba.textContent = String(n); contaArroba.hidden = !n;
     bArroba.classList.toggle("on", n > 0);
@@ -1331,6 +1511,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       campo.dispatchEvent(new Event("input", { bubbles: true }));
     };
     usar.addEventListener("click", async () => {
+      if (figMencoes().some((t) => t.uid === p.uid)) { toast(`@${p.nickname} já está mencionado (figurinha).`); trocarToken(""); esconderArroba(); return; }
       if (!nickUid.has(p.nickname) && !(await podeEsta(p))) return;
       nickUid.set(p.nickname, p.uid); lembrarM(p.uid); trocarToken("@" + p.nickname + " "); esconderArroba(); pintarArroba();
     });
@@ -1368,7 +1549,8 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
         oc.append(icone("olho-off", "i xs"));
         if (avisos.has(p.uid)) oc.classList.add("on");
         b.addEventListener("click", async () => {
-          if (!(await podeEsta(p))) return;
+          if (figMencoes().some((t) => t.uid === p.uid) || (modo === "texto" && nicksNoTexto().includes(p.nickname))) { toast(`@${p.nickname} já está mencionado neste flash.`); return; }
+          if (!avisos.has(p.uid) && !(await podeEsta(p))) return;
           pn.remove(); lembrarM(p.uid); nickUid.set(p.nickname, p.uid);
           if (modo === "texto") {
             area.value = (area.value.trimEnd() + " @" + p.nickname + " ").replace(/^ /, "").slice(0, area.maxLength);
@@ -1414,10 +1596,17 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
         blocos.push(el("p", "figs-sec", "Figurinhas"));
         for (const t of figs) {
           const p = await obterPerfil(t.uid).catch(() => ({}));
-          blocos.push(linha({ ...p, nickname: p.nickname || t.texto.slice(1) }, t.oculta ? "Oculta: só recebe o aviso" : "Aparece no flash (quem vê toca e abre o perfil)", [
-            botao(t.oculta ? "olho" : "olho-off", t.oculta ? "Mostrar no flash" : "Ocultar do flash", () => { t.oculta = !t.oculta; pintarTexto(t); pintarL(); }, t.oculta ? " on" : ""),
-            botao("lixo", "Tirar a menção", () => { t.el.remove(); textos.splice(textos.indexOf(t), 1); pintarArroba(); pintarL(); })
-          ]));
+          const modoM = t.oculta ? "oculta" : t.soLista ? "lista" : "tela";
+          const sub = { tela: "Na tela: o @ aparece no flash e abre o perfil", lista: "Só na lista: não aparece na foto, mas quem vê encontra em “Mencionados”", oculta: "Oculta: só recebe o aviso, ninguém vê" }[modoM];
+          const l = linha({ ...p, nickname: t.texto.replace(/^@/, "") || p.nickname }, sub, [botao("lixo", "Tirar a menção", () => { t.el.remove(); textos.splice(textos.indexOf(t), 1); pintarArroba(); pintarL(); })]);
+          const seg = el("div", "fm-seg"); seg.setAttribute("role", "radiogroup"); seg.setAttribute("aria-label", "Como a menção aparece");
+          [["tela", "Na tela"], ["lista", "Só na lista"], ["oculta", "Oculta"]].forEach(([k, rot]) => {
+            const b = el("button", "fm-seg-op" + (k === modoM ? " on" : ""), rot); b.type = "button"; b.setAttribute("role", "radio"); b.setAttribute("aria-checked", String(k === modoM));
+            b.addEventListener("click", () => { t.oculta = k === "oculta"; t.soLista = k === "lista"; pintarTexto(t); pintarL(); });
+            seg.appendChild(b);
+          });
+          const w = el("div", "fm-bloco"); w.append(l, seg);
+          blocos.push(w);
         }
       }
       if (nicks.length) {
@@ -1770,6 +1959,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
 
   const fechar = () => {
     pararCamera();
+    window.removeEventListener("pointermove", moverGesto); window.removeEventListener("pointerup", soltarGesto); window.removeEventListener("pointercancel", soltarGesto);
     fundo.remove(); document.body.classList.remove("travado"); document.removeEventListener("keydown", tecla); window.removeEventListener("resize", aoRedimensionar); window.visualViewport?.removeEventListener("resize", aoRedimensionar); clearTimeout(tMedir);
     if (foto) URL.revokeObjectURL(foto);
   };
@@ -1780,29 +1970,52 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     fechar();
   });
   // Foto com os textos: desenha o cartão inteiro em 1080×1920 (o que a pessoa vê é o que vai).
-  function desenharFoto() {
-    const OW = 1080, OH = 1920;
-    const { W } = medidas(), k = OW / W;
-    const c = document.createElement("canvas"); c.width = OW; c.height = OH;
-    const g = c.getContext("2d");
-    g.fillStyle = "#000"; g.fillRect(0, 0, OW, OH);
-    g.imageSmoothingQuality = "high";
-    const s = base() * z * k, w = img.naturalWidth * s, h = img.naturalHeight * s;
-    // A foto vai com o filtro em tamanho cheio (a prévia usa uma cópia menor, processada do mesmo jeito).
-    const fonte = semFiltro(filtro) ? img : imagemFiltrada(img, filtro, { max: 2200 });
-    g.drawImage(fonte, OW / 2 + ox * k - w / 2, OH / 2 + oy * k - h / 2, w, h);
+  function desenharCamada(g, OW, OH) {
     if (tracos.length) { const cd = document.createElement("canvas"); cd.width = OW; cd.height = OH; pintarTracos(cd.getContext("2d"), OW, OH, tracos); g.drawImage(cd, 0, 0); }
     textos.forEach((t) => {
       if (t.enq || t.cx || t.lk) return; // enquete, caixa de perguntas e link ficam por cima, interativos (não vão desenhados)
+      if (t.fig && (t.oculta || t.soLista)) return; // menção oculta / só na lista: não aparece na foto
+      // Girada com dois dedos: desenha em volta do centro dela.
+      g.save();
+      if (t.rot) { g.translate(t.x * OW, t.y * OH); g.rotate((t.rot * Math.PI) / 180); g.translate(-t.x * OW, -t.y * OH); }
+      desenharUma(g, t, OW, OH);
+      g.restore();
+    });
+  }
+  function desenharUma(g, t, OW, OH) {
       const px = Math.round(t.tam * OW);
+      if (t.ft) {
+        // Foto por cima: sem moldura, moldura branca ou redonda
+        const w = t.tam * OW, h = w * (t.img.naturalHeight / t.img.naturalWidth), x = t.x * OW, y = t.y * OH, est = t.estilo || 0;
+        g.shadowColor = "rgba(0,0,0,.35)"; g.shadowBlur = w * 0.05; g.shadowOffsetY = w * 0.015;
+        if (est === 2) {
+          const r = w / 2; // redonda: o círculo tem a largura toda (igual à prévia)
+          g.beginPath(); g.arc(x, y, r + w * 0.02, 0, Math.PI * 2); g.fillStyle = "#fff"; g.fill(); g.shadowBlur = 0;
+          g.save(); g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.clip();
+          const k = (2 * r) / Math.min(t.img.naturalWidth, t.img.naturalHeight);
+          g.drawImage(t.img, x - (t.img.naturalWidth * k) / 2, y - (t.img.naturalHeight * k) / 2, t.img.naturalWidth * k, t.img.naturalHeight * k);
+          g.restore();
+        } else {
+          // moldura branca: a borda fica DENTRO da largura (4% de cada lado), como na prévia
+          const m = est === 1 ? w * 0.04 : 0, pw = w - 2 * m, ph = pw * (t.img.naturalHeight / t.img.naturalWidth);
+          if (est === 1) { g.fillStyle = "#fff"; g.beginPath(); (g.roundRect ? g.roundRect(x - w / 2, y - ph / 2 - m, w, ph + 2 * m, w * 0.02) : g.rect(x - w / 2, y - ph / 2 - m, w, ph + 2 * m)); g.fill(); }
+          else { g.fillStyle = "rgba(0,0,0,.01)"; g.beginPath(); g.rect(x - pw / 2, y - ph / 2, pw, ph); g.fill(); }
+          g.shadowBlur = 0;
+          g.save(); g.beginPath(); (g.roundRect ? g.roundRect(x - pw / 2, y - ph / 2, pw, ph, est === 1 ? 2 : pw * 0.03) : g.rect(x - pw / 2, y - ph / 2, pw, ph)); g.clip();
+          g.drawImage(t.img, x - pw / 2, y - ph / 2, pw, ph);
+          g.restore();
+        }
+        g.shadowColor = "transparent"; g.shadowOffsetY = 0;
+        return;
+      }
       if (t.fig) {
-        if (t.oculta) return; // menção oculta: só o aviso, não aparece na foto
         const es = EST_FIG[t.estilo];
         g.font = `${t.fig === "hora" ? 800 : 750} ${px}px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
         g.textAlign = "center"; g.textBaseline = "middle";
         const x = t.x * OW, y = t.y * OH, lw = g.measureText(t.texto).width + px * 0.9, lh = px * 1.5;
         // Onde a figurinha ficou (fração da foto): quem vê toca ali (localização, hashtag e menção).
-        t._area = { x: x / OW, y: y / OH, w: lw / OW, h: lh / OH };
+        const ra = ((t.rot || 0) * Math.PI) / 180, bw = Math.abs(lw * Math.cos(ra)) + Math.abs(lh * Math.sin(ra)), bh = Math.abs(lw * Math.sin(ra)) + Math.abs(lh * Math.cos(ra));
+        t._area = { x: x / OW, y: y / OH, w: bw / OW, h: bh / OH };
         if (Array.isArray(es.fundo)) { const gr = g.createLinearGradient(x - lw / 2, y - lh / 2, x + lw / 2, y + lh / 2); gr.addColorStop(0, es.fundo[0]); gr.addColorStop(1, es.fundo[1]); g.fillStyle = gr; }
         else g.fillStyle = es.fundo;
         g.shadowColor = es.borda ? "transparent" : "rgba(0,0,0,.25)"; g.shadowBlur = es.borda ? 0 : px * 0.4; g.shadowOffsetY = es.borda ? 0 : px * 0.1;
@@ -1836,7 +2049,19 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
         g.fillText(l, x, y);
         g.shadowBlur = 0;
       });
-    });
+  }
+  function desenharFoto() {
+    const OW = 1080, OH = 1920;
+    const { W } = medidas(), k = OW / W;
+    const c = document.createElement("canvas"); c.width = OW; c.height = OH;
+    const g = c.getContext("2d");
+    g.fillStyle = "#000"; g.fillRect(0, 0, OW, OH);
+    g.imageSmoothingQuality = "high";
+    const s = base() * z * k, w = img.naturalWidth * s, h = img.naturalHeight * s;
+    // A foto vai com o filtro em tamanho cheio (a prévia usa uma cópia menor, processada do mesmo jeito).
+    const fonte = semFiltro(filtro) ? img : imagemFiltrada(img, filtro, { max: 2200 });
+    g.drawImage(fonte, OW / 2 + ox * k - w / 2, OH / 2 + oy * k - h / 2, w, h);
+    desenharCamada(g, OW, OH);
     let q = 0.86, url = c.toDataURL("image/jpeg", q);
     while (url.length > 860000 && q > 0.45) { q -= 0.08; url = c.toDataURL("image/jpeg", q); }
     return url;
@@ -1845,11 +2070,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     if (enviando || !prontoParaPublicar()) return;
     enviando = true; publicar.disabled = true; publicar.classList.add("enviando"); publicar.firstChild.textContent = "Publicando...";
     try {
-      if (modo === "texto") {
-        const midia = desenharTexto(area.value.trim(), FUNDOS[fundoI], LETRAS[letraI], corTexto(fundoI));
-        const url = await salvarImagem(midia, `stories/${eu.uid}/${Date.now()}.jpg`);
-        await gravar({ tipo: "imagem", midia: url, ...camposDestino(), ...(await mencoesParaGravar()) }, { imagem: midia });
-      } else if (video) {
+      if (video && modo !== "texto") {
         toast("Enviando o vídeo...");
         const ext = (video.arq.name.split(".").pop() || "mp4").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "mp4";
         const r = storageFns.ref(window.firebaseStorage, `stories/${eu.uid}/${Date.now()}.${ext}`);
@@ -1857,9 +2078,10 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
         const texto = legenda.value.trim().slice(0, 150);
         await gravar({ tipo: "video", midia: await storageFns.getDownloadURL(r), duracao: Math.min(60, Math.round(video.dur)), ...(texto ? { texto } : {}), ...camposDestino(), ...(await mencoesParaGravar()) });
       } else {
-        const imagem = desenharFoto();
+        // Texto ou foto: as figurinhas (enquete, perguntas, local, @, fotos por cima, pincel) valem nos dois.
+        const imagem = modo === "texto" ? desenharTexto(area.value.trim(), FUNDOS[fundoI], LETRAS[letraI], corTexto(fundoI), (g, W, H) => desenharCamada(g, W, H)) : desenharFoto();
         const url = await salvarImagem(imagem, `stories/${eu.uid}/${Date.now()}.jpg`);
-        const texto = legenda.value.trim().slice(0, 150);
+        const texto = modo === "texto" ? "" : legenda.value.trim().slice(0, 150);
         const enq = textos.find((t) => t.enq);
         const mencoes = await mencoesParaGravar();
         const comCor = (t) => (t.tema && t.tema !== "branco" && CORES_FIG.some(([k]) => k === t.tema) ? { cor: t.tema } : {});
@@ -1874,7 +2096,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
         const nomeLg = lg ? String(lg.lugar.nome).replace(/[|\n]+/g, " ").trim().slice(0, 60) : "";
         const local = lg && lg.lugar.lat > -34 && lg.lugar.lat < 6 && lg.lugar.lng > -75 && lg.lugar.lng < -28 && nomeLg.length >= 2
           ? ["l", nomeLg, Number(lg.lugar.lat.toFixed(5)), Number(lg.lugar.lng.toFixed(5)), ...pos(lg._area)].join("|") : null;
-        const toques = textos.filter((t) => t._area && ((t.fig === "hashtag" && /^#[\p{L}\p{N}_]{1,28}$/u.test(t.texto)) || (t.fig === "mencao" && t.uid && !t.oculta && (mencoes.mencoes || []).includes(t.uid))))
+        const toques = textos.filter((t) => t._area && ((t.fig === "hashtag" && /^#[\p{L}\p{N}_]{1,28}$/u.test(t.texto)) || (t.fig === "mencao" && t.uid && !t.oculta && !t.soLista && (mencoes.mencoes || []).includes(t.uid))))
           .slice(0, local ? 7 : 8).map((t) => [t.fig === "hashtag" ? "h" : "m", t.fig === "hashtag" ? t.texto.slice(1) : t.uid, ...pos(t._area)].join("|"));
         if (local) toques.unshift(local);
         const lk = textos.find((t) => t.lk);
@@ -1920,7 +2142,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
 }
 
 // Flash de texto: quadro 1080×1920 com o fundo e a letra escolhidos (vira uma foto JPEG).
-function desenharTexto(texto, [a, b], letra, cor) {
+function desenharTexto(texto, [a, b], letra, cor, extra = null) {
   const W = 1080, H = 1920;
   const c = document.createElement("canvas"); c.width = W; c.height = H;
   const g = c.getContext("2d");
@@ -1953,6 +2175,8 @@ function desenharTexto(texto, [a, b], letra, cor) {
   g.shadowBlur = 0; g.shadowOffsetY = 0;
   g.font = "700 30px system-ui, sans-serif"; g.fillStyle = cor === "#ffffff" ? "rgba(255,255,255,.55)" : "rgba(0,0,0,.45)";
   g.fillText("⚡ Help Floripa", W / 2, H - 110);
+  // figurinhas, fotos por cima e pincel (o mesmo desenho do flash de foto)
+  if (extra) { g.save(); g.shadowColor = "transparent"; extra(g, W, H); g.restore(); }
   let q = 0.9, url = c.toDataURL("image/jpeg", q);
   while (url.length > 860000 && q > 0.5) { q -= 0.1; url = c.toDataURL("image/jpeg", q); }
   return url;
@@ -1961,7 +2185,7 @@ function desenharTexto(texto, [a, b], letra, cor) {
 async function gravar(extraCom, { imagem = null } = {}) {
   const cfg = configFlash();
   const { _publico, ...extra } = extraCom;
-  const amigos = (_publico ? _publico === "amigos" : cfg.publico === "amigos") && cfg.amigos.length > 0;
+  const amigos = _publico === "amigos" && cfg.amigos.length > 0;
   // Escolhas das configurações do Flash vão junto (só o que foge do padrão).
   const escolhas = {
     ...(cfg.respostas !== "todos" ? { respostas: cfg.respostas } : {}),
@@ -2073,8 +2297,7 @@ export function abrirConfigFlash() {
     k0.appendChild(acoes0);
 
     // 2) Quem vê
-    const k1 = cartao("olho", "#00adee", "Quem vê os seus flashes", "Vale para os próximos flashes.");
-    opcoes(k1, [["todos", "Todos que seguem você"], ["amigos", "Amigos próximos", `${c.amigos.length} ${c.amigos.length === 1 ? "pessoa" : "pessoas"} · anel verde`]], c.publico, (v) => salvar({ publico: v }));
+    const k1 = cartao("olho", "#00adee", "Quem vê os seus flashes", "Cada flash começa para todos que seguem você. Para mandar só para os Amigos próximos, toque na estrela verde no alto do criador (vale só para aquele flash).");
     k1.append(
       linha("Amigos próximos", c.amigos.length ? `${c.amigos.length} na lista` : "Ninguém na lista ainda", seta(), async () => { const l = await escolherPessoas("Amigos próximos", c.amigos); if (l) await salvarConfigFlash({ ...configFlash(), amigos: l }); abrirConfigFlash(); }),
       linha("Ocultar flash de", c.ocultarDe.length ? `${c.ocultarDe.length} ${c.ocultarDe.length === 1 ? "pessoa não vê" : "pessoas não veem"} (e não sabem disso)` : "Ninguém oculto", seta(), async () => { const l = await escolherPessoas("Ocultar flash de", c.ocultarDe); if (l) await salvarConfigFlash({ ...configFlash(), ocultarDe: l }); abrirConfigFlash(); })
@@ -2201,7 +2424,8 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
   const inicioDo = (u) => { if (lista) return 0; const l = mapa.get(u) || []; const k = l.findIndex((x) => !vistosLocal.has(x.id)); return k < 0 ? 0 : k; };
   si = inicioDo(ordem[ai]);
   if (comecarEm) { const k = (mapa.get(ordem[ai]) || []).findIndex((x) => x.id === comecarEm); if (k >= 0) si = k; }
-  const fundo = el("div", "story-visor"); fundo.setAttribute("role", "dialog"); fundo.setAttribute("aria-modal", "true"); fundo.setAttribute("aria-label", "Flash");
+  // Segurar o flash pausa (não abre o menu do navegador de "baixar imagem"; para salvar há o ⋯ → Salvar foto).
+  const fundo = el("div", "story-visor"); fundo.addEventListener("contextmenu", (e) => { if (!e.target.closest("input, textarea, a")) e.preventDefault(); }); fundo.setAttribute("role", "dialog"); fundo.setAttribute("aria-modal", "true"); fundo.setAttribute("aria-label", "Flash");
   const caixa = el("div", "story-caixa");
   const barras = el("div", "story-barras");
   const topo = el("div", "story-topo");
@@ -2230,6 +2454,21 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
   caixa.append(quadro, esq, dir, barras, topo, rodape);
   fundo.appendChild(caixa);
   document.body.appendChild(fundo);
+  // Teclado aberto (responder, caixa de perguntas): o quadro NÃO encolhe junto com a tela (antes o flash diminuía e
+  // a enquete e as perguntas se embolavam). O tamanho fica preso enquanto um campo está em uso; o teclado cobre
+  // a parte de baixo, e o campo de responder sobe junto com a tela.
+  const toqueVisor = matchMedia("(pointer: coarse)").matches;
+  const campoAtivo = () => { const a = document.activeElement; return !!a && fundo.contains(a) && a.matches("input, textarea"); };
+  fundo.addEventListener("focusin", (e) => {
+    if (!toqueVisor || !e.target.matches?.("input, textarea") || caixa.classList.contains("teclado-preso")) return;
+    quadro.style.width = quadro.offsetWidth + "px"; quadro.style.height = quadro.offsetHeight + "px";
+    caixa.classList.add("teclado-preso");
+  });
+  fundo.addEventListener("focusout", () => setTimeout(() => {
+    if (campoAtivo() || !caixa.classList.contains("teclado-preso")) return;
+    quadro.style.width = ""; quadro.style.height = ""; caixa.classList.remove("teclado-preso");
+    window.dispatchEvent(new Event("resize"));
+  }, 250));
   document.body.classList.add("travado");
   let timer = null, inicio = 0, restante = 0, pausado = false, video = null, digitando = false, fechado = false;
   const fechar = () => {
