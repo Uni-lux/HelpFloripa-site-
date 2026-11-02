@@ -1276,6 +1276,19 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   negócios"** numa linha, tocável → lista com o link de cada negócio. Temporizador: desligado → 3 s → 10 s. Aviso (toast) no
   criador/visor: pílula escura embaixo (não cobre a coluna). Menções: "N de 10" e botão "Tirar os @ da foto e mostrar só em
   Mencionados" (3+ figurinhas). Teste `t-flash-atividade.mjs`.
+- **Flash etapa 1 "profissional" (PR #129, sem regra nova):** enquete/caixa no visor e na prévia do criador no padrão do
+  Instagram (cartão branco, faixa `--band` na cor com a pergunta em branco, pílulas, barra animada na cor; Escuro = cartão
+  escuro; Diário não muda); lugar/#/@ no 1º estilo com texto em degradê (`GRAD_FIG`, DOM `.fig-grad` e canvas). **Mesmo PR,
+  lista nova dele:** resposta da caixa vira FIGURINHA (`compartilharRespostaNoFlash` → cartão PNG transparente como `t.ft`
+  estilo 3 = pronto, fundo em degradê; "Trocar o fundo" não apaga); ⋯ das Visualizações = `abrirOpcoes` (Enviar mensagem,
+  Ver perfil, Ocultar); **barra do tempo por requestAnimationFrame** (`animarBarra`; o categoria.css desliga transições com
+  "remover animações"); tempos: foto 5 s, com enquete/caixa/publicação/link 10 s, legenda longa +3 s, máx. 15 s, vídeo o
+  tempo dele; **voltar/Esc/X no criador**: painel aberto fecha só o painel (`fecharPainel`), com conteúdo abre "Sair do
+  flash?" (Salvar como rascunho / Descartar / Continuar editando; com essa folha aberta, voltar = continuar); **rascunhos**
+  no aparelho (IndexedDB `hf-flash-<uid>`, até 10: `guardarRascunho/lerRascunhos/apagarRascunho/abrirRascunhos`, pílula
+  "Rascunhos · N" no cartão vazio, reabre foto/posição/filtro/figurinhas/pincel/menções ocultas; publicar apaga o rascunho);
+  **desfazer** (↶ `.flash-desfazer`, `marcar()` antes de cada mudança, até 40 passos; lixeira mostra "toque para desfazer").
+  Testes `t-flash-figurinhas.mjs`, `t-flash-rascunho.mjs`.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

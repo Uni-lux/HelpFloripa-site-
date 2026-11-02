@@ -46,9 +46,10 @@ ok(geo.enq && geo.enq.b <= geo.form.t + 2, `enquete lá embaixo não cobre o res
 ok(Math.abs(geo.enq.w - geo.quadro.w * 0.74) < 3, `enquete com a mesma largura do criador (74% do quadro: ${Math.round(geo.enq.w)} px)`);
 ok(/h|min|agora/.test(geo.hora || ""), "tempo ao lado do nome → " + geo.hora);
 await pb.screenshot({ path: "saida/fv-visor.png" });
-// tempo da foto: com enquete/perguntas fica mais (7,5 s), simples 5 s
-const dur = await pb.evaluate(() => document.querySelector(".story-barra i")?.style.transition || "");
-ok(/7500ms/.test(dur) || /7500ms/.test(await pb.evaluate(() => [...document.querySelectorAll(".story-barra i")].map((i) => i.style.transition).join(" "))), "com enquete/perguntas o flash fica 7,5 s → " + dur);
+// tempo da foto: com enquete/perguntas fica 10 s (a barra anda ~10% por segundo), simples 5 s
+const larg = () => pb.evaluate(() => Math.max(...[...document.querySelectorAll(".story-barra i")].map((i) => parseFloat(i.style.width) || 0).filter((x) => x < 100)));
+const w1 = await larg(); await pb.waitForTimeout(1000); const w2 = await larg();
+ok(w2 - w1 > 6 && w2 - w1 < 14, `com enquete/perguntas o flash fica 10 s (a barra andou ${Math.round(w2 - w1)}% em 1 s)`);
 await B.browser.close();
 
 // ---------- 2) a Ana no próprio flash: ⋯ e a fita das Visualizações ----------

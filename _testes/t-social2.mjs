@@ -63,9 +63,9 @@ await pa.waitForSelector(".flash-fotobox canvas.flash-foto", { timeout: 8000 });
 ok(await pa.locator(".flash-cam-ui").count() === 0 && await pa.locator(".flash-palco[data-filtro=beleza2] .flash-fotobox canvas").count() === 1, "tirou a foto: a câmera fecha e a foto aparece com o filtro");
 // fechar com coisa feita: janela do site (não a do navegador)
 await pa.locator(".flash-topo .flash-ferr-btn[aria-label=Fechar]").tap();
-await pa.waitForSelector(".hf-confirma", { timeout: 3000 });
-ok((await pa.locator(".hf-confirma h3").textContent()) === "Descartar este flash?", "fechar pergunta \"Descartar este flash?\" na janela do site");
-await pa.locator(".hf-confirma .nao").tap(); await pa.waitForTimeout(300);
+await pa.waitForSelector("#folhaOpcoes.aberta", { timeout: 3000 });
+ok((await pa.locator("#tOpcoes").textContent()) === "Sair do flash?", "fechar pergunta \"Sair do flash?\" (rascunho, descartar ou continuar)");
+await pa.locator("#folhaOpcoes.aberta button", { hasText: "Continuar editando" }).tap(); await pa.waitForTimeout(300);
 // arrastar a foto no cartão (sem editor separado) e escrever por cima
 const pal = await pa.locator(".flash-palco").boundingBox();
 await pa.mouse.move(pal.x + pal.width / 2, pal.y + pal.height / 2); await pa.mouse.down(); await pa.mouse.move(pal.x + pal.width / 2 + 3, pal.y + pal.height / 2 + 40, { steps: 5 });
@@ -169,7 +169,7 @@ const vv = pa.locator(".vv-pessoa", { hasText: "Bruno" }).first();
 ok(await vv.locator(".vv-est").count() === 1 && (await vv.locator(".vv-emoji").textContent()) === "🔥", "Visualizações: Bruno com a estrela e o 🔥 na foto");
 ok((await pa.locator(".vv-filtros").textContent()).includes("Estrelas · 1") && (await pa.locator(".vv-filtros").textContent()).includes("Reações · 1"), "Visualizações: filtros Estrelas e Reações");
 await pa.screenshot({ path: "saida/flash-visualizacoes.png" });
-await vv.locator(".vv-opcoes").tap(); await pa.locator(".vv-acao", { hasText: "Mensagem" }).tap(); await pa.locator(".vv-escrever input").fill("Obrigada pela estrela!"); await pa.locator(".vv-escrever button").tap(); await pa.waitForTimeout(2000);
+await vv.locator(".vv-opcoes").tap(); await pa.locator("#folhaOpcoes.aberta button", { hasText: "Enviar mensagem" }).tap(); await pa.waitForTimeout(300); await pa.locator(".vv-escrever input").fill("Obrigada pela estrela!"); await pa.locator(".vv-escrever button").tap(); await pa.waitForTimeout(2000);
 ok(await pa.locator(".vv-enviado").count() === 1, "Visualizações: mandar mensagem a quem viu");
 await pa.locator("#folhaLista.aberta [data-fechar]").first().click(); await pa.waitForTimeout(400);
 await pa.locator(".story-visor .story-btn[aria-label=Fechar]").tap(); await pa.waitForTimeout(300);
