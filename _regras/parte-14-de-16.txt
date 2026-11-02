@@ -1,3 +1,19 @@
+    // ===================================================
+    // RASCUNHOS: rascunhos/{uid}/itens/{id} — só a própria pessoa (texto e fotos ainda não publicados).
+    // ===================================================
+    // ===================================================
+    // VOTOS DAS ENQUETES: enquete_votos/{alvo}_{uid} — alvo = tipo + "_" + itemId (tipo d = publicação, f = flash).
+    // fimEm (opcional) = o mesmo fim da enquete; votar só até o fim.
+    // Um voto por pessoa, sem trocar. A contagem fica dividida em 10 pedaços (enquete_contas/{alvo}_{fatia},
+    // ver abaixo): o voto leva a fatia (0–9) e o pedaço dela sobe +1 na MESMA gravação.
+    // ===================================================
+    // A contagem da opção do voto sobe exatamente 1 no pedaço escolhido (votos públicos e anônimos).
+    function fatiaSobe(d) {
+      let pedaco = /databases/$(database)/documents/enquete_contas/$(d.alvo + '_' + string(d.fatia));
+      let k = 'n' + string(d.opcao);
+      return d.fatia is int && d.fatia >= 0 && d.fatia < 10
+          && getAfter(pedaco).data.get(k, 0) == (exists(pedaco) ? get(pedaco).data.get(k, 0) : 0) + 1;
+    }
     match /enquete_votos/{id} {
       allow read: if logado();
       function votoOk() {
@@ -181,31 +197,5 @@
                     && request.resource.data.n4 is int && request.resource.data.n5 is int;
       allow delete: if podeModerar();
     }
-
-    // =====================================================
-    // COMENTÁRIOS: comentarios/{id}
-    // - Resposta: respostaA = id do comentário respondido (mesma publicação)
-    //   e respostaAutorId = autor dele (para o aviso).
-    // - Quem comentou edita o texto. O dono da publicação oculta um comentário.
-    // - Quem comentou ou o dono da publicação apaga.
-    // - Publicação com comentários ocultos não recebe comentários novos.
-    // =====================================================
-    match /comentarios/{id} {
-
-      allow read: if logado();
-
-      function textoComentarioOk(d) {
-        return d.texto is string && d.texto.size() >= 1 && d.texto.size() <= 500;
-      }
-
-      // Quem pode comentar (escolha do autor): o autor sempre pode.
-      function segue(a, b) { return exists(/databases/$(database)/documents/relacoes/$(a + '_' + b)); }
-      function podeComentar(p) {
-        let q = p.get('quemComenta', 'todos');
-        return p.autorId == request.auth.uid
-            || q == 'todos'
-            || (q == 'seguidores' && segue(request.auth.uid, p.autorId))
-            || (q == 'mutuos' && segue(request.auth.uid, p.autorId) && segue(p.autorId, request.auth.uid));
-      }
 
 // ===== FIM DA PARTE 14 DE 16 =====

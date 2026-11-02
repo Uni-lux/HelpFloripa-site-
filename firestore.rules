@@ -106,10 +106,10 @@ service cloud.firestore {
           && (!('certa' in e) || (e.certa is int && e.certa >= 0 && e.certa < e.opcoes.size()))
           && (!('cor' in e) || corFigOk(e.cor))
           && (!('fimEm' in e) || (e.fimEm is timestamp && e.fimEm > inicio && e.fimEm <= inicio + duration.value(maxMin, 'm')))
-          && e.pergunta is string && e.pergunta.size() >= 1 && e.pergunta.size() <= 120
-          // 2 a 4 opções de 1 a 40 letras, conferidas numa expressão só (opção não tem quebra de linha)
-          && e.opcoes is list && e.opcoes.size() >= 2 && e.opcoes.size() <= 4
-          && e.opcoes.join('\n').matches('^[^\n]{1,40}(\n[^\n]{1,40}){1,3}$')
+          && e.pergunta.size() >= 1 && e.pergunta.size() <= 120
+          // 2 a 4 opções de 1 a 40 letras, conferidas numa expressão só (opção não tem quebra de linha; o regex já
+          // garante de 2 a 4 linhas)
+          && e.opcoes.size() <= 4 && e.opcoes.join('\n').matches('^[^\n]{1,40}(\n[^\n]{1,40}){1,3}$')
           // posição x e y entre 0 e 1, conferidas num regex só (economiza expressões: o flash com tudo junto
           // estava no limite de 1.000)
           && (string(e.get('x', 0)) + ' ' + string(e.get('y', 0))).matches('^(0|1|0[.][0-9]+|1[.]0+) (0|1|0[.][0-9]+|1[.]0+)$');
@@ -123,10 +123,10 @@ service cloud.firestore {
     function caixaOk(c) {
       return c is map && c.keys().hasOnly(['pergunta', 'anonima', 'x', 'y', 'cor'])
           && (!('cor' in c) || corFigOk(c.cor))
-          && c.pergunta is string && c.pergunta.size() >= 1 && c.pergunta.size() <= 120
+          && c.pergunta.size() >= 1 && c.pergunta.size() <= 120
           && c.anonima is bool
-          && (!('x' in c) || (c.x is number && c.x >= 0 && c.x <= 1))
-          && (!('y' in c) || (c.y is number && c.y >= 0 && c.y <= 1));
+          // posição x e y entre 0 e 1 num regex só (como na enquete), para caber no limite de 1.000
+          && (string(c.get('x', 0)) + ' ' + string(c.get('y', 0))).matches('^(0|1|0[.][0-9]+|1[.]0+) (0|1|0[.][0-9]+|1[.]0+)$');
     }
     // Flash: figurinha que leva ao perfil de um negócio (qualquer negócio que exista).
     function linkFlashOk(l) {
@@ -177,7 +177,7 @@ service cloud.firestore {
           && t.join('\n').matches('^' + item + '(\n' + item + '){0,7}$');
     }
     function extrasFlashOk(d) {
-      return negociosFlashOk(d)
+      return negociosFlashOk(d) && flashNovos2Ok(d)
           && (!('toques' in d) || toquesOk(d.toques))
           // menção oculta: a pessoa foi mencionada (recebe o aviso), mas não aparece para quem vê
           && (!('mencoesOcultas' in d) || uidsOk(d.mencoesOcultas, 10))
@@ -191,9 +191,10 @@ service cloud.firestore {
     // tocáveis) estava no limite.
     function flashNovoOk(d) {
       let k = d.keys();
-      return k.hasOnly(['autorId', 'nome', 'tipo', 'midia', 'texto', 'duracao', 'enquete', 'caixa', 'link', 'repostDe', 'postDe', 'negocios', 'perfil', 'mencoes', 'respostas', 'publico', 'lista', 'ocultoPara', 'criadoEm', 'toques', 'mencoesOcultas'])
+      return k.hasOnly(['autorId', 'nome', 'tipo', 'midia', 'texto', 'duracao', 'enquete', 'caixa', 'link', 'repostDe', 'postDe', 'negocios', 'perfil', 'mencoes', 'respostas', 'publico', 'lista', 'ocultoPara', 'criadoEm', 'toques', 'mencoesOcultas', 'contagem', 'alvo'])
           // caixa de perguntas, link para negócio, repost, perfis de negócio, figurinhas tocáveis e menção oculta
-          && (!k.hasAny(['caixa', 'link', 'repostDe', 'postDe', 'negocios', 'perfil', 'toques', 'mencoesOcultas']) || extrasFlashOk(d))
+          // (+ contagem regressiva e público do flash, 02/11/2026)
+          && (!k.hasAny(['caixa', 'link', 'repostDe', 'postDe', 'negocios', 'perfil', 'toques', 'mencoesOcultas', 'contagem', 'alvo']) || extrasFlashOk(d))
           // enquete (no flash acaba junto com ele: até 24 h, com 10 min de folga), menções e escolhas do autor
           && (!('enquete' in k) || enqueteOk(d.enquete, request.time, 1450))
           && (!('mencoes' in k) || uidsOk(d.mencoes, 10))
@@ -209,6 +210,15 @@ service cloud.firestore {
           && valorTextoAte(d.get('texto', ''), 150)
           && valorTextoAte(d.get('nome', ''), 80)
           && (!('duracao' in k) || (d.duracao is number && d.duracao <= 60));
+    }
+    // Contagem regressiva (título e quando termina: de 5 min a 1 ano) e público do flash (direcionamento, conferido de
+    // leve: quem vê filtra no aparelho; a forma completa é a mesma do público da publicação).
+    function flashNovos2Ok(d) {
+      // (cor e posição não são conferidas: o site só usa as cores da lista e prende a posição no cartão ao desenhar)
+      return (!('contagem' in d) || (d.contagem.keys().hasOnly(['titulo', 'fim', 'cor', 'x', 'y'])
+                && d.contagem.titulo.size() >= 1 && d.contagem.titulo.size() <= 40
+                && d.contagem.fim > request.time + duration.value(4, 'm') && d.contagem.fim <= request.time + duration.value(366, 'd')))
+          && (!('alvo' in d) || d.alvo.keys().hasOnly(['idadeMin', 'idadeMax', 'genero', 'local', 'ufs', 'cidades', 'perto', 'seguidores']));
     }
     // Lista de uids (até max), conferida com uma expressão só.
     function uidsOk(l, max) {
@@ -2521,6 +2531,22 @@ service cloud.firestore {
     // STORIES (24 horas): stories/{id} — foto (no documento ou no Storage) ou vídeo (Storage).
     // Somem para todos depois de 24 h (o site filtra; o autor apaga os vencidos). vistos/{uid}: quem viu.
     // ===================================================
+    // Lembrete da contagem regressiva de um flash (como o "Lembrar-me" do Instagram): a pessoa pede para ser avisada
+    // quando a contagem acabar. id = {flash}_{uid}. Guarda título e fim (o flash sai do ar em 24 h, a contagem não).
+    // A pessoa cria e apaga o dela; ela e o autor do flash leem (o autor vê quem pediu).
+    match /contagem_lembretes/{lid} {
+      allow create: if logado() && request.resource.data.uid == request.auth.uid
+                    && lid == request.resource.data.flashId + '_' + request.auth.uid
+                    && request.resource.data.keys().hasOnly(['flashId', 'autorId', 'uid', 'titulo', 'fim', 'criadoEm'])
+                    && request.resource.data.criadoEm == request.time
+                    && get(/databases/$(database)/documents/stories/$(request.resource.data.flashId)).data.autorId == request.resource.data.autorId
+                    && get(/databases/$(database)/documents/stories/$(request.resource.data.flashId)).data.contagem.fim == request.resource.data.fim
+                    && get(/databases/$(database)/documents/stories/$(request.resource.data.flashId)).data.contagem.titulo == request.resource.data.titulo
+                    && request.resource.data.autorId != request.auth.uid;
+      allow read: if logado() && (resource.data.uid == request.auth.uid || resource.data.autorId == request.auth.uid);
+      allow delete: if logado() && resource.data.uid == request.auth.uid;
+      allow update: if false;
+    }
     match /stories/{id} {
       // Depois das 24 h o flash fica no ARQUIVO do autor (só ele vê, como no Instagram). Os outros leem o que está no ar
       // (26 h, com folga para relógio atrasado) e o que o autor pôs num destaque (destacado: true).

@@ -3079,3 +3079,50 @@ body:has(.story-visor, .flash-criar) .toast { width: auto; max-width: min(calc(1
 .story-quem-sub:empty { display: none; }
 .story-quem-sub .story-repost { margin: 0; max-width: 100%; }
 .enquete.teste :is(.enq-op.certa, .enq-op.errada) .enq-letra .i { color: #fff; stroke: #fff; }
+
+/* ===== Contagem regressiva no Flash (02/11) — cartão no padrão da enquete/perguntas ===== */
+.ctg { --band: linear-gradient(135deg, #00c2ff, #0066d6); --band-sol: #00adee; display: flex; flex-direction: column; overflow: hidden; border-radius: 1.4em; background: #fff; color: #111;
+  box-shadow: 0 16px 40px rgba(0,0,0,.35), 0 0 0 1px rgba(0,0,0,.04); text-align: center; font-family: inherit; }
+.ctg.tema-escuro { --band: linear-gradient(135deg, #2a3540, #151b21); background: #151b21; color: #fff; }
+.ctg.tema-azul { --band: linear-gradient(135deg, #19b8f2, #0052d4); --band-sol: #0a84e0; }
+.ctg.tema-rosa { --band: linear-gradient(135deg, #ff5f95, #c2185b); --band-sol: #e83e7a; }
+.ctg.tema-laranja { --band: linear-gradient(135deg, #ffb347, #ff6a00); --band-sol: #ff7a1a; }
+.ctg.tema-verde { --band: linear-gradient(135deg, #34d399, #0f8a5f); --band-sol: #19a874; }
+.ctg.tema-roxo { --band: linear-gradient(135deg, #a855f7, #5b21b6); --band-sol: #8b3ff0; }
+.ctg-tit { padding: 1.1em 1.1em 1em; background: var(--band); color: #fff; font-size: 1.2em; font-weight: 850; line-height: 1.25; text-shadow: 0 1px 2px rgba(0,0,0,.18); overflow-wrap: anywhere; }
+.ctg-cab { display: inline-flex; align-items: center; justify-content: center; gap: .35em; padding: .8em 1em 0; color: var(--band-sol); font-size: .72em; font-weight: 850; letter-spacing: .08em; }
+.ctg.tema-escuro .ctg-cab { color: #7fd8ff; }
+.ctg-cab .i { width: 1.1em; height: 1.1em; }
+.ctg-num { display: flex; justify-content: center; gap: .45em; padding: .7em .9em .3em; }
+.ctg-casa { flex: 1; max-width: 4.2em; display: grid; gap: .1em; padding: .55em .2em .45em; border-radius: .85em; background: #f1f4f6; }
+.ctg.tema-escuro .ctg-casa { background: rgba(255,255,255,.08); }
+.ctg-casa b { font-size: 1.75em; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.ctg-casa small { font-size: .68em; font-weight: 750; color: #6b7780; text-transform: uppercase; letter-spacing: .04em; }
+.ctg.tema-escuro .ctg-casa small, .ctg.tema-escuro .ctg-quando { color: rgba(255,255,255,.65); }
+.ctg.acabou .ctg-casa { opacity: .45; }
+.ctg.acabou .ctg-quando { color: var(--band-sol); font-weight: 850; font-size: .95em; }
+.ctg-quando { padding: .45em 1em .2em; font-size: .8em; font-weight: 650; color: #66737d; }
+.ctg-acoes { display: grid; gap: .5em; padding: .55em .9em .95em; }
+.ctg-acoes:empty { display: none; }
+.ctg-lembrar { display: inline-flex; align-items: center; justify-content: center; gap: .45em; min-height: 2.8em; padding: 0 1em; border: 0; border-radius: 999px; background: var(--band); color: #fff;
+  font: inherit; font-size: .92em; font-weight: 850; cursor: pointer; }
+.ctg-lembrar .i { width: 1.15em; height: 1.15em; }
+.ctg-lembrar.on { background: transparent; color: var(--band-sol); box-shadow: inset 0 0 0 1.5px var(--band-sol); }
+.ctg-lembrar.quem { background: #f1f4f6; color: #111; }
+.ctg.tema-escuro .ctg-lembrar.quem { background: rgba(255,255,255,.08); color: #fff; }
+.ctg-lembrar:disabled { opacity: .7; cursor: default; }
+.ctg-lembrar.falso { pointer-events: none; }
+/* no visor (300 px, escalado como a enquete) e no criador */
+.story-ct .ctg { font-size: 15px; width: 100%; }
+.flash-txt.flash-ct .ctg { width: 18em; }
+/* editor da contagem */
+.flash-fig-viva .fv-ctg { width: min(100%, 330px); font-size: 15px; animation: contEntra .15s ease-out; }
+.flash-fig-viva .fv-ctg .ctg-tit { padding: 14px 16px 12px; }
+.ctg-escolher { display: grid; grid-template-columns: 1.4fr 1fr; gap: 8px; text-align: left; }
+.ctg-campo { display: grid; gap: 4px; }
+.ctg-campo small { font-size: 11px; font-weight: 800; color: #6b7780; text-transform: uppercase; letter-spacing: .05em; padding-left: 4px; }
+.ctg-campo input { height: 44px; padding: 0 12px; border-radius: 14px; border: 1.5px solid #dfe5ea; background: #fff; color: #111; font: inherit; font-size: 15px; font-weight: 800; min-width: 0; }
+.ctg.tema-escuro .ctg-campo input { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.2); color: #fff; }
+/* criador: botão do público */
+.flash-alvo.on { background: #00adee !important; color: #fff !important; }
+.flash-alvo.on .i { color: #fff !important; stroke: #fff; }

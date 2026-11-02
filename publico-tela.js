@@ -68,7 +68,7 @@ export function escolherPublico(atual, ajuda) {
     const pagina = el("div", "pa-pagina"); pagina.setAttribute("role", "dialog"); pagina.setAttribute("aria-modal", "true"); pagina.setAttribute("aria-label", "Público da publicação");
     const topo = el("header", "pa-topo");
     const voltar = el("button", "pa-voltar"); voltar.type = "button"; voltar.setAttribute("aria-label", "Voltar sem mudar"); voltar.setAttribute("data-fechar", ""); voltar.appendChild(icone("voltar", "i"));
-    const tit = el("div", "pa-titulo"); tit.append(el("strong", null, "Público"), el("small", null, "Quem vê esta publicação no Diário"));
+    const tit = el("div", "pa-titulo"); tit.append(el("strong", null, "Público"), el("small", null, ajuda.sub || "Quem vê esta publicação no Diário"));
     const concluir = el("button", "btn pri pa-ok", "Concluir"); concluir.type = "button";
     topo.append(voltar, tit, concluir);
     const corpo = el("div", "pa-corpo");

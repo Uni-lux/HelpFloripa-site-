@@ -716,6 +716,27 @@ await t("teste: flash com quiz (certa = 2) é aceito", () => assertSucceeds(flas
 await t("teste: certa fora das opções é recusada", () => assertFails(flash("bia", { texto: "Quiz", enquete: { pergunta: "?", opcoes: ["A", "B"], certa: 2 } })));
 await t("teste: certa negativa é recusada", () => assertFails(flash("bia", { texto: "Quiz", enquete: { pergunta: "?", opcoes: ["A", "B"], certa: -1 } })));
 await t("teste: certa em texto é recusada", () => assertFails(flash("bia", { texto: "Quiz", enquete: { pergunta: "?", opcoes: ["A", "B"], certa: "0" } })));
+// Contagem regressiva, público do flash e lembretes (02/11/2026)
+const fimCt = Timestamp.fromMillis(Math.floor((Date.now() + 2 * 864e5) / 1000) * 1000);
+await t("contagem: flash com contagem regressiva é aceito", () => assertSucceeds(flash("bia", { texto: "Ct", contagem: { titulo: "Lançamento", fim: fimCt, x: 0.5, y: 0.4, cor: "rosa" } })));
+await t("contagem: terminando em menos de 4 min é recusada", () => assertFails(flash("bia", { texto: "Ct", contagem: { titulo: "Já", fim: daqui(2) } })));
+await t("contagem: mais de 1 ano é recusada", () => assertFails(flash("bia", { texto: "Ct", contagem: { titulo: "Longe", fim: daqui(367 * 1440) } })));
+await t("contagem: sem título é recusada", () => assertFails(flash("bia", { texto: "Ct", contagem: { titulo: "", fim: fimCt } })));
+await t("contagem: campo a mais é recusado", () => assertFails(flash("bia", { texto: "Ct", contagem: { titulo: "X", fim: fimCt, link: "http://x" } })));
+await t("público do flash: mulheres de SC e PR é aceito", () => assertSucceeds(flash("bia", { texto: "Alvo", alvo: { genero: "f", local: "estados", ufs: ["SC", "PR"], idadeMin: 18 } })));
+await t("público do flash: campo estranho é recusado", () => assertFails(flash("bia", { texto: "Alvo", alvo: { genero: "f", quem: "todos" } })));
+await t("público do flash: em texto é recusado", () => assertFails(flash("bia", { texto: "Alvo", alvo: "todos" })));
+await t("flash: com TUDO junto + teste + contagem + público fica dentro do limite", () => assertSucceeds(flash("bia", { texto: "Tudo", repostDe: { storyId: "sMen", autorId: "dono", nome: "Dono" }, link: { negocioId: "dono_servicos", nome: "Reparos", tipo: "servicos", x: 0.5, y: 0.8 }, negocios: ["bia_servicos", "bia_delivery", "bia_lojinha", "bia_imoveis"], perfil: false, caixa: { pergunta: "Pergunte", anonima: true, x: 0.5, y: 0.3, cor: "rosa" }, enquete: { pergunta: "Qual a certa?", opcoes: ["Uma", "Duas", "Três", "Quatro"], certa: 3, x: 0.5, y: 0.6, cor: "escuro" }, contagem: { titulo: "Grande lançamento", fim: fimCt, x: 0.5, y: 0.2, cor: "azul" }, alvo: { idadeMin: 18, idadeMax: 40, genero: "m", local: "perto", perto: { lat: -27.6, lng: -48.5, km: 25, nome: "Floripa" }, seguidores: "seguidores" }, mencoes: ["ana", "edu", "dono"], mencoesOcultas: ["dono"], respostas: "seguindo", publico: "amigos", lista: ["ana", "edu"], ocultoPara: ["dono"], toques: ["l|Lagoa da Conceição, Florianópolis|-27.60123|-48.47|0.5|0.2|0.4|0.05", ...Array.from({ length: 5 }, (_, i) => `h|tag${i}|0.5|0.${i + 1}|0.2|0.05`), "m|ana|0.3|0.9|0.2|0.05", "m|edu|0.7|0.9|0.2|0.05"] })));
+await semRegras((db) => setDoc(doc(db, "stories", "sCt"), { autorId: "bia", nome: "Bia", tipo: "imagem", midia: fotoS, contagem: { titulo: "Lançamento", fim: fimCt }, criadoEm: Timestamp.now() }));
+const lem = (quem, extra = {}) => setDoc(doc(ctx(quem), "contagem_lembretes", `sCt_${quem}`), { flashId: "sCt", autorId: "bia", uid: quem, titulo: "Lançamento", fim: fimCt, criadoEm: serverTimestamp(), ...extra });
+await t("lembrete: quem vê pede para ser lembrado", () => assertSucceeds(lem("ana")));
+await t("lembrete: com o título trocado é recusado", () => assertFails(lem("edu", { titulo: "Outro" })));
+await t("lembrete: com o fim trocado é recusado", () => assertFails(lem("edu", { fim: daqui(60) })));
+await t("lembrete: em nome de outra pessoa é recusado", () => assertFails(setDoc(doc(ctx("edu"), "contagem_lembretes", "sCt_ana"), { flashId: "sCt", autorId: "bia", uid: "ana", titulo: "Lançamento", fim: fimCt, criadoEm: serverTimestamp() })));
+await t("lembrete: o autor não pede no próprio flash", () => assertFails(lem("bia")));
+await t("lembrete: o autor do flash vê quem pediu", () => assertSucceeds(getDoc(doc(ctx("bia"), "contagem_lembretes", "sCt_ana"))));
+await t("lembrete: outra pessoa não vê", () => assertFails(getDoc(doc(ctx("edu"), "contagem_lembretes", "sCt_ana"))));
+await t("lembrete: a pessoa tira o dela", () => assertSucceeds(deleteDoc(doc(ctx("ana"), "contagem_lembretes", "sCt_ana"))));
 await t("enquete: posição fora do cartão (x = 1,2) é recusada", () => assertFails(flash("bia", { texto: "E", enquete: { pergunta: "?", opcoes: ["A", "B"], x: 1.2, y: 0.5 } })));
 await t("enquete: posição negativa (y = -0,1) é recusada", () => assertFails(flash("bia", { texto: "E", enquete: { pergunta: "?", opcoes: ["A", "B"], x: 0.5, y: -0.1 } })));
 await t("enquete: posição nas bordas (x = 0, y = 1) e com 3 casas é aceita", () => assertSucceeds(flash("bia", { texto: "E", enquete: { pergunta: "?", opcoes: ["A", "B"], x: 0, y: 1 } })) .then(() => assertSucceeds(flash("bia", { texto: "E2", enquete: { pergunta: "?", opcoes: ["A", "B"], x: 0.123, y: 0.987 } }))));
