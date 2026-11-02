@@ -3136,3 +3136,18 @@ body:has(.story-visor, .flash-criar) .toast { width: max-content; max-width: min
 .toast { width: max-content; max-width: min(calc(100% - 32px), 440px); box-sizing: border-box; text-align: center; line-height: 1.35; text-wrap: balance; overflow-wrap: break-word; animation: hfToastEntra .22s ease-out; }
 @keyframes hfToastEntra { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
 @media (prefers-reduced-motion: reduce) { .toast, .vt-toast, .cm-toast, .ad-toast { animation: none !important; } }
+
+/* enquete: rodapé numa linha (texto equilibrado à esquerda, "Ver votos" sem quebrar) e "Visto por" alinhado (02/11/2026) */
+.enq-rodape { flex-wrap: wrap; row-gap: 6px; }
+.enq-rodape .enq-rod-tx { flex: 1 1 140px; min-width: 0; text-wrap: balance; }
+.enq-rodape > button, .enq-rodape > a { flex: none; white-space: nowrap; }
+.story-enq .enquete.escura .enq-rodape { justify-content: space-between; text-align: left; }
+.story-enq .enquete.escura .enq-rodape:not(:has(> button, > a)) { justify-content: center; text-align: center; }
+.story-vistos { gap: 0; min-height: 40px; padding: 0 14px 0 12px; line-height: 1; }
+.story-vistos > * { flex: none; }
+.story-vistos > .i { width: 16px; height: 16px; margin-right: 8px; }
+.story-vistos > span:not(.rostos):not(.story-vistos-est) { display: inline-flex; align-items: center; }
+.story-vistos .story-vistos-est { margin-left: 10px; padding-left: 10px; border-left: 1px solid rgba(255,255,255,.28); height: 16px; gap: 4px; }
+.story-vistos .story-vistos-est .i { width: 14px; height: 14px; }
+.story-vistos .rostos { margin-left: 10px; align-items: center; }
+.story-vistos .rostos .avatar { width: 24px; height: 24px; }
