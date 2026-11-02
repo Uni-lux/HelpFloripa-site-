@@ -2991,3 +2991,36 @@ body:has(.story-visor, .flash-criar) .toast { width: auto; max-width: min(calc(1
 .flash-fig-viva .fv-chip.on { background: #fff; color: #111; border-color: #fff; }
 .flash-fig-viva .fv-dica { width: 100%; text-align: center; font-size: 12px; color: rgba(255,255,255,.75); }
 @media (max-height: 560px) { .flash-fig-viva .fv-dica { display: none; } .flash-fig-viva .fv-perg { font-size: 18px; } .flash-fig-viva .fv-op input, .flash-fig-viva .fv-nova { height: 42px; } }
+
+/* ===== Flash: desfazer e refazer (02/11) =====
+   Barra no alto do cartão (embaixo da fileira de botões): ↶ · o que aconteceu · ↷. O nome do passo aparece por 2,6 s
+   depois de desfazer/refazer ou apagar; some enquanto arrasta e com um painel aberto. */
+.flash-hist { position: absolute; left: 50%; top: 64px; z-index: 5; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 2px; height: 40px; padding: 0 3px; border-radius: 999px;
+  background: rgba(12,16,20,.62); border: 1px solid rgba(255,255,255,.16); box-shadow: 0 6px 18px rgba(0,0,0,.3); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); color: #fff; transition: opacity .15s, transform .15s; max-width: calc(100% - 120px); }
+.flash-hist[hidden] { display: none; }
+.flash-hist .fh-btn { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border: 0; border-radius: 50%; background: transparent; color: #fff; cursor: pointer; padding: 0; }
+.flash-hist .fh-btn:not(:disabled):active { background: rgba(255,255,255,.16); transform: scale(.92); }
+.flash-hist .fh-btn:disabled { opacity: .35; cursor: default; }
+.flash-hist .fh-refazer svg { transform: scaleX(-1); }
+.flash-hist .fh-rot { max-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 12.5px; font-weight: 750; opacity: 0; transition: max-width .25s ease, opacity .2s, padding .25s; }
+.flash-hist.com-rot .fh-rot { max-width: 220px; opacity: 1; padding: 0 6px; }
+.flash-hist.pisca { border-color: rgba(0,173,238,.7); }
+.flash-hist.acabou-apagar { border-color: rgba(255,90,90,.7); }
+.flash-palco.arrastando-txt .flash-hist, .flash-palco:has(.flash-figs, .flash-edtxt, .flash-pincel, .fe-arroba) .flash-hist { opacity: 0; pointer-events: none; }
+@media (hover: hover) { .flash-hist .fh-btn:not(:disabled):hover { background: rgba(255,255,255,.12); } }
+/* limitador de fotos: "Escolha até N fotos" (quando a pessoa marca mais do que cabe no seletor do celular) */
+.fe-escolha { grid-template-rows: auto auto minmax(0, 1fr); }
+.fe-escolha .fe-cab { gap: 10px; }
+.fe-esc-tit { flex: 1; min-width: 0; display: grid; line-height: 1.2; color: #fff; }
+.fe-esc-tit strong { font-size: 16px; }
+.fe-esc-tit small { font-size: 12.5px; color: rgba(255,255,255,.7); font-weight: 700; }
+.fe-escolha .fe-pronto:disabled { opacity: .45; }
+.fe-esc-aviso { margin: 0 16px 8px; font-size: 12.5px; color: rgba(255,255,255,.78); line-height: 1.35; }
+.fe-esc-grade { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 0 12px 14px; overflow-y: auto; align-content: start; }
+.fe-esc-cel { position: relative; aspect-ratio: 1; padding: 0; border: 0; border-radius: 8px; overflow: hidden; background: #1b232a; cursor: pointer; }
+.fe-esc-cel img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .15s, opacity .15s; }
+.fe-esc-cel.on img { transform: scale(.9); border-radius: 6px; }
+.fe-esc-cel.on { outline: 2.5px solid #00adee; outline-offset: -2.5px; }
+.fe-esc-cel.cheio img { opacity: .4; }
+.fe-esc-n { position: absolute; top: 6px; right: 6px; width: 24px; height: 24px; border-radius: 50%; border: 2px solid #fff; background: rgba(0,0,0,.3); color: #fff; font-size: 12.5px; font-weight: 850; display: grid; place-items: center; box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+.fe-esc-cel.on .fe-esc-n { background: #00adee; border-color: #00adee; }

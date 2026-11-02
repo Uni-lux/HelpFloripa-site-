@@ -14,7 +14,7 @@ import {
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados,
   responderNoChat, cartaoRespostaCaixa, fecharFolha
-} from "./rede.js?v=98";
+} from "./rede.js?v=99";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { fimEscolhido, MAX_FLASH_MIN, fimDaEnquete, encerrada, faltaTexto, resultadoFinal, lerContasEnquete } from "./enquetes.js?v=6";
@@ -1230,16 +1230,65 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     im.onerror = () => { URL.revokeObjectURL(u); erro(new Error("Não foi possível abrir esta foto.")); };
     im.src = u;
   });
+  // Limitador: o seletor de fotos do celular não deixa limitar quantas a pessoa marca. Se vierem mais do que cabe,
+  // abre "Escolha N fotos" com as marcadas (já vêm as primeiras escolhidas, na ordem de toque, com o número).
   function pedirFotos(max, aoEscolher) {
+    if (max < 1) return;
     const inp = document.createElement("input"); inp.type = "file"; inp.accept = "image/*"; inp.multiple = max > 1;
     inp.addEventListener("change", async () => {
-      const arqs = [...(inp.files || [])].filter((f) => f.type.startsWith("image/"));
+      let arqs = [...(inp.files || [])].filter((f) => f.type.startsWith("image/"));
       if (!arqs.length) return;
-      if (arqs.length > max) toast(`Usei as ${max} primeiras fotos.`);
-      try { aoEscolher(await Promise.all(arqs.slice(0, max).map((f) => lerImagem(f, max > 1 ? 1400 : 1000)))); }
+      if (arqs.length > max) { arqs = await escolherDentre(arqs, max); if (!arqs?.length) return; }
+      try { aoEscolher(await Promise.all(arqs.map((f) => lerImagem(f, max > 1 ? 1400 : 1000)))); }
       catch (e) { toast(erroAmigavel(e)); }
     });
+    toast(max === 1 ? "Escolha 1 foto" : `Escolha até ${max} fotos`);
     inp.click();
+  }
+  function escolherDentre(arqs, max) {
+    return new Promise((fim) => {
+      palco.querySelector(".flash-figs")?.remove();
+      const pn = el("div", "flash-figs fe-escolha");
+      const cab = el("div", "fe-cab");
+      const x = el("button", "flash-ferr-btn"); x.type = "button"; x.setAttribute("aria-label", "Cancelar"); x.appendChild(icone("fechar", "i s"));
+      const tit = el("div", "fe-esc-tit"); const t1 = el("strong", null, `Escolha até ${max} ${max === 1 ? "foto" : "fotos"}`); const t2 = el("small");
+      tit.append(t1, t2);
+      const ok = el("button", "fe-pronto"); ok.type = "button";
+      cab.append(x, tit, ok);
+      const aviso = el("p", "fe-esc-aviso", `Você marcou ${arqs.length}. Aqui cabem ${max}: toque para escolher quais entram (o número é a ordem).`);
+      const grade = el("div", "fe-esc-grade");
+      const urls = arqs.map((f) => URL.createObjectURL(f));
+      const sel = arqs.slice(0, max).map((_, i) => i);
+      const pintar = () => {
+        [...grade.children].forEach((c, i) => {
+          const k = sel.indexOf(i); c.classList.toggle("on", k >= 0); c.classList.toggle("cheio", k < 0 && sel.length >= max);
+          c.querySelector(".fe-esc-n").textContent = k >= 0 ? String(k + 1) : "";
+          c.setAttribute("aria-pressed", String(k >= 0));
+        });
+        t2.textContent = `${sel.length} de ${max}`;
+        ok.textContent = sel.length ? `Usar ${sel.length}` : "Usar";
+        ok.disabled = !sel.length;
+      };
+      urls.forEach((u, i) => {
+        const c = el("button", "fe-esc-cel"); c.type = "button"; c.setAttribute("aria-label", `Foto ${i + 1}`);
+        const im = document.createElement("img"); im.src = u; im.alt = ""; im.decoding = "async";
+        c.append(im, el("span", "fe-esc-n"));
+        c.addEventListener("click", () => {
+          const k = sel.indexOf(i);
+          if (k >= 0) sel.splice(k, 1);
+          else if (sel.length >= max) { toast(`Limite de ${max} ${max === 1 ? "foto" : "fotos"}. Tire uma para trocar.`); navigator.vibrate?.(15); return; }
+          else sel.push(i);
+          pintar();
+        });
+        grade.appendChild(c);
+      });
+      const sair = (l) => { pn.remove(); urls.forEach((u) => URL.revokeObjectURL(u)); fim(l); };
+      x.addEventListener("click", () => sair(null));
+      ok.addEventListener("click", () => sair(sel.map((i) => arqs[i])));
+      pn.append(cab, aviso, grade);
+      palco.appendChild(pn);
+      pintar();
+    });
   }
   function abrirImagens() {
     palco.querySelector(".flash-figs")?.remove();
@@ -1255,7 +1304,10 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       b.addEventListener("click", fn); grade.appendChild(b); return b;
     };
     if (modo === "foto" && (foto || video)) pilula("imagem", "Trocar o fundo", "#00adee", () => { pn.remove(); escolherArquivo(false); });
-    pilula("fotos", "Foto por cima", "#ff3d7f", () => { pn.remove(); pedirFotos(4, (l) => l.forEach((im, i) => criarTexto({ ft: true, img: im, texto: "", x: 0.5 + i * 0.05, y: 0.42 + i * 0.05, tam: 0.55, estilo: 1, rot: i ? (i % 2 ? 4 : -4) : 0, letra: 0, cor: "#fff", destaque: false }))); }, "até 4");
+    const vagas = 4 - textos.filter((t) => t.ft).length;
+    pilula("fotos", "Foto por cima", "#ff3d7f", () => {
+      if (vagas < 1) { toast("Já tem 4 fotos por cima: arraste uma até a lixeira para pôr outra."); return; }
+      pn.remove(); pedirFotos(vagas, (l) => l.forEach((im, i) => criarTexto({ ft: true, img: im, texto: "", x: 0.5 + i * 0.05, y: 0.42 + i * 0.05, tam: 0.55, estilo: 1, rot: i ? (i % 2 ? 4 : -4) : 0, letra: 0, cor: "#fff", destaque: false }))); }, vagas < 4 ? (vagas ? `mais ${vagas}` : "4 de 4") : "até 4");
     const mods = el("div", "fm-modelos");
     MODELOS.forEach(([k, nome, cels]) => {
       const b = el("button", "fm-modelo"); b.type = "button"; b.setAttribute("aria-label", `Modelo ${nome}`);
@@ -1313,7 +1365,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     const t = gesto.t, mexeu = gesto.mexeu, foiDois = gesto.dois;
     gesto.t = null; gesto.base = null; gesto.mexeu = false; gesto.dois = false;
     palco.classList.remove("arrastando-txt"); guias.querySelectorAll(".on").forEach((g) => g.classList.remove("on"));
-    if (lixo.classList.contains("sobre")) { lixo.classList.remove("sobre"); t.el.remove(); textos.splice(textos.indexOf(t), 1); navigator.vibrate?.(12); pintarArroba(); toast("Removido · toque aqui para desfazer", desfazer); return; }
+    if (lixo.classList.contains("sobre")) { lixo.classList.remove("sobre"); t.el.remove(); textos.splice(textos.indexOf(t), 1); navigator.vibrate?.(12); pintarArroba(); renomearUltimo(`Apagar ${nomeFig(t)}`); avisarHist(`${nomeFig(t, true)} ${/^(foto|enquete|caixa|menção|localização|hashtag|figurinha)/.test(nomeFig(t)) ? "apagada" : "apagado"} · toque em ↶ para desfazer`, true); return; }
     if (mexeu || foiDois || ev.type !== "pointerup") return;
     // toque parado
     if (t.enq) editarEnquete(t); else if (t.cx) editarCaixa(t); else if (t.lk) escolherNegocio(t);
@@ -1342,7 +1394,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       r = ((r + 540) % 360) - 180;
       if (Math.abs(r) < 4) r = 0; // encaixa reto
       t.rot = Math.round(r * 10) / 10;
-      if (!gesto.mexeu) marcar();
+      if (!gesto.mexeu) marcar(`Ajustar ${nomeFig(t)}`);
       t.x = Math.min(0.98, Math.max(0.02, b.tx + ((p1.x + p2.x) / 2 - b.mx) / W));
       t.y = Math.min(0.98, Math.max(0.02, b.ty + ((p1.y + p2.y) / 2 - b.my) / H));
       gesto.mexeu = true; palco.classList.add("arrastando-txt");
@@ -1352,7 +1404,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     if (b.dois) return;
     const dx = ev.clientX - b.x, dy = ev.clientY - b.y;
     if (!gesto.mexeu && Math.hypot(dx, dy) < 5) return;
-    if (!gesto.mexeu) { marcar(); gesto.mexeu = true; palco.classList.add("arrastando-txt"); }
+    if (!gesto.mexeu) { marcar(`Mover ${nomeFig(t)}`); gesto.mexeu = true; palco.classList.add("arrastando-txt"); }
     t.x = Math.min(0.98, Math.max(0.02, b.tx + dx / W)); t.y = Math.min(0.98, Math.max(0.02, b.ty + dy / H));
     const nx = Math.abs(t.x - 0.5) < 0.015; if (nx) t.x = 0.5;
     guias.querySelector(".v").classList.toggle("on", nx);
@@ -1366,7 +1418,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   function criarTexto(t) {
     const e = el("div", "flash-txt"); e.setAttribute("role", "button"); e.tabIndex = 0;
     e.setAttribute("aria-label", t.ft ? "Foto por cima: arraste para mover, dois dedos para aumentar ou girar, toque para trocar a moldura" : "Texto na foto: toque para editar, arraste para mover, dois dedos para aumentar ou girar");
-    marcar();
+    marcar(`Adicionar ${nomeFig(t)}`);
     t.el = e; textos.push(t); camada.appendChild(e); pintarTexto(t);
     publicar.disabled = !prontoParaPublicar() || enviando;
     e.addEventListener("pointerdown", (ev) => {
@@ -1565,11 +1617,11 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
         const opcoes = ops.map((o, i) => (o.trim() || (i === 0 ? "Sim" : i === 1 ? "Não" : "")).slice(0, 40)).filter(Boolean);
         if (opcoes.length < 2) { toast("Coloque pelo menos 2 opções."); return; }
         pn.remove();
-        if (t) { marcar(); t.pergunta = pergunta; t.opcoes = opcoes; t.duracao = duracao; t.anonima = estado.anonima; t.tema = estado.cor; pintarTexto(t); }
+        if (t) { marcar("Editar enquete"); t.pergunta = pergunta; t.opcoes = opcoes; t.duracao = duracao; t.anonima = estado.anonima; t.tema = estado.cor; pintarTexto(t); }
         else criarTexto({ enq: true, pergunta, opcoes, duracao, anonima: estado.anonima, tema: estado.cor, texto: "", x: 0.5, y: 0.6, tam: 0.05, letra: 0, cor: "#111", destaque: false });
       } else {
         pn.remove();
-        if (t) { marcar(); t.pergunta = pergunta; t.anonima = estado.anonima; t.tema = estado.cor; pintarTexto(t); }
+        if (t) { marcar("Editar caixa de perguntas"); t.pergunta = pergunta; t.anonima = estado.anonima; t.tema = estado.cor; pintarTexto(t); }
         else criarTexto({ cx: true, pergunta, anonima: estado.anonima, tema: estado.cor, texto: "", x: 0.5, y: 0.42, tam: 0.05, letra: 0, cor: "#111", destaque: false });
       }
     });
@@ -1816,7 +1868,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
           const seg = el("div", "fm-seg"); seg.setAttribute("role", "radiogroup"); seg.setAttribute("aria-label", "Como a menção aparece");
           [["tela", "Na tela"], ["lista", "Só na lista"], ["oculta", "Oculta"]].forEach(([k, rot]) => {
             const b = el("button", "fm-seg-op" + (k === modoM ? " on" : ""), rot); b.type = "button"; b.setAttribute("role", "radio"); b.setAttribute("aria-checked", String(k === modoM));
-            b.addEventListener("click", () => { marcar(); t.oculta = k === "oculta"; t.soLista = k === "lista"; pintarTexto(t); pintarL(); });
+            b.addEventListener("click", () => { marcar("Mudar a menção"); t.oculta = k === "oculta"; t.soLista = k === "lista"; pintarTexto(t); pintarL(); });
             seg.appendChild(b);
           });
           const w = el("div", "fm-bloco"); w.append(l, seg);
@@ -1907,10 +1959,10 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     const concluir = () => {
       const texto = campo.value.trim();
       ed.remove();
-      if (t && !texto) { marcar(); t.el.remove(); textos.splice(textos.indexOf(t), 1); return; }
+      if (t && !texto) { marcar(`Apagar ${nomeFig(t)}`); t.el.remove(); textos.splice(textos.indexOf(t), 1); return; }
       if (!texto) return;
       tmp.texto = texto;
-      if (novo) criarTexto(tmp); else { marcar(); Object.assign(t, tmp); pintarTexto(t); }
+      if (novo) criarTexto(tmp); else { marcar(`Editar ${nomeFig(t)}`); Object.assign(t, tmp); pintarTexto(t); }
       pintarArroba();
     };
     ok.addEventListener("click", concluir);
@@ -1974,7 +2026,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     area.addEventListener("pointerdown", (e) => {
       const r = palco.getBoundingClientRect();
       area.setPointerCapture(e.pointerId);
-      marcar();
+      marcar(est.modo === "borracha" ? "Apagar parte do desenho" : "Desenhar");
       atual = { modo: est.modo, cor: est.cor, larg: est.larg, pts: [[(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height]] };
       tracos.push(atual); ed.classList.add("desenhando"); pintarDesenho();
     });
@@ -2231,14 +2283,74 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   }
   let rascId = rascunho?.id || null;
 
-  // ---------- desfazer ----------
-  // Guarda como estavam as figurinhas e o pincel antes de cada mudança; o botão ↶ volta um passo.
-  const historico = [];
+  // ---------- desfazer e refazer ----------
+  // Cada mudança (pôr, mover, ajustar, editar, apagar, desenhar) guarda como estava antes, com o nome do que foi feito.
+  // Barra no alto do cartão: ↶ Desfazer · ↷ Refazer; ao desfazer, mostra o que voltou ("Desfeito: Mover texto").
+  // No computador: Ctrl+Z / Ctrl+Shift+Z (ou Ctrl+Y). Até 40 passos.
+  const historico = [], refeitos = [];
   let restaurando = false;
-  const bDesfazer = el("button", "flash-ferr-btn flash-desfazer"); bDesfazer.type = "button"; bDesfazer.title = "Desfazer"; bDesfazer.setAttribute("aria-label", "Desfazer a última mudança");
-  bDesfazer.innerHTML = '<svg class="i s" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 010 11H11"/></svg>';
-  bDesfazer.hidden = true;
-  esq.appendChild(bDesfazer);
+  const SVG_DESF = '<svg class="i s" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 010 11H11"/></svg>';
+  const hist = el("div", "flash-hist"); hist.hidden = true; hist.setAttribute("role", "group"); hist.setAttribute("aria-label", "Desfazer e refazer");
+  const bDesfazer = el("button", "fh-btn flash-desfazer"); bDesfazer.type = "button"; bDesfazer.innerHTML = SVG_DESF;
+  const bRefazer = el("button", "fh-btn fh-refazer"); bRefazer.type = "button"; bRefazer.innerHTML = SVG_DESF;
+  const rotHist = el("span", "fh-rot"); rotHist.setAttribute("aria-live", "polite");
+  hist.append(bDesfazer, rotHist, bRefazer);
+  palco.appendChild(hist);
+  [bDesfazer, bRefazer].forEach((b) => b.addEventListener("pointerdown", (e) => { e.stopPropagation(); e.preventDefault(); }));
+  function nomeFig(t, maiuscula = false) {
+    const n = t.enq ? "enquete" : t.cx ? "caixa de perguntas" : t.lk ? "link do negócio" : t.ft ? "foto" : t.emoji ? "emoji"
+      : t.fig === "mencao" ? "menção" : t.fig === "local" ? "localização" : t.fig === "hashtag" ? "hashtag" : t.fig ? "figurinha" : "texto";
+    return maiuscula ? n[0].toUpperCase() + n.slice(1) : n;
+  }
+  const instantaneo = () => ({ textos: textos.map(({ el: _e, _area, _arrobas, ...t }) => ({ ...t })), tracos: tracos.map((t) => ({ ...t, pts: t.pts.slice() })) });
+  let tRot = 0;
+  function avisarHist(txt, comDesfazer = false) {
+    rotHist.textContent = txt; hist.classList.add("com-rot", "pisca"); clearTimeout(tRot);
+    if (comDesfazer) hist.classList.add("acabou-apagar");
+    tRot = setTimeout(() => hist.classList.remove("com-rot", "pisca", "acabou-apagar"), 2600);
+  }
+  function pintarHist() {
+    hist.hidden = !historico.length && !refeitos.length;
+    bDesfazer.disabled = !historico.length; bRefazer.disabled = !refeitos.length;
+    const u = historico[historico.length - 1], f = refeitos[refeitos.length - 1];
+    bDesfazer.title = u ? `Desfazer: ${u.rotulo}` : "Nada para desfazer"; bDesfazer.setAttribute("aria-label", bDesfazer.title);
+    bRefazer.title = f ? `Refazer: ${f.rotulo}` : "Nada para refazer"; bRefazer.setAttribute("aria-label", bRefazer.title);
+  }
+  function marcar(rotulo = "Mudança") {
+    if (restaurando) return;
+    historico.push({ ...instantaneo(), rotulo });
+    if (historico.length > 40) historico.shift();
+    refeitos.length = 0;
+    pintarHist();
+  }
+  const renomearUltimo = (rotulo) => { const u = historico[historico.length - 1]; if (u) { u.rotulo = rotulo; pintarHist(); } };
+  function aplicar(h) {
+    restaurando = true;
+    textos.splice(0).forEach((t) => t.el?.remove());
+    h.textos.forEach((t) => criarTexto({ ...t }));
+    tracos.splice(0, tracos.length, ...h.tracos); pintarDesenho();
+    restaurando = false;
+    pintarArroba();
+    publicar.disabled = !prontoParaPublicar() || enviando;
+  }
+  function desfazer() {
+    const h = historico.pop(); if (!h) return;
+    refeitos.push({ ...instantaneo(), rotulo: h.rotulo });
+    aplicar(h); pintarHist(); avisarHist(`Desfeito: ${h.rotulo}`);
+  }
+  function refazer() {
+    const h = refeitos.pop(); if (!h) return;
+    historico.push({ ...instantaneo(), rotulo: h.rotulo });
+    aplicar(h); pintarHist(); avisarHist(`Refeito: ${h.rotulo}`);
+  }
+  bDesfazer.addEventListener("click", (e) => { e.stopPropagation(); desfazer(); });
+  bRefazer.addEventListener("click", (e) => { e.stopPropagation(); refazer(); });
+  document.addEventListener("keydown", (e) => {
+    if (!fundo.isConnected || !(e.ctrlKey || e.metaKey) || /^(INPUT|TEXTAREA)$/.test(document.activeElement?.tagName || "")) return;
+    const k = e.key.toLowerCase();
+    if (k === "z" && !e.shiftKey) { e.preventDefault(); desfazer(); }
+    else if (k === "y" || (k === "z" && e.shiftKey)) { e.preventDefault(); refazer(); }
+  });
   // Atalho para salvar o rascunho (sem precisar sair): aparece quando já tem algo feito.
   const bSalvaRasc = el("button", "flash-ferr-btn flash-salvar-rasc"); bSalvaRasc.type = "button"; bSalvaRasc.title = "Salvar rascunho"; bSalvaRasc.setAttribute("aria-label", "Salvar como rascunho");
   bSalvaRasc.appendChild(icone("rascunho", "i s")); bSalvaRasc.hidden = true;
@@ -2262,23 +2374,6 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       { rotulo: "Cancelar", icone: "fechar", fn: () => {} }
     ]);
   });
-  function marcar() {
-    if (restaurando) return;
-    historico.push({ textos: textos.map(({ el: _e, ...t }) => ({ ...t })), tracos: tracos.map((t) => ({ ...t, pts: t.pts.slice() })) });
-    if (historico.length > 40) historico.shift();
-    bDesfazer.hidden = false;
-  }
-  function desfazer() {
-    const h = historico.pop(); if (!h) return;
-    restaurando = true;
-    textos.splice(0).forEach((t) => t.el?.remove());
-    h.textos.forEach((t) => criarTexto({ ...t }));
-    tracos.splice(0, tracos.length, ...h.tracos); pintarDesenho();
-    restaurando = false;
-    bDesfazer.hidden = !historico.length;
-    pintarArroba();
-  }
-  bDesfazer.addEventListener("click", desfazer);
   // Foto com os textos: desenha o cartão inteiro em 1080×1920 (o que a pessoa vê é o que vai).
   function desenharCamada(g, OW, OH) {
     if (tracos.length) { const cd = document.createElement("canvas"); cd.width = OW; cd.height = OH; pintarTracos(cd.getContext("2d"), OW, OH, tracos); g.drawImage(cd, 0, 0); }

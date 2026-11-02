@@ -26,11 +26,11 @@ await p.waitForTimeout(1500);
 await p.locator(".story-cx .cx-ver").click(); await p.waitForTimeout(1500);
 await p.locator("#folhaLista .vv-resp").click(); await p.waitForTimeout(200);
 ok(await p.locator("#folhaLista .vv-acao", { hasText: "Responder" }).count() === 1, "resposta da caixa tem “Responder”");
-await p.locator("#folhaLista .vv-acao", { hasText: "Responder" }).click();
-await p.waitForSelector(".hfc.on iframe", { timeout: 8000 }).catch(() => {});
-const q = p.frameLocator(".hfc.on iframe");
+await Promise.all([p.waitForURL(/mensagens\.html/, { timeout: 10000 }).catch(() => {}), p.locator("#folhaLista .vv-acao", { hasText: "Responder" }).click()]);
+ok(/mensagens\.html\?conversa=/.test(p.url()) && await p.locator(".hfc.on").count() === 0, "Responder abre a página de Mensagens de vez (não a gaveta)");
+const q = p;
 await q.locator("#barraCartao:not([hidden])").waitFor({ timeout: 15000 }).catch(() => {});
-ok((await q.locator("#cartaoTipo").textContent().catch(() => "")).includes("Qual lanche"), "o chat abre por cima com a pergunta e a resposta prontas");
+ok((await q.locator("#cartaoTipo").textContent().catch(() => "")).includes("Qual lanche"), "a conversa abre com a pergunta e a resposta prontas");
 await p.screenshot({ path: "saida/fresp-pendente.png" });
 await q.locator("#texto").fill("Boa ideia, vou fazer!");
 await q.locator("#btnEnviar").click(); await p.waitForTimeout(2500);
@@ -39,22 +39,18 @@ const msgs = (await db.collection(`conversas/${conv}/mensagens`).orderBy("criado
 const cartao = msgs.find((m) => m.cartao?.tipo === "caixa")?.cartao;
 ok(cartao && cartao.resposta === "Faz um X-salada!" && cartao.cor === "roxo" && cartao.itemTipo === "f" && cartao.itemId === f1, "vai o cartão {tipo: caixa} com pergunta, resposta, cor e o flash");
 ok(msgs.some((m) => m.texto === "Boa ideia, vou fazer!"), "e a mensagem escrita vai logo depois");
-ok(await q.locator(".caixa-msg .cxm-perg").count() >= 1 && await q.locator(".caixa-msg .cxm-ver").count() >= 1, "no chat aparece o cartão (faixa da pergunta + resposta + Ver flash)");
+ok(await q.locator(".caixa-msg .rsp-cx .cxm-perg").count() >= 1 && await q.locator(".caixa-msg a.rsp-cx").count() >= 1, "no chat aparece o cartão compacto (pergunta + resposta, toque abre o flash)");
 await p.screenshot({ path: "saida/fresp-chat.png" });
-await p.evaluate(() => history.back()); await p.waitForTimeout(1200);
-const passos = [await p.locator(".hfc.on").count()];
-for (let k = 0; k < 3 && await p.locator(".hfc.on").count(); k++) { await p.evaluate(() => history.back()); await p.waitForTimeout(1200); passos.push(await p.locator(".hfc.on").count()); }
-console.log("    (gaveta aberta depois de cada voltar:", passos.join(","), ")");
-ok(passos[0] === 0 && await p.locator(".hfc.on").count() === 0 && await p.locator(".story-visor").count() === 1, "voltar fecha o chat e continua no flash");
-await p.keyboard.press("Escape"); await p.waitForTimeout(400);
+await p.goBack(); await p.waitForTimeout(4000);
+ok(/feed\.html/.test(p.url()) && await p.locator(".story-visor").count() === 1, "um voltar sai do Mensagens e volta para o flash");
 await p.keyboard.press("Escape"); await p.waitForTimeout(600);
-ok(await p.locator(".story-visor").count() === 0, "Esc fecha a lista e depois o flash");
+ok(await p.locator(".story-visor").count() === 0, "Esc fecha o flash");
 
 // ---------- 2) Bruno vê o cartão do lado dele ----------
 const nb = await navegador({ mobile: true });
 const b = await entrar(nb.ctx, "bruno", `mensagens.html?conversa=${conv}`);
 await b.waitForSelector(".caixa-msg", { timeout: 15000 }).catch(() => {});
-ok((await b.locator(".caixa-msg .cxm-cab").first().textContent().catch(() => "")).includes("Respondeu à sua resposta"), "quem respondeu vê “Respondeu à sua resposta”");
+ok((await b.locator(".caixa-msg .rsp-rot").first().textContent().catch(() => "")).includes("Respondeu à sua resposta"), "quem respondeu vê “Respondeu à sua resposta”");
 await b.screenshot({ path: "saida/fresp-bruno.png" });
 
 // ---------- 3) voltar de um link do flash reabre o mesmo flash ----------
