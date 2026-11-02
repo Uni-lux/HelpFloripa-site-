@@ -14,7 +14,7 @@ import {
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados,
   responderNoChat, cartaoRespostaCaixa, fecharFolha
-} from "./rede.js?v=99";
+} from "./rede.js?v=100";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { fimEscolhido, MAX_FLASH_MIN, fimDaEnquete, encerrada, faltaTexto, resultadoFinal, lerContasEnquete } from "./enquetes.js?v=6";
@@ -182,7 +182,7 @@ const linkNegocio = (l) => `${PAGINA_NEGOCIO[l.tipo] || "servicos.html"}?negocio
 
 // Abrir um flash pelo link (feed.html?flash=ID), vindo de uma mensagem.
 export async function abrirFlashPorId(id, { silencioso = false } = {}) {
-  const sumiu = () => { if (silencioso) { try { history.replaceState({ ...(history.state || {}), hfCamadas: 0 }, "", location.href); } catch {} } };
+  const sumiu = () => { tirarCapa(); if (silencioso) { try { history.replaceState({ ...(history.state || {}), hfCamadas: 0 }, "", location.href); } catch {} } };
   try {
     const d = await fb.getDoc(fb.doc(fb.db, "stories", id));
     if (!d.exists() || !ativo(d.data({ serverTimestamps: "estimate" }))) { sumiu(); toast("Esse flash não está mais disponível (passou de 24 horas)."); return; }
@@ -192,12 +192,13 @@ export async function abrirFlashPorId(id, { silencioso = false } = {}) {
     const lista = (docs || [d]).map((k) => ({ id: k.id, ...k.data({ serverTimestamps: "estimate" }) })).filter((k) => ativo(k) && (k.autorId === eu.uid || podeVer(k))).sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm));
     porAutor.set(x.autorId, lista.length ? lista : [x]);
     abrirVisor(x.autorId, { so: true, comecarEm: id });
-  } catch (e) { toast("Não foi possível abrir o flash: " + erroAmigavel(e)); }
+  } catch (e) { tirarCapa(); toast("Não foi possível abrir o flash: " + erroAmigavel(e)); }
 }
 // Voltar ao flash: ao sair da página com um flash aberto (perfil de quem foi mencionado, link do negócio, lugar, #,
 // publicação...), o "voltar" do celular traz o MESMO flash de volta (antes voltava para o Diário com o flash fechado).
 // Só os flashes no ar (destaques e arquivo não). Guardado na aba (sessionStorage), vale 30 min.
 const CHAVE_VOLTA = "hf-flash-volta";
+const tirarCapa = () => document.documentElement.classList.remove("hf-volta-flash");
 function lembrarFlash(s) {
   try { if (s?.id) sessionStorage.setItem(CHAVE_VOLTA, JSON.stringify({ id: s.id, pagina: location.pathname + location.search, em: Date.now() })); } catch {}
 }
@@ -208,11 +209,11 @@ export function voltarAoFlash(daMemoria = false) {
   let x = null;
   try { x = JSON.parse(sessionStorage.getItem(CHAVE_VOLTA) || "null"); } catch {}
   // A marca é da página de onde a pessoa saiu: as outras páginas não mexem nela.
-  if (!x || x.pagina !== location.pathname + location.search) return false;
+  if (!x || x.pagina !== location.pathname + location.search) { tirarCapa(); return false; }
   try { sessionStorage.removeItem(CHAVE_VOLTA); } catch {}
-  if (!x.id || !/^[A-Za-z0-9]{1,64}$/.test(x.id) || Date.now() - Number(x.em || 0) > 30 * 60e3) return false;
+  if (!x.id || !/^[A-Za-z0-9]{1,64}$/.test(x.id) || Date.now() - Number(x.em || 0) > 30 * 60e3) { tirarCapa(); return false; }
   let tipo = ""; try { tipo = performance.getEntriesByType("navigation")[0]?.type || ""; } catch {}
-  if (tipo !== "back_forward" && !daMemoria) return false;
+  if (tipo !== "back_forward" && !daMemoria) { tirarCapa(); return false; }
   // O passo do histórico em que estamos era o do flash: reaproveita (um "voltar" fecha o flash, como antes).
   try { history.replaceState({ ...(history.state || {}), hfCamadas: 1 }, "", location.href); } catch {}
   abrirFlashPorId(x.id, { silencioso: true });
@@ -2149,11 +2150,15 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       camVideo.srcObject = stream;
       camBox.classList.toggle("espelho", virada);
       camVideo.play().catch(() => {});
+      try { localStorage.setItem("hf-cam-ok", "1"); } catch {}
+      camVideo.addEventListener("playing", () => palco.classList.remove("abrindo-cam"), { once: true });
+      setTimeout(() => palco.classList.remove("abrindo-cam"), 2500);
       modo = "foto"; pintar();
       // Quando o primeiro quadro chega: amostras reais nas bolinhas dos filtros.
       camVideo.addEventListener("loadeddata", () => { if (cam) pintarTira(); }, { once: true });
     } catch (e) {
-      cam = null;
+      cam = null; palco.classList.remove("abrindo-cam");
+      if (e?.name === "NotAllowedError") { try { localStorage.removeItem("hf-cam-ok"); } catch {} }
       toast(e?.name === "NotAllowedError" ? "Sem permissão para a câmera. Abrindo a câmera do celular." : "Não foi possível abrir a câmera aqui. Abrindo a câmera do celular.");
       escolherArquivo(true);
     }
@@ -2599,7 +2604,18 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     return;
   }
   // Câmera já liberada antes: abre direto nela (como Instagram e TikTok). Sem permissão: fica a escolha Câmera/Galeria.
-  if (configFlash().cameraDireto) navigator.permissions?.query?.({ name: "camera" }).then((p) => { if (p.state === "granted" && modo === "foto" && !foto && !video) abrirCamera(); }).catch(() => {});
+  // Câmera direto: enquanto ela liga, o cartão fica escuro com "Abrindo a câmera" (antes aparecia por 1 s a tela de
+  // escolher Câmera/Galeria e só depois a câmera).
+  const semCamera = () => { palco.classList.remove("abrindo-cam"); };
+  if (configFlash().cameraDireto && modo === "foto" && !foto && !video && navigator.mediaDevices?.getUserMedia) {
+    let jaDeu = false; try { jaDeu = localStorage.getItem("hf-cam-ok") === "1"; } catch {}
+    if (jaDeu) palco.classList.add("abrindo-cam");
+    setTimeout(semCamera, 5000);
+    navigator.permissions?.query?.({ name: "camera" }).then((p) => {
+      if (p.state === "granted" && modo === "foto" && !foto && !video) { palco.classList.add("abrindo-cam"); abrirCamera(); }
+      else semCamera();
+    }).catch(semCamera);
+  }
 }
 
 // Flash de texto: quadro 1080×1920 com o fundo e a letra escolhidos (vira uma foto JPEG).
@@ -2909,7 +2925,15 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
   const chip = el("span", "story-chip"); chip.append(icone("raio", "i xs"), document.createTextNode("Flash"));
   // Como no Instagram: o tempo fica na mesma linha do nome ("Ana  3 h").
   const linhaNome = el("div", "story-nome"); linhaNome.append(nome, quando, chip);
+  txtQuem.className = "story-quem-tx";
   txtQuem.append(linhaNome); quem.append(av, txtQuem);
+  // Foto e nome abrem o perfil de quem publicou (como no Instagram).
+  [av, nome].forEach((x) => {
+    x.classList.add("story-vai-perfil"); x.setAttribute("role", "link"); x.tabIndex = 0;
+    ["pointerdown", "pointerup"].forEach((ev) => x.addEventListener(ev, (e) => e.stopPropagation()));
+    x.addEventListener("click", (e) => { e.stopPropagation(); const s = atual(); if (s?.autorId) irParaPerfil(s.autorId); });
+    x.addEventListener("keydown", (e) => { if (e.key === "Enter") x.click(); });
+  });
   // Enviar o flash para alguém (vai como cartão no Mensagens)
   const bEnv = el("button", "story-btn"); bEnv.type = "button"; bEnv.setAttribute("aria-label", "Enviar este flash"); bEnv.title = "Enviar"; bEnv.appendChild(icone("enviar", "i s"));
   topo.append(quem, bSom, bEnv, bMais, bX);
@@ -2926,6 +2950,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
   caixa.append(quadro, esq, dir, barras, topo, rodape);
   fundo.appendChild(caixa);
   document.body.appendChild(fundo);
+  setTimeout(tirarCapa, 120);
   // Teclado aberto (responder, caixa de perguntas): o quadro NÃO encolhe junto com a tela (antes o flash diminuía e
   // a enquete e as perguntas se embolavam). O tamanho fica preso enquanto um campo está em uso; o teclado cobre
   // a parte de baixo, e o campo de responder sobe junto com a tela.
@@ -3075,6 +3100,39 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
     w.style.left = cx + "px"; w.style.top = cy + "px";
   }
   const reencaixar = () => quadro.querySelectorAll(".story-enq").forEach((w) => encaixar(w, Number(w.dataset.fx), Number(w.dataset.fy)));
+  // ---------- responder a caixa de perguntas em foco ----------
+  let focoCx = null;
+  function medirFoco() {
+    if (!focoCx) return;
+    const vv = window.visualViewport;
+    focoCx.style.top = (vv ? vv.offsetTop : 0) + "px";
+    focoCx.style.height = (vv ? vv.height : innerHeight) + "px";
+    const w = focoCx.firstElementChild; if (!w) return;
+    const k = Math.min(1.12, (Math.min(innerWidth, 420) * 0.9) / LARG_FIG);
+    w.style.setProperty("--k", k.toFixed(4));
+  }
+  function focarCaixa(w, t) {
+    if (focoCx) return;
+    focoCx = el("div", "story-cx-foco");
+    focoCx.addEventListener("pointerdown", (e) => { if (e.target === focoCx) { e.preventDefault(); t.blur(); soltarCaixa(w, true); } });
+    ["pointerup", "click"].forEach((ev) => focoCx.addEventListener(ev, (e) => e.stopPropagation()));
+    w.classList.add("em-foco");
+    focoCx.appendChild(w); fundo.appendChild(focoCx);
+    caixa.classList.add("cx-foco");
+    medirFoco();
+    window.visualViewport?.addEventListener("resize", medirFoco);
+    window.visualViewport?.addEventListener("scroll", medirFoco);
+    requestAnimationFrame(() => { if (document.activeElement !== t) t.focus({ preventScroll: true }); });
+  }
+  function soltarCaixa(w, ja = false) {
+    if (!focoCx || (!ja && w.contains(document.activeElement))) return;
+    window.visualViewport?.removeEventListener("resize", medirFoco);
+    window.visualViewport?.removeEventListener("scroll", medirFoco);
+    w.classList.remove("em-foco");
+    if (!fechado && w.isConnected) { quadro.appendChild(w); encaixar(w, Number(w.dataset.fx), Number(w.dataset.fy)); }
+    focoCx.remove(); focoCx = null;
+    caixa.classList.remove("cx-foco");
+  }
   window.addEventListener("resize", reencaixar);
   function mostrar(dirAnim = 0) {
     if (fechado) return;
@@ -3130,8 +3188,11 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
       ["pointerdown", "pointerup", "click", "keydown"].forEach((ev) => w.addEventListener(ev, (e) => e.stopPropagation()));
       // escrever a resposta (ou abrir as respostas) pausa o flash
       const t = cx.querySelector("textarea");
-      t?.addEventListener("focus", () => { digitando = true; pausar(true); });
-      t?.addEventListener("blur", () => { digitando = false; setTimeout(() => { if (!digitando) pausar(false); }, 150); });
+      t?.addEventListener("focus", () => { digitando = true; pausar(true); focarCaixa(w, t); });
+      t?.addEventListener("blur", () => { digitando = false; setTimeout(() => { if (!digitando) pausar(false); soltarCaixa(w); }, 200); });
+      // Toque no campo: a caixa sai do lugar dela e vai para o meio da parte que o teclado deixa à vista (antes, com a
+      // caixa embaixo, o teclado cobria e o campo de responder subia por cima de tudo).
+      t?.addEventListener("pointerdown", (e) => { if (w.parentElement === quadro) { e.preventDefault(); focarCaixa(w, t); } });
       cx.querySelector(".cx-ver")?.addEventListener("click", () => {
         pausar(true);
         const f = $("folhaLista"); const volta = () => { f?.removeEventListener("fechada", volta); if (document.querySelector(".story-visor")) document.body.classList.add("travado"); pausar(false); }; f?.addEventListener("fechada", volta);

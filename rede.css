@@ -3024,3 +3024,24 @@ body:has(.story-visor, .flash-criar) .toast { width: auto; max-width: min(calc(1
 .fe-esc-cel.cheio img { opacity: .4; }
 .fe-esc-n { position: absolute; top: 6px; right: 6px; width: 24px; height: 24px; border-radius: 50%; border: 2px solid #fff; background: rgba(0,0,0,.3); color: #fff; font-size: 12.5px; font-weight: 850; display: grid; place-items: center; box-shadow: 0 1px 4px rgba(0,0,0,.4); }
 .fe-esc-cel.on .fe-esc-n { background: #00adee; border-color: #00adee; }
+
+/* ===== Flash (02/11): topo organizado, nome clicável e caixa de perguntas em foco ===== */
+.story-topo { gap: 2px; }
+.story-quem { gap: 10px; }
+.story-quem-tx { flex: 1; min-width: 0; display: grid; justify-items: start; gap: 3px; }
+.story-nome { max-width: 100%; }
+.story-quem-tx .story-repost { max-width: 100%; margin-top: 0; }
+.story-vai-perfil { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.story-quem strong.story-vai-perfil:active { opacity: .7; }
+.story-quem .avatar.story-vai-perfil:active { transform: scale(.94); }
+.story-topo .story-btn { flex: none; }
+/* caixa de perguntas: ao tocar para responder, vai para o meio da parte que o teclado deixa à vista */
+.story-cx-foco { position: fixed; left: 0; right: 0; top: 0; height: 100%; z-index: 30; display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,.62); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); animation: contEntra .15s ease-out; }
+.story-cx-foco > .story-enq.em-foco { position: relative; left: auto !important; top: auto !important; transform: scale(var(--k, 1)); transform-origin: center; flex: none; }
+.story-caixa.cx-foco :is(.story-topo, .story-rodape, .story-barras, .story-toque) { opacity: 0; pointer-events: none; }
+/* criador: câmera ligando (sem mostrar a tela de escolher antes) */
+.flash-palco.abrindo-cam .flash-escolher { visibility: hidden; }
+.flash-palco.abrindo-cam::after { content: "Abrindo a câmera…"; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 2; padding: 8px 14px; border-radius: 999px;
+  background: rgba(255,255,255,.08); color: rgba(255,255,255,.75); font-size: 13px; font-weight: 750; pointer-events: none; animation: fc-pisca2 1.2s ease-in-out infinite; }
+@keyframes fc-pisca2 { 50% { opacity: .45; } }

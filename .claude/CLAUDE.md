@@ -1336,6 +1336,16 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   `responderNoChat` → `irParaPagina(url)` (rede.js: fecha as folhas, espera o passo sair do histórico e navega) com
   `mensagens.html?conversa=ID&volta=1` (abre a conversa sem passo próprio: um voltar volta ao flash, que reabre). Teste
   `t-flash-limite-desfazer.mjs` (18); `t-flash-respostas`, `t-flash3`, `t-voltar` atualizados.
+- **Flash: topo, caixa em foco, câmera direto e voltar mais rápido (02/11/2026, PR depois do #132, sem regra nova):**
+  prints dele. Topo do visor: foto e nome abrem o perfil (`.story-vai-perfil` → `irParaPerfil`), texto do topo em
+  `.story-quem-tx` (min-width 0: o "Também em 1 negócio" passava por baixo do avião). **Caixa de perguntas em foco:**
+  tocar no campo leva o `.story-cx` para `.story-cx-foco` (fixo, do tamanho do `visualViewport`, cartão no meio acima do
+  teclado, `focarCaixa`/`soltarCaixa`/`medirFoco`); topo/rodapé somem (`.cx-foco`); tocar fora devolve. **Criador:** com
+  "Abrir a câmera direto", o cartão fica escuro com "Abrindo a câmera…" (`.abrindo-cam`, `hf-cam-ok` no aparelho) em vez de
+  mostrar por 1 s a tela Câmera/Galeria. **Voltar de um @/link do flash:** feed.html/usuarios.html têm um script no `<head>`
+  que, se `hf-flash-volta` bate e a navegação é "voltar", põe `html.hf-volta-flash` (tela preta, z 4890) até o visor
+  abrir (`tirarCapa` em stories.js, 7 s no máximo); feed.js chama `voltarAoFlash()` logo depois do `iniciarRede`
+  (antes esperava o Diário carregar). Teste `t-flash-topo-volta.mjs` (11).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
