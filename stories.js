@@ -13,11 +13,11 @@ import {
   meusSeguindo, meusSeguindoPronto, escondido, silenciado, alternarSilenciar, obterPerfil, abrirOpcoes, abrirLista, linhaPessoa, pessoasEmPilha,
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados,
-  responderNoChat, cartaoRespostaCaixa
-} from "./rede.js?v=97";
+  responderNoChat, cartaoRespostaCaixa, fecharFolha
+} from "./rede.js?v=98";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
-import { seletorDuracao, fimEscolhido, linhaChave, MAX_FLASH_MIN, fimDaEnquete, encerrada, faltaTexto, resultadoFinal, lerContasEnquete } from "./enquetes.js?v=6";
+import { fimEscolhido, MAX_FLASH_MIN, fimDaEnquete, encerrada, faltaTexto, resultadoFinal, lerContasEnquete } from "./enquetes.js?v=6";
 
 const DIA = 24 * 3600e3;
 const TEMPO_FOTO = 5000;
@@ -760,11 +760,12 @@ async function guardarRascunho(r) {
   for (const x of (await lerRascunhos()).slice(10)) await apagarRascunho(x.id).catch(() => {});
 }
 // Lista dos rascunhos (folha): miniatura, quando e apagar; tocar reabre no criador.
-async function abrirRascunhos(aoAbrir) {
+async function abrirRascunhos(aoAbrir, aoMudar = null) {
   const corpo = abrirLista("Rascunhos do Flash");
   corpo.replaceChildren(el("div", "lista-vazia", "Carregando..."));
   const pintarL = async () => {
     const l = await lerRascunhos();
+    aoMudar?.(l.length); // o "Rascunhos · N" do criador acompanha (antes continuava "1" depois de apagar)
     if (!l.length) { corpo.replaceChildren(el("div", "lista-vazia", "Nenhum rascunho. Ao sair de um flash pela metade, escolha “Salvar como rascunho”.")); return; }
     const g = el("div", "rasc-grade");
     l.forEach((r) => {
@@ -1453,105 +1454,129 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       document.body.classList.add("travado");
     });
   }
-  // Enquete no flash: pergunta e 2 a 4 opções; quem vê vota na hora (não vai desenhada na foto).
-  function editarEnquete(t) {
+  // Enquete e caixa de perguntas editadas NA PRÓPRIA FIGURINHA (pedido de 02/11): o cartão fica no meio da parte
+  // que o teclado deixa à vista, a pergunta é escrita na faixa colorida e as opções nas pílulas; o botão colorido em
+  // cima troca a cor na hora. Embaixo, em pílulas pequenas: anônima e duração. Antes era um formulário com uma
+  // prévia lá embaixo, que o teclado escondia.
+  function editorVivo(tipo, t) {
     palco.querySelector(".flash-figs")?.remove();
-    const pn = el("div", "flash-figs flash-enq-ed");
-    const cab = el("div", "fe-cab"); const ok = el("button", "fe-pronto", "Pronto"); ok.type = "button";
-    cab.append(el("strong", "figs-tit", "Enquete"), el("span", "esp"), ok);
-    const box = el("div", "enq-ed");
-    const perg = el("input", "enq-ed-perg"); perg.type = "text"; perg.maxLength = 120; perg.placeholder = "Faça uma pergunta..."; perg.value = t?.pergunta || "";
-    const ops = (t?.opcoes || ["Sim", "Não"]).slice();
-    const lista = el("div", "enq-ed-ops");
-    const pintarOps = () => {
-      lista.replaceChildren(...ops.map((o, i) => {
-        const l = el("div", "enq-ed-op");
-        const inp = el("input"); inp.type = "text"; inp.maxLength = 40; inp.value = o; inp.placeholder = `Opção ${i + 1}`;
-        inp.addEventListener("input", () => { ops[i] = inp.value; });
-        l.appendChild(inp);
-        if (ops.length > 2) { const x = el("button", null, "×"); x.type = "button"; x.setAttribute("aria-label", "Tirar opção"); x.addEventListener("click", () => { ops.splice(i, 1); pintarOps(); }); l.appendChild(x); }
-        return l;
-      }));
-      if (ops.length < 4) { const m = el("button", "enq-ed-mais", "+ Adicionar opção"); m.type = "button"; m.addEventListener("click", () => { ops.push(""); pintarOps(); }); lista.appendChild(m); }
-    };
-    pintarOps();
-    // Duração: no flash vai até 24 h (acaba junto com ele).
+    const enq = tipo === "enq";
+    const pn = el("div", "flash-figs flash-fig-viva");
+    const estado = { cor: t?.tema || t?.cor || "branco", anonima: !!t?.anonima };
     const duracao = { ...(t?.duracao || { dur: 1440 }) };
-    const extras = { anonima: !!t?.anonima, cor: t?.cor || "branco" };
-    const previa = previaFig("enq", () => ({ cor: extras.cor, pergunta: perg.value.trim(), opcoes: ops }));
-    perg.addEventListener("input", () => previa.pintar());
-    lista.addEventListener("input", () => previa.pintar());
-    lista.addEventListener("click", () => setTimeout(() => previa.pintar(), 0)); // tirar/pôr opção
-    box.append(perg, lista, seletorCor(extras, () => previa.pintar()), previa, linhaChave(extras, "anonima", { titulo: "Votação anônima", sub: "Ninguém vê quem votou, nem você", escuro: true }), seletorDuracao(duracao, { maxMin: MAX_FLASH_MIN, escuro: true }));
-    pn.append(cab, box);
-    palco.appendChild(pn);
-    setTimeout(() => perg.focus(), 50);
-    ok.addEventListener("click", () => {
-      const pergunta = perg.value.trim().slice(0, 120), opcoes = ops.map((o) => o.trim().slice(0, 40)).filter(Boolean);
-      if (!pergunta) { toast("Escreva a pergunta."); perg.focus(); return; }
-      if (opcoes.length < 2) { toast("Coloque pelo menos 2 opções."); return; }
-      pn.remove();
-      if (t) { marcar(); t.pergunta = pergunta; t.opcoes = opcoes; t.duracao = duracao; t.anonima = extras.anonima; t.tema = extras.cor; pintarTexto(t); }
-      else criarTexto({ enq: true, pergunta, opcoes, duracao, anonima: extras.anonima, tema: extras.cor, texto: "", x: 0.5, y: 0.6, tam: 0.05, letra: 0, cor: "#111", destaque: false });
-    });
-  }
-  // Cor da enquete / caixa de perguntas (bolinhas; a escolhida fica com o anel).
-  function seletorCor(estado, aoMudar) {
-    const w = el("div", "fe-cor-fig"); w.setAttribute("role", "radiogroup"); w.setAttribute("aria-label", "Cor");
-    const rot = el("span", "fe-cor-rot", "Cor");
-    const bolas = el("div", "fe-cor-bolas");
-    const pintarB = () => [...bolas.children].forEach((b) => { const on = b.dataset.cor === estado.cor; b.classList.toggle("on", on); b.setAttribute("aria-checked", String(on)); });
-    CORES_FIG.forEach(([k, nome]) => {
-      const b = el("button", "fe-cor-bola tema-" + k); b.type = "button"; b.dataset.cor = k; b.setAttribute("role", "radio"); b.setAttribute("aria-label", nome); b.title = nome;
-      b.addEventListener("click", () => { estado.cor = k; pintarB(); aoMudar?.(); });
-      bolas.appendChild(b);
-    });
-    pintarB();
-    w.append(rot, bolas);
-    return w;
-  }
-  // Prévia ao vivo (cor, pergunta e opções) dentro do editor: muda na hora em que toca na cor.
-  function previaFig(tipo, ler) {
-    const w = el("div", "fe-previa"); w.setAttribute("aria-hidden", "true");
-    const pintarP = () => {
-      const d = ler();
-      const card = el("div", "fe-enq" + (tipo === "cx" ? " fe-cx" : "") + temaFig(d.cor));
-      if (tipo === "cx") {
-        const cab = el("small", "fe-cx-cab"); cab.append(icone(d.anonima ? "mascara" : "caixa", "i xs"), document.createTextNode(d.anonima ? "PERGUNTAS · ANÔNIMA" : "PERGUNTAS"));
-        card.append(cab, el("strong", null, d.pergunta || "Me faça uma pergunta"), el("span", "fe-cx-campo", "Escreva aqui..."));
-      } else {
-        card.appendChild(el("strong", null, d.pergunta || "Sua pergunta"));
-        (d.opcoes.filter((o) => o.trim()).length ? d.opcoes.filter((o) => o.trim()) : ["Opção 1", "Opção 2"]).forEach((o) => card.appendChild(el("span", null, o)));
-      }
-      w.replaceChildren(card);
+    const ops = enq ? (t?.opcoes || ["Sim", "Não"]).slice() : [];
+    // topo: cor (troca a cada toque) e Pronto
+    const topo = el("div", "fv-topo");
+    const bCor = el("button", "fv-cor"); bCor.type = "button";
+    const ok = el("button", "fe-pronto", "Pronto"); ok.type = "button";
+    topo.append(el("span"), bCor, ok);
+    // cartão
+    const meio = el("div", "fv-meio");
+    const card = el("div", "fv-card");
+    const perg = document.createElement("textarea"); perg.className = "fv-perg"; perg.rows = 1; perg.maxLength = 120;
+    perg.placeholder = enq ? "Faça uma pergunta..." : "Me faça uma pergunta"; perg.setAttribute("aria-label", "Pergunta");
+    perg.value = t?.pergunta || (enq ? "" : "Me faça uma pergunta");
+    const crescer = () => { perg.style.height = "auto"; perg.style.height = perg.scrollHeight + "px"; };
+    const faixa = el("div", "fv-faixa"); faixa.appendChild(perg);
+    const corpo = el("div", "fv-corpo");
+    card.append(faixa, corpo);
+    meio.appendChild(card);
+    const nomeCor = (k) => (CORES_FIG.find(([c]) => c === k) || CORES_FIG[0])[1];
+    const pintarCor = () => {
+      card.className = "fv-card fe-enq" + (enq ? "" : " fe-cx") + temaFig(estado.cor);
+      bCor.setAttribute("aria-label", `Cor: ${nomeCor(estado.cor)} (toque para trocar)`); bCor.title = nomeCor(estado.cor);
     };
-    w.pintar = pintarP; pintarP();
-    return w;
-  }
-  // Caixa de perguntas no flash: o texto e se as respostas são anônimas (quem vê responde por cima do flash).
-  function editarCaixa(t) {
-    palco.querySelector(".flash-figs")?.remove();
-    const pn = el("div", "flash-figs flash-enq-ed");
-    const cab = el("div", "fe-cab"); const ok = el("button", "fe-pronto", "Pronto"); ok.type = "button";
-    cab.append(el("strong", "figs-tit", "Caixa de perguntas"), el("span", "esp"), ok);
-    const box = el("div", "enq-ed");
-    const perg = el("input", "enq-ed-perg"); perg.type = "text"; perg.maxLength = 120; perg.placeholder = "Me faça uma pergunta"; perg.value = t?.pergunta || "Me faça uma pergunta";
-    const estado = { anonima: !!t?.anonima, cor: t?.tema || "branco" };
-    const previa = previaFig("cx", () => ({ cor: estado.cor, pergunta: perg.value.trim(), anonima: estado.anonima }));
-    perg.addEventListener("input", () => previa.pintar());
-    box.append(perg, el("small", "enq-ed-dica", "Quem vê o flash escreve a resposta numa caixa de texto. As respostas chegam só para você."), seletorCor(estado, () => previa.pintar()), previa,
-      linhaChave(estado, "anonima", { titulo: "Respostas anônimas", sub: "Você não vê quem respondeu", escuro: true, aoMudar: () => previa.pintar() }));
-    pn.append(cab, box);
+    bCor.addEventListener("pointerdown", (e) => e.preventDefault()); // não fecha o teclado
+    bCor.addEventListener("click", () => {
+      const i = CORES_FIG.findIndex(([c]) => c === estado.cor);
+      estado.cor = CORES_FIG[(i + 1) % CORES_FIG.length][0]; pintarCor();
+    });
+    // opções da enquete: cada uma é uma pílula onde se escreve; a tracejada embaixo vira uma opção nova ao digitar.
+    const pintarOps = (focar = -1) => {
+      if (!enq) {
+        corpo.replaceChildren(el("div", "fv-campo", "Quem vê responde aqui..."));
+        return;
+      }
+      const filhos = ops.map((o, i) => {
+        const l = el("div", "fv-op");
+        const inp = el("input"); inp.type = "text"; inp.maxLength = 40; inp.value = o; inp.placeholder = i === 0 ? "Sim" : i === 1 ? "Não" : `Opção ${i + 1}`;
+        inp.setAttribute("aria-label", `Opção ${i + 1}`);
+        inp.addEventListener("input", () => { ops[i] = inp.value; });
+        inp.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") { e.preventDefault(); (l.nextElementSibling?.querySelector("input") || corpo.querySelector(".fv-nova"))?.focus(); }
+          // apagar tudo de uma opção vazia (a partir da 3ª) tira ela
+          if (e.key === "Backspace" && !inp.value && ops.length > 2 && i >= 2) { e.preventDefault(); ops.splice(i, 1); pintarOps(i - 1); }
+        });
+        l.appendChild(inp);
+        if (ops.length > 2 && i >= 2) {
+          const x = el("button", "fv-op-x"); x.type = "button"; x.setAttribute("aria-label", "Tirar opção"); x.appendChild(icone("fechar", "i xs"));
+          x.addEventListener("pointerdown", (e) => e.preventDefault());
+          x.addEventListener("click", () => { ops.splice(i, 1); pintarOps(); });
+          l.appendChild(x);
+        }
+        return l;
+      });
+      if (ops.length < 4) {
+        const nova = el("input", "fv-nova"); nova.type = "text"; nova.maxLength = 40; nova.placeholder = "Adicionar outra opção..."; nova.setAttribute("aria-label", "Adicionar outra opção");
+        nova.addEventListener("input", () => { if (!nova.value) return; ops.push(nova.value); pintarOps(ops.length - 1); });
+        filhos.push(nova);
+      }
+      corpo.replaceChildren(...filhos);
+      if (focar >= 0) { const f = corpo.querySelectorAll(".fv-op input")[focar]; if (f) { f.focus(); const n = f.value.length; f.setSelectionRange(n, n); } }
+    };
+    perg.addEventListener("input", crescer);
+    perg.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); corpo.querySelector("input")?.focus(); } });
+    // pílulas de baixo: anônima e (na enquete) duração
+    const extras = el("div", "fv-extras");
+    const bAnon = el("button", "fv-chip"); bAnon.type = "button";
+    const pintarAnon = () => {
+      bAnon.classList.toggle("on", estado.anonima); bAnon.setAttribute("aria-pressed", String(estado.anonima));
+      bAnon.replaceChildren(icone("mascara", "i xs"), document.createTextNode(estado.anonima ? "Anônima" : (enq ? "Votos visíveis" : "Com nome")));
+    };
+    bAnon.addEventListener("pointerdown", (e) => e.preventDefault());
+    bAnon.addEventListener("click", () => {
+      estado.anonima = !estado.anonima; pintarAnon();
+      toast(estado.anonima ? (enq ? "Votação anônima: ninguém vê quem votou, nem você" : "Respostas anônimas: você não vê quem respondeu") : (enq ? "Você vai ver quem votou em cada opção" : "Você vai ver quem respondeu"));
+    });
+    extras.appendChild(bAnon);
+    if (enq) {
+      const bDur = el("button", "fv-chip"); bDur.type = "button";
+      const rotDur = () => duracao.fim ? "Personalizada" : (DURACOES_FLASH.find(([m]) => m === (duracao.dur || 1440)) || [0, "24 h"])[1];
+      const pintarDur = () => bDur.replaceChildren(icone("relogio", "i xs"), document.createTextNode("Termina em " + rotDur() + " ▾"));
+      bDur.addEventListener("pointerdown", (e) => e.preventDefault());
+      bDur.addEventListener("click", () => abrirOpcoes("Quanto tempo a enquete fica aberta?", DURACOES_FLASH.map(([m, r]) => ({
+        rotulo: r, sub: m === 1440 ? "O flash inteiro (24 horas)" : "", icone: "relogio",
+        fn: () => { duracao.dur = m; delete duracao.fim; pintarDur(); }
+      }))));
+      pintarDur();
+      extras.appendChild(bDur);
+    }
+    extras.appendChild(el("small", "fv-dica", enq ? "Uma pessoa, um voto" : "As respostas chegam só para você"));
+    pn.append(topo, meio, extras);
     palco.appendChild(pn);
-    setTimeout(() => perg.select(), 50);
+    pintarCor(); pintarOps(); pintarAnon();
+    requestAnimationFrame(crescer);
+    setTimeout(() => { perg.focus(); if (!enq) perg.select(); }, 50);
     ok.addEventListener("click", () => {
       const pergunta = perg.value.trim().slice(0, 120);
-      if (!pergunta) { toast("Escreva o texto da caixa."); perg.focus(); return; }
-      pn.remove();
-      if (t) { marcar(); t.pergunta = pergunta; t.anonima = estado.anonima; t.tema = estado.cor; pintarTexto(t); }
-      else criarTexto({ cx: true, pergunta, anonima: estado.anonima, tema: estado.cor, texto: "", x: 0.5, y: 0.42, tam: 0.05, letra: 0, cor: "#111", destaque: false });
+      if (!pergunta) { toast(enq ? "Escreva a pergunta." : "Escreva o texto da caixa."); perg.focus(); return; }
+      if (enq) {
+        // opção vazia usa o que aparece escrito de leve (Sim / Não)
+        const opcoes = ops.map((o, i) => (o.trim() || (i === 0 ? "Sim" : i === 1 ? "Não" : "")).slice(0, 40)).filter(Boolean);
+        if (opcoes.length < 2) { toast("Coloque pelo menos 2 opções."); return; }
+        pn.remove();
+        if (t) { marcar(); t.pergunta = pergunta; t.opcoes = opcoes; t.duracao = duracao; t.anonima = estado.anonima; t.tema = estado.cor; pintarTexto(t); }
+        else criarTexto({ enq: true, pergunta, opcoes, duracao, anonima: estado.anonima, tema: estado.cor, texto: "", x: 0.5, y: 0.6, tam: 0.05, letra: 0, cor: "#111", destaque: false });
+      } else {
+        pn.remove();
+        if (t) { marcar(); t.pergunta = pergunta; t.anonima = estado.anonima; t.tema = estado.cor; pintarTexto(t); }
+        else criarTexto({ cx: true, pergunta, anonima: estado.anonima, tema: estado.cor, texto: "", x: 0.5, y: 0.42, tam: 0.05, letra: 0, cor: "#111", destaque: false });
+      }
     });
   }
+  const DURACOES_FLASH = [[60, "1 h"], [360, "6 h"], [720, "12 h"], [1440, "24 h"]];
+  const editarEnquete = (t) => editorVivo("enq", t);
+  const editarCaixa = (t) => editorVivo("cx", t);
   // Link para o perfil de um negócio: os seus primeiro, e a busca entre todos os negócios do site.
   let negociosP = null;
   async function escolherNegocio(t) {
@@ -2199,6 +2224,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       };
       await guardarRascunho(r);
       rascId = r.id;
+      lerRascunhos().then((l) => { nRasc = l.length; });
       toast("Rascunho salvo neste aparelho");
       return true;
     } catch (e) { toast("Não foi possível salvar o rascunho: " + erroAmigavel(e)); return false; }
@@ -2219,11 +2245,22 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   esq.appendChild(bSalvaRasc);
   const verRasc = () => setTimeout(() => { bSalvaRasc.hidden = !temConteudo(); }, 0);
   ["input", "click", "pointerup", "change"].forEach((ev) => fundo.addEventListener(ev, verRasc, true));
-  bSalvaRasc.addEventListener("click", async (e) => {
+  // Pergunta antes (antes salvava direto com um toque): salvar e continuar, salvar e sair ou cancelar.
+  bSalvaRasc.addEventListener("click", (e) => {
     e.stopPropagation();
-    bSalvaRasc.disabled = true;
-    if (await salvarRascunho()) { bSalvaRasc.classList.add("salvo"); setTimeout(() => bSalvaRasc.classList.remove("salvo"), 1400); }
-    bSalvaRasc.disabled = false;
+    const salvar = async (sair) => {
+      bSalvaRasc.disabled = true;
+      const ok = await salvarRascunho();
+      bSalvaRasc.disabled = false;
+      if (!ok) return;
+      if (sair) { fechar(); return; }
+      bSalvaRasc.classList.add("salvo"); setTimeout(() => bSalvaRasc.classList.remove("salvo"), 1400);
+    };
+    abrirOpcoes("Quer salvar como rascunho?", [
+      { rotulo: "Salvar e continuar editando", sub: "Fica guardado neste aparelho (até 10 rascunhos)", icone: "rascunho", fn: () => salvar(false) },
+      { rotulo: "Salvar e sair", sub: "Você termina depois em “Rascunhos”", icone: "check", fn: () => salvar(true) },
+      { rotulo: "Cancelar", icone: "fechar", fn: () => {} }
+    ]);
   });
   function marcar() {
     if (restaurando) return;
@@ -2421,7 +2458,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   lerRascunhos().then((l) => { nRasc = l.length; pintarRasc(); });
   new MutationObserver(pintarRasc).observe(camada, { childList: true });
   [area, legenda].forEach((c) => c.addEventListener("input", pintarRasc));
-  bRasc.addEventListener("click", () => abrirRascunhos((r) => { fechar(); abrirCriador({ rascunho: r }); }));
+  bRasc.addEventListener("click", () => abrirRascunhos((r) => { fechar(); abrirCriador({ rascunho: r }); }, (n) => { nRasc = n; pintarRasc(); }));
   if (rascunho) {
     // Reabre o rascunho como ele estava (fundo, foto e posição, filtro, figurinhas, pincel e menções ocultas).
     fundoI = rascunho.fundoI ?? fundoI; letraI = rascunho.letraI ?? 0;
@@ -2745,6 +2782,12 @@ async function enviarFlash(s, aoFechar) {
 // Ver (tela cheia)
 // =====================================================
 // lista: flashes dados à parte (um destaque, o arquivo); destaque: {id, nome, uid} mostra o nome dele no topo.
+// Abrir um perfil de uma folha por cima do flash (Visualizações, respostas, mencionados): passa pelo visor, que
+// cuida de o "voltar" trazer o flash de novo.
+function perfilDoFlash(uid) {
+  const v = document.querySelector(".story-visor");
+  if (v?._irParaPerfil) v._irParaPerfil(uid); else ganchos.abrirPerfil(uid);
+}
 function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null, lista = null, destaque = null } = {}) {
   const mapa = lista ? new Map([[uidInicial, lista]]) : porAutor;
   const ordem = so || lista ? [uidInicial] : [eu.uid, ...ordemAutores()].filter((u) => mapa.get(u)?.length);
@@ -2756,6 +2799,10 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
   // Segurar o flash pausa (não abre o menu do navegador de "baixar imagem"; para salvar há o ⋯ → Salvar foto).
   const fundo = el("div", "story-visor"); fundo.addEventListener("contextmenu", (e) => { if (!e.target.closest("input, textarea, a")) e.preventDefault(); }); fundo.setAttribute("role", "dialog"); fundo.setAttribute("aria-modal", "true"); fundo.setAttribute("aria-label", "Flash");
   fundo._flashAtual = () => (lista ? null : atual());
+  // Aberto de dentro de uma folha (ex.: foto de outra pessoa no perfil, na página de perfis): fica por cima dela
+  // (antes abria por baixo do perfil e parecia que nada acontecia); folhas abertas depois continuam por cima do flash.
+  const zFolhas = Math.max(0, ...[...document.querySelectorAll(".folha.aberta")].map((f) => Number(f.style.zIndex) || 5000));
+  if (zFolhas) fundo.style.zIndex = String(zFolhas + 1);
   const caixa = el("div", "story-caixa");
   const barras = el("div", "story-barras");
   const topo = el("div", "story-topo");
@@ -2806,15 +2853,40 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
     clearTimeout(timer); cancelAnimationFrame(rafBarra); video?.pause(); fundo.remove(); document.body.classList.remove("travado");
     document.removeEventListener("keydown", tecla, true); document.removeEventListener("visibilitychange", aoEsconder);
     window.removeEventListener("resize", reencaixar);
-    pintarBarra(); aoFechar?.();
+    pintarBarra(); if (!vaiReabrir) aoFechar?.();
   };
+  let vaiReabrir = false; // fechou só para abrir um perfil na mesma página: volta depois (o aoFechar fica para o fim)
   const atual = () => mapa.get(ordem[ai])?.[si];
   // Abrir um perfil de dentro do flash: guarda o flash para o "voltar" trazer ele de novo (se a página mudar).
   // Na página de perfis o perfil abre ali mesmo (sem trocar de página): não precisa.
+  // Outra página: o flash fica aberto (pausado) enquanto a página muda — antes ele fechava primeiro e o passo do
+  // histórico era desfeito junto com a troca de página (no celular o "voltar" não achava mais o flash).
+  // Página de perfis (o perfil abre numa folha ali mesmo): fechar o perfil (voltar ou X) reabre este mesmo flash,
+  // também nos destaques.
   const irParaPerfil = (uid) => {
-    if (!lista && !/usuarios\.html$/.test(location.pathname)) lembrarFlash(atual());
+    if (!uid) return;
+    const s = atual();
+    if (!/usuarios\.html$/.test(location.pathname)) {
+      const navegar = () => { pausar(true); if (!lista) lembrarFlash(s); ganchos.abrirPerfil(uid); };
+      // Veio de uma lista por cima do flash (Mencionados, Visualizações...): fecha a lista e espera o passo dela sair
+      // do histórico antes de trocar de página, para o "voltar" cair direto no flash.
+      if (document.getElementById("folhaLista")?.classList.contains("aberta")) fecharFolha("folhaLista");
+      if ((history.state?.hfCamadas || 0) > 1) {
+        let feito = false;
+        const ir = () => { if (feito) return; feito = true; removeEventListener("popstate", ir); setTimeout(navegar, 0); };
+        addEventListener("popstate", ir); setTimeout(ir, 500);
+      } else navegar();
+      return;
+    }
+    vaiReabrir = !!s?.id && uid !== eu.uid && !!document.getElementById("folhaPerfil");
+    if (document.getElementById("folhaLista")?.classList.contains("aberta")) fecharFolha("folhaLista");
     fechar(); ganchos.abrirPerfil(uid);
+    const fp = document.getElementById("folhaPerfil");
+    if (!s?.id || uid === eu.uid || !fp) return;
+    const reabrir = () => { fp.removeEventListener("fechada", reabrir); setTimeout(() => abrirVisor(ordem[ai], { so, aoFechar, comecarEm: s.id, lista, destaque }), 60); };
+    fp.addEventListener("fechada", reabrir);
   };
+  fundo._irParaPerfil = irParaPerfil;
 
   // Rodapé de quem vê: responder (vai para o Mensagens) e reações rápidas.
   const form = el("form", "story-responder");
@@ -2934,7 +3006,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
     quando.textContent = destaque || !ativo(s) ? dataCurta(ms(s.criadoEm)) : tempoRelativo(new Date(ms(s.criadoEm) || Date.now()));
     palco.replaceChildren();
     // Legenda com @ e # tocáveis (abrem o perfil e a hashtag).
-    comMencoes(legenda, s.texto || ""); legenda.hidden = !s.texto;
+    comMencoes(legenda, s.texto || "", irParaPerfil); legenda.hidden = !s.texto;
     legenda.querySelectorAll("a").forEach((a) => { ["pointerdown", "pointerup"].forEach((ev) => a.addEventListener(ev, (e) => e.stopPropagation())); a.addEventListener("click", () => pausar(true)); });
     rodape.replaceChildren();
     form.appendChild(bEstrela); pintarEstrela();
@@ -3103,7 +3175,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
     const ocultas = Array.isArray(s.mencoesOcultas) ? s.mencoesOcultas : [];
     const visiveis = (Array.isArray(s.mencoes) ? s.mencoes : []).filter((u) => meu || !ocultas.includes(u));
     if (visiveis.length) {
-      const bm = pessoasEmPilha(visiveis, { classe: "story-mencoes escuro", prefixo: "", titulo: visiveis.length === 1 ? "Mencionado" : "Mencionados",
+      const bm = pessoasEmPilha(visiveis, { classe: "story-mencoes escuro", prefixo: "", titulo: visiveis.length === 1 ? "Mencionado" : "Mencionados", abrirPerfil: irParaPerfil,
         aoAbrir: () => pausar(true), aoFechar: () => { if (document.querySelector(".story-visor")) document.body.classList.add("travado"); pausar(false); } });
       linhaAcoes().prepend(bm);
     }
@@ -3466,13 +3538,13 @@ async function verQuemViu(sInicial, aoFechar, flashes, aoTrocar, { aoApagar = nu
           if (ocultos.has(x.uid)) tx.appendChild(el("small", "vv-oculto", "Não vê mais os seus flashes"));
           const mais = el("button", "icone-btn vv-opcoes"); mais.type = "button"; mais.setAttribute("aria-label", `Opções para ${nome}`); mais.setAttribute("aria-expanded", "false"); mais.appendChild(icone("pontos", "i s"));
           l.append(fotoBox, tx, mais);
-          [fotoBox, tx].forEach((a) => a.addEventListener("click", () => ganchos.abrirPerfil(x.uid)));
+          [fotoBox, tx].forEach((a) => a.addEventListener("click", () => perfilDoFlash(x.uid)));
           // ⋯ = menu organizado (o mesmo das outras telas do site), por cima das Visualizações.
           mais.addEventListener("click", () => {
             box.querySelectorAll(".vv-escrever").forEach((z) => z.remove());
             abrirOpcoes(nome, [
               { rotulo: "Enviar mensagem", sub: `Escreva para ${primeiro} aqui mesmo`, icone: "chat", fn: () => escrever() },
-              { rotulo: "Ver perfil", sub: p.nickname ? "@" + p.nickname : "", icone: "pessoa", fn: () => ganchos.abrirPerfil(x.uid) },
+              { rotulo: "Ver perfil", sub: p.nickname ? "@" + p.nickname : "", icone: "pessoa", fn: () => perfilDoFlash(x.uid) },
               ocultos.has(x.uid)
                 ? { rotulo: "Mostrar os seus flashes", sub: `${primeiro} volta a ver os próximos flashes`, icone: "olho", fn: () => mudarOculto(false) }
                 : { rotulo: "Ocultar os seus flashes", sub: "A pessoa não vê os próximos e não fica sabendo", icone: "olho-off", perigo: true, fn: () => mudarOculto(true) }
@@ -3538,7 +3610,7 @@ async function verQuemViu(sInicial, aoFechar, flashes, aoTrocar, { aoApagar = nu
           const p = perfis.get(v.uid), l = el("button", "vv-enq-pessoa"); l.type = "button";
           const av = el("span", "avatar"); pintarAvatar(av, p.fotoPerfil, p.nome);
           l.append(av, el("span", null, p.nome || "Usuário"), el("small", null, tempoRelativo(new Date(ms(v.criadoEm) || Date.now()))));
-          l.addEventListener("click", () => ganchos.abrirPerfil(v.uid));
+          l.addEventListener("click", () => perfilDoFlash(v.uid));
           bl.appendChild(l);
         });
         lista.appendChild(bl);
@@ -3569,7 +3641,7 @@ async function verQuemViu(sInicial, aoFechar, flashes, aoTrocar, { aoApagar = nu
           const acao = (ic, rot, fn, perigo) => { const b = el("button", "vv-acao" + (perigo ? " perigo" : "")); b.type = "button"; b.append(icone(ic, "i s"), el("span", null, rot)); b.addEventListener("click", fn); return b; };
           ac.append(acao("raio", "Pôr no flash", () => { f?.querySelector("[data-fechar]")?.click(); document.querySelector(".story-visor [aria-label='Fechar']")?.click(); setTimeout(() => compartilharRespostaNoFlash({ pergunta: c.pergunta, texto: r.texto, cor: c.cor || "" }), 300); }));
           // Responder no chat (como no Instagram): a conversa abre por cima com a pergunta e a resposta prontas.
-          if (!r.anonima && r.uid) ac.append(acao("chat", "Responder", () => responderNoChat(r.uid, cartaoRespostaCaixa(c, r, alvo))), acao("pessoa", "Ver perfil", () => ganchos.abrirPerfil(r.uid)));
+          if (!r.anonima && r.uid) ac.append(acao("chat", "Responder", () => responderNoChat(r.uid, cartaoRespostaCaixa(c, r, alvo))), acao("pessoa", "Ver perfil", () => perfilDoFlash(r.uid)));
           ac.append(acao("lixo", "Apagar", async () => {
             if (!await confirmarHF({ titulo: "Apagar esta resposta?", texto: "Ela some das suas respostas.", ok: "Apagar", icone: "lixo" })) return;
             try { await fb.deleteDoc(fb.doc(fb.db, "caixa_respostas", r.id)); carregar(); } catch (e2) { toast("Não foi possível apagar: " + erroAmigavel(e2)); }

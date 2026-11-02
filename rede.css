@@ -2952,3 +2952,42 @@ body:has(.story-visor, .flash-criar) .toast { width: auto; max-width: min(calc(1
 /* atalho "Salvar rascunho" no criador do Flash (02/11) */
 .flash-salvar-rasc[hidden] { display: none; }
 .flash-salvar-rasc.salvo { background: #22b573 !important; color: #fff; }
+
+/* ===== Flash: enquete e caixa de perguntas editadas na própria figurinha (02/11) =====
+   O cartão fica no meio da parte que o teclado deixa à vista (.flash-criar.teclado põe o bottom em --tecl);
+   pergunta na faixa colorida, opções nas pílulas, botão colorido em cima troca a cor. */
+.flash-palco .flash-fig-viva { grid-template-rows: auto minmax(0, 1fr) auto; background: rgba(0,0,0,.55); }
+.flash-fig-viva .fv-topo { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 10px 12px 4px; }
+.flash-fig-viva .fv-topo .fe-pronto { justify-self: end; }
+.flash-fig-viva .fv-cor { width: 38px; height: 38px; border-radius: 50%; padding: 0; cursor: pointer; border: 2.5px solid #fff; box-shadow: 0 2px 10px rgba(0,0,0,.35);
+  background: conic-gradient(#ff3d7f, #ff8a00, #ffd400, #22b573, #00adee, #8e2de2, #ff3d7f); }
+.flash-fig-viva .fv-cor:active { transform: scale(.92); }
+.flash-fig-viva .fv-meio { display: flex; align-items: center; justify-content: center; padding: 8px 18px; overflow-y: auto; min-height: 0; }
+.flash-palco .flash-fig-viva .fv-card { display: flex; flex-direction: column; gap: 0; width: min(100%, 330px); margin: auto 0; padding: 0 0 14px; overflow: hidden; border: 0; border-radius: 22px;
+  background: #fff; color: #111; font-size: 15px; box-shadow: 0 16px 40px rgba(0,0,0,.4); animation: contEntra .15s ease-out; }
+.flash-palco .flash-fig-viva .fv-card.tema-escuro { background: #151b21; color: #fff; box-shadow: 0 16px 40px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.1); }
+.flash-fig-viva .fv-faixa { background: var(--band); padding: 16px 16px 14px; transition: background .2s; }
+.flash-fig-viva .fv-perg { display: block; width: 100%; box-sizing: border-box; resize: none; overflow: hidden; border: 0; outline: 0; padding: 0; margin: 0; background: none;
+  color: #fff; caret-color: #fff; font: inherit; font-size: 20px; font-weight: 850; line-height: 1.25; text-align: center; text-shadow: 0 1px 2px rgba(0,0,0,.18); }
+.flash-fig-viva .fv-perg::placeholder { color: rgba(255,255,255,.72); }
+.flash-fig-viva .fv-corpo { display: grid; gap: 8px; padding: 12px 14px 0; }
+.flash-fig-viva .fv-op { position: relative; }
+.flash-fig-viva .fv-op input, .flash-fig-viva .fv-nova { width: 100%; box-sizing: border-box; height: 48px; padding: 0 16px; border-radius: 16px; border: 1.5px solid #dfe5ea; background: #fff;
+  color: #111; font: inherit; font-size: 15.5px; font-weight: 800; outline: 0; }
+.flash-fig-viva .fv-op input:focus { border-color: var(--band-sol); box-shadow: 0 0 0 3px color-mix(in srgb, var(--band-sol) 18%, transparent); }
+.flash-fig-viva .fv-op input::placeholder { color: #a3adb5; }
+.flash-fig-viva .fv-op:has(.fv-op-x) input { padding-right: 42px; }
+.flash-fig-viva .fv-op-x { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; display: grid; place-items: center; border: 0; border-radius: 50%; background: #eef1f4; color: #55616b; cursor: pointer; padding: 0; }
+.flash-fig-viva .fv-nova { border-style: dashed; border-color: #c9d1d8; background: transparent; font-weight: 700; }
+.flash-fig-viva .fv-nova::placeholder { color: #9aa5ae; }
+.flash-fig-viva .fv-campo { padding: 14px 16px; border-radius: 16px; background: #f1f4f6; color: #8a959e; font-weight: 650; text-align: center; }
+.flash-palco .flash-fig-viva .fv-card.tema-escuro :is(.fv-op input, .fv-nova) { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.2); color: #fff; }
+.flash-palco .flash-fig-viva .fv-card.tema-escuro .fv-nova { background: transparent; }
+.flash-palco .flash-fig-viva .fv-card.tema-escuro .fv-campo { background: rgba(255,255,255,.08); color: rgba(255,255,255,.6); }
+.flash-palco .flash-fig-viva .fv-card.tema-escuro .fv-op-x { background: rgba(255,255,255,.12); color: #fff; }
+.flash-fig-viva .fv-extras { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; padding: 6px 12px 12px; }
+.flash-fig-viva .fv-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1.5px solid rgba(255,255,255,.35);
+  background: rgba(0,0,0,.35); color: #fff; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
+.flash-fig-viva .fv-chip.on { background: #fff; color: #111; border-color: #fff; }
+.flash-fig-viva .fv-dica { width: 100%; text-align: center; font-size: 12px; color: rgba(255,255,255,.75); }
+@media (max-height: 560px) { .flash-fig-viva .fv-dica { display: none; } .flash-fig-viva .fv-perg { font-size: 18px; } .flash-fig-viva .fv-op input, .flash-fig-viva .fv-nova { height: 42px; } }

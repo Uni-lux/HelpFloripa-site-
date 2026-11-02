@@ -1305,6 +1305,23 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   **Barra de flashes nacional:** `carregar()` lia os 400 MAIS ANTIGOS do país (24 h); agora só de quem você segue
   (`autorId in` 30 por consulta + criadoEm, índice existente autorId + criadoEm desc; sem ele, os 300 mais novos).
   Teste `t-flash-respostas.mjs`.
+- **Flash: editor na figurinha, rascunho e voltar dos perfis (02/11/2026, PR depois do #130, sem regra nova):** prints
+  dele (Instagram). Enquete e caixa de perguntas editadas NA PRÓPRIA FIGURINHA (`editorVivo(tipo, t)` em stories.js,
+  `.flash-fig-viva`): cartão no meio da parte que o teclado deixa à vista, pergunta escrita na faixa colorida (`.fv-perg`),
+  opções nas pílulas e a tracejada "Adicionar outra opção..." vira opção ao digitar (`.fv-nova`; Backspace na vazia tira a
+  partir da 3ª), botão colorido em cima troca a cor a cada toque (`.fv-cor`, ordem de `CORES_FIG`), pílulas embaixo:
+  Anônima e "Termina em 24 h ▾" (1/6/12/24 h). `seletorCor`/`previaFig` saíram. Atalho de rascunho pergunta antes
+  ("Quer salvar como rascunho?": Salvar e continuar / Salvar e sair / Cancelar); "Rascunhos · N" acompanha quando apaga
+  (`abrirRascunhos(aoAbrir, aoMudar)`). **Voltar ao flash depois de abrir um perfil:** `irParaPerfil` não fecha mais o
+  visor antes de trocar de página (o passo do histórico era desfeito junto); vindo de uma lista (Mencionados,
+  Visualizações) espera o passo dela sair antes de navegar; `window.__hfNavegando` (rede.js `abrirPerfil`) faz o
+  voltar.js não desfazer passo durante a troca; usuarios.html: perfil aberto por `?perfil=` vindo de outra página do site
+  fica sem passo próprio (`data-sem-voltar`), então UM voltar volta ao flash; na página de perfis, fechar o perfil reabre o
+  mesmo flash (`vaiReabrir`). @ da legenda e lista Mencionados passam pelo visor (`comMencoes(alvo, texto, abrir)`,
+  `pessoasEmPilha` `opc.abrirPerfil`, `perfilDoFlash`). **Bug achado:** o flash aberto de dentro de uma folha (foto de
+  outra pessoa no perfil) abria POR BAIXO dela; folhas agora sobem de 2 em 2 (`5000 + pilha.length * 2`) e o visor fica
+  em cima da folha aberta. Teste `t-flash-editor-vivo.mjs` (22). `t-caixa` (linha 81), `t-diario-compacto` (104) e
+  `t-social2` (102) já falhavam antes, iguais.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

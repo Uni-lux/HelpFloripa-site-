@@ -258,7 +258,7 @@ export const pilha = [];
 export function abrirFolha(id) {
   const f = $(id);
   if (!pilha.includes(id)) pilha.push(id);
-  f.style.zIndex = String(5000 + pilha.length);
+  f.style.zIndex = String(5000 + pilha.length * 2); // de 2 em 2: o visor do flash aberto por cima de uma folha fica no meio (stories.js)
   f.classList.add("aberta");
   document.body.classList.add("travado");
   setTimeout(() => f.querySelector("[autofocus], input:not([disabled]), textarea, button")?.focus({ preventScroll: true }), 60);
@@ -363,7 +363,7 @@ export async function alternarSilenciar(uid, nome = "") {
 }
 // Ganchos que cada página pode trocar.
 export const ganchos = {
-  abrirPerfil: (uid) => { if (uid) location.href = uid === eu?.uid ? "usuarios.html" : `usuarios.html?perfil=${encodeURIComponent(uid)}`; },
+  abrirPerfil: (uid) => { if (uid) window.__hfNavegando = true; if (uid) location.href = uid === eu?.uid ? "usuarios.html" : `usuarios.html?perfil=${encodeURIComponent(uid)}`; },
   aposSeguir: () => {},
   aposBloqueio: () => {}
 };
@@ -651,7 +651,7 @@ export function pessoasEmPilha(uids, opc = {}) {
     const f = $("folhaLista");
     if (opc.aoFechar) { const volta = () => { f?.removeEventListener("fechada", volta); opc.aoFechar(); }; f?.addEventListener("fechada", volta); }
     const ps = await Promise.all(lista.map((u) => obterPerfil(u).then((p) => ({ uid: u, ...p })).catch(() => ({ uid: u }))));
-    ps.forEach((p) => corpo.appendChild(linhaPessoa({ uid: p.uid, nome: p.nome || "Usuário", foto: p.fotoPerfil, sub: p.nickname ? "@" + p.nickname : "", aoClicar: () => { fecharFolha("folhaLista"); opc.aoPerfil?.(); ganchos.abrirPerfil(p.uid); } })));
+    ps.forEach((p) => corpo.appendChild(linhaPessoa({ uid: p.uid, nome: p.nome || "Usuário", foto: p.fotoPerfil, sub: p.nickname ? "@" + p.nickname : "", aoClicar: () => { fecharFolha("folhaLista"); opc.aoPerfil?.(); (opc.abrirPerfil || ganchos.abrirPerfil)(p.uid); } })));
   });
   return b;
 }
@@ -1452,7 +1452,7 @@ export async function verRespostasCaixa(item, alvo, aoMudar) {
       acao("chat", "Responder", () => responderNoChat(r.uid, cartaoRespostaCaixa(item.caixa, r, alvo)));
     }
     // Pôr a resposta no seu flash (como no Instagram): pergunta + resposta, sem o nome de quem respondeu.
-    acao("raio", "No flash", () => import("./stories.js?v=69").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
+    acao("raio", "No flash", () => import("./stories.js?v=70").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
     acao("lixo", "Apagar", async () => {
       if (!(await confirmarHF({ titulo: "Apagar esta resposta?", texto: "Ela some da sua caixa de perguntas.", ok: "Apagar", icone: "lixo" }))) return;
       try { await fb.deleteDoc(fb.doc(fb.db, "caixa_respostas", r.id)); todas = todas.filter((x) => x.id !== r.id); pintarNums(); pintarLista(); aoMudar?.(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
@@ -2012,7 +2012,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=69").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=70").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);
@@ -2195,7 +2195,7 @@ export async function uidsMencionados(texto) {
   const ok = await Promise.all(uids.map(podeMarcar));
   return uids.filter((_, i) => ok[i]);
 }
-export function comMencoes(alvo, texto) {
+export function comMencoes(alvo, texto, abrirPerfil = null) {
   alvo.replaceChildren();
   const re = /(^|[^\w@#])(?:@([a-z0-9._]{3,20})|#([\p{L}\p{N}_]{1,30}))/giu;
   let ultimo = 0, m;
@@ -2217,7 +2217,7 @@ export function comMencoes(alvo, texto) {
     a.href = "#"; a.className = "mencao"; a.textContent = "@" + nick;
     a.addEventListener("click", async (e) => {
       e.preventDefault(); e.stopPropagation();
-      try { const s = await fb.getDoc(fb.doc(fb.db, "nicknames", nick)); if (s.exists()) ganchos.abrirPerfil(s.data().uid); else toast(`@${nick} não existe.`); }
+      try { const s = await fb.getDoc(fb.doc(fb.db, "nicknames", nick)); if (s.exists()) (abrirPerfil || ganchos.abrirPerfil)(s.data().uid); else toast(`@${nick} não existe.`); }
       catch { toast("Não foi possível abrir o perfil."); }
     });
     alvo.appendChild(a);

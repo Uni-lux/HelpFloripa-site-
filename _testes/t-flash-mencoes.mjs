@@ -100,11 +100,10 @@ await p.locator(".flash-mencoes .fe-pronto").tap(); await p.waitForTimeout(200);
 // enquete roxa
 await p.locator(".flash-ferr-btn[aria-label^='Figurinhas']").tap(); await p.waitForTimeout(300);
 await p.locator(".fig-pilula", { hasText: "Enquete" }).tap(); await p.waitForTimeout(300);
-await p.locator(".enq-ed-perg").fill("Praia ou piscina?");
-ok(await p.locator(".fe-cor-bola").count() === 7, "enquete: 7 cores para escolher");
-await p.locator(".fe-cor-bola[data-cor=roxo]").tap();
+await p.locator(".fv-perg").fill("Praia ou piscina?");
+await p.evaluate((c) => { for (let i = 0; i < 8 && !document.querySelector(".fv-card").classList.contains("tema-" + c); i++) document.querySelector(".fv-cor").click(); }, "roxo");
 await p.screenshot({ path: "saida/fm-enquete-cor.png" });
-await p.locator(".flash-enq-ed .fe-pronto").tap(); await p.waitForTimeout(300);
+await p.locator(".flash-fig-viva .fe-pronto").tap(); await p.waitForTimeout(300);
 ok(await p.locator(".fe-enq.tema-roxo").count() === 1, "prévia da enquete na cor escolhida");
 const borda = await p.evaluate(() => getComputedStyle(document.querySelector(".fe-enq > span")).borderTopWidth);
 ok(parseFloat(borda) >= 1, `opções da enquete com borda (${borda})`);
