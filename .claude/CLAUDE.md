@@ -1228,6 +1228,26 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   `f_<flash>_<uid>`, "deu uma estrela e reagiu com 🔥 ao seu flash", abre `feed.html?flash=`) em rede.js/painel-avisos/
   notificacoes/avisos-lista. Conta apagada: conta.js e limpar-contas.mjs apagam `stories` (com vistos/reacoes) e `destaques`.
   `vitrine.js?tipo=X&v=53` aumentado à mão. Teste `t-flash-destaques.mjs` (23).
+- **Flash: @, figurinhas tocáveis, cores e respostas (02/11/2026, PR depois do #125, MUDA REGRAS — não publicadas; 16 partes,
+  732 testes):** prints dele. (1) **Modo Texto espremido ao trocar a letra:** o `pintar()` tirava e recolocava o campo (perdia o
+  foco → `medirCartao` media de novo com o teclado aberto). Agora o campo fica, `bLetra/bFundo` com `pointerdown`
+  preventDefault e `medirCartao` também considera teclado aberto quando a tela está 120 px menor que a maior vista (`vhMax`).
+  (2) **Menções (@):** botão `.flash-arroba` com o número (foto, vídeo e texto) → lista "Menções" (`abrirMencoes`: figurinhas
+  com mostrar/ocultar/tirar, escritos no texto, ocultas); sugestões ao digitar "@" no texto, na legenda e no Aa (`ligarArroba`,
+  `.fe-arroba`; ordem: @ que começa > nome > contém, recentes `hf-mencoes-rec-<uid>` sobem; com 2+ letras busca em
+  `nicknames` por prefixo de documentId); olho cortado = **menção oculta** (só o aviso; figurinha oculta fica tracejada e não vai
+  desenhada). Grava `stories.mencoes` (todas) + `stories.mencoesOcultas` (`mencoesParaGravar`); visor esconde as ocultas.
+  (3) **Figurinhas tocáveis** `stories.toques` (até 8 textos): `l|nome|lat|lng|x|y|w|h` (Localização agora usa a busca de lugar
+  `escolherLocal(aoEscolher)` exportada do rede.js), `h|tag|...`, `m|uid|...`; posições medidas no `desenharFoto` (`t._area`);
+  visor `figurinhasTocaveis` → `.story-fig-toque` + balão (feed.html?local= / ?tag= / perfil). Legenda do visor com `comMencoes`.
+  (4) **Enquete/caixa com cor** (`cor` escuro|azul|rosa|laranja|verde|roxo, `CORES_FIG`/`temaFig` no rede.js, `seletorCor` no
+  criador, classes `tema-*`) e opções com borda à vista. (5) **Publicação apagada:** `apagarFlashesDaPublicacao` (feed.js e
+  usuarios.html) apaga os seus flashes com `postDe.postId`; o visor confere (`publicacaoExiste`) e pula/apaga (`pularFlash`).
+  (6) **Respostas da caixa** (`verRespostasCaixa`): topo com a pergunta e números, Todas | Novas (`hf-cx-visto-<uid>`), busca
+  (8+), por dia, balão e ações. Regras: criação do flash virou `flashNovoOk(d)` (o "TUDO junto" estava no limite de 1.000;
+  `local` como mapa separado estourava, por isso foi para dentro de `toques`); sem as regras grava sem os campos novos
+  (`semCamposNovos`). Galeria: o site abre o seletor do sistema (Android "Fotos"); grade própria só como app instalado.
+  Teste `t-flash-mencoes.mjs`.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
@@ -1290,7 +1310,7 @@ chat da equipe).
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
-1. **Publicar as regras** (16 partes em `_regras/`, 718 testes): tudo desde 26/10, incluindo `republicacoes`, destaques e arquivo do Flash,
+1. **Publicar as regras** (16 partes em `_regras/`, 732 testes): tudo desde 26/10, incluindo `republicacoes`, destaques e arquivo do Flash,
    `stories/{id}/reacoes` (estrela do Flash), `diario.publico` (público da publicação) e os tipos de publicação
    (`diario.tipo/estilo/quemComenta/ocultarNotas`). Depois: "Recalcular estrelas" no
    painel e criar os **14 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`

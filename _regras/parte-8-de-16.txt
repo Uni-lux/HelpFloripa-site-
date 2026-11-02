@@ -1,3 +1,44 @@
+      allow update: if logado()
+                    && emailOk()
+                    && request.resource.data.autorId == resource.data.autorId
+                    && request.resource.data.alvoId == resource.data.alvoId
+                    && request.resource.data.negocioId == resource.data.negocioId
+                    && (
+                      // o negócio responde ou corrige a resposta (enquanto está aberta)
+                      (resource.data.alvoId == request.auth.uid
+                        && resource.data.status == 'aberta'
+                        && mudou().hasOnly(['resposta', 'respondidaEm'])
+                        && request.resource.data.resposta is string
+                        && request.resource.data.resposta.size() >= 2 && request.resource.data.resposta.size() <= 1000
+                        && request.resource.data.respondidaEm == request.time)
+                      ||
+                      // o cliente marca como resolvida
+                      (resource.data.autorId == request.auth.uid
+                        && resource.data.status == 'aberta'
+                        && mudou().hasOnly(['status', 'resolvidaEm'])
+                        && request.resource.data.status == 'resolvida'
+                        && request.resource.data.resolvidaEm == request.time)
+                      ||
+                      // o cliente reabre (com relato novo), contando na cota
+                      (resource.data.autorId == request.auth.uid
+                        && resource.data.status == 'resolvida'
+                        && mudou().hasOnly(['motivo', 'texto', 'foto', 'status', 'abertaEm', 'aberturas', 'resposta', 'respondidaEm', 'resolvidaEm'])
+                        && relatoOk(request.resource.data)
+                        && request.resource.data.status == 'aberta'
+                        && request.resource.data.abertaEm == request.time
+                        && request.resource.data.aberturas == resource.data.get('aberturas', 1) + 1
+                        && request.resource.data.get('resposta', null) == null
+                        && contou())
+                    );
+
+      allow delete: if false;
+    }
+
+    match /cotas/{uid} {
+
+      allow read: if logado() && request.auth.uid == uid;
+      allow read: if admin();
+
       // Janela nova (primeira vez ou a anterior já passou de 30 dias): começa agora com 1.
       // Dentro da janela: soma 1, até 3.
       allow create: if logado()

@@ -100,8 +100,9 @@ service cloud.firestore {
     // No flash, x e y dizem onde a enquete fica na tela (0 a 1).
     // fimEm: quando a votação acaba (depois de inicio, até maxMin minutos depois; sem fimEm = enquete antiga, sem fim).
     function enqueteOk(e, inicio, maxMin) {
-      return e is map && e.keys().hasOnly(['pergunta', 'opcoes', 'x', 'y', 'fimEm', 'anonima'])
+      return e is map && e.keys().hasOnly(['pergunta', 'opcoes', 'x', 'y', 'fimEm', 'anonima', 'cor'])
           && (!('anonima' in e) || e.anonima is bool)
+          && (!('cor' in e) || corFigOk(e.cor))
           && (!('fimEm' in e) || (e.fimEm is timestamp && e.fimEm > inicio && e.fimEm <= inicio + duration.value(maxMin, 'm')))
           && e.pergunta is string && e.pergunta.size() >= 1 && e.pergunta.size() <= 120
           // 2 a 4 opções de 1 a 40 letras, conferidas numa expressão só (opção não tem quebra de linha)
@@ -110,10 +111,15 @@ service cloud.firestore {
           && (!('x' in e) || (e.x is number && e.x >= 0 && e.x <= 1))
           && (!('y' in e) || (e.y is number && e.y >= 0 && e.y <= 1));
     }
+    // Cor da enquete / caixa de perguntas no flash (branco é o padrão e não vai gravado).
+    function corFigOk(c) {
+      return c is string && c.matches('^(escuro|azul|rosa|laranja|verde|roxo)$');
+    }
     // Caixa de perguntas (publicação ou flash): o autor pergunta e quem vê responde com texto.
     // anonima: quem responde não aparece para o autor (só a moderação sabe, em caixa_autoria).
     function caixaOk(c) {
-      return c is map && c.keys().hasOnly(['pergunta', 'anonima', 'x', 'y'])
+      return c is map && c.keys().hasOnly(['pergunta', 'anonima', 'x', 'y', 'cor'])
+          && (!('cor' in c) || corFigOk(c.cor))
           && c.pergunta is string && c.pergunta.size() >= 1 && c.pergunta.size() <= 120
           && c.anonima is bool
           && (!('x' in c) || (c.x is number && c.x >= 0 && c.x <= 1))
@@ -158,12 +164,48 @@ service cloud.firestore {
           && (r.autorId == request.auth.uid || !exists(pref) || get(pref).data.get('permiteFlash', true) != false)
           && valorTextoAte(r.get('nome', ''), 80);
     }
+    // Flash: figurinhas tocáveis (até 8), conferidas numa expressão só (a gravação "com tudo" do flash já estava no
+    // limite de 1.000): "h|hashtag|x|y|w|h", "m|uid|x|y|w|h" e a localização "l|nome|lat|lng|x|y|w|h" (lat/lng no Brasil).
+    // x, y, w, h = onde a figurinha ficou no quadro (fração de 0 a 1).
+    function toquesOk(t) {
+      let lugar = 'l[|][^|\n]{2,60}[|](-(3[0-3]|[12]?[0-9])|[0-5])([.][0-9]{1,6})?[|]-(7[0-4]|[3-6][0-9]|2[89])([.][0-9]{1,6})?';
+      let item = '(h[|][^|\n]{1,28}|m[|][A-Za-z0-9]{1,64}|' + lugar + ')([|][01]([.][0-9]{1,3})?){4}';
+      return t is list && t.size() <= 8
+          && t.join('\n').matches('^' + item + '(\n' + item + '){0,7}$');
+    }
     function extrasFlashOk(d) {
       return negociosFlashOk(d)
+          && (!('toques' in d) || toquesOk(d.toques))
+          // menção oculta: a pessoa foi mencionada (recebe o aviso), mas não aparece para quem vê
+          && (!('mencoesOcultas' in d) || uidsOk(d.mencoesOcultas, 10))
           && (!('caixa' in d) || caixaOk(d.caixa))
           && (!('link' in d) || linkFlashOk(d.link))
           && (!('repostDe' in d) || repostOk(d.repostDe))
           && (!('postDe' in d) || postFlashOk(d.postDe));
+    }
+    // Flash novo (stories/{id}). Numa função com "d" (em vez de repetir request.resource.data) para gastar menos do
+    // limite de 1.000 expressões: o flash com TUDO junto (repost, link, negócios, enquete, caixa, menções, figurinhas
+    // tocáveis) estava no limite.
+    function flashNovoOk(d) {
+      let k = d.keys();
+      return k.hasOnly(['autorId', 'nome', 'tipo', 'midia', 'texto', 'duracao', 'enquete', 'caixa', 'link', 'repostDe', 'postDe', 'negocios', 'perfil', 'mencoes', 'respostas', 'publico', 'lista', 'ocultoPara', 'criadoEm', 'toques', 'mencoesOcultas'])
+          // caixa de perguntas, link para negócio, repost, perfis de negócio, figurinhas tocáveis e menção oculta
+          && (!k.hasAny(['caixa', 'link', 'repostDe', 'postDe', 'negocios', 'perfil', 'toques', 'mencoesOcultas']) || extrasFlashOk(d))
+          // enquete (no flash acaba junto com ele: até 24 h, com 10 min de folga), menções e escolhas do autor
+          && (!('enquete' in k) || enqueteOk(d.enquete, request.time, 1450))
+          && (!('mencoes' in k) || uidsOk(d.mencoes, 10))
+          && d.get('respostas', 'todos') in ['todos', 'seguindo', 'ninguem']
+          && d.get('publico', 'todos') in ['todos', 'amigos']
+          && (!('lista' in k) || uidsOk(d.lista, 150))
+          && (!('ocultoPara' in k) || uidsOk(d.ocultoPara, 100))
+          && d.autorId == request.auth.uid
+          && d.criadoEm == request.time
+          && d.tipo in ['imagem', 'video']
+          && d.midia is string && d.midia.size() <= 950000
+          && d.midia.matches(d.tipo == 'imagem' ? '^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*' : '^https://firebasestorage[.]googleapis[.]com/.*')
+          && valorTextoAte(d.get('texto', ''), 150)
+          && valorTextoAte(d.get('nome', ''), 80)
+          && (!('duracao' in k) || (d.duracao is number && d.duracao <= 60));
     }
     // Lista de uids (até max), conferida com uma expressão só.
     function uidsOk(l, max) {
@@ -2483,29 +2525,7 @@ service cloud.firestore {
                     || resource.data.criadoEm > request.time - duration.value(26, 'h')
                     || resource.data.get('destacado', false) == true
                     || podeModerar());
-      allow create: if logado() && emailOk()
-                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'tipo', 'midia', 'texto', 'duracao', 'enquete', 'caixa', 'link', 'repostDe', 'postDe', 'negocios', 'perfil', 'mencoes', 'respostas', 'publico', 'lista', 'ocultoPara', 'criadoEm'])
-                    // caixa de perguntas, link para negócio, repost e perfis de negócio (só confere o que veio)
-                    && (!request.resource.data.keys().hasAny(['caixa', 'link', 'repostDe', 'postDe', 'negocios', 'perfil']) || extrasFlashOk(request.resource.data))
-                    // enquete, pessoas mencionadas e as escolhas do autor (quem responde, quem vê)
-                    // no flash a enquete acaba junto com ele (até 24 h, com 10 min de folga)
-                    && (!('enquete' in request.resource.data) || enqueteOk(request.resource.data.enquete, request.time, 1450))
-                    && (!('mencoes' in request.resource.data) || uidsOk(request.resource.data.mencoes, 10))
-                    && (!('respostas' in request.resource.data) || request.resource.data.respostas in ['todos', 'seguindo', 'ninguem'])
-                    && (!('publico' in request.resource.data) || request.resource.data.publico in ['todos', 'amigos'])
-                    && (!('lista' in request.resource.data) || uidsOk(request.resource.data.lista, 150))
-                    && (!('ocultoPara' in request.resource.data) || uidsOk(request.resource.data.ocultoPara, 100))
-                    && request.resource.data.autorId == request.auth.uid
-                    && request.resource.data.criadoEm == request.time
-                    && request.resource.data.tipo in ['imagem', 'video']
-                    && request.resource.data.midia is string
-                    && request.resource.data.midia.size() <= 950000
-                    && request.resource.data.midia.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*')
-                    && (request.resource.data.tipo == 'imagem' || request.resource.data.midia.matches('^https://firebasestorage[.]googleapis[.]com/.*'))
-                    && valorTextoAte(request.resource.data.get('texto', ''), 150)
-                    && valorTextoAte(request.resource.data.get('nome', ''), 80)
-                    && (!('duracao' in request.resource.data) || (request.resource.data.duracao is number && request.resource.data.duracao <= 60))
-                    && !sancionado(request.auth.uid);
+      allow create: if logado() && emailOk() && flashNovoOk(request.resource.data) && !sancionado(request.auth.uid);
       allow delete: if logado() && (resource.data.autorId == request.auth.uid || podeModerar());
       // O autor só marca/desmarca "destacado" (o flash está num destaque do perfil); o resto não muda depois de publicado.
       allow update: if logado() && resource.data.autorId == request.auth.uid
