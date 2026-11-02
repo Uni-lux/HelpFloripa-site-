@@ -85,8 +85,10 @@ await hora.tap(); await pa.waitForTimeout(200);
 ok(/^\d{2}:\d{2}$/.test(await hora.textContent()) && (await hora.evaluate((e) => e.style.background)) !== fundo1, "figurinha de horário (" + await hora.textContent() + "): um toque troca o estilo");
 await pa.locator(".flash-ferr-btn[aria-label^='Figurinhas']").tap();
 await pa.locator(".fig-op", { hasText: "Localização" }).tap();
-await pa.locator(".fe-local").fill("Lagoa da Conceição"); await pa.locator(".fe-linha-local .fe-pronto").tap(); await pa.waitForTimeout(200);
-ok((await pa.locator(".flash-camada .flash-fig.fig-local").textContent()) === "📍 Lagoa da Conceição", "figurinha de localização");
+// Localização de verdade: a folha de lugares (busca, localização atual, cidade do perfil)
+await pa.waitForSelector("#folhaLista.aberta .linha-local", { timeout: 8000 }); await pa.waitForTimeout(1500);
+await pa.locator("#folhaLista .linha-local", { hasText: "Sua cidade" }).tap(); await pa.waitForTimeout(400);
+ok((await pa.locator(".flash-camada .flash-fig.fig-local").textContent()).startsWith("📍 "), "figurinha de localização (lugar escolhido na folha)");
 await pa.locator(".flash-legenda").fill("Bom dia!");
 await pa.screenshot({ path: "saida/flash-criar-foto.png" });
 await pa.locator(".flash-publicar").tap(); await pa.waitForTimeout(2500);
