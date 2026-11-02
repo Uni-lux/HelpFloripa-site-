@@ -1364,8 +1364,8 @@
 
   <script type="module">
     import "./sem-menu-imagem.js?v=1";
-    import { ligarDeslizarFlash } from "./deslizar-flash.js?v=1";
-    ligarDeslizarFlash(); // deslizar para a direita na lista de conversas abre o Flash
+    import { ligarDeslizarFlash } from "./deslizar-flash.js?v=2";
+    ligarDeslizarFlash(); // deslizar para o lado na lista de conversas troca de aba da barra de baixo
     import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura, mostrarAvisoEmail } from "./seguranca.js?v=1";
     import { confirmarHF } from "./confirmar.js?v=5";
     import { relogioDe, ufDe } from "./fuso.js?v=1";
@@ -2845,6 +2845,7 @@
       $("chatVazio").hidden = true;
       $("chatPane").hidden = false;
       document.body.classList.add("chat-aberto");
+      window.__hfMedirTela?.(); // confere se o campo de mensagem cabe na tela (app instalado)
       const status = document.createElement("div");
       status.className = "msgs-status";
       status.textContent = "Carregando mensagens...";
@@ -4572,16 +4573,33 @@
 
     // Teclado do celular: a conversa encolhe junto com a área visível (o campo nunca fica atrás do teclado).
     // O "interactive-widget=resizes-content" do viewport já faz isso no Chrome; aqui é a reserva (Safari e afins).
+    // No app instalado (Android) o "100dvh" às vezes passa da área visível e o campo de mensagem ficava escondido
+    // embaixo da tela: a altura agora é sempre a da área que aparece de verdade (a menor entre a janela e a parte
+    // visível), e se mesmo assim o rodapé sair da tela, a conversa encolhe o que faltar.
     if (window.visualViewport) {
       const vv = window.visualViewport;
+      const raiz = document.documentElement.style;
       const acompanhar = () => {
+        if (vv.scale > 1.05) return; // com zoom de pinça, não mexe
         const teclado = innerHeight - vv.height > 120;
-        document.documentElement.style.setProperty("--vv", teclado ? vv.height + "px" : "");
+        const alt = Math.round(Math.min(innerHeight, vv.height));
+        raiz.setProperty("--vv", alt + "px");
         if (teclado && (scrollY || vv.offsetTop)) scrollTo(0, 0);
         if (teclado && document.activeElement?.id === "texto" && pertoDoFim()) irParaFim();
+        requestAnimationFrame(() => {
+          const rod = $("rodapeConversa");
+          if (!rod || rod.hidden || !document.body.classList.contains("chat-aberto")) return;
+          const fora = rod.getBoundingClientRect().bottom - (vv.height + vv.offsetTop);
+          if (fora > 1) raiz.setProperty("--vv", Math.max(320, alt - Math.ceil(fora)) + "px");
+        });
       };
       vv.addEventListener("resize", acompanhar);
       vv.addEventListener("scroll", acompanhar);
+      addEventListener("resize", acompanhar);
+      addEventListener("orientationchange", () => setTimeout(acompanhar, 300));
+      addEventListener("pageshow", acompanhar);
+      window.__hfMedirTela = acompanhar;
+      acompanhar();
     }
     function ajustarAltura() {
       const t = $("texto");

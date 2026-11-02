@@ -1385,6 +1385,19 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   `text-wrap: balance`, entrada suave; número fica junto da palavra seguinte (`(R\$|\d)\s+` → espaço fixo); no Flash
   ficam embaixo, acima do rodapé (`bottom: 92px`). Contagem: dia e hora com `minmax(0, …)` (cortava a hora). Público →
   Estados: atalhos das 5 regiões (`REGIOES`, toque põe/tira, acesa quando completa). Teste `t-deslizar-flash.mjs`.
+- **Deslizar entre abas, app mais rápido e campo do chat no app (02/11/2026, PR depois do #135, sem regra nova):** pedido
+  dele: o Flash pelo gesto só no Diário; nas outras abas da barra, deslizar troca de aba. `deslizar-flash.js`: dedo para a
+  ESQUERDA = próxima aba, para a DIREITA = anterior; no Diário (1ª aba) para a direita = Flash (`window.__hfAbrirFlash`,
+  feed.js). Aba atual = link `aria-current="page"` da `#barraRede`, troca clicando nele. Carrossel só bloqueia se ainda rola
+  para o lado do gesto (`examinar`/`podeRolar`, folga 8 px: o trilho do Explorar para em 2 px). Início e Notificações sem gesto.
+  Selo "⚡ Flash" saiu do topo do visor. **Service worker** (sw.js `hf-app-3`/`hf-arq-1`): `?v=` e o SDK do gstatic vêm do
+  aparelho (cache-first; versão nova apaga a velha, até 500), imagens/json do site stale-while-revalidate, páginas da rede com
+  navigation preload; registrado também em 127.0.0.1 (testes: `navegador({ sw: true })` +
+  `PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS=1`). Medido com 4G lento simulado: perfil 9,7 s → 0,9 s, mural 5,1 → 0,4,
+  Diário 8,6 → 0,4 (páginas já visitadas). **Campo de mensagem sumido no app instalado:** mensagens.html `--vv` agora é
+  sempre a altura visível (`min(innerHeight, vv.height)`) e, se o rodapé ainda sair da tela, encolhe o que falta
+  (`__hfMedirTela`, também ao abrir a conversa) — causa no aparelho dele não reproduzida aqui (provável 100dvh errado no app).
+  `nav.mjs` acha sozinho o Chromium 1243. Testes `t-deslizar-flash.mjs`, `t-sw-rapido.mjs`.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

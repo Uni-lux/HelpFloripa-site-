@@ -15,7 +15,7 @@ import { camposEndereco, textoCidade, semAcento } from "./endereco.js?v=1";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, esquecerPosicao, posicaoGuardada } from "./perto.js?v=2";
 import { lerLocal, rotuloLocal, escolherLocal, aoMudarLocal, atualizarPeloGps } from "./local-escolhido.js?v=3";
 import { lerPorLocal } from "./por-local.js?v=1";
-import { montarBarra, pintarAvatarBarra } from "./barra-rede.js?v=3";
+import { montarBarra, pintarAvatarBarra } from "./barra-rede.js?v=4";
 import { prepararConversa } from "./vitrine.js?v=81";
 
 export const CATEGORIAS_COM = {

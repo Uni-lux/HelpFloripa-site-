@@ -14,7 +14,7 @@ import {
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados,
   responderNoChat, cartaoRespostaCaixa, fecharFolha, ajudaPublico
-} from "./rede.js?v=103";
+} from "./rede.js?v=104";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { combinaPublico, leitorDe, temPublico, resumoPublico, publicoParaGravar } from "./publico-alvo.js?v=1";
@@ -3150,9 +3150,8 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
   const bMais = el("button", "story-btn"); bMais.type = "button"; bMais.setAttribute("aria-label", "Opções"); bMais.appendChild(icone("pontos", "i s"));
   const bX = el("button", "story-btn"); bX.type = "button"; bX.setAttribute("aria-label", "Fechar"); bX.appendChild(icone("fechar", "i s"));
   const quem = el("div", "story-quem"); const txtQuem = el("div");
-  const chip = el("span", "story-chip"); chip.append(icone("raio", "i xs"), document.createTextNode("Flash"));
   // Como no Instagram: o tempo fica na mesma linha do nome ("Ana  3 h").
-  const linhaNome = el("div", "story-nome"); linhaNome.append(nome, quando, chip);
+  const linhaNome = el("div", "story-nome"); linhaNome.append(nome, quando); // sem o selo "Flash" (pedido dele: já se sabe que é um flash)
   txtQuem.className = "story-quem-tx";
   // As linhas extras ("Flash de X", "Também em 1 negócio") ficam penduradas embaixo do nome, sem empurrar o nome para
   // cima: ele fica sempre na altura da foto (pedido de 02/11).
