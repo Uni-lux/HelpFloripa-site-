@@ -67,6 +67,8 @@ function fechar(voltarHistorico = true) {
   aberta = false;
   fundo.classList.remove("on"); gaveta.classList.remove("on");
   document.documentElement.classList.remove("hfc-aberto");
+  // O foco sai da conversa escondida (senão o Esc e as teclas continuavam indo para ela).
+  if (document.activeElement === quadro || gaveta.contains(document.activeElement)) { try { quadro.blur(); document.activeElement?.blur?.(); window.focus(); } catch {} }
   avisarQuadro();
   // Desfaz a entrada criada ao abrir (as conversas abertas dentro da gaveta também ficam no histórico).
   if (voltarHistorico && history.state?.hfChat) history.back();

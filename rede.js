@@ -27,6 +27,7 @@ import { palavrasBusca } from "./pessoas.js?v=5"; // o sino abre o painel de not
 import { registrarGosto, PESO } from "./gosto.js?v=2";
 import { confirmarHF } from "./confirmar.js?v=5";
 import { seletorDuracao, fimEscolhido, fimDaEnquete, encerrada, faltaTexto, dataCurta, resumoResultado, guardarInfoEnquete, enquetesEncerradas, textoEnqueteFim, linhaChave, MAX_PUB_MIN, lerContasEnquete, resultadoFinal, sortearFatia, pedacoDaEnquete } from "./enquetes.js?v=6";
+import "./sem-menu-imagem.js?v=1"; // segurar a foto não abre o menu de baixar/compartilhar
 
 // ---------- ícones ----------
 const SIMBOLOS = `<symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 01-1.5 1.5H15v-6h-6v6H5.5A1.5 1.5 0 014 19z"/></symbol>
@@ -1446,26 +1447,12 @@ export async function verRespostasCaixa(item, alvo, aoMudar) {
     const acoes = el("div", "cxr-acoes");
     const acao = (ic, rot, fn, extra = "") => { const b = el("button", "cxr-acao" + extra); b.type = "button"; b.append(icone(ic, "i xs"), el("span", null, rot)); b.addEventListener("click", fn); acoes.appendChild(b); return b; };
     if (!r.anonima && r.uid) {
-      // Responder ali mesmo: um campo abre embaixo e a resposta vai pelo Mensagens.
-      acao("chat", "Responder", () => {
-        if (l.querySelector(".cx-responder")) { l.querySelector(".cx-responder textarea").focus(); return; }
-        const f = el("form", "cx-form cx-responder");
-        const t = document.createElement("textarea"); t.rows = 1; t.maxLength = 900; t.placeholder = `Responder a ${String(r.nome || "essa pessoa").split(" ")[0]} no Mensagens...`;
-        const b = el("button", "cx-enviar"); b.type = "submit"; b.setAttribute("aria-label", "Enviar"); b.appendChild(icone("enviar", "i s"));
-        f.append(t, b); tx.appendChild(f); t.focus();
-        f.addEventListener("submit", async (e) => {
-          e.preventDefault();
-          if (!t.value.trim()) return;
-          b.disabled = true;
-          try {
-            await mandarMensagem(r.uid, { texto: `💬 Sobre a sua resposta “${r.texto.slice(0, 80)}”: ${t.value.trim()}`.slice(0, 1000) }, "Respondeu na caixa de perguntas");
-            f.replaceWith(el("small", "cx-nota", "Enviado no Mensagens ✓"));
-          } catch (err) { b.disabled = false; if (err?.message !== "e-mail") toast("Não foi possível enviar: " + erroAmigavel(err)); }
-        });
-      });
+      // Responder no chat (como no Instagram): abre a conversa com a pessoa com o cartão da pergunta e da resposta pronto;
+      // ela escreve a mensagem lá. Antes ia um texto "💬 Sobre a sua resposta..." solto.
+      acao("chat", "Responder", () => responderNoChat(r.uid, cartaoRespostaCaixa(item.caixa, r, alvo)));
     }
     // Pôr a resposta no seu flash (como no Instagram): pergunta + resposta, sem o nome de quem respondeu.
-    acao("raio", "No flash", () => import("./stories.js?v=68").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
+    acao("raio", "No flash", () => import("./stories.js?v=69").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
     acao("lixo", "Apagar", async () => {
       if (!(await confirmarHF({ titulo: "Apagar esta resposta?", texto: "Ela some da sua caixa de perguntas.", ok: "Apagar", icone: "lixo" }))) return;
       try { await fb.deleteDoc(fb.doc(fb.db, "caixa_respostas", r.id)); todas = todas.filter((x) => x.id !== r.id); pintarNums(); pintarLista(); aoMudar?.(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
@@ -2025,7 +2012,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=68").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=69").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);
@@ -2062,6 +2049,28 @@ export async function enviarParaAmigos(post) {
   };
   busca.addEventListener("input", pintarLista);
   pintarLista();
+}
+// Cartão da resposta da caixa de perguntas (vai no Mensagens): alvo = "f_ID" (flash) ou "d_ID" (publicação).
+export function cartaoRespostaCaixa(caixa, r, alvo) {
+  const [itemTipo, itemId] = [String(alvo || "").slice(0, 1), String(alvo || "").slice(2)];
+  return { tipo: "caixa", pergunta: String(caixa?.pergunta || "").slice(0, 120), resposta: String(r?.texto || "").slice(0, 300),
+    ...(CORES_FIG.some(([k]) => k === caixa?.cor) ? { cor: caixa.cor } : {}),
+    ...(/^[fd]$/.test(itemTipo) && /^[A-Za-z0-9]{1,64}$/.test(itemId) ? { itemTipo, itemId } : {}), autorId: eu.uid };
+}
+// Responder no chat: abre a conversa com a pessoa (na gaveta do Mensagens, por cima da página: fechar volta para onde
+// estava, inclusive o flash) com o cartão pronto para ir junto; a pessoa escreve e envia lá.
+export async function responderNoChat(uid, cartao) {
+  if (!uid || uid === eu.uid) return;
+  if (await precisaEmail()) return;
+  const ids = [eu.uid, uid].sort(), id = `${ids[0]}_${ids[1]}`;
+  try {
+    const ref = fb.doc(fb.db, "conversas", id);
+    let existe = false; try { existe = (await fb.getDoc(ref)).exists(); } catch {}
+    if (!existe) await fb.setDoc(ref, { participantes: ids, ultimaMensagem: "", atualizadoEm: fb.serverTimestamp() }, { merge: true });
+  } catch (e) { toast("Não foi possível abrir a conversa: " + erroAmigavel(e)); return; }
+  try { sessionStorage.setItem("hf-cartao-pendente", JSON.stringify({ conversaId: id, cartao })); } catch {}
+  const url = `mensagens.html?conversa=${encodeURIComponent(id)}`;
+  try { (await import("./chat-gaveta.js?v=4")).abrirChat(url); } catch { location.href = url; }
 }
 // Manda uma mensagem na conversa com a pessoa (cria a conversa se ainda não existe), como o Mensagens faz.
 export async function mandarMensagem(uid, msg, resumo) {

@@ -10,10 +10,11 @@
 // =====================================================
 import {
   $, el, icone, ms, pintarAvatar, toast, erroAmigavel, tempoRelativo, fb, eu, dados, storageFns,
-  meusSeguindo, escondido, silenciado, alternarSilenciar, obterPerfil, abrirOpcoes, abrirLista, linhaPessoa, pessoasEmPilha,
+  meusSeguindo, meusSeguindoPronto, escondido, silenciado, alternarSilenciar, obterPerfil, abrirOpcoes, abrirLista, linhaPessoa, pessoasEmPilha,
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
-  fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados
-} from "./rede.js?v=96";
+  fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados,
+  responderNoChat, cartaoRespostaCaixa
+} from "./rede.js?v=97";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { seletorDuracao, fimEscolhido, linhaChave, MAX_FLASH_MIN, fimDaEnquete, encerrada, faltaTexto, resultadoFinal, lerContasEnquete } from "./enquetes.js?v=6";
@@ -59,10 +60,23 @@ export async function montarStories(alvo) {
 async function carregar() {
   const desde = fb.Timestamp.fromMillis(Date.now() - DIA);
   let docs = [];
+  // Só os flashes de quem você segue (e os seus), 30 pessoas por consulta (índice stories autorId + criadoEm).
+  // Antes lia os 400 flashes MAIS ANTIGOS do país inteiro nas últimas 24 h: com o site cheio, os novos de quem você
+  // segue ficavam de fora e o Diário baixava centenas de fotos de gente que você nem segue.
+  await meusSeguindoPronto.catch(() => {});
+  const autores = [eu.uid, ...[...meusSeguindo].filter((u) => u !== eu.uid && !escondido(u) && !silenciado(u))].slice(0, 600);
+  const lotes = []; for (let i = 0; i < autores.length; i += 30) lotes.push(autores.slice(i, i + 30));
   try {
-    const s = await fb.getDocs(fb.query(fb.collection(fb.db, "stories"), fb.where("criadoEm", ">=", desde), fb.orderBy("criadoEm", "asc"), fb.limit(400)));
-    docs = s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) }));
-  } catch (e) { console.warn("Flash:", e?.code || e?.message); }
+    const res = await Promise.all(lotes.map((l) => fb.getDocs(fb.query(fb.collection(fb.db, "stories"), fb.where("autorId", "in", l), fb.where("criadoEm", ">=", desde), fb.orderBy("criadoEm", "desc"), fb.limit(150)))));
+    docs = res.flatMap((s) => s.docs).map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm));
+  } catch (e) {
+    // Sem o índice (ou com as regras antigas): os mais NOVOS das últimas 24 h, filtrados aqui.
+    console.warn("Flash:", e?.code || e?.message);
+    try {
+      const s = await fb.getDocs(fb.query(fb.collection(fb.db, "stories"), fb.where("criadoEm", ">=", desde), fb.orderBy("criadoEm", "desc"), fb.limit(300)));
+      docs = s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).reverse();
+    } catch (e2) { console.warn("Flash:", e2?.code || e2?.message); }
+  }
   porAutor = new Map();
   docs.filter((x) => ativo(x) && (x.autorId === eu.uid || (x.perfil !== false && meusSeguindo.has(x.autorId) && !escondido(x.autorId) && !silenciado(x.autorId) && podeVer(x))))
     .forEach((x) => { if (!porAutor.has(x.autorId)) porAutor.set(x.autorId, []); porAutor.get(x.autorId).push(x); });
@@ -167,17 +181,42 @@ const ICONE_NEGOCIO = { servicos: "servicos", delivery: "delivery", lojinha: "lo
 const linkNegocio = (l) => `${PAGINA_NEGOCIO[l.tipo] || "servicos.html"}?negocio=${encodeURIComponent(l.negocioId)}&de=flash`;
 
 // Abrir um flash pelo link (feed.html?flash=ID), vindo de uma mensagem.
-export async function abrirFlashPorId(id) {
+export async function abrirFlashPorId(id, { silencioso = false } = {}) {
+  const sumiu = () => { if (silencioso) { try { history.replaceState({ ...(history.state || {}), hfCamadas: 0 }, "", location.href); } catch {} } };
   try {
     const d = await fb.getDoc(fb.doc(fb.db, "stories", id));
-    if (!d.exists() || !ativo(d.data({ serverTimestamps: "estimate" }))) { toast("Esse flash não está mais disponível (passou de 24 horas)."); return; }
+    if (!d.exists() || !ativo(d.data({ serverTimestamps: "estimate" }))) { sumiu(); toast("Esse flash não está mais disponível (passou de 24 horas)."); return; }
     const x = { id: d.id, ...d.data({ serverTimestamps: "estimate" }) };
-    if (x.autorId !== eu.uid && (escondido(x.autorId) || !podeVer(x))) { toast("Esse flash não está disponível."); return; }
+    if (x.autorId !== eu.uid && (escondido(x.autorId) || !podeVer(x))) { sumiu(); toast("Esse flash não está disponível."); return; }
     const docs = await flashesNoArDe(x.autorId).catch(() => null);
     const lista = (docs || [d]).map((k) => ({ id: k.id, ...k.data({ serverTimestamps: "estimate" }) })).filter((k) => ativo(k) && (k.autorId === eu.uid || podeVer(k))).sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm));
     porAutor.set(x.autorId, lista.length ? lista : [x]);
     abrirVisor(x.autorId, { so: true, comecarEm: id });
   } catch (e) { toast("Não foi possível abrir o flash: " + erroAmigavel(e)); }
+}
+// Voltar ao flash: ao sair da página com um flash aberto (perfil de quem foi mencionado, link do negócio, lugar, #,
+// publicação...), o "voltar" do celular traz o MESMO flash de volta (antes voltava para o Diário com o flash fechado).
+// Só os flashes no ar (destaques e arquivo não). Guardado na aba (sessionStorage), vale 30 min.
+const CHAVE_VOLTA = "hf-flash-volta";
+function lembrarFlash(s) {
+  try { if (s?.id) sessionStorage.setItem(CHAVE_VOLTA, JSON.stringify({ id: s.id, pagina: location.pathname + location.search, em: Date.now() })); } catch {}
+}
+addEventListener("pagehide", () => lembrarFlash(document.querySelector(".story-visor")?._flashAtual?.()));
+// Voltou pela memória do navegador (a página volta como estava, sem recarregar): reabre aqui mesmo se o flash fechou.
+addEventListener("pageshow", (e) => { if (!e.persisted) return; if (document.querySelector(".story-visor")) { try { sessionStorage.removeItem(CHAVE_VOLTA); } catch {} } else if (eu?.uid) voltarAoFlash(true); });
+export function voltarAoFlash(daMemoria = false) {
+  let x = null;
+  try { x = JSON.parse(sessionStorage.getItem(CHAVE_VOLTA) || "null"); } catch {}
+  // A marca é da página de onde a pessoa saiu: as outras páginas não mexem nela.
+  if (!x || x.pagina !== location.pathname + location.search) return false;
+  try { sessionStorage.removeItem(CHAVE_VOLTA); } catch {}
+  if (!x.id || !/^[A-Za-z0-9]{1,64}$/.test(x.id) || Date.now() - Number(x.em || 0) > 30 * 60e3) return false;
+  let tipo = ""; try { tipo = performance.getEntriesByType("navigation")[0]?.type || ""; } catch {}
+  if (tipo !== "back_forward" && !daMemoria) return false;
+  // O passo do histórico em que estamos era o do flash: reaproveita (um "voltar" fecha o flash, como antes).
+  try { history.replaceState({ ...(history.state || {}), hfCamadas: 1 }, "", location.href); } catch {}
+  abrirFlashPorId(x.id, { silencioso: true });
+  return true;
 }
 // Repostar um flash em que você foi mencionado (abre o criador com a foto dele).
 export async function repostarFlash(id) {
@@ -2174,6 +2213,18 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   bDesfazer.innerHTML = '<svg class="i s" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 010 11H11"/></svg>';
   bDesfazer.hidden = true;
   esq.appendChild(bDesfazer);
+  // Atalho para salvar o rascunho (sem precisar sair): aparece quando já tem algo feito.
+  const bSalvaRasc = el("button", "flash-ferr-btn flash-salvar-rasc"); bSalvaRasc.type = "button"; bSalvaRasc.title = "Salvar rascunho"; bSalvaRasc.setAttribute("aria-label", "Salvar como rascunho");
+  bSalvaRasc.appendChild(icone("rascunho", "i s")); bSalvaRasc.hidden = true;
+  esq.appendChild(bSalvaRasc);
+  const verRasc = () => setTimeout(() => { bSalvaRasc.hidden = !temConteudo(); }, 0);
+  ["input", "click", "pointerup", "change"].forEach((ev) => fundo.addEventListener(ev, verRasc, true));
+  bSalvaRasc.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    bSalvaRasc.disabled = true;
+    if (await salvarRascunho()) { bSalvaRasc.classList.add("salvo"); setTimeout(() => bSalvaRasc.classList.remove("salvo"), 1400); }
+    bSalvaRasc.disabled = false;
+  });
   function marcar() {
     if (restaurando) return;
     historico.push({ textos: textos.map(({ el: _e, ...t }) => ({ ...t })), tracos: tracos.map((t) => ({ ...t, pts: t.pts.slice() })) });
@@ -2704,6 +2755,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
   if (comecarEm) { const k = (mapa.get(ordem[ai]) || []).findIndex((x) => x.id === comecarEm); if (k >= 0) si = k; }
   // Segurar o flash pausa (não abre o menu do navegador de "baixar imagem"; para salvar há o ⋯ → Salvar foto).
   const fundo = el("div", "story-visor"); fundo.addEventListener("contextmenu", (e) => { if (!e.target.closest("input, textarea, a")) e.preventDefault(); }); fundo.setAttribute("role", "dialog"); fundo.setAttribute("aria-modal", "true"); fundo.setAttribute("aria-label", "Flash");
+  fundo._flashAtual = () => (lista ? null : atual());
   const caixa = el("div", "story-caixa");
   const barras = el("div", "story-barras");
   const topo = el("div", "story-topo");
@@ -2757,6 +2809,12 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
     pintarBarra(); aoFechar?.();
   };
   const atual = () => mapa.get(ordem[ai])?.[si];
+  // Abrir um perfil de dentro do flash: guarda o flash para o "voltar" trazer ele de novo (se a página mudar).
+  // Na página de perfis o perfil abre ali mesmo (sem trocar de página): não precisa.
+  const irParaPerfil = (uid) => {
+    if (!lista && !/usuarios\.html$/.test(location.pathname)) lembrarFlash(atual());
+    fechar(); ganchos.abrirPerfil(uid);
+  };
 
   // Rodapé de quem vê: responder (vai para o Mensagens) e reações rápidas.
   const form = el("form", "story-responder");
@@ -2919,7 +2977,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
     if (s.repostDe?.autorId) {
       const r = el("button", "story-repost"); r.type = "button";
       r.append(icone("raio", "i xs"), document.createTextNode(`Flash de ${String(s.repostDe.nome || "alguém").split(" ")[0]}`));
-      r.addEventListener("click", (e) => { e.stopPropagation(); fechar(); ganchos.abrirPerfil(s.repostDe.autorId); });
+      r.addEventListener("click", (e) => { e.stopPropagation(); irParaPerfil(s.repostDe.autorId); });
       txtQuem.appendChild(r);
     }
     // Também nos perfis de negócio (o dono escolheu ao publicar)
@@ -3023,7 +3081,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
       });
       balao.addEventListener("click", (e) => {
         e.stopPropagation(); clearTimeout(tEsc);
-        if (f.uid) { e.preventDefault(); fechar(); ganchos.abrirPerfil(f.uid); return; }
+        if (f.uid) { e.preventDefault(); irParaPerfil(f.uid); return; }
         // Lugar e hashtag abrem uma folha por cima do flash (como no Instagram); fechar volta ao flash.
         if (f.lugar || f.tag) {
           e.preventDefault(); balao.hidden = true; pausar(true);
@@ -3166,7 +3224,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
   }
   function pausar(sim) {
     if (fechado || sim === pausado) return;
-    if (!sim && (digitando || document.querySelector(".folha.aberta"))) return;
+    if (!sim && (digitando || document.querySelector(".folha.aberta, .hfc.on"))) return;
     pausado = sim;
     caixa.classList.toggle("pausado", sim);
     const i = barras.children[si]?.firstChild;
@@ -3219,7 +3277,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
       { rotulo: "Compartilhar", sub: meu ? "Manda o link do flash (fica 24 h)" : "Manda o link do flash", icone: "compartilhar", fn: () => compartilharLinkFlash(s) },
       meu && { rotulo: "Configurações do Flash", sub: "Quem vê, respostas, amigos próximos", icone: "config", fn: () => setTimeout(() => { pausar(true); abrirConfigFlash(); const f = $("folhaLista"); const v = () => { f?.removeEventListener("fechada", v); if (document.querySelector(".story-visor")) document.body.classList.add("travado"); pausar(false); }; f?.addEventListener("fechada", v); }, 260) },
       meu && { rotulo: "Novo flash", icone: "camera", fn: () => { fechar(); abrirCriador(); } },
-      !meu && { rotulo: "Ver perfil", icone: "olho", fn: () => { fechar(); ganchos.abrirPerfil(s.autorId); } },
+      !meu && { rotulo: "Ver perfil", icone: "olho", fn: () => irParaPerfil(s.autorId) },
       !meu && { rotulo: silenciado(s.autorId) ? "Mostrar os flashes de novo" : "Silenciar esta pessoa", sub: "Continua seguindo, mas não vê os flashes e as publicações dela", icone: "restringir", fn: async () => { await alternarSilenciar(s.autorId, nome.textContent); fechar(); carregar(); } }
     ]);
     const volta = () => { document.body.classList.add("travado"); pausar(false); $("folhaOpcoes")?.removeEventListener("fechada", volta); };
@@ -3510,7 +3568,8 @@ async function verQuemViu(sInicial, aoFechar, flashes, aoTrocar, { aoApagar = nu
           const ac = el("div", "vv-resp-acoes");
           const acao = (ic, rot, fn, perigo) => { const b = el("button", "vv-acao" + (perigo ? " perigo" : "")); b.type = "button"; b.append(icone(ic, "i s"), el("span", null, rot)); b.addEventListener("click", fn); return b; };
           ac.append(acao("raio", "Pôr no flash", () => { f?.querySelector("[data-fechar]")?.click(); document.querySelector(".story-visor [aria-label='Fechar']")?.click(); setTimeout(() => compartilharRespostaNoFlash({ pergunta: c.pergunta, texto: r.texto, cor: c.cor || "" }), 300); }));
-          if (!r.anonima && r.uid) ac.append(acao("pessoa", "Ver perfil", () => ganchos.abrirPerfil(r.uid)));
+          // Responder no chat (como no Instagram): a conversa abre por cima com a pergunta e a resposta prontas.
+          if (!r.anonima && r.uid) ac.append(acao("chat", "Responder", () => responderNoChat(r.uid, cartaoRespostaCaixa(c, r, alvo))), acao("pessoa", "Ver perfil", () => ganchos.abrirPerfil(r.uid)));
           ac.append(acao("lixo", "Apagar", async () => {
             if (!await confirmarHF({ titulo: "Apagar esta resposta?", texto: "Ela some das suas respostas.", ok: "Apagar", icone: "lixo" })) return;
             try { await fb.deleteDoc(fb.doc(fb.db, "caixa_respostas", r.id)); carregar(); } catch (e2) { toast("Não foi possível apagar: " + erroAmigavel(e2)); }
@@ -3519,7 +3578,7 @@ async function verQuemViu(sInicial, aoFechar, flashes, aoTrocar, { aoApagar = nu
         });
         grade.appendChild(card);
       });
-      conteudo.replaceChildren(topo, grade, el("small", "vv-nota", c.anonima ? "Respostas anônimas: você não vê quem respondeu." : "Toque numa resposta para pôr no seu flash, ver o perfil ou apagar."));
+      conteudo.replaceChildren(topo, grade, el("small", "vv-nota", c.anonima ? "Respostas anônimas: você não vê quem respondeu." : "Toque numa resposta para responder no chat, pôr no seu flash, ver o perfil ou apagar."));
     } catch (err) { if (minha === vez) conteudo.replaceChildren(el("div", "lista-vazia", "Não foi possível carregar: " + erroAmigavel(err))); }
   }
   carregar();

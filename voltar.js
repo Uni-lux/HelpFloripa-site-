@@ -8,7 +8,7 @@
 // (painéis e conversa do Mensagens, gaveta do chat, tela de publicações do Explorar) ficam de fora.
 // =====================================================
 const CAMADAS = [
-  ".folha.aberta", ".hfc", ".hf-confirma-fundo", ".hf-den-fundo", ".hf-aval-fundo", ".ad-modal-fundo", ".ad-gaveta-fundo",
+  ".folha.aberta", "div.hfc" /* painel do campos.js (a gaveta do chat, aside.hfc, cuida do próprio passo) */, ".hf-confirma-fundo", ".hf-den-fundo", ".hf-aval-fundo", ".ad-modal-fundo", ".ad-gaveta-fundo",
   ".story-visor", ".fn-visor", ".flash-criar", ".hfe-fundo", ".esc-lista", ".vt-modal", ".vt-local-fundo", ".foto-grande", ".pv-fundo", ".pl-fundo", ".cm-modal", ".pa-pagina"
 ].map((x) => x + ":not([data-sem-voltar])").join(", ");
 const pilha = [];
