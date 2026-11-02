@@ -189,7 +189,7 @@ function avatar(foto, nome, cls = "vt-avatar") {
 }
 function toast(t) {
   document.querySelectorAll(".vt-toast").forEach((x) => x.remove());
-  const d = el("div", "vt-toast", t);
+  const d = el("div", "vt-toast", String(t ?? "").replace(/(R\$|\d)\s+(?=\S)/g, "$1\u00a0"));
   document.body.appendChild(d);
   setTimeout(() => d.remove(), 3500);
 }

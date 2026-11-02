@@ -1225,7 +1225,7 @@ html, body { overflow-x: clip; }
 @keyframes raioPisca { 50% { opacity: .2; } }
 .flash-dica { color: rgba(255,255,255,.55); font-size: 11.5px; text-align: center; }
 /* avisos no alto enquanto o flash está aberto (embaixo ficam o campo e os botões) */
-body:has(.story-visor, .flash-criar) .toast { bottom: auto; top: calc(74px + env(safe-area-inset-top)); }
+body:has(.story-visor, .flash-criar) .toast { bottom: calc(92px + env(safe-area-inset-bottom)); top: auto; }
 @media (prefers-reduced-motion: reduce) { .story-visor, .flash-criar, .story-caixa.vai-dir, .story-caixa.vai-esq { animation: none; } .story-voa { animation-duration: .01s; } }
 
 /* ---------- publicação: marcados, hashtags, agendada, vídeo curto, extras do compositor ---------- */
@@ -2460,7 +2460,10 @@ div.cfg2-linha { cursor: default; }
 .pa-ufs .pa-chip { padding: 7px 0; text-align: center; }
 .pa-estados, .pa-cidades, .pa-perto { display: grid; gap: 10px; }
 .pa-busca, .pa-cid-linha select, .pa-salvar input { width: 100%; height: 42px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel-2, var(--panel)); color: var(--text); font: inherit; font-size: 14px; padding: 0 12px; min-width: 0; }
-.pa-linha-acoes { display: flex; gap: 14px; }
+.pa-linha-acoes { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.pa-linha-acoes .pa-link { margin-left: 6px; }
+.pa-regiao { min-height: 32px; padding: 5px 12px; font-size: 12.5px; border-style: dashed; }
+.pa-regiao[aria-pressed="true"] { border-style: solid; }
 .pa-link { border: 0; background: none; color: var(--accent); font: inherit; font-size: 13px; font-weight: 800; padding: 2px 0; cursor: pointer; }
 .pa-cid-linha { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 8px; }
 .pa-escolhidas { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -2799,7 +2802,7 @@ div.cfg2-linha { cursor: default; }
 /* ===== Flash (02/11, parte 3) ===== */
 /* aviso (toast) no criador e no visor: pílula escura, centrada, sem cobrir os botões da coluna */
 body:has(.flash-criar) .toast { top: auto; bottom: calc(96px + env(safe-area-inset-bottom)); }
-body:has(.story-visor, .flash-criar) .toast { width: auto; max-width: min(calc(100% - 48px), 380px); padding: 10px 16px; border-radius: 999px; background: rgba(14,19,24,.94); color: #fff; font-size: 13.5px; line-height: 1.3; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,.45); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,.1); }
+body:has(.story-visor, .flash-criar) .toast { width: max-content; max-width: min(calc(100% - 40px), 400px); padding: 11px 18px; border-radius: 18px; background: rgba(14,19,24,.94); color: #fff; font-size: 13.5px; line-height: 1.3; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,.45); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,.1); }
 /* temporizador com relógio + número */
 .flash-ferr-btn.tempo { position: relative; }
 .flash-ferr-btn.tempo .tempo-n { position: absolute; right: -2px; bottom: -2px; min-width: 20px; height: 20px; padding: 0 4px; border-radius: 999px; background: #ffd60a; color: #1a1205; font-size: 11px; font-weight: 900; display: grid; place-items: center; box-sizing: border-box; }
@@ -3118,11 +3121,18 @@ body:has(.story-visor, .flash-criar) .toast { width: auto; max-width: min(calc(1
 /* editor da contagem */
 .flash-fig-viva .fv-ctg { width: min(100%, 330px); font-size: 15px; animation: contEntra .15s ease-out; }
 .flash-fig-viva .fv-ctg .ctg-tit { padding: 14px 16px 12px; }
-.ctg-escolher { display: grid; grid-template-columns: 1.4fr 1fr; gap: 8px; text-align: left; }
-.ctg-campo { display: grid; gap: 4px; }
+.ctg-escolher { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr); gap: 8px; text-align: left; min-width: 0; }
+.ctg-campo { display: grid; gap: 4px; min-width: 0; }
 .ctg-campo small { font-size: 11px; font-weight: 800; color: #6b7780; text-transform: uppercase; letter-spacing: .05em; padding-left: 4px; }
-.ctg-campo input { height: 44px; padding: 0 12px; border-radius: 14px; border: 1.5px solid #dfe5ea; background: #fff; color: #111; font: inherit; font-size: 15px; font-weight: 800; min-width: 0; }
+.ctg-campo input { height: 44px; padding: 0 8px 0 11px; border-radius: 14px; border: 1.5px solid #dfe5ea; background: #fff; color: #111; font: inherit; font-size: 15px; font-weight: 800; min-width: 0; width: 100%; max-width: 100%; box-sizing: border-box; -webkit-appearance: none; appearance: none; }
+.ctg-campo input::-webkit-calendar-picker-indicator { margin-left: 2px; padding: 0; }
+@media (max-width: 380px) { .ctg-campo input { font-size: 14px; } }
 .ctg.tema-escuro .ctg-campo input { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.2); color: #fff; }
 /* criador: botão do público */
 .flash-alvo.on { background: #00adee !important; color: #fff !important; }
 .flash-alvo.on .i { color: #fff !important; stroke: #fff; }
+
+/* avisos (toasts) organizados: largura certa, quebra equilibrada, sem palavra solta (02/11/2026) */
+.toast { width: max-content; max-width: min(calc(100% - 32px), 440px); box-sizing: border-box; text-align: center; line-height: 1.35; text-wrap: balance; overflow-wrap: break-word; animation: hfToastEntra .22s ease-out; }
+@keyframes hfToastEntra { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@media (prefers-reduced-motion: reduce) { .toast, .vt-toast, .cm-toast, .ad-toast { animation: none !important; } }

@@ -1033,3 +1033,8 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
 .vt-linhas .vt-carrossel.linha-cat { margin: 18px 0 10px; }
 /* Imóveis: a distância fica acima da linha do preço (antes cobria o valor) */
 .vt-imo .tag ~ .vt-dist, .vt-imo .vt-dist { top: auto; left: auto; right: 6px; bottom: 34px; }
+
+/* avisos (toasts) organizados: largura certa, quebra equilibrada, sem palavra solta (02/11/2026) */
+.vt-toast { width: max-content; max-width: min(calc(100% - 32px), 440px); box-sizing: border-box; text-align: center; line-height: 1.35; text-wrap: balance; overflow-wrap: break-word; animation: hfToastEntra .22s ease-out; }
+@keyframes hfToastEntra { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@media (prefers-reduced-motion: reduce) { .toast, .vt-toast, .cm-toast, .ad-toast { animation: none !important; } }

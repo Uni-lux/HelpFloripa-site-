@@ -13,7 +13,7 @@
 import { fotoSegura, conferirEmail, emailPendente, MSG_EMAIL } from "./seguranca.js?v=1";
 import { estrelas } from "./avaliacoes.js?v=17";
 import { abrirQueixa, responderQueixa, resolverQueixa, semResposta, MOTIVOS, PRAZO_DIAS } from "./queixas.js?v=16";
-import { NOMES_TIPO, PAGINA_TIPO } from "./vitrine.js?v=80";
+import { NOMES_TIPO, PAGINA_TIPO } from "./vitrine.js?v=81";
 import { docsComValidade, docsPorIds } from "./leituras.js?v=3";
 import { lerLocal, noLocal, aoMudarLocal } from "./local-escolhido.js?v=3";
 
@@ -40,8 +40,8 @@ let aba = "todas", classe = "todas", termo = "", limite = POR_PAGINA;
 let pessoa = "", lado = "recebidas";
 
 function toast(t) {
-  const d = el("div", "vt-toast", t);
-  Object.assign(d.style, { position: "fixed", left: "50%", bottom: "24px", transform: "translateX(-50%)", zIndex: 9300, padding: "12px 18px", borderRadius: "12px", background: "var(--text)", color: "var(--panel)", fontWeight: 700, maxWidth: "90vw" });
+  const d = el("div", "vt-toast", String(t ?? "").replace(/(R\$|\d)\s+(?=\S)/g, "$1\u00a0"));
+  Object.assign(d.style, { position: "fixed", left: "50%", bottom: "24px", transform: "translateX(-50%)", zIndex: 9300, padding: "12px 18px", borderRadius: "12px", background: "var(--text)", color: "var(--panel)", fontWeight: 700, maxWidth: "min(calc(100% - 32px), 440px)", width: "max-content", textAlign: "center", lineHeight: 1.35, textWrap: "balance" });
   document.body.appendChild(d);
   setTimeout(() => d.remove(), 3200);
 }

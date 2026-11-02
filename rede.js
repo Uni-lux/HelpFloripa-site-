@@ -8,7 +8,7 @@
 // - Nova publicação (foto ou texto).
 // - Barra inferior, avisos (notificações) e presença online.
 // =====================================================
-import { montarBarra, marcarBarra } from "./barra-rede.js?v=2";
+import { montarBarra, marcarBarra } from "./barra-rede.js?v=3";
 import { gravarComLocal, NOVOS } from "./endereco.js?v=1";
 import { pedirLocalizacao, posicaoDe, rotuloPosicao } from "./perto.js?v=2";
 import { comRitmo } from "./ritmo.js?v=2";
@@ -20,7 +20,7 @@ import "./painel-avisos.js?v=43";
 import { docComValidade, docsComValidade, esquecer } from "./leituras.js?v=3";
 import { resumoPublico, temPublico } from "./publico-alvo.js?v=1";
 import { contarNovas } from "./mensagens-novas.js?v=1";
-import { escolherPublico } from "./publico-tela.js?v=3";
+import { escolherPublico } from "./publico-tela.js?v=4";
 import { avisoPlano } from "./planos-base.js?v=15";
 import { lerReacoesFlash } from "./flash-avisos.js?v=2";
 import { palavrasBusca } from "./pessoas.js?v=5"; // o sino abre o painel de notificações na própria página
@@ -212,7 +212,7 @@ export function toast(texto, aoClicar) {
   const t = document.createElement("div");
   t.className = "toast";
   t.setAttribute("role", "status");
-  t.textContent = texto;
+  t.textContent = String(texto ?? "").replace(/(R\$|\d)\s+(?=\S)/g, "$1\u00a0"); // número junto da palavra seguinte ("1 pessoa", "R$ 15")
   t.addEventListener("click", () => { t.remove(); aoClicar?.(); });
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 4500);
@@ -1474,7 +1474,7 @@ export async function verRespostasCaixa(item, alvo, aoMudar) {
       acao("chat", "Responder", () => responderNoChat(r.uid, cartaoRespostaCaixa(item.caixa, r, alvo)));
     }
     // Pôr a resposta no seu flash (como no Instagram): pergunta + resposta, sem o nome de quem respondeu.
-    acao("raio", "No flash", () => import("./stories.js?v=74").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
+    acao("raio", "No flash", () => import("./stories.js?v=75").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
     acao("lixo", "Apagar", async () => {
       if (!(await confirmarHF({ titulo: "Apagar esta resposta?", texto: "Ela some da sua caixa de perguntas.", ok: "Apagar", icone: "lixo" }))) return;
       try { await fb.deleteDoc(fb.doc(fb.db, "caixa_respostas", r.id)); todas = todas.filter((x) => x.id !== r.id); pintarNums(); pintarLista(); aoMudar?.(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
@@ -2034,7 +2034,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=74").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=75").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);

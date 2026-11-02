@@ -15,8 +15,8 @@ import { camposEndereco, textoCidade, semAcento } from "./endereco.js?v=1";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, esquecerPosicao, posicaoGuardada } from "./perto.js?v=2";
 import { lerLocal, rotuloLocal, escolherLocal, aoMudarLocal, atualizarPeloGps } from "./local-escolhido.js?v=3";
 import { lerPorLocal } from "./por-local.js?v=1";
-import { montarBarra, pintarAvatarBarra } from "./barra-rede.js?v=2";
-import { prepararConversa } from "./vitrine.js?v=80";
+import { montarBarra, pintarAvatarBarra } from "./barra-rede.js?v=3";
+import { prepararConversa } from "./vitrine.js?v=81";
 
 export const CATEGORIAS_COM = {
   doacao: { nome: "Doação", plural: "Doações", cor: "#e5487f", ic: "presente", acao: "Quero receber", dica: "Dê de graça o que você não usa mais" },
@@ -81,7 +81,7 @@ function icone(nome, cls = "ci") {
 }
 function toast(t) {
   document.querySelectorAll(".cm-toast").forEach((x) => x.remove());
-  const d = el("div", "cm-toast", t); d.setAttribute("role", "status");
+  const d = el("div", "cm-toast", String(t ?? "").replace(/(R\$|\d)\s+(?=\S)/g, "$1\u00a0")); d.setAttribute("role", "status");
   document.body.appendChild(d); setTimeout(() => d.remove(), 4200);
 }
 function avatar(foto, nome) {

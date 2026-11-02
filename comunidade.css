@@ -154,3 +154,8 @@
 @media (min-width: 760px) { .cm-trilho > .cm-card { flex-basis: 220px; } }
 .cm-vermais { display: block; margin: 16px auto 0; }
 .cm-vermais[hidden] { display: none; }
+
+/* avisos (toasts) organizados: largura certa, quebra equilibrada, sem palavra solta (02/11/2026) */
+.cm-toast { width: max-content; max-width: min(calc(100% - 32px), 440px); box-sizing: border-box; text-align: center; line-height: 1.35; text-wrap: balance; overflow-wrap: break-word; animation: hfToastEntra .22s ease-out; }
+@keyframes hfToastEntra { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@media (prefers-reduced-motion: reduce) { .toast, .vt-toast, .cm-toast, .ad-toast { animation: none !important; } }

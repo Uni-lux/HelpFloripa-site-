@@ -903,7 +903,7 @@
     .visualizador .icon-btn { position: absolute; top: max(10px, env(safe-area-inset-top)); right: 10px; color: #fff; }
     .visualizador .icon-btn:hover { background: rgba(255, 255, 255, .12); }
     .visualizador a.icon-btn { right: 58px; }
-    .toast { position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 80; max-width: calc(100% - 32px); width: max-content; background: var(--text); color: var(--panel); padding: 11px 16px; border-radius: 10px; font-size: 14px; box-shadow: 0 8px 24px rgba(0, 0, 0, .3); cursor: pointer; }
+    .toast { position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 80; max-width: calc(100% - 32px); width: max-content; background: var(--text); color: var(--panel); padding: 11px 16px; border-radius: 12px; font-size: 14px; box-shadow: 0 8px 24px rgba(0, 0, 0, .3); cursor: pointer; max-width: min(calc(100% - 32px), 440px); box-sizing: border-box; text-align: center; line-height: 1.35; text-wrap: balance; overflow-wrap: break-word; }
     .carregando-app { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; background: var(--bg); color: var(--muted); }
     .carregando-app[hidden] { display: none; }
     .spinner { width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--accent); animation: girar .8s linear infinite; margin: 0 auto 12px; }
@@ -1364,6 +1364,8 @@
 
   <script type="module">
     import "./sem-menu-imagem.js?v=1";
+    import { ligarDeslizarFlash } from "./deslizar-flash.js?v=1";
+    ligarDeslizarFlash(); // deslizar para a direita na lista de conversas abre o Flash
     import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura, mostrarAvisoEmail } from "./seguranca.js?v=1";
     import { confirmarHF } from "./confirmar.js?v=5";
     import { relogioDe, ufDe } from "./fuso.js?v=1";
@@ -2063,7 +2065,7 @@
       const t = document.createElement("div");
       t.className = "toast";
       t.setAttribute("role", "status");
-      t.textContent = texto;
+      t.textContent = String(texto ?? "").replace(/(R\$|\d)\s+(?=\S)/g, "$1\u00a0");
       t.addEventListener("click", () => { t.remove(); aoClicar?.(); });
       document.body.appendChild(t);
       setTimeout(() => t.remove(), 4500);
@@ -3729,8 +3731,8 @@
     // volta para esta conversa como cartão, sem sair do chat.
     let vitrineMod = null;
     function carregarVitrine() {
-      if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=41"; l.dataset.vitrine = ""; document.head.appendChild(l); }
-      return (vitrineMod ||= import("./vitrine.js?v=80"));
+      if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=42"; l.dataset.vitrine = ""; document.head.appendChild(l); }
+      return (vitrineMod ||= import("./vitrine.js?v=81"));
     }
     function usarCartaoNaConversa(uid, cartao) {
       document.querySelectorAll(".vt-modal").forEach((m) => m.remove());
