@@ -1470,6 +1470,13 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   `ritmoOk('flash')` no create de `stories`; `gravar` (stories.js) usa `comRitmo` e, com as regras de antes
   (permission-denied), grava sozinho como antes. Para caber no limite de 1.000 do "flash com TUDO junto", x/y do
   `linkFlashOk` viraram um regex só. Teste `t-antispam.mjs`; `t-vistas-lote` agora espalha os autores.
+  **Mesmo PR: novas não ficam embaixo das antigas** (ele via as que acabou de postar abaixo de outras velhas; reproduzido:
+  publicação de 40 h com 12 estrelas e 6 comentários em 2º, acima das novas). `ordenarPrincipais`: engajamento com
+  retorno decrescente (`Math.log1p(eng + 2×comentários)`, antes contava cheio), **frescor** até 24 h para o que não foi
+  visto (até ×3,5, cai ao quadrado), idade ÷ (h+2)^1,3 (quem você segue 1,2; antes 1,1), segue ×1,6, as suas ×12 nas 3
+  primeiras horas. Já vista continua ×0,3 (por isso, depois de aparecer na tela, a nova desce). Outras pessoas: a lista
+  dos recentes fica 3 min no aparelho (`DIARIO_VALIDADE`), então uma publicação nova dos outros pode levar até 3 min para
+  aparecer. Teste `t-diario-recentes.mjs`. `t-auditoria-diario` para na linha 150 (`Reforma completa`), igual antes.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

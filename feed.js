@@ -261,17 +261,24 @@ async function ordenarPrincipais(bruto) {
   // Comentários: conta só para as 20 mais promissoras (contagem guardada no aparelho por alguns minutos).
   const ordem1 = lista.slice().sort((a, b) => pre(b) - pre(a)).slice(0, 20);
   const com = new Map(await Promise.all(ordem1.map(async (p) => [p.id, await contarComentarios(p.id).catch(() => 0)])));
+  // Nota de cada publicação (03/11/2026: as novas não ficam mais embaixo das antigas).
+  // - Engajamento conta com retorno decrescente (log): 30 estrelas não valem 30× uma publicação nova sem nenhuma.
+  //   Antes contava cheio e a idade pesava pouco (expoente 1,1 para quem você segue): uma publicação de 2 dias muito
+  //   curtida ficava acima das que acabaram de sair.
+  // - Frescor: até 24 h, o que você ainda não viu ganha até ×3,5 (some aos poucos, mais forte nas primeiras horas).
+  // - Idade divide em todas: (horas + 2)^1,3 (quem você segue 1,2: envelhece um pouco mais devagar).
+  const engDe = (p) => Math.log1p(eng(p) + 2 * (com.get(p.id) || 0));
   const pontos = (p) => {
     // Idade: agendada conta de quando apareceu; republicada, de quando foi republicada (se for mais recente).
     const quando = Math.max(ms(p.agendadoPara) || ms(p.criadoEm) || agora, p._repost?.em || 0);
     const horas = Math.max(0, (agora - quando) / 3600e3);
     // Sua cidade e seu estado pesam mais (site nacional): regiao.js. Republicada por quem você segue: empurrão social.
-    const base = (1 + eng(p) + 2 * (com.get(p.id) || 0)) * (1 + gosto.get(p.id)) * (sigo(p) ? 1.8 : 1) * (p._repost ? 1.2 + 0.15 * Math.min(4, p._repost.outros) : 1) * pesoRegiao(p, regiao);
-    // As suas: aparecem no topo logo depois de publicar (até 3 h) e depois descem (antes ficavam sempre em cima).
-    if (minha(p)) return base * (horas < 3 ? 3 : 0.2) / Math.pow(horas + 2, 1.35);
-    const visto = jaVisto(p.id) ? 0.3 : 1;
-    // Quem você segue envelhece mais devagar (você quer ver as novidades deles mesmo sem muito engajamento).
-    return base * visto * (0.9 + 0.2 * sorteioFixo(eu.uid + ":" + janela() + ":" + p.id)) / Math.pow(horas + 2, sigo(p) ? 1.1 : 1.35);
+    const base = (1 + 1.2 * engDe(p)) * (1 + gosto.get(p.id)) * (sigo(p) ? 1.6 : 1) * (p._repost ? 1.2 + 0.15 * Math.min(4, p._repost.outros) : 1) * pesoRegiao(p, regiao);
+    // As suas: no topo logo depois de publicar (até 3 h) e depois descem como as outras.
+    if (minha(p)) return base * (horas < 3 ? 12 : 0.3) / Math.pow(horas + 2, 1.3);
+    const visto = jaVisto(p.id);
+    const frescor = !visto && horas < 24 ? 1 + 2.5 * Math.pow(1 - horas / 24, 2) : 1;
+    return base * (visto ? 0.3 : 1) * frescor * (0.9 + 0.2 * sorteioFixo(eu.uid + ":" + janela() + ":" + p.id)) / Math.pow(horas + 2, sigo(p) ? 1.2 : 1.3);
   };
   // Descoberta: de quem você não segue, com pouco alcance ainda (até 3 notas e até 1 comentário) e que você não viu.
   const descoberta = (p) => !sigo(p) && !minha(p) && !jaVisto(p.id) && (resumos.get(p.id)?.total || 0) <= 3 && (com.get(p.id) || 0) <= 1;
