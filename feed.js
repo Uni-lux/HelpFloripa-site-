@@ -60,7 +60,7 @@ async function buscarLocal(l) {
     .filter((p) => p.local && (p.local.nome === l.nome || distanciaKm(l, p.local) <= 3));
 }
 // Filtro do Diário: Principais (o que tem a ver com você + quem você segue, pelo engajamento) ou Amigos.
-const FILTROS = { principais: "Principais", amigos: "Amigos" };
+const FILTROS = { principais: "Principais", seguindo: "Seguindo", amigos: "Amigos" };
 let aba = "diario", filtro = "principais";
 let posts = [], todosPosts = [], mostrados = 0;
 
@@ -78,7 +78,7 @@ let tipoFeed = "tudo"; // "fotos" (antigo) virou Reels // links antigos ?aba=reg
 // Tipo da publicação (diario.tipo; nas antigas, pelo conteúdo).
 const tipoDe = (p) => p.tipo || (p.enquete?.pergunta ? "enquete" : p.caixa?.pergunta ? "caixa" : p.mediaTipo === "video" && temMidia(p) ? "video" : temMidia(p) ? "foto" : "texto");
 const doTipo = (p) => tipoFeed === "tudo" || (tipoFeed === "fotos" ? ["foto", "video"].includes(tipoDe(p)) : tipoFeed === "enquetes" ? ["enquete", "caixa"].includes(tipoDe(p)) : tipoDe(p) === "texto");
-const daAba = (p) => !!(tagAtual || localAtual) || doTipo(p);
+const daAba = (p) => p._emDia ? tipoFeed === "tudo" && !tagAtual && !localAtual : !!(tagAtual || localAtual) || doTipo(p);
 // Reels: os vídeos já lidos + os mais novos do servidor, com as mesmas regras do Diário (silenciados, público...).
 const verReels = (comecarEm = null) => import("./reels.js?v=30").then((m) => m.abrirReels({ lista: todosPosts, oculto: postOculto, comecarEm, aoNovo: () => compor("video") }));
 const compor = (inicio = "") => abrirCompositor({ aoPublicar: ganchos.aoPublicar, inicio });
@@ -133,6 +133,7 @@ $("filtroFeedBtn").addEventListener("click", () => abrirOpcoes("Mostrar no Diár
   tagAtual && { rotulo: `Sair de #${tagAtual}`, sub: "Voltar para o Diário", icone: "fechar", fn: () => { tagAtual = ""; history.replaceState(history.state, "", "feed.html"); pintarFiltro(); carregarFeed(); } },
   localAtual && { rotulo: `Sair de ${localAtual.nome}`, sub: "Voltar para o Diário", icone: "fechar", fn: () => { localAtual = null; history.replaceState(history.state, "", "feed.html"); pintarFiltro(); carregarFeed(); } },
   { rotulo: "Principais" + (filtro === "principais" ? "  ✓" : ""), sub: "O que combina com você e as novidades de quem você segue", icone: "estrela", fn: () => mudarFiltro("principais") },
+  { rotulo: "Seguindo" + (filtro === "seguindo" ? "  ✓" : ""), sub: "Só quem você segue, das mais novas para as mais antigas", icone: "pessoa", fn: () => mudarFiltro("seguindo") },
   { rotulo: "Amigos" + (filtro === "amigos" ? "  ✓" : ""), sub: "Seus vínculos do Social e quem vocês se seguem, das mais novas", icone: "coracao", fn: () => mudarFiltro("amigos") }
 ]));
 function mudarFiltro(f) { filtro = f; tagAtual = ""; localAtual = null; if (/tag=|local=/.test(location.search)) history.replaceState(history.state, "", "feed.html"); try { localStorage.setItem("hf-filtro-diario", f); } catch {} pintarFiltro(); carregarFeed(); }
@@ -176,6 +177,31 @@ function limitarPorAutor(lista, max) {
     if (n < max) { conta.set(p.autorId, n + 1); saida.push(p); }
   }
   return saida;
+}
+// Seguindo (como o "Seguindo" do Instagram): só quem você segue, em ordem de data, sem ordem por nota e sem limite por
+// pessoa. Lê as 20 mais novas de cada grupo de até 30 pessoas (índice autorId + criadoEm). Cada grupo só está completo até
+// a publicação mais antiga que ele trouxe: a página para no ponto em que TODOS os grupos estão completos, e "Ver mais"
+// continua dali (criadoEm < esse ponto) — nada fica pulado entre um grupo e outro.
+let cursorSeguindo = null, maisSeguindo = false;
+async function buscarSeguindoCrono(continuar = false) {
+  if (!continuar) { cursorSeguindo = null; maisSeguindo = false; }
+  else if (!cursorSeguindo) return [];
+  const autores = [...meusSeguindo].filter((u) => u !== eu.uid && !escondido(u));
+  if (!autores.length) return [];
+  const lotes = [];
+  for (let i = 0; i < autores.length; i += 30) lotes.push(autores.slice(i, i + 30));
+  const col = fb.collection(fb.db, "diario"), N = 20;
+  const antes = continuar ? [fb.where("criadoEm", "<", fb.Timestamp.fromMillis(cursorSeguindo))] : [];
+  const q = (l) => fb.query(col, fb.where("autorId", "in", l), ...antes, fb.orderBy("criadoEm", "desc"), fb.limit(N));
+  const res = await Promise.all(lotes.map((l, k) => (continuar ? fb.getDocs(q(l)) : docsComValidade(fb, `diario-segcrono-${eu.uid}-${k}`, q(l), DIARIO_VALIDADE))
+    .catch(() => lerOrdenado(q(l), fb.query(col, fb.where("autorId", "in", l), fb.limit(N)))).catch(() => ({ docs: [] }))));
+  const lista = res.flatMap((s) => s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })));
+  // O grupo cheio que parou mais tarde manda: abaixo dele pode faltar publicação desse grupo.
+  const cheios = res.filter((s) => s.docs.length >= N).map((s) => ms(s.docs.at(-1).data({ serverTimestamps: "estimate" }).criadoEm));
+  maisSeguindo = cheios.length > 0;
+  const corte = maisSeguindo ? Math.max(...cheios) : 0;
+  cursorSeguindo = maisSeguindo ? corte : null;
+  return lista.filter((p) => ms(p.criadoEm) >= corte).sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
 }
 // Amigos: vínculos aceitos do Social + quem vocês se seguem (você segue e a pessoa segue você).
 async function buscarAmigos() {
@@ -232,7 +258,7 @@ async function buscarPrincipais(continuar = false) {
     if (!cursorPrincipais) return [];
     const s = await fb.getDocs(fb.query(...base, fb.startAfter(cursorPrincipais), fb.limit(RECENTES_PAIS)));
     cursorPrincipais = s.docs.at(-1) || null; maisPrincipais = s.size === RECENTES_PAIS;
-    return ordenarPrincipais(s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })));
+    return ordenarPrincipais(s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })), { marcador: false });
   }
   const q = fb.query(...base, fb.limit(RECENTES_PAIS));
   const [s, deQuemSigo, doEstado, republicados] = await Promise.all([
@@ -245,7 +271,7 @@ async function buscarPrincipais(continuar = false) {
   cursorPrincipais = s.docs.at(-1) || null; maisPrincipais = s.size === RECENTES_PAIS;
   return ordenarPrincipais([...s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })), ...deQuemSigo, ...doEstado, ...republicados]);
 }
-async function ordenarPrincipais(bruto) {
+async function ordenarPrincipais(bruto, { marcador = true } = {}) {
   // Sem repetidas; a mesma publicação vinda também por uma republicação guarda o "Fulano republicou".
   const unicos = new Map();
   bruto.forEach((p) => { const x = unicos.get(p.id); if (!x) unicos.set(p.id, p); else if (p._repost && !x._repost) x._repost = p._repost; });
@@ -294,7 +320,31 @@ async function ordenarPrincipais(bruto) {
     p._pontos *= Math.pow(0.55, k);
     return k < POR_AUTOR;
   }).sort((a, b) => b._pontos - a._pontos);
-  return espalharAutores(comDescoberta(ordenada, descoberta));
+  // "Você está em dia" (como o Instagram): as novidades de quem você segue (até 3 dias, que você ainda não viu) e as suas
+  // das últimas 3 h vêm primeiro; depois um aviso e, embaixo, as sugestões (o resto). A descoberta (1 a cada 5) continua
+  // entrando no meio das novidades.
+  const novidade = (p) => minha(p) ? agora - ms(p.criadoEm) < 3 * 3600e3 : sigo(p) && !jaVisto(p.id) && agora - Math.max(ms(p.agendadoPara) || ms(p.criadoEm) || agora, p._repost?.em || 0) < 3 * 864e5;
+  if (!marcador) return espalharAutores(comDescoberta(ordenada, descoberta));
+  const A = ordenada.filter(novidade), B = ordenada.filter((p) => !novidade(p));
+  const { topo, resto } = comEmDia(A, B, descoberta);
+  if (!meusSeguindo.size || !resto.length) return [...topo, ...resto];
+  return [...topo, { id: "__emdia", _emDia: true, _novidades: A.length }, ...resto];
+}
+// Parte de cima (novidades de quem você segue) com a descoberta nos lugares 3, 8, 13... e no máximo 2 da mesma pessoa
+// nas 10 primeiras (se só sobrar novidade da mesma pessoa, ela entra assim mesmo: as novidades não descem para depois
+// do aviso). O resto (sugestões) segue a ordem de sempre.
+function comEmDia(A, B, ehDescoberta) {
+  const desc = B.filter(ehDescoberta), usados = new Set(), topo = [], conta = new Map(), deA = new Set(A);
+  const cabe = (p) => topo.length >= 10 || (conta.get(p.autorId) || 0) < 2;
+  const pegar = (fila, forcar) => fila.find((p) => !usados.has(p) && cabe(p)) || (forcar ? fila.find((p) => !usados.has(p)) : null);
+  let falta = A.length;
+  while (falta) {
+    const vez = topo.length >= 2 && (topo.length - 2) % 5 === 0;
+    const p = (vez && pegar(desc)) || pegar(A, true);
+    usados.add(p); topo.push(p); conta.set(p.autorId, (conta.get(p.autorId) || 0) + 1);
+    if (deA.has(p)) falta--;
+  }
+  return { topo: espalharAutores(topo), resto: espalharAutores(comDescoberta(B.filter((p) => !usados.has(p)), ehDescoberta)) };
 }
 // Nunca duas publicações seguidas do mesmo autor (puxa a próxima de outra pessoa, se houver).
 function espalharAutores(lista) {
@@ -329,8 +379,8 @@ async function carregarFeed() {
   $("maisFeed").hidden = true;
   try {
     maisTodos = false; maisPrincipais = false;
-    const bruto = localAtual ? await buscarLocal(localAtual) : tagAtual ? await buscarTag(tagAtual) : filtro === "amigos" ? await buscarAmigos() : await buscarPrincipais();
-    todosPosts = bruto.filter((p) => !escondido(p.autorId) && !postOculto(p));
+    const bruto = localAtual ? await buscarLocal(localAtual) : tagAtual ? await buscarTag(tagAtual) : filtro === "amigos" ? await buscarAmigos() : filtro === "seguindo" ? await buscarSeguindoCrono() : await buscarPrincipais();
+    todosPosts = bruto.filter((p) => p._emDia || (!escondido(p.autorId) && !postOculto(p)));
     if (localAtual || tagAtual || filtro !== "principais") todosPosts.sort((a, b) => ms(b.agendadoPara || b.criadoEm) - ms(a.agendadoPara || a.criadoEm)); // principais: pela pontuação
   } catch (e) {
     console.warn(e);
@@ -350,6 +400,7 @@ function mostrarFiltrados() {
     lista.appendChild(localAtual ? vazio(`Nada publicado em ${localAtual.nome} ainda`, "Adicione o local na sua publicação para começar.", "Publicar agora", () => compor()) : tagAtual ? vazio(`Nada com #${tagAtual} ainda`, "Use a hashtag na sua publicação para começar.", "Publicar agora", () => compor())
       : tipoFeed !== "tudo" && todosPosts.length ? vazio(`Nenhuma publicação de ${nomeTipo} por aqui ainda`, "Mude o filtro para ver tudo ou publique a primeira.", "Ver tudo", () => { tipoFeed = "tudo"; pintarTipos(); mostrarFiltrados(); })
       : filtro === "principais" ? vazio("Nada publicado por aqui ainda", "Compartilhe uma foto do seu trabalho, um texto ou faça uma enquete.", "Publicar agora", () => compor())
+      : filtro === "seguindo" ? vazio(meusSeguindo.size ? "Quem você segue ainda não publicou" : "Você ainda não segue ninguém", meusSeguindo.size ? "As publicações de quem você segue aparecem aqui, das mais novas para as mais antigas." : "Siga pessoas e negócios para ver aqui o que eles publicam, em ordem de data.", "Abrir o Explorar", () => trocarAba("explorar"))
       : vazio("Seus amigos ainda não publicaram", "Amigos são seus vínculos do Social e quem vocês se seguem.", "Ver as principais", () => mudarFiltro("principais")));
     $("maisFeed").hidden = !temMaisPrincipais();
     return;
@@ -358,11 +409,23 @@ function mostrarFiltrados() {
 }
 function mostrarMais() {
   const lista = $("listaFeed");
-  posts.slice(mostrados, mostrados + POR_VEZ).forEach((p) => lista.appendChild(cartaoPost(p)));
+  posts.slice(mostrados, mostrados + POR_VEZ).forEach((p) => lista.appendChild(p._emDia ? cartaoEmDia(p) : cartaoPost(p)));
   mostrados = Math.min(posts.length, mostrados + POR_VEZ);
   $("maisFeed").hidden = mostrados >= posts.length && !temMaisPrincipais();
 }
-const temMaisPrincipais = () => maisPrincipais && filtro === "principais" && !localAtual && !tagAtual;
+const temMaisPrincipais = () => !localAtual && !tagAtual && ((maisPrincipais && filtro === "principais") || (maisSeguindo && filtro === "seguindo"));
+// Aviso "Você está em dia" no meio do Diário (Principais).
+function cartaoEmDia(m) {
+  const c = el("div", "feed-em-dia");
+  c.dataset.emDia = "1";
+  const ic = el("span", "fed-ic"); ic.append(icone("check"));
+  const ver = el("button", "fed-link", "Ver as anteriores de quem você segue"); ver.type = "button";
+  ver.addEventListener("click", () => { mudarFiltro("seguindo"); scrollTo({ top: 0, behavior: "smooth" }); });
+  c.append(ic, el("strong", null, "Você está em dia"),
+    el("span", null, m._novidades ? "Você viu as novidades de quem você segue dos últimos 3 dias." : "Nada novo de quem você segue nos últimos 3 dias."),
+    ver, el("div", "fed-sug", "Sugestões para você"));
+  return c;
+}
 let buscandoMais = false;
 $("maisFeed").addEventListener("click", async () => {
   const principais = temMaisPrincipais();
@@ -371,8 +434,8 @@ $("maisFeed").addEventListener("click", async () => {
   buscandoMais = true; $("maisFeed").disabled = true;
   try {
     const ja = new Set(todosPosts.map((p) => p.id));
-    const novos = (await (principais ? buscarPrincipais(true) : buscarTodos(true))).filter((p) => !ja.has(p.id) && !escondido(p.autorId) && !postOculto(p));
-    const ord = principais ? novos : novos.sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
+    const novos = (await (principais ? (filtro === "seguindo" ? buscarSeguindoCrono(true) : buscarPrincipais(true)) : buscarTodos(true))).filter((p) => !ja.has(p.id) && !escondido(p.autorId) && !postOculto(p));
+    const ord = principais && filtro === "principais" ? novos : novos.sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
     todosPosts.push(...ord); posts.push(...ord.filter(daAba));
     mostrarMais();
   } catch (e) { console.warn(e); toast("Não foi possível carregar mais."); }

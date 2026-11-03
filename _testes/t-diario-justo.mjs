@@ -32,7 +32,7 @@ const { browser, ctx } = await navegador({ mobile: true });
 const p = await entrar(ctx, "ana", "feed.html?aba=registros");
 const ordem = async () => {
   await p.waitForSelector(".post-card", { timeout: 25000 }); await p.waitForTimeout(2000);
-  for (let i = 0; i < 3 && (await p.locator(".post-card").count()) < 16; i++) { if (await p.isVisible("#maisFeed")) await p.click("#maisFeed"); await p.waitForTimeout(1200); }
+  for (let i = 0; i < 3 && (await p.locator(".post-card").count()) < 20; i++) { if (await p.isVisible("#maisFeed")) await p.click("#maisFeed"); await p.waitForTimeout(1200); }
   return p.$$eval(".post-card", (cs) => cs.map((c) => c.dataset.autor));
 };
 const a = await ordem();
