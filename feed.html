@@ -6,7 +6,7 @@
   <script>(function(){try{if(window.top!==window.self||localStorage.getItem("hf-sem-rede")==="1"||location.hash)return;var q=new URLSearchParams(location.search),p=location.pathname.split("/").pop(),aba={"feed.html":q.get("aba")==="explorar"?"explorar":"diario","mural.html":"comunidade","mensagens.html":"mensagens","usuarios.html":"perfil"}[p],ok=!!aba;q.forEach(function(v,k){if(!(p==="feed.html"&&k==="aba"))ok=false});if(ok)location.replace("rede.html?aba="+aba)}catch(e){}})();</script>
   <!-- Voltando de um link aberto dentro de um flash: a tela fica preta até o flash reabrir (antes aparecia a página
        por baixo por alguns instantes). stories.js tira a capa quando o flash abre. -->
-  <script>(function(){try{var x=JSON.parse(sessionStorage.getItem("hf-flash-volta")||"null"),n=(performance.getEntriesByType("navigation")[0]||{}).type;if(x&&x.pagina===location.pathname+location.search&&n==="back_forward"&&Date.now()-(x.em||0)<18e5){var h=document.documentElement;h.classList.add("hf-volta-flash");setTimeout(function(){h.classList.remove("hf-volta-flash")},7000)}}catch(e){}})();</script>
+  <script>(function(){try{var x=JSON.parse(sessionStorage.getItem("hf-flash-volta")||"null"),n=(performance.getEntriesByType("navigation")[0]||{}).type;var q=location.search;if((x&&x.pagina===location.pathname+location.search&&n==="back_forward"&&Date.now()-(x.em||0)<18e5)||(n!=="back_forward"&&/[?&](flash|repostar)=[A-Za-z0-9]|[?&]novoFlash=1/.test(q))){var h=document.documentElement;h.classList.add("hf-volta-flash");setTimeout(function(){h.classList.remove("hf-volta-flash")},7000)}}catch(e){}})();</script>
   <style>html.hf-volta-flash body::after{content:"";position:fixed;inset:0;z-index:4890;background:#000}</style>
   <meta charset="UTF-8" />
   <!-- Segurança: só carrega recursos de origens conhecidas e não deixa outro site embutir esta página -->
@@ -38,10 +38,10 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="rede.css?v=76" />
+  <link rel="stylesheet" href="rede.css?v=77" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
-  <script type="module" src="feed.js?v=152"></script>
+  <script type="module" src="feed.js?v=153"></script>
 </head>
 <body>
   <header class="topo">

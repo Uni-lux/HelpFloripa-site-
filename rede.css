@@ -1092,6 +1092,7 @@ html, body { overflow-x: clip; }
 /* Teclado aberto: o cartão fica do tamanho de antes (stories.js medirCartao) e o que se escreve sobe para a parte que
    continua à vista; --tecl = quanto do cartão o teclado cobre. */
 .flash-criar { --tecl: 0px; }
+.flash-criar { touch-action: pan-x pan-y; } /* sem pinça de zoom da página (a pinça das figurinhas é do site) */
 .flash-criar.teclado .flash-figs, .flash-criar.teclado .flash-edtxt { bottom: var(--tecl); }
 .flash-criar.teclado .flash-palco.modo-texto { padding-bottom: var(--tecl); }
 .flash-criar.teclado .flash-legenda { bottom: calc(var(--tecl) + 10px); }
@@ -1165,6 +1166,8 @@ html, body { overflow-x: clip; }
 .flash-txt { will-change: left, top, transform; transition: scale .14s ease, opacity .14s ease, filter .14s ease; }
 .flash-txt.segurando { z-index: 2; filter: drop-shadow(0 8px 18px rgba(0,0,0,.35)); }
 .flash-txt.no-lixo { scale: .42; opacity: .65; }
+.flash-txt.flash-orig { pointer-events: none; }
+.flash-txt.flash-orig::after { content: none; }
 .flash-palco.arrastando-txt .flash-txt:not(.segurando) { pointer-events: none; }
 .flash-lixo { position: absolute; left: 50%; bottom: 22px; z-index: 5; width: 52px; height: 52px; margin-left: -26px; border-radius: 50%; display: grid; place-items: center; color: #fff; background: rgba(0,0,0,.5); border: 2px solid rgba(255,255,255,.8); opacity: 0; transform: scale(.7); transition: opacity .15s, transform .15s, background .15s; pointer-events: none; }
 .flash-palco.arrastando-txt .flash-lixo { opacity: 1; transform: none; }
@@ -3182,3 +3185,10 @@ body:has(.story-visor, .flash-criar) .toast { width: max-content; max-width: min
 .push-h { margin: 18px 4px 6px; font-size: 12.5px; font-weight: 800; letter-spacing: .4px; text-transform: uppercase; color: var(--muted); }
 #pushCats.off { opacity: .5; pointer-events: none; }
 .push-nota { margin: 14px 4px 0; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+
+/* Link do negócio no Flash: o que já está no flash fica em cima, com "Tirar o link" separado do Fechar */
+.lk-atual { display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 10px; border-radius: 14px; background: rgba(0,173,238,.14); border: 1px solid rgba(0,173,238,.45); color: #fff; }
+.lk-atual .tx { flex: 1; min-width: 0; display: grid; }
+.lk-atual .tx small { font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: #7fd8ff; }
+.lk-atual .tx strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lk-tirar { flex: none; min-height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid rgba(255,120,120,.6); background: transparent; color: #ff9a9a; font-weight: 800; cursor: pointer; }
