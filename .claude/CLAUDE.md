@@ -1551,6 +1551,18 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   fotos com crossOrigin) e STORAGE-LEIA-ME com os passos 4b (CORS) e 6 (migração). Mensagens do chat NÃO são migradas.
   `USAR_STORAGE` continua false até ele ativar. Teste `t-migrar-fotos.mjs` (19); `t-storage` e `testes-storage` (47) passam.
   **As 4 etapas do servidor (A–D) estão prontas, todas desligadas até o Blaze.**
+- **Figurinhas do Flash no negócio e no repost (03/11/2026, PR depois do #148, sem regra nova):** relato dele: as figurinhas
+  só funcionavam no flash de quem criou. Causas: o perfil do negócio usava um visor leve à parte (`abrirVisorNegocio` em
+  flash-negocio.js: só a foto e o link) e o repost só levava a foto do original. Agora: `abrirFlashesDoNegocio(n, {comecarEm,
+  aoFechar, lista})` em stories.js abre o visor COMPLETO com `negocio` {id, nome, foto, tipo} (topo com o negócio, `.story-por`
+  "por Fulano", foto/nome levam ao perfil do negócio); `window.__hfVisorNegocio` = ela onde o stories.js está carregado
+  (Diário, perfis); nas vitrines o anel (`anelNegocio`) vai para `feed.html?flash=ID&negocio=UID_tipo` (feed.js lê o negócio
+  e, vindo de outra página do site, fechar faz `history.back()`); o visor leve ficou só de reserva. **Repost:** o visor lê o
+  original 1× (`s._orig`, como o postDe) e `figurinhasDe(s)` junta as figurinhas que o repost não tem (enquete/teste, caixa,
+  contagem, link, toques de lugar/#/@) com o id do ORIGINAL (voto, resposta e lembrete contam lá; a contagem usa o `meu` do
+  original); "Ver votos"/atividade só nas do próprio flash. Criador do repost: foto do original parada (`fotoFixa`) e aviso de
+  quais figurinhas vão junto. Teste `t-flash-figurinhas-negocio.mjs` (17); `t-flash-neg` atualizado (visor completo e texto
+  "Também em 2 negócios", que já falhava antes).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
