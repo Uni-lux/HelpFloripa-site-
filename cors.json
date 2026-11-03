@@ -1,0 +1,8 @@
+[
+  {
+    "origin": ["https://helpfloripa.com.br", "https://www.helpfloripa.com.br", "https://uni-lux.github.io"],
+    "method": ["GET", "HEAD"],
+    "responseHeader": ["Content-Type", "Cache-Control"],
+    "maxAgeSeconds": 86400
+  }
+]

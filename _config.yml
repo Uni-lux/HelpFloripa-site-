@@ -10,3 +10,5 @@ exclude:
   - scripts/
   - functions/
   - firebase.json
+  - cors.json
+  - .firebaserc
