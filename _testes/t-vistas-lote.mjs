@@ -11,7 +11,7 @@ const agora = Date.now();
 const ids = [];
 for (let i = 0; i < 8; i++) {
   const id = `pLote${i}`; ids.push(id);
-  await db.doc(`diario/${id}`).set({ autorId: U.ana, nome: "Ana", texto: `Publicação do lote número ${i}`, tipo: "texto", criadoEm: Timestamp.fromMillis(agora - i * 60000) });
+  await db.doc(`diario/${id}`).set({ autorId: [U.ana, U.dani, U.edu, U.fabi][i % 4], nome: "Ana", texto: `Publicação do lote número ${i}`, tipo: "texto", criadoEm: Timestamp.fromMillis(agora - i * 60000) });
   for (const d of (await db.collection(`diario/${id}/vistas`).get()).docs) await d.ref.delete();
 }
 // pLote3 já foi vista pelo Bruno em outro aparelho

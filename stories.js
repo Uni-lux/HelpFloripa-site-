@@ -14,12 +14,13 @@ import {
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados,
   responderNoChat, cartaoRespostaCaixa, fecharFolha, ajudaPublico
-} from "./rede.js?v=110";
+} from "./rede.js?v=111";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { combinaPublico, leitorDe, temPublico, resumoPublico, publicoParaGravar } from "./publico-alvo.js?v=1";
 import { escolherPublico } from "./publico-tela.js?v=4";
 import { lerLocal } from "./local-escolhido.js?v=3";
+import { comRitmo } from "./ritmo.js?v=3";
 import { minhaPosicao } from "./perto.js?v=2";
 import { fimEscolhido, MAX_FLASH_MIN, fimDaEnquete, encerrada, faltaTexto, resultadoFinal, lerContasEnquete } from "./enquetes.js?v=6";
 
@@ -54,7 +55,7 @@ const vistosLocal = conjuntoDaConta("hf-stories-vistos", 600);
 const guardarVistos = () => vistosLocal.salvar();
 const ativo = (s) => Date.now() - (ms(s.criadoEm) || Date.now()) < DIA;
 const comStorage = () => !!(storageFns && window.firebaseStorage);
-const erroPublicar = (e) => (e?.amigavel ? e.message : e?.code === "permission-denied" ? "O Flash começa a funcionar quando as regras novas forem publicadas." : "Não foi possível publicar: " + erroAmigavel(e));
+const erroPublicar = (e) => (e?.amigavel || e?.code === "limite-diario" ? e.message : e?.code === "permission-denied" ? "O Flash começa a funcionar quando as regras novas forem publicadas." : "Não foi possível publicar: " + erroAmigavel(e));
 
 export async function montarStories(alvo) {
   if (!alvo) return;
@@ -2868,8 +2869,14 @@ async function gravar(extraCom, { imagem = null } = {}) {
     ...(cfg.ocultarDe.length ? { ocultoPara: cfg.ocultarDe.slice(0, 100) } : {})
   };
   const docFlash = { autorId: eu.uid, nome: String(dados.nome || "Usuário").slice(0, 80), ...extra, ...escolhas, criadoEm: fb.serverTimestamp() };
+  // Anti-spam: cada flash soma 1 no limite diário (ritmo.js, 50 por dia) na mesma gravação. Com as regras de antes (sem
+  // o tipo "flash" no limite), o lote é recusado e o flash vai sozinho, como antes.
+  const criar = async (d) => {
+    try { return await comRitmo(fb, eu.uid, "flash", (lote) => { const r = fb.doc(fb.collection(fb.db, "stories")); lote.set(r, d); return r; }); }
+    catch (e) { if (e?.code !== "permission-denied") throw e; return fb.addDoc(fb.collection(fb.db, "stories"), d); }
+  };
   let ref;
-  try { ref = await fb.addDoc(fb.collection(fb.db, "stories"), docFlash); }
+  try { ref = await criar(docFlash); }
   catch (e) {
     // Regras ainda sem localização/hashtag tocáveis, menção oculta e cor da enquete: publica sem esses campos (a
     // figurinha continua desenhada na foto; a pessoa oculta sai da lista, mas recebe o aviso do mesmo jeito).
@@ -2877,7 +2884,7 @@ async function gravar(extraCom, { imagem = null } = {}) {
     if (e?.code !== "permission-denied" || !antigo) throw e;
     const eraTeste = antigo._eraTeste, semAlvo = antigo._semAlvo, semCt = antigo._semContagem;
     delete antigo._eraTeste; delete antigo._semAlvo; delete antigo._semContagem;
-    ref = await fb.addDoc(fb.collection(fb.db, "stories"), antigo);
+    ref = await criar(antigo);
     setTimeout(() => toast(semCt ? "A contagem regressiva aparece depois da publicação das regras novas (o flash foi sem ela)."
       : semAlvo ? "O público do flash vale depois da publicação das regras novas: este foi para todos."
       : eraTeste ? "O teste foi como enquete: ele passa a funcionar depois da publicação das regras novas." : "Algumas figurinhas ficam tocáveis depois da publicação das regras novas."), 2600);

@@ -1452,7 +1452,7 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   vez. Emulador é HTTP/1.1 (6 conexões por endereço, cada aba do Firebase segura 2): a 4ª aba da rede às vezes não conecta no
   teste — no Firebase de verdade é HTTP/2. Testes `t-sino-enxuto.mjs`, `t-sino` (atualizado), `t-flash-destaques`,
   `t-correcoes-social` e `t-caixa` (este já parava antes na linha 81, no "Responder" antigo).
-- **Vistas em lote + "já vi" na conta (03/11/2026, PR depois do #140, sem regra nova):** `marcarVista` (rede.js) põe a
+- **Vistas em lote + "já vi" na conta (03/11/2026, PR #141 mesclado, sem regra nova):** `marcarVista` (rede.js) põe a
   vista numa fila (`filaVistas`) que sai numa gravação só (writeBatch) a cada 6 s, com 20 na fila ou quando a página some
   (`visibilitychange` hidden, `pagehide`, aba escondida na rede = `hf:gaveta`). Mesmo documento `diario/{id}/vistas/{uid}`.
   Lote recusado (vista que já existia) é dividido ao meio até isolar a recusada. "Já vi" agora é da CONTA:
@@ -1461,6 +1461,15 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   `montar` do iniciarRede. Outro aparelho não tenta gravar de novo e o Diário desce o já visto nos dois. Obs.: o Firestore
   cobra cada documento do lote; o ganho é menos envios/bateria e nenhuma gravação repetida entre aparelhos. Teste
   `t-vistas-lote.mjs`. `t-social2` para no `.flash-ferr-btn.letra` (antes da conferência da vista), igual sem a mudança.
+- **Anti-spam do Diário e do Flash (03/11/2026, PR depois do #141, MUDA REGRAS — não publicadas; 16 partes,
+  762 testes):** Diário (feed.js): `POR_AUTOR = 3`; `buscarSeguindo` corta em 3 por pessoa (`limitarPorAutor`) e, se 1–2
+  pessoas encheram as 20 do lote de quem você segue, lê o lote de novo SEM elas (só nesse caso); `ordenarPrincipais`:
+  cada publicação a mais da mesma pessoa ×0,55 e só as 3 melhores de cada pessoa por leitura (as suas não contam).
+  Publicar no Diário já tinha limite de 20/dia (`ritmo.js` + `ritmoOk('pub')`). **Flash:** tipo `flash` no `ritmo`
+  (50/dia; `LIMITES.flash`, chave `flash` só vai quando é flash — com as regras do ar as outras ações continuam), regra
+  `ritmoOk('flash')` no create de `stories`; `gravar` (stories.js) usa `comRitmo` e, com as regras de antes
+  (permission-denied), grava sozinho como antes. Para caber no limite de 1.000 do "flash com TUDO junto", x/y do
+  `linkFlashOk` viraram um regex só. Teste `t-antispam.mjs`; `t-vistas-lote` agora espalha os autores.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
@@ -1523,7 +1532,7 @@ chat da equipe).
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
-1. **Publicar as regras** (16 partes em `_regras/`, 758 testes): tudo desde 26/10, incluindo o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
+1. **Publicar as regras** (16 partes em `_regras/`, 762 testes): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
    `stories/{id}/reacoes` (estrela do Flash), `diario.publico` (público da publicação) e os tipos de publicação
    (`diario.tipo/estilo/quemComenta/ocultarNotas`). Depois: "Recalcular estrelas" no
    painel e criar os **14 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`
@@ -1562,7 +1571,7 @@ Hoje aguenta dezenas a poucas centenas de pessoas ativas/dia; NÃO está pronto 
 leituras/dia ≈ 70 ativos/dia a ~700 leituras por pessoa); Storage (fotos fora dos documentos, vídeo/Reels); App Check.
 **Eu, sem Blaze (combinado para começar em 02/11/2026, nesta ordem):** 1) ~~sino lendo só o que é novo + o que fica no sino~~
 (FEITO: "Sino enxuto"); 2) ~~vistas (`marcarVista`) gravadas em lote~~ (FEITO);
-3) limite de publicações por pessoa no Diário (quem posta muito não toma o espaço); 4) ~~"já vi" guardado na conta~~ (FEITO junto com o 2).
+3) ~~limite de publicações por pessoa no Diário~~ (FEITO, + limite diário do Flash); 4) ~~"já vi" guardado na conta~~ (FEITO junto com o 2).
 **Eu, depois do Blaze:** ranking do Diário no servidor (Cloud Function por cidade/estado, taxa de engajamento por alcance);
 notificações com o app fechado (FCM); TURN para as ligações; contadores no servidor; mapas/endereços com provedor pago
 (Mapbox/LocationIQ) e hospedagem com mais banda (Cloudflare Pages). Também pesa: a rede numa página só abre 4 conexões do

@@ -558,8 +558,18 @@ await t("republicar: com bloqueio entre os dois é recusado", () => assertFails(
 await semRegras(async (db) => { const { deleteDoc } = await import("firebase/firestore"); await deleteDoc(doc(db, "bloqueios", "dono_bia")); });
 await t("republicar: desfazer (apagar) só quem republicou", async () => { await assertFails(deleteDoc(doc(ctx("bia"), "republicacoes", "pAlc_ana"))); await assertSucceeds(deleteDoc(doc(ctx("ana"), "republicacoes", "pAlc_ana"))); });
 const fotoS = "data:image/jpeg;base64,/9j/AAAA";
-await t("stories: publica foto", () => assertSucceeds(setDoc(doc(ctx("ana"), "stories", "s1"), { autorId: "ana", nome: "Ana", tipo: "imagem", midia: fotoS, texto: "bom dia", criadoEm: serverTimestamp() })));
-await t("stories: vídeo dentro do documento é recusado (só Storage)", () => assertFails(setDoc(doc(ctx("ana"), "stories", "s2"), { autorId: "ana", nome: "Ana", tipo: "video", midia: fotoS, criadoEm: serverTimestamp() })));
+// Flash: cada um soma 1 no limite diário (ritmo/{uid}, tipo "flash", 50 por dia) na mesma gravação.
+async function criarFlash(ref, dados) {
+  const db = ref.firestore, uid = dados.autorId, r = doc(db, "ritmo", uid);
+  const s = await getDoc(r).catch(() => null);
+  const b = writeBatch(db); b.set(ref, dados);
+  if (s?.exists() && s.data().inicio?.toMillis?.() > Date.now() - 864e5) b.set(r, { flash: increment(1), ultimaEm: serverTimestamp(), ultimoTipo: "flash" }, { merge: true });
+  else b.set(r, { inicio: serverTimestamp(), msg: 0, pub: 0, com: 0, parc: 0, flash: 1, ultimaEm: serverTimestamp(), ultimoTipo: "flash" });
+  return b.commit();
+}
+await t("flash: sem somar no limite diário é recusado", () => assertFails(setDoc(doc(ctx("ana"), "stories", "sSemRitmo"), { autorId: "ana", nome: "Ana", tipo: "imagem", midia: fotoS, criadoEm: serverTimestamp() })));
+await t("stories: publica foto", () => assertSucceeds(criarFlash(doc(ctx("ana"), "stories", "s1"), { autorId: "ana", nome: "Ana", tipo: "imagem", midia: fotoS, texto: "bom dia", criadoEm: serverTimestamp() })));
+await t("stories: vídeo dentro do documento é recusado (só Storage)", () => assertFails(criarFlash(doc(ctx("ana"), "stories", "s2"), { autorId: "ana", nome: "Ana", tipo: "video", midia: fotoS, criadoEm: serverTimestamp() })));
 await t("stories: quem vê marca; só a autora lista quem viu", async () => { await assertSucceeds(setDoc(doc(ctx("bia"), "stories", "s1", "vistos", "bia"), { criadoEm: serverTimestamp() })); await assertSucceeds(getDocs(collection(ctx("ana"), "stories", "s1", "vistos"))); await assertFails(getDocs(collection(ctx("edu"), "stories", "s1", "vistos"))); });
 // Estrela (curtir) e reação no flash: stories/{id}/reacoes/{uid}
 const reac = (u, x) => doc(ctx(u), "stories", "s1", "reacoes", u);
@@ -614,8 +624,8 @@ await t("voto único: não troca o voto", () => assertFails(updateDoc(doc(ctx("b
 await t("voto único: não tira o voto", () => assertFails(deleteDoc(doc(ctx("bia"), "enquete_votos", "d_pEnq_bia"))));
 await t("voto único: não vota de novo por cima", () => assertFails(voto("bia", 0)));
 await t("voto: outra pessoa não apaga o voto", () => assertFails(deleteDoc(doc(ctx("ana"), "enquete_votos", "d_pEnq_bia"))));
-await t("flash: com enquete (posição), menções e escolhas", () => assertSucceeds(setDoc(doc(ctx("ana"), "stories", "sEnq"), { autorId: "ana", nome: "Ana", tipo: "imagem", midia: fotoS, enquete: { pergunta: "Gostou?", opcoes: ["Sim", "Não"], x: 0.5, y: 0.6 }, mencoes: ["bia", "edu"], respostas: "seguindo", publico: "amigos", lista: ["bia"], ocultoPara: ["edu"], criadoEm: serverTimestamp() })));
-await t("flash: quem responde com valor estranho é recusado", () => assertFails(setDoc(doc(ctx("ana"), "stories", "sX"), { autorId: "ana", nome: "Ana", tipo: "imagem", midia: fotoS, respostas: "qualquer", criadoEm: serverTimestamp() })));
+await t("flash: com enquete (posição), menções e escolhas", () => assertSucceeds(criarFlash(doc(ctx("ana"), "stories", "sEnq"), { autorId: "ana", nome: "Ana", tipo: "imagem", midia: fotoS, enquete: { pergunta: "Gostou?", opcoes: ["Sim", "Não"], x: 0.5, y: 0.6 }, mencoes: ["bia", "edu"], respostas: "seguindo", publico: "amigos", lista: ["bia"], ocultoPara: ["edu"], criadoEm: serverTimestamp() })));
+await t("flash: quem responde com valor estranho é recusado", () => assertFails(criarFlash(doc(ctx("ana"), "stories", "sX"), { autorId: "ana", nome: "Ana", tipo: "imagem", midia: fotoS, respostas: "qualquer", criadoEm: serverTimestamp() })));
 await t("voto: na enquete do flash", () => assertSucceeds(voto("bia", 1, "sEnq", "f")));
 // Enquete com duração (fimEm): publicação até 7 dias (a partir da data agendada, se houver), flash até 24 h; votar só até o fim.
 const daqui = (min) => Timestamp.fromMillis(Date.now() + min * 60000);
@@ -626,8 +636,8 @@ await t("enquete: fim no passado é recusado", () => assertFails(publicar2("bia"
 await t("enquete: fim que não é data é recusado", () => assertFails(publicar2("bia", { enquete: { pergunta: "Vai?", opcoes: ["Sim", "Não"], fimEm: "amanhã" } })));
 await t("enquete agendada: o fim conta a partir da data agendada", () => assertSucceeds(publicar2("bia", { agendadoPara: daqui(3 * 1440), enquete: { pergunta: "Vai?", opcoes: ["Sim", "Não"], fimEm: daqui(3 * 1440 + 1440) } })));
 await t("enquete agendada: fim antes de aparecer é recusado", () => assertFails(publicar2("bia", { agendadoPara: daqui(3 * 1440), enquete: { pergunta: "Vai?", opcoes: ["Sim", "Não"], fimEm: daqui(1440) } })));
-await t("flash: enquete com fim em 24 h", () => assertSucceeds(setDoc(doc(ctx("ana"), "stories", "sEnq2"), { autorId: "ana", nome: "Ana", tipo: "imagem", midia: fotoS, enquete: { pergunta: "Gostou?", opcoes: ["Sim", "Não"], x: 0.5, y: 0.6, fimEm: daqui(1440) }, criadoEm: serverTimestamp() })));
-await t("flash: enquete passando de 24 h é recusada", () => assertFails(setDoc(doc(ctx("ana"), "stories", "sEnq3"), { autorId: "ana", nome: "Ana", tipo: "imagem", midia: fotoS, enquete: { pergunta: "Gostou?", opcoes: ["Sim", "Não"], fimEm: daqui(1440 + 60) }, criadoEm: serverTimestamp() })));
+await t("flash: enquete com fim em 24 h", () => assertSucceeds(criarFlash(doc(ctx("ana"), "stories", "sEnq2"), { autorId: "ana", nome: "Ana", tipo: "imagem", midia: fotoS, enquete: { pergunta: "Gostou?", opcoes: ["Sim", "Não"], x: 0.5, y: 0.6, fimEm: daqui(1440) }, criadoEm: serverTimestamp() })));
+await t("flash: enquete passando de 24 h é recusada", () => assertFails(criarFlash(doc(ctx("ana"), "stories", "sEnq3"), { autorId: "ana", nome: "Ana", tipo: "imagem", midia: fotoS, enquete: { pergunta: "Gostou?", opcoes: ["Sim", "Não"], fimEm: daqui(1440 + 60) }, criadoEm: serverTimestamp() })));
 await semRegras(async (db) => {
   await setDoc(doc(db, "diario", "pAberta"), { autorId: "dono", nome: "Dono", texto: "?", enquete: { pergunta: "Qual?", opcoes: ["A", "B"], fimEm: daqui(600) }, criadoEm: antigo });
   await setDoc(doc(db, "diario", "pFechada"), { autorId: "dono", nome: "Dono", texto: "?", enquete: { pergunta: "Qual?", opcoes: ["A", "B"], fimEm: daqui(-10) }, criadoEm: antigo });
@@ -664,7 +674,7 @@ await t("anônima: a pessoa lê o próprio voto (e o que não existe)", async ()
 await t("anônima: todos leem a contagem", async () => { const s = await assertSucceeds(getDoc(doc(ctx("ana"), "enquete_contas", "d_pAnon_3"))); if (s.data().n1 !== 2) throw new Error("n1=" + s.data().n1); });
 await t("caixa: publicação com caixa de perguntas", () => assertSucceeds(publicar2("bia", { caixa: { pergunta: "Me pergunte", anonima: true } })));
 await t("caixa: sem dizer se é anônima é recusada", () => assertFails(publicar2("bia", { caixa: { pergunta: "Me pergunte" } })));
-await t("caixa: no flash", () => assertSucceeds(setDoc(doc(ctx("ana"), "stories", "sCaixa"), { autorId: "ana", nome: "Ana", tipo: "imagem", midia: fotoS, caixa: { pergunta: "Pergunte", anonima: false, x: 0.5, y: 0.5 }, criadoEm: serverTimestamp() })));
+await t("caixa: no flash", () => assertSucceeds(criarFlash(doc(ctx("ana"), "stories", "sCaixa"), { autorId: "ana", nome: "Ana", tipo: "imagem", midia: fotoS, caixa: { pergunta: "Pergunte", anonima: false, x: 0.5, y: 0.5 }, criadoEm: serverTimestamp() })));
 const resp = (quem, item, extra = {}) => setDoc(doc(collection(ctx(quem), "caixa_respostas")), { alvo: `d_${item}`, tipo: "d", itemId: item, autorId: "dono", uid: quem, nome: quem, texto: "Oi, tudo bem?", anonima: false, criadoEm: serverTimestamp(), ...extra });
 await t("caixa: responde com nome", () => assertSucceeds(resp("bia", "pCaixa")));
 await t("caixa: responde em nome de outra pessoa é recusado", () => assertFails(resp("bia", "pCaixa", { uid: "ana" })));
@@ -687,7 +697,23 @@ await semRegras(async (db) => {
   await setDoc(doc(db, "negocios", "dono_servicos"), { donoId: "dono", tipo: "servicos", nome: "Reparos", criadoEm: antigo }, { merge: true });
   await setDoc(doc(db, "stories", "sMen"), { autorId: "dono", nome: "Dono", tipo: "imagem", midia: fotoS, mencoes: ["bia"], criadoEm: Timestamp.now() });
 });
-const flash = (quem, extra) => setDoc(doc(collection(ctx(quem), "stories")), { autorId: quem, nome: quem, tipo: "imagem", midia: fotoS, criadoEm: serverTimestamp(), ...extra });
+const flash = (quem, extra) => criarFlash(doc(collection(ctx(quem), "stories")), { autorId: quem, nome: quem, tipo: "imagem", midia: fotoS, criadoEm: serverTimestamp(), ...extra });
+await t("flash: o 51º flash do dia é recusado", async () => {
+  await semRegras((db) => setDoc(doc(db, "ritmo", "hele"), { inicio: Timestamp.now(), msg: 0, pub: 0, com: 0, parc: 0, flash: 50 }));
+  await assertFails(criarFlash(doc(collection(ctx("hele"), "stories")), { autorId: "hele", nome: "hele", tipo: "imagem", midia: fotoS, criadoEm: serverTimestamp() }));
+  await semRegras((db) => setDoc(doc(db, "ritmo", "hele"), { inicio: Timestamp.now(), msg: 0, pub: 0, com: 0, parc: 0, flash: 49 }));
+  await assertSucceeds(criarFlash(doc(collection(ctx("hele"), "stories")), { autorId: "hele", nome: "hele", tipo: "imagem", midia: fotoS, criadoEm: serverTimestamp() }));
+});
+await t("ritmo: mensagem com o contador de flash de antes continua aceita", async () => {
+  const db = ctx("hele"), b = writeBatch(db);
+  b.set(doc(db, "ritmo", "hele"), { msg: increment(1), ultimaEm: serverTimestamp(), ultimoTipo: "msg" }, { merge: true });
+  await assertSucceeds(b.commit());
+});
+await t("ritmo: não dá para zerar o contador de flash", async () => {
+  const db = ctx("hele"), b = writeBatch(db);
+  b.set(doc(db, "ritmo", "hele"), { flash: 0, msg: increment(1), ultimaEm: serverTimestamp(), ultimoTipo: "msg" }, { merge: true });
+  await assertFails(b.commit());
+});
 await t("flash: publicação do Diário compartilhada (com crédito)", () => assertSucceeds(flash("ana", { postDe: { postId: "pCom", autorId: "dono", nome: "Dono" } })));
 await t("flash: recusa publicação com autor errado", () => assertFails(flash("ana", { postDe: { postId: "pCom", autorId: "bia", nome: "Bia" } })));
 await t("flash: recusa publicação que não existe", () => assertFails(flash("ana", { postDe: { postId: "naoExiste", autorId: "dono", nome: "Dono" } })));

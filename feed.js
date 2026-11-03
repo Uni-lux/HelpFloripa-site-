@@ -15,12 +15,12 @@ import {
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, botaoSeguir, montarBarraRede, marcarBarra, pintarBarraRede, ouvirAvisos, lerOrdenado,
   editarPublicacao, bloquear, comMencoes, fotosDoPost, carrosselFotos, contadorEstrelas, estaSalvo, alternarSalvo, escolherColecao, lerResumosEstrelas, contarComentarios,
   silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto, confirmarHF, blocoEnquete, blocoCaixa, editarPublicoDoPost, apagarFlashesDaPublicacao
-} from "./rede.js?v=110";
+} from "./rede.js?v=111";
 import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=2";
-import { montarStories, abrirFlashPorId, repostarFlash, voltarAoFlash, novoFlash } from "./stories.js?v=82";
+import { montarStories, abrirFlashPorId, repostarFlash, voltarAoFlash, novoFlash } from "./stories.js?v=83";
 import { abrirDenuncia } from "./denuncias.js?v=6";
 import { pessoasRecentes } from "./pessoas.js?v=5";
-import { abrirExplorar, definirCartao, abrirPublicacao } from "./explorar.js?v=92";
+import { abrirExplorar, definirCartao, abrirPublicacao } from "./explorar.js?v=93";
 import { docsComValidade, docsPorIds } from "./leituras.js?v=3";
 import { lerLocal } from "./local-escolhido.js?v=3";
 import { distanciaKm, minhaPosicao } from "./perto.js?v=2";
@@ -80,7 +80,7 @@ const tipoDe = (p) => p.tipo || (p.enquete?.pergunta ? "enquete" : p.caixa?.perg
 const doTipo = (p) => tipoFeed === "tudo" || (tipoFeed === "fotos" ? ["foto", "video"].includes(tipoDe(p)) : tipoFeed === "enquetes" ? ["enquete", "caixa"].includes(tipoDe(p)) : tipoDe(p) === "texto");
 const daAba = (p) => !!(tagAtual || localAtual) || doTipo(p);
 // Reels: os vídeos já lidos + os mais novos do servidor, com as mesmas regras do Diário (silenciados, público...).
-const verReels = (comecarEm = null) => import("./reels.js?v=29").then((m) => m.abrirReels({ lista: todosPosts, oculto: postOculto, comecarEm, aoNovo: () => compor("video") }));
+const verReels = (comecarEm = null) => import("./reels.js?v=30").then((m) => m.abrirReels({ lista: todosPosts, oculto: postOculto, comecarEm, aoNovo: () => compor("video") }));
 const compor = (inicio = "") => abrirCompositor({ aoPublicar: ganchos.aoPublicar, inicio });
 function pintarTipos() {
   const w = $("tiposFeed"); if (!w) return;
@@ -147,12 +147,35 @@ async function buscarSeguindo(lista = null, chave = "seguindo") {
   for (let i = 0; i < autores.length; i += 30) lotes.push(autores.slice(i, i + 30));
   // As 20 mais recentes de cada lote de autores (índice diario: autorId + criadoEm).
   const col = fb.collection(fb.db, "diario");
-  const res = await Promise.all(lotes.map((l, k) => docsComValidade(fb, `diario-${chave}-${eu.uid}-${k}`,
+  const ler = (l, k) => docsComValidade(fb, `diario-${chave}-${eu.uid}-${k}`,
     fb.query(col, fb.where("autorId", "in", l), fb.orderBy("criadoEm", "desc"), fb.limit(20)), DIARIO_VALIDADE).catch(() => lerOrdenado(
     fb.query(col, fb.where("autorId", "in", l), fb.orderBy("criadoEm", "desc"), fb.limit(20)),
     fb.query(col, fb.where("autorId", "in", l), fb.limit(20))
-  )).catch(() => ({ docs: [] }))));
-  return res.flatMap((s) => s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })));
+  )).catch(() => ({ docs: [] }));
+  const comoPost = (d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) });
+  const res = await Promise.all(lotes.map(async (l, k) => {
+    const posts = (await ler(l, k)).docs.map(comoPost);
+    // Anti-spam: se 1 ou 2 pessoas que postam muito encheram as 20 do lote, lê de novo SEM elas (só nesse caso, para
+    // não gastar leitura à toa) e as outras pessoas que você segue não somem do Diário.
+    const conta = contarPorAutor(posts);
+    const muito = [...conta].filter(([, n]) => n > POR_AUTOR).map(([u]) => u);
+    const resto = l.filter((u) => !muito.includes(u));
+    if (posts.length < 20 || !muito.length || !resto.length) return posts;
+    return [...posts, ...(await ler(resto, `${k}-sem`)).docs.map(comoPost)];
+  }));
+  return limitarPorAutor(res.flat(), POR_AUTOR);
+}
+// No máximo POR_AUTOR publicações recentes de cada pessoa entram na escolha do Diário (as mais novas).
+const POR_AUTOR = 3;
+function contarPorAutor(lista) { const m = new Map(); for (const p of lista) m.set(p.autorId, (m.get(p.autorId) || 0) + 1); return m; }
+function limitarPorAutor(lista, max) {
+  const vistos = new Set(), conta = new Map(), saida = [];
+  for (const p of lista.slice().sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm))) {
+    if (vistos.has(p.id)) continue; vistos.add(p.id);
+    const n = conta.get(p.autorId) || 0;
+    if (n < max) { conta.set(p.autorId, n + 1); saida.push(p); }
+  }
+  return saida;
 }
 // Amigos: vínculos aceitos do Social + quem vocês se seguem (você segue e a pessoa segue você).
 async function buscarAmigos() {
@@ -252,7 +275,18 @@ async function ordenarPrincipais(bruto) {
   };
   // Descoberta: de quem você não segue, com pouco alcance ainda (até 3 notas e até 1 comentário) e que você não viu.
   const descoberta = (p) => !sigo(p) && !minha(p) && !jaVisto(p.id) && (resumos.get(p.id)?.total || 0) <= 3 && (com.get(p.id) || 0) <= 1;
-  const ordenada = lista.map((p) => ({ ...p, _pontos: pontos(p) })).sort((a, b) => b._pontos - a._pontos);
+  // Anti-spam: cada publicação a mais da MESMA pessoa vale menos (1ª ×1, 2ª ×0,55, 3ª ×0,3) e só as POR_AUTOR melhores
+  // de cada pessoa entram (por leitura; "Ver mais" traz as outras). Quem posta 30 seguidas não ocupa o Diário inteiro.
+  // As suas não entram nessa conta.
+  const comNota = lista.map((p) => ({ ...p, _pontos: pontos(p) })).sort((a, b) => b._pontos - a._pontos);
+  const vezes = new Map();
+  const ordenada = comNota.filter((p) => {
+    if (minha(p)) return true;
+    const k = vezes.get(p.autorId) || 0;
+    vezes.set(p.autorId, k + 1);
+    p._pontos *= Math.pow(0.55, k);
+    return k < POR_AUTOR;
+  }).sort((a, b) => b._pontos - a._pontos);
   return espalharAutores(comDescoberta(ordenada, descoberta));
 }
 // Nunca duas publicações seguidas do mesmo autor (puxa a próxima de outra pessoa, se houver).
@@ -402,7 +436,7 @@ function cartaoPost(post) {
       : { rotulo: "Salvar publicação", sub: "Para ver depois no seu Perfil → Salvos", icone: "salvo", fn: () => alternarSalvo(post) },
     { rotulo: "Salvar em uma coleção", sub: "Organize seus salvos em pastas", icone: "fotos", fn: () => escolherColecao(post) },
     { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(post.autorId, post.nome) },
-    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=77").then((m) => m.abrirEstatisticas(post)) },
+    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=78").then((m) => m.abrirEstatisticas(post)) },
     post.autorId === eu.uid && { rotulo: "Editar publicação", icone: "lapis", fn: () => editarPublicacao(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId === eu.uid && { rotulo: "Público da publicação", sub: temPublico(post) ? resumoPublico(post.publico) : "Para todos · escolha idade, gênero, lugar e seguidores", icone: "pessoa-mais", fn: () => editarPublicoDoPost(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId !== eu.uid && { rotulo: silenciado(post.autorId) ? `Mostrar ${nome.textContent} de novo` : `Silenciar ${nome.textContent}`, sub: "Continua seguindo, mas as publicações e flashes somem do seu Diário", icone: "restringir",
