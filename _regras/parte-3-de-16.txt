@@ -85,7 +85,10 @@
     // =====================================================
     match /nicknames/{nickname} {
 
-      allow read: if true;
+      // Sem login só confere UM @ (o cadastro vê se está livre; link.html leva ao perfil). Listar todos os @ (e os uids)
+      // só com a conta entrada.
+      allow get: if true;
+      allow list: if logado();
 
       // Só reserva o @ que o próprio perfil passa a usar na mesma gravação (sem guardar @ sobrando).
       allow create: if logado()

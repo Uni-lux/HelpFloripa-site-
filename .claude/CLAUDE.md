@@ -1589,6 +1589,19 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   (= `request.auth.token.email`, sem diferenciar maiúsculas). Conferidos sem problema: planilha (texto vai como texto,
   nunca fórmula), e-mails só para moderação (regras + `pode("moderar")`), fotos só de origens do site, sem `innerHTML` com
   dados das pessoas, ações destrutivas conferidas nas regras/servidor. Teste `t-painel-usuarios.mjs` (8).
+- **Acesso sem login fechado ao máximo (03/11/2026, PR depois do #153, MUDA REGRAS — não publicadas; 16 partes, 783 testes;
+  Storage 48):** pedido dele ("sem conta dá para ver o menu lateral: é brecha?"). Conferido: todas as páginas da plataforma já
+  levavam ao login e as regras já recusavam ler sem login (exceto `nicknames`). Abertas sem login ficam SÓ as de ler: termos,
+  privacidade (obrigatórias antes do cadastro), ajuda, contato (quem não consegue entrar), segurança, diretrizes, sobre,
+  clientes, profissionais, sócios, como-ordenamos, login/cadastro, 404/link/offline. Feito: `auth-guard.js` (página escondida
+  até confirmar o login) também em admin, configuracoes, conta, feed, mensagens, mural, negocios, notificacoes, social, suporte,
+  usuarios e verificar-email (antes mostravam o esqueleto da tela); limite de 8 s (nunca fica escondida para sempre) e
+  `window.__hfIrLogin` = UMA navegação só (a página e a proteção mandando para endereços diferentes ao mesmo tempo TRAVAVAM a
+  aba: mensagens-app.js, verificar.js, social.html, rede.js, admin.js, conta-pagina.js usam ela); `sairDaConta` marca
+  `window.__hfSaindo` para a proteção não redirecionar junto. Menu sem conta (`PUBLICAS_MENU`, `data-so-conta`, `ehVisitante`
+  em menu.js): só as páginas públicas, "Criar conta grátis", ícone de pessoa; sino escondido no topo (categoria.js). Regras:
+  `nicknames` get livre (cadastro confere o @, link.html) e list só com login; storage.rules: leitura só com login (os links com
+  token continuam abrindo). Teste `t-sem-login.mjs`. `t-voltar` já falhava antes (janela "complete sua cidade" na frente).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

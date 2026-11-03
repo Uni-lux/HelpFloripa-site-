@@ -8,7 +8,7 @@
 import { fontesDoSino, lerFonte } from "./sino-fontes.js?v=2";
 import { fotoSegura } from "./seguranca.js?v=1";
 import { contarNovas } from "./mensagens-novas.js?v=1";
-import { definirPerfilMenu, definirBadgeMensagens } from "./menu.js?v=18";
+import { definirPerfilMenu, definirBadgeMensagens } from "./menu.js?v=19";
 import { buscarReclamacoes } from "./avisos-reclamacoes.js?v=17";
 import { avisoPlano } from "./planos-base.js?v=15";
 import { ouvirItensEquipe } from "./avisos-equipe.js?v=1";
@@ -109,9 +109,12 @@ async function iniciarTopo() {
       definirPerfilMenu({ logado: false });
       const link = $("topoAvatar")?.closest("a");
       if (link) { link.href = "login.html"; link.setAttribute("aria-label", "Entrar"); }
-      $("badgeAvisos")?.closest("a")?.setAttribute("href", "login.html");
+      // Sem conta não há notificações: o sino some (o lugar fica, para a marca continuar no meio).
+      const sino = $("badgeAvisos")?.closest("a");
+      if (sino) { sino.href = "login.html"; sino.style.visibility = "hidden"; sino.setAttribute("aria-hidden", "true"); sino.tabIndex = -1; }
       return;
     }
+    { const sino = $("badgeAvisos")?.closest("a"); if (sino) { sino.style.visibility = ""; sino.removeAttribute("aria-hidden"); sino.removeAttribute("tabindex"); } }
     // Foto do perfil
     try {
       // Foto e nome do topo: cópia do aparelho por 10 min (mudar a foto atualiza a cópia na hora).

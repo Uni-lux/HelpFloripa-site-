@@ -24,44 +24,44 @@ service firebase.storage {
     // Arquivo que começa com o uid de quem envia ("UID.jpg", "UID_lz3k9.jpg", "UID_servicos_capa_lz3k9.jpg").
     function meuArquivo(arq) { return logado() && arq.matches('^' + eu() + '([_.].*)?$'); }
 
-    // ---------- públicos (perfil, negócios, anúncios, Diário, Flash, Comunidade) ----------
+    // ---------- de quem tem conta (perfil, negócios, anúncios, Diário, Flash, Comunidade): sem login não lista nem baixa pelo Storage ----------
     match /fotosPerfil/{arq} {
-      allow read: if true;
+      allow read: if logado();
       allow create, update: if meuArquivo(arq) && foto(5);
       allow delete: if meuArquivo(arq) || equipe();
     }
     match /fotosCapa/{arq} {
-      allow read: if true;
+      allow read: if logado();
       allow create, update: if meuArquivo(arq) && foto(5);
       allow delete: if meuArquivo(arq) || equipe();
     }
     // negocios/UID_tipo.jpg, UID_tipo_capa_*.jpg, UID_tipo_f0_*.jpg (galeria), UID_tipo_i0_*.jpg (itens)
     match /negocios/{arq} {
-      allow read: if true;
+      allow read: if logado();
       allow create, update: if meuArquivo(arq) && foto(5);
       allow delete: if meuArquivo(arq) || equipe();
     }
     // anuncios/UID_ANUNCIO_f0_*.jpg (imóveis)
     match /anuncios/{arq} {
-      allow read: if true;
+      allow read: if logado();
       allow create, update: if meuArquivo(arq) && foto(5);
       allow delete: if meuArquivo(arq) || equipe();
     }
     // Diário: fotos (até 4) e vídeo curto (até 50 MB).
     match /diario/{uid}/{arq} {
-      allow read: if true;
+      allow read: if logado();
       allow create, update: if logado() && uid == eu() && (foto(8) || video(50));
       allow delete: if (logado() && uid == eu()) || equipe();
     }
     // Flash (24 h): foto desenhada pelo site ou vídeo (até 40 MB no site).
     match /stories/{uid}/{arq} {
-      allow read: if true;
+      allow read: if logado();
       allow create, update: if logado() && uid == eu() && (foto(8) || video(50));
       allow delete: if (logado() && uid == eu()) || equipe();
     }
     // Comunidade: fotos dos anúncios (doação, troca, quarto, achados).
     match /comunidade/{uid}/{arq} {
-      allow read: if true;
+      allow read: if logado();
       allow create, update: if logado() && uid == eu() && foto(5);
       allow delete: if (logado() && uid == eu()) || equipe();
     }

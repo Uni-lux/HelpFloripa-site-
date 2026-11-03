@@ -7,7 +7,7 @@ import { ligarQuadro } from "./quadro-rede.js?v=1";
 ligarQuadro(); // dentro da rede (rede.html): os itens da barra trocam de aba sem recarregar
 ligarDeslizarFlash(); // deslizar para o lado na lista de conversas troca de aba da barra de baixo
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura, mostrarAvisoEmail } from "./seguranca.js?v=1";
-import { confirmarHF } from "./confirmar.js?v=5";
+import { confirmarHF } from "./confirmar.js?v=6";
 import { relogioDe, ufDe } from "./fuso.js?v=1";
 import { textoChamada } from "./chamadas.js?v=2";
 import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO, lerResumos, media, notaTexto } from "./avaliacoes.js?v=17";
@@ -18,7 +18,7 @@ import { semPausados, lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { comRitmo } from "./ritmo.js?v=3";
 import { criarPlayerAudio } from "./audio-ondas.js?v=1";
 import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
-import { abrirQueixa } from "./queixas.js?v=16";
+import { abrirQueixa } from "./queixas.js?v=17";
 import { ouvirItensEquipe, linkEquipe, seloOficial, TEXTO_EQUIPE } from "./avisos-equipe.js?v=1";
 import { escolherApagar, editarTextoHF, verEdicoesHF, janelaHF, horaCurta, noPrazo, tempoRestante, podeMexer } from "./msg-acoes.js?v=2";
 // ======================================================
@@ -2195,7 +2195,7 @@ function montarMenu(menu, opcoes, x, y) {
 // Denunciar uma mensagem recebida (a pessoa não é avisada).
 async function denunciarMensagem(m) {
   if (!ativa) return;
-  const { abrirDenuncia } = await import("./denuncias.js?v=6");
+  const { abrirDenuncia } = await import("./denuncias.js?v=7");
   const outro = ativa.outroId;
   // Contexto para a equipe: até 5 mensagens antes e 5 depois (só os ids; o painel lê do servidor).
   const salvas = mensagens.filter((x) => !x.pendente);
@@ -2388,7 +2388,7 @@ const maiusc = (t) => String(t).charAt(0).toUpperCase() + String(t).slice(1);
 let vitrineMod = null;
 function carregarVitrine() {
   if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=42"; l.dataset.vitrine = ""; document.head.appendChild(l); }
-  return (vitrineMod ||= import("./vitrine.js?v=85"));
+  return (vitrineMod ||= import("./vitrine.js?v=86"));
 }
 function usarCartaoNaConversa(uid, cartao) {
   document.querySelectorAll(".vt-modal").forEach((m) => m.remove());
@@ -3767,7 +3767,7 @@ document.addEventListener("visibilitychange", marcarPresenca);
 // Sair da conta (fim das configurações), com confirmação
 // ======================================================
 // A mesma janela "Sair da conta?" do menu e das configurações do perfil (confirmar.js).
-$("btnSairConta").addEventListener("click", () => import("./confirmar.js?v=5").then((m) => m.sairDaConta({ antes: () => { try { sessionStorage.removeItem(CHAVE_AVAL); } catch {} } })));
+$("btnSairConta").addEventListener("click", () => import("./confirmar.js?v=6").then((m) => m.sairDaConta({ antes: () => { try { sessionStorage.removeItem(CHAVE_AVAL); } catch {} } })));
 
 // ======================================================
 // Atendimento do negócio (configurações)
@@ -4302,7 +4302,7 @@ async function iniciar() {
   }
 
   auth.onAuthStateChanged(window.firebaseAuth, async (usuario) => {
-    if (!usuario) { irPara("login.html"); return; }
+    if (!usuario) { if (window.__hfIrLogin) window.__hfIrLogin(); else irPara("login.html"); return; }
     if (eu?.uid === usuario.uid) return;
     eu = usuario;
     conferirEmail(eu);

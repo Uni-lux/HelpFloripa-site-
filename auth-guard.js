@@ -29,7 +29,13 @@
     return window.location.pathname.split("/").pop() || "index.html";
   }
 
+  let indo = false;
   function redirectToLogin() {
+    clearTimeout(limite);
+    // Uma navegação só: a página também pode mandar para o login (window.__hfIrLogin) e duas trocas de página
+    // ao mesmo tempo para endereços diferentes travavam a aba.
+    if (indo || window.__hfSaindo) return;
+    indo = true;
     const redirect = encodeURIComponent(currentPageFileName() + window.location.search);
     window.location.replace(`${LOGIN_URL}?redirect=${redirect}`);
   }
@@ -38,10 +44,17 @@
     document.documentElement.classList.remove("hf-auth-checking");
   }
 
+  window.__hfIrLogin = redirectToLogin;
+
+  // Se o login não responder em 8 s, vai para o login (quem tem conta volta sozinho pelo ?redirect=):
+  // nunca deixa a página escondida para sempre nem mostra sem confirmar.
+  const limite = setTimeout(redirectToLogin, 8000);
+
   function checkAuth() {
     import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js")
       .then(({ onAuthStateChanged }) => {
         onAuthStateChanged(window.firebaseAuth, (user) => {
+          clearTimeout(limite);
           if (user) {
             revealPage();
           } else {

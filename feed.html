@@ -14,6 +14,9 @@
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <script>if (window.top !== window.self) { var hfRede = false; try { hfRede = window.top.location.origin === window.location.origin && window.parent === window.top && !!window.top.__hfShell; } catch (e) {} if (!hfRede) { document.documentElement.style.display = "none"; try { window.top.location.replace(window.self.location.href); } catch (e) {} } }</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+  <!-- Só mostra a página depois de confirmar o login (auth-guard.js; sem conta vai para o login) -->
+  <style>html.hf-auth-checking { visibility: hidden; }</style>
+  <script>document.documentElement.classList.add("hf-auth-checking");</script>
   <meta name="description" content="O diário do Help Floripa: trabalhos, novidades e dicas de quem você segue, de todo o Brasil." />
   <meta name="theme-color" content="#0b1014" />
   <link rel="manifest" href="manifest.webmanifest" />
@@ -37,7 +40,8 @@
   </script>
   <link rel="stylesheet" href="rede.css?v=75" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="feed.js?v=150"></script>
+  <script type="module" src="auth-guard.js"></script>
+  <script type="module" src="feed.js?v=151"></script>
 </head>
 <body>
   <header class="topo">

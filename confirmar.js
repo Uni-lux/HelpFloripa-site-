@@ -128,6 +128,8 @@ export async function sairDaConta({ destino = "login.html", antes = null } = {})
     aoConfirmar: async () => {
       try { antes?.(); } catch {}
       const { signOut } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+      // A proteção das páginas (auth-guard.js) não manda para o login junto: uma troca de página só.
+      window.__hfSaindo = true;
       await signOut(window.firebaseAuth);
       location.href = destino;
     }

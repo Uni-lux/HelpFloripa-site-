@@ -3,9 +3,9 @@
 // Só entra quem tem o documento admins/{uid} (criado à mão no console do
 // Firebase). As regras do Firestore conferem isso em cada leitura e ação.
 // =====================================================
-import { C, D, $, h, ms, toast, PAPEIS, vendoAgora, pode, registrar, garantirNegocios, garantirTodasPessoas, carregarPessoas } from "./admin-base.js?v=27";
-import * as S from "./admin-secoes.js?v=75";
-import { previa, tocarSom } from "./admin-chat.js?v=30";
+import { C, D, $, h, ms, toast, PAPEIS, vendoAgora, pode, registrar, garantirNegocios, garantirTodasPessoas, carregarPessoas } from "./admin-base.js?v=28";
+import * as S from "./admin-secoes.js?v=76";
+import { previa, tocarSom } from "./admin-chat.js?v=31";
 import { meusCanais, silenciado, canalPorId, convCanal } from "./equipe-canais.js?v=1";
 
 const SECOES = {
@@ -287,7 +287,7 @@ async function carregar(mostrar = true) {
   ]);
   C.fb = { ...F, db: window.firebaseDb }; C.A = A;
   const usuario = await new Promise((ok) => { const parar = A.onAuthStateChanged(window.firebaseAuth, (u) => { parar(); ok(u); }); });
-  if (!usuario) { location.replace("login.html?redirect=" + encodeURIComponent("admin.html")); return; }
+  if (!usuario) { if (window.__hfIrLogin) { window.__hfIrLogin(); return; } location.replace("login.html?redirect=" + encodeURIComponent("admin.html")); return; }
   C.eu = usuario;
   let eAdmin = false, ficha = null;
   try { const s = await F.getDoc(F.doc(C.fb.db, "admins", usuario.uid)); eAdmin = s.exists(); ficha = s.exists() ? s.data() : null; } catch {}
