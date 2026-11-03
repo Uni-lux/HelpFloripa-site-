@@ -4,6 +4,7 @@
 // contas bloqueadas e restritas, sair e excluir a conta.
 // =====================================================
 import { avisoHF } from "./confirmar.js?v=5";
+import { CATEGORIAS_PUSH, pushDisponivel, precisaInstalar, estadoPush, ativarPush, desativarPush, salvarPrefPush, enviarTeste } from "./push.js?v=1";
 import {
   $, pintarAvatar, toast, erroAmigavel, abrirFolha, fecharFolha, abrirLista, config, salvarConfig, aplicarTema,
   fb, authFns, eu, refUsuario, dados, perfis, meusBloqueios, restritos, obterPerfil, linhaPessoa,
@@ -17,11 +18,7 @@ function pintarConfig() {
   $("cfgNome").textContent = dados.nome || "Você";
   $("cfgEmail").textContent = dados.email || eu?.email || "";
   $("cfgVerificacaoTxt").textContent = dados.verificado ? "Seu perfil é verificado" : (dados.solicitacaoVerificacao ? "Solicitação em análise" : "Solicite o selo de perfil verificado");
-  const nt = $("cfgNotifTxt");
-  if (!("Notification" in window)) nt.textContent = "Não suportadas neste navegador";
-  else if (Notification.permission === "granted") nt.textContent = "Ativadas";
-  else if (Notification.permission === "denied") nt.textContent = "Bloqueadas nas configurações do navegador";
-  else nt.textContent = "Toque para ativar";
+  $("cfgNotifTxt").textContent = TEXTO_PUSH[estadoPush(eu.uid, dados)] || "";
   $("cfgBloqueadosTxt").textContent = meusBloqueios.size ? `${meusBloqueios.size} ${meusBloqueios.size === 1 ? "conta" : "contas"}` : "Ninguém bloqueado";
   $("cfgRestritosTxt").textContent = restritos.size ? `${restritos.size} ${restritos.size === 1 ? "conta" : "contas"}` : "Ninguém restrito";
   document.querySelectorAll("#cfgSocialVis [data-valor]").forEach((b) => b.classList.toggle("on", b.dataset.valor === (dados.socialVisibilidade || "todos")));
@@ -225,11 +222,65 @@ $("endRemover").addEventListener("click", async () => {
 });
 $("cfgEndereco").addEventListener("click", abrirEndereco);
 
-$("cfgNotifNavegador").addEventListener("click", async () => {
-  if (!("Notification" in window)) return;
-  if (Notification.permission === "default") { try { await Notification.requestPermission(); } catch {} }
-  else if (Notification.permission === "denied") toast("Libere as notificações nas configurações do navegador.");
+// ---------- notificações com o app fechado (push.js, Cloud Functions da Etapa B) ----------
+const TEXTO_PUSH = {
+  ligado: "Ligadas neste aparelho",
+  desligado: "Toque para ligar",
+  bloqueado: "Bloqueadas nas configurações do navegador",
+  instalar: "No iPhone: instale o app na tela de início",
+  indisponivel: "Ainda não disponíveis"
+};
+function pintarPush() {
+  const est = estadoPush(eu.uid, dados);
+  const ligado = est === "ligado";
+  $("pushEste").checked = ligado;
+  $("pushEste").disabled = !["ligado", "desligado"].includes(est);
+  $("pushEsteTxt").textContent = TEXTO_PUSH[est];
+  const aviso = {
+    bloqueado: "O navegador está bloqueando as notificações do Help Floripa. Abra as configurações do site no navegador (o cadeado ao lado do endereço) e permita as notificações.",
+    instalar: "No iPhone e no iPad as notificações só funcionam com o Help Floripa instalado: toque em Compartilhar › Adicionar à Tela de Início e abra pelo ícone.",
+    indisponivel: pushDisponivel() ? "" : "As notificações com o app fechado ainda estão sendo ligadas no servidor do Help Floripa. Enquanto isso, os avisos aparecem no sino com o site aberto."
+  }[est] || "";
+  $("pushAviso").hidden = !aviso; $("pushAvisoTxt").textContent = aviso;
+  const pref = dados.pushPref || {};
+  const box = $("pushCats");
+  box.replaceChildren(...CATEGORIAS_PUSH.map(([k, nome, desc]) => {
+    const l = document.createElement("label"); l.className = "cfg-item";
+    const tx = document.createElement("span"); tx.className = "txt"; tx.textContent = nome;
+    const sm = document.createElement("small"); sm.textContent = desc; tx.appendChild(sm);
+    const sw = document.createElement("span"); sw.className = "switch";
+    const inp = document.createElement("input"); inp.type = "checkbox"; inp.checked = pref[k] !== false; inp.dataset.cat = k;
+    inp.addEventListener("change", async () => {
+      try { await salvarPrefPush(fb, eu.uid, dados, { [k]: inp.checked }); toast(`${nome}: ${inp.checked ? "vai avisar" : "não vai avisar"}`); }
+      catch (e) { inp.checked = !inp.checked; toast("Não foi possível salvar: " + erroAmigavel(e)); }
+    });
+    sw.append(inp, document.createElement("span"));
+    l.append(tx, sw);
+    return l;
+  }));
+  box.classList.toggle("off", !ligado);
+  const n = (dados.pushTokens || []).length;
+  $("pushAparelhos").textContent = n ? `Ligadas em ${n} ${n === 1 ? "aparelho" : "aparelhos"} (${(dados.pushTokens || []).map((x) => x.app).filter(Boolean).slice(0, 5).join(", ")}). As escolhas acima valem para todos.` : "Ligue em cada aparelho em que você quer receber (celular, computador).";
+  $("pushTeste").disabled = !ligado;
   pintarConfig();
+}
+$("cfgNotifNavegador").addEventListener("click", () => { pintarPush(); abrirFolha("folhaPush"); });
+$("pushEste").addEventListener("change", async () => {
+  const quer = $("pushEste").checked;
+  $("pushEste").disabled = true;
+  try {
+    const est = quer ? await ativarPush(fb, eu.uid, dados) : await desativarPush(fb, eu.uid, dados);
+    if (quer && est === "ligado") toast("Notificações ligadas neste aparelho");
+    else if (quer && est === "bloqueado") toast("O navegador bloqueou as notificações.");
+    else if (!quer) toast("Notificações desligadas neste aparelho");
+  } catch (e) { toast("Não foi possível ligar: " + erroAmigavel(e)); }
+  pintarPush();
+});
+$("pushTeste").addEventListener("click", async () => {
+  const b = $("pushTeste"); b.disabled = true; const antes = b.textContent; b.textContent = "Enviando...";
+  try { await enviarTeste(); toast("Enviado! A notificação chega em alguns segundos."); }
+  catch (e) { toast(e?.code === "functions/not-found" || e?.code === "functions/internal" || e?.code === "functions/unavailable" ? "O envio ainda não está ligado no servidor." : "Não foi possível enviar: " + (e?.message || erroAmigavel(e))); }
+  finally { b.textContent = antes; b.disabled = false; }
 });
 // ---------- senha e e-mail ----------
 const erroSenha = (e) => (e?.code === "auth/wrong-password" || e?.code === "auth/invalid-credential" ? "Senha atual incorreta."

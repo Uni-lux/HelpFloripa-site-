@@ -194,6 +194,132 @@ export const conferirMensagem = onDocumentCreated({ region: REGIAO, document: "c
       if (pf?.exists) t.update(refPerfil, { respostaServ: { ...novaMedia(pf.get("respostaServ"), passo.resposta), em: Date.now() } });
     });
   })());
+  // 3) Notificação com o app fechado para a outra pessoa (Etapa B).
+  tarefas.push((async () => {
+    const c = await db.doc(`conversas/${conv}`).get();
+    const para = (c.get("participantes") || []).find((u) => u !== m.remetenteId);
+    if (!para) return;
+    await avisarPush(para, "mensagem", { nome: await nomeDe(m.remetenteId), mensagem: m, conversa: conv });
+  })());
   const r = await Promise.allSettled(tarefas);
   r.filter((x) => x.status === "rejected").forEach((x) => logger.warn("conferirMensagem", x.reason?.message || x.reason));
+});
+
+// =====================================================
+// Etapa B: notificações com o app fechado (Firebase Cloud Messaging). Passo a passo: _regras/PUSH-LEIA-ME.md
+// O site guarda o token do aparelho em usuarios/{uid}.pushTokens e as escolhas em usuarios/{uid}.pushPref (push.js).
+// Mensagem só com "data": o sw.js do site desenha a notificação e, ao tocar, abre a página certa.
+// No emulador não existe FCM: o aviso vai para push_teste/{auto} (os testes conferem lá).
+// =====================================================
+import { onDocumentUpdated } from "firebase-functions/v2/firestore";
+import { getMessaging } from "firebase-admin/messaging";
+import { quer, limite, montarAviso, JANELA, corpoFcm, TOKEN_MORTO } from "./push.js";
+
+const nomes = new Map();
+async function nomeDe(uid) {
+  const x = nomes.get(uid);
+  if (x && Date.now() - x.em < 600000) return x.v;
+  const s = await db.doc(`perfis_publicos/${uid}`).get().catch(() => null);
+  const v = (s?.exists && s.get("nome")) || "Alguém";
+  nomes.set(uid, { v, em: Date.now() });
+  return v;
+}
+
+// Manda o aviso para todos os aparelhos da pessoa (respeitando o que ela escolheu e o limite de repetição).
+async function avisarPush(uid, tipo, dados) {
+  const aviso = montarAviso(tipo, dados);
+  if (!aviso || !uid) return null;
+  const ref = db.doc(`usuarios/${uid}`);
+  const u = await ref.get();
+  if (!u.exists) return null;
+  const pref = u.get("pushPref") || null;
+  if (!aviso.forcar && !quer(pref, aviso.categoria)) return null;
+  // Bloqueio entre as duas pessoas (bloqueios/{quem}_{quem}): não avisa.
+  if (dados.uid) {
+    const [b1, b2] = await db.getAll(db.doc(`bloqueios/${uid}_${dados.uid}`), db.doc(`bloqueios/${dados.uid}_${uid}`));
+    if (b1.exists || b2.exists) return null;
+  }
+  const tokens = (u.get("pushTokens") || []).map((x) => x?.t).filter((t) => typeof t === "string" && t.length > 20).slice(0, 5);
+  if (!tokens.length) return null;
+  if (JANELA[tipo]) {
+    const refE = db.doc(`push_estado/${uid}`);
+    const ok = await db.runTransaction(async (t) => {
+      const e = await t.get(refE);
+      const r = limite(e.exists ? e.get("ultimo") : {}, aviso.tag || tipo, Date.now(), JANELA[tipo]);
+      if (r.pode) t.set(refE, { ultimo: r.estado });
+      return r.pode;
+    });
+    if (!ok) return null;
+  }
+  const corpo = corpoFcm(tokens, aviso);
+  if (EMULADOR) { await db.collection("push_teste").add({ uid, tipo, ...corpo, em: Date.now() }); return { enviados: tokens.length }; }
+  const res = await getMessaging().sendEachForMulticast(corpo);
+  // Tira os aparelhos que não recebem mais (desinstalou, tirou a permissão).
+  const mortos = res.responses.map((x, i) => (!x.success && TOKEN_MORTO.test(String(x.error?.code || "")) ? tokens[i] : null)).filter(Boolean);
+  if (mortos.length) await ref.update({ pushTokens: (u.get("pushTokens") || []).filter((x) => !mortos.includes(x?.t)) }).catch(() => {});
+  return { enviados: res.successCount, falhas: res.failureCount };
+}
+
+const OPC = { region: REGIAO, maxInstances: 20 };
+const tarefa = (nome, f) => async (ev) => { try { await f(ev); } catch (e) { logger.warn(nome, e?.message || e); } };
+
+// Ligação tocando (e perdida, se ninguém atendeu).
+export const pushChamada = onDocumentCreated({ ...OPC, document: "chamadas/{id}" }, tarefa("pushChamada", async (ev) => {
+  const c = ev.data?.data();
+  if (!c || c.status !== "chamando" || !c.para) return;
+  await avisarPush(c.para, "chamada", { nome: await nomeDe(c.de), modo: c.tipo, conversa: c.conv, id: ev.params.id, uid: c.de });
+}));
+export const pushChamadaPerdida = onDocumentUpdated({ ...OPC, document: "chamadas/{id}" }, tarefa("pushChamadaPerdida", async (ev) => {
+  const a = ev.data?.before.data(), d = ev.data?.after.data();
+  if (!a || !d || a.status !== "chamando" || !["perdida", "cancelada"].includes(d.status)) return;
+  await avisarPush(d.para, "chamada_perdida", { nome: await nomeDe(d.de), modo: d.tipo, conversa: d.conv, id: ev.params.id, uid: d.de });
+}));
+export const pushSeguidor = onDocumentCreated({ ...OPC, document: "relacoes/{id}" }, tarefa("pushSeguidor", async (ev) => {
+  const r = ev.data?.data();
+  if (r?.tipo !== "seguir" || !r.alvoId || r.alvoId === r.seguidorId) return;
+  await avisarPush(r.alvoId, "seguidor", { nome: await nomeDe(r.seguidorId), uid: r.seguidorId });
+}));
+export const pushEstrelas = onDocumentCreated({ ...OPC, document: "curtidas/{id}" }, tarefa("pushEstrelas", async (ev) => {
+  const c = ev.data?.data();
+  if (!c?.postAutorId || c.postAutorId === c.uid || !(Number(c.nota) > 0)) return;
+  await avisarPush(c.postAutorId, "curtida", { nome: await nomeDe(c.uid), nota: Number(c.nota), postId: c.postId, uid: c.uid });
+}));
+export const pushComentario = onDocumentCreated({ ...OPC, document: "comentarios/{id}" }, tarefa("pushComentario", async (ev) => {
+  const c = ev.data?.data();
+  if (!c?.autorId) return;
+  const nome = c.nome || await nomeDe(c.autorId);
+  const feitos = [];
+  if (c.respostaAutorId && c.respostaAutorId !== c.autorId) { feitos.push(c.respostaAutorId); await avisarPush(c.respostaAutorId, "resposta", { nome, texto: c.texto, postId: c.postId, uid: c.autorId }); }
+  if (c.postAutorId && c.postAutorId !== c.autorId && !feitos.includes(c.postAutorId)) await avisarPush(c.postAutorId, "comentario", { nome, texto: c.texto, postId: c.postId, uid: c.autorId });
+}));
+export const pushMarcacao = onDocumentCreated({ ...OPC, document: "diario/{id}" }, tarefa("pushMarcacao", async (ev) => {
+  const p = ev.data?.data();
+  const marcados = Array.isArray(p?.marcados) ? p.marcados.slice(0, 10) : [];
+  if (!marcados.length || (p.agendadoPara && p.agendadoPara.toMillis?.() > Date.now())) return;
+  const nome = p.nome || await nomeDe(p.autorId);
+  await Promise.all(marcados.filter((u) => u !== p.autorId).map((u) => avisarPush(u, "marcacao", { nome, postId: ev.params.id, uid: p.autorId })));
+}));
+export const pushSocial = onDocumentCreated({ ...OPC, document: "vinculos/{id}" }, tarefa("pushSocial", async (ev) => {
+  const v = ev.data?.data();
+  if (!v?.para || v.status === "aceito") return;
+  await avisarPush(v.para, "social", { nome: await nomeDe(v.de), uid: v.de });
+}));
+export const pushAvisoEquipe = onDocumentCreated({ ...OPC, document: "avisos/{id}" }, tarefa("pushAvisoEquipe", async (ev) => {
+  const a = ev.data?.data();
+  if (!a?.uid) return;
+  await avisarPush(a.uid, "aviso", { id: ev.params.id, titulo: a.titulo, texto: a.texto });
+}));
+export const pushSuporte = onDocumentCreated({ ...OPC, document: "suporte/{id}/mensagens/{msg}" }, tarefa("pushSuporte", async (ev) => {
+  const m = ev.data?.data();
+  if (!m?.equipe) return;
+  const ch = await db.doc(`suporte/${ev.params.id}`).get();
+  if (ch.exists && ch.get("uid")) await avisarPush(ch.get("uid"), "suporte", { id: ev.params.id, texto: m.texto });
+}));
+
+// "Enviar um teste" das Configurações: manda para os aparelhos da própria pessoa.
+export const pushTeste = onCall({ region: REGIAO, maxInstances: 5 }, async (req) => {
+  if (!req.auth) throw new HttpsError("unauthenticated", "Entre na sua conta.");
+  const r = await avisarPush(req.auth.uid, "teste", {});
+  if (!r) throw new HttpsError("failed-precondition", "Nenhum aparelho com as notificações ligadas.");
+  return r;
 });
