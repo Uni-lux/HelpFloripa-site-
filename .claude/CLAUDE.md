@@ -1602,6 +1602,19 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   em menu.js): só as páginas públicas, "Criar conta grátis", ícone de pessoa; sino escondido no topo (categoria.js). Regras:
   `nicknames` get livre (cadastro confere o @, link.html) e list só com login; storage.rules: leitura só com login (os links com
   token continuam abrindo). Teste `t-sem-login.mjs`. `t-voltar` já falhava antes (janela "complete sua cidade" na frente).
+- **Arrastar figurinhas do Flash (03/11/2026, PR depois do #154, sem regra nova):** prints dele ("mal consigo mover").
+  Causa: cada movimento chamava `pintarTexto`, que remontava a figurinha (enquete/caixa/contagem) embaixo do dedo; a enquete
+  podia ir para fora do cartão (só o centro era limitado) e ficar pela metade; ouvintes no `window` em fase de bolha
+  (um `stopPropagation` de pointerup deixava a figurinha "presa"). Agora (stories.js): `moverFig` (só left/top/transform) e
+  `ajustarTam` (só tamanho) num quadro por vez (`requestAnimationFrame`), `limitar` (enquete/teste/caixa/contagem inteiras e
+  entre as faixas, igual ao `encaixar` do visor; as outras com o meio no cartão), `afastarDosBotoes` (soltou embaixo da
+  coluna da direita ou da barra de cima = vai para o lado), guias vertical e horizontal com vibração, lixeira pelo dedo
+  (`.no-lixo` encolhe a figurinha com `scale`), `.segurando`, área de toque 14 px maior (`.flash-txt::after`), ouvintes em
+  captura e `zerarGesto` no 1º dedo de um toque novo (`isPrimary`). Enquete/caixa/contagem continuam só arrastando (tamanho
+  fixo no visor; mudar exigiria campo novo nas regras). firebase.js: "complete sua cidade" abria para quem tem cidade
+  (a leitura da conta vinha com a gravação do e-mail pendente, só com esses campos): agora relê do servidor
+  (`getDocFromServer`) quando `fromCache`/`hasPendingWrites`. Teste `t-flash-arrastar.mjs` (15). `t-flash-contagem` (linha 60),
+  `t-flash-mencoes` (73) e `t-flash-limite-desfazer` ("Você respondeu") falham igual sem a mudança.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
