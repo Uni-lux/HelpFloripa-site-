@@ -182,6 +182,36 @@ Object.assign(S, {
 });
 Object.defineProperty(S, "atual", { get: () => atual }); // (Object.assign copiaria só o valor de agora)
 
+// Sino compartilhado: só UMA aba (a primeira que abriu) ouve as fontes do sino no Firebase e repassa os avisos para as
+// outras (antes as 4 abas liam tudo, 4 vezes). Se a aba dona sair (trocou de página), outra assume.
+S.sino = (() => {
+  let dono = null, estado = null, vistos = 0;
+  const assin = new Map(); // janela → { receber, assumir, aoVistos }
+  const viva = (w) => { try { return !!w && !w.closed && !!w.document; } catch { return false; } };
+  const copia = (x) => { try { return structuredClone(x); } catch { return JSON.parse(JSON.stringify(x)); } };
+  return {
+    temDono: () => viva(dono),
+    virarDono(w) { dono = w; },
+    assinar(w, opc) { assin.set(w, opc); if (estado) try { opc.receber(copia(estado), vistos); } catch {} },
+    publicar(w, est, v) {
+      if (w !== dono) return;
+      estado = copia(est); vistos = Math.max(vistos, v || 0);
+      for (const [x, a] of assin) { if (!viva(x)) { assin.delete(x); continue; } try { a.receber(copia(estado), vistos); } catch {} }
+    },
+    marcarVistos(t) {
+      vistos = Math.max(vistos, t);
+      for (const [x, a] of assin) { if (viva(x)) try { a.aoVistos?.(t); } catch {} }
+      try { dono?.dispatchEvent(new CustomEvent("hf:sino-vistos", { detail: t })); } catch {}
+    },
+    largar(w) {
+      assin.delete(w);
+      if (w !== dono) return;
+      dono = null; estado = null;
+      for (const [x, a] of assin) { if (!viva(x)) { assin.delete(x); continue; } assin.delete(x); try { a.assumir(); } catch {} break; }
+    },
+  };
+})();
+
 // "Voltar" entre as abas (o passo de sair do Diário).
 addEventListener("popstate", () => {
   const k = history.state?.hfAba || primeira;

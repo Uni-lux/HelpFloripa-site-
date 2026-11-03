@@ -16,14 +16,16 @@ import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
 import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=17";
 import { ouvirItensEquipe, TEXTO_EQUIPE, linkEquipe } from "./avisos-equipe.js?v=1";
-import "./painel-avisos.js?v=43";
+import "./painel-avisos.js?v=44";
 import { docComValidade, docsComValidade, esquecer } from "./leituras.js?v=3";
 import { docRapido } from "./rapido.js?v=1";
 import { resumoPublico, temPublico } from "./publico-alvo.js?v=1";
 import { contarNovas } from "./mensagens-novas.js?v=1";
 import { escolherPublico } from "./publico-tela.js?v=4";
 import { avisoPlano } from "./planos-base.js?v=15";
-import { lerReacoesFlash } from "./flash-avisos.js?v=2";
+import { lerReacoesFlash } from "./flash-avisos.js?v=3";
+import { fontesDoSino, ouvirFonte } from "./sino-fontes.js?v=1";
+import { casca } from "./quadro-rede.js?v=1";
 import { palavrasBusca } from "./pessoas.js?v=5"; // o sino abre o painel de notificações na própria página
 import { registrarGosto, PESO } from "./gosto.js?v=2";
 import { confirmarHF } from "./confirmar.js?v=5";
@@ -1508,7 +1510,7 @@ export async function verRespostasCaixa(item, alvo, aoMudar) {
       acao("chat", "Responder", () => responderNoChat(r.uid, cartaoRespostaCaixa(item.caixa, r, alvo)));
     }
     // Pôr a resposta no seu flash (como no Instagram): pergunta + resposta, sem o nome de quem respondeu.
-    acao("raio", "No flash", () => import("./stories.js?v=80").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
+    acao("raio", "No flash", () => import("./stories.js?v=81").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
     acao("lixo", "Apagar", async () => {
       if (!(await confirmarHF({ titulo: "Apagar esta resposta?", texto: "Ela some da sua caixa de perguntas.", ok: "Apagar", icone: "lixo" }))) return;
       try { await fb.deleteDoc(fb.doc(fb.db, "caixa_respostas", r.id)); todas = todas.filter((x) => x.id !== r.id); pintarNums(); pintarLista(); aoMudar?.(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
@@ -2068,7 +2070,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=80").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=81").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);
@@ -2979,6 +2981,7 @@ function avisar() {
   const nm = avisos.mensagens.reduce((t, c) => t + (c.n || 1), 0) + avisos.equipe.filter((x) => x.naoLida).length;
   if (bm) { bm.hidden = !nm; bm.textContent = nm > 99 ? "99+" : String(nm); }
   ouvintesAvisos.forEach((fn) => fn(avisos));
+  if (donoDoSino) hubSino()?.publicar(window, avisos, avisosVistosEm);
 }
 export function contarNovos() {
   const t = (x) => x.quando > avisosVistosEm;
@@ -2986,8 +2989,8 @@ export function contarNovos() {
   const on = (c) => (dados.prefNotif || {})[c] !== false;
   const n = (c, l) => (on(c) ? l : 0);
   return n("seguidores", avisos.seguidores.filter(t).length) + n("social", avisos.vinculos.filter((v) => v.pendente || t(v)).length)
-    + n("publicacoes", avisos.curtidas.filter(t).length + avisos.comentarios.filter(t).length + avisos.respostas.filter(t).length + avisos.reacoes.filter(t).length + avisos.marcacoes.filter(t).length + avisos.republicacoes.filter(t).length + avisos.flash.filter(t).length)
-    + n("enquetes", avisos.enquetes.filter(t).length + avisos.caixas.filter(t).length)
+    + n("publicacoes", avisos.curtidas.filter(t).length + avisos.comentarios.filter(t).length + avisos.respostas.filter(t).length + avisos.marcacoes.filter(t).length + avisos.republicacoes.filter(t).length + avisos.flash.filter(t).length)
+    + n("enquetes", avisos.enquetes.filter(t).length)
     + n("negocios", avisos.reclamacoes.filter(t).length + avisos.planos.filter(t).length)
     + avisos.equipe.filter((x) => x.naoLida && t(x)).length;
 }
@@ -2999,69 +3002,92 @@ export function marcarAvisosVistos() {
   avisosVistosEm = Date.now();
   try { localStorage.setItem("hf-sino-" + eu.uid, JSON.stringify({ n: 0, visto: Date.now(), em: Date.now() })); } catch {} // o sino do topo fica zerado
   fb.setDoc(refUsuario, { notificacoesVistasEm: fb.serverTimestamp() }, { merge: true }).catch(() => {});
+  hubSino()?.marcarVistos(avisosVistosEm);
   avisar();
 }
 const TIPOS_VINCULO = { duo: "Duo", namoro: "Namorado(a)", casamento: "Cônjuge", melhor_amigo: "Melhor amigo(a)", amigo: "Amigo(a)", irmao: "Irmão(ã)", pai_mae: "Pai/Mãe", filho: "Filho(a)", primo: "Primo(a)", tio: "Tio(a)", sobrinho: "Sobrinho(a)", avo: "Avô/Avó", neto: "Neto(a)", parceiro: "Parceiro(a) de trabalho" };
 export const rotuloVinculo = (t) => TIPOS_VINCULO[t] || "Vínculo";
 let avisosLigados = false;
-export function ouvirAvisos({ notificarNovos = true } = {}) {
+// Dentro da rede numa página só (rede.html), só uma aba ouve o sino e repassa para as outras (rede-app.js S.sino).
+const hubSino = () => casca()?.sino || null;
+let donoDoSino = false;
+export function ouvirAvisos(opc = {}) {
   if (avisosLigados) return;
   avisosLigados = true;
   avisosVistosEm = ms(dados.notificacoesVistasEm);
+  const hub = hubSino();
+  if (hub && hub.temDono()) {
+    hub.assinar(window, {
+      receber: (est, vistos) => { window.__hfSinoRecebido = (window.__hfSinoRecebido || 0) + 1; for (const k of Object.keys(avisos)) avisos[k] = Array.isArray(est[k]) ? est[k] : []; avisosVistosEm = Math.max(avisosVistosEm, vistos || 0); avisar(); },
+      aoVistos: (t) => { avisosVistosEm = Math.max(avisosVistosEm, t); avisar(); },
+      assumir: () => ligarAvisos(opc),
+    });
+    addEventListener("pagehide", () => hub.largar(window));
+    return;
+  }
+  ligarAvisos(opc);
+}
+function ligarAvisos({ notificarNovos = true } = {}) {
+  const hub = hubSino();
+  if (hub) {
+    hub.virarDono(window); donoDoSino = true; window.__hfSinoDono = true;
+    addEventListener("pagehide", () => hub.largar(window));
+    addEventListener("hf:sino-vistos", (e) => { avisosVistosEm = Math.max(avisosVistosEm, e.detail || 0); avisar(); });
+  }
   const perfilDe = async (uid) => { const p = await obterPerfil(uid); return { nome: p.nome || "Usuário", foto: p.fotoPerfil || "" }; };
   const ok = (uid) => uid && uid !== eu.uid && !escondido(uid) && !restritos.has(uid);
-  const ouvir = (q, tratar) => {
+  // Cada fonte traz só as 30 mais novas (sino-fontes.js; sem o índice, a consulta de antes).
+  const F = fontesDoSino(fb, eu.uid);
+  const tratador = (tratar) => {
     let primeira = true;
-    fb.onSnapshot(q, async (snap) => {
+    return async (snap) => {
       const antes = new Set();
       if (!primeira) snap.docChanges().filter((c) => c.type === "added" && !c.doc.metadata.hasPendingWrites).forEach((c) => antes.add(c.doc.id));
       await tratar(snap, primeira ? null : antes);
       primeira = false;
       avisar();
-    }, (e) => console.warn("Avisos indisponíveis:", e));
+    };
   };
+  const erro = (e) => console.warn("Avisos indisponíveis:", e);
+  const ouvir = (fonte, tratar) => ouvirFonte(fb, fb.db, F[fonte], tratador(tratar), erro);
+  const ouvirQ = (q, tratar) => fb.onSnapshot(q, tratador(tratar), erro);
   // Seguidores
-  ouvir(fb.query(fb.collection(fb.db, "relacoes"), fb.where("tipo", "==", "seguir"), fb.where("alvoId", "==", eu.uid), fb.limit(100)), async (snap, novos) => {
+  ouvir("seguidores", async (snap, novos) => {
     const l = await Promise.all(snap.docs.map(async (d) => ({ id: d.id, uid: d.data().seguidorId, quando: ms(d.data().criadoEm), ...(await perfilDe(d.data().seguidorId)) })));
     avisos.seguidores = l.filter((x) => ok(x.uid));
     if (novos && notificarNovos) avisos.seguidores.filter((x) => novos.has(x.id)).forEach((x) => notificar("Novo seguidor", `${x.nome} começou a seguir você`, () => ganchos.abrirPerfil(x.uid)));
   });
   // Curtidas nas minhas publicações
-  ouvir(fb.query(fb.collection(fb.db, "curtidas"), fb.where("postAutorId", "==", eu.uid), fb.limit(100)), async (snap, novos) => {
+  ouvir("curtidas", async (snap, novos) => {
     const l = await Promise.all(snap.docs.filter((d) => Number(d.data().nota) > 0).map(async (d) => ({ id: d.id, uid: d.data().uid, postId: d.data().postId, nota: Number(d.data().nota), quando: Math.max(ms(d.data().criadoEm), ms(d.data().atualizadoEm)), ...(await perfilDe(d.data().uid)) })));
     avisos.curtidas = l.filter((x) => ok(x.uid));
     if (novos && notificarNovos) avisos.curtidas.filter((x) => novos.has(x.id)).forEach((x) => notificar("Novas estrelas", `${x.nome} deu ${x.nota} ${x.nota === 1 ? "estrela" : "estrelas"} na sua publicação`, () => { location.href = "notificacoes.html"; }));
   });
   // Comentários nas minhas publicações
-  ouvir(fb.query(fb.collection(fb.db, "comentarios"), fb.where("postAutorId", "==", eu.uid), fb.limit(100)), async (snap, novos) => {
+  ouvir("comentarios", async (snap, novos) => {
     avisos.comentarios = snap.docs.map((d) => { const c = d.data({ serverTimestamps: "estimate" }); return { id: d.id, uid: c.autorId, postId: c.postId, texto: c.texto, nome: c.nome || "Usuário", foto: c.foto || "", quando: ms(c.criadoEm) }; }).filter((x) => ok(x.uid));
     if (novos && notificarNovos) avisos.comentarios.filter((x) => novos.has(x.id)).forEach((x) => notificar("Novo comentário", `${x.nome}: ${x.texto}`, () => { location.href = "notificacoes.html"; }));
   });
-  // Reações nos meus comentários
-  ouvir(fb.query(fb.collection(fb.db, "curtidas_comentarios"), fb.where("comentarioAutorId", "==", eu.uid), fb.limit(100)), async (snap, novos) => {
-    const l = await Promise.all(snap.docs.map(async (d) => ({ id: d.id, uid: d.data().uid, comentarioId: d.data().comentarioId, reacao: d.data().reacao || "❤️", quando: ms(d.data().criadoEm), ...(await perfilDe(d.data().uid)) })));
-    avisos.reacoes = l.filter((x) => ok(x.uid));
-    if (novos && notificarNovos) avisos.reacoes.filter((x) => novos.has(x.id)).forEach((x) => notificar("Reagiram ao seu comentário", `${x.nome} reagiu com ${x.reacao}`, () => { location.href = "notificacoes.html"; }));
-  });
+  // (Reações nos seus comentários saíram do sino: aparecem no próprio comentário.)
   // Publicações em que me marcaram
-  ouvir(fb.query(fb.collection(fb.db, "diario"), fb.where("marcados", "array-contains", eu.uid), fb.limit(50)), async (snap, novos) => {
+  ouvir("marcacoes", async (snap, novos) => {
     const l = snap.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter((p) => (p.agendadoPara?.toMillis?.() ?? 0) <= Date.now());
     avisos.marcacoes = (await Promise.all(l.map(async (p) => ({ id: p.id, uid: p.autorId, postId: p.id, quando: ms(p.criadoEm), ...(await perfilDe(p.autorId)) })))).filter((x) => ok(x.uid));
     if (novos && notificarNovos) avisos.marcacoes.filter((x) => novos.has(x.id)).forEach((x) => notificar("Marcaram você", `${x.nome} marcou você numa publicação`, () => { location.href = "notificacoes.html"; }));
   });
   // Quem republicou as minhas publicações
-  ouvir(fb.query(fb.collection(fb.db, "republicacoes"), fb.where("postAutorId", "==", eu.uid), fb.limit(60)), async (snap, novos) => {
+  ouvir("republicacoes", async (snap, novos) => {
     const l = await Promise.all(snap.docs.map(async (d) => { const r = d.data({ serverTimestamps: "estimate" }); return { id: d.id, uid: r.uid, postId: r.postId, quando: ms(r.criadoEm), ...(await perfilDe(r.uid)) }; }));
     avisos.republicacoes = l.filter((x) => ok(x.uid));
     if (novos && notificarNovos) avisos.republicacoes.filter((x) => novos.has(x.id)).forEach((x) => notificar("Republicaram você", `${x.nome} republicou sua publicação`, () => { location.href = "notificacoes.html"; }));
   });
   // Respostas aos meus comentários (em qualquer publicação)
-  ouvir(fb.query(fb.collection(fb.db, "comentarios"), fb.where("respostaAutorId", "==", eu.uid), fb.limit(100)), async (snap, novos) => {
+  ouvir("respostas", async (snap, novos) => {
     avisos.respostas = snap.docs.map((d) => { const c = d.data({ serverTimestamps: "estimate" }); return { id: d.id, uid: c.autorId, postId: c.postId, texto: c.texto, nome: c.nome || "Usuário", foto: c.foto || "", quando: ms(c.criadoEm) }; }).filter((x) => ok(x.uid));
     if (novos && notificarNovos) avisos.respostas.filter((x) => novos.has(x.id)).forEach((x) => notificar("Nova resposta", `${x.nome}: ${x.texto}`, () => { location.href = "notificacoes.html"; }));
   });
   // Pedidos do social (recebidos) e pedidos aceitos (enviados por mim)
-  ouvir(fb.query(fb.collection(fb.db, "vinculos"), fb.where("participantes", "array-contains", eu.uid), fb.limit(60)), async (snap, novos) => {
+  ouvirQ(fb.query(fb.collection(fb.db, "vinculos"), fb.where("participantes", "array-contains", eu.uid), fb.limit(60)), async (snap, novos) => {
     const rel = snap.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).map((v) => {
       const outro = (v.participantes || []).find((x) => x !== eu.uid);
       return { ...v, outro, pendente: v.status !== "aceito" };
@@ -3079,7 +3105,8 @@ export function ouvirAvisos({ notificarNovos = true } = {}) {
   const abertaEm = Date.now();
   const recAvisadas = new Set();
   ouvirReclamacoes(fb, fb.db, eu.uid, (itens) => {
-    avisos.reclamacoes = itens.filter((x) => !x.uid || !escondido(x.uid));
+    // Avaliação boa do negócio saiu do sino (fica no Meus negócios); avaliação de você como cliente continua.
+    avisos.reclamacoes = itens.filter((x) => (!x.uid || !escondido(x.uid)) && !(x.tipo === "avaliacao" && !x.cliente));
     if (notificarNovos) avisos.reclamacoes
       .filter((x) => x.quando > abertaEm && x.quando > avisosVistosEm && !recAvisadas.has(x.id + ":" + x.quando))
       .forEach((x) => {
@@ -3091,7 +3118,7 @@ export function ouvirAvisos({ notificarNovos = true } = {}) {
   });
   // Plano do negócio perto de vencer ou vencido há pouco (uma leitura, guardada 10 min).
   avisoPlano(fb, eu.uid).then((x) => { avisos.planos = x ? [x] : []; avisar(); }).catch(() => {});
-  // Estrelas e reações nos meus flashes (das últimas 48 h)
+  // Flash: contagens regressivas que terminaram (as estrelas e reações ficam na Atividade do flash)
   lerReacoesFlash(fb, fb.db, eu.uid).then(async (l) => { avisos.flash = (await Promise.all(l.map(async (x) => ({ ...x, ...(await perfilDe(x.uid)) })))).filter((x) => ok(x.uid)); avisar(); }).catch(() => {});
   // Avisos da equipe e respostas do suporte (Suporte Help Floripa)
   let primeiraEquipe = true;
@@ -3105,12 +3132,7 @@ export function ouvirAvisos({ notificarNovos = true } = {}) {
     avisos.equipe = itens;
     avisar();
   });
-  // Respostas nas minhas caixas de perguntas (anônimas chegam sem nome)
-  ouvir(fb.query(fb.collection(fb.db, "caixa_respostas"), fb.where("autorId", "==", eu.uid), fb.limit(100)), async (snap, novos) => {
-    const l = snap.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter((r) => r.anonima || ok(r.uid));
-    avisos.caixas = l.map((r) => ({ id: r.id, uid: r.anonima ? "" : r.uid, anonima: !!r.anonima, nome: r.anonima ? "Anônimo" : r.nome || "Usuário", foto: r.anonima ? "" : r.foto || "", texto: r.texto, alvo: r.alvo, itemTipo: r.tipo, itemId: r.itemId, quando: ms(r.criadoEm) }));
-    if (novos && notificarNovos) avisos.caixas.filter((x) => novos.has(x.id)).forEach((x) => notificar("Nova resposta na sua caixa de perguntas", `${x.nome}: ${x.texto}`, () => { location.href = "notificacoes.html"; }));
-  });
+  // (Respostas da caixa de perguntas saíram do sino: ficam na própria caixa, com "N novas".)
   // Enquetes que terminaram (minhas e em que votei): confere ao abrir e a cada 3 min.
   const enqAvisadas = (() => { try { return new Set(JSON.parse(localStorage.getItem("hf-enq-avisadas") || "[]")); } catch { return new Set(); } })();
   const lerEnquetes = async () => {

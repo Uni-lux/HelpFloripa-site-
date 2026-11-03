@@ -82,13 +82,13 @@ export const TIPOS = {
   aviso: { cor: "#7c5cff", ic: "megafone", cat: "suporte", rot: "Aviso da equipe" }
 };
 // Categorias: filtro em cima e preferência (Suporte não se desliga: são avisos oficiais).
+// Mensagens não entram no sino desde 02/11/2026: ficam com o número no ícone do Mensagens (como nos apps grandes).
 export const CATEGORIAS = [
-  ["mensagens", "Mensagens", "envelope", "Mensagens novas nas suas conversas."],
-  ["publicacoes", "Publicações", "estrela", "Estrelas, comentários, respostas, reações e marcações."],
+  ["publicacoes", "Publicações", "estrela", "Estrelas, comentários, respostas, marcações, republicações e contagens regressivas."],
   ["seguidores", "Seguidores", "pessoa", "Quando alguém começa a seguir você."],
-  ["enquetes", "Enquetes e perguntas", "enquete", "Resultado das enquetes e respostas da caixa de perguntas."],
+  ["enquetes", "Enquetes", "enquete", "Resultado das enquetes que você criou ou em que votou."],
   ["social", "Social", "fio", "Pedidos e vínculos aceitos no seu social."],
-  ["negocios", "Negócios", "maleta", "Avaliações, reclamações e o vencimento do seu plano."],
+  ["negocios", "Negócios", "maleta", "Reclamações, avaliações de você como cliente e o vencimento do seu plano."],
   ["suporte", "Suporte", "suporte", "Respostas do suporte e avisos da equipe."]
 ];
 export const categoriaDe = (tipo) => TIPOS[tipo]?.cat || "mensagens";

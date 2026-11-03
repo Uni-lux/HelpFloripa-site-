@@ -25,7 +25,7 @@ const p = await entrar(ctx, "ana", "sobre.html");
 p.on("pageerror", (e) => erros.push(e.message));
 await p.evaluate((u) => { localStorage.removeItem("hf-sino-" + u); localStorage.removeItem("hf-notif-" + u); }, U.ana); await p.reload(); await p.waitForTimeout(4000);
 const n = Number(await p.textContent("#badgeAvisos").catch(() => "0"));
-ok(n >= 6, `número do sino conta as novas (estrelas, seguidores, avaliação e plano): ${n}`);
+ok(n >= 6, `número do sino conta as novas (estrelas, seguidores, reclamações e plano): ${n}`);
 await p.tap('.topo a[href="notificacoes.html"]');
 await p.waitForSelector(".pa .nt2-item", { timeout: 15000 });
 await p.waitForTimeout(800);
@@ -33,13 +33,13 @@ const linhas = await p.evaluate(() => [...document.querySelectorAll(".pa .nt2-it
 console.log("  linhas:", JSON.stringify(linhas.slice(0, 8)));
 ok(linhas.some((l) => /e mais 1 deram estrelas na sua publicação · média 4,7/.test(l)), "estrelas na mesma publicação viram uma linha (média 4,7)");
 ok(linhas.some((l) => /começaram a seguir você/.test(l)), "seguidores agrupados");
-ok(linhas.some((l) => /Daniel Moderação avaliou seu negócio com 5 estrelas/.test(l)), "avaliação boa do negócio");
+ok(!linhas.some((l) => /avaliou seu negócio/.test(l)), "avaliação boa do negócio NÃO vem para o sino (fica no Meus negócios)");
 ok(linhas.some((l) => /Plano Pro vence em 3 dias/.test(l)), "plano perto de vencer");
 ok(await p.locator(".pa .nt2-mini").count() >= 1, "miniatura da publicação");
 const secs = await p.evaluate(() => [...document.querySelectorAll(".pa .nt2-sec")].map((g) => g.firstChild.textContent));
 ok(secs[0] === "Novas", "seções: " + secs.join(", "));
 const botoes = await p.evaluate(() => [...document.querySelectorAll(".pa .nt2-acoes button")].map((b) => b.textContent));
-ok(botoes.includes("Renovar agora") && botoes.includes("Ver avaliação") && botoes.includes("Ver publicação") && botoes.includes("Responder"), "botões de ação: " + [...new Set(botoes)].join(", "));
+ok(botoes.includes("Renovar agora") && botoes.includes("Ver publicação") && botoes.includes("Ver sua resposta"), "botões de ação: " + [...new Set(botoes)].join(", "));
 ok(await p.locator(".pa .nt2-tag").count() >= 4, "etiqueta do tipo em cada linha");
 await p.screenshot({ path: "saida/sino-painel.png" });
 // reclamação já respondida: sem "Responder publicamente", com "Respondida"; a outra continua pedindo resposta
@@ -56,20 +56,20 @@ ok(Number(naoLidasN) >= 4, "Não lidas: " + naoLidasN);
 // categoria Negócios
 await p.locator(".pa .nt2-chip", { hasText: "Negócios" }).tap(); await p.waitForTimeout(300);
 const neg = await p.evaluate(() => [...document.querySelectorAll(".pa .nt2-item .nt2-frase b")].map((b) => b.textContent));
-ok(neg.includes("Daniel Moderação") && neg.includes("Plano Pro"), "filtro Negócios: " + neg.join(", "));
+ok(neg.includes("Eduardo Lima") && neg.includes("Plano Pro"), "filtro Negócios: " + neg.join(", "));
 await p.screenshot({ path: "saida/sino-negocios.png" });
 await p.locator(".pa .nt2-chip", { hasText: "Tudo" }).tap(); await p.waitForTimeout(300);
 // menu ⋯: marcar como lida e remover
 const antes = await p.locator(".pa .nt2-item.nova").count();
-await p.locator(".pa .nt2-item", { hasText: "Daniel Moderação avaliou" }).locator(".nt2-mais").tap(); await p.waitForTimeout(200);
+await p.locator(".pa .nt2-item", { hasText: "Fabiana Rocha" }).locator(".nt2-mais").tap(); await p.waitForTimeout(200);
 await p.screenshot({ path: "saida/sino-menu.png" });
 const opcoes = await p.evaluate(() => [...document.querySelectorAll(".nt2-menu button")].map((b) => b.textContent));
 ok(opcoes.length === 3 && opcoes[0] === "Marcar como lida", "menu ⋯: " + opcoes.join(" | "));
 await p.locator(".nt2-menu button", { hasText: "Marcar como lida" }).tap(); await p.waitForTimeout(200);
 ok(await p.locator(".pa .nt2-item.nova").count() === antes - 1, "marcou como lida");
-await p.locator(".pa .nt2-item", { hasText: "Daniel Moderação avaliou" }).locator(".nt2-mais").tap(); await p.waitForTimeout(200);
+await p.locator(".pa .nt2-item", { hasText: "Fabiana Rocha" }).locator(".nt2-mais").tap(); await p.waitForTimeout(200);
 await p.locator(".nt2-menu button", { hasText: "Remover" }).tap(); await p.waitForTimeout(200);
-ok(!(await p.locator(".pa .nt2-item", { hasText: "Daniel Moderação avaliou" }).count()), "removida da lista");
+ok(!(await p.locator(".pa .nt2-item", { hasText: "Fabiana Rocha" }).count()), "removida da lista");
 // preferências: desligar Seguidores
 await p.tap('.pa .nt2-ib[aria-label="Preferências de notificação"]'); await p.waitForTimeout(300);
 await p.screenshot({ path: "saida/sino-prefs.png" });
@@ -82,7 +82,7 @@ ok(pref && pref.seguidores === false, "preferência gravada: " + JSON.stringify(
 await p.goto(BASE + "notificacoes.html"); await p.waitForTimeout(5000);
 const pag = await p.evaluate(() => [...document.querySelectorAll("#listaAvisos .nt2-frase")].map((t) => t.textContent.replace(/\s+/g, " ").trim()));
 ok(pag.some((l) => /deram estrelas na sua publicação/.test(l)) && pag.some((l) => /Plano Pro vence em/.test(l)), "página: agrupado e plano");
-ok(!pag.some((l) => /Daniel Moderação avaliou/.test(l)) && !pag.some((l) => /começaram a seguir/.test(l)), "página respeita removida e preferência");
+ok(!pag.some((l) => /Fabiana Rocha/.test(l)) && !pag.some((l) => /começaram a seguir/.test(l)), "página respeita removida e preferência");
 await p.screenshot({ path: "saida/sino-pagina.png" });
 // religa
 await p.tap('#listaAvisos .nt2-ib[aria-label="Preferências de notificação"]'); await p.waitForTimeout(300);

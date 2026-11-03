@@ -10,7 +10,7 @@ import { confirmarHF } from "./confirmar.js?v=5";
 import {
   $, el, icone, pintarAvatar, urlSegura, nomeCidade, toast, erroAmigavel, abrirFolha, fecharFolha,
   fb, eu, dados, salvarImagem, editarImagem, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos, criarFolha
-} from "./rede.js?v=108";
+} from "./rede.js?v=109";
 import { lerResumos, estrelas, media, notaTexto } from "./avaliacoes.js?v=17";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade, semAcento } from "./endereco.js?v=1";
 import { lerStats, listaDias, somarPeriodo } from "./estat-negocio.js?v=1";
@@ -177,7 +177,7 @@ async function exigirVerificacao() {
     texto: "Para criar perfis de negócio e anúncios, a conta precisa ser verificada: a equipe confere seu documento e você ganha o selo azul. Isso protege os clientes contra golpes e perfis falsos.",
     ok: "Verificar agora", icone: "selo", cor: "normal"
   });
-  if (ok) import("./verificacao.js?v=65").then((m) => m.abrirVerificacao({ aoMudar: () => { pintarPainel(); } })).catch((e) => toast(erroAmigavel(e)));
+  if (ok) import("./verificacao.js?v=66").then((m) => m.abrirVerificacao({ aoMudar: () => { pintarPainel(); } })).catch((e) => toast(erroAmigavel(e)));
   return false;
 }
 
@@ -196,7 +196,11 @@ async function sincronizarExtras() {
 }
 
 // ---------- painel ----------
-let numeros = { resumos: {}, reclamacoes: {}, anuncios: 0, stats: null };
+let numeros = { resumos: {}, reclamacoes: {}, anuncios: 0, stats: null, novasBoas: {} };
+// Avaliações boas (3 a 5 estrelas) novas desde a última visita: saíram do sino (02/11/2026) e aparecem aqui, no cartão.
+const chaveAvalVisto = () => "hf-aval-visto-" + eu.uid;
+const avalVisto = () => { try { return Number(localStorage.getItem(chaveAvalVisto()) || 0); } catch { return 0; } };
+addEventListener("pagehide", () => { try { if (eu) localStorage.setItem(chaveAvalVisto(), String(Date.now())); } catch {} });
 async function carregarNumeros() {
   try {
     const [resumos, avs, resp, ans] = await Promise.all([
@@ -205,13 +209,18 @@ async function carregarNumeros() {
       Promise.resolve(null),
       meusNegocios.some((n) => n.tipo === "imoveis") ? buscarAnuncios(fb, eu.uid).catch(() => []) : Promise.resolve([])
     ]);
-    const recl = avs.docs.map((d) => ({ id: d.id, ...d.data() })).filter((a) => a.tipo === "negocio" && a.nota <= 2);
+    const todas = avs.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const recl = todas.filter((a) => a.tipo === "negocio" && a.nota <= 2);
+    const visto = avalVisto(), novasBoas = {};
+    todas.filter((a) => a.tipo === "negocio" && a.nota >= 3 && (a.criadoEm?.toMillis?.() ?? 0) > visto).forEach((a) => { novasBoas[a.negocioId] = (novasBoas[a.negocioId] || 0) + 1; });
+    if (!visto) Object.keys(novasBoas).forEach((k) => delete novasBoas[k]); // primeira vez neste aparelho: nada é "novo"
     const respondidas = new Set();
     await Promise.all(recl.map(async (r) => { try { if ((await fb.getDoc(fb.doc(fb.db, "reclamacoes", r.id))).exists()) respondidas.add(r.id); } catch {} }));
     const porNeg = {};
     recl.forEach((r) => { porNeg[r.negocioId] = porNeg[r.negocioId] || { total: 0, pendentes: 0 }; porNeg[r.negocioId].total++; if (!respondidas.has(r.id)) porNeg[r.negocioId].pendentes++; });
     const stats = await lerStats(fb, eu.uid).catch(() => null);
-    numeros = { resumos, reclamacoes: porNeg, anuncios: ans.length, stats };
+    numeros = { resumos, reclamacoes: porNeg, anuncios: ans.length, stats, novasBoas };
+    if (!visto) try { localStorage.setItem(chaveAvalVisto(), String(Date.now())); } catch {}
   } catch (e) { console.warn("Números dos negócios:", e); }
   pintarPainel();
 }
@@ -295,7 +304,7 @@ function avisoVerificacao() {
   if (dados.verificado || !meusNegocios.length) return;
   const d = el("div", "ng-verif"); d.id = "ngVerif";
   const b = btnIc("btn pri mini", "selo", "Verificar minha conta");
-  b.addEventListener("click", () => import("./verificacao.js?v=65").then((m) => m.abrirVerificacao({ aoMudar: () => pintarPainel() })));
+  b.addEventListener("click", () => import("./verificacao.js?v=66").then((m) => m.abrirVerificacao({ aoMudar: () => pintarPainel() })));
   d.append(el("strong", null, "Verifique sua conta para continuar anunciando"),
     el("span", null, `Agora todo anunciante do Help Floripa tem a conta verificada (selo azul). Verifique até ${PRAZO_VERIFICACAO.toLocaleDateString("pt-BR")}: depois disso, perfis de contas não verificadas saem do ar. Nada é apagado.`), b);
   $("painelNegocios").before(d);
@@ -351,7 +360,12 @@ function pintarPainel() {
     const qtd = (n.itens || []).length;
     nums.append(
       bloco(resumo?.total ? notaTexto(media(resumo)) : "–", "nota"),
-      bloco(String(resumo?.total || 0), resumo?.total === 1 ? "avaliação" : "avaliações"),
+      (() => {
+        const d = bloco(String(resumo?.total || 0), resumo?.total === 1 ? "avaliação" : "avaliações");
+        const nv = numeros.novasBoas?.[n.id] || 0;
+        if (nv) { const b = el("em", "ng-novas", `${nv} ${nv === 1 ? "nova" : "novas"}`); d.appendChild(b); d.classList.add("tem-novas"); }
+        return d;
+      })(),
       tipo === "imoveis" ? bloco(String(numeros.anuncios), numeros.anuncios === 1 ? "anúncio" : "anúncios")
         : bloco(String(qtd), { servicos: qtd === 1 ? "serviço" : "serviços", delivery: qtd === 1 ? "item" : "itens", lojinha: qtd === 1 ? "produto" : "produtos", saude: qtd === 1 ? "atendimento" : "atendimentos" }[tipo])
     );
@@ -510,7 +524,7 @@ async function abrirEstatisticas(n) {
   await garantirPlano();
   if (semPlano()) { verPlanos("plus"); return; } // estatísticas fazem parte dos planos
   try {
-    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=78");
+    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=79");
     abrirInsightsNegocio(n, { aoEditar: (neg) => abrirFormNegocio(meusNegocios.find((x) => x.id === neg.id) || neg) });
   } catch (e) { toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)); }
 }
