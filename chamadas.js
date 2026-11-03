@@ -6,15 +6,43 @@
 //   chamadas/{id}/candidatos/{auto} {de, c {candidate, sdpMid, sdpMLineIndex}, em}
 // Quem liga cria a chamada com a oferta; quem recebe vê a tela de chamada (em qualquer página do site, ouvirChamadas
 // é ligado pelo firebase.js) e responde. Nada é gravado: o registro guarda só quem, quando e quanto durou.
-// Redes que não deixam a conexão direta (alguns 4G e redes de empresa) precisam de um servidor TURN: pôr em ICE.turn.
+// Redes que não deixam a conexão direta (alguns 4G e redes de empresa) precisam de um servidor TURN (repasse): o
+// Cloudflare Realtime TURN, com credenciais de 4 h pedidas à Cloud Function credenciaisTurn (servidoresIce, Etapa C).
 // =====================================================
 import { collection, doc, setDoc, updateDoc, getDoc, onSnapshot, addDoc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { TURN_LIGADO, REGIAO_FUNCOES } from "./servidor.js?v=3";
 
-// Servidores que ajudam os aparelhos a se acharem (grátis). TURN (repasse) fica vazio até ter um serviço contratado.
+// Servidores que ajudam os aparelhos a se acharem (grátis). O TURN vem do servidor (servidoresIce).
 export const ICE = {
   stun: [{ urls: ["stun:stun.l.google.com:19302", "stun:stun.cloudflare.com:3478"] }],
   turn: []
 };
+// Credenciais do TURN: pedidas uma vez e guardadas nesta aba até perto de vencer (4 h). Se a função falhar, a ligação
+// segue sem TURN (conexão direta) e só tenta de novo em 10 min. Nunca segura a ligação mais de 3,5 s.
+const CH_TURN = "hf-turn";
+let turnPedido = null;
+export function servidoresIce() {
+  if (!TURN_LIGADO && !window.__hfTurnTeste) return Promise.resolve([]);
+  try {
+    const c = JSON.parse(sessionStorage.getItem(CH_TURN) || "null");
+    if (c?.ate > Date.now() && Array.isArray(c.iceServers)) return Promise.resolve(c.iceServers);
+    if (c?.falhou > Date.now()) return Promise.resolve([]);
+  } catch {}
+  turnPedido ||= (async () => {
+    const f = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js");
+    const fns = f.getFunctions(window.firebaseApp, REGIAO_FUNCOES);
+    if (window.__hfFuncoesEmulador) f.connectFunctionsEmulator(fns, "127.0.0.1", window.__hfFuncoesEmulador); // só nos testes
+    const r = (await f.httpsCallable(fns, "credenciaisTurn", { timeout: 8000 })({})).data;
+    const lista = Array.isArray(r?.iceServers) ? r.iceServers.filter((x) => x && x.urls) : [];
+    try { sessionStorage.setItem(CH_TURN, JSON.stringify({ iceServers: lista, ate: Number(r?.ate) || Date.now() + 3 * 3600e3 })); } catch {}
+    return lista;
+  })().catch((e) => {
+    console.warn("[Chamada] TURN indisponível:", e?.code || e?.message || e);
+    try { sessionStorage.setItem(CH_TURN, JSON.stringify({ falhou: Date.now() + 600000 })); } catch {}
+    return [];
+  }).finally(() => { turnPedido = null; });
+  return Promise.race([turnPedido, new Promise((ok) => setTimeout(() => ok([]), 3500))]);
+}
 const TOCANDO_MS = 45000; // sem atender em 45 s = chamada perdida
 const db = () => window.firebaseDb, auth = () => window.firebaseAuth;
 let atual = null; // a chamada em andamento (uma por vez)
@@ -106,7 +134,7 @@ function campainha(recebendo) {
     });
   };
   tocar(); timer = setInterval(tocar, recebendo ? 2200 : 3000);
-  return () => { clearInterval(timer); try { navigator.vibrate?.(0); } catch {} try { ctx?.close(); } catch {} };
+  return () => { clearInterval(timer); try { navigator.vibrate?.(0); } catch {} try { if (ctx && ctx.state !== "closed") ctx.close().catch(() => {}); } catch {} };
 }
 
 function erroMidia(e, tipo) {
@@ -117,8 +145,8 @@ function erroMidia(e, tipo) {
 const pedirMidia = (tipo, frente = true) => navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true }, video: tipo === "video" ? { facingMode: frente ? "user" : "environment", width: { ideal: 1280 }, height: { ideal: 720 } } : false });
 
 // ---------- motor comum (os dois lados) ----------
-function iniciarConexao(ref, eu, tela, tipo, midia) {
-  const pc = new RTCPeerConnection({ iceServers: [...ICE.stun, ...ICE.turn] });
+function iniciarConexao(ref, eu, tela, tipo, midia, turn = []) {
+  const pc = new RTCPeerConnection({ iceServers: [...ICE.stun, ...ICE.turn, ...turn] });
   midia.getTracks().forEach((tr) => pc.addTrack(tr, midia));
   if (tipo === "video") { tela.local.srcObject = midia; tela.local.hidden = false; }
   const remota = new MediaStream();
@@ -209,11 +237,14 @@ export function ligar({ para, nome, foto, conv, tipo = "audio" }) {
       resolver({ status, duracaoSeg });
     };
     ctx.tela.bts.appendChild(botao("fim", "tel", "Cancelar", () => encerrar(ctx.conectado ? "encerrada" : "cancelada")));
+    const turnP = servidoresIce(); // junto com o pedido do microfone/câmera (não atrasa)
     try { ctx.midia = { m: await pedirMidia(tipo) }; }
     catch (e) { finalizarLocal(ctx); return resolver({ status: "erro", erro: erroMidia(e, tipo) }); }
     if (fim) { ctx.midia.m.getTracks().forEach((t) => t.stop()); return; }
+    const turn = await turnP;
+    if (fim) { ctx.midia.m.getTracks().forEach((t) => t.stop()); return; }
     ctx.ref = doc(collection(db(), "chamadas"));
-    ctx.conexao = iniciarConexao(ctx.ref, eu, ctx.tela, tipo, ctx.midia.m);
+    ctx.conexao = iniciarConexao(ctx.ref, eu, ctx.tela, tipo, ctx.midia.m, turn);
     const { pc } = ctx.conexao;
     controles(ctx.tela, tipo, ctx.midia, pc, (s) => encerrar(ctx.conectado ? s : "cancelada"));
     ctx.pararCampainha = campainha(false);
@@ -257,6 +288,8 @@ async function receber(id, d) {
   if (atual !== ctx) return;
   ctx.tela = montarTela({ nome, foto, tipo: ctx.tipo, recebendo: true });
   ctx.pararCampainha = campainha(true);
+  // Credenciais do TURN já pedidas enquanto toca (quando a pessoa atender, estão prontas).
+  const turnRecebida = servidoresIce();
   let fim = false;
   const encerrar = async (status, porMim = true) => {
     if (fim) return; fim = true;
@@ -268,7 +301,8 @@ async function receber(id, d) {
     ctx.pararCampainha(); atender.disabled = true; ctx.tela.situacao.textContent = "Conectando…";
     try { ctx.midia = { m: await pedirMidia(ctx.tipo) }; }
     catch (e) { ctx.tela.aviso.textContent = erroMidia(e, ctx.tipo); setTimeout(() => encerrar("recusada"), 2500); return; }
-    ctx.conexao = iniciarConexao(ref, eu, ctx.tela, ctx.tipo, ctx.midia.m);
+    const turn = await turnRecebida;
+    ctx.conexao = iniciarConexao(ref, eu, ctx.tela, ctx.tipo, ctx.midia.m, turn);
     const { pc } = ctx.conexao;
     pc.onconnectionstatechange = () => {
       if (pc.connectionState === "connected") conectou(ctx);

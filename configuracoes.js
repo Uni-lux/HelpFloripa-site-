@@ -4,7 +4,7 @@
 // contas bloqueadas e restritas, sair e excluir a conta.
 // =====================================================
 import { avisoHF } from "./confirmar.js?v=5";
-import { CATEGORIAS_PUSH, pushDisponivel, precisaInstalar, estadoPush, ativarPush, desativarPush, salvarPrefPush, enviarTeste } from "./push.js?v=1";
+import { CATEGORIAS_PUSH, pushDisponivel, precisaInstalar, estadoPush, ativarPush, desativarPush, salvarPrefPush, enviarTeste } from "./push.js?v=2";
 import {
   $, pintarAvatar, toast, erroAmigavel, abrirFolha, fecharFolha, abrirLista, config, salvarConfig, aplicarTema,
   fb, authFns, eu, refUsuario, dados, perfis, meusBloqueios, restritos, obterPerfil, linhaPessoa,

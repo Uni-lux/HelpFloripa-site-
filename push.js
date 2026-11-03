@@ -6,7 +6,7 @@
 // Sem a chave PUSH_VAPID (servidor.js) não oferece nada. Nos testes: localStorage hf-push-teste = "1" (token de mentira).
 // Sem dependências do rede.js: recebe as funções do Firestore (fb) e o usuário (eu).
 // =====================================================
-import { PUSH_VAPID, REGIAO_FUNCOES } from "./servidor.js?v=2";
+import { PUSH_VAPID, REGIAO_FUNCOES } from "./servidor.js?v=3";
 
 export const CATEGORIAS_PUSH = [
   ["mensagens", "Mensagens", "Conversas e pedidos no chat"],

@@ -8,7 +8,7 @@
 // =====================================================
 
 import { confirmarHF } from "./confirmar.js?v=5";
-import { respostaDoPerfil } from "./servidor.js?v=2";
+import { respostaDoPerfil } from "./servidor.js?v=3";
 import { relogioDe } from "./fuso.js?v=1";
 import { buscarNoServidor } from "./busca.js?v=1";
 import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL } from "./seguranca.js?v=1";
