@@ -143,7 +143,7 @@ svg.i.s { width: 16px; height: 16px; }
 .logo-acesso:hover { text-decoration: none; }
 .logo-acesso img { display: block; width: 100%; height: auto; }
 /* Duas versões da logo: a original (letras brancas) no tema escuro e a do tema claro (letras azul-marinho,
-   logo-login-claro.webp), sem cartão. Só a que aparece é baixada (loading="lazy" com a outra escondida). */
+   logo-login-claro-preto.webp, ícone da ponte em fundo preto), sem cartão. Só a que aparece é baixada (loading="lazy" com a outra escondida). */
 .logo-acesso .logo-clara { display: none; }
 :root[data-theme="light"] .logo-acesso .logo-escura { display: none; }
 :root[data-theme="light"] .logo-acesso .logo-clara { display: block; }
