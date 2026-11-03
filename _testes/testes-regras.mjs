@@ -1239,6 +1239,15 @@ await t("perfil: o dono não grava o tempo de resposta do servidor", () => asser
 await t("atendimento do servidor: ninguém lê", () => assertFails(getDoc(doc(ctx("ana"), "servidor_atendimento", "ana_bia"))));
 await t("atendimento do servidor: ninguém grava", () => assertFails(setDoc(doc(ctx("ana"), "servidor_atendimento", "ana_bia"), { de: null, desde: 0 })));
 
+// E-mail confirmado na conta (usuarios.emailConfirmado): só o valor que o login diz.
+await t("e-mail: conta confirmada grava emailConfirmado true", () => assertSucceeds(setDoc(doc(ctx("ana"), "usuarios", "ana"), { emailConfirmado: true }, { merge: true })));
+await t("e-mail: conta confirmada não grava false", () => assertFails(setDoc(doc(ctx("ana"), "usuarios", "ana"), { emailConfirmado: false }, { merge: true })));
+await semRegras((db) => setDoc(doc(db, "usuarios", "semEmail"), { uid: "semEmail", aceiteTermos: true }));
+await t("e-mail: conta sem confirmar não se marca como confirmada", () => assertFails(setDoc(doc(ctx("semEmail", false), "usuarios", "semEmail"), { emailConfirmado: true }, { merge: true })));
+await t("e-mail: conta sem confirmar grava false", () => assertSucceeds(setDoc(doc(ctx("semEmail", false), "usuarios", "semEmail"), { emailConfirmado: false }, { merge: true })));
+await t("e-mail: cadastro novo não nasce marcado como confirmado sem confirmar", () => assertFails(setDoc(doc(ctx("novoSem", false), "usuarios", "novoSem"), { uid: "novoSem", aceiteTermos: true, emailConfirmado: true })));
+await t("e-mail: outros campos da conta continuam livres", () => assertSucceeds(setDoc(doc(ctx("semEmail", false), "usuarios", "semEmail"), { bio: "oi" }, { merge: true })));
+
 // ---------- resultado ----------
 for (const r of resultados) console.log(r[0] === "ok" ? "  ✔" : "  ✘", r[1], r[2] ? "→ " + r[2] : "");
 console.log(`\n${ok} passaram, ${falhou} falharam (${arquivo})`);

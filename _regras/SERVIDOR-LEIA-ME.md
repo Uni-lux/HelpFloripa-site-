@@ -5,6 +5,7 @@ O código está pronto e **desligado**. Sem o Blaze o site funciona como hoje. Q
 | Função | O que faz | Liga como |
 |---|---|---|
 | `montarRankingDiario` | A cada 15 min monta as melhores publicações das últimas 48 h do **Brasil**, de **cada estado** e de **cada cidade** (`ranking_diario/br`, `ranking_diario/uf_SC`...). Pesa a **taxa** (interações ÷ quantas pessoas viram), não só o número de estrelas. | Sozinho: o Diário passa a usar a lista assim que ela aparece (e volta ao jeito antigo se a função parar por mais de 90 min). |
+| `apagarConta` | Botão **Apagar conta** na ficha do painel (só donos): apaga o login e tudo da pessoa, a mesma limpeza da exclusão automática de 30 dias (`scripts/limpeza/limpeza-conta.mjs`). Não apaga a própria conta nem a de alguém da equipe; fica no Registro de ações. | Sozinho, depois do deploy. |
 | `conferirMensagem` | A cada mensagem nova: (1) calcula o **tempo de resposta** do negócio no servidor (`perfis_publicos.respostaServ`, que o dono não consegue gravar) e (2) **confere o pedido** do chat com o cardápio, a taxa e a promoção de agora (`conferencia` na própria mensagem: "Valores conferidos" ou o alerta). | A conferência do pedido aparece sozinha. O "Responde rápido" só usa o do servidor depois que o Claude mudar `FUNCOES_LIGADAS = true` (`servidor.js`). |
 
 ## 1. Antes
@@ -23,7 +24,7 @@ npx firebase-tools@13 login --no-localhost
 
 Publique **só as duas funções novas** (as do pagamento pedem os segredos do Mercado Pago; ficam para quando você fizer o `PAGAMENTO-LEIA-ME.md`):
 ```bash
-npx firebase-tools@13 deploy --only functions:montarRankingDiario,functions:conferirMensagem --project helpfloripa-61e0d
+npx firebase-tools@13 deploy --only functions:montarRankingDiario,functions:conferirMensagem,functions:apagarConta --project helpfloripa-61e0d
 ```
 Na primeira vez ele pede para ativar APIs (Cloud Functions, Cloud Build, Artifact Registry, Cloud Run, **Cloud Scheduler**, Eventarc, Pub/Sub): responda **Y**. Se reclamar de permissão do Eventarc na 1ª vez, espere 2 minutos e rode o mesmo comando de novo (é normal no primeiro gatilho do Firestore).
 

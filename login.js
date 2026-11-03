@@ -40,7 +40,9 @@ if (destino !== "index.html") $("linkCadastro").href = `cadastre-se.html?continu
       const cred = await A.signInWithEmailAndPassword(auth, email, senha);
       // Confere de novo se a conta está desativada ou com exclusão pedida (portão em firebase.js).
       try { sessionStorage.removeItem("hf-conta-ok-" + cred.user.uid); } catch {}
-      location.href = destino;
+      // E-mail ainda não confirmado: só entra depois de confirmar (firebase.js também barra nas outras páginas).
+      const semConfirmar = !cred.user.emailVerified && (cred.user.providerData || []).some((x) => x.providerId === "password");
+      location.href = semConfirmar ? `verificar-email.html?continuar=${encodeURIComponent(destino)}` : destino;
     } catch (err) {
       console.error("[Login]", err);
       aviso("avisoLogin", mensagemErro(err.code), "erro");

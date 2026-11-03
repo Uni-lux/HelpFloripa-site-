@@ -28,14 +28,14 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="acesso.css?v=1" />
+  <link rel="stylesheet" href="acesso.css?v=2" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="cadastro.js?v=5"></script>
 </head>
 <body>
   <div class="acesso">
     <aside class="acesso-marca" aria-label="Help Floripa">
-      <a class="logo" href="index.html"><strong>HELP <span>FLORIPA</span></strong><small>TUDO EM UM SÓ LUGAR</small></a>
+      <a class="logo logo-img" href="index.html" aria-label="Help Floripa - Início"><img src="logo-login-360.webp" srcset="logo-login-360.webp 330w, logo-login.webp 661w" sizes="260px" width="661" height="285" alt="Help Floripa — Tudo que você precisa em um só lugar" decoding="async" /></a>
       <div>
         <h2>Uma conta para <span>tudo</span></h2>
         <p>Contrate profissionais, peça delivery, compre em lojas locais, encontre imóveis e anuncie o seu trabalho. Tudo grátis.</p>
@@ -50,11 +50,12 @@
     </aside>
     <div class="acesso-lado">
       <header class="acesso-topo">
-        <a class="logo-mini" href="index.html" aria-label="Help Floripa - Início"><strong>HELP <span>FLORIPA</span></strong></a>
+        <span class="logo-mini" aria-hidden="true"></span>
         <a class="voltar" href="index.html"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Voltar ao início</a>
       </header>
       <main class="acesso-conteudo">
         <div class="cartao-acesso largo">
+          <a class="logo-acesso" href="index.html" aria-label="Help Floripa - Início"><img src="logo-login-360.webp" srcset="logo-login-360.webp 330w, logo-login.webp 661w" sizes="(max-width: 480px) 78vw, 340px" width="661" height="285" alt="Help Floripa — Tudo que você precisa em um só lugar" decoding="async" fetchpriority="high" /></a>
           <h1>Criar conta grátis</h1>
           <p class="sub">Leva menos de um minuto.</p>
           <form class="form" id="formCadastro" novalidate>

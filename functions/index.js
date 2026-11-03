@@ -415,3 +415,25 @@ export const migrarFotos = onCall({ region: REGIAO, memory: "1GiB", timeoutSecon
   }
   return r;
 });
+
+// =====================================================
+// Apagar conta pelo painel (só os donos do site): a mesma limpeza da exclusão automática de 30 dias
+// (scripts/limpeza/limpeza-conta.mjs, copiado para cá no predeploy). Não apaga a própria conta nem a de alguém da equipe.
+// =====================================================
+import { getAuth } from "firebase-admin/auth";
+import { criarLimpeza } from "./limpeza-conta.mjs";
+
+export const apagarConta = onCall({ region: REGIAO, memory: "512MiB", timeoutSeconds: 300, maxInstances: 2 }, async (req) => {
+  if (!req.auth || !(await ehDono(req.auth.uid))) throw new HttpsError("permission-denied", "Só os donos do site apagam contas.");
+  const { uid, motivo = "" } = req.data || {};
+  if (typeof uid !== "string" || !/^[A-Za-z0-9]{20,40}$/.test(uid)) throw new HttpsError("invalid-argument", "Conta inválida.");
+  if (uid === req.auth.uid) throw new HttpsError("failed-precondition", "Você não pode apagar a sua própria conta por aqui.");
+  if ((await db.doc(`admins/${uid}`).get()).exists) throw new HttpsError("failed-precondition", "Tire a pessoa da equipe antes de apagar a conta.");
+  const u = await db.doc(`usuarios/${uid}`).get();
+  const antes = { nome: u.get("nome") || "", email: u.get("email") || "" };
+  const { limpar } = criarLimpeza({ db, auth: getAuth(), FieldValue, pegarBucket: async () => getStorage().bucket() });
+  const r = await limpar(uid);
+  const quem = await db.doc(`usuarios/${req.auth.uid}`).get();
+  await db.collection("admin_log").add({ acao: "apagar_conta", alvo: uid, detalhe: `${antes.nome || "sem nome"}${antes.email ? " · " + antes.email : ""}${motivo ? " · " + String(motivo).slice(0, 200) : ""}`, por: req.auth.uid, porNome: quem.get("nome") || "", em: FieldValue.serverTimestamp() });
+  return { ok: true, resumo: r };
+});

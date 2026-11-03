@@ -1,3 +1,25 @@
+      allow read: if logado();
+      allow create: if logado() && emailOk()
+                    && request.resource.data.donoId == request.auth.uid
+                    && request.resource.data.keys().hasOnly(camposComunidade())
+                    && !('ocultoPelaEquipe' in request.resource.data)
+                    && !banidoDoPrograma(request.auth.uid, 'comunidade')
+                    && !sancionado(request.auth.uid)
+                    && request.resource.data.criadoEm == request.time
+                    && comunidadeOk();
+      allow update: if logado() && emailOk()
+                    && resource.data.donoId == request.auth.uid
+                    && request.resource.data.donoId == resource.data.donoId
+                    && request.resource.data.criadoEm == resource.data.criadoEm
+                    && gravou().hasOnly(camposComunidade())
+                    && travaModeracao()
+                    && !banidoDoPrograma(request.auth.uid, 'comunidade')
+                    && comunidadeOk();
+      allow delete: if logado() && (resource.data.donoId == request.auth.uid || podeModerar());
+      // A equipe esconde (anúncio com venda, golpe, conta suspensa).
+      allow update: if podeModerar() && moderacaoOk();
+    }
+
     // Banimento de um programa (um tipo de perfil de negócio ou a Comunidade). Só a moderação cria/apaga;
     // a pessoa lê o próprio (para ver o motivo e até quando).
     match /programa_banidos/{id} {
@@ -168,33 +190,5 @@
       // MENSAGENS DA CONVERSA
       // ===================================================
       match /mensagens/{mensagemId} {
-
-        function participante() {
-          return request.auth.uid in
-                 get(/databases/$(database)/documents/conversas/$(conversaId)).data.participantes;
-        }
-
-        function semBloqueio() {
-          let p = get(/databases/$(database)/documents/conversas/$(conversaId)).data.participantes;
-          return !bloqueioEntre(p[0], p[1]);
-        }
-
-        // A outra pessoa da conversa não pode estar com a conta desativada.
-        function outroAtivo() {
-          let p = get(/databases/$(database)/documents/conversas/$(conversaId)).data.participantes;
-          return !desativada(p[0] == request.auth.uid ? p[1] : p[0]);
-        }
-
-        // Resposta (citação): precisa apontar para uma mensagem real desta conversa,
-        // com o autor verdadeiro. Impede citar algo que a outra pessoa nunca disse.
-        function respostaOk(r) {
-          let caminho = /databases/$(database)/documents/conversas/$(conversaId)/mensagens/$(r.id);
-          return r is map
-              && r.keys().hasOnly(['id', 'texto', 'remetenteId'])
-              && r.id is string
-              && valorTextoAte(r.get('texto', ''), 200)
-              && exists(caminho)
-              && get(caminho).data.remetenteId == r.remetenteId;
-        }
 
 // ===== FIM DA PARTE 5 DE 16 =====

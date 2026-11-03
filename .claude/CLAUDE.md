@@ -1563,6 +1563,22 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   original); "Ver votos"/atividade só nas do próprio flash. Criador do repost: foto do original parada (`fotoFixa`) e aviso de
   quais figurinhas vão junto. Teste `t-flash-figurinhas-negocio.mjs` (17); `t-flash-neg` atualizado (visor completo e texto
   "Também em 2 negócios", que já falhava antes).
+- **E-mail confirmado obrigatório + logo no login + apagar conta (03/11/2026, PR depois do #149, MUDA 1 REGRA — não publicada;
+  16 partes, 775 testes):** pedido dele (alguém entrou sem confirmar o e-mail). firebase.js `barrarSemEmail`: conta de
+  e-mail e senha sem confirmar vai para `verificar-email.html?continuar=` de QUALQUER página (recarrega o login antes; a
+  página fica invisível enquanto confere; na rede troca a página de cima), menos `LIVRES_SEM_EMAIL` (verificar, login,
+  cadastro, termos, privacidade, ajuda, contato, diretrizes, segurança, sobre, como-ordenamos, 404/link/offline). login.js já
+  manda para lá. verificar-email.html sem "Continuar sem confirmar", com aviso, 3 passos e "Sair e entrar com outra conta";
+  verificar.js: espera no botão (`hf-reenvio-ate`, 60 s; "muitos envios" = 5 min). `anotarEmail`: 1 gravação por sessão de
+  `usuarios.emailConfirmado` (valor do token) + `emailConferidoEm`; regra `emailConfirmadoOk` (só o valor verdadeiro do login).
+  Painel: selo `seloEmail` na lista (coluna E-mail) e na ficha, filtro "E-mail não confirmado" (`usuarios where
+  emailConfirmado == false`), linha "Confirmação do e-mail", Excel com a coluna, botão **Apagar conta** (só dono, não a
+  própria nem da equipe; 2 confirmações, digitar APAGAR) → callable `apagarConta` (functions/index.js; limpeza em
+  `scripts/limpeza/limpeza-conta.mjs` `criarLimpeza`, a MESMA do limpar-contas.mjs, copiada para functions/ no predeploy e no
+  emulador.sh; registro `apagar_conta`). Sem o Blaze o botão explica que falta o servidor. **Logo nova** (imagem dele) recortada
+  com fundo transparente: `logo-login.webp`/`logo-login-360.webp`/`logo-login.png`; `.logo-acesso` no topo do cartão no celular
+  (tema claro = cartão preto #05080b) e na coluna da marca no computador, em login, cadastre-se, verificar-email e conta;
+  acesso.css v=2. Teste `t-email-confirmado.mjs` (25).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

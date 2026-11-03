@@ -29,14 +29,14 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="acesso.css?v=1" />
+  <link rel="stylesheet" href="acesso.css?v=2" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="conta-pagina.js?v=9"></script>
 </head>
 <body>
   <div class="acesso">
     <aside class="acesso-marca" aria-label="Help Floripa">
-      <a class="logo" href="index.html"><strong>HELP <span>FLORIPA</span></strong><small>TUDO EM UM SÓ LUGAR</small></a>
+      <a class="logo logo-img" href="index.html" aria-label="Help Floripa - Início"><img src="logo-login-360.webp" srcset="logo-login-360.webp 330w, logo-login.webp 661w" sizes="260px" width="661" height="285" alt="Help Floripa — Tudo que você precisa em um só lugar" decoding="async" /></a>
       <div>
         <h2>Sua conta, <span>suas regras</span></h2>
         <p>Desativar é uma pausa: tudo fica guardado. Excluir tem 30 dias para você mudar de ideia.</p>
@@ -45,10 +45,11 @@
     </aside>
     <div class="acesso-lado">
       <header class="acesso-topo">
-        <a class="logo-mini" href="index.html" aria-label="Help Floripa - Início"><strong>HELP <span>FLORIPA</span></strong></a>
+        <span class="logo-mini" aria-hidden="true"></span>
       </header>
       <main class="acesso-conteudo">
         <div class="cartao-acesso" id="cartao">
+          <a class="logo-acesso" href="index.html" aria-label="Help Floripa - Início"><img src="logo-login-360.webp" srcset="logo-login-360.webp 330w, logo-login.webp 661w" sizes="(max-width: 480px) 78vw, 340px" width="661" height="285" alt="Help Floripa — Tudo que você precisa em um só lugar" decoding="async" fetchpriority="high" /></a>
           <h1 id="titulo">Sua conta</h1>
           <p class="sub" id="sub">Carregando...</p>
           <div class="aviso info" id="detalhe" hidden></div>

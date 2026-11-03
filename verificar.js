@@ -10,7 +10,9 @@ import { $, destinoSeguro, aviso, firebasePronto } from "./acesso.js?v=3";
 const destino = destinoSeguro("index.html");
 const p = new URLSearchParams(location.search);
 const oob = p.get("mode") === "verifyEmail" ? p.get("oobCode") : null;
-$("pular").href = destino;
+// Sem "continuar sem confirmar": só entra na plataforma quem confirmou o e-mail (firebase.js manda para cá).
+// Reenviar: o Firebase limita os envios seguidos; a espera fica guardada no aparelho (recarregar não zera).
+const CH_ESPERA = "hf-reenvio-ate";
 
 (async function iniciar() {
   let auth;
@@ -77,19 +79,37 @@ $("pular").href = destino;
     if (!(await conferir())) aviso("avisoVerif", "Ainda não encontramos a confirmação. Abra o link do e-mail (veja também o spam) e tente de novo.", "erro");
     b.disabled = false; b.textContent = "Já confirmei";
   });
+  // Contagem no botão ("Reenviar em 0:42") até poder pedir de novo.
+  let tEspera = null;
+  function esperar(seg) {
+    const b = $("reenviar");
+    const ate = Date.now() + seg * 1000;
+    try { localStorage.setItem(CH_ESPERA, String(ate)); } catch {}
+    clearInterval(tEspera);
+    const pintar = () => {
+      const s = Math.ceil((ate - Date.now()) / 1000);
+      if (s <= 0) { clearInterval(tEspera); b.disabled = false; b.textContent = "Reenviar e-mail"; return; }
+      b.disabled = true; b.innerHTML = ""; b.append("Reenviar em ", Object.assign(document.createElement("span"), { className: "tempo", textContent: `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}` }));
+    };
+    pintar(); tEspera = setInterval(pintar, 1000);
+  }
+  try { const ate = Number(localStorage.getItem(CH_ESPERA) || 0); if (ate > Date.now()) esperar(Math.ceil((ate - Date.now()) / 1000)); } catch {}
   $("reenviar").addEventListener("click", async () => {
     const b = $("reenviar");
-    if (!usuario) return;
+    if (!usuario || b.disabled) return;
     b.disabled = true;
     try {
       await A.sendEmailVerification(usuario);
-      aviso("avisoVerif", "E-mail reenviado! Veja sua caixa de entrada e o spam.", "ok");
-      let s = 30;
-      b.textContent = `Reenviar em ${s}s`;
-      const t = setInterval(() => { s--; b.textContent = `Reenviar em ${s}s`; if (s <= 0) { clearInterval(t); b.disabled = false; b.textContent = "Reenviar e-mail"; } }, 1000);
+      aviso("avisoVerif", "E-mail reenviado! Veja sua caixa de entrada, o spam e a aba Promoções.", "ok");
+      esperar(60);
     } catch (err) {
-      aviso("avisoVerif", err?.code === "auth/too-many-requests" ? "Muitos envios seguidos. Espere alguns minutos." : "Não foi possível reenviar agora. Tente em instantes.", "erro");
-      b.disabled = false;
+      if (err?.code === "auth/too-many-requests") {
+        aviso("avisoVerif", "Você pediu vários e-mails seguidos e o envio ficou travado por alguns minutos. O último link enviado continua valendo: procure na caixa de entrada e no spam.", "erro");
+        esperar(5 * 60);
+      } else {
+        aviso("avisoVerif", "Não foi possível reenviar agora. Tente em instantes.", "erro");
+        b.disabled = false;
+      }
     }
   });
   $("sairConta").addEventListener("click", async () => {

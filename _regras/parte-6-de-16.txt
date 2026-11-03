@@ -1,3 +1,31 @@
+        function participante() {
+          return request.auth.uid in
+                 get(/databases/$(database)/documents/conversas/$(conversaId)).data.participantes;
+        }
+
+        function semBloqueio() {
+          let p = get(/databases/$(database)/documents/conversas/$(conversaId)).data.participantes;
+          return !bloqueioEntre(p[0], p[1]);
+        }
+
+        // A outra pessoa da conversa não pode estar com a conta desativada.
+        function outroAtivo() {
+          let p = get(/databases/$(database)/documents/conversas/$(conversaId)).data.participantes;
+          return !desativada(p[0] == request.auth.uid ? p[1] : p[0]);
+        }
+
+        // Resposta (citação): precisa apontar para uma mensagem real desta conversa,
+        // com o autor verdadeiro. Impede citar algo que a outra pessoa nunca disse.
+        function respostaOk(r) {
+          let caminho = /databases/$(database)/documents/conversas/$(conversaId)/mensagens/$(r.id);
+          return r is map
+              && r.keys().hasOnly(['id', 'texto', 'remetenteId'])
+              && r.id is string
+              && valorTextoAte(r.get('texto', ''), 200)
+              && exists(caminho)
+              && get(caminho).data.remetenteId == r.remetenteId;
+        }
+
         function mensagemOk() {
           let d = request.resource.data;
           return d.keys().hasOnly(['remetenteId', 'texto', 'criadoEm', 'resposta', 'tipoArquivo', 'arquivoUrl', 'nomeArquivo', 'cartao', 'avaliacao'])
@@ -156,42 +184,5 @@
       allow update, delete: if false;
     }
 
-
-    // =====================================================
-    // AVALIAÇÕES
-    //   n_{negocio}_{cliente}: cliente avalia o negócio — UMA por cliente em cada negócio
-    //   c_{negocio}_{cliente}: negócio avalia o cliente — UMA por cliente em cada negócio
-    //   d_{post}_{uid}       : alguém avalia uma publicação (1 vez por publicação)
-    //   p_{pedido}_c / _v    : modelo antigo (1 por pedido). Continuam valendo, mas não
-    //                          podem mais ser criados: pedir avaliação várias vezes para a
-    //                          mesma pessoa não gera notas extras.
-    // Para avaliar um negócio: e-mail confirmado, conta com 3 dias, os dois já escreveram
-    // na conversa, não é o dono e sem bloqueio. Quem tem vínculo aceito no Social (amigos,
-    // família...) também avalia: continua valendo uma avaliação por pessoa em cada negócio.
-    // n_ e c_ podem ser EDITADAS pelo autor (troca a nota no resumo, sem contar de novo).
-    // =====================================================
-    match /avaliacoes/{id} {
-
-      function base() {
-        let d = request.resource.data;
-        return d.keys().hasOnly(['tipo', 'autorId', 'autorNome', 'autorFoto', 'alvoId', 'negocioId', 'pedidoId', 'postId', 'nota', 'comentario', 'chaves', 'criadoEm'])
-            && d.autorId == request.auth.uid
-            && d.nota is int && d.nota >= 1 && d.nota <= 5
-            && valorTextoAte(d.get('comentario', ''), 500)
-            && valorTextoAte(d.get('autorNome', ''), 80)
-            && fotoOk(d.get('autorFoto', ''))
-            && d.criadoEm == request.time;
-      }
-
-      function resumoAtualizado(chave) {
-        return getAfter(/databases/$(database)/documents/notas/$(chave)).data.ultima == id;
-      }
-
-      // "Atendimento confirmado": pedido real entre os dois, do mesmo negócio.
-      function pedidoOk(d, cliente, negocioId) {
-        return !('pedidoId' in d)
-            || (get(/databases/$(database)/documents/pedidos/$(d.pedidoId)).data.clienteId == cliente
-                && get(/databases/$(database)/documents/pedidos/$(d.pedidoId)).data.negocioId == negocioId);
-      }
 
 // ===== FIM DA PARTE 6 DE 16 =====
