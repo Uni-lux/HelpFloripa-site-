@@ -1529,6 +1529,16 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   `pushComentario` (resposta e comentário), `pushMarcacao` (diario create), `pushSocial` (vinculos), `pushAvisoEquipe`
   (avisos), `pushSuporte` (suporte/{id}/mensagens com `equipe: true`). Falta ele: gerar a chave Web Push (pública) e
   mandar; deploy (`_regras/PUSH-LEIA-ME.md`). Teste `t-push.mjs` (24). FCM real não deu para testar daqui (rede bloqueada).
+- **Etapa C do servidor – TURN das ligações (03/11/2026, PR depois do #146, sem regra nova):** Cloudflare Realtime TURN.
+  `functions/turn.js` (`lerServidores` tira portas 53 e o que não é stun/turn, aceita os 2 formatos; `limiteDia` 60/dia;
+  `urlCloudflare` .../v1/turn/keys/{id}/credentials/generate-ice-servers) + callable `credenciaisTurn` (segredos
+  CF_TURN_KEY_ID/CF_TURN_TOKEN, ttl 4 h, `turn_uso/{uid}` {dia, n}; no emulador `TURN_API` no .env.local). Site:
+  `servidor.js` `TURN_LIGADO = false`; `chamadas.js` `servidoresIce()` (callable com 8 s, nunca segura mais de 3,5 s,
+  sessionStorage `hf-turn` {iceServers, ate} ou {falhou: +10 min}; quem liga pede junto com o microfone, quem recebe pede
+  enquanto toca) e `iniciarConexao(..., turn)`. CSP de TODAS as páginas com connect-src libera a URL das Functions
+  (chamadas.js roda em todas pelo firebase.js). Corrigido: a campainha fechava o AudioContext duas vezes (erro na página).
+  Falta ele: criar o TURN no Cloudflare, segredos e deploy (`_regras/TURN-LEIA-ME.md`) e avisar para virar true.
+  Teste `t-turn.mjs` (19). `t-registro-chamadas` falha no "separado por dia" também sem a mudança (depende da data).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

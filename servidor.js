@@ -22,3 +22,7 @@ export function respostaDoPerfil(pf) {
 // no site). Vazia = o site não oferece as notificações com o app fechado (o resto continua igual).
 export const PUSH_VAPID = "";
 export const REGIAO_FUNCOES = "southamerica-east1";
+
+// Ligações pelo servidor TURN (Etapa C, _regras/TURN-LEIA-ME.md): true depois do deploy da função credenciaisTurn e dos
+// segredos do Cloudflare. Desligado = as ligações usam só a conexão direta (como hoje).
+export const TURN_LIGADO = false;

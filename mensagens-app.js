@@ -1,6 +1,6 @@
 // Código da página (saiu de dentro do HTML para ficar guardado no aparelho pelo service worker: a página abre mais rápido).
 import "./sem-menu-imagem.js?v=1";
-import { FUNCOES_LIGADAS, respostaDoPerfil } from "./servidor.js?v=2";
+import { FUNCOES_LIGADAS, respostaDoPerfil } from "./servidor.js?v=3";
 import { docRapido, docsRapido } from "./rapido.js?v=1";
 import { ligarDeslizarFlash } from "./deslizar-flash.js?v=4";
 import { ligarQuadro } from "./quadro-rede.js?v=1";
@@ -9,7 +9,7 @@ ligarDeslizarFlash(); // deslizar para o lado na lista de conversas troca de aba
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura, mostrarAvisoEmail } from "./seguranca.js?v=1";
 import { confirmarHF } from "./confirmar.js?v=5";
 import { relogioDe, ufDe } from "./fuso.js?v=1";
-import { textoChamada } from "./chamadas.js?v=1";
+import { textoChamada } from "./chamadas.js?v=2";
 import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO, lerResumos, media, notaTexto } from "./avaliacoes.js?v=17";
 import { buscarPessoas } from "./pessoas.js?v=5";
 import { docComValidade } from "./leituras.js?v=3";
@@ -2388,7 +2388,7 @@ const maiusc = (t) => String(t).charAt(0).toUpperCase() + String(t).slice(1);
 let vitrineMod = null;
 function carregarVitrine() {
   if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=42"; l.dataset.vitrine = ""; document.head.appendChild(l); }
-  return (vitrineMod ||= import("./vitrine.js?v=83"));
+  return (vitrineMod ||= import("./vitrine.js?v=84"));
 }
 function usarCartaoNaConversa(uid, cartao) {
   document.querySelectorAll(".vt-modal").forEach((m) => m.remove());
@@ -3452,7 +3452,7 @@ async function fazerLigacao(modo) {
   if (!ativa?.outroId) return;
   if (bloqueios.meus.has(ativa.outroId) || bloqueios.deles?.has?.(ativa.outroId)) { toast("Não é possível ligar para esta pessoa."); return; }
   const conv = ativa.id;
-  const { ligar } = await import("./chamadas.js?v=1");
+  const { ligar } = await import("./chamadas.js?v=2");
   const r = await ligar({ para: ativa.outroId, nome: ativa.nome, foto: ativa.foto, conv, tipo: modo });
   if (r.status === "erro") { toast(r.erro); return; }
   try { await publicarMensagem(conv, { remetenteId: eu.uid, texto: "", criadoEm: fb.serverTimestamp(), tipoArquivo: "cartao", cartao: { tipo: "chamada", modo, resultado: r.status, duracao: r.duracaoSeg || 0 } }); }

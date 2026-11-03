@@ -323,3 +323,34 @@ export const pushTeste = onCall({ region: REGIAO, maxInstances: 5 }, async (req)
   if (!r) throw new HttpsError("failed-precondition", "Nenhum aparelho com as notificações ligadas.");
   return r;
 });
+
+// =====================================================
+// Etapa C: TURN das ligações (Cloudflare Realtime TURN). Passo a passo: _regras/TURN-LEIA-ME.md
+// =====================================================
+import { TTL, urlCloudflare, lerServidores, limiteDia } from "./turn.js";
+const CF_TURN_KEY_ID = defineSecret("CF_TURN_KEY_ID");
+const CF_TURN_TOKEN = defineSecret("CF_TURN_TOKEN");
+
+export const credenciaisTurn = onCall({ region: REGIAO, secrets: [CF_TURN_KEY_ID, CF_TURN_TOKEN], maxInstances: 10 }, async (req) => {
+  if (!req.auth) throw new HttpsError("unauthenticated", "Entre na sua conta para ligar.");
+  // Limite por pessoa e por dia (o site guarda a credencial por 4 h: uma ligação atrás da outra não pede de novo).
+  const hoje = new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10);
+  const ref = db.doc(`turn_uso/${req.auth.uid}`);
+  const pode = await db.runTransaction(async (t) => {
+    const e = await t.get(ref);
+    const r = limiteDia(e.exists ? e.data() : null, hoje);
+    t.set(ref, r.estado);
+    return r.pode;
+  });
+  if (!pode) throw new HttpsError("resource-exhausted", "Muitas ligações hoje. Tente amanhã.");
+  const base = (EMULADOR && process.env.TURN_API) || "https://rtc.live.cloudflare.com";
+  const res = await fetch(urlCloudflare(base, CF_TURN_KEY_ID.value()), {
+    method: "POST",
+    headers: { Authorization: `Bearer ${CF_TURN_TOKEN.value()}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ ttl: TTL })
+  });
+  if (!res.ok) { logger.warn("TURN: Cloudflare respondeu", res.status); throw new HttpsError("unavailable", "Serviço de ligação indisponível agora."); }
+  const iceServers = lerServidores(await res.json());
+  if (!iceServers.length) throw new HttpsError("unavailable", "Serviço de ligação indisponível agora.");
+  return { iceServers, ate: Date.now() + (TTL - 600) * 1000 };
+});
