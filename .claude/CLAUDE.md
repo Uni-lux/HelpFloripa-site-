@@ -1577,8 +1577,8 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   `scripts/limpeza/limpeza-conta.mjs` `criarLimpeza`, a MESMA do limpar-contas.mjs, copiada para functions/ no predeploy e no
   emulador.sh; registro `apagar_conta`). Sem o Blaze o botão explica que falta o servidor. **Logo nova** (imagem dele) recortada
   com fundo transparente: `logo-login.webp`/`logo-login-360.webp`/`logo-login.png`; `.logo-acesso` no topo do cartão no celular
-  (tema claro = cartão preto #05080b) e na coluna da marca no computador, em login, cadastre-se, verificar-email e conta;
-  acesso.css v=2. Teste `t-email-confirmado.mjs` (25).
+  (tema claro = versão clara `logo-login-claro*.webp`/`.png`, letras azul-marinho #0b1b2a, sem cartão; as duas imagens no HTML com `loading="lazy"`, `.logo-escura`/`.logo-clara`, só a visível baixa) e na coluna da marca no computador, em login, cadastre-se, verificar-email e conta;
+  acesso.css v=3. Teste `t-email-confirmado.mjs` (26).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

@@ -142,8 +142,11 @@ svg.i.s { width: 16px; height: 16px; }
 .logo-acesso { display: block; width: min(320px, 78vw); margin: 0 auto 26px; }
 .logo-acesso:hover { text-decoration: none; }
 .logo-acesso img { display: block; width: 100%; height: auto; }
-/* Tema claro: o texto da logo é branco, então ela fica num cartão escuro (o mesmo preto da marca). */
-:root[data-theme="light"] .logo-acesso { padding: 14px 18px; border-radius: 22px; background: #05080b; box-shadow: 0 14px 36px rgba(5, 12, 18, .22); width: min(340px, 82vw); }
+/* Duas versões da logo: a original (letras brancas) no tema escuro e a do tema claro (letras azul-marinho,
+   logo-login-claro.webp), sem cartão. Só a que aparece é baixada (loading="lazy" com a outra escondida). */
+.logo-acesso .logo-clara { display: none; }
+:root[data-theme="light"] .logo-acesso .logo-escura { display: none; }
+:root[data-theme="light"] .logo-acesso .logo-clara { display: block; }
 /* No computador a logo já aparece na coluna da marca: no cartão ela some. */
 @media (min-width: 901px) { .logo-acesso { display: none; } }
 .acesso-topo .logo-mini:empty { display: none !important; }

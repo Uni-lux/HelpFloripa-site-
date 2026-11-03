@@ -30,8 +30,9 @@ const erros = [];
 const p = await A.ctx.newPage();
 p.on("pageerror", (x) => erros.push(x.message));
 await p.goto(BASE + "login.html");
-await p.waitForSelector(".logo-acesso img", { timeout: 15000 });
-const logo = await p.evaluate(() => { const i = document.querySelector(".logo-acesso img"); return { w: i.getBoundingClientRect().width, ok: i.complete && i.naturalWidth > 0 }; });
+await p.waitForSelector(".logo-acesso", { timeout: 15000 });
+await p.waitForTimeout(800);
+const logo = await p.evaluate(() => { const i = [...document.querySelectorAll(".logo-acesso img")].find((x) => x.offsetWidth > 0); return i ? { w: i.getBoundingClientRect().width, ok: i.complete && i.naturalWidth > 0 } : { w: 0, ok: false }; });
 ok(logo.ok && logo.w > 200, `logo nova no login (${Math.round(logo.w)} px)`);
 await p.screenshot({ path: "saida/email-login-escuro.png" });
 await p.fill("#email", "semconfirmar@teste.com"); await p.fill("#senha", "teste123");
@@ -67,9 +68,14 @@ ok(!!anotado2, "a conta passa a anotar emailConfirmado: true");
 // tema claro: logo num cartão escuro
 const L = await A.ctx.newPage();
 await L.addInitScript(() => { try { localStorage.setItem("hf-chat-config", JSON.stringify({ tema: "claro" })); } catch {} });
-await L.goto(BASE + "login.html"); await L.waitForSelector(".logo-acesso img"); await L.waitForTimeout(800);
-const fundoLogo = await L.evaluate(() => getComputedStyle(document.querySelector(".logo-acesso")).backgroundColor);
-ok(/rgb\(5, 8, 11\)/.test(fundoLogo), "tema claro: logo num cartão escuro (" + fundoLogo + ")");
+await L.goto(BASE + "login.html"); await L.waitForSelector(".logo-acesso .logo-clara"); await L.waitForTimeout(1200);
+const claro = await L.evaluate(() => { const c = document.querySelector(".logo-acesso .logo-clara"), e = document.querySelector(".logo-acesso .logo-escura"); return { visivel: c.offsetWidth > 200, carregou: c.complete && c.naturalWidth > 0, escondida: e.offsetWidth === 0, fundo: getComputedStyle(document.querySelector(".logo-acesso")).backgroundColor }; });
+ok(claro.visivel && claro.carregou && claro.escondida && /rgba\(0, 0, 0, 0\)|transparent/.test(claro.fundo), "tema claro: versão clara da logo, sem cartão (" + JSON.stringify(claro) + ")");
+// tema escuro: a original
+const E = await A.ctx.newPage(); await E.addInitScript(() => { try { localStorage.setItem("hf-chat-config", JSON.stringify({ tema: "escuro" })); } catch {} });
+await E.goto(BASE + "login.html"); await E.waitForTimeout(1200);
+ok(await E.evaluate(() => document.querySelector(".logo-acesso .logo-escura").offsetWidth > 200 && document.querySelector(".logo-acesso .logo-clara").offsetWidth === 0), "tema escuro: logo original");
+await E.screenshot({ path: "saida/email-login-escuro.png" });
 await L.screenshot({ path: "saida/email-login-claro.png" });
 await A.browser.close();
 
