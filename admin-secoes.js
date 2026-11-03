@@ -306,7 +306,8 @@ export function usuarios(el, termo = "") {
       const tr = h("tr", "clicavel"); tr.tabIndex = 0;
       const c1 = h("td"); c1.appendChild(pessoaCel(p));
       const st = estado(p); const c7 = h("td"); c7.appendChild(selo(st.t, st.c)); if (p.verificado) c7.append(" ", selo("Verificado", "info"));
-      const cE = h("td", "ad-email-cel"); cE.append(h("span", null, p.email || "—")); const se = seloEmail(p); if (se) cE.append(se);
+      // A célula continua sendo célula de tabela (com display: flex nela as linhas desalinhavam): o bloco vai dentro.
+      const cE = h("td"); const bE = h("div", "ad-email-cel"); bE.append(h("span", null, p.email || "—")); const se = seloEmail(p); if (se) bE.append(se); cE.appendChild(bE);
       tr.append(c1, cE, h("td", null, nomeCidade(p.cidade) || "—"), h("td", null, idade(p.dataNascimento) ?? "—"), h("td", null, data(p.criadoEm)), h("td", null, relativo(p.ultimoAcesso)), c7);
       const abrir = () => abrirFicha(p.uid);
       tr.addEventListener("click", abrir); tr.addEventListener("keydown", (e) => { if (e.key === "Enter") abrir(); });
