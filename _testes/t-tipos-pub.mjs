@@ -19,7 +19,13 @@ const p = await entrar(ctx, "ana", "feed.html");
 const erros = []; p.on("pageerror", (e) => erros.push(e.message));
 await p.waitForSelector("#btnComporFeed", { timeout: 30000 }); await p.waitForTimeout(1500);
 const abrirForm = async () => { await p.locator("#btnComporFeed").click(); await p.waitForSelector("#folhaPublicar.aberta"); await p.waitForTimeout(300); };
-const foto = async (f) => { await p.setInputFiles("#pubArquivoFoto", f); await p.locator(".hfe-btn.pri").click({ timeout: 15000 }); await p.waitForTimeout(500); };
+// Espera a foto entrar na prévia (enquadrar + comprimir leva um tempo; antes o teste seguia antes dela entrar).
+const foto = async (f) => {
+  const n = await p.locator("#pubPrevia img").count();
+  await p.setInputFiles("#pubArquivoFoto", f); await p.locator(".hfe-btn.pri").click({ timeout: 15000 });
+  await p.waitForFunction((k) => document.querySelectorAll("#pubPrevia img").length > k || !document.querySelector(".hfe-fundo"), n, { timeout: 15000 }).catch(() => {});
+  await p.waitForTimeout(500);
+};
 const publicar = async () => { await p.locator("#pubEnviar").click(); await p.waitForFunction(() => !document.getElementById("folhaPublicar")?.classList.contains("aberta"), null, { timeout: 20000 }).catch(() => {}); await p.waitForTimeout(1500); };
 
 // ---------- 1) Texto com imagem casada ----------
@@ -96,7 +102,8 @@ ok((await p.locator(".toast").allTextContents()).join(" ").includes("pelo menos 
 await p.locator("#pubTipoTexto").click();
 await p.locator("#pubTexto").fill("x".repeat(600)); await foto(fotos[0]);
 await p.locator("#pubEnviar").click(); await p.waitForTimeout(600);
-ok((await p.locator(".toast").allTextContents()).join(" ").includes("500 letras") && await p.locator("#folhaPublicar.aberta").count() === 1, "Texto com imagem e mais de 500 letras avisa e não publica");
+await p.locator(".toast", { hasText: "500 letras" }).first().waitFor({ timeout: 5000 }).catch(() => {}); // o aviso vem depois de conferir a conta
+ok((await p.locator(".toast").allTextContents()).join(" ").replace(/\u00a0/g, " ").includes("500 letras") && await p.locator("#folhaPublicar.aberta").count() === 1, "Texto com imagem e mais de 500 letras avisa e não publica");
 await p.locator("#folhaPublicar [data-fechar]").first().click(); await p.waitForTimeout(400);
 
 // ---------- 6) quem vê: estrelas ocultas, marcados empilhados, perfil ----------

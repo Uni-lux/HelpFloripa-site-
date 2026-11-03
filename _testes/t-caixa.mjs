@@ -84,10 +84,11 @@ await pa.locator("#texto").fill("Depende do material, te passo um orçamento!");
 await pa.locator("#btnEnviar").click(); await pa.waitForTimeout(2500);
 const ids = [U.ana, U.dani].sort();
 const msgs = await db.collection(`conversas/${ids[0]}_${ids[1]}/mensagens`).get();
-ok(msgs.docs.some((m) => m.data().cartao?.tipo === "caixa" && /orçamento/.test(m.data().texto || "")), "Responder manda a mensagem com o cartão da caixa para a Dani no Mensagens");
+// o cartão (pergunta + resposta) e o texto vão como duas mensagens seguidas
+ok(msgs.docs.some((m) => m.data().cartao?.tipo === "caixa") && msgs.docs.some((m) => /orçamento/.test(m.data().texto || "")), "Responder manda o cartão da caixa e a mensagem para a Dani no Mensagens");
 await pa.screenshot({ path: "saida/cx-respostas-nome.png" });
 // 4) Notificações da Ana
-await pa.goto(pa.url().replace(/feed\.html.*/, "notificacoes.html"));
+await pa.goto(pa.url().replace(/[^/]*$/, "notificacoes.html")); // (o Responder deixou a Ana no Mensagens)
 await pa.waitForTimeout(5000);
 const txt = await pa.locator("#listaAvisos").textContent();
 ok(!/respondeu sua caixa de perguntas/.test(txt), "respostas da caixa NÃO vêm para as notificações (ficam na própria caixa)");
