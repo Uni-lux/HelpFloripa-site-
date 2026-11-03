@@ -8,10 +8,10 @@ import {
   $, el, icone, pintarAvatar, urlSegura, tempoRelativo, toast, erroAmigavel,
   fb, eu, dados, refUsuario, ganchos, iniciarRede, carregarMeusSeguindo, botaoSeguir, montarBarraRede, pintarBarraRede,
   ouvirAvisos, aoMudarAvisos, avisosVistosEm, marcarAvisosVistos, rotuloVinculo, abrirComentarios, abrirResultadoEnquete, verRespostasCaixa
-} from "./rede.js?v=111";
+} from "./rede.js?v=112";
 import { TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=17";
 import { TEXTO_EQUIPE, linkEquipe, seloOficial, fotoSuporte } from "./avisos-equipe.js?v=1";
-import { textoEnqueteFim, resumoResultado } from "./enquetes.js?v=6";
+import { textoEnqueteFim, resumoResultado } from "./enquetes.js?v=7";
 import { textoPlano } from "./planos-base.js?v=15";
 import { textoMensagens } from "./mensagens-novas.js?v=1";
 import { criarLista } from "./avisos-lista.js?v=18";
@@ -128,9 +128,14 @@ const miniatura = (i) => obterPost(i.postId).then((p) => (p ? { foto: p.mediaTip
     perfis: (ids) => docsPorIds(fb, "perfis_publicos", ids, 30 * 60000),
     botaoSeguir: (uid) => botaoSeguir(uid, { meSegue: true }),
     responderVinculo: (i, sim) => responderVinculo(i, sim),
-    extra: (i) => (i.tipo === "enquete" ? miniResultado(i) : null),
+    extra: (i) => (i.tipo === "enquete" && Array.isArray(i.opcoes) && Array.isArray(i.contas) ? miniResultado(i) : null),
     marcarTodasVistas: () => marcarAvisosVistos()
   } });
+  // A última lista que o sino mostrou (painel-avisos.js guarda no aparelho) aparece na hora; a ao vivo troca depois.
+  try {
+    const c = JSON.parse(localStorage.getItem("hf-sino-lista-" + eu.uid) || "null");
+    if (c && Array.isArray(c.itens) && Date.now() - c.em < 7 * 864e5) lista.pintar(c.itens, { vistoAntes, prefs: dados.prefNotif || {} });
+  } catch {}
   carregarMeusSeguindo().then(() => ultimo && lista.pintar(itens(ultimo)));
   const pedida = new URLSearchParams(location.search).get("enquete");
   aoMudarAvisos((a) => {

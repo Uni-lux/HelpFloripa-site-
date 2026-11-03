@@ -12,11 +12,11 @@ import { buscarReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-re
 import { fotoSegura } from "./seguranca.js?v=1";
 import { contarNovas, textoMensagens } from "./mensagens-novas.js?v=1";
 import { buscarItensEquipe, TEXTO_EQUIPE, linkEquipe } from "./avisos-equipe.js?v=1";
-import { enquetesEncerradas, textoEnqueteFim } from "./enquetes.js?v=6";
+import { enquetesEncerradas, textoEnqueteFim } from "./enquetes.js?v=7";
 import { avisoPlano, textoPlano } from "./planos-base.js?v=15";
 import { docsComValidade, docsPorIds, esquecer } from "./leituras.js?v=3";
 import { lerReacoesFlash, textoFlash } from "./flash-avisos.js?v=3";
-import { fontesDoSino, lerFonte } from "./sino-fontes.js?v=1";
+import { fontesDoSino, lerFonte } from "./sino-fontes.js?v=2";
 import { criarLista, svg, toastNt, categoriaLigada, categoriaDe } from "./avisos-lista.js?v=18";
 
 const ms = (ts) => ts?.toMillis?.() ?? (typeof ts === "number" ? ts : 0);
@@ -62,26 +62,36 @@ async function prontoFirebase() {
   }
   return !!eu;
 }
+// Rápido (como a parte social): tudo sai junto (antes eram ~10 esperas em fila: conta → fontes → enquetes → plano →
+// flash → miniaturas → quem eu sigo → perfis). Miniaturas e nomes/fotos de agora chegam depois, pela lista
+// (ganchos.miniatura e ganchos.perfis), sem segurar a primeira pintura.
 async function carregar() {
   const uid = eu.uid;
   const ler = (col, ...f) => fs.getDocs(fs.query(fs.collection(db, col), ...f, fs.limit(60))).then((s) => s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) }))).catch(() => []);
-  const usuario = await fs.getDoc(fs.doc(db, "usuarios", uid)).catch(() => null);
+  const usuarioP = fs.getDoc(fs.doc(db, "usuarios", uid)).then((s) => (s.exists() ? s.data() : {})).catch(() => ({}));
   // Só as 30 mais novas de cada fonte (sino-fontes.js). Mensagens, respostas da caixa, reações em comentários e no
   // Flash e avaliação boa do negócio saíram do sino (ficam na página de origem).
   const F = fontesDoSino(fs, uid);
   const fonte = (k) => lerFonte(fs, db, F[k]).then((s) => s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) }))).catch(() => []);
-  const [seg, curt, com, resp, vin, recl, equipe, marc, repub] = await Promise.all([
+  // Quem eu já sigo (para o "Seguir de volta"): a mesma cópia de 15 min das páginas da rede. Não segura a lista.
+  docsComValidade({ ...fs, db }, "seguindo-" + uid, fs.query(fs.collection(db, "relacoes"), fs.where("tipo", "==", "seguir"), fs.where("seguidorId", "==", uid), fs.limit(500)), 15 * 60000)
+    .then((snap) => { sigo = new Set(snap.docs.map((d) => d.data().alvoId)); if (lista && estado) lista.redesenhar(); })
+    .catch(() => { sigo = null; });
+  const [dados, seg, curt, com, resp, vin, recl, equipe, marc, repub, enq, plano, flash] = await Promise.all([
+    usuarioP,
     fonte("seguidores"), fonte("curtidas"), fonte("comentarios"), fonte("respostas"),
     ler("vinculos", fs.where("participantes", "array-contains", uid)),
     buscarReclamacoes(fs, db, uid).then((l) => l.filter((x) => !(x.tipo === "avaliacao" && !x.cliente))).catch(() => []),
-    buscarItensEquipe(fs, db, uid, (usuario?.exists() ? usuario.data().suporteLido : null) || {}).catch(() => []),
-    fonte("marcacoes"), fonte("republicacoes")
+    usuarioP.then((d) => buscarItensEquipe(fs, db, uid, d.suporteLido || {})).catch(() => []),
+    fonte("marcacoes"), fonte("republicacoes"),
+    usuarioP.then((d) => enquetesEncerradas(fs, db, uid, d)).catch(() => []),
+    avisoPlano({ ...fs, db }, uid).catch(() => null),
+    lerReacoesFlash(fs, db, uid).catch(() => [])
   ]);
-  const dados = usuario?.exists() ? usuario.data() : {};
   const restritos = new Set(dados.restritos || []);
   const itens = [];
   // Enquetes que terminaram (minhas e em que votei)
-  (await enquetesEncerradas(fs, db, uid, dados).catch(() => [])).forEach((x) => itens.push({ ...x, ...(x.souAutor ? { nome: "Sua enquete", foto: dados.fotoPerfil || "" } : {}), detalhe: textoEnqueteFim(x).detalhe }));
+  enq.forEach((x) => itens.push({ ...x, ...(x.souAutor ? { nome: "Sua enquete", foto: dados.fotoPerfil || "" } : {}), detalhe: textoEnqueteFim(x).detalhe }));
   seg.forEach((r) => itens.push({ tipo: "seguidor", id: "s_" + r.id, uid: r.seguidorId, quando: ms(r.criadoEm) }));
   curt.filter((c) => c.uid !== uid && Number(c.nota) > 0).forEach((c) => itens.push({ tipo: "curtida", id: "c_" + c.id, uid: c.uid, nota: Number(c.nota), postId: c.postId, quando: Math.max(ms(c.criadoEm), ms(c.atualizadoEm)) }));
   com.filter((c) => c.autorId !== uid).forEach((c) => itens.push({ tipo: "comentario", id: "m_" + c.id, uid: c.autorId, nome: c.nome, foto: c.foto, detalhe: c.texto, postId: c.postId, quando: ms(c.criadoEm) }));
@@ -96,28 +106,59 @@ async function carregar() {
   });
   recl.forEach((x) => itens.push({ ...x }));
   equipe.forEach((x) => itens.push({ ...x }));
-  const plano = await avisoPlano({ ...fs, db }, uid).catch(() => null);
   if (plano) itens.push(plano);
-  (await lerReacoesFlash(fs, db, uid).catch(() => [])).forEach((x) => itens.push({ ...x }));
-  // Miniatura da publicação (estrelas, comentários, respostas, marcações): até 20 publicações.
-  const posts = [...new Set(itens.filter((i) => i.postId).sort((a, b) => b.quando - a.quando).map((i) => i.postId))].slice(0, 20);
-  const minis = new Map();
-  await Promise.all(posts.map(async (id) => {
-    try { const s = await fs.getDoc(fs.doc(db, "diario", id)); const p = s.exists() ? s.data() : null; const u = p && p.mediaTipo !== "video" ? fotoSegura(p.mediaUrl || p.midias?.[0]) : ""; minis.set(id, p ? { foto: u, texto: p.texto || "" } : null); } catch {}
-  }));
-  itens.forEach((i) => { if (i.postId && minis.has(i.postId)) i.mini = minis.get(i.postId); });
-  // Quem eu já sigo (para o "Seguir de volta"): a mesma cópia de 15 min das páginas da rede.
-  try {
-    const snap = await docsComValidade({ ...fs, db }, "seguindo-" + uid, fs.query(fs.collection(db, "relacoes"), fs.where("tipo", "==", "seguir"), fs.where("seguidorId", "==", uid), fs.limit(500)), 15 * 60000);
-    sigo = new Set(snap.docs.map((d) => d.data().alvoId));
-  } catch { sigo = null; }
-  // Nomes e fotos de quem ainda não veio junto
-  const faltam = [...new Set(itens.filter((i) => i.uid && !i.nome).map((i) => i.uid))].slice(0, 40);
-  const perfis = new Map();
-  await Promise.all(faltam.map(async (u) => { try { const s = await fs.getDoc(fs.doc(db, "perfis_publicos", u)); perfis.set(u, s.exists() ? s.data() : {}); } catch { perfis.set(u, {}); } }));
+  flash.forEach((x) => itens.push({ ...x }));
+  // Nome e foto: os da cópia de 30 min do aparelho (docsPorIds) entram já; o resto a lista busca em lote e redesenha.
+  const perfis = lerPerfisGuardados(itens.filter((i) => i.uid && !i.nome).map((i) => i.uid));
   itens.forEach((i) => { const p = perfis.get(i.uid); if (p) { i.nome = i.nome || p.nome; i.foto = i.foto || p.fotoPerfil; } i.nome = i.nome || "Usuário"; });
-  itens.forEach((i) => { i.texto = texto(i); });
+  itens.forEach((i) => { if (i.postId && minis.has(i.postId)) i.mini = minis.get(i.postId); i.texto = texto(i); });
   return { visto: ms(dados.notificacoesVistasEm), prefs: dados.prefNotif || {}, itens: itens.filter((i) => i.quando && !restritos.has(i.uid)).sort((a, b) => b.quando - a.quando) };
+}
+// Perfis que já estão na memória desta página (preenchidos pelo gancho da lista).
+const perfisMem = new Map();
+function lerPerfisGuardados(ids) { const r = new Map(); ids.forEach((u) => { if (perfisMem.has(u)) r.set(u, perfisMem.get(u)); }); return r; }
+function perfisEmLote(ids) {
+  return docsPorIds({ ...fs, db }, "perfis_publicos", ids, 30 * 60000).then((m) => { m.forEach((v, k) => perfisMem.set(k, v || {})); return m; });
+}
+// Miniatura da publicação, sob demanda (só das que aparecem na tela), uma leitura por publicação.
+const minis = new Map(), minisP = new Map();
+function miniatura(i) {
+  if (!minisP.has(i.postId)) minisP.set(i.postId, fs.getDoc(fs.doc(db, "diario", i.postId)).then((s) => {
+    const p = s.exists() ? s.data() : null;
+    const m = p ? { foto: p.mediaTipo !== "video" ? fotoSegura(p.mediaUrl || p.midias?.[0]) : "", texto: p.texto || "" } : null;
+    minis.set(i.postId, m); guardarDepois(); return m;
+  }).catch(() => null));
+  return minisP.get(i.postId);
+}
+
+// ---------- cópia da lista no aparelho ----------
+// Ao abrir o sino, a última lista aparece NA HORA e a do servidor chega por trás (redesenha sozinha).
+// Fotos em data: grandes ficam fora (o localStorage é pequeno); a lista busca as atuais em lote.
+const chaveCopia = () => "hf-sino-lista-" + eu.uid;
+const leve = (u) => (typeof u === "string" && u.startsWith("data:") && u.length > 6000 ? "" : u);
+function guardarCopia() {
+  if (!estado || !eu) return;
+  try {
+    const itens = estado.itens.slice(0, 120).map((i) => {
+      const x = { ...i }; delete x.grupo;
+      if (x.foto) x.foto = leve(x.foto);
+      if (x.mini) x.mini = { ...x.mini, foto: leve(x.mini.foto) };
+      return x;
+    });
+    let txt = JSON.stringify({ em: Date.now(), visto: estado.visto, prefs: estado.prefs, itens });
+    if (txt.length > 400000) txt = JSON.stringify({ em: Date.now(), visto: estado.visto, prefs: estado.prefs, itens: itens.map((x) => ({ ...x, foto: x.foto?.startsWith?.("data:") ? "" : x.foto, mini: x.mini ? { ...x.mini, foto: "" } : x.mini })) });
+    localStorage.setItem(chaveCopia(), txt);
+  } catch {}
+}
+let tGuardar = 0;
+function guardarDepois() { clearTimeout(tGuardar); tGuardar = setTimeout(guardarCopia, 800); }
+function lerCopia() {
+  try {
+    const c = JSON.parse(localStorage.getItem(chaveCopia()) || "null");
+    if (!c || !Array.isArray(c.itens) || Date.now() - c.em > 7 * 864e5) return null;
+    c.itens.forEach((i) => { if (i.postId && i.mini !== undefined && !minis.has(i.postId)) minis.set(i.postId, i.mini); });
+    return { visto: c.visto || 0, prefs: c.prefs || {}, itens: c.itens };
+  } catch { return null; }
 }
 
 // ---------- visual da gaveta (a lista em si vem do avisos-lista.js) ----------
@@ -265,11 +306,21 @@ function montar() {
   });
   document.body.append(fundo, painel);
 }
-function desenhar() {
-  const corpo = painel.querySelector(".pa-corpo");
-  lista = criarLista({ raiz: corpo, uid: eu.uid, ganchos: { perfis: (ids) => docsPorIds({ ...fs, db }, "perfis_publicos", ids, 30 * 60000), abrir: (i) => { location.href = destino(i); }, botaoSeguir, responderVinculo, salvarPrefs, marcarTodasVistas: () => { estado.visto = Date.now(); marcarVistos(); pintarCab(); } } });
+function desenhar(atualizando) {
+  if (!lista) {
+    const corpo = painel.querySelector(".pa-corpo");
+    corpo.replaceChildren();
+    lista = criarLista({ raiz: corpo, uid: eu.uid, ganchos: { perfis: perfisEmLote, miniatura, abrir: (i) => { location.href = destino(i); }, botaoSeguir, responderVinculo, salvarPrefs, marcarTodasVistas: () => { estado.visto = Date.now(); marcarVistos(); pintarCab(); } } });
+  }
   lista.pintar(estado.itens, { vistoAntes: estado.visto, prefs: estado.prefs });
   pintarCab();
+  if (atualizando) painel.querySelector(".pa-cab p").textContent += " · atualizando…";
+}
+// Busca do servidor (uma de cada vez). Começa já no toque do sino (pointerdown), antes do clique.
+let buscando = null;
+function buscar() {
+  if (!buscando) buscando = carregar().then((e) => { estado = e; carregadoEm = Date.now(); guardarCopia(); return e; }).finally(() => { buscando = null; });
+  return buscando;
 }
 async function abrir(origem) {
   quemAbriu = origem;
@@ -280,15 +331,18 @@ async function abrir(origem) {
   if (!(await prontoFirebase())) { location.href = "login.html"; return; }
   // Reabriu logo depois: mostra o que já foi carregado, sem ler tudo de novo.
   if (estado && Date.now() - carregadoEm < 60000) { desenhar(); return; }
-  esqueleto();
+  // Cópia do aparelho na hora (a última lista vista); sem cópia, o esqueleto.
+  if (!estado) estado = lerCopia();
+  if (estado) desenhar(true); else esqueleto();
   try {
-    estado = await carregar();
-    carregadoEm = Date.now();
-    desenhar();
+    await buscar();
+    if (painel.classList.contains("on")) desenhar();
     // Abriu: os avisos contam como vistos no servidor (continuam destacados até fechar).
     setTimeout(() => { if (painel?.classList.contains("on")) marcarVistos(); }, 1200);
   } catch (e) {
     console.warn("[Avisos]", e);
+    if (estado) { pintarCab(); return; } // fica a cópia
+    lista = null;
     painel.querySelector(".pa-corpo").replaceChildren(el("div", "pa-erro", "Não foi possível carregar as notificações agora."));
   }
 }
@@ -311,6 +365,8 @@ function ligar() {
     a.dataset.painel = "1";
     a.setAttribute("aria-haspopup", "dialog");
     a.setAttribute("aria-expanded", "false");
+    // Começa a buscar no toque (ganha o tempo entre encostar o dedo e soltar).
+    a.addEventListener("pointerdown", () => { prontoFirebase().then((ok) => { if (ok && !(estado && Date.now() - carregadoEm < 60000)) buscar().catch(() => {}); }); }, { passive: true });
     a.addEventListener("click", (e) => {
       if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return; // nova aba continua indo para a página
       e.preventDefault();

@@ -161,16 +161,13 @@ export async function enquetesEncerradas(fs, db, uid, dadosUsuario = {}) {
   const agora = Date.now(), desde = agora - 30 * DIA;
   const minhas = (Array.isArray(dadosUsuario.enquetes) ? dadosUsuario.enquetes : []).filter((x) => x?.a && x.f && x.f <= agora && x.f > desde);
   const meusAlvos = new Set(minhas.map((x) => x.a));
-  let votos = [];
-  try {
-    const s = await fs.getDocs(fs.query(fs.collection(db, "enquete_votos"), fs.where("uid", "==", uid), fs.limit(100)));
-    votos = s.docs.map((d) => d.data()).filter((v) => v.fimEm && msDe(v.fimEm) <= agora && msDe(v.fimEm) > desde && !meusAlvos.has(v.alvo));
-  } catch {}
-  // Votos em enquetes anônimas (cada pessoa lista só os dela)
-  try {
-    const s = await fs.getDocs(fs.query(fs.collection(db, "enquete_anon"), fs.where("uid", "==", uid), fs.limit(100)));
-    votos.push(...s.docs.map((d) => ({ ...d.data(), anon: true })).filter((v) => v.fimEm && msDe(v.fimEm) <= agora && msDe(v.fimEm) > desde && !meusAlvos.has(v.alvo)));
-  } catch {}
+  // As duas listas de votos juntas (antes uma esperava a outra).
+  const filtrar = (s, extra = {}) => s.docs.map((d) => ({ ...d.data(), ...extra })).filter((v) => v.fimEm && msDe(v.fimEm) <= agora && msDe(v.fimEm) > desde && !meusAlvos.has(v.alvo));
+  const [pub, anon] = await Promise.all([
+    fs.getDocs(fs.query(fs.collection(db, "enquete_votos"), fs.where("uid", "==", uid), fs.limit(100))).then((s) => filtrar(s)).catch(() => []),
+    fs.getDocs(fs.query(fs.collection(db, "enquete_anon"), fs.where("uid", "==", uid), fs.limit(100))).then((s) => filtrar(s, { anon: true })).catch(() => [])
+  ]);
+  const votos = [...pub, ...anon];
   const info = lerLocal(CH_INFO);
   const lista = [
     ...minhas.map((x) => ({ alvo: x.a, souAutor: true, uid, pergunta: x.p, opcoes: x.o, quando: x.f, anon: !!x.an })),
