@@ -14,7 +14,7 @@ import {
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados,
   responderNoChat, cartaoRespostaCaixa, fecharFolha, ajudaPublico
-} from "./rede.js?v=116";
+} from "./rede.js?v=117";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { combinaPublico, leitorDe, temPublico, resumoPublico, publicoParaGravar } from "./publico-alvo.js?v=1";
@@ -281,15 +281,23 @@ const tirarCapa = () => document.documentElement.classList.remove("hf-volta-flas
 // Zoom da página travado enquanto o criador do Flash está aberto: um gesto de dois dedos que não pega a figurinha
 // (cai num botão ou fora dela) virava zoom do navegador e a tela ficava ampliada, com os botões gigantes. O
 // `touch-action` do .flash-criar já bloqueia a pinça; o viewport (maximum-scale=1) desfaz um zoom que já existia.
-let zoomTravado = 0, viewportAntes = null;
+// Na rede numa página só (rede.html) o Diário fica num quadro: o zoom que vale é o da página de cima, então a trava vai
+// nas duas (a de cima só se for do mesmo site).
+let zoomTravado = 0;
+const viewportsAntes = new Map();
 function travarZoom() {
-  const m = document.querySelector('meta[name="viewport"]');
-  if (m && !zoomTravado++) {
-    viewportAntes = m.getAttribute("content");
-    m.setAttribute("content", viewportAntes.replace(/,\s*(maximum-scale|user-scalable)=[^,]*/g, "") + ", maximum-scale=1, user-scalable=no");
-  }
+  const docs = [document];
+  try { if (window.top !== window && window.top.document) docs.push(window.top.document); } catch {}
+  if (!zoomTravado++) docs.forEach((d) => {
+    const m = d.querySelector('meta[name="viewport"]'); if (!m) return;
+    const antes = m.getAttribute("content"); viewportsAntes.set(m, antes);
+    m.setAttribute("content", antes.replace(/,\s*(maximum-scale|user-scalable)=[^,]*/g, "") + ", maximum-scale=1, user-scalable=no");
+  });
   let feito = false;
-  return () => { if (feito) return; feito = true; if (m && !--zoomTravado && viewportAntes != null) m.setAttribute("content", viewportAntes); };
+  return () => {
+    if (feito) return; feito = true;
+    if (!--zoomTravado) { viewportsAntes.forEach((antes, m) => m.setAttribute("content", antes)); viewportsAntes.clear(); }
+  };
 }
 function lembrarFlash(s) {
   try { if (s?.id) sessionStorage.setItem(CHAVE_VOLTA, JSON.stringify({ id: s.id, pagina: location.pathname + location.search, em: Date.now() })); } catch {}
