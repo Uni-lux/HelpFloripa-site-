@@ -1496,6 +1496,24 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   notificacoes.html também pinta a cópia antes dos ouvintes. A busca começa no `pointerdown` do sino. sino-fontes.js lembra
   6 h o índice que falta (`hf-sino-sem-indice`, vai direto à reserva). enquetes.js: as 2 listas de votos em paralelo.
   Medido (`t-sino-rapido.mjs`, emulador + 4G simulado): 1,85 s → 0,84 s na 1ª abertura e 0,08 s com a cópia.
+- **Etapa A do servidor (03/11/2026, PR depois do #144, MUDA 1 REGRA — não publicada; 16 partes, 769 testes):** pedido dele
+  ("deixa pronto para o Blaze"). Cloud Functions novas (functions/index.js): `montarRankingDiario` (onSchedule a cada 15 min:
+  lê as publicações de 48 h, `diario_notas`, conta vistas e comentários das 400 mais promissoras e grava `ranking_diario/br` e
+  `ranking_diario/uf_XX` {itens, cidades: {ibge: [...]}, atualizadoEm}; cada item é TEXTO "id|autor|nota×1e6|estrelas|soma|
+  comentários|vistas|criadoEm|ibge" — o Firestore não aceita lista dentro de lista; conta em functions/diario-ranking.js
+  `notaServidor`: log do engajamento × fator da TAXA interações÷vistas (prior de 30 vistas) ÷ idade^1,3, 3 por pessoa) e
+  `conferirMensagem` (onDocumentCreated conversas/{c}/mensagens/{m}: tempo de resposta em `servidor_atendimento/{conv}`
+  {de, desde} → `perfis_publicos.respostaServ` {media, n, em}, que as regras já não deixam o dono gravar; pedido conferido com
+  o negócio → `mensagem.conferencia {ok, avisos, total, em}`; functions/seguranca-chat.js). `montarRankingAgora` só no emulador.
+  Site: `ranking-diario.js` (`lerRanking` lê br + uf, 5 min no sessionStorage `hf-rk-*`, lista > 90 min ou sem permissão =
+  null e `hf-ranking-sem` 30 min/6 h; `juntarRanking` cidade 20 + estado 25 + Brasil 45, o resto vai para o "Ver mais";
+  `fatorTaxa`). feed.js `buscarPrincipais`: com o ranking lê as publicações dele (docsPorIds, `_srv` com os números) + 20
+  recentes do país + quem segue + republicações; `ordenarPrincipais` não lê estrelas nem conta comentários das `_srv` e
+  multiplica por `fatorTaxa`. `servidor.js`: `FUNCOES_LIGADAS = false` (virar true depois do deploy: "Responde rápido" só
+  com `respostaServ` e o Mensagens para de gravar o tempo) e `respostaDoPerfil` (vitrine e Mensagens). Chat: `.pd-conferido`
+  "Valores conferidos" / alerta com os avisos do servidor (assinatura da mensagem inclui a conferência). Passo a passo dele:
+  `_regras/SERVIDOR-LEIA-ME.md` (deploy só das 2 funções: as do pagamento pedem os segredos). Teste `t-servidor.mjs` (36).
+  Próximas etapas combinadas: B) notificações com o app fechado (FCM), C) TURN das ligações, D) Storage + migrar fotos.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
@@ -1558,7 +1576,7 @@ chat da equipe).
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
-1. **Publicar as regras** (16 partes em `_regras/`, 762 testes): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
+1. **Publicar as regras** (16 partes em `_regras/`, 769 testes; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
    `stories/{id}/reacoes` (estrela do Flash), `diario.publico` (público da publicação) e os tipos de publicação
    (`diario.tipo/estilo/quemComenta/ocultarNotas`). Depois: "Recalcular estrelas" no
    painel e criar os **14 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`

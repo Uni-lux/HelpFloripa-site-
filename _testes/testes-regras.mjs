@@ -1228,6 +1228,17 @@ await t("destaque: tirar a miniatura (capa de vídeo)", () => assertSucceeds(upd
 await t("destaque: outra pessoa não apaga", () => assertFails(deleteDoc(doc(ctx("bia"), "destaques", "dq1"))));
 await t("destaque: a dona apaga", () => assertSucceeds(deleteDoc(doc(ctx("ana"), "destaques", "dq1"))));
 
+// Ranking do Diário (Etapa A): só o servidor grava; quem está logado lê. Perfil: o tempo de resposta do servidor
+// (respostaServ) o dono não grava. Espera do atendimento: ninguém.
+await semRegras((db) => setDoc(doc(db, "ranking_diario", "br"), { itens: [], atualizadoEm: Date.now(), versao: 1 }));
+await t("ranking: quem está logado lê", () => assertSucceeds(getDoc(doc(ctx("bia"), "ranking_diario", "br"))));
+await t("ranking: sem login não lê", () => assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), "ranking_diario", "br"))));
+await t("ranking: ninguém grava pelo site", () => assertFails(setDoc(doc(ctx("ana"), "ranking_diario", "br"), { itens: [] })));
+await t("ranking: ninguém grava um estado", () => assertFails(setDoc(doc(ctx("ana"), "ranking_diario", "uf_SC"), { itens: [] })));
+await t("perfil: o dono não grava o tempo de resposta do servidor", () => assertFails(updateDoc(doc(ctx("ana"), "perfis_publicos", "ana"), { respostaServ: { media: 1, n: 50, em: Date.now() } })));
+await t("atendimento do servidor: ninguém lê", () => assertFails(getDoc(doc(ctx("ana"), "servidor_atendimento", "ana_bia"))));
+await t("atendimento do servidor: ninguém grava", () => assertFails(setDoc(doc(ctx("ana"), "servidor_atendimento", "ana_bia"), { de: null, desde: 0 })));
+
 // ---------- resultado ----------
 for (const r of resultados) console.log(r[0] === "ok" ? "  ✔" : "  ✘", r[1], r[2] ? "→ " + r[2] : "");
 console.log(`\n${ok} passaram, ${falhou} falharam (${arquivo})`);

@@ -20,12 +20,13 @@ import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=
 import { montarStories, abrirFlashPorId, repostarFlash, voltarAoFlash, novoFlash } from "./stories.js?v=84";
 import { abrirDenuncia } from "./denuncias.js?v=6";
 import { pessoasRecentes } from "./pessoas.js?v=5";
-import { abrirExplorar, definirCartao, abrirPublicacao } from "./explorar.js?v=94";
+import { abrirExplorar, definirCartao, abrirPublicacao } from "./explorar.js?v=95";
 import { docsComValidade, docsPorIds } from "./leituras.js?v=3";
 import { lerLocal } from "./local-escolhido.js?v=3";
 import { distanciaKm, minhaPosicao } from "./perto.js?v=2";
 import { combinaPublico, leitorDe, temPublico, resumoPublico } from "./publico-alvo.js?v=1";
 import { postsDoEstado, pesoRegiao, RECENTES_PAIS } from "./regiao.js?v=4";
+import { lerRanking, juntarRanking, fatorTaxa } from "./ranking-diario.js?v=1";
 import { comDescoberta, sorteioFixo, janela } from "./relevancia.js?v=4";
 
 const POR_VEZ = 10;
@@ -252,19 +253,53 @@ async function buscarRepublicados() {
   const docs = await docsPorIds(fb, "diario", [...por.keys()], DIARIO_VALIDADE);
   return [...por.entries()].map(([id, r]) => { const d = docs.get(id); return d ? { id, ...d, _repost: r } : null; }).filter(Boolean);
 }
+// Ranking do servidor (ranking-diario.js): o que sobrou das listas, para o "Ver mais" antes das mais antigas.
+let restoRanking = [];
+const RECENTES_COM_RANKING = 20;
+// Publicações do ranking, com os números do servidor (_srv): estrelas, comentários e quem viu.
+async function postsDoRanking(itens) {
+  if (!itens.length) return [];
+  const docs = await docsPorIds(fb, "diario", itens.map((x) => x.id), DIARIO_VALIDADE);
+  return itens.map((x) => { const d = docs.get(x.id); return d ? { id: x.id, ...d, _srv: x } : null; }).filter(Boolean);
+}
 async function buscarPrincipais(continuar = false) {
   const base = [fb.collection(fb.db, "diario"), fb.orderBy("criadoEm", "desc")];
   if (continuar) {
+    // Primeiro o resto do ranking do servidor (as boas que não couberam), depois as mais antigas do país.
+    if (restoRanking.length) {
+      const lote = restoRanking.splice(0, 40);
+      maisPrincipais = !!restoRanking.length || !!cursorPrincipais;
+      return ordenarPrincipais(await postsDoRanking(lote), { marcador: false });
+    }
     if (!cursorPrincipais) return [];
     const s = await fb.getDocs(fb.query(...base, fb.startAfter(cursorPrincipais), fb.limit(RECENTES_PAIS)));
     cursorPrincipais = s.docs.at(-1) || null; maisPrincipais = s.size === RECENTES_PAIS;
     return ordenarPrincipais(s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })), { marcador: false });
   }
+  const regiao = regiaoLeitor();
+  // Com o ranking do servidor (Blaze): as melhores das últimas 48 h da sua cidade, do seu estado e do Brasil, já com os
+  // números; mais as 20 recentes do país (as que saíram depois da última rodada da função, a cada 15 min).
+  const ranking = await lerRanking(fb, regiao);
+  if (ranking) {
+    const { escolhidos, resto } = juntarRanking(ranking, undefined, (x) => escondido(x.autorId));
+    restoRanking = resto;
+    const q = fb.query(...base, fb.limit(RECENTES_COM_RANKING));
+    const [doRanking, s, deQuemSigo, republicados] = await Promise.all([
+      postsDoRanking(escolhidos).catch(() => []),
+      docsComValidade(fb, "diario-principais-" + RECENTES_COM_RANKING, q, DIARIO_VALIDADE),
+      buscarSeguindo().catch(() => []),
+      buscarRepublicados().catch(() => []),
+      sincronizarGosto(fb, eu.uid)
+    ]);
+    cursorPrincipais = s.docs.at(-1) || null; maisPrincipais = !!restoRanking.length || s.size === RECENTES_COM_RANKING;
+    return ordenarPrincipais([...doRanking, ...s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })), ...deQuemSigo, ...republicados]);
+  }
+  restoRanking = [];
   const q = fb.query(...base, fb.limit(RECENTES_PAIS));
   const [s, deQuemSigo, doEstado, republicados] = await Promise.all([
     docsComValidade(fb, "diario-principais", q, DIARIO_VALIDADE),
     buscarSeguindo().catch(() => []),
-    postsDoEstado(fb, regiaoLeitor().uf),
+    postsDoEstado(fb, regiao.uf),
     buscarRepublicados().catch(() => []),
     sincronizarGosto(fb, eu.uid)
   ]);
@@ -274,10 +309,13 @@ async function buscarPrincipais(continuar = false) {
 async function ordenarPrincipais(bruto, { marcador = true } = {}) {
   // Sem repetidas; a mesma publicação vinda também por uma republicação guarda o "Fulano republicou".
   const unicos = new Map();
-  bruto.forEach((p) => { const x = unicos.get(p.id); if (!x) unicos.set(p.id, p); else if (p._repost && !x._repost) x._repost = p._repost; });
+  bruto.forEach((p) => { const x = unicos.get(p.id); if (!x) unicos.set(p.id, p); else { if (p._repost && !x._repost) x._repost = p._repost; if (p._srv && !x._srv) x._srv = p._srv; } });
   const lista = [...unicos.values()].filter((p) => !escondido(p.autorId) && !postOculto(p));
   const regiao = regiaoLeitor();
-  const resumos = await lerResumosEstrelas(lista.map((p) => p.id));
+  // Estrelas: as do ranking já vêm do servidor; só as outras são lidas.
+  const lidos = await lerResumosEstrelas(lista.filter((p) => !p._srv).map((p) => p.id));
+  const resumos = new Map(lidos);
+  lista.forEach((p) => { if (p._srv) resumos.set(p.id, { total: p._srv.total, soma: p._srv.soma }); });
   const agora = Date.now();
   const sigo = (p) => meusSeguindo.has(p.autorId) || !!p._repost;
   const minha = (p) => p.autorId === eu.uid;
@@ -285,8 +323,10 @@ async function ordenarPrincipais(bruto, { marcador = true } = {}) {
   const eng = (p) => { const r = resumos.get(p.id) || { total: 0, soma: 0 }; return r.total + Math.max(0, r.soma - 3 * r.total) * 0.4; };
   const pre = (p) => (1 + eng(p)) * (1 + gosto.get(p.id)) * (sigo(p) ? 1.8 : 1);
   // Comentários: conta só para as 20 mais promissoras (contagem guardada no aparelho por alguns minutos).
-  const ordem1 = lista.slice().sort((a, b) => pre(b) - pre(a)).slice(0, 20);
+  // (As do ranking do servidor já trazem os comentários.)
+  const ordem1 = lista.filter((p) => !p._srv).sort((a, b) => pre(b) - pre(a)).slice(0, 20);
   const com = new Map(await Promise.all(ordem1.map(async (p) => [p.id, await contarComentarios(p.id).catch(() => 0)])));
+  lista.forEach((p) => { if (p._srv) com.set(p.id, p._srv.comentarios); });
   // Nota de cada publicação (03/11/2026: as novas não ficam mais embaixo das antigas).
   // - Engajamento conta com retorno decrescente (log): 30 estrelas não valem 30× uma publicação nova sem nenhuma.
   //   Antes contava cheio e a idade pesava pouco (expoente 1,1 para quem você segue): uma publicação de 2 dias muito
@@ -299,7 +339,7 @@ async function ordenarPrincipais(bruto, { marcador = true } = {}) {
     const quando = Math.max(ms(p.agendadoPara) || ms(p.criadoEm) || agora, p._repost?.em || 0);
     const horas = Math.max(0, (agora - quando) / 3600e3);
     // Sua cidade e seu estado pesam mais (site nacional): regiao.js. Republicada por quem você segue: empurrão social.
-    const base = (1 + 1.2 * engDe(p)) * (1 + gosto.get(p.id)) * (sigo(p) ? 1.6 : 1) * (p._repost ? 1.2 + 0.15 * Math.min(4, p._repost.outros) : 1) * pesoRegiao(p, regiao);
+    const base = (1 + 1.2 * engDe(p)) * (1 + gosto.get(p.id)) * (sigo(p) ? 1.6 : 1) * (p._repost ? 1.2 + 0.15 * Math.min(4, p._repost.outros) : 1) * pesoRegiao(p, regiao) * fatorTaxa(p._srv);
     // As suas: no topo logo depois de publicar (até 3 h) e depois descem como as outras.
     if (minha(p)) return base * (horas < 3 ? 12 : 0.3) / Math.pow(horas + 2, 1.3);
     const visto = jaVisto(p.id);

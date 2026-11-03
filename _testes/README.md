@@ -102,6 +102,7 @@ Capturas de tela, Excel baixados e logs ficam em `saida/` (fora do git).
 | `gerar-xlsx.mjs`, `checar-xlsx.py`, `checar-todos.py` | Gera planilhas extremas e valida: Open XML SDK da Microsoft (Office 2007/2016/365) + consistência (referências, links, mesclas, nomes) + openpyxl. |
 | `dividir-regras.py` | Divide o `firestore.rules` em `_regras/parte-X-de-N.txt` (até 12.800 bytes, corte em fim de linha, linha `// ===== FIM DA PARTE X DE N =====`), confere byte a byte e grava os remontados em `saida/` para rodar `node testes-regras.mjs saida/remontado-com-marcas.rules`. |
 | `t-sino-rapido.mjs` | Velocidade do painel do sino com 4G simulado (`LAT=150`): 1ª abertura e abertura em outra página com a cópia do aparelho (falha se passar de 1,5 s; `SEM_LIMITE=1` só mede). |
+| `t-servidor.mjs` | **Etapa A (servidor):** conta do ranking (taxa por alcance, 3 por pessoa, listas por estado/cidade), função `montarRankingDiario` no emulador (`FUNCOES=1 ./emulador.sh`; o teste chama `montarRankingAgora`), Diário lendo o ranking (e voltando ao antigo com a lista velha), tempo de resposta e pedido conferidos no servidor e mostrados no chat. |
 | `versoes.py` | Aumenta o `?v=` de cada .js/.css alterado (em relação ao HEAD) em todos que o importam, em cascata, uma vez só, e falha se dois arquivos importarem o mesmo módulo com `?v=` diferentes (arquivo novo fica fora da troca automática). Rode antes de cada commit. |
 
 ## Cuidados que já custaram tempo

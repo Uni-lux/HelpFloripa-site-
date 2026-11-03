@@ -1,5 +1,10 @@
 # Regras do Firestore — publicação
 
+> **Versão de 03/11/2026 — Etapa A (servidor):** coleção nova **`ranking_diario`** (as listas do Diário montadas pela
+> Cloud Function: quem está logado lê, só o servidor grava). Enquanto não publicar (ou sem o Blaze), o Diário funciona como
+> antes. O tempo de resposta do servidor (`perfis_publicos.respostaServ`) já é protegido pelas regras de hoje (o dono não
+> grava esse campo). Junto vai tudo o que ainda não estava publicado.
+
 > **Versão de 28/10/2026 — cobrança da condição especial:** a negociação aprovada **com valor** fica
 > `aguardando_pagamento` (sem plano); a pessoa gera o pedido de pagamento (`planos_pedidos` com `negociacaoId`, só com o
 > plano, a duração e o valor iguais aos combinados) e o plano só liga quando os donos confirmam o pagamento (ou o
@@ -89,7 +94,7 @@ linha), para colar no console do Firebase.
 - Cada parte termina com a linha `// ===== FIM DA PARTE X DE 16 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
 - Conferido: as 16 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **762 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
+- Testes de regras no arquivo remontado: **769 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.

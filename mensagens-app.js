@@ -1,5 +1,6 @@
 // Código da página (saiu de dentro do HTML para ficar guardado no aparelho pelo service worker: a página abre mais rápido).
 import "./sem-menu-imagem.js?v=1";
+import { FUNCOES_LIGADAS, respostaDoPerfil } from "./servidor.js?v=1";
 import { docRapido, docsRapido } from "./rapido.js?v=1";
 import { ligarDeslizarFlash } from "./deslizar-flash.js?v=4";
 import { ligarQuadro } from "./quadro-rede.js?v=1";
@@ -391,7 +392,16 @@ function cartaoPedido(m, c, tipo, href) {
   box.appendChild(alerta);
   const somaItens = Math.round(itens.reduce((t, i) => t + (Number(i?.preco) > 0 ? Number(i.preco) : 0) * Math.max(0, parseInt(i?.qtd, 10) || 0), 0) * 100) / 100;
   const totalCerto = Math.round((somaItens + (Number(p.taxa) > 0 ? Number(p.taxa) : 0)) * 100) / 100;
-  if (Math.abs(totalCerto - (Number(p.total) || 0)) > 0.009 || Math.abs(subtotal - somaItens) > 0.009) {
+  // Conferido no servidor (Cloud Function conferirMensagem, com o Blaze): vale o resultado de lá, para os dois lados.
+  const cf = m.conferencia && typeof m.conferencia === "object" ? m.conferencia : null;
+  if (cf && cf.ok) {
+    const ok = document.createElement("div"); ok.className = "pd-conferido"; ok.setAttribute("role", "status");
+    ok.append(iconeSvg("check"), document.createTextNode("Valores conferidos com o cardápio pelo Help Floripa"));
+    box.insertBefore(ok, alerta);
+  } else if (cf) {
+    alerta.textContent = `Atenção: ${(Array.isArray(cf.avisos) ? cf.avisos : []).map((x) => String(x).slice(0, 200)).slice(0, 5).join(" ") || "os valores deste pedido não conferem com o negócio."} Confira antes de confirmar.`;
+    alerta.hidden = false;
+  } else if (Math.abs(totalCerto - (Number(p.total) || 0)) > 0.009 || Math.abs(subtotal - somaItens) > 0.009) {
     alerta.textContent = `Atenção: os valores deste pedido não batem com os itens (itens + entrega = ${reais(totalCerto)}). Confira antes de confirmar.`;
     alerta.hidden = false;
   } else if (m.remetenteId !== eu.uid) {
@@ -1757,7 +1767,7 @@ function assinaturaMsg(m, data, primeira) {
   const original = m.resposta?.id ? mensagens.find((x) => x.id === m.resposta.id) : null;
   return JSON.stringify([primeira, hora(data), m.texto || "", m.arquivoUrl || "", m.tipoArquivo || "", m.cartao || null, m.avaliacao || null,
     m.resposta || null, original ? resumoMensagem(original) : "", ativa?.nome || "", ms(m.apagada?.em) || (m.apagada ? 1 : 0), ms(m.editadaEm),
-    m.apagada ? noPrazo(m.apagada.em) : 0]);
+    m.apagada ? noPrazo(m.apagada.em) : 0, m.conferencia ? (m.conferencia.ok ? 1 : 2) : 0]);
 }
 
 function renderizarMensagens(chegouDoOutro) {
@@ -2292,7 +2302,8 @@ function pintarAtendimento() {
   const ausente = ausenteAgora(a), sem = semanaDe(a);
   if (ausente) add("ausente", ms(a.volta) ? `volta ${dataVoltaTxt(a.volta)}` : "", ms(a.volta) ? "Ausente ·" : "Ausente no momento");
   else if (sem) { const st = situacaoHorario(sem, a.almoco, relogioDe(ufDe(perfilOutroAtual))); add(st.cls, resumoSemana(sem, a.almoco), st.txt + " ·"); }
-  if (deNegocio && a.resposta?.n >= 3) add("", `Costuma responder em ${tempoTxt(a.resposta.media)}`);
+  const respOutro = respostaDoPerfil(perfilOutroAtual);
+  if (deNegocio && respOutro) add("", `Costuma responder em ${tempoTxt(respOutro.media)}`);
   if (ausente && a.mensagem) add("aus", a.mensagem);
   // Ausente com horário: o horário continua aparecendo (quem escreve sabe quando você atende).
   if (ausente && sem) add("", resumoSemana(sem, a.almoco), "Horário:");
@@ -2363,7 +2374,8 @@ function abrirGavetaAtendimento() {
     if (al) { const i = elm("div", "pv-info"); i.append(usar("relogio"), document.createTextNode(`Pausa para almoço das ${horaTxt(al.ini)} às ${horaTxt(al.fim)}`)); sec.appendChild(i); }
     corpo.appendChild(sec);
   }
-  if (a.resposta?.n >= 3) { const i = elm("div", "pv-info"); i.append(usar("chat"), document.createTextNode(`Costuma responder em ${tempoTxt(a.resposta.media)}`)); corpo.appendChild(i); }
+  const respPv = respostaDoPerfil(perfilOutroAtual);
+  if (respPv) { const i = elm("div", "pv-info"); i.append(usar("chat"), document.createTextNode(`Costuma responder em ${tempoTxt(respPv.media)}`)); corpo.appendChild(i); }
   const ver = elm("button", "pv-btn"); ver.type = "button"; ver.append(usar("pessoa"), document.createTextNode("Ver perfil e negócios"));
   ver.addEventListener("click", () => { fechar(); setTimeout(abrirPreviaPerfil, 260); });
   corpo.appendChild(ver);
@@ -2376,7 +2388,7 @@ const maiusc = (t) => String(t).charAt(0).toUpperCase() + String(t).slice(1);
 let vitrineMod = null;
 function carregarVitrine() {
   if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=42"; l.dataset.vitrine = ""; document.head.appendChild(l); }
-  return (vitrineMod ||= import("./vitrine.js?v=81"));
+  return (vitrineMod ||= import("./vitrine.js?v=82"));
 }
 function usarCartaoNaConversa(uid, cartao) {
   document.querySelectorAll(".vt-modal").forEach((m) => m.remove());
@@ -3191,6 +3203,7 @@ async function enviar() {
 }
 
 async function registrarTempoResposta(desde) {
+  if (FUNCOES_LIGADAS) return; // o servidor calcula (functions/seguranca-chat.js)
   try {
     if (!(await negociosDoUsuario()).length) return;
     const min = Math.min(1440, Math.max(0, (Date.now() - desde) / 60000));
@@ -3815,7 +3828,7 @@ async function pintarConfigAtendimento() {
   $("atendMensagem").value = a.mensagem || "";
   $("atendTempo").textContent = semServidor
     ? "Sem conexão com o servidor agora: mostrando a última cópia deste aparelho. Confira antes de salvar."
-    : a.resposta?.n >= 3 ? `Seu tempo médio de resposta: ${tempoTxt(a.resposta.media)} (aparece nas conversas de negócio).` : "Todos que conversam com você veem isso no topo da conversa. O tempo médio de resposta aparece depois de 3 respostas.";
+    : respostaDoPerfil(meuPerfil) ? `Seu tempo médio de resposta: ${tempoTxt(respostaDoPerfil(meuPerfil).media)} (aparece nas conversas de negócio).` : "Todos que conversam com você veem isso no topo da conversa. O tempo médio de resposta aparece depois de 3 respostas.";
   pintarDiasAtend();
 }
 // Uma linha por dia (segunda primeiro): liga/desliga e horário de início e fim.

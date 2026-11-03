@@ -89,8 +89,8 @@ ok(avs.length === 1 && /^Pedido #[A-Z0-9]{6}/.test(avs[0].avaliacao.titulo), "En
   const cs = b.locator(".pedido-pro");
   const n = await cs.count();
   const a1 = await cs.nth(n - 2).locator(".pd-alerta").textContent(), a2 = await cs.nth(n - 1).locator(".pd-alerta").textContent();
-  ok(a1.includes("cardápio") && a1.includes("FALSO10"), "preço e cupom diferentes do cardápio: alerta para o negócio");
-  ok(a2.includes("não batem"), "total que não bate com os itens: alerta");
+  ok(a1.includes("cardápio") && (a1.includes("FALSO10") || a1.includes("promoção")), "preço e cupom diferentes do cardápio: alerta para o negócio");
+  ok(a2.includes("não batem") || a2.includes("Total do pedido"), "total que não bate com os itens: alerta (do aparelho ou, com as Functions, do servidor)");
   await cs.nth(n - 2).screenshot({ path: "saida/pedido-alerta.png" });
 }
 await browser.close(); await NB.browser.close();

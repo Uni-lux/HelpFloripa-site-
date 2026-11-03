@@ -1,3 +1,13 @@
+      allow create, update: if logado() && contaCerta();
+      // Recalcular (moderação): números inteiros, sem campo estranho.
+      allow create, update: if podeModerar()
+                    && request.resource.data.keys().hasOnly(['total', 'soma', 'n1', 'n2', 'n3', 'n4', 'n5'])
+                    && request.resource.data.total is int && request.resource.data.soma is int
+                    && request.resource.data.n1 is int && request.resource.data.n2 is int && request.resource.data.n3 is int
+                    && request.resource.data.n4 is int && request.resource.data.n5 is int;
+      allow delete: if podeModerar();
+    }
+
     // =====================================================
     // COMENTÁRIOS: comentarios/{id}
     // - Resposta: respostaA = id do comentário respondido (mesma publicação)

@@ -2773,6 +2773,16 @@ service cloud.firestore {
     }
 
     // ===================================================
+    // Ranking do Diário (Etapa A, com o plano Blaze): ranking_diario/br e ranking_diario/uf_XX, montados a cada 15 min
+    // pela Cloud Function montarRankingDiario (functions/diario-ranking.js). Só o servidor grava; quem está logado lê.
+    // servidor_atendimento/{conversa} (espera do tempo de resposta) é só do servidor: sem regra, ninguém lê nem grava.
+    // ===================================================
+    match /ranking_diario/{id} {
+      allow read: if logado();
+      allow write: if false;
+    }
+
+    // ===================================================
     // RESUMO DAS ESTRELAS DE UMA PUBLICAÇÃO: diario_notas/{postId} { total, soma, n1..n5 }
     // Uma leitura mostra a média e quantas pessoas deram 5, 4, 3, 2 e 1 estrela, com mil ou um milhão
     // de notas. Só muda junto com a nota de quem grava (curtidas/{postId}_{uid}), na conta exata:
