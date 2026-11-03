@@ -85,11 +85,11 @@ Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. S
 `firestore.rules` divididas em **16 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
-- Arquivo de origem: `firestore.rules` (190.347 bytes, 3.136 linhas, sha256 começa com `2d009a3d9f29c57f`).
+- Arquivo de origem: `firestore.rules` (193.508 bytes, 3.167 linhas, sha256 começa com `8c3d7f41432681be`).
 - Cada parte termina com a linha `// ===== FIM DA PARTE X DE 16 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
 - Conferido: as 16 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **758 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
+- Testes de regras no arquivo remontado: **762 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.
@@ -145,6 +145,10 @@ linha), para colar no console do Firebase.
   (`contagem_lembretes`) com o aviso no sino quando acaba e o público do flash (`stories.alvo`: idade, gênero, lugar,
   seguidores). Antes de publicar, o flash vai sem a contagem/sem o público (o site avisa).
 - O resto (toque duplo para dar estrelas, quem deu estrelas, Salvos, editar legenda) já funciona com as regras de hoje.
+
+- **Limite diário do Flash (anti-spam):** até 50 flashes por dia por pessoa, contados no mesmo `ritmo/{uid}` das
+  mensagens, publicações e comentários (o site soma 1 na mesma gravação do flash; o 51º é recusado com o aviso do
+  limite). Antes de publicar, o flash vai sem contar, como hoje.
 
 ## Conferência no site depois de publicar
 0. **Logo depois de publicar: Painel → Publicações → "Recalcular estrelas"** (uma vez só). Monta o resumo das

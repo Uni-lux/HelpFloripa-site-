@@ -135,8 +135,8 @@ service cloud.firestore {
           && exists(/databases/$(database)/documents/negocios/$(l.negocioId))
           && valorTextoAte(l.get('nome', ''), 80)
           && l.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude']
-          && (!('x' in l) || (l.x is number && l.x >= 0 && l.x <= 1))
-          && (!('y' in l) || (l.y is number && l.y >= 0 && l.y <= 1));
+          // x e y num regex só (como na caixa): sobra espaço no limite de 1.000 para o limite diário do flash
+          && (string(l.get('x', 0)) + ' ' + string(l.get('y', 0))).matches('^(0|1|0[.][0-9]+|1[.]0+) (0|1|0[.][0-9]+|1[.]0+)$');
     }
     // Flash repostado: só quem foi mencionado no flash original (que ainda existe) reposta.
     function repostOk(r) {
@@ -2395,11 +2395,11 @@ service cloud.firestore {
     // =====================================================
     // LIMITE DIÁRIO (anti-spam): ritmo/{uid}
     // Janela de 24 h a partir da primeira ação. Por janela: até 500 mensagens,
-    // 20 publicações e 200 comentários. Cada ação soma exatamente 1 no seu tipo.
+    // 20 publicações, 200 comentários, 3 propostas e 50 flashes. Cada ação soma exatamente 1 no seu tipo.
     // =====================================================
     match /ritmo/{uid} {
       function limite(t) {
-        return t == 'msg' ? 500 : (t == 'pub' ? 20 : (t == 'parc' ? 3 : 200));
+        return t == 'msg' ? 500 : (t == 'pub' ? 20 : (t == 'parc' ? 3 : (t == 'flash' ? 50 : 200)));
       }
       function janelaNova() {
         return resource == null || resource.data.inicio < request.time - duration.value(1, 'd');
@@ -2414,14 +2414,15 @@ service cloud.firestore {
       allow read: if admin();
       allow create, update: if logado()
                     && request.auth.uid == uid
-                    && request.resource.data.keys().hasOnly(['inicio', 'msg', 'pub', 'com', 'parc', 'ultimaEm', 'ultimoTipo'])
-                    && request.resource.data.ultimoTipo in ['msg', 'pub', 'com', 'parc']
+                    && request.resource.data.keys().hasOnly(['inicio', 'msg', 'pub', 'com', 'parc', 'flash', 'ultimaEm', 'ultimoTipo'])
+                    && request.resource.data.ultimoTipo in ['msg', 'pub', 'com', 'parc', 'flash']
                     && request.resource.data.ultimaEm == request.time
                     && request.resource.data.inicio == (janelaNova() ? request.time : resource.data.inicio)
                     && contaOk('msg', request.resource.data.ultimoTipo)
                     && contaOk('pub', request.resource.data.ultimoTipo)
                     && contaOk('com', request.resource.data.ultimoTipo)
                     && contaOk('parc', request.resource.data.ultimoTipo)
+                    && contaOk('flash', request.resource.data.ultimoTipo)
                     && request.resource.data.get(request.resource.data.ultimoTipo, 0) <= limite(request.resource.data.ultimoTipo);
       allow delete: if false;
     }
@@ -2554,7 +2555,8 @@ service cloud.firestore {
                     || resource.data.criadoEm > request.time - duration.value(26, 'h')
                     || resource.data.get('destacado', false) == true
                     || podeModerar());
-      allow create: if logado() && emailOk() && flashNovoOk(request.resource.data) && !sancionado(request.auth.uid);
+      // Anti-spam: até 50 flashes por dia (ritmo/{uid}, gravado junto na mesma operação).
+      allow create: if logado() && emailOk() && flashNovoOk(request.resource.data) && !sancionado(request.auth.uid) && ritmoOk('flash');
       allow delete: if logado() && (resource.data.autorId == request.auth.uid || podeModerar());
       // O autor só marca/desmarca "destacado" (o flash está num destaque do perfil); o resto não muda depois de publicado.
       allow update: if logado() && resource.data.autorId == request.auth.uid

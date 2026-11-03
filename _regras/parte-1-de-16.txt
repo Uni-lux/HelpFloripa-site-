@@ -135,8 +135,8 @@ service cloud.firestore {
           && exists(/databases/$(database)/documents/negocios/$(l.negocioId))
           && valorTextoAte(l.get('nome', ''), 80)
           && l.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude']
-          && (!('x' in l) || (l.x is number && l.x >= 0 && l.x <= 1))
-          && (!('y' in l) || (l.y is number && l.y >= 0 && l.y <= 1));
+          // x e y num regex só (como na caixa): sobra espaço no limite de 1.000 para o limite diário do flash
+          && (string(l.get('x', 0)) + ' ' + string(l.get('y', 0))).matches('^(0|1|0[.][0-9]+|1[.]0+) (0|1|0[.][0-9]+|1[.]0+)$');
     }
     // Flash repostado: só quem foi mencionado no flash original (que ainda existe) reposta.
     function repostOk(r) {
