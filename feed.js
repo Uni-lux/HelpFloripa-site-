@@ -15,12 +15,12 @@ import {
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, botaoSeguir, montarBarraRede, marcarBarra, pintarBarraRede, ouvirAvisos, lerOrdenado,
   editarPublicacao, bloquear, comMencoes, fotosDoPost, carrosselFotos, contadorEstrelas, estaSalvo, alternarSalvo, escolherColecao, lerResumosEstrelas, contarComentarios,
   silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto, confirmarHF, blocoEnquete, blocoCaixa, editarPublicoDoPost, apagarFlashesDaPublicacao
-} from "./rede.js?v=112";
+} from "./rede.js?v=113";
 import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=2";
-import { montarStories, abrirFlashPorId, repostarFlash, voltarAoFlash, novoFlash } from "./stories.js?v=84";
+import { montarStories, abrirFlashPorId, abrirFlashesDoNegocio, repostarFlash, voltarAoFlash, novoFlash } from "./stories.js?v=85";
 import { abrirDenuncia } from "./denuncias.js?v=6";
 import { pessoasRecentes } from "./pessoas.js?v=5";
-import { abrirExplorar, definirCartao, abrirPublicacao } from "./explorar.js?v=97";
+import { abrirExplorar, definirCartao, abrirPublicacao } from "./explorar.js?v=98";
 import { docsComValidade, docsPorIds } from "./leituras.js?v=3";
 import { lerLocal } from "./local-escolhido.js?v=3";
 import { distanciaKm, minhaPosicao } from "./perto.js?v=2";
@@ -81,7 +81,7 @@ const tipoDe = (p) => p.tipo || (p.enquete?.pergunta ? "enquete" : p.caixa?.perg
 const doTipo = (p) => tipoFeed === "tudo" || (tipoFeed === "fotos" ? ["foto", "video"].includes(tipoDe(p)) : tipoFeed === "enquetes" ? ["enquete", "caixa"].includes(tipoDe(p)) : tipoDe(p) === "texto");
 const daAba = (p) => p._emDia ? tipoFeed === "tudo" && !tagAtual && !localAtual : !!(tagAtual || localAtual) || doTipo(p);
 // Reels: os vídeos já lidos + os mais novos do servidor, com as mesmas regras do Diário (silenciados, público...).
-const verReels = (comecarEm = null) => import("./reels.js?v=31").then((m) => m.abrirReels({ lista: todosPosts, oculto: postOculto, comecarEm, aoNovo: () => compor("video") }));
+const verReels = (comecarEm = null) => import("./reels.js?v=32").then((m) => m.abrirReels({ lista: todosPosts, oculto: postOculto, comecarEm, aoNovo: () => compor("video") }));
 const compor = (inicio = "") => abrirCompositor({ aoPublicar: ganchos.aoPublicar, inicio });
 function pintarTipos() {
   const w = $("tiposFeed"); if (!w) return;
@@ -546,7 +546,7 @@ function cartaoPost(post) {
       : { rotulo: "Salvar publicação", sub: "Para ver depois no seu Perfil → Salvos", icone: "salvo", fn: () => alternarSalvo(post) },
     { rotulo: "Salvar em uma coleção", sub: "Organize seus salvos em pastas", icone: "fotos", fn: () => escolherColecao(post) },
     { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(post.autorId, post.nome) },
-    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=79").then((m) => m.abrirEstatisticas(post)) },
+    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=80").then((m) => m.abrirEstatisticas(post)) },
     post.autorId === eu.uid && { rotulo: "Editar publicação", icone: "lapis", fn: () => editarPublicacao(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId === eu.uid && { rotulo: "Público da publicação", sub: temPublico(post) ? resumoPublico(post.publico) : "Para todos · escolha idade, gênero, lugar e seguidores", icone: "pessoa-mais", fn: () => editarPublicoDoPost(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId !== eu.uid && { rotulo: silenciado(post.autorId) ? `Mostrar ${nome.textContent} de novo` : `Silenciar ${nome.textContent}`, sub: "Continua seguindo, mas as publicações e flashes somem do seu Diário", icone: "restringir",
@@ -706,7 +706,16 @@ async function pintarLateral() {
   }
   // Links das mensagens do Flash: feed.html?flash=ID abre o flash; ?repostar=ID abre o criador para repostar.
   // Voltou de um link aberto de dentro de um flash: o mesmo flash abre de novo.
-  if (!voltouAoFlash && /^[A-Za-z0-9]{1,64}$/.test(p.get("flash") || "")) abrirFlashPorId(p.get("flash"));
+  // Flash de um perfil de negócio (vindo da vitrine: feed.html?flash=ID&negocio=UID_tipo): abre a sequência do negócio no
+  // visor completo, com o negócio no topo; fechar volta para a vitrine.
+  const negFlash = p.get("negocio") || "";
+  if (!voltouAoFlash && /^[A-Za-z0-9]{1,64}$/.test(p.get("flash") || "") && /^[A-Za-z0-9]{10,40}_(servicos|delivery|lojinha|imoveis|saude)$/.test(negFlash)) {
+    const daVitrine = (() => { try { return !!document.referrer && new URL(document.referrer).origin === location.origin && history.length > 1; } catch { return false; } })();
+    fb.getDoc(fb.doc(fb.db, "negocios", negFlash)).then((d) => {
+      const n = d.exists() ? d.data() : {};
+      abrirFlashesDoNegocio({ id: negFlash, nome: n.nome || "", foto: n.foto || "", tipo: n.tipo || negFlash.split("_")[1] }, { comecarEm: p.get("flash"), aoFechar: () => { if (daVitrine) setTimeout(() => history.back(), 60); } });
+    }).catch(() => abrirFlashPorId(p.get("flash")));
+  } else if (!voltouAoFlash && /^[A-Za-z0-9]{1,64}$/.test(p.get("flash") || "")) abrirFlashPorId(p.get("flash"));
   if (/^[A-Za-z0-9]{1,64}$/.test(p.get("repostar") || "")) repostarFlash(p.get("repostar"));
   // Deslizar o dedo para a direita no Diário (deslizar-flash.js) abre o criador do Flash; ?novoFlash=1 também abre.
   window.__hfAbrirFlash = () => novoFlash();

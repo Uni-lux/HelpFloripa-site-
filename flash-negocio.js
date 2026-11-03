@@ -1,5 +1,6 @@
 // =====================================================
-// Flash no perfil de negócio: anel em volta da foto do negócio e visor em tela cheia.
+// Flash no perfil de negócio: anel em volta da foto do negócio. Tocar abre o visor completo do Flash (stories.js
+// abrirFlashesDoNegocio), com as figurinhas; o visor leve daqui ficou só de reserva.
 // O dono escolhe, ao publicar o flash, em quais perfis de negócio ele aparece (stories.negocios = [uid_tipo]).
 // Funciona nas vitrines (servicos/delivery/shopping/imoveis) e no perfil, sem depender do rede.js.
 // Quem vê: as mesmas escolhas do autor (Amigos próximos e "Ocultar de") e 24 h.
@@ -87,7 +88,18 @@ export async function anelNegocio(fbx, euX, alvo, n, opcoes = {}) {
   pintar();
   if (!alvo._fnLigado) {
     alvo._fnLigado = true;
-    const abrir = (e) => { e.stopPropagation(); e.preventDefault(); abrirVisorNegocio(fbx, euX, n, lista, { ...opcoes, aoFechar: () => { pintar(); opcoes.aoFechar?.(); } }); };
+    // Abre no visor COMPLETO do Flash (enquete/teste, perguntas, contagem, link, lugar, # e @, estrela e responder),
+    // com o negócio no topo. Onde ele já está carregado (Diário, perfis), abre aqui; nas vitrines, abre o Diário com o
+    // flash do negócio e o "voltar" traz de volta (o visor leve abaixo fica só de reserva, se o Diário não abrir).
+    const abrir = (e) => {
+      e.stopPropagation(); e.preventDefault();
+      const neg = { id: n.id, nome: n.nome || "", foto: seguro(n.foto), tipo: n.tipo || String(n.id).split("_")[1] || "" };
+      const aoFechar = () => { pintar(); opcoes.aoFechar?.(); };
+      if (typeof window.__hfVisorNegocio === "function") { window.__hfVisorNegocio(neg, { lista, aoFechar }); return; }
+      const primeiro = lista.find((x) => !vistos().has(x.id)) || lista[0];
+      try { location.href = `feed.html?flash=${encodeURIComponent(primeiro.id)}&negocio=${encodeURIComponent(n.id)}`; }
+      catch { abrirVisorNegocio(fbx, euX, n, lista, { ...opcoes, aoFechar }); }
+    };
     alvo.addEventListener("click", abrir);
     alvo.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") abrir(e); });
   }

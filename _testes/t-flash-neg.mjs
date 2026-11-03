@@ -50,7 +50,7 @@ const pa = await entrar(A.ctx, "ana", "feed.html");
 await pa.waitForSelector(".story-circ:not(.meu)", { timeout: 30000 }); await pa.waitForTimeout(1200);
 await pa.locator(".story-circ:not(.meu)").first().tap();
 await pa.waitForSelector(".story-visor .story-barra", { timeout: 10000 });
-ok(await pa.locator(".story-visor .story-barra").count() === 1 && (await pa.locator(".story-visor .story-onde").textContent()).includes("Também no perfil de 2 negócios"), "Diário: só o flash do perfil (1), com 'Também no perfil de 2 negócios'");
+ok(await pa.locator(".story-visor .story-barra").count() === 1 && (await pa.locator(".story-visor .story-onde").textContent()).includes("Também em 2 negócios"), "Diário: só o flash do perfil (1), com 'Também em 2 negócios'");
 await pa.keyboard.press("Escape"); await pa.waitForTimeout(300);
 // 4) Perfil do negócio Bruno Reparos: anel e os 2 flashes
 await pa.goto(BASE + `servicos.html?negocio=${U.bruno}_servicos`);
@@ -58,18 +58,22 @@ await pa.waitForSelector(".vd-logo.fn-anel", { timeout: 20000 }).catch(() => {})
 ok(await pa.locator(".vd-logo.fn-anel").count() === 1, "perfil do negócio: anel do flash na foto");
 await pa.screenshot({ path: "saida/fn-perfil-negocio.png" });
 await pa.locator(".vd-logo").click();
-await pa.waitForSelector(".fn-visor .fn-barra", { timeout: 8000 });
-ok(await pa.locator(".fn-visor .fn-barra").count() === 2 && (await pa.locator(".fn-visor .fn-quem strong").textContent()).includes("Bruno Reparos"), "visor do negócio: 2 flashes com o nome do negócio");
-ok(await pa.locator(".fn-visor .fn-rodape button", { hasText: "Enviar mensagem" }).count() === 1, "visor do negócio: botão Enviar mensagem");
+// Abre o visor COMPLETO do Flash (no Diário), com o negócio no topo; fechar volta para a vitrine.
+await pa.waitForSelector(".story-visor .story-barra", { timeout: 20000 });
+await pa.waitForTimeout(800);
+ok(await pa.locator(".story-visor .story-barra").count() === 2 && (await pa.locator(".story-visor .story-nome strong").textContent()).includes("Bruno Reparos"), "visor do negócio: 2 flashes com o nome do negócio");
+ok(/por Bruno/.test(await pa.locator(".story-visor .story-por").textContent().catch(() => "")) && await pa.locator(".story-visor .story-responder input").count() >= 1, "visor do negócio: \"por Bruno\" e o campo de responder (vai para o Mensagens)");
 await pa.waitForTimeout(500); await pa.screenshot({ path: "saida/fn-visor-negocio.png" });
-await pa.keyboard.press("Escape"); await pa.waitForTimeout(300);
+await pa.keyboard.press("Escape"); await pa.waitForURL(/servicos\.html/, { timeout: 10000 }).catch(() => {});
+ok(/servicos\.html/.test(pa.url()), "fechar o flash volta para a vitrine do negócio");
 ok((await db.collection(`stories`).get()).docs.length >= 2, "ok");
 // 5) Bruno Imóveis: só o 2º
 await pa.goto(BASE + `imoveis.html?negocio=${U.bruno}_imoveis`);
 await pa.waitForSelector(".vd-logo.fn-anel", { timeout: 20000 }).catch(() => {});
 await pa.locator(".vd-logo").click();
-await pa.waitForSelector(".fn-visor .fn-barra", { timeout: 8000 }).catch(() => {});
-ok(await pa.locator(".fn-visor .fn-barra").count() === 1, "Bruno Imóveis: só o flash marcado para ele");
+await pa.waitForSelector(".story-visor .story-barra", { timeout: 20000 }).catch(() => {});
+await pa.waitForTimeout(500);
+ok(await pa.locator(".story-visor .story-barra").count() === 1, "Bruno Imóveis: só o flash marcado para ele");
 // 6) No perfil do Bruno, as bolinhas dos negócios têm o anel
 await pa.goto(BASE + `usuarios.html?perfil=${U.bruno}`);
 await pa.waitForSelector("#ppCabecalho [data-el=negocios] .vinculo .avatar.fn-anel", { timeout: 20000 }).catch(() => {});
