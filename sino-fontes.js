@@ -34,17 +34,28 @@ export function consultasDe(fs, db, [col, filtros], n = POR_FONTE) {
   };
 }
 
+// Índice que faltou: lembrado no aparelho por 6 h, para não gastar uma ida ao servidor recusada a cada abertura.
+const CH_IND = "hf-sino-sem-indice";
+const semIndice = (col) => { try { const m = JSON.parse(localStorage.getItem(CH_IND) || "{}"); return Date.now() - (m[col] || 0) < 6 * 36e5; } catch { return false; } };
+const marcarSemIndice = (col) => { try { const m = JSON.parse(localStorage.getItem(CH_IND) || "{}"); m[col] = Date.now(); localStorage.setItem(CH_IND, JSON.stringify(m)); } catch {} };
+const chaveFonte = ([col, filtros]) => col + ":" + filtros.length;
+
 // Leitura única (painel do sino e contador das outras páginas).
 export async function lerFonte(fs, db, fonte, n = POR_FONTE) {
   const { novas, reserva } = consultasDe(fs, db, fonte, n);
+  const k = chaveFonte(fonte);
+  if (semIndice(k)) return fs.getDocs(reserva);
   try { return await fs.getDocs(novas); }
-  catch (e) { if (!precisaIndice(e)) throw e; return fs.getDocs(reserva); }
+  catch (e) { if (!precisaIndice(e)) throw e; marcarSemIndice(k); return fs.getDocs(reserva); }
 }
 
 // Ao vivo (rede.js): se o índice faltar, troca sozinho para a reserva.
 export function ouvirFonte(fs, db, fonte, aoMudar, aoErro, n = POR_FONTE) {
   const { novas, reserva } = consultasDe(fs, db, fonte, n);
+  const k = chaveFonte(fonte);
+  if (semIndice(k)) { const p = fs.onSnapshot(reserva, (s) => aoMudar(s), aoErro); return () => p(); }
   let parar = fs.onSnapshot(novas, (s) => aoMudar(s), (e) => {
+    if (precisaIndice(e)) marcarSemIndice(k);
     if (precisaIndice(e)) parar = fs.onSnapshot(reserva, (s) => aoMudar(s), aoErro);
     else aoErro?.(e);
   });

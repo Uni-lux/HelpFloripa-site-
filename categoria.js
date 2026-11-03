@@ -5,15 +5,15 @@
 // - Categorias: marca a escolhida (a vitrine.js filtra a lista).
 // - Busca: o botão da lupa leva até o campo.
 // =====================================================
-import { fontesDoSino, lerFonte } from "./sino-fontes.js?v=1";
+import { fontesDoSino, lerFonte } from "./sino-fontes.js?v=2";
 import { fotoSegura } from "./seguranca.js?v=1";
 import { contarNovas } from "./mensagens-novas.js?v=1";
 import { definirPerfilMenu, definirBadgeMensagens } from "./menu.js?v=18";
 import { buscarReclamacoes } from "./avisos-reclamacoes.js?v=17";
 import { avisoPlano } from "./planos-base.js?v=15";
 import { ouvirItensEquipe } from "./avisos-equipe.js?v=1";
-import { enquetesEncerradas } from "./enquetes.js?v=6";
-import "./painel-avisos.js?v=44"; // o sino abre o painel de notificações na própria página
+import { enquetesEncerradas } from "./enquetes.js?v=7";
+import "./painel-avisos.js?v=45"; // o sino abre o painel de notificações na própria página
 import "./chat-gaveta.js?v=4";
 import "./sem-menu-imagem.js?v=1"; // segurar a foto não abre o menu de baixar/compartilhar
 import { docComValidade } from "./leituras.js?v=3"; // "Mensagens" abre as conversas por cima da página, sem sair dela

@@ -1487,6 +1487,15 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   assim mesmo); depois o item `{_emDia}` (`.feed-em-dia`: check, "Você está em dia", "Ver as anteriores de quem você segue" →
   Seguindo, título "Sugestões para você") e o resto na ordem de sempre. Só aparece se você segue alguém e há sugestões depois;
   não entra no "Ver mais" nem nos filtros de tipo. Teste `t-seguindo.mjs`; `t-diario-justo` carrega até 20 cartões.
+- **Sino rápido (03/11/2026, PR depois do #143, sem regra nova):** print dele com o painel do sino em "Carregando..." por
+  muito tempo. Causa: `carregar()` do painel-avisos.js fazia ~10 esperas em fila (conta → fontes → enquetes → plano → flash →
+  miniaturas → quem eu sigo → perfis). Agora: tudo num `Promise.all` (a conta é uma promessa compartilhada por suporte e
+  enquetes), miniaturas sob demanda pelo `ganchos.miniatura` e nomes/fotos pelo `ganchos.perfis` (docsPorIds), "Seguir de
+  volta" chega depois (`lista.redesenhar`). **Cópia da lista no aparelho** `hf-sino-lista-<uid>` (até 120 itens, fotos `data:`
+  grandes ficam fora, 7 dias): o sino abre com ela na hora ("· atualizando…") e a do servidor redesenha; a página
+  notificacoes.html também pinta a cópia antes dos ouvintes. A busca começa no `pointerdown` do sino. sino-fontes.js lembra
+  6 h o índice que falta (`hf-sino-sem-indice`, vai direto à reserva). enquetes.js: as 2 listas de votos em paralelo.
+  Medido (`t-sino-rapido.mjs`, emulador + 4G simulado): 1,85 s → 0,84 s na 1ª abertura e 0,08 s com a cópia.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
