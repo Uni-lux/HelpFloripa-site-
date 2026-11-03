@@ -105,6 +105,9 @@ async function anotarEmail(u) {
     const t = await u.getIdTokenResult(u.emailVerified);
     const v = t.claims.email_verified === true;
     if (sessionStorage.getItem(chave) === String(v) + "|" + (u.email || "")) return;
+    // Lê a conta ANTES de gravar: sem o documento na cópia do aparelho, a gravação (merge) deixava ali uma conta só com
+    // estes 3 campos e as leituras de logo depois (nesta página e no rede.js) vinham sem nome, cidade etc.
+    await getDoc(doc(db, "usuarios", u.uid)).catch(() => null);
     // Junto vai o e-mail do login (contas antigas não tinham o e-mail gravado: o painel mostrava "—").
     await setDoc(doc(db, "usuarios", u.uid), { emailConfirmado: v, emailConferidoEm: serverTimestamp(), ...(u.email ? { email: u.email } : {}) }, { merge: true });
     sessionStorage.setItem(chave, String(v) + "|" + (u.email || ""));
