@@ -14,7 +14,7 @@ import {
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados,
   responderNoChat, cartaoRespostaCaixa, fecharFolha, ajudaPublico
-} from "./rede.js?v=114";
+} from "./rede.js?v=115";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { combinaPublico, leitorDe, temPublico, resumoPublico, publicoParaGravar } from "./publico-alvo.js?v=1";
@@ -1462,12 +1462,25 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   }
 
   // ---------- figurinhas: arrastar, pinça (aumentar/diminuir) e girar ----------
-  // Um dedo arrasta (e leva até a lixeira); dois dedos (o 2º pode cair fora da figurinha) aumentam, diminuem e giram,
-  // como no Instagram. Enquete, perguntas e link do negócio só arrastam (no visor eles têm tamanho fixo).
+  // Como no Instagram: um dedo arrasta de qualquer ponto da figurinha (ela acompanha o dedo, sem pular); dois dedos (o 2º
+  // pode cair fora dela) aumentam, diminuem e giram. Durante o gesto só a posição/tamanho mudam (nada é redesenhado:
+  // antes cada movimento remontava a figurinha embaixo do dedo e o arrasto travava). Guias do meio (vertical e
+  // horizontal) encaixam com uma vibração; a lixeira acende quando o DEDO chega nela e a figurinha encolhe por cima.
+  // Enquete, teste, perguntas e contagem ficam inteiras dentro do cartão (do mesmo jeito que o visor mostra) e só
+  // arrastam (no visor elas têm tamanho fixo).
   const LIMITE_TAM = (t) => (t.ft ? [0.15, 1.3] : t.emoji ? [0.05, 0.5] : t.fig ? [0.03, 0.22] : [0.03, 0.3]);
   const giraEsse = (t) => !(t.enq || t.cx || t.lk || t.ct);
-  const gesto = { t: null, pts: new Map(), base: null, mexeu: false, dois: false };
+  const interativa = (t) => !!(t.enq || t.cx || t.ct);
+  const gesto = { t: null, pts: new Map(), base: null, mexeu: false, dois: false, quadro: 0, guiaV: false, guiaH: false, noLixo: false };
   const ptsArr = () => [...gesto.pts.values()];
+  function zerarGesto() {
+    if (gesto.t?.el) gesto.t.el.classList.remove("no-lixo", "segurando");
+    gesto.t = null; gesto.base = null; gesto.mexeu = false; gesto.dois = false; gesto.pts.clear();
+    gesto.guiaV = gesto.guiaH = gesto.noLixo = false;
+    cancelAnimationFrame(gesto.quadro); gesto.quadro = 0;
+    palco.classList.remove("arrastando-txt"); lixo.classList.remove("sobre");
+    guias.querySelectorAll(".on").forEach((g) => g.classList.remove("on"));
+  }
   function baseGesto() {
     const t = gesto.t, l = ptsArr();
     if (l.length >= 2 && giraEsse(t)) {
@@ -1476,14 +1489,53 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       gesto.dois = true;
     } else if (l.length) gesto.base = { dois: false, x: l[0].x, y: l[0].y, tx: t.x, ty: t.y };
   }
+  // Só o tamanho (pinça), sem remontar a figurinha.
+  function ajustarTam(t) {
+    const { W } = medidas(), e = t.el, px = Math.round(t.tam * W) + "px";
+    if (t.ft) e.style.width = px;
+    else if (t.fig) e.style.fontSize = px;
+    else if (!(t.enq || t.cx || t.ct || t.lk)) e.style.font = LETRAS[t.letra].css.replace("1em", px);
+  }
+  function moverFig(t) {
+    const e = t.el;
+    e.style.left = t.x * 100 + "%"; e.style.top = t.y * 100 + "%";
+    e.style.transform = `translate(-50%, -50%)${t.rot ? ` rotate(${t.rot}deg)` : ""}`;
+  }
+  // Limites do centro: as interativas ficam inteiras e entre as faixas de cima/baixo (igual ao visor, `encaixar`);
+  // as outras podem passar um pouco da borda, mas o centro fica no cartão (nunca somem para fora).
+  function limitar(t, W, H) {
+    const e = t.el, w = e.offsetWidth || 0, h = e.offsetHeight || 0;
+    if (interativa(t)) {
+      const mx = Math.min(0.5, (w / 2 + 6) / W), cima = Math.min(0.5, 0.11 + h / 2 / H), baixo = Math.max(cima, 1 - Math.max(0.1, 70 / H) - h / 2 / H);
+      t.x = Math.min(1 - mx, Math.max(mx, t.x)); t.y = Math.min(baixo, Math.max(cima, t.y));
+      return;
+    }
+    const mx = Math.min(0.5, Math.max(0.04, Math.min(w * 0.35, 60) / W)), my = Math.min(0.5, Math.max(0.03, Math.min(h * 0.35, 60) / H));
+    t.x = Math.min(1 - mx, Math.max(mx, t.x)); t.y = Math.min(1 - my, Math.max(my, t.y));
+  }
+  // Solta embaixo da coluna de botões (direita) ou da barra de cima: o meio da figurinha vai para o lado, senão o dedo
+  // pegaria o botão e ela não sairia mais dali.
+  function afastarDosBotoes(t) {
+    const pr = palco.getBoundingClientRect(); if (!pr.width) return;
+    const cx = pr.left + t.x * pr.width, cy = pr.top + t.y * pr.height;
+    for (const zona of [ferramentas, esq]) {
+      const r = zona?.getBoundingClientRect?.();
+      if (!r || !r.width || getComputedStyle(zona).visibility === "hidden") continue;
+      if (cx < r.left - 6 || cx > r.right + 6 || cy < r.top - 6 || cy > r.bottom + 6) continue;
+      if (zona === ferramentas) t.x = Math.max(0.05, (r.left - 14 - pr.left) / pr.width);
+      else t.y = Math.min(0.95, (r.bottom + 14 - pr.top) / pr.height);
+    }
+  }
+  const vibrar = (ms = 8) => { try { navigator.vibrate?.(ms); } catch {} };
   function soltarGesto(ev) {
     if (!gesto.t || !gesto.pts.has(ev.pointerId)) return;
     gesto.pts.delete(ev.pointerId);
     if (gesto.pts.size) { baseGesto(); return; }
-    const t = gesto.t, mexeu = gesto.mexeu, foiDois = gesto.dois;
-    gesto.t = null; gesto.base = null; gesto.mexeu = false; gesto.dois = false;
-    palco.classList.remove("arrastando-txt"); guias.querySelectorAll(".on").forEach((g) => g.classList.remove("on"));
-    if (lixo.classList.contains("sobre")) { lixo.classList.remove("sobre"); t.el.remove(); textos.splice(textos.indexOf(t), 1); navigator.vibrate?.(12); pintarArroba(); renomearUltimo(`Apagar ${nomeFig(t)}`); avisarHist(`${nomeFig(t, true)} ${/^(foto|enquete|caixa|menção|localização|hashtag|figurinha|contagem)/.test(nomeFig(t)) ? "apagada" : "apagado"} · toque em ↶ para desfazer`, true); return; }
+    const t = gesto.t, mexeu = gesto.mexeu, foiDois = gesto.dois, noLixo = gesto.noLixo;
+    if (gesto.quadro) { cancelAnimationFrame(gesto.quadro); gesto.quadro = 0; moverFig(t); }
+    zerarGesto();
+    if (noLixo && ev.type === "pointerup") { t.el.remove(); textos.splice(textos.indexOf(t), 1); vibrar(12); pintarArroba(); renomearUltimo(`Apagar ${nomeFig(t)}`); avisarHist(`${nomeFig(t, true)} ${/^(foto|enquete|caixa|menção|localização|hashtag|figurinha|contagem)/.test(nomeFig(t)) ? "apagada" : "apagado"} · toque em ↶ para desfazer`, true); return; }
+    if (mexeu) { limitar(t, medidas().W, medidas().H); afastarDosBotoes(t); moverFig(t); }
     if (mexeu || foiDois || ev.type !== "pointerup") return;
     // toque parado
     if (t.enq) editarEnquete(t); else if (t.cx) editarCaixa(t); else if (t.ct) editarContagem(t); else if (t.lk) escolherNegocio(t);
@@ -1495,11 +1547,21 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   // 2º dedo em qualquer lugar do cartão enquanto uma figurinha está segura: entra no gesto (não mexe na foto de fundo).
   palco.addEventListener("pointerdown", (ev) => {
     if (!gesto.t || gesto.pts.has(ev.pointerId) || gesto.pts.size >= 2) return;
+    if (ev.isPrimary) { zerarGesto(); return; } // 1º dedo de um toque novo: o gesto anterior ficou preso (o dedo saiu sem aviso)
     ev.stopPropagation(); ev.preventDefault();
     gesto.pts.set(ev.pointerId, { x: ev.clientX, y: ev.clientY }); baseGesto();
   }, true);
+  // Um quadro por vez (requestAnimationFrame): o dedo manda bem mais movimentos do que a tela desenha.
+  function desenharGesto() {
+    gesto.quadro = 0;
+    const t = gesto.t; if (!t) return;
+    moverFig(t);
+    if (gesto.dois) ajustarTam(t);
+  }
+  const pedirQuadro = () => { if (!gesto.quadro) gesto.quadro = requestAnimationFrame(desenharGesto); };
   const moverGesto = (ev) => {
     if (!gesto.t || !gesto.pts.has(ev.pointerId)) return;
+    ev.preventDefault();
     gesto.pts.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
     const t = gesto.t, b = gesto.base; if (!b) return;
     const { W, H } = medidas();
@@ -1507,32 +1569,40 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       const [p1, p2] = ptsArr();
       const d = Math.hypot(p1.x - p2.x, p1.y - p2.y), ang = Math.atan2(p2.y - p1.y, p2.x - p1.x);
       const [mn, mx] = LIMITE_TAM(t);
+      if (!gesto.mexeu) { marcar(`Ajustar ${nomeFig(t)}`); gesto.mexeu = true; palco.classList.add("arrastando-txt"); t.el.classList.add("segurando"); }
       t.tam = Math.min(mx, Math.max(mn, b.tam * (d / b.d)));
       let r = b.rot + ((ang - b.ang) * 180) / Math.PI;
       r = ((r + 540) % 360) - 180;
       if (Math.abs(r) < 4) r = 0; // encaixa reto
       t.rot = Math.round(r * 10) / 10;
-      if (!gesto.mexeu) marcar(`Ajustar ${nomeFig(t)}`);
-      t.x = Math.min(0.98, Math.max(0.02, b.tx + ((p1.x + p2.x) / 2 - b.mx) / W));
-      t.y = Math.min(0.98, Math.max(0.02, b.ty + ((p1.y + p2.y) / 2 - b.my) / H));
-      gesto.mexeu = true; palco.classList.add("arrastando-txt");
-      pintarTexto(t);
+      t.x = b.tx + ((p1.x + p2.x) / 2 - b.mx) / W;
+      t.y = b.ty + ((p1.y + p2.y) / 2 - b.my) / H;
+      limitar(t, W, H);
+      pedirQuadro();
       return;
     }
     if (b.dois) return;
     const dx = ev.clientX - b.x, dy = ev.clientY - b.y;
-    if (!gesto.mexeu && Math.hypot(dx, dy) < 5) return;
-    if (!gesto.mexeu) { marcar(`Mover ${nomeFig(t)}`); gesto.mexeu = true; palco.classList.add("arrastando-txt"); }
-    t.x = Math.min(0.98, Math.max(0.02, b.tx + dx / W)); t.y = Math.min(0.98, Math.max(0.02, b.ty + dy / H));
-    const nx = Math.abs(t.x - 0.5) < 0.015; if (nx) t.x = 0.5;
-    guias.querySelector(".v").classList.toggle("on", nx);
-    const rl = lixo.getBoundingClientRect();
-    lixo.classList.toggle("sobre", ev.clientY > rl.top - 20 && Math.abs(ev.clientX - (rl.left + rl.width / 2)) < 70);
-    pintarTexto(t);
+    if (!gesto.mexeu && Math.hypot(dx, dy) < 6) return;
+    if (!gesto.mexeu) { marcar(`Mover ${nomeFig(t)}`); gesto.mexeu = true; palco.classList.add("arrastando-txt"); t.el.classList.add("segurando"); }
+    t.x = b.tx + dx / W; t.y = b.ty + dy / H;
+    limitar(t, W, H);
+    // guias do meio: encaixam e vibram ao entrar
+    const nx = Math.abs(t.x - 0.5) < 0.02, ny = Math.abs(t.y - 0.5) < 0.012 && !interativa(t);
+    if (nx) t.x = 0.5; if (ny) t.y = 0.5;
+    if ((nx && !gesto.guiaV) || (ny && !gesto.guiaH)) vibrar(6);
+    gesto.guiaV = nx; gesto.guiaH = ny;
+    guias.querySelector(".v").classList.toggle("on", nx); guias.querySelector(".h").classList.toggle("on", ny);
+    // lixeira: pelo dedo, como no Instagram (a figurinha encolhe por cima dela)
+    const rl = lixo.getBoundingClientRect(), cx = rl.left + rl.width / 2, cy = rl.top + rl.height / 2;
+    const sobre = Math.hypot(ev.clientX - cx, ev.clientY - cy) < Math.max(56, rl.width);
+    if (sobre !== gesto.noLixo) { gesto.noLixo = sobre; lixo.classList.toggle("sobre", sobre); t.el.classList.toggle("no-lixo", sobre); if (sobre) vibrar(14); }
+    pedirQuadro();
   };
-  window.addEventListener("pointermove", moverGesto);
-  window.addEventListener("pointerup", soltarGesto);
-  window.addEventListener("pointercancel", soltarGesto);
+  // Na fase de captura: botões e painéis que param o pointerup não deixam mais a figurinha "presa" no dedo.
+  window.addEventListener("pointermove", moverGesto, { capture: true, passive: false });
+  window.addEventListener("pointerup", soltarGesto, true);
+  window.addEventListener("pointercancel", soltarGesto, true);
   function criarTexto(t) {
     const e = el("div", "flash-txt"); e.setAttribute("role", "button"); e.tabIndex = 0;
     e.setAttribute("aria-label", t.ft ? "Foto por cima: arraste para mover, dois dedos para aumentar ou girar, toque para trocar a moldura" : "Texto na foto: toque para editar, arraste para mover, dois dedos para aumentar ou girar");
@@ -1541,6 +1611,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     publicar.disabled = !prontoParaPublicar() || enviando;
     e.addEventListener("pointerdown", (ev) => {
       ev.stopPropagation(); ev.preventDefault();
+      if (ev.isPrimary && gesto.t) zerarGesto(); // toque novo: nada pode ter ficado preso do anterior
       if (gesto.t && gesto.t !== t) return;
       gesto.t = t; gesto.pts.set(ev.pointerId, { x: ev.clientX, y: ev.clientY }); baseGesto();
     });
@@ -2455,7 +2526,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
 
   const fechar = () => {
     pararCamera();
-    window.removeEventListener("pointermove", moverGesto); window.removeEventListener("pointerup", soltarGesto); window.removeEventListener("pointercancel", soltarGesto);
+    window.removeEventListener("pointermove", moverGesto, true); window.removeEventListener("pointerup", soltarGesto, true); window.removeEventListener("pointercancel", soltarGesto, true);
     fundo.remove(); document.body.classList.remove("travado"); document.removeEventListener("keydown", tecla); window.removeEventListener("resize", aoRedimensionar); window.visualViewport?.removeEventListener("resize", aoRedimensionar); clearTimeout(tMedir);
     if (foto) URL.revokeObjectURL(foto);
   };

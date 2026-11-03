@@ -1158,6 +1158,14 @@ html, body { overflow-x: clip; }
 .flash-txt.destaque { text-shadow: none; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
 .flash-txt.neon { text-shadow: 0 0 8px rgba(255,255,255,.9), 0 0 22px rgba(255,255,255,.6); }
 .flash-palco.arrastando-txt .flash-txt { cursor: grabbing; }
+/* Figurinhas como no Instagram: área de toque maior que o desenho (fácil de pegar), a que está no dedo vem para a frente
+   com uma leve elevação e encolhe por cima da lixeira (`scale` soma com o transform de posição/giro). */
+.flash-txt::after { content: ""; position: absolute; inset: -14px; border-radius: 18px; }
+.flash-txt.flash-ft::after { inset: -6px; }
+.flash-txt { will-change: left, top, transform; transition: scale .14s ease, opacity .14s ease, filter .14s ease; }
+.flash-txt.segurando { z-index: 2; filter: drop-shadow(0 8px 18px rgba(0,0,0,.35)); }
+.flash-txt.no-lixo { scale: .42; opacity: .65; }
+.flash-palco.arrastando-txt .flash-txt:not(.segurando) { pointer-events: none; }
 .flash-lixo { position: absolute; left: 50%; bottom: 22px; z-index: 5; width: 52px; height: 52px; margin-left: -26px; border-radius: 50%; display: grid; place-items: center; color: #fff; background: rgba(0,0,0,.5); border: 2px solid rgba(255,255,255,.8); opacity: 0; transform: scale(.7); transition: opacity .15s, transform .15s, background .15s; pointer-events: none; }
 .flash-palco.arrastando-txt .flash-lixo { opacity: 1; transform: none; }
 .flash-lixo.sobre { background: #e5484d; transform: scale(1.15) !important; }

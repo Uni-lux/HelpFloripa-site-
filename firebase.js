@@ -139,7 +139,12 @@ onAuthStateChanged(auth, async (u) => {
     // Notificações com o app fechado (push.js): o endereço do aparelho pode mudar; renova 1×/dia se estiver ligado.
     import("./push.js?v=2").then(async (m) => m.renovarPush({ ...(await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js")), db }, u.uid, d)).catch(() => {});
     // Cidade no padrão novo (estado + cidade do IBGE): converte a antiga ou pede para completar.
-    import("./local-conta.js?v=1").then((m) => m.conferirLocal(db, u, d)).catch((e) => console.warn("[Local]", e?.message || e));
+    // Só com a conta inteira do servidor: com a gravação do e-mail ainda pendente, a leitura vinha só com esses campos e a
+    // janela "complete sua cidade" abria para quem já tem cidade. Nesse caso lê de novo direto do servidor.
+    const contaInteira = (s.metadata.fromCache || s.metadata.hasPendingWrites)
+      ? import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js").then((f) => f.getDocFromServer(doc(db, "usuarios", u.uid))).then((x) => (x.exists() ? x.data() : null))
+      : Promise.resolve(d);
+    contaInteira.then((dd) => dd && import("./local-conta.js?v=1").then((m) => m.conferirLocal(db, u, dd))).catch((e) => console.warn("[Local]", e?.message || e));
   } catch (e) { console.warn("[Conta] Não foi possível conferir o estado da conta:", e); }
 });
 
