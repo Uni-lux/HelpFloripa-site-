@@ -1539,6 +1539,18 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   (chamadas.js roda em todas pelo firebase.js). Corrigido: a campainha fechava o AudioContext duas vezes (erro na página).
   Falta ele: criar o TURN no Cloudflare, segredos e deploy (`_regras/TURN-LEIA-ME.md`) e avisar para virar true.
   Teste `t-turn.mjs` (19). `t-registro-chamadas` falha no "separado por dia" também sem a mudança (depende da data).
+- **Etapa D do servidor – Storage e fotos antigas (03/11/2026, PR depois do #147, sem regra nova):** callable `migrarFotos`
+  (só `admins/{uid}.papel` dono; {colecao, depois, simular, lote ≤60}; lê por `__name__`, sobe cada data:image com token
+  `firebaseStorageDownloadTokens` e cacheControl 1 ano na pasta do storage.rules, link no formato do getDownloadURL;
+  `update` com `lastUpdateTime` (editado no meio = fica para a próxima); em `usuarios` troca junto o `perfis_publicos` com o
+  mesmo link). `functions/migrar-fotos.js`: `COLECOES` usuarios, perfis_publicos, negocios (foto, capa, fotos, itens[].foto),
+  anuncios, diario (mediaUrl + midias, a repetida é uma só), stories, comunidade; `fotosDoDoc`, `documentoNovo`, `lerData`.
+  Painel → Publicações → "Passar fotos para o Storage" (`migrarFotosStorage` em admin-secoes.js: simula tudo, confirma com
+  o total por lugar, passa com andamento, `registrar("migrar_fotos")`). `firebase.json` ganhou `storage.rules` (deploy
+  --only storage), `cors.json` (GET/HEAD para helpfloripa.com.br, www e uni-lux.github.io; obrigatório porque o Flash desenha
+  fotos com crossOrigin) e STORAGE-LEIA-ME com os passos 4b (CORS) e 6 (migração). Mensagens do chat NÃO são migradas.
+  `USAR_STORAGE` continua false até ele ativar. Teste `t-migrar-fotos.mjs` (19); `t-storage` e `testes-storage` (47) passam.
+  **As 4 etapas do servidor (A–D) estão prontas, todas desligadas até o Blaze.**
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

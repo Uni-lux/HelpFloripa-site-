@@ -11,7 +11,7 @@ isso as fotos são bem comprimidas e não há vídeo).
 - **Site mais leve:** o documento guarda só o link da foto (poucos bytes, em vez de centenas de KB). As listas
   (vitrines, Diário, Comunidade) carregam mais rápido e gastam menos internet do celular.
 - **Cache de 1 ano** em cada arquivo: cada foto tem um nome único, então o celular baixa uma vez só.
-- Fotos antigas (dentro dos documentos) continuam funcionando. Só o que for enviado depois vai para o Storage.
+- Fotos antigas (dentro dos documentos) continuam funcionando e **passam para o Storage com um botão** (passo 6).
 
 ## Passo a passo (uns 15 minutos)
 1. **Plano Blaze.** Console do Firebase → projeto **helpfloripa-61e0d** → engrenagem → *Uso e faturamento* →
@@ -27,16 +27,36 @@ isso as fotos são bem comprimidas e não há vídeo).
        centavos por GB).
 3. **Publicar as regras.** Ainda em Storage → aba **Regras** → apague o que estiver lá → copie **todo** o arquivo
    `storage.rules` (da raiz do repositório, cerca de 6 KB, cabe numa colagem só) → **Publicar**.
+   (Ou, no Cloud Shell: `npx firebase-tools@13 deploy --only storage --project helpfloripa-61e0d` — o `firebase.json` já aponta
+   para o `storage.rules`.)
    - O console vai pedir para **permitir que o Storage consulte o Firestore** (as regras conferem quem participa da
      conversa e quem é da equipe). Clique em **Permitir/Conceder**.
 4. **Virar a chave.** Me avise que eu abro o PR com `const USAR_STORAGE = true;` no `firebase.js` (é uma linha;
    não tem `?v`, então vale em até 10 minutos para todo mundo). Ou, se preferir fazer você mesmo: edite essa linha no
    GitHub e faça o commit.
+4b. **CORS (obrigatório para o Flash):** o site desenha fotos do Storage em imagens novas (cartão da publicação no Flash,
+   arte do QR Code). Sem CORS o navegador bloqueia. No **Cloud Shell** (console.cloud.google.com, ícone **>_**):
+   ```bash
+   cd HelpFloripa-site- && git pull
+   gcloud storage buckets update gs://helpfloripa-61e0d.firebasestorage.app --cors-file=cors.json
+   ```
+   (Se o console mostrar outro nome de bucket na página do Storage, use o que aparece lá, começando com `gs://`.)
 5. **Conferir no site** (5 minutos):
    - Diário: publicar 2 fotos → no console, Storage → pasta `diario/<seu uid>/` com 2 arquivos.
    - Mensagens: mandar uma foto e um vídeo curto → pasta `mensagens/`.
    - Comunidade: anunciar uma doação com foto → pasta `comunidade/`.
    - Suporte: anexar um PDF → pasta `suporte/`.
+
+6. **Passar as fotos antigas para o Storage** (Etapa D, depois do passo 4). Publique a função, no Cloud Shell:
+   ```bash
+   cd HelpFloripa-site- && git pull && cd functions && npm ci && cd ..
+   npx firebase-tools@13 deploy --only functions:migrarFotos --project helpfloripa-61e0d
+   ```
+   Depois, no **painel** (conta de dono) → **Publicações** → **Passar fotos para o Storage**. Ele primeiro **conta** (não mexe em
+   nada) e mostra quantas fotos e de onde (contas, negócios, imóveis, Diário, Flash, Comunidade); você confirma e ele passa,
+   de 25 em 25 documentos, mostrando o andamento (não feche a página). Cada foto vira um arquivo na pasta da pessoa e o
+   documento fica só com o link. Documento que alguém editou no meio fica para a próxima: é só apertar de novo. Rodar de novo
+   quando já está tudo passado só avisa. Fica no Registro de ações. As fotos das conversas do chat continuam onde estão.
 
 ## Segurança (o que as regras garantem)
 - Ninguém grava, troca ou apaga arquivo na pasta de outra pessoa.

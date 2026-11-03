@@ -2190,6 +2190,8 @@ export function publicacoes(el) {
     await registrar("recalcular_estrelas", "", `${ids.length} publicações, ${lidas} notas`);
     toast(`Estrelas recalculadas: ${ids.length} publicação(ões), ${lidas} nota(s).`);
   }));
+  // Etapa D: fotos antigas (data:image dentro dos documentos) → Storage, pela função migrarFotos (só os donos).
+  if (pode("dono")) linhaF.append(btn("Passar fotos para o Storage", "mini", (b) => migrarFotosStorage(b)));
   el.appendChild(linhaF);
   const lista = h("div", "ad-lista"); el.appendChild(lista);
   const escondida = (p) => ms(p.ocultoAte) > agora();
@@ -2237,4 +2239,48 @@ export function definirFiltro(sec, f) {
   else if (sec === "suporte") filtroSup = f;
   else if (sec === "tarefas") filtroTar = f;
   else if (sec === "publicacoes") filtroPub = f;
+}
+
+// ---------- Etapa D: passar as fotos antigas para o Storage (Cloud Function migrarFotos) ----------
+const COLECOES_FOTOS = [["usuarios", "Contas e perfis"], ["perfis_publicos", "Perfis públicos"], ["negocios", "Negócios"], ["anuncios", "Imóveis"], ["diario", "Diário"], ["stories", "Flash"], ["comunidade", "Comunidade"]];
+let fnsMigrar = null;
+async function chamarMigrar(dados) {
+  fnsMigrar ||= import("https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js").then((m) => {
+    const f = m.getFunctions(window.firebaseApp, "southamerica-east1");
+    if (window.__hfFuncoesEmulador) m.connectFunctionsEmulator(f, "127.0.0.1", window.__hfFuncoesEmulador); // só nos testes
+    return { m, f };
+  });
+  const { m, f } = await fnsMigrar;
+  return (await m.httpsCallable(f, "migrarFotos", { timeout: 320000 })(dados)).data;
+}
+async function percorrer(simular, aoAndar) {
+  const total = { fotos: 0, bytes: 0, docs: 0, trocados: 0, mudaram: 0, erros: 0, por: {} };
+  for (const [col, nome] of COLECOES_FOTOS) {
+    let depois = null;
+    do {
+      const r = await chamarMigrar({ colecao: col, depois, simular, lote: simular ? 60 : 25 });
+      total.fotos += r.fotos; total.bytes += r.bytes; total.docs += r.comFotos; total.trocados += r.trocados; total.mudaram += r.mudaram; total.erros += r.erros;
+      total.por[nome] = (total.por[nome] || 0) + r.fotos;
+      aoAndar(nome, total);
+      depois = r.proximo;
+    } while (depois);
+  }
+  return total;
+}
+const mb = (b) => (b / 1048576).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + " MB";
+async function migrarFotosStorage(b) {
+  const rotulo = b.textContent;
+  try {
+    b.textContent = "Contando fotos…";
+    const sim = await percorrer(true, (nome, t) => { b.textContent = `Contando… ${nome} (${t.fotos})`; });
+    b.textContent = rotulo;
+    if (!sim.fotos) { toast("Nenhuma foto antiga dentro dos documentos: tudo já está no Storage."); return; }
+    const det = Object.entries(sim.por).filter(([, n]) => n).map(([k, n]) => `${k}: ${n}`).join(" · ");
+    if (!(await confirmarHF({ titulo: `Passar até ${num(sim.fotos)} fotos para o Storage?`, texto: `${num(sim.docs)} documentos guardam fotos dentro deles (${mb(sim.bytes)}). ${det}. Cada foto vira um arquivo no Storage e o documento fica só com o link. Pode levar alguns minutos; não feche esta página.`, ok: "Passar agora", icone: "recarregar", cor: "normal" }))) return;
+    const fim = await percorrer(false, (nome, t) => { b.textContent = `Passando… ${nome} · ${t.trocados} documentos`; });
+    await registrar("migrar_fotos", "", `${fim.fotos} fotos, ${fim.trocados} documentos, ${mb(fim.bytes)}${fim.mudaram ? `, ${fim.mudaram} mudaram no meio` : ""}${fim.erros ? `, ${fim.erros} erros` : ""}`);
+    toast(`Pronto: ${num(fim.fotos)} fotos no Storage (${mb(fim.bytes)}), ${num(fim.trocados)} documentos mais leves.${fim.mudaram || fim.erros ? " Alguns ficaram para depois: aperte de novo." : ""}`);
+  } catch (e) {
+    toast(e?.code === "functions/not-found" || e?.code === "functions/unavailable" || e?.code === "functions/internal" ? "A função ainda não foi publicada (veja _regras/STORAGE-LEIA-ME.md)." : "Não foi possível: " + (e?.message || e?.code));
+  } finally { b.textContent = rotulo; }
 }

@@ -354,3 +354,64 @@ export const credenciaisTurn = onCall({ region: REGIAO, secrets: [CF_TURN_KEY_ID
   if (!iceServers.length) throw new HttpsError("unavailable", "Serviço de ligação indisponível agora.");
   return { iceServers, ate: Date.now() + (TTL - 600) * 1000 };
 });
+
+// =====================================================
+// Etapa D: passar as fotos antigas (data:image dentro dos documentos) para o Storage. Só os donos, pelo painel
+// (Publicações › "Passar fotos para o Storage"), em lotes: cada chamada lê até `lote` documentos de uma coleção e
+// devolve `proximo` para continuar. simular: true só conta. Passo a passo: _regras/STORAGE-LEIA-ME.md
+// =====================================================
+import { getStorage } from "firebase-admin/storage";
+import { randomUUID } from "node:crypto";
+import { COLECOES, fotosDoDoc, documentoNovo, lerData, linkDoStorage } from "./migrar-fotos.js";
+
+async function ehDono(uid) {
+  const a = await db.doc(`admins/${uid}`).get();
+  return a.exists && (a.get("papel") || "dono") === "dono";
+}
+async function subir(bucket, pasta, valor) {
+  const x = lerData(valor);
+  if (!x) return null;
+  const caminho = `${pasta}.${x.ext}`, token = randomUUID();
+  await bucket.file(caminho).save(x.bytes, { contentType: x.tipo, resumable: false, metadata: { cacheControl: "public, max-age=31536000, immutable", metadata: { firebaseStorageDownloadTokens: token, migradoDe: "documento" } } });
+  const base = EMULADOR && process.env.FIREBASE_STORAGE_EMULATOR_HOST ? `http://${process.env.FIREBASE_STORAGE_EMULATOR_HOST}` : "https://firebasestorage.googleapis.com";
+  return { link: linkDoStorage(base, bucket.name, caminho, token), bytes: x.bytes.length };
+}
+
+export const migrarFotos = onCall({ region: REGIAO, memory: "1GiB", timeoutSeconds: 300, maxInstances: 2 }, async (req) => {
+  if (!req.auth || !(await ehDono(req.auth.uid))) throw new HttpsError("permission-denied", "Só os donos do site.");
+  const { colecao, depois = null, simular = true } = req.data || {};
+  const lote = Math.min(Math.max(Number(req.data?.lote) || 25, 1), 60);
+  if (!COLECOES.includes(colecao)) throw new HttpsError("invalid-argument", "Coleção inválida.");
+  if (depois != null && (typeof depois !== "string" || depois.length > 200)) throw new HttpsError("invalid-argument", "Continuação inválida.");
+  let q = db.collection(colecao).orderBy("__name__").limit(lote);
+  if (depois) q = q.startAfter(depois);
+  const snap = await q.get();
+  const bucket = getStorage().bucket();
+  const r = { colecao, lidos: snap.size, comFotos: 0, fotos: 0, bytes: 0, trocados: 0, mudaram: 0, erros: 0, proximo: snap.size === lote ? snap.docs.at(-1).id : null };
+  for (const s of snap.docs) {
+    const d = s.data();
+    const fotos = fotosDoDoc(colecao, s.id, d);
+    if (!fotos.length) continue;
+    r.comFotos++;
+    const unicas = [...new Map(fotos.map((f) => [f.valor, f])).values()];
+    r.fotos += unicas.length;
+    if (simular) { r.bytes += unicas.reduce((t, f) => t + Math.round(f.valor.length * 0.75), 0); continue; }
+    try {
+      const links = new Map();
+      for (const f of unicas) { const up = await subir(bucket, f.pasta, f.valor); if (up) { links.set(f.valor, up.link); r.bytes += up.bytes; } }
+      const novo = documentoNovo(d, fotos, links);
+      // Só troca se o documento não mudou desde a leitura (a pessoa pode ter editado no meio): senão fica para a próxima.
+      try { await s.ref.update(novo, { lastUpdateTime: s.updateTime }); r.trocados++; }
+      catch (e) { if (/FAILED_PRECONDITION|precondition/i.test(String(e?.message || e?.code))) r.mudaram++; else throw e; }
+      // O perfil público repete a foto da conta: troca junto pelo mesmo link (sem enviar de novo).
+      if (colecao === "usuarios") {
+        const pp = await db.doc(`perfis_publicos/${s.id}`).get();
+        if (pp.exists) {
+          const fp = fotosDoDoc("perfis_publicos", s.id, pp.data()).filter((f) => links.has(f.valor));
+          if (fp.length) await pp.ref.update(documentoNovo(pp.data(), fp, links), { lastUpdateTime: pp.updateTime }).catch(() => {});
+        }
+      }
+    } catch (e) { r.erros++; logger.warn("migrarFotos", colecao, s.id, e?.message || e); }
+  }
+  return r;
+});
