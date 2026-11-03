@@ -1232,6 +1232,9 @@ await t("destaque: a dona apaga", () => assertSucceeds(deleteDoc(doc(ctx("ana"),
 // (respostaServ) o dono não grava. Espera do atendimento: ninguém.
 await semRegras((db) => setDoc(doc(db, "ranking_diario", "br"), { itens: [], atualizadoEm: Date.now(), versao: 1 }));
 await t("ranking: quem está logado lê", () => assertSucceeds(getDoc(doc(ctx("bia"), "ranking_diario", "br"))));
+await t("nicknames: sem login confere um @ (cadastro e link curto)", () => assertSucceeds(getDoc(doc(env.unauthenticatedContext().firestore(), "nicknames", "ana"))));
+await t("nicknames: sem login não lista todos os @", () => assertFails(getDocs(query(collection(env.unauthenticatedContext().firestore(), "nicknames"), limit(5)))));
+await t("nicknames: com a conta lista (busca de @)", () => assertSucceeds(getDocs(query(collection(env.authenticatedContext("ana").firestore(), "nicknames"), limit(5)))));
 await t("ranking: sem login não lê", () => assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), "ranking_diario", "br"))));
 await t("ranking: ninguém grava pelo site", () => assertFails(setDoc(doc(ctx("ana"), "ranking_diario", "br"), { itens: [] })));
 await t("ranking: ninguém grava um estado", () => assertFails(setDoc(doc(ctx("ana"), "ranking_diario", "uf_SC"), { itens: [] })));

@@ -12,8 +12,8 @@
 // =====================================================
 import { fotoSegura, conferirEmail, emailPendente, MSG_EMAIL } from "./seguranca.js?v=1";
 import { estrelas } from "./avaliacoes.js?v=17";
-import { abrirQueixa, responderQueixa, resolverQueixa, semResposta, MOTIVOS, PRAZO_DIAS } from "./queixas.js?v=16";
-import { NOMES_TIPO, PAGINA_TIPO } from "./vitrine.js?v=85";
+import { abrirQueixa, responderQueixa, resolverQueixa, semResposta, MOTIVOS, PRAZO_DIAS } from "./queixas.js?v=17";
+import { NOMES_TIPO, PAGINA_TIPO } from "./vitrine.js?v=86";
 import { docsComValidade, docsPorIds } from "./leituras.js?v=3";
 import { lerLocal, noLocal, aoMudarLocal } from "./local-escolhido.js?v=3";
 

@@ -9,7 +9,7 @@
 //   link para outra aba troca de aba. Login e saída mexem na página inteira.
 // API para os quadros: window.__hfShell (quadro-rede.js e deslizar-flash.js usam).
 // =====================================================
-import { guardarSaida } from "./confirmar.js?v=5";
+import { guardarSaida } from "./confirmar.js?v=6";
 
 const ABAS = ["diario", "explorar", "comunidade", "mensagens", "perfil"];
 const NOMES = { diario: "Diário", explorar: "Explorar", comunidade: "Comunidade", mensagens: "Mensagens", perfil: "Perfil" };

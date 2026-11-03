@@ -53,7 +53,7 @@ const CH_ESPERA = "hf-reenvio-ate";
 
   let usuario = null, intervalo = null;
   A.onAuthStateChanged(auth, (u) => {
-    if (!u) { location.href = "login.html"; return; }
+    if (!u) { if (window.__hfIrLogin) window.__hfIrLogin(); else location.href = "login.html"; return; }
     usuario = u;
     $("emailUsuario").textContent = u.email || "";
     if (u.emailVerified) return concluido();

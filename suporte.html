@@ -27,6 +27,9 @@
     html.embutido body.com-barra { padding-bottom: 20px; }
   </style>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+  <!-- Só mostra a página depois de confirmar o login (auth-guard.js; sem conta vai para o login) -->
+  <style>html.hf-auth-checking { visibility: hidden; }</style>
+  <script>document.documentElement.classList.add("hf-auth-checking");</script>
   <meta name="description" content="Fale com a equipe do Help Floripa: abra um chamado e acompanhe a resposta." />
   <meta name="theme-color" content="#0b1014" />
   <link rel="manifest" href="manifest.webmanifest" />
@@ -50,7 +53,8 @@
   </script>
   <link rel="stylesheet" href="rede.css?v=75" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="suporte.js?v=105"></script>
+  <script type="module" src="auth-guard.js"></script>
+  <script type="module" src="suporte.js?v=106"></script>
 </head>
 <body>
   <header class="topo">

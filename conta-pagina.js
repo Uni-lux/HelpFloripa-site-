@@ -22,7 +22,7 @@ const destino = destinoSeguro("index.html");
   ]);
   const fb = { ...F, db };
   const usuario = await new Promise((ok) => { const parar = A.onAuthStateChanged(auth, (u) => { parar(); ok(u); }); });
-  if (!usuario) { location.replace("login.html?redirect=" + encodeURIComponent("conta.html")); return; }
+  if (!usuario) { if (window.__hfIrLogin) { window.__hfIrLogin(); return; } location.replace("login.html?redirect=" + encodeURIComponent("conta.html")); return; }
 
   $("sair").hidden = false;
   $("sair").addEventListener("click", async () => { await A.signOut(auth).catch(() => {}); location.href = "index.html"; });

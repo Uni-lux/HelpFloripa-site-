@@ -657,7 +657,7 @@ export async function abrirPlanos(op) {
         // O arquivo anexado é do documento escolhido antes: trocar o tipo tira o arquivo (senão o painel mostraria
         // um nome de documento e um arquivo de outro).
         if (anexo) {
-          const { confirmarHF } = await import("./confirmar.js?v=5");
+          const { confirmarHF } = await import("./confirmar.js?v=6");
           const atual = nomeDocRenda(anexo.doc || docEscolhido);
           const ok = await confirmarHF({ titulo: "Trocar o documento?", texto: "O arquivo que você anexou sai. Depois é só anexar o novo.", troca: { de: atual, para: rot, rotDe: "Atual", rotPara: "Novo" }, ok: "Trocar documento", cancelar: `Manter ${atual}`, cor: "normal", icone: "alerta" });
           if (!ok) return;

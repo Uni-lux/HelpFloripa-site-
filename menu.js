@@ -22,6 +22,7 @@ if (!document.getElementById("hfMenuCss")) {
   background: var(--panel); border-right: 1px solid var(--line); box-shadow: var(--shadow); transform: translateX(-104%); transition: transform .28s cubic-bezier(.2, .8, .2, 1); visibility: hidden;
 }
 body.gaveta-aberta { overflow: hidden; }
+.gaveta [hidden] { display: none !important; }
 body.gaveta-aberta .gaveta-fundo { opacity: 1; pointer-events: auto; }
 body.gaveta-aberta .gaveta { transform: none; visibility: visible; }
 .gaveta-topo { display: flex; align-items: center; gap: 6px; }
@@ -149,6 +150,10 @@ const SECOES_MENU = [
   ]]
 ];
 const perfilMenu = { nome: "", nick: "", foto: "", logado: null };
+// Sem conta, o menu mostra só as páginas que abrem sem login (o resto levaria ao login de qualquer jeito
+// e não precisa ficar à mostra): ajuda, segurança, contato, institucionais, termos e privacidade.
+const PUBLICAS_MENU = new Set(["profissionais.html", "ajuda.html", "seguranca.html", "contato.html", "sobre.html", "clientes.html", "diretrizes.html", "como-ordenamos.html", "socios-parcerias.html"]);
+const ehVisitante = () => perfilMenu.logado !== true && !window.firebaseAuth?.currentUser;
 let gaveta = null;
 function temaAtual() { try { return JSON.parse(localStorage.getItem("hf-chat-config") || "{}").tema || "sistema"; } catch { return "sistema"; } }
 function aplicarTema(tema) {
@@ -175,8 +180,8 @@ function montarGaveta() {
   const topo = el("div", "gaveta-topo"); topo.append(cab, fechar);
   g.appendChild(topo);
   // Botão de anunciar
-  const anunciar = el("a", "gaveta-anunciar"); anunciar.href = "negocios.html";
-  anunciar.append(iconeMenu("mais"), document.createTextNode("Anunciar no Help Floripa"));
+  const anunciar = el("a", "gaveta-anunciar"); anunciar.href = "negocios.html"; anunciar.id = "gavetaAnunciar";
+  anunciar.append(iconeMenu("mais"), el("span", null, "Anunciar no Help Floripa"));
   g.appendChild(anunciar);
   const aqui = location.pathname.split("/").pop() || "index.html";
   SECOES_MENU.forEach(([titulo, itens]) => {
@@ -184,6 +189,7 @@ function montarGaveta() {
     sec.appendChild(el("h3", null, titulo));
     itens.forEach(([href, ic, rot, cor, badge, sub]) => {
       const a = el("a", "gaveta-item"); a.href = href;
+      if (!PUBLICAS_MENU.has(href)) a.dataset.soConta = "";
       if (href === aqui || (href.startsWith(aqui + "?") && location.search && href.endsWith(location.search))) a.setAttribute("aria-current", "page");
       const i = el("span", "ic"); if (cor) i.style.setProperty("--c", cor); i.appendChild(iconeMenu(ic));
       const r = el("span", "rot", rot); if (sub) r.appendChild(el("small", null, sub));
@@ -216,7 +222,7 @@ function montarGaveta() {
   });
   const sair = el("button", "gaveta-sair"); sair.type = "button"; sair.id = "gavetaSair"; sair.append(iconeMenu("sair"), document.createTextNode("Sair da conta"));
   // A mesma janela "Sair da conta?" das configurações e das mensagens.
-  sair.addEventListener("click", () => import("./confirmar.js?v=5").then((m) => m.sairDaConta()));
+  sair.addEventListener("click", () => import("./confirmar.js?v=6").then((m) => m.sairDaConta()));
   const brasil = el("div", "gaveta-brasil");
   brasil.append(iconeMenu("brasil", "i xs"), el("span", null, "Em todo o Brasil · suporte pelo site 24 h, equipe das 8h às 20h (Brasília)"));
   rod.append(sair, brasil, links, el("small", null, `© 2025–${new Date().getFullYear()} Help Floripa · CNPJ 61.935.934/0001-00`));
@@ -233,6 +239,9 @@ function montarGaveta() {
 // Páginas que não informam o perfil (ex.: mensagens): o menu busca sozinho.
 async function carregarPerfilSozinho() {
   if (perfilMenu.logado !== null || !window.firebaseAuth) return;
+  // Espera o login carregar (antes disso currentUser é null mesmo com a conta entrada).
+  try { await window.firebaseAuth.authStateReady?.(); } catch {}
+  if (perfilMenu.logado !== null) return;
   const u = window.firebaseAuth.currentUser;
   if (!u) { definirPerfilMenu({ logado: false }); return; }
   try {
@@ -324,13 +333,19 @@ function pintarPerfilMenu() {
   if (!av) return;
   av.replaceChildren();
   const url = fotoSegura(perfilMenu.foto);
-  if (url) { const img = document.createElement("img"); img.src = url; img.alt = ""; av.appendChild(img); }
+  const visitante = ehVisitante();
+  if (url && !visitante) { const img = document.createElement("img"); img.src = url; img.alt = ""; av.appendChild(img); }
+  else if (visitante) av.appendChild(iconeMenu("perfil", "i"));
   else av.textContent = iniciais(perfilMenu.nome);
-  const visitante = perfilMenu.logado === false;
   $("gavetaPerfil").href = visitante ? "login.html" : "usuarios.html";
   $("gavetaNome").textContent = visitante ? "Entrar ou criar conta" : perfilMenu.nome || "Meu perfil";
   $("gavetaNick").textContent = visitante ? "Para anunciar, conversar e avaliar" : perfilMenu.nick ? "@" + perfilMenu.nick : "Ver e editar meu perfil";
   $("gavetaSair").hidden = visitante;
+  // Visitante: só as páginas públicas; seções que ficam vazias somem; o botão vira "Criar conta grátis".
+  gaveta?.querySelectorAll("[data-so-conta]").forEach((a) => { a.hidden = visitante; });
+  gaveta?.querySelectorAll(".gaveta-secao").forEach((sec) => { const itens = sec.querySelectorAll(".gaveta-item"); if (itens.length) sec.hidden = [...itens].every((a) => a.hidden); });
+  const anunciar = $("gavetaAnunciar");
+  if (anunciar) { anunciar.href = visitante ? "cadastre-se.html" : "negocios.html"; anunciar.querySelector("span").textContent = visitante ? "Criar conta grátis" : "Anunciar no Help Floripa"; }
 }
 // Contador de mensagens não lidas no item "Mensagens" do menu.
 let naoLidas = 0;

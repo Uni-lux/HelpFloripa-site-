@@ -20,6 +20,9 @@
     }
   </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+  <!-- Só mostra a página depois de confirmar o login (auth-guard.js; sem conta vai para o login) -->
+  <style>html.hf-auth-checking { visibility: hidden; }</style>
+  <script>document.documentElement.classList.add("hf-auth-checking");</script>
   <meta name="theme-color" content="#0b1014" />
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -52,6 +55,7 @@
   </script>
   <link rel="stylesheet" href="mensagens.css?v=2" />
   <script type="module" src="firebase.js"></script>
+  <script type="module" src="auth-guard.js"></script>
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -490,6 +494,6 @@
     <img id="visualizadorImg" alt="Imagem da conversa" />
   </div>
 
-  <script type="module" src="mensagens-app.js?v=7"></script>
+  <script type="module" src="mensagens-app.js?v=8"></script>
 </body>
 </html>
