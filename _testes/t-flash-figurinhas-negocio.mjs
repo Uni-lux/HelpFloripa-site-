@@ -76,7 +76,9 @@ await pe.waitForTimeout(2000);
 const votoE = (await db.collection("enquete_votos").where("uid", "==", U.edu).get()).docs.map((d) => d.data()).filter((v) => /fn/.test(v.itemId));
 ok(votoE.length === 1 && votoE[0].alvo === "f_fnOrig", "o voto no repost conta na enquete do ORIGINAL (" + (votoE[0]?.alvo || "nenhum") + ")");
 const cx = pe.locator(".story-visor .story-cx textarea");
-await cx.fill("Pintura da sala"); await pe.locator(".story-visor .story-cx .cx-enviar").first().click().catch(() => {});
+// Como no celular: toca no campo (a caixa vai para o meio, acima do teclado), digita e toca em enviar.
+await cx.tap(); await pe.waitForTimeout(400); await pe.keyboard.type("Pintura da sala"); await pe.waitForTimeout(200);
+await pe.locator(".story-cx .cx-enviar").first().tap().catch(() => {});
 await pe.waitForTimeout(2000);
 const resp = (await db.collection("caixa_respostas").where("itemId", "==", "fnOrig").get()).docs.map((d) => d.data());
 if (!resp.length) console.log("    (toast:", (await pe.locator(".toast").allTextContents().catch(() => [])).join(" | "), "· botão desligado:", await pe.locator(".story-visor .story-cx .cx-enviar").isDisabled().catch(() => "?"), ")");
