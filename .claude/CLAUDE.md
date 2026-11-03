@@ -1477,6 +1477,16 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   primeiras horas. Já vista continua ×0,3 (por isso, depois de aparecer na tela, a nova desce). Outras pessoas: a lista
   dos recentes fica 3 min no aparelho (`DIARIO_VALIDADE`), então uma publicação nova dos outros pode levar até 3 min para
   aparecer. Teste `t-diario-recentes.mjs`. `t-auditoria-diario` para na linha 150 (`Reforma completa`), igual antes.
+- **Seguindo + "Você está em dia" (03/11/2026, PR depois do #142, sem regra nova):** pedido dele (comparação com o
+  Instagram). Filtro **Seguindo** (`FILTROS.seguindo`, `buscarSeguindoCrono`): só quem você segue (sem você), em ordem de
+  data, sem nota e sem limite por pessoa; 20 por grupo de 30 pessoas (índice autorId + criadoEm, o mesmo de sempre); a página
+  para no ponto em que todos os grupos cheios estão completos (`cursorSeguindo` = o mais recente dos "mais antigos" dos grupos
+  cheios) e "Ver mais" continua com `criadoEm <` (nada pulado nem repetido). **Você está em dia** (Principais, `comEmDia` +
+  `cartaoEmDia`): novidades = de quem você segue, não vistas, até 3 dias (e as suas das últimas 3 h) vêm primeiro, com a
+  descoberta nos lugares 3, 8, 13 e no máximo 2 da mesma pessoa nas 10 primeiras (se só sobrar novidade da mesma pessoa, entra
+  assim mesmo); depois o item `{_emDia}` (`.feed-em-dia`: check, "Você está em dia", "Ver as anteriores de quem você segue" →
+  Seguindo, título "Sugestões para você") e o resto na ordem de sempre. Só aparece se você segue alguém e há sugestões depois;
+  não entra no "Ver mais" nem nos filtros de tipo. Teste `t-seguindo.mjs`; `t-diario-justo` carrega até 20 cartões.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

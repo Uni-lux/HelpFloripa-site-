@@ -3151,3 +3151,13 @@ body:has(.story-visor, .flash-criar) .toast { width: max-content; max-width: min
 .story-vistos .story-vistos-est .i { width: 14px; height: 14px; }
 .story-vistos .rostos { margin-left: 10px; align-items: center; }
 .story-vistos .rostos .avatar { width: 24px; height: 24px; }
+
+/* "Você está em dia" no Diário (Principais): depois das novidades de quem você segue, antes das sugestões. */
+.feed-em-dia { display: grid; justify-items: center; gap: 6px; text-align: center; padding: 26px 18px 6px; margin: 6px 0 4px; }
+.feed-em-dia .fed-ic { width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; color: #fff;
+  background: linear-gradient(135deg, var(--accent), #0087c2); box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 16%, transparent); margin-bottom: 6px; }
+.feed-em-dia .fed-ic svg { width: 28px; height: 28px; }
+.feed-em-dia strong { font-size: 17px; color: var(--text); }
+.feed-em-dia > span:not(.fed-ic) { color: var(--muted); font-size: 14px; max-width: 32ch; line-height: 1.4; }
+.feed-em-dia .fed-link { background: none; border: 0; color: var(--accent); font: inherit; font-weight: 700; font-size: 14px; padding: 8px 10px; cursor: pointer; min-height: 40px; }
+.feed-em-dia .fed-sug { justify-self: stretch; text-align: left; font-weight: 800; font-size: 16px; color: var(--text); padding: 18px 4px 4px; border-top: 1px solid var(--line); margin-top: 10px; }
