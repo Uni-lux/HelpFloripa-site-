@@ -114,8 +114,10 @@ ok(st?.caixa?.anonima === true, "flash publicado com caixa anônima");
 await pb.reload(); await pb.waitForSelector(".story-circ", { timeout: 30000 }); await pb.waitForTimeout(1500);
 await pb.locator(".story-circ:not(.meu)").first().tap();
 await pb.waitForSelector(".story-visor .story-cx textarea", { timeout: 10000 });
-await pb.locator(".story-visor .story-cx textarea").fill("Amei o flash!");
-await pb.locator(".story-visor .story-cx .cx-enviar").tap(); await pb.waitForTimeout(1500);
+// Como no celular: toca no campo (a caixa vai para o meio, acima do teclado), digita e envia.
+await pb.locator(".story-visor .story-cx textarea").tap(); await pb.waitForTimeout(400);
+await pb.keyboard.type("Amei o flash!"); await pb.waitForTimeout(200);
+await pb.locator(".story-cx .cx-enviar").first().tap(); await pb.waitForTimeout(1500);
 const rf = (await db.collection("caixa_respostas").where("alvo", "==", "f_" + st.id).get()).docs;
 ok(rf.length === 1 && rf[0].data().anonima === true && !("uid" in rf[0].data()), "Bruno respondeu a caixa do flash (anônimo)");
 await pb.screenshot({ path: "saida/cx-flash-visor.png" });

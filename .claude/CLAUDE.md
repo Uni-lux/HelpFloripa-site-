@@ -1615,6 +1615,29 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   (a leitura da conta vinha com a gravação do e-mail pendente, só com esses campos): agora relê do servidor
   (`getDocFromServer`) quando `fromCache`/`hasPendingWrites`. Teste `t-flash-arrastar.mjs` (15). `t-flash-contagem` (linha 60),
   `t-flash-mencoes` (73) e `t-flash-limite-desfazer` ("Você respondeu") falham igual sem a mudança.
+- **Flash: 2ª leva dos prints de 03/11 + varredura geral (PR depois do #155, sem regra nova):** (1) zoom da página travado
+  com o criador aberto (`travarZoom` em stories.js: viewport `maximum-scale=1, user-scalable=no` no documento E na página de
+  cima da rede.html; `.flash-criar { touch-action: pan-x pan-y }`), volta ao fechar; (2) toque parado numa figurinha engole o
+  `click` seguinte (o painel abria embaixo do dedo e o mesmo toque escolhia um negócio: o link "trocava sozinho"); painel do
+  link: "Fechar" só fecha, `.lk-atual` com "No flash agora" + "Tirar o link" (desfazível), dica "o seu ou o de outra pessoa";
+  (3) feed.js abre `?flash=`/`?repostar=`/`?novoFlash=1` logo depois do `iniciarRede` (antes esperava o Diário) e o feed.html
+  cobre de preto (`hf-volta-flash`) até o criador/visor abrir; (4) repost mostra no criador as figurinhas interativas do
+  original (`doOriginal`, `pintarOriginal`, `.flash-orig` sem toque); menção OCULTA com as regras do ar não fica em `mencoes`
+  (`semCamposNovos`) → repostar explica que precisa das regras novas; (5) visor: `empilhar`/`separar` (módulo + visor) tira
+  enquete/caixa/contagem/link de cima uma da outra (ResizeObserver refaz quando a enquete cresce); criador faz o mesmo nas
+  prévias do original. **Conta incompleta ao entrar (bug de verdade):** o `anotarEmail` gravava (merge) sem a conta na cópia
+  do aparelho e as leituras de logo depois (firebase.js e rede.js, até `getDocFromServer`) vinham só com 3 campos: a janela
+  "complete sua cidade" abria para quem tem cidade, a cidade não convertia ("Sua cidade" sumia do Local, público por estado
+  falhava) e a conferência de conta desativada olhava um doc incompleto. Agora o `anotarEmail` lê a conta antes de gravar e a
+  conferência lê do servidor (espera a gravação se ainda vier incompleta); local-conta não pergunta se a lista de cidades não
+  baixou (`cidadesDe`). Diário: Publicar espera a foto terminar de comprimir (`preparandoFoto`, prazo 60 s; antes saía o texto
+  sem a foto). Testes atualizados (estavam velhos): t-caixa e t-diario-compacto (Responder abre o Mensagens com cartão + texto
+  em 2 mensagens; respostas do flash na Atividade `.vv-resp`), t-publico-reels e t-auditoria-diario (máx. 3 por autor),
+  t-social2 (botão de letra), t-tipos-pub (aviso usa espaço fixo `\u00a0` entre número e palavra), t-flash-figurinhas-negocio
+  e t-caixa (responder a caixa tocando e digitando: `fill` direto foca sem o toque e a caixa muda de lugar), t-flash-respostas
+  (seed.mjs cria mensagem no futuro; espera até 10 s). Teste novo `t-flash-correcoes3.mjs` (21). Varredura: 51 testes, 937
+  verificações; só `t-email-confirmado` falha no "apagar conta" (precisa de `FUNCOES=1`) e `t-enquete-escala` precisa de
+  `FS_PORTA=8086` (medidor).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
