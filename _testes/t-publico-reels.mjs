@@ -29,7 +29,10 @@ const casos = [
   ["paTodos", null, true]
 ];
 let k = 0;
-for (const [id, publico] of casos) await db.doc(`diario/${id}`).set({ autorId: U.bruno, nome: "Bruno Reparos", texto: `Teste público ${id}`, criadoEm: T(5 + k++), ...(publico ? { publico } : {}) });
+// Autores espalhados: o Diário mostra no máximo 3 publicações de cada pessoa por leitura (anti-spam); os casos de
+// "seguidores" ficam com o Bruno, que a Ana segue.
+const AUTOR = { paSeguidores: "bruno", paNovos: "bruno", paMulheres: "dani", paJovens: "dani", paRS: "dani", paSC: "edu", paHomens: "edu", paLonge: "edu", paTodos: "admin" };
+for (const [id, publico] of casos) await db.doc(`diario/${id}`).set({ autorId: U[AUTOR[id]], nome: "Autor " + AUTOR[id], texto: `Teste público ${id}`, criadoEm: T(5 + k++), ...(publico ? { publico } : {}) });
 await db.doc("diario/reel1").set({ autorId: U.bruno, nome: "Bruno Reparos", texto: "Antes e depois da obra #reforma", mediaUrl: VIDEO, mediaTipo: "video", criadoEm: T(2) });
 await db.doc("diario/reel2").set({ autorId: U.bruno, nome: "Bruno Reparos", texto: "Segundo vídeo", mediaUrl: VIDEO, mediaTipo: "video", criadoEm: T(3) });
 await db.doc("diario/reelHomens").set({ autorId: U.bruno, nome: "Bruno Reparos", texto: "Vídeo só para homens", mediaUrl: VIDEO, mediaTipo: "video", criadoEm: T(1), publico: { genero: "m" } });

@@ -101,9 +101,11 @@ await p.screenshot({ path: "saida/dc-criador.png" });
 const fCaixa = await db.collection("stories").add({ autorId: U.ana, nome: "Ana", tipo: "imagem", midia: PX, caixa: { pergunta: "Qual serviço vocês querem ver?", anonima: true }, criadoEm: Timestamp.now() });
 await db.collection("caixa_respostas").add({ alvo: `f_${fCaixa.id}`, tipo: "f", itemId: fCaixa.id, autorId: U.ana, texto: "Pintura de fachada!", anonima: true, criadoEm: Timestamp.now() });
 await p.goto(BASE + `feed.html?flash=${fCaixa.id}`); await p.waitForSelector(".story-cx .cx-ver", { timeout: 15000 }); await p.waitForTimeout(1500);
-await p.locator(".story-cx .cx-ver").click(); await p.waitForSelector(".cxr-item", { timeout: 10000 });
-ok((await p.locator(".cxr-item").first().textContent()).includes("Pintura de fachada"), "autora vê a resposta da caixa no flash");
-await p.locator(".cxr-item button", { hasText: "No flash" }).first().click();
+// "ver" abre a Atividade do flash na aba Respostas (cartões); tocar no cartão mostra "Pôr no flash".
+await p.locator(".story-cx .cx-ver").click(); await p.waitForSelector(".vv-resp", { timeout: 10000 });
+ok((await p.locator(".vv-resp").first().textContent()).includes("Pintura de fachada"), "autora vê a resposta da caixa no flash");
+await p.locator(".vv-resp").first().click(); await p.waitForTimeout(200);
+await p.locator(".vv-acao", { hasText: "Pôr no flash" }).first().click();
 await p.waitForSelector(".flash-criar .flash-repost-selo", { timeout: 10000 }); await p.waitForSelector(".flash-fotobox .flash-foto", { timeout: 10000 }); await p.waitForTimeout(600);
 ok((await p.locator(".flash-repost-selo").textContent()).includes("Resposta da caixa") && await p.locator(".story-visor").count() === 0, "'No flash' abre o criador com a pergunta e a resposta");
 await p.screenshot({ path: "saida/dc-resposta-flash.png" });

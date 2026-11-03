@@ -77,16 +77,18 @@ await cn.waitFor({ timeout: 30000 }); await pa.waitForTimeout(1500);
 await cn.locator(".cx-ver").tap();
 await pa.waitForSelector("#listaCorpo .cxr-item", { timeout: 8000 });
 ok((await pa.locator("#listaCorpo .cxr-item .cxr-quem strong").textContent()).startsWith("Dani"), "resposta com nome mostra a Dani");
-await pa.locator("#listaCorpo .cxr-item button", { hasText: "Responder" }).tap();
-await pa.locator("#listaCorpo .cx-responder textarea").fill("Depende do material, te passo um orçamento!");
-await pa.locator("#listaCorpo .cx-responder .cx-enviar").tap(); await pa.waitForTimeout(2000);
+// "Responder" abre a página de Mensagens com a pergunta e a resposta prontas (cartão); a mensagem vai junto.
+await Promise.all([pa.waitForURL(/mensagens\.html/, { timeout: 10000 }).catch(() => {}), pa.locator("#listaCorpo .cxr-item button", { hasText: "Responder" }).tap()]);
+await pa.locator("#barraCartao:not([hidden])").waitFor({ timeout: 15000 }).catch(() => {});
+await pa.locator("#texto").fill("Depende do material, te passo um orçamento!");
+await pa.locator("#btnEnviar").click(); await pa.waitForTimeout(2500);
 const ids = [U.ana, U.dani].sort();
 const msgs = await db.collection(`conversas/${ids[0]}_${ids[1]}/mensagens`).get();
-ok(msgs.docs.some((m) => /Sobre a sua resposta/.test(m.data().texto || "")), "Responder manda a mensagem para a Dani no Mensagens");
+// o cartão (pergunta + resposta) e o texto vão como duas mensagens seguidas
+ok(msgs.docs.some((m) => m.data().cartao?.tipo === "caixa") && msgs.docs.some((m) => /orçamento/.test(m.data().texto || "")), "Responder manda o cartão da caixa e a mensagem para a Dani no Mensagens");
 await pa.screenshot({ path: "saida/cx-respostas-nome.png" });
-await pa.locator("#folhaLista [data-fechar]").click(); await pa.waitForTimeout(300);
 // 4) Notificações da Ana
-await pa.goto(pa.url().replace(/feed\.html.*/, "notificacoes.html"));
+await pa.goto(pa.url().replace(/[^/]*$/, "notificacoes.html")); // (o Responder deixou a Ana no Mensagens)
 await pa.waitForTimeout(5000);
 const txt = await pa.locator("#listaAvisos").textContent();
 ok(!/respondeu sua caixa de perguntas/.test(txt), "respostas da caixa NÃO vêm para as notificações (ficam na própria caixa)");
@@ -112,8 +114,10 @@ ok(st?.caixa?.anonima === true, "flash publicado com caixa anônima");
 await pb.reload(); await pb.waitForSelector(".story-circ", { timeout: 30000 }); await pb.waitForTimeout(1500);
 await pb.locator(".story-circ:not(.meu)").first().tap();
 await pb.waitForSelector(".story-visor .story-cx textarea", { timeout: 10000 });
-await pb.locator(".story-visor .story-cx textarea").fill("Amei o flash!");
-await pb.locator(".story-visor .story-cx .cx-enviar").tap(); await pb.waitForTimeout(1500);
+// Como no celular: toca no campo (a caixa vai para o meio, acima do teclado), digita e envia.
+await pb.locator(".story-visor .story-cx textarea").tap(); await pb.waitForTimeout(400);
+await pb.keyboard.type("Amei o flash!"); await pb.waitForTimeout(200);
+await pb.locator(".story-cx .cx-enviar").first().tap(); await pb.waitForTimeout(1500);
 const rf = (await db.collection("caixa_respostas").where("alvo", "==", "f_" + st.id).get()).docs;
 ok(rf.length === 1 && rf[0].data().anonima === true && !("uid" in rf[0].data()), "Bruno respondeu a caixa do flash (anônimo)");
 await pb.screenshot({ path: "saida/cx-flash-visor.png" });

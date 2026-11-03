@@ -105,6 +105,9 @@ async function anotarEmail(u) {
     const t = await u.getIdTokenResult(u.emailVerified);
     const v = t.claims.email_verified === true;
     if (sessionStorage.getItem(chave) === String(v) + "|" + (u.email || "")) return;
+    // Lê a conta ANTES de gravar: sem o documento na cópia do aparelho, a gravação (merge) deixava ali uma conta só com
+    // estes 3 campos e as leituras de logo depois (nesta página e no rede.js) vinham sem nome, cidade etc.
+    await getDoc(doc(db, "usuarios", u.uid)).catch(() => null);
     // Junto vai o e-mail do login (contas antigas não tinham o e-mail gravado: o painel mostrava "—").
     await setDoc(doc(db, "usuarios", u.uid), { emailConfirmado: v, emailConferidoEm: serverTimestamp(), ...(u.email ? { email: u.email } : {}) }, { merge: true });
     sessionStorage.setItem(chave, String(v) + "|" + (u.email || ""));
@@ -115,7 +118,7 @@ onAuthStateChanged(auth, async (u) => {
   if (!u) return;
   const pagina = location.pathname.split("/").pop() || "index.html";
   if (await barrarSemEmail(u, pagina)) { anotarEmail(u); return; }
-  anotarEmail(u);
+  const emailAnotado = anotarEmail(u);
   if (PAGINAS_LIVRES.includes(pagina)) return;
   avisosDaEquipe(u);
   // Ligações de voz e vídeo: a tela de chamada aparece em qualquer página quando alguém liga (chamadas.js).
@@ -125,7 +128,20 @@ onAuthStateChanged(auth, async (u) => {
   const chave = "hf-conta-ok-" + u.uid;
   try { if (sessionStorage.getItem(chave) === "1") return; } catch {}
   try {
-    const [s, sc] = await Promise.all([getDoc(doc(db, "usuarios", u.uid)), getDoc(doc(db, "sancoes", u.uid)).catch(() => null)]);
+    // A conta vem DO SERVIDOR: logo depois do login o anotarEmail grava a conta (merge) e o getDoc comum devolvia só os
+    // campos dessa gravação (3 campos, sem estar marcado como cópia do aparelho). Com isso a janela "complete sua cidade"
+    // abria para quem tem cidade, e a conferência de conta desativada/excluída olhava um documento incompleto.
+    // Sem internet, cai na leitura comum.
+    // Mesmo do servidor, enquanto a gravação está pendente a leitura vem só com os campos dela: aí espera a gravação
+    // terminar e lê de novo.
+    const lerConta = () => import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js")
+      .then((f) => f.getDocFromServer(doc(db, "usuarios", u.uid))).catch(() => getDoc(doc(db, "usuarios", u.uid)));
+    const contaCompleta = async () => {
+      let x = await lerConta();
+      if (x.metadata.hasPendingWrites && !(x.exists() && x.data().uid)) { await emailAnotado; x = await lerConta(); }
+      return x;
+    };
+    const [s, sc] = await Promise.all([contaCompleta(), getDoc(doc(db, "sancoes", u.uid)).catch(() => null)]);
     const d = s.exists() ? s.data() : {};
     const sancao = sc?.exists() ? sc.data() : null;
     const suspenso = sancao && (sancao.tipo === "banimento" || (sancao.ate?.toMillis?.() ?? 0) > Date.now());
@@ -139,12 +155,8 @@ onAuthStateChanged(auth, async (u) => {
     // Notificações com o app fechado (push.js): o endereço do aparelho pode mudar; renova 1×/dia se estiver ligado.
     import("./push.js?v=2").then(async (m) => m.renovarPush({ ...(await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js")), db }, u.uid, d)).catch(() => {});
     // Cidade no padrão novo (estado + cidade do IBGE): converte a antiga ou pede para completar.
-    // Só com a conta inteira do servidor: com a gravação do e-mail ainda pendente, a leitura vinha só com esses campos e a
-    // janela "complete sua cidade" abria para quem já tem cidade. Nesse caso lê de novo direto do servidor.
-    const contaInteira = (s.metadata.fromCache || s.metadata.hasPendingWrites)
-      ? import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js").then((f) => f.getDocFromServer(doc(db, "usuarios", u.uid))).then((x) => (x.exists() ? x.data() : null))
-      : Promise.resolve(d);
-    contaInteira.then((dd) => dd && import("./local-conta.js?v=1").then((m) => m.conferirLocal(db, u, dd))).catch((e) => console.warn("[Local]", e?.message || e));
+    // Cidade no padrão novo (estado + cidade do IBGE): converte a antiga ou pede para completar (só com a conta inteira).
+    if (!s.metadata.fromCache && d.uid) import("./local-conta.js?v=2").then((m) => m.conferirLocal(db, u, d)).catch((e) => console.warn("[Local]", e?.message || e));
   } catch (e) { console.warn("[Conta] Não foi possível conferir o estado da conta:", e); }
 });
 

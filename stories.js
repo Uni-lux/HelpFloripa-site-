@@ -14,7 +14,7 @@ import {
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados,
   responderNoChat, cartaoRespostaCaixa, fecharFolha, ajudaPublico
-} from "./rede.js?v=115";
+} from "./rede.js?v=118";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { combinaPublico, leitorDe, temPublico, resumoPublico, publicoParaGravar } from "./publico-alvo.js?v=1";
@@ -263,7 +263,42 @@ window.__hfVisorNegocio = abrirFlashesDoNegocio;
 // publicação...), o "voltar" do celular traz o MESMO flash de volta (antes voltava para o Diário com o flash fechado).
 // Só os flashes no ar (destaques e arquivo não). Guardado na aba (sessionStorage), vale 30 min.
 const CHAVE_VOLTA = "hf-flash-volta";
+// Empilha figurinhas que se cobrem (cy/h/cx/w em px; muda cy): na ordem de cima para baixo, cada uma desce até ficar
+// 10 px abaixo da anterior que ocupa a mesma faixa na horizontal; se o grupo passa de `baixo`, sobe o que der.
+function empilhar(l, cima, baixo, gap = 10) {
+  l.sort((a, b) => a.cy - b.cy);
+  const cruza = (a, b) => Math.abs(a.cx - b.cx) < (a.w + b.w) / 2;
+  for (let i = 1; i < l.length; i++) for (let j = 0; j < i; j++) {
+    const a = l[j], fim = a.cy + a.h / 2 + gap;
+    if (cruza(a, l[i]) && l[i].cy - l[i].h / 2 < fim && l[i].cy + l[i].h / 2 > a.cy - a.h / 2 - gap) l[i].cy = fim + l[i].h / 2;
+  }
+  const fundo = Math.max(...l.map((x) => x.cy + x.h / 2)), topo = Math.min(...l.map((x) => x.cy - x.h / 2));
+  const sobe = Math.min(fundo - baixo, topo - cima);
+  if (fundo > baixo && sobe > 0) l.forEach((x) => { x.cy -= sobe; });
+  return l;
+}
 const tirarCapa = () => document.documentElement.classList.remove("hf-volta-flash");
+// Zoom da página travado enquanto o criador do Flash está aberto: um gesto de dois dedos que não pega a figurinha
+// (cai num botão ou fora dela) virava zoom do navegador e a tela ficava ampliada, com os botões gigantes. O
+// `touch-action` do .flash-criar já bloqueia a pinça; o viewport (maximum-scale=1) desfaz um zoom que já existia.
+// Na rede numa página só (rede.html) o Diário fica num quadro: o zoom que vale é o da página de cima, então a trava vai
+// nas duas (a de cima só se for do mesmo site).
+let zoomTravado = 0;
+const viewportsAntes = new Map();
+function travarZoom() {
+  const docs = [document];
+  try { if (window.top !== window && window.top.document) docs.push(window.top.document); } catch {}
+  if (!zoomTravado++) docs.forEach((d) => {
+    const m = d.querySelector('meta[name="viewport"]'); if (!m) return;
+    const antes = m.getAttribute("content"); viewportsAntes.set(m, antes);
+    m.setAttribute("content", antes.replace(/,\s*(maximum-scale|user-scalable)=[^,]*/g, "") + ", maximum-scale=1, user-scalable=no");
+  });
+  let feito = false;
+  return () => {
+    if (feito) return; feito = true;
+    if (!--zoomTravado) { viewportsAntes.forEach((antes, m) => m.setAttribute("content", antes)); viewportsAntes.clear(); }
+  };
+}
 function lembrarFlash(s) {
   try { if (s?.id) sessionStorage.setItem(CHAVE_VOLTA, JSON.stringify({ id: s.id, pagina: location.pathname + location.search, em: Date.now() })); } catch {}
 }
@@ -285,15 +320,23 @@ export function voltarAoFlash(daMemoria = false) {
   return true;
 }
 // Repostar um flash em que você foi mencionado (abre o criador com a foto dele).
+// Menção OCULTA: com as regras novas ela fica em `mencoes` (+ `mencoesOcultas`) e o repost funciona. Com as regras de
+// antes o flash é gravado sem a lista das ocultas (semCamposNovos), então quem foi mencionado escondido não aparece em
+// `mencoes` e o servidor recusa o repost: aqui explica o porquê em vez do "só quem foi mencionado".
 export async function repostarFlash(id) {
+  const falhar = (msg) => { tirarCapa(); toast(msg); };
   try {
     const d = await fb.getDoc(fb.doc(fb.db, "stories", id));
-    if (!d.exists() || !ativo(d.data({ serverTimestamps: "estimate" }))) { toast("Esse flash já saiu do ar (passou de 24 horas)."); return; }
+    if (!d.exists() || !ativo(d.data({ serverTimestamps: "estimate" }))) { falhar("Esse flash já saiu do ar (passou de 24 horas)."); return; }
     const x = { id: d.id, ...d.data({ serverTimestamps: "estimate" }) };
-    if (!(Array.isArray(x.mencoes) && x.mencoes.includes(eu.uid))) { toast("Só quem foi mencionado no flash pode repostar."); return; }
-    if (x.tipo === "video") { toast("Repostar vídeo precisa do armazenamento de arquivos ligado."); return; }
+    if (!(Array.isArray(x.mencoes) && x.mencoes.includes(eu.uid))) {
+      falhar(Array.isArray(x.mencoesOcultas) ? "Só quem foi mencionado no flash pode repostar."
+        : "Sua menção neste flash ficou oculta. Repostar menção oculta funciona depois que as regras novas forem publicadas.");
+      return;
+    }
+    if (x.tipo === "video") { falhar("Repostar vídeo precisa do armazenamento de arquivos ligado."); return; }
     abrirCriador({ repost: x });
-  } catch (e) { toast("Não foi possível repostar: " + erroAmigavel(e)); }
+  } catch (e) { falhar("Não foi possível repostar: " + erroAmigavel(e)); }
 }
 
 // ---------- publicação do Diário no flash (como "Adicionar ao story" do Instagram) ----------
@@ -866,6 +909,8 @@ async function abrirRascunhos(aoAbrir, aoMudar = null) {
 }
 
 function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTexto = "", figuras = [], rascunho = null } = {}) {
+  const soltarZoom = travarZoom();
+  setTimeout(tirarCapa, 120); // a tela preta do feed.html (?repostar= / ?novoFlash=) sai quando o criador já está por cima
   const fundo = el("div", "flash-criar"); fundo.addEventListener("contextmenu", (e) => { if (!e.target.closest("input, textarea")) e.preventDefault(); }); fundo.setAttribute("role", "dialog"); fundo.setAttribute("aria-modal", "true"); fundo.setAttribute("aria-label", "Novo flash");
   const caixa = el("div", "flash-caixa");
   const palco = el("div", "flash-palco");
@@ -1025,6 +1070,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   let cam = null;                      // { stream, frente } enquanto a câmera do app está aberta
   let virada = false;                  // câmera da frente (selfie)
   const textos = []; // { texto, x, y (0..1), tam (fração da largura), letra, cor, destaque, el }
+  const doOriginal = []; // repost: prévias das figurinhas do flash original (não se mexem e não são gravadas de novo)
   const tracos = []; // pincel: { modo caneta|marcador|neon|borracha, cor, larg (fração da largura), pts [[x, y] 0..1] }
 
   // ---------- modo Texto ----------
@@ -1234,7 +1280,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   medirCartao();
   let tMedir = null;
   const medirDepois = () => { clearTimeout(tMedir); tMedir = setTimeout(medirCartao, 60); };
-  const aoRedimensionar = () => { medirCartao(); posicionar(); textos.forEach(pintarTexto); };
+  const aoRedimensionar = () => { medirCartao(); posicionar(); textos.forEach(pintarTexto); doOriginal.forEach(pintarOriginal); separarOriginal(); };
   window.addEventListener("resize", aoRedimensionar);
   window.visualViewport?.addEventListener("resize", aoRedimensionar);
   fundo.addEventListener("focusin", medirDepois);
@@ -1496,6 +1542,16 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     else if (t.fig) e.style.fontSize = px;
     else if (!(t.enq || t.cx || t.ct || t.lk)) e.style.font = LETRAS[t.letra].css.replace("1em", px);
   }
+  // As prévias do original ficam empilhadas como no visor (lá, as que se cobrem são separadas).
+  function separarOriginal() {
+    const { W, H } = medidas(); if (!W || !H || doOriginal.length < 2) return;
+    empilhar(doOriginal.map((t) => ({ t, cy: t.y * H, h: t.el.offsetHeight, cx: t.x * W, w: t.el.offsetWidth })), H * 0.11, H - Math.max(H * 0.1, 70))
+      .forEach((x) => { x.t.y = x.cy / H; moverFig(x.t); });
+  }
+  function pintarOriginal(t) {
+    pintarTexto(t); t.el.classList.add("flash-orig");
+    const { W, H } = medidas(); if (W && H) limitar(t, W, H); moverFig(t);
+  }
   function moverFig(t) {
     const e = t.el;
     e.style.left = t.x * 100 + "%"; e.style.top = t.y * 100 + "%";
@@ -1537,7 +1593,11 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     if (noLixo && ev.type === "pointerup") { t.el.remove(); textos.splice(textos.indexOf(t), 1); vibrar(12); pintarArroba(); renomearUltimo(`Apagar ${nomeFig(t)}`); avisarHist(`${nomeFig(t, true)} ${/^(foto|enquete|caixa|menção|localização|hashtag|figurinha|contagem)/.test(nomeFig(t)) ? "apagada" : "apagado"} · toque em ↶ para desfazer`, true); return; }
     if (mexeu) { limitar(t, medidas().W, medidas().H); afastarDosBotoes(t); moverFig(t); }
     if (mexeu || foiDois || ev.type !== "pointerup") return;
-    // toque parado
+    // toque parado. O painel que abre agora fica embaixo do dedo e o "click" deste mesmo toque caía nele (na figurinha de
+    // link, escolhia o negócio que aparecesse ali e o link trocava sozinho): o próximo click, logo em seguida, é engolido.
+    const engolir = (e) => { e.stopPropagation(); e.preventDefault(); };
+    window.addEventListener("click", engolir, { capture: true, once: true });
+    setTimeout(() => window.removeEventListener("click", engolir, true), 450);
     if (t.enq) editarEnquete(t); else if (t.cx) editarCaixa(t); else if (t.ct) editarContagem(t); else if (t.lk) escolherNegocio(t);
     else if (t.ft) { if (t.estilo !== 3) t.estilo = ((t.estilo || 0) + 1) % 3; /* 3 = figurinha pronta (resposta): só vem para a frente */ camada.appendChild(t.el); textos.push(textos.splice(textos.indexOf(t), 1)[0]); t.el.replaceChildren(); pintarTexto(t); }
     else if (t.fig) { t.estilo = (t.estilo + 1) % EST_FIG.length; pintarTexto(t); }
@@ -1930,14 +1990,24 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   async function escolherNegocio(t) {
     palco.querySelector(".flash-figs")?.remove();
     const pn = el("div", "flash-figs");
-    const cab = el("div", "fe-cab"); const ok = el("button", "fe-pronto", t ? "Tirar" : "Fechar"); ok.type = "button";
-    cab.append(el("strong", "figs-tit", "Link para um negócio"), el("span", "esp"), ok);
+    // "Fechar" só fecha (antes, com o link já posto, o botão do topo era "Tirar": quem abria a lista só para olhar apagava
+    // o link). Com o link posto, ele aparece em cima ("No flash agora") com "Tirar o link" separado.
+    const cab = el("div", "fe-cab"); const ok = el("button", "fe-pronto", "Fechar"); ok.type = "button";
+    cab.append(el("strong", "figs-tit", t ? "Trocar o negócio do link" : "Link para um negócio"), el("span", "esp"), ok);
     const busca = el("input", "fe-local"); busca.type = "search"; busca.placeholder = "Buscar negócio pelo nome"; busca.setAttribute("aria-label", "Buscar negócio");
     const lista = el("div", "mencao-lista");
-    const corpo = el("div", "mencao-corpo"); corpo.append(busca, el("p", "figs-dica", "Quem vê o flash toca no link e vai direto para o perfil do negócio."), lista);
+    const atual = el("div", "lk-atual");
+    if (t) {
+      const tirar = el("button", "lk-tirar", "Tirar o link"); tirar.type = "button";
+      const tx = el("span", "tx"); tx.append(el("small", null, "No flash agora"), el("strong", null, t.negocio?.nome || "Perfil do negócio"));
+      atual.append(icone(ICONE_NEGOCIO[t.negocio?.tipo] || "loja", "i s"), tx, tirar);
+      tirar.addEventListener("click", () => { pn.remove(); marcar("Tirar link do negócio"); t.el.remove(); textos.splice(textos.indexOf(t), 1); toast("Link tirado · toque em ↶ para desfazer"); });
+    }
+    const corpo = el("div", "mencao-corpo");
+    corpo.append(...(t ? [atual] : []), busca, el("p", "figs-dica", "Pode ser o seu negócio ou o de outra pessoa do Help Floripa (um link por flash). Quem vê toca no link e vai direto para o perfil do negócio."), lista);
     pn.append(cab, corpo);
     palco.appendChild(pn);
-    ok.addEventListener("click", () => { pn.remove(); if (t) { t.el.remove(); textos.splice(textos.indexOf(t), 1); } });
+    ok.addEventListener("click", () => pn.remove());
     lista.appendChild(el("p", "figs-dica", "Carregando..."));
     negociosP ||= fb.getDocs(fb.query(fb.collection(fb.db, "negocios"), fb.limit(300))).then((x) => x.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => n.nome && PAGINA_NEGOCIO[n.tipo] && !escondido(n.donoId))).catch(() => []);
     const todos = await negociosP;
@@ -1951,7 +2021,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       b.addEventListener("click", () => {
         pn.remove();
         const negocio = { id: n.id, nome: n.nome, tipo: n.tipo };
-        if (t) { t.negocio = negocio; pintarTexto(t); }
+        if (t) { if (t.negocio?.id === negocio.id) return; marcar("Trocar link do negócio"); t.negocio = negocio; pintarTexto(t); toast(`Link trocado para ${n.nome}`); }
         else { textos.filter((x) => x.lk).forEach((x) => { x.el.remove(); textos.splice(textos.indexOf(x), 1); }); criarTexto({ lk: true, negocio, texto: "", x: 0.5, y: 0.68, tam: 0.05, letra: 0, cor: "#111", destaque: false }); }
       });
       return b;
@@ -2525,6 +2595,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   }
 
   const fechar = () => {
+    soltarZoom();
     pararCamera();
     window.removeEventListener("pointermove", moverGesto, true); window.removeEventListener("pointerup", soltarGesto, true); window.removeEventListener("pointercancel", soltarGesto, true);
     fundo.remove(); document.body.classList.remove("travado"); document.removeEventListener("keydown", tecla); window.removeEventListener("resize", aoRedimensionar); window.visualViewport?.removeEventListener("resize", aoRedimensionar); clearTimeout(tMedir);
@@ -2903,6 +2974,18 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     palco.appendChild(selo);
     fotoFixa = true;
     usarFoto(repost.midia).then(() => {
+      // As figurinhas interativas do original (enquete/teste, perguntas, contagem, link) não estão desenhadas na foto: antes
+      // só apareciam depois de publicar. Agora aparecem aqui na hora, no lugar e na cor de lá (só para ver: o visor usa as
+      // do original, com os votos e respostas de lá).
+      const ms = (v) => v?.toMillis?.() ?? (typeof v === "number" ? v : null);
+      const pos = (o) => ({ x: Number.isFinite(o.x) ? o.x : 0.5, y: Number.isFinite(o.y) ? o.y : 0.6, tema: o.cor || "branco" });
+      const e = repost.enquete, c = repost.caixa, k = repost.contagem, l = repost.link;
+      if (e?.pergunta) doOriginal.push({ enq: true, pergunta: e.pergunta, opcoes: e.opcoes || [], ...(Number.isInteger(e.certa) ? { certa: e.certa } : {}), anonima: !!e.anonima, duracao: ms(e.fimEm) ? { fim: ms(e.fimEm) } : { dur: 1440 }, ...pos(e) });
+      if (c?.pergunta) doOriginal.push({ cx: true, pergunta: c.pergunta, anonima: !!c.anonima, ...pos(c) });
+      if (k?.titulo && ms(k.fim)) doOriginal.push({ ct: true, titulo: k.titulo, fim: ms(k.fim), ...pos(k) });
+      if (l?.negocioId) doOriginal.push({ lk: true, negocio: { id: l.negocioId, nome: l.nome, tipo: l.tipo }, ...pos(l) });
+      doOriginal.forEach((t) => { t.el = el("div"); t.el.setAttribute("aria-hidden", "true"); camada.appendChild(t.el); pintarOriginal(t); });
+      separarOriginal();
       // As figurinhas que funcionam (enquete, perguntas, contagem, link, lugar, # e @) vão junto e continuam valendo.
       const tem = [repost.enquete && (repost.enquete.certa != null ? "teste" : "enquete"), repost.caixa && "perguntas", repost.contagem && "contagem", repost.link && "link", Array.isArray(repost.toques) && repost.toques.length && "lugar, # e @"].filter(Boolean);
       if (tem.length) toast(`As figurinhas do flash original vão junto: ${tem.join(", ")}.`);
@@ -3443,6 +3526,27 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
     const cy = Math.min(Math.max(fy * H, cima), Math.max(cima, baixo));
     const cx = Math.min(Math.max(fx * W, lw / 2 + 6), W - lw / 2 - 6);
     w.style.left = cx + "px"; w.style.top = cy + "px";
+    w._cy = cy; w._h = h;
+    agendarSeparar();
+    if (window.ResizeObserver && !w._ro) { w._ro = new ResizeObserver(() => { if (w.parentElement === quadro) encaixar(w, Number(w.dataset.fx), Number(w.dataset.fy)); }); w._ro.observe(w); }
+  }
+  // Duas figurinhas interativas no mesmo flash (enquete + perguntas, contagem...) podiam ficar uma por cima da outra
+  // (no visor a altura de cada uma é a real, maior que a prévia do criador, e os limites são os do quadro). Aqui elas
+  // ficam empilhadas com 10 px entre elas, na ordem de cima para baixo em que foram postas; se não cabem embaixo,
+  // o grupo sobe.
+  let separarQuadro = 0;
+  function agendarSeparar() { if (!separarQuadro) separarQuadro = requestAnimationFrame(separar); }
+  function separar() {
+    separarQuadro = 0;
+    const W = quadro.offsetWidth, H = quadro.offsetHeight; if (!W || !H) return;
+    const l = [];
+    for (const w of quadro.children) {
+      if (w.classList?.contains("story-enq") && Number.isFinite(w._cy)) l.push({ w, cy: w._cy, h: w._h, cx: parseFloat(w.style.left) || W / 2, w2: W * FRAC_FIG });
+      else if (w.matches?.("a.story-link:not(.story-post)") && w.dataset.fy) l.push({ w, cy: Number(w.dataset.fy) * H, h: w.offsetHeight, cx: Number(w.dataset.fx) * W, w2: w.offsetWidth });
+    }
+    if (l.length < 2) return;
+    empilhar(l.map((x) => Object.assign(x, { w: x.w2, el: x.w })), H * 0.11, H - Math.max(H * 0.1, 70))
+      .forEach((x) => { x.el.style.top = x.cy + "px"; });
   }
   const reencaixar = () => quadro.querySelectorAll(".story-enq").forEach((w) => encaixar(w, Number(w.dataset.fx), Number(w.dataset.fy)));
   // ---------- responder a caixa de perguntas em foco ----------
@@ -3684,11 +3788,12 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
       const lk = fig.link;
       const a = el("a", "story-link"); a.href = linkNegocio(lk);
       a.style.left = `${(lk.x ?? 0.5) * 100}%`; a.style.top = `${(lk.y ?? 0.68) * 100}%`;
+      a.dataset.fx = lk.x ?? 0.5; a.dataset.fy = lk.y ?? 0.68;
       a.append(icone(ICONE_NEGOCIO[lk.tipo] || "loja", "i s"), el("span", null, lk.nome || "Ver o negócio"), icone("avancar", "i xs"));
       a.setAttribute("aria-label", `Abrir o perfil de ${lk.nome || "negócio"}`);
       ["pointerdown", "pointerup"].forEach((ev) => a.addEventListener(ev, (e) => e.stopPropagation()));
       a.addEventListener("click", (e) => { e.stopPropagation(); pausar(true); });
-      quadro.appendChild(a);
+      quadro.appendChild(a); agendarSeparar();
     }
     // Figurinhas tocáveis: localização (publicações de lá), hashtag e menção (perfil). Um toque mostra o balão
     // (como no Instagram); tocar no balão abre.

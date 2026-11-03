@@ -35,7 +35,13 @@ await p.screenshot({ path: "saida/fresp-pendente.png" });
 await q.locator("#texto").fill("Boa ideia, vou fazer!");
 await q.locator("#btnEnviar").click(); await p.waitForTimeout(2500);
 const conv = [U.ana, U.bruno].sort().join("_");
-const msgs = (await db.collection(`conversas/${conv}/mensagens`).orderBy("criadoEm", "desc").limit(2).get()).docs.map((d) => d.data());
+// Todas as mensagens (o seed.mjs cria uma com horário no futuro: as "2 mais novas" não eram as que o teste mandou).
+let msgs = [];
+for (let i = 0; i < 20; i++) { // espera até 10 s (o emulador às vezes demora para gravar)
+  msgs = (await db.collection(`conversas/${conv}/mensagens`).get()).docs.map((d) => d.data());
+  if (msgs.some((m) => m.cartao?.tipo === "caixa") && msgs.some((m) => m.texto === "Boa ideia, vou fazer!")) break;
+  await p.waitForTimeout(500);
+}
 const cartao = msgs.find((m) => m.cartao?.tipo === "caixa")?.cartao;
 ok(cartao && cartao.resposta === "Faz um X-salada!" && cartao.cor === "roxo" && cartao.itemTipo === "f" && cartao.itemId === f1, "vai o cartão {tipo: caixa} com pergunta, resposta, cor e o flash");
 ok(msgs.some((m) => m.texto === "Boa ideia, vou fazer!"), "e a mensagem escrita vai logo depois");

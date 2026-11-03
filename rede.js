@@ -1580,7 +1580,7 @@ export async function verRespostasCaixa(item, alvo, aoMudar) {
       acao("chat", "Responder", () => responderNoChat(r.uid, cartaoRespostaCaixa(item.caixa, r, alvo)));
     }
     // Pôr a resposta no seu flash (como no Instagram): pergunta + resposta, sem o nome de quem respondeu.
-    acao("raio", "No flash", () => import("./stories.js?v=87").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
+    acao("raio", "No flash", () => import("./stories.js?v=90").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
     acao("lixo", "Apagar", async () => {
       if (!(await confirmarHF({ titulo: "Apagar esta resposta?", texto: "Ela some da sua caixa de perguntas.", ok: "Apagar", icone: "lixo" }))) return;
       try { await fb.deleteDoc(fb.doc(fb.db, "caixa_respostas", r.id)); todas = todas.filter((x) => x.id !== r.id); pintarNums(); pintarLista(); aoMudar?.(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
@@ -2140,7 +2140,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=87").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=90").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);
@@ -2905,10 +2905,16 @@ function ligarCompositor() {
   $("pubLocal").addEventListener("click", () => escolherLocal());
   $("pubRascunhos").addEventListener("click", abrirRascunhos);
   $("pubSalvarRascunho").addEventListener("click", salvarRascunho);
+  let preparandoFoto = 0, preparandoDesde = 0; // com prazo: se o editor sumir sem responder, Publicar não fica travado
   $("pubArquivoFoto").addEventListener("change", async () => {
     const arquivo = $("pubArquivoFoto").files?.[0];
     $("pubArquivoFoto").value = "";
     if (!arquivo) return;
+    // Enquanto a foto é enquadrada e comprimida, Publicar espera (antes saía o texto sem a foto).
+    preparandoFoto++; preparandoDesde = Date.now();
+    try { await prepararFotoPub(arquivo); } finally { preparandoFoto = Math.max(0, preparandoFoto - 1); }
+  });
+  async function prepararFotoPub(arquivo) {
     // Num tipo com uma imagem só, escolher outra troca a que estava.
     if (pubMidia?.tipo === "image" && pubTipo !== "texto" && maxFotosPub() > 1 && pubMidia.fotos.length >= maxFotosPub()) { toast(`No máximo ${maxFotosPub()} fotos por publicação.`); return; }
     try {
@@ -2930,7 +2936,7 @@ function ligarCompositor() {
       $("pubTexto").maxLength = Math.max(limiteTexto(), $("pubTexto").value.length);
       mostrarPreviaPublicacao(); pintarTipo();
     } catch (e) { toast(erroAmigavel(e)); }
-  });
+  }
   $("pubArquivoVideo").addEventListener("change", () => {
     const arquivo = $("pubArquivoVideo").files?.[0];
     $("pubArquivoVideo").value = "";
@@ -2947,6 +2953,7 @@ function ligarCompositor() {
     v.onerror = () => { URL.revokeObjectURL(previa); toast("Não foi possível ler este vídeo."); };
   });
   $("pubEnviar").addEventListener("click", async () => {
+    if (preparandoFoto && Date.now() - preparandoDesde < 60000) { toast("Espere a foto terminar de carregar."); return; }
     const texto = $("pubTexto").value.trim();
     if (!texto && !pubMidia && !pubEnquete && !pubCaixa) { toast("Escreva algo ou adicione uma foto."); return; }
     // As regras de cada tipo (as mesmas do firestore.rules).

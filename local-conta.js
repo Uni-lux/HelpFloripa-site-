@@ -8,7 +8,7 @@
 //    para completar (com "Agora não", que volta a perguntar em 3 dias).
 // =====================================================
 import { doc, setDoc, getDocs, query, collection, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { resolverCidade, camposEndereco, gravarComLocal, NOVOS, textoCidade, servidorComRegrasAntigas } from "./endereco.js?v=1";
+import { resolverCidade, cidadesDe, camposEndereco, gravarComLocal, NOVOS, textoCidade, servidorComRegrasAntigas } from "./endereco.js?v=1";
 
 const ADIAR_DIAS = 3;
 const chaveAdiar = (uid) => "hf-local-adiado-" + uid;
@@ -64,6 +64,9 @@ export async function conferirLocal(db, usuario, dados) {
     } catch (e) { console.warn("[Local] Conversão não salva:", e?.code || e?.message); }
     return;
   }
+  // Tem cidade, mas a lista de cidades não baixou agora (internet ruim): não dá para saber se a cidade existe; não
+  // pergunta (antes a janela abria para quem já tinha cidade). Tenta de novo na próxima vez que entrar.
+  if ((dados.cidade || dados.cidadeNome) && !(await cidadesDe(dados.uf || "SC").then(() => true, () => false))) return;
   // Sem cidade (ou não reconhecida): pede para completar, sem insistir a cada página.
   try { if (Date.now() - Number(localStorage.getItem(chaveAdiar(uid)) || 0) < ADIAR_DIAS * 864e5) return; } catch {}
   if (window.top !== window.self) return; // dentro da gaveta de mensagens não abre janela
