@@ -16,7 +16,8 @@ await db.doc(`nicknames/brunoreparos`).set({ uid: U.bruno }, { merge: true });
 await db.doc("diario/auFotos").set({ autorId: U.bruno, nome: "Bruno Reparos", texto: "Reforma completa da cozinha #reforma #floripa com @brunoreparos. " + "Detalhes do serviço e do acabamento. ".repeat(8), mediaUrl: FOTO, mediaTipo: "image", midias: [FOTO, FOTO, FOTO], tags: ["reforma", "floripa"], marcados: [U.ana], local: { nome: "Trindade, Florianópolis", lat: -27.59, lng: -48.52 }, criadoEm: T(3) });
 await db.doc("diario/auEnquete").set({ autorId: U.bruno, nome: "Bruno Reparos", texto: "Ajudem a escolher", enquete: { pergunta: "Qual cor para a fachada?", opcoes: ["Branca", "Cinza", "Azul"], fimEm: Timestamp.fromMillis(Date.now() + 864e5) }, criadoEm: T(4) });
 await db.doc("diario/auCaixa").set({ autorId: U.bruno, nome: "Bruno Reparos", texto: "Perguntem o que quiserem", caixa: { pergunta: "Dúvidas sobre reforma?", anonima: false }, criadoEm: T(5) });
-await db.doc("diario/auTexto").set({ autorId: U.bruno, nome: "Bruno Reparos", texto: "Dica rápida: limpe as calhas antes da chuva.", criadoEm: T(6) });
+// De outra pessoa: o Diário mostra no máximo 3 publicações de cada pessoa por leitura (anti-spam).
+await db.doc("diario/auTexto").set({ autorId: U.edu, nome: "Eduardo Lima", texto: "Dica rápida: limpe as calhas antes da chuva.", criadoEm: T(6) });
 await db.doc("diario/auAna").set({ autorId: U.ana, nome: "Ana Souza", texto: "Minha publicação de teste", criadoEm: T(7) });
 
 async function rodar(mobile) {
