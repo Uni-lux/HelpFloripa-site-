@@ -11,7 +11,8 @@
         "*.log"
       ],
       "predeploy": [
-        "cp planos-base.js functions/planos-base.js"
+        "cp planos-base.js functions/planos-base.js",
+        "cp scripts/limpeza/limpeza-conta.mjs functions/limpeza-conta.mjs"
       ]
     }
   ],

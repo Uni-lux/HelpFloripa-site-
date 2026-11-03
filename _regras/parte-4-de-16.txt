@@ -1,3 +1,14 @@
+      // Saúde: um mapa só, sempre com os 15 campos (o site grava todos), conferido com dois regex
+      // (gasta pouco do limite de 1.000 expressões: a gravação de um negócio completo já chega perto).
+      function saudeOk(s) {
+        return s.keys().hasOnly(['profissao', 'profissaoOutra', 'especialidades', 'registro', 'registroUf', 'rqe', 'modalidades',
+                                 'convenios', 'particular', 'valorConsulta', 'duracao', 'publico', 'idiomas', 'acessivel', 'formacao'])
+            && [s.profissao, s.profissaoOutra, s.registro, s.registroUf, s.rqe, s.formacao, s.modalidades.join(','), s.publico.join(','),
+                string(s.particular), string(s.acessivel), string(s.valorConsulta), string(s.duracao)].join('\n')
+                 .matches('^(medico|enfermeiro|tecEnfermagem|psicologo|veterinario|dentista|fisioterapeuta|nutricionista|fonoaudiologo|terapeutaOcupacional|farmaceutico|educadorFisico|cuidador|outros)\n[^\n]{0,40}\n[0-9A-Za-z./ -]{0,20}\n([A-Z]{2})?\n[0-9A-Za-z./-]{0,12}\n[^\n]{0,200}\n((consultorio|online|domicilio)(,(consultorio|online|domicilio)){0,2})?\n([a-z]{3,14}(,[a-z]{3,14}){0,5})?\n(true|false)\n(true|false)\n(null|[0-9]{1,5}([.][0-9]{1,2})?)\n(null|[1-9][0-9]{0,2})$')
+            && [s.especialidades.join('\n'), s.convenios.join('\n'), s.idiomas.join('\n')].join('\n').matches('^[^\n]{0,40}(\n[^\n]{0,40}){0,29}$');
+      }
+
       // Promoção/cupom com prazo (até 62 dias): título, texto, código opcional (A-Z e 0-9).
       function promocaoOk(p) {
         return p is map
@@ -196,26 +207,4 @@
             && (d.categoria == 'quarto' || !texto.matches('(?s).*[Rr][$].*'))
             && dataOuNulo('ocultoAte');
       }
-      allow read: if logado();
-      allow create: if logado() && emailOk()
-                    && request.resource.data.donoId == request.auth.uid
-                    && request.resource.data.keys().hasOnly(camposComunidade())
-                    && !('ocultoPelaEquipe' in request.resource.data)
-                    && !banidoDoPrograma(request.auth.uid, 'comunidade')
-                    && !sancionado(request.auth.uid)
-                    && request.resource.data.criadoEm == request.time
-                    && comunidadeOk();
-      allow update: if logado() && emailOk()
-                    && resource.data.donoId == request.auth.uid
-                    && request.resource.data.donoId == resource.data.donoId
-                    && request.resource.data.criadoEm == resource.data.criadoEm
-                    && gravou().hasOnly(camposComunidade())
-                    && travaModeracao()
-                    && !banidoDoPrograma(request.auth.uid, 'comunidade')
-                    && comunidadeOk();
-      allow delete: if logado() && (resource.data.donoId == request.auth.uid || podeModerar());
-      // A equipe esconde (anúncio com venda, golpe, conta suspensa).
-      allow update: if podeModerar() && moderacaoOk();
-    }
-
 // ===== FIM DA PARTE 4 DE 16 =====

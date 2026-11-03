@@ -386,7 +386,14 @@ service cloud.firestore {
                     && request.resource.data.uid == userId
                     && request.resource.data.aceiteTermos == true
                     && (!('criadoEm' in request.resource.data) || request.resource.data.criadoEm == request.time)
+                    && emailConfirmadoOk()
                     && naoTocaCamposProtegidosNoCreate();
+
+      // E-mail confirmado (o painel mostra): a conta só grava o valor verdadeiro, o que o login diz (token).
+      function emailConfirmadoOk() {
+        return !('emailConfirmado' in request.resource.data)
+            || request.resource.data.emailConfirmado == (request.auth.token.email_verified == true);
+      }
 
       // criadoEm não muda depois de gravado (cadastro antigo sem a data só pode gravar a data de agora).
       allow update: if logado()
@@ -394,6 +401,7 @@ service cloud.firestore {
                     && request.resource.data.uid == resource.data.uid
                     && (!mudou().hasAny(['criadoEm'])
                         || (!('criadoEm' in resource.data) && request.resource.data.criadoEm == request.time))
+                    && (!mudou().hasAny(['emailConfirmado']) || emailConfirmadoOk())
                     && naoTocaCamposProtegidosNoUpdate();
 
       allow delete: if logado()

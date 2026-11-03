@@ -1,3 +1,24 @@
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['negocioId', 'alvoId', 'autorId', 'autorNome', 'negocioNome', 'tipo', 'motivo', 'texto', 'foto',
+                                                              'status', 'abertaEm', 'criadoEm', 'aberturas', 'resposta', 'respondidaEm', 'resolvidaEm'])
+                    && request.resource.data.autorId == request.auth.uid
+                    && id == request.resource.data.negocioId + '_' + request.auth.uid
+                    && request.resource.data.alvoId == donoDoNegocio(request.resource.data.negocioId)
+                    && request.resource.data.alvoId != request.auth.uid
+                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude']
+                    && relatoOk(request.resource.data)
+                    && valorTextoAte(request.resource.data.get('autorNome', ''), 80)
+                    && valorTextoAte(request.resource.data.get('negocioNome', ''), 80)
+                    && request.resource.data.status == 'aberta'
+                    && request.resource.data.aberturas == 1
+                    && request.resource.data.get('resposta', null) == null
+                    && request.resource.data.criadoEm == request.time
+                    && request.resource.data.abertaEm == request.time
+                    && contaAntiga(request.auth.uid)
+                    && falou(request.auth.uid, request.resource.data.alvoId, request.auth.uid)
+                    && contou();
+
       allow update: if logado()
                     && emailOk()
                     && request.resource.data.autorId == resource.data.autorId
@@ -187,23 +208,5 @@
       function camposChamado() {
         return ['uid', 'nome', 'email', 'assunto', 'categoria', 'status', 'criadoEm', 'atualizadoEm', 'ultimaDe', 'atendidoPor', 'responsavel', 'responsavelNome', 'assumidoEm',
                 'prioridade', 'escalonadoPara', 'primeiraRespostaEm'];
-      }
-      // Suporte nacional (suporte-fila.js): golpe = urgente; pagamento, contestação ou plano Pro/Premium = alta; o resto = normal.
-      // Quem abre não escolhe ser urgente: a prioridade tem que bater com o assunto (ou com o plano da conta).
-      function prioridadeOk(d) {
-        let p = d.get('prioridade', 'normal');
-        return p == 'normal'
-            || (p == 'urgente' && d.categoria == 'golpe')
-            || (p == 'alta' && (d.categoria in ['pagamento', 'contestacao']
-                || (exists(/databases/$(database)/documents/planos/$(request.auth.uid))
-                    && get(/databases/$(database)/documents/planos/$(request.auth.uid)).data.plano in ['pro', 'premium']
-                    && get(/databases/$(database)/documents/planos/$(request.auth.uid)).data.ate > request.time)));
-      }
-      // A equipe: prioridade, transferir de setor (categoria), escalar (moderação ou donos) e a hora da 1ª resposta.
-      function filaEquipeOk(d) {
-        return d.get('prioridade', 'normal') in ['urgente', 'alta', 'normal']
-            && d.categoria in ['conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro']
-            && d.get('escalonadoPara', '') in ['', 'moderacao', 'donos']
-            && (!mudou().hasAny(['primeiraRespostaEm']) || d.primeiraRespostaEm == request.time);
       }
 // ===== FIM DA PARTE 8 DE 16 =====

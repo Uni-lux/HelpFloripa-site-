@@ -6,9 +6,9 @@ import { cartaoComunicado } from "./comunicados.js?v=1";
 import { linha, linhaComparada, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=7";
 import { baixarPlanilhaMulti } from "./planilha.js?v=5";
 import { buscarPessoas } from "./pessoas.js?v=5";
-import { montarChat, postarNaConversa, idPar } from "./admin-chat.js?v=29";
+import { montarChat, postarNaConversa, idPar } from "./admin-chat.js?v=30";
 import { CANAIS, canalDaFila, STATUS } from "./equipe-canais.js?v=1";
-import { verConteudoDenuncia } from "./admin-denuncia.js?v=19";
+import { verConteudoDenuncia } from "./admin-denuncia.js?v=20";
 import { prepararAnexo, blocoAnexo, previaAnexo, aceitos } from "./anexos-suporte.js?v=2";
 import { FILAS, filaDe, PRIORIDADES as PRIO_SUP, prioridadeChamado, situacaoPrazo, ordemFila } from "./suporte-fila.js?v=1";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
@@ -17,8 +17,8 @@ import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha,
   PAPEIS, DESC_PAPEIS, pode, semPermissao, nomeEquipe, vendoAgora, marcarItem, seloResp, confirmarItem, controlesResp, espera,
-  PRIORIDADES, editarTarefa, moverTarefa, garantirNegocios, garantirTodasPessoas, carregarPessoas, guardarPessoas, abrirConversaSuporte, banirPrograma
-} from "./admin-base.js?v=26";
+  PRIORIDADES, editarTarefa, moverTarefa, garantirNegocios, garantirTodasPessoas, carregarPessoas, guardarPessoas, abrirConversaSuporte, banirPrograma, seloEmail
+} from "./admin-base.js?v=27";
 
 const cab = (titulo, sub, extra) => { const c = h("div", "ad-cab"); const t = h("div"); t.append(h("h1", null, titulo)); if (sub) t.append(h("p", null, sub)); c.appendChild(t); if (extra) c.appendChild(extra); return c; };
 const bloco = (titulo, sub) => { const b = h("section", "ad-bloco"); const t = h("div", "ad-bloco-topo"); const tt = h("div"); tt.append(h("h3", null, titulo)); if (sub) tt.append(h("p", null, sub)); t.appendChild(tt); b.appendChild(t); b.topo = t; return b; };
@@ -205,14 +205,14 @@ export function usuarios(el, termo = "") {
     b.textContent = "Preparando...";
     try { await Promise.all([garantirTodasPessoas(), garantirNegocios()]); } finally { b.textContent = "Baixar Excel"; }
     const l = filtrarTodas();
-    baixarCSV("usuarios", ["ID", "Nome", "@", "E-mail", "Telefone", "Cidade", "Idade", "Cadastro", "Último acesso", "Situação", "Verificado", "Negócios"], l.map((p) => [p.uid, p.nome || "", p.nickname || "", p.email || "", p.telefone || "", nomeCidade(p.cidade), idade(p.dataNascimento) ?? "", data(p.criadoEm), data(p.ultimoAcesso), estado(p).t, p.verificado ? "sim" : "não", D.negocios.filter((n) => n.donoId === p.uid).length]));
+    baixarCSV("usuarios", ["ID", "Nome", "@", "E-mail", "E-mail confirmado", "Telefone", "Cidade", "Idade", "Cadastro", "Último acesso", "Situação", "Verificado", "Negócios"], l.map((p) => [p.uid, p.nome || "", p.nickname || "", p.email || "", p.emailConfirmado === true ? "sim" : p.emailConfirmado === false ? "não" : "sem informação", p.telefone || "", nomeCidade(p.cidade), idade(p.dataNascimento) ?? "", data(p.criadoEm), data(p.ultimoAcesso), estado(p).t, p.verificado ? "sim" : "não", D.negocios.filter((n) => n.donoId === p.uid).length]));
     registrar("exportar", "usuarios", `${l.length} linhas`);
   });
   const topoAcoes = h("div", "ad-acoes"); topoAcoes.append(busca, exportar);
   el.append(cab("Usuários", `${num(cp.total ?? 0)} contas. Toque numa pessoa para ver a ficha completa e agir.`, topoAcoes));
   const qtd = (v) => (v != null ? ` (${num(v)})` : "");
   const sancoesAtivas = [...D.sancoes.values()].filter((x) => x.tipo === "banimento" || ms(x.ate) > agora());
-  const filtros = chips([["todos", "Todos" + qtd(cp.total)], ["novos", "Novos (7 dias)" + qtd(cp.novos7)], ["ativos", "Ativos (7 dias)" + qtd(cp.ativos7)], ["inativos", "Sumidos (+30 dias)"], ["negocio", "Com negócio"], ["verificados", "Verificados" + qtd(cp.verificados)], ["desativado", "Desativados"], ["exclusao", "Exclusão agendada" + qtd(D.exclusoes.size)], ["sancao", "Suspensos/banidos" + qtd(sancoesAtivas.length)]], filtroUsuarios, (v) => { filtroUsuarios = v; busca.value = ""; recomecar(); });
+  const filtros = chips([["todos", "Todos" + qtd(cp.total)], ["novos", "Novos (7 dias)" + qtd(cp.novos7)], ["ativos", "Ativos (7 dias)" + qtd(cp.ativos7)], ["inativos", "Sumidos (+30 dias)"], ["negocio", "Com negócio"], ["verificados", "Verificados" + qtd(cp.verificados)], ...(pode("moderar") ? [["semEmail", "E-mail não confirmado"]] : []), ["desativado", "Desativados"], ["exclusao", "Exclusão agendada" + qtd(D.exclusoes.size)], ["sancao", "Suspensos/banidos" + qtd(sancoesAtivas.length)]], filtroUsuarios, (v) => { filtroUsuarios = v; busca.value = ""; recomecar(); });
   const ordem = chips([["recentes", "Mais recentes"], ["acesso", "Último acesso"], ["nome", "Nome A–Z"]], ordemUsuarios, (v) => { ordemUsuarios = v; if (filtroUsuarios === "todos" && !busca.value.trim()) recomecar(); else pintar(); });
   const linhaF = h("div", "ad-acoes"); linhaF.style.justifyContent = "space-between"; linhaF.style.marginBottom = "12px"; linhaF.append(filtros, ordem);
   const tab = h("div", "ad-tabela"); const info = h("p"); info.style.color = "var(--muted)";
@@ -238,6 +238,8 @@ export function usuarios(el, termo = "") {
     if (filtroUsuarios === "negocio") { await garantirNegocios(); return [...new Set(D.negocios.map((n) => n.donoId))]; }
     if (filtroUsuarios === "exclusao") return [...D.exclusoes.keys()];
     if (filtroUsuarios === "sancao") return sancoesAtivas.map((x) => x.id);
+    // Quem entrou e não confirmou o e-mail (usuarios.emailConfirmado == false, anotado pela própria conta ao entrar).
+    if (filtroUsuarios === "semEmail") return fb.getDocs(fb.query(fb.collection(fb.db, "usuarios"), fb.where("emailConfirmado", "==", false), fb.limit(500))).then((s) => s.docs.map((d) => d.id)).catch(() => []);
     return [];
   }
   async function pagina() {
@@ -304,7 +306,8 @@ export function usuarios(el, termo = "") {
       const tr = h("tr", "clicavel"); tr.tabIndex = 0;
       const c1 = h("td"); c1.appendChild(pessoaCel(p));
       const st = estado(p); const c7 = h("td"); c7.appendChild(selo(st.t, st.c)); if (p.verificado) c7.append(" ", selo("Verificado", "info"));
-      tr.append(c1, h("td", null, p.email || "—"), h("td", null, nomeCidade(p.cidade) || "—"), h("td", null, idade(p.dataNascimento) ?? "—"), h("td", null, data(p.criadoEm)), h("td", null, relativo(p.ultimoAcesso)), c7);
+      const cE = h("td", "ad-email-cel"); cE.append(h("span", null, p.email || "—")); const se = seloEmail(p); if (se) cE.append(se);
+      tr.append(c1, cE, h("td", null, nomeCidade(p.cidade) || "—"), h("td", null, idade(p.dataNascimento) ?? "—"), h("td", null, data(p.criadoEm)), h("td", null, relativo(p.ultimoAcesso)), c7);
       const abrir = () => abrirFicha(p.uid);
       tr.addEventListener("click", abrir); tr.addEventListener("keydown", (e) => { if (e.key === "Enter") abrir(); });
       tb.appendChild(tr);
@@ -326,6 +329,7 @@ export function usuarios(el, termo = "") {
       if (filtroUsuarios === "desativado") return st === "desativado";
       if (filtroUsuarios === "exclusao") return st === "exclusao";
       if (filtroUsuarios === "sancao") return ["suspenso", "banido"].includes(st);
+      if (filtroUsuarios === "semEmail") return p.emailConfirmado === false;
       return true;
     }));
   }
@@ -1860,7 +1864,7 @@ export function relatorios(el) {
 }
 
 // ======================================================= REGISTRO E EQUIPE
-const NOMES_ACAO = { aviso: "Enviou aviso", suspender: "Suspendeu", banir: "Baniu", remover_sancao: "Removeu sanção", verificar: "Deu selo", tirar_selo: "Tirou/recusou selo", remover_conteudo: "Removeu conteúdo", esconder_negocio: "Escondeu negócio", mostrar_negocio: "Mostrou negócio", esconder_publicacao: "Escondeu publicação", mostrar_publicacao: "Mostrou publicação", exportar: "Exportou dados", relatorio_pdf: "Gerou relatório", parceria: "Atualizou parceria", parceria_apagar: "Apagou parceria", suporte_resposta: "Respondeu chamado", suporte_pegar: "Pegou chamado da fila", suporte_fila: "Transferiu/escalou chamado", suporte_conversa: "Abriu conversa de suporte", suporte_fechado: "Fechou chamado", suporte_aberto: "Reabriu chamado", reporte_novo: "Reportou pessoa do suporte", cobrar_reclamacao: "Cobrou resposta de reclamação", reporte_em_analise: "Pôs reporte em análise", reporte_resolvido: "Resolveu reporte", reporte_descartado: "Descartou reporte", comunicado_novo: "Criou comunicado", comunicado_editar: "Editou comunicado", comunicado_on: "Pôs comunicado no ar", comunicado_off: "Tirou comunicado do ar", comunicado_apagar: "Apagou comunicado", denuncia_resolvida: "Resolveu denúncia", denuncia_descartada: "Descartou denúncia", denuncia_em_analise: "Pôs denúncia em análise", assumiu: "Assumiu", passou: "Passou para outra pessoa", liberou: "Liberou", tarefa_nova: "Criou tarefa", tarefa_editar: "Editou tarefa", tarefa_a_fazer: "Voltou tarefa", tarefa_fazendo: "Começou tarefa", tarefa_feito: "Concluiu tarefa", tarefa_apagar: "Apagou tarefa", nota_interna: "Escreveu nota interna", entrou: "Entrou no painel", banir_programa: "Baniu de um programa", punir_ma_fe: "Puniu má-fé ao anunciar", tirar_negocios_sem_verificacao: "Tirou do ar negócios sem verificação", plano_ativar: "Ativou plano", plano_recusar: "Recusou pedido de plano", plano_encerrar: "Encerrou plano", negociacao_aprovar: "Aprovou negociação de plano", negociacao_recusar: "Não aprovou negociação de plano", negociacao_conversa: "Negociou plano", plano_ajustar: "Ajustou plano", verificacao_aprovar: "Aprovou verificação", verificacao_recusar: "Recusou verificação" };
+const NOMES_ACAO = { aviso: "Enviou aviso", suspender: "Suspendeu", banir: "Baniu", remover_sancao: "Removeu sanção", verificar: "Deu selo", tirar_selo: "Tirou/recusou selo", remover_conteudo: "Removeu conteúdo", esconder_negocio: "Escondeu negócio", mostrar_negocio: "Mostrou negócio", esconder_publicacao: "Escondeu publicação", mostrar_publicacao: "Mostrou publicação", exportar: "Exportou dados", relatorio_pdf: "Gerou relatório", parceria: "Atualizou parceria", parceria_apagar: "Apagou parceria", suporte_resposta: "Respondeu chamado", suporte_pegar: "Pegou chamado da fila", suporte_fila: "Transferiu/escalou chamado", suporte_conversa: "Abriu conversa de suporte", suporte_fechado: "Fechou chamado", suporte_aberto: "Reabriu chamado", reporte_novo: "Reportou pessoa do suporte", cobrar_reclamacao: "Cobrou resposta de reclamação", reporte_em_analise: "Pôs reporte em análise", reporte_resolvido: "Resolveu reporte", reporte_descartado: "Descartou reporte", comunicado_novo: "Criou comunicado", comunicado_editar: "Editou comunicado", comunicado_on: "Pôs comunicado no ar", comunicado_off: "Tirou comunicado do ar", comunicado_apagar: "Apagou comunicado", denuncia_resolvida: "Resolveu denúncia", denuncia_descartada: "Descartou denúncia", denuncia_em_analise: "Pôs denúncia em análise", assumiu: "Assumiu", passou: "Passou para outra pessoa", liberou: "Liberou", tarefa_nova: "Criou tarefa", tarefa_editar: "Editou tarefa", tarefa_a_fazer: "Voltou tarefa", tarefa_fazendo: "Começou tarefa", tarefa_feito: "Concluiu tarefa", tarefa_apagar: "Apagou tarefa", nota_interna: "Escreveu nota interna", entrou: "Entrou no painel", banir_programa: "Baniu de um programa", punir_ma_fe: "Puniu má-fé ao anunciar", tirar_negocios_sem_verificacao: "Tirou do ar negócios sem verificação", plano_ativar: "Ativou plano", plano_recusar: "Recusou pedido de plano", plano_encerrar: "Encerrou plano", negociacao_aprovar: "Aprovou negociação de plano", negociacao_recusar: "Não aprovou negociação de plano", negociacao_conversa: "Negociou plano", plano_ajustar: "Ajustou plano", verificacao_aprovar: "Aprovou verificação", verificacao_recusar: "Recusou verificação", apagar_conta: "Apagou conta", migrar_fotos: "Passou fotos para o Storage", recalcular_estrelas: "Recalculou estrelas" };
 // Alvo do registro em texto de gente: a pessoa (link para a ficha), ou o item que a equipe assumiu/passou
 // ("suporte:ID" vira "Chamado #ABC123 · assunto", "denuncias:..." vira "Denúncia · motivo · pessoa"), ou a lista exportada.
 const LISTAS_EXPORT = { usuarios: "Lista de usuários", negocios: "Lista de negócios", denuncias: "Lista de denúncias", reclamacoes: "Lista de reclamações" };

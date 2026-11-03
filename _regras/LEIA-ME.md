@@ -1,5 +1,9 @@
 # Regras do Firestore — publicação
 
+> **Versão de 03/11/2026 — e-mail confirmado:** a conta só pode anotar `usuarios.emailConfirmado` com o valor verdadeiro do
+> login (o painel mostra quem confirmou). Sem esta versão o bloqueio de quem não confirmou já funciona no site; só a marcação
+> do painel fica sem a trava.
+
 > **Versão de 03/11/2026 — Etapa A (servidor):** coleção nova **`ranking_diario`** (as listas do Diário montadas pela
 > Cloud Function: quem está logado lê, só o servidor grava). Enquanto não publicar (ou sem o Blaze), o Diário funciona como
 > antes. O tempo de resposta do servidor (`perfis_publicos.respostaServ`) já é protegido pelas regras de hoje (o dono não
@@ -94,7 +98,7 @@ linha), para colar no console do Firebase.
 - Cada parte termina com a linha `// ===== FIM DA PARTE X DE 16 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
 - Conferido: as 16 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **769 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
+- Testes de regras no arquivo remontado: **775 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.

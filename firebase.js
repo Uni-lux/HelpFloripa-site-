@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, getDoc, doc, getDocs, collection, query, where, limit, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, getDoc, doc, getDocs, collection, query, where, limit, updateDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js";
 
 // App Check: prova para o Firebase que o acesso vem do seu site (e não de um robô).
@@ -83,9 +83,38 @@ import("./manutencao.js?v=1").then((m) => m.avisoManutencao()).catch((e) => cons
 // Portão da conta: quem entra com a conta desativada ou com a exclusão pedida vai para
 // conta.html (reativar / recuperar). Confere uma vez por sessão do navegador.
 const PAGINAS_LIVRES = ["conta.html", "login.html", "cadastre-se.html", "verificar-email.html", "termos.html", "privacidade.html", "ajuda.html", "contato.html", "suporte.html", "seguranca.html", "diretrizes.html"];
+// E-mail confirmado é obrigatório para entrar na plataforma (pedido do dono, 03/11/2026): quem entrou com e-mail e senha e
+// ainda não confirmou vai para verificar-email.html (de qualquer página, menos as de ler: termos, ajuda, contato...).
+// Antes de barrar, recarrega o login (a pessoa pode ter confirmado em outro aparelho).
+const LIVRES_SEM_EMAIL = ["verificar-email.html", "login.html", "cadastre-se.html", "termos.html", "privacidade.html", "ajuda.html", "contato.html", "diretrizes.html", "seguranca.html", "sobre.html", "como-ordenamos.html", "404.html", "link.html", "offline.html"];
+const pedeSenha = (u) => (u.providerData || []).some((p) => p.providerId === "password");
+async function barrarSemEmail(u, pagina) {
+  if (u.emailVerified || !pedeSenha(u) || LIVRES_SEM_EMAIL.includes(pagina)) return false;
+  const raiz = document.documentElement; raiz.style.visibility = "hidden";
+  try { await u.reload(); } catch {}
+  if (auth.currentUser?.emailVerified) { raiz.style.visibility = ""; return false; }
+  const alvo = "verificar-email.html?continuar=" + encodeURIComponent(pagina + location.search);
+  try { (window.top && window.top.location.origin === location.origin ? window.top : window).location.replace(alvo); } catch { location.replace(alvo); }
+  return true;
+}
+// A conta guarda se o e-mail está confirmado (usuarios.emailConfirmado), para o painel mostrar: o valor vem do login
+// (token) e as regras só aceitam o valor verdadeiro. Uma gravação por sessão, só quando mudou.
+async function anotarEmail(u) {
+  const chave = "hf-email-anotado-" + u.uid;
+  try {
+    const t = await u.getIdTokenResult(u.emailVerified);
+    const v = t.claims.email_verified === true;
+    if (sessionStorage.getItem(chave) === String(v)) return;
+    await setDoc(doc(db, "usuarios", u.uid), { emailConfirmado: v, emailConferidoEm: serverTimestamp() }, { merge: true });
+    sessionStorage.setItem(chave, String(v));
+  } catch (e) { /* conta ainda sem documento (cadastro em andamento) ou regras antigas: tenta na próxima página */ }
+}
+
 onAuthStateChanged(auth, async (u) => {
   if (!u) return;
   const pagina = location.pathname.split("/").pop() || "index.html";
+  if (await barrarSemEmail(u, pagina)) { anotarEmail(u); return; }
+  anotarEmail(u);
   if (PAGINAS_LIVRES.includes(pagina)) return;
   avisosDaEquipe(u);
   // Ligações de voz e vídeo: a tela de chamada aparece em qualquer página quando alguém liga (chamadas.js).

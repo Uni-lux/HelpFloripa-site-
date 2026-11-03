@@ -173,7 +173,14 @@
                     && request.resource.data.uid == userId
                     && request.resource.data.aceiteTermos == true
                     && (!('criadoEm' in request.resource.data) || request.resource.data.criadoEm == request.time)
+                    && emailConfirmadoOk()
                     && naoTocaCamposProtegidosNoCreate();
+
+      // E-mail confirmado (o painel mostra): a conta só grava o valor verdadeiro, o que o login diz (token).
+      function emailConfirmadoOk() {
+        return !('emailConfirmado' in request.resource.data)
+            || request.resource.data.emailConfirmado == (request.auth.token.email_verified == true);
+      }
 
       // criadoEm não muda depois de gravado (cadastro antigo sem a data só pode gravar a data de agora).
       allow update: if logado()
@@ -181,6 +188,7 @@
                     && request.resource.data.uid == resource.data.uid
                     && (!mudou().hasAny(['criadoEm'])
                         || (!('criadoEm' in resource.data) && request.resource.data.criadoEm == request.time))
+                    && (!mudou().hasAny(['emailConfirmado']) || emailConfirmadoOk())
                     && naoTocaCamposProtegidosNoUpdate();
 
       allow delete: if logado()
@@ -243,13 +251,4 @@
       function faixaOk(v) {
         return v is string && v.matches('^([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9]$');
       }
-      // Horário de cada dia da semana: lista com 7 textos, de domingo (0) a sábado (6),
-      // "HH:MM-HH:MM" ou "" (fechado). Uma expressão regular só confere a lista toda
-      // (uma por dia estourava o limite de 1.000 expressões por gravação).
-      function semanaOk(s) {
-        return s == null
-            || (s is list && s.size() == 7
-                && s.join(';').matches('^(([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9])?(;(([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9])?){6}$'));
-      }
-
 // ===== FIM DA PARTE 2 DE 16 =====

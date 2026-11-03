@@ -124,6 +124,15 @@ export function pessoaCel(p, sub) {
   return d;
 }
 export const selo = (texto, tipo = "neutro") => h("span", "ad-selo " + tipo, texto);
+// E-mail confirmado ou não (usuarios.emailConfirmado, que a própria conta anota ao entrar e as regras só aceitam
+// com o valor verdadeiro do login). Sem o campo: a pessoa não entrou desde 03/11/2026.
+export function seloEmail(p) {
+  if (!p || p.removido) return null;
+  if (p.emailConfirmado === true) return selo("E-mail confirmado", "bom");
+  if (p.emailConfirmado === false) return selo("E-mail não confirmado", "atencao");
+  return null;
+}
+const textoEmail = (p) => (p.emailConfirmado === true ? "Confirmado" : p.emailConfirmado === false ? "NÃO confirmado — a conta não consegue entrar até confirmar" : "Sem informação (não entrou desde 03/11/2026)");
 export const TIPOS_NEG = { servicos: "Freelances", delivery: "Delivery", lojinha: "Lojinha", imoveis: "Imóveis", saude: "Saúde" };
 export const MOTIVOS_DEN = { golpe: "Golpe ou fraude", falso: "Perfil falso", assedio: "Assédio ou ofensa", odio: "Discurso de ódio", improprio: "Conteúdo impróprio", spam: "Spam", menor: "Menor de idade", venda: "Venda/cobrança na Comunidade", outro: "Outro" };
 export const MOTIVOS_QX = { atraso: "Atraso", qualidade: "Qualidade", cobranca: "Cobrança", ausencia: "Não compareceu", atendimento: "Atendimento", golpe: "Suspeita de golpe", outro: "Outro" };
@@ -372,6 +381,7 @@ export async function abrirFicha(uid) {
   tx.append(h("h3", null, p.nome || "Usuário"), h("p", null, [p.nickname ? "@" + p.nickname : "", nomeCidade(p.cidade)].filter(Boolean).join(" · ") || uid));
   const selos = h("div", "ad-selos"); selos.append(selo(st.t, st.c));
   if (p.verificado) selos.append(selo("Verificado", "info"));
+  if (p.emailConfirmado === false) selos.append(selo("E-mail não confirmado", "atencao"));
   if (p.solicitacaoVerificacao) selos.append(selo("Pediu verificação", "atencao"));
   if (D.admins.some((a) => a.id === uid)) selos.append(selo("Equipe", "info"));
   if (denContra.length >= 3) selos.append(selo(`${denContra.length} denúncias`, "critico"));
@@ -396,6 +406,8 @@ export async function abrirFicha(uid) {
   else if (mod && D.pendVerif.includes(uid)) bt("Ver pedido de verificação", "", () => { C.irPara("verificacoes"); return false; });
   const ver = h("a", "ad-bt", "Ver perfil no site"); ver.href = `usuarios.html?perfil=${encodeURIComponent(uid)}`; ver.target = "_blank"; ac.appendChild(ver);
   if (p.email) { const em = h("a", "ad-bt", "E-mail"); em.href = `mailto:${p.email}`; ac.appendChild(em); }
+  // Apagar a conta (só os donos): a mesma limpeza da exclusão automática, pela Cloud Function apagarConta.
+  if ((C.papel || "dono") === "dono" && uid !== C.eu.uid && !D.admins.some((a) => a.id === uid)) bt("Apagar conta", "perigo", () => apagarContaPeloPainel(uid, p));
   const tel = String(p.telefone || "").replace(/\D/g, ""); if (tel.length >= 10) { const w = h("a", "ad-bt", "WhatsApp"); w.href = `https://wa.me/55${tel}`; w.target = "_blank"; w.rel = "noopener"; ac.appendChild(w); }
   corpo.appendChild(ac);
 
@@ -410,7 +422,9 @@ export async function abrirFicha(uid) {
   const dl = h("dl", "ad-dados");
   const par = (k, v, copiar) => { const d = h("div"); d.append(h("dt", null, k)); const dd = h("dd", null, v || "—"); if (copiar && v) { dd.style.cursor = "copy"; dd.title = "Clique para copiar"; dd.addEventListener("click", () => { navigator.clipboard?.writeText(v); toast("Copiado"); }); } d.append(dd); dl.appendChild(d); };
   const id = idade(p.dataNascimento);
-  par("ID da conta", uid, true); par("E-mail", p.email, true); par("Telefone", p.telefone, true);
+  par("ID da conta", uid, true); par("E-mail", p.email, true);
+  if (mod) par("Confirmação do e-mail", textoEmail(p) + (p.emailConferidoEm ? ` · conferido em ${dataHora(p.emailConferidoEm)}` : ""));
+  par("Telefone", p.telefone, true);
   par("Nascimento", p.dataNascimento ? `${new Date(p.dataNascimento + "T00:00:00").toLocaleDateString("pt-BR")}${id != null ? ` (${id} anos)` : ""}` : "");
   par("Cidade", nomeCidade(p.cidade)); par("Endereço", p.endereco?.rua ? [p.endereco.rua, p.endereco.numero, p.endereco.bairro, nomeCidade(p.endereco.cidade), p.endereco.uf].filter(Boolean).join(", ") : "");
   par("Cadastro", dataHora(p.criadoEm)); par("Último acesso", p.ultimoAcesso ? `${dataHora(p.ultimoAcesso)} (${relativo(p.ultimoAcesso)})` : (p.privacidade?.mostrarOnline === false ? "Oculto pela pessoa" : "—"));
@@ -687,4 +701,40 @@ export async function moverTarefa(t, status) {
   if (status === "fazendo" && !t.responsavel) Object.assign(dados, { responsavel: C.eu.uid, responsavelNome: nomeEquipe(C.eu.uid) });
   await fb.updateDoc(fb.doc(fb.db, "equipe_tarefas", t.id), dados);
   await registrar("tarefa_" + status, "", t.titulo);
+}
+
+// ---------- Apagar conta (só donos; Cloud Function apagarConta, precisa do plano Blaze) ----------
+let fnsConta = null;
+async function chamarApagarConta(dados) {
+  fnsConta ||= import("https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js").then((m) => {
+    const f = m.getFunctions(window.firebaseApp, "southamerica-east1");
+    if (window.__hfFuncoesEmulador) m.connectFunctionsEmulator(f, "127.0.0.1", window.__hfFuncoesEmulador); // só nos testes
+    return { m, f };
+  });
+  const { m, f } = await fnsConta;
+  return (await m.httpsCallable(f, "apagarConta", { timeout: 320000 })(dados)).data;
+}
+async function apagarContaPeloPainel(uid, p) {
+  const nome = p.nome || p.email || uid;
+  const semEmail = p.emailConfirmado === false;
+  if (!(await confirmarHF({ titulo: `Apagar a conta de ${nome}?`, texto: `${semEmail ? "Esta conta não confirmou o e-mail. " : ""}Some para sempre: login, perfil, publicações, flashes, comentários, estrelas, seguidores, negócios, anúncios, Comunidade, as mensagens que a pessoa mandou e os arquivos. Avaliações e reclamações ficam, sem nome ("Ex-usuário"). Não dá para desfazer.`, ok: "Continuar", icone: "lixo" }))) return false;
+  const r = await modal({ titulo: "Confirmar exclusão", texto: `Conta: ${nome}`, perigo: true, botao: "Apagar de vez", campos: [
+    { nome: "motivo", rotulo: "Motivo (fica no registro de ações)", valor: semEmail ? "Conta sem e-mail confirmado" : "", max: 200 },
+    { nome: "conf", rotulo: "Para confirmar, digite APAGAR", obrigatorio: true, dica: "APAGAR", max: 10 }
+  ] });
+  if (!r) return false;
+  if (String(r.conf || "").trim().toUpperCase() !== "APAGAR") { toast("Exclusão cancelada: digite APAGAR para confirmar."); return false; }
+  toast("Apagando a conta… pode levar alguns segundos.");
+  try {
+    await chamarApagarConta({ uid, motivo: String(r.motivo || "").slice(0, 200) });
+    D.pessoas.delete(uid);
+    toast(`Conta de ${nome} apagada.`);
+    document.querySelector(".ad-gaveta-fundo")?.remove(); document.querySelector(".ad-gaveta")?.remove();
+    try { C.recarregar(false); } catch {}
+    return false;
+  } catch (e) {
+    const semServidor = ["functions/not-found", "functions/unavailable", "functions/internal"].includes(e?.code);
+    await confirmarHF({ titulo: semServidor ? "Falta ligar o servidor" : "Não foi possível apagar", texto: semServidor ? "Apagar uma conta precisa das Cloud Functions (plano Blaze): só o servidor consegue apagar o login da pessoa. Passo a passo: _regras/SERVIDOR-LEIA-ME.md (função apagarConta). Enquanto isso, a conta sem e-mail confirmado já não consegue entrar na plataforma." : (e?.message || e?.code || "Erro desconhecido."), ok: "Entendi", soOk: true, icone: "alerta", cor: "normal" });
+    return false;
+  }
 }

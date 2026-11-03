@@ -836,3 +836,6 @@ input.ad-sel { flex: 1 1 220px; padding: 0 12px; }
 .ad-toast { width: max-content; max-width: min(calc(100% - 32px), 440px); box-sizing: border-box; text-align: center; line-height: 1.35; text-wrap: balance; overflow-wrap: break-word; animation: hfToastEntra .22s ease-out; }
 @keyframes hfToastEntra { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
 @media (prefers-reduced-motion: reduce) { .toast, .vt-toast, .cm-toast, .ad-toast { animation: none !important; } }
+/* E-mail da pessoa + se confirmou (lista de usuários) */
+.ad-email-cel { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.ad-email-cel .ad-selo { font-size: 10.5px; padding: 2px 7px; }

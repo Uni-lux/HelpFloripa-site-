@@ -1,3 +1,21 @@
+      // Suporte nacional (suporte-fila.js): golpe = urgente; pagamento, contestação ou plano Pro/Premium = alta; o resto = normal.
+      // Quem abre não escolhe ser urgente: a prioridade tem que bater com o assunto (ou com o plano da conta).
+      function prioridadeOk(d) {
+        let p = d.get('prioridade', 'normal');
+        return p == 'normal'
+            || (p == 'urgente' && d.categoria == 'golpe')
+            || (p == 'alta' && (d.categoria in ['pagamento', 'contestacao']
+                || (exists(/databases/$(database)/documents/planos/$(request.auth.uid))
+                    && get(/databases/$(database)/documents/planos/$(request.auth.uid)).data.plano in ['pro', 'premium']
+                    && get(/databases/$(database)/documents/planos/$(request.auth.uid)).data.ate > request.time)));
+      }
+      // A equipe: prioridade, transferir de setor (categoria), escalar (moderação ou donos) e a hora da 1ª resposta.
+      function filaEquipeOk(d) {
+        return d.get('prioridade', 'normal') in ['urgente', 'alta', 'normal']
+            && d.categoria in ['conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro']
+            && d.get('escalonadoPara', '') in ['', 'moderacao', 'donos']
+            && (!mudou().hasAny(['primeiraRespostaEm']) || d.primeiraRespostaEm == request.time);
+      }
       allow read: if logado() && resource.data.uid == request.auth.uid;
       allow read: if admin();
       // Abrir chamado: não exige e-mail confirmado nem conta livre (quem foi suspenso pode contestar).
