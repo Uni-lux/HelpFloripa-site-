@@ -4,6 +4,7 @@
 //   (planos_pedidos/{id}) por Pix (devolve o QR Code) ou cartão (token do formulário do Mercado Pago).
 // - webhookMercadoPago (endereço que o Mercado Pago chama): quando um pagamento muda, consulta a API e, se aprovado,
 //   liga o plano sozinho.
+// - montarRankingDiario (a cada 15 min) e conferirMensagem (cada mensagem nova): Etapa A, _regras/SERVIDOR-LEIA-ME.md
 // Segredos (Secret Manager, nunca no código): MP_ACCESS_TOKEN e MP_WEBHOOK_SECRET. Passo a passo: _regras/PAGAMENTO-LEIA-ME.md
 // =====================================================
 import { onCall, onRequest, HttpsError } from "firebase-functions/v2/https";
@@ -84,4 +85,115 @@ export const webhookMercadoPago = onRequest({ region: REGIAO, secrets: [MP_ACCES
     // 500 faz o Mercado Pago tentar de novo mais tarde.
     res.status(500).send("erro");
   }
+});
+
+// =====================================================
+// Etapa A (nível nacional): Diário montado no servidor + conferências do chat. Tudo isso só roda com o plano Blaze
+// (deploy das Functions). Sem ele, o site faz como antes. Passo a passo: _regras/SERVIDOR-LEIA-ME.md
+// =====================================================
+import { onSchedule } from "firebase-functions/v2/scheduler";
+import { onDocumentCreated } from "firebase-functions/v2/firestore";
+import { HORAS, MAX_POSTS, CONTAR, entra, preNota, notaServidor, montarListas } from "./diario-ranking.js";
+import { novaMedia, passoEspera, conferirPedidoChat } from "./seguranca-chat.js";
+import { nivelPlano } from "./planos-base.js";
+
+const msDe = (t) => (t?.toMillis ? t.toMillis() : typeof t === "number" ? t : 0);
+
+// Rodada do ranking (também chamada pelos testes no emulador por montarRankingAgora).
+async function rodarRanking(agora = Date.now()) {
+  const desde = new Date(agora - HORAS * 3600e3);
+  const snap = await db.collection("diario").where("criadoEm", ">=", desde).orderBy("criadoEm", "desc").limit(MAX_POSTS)
+    .select("autorId", "autorUf", "autorIbge", "criadoEm", "agendadoPara", "oculto", "removido").get();
+  const posts = snap.docs.map((d) => {
+    const x = d.data();
+    return { id: d.id, autorId: x.autorId, uf: x.autorUf || "", ibge: Number(x.autorIbge) || 0, criadoEm: msDe(x.criadoEm), agendadoPara: msDe(x.agendadoPara), oculto: !!x.oculto, removido: !!x.removido, total: 0, soma: 0, comentarios: 0, vistas: 0 };
+  }).filter((p) => entra(p, agora));
+  // Estrelas: diario_notas/{id} {total, soma} (de 300 em 300).
+  for (let i = 0; i < posts.length; i += 300) {
+    const lote = posts.slice(i, i + 300);
+    const notas = await db.getAll(...lote.map((p) => db.doc(`diario_notas/${p.id}`)));
+    notas.forEach((s, k) => { if (s.exists) { lote[k].total = Number(s.get("total")) || 0; lote[k].soma = Number(s.get("soma")) || 0; } });
+  }
+  // Alcance e comentários só das mais promissoras (contagem no servidor: 1 leitura a cada 1.000 entradas).
+  const promissoras = posts.slice().sort((a, b) => preNota(b, agora) - preNota(a, agora)).slice(0, CONTAR);
+  for (let i = 0; i < promissoras.length; i += 40) {
+    await Promise.all(promissoras.slice(i, i + 40).map(async (p) => {
+      const [v, c] = await Promise.all([
+        db.collection(`diario/${p.id}/vistas`).count().get().catch(() => null),
+        db.collection("comentarios").where("postId", "==", p.id).count().get().catch(() => null)
+      ]);
+      p.vistas = v?.data().count || 0; p.comentarios = c?.data().count || 0;
+    }));
+  }
+  posts.forEach((p) => { p.nota = notaServidor({ ...p, horas: (agora - p.criadoEm) / 3600e3 }); });
+  const docs = montarListas(posts, agora);
+  // Estados que saíram (ninguém publicou nas últimas 48 h) ficam vazios, para o site não usar uma lista velha.
+  const antigos = await db.collection("ranking_diario").select("atualizadoEm").get();
+  const lote = db.batch();
+  Object.entries(docs).forEach(([id, d]) => lote.set(db.doc(`ranking_diario/${id}`), d));
+  antigos.docs.filter((d) => !docs[d.id]).forEach((d) => lote.set(d.ref, { itens: [], cidades: {}, total: 0, atualizadoEm: agora, versao: 1 }));
+  await lote.commit();
+  return { posts: posts.length, contadas: promissoras.length, listas: Object.keys(docs).length };
+}
+
+export const montarRankingDiario = onSchedule({ region: REGIAO, schedule: "every 15 minutes", timeZone: "America/Sao_Paulo", memory: "512MiB", timeoutSeconds: 300, maxInstances: 1 }, async () => {
+  const r = await rodarRanking();
+  logger.info("Ranking do Diário", r);
+});
+
+// Só no emulador: roda o ranking na hora (os testes chamam por HTTP).
+export const montarRankingAgora = onRequest({ region: REGIAO }, async (req, res) => {
+  if (!EMULADOR) { res.status(404).send(""); return; }
+  res.json(await rodarRanking(Number(req.query.agora) || Date.now()));
+});
+
+// Quem tem negócio (guardado na instância por 10 min).
+const temNegocio = new Map();
+async function ehNegocio(uid) {
+  const x = temNegocio.get(uid);
+  if (x && Date.now() - x.em < 600000) return x.v;
+  const s = await db.collection("negocios").where("donoId", "==", uid).limit(1).get();
+  temNegocio.set(uid, { v: !s.empty, em: Date.now() });
+  return !s.empty;
+}
+
+// Cada mensagem nova: tempo de resposta do negócio e conferência do pedido.
+export const conferirMensagem = onDocumentCreated({ region: REGIAO, document: "conversas/{conv}/mensagens/{msg}", maxInstances: 20 }, async (ev) => {
+  const m = ev.data?.data();
+  if (!m?.remetenteId) return;
+  const conv = ev.params.conv;
+  const quando = msDe(m.criadoEm) || Date.now();
+  const tarefas = [];
+  // 1) Pedido do chat: confere com o negócio de agora e grava o resultado na própria mensagem.
+  const p = m.cartao?.pedido;
+  if (p && typeof p === "object") {
+    tarefas.push((async () => {
+      const id = (String(m.cartao.link || "").match(/[?&]negocio=([^&]+)/) || [])[1];
+      const n = id ? await db.doc(`negocios/${decodeURIComponent(id)}`).get() : null;
+      if (!n?.exists) { await ev.data.ref.update({ conferencia: { ok: false, avisos: ["Negócio não encontrado para conferir os valores."], total: 0, em: Date.now() } }); return; }
+      const nd = n.data();
+      const plano = nd.donoId ? await db.doc(`planos/${nd.donoId}`).get() : null;
+      const r = conferirPedidoChat(p, nd, { agora: quando, temPlano: nivelPlano(plano?.exists ? plano.data() : null) >= 1 });
+      await ev.data.ref.update({ conferencia: { ...r, em: Date.now() } });
+    })());
+  }
+  // 2) Tempo de resposta (só conversas de negócio: contexto.tipo diferente de "pessoal").
+  tarefas.push((async () => {
+    const c = await db.doc(`conversas/${conv}`).get();
+    const tipo = c.get("contexto.tipo");
+    if (!tipo || tipo === "pessoal") return;
+    const de = m.remetenteId, negocio = await ehNegocio(de);
+    const refEspera = db.doc(`servidor_atendimento/${conv}`);
+    await db.runTransaction(async (t) => {
+      const e = await t.get(refEspera);
+      const passo = passoEspera(e.exists ? e.data() : null, de, negocio, quando);
+      // Transação: todas as leituras antes das gravações.
+      const refPerfil = db.doc(`perfis_publicos/${de}`);
+      const pf = passo.resposta != null ? await t.get(refPerfil) : null;
+      t.set(refEspera, passo.espera || { de: null, desde: 0 });
+      if (pf?.exists) t.update(refPerfil, { respostaServ: { ...novaMedia(pf.get("respostaServ"), passo.resposta), em: Date.now() } });
+    });
+  })());
+  const r = await Promise.allSettled(tarefas);
+  r.filter((x) => x.status === "rejected").forEach((x) => logger.warn("conferirMensagem", x.reason?.message || x.reason));
 });

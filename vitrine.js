@@ -8,6 +8,7 @@
 // =====================================================
 
 import { confirmarHF } from "./confirmar.js?v=5";
+import { respostaDoPerfil } from "./servidor.js?v=1";
 import { relogioDe } from "./fuso.js?v=1";
 import { buscarNoServidor } from "./busca.js?v=1";
 import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL } from "./seguranca.js?v=1";
@@ -1141,7 +1142,7 @@ export function abrirDetalhe(n, opcoes = {}) {
   const conf0 = el("div", "vd-selos");
   if (dono.verificado) { const v = el("span", "vd-selo-ok"); v.append(icone("verificado"), document.createTextNode("Responsável verificado")); v.title = "A identidade de quem criou este perfil foi conferida pela equipe do Help Floripa."; conf0.appendChild(v); }
   // Tempo de resposta (média das conversas do dono).
-  const resp = respostaDe({ donoId: n.donoId }) || (dono.atendimento?.resposta?.n >= 3 ? dono.atendimento.resposta : null);
+  const resp = respostaDe({ donoId: n.donoId }) || respostaDoPerfil(dono);
   if (resp) { const r = el("span", "vd-selo-resp" + (resp.media <= 60 ? " rapido" : "")); r.append(icone("relogio"), document.createTextNode(resp.media <= 60 ? `Responde rápido · ${tempoResposta(resp.media)}` : `Responde em ${tempoResposta(resp.media)}`)); r.title = "Tempo médio de resposta nas conversas do Help Floripa."; conf0.appendChild(r); }
   if (cnpjTxt(n.cnpj)) { const c = el("span", "vd-selo-cnpj"); c.append(icone("cartao"), document.createTextNode(`CNPJ ${cnpjTxt(n.cnpj)}`)); conf0.appendChild(c); }
   cab.appendChild(conf0); conf0.hidden = !conf0.children.length;
@@ -2408,7 +2409,8 @@ const SEM_MOVIMENTO = matchMedia("(prefers-reduced-motion: reduce)").matches;
 // Nome do cartão com o selo Pro ao lado (quando a conta tem o plano).
 // Tempo médio de resposta do dono (perfis_publicos.atendimento.resposta, calculado no Mensagens a cada resposta, com
 // pelo menos 3): selo "Responde rápido" nos cartões (até 1 h) e "Responde em ~X" no perfil do negócio.
-const respostaDe = (n) => { const r = donos.get(n?.donoId)?.atendimento?.resposta; return r && r.n >= 3 && Number.isFinite(Number(r.media)) ? r : null; };
+// Com as funções do servidor, vale o tempo calculado lá (respostaServ, que o dono não consegue gravar): servidor.js.
+const respostaDe = (n) => respostaDoPerfil(donos.get(n?.donoId));
 const tempoResposta = (min) => (min < 1 ? "menos de 1 min" : min < 60 ? `~${Math.round(min)} min` : min < 1440 ? `~${Math.round(min / 60)} h` : "~1 dia");
 function seloRapido(n) {
   const r = respostaDe(n);
