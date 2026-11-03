@@ -174,12 +174,20 @@
                     && request.resource.data.aceiteTermos == true
                     && (!('criadoEm' in request.resource.data) || request.resource.data.criadoEm == request.time)
                     && emailConfirmadoOk()
+                    && emailDaContaOk()
                     && naoTocaCamposProtegidosNoCreate();
 
       // E-mail confirmado (o painel mostra): a conta só grava o valor verdadeiro, o que o login diz (token).
       function emailConfirmadoOk() {
         return !('emailConfirmado' in request.resource.data)
             || request.resource.data.emailConfirmado == (request.auth.token.email_verified == true);
+      }
+      // E-mail gravado na conta = o do login (o painel mostra e busca por ele; antes dava para gravar o e-mail de outra
+      // pessoa). Maiúsculas não contam (o cadastro grava em minúsculas).
+      function emailDaContaOk() {
+        return !('email' in request.resource.data)
+            || request.resource.data.email == null || request.resource.data.email == ''
+            || request.resource.data.email.lower() == request.auth.token.email.lower();
       }
 
       // criadoEm não muda depois de gravado (cadastro antigo sem a data só pode gravar a data de agora).
@@ -189,6 +197,7 @@
                     && (!mudou().hasAny(['criadoEm'])
                         || (!('criadoEm' in resource.data) && request.resource.data.criadoEm == request.time))
                     && (!mudou().hasAny(['emailConfirmado']) || emailConfirmadoOk())
+                    && (!mudou().hasAny(['email']) || emailDaContaOk())
                     && naoTocaCamposProtegidosNoUpdate();
 
       allow delete: if logado()
@@ -247,8 +256,4 @@
             && atendimentoOk();
       }
 
-      // Faixa de horário "HH:MM-HH:MM" (00:00 a 23:59).
-      function faixaOk(v) {
-        return v is string && v.matches('^([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9]$');
-      }
 // ===== FIM DA PARTE 2 DE 16 =====

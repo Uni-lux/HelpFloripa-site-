@@ -1579,6 +1579,16 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   com fundo transparente: `logo-login.webp`/`logo-login-360.webp`/`logo-login.png`; `.logo-acesso` no topo do cartão no celular
   (tema claro = versão clara `logo-login-claro*.webp`/`.png`, letras azul-marinho #0b1b2a e o quadrado da ponte com fundo em degradê azul-escuro #0b4fc8→#05184e e a ponte branca, sem cartão; as duas imagens no HTML com `loading="lazy"`, `.logo-escura`/`.logo-clara`, só a visível baixa) e na coluna da marca no computador, em login, cadastre-se, verificar-email e conta;
   acesso.css v=3. Teste `t-email-confirmado.mjs` (26).
+- **Revisão do Painel › Usuários (03/11/2026, PR depois do #151, MUDA 1 REGRA — não publicada; 16 partes, 780 testes):**
+  pedido dele ("procure bugs e brechas"). (1) A correção das linhas desalinhadas (`display: flex` no `td` da coluna E-mail)
+  NÃO tinha entrado: o #151 foi mesclado antes do último commit; reaplicada (bloco `.ad-email-cel` dentro do `td`).
+  (2) "Todos" e "Último acesso" (`orderBy` em criadoEm/ultimoAcesso) deixavam de fora quem não tem o campo ("9 de 10"):
+  no fim da lista `pagina()` completa com `perfis_publicos` sem ordem (limit 2000, `completou`). (3) E-mail "—": contas
+  antigas sem `usuarios.email`; `anotarEmail` (firebase.js) grava o e-mail do login junto. (4) **Brecha:** `usuarios.email`
+  era livre para o dono (dava para pôr o e-mail de outra pessoa e o painel mostrava/buscava por ele): regra `emailDaContaOk`
+  (= `request.auth.token.email`, sem diferenciar maiúsculas). Conferidos sem problema: planilha (texto vai como texto,
+  nunca fórmula), e-mails só para moderação (regras + `pode("moderar")`), fotos só de origens do site, sem `innerHTML` com
+  dados das pessoas, ações destrutivas conferidas nas regras/servidor. Teste `t-painel-usuarios.mjs` (8).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

@@ -220,7 +220,7 @@ export function usuarios(el, termo = "") {
   el.append(linhaF, info, tab, mais);
   const pub = fb.collection(fb.db, "perfis_publicos");
   const dias = (n) => fb.Timestamp.fromMillis(Date.now() - n * DIA);
-  let lista = [], cursor = null, acabou = false, pedido = 0;
+  let lista = [], cursor = null, acabou = false, pedido = 0, completou = false;
   // Filtro que vira consulta no servidor (ou null quando a lista vem de outro lugar).
   function consulta() {
     const depois = cursor ? [fb.startAfter(cursor)] : [], lim = fb.limit(POR_PAG_USU);
@@ -252,7 +252,17 @@ export function usuarios(el, termo = "") {
     }
     const snap = await fb.getDocs(q);
     cursor = snap.docs.at(-1) || cursor;
-    return { itens: await guardarPessoas(snap.docs), fim: snap.size < POR_PAG_USU };
+    const itens = await guardarPessoas(snap.docs), fim = snap.size < POR_PAG_USU;
+    // A consulta ordenada deixa de fora quem não tem o campo da ordem (conta sem data de cadastro, ou que nunca
+    // registrou acesso): no fim da lista, completa com essas contas, para o "Todos" bater com o total.
+    if (fim && filtroUsuarios === "todos" && !completou) {
+      completou = true;
+      const ja = new Set([...lista, ...itens].map((p) => p.uid));
+      const resto = await fb.getDocs(fb.query(pub, fb.limit(2000))).then((x) => x.docs.filter((d) => !ja.has(d.id))).catch(() => []);
+      const extras = (await guardarPessoas(resto)).sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || "")));
+      return { itens: [...itens, ...extras], fim: true };
+    }
+    return { itens, fim };
   }
   async function carregarMais() {
     const meu = ++pedido;
@@ -261,7 +271,7 @@ export function usuarios(el, termo = "") {
     catch (e) { if (meu !== pedido) return; console.warn("Usuários:", e); acabou = true; toast("Não foi possível carregar: " + (e.code || e.message)); }
     pintar();
   }
-  function recomecar() { lista = []; cursor = null; acabou = false; tab.replaceChildren(); carregarMais(); }
+  function recomecar() { lista = []; cursor = null; acabou = false; completou = false; tab.replaceChildren(); carregarMais(); }
   // Busca no servidor: começo do @ e do nome, qualquer palavra do nome, e-mail, telefone e ID exatos.
   async function buscar(t) {
     const meu = ++pedido;
@@ -306,7 +316,8 @@ export function usuarios(el, termo = "") {
       const tr = h("tr", "clicavel"); tr.tabIndex = 0;
       const c1 = h("td"); c1.appendChild(pessoaCel(p));
       const st = estado(p); const c7 = h("td"); c7.appendChild(selo(st.t, st.c)); if (p.verificado) c7.append(" ", selo("Verificado", "info"));
-      const cE = h("td", "ad-email-cel"); cE.append(h("span", null, p.email || "—")); const se = seloEmail(p); if (se) cE.append(se);
+      // A célula continua sendo célula de tabela (com display: flex nela as linhas desalinhavam): o bloco vai dentro.
+      const cE = h("td"); const bE = h("div", "ad-email-cel"); bE.append(h("span", null, p.email || "—")); const se = seloEmail(p); if (se) bE.append(se); cE.appendChild(bE);
       tr.append(c1, cE, h("td", null, nomeCidade(p.cidade) || "—"), h("td", null, idade(p.dataNascimento) ?? "—"), h("td", null, data(p.criadoEm)), h("td", null, relativo(p.ultimoAcesso)), c7);
       const abrir = () => abrirFicha(p.uid);
       tr.addEventListener("click", abrir); tr.addEventListener("keydown", (e) => { if (e.key === "Enter") abrir(); });
