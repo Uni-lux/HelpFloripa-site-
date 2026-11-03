@@ -438,6 +438,7 @@ export async function iniciarRede({ sincronizar = false } = {}) {
     dados.nome = dados.nome || eu.displayName || "Usuário";
     dados.email = eu.email || dados.email || "";
     dados.cidade = dados.cidade || dados.cidadeNome || "";
+    juntarVistosDaConta(dados.vistos);
     if (dados.privacidade) {
       config.mostrarOnline = dados.privacidade.mostrarOnline !== false;
       config.confirmacaoLeitura = dados.privacidade.confirmacaoLeitura !== false;
@@ -782,16 +783,85 @@ export async function infoEstrelas(postId, { recarregar = false } = {}) {
 export let origemAtual = "perfil";
 export const definirOrigem = (o) => { origemAtual = o; };
 // Alcance: marca uma vez por publicação (no aparelho e no servidor) que esta conta viu.
-const vistasFeitas = new Set((() => { try { return JSON.parse(localStorage.getItem("hf-vistas") || "[]"); } catch { return []; } })());
+// As vistas vão EM LOTE: ficam numa fila e saem juntas numa gravação só (writeBatch) a cada 6 s, com 20 na fila ou
+// quando a página some (troca de aba, fecha, vai para o fundo). Antes era um envio por publicação enquanto a pessoa
+// rolava. O documento é o mesmo (diario/{id}/vistas/{uid}), então as regras e as estatísticas não mudam.
+// "Já vi" é da CONTA (não do aparelho): as últimas 400 vistas ficam em usuarios/{uid}.vistos (lista de ids, gravada
+// quando a página some) e no aparelho em hf-vistas-<uid>. Assim o celular e o computador sabem o que a pessoa já viu
+// (o Diário desce o que já foi visto) e não tentam gravar de novo uma vista que já existe (a regra recusaria).
+const MAX_VISTOS = 400;
+const chaveVistos = () => "hf-vistas-" + (eu?.uid || "");
+const lerVistasGuardadas = () => {
+  try {
+    const l = JSON.parse(localStorage.getItem(chaveVistos()) || "null");
+    if (Array.isArray(l)) return l;
+    // Antes era uma lista só por aparelho ("hf-vistas"): passa para a primeira conta que abrir.
+    const velha = JSON.parse(localStorage.getItem("hf-vistas") || "[]");
+    localStorage.removeItem("hf-vistas");
+    return Array.isArray(velha) ? velha : [];
+  } catch { return []; }
+};
+const guardarVistas = (l) => { try { localStorage.setItem(chaveVistos(), JSON.stringify(l.slice(-800))); } catch {} };
+let vistasFeitas = new Set(), vistosDaConta = [], vistosNovos = 0;
+function juntarVistosDaConta(lista) {
+  const local = lerVistasGuardadas();
+  vistosDaConta = Array.isArray(lista) ? lista.filter((x) => typeof x === "string") : [];
+  const juntos = [...new Set([...vistosDaConta, ...local])];
+  for (const id of juntos) vistasFeitas.add(id);
+  if (juntos.length !== local.length) guardarVistas(juntos);
+}
 export const jaVisto = (id) => vistasFeitas.has(id);
+// Grava na conta as vistas novas (junta com o que já estava lá, vindo de outro aparelho): quando a página some e, no
+// máximo uma vez por minuto, junto com os lotes (no celular a página pode morrer sem avisar).
+let vistosGravadosEm = 0;
+function gravarVistosNaConta() {
+  if (!vistosNovos || !eu || !refUsuario) return;
+  vistosNovos = 0; vistosGravadosEm = Date.now();
+  const lista = [...new Set([...vistosDaConta, ...lerVistasGuardadas()])].slice(-MAX_VISTOS);
+  vistosDaConta = lista;
+  fb.setDoc(refUsuario, { vistos: lista }, { merge: true }).catch(() => {});
+}
+const filaVistas = new Map(); // postId → origem
+let tFilaVistas = null;
+const ESPERA_VISTAS = 6000, LOTE_VISTAS = 20;
 export function marcarVista(post) {
   if (!post?.id || !eu || post.autorId === eu.uid || vistasFeitas.has(post.id)) return;
   // Página preparada de antemão (prerender ao deslizar/tocar na barra): só conta quando ela aparece de verdade.
   if (document.prerendering) { document.addEventListener("prerenderingchange", () => marcarVista(post), { once: true }); return; }
+  // Outra aba da rede (outro quadro) pode ter marcado esta mesma publicação há pouco.
+  const guardadas = lerVistasGuardadas();
+  if (guardadas.includes(post.id)) { vistasFeitas.add(post.id); return; }
   vistasFeitas.add(post.id);
-  try { localStorage.setItem("hf-vistas", JSON.stringify([...vistasFeitas].slice(-800))); } catch {}
-  fb.setDoc(fb.doc(fb.db, "diario", post.id, "vistas", eu.uid), { criadoEm: fb.serverTimestamp(), origem: origemAtual }).catch(() => {});
+  guardarVistas([...guardadas, post.id]);
+  vistosNovos++;
+  filaVistas.set(post.id, origemAtual);
+  if (filaVistas.size >= LOTE_VISTAS) enviarVistas();
+  else if (!tFilaVistas) tFilaVistas = setTimeout(enviarVistas, ESPERA_VISTAS);
 }
+function enviarVistas() {
+  clearTimeout(tFilaVistas); tFilaVistas = null;
+  if (!filaVistas.size || !eu || !fb.writeBatch) return;
+  const itens = [...filaVistas]; filaVistas.clear();
+  const ref = (id) => fb.doc(fb.db, "diario", id, "vistas", eu.uid);
+  const dados = (origem) => ({ criadoEm: fb.serverTimestamp(), origem });
+  // O lote é tudo ou nada: se uma vista já existia (vista em outro aparelho), a regra recusa o lote inteiro. Aí ele é
+  // dividido ao meio até sobrar só a recusada (com 1 repetida em 20 são ~9 envios, e não 20 um por um).
+  const mandar = (parte) => {
+    const lote = fb.writeBatch(fb.db);
+    for (const [id, origem] of parte) lote.set(ref(id), dados(origem));
+    return lote.commit().catch((e) => {
+      if (parte.length < 2 || e?.code !== "permission-denied") return;
+      const m = Math.ceil(parte.length / 2);
+      return Promise.all([mandar(parte.slice(0, m)), mandar(parte.slice(m))]);
+    });
+  };
+  mandar(itens);
+  if (Date.now() - vistosGravadosEm > 60000) gravarVistosNaConta();
+}
+addEventListener("pagehide", () => { enviarVistas(); gravarVistosNaConta(); });
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") { enviarVistas(); gravarVistosNaConta(); } });
+// Na rede (rede.html) a aba escondida não fica "hidden": manda ao trocar de aba também (a conta, com 10+ novas).
+addEventListener("hf:gaveta", () => { if (window.__hfGavetaAberta === false) { enviarVistas(); if (vistosNovos >= 10) gravarVistosNaConta(); } });
 // Dá, troca ou tira (nota 0) as estrelas: a nota e o resumo da publicação mudam na mesma gravação.
 export async function darEstrelas(post, nota) {
   const ref = fb.doc(fb.db, "curtidas", `${post.id}_${eu.uid}`);
@@ -1510,7 +1580,7 @@ export async function verRespostasCaixa(item, alvo, aoMudar) {
       acao("chat", "Responder", () => responderNoChat(r.uid, cartaoRespostaCaixa(item.caixa, r, alvo)));
     }
     // Pôr a resposta no seu flash (como no Instagram): pergunta + resposta, sem o nome de quem respondeu.
-    acao("raio", "No flash", () => import("./stories.js?v=81").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
+    acao("raio", "No flash", () => import("./stories.js?v=82").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
     acao("lixo", "Apagar", async () => {
       if (!(await confirmarHF({ titulo: "Apagar esta resposta?", texto: "Ela some da sua caixa de perguntas.", ok: "Apagar", icone: "lixo" }))) return;
       try { await fb.deleteDoc(fb.doc(fb.db, "caixa_respostas", r.id)); todas = todas.filter((x) => x.id !== r.id); pintarNums(); pintarLista(); aoMudar?.(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
@@ -2070,7 +2140,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=81").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=82").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);

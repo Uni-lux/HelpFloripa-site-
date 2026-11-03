@@ -109,7 +109,7 @@ const pb = await entrar(B.ctx, "bruno", "feed.html?aba=registros");
 await pb.waitForSelector(".post-card", { timeout: 30000 }); await pb.waitForTimeout(2500);
 ok(!(await pb.locator("#listaFeed").textContent()).includes("Promoção de amanhã"), "agendada não aparece para os outros");
 const cardB = pb.locator(".post-card", { hasText: "Banheiro novinho" }).first();
-await cardB.scrollIntoViewIfNeeded(); await pb.waitForTimeout(2200);
+await cardB.scrollIntoViewIfNeeded(); await pb.waitForTimeout(7500); // vistas vão em lote a cada 6 s
 ok((await cardB.locator(".post-com").textContent()).includes("Bruno"), "post mostra \"com Bruno\"");
 ok(await cardB.locator("a.hashtag").count() === 2, "hashtags viram link");
 ok((await db.doc(`diario/${p1.id}/vistas/${U.bruno}`).get()).exists, "alcance: a vista do Bruno foi contada");
