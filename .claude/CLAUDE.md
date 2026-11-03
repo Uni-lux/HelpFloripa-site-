@@ -1577,7 +1577,7 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   `scripts/limpeza/limpeza-conta.mjs` `criarLimpeza`, a MESMA do limpar-contas.mjs, copiada para functions/ no predeploy e no
   emulador.sh; registro `apagar_conta`). Sem o Blaze o botão explica que falta o servidor. **Logo nova** (imagem dele) recortada
   com fundo transparente: `logo-login.webp`/`logo-login-360.webp`/`logo-login.png`; `.logo-acesso` no topo do cartão no celular
-  (tema claro = versão clara `logo-login-claro*.webp`/`.png`, letras azul-marinho #0b1b2a e o quadrado da ponte com fundo em degradê azul-escuro #0b4fc8→#05184e e a ponte branca, sem cartão; as duas imagens no HTML com `loading="lazy"`, `.logo-escura`/`.logo-clara`, só a visível baixa) e na coluna da marca no computador, em login, cadastre-se, verificar-email e conta;
+  (tema claro = versão clara `logo-login-claro-preto*.webp`/`.png` (escolhida por ele em 03/11: letras "HELP" e frase azul-marinho #0b1b2a, quadrado da ponte com fundo PRETO #0a0f14→#000 e a ponte branca; antes era azul #0b4fc8→#05184e, arquivos `logo-login-claro*` apagados), sem cartão; as duas imagens no HTML com `loading="lazy"`, `.logo-escura`/`.logo-clara`, só a visível baixa) e na coluna da marca no computador, em login, cadastre-se, verificar-email e conta;
   acesso.css v=3. Teste `t-email-confirmado.mjs` (26).
 - **Revisão do Painel › Usuários (03/11/2026, PR depois do #151, MUDA 1 REGRA — não publicada; 16 partes, 780 testes):**
   pedido dele ("procure bugs e brechas"). (1) A correção das linhas desalinhadas (`display: flex` no `td` da coluna E-mail)
