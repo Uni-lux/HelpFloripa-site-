@@ -104,9 +104,10 @@ async function anotarEmail(u) {
   try {
     const t = await u.getIdTokenResult(u.emailVerified);
     const v = t.claims.email_verified === true;
-    if (sessionStorage.getItem(chave) === String(v)) return;
-    await setDoc(doc(db, "usuarios", u.uid), { emailConfirmado: v, emailConferidoEm: serverTimestamp() }, { merge: true });
-    sessionStorage.setItem(chave, String(v));
+    if (sessionStorage.getItem(chave) === String(v) + "|" + (u.email || "")) return;
+    // Junto vai o e-mail do login (contas antigas não tinham o e-mail gravado: o painel mostrava "—").
+    await setDoc(doc(db, "usuarios", u.uid), { emailConfirmado: v, emailConferidoEm: serverTimestamp(), ...(u.email ? { email: u.email } : {}) }, { merge: true });
+    sessionStorage.setItem(chave, String(v) + "|" + (u.email || ""));
   } catch (e) { /* conta ainda sem documento (cadastro em andamento) ou regras antigas: tenta na próxima página */ }
 }
 

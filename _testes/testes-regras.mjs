@@ -1248,6 +1248,13 @@ await t("e-mail: conta sem confirmar grava false", () => assertSucceeds(setDoc(d
 await t("e-mail: cadastro novo não nasce marcado como confirmado sem confirmar", () => assertFails(setDoc(doc(ctx("novoSem", false), "usuarios", "novoSem"), { uid: "novoSem", aceiteTermos: true, emailConfirmado: true })));
 await t("e-mail: outros campos da conta continuam livres", () => assertSucceeds(setDoc(doc(ctx("semEmail", false), "usuarios", "semEmail"), { bio: "oi" }, { merge: true })));
 
+// E-mail gravado na conta tem que ser o do login (o painel mostra e busca por ele).
+await t("e-mail da conta: grava o próprio", () => assertSucceeds(setDoc(doc(ctx("ana"), "usuarios", "ana"), { email: "ana@t.com" }, { merge: true })));
+await t("e-mail da conta: maiúsculas não contam", () => assertSucceeds(setDoc(doc(ctx("ana"), "usuarios", "ana"), { email: "Ana@T.com" }, { merge: true })));
+await t("e-mail da conta: não grava o de outra pessoa", () => assertFails(setDoc(doc(ctx("ana"), "usuarios", "ana"), { email: "bia@t.com" }, { merge: true })));
+await t("e-mail da conta: cadastro com o e-mail de outra pessoa é recusado", () => assertFails(setDoc(doc(ctx("novoEmail"), "usuarios", "novoEmail"), { uid: "novoEmail", aceiteTermos: true, email: "ana@t.com" })));
+await t("e-mail da conta: cadastro com o próprio e-mail passa", () => assertSucceeds(setDoc(doc(ctx("novoEmail"), "usuarios", "novoEmail"), { uid: "novoEmail", aceiteTermos: true, email: "novoEmail@t.com" })));
+
 // ---------- resultado ----------
 for (const r of resultados) console.log(r[0] === "ok" ? "  ✔" : "  ✘", r[1], r[2] ? "→ " + r[2] : "");
 console.log(`\n${ok} passaram, ${falhou} falharam (${arquivo})`);
