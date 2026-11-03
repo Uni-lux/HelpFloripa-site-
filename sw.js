@@ -76,3 +76,49 @@ self.addEventListener("fetch", (e) => {
   }
   if (u.origin === self.location.origin && GUARDAR.some((g) => u.pathname.endsWith("/" + g))) e.respondWith(caches.match(r).then((c) => c || fetch(r)));
 });
+
+// ---------- notificações com o app fechado (Etapa B, Firebase Cloud Messaging) ----------
+// As Cloud Functions mandam só "data" {titulo, texto, url, tag, categoria, urgente}; aqui vira a notificação.
+// Tocar abre (ou traz para a frente) a página do aviso. Com o site aberto e à vista na MESMA página, não toca de novo
+// (a própria página já mostra), mas a notificação ainda é criada em silêncio para o navegador não reclamar.
+const ENDERECO_OK = /^[a-z0-9-]+\.html(\?[\w=&%.\-]*)?$/i;
+function lerPush(e) {
+  let j = {};
+  try { j = e.data ? e.data.json() : {}; } catch { try { j = { data: { texto: e.data.text() } }; } catch {} }
+  const d = j.data || j.notification || j || {};
+  return {
+    titulo: String(d.titulo || d.title || "Help Floripa").slice(0, 80),
+    texto: String(d.texto || d.body || "").slice(0, 200),
+    url: ENDERECO_OK.test(String(d.url || "")) ? d.url : "notificacoes.html",
+    tag: String(d.tag || "").slice(0, 80),
+    urgente: d.urgente === "1"
+  };
+}
+self.addEventListener("push", (e) => {
+  const a = lerPush(e);
+  e.waitUntil((async () => {
+    const abertas = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    const aqui = abertas.some((c) => c.visibilityState === "visible" && c.focused && new URL(c.url).pathname.endsWith("/" + a.url.split("?")[0]));
+    await self.registration.showNotification(a.titulo, {
+      body: a.texto,
+      icon: "icone-192.png",
+      badge: "favicon-96x96.png",
+      tag: a.tag || undefined,
+      renotify: !!a.tag && !aqui,
+      silent: aqui,
+      requireInteraction: a.urgente,
+      vibrate: a.urgente ? [300, 150, 300, 150, 300] : [120],
+      data: { url: a.url }
+    });
+  })());
+});
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  const url = new URL(e.notification.data?.url || "notificacoes.html", self.location.href).href;
+  e.waitUntil((async () => {
+    const abertas = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    const mesma = abertas.find((c) => c.url === url) || abertas.find((c) => new URL(c.url).origin === self.location.origin);
+    if (mesma) { await mesma.focus(); if (mesma.url !== url && "navigate" in mesma) await mesma.navigate(url).catch(() => {}); return; }
+    await self.clients.openWindow(url);
+  })());
+});

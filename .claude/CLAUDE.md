@@ -1514,6 +1514,21 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   "Valores conferidos" / alerta com os avisos do servidor (assinatura da mensagem inclui a conferência). Passo a passo dele:
   `_regras/SERVIDOR-LEIA-ME.md` (deploy só das 2 funções: as do pagamento pedem os segredos). Teste `t-servidor.mjs` (36).
   Próximas etapas combinadas: B) notificações com o app fechado (FCM), C) TURN das ligações, D) Storage + migrar fotos.
+- **Etapa B do servidor – notificações com o app fechado (03/11/2026, PR depois do #145, sem regra nova):** FCM.
+  Site: `push.js` (`pushDisponivel` = `PUSH_VAPID` em servidor.js + PushManager; `estadoPush` ligado|desligado|bloqueado|
+  instalar (iPhone sem app instalado)|indisponivel; `ativarPush` pede a permissão, `getToken` do firebase-messaging com a
+  registration do NOSSO sw.js, grava `usuarios.pushTokens` [{t, em, app}] ≤5 + `pushPref.ligado`; `desativarPush` só este
+  aparelho; `salvarPrefPush` (categorias mensagens/chamadas/seguidores/publicacoes/social/avisos, false desliga);
+  `renovarPush` 1×/dia pelo firebase.js; `enviarTeste` → callable `pushTeste`). `usuarios` é livre para o dono: sem regra.
+  Configurações: item "Notificações no celular" → `#folhaPush` (CSP do configuracoes.html libera a URL das Functions).
+  sw.js: `push` (só `data` {titulo, texto, url, tag, categoria, urgente}; url fora do site vira notificacoes.html; com a
+  mesma página à vista e focada fica silenciosa) e `notificationclick` (foca a janela ou abre). Servidor (functions/push.js
+  conta + index.js): `avisarPush(uid, tipo, dados)` (pref, bloqueios nos 2 sentidos, limite `push_estado/{uid}` para
+  estrelas 10 min/seguidores 5 min por tag, `sendEachForMulticast`, tira tokens mortos; no emulador grava `push_teste`).
+  Gatilhos: mensagem (dentro do `conferirMensagem`), `pushChamada`/`pushChamadaPerdida`, `pushSeguidor`, `pushEstrelas`,
+  `pushComentario` (resposta e comentário), `pushMarcacao` (diario create), `pushSocial` (vinculos), `pushAvisoEquipe`
+  (avisos), `pushSuporte` (suporte/{id}/mensagens com `equipe: true`). Falta ele: gerar a chave Web Push (pública) e
+  mandar; deploy (`_regras/PUSH-LEIA-ME.md`). Teste `t-push.mjs` (24). FCM real não deu para testar daqui (rede bloqueada).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

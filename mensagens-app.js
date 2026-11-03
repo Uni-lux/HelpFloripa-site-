@@ -1,6 +1,6 @@
 // Código da página (saiu de dentro do HTML para ficar guardado no aparelho pelo service worker: a página abre mais rápido).
 import "./sem-menu-imagem.js?v=1";
-import { FUNCOES_LIGADAS, respostaDoPerfil } from "./servidor.js?v=1";
+import { FUNCOES_LIGADAS, respostaDoPerfil } from "./servidor.js?v=2";
 import { docRapido, docsRapido } from "./rapido.js?v=1";
 import { ligarDeslizarFlash } from "./deslizar-flash.js?v=4";
 import { ligarQuadro } from "./quadro-rede.js?v=1";
@@ -2388,7 +2388,7 @@ const maiusc = (t) => String(t).charAt(0).toUpperCase() + String(t).slice(1);
 let vitrineMod = null;
 function carregarVitrine() {
   if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=42"; l.dataset.vitrine = ""; document.head.appendChild(l); }
-  return (vitrineMod ||= import("./vitrine.js?v=82"));
+  return (vitrineMod ||= import("./vitrine.js?v=83"));
 }
 function usarCartaoNaConversa(uid, cartao) {
   document.querySelectorAll(".vt-modal").forEach((m) => m.remove());

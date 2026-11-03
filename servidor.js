@@ -16,3 +16,9 @@ export function respostaDoPerfil(pf) {
   const r = pf?.atendimento?.resposta;
   return r && Number(r.n) >= 3 && Number.isFinite(Number(r.media)) ? { media: Number(r.media), n: Number(r.n), servidor: false } : null;
 }
+
+// Notificações com o app fechado (Etapa B, _regras/PUSH-LEIA-ME.md): chave pública "Web Push" do Firebase
+// (Configurações do projeto › Cloud Messaging › Certificados push da Web › Gerar par de chaves). É pública (pode ficar
+// no site). Vazia = o site não oferece as notificações com o app fechado (o resto continua igual).
+export const PUSH_VAPID = "";
+export const REGIAO_FUNCOES = "southamerica-east1";
