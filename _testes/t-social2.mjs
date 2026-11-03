@@ -99,7 +99,7 @@ await pa.locator(".flash-modos button", { hasText: "Texto" }).tap();
 await pa.waitForSelector(".flash-criar .flash-texto", { timeout: 5000 });
 ok(await pa.locator(".flash-publicar:disabled").count() === 1, "texto vazio: não publica");
 await pa.locator(".flash-texto").fill("Promoção relâmpago hoje até 18h!");
-await pa.locator(".flash-ferr-btn").last().tap(); await pa.locator(".flash-ferr-btn.letra").tap(); await pa.waitForTimeout(300);
+await pa.locator(".flash-ferr-btn.letra").tap(); await pa.waitForTimeout(300);
 await pa.screenshot({ path: "saida/flash-criar-texto.png" });
 await pa.locator(".flash-publicar").tap(); await pa.waitForTimeout(2500);
 const flashes = (await db.collection("stories").where("autorId", "==", U.ana).get()).docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => a.criadoEm.toMillis() - b.criadoEm.toMillis());
