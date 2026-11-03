@@ -77,14 +77,15 @@ await cn.waitFor({ timeout: 30000 }); await pa.waitForTimeout(1500);
 await cn.locator(".cx-ver").tap();
 await pa.waitForSelector("#listaCorpo .cxr-item", { timeout: 8000 });
 ok((await pa.locator("#listaCorpo .cxr-item .cxr-quem strong").textContent()).startsWith("Dani"), "resposta com nome mostra a Dani");
-await pa.locator("#listaCorpo .cxr-item button", { hasText: "Responder" }).tap();
-await pa.locator("#listaCorpo .cx-responder textarea").fill("Depende do material, te passo um orçamento!");
-await pa.locator("#listaCorpo .cx-responder .cx-enviar").tap(); await pa.waitForTimeout(2000);
+// "Responder" abre a página de Mensagens com a pergunta e a resposta prontas (cartão); a mensagem vai junto.
+await Promise.all([pa.waitForURL(/mensagens\.html/, { timeout: 10000 }).catch(() => {}), pa.locator("#listaCorpo .cxr-item button", { hasText: "Responder" }).tap()]);
+await pa.locator("#barraCartao:not([hidden])").waitFor({ timeout: 15000 }).catch(() => {});
+await pa.locator("#texto").fill("Depende do material, te passo um orçamento!");
+await pa.locator("#btnEnviar").click(); await pa.waitForTimeout(2500);
 const ids = [U.ana, U.dani].sort();
 const msgs = await db.collection(`conversas/${ids[0]}_${ids[1]}/mensagens`).get();
-ok(msgs.docs.some((m) => /Sobre a sua resposta/.test(m.data().texto || "")), "Responder manda a mensagem para a Dani no Mensagens");
+ok(msgs.docs.some((m) => m.data().cartao?.tipo === "caixa" && /orçamento/.test(m.data().texto || "")), "Responder manda a mensagem com o cartão da caixa para a Dani no Mensagens");
 await pa.screenshot({ path: "saida/cx-respostas-nome.png" });
-await pa.locator("#folhaLista [data-fechar]").click(); await pa.waitForTimeout(300);
 // 4) Notificações da Ana
 await pa.goto(pa.url().replace(/feed\.html.*/, "notificacoes.html"));
 await pa.waitForTimeout(5000);
