@@ -6,10 +6,11 @@
 //   estrelas, comentar, salvar, republicar, compartilhar e enviar (as mesmas do Diário), autor com Seguir e legenda.
 // - Publicação de vídeo precisa do Storage (firebase.js USAR_STORAGE): sem ele não existem vídeos novos.
 // =====================================================
+import { ligarPuxar } from "./puxar-atualizar.js?v=1";
 import {
   el, icone, ms, pintarAvatar, obterPerfil, barraInteracao, botaoSeguir, comMencoes, marcarVista, definirOrigem, origemAtual, pessoasEmPilha,
   contadorEstrelas, ganchos, eu, fb, toast, urlSegura, escondido, tempoRelativo, paraData, meusSeguindo, storageFns
-} from "./rede.js?v=126";
+} from "./rede.js?v=127";
 
 let aberto = null;
 let somLigado = false;
@@ -43,7 +44,7 @@ export async function abrirReels({ lista = [], oculto = () => false, comecarEm =
   history.pushState({ ...(history.state || {}), hfReels: true, hfBase: false, hfGuarda: false }, "", location.href);
   const fechar = (doHistorico = false) => {
     if (!aberto) return;
-    aberto.io?.disconnect();
+    aberto.io?.disconnect(); aberto.soltarPuxar?.();
     caixa.querySelectorAll("video").forEach((v) => v.pause());
     caixa.remove();
     if (!document.querySelector(".visor-exp, .story-visor")) document.body.classList.remove("travado");
@@ -59,33 +60,45 @@ export async function abrirReels({ lista = [], oculto = () => false, comecarEm =
   som.addEventListener("click", () => { somLigado = !somLigado; pintarSom(); trilho.querySelectorAll("video").forEach((v) => { v.muted = !somLigado; }); });
   aberto = { el: caixa, fechar };
 
-  trilho.appendChild(el("div", "reels-carregando", "Carregando vídeos..."));
-  const ja = new Map(lista.filter((p) => ehVideo(p) && !oculto(p)).map((p) => [p.id, p]));
-  (await videosRecentes(oculto).catch(() => [])).forEach((p) => { if (!ja.has(p.id)) ja.set(p.id, p); });
-  if (!aberto) return;
-  // Os que você ainda não viu e os mais novos primeiro; o pedido (comecarEm) no topo.
-  const videos = [...ja.values()].sort((a, b) => ms(b.agendadoPara || b.criadoEm) - ms(a.agendadoPara || a.criadoEm));
-  if (comecarEm) { const k = videos.findIndex((p) => p.id === comecarEm); if (k > 0) videos.unshift(videos.splice(k, 1)[0]); }
-  trilho.replaceChildren();
-  if (!videos.length) {
-    const v = el("div", "reels-vazio");
-    v.append(icone("reels", "i"), el("strong", null, "Nenhum vídeo por aqui ainda"), el("span", null, "Os vídeos curtos publicados no Diário aparecem aqui, em tela cheia."));
-    if (storageFns && aoNovo) { const b = el("button", "btn pri", "Publicar um vídeo"); b.type = "button"; b.addEventListener("click", () => { fechar(); aoNovo(); }); v.appendChild(b); }
-    trilho.appendChild(v);
-    return;
+  // Lê os vídeos (os já lidos + os mais novos do servidor) e monta a lista. Puxar o primeiro vídeo para baixo (como nos
+  // Reels do Instagram) lê de novo e mostra os que chegaram.
+  async function encher(novos = false) {
+    if (!novos) trilho.appendChild(el("div", "reels-carregando", "Carregando vídeos..."));
+    const ja = new Map(lista.filter((p) => ehVideo(p) && !oculto(p)).map((p) => [p.id, p]));
+    (await videosRecentes(oculto).catch(() => [])).forEach((p) => { if (!ja.has(p.id)) ja.set(p.id, p); });
+    if (!aberto) return;
+    // Os mais novos primeiro; o pedido (comecarEm) no topo (só na primeira vez).
+    const videos = [...ja.values()].sort((a, b) => ms(b.agendadoPara || b.criadoEm) - ms(a.agendadoPara || a.criadoEm));
+    if (comecarEm && !novos) { const k = videos.findIndex((p) => p.id === comecarEm); if (k > 0) videos.unshift(videos.splice(k, 1)[0]); }
+    aberto.io?.disconnect();
+    trilho.querySelectorAll("video").forEach((v) => v.pause());
+    trilho.replaceChildren();
+    trilho.scrollTop = 0;
+    if (!videos.length) {
+      const v = el("div", "reels-vazio");
+      v.append(icone("reels", "i"), el("strong", null, "Nenhum vídeo por aqui ainda"), el("span", null, "Os vídeos curtos publicados no Diário aparecem aqui, em tela cheia."));
+      if (storageFns && aoNovo) { const b = el("button", "btn pri", "Publicar um vídeo"); b.type = "button"; b.addEventListener("click", () => { fechar(); aoNovo(); }); v.appendChild(b); }
+      trilho.appendChild(v);
+      return;
+    }
+    videos.forEach((p) => trilho.appendChild(reel(p)));
+    // Toca o que está na tela (70%) e pausa os outros; 1 s na tela conta como vista.
+    aberto.io = new IntersectionObserver((es) => es.forEach((e) => {
+      const r = e.target, v = r.querySelector("video");
+      if (e.isIntersecting && e.intersectionRatio >= 0.7) {
+        v.muted = !somLigado; v.preload = "auto";
+        v.play().catch(() => { v.muted = true; v.play().catch(() => {}); });
+        r._t = setTimeout(() => marcarVista(r._post), 1000);
+        const prox = r.nextElementSibling?.querySelector("video"); if (prox) prox.preload = "auto";
+      } else { v.pause(); clearTimeout(r._t); }
+    }), { root: trilho, threshold: [0, 0.7] });
+    trilho.querySelectorAll(".reel").forEach((r) => aberto.io.observe(r));
   }
-  videos.forEach((p) => trilho.appendChild(reel(p)));
-  // Toca o que está na tela (70%) e pausa os outros; 1 s na tela conta como vista.
-  aberto.io = new IntersectionObserver((es) => es.forEach((e) => {
-    const r = e.target, v = r.querySelector("video");
-    if (e.isIntersecting && e.intersectionRatio >= 0.7) {
-      v.muted = !somLigado; v.preload = "auto";
-      v.play().catch(() => { v.muted = true; v.play().catch(() => {}); });
-      r._t = setTimeout(() => marcarVista(r._post), 1000);
-      const prox = r.nextElementSibling?.querySelector("video"); if (prox) prox.preload = "auto";
-    } else { v.pause(); clearTimeout(r._t); }
-  }), { root: trilho, threshold: [0, 0.7] });
-  trilho.querySelectorAll(".reel").forEach((r) => aberto.io.observe(r));
+  const soltarPuxar = ligarPuxar({ area: caixa, rolagem: trilho, conteudo: trilho, indicadorEm: caixa, escuro: true,
+    campos: "input, textarea, button, a, [data-sem-puxar]", ativo: () => !document.querySelector(".folha.aberta"),
+    topo: () => topo.getBoundingClientRect().bottom, aoAtualizar: () => encher(true) });
+  aberto.soltarPuxar = soltarPuxar;
+  await encher();
 }
 
 function reel(post) {

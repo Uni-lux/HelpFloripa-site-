@@ -71,6 +71,8 @@ export function avisarFlashNegocio(ids) {
   refazer(l);
   try { localStorage.setItem(CHAVE_AVISO, JSON.stringify({ ids: l, em: Date.now() })); } catch {}
 }
+// Puxar para atualizar no perfil: esquece todas as listas (as bolinhas leem de novo).
+export function esquecerFlashesNegocio() { cache.clear(); }
 function refazer(ids) {
   ids.forEach((id) => cache.delete(id));
   for (const x of [...ligados]) {

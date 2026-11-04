@@ -20,7 +20,7 @@ const CAMADAS = [
 ].join(",");
 // Janela aberta de verdade? As folhas do perfil (usuarios.html) ficam no HTML com aria-modal="true" mesmo FECHADAS:
 // antes qualquer [aria-modal] contava como janela aberta e, por isso, o Perfil não deslizava (04/11/2026).
-function camadaAberta() {
+export function camadaAberta() {
   if (document.querySelector(CAMADAS)) return true;
   for (const x of document.querySelectorAll("[aria-modal='true']")) {
     if (x.closest(".folha") && !x.closest(".folha.aberta")) continue;

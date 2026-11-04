@@ -4,7 +4,7 @@
 // tem o rede.css (que já traz o mesmo estilo).
 // =====================================================
 import { ligarQuadro, casca } from "./quadro-rede.js?v=1";
-import { ligarDeslizarFlash } from "./deslizar-flash.js?v=6";
+import { ligarDeslizarFlash } from "./deslizar-flash.js?v=7";
 export const ITENS_BARRA = [
   ["diario", "feed.html", "feed", "Diário"],
   ["explorar", "feed.html?aba=explorar", "bussola", "Explorar"],
@@ -19,10 +19,12 @@ const ICONES = {
   chat: '<path d="M20.5 11.6c0 4.3-3.8 7.6-8.5 7.6-1.2 0-2.3-.2-3.3-.6L4 20l1.2-3.6c-1.1-1.3-1.7-3-1.7-4.8C3.5 7.4 7.3 4 12 4s8.5 3.4 8.5 7.6z"/>'
 };
 const CSS = `
-body.com-barra { padding-bottom: calc(74px + env(safe-area-inset-bottom)); }
+body.com-barra { padding-bottom: calc(92px + env(safe-area-inset-bottom)); } 
+/* Esmaecido atrás da barra de baixo: o que rola some aos poucos antes de chegar nela (antes um cartão com borda, como o    "Estatísticas do perfil", ficava colado na barra e parecia uma segunda barra). */ body.com-barra::after { content: ""; position: fixed; left: 0; right: 0; bottom: 0; z-index: 1099; pointer-events: none;   height: calc(128px + env(safe-area-inset-bottom)); background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--bg, #070b0e) 85%, transparent) 38%, var(--bg, #070b0e) 58%); } 
+
 .barra-rede { position: fixed; left: 50%; bottom: calc(10px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 1100;
   width: min(460px, calc(100% - 20px)); display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; padding: 6px;
-  border-radius: 22px; background: color-mix(in srgb, var(--panel, #0f161b) 90%, transparent); border: 1px solid var(--line, rgba(255,255,255,.1));
+  border-radius: 22px; background: color-mix(in srgb, var(--panel, #0f161b) 97%, transparent); border: 1px solid var(--line, rgba(255,255,255,.1));
   box-shadow: 0 12px 30px rgba(0,0,0,.25); -webkit-backdrop-filter: saturate(1.4) blur(16px); backdrop-filter: saturate(1.4) blur(16px); }
 .barra-rede a { position: relative; display: grid; justify-items: center; gap: 2px; padding: 6px 2px; border-radius: 16px;
   color: var(--muted, #8fa0ab); text-decoration: none; font-size: 10.5px; font-weight: 700; }

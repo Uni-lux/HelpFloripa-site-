@@ -11,15 +11,15 @@
 import {
   $, el, icone, ms, toast, pintarAvatar, urlSegura, nomeCidade, fb, eu, dados, meusSeguindo, escondido, silenciado, ganchos,
   obterPerfil, linhaPessoa, botaoSeguir, fotosDoPost, lerResumosEstrelas, minhaRede, jaVisto, definirOrigem, origemAtual, pilha
-} from "./rede.js?v=126";
+} from "./rede.js?v=127";
 import { afinidade } from "./gosto.js?v=2";
 import { buscarNoServidor } from "./busca.js?v=1";
-import { postsDoEstado, pesoRegiao, RECENTES_PAIS } from "./regiao.js?v=4";
-import { buscarPessoas, pessoasRecentes, semAcento } from "./pessoas.js?v=5";
-import { docsComValidade, docsPorIds } from "./leituras.js?v=3";
+import { postsDoEstado, pesoRegiao, RECENTES_PAIS } from "./regiao.js?v=5";
+import { buscarPessoas, pessoasRecentes, semAcento } from "./pessoas.js?v=6";
+import { docsComValidade, docsPorIds } from "./leituras.js?v=4";
 import { ordenarJusto, dadosNegocio } from "./relevancia.js?v=4";
-import { lerResumos, media } from "./avaliacoes.js?v=17";
-import { CATEGORIAS, CORES_TIPO, NOMES_TIPO, PAGINA_TIPO, nomeCategoria, nomeCat, categoriasDe } from "./vitrine.js?v=87";
+import { lerResumos, media } from "./avaliacoes.js?v=18";
+import { CATEGORIAS, CORES_TIPO, NOMES_TIPO, PAGINA_TIPO, nomeCategoria, nomeCat, categoriasDe } from "./vitrine.js?v=88";
 import { fimDaEnquete, faltaTexto } from "./enquetes.js?v=7";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, distanciaKm } from "./perto.js?v=2";
 import { semPausados, corDoPlano, lerPlano, classePlano, planosDosDonos, nivelPlano } from "./planos-base.js?v=15";
@@ -281,6 +281,8 @@ async function carregarAtivos() {
 
 // ---------- início do Explorar ----------
 let feitoEm = 0;
+// Puxar para atualizar no Explorar: monta tudo de novo com o que há de novo no servidor.
+export async function recarregarExplorar() { feitoEm = 0; await abrirExplorar(); }
 export async function abrirExplorar() {
   buscar();
   if (Date.now() - feitoEm < 3 * 60000) return;
@@ -511,7 +513,7 @@ function tilePost(p, r, grande) {
   a.addEventListener("click", (e) => {
     if (!cartaoPost || e.ctrlKey || e.metaKey || e.shiftKey) return; e.preventDefault();
     // Vídeo abre nos Reels (tela cheia, deslizando para os próximos), como no Instagram.
-    if (tipo === "videos") { import("./reels.js?v=45").then((m) => m.abrirReels({ lista: postsDestaque, oculto: postOculto, comecarEm: p.id })).catch(() => abrirVisor(p)); return; }
+    if (tipo === "videos") { import("./reels.js?v=46").then((m) => m.abrirReels({ lista: postsDestaque, oculto: postOculto, comecarEm: p.id })).catch(() => abrirVisor(p)); return; }
     abrirVisor(p);
   });
   a.setAttribute("aria-label", `Publicação de ${p.nome || "alguém"}`);

@@ -26,7 +26,10 @@ function gravar() {
     try { localStorage.setItem(CHAVE, JSON.stringify(marcas)); } catch {}
   }, 300);
 }
-const valido = (m, validade) => m && Date.now() - (m.em ?? m) < validade;
+// "Puxar para atualizar" (puxar-atualizar.js): por alguns segundos tudo vai ao servidor, mesmo dentro da validade.
+let renovarAte = 0;
+export function buscarDeNovo(ms = 12000) { renovarAte = Date.now() + ms; }
+const valido = (m, validade) => m && Date.now() > renovarAte && Date.now() - (m.em ?? m) < validade;
 
 export function esquecer(chave) { const m = lerMarcas(); if (chave in m) { delete m[chave]; gravar(); } }
 

@@ -2,7 +2,7 @@
 import "./sem-menu-imagem.js?v=1";
 import { FUNCOES_LIGADAS, respostaDoPerfil } from "./servidor.js?v=3";
 import { docRapido, docsRapido } from "./rapido.js?v=1";
-import { ligarDeslizarFlash } from "./deslizar-flash.js?v=6";
+import { ligarDeslizarFlash } from "./deslizar-flash.js?v=7";
 import { ligarQuadro } from "./quadro-rede.js?v=1";
 ligarQuadro(); // dentro da rede (rede.html): os itens da barra trocam de aba sem recarregar
 ligarDeslizarFlash(); // deslizar para o lado na lista de conversas troca de aba da barra de baixo
@@ -10,15 +10,15 @@ import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura, mostrarAvisoEmail
 import { confirmarHF } from "./confirmar.js?v=6";
 import { relogioDe, ufDe } from "./fuso.js?v=1";
 import { textoChamada } from "./chamadas.js?v=2";
-import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO, lerResumos, media, notaTexto } from "./avaliacoes.js?v=17";
-import { buscarPessoas } from "./pessoas.js?v=5";
-import { docComValidade } from "./leituras.js?v=3";
+import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO, lerResumos, media, notaTexto } from "./avaliacoes.js?v=18";
+import { buscarPessoas } from "./pessoas.js?v=6";
+import { docComValidade } from "./leituras.js?v=4";
 import { codigoPix, tipoChavePix } from "./pix.js?v=1";
 import { semPausados, lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { comRitmo } from "./ritmo.js?v=3";
 import { criarPlayerAudio } from "./audio-ondas.js?v=1";
 import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
-import { abrirQueixa } from "./queixas.js?v=17";
+import { abrirQueixa } from "./queixas.js?v=18";
 import { ouvirItensEquipe, linkEquipe, seloOficial, TEXTO_EQUIPE } from "./avisos-equipe.js?v=1";
 import { escolherApagar, editarTextoHF, verEdicoesHF, janelaHF, horaCurta, noPrazo, tempoRestante, podeMexer } from "./msg-acoes.js?v=2";
 // ======================================================
@@ -2388,7 +2388,7 @@ const maiusc = (t) => String(t).charAt(0).toUpperCase() + String(t).slice(1);
 let vitrineMod = null;
 function carregarVitrine() {
   if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=42"; l.dataset.vitrine = ""; document.head.appendChild(l); }
-  return (vitrineMod ||= import("./vitrine.js?v=87"));
+  return (vitrineMod ||= import("./vitrine.js?v=88"));
 }
 function usarCartaoNaConversa(uid, cartao) {
   document.querySelectorAll(".vt-modal").forEach((m) => m.remove());
