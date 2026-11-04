@@ -81,6 +81,7 @@ import("./confirmar.js?v=6").then((m) => m.guardarSaida()).catch((e) => console.
 if ("serviceWorker" in navigator && (location.protocol === "https:" || /^(127\.0\.0\.1|localhost)$/.test(location.hostname)))
   navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).catch((e) => console.warn("[App]", e?.message || e));
 import("./sem-menu-imagem.js?v=2").catch(() => {});
+import("./fotos-suaves.js?v=1").catch(() => {}); // fotos entram suaves (brilho até chegar, depois desfocada → nítida)
 import("./manutencao.js?v=1").then((m) => m.avisoManutencao()).catch((e) => console.warn("[Manutenção]", e?.message || e));
 
 // Portão da conta: quem entra com a conta desativada ou com a exclusão pedida vai para

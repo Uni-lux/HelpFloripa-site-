@@ -6,10 +6,11 @@
 // Leituras: cidade → estado → Brasil (por-local.js, mesmo cache da comunidade.html) e os perfis dos autores em lote.
 // =====================================================
 import { ligarPuxar } from "./puxar-atualizar.js?v=2";
-import { $, el, icone, pintarAvatar, toast, fb, eu, dados, escondido, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos } from "./rede.js?v=129";
+import { maisNovo, marcoOu, haNovidade, pilulaNovidades, conferirDeTempos } from "./novidades.js?v=1";
+import { $, el, icone, pintarAvatar, toast, fb, eu, dados, escondido, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos } from "./rede.js?v=130";
 import { CAT_COM, comunidadeNoAr } from "./comunidade-cartao.js?v=2";
 import { lerPorLocal } from "./por-local.js?v=1";
-import { docsComValidade, docsPorIds } from "./leituras.js?v=4";
+import { docsComValidade, docsPorIds, buscarDeNovo } from "./leituras.js?v=4";
 import { lerLocal, rotuloLocal, escolherLocal, aoMudarLocal, atualizarPeloGps } from "./local-escolhido.js?v=3";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, esquecerPosicao, posicaoGuardada } from "./perto.js?v=2";
 
@@ -214,6 +215,23 @@ async function trocarLugar() {
   if (new URLSearchParams(location.search).get("publicado")) { toast("Publicado! Quem tiver interesse chama você no chat."); history.replaceState(history.state, "", "mural.html"); }
   aoMudarLocal(() => trocarLugar());
   // Puxar para atualizar (como no Instagram): lê de novo as publicações da Comunidade.
-  ligarPuxar({ aoAtualizar: async () => { posEu = await minhaPosicao(dados).catch(() => posEu); await carregar(); pintarTudo(); } });
+  // Puxar para atualizar esperto: pergunta se saiu algo depois do mais novo da tela (1 leitura); sem novidade (e com menos
+  // de 10 min) a lista fica. "Novas publicações ↑" aparece quando chega algo enquanto a pessoa rola (conferido de 2 em 2 min).
+  let carregadoEm = Date.now();
+  const recarregar = async () => { posEu = await minhaPosicao(dados).catch(() => posEu); await carregar(); carregadoEm = Date.now(); pilula?.esconder(); pintarTudo(); };
+  ligarPuxar({ aoAtualizar: async () => {
+    if (Date.now() - carregadoEm < 10 * 60000 && !(await haNovidade(fb, fb.db, "comunidade", [], "atualizadoEm", marcoOu(maisNovo(todos, "atualizadoEm"), carregadoEm - 60000)))) return;
+    await recarregar();
+  } });
+  let pilula = null;
+  conferirDeTempos(async () => {
+    if (pilula?.ligada) return;
+    const novas = await haNovidade(fb, fb.db, "comunidade", [], "atualizadoEm", marcoOu(maisNovo(todos, "atualizadoEm"), carregadoEm - 60000), 3);
+    const boas = (Array.isArray(novas) ? novas : []).filter((a) => a.donoId !== eu.uid && comunidadeNoAr(a));
+    if (!boas.length) return;
+    await carregarPerfis(boas).catch(() => {});
+    pilula ||= pilulaNovidades({ aoTocar: () => { buscarDeNovo(); return recarregar(); } });
+    pilula.mostrar({ texto: "Novas na Comunidade", fotos: boas.map((a) => ({ foto: perfisAut.get(a.donoId)?.fotoPerfil, nome: perfisAut.get(a.donoId)?.nome })) });
+  }, 120000);
   atualizarPeloGps({ pedirLocalizacao, posicaoGuardada }).then((novo) => { if (novo) trocarLugar(); });
 })();

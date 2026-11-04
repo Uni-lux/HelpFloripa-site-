@@ -11,7 +11,7 @@
 import {
   $, el, icone, ms, toast, pintarAvatar, urlSegura, nomeCidade, fb, eu, dados, meusSeguindo, escondido, silenciado, ganchos,
   obterPerfil, linhaPessoa, botaoSeguir, fotosDoPost, lerResumosEstrelas, minhaRede, jaVisto, definirOrigem, origemAtual, pilha
-} from "./rede.js?v=129";
+} from "./rede.js?v=130";
 import { afinidade } from "./gosto.js?v=2";
 import { buscarNoServidor } from "./busca.js?v=1";
 import { postsDoEstado, pesoRegiao, RECENTES_PAIS } from "./regiao.js?v=5";
@@ -19,13 +19,14 @@ import { buscarPessoas, pessoasRecentes, semAcento } from "./pessoas.js?v=6";
 import { docsComValidade, docsPorIds } from "./leituras.js?v=4";
 import { ordenarJusto, dadosNegocio } from "./relevancia.js?v=4";
 import { lerResumos, media } from "./avaliacoes.js?v=18";
-import { CATEGORIAS, CORES_TIPO, NOMES_TIPO, PAGINA_TIPO, nomeCategoria, nomeCat, categoriasDe } from "./vitrine.js?v=90";
+import { CATEGORIAS, CORES_TIPO, NOMES_TIPO, PAGINA_TIPO, nomeCategoria, nomeCat, categoriasDe } from "./vitrine.js?v=91";
 import { fimDaEnquete, faltaTexto } from "./enquetes.js?v=7";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, distanciaKm } from "./perto.js?v=2";
 import { semPausados, corDoPlano, lerPlano, classePlano, planosDosDonos, nivelPlano } from "./planos-base.js?v=15";
 import { lerComunidade, cartaoComunidade, filtrosComunidade, comunidadeNoAr } from "./comunidade-cartao.js?v=2";
 import { combinaPublico, leitorDe } from "./publico-alvo.js?v=1";
 import { lerLocal as lugarEscolhido } from "./local-escolhido.js?v=3";
+import { maisNovo, haNovidade } from "./novidades.js?v=1";
 
 const DIARIO_VALIDADE = 3 * 60000, DIA = 864e5, HORA = 3600e3;
 // Público da publicação: quem não está no público não vê no Explorar (publico-alvo.js). A posição entra quando chega.
@@ -282,7 +283,23 @@ async function carregarAtivos() {
 // ---------- início do Explorar ----------
 let feitoEm = 0;
 // Puxar para atualizar no Explorar: monta tudo de novo com o que há de novo no servidor.
-export async function recarregarExplorar() { feitoEm = 0; await abrirExplorar(); }
+// Puxar para atualizar esperto: pergunta se saiu publicação ou negócio depois do mais novo que está na tela (2 leituras);
+// sem novidade e com menos de 10 min, nada é relido. Com novidade, lê de novo (os recentes e os negócios).
+export async function recarregarExplorar() {
+  const [posts, negs] = await Promise.all([postsP || [], negociosP || []]);
+  const velho = !feitoEm || Date.now() - feitoEm > 10 * 60000 || !posts.length;
+  if (!velho) {
+    const [a, b] = await Promise.all([
+      haNovidade(fb, fb.db, "diario", [], "criadoEm", maisNovo(posts)),
+      haNovidade(fb, fb.db, "negocios", [], "atualizadoEm", maisNovo(negs, "atualizadoEm")),
+    ]);
+    if (!a && !b) return;
+    if (b) negociosP = null;
+    if (!a) { feitoEm = 0; postsEm = Date.now(); await abrirExplorar(); return; }
+  }
+  postsP = null; negociosP = null; feitoEm = 0;
+  await abrirExplorar();
+}
 export async function abrirExplorar() {
   buscar();
   if (Date.now() - feitoEm < 3 * 60000) return;
@@ -513,7 +530,7 @@ function tilePost(p, r, grande) {
   a.addEventListener("click", (e) => {
     if (!cartaoPost || e.ctrlKey || e.metaKey || e.shiftKey) return; e.preventDefault();
     // Vídeo abre nos Reels (tela cheia, deslizando para os próximos), como no Instagram.
-    if (tipo === "videos") { import("./reels.js?v=48").then((m) => m.abrirReels({ lista: postsDestaque, oculto: postOculto, comecarEm: p.id })).catch(() => abrirVisor(p)); return; }
+    if (tipo === "videos") { import("./reels.js?v=49").then((m) => m.abrirReels({ lista: postsDestaque, oculto: postOculto, comecarEm: p.id })).catch(() => abrirVisor(p)); return; }
     abrirVisor(p);
   });
   a.setAttribute("aria-label", `Publicação de ${p.nome || "alguém"}`);

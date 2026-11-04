@@ -18,6 +18,7 @@ import { docComValidade, docsComValidade, docsPorIds, esquecer } from "./leitura
 import { anelNegocio, esquecerFlashesNegocio } from "./flash-negocio.js?v=21";
 import { ligarPuxar } from "./puxar-atualizar.js?v=2";
 import { prepararAoTocar, escolherVitrine } from "./deslizar-flash.js?v=8";
+import { fundoSuave } from "./fotos-suaves.js?v=1"; // fotos dos cartões entram suaves (o brilho fica até a foto chegar)
 import { camposEndereco, textoCidade, cidadesDe, NOME_UF, semAcento, cidadePorCodigo } from "./endereco.js?v=1";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, esquecerPosicao, posicaoGuardada } from "./perto.js?v=2";
 import { lerLocal, salvarLocal, marcarManual, escolherLocal, atualizarPeloGps, aoMudarLocal, escolhaManual } from "./local-escolhido.js?v=3";
@@ -624,7 +625,7 @@ export function abrirProduto(n, idx, opcoes = {}) {
   usarEstat(opcoes.fb || fb, euX);
   if (!proprio) registrarItem(negEstat(n), chaveEstat(i.nome), opcoes.origem || origemPadrao());
   const foto = el("div", "vd-prod-foto");
-  if (urlSegura(i.foto)) foto.style.backgroundImage = `url("${i.foto}")`; else { foto.classList.add("vazia"); foto.appendChild(icone("foto", "vi")); }
+  if (urlSegura(i.foto)) fundoSuave(foto, i.foto); else { foto.classList.add("vazia"); foto.appendChild(icone("foto", "vi")); }
   const est = estoqueDe(i);
   if (est === 0) foto.appendChild(el("span", "vd-selo", "Esgotado"));
   caixa.appendChild(foto);
@@ -958,7 +959,7 @@ function cartaoServico(n) {
 function cartaoDelivery(n) {
   const c = el("article", "vt-card vt-delivery");
   const capa = el("div", "capa");
-  capa.style.backgroundImage = `url("${capaDe(n) || TEXTOS.delivery.img}")`;
+  fundoSuave(capa, capaDe(n) || TEXTOS.delivery.img);
   const aberto = abertoAgora(n);
   if (aberto !== null) capa.appendChild(el("span", "vt-tag " + (aberto ? "ok" : "off"), aberto ? "Aberto agora" : "Fechado"));
   capa.appendChild(avatar(n.foto, n.nome, "vt-avatar logo"));
@@ -981,7 +982,7 @@ function cartaoDelivery(n) {
     itens.forEach((i) => {
       const p = el("div", "vt-prato");
       const f = el("div", "ft");
-      if (urlSegura(i.foto)) f.style.backgroundImage = `url("${i.foto}")`;
+      if (urlSegura(i.foto)) fundoSuave(f, i.foto);
       p.append(f, el("small", null, i.nome), el("strong", null, moeda(i.preco)));
       cardapio.appendChild(p);
     });
@@ -1003,7 +1004,7 @@ function cartaoLoja(n) {
   const itens = (n.itens || []).filter((i) => i?.nome).slice(0, 3);
   itens.forEach((i) => {
     const p = el("div", "vt-produto");
-    if (urlSegura(i.foto)) p.style.backgroundImage = `url("${i.foto}")`;
+    if (urlSegura(i.foto)) fundoSuave(p, i.foto);
     if (moeda(i.preco)) p.appendChild(el("span", null, moeda(i.preco)));
     p.title = i.nome;
     grade.appendChild(p);
@@ -1108,7 +1109,7 @@ export function abrirDetalhe(n, opcoes = {}) {
   if (!proprio) registrarVisita(neg, origem);
 
   const capa = el("div", "vd-capa");
-  capa.style.backgroundImage = `url("${capaDe(n) || TEXTOS[tipo].img}")`;
+  fundoSuave(capa, capaDe(n) || TEXTOS[tipo].img);
   const logo = avatar(n.foto, n.nome, "vt-avatar vd-logo");
   capa.appendChild(logo);
   caixa.appendChild(capa);
@@ -1387,7 +1388,7 @@ export function abrirDetalhe(n, opcoes = {}) {
             if (i.descricao) tx.appendChild(el("p", null, i.descricao));
             tx.appendChild(precoComDesconto(i));
             const lado = el("div", "lado");
-            if (urlSegura(i.foto)) { const f = el("div", "ft"); f.style.backgroundImage = `url("${i.foto}")`; lado.appendChild(f); }
+            if (urlSegura(i.foto)) { const f = el("div", "ft"); fundoSuave(f, i.foto); lado.appendChild(f); }
             else lado.classList.add("sem-foto");
             if (!proprio && !semPedido && est !== 0) {
               const chave = chaveItem(i, idx);
@@ -1653,7 +1654,7 @@ function miniImovel(a, aoClicar) {
   const b = el("button", "vd-mini-imovel");
   b.type = "button";
   const f = el("div", "ft");
-  f.style.backgroundImage = `url("${urlSegura((a.fotos || [])[0]) || TEXTOS.imoveis.img}")`;
+  fundoSuave(f, urlSegura((a.fotos || [])[0]) || TEXTOS.imoveis.img);
   f.appendChild(el("span", "vt-tag", FINALIDADE[a.finalidade] || "Imóvel"));
   const tx = el("div", "tx");
   tx.append(el("strong", null, precoImovel(a)), el("span", null, tituloImovel(a)));
@@ -2444,7 +2445,7 @@ function cartaoVisita({ donoId, capa, capaPadrao = "", tag = null, foto = null, 
   if (kPlano) c.classList.add("pl-" + kPlano);
   const cp = el("div", "cv-capa");
   const url = urlSegura(capa) || capaPadrao;
-  if (url) cp.style.backgroundImage = `url("${url}")`; else cp.classList.add("sem-capa");
+  if (url) fundoSuave(cp, url); else cp.classList.add("sem-capa");
   if (tag) cp.appendChild(tag);
   if (kPlano) cp.appendChild(el("span", "cv-plano", kPlano.toUpperCase()));
   if (canto) cp.appendChild(canto);
@@ -2506,7 +2507,7 @@ function cartaoSaude(n) {
   const sd = n.saude || {};
   const c = comCorPlano(el("article", "vt-del vt-free vt-saude"), n.donoId);
   const f = el("div", "ft");
-  f.style.backgroundImage = `url("${capaDe(n) || TEXTOS.saude.img}")`;
+  fundoSuave(f, capaDe(n) || TEXTOS.saude.img);
   const mods = (sd.modalidades || []).filter((k) => k === "online" || k === "domicilio");
   if (mods.length) f.appendChild(el("span", "st saude-mod", mods.map((k) => (k === "online" ? "Online" : "Em casa")).join(" · ")));
   seloPromo(f, n);
@@ -2606,7 +2607,7 @@ let ordemImovel = "relevancia";
 function cartaoImovelMini(a) {
   const c = comCorPlano(el("article", "vt-imo"), a.donoId);
   const f = el("div", "ft");
-  f.style.backgroundImage = `url("${urlSegura((a.fotos || []).find(urlSegura)) || TEXTOS.imoveis.img}")`;
+  fundoSuave(f, urlSegura((a.fotos || []).find(urlSegura)) || TEXTOS.imoveis.img);
   f.appendChild(el("span", "tag", FINALIDADE[a.finalidade] || "Imóvel"));
   const nFotos = (a.fotos || []).filter(urlSegura).length;
   if (nFotos > 1) { const s = el("span", "nf"); s.append(icone("foto", "vi s"), document.createTextNode(String(nFotos))); f.appendChild(s); }
@@ -2720,7 +2721,7 @@ function linhaPro(n) {
 }
 function linhaImovel(a) {
   const f = el("div", "th");
-  f.style.backgroundImage = `url("${urlSegura((a.fotos || []).find(urlSegura)) || TEXTOS.imoveis.img}")`;
+  fundoSuave(f, urlSegura((a.fotos || []).find(urlSegura)) || TEXTOS.imoveis.img);
   f.appendChild(el("span", "tag", FINALIDADE[a.finalidade] || "Imóvel"));
   const specs = [a.quartos ? `${a.quartos} ${Number(a.quartos) === 1 ? "quarto" : "quartos"}` : "", a.vagas ? `${a.vagas} ${Number(a.vagas) === 1 ? "vaga" : "vagas"}` : "", a.area ? `${a.area} m²` : ""].filter(Boolean).join(" · ");
   const pr = el("span", "pr", moeda(a.preco) || "Consultar");
@@ -2732,7 +2733,7 @@ function linhaImovel(a) {
 }
 function linhaProduto({ n, i, idx }) {
   const f = el("div", "th");
-  if (urlSegura(i.foto)) f.style.backgroundImage = `url("${i.foto}")`; else f.appendChild(icone("foto", "vi"));
+  if (urlSegura(i.foto)) fundoSuave(f, i.foto); else f.appendChild(icone("foto", "vi"));
   return linhaCompacta({
     classe: "prod" + (estoqueDe(i) === 0 ? " esgotado" : ""), donoId: n.donoId, midia: f, titulo: i.nome,
     sub: [estrelasNeg(idNegocio(n), { compacto: true, nome: n.nome, donoId: n.donoId }), n.nome || "Loja"],
@@ -2745,7 +2746,7 @@ function tileDelivery(n) {
   if (ab === false) c.classList.add("fechado");
   const f = el("div", "ft");
   const prato = (n.itens || []).find((i) => urlSegura(i?.foto));
-  f.style.backgroundImage = `url("${urlSegura(prato?.foto) || TEXTOS.delivery.img}")`;
+  fundoSuave(f, urlSegura(prato?.foto) || TEXTOS.delivery.img);
   if (ab !== null) f.appendChild(el("span", "st " + (ab ? "on" : "off"), ab ? "Aberto" : "Fechado"));
   seloPromo(f, n);
   f.appendChild(avatar(n.foto, n.nome, "vt-avatar logo"));
@@ -2810,7 +2811,7 @@ function linhaDelivery(n) {
   c.appendChild(tx);
   if (pratos.length) {
     const mini = el("div", "mini");
-    pratos.forEach((i) => { const f = el("span"); f.style.backgroundImage = `url("${i.foto}")`; mini.appendChild(f); });
+    pratos.forEach((i) => { const f = el("span"); fundoSuave(f, i.foto); mini.appendChild(f); });
     c.appendChild(mini);
   }
   return c;
@@ -2839,7 +2840,7 @@ function cartaoProduto(n, i, idx, { mostrarLoja = true } = {}) {
   const est = estoqueDe(i);
   if (est === 0) c.classList.add("esgotado");
   const f = el("div", "ft");
-  if (urlSegura(i.foto)) f.style.backgroundImage = `url("${i.foto}")`; else f.appendChild(icone("foto", "vi"));
+  if (urlSegura(i.foto)) fundoSuave(f, i.foto); else f.appendChild(icone("foto", "vi"));
   const p = Number(i.preco), a = Number(i.precoAntigo);
   if (est === 0) f.appendChild(el("span", "selo", "Esgotado"));
   else if (a > p && p > 0) f.appendChild(el("span", "selo desc", `-${Math.round((1 - p / a) * 100)}%`));

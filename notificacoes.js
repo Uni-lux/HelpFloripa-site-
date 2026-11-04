@@ -7,8 +7,8 @@
 import {
   $, el, icone, pintarAvatar, urlSegura, tempoRelativo, toast, erroAmigavel,
   fb, eu, dados, refUsuario, ganchos, iniciarRede, carregarMeusSeguindo, botaoSeguir, montarBarraRede, pintarBarraRede,
-  ouvirAvisos, aoMudarAvisos, avisosVistosEm, marcarAvisosVistos, rotuloVinculo, abrirComentarios, abrirResultadoEnquete, verRespostasCaixa
-} from "./rede.js?v=129";
+  ouvirAvisos, aoMudarAvisos, atualizarAvisos, avisosVistosEm, marcarAvisosVistos, rotuloVinculo, abrirComentarios, abrirResultadoEnquete, verRespostasCaixa
+} from "./rede.js?v=130";
 import { TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=17";
 import { TEXTO_EQUIPE, linkEquipe, seloOficial, fotoSuporte } from "./avisos-equipe.js?v=1";
 import { textoEnqueteFim, resumoResultado } from "./enquetes.js?v=7";
@@ -17,6 +17,8 @@ import { textoMensagens } from "./mensagens-novas.js?v=1";
 import { criarLista } from "./avisos-lista.js?v=18";
 import { docsPorIds } from "./leituras.js?v=4";
 import { textoFlash } from "./flash-avisos.js?v=3";
+import { ligarPuxar } from "./puxar-atualizar.js?v=2";
+import { pilulaNovidades } from "./novidades.js?v=1";
 
 let vistoAntes = 0, ultimo = null, abriuPedida = false;
 const postsCache = new Map();
@@ -138,11 +140,26 @@ const miniatura = (i) => obterPost(i.postId).then((p) => (p ? { foto: p.mediaTip
   } catch {}
   carregarMeusSeguindo().then(() => ultimo && lista.pintar(itens(ultimo)));
   const pedida = new URLSearchParams(location.search).get("enquete");
+  // "N novas notificações ↑": o que chega ao vivo enquanto a pessoa está lá embaixo na lista (tocar sobe).
+  let conhecidos = null;
+  const pilula = pilulaNovidades({ sumirNoTopo: true });
   aoMudarAvisos((a) => {
-    ultimo = a; lista.pintar(itens(a), { vistoAntes, prefs: dados.prefNotif || {} });
+    const lst = itens(a);
+    if (conhecidos) {
+      const novos = lst.filter((i) => !conhecidos.has(i.id) && i.quando > Date.now() - 36e5);
+      if (novos.length && scrollY > 200) {
+        const n = novos.length + (pilula.ligada ? Number(pilula.elemento.dataset.n || 0) : 0);
+        pilula.elemento.dataset.n = n;
+        pilula.mostrar({ texto: n === 1 ? "1 nova notificação" : `${n} novas notificações`, fotos: novos.map((i) => ({ foto: i.foto, nome: i.nome })) });
+      }
+    }
+    conhecidos = new Set(lst.map((i) => i.id));
+    ultimo = a; lista.pintar(lst, { vistoAntes, prefs: dados.prefNotif || {} });
     const x = pedida && (a.enquetes || []).find((e) => e.alvo === pedida);
     if (x && !abriuPedida) { abriuPedida = true; abrirResultadoEnquete(x); }
   });
+  // Puxar para atualizar: o que é ao vivo já está aqui; relê só o plano, as enquetes e as contagens do Flash.
+  ligarPuxar({ aoAtualizar: async () => { pilula.esconder(); await atualizarAvisos(); } });
   // Abriu a página: os avisos contam como vistos (continuam destacados até sair).
   setTimeout(marcarAvisosVistos, 1500);
 })();

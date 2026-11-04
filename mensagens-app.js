@@ -1,8 +1,10 @@
 // Código da página (saiu de dentro do HTML para ficar guardado no aparelho pelo service worker: a página abre mais rápido).
 import "./sem-menu-imagem.js?v=2";
+import "./fotos-suaves.js?v=1";
 import { FUNCOES_LIGADAS, respostaDoPerfil } from "./servidor.js?v=3";
 import { docRapido, docsRapido } from "./rapido.js?v=1";
-import { ligarDeslizarFlash } from "./deslizar-flash.js?v=8";
+import { ligarDeslizarFlash, camadaAberta } from "./deslizar-flash.js?v=8";
+import { ligarPuxar } from "./puxar-atualizar.js?v=2";
 import { ligarQuadro } from "./quadro-rede.js?v=1";
 ligarQuadro(); // dentro da rede (rede.html): os itens da barra trocam de aba sem recarregar
 ligarDeslizarFlash(); // deslizar para o lado na lista de conversas troca de aba da barra de baixo
@@ -12,7 +14,7 @@ import { relogioDe, ufDe } from "./fuso.js?v=1";
 import { textoChamada } from "./chamadas.js?v=2";
 import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO, lerResumos, media, notaTexto } from "./avaliacoes.js?v=18";
 import { buscarPessoas } from "./pessoas.js?v=6";
-import { docComValidade } from "./leituras.js?v=4";
+import { docComValidade, docsPorIds } from "./leituras.js?v=4";
 import { codigoPix, tipoChavePix } from "./pix.js?v=1";
 import { semPausados, lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { comRitmo } from "./ritmo.js?v=3";
@@ -1435,6 +1437,30 @@ function ouvirConversas() {
   });
 }
 
+// Puxar para atualizar na lista de conversas (como o Instagram): as conversas já chegam ao vivo, então o "puxar" só
+// redesenha na hora; de 10 em 10 min ele também traz o nome e a foto de agora de quem está no topo da lista (30, numa
+// leitura em lote). Dentro de uma conversa ou com um painel aberto não puxa.
+let perfisRenovadosEm = Date.now();
+function ligarPuxarConversas() {
+  const lista = $("listaConversas");
+  ligarPuxar({
+    area: lista, rolagem: lista, conteudo: lista,
+    topo: () => lista.getBoundingClientRect().top,
+    ativo: () => !document.body.classList.contains("chat-aberto") && !document.querySelector(".painel.aberto") && !camadaAberta(),
+    aoAtualizar: async () => {
+      if (Date.now() - perfisRenovadosEm > 10 * 60000) {
+        const ids = [...new Set(conversas.slice(0, 30).map((c) => c.outroId))].filter((u) => u && u !== eu.uid);
+        const r = await docsPorIds(fb, "perfis_publicos", ids, 0).catch(() => null);
+        if (r) {
+          perfisRenovadosEm = Date.now();
+          ids.forEach((u) => { const p = r.get(u); if (!p) return; perfis.set(u, Promise.resolve(p)); conversas.filter((c) => c.outroId === u).forEach((c) => { c.nome = p.nome || c.nome; c.nick = p.nickname || ""; c.foto = p.fotoPerfil || ""; }); });
+        }
+      }
+      renderizarLista(); atualizarTitulo();
+    },
+  });
+}
+
 // Atualiza "digitando..." na lista sem esperar nova escrita.
 setInterval(() => {
   if (conversas.some((c) => c.dados.digitando)) renderizarLista();
@@ -2388,7 +2414,7 @@ const maiusc = (t) => String(t).charAt(0).toUpperCase() + String(t).slice(1);
 let vitrineMod = null;
 function carregarVitrine() {
   if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=43"; l.dataset.vitrine = ""; document.head.appendChild(l); }
-  return (vitrineMod ||= import("./vitrine.js?v=90"));
+  return (vitrineMod ||= import("./vitrine.js?v=91"));
 }
 function usarCartaoNaConversa(uid, cartao) {
   document.querySelectorAll(".vt-modal").forEach((m) => m.remove());
@@ -4317,6 +4343,7 @@ async function iniciar() {
     atualizarBotaoEnviar();
     marcarPresenca();
     ouvirConversas();
+    ligarPuxarConversas();
     ouvirItensEquipe(fb, fb.db, eu.uid, pintarFaixaSuporte);
     setTimeout(completarAtendimento, 4000);
     carregarNotasClientes(); // etiquetas dos clientes (para quem tem negócio)

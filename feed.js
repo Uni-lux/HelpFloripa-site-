@@ -16,19 +16,20 @@ import {
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, botaoSeguir, montarBarraRede, marcarBarra, pintarBarraRede, ouvirAvisos, lerOrdenado,
   editarPublicacao, bloquear, comMencoes, fotosDoPost, carrosselFotos, contadorEstrelas, estaSalvo, alternarSalvo, escolherColecao, lerResumosEstrelas, contarComentarios,
   silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto, confirmarHF, blocoEnquete, blocoCaixa, editarPublicoDoPost, apagarFlashesDaPublicacao
-} from "./rede.js?v=129";
+} from "./rede.js?v=130";
 import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=2";
-import { montarStories, atualizarBarraFlash, abrirFlashPorId, abrirFlashesDoNegocio, repostarFlash, voltarAoFlash, novoFlash } from "./stories.js?v=101";
+import { montarStories, atualizarBarraFlash, abrirFlashPorId, abrirFlashesDoNegocio, repostarFlash, voltarAoFlash, novoFlash } from "./stories.js?v=102";
 import { abrirDenuncia } from "./denuncias.js?v=7";
 import { pessoasRecentes } from "./pessoas.js?v=6";
-import { recarregarExplorar, abrirExplorar, definirCartao, abrirPublicacao } from "./explorar.js?v=114";
-import { docsComValidade, docsPorIds } from "./leituras.js?v=4";
+import { recarregarExplorar, abrirExplorar, definirCartao, abrirPublicacao } from "./explorar.js?v=115";
+import { docsComValidade, docsPorIds, buscarDeNovo } from "./leituras.js?v=4";
 import { lerLocal } from "./local-escolhido.js?v=3";
 import { distanciaKm, minhaPosicao } from "./perto.js?v=2";
 import { combinaPublico, leitorDe, temPublico, resumoPublico } from "./publico-alvo.js?v=1";
 import { postsDoEstado, pesoRegiao, RECENTES_PAIS } from "./regiao.js?v=5";
 import { lerRanking, juntarRanking, fatorTaxa } from "./ranking-diario.js?v=1";
 import { comDescoberta, sorteioFixo, janela } from "./relevancia.js?v=4";
+import { maisNovo, marcoOu, haNovidade, pilulaNovidades, conferirDeTempos } from "./novidades.js?v=1";
 
 const POR_VEZ = 10;
 // Publicação de conta desativada (conta.js): escondida até ocultoAte.
@@ -72,6 +73,7 @@ async function buscarLocal(l) {
 // Filtro do Diário: Principais (o que tem a ver com você + quem você segue, pelo engajamento) ou Amigos.
 const FILTROS = { principais: "Principais", seguindo: "Seguindo", amigos: "Amigos" };
 let aba = "diario", filtro = "principais";
+let marcoFeed = null, pilula = null; // a mais nova da tela e a pílula "Novas publicações" (atualizarDiario)
 let posts = [], todosPosts = [], mostrados = 0;
 
 // ---------- abas ----------
@@ -90,7 +92,7 @@ const tipoDe = (p) => p.tipo || (p.enquete?.pergunta ? "enquete" : p.caixa?.perg
 const doTipo = (p) => tipoFeed === "tudo" || (tipoFeed === "fotos" ? ["foto", "video"].includes(tipoDe(p)) : tipoFeed === "enquetes" ? ["enquete", "caixa"].includes(tipoDe(p)) : tipoDe(p) === "texto");
 const daAba = (p) => p._emDia ? tipoFeed === "tudo" && !tagAtual && !localAtual : !!(tagAtual || localAtual) || doTipo(p);
 // Reels: os vídeos já lidos + os mais novos do servidor, com as mesmas regras do Diário (silenciados, público...).
-const verReels = (comecarEm = null) => import("./reels.js?v=48").then((m) => m.abrirReels({ lista: todosPosts, oculto: postOculto, comecarEm, aoNovo: () => compor("video") }));
+const verReels = (comecarEm = null) => import("./reels.js?v=49").then((m) => m.abrirReels({ lista: todosPosts, oculto: postOculto, comecarEm, aoNovo: () => compor("video") }));
 const compor = (inicio = "") => abrirCompositor({ aoPublicar: ganchos.aoPublicar, inicio });
 function pintarTipos() {
   const w = $("tiposFeed"); if (!w) return;
@@ -113,7 +115,7 @@ function trocarAba(nova, { passo = false } = {}) {
   $("painelExplorar").hidden = aba !== "explorar";
   marcarBarra(aba === "explorar" ? "explorar" : "diario");
   if (!passo) history.replaceState({ ...(history.state || {}), hfAbaFeed: aba }, "", urlAba(aba) + (tagAtual ? `?tag=${encodeURIComponent(tagAtual)}` : ""));
-  if (aba === "explorar") abrirExplorar();
+  if (aba === "explorar") { pilula?.esconder(); abrirExplorar(); }
   else carregarFeed({ forcar: false });
 }
 pintarTipos();
@@ -423,6 +425,26 @@ async function buscarTodos(continuar = false) {
   cursorTodos = s.docs.at(-1) || cursorTodos; maisTodos = s.size === LOTE_TODOS;
   return s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) }));
 }
+// Puxar para atualizar esperto (como o Instagram): primeiro pergunta ao servidor se saiu alguma publicação depois da mais
+// nova da tela (1 leitura); sem novidade, a lista fica (as estrelas e a ordem só são refeitas se ela tiver mais de 10 min).
+async function atualizarDiario() {
+  const velho = !feedCarregado || feedCarregado.chave !== chaveFeed() || Date.now() - feedCarregado.em > 10 * 60000 || !todosPosts.length;
+  if (velho || (await haNovidade(fb, fb.db, "diario", [], "criadoEm", marcoFeed))) await carregarFeed({ forcar: true });
+  pilula?.esconder();
+}
+// "Novas publicações ↑": de 2 em 2 min (só com a página à vista) confere se quem você segue publicou depois da mais nova
+// da tela (sem seguir ninguém, qualquer pessoa). 1 leitura por conferência; tocar sobe e atualiza.
+async function conferirNovasPublicacoes() {
+  if (aba !== "diario" || !marcoFeed || !feedCarregado || pilula?.ligada || localAtual || tagAtual) return;
+  const seg = [...meusSeguindo].filter((u) => u !== eu.uid && !escondido(u)).slice(0, 30);
+  const novas = await haNovidade(fb, fb.db, "diario", seg.length ? [fb.where("autorId", "in", seg)] : [], "criadoEm", marcoFeed, 3);
+  const boas = (Array.isArray(novas) ? novas : []).filter((p) => p.autorId !== eu.uid && !escondido(p.autorId) && !postOculto(p) && !((p.agendadoPara?.toMillis?.() ?? 0) > Date.now()));
+  if (!boas.length) return;
+  const rostos = [...new Map(boas.map((p) => [p.autorId, { foto: p.fotoPerfil, nome: p.nome }])).values()];
+  pilula ||= pilulaNovidades({ aoTocar: () => { buscarDeNovo(); return carregarFeed({ forcar: true }); } });
+  pilula.mostrar({ texto: "Novas publicações", fotos: rostos });
+}
+
 // O que está na tela vale por alguns minutos: voltar do Explorar (ou deslizar entre as abas) não lê tudo de novo.
 const MANTER_FEED = 4 * 60000;
 let feedCarregado = null; // { chave, em }
@@ -502,6 +524,8 @@ async function carregarFeed({ forcar = true } = {}) {
     return;
   }
   feedCarregado = { chave: chaveFeed(), em: Date.now() };
+  marcoFeed = marcoOu(maisNovo(todosPosts.filter((p) => !p._emDia)), Date.now() - 60000);
+  pilula?.esconder();
   if (principal) guardarUltimos(todosPosts);
   // Com a cópia na tela e a pessoa já rolando (ou com algo aberto): mantém o que ela está vendo e põe o resto embaixo.
   if ((comCopia || mostrouRapida) && (Math.abs(scrollY - y0) > 60 || scrollY > 120)) {
@@ -631,7 +655,7 @@ function cartaoPost(post) {
       : { rotulo: "Salvar publicação", sub: "Para ver depois no seu Perfil → Salvos", icone: "salvo", fn: () => alternarSalvo(post) },
     { rotulo: "Salvar em uma coleção", sub: "Organize seus salvos em pastas", icone: "fotos", fn: () => escolherColecao(post) },
     { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(post.autorId, post.nome) },
-    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=96").then((m) => m.abrirEstatisticas(post)) },
+    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=97").then((m) => m.abrirEstatisticas(post)) },
     post.autorId === eu.uid && { rotulo: "Editar publicação", icone: "lapis", fn: () => editarPublicacao(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId === eu.uid && { rotulo: "Público da publicação", sub: temPublico(post) ? resumoPublico(post.publico) : "Para todos · escolha idade, gênero, lugar e seguidores", icone: "pessoa-mais", fn: () => editarPublicoDoPost(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId !== eu.uid && { rotulo: silenciado(post.autorId) ? `Mostrar ${nome.textContent} de novo` : `Silenciar ${nome.textContent}`, sub: "Continua seguindo, mas as publicações e flashes somem do seu Diário", icone: "restringir",
@@ -801,7 +825,8 @@ async function pintarLateral() {
   const seguindo = carregarMeusSeguindo();
   montarStories($("storiesFeed"), { esperar: primeirasPublicacoes }).catch((e) => console.warn("Flash:", e));
   // Puxar para atualizar (como no Instagram): no Diário lê de novo as publicações e a fileira do Flash; no Explorar, tudo.
-  ligarPuxar({ aoAtualizar: () => (aba === "explorar" ? recarregarExplorar() : Promise.all([carregarFeed({ forcar: true }), atualizarBarraFlash()])) });
+  ligarPuxar({ aoAtualizar: () => (aba === "explorar" ? recarregarExplorar() : Promise.all([atualizarDiario(), atualizarBarraFlash()])) });
+  conferirDeTempos(conferirNovasPublicacoes, 120000);
   await seguindo;
   prepararLeitor();
   pintarFiltro();
