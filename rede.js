@@ -8,7 +8,7 @@
 // - Nova publicação (foto ou texto).
 // - Barra inferior, avisos (notificações) e presença online.
 // =====================================================
-import { montarBarra, marcarBarra } from "./barra-rede.js?v=7";
+import { montarBarra, marcarBarra } from "./barra-rede.js?v=8";
 import { gravarComLocal, NOVOS } from "./endereco.js?v=1";
 import { pedirLocalizacao, posicaoDe, rotuloPosicao } from "./perto.js?v=2";
 import { comRitmo } from "./ritmo.js?v=3";
@@ -21,7 +21,7 @@ import { docComValidade, docsComValidade, esquecer } from "./leituras.js?v=3";
 import { docRapido } from "./rapido.js?v=1";
 import { resumoPublico, temPublico } from "./publico-alvo.js?v=1";
 import { contarNovas } from "./mensagens-novas.js?v=1";
-import { escolherPublico } from "./publico-tela.js?v=4";
+import { escolherPublico } from "./publico-tela.js?v=5";
 import { avisoPlano } from "./planos-base.js?v=15";
 import { lerReacoesFlash } from "./flash-avisos.js?v=3";
 import { fontesDoSino, ouvirFonte } from "./sino-fontes.js?v=2";
@@ -72,7 +72,7 @@ const SIMBOLOS = `<symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l
 <symbol id="i-mais" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
 <symbol id="i-criar" viewBox="0 0 24 24"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="m13.5 6.5 4 4"/><path d="M19 15v4M17 17h4"/></symbol>
 <symbol id="i-imagem" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 16l-5-5-8.5 8.5"/></symbol>
-<symbol id="i-reels" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/><path d="M3.5 8.5h17M8.2 3.7l3 4.8M13.4 3.7l3 4.8"/><path d="M10.4 11.6v5.3l4.4-2.65z" fill="currentColor" stroke-linejoin="round"/></symbol>
+<symbol id="i-reels" viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="3"/><path d="M10.2 9.2v5.6l4.6-2.8z" fill="currentColor" stroke-linejoin="round"/><path d="M3 7v10M21 7v10"/></symbol>
 <symbol id="i-alvo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.8"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><path d="M12 1.8v3M12 19.2v3M1.8 12h3M19.2 12h3"/></symbol>
 <symbol id="i-som" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" stroke-linejoin="round"/><path d="M15.5 9a4 4 0 010 6M18 6.5a7.5 7.5 0 010 11"/></symbol>
 <symbol id="i-mudo" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" stroke-linejoin="round"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></symbol>
@@ -1581,7 +1581,7 @@ export async function verRespostasCaixa(item, alvo, aoMudar) {
       acao("chat", "Responder", () => responderNoChat(r.uid, cartaoRespostaCaixa(item.caixa, r, alvo)));
     }
     // Pôr a resposta no seu flash (como no Instagram): pergunta + resposta, sem o nome de quem respondeu.
-    acao("raio", "No flash", () => import("./stories.js?v=91").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
+    acao("raio", "No flash", () => import("./stories.js?v=92").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
     acao("lixo", "Apagar", async () => {
       if (!(await confirmarHF({ titulo: "Apagar esta resposta?", texto: "Ela some da sua caixa de perguntas.", ok: "Apagar", icone: "lixo" }))) return;
       try { await fb.deleteDoc(fb.doc(fb.db, "caixa_respostas", r.id)); todas = todas.filter((x) => x.id !== r.id); pintarNums(); pintarLista(); aoMudar?.(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
@@ -2141,7 +2141,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=91").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=92").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);
@@ -2448,7 +2448,7 @@ let pubMarcados = [], pubAgenda = null, pubRascunhoId = null, pubEnquete = null,
 export const TIPOS_PUB = {
   texto: { nome: "Texto", fotos: 1, ph: "Escreva o seu texto. Use #hashtags e @nome...", dica: "Até 1.000 letras. Pode ter uma imagem, que fica casada com o texto (aí até 500 letras)." },
   foto: { nome: "Foto", fotos: 4, ph: "Escreva uma legenda...", dica: "De 1 a 4 fotos, com legenda. Arraste para ver todas." },
-  video: { nome: "Vídeo", fotos: 0, ph: "Escreva uma legenda...", dica: "Um vídeo de até 60 segundos. Aparece no Diário e nos Reels." },
+  video: { nome: "Vídeo", fotos: 0, ph: "Escreva uma legenda...", dica: "Um vídeo de até 60 segundos. Aparece no Diário e em Vídeos." },
   enquete: { nome: "Enquete", fotos: 1, ph: "Conte mais sobre a enquete (opcional)...", dica: "De 2 a 4 opções, com prazo. Votação anônima se quiser. Pode ter uma imagem." },
   caixa: { nome: "Perguntas", fotos: 1, ph: "Conte mais (opcional)...", dica: "As pessoas escrevem a resposta e só você vê. Respostas anônimas se quiser." }
 };
@@ -2481,8 +2481,11 @@ function mudarTipo(t, { abrir = true } = {}) {
     if (!TIPOS_PUB[t].fotos) { pubMidia = null; saiu.push("as fotos saíram"); }
     else if (pubMidia.fotos.length > TIPOS_PUB[t].fotos) { pubMidia.fotos = pubMidia.fotos.slice(0, TIPOS_PUB[t].fotos); saiu.push("ficou só a primeira foto"); }
   }
-  if (t !== "enquete" && pubEnquete) { pubEnquete = null; pintarEnqueteCompositor(); saiu.push("a enquete saiu"); }
-  if (t !== "caixa" && pubCaixa) { pubCaixa = null; pintarCaixaCompositor(); saiu.push("a caixa de perguntas saiu"); }
+  // Só avisa quando sai algo que a pessoa escreveu (trocar de tipo com a enquete/caixa vazia não avisa nada).
+  const enqueteEscrita = (e) => !!e && (!!String(e.pergunta || "").trim() || (e.opcoes || []).some((o) => String(o || "").trim()));
+  const caixaEscrita = (c) => !!c && !!String(c.pergunta || "").trim() && String(c.pergunta).trim() !== "Me faça uma pergunta";
+  if (t !== "enquete" && pubEnquete) { if (enqueteEscrita(pubEnquete)) saiu.push("a enquete saiu"); pubEnquete = null; pintarEnqueteCompositor(); }
+  if (t !== "caixa" && pubCaixa) { if (caixaEscrita(pubCaixa)) saiu.push("a caixa de perguntas saiu"); pubCaixa = null; pintarCaixaCompositor(); }
   pubTipo = t;
   if (t === "enquete" && !pubEnquete) { pubEnquete = { pergunta: "", opcoes: ["", ""], duracao: { dur: 1440 } }; pintarEnqueteCompositor(); if (abrir) $("pubEnquete").querySelector(".pe-pergunta")?.focus(); }
   if (t === "caixa" && !pubCaixa) { pubCaixa = { pergunta: "Me faça uma pergunta", anonima: false }; pintarCaixaCompositor(); if (abrir) $("pubCaixa").querySelector(".pe-pergunta")?.select(); }
@@ -2526,7 +2529,7 @@ function abrirAjustesPub() {
   ({
     texto: ["Texto obrigatório, até 1.000 letras.", "Uma imagem casada com o texto (aí até 500 letras).", "Sem enquete, caixa de perguntas ou vídeo junto."],
     foto: ["De 1 a 4 fotos (retrato 4:5, quadrado ou paisagem).", "Legenda opcional, até 1.000 letras.", "Sem enquete, caixa de perguntas ou vídeo junto."],
-    video: ["Um vídeo de até 60 segundos e 50 MB.", "Legenda opcional. Aparece também nos Reels."],
+    video: ["Um vídeo de até 60 segundos e 50 MB.", "Legenda opcional. Aparece também em Vídeos."],
     enquete: ["Pergunta e de 2 a 4 opções.", "Prazo de 1 hora a 7 dias.", "Uma imagem opcional; sem caixa de perguntas junto.", "Uma pessoa, um voto (não dá para mudar)."],
     caixa: ["Uma pergunta para as pessoas responderem.", "As respostas chegam só para você.", "Uma imagem opcional; sem enquete junto."]
   })[pubTipo].forEach((x) => ul.appendChild(el("li", null, x)));

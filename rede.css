@@ -536,8 +536,8 @@ body.com-barra { padding-bottom: calc(74px + env(safe-area-inset-bottom)); }
   position: relative; display: grid; justify-items: center; gap: 2px; padding: 6px 2px; border: 0; background: none; border-radius: 16px;
   color: var(--muted); text-decoration: none; font-size: 10.5px; font-weight: 700; cursor: pointer;
 }
-.barra-rede a:hover, .barra-rede button:hover { color: var(--text); background: var(--hover); }
-.barra-rede [aria-current="page"] { color: var(--accent); }
+@media (hover: hover) { .barra-rede a:hover, .barra-rede button:hover { color: var(--text); background: var(--hover); } }
+.barra-rede [aria-current="page"], .barra-rede [aria-current="page"]:hover { color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
 .barra-rede .publicar span.bola { width: 44px; height: 44px; border-radius: 15px; display: grid; place-items: center; background: linear-gradient(135deg, #00adee, #0077a8); color: #fff; box-shadow: 0 8px 20px rgba(0, 173, 238, .35); }
 .barra-rede .publicar { padding-top: 0; }
 .barra-rede .ponto-badge { top: 0; right: calc(50% - 22px); }
@@ -2325,12 +2325,12 @@ div.cfg2-linha { cursor: default; }
 .interacoes .acao { padding-left: 0; padding-right: 0; }
 .interacoes .acao .rot { font-size: clamp(9.5px, 2.75vw, 11.5px); letter-spacing: -.01em; text-overflow: clip; }
 /* Diário compacto (como as outras redes): "+" no topo e uma linha fina de filtro embaixo dos flashes */
-/* Criar (04/11/2026): lápis com brilho num quadradinho em degradê azul da Help Floripa (não é o "+" das outras redes) */
-.topo-criar { color: #fff; }
-.topo-criar .tc-ic { width: 34px; height: 34px; border-radius: 12px; display: grid; place-items: center; background: linear-gradient(140deg, #3fd0ff 0%, #00adee 45%, #0071c7 100%);
-  box-shadow: 0 6px 16px -6px rgba(0, 173, 238, .75), inset 0 1px 0 rgba(255, 255, 255, .35); transition: transform .12s, box-shadow .15s; }
+/* Criar: lápis com brilho num quadradinho com borda, nas cores do tema (sem o azul; pedido dele 04/11/2026) */
+.topo-criar { color: var(--text); }
+.topo-criar .tc-ic { width: 34px; height: 34px; border-radius: 12px; display: grid; place-items: center; background: var(--panel-2); border: 1.5px solid var(--line); transition: transform .12s, background .15s; }
 .topo-criar .tc-ic .i { width: 19px; height: 19px; stroke-width: 2.1; }
 .topo-criar:hover { background: none; }
+@media (hover: hover) { .topo-criar:hover .tc-ic { background: var(--hover); } }
 .topo-criar:active .tc-ic { transform: scale(.9) rotate(-6deg); }
 .filtro-feed.compacto { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 10px; padding: 2px 2px 8px; border-bottom: 1px solid var(--line); overflow: visible; }
 .filtro-feed.compacto .filtro-escolha { border: 0; background: none; color: var(--text); padding: 6px 4px; font-size: 16px; font-weight: 850; letter-spacing: -.01em; border-radius: 10px; min-height: 36px; }
@@ -3204,9 +3204,14 @@ body:has(.story-visor, .flash-criar) .toast { width: max-content; max-width: min
 /* Nova publicação: tipo Foto/Vídeo sem arquivo ainda (a galeria só abre ao tocar aqui) */
 .pub-previa.vazia { background: none; overflow: visible; }
 .pub-escolher { width: 100%; display: grid; justify-items: center; gap: 6px; padding: 26px 16px; border-radius: 18px; cursor: pointer; font: inherit; color: var(--text);
-  background: color-mix(in srgb, var(--accent) 6%, var(--panel-2)); border: 1.5px dashed color-mix(in srgb, var(--accent) 45%, transparent); -webkit-tap-highlight-color: transparent; transition: background .15s, transform .1s; }
-.pub-escolher:active { transform: scale(.985); background: color-mix(in srgb, var(--accent) 12%, var(--panel-2)); }
-.pub-escolher .ic { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, #2fc7ff, #00adee 50%, #0077c2); box-shadow: 0 8px 22px -8px rgba(0, 173, 238, .7); }
+  background: var(--panel-2); border: 1.5px dashed var(--line); -webkit-tap-highlight-color: transparent; transition: background .15s, transform .1s; }
+.pub-escolher:active { transform: scale(.985); background: var(--hover); }
+.pub-escolher .ic { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; color: var(--text); background: var(--panel); border: 1.5px solid var(--line); }
 .pub-escolher .ic .i { width: 26px; height: 26px; }
 .pub-escolher strong { font-size: 15px; }
 .pub-escolher small { color: var(--muted); font-size: 12.5px; }
+
+/* Flash: face da próxima pessoa no giro em cubo (deslizar entre pessoas) */
+.story-face { position: fixed; z-index: 1; background: #111; overflow: hidden; pointer-events: none; backface-visibility: hidden; will-change: transform; }
+.story-face img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.story-visor .story-caixa { backface-visibility: hidden; }

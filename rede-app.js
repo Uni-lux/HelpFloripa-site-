@@ -161,6 +161,8 @@ function copiaDaBarra(b) {
     const cor = (sel) => { const a = b.querySelector(sel); return a ? w.getComputedStyle(a).color : ""; };
     c._corAtiva = cor("[aria-current='page']") || "#00adee";
     c._corNormal = cor("[data-barra]:not([aria-current])") || "#8fa0ab";
+    const at = b.querySelector("[aria-current='page']");
+    c._fundoAtivo = at ? w.getComputedStyle(at).backgroundColor : "transparent";
     document.body.appendChild(c);
     return c;
   } catch { return null; }
@@ -170,10 +172,28 @@ function acenderNaCopia(c, k) {
   c.querySelectorAll("[data-barra]").forEach((a) => {
     const on = a.dataset.barra === k;
     a.style.color = on ? c._corAtiva : c._corNormal;
-    a.style.backgroundColor = "transparent";
+    a.style.backgroundColor = on ? c._fundoAtivo : "transparent";
     const av = a.querySelector(".mini-av");
     if (av) av.style.boxShadow = on ? `0 0 0 2px ${c._corAtiva}` : "none";
   });
+}
+// Transição em CUBO (como trocar de pessoa no Flash): a aba que sai gira para trás pela beirada e a vizinha entra
+// girando pelo outro lado. Feita em JavaScript (quadro a quadro), então funciona mesmo com as animações do celular
+// desligadas (que desligam as transições do CSS).
+const PERSP = 1200;
+function pintarCubo(a, p) {
+  const { de, para, lado } = a, w = W();
+  if (lado === "esq") { // dedo para a esquerda: próxima aba entra pela direita
+    de.style.transformOrigin = "100% 50%"; para.style.transformOrigin = "0% 50%";
+    de.style.transform = `perspective(${PERSP}px) translate3d(${-p * w}px,0,0) rotateY(${-90 * p}deg)`;
+    para.style.transform = `perspective(${PERSP}px) translate3d(${(1 - p) * w}px,0,0) rotateY(${90 * (1 - p)}deg)`;
+  } else {
+    de.style.transformOrigin = "0% 50%"; para.style.transformOrigin = "100% 50%";
+    de.style.transform = `perspective(${PERSP}px) translate3d(${p * w}px,0,0) rotateY(${90 * p}deg)`;
+    para.style.transform = `perspective(${PERSP}px) translate3d(${-(1 - p) * w}px,0,0) rotateY(${-90 * (1 - p)}deg)`;
+  }
+  // a face que vira para trás escurece um pouco (como um cubo de verdade)
+  de.style.opacity = String(1 - 0.35 * p); para.style.opacity = String(0.65 + 0.35 * p);
 }
 function comecar(k, lado) {
   const alvo = vizinho(k, lado);
@@ -181,49 +201,47 @@ function comecar(k, lado) {
   const de = quadros[QUADRO_DE[k]], para = quadro(QUADRO_DE[alvo], alvo);
   // Explorar fica no quadro do Diário: já deixa o feed no Explorar antes de aparecer.
   if (alvo === "explorar" || alvo === "diario") { try { para.contentWindow.__hfTrocarAba?.(alvo); } catch {} }
-  for (const q of [de, para]) { q.classList.remove("anima"); q.style.transitionDuration = ""; q.classList.add("movendo"); }
+  for (const q of [de, para]) { q.classList.remove("anima"); q.classList.add("movendo"); }
   para.classList.add("entra");
-  para.style.transform = `translate3d(${lado === "dir" ? -W() : W()}px,0,0)`;
   const bDe = barraDe(de), bPara = barraDe(para);
   const copia = bDe ? copiaDaBarra(bDe) : null;
   if (copia) { bDe.style.visibility = "hidden"; if (bPara) bPara.style.visibility = "hidden"; }
-  arraste = { de, para, lado, alvo, k, dx: 0, bDe, bPara, copia, aceso: false };
+  arraste = { de, para, lado, alvo, k, p: 0, bDe, bPara, copia, aceso: false };
+  document.body.classList.add("girando");
+  pintarCubo(arraste, 0);
   return true;
 }
 function mover(dx) {
-  if (!arraste) return;
-  const { de, para, lado, copia } = arraste;
-  const d = lado === "dir" ? Math.max(0, dx) : Math.min(0, dx);
-  arraste.dx = d;
-  de.style.transform = `translate3d(${d}px,0,0)`;
-  para.style.transform = `translate3d(${(lado === "dir" ? -W() : W()) + d}px,0,0)`;
-  const aceso = Math.abs(d) > W() / 2;
-  if (aceso !== arraste.aceso) { arraste.aceso = aceso; acenderNaCopia(copia, aceso ? arraste.alvo : arraste.k); }
+  if (!arraste || arraste.fim) return;
+  const d = arraste.lado === "dir" ? Math.max(0, dx) : Math.min(0, dx);
+  arraste.p = Math.min(1, Math.abs(d) / W());
+  pintarCubo(arraste, arraste.p);
+  const aceso = arraste.p > 0.5;
+  if (aceso !== arraste.aceso) { arraste.aceso = aceso; acenderNaCopia(arraste.copia, aceso ? arraste.alvo : arraste.k); }
 }
 function terminar(vai, v = 0) {
-  if (!arraste) return;
-  const { de, para, lado, alvo, k, dx, bDe, bPara, copia } = arraste;
-  // Duração pelo que falta andar e pela velocidade do dedo (deslize rápido termina rápido), entre 140 e 320 ms.
-  const falta = vai ? W() - Math.abs(dx) : Math.abs(dx);
-  const dur = Math.round(Math.min(320, Math.max(140, falta / Math.max(Math.abs(v), 1.1))));
-  for (const q of [de, para]) { q.style.transitionDuration = dur + "ms"; q.classList.add("anima"); }
-  if (vai) {
-    de.style.transform = `translate3d(${lado === "dir" ? W() : -W()}px,0,0)`;
-    para.style.transform = "translate3d(0,0,0)";
-    acenderNaCopia(copia, alvo);
-    try { if (navigator.userActivation?.hasBeenActive) navigator.vibrate?.(8); } catch {}
-  } else {
-    de.style.transform = "translate3d(0,0,0)";
-    para.style.transform = `translate3d(${lado === "dir" ? -W() : W()}px,0,0)`;
-    acenderNaCopia(copia, k);
-  }
-  setTimeout(() => {
+  if (!arraste || arraste.fim) return;
+  const a = arraste; a.fim = true;
+  const { de, para, alvo, k, bDe, bPara, copia } = a;
+  const p0 = a.p, p1 = vai ? 1 : 0;
+  // Duração pelo que falta girar e pela velocidade do dedo (deslize rápido termina rápido), entre 160 e 360 ms.
+  const falta = Math.abs(p1 - p0) * W();
+  const dur = Math.round(Math.min(360, Math.max(160, falta / Math.max(Math.abs(v), 1))));
+  acenderNaCopia(copia, vai ? alvo : k);
+  if (vai) { try { if (navigator.userActivation?.hasBeenActive) navigator.vibrate?.(8); } catch {} }
+  const t0 = performance.now(), suave = (t) => 1 - Math.pow(1 - t, 3);
+  const passo = (agora) => {
+    const t = Math.min(1, (agora - t0) / dur);
+    pintarCubo(a, p0 + (p1 - p0) * suave(t));
+    if (t < 1) { requestAnimationFrame(passo); return; }
+    for (const q of [de, para]) { q.classList.remove("anima", "movendo", "entra"); q.style.transform = ""; q.style.transformOrigin = ""; q.style.opacity = ""; }
     arraste = null;
-    for (const q of [de, para]) { q.classList.remove("anima", "movendo", "entra"); q.style.transform = ""; q.style.transitionDuration = ""; }
+    document.body.classList.remove("girando");
     if (vai) ir(alvo);
     for (const b of [bDe, bPara]) if (b) b.style.visibility = "";
     copia?.remove();
-  }, dur + 20);
+  };
+  requestAnimationFrame(passo);
 }
 
 Object.assign(S, {

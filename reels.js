@@ -9,7 +9,7 @@
 import {
   el, icone, ms, pintarAvatar, obterPerfil, barraInteracao, botaoSeguir, comMencoes, marcarVista, definirOrigem, origemAtual, pessoasEmPilha,
   contadorEstrelas, ganchos, eu, fb, toast, urlSegura, escondido, tempoRelativo, paraData, meusSeguindo, storageFns
-} from "./rede.js?v=119";
+} from "./rede.js?v=120";
 
 let aberto = null;
 let somLigado = false;
@@ -26,10 +26,10 @@ async function videosRecentes(oculto) {
 // lista = publicações já lidas no Diário; oculto(p) = a mesma regra do Diário (silenciado, agendada, fora do público...).
 export async function abrirReels({ lista = [], oculto = () => false, comecarEm = null, aoNovo = null } = {}) {
   if (aberto) return;
-  const caixa = el("div", "reels"); caixa.setAttribute("role", "dialog"); caixa.setAttribute("aria-label", "Reels");
+  const caixa = el("div", "reels"); caixa.setAttribute("role", "dialog"); caixa.setAttribute("aria-label", "Vídeos");
   const topo = el("div", "reels-topo");
   const voltar = el("button", "reels-btn"); voltar.type = "button"; voltar.setAttribute("aria-label", "Voltar ao Diário"); voltar.appendChild(icone("voltar", "i"));
-  const tit = el("strong", "reels-tit"); tit.append(icone("reels", "i"), document.createTextNode("Reels"));
+  const tit = el("strong", "reels-tit"); tit.append(icone("reels", "i"), document.createTextNode("Vídeos"));
   const som = el("button", "reels-btn"); som.type = "button";
   const pintarSom = () => { som.replaceChildren(icone(somLigado ? "som" : "mudo", "i")); som.setAttribute("aria-label", somLigado ? "Desligar o som" : "Ligar o som"); };
   pintarSom();
