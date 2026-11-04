@@ -72,7 +72,7 @@ const SIMBOLOS = `<symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l
 <symbol id="i-mais" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
 <symbol id="i-criar" viewBox="0 0 24 24"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="m13.5 6.5 4 4"/><path d="M19 15v4M17 17h4"/></symbol>
 <symbol id="i-imagem" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 16l-5-5-8.5 8.5"/></symbol>
-<symbol id="i-reels" viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="3"/><path d="M10.2 9.2v5.6l4.6-2.8z" fill="currentColor" stroke-linejoin="round"/><path d="M3 7v10M21 7v10"/></symbol>
+<symbol id="i-reels" viewBox="0 0 24 24"><rect x="4.5" y="2.5" width="15" height="19" rx="3"/><path d="M7.6 6.2v.01M7.6 10.1v.01M7.6 14v.01M7.6 17.9v.01M16.4 6.2v.01M16.4 10.1v.01M16.4 14v.01M16.4 17.9v.01" stroke-width="2.1"/><path d="M10.6 9.4v5.2l4-2.6z" fill="currentColor" stroke-linejoin="round"/></symbol>
 <symbol id="i-alvo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.8"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><path d="M12 1.8v3M12 19.2v3M1.8 12h3M19.2 12h3"/></symbol>
 <symbol id="i-som" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" stroke-linejoin="round"/><path d="M15.5 9a4 4 0 010 6M18 6.5a7.5 7.5 0 010 11"/></symbol>
 <symbol id="i-mudo" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" stroke-linejoin="round"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></symbol>
@@ -1581,7 +1581,7 @@ export async function verRespostasCaixa(item, alvo, aoMudar) {
       acao("chat", "Responder", () => responderNoChat(r.uid, cartaoRespostaCaixa(item.caixa, r, alvo)));
     }
     // Pôr a resposta no seu flash (como no Instagram): pergunta + resposta, sem o nome de quem respondeu.
-    acao("raio", "No flash", () => import("./stories.js?v=94").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
+    acao("raio", "No flash", () => import("./stories.js?v=96").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
     acao("lixo", "Apagar", async () => {
       if (!(await confirmarHF({ titulo: "Apagar esta resposta?", texto: "Ela some da sua caixa de perguntas.", ok: "Apagar", icone: "lixo" }))) return;
       try { await fb.deleteDoc(fb.doc(fb.db, "caixa_respostas", r.id)); todas = todas.filter((x) => x.id !== r.id); pintarNums(); pintarLista(); aoMudar?.(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
@@ -2141,7 +2141,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=94").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=96").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);
