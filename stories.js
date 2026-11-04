@@ -14,7 +14,7 @@ import {
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados,
   responderNoChat, cartaoRespostaCaixa, fecharFolha, ajudaPublico
-} from "./rede.js?v=124";
+} from "./rede.js?v=125";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { combinaPublico, leitorDe, temPublico, resumoPublico, publicoParaGravar } from "./publico-alvo.js?v=1";
@@ -3577,13 +3577,16 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
   // Figurinha interativa (enquete, perguntas): desenhada numa largura fixa e escalada para ocupar a mesma fração do
   // quadro que ocupava no criador (74%); o centro fica onde a pessoa pôs, sem cobrir o nome em cima nem o rodapé.
   const LARG_FIG = 300, FRAC_FIG = 0.74;
+  // Onde as figurinhas param embaixo: a faixa de sempre e, se o rodapé ficou por cima da foto, 10 px acima dele.
+  let topoRodape = Infinity;
+  const baixoFig = (H) => Math.min(H - Math.max(H * 0.1, 70), topoRodape - 10);
   function encaixar(w, fx, fy) {
     w.dataset.fx = fx; w.dataset.fy = fy;
     const W = quadro.offsetWidth, H = quadro.offsetHeight; if (!W || !H) return;
     const k = (W * FRAC_FIG) / LARG_FIG;
     w.style.width = LARG_FIG + "px"; w.style.setProperty("--k", k.toFixed(4));
     const h = w.offsetHeight * k, lw = W * FRAC_FIG;
-    const cima = H * 0.11 + h / 2, baixo = H - Math.max(H * 0.1, 70) - h / 2;
+    const cima = H * 0.11 + h / 2, baixo = baixoFig(H) - h / 2;
     const cy = Math.min(Math.max(fy * H, cima), Math.max(cima, baixo));
     const cx = Math.min(Math.max(fx * W, lw / 2 + 6), W - lw / 2 - 6);
     w.style.left = cx + "px"; w.style.top = cy + "px";
@@ -3605,24 +3608,36 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
       if (w.classList?.contains("story-enq") && Number.isFinite(w._cy)) l.push({ w, cy: w._cy, h: w._h, cx: parseFloat(w.style.left) || W / 2, w2: W * FRAC_FIG });
       else if (w.matches?.("a.story-link:not(.story-post)") && w.dataset.fy) l.push({ w, cy: Number(w.dataset.fy) * H, h: w.offsetHeight, cx: Number(w.dataset.fx) * W, w2: w.offsetWidth });
     }
-    if (l.length < 2) return;
-    empilhar(l.map((x) => Object.assign(x, { w: x.w2, el: x.w })), H * 0.11, H - Math.max(H * 0.1, 70))
+    if (!l.length) return;
+    empilhar(l.map((x) => Object.assign(x, { w: x.w2, el: x.w })), H * 0.11, baixoFig(H))
       .forEach((x) => { x.el.style.top = x.cy + "px"; });
   }
-  // Linha de "Mencionados"/"Adicionar ao seu flash": em celular comprido a foto termina acima do rodapé e a linha
-  // ficava metade em cima da foto, metade fora (parecia desalinhada). Se cortar a beirada, sobe para dentro da foto.
-  const encaixarLinha = () => {
-    const l = rodape.querySelector(".story-linha-acoes"); if (!l) return;
-    l.style.marginBottom = "";
-    // Medida pelo layout (offsetTop/offsetHeight), não pela tela: durante a animação de abrir e o giro do cubo o
-    // visor está com transform e o getBoundingClientRect dava números errados (a linha continuava na beirada).
-    const qb = quadro.offsetTop + quadro.offsetHeight;
-    const topo = rodape.offsetTop + l.offsetTop, base = topo + l.offsetHeight;
-    if (l.offsetHeight && topo < qb - 1 && base > qb - 8) l.style.marginBottom = Math.ceil(base - qb + 10) + "px";
-  };
-  // Refaz quando o visor muda de tamanho (teclado, girar o celular, barra do navegador) ou a linha muda.
-  try { const ro = new ResizeObserver(() => encaixarLinha()); ro.observe(caixa); ro.observe(rodape); } catch {}
-  const reencaixar = () => { quadro.querySelectorAll(".story-enq").forEach((w) => encaixar(w, Number(w.dataset.fx), Number(w.dataset.fy))); encaixarLinha(); };
+  // Rodapé organizado: cada linha (Mencionados, Visualizações/Destacar, campo de responder) fica INTEIRA embaixo da
+  // foto ou INTEIRA por cima dela, 10 px acima da beirada; nunca metade dentro, metade fora (o tamanho da foto muda com
+  // o celular e com a barra do navegador). Medido pelo layout (offsetTop/offsetHeight): durante a animação de abrir e o
+  // giro do cubo o visor está com transform e o getBoundingClientRect dava números errados.
+  // `topoRodape` = onde (no quadro) começa o que do rodapé ficou por cima da foto: as figurinhas param acima dele.
+  function organizarRodape() {
+    const filhos = [...rodape.children].filter((c) => getComputedStyle(c).position !== "absolute");
+    filhos.forEach((c) => { c.style.marginBottom = ""; });
+    const Hq = quadro.offsetHeight, qb = quadro.offsetTop + quadro.offsetHeight, Hc = caixa.offsetHeight;
+    if (!Hq || !Hc) return;
+    const limite = Hc - qb; // distância do fim da tela até a beirada de baixo da foto
+    const cs = getComputedStyle(rodape), gap = parseFloat(cs.rowGap) || 0;
+    let pos = parseFloat(cs.paddingBottom) || 0, maisAlto = 0;
+    for (let i = filhos.length - 1; i >= 0; i--) {
+      const c = filhos[i], h = c.offsetHeight; if (!h) continue;
+      // cortaria a beirada (ou ficaria colada nela): sobe para dentro da foto
+      if (pos < limite + 10 && pos + h > limite - 6) { const extra = Math.ceil(limite + 10 - pos); c.style.marginBottom = extra + "px"; pos += extra; }
+      if (pos + h > limite) maisAlto = Math.max(maisAlto, pos + h);
+      pos += h + gap;
+    }
+    const novo = maisAlto ? Hq - (maisAlto - limite) : Infinity;
+    if (novo !== topoRodape) { topoRodape = novo; quadro.querySelectorAll(".story-enq").forEach((w) => encaixar(w, Number(w.dataset.fx), Number(w.dataset.fy))); agendarSeparar(); }
+  }
+  // Refaz quando o visor muda de tamanho (teclado, girar o celular, barra do navegador) ou o rodapé muda.
+  try { const ro = new ResizeObserver(() => organizarRodape()); ro.observe(caixa); ro.observe(rodape); } catch {}
+  const reencaixar = () => { quadro.querySelectorAll(".story-enq").forEach((w) => encaixar(w, Number(w.dataset.fx), Number(w.dataset.fy))); organizarRodape(); };
   // ---------- responder a caixa de perguntas em foco ----------
   let focoCx = null;
   function medirFoco() {
@@ -3929,7 +3944,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
         aoAbrir: () => pausar(true), aoFechar: () => { if (document.querySelector(".story-visor")) document.body.classList.add("travado"); pausar(false); } });
       linhaAcoes().prepend(bm);
     }
-    if (rodape.querySelector(".story-linha-acoes")) { encaixarLinha(); requestAnimationFrame(encaixarLinha); setTimeout(encaixarLinha, 400); }
+    organizarRodape(); requestAnimationFrame(organizarRodape); setTimeout(organizarRodape, 400);
     if (meu) {
       const v = el("button", "story-vistos"); v.type = "button";
       const rostos = el("span", "rostos");
