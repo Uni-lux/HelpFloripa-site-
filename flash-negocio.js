@@ -57,7 +57,39 @@ function css() {
 }
 
 const PAGINA = { servicos: "servicos.html", delivery: "delivery.html", lojinha: "shopping.html", imoveis: "imoveis.html", saude: "saude.html" };
-const cache = new Map();
+// Lista de cada negócio guardada por 60 s na página: na rede (rede.html) o perfil fica aberto o tempo todo, e com a
+// lista guardada para sempre um flash novo só aparecia depois de recarregar.
+const cache = new Map(), VALIDADE = 60e3;
+// Fotos com anel ligadas na página (para pintar de novo quando sai um flash novo ou um é apagado).
+const ligados = new Set();
+const CHAVE_AVISO = "hf-flash-negocio-mudou";
+// Saiu ou foi apagado um flash nestes negócios: esquece as listas e pinta o anel de novo. Avisa também as outras
+// páginas/quadros do site abertos (evento "storage"), como o Perfil na rede quando o flash foi publicado pelo Diário.
+export function avisarFlashNegocio(ids) {
+  const l = (Array.isArray(ids) ? ids : []).filter(Boolean);
+  if (!l.length) return;
+  refazer(l);
+  try { localStorage.setItem(CHAVE_AVISO, JSON.stringify({ ids: l, em: Date.now() })); } catch {}
+}
+function refazer(ids) {
+  ids.forEach((id) => cache.delete(id));
+  for (const x of [...ligados]) {
+    if (!x.alvo.isConnected) { ligados.delete(x); continue; }
+    if (ids.includes(x.n.id)) anelNegocio(x.fbx, x.euX, x.alvo, x.n, x.opcoes);
+  }
+}
+window.addEventListener("storage", (e) => {
+  if (e.key !== CHAVE_AVISO || !e.newValue) return;
+  try { const v = JSON.parse(e.newValue); setTimeout(() => refazer(v.ids || []), 1200); } catch {}
+});
+// A página voltou a aparecer (outra aba da rede, celular desbloqueado): confere de novo o que já passou da validade.
+const conferirVencidos = () => {
+  if (document.visibilityState === "hidden") return;
+  const velhos = [...ligados].filter((x) => x.alvo.isConnected && Date.now() - (cache.get(x.n.id)?.em || 0) > VALIDADE).map((x) => x.n.id);
+  if (velhos.length) refazer([...new Set(velhos)]);
+};
+document.addEventListener("visibilitychange", conferirVencidos);
+window.addEventListener("hf:gaveta", conferirVencidos);
 // Flashes ativos que o dono colocou neste perfil de negócio (o que a pessoa pode ver), do mais antigo ao mais novo.
 // Flash nos perfis de negócio faz parte dos planos: sem plano ativo do dono, o perfil do negócio não mostra flash.
 // Só os das últimas 24 h (a regra não deixa listar o arquivo de ninguém): com o índice (negocios + criadoEm) lê só os do
@@ -70,35 +102,48 @@ async function noAr(fbx, negId) {
 }
 export function flashesDoNegocio(fbx, euX, negId) {
   const dono = String(negId).split("_")[0];
-  if (!cache.has(negId)) cache.set(negId, lerPlano(fbx, dono).then((pl) => (nivelPlano(pl) || dono === euX?.uid ? true : Promise.reject(new Error("sem plano")))).then(() => noAr(fbx, negId))
+  const c = cache.get(negId);
+  if (c && Date.now() - c.em < VALIDADE) return c.p;
+  const p = lerPlano(fbx, dono).then((pl) => (nivelPlano(pl) || dono === euX?.uid ? true : Promise.reject(new Error("sem plano")))).then(() => noAr(fbx, negId))
     .then((docs) => docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter((x) => ativo(x) && podeVer(x, euX?.uid)).sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm)))
-    .catch(() => []));
-  return cache.get(negId);
+    .catch(() => []);
+  cache.set(negId, { p, em: Date.now() });
+  return p;
 }
 
-// Anel no avatar do negócio: tocar abre o visor. Devolve a lista (vazia se não tem flash).
+// Anel no avatar do negócio: tocar abre o visor. Devolve a lista (vazia se não tem flash). Pode ser chamada de novo
+// na mesma foto (flash novo/apagado): pinta ou tira o anel sem ligar o toque duas vezes.
 export async function anelNegocio(fbx, euX, alvo, n, opcoes = {}) {
   if (!alvo || !n?.id || !euX) return [];
+  if (!alvo._fnReg) { alvo._fnReg = { fbx, euX, alvo, n, opcoes }; ligados.add(alvo._fnReg); }
   const lista = await flashesDoNegocio(fbx, euX, n.id);
-  if (!lista.length || !alvo.isConnected) return lista;
+  if (!alvo.isConnected) return lista;
+  alvo._fnLista = lista;
+  if (!lista.length) {
+    // Sem flash no ar: a foto volta a ser só a foto (o toque passa para o botão, que abre o perfil do negócio).
+    alvo.classList.remove("fn-anel", "visto"); alvo.removeAttribute("role"); alvo.removeAttribute("tabindex"); alvo.removeAttribute("aria-label");
+    return lista;
+  }
   css();
-  const pintar = () => { const v = vistos(); alvo.classList.toggle("visto", lista.every((x) => v.has(x.id))); };
+  const pintar = () => { const v = vistos(); alvo.classList.toggle("visto", (alvo._fnLista || []).every((x) => v.has(x.id))); };
   alvo.classList.add("fn-anel");
   alvo.setAttribute("role", "button"); alvo.tabIndex = 0; alvo.setAttribute("aria-label", `Ver o flash de ${n.nome || "negócio"}`);
   pintar();
   if (!alvo._fnLigado) {
     alvo._fnLigado = true;
     // Abre no visor COMPLETO do Flash (enquete/teste, perguntas, contagem, link, lugar, # e @, estrela e responder),
-    // com o negócio no topo. Onde ele já está carregado (Diário, perfis), abre aqui; nas vitrines, abre o Diário com o
-    // flash do negócio e o "voltar" traz de volta (o visor leve abaixo fica só de reserva, se o Diário não abrir).
+    // com o negócio no topo e o botão para a vitrine. Onde ele já está carregado (Diário, perfis), abre aqui; nas
+    // vitrines, abre o Diário com o flash do negócio e o "voltar" traz de volta (o visor leve fica só de reserva).
     const abrir = (e) => {
+      const l = alvo._fnLista || [];
+      if (!l.length) return; // sem flash: deixa o toque seguir (abre o perfil do negócio)
       e.stopPropagation(); e.preventDefault();
       const neg = { id: n.id, nome: n.nome || "", foto: seguro(n.foto), tipo: n.tipo || String(n.id).split("_")[1] || "" };
       const aoFechar = () => { pintar(); opcoes.aoFechar?.(); };
-      if (typeof window.__hfVisorNegocio === "function") { window.__hfVisorNegocio(neg, { lista, aoFechar }); return; }
-      const primeiro = lista.find((x) => !vistos().has(x.id)) || lista[0];
+      if (typeof window.__hfVisorNegocio === "function") { window.__hfVisorNegocio(neg, { lista: l, aoFechar, aoVitrine: opcoes.aoVitrine || null }); return; }
+      const primeiro = l.find((x) => !vistos().has(x.id)) || l[0];
       try { location.href = `feed.html?flash=${encodeURIComponent(primeiro.id)}&negocio=${encodeURIComponent(n.id)}`; }
-      catch { abrirVisorNegocio(fbx, euX, n, lista, { ...opcoes, aoFechar }); }
+      catch { abrirVisorNegocio(fbx, euX, n, l, { ...opcoes, aoFechar }); }
     };
     alvo.addEventListener("click", abrir);
     alvo.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") abrir(e); });
