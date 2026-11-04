@@ -80,7 +80,7 @@ const SIMBOLOS = `<symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l
 <symbol id="i-video" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2.5"/><path d="M16 10.5l5-3v9l-5-3z"/></symbol>
 <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></symbol>
 <symbol id="i-lixo" viewBox="0 0 24 24"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5"/></symbol>
-<symbol id="i-enquete" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="3.5" rx="1.75"/><rect x="4" y="10.25" width="11" height="3.5" rx="1.75"/><rect x="4" y="15.5" width="7" height="3.5" rx="1.75"/></symbol>
+<symbol id="i-enquete" viewBox="0 0 24 24"><rect x="2.8" y="3.3" width="18.4" height="17.4" rx="3.6"/><circle cx="7.9" cy="8.9" r="2.1"/><path d="M6.9 8.95l.75.75 1.35-1.45" stroke-width="1.5"/><path d="M12.2 8.9h5.3"/><circle cx="7.9" cy="15.1" r="2.1"/><path d="M12.2 15.1h3.5"/></symbol>
 <symbol id="i-graf" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/></symbol>
 <symbol id="i-raio" viewBox="0 0 24 24"><path d="M13.4 2.6L5.2 13.3a.6.6 0 00.5 1h5.1l-1.2 6.9c-.1.6.7.9 1 .4l8.2-10.7a.6.6 0 00-.5-1h-5.1l1.2-6.9c.1-.6-.7-.9-1-.4z" fill="currentColor" stroke="none"/></symbol>
 <symbol id="i-raio-off" viewBox="0 0 24 24"><path d="M13.4 2.6L5.2 13.3a.6.6 0 00.5 1h5.1l-1.2 6.9c-.1.6.7.9 1 .4l8.2-10.7a.6.6 0 00-.5-1h-5.1l1.2-6.9c.1-.6-.7-.9-1-.4z"/><path d="M3.5 3.5l17 17"/></symbol>
@@ -102,7 +102,7 @@ const SIMBOLOS = `<symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l
 <symbol id="i-chave" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l8.5-8.5M16 7l2.5 2.5M14 9l2 2"/></symbol>
 <symbol id="i-pessoa-mais" viewBox="0 0 24 24"><circle cx="10" cy="8.5" r="3.8"/><path d="M3.5 20c1-3.4 3.6-5.3 6.5-5.3 1.4 0 2.7.4 3.8 1.2M18 13v6M15 16h6"/></symbol>
 <symbol id="i-servicos" viewBox="0 0 24 24"><rect x="3.5" y="7" width="17" height="12.5" rx="2"/><path d="M9 7V5.5A1.5 1.5 0 0110.5 4h3A1.5 1.5 0 0115 5.5V7M3.5 12.5h17"/></symbol>
-<symbol id="i-registros" viewBox="0 0 24 24"><path d="M5 5.5h14M5 10h14M5 14.5h9"/><path d="M16.5 15.5l3 3M19.5 15.5l-3 3" opacity="0"/><path d="M15 18.5h4"/></symbol>
+<symbol id="i-registros" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M8 8.3h8M12 8.3v8.4"/></symbol>
 <symbol id="i-feed" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="7" rx="2"/><rect x="4" y="13" width="16" height="7" rx="2"/></symbol>
 <symbol id="i-maleta" viewBox="0 0 24 24"><rect x="3.5" y="7" width="17" height="12.5" rx="2"/><path d="M9 7V5.5A1.5 1.5 0 0110.5 4h3A1.5 1.5 0 0115 5.5V7M3.5 12.5h17"/></symbol>
 <symbol id="i-alerta" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4.5M12 17.5h.01"/></symbol>
@@ -1581,7 +1581,7 @@ export async function verRespostasCaixa(item, alvo, aoMudar) {
       acao("chat", "Responder", () => responderNoChat(r.uid, cartaoRespostaCaixa(item.caixa, r, alvo)));
     }
     // Pôr a resposta no seu flash (como no Instagram): pergunta + resposta, sem o nome de quem respondeu.
-    acao("raio", "No flash", () => import("./stories.js?v=96").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
+    acao("raio", "No flash", () => import("./stories.js?v=97").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
     acao("lixo", "Apagar", async () => {
       if (!(await confirmarHF({ titulo: "Apagar esta resposta?", texto: "Ela some da sua caixa de perguntas.", ok: "Apagar", icone: "lixo" }))) return;
       try { await fb.deleteDoc(fb.doc(fb.db, "caixa_respostas", r.id)); todas = todas.filter((x) => x.id !== r.id); pintarNums(); pintarLista(); aoMudar?.(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
@@ -2141,7 +2141,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=96").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=97").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);
