@@ -1,5 +1,5 @@
 // Código da página (saiu de dentro do HTML para ficar guardado no aparelho pelo service worker: a página abre mais rápido).
-import "./sem-menu-imagem.js?v=1";
+import "./sem-menu-imagem.js?v=2";
 import { FUNCOES_LIGADAS, respostaDoPerfil } from "./servidor.js?v=3";
 import { docRapido, docsRapido } from "./rapido.js?v=1";
 import { ligarDeslizarFlash } from "./deslizar-flash.js?v=7";
@@ -2387,8 +2387,8 @@ const maiusc = (t) => String(t).charAt(0).toUpperCase() + String(t).slice(1);
 // volta para esta conversa como cartão, sem sair do chat.
 let vitrineMod = null;
 function carregarVitrine() {
-  if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=42"; l.dataset.vitrine = ""; document.head.appendChild(l); }
-  return (vitrineMod ||= import("./vitrine.js?v=88"));
+  if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=43"; l.dataset.vitrine = ""; document.head.appendChild(l); }
+  return (vitrineMod ||= import("./vitrine.js?v=89"));
 }
 function usarCartaoNaConversa(uid, cartao) {
   document.querySelectorAll(".vt-modal").forEach((m) => m.remove());

@@ -879,3 +879,6 @@ html.embutido .side-top > a.icon-btn:first-child, html.embutido #barraRede { dis
   .ir-fim { right: 12px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* Sem o retângulo azul que o celular pinta por cima do que é tocado (pedido do dono, 04/11/2026). */
+html { -webkit-tap-highlight-color: transparent; }

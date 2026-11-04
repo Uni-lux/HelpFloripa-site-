@@ -14,8 +14,9 @@ import { buscarNoServidor } from "./busca.js?v=1";
 import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL } from "./seguranca.js?v=1";
 import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento, media, avaliarNegocio } from "./avaliacoes.js?v=18";
 import { abrirQueixa } from "./queixas.js?v=18";
-import { docComValidade, docsComValidade, docsPorIds } from "./leituras.js?v=4";
-import { anelNegocio } from "./flash-negocio.js?v=20";
+import { docComValidade, docsComValidade, docsPorIds, buscarDeNovo } from "./leituras.js?v=4";
+import { anelNegocio, esquecerFlashesNegocio } from "./flash-negocio.js?v=21";
+import { ligarPuxar } from "./puxar-atualizar.js?v=1";
 import { camposEndereco, textoCidade, cidadesDe, NOME_UF, semAcento, cidadePorCodigo } from "./endereco.js?v=1";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, esquecerPosicao, posicaoGuardada } from "./perto.js?v=2";
 import { lerLocal, salvarLocal, marcarManual, escolherLocal, atualizarPeloGps, aoMudarLocal, escolhaManual } from "./local-escolhido.js?v=3";
@@ -1784,7 +1785,8 @@ function montarSecao() {
   cont.id = "vtContagem";
   const grade = el("div", "vt-grade");
   grade.id = "vtGrade";
-  for (let i = 0; i < 3; i++) grade.appendChild(el("div", "vt-esqueleto"));
+  // Esqueletos no formato do cartão (capa, foto, nome e detalhes) até a lista chegar.
+  for (let i = 0; i < 6; i++) { const sk = el("div", "vt-esqueleto"); sk.setAttribute("aria-hidden", "true"); sk.append(el("i", "sk-capa"), el("i", "sk-av"), el("i", "sk-l1"), el("i", "sk-l2"), el("i", "sk-l3")); grade.appendChild(sk); }
   const dest = el("div", "vt-destaques");
   dest.id = "vtDestaques";
   sec.append(cab, dest, cont, grade);
@@ -3153,6 +3155,21 @@ async function carregarDonos(ids) {
   semPerfil.forEach((id) => donos.set(id, pf.get(id) || {}));
 }
 
+// Puxar para atualizar (como no Diário): busca de novo no servidor e refaz a lista. O que já está na tela fica até a
+// lista nova chegar (sem piscar o esqueleto); a rolagem fica no topo, onde o dedo puxou.
+async function atualizarVitrine() {
+  if (!fb || !eu) return;
+  buscarDeNovo();
+  esquecerFlashesNegocio();
+  const antes = { todos, cursorNeg, cursorAn, maisNeg, maisAn };
+  todos = []; negociosImoveis.clear(); principalImoveis.clear(); notasNeg.clear(); donos.clear(); planosDonos.clear();
+  cursorNeg = cursorAn = null; maisNeg = maisAn = false;
+  try { await definirPosicao(posEu); await carregarLote(true); }
+  catch (e) { console.warn("Vitrine:", e); ({ todos, cursorNeg, cursorAn, maisNeg, maisAn } = antes); toast("Não deu para atualizar agora. Tente de novo."); }
+  chipsDinamicos();
+  renderizar();
+}
+
 async function iniciar() {
   montarSecao();
   ligarFiltros();
@@ -3184,6 +3201,7 @@ async function iniciar() {
     }
     chipsDinamicos();
     renderizar();
+    ligarPuxar({ aoAtualizar: atualizarVitrine });
     // Lê a localização do aparelho: a cidade mudou (e a pessoa não escolheu à mão)? Atualiza o lugar aqui e no início.
     atualizarPeloGps({ pedirLocalizacao, posicaoGuardada }).then((novo) => { if (novo) aplicarLocal(); });
     // Chegou com uma busca (?q=): pergunta também ao Firebase.

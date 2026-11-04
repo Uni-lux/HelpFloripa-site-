@@ -7,6 +7,7 @@
 // =====================================================
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 const DIA = 864e5, TEMPO_FOTO = 6000;
+const COR_TIPO = { servicos: "#00adee", delivery: "#ff7a1a", lojinha: "#b066ff", imoveis: "#2fbf71", saude: "#0fb5a6" };
 const ms = (t) => (t?.toMillis ? t.toMillis() : t?.seconds ? t.seconds * 1000 : typeof t === "number" ? t : 0);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
 const seguro = (u) => (typeof u === "string" && /^(data:image\/(jpeg|png|webp);base64,|https:\/\/firebasestorage\.googleapis\.com\/)/.test(u) ? u : "");
@@ -22,9 +23,9 @@ function css() {
   if (cssPronto) return; cssPronto = true;
   const st = document.createElement("style");
   st.textContent = `
-.fn-anel { cursor: pointer; box-shadow: 0 0 0 3px var(--vt-card, var(--panel, #0f161b)), 0 0 0 6px #ff3d7f, 0 0 0 7.5px #ff8a00, 0 6px 22px rgba(255, 61, 127, .45) !important; animation: fn-pulsa 2.4s ease-in-out infinite; }
+.fn-anel { --fn-cor: #00adee; cursor: pointer; box-shadow: 0 0 0 3px var(--vt-card, var(--panel, #0f161b)), 0 0 0 6px var(--fn-cor), 0 0 0 7.5px color-mix(in srgb, var(--fn-cor) 55%, #fff), 0 6px 22px color-mix(in srgb, var(--fn-cor) 45%, transparent) !important; animation: fn-pulsa 2.4s ease-in-out infinite; }
 .fn-anel.visto { box-shadow: 0 0 0 3px var(--vt-card, var(--panel, #0f161b)), 0 0 0 5px rgba(140, 150, 160, .7) !important; animation: none; }
-@keyframes fn-pulsa { 50% { box-shadow: 0 0 0 3px var(--vt-card, var(--panel, #0f161b)), 0 0 0 6px #ff8a00, 0 0 0 7.5px #ff3d7f, 0 6px 26px rgba(255, 138, 0, .55); } }
+@keyframes fn-pulsa { 50% { box-shadow: 0 0 0 3px var(--vt-card, var(--panel, #0f161b)), 0 0 0 6px color-mix(in srgb, var(--fn-cor) 70%, #fff), 0 0 0 7.5px var(--fn-cor), 0 6px 26px color-mix(in srgb, var(--fn-cor) 60%, transparent); } }
 @media (prefers-reduced-motion: reduce) { .fn-anel { animation: none; } }
 .fn-visor { position: fixed; inset: 0; z-index: 9800; background: #000; display: grid; place-items: center; touch-action: none; animation: fn-entra .2s ease; }
 @keyframes fn-entra { from { opacity: 0; transform: scale(.98); } }
@@ -128,6 +129,8 @@ export async function anelNegocio(fbx, euX, alvo, n, opcoes = {}) {
   }
   css();
   const pintar = () => { const v = vistos(); alvo.classList.toggle("visto", (alvo._fnLista || []).every((x) => v.has(x.id))); };
+  // Cada classe com a sua cor (Freelances azul, Delivery laranja, Shopping roxo, Imóveis verde, Saúde verde-água).
+  alvo.style.setProperty("--fn-cor", COR_TIPO[n.tipo || String(n.id).split("_")[1]] || COR_TIPO.servicos);
   alvo.classList.add("fn-anel");
   alvo.setAttribute("role", "button"); alvo.tabIndex = 0; alvo.setAttribute("aria-label", `Ver o flash de ${n.nome || "negócio"}`);
   pintar();

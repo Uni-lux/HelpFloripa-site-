@@ -13,7 +13,7 @@
 import { fotoSegura, conferirEmail, emailPendente, MSG_EMAIL } from "./seguranca.js?v=1";
 import { estrelas } from "./avaliacoes.js?v=18";
 import { abrirQueixa, responderQueixa, resolverQueixa, semResposta, MOTIVOS, PRAZO_DIAS } from "./queixas.js?v=18";
-import { NOMES_TIPO, PAGINA_TIPO } from "./vitrine.js?v=88";
+import { NOMES_TIPO, PAGINA_TIPO } from "./vitrine.js?v=89";
 import { docsComValidade, docsPorIds } from "./leituras.js?v=4";
 import { lerLocal, noLocal, aoMudarLocal } from "./local-escolhido.js?v=3";
 

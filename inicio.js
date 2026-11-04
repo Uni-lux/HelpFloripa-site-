@@ -10,12 +10,13 @@
 import { fotoSegura } from "./seguranca.js?v=1";
 import { enfeitarSelect } from "./escolha.js?v=4";
 import { estrelas, lerResumos, media } from "./avaliacoes.js?v=18";
-import { docComValidade, docsComValidade, docsPorIds } from "./leituras.js?v=4";
+import { docComValidade, docsComValidade, docsPorIds, buscarDeNovo } from "./leituras.js?v=4";
+import { ligarPuxar } from "./puxar-atualizar.js?v=1";
 import { ordenarJusto, relevancia, dadosNegocio } from "./relevancia.js?v=4";
 import { lerPlano, nivelPlano, seloPlano, semPausados, mostraSelo, corDoPlano, planosDosDonos } from "./planos-base.js?v=15";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, esquecerPosicao, posicaoGuardada } from "./perto.js?v=2";
 import { lerLocal, salvarLocal, rotuloLocal, noLocal, escolherLocal, atualizarPeloGps, aoMudarLocal } from "./local-escolhido.js?v=3";
-import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=88";
+import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=89";
 import { lerComunidade, cartaoComunidade, filtrosComunidade } from "./comunidade-cartao.js?v=2";
 import { lerPorLocal, quandoVisivel } from "./por-local.js?v=1";
 import { NOME_UF } from "./endereco.js?v=1";
@@ -154,7 +155,9 @@ document.querySelectorAll(".carrossel").forEach((c) => {
   c.querySelector(".ant")?.addEventListener("click", () => t.scrollBy({ left: -t.clientWidth * 0.85, behavior: "smooth" }));
   c.querySelector(".prox")?.addEventListener("click", () => t.scrollBy({ left: t.clientWidth * 0.85, behavior: "smooth" }));
 });
-function esqueletos(id, n = 4) { const t = $(id); t.replaceChildren(...Array.from({ length: n }, () => el("div", "mini esqueleto"))); }
+// Esqueleto no formato do cartão (capa, foto e duas linhas), como nos apps grandes: a página já mostra onde cada coisa vai.
+function esqueleto() { const d = el("div", "mini esqueleto"); d.setAttribute("aria-hidden", "true"); d.append(el("i", "sk-capa"), el("i", "sk-av"), el("i", "sk-l1"), el("i", "sk-l2")); return d; }
+function esqueletos(id, n = 4) { const t = $(id); t.replaceChildren(...Array.from({ length: n }, esqueleto)); }
 ["trilhoPerto", "trilhoTop", "trilhoNovos", "trilhoImoveis", "trilhoSaude", "trilhoComunidade"].forEach((id) => esqueletos(id));
 
 function fundo(div, url) { if (url) div.style.backgroundImage = `url("${url}")`; }
@@ -372,12 +375,15 @@ async function montarPerto(fs, db, u, negocios, imoveis, nota) {
     if (!lista.length) { sub.textContent = "Ainda não tem ninguém cadastrado perto de você."; }
     filtroTipos("secPerto", lista, (l) => preencher("trilhoPerto", l.slice(0, 16).map((x) => seloDistancia(x._anuncio ? cartaoImovel(x) : cartaoNegocio(x, nota(x)), x))));
   };
-  bt.addEventListener("click", async () => {
+  // Puxar para atualizar chama esta função de novo: o botão é ligado uma vez só (com a posição/desenho mais recentes).
+  bt._desenhar = desenhar; bt._pos = (p) => { pos = p; };
+  if (!bt._ligado) bt.addEventListener("click", async () => {
     bt.disabled = true; bt.querySelector("span").textContent = "Localizando...";
-    try { pos = await pedirLocalizacao(); await desenhar(); }
+    try { bt._pos(await pedirLocalizacao()); await bt._desenhar(); }
     catch (e) { sub.textContent = e?.message || "Não deu para pegar a sua localização."; }
     finally { bt.disabled = false; bt.querySelector("span").textContent = "Usar minha localização"; }
   });
+  bt._ligado = true;
   await desenhar();
   sec.hidden = false;
   // Veio do menu ("Perto de você"): a seção só aparece depois de carregar, então rola até ela agora.
@@ -496,6 +502,13 @@ async function carregar(fs, db, u) {
     try { const s = await docComValidade({ ...fs, db }, ["perfis_publicos", u.uid], 10 * 60000); perfilEu = s.exists() ? s.data() : {}; saudacao(perfilEu.nome || u.displayName || ""); } catch { saudacao(u.displayName || ""); }
     carregar(fs, db, u);
     comunicados(fs, db);
+    // Puxar para atualizar (como no Diário): tudo vem de novo do servidor; os cartões de antes ficam até os novos chegarem.
+    ligarPuxar({ aoAtualizar: async () => {
+      buscarDeNovo();
+      try { localStorage.removeItem("hf-totais-inicio"); } catch {}
+      localSecoesP = null;
+      await carregar(fs, db, u);
+    } });
   });
 })();
 
