@@ -525,11 +525,19 @@ svg.i.xs { width: 14px; height: 14px; }
 /* =====================================================
    Barra inferior da rede (Diário, Mensagens, Perfil)
    ===================================================== */
-body.com-barra { padding-bottom: calc(74px + env(safe-area-inset-bottom)); }
+body.com-barra { padding-bottom: calc(92px + env(safe-area-inset-bottom)); }
+/* Esmaecido atrás da barra de baixo: o que rola some aos poucos antes de chegar nela (antes um cartão com borda, como o
+   "Estatísticas do perfil", ficava colado na barra e parecia uma segunda barra). */
+body.com-barra::after { content: ""; position: fixed; left: 0; right: 0; bottom: 0; z-index: 1099; pointer-events: none;
+  height: calc(128px + env(safe-area-inset-bottom)); background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--bg, #070b0e) 85%, transparent) 38%, var(--bg, #070b0e) 58%); }
+
 .barra-rede {
   position: fixed; left: 50%; bottom: calc(10px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 1100;
   width: min(460px, calc(100% - 20px)); display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; padding: 6px;
-  border-radius: 22px; background: color-mix(in srgb, var(--panel) 90%, transparent); border: 1px solid var(--line); box-shadow: var(--shadow);
+  border-radius: 22px; background: color-mix(in srgb, var(--panel) 97%, transparent); border: 1px solid var(--line); box-shadow: var(--shadow);
+  /* Quase opaca e com desfoque: antes (90%, sem desfoque) a borda do cartão que passava por trás aparecia e parecia uma
+     segunda barra por baixo (Perfil, 04/11/2026). */
+  -webkit-backdrop-filter: saturate(1.3) blur(18px); backdrop-filter: saturate(1.3) blur(18px);
   -webkit-backdrop-filter: saturate(1.4) blur(16px); backdrop-filter: saturate(1.4) blur(16px);
 }
 .barra-rede a, .barra-rede button {

@@ -8,7 +8,7 @@
 // - Nova publicação (foto ou texto).
 // - Barra inferior, avisos (notificações) e presença online.
 // =====================================================
-import { montarBarra, marcarBarra } from "./barra-rede.js?v=8";
+import { montarBarra, marcarBarra } from "./barra-rede.js?v=9";
 import { gravarComLocal, NOVOS } from "./endereco.js?v=1";
 import { pedirLocalizacao, posicaoDe, rotuloPosicao } from "./perto.js?v=2";
 import { comRitmo } from "./ritmo.js?v=3";
@@ -16,8 +16,8 @@ import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
 import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=17";
 import { ouvirItensEquipe, TEXTO_EQUIPE, linkEquipe } from "./avisos-equipe.js?v=1";
-import "./painel-avisos.js?v=45";
-import { docComValidade, docsComValidade, esquecer } from "./leituras.js?v=3";
+import "./painel-avisos.js?v=46";
+import { docComValidade, docsComValidade, esquecer } from "./leituras.js?v=4";
 import { docRapido } from "./rapido.js?v=1";
 import { resumoPublico, temPublico } from "./publico-alvo.js?v=1";
 import { contarNovas } from "./mensagens-novas.js?v=1";
@@ -26,7 +26,7 @@ import { avisoPlano } from "./planos-base.js?v=15";
 import { lerReacoesFlash } from "./flash-avisos.js?v=3";
 import { fontesDoSino, ouvirFonte } from "./sino-fontes.js?v=2";
 import { casca } from "./quadro-rede.js?v=1";
-import { palavrasBusca } from "./pessoas.js?v=5"; // o sino abre o painel de notificações na própria página
+import { palavrasBusca } from "./pessoas.js?v=6"; // o sino abre o painel de notificações na própria página
 import { registrarGosto, PESO } from "./gosto.js?v=2";
 import { confirmarHF } from "./confirmar.js?v=6";
 import { seletorDuracao, fimEscolhido, fimDaEnquete, encerrada, faltaTexto, dataCurta, resumoResultado, guardarInfoEnquete, enquetesEncerradas, textoEnqueteFim, linhaChave, MAX_PUB_MIN, lerContasEnquete, resultadoFinal, sortearFatia, pedacoDaEnquete } from "./enquetes.js?v=7";
@@ -1581,7 +1581,7 @@ export async function verRespostasCaixa(item, alvo, aoMudar) {
       acao("chat", "Responder", () => responderNoChat(r.uid, cartaoRespostaCaixa(item.caixa, r, alvo)));
     }
     // Pôr a resposta no seu flash (como no Instagram): pergunta + resposta, sem o nome de quem respondeu.
-    acao("raio", "No flash", () => import("./stories.js?v=98").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
+    acao("raio", "No flash", () => import("./stories.js?v=99").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
     acao("lixo", "Apagar", async () => {
       if (!(await confirmarHF({ titulo: "Apagar esta resposta?", texto: "Ela some da sua caixa de perguntas.", ok: "Apagar", icone: "lixo" }))) return;
       try { await fb.deleteDoc(fb.doc(fb.db, "caixa_respostas", r.id)); todas = todas.filter((x) => x.id !== r.id); pintarNums(); pintarLista(); aoMudar?.(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
@@ -2141,7 +2141,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=98").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=99").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);
@@ -2768,7 +2768,7 @@ async function escolherMarcados() {
     const t = busca.value.trim();
     if (!t) { pintar(seguindo); return; }
     tempo = setTimeout(async () => {
-      const { buscarPessoas } = await import("./pessoas.js?v=5");
+      const { buscarPessoas } = await import("./pessoas.js?v=6");
       const achados = await buscarPessoas(fb, t, { limite: 20 }).catch(() => []);
       pintar(achados.map((p) => ({ uid: p.uid, nome: p.nome, fotoPerfil: p.fotoPerfil, nickname: p.nickname })));
     }, 250);

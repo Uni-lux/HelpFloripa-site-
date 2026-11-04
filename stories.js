@@ -14,14 +14,14 @@ import {
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados,
   responderNoChat, cartaoRespostaCaixa, fecharFolha, ajudaPublico
-} from "./rede.js?v=126";
+} from "./rede.js?v=127";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { combinaPublico, leitorDe, temPublico, resumoPublico, publicoParaGravar } from "./publico-alvo.js?v=1";
 import { escolherPublico } from "./publico-tela.js?v=5";
 import { lerLocal } from "./local-escolhido.js?v=3";
 import { comRitmo } from "./ritmo.js?v=3";
-import { flashesDoNegocio, avisarFlashNegocio } from "./flash-negocio.js?v=19";
+import { flashesDoNegocio, avisarFlashNegocio } from "./flash-negocio.js?v=20";
 import { minhaPosicao } from "./perto.js?v=2";
 import { fimEscolhido, MAX_FLASH_MIN, fimDaEnquete, encerrada, faltaTexto, resultadoFinal, lerContasEnquete } from "./enquetes.js?v=7";
 
@@ -107,6 +107,8 @@ function barraGuardada() {
     return m;
   } catch { return null; }
 }
+// Puxar para atualizar no Diário: lê de novo a fileira do Flash (quem postou agora aparece).
+export async function atualizarBarraFlash() { if (barra) await carregar().catch(() => {}); }
 export async function montarStories(alvo, { esperar = null } = {}) {
   if (!alvo) return;
   barra = alvo;

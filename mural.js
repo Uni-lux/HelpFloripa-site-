@@ -5,10 +5,11 @@
 // chamar no chat acontecem lá (comunidade.html?novo=TIPO&volta=mural · ?item=ID). Sem venda e sem cobrança.
 // Leituras: cidade → estado → Brasil (por-local.js, mesmo cache da comunidade.html) e os perfis dos autores em lote.
 // =====================================================
-import { $, el, icone, pintarAvatar, toast, fb, eu, dados, escondido, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos } from "./rede.js?v=126";
+import { ligarPuxar } from "./puxar-atualizar.js?v=1";
+import { $, el, icone, pintarAvatar, toast, fb, eu, dados, escondido, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos } from "./rede.js?v=127";
 import { CAT_COM, comunidadeNoAr } from "./comunidade-cartao.js?v=2";
 import { lerPorLocal } from "./por-local.js?v=1";
-import { docsComValidade, docsPorIds } from "./leituras.js?v=3";
+import { docsComValidade, docsPorIds } from "./leituras.js?v=4";
 import { lerLocal, rotuloLocal, escolherLocal, aoMudarLocal, atualizarPeloGps } from "./local-escolhido.js?v=3";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, esquecerPosicao, posicaoGuardada } from "./perto.js?v=2";
 
@@ -212,5 +213,7 @@ async function trocarLugar() {
   pintarTudo();
   if (new URLSearchParams(location.search).get("publicado")) { toast("Publicado! Quem tiver interesse chama você no chat."); history.replaceState(history.state, "", "mural.html"); }
   aoMudarLocal(() => trocarLugar());
+  // Puxar para atualizar (como no Instagram): lê de novo as publicações da Comunidade.
+  ligarPuxar({ aoAtualizar: async () => { posEu = await minhaPosicao(dados).catch(() => posEu); await carregar(); pintarTudo(); } });
   atualizarPeloGps({ pedirLocalizacao, posicaoGuardada }).then((novo) => { if (novo) trocarLugar(); });
 })();

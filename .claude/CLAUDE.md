@@ -1702,6 +1702,17 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   no flash visto pelo negócio só o dono vê, com "Também em mais N lugares". `.story-por` menor. (4) Figurinhas de @/lugar/#/
   hora saem INTEIRAS na foto (o canvas mede a letra mais larga que o DOM e a ponta ficava cortada): `desenharCamada` prende o
   centro dentro e o `limitar` do criador faz igual. `vitrine.js?tipo=X&v=60` à mão. Teste `t-flash-negocio-anel.mjs` (11).
+- **Puxar para atualizar + barra de baixo (04/11/2026, PR depois do #162, sem regra nova):** pedido dele (prints do
+  Instagram). `puxar-atualizar.js` (`ligarPuxar({aoAtualizar, area, rolagem, conteudo, escuro, ativo, topo, campos})`): só
+  no toque, no topo da rolagem, sem janela aberta (`camadaAberta` agora exportada do deslizar-flash.js) nem `body.travado`;
+  decide o sentido nos primeiros 10 px (para o lado = troca de aba, não puxa); círculo `.pa-ind` que se completa até 72 px
+  e gira por rAF; a página (`main`) desce junto; `overscroll-behavior-y: contain` tira o puxar do navegador. Ao soltar,
+  `buscarDeNovo()` (leituras.js: por 12 s `docsComValidade`/`docComValidade`/`docsPorIds` vão ao servidor). Ligado em:
+  Diário (`carregarFeed({forcar})` + `atualizarBarraFlash` do stories.js) e Explorar (`recarregarExplorar`) no feed.js,
+  Vídeos (reels.js `encher(true)`, área = `.reels`, círculo claro), Comunidade (mural.js `carregar` + `pintarTudo`) e Perfil
+  (usuarios-app.js: `esquecerFlashesNegocio` + negócios, números e publicações). **Barra de baixo:** o cartão
+  "Estatísticas do perfil" colado nela parecia uma 2ª barra: fundo 97% + desfoque e esmaecido `body.com-barra::after`
+  (128 px, rede.css e barra-rede.js), padding-bottom 92 px. Teste `t-puxar-atualizar.mjs` (17).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
