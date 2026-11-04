@@ -12,6 +12,7 @@ import {
 } from "./rede.js?v=130";
 import { MOTIVOS_DESATIVAR, desativarConta, pedirExclusao, reautenticar, provedor } from "./conta.js?v=7";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
+import { senhaForte, primeiroProblema, ligarSenhaForte } from "./senha-forte.js?v=1";
 
 function pintarConfig() {
   pintarAvatar($("cfgAvatar"), dados.fotoPerfil, dados.nome);
@@ -284,7 +285,7 @@ $("pushTeste").addEventListener("click", async () => {
 });
 // ---------- senha e e-mail ----------
 const erroSenha = (e) => (e?.code === "auth/wrong-password" || e?.code === "auth/invalid-credential" ? "Senha atual incorreta."
-  : e?.code === "auth/weak-password" ? "A nova senha é fraca. Use pelo menos 6 caracteres."
+  : e?.code === "auth/weak-password" ? "A nova senha é fraca. Siga os requisitos da lista embaixo do campo."
   : e?.code === "auth/too-many-requests" ? "Muitas tentativas. Espere alguns minutos e tente de novo."
   : e?.code === "auth/email-already-in-use" ? "Esse e-mail já é usado por outra conta."
   : e?.code === "auth/invalid-email" ? "Digite um e-mail válido."
@@ -293,16 +294,19 @@ const erroSenha = (e) => (e?.code === "auth/wrong-password" || e?.code === "auth
 const usuarioAtual = () => window.firebaseAuth.currentUser;
 const credencial = (senha) => authFns.EmailAuthProvider.credential(usuarioAtual().email, senha);
 
+const dadosSenha = () => ({ nome: dados.nome, nick: dados.nickname || dados.nick, email: usuarioAtual()?.email || dados.email, telefone: dados.telefone, nascimento: dados.dataNascimento });
+let regrasSenha = null;
 $("cfgSenha").addEventListener("click", () => {
   const google = provedor(usuarioAtual()) === "google.com";
   $("senhaGoogle").hidden = !google; $("formSenha").hidden = google; $("senhaSalvar").hidden = google;
   ["senhaAtual", "senhaNova", "senhaConfirma"].forEach((id) => { $(id).value = ""; });
+  regrasSenha = ligarSenhaForte({ campo: $("senhaNova"), lista: $("senhaRegras"), dados: dadosSenha });
   abrirFolha("folhaSenha");
 });
 $("senhaSalvar").addEventListener("click", async () => {
   const atual = $("senhaAtual").value, nova = $("senhaNova").value;
   if (!atual) { toast("Digite sua senha atual."); $("senhaAtual").focus(); return; }
-  if (nova.length < 6) { toast("A nova senha precisa ter pelo menos 6 caracteres."); $("senhaNova").focus(); return; }
+  if (!senhaForte(nova, dadosSenha())) { regrasSenha?.mostrarFaltas(); toast(primeiroProblema(nova, dadosSenha())); $("senhaNova").focus(); return; }
   if (nova !== $("senhaConfirma").value) { toast("As senhas novas não são iguais."); $("senhaConfirma").focus(); return; }
   if (nova === atual) { toast("A nova senha precisa ser diferente da atual."); return; }
   const b = $("senhaSalvar"); b.disabled = true;

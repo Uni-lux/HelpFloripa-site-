@@ -175,3 +175,16 @@ html { -webkit-tap-highlight-color: transparent; }
 .passos-senha li::before { content: counter(ps); position: absolute; left: 0; top: 0; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
   font-size: 13px; font-weight: 800; color: var(--accent, #00adee); background: color-mix(in srgb, var(--accent, #00adee) 14%, transparent); }
 .passos-senha strong { color: var(--text); font-weight: 700; }
+
+/* Link dos e-mails da conta (conta-acao.html): carregando, resultado com ícone e botões. */
+.acao-tela h1 { outline: none; }
+.acao-roda { display: block; width: 34px; height: 34px; margin: 8px 0 14px; border-radius: 50%; border: 3px solid color-mix(in srgb, var(--accent) 22%, transparent); border-top-color: var(--accent); animation: acao-gira .8s linear infinite; }
+@keyframes acao-gira { to { transform: rotate(360deg); } }
+.acao-icone { display: grid; place-items: center; width: 56px; height: 56px; margin: 6px 0 14px; border-radius: 18px; color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
+.acao-icone svg { width: 30px; height: 30px; }
+.acao-icone.erro { color: var(--danger); background: color-mix(in srgb, var(--danger) 13%, transparent); }
+.acao-icone.escudo { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.acao-botoes { display: grid; gap: 10px; margin-top: 18px; }
+.rodape-form.mini { margin-top: 10px; font-size: 13.5px; }
+@media (prefers-reduced-motion: reduce) { .acao-roda { animation-duration: 2.4s; } }
+.cartao-acesso .sub strong { color: var(--text); overflow-wrap: anywhere; }

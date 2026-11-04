@@ -86,11 +86,11 @@ import("./manutencao.js?v=1").then((m) => m.avisoManutencao()).catch((e) => cons
 
 // Portão da conta: quem entra com a conta desativada ou com a exclusão pedida vai para
 // conta.html (reativar / recuperar). Confere uma vez por sessão do navegador.
-const PAGINAS_LIVRES = ["conta.html", "login.html", "cadastre-se.html", "recuperar-senha.html", "verificar-email.html", "termos.html", "privacidade.html", "ajuda.html", "contato.html", "suporte.html", "seguranca.html", "diretrizes.html"];
+const PAGINAS_LIVRES = ["conta.html", "login.html", "cadastre-se.html", "recuperar-senha.html", "conta-acao.html", "verificar-email.html", "termos.html", "privacidade.html", "ajuda.html", "contato.html", "suporte.html", "seguranca.html", "diretrizes.html"];
 // E-mail confirmado é obrigatório para entrar na plataforma (pedido do dono, 03/11/2026): quem entrou com e-mail e senha e
 // ainda não confirmou vai para verificar-email.html (de qualquer página, menos as de ler: termos, ajuda, contato...).
 // Antes de barrar, recarrega o login (a pessoa pode ter confirmado em outro aparelho).
-const LIVRES_SEM_EMAIL = ["verificar-email.html", "login.html", "cadastre-se.html", "recuperar-senha.html", "termos.html", "privacidade.html", "ajuda.html", "contato.html", "diretrizes.html", "seguranca.html", "sobre.html", "como-ordenamos.html", "404.html", "link.html", "offline.html"];
+const LIVRES_SEM_EMAIL = ["verificar-email.html", "login.html", "cadastre-se.html", "recuperar-senha.html", "conta-acao.html", "termos.html", "privacidade.html", "ajuda.html", "contato.html", "diretrizes.html", "seguranca.html", "sobre.html", "como-ordenamos.html", "404.html", "link.html", "offline.html"];
 const pedeSenha = (u) => (u.providerData || []).some((p) => p.providerId === "password");
 async function barrarSemEmail(u, pagina) {
   if (u.emailVerified || !pedeSenha(u) || LIVRES_SEM_EMAIL.includes(pagina)) return false;

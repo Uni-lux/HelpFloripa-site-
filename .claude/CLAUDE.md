@@ -1765,6 +1765,27 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   "Grátis e sem comissão" virou "Grátis para quem procura e contrata"; cadastro "Grátis para criar e usar a conta".
   Teste `t-seo.mjs` (31); `t-sem-login` lista a página nova. Falta ele: Search Console (enviar sitemap, pedir nova
   indexação do `/` e do login.html) e Perfil da Empresa no Google. Atalhos (sitelinks) o Google escolhe sozinho.
+- **Revisão das páginas de acesso + link dos e-mails (04/11/2026, PR depois do #167, sem regra nova):** pedido dele ("estão
+  profissionais? bugs, brechas?"). Varredura das 16 páginas públicas (celular/computador × claro/escuro): sem erro de JS, link
+  quebrado, rolagem lateral ou toque pequeno. Corrigido: lado da marca do recuperar-senha ainda dizia "Grátis e sem comissão"
+  (agora 4 itens de segurança da recuperação), "© 2025" → `<span data-ano>` (acesso.js põe o ano atual). **Página própria do
+  link dos e-mails** `conta-acao.html/.js` (no lugar da página branca do Firebase): `mode=resetPassword` (verifyPasswordResetCode,
+  mostra a conta, senha nova + repetir + força, não aceita o e-mail como senha, confirmPasswordReset → "Entrar com a senha
+  nova" `login.html?email=`), `verifyEmail` (applyActionCode + reload/getIdToken; link já usado e conta já confirmada = sucesso),
+  `recoverEmail` (checkActionCode + applyActionCode + oferta de senha nova). Código sai do endereço na hora (`replaceState`),
+  `continueUrl` só para página do site, `noindex` e `referrer no-referrer`. login.js preenche `?email=`. Só passa a valer depois
+  que ELE puser `https://helpfloripa.com.br/conta-acao.html` em Authentication → Templates → Personalizar URL de ação
+  (`_regras/EMAILS-LEIA-ME.md`: idioma PT, remetente "Help Floripa", domínio autorizado). Teste `t-conta-acao.mjs` (18,
+  usa `/emulator/v1/projects/demo-hf/oobCodes`; roda o seed no fim porque troca a senha da Ana).
+- **Senha forte (04/11/2026, PR depois do #168, sem regra nova):** pedido dele (print do Mercado Pago). `senha-forte.js`
+  (sem deps): `conferirSenha(senha, {nome, nick, email, telefone, nascimento})` → 7 requisitos {id, texto, ok}: tamanho (8+,
+  maiúscula e minúscula), numero (número + símbolo), sequencia (abc/cba/123/111), nome (partes do nome ≥3 letras e @, sem
+  acento), contato (e-mail/parte antes do @, celular sem DDD e 4 últimos), data (ano, dia+mês, ddmmaaaa...), comum
+  (helpfloripa, senha, 123456, qwerty, times...). `senhaForte`, `primeiroProblema` (texto do aviso) e `ligarSenhaForte({campo,
+  lista, dados})` (barra + lista que fica verde ao digitar, vermelha no que falta depois de sair do campo; CSS próprio `.sf-`).
+  Ligado no cadastro (`#senhaRegras`, refaz quando nome/@/e-mail/telefone/nascimento mudam), na senha nova do link do
+  e-mail (conta-acao) e em Configurações → Alterar senha. Só vale para senha NOVA (contas antigas entram como antes). O
+  servidor só exige 6 (exigir lá = política de senha do Firebase Authentication, console). Teste `t-senha-forte.mjs` (19).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

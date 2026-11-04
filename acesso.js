@@ -25,7 +25,7 @@ export function mensagemErro(codigo) {
     "auth/too-many-requests": "Muitas tentativas. Espere alguns minutos e tente de novo.",
     "auth/network-request-failed": "Sem conexão com a internet. Verifique e tente de novo.",
     "auth/email-already-in-use": "Este e-mail já tem uma conta. Entre ou use outro e-mail.",
-    "auth/weak-password": "Senha fraca. Use pelo menos 6 caracteres.",
+    "auth/weak-password": "Senha fraca. Use pelo menos 8 caracteres, com maiúscula, minúscula, número e símbolo.",
     "auth/user-disabled": "Esta conta foi desativada. Fale com o suporte.",
     "auth/operation-not-allowed": "Esse tipo de login não está ativo. Fale com o suporte."
   }[codigo] || "Não foi possível concluir agora. Tente de novo.";
@@ -62,3 +62,6 @@ export async function firebasePronto() {
   if (!window.firebaseAuth) throw new Error("Não foi possível conectar. Verifique sua internet e recarregue a página.");
   return { auth: window.firebaseAuth, db: window.firebaseDb };
 }
+
+// Ano do rodapé sempre o de agora.
+document.querySelectorAll("[data-ano]").forEach((e) => { e.textContent = String(new Date().getFullYear()); });

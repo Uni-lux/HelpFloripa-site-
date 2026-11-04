@@ -6,7 +6,7 @@
 import { readdirSync } from "node:fs";
 import { navegador, entrar, BASE, SITE, USUARIOS as U } from "./nav.mjs";
 let falhas = 0; const ok = (c, t) => { console.log((c ? "  ✔ " : "  ✘ ") + t); if (!c) falhas++; };
-const PUBLICAS = ["404.html", "ajuda.html", "cadastre-se.html", "cadastrar_usuarios.html", "clientes.html", "como-ordenamos.html", "contato.html", "diretrizes.html", "link.html", "login.html", "offline.html", "privacidade.html", "profissionais.html", "recuperar-senha.html", "seguranca.html", "sobre.html", "socios-parcerias.html", "termos.html"];
+const PUBLICAS = ["404.html", "ajuda.html", "cadastre-se.html", "cadastrar_usuarios.html", "clientes.html", "como-ordenamos.html", "contato.html", "diretrizes.html", "link.html", "login.html", "offline.html", "privacidade.html", "profissionais.html", "recuperar-senha.html", "conta-acao.html", "seguranca.html", "sobre.html", "socios-parcerias.html", "termos.html"];
 const pags = readdirSync(SITE).filter((f) => f.endsWith(".html") && !/^google/.test(f));
 const LINKS = [`feed.html?post=x1`, `feed.html?flash=x1`, `usuarios.html?perfil=${U.ana}`, `mensagens.html?conversa=a_b`, `servicos.html?negocio=${U.bruno}_servicos`, `negocios.html?planos=1`, `notificacoes.html?enquete=d_x`, `suporte.html?chamado=x`, `rede.html?aba=mensagens`];
 const N = await navegador({ mobile: true });
