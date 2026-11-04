@@ -1,9 +1,12 @@
 // =====================================================
 // Entrar (login.html)
 // =====================================================
-import { $, destinoSeguro, mensagemErro, aviso, firebasePronto } from "./acesso.js?v=3";
+import { $, destinoSeguro, mensagemErro, aviso, firebasePronto } from "./acesso.js?v=4";
 
 const destino = destinoSeguro("index.html");
+// Vindo de "Senha nova salva" (conta-acao.html) ou de outro link: o e-mail já vem preenchido.
+const emailPedido = new URLSearchParams(location.search).get("email");
+if (emailPedido && /^[^\s@]{1,64}@[^\s@]{1,190}$/.test(emailPedido)) { $("email").value = emailPedido; queueMicrotask(() => $("senha").focus()); }
 if (new URLSearchParams(location.search).get("redirect")) aviso("avisoLogin", "Entre na sua conta para continuar.", "info");
 // O link de cadastro leva o mesmo destino.
 if (destino !== "index.html") $("linkCadastro").href = `cadastre-se.html?continuar=${encodeURIComponent(destino)}`;

@@ -62,3 +62,6 @@ export async function firebasePronto() {
   if (!window.firebaseAuth) throw new Error("Não foi possível conectar. Verifique sua internet e recarregue a página.");
   return { auth: window.firebaseAuth, db: window.firebaseDb };
 }
+
+// Ano do rodapé sempre o de agora.
+document.querySelectorAll("[data-ano]").forEach((e) => { e.textContent = String(new Date().getFullYear()); });

@@ -2,7 +2,7 @@
 // Esqueceu a senha? (recuperar-senha.html): manda o link do Firebase para criar uma senha nova.
 // Por segurança a resposta é sempre a mesma (não conta se o e-mail tem conta ou não). Espera de 60 s entre envios.
 // =====================================================
-import { $, mensagemErro, aviso, firebasePronto } from "./acesso.js?v=3";
+import { $, mensagemErro, aviso, firebasePronto } from "./acesso.js?v=4";
 
 const ESPERA = "hf-senha-ate";
 const p = new URLSearchParams(location.search);
