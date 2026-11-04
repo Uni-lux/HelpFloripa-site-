@@ -4,7 +4,7 @@
 // tem o rede.css (que já traz o mesmo estilo).
 // =====================================================
 import { ligarQuadro, casca } from "./quadro-rede.js?v=1";
-import { ligarDeslizarFlash } from "./deslizar-flash.js?v=7";
+import { ligarDeslizarFlash } from "./deslizar-flash.js?v=8";
 export const ITENS_BARRA = [
   ["diario", "feed.html", "feed", "Diário"],
   ["explorar", "feed.html?aba=explorar", "bussola", "Explorar"],

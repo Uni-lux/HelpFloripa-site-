@@ -1722,6 +1722,18 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   chegar). Esqueletos no formato do cartão (capa, foto, linhas: `.mini.esqueleto i.sk-*` e `.vt-esqueleto i.sk-*`, 6 na
   vitrine). Teste `t-anel-puxar-inicio.mjs` (dedo fora do campo de busca: dentro de campo o puxar não liga).
   `t-puxar-atualizar` às vezes falha no "Perfil: ainda não está na tela" (tempo; passa rodando de novo, igual no main).
+- **Puxar esperto + vitrine preparada ao tocar (04/11/2026, PR depois do #164, sem regra nova):** pedido dele (itens 2 e 3
+  da resposta "é inteligente?"). Vitrine (`atualizarVitrine`): só `tipo == X && atualizadoEm > o mais recente da tela`
+  (`novidades`, limite 48; comparar pelo Timestamp com nanossegundos — em milissegundos o último voltava sempre), o que mudou
+  troca no lugar (sai de `todos` e entra pelo `incorporar`), esquece a 1ª página guardada (`esquecer("q:vitrine-...")`).
+  Início (`temNovidade`): 1 consulta `limit(1)` por lista (negócios, imóveis, comunidade) depois de `marcos.neg/im/com`; sem
+  novidade não faz nada, com novidade recarrega tudo como antes. Medido (proxy-contador): sem novidade 0–1 leitura (antes
+  ~50 na vitrine e ~120 no Início); 1 novidade na vitrine = 2. **Preparar:** `prepararAoTocar(escolher)` e `escolherVitrine` em
+  deslizar-flash.js (Início e vitrines): dedo parado 70 ms num link de vitrine (mouse: 120 ms) → `preparar(href, modo)`
+  (speculation rules; até 6 por página); vitrine sozinha = prerender, com ?negocio/?anuncio/?item/?novo = só prefetch do HTML
+  (prerender abriria o perfil e contaria visita nas estatísticas). Rolar em cima não prepara. Só Chrome/Android (Safari
+  ignora). No teste o prerender em si não roda (roteamento do Playwright); confere só as regras inseridas.
+  Teste `t-puxar-esperto.mjs` (FS_PORTA=8086 + proxy-contador).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

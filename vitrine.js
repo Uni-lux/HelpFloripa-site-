@@ -14,9 +14,10 @@ import { buscarNoServidor } from "./busca.js?v=1";
 import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL } from "./seguranca.js?v=1";
 import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento, media, avaliarNegocio } from "./avaliacoes.js?v=18";
 import { abrirQueixa } from "./queixas.js?v=18";
-import { docComValidade, docsComValidade, docsPorIds, buscarDeNovo } from "./leituras.js?v=4";
+import { docComValidade, docsComValidade, docsPorIds, esquecer } from "./leituras.js?v=4";
 import { anelNegocio, esquecerFlashesNegocio } from "./flash-negocio.js?v=21";
-import { ligarPuxar } from "./puxar-atualizar.js?v=1";
+import { ligarPuxar } from "./puxar-atualizar.js?v=2";
+import { prepararAoTocar, escolherVitrine } from "./deslizar-flash.js?v=8";
 import { camposEndereco, textoCidade, cidadesDe, NOME_UF, semAcento, cidadePorCodigo } from "./endereco.js?v=1";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, esquecerPosicao, posicaoGuardada } from "./perto.js?v=2";
 import { lerLocal, salvarLocal, marcarManual, escolherLocal, atualizarPeloGps, aoMudarLocal, escolhaManual } from "./local-escolhido.js?v=3";
@@ -3155,22 +3156,55 @@ async function carregarDonos(ids) {
   semPerfil.forEach((id) => donos.set(id, pf.get(id) || {}));
 }
 
-// Puxar para atualizar (como no Diário): busca de novo no servidor e refaz a lista. O que já está na tela fica até a
-// lista nova chegar (sem piscar o esqueleto); a rolagem fica no topo, onde o dedo puxou.
+// Puxar para atualizar (como no Instagram): pergunta ao servidor SÓ o que mudou depois do mais recente que já está na
+// tela (atualizadoEm >), e junta com a lista. Sem novidade = 1 leitura (2 nos Imóveis); antes relia a lista inteira (~50).
+// O que mudou entra no lugar da versão antiga (ou sai, se foi escondido/apagado o nome); o resto fica como está.
+// O carimbo do servidor tem microssegundos: compara pelo próprio Timestamp (em milissegundos o mais recente voltaria toda vez).
+const valorTs = (t) => (t && typeof t.seconds === "number" ? t.seconds * 1e9 + (t.nanoseconds || 0) : 0);
+const maisRecente = (filtro) => todos.filter(filtro).reduce((m, x) => (valorTs(x.atualizadoEm) > valorTs(m) ? x.atualizadoEm : m), null);
+async function novidades(col, tipo, desde) {
+  const c = fb.collection(fb.db, col);
+  const marco = desde ? new fb.Timestamp(desde.seconds, desde.nanoseconds || 0) : fb.Timestamp.fromMillis(0);
+  const q = fb.query(c, fb.where("tipo", "==", tipo), fb.where("atualizadoEm", ">", marco), fb.orderBy("atualizadoEm", "desc"), fb.limit(LOTE));
+  return (await fb.getDocs(q)).docs.map((d) => ({ id: d.id, ...d.data() }));
+}
 async function atualizarVitrine() {
   if (!fb || !eu) return;
-  buscarDeNovo();
   esquecerFlashesNegocio();
-  const antes = { todos, cursorNeg, cursorAn, maisNeg, maisAn };
-  todos = []; negociosImoveis.clear(); principalImoveis.clear(); notasNeg.clear(); donos.clear(); planosDonos.clear();
-  cursorNeg = cursorAn = null; maisNeg = maisAn = false;
-  try { await definirPosicao(posEu); await carregarLote(true); }
-  catch (e) { console.warn("Vitrine:", e); ({ todos, cursorNeg, cursorAn, maisNeg, maisAn } = antes); toast("Não deu para atualizar agora. Tente de novo."); }
+  // Sem nada na tela (falhou antes): carrega do zero.
+  if (!todos.length) { try { await carregarLote(true); } catch (e) { console.warn("Vitrine:", e); } chipsDinamicos(); renderizar(); return; }
+  const ehNeg = (x) => !(TIPO === "imoveis" && x.tipo === "imovel");
+  const desdeNeg = maisRecente(ehNeg), desdeAn = TIPO === "imoveis" ? maisRecente((x) => !ehNeg(x)) : null;
+  let negs = [], ans = [];
+  try {
+    [negs, ans] = await Promise.all([
+      novidades("negocios", TIPO, desdeNeg),
+      TIPO === "imoveis" ? novidades("anuncios", "imovel", desdeAn) : []
+    ]);
+  } catch (e) { console.warn("Vitrine:", e); toast("Não deu para atualizar agora. Tente de novo."); return; }
+  if (!negs.length && !ans.length) return; // nada novo: nenhuma leitura a mais
+  // Ids que mudaram saem da lista (a versão nova entra pelo incorporar, já com dono, nota, distância e limites).
+  const mudou = new Set([...negs.map((n) => n.id), ...negs.map((n) => "n_" + n.id), ...ans.map((a) => a.id)]);
+  todos = todos.filter((x) => !mudou.has(x.id));
+  negs.forEach((n) => { notasNeg.delete(idNegocio(n)); donos.delete(n.donoId); planosDonos.delete(n.donoId); });
+  ans.forEach((a) => { donos.delete(a.donoId); planosDonos.delete(a.donoId); });
+  const novos = [];
+  const okNeg = negs.filter((n) => n.nome && n.oculto !== true && !oculto(n));
+  if (TIPO === "imoveis") {
+    okNeg.forEach((n) => negociosImoveis.set(n.donoId, n));
+    okNeg.filter((n) => n.preco || n.quartos).forEach((n) => novos.push(negocioComoAnuncio(n)));
+  } else novos.push(...okNeg);
+  novos.push(...ans.filter((a) => a.ativo !== false && !oculto(a)));
+  try { await incorporar(novos); } catch (e) { console.warn("Vitrine:", e); }
+  // A 1ª página guardada no aparelho ficou velha: a próxima visita pergunta ao servidor.
+  ["negocios-" + TIPO, "anuncios-imovel"].forEach((k) => { esquecer("q:vitrine-" + k); if (chaveLocal()) esquecer("q:vitrine-" + k + "-" + chaveLocal()); });
   chipsDinamicos();
   renderizar();
 }
 
 async function iniciar() {
+  // As outras classes no topo da vitrine: dedo parado em cima = a página começa a carregar por trás.
+  prepararAoTocar(escolherVitrine);
   montarSecao();
   ligarFiltros();
   // Busca vinda da página inicial: pagina.html?q=termo
