@@ -40,7 +40,7 @@ ok(await p.evaluate(() => !document.querySelector("#listaFeed .esqueleto-post") 
 
 // botão de criar no topo
 const bt = await p.evaluate(() => { const b = document.getElementById("btnComporFeed"); const ic = b.querySelector(".tc-ic"); return { ic: !!ic, use: b.querySelector("use")?.getAttribute("href"), fundo: ic && getComputedStyle(ic).backgroundImage }; });
-ok(bt.ic && bt.use === "#i-criar" && /gradient/.test(bt.fundo), `botão de criar novo (${bt.use})`);
+ok(bt.ic && bt.use === "#i-criar" && !/gradient/.test(bt.fundo), `botão de criar novo, sem o azul (${bt.use})`);
 await p.screenshot({ path: "saida/diario-criar.png", clip: { x: 0, y: 0, width: 390, height: 120 } });
 
 // tipos de publicação: tocar não abre a galeria nem o teclado

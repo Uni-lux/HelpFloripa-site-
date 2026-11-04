@@ -1651,6 +1651,21 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   Botão do topo do Diário: lápis com brilho num quadradinho em degradê (`i-criar`, `.tc-ic`), não o "+" das outras redes.
   Nova publicação: trocar o tipo NÃO abre a galeria nem o teclado (`mudarTipo(t, {abrir:false})`); Foto/Vídeo sem arquivo
   mostram o quadro `#pubEscolher`. Testes `t-deslizar-rede.mjs`, `t-diario-rapido.mjs`.
+- **Rede rápida, cubo e ajustes (04/11/2026, PR depois do #157, sem regra nova):** **causa da lentidão do Diário/Explorar/
+  Flash dentro da rede:** `firebase.js` usava só cache na MEMÓRIA em qualquer iframe (`embutidaNoSite`), e na rede.html cada
+  aba é um iframe → tudo vinha do servidor a cada abertura (e a cópia do aparelho do PR #157 não funcionava lá). Agora
+  `naCascaDaRede` (pai = topo com `__hfShell`) usa o cache do aparelho; gaveta do chat continua só memória. Medido no teste
+  (servidor atrasado 4 s): publicações 0,45 s e fileira do Flash 0,5 s (antes: só depois do servidor). Diário sem cópia no
+  aparelho: as 5 mais novas (`limit(5)`) aparecem antes da lista completa. Flash: anéis guardados com nome/foto (só https)
+  (`perfisBarra`, `pessoas` em `hf-flash-barra-<uid>`); tocar num anel ainda sem fotos lê só os flashes dele
+  (`flashesNoArDe`) e abre só ele. **Cubo:** troca de aba na rede (`pintarCubo` em rede-app.js, perspective + rotateY,
+  quadro a quadro com rAF) e troca de pessoa no Flash (`.story-face` com a 1ª foto da próxima pessoa, `pintarFaces`/
+  `girarAte`; toque para a próxima = `entrarCubo` com Web Animations) — funcionam com as animações do celular desligadas
+  (prefers-reduced-motion só desliga CSS). "Reels" virou **Vídeos** (textos; ícone `i-reels` trocado por um celular com play;
+  nomes internos `reels` continuam). Ícones sem azul: lápis do topo (`.tc-ic`) e `#pubEscolher .ic` nas cores do tema. Trocar
+  o tipo da publicação só avisa se sair algo escrito (enquete/caixa vazias saem caladas). Barra de baixo: `:hover` só no
+  mouse (`@media (hover: hover)`, ficava preso depois do toque) e item atual sempre azul com fundinho (rede.css,
+  mensagens.css, barra-rede.js). Teste `t-rede-cubo.mjs` (16).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

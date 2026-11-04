@@ -19,10 +19,13 @@
   <style>
     html, body { margin: 0; height: 100%; overflow: hidden; background: #070b0e; overscroll-behavior: none; }
     @media (prefers-color-scheme: light) { html, body { background: #f4f6f8; } }
+    /* atrás do cubo (troca de aba deslizando) */
+    body.girando { background: #000; }
     .hf-quadro { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; display: block; visibility: hidden; background: transparent; }
     .hf-quadro.ativo, .hf-quadro.movendo { visibility: visible; }
     .hf-quadro.movendo { will-change: transform; z-index: 2; }
-    .hf-quadro.entra { z-index: 3; box-shadow: 0 0 28px rgba(0, 0, 0, .45); }
+    .hf-quadro.entra { z-index: 3; }
+    .hf-quadro.movendo { backface-visibility: hidden; }
     .hf-quadro.ativo { z-index: 1; }
     .hf-quadro.anima { transition: transform .24s cubic-bezier(.22, .9, .3, 1); }
     @media (prefers-reduced-motion: reduce) { .hf-quadro.anima { transition: none; } }
@@ -31,6 +34,6 @@
 </head>
 <body>
   <div class="hf-carregando" id="carregandoRede">Carregando...</div>
-  <script type="module" src="rede-app.js?v=4"></script>
+  <script type="module" src="rede-app.js?v=5"></script>
 </body>
 </html>

@@ -58,7 +58,7 @@ html.df-puxando body { overflow-x: hidden; }
 /* resposta ao toque na barra de baixo */
 #barraRede a { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 #barraRede a:active > :first-child { transform: scale(.86); transition: transform .08s; }
-@media (prefers-reduced-motion: reduce) { .df-anima, .df-painel.df-anima { transition: none !important; } }
+/* Sem a regra de "reduzir movimento": a animação segue o dedo e termina o gesto (pedido dele com as animações do celular desligadas). */
 `;
 const ICONES = {
   "Diário": '<rect x="3" y="3" width="18" height="8" rx="2"/><rect x="3" y="13" width="18" height="8" rx="2"/>',

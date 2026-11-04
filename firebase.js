@@ -45,7 +45,11 @@ let db;
 // Dentro da gaveta de mensagens (a página de mensagens aberta por cima de outra página do site),
 // o cache fica só na memória: a página de fora já usa o cache do aparelho, e dois "donos" do mesmo
 // cache na mesma aba podiam deixar consultas presas (ex.: o "Avaliar agora" não abria).
-const embutidaNoSite = window.top !== window.self;
+// Os quadros da rede social numa página só (rede.html) NÃO contam como gaveta: a casca não usa o Firebase, então cada
+// aba (quadro) usa o cache do aparelho como uma aba normal. Antes ficavam só com a memória e liam TUDO do servidor a cada
+// abertura (era por isso que o Diário e o Explorar demoravam dentro da rede e eram rápidos abertos sozinhos).
+const naCascaDaRede = (() => { try { return window.parent !== window && window.parent === window.top && !!window.parent.__hfShell; } catch { return false; } })();
+const embutidaNoSite = window.top !== window.self && !naCascaDaRede;
 try { db = embutidaNoSite ? getFirestore(app) : initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) }); }
 catch (e) { console.warn("[Firebase] Cache local indisponível, seguindo sem ele:", e?.message); db = getFirestore(app); }
 

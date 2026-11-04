@@ -15,12 +15,12 @@ import {
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, botaoSeguir, montarBarraRede, marcarBarra, pintarBarraRede, ouvirAvisos, lerOrdenado,
   editarPublicacao, bloquear, comMencoes, fotosDoPost, carrosselFotos, contadorEstrelas, estaSalvo, alternarSalvo, escolherColecao, lerResumosEstrelas, contarComentarios,
   silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto, confirmarHF, blocoEnquete, blocoCaixa, editarPublicoDoPost, apagarFlashesDaPublicacao
-} from "./rede.js?v=119";
+} from "./rede.js?v=120";
 import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=2";
-import { montarStories, abrirFlashPorId, abrirFlashesDoNegocio, repostarFlash, voltarAoFlash, novoFlash } from "./stories.js?v=91";
+import { montarStories, abrirFlashPorId, abrirFlashesDoNegocio, repostarFlash, voltarAoFlash, novoFlash } from "./stories.js?v=92";
 import { abrirDenuncia } from "./denuncias.js?v=7";
 import { pessoasRecentes } from "./pessoas.js?v=5";
-import { abrirExplorar, definirCartao, abrirPublicacao } from "./explorar.js?v=104";
+import { abrirExplorar, definirCartao, abrirPublicacao } from "./explorar.js?v=105";
 import { docsComValidade, docsPorIds } from "./leituras.js?v=3";
 import { lerLocal } from "./local-escolhido.js?v=3";
 import { distanciaKm, minhaPosicao } from "./perto.js?v=2";
@@ -82,14 +82,14 @@ const temMidia = (p) => !!(p.mediaUrl || (p.midias || []).length);
 // Tipo de publicação (filtro do topo): tudo, fotos e vídeos, textos, enquetes e perguntas. Filtra o que já foi lido.
 // Botões só com ícone numa linha fina (como a grade do perfil das redes sociais), com o nome no title/aria-label.
 // "Reels" não filtra a lista: abre os vídeos em tela cheia (reels.js).
-const TIPOS_FEED = [["tudo", "Tudo", "grade"], ["reels", "Reels (vídeos)", "reels"], ["textos", "Textos", "registros"], ["enquetes", "Enquetes e perguntas", "enquete"]];
+const TIPOS_FEED = [["tudo", "Tudo", "grade"], ["reels", "Vídeos", "reels"], ["textos", "Textos", "registros"], ["enquetes", "Enquetes e perguntas", "enquete"]];
 let tipoFeed = "tudo"; // "fotos" (antigo) virou Reels // links antigos ?aba=registros abrem o Diário normal (textos e enquetes estão nele)
 // Tipo da publicação (diario.tipo; nas antigas, pelo conteúdo).
 const tipoDe = (p) => p.tipo || (p.enquete?.pergunta ? "enquete" : p.caixa?.pergunta ? "caixa" : p.mediaTipo === "video" && temMidia(p) ? "video" : temMidia(p) ? "foto" : "texto");
 const doTipo = (p) => tipoFeed === "tudo" || (tipoFeed === "fotos" ? ["foto", "video"].includes(tipoDe(p)) : tipoFeed === "enquetes" ? ["enquete", "caixa"].includes(tipoDe(p)) : tipoDe(p) === "texto");
 const daAba = (p) => p._emDia ? tipoFeed === "tudo" && !tagAtual && !localAtual : !!(tagAtual || localAtual) || doTipo(p);
 // Reels: os vídeos já lidos + os mais novos do servidor, com as mesmas regras do Diário (silenciados, público...).
-const verReels = (comecarEm = null) => import("./reels.js?v=38").then((m) => m.abrirReels({ lista: todosPosts, oculto: postOculto, comecarEm, aoNovo: () => compor("video") }));
+const verReels = (comecarEm = null) => import("./reels.js?v=39").then((m) => m.abrirReels({ lista: todosPosts, oculto: postOculto, comecarEm, aoNovo: () => compor("video") }));
 const compor = (inicio = "") => abrirCompositor({ aoPublicar: ganchos.aoPublicar, inicio });
 function pintarTipos() {
   const w = $("tiposFeed"); if (!w) return;
@@ -458,10 +458,25 @@ async function carregarFeed({ forcar = true } = {}) {
     lista.replaceChildren(el("div", "esqueleto-post"), el("div", "esqueleto-post"));
     $("maisFeed").hidden = true;
   }
-  const y0 = scrollY;
+  let y0 = scrollY;
+  let mostrouRapida = false;
   try {
     maisTodos = false; maisPrincipais = false;
-    const bruto = localAtual ? await buscarLocal(localAtual) : tagAtual ? await buscarTag(tagAtual) : filtro === "amigos" ? await buscarAmigos() : filtro === "seguindo" ? await buscarSeguindoCrono() : await buscarPrincipais();
+    const pedido = localAtual ? buscarLocal(localAtual) : tagAtual ? buscarTag(tagAtual) : filtro === "amigos" ? buscarAmigos() : filtro === "seguindo" ? buscarSeguindoCrono() : buscarPrincipais();
+    // Sem nada guardado no aparelho: as 5 mais novas chegam antes (leitura pequena) e aparecem enquanto a lista
+    // completa (60 publicações, com as fotos) ainda está vindo.
+    if (principal && !comCopia) {
+      fb.getDocs(fb.query(fb.collection(fb.db, "diario"), fb.orderBy("criadoEm", "desc"), fb.limit(5))).then((sn) => {
+        if (g !== geracaoFeed || feedCarregado?.em > Date.now() - 1000 || !lista.querySelector(".esqueleto-post")) return;
+        const r = sn.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter((p) => !escondido(p.autorId) && !postOculto(p) && doTipo(p));
+        if (!r.length) return;
+        copia = r; mostrouRapida = true;
+        posts = r; todosPosts = r.slice(); mostrados = 0;
+        lista.replaceChildren(); mostrarMais(); $("maisFeed").hidden = true;
+        y0 = scrollY;
+      }).catch(() => {});
+    }
+    const bruto = await pedido;
     if (g !== geracaoFeed) return;
     todosPosts = bruto.filter((p) => p._emDia || (!escondido(p.autorId) && !postOculto(p)));
     if (localAtual || tagAtual || filtro !== "principais") todosPosts.sort((a, b) => ms(b.agendadoPara || b.criadoEm) - ms(a.agendadoPara || a.criadoEm)); // principais: pela pontuação
@@ -475,7 +490,7 @@ async function carregarFeed({ forcar = true } = {}) {
   feedCarregado = { chave: chaveFeed(), em: Date.now() };
   if (principal) guardarUltimos(todosPosts);
   // Com a cópia na tela e a pessoa já rolando (ou com algo aberto): mantém o que ela está vendo e põe o resto embaixo.
-  if (comCopia && (Math.abs(scrollY - y0) > 60 || scrollY > 120)) {
+  if ((comCopia || mostrouRapida) && (Math.abs(scrollY - y0) > 60 || scrollY > 120)) {
     const vistos = new Set(copia.map((p) => p.id));
     todosPosts = [...copia, ...todosPosts.filter((p) => !vistos.has(p.id))];
     posts = todosPosts.filter(daAba);
@@ -602,7 +617,7 @@ function cartaoPost(post) {
       : { rotulo: "Salvar publicação", sub: "Para ver depois no seu Perfil → Salvos", icone: "salvo", fn: () => alternarSalvo(post) },
     { rotulo: "Salvar em uma coleção", sub: "Organize seus salvos em pastas", icone: "fotos", fn: () => escolherColecao(post) },
     { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(post.autorId, post.nome) },
-    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=86").then((m) => m.abrirEstatisticas(post)) },
+    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=87").then((m) => m.abrirEstatisticas(post)) },
     post.autorId === eu.uid && { rotulo: "Editar publicação", icone: "lapis", fn: () => editarPublicacao(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId === eu.uid && { rotulo: "Público da publicação", sub: temPublico(post) ? resumoPublico(post.publico) : "Para todos · escolha idade, gênero, lugar e seguidores", icone: "pessoa-mais", fn: () => editarPublicoDoPost(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId !== eu.uid && { rotulo: silenciado(post.autorId) ? `Mostrar ${nome.textContent} de novo` : `Silenciar ${nome.textContent}`, sub: "Continua seguindo, mas as publicações e flashes somem do seu Diário", icone: "restringir",
@@ -677,7 +692,7 @@ function cartaoPost(post) {
     const som = el("button", "video-som"); som.type = "button"; som.setAttribute("aria-label", "Ligar o som"); som.appendChild(icone("mudo", "i s"));
     som.addEventListener("click", (e) => { e.stopPropagation(); v.muted = !v.muted; som.replaceChildren(icone(v.muted ? "mudo" : "som", "i s")); som.setAttribute("aria-label", v.muted ? "Ligar o som" : "Desligar o som"); if (v.paused) v.play().catch(() => {}); });
     // Abrir nos Reels (tela cheia), como no Instagram.
-    const ir = el("button", "video-reels"); ir.type = "button"; ir.setAttribute("aria-label", "Abrir nos Reels"); ir.appendChild(icone("reels", "i s"));
+    const ir = el("button", "video-reels"); ir.type = "button"; ir.setAttribute("aria-label", "Abrir em Vídeos"); ir.appendChild(icone("reels", "i s"));
     ir.addEventListener("click", (e) => { e.stopPropagation(); v.pause(); verReels(post.id); });
     m.appendChild(ir);
     v.addEventListener("click", () => (v.paused ? v.play() : v.pause()));

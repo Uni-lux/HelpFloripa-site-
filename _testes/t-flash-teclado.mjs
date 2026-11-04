@@ -145,7 +145,7 @@ const nome0 = await p.locator(".story-nome strong").textContent();
 await toque("touchStart", cxm - 120, cym);
 for (let k = 1; k <= 6; k++) { await toque("touchMove", cxm - 120 + k * 25, cym); await p.waitForTimeout(16); }
 const tr = await p.locator(".story-caixa").evaluate((e) => e.style.transform);
-ok(/translateX\(\d/.test(tr), "deslizando: o cartão acompanha o dedo → " + tr.slice(0, 40));
+ok(/translate(X|3d)\(-?\d/.test(tr) && /rotateY/.test(tr), "deslizando: o cartão acompanha o dedo → " + tr.slice(0, 40));
 await toque("touchEnd", cxm + 30, cym); await p.waitForTimeout(700);
 const nome1 = await p.locator(".story-nome strong").textContent().catch(() => "");
 ok(nome1 && nome1 !== nome0, `deslizar troca de pessoa (${nome0} → ${nome1})`);

@@ -229,7 +229,7 @@ export function escolherPublico(atual, ajuda) {
           toast("Público salvo"); pintar();
         });
       }
-      corpo.appendChild(el("p", "pa-nota", "Vale no Diário, no Explorar e nos Reels. No seu perfil e pelo link da publicação, todos continuam vendo. Quem publica não fica sabendo a idade ou o gênero de ninguém: a conferência é feita no aparelho de quem lê."));
+      corpo.appendChild(el("p", "pa-nota", "Vale no Diário, no Explorar e em Vídeos. No seu perfil e pelo link da publicação, todos continuam vendo. Quem publica não fica sabendo a idade ou o gênero de ninguém: a conferência é feita no aparelho de quem lê."));
     }
 
     function blocoEstados() {

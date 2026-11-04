@@ -14,11 +14,11 @@ import {
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados,
   responderNoChat, cartaoRespostaCaixa, fecharFolha, ajudaPublico
-} from "./rede.js?v=119";
+} from "./rede.js?v=120";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { combinaPublico, leitorDe, temPublico, resumoPublico, publicoParaGravar } from "./publico-alvo.js?v=1";
-import { escolherPublico } from "./publico-tela.js?v=4";
+import { escolherPublico } from "./publico-tela.js?v=5";
 import { lerLocal } from "./local-escolhido.js?v=3";
 import { comRitmo } from "./ritmo.js?v=3";
 import { flashesDoNegocio } from "./flash-negocio.js?v=18";
@@ -61,11 +61,15 @@ const erroPublicar = (e) => (e?.amigavel || e?.code === "limite-diario" ? e.mess
 // A fileira aparece NA HORA (04/11/2026): "Seu flash" e os anéis de quem tinha flash da última vez (guardados no aparelho,
 // só ids e horários, sem as fotos) e a leitura do servidor troca por trás. Tocar num anel antes de chegar espera a leitura.
 let carregandoBarra = null;
+const perfisBarra = new Map(); // uid -> { nome, fotoPerfil } (o que já apareceu na fileira)
 const chaveBarra = () => "hf-flash-barra-" + eu.uid;
 function guardarBarra() {
   try {
     const lista = [...porAutor].map(([u, l]) => [u, l.filter((x) => !x._leve).map((x) => [x.id, ms(x.criadoEm)])]).filter(([, l]) => l.length).slice(0, 60);
-    localStorage.setItem(chaveBarra(), JSON.stringify({ em: Date.now(), lista }));
+    // nome e foto (só link, nada de foto dentro do texto) para o anel aparecer com o rosto e o nome na hora
+    const pessoas = {};
+    for (const [u] of lista) { const p = perfisBarra.get(u); if (p) pessoas[u] = [String(p.nome || "").slice(0, 40), /^https:/.test(p.fotoPerfil || "") ? p.fotoPerfil : ""]; }
+    localStorage.setItem(chaveBarra(), JSON.stringify({ em: Date.now(), lista, pessoas }));
   } catch {}
 }
 function barraGuardada() {
@@ -73,6 +77,7 @@ function barraGuardada() {
     const g = JSON.parse(localStorage.getItem(chaveBarra()) || "null");
     if (!g || Date.now() - g.em > DIA) return null;
     const limite = Date.now() - DIA, m = new Map();
+    for (const [u, [nome, foto]] of Object.entries(g.pessoas || {})) if (!perfisBarra.has(u)) perfisBarra.set(u, { nome, fotoPerfil: foto, _guardado: true });
     for (const [u, l] of g.lista || []) {
       if (u !== eu.uid && (escondido(u) || silenciado(u))) continue;
       const vivos = l.filter(([, t]) => t > limite).map(([id, t]) => ({ id, autorId: u, criadoEm: fb.Timestamp.fromMillis(t), _leve: true }));
@@ -116,6 +121,7 @@ async function carregar() {
   limparVencidos();
   pintarBarra();
   guardarBarra();
+  setTimeout(guardarBarra, 2500); // de novo depois que os nomes e fotos chegarem
 }
 // O autor do flash segue quem está vendo? (respostas "só quem eu sigo")
 const segueCache = new Map();
@@ -190,8 +196,9 @@ function pintarBarra() {
   const meus = porAutor.get(eu.uid) || [];
   barra.appendChild(circulo({ uid: eu.uid, nome: "Seu flash", foto: dados.fotoPerfil, nomeReal: dados.nome, meu: true, lista: meus }));
   ordemAutores().forEach((u) => {
-    const c = circulo({ uid: u, nome: "...", lista: porAutor.get(u) });
-    obterPerfil(u).then((p) => { c.querySelector(".nome").textContent = String(p.nome || "Usuário").split(" ")[0]; c.setAttribute("aria-label", `Flash de ${p.nome || "Usuário"}${todosVistos(u) ? "" : " (novo)"}`); pintarAvatar(c.querySelector(".avatar"), p.fotoPerfil, p.nome); }).catch(() => {});
+    const g = perfisBarra.get(u);
+    const c = circulo({ uid: u, nome: g?.nome ? String(g.nome).split(" ")[0] : "...", foto: g?.fotoPerfil, nomeReal: g?.nome, lista: porAutor.get(u) });
+    obterPerfil(u).then((p) => { perfisBarra.set(u, p); c.querySelector(".nome").textContent = String(p.nome || "Usuário").split(" ")[0]; c.setAttribute("aria-label", `Flash de ${p.nome || "Usuário"}${todosVistos(u) ? "" : " (novo)"}`); pintarAvatar(c.querySelector(".avatar"), p.fotoPerfil, p.nome); }).catch(() => {});
     barra.appendChild(c);
   });
   barra.hidden = false;
@@ -209,11 +216,21 @@ function circulo({ uid, nome, foto, nomeReal, meu = false, lista = [] }) {
   b.addEventListener("click", async (e) => {
     if (meu && (!tem || e.target.closest(".mais"))) { abrirCriador(); return; }
     // Anel vindo do aparelho (sem as fotos ainda): espera a leitura do servidor.
+    // Anel vindo do aparelho (sem as fotos ainda): lê SÓ os flashes dessa pessoa (rápido) em vez de esperar a fileira toda.
     if (carregandoBarra && (porAutor.get(uid) || []).some((x) => x._leve)) {
       b.classList.add("carregando");
-      await carregandoBarra.catch(() => {});
+      const so = await Promise.race([
+        flashesNoArDe(uid).then((docs) => {
+          const l = docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter((x) => ativo(x) && (uid === eu.uid || (x.perfil !== false && podeVer(x)))).sort((a, c) => ms(a.criadoEm) - ms(c.criadoEm));
+          if (l.length && (porAutor.get(uid) || []).some((x) => x._leve)) porAutor.set(uid, l);
+          return true;
+        }).catch(() => false),
+        carregandoBarra.then(() => false, () => false),
+      ]);
       b.classList.remove("carregando");
-      if (!(porAutor.get(uid) || []).length) return;
+      if (!(porAutor.get(uid) || []).length || (porAutor.get(uid) || []).some((x) => x._leve)) return;
+      // A fileira ainda não chegou: abre só essa pessoa (as outras ainda não têm as fotos).
+      if (so && carregandoBarra) { abrirVisor(uid, { so: true }); return; }
     }
     if (meu) { abrirVisor(eu.uid); return; }
     abrirVisor(uid);
@@ -3641,7 +3658,8 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
       return;
     }
     pausado = false; caixa.classList.remove("pausado");
-    if (dirAnim) { caixa.classList.remove("vai-dir", "vai-esq"); void caixa.offsetWidth; caixa.classList.add(dirAnim > 0 ? "vai-dir" : "vai-esq"); }
+    if (dirAnim && !semEntrada) entrarCubo(dirAnim);
+    semEntrada = false;
     barras.replaceChildren(...lista.map((_, k) => { const b = el("span", "story-barra"); const i = el("i"); if (k < si) i.style.width = "100%"; b.appendChild(i); return b; }));
     obterPerfil(s.autorId).then((p) => {
       // Flash no perfil de um negócio (como no Instagram): o topo mostra o negócio e, embaixo, quem publicou.
@@ -3982,6 +4000,18 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
     si = Math.max(0, l.length - 1);
     proximoAutor();
   }
+  // Troca de pessoa em CUBO (como o Instagram), feita em JavaScript: funciona também com as animações do celular
+  // desligadas (elas só desligam as animações do CSS).
+  let semEntrada = false;
+  const PERSP_F = 1000;
+  function entrarCubo(dir) {
+    try {
+      const o = dir > 0 ? "0% 50%" : "100% 50%", g = dir > 0 ? 90 : -90;
+      caixa.style.transformOrigin = o;
+      const an = caixa.animate([{ transform: `perspective(${PERSP_F}px) translate3d(${dir > 0 ? "100%" : "-100%"},0,0) rotateY(${g}deg)`, opacity: 0.7 }, { transform: "none", opacity: 1 }], { duration: 300, easing: "cubic-bezier(.2,.8,.25,1)" });
+      an.onfinish = an.oncancel = () => { caixa.style.transformOrigin = ""; };
+    } catch {}
+  }
   function proximoAutor() {
     if (ai < ordem.length - 1) { ai++; si = inicioDo(ordem[ai]); mostrar(1); return; }
     fechar();
@@ -4070,10 +4100,56 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
   let x0 = null, y0 = null, t0 = 0, eixo = null, pausouArrasto = false;
   const largura = () => caixa.offsetWidth || innerWidth;
   const voltarLugar = (anim) => {
-    caixa.style.transition = anim ? "transform .22s cubic-bezier(.2,.9,.3,1), opacity .22s" : "none";
-    caixa.style.transform = ""; caixa.style.opacity = "";
-    if (anim) setTimeout(() => { caixa.style.transition = ""; }, 240);
+    if (anim && caixa.style.transform && caixa.animate) {
+      const de = caixa.style.transform, op = caixa.style.opacity || "1";
+      caixa.style.transform = ""; caixa.style.opacity = "";
+      try { caixa.animate([{ transform: de, opacity: op }, { transform: "none", opacity: 1 }], { duration: 220, easing: "cubic-bezier(.2,.9,.3,1)" }); } catch {}
+      return;
+    }
+    caixa.style.transition = "none"; caixa.style.transform = ""; caixa.style.opacity = "";
   };
+  // A face da próxima pessoa (a 1ª foto dela) entra girando ao lado, como num cubo.
+  let face = null;
+  function faceDe(dir) {
+    const u = ordem[ai + (dir > 0 ? 1 : -1)];
+    if (!u) return null;
+    if (face && face._u === u) return face;
+    face?.remove();
+    const l = mapa.get(u) || [], x = l[inicioDo(u)] || l[0];
+    const r = caixa.getBoundingClientRect();
+    face = el("div", "story-face");
+    Object.assign(face.style, { left: r.left + "px", top: r.top + "px", width: r.width + "px", height: r.height + "px", borderRadius: getComputedStyle(caixa).borderRadius });
+    if (x?.mediaUrl && x.mediaTipo !== "video" && /^(data:image\/|https:)/.test(x.mediaUrl)) { const im = document.createElement("img"); im.src = x.mediaUrl; im.alt = ""; face.appendChild(im); }
+    face._u = u;
+    fundo.appendChild(face);
+    return face;
+  }
+  function pintarFaces(p, dir) {
+    const w = largura();
+    if (dir > 0) {
+      caixa.style.transformOrigin = "100% 50%";
+      caixa.style.transform = `perspective(${PERSP_F}px) translate3d(${-p * w}px,0,0) rotateY(${-90 * p}deg)`;
+      if (face) { face.style.transformOrigin = "0% 50%"; face.style.transform = `perspective(${PERSP_F}px) translate3d(${(1 - p) * w}px,0,0) rotateY(${90 * (1 - p)}deg)`; }
+    } else {
+      caixa.style.transformOrigin = "0% 50%";
+      caixa.style.transform = `perspective(${PERSP_F}px) translate3d(${p * w}px,0,0) rotateY(${90 * p}deg)`;
+      if (face) { face.style.transformOrigin = "100% 50%"; face.style.transform = `perspective(${PERSP_F}px) translate3d(${-(1 - p) * w}px,0,0) rotateY(${-90 * (1 - p)}deg)`; }
+    }
+    caixa.style.opacity = String(1 - 0.35 * p);
+    if (face) face.style.opacity = String(0.65 + 0.35 * p);
+  }
+  // Termina o giro (quadro a quadro) e chama fim no final.
+  function girarAte(p0, p1, dir, fim) {
+    const dur = Math.round(Math.max(150, Math.min(320, Math.abs(p1 - p0) * 340))), t0 = performance.now();
+    const passo = (agora) => {
+      const t = Math.min(1, (agora - t0) / dur), e = 1 - Math.pow(1 - t, 3);
+      pintarFaces(p0 + (p1 - p0) * e, dir);
+      if (t < 1) { requestAnimationFrame(passo); return; }
+      fim();
+    };
+    requestAnimationFrame(passo);
+  }
+  const tirarFace = () => { face?.remove(); face = null; caixa.style.transform = ""; caixa.style.transformOrigin = ""; caixa.style.opacity = ""; caixa.style.transition = ""; };
   caixa.addEventListener("touchstart", (e) => {
     if (e.target.closest("form, .story-bandeja, .story-cx, .story-enq") || e.touches.length > 1) { x0 = null; return; }
     x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; t0 = Date.now(); eixo = null; arrastou = false; pausouArrasto = false;
@@ -4089,8 +4165,8 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
     caixa.style.transition = "none";
     if (eixo === "x") {
       const W = largura(), tem = dx < 0 ? ai < ordem.length - 1 : ai > 0;
-      const d = tem ? dx : dx * 0.25; // sem ninguém do lado: resiste
-      caixa.style.transform = `translateX(${d}px) rotateY(${(-d / W) * 14}deg) scale(${1 - Math.min(Math.abs(d) / W, 1) * 0.06})`;
+      if (tem) { const dir = dx < 0 ? 1 : -1; if (face && face._dir !== dir) { face.remove(); face = null; } const f = faceDe(dir); if (f) f._dir = dir; pintarFaces(Math.min(1, Math.abs(dx) / W), dir); }
+      else { face?.remove(); face = null; caixa.style.transformOrigin = ""; caixa.style.opacity = ""; caixa.style.transform = `translateX(${dx * 0.25}px)`; } // sem ninguém do lado: resiste
     } else if (dy > 0) {
       caixa.style.transform = `translateY(${dy * 0.85}px) scale(${1 - Math.min(dy, 500) / 2500})`;
       caixa.style.opacity = String(1 - Math.min(dy, 500) / 1200);
@@ -4102,19 +4178,21 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
     x0 = null;
     const ex = eixo; eixo = null;
     if (ex === "y" && (dy > 110 || (rapido && dy > 50))) { fechar(); return; }
+    const tem = dx < 0 ? ai < ordem.length - 1 : ai > 0, dir = dx < 0 ? 1 : -1, p = Math.min(1, Math.abs(dx) / largura());
     if (ex === "x" && (Math.abs(dx) > 70 || (rapido && Math.abs(dx) > 35))) {
       clearTimeout(tSeg); segurou = false; caixa.classList.remove("limpo");
-      const tem = dx < 0 ? ai < ordem.length - 1 : ai > 0;
-      voltarLugar(false);
-      if (dx < 0) proximoAutor(); else if (tem) anteriorAutor(); else { voltarLugar(true); if (pausouArrasto) pausar(false); }
+      if (tem) { girarAte(p, 1, dir, () => { tirarFace(); semEntrada = true; if (dir > 0) proximoAutor(); else anteriorAutor(); }); return; }
+      tirarFace();
+      if (dx < 0) proximoAutor(); else { voltarLugar(true); if (pausouArrasto) pausar(false); }
       return;
     }
+    if (ex === "x" && tem && face) { girarAte(p, 0, dir, tirarFace); if (pausouArrasto) { pausouArrasto = false; pausar(false); } return; }
     voltarLugar(!!ex);
     if (ex === "y" && dy < -90 && atual()?.autorId === eu.uid) { verQuemViu(atual(), () => pausar(false), mapa.get(eu.uid), irPara, { aoApagar: tirarDaLista }); return; }
     if (pausouArrasto) { pausouArrasto = false; pausar(false); }
   };
   caixa.addEventListener("touchend", fimArrasto, { passive: true });
-  caixa.addEventListener("touchcancel", (e) => { if (x0 == null) return; x0 = null; eixo = null; voltarLugar(true); if (pausouArrasto) { pausouArrasto = false; pausar(false); } }, { passive: true });
+  caixa.addEventListener("touchcancel", (e) => { if (x0 == null) return; x0 = null; eixo = null; tirarFace(); voltarLugar(true); if (pausouArrasto) { pausouArrasto = false; pausar(false); } }, { passive: true });
   mostrar();
 }
 // Visualizações (só o autor): quem viu, quem deu a estrela e quem reagiu (o emoji no canto da foto), com filtros.

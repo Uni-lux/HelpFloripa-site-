@@ -4,7 +4,7 @@
 // tem o rede.css (que já traz o mesmo estilo).
 // =====================================================
 import { ligarQuadro, casca } from "./quadro-rede.js?v=1";
-import { ligarDeslizarFlash } from "./deslizar-flash.js?v=5";
+import { ligarDeslizarFlash } from "./deslizar-flash.js?v=6";
 export const ITENS_BARRA = [
   ["diario", "feed.html", "feed", "Diário"],
   ["explorar", "feed.html?aba=explorar", "bussola", "Explorar"],
@@ -26,8 +26,8 @@ body.com-barra { padding-bottom: calc(74px + env(safe-area-inset-bottom)); }
   box-shadow: 0 12px 30px rgba(0,0,0,.25); -webkit-backdrop-filter: saturate(1.4) blur(16px); backdrop-filter: saturate(1.4) blur(16px); }
 .barra-rede a { position: relative; display: grid; justify-items: center; gap: 2px; padding: 6px 2px; border-radius: 16px;
   color: var(--muted, #8fa0ab); text-decoration: none; font-size: 10.5px; font-weight: 700; }
-.barra-rede a:hover { color: var(--text, #fff); background: var(--hover, rgba(255,255,255,.06)); }
-.barra-rede [aria-current="page"] { color: var(--accent, #00adee); }
+@media (hover: hover) { .barra-rede a:hover { color: var(--text, #fff); background: var(--hover, rgba(255,255,255,.06)); } }
+.barra-rede [aria-current="page"], .barra-rede [aria-current="page"]:hover { color: var(--accent, #00adee); background: color-mix(in srgb, var(--accent, #00adee) 12%, transparent); }
 .barra-rede .bi { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .barra-rede .mini-av { width: 24px; height: 24px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; font-size: 9px; font-weight: 800; color: #fff; background: linear-gradient(135deg, #0a4a63, #00adee); }
 .barra-rede .mini-av img { width: 100%; height: 100%; object-fit: cover; }

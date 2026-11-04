@@ -2,7 +2,7 @@
 import "./sem-menu-imagem.js?v=1";
 import { FUNCOES_LIGADAS, respostaDoPerfil } from "./servidor.js?v=3";
 import { docRapido, docsRapido } from "./rapido.js?v=1";
-import { ligarDeslizarFlash } from "./deslizar-flash.js?v=5";
+import { ligarDeslizarFlash } from "./deslizar-flash.js?v=6";
 import { ligarQuadro } from "./quadro-rede.js?v=1";
 ligarQuadro(); // dentro da rede (rede.html): os itens da barra trocam de aba sem recarregar
 ligarDeslizarFlash(); // deslizar para o lado na lista de conversas troca de aba da barra de baixo
