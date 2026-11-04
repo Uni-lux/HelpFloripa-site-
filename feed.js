@@ -15,12 +15,12 @@ import {
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, botaoSeguir, montarBarraRede, marcarBarra, pintarBarraRede, ouvirAvisos, lerOrdenado,
   editarPublicacao, bloquear, comMencoes, fotosDoPost, carrosselFotos, contadorEstrelas, estaSalvo, alternarSalvo, escolherColecao, lerResumosEstrelas, contarComentarios,
   silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto, confirmarHF, blocoEnquete, blocoCaixa, editarPublicoDoPost, apagarFlashesDaPublicacao
-} from "./rede.js?v=120";
+} from "./rede.js?v=121";
 import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=2";
-import { montarStories, abrirFlashPorId, abrirFlashesDoNegocio, repostarFlash, voltarAoFlash, novoFlash } from "./stories.js?v=92";
+import { montarStories, abrirFlashPorId, abrirFlashesDoNegocio, repostarFlash, voltarAoFlash, novoFlash } from "./stories.js?v=93";
 import { abrirDenuncia } from "./denuncias.js?v=7";
 import { pessoasRecentes } from "./pessoas.js?v=5";
-import { abrirExplorar, definirCartao, abrirPublicacao } from "./explorar.js?v=105";
+import { abrirExplorar, definirCartao, abrirPublicacao } from "./explorar.js?v=106";
 import { docsComValidade, docsPorIds } from "./leituras.js?v=3";
 import { lerLocal } from "./local-escolhido.js?v=3";
 import { distanciaKm, minhaPosicao } from "./perto.js?v=2";
@@ -89,7 +89,7 @@ const tipoDe = (p) => p.tipo || (p.enquete?.pergunta ? "enquete" : p.caixa?.perg
 const doTipo = (p) => tipoFeed === "tudo" || (tipoFeed === "fotos" ? ["foto", "video"].includes(tipoDe(p)) : tipoFeed === "enquetes" ? ["enquete", "caixa"].includes(tipoDe(p)) : tipoDe(p) === "texto");
 const daAba = (p) => p._emDia ? tipoFeed === "tudo" && !tagAtual && !localAtual : !!(tagAtual || localAtual) || doTipo(p);
 // Reels: os vídeos já lidos + os mais novos do servidor, com as mesmas regras do Diário (silenciados, público...).
-const verReels = (comecarEm = null) => import("./reels.js?v=39").then((m) => m.abrirReels({ lista: todosPosts, oculto: postOculto, comecarEm, aoNovo: () => compor("video") }));
+const verReels = (comecarEm = null) => import("./reels.js?v=40").then((m) => m.abrirReels({ lista: todosPosts, oculto: postOculto, comecarEm, aoNovo: () => compor("video") }));
 const compor = (inicio = "") => abrirCompositor({ aoPublicar: ganchos.aoPublicar, inicio });
 function pintarTipos() {
   const w = $("tiposFeed"); if (!w) return;
@@ -442,6 +442,10 @@ async function postsDoAparelho() {
   return docs.filter((p) => p && !escondido(p.autorId) && !postOculto(p));
 }
 let geracaoFeed = 0;
+// O Flash (fotos grandes) só começa a baixar depois que as primeiras publicações apareceram (ou 5 s): antes os dois
+// disputavam a mesma internet e nada aparecia.
+let primeirasProntas;
+const primeirasPublicacoes = new Promise((ok) => { primeirasProntas = ok; setTimeout(ok, 5000); });
 async function carregarFeed({ forcar = true } = {}) {
   if (!forcar && feedAtual()) return;
   const lista = $("listaFeed");
@@ -462,26 +466,35 @@ async function carregarFeed({ forcar = true } = {}) {
   let mostrouRapida = false;
   try {
     maisTodos = false; maisPrincipais = false;
-    const pedido = localAtual ? buscarLocal(localAtual) : tagAtual ? buscarTag(tagAtual) : filtro === "amigos" ? buscarAmigos() : filtro === "seguindo" ? buscarSeguindoCrono() : buscarPrincipais();
-    // Sem nada guardado no aparelho: as 5 mais novas chegam antes (leitura pequena) e aparecem enquanto a lista
-    // completa (60 publicações, com as fotos) ainda está vindo.
+    // Sem nada guardado no aparelho: PRIMEIRO só as 4 mais novas (leitura pequena, sozinha na conexão) e elas aparecem;
+    // SÓ DEPOIS a lista completa (dezenas de publicações com as fotos dentro, que no 4G levava quase 1 minuto e deixava a
+    // tela no esqueleto; medido em 04/11/2026). A lista completa entra por trás.
     if (principal && !comCopia) {
-      fb.getDocs(fb.query(fb.collection(fb.db, "diario"), fb.orderBy("criadoEm", "desc"), fb.limit(5))).then((sn) => {
-        if (g !== geracaoFeed || feedCarregado?.em > Date.now() - 1000 || !lista.querySelector(".esqueleto-post")) return;
+      try {
+        const sn = await Promise.race([
+          fb.getDocs(fb.query(fb.collection(fb.db, "diario"), fb.orderBy("criadoEm", "desc"), fb.limit(4))),
+          new Promise((_, nao) => setTimeout(() => nao(new Error("demorou")), 9000)),
+        ]);
+        if (g !== geracaoFeed) return;
         const r = sn.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter((p) => !escondido(p.autorId) && !postOculto(p) && doTipo(p));
-        if (!r.length) return;
-        copia = r; mostrouRapida = true;
-        posts = r; todosPosts = r.slice(); mostrados = 0;
-        lista.replaceChildren(); mostrarMais(); $("maisFeed").hidden = true;
-        y0 = scrollY;
-      }).catch(() => {});
+        if (r.length) {
+          copia = r; mostrouRapida = true;
+          posts = r; todosPosts = r.slice(); mostrados = 0;
+          lista.replaceChildren(); mostrarMais(); $("maisFeed").hidden = true;
+          y0 = scrollY;
+        }
+      } catch {}
     }
+    primeirasProntas();
+    try { if (window.parent !== window) window.parent.__hfShell?.conteudoPronto?.(); } catch {}
+    const pedido = localAtual ? buscarLocal(localAtual) : tagAtual ? buscarTag(tagAtual) : filtro === "amigos" ? buscarAmigos() : filtro === "seguindo" ? buscarSeguindoCrono() : buscarPrincipais();
     const bruto = await pedido;
     if (g !== geracaoFeed) return;
     todosPosts = bruto.filter((p) => p._emDia || (!escondido(p.autorId) && !postOculto(p)));
     if (localAtual || tagAtual || filtro !== "principais") todosPosts.sort((a, b) => ms(b.agendadoPara || b.criadoEm) - ms(a.agendadoPara || a.criadoEm)); // principais: pela pontuação
   } catch (e) {
     console.warn(e);
+    primeirasProntas();
     if (g !== geracaoFeed) return;
     if (comCopia) { toast("Sem conexão: mostrando o que já estava no aparelho."); return; }
     lista.replaceChildren(vazio("Não foi possível carregar o diário", erroAmigavel(e)));
@@ -617,7 +630,7 @@ function cartaoPost(post) {
       : { rotulo: "Salvar publicação", sub: "Para ver depois no seu Perfil → Salvos", icone: "salvo", fn: () => alternarSalvo(post) },
     { rotulo: "Salvar em uma coleção", sub: "Organize seus salvos em pastas", icone: "fotos", fn: () => escolherColecao(post) },
     { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(post.autorId, post.nome) },
-    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=87").then((m) => m.abrirEstatisticas(post)) },
+    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=88").then((m) => m.abrirEstatisticas(post)) },
     post.autorId === eu.uid && { rotulo: "Editar publicação", icone: "lapis", fn: () => editarPublicacao(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId === eu.uid && { rotulo: "Público da publicação", sub: temPublico(post) ? resumoPublico(post.publico) : "Para todos · escolha idade, gênero, lugar e seguidores", icone: "pessoa-mais", fn: () => editarPublicoDoPost(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId !== eu.uid && { rotulo: silenciado(post.autorId) ? `Mostrar ${nome.textContent} de novo` : `Silenciar ${nome.textContent}`, sub: "Continua seguindo, mas as publicações e flashes somem do seu Diário", icone: "restringir",
@@ -780,11 +793,12 @@ async function pintarLateral() {
   ganchos.aoPublicar = (post) => { feedCarregado = null; if (post && !doTipo(post)) { tipoFeed = "tudo"; pintarTipos(); } if (aba !== "diario") trocarAba("diario"); else carregarFeed(); };
   montarBarraRede(abaDaUrl() === "explorar" ? "explorar" : "diario");
   pintarBarraRede();
-  ouvirAvisos();
+  // O sino (e as marcações em publicações com foto) espera as primeiras publicações aparecerem.
+  primeirasPublicacoes.then(() => ouvirAvisos());
   $("btnComporFeed").addEventListener("click", () => compor());
   // O Flash começa junto (ele mesmo espera a lista de quem você segue) e o Diário não espera a posição.
   const seguindo = carregarMeusSeguindo();
-  montarStories($("storiesFeed")).catch((e) => console.warn("Flash:", e));
+  montarStories($("storiesFeed"), { esperar: primeirasPublicacoes }).catch((e) => console.warn("Flash:", e));
   await seguindo;
   prepararLeitor();
   pintarFiltro();

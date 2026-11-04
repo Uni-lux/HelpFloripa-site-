@@ -112,6 +112,7 @@ Capturas de tela, Excel baixados e logs ficam em `saida/` (fora do git).
 | `t-deslizar-rede.mjs` | Deslizar entre as 5 abas da rede (rede.html), inclusive saindo do Perfil, barra de baixo parada durante o deslize (cópia por cima dos quadros), arrasto curto volta, deslize rápido troca e janela aberta bloqueia. |
 | `t-diario-rapido.mjs`, `medir-diario.mjs` | Diário e fileira do Flash aparecendo com a cópia do aparelho com o servidor atrasado 4 s, voltar do Explorar sem recarregar, botão de criar do topo e tipos da publicação que não abrem a galeria/teclado sozinhos. `medir-diario.mjs` mede o tempo do Flash e das publicações (4G simulado). |
 | `t-rede-cubo.mjs` | Rede (rede.html) com o cache do aparelho nos quadros (Diário e Flash antes do servidor atrasado), troca de aba e de pessoa no Flash em cubo com “reduzir movimento” ligado, avisos de troca de tipo e nome Vídeos. |
+| `medir-rede.mjs` | Tempo até a 1ª publicação do Diário, o Flash e o mural dentro da rede (rede.html), 4G simulado (`LAT`, `MBPS`); rodar `seed`, `carga-seed` e `carga-fotos.mjs doc` antes. `BYTES=1` lista o que cada quadro baixa; `OUTRA=1` deixa outra aba do site congelada. |
 | `versoes.py` | Aumenta o `?v=` de cada .js/.css alterado (em relação ao HEAD) em todos que o importam, em cascata, uma vez só, e falha se dois arquivos importarem o mesmo módulo com `?v=` diferentes (arquivo novo fica fora da troca automática). Rode antes de cada commit. |
 
 ## Cuidados que já custaram tempo

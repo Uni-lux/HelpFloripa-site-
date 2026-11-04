@@ -14,7 +14,7 @@ import {
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados,
   responderNoChat, cartaoRespostaCaixa, fecharFolha, ajudaPublico
-} from "./rede.js?v=120";
+} from "./rede.js?v=121";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { combinaPublico, leitorDe, temPublico, resumoPublico, publicoParaGravar } from "./publico-alvo.js?v=1";
@@ -86,13 +86,14 @@ function barraGuardada() {
     return m;
   } catch { return null; }
 }
-export async function montarStories(alvo) {
+export async function montarStories(alvo, { esperar = null } = {}) {
   if (!alvo) return;
   barra = alvo;
   const guardada = barraGuardada();
   porAutor = guardada || new Map();
   pintarBarra();
-  carregandoBarra = carregar().finally(() => { carregandoBarra = null; });
+  // A fileira guardada aparece já; a leitura (com as fotos dos flashes) espera o Diário mostrar as primeiras publicações.
+  carregandoBarra = (esperar ? Promise.race([esperar, new Promise((ok) => setTimeout(ok, 5000))]) : Promise.resolve()).then(() => carregar()).finally(() => { carregandoBarra = null; });
   await carregandoBarra;
 }
 async function carregar() {

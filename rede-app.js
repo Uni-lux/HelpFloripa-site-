@@ -16,6 +16,8 @@ const NOMES = { diario: "Diário", explorar: "Explorar", comunidade: "Comunidade
 const QUADRO_DE = { diario: "feed", explorar: "feed", comunidade: "mural", mensagens: "mensagens", perfil: "perfil" };
 const PAGINA = { feed: "feed.html", mural: "mural.html", mensagens: "mensagens.html", perfil: "usuarios.html" };
 const S = window.__hfShell;
+let conteudoOk; const conteudo = new Promise((ok) => { conteudoOk = ok; });
+S.conteudoPronto = () => conteudoOk();
 const quadros = {};
 let atual = null;
 const inicial = new URLSearchParams(location.search).get("aba");
@@ -73,7 +75,9 @@ function carregou(id) {
     w.addEventListener("keydown", () => dispatchEvent(new Event("keydown")), { capture: true });
   } catch {}
   visivel(id, QUADRO_DE[atual] === id);
-  if (!S.pronto) { S.pronto = true; setTimeout(carregarOutros, 2500); }
+  // As outras abas só começam a carregar depois que a 1ª mostrou conteúdo (o Diário avisa por conteudoPronto) ou 10 s:
+  // antes elas baixavam junto e a internet do celular era dividida entre as 4.
+  if (!S.pronto) { S.pronto = true; Promise.race([conteudo, new Promise((ok) => setTimeout(ok, id === "feed" ? 10000 : 1500))]).then(() => setTimeout(carregarOutros, 1200)); }
 }
 
 // Os outros quadros carregam aos poucos, com a tela parada, para a troca e o deslize já mostrarem a aba pronta.

@@ -1666,6 +1666,16 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   o tipo da publicação só avisa se sair algo escrito (enquete/caixa vazias saem caladas). Barra de baixo: `:hover` só no
   mouse (`@media (hover: hover)`, ficava preso depois do toque) e item atual sempre azul com fundinho (rede.css,
   mensagens.css, barra-rede.js). Teste `t-rede-cubo.mjs` (16).
+- **Diário rápido de verdade (04/11/2026, PR depois do #158, sem regra nova):** o cache do aparelho nos quadros da rede
+  (PR #158, `naCascaDaRede`) foi DESFEITO: com as 4 abas disputando o cache (multi-tab) e as fotos dentro dos documentos, o
+  Diário levou 158 s (`Failed to obtain primary lease` sem parar). Quadros da rede = só memória, NÃO religar. Medido com
+  fotos reais (`carga-seed.mjs` + `carga-fotos.mjs doc`) e 4G simulado (`_testes/medir-rede.mjs`: 4 Mbit/s, 120 ms;
+  `BYTES=1` mostra quem baixa o quê por quadro): antes 48–56 s até a 1ª publicação. Causa: tudo baixando junto (60
+  publicações com foto, o sino com as marcações em publicações com foto, o Flash e as outras 3 abas da rede). Agora:
+  1º só as 4 mais novas (`limit(4)`, sozinha, até 9 s) e elas aparecem; depois a lista completa por trás; o sino
+  (`ouvirAvisos`) e a leitura do Flash (`montarStories(alvo, {esperar})`) esperam `primeirasPublicacoes` (ou 5 s); a rede só
+  carrega as outras abas depois de `__hfShell.conteudoPronto()` (feed) ou 10 s. Resultado: 3 s até a 1ª publicação, mural
+  5,6 s. A solução definitiva é o Storage (fotos fora dos documentos).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
