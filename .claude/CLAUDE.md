@@ -1690,6 +1690,18 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   e o mesmo recuo do "Visualizações"; em celular comprido ficava metade em cima da foto e metade fora: `encaixarLinha`
   (stories.js) sobe a linha para dentro da foto; mede por offsetTop/offsetHeight (o getBoundingClientRect errava na
   animação de abrir/cubo) e refaz com ResizeObserver. Testes `t-rede-cubo.mjs` (atualizado) e `t-chip-mencao.mjs` (4 tamanhos).
+- **Flash nos negócios organizado (04/11/2026, PR depois do #161, sem regra nova):** prints dele. (1) **Anel do negócio
+  sem recarregar:** `flash-negocio.js` guardava a lista de cada negócio para sempre na página (na rede o Perfil fica aberto):
+  agora 60 s (`VALIDADE`), `ligados` (fotos com anel) e `avisarFlashNegocio(ids)` (stories.js chama ao publicar e ao apagar)
+  pinta de novo na hora e avisa as outras páginas/quadros por `localStorage` `hf-flash-negocio-mudou` (evento storage, 1,2 s);
+  ao voltar a aparecer (`visibilitychange`/`hf:gaveta`) confere o que venceu. Sem flash no ar, o anel sai e o toque na foto
+  volta a abrir o perfil do negócio (`alvo._fnLista`). (2) **Botão da vitrine no flash do negócio** (`.story-vitrine`: Ver
+  serviços/cardápio/produtos/imóveis, Ver perfil e agendar): `abrirFlashesDoNegocio(n, {aoVitrine})` → no perfil
+  (usuarios-app.js) fecha o flash e abre `abrirPerfilNegocio` ali; vindo da vitrine (feed.js `daVitrine`) só fecha (volta);
+  sem `aoVitrine` vai para `linkNegocio`. (3) "Também em N negócios": o `font: inherit` deixava 16 px e cortava; agora 12 px;
+  no flash visto pelo negócio só o dono vê, com "Também em mais N lugares". `.story-por` menor. (4) Figurinhas de @/lugar/#/
+  hora saem INTEIRAS na foto (o canvas mede a letra mais larga que o DOM e a ponta ficava cortada): `desenharCamada` prende o
+  centro dentro e o `limitar` do criador faz igual. `vitrine.js?tipo=X&v=60` à mão. Teste `t-flash-negocio-anel.mjs` (11).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

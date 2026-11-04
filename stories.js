@@ -14,14 +14,14 @@ import {
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados,
   responderNoChat, cartaoRespostaCaixa, fecharFolha, ajudaPublico
-} from "./rede.js?v=125";
+} from "./rede.js?v=126";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { combinaPublico, leitorDe, temPublico, resumoPublico, publicoParaGravar } from "./publico-alvo.js?v=1";
 import { escolherPublico } from "./publico-tela.js?v=5";
 import { lerLocal } from "./local-escolhido.js?v=3";
 import { comRitmo } from "./ritmo.js?v=3";
-import { flashesDoNegocio } from "./flash-negocio.js?v=18";
+import { flashesDoNegocio, avisarFlashNegocio } from "./flash-negocio.js?v=19";
 import { minhaPosicao } from "./perto.js?v=2";
 import { fimEscolhido, MAX_FLASH_MIN, fimDaEnquete, encerrada, faltaTexto, resultadoFinal, lerContasEnquete } from "./enquetes.js?v=7";
 
@@ -310,13 +310,13 @@ export async function abrirFlashPorId(id, { silencioso = false } = {}) {
 // Flash no perfil de um negócio, no visor COMPLETO (o mesmo do Diário: enquete/teste, perguntas, contagem, link, lugar,
 // # e @, estrela, responder e reações). n = { id, nome, foto, tipo }. Antes o perfil do negócio tinha um visor à parte
 // (flash-negocio.js) que só mostrava a foto: as figurinhas não apareciam.
-export async function abrirFlashesDoNegocio(n, { comecarEm = null, aoFechar = null, lista = null } = {}) {
+export async function abrirFlashesDoNegocio(n, { comecarEm = null, aoFechar = null, lista = null, aoVitrine = null } = {}) {
   if (!n?.id) return;
   const base = lista || await flashesDoNegocio(fb, eu, n.id).catch(() => []);
   const l = base.filter((x) => ativo(x) && (x.autorId === eu.uid || podeVer(x))).sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm));
   if (!l.length) { tirarCapa(); toast("Esse negócio não tem flash no ar agora."); aoFechar?.(); return; }
   const k = comecarEm ? l.findIndex((x) => x.id === comecarEm) : l.findIndex((x) => !vistosLocal.has(x.id));
-  abrirVisor(l[0].autorId, { lista: l, negocio: { id: n.id, nome: n.nome || "", foto: n.foto || "", tipo: n.tipo || String(n.id).split("_")[1] || "" }, comecarEm: l[Math.max(0, k)].id, aoFechar });
+  abrirVisor(l[0].autorId, { lista: l, negocio: { id: n.id, nome: n.nome || "", foto: n.foto || "", tipo: n.tipo || String(n.id).split("_")[1] || "" }, comecarEm: l[Math.max(0, k)].id, aoFechar, aoVitrine });
 }
 // As páginas que já têm o visor completo (Diário, perfis) abrem o flash do negócio na hora (flash-negocio.js usa isto).
 window.__hfVisorNegocio = abrirFlashesDoNegocio;
@@ -1627,6 +1627,9 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       t.x = Math.min(1 - mx, Math.max(mx, t.x)); t.y = Math.min(baixo, Math.max(cima, t.y));
       return;
     }
+    // Figurinhas de @, lugar, # e hora ficam inteiras no cartão (iguais ao que sai na foto); texto e fotos podem passar
+    // um pouco da borda, como antes.
+    if (t.fig) { const fx = Math.min(0.5, (w / 2 + 6) / W), fy = Math.min(0.5, (h / 2 + 6) / H); t.x = Math.min(1 - fx, Math.max(fx, t.x)); t.y = Math.min(1 - fy, Math.max(fy, t.y)); return; }
     const mx = Math.min(0.5, Math.max(0.04, Math.min(w * 0.35, 60) / W)), my = Math.min(0.5, Math.max(0.03, Math.min(h * 0.35, 60) / H));
     t.x = Math.min(1 - mx, Math.max(mx, t.x)); t.y = Math.min(1 - my, Math.max(my, t.y));
   }
@@ -2850,9 +2853,12 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
         const es = EST_FIG[t.estilo];
         g.font = `${t.fig === "hora" ? 800 : 750} ${px}px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
         g.textAlign = "center"; g.textBaseline = "middle";
-        const x = t.x * OW, y = t.y * OH, lw = g.measureText(t.texto).width + px * 0.9, lh = px * 1.5;
-        // Onde a figurinha ficou (fração da foto): quem vê toca ali (localização, hashtag e menção).
+        const lw = g.measureText(t.texto).width + px * 0.9, lh = px * 1.5;
         const ra = ((t.rot || 0) * Math.PI) / 180, bw = Math.abs(lw * Math.cos(ra)) + Math.abs(lh * Math.sin(ra)), bh = Math.abs(lw * Math.sin(ra)) + Math.abs(lh * Math.cos(ra));
+        // A figurinha (@, lugar, #, hora) sai INTEIRA na foto: a letra da foto é um pouco mais larga que a do criador e,
+        // encostada na beirada, a ponta ficava cortada (o @ aparecia pela metade no visor).
+        const folga = OW * 0.015, x = Math.min(OW - bw / 2 - folga, Math.max(bw / 2 + folga, t.x * OW)), y = Math.min(OH - bh / 2 - folga, Math.max(bh / 2 + folga, t.y * OH));
+        // Onde a figurinha ficou (fração da foto): quem vê toca ali (localização, hashtag e menção).
         t._area = { x: x / OW, y: y / OH, w: bw / OW, h: bh / OH };
         if (Array.isArray(es.fundo)) { const gr = g.createLinearGradient(x - lw / 2, y - lh / 2, x + lw / 2, y + lh / 2); gr.addColorStop(0, es.fundo[0]); gr.addColorStop(1, es.fundo[1]); g.fillStyle = gr; }
         else g.fillStyle = es.fundo;
@@ -3140,6 +3146,7 @@ async function gravar(extraCom, { imagem = null } = {}) {
       : semAlvo ? "O público do flash vale depois da publicação das regras novas: este foi para todos."
       : eraTeste ? "O teste foi como enquete: ele passa a funcionar depois da publicação das regras novas." : "Algumas figurinhas ficam tocáveis depois da publicação das regras novas."), 2600);
   }
+  avisarFlashNegocio(extra.negocios);
   toast(amigos ? "⚡ Flash publicado para os Amigos próximos." : extra.negocios?.length ? `⚡ Flash publicado${extra.perfil === false ? " só" : ""} ${extra.negocios.length === 1 ? "no perfil do negócio" : `em ${extra.negocios.length} perfis de negócio`}${extra.perfil === false ? "" : " e no seu perfil"}! Fica 24 horas.` : "⚡ Flash publicado! Fica 24 horas.");
   // Quem foi mencionado recebe uma mensagem (como no Instagram).
   (extra.mencoes || []).forEach((u) => mandarMensagem(u, msgFlash({ id: ref.id, autorId: eu.uid, nome: dados.nome }, "mencao"), "Mencionou você no flash").catch(() => {}));
@@ -3385,7 +3392,7 @@ function perfilDoFlash(uid) {
   const v = document.querySelector(".story-visor");
   if (v?._irParaPerfil) v._irParaPerfil(uid); else ganchos.abrirPerfil(uid);
 }
-function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null, lista = null, destaque = null, negocio = null } = {}) {
+function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null, lista = null, destaque = null, negocio = null, aoVitrine = null } = {}) {
   const mapa = lista ? new Map([[uidInicial, lista]]) : porAutor;
   const ordem = so || lista ? [uidInicial] : [eu.uid, ...ordemAutores()].filter((u) => mapa.get(u)?.length);
   let ai = Math.max(0, ordem.indexOf(uidInicial)), si = 0;
@@ -3817,11 +3824,15 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
     topo.querySelector(".story-repost")?.remove();
     // Também nos perfis de negócio (o dono escolheu ao publicar)
     topo.querySelector(".story-onde")?.remove();
-    if (Array.isArray(s.negocios) && s.negocios.length) {
+    // Visto pelo perfil de um negócio, só quem publicou vê onde mais o flash saiu (para quem visita é informação demais).
+    if (Array.isArray(s.negocios) && s.negocios.length && (!negocio || meu)) {
       // Uma linha curta; tocar abre a lista dos negócios (cada um leva ao perfil dele).
       const n = s.negocios.length;
+      const outros = negocio ? s.negocios.filter((id) => id !== negocio.id).length + (s.perfil === false ? 0 : 1) : 0;
+      const texto = negocio ? (outros ? `Também em mais ${outros} ${outros === 1 ? "lugar" : "lugares"}` : "Só neste negócio")
+        : `${s.perfil === false ? "Só em" : "Também em"} ${n === 1 ? "1 negócio" : `${n} negócios`}`;
       const o = el("button", "story-repost story-onde"); o.type = "button";
-      o.append(icone("loja", "i xs"), el("span", null, `${s.perfil === false ? "Só em" : "Também em"} ${n === 1 ? "1 negócio" : `${n} negócios`}`), icone("avancar", "i xs"));
+      o.append(icone("loja", "i xs"), el("span", null, texto), icone("avancar", "i xs"));
       o.setAttribute("aria-label", `Publicado também em ${n} ${n === 1 ? "perfil de negócio" : "perfis de negócio"}: ver quais`);
       ["pointerdown", "pointerup"].forEach((ev) => o.addEventListener(ev, (e) => e.stopPropagation()));
       o.addEventListener("click", async (e) => {
@@ -3843,6 +3854,21 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
         }) : [el("div", "lista-vazia", "Esses negócios não estão mais no ar.")]));
       });
       subQuem.appendChild(o);
+    }
+    // Flash visto pelo perfil de um negócio: botão para a vitrine (ver produtos, cardápio, serviços...), que é o motivo de
+    // a pessoa estar ali. Na página de perfis abre o perfil do negócio por cima; nas outras, vai para a vitrine dele.
+    if (negocio?.id && PAGINA_NEGOCIO[negocio.tipo]) {
+      const NOMES_CTA = { servicos: "Ver serviços", delivery: "Ver cardápio", lojinha: "Ver produtos", imoveis: "Ver imóveis", saude: "Ver perfil e agendar" };
+      const cta = el("button", "story-vitrine"); cta.type = "button";
+      cta.append(icone(ICONE_NEGOCIO[negocio.tipo] || "loja", "i s"), el("span", null, NOMES_CTA[negocio.tipo] || "Ver vitrine"), icone("avancar", "i xs"));
+      cta.setAttribute("aria-label", `${NOMES_CTA[negocio.tipo] || "Ver vitrine"} de ${negocio.nome || "este negócio"}`);
+      ["pointerdown", "pointerup"].forEach((ev) => cta.addEventListener(ev, (e) => e.stopPropagation()));
+      cta.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (aoVitrine) { fechar(); setTimeout(() => aoVitrine(), 80); return; }
+        pausar(true); location.href = linkNegocio({ negocioId: negocio.id, tipo: negocio.tipo });
+      });
+      rodape.prepend(cta);
     }
     // Publicação do Diário compartilhada (como no Instagram): tocar na publicação mostra o balão "Ver publicação";
     // tocar no balão abre a publicação POR CIMA do flash, e o "voltar" retorna ao flash de onde parou.
@@ -4043,7 +4069,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
   function pularFlash(s, meu) {
     const l = mapa.get(ordem[ai]) || [];
     const k = l.indexOf(s); if (k >= 0) l.splice(k, 1);
-    if (meu) fb.deleteDoc(fb.doc(fb.db, "stories", s.id)).catch(() => {});
+    if (meu) fb.deleteDoc(fb.doc(fb.db, "stories", s.id)).then(() => avisarFlashNegocio(s.negocios)).catch(() => {});
     if (si < l.length) { mostrar(); return; }
     si = Math.max(0, l.length - 1);
     proximoAutor();
@@ -4109,7 +4135,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
     abrirOpcoes("Flash", [
       meu && { rotulo: "Apagar este flash", icone: "lixo", perigo: true, fn: async () => {
         if (!await confirmarHF({ titulo: "Apagar este flash?", texto: "Ele some para todo mundo.", ok: "Apagar", icone: "lixo" })) return;
-        try { await fb.deleteDoc(fb.doc(fb.db, "stories", s.id)); const l = mapa.get(s.autorId); l.splice(si, 1); if (!l.length) mapa.delete(s.autorId); toast("Flash apagado"); if (!mapa.get(s.autorId)) fechar(); else { si = Math.min(si, l.length - 1); mostrar(); } }
+        try { await fb.deleteDoc(fb.doc(fb.db, "stories", s.id)); avisarFlashNegocio(s.negocios); const l = mapa.get(s.autorId); l.splice(si, 1); if (!l.length) mapa.delete(s.autorId); toast("Flash apagado"); if (!mapa.get(s.autorId)) fechar(); else { si = Math.min(si, l.length - 1); mostrar(); } }
         catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
       } },
       meu && destaque && { rotulo: "Tirar deste destaque", sub: destaque.nome, icone: "destaque", perigo: true, fn: async () => {
@@ -4286,6 +4312,7 @@ async function verQuemViu(sInicial, aoFechar, flashes, aoTrocar, { aoApagar = nu
     if (!await confirmarHF({ titulo: "Apagar este flash?", texto: "Ele some para todo mundo, também das visualizações.", ok: "Apagar", icone: "lixo" })) return;
     try {
       await fb.deleteDoc(fb.doc(fb.db, "stories", s.id));
+      avisarFlashNegocio(s.negocios);
       toast("Flash apagado");
       const x = s; const k = meus.findIndex((y) => y.id === x.id); if (k >= 0) meus.splice(k, 1);
       aoApagar?.(x);
