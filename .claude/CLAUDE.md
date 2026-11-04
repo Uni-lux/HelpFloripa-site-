@@ -1734,6 +1734,25 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   (prerender abriria o perfil e contaria visita nas estatísticas). Rolar em cima não prepara. Só Chrome/Android (Safari
   ignora). No teste o prerender em si não roda (roteamento do Playwright); confere só as regras inseridas.
   Teste `t-puxar-esperto.mjs` (FS_PORTA=8086 + proxy-contador).
+- **Novidades em toda a parte social + fotos suaves (04/11/2026, PR depois do #165, sem regra nova):** pedido dele (1, 2 e 3
+  + "no sino e nas mensagens também"). `novidades.js` (sem deps): `maisNovo(lista, campo)` (Timestamp com nanossegundos),
+  `marcoOu(marco, desdeMs)` (lista vazia = hora da leitura), `haNovidade(fs, db, col, filtros, campo, marco, n)` (`campo >
+  marco`, orderBy desc, limit n; n=1 → boolean, n>1 → lista; erro = true/[] e a página relê como antes), `pilulaNovidades
+  ({aoTocar, topo, sumirNoTopo})` (`.hf-novas`: seta, até 3 rostos, texto; tocar sobe e chama aoTocar) e `conferirDeTempos
+  (fn, ms)` (só com a página à vista; `window.__hfTesteNovidades` encurta nos testes). **Puxar esperto:** Diário
+  (`atualizarDiario`: com menos de 10 min só relê se `haNovidade` em `diario`; `marcoFeed` gravado no carregarFeed), Explorar
+  (`recarregarExplorar`: diario + negocios), Mural (comunidade por `atualizadoEm`), painel do sino (`temNovidade`: as 6
+  fontes do sino-fontes desde `carregadoEm - 60 s`; com mais de 5 min relê tudo; puxar dentro de `.pa-corpo`, `indicadorEm:
+  painel`), Notificações (o resto já é ao vivo: `atualizarAvisos()` do rede.js relê só plano, enquetes e contagens do Flash
+  — `recarregarSoltos` dentro do `ligarAvisos`) e Mensagens (`ligarPuxarConversas`: conversas já são ao vivo; de 10 em 10 min
+  relê nome/foto das 30 primeiras com `docsPorIds(..., 0)`; não puxa com conversa ou painel aberto). **Pílula:** Diário "Novas
+  publicações" (de 2 em 2 min: quem você segue, 30 primeiros, `autorId in`; sem seguir ninguém, todas; 1 leitura), Mural
+  "Novas na Comunidade", Notificações "N novas notificações" (do que chega ao vivo com a lista rolada > 200 px). Tocar na
+  pílula chama `buscarDeNovo()` antes de recarregar (senão a cópia de 3–10 min voltava). **Fotos suaves** (`fotos-suaves.js`,
+  ligado no firebase.js, rede.js, categoria.js e mensagens-app.js): toda `<img>` que ainda não chegou ganha `.hf-suave`
+  (brilho + desfoque 14 px) e fica nítida em 0,45 s; já pronta, ícone ≤ 40 px, logos, topo, criador/visor do Flash, Vídeos,
+  canvas e `[data-sem-suave]` ficam de fora; 15 s no máximo. `fundoSuave(div, url)` para fundos (inicio.js `fundo` e as 15
+  capas/fotos de fundo do vitrine.js). Teste `t-novidades.mjs` (FS_PORTA=8086, 20 verificações).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

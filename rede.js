@@ -16,7 +16,7 @@ import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
 import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=17";
 import { ouvirItensEquipe, TEXTO_EQUIPE, linkEquipe } from "./avisos-equipe.js?v=1";
-import "./painel-avisos.js?v=46";
+import "./painel-avisos.js?v=47";
 import { docComValidade, docsComValidade, esquecer } from "./leituras.js?v=4";
 import { docRapido } from "./rapido.js?v=1";
 import { resumoPublico, temPublico } from "./publico-alvo.js?v=1";
@@ -31,6 +31,7 @@ import { registrarGosto, PESO } from "./gosto.js?v=2";
 import { confirmarHF } from "./confirmar.js?v=6";
 import { seletorDuracao, fimEscolhido, fimDaEnquete, encerrada, faltaTexto, dataCurta, resumoResultado, guardarInfoEnquete, enquetesEncerradas, textoEnqueteFim, linhaChave, MAX_PUB_MIN, lerContasEnquete, resultadoFinal, sortearFatia, pedacoDaEnquete } from "./enquetes.js?v=7";
 import "./sem-menu-imagem.js?v=2"; // segurar a foto não abre o menu de baixar/compartilhar
+import "./fotos-suaves.js?v=1"; // fotos entram suaves
 
 // ---------- ícones ----------
 const SIMBOLOS = `<symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 01-1.5 1.5H15v-6h-6v6H5.5A1.5 1.5 0 014 19z"/></symbol>
@@ -1581,7 +1582,7 @@ export async function verRespostasCaixa(item, alvo, aoMudar) {
       acao("chat", "Responder", () => responderNoChat(r.uid, cartaoRespostaCaixa(item.caixa, r, alvo)));
     }
     // Pôr a resposta no seu flash (como no Instagram): pergunta + resposta, sem o nome de quem respondeu.
-    acao("raio", "No flash", () => import("./stories.js?v=101").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
+    acao("raio", "No flash", () => import("./stories.js?v=102").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
     acao("lixo", "Apagar", async () => {
       if (!(await confirmarHF({ titulo: "Apagar esta resposta?", texto: "Ela some da sua caixa de perguntas.", ok: "Apagar", icone: "lixo" }))) return;
       try { await fb.deleteDoc(fb.doc(fb.db, "caixa_respostas", r.id)); todas = todas.filter((x) => x.id !== r.id); pintarNums(); pintarLista(); aoMudar?.(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
@@ -2141,7 +2142,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=101").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=102").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);
@@ -3105,6 +3106,10 @@ export function marcarAvisosVistos() {
 const TIPOS_VINCULO = { duo: "Duo", namoro: "Namorado(a)", casamento: "Cônjuge", melhor_amigo: "Melhor amigo(a)", amigo: "Amigo(a)", irmao: "Irmão(ã)", pai_mae: "Pai/Mãe", filho: "Filho(a)", primo: "Primo(a)", tio: "Tio(a)", sobrinho: "Sobrinho(a)", avo: "Avô/Avó", neto: "Neto(a)", parceiro: "Parceiro(a) de trabalho" };
 export const rotuloVinculo = (t) => TIPOS_VINCULO[t] || "Vínculo";
 let avisosLigados = false;
+let recarregarSoltos = null;
+// Notificações: seguidores, estrelas, comentários, social, reclamações e suporte já chegam ao vivo; o "puxar" relê só o
+// que não é ao vivo (plano, enquetes que terminaram e contagens do Flash). Nas abas da rede que só recebem, não lê nada.
+export const atualizarAvisos = () => (recarregarSoltos ? recarregarSoltos() : Promise.resolve());
 // Dentro da rede numa página só (rede.html), só uma aba ouve o sino e repassa para as outras (rede-app.js S.sino).
 const hubSino = () => casca()?.sino || null;
 let donoDoSino = false;
@@ -3246,6 +3251,12 @@ function ligarAvisos({ notificarNovos = true } = {}) {
   };
   lerEnquetes();
   setInterval(lerEnquetes, 3 * 60000);
+  // Puxar para atualizar nas Notificações: o resto já chega ao vivo; só estes três são lidos de vez em quando.
+  recarregarSoltos = () => Promise.all([
+    avisoPlano(fb, eu.uid).then((x) => { avisos.planos = x ? [x] : []; }).catch(() => {}),
+    lerReacoesFlash(fb, fb.db, eu.uid).then(async (l) => { avisos.flash = (await Promise.all(l.map(async (x) => ({ ...x, ...(await perfilDe(x.uid)) })))).filter((x) => ok(x.uid)); }).catch(() => {}),
+    lerEnquetes(),
+  ]).then(() => avisar());
   // Mensagens não lidas
   const vistas = new Map();
   let primeiraConv = true;

@@ -12,6 +12,7 @@ import { enfeitarSelect } from "./escolha.js?v=4";
 import { estrelas, lerResumos, media } from "./avaliacoes.js?v=18";
 import { docComValidade, docsComValidade, docsPorIds, buscarDeNovo } from "./leituras.js?v=4";
 import { ligarPuxar } from "./puxar-atualizar.js?v=2";
+import { fundoSuave } from "./fotos-suaves.js?v=1";
 import { prepararAoTocar, escolherVitrine } from "./deslizar-flash.js?v=8";
 // Dedo parado numa classe ou num cartão: a vitrine começa a carregar por trás (quando o toque termina, ela já está pronta).
 prepararAoTocar(escolherVitrine);
@@ -19,7 +20,7 @@ import { ordenarJusto, relevancia, dadosNegocio } from "./relevancia.js?v=4";
 import { lerPlano, nivelPlano, seloPlano, semPausados, mostraSelo, corDoPlano, planosDosDonos } from "./planos-base.js?v=15";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, esquecerPosicao, posicaoGuardada } from "./perto.js?v=2";
 import { lerLocal, salvarLocal, rotuloLocal, noLocal, escolherLocal, atualizarPeloGps, aoMudarLocal } from "./local-escolhido.js?v=3";
-import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=90";
+import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=91";
 import { lerComunidade, cartaoComunidade, filtrosComunidade } from "./comunidade-cartao.js?v=2";
 import { lerPorLocal, quandoVisivel } from "./por-local.js?v=1";
 import { NOME_UF } from "./endereco.js?v=1";
@@ -163,7 +164,7 @@ function esqueleto() { const d = el("div", "mini esqueleto"); d.setAttribute("ar
 function esqueletos(id, n = 4) { const t = $(id); t.replaceChildren(...Array.from({ length: n }, esqueleto)); }
 ["trilhoPerto", "trilhoTop", "trilhoNovos", "trilhoImoveis", "trilhoSaude", "trilhoComunidade"].forEach((id) => esqueletos(id));
 
-function fundo(div, url) { if (url) div.style.backgroundImage = `url("${url}")`; }
+function fundo(div, url) { if (url) fundoSuave(div, url); } // a foto entra suave (fotos-suaves.js)
 
 // Conta do dono desativada: o conteúdo fica escondido até ocultoAte (conta.js).
 const oculto = (x) => (x?.ocultoAte?.toMillis?.() ?? 0) > Date.now();

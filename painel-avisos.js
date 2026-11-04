@@ -18,6 +18,8 @@ import { docsComValidade, docsPorIds, esquecer } from "./leituras.js?v=4";
 import { lerReacoesFlash, textoFlash } from "./flash-avisos.js?v=3";
 import { fontesDoSino, lerFonte } from "./sino-fontes.js?v=2";
 import { criarLista, svg, toastNt, categoriaLigada, categoriaDe } from "./avisos-lista.js?v=18";
+import { ligarPuxar } from "./puxar-atualizar.js?v=2";
+import { haNovidade } from "./novidades.js?v=1";
 
 const ms = (ts) => ts?.toMillis?.() ?? (typeof ts === "number" ? ts : 0);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
@@ -305,6 +307,25 @@ function montar() {
     }
   });
   document.body.append(fundo, painel);
+  // Puxar para atualizar dentro do painel (como o Instagram): primeiro pergunta às 6 fontes se chegou algo depois que a
+  // lista foi lida (1 leitura cada, sem documento quando não há nada); sem novidade, a lista fica. Lida há mais de 5 min
+  // (pedidos do social, reclamações e suporte não entram na conferência), lê tudo de novo.
+  ligarPuxar({
+    area: corpo, rolagem: corpo, conteudo: corpo, indicadorEm: painel,
+    topo: () => cab.offsetHeight + (getComputedStyle(painel).transform === "none" ? painel.getBoundingClientRect().top : 0),
+    ativo: () => painel.classList.contains("on") && !document.querySelector(".nt2-menu, .nt2-pref-fundo"),
+    aoAtualizar: async () => {
+      if (!(await prontoFirebase())) return;
+      if (estado && carregadoEm && Date.now() - carregadoEm < 5 * 60000 && !(await temNovidade())) { pintarCab(); return; }
+      try { await buscar(); desenhar(); } catch (e) { console.warn("[Avisos]", e); }
+    },
+  });
+}
+async function temNovidade() {
+  const F = fontesDoSino(fs, eu.uid);
+  const desde = { seconds: Math.floor((carregadoEm - 60000) / 1000), nanoseconds: 0 };
+  const r = await Promise.all(Object.values(F).map(([col, filtros]) => haNovidade(fs, db, col, filtros, "criadoEm", desde)));
+  return r.some(Boolean);
 }
 function desenhar(atualizando) {
   if (!lista) {
