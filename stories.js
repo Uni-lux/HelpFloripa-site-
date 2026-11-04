@@ -14,7 +14,7 @@ import {
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados,
   responderNoChat, cartaoRespostaCaixa, fecharFolha, ajudaPublico
-} from "./rede.js?v=118";
+} from "./rede.js?v=119";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { combinaPublico, leitorDe, temPublico, resumoPublico, publicoParaGravar } from "./publico-alvo.js?v=1";
@@ -58,10 +58,37 @@ const ativo = (s) => Date.now() - (ms(s.criadoEm) || Date.now()) < DIA;
 const comStorage = () => !!(storageFns && window.firebaseStorage);
 const erroPublicar = (e) => (e?.amigavel || e?.code === "limite-diario" ? e.message : e?.code === "permission-denied" ? "O Flash começa a funcionar quando as regras novas forem publicadas." : "Não foi possível publicar: " + erroAmigavel(e));
 
+// A fileira aparece NA HORA (04/11/2026): "Seu flash" e os anéis de quem tinha flash da última vez (guardados no aparelho,
+// só ids e horários, sem as fotos) e a leitura do servidor troca por trás. Tocar num anel antes de chegar espera a leitura.
+let carregandoBarra = null;
+const chaveBarra = () => "hf-flash-barra-" + eu.uid;
+function guardarBarra() {
+  try {
+    const lista = [...porAutor].map(([u, l]) => [u, l.filter((x) => !x._leve).map((x) => [x.id, ms(x.criadoEm)])]).filter(([, l]) => l.length).slice(0, 60);
+    localStorage.setItem(chaveBarra(), JSON.stringify({ em: Date.now(), lista }));
+  } catch {}
+}
+function barraGuardada() {
+  try {
+    const g = JSON.parse(localStorage.getItem(chaveBarra()) || "null");
+    if (!g || Date.now() - g.em > DIA) return null;
+    const limite = Date.now() - DIA, m = new Map();
+    for (const [u, l] of g.lista || []) {
+      if (u !== eu.uid && (escondido(u) || silenciado(u))) continue;
+      const vivos = l.filter(([, t]) => t > limite).map(([id, t]) => ({ id, autorId: u, criadoEm: fb.Timestamp.fromMillis(t), _leve: true }));
+      if (vivos.length) m.set(u, vivos);
+    }
+    return m;
+  } catch { return null; }
+}
 export async function montarStories(alvo) {
   if (!alvo) return;
   barra = alvo;
-  await carregar();
+  const guardada = barraGuardada();
+  porAutor = guardada || new Map();
+  pintarBarra();
+  carregandoBarra = carregar().finally(() => { carregandoBarra = null; });
+  await carregandoBarra;
 }
 async function carregar() {
   const desde = fb.Timestamp.fromMillis(Date.now() - DIA);
@@ -88,6 +115,7 @@ async function carregar() {
     .forEach((x) => { if (!porAutor.has(x.autorId)) porAutor.set(x.autorId, []); porAutor.get(x.autorId).push(x); });
   limparVencidos();
   pintarBarra();
+  guardarBarra();
 }
 // O autor do flash segue quem está vendo? (respostas "só quem eu sigo")
 const segueCache = new Map();
@@ -178,8 +206,15 @@ function circulo({ uid, nome, foto, nomeReal, meu = false, lista = [] }) {
   if (tem && !visto && !meu) { const r = el("span", "raio"); r.appendChild(icone("raio", "i xs")); anel.appendChild(r); }
   b.append(anel, el("span", "nome", nome));
   // Seu flash: tocar na foto abre os seus flashes; tocar no "+" (ou sem flash nenhum) abre o criador.
-  b.addEventListener("click", (e) => {
+  b.addEventListener("click", async (e) => {
     if (meu && (!tem || e.target.closest(".mais"))) { abrirCriador(); return; }
+    // Anel vindo do aparelho (sem as fotos ainda): espera a leitura do servidor.
+    if (carregandoBarra && (porAutor.get(uid) || []).some((x) => x._leve)) {
+      b.classList.add("carregando");
+      await carregandoBarra.catch(() => {});
+      b.classList.remove("carregando");
+      if (!(porAutor.get(uid) || []).length) return;
+    }
     if (meu) { abrirVisor(eu.uid); return; }
     abrirVisor(uid);
   });

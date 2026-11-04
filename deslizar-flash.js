@@ -16,8 +16,21 @@ import { casca } from "./quadro-rede.js?v=1";
 const CAMADAS = [
   ".folha.aberta", ".story-visor", ".flash-criar", ".visor-exp", ".reels", "div.hfc", ".hf-confirma-fundo",
   ".pa-pagina", ".foto-grande", ".hfe-fundo", ".esc-lista", ".pv-fundo", ".pl-fundo", ".vt-local-fundo",
-  ".vt-modal", ".hf-den", ".hf-aval", ".gaveta.aberta", ".chat-gaveta.aberta", ".painel.aberto", "dialog[open]", "[aria-modal='true']",
+  ".vt-modal", ".hf-den", ".hf-aval", ".gaveta.aberta", ".chat-gaveta.aberta", ".painel.aberto", "dialog[open]",
 ].join(",");
+// Janela aberta de verdade? As folhas do perfil (usuarios.html) ficam no HTML com aria-modal="true" mesmo FECHADAS:
+// antes qualquer [aria-modal] contava como janela aberta e, por isso, o Perfil não deslizava (04/11/2026).
+function camadaAberta() {
+  if (document.querySelector(CAMADAS)) return true;
+  for (const x of document.querySelectorAll("[aria-modal='true']")) {
+    if (x.closest(".folha") && !x.closest(".folha.aberta")) continue;
+    if (x.hidden || !x.getClientRects().length) continue;
+    const st = getComputedStyle(x);
+    if (st.visibility === "hidden" || st.display === "none" || st.opacity === "0") continue;
+    return true;
+  }
+  return false;
+}
 const BORDA = 24, TRAVA = 12;
 
 const CSS = `
@@ -205,7 +218,7 @@ export function ligarDeslizarFlash() {
     if (t.clientX < BORDA || t.clientX > W() - BORDA) return;
     if (!window.firebaseAuth?.currentUser) return;
     if (abas().i < 0) return;
-    if (document.querySelector(CAMADAS) || document.documentElement.classList.contains("hf-volta-flash")) return;
+    if (camadaAberta() || document.documentElement.classList.contains("hf-volta-flash")) return;
     if (document.body.classList.contains("chat-aberto")) return; // conversa aberta no Mensagens
     const rolam = examinar(e.target);
     if (!rolam) return;
@@ -265,7 +278,7 @@ export function ligarDeslizarFlash() {
     const rapido = Math.abs(v) > 0.45 && Math.sign(v) === Math.sign(dx) && Math.abs(dx) > 30;
     const vai = !cancelou && tinha && a && certoLado && (pronto || rapido);
     document.documentElement.classList.remove("df-puxando");
-    if (ini.cruzado) { casca()?.terminar(!!vai); zerar(); return; }
+    if (ini.cruzado) { casca()?.terminar(!!vai, v); zerar(); return; }
     if (tinha) { if (vai) concluir(); else voltarAoLugar(); }
     zerar();
   };
