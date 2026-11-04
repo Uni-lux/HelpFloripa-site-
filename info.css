@@ -418,3 +418,6 @@ html.embutido .nav-inst { display: none; }
 /* Reclamações: nota dos números e "Onde" (Todo o Brasil · estado · cidade) */
 .numeros-nota { margin: 8px 2px 0; font-size: 12px; color: var(--muted); }
 .filter-chips.onde-rec { margin-bottom: 8px; }
+
+/* Sem o retângulo azul que o celular pinta por cima do que é tocado (pedido do dono, 04/11/2026). */
+html { -webkit-tap-highlight-color: transparent; }

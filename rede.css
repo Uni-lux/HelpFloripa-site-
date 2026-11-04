@@ -3243,3 +3243,6 @@ body:has(.story-visor, .flash-criar) .toast { width: max-content; max-width: min
 .story-onde { font-size: 12px; font-weight: 750; padding: 3px 9px 3px 7px; }
 /* "Publicado por você" / "por Ana" no flash do negócio: linha secundária, menor que o nome. */
 .story-por { font-size: 12.5px; font-weight: 650; color: rgba(255,255,255,.82); line-height: 1.2; }
+
+/* Sem o retângulo azul que o celular pinta por cima do que é tocado (pedido do dono, 04/11/2026). */
+html { -webkit-tap-highlight-color: transparent; }

@@ -165,3 +165,6 @@ svg.i.s { width: 16px; height: 16px; }
 .bloqueio-email svg { color: var(--gold); margin-top: 1px; }
 .botao[disabled] .tempo { font-variant-numeric: tabular-nums; }
 .rodape-form.centro { text-align: center; }
+
+/* Sem o retângulo azul que o celular pinta por cima do que é tocado (pedido do dono, 04/11/2026). */
+html { -webkit-tap-highlight-color: transparent; }

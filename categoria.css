@@ -290,3 +290,6 @@ body.pg-compacta .classes-painel .classe-link svg { width: 15px; height: 15px; }
   body.pg-compacta .hero .lead { font-size: 16px; }
 }
 }
+
+/* Sem o retângulo azul que o celular pinta por cima do que é tocado (pedido do dono, 04/11/2026). */
+html { -webkit-tap-highlight-color: transparent; }

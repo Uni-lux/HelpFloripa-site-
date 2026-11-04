@@ -15,7 +15,7 @@ import { ouvirItensEquipe } from "./avisos-equipe.js?v=1";
 import { enquetesEncerradas } from "./enquetes.js?v=7";
 import "./painel-avisos.js?v=46"; // o sino abre o painel de notificações na própria página
 import "./chat-gaveta.js?v=4";
-import "./sem-menu-imagem.js?v=1"; // segurar a foto não abre o menu de baixar/compartilhar
+import "./sem-menu-imagem.js?v=2"; // segurar a foto não abre o menu de baixar/compartilhar
 import { docComValidade } from "./leituras.js?v=4"; // "Mensagens" abre as conversas por cima da página, sem sair dela
 
 const $ = (id) => document.getElementById(id);

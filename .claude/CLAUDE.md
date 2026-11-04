@@ -1713,6 +1713,15 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   (usuarios-app.js: `esquecerFlashesNegocio` + negócios, números e publicações). **Barra de baixo:** o cartão
   "Estatísticas do perfil" colado nela parecia uma 2ª barra: fundo 97% + desfoque e esmaecido `body.com-barra::after`
   (128 px, rede.css e barra-rede.js), padding-bottom 92 px. Teste `t-puxar-atualizar.mjs` (17).
+- **Anel do flash por classe, sem o retângulo do toque e puxar no Início/vitrines (04/11/2026, PR depois do #163, sem regra
+  nova):** prints dele. `flash-negocio.js`: anel na cor da classe (`COR_TIPO`, `--fn-cor` no avatar; visto continua cinza).
+  Toque: `-webkit-tap-highlight-color: transparent` em `html` (sem-menu-imagem.js + categoria/rede/info/acesso/mensagens.css).
+  **Puxar para atualizar** também no Início (inicio.js: `buscarDeNovo`, tira `hf-totais-inicio`, `localSecoesP = null`, chama
+  `carregar` de novo; o botão do Perto de você liga uma vez só, `bt._ligado`) e nas vitrines (vitrine.js `atualizarVitrine`:
+  zera listas/donos/planos/notas, `esquecerFlashesNegocio`, `carregarLote(true)`; o que está na tela fica até a lista nova
+  chegar). Esqueletos no formato do cartão (capa, foto, linhas: `.mini.esqueleto i.sk-*` e `.vt-esqueleto i.sk-*`, 6 na
+  vitrine). Teste `t-anel-puxar-inicio.mjs` (dedo fora do campo de busca: dentro de campo o puxar não liga).
+  `t-puxar-atualizar` às vezes falha no "Perfil: ainda não está na tela" (tempo; passa rodando de novo, igual no main).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
