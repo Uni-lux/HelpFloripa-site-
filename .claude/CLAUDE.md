@@ -1753,6 +1753,18 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   (brilho + desfoque 14 px) e fica nítida em 0,45 s; já pronta, ícone ≤ 40 px, logos, topo, criador/visor do Flash, Vídeos,
   canvas e `[data-sem-suave]` ficam de fora; 15 s no máximo. `fundoSuave(div, url)` para fundos (inicio.js `fundo` e as 15
   capas/fotos de fundo do vitrine.js). Teste `t-novidades.mjs` (FS_PORTA=8086, 20 verificações).
+- **Help Floripa no Google (04/11/2026, PR depois do #166, sem regra nova):** prints dele (resultado "Help Floripa: Entrar" com
+  "Grátis e sem comissão"; queria como o Facebook). Com o site fechado, o Google entra pelo `/`, é mandado ao `login.html` e
+  mostra ele. Feito: títulos/descrições revistos nas 15 páginas públicas (login = "Help Floripa · Entrar ou criar conta",
+  índice = "Help Floripa | Tudo que você precisa em um só lugar"), bloco `<!-- SEO: início ... SEO: fim -->` em cada uma
+  (canonical, og:*, twitter, imagem `compartilhar.png` 1200×630 gerada do logo-login.png), JSON-LD WebSite + Organization
+  (nome "Help Floripa", logo icone-512, Instagram em sameAs) no index.html e login.html, `noindex` nas 17 páginas da conta
+  (não bloquear no robots, senão o Google não vê o noindex), `sitemap.xml` só com as 15 públicas (vitrines entram quando o
+  site abrir), página nova **recuperar-senha.html/.js** ("Esqueceu a senha?": `sendPasswordResetEmail`, mesma resposta com ou
+  sem conta, espera 60 s/5 min `hf-senha-ate`, `?email=`; em PAGINAS_LIVRES e LIVRES_SEM_EMAIL; o login aponta para ela).
+  "Grátis e sem comissão" virou "Grátis para quem procura e contrata"; cadastro "Grátis para criar e usar a conta".
+  Teste `t-seo.mjs` (31); `t-sem-login` lista a página nova. Falta ele: Search Console (enviar sitemap, pedir nova
+  indexação do `/` e do login.html) e Perfil da Empresa no Google. Atalhos (sitelinks) o Google escolhe sozinho.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

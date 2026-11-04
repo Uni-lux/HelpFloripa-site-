@@ -1,3 +1,6 @@
+# Help Floripa — o que os buscadores podem ler.
+# As páginas da área de quem tem conta (Diário, Mensagens, perfil, painel...) têm <meta name="robots" content="noindex">:
+# o buscador precisa poder abri-las para ver esse aviso, por isso elas não ficam bloqueadas aqui.
 User-agent: *
 Allow: /
 Disallow: /cadastrar.html

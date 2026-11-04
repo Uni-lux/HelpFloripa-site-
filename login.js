@@ -50,12 +50,7 @@ if (destino !== "index.html") $("linkCadastro").href = `cadastre-se.html?continu
     }
   });
 
-  $("esqueci").addEventListener("click", async () => {
-    const email = $("email").value.trim();
-    if (!email) { aviso("avisoLogin", "Digite seu e-mail acima e toque de novo em \"Esqueci minha senha\".", "info"); $("email").focus(); return; }
-    try {
-      await A.sendPasswordResetEmail(auth, email);
-      aviso("avisoLogin", `Se existir uma conta com ${email}, enviamos um link para criar uma nova senha. Veja também a caixa de spam.`, "ok");
-    } catch (err) { aviso("avisoLogin", mensagemErro(err.code), "erro"); }
-  });
+  // "Esqueceu a senha?" vai para a página própria, já com o e-mail digitado.
+  const linkSenha = () => { const e = $("email").value.trim(); $("esqueci").href = "recuperar-senha.html" + (e ? "?email=" + encodeURIComponent(e) : ""); };
+  $("email").addEventListener("input", linkSenha); linkSenha();
 })();
