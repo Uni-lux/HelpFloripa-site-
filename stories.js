@@ -14,7 +14,7 @@ import {
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados,
   responderNoChat, cartaoRespostaCaixa, fecharFolha, ajudaPublico
-} from "./rede.js?v=123";
+} from "./rede.js?v=124";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { combinaPublico, leitorDe, temPublico, resumoPublico, publicoParaGravar } from "./publico-alvo.js?v=1";
@@ -3614,9 +3614,14 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
   const encaixarLinha = () => {
     const l = rodape.querySelector(".story-linha-acoes"); if (!l) return;
     l.style.marginBottom = "";
-    const qb = quadro.getBoundingClientRect().bottom, r = l.getBoundingClientRect();
-    if (r.height && r.top < qb - 1 && r.bottom > qb + 1) l.style.marginBottom = Math.ceil(r.bottom - qb + 10) + "px";
+    // Medida pelo layout (offsetTop/offsetHeight), não pela tela: durante a animação de abrir e o giro do cubo o
+    // visor está com transform e o getBoundingClientRect dava números errados (a linha continuava na beirada).
+    const qb = quadro.offsetTop + quadro.offsetHeight;
+    const topo = rodape.offsetTop + l.offsetTop, base = topo + l.offsetHeight;
+    if (l.offsetHeight && topo < qb - 1 && base > qb - 8) l.style.marginBottom = Math.ceil(base - qb + 10) + "px";
   };
+  // Refaz quando o visor muda de tamanho (teclado, girar o celular, barra do navegador) ou a linha muda.
+  try { const ro = new ResizeObserver(() => encaixarLinha()); ro.observe(caixa); ro.observe(rodape); } catch {}
   const reencaixar = () => { quadro.querySelectorAll(".story-enq").forEach((w) => encaixar(w, Number(w.dataset.fx), Number(w.dataset.fy))); encaixarLinha(); };
   // ---------- responder a caixa de perguntas em foco ----------
   let focoCx = null;
@@ -3924,7 +3929,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
         aoAbrir: () => pausar(true), aoFechar: () => { if (document.querySelector(".story-visor")) document.body.classList.add("travado"); pausar(false); } });
       linhaAcoes().prepend(bm);
     }
-    if (rodape.querySelector(".story-linha-acoes")) requestAnimationFrame(encaixarLinha);
+    if (rodape.querySelector(".story-linha-acoes")) { encaixarLinha(); requestAnimationFrame(encaixarLinha); setTimeout(encaixarLinha, 400); }
     if (meu) {
       const v = el("button", "story-vistos"); v.type = "button";
       const rostos = el("span", "rostos");
