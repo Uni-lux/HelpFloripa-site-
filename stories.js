@@ -14,7 +14,7 @@ import {
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados,
   responderNoChat, cartaoRespostaCaixa, fecharFolha, ajudaPublico
-} from "./rede.js?v=120";
+} from "./rede.js?v=122";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { combinaPublico, leitorDe, temPublico, resumoPublico, publicoParaGravar } from "./publico-alvo.js?v=1";
@@ -61,6 +61,27 @@ const erroPublicar = (e) => (e?.amigavel || e?.code === "limite-diario" ? e.mess
 // A fileira aparece NA HORA (04/11/2026): "Seu flash" e os anéis de quem tinha flash da última vez (guardados no aparelho,
 // só ids e horários, sem as fotos) e a leitura do servidor troca por trás. Tocar num anel antes de chegar espera a leitura.
 let carregandoBarra = null;
+// Um flash por vez (como o Instagram): o anel guardado só tem o id; o documento (com a foto) é lido quando ele vai
+// aparecer, e o PRÓXIMO já é lido e a foto decodificada por trás, para a troca ser imediata.
+const lendoFlash = new Map();
+function carregarFlash(s) {
+  if (!s?._leve) return Promise.resolve(true);
+  if (!lendoFlash.has(s.id)) lendoFlash.set(s.id, fb.getDoc(fb.doc(fb.db, "stories", s.id)).then((d) => {
+    if (!d.exists()) return false;
+    const x = d.data({ serverTimestamps: "estimate" });
+    if (!ativo(x) || (x.autorId !== eu.uid && (x.perfil === false || !podeVer(x)))) return false;
+    Object.assign(s, x); delete s._leve;
+    return true;
+  }).catch(() => { lendoFlash.delete(s.id); return false; }));
+  return lendoFlash.get(s.id);
+}
+const fotosProntas = new Set();
+function prepararFoto(url) {
+  if (!url || fotosProntas.has(url) || !/^(data:image\/|https:)/.test(url)) return;
+  fotosProntas.add(url);
+  try { const im = new Image(); im.decoding = "async"; im.src = url; im.decode?.().catch(() => {}); } catch {}
+}
+function adiantar(s) { if (!s) return; carregarFlash(s).then((ok) => { if (ok && s.tipo !== "video") prepararFoto(s.midia); }); }
 const perfisBarra = new Map(); // uid -> { nome, fotoPerfil } (o que já apareceu na fileira)
 const chaveBarra = () => "hf-flash-barra-" + eu.uid;
 function guardarBarra() {
@@ -86,13 +107,14 @@ function barraGuardada() {
     return m;
   } catch { return null; }
 }
-export async function montarStories(alvo) {
+export async function montarStories(alvo, { esperar = null } = {}) {
   if (!alvo) return;
   barra = alvo;
   const guardada = barraGuardada();
   porAutor = guardada || new Map();
   pintarBarra();
-  carregandoBarra = carregar().finally(() => { carregandoBarra = null; });
+  // A fileira guardada aparece já; a leitura (com as fotos dos flashes) espera o Diário mostrar as primeiras publicações.
+  carregandoBarra = (esperar ? Promise.race([esperar, new Promise((ok) => setTimeout(ok, 5000))]) : Promise.resolve()).then(() => carregar()).finally(() => { carregandoBarra = null; });
   await carregandoBarra;
 }
 async function carregar() {
@@ -213,25 +235,12 @@ function circulo({ uid, nome, foto, nomeReal, meu = false, lista = [] }) {
   if (tem && !visto && !meu) { const r = el("span", "raio"); r.appendChild(icone("raio", "i xs")); anel.appendChild(r); }
   b.append(anel, el("span", "nome", nome));
   // Seu flash: tocar na foto abre os seus flashes; tocar no "+" (ou sem flash nenhum) abre o criador.
+  // Encostou o dedo no anel: o 1º flash dele já começa a baixar (antes de soltar o toque).
+  b.addEventListener("pointerdown", () => { const l = porAutor.get(uid) || []; adiantar(l.find((x) => !vistosLocal.has(x.id)) || l[0]); }, { passive: true });
   b.addEventListener("click", async (e) => {
     if (meu && (!tem || e.target.closest(".mais"))) { abrirCriador(); return; }
     // Anel vindo do aparelho (sem as fotos ainda): espera a leitura do servidor.
-    // Anel vindo do aparelho (sem as fotos ainda): lê SÓ os flashes dessa pessoa (rápido) em vez de esperar a fileira toda.
-    if (carregandoBarra && (porAutor.get(uid) || []).some((x) => x._leve)) {
-      b.classList.add("carregando");
-      const so = await Promise.race([
-        flashesNoArDe(uid).then((docs) => {
-          const l = docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter((x) => ativo(x) && (uid === eu.uid || (x.perfil !== false && podeVer(x)))).sort((a, c) => ms(a.criadoEm) - ms(c.criadoEm));
-          if (l.length && (porAutor.get(uid) || []).some((x) => x._leve)) porAutor.set(uid, l);
-          return true;
-        }).catch(() => false),
-        carregandoBarra.then(() => false, () => false),
-      ]);
-      b.classList.remove("carregando");
-      if (!(porAutor.get(uid) || []).length || (porAutor.get(uid) || []).some((x) => x._leve)) return;
-      // A fileira ainda não chegou: abre só essa pessoa (as outras ainda não têm as fotos).
-      if (so && carregandoBarra) { abrirVisor(uid, { so: true }); return; }
-    }
+    // Anel guardado no aparelho (sem as fotos ainda): abre JÁ; o visor baixa cada flash na hora de mostrar (carregarFlash).
     if (meu) { abrirVisor(eu.uid); return; }
     abrirVisor(uid);
   });
@@ -3641,6 +3650,14 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
     const lista = mapa.get(ordem[ai]) || [];
     const s = lista[si]; if (!s) { fechar(); return; }
     const meu = s.autorId === eu.uid;
+    // Flash guardado só com o id: baixa agora (rodinha no lugar da foto) e mostra; se sumiu/venceu, pula.
+    if (s._leve) {
+      clearTimeout(timer);
+      const r = el("div", "story-lendo"); r.append(el("span", "story-roda"));
+      palco.replaceChildren(r);
+      carregarFlash(s).then((ok) => { if (fechado || atual() !== s) return; if (!ok) { pularFlash(s, false); return; } mostrar(dirAnim); });
+      return;
+    }
     // Flash de uma publicação que foi apagada: o seu sai junto; o de outra pessoa é pulado (confere uma vez).
     if (s.postDe?.postId && s._postOk === undefined) {
       clearTimeout(timer); palco.replaceChildren();
@@ -3658,6 +3675,8 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
       return;
     }
     pausado = false; caixa.classList.remove("pausado");
+    // O próximo flash (desta pessoa ou o 1º não visto da próxima) já vem por trás.
+    adiantar(lista[si + 1] || (ordem[ai + 1] ? (mapa.get(ordem[ai + 1]) || [])[inicioDo(ordem[ai + 1])] : null));
     if (dirAnim && !semEntrada) entrarCubo(dirAnim);
     semEntrada = false;
     barras.replaceChildren(...lista.map((_, k) => { const b = el("span", "story-barra"); const i = el("i"); if (k < si) i.style.width = "100%"; b.appendChild(i); return b; }));
@@ -4119,7 +4138,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
     const r = caixa.getBoundingClientRect();
     face = el("div", "story-face");
     Object.assign(face.style, { left: r.left + "px", top: r.top + "px", width: r.width + "px", height: r.height + "px", borderRadius: getComputedStyle(caixa).borderRadius });
-    if (x?.mediaUrl && x.mediaTipo !== "video" && /^(data:image\/|https:)/.test(x.mediaUrl)) { const im = document.createElement("img"); im.src = x.mediaUrl; im.alt = ""; face.appendChild(im); }
+    if (x?.midia && x.tipo !== "video" && /^(data:image\/|https:)/.test(x.midia)) { const im = document.createElement("img"); im.src = x.midia; im.alt = ""; face.appendChild(im); }
     face._u = u;
     fundo.appendChild(face);
     return face;
