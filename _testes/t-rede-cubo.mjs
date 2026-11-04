@@ -1,4 +1,4 @@
-// Rede (rede.html): cache do aparelho nos quadros (Diário e Flash aparecem antes do servidor), troca de aba em cubo,
+// Rede (rede.html): cache do aparelho nos quadros (Diário e Flash aparecem antes do servidor), troca de aba com deslize reto (sem cubo),
 // troca de pessoa no Flash em cubo (também com "reduzir movimento"), avisos só quando sai algo escrito e nome "Vídeos".
 // Uso: node t-rede-cubo.mjs (rodar seed.mjs antes)
 process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8085";
@@ -39,7 +39,7 @@ ok(!/^\.\.\./.test(nomeAnel) && nomeAnel.length > 0, `anel guardado já com o no
 await cdp0.send("Network.emulateNetworkConditions", { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
 await p.waitForTimeout(6000);
 
-// 2) troca de aba em cubo (com "reduzir movimento" ligado)
+// 2) troca de aba com deslize reto, sem giro (com "reduzir movimento" ligado)
 const cdp = await A.ctx.newCDPSession(p);
 const toque = (type, pts) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: pts.map(([x, y], i) => ({ x, y, id: i })) });
 const W = await p.evaluate(() => innerWidth);
@@ -54,15 +54,15 @@ const y = await feed().evaluate(() => {
 await toque("touchStart", [[W - 40, y]]);
 for (let k = 1; k <= 8; k++) { await toque("touchMove", [[W - 40 - k * 18, y + 1]]); await p.waitForTimeout(18); }
 const meio = await p.evaluate(() => [...document.querySelectorAll(".hf-quadro.movendo")].map((q) => q.style.transform));
-ok(meio.length === 2 && meio.every((t) => /rotateY\(-?\d/.test(t)), `as duas abas giram como um cubo (${meio.map((t) => (t.match(/rotateY\([^)]*\)/) || [""])[0]).join(" | ")})`);
+ok(meio.length === 2 && meio.every((t) => /translate3d\(-?\d/.test(t) && !/rotate/.test(t)), `as duas abas andam juntas, sem cubo (${meio.join(" | ")})`);
 for (let k = 9; k <= 14; k++) { await toque("touchMove", [[W - 40 - k * 18, y + 1]]); await p.waitForTimeout(18); }
 await toque("touchEnd", []);
 await p.waitForTimeout(150);
 const animando = await p.evaluate(() => document.querySelector(".hf-quadro.movendo")?.style.transform || "");
 await p.waitForTimeout(600);
-ok(/rotateY/.test(animando), "o giro continua sozinho depois de soltar, mesmo com as animações desligadas");
+ok(/translate3d/.test(animando) && !/rotate/.test(animando), "o deslize continua sozinho depois de soltar, mesmo com as animações desligadas");
 ok(await p.evaluate(() => document.querySelector(".hf-quadro.ativo")?.dataset.id) === "mural", "chegou na Comunidade");
-ok(await p.evaluate(() => !document.querySelector(".hf-quadro[style*=rotateY]")), "sem giro sobrando no fim");
+ok(await p.evaluate(() => !document.querySelector(".hf-quadro[style*=rotateY], .hf-quadro[style*=translate3d]")), "sem giro nem deslize sobrando no fim");
 // barra de baixo igual no item atual (azul com fundinho), sem o "hover" preso
 const est = await p.evaluate(() => { const d = document.querySelector('.hf-quadro[data-id="mural"]').contentDocument; const a = d.querySelector("#barraRede [aria-current=page]"); const cs = getComputedStyle(a); return { cor: cs.color, fundo: cs.backgroundColor }; });
 ok(est.fundo !== "rgba(0, 0, 0, 0)", `item atual da barra com o fundinho (${est.cor} · ${est.fundo})`);

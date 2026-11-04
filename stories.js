@@ -14,7 +14,7 @@ import {
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados,
   responderNoChat, cartaoRespostaCaixa, fecharFolha, ajudaPublico
-} from "./rede.js?v=122";
+} from "./rede.js?v=123";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { combinaPublico, leitorDe, temPublico, resumoPublico, publicoParaGravar } from "./publico-alvo.js?v=1";
@@ -3609,7 +3609,15 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
     empilhar(l.map((x) => Object.assign(x, { w: x.w2, el: x.w })), H * 0.11, H - Math.max(H * 0.1, 70))
       .forEach((x) => { x.el.style.top = x.cy + "px"; });
   }
-  const reencaixar = () => quadro.querySelectorAll(".story-enq").forEach((w) => encaixar(w, Number(w.dataset.fx), Number(w.dataset.fy)));
+  // Linha de "Mencionados"/"Adicionar ao seu flash": em celular comprido a foto termina acima do rodapé e a linha
+  // ficava metade em cima da foto, metade fora (parecia desalinhada). Se cortar a beirada, sobe para dentro da foto.
+  const encaixarLinha = () => {
+    const l = rodape.querySelector(".story-linha-acoes"); if (!l) return;
+    l.style.marginBottom = "";
+    const qb = quadro.getBoundingClientRect().bottom, r = l.getBoundingClientRect();
+    if (r.height && r.top < qb - 1 && r.bottom > qb + 1) l.style.marginBottom = Math.ceil(r.bottom - qb + 10) + "px";
+  };
+  const reencaixar = () => { quadro.querySelectorAll(".story-enq").forEach((w) => encaixar(w, Number(w.dataset.fx), Number(w.dataset.fy))); encaixarLinha(); };
   // ---------- responder a caixa de perguntas em foco ----------
   let focoCx = null;
   function medirFoco() {
@@ -3916,6 +3924,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
         aoAbrir: () => pausar(true), aoFechar: () => { if (document.querySelector(".story-visor")) document.body.classList.add("travado"); pausar(false); } });
       linhaAcoes().prepend(bm);
     }
+    if (rodape.querySelector(".story-linha-acoes")) requestAnimationFrame(encaixarLinha);
     if (meu) {
       const v = el("button", "story-vistos"); v.type = "button";
       const rostos = el("span", "rostos");

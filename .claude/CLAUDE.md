@@ -1683,6 +1683,12 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   **Campo da foto do flash é `midia` (+ `tipo` video), não `mediaUrl`** — a face do cubo do PR #158 usava `mediaUrl` e
   aparecia vazia (o teste também usava o nome errado). Medido (fotos reais, 4G): fileira 1 s, visor 0,16 s, 1ª foto 3,8 s,
   próximo flash 0,02 s. Teste `t-flash-rapido.mjs`.
+- **Abas da rede sem cubo, ícone dos Vídeos e chip de mencionados (04/11/2026, PR depois do #159, sem regra nova):**
+  pedido dele: trocar de aba na rede (rede-app.js `pintarDeslize`) é um deslize reto, as duas abas andam juntas, sem giro;
+  o cubo ficou SÓ no Flash (trocar de pessoa) e o Diário → Flash continua igual. Ícone `i-reels` (Vídeos) refeito: tela
+  vertical com furinhos de filme e play (o claquete ficava igual ao do Instagram). Chip "Mencionados" do visor com 40 px
+  e o mesmo recuo do "Visualizações"; em celular comprido ficava metade em cima da foto e metade fora: `encaixarLinha`
+  (stories.js, também no resize) sobe a linha para dentro da foto. Teste `t-rede-cubo.mjs` atualizado.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

@@ -181,23 +181,13 @@ function acenderNaCopia(c, k) {
     if (av) av.style.boxShadow = on ? `0 0 0 2px ${c._corAtiva}` : "none";
   });
 }
-// Transição em CUBO (como trocar de pessoa no Flash): a aba que sai gira para trás pela beirada e a vizinha entra
-// girando pelo outro lado. Feita em JavaScript (quadro a quadro), então funciona mesmo com as animações do celular
-// desligadas (que desligam as transições do CSS).
-const PERSP = 1200;
-function pintarCubo(a, p) {
-  const { de, para, lado } = a, w = W();
-  if (lado === "esq") { // dedo para a esquerda: próxima aba entra pela direita
-    de.style.transformOrigin = "100% 50%"; para.style.transformOrigin = "0% 50%";
-    de.style.transform = `perspective(${PERSP}px) translate3d(${-p * w}px,0,0) rotateY(${-90 * p}deg)`;
-    para.style.transform = `perspective(${PERSP}px) translate3d(${(1 - p) * w}px,0,0) rotateY(${90 * (1 - p)}deg)`;
-  } else {
-    de.style.transformOrigin = "0% 50%"; para.style.transformOrigin = "100% 50%";
-    de.style.transform = `perspective(${PERSP}px) translate3d(${p * w}px,0,0) rotateY(${90 * p}deg)`;
-    para.style.transform = `perspective(${PERSP}px) translate3d(${-(1 - p) * w}px,0,0) rotateY(${-90 * (1 - p)}deg)`;
-  }
-  // a face que vira para trás escurece um pouco (como um cubo de verdade)
-  de.style.opacity = String(1 - 0.35 * p); para.style.opacity = String(0.65 + 0.35 * p);
+// Transição das abas: deslize reto (a aba que sai vai para o lado e a vizinha entra junto, sem giro).
+// O cubo ficou só no Flash (trocar de pessoa). Feita em JavaScript (quadro a quadro), então funciona mesmo com as
+// animações do celular desligadas (que desligam as transições do CSS).
+function pintarDeslize(a, p) {
+  const { de, para, lado } = a, w = W(), s = lado === "esq" ? -1 : 1;
+  de.style.transform = `translate3d(${s * p * w}px,0,0)`;
+  para.style.transform = `translate3d(${-s * (1 - p) * w}px,0,0)`;
 }
 function comecar(k, lado) {
   const alvo = vizinho(k, lado);
@@ -212,14 +202,14 @@ function comecar(k, lado) {
   if (copia) { bDe.style.visibility = "hidden"; if (bPara) bPara.style.visibility = "hidden"; }
   arraste = { de, para, lado, alvo, k, p: 0, bDe, bPara, copia, aceso: false };
   document.body.classList.add("girando");
-  pintarCubo(arraste, 0);
+  pintarDeslize(arraste, 0);
   return true;
 }
 function mover(dx) {
   if (!arraste || arraste.fim) return;
   const d = arraste.lado === "dir" ? Math.max(0, dx) : Math.min(0, dx);
   arraste.p = Math.min(1, Math.abs(d) / W());
-  pintarCubo(arraste, arraste.p);
+  pintarDeslize(arraste, arraste.p);
   const aceso = arraste.p > 0.5;
   if (aceso !== arraste.aceso) { arraste.aceso = aceso; acenderNaCopia(arraste.copia, aceso ? arraste.alvo : arraste.k); }
 }
@@ -236,7 +226,7 @@ function terminar(vai, v = 0) {
   const t0 = performance.now(), suave = (t) => 1 - Math.pow(1 - t, 3);
   const passo = (agora) => {
     const t = Math.min(1, (agora - t0) / dur);
-    pintarCubo(a, p0 + (p1 - p0) * suave(t));
+    pintarDeslize(a, p0 + (p1 - p0) * suave(t));
     if (t < 1) { requestAnimationFrame(passo); return; }
     for (const q of [de, para]) { q.classList.remove("anima", "movendo", "entra"); q.style.transform = ""; q.style.transformOrigin = ""; q.style.opacity = ""; }
     arraste = null;
