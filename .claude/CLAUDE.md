@@ -1676,6 +1676,13 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   (`ouvirAvisos`) e a leitura do Flash (`montarStories(alvo, {esperar})`) esperam `primeirasPublicacoes` (ou 5 s); a rede só
   carrega as outras abas depois de `__hfShell.conteudoPronto()` (feed) ou 10 s. Resultado: 3 s até a 1ª publicação, mural
   5,6 s. A solução definitiva é o Storage (fotos fora dos documentos).
+- **Flash como o Instagram (04/11/2026, mesmo PR):** tocar num anel guardado (`_leve`, só id) abre o visor NA HORA
+  (antes esperava a fileira inteira com todas as fotos); `carregarFlash(s)` lê só aquele `stories/{id}` quando vai
+  aparecer (rodinha `.story-lendo`; sumiu/venceu = pula), `adiantar` lê o próximo (desta pessoa ou o 1º não visto da
+  próxima) e decodifica a foto por trás (`prepararFoto`); encostar o dedo no anel (`pointerdown`) já começa a baixar.
+  **Campo da foto do flash é `midia` (+ `tipo` video), não `mediaUrl`** — a face do cubo do PR #158 usava `mediaUrl` e
+  aparecia vazia (o teste também usava o nome errado). Medido (fotos reais, 4G): fileira 1 s, visor 0,16 s, 1ª foto 3,8 s,
+  próximo flash 0,02 s. Teste `t-flash-rapido.mjs`.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

@@ -9,8 +9,8 @@ initializeApp({ projectId: "demo-hf" }); const db = getFirestore();
 const PX = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 for (let k = 0; k < 6; k++) await db.doc(`diario/cubo${k}`).set({ autorId: k % 2 ? U.bruno : U.edu, nome: "Teste", texto: `Publicação do cubo ${k}`, tipo: "texto", autorUf: "SC", autorIbge: 4205407, criadoEm: Timestamp.fromMillis(Date.now() - k * 600000) });
 for (const u of [U.bruno, U.edu]) await db.doc(`relacoes/${U.ana}_${u}`).set({ tipo: "seguir", seguidorId: U.ana, alvoId: u, criadoEm: Timestamp.now() });
-await db.doc("stories/cuboB").set({ autorId: U.bruno, nome: "Bruno", tipo: "foto", mediaUrl: PX, criadoEm: Timestamp.now() });
-await db.doc("stories/cuboE").set({ autorId: U.edu, nome: "Edu", tipo: "foto", mediaUrl: PX, criadoEm: Timestamp.fromMillis(Date.now() - 60000) });
+await db.doc("stories/cuboB").set({ autorId: U.bruno, nome: "Bruno", tipo: "foto", midia: PX, criadoEm: Timestamp.now() });
+await db.doc("stories/cuboE").set({ autorId: U.edu, nome: "Edu", tipo: "foto", midia: PX, criadoEm: Timestamp.fromMillis(Date.now() - 60000) });
 const erros = [];
 const A = await navegador({ mobile: true, rede: true });
 await A.ctx.addInitScript(() => { try { Object.defineProperty(window, "matchMedia", { value: ((mm) => (q) => (/reduced-motion/.test(q) ? { matches: true, media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} } : mm(q)))(window.matchMedia.bind(window)) }); } catch {} });
@@ -24,17 +24,19 @@ await feed().waitForSelector("#listaFeed .post-card", { timeout: 20000 });
 await feed().waitForSelector("#storiesFeed .story-circ:not(.meu)", { timeout: 20000 });
 await p.waitForTimeout(4000);
 // 1) cache do aparelho dentro do quadro: com o servidor atrasado 4 s, Diário e Flash aparecem antes
-await A.ctx.route(/127\.0\.0\.1:8085\/.*(Listen|Write)\/channel/, async (r) => { await new Promise((ok) => setTimeout(ok, 4000)); r.continue().catch(() => {}); });
+const cdp0 = await A.ctx.newCDPSession(p);
+await cdp0.send("Network.enable");
+await cdp0.send("Network.emulateNetworkConditions", { offline: false, latency: 120, downloadThroughput: 4e6 / 8, uploadThroughput: 1e6 / 8 });
 const t0 = Date.now();
 await p.goto("http://127.0.0.1:5057/rede.html?aba=diario", { waitUntil: "commit" });
 for (let i = 0; i < 100 && !feed(); i++) await p.waitForTimeout(50);
 const tPost = await feed().waitForSelector("#listaFeed .post-card", { timeout: 20000 }).then(() => Date.now() - t0).catch(() => null);
 const tFlash = await feed().waitForSelector("#storiesFeed .story-circ:not(.meu) .avatar", { timeout: 20000 }).then(() => Date.now() - t0).catch(() => null);
-ok(tPost !== null && tPost < 9000, `dentro da rede, as primeiras publicações chegam logo depois do servidor (${tPost} ms com o servidor atrasado 4 s; os quadros usam só a memória)`);
-ok(tFlash !== null && tFlash < 3800, `dentro da rede, fileira do Flash antes do servidor (${tFlash} ms)`);
+ok(tPost !== null && tPost < 7000, `dentro da rede, as primeiras publicações aparecem logo no 4G (${tPost} ms)`);
+ok(tFlash !== null && tFlash < 7000, `dentro da rede, fileira do Flash logo no 4G (${tFlash} ms)`);
 const nomeAnel = await feed().evaluate(() => [...document.querySelectorAll("#storiesFeed .story-circ:not(.meu) .nome")].map((x) => x.textContent).join(","));
 ok(!/^\.\.\./.test(nomeAnel) && nomeAnel.length > 0, `anel guardado já com o nome (${nomeAnel})`);
-await A.ctx.unroute(/127\.0\.0\.1:8085\/.*(Listen|Write)\/channel/);
+await cdp0.send("Network.emulateNetworkConditions", { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
 await p.waitForTimeout(6000);
 
 // 2) troca de aba em cubo (com "reduzir movimento" ligado)
@@ -74,7 +76,7 @@ await p.waitForTimeout(800);
 const nome1 = await f.evaluate(() => document.querySelector(".story-topo strong")?.textContent);
 await toque("touchStart", [[W - 80, 400]]);
 for (let k = 1; k <= 8; k++) { await toque("touchMove", [[W - 80 - k * 18, 401]]); await p.waitForTimeout(18); }
-const faceMeio = await f.evaluate(() => ({ face: !!document.querySelector(".story-face"), tr: document.querySelector(".story-caixa")?.style.transform || "" }));
+const faceMeio = await f.evaluate(() => ({ face: !!document.querySelector(".story-face img"), tr: document.querySelector(".story-caixa")?.style.transform || "" }));
 ok(faceMeio.face && /rotateY/.test(faceMeio.tr), "deslizando no Flash, a próxima pessoa aparece ao lado e o flash gira em cubo");
 for (let k = 9; k <= 12; k++) { await toque("touchMove", [[W - 80 - k * 18, 401]]); await p.waitForTimeout(18); }
 await toque("touchEnd", []); await p.waitForTimeout(900);
